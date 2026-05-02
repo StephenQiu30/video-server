@@ -3,6 +3,7 @@ set -euo pipefail
 
 export PYTHONPATH="${PYTHONPATH:-}:apps/api:apps/worker:packages/shared"
 export APP_ENV="${APP_ENV:-local}"
+export RQ_WORKER_MODE="${RQ_WORKER_MODE:-simple}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 if [ ! -f ".env" ]; then

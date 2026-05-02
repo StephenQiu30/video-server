@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+import shutil
 import subprocess
 
 from sqlalchemy import select
@@ -10,7 +11,7 @@ from app.db.session import SessionLocal
 from app.models import DownloadTask
 from app.services.storage import ObjectStorage
 from app.services.tasks import add_task_event
-from app.utils.sanitize import safe_filename
+from app.utils.sanitize import redact_url, safe_filename
 from video_downloader_shared.states import TaskState
 
 
@@ -23,9 +24,10 @@ def process_download_task(task_id: str) -> None:
         if task.state == TaskState.CANCELED.value:
             return
         _mark_running(db, task)
+        _assert_media_tools_available()
         output_path = _download(task, db)
         _assert_size(output_path)
-        _probe_with_ffprobe(output_path)
+        _probe_with_ffprobe(output_path, db, task)
         object_key = _upload(task, output_path)
         task.state = TaskState.SUCCEEDED.value
         task.progress = 100
@@ -70,8 +72,13 @@ def _download(task: DownloadTask, db: Session) -> Path:
             task.progress = max(5, min(95, int(downloaded / total * 90)))
             db.commit()
 
+    requested_format = task.format_id or "best"
+    ffmpeg_path = shutil.which("ffmpeg")
+    if not ffmpeg_path:
+        raise RuntimeError("当前环境缺少 FFmpeg，无法执行下载任务")
+
     options = {
-        "format": task.format_id or "best",
+        "format": requested_format,
         "outtmpl": output_template,
         "noplaylist": True,
         "quiet": True,
@@ -80,10 +87,21 @@ def _download(task: DownloadTask, db: Session) -> Path:
         "max_filesize": settings.max_file_size_bytes,
         "socket_timeout": 30,
     }
+    options["ffmpeg_location"] = ffmpeg_path
+    options["merge_output_format"] = "mp4"
     with YoutubeDL(options) as ydl:
         result = ydl.extract_info(task.source_url, download=True)
         filename = ydl.prepare_filename(result)
-    return Path(filename)
+    return _resolve_output_path(task_dir, Path(filename))
+
+
+def _resolve_output_path(task_dir: Path, prepared_path: Path) -> Path:
+    if prepared_path.exists():
+        return prepared_path
+    files = [path for path in task_dir.iterdir() if path.is_file()]
+    if not files:
+        raise RuntimeError("下载完成后未找到输出文件")
+    return max(files, key=lambda path: path.stat().st_mtime)
 
 
 def _assert_size(path: Path) -> None:
@@ -93,9 +111,12 @@ def _assert_size(path: Path) -> None:
         raise RuntimeError(f"文件超过限制：{size} > {max_size}")
 
 
-def _probe_with_ffprobe(path: Path) -> None:
+def _probe_with_ffprobe(path: Path, db: Session, task: DownloadTask) -> None:
+    ffprobe_path = shutil.which("ffprobe")
+    if not ffprobe_path:
+        raise RuntimeError("当前环境缺少 ffprobe，无法校验输出文件")
     result = subprocess.run(
-        ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", str(path)],
+        [ffprobe_path, "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", str(path)],
         check=False,
         capture_output=True,
         text=True,
@@ -103,6 +124,12 @@ def _probe_with_ffprobe(path: Path) -> None:
     )
     if result.returncode != 0:
         raise RuntimeError("FFmpeg / ffprobe 无法校验输出文件")
+
+
+def _assert_media_tools_available() -> None:
+    missing = [name for name in ("ffmpeg", "ffprobe") if shutil.which(name) is None]
+    if missing:
+        raise RuntimeError(f"当前环境缺少媒体工具：{', '.join(missing)}")
 
 
 def _upload(task: DownloadTask, output_path: Path) -> str:
@@ -115,11 +142,19 @@ def _mark_failed(db: Session, task_id: str, exc: Exception) -> None:
     task = db.get(DownloadTask, task_id)
     if not task or task.state == TaskState.CANCELED.value:
         return
+    reason = _format_failure_reason(exc)
     task.state = TaskState.FAILED.value
     task.failure_code = "download_failed"
-    task.failure_reason = str(exc)[:500]
+    task.failure_reason = reason
     add_task_event(db, task, TaskState.FAILED, task.failure_reason)
     db.commit()
+
+
+def _format_failure_reason(exc: Exception) -> str:
+    message = str(exc).strip().splitlines()[0] if str(exc).strip() else "下载任务失败"
+    if message.startswith("ERROR: "):
+        message = message[len("ERROR: ") :]
+    return redact_url(message)[:300]
 
 
 def cleanup_expired_outputs() -> int:
