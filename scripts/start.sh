@@ -11,9 +11,10 @@ Usage:
   ./scripts/start.sh prod    Start production Docker stack with infra
 
 Local mode only starts project processes and does not start or install
-PostgreSQL, Redis, or MinIO. Set START_WORKER=true when you need the local
-RQ Worker and already have Redis available. Production mode starts PostgreSQL,
-Redis, MinIO, API, Worker, and Web together.
+PostgreSQL, Redis, or MinIO. The default Docker Compose file also only defines
+Web and API. Set START_WORKER=true when you need the local RQ Worker and
+already have Redis available. Production mode adds PostgreSQL, Redis, MinIO,
+Worker, API, and Web through the prod Compose override.
 USAGE
 }
 
@@ -87,6 +88,7 @@ start_prod() {
   APP_ENV_FILE=../../.env.production docker compose \
     --env-file .env.production \
     -f infra/docker/docker-compose.yml \
+    -f infra/docker/docker-compose.prod.yml \
     up --build
 }
 

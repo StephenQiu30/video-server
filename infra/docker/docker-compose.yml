@@ -1,8 +1,8 @@
-name: ${COMPOSE_PROJECT_NAME:-video-downloader}
+name: ${COMPOSE_PROJECT_NAME:-video-downloader-local}
 
 services:
   web:
-    container_name: ${CONTAINER_NAME_PREFIX:-video-downloader}-web
+    container_name: ${CONTAINER_NAME_PREFIX:-video-downloader-local}-web
     build:
       context: ../..
       dockerfile: infra/docker/web.prod.Dockerfile
@@ -21,97 +21,25 @@ services:
       retries: 10
 
   api:
-    container_name: ${CONTAINER_NAME_PREFIX:-video-downloader}-api
+    container_name: ${CONTAINER_NAME_PREFIX:-video-downloader-local}-api
     build:
       context: ../..
       dockerfile: infra/docker/python.Dockerfile
       target: api
     env_file:
-      - ${APP_ENV_FILE:-../../.env.production}
+      - ${APP_ENV_FILE:-../../.env}
+    environment:
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgresql+psycopg://video:video@host.docker.internal:5432/video_downloader}
+      REDIS_URL: ${DOCKER_REDIS_URL:-redis://host.docker.internal:6379/0}
+      S3_ENDPOINT_URL: ${DOCKER_S3_ENDPOINT_URL:-http://host.docker.internal:9000}
+      S3_PUBLIC_ENDPOINT_URL: ${DOCKER_S3_PUBLIC_ENDPOINT_URL:-http://localhost:9000}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "${API_HTTP_PORT:-8000}:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)\""]
       interval: 10s
       timeout: 3s
       retries: 10
-
-  worker:
-    container_name: ${CONTAINER_NAME_PREFIX:-video-downloader}-worker
-    build:
-      context: ../..
-      dockerfile: infra/docker/python.Dockerfile
-      target: worker
-    env_file:
-      - ${APP_ENV_FILE:-../../.env.production}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-    restart: unless-stopped
-
-  postgres:
-    container_name: ${CONTAINER_NAME_PREFIX:-video-downloader}-postgres
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
-      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-
-  redis:
-    container_name: ${CONTAINER_NAME_PREFIX:-video-downloader}-redis
-    image: redis:7-alpine
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
-    command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$${REDIS_PASSWORD}\""]
-    volumes:
-      - redis-data:/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-
-  minio:
-    container_name: ${CONTAINER_NAME_PREFIX:-video-downloader}-minio
-    image: quay.io/minio/minio:latest
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
-    command: server /data --console-address ":9001"
-    ports:
-      - "${MINIO_API_PORT:-19000}:9000"
-      - "${MINIO_CONSOLE_PORT:-19001}:9001"
-    volumes:
-      - minio-data:/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-
-volumes:
-  postgres-data:
-  redis-data:
-  minio-data:

@@ -7,7 +7,7 @@
 本项目区分本地开发和生产部署两种启动方式：
 
 - 本地开发：默认只启动本项目的 API 和 Web，不启动 Redis、PostgreSQL、MinIO，也不默认启动依赖 Redis 的 Worker。
-- 生产部署：通过 Docker Compose 同时启动 Web、API、Worker、PostgreSQL、Redis 和 MinIO。
+- 生产部署：通过 Docker Compose 生产覆盖文件同时启动 Web、API、Worker、PostgreSQL、Redis 和 MinIO。
 
 本地一键启动：
 
@@ -110,7 +110,7 @@ http://127.0.0.1:8000
 
 ## Docker 生产部署方案
 
-Docker 只用于生产/线上栈，会同时启动 Web、API、Worker、PostgreSQL、Redis 和 MinIO。本地开发不使用 Docker 启动环境服务。生产配置来自 `.env.production`，启动前会检查示例密钥、本地域名和缺失变量：
+默认 Docker Compose 只定义 Web 和 API，不启动 Redis、PostgreSQL、MinIO；API 容器默认通过 `host.docker.internal` 复用你本机已有的 PostgreSQL、Redis、MinIO。生产配置来自 `.env.production`，启动时才叠加 `infra/docker/docker-compose.prod.yml`，同时启动 Web、API、Worker、PostgreSQL、Redis 和 MinIO：
 
 ```bash
 cp .env.production.example .env.production
