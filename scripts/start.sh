@@ -87,8 +87,6 @@ start_prod() {
   APP_ENV_FILE=../../.env.production docker compose \
     --env-file .env.production \
     -f infra/docker/docker-compose.yml \
-    -f infra/docker/docker-compose.prod.yml \
-    --profile worker \
     up --build
 }
 

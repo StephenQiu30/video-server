@@ -41,7 +41,7 @@ API：http://127.0.0.1:8000
 ```text
 前端：http://localhost:3000
 API：http://localhost:8000
-MinIO 控制台：http://localhost:9001
+MinIO 控制台：http://localhost:19001
 ```
 
 ## 后端本地启动（分步）
@@ -110,7 +110,7 @@ http://127.0.0.1:8000
 
 ## Docker 生产部署方案
 
-Docker 基础文件只描述后端项目容器，不包含 Web 静态托管、Nginx、PostgreSQL、Redis 和 MinIO。线上生产部署会叠加 `infra/docker/docker-compose.prod.yml`，此时才构建 Nginx 托管的 Web 镜像并启动 PostgreSQL、Redis、MinIO。生产配置来自 `.env.production`，启动前会检查示例密钥、本地域名和缺失变量：
+Docker 只用于生产/线上栈，会同时启动 Web、API、Worker、PostgreSQL、Redis 和 MinIO。本地开发不使用 Docker 启动环境服务。生产配置来自 `.env.production`，启动前会检查示例密钥、本地域名和缺失变量：
 
 ```bash
 cp .env.production.example .env.production
