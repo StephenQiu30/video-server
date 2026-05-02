@@ -10,7 +10,8 @@
 - 建立 Ant Design Pro / Umi 前端工作台，覆盖注册、登录、链接输入、任务台和任务详情入口。
 - 建立 FastAPI 后端，覆盖 JWT 鉴权、任务 API、解析 API、文件访问授权。
 - 建立 RQ Worker，后台执行 yt-dlp 下载和 FFmpeg 合并。
-- 建立 PostgreSQL、Redis、MinIO / S3、Docker Compose 本地运行基线。
+- 建立本地开发运行基线，默认复用已有 Python、PostgreSQL、Redis、MinIO / S3 服务。
+- 保留 Docker Compose 作为上线部署或隔离运行方案。
 - 固化默认资源限制：单任务最大 2GB、最长 2 小时、全局并发 2、单用户并发 1、文件保留 24 小时。
 - 使用私有 MinIO bucket 和短期预签名 URL 交付文件。
 
@@ -60,10 +61,11 @@
 
 1. 创建 monorepo 目录和基础 README。
 2. 初始化 `apps/web`、`apps/api`、`apps/worker`。
-3. 配置 Docker Compose 启动 PostgreSQL、Redis、MinIO、API、Worker、Web。
-4. 实现 JWT 用户系统和任务归属。
-5. 实现解析、任务、下载、对象存储交付 API。
-6. 完成验收样例和 OpenSpec 任务勾选。
+3. 配置本地开发脚本启动 API 和 Worker，复用本地 PostgreSQL、Redis、MinIO / S3。
+4. 保留 Docker Compose 启动 PostgreSQL、Redis、MinIO、API、Worker，并作为部署路径。
+5. 实现 JWT 用户系统和任务归属。
+6. 实现解析、任务、下载、对象存储交付 API。
+7. 完成验收样例和 OpenSpec 任务勾选。
 
 ## Open Questions
 
