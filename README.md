@@ -117,6 +117,8 @@ cp .env.production.example .env.production
 ./scripts/start.sh prod
 ```
 
+生产容器默认使用固定命名：`video-downloader-web`、`video-downloader-api`、`video-downloader-worker`、`video-downloader-postgres`、`video-downloader-redis`、`video-downloader-minio`。如果同一台机器部署多套环境，需要在 `.env.production` 中同时调整 `COMPOSE_PROJECT_NAME` 和 `CONTAINER_NAME_PREFIX`。
+
 ## 前端本地启动
 
 前端位于 `apps/web`，采用 React + Umi + Ant Design Pro，默认连接 `http://127.0.0.1:8000` 后端 API。
