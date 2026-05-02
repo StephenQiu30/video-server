@@ -18,6 +18,12 @@ cp .env.example .env
 ./scripts/dev_install.sh
 ```
 
+该命令默认使用当前本地 `python3` 环境。若你希望指定其他解释器，可以使用：
+
+```bash
+PYTHON_BIN=/path/to/python ./scripts/dev_install.sh
+```
+
 3. 确认本地服务地址：
 
 ```bash
@@ -34,6 +40,12 @@ cp .env.example .env
 
 ```bash
 ./scripts/dev_worker.sh
+```
+
+6. 运行后端测试：
+
+```bash
+./scripts/dev_test.sh
 ```
 
 API 默认地址：
