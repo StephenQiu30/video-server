@@ -15,7 +15,7 @@ services:
         condition: service_started
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost/health >/dev/null"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health >/dev/null"]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -29,9 +29,9 @@ services:
     env_file:
       - ${APP_ENV_FILE:-../../.env}
     environment:
-      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgresql+psycopg://video:video@host.docker.internal:5432/video_downloader}
-      REDIS_URL: ${DOCKER_REDIS_URL:-redis://host.docker.internal:6379/0}
-      S3_ENDPOINT_URL: ${DOCKER_S3_ENDPOINT_URL:-http://host.docker.internal:9000}
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-${DATABASE_URL:?DATABASE_URL is required}}
+      REDIS_URL: ${DOCKER_REDIS_URL:-${REDIS_URL:?REDIS_URL is required}}
+      S3_ENDPOINT_URL: ${DOCKER_S3_ENDPOINT_URL:-${S3_ENDPOINT_URL:?S3_ENDPOINT_URL is required}}
       S3_PUBLIC_ENDPOINT_URL: ${DOCKER_S3_PUBLIC_ENDPOINT_URL:-http://localhost:9000}
     extra_hosts:
       - "host.docker.internal:host-gateway"

@@ -110,7 +110,15 @@ http://127.0.0.1:8000
 
 ## Docker 生产部署方案
 
-默认 Docker Compose 只定义 Web 和 API，不启动 Redis、PostgreSQL、MinIO；API 容器默认通过 `host.docker.internal` 复用你本机已有的 PostgreSQL、Redis、MinIO。生产配置来自 `.env.production`，启动时才叠加 `infra/docker/docker-compose.prod.yml`，同时启动 Web、API、Worker、PostgreSQL、Redis 和 MinIO：
+默认 Docker Compose 只定义 Web 和 API，不启动 Redis、PostgreSQL、MinIO；API 容器通过 `.env` 中的 `DOCKER_DATABASE_URL`、`DOCKER_REDIS_URL`、`DOCKER_S3_ENDPOINT_URL` 复用你本机已有的 brew PostgreSQL、brew Redis 和 MinIO。
+
+默认 Docker 启动：
+
+```bash
+./scripts/start.sh docker
+```
+
+生产配置来自 `.env.production`，启动时才叠加 `infra/docker/docker-compose.prod.yml`，同时启动 Web、API、Worker、PostgreSQL、Redis 和 MinIO：
 
 ```bash
 cp .env.production.example .env.production

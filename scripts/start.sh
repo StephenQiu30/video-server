@@ -8,13 +8,15 @@ usage() {
   cat <<'USAGE'
 Usage:
   ./scripts/start.sh local   Start local API and Web only
+  ./scripts/start.sh docker  Start default Docker API and Web only
   ./scripts/start.sh prod    Start production Docker stack with infra
 
 Local mode only starts project processes and does not start or install
 PostgreSQL, Redis, or MinIO. The default Docker Compose file also only defines
-Web and API. Set START_WORKER=true when you need the local RQ Worker and
-already have Redis available. Production mode adds PostgreSQL, Redis, MinIO,
-Worker, API, and Web through the prod Compose override.
+Web and API, and reads .env plus DOCKER_* URLs to reach existing host services.
+Set START_WORKER=true when you need the local RQ Worker and already have Redis
+available. Production mode adds PostgreSQL, Redis, MinIO, Worker, API, and Web
+through the prod Compose override.
 USAGE
 }
 
@@ -74,6 +76,16 @@ start_local() {
   done
 }
 
+start_docker() {
+  ensure_local_env
+  cd "${ROOT_DIR}"
+
+  docker compose \
+    --env-file .env \
+    -f infra/docker/docker-compose.yml \
+    up --build
+}
+
 start_prod() {
   cd "${ROOT_DIR}"
 
@@ -98,6 +110,9 @@ case "${MODE}" in
     ;;
   prod | production)
     start_prod
+    ;;
+  docker | compose)
+    start_docker
     ;;
   -h | --help | help)
     usage
