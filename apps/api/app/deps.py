@@ -24,3 +24,8 @@ def get_current_user(
         raise AppError("unauthorized", "用户不存在或已停用", status_code=401)
     return user
 
+
+def require_admin(current_user: Annotated[User, Depends(get_current_user)]) -> User:
+    if not current_user.is_admin:
+        raise AppError("forbidden", "需要管理员权限", status_code=403)
+    return current_user

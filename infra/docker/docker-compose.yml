@@ -1,4 +1,17 @@
+name: stephen-video
+
 services:
+  web:
+    build:
+      context: ../..
+      dockerfile: infra/docker/web.Dockerfile
+      args:
+        UMI_APP_API_BASE_URL: ${WEB_API_BASE_URL:-http://127.0.0.1:8000}
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+
   postgres:
     image: postgres:16-alpine
     environment:

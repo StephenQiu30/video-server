@@ -10,3 +10,11 @@ downloads
 tmp
 .claude
 .cursor
+node_modules
+dist
+apps/web/node_modules
+apps/web/dist
+apps/web/src/.umi
+apps/web/src/.umi-production
+apps/web/.max
+apps/web/.cache

@@ -26,7 +26,7 @@ def process_download_task(task_id: str) -> None:
         _mark_running(db, task)
         _assert_media_tools_available()
         output_path = _download(task, db)
-        _assert_size(output_path)
+        _assert_size(output_path, task)
         _probe_with_ffprobe(output_path, db, task)
         object_key = _upload(task, output_path)
         task.state = TaskState.SUCCEEDED.value
@@ -34,7 +34,7 @@ def process_download_task(task_id: str) -> None:
         task.output_filename = output_path.name
         task.object_key = object_key
         task.object_size = output_path.stat().st_size
-        task.expires_at = datetime.now(UTC) + timedelta(hours=get_settings().file_retention_hours)
+        task.expires_at = datetime.now(UTC) + timedelta(hours=task.user.file_retention_hours)
         add_task_event(db, task, TaskState.SUCCEEDED, "文件已保存到私有对象存储")
         db.commit()
     except Exception as exc:
@@ -84,7 +84,7 @@ def _download(task: DownloadTask, db: Session) -> Path:
         "quiet": True,
         "no_warnings": True,
         "progress_hooks": [progress_hook],
-        "max_filesize": settings.max_file_size_bytes,
+        "max_filesize": min(settings.max_file_size_bytes, task.user.max_file_size_bytes),
         "socket_timeout": 30,
     }
     options["ffmpeg_location"] = ffmpeg_path
@@ -104,8 +104,8 @@ def _resolve_output_path(task_dir: Path, prepared_path: Path) -> Path:
     return max(files, key=lambda path: path.stat().st_mtime)
 
 
-def _assert_size(path: Path) -> None:
-    max_size = get_settings().max_file_size_bytes
+def _assert_size(path: Path, task: DownloadTask) -> None:
+    max_size = min(get_settings().max_file_size_bytes, task.user.max_file_size_bytes)
     size = path.stat().st_size
     if size > max_size:
         raise RuntimeError(f"文件超过限制：{size} > {max_size}")

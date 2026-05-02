@@ -27,7 +27,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const text = await response.text();
   const data = text ? JSON.parse(text) : undefined;
   if (!response.ok) {
-    throw new Error(data?.message || data?.detail || '请求失败');
+    throw new Error(data?.error?.message || data?.message || data?.detail || '请求失败');
   }
   return data as T;
 }

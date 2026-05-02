@@ -4,7 +4,7 @@ set -euo pipefail
 BASE_URL="${BASE_URL:-http://localhost:8000}"
 EMAIL="${EMAIL:-download-acceptance-$(date +%s)@example.com}"
 PASSWORD="${PASSWORD:-password123}"
-SAMPLE_URL="${SAMPLE_URL:-https://filesamples.com/samples/video/mp4/sample_640x360.mp4}"
+SAMPLE_URL="${SAMPLE_URL:-https://commons.wikimedia.org/wiki/File:%22Movbild-fizika%22_falo_en_Big_Buck_Bunny.webm}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 MAX_POLLS="${MAX_POLLS:-60}"
 

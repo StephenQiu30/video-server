@@ -8,17 +8,17 @@
 
 ## 2. M1 Closure Before Productionization
 
-- [ ] 2.1 Add at least three public legal sample URLs for parsing acceptance.
-- [ ] 2.2 Keep at least one small public sample for full download acceptance with ffprobe evidence.
-- [ ] 2.3 Validate paid, DRM, private, Cookie-based, and platform-specific bypass flows are not implemented.
-- [ ] 2.4 Keep M1 local API, Worker, storage, and frontend validation green before starting production-only features.
+- [x] 2.1 Add at least three public legal sample URLs for parsing acceptance.
+- [x] 2.2 Keep at least one small public sample for full download acceptance with ffprobe evidence.
+- [x] 2.3 Validate paid, DRM, private, Cookie-based, and platform-specific bypass flows are not implemented.
+- [x] 2.4 Keep M1 local API, Worker, storage, and frontend validation green before starting production-only features.
 
 ## 3. SaaS Beta Access And Quotas
 
-- [ ] 3.1 Add registration control through a registration switch or invitation code.
-- [ ] 3.2 Add per-user free quota fields for daily task count, concurrent tasks, max file size, file retention, and storage usage.
+- [x] 3.1 Add registration control through a registration switch or invitation code.
+- [x] 3.2 Add per-user free quota fields for daily task count, concurrent tasks, max file size, file retention, and storage usage.
 - [ ] 3.3 Enforce quota and rate-limit failures with user-readable API errors.
-- [ ] 3.4 Add minimal administrator ability to view users, view tasks, adjust quotas, disable users, and inspect abuse cases.
+- [x] 3.4 Add minimal administrator ability to view users, view tasks, adjust quotas, disable users, and inspect abuse cases.
 
 ## 4. Production Deployment Baseline
 

@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -16,6 +16,12 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(100))
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    daily_task_quota: Mapped[int] = mapped_column(Integer, default=10, nullable=False)
+    concurrent_task_quota: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    max_file_size_bytes: Mapped[int] = mapped_column(BigInteger, default=2147483648, nullable=False)
+    file_retention_hours: Mapped[int] = mapped_column(Integer, default=24, nullable=False)
+    storage_quota_bytes: Mapped[int] = mapped_column(BigInteger, default=5368709120, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     tasks: Mapped[list["DownloadTask"]] = relationship(back_populates="user")

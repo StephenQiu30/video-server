@@ -7,6 +7,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     display_name: str | None = Field(default=None, max_length=100)
+    invite_code: str | None = Field(default=None, max_length=100)
 
 
 class UserLogin(BaseModel):
@@ -21,6 +22,12 @@ class UserRead(BaseModel):
     email: EmailStr
     display_name: str | None = None
     is_active: bool
+    is_admin: bool
+    daily_task_quota: int
+    concurrent_task_quota: int
+    max_file_size_bytes: int
+    file_retention_hours: int
+    storage_quota_bytes: int
     created_at: datetime
 
 
@@ -84,7 +91,16 @@ class DownloadLinkResponse(BaseModel):
     url: str
     expires_in_seconds: int
 
+
+class AdminUserUpdate(BaseModel):
+    is_active: bool | None = None
+    daily_task_quota: int | None = Field(default=None, ge=0)
+    concurrent_task_quota: int | None = Field(default=None, ge=0)
+    max_file_size_bytes: int | None = Field(default=None, ge=1)
+    file_retention_hours: int | None = Field(default=None, ge=1)
+    storage_quota_bytes: int | None = Field(default=None, ge=0)
+
+
 class HealthResponse(BaseModel):
     status: str
     app: str
-

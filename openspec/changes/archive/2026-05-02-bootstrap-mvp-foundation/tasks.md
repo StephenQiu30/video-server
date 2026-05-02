@@ -3,7 +3,7 @@
 - [x] 1.1 Create monorepo directories: `apps/web`, `apps/api`, `apps/worker`, `packages/shared`, and `infra/docker`.
 - [x] 1.2 Add root README/startup notes for the M1 local workflow and Docker deployment workflow.
 - [x] 1.3 Add local, Docker, and production environment templates covering API, worker, PostgreSQL, Redis, MinIO, JWT, and download limit settings.
-- [ ] 1.4 Add Docker Compose services for web, api, worker, PostgreSQL, Redis, and MinIO.
+- [x] 1.4 Add Docker Compose services for web, api, worker, PostgreSQL, Redis, and MinIO.
 - [x] 1.5 Verify local stack service names, networks, volumes, and health checks are documented.
 
 ## 2. Web App Foundation
@@ -40,7 +40,7 @@
 ## 6. Verification And Documentation
 
 - [x] 6.1 Add smoke tests or scripts covering auth, parse, task creation, task query, and download-link flow.
-- [ ] 6.2 Add at least three public legal sample URLs for parsing acceptance and one small sample for download acceptance.
-- [ ] 6.3 Validate that paid, DRM, private, Cookie-based, and platform-specific bypass flows are not implemented.
+- [x] 6.2 Add at least three public legal sample URLs for parsing acceptance and one small sample for download acceptance.
+- [x] 6.3 Validate that paid, DRM, private, Cookie-based, and platform-specific bypass flows are not implemented.
 - [x] 6.4 Update docs with actual startup commands, environment defaults, and validation evidence.
 - [x] 6.5 Run `openspec validate --all` and resolve all validation issues before implementation handoff.

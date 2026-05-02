@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 1440
 
+    registration_enabled: bool = True
+    registration_invite_code: str | None = None
+    admin_emails: str = ""
+    default_daily_task_quota: int = 10
+    default_storage_quota_bytes: int = 5 * 1024 * 1024 * 1024
+
     download_dir: str = "./downloads"
     max_file_size_bytes: int = 2 * 1024 * 1024 * 1024
     max_task_runtime_seconds: int = 2 * 60 * 60
@@ -39,6 +45,9 @@ class Settings(BaseSettings):
 
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    def admin_email_set(self) -> set[str]:
+        return {email.strip().lower() for email in self.admin_emails.split(",") if email.strip()}
 
 
 @lru_cache

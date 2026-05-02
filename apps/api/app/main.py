@@ -6,7 +6,7 @@ from app.core.errors import AppError, app_error_handler
 from app.db.base import Base
 from app.db.session import engine
 from app import models  # noqa: F401
-from app.routers import auth, health, parse, tasks
+from app.routers import admin, auth, health, parse, tasks
 
 
 def create_app() -> FastAPI:
@@ -24,6 +24,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(parse.router)
     app.include_router(tasks.router)
+    app.include_router(admin.router)
 
     @app.on_event("startup")
     def create_tables() -> None:
@@ -33,4 +34,3 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
-

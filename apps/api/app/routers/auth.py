@@ -18,13 +18,26 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 @router.post("/register", response_model=AuthResponse, status_code=201)
 def register(payload: UserCreate, db: Annotated[Session, Depends(get_db)]) -> AuthResponse:
+    settings = get_settings()
+    if not settings.registration_enabled:
+        raise AppError("registration_disabled", "当前仅开放小范围内测注册", 403)
+    if settings.registration_invite_code and payload.invite_code != settings.registration_invite_code:
+        raise AppError("invalid_invite_code", "邀请码无效", 403)
+
     existing = db.scalar(select(User).where(User.email == payload.email.lower()))
     if existing:
         raise AppError("email_exists", "邮箱已注册", 409)
+    email = payload.email.lower()
     user = User(
-        email=payload.email.lower(),
+        email=email,
         password_hash=hash_password(payload.password),
         display_name=payload.display_name,
+        is_admin=email in settings.admin_email_set(),
+        daily_task_quota=settings.default_daily_task_quota,
+        concurrent_task_quota=settings.per_user_download_concurrency,
+        max_file_size_bytes=settings.max_file_size_bytes,
+        file_retention_hours=settings.file_retention_hours,
+        storage_quota_bytes=settings.default_storage_quota_bytes,
     )
     db.add(user)
     db.commit()
@@ -38,6 +51,8 @@ def login(payload: UserLogin, db: Annotated[Session, Depends(get_db)]) -> AuthRe
     user = db.scalar(select(User).where(User.email == payload.email.lower()))
     if not user or not verify_password(payload.password, user.password_hash):
         raise AppError("invalid_credentials", "邮箱或密码错误", 401)
+    if not user.is_active:
+        raise AppError("account_disabled", "账号已停用", 403)
     token = create_access_token(str(user.id), timedelta(minutes=get_settings().access_token_expire_minutes))
     return AuthResponse(access_token=token, user=user)
 
@@ -45,4 +60,3 @@ def login(payload: UserLogin, db: Annotated[Session, Depends(get_db)]) -> AuthRe
 @router.get("/me", response_model=UserRead)
 def me(current_user: Annotated[User, Depends(get_current_user)]) -> User:
     return current_user
-
