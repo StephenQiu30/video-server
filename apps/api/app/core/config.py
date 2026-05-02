@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -27,7 +27,10 @@ class Settings(BaseSettings):
     default_daily_task_quota: int = 10
     default_storage_quota_bytes: int = 5 * 1024 * 1024 * 1024
 
-    download_dir: str = "./downloads"
+    download_work_dir: str = Field(
+        default="./tmp/download-workdir",
+        validation_alias=AliasChoices("DOWNLOAD_WORK_DIR", "DOWNLOAD_DIR"),
+    )
     max_file_size_bytes: int = 2 * 1024 * 1024 * 1024
     max_task_runtime_seconds: int = 2 * 60 * 60
     global_download_concurrency: int = 2

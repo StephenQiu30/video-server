@@ -22,9 +22,9 @@
 
 ## 4. Production Deployment Baseline
 
-- [ ] 4.1 Add single-machine Docker Compose deployment for Web, API, Worker, PostgreSQL, Redis, and MinIO.
+- [x] 4.1 Add single-machine Docker Compose deployment for Web, API, Worker, PostgreSQL, Redis, and MinIO.
 - [ ] 4.2 Add Nginx reverse proxy and HTTPS/TLS deployment instructions.
-- [ ] 4.3 Define required production environment variables and fail-fast checks for unsafe defaults.
+- [x] 4.3 Define required production environment variables and fail-fast checks for unsafe defaults.
 - [ ] 4.4 Document PostgreSQL backup/restore, Redis persistence, and MinIO lifecycle cleanup.
 - [ ] 4.5 Add health/readiness/worker checks suitable for production smoke verification.
 

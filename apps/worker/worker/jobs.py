@@ -17,6 +17,7 @@ from video_downloader_shared.states import TaskState
 
 def process_download_task(task_id: str) -> None:
     db = SessionLocal()
+    task_work_dir: Path | None = None
     try:
         task = db.get(DownloadTask, task_id)
         if not task:
@@ -25,7 +26,8 @@ def process_download_task(task_id: str) -> None:
             return
         _mark_running(db, task)
         _assert_media_tools_available()
-        output_path = _download(task, db)
+        task_work_dir = _task_work_dir(task)
+        output_path = _download(task, db, task_work_dir)
         _assert_size(output_path, task)
         _probe_with_ffprobe(output_path, db, task)
         object_key = _upload(task, output_path)
@@ -41,6 +43,7 @@ def process_download_task(task_id: str) -> None:
         _mark_failed(db, task_id, exc)
         raise
     finally:
+        _cleanup_task_work_dir(task_work_dir)
         db.close()
 
 
@@ -51,14 +54,18 @@ def _mark_running(db: Session, task: DownloadTask) -> None:
     db.commit()
 
 
-def _download(task: DownloadTask, db: Session) -> Path:
+def _task_work_dir(task: DownloadTask) -> Path:
+    settings = get_settings()
+    return Path(settings.download_work_dir) / f"user-{task.user_id}" / task.id
+
+
+def _download(task: DownloadTask, db: Session, task_dir: Path) -> Path:
     try:
         from yt_dlp import YoutubeDL
     except ModuleNotFoundError as exc:
         raise RuntimeError("下载内核未安装") from exc
 
     settings = get_settings()
-    task_dir = Path(settings.download_dir) / f"user-{task.user_id}" / task.id
     task_dir.mkdir(parents=True, exist_ok=True)
     title = safe_filename(task.title or task.id)
     output_template = str(task_dir / f"{title}.%(ext)s")
@@ -102,6 +109,11 @@ def _resolve_output_path(task_dir: Path, prepared_path: Path) -> Path:
     if not files:
         raise RuntimeError("下载完成后未找到输出文件")
     return max(files, key=lambda path: path.stat().st_mtime)
+
+
+def _cleanup_task_work_dir(task_dir: Path | None) -> None:
+    if task_dir is not None:
+        shutil.rmtree(task_dir, ignore_errors=True)
 
 
 def _assert_size(path: Path, task: DownloadTask) -> None:
