@@ -5,7 +5,13 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.playwright-mcp/
 .venv/
+node_modules/
+dist/
+apps/web/src/.umi/
+apps/web/src/.umi-production/
 .env
 downloads/
 tmp/
+stephen-video-workspace-*.png

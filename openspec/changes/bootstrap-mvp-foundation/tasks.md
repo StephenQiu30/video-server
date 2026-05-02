@@ -8,10 +8,10 @@
 
 ## 2. Web App Foundation
 
-- [ ] 2.1 Initialize `apps/web` with React + Umi + Ant Design Pro.
-- [ ] 2.2 Add routes and layout for login/register, download workspace, task list, and task detail.
-- [ ] 2.3 Add API client scaffolding for auth, parse, task, cancel, and download-link endpoints.
-- [ ] 2.4 Add user-facing compliance copy for authorized public or owned content only.
+- [x] 2.1 Initialize `apps/web` with React + Umi + Ant Design Pro.
+- [x] 2.2 Add routes and layout for login/register, download workspace, task list, and task detail.
+- [x] 2.3 Add API client scaffolding for auth, parse, task, cancel, and download-link endpoints.
+- [x] 2.4 Add user-facing compliance copy for authorized public or owned content only.
 
 ## 3. API Foundation
 
@@ -39,7 +39,7 @@
 
 ## 6. Verification And Documentation
 
-- [ ] 6.1 Add smoke tests or scripts covering auth, parse, task creation, task query, and download-link flow.
+- [x] 6.1 Add smoke tests or scripts covering auth, parse, task creation, task query, and download-link flow.
 - [ ] 6.2 Add at least three public legal sample URLs for parsing acceptance and one small sample for download acceptance.
 - [ ] 6.3 Validate that paid, DRM, private, Cookie-based, and platform-specific bypass flows are not implemented.
 - [x] 6.4 Update docs with actual startup commands, environment defaults, and validation evidence.

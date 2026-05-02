@@ -70,6 +70,28 @@ Docker 主要用于上线部署或需要完整隔离环境时使用。默认配�
 docker compose -f infra/docker/docker-compose.yml up --build
 ```
 
+## 前端本地启动
+
+前端位于 `apps/web`，采用 React + Umi + Ant Design Pro，默认连接 `http://127.0.0.1:8000` 后端 API。
+
+```bash
+cd apps/web
+npm install
+npm run dev
+```
+
+前端默认地址：
+
+```text
+http://127.0.0.1:3000
+```
+
+如需指定后端地址：
+
+```bash
+UMI_APP_API_BASE_URL=http://127.0.0.1:8000 npm run dev
+```
+
 ## 重要边界
 
 - 仅用于用户拥有版权、已获授权、公共领域、开放授权或平台明确允许保存的内容。
