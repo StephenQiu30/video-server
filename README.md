@@ -24,6 +24,12 @@ cp .env.example .env
 PYTHON_BIN=/path/to/python ./scripts/dev_install.sh
 ```
 
+如果你的本地 Python 是 Homebrew 管理版本，可能会遇到 PEP 668 的 `externally-managed-environment` 保护。此时推荐使用已经准备好的虚拟环境、Conda 或 pyenv 解释器；如果你明确要安装到用户级 Python 包目录，可以自行追加 pip 参数：
+
+```bash
+PIP_INSTALL_ARGS="--user --break-system-packages" ./scripts/dev_install.sh
+```
+
 3. 确认本地服务地址：
 
 ```bash
