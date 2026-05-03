@@ -1,6 +1,8 @@
 from datetime import UTC, datetime
+import asyncio
 import hashlib
 import hmac
+import json
 import secrets
 import time
 from typing import Annotated
@@ -13,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.errors import AppError
-from app.db.session import get_db
+from app.db.session import SessionLocal, get_db
 from app.deps import get_current_user
 from app.models import DownloadTask, User
 from app.schemas import DownloadLinkResponse, TaskCreate, TaskEventRead, TaskRead
@@ -21,6 +23,7 @@ from app.services.queue import enqueue_download_task
 from app.services.storage import ObjectStorage
 from app.services.tasks import (
     add_task_event,
+    annotate_latest_attempts,
     assert_concurrency_allowed,
     cancel_task,
     cleanup_expired_task_outputs,
@@ -80,19 +83,44 @@ def list_tasks(
 ) -> list[DownloadTask]:
     reconcile_stale_active_tasks(db)
     cleanup_expired_task_outputs(db)
-    query = (
-        select(DownloadTask)
-        .where(DownloadTask.user_id == current_user.id)
-        .order_by(desc(DownloadTask.created_at))
+    return _list_user_tasks(db, current_user.id, state, limit)
+
+
+@router.get("/stream")
+async def stream_tasks(
+    current_user: Annotated[User, Depends(get_current_user)],
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+) -> StreamingResponse:
+    user_id = current_user.id
+
+    async def event_generator():
+        last_payload: str | None = None
+        while True:
+            with SessionLocal() as stream_db:
+                tasks = _list_user_tasks(stream_db, user_id, None, limit)
+                payload = json.dumps(
+                    {
+                        "type": "tasks",
+                        "tasks": [
+                            TaskRead.model_validate(task).model_dump(mode="json")
+                            for task in tasks
+                        ],
+                    },
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                )
+            if payload != last_payload:
+                yield f"event: tasks\ndata: {payload}\n\n"
+                last_payload = payload
+            else:
+                yield ": keep-alive\n\n"
+            await asyncio.sleep(1)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
-    if state:
-        valid_states = {item.value for item in TaskState}
-        if state not in valid_states:
-            raise AppError("invalid_state", "任务状态筛选值无效", 422)
-        query = query.where(DownloadTask.state == state)
-    if limit:
-        query = query.limit(limit)
-    return list(db.scalars(query))
 
 
 @router.get("/{task_id}", response_model=TaskRead)
@@ -220,3 +248,19 @@ def _as_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
     return value.astimezone(UTC)
+
+
+def _list_user_tasks(db: Session, user_id: int, state: str | None = None, limit: int | None = None) -> list[DownloadTask]:
+    query = (
+        select(DownloadTask)
+        .where(DownloadTask.user_id == user_id)
+        .order_by(desc(DownloadTask.created_at))
+    )
+    if state:
+        valid_states = {item.value for item in TaskState}
+        if state not in valid_states:
+            raise AppError("invalid_state", "任务状态筛选值无效", 422)
+        query = query.where(DownloadTask.state == state)
+    if limit:
+        query = query.limit(limit)
+    return annotate_latest_attempts(db, list(db.scalars(query)))

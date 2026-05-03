@@ -40,6 +40,9 @@ declare namespace API {
     duration_seconds?: number;
     format_id?: string;
     format_label?: string;
+    retry_of_task_id?: string;
+    attempt_no: number;
+    is_latest_attempt: boolean;
     state: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
     progress: number;
     failure_code?: string;

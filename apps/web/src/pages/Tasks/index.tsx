@@ -1,13 +1,13 @@
 import { DownloadOutlined, ReloadOutlined, StopOutlined } from '@ant-design/icons';
 import { PageContainer, ProCard, ProTable, type ProColumns } from '@ant-design/pro-components';
 import { Button, Grid, List, Progress, Space, Tag, Typography, message } from 'antd';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { TaskDetailDrawer } from '../../components/TaskDetailDrawer';
 import { TaskStateTag } from '../../components/TaskStateTag';
-import { cancelTask, listTasks, openTaskDownload, retryTask } from '../../services/api';
+import { API_BASE_URL, cancelTask, listTasks, openTaskDownload, retryTask } from '../../services/api';
 
 function canRetry(task: API.Task) {
-  return task.state === 'failed' || task.state === 'canceled' || Boolean(task.failure_code === 'retention_expired');
+  return task.is_latest_attempt !== false && (task.state === 'failed' || task.state === 'canceled' || Boolean(task.failure_code === 'retention_expired'));
 }
 
 function canDownload(task: API.Task) {
@@ -24,6 +24,25 @@ function formatDateTime(value?: string) {
   return value ? value.replace('T', ' ').slice(0, 19) : '-';
 }
 
+function subscribeTaskSnapshots(limit: number, onTasks: (tasks: API.Task[]) => void, onError: () => void) {
+  if (typeof EventSource === 'undefined') {
+    onError();
+    return () => {};
+  }
+  const query = new URLSearchParams({ limit: String(limit) });
+  const source = new EventSource(`${API_BASE_URL}/api/tasks/stream?${query.toString()}`);
+  source.addEventListener('tasks', (event) => {
+    try {
+      const payload = JSON.parse((event as MessageEvent).data) as { tasks?: API.Task[] };
+      onTasks(payload.tasks || []);
+    } catch {
+      onError();
+    }
+  });
+  source.onerror = onError;
+  return () => source.close();
+}
+
 export default function TasksPage() {
   const screens = Grid.useBreakpoint();
   const [tasks, setTasks] = useState<API.Task[]>([]);
@@ -32,20 +51,49 @@ export default function TasksPage() {
   const [selectedTask, setSelectedTask] = useState<API.Task>();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const refresh = async () => {
+  const refresh = useCallback(async (showError = true) => {
     setLoading(true);
     try {
       setTasks(await listTasks({ limit: 200 }));
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '任务历史刷新失败');
+      if (showError) {
+        message.error(error instanceof Error ? error.message : '任务历史刷新失败');
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     refresh();
-  }, []);
+    let fallbackTimer: ReturnType<typeof setInterval> | undefined;
+    const stopStream = subscribeTaskSnapshots(
+      200,
+      (nextTasks) => {
+        setTasks(nextTasks);
+        setLoading(false);
+        if (fallbackTimer) {
+          clearInterval(fallbackTimer);
+          fallbackTimer = undefined;
+        }
+      },
+      () => {
+        if (!fallbackTimer) {
+          fallbackTimer = setInterval(() => refresh(false), 5000);
+        }
+      },
+    );
+    return () => {
+      stopStream();
+      if (fallbackTimer) clearInterval(fallbackTimer);
+    };
+  }, [refresh]);
+
+  useEffect(() => {
+    if (!selectedTask) return;
+    const latest = tasks.find((task) => task.id === selectedTask.id);
+    if (latest) setSelectedTask(latest);
+  }, [selectedTask?.id, tasks]);
 
   const columns: ProColumns<API.Task>[] = [
     {
@@ -59,6 +107,10 @@ export default function TasksPage() {
           <Typography.Text type="secondary" ellipsis style={{ maxWidth: 360 }}>
             {record.source_url}
           </Typography.Text>
+          <Space size={4} wrap>
+            {record.attempt_no > 1 ? <Tag color="blue">第 {record.attempt_no} 次尝试</Tag> : null}
+            {record.is_latest_attempt === false ? <Tag>已重试</Tag> : <Tag color="processing">最新任务</Tag>}
+          </Space>
         </Space>
       ),
     },
@@ -153,7 +205,7 @@ export default function TasksPage() {
             }
           }}
         >
-          重试
+          {record.is_latest_attempt === false ? '已重试' : '重试'}
         </Button>,
         <Button
           key="cancel"
@@ -228,7 +280,7 @@ export default function TasksPage() {
           }
         }}
       >
-        重试
+        {record.is_latest_attempt === false ? '已重试' : '重试'}
       </Button>
       <Button
         type="link"
@@ -258,7 +310,7 @@ export default function TasksPage() {
     <PageContainer
       title="任务历史"
       subTitle="查看下载状态、失败原因和文件入口"
-      extra={<Button icon={<ReloadOutlined />} onClick={refresh}>刷新</Button>}
+      extra={<Button icon={<ReloadOutlined />} onClick={() => refresh()}>刷新</Button>}
     >
       {screens.md ? (
         <ProTable<API.Task>
@@ -291,6 +343,8 @@ export default function TasksPage() {
                       <Space wrap>
                         <TaskStateTag state={record.state} />
                         {record.failure_code === 'retention_expired' ? <Tag color="warning">文件已过期</Tag> : null}
+                        {record.attempt_no > 1 ? <Tag color="blue">第 {record.attempt_no} 次尝试</Tag> : null}
+                        {record.is_latest_attempt === false ? <Tag>已重试</Tag> : <Tag color="processing">最新任务</Tag>}
                         <Typography.Text type="secondary">格式：{record.format_label || record.format_id || 'best'}</Typography.Text>
                       </Space>
                       <Progress percent={record.progress} size="small" strokeColor="#1677ff" />

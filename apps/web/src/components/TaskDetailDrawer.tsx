@@ -1,5 +1,5 @@
 import { DownloadOutlined, ReloadOutlined, StopOutlined } from '@ant-design/icons';
-import { Alert, Button, Descriptions, Drawer, Progress, Space, Timeline, Typography, message } from 'antd';
+import { Alert, Button, Descriptions, Drawer, Progress, Space, Tag, Timeline, Typography, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { cancelTask, listTaskEvents, openTaskDownload, retryTask } from '../services/api';
 import { TaskStateTag } from './TaskStateTag';
@@ -18,7 +18,7 @@ function formatSize(size?: number) {
 }
 
 function canRetry(task: API.Task) {
-  return task.state === 'failed' || task.state === 'canceled' || Boolean(task.failure_code === 'retention_expired');
+  return task.is_latest_attempt !== false && (task.state === 'failed' || task.state === 'canceled' || Boolean(task.failure_code === 'retention_expired'));
 }
 
 function canDownload(task: API.Task) {
@@ -45,15 +45,24 @@ export function TaskDetailDrawer({ task, open, onClose, onChanged }: Props) {
             <Typography.Title level={4} style={{ margin: 0 }}>
               {task.title || task.output_filename || '未命名视频'}
             </Typography.Title>
-            <TaskStateTag state={task.state} />
+            <Space wrap>
+              <TaskStateTag state={task.state} />
+              {task.attempt_no > 1 ? <Tag color="blue">第 {task.attempt_no} 次尝试</Tag> : null}
+              {task.is_latest_attempt === false ? <Tag>已重试</Tag> : <Tag color="processing">最新任务</Tag>}
+            </Space>
           </Space>
           <Progress percent={task.progress} strokeColor="#1677ff" status={task.state === 'failed' ? 'exception' : undefined} />
+          {task.is_latest_attempt === false ? (
+            <Alert type="info" showIcon message="该任务已有新的重试任务，请在最新任务上继续操作" />
+          ) : null}
           {task.failure_code === 'retention_expired' ? (
             <Alert type="warning" showIcon message="文件已过期，可重试任务重新生成文件" />
           ) : null}
           {task.failure_reason ? <Alert type="warning" showIcon message={task.failure_reason} /> : null}
           <Descriptions column={1} size="small" bordered>
             <Descriptions.Item label="任务 ID">{task.id}</Descriptions.Item>
+            <Descriptions.Item label="尝试次数">第 {task.attempt_no} 次</Descriptions.Item>
+            <Descriptions.Item label="上一次任务">{task.retry_of_task_id || '-'}</Descriptions.Item>
             <Descriptions.Item label="格式">{task.format_label || task.format_id || 'best'}</Descriptions.Item>
             <Descriptions.Item label="文件">{task.output_filename || '-'}</Descriptions.Item>
             <Descriptions.Item label="大小">{formatSize(task.object_size)}</Descriptions.Item>
@@ -107,7 +116,7 @@ export function TaskDetailDrawer({ task, open, onClose, onChanged }: Props) {
                 }
               }}
             >
-              重试
+              {task.is_latest_attempt === false ? '已重试' : '重试'}
             </Button>
             <Button
               icon={<StopOutlined />}

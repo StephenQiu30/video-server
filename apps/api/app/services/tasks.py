@@ -61,10 +61,28 @@ def list_task_events(db: Session, task: DownloadTask) -> list[TaskEvent]:
     )
 
 
+def annotate_latest_attempts(db: Session, tasks: list[DownloadTask]) -> list[DownloadTask]:
+    task_ids = [task.id for task in tasks]
+    if not task_ids:
+        return tasks
+    superseded_ids = set(
+        db.scalars(
+            select(DownloadTask.retry_of_task_id).where(
+                DownloadTask.retry_of_task_id.in_(task_ids),
+                DownloadTask.retry_of_task_id.is_not(None),
+            )
+        )
+    )
+    for task in tasks:
+        task._is_latest_attempt = task.id not in superseded_ids
+    return tasks
+
+
 def get_owned_task(db: Session, user: User, task_id: str) -> DownloadTask:
     task = db.get(DownloadTask, task_id)
     if not task or task.user_id != user.id:
         raise AppError("not_found", "任务不存在", 404)
+    annotate_latest_attempts(db, [task])
     return task
 
 
@@ -82,9 +100,12 @@ def cancel_task(db: Session, task: DownloadTask) -> DownloadTask:
 
 
 def retry_task(db: Session, user: User, task: DownloadTask) -> DownloadTask:
-    if task.state not in {TaskState.FAILED.value, TaskState.CANCELED.value} and task.object_key:
+    if _has_retry_child(db, task):
+        raise AppError("retry_superseded", "该任务已有新的重试任务，请在最新任务上操作", 409)
+    if not _is_retryable_task(task):
         raise AppError("invalid_state", "当前任务状态不支持重试", 409)
     assert_concurrency_allowed(db, user)
+    attempt_no = (task.attempt_no or 1) + 1
     new_task = DownloadTask(
         user_id=user.id,
         source_url=task.source_url,
@@ -93,12 +114,14 @@ def retry_task(db: Session, user: User, task: DownloadTask) -> DownloadTask:
         duration_seconds=task.duration_seconds,
         format_id=task.format_id or "best",
         format_label=task.format_label,
+        retry_of_task_id=task.id,
+        attempt_no=attempt_no,
         state=TaskState.QUEUED.value,
         progress=0,
     )
     db.add(new_task)
     db.flush()
-    add_task_event(db, new_task, TaskState.QUEUED, "重试任务已创建，等待下载")
+    add_task_event(db, new_task, TaskState.QUEUED, f"第 {attempt_no} 次尝试已创建，等待下载")
     add_task_event(db, task, task.state, f"已创建重试任务：{new_task.id}")
     db.commit()
     db.refresh(new_task)
@@ -160,3 +183,24 @@ def _as_utc(value: datetime | None) -> datetime | None:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
     return value.astimezone(UTC)
+
+
+def _has_retry_child(db: Session, task: DownloadTask) -> bool:
+    return bool(
+        db.scalar(
+            select(func.count())
+            .select_from(DownloadTask)
+            .where(DownloadTask.retry_of_task_id == task.id)
+        )
+    )
+
+
+def _is_retryable_task(task: DownloadTask) -> bool:
+    if task.state in {TaskState.FAILED.value, TaskState.CANCELED.value}:
+        return True
+    if task.state != TaskState.SUCCEEDED.value:
+        return False
+    if not task.object_key or task.failure_code == "retention_expired":
+        return True
+    expires_at = _as_utc(task.expires_at)
+    return bool(expires_at and expires_at <= datetime.now(UTC))

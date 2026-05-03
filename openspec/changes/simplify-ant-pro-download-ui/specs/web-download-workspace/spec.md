@@ -25,7 +25,7 @@ The web app SHALL present the local MVP download workspace as a simple Ant Desig
 - **THEN** the workspace shows filename, size, expiry time, detail action, and download action using Ant Design components
 - **AND** the success presentation does not use a large custom green panel
 
-#### Scenario: Compliance page is single-column
-- **WHEN** the local user opens `/compliance`
-- **THEN** allowed and denied boundaries are shown in a vertical single-column flow
-- **AND** the page does not use a left/right split layout for those boundary sections
+#### Scenario: Compliance page removed from primary navigation
+- **WHEN** the local user uses the MVP web application
+- **THEN** the primary navigation does not include a dedicated compliance explanation page
+- **AND** compliance boundaries remain available through project documentation, user-understandable errors, and smoke checks

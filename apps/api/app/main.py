@@ -5,6 +5,7 @@ from app.core.config import get_settings
 from app.core.errors import AppError, app_error_handler
 from app.db.base import Base
 from app.db.session import engine
+from app.db.upgrade import run_database_upgrades
 from app import models  # noqa: F401
 from app.routers import health, parse, tasks
 
@@ -27,6 +28,7 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     def create_tables() -> None:
         Base.metadata.create_all(bind=engine)
+        run_database_upgrades(engine)
 
     return app
 

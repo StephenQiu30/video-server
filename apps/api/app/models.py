@@ -38,6 +38,11 @@ class DownloadTask(Base):
     duration_seconds: Mapped[int | None] = mapped_column(Integer)
     format_id: Mapped[str | None] = mapped_column(String(100))
     format_label: Mapped[str | None] = mapped_column(String(255))
+    retry_of_task_id: Mapped[str | None] = mapped_column(
+        ForeignKey("download_tasks.id", name="fk_download_tasks_retry_of_task_id"),
+        index=True,
+    )
+    attempt_no: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     state: Mapped[str] = mapped_column(String(32), default=TaskState.QUEUED.value, index=True)
     progress: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     failure_code: Mapped[str | None] = mapped_column(String(100))
@@ -55,6 +60,10 @@ class DownloadTask(Base):
 
     user: Mapped[User] = relationship(back_populates="tasks")
     events: Mapped[list["TaskEvent"]] = relationship(back_populates="task", cascade="all, delete-orphan")
+
+    @property
+    def is_latest_attempt(self) -> bool:
+        return getattr(self, "_is_latest_attempt", True)
 
 
 class TaskEvent(Base):

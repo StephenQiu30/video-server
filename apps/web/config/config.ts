@@ -28,7 +28,6 @@ export default defineConfig({
     { path: '/login', redirect: '/workspace' },
     { name: '下载工作台', path: '/workspace', component: './Workspace' },
     { name: '任务历史', path: '/tasks', component: './Tasks' },
-    { name: '合规边界', path: '/compliance', component: './Compliance' },
     { path: '*', redirect: '/' },
   ],
   npmClient: 'npm',

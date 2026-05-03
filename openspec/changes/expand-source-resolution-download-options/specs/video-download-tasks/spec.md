@@ -21,6 +21,11 @@ The system SHALL provide user-friendly resolution presets for parsed videos when
 - **THEN** the preset is marked unavailable or omitted from task creation
 - **AND** the frontend does not imply that the missing quality can be downloaded
 
+#### Scenario: Resolution selected before task creation
+- **WHEN** parsing succeeds and resolution presets are available
+- **THEN** the frontend requires the user to select one preset before creating the download task
+- **AND** task creation uses the selected preset selector instead of silently using the recommended format
+
 ### Requirement: Best-effort multi-source support
 The system SHALL treat Bilibili, Douyin, TikTok, XiaoHongShu, Ixigua, YouTube, Vimeo, Dailymotion, Weibo, and other yt-dlp extractors as best-effort public-source support in the local MVP.
 

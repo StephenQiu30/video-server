@@ -67,6 +67,9 @@ class TaskRead(BaseModel):
     duration_seconds: int | None = None
     format_id: str | None = None
     format_label: str | None = None
+    retry_of_task_id: str | None = None
+    attempt_no: int = 1
+    is_latest_attempt: bool = True
     state: str
     progress: int
     failure_code: str | None = None

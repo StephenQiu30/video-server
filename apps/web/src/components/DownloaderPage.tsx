@@ -1,11 +1,11 @@
-import { DownloadOutlined, LinkOutlined, ReloadOutlined, SafetyOutlined } from '@ant-design/icons';
+import { DownloadOutlined, LinkOutlined, ReloadOutlined } from '@ant-design/icons';
 import { history } from '@@/core/history';
 import { PageContainer, ProCard, ProForm, ProFormText } from '@ant-design/pro-components';
-import { Alert, Button, Empty, List, Progress, Space, Tag, Typography, message } from 'antd';
-import { useEffect, useMemo, useState } from 'react';
+import { Alert, Button, Empty, List, Progress, Radio, Space, Tag, Typography, message } from 'antd';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { TaskDetailDrawer } from './TaskDetailDrawer';
 import { TaskStateTag } from './TaskStateTag';
-import { createTask, getReadiness, listTasks, normalizeUserUrl, openTaskDownload, parseVideo } from '../services/api';
+import { API_BASE_URL, createTask, listTasks, normalizeUserUrl, openTaskDownload, parseVideo } from '../services/api';
 
 function formatDuration(seconds?: number) {
   if (!seconds) return '-';
@@ -33,12 +33,35 @@ function isActiveTask(task: API.Task) {
   return task.state === 'queued' || task.state === 'running';
 }
 
+function isLatestAttempt(task: API.Task) {
+  return task.is_latest_attempt !== false;
+}
+
 function isExpiredTask(task: API.Task) {
   return task.failure_code === 'retention_expired';
 }
 
 function canDownload(task: API.Task) {
   return task.state === 'succeeded' && !isExpiredTask(task);
+}
+
+function subscribeTaskSnapshots(limit: number, onTasks: (tasks: API.Task[]) => void, onError: () => void) {
+  if (typeof EventSource === 'undefined') {
+    onError();
+    return () => {};
+  }
+  const query = new URLSearchParams({ limit: String(limit) });
+  const source = new EventSource(`${API_BASE_URL}/api/tasks/stream?${query.toString()}`);
+  source.addEventListener('tasks', (event) => {
+    try {
+      const payload = JSON.parse((event as MessageEvent).data) as { tasks?: API.Task[] };
+      onTasks(payload.tasks || []);
+    } catch {
+      onError();
+    }
+  });
+  source.onerror = onError;
+  return () => source.close();
 }
 
 export function DownloaderPage() {
@@ -48,34 +71,51 @@ export function DownloaderPage() {
   const [tasks, setTasks] = useState<API.Task[]>([]);
   const [parsed, setParsed] = useState<API.ParseResponse>();
   const [parseError, setParseError] = useState<string>();
+  const [selectedFormatId, setSelectedFormatId] = useState<string>();
   const [selectedTask, setSelectedTask] = useState<API.Task>();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [readiness, setReadiness] = useState<API.Readiness>();
-  const [readinessError, setReadinessError] = useState<string>();
-
-  const refreshTasks = async () => {
+  const refreshTasks = useCallback(async (showError = true) => {
     try {
       setTasks(await listTasks({ limit: 20 }));
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '任务列表刷新失败');
+      if (showError) {
+        message.error(error instanceof Error ? error.message : '任务列表刷新失败');
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
     refreshTasks();
-    getReadiness()
-      .then((result) => {
-        setReadiness(result);
-        setReadinessError(undefined);
-      })
-      .catch((error) => {
-        setReadiness(undefined);
-        setReadinessError(error instanceof Error ? error.message : '运行状态检查失败');
-      });
-  }, []);
+    let fallbackTimer: ReturnType<typeof setInterval> | undefined;
+    const stopStream = subscribeTaskSnapshots(
+      20,
+      (nextTasks) => {
+        setTasks(nextTasks);
+        if (fallbackTimer) {
+          clearInterval(fallbackTimer);
+          fallbackTimer = undefined;
+        }
+      },
+      () => {
+        if (!fallbackTimer) {
+          fallbackTimer = setInterval(() => refreshTasks(false), 5000);
+        }
+      },
+    );
+    return () => {
+      stopStream();
+      if (fallbackTimer) clearInterval(fallbackTimer);
+    };
+  }, [refreshTasks]);
+
+  useEffect(() => {
+    if (!selectedTask) return;
+    const latest = tasks.find((task) => task.id === selectedTask.id);
+    if (latest) setSelectedTask(latest);
+  }, [selectedTask?.id, tasks]);
 
   const keyTasks = useMemo(() => {
-    const visibleTasks = tasks.filter((task) => !isSmokeTask(task));
+    const visibleTasks = tasks.filter((task) => !isSmokeTask(task) && isLatestAttempt(task));
     const active = visibleTasks.filter(isActiveTask);
     const recent = visibleTasks.filter((task) => !isActiveTask(task));
     return [...active, ...recent].slice(0, 4);
@@ -86,6 +126,11 @@ export function DownloaderPage() {
     const presets = parsed.formats.filter((format) => format.kind !== 'raw');
     return presets.length ? presets : [{ format_id: 'best', label: '推荐下载', quality_label: '推荐', available: true }];
   }, [parsed]);
+
+  const selectedFormat = useMemo(
+    () => presetFormats.find((format) => format.format_id === selectedFormatId),
+    [presetFormats, selectedFormatId],
+  );
 
   const handleDownload = async (task: API.Task) => {
     setDownloadingTaskId(task.id);
@@ -147,6 +192,7 @@ export function DownloaderPage() {
                 onReset={() => {
                   setParsed(undefined);
                   setParseError(undefined);
+                  setSelectedFormatId(undefined);
                 }}
                 onFinish={async (values) => {
                   let normalizedUrl: string;
@@ -164,9 +210,12 @@ export function DownloaderPage() {
                   }
                   setParsing(true);
                   setParsed(undefined);
+                  setSelectedFormatId(undefined);
                   try {
                     const result = await parseVideo(normalizedUrl);
                     setParsed(result);
+                    const availablePreset = result.formats.find((format) => format.kind !== 'raw' && format.available !== false);
+                    setSelectedFormatId(availablePreset?.format_id);
                     message.success('解析完成');
                   } catch (error) {
                     const errorMessage = error instanceof Error ? error.message : '公开视频解析失败或平台暂不支持';
@@ -190,74 +239,94 @@ export function DownloaderPage() {
               {parseError ? <Alert type="error" showIcon message={parseError} /> : null}
 
               {parsed ? (
-                <List
-                  className="download-format-list"
-                  header={
-                    <Space direction="vertical" size={4}>
-                      <Typography.Text strong>{parsed.title || '解析结果'}</Typography.Text>
-                      <Typography.Text type="secondary">
-                        时长：{formatDuration(parsed.duration_seconds)} / 来源：
-                        {parsed.source_site || parsed.extractor || 'yt-dlp 可识别来源'}
-                      </Typography.Text>
-                      <Typography.Text type="secondary">清晰度越低通常文件更小，下载等待时间也更短。</Typography.Text>
-                    </Space>
-                  }
-                  dataSource={presetFormats}
-                  renderItem={(format, index) => (
-                    <List.Item
-                      actions={[
-                        <Button
-                          key="create"
-                          type={index === 0 ? 'primary' : 'default'}
-                          loading={creatingFormatId === format.format_id}
-                          disabled={Boolean(creatingFormatId) || parsing || format.available === false}
-                          onClick={async () => {
-                            setCreatingFormatId(format.format_id);
-                            try {
-                              await createTask({
-                                url: parsed.url,
-                                title: parsed.title,
-                                cover_url: parsed.cover_url,
-                                duration_seconds: parsed.duration_seconds,
-                                format_id: format.format_id,
-                                format_label: format.label,
-                              });
-                              message.success('任务已创建');
-                              await refreshTasks();
-                            } catch (error) {
-                              message.error(error instanceof Error ? error.message : '任务创建失败');
-                            } finally {
-                              setCreatingFormatId(undefined);
+                <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                  <List
+                    className="download-format-list"
+                    header={
+                      <Space direction="vertical" size={4}>
+                        <Typography.Text strong>{parsed.title || '解析结果'}</Typography.Text>
+                        <Typography.Text type="secondary">
+                          时长：{formatDuration(parsed.duration_seconds)} / 来源：
+                          {parsed.source_site || parsed.extractor || 'yt-dlp 可识别来源'}
+                        </Typography.Text>
+                        <Typography.Text type="secondary">先选择清晰度，再创建下载任务；清晰度越低通常文件更小，下载等待时间也更短。</Typography.Text>
+                      </Space>
+                    }
+                    dataSource={presetFormats}
+                    renderItem={(format, index) => {
+                      const disabled = format.available === false;
+                      const active = selectedFormatId === format.format_id;
+                      return (
+                        <List.Item
+                          className={`download-format-option${active ? ' is-selected' : ''}${disabled ? ' is-disabled' : ''}`}
+                          onClick={() => {
+                            if (!disabled && !creatingFormatId && !parsing) {
+                              setSelectedFormatId(format.format_id);
                             }
                           }}
                         >
-                          创建任务
-                        </Button>,
-                      ]}
+                          <List.Item.Meta
+                            avatar={<Radio checked={active} disabled={disabled} />}
+                            title={
+                              <Space wrap>
+                                <Typography.Text strong>
+                                  {index === 0 ? `推荐下载：${format.quality_label || format.label}` : format.quality_label || format.label}
+                                </Typography.Text>
+                                {disabled ? <Tag>不可用</Tag> : active ? <Tag color="blue">已选择</Tag> : <Tag color="processing">可选择</Tag>}
+                              </Space>
+                            }
+                            description={
+                              <Space direction="vertical" size={2}>
+                                <Typography.Text type="secondary">
+                                  {[format.ext, format.resolution].filter(Boolean).join(' / ') || format.label || '默认格式'}
+                                </Typography.Text>
+                                {format.note ? (
+                                  <Typography.Text type={disabled ? 'warning' : 'secondary'}>{format.note}</Typography.Text>
+                                ) : null}
+                              </Space>
+                            }
+                          />
+                        </List.Item>
+                      );
+                    }}
+                  />
+                  <Space wrap>
+                    <Button
+                      type="primary"
+                      size="large"
+                      loading={Boolean(creatingFormatId)}
+                      disabled={!selectedFormat || selectedFormat.available === false || parsing}
+                      onClick={async () => {
+                        if (!selectedFormat) {
+                          message.warning('请先选择清晰度');
+                          return;
+                        }
+                        setCreatingFormatId(selectedFormat.format_id);
+                        try {
+                          await createTask({
+                            url: parsed.url,
+                            title: parsed.title,
+                            cover_url: parsed.cover_url,
+                            duration_seconds: parsed.duration_seconds,
+                            format_id: selectedFormat.format_id,
+                            format_label: selectedFormat.quality_label || selectedFormat.label,
+                          });
+                          message.success(`已创建 ${selectedFormat.quality_label || '推荐'} 下载任务`);
+                          await refreshTasks();
+                        } catch (error) {
+                          message.error(error instanceof Error ? error.message : '任务创建失败');
+                        } finally {
+                          setCreatingFormatId(undefined);
+                        }
+                      }}
                     >
-                      <List.Item.Meta
-                        title={
-                          <Space wrap>
-                            <Typography.Text strong>
-                              {index === 0 ? `推荐下载：${format.quality_label || format.label}` : format.quality_label || format.label}
-                            </Typography.Text>
-                            {format.available === false ? <Tag>不可用</Tag> : <Tag color="processing">可下载</Tag>}
-                          </Space>
-                        }
-                        description={
-                          <Space direction="vertical" size={2}>
-                            <Typography.Text type="secondary">
-                              {[format.ext, format.resolution].filter(Boolean).join(' / ') || format.label || '默认格式'}
-                            </Typography.Text>
-                            {format.note ? (
-                              <Typography.Text type={format.available === false ? 'warning' : 'secondary'}>{format.note}</Typography.Text>
-                            ) : null}
-                          </Space>
-                        }
-                      />
-                    </List.Item>
-                  )}
-                />
+                      创建{selectedFormat?.quality_label ? ` ${selectedFormat.quality_label} ` : ''}下载任务
+                    </Button>
+                    <Typography.Text type="secondary">
+                      当前选择：{selectedFormat?.quality_label || selectedFormat?.label || '未选择'}
+                    </Typography.Text>
+                  </Space>
+                </Space>
               ) : null}
             </Space>
           </ProCard>
@@ -267,7 +336,7 @@ export function DownloaderPage() {
             bordered
             extra={
               <Space>
-                <Button icon={<ReloadOutlined />} onClick={refreshTasks} />
+                <Button icon={<ReloadOutlined />} onClick={() => refreshTasks()} />
                 <Button type="link" onClick={() => history.push('/tasks')}>
                   完整历史
                 </Button>
@@ -287,6 +356,7 @@ export function DownloaderPage() {
                         </Typography.Text>
                         <Space wrap>
                           <TaskStateTag state={task.state} />
+                          {task.attempt_no > 1 ? <Tag color="blue">第 {task.attempt_no} 次尝试</Tag> : null}
                           {isExpiredTask(task) ? <Typography.Text type="warning">文件已过期</Typography.Text> : null}
                         </Space>
                       </Space>
@@ -314,30 +384,6 @@ export function DownloaderPage() {
             />
           </ProCard>
 
-          <Alert
-            type="info"
-            showIcon
-            icon={<SafetyOutlined />}
-            message="MVP 不支持 Cookie 托管、DRM 规避、付费墙绕过、会员内容绕过和平台专用解析。"
-          />
-          <Alert
-            type={readiness?.status === 'ok' ? 'success' : 'warning'}
-            showIcon
-            message={
-              readinessError
-                ? `运行状态暂不可用：${readinessError}`
-                : readiness?.status === 'ok'
-                  ? '自部署运行状态正常'
-                  : '自部署运行状态需要检查'
-            }
-            description={
-              readiness
-                ? Object.entries(readiness.checks)
-                    .map(([name, check]) => `${name}: ${check.ok ? 'ok' : check.message || '异常'}`)
-                    .join(' / ')
-                : undefined
-            }
-          />
         </Space>
       </div>
       <TaskDetailDrawer

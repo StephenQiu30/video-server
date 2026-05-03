@@ -79,6 +79,29 @@ export async function listTasks(params: { state?: API.Task['state']; limit?: num
   return request<API.Task[]>(`/api/tasks${suffix}`);
 }
 
+export function subscribeTasks(
+  params: { limit?: number } = {},
+  onTasks: (tasks: API.Task[]) => void,
+  onError?: () => void,
+) {
+  const query = new URLSearchParams();
+  if (params.limit) query.set('limit', String(params.limit));
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  const source = new EventSource(`${API_BASE_URL}/api/tasks/stream${suffix}`);
+  source.addEventListener('tasks', (event) => {
+    try {
+      const payload = JSON.parse((event as MessageEvent).data) as { tasks?: API.Task[] };
+      onTasks(payload.tasks || []);
+    } catch {
+      onError?.();
+    }
+  });
+  source.onerror = () => {
+    onError?.();
+  };
+  return () => source.close();
+}
+
 export async function cancelTask(taskId: string) {
   return request<API.Task>(`/api/tasks/${taskId}/cancel`, {
     method: 'POST',
