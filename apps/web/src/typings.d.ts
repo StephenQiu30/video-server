@@ -63,4 +63,15 @@ declare namespace API {
     url: string;
     expires_in_seconds: number;
   };
+
+  type ReadinessCheck = {
+    ok: boolean;
+    message?: string;
+    [key: string]: string | number | boolean | undefined;
+  };
+
+  type Readiness = {
+    status: 'ok' | 'degraded';
+    checks: Record<string, ReadinessCheck>;
+  };
 }

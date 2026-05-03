@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 import shutil
 import subprocess
+from typing import NoReturn
 
 from sqlalchemy.orm import Session
 
@@ -36,9 +37,13 @@ def process_download_task(task_id: str) -> None:
         if _is_canceled(db, task):
             return
         _assert_size(output_path, task)
+        add_task_event(db, task, TaskState.RUNNING, "开始校验媒体文件")
+        db.commit()
         _probe_with_ffprobe(output_path, db, task)
         if _is_canceled(db, task):
             return
+        add_task_event(db, task, TaskState.RUNNING, "开始上传到私有对象存储")
+        db.commit()
         object_key = _upload(task, output_path)
         if _is_canceled(db, task):
             ObjectStorage().delete_object(object_key)
@@ -88,6 +93,8 @@ def _download(task: DownloadTask, db: Session, task_dir: Path) -> Path:
     output_template = str(task_dir / f"{title}.%(ext)s")
 
     def progress_hook(payload: dict) -> None:
+        if _is_canceled(db, task):
+            _raise_task_canceled()
         if payload.get("status") != "downloading":
             return
         total = payload.get("total_bytes") or payload.get("total_bytes_estimate")
@@ -101,6 +108,8 @@ def _download(task: DownloadTask, db: Session, task_dir: Path) -> Path:
     if not ffmpeg_path:
         raise JobFailure("media_tools_missing", "当前环境缺少 FFmpeg，无法执行下载任务")
 
+    add_task_event(db, task, TaskState.RUNNING, "开始下载源文件")
+    db.commit()
     options = {
         "format": requested_format,
         "outtmpl": output_template,
@@ -111,13 +120,21 @@ def _download(task: DownloadTask, db: Session, task_dir: Path) -> Path:
         "max_filesize": min(settings.max_file_size_bytes, task.user.max_file_size_bytes),
         "socket_timeout": 30,
     }
+    _apply_download_resilience_options(options)
     _apply_browser_cookie_options(options, settings.ytdlp_cookies_from_browser)
     options["ffmpeg_location"] = ffmpeg_path
     options["merge_output_format"] = "mp4"
     with YoutubeDL(options) as ydl:
         result = ydl.extract_info(task.source_url, download=True)
         filename = ydl.prepare_filename(result)
-    return _resolve_output_path(task_dir, Path(filename))
+    output_path = _resolve_output_path(task_dir, Path(filename))
+    add_task_event(db, task, TaskState.RUNNING, "源文件下载完成")
+    db.commit()
+    return output_path
+
+
+def _raise_task_canceled() -> NoReturn:
+    raise JobFailure("task_canceled", "任务已取消")
 
 
 def _apply_browser_cookie_options(options: dict, browser_name: str | None) -> None:
@@ -127,6 +144,17 @@ def _apply_browser_cookie_options(options: dict, browser_name: str | None) -> No
     if browser not in {"chrome", "chromium", "edge", "firefox", "safari"}:
         raise JobFailure("browser_cookies_unavailable", "浏览器登录态配置无效，请检查 YTDLP_COOKIES_FROM_BROWSER")
     options["cookiesfrombrowser"] = (browser,)
+
+
+def _apply_download_resilience_options(options: dict) -> None:
+    options.update(
+        {
+            "retries": 3,
+            "fragment_retries": 3,
+            "file_access_retries": 3,
+            "continuedl": True,
+        }
+    )
 
 
 def _resolve_output_path(task_dir: Path, prepared_path: Path) -> Path:
@@ -208,6 +236,8 @@ def _failure_code(exc: Exception) -> str:
 
 
 def _format_failure_reason(exc: Exception) -> str:
+    if isinstance(exc, JobFailure) and exc.code == "task_canceled":
+        return "任务已取消"
     if _looks_like_browser_cookie_error(str(exc).lower()):
         return (
             "无法读取本机 Chrome 登录态。请确认 Chrome 已登录 B 站，并允许当前终端或 Python 访问浏览器数据；"

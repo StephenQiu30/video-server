@@ -1,8 +1,11 @@
+from pathlib import Path
 import shutil
+from uuid import uuid4
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from redis import Redis
+from rq import Queue
 from sqlalchemy import text
 
 from app.core.config import get_settings
@@ -23,8 +26,10 @@ def ready() -> JSONResponse:
     checks = {
         "database": _check_database(),
         "redis": _check_redis(),
+        "queue": _check_queue(),
         "storage": _check_storage(),
         "media_tools": _check_media_tools(),
+        "download_work_dir": _check_download_work_dir(),
     }
     ok = all(item["ok"] for item in checks.values())
     return JSONResponse(
@@ -50,10 +55,32 @@ def _check_redis() -> dict[str, str | bool]:
         return {"ok": False, "message": str(exc)[:200]}
 
 
+def _check_queue() -> dict[str, str | int | bool]:
+    try:
+        settings = get_settings()
+        redis = Redis.from_url(settings.redis_url, socket_connect_timeout=2, socket_timeout=2)
+        queue = Queue(settings.rq_queue_name, connection=redis)
+        return {"ok": True, "name": settings.rq_queue_name, "queued_jobs": len(queue)}
+    except Exception as exc:
+        return {"ok": False, "message": str(exc)[:200]}
+
+
 def _check_storage() -> dict[str, str | bool]:
     try:
         ObjectStorage().ensure_bucket()
         return {"ok": True}
+    except Exception as exc:
+        return {"ok": False, "message": str(exc)[:200]}
+
+
+def _check_download_work_dir() -> dict[str, str | bool]:
+    try:
+        work_dir = Path(get_settings().download_work_dir)
+        work_dir.mkdir(parents=True, exist_ok=True)
+        probe = work_dir / f".ready-{uuid4().hex}"
+        probe.write_text("ok", encoding="utf-8")
+        probe.unlink(missing_ok=True)
+        return {"ok": True, "path": str(work_dir)}
     except Exception as exc:
         return {"ok": False, "message": str(exc)[:200]}
 

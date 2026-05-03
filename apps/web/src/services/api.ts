@@ -103,3 +103,13 @@ export async function openTaskDownload(taskId: string) {
   const link = await getDownloadLink(taskId);
   window.location.assign(link.url);
 }
+
+export async function getReadiness() {
+  const response = await fetch(`${API_BASE_URL}/ready`);
+  const text = await response.text();
+  try {
+    return JSON.parse(text) as API.Readiness;
+  } catch {
+    throw new Error(text || '运行状态检查失败');
+  }
+}

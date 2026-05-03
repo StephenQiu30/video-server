@@ -5,7 +5,7 @@ import { Alert, Button, Empty, List, Progress, Space, Tag, Typography, message }
 import { useEffect, useMemo, useState } from 'react';
 import { TaskDetailDrawer } from './TaskDetailDrawer';
 import { TaskStateTag } from './TaskStateTag';
-import { createTask, listTasks, normalizeUserUrl, openTaskDownload, parseVideo } from '../services/api';
+import { createTask, getReadiness, listTasks, normalizeUserUrl, openTaskDownload, parseVideo } from '../services/api';
 
 function formatDuration(seconds?: number) {
   if (!seconds) return '-';
@@ -50,6 +50,8 @@ export function DownloaderPage() {
   const [parseError, setParseError] = useState<string>();
   const [selectedTask, setSelectedTask] = useState<API.Task>();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [readiness, setReadiness] = useState<API.Readiness>();
+  const [readinessError, setReadinessError] = useState<string>();
 
   const refreshTasks = async () => {
     try {
@@ -61,6 +63,15 @@ export function DownloaderPage() {
 
   useEffect(() => {
     refreshTasks();
+    getReadiness()
+      .then((result) => {
+        setReadiness(result);
+        setReadinessError(undefined);
+      })
+      .catch((error) => {
+        setReadiness(undefined);
+        setReadinessError(error instanceof Error ? error.message : '运行状态检查失败');
+      });
   }, []);
 
   const keyTasks = useMemo(() => {
@@ -308,6 +319,24 @@ export function DownloaderPage() {
             showIcon
             icon={<SafetyOutlined />}
             message="MVP 不支持 Cookie 托管、DRM 规避、付费墙绕过、会员内容绕过和平台专用解析。"
+          />
+          <Alert
+            type={readiness?.status === 'ok' ? 'success' : 'warning'}
+            showIcon
+            message={
+              readinessError
+                ? `运行状态暂不可用：${readinessError}`
+                : readiness?.status === 'ok'
+                  ? '自部署运行状态正常'
+                  : '自部署运行状态需要检查'
+            }
+            description={
+              readiness
+                ? Object.entries(readiness.checks)
+                    .map(([name, check]) => `${name}: ${check.ok ? 'ok' : check.message || '异常'}`)
+                    .join(' / ')
+                : undefined
+            }
           />
         </Space>
       </div>

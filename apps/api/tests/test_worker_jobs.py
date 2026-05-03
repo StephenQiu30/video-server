@@ -5,10 +5,12 @@ from worker import jobs
 from worker.jobs import (
     JobFailure,
     _apply_browser_cookie_options,
+    _apply_download_resilience_options,
     _assert_media_tools_available,
     _cleanup_task_work_dir,
     _failure_code,
     _format_failure_reason,
+    _raise_task_canceled,
     _resolve_output_path,
 )
 
@@ -82,6 +84,27 @@ def test_failure_code_classifies_unavailable_format() -> None:
 
     assert _failure_code(exc) == "format_unavailable"
     assert "未提供所选清晰度" in _format_failure_reason(exc)
+
+
+def test_download_resilience_options_are_bounded() -> None:
+    options: dict = {}
+
+    _apply_download_resilience_options(options)
+
+    assert options["retries"] == 3
+    assert options["fragment_retries"] == 3
+    assert options["file_access_retries"] == 3
+    assert options["continuedl"] is True
+
+
+def test_task_canceled_failure_is_preserved() -> None:
+    try:
+        _raise_task_canceled()
+    except JobFailure as exc:
+        assert exc.code == "task_canceled"
+        assert _format_failure_reason(exc) == "任务已取消"
+    else:
+        raise AssertionError("expected cancellation failure")
 
 
 def test_apply_browser_cookie_options_uses_tuple_form() -> None:
