@@ -1,25 +1,8 @@
 const API_BASE_URL = process.env.UMI_APP_API_BASE_URL || 'http://127.0.0.1:8000';
-const TOKEN_KEY = 'stephen_video_token';
-
-export function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-export function setToken(token: string) {
-  localStorage.setItem(TOKEN_KEY, token);
-}
-
-export function logout() {
-  localStorage.removeItem(TOKEN_KEY);
-}
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   headers.set('Content-Type', 'application/json');
-  const token = getToken();
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers,
@@ -30,24 +13,6 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new Error(data?.error?.message || data?.message || data?.detail || '请求失败');
   }
   return data as T;
-}
-
-export async function register(payload: API.AuthPayload) {
-  return request<API.AuthResponse>('/api/auth/register', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function login(payload: Pick<API.AuthPayload, 'email' | 'password'>) {
-  return request<API.AuthResponse>('/api/auth/login', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function getCurrentUser() {
-  return request<API.User>('/api/auth/me');
 }
 
 export async function parseVideo(url: string) {

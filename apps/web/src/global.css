@@ -282,41 +282,6 @@ textarea {
   font-size: 13px;
 }
 
-.login-page {
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: minmax(360px, 520px) 1fr;
-  background:
-    linear-gradient(120deg, rgba(22, 119, 255, 0.1), transparent 36%),
-    linear-gradient(0deg, rgba(15, 143, 100, 0.05), transparent 44%),
-    #f5f7fb;
-}
-
-.login-panel {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 56px;
-  background: rgba(255, 255, 255, 0.88);
-  border-right: 1px solid var(--line);
-}
-
-.login-visual {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 56px;
-  overflow: hidden;
-}
-
-.login-visual-grid {
-  width: min(640px, 88%);
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-}
-
 .signal-tile,
 .workflow-tile {
   min-height: 164px;
@@ -416,14 +381,6 @@ textarea {
     width: 100%;
   }
 
-  .login-page {
-    grid-template-columns: 1fr;
-  }
-
-  .login-visual {
-    display: none;
-  }
-
   .metric-row,
   .workspace-grid,
   .compliance-list {
@@ -454,10 +411,6 @@ textarea {
 
   .console-flow div {
     min-height: 86px;
-  }
-
-  .login-panel {
-    padding: 28px;
   }
 
   .task-title {

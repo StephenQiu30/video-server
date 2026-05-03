@@ -2,8 +2,6 @@
 set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:8000}"
-EMAIL="${EMAIL:-parse-acceptance-$(date +%s)@example.com}"
-PASSWORD="${PASSWORD:-password123}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 SAMPLES=(
@@ -12,20 +10,12 @@ SAMPLES=(
   "https://vimeo.com/12548408|Public Domain Video for SAW Video by RS and VC|Public Domain channel"
 )
 
-TOKEN="$(
-  curl -fsS -X POST "${BASE_URL}/api/auth/register" \
-    -H "Content-Type: application/json" \
-    -d "{\"email\":\"${EMAIL}\",\"password\":\"${PASSWORD}\",\"display_name\":\"Parse Acceptance\"}" \
-    | "${PYTHON_BIN}" -c 'import json,sys; print(json.load(sys.stdin)["access_token"])'
-)"
-
 for sample in "${SAMPLES[@]}"; do
   IFS="|" read -r url title license <<< "${sample}"
   PAYLOAD="$("${PYTHON_BIN}" -c 'import json,sys; print(json.dumps({"url": sys.argv[1]}))' "${url}")"
   RESPONSE="$(
     curl -fsS -X POST "${BASE_URL}/api/parse" \
       -H "Content-Type: application/json" \
-      -H "Authorization: Bearer ${TOKEN}" \
       -d "${PAYLOAD}"
   )"
   printf '%s' "${RESPONSE}" | "${PYTHON_BIN}" -c '

@@ -2,37 +2,38 @@
 set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:8000}"
-EMAIL="${EMAIL:-demo-$(date +%s)@example.com}"
-PASSWORD="${PASSWORD:-password123}"
 SAMPLE_URL="${SAMPLE_URL:-https://example.com/sample.mp4}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 
+cancel_active_tasks() {
+  local task_ids
+  task_ids="$(
+    curl -fsS "${BASE_URL}/api/tasks" \
+      | "${PYTHON_BIN}" -c 'import json,sys; print(" ".join(item["id"] for item in json.load(sys.stdin) if item.get("state") in {"queued","running"}))'
+  )"
+  for task_id in ${task_ids}; do
+    curl -fsS -X POST "${BASE_URL}/api/tasks/${task_id}/cancel" >/dev/null || true
+  done
+}
+
 curl -fsS "${BASE_URL}/health" >/dev/null
 curl -fsS "${BASE_URL}/ready" >/dev/null
-TOKEN="$(
-  curl -fsS -X POST "${BASE_URL}/api/auth/register" \
-    -H "Content-Type: application/json" \
-    -d "{\"email\":\"${EMAIL}\",\"password\":\"${PASSWORD}\",\"display_name\":\"Demo\"}" \
-    | "${PYTHON_BIN}" -c 'import json,sys; print(json.load(sys.stdin)["access_token"])'
-)"
-curl -fsS "${BASE_URL}/api/auth/me" -H "Authorization: Bearer ${TOKEN}" >/dev/null
+cancel_active_tasks
 
 TASK_ID="$(
   curl -fsS -X POST "${BASE_URL}/api/tasks" \
     -H "Content-Type: application/json" \
-    -H "Authorization: Bearer ${TOKEN}" \
     -d "{\"url\":\"${SAMPLE_URL}\",\"format_id\":\"best\",\"title\":\"Smoke Sample\",\"format_label\":\"best\"}" \
     | "${PYTHON_BIN}" -c 'import json,sys; print(json.load(sys.stdin)["id"])'
 )"
 
-curl -fsS "${BASE_URL}/api/tasks" -H "Authorization: Bearer ${TOKEN}" >/dev/null
-curl -fsS "${BASE_URL}/api/tasks/${TASK_ID}" -H "Authorization: Bearer ${TOKEN}" >/dev/null
-curl -fsS -X POST "${BASE_URL}/api/tasks/${TASK_ID}/cancel" -H "Authorization: Bearer ${TOKEN}" >/dev/null
+curl -fsS "${BASE_URL}/api/tasks" >/dev/null
+curl -fsS "${BASE_URL}/api/tasks/${TASK_ID}" >/dev/null
+curl -fsS -X POST "${BASE_URL}/api/tasks/${TASK_ID}/cancel" >/dev/null
 
 STATUS_CODE="$(
   curl -s -o /dev/null -w "%{http_code}" \
-    "${BASE_URL}/api/tasks/${TASK_ID}/download-link" \
-    -H "Authorization: Bearer ${TOKEN}"
+    "${BASE_URL}/api/tasks/${TASK_ID}/download-link"
 )"
 
 if [ "${STATUS_CODE}" != "409" ]; then

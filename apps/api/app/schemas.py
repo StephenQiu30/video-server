@@ -3,18 +3,6 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl
 
 
-class UserCreate(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
-    display_name: str | None = Field(default=None, max_length=100)
-    invite_code: str | None = Field(default=None, max_length=100)
-
-
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=1, max_length=128)
-
-
 class UserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -29,12 +17,6 @@ class UserRead(BaseModel):
     file_retention_hours: int
     storage_quota_bytes: int
     created_at: datetime
-
-
-class AuthResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-    user: UserRead
 
 
 class ParseRequest(BaseModel):
@@ -90,15 +72,6 @@ class TaskRead(BaseModel):
 class DownloadLinkResponse(BaseModel):
     url: str
     expires_in_seconds: int
-
-
-class AdminUserUpdate(BaseModel):
-    is_active: bool | None = None
-    daily_task_quota: int | None = Field(default=None, ge=0)
-    concurrent_task_quota: int | None = Field(default=None, ge=0)
-    max_file_size_bytes: int | None = Field(default=None, ge=1)
-    file_retention_hours: int | None = Field(default=None, ge=1)
-    storage_quota_bytes: int | None = Field(default=None, ge=0)
 
 
 class HealthResponse(BaseModel):

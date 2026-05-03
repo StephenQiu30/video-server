@@ -2,10 +2,8 @@
 set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:8000}"
-EMAIL_A="${EMAIL_A:-negative-a-$(date +%s)@example.com}"
-EMAIL_B="${EMAIL_B:-negative-b-$(date +%s)@example.com}"
-PASSWORD="${PASSWORD:-password123}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
+export PYTHONPATH="${PYTHONPATH:-apps/api:apps/worker:packages/shared}"
 
 status_code() {
   curl -s -o /tmp/stephen-video-smoke-response.json -w "%{http_code}" "$@"
@@ -21,6 +19,17 @@ expect_code() {
     cat /tmp/stephen-video-smoke-response.json >&2 || true
     exit 1
   fi
+}
+
+cancel_active_tasks() {
+  local task_ids
+  task_ids="$(
+    curl -fsS "${BASE_URL}/api/tasks" \
+      | "${PYTHON_BIN}" -c 'import json,sys; print(" ".join(item["id"] for item in json.load(sys.stdin) if item.get("state") in {"queued","running"}))'
+  )"
+  for task_id in ${task_ids}; do
+    curl -fsS -X POST "${BASE_URL}/api/tasks/${task_id}/cancel" >/dev/null || true
+  done
 }
 
 assert_no_forbidden_runtime_code() {
@@ -52,49 +61,32 @@ print("runtime bypass static scan passed")
 PY
 }
 
+assert_url_redaction() {
+  "${PYTHON_BIN}" - <<'PY'
+from app.utils.sanitize import redact_url
+
+url = redact_url("https://example.com/video?id=1&token=secret&signature=abc&cookie=value")
+for secret in ("secret", "abc", "value"):
+    if secret in url:
+        raise SystemExit(f"sensitive value leaked: {secret}")
+print("url redaction check passed")
+PY
+}
+
 curl -fsS "${BASE_URL}/health" >/dev/null
 curl -fsS "${BASE_URL}/ready" >/dev/null
-
-expect_code 401 -X POST "${BASE_URL}/api/parse" \
-  -H "Content-Type: application/json" \
-  -d '{"url":"https://vimeo.com/777912896"}'
-
-REGISTER_A="$(
-  curl -fsS -X POST "${BASE_URL}/api/auth/register" \
-    -H "Content-Type: application/json" \
-    -d "{\"email\":\"${EMAIL_A}\",\"password\":\"${PASSWORD}\",\"display_name\":\"Negative A\"}"
-)"
-TOKEN_A="$(printf '%s' "${REGISTER_A}" | "${PYTHON_BIN}" -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')"
-
-expect_code 409 -X POST "${BASE_URL}/api/auth/register" \
-  -H "Content-Type: application/json" \
-  -d "{\"email\":\"${EMAIL_A}\",\"password\":\"${PASSWORD}\",\"display_name\":\"Duplicate\"}"
-
-expect_code 401 -X POST "${BASE_URL}/api/auth/login" \
-  -H "Content-Type: application/json" \
-  -d "{\"email\":\"${EMAIL_A}\",\"password\":\"wrong-password\"}"
-
-REGISTER_B="$(
-  curl -fsS -X POST "${BASE_URL}/api/auth/register" \
-    -H "Content-Type: application/json" \
-    -d "{\"email\":\"${EMAIL_B}\",\"password\":\"${PASSWORD}\",\"display_name\":\"Negative B\"}"
-)"
-TOKEN_B="$(printf '%s' "${REGISTER_B}" | "${PYTHON_BIN}" -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')"
+cancel_active_tasks
 
 TASK_ID="$(
   curl -fsS -X POST "${BASE_URL}/api/tasks" \
     -H "Content-Type: application/json" \
-    -H "Authorization: Bearer ${TOKEN_A}" \
-    -d '{"url":"https://example.com/sample.mp4?token=secret&signature=secret","format_id":"best","title":"Negative Ownership","format_label":"best"}' \
+    -d '{"url":"https://example.com/sample.mp4","format_id":"best","title":"Negative State","format_label":"best"}' \
     | "${PYTHON_BIN}" -c 'import json,sys; print(json.load(sys.stdin)["id"])'
 )"
 
-expect_code 404 "${BASE_URL}/api/tasks/${TASK_ID}" \
-  -H "Authorization: Bearer ${TOKEN_B}"
+expect_code 409 "${BASE_URL}/api/tasks/${TASK_ID}/download-link"
 
-expect_code 409 "${BASE_URL}/api/tasks/${TASK_ID}/download-link" \
-  -H "Authorization: Bearer ${TOKEN_A}"
-
+assert_url_redaction
 assert_no_forbidden_runtime_code
 
 echo "Compliance negative smoke passed"

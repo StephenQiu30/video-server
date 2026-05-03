@@ -4,22 +4,11 @@ import { Space, Tag, Typography, message } from 'antd';
 import { SafetyCertificateOutlined } from '@ant-design/icons';
 import './global.css';
 
-import { getCurrentUser } from './services/api';
-
 export async function getInitialState(): Promise<{
-  currentUser?: API.User;
-  fetchUserInfo: () => Promise<API.User | undefined>;
+  mode: 'local-single-user';
 }> {
-  const fetchUserInfo = async () => {
-    try {
-      return await getCurrentUser();
-    } catch {
-      return undefined;
-    }
-  };
   return {
-    currentUser: await fetchUserInfo(),
-    fetchUserInfo,
+    mode: 'local-single-user',
   };
 }
 

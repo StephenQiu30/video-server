@@ -1,24 +1,4 @@
 declare namespace API {
-  type User = {
-    id: number;
-    email: string;
-    display_name?: string;
-    is_active: boolean;
-    created_at: string;
-  };
-
-  type AuthPayload = {
-    email: string;
-    password: string;
-    display_name?: string;
-  };
-
-  type AuthResponse = {
-    access_token: string;
-    token_type: string;
-    user: User;
-  };
-
   type VideoFormat = {
     format_id: string;
     label: string;
