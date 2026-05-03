@@ -14,7 +14,7 @@ services:
         condition: service_healthy
 
   worker:
-    container_name: ${CONTAINER_NAME_PREFIX:-video-downloader}-worker
+    container_name: stephen-video-worker
     build:
       context: ../..
       dockerfile: infra/docker/python.Dockerfile
@@ -31,7 +31,7 @@ services:
     restart: unless-stopped
 
   postgres:
-    container_name: ${CONTAINER_NAME_PREFIX:-video-downloader}-postgres
+    container_name: stephen-video-postgres
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
@@ -47,7 +47,7 @@ services:
       retries: 20
 
   redis:
-    container_name: ${CONTAINER_NAME_PREFIX:-video-downloader}-redis
+    container_name: stephen-video-redis
     image: redis:7-alpine
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
@@ -62,7 +62,7 @@ services:
       retries: 20
 
   minio:
-    container_name: ${CONTAINER_NAME_PREFIX:-video-downloader}-minio
+    container_name: stephen-video-minio
     image: quay.io/minio/minio:latest
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}

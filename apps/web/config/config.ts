@@ -29,12 +29,12 @@ export default defineConfig({
     fixSiderbar: true,
   },
   routes: [
-    { path: '/', redirect: '/workspace' },
-    { path: '/login', layout: false, component: './Login' },
+    { path: '/', component: './Home' },
+    { path: '/login', redirect: '/workspace' },
     { name: '下载工作台', path: '/workspace', component: './Workspace' },
     { name: '任务历史', path: '/tasks', component: './Tasks' },
     { name: '合规边界', path: '/compliance', component: './Compliance' },
-    { path: '*', redirect: '/workspace' },
+    { path: '*', redirect: '/' },
   ],
   npmClient: 'npm',
 });

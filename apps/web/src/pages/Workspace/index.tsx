@@ -133,7 +133,14 @@ export default function WorkspacePage() {
           >
             <List
               dataSource={tasks.slice(0, 5)}
-              locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无任务" /> }}
+              locale={{
+                emptyText: (
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description="暂无任务"
+                  />
+                ),
+              }}
               renderItem={(task) => (
                 <List.Item
                   actions={[

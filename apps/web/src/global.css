@@ -23,6 +23,12 @@ body {
   color: var(--ink);
 }
 
+button,
+input,
+textarea {
+  letter-spacing: 0;
+}
+
 .page-shell {
   min-height: calc(100vh - 56px);
   background:
@@ -65,6 +71,215 @@ body {
 
 .header-safe-icon {
   color: var(--green);
+}
+
+.home-page {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.home-hero {
+  min-height: calc(100vh - 148px);
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(420px, 0.95fr);
+  gap: 36px;
+  align-items: center;
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 28px 0 10px;
+}
+
+.home-hero-copy {
+  max-width: 680px;
+}
+
+.home-eyebrow {
+  display: inline-flex;
+  width: fit-content;
+  padding: 5px 9px;
+  border: 1px solid rgba(15, 143, 100, 0.24);
+  border-radius: 999px;
+  background: rgba(15, 143, 100, 0.08);
+  color: #0b7352;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.home-hero h1.ant-typography {
+  margin: 18px 0 14px;
+  font-size: clamp(44px, 6vw, 82px);
+  line-height: 0.96;
+  letter-spacing: 0;
+  color: #111827;
+}
+
+.home-lead {
+  max-width: 640px;
+  color: #475467;
+  font-size: 18px;
+  line-height: 1.7;
+}
+
+.home-console {
+  overflow: hidden;
+  border: 1px solid rgba(64, 81, 111, 0.16);
+  border-radius: 8px;
+  background: #101828;
+  box-shadow: 0 28px 70px rgba(24, 32, 51, 0.22);
+}
+
+.console-bar {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  height: 38px;
+  padding: 0 16px;
+  background: #1d2939;
+}
+
+.console-bar span {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #f97066;
+}
+
+.console-bar span:nth-child(2) {
+  background: #fdb022;
+}
+
+.console-bar span:nth-child(3) {
+  background: #32d583;
+}
+
+.console-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+}
+
+.console-input {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e4e7ec;
+}
+
+.console-input span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.console-input strong {
+  color: #7cd4fd;
+}
+
+.console-flow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.console-flow div {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 116px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f2f4f7;
+  font-weight: 700;
+}
+
+.console-flow .anticon {
+  color: #32d583;
+  font-size: 22px;
+}
+
+.home-section,
+.home-boundary {
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.home-section-heading {
+  max-width: 720px;
+  margin-bottom: 16px;
+}
+
+.home-section-heading h2.ant-typography {
+  margin-top: 12px;
+}
+
+.home-flow-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.home-flow-card {
+  min-height: 190px;
+  padding: 20px;
+  border: 1px solid rgba(64, 81, 111, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 14px 34px rgba(24, 32, 51, 0.06);
+}
+
+.flow-index {
+  display: block;
+  margin-bottom: 18px;
+  color: #1677ff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.home-boundary {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.45fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: center;
+  padding: 22px;
+  border: 1px solid rgba(15, 143, 100, 0.2);
+  border-radius: 8px;
+  background: rgba(240, 253, 249, 0.78);
+}
+
+.home-boundary .anticon {
+  color: var(--green);
+  font-size: 24px;
+}
+
+.home-boundary h3.ant-typography {
+  margin: 8px 0 0;
+}
+
+.boundary-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.boundary-list span {
+  padding: 8px 10px;
+  border: 1px solid rgba(15, 143, 100, 0.2);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #344054;
+  font-size: 13px;
 }
 
 .login-page {
@@ -186,6 +401,21 @@ body {
 }
 
 @media (max-width: 980px) {
+  .home-hero,
+  .home-flow-grid,
+  .home-boundary {
+    grid-template-columns: 1fr;
+  }
+
+  .home-hero {
+    min-height: auto;
+    gap: 24px;
+  }
+
+  .home-console {
+    width: 100%;
+  }
+
   .login-page {
     grid-template-columns: 1fr;
   }
@@ -202,6 +432,30 @@ body {
 }
 
 @media (max-width: 560px) {
+  .page-shell {
+    padding: 14px;
+  }
+
+  .home-hero h1.ant-typography {
+    font-size: 42px;
+  }
+
+  .home-lead {
+    font-size: 16px;
+  }
+
+  .console-body {
+    padding: 16px;
+  }
+
+  .console-flow {
+    grid-template-columns: 1fr;
+  }
+
+  .console-flow div {
+    min-height: 86px;
+  }
+
   .login-panel {
     padding: 28px;
   }

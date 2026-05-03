@@ -1,24 +1,19 @@
 import type { RequestConfig } from '@@/plugin-request/types';
 import type { RunTimeLayoutConfig } from '@@/plugin-layout/types';
-import { history } from '@@/core/history';
-import { Avatar, Button, Space, Typography, message } from 'antd';
-import { LogoutOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { Space, Tag, Typography, message } from 'antd';
+import { SafetyCertificateOutlined } from '@ant-design/icons';
 import './global.css';
 
-import { getCurrentUser, getToken, logout } from './services/api';
+import { getCurrentUser } from './services/api';
 
 export async function getInitialState(): Promise<{
   currentUser?: API.User;
   fetchUserInfo: () => Promise<API.User | undefined>;
 }> {
   const fetchUserInfo = async () => {
-    if (!getToken()) {
-      return undefined;
-    }
     try {
       return await getCurrentUser();
     } catch {
-      logout();
       return undefined;
     }
   };
@@ -42,7 +37,7 @@ export const request: RequestConfig = {
   },
 };
 
-export const layout: RunTimeLayoutConfig = ({ initialState, setInitialState }) => {
+export const layout: RunTimeLayoutConfig = () => {
   return {
     layout: 'top',
     splitMenus: false,
@@ -58,43 +53,16 @@ export const layout: RunTimeLayoutConfig = ({ initialState, setInitialState }) =
     menuHeaderRender: () => (
       <div className="brand-lockup">
         <div className="brand-mark">SV</div>
-        <div>
-          <Typography.Text strong>Stephen Video</Typography.Text>
-          <Typography.Text type="secondary" className="brand-subtitle">
-            SaaS Console
-          </Typography.Text>
-        </div>
+        <Typography.Text strong>Stephen Video</Typography.Text>
       </div>
     ),
     rightContentRender: () => {
-      if (!initialState?.currentUser) {
-        return (
-          <Button type="primary" onClick={() => history.push('/login')}>
-            登录
-          </Button>
-        );
-      }
       return (
         <Space size={12}>
           <SafetyCertificateOutlined className="header-safe-icon" />
-          <Avatar size={30}>{initialState.currentUser.display_name?.[0] || 'U'}</Avatar>
-          <Typography.Text>{initialState.currentUser.display_name || initialState.currentUser.email}</Typography.Text>
-          <Button
-            icon={<LogoutOutlined />}
-            onClick={() => {
-              logout();
-              setInitialState({ ...initialState, currentUser: undefined });
-              history.push('/login');
-            }}
-          />
+          <Tag color="processing">本地单用户模式</Tag>
         </Space>
       );
-    },
-    onPageChange: () => {
-      const { location } = history;
-      if (!getToken() && location.pathname !== '/login') {
-        history.push('/login');
-      }
     },
     childrenRender: (children: JSX.Element) => <div className="page-shell">{children}</div>,
   };

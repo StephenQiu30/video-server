@@ -1,6 +1,6 @@
 # 万能视频下载器
 
-这是一个合规、安全、可自部署的视频下载与内容整理工具。当前阶段为 M1 后端骨架，实现 FastAPI API、RQ Worker、PostgreSQL、Redis、MinIO / S3 私有对象存储和 yt-dlp 下载内核适配。
+这是一个合规、安全、可自部署的视频下载与内容整理工具。当前阶段为 M1 单用户本地 MVP，实现 FastAPI API、RQ Worker、PostgreSQL、Redis、MinIO / S3 私有对象存储和 yt-dlp 下载内核适配，优先跑通解析、任务、下载、存储和短期下载链接闭环。
 
 ## 一键启动
 
@@ -140,7 +140,7 @@ cp .env.production.example .env.production
 ./scripts/start.sh prod
 ```
 
-生产容器默认使用固定命名：`video-downloader-web`、`video-downloader-api`、`video-downloader-worker`、`video-downloader-postgres`、`video-downloader-redis`、`video-downloader-minio`。如果同一台机器部署多套环境，需要在 `.env.production` 中同时调整 `COMPOSE_PROJECT_NAME` 和 `CONTAINER_NAME_PREFIX`。
+Docker Compose 项目名固定为 `stephen-video`。容器默认使用固定命名：`stephen-video-web`、`stephen-video-api`、`stephen-video-worker`、`stephen-video-postgres`、`stephen-video-redis`、`stephen-video-minio`。
 
 ## 前端本地启动
 

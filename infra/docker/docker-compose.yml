@@ -1,8 +1,8 @@
-name: ${COMPOSE_PROJECT_NAME:-video-downloader-local}
+name: stephen-video
 
 services:
   web:
-    container_name: ${CONTAINER_NAME_PREFIX:-video-downloader-local}-web
+    container_name: stephen-video-web
     build:
       context: ../..
       dockerfile: infra/docker/web.prod.Dockerfile
@@ -21,7 +21,7 @@ services:
       retries: 10
 
   api:
-    container_name: ${CONTAINER_NAME_PREFIX:-video-downloader-local}-api
+    container_name: stephen-video-api
     build:
       context: ../..
       dockerfile: infra/docker/python.Dockerfile
