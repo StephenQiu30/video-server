@@ -1,10 +1,11 @@
-import { CloudDownloadOutlined, LinkOutlined, ReloadOutlined, SafetyOutlined } from '@ant-design/icons';
-import { PageContainer, ProCard, ProForm, ProFormText, StatisticCard } from '@ant-design/pro-components';
-import { Button, Empty, List, Progress, Row, Col, Space, Typography, message } from 'antd';
+import { DownloadOutlined, LinkOutlined, ReloadOutlined, SafetyOutlined } from '@ant-design/icons';
+import { history } from '@@/core/history';
+import { PageContainer, ProCard, ProForm, ProFormText } from '@ant-design/pro-components';
+import { Alert, Button, Empty, List, Progress, Row, Col, Space, Typography, message } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { TaskDetailDrawer } from '../../components/TaskDetailDrawer';
 import { TaskStateTag } from '../../components/TaskStateTag';
-import { createTask, listTasks, parseVideo } from '../../services/api';
+import { createTask, listTasks, normalizeUserUrl, openTaskDownload, parseVideo } from '../../services/api';
 
 function formatDuration(seconds?: number) {
   if (!seconds) return '-';
@@ -13,40 +14,95 @@ function formatDuration(seconds?: number) {
   return `${minutes}:${String(rest).padStart(2, '0')}`;
 }
 
+function isSmokeTask(task: API.Task) {
+  const title = task.title || task.output_filename || '';
+  return /^\[Smoke\]/i.test(title) || ['Smoke Sample', 'Negative State', 'Negative Ownership', 'Download Acceptance'].includes(title);
+}
+
+function isActiveTask(task: API.Task) {
+  return task.state === 'queued' || task.state === 'running';
+}
+
+function isExpiredTask(task: API.Task) {
+  return task.failure_code === 'retention_expired';
+}
+
+function formatSize(size?: number) {
+  if (!size) return '-';
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / 1024 / 1024).toFixed(1)} MB`;
+}
+
 export default function WorkspacePage() {
-  const [loading, setLoading] = useState(false);
+  const [parsing, setParsing] = useState(false);
+  const [creatingFormatId, setCreatingFormatId] = useState<string>();
+  const [downloadingTaskId, setDownloadingTaskId] = useState<string>();
   const [tasks, setTasks] = useState<API.Task[]>([]);
   const [parsed, setParsed] = useState<API.ParseResponse>();
+  const [parseError, setParseError] = useState<string>();
   const [selectedTask, setSelectedTask] = useState<API.Task>();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const refreshTasks = async () => {
-    setTasks(await listTasks());
+    try {
+      setTasks(await listTasks({ limit: 20 }));
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '任务列表刷新失败');
+    }
   };
 
   useEffect(() => {
     refreshTasks();
   }, []);
 
-  const stats = useMemo(() => {
-    return {
-      total: tasks.length,
-      running: tasks.filter((item) => item.state === 'queued' || item.state === 'running').length,
-      succeeded: tasks.filter((item) => item.state === 'succeeded').length,
-      failed: tasks.filter((item) => item.state === 'failed').length,
-    };
-  }, [tasks]);
+  const visibleTasks = useMemo(() => tasks.filter((task) => !isSmokeTask(task)), [tasks]);
+  const keyTasks = useMemo(() => {
+    const active = visibleTasks.filter(isActiveTask);
+    const recent = visibleTasks.filter((task) => !isActiveTask(task));
+    return [...active, ...recent].slice(0, 3);
+  }, [visibleTasks]);
+  const currentTask = keyTasks[0];
+
+  const handleDownload = async (task: API.Task) => {
+    setDownloadingTaskId(task.id);
+    try {
+      await openTaskDownload(task.id);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '下载链接获取失败');
+    } finally {
+      setDownloadingTaskId(undefined);
+    }
+  };
+
+  const renderTaskActions = (task: API.Task) => {
+    const expired = isExpiredTask(task);
+    return (
+      <Space>
+        <Button
+          type="link"
+          onClick={() => {
+            setSelectedTask(task);
+            setDrawerOpen(true);
+          }}
+        >
+          查看
+        </Button>
+        <Button
+          type="link"
+          icon={<DownloadOutlined />}
+          disabled={task.state !== 'succeeded' || expired}
+          loading={downloadingTaskId === task.id}
+          onClick={() => handleDownload(task)}
+        >
+          下载文件
+        </Button>
+      </Space>
+    );
+  };
 
   return (
     <PageContainer title="下载工作台" subTitle="解析公开视频链接，创建后台下载任务">
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
-        <StatisticCard.Group>
-          <StatisticCard statistic={{ title: '全部任务', value: stats.total, prefix: <CloudDownloadOutlined /> }} />
-          <StatisticCard statistic={{ title: '进行中', value: stats.running, status: 'processing' }} />
-          <StatisticCard statistic={{ title: '已完成', value: stats.succeeded, status: 'success' }} />
-          <StatisticCard statistic={{ title: '失败', value: stats.failed, status: 'error' }} />
-        </StatisticCard.Group>
-
         <Row gutter={[16, 16]}>
           <Col xs={24} xl={15}>
             <ProCard title="新建下载" bordered>
@@ -54,17 +110,37 @@ export default function WorkspacePage() {
                 layout="vertical"
                 submitter={{
                   searchConfig: { submitText: '解析链接' },
-                  submitButtonProps: { icon: <LinkOutlined />, loading },
+                  submitButtonProps: { icon: <LinkOutlined />, loading: parsing, disabled: Boolean(creatingFormatId) },
                 }}
                 onFinish={async (values) => {
-                  setLoading(true);
+                  let normalizedUrl: string;
+                  setParseError(undefined);
                   try {
-                    const result = await parseVideo(values.url);
-                    setParsed(result);
-                    message.success('解析完成');
-                  } finally {
-                    setLoading(false);
+                    normalizedUrl = normalizeUserUrl(String(values.url || ''));
+                    if (normalizedUrl !== String(values.url || '').trim()) {
+                      message.info('已自动补全 https://');
+                    }
+                  } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : '请输入有效的视频链接';
+                    setParseError(errorMessage);
+                    message.error(errorMessage);
+                    return false;
                   }
+                  setParsing(true);
+                  setParsed(undefined);
+                  try {
+                    const result = await parseVideo(normalizedUrl);
+                    setParsed(result);
+                    setParseError(undefined);
+                    message.success('解析完成');
+                  } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : '公开视频解析失败或平台暂不支持';
+                    setParseError(errorMessage);
+                    message.error(errorMessage);
+                  } finally {
+                    setParsing(false);
+                  }
+                  return true;
                 }}
               >
                 <ProFormText
@@ -74,6 +150,8 @@ export default function WorkspacePage() {
                   rules={[{ required: true, message: '请输入视频链接' }]}
                 />
               </ProForm>
+
+              {parseError ? <Alert type="error" showIcon message={parseError} style={{ marginBottom: 16 }} /> : null}
 
               {parsed ? (
                 <List
@@ -92,17 +170,26 @@ export default function WorkspacePage() {
                         <Button
                           key="create"
                           type="primary"
+                          loading={creatingFormatId === format.format_id}
+                          disabled={Boolean(creatingFormatId) || parsing}
                           onClick={async () => {
-                            await createTask({
-                              url: parsed.url,
-                              title: parsed.title,
-                              cover_url: parsed.cover_url,
-                              duration_seconds: parsed.duration_seconds,
-                              format_id: format.format_id,
-                              format_label: format.label,
-                            });
-                            message.success('任务已创建');
-                            await refreshTasks();
+                            setCreatingFormatId(format.format_id);
+                            try {
+                              await createTask({
+                                url: parsed.url,
+                                title: parsed.title,
+                                cover_url: parsed.cover_url,
+                                duration_seconds: parsed.duration_seconds,
+                                format_id: format.format_id,
+                                format_label: format.label,
+                              });
+                              message.success('任务已创建');
+                              await refreshTasks();
+                            } catch (error) {
+                              message.error(error instanceof Error ? error.message : '任务创建失败');
+                            } finally {
+                              setCreatingFormatId(undefined);
+                            }
                           }}
                         >
                           创建任务
@@ -121,25 +208,51 @@ export default function WorkspacePage() {
           </Col>
 
           <Col xs={24} xl={9}>
-            <ProCard title="最近任务" bordered extra={<Button icon={<ReloadOutlined />} onClick={refreshTasks} />}>
+            <ProCard
+              title="当前任务"
+              bordered
+              extra={
+                <Space>
+                  <Button icon={<ReloadOutlined />} onClick={refreshTasks} />
+                  <Button type="link" onClick={() => history.push('/tasks')}>
+                    完整历史
+                  </Button>
+                </Space>
+              }
+            >
+              {currentTask ? (
+                <Space direction="vertical" size={14} style={{ width: '100%' }}>
+                  <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                    <Typography.Text strong ellipsis>
+                      {currentTask.title || currentTask.output_filename || '未命名视频'}
+                    </Typography.Text>
+                    <TaskStateTag state={currentTask.state} />
+                    <Progress percent={currentTask.progress} size="small" />
+                  </Space>
+                  {isExpiredTask(currentTask) ? (
+                    <Alert type="warning" showIcon message="文件已过期，可在任务详情中重试任务" />
+                  ) : null}
+                  {currentTask.state === 'succeeded' && !isExpiredTask(currentTask) ? (
+                    <Alert
+                      type="success"
+                      showIcon
+                      message="文件已准备好"
+                      description={`文件：${currentTask.output_filename || '-'} / 大小：${formatSize(currentTask.object_size)} / 过期时间：${currentTask.expires_at || '-'}`}
+                    />
+                  ) : null}
+                  {renderTaskActions(currentTask)}
+                </Space>
+              ) : (
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无当前任务" />
+              )}
+            </ProCard>
+
+            <ProCard title="最近关键任务" bordered style={{ marginTop: 16 }}>
               <List
-                dataSource={tasks.slice(0, 5)}
-                locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无任务" /> }}
+                dataSource={keyTasks.slice(1)}
+                locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无更多任务" /> }}
                 renderItem={(task) => (
-                  <List.Item
-                    actions={[
-                      <Button
-                        key="detail"
-                        type="link"
-                        onClick={() => {
-                          setSelectedTask(task);
-                          setDrawerOpen(true);
-                        }}
-                      >
-                        查看
-                      </Button>,
-                    ]}
-                  >
+                  <List.Item actions={[renderTaskActions(task)]}>
                     <List.Item.Meta
                       title={<Typography.Text ellipsis>{task.title || task.output_filename || task.id}</Typography.Text>}
                       description={

@@ -21,8 +21,13 @@ function canRetry(task: API.Task) {
   return task.state === 'failed' || task.state === 'canceled' || Boolean(task.failure_code === 'retention_expired');
 }
 
+function canDownload(task: API.Task) {
+  return task.state === 'succeeded' && task.failure_code !== 'retention_expired';
+}
+
 export function TaskDetailDrawer({ task, open, onClose, onChanged }: Props) {
   const [events, setEvents] = useState<API.TaskEvent[]>([]);
+  const [activeAction, setActiveAction] = useState<'download' | 'retry' | 'cancel'>();
 
   useEffect(() => {
     if (!open || !task) {
@@ -43,6 +48,9 @@ export function TaskDetailDrawer({ task, open, onClose, onChanged }: Props) {
             <TaskStateTag state={task.state} />
           </Space>
           <Progress percent={task.progress} status={task.state === 'failed' ? 'exception' : undefined} />
+          {task.failure_code === 'retention_expired' ? (
+            <Alert type="warning" showIcon message="文件已过期，可重试任务重新生成文件" />
+          ) : null}
           {task.failure_reason ? <Alert type="warning" showIcon message={task.failure_reason} /> : null}
           <Descriptions column={1} size="small" bordered>
             <Descriptions.Item label="任务 ID">{task.id}</Descriptions.Item>
@@ -67,9 +75,17 @@ export function TaskDetailDrawer({ task, open, onClose, onChanged }: Props) {
             <Button
               type="primary"
               icon={<DownloadOutlined />}
-              disabled={task.state !== 'succeeded'}
+              disabled={!canDownload(task)}
+              loading={activeAction === 'download'}
               onClick={async () => {
-                await openTaskDownload(task.id);
+                setActiveAction('download');
+                try {
+                  await openTaskDownload(task.id);
+                } catch (error) {
+                  message.error(error instanceof Error ? error.message : '下载链接获取失败');
+                } finally {
+                  setActiveAction(undefined);
+                }
               }}
             >
               下载文件
@@ -77,10 +93,18 @@ export function TaskDetailDrawer({ task, open, onClose, onChanged }: Props) {
             <Button
               icon={<ReloadOutlined />}
               disabled={!canRetry(task)}
+              loading={activeAction === 'retry'}
               onClick={async () => {
-                await retryTask(task.id);
-                message.success('重试任务已创建');
-                onChanged();
+                setActiveAction('retry');
+                try {
+                  await retryTask(task.id);
+                  message.success('重试任务已创建');
+                  onChanged();
+                } catch (error) {
+                  message.error(error instanceof Error ? error.message : '重试任务创建失败');
+                } finally {
+                  setActiveAction(undefined);
+                }
               }}
             >
               重试
@@ -88,10 +112,18 @@ export function TaskDetailDrawer({ task, open, onClose, onChanged }: Props) {
             <Button
               icon={<StopOutlined />}
               disabled={task.state !== 'queued' && task.state !== 'running'}
+              loading={activeAction === 'cancel'}
               onClick={async () => {
-                await cancelTask(task.id);
-                message.success('任务已取消');
-                onChanged();
+                setActiveAction('cancel');
+                try {
+                  await cancelTask(task.id);
+                  message.success('任务已取消');
+                  onChanged();
+                } catch (error) {
+                  message.error(error instanceof Error ? error.message : '任务取消失败');
+                } finally {
+                  setActiveAction(undefined);
+                }
               }}
             >
               取消任务

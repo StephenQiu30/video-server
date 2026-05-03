@@ -80,7 +80,7 @@ cancel_active_tasks
 TASK_ID="$(
   curl -fsS -X POST "${BASE_URL}/api/tasks" \
     -H "Content-Type: application/json" \
-    -d '{"url":"https://example.com/sample.mp4","format_id":"best","title":"Negative State","format_label":"best"}' \
+    -d '{"url":"https://example.com/sample.mp4","format_id":"best","title":"[Smoke] Negative State","format_label":"best"}' \
     | "${PYTHON_BIN}" -c 'import json,sys; print(json.load(sys.stdin)["id"])'
 )"
 

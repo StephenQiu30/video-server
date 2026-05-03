@@ -3,14 +3,13 @@ from pathlib import Path
 import shutil
 import subprocess
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.db.session import SessionLocal
 from app.models import DownloadTask
 from app.services.storage import ObjectStorage
-from app.services.tasks import add_task_event
+from app.services.tasks import add_task_event, cleanup_expired_task_outputs
 from app.utils.sanitize import redact_url, safe_filename
 from video_downloader_shared.states import TaskState
 
@@ -203,29 +202,7 @@ def _format_failure_reason(exc: Exception) -> str:
 
 def cleanup_expired_outputs() -> int:
     db = SessionLocal()
-    removed = 0
     try:
-        now = datetime.now(UTC)
-        tasks = db.scalars(
-            select(DownloadTask).where(
-                DownloadTask.state == TaskState.SUCCEEDED.value,
-                DownloadTask.object_key.is_not(None),
-                DownloadTask.expires_at.is_not(None),
-                DownloadTask.expires_at <= now,
-            )
-        )
-        storage = ObjectStorage()
-        for task in tasks:
-            try:
-                storage.delete_object(task.object_key)
-            except Exception:
-                pass
-            task.object_key = None
-            task.failure_code = "retention_expired"
-            task.failure_reason = "文件保留时间已过期并已清理"
-            add_task_event(db, task, task.state, "过期文件已清理")
-            removed += 1
-        db.commit()
-        return removed
+        return cleanup_expired_task_outputs(db)
     finally:
         db.close()

@@ -6,7 +6,7 @@ import time
 from typing import Annotated
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
@@ -23,11 +23,13 @@ from app.services.tasks import (
     add_task_event,
     assert_concurrency_allowed,
     cancel_task,
+    cleanup_expired_task_outputs,
     get_owned_task,
     list_task_events,
     reconcile_stale_active_tasks,
     retry_task,
 )
+from app.utils.url import normalize_user_url
 from video_downloader_shared.states import TaskState
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
@@ -39,10 +41,11 @@ def create_task(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> DownloadTask:
+    source_url = normalize_user_url(payload.url)
     assert_concurrency_allowed(db, current_user)
     task = DownloadTask(
         user_id=current_user.id,
-        source_url=str(payload.url),
+        source_url=source_url,
         title=payload.title,
         cover_url=payload.cover_url,
         duration_seconds=payload.duration_seconds,
@@ -72,15 +75,24 @@ def create_task(
 def list_tasks(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
+    state: Annotated[str | None, Query()] = None,
+    limit: Annotated[int | None, Query(ge=1, le=200)] = None,
 ) -> list[DownloadTask]:
     reconcile_stale_active_tasks(db)
-    return list(
-        db.scalars(
-            select(DownloadTask)
-            .where(DownloadTask.user_id == current_user.id)
-            .order_by(desc(DownloadTask.created_at))
-        )
+    cleanup_expired_task_outputs(db)
+    query = (
+        select(DownloadTask)
+        .where(DownloadTask.user_id == current_user.id)
+        .order_by(desc(DownloadTask.created_at))
     )
+    if state:
+        valid_states = {item.value for item in TaskState}
+        if state not in valid_states:
+            raise AppError("invalid_state", "任务状态筛选值无效", 422)
+        query = query.where(DownloadTask.state == state)
+    if limit:
+        query = query.limit(limit)
+    return list(db.scalars(query))
 
 
 @router.get("/{task_id}", response_model=TaskRead)
@@ -137,6 +149,7 @@ def get_download_link(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> DownloadLinkResponse:
+    cleanup_expired_task_outputs(db)
     task = get_owned_task(db, current_user, task_id)
     _assert_downloadable(task)
     ttl = get_settings().presigned_url_ttl_seconds
@@ -154,6 +167,7 @@ def download_task_file(
     db: Annotated[Session, Depends(get_db)],
 ) -> StreamingResponse:
     _verify_download_signature(task_id, expires, signature)
+    cleanup_expired_task_outputs(db)
     task = db.get(DownloadTask, task_id)
     if not task:
         raise AppError("not_found", "任务不存在", 404)

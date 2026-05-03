@@ -1,6 +1,6 @@
 import { DownloadOutlined, ReloadOutlined, StopOutlined } from '@ant-design/icons';
 import { PageContainer, ProTable, type ProColumns } from '@ant-design/pro-components';
-import { Button, Space, Typography, message } from 'antd';
+import { Button, Space, Tag, Typography, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { TaskDetailDrawer } from '../../components/TaskDetailDrawer';
 import { TaskStateTag } from '../../components/TaskStateTag';
@@ -10,16 +10,23 @@ function canRetry(task: API.Task) {
   return task.state === 'failed' || task.state === 'canceled' || Boolean(task.failure_code === 'retention_expired');
 }
 
+function canDownload(task: API.Task) {
+  return task.state === 'succeeded' && task.failure_code !== 'retention_expired';
+}
+
 export default function TasksPage() {
   const [tasks, setTasks] = useState<API.Task[]>([]);
   const [loading, setLoading] = useState(false);
+  const [activeAction, setActiveAction] = useState<string>();
   const [selectedTask, setSelectedTask] = useState<API.Task>();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
     try {
-      setTasks(await listTasks());
+      setTasks(await listTasks({ limit: 200 }));
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '任务历史刷新失败');
     } finally {
       setLoading(false);
     }
@@ -48,7 +55,21 @@ export default function TasksPage() {
       title: '状态',
       dataIndex: 'state',
       width: 120,
-      render: (_, record) => <TaskStateTag state={record.state} />,
+      valueEnum: {
+        queued: { text: '排队中' },
+        running: { text: '进行中' },
+        succeeded: { text: '已完成' },
+        failed: { text: '失败' },
+        canceled: { text: '已取消' },
+      },
+      filters: true,
+      onFilter: (value, record) => record.state === value,
+      render: (_, record) => (
+        <Space direction="vertical" size={4}>
+          <TaskStateTag state={record.state} />
+          {record.failure_code === 'retention_expired' ? <Tag color="warning">文件已过期</Tag> : null}
+        </Space>
+      ),
     },
     {
       title: '进度',
@@ -87,9 +108,17 @@ export default function TasksPage() {
           key="download"
           type="link"
           icon={<DownloadOutlined />}
-          disabled={record.state !== 'succeeded'}
+          disabled={!canDownload(record)}
+          loading={activeAction === `download:${record.id}`}
           onClick={async () => {
-            await openTaskDownload(record.id);
+            setActiveAction(`download:${record.id}`);
+            try {
+              await openTaskDownload(record.id);
+            } catch (error) {
+              message.error(error instanceof Error ? error.message : '下载链接获取失败');
+            } finally {
+              setActiveAction(undefined);
+            }
           }}
         >
           下载
@@ -99,10 +128,18 @@ export default function TasksPage() {
           type="link"
           icon={<ReloadOutlined />}
           disabled={!canRetry(record)}
+          loading={activeAction === `retry:${record.id}`}
           onClick={async () => {
-            await retryTask(record.id);
-            message.success('重试任务已创建');
-            await refresh();
+            setActiveAction(`retry:${record.id}`);
+            try {
+              await retryTask(record.id);
+              message.success('重试任务已创建');
+              await refresh();
+            } catch (error) {
+              message.error(error instanceof Error ? error.message : '重试任务创建失败');
+            } finally {
+              setActiveAction(undefined);
+            }
           }}
         >
           重试
@@ -113,10 +150,18 @@ export default function TasksPage() {
           danger
           icon={<StopOutlined />}
           disabled={record.state !== 'queued' && record.state !== 'running'}
+          loading={activeAction === `cancel:${record.id}`}
           onClick={async () => {
-            await cancelTask(record.id);
-            message.success('任务已取消');
-            await refresh();
+            setActiveAction(`cancel:${record.id}`);
+            try {
+              await cancelTask(record.id);
+              message.success('任务已取消');
+              await refresh();
+            } catch (error) {
+              message.error(error instanceof Error ? error.message : '任务取消失败');
+            } finally {
+              setActiveAction(undefined);
+            }
           }}
         >
           取消
@@ -137,7 +182,7 @@ export default function TasksPage() {
         loading={loading}
         columns={columns}
         dataSource={tasks}
-        pagination={{ pageSize: 8 }}
+        pagination={{ pageSize: 10, showSizeChanger: true }}
       />
       <TaskDetailDrawer
         task={selectedTask}

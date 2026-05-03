@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserRead(BaseModel):
@@ -20,7 +20,7 @@ class UserRead(BaseModel):
 
 
 class ParseRequest(BaseModel):
-    url: HttpUrl
+    url: str = Field(min_length=1, max_length=2048)
 
 
 class VideoFormat(BaseModel):
@@ -40,7 +40,7 @@ class ParseResponse(BaseModel):
 
 
 class TaskCreate(BaseModel):
-    url: HttpUrl
+    url: str = Field(min_length=1, max_length=2048)
     format_id: str | None = None
     title: str | None = Field(default=None, max_length=500)
     cover_url: str | None = None

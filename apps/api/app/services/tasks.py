@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.errors import AppError
 from app.models import DownloadTask, TaskEvent, User
+from app.services.storage import ObjectStorage
 from video_downloader_shared.states import ACTIVE_TASK_STATES, TaskState
 
 
@@ -26,7 +27,7 @@ def assert_concurrency_allowed(db: Session, user: User) -> None:
     storage_used = db.scalar(
         select(func.coalesce(func.sum(DownloadTask.object_size), 0))
         .select_from(DownloadTask)
-        .where(DownloadTask.user_id == user.id)
+        .where(DownloadTask.user_id == user.id, DownloadTask.object_key.is_not(None))
     )
     if user.storage_quota_bytes >= 0 and storage_used is not None and storage_used >= user.storage_quota_bytes:
         raise AppError("limit_exceeded", "当前账号存储额度已用完，请等待过期清理或联系管理员", 429)
@@ -102,6 +103,34 @@ def retry_task(db: Session, user: User, task: DownloadTask) -> DownloadTask:
     db.commit()
     db.refresh(new_task)
     return new_task
+
+
+def cleanup_expired_task_outputs(db: Session) -> int:
+    now = datetime.now(UTC)
+    tasks = db.scalars(
+        select(DownloadTask).where(
+            DownloadTask.state == TaskState.SUCCEEDED.value,
+            DownloadTask.object_key.is_not(None),
+            DownloadTask.expires_at.is_not(None),
+            DownloadTask.expires_at <= now,
+        )
+    )
+    storage = ObjectStorage()
+    removed = 0
+    for task in tasks:
+        try:
+            storage.delete_object(task.object_key)
+        except Exception:
+            pass
+        task.object_key = None
+        task.failure_code = "retention_expired"
+        task.failure_reason = "文件保留时间已过期并已清理，历史记录仍保留"
+        task.updated_at = datetime.now(UTC)
+        add_task_event(db, task, task.state, "过期文件已清理，历史记录已保留")
+        removed += 1
+    if removed:
+        db.commit()
+    return removed
 
 
 def reconcile_stale_active_tasks(db: Session) -> int:
