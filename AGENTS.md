@@ -21,7 +21,8 @@
 - AI 摘要：二期再做。
 - 平台专用解析：首版不做，只预留插件口。
 - 鉴权：M1 本地单用户模式，不要求注册、登录或 JWT；JWT 用户系统归入上线级 SaaS。
-- OpenSpec：M1 使用 `bootstrap-mvp-foundation` 和收尾小变更管理；本轮下载闭环稳定化使用 `stabilize-local-mvp-download-flow`。
+- 本机 B 站下载：M1 允许本机 Worker 按 `YTDLP_COOKIES_FROM_BROWSER=chrome` 读取当前机器 Chrome 登录态，用于下载当前用户自己可访问且有权保存的内容；不得保存、上传、入库或记录 Cookie。
+- OpenSpec：M1 使用 `bootstrap-mvp-foundation` 和收尾小变更管理；下载闭环稳定化使用 `stabilize-local-mvp-download-flow`，B 站本机真实链路使用 `support-local-bilibili-download-flow`。
 
 ## 2.1 上线级 SaaS 内测阶段规则
 
@@ -58,7 +59,7 @@
 
 - 规避 DRM、付费墙、会员限制或访问控制。
 - 提供盗版传播、批量滥采或账号共享能力。
-- 未经确认托管用户平台 Cookie。
+- 未经确认托管用户平台 Cookie；M1 本机 Worker 读取 Chrome 登录态属于本机单用户例外，不等同于 Cookie 托管。
 - 在日志中保存完整私密链接、Cookie、Authorization、签名参数。
 - 宣传“可下载任意受保护内容”。
 
@@ -108,18 +109,20 @@
 
 执行顺序固定为：
 
-1. 检查 `.env` 中 PostgreSQL、Redis、MinIO / S3、下载限制配置是否与本地服务一致；JWT 只作为上线级 SaaS 配置保留，不作为 M1 登录门槛。
+1. 检查 `.env` 中 PostgreSQL、Redis、MinIO / S3、下载限制配置是否与本地服务一致；JWT 只作为上线级 SaaS 配置保留，不作为 M1 登录门槛；如需要 B 站登录态下载，确认 `YTDLP_COOKIES_FROM_BROWSER=chrome` 只由本机 Worker 使用。
 2. 检查 PostgreSQL、Redis、MinIO / S3 端口和认证是否可用。
 3. 启动 FastAPI，只验收 `/health`、`/ready`、解析和任务接口；M1 默认不验收注册、登录、当前用户接口。
 4. 启动 RQ Worker，只验收任务入队和状态流转。
 5. 验收解析接口，只使用公开视频样例，不引入平台专用解析。
 6. 验收一个小文件下载闭环：创建任务、Worker 下载、本地 FFmpeg 合并、ffprobe 校验、上传私有 bucket、生成后端短期签名代理下载 URL，并实际下载文件。
-7. 验收失败路径：队列不可用、任务未完成获取下载链接、伪造或过期下载签名、过期文件、URL 脱敏；未登录、重复邮箱和密码错误迁移到上线级 SaaS 验收。
+7. 验收失败路径：队列不可用、任务未完成获取下载链接、伪造或过期下载签名、过期文件、URL 脱敏、Chrome 登录态不可读；未登录、重复邮箱和密码错误迁移到上线级 SaaS 验收。
+8. 验收 B 站本机真实链路：解析 B 站链接、创建推荐格式任务、本机 Worker 下载、上传私有 bucket、通过后端签名代理 URL 保存非空文件。
 
 MVP 阶段禁止：
 
 - 未经确认改用 Celery、RabbitMQ 或其他队列架构。
 - 未经确认新增平台专用解析、Cookie 托管、DRM 绕过、付费墙绕过。
+- 将本机 Worker 浏览器登录态读取扩展成前端 Cookie 上传、API Cookie 入参、数据库 Cookie 保存或公网 SaaS Cookie 托管。
 - 为了“以后可能用到”提前引入微服务、消息总线、复杂权限、多租户或支付能力。
 - 在后端基本链路未验收前继续堆叠前端功能。
 

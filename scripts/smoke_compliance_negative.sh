@@ -36,18 +36,15 @@ assert_no_forbidden_runtime_code() {
   "${PYTHON_BIN}" - <<'PY'
 from pathlib import Path
 
-roots = [Path("apps/api/app"), Path("apps/worker/worker"), Path("packages/shared")]
+runtime_roots = [Path("apps/api/app"), Path("apps/worker/worker"), Path("packages/shared")]
 forbidden = [
     "cookiefile",
-    "cookiesfrombrowser",
-    "cookies_from_browser",
-    "bilibili",
     "douyin",
     "drm_bypass",
     "paywall_bypass",
 ]
 hits: list[str] = []
-for root in roots:
+for root in runtime_roots:
     for path in root.rglob("*.py"):
         text = path.read_text(encoding="utf-8").lower()
         for needle in forbidden:
@@ -58,6 +55,38 @@ if hits:
     print("\n".join(hits))
     raise SystemExit(1)
 print("runtime bypass static scan passed")
+PY
+}
+
+assert_cookie_boundary() {
+  "${PYTHON_BIN}" - <<'PY'
+from pathlib import Path
+
+allowed_cookie_reader_files = {
+    Path("apps/worker/worker/jobs.py"),
+}
+allowed_cookie_config_files = {
+    Path("apps/api/app/core/config.py"),
+    Path("apps/worker/worker/jobs.py"),
+}
+cookie_reader_hits: list[str] = []
+cookie_config_hits: list[str] = []
+
+for root in [Path("apps/api/app"), Path("apps/worker/worker"), Path("apps/web/src")]:
+    for path in root.rglob("*"):
+        if path.suffix not in {".py", ".ts", ".tsx"}:
+            continue
+        text = path.read_text(encoding="utf-8").lower()
+        if "cookiesfrombrowser" in text and path not in allowed_cookie_reader_files:
+            cookie_reader_hits.append(str(path))
+        if "ytdlp_cookies_from_browser" in text and path not in allowed_cookie_config_files:
+            cookie_config_hits.append(str(path))
+
+if cookie_reader_hits or cookie_config_hits:
+    print("Cookie boundary violation found:")
+    print("\n".join(cookie_reader_hits + cookie_config_hits))
+    raise SystemExit(1)
+print("local Worker browser-cookie exception check passed")
 PY
 }
 
@@ -88,5 +117,6 @@ expect_code 409 "${BASE_URL}/api/tasks/${TASK_ID}/download-link"
 
 assert_url_redaction
 assert_no_forbidden_runtime_code
+assert_cookie_boundary
 
 echo "Compliance negative smoke passed"

@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     per_user_download_concurrency: int = 1
     file_retention_hours: int = 24
     presigned_url_ttl_seconds: int = 15 * 60
+    ytdlp_cookies_from_browser: str | None = None
 
     s3_endpoint_url: str = "http://127.0.0.1:9000"
     s3_public_endpoint_url: str | None = "http://localhost:9000"

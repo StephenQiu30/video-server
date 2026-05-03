@@ -4,6 +4,7 @@ import os
 from worker import jobs
 from worker.jobs import (
     JobFailure,
+    _apply_browser_cookie_options,
     _assert_media_tools_available,
     _cleanup_task_work_dir,
     _failure_code,
@@ -74,3 +75,28 @@ def test_failure_code_uses_job_failure_code() -> None:
 
 def test_failure_code_classifies_timeout_message() -> None:
     assert _failure_code(RuntimeError("job timed out")) == "task_timeout"
+
+
+def test_apply_browser_cookie_options_uses_tuple_form() -> None:
+    options: dict = {}
+
+    _apply_browser_cookie_options(options, "chrome")
+
+    assert options["cookiesfrombrowser"] == ("chrome",)
+
+
+def test_apply_browser_cookie_options_can_be_disabled() -> None:
+    options: dict = {}
+
+    _apply_browser_cookie_options(options, "none")
+
+    assert "cookiesfrombrowser" not in options
+
+
+def test_browser_cookie_failure_is_diagnostic_and_redacted() -> None:
+    exc = RuntimeError("failed to decrypt Chrome cookies at /Users/example/Cookies")
+
+    assert _failure_code(exc) == "browser_cookies_unavailable"
+    reason = _format_failure_reason(exc)
+    assert "无法读取本机 Chrome 登录态" in reason
+    assert "/Users/example/Cookies" not in reason

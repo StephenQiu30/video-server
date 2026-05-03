@@ -15,4 +15,4 @@ set -a
 . ./.env
 set +a
 
-"${PYTHON_BIN}" -m worker.main
+exec "${PYTHON_BIN}" -m worker.main

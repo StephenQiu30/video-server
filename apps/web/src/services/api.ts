@@ -44,7 +44,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     headers,
   });
   const text = await response.text();
-  const data = text ? JSON.parse(text) : undefined;
+  let data: any;
+  try {
+    data = text ? JSON.parse(text) : undefined;
+  } catch {
+    data = { message: text || '服务暂不可用，请确认 API 已启动' };
+  }
   if (!response.ok) {
     throw new Error(getErrorMessage(data));
   }

@@ -3,22 +3,25 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MODE="${1:-local}"
+RUNTIME_DIR="${ROOT_DIR}/tmp/runtime"
+WORKER_PID_FILE="${RUNTIME_DIR}/worker.pid"
+WORKER_LOG_FILE="${RUNTIME_DIR}/worker.log"
 
 usage() {
   cat <<'USAGE'
 Usage:
   ./scripts/start.sh local             Start local API and Web only
   ./scripts/start.sh docker            Start default Docker API and Web only
-  ./scripts/start.sh docker:detached   Start default Docker API and Web in background
-  ./scripts/start.sh docker:stop       Stop default Docker API and Web
+  ./scripts/start.sh docker:detached   Start Docker API/Web and local Worker in background
+  ./scripts/start.sh docker:stop       Stop Docker API/Web and local Worker
   ./scripts/start.sh prod              Start production Docker stack with infra
 
 Local mode only starts project processes and does not start or install
-PostgreSQL, Redis, or MinIO. The default Docker Compose file also only defines
-Web and API, and reads .env plus DOCKER_* URLs to reach existing host services.
-Set START_WORKER=true when you need the local RQ Worker and already have Redis
-available. Production mode adds PostgreSQL, Redis, MinIO, Worker, API, and Web
-through the prod Compose override.
+PostgreSQL, Redis, or MinIO. The default Docker Compose file only defines Web
+and API, then npm start also starts one host Worker so yt-dlp can read local
+browser login state when YTDLP_COOKIES_FROM_BROWSER is explicitly enabled.
+Production mode adds PostgreSQL, Redis, MinIO, Worker, API, and Web through
+the prod Compose override.
 USAGE
 }
 
@@ -27,6 +30,70 @@ ensure_local_env() {
     cp "${ROOT_DIR}/.env.example" "${ROOT_DIR}/.env"
     echo "Created .env from .env.example"
   fi
+}
+
+python_bin() {
+  if [ -n "${PYTHON_BIN:-}" ]; then
+    echo "${PYTHON_BIN}"
+    return
+  fi
+  if [ -x "${ROOT_DIR}/.venv/bin/python" ]; then
+    echo "${ROOT_DIR}/.venv/bin/python"
+    return
+  fi
+  echo "python3"
+}
+
+pid_is_running() {
+  local pid="$1"
+  [ -n "${pid}" ] && kill -0 "${pid}" 2>/dev/null
+}
+
+start_worker_detached() {
+  ensure_local_env
+  mkdir -p "${RUNTIME_DIR}"
+
+  if [ -f "${WORKER_PID_FILE}" ]; then
+    local existing_pid
+    existing_pid="$(cat "${WORKER_PID_FILE}" 2>/dev/null || true)"
+    if pid_is_running "${existing_pid}"; then
+      echo "Local Worker already running with PID ${existing_pid}"
+      return
+    fi
+    rm -f "${WORKER_PID_FILE}"
+  fi
+
+  cd "${ROOT_DIR}"
+  local py_bin
+  py_bin="$(python_bin)"
+  echo "Starting local Worker; log: ${WORKER_LOG_FILE}"
+  PYTHON_BIN="${py_bin}" \
+    PYTHONPATH="${PYTHONPATH:-}:apps/api:apps/worker:packages/shared" \
+    RQ_WORKER_MODE="${RQ_WORKER_MODE:-simple}" \
+    "${py_bin}" "${ROOT_DIR}/scripts/start_worker_daemon.py" "${ROOT_DIR}" "${WORKER_PID_FILE}" "${WORKER_LOG_FILE}" >/dev/null
+}
+
+stop_worker_detached() {
+  if [ ! -f "${WORKER_PID_FILE}" ]; then
+    return
+  fi
+
+  local pid
+  pid="$(cat "${WORKER_PID_FILE}" 2>/dev/null || true)"
+  rm -f "${WORKER_PID_FILE}"
+  if ! pid_is_running "${pid}"; then
+    return
+  fi
+
+  echo "Stopping local Worker with PID ${pid}"
+  kill "${pid}" 2>/dev/null || true
+  for _ in 1 2 3 4 5; do
+    if ! pid_is_running "${pid}"; then
+      return
+    fi
+    sleep 1
+  done
+  kill -TERM "${pid}" 2>/dev/null || true
 }
 
 start_local() {
@@ -96,10 +163,12 @@ start_docker_detached() {
     --env-file .env \
     -f infra/docker/docker-compose.yml \
     up -d --build
+  start_worker_detached
 }
 
 stop_docker() {
   cd "${ROOT_DIR}"
+  stop_worker_detached
 
   docker compose \
     --env-file .env \

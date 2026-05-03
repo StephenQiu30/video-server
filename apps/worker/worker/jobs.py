@@ -111,12 +111,22 @@ def _download(task: DownloadTask, db: Session, task_dir: Path) -> Path:
         "max_filesize": min(settings.max_file_size_bytes, task.user.max_file_size_bytes),
         "socket_timeout": 30,
     }
+    _apply_browser_cookie_options(options, settings.ytdlp_cookies_from_browser)
     options["ffmpeg_location"] = ffmpeg_path
     options["merge_output_format"] = "mp4"
     with YoutubeDL(options) as ydl:
         result = ydl.extract_info(task.source_url, download=True)
         filename = ydl.prepare_filename(result)
     return _resolve_output_path(task_dir, Path(filename))
+
+
+def _apply_browser_cookie_options(options: dict, browser_name: str | None) -> None:
+    browser = (browser_name or "").strip().lower()
+    if not browser or browser in {"none", "false", "off"}:
+        return
+    if browser not in {"chrome", "chromium", "edge", "firefox", "safari"}:
+        raise JobFailure("browser_cookies_unavailable", "浏览器登录态配置无效，请检查 YTDLP_COOKIES_FROM_BROWSER")
+    options["cookiesfrombrowser"] = (browser,)
 
 
 def _resolve_output_path(task_dir: Path, prepared_path: Path) -> Path:
@@ -190,14 +200,35 @@ def _failure_code(exc: Exception) -> str:
         return "file_too_large"
     if "timed out" in message or "timeout" in message:
         return "task_timeout"
+    if _looks_like_browser_cookie_error(message):
+        return "browser_cookies_unavailable"
     return "download_failed"
 
 
 def _format_failure_reason(exc: Exception) -> str:
+    if _looks_like_browser_cookie_error(str(exc).lower()):
+        return (
+            "无法读取本机 Chrome 登录态。请确认 Chrome 已登录 B 站，并允许当前终端或 Python 访问浏览器数据；"
+            "如果只下载公开视频，也可以关闭 YTDLP_COOKIES_FROM_BROWSER 后重试。"
+        )
     message = str(exc).strip().splitlines()[0] if str(exc).strip() else "下载任务失败"
     if message.startswith("ERROR: "):
         message = message[len("ERROR: ") :]
     return redact_url(message)[:300]
+
+
+def _looks_like_browser_cookie_error(message: str) -> bool:
+    needles = (
+        "cookies",
+        "cookie",
+        "cookiesfrombrowser",
+        "keyring",
+        "keychain",
+        "browser",
+        "chrome",
+        "chromium",
+    )
+    return any(needle in message for needle in needles)
 
 
 def cleanup_expired_outputs() -> int:
