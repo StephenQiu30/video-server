@@ -196,6 +196,8 @@ def _failure_code(exc: Exception) -> str:
     if isinstance(exc, JobFailure):
         return exc.code
     message = str(exc).lower()
+    if "requested format is not available" in message or "format is not available" in message:
+        return "format_unavailable"
     if "file is larger than max-filesize" in message or "larger than max-filesize" in message:
         return "file_too_large"
     if "timed out" in message or "timeout" in message:
@@ -211,6 +213,11 @@ def _format_failure_reason(exc: Exception) -> str:
             "无法读取本机 Chrome 登录态。请确认 Chrome 已登录 B 站，并允许当前终端或 Python 访问浏览器数据；"
             "如果只下载公开视频，也可以关闭 YTDLP_COOKIES_FROM_BROWSER 后重试。"
         )
+    lowered_message = str(exc).lower()
+    if "requested format is not available" in lowered_message or "format is not available" in lowered_message:
+        return "该视频源未提供所选清晰度，请选择推荐下载或其他可用清晰度后重试。"
+    if "unsupported url" in lowered_message or "no video formats found" in lowered_message:
+        return "该公开视频暂不支持解析或平台规则已变化，请换用公开视频链接后重试。"
     message = str(exc).strip().splitlines()[0] if str(exc).strip() else "下载任务失败"
     if message.startswith("ERROR: "):
         message = message[len("ERROR: ") :]

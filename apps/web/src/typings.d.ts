@@ -5,6 +5,12 @@ declare namespace API {
     ext?: string;
     resolution?: string;
     filesize?: number;
+    quality_label?: string;
+    height?: number;
+    width?: number;
+    kind?: 'recommended' | 'video' | 'raw';
+    available?: boolean;
+    note?: string;
   };
 
   type ParseResponse = {
@@ -12,6 +18,8 @@ declare namespace API {
     title?: string;
     cover_url?: string;
     duration_seconds?: number;
+    source_site?: string;
+    extractor?: string;
     formats: VideoFormat[];
   };
 

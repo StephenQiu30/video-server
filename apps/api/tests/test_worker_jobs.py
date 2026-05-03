@@ -77,6 +77,13 @@ def test_failure_code_classifies_timeout_message() -> None:
     assert _failure_code(RuntimeError("job timed out")) == "task_timeout"
 
 
+def test_failure_code_classifies_unavailable_format() -> None:
+    exc = RuntimeError("ERROR: requested format is not available")
+
+    assert _failure_code(exc) == "format_unavailable"
+    assert "未提供所选清晰度" in _format_failure_reason(exc)
+
+
 def test_apply_browser_cookie_options_uses_tuple_form() -> None:
     options: dict = {}
 

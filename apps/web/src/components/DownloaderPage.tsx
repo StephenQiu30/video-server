@@ -1,7 +1,7 @@
 import { DownloadOutlined, LinkOutlined, ReloadOutlined, SafetyOutlined } from '@ant-design/icons';
 import { history } from '@@/core/history';
 import { PageContainer, ProCard, ProForm, ProFormText } from '@ant-design/pro-components';
-import { Alert, Button, Empty, List, Progress, Space, Typography, message } from 'antd';
+import { Alert, Button, Empty, List, Progress, Space, Tag, Typography, message } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { TaskDetailDrawer } from './TaskDetailDrawer';
 import { TaskStateTag } from './TaskStateTag';
@@ -69,6 +69,12 @@ export function DownloaderPage() {
     const recent = visibleTasks.filter((task) => !isActiveTask(task));
     return [...active, ...recent].slice(0, 4);
   }, [tasks]);
+
+  const presetFormats = useMemo(() => {
+    if (!parsed) return [];
+    const presets = parsed.formats.filter((format) => format.kind !== 'raw');
+    return presets.length ? presets : [{ format_id: 'best', label: '推荐下载', quality_label: '推荐', available: true }];
+  }, [parsed]);
 
   const handleDownload = async (task: API.Task) => {
     setDownloadingTaskId(task.id);
@@ -179,16 +185,13 @@ export function DownloaderPage() {
                     <Space direction="vertical" size={4}>
                       <Typography.Text strong>{parsed.title || '解析结果'}</Typography.Text>
                       <Typography.Text type="secondary">
-                        时长：{formatDuration(parsed.duration_seconds)} / 来源：{parsed.url}
+                        时长：{formatDuration(parsed.duration_seconds)} / 来源：
+                        {parsed.source_site || parsed.extractor || 'yt-dlp 可识别来源'}
                       </Typography.Text>
+                      <Typography.Text type="secondary">清晰度越低通常文件更小，下载等待时间也更短。</Typography.Text>
                     </Space>
                   }
-                  footer={
-                    parsed.formats.length > 4 ? (
-                      <Typography.Text type="secondary">已优先展示推荐格式和少量备选格式。</Typography.Text>
-                    ) : undefined
-                  }
-                  dataSource={parsed.formats.length ? parsed.formats.slice(0, 4) : [{ format_id: 'best', label: '推荐下载' }]}
+                  dataSource={presetFormats}
                   renderItem={(format, index) => (
                     <List.Item
                       actions={[
@@ -196,7 +199,7 @@ export function DownloaderPage() {
                           key="create"
                           type={index === 0 ? 'primary' : 'default'}
                           loading={creatingFormatId === format.format_id}
-                          disabled={Boolean(creatingFormatId) || parsing}
+                          disabled={Boolean(creatingFormatId) || parsing || format.available === false}
                           onClick={async () => {
                             setCreatingFormatId(format.format_id);
                             try {
@@ -222,8 +225,24 @@ export function DownloaderPage() {
                       ]}
                     >
                       <List.Item.Meta
-                        title={index === 0 ? `推荐下载：${format.label || format.format_id}` : format.label || format.format_id}
-                        description={[format.ext, format.resolution].filter(Boolean).join(' / ') || '默认格式'}
+                        title={
+                          <Space wrap>
+                            <Typography.Text strong>
+                              {index === 0 ? `推荐下载：${format.quality_label || format.label}` : format.quality_label || format.label}
+                            </Typography.Text>
+                            {format.available === false ? <Tag>不可用</Tag> : <Tag color="processing">可下载</Tag>}
+                          </Space>
+                        }
+                        description={
+                          <Space direction="vertical" size={2}>
+                            <Typography.Text type="secondary">
+                              {[format.ext, format.resolution].filter(Boolean).join(' / ') || format.label || '默认格式'}
+                            </Typography.Text>
+                            {format.note ? (
+                              <Typography.Text type={format.available === false ? 'warning' : 'secondary'}>{format.note}</Typography.Text>
+                            ) : null}
+                          </Space>
+                        }
                       />
                     </List.Item>
                   )}

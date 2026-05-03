@@ -1,3 +1,7 @@
+import pytest
+from pydantic import ValidationError
+
+from app.schemas import TaskCreate
 from app.services.download_adapter import DownloadEngineAdapter, RECOMMENDED_FORMAT_ID, _safe_int
 
 
@@ -12,6 +16,7 @@ def test_parse_response_converts_duration_and_filesize() -> None:
             "title": "Bilibili sample",
             "duration": 580.405,
             "thumbnail": "https://example.com/cover.jpg",
+            "extractor_key": "BiliBili",
             "formats": [
                 {
                     "format_id": "30080",
@@ -28,5 +33,49 @@ def test_parse_response_converts_duration_and_filesize() -> None:
     assert response.duration_seconds == 580
     assert response.formats[0].format_id == RECOMMENDED_FORMAT_ID
     assert response.formats[0].label.startswith("推荐下载")
-    assert response.formats[1].filesize == 12345
-    assert "仅视频" in response.formats[1].label
+    assert response.source_site == "B 站"
+    assert response.extractor == "BiliBili"
+    assert response.formats[1].quality_label == "最高 1080p"
+    assert response.formats[1].available is True
+    assert response.formats[2].quality_label == "最高 720p"
+    assert response.formats[2].available is False
+    raw_format = next(item for item in response.formats if item.kind == "raw")
+    assert raw_format.filesize == 12345
+    assert "仅视频" in raw_format.label
+
+
+def test_parse_response_builds_resolution_presets_from_available_heights() -> None:
+    response = DownloadEngineAdapter()._to_response(
+        "https://www.douyin.com/video/123",
+        {
+            "title": "Douyin sample",
+            "extractor_key": "Douyin",
+            "formats": [
+                {
+                    "format_id": "v-low",
+                    "height": 360,
+                    "width": 640,
+                    "ext": "mp4",
+                    "vcodec": "h264",
+                    "acodec": "aac",
+                },
+                {
+                    "format_id": "audio",
+                    "ext": "m4a",
+                    "vcodec": "none",
+                },
+            ],
+        },
+    )
+
+    presets = [item for item in response.formats if item.kind != "raw"]
+    assert response.source_site == "抖音"
+    assert [item.quality_label for item in presets] == ["推荐", "最高 1080p", "最高 720p", "最高 480p", "最高 360p"]
+    assert all(len(item.format_id) <= 100 for item in presets)
+    assert presets[1].available is True
+    assert presets[-1].format_id == "bv*[height<=360]+ba/b[height<=360]"
+
+
+def test_task_create_rejects_too_long_format_selector() -> None:
+    with pytest.raises(ValidationError):
+        TaskCreate(url="https://example.com/video", format_id="x" * 101)

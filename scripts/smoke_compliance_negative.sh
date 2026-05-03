@@ -39,9 +39,10 @@ from pathlib import Path
 runtime_roots = [Path("apps/api/app"), Path("apps/worker/worker"), Path("packages/shared")]
 forbidden = [
     "cookiefile",
-    "douyin",
     "drm_bypass",
     "paywall_bypass",
+    "member_bypass",
+    "private_bypass",
 ]
 hits: list[str] = []
 for root in runtime_roots:

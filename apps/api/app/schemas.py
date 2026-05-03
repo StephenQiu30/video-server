@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -29,6 +30,12 @@ class VideoFormat(BaseModel):
     ext: str | None = None
     resolution: str | None = None
     filesize: int | None = None
+    quality_label: str | None = None
+    height: int | None = None
+    width: int | None = None
+    kind: Literal["recommended", "video", "raw"] = "raw"
+    available: bool = True
+    note: str | None = None
 
 
 class ParseResponse(BaseModel):
@@ -36,12 +43,14 @@ class ParseResponse(BaseModel):
     title: str | None = None
     cover_url: str | None = None
     duration_seconds: int | None = None
+    source_site: str | None = None
+    extractor: str | None = None
     formats: list[VideoFormat]
 
 
 class TaskCreate(BaseModel):
     url: str = Field(min_length=1, max_length=2048)
-    format_id: str | None = None
+    format_id: str | None = Field(default=None, max_length=100)
     title: str | None = Field(default=None, max_length=500)
     cover_url: str | None = None
     duration_seconds: int | None = None
