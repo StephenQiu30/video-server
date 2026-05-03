@@ -1,6 +1,6 @@
 import { CheckCircleOutlined, StopOutlined } from '@ant-design/icons';
 import { PageContainer, ProCard } from '@ant-design/pro-components';
-import { Alert, Col, List, Row, Space, Typography } from 'antd';
+import { Alert, List, Space, Typography } from 'antd';
 
 const allowed = [
   '用户拥有版权的内容',
@@ -19,45 +19,37 @@ const denied = [
 export default function CompliancePage() {
   return (
     <PageContainer title="合规边界" subTitle="MVP 阶段保持清晰、安全、可审计">
-      <Space direction="vertical" size={18} style={{ width: '100%' }}>
-        <Alert
-          showIcon
-          type="info"
-          message="当前版本只面向合法授权内容和公开允许保存的内容。"
-        />
-        <Row gutter={[16, 16]}>
-          <Col xs={24} md={12}>
-            <ProCard title="允许处理" bordered>
-              <List
-                dataSource={allowed}
-                renderItem={(item) => (
-                  <List.Item>
-                    <Space>
-                      <CheckCircleOutlined style={{ color: '#0f8f64' }} />
-                      <Typography.Text>{item}</Typography.Text>
-                    </Space>
-                  </List.Item>
-                )}
-              />
-            </ProCard>
-          </Col>
-          <Col xs={24} md={12}>
-            <ProCard title="不进入 MVP" bordered>
-              <List
-                dataSource={denied}
-                renderItem={(item) => (
-                  <List.Item>
-                    <Space>
-                      <StopOutlined style={{ color: '#d43f3a' }} />
-                      <Typography.Text>{item}</Typography.Text>
-                    </Space>
-                  </List.Item>
-                )}
-              />
-            </ProCard>
-          </Col>
-        </Row>
-      </Space>
+      <div className="download-workspace">
+        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+          <Alert showIcon type="info" message="当前版本只面向合法授权内容和公开允许保存的内容。" />
+          <ProCard title="允许处理" bordered>
+            <List
+              dataSource={allowed}
+              renderItem={(item) => (
+                <List.Item>
+                  <Space>
+                    <CheckCircleOutlined className="blue-icon" />
+                    <Typography.Text>{item}</Typography.Text>
+                  </Space>
+                </List.Item>
+              )}
+            />
+          </ProCard>
+          <ProCard title="不进入 MVP" bordered>
+            <List
+              dataSource={denied}
+              renderItem={(item) => (
+                <List.Item>
+                  <Space>
+                    <StopOutlined style={{ color: '#d43f3a' }} />
+                    <Typography.Text>{item}</Typography.Text>
+                  </Space>
+                </List.Item>
+              )}
+            />
+          </ProCard>
+        </Space>
+      </div>
     </PageContainer>
   );
 }

@@ -47,7 +47,7 @@ export function TaskDetailDrawer({ task, open, onClose, onChanged }: Props) {
             </Typography.Title>
             <TaskStateTag state={task.state} />
           </Space>
-          <Progress percent={task.progress} status={task.state === 'failed' ? 'exception' : undefined} />
+          <Progress percent={task.progress} strokeColor="#1677ff" status={task.state === 'failed' ? 'exception' : undefined} />
           {task.failure_code === 'retention_expired' ? (
             <Alert type="warning" showIcon message="文件已过期，可重试任务重新生成文件" />
           ) : null}

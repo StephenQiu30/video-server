@@ -1,7 +1,7 @@
 import { DownloadOutlined, LinkOutlined, ReloadOutlined, SafetyOutlined } from '@ant-design/icons';
 import { history } from '@@/core/history';
 import { PageContainer, ProCard, ProForm, ProFormText } from '@ant-design/pro-components';
-import { Alert, Button, Empty, List, Progress, Row, Col, Space, Typography, message } from 'antd';
+import { Alert, Button, Empty, List, Progress, Space, Typography, message } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { TaskDetailDrawer } from '../../components/TaskDetailDrawer';
 import { TaskStateTag } from '../../components/TaskStateTag';
@@ -12,6 +12,16 @@ function formatDuration(seconds?: number) {
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
   return `${minutes}:${String(rest).padStart(2, '0')}`;
+}
+
+function formatSize(size?: number) {
+  if (!size) return '-';
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function formatDateTime(value?: string) {
+  return value ? value.replace('T', ' ').slice(0, 19) : '-';
 }
 
 function isSmokeTask(task: API.Task) {
@@ -27,10 +37,8 @@ function isExpiredTask(task: API.Task) {
   return task.failure_code === 'retention_expired';
 }
 
-function formatSize(size?: number) {
-  if (!size) return '-';
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-  return `${(size / 1024 / 1024).toFixed(1)} MB`;
+function canDownload(task: API.Task) {
+  return task.state === 'succeeded' && !isExpiredTask(task);
 }
 
 export default function WorkspacePage() {
@@ -59,9 +67,8 @@ export default function WorkspacePage() {
   const keyTasks = useMemo(() => {
     const active = visibleTasks.filter(isActiveTask);
     const recent = visibleTasks.filter((task) => !isActiveTask(task));
-    return [...active, ...recent].slice(0, 3);
+    return [...active, ...recent].slice(0, 4);
   }, [visibleTasks]);
-  const currentTask = keyTasks[0];
 
   const handleDownload = async (task: API.Task) => {
     setDownloadingTaskId(task.id);
@@ -74,43 +81,55 @@ export default function WorkspacePage() {
     }
   };
 
-  const renderTaskActions = (task: API.Task) => {
-    const expired = isExpiredTask(task);
-    return (
-      <Space>
-        <Button
-          type="link"
-          onClick={() => {
-            setSelectedTask(task);
-            setDrawerOpen(true);
-          }}
-        >
-          查看
-        </Button>
-        <Button
-          type="link"
-          icon={<DownloadOutlined />}
-          disabled={task.state !== 'succeeded' || expired}
-          loading={downloadingTaskId === task.id}
-          onClick={() => handleDownload(task)}
-        >
-          下载文件
-        </Button>
-      </Space>
-    );
+  const openTaskDetail = (task: API.Task) => {
+    setSelectedTask(task);
+    setDrawerOpen(true);
   };
 
+  const renderTaskActions = (task: API.Task) => (
+    <Space>
+      <Button type="link" onClick={() => openTaskDetail(task)}>
+        查看
+      </Button>
+      <Button
+        type="link"
+        icon={<DownloadOutlined />}
+        disabled={!canDownload(task)}
+        loading={downloadingTaskId === task.id}
+        onClick={() => handleDownload(task)}
+      >
+        下载文件
+      </Button>
+    </Space>
+  );
+
   return (
-    <PageContainer title="下载工作台" subTitle="解析公开视频链接，创建后台下载任务">
-      <Space direction="vertical" size={16} style={{ width: '100%' }}>
-        <Row gutter={[16, 16]}>
-          <Col xs={24} xl={15}>
-            <ProCard title="新建下载" bordered>
+    <PageContainer title={false}>
+      <div className="download-workspace">
+        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+          <ProCard bordered>
+            <Space direction="vertical" size={20} style={{ width: '100%' }}>
+              <Space direction="vertical" size={4} style={{ width: '100%', textAlign: 'center' }}>
+                <Typography.Title level={2} style={{ margin: 0 }}>
+                  视频下载器
+                </Typography.Title>
+                <Typography.Text type="secondary">粘贴公开视频链接，解析后创建本机下载任务</Typography.Text>
+              </Space>
+
               <ProForm
                 layout="vertical"
                 submitter={{
-                  searchConfig: { submitText: '解析链接' },
-                  submitButtonProps: { icon: <LinkOutlined />, loading: parsing, disabled: Boolean(creatingFormatId) },
+                  searchConfig: { submitText: '解析链接', resetText: '重置' },
+                  resetButtonProps: { disabled: parsing || Boolean(creatingFormatId) },
+                  submitButtonProps: {
+                    icon: <LinkOutlined />,
+                    loading: parsing,
+                    disabled: Boolean(creatingFormatId),
+                  },
+                }}
+                onReset={() => {
+                  setParsed(undefined);
+                  setParseError(undefined);
                 }}
                 onFinish={async (values) => {
                   let normalizedUrl: string;
@@ -147,14 +166,16 @@ export default function WorkspacePage() {
                   name="url"
                   label="视频链接"
                   placeholder="https://example.com/video"
+                  fieldProps={{ size: 'large', allowClear: true }}
                   rules={[{ required: true, message: '请输入视频链接' }]}
                 />
               </ProForm>
 
-              {parseError ? <Alert type="error" showIcon message={parseError} style={{ marginBottom: 16 }} /> : null}
+              {parseError ? <Alert type="error" showIcon message={parseError} /> : null}
 
               {parsed ? (
                 <List
+                  className="download-format-list"
                   header={
                     <Space direction="vertical" size={4}>
                       <Typography.Text strong>{parsed.title || '解析结果'}</Typography.Text>
@@ -164,12 +185,12 @@ export default function WorkspacePage() {
                     </Space>
                   }
                   dataSource={parsed.formats.length ? parsed.formats : [{ format_id: 'best', label: '最佳可用格式' }]}
-                  renderItem={(format) => (
+                  renderItem={(format, index) => (
                     <List.Item
                       actions={[
                         <Button
                           key="create"
-                          type="primary"
+                          type={index === 0 ? 'primary' : 'default'}
                           loading={creatingFormatId === format.format_id}
                           disabled={Boolean(creatingFormatId) || parsing}
                           onClick={async () => {
@@ -204,80 +225,72 @@ export default function WorkspacePage() {
                   )}
                 />
               ) : null}
-            </ProCard>
-          </Col>
+            </Space>
+          </ProCard>
 
-          <Col xs={24} xl={9}>
-            <ProCard
-              title="当前任务"
-              bordered
-              extra={
-                <Space>
-                  <Button icon={<ReloadOutlined />} onClick={refreshTasks} />
-                  <Button type="link" onClick={() => history.push('/tasks')}>
-                    完整历史
-                  </Button>
-                </Space>
-              }
-            >
-              {currentTask ? (
-                <Space direction="vertical" size={14} style={{ width: '100%' }}>
-                  <Space direction="vertical" size={6} style={{ width: '100%' }}>
-                    <Typography.Text strong ellipsis>
-                      {currentTask.title || currentTask.output_filename || '未命名视频'}
-                    </Typography.Text>
-                    <TaskStateTag state={currentTask.state} />
-                    <Progress percent={currentTask.progress} size="small" />
-                  </Space>
-                  {isExpiredTask(currentTask) ? (
-                    <Alert type="warning" showIcon message="文件已过期，可在任务详情中重试任务" />
-                  ) : null}
-                  {currentTask.state === 'succeeded' && !isExpiredTask(currentTask) ? (
-                    <Alert
-                      type="success"
-                      showIcon
-                      message="文件已准备好"
-                      description={`文件：${currentTask.output_filename || '-'} / 大小：${formatSize(currentTask.object_size)} / 过期时间：${currentTask.expires_at || '-'}`}
-                    />
-                  ) : null}
-                  {renderTaskActions(currentTask)}
-                </Space>
-              ) : (
-                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无当前任务" />
-              )}
-            </ProCard>
-
-            <ProCard title="最近关键任务" bordered style={{ marginTop: 16 }}>
-              <List
-                dataSource={keyTasks.slice(1)}
-                locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无更多任务" /> }}
-                renderItem={(task) => (
-                  <List.Item actions={[renderTaskActions(task)]}>
-                    <List.Item.Meta
-                      title={<Typography.Text ellipsis>{task.title || task.output_filename || task.id}</Typography.Text>}
-                      description={
-                        <Space direction="vertical" size={6} style={{ width: '100%' }}>
+          <ProCard
+            title="任务状态"
+            bordered
+            extra={
+              <Space>
+                <Button icon={<ReloadOutlined />} onClick={refreshTasks} />
+                <Button type="link" onClick={() => history.push('/tasks')}>
+                  完整历史
+                </Button>
+              </Space>
+            }
+          >
+            <List
+              dataSource={keyTasks}
+              locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无下载任务" /> }}
+              renderItem={(task) => (
+                <List.Item className="download-task-item" actions={[renderTaskActions(task)]}>
+                  <List.Item.Meta
+                    title={
+                      <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                        <Typography.Text strong ellipsis>
+                          {task.title || task.output_filename || '未命名视频'}
+                        </Typography.Text>
+                        <Space wrap>
                           <TaskStateTag state={task.state} />
-                          <Progress percent={task.progress} size="small" showInfo={false} />
+                          {isExpiredTask(task) ? <Typography.Text type="warning">文件已过期</Typography.Text> : null}
                         </Space>
-                      }
-                    />
-                  </List.Item>
-                )}
-              />
-            </ProCard>
-          </Col>
-        </Row>
+                      </Space>
+                    }
+                    description={
+                      <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                        <Progress
+                          percent={task.progress}
+                          size="small"
+                          strokeColor="#1677ff"
+                          status={task.state === 'failed' ? 'exception' : undefined}
+                        />
+                        {canDownload(task) ? (
+                          <div className="download-ready-info">
+                            <Typography.Text strong>文件已准备好</Typography.Text>
+                            <Typography.Text type="secondary">
+                              文件：{task.output_filename || '-'} / 大小：{formatSize(task.object_size)} / 过期时间：
+                              {formatDateTime(task.expires_at)}
+                            </Typography.Text>
+                          </div>
+                        ) : null}
+                        {task.failure_reason ? <Typography.Text type="danger">{task.failure_reason}</Typography.Text> : null}
+                      </Space>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+          </ProCard>
 
-        <ProCard bordered>
-          <Space>
-            <SafetyOutlined />
-            <Typography.Text>
-              MVP 不支持 Cookie 托管、DRM 规避、付费墙绕过、会员内容绕过和平台专用解析。
-            </Typography.Text>
-          </Space>
-        </ProCard>
-      </Space>
+          <Alert
+            type="info"
+            showIcon
+            icon={<SafetyOutlined />}
+            message="MVP 不支持 Cookie 托管、DRM 规避、付费墙绕过、会员内容绕过和平台专用解析。"
+          />
+        </Space>
+      </div>
       <TaskDetailDrawer
         task={selectedTask}
         open={drawerOpen}
