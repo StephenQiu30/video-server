@@ -118,6 +118,21 @@ http://127.0.0.1:8000
 ./scripts/start.sh docker
 ```
 
+后台一键启动：
+
+```bash
+./scripts/start.sh docker:detached
+```
+
+也可以使用根目录 npm 脚本：
+
+```bash
+npm start
+npm stop
+```
+
+根目录 npm 脚本会复用同一个 `scripts/start.sh` 入口并显式加载 `.env`，避免 Compose 变量插值时读不到 `DATABASE_URL`、`REDIS_URL` 或 `S3_ENDPOINT_URL`。
+
 生产配置来自 `.env.production`，启动时才叠加 `infra/docker/docker-compose.prod.yml`，同时启动 Web、API、Worker、PostgreSQL、Redis 和 MinIO：
 
 ```bash

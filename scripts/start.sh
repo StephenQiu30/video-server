@@ -7,9 +7,11 @@ MODE="${1:-local}"
 usage() {
   cat <<'USAGE'
 Usage:
-  ./scripts/start.sh local   Start local API and Web only
-  ./scripts/start.sh docker  Start default Docker API and Web only
-  ./scripts/start.sh prod    Start production Docker stack with infra
+  ./scripts/start.sh local             Start local API and Web only
+  ./scripts/start.sh docker            Start default Docker API and Web only
+  ./scripts/start.sh docker:detached   Start default Docker API and Web in background
+  ./scripts/start.sh docker:stop       Stop default Docker API and Web
+  ./scripts/start.sh prod              Start production Docker stack with infra
 
 Local mode only starts project processes and does not start or install
 PostgreSQL, Redis, or MinIO. The default Docker Compose file also only defines
@@ -86,6 +88,25 @@ start_docker() {
     up --build
 }
 
+start_docker_detached() {
+  ensure_local_env
+  cd "${ROOT_DIR}"
+
+  docker compose \
+    --env-file .env \
+    -f infra/docker/docker-compose.yml \
+    up -d --build
+}
+
+stop_docker() {
+  cd "${ROOT_DIR}"
+
+  docker compose \
+    --env-file .env \
+    -f infra/docker/docker-compose.yml \
+    down
+}
+
 start_prod() {
   cd "${ROOT_DIR}"
 
@@ -113,6 +134,12 @@ case "${MODE}" in
     ;;
   docker | compose)
     start_docker
+    ;;
+  docker:detached | compose:detached)
+    start_docker_detached
+    ;;
+  docker:stop | compose:stop)
+    stop_docker
     ;;
   -h | --help | help)
     usage

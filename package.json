@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "scripts": {
+    "start": "./scripts/start.sh docker:detached",
+    "stop": "./scripts/start.sh docker:stop"
+  }
+}
