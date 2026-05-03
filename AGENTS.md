@@ -1,6 +1,6 @@
 # AGENTS.md
 
-更新时间：2026-05-02
+更新时间：2026-05-03
 
 ## 1. 项目协作原则
 
@@ -16,12 +16,12 @@
 - 后端：FastAPI + Python 3.12。
 - 下载内核：yt-dlp + FFmpeg / ffprobe。
 - 队列和数据库：RQ + Redis + PostgreSQL。
-- 文件存储：MinIO / S3 兼容对象存储，私有 bucket + 预签名 URL。
+- 文件存储：MinIO / S3 兼容对象存储，私有 bucket + 后端短期签名代理下载 URL。
 - UI 组件库：Ant Design Pro。
 - AI 摘要：二期再做。
 - 平台专用解析：首版不做，只预留插件口。
-- 鉴权：JWT 用户系统，允许注册。
-- OpenSpec：M1 使用 `bootstrap-mvp-foundation` 变更管理。
+- 鉴权：M1 本地单用户模式，不要求注册、登录或 JWT；JWT 用户系统归入上线级 SaaS。
+- OpenSpec：M1 使用 `bootstrap-mvp-foundation` 和收尾小变更管理；本轮下载闭环稳定化使用 `stabilize-local-mvp-download-flow`。
 
 ## 2.1 上线级 SaaS 内测阶段规则
 
@@ -108,13 +108,13 @@
 
 执行顺序固定为：
 
-1. 检查 `.env` 中 PostgreSQL、Redis、MinIO / S3、JWT、下载限制配置是否与本地服务一致。
+1. 检查 `.env` 中 PostgreSQL、Redis、MinIO / S3、下载限制配置是否与本地服务一致；JWT 只作为上线级 SaaS 配置保留，不作为 M1 登录门槛。
 2. 检查 PostgreSQL、Redis、MinIO / S3 端口和认证是否可用。
-3. 启动 FastAPI，只验收 `/health`、`/ready`、注册、登录、当前用户接口。
+3. 启动 FastAPI，只验收 `/health`、`/ready`、解析和任务接口；M1 默认不验收注册、登录、当前用户接口。
 4. 启动 RQ Worker，只验收任务入队和状态流转。
 5. 验收解析接口，只使用公开视频样例，不引入平台专用解析。
-6. 验收一个小文件下载闭环：创建任务、Worker 下载、本地 FFmpeg 合并、ffprobe 校验、上传私有 bucket、生成预签名 URL。
-7. 验收失败路径：未登录、重复邮箱、队列不可用、任务未完成获取下载链接、过期文件、URL 脱敏。
+6. 验收一个小文件下载闭环：创建任务、Worker 下载、本地 FFmpeg 合并、ffprobe 校验、上传私有 bucket、生成后端短期签名代理下载 URL，并实际下载文件。
+7. 验收失败路径：队列不可用、任务未完成获取下载链接、伪造或过期下载签名、过期文件、URL 脱敏；未登录、重复邮箱和密码错误迁移到上线级 SaaS 验收。
 
 MVP 阶段禁止：
 
@@ -137,6 +137,9 @@ MVP 阶段优先保留的接口形态：
 - `GET /api/tasks/{task_id}`：查询任务状态。
 - `POST /api/tasks/{task_id}/cancel`：取消任务。
 - `GET /api/tasks/{task_id}/download-link`：任务完成后返回短期下载链接。
+- `GET /api/tasks/{task_id}/download`：通过后端短期签名代理流式下载文件。
+- `GET /api/tasks/{task_id}/events`：查询任务事件历史。
+- `POST /api/tasks/{task_id}/retry`：失败、取消或过期任务创建新的重试任务。
 
 如果参考项目中存在更简单的实现方式，优先评估是否能减少当前 M1 的复杂度；但不得绕过已确认的合规边界和用户已确认的关键选型。
 

@@ -69,6 +69,16 @@ class TaskRead(BaseModel):
     updated_at: datetime
 
 
+class TaskEventRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    task_id: str
+    state: str
+    message: str | None = None
+    created_at: datetime
+
+
 class DownloadLinkResponse(BaseModel):
     url: str
     expires_in_seconds: int

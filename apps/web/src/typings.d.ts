@@ -43,6 +43,14 @@ declare namespace API {
     updated_at: string;
   };
 
+  type TaskEvent = {
+    id: number;
+    task_id: string;
+    state: Task['state'] | string;
+    message?: string;
+    created_at: string;
+  };
+
   type DownloadLink = {
     url: string;
     expires_in_seconds: number;

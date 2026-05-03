@@ -47,6 +47,34 @@ if [ "${STATE}" != "succeeded" ]; then
   exit 1
 fi
 
-curl -fsS "${BASE_URL}/api/tasks/${TASK_ID}/download-link" >/dev/null
+DOWNLOAD_URL="$(
+  curl -fsS "${BASE_URL}/api/tasks/${TASK_ID}/download-link" \
+    | "${PYTHON_BIN}" -c 'import json,sys; print(json.load(sys.stdin)["url"])'
+)"
 
-echo "Download task smoke passed: ${TASK_ID}"
+case "${DOWNLOAD_URL}" in
+  *host.docker.internal*|*":9000/"*)
+    echo "Expected backend proxy download URL, got object storage URL: ${DOWNLOAD_URL}" >&2
+    exit 1
+    ;;
+esac
+
+TMP_FILE="$(mktemp /tmp/stephen-video-download.XXXXXX)"
+curl -fsS "${DOWNLOAD_URL}" -o "${TMP_FILE}"
+BYTES="$(wc -c < "${TMP_FILE}" | tr -d ' ')"
+rm -f "${TMP_FILE}"
+if [ "${BYTES}" -le 0 ]; then
+  echo "Expected downloaded file bytes, got ${BYTES}" >&2
+  exit 1
+fi
+
+FORGED_URL="$(
+  "${PYTHON_BIN}" -c 'import sys; print(sys.argv[1].replace("signature=", "signature=bad", 1))' "${DOWNLOAD_URL}"
+)"
+FORGED_STATUS="$(curl -s -o /dev/null -w "%{http_code}" "${FORGED_URL}")"
+if [ "${FORGED_STATUS}" != "403" ]; then
+  echo "Expected forged signed download URL to return 403, got ${FORGED_STATUS}" >&2
+  exit 1
+fi
+
+echo "Download task smoke passed: ${TASK_ID} (${BYTES} bytes)"

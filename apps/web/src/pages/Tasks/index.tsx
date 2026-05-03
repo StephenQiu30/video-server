@@ -4,7 +4,11 @@ import { Button, Space, Typography, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { TaskDetailDrawer } from '../../components/TaskDetailDrawer';
 import { TaskStateTag } from '../../components/TaskStateTag';
-import { cancelTask, getDownloadLink, listTasks } from '../../services/api';
+import { cancelTask, listTasks, openTaskDownload, retryTask } from '../../services/api';
+
+function canRetry(task: API.Task) {
+  return task.state === 'failed' || task.state === 'canceled' || Boolean(task.failure_code === 'retention_expired');
+}
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<API.Task[]>([]);
@@ -31,10 +35,10 @@ export default function TasksPage() {
       dataIndex: 'title',
       render: (_, record) => (
         <Space direction="vertical" size={2}>
-          <Typography.Text strong ellipsis className="task-title">
+          <Typography.Text strong ellipsis style={{ maxWidth: 360 }}>
             {record.title || record.output_filename || '未命名视频'}
           </Typography.Text>
-          <Typography.Text type="secondary" ellipsis className="task-title">
+          <Typography.Text type="secondary" ellipsis style={{ maxWidth: 360 }}>
             {record.source_url}
           </Typography.Text>
         </Space>
@@ -85,11 +89,23 @@ export default function TasksPage() {
           icon={<DownloadOutlined />}
           disabled={record.state !== 'succeeded'}
           onClick={async () => {
-            const result = await getDownloadLink(record.id);
-            window.open(result.url, '_blank', 'noopener,noreferrer');
+            await openTaskDownload(record.id);
           }}
         >
           下载
+        </Button>,
+        <Button
+          key="retry"
+          type="link"
+          icon={<ReloadOutlined />}
+          disabled={!canRetry(record)}
+          onClick={async () => {
+            await retryTask(record.id);
+            message.success('重试任务已创建');
+            await refresh();
+          }}
+        >
+          重试
         </Button>,
         <Button
           key="cancel"
@@ -116,7 +132,6 @@ export default function TasksPage() {
       extra={<Button icon={<ReloadOutlined />} onClick={refresh}>刷新</Button>}
     >
       <ProTable<API.Task>
-        className="section-card"
         rowKey="id"
         search={false}
         loading={loading}

@@ -15,6 +15,12 @@ from app.utils.sanitize import redact_url, safe_filename
 from video_downloader_shared.states import TaskState
 
 
+class JobFailure(RuntimeError):
+    def __init__(self, code: str, message: str):
+        self.code = code
+        super().__init__(message)
+
+
 def process_download_task(task_id: str) -> None:
     db = SessionLocal()
     task_work_dir: Path | None = None
@@ -28,9 +34,16 @@ def process_download_task(task_id: str) -> None:
         _assert_media_tools_available()
         task_work_dir = _task_work_dir(task)
         output_path = _download(task, db, task_work_dir)
+        if _is_canceled(db, task):
+            return
         _assert_size(output_path, task)
         _probe_with_ffprobe(output_path, db, task)
+        if _is_canceled(db, task):
+            return
         object_key = _upload(task, output_path)
+        if _is_canceled(db, task):
+            ObjectStorage().delete_object(object_key)
+            return
         task.state = TaskState.SUCCEEDED.value
         task.progress = 100
         task.output_filename = output_path.name
@@ -54,6 +67,11 @@ def _mark_running(db: Session, task: DownloadTask) -> None:
     db.commit()
 
 
+def _is_canceled(db: Session, task: DownloadTask) -> bool:
+    db.refresh(task)
+    return task.state == TaskState.CANCELED.value
+
+
 def _task_work_dir(task: DownloadTask) -> Path:
     settings = get_settings()
     return Path(settings.download_work_dir) / f"user-{task.user_id}" / task.id
@@ -63,7 +81,7 @@ def _download(task: DownloadTask, db: Session, task_dir: Path) -> Path:
     try:
         from yt_dlp import YoutubeDL
     except ModuleNotFoundError as exc:
-        raise RuntimeError("下载内核未安装") from exc
+        raise JobFailure("download_failed", "下载内核未安装") from exc
 
     settings = get_settings()
     task_dir.mkdir(parents=True, exist_ok=True)
@@ -82,7 +100,7 @@ def _download(task: DownloadTask, db: Session, task_dir: Path) -> Path:
     requested_format = task.format_id or "best"
     ffmpeg_path = shutil.which("ffmpeg")
     if not ffmpeg_path:
-        raise RuntimeError("当前环境缺少 FFmpeg，无法执行下载任务")
+        raise JobFailure("media_tools_missing", "当前环境缺少 FFmpeg，无法执行下载任务")
 
     options = {
         "format": requested_format,
@@ -107,7 +125,7 @@ def _resolve_output_path(task_dir: Path, prepared_path: Path) -> Path:
         return prepared_path
     files = [path for path in task_dir.iterdir() if path.is_file()]
     if not files:
-        raise RuntimeError("下载完成后未找到输出文件")
+        raise JobFailure("download_failed", "下载完成后未找到输出文件")
     return max(files, key=lambda path: path.stat().st_mtime)
 
 
@@ -120,13 +138,13 @@ def _assert_size(path: Path, task: DownloadTask) -> None:
     max_size = min(get_settings().max_file_size_bytes, task.user.max_file_size_bytes)
     size = path.stat().st_size
     if size > max_size:
-        raise RuntimeError(f"文件超过限制：{size} > {max_size}")
+        raise JobFailure("file_too_large", f"文件超过限制：{size} > {max_size}")
 
 
 def _probe_with_ffprobe(path: Path, db: Session, task: DownloadTask) -> None:
     ffprobe_path = shutil.which("ffprobe")
     if not ffprobe_path:
-        raise RuntimeError("当前环境缺少 ffprobe，无法校验输出文件")
+        raise JobFailure("media_tools_missing", "当前环境缺少 ffprobe，无法校验输出文件")
     result = subprocess.run(
         [ffprobe_path, "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", str(path)],
         check=False,
@@ -135,18 +153,21 @@ def _probe_with_ffprobe(path: Path, db: Session, task: DownloadTask) -> None:
         timeout=30,
     )
     if result.returncode != 0:
-        raise RuntimeError("FFmpeg / ffprobe 无法校验输出文件")
+        raise JobFailure("ffprobe_failed", "FFmpeg / ffprobe 无法校验输出文件")
 
 
 def _assert_media_tools_available() -> None:
     missing = [name for name in ("ffmpeg", "ffprobe") if shutil.which(name) is None]
     if missing:
-        raise RuntimeError(f"当前环境缺少媒体工具：{', '.join(missing)}")
+        raise JobFailure("media_tools_missing", f"当前环境缺少媒体工具：{', '.join(missing)}")
 
 
 def _upload(task: DownloadTask, output_path: Path) -> str:
     object_key = f"users/{task.user_id}/tasks/{task.id}/{output_path.name}"
-    ObjectStorage().upload_file(str(output_path), object_key)
+    try:
+        ObjectStorage().upload_file(str(output_path), object_key)
+    except Exception as exc:
+        raise JobFailure("storage_failed", "文件上传对象存储失败") from exc
     return object_key
 
 
@@ -156,10 +177,21 @@ def _mark_failed(db: Session, task_id: str, exc: Exception) -> None:
         return
     reason = _format_failure_reason(exc)
     task.state = TaskState.FAILED.value
-    task.failure_code = "download_failed"
+    task.failure_code = _failure_code(exc)
     task.failure_reason = reason
     add_task_event(db, task, TaskState.FAILED, task.failure_reason)
     db.commit()
+
+
+def _failure_code(exc: Exception) -> str:
+    if isinstance(exc, JobFailure):
+        return exc.code
+    message = str(exc).lower()
+    if "file is larger than max-filesize" in message or "larger than max-filesize" in message:
+        return "file_too_large"
+    if "timed out" in message or "timeout" in message:
+        return "task_timeout"
+    return "download_failed"
 
 
 def _format_failure_reason(exc: Exception) -> str:

@@ -10,8 +10,6 @@ export default defineConfig({
         colorSuccess: '#0f8f64',
         colorWarning: '#c88116',
         colorError: '#d43f3a',
-        fontFamily:
-          'Avenir Next, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       },
     },
   },

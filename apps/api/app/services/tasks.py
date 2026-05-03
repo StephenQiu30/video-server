@@ -1,6 +1,6 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import asc, func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -11,6 +11,7 @@ from video_downloader_shared.states import ACTIVE_TASK_STATES, TaskState
 
 def assert_concurrency_allowed(db: Session, user: User) -> None:
     settings = get_settings()
+    reconcile_stale_active_tasks(db)
     active_values = [state.value for state in ACTIVE_TASK_STATES]
     day_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
     if user.daily_task_quota >= 0:
@@ -51,6 +52,14 @@ def add_task_event(db: Session, task: DownloadTask, state: TaskState | str, mess
     db.add(TaskEvent(task_id=task.id, state=value, message=message))
 
 
+def list_task_events(db: Session, task: DownloadTask) -> list[TaskEvent]:
+    return list(
+        db.scalars(
+            select(TaskEvent).where(TaskEvent.task_id == task.id).order_by(asc(TaskEvent.created_at), asc(TaskEvent.id))
+        )
+    )
+
+
 def get_owned_task(db: Session, user: User, task_id: str) -> DownloadTask:
     task = db.get(DownloadTask, task_id)
     if not task or task.user_id != user.id:
@@ -69,3 +78,56 @@ def cancel_task(db: Session, task: DownloadTask) -> DownloadTask:
     db.commit()
     db.refresh(task)
     return task
+
+
+def retry_task(db: Session, user: User, task: DownloadTask) -> DownloadTask:
+    if task.state not in {TaskState.FAILED.value, TaskState.CANCELED.value} and task.object_key:
+        raise AppError("invalid_state", "当前任务状态不支持重试", 409)
+    assert_concurrency_allowed(db, user)
+    new_task = DownloadTask(
+        user_id=user.id,
+        source_url=task.source_url,
+        title=task.title,
+        cover_url=task.cover_url,
+        duration_seconds=task.duration_seconds,
+        format_id=task.format_id or "best",
+        format_label=task.format_label,
+        state=TaskState.QUEUED.value,
+        progress=0,
+    )
+    db.add(new_task)
+    db.flush()
+    add_task_event(db, new_task, TaskState.QUEUED, "重试任务已创建，等待下载")
+    add_task_event(db, task, task.state, f"已创建重试任务：{new_task.id}")
+    db.commit()
+    db.refresh(new_task)
+    return new_task
+
+
+def reconcile_stale_active_tasks(db: Session) -> int:
+    settings = get_settings()
+    cutoff = datetime.now(UTC) - timedelta(seconds=settings.max_task_runtime_seconds)
+    active_values = [state.value for state in ACTIVE_TASK_STATES]
+    tasks = db.scalars(select(DownloadTask).where(DownloadTask.state.in_(active_values))).all()
+    reconciled = 0
+    for task in tasks:
+        reference_time = _as_utc(task.updated_at or task.created_at)
+        if reference_time and reference_time <= cutoff:
+            task.state = TaskState.FAILED.value
+            task.progress = min(task.progress or 0, 99)
+            task.failure_code = "task_timeout"
+            task.failure_reason = "任务运行超过最大时长限制，已自动标记失败"
+            task.updated_at = datetime.now(UTC)
+            add_task_event(db, task, TaskState.FAILED, task.failure_reason)
+            reconciled += 1
+    if reconciled:
+        db.commit()
+    return reconciled
+
+
+def _as_utc(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)

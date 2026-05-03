@@ -44,5 +44,15 @@ class ObjectStorage:
             ExpiresIn=self.settings.presigned_url_ttl_seconds,
         )
 
+    def get_object(self, object_key: str):
+        try:
+            return self._client().get_object(Bucket=self.settings.s3_bucket, Key=object_key)
+        except Exception as exc:
+            response = getattr(exc, "response", {})
+            error_code = response.get("Error", {}).get("Code")
+            if error_code in {"NoSuchKey", "404", "NotFound"}:
+                raise AppError("retention_expired", "文件不存在或已过期，请重新创建任务", 410) from exc
+            raise
+
     def delete_object(self, object_key: str) -> None:
         self._client().delete_object(Bucket=self.settings.s3_bucket, Key=object_key)

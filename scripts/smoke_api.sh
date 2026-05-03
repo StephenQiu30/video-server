@@ -29,7 +29,18 @@ TASK_ID="$(
 
 curl -fsS "${BASE_URL}/api/tasks" >/dev/null
 curl -fsS "${BASE_URL}/api/tasks/${TASK_ID}" >/dev/null
+curl -fsS "${BASE_URL}/api/tasks/${TASK_ID}/events" >/dev/null
 curl -fsS -X POST "${BASE_URL}/api/tasks/${TASK_ID}/cancel" >/dev/null
+
+RETRY_TASK_ID="$(
+  curl -fsS -X POST "${BASE_URL}/api/tasks/${TASK_ID}/retry" \
+    | "${PYTHON_BIN}" -c 'import json,sys; print(json.load(sys.stdin)["id"])'
+)"
+if [ "${RETRY_TASK_ID}" = "${TASK_ID}" ]; then
+  echo "Expected retry to create a new task id" >&2
+  exit 1
+fi
+curl -fsS -X POST "${BASE_URL}/api/tasks/${RETRY_TASK_ID}/cancel" >/dev/null || true
 
 STATUS_CODE="$(
   curl -s -o /dev/null -w "%{http_code}" \

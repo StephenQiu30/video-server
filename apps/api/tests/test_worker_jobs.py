@@ -3,8 +3,10 @@ import os
 
 from worker import jobs
 from worker.jobs import (
+    JobFailure,
     _assert_media_tools_available,
     _cleanup_task_work_dir,
+    _failure_code,
     _format_failure_reason,
     _resolve_output_path,
 )
@@ -64,3 +66,11 @@ def test_media_tools_check_passes_when_tools_exist(monkeypatch) -> None:
     monkeypatch.setattr(jobs.shutil, "which", lambda name: f"/opt/homebrew/bin/{name}")
 
     _assert_media_tools_available()
+
+
+def test_failure_code_uses_job_failure_code() -> None:
+    assert _failure_code(JobFailure("storage_failed", "upload failed")) == "storage_failed"
+
+
+def test_failure_code_classifies_timeout_message() -> None:
+    assert _failure_code(RuntimeError("job timed out")) == "task_timeout"

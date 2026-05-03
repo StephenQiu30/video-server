@@ -32,16 +32,15 @@ export const layout: RunTimeLayoutConfig = () => {
     splitMenus: false,
     token: {
       header: {
-        colorBgHeader: '#f7f8fb',
+        colorBgHeader: '#ffffff',
       },
       sider: {
-        colorMenuBackground: '#f7f8fb',
+        colorMenuBackground: '#ffffff',
         colorBgCollapsedButton: '#ffffff',
       },
     },
     menuHeaderRender: () => (
       <div className="brand-lockup">
-        <div className="brand-mark">SV</div>
         <Typography.Text strong>Stephen Video</Typography.Text>
       </div>
     ),

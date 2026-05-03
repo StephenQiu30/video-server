@@ -1,6 +1,6 @@
 import { CheckCircleOutlined, StopOutlined } from '@ant-design/icons';
 import { PageContainer, ProCard } from '@ant-design/pro-components';
-import { Alert, List, Space, Typography } from 'antd';
+import { Alert, Col, List, Row, Space, Typography } from 'antd';
 
 const allowed = [
   '用户拥有版权的内容',
@@ -25,34 +25,38 @@ export default function CompliancePage() {
           type="info"
           message="当前版本只面向合法授权内容和公开允许保存的内容。"
         />
-        <div className="compliance-list">
-          <ProCard className="section-card" title="允许处理" bordered>
-            <List
-              dataSource={allowed}
-              renderItem={(item) => (
-                <List.Item>
-                  <Space>
-                    <CheckCircleOutlined style={{ color: '#0f8f64' }} />
-                    <Typography.Text>{item}</Typography.Text>
-                  </Space>
-                </List.Item>
-              )}
-            />
-          </ProCard>
-          <ProCard className="section-card" title="不进入 MVP" bordered>
-            <List
-              dataSource={denied}
-              renderItem={(item) => (
-                <List.Item>
-                  <Space>
-                    <StopOutlined style={{ color: '#d43f3a' }} />
-                    <Typography.Text>{item}</Typography.Text>
-                  </Space>
-                </List.Item>
-              )}
-            />
-          </ProCard>
-        </div>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} md={12}>
+            <ProCard title="允许处理" bordered>
+              <List
+                dataSource={allowed}
+                renderItem={(item) => (
+                  <List.Item>
+                    <Space>
+                      <CheckCircleOutlined style={{ color: '#0f8f64' }} />
+                      <Typography.Text>{item}</Typography.Text>
+                    </Space>
+                  </List.Item>
+                )}
+              />
+            </ProCard>
+          </Col>
+          <Col xs={24} md={12}>
+            <ProCard title="不进入 MVP" bordered>
+              <List
+                dataSource={denied}
+                renderItem={(item) => (
+                  <List.Item>
+                    <Space>
+                      <StopOutlined style={{ color: '#d43f3a' }} />
+                      <Typography.Text>{item}</Typography.Text>
+                    </Space>
+                  </List.Item>
+                )}
+              />
+            </ProCard>
+          </Col>
+        </Row>
       </Space>
     </PageContainer>
   );
