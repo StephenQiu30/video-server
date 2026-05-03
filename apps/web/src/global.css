@@ -54,16 +54,6 @@ textarea {
   align-items: flex-start;
 }
 
-.download-ready-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 16px;
-  border: 1px solid #91caff;
-  border-radius: 6px;
-  background: #f0f7ff;
-}
-
 @media (max-width: 560px) {
   .page-shell {
     padding: 12px;
