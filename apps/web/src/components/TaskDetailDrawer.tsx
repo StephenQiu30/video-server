@@ -2,6 +2,7 @@ import { DownloadOutlined, ReloadOutlined, StopOutlined } from '@ant-design/icon
 import { Alert, Button, Descriptions, Drawer, Progress, Space, Tag, Timeline, Typography, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { cancelTask, listTaskEvents, openTaskDownload, retryTask } from '../services/api';
+import { formatSize } from '../utils/format';
 import { TaskStateTag } from './TaskStateTag';
 
 type Props = {
@@ -10,12 +11,6 @@ type Props = {
   onClose: () => void;
   onChanged: () => void;
 };
-
-function formatSize(size?: number) {
-  if (!size) return '-';
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-  return `${(size / 1024 / 1024).toFixed(1)} MB`;
-}
 
 function canRetry(task: API.Task) {
   return task.is_latest_attempt !== false && (task.state === 'failed' || task.state === 'canceled' || Boolean(task.failure_code === 'retention_expired'));

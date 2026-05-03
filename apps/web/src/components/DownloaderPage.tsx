@@ -1,28 +1,12 @@
 import { DownloadOutlined, LinkOutlined, ReloadOutlined } from '@ant-design/icons';
 import { history } from '@@/core/history';
-import { PageContainer, ProCard, ProForm, ProFormText } from '@ant-design/pro-components';
-import { Alert, Button, Empty, List, Progress, Radio, Space, Tag, Typography, message } from 'antd';
+import { PageContainer, ProCard, ProForm, ProFormText, ProList } from '@ant-design/pro-components';
+import { Alert, Button, Empty, Progress, Radio, Space, Tag, Typography, message } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { API_BASE_URL, createTask, listTasks, normalizeUserUrl, openTaskDownload, parseVideo } from '../services/api';
+import { formatDateTime, formatDuration, formatSize } from '../utils/format';
 import { TaskDetailDrawer } from './TaskDetailDrawer';
 import { TaskStateTag } from './TaskStateTag';
-import { API_BASE_URL, createTask, listTasks, normalizeUserUrl, openTaskDownload, parseVideo } from '../services/api';
-
-function formatDuration(seconds?: number) {
-  if (!seconds) return '-';
-  const minutes = Math.floor(seconds / 60);
-  const rest = seconds % 60;
-  return `${minutes}:${String(rest).padStart(2, '0')}`;
-}
-
-function formatSize(size?: number) {
-  if (!size) return '-';
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-  return `${(size / 1024 / 1024).toFixed(1)} MB`;
-}
-
-function formatDateTime(value?: string) {
-  return value ? value.replace('T', ' ').slice(0, 19) : '-';
-}
 
 function isSmokeTask(task: API.Task) {
   const title = task.title || task.output_filename || '';
@@ -74,6 +58,7 @@ export function DownloaderPage() {
   const [selectedFormatId, setSelectedFormatId] = useState<string>();
   const [selectedTask, setSelectedTask] = useState<API.Task>();
   const [drawerOpen, setDrawerOpen] = useState(false);
+
   const refreshTasks = useCallback(async (showError = true) => {
     try {
       setTasks(await listTasks({ limit: 20 }));
@@ -148,244 +133,228 @@ export function DownloaderPage() {
     setDrawerOpen(true);
   };
 
-  const renderTaskActions = (task: API.Task) => (
-    <Space wrap>
-      <Button type="link" onClick={() => openTaskDetail(task)}>
-        详情
-      </Button>
-      <Button
-        type="link"
-        icon={<DownloadOutlined />}
-        disabled={!canDownload(task)}
-        loading={downloadingTaskId === task.id}
-        onClick={() => handleDownload(task)}
-      >
-        下载文件
-      </Button>
-    </Space>
-  );
-
   return (
-    <PageContainer title={false}>
-      <div className="download-workspace">
-        <Space direction="vertical" size={16} style={{ width: '100%' }}>
-          <ProCard bordered>
-            <Space direction="vertical" size={20} style={{ width: '100%' }}>
-              <Space direction="vertical" size={4} style={{ width: '100%', textAlign: 'center' }}>
-                <Typography.Title level={2} style={{ margin: 0 }}>
-                  视频下载器
-                </Typography.Title>
-                <Typography.Text type="secondary">粘贴视频链接，解析后创建本机下载任务</Typography.Text>
-              </Space>
+    <PageContainer title="视频下载器" subTitle="粘贴视频链接，解析后创建本机下载任务">
+      <Space direction="vertical" size={16} style={{ width: '100%' }}>
+        <ProCard bordered>
+          <ProForm
+            layout="vertical"
+            submitter={{
+              searchConfig: { submitText: '解析链接', resetText: '重置' },
+              resetButtonProps: { disabled: parsing || Boolean(creatingFormatId) },
+              submitButtonProps: {
+                icon: <LinkOutlined />,
+                loading: parsing,
+                disabled: Boolean(creatingFormatId),
+              },
+            }}
+            onReset={() => {
+              setParsed(undefined);
+              setParseError(undefined);
+              setSelectedFormatId(undefined);
+            }}
+            onFinish={async (values) => {
+              let normalizedUrl: string;
+              setParseError(undefined);
+              try {
+                normalizedUrl = normalizeUserUrl(String(values.url || ''));
+                if (normalizedUrl !== String(values.url || '').trim()) {
+                  message.info('已自动补全 https://');
+                }
+              } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : '请输入有效的视频链接';
+                setParseError(errorMessage);
+                message.error(errorMessage);
+                return false;
+              }
+              setParsing(true);
+              setParsed(undefined);
+              setSelectedFormatId(undefined);
+              try {
+                const result = await parseVideo(normalizedUrl);
+                setParsed(result);
+                const availablePreset = result.formats.find((format) => format.kind !== 'raw' && format.available !== false);
+                setSelectedFormatId(availablePreset?.format_id);
+                message.success('解析完成');
+              } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : '公开视频解析失败或平台暂不支持';
+                setParseError(errorMessage);
+                message.error(errorMessage);
+              } finally {
+                setParsing(false);
+              }
+              return true;
+            }}
+          >
+            <ProFormText
+              name="url"
+              label="视频链接"
+              placeholder="https://www.bilibili.com/video/BV..."
+              fieldProps={{ size: 'large', allowClear: true }}
+              rules={[{ required: true, message: '请输入视频链接' }]}
+            />
+          </ProForm>
 
-              <ProForm
-                layout="vertical"
-                submitter={{
-                  searchConfig: { submitText: '解析链接', resetText: '重置' },
-                  resetButtonProps: { disabled: parsing || Boolean(creatingFormatId) },
-                  submitButtonProps: {
-                    icon: <LinkOutlined />,
-                    loading: parsing,
-                    disabled: Boolean(creatingFormatId),
-                  },
-                }}
-                onReset={() => {
-                  setParsed(undefined);
-                  setParseError(undefined);
-                  setSelectedFormatId(undefined);
-                }}
-                onFinish={async (values) => {
-                  let normalizedUrl: string;
-                  setParseError(undefined);
-                  try {
-                    normalizedUrl = normalizeUserUrl(String(values.url || ''));
-                    if (normalizedUrl !== String(values.url || '').trim()) {
-                      message.info('已自动补全 https://');
-                    }
-                  } catch (error) {
-                    const errorMessage = error instanceof Error ? error.message : '请输入有效的视频链接';
-                    setParseError(errorMessage);
-                    message.error(errorMessage);
-                    return false;
-                  }
-                  setParsing(true);
-                  setParsed(undefined);
-                  setSelectedFormatId(undefined);
-                  try {
-                    const result = await parseVideo(normalizedUrl);
-                    setParsed(result);
-                    const availablePreset = result.formats.find((format) => format.kind !== 'raw' && format.available !== false);
-                    setSelectedFormatId(availablePreset?.format_id);
-                    message.success('解析完成');
-                  } catch (error) {
-                    const errorMessage = error instanceof Error ? error.message : '公开视频解析失败或平台暂不支持';
-                    setParseError(errorMessage);
-                    message.error(errorMessage);
-                  } finally {
-                    setParsing(false);
-                  }
-                  return true;
-                }}
+          {parseError ? <Alert type="error" showIcon message={parseError} /> : null}
+        </ProCard>
+
+        {parsed ? (
+          <ProCard
+            title={parsed.title || '解析结果'}
+            subTitle={`时长：${formatDuration(parsed.duration_seconds)} / 来源：${parsed.source_site || parsed.extractor || 'yt-dlp 可识别来源'}`}
+            bordered
+          >
+            <Space direction="vertical" size={16} style={{ width: '100%' }}>
+              <Alert type="info" showIcon message="请选择清晰度后创建任务；清晰度越低通常文件更小，下载等待时间也更短。" />
+              <Radio.Group
+                value={selectedFormatId}
+                onChange={(event) => setSelectedFormatId(event.target.value)}
+                style={{ width: '100%' }}
               >
-                <ProFormText
-                  name="url"
-                  label="视频链接"
-                  placeholder="https://www.bilibili.com/video/BV..."
-                  fieldProps={{ size: 'large', allowClear: true }}
-                  rules={[{ required: true, message: '请输入视频链接' }]}
-                />
-              </ProForm>
-
-              {parseError ? <Alert type="error" showIcon message={parseError} /> : null}
-
-              {parsed ? (
-                <Space direction="vertical" size={16} style={{ width: '100%' }}>
-                  <List
-                    className="download-format-list"
-                    header={
-                      <Space direction="vertical" size={4}>
-                        <Typography.Text strong>{parsed.title || '解析结果'}</Typography.Text>
-                        <Typography.Text type="secondary">
-                          时长：{formatDuration(parsed.duration_seconds)} / 来源：
-                          {parsed.source_site || parsed.extractor || 'yt-dlp 可识别来源'}
-                        </Typography.Text>
-                        <Typography.Text type="secondary">先选择清晰度，再创建下载任务；清晰度越低通常文件更小，下载等待时间也更短。</Typography.Text>
-                      </Space>
-                    }
-                    dataSource={presetFormats}
-                    renderItem={(format, index) => {
-                      const disabled = format.available === false;
-                      const active = selectedFormatId === format.format_id;
-                      return (
-                        <List.Item
-                          className={`download-format-option${active ? ' is-selected' : ''}${disabled ? ' is-disabled' : ''}`}
-                          onClick={() => {
-                            if (!disabled && !creatingFormatId && !parsing) {
-                              setSelectedFormatId(format.format_id);
-                            }
-                          }}
-                        >
-                          <List.Item.Meta
-                            avatar={<Radio checked={active} disabled={disabled} />}
-                            title={
-                              <Space wrap>
-                                <Typography.Text strong>
-                                  {index === 0 ? `推荐下载：${format.quality_label || format.label}` : format.quality_label || format.label}
-                                </Typography.Text>
-                                {disabled ? <Tag>不可用</Tag> : active ? <Tag color="blue">已选择</Tag> : <Tag color="processing">可选择</Tag>}
-                              </Space>
-                            }
-                            description={
-                              <Space direction="vertical" size={2}>
-                                <Typography.Text type="secondary">
-                                  {[format.ext, format.resolution].filter(Boolean).join(' / ') || format.label || '默认格式'}
-                                </Typography.Text>
-                                {format.note ? (
-                                  <Typography.Text type={disabled ? 'warning' : 'secondary'}>{format.note}</Typography.Text>
-                                ) : null}
-                              </Space>
-                            }
-                          />
-                        </List.Item>
-                      );
-                    }}
-                  />
-                  <Space wrap>
-                    <Button
-                      type="primary"
-                      size="large"
-                      loading={Boolean(creatingFormatId)}
-                      disabled={!selectedFormat || selectedFormat.available === false || parsing}
-                      onClick={async () => {
-                        if (!selectedFormat) {
-                          message.warning('请先选择清晰度');
-                          return;
-                        }
-                        setCreatingFormatId(selectedFormat.format_id);
-                        try {
-                          await createTask({
-                            url: parsed.url,
-                            title: parsed.title,
-                            cover_url: parsed.cover_url,
-                            duration_seconds: parsed.duration_seconds,
-                            format_id: selectedFormat.format_id,
-                            format_label: selectedFormat.quality_label || selectedFormat.label,
-                          });
-                          message.success(`已创建 ${selectedFormat.quality_label || '推荐'} 下载任务`);
-                          await refreshTasks();
-                        } catch (error) {
-                          message.error(error instanceof Error ? error.message : '任务创建失败');
-                        } finally {
-                          setCreatingFormatId(undefined);
-                        }
-                      }}
-                    >
-                      创建{selectedFormat?.quality_label ? ` ${selectedFormat.quality_label} ` : ''}下载任务
-                    </Button>
-                    <Typography.Text type="secondary">
-                      当前选择：{selectedFormat?.quality_label || selectedFormat?.label || '未选择'}
-                    </Typography.Text>
-                  </Space>
+                <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                  {presetFormats.map((format, index) => {
+                    const disabled = format.available === false;
+                    return (
+                      <ProCard
+                        key={format.format_id}
+                        size="small"
+                        bordered
+                        ghost={false}
+                        bodyStyle={{ paddingBlock: 12 }}
+                        style={{ opacity: disabled ? 0.65 : 1 }}
+                      >
+                        <Radio value={format.format_id} disabled={disabled || Boolean(creatingFormatId) || parsing}>
+                          <Space direction="vertical" size={2}>
+                            <Space wrap>
+                              <Typography.Text strong>
+                                {index === 0 ? `推荐下载：${format.quality_label || format.label}` : format.quality_label || format.label}
+                              </Typography.Text>
+                              {disabled ? <Tag>不可用</Tag> : <Tag color="processing">可选择</Tag>}
+                            </Space>
+                            <Typography.Text type="secondary">
+                              {[format.ext, format.resolution].filter(Boolean).join(' / ') || format.label || '默认格式'}
+                            </Typography.Text>
+                            {format.note ? <Typography.Text type={disabled ? 'warning' : 'secondary'}>{format.note}</Typography.Text> : null}
+                          </Space>
+                        </Radio>
+                      </ProCard>
+                    );
+                  })}
                 </Space>
-              ) : null}
+              </Radio.Group>
+              <Space wrap>
+                <Button
+                  type="primary"
+                  size="large"
+                  loading={Boolean(creatingFormatId)}
+                  disabled={!selectedFormat || selectedFormat.available === false || parsing}
+                  onClick={async () => {
+                    if (!selectedFormat) {
+                      message.warning('请先选择清晰度');
+                      return;
+                    }
+                    setCreatingFormatId(selectedFormat.format_id);
+                    try {
+                      await createTask({
+                        url: parsed.url,
+                        title: parsed.title,
+                        cover_url: parsed.cover_url,
+                        duration_seconds: parsed.duration_seconds,
+                        format_id: selectedFormat.format_id,
+                        format_label: selectedFormat.quality_label || selectedFormat.label,
+                      });
+                      message.success(`已创建 ${selectedFormat.quality_label || '推荐'} 下载任务`);
+                      await refreshTasks();
+                    } catch (error) {
+                      message.error(error instanceof Error ? error.message : '任务创建失败');
+                    } finally {
+                      setCreatingFormatId(undefined);
+                    }
+                  }}
+                >
+                  创建{selectedFormat?.quality_label ? ` ${selectedFormat.quality_label} ` : ''}下载任务
+                </Button>
+                <Typography.Text type="secondary">
+                  当前选择：{selectedFormat?.quality_label || selectedFormat?.label || '未选择'}
+                </Typography.Text>
+              </Space>
             </Space>
           </ProCard>
+        ) : null}
 
-          <ProCard
-            title="任务状态"
-            bordered
-            extra={
-              <Space>
-                <Button icon={<ReloadOutlined />} onClick={() => refreshTasks()} />
-                <Button type="link" onClick={() => history.push('/tasks')}>
-                  完整历史
-                </Button>
-              </Space>
-            }
-          >
-            <List
-              dataSource={keyTasks}
-              locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无下载任务" /> }}
-              renderItem={(task) => (
-                <List.Item className="download-task-item" actions={[renderTaskActions(task)]}>
-                  <List.Item.Meta
-                    title={
-                      <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                        <Typography.Text strong ellipsis>
-                          {task.title || task.output_filename || '未命名视频'}
-                        </Typography.Text>
-                        <Space wrap>
-                          <TaskStateTag state={task.state} />
-                          {task.attempt_no > 1 ? <Tag color="blue">第 {task.attempt_no} 次尝试</Tag> : null}
-                          {isExpiredTask(task) ? <Typography.Text type="warning">文件已过期</Typography.Text> : null}
-                        </Space>
-                      </Space>
-                    }
-                    description={
-                      <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                        <Progress
-                          percent={task.progress}
-                          size="small"
-                          strokeColor="#1677ff"
-                          status={task.state === 'failed' ? 'exception' : undefined}
-                        />
-                        {canDownload(task) ? (
-                          <Typography.Text type="secondary">
-                            文件：{task.output_filename || '-'} / 大小：{formatSize(task.object_size)} / 过期时间：
-                            {formatDateTime(task.expires_at)}
-                          </Typography.Text>
-                        ) : null}
-                        {task.failure_reason ? <Typography.Text type="danger">{task.failure_reason}</Typography.Text> : null}
-                      </Space>
-                    }
-                  />
-                </List.Item>
-              )}
-            />
-          </ProCard>
-
-        </Space>
-      </div>
+        <ProCard
+          title="任务状态"
+          bordered
+          extra={
+            <Space>
+              <Button icon={<ReloadOutlined />} onClick={() => refreshTasks()} />
+              <Button type="link" onClick={() => history.push('/tasks')}>
+                完整历史
+              </Button>
+            </Space>
+          }
+        >
+          <ProList<API.Task>
+            rowKey="id"
+            dataSource={keyTasks}
+            locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无下载任务" /> }}
+            metas={{
+              title: {
+                render: (_, task) => (
+                  <Typography.Text strong ellipsis>
+                    {task.title || task.output_filename || '未命名视频'}
+                  </Typography.Text>
+                ),
+              },
+              subTitle: {
+                render: (_, task) => (
+                  <Space wrap>
+                    <TaskStateTag state={task.state} />
+                    {task.attempt_no > 1 ? <Tag color="blue">第 {task.attempt_no} 次尝试</Tag> : null}
+                    {isExpiredTask(task) ? <Tag color="warning">文件已过期</Tag> : null}
+                  </Space>
+                ),
+              },
+              description: {
+                render: (_, task) => (
+                  <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                    <Progress
+                      percent={task.progress}
+                      size="small"
+                      strokeColor="#1677ff"
+                      status={task.state === 'failed' ? 'exception' : undefined}
+                    />
+                    {canDownload(task) ? (
+                      <Typography.Text type="secondary">
+                        文件：{task.output_filename || '-'} / 大小：{formatSize(task.object_size)} / 过期时间：
+                        {formatDateTime(task.expires_at)}
+                      </Typography.Text>
+                    ) : null}
+                    {task.failure_reason ? <Typography.Text type="danger">{task.failure_reason}</Typography.Text> : null}
+                  </Space>
+                ),
+              },
+              actions: {
+                render: (_, task) => [
+                  <Button key="detail" type="link" onClick={() => openTaskDetail(task)}>
+                    详情
+                  </Button>,
+                  <Button
+                    key="download"
+                    type="link"
+                    icon={<DownloadOutlined />}
+                    disabled={!canDownload(task)}
+                    loading={downloadingTaskId === task.id}
+                    onClick={() => handleDownload(task)}
+                  >
+                    下载文件
+                  </Button>,
+                ],
+              },
+            }}
+          />
+        </ProCard>
+      </Space>
       <TaskDetailDrawer
         task={selectedTask}
         open={drawerOpen}

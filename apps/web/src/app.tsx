@@ -30,6 +30,9 @@ export const layout: RunTimeLayoutConfig = () => {
   return {
     layout: 'top',
     splitMenus: false,
+    menu: {
+      locale: false,
+    },
     token: {
       header: {
         colorBgHeader: '#ffffff',
@@ -40,18 +43,17 @@ export const layout: RunTimeLayoutConfig = () => {
       },
     },
     menuHeaderRender: () => (
-      <div className="brand-lockup">
+      <Space align="center" style={{ height: 56 }}>
         <Typography.Text strong>Stephen Video</Typography.Text>
-      </div>
+      </Space>
     ),
     rightContentRender: () => {
       return (
         <Space size={12}>
-          <SafetyCertificateOutlined className="header-safe-icon" />
+          <SafetyCertificateOutlined style={{ color: '#1677ff' }} />
           <Tag color="processing">本地单用户模式</Tag>
         </Space>
       );
     },
-    childrenRender: (children: JSX.Element) => <div className="page-shell">{children}</div>,
   };
 };

@@ -1,10 +1,11 @@
 import { DownloadOutlined, ReloadOutlined, StopOutlined } from '@ant-design/icons';
-import { PageContainer, ProCard, ProTable, type ProColumns } from '@ant-design/pro-components';
-import { Button, Grid, List, Progress, Space, Tag, Typography, message } from 'antd';
+import { PageContainer, ProTable, ProList, type ProColumns } from '@ant-design/pro-components';
+import { Button, Grid, Progress, Space, Tag, Typography, message } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import { TaskDetailDrawer } from '../../components/TaskDetailDrawer';
 import { TaskStateTag } from '../../components/TaskStateTag';
 import { API_BASE_URL, cancelTask, listTasks, openTaskDownload, retryTask } from '../../services/api';
+import { formatDateTime, formatSize } from '../../utils/format';
 
 function canRetry(task: API.Task) {
   return task.is_latest_attempt !== false && (task.state === 'failed' || task.state === 'canceled' || Boolean(task.failure_code === 'retention_expired'));
@@ -12,16 +13,6 @@ function canRetry(task: API.Task) {
 
 function canDownload(task: API.Task) {
   return task.state === 'succeeded' && task.failure_code !== 'retention_expired';
-}
-
-function formatSize(size?: number) {
-  if (!size) return '-';
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-  return `${(size / 1024 / 1024).toFixed(1)} MB`;
-}
-
-function formatDateTime(value?: string) {
-  return value ? value.replace('T', ' ').slice(0, 19) : '-';
 }
 
 function subscribeTaskSnapshots(limit: number, onTasks: (tasks: API.Task[]) => void, onError: () => void) {
@@ -322,46 +313,52 @@ export default function TasksPage() {
           pagination={{ pageSize: 10, showSizeChanger: true }}
         />
       ) : (
-        <ProCard bordered>
-          <List
-            loading={loading}
-            dataSource={tasks}
-            pagination={{ pageSize: 8, size: 'small' }}
-            renderItem={(record) => (
-              <List.Item className="download-task-item" actions={[renderActions(record)]}>
-                <List.Item.Meta
-                  title={
-                    <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                      <Typography.Text strong>{record.title || record.output_filename || '未命名视频'}</Typography.Text>
-                      <Typography.Text type="secondary" ellipsis>
-                        {record.source_url}
-                      </Typography.Text>
-                    </Space>
-                  }
-                  description={
-                    <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                      <Space wrap>
-                        <TaskStateTag state={record.state} />
-                        {record.failure_code === 'retention_expired' ? <Tag color="warning">文件已过期</Tag> : null}
-                        {record.attempt_no > 1 ? <Tag color="blue">第 {record.attempt_no} 次尝试</Tag> : null}
-                        {record.is_latest_attempt === false ? <Tag>已重试</Tag> : <Tag color="processing">最新任务</Tag>}
-                        <Typography.Text type="secondary">格式：{record.format_label || record.format_id || 'best'}</Typography.Text>
-                      </Space>
-                      <Progress percent={record.progress} size="small" strokeColor="#1677ff" />
-                      {canDownload(record) ? (
-                        <Typography.Text type="secondary">
-                          文件：{record.output_filename || '-'} / 大小：{formatSize(record.object_size)} / 过期时间：
-                          {formatDateTime(record.expires_at)}
-                        </Typography.Text>
-                      ) : null}
-                      {record.failure_reason ? <Typography.Text type="danger">{record.failure_reason}</Typography.Text> : null}
-                    </Space>
-                  }
-                />
-              </List.Item>
-            )}
-          />
-        </ProCard>
+        <ProList<API.Task>
+          rowKey="id"
+          loading={loading}
+          dataSource={tasks}
+          pagination={{ pageSize: 8, size: 'small' }}
+          metas={{
+            title: {
+              render: (_, record) => (
+                <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                  <Typography.Text strong>{record.title || record.output_filename || '未命名视频'}</Typography.Text>
+                  <Typography.Text type="secondary" ellipsis>
+                    {record.source_url}
+                  </Typography.Text>
+                </Space>
+              ),
+            },
+            subTitle: {
+              render: (_, record) => (
+                <Space wrap>
+                  <TaskStateTag state={record.state} />
+                  {record.failure_code === 'retention_expired' ? <Tag color="warning">文件已过期</Tag> : null}
+                  {record.attempt_no > 1 ? <Tag color="blue">第 {record.attempt_no} 次尝试</Tag> : null}
+                  {record.is_latest_attempt === false ? <Tag>已重试</Tag> : <Tag color="processing">最新任务</Tag>}
+                  <Typography.Text type="secondary">格式：{record.format_label || record.format_id || 'best'}</Typography.Text>
+                </Space>
+              ),
+            },
+            description: {
+              render: (_, record) => (
+                <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                  <Progress percent={record.progress} size="small" strokeColor="#1677ff" />
+                  {canDownload(record) ? (
+                    <Typography.Text type="secondary">
+                      文件：{record.output_filename || '-'} / 大小：{formatSize(record.object_size)} / 过期时间：
+                      {formatDateTime(record.expires_at)}
+                    </Typography.Text>
+                  ) : null}
+                  {record.failure_reason ? <Typography.Text type="danger">{record.failure_reason}</Typography.Text> : null}
+                </Space>
+              ),
+            },
+            actions: {
+              render: (_, record) => renderActions(record),
+            },
+          }}
+        />
       )}
       <TaskDetailDrawer
         task={selectedTask}

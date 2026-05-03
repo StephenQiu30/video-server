@@ -6,106 +6,10 @@ body,
 
 body {
   margin: 0;
-  background: #f5f7fb;
 }
 
 button,
 input,
 textarea {
   letter-spacing: 0;
-}
-
-.page-shell {
-  min-height: calc(100vh - 56px);
-  padding: 24px;
-  background: #f5f7fb;
-}
-
-.brand-lockup {
-  display: flex;
-  align-items: center;
-  height: 56px;
-  min-height: 56px;
-}
-
-.header-safe-icon {
-  color: #1677ff;
-}
-
-.blue-icon {
-  color: #1677ff;
-}
-
-.status-pill {
-  border-radius: 999px;
-}
-
-.download-workspace {
-  width: 100%;
-  max-width: 960px;
-  margin: 0 auto;
-}
-
-.download-format-list {
-  border-top: 1px solid #f0f0f0;
-}
-
-.download-format-option.ant-list-item {
-  cursor: pointer;
-  border-radius: 6px;
-  padding-inline: 12px;
-}
-
-.download-format-option.ant-list-item:hover {
-  background: #f5f9ff;
-}
-
-.download-format-option.is-selected.ant-list-item {
-  background: #e6f4ff;
-  border-color: #91caff;
-}
-
-.download-format-option.is-disabled.ant-list-item {
-  cursor: not-allowed;
-  opacity: 0.65;
-}
-
-.download-task-item {
-  align-items: flex-start;
-}
-
-@media (max-width: 560px) {
-  .page-shell {
-    padding: 12px;
-  }
-
-  .download-task-item.ant-list-item {
-    display: block;
-    align-items: stretch;
-  }
-
-  .download-task-item .ant-list-item-meta {
-    width: 100%;
-  }
-
-  .download-task-item .ant-list-item-action {
-    margin-inline-start: 0;
-    margin-top: 12px;
-  }
-
-  .ant-page-header-heading-left {
-    flex-wrap: wrap;
-    row-gap: 4px;
-  }
-
-  .ant-page-header-heading-title {
-    max-width: none;
-    white-space: normal;
-  }
-
-  .ant-page-header-heading-sub-title {
-    flex-basis: 100%;
-    margin-inline-start: 0;
-    white-space: normal;
-  }
 }
