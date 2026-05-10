@@ -14,7 +14,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # ==========================================
-# Phase 2: Python API
+# Phase 2: Frontend Builder
+# ==========================================
+FROM node:20-alpine AS web-builder
+WORKDIR /app
+COPY apps/web/package*.json ./apps/web/
+RUN cd apps/web && npm ci
+COPY apps/web ./apps/web
+RUN cd apps/web && npm run build
+
+# ==========================================
+# Phase 3: Python API
 # ==========================================
 FROM python-base AS api
 COPY apps/api/requirements.txt /app/apps/api/requirements.txt
@@ -27,7 +37,7 @@ EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # ==========================================
-# Phase 3: Python Worker
+# Phase 4: Python Worker
 # ==========================================
 FROM python-base AS worker
 COPY apps/api/requirements.txt /app/apps/api/requirements.txt
@@ -36,14 +46,4 @@ RUN pip install --no-cache-dir -r /app/apps/worker/requirements.txt
 COPY apps/worker /app/apps/worker
 COPY packages /app/packages
 CMD ["python", "-m", "worker.main"]
-
-# ==========================================
-# Phase 4: Frontend Builder
-# ==========================================
-FROM node:20-alpine AS web-builder
-WORKDIR /app
-COPY apps/web/package*.json ./apps/web/
-RUN cd apps/web && npm ci
-COPY apps/web ./apps/web
-RUN cd apps/web && npm run build
 
