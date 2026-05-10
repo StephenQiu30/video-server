@@ -8,24 +8,20 @@ The system SHALL use the default recommended monorepo layout with separate web, 
 
 #### Scenario: Project directories exist
 - **WHEN** the M1 scaffold is created
-- **THEN** the repository contains `apps/web`, `apps/api`, `apps/worker`, `packages/shared`, and `infra/docker`
+- **THEN** the repository contains `apps/web`, `apps/api`, `apps/worker`, and `packages/shared`
+- **AND** Docker-related configurations are unified in the project root
 
 ### Requirement: Local and Docker runtime modes
 The system SHALL support a local development runtime that can reuse existing Python, PostgreSQL, Redis, and MinIO / S3 services, and SHALL keep Docker Compose as a deployment or isolated-runtime option.
 
-#### Scenario: Local backend starts without Docker
-- **WHEN** a developer has local Python, PostgreSQL, Redis, and MinIO / S3 available
-- **THEN** the documented local scripts start the API and worker without requiring Docker
+#### Scenario: Infrastructure-only Docker environment
+- **WHEN** a developer runs `docker compose up` in the root
+- **THEN** only core infrastructure services (PostgreSQL, Redis, MinIO) are started
+- **AND** the application code can be run directly on the host machine for development
 
-#### Scenario: Docker API/Web with local Worker starts
-- **WHEN** the local single-user download workflow is started with the root start command
-- **THEN** Docker Compose starts API and Web
-- **AND** a host Worker process is started once so yt-dlp can access host browser login state when configured
-
-#### Scenario: Local Worker stops cleanly
-- **WHEN** the root stop command is executed
-- **THEN** Docker API/Web are stopped
-- **AND** the host Worker process started by the project is stopped and its PID file is cleaned up
+#### Scenario: Full stack Docker environment
+- **WHEN** a developer runs `docker compose -f docker-compose.prod.yml up`
+- **THEN** the entire application stack (API, Worker, Web) and its infrastructure are started using production-ready Docker images
 
 ### Requirement: Environment configuration template
 The system SHALL provide separate environment templates for local development, Docker deployment, and production deployment.

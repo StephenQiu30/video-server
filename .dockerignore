@@ -1,20 +1,33 @@
+# Node
+**/node_modules
+**/dist
+**/build
+
+# Python
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.venv
+**/env
+
+# Git
 .git
-.venv
-__pycache__
-*.pyc
-.pytest_cache
+.gitignore
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Project
+**/tmp
+**/downloads
 .env
-.env.production
-downloads
-tmp
-.claude
-.cursor
-node_modules
-dist
-apps/web/node_modules
-apps/web/dist
-apps/web/src/.umi
-apps/web/src/.umi-production
-apps/web/.max
-apps/web/.cache
+.agent
+openspec
+docs
+brain

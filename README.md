@@ -4,143 +4,71 @@
 
 ## 一键启动
 
-本项目区分本地开发和生产部署两种启动方式：
+本项目通过 Docker Compose 实现开发环境和生产环境的快速启动：
 
-- 本地开发：默认只启动本项目的 API 和 Web，不启动 Redis、PostgreSQL、MinIO，也不默认启动依赖 Redis 的 Worker。
-- 生产部署：通过 Docker Compose 生产覆盖文件同时启动 Web、API、Worker、PostgreSQL、Redis 和 MinIO。
+- **开发辅助环境**：仅启动数据库、Redis 和 MinIO，代码在宿主机运行。
+  ```bash
+  docker compose up -d
+  ```
+- **全量生产环境**：一键启动所有服务（Web, API, Worker + 基础设施）。
+  ```bash
+  docker compose -f docker-compose.prod.yml up -d
+  ```
 
-本地一键启动：
+默认服务地址：
+- 前端：`http://localhost:3000`
+- API：`http://localhost:8000`
+- MinIO 控制台：`http://localhost:9001`
 
-```bash
-./scripts/start.sh local
-```
+## 本地开发指南
 
-本地一键启动不会安装或启动 Redis、PostgreSQL、MinIO。默认只启动 API 和 Web；如果需要本地验收队列下载链路，并且你已经有可用 Redis，可以启用 Worker：
+1. **环境配置**：
+   复制并填写根目录的 `.env` 文件。
+   ```bash
+   cp .env.example .env
+   ```
 
-```bash
-START_WORKER=true ./scripts/start.sh local
-```
+2. **启动基础依赖**：
+   ```bash
+   docker compose up -d
+   ```
 
-生产一键启动：
+3. **运行后端**：
+   ```bash
+   cd apps/api
+   pip install -r requirements.txt
+   uvicorn app.main:app --reload
+   ```
 
-```bash
-cp .env.production.example .env.production
-# 修改 .env.production 中所有 CHANGE_ME 和域名配置
-./scripts/start.sh prod
-```
+4. **运行 Worker**：
+   ```bash
+   cd apps/worker
+   pip install -r requirements.txt
+   python -m worker.main
+   ```
 
-本地默认地址：
+5. **运行前端**：
+   ```bash
+   cd apps/web
+   npm install
+   npm run dev
+   ```
 
-```text
-前端：http://127.0.0.1:3000
-API：http://127.0.0.1:8000
-```
+## Docker 部署方案
 
-生产 Compose 默认地址：
+本项目采用统一的根目录 `Dockerfile` 进行多阶段构建。
 
-```text
-前端：http://localhost:3000
-API：http://localhost:8000
-MinIO 控制台：http://localhost:19001
-```
+- **构建并启动全量堆栈**：
+  ```bash
+  docker compose -f docker-compose.prod.yml up -d --build
+  ```
 
-## 后端本地启动（分步）
+- **停止并清理**：
+  ```bash
+  docker compose -f docker-compose.prod.yml down
+  ```
 
-本地开发不安装、不启动 Redis、PostgreSQL、MinIO / S3 这类基础设施；只读取 `.env` 里的连接地址。若需要分步排查，可以按下面命令启动。
-
-1. 复制环境变量：
-
-```bash
-cp .env.example .env
-```
-
-2. 安装 Python 依赖：
-
-```bash
-./scripts/dev_install.sh
-```
-
-该命令默认使用当前本地 `python3` 环境。若你希望指定其他解释器，可以使用：
-
-```bash
-PYTHON_BIN=/path/to/python ./scripts/dev_install.sh
-```
-
-如果你的本地 Python 是 Homebrew 管理版本，可能会遇到 PEP 668 的 `externally-managed-environment` 保护。此时推荐使用已经准备好的虚拟环境、Conda 或 pyenv 解释器；如果你明确要安装到用户级 Python 包目录，可以自行追加 pip 参数：
-
-```bash
-PIP_INSTALL_ARGS="--user --break-system-packages" ./scripts/dev_install.sh
-```
-
-3. 确认本地服务地址：
-
-```bash
-./scripts/check_local_services.sh
-```
-
-4. 启动 API：
-
-```bash
-./scripts/dev_api.sh
-```
-
-5. 启动 Worker：
-
-```bash
-./scripts/dev_worker.sh
-```
-
-Worker 只在本地验收队列下载链路时需要启动；普通页面和 API 开发可以先不启动。
-
-6. 运行后端测试：
-
-```bash
-./scripts/dev_test.sh
-```
-
-API 默认地址：
-
-```text
-http://127.0.0.1:8000
-```
-
-本地队列使用 `RQ + Redis`，不需要 RabbitMQ；Redis 只在启动 Worker 或验收下载队列链路时需要。
-
-下载任务的本地目录是 `DOWNLOAD_WORK_DIR`，只作为 yt-dlp / FFmpeg 的临时工作目录；成品文件上传到 MinIO / S3 后会清理任务临时目录，下载交付只依赖私有 bucket 和短期预签名 URL。
-
-## Docker 生产部署方案
-
-默认 Docker Compose 只定义 Web 和 API，不启动 Redis、PostgreSQL、MinIO；API 容器通过 `.env` 中的 `DOCKER_DATABASE_URL`、`DOCKER_REDIS_URL`、`DOCKER_S3_ENDPOINT_URL` 复用你本机已有的 brew PostgreSQL、brew Redis 和 MinIO。
-
-默认 Docker 启动：
-
-```bash
-./scripts/start.sh docker
-```
-
-后台一键启动：
-
-```bash
-./scripts/start.sh docker:detached
-```
-
-也可以使用根目录 npm 脚本：
-
-```bash
-npm start
-npm stop
-```
-
-根目录 npm 脚本会复用同一个 `scripts/start.sh` 入口并显式加载 `.env`，避免 Compose 变量插值时读不到 `DATABASE_URL`、`REDIS_URL` 或 `S3_ENDPOINT_URL`。
-
-生产配置来自 `.env.production`，启动时才叠加 `infra/docker/docker-compose.prod.yml`，同时启动 Web、API、Worker、PostgreSQL、Redis 和 MinIO：
-
-```bash
-cp .env.production.example .env.production
-./scripts/start.sh prod
-```
-
-Docker Compose 项目名固定为 `stephen-video`。容器默认使用固定命名：`stephen-video-web`、`stephen-video-api`、`stephen-video-worker`、`stephen-video-postgres`、`stephen-video-redis`、`stephen-video-minio`。
+所有容器均使用 `stephen-video-` 前缀命名，方便管理。
 
 ## 前端本地启动
 
