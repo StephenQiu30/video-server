@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Video, Github, Loader2, AlertCircle } from "lucide-react";
+import { Video, Code as Github, Loader2, AlertCircle } from "lucide-react";
 import { siteConfig } from "../config/site";
 import { api } from "../lib/api";
 

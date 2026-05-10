@@ -1,55 +1,55 @@
-name: stephen-video-dev
+name: stephen-video
 
 services:
-  db:
-    image: postgres:16-alpine
-    container_name: stephen-video-db
+  api:
+    build:
+      context: .
+      target: api
+    container_name: stephen-video-api
+    env_file: .env
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-video}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-video}
-      POSTGRES_DB: ${POSTGRES_DB:-video_downloader}
+      - DATABASE_URL=${DOCKER_DATABASE_URL}
+      - REDIS_URL=${DOCKER_REDIS_URL}
+      - S3_ENDPOINT_URL=${DOCKER_S3_ENDPOINT_URL}
+      - S3_PUBLIC_ENDPOINT_URL=${DOCKER_S3_PUBLIC_ENDPOINT_URL}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+      - "8000:8000"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-video} -d ${POSTGRES_DB:-video_downloader}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    container_name: stephen-video-redis
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)\""]
+      interval: 10s
       timeout: 3s
       retries: 5
 
-  minio:
-    image: minio/minio:latest
-    container_name: stephen-video-minio
+  worker:
+    build:
+      context: .
+      target: worker
+    container_name: stephen-video-worker
+    env_file: .env
     environment:
-      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-minio}
-      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:-stephenqhd30.}
+      - DATABASE_URL=${DOCKER_DATABASE_URL}
+      - REDIS_URL=${DOCKER_REDIS_URL}
+      - S3_ENDPOINT_URL=${DOCKER_S3_ENDPOINT_URL}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      target: web
+    container_name: stephen-video-web
     ports:
-      - "${S3_PORT:-9000}:9000"
-      - "${S3_CONSOLE_PORT:-9001}:9001"
-    volumes:
-      - miniodata:/data
-    command: server /data --console-address ":9001"
+      - "3000:80"
+    depends_on:
+      api:
+        condition: service_started
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 5s
-      timeout: 5s
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health >/dev/null"]
+      interval: 10s
+      timeout: 3s
       retries: 5
-
-volumes:
-  pgdata:
-  miniodata:

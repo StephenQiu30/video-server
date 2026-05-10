@@ -1,4 +1,5 @@
-import { Search, List, BarChart3, Settings, Brain, MessageSquare, Map, Download, CheckCircle2, Clock, Sparkles, FileText, ChevronRight } from "lucide-react";
+import React, { useState } from "react";
+import { Search, List, BarChart3, Settings, Brain, MessageSquare, Map, CheckCircle2, Clock, Sparkles, FileText, ChevronRight } from "lucide-react";
 import { cn } from "../lib/utils";
 import ReactMarkdown from "react-markdown";
 import Mermaid from "../components/Mermaid";

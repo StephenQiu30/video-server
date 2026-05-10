@@ -6,11 +6,11 @@
 
 本项目通过 Docker Compose 实现开发环境和生产环境的快速启动：
 
-- **开发辅助环境**：仅启动数据库、Redis 和 MinIO，代码在宿主机运行。
+- **应用开发环境**：启动所有项目服务（Web, API, Worker），并连接宿主机已有的数据库等环境（Homebrew 安装）。
   ```bash
   docker compose up -d
   ```
-- **全量生产环境**：一键启动所有服务（Web, API, Worker + 基础设施）。
+- **全量独立堆栈**：一键启动所有服务及其配套的基础设施镜像（PostgreSQL, Redis, MinIO）。
   ```bash
   docker compose -f docker-compose.prod.yml up -d
   ```
