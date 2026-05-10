@@ -14,30 +14,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # ==========================================
-# Phase 2: Frontend Builder
-# ==========================================
-FROM node:20-alpine AS web-builder
-WORKDIR /app
-COPY apps/web/package*.json ./apps/web/
-RUN cd apps/web && npm ci
-COPY apps/web ./apps/web
-RUN cd apps/web && npm run build
-
-# ==========================================
-# Phase 3: Python API
+# Phase 2: Python API
 # ==========================================
 FROM python-base AS api
 COPY apps/api/requirements.txt /app/apps/api/requirements.txt
 RUN pip install --no-cache-dir -r /app/apps/api/requirements.txt
 COPY apps/api /app/apps/api
 COPY packages /app/packages
-# Copy built frontend from web-builder
-COPY --from=web-builder /app/apps/web/dist /app/apps/api/static
+# Use locally built frontend from host machine
+# Ensure you have run 'npm run build' in apps/web before building docker
+COPY apps/web/dist /app/apps/api/static
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # ==========================================
-# Phase 4: Python Worker
+# Phase 3: Python Worker
 # ==========================================
 FROM python-base AS worker
 COPY apps/api/requirements.txt /app/apps/api/requirements.txt
