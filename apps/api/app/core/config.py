@@ -5,7 +5,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=(".env", "../../.env"),
+        env_file_encoding="utf-8",
+        extra="ignore"
+    )
 
     app_name: str = "Stephen Video Downloader"
     app_env: str = "local"
@@ -46,6 +50,14 @@ class Settings(BaseSettings):
     s3_bucket: str = "video-downloads"
     s3_region: str = "us-east-1"
     s3_force_path_style: bool = True
+
+    # AI Intelligence Suite
+    llm_api_key: str | None = None
+    llm_api_base_url: str = "https://api.deepseek.com/v1"
+    llm_model_name: str = "deepseek-chat"
+    transcription_api_key: str | None = None
+    transcription_api_base_url: str = "https://api.groq.com/openai/v1"
+    transcription_model_name: str = "whisper-large-v3"
 
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

@@ -56,6 +56,10 @@ def process_download_task(task_id: str) -> None:
         task.expires_at = datetime.now(UTC) + timedelta(hours=task.user.file_retention_hours)
         add_task_event(db, task, TaskState.SUCCEEDED, "文件已保存到私有对象存储")
         db.commit()
+        
+        # Trigger AI Intelligence Suite
+        _process_ai_intelligence(db, task, output_path)
+        
     except Exception as exc:
         _mark_failed(db, task_id, exc)
         raise
@@ -274,3 +278,57 @@ def cleanup_expired_outputs() -> int:
         return cleanup_expired_task_outputs(db)
     finally:
         db.close()
+
+
+def _process_ai_intelligence(db: Session, task: DownloadTask, output_path: Path) -> None:
+    import asyncio
+    from app.services.ai import AIService
+    from app.services.transcription import TranscriptionService
+
+    # Only run if AI keys are configured
+    settings = get_settings()
+    if not settings.llm_api_key or not settings.transcription_api_key:
+        return
+
+    task.ai_status = "processing"
+    db.commit()
+    
+    audio_path = output_path.with_suffix(".mp3")
+    try:
+        # 1. Extract Audio for Transcription (optimized for speech-to-text)
+        subprocess.run([
+            "ffmpeg", "-y", "-i", str(output_path),
+            "-vn", "-ar", "16000", "-ac", "1", "-b:a", "64k",
+            str(audio_path)
+        ], check=True, capture_output=True)
+        
+        # 2. Transcription and Summarization
+        # Since we are in a sync worker, we need a separate event loop for async services
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            transcription_service = TranscriptionService()
+            transcript = loop.run_until_complete(transcription_service.transcribe_audio(str(audio_path)))
+            
+            if not transcript:
+                raise RuntimeError("音频转录失败")
+                
+            ai_service = AIService()
+            summary = loop.run_until_complete(ai_service.summarize_transcript(transcript))
+            mindmap = loop.run_until_complete(ai_service.generate_mindmap(transcript))
+            
+            task.ai_summary = summary
+            task.ai_mindmap = mindmap
+            task.ai_status = "completed"
+            add_task_event(db, task, TaskState.SUCCEEDED, "AI 智能分析完成")
+        finally:
+            loop.close()
+            
+    except Exception as e:
+        task.ai_status = "failed"
+        task.ai_error = str(e)
+        add_task_event(db, task, TaskState.SUCCEEDED, f"AI 智能分析失败: {str(e)}")
+    finally:
+        if audio_path.exists():
+            audio_path.unlink()
+        db.commit()

@@ -144,7 +144,7 @@ Docker Compose 项目名固定为 `stephen-video`。容器默认使用固定命�
 
 ## 前端本地启动
 
-前端位于 `apps/web`，采用 React + Umi + Ant Design Pro，默认连接 `http://127.0.0.1:8000` 后端 API。
+前端位于 `apps/web`，采用 React + Vite + Shadcn UI + GSAP，默认连接 `http://127.0.0.1:8000` 后端 API。
 
 ```bash
 cd apps/web
@@ -158,10 +158,10 @@ npm run dev
 http://127.0.0.1:3000
 ```
 
-如需指定后端地址：
+如需指定后端地址，请修改 `.env` 或在启动时指定环境变量：
 
 ```bash
-UMI_APP_API_BASE_URL=http://127.0.0.1:8000 npm run dev
+VITE_API_BASE_URL=http://127.0.0.1:8000 npm run dev
 ```
 
 ## 重要边界

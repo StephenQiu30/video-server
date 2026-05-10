@@ -3,11 +3,16 @@ import LandingPage from "./pages/LandingPage";
 import Workbench from "./pages/Workbench";
 import Auth from "./pages/Auth";
 import { Video } from "lucide-react";
+import { siteConfig } from "./config/site";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient();
 
 function App() {
   return (
-    <Router>
-      <div className="min-h-screen bg-background font-sans antialiased">
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <div className="min-h-screen bg-background font-sans antialiased">
         {/* Navigation Header */}
         <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -15,7 +20,7 @@ function App() {
               <div className="bg-primary rounded-lg p-1.5 transition-transform group-hover:rotate-12">
                 <Video className="h-5 w-5 text-primary-foreground" />
               </div>
-              <span className="text-xl font-bold tracking-tight">StephenVideo</span>
+              <span className="text-xl font-bold tracking-tight">{siteConfig.name}</span>
             </Link>
             
             <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
@@ -46,12 +51,13 @@ function App() {
         <footer className="border-t border-border bg-slate-50 dark:bg-slate-900/50 py-12">
           <div className="container mx-auto px-4 text-center">
             <p className="text-sm text-muted-foreground">
-              © 2024 StephenVideo. Built with React + Shadcn UI + GSAP.
+              © {siteConfig.currentYear} {siteConfig.name}. Built with React + Shadcn UI + GSAP.
             </p>
           </div>
         </footer>
       </div>
     </Router>
+    </QueryClientProvider>
   );
 }
 

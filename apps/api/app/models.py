@@ -57,6 +57,11 @@ class DownloadTask(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
+    # AI Intelligence Suite
+    ai_summary: Mapped[str | None] = mapped_column(Text)
+    ai_mindmap: Mapped[str | None] = mapped_column(Text)
+    ai_status: Mapped[str | None] = mapped_column(String(32), index=True)
+    ai_error: Mapped[str | None] = mapped_column(Text)
 
     user: Mapped[User] = relationship(back_populates="tasks")
     events: Mapped[list["TaskEvent"]] = relationship(back_populates="task", cascade="all, delete-orphan")

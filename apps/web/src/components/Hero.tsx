@@ -38,19 +38,19 @@ const Hero: React.FC = () => {
             ref={titleRef}
             className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600"
           >
-            Experience Video Downloads Like Never Before
+            开启前所未有的视频下载体验
           </h1>
           <p ref={subRef} className="mt-6 text-lg leading-8 text-muted-foreground">
-            The ultimate SaaS platform for high-speed video parsing and downloading. 
-            Select resolutions up to 4K, analyze content with AI, and manage your library with ease.
+            终极 SaaS 平台，提供极速视频解析与下载功能。 
+            支持最高 4K 分辨率选择，通过 AI 智能分析内容，助您轻松管理媒体库。
           </p>
           <div ref={btnRef} className="mt-10 flex items-center justify-center gap-x-6">
             <button className="rounded-full bg-primary px-8 py-4 text-sm font-semibold text-primary-foreground shadow-lg hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary flex items-center gap-2 group transition-all">
-              Start Building Now
+              立即开始构建
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
             <button className="text-sm font-semibold leading-6 text-foreground flex items-center gap-2 hover:text-primary transition-colors">
-              Watch Demo <Play className="w-4 h-4" />
+              观看演示视频 <Play className="w-4 h-4" />
             </button>
           </div>
         </div>

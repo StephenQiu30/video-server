@@ -106,6 +106,10 @@ class TaskRead(BaseModel):
     expires_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
+    ai_summary: str | None = None
+    ai_mindmap: str | None = None
+    ai_status: str | None = None
+    ai_error: str | None = None
 
 
 class TaskEventRead(BaseModel):
