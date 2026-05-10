@@ -1,24 +1,38 @@
 {
-  "name": "stephen-video-web",
-  "version": "0.1.0",
+  "name": "web",
   "private": true,
-  "description": "Stephen Video SaaS web console",
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "dev": "PORT=3000 max dev --host 127.0.0.1",
-    "build": "max build",
-    "preview": "max preview --host 127.0.0.1",
-    "lint": "max setup && tsc --noEmit"
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@ant-design/icons": "^6.0.0",
-    "@ant-design/pro-components": "^2.8.10",
-    "@umijs/max": "^4.5.2",
-    "antd": "^5.29.1"
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-router-dom": "^7.15.0"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
-  },
-  "engines": {
-    "node": ">=18"
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.12.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "autoprefixer": "^10.5.0",
+    "clsx": "^2.1.1",
+    "eslint": "^10.2.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.5.0",
+    "gsap": "^3.15.0",
+    "lucide-react": "^1.14.0",
+    "postcss": "^8.5.14",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^3.4.19",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.58.2",
+    "vite": "^8.0.10"
   }
 }

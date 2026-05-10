@@ -1,8 +1,5 @@
-# web-download-workspace Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change regenerate-ant-pro-web-scaffold. Update Purpose after archive.
-## Requirements
 ### Requirement: Ant Design Pro scaffold-based web UI
 The web application SHALL migrate away from Ant Design Pro and use a custom Vite-based React architecture with Shadcn UI and Tailwind CSS.
 
@@ -19,4 +16,3 @@ The web application SHALL provide a premium, unified workspace for task manageme
 - **THEN** they see the landing page
 - **WHEN** an authenticated user visits `/` or `/workbench`
 - **THEN** they see the interactive workbench
-
