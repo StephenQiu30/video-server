@@ -1,8 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Video, ArrowRight, Play, Shield, Zap } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const Hero: React.FC = () => {
   return (
@@ -24,15 +23,13 @@ const Hero: React.FC = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4 animate-in fade-in slide-in-from-top-10 duration-700 delay-300">
-            <Link 
-              to="/auth" 
-              className={cn(
-                buttonVariants({ size: "lg" }),
-                "h-14 px-10 text-lg rounded-2xl shadow-lg shadow-primary/20 flex items-center gap-2"
-              )}
+            <Button 
+              size="lg" 
+              className="h-14 px-10 text-lg rounded-2xl shadow-lg shadow-primary/20 flex items-center gap-2"
+              render={(props) => <Link to="/auth" {...props} />}
             >
               立即开始使用 <ArrowRight className="w-5 h-5" />
-            </Link>
+            </Button>
             <Button size="lg" variant="outline" className="h-14 px-10 text-lg rounded-2xl">
               <Play className="w-5 h-5 mr-2" /> 观看演示
             </Button>
