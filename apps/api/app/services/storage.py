@@ -6,15 +6,18 @@ class ObjectStorage:
     def __init__(self) -> None:
         self.settings = get_settings()
 
-    def _client(self):
+    def _client(self, public: bool = False):
         try:
             import boto3
             from botocore.client import Config
         except ModuleNotFoundError as exc:
             raise AppError("storage_unavailable", "对象存储客户端未安装", 503) from exc
+        
+        endpoint = self.settings.s3_public_endpoint_url if public and self.settings.s3_public_endpoint_url else self.settings.s3_endpoint_url
+        
         return boto3.client(
             "s3",
-            endpoint_url=self.settings.s3_endpoint_url,
+            endpoint_url=endpoint,
             aws_access_key_id=self.settings.s3_access_key_id,
             aws_secret_access_key=self.settings.s3_secret_access_key,
             region_name=self.settings.s3_region,
@@ -38,7 +41,7 @@ class ObjectStorage:
         )
 
     def presign_download_url(self, object_key: str) -> str:
-        return self._client().generate_presigned_url(
+        return self._client(public=True).generate_presigned_url(
             "get_object",
             Params={"Bucket": self.settings.s3_bucket, "Key": object_key},
             ExpiresIn=self.settings.presigned_url_ttl_seconds,

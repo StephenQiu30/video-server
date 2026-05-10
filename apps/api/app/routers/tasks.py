@@ -1,9 +1,6 @@
 from datetime import UTC, datetime
 import asyncio
-import hashlib
-import hmac
 import json
-import secrets
 import time
 from typing import Annotated
 from urllib.parse import quote
@@ -181,37 +178,8 @@ def get_download_link(
     cleanup_expired_task_outputs(db)
     task = get_owned_task(db, current_user, task_id)
     _assert_downloadable(task)
-    ttl = get_settings().presigned_url_ttl_seconds
-    expires = int(time.time()) + ttl
-    signature = _sign_download_url(task.id, expires)
-    base_url = request.url_for("download_task_file", task_id=task.id)
-    return DownloadLinkResponse(url=f"{base_url}?expires={expires}&signature={signature}", expires_in_seconds=ttl)
-
-
-@router.get("/{task_id}/download", name="download_task_file")
-def download_task_file(
-    task_id: str,
-    expires: int,
-    signature: str,
-    db: Annotated[Session, Depends(get_db)],
-) -> StreamingResponse:
-    _verify_download_signature(task_id, expires, signature)
-    cleanup_expired_task_outputs(db)
-    task = db.get(DownloadTask, task_id)
-    if not task:
-        raise AppError("not_found", "任务不存在", 404)
-    _assert_downloadable(task)
-    response = ObjectStorage().get_object(task.object_key)
-    body = response["Body"]
-    filename = task.output_filename or task.object_key.rsplit("/", 1)[-1]
-    headers = {"Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}"}
-    if response.get("ContentLength") is not None:
-        headers["Content-Length"] = str(response["ContentLength"])
-    return StreamingResponse(
-        _iter_object_body(body),
-        media_type=response.get("ContentType") or "application/octet-stream",
-        headers=headers,
-    )
+    url = ObjectStorage().presign_download_url(task.object_key)
+    return DownloadLinkResponse(url=url, expires_in_seconds=ttl)
 
 
 @router.get("/{task_id}/pdf")
@@ -239,36 +207,10 @@ def _assert_downloadable(task: DownloadTask) -> None:
         raise AppError("invalid_state", "任务尚未完成，暂不能获取下载链接", 409)
     if not task.object_key:
         raise AppError("retention_expired", "文件不存在或已过期，请重新创建任务", 410)
-    if task.expires_at and _as_utc(task.expires_at) <= datetime.now(UTC):
-        raise AppError("retention_expired", "文件保留时间已过期，请重新创建任务", 410)
-
-
-def _sign_download_url(task_id: str, expires: int) -> str:
-    settings = get_settings()
-    payload = f"{task_id}:{expires}".encode("utf-8")
-    secret = settings.jwt_secret_key.encode("utf-8")
-    return hmac.new(secret, payload, hashlib.sha256).hexdigest()
-
-
-def _verify_download_signature(task_id: str, expires: int, signature: str) -> None:
-    if expires <= int(time.time()):
-        raise AppError("download_link_expired", "下载链接已过期，请重新获取", 403)
-    expected = _sign_download_url(task_id, expires)
-    if not secrets.compare_digest(expected, signature):
-        raise AppError("invalid_signature", "下载链接签名无效，请重新获取", 403)
-
-
-def _iter_object_body(body):
-    try:
-        yield from body.iter_chunks(chunk_size=1024 * 1024)
-    finally:
-        body.close()
-
-
-def _as_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=UTC)
-    return value.astimezone(UTC)
+    if task.expires_at:
+        expires_at = task.expires_at if task.expires_at.tzinfo else task.expires_at.replace(tzinfo=UTC)
+        if expires_at <= datetime.now(UTC):
+            raise AppError("retention_expired", "文件保留时间已过期，请重新创建任务", 410)
 
 
 def _list_user_tasks(db: Session, user_id: int, state: str | None = None, limit: int | None = None) -> list[DownloadTask]:
