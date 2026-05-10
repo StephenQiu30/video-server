@@ -18,8 +18,10 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r apps/api/requirements.txt
-          pip install pytest httpx
+          pip install pytest pytest-asyncio httpx
       - name: Run tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}/apps/api:${{ github.workspace }}/apps/worker:${{ github.workspace }}/packages/shared
         run: |
           pytest apps/api/tests
 

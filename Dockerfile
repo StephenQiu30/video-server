@@ -17,8 +17,8 @@ WORKDIR /app
 # Phase 2: Python API
 # ==========================================
 FROM python-base AS api
-COPY apps/api/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+COPY apps/api/requirements.txt /app/apps/api/requirements.txt
+RUN pip install --no-cache-dir -r /app/apps/api/requirements.txt
 COPY apps/api /app/apps/api
 COPY packages /app/packages
 EXPOSE 8000
@@ -28,8 +28,9 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 # Phase 3: Python Worker
 # ==========================================
 FROM python-base AS worker
-COPY apps/worker/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+COPY apps/api/requirements.txt /app/apps/api/requirements.txt
+COPY apps/worker/requirements.txt /app/apps/worker/requirements.txt
+RUN pip install --no-cache-dir -r /app/apps/worker/requirements.txt
 COPY apps/worker /app/apps/worker
 COPY packages /app/packages
 CMD ["python", "-m", "worker.main"]
@@ -42,7 +43,6 @@ WORKDIR /app
 COPY apps/web/package*.json ./apps/web/
 RUN cd apps/web && npm ci
 COPY apps/web ./apps/web
-# Build web (assuming Vite)
 RUN cd apps/web && npm run build
 
 # ==========================================
