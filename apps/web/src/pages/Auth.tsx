@@ -14,80 +14,95 @@ const Auth: React.FC = () => {
     window.location.href = `${siteConfig.apiBaseUrl}/auth/github/authorize`;
   };
 
-  useEffect(() => {
-    const code = searchParams.get("code");
-    if (code) {
-      handleCallback(code);
-    }
-  }, [searchParams]);
-
-  const handleCallback = async (code: string) => {
+  const handleCallback = React.useCallback(async (code: string) => {
     setStatus("loading");
     try {
       const response = await api.get(`/auth/github/callback?code=${code}`);
       const { access_token } = response.data;
       localStorage.setItem("auth_token", access_token);
       navigate("/workbench");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Auth failed:", err);
       setStatus("error");
-      setErrorMsg(err.response?.data?.detail || "认证失败，请稍后重试");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setErrorMsg((err as any).response?.data?.detail || "认证失败，请稍后重试");
     }
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    const code = searchParams.get("code");
+    if (code) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      handleCallback(code);
+    }
+  }, [searchParams, handleCallback]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4">
-      <div className="max-w-md w-full space-y-8 p-10 rounded-3xl bg-card border border-border shadow-2xl relative overflow-hidden">
-        {/* Decoration */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-primary" />
-        
-        <div className="text-center">
-          <Link to="/" className="inline-flex items-center justify-center p-3 bg-primary rounded-2xl mb-6 shadow-lg shadow-primary/20">
-            <Video className="w-8 h-8 text-primary-foreground" />
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 relative overflow-hidden">
+      {/* Decorative Background */}
+      <div className="absolute top-0 left-0 w-full h-full -z-10 opacity-30">
+        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[150px] animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-[150px] animate-pulse delay-1000" />
+      </div>
+
+      <div className="max-w-md w-full space-y-10 p-12 rounded-[3rem] glass-card relative overflow-hidden animate-in fade-in zoom-in duration-700">
+        <div className="text-center space-y-6">
+          <Link to="/" className="inline-flex items-center justify-center p-5 bg-primary rounded-[2rem] shadow-2xl shadow-primary/30 animate-float">
+            <Video className="w-10 h-10 text-primary-foreground" />
           </Link>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">
-            {status === "loading" ? "正在认证..." : "欢迎回来"}
-          </h2>
-          <p className="text-muted-foreground mt-3 text-sm">
-            {status === "loading" 
-              ? "请稍候，我们正在与 GitHub 建立安全连接" 
-              : "使用 GitHub 账号一键开启您的创作之旅"}
-          </p>
+          <div className="space-y-2">
+            <h2 className="text-4xl font-black tracking-tight text-foreground">
+              {status === "loading" ? "正在同步..." : "欢迎回归"}
+            </h2>
+            <p className="text-muted-foreground text-sm font-medium leading-relaxed">
+              {status === "loading" 
+                ? "请稍候，我们正在通过加密通道与 GitHub 建立连接" 
+                : "一键开启您的智能视频处理之旅"}
+            </p>
+          </div>
         </div>
 
-        <div className="pt-4">
+        <div className="space-y-8">
           {status === "error" && (
-            <div className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 shrink-0" />
-              <p>{errorMsg}</p>
+            <div className="p-5 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-start gap-4 animate-in slide-in-from-top-2 duration-300">
+              <AlertCircle className="w-6 h-6 shrink-0" />
+              <p className="font-semibold leading-relaxed">{errorMsg}</p>
             </div>
           )}
 
           <button 
             onClick={handleGitHubLogin}
             disabled={status === "loading"}
-            className="w-full flex items-center justify-center gap-3 py-4 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-2xl font-bold text-lg hover:opacity-90 transition-all shadow-xl disabled:opacity-50 group"
+            className="w-full flex items-center justify-center gap-4 py-5 bg-slate-950 dark:bg-white dark:text-slate-950 text-white rounded-[1.5rem] font-black text-lg hover:shadow-[0_20px_50px_rgba(0,0,0,0.2)] hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50 group relative overflow-hidden"
           >
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] transition-transform" />
             {status === "loading" ? (
-              <Loader2 className="w-6 h-6 animate-spin" />
+              <Loader2 className="w-7 h-7 animate-spin" />
             ) : (
               <>
-                <Github className="w-6 h-6" />
+                <Github className="w-7 h-7" />
                 使用 GitHub 登录
               </>
             )}
           </button>
           
-          <p className="text-center text-[11px] text-muted-foreground mt-8 leading-relaxed uppercase tracking-widest opacity-60">
-            由 GitHub OAuth 2.0 提供安全认证支持
-          </p>
+          <div className="space-y-4">
+             <div className="flex items-center gap-4 py-4 px-2">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">Secure Access</span>
+                <div className="h-px flex-1 bg-border" />
+             </div>
+             
+             <div className="text-center">
+                <Link to="/" className="text-xs font-bold text-muted-foreground hover:text-primary transition-all flex items-center justify-center gap-2 group">
+                   返回控制台首页
+                   <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                </Link>
+             </div>
+          </div>
         </div>
 
-        <div className="pt-6 text-center">
-           <Link to="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-              返回首页
-           </Link>
-        </div>
+        <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-blue-400 to-primary animate-[shimmer_3s_linear_infinite]" />
       </div>
     </div>
   );

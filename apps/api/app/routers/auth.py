@@ -68,7 +68,7 @@ async def github_callback(
 
         # 2. Get user info
         user_res = await client.get(
-            "https://github.com/user",
+            "https://api.github.com/user",
             headers={
                 "Authorization": f"token {gh_access_token}",
                 "Accept": "application/json",
@@ -89,7 +89,7 @@ async def github_callback(
         email = gh_user.get("email")
         if not email:
             emails_res = await client.get(
-                "https://github.com/user/emails",
+                "https://api.github.com/user/emails",
                 headers={
                     "Authorization": f"token {gh_access_token}",
                     "Accept": "application/json",

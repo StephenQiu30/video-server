@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { gsap } from "gsap";
-import { ArrowRight, Play } from "lucide-react";
+import { ArrowRight, Play, Sparkles } from "lucide-react";
 
 const Hero: React.FC = () => {
   const heroRef = useRef<HTMLDivElement>(null);
@@ -31,35 +31,47 @@ const Hero: React.FC = () => {
   }, []);
 
   return (
-    <div ref={heroRef} className="relative isolate overflow-hidden bg-background pt-14">
-      <div className="mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:px-8">
-        <div className="mx-auto max-w-2xl text-center">
+    <div ref={heroRef} className="relative isolate overflow-hidden bg-background pt-24 pb-16 sm:pt-32 sm:pb-24">
+      {/* Dynamic Background */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] animate-pulse delay-700" />
+      </div>
+
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <div className="mx-auto max-w-4xl text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold mb-8 animate-in fade-in slide-in-from-bottom-2 duration-1000">
+            <Sparkles className="w-3 h-3" />
+            <span>AI 驱动的下一代下载器</span>
+          </div>
+          
           <h1
             ref={titleRef}
-            className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl text-primary"
+            className="text-5xl font-extrabold tracking-tight sm:text-7xl lg:text-8xl mb-8 leading-[1.1]"
           >
-            开启前所未有的视频下载体验
+            开启前所未有的 <br />
+            <span className="text-gradient">视频创作体验</span>
           </h1>
-          <p ref={subRef} className="mt-6 text-lg leading-8 text-muted-foreground">
-            终极 SaaS 平台，提供极速视频解析与下载功能。 
-            支持最高 4K 分辨率选择，通过 AI 智能分析内容，助您轻松管理媒体库。
+          
+          <p ref={subRef} className="mt-6 text-xl leading-relaxed text-muted-foreground max-w-2xl mx-auto">
+            终极智能平台，提供极速视频解析与 4K 高端下载。 
+            融合 AI 智能分析与思维导图，让您的媒体库管理步入智能时代。
           </p>
-          <div ref={btnRef} className="mt-10 flex items-center justify-center gap-x-6">
-            <button className="rounded-full bg-primary px-8 py-4 text-sm font-semibold text-primary-foreground shadow-lg hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary flex items-center gap-2 group transition-all">
-              立即开始构建
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+
+          <div ref={btnRef} className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-6">
+            <button className="w-full sm:w-auto rounded-2xl bg-primary px-10 py-5 text-base font-bold text-primary-foreground shadow-2xl shadow-primary/40 hover:bg-primary/90 hover:-translate-y-1 active:scale-95 transition-all flex items-center justify-center gap-3 group">
+              立即免费开始
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
-            <button className="text-sm font-semibold leading-6 text-foreground flex items-center gap-2 hover:text-primary transition-colors">
-              观看演示视频 <Play className="w-4 h-4" />
+            <button className="w-full sm:w-auto rounded-2xl px-10 py-5 text-base font-bold border border-border bg-background/50 backdrop-blur-sm hover:bg-muted transition-all flex items-center justify-center gap-3">
+              观看演示
+              <Play className="w-5 h-5 fill-current" />
             </button>
           </div>
         </div>
       </div>
       
-      {/* Decorative background element */}
-      <div className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80" aria-hidden="true">
-        <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-primary opacity-10 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
-      </div>
+      {/* Decorative lines or shapes could go here */}
     </div>
   );
 };
