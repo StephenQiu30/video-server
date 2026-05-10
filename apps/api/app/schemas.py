@@ -9,6 +9,8 @@ class UserRead(BaseModel):
 
     id: int
     email: EmailStr
+    github_id: str | None = None
+    avatar_url: str | None = None
     display_name: str | None = None
     is_active: bool
     is_admin: bool

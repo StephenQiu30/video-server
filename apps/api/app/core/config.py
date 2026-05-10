@@ -58,6 +58,10 @@ class Settings(BaseSettings):
     transcription_api_key: str | None = None
     transcription_api_base_url: str = "https://api.groq.com/openai/v1"
     transcription_model_name: str = "whisper-large-v3"
+    
+    # GitHub OAuth
+    github_client_id: str | None = None
+    github_client_secret: str | None = None
 
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

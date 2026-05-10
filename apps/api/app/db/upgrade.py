@@ -50,6 +50,15 @@ UPGRADES = [
     from retry_chain
     where task.id = retry_chain.id
     """,
+    "alter table if exists download_tasks add column if not exists ai_summary text",
+    "alter table if exists download_tasks add column if not exists ai_mindmap text",
+    "alter table if exists download_tasks add column if not exists ai_status varchar(32)",
+    "alter table if exists download_tasks add column if not exists ai_error text",
+    "create index if not exists ix_download_tasks_ai_status on download_tasks (ai_status)",
+    "alter table if exists users add column if not exists github_id varchar(100)",
+    "alter table if exists users add column if not exists avatar_url varchar(500)",
+    "alter table if exists users alter column password_hash drop not null",
+    "create unique index if not exists ix_users_github_id on users (github_id)",
 ]
 
 
