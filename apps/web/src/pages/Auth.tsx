@@ -39,7 +39,7 @@ const Auth: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4">
       <div className="max-w-md w-full space-y-8 p-10 rounded-3xl bg-card border border-border shadow-2xl relative overflow-hidden">
         {/* Decoration */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-blue-600" />
+        <div className="absolute top-0 left-0 w-full h-1 bg-primary" />
         
         <div className="text-center">
           <Link to="/" className="inline-flex items-center justify-center p-3 bg-primary rounded-2xl mb-6 shadow-lg shadow-primary/20">
@@ -79,7 +79,7 @@ const Auth: React.FC = () => {
           </button>
           
           <p className="text-center text-[11px] text-muted-foreground mt-8 leading-relaxed uppercase tracking-widest opacity-60">
-            Securely powered by GitHub OAuth 2.0
+            由 GitHub OAuth 2.0 提供安全认证支持
           </p>
         </div>
 

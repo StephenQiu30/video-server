@@ -1,4 +1,6 @@
 import httpx
+import logging
+import json
 from datetime import timedelta
 from typing import Annotated
 
@@ -14,6 +16,8 @@ from app.db.session import get_db
 from app.deps import get_current_user
 from app.models import User
 from app.schemas import Token, UserCreate, UserRead
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -50,19 +54,35 @@ async def github_callback(
                 "client_secret": settings.github_client_secret,
                 "code": code,
             },
-            headers={"Accept": "application/json"},
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "StephenVideo-API"
+            },
         )
+        token_res.raise_for_status()
         token_data = token_res.json()
         gh_access_token = token_data.get("access_token")
         if not gh_access_token:
+            logger.error(f"GitHub token exchange failed: {token_data}")
             raise HTTPException(status_code=400, detail="Failed to get GitHub access token")
 
         # 2. Get user info
         user_res = await client.get(
             "https://github.com/user",
-            headers={"Authorization": f"token {gh_access_token}"},
+            headers={
+                "Authorization": f"token {gh_access_token}",
+                "Accept": "application/json",
+                "User-Agent": "StephenVideo-API"
+            },
         )
-        gh_user = user_res.json()
+        try:
+            user_res.raise_for_status()
+            gh_user = user_res.json()
+        except (httpx.HTTPStatusError, json.JSONDecodeError) as e:
+            logger.error(f"Failed to fetch GitHub user profile: {str(e)}")
+            logger.error(f"GitHub Response: {user_res.text[:500]}")
+            raise HTTPException(status_code=400, detail="Failed to retrieve user info from GitHub")
+            
         gh_id = str(gh_user.get("id"))
         
         # 3. Get primary email if not public
@@ -70,11 +90,20 @@ async def github_callback(
         if not email:
             emails_res = await client.get(
                 "https://github.com/user/emails",
-                headers={"Authorization": f"token {gh_access_token}"},
+                headers={
+                    "Authorization": f"token {gh_access_token}",
+                    "Accept": "application/json",
+                    "User-Agent": "StephenVideo-API"
+                },
             )
-            emails = emails_res.json()
-            primary_email = next((e["email"] for e in emails if e["primary"]), emails[0]["email"])
-            email = primary_email
+            try:
+                emails_res.raise_for_status()
+                emails = emails_res.json()
+                primary_email = next((e["email"] for e in emails if e["primary"]), emails[0]["email"])
+                email = primary_email
+            except (httpx.HTTPStatusError, json.JSONDecodeError, IndexError) as e:
+                logger.error(f"Failed to fetch GitHub user emails: {str(e)}")
+                raise HTTPException(status_code=400, detail="Failed to retrieve email from GitHub")
 
     # 4. Quiet registration / Login
     user = db.scalar(select(User).where(User.github_id == gh_id))

@@ -36,7 +36,7 @@ const Hero: React.FC = () => {
         <div className="mx-auto max-w-2xl text-center">
           <h1
             ref={titleRef}
-            className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600"
+            className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl text-primary"
           >
             开启前所未有的视频下载体验
           </h1>
@@ -58,7 +58,7 @@ const Hero: React.FC = () => {
       
       {/* Decorative background element */}
       <div className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80" aria-hidden="true">
-        <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
+        <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-primary opacity-10 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
       </div>
     </div>
   );

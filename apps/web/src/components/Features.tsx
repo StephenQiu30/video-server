@@ -7,26 +7,26 @@ gsap.registerPlugin(ScrollTrigger);
 
 const features = [
   {
-    name: "Lightning Fast Parsing",
-    description: "Our distributed engine extracts high-quality video links in milliseconds.",
+    name: "极速解析引擎",
+    description: "我们的分布式引擎可在毫秒内提取高质量视频链接。",
     icon: Zap,
     color: "text-yellow-500",
   },
   {
-    name: "4K Resolution Support",
-    description: "Choose your preferred quality manually, from mobile-friendly to crystal clear 4K.",
+    name: "4K 分辨率支持",
+    description: "手动选择您喜欢的质量，从移动设备适配到清晰的 4K。",
     icon: Layout,
     color: "text-blue-500",
   },
   {
-    name: "AI Analysis (Beta)",
-    description: "Get automated summaries, mind maps, and sentiment analysis for any video.",
+    name: "AI 智能分析 (测试版)",
+    description: "为任何视频获取自动总结、思维导图和情感分析。",
     icon: Cpu,
     color: "text-purple-500",
   },
   {
-    name: "Enterprise Security",
-    description: "Your downloads and data are protected with bank-grade encryption.",
+    name: "企业级安全",
+    description: "您的下载和数据受到银行级加密保护。",
     icon: Shield,
     color: "text-green-500",
   },
@@ -55,15 +55,15 @@ const Features: React.FC = () => {
   }, []);
 
   return (
-    <div className="bg-background py-24 sm:py-32" ref={containerRef}>
+    <div className="bg-background py-24 sm:py-32" id="features" ref={containerRef}>
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl lg:text-center">
-          <h2 className="text-base font-semibold leading-7 text-primary">Everything you need</h2>
+          <h2 className="text-base font-semibold leading-7 text-primary">您所需的一切</h2>
           <p className="mt-2 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Designed for Creators and Developers
+            专为创作者和开发者设计
           </p>
           <p className="mt-6 text-lg leading-8 text-muted-foreground">
-            A comprehensive suite of tools to manage your video workspace with unparalleled speed and precision.
+            一套全面的工具集，以无与伦比的速度和精度管理您的视频工作区。
           </p>
         </div>
         <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">

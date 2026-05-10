@@ -206,7 +206,7 @@ const Workbench: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-6 rounded-2xl bg-gradient-to-br from-primary to-blue-600 text-white shadow-lg relative overflow-hidden group">
+            <div className="p-6 rounded-2xl bg-primary text-white shadow-lg relative overflow-hidden group">
                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-125 transition-transform duration-700">
                   <Sparkles className="w-24 h-24" />
                </div>
