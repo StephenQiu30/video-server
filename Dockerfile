@@ -21,6 +21,8 @@ COPY apps/api/requirements.txt /app/apps/api/requirements.txt
 RUN pip install --no-cache-dir -r /app/apps/api/requirements.txt
 COPY apps/api /app/apps/api
 COPY packages /app/packages
+# Copy built frontend from web-builder
+COPY --from=web-builder /app/apps/web/dist /app/apps/api/static
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
@@ -45,18 +47,3 @@ RUN cd apps/web && npm ci
 COPY apps/web ./apps/web
 RUN cd apps/web && npm run build
 
-# ==========================================
-# Phase 5: Frontend Server (Nginx)
-# ==========================================
-FROM nginx:1.27-alpine AS web
-COPY --from=web-builder /app/apps/web/dist /usr/share/nginx/html
-RUN printf 'server { \
-    listen 80; \
-    server_name _; \
-    root /usr/share/nginx/html; \
-    index index.html; \
-    location / { try_files $uri $uri/ /index.html; } \
-    location = /health { access_log off; add_header Content-Type text/plain; return 200 "ok\\n"; } \
-}' > /etc/nginx/conf.d/default.conf
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]

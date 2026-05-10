@@ -16,6 +16,7 @@ services:
       - "host.docker.internal:host-gateway"
     ports:
       - "8000:8000"
+      - "3000:8000"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)\""]
@@ -37,19 +38,3 @@ services:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
 
-  web:
-    build:
-      context: .
-      target: web
-    container_name: stephen-video-web
-    ports:
-      - "3000:80"
-    depends_on:
-      api:
-        condition: service_started
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health >/dev/null"]
-      interval: 10s
-      timeout: 3s
-      retries: 5

@@ -20,8 +20,9 @@ The system SHALL support a local development runtime that can reuse existing Pyt
 - **AND** the application code can be run directly on the host machine for development
 
 #### Scenario: Full stack Docker environment
-- **WHEN** a developer runs `docker compose -f docker-compose.prod.yml up`
-- **THEN** the entire application stack (API, Worker, Web) and its infrastructure are started using production-ready Docker images
+- **WHEN** a developer runs `docker compose up`
+- **THEN** the application stack (API and Worker) and its infrastructure are started
+- **AND** the API container serves both the backend API and the frontend UI
 
 ### Requirement: Environment configuration template
 The system SHALL provide separate environment templates for local development, Docker deployment, and production deployment.
