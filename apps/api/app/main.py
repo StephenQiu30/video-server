@@ -3,15 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.errors import AppError, app_error_handler
+from app.core.logging import setup_logging
 from app.db.base import Base
 from app.db.session import engine
 from app.db.upgrade import run_database_upgrades
 from app import models  # noqa: F401
-from app.routers import health, parse, tasks
+from app.routers import admin, auth, health, metrics, parse, tasks
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    setup_logging(settings.app_env)
     app = FastAPI(title=settings.app_name)
     app.add_exception_handler(AppError, app_error_handler)
     app.add_middleware(
@@ -22,8 +24,11 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(health.router)
+    app.include_router(auth.router)
     app.include_router(parse.router)
     app.include_router(tasks.router)
+    app.include_router(admin.router)
+    app.include_router(metrics.router)
 
     @app.on_event("startup")
     def create_tables() -> None:

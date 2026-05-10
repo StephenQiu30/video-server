@@ -20,6 +20,33 @@ class UserRead(BaseModel):
     created_at: datetime
 
 
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=100)
+    display_name: str | None = Field(default=None, max_length=100)
+    invite_code: str | None = None
+
+
+class UserUpdate(BaseModel):
+    display_name: str | None = Field(default=None, max_length=100)
+    password: str | None = Field(default=None, min_length=8, max_length=100)
+    daily_task_quota: int | None = None
+    concurrent_task_quota: int | None = None
+    max_file_size_bytes: int | None = None
+    file_retention_hours: int | None = None
+    storage_quota_bytes: int | None = None
+    is_active: bool | None = None
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenPayload(BaseModel):
+    sub: str | None = None
+
+
 class ParseRequest(BaseModel):
     url: str = Field(min_length=1, max_length=2048)
 

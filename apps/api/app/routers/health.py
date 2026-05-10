@@ -57,10 +57,18 @@ def _check_redis() -> dict[str, str | bool]:
 
 def _check_queue() -> dict[str, str | int | bool]:
     try:
+        from rq import Worker
         settings = get_settings()
         redis = Redis.from_url(settings.redis_url, socket_connect_timeout=2, socket_timeout=2)
         queue = Queue(settings.rq_queue_name, connection=redis)
-        return {"ok": True, "name": settings.rq_queue_name, "queued_jobs": len(queue)}
+        workers = Worker.all(connection=redis)
+        worker_count = len([w for w in workers if settings.rq_queue_name in w.queue_names()])
+        return {
+            "ok": worker_count > 0,
+            "name": settings.rq_queue_name,
+            "queued_jobs": len(queue),
+            "workers": worker_count,
+        }
     except Exception as exc:
         return {"ok": False, "message": str(exc)[:200]}
 

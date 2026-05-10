@@ -1,5 +1,8 @@
-## ADDED Requirements
+# saas-beta-access-control Specification
 
+## Purpose
+TBD - created by archiving change production-saas-readiness. Update Purpose after archive.
+## Requirements
 ### Requirement: Beta registration control
 The system SHALL support small-scale beta access by allowing registration to be disabled or restricted through invitation control.
 
@@ -27,3 +30,4 @@ The system SHALL continue to prevent users from viewing, canceling, or downloadi
 #### Scenario: Cross-user task access denied
 - **WHEN** a user attempts to access another user's task or download link
 - **THEN** the system denies the request
+

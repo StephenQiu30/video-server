@@ -1,5 +1,8 @@
-## ADDED Requirements
+# production-deployment-baseline Specification
 
+## Purpose
+TBD - created by archiving change production-saas-readiness. Update Purpose after archive.
+## Requirements
 ### Requirement: Single-machine Compose deployment
 The system SHALL provide a single-machine Docker Compose deployment baseline for the beta SaaS environment.
 
@@ -27,3 +30,4 @@ The system SHALL document backup, restore, persistence, and cleanup expectations
 #### Scenario: Operator follows recovery documentation
 - **WHEN** an operator needs to restore data or clean expired files
 - **THEN** the documentation provides the required commands or operational steps
+

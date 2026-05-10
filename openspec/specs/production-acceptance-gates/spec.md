@@ -1,5 +1,8 @@
-## ADDED Requirements
+# production-acceptance-gates Specification
 
+## Purpose
+TBD - created by archiving change production-saas-readiness. Update Purpose after archive.
+## Requirements
 ### Requirement: Production API acceptance
 The system SHALL define API acceptance gates for beta release.
 
@@ -27,3 +30,4 @@ The system SHALL define negative acceptance gates for prohibited capabilities.
 #### Scenario: Prohibited capability rejected
 - **WHEN** DRM, paywall, member-only, private-link, Cookie-hosting, or platform-bypass scenarios are evaluated
 - **THEN** the system does not provide bypass capability and records the expected rejection or unsupported result
+
