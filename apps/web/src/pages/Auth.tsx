@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Video, Code as Github, Loader2, AlertCircle } from "lucide-react";
+import { Video, Code as Github, Loader2, AlertCircle, ArrowRight } from "lucide-react";
 import { siteConfig } from "../config/site";
 import { api } from "../lib/api";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Auth: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -30,80 +33,81 @@ const Auth: React.FC = () => {
   }, [navigate]);
 
   useEffect(() => {
+    // 1. Check if we have a token from a direct backend redirect
+    const token = searchParams.get("token");
+    if (token) {
+      localStorage.setItem("auth_token", token);
+      navigate("/workbench");
+      return;
+    }
+
+    // 2. Check if we have a code and need to exchange it
     const code = searchParams.get("code");
     if (code) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       handleCallback(code);
     }
-  }, [searchParams, handleCallback]);
+  }, [searchParams, handleCallback, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 relative overflow-hidden">
-      {/* Decorative Background */}
-      <div className="absolute top-0 left-0 w-full h-full -z-10 opacity-30">
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[150px] animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-[150px] animate-pulse delay-1000" />
-      </div>
-
-      <div className="max-w-md w-full space-y-10 p-12 rounded-[3rem] glass-card relative overflow-hidden animate-in fade-in zoom-in duration-700">
-        <div className="text-center space-y-6">
-          <Link to="/" className="inline-flex items-center justify-center p-5 bg-primary rounded-[2rem] shadow-2xl shadow-primary/30 animate-float">
-            <Video className="w-10 h-10 text-primary-foreground" />
-          </Link>
-          <div className="space-y-2">
-            <h2 className="text-4xl font-black tracking-tight text-foreground">
-              {status === "loading" ? "正在同步..." : "欢迎回归"}
-            </h2>
-            <p className="text-muted-foreground text-sm font-medium leading-relaxed">
-              {status === "loading" 
-                ? "请稍候，我们正在通过加密通道与 GitHub 建立连接" 
-                : "一键开启您的智能视频处理之旅"}
-            </p>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4">
+      <Card className="max-w-md w-full border-none shadow-2xl rounded-3xl p-6 md:p-8 animate-in fade-in zoom-in duration-500">
+        <CardHeader className="text-center space-y-4">
+          <div className="inline-flex items-center justify-center p-4 bg-primary rounded-2xl mx-auto shadow-lg shadow-primary/20">
+            <Video className="w-8 h-8 text-primary-foreground" />
           </div>
-        </div>
+          <CardTitle className="text-3xl font-black tracking-tight">
+            {status === "loading" ? "身份验证中..." : "欢迎回归"}
+          </CardTitle>
+          <CardDescription className="text-base">
+            {status === "loading" 
+              ? "请稍候，我们正在与 GitHub 建立安全连接" 
+              : "一键开启您的智能视频处理之旅"}
+          </CardDescription>
+        </CardHeader>
 
-        <div className="space-y-8">
+        <CardContent className="space-y-6">
           {status === "error" && (
-            <div className="p-5 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-start gap-4 animate-in slide-in-from-top-2 duration-300">
-              <AlertCircle className="w-6 h-6 shrink-0" />
-              <p className="font-semibold leading-relaxed">{errorMsg}</p>
-            </div>
+            <Alert variant="destructive" className="rounded-2xl">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="font-medium">{errorMsg}</AlertDescription>
+            </Alert>
           )}
 
-          <button 
+          <Button 
             onClick={handleGitHubLogin}
             disabled={status === "loading"}
-            className="w-full flex items-center justify-center gap-4 py-5 bg-slate-950 dark:bg-white dark:text-slate-950 text-white rounded-[1.5rem] font-black text-lg hover:shadow-[0_20px_50px_rgba(0,0,0,0.2)] hover:-translate-y-1 active:scale-95 transition-all disabled:opacity-50 group relative overflow-hidden"
+            className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] transition-transform" />
             {status === "loading" ? (
-              <Loader2 className="w-7 h-7 animate-spin" />
+              <Loader2 className="w-6 h-6 animate-spin" />
             ) : (
               <>
-                <Github className="w-7 h-7" />
-                使用 GitHub 登录
+                <Github className="w-6 h-6 mr-3" />
+                使用 GitHub 账号登录
               </>
             )}
-          </button>
-          
-          <div className="space-y-4">
-             <div className="flex items-center gap-4 py-4 px-2">
-                <div className="h-px flex-1 bg-border" />
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-50">Secure Access</span>
-                <div className="h-px flex-1 bg-border" />
-             </div>
-             
-             <div className="text-center">
-                <Link to="/" className="text-xs font-bold text-muted-foreground hover:text-primary transition-all flex items-center justify-center gap-2 group">
-                   返回控制台首页
-                   <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-                </Link>
-             </div>
-          </div>
-        </div>
+          </Button>
 
-        <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-blue-400 to-primary animate-[shimmer_3s_linear_infinite]" />
-      </div>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase tracking-widest text-muted-foreground">
+              <span className="bg-card px-2">Secure Access</span>
+            </div>
+          </div>
+        </CardContent>
+
+        <CardFooter className="flex flex-col gap-4">
+          <p className="text-center text-xs text-muted-foreground opacity-60">
+            由 GitHub OAuth 2.0 提供安全认证支持
+          </p>
+          <Link to="/" className="text-sm font-bold text-primary hover:underline flex items-center justify-center gap-2">
+            返回首页 <ArrowRight className="w-4 h-4" />
+          </Link>
+        </CardFooter>
+      </Card>
     </div>
   );
 };

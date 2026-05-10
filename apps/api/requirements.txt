@@ -13,3 +13,6 @@ boto3>=1.35,<2
 yt-dlp>=2025.1.0
 pytest>=8,<9
 httpx>=0.28,<1
+fpdf2>=2.7,<3
+markdown>=3.7,<4
+beautifulsoup4>=4.12,<5

@@ -8,7 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app/apps/api:/app/apps/worker:/app/packages/shared
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg ca-certificates \
+    ffmpeg ca-certificates fonts-wqy-microhei \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -34,6 +34,7 @@ FROM python-base AS worker
 COPY apps/api/requirements.txt /app/apps/api/requirements.txt
 COPY apps/worker/requirements.txt /app/apps/worker/requirements.txt
 RUN pip install --no-cache-dir -r /app/apps/worker/requirements.txt
+COPY apps/api /app/apps/api
 COPY apps/worker /app/apps/worker
 COPY packages /app/packages
 CMD ["python", "-m", "worker.main"]

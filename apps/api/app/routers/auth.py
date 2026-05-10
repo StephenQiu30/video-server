@@ -134,7 +134,11 @@ async def github_callback(
     # 5. Issue our own JWT
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(user.id, expires_delta=access_token_expires)
-    return {"access_token": access_token, "token_type": "bearer"}
+    
+    # Redirect back to frontend with the token
+    # We use a query parameter 'token' which the frontend will look for
+    redirect_url = f"{settings.frontend_url}/auth?token={access_token}"
+    return RedirectResponse(url=redirect_url)
 
 
 @router.get("/me", response_model=UserRead)

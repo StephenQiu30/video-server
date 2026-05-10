@@ -1,0 +1,21 @@
+# Tasks: Finalize Features
+
+- [ ] Backend: Update dependencies
+    - [ ] Add `fpdf2` and `markdown` to `apps/api/requirements.txt`
+- [ ] Backend: Implement PDF Service
+    - [ ] Create `apps/api/app/services/pdf.py`
+    - [ ] Add PDF download route in `apps/api/app/routers/tasks.py`
+- [ ] Frontend: Implement SSE Streaming
+    - [ ] Update `apps/web/src/pages/Workbench.tsx` to use SSE instead of polling
+- [ ] Frontend: Add Download Functionality
+    - [ ] Add download button to task list items
+    - [ ] Connect download button to backend signed URL endpoint
+- [ ] Frontend: Add PDF Export
+    - [ ] Connect "导出 PDF" button in modal to backend PDF endpoint
+- [ ] Documentation & Cleanup
+    - [ ] Update `README.md`
+    - [ ] Update `docs/prd/` and `docs/design/`
+- [ ] Final Verification
+    - [ ] Test end-to-end flow: Download -> AI -> SSE -> PDF
+- [ ] Submission
+    - [ ] Git commit with Chinese message

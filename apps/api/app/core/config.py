@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     app_env: str = "local"
     api_host: str = "127.0.0.1"
     api_port: int = 8000
+    frontend_url: str = "http://localhost:3000"
     cors_origins: str = "http://localhost:3000,http://localhost:8000"
 
     database_url: str = "postgresql+psycopg://video:video@127.0.0.1:5432/video_downloader"

@@ -8,7 +8,7 @@ import time
 from typing import Annotated
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import StreamingResponse
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
@@ -21,6 +21,7 @@ from app.models import DownloadTask, User
 from app.schemas import DownloadLinkResponse, TaskCreate, TaskEventRead, TaskRead
 from app.services.queue import enqueue_download_task
 from app.services.storage import ObjectStorage
+from app.services.pdf import PDFService
 from app.services.tasks import (
     add_task_event,
     annotate_latest_attempts,
@@ -209,6 +210,26 @@ def download_task_file(
     return StreamingResponse(
         _iter_object_body(body),
         media_type=response.get("ContentType") or "application/octet-stream",
+        headers=headers,
+    )
+
+
+@router.get("/{task_id}/pdf")
+def export_task_pdf(
+    task_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> Response:
+    task = get_owned_task(db, current_user, task_id)
+    if task.state != TaskState.SUCCEEDED.value:
+        raise AppError("invalid_state", "任务尚未完成，无法导出报告", 409)
+    
+    pdf_content = PDFService().generate_task_report(task)
+    filename = f"report_{task.id[:8]}.pdf"
+    headers = {"Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}"}
+    return Response(
+        content=pdf_content,
+        media_type="application/pdf",
         headers=headers,
     )
 
