@@ -162,7 +162,7 @@ const Workbench: React.FC = () => {
                   <div className="pt-8 border-t border-slate-100 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="flex flex-col md:flex-row gap-8">
                       <div className="w-full md:w-56 aspect-video rounded-3xl bg-slate-100 overflow-hidden relative shadow-lg">
-                        <img src={parseResult.cover_url} alt="Cover" className="w-full h-full object-cover" />
+                        <img src={parseResult.cover_url} alt="Cover" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                           <Play className="w-8 h-8 text-white fill-current" />
                         </div>

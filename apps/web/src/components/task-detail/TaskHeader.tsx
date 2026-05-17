@@ -31,6 +31,7 @@ export const TaskHeader: React.FC<TaskHeaderProps> = ({ task, onDownloadVideo })
             <img 
               src={task.cover_url} 
               alt="Cover" 
+              referrerPolicy="no-referrer"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
             />
           ) : (
