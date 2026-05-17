@@ -17,7 +17,7 @@ def setup_env(monkeypatch):
     yield
     get_settings.cache_clear()
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_ai_summary_generation():
     service = AIService()
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
@@ -32,7 +32,7 @@ async def test_ai_summary_generation():
         summary = await service.summarize_transcript("Test Transcript")
         assert summary == "Test Summary"
         
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_mindmap_generation():
     service = AIService()
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
@@ -47,7 +47,7 @@ async def test_mindmap_generation():
         assert "mindmap" in mindmap
         assert "```" not in mindmap
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_transcription_failure():
     service = TranscriptionService()
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:

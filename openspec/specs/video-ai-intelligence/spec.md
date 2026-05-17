@@ -2,9 +2,7 @@
 
 ## Purpose
 Provide high-level content analysis for downloaded videos, including automated summaries and visual mindmaps, to enhance user productivity and content discoverability.
-
 ## Requirements
-
 ### Requirement: AI Content Analysis
 The system SHALL provide automated and manual analysis of video content using LLM and transcription services.
 
@@ -29,18 +27,16 @@ The system SHALL provide automated and manual analysis of video content using LL
 - **BUT** SHOULD have an `ai_error` field populated
 - **AND** the UI SHOULD show a "Retry AI Analysis" button
 
-### Requirement: Infrastructure Support
-#### Backend
-- `DownloadTask` model must include:
-    - `ai_summary`: text (Markdown)
-    - `ai_mindmap`: text (Mermaid)
-    - `ai_status`: enum (pending, processing, completed, failed)
-- AI Service must support:
-    - Audio extraction using `ffmpeg`.
-    - Transcription via External API (Groq/Whisper).
-    - Summarization via DeepSeek.
+### Requirement: PDF Report Generation
+The system SHALL support exporting the generated AI content analysis (summary and key metadata) to a professional PDF file using Unicode/Chinese character support.
 
-#### Frontend
-- Workbench UI must display a dedicated "AI Results" modal/panel for each task.
-- Support for rendering Markdown (for summaries).
-- Support for rendering Mind Maps (using Mermaid).
+#### Scenario: PDF report generated successfully
+- **WHEN** the user requests a PDF report download for a completed task
+- **THEN** the system generates and returns a PDF file containing the task title, source URL, and formatted AI summary
+
+## Infrastructure Support
+- The `DownloadTask` model SHALL include the `ai_summary` (Markdown text), `ai_mindmap` (Mermaid text), and `ai_status` fields.
+- The AI Service SHALL support audio extraction using `ffmpeg`, transcription via external API (Groq/Whisper), and summarization via DeepSeek.
+- The Workbench UI SHALL display a dedicated "AI Results" modal/panel for each task.
+- Rendering of Markdown for summaries SHALL be supported on the frontend.
+- Rendering of Mind Maps using Mermaid SHALL be supported on the frontend.

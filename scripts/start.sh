@@ -152,6 +152,7 @@ start_local() {
 start_docker() {
   ensure_local_env
   cd "${ROOT_DIR}"
+  mkdir -p apps/web/dist
 
   docker compose \
     --env-file .env \
@@ -162,6 +163,7 @@ start_docker() {
 start_docker_detached() {
   ensure_local_env
   cd "${ROOT_DIR}"
+  mkdir -p apps/web/dist
 
   docker compose \
     --env-file .env \
@@ -182,6 +184,7 @@ stop_docker() {
 
 start_prod() {
   cd "${ROOT_DIR}"
+  mkdir -p apps/web/dist
 
   if [ ! -f ".env.production" ]; then
     echo "Missing .env.production. Create it first:"
