@@ -2,6 +2,10 @@
   "private": true,
   "scripts": {
     "start": "./scripts/start.sh docker:detached",
-    "stop": "./scripts/start.sh docker:stop"
+    "stop": "./scripts/start.sh docker:stop",
+    "check:local": "./scripts/check_local_services.sh",
+    "dev:install": "PYTHON_BIN=.venv/bin/python ./scripts/dev_install.sh && cd apps/web && npm install",
+    "dev": "./scripts/start.sh local",
+    "dev:worker": "START_WORKER=true ./scripts/start.sh local"
   }
 }

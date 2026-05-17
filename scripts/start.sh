@@ -100,6 +100,10 @@ start_local() {
   ensure_local_env
   cd "${ROOT_DIR}"
 
+  local py_bin
+  py_bin="$(python_bin)"
+  export PYTHON_BIN="${py_bin}"
+
   if [ ! -d "apps/web/node_modules" ]; then
     echo "apps/web/node_modules not found. Run: cd apps/web && npm install"
     exit 1
