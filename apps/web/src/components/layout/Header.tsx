@@ -22,7 +22,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+      <div className="max-w-7xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8 w-full">
         <Link to="/" className="flex items-center space-x-2 group">
           <div className="bg-primary rounded-lg p-1.5 transition-transform group-hover:rotate-12">
             <Video className="h-5 w-5 text-primary-foreground" />
