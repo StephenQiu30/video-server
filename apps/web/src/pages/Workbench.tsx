@@ -52,14 +52,20 @@ const Workbench: React.FC = () => {
 
   React.useEffect(() => {
     // Initial fetch
-    api.get("/tasks").then(res => {
-      setTasks(res.data);
-      setIsLoadingTasks(false);
-    });
+    api.get("/tasks")
+      .then(res => {
+        setTasks(res.data);
+        setIsLoadingTasks(false);
+      })
+      .catch(err => {
+        console.error("Failed to fetch tasks:", err);
+        setIsLoadingTasks(false);
+      });
 
     // SSE connection
-    const token = localStorage.getItem("token"); // Assuming token is in localStorage
-    const eventSource = new EventSource(`${import.meta.env.VITE_API_URL || ""}/api/tasks/stream?token=${token}`);
+    const token = localStorage.getItem("auth_token");
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
+    const eventSource = new EventSource(`${apiBase}/tasks/stream?token=${token}`);
 
     eventSource.addEventListener("tasks", (event) => {
       const data = JSON.parse(event.data);
