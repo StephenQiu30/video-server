@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { Search, List, BarChart3, Settings, Brain, MessageSquare, Map, CheckCircle2, Clock, Sparkles, FileText, Play, Loader2, Download } from "lucide-react";
+import { Search, List, BarChart3, Settings, Brain, MessageSquare, Map, CheckCircle2, Clock, Sparkles, Play, Loader2, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
-import ReactMarkdown from "react-markdown";
-import Mermaid from "@/components/Mermaid";
+import { useNavigate } from "react-router-dom";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -11,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface VideoFormat {
   format_id: string;
@@ -42,8 +40,7 @@ const Workbench: React.FC = () => {
   const [url, setUrl] = useState("");
   const [step, setStep] = useState(1);
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
-  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const navigate = useNavigate();
 
   const queryClient = useQueryClient();
 
@@ -250,7 +247,7 @@ const Workbench: React.FC = () => {
                               variant="secondary" 
                               size="sm" 
                               className="rounded-xl font-black text-[10px] h-8 gap-2 bg-purple-500/10 text-purple-600 hover:bg-purple-500 hover:text-white transition-all"
-                              onClick={() => { setSelectedTask(task); setIsAIModalOpen(true); }}
+                              onClick={() => navigate(`/workbench/task/${task.id}`)}
                             >
                               <Sparkles className="w-3.5 h-3.5" /> AI 洞察
                             </Button>
@@ -315,66 +312,7 @@ const Workbench: React.FC = () => {
         </div>
       </div>
 
-      {/* AI Modal */}
-      <Dialog open={isAIModalOpen} onOpenChange={setIsAIModalOpen}>
-         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto rounded-[3rem] p-0 border-none shadow-[0_0_100px_rgba(0,0,0,0.3)]">
-            <div className="flex flex-col h-full bg-white dark:bg-slate-900">
-               <DialogHeader className="p-10 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
-                  <div className="flex items-center gap-6">
-                     <div className="w-16 h-16 rounded-[1.5rem] bg-purple-500 text-white flex items-center justify-center shadow-2xl shadow-purple-500/20 animate-float">
-                        <Brain className="w-8 h-8" />
-                     </div>
-                     <div className="space-y-1">
-                        <DialogTitle className="text-3xl font-black line-clamp-1">{selectedTask?.title || "AI 洞察报告"}</DialogTitle>
-                        <DialogDescription className="font-bold uppercase tracking-[0.3em] text-[10px] text-muted-foreground">Intelligence Analysis Suite</DialogDescription>
-                     </div>
-                  </div>
-               </DialogHeader>
-               
-               <div className="p-10 space-y-16">
-                  <section className="space-y-6">
-                     <h4 className="text-xl font-black flex items-center gap-3 uppercase tracking-wider">
-                        <FileText className="w-6 h-6 text-primary" /> 内容深度总结
-                     </h4>
-                     <div className="prose prose-lg prose-slate dark:prose-invert max-w-none p-10 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 leading-relaxed font-medium">
-                        <ReactMarkdown>{selectedTask?.ai_summary || ""}</ReactMarkdown>
-                     </div>
-                  </section>
 
-                  <section className="space-y-6">
-                     <h4 className="text-xl font-black flex items-center gap-3 uppercase tracking-wider">
-                        <Map className="w-6 h-6 text-primary" /> 逻辑视觉地图
-                     </h4>
-                     <div className="p-10 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 overflow-hidden">
-                        <Mermaid chart={selectedTask?.ai_mindmap || ""} />
-                     </div>
-                  </section>
-               </div>
-
-               <div className="p-10 border-t border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-8">
-                  <div className="flex items-center gap-8 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                     <span className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-purple-500" /> DeepSeek V3</span>
-                     <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-blue-500" /> 超速处理完成</span>
-                  </div>
-                  <div className="flex gap-4 w-full md:w-auto">
-                     <Button 
-                        variant="outline" 
-                        className="flex-1 md:flex-none h-12 px-8 rounded-xl font-bold"
-                        onClick={() => {
-                          if (selectedTask) {
-                             const url = `${import.meta.env.VITE_API_URL || ""}/api/tasks/${selectedTask.id}/pdf`;
-                             window.open(url, "_blank");
-                          }
-                        }}
-                      >
-                        导出 PDF
-                      </Button>
-                     <Button className="flex-1 md:flex-none h-12 px-10 rounded-xl font-black shadow-lg shadow-primary/20">复制成果</Button>
-                  </div>
-               </div>
-            </div>
-         </DialogContent>
-      </Dialog>
     </div>
   );
 };

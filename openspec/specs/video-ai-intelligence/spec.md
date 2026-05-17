@@ -28,10 +28,10 @@ The system SHALL provide automated and manual analysis of video content using LL
 - **AND** the UI SHOULD show a "Retry AI Analysis" button
 
 ### Requirement: PDF Report Generation
-The system SHALL support exporting the generated AI content analysis (summary and key metadata) to a professional PDF file using Unicode/Chinese character support.
+The system SHALL support exporting the generated AI content analysis (summary and key metadata) to a professional PDF file using Unicode/Chinese character support, both from the workspace and from the standalone detail page.
 
-#### Scenario: PDF report generated successfully
-- **WHEN** the user requests a PDF report download for a completed task
+#### Scenario: PDF report exported from detail page
+- **WHEN** the user requests a PDF report download from the standalone task detail page
 - **THEN** the system generates and returns a PDF file containing the task title, source URL, and formatted AI summary
 
 ## Infrastructure Support

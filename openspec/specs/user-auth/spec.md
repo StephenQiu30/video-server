@@ -17,11 +17,13 @@ The system SHALL support user authentication via GitHub OAuth2.
 - **THEN** the system SHOULD issue a JWT access token linked to the existing account
 
 ### Requirement: Current user identity
-The system SHALL expose an authenticated current-user endpoint.
+The system SHALL expose an authenticated current-user endpoint and display user identity in the frontend application when logged in.
 
-#### Scenario: Current user query
+#### Scenario: Current user query and header display
 - **WHEN** a request includes a valid JWT access token
 - **THEN** the system returns the authenticated user's identity (email, GitHub metadata, avatar)
+- **AND** the frontend header SHALL display the user's avatar or display name instead of the "登录" and "立即开始" options
+- **AND** the frontend header SHALL provide a dropdown menu for navigation and logout
 
 ### Requirement: Task ownership
 The system SHALL associate each download task with the authenticated user who created it.
