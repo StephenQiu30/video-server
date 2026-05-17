@@ -41,10 +41,24 @@ const TaskDetail: React.FC = () => {
     }
   });
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (task) {
-      const url = `${import.meta.env.VITE_API_URL || ""}/api/tasks/${task.id}/pdf`;
-      window.open(url, "_blank");
+      try {
+        const response = await api.get(`/tasks/${task.id}/pdf`, {
+          responseType: "blob",
+        });
+        const blob = new Blob([response.data], { type: "application/pdf" });
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.setAttribute("download", `${task.title || "ai-report"}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+      } catch (err) {
+        console.error("Failed to export PDF", err);
+      }
     }
   };
 
@@ -52,7 +66,8 @@ const TaskDetail: React.FC = () => {
     if (task) {
       try {
         const res = await api.get(`/tasks/${task.id}/download-link`);
-        window.open(res.data.url, "_blank");
+        // Use direct window location assignment to download files directly, bypassing browser popup blockers
+        window.location.href = res.data.url;
       } catch (err) {
         console.error("Failed to fetch download link", err);
       }
