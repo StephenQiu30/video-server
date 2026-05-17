@@ -44,8 +44,8 @@ const Auth: React.FC = () => {
     // 2. Check if we have a code and need to exchange it
     const code = searchParams.get("code");
     if (code) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      handleCallback(code);
+      window.location.href = `${siteConfig.apiBaseUrl}/auth/github/callback?code=${code}`;
+      return;
     }
   }, [searchParams, handleCallback, navigate]);
 

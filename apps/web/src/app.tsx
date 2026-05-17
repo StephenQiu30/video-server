@@ -79,6 +79,7 @@ function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/workbench" element={<Workbench />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/api/auth/github/callback" element={<Auth />} />
               {/* Fallback */}
               <Route path="*" element={<LandingPage />} />
             </Routes>
