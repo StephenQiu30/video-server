@@ -1,4 +1,5 @@
 from ipaddress import ip_address
+import re
 from urllib.parse import urlparse
 
 from app.core.errors import AppError
@@ -8,6 +9,13 @@ def normalize_user_url(value: str) -> str:
     url = (value or "").strip()
     if not url:
         raise AppError("invalid_url", "请输入视频链接", 422)
+
+    # Extract the clean URL first if the user pasted a raw share text block containing extra copy
+    url_pattern = re.compile(r'https?://[a-zA-Z0-9.\-_~:/?#\[\]@!$&\'()*+,;=]+')
+    match = url_pattern.search(url)
+    if match:
+        url = match.group(0).strip()
+
     if any(char.isspace() for char in url):
         raise AppError("invalid_url", "请输入有效的视频链接，例如 https://example.com/video", 422)
 

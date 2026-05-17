@@ -155,7 +155,7 @@ start_docker() {
 
   docker compose \
     --env-file .env \
-    -f infra/docker/docker-compose.yml \
+    -f docker-compose.yml \
     up --build
 }
 
@@ -165,7 +165,7 @@ start_docker_detached() {
 
   docker compose \
     --env-file .env \
-    -f infra/docker/docker-compose.yml \
+    -f docker-compose.yml \
     up -d --build
   start_worker_detached
 }
@@ -176,7 +176,7 @@ stop_docker() {
 
   docker compose \
     --env-file .env \
-    -f infra/docker/docker-compose.yml \
+    -f docker-compose.yml \
     down
 }
 
@@ -191,10 +191,10 @@ start_prod() {
   fi
 
   python3 scripts/validate_prod_env.py .env.production
-  APP_ENV_FILE=../../.env.production docker compose \
+  APP_ENV_FILE=.env.production docker compose \
     --env-file .env.production \
-    -f infra/docker/docker-compose.yml \
-    -f infra/docker/docker-compose.prod.yml \
+    -f docker-compose.yml \
+    -f docker-compose.prod.yml \
     up --build
 }
 
