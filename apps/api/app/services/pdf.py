@@ -75,7 +75,7 @@ class PDFService:
         # Brand subtitle
         pdf.set_font(pdf.font_name, size=9)
         pdf.set_text_color(99, 102, 241) # Brand Indigo accent color
-        pdf.cell(0, 5, "STEPHEN VIDEO DOWNLOADER • AI INTELLIGENCE SUITE", new_x="LMARGIN", new_y="NEXT", align="L")
+        pdf.cell(0, 5, pdf._safe_text("STEPHEN VIDEO DOWNLOADER • AI INTELLIGENCE SUITE"), new_x="LMARGIN", new_y="NEXT", align="L")
         pdf.ln(8)
         
         # 2. Exquisite Metadata Summary Card
