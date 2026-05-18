@@ -1,39 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Video, Code as Github, Loader2, AlertCircle, ArrowRight } from "lucide-react";
+import { ArrowLeft, GitBranch, Loader2, ShieldCheck, UserCircle2 } from "lucide-react";
 import { siteConfig } from "../config/site";
-import { api } from "../lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Auth: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
-  const [errorMsg, setErrorMsg] = useState("");
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const isCallback = Boolean(searchParams.get("code"));
+  const isLoading = isRedirecting || isCallback;
 
   const handleGitHubLogin = () => {
+    setIsRedirecting(true);
     window.location.href = `${siteConfig.apiBaseUrl}/auth/github/authorize`;
   };
 
-  const handleCallback = React.useCallback(async (code: string) => {
-    setStatus("loading");
-    try {
-      const response = await api.get(`/auth/github/callback?code=${code}`);
-      const { access_token } = response.data;
-      localStorage.setItem("auth_token", access_token);
-      navigate("/workbench");
-    } catch (err: unknown) {
-      console.error("Auth failed:", err);
-      setStatus("error");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setErrorMsg((err as any).response?.data?.detail || "认证失败，请稍后重试");
-    }
-  }, [navigate]);
-
   useEffect(() => {
-    // 1. Check if we have a token from a direct backend redirect
     const token = searchParams.get("token");
     if (token) {
       localStorage.setItem("auth_token", token);
@@ -41,70 +25,84 @@ const Auth: React.FC = () => {
       return;
     }
 
-    // 2. Check if we have a code and need to exchange it
     const code = searchParams.get("code");
     if (code) {
       window.location.href = `${siteConfig.apiBaseUrl}/auth/github/callback?code=${code}`;
       return;
     }
-  }, [searchParams, handleCallback, navigate]);
+  }, [searchParams, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4">
-      <Card className="max-w-md w-full border-none shadow-2xl rounded-3xl p-6 md:p-8 animate-in fade-in zoom-in duration-500">
-        <CardHeader className="text-center space-y-4">
-          <div className="inline-flex items-center justify-center p-4 bg-primary rounded-2xl mx-auto shadow-lg shadow-primary/20">
-            <Video className="w-8 h-8 text-primary-foreground" />
+    <div className="min-h-screen bg-[#eef6ff] flex items-center justify-center px-4 py-10">
+      <Card className="w-full max-w-md border-slate-200/80 bg-white/95 p-2 shadow-sm">
+        <CardHeader className="space-y-5 pb-4">
+          <div className="inline-flex items-center justify-between gap-2 text-xs uppercase tracking-[0.16em] text-slate-500">
+            <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-3 py-1 text-[10px]">
+              <ShieldCheck className="h-3.5 w-3.5 text-sky-600" />
+              登录信息中心
+            </span>
+            <span className="rounded-full border border-slate-200 px-2 py-1">v1.0</span>
           </div>
-          <CardTitle className="text-3xl font-black tracking-tight">
-            {status === "loading" ? "身份验证中..." : "欢迎回归"}
-          </CardTitle>
-          <CardDescription className="text-base">
-            {status === "loading" 
-              ? "请稍候，我们正在与 GitHub 建立安全连接" 
-              : "一键开启您的智能视频处理之旅"}
-          </CardDescription>
+          <div className="text-center">
+            <CardTitle className="text-3xl font-semibold text-slate-900">
+              {isLoading ? "授权中" : "登录系统"}
+            </CardTitle>
+            <CardDescription className="mt-3 text-sm text-slate-600">
+              {isLoading
+                ? "OAuth 流程进行中，请保持页面不关闭"
+                : "安全、统一的方式接入 GitHub，进入你的工作区。"}
+            </CardDescription>
+          </div>
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {status === "error" && (
-            <Alert variant="destructive" className="rounded-2xl">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="font-medium">{errorMsg}</AlertDescription>
-            </Alert>
-          )}
+          <div className="grid gap-2">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs uppercase tracking-[0.14em] text-slate-500">当前登录信息</p>
+              <div className="mt-2 flex items-center gap-3">
+                <UserCircle2 className="h-9 w-9 text-slate-500" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900">GitHub 统一授权</p>
+                  <p className="truncate text-xs text-slate-500">成功授权后可直接使用工作台与任务管理。</p>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-sky-100 bg-sky-50 p-4">
+              <p className="text-xs uppercase tracking-[0.14em] text-sky-600">已支持项</p>
+              <p className="mt-2 text-sm text-slate-700">解析视频、任务进度、AI 洞察、下载归档。</p>
+            </div>
+          </div>
 
           <Button 
             onClick={handleGitHubLogin}
-            disabled={status === "loading"}
-            className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20"
+            disabled={isLoading}
+            className="w-full h-12 rounded-full bg-slate-900/90 hover:bg-slate-900 text-white"
           >
-            {status === "loading" ? (
+            {isLoading ? (
               <Loader2 className="w-6 h-6 animate-spin" />
             ) : (
               <>
-                <Github className="w-6 h-6 mr-3" />
+                <GitBranch className="w-6 h-6 mr-3" />
                 使用 GitHub 账号登录
               </>
             )}
           </Button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase tracking-widest text-muted-foreground">
-              <span className="bg-card px-2">Secure Access</span>
-            </div>
-          </div>
         </CardContent>
 
         <CardFooter className="flex flex-col gap-4">
-          <p className="text-center text-xs text-muted-foreground opacity-60">
-            由 GitHub OAuth 2.0 提供安全认证支持
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+            <p className="text-xs font-medium text-emerald-800">状态：{isLoading ? "认证中" : "未登录"}</p>
+            <p className="mt-1 text-[11px] text-emerald-700">OAuth 与账号资料处理遵循最小权限读取策略。</p>
+          </div>
+          <p className="text-center text-xs text-slate-500">
+            由 GitHub OAuth 2.0 提供安全授权
           </p>
-          <Link to="/" className="text-sm font-bold text-primary hover:underline flex items-center justify-center gap-2">
-            返回首页 <ArrowRight className="w-4 h-4" />
+          <Link
+            to="/"
+            className="inline-flex items-center justify-center gap-2 text-sm font-semibold text-slate-700 hover:text-sky-700"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            返回首页
           </Link>
         </CardFooter>
       </Card>

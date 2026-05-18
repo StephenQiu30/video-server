@@ -1,8 +1,5 @@
-# frontend-landing-page Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change frontend-redesign-shadcn. Update Purpose after archive.
-## Requirements
 ### Requirement: Premium Landing Page
 The web application SHALL provide a responsive, conversion-oriented, iOS-style SaaS landing page at `/` with a blue-white visual system, clear visual hierarchy, and minimal decorative noise.
 
@@ -25,4 +22,3 @@ The web application SHALL provide a responsive, conversion-oriented, iOS-style S
 - **WHEN** keyboard、screen reader 或 reduced-motion 用户使用页面
 - **THEN**关键交互 SHALL提供 aria-label、focus-visible and honor `prefers-reduced-motion` preferences.
 - **AND** 页面 SHALL provide FAQ 的语义化展开逻辑供用户理解使用边界。
-

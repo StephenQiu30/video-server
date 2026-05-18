@@ -1,4 +1,5 @@
 import pytest
+import os
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, StaticPool
 from sqlalchemy.orm import sessionmaker
@@ -6,6 +7,9 @@ from sqlalchemy.orm import sessionmaker
 from app.main import create_app
 from app.db.base import Base
 from app.db.session import get_db
+
+os.environ.setdefault("APP_ENV", "testing")
+os.environ.setdefault("SKIP_DB_BOOTSTRAP", "true")
 
 SQLALCHEMY_DATABASE_URL = "sqlite://"
 

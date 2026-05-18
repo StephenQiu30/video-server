@@ -1,13 +1,27 @@
 import React, { useState } from "react";
-import { Search, List, BarChart3, Settings, Brain, MessageSquare, Map, CheckCircle2, Clock, Sparkles, Play, Loader2, Download } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {
+  Activity,
+  Brain,
+  CheckCircle2,
+  ChevronRight,
+  Clock3,
+  Loader2,
+  MessageCircle,
+  Search,
+  Download,
+  Play,
+  ShieldCheck,
+  ListChecks,
+  LineChart,
+  PlayCircle,
+  Sparkles,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
@@ -32,9 +46,49 @@ interface Task {
   title: string;
   state: "pending" | "processing" | "succeeded" | "failed";
   progress: number;
-  ai_summary?: string;
-  ai_mindmap?: string;
 }
+
+const taskStateConfig: Record<
+  Task["state"],
+  {
+    text: string;
+    tone: "secondary" | "default" | "destructive";
+    icon: React.ReactNode;
+    description: string;
+  }
+> = {
+  pending: {
+    text: "等待开始",
+    tone: "secondary",
+    icon: <Clock3 className="h-3.5 w-3.5" />,
+    description: "任务已提交，等待系统调度",
+  },
+  processing: {
+    text: "处理中",
+    tone: "secondary",
+    icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
+    description: "下载与转换任务进行中",
+  },
+  succeeded: {
+    text: "已完成",
+    tone: "default",
+    icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+    description: "任务完成，可下载内容",
+  },
+  failed: {
+    text: "失败",
+    tone: "destructive",
+    icon: <ShieldCheck className="h-3.5 w-3.5" />,
+    description: "执行失败，请检查链接或重试",
+  },
+};
+
+const statusDotClass: Record<Task["state"], string> = {
+  pending: "bg-amber-500",
+  processing: "bg-sky-500",
+  succeeded: "bg-emerald-500",
+  failed: "bg-rose-500",
+};
 
 const Workbench: React.FC = () => {
   const [url, setUrl] = useState("");
@@ -48,18 +102,16 @@ const Workbench: React.FC = () => {
   const [isLoadingTasks, setIsLoadingTasks] = useState(true);
 
   React.useEffect(() => {
-    // Initial fetch
     api.get("/tasks")
-      .then(res => {
+      .then((res) => {
         setTasks(res.data);
         setIsLoadingTasks(false);
       })
-      .catch(err => {
+      .catch((err) => {
         console.error("Failed to fetch tasks:", err);
         setIsLoadingTasks(false);
       });
 
-    // SSE connection
     const token = localStorage.getItem("auth_token");
     const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
     const eventSource = new EventSource(`${apiBase}/tasks/stream?token=${token}`);
@@ -71,17 +123,14 @@ const Workbench: React.FC = () => {
       }
     });
 
-    eventSource.onerror = () => {
+    return () => {
       eventSource.close();
-      // Fallback or retry logic can go here
     };
-
-    return () => eventSource.close();
   }, []);
 
   const parseMutation = useMutation({
-    mutationFn: async (url: string) => {
-      const res = await api.post("/parse", { url });
+    mutationFn: async (targetUrl: string) => {
+      const res = await api.post("/parse", { url: targetUrl });
       return res.data;
     },
     onSuccess: (data) => {
@@ -93,7 +142,7 @@ const Workbench: React.FC = () => {
   const createTaskMutation = useMutation({
     mutationFn: async (formatId: string) => {
       const res = await api.post("/tasks", {
-        url: url,
+        url,
         format_id: formatId,
       });
       return res.data;
@@ -106,213 +155,313 @@ const Workbench: React.FC = () => {
     },
   });
 
+  const durationLabel = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = String(seconds % 60).padStart(2, "0");
+    return `${mins}:${secs}`;
+  };
+
   const handleAnalyze = () => {
-    if (!url) return;
+    if (!url.trim()) return;
     parseMutation.mutate(url);
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto space-y-12">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-1">
-            <h1 className="text-4xl font-black tracking-tight">控制中心</h1>
-            <p className="text-muted-foreground text-lg">高效管理您的视频解析与智能处理任务。</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="lg" className="rounded-2xl gap-2 font-bold">
-              <Settings className="w-5 h-5" /> 配置
-            </Button>
-            <Button size="lg" className="rounded-2xl font-black shadow-lg shadow-primary/20">
-              升级专业版
-            </Button>
-          </div>
-        </div>
+  const totalTasks = tasks.length;
+  const successTasks = tasks.filter((item) => item.state === "succeeded").length;
+  const runningTasks = tasks.filter((item) => item.state === "processing").length;
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Main Action Area */}
-          <div className="lg:col-span-8 space-y-8">
-            <Card className="border-none shadow-xl rounded-[2.5rem] p-4 md:p-8 overflow-hidden relative group">
-              <CardHeader className="pb-8">
-                <CardTitle className="text-2xl font-black flex items-center gap-3">
-                  <Search className="w-6 h-6 text-primary" /> 开始新任务
+  return (
+    <div className="min-h-screen bg-[#eef6ff] py-8 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+        <section className="rounded-3xl border border-sky-100/80 bg-white/85 p-6 shadow-sm ring-1 ring-white/70 backdrop-blur">
+          <div className="flex flex-wrap items-end justify-between gap-5">
+            <div className="space-y-3">
+              <p className="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold tracking-[0.14em] text-sky-700 uppercase">
+                <Activity className="h-3.5 w-3.5" />
+                工作台
+              </p>
+              <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl">视频任务工作台</h1>
+              <p className="max-w-2xl text-sm leading-6 text-slate-500">
+                统一入口处理“解析→转码→下载→复用”，让每一次任务从提交到归档都更可控。
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 rounded-full border-sky-200 text-sky-700 hover:bg-sky-50"
+                onClick={() => setStep(1)}
+              >
+                <Sparkles className="h-4 w-4" />
+                重置新建流程
+              </Button>
+              <Button variant="secondary" size="sm" className="h-9 rounded-full text-sky-800">
+                <LineChart className="h-4 w-4" />
+                运行监控
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-6">
+            <Card className="border-slate-200 bg-white/95">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl text-slate-900">
+                  <Search className="h-5 w-5 text-sky-600" />
+                  新建任务
                 </CardTitle>
-                <CardDescription className="text-base">输入视频链接，由 AI 接管后续一切工作。</CardDescription>
+                <CardDescription className="text-slate-600">输入视频链接后快速生成下载任务。</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-8">
-                <div className="flex gap-4">
-                  <Input 
-                    placeholder="粘贴视频链接 (YouTube, Bilibili, TikTok...)" 
-                    className="h-14 rounded-2xl text-base px-6 border-slate-200 bg-slate-50/50 focus-visible:ring-primary/20"
-                    value={url}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUrl(e.target.value)}
-                  />
-                  <Button 
-                    size="lg" 
-                    className="h-14 px-10 rounded-2xl font-black"
+              <CardContent className="space-y-4">
+                <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
+                  <div className="relative">
+                    <Input
+                      placeholder="粘贴视频链接（YouTube / B 站 / TikTok）"
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      className="h-11 rounded-[14px] border-sky-200 bg-white text-slate-800 placeholder:text-slate-400"
+                    />
+                    <button
+                      type="button"
+                      aria-label="清空链接"
+                      onClick={() => setUrl("")}
+                      className={`absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium transition ${url ? "text-slate-500 hover:text-slate-700" : "invisible"}`}
+                    >
+                      清空
+                    </button>
+                  </div>
+                  <Button
+                    size="lg"
+                    className="h-11 rounded-[14px] bg-sky-600 px-8 text-white shadow-sm hover:bg-sky-700"
                     onClick={handleAnalyze}
                     disabled={!url || parseMutation.isPending}
                   >
-                    {parseMutation.isPending ? "分析中..." : "解析视频"}
+                    {parseMutation.isPending ? "解析中..." : "解析视频"}
                   </Button>
                 </div>
+                {parseMutation.isPending ? (
+                  <div className="flex items-center gap-2 rounded-2xl border border-dashed border-sky-200 bg-sky-50/60 px-4 py-3 text-sm text-sky-700">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    正在读取元数据，请稍候。
+                  </div>
+                ) : null}
 
-                {step === 2 && parseResult && (
-                  <div className="pt-8 border-t border-slate-100 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="flex flex-col md:flex-row gap-8">
-                      <div className="w-full md:w-56 aspect-video rounded-3xl bg-slate-100 overflow-hidden relative shadow-lg">
-                        <img src={parseResult.cover_url} alt="Cover" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                          <Play className="w-8 h-8 text-white fill-current" />
-                        </div>
+                {step === 2 && parseResult ? (
+                  <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
+                    <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-start">
+                      <div className="relative h-32 min-h-32 w-full overflow-hidden rounded-xl border border-sky-100 bg-slate-100 lg:h-28 lg:w-56">
+                        <img
+                          src={parseResult.cover_url}
+                          alt="视频封面"
+                          className="h-full w-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-br from-black/35 to-black/10" />
+                        <PlayCircle className="absolute left-3 top-3 h-4 w-4 text-white" />
                       </div>
-                      <div className="flex-1 space-y-3">
-                        <Badge variant="secondary" className="rounded-lg font-bold px-3 py-1 uppercase tracking-widest text-[10px]">
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <Badge className="rounded-full bg-sky-600/90 text-white hover:bg-sky-700/90">
                           {parseResult.source_site}
                         </Badge>
-                        <h3 className="text-2xl font-black leading-tight line-clamp-2">{parseResult.title}</h3>
-                        <div className="flex items-center gap-4 text-sm font-bold text-muted-foreground">
-                           <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {Math.floor(parseResult.duration_seconds / 60)}:{(parseResult.duration_seconds % 60).toString().padStart(2, '0')}</span>
-                           <span className="flex items-center gap-1.5"><BarChart3 className="w-4 h-4" /> {parseResult.formats.length} 种规格</span>
-                        </div>
+                        <h3 className="text-base font-medium leading-6 text-slate-900">{parseResult.title}</h3>
+                        <p className="text-sm text-slate-600">
+                          时长 {durationLabel(parseResult.duration_seconds)} · 可用规格 {parseResult.formats.length} 个
+                        </p>
+                        <p className="text-xs text-slate-500">确认后点击下面按钮即可开始创建下载任务。</p>
                       </div>
                     </div>
 
-                    <div className="space-y-4">
-                       <h4 className="text-sm font-black uppercase tracking-[0.2em] text-muted-foreground">选择下载质量</h4>
-                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                          {parseResult.formats.slice(0, 6).map((format) => (
-                            <Button 
-                              key={format.format_id}
-                              variant={format.kind === "recommended" ? "default" : "outline"}
-                              className={cn(
-                                "h-auto py-4 px-5 flex flex-col items-start gap-1 rounded-2xl border-2 transition-all hover:-translate-y-1",
-                                format.kind === "recommended" ? "border-primary shadow-lg shadow-primary/10" : "border-slate-100 hover:border-primary/30"
-                              )}
-                              onClick={() => createTaskMutation.mutate(format.format_id)}
-                              disabled={createTaskMutation.isPending}
-                            >
-                               <span className="text-[10px] uppercase font-black tracking-widest opacity-60">{format.quality_label || format.resolution}</span>
-                               <span className="font-bold line-clamp-1">{format.label}</span>
-                            </Button>
-                          ))}
-                       </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.14em] text-slate-500">
+                        <span>选择导出规格</span>
+                        <span>最多显示 6 个</span>
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                        {parseResult.formats.slice(0, 6).map((format) => (
+                          <Button
+                            key={format.format_id}
+                            size="sm"
+                            variant={format.kind === "recommended" ? "default" : "outline"}
+                            className="h-auto items-start rounded-xl border-sky-200 px-3 py-2 text-left transition hover:-translate-y-0.5"
+                            onClick={() => createTaskMutation.mutate(format.format_id)}
+                            disabled={createTaskMutation.isPending}
+                          >
+                            <p className="text-[11px] uppercase tracking-[0.15em] text-sky-700">
+                              {format.quality_label || format.resolution}
+                            </p>
+                            <p className="text-sm font-semibold text-slate-800">{format.label}</p>
+                            <p className="text-xs text-slate-500">点击创建任务</p>
+                          </Button>
+                        ))}
+                      </div>
                     </div>
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200 bg-white/95">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl text-slate-900">
+                  <ListChecks className="h-5 w-5 text-sky-600" />
+                  任务流水线
+                </CardTitle>
+                <CardDescription className="text-slate-600">并行监控全部任务，快速进入下载和复查。</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {isLoadingTasks ? (
+                  <div className="flex items-center justify-center gap-2 rounded-2xl bg-slate-50 py-8 text-sm text-slate-500">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    同步任务中…
+                  </div>
+                ) : tasks.length === 0 ? (
+                  <div className="rounded-2xl border border-sky-100 bg-sky-50/60 px-4 py-8 text-center text-sm text-slate-500">
+                    还没有任务，先去新建一个开始。
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {tasks.map((task) => {
+                      const cfg = taskStateConfig[task.state];
+                      return (
+                        <div
+                          key={task.id}
+                          className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-sky-300"
+                        >
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <div className="flex items-start gap-2">
+                                <span
+                                  className={`mt-1 inline-block h-2.5 w-2.5 shrink-0 rounded-full ${statusDotClass[task.state]}`}
+                                />
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-slate-900">
+                                    {task.title || `任务 ${task.id.slice(0, 8)}`}
+                                  </p>
+                                  <p className="text-xs text-slate-500">{cfg.description}</p>
+                                </div>
+                              </div>
+                              <p className="ml-4.5 pl-2 text-[11px] uppercase tracking-[0.14em] text-slate-400">ID: {task.id.slice(0, 8)}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant={cfg.tone} className="h-7 rounded-full px-3 text-[11px] uppercase tracking-[0.14em]">
+                                {cfg.text}
+                              </Badge>
+                              {task.state === "succeeded" ? (
+                                <Button
+                                  size="sm"
+                                  className="h-8 rounded-full bg-sky-50 px-3 text-xs text-sky-700 hover:bg-sky-100"
+                                  onClick={async () => {
+                                    const res = await api.get(`/tasks/${task.id}/download-link`);
+                                    window.open(res.data.url, "_blank");
+                                  }}
+                                >
+                                  <Download className="mr-1 h-3.5 w-3.5" />
+                                  下载
+                                </Button>
+                              ) : null}
+
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 rounded-full border-sky-200 text-sky-700 hover:bg-sky-50"
+                                onClick={() => navigate(`/workbench/task/${task.id}`)}
+                              >
+                                <ChevronRight className="mr-1 h-3.5 w-3.5" />
+                                详情
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="mt-4 space-y-2">
+                            <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.14em] text-slate-500">
+                              <span>任务进度</span>
+                              <span>{task.progress}%</span>
+                            </div>
+                            <Progress value={task.progress} className="h-2 rounded-full bg-sky-100/80" />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
             </Card>
+          </div>
 
-            {/* Task List */}
-            <Card className="border-none shadow-xl rounded-[2.5rem] p-4 md:p-8">
-               <CardHeader className="pb-8">
-                <CardTitle className="text-2xl font-black flex items-center gap-3">
-                  <List className="w-6 h-6 text-primary" /> 活动流水线
-                </CardTitle>
-                <CardDescription className="text-base">实时监控您的任务状态与 AI 处理进度。</CardDescription>
+          <aside className="space-y-6">
+            <Card className="border-slate-200 bg-white/95">
+              <CardHeader>
+                <CardTitle className="text-lg text-slate-900">任务一览</CardTitle>
+                <CardDescription className="text-slate-600">会话中的核心指标。</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {isLoadingTasks ? (
-                  <div className="py-20 flex flex-col items-center justify-center gap-4 text-muted-foreground">
-                    <Loader2 className="w-10 h-10 animate-spin text-primary" />
-                    <span className="font-bold uppercase tracking-widest text-xs">正在同步数据...</span>
-                  </div>
-                ) : (tasks || []).length === 0 ? (
-                   <div className="py-20 border-4 border-dashed border-slate-50 rounded-[2rem] text-center">
-                      <p className="text-muted-foreground font-bold">暂无活动任务</p>
-                   </div>
-                ) : (tasks || []).map((task: Task) => (
-                  <div key={task.id} className="p-6 rounded-[2rem] border-2 border-slate-50 hover:border-primary/20 hover:bg-slate-50/50 transition-all group">
-                    <div className="flex justify-between items-start mb-6">
-                      <div className="space-y-1">
-                        <h4 className="font-black text-lg group-hover:text-primary transition-colors">{task.title || task.id}</h4>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">ID: {task.id.slice(0, 8)}</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        {task.state === "succeeded" && (
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="secondary" 
-                              size="sm" 
-                              className="rounded-xl font-black text-[10px] h-8 gap-2 bg-blue-500/10 text-blue-600 hover:bg-blue-500 hover:text-white transition-all"
-                              onClick={async () => {
-                                const res = await api.get(`/tasks/${task.id}/download-link`);
-                                window.open(res.data.url, "_blank");
-                              }}
-                            >
-                              <Download className="w-3.5 h-3.5" /> 下载视频
-                            </Button>
-                            <Button 
-                              variant="secondary" 
-                              size="sm" 
-                              className="rounded-xl font-black text-[10px] h-8 gap-2 bg-purple-500/10 text-purple-600 hover:bg-purple-500 hover:text-white transition-all"
-                              onClick={() => navigate(`/workbench/task/${task.id}`)}
-                            >
-                              <Sparkles className="w-3.5 h-3.5" /> AI 洞察
-                            </Button>
-                          </div>
-                        )}
-                        <Badge variant={task.state === "succeeded" ? "default" : "secondary"} className="rounded-xl px-3 py-1 font-black text-[10px] uppercase tracking-widest h-8 flex items-center gap-2">
-                           {task.state === "succeeded" ? <CheckCircle2 className="w-3 h-3" /> : <Loader2 className="w-3 h-3 animate-spin" />}
-                           {task.state === "succeeded" ? "已就绪" : "处理中"}
-                        </Badge>
-                      </div>
+              <CardContent className="grid gap-2">
+                <div className="flex items-center justify-between rounded-xl border border-sky-100 bg-sky-50 p-3">
+                  <span className="text-sm text-slate-600">总任务</span>
+                  <span className="text-xl font-semibold text-slate-900">{totalTasks}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3">
+                  <span className="text-sm text-slate-600">进行中</span>
+                  <span className="text-xl font-semibold text-sky-700">{runningTasks}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3">
+                  <span className="text-sm text-slate-600">已完成</span>
+                  <span className="text-xl font-semibold text-emerald-700">{successTasks}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200 bg-white/95">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg text-slate-900">
+                  <Brain className="h-5 w-5 text-sky-600" />
+                  创作者工具
+                </CardTitle>
+                <CardDescription className="text-slate-600">和任务流结合的常用工具入口。</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {[
+                  { label: "任务摘要", hint: "提炼关键观点", icon: MessageCircle },
+                  { label: "自动分幕", hint: "更适合课程复盘", icon: Brain },
+                  { label: "转码校验", hint: "保障兼容性与稳定性", icon: ShieldCheck },
+                ].map((tool) => (
+                  <div
+                    key={tool.label}
+                    className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/80 p-3"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">{tool.label}</p>
+                      <p className="text-xs text-slate-500">{tool.hint}</p>
                     </div>
-                    <div className="space-y-3">
-                       <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                          <span>处理进度</span>
-                          <span>{task.progress}%</span>
-                       </div>
-                       <Progress value={task.progress} className="h-3 rounded-full bg-slate-100" />
-                    </div>
+                    <tool.icon className="h-4 w-4 text-sky-600" />
                   </div>
                 ))}
               </CardContent>
             </Card>
-          </div>
 
-          {/* Sidebar */}
-          <div className="lg:col-span-4 space-y-8">
-             <Card className="border-none shadow-xl rounded-[2.5rem] p-4 md:p-8 bg-slate-900 text-white">
-                <CardHeader className="pb-8">
-                  <CardTitle className="text-2xl font-black flex items-center gap-3">
-                    <Brain className="w-6 h-6 text-primary" /> 创作者工具
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                   {[
-                     { name: "极简视频摘要", desc: "精准提取核心观点。", icon: MessageSquare },
-                     { name: "思维导图生成", desc: "可视化知识架构。", icon: Map, beta: true },
-                     { name: "海量批量处理", desc: "支持整个播放列表。", icon: BarChart3, beta: true },
-                   ].map((tool) => (
-                     <button key={tool.name} className="w-full text-left p-5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all group">
-                        <div className="flex items-center justify-between mb-2">
-                           <tool.icon className="w-5 h-5 text-primary group-hover:scale-125 transition-transform" />
-                           {tool.beta && <Badge className="rounded-lg bg-primary/20 text-primary border-none font-black text-[8px] h-5 uppercase">Beta</Badge>}
-                        </div>
-                        <div className="font-bold text-sm">{tool.name}</div>
-                        <div className="text-xs text-white/50">{tool.desc}</div>
-                     </button>
-                   ))}
-                </CardContent>
-             </Card>
-
-             <Card className="border-none shadow-xl rounded-[2.5rem] p-8 bg-primary text-primary-foreground relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-4 opacity-10 rotate-12 group-hover:scale-150 transition-transform duration-1000">
-                   <Sparkles className="w-40 h-40" />
+            <Card className="border-slate-200 bg-sky-700/95 text-white">
+              <CardHeader>
+                <CardTitle className="text-lg">流程建议</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-sky-100">
+                  完成任务后可直接在详情页查看日志、重试失败步骤，或一键归档到历史记录。
+                </p>
+                <div className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-xs text-sky-100">
+                  <p>建议顺序：</p>
+                  <p>1) 先解析 &nbsp;2) 选择规格 &nbsp;3) 观察进度 &nbsp;4) 下载归档</p>
                 </div>
-                <div className="relative z-10 space-y-6">
-                   <h3 className="text-2xl font-black italic uppercase tracking-tighter">Pro Plus</h3>
-                   <p className="text-sm font-medium leading-relaxed opacity-90">解锁无限次 AI 深度分析、4K 超清并发下载以及长达 30 天的云端存储。</p>
-                   <Button variant="secondary" className="w-full h-14 rounded-2xl font-black text-sm hover:scale-[1.02] transition-transform shadow-xl">立即开启权益</Button>
-                </div>
-             </Card>
-          </div>
+                <Button
+                  variant="secondary"
+                  className="w-full rounded-full bg-white/95 text-sky-700 hover:bg-white"
+                  onClick={() => navigate("/")}
+                >
+                  <Play className="mr-2 h-4 w-4" />
+                  回到首页总览
+                </Button>
+              </CardContent>
+            </Card>
+          </aside>
         </div>
       </div>
-
-
     </div>
   );
 };

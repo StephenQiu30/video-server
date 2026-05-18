@@ -1,4 +1,5 @@
 import os
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -16,6 +17,7 @@ from app.routers import admin, auth, health, metrics, parse, tasks
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    logger = logging.getLogger(__name__)
     setup_logging(settings.app_env)
     app = FastAPI(title=settings.app_name)
     app.add_exception_handler(AppError, app_error_handler)
@@ -37,8 +39,16 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     def create_tables() -> None:
-        Base.metadata.create_all(bind=engine)
-        run_database_upgrades(engine)
+        if settings.skip_db_bootstrap and settings.app_env != "production":
+            logger.warning("skip_db_bootstrap 已开启，跳过数据库建表与迁移。")
+            return
+        try:
+            Base.metadata.create_all(bind=engine)
+            run_database_upgrades(engine)
+        except Exception as exc:  # pragma: no cover
+            logger.warning("数据库初始化失败，将继续启动：%s", exc)
+            if settings.app_env == "production" and not settings.skip_db_bootstrap:
+                raise
 
     # Static files and SPA routing
     # The 'static' directory should be in the app root (where main.py's parent's parent is)

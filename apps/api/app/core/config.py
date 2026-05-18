@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://video:video@127.0.0.1:5432/video_downloader"
     redis_url: str = "redis://127.0.0.1:6379/0"
     rq_queue_name: str = "downloads"
+    skip_db_bootstrap: bool = False
 
     jwt_secret_key: str = Field(default="change-me-in-production", min_length=16)
     jwt_algorithm: str = "HS256"
