@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,11 +16,28 @@ from app import models  # noqa: F401
 from app.routers import admin, auth, health, metrics, parse, tasks
 
 
+@asynccontextmanager
+def _app_lifespan(settings: "Settings"):
+    logger = logging.getLogger(__name__)
+    try:
+        if settings.skip_db_bootstrap and settings.app_env != "production":
+            logger.warning("skip_db_bootstrap 已开启，跳过数据库建表与迁移。")
+        else:
+            Base.metadata.create_all(bind=engine)
+            run_database_upgrades(engine)
+    except Exception as exc:  # pragma: no cover
+        logger.warning("数据库初始化失败，将继续启动：%s", exc)
+        if settings.app_env == "production" and not settings.skip_db_bootstrap:
+            raise
+
+    yield
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
     logger = logging.getLogger(__name__)
     setup_logging(settings.app_env)
-    app = FastAPI(title=settings.app_name)
+    app = FastAPI(title=settings.app_name, lifespan=lambda app_obj: _app_lifespan(settings))
     app.add_exception_handler(AppError, app_error_handler)
     app.add_middleware(
         CORSMiddleware,
@@ -36,19 +54,6 @@ def create_app() -> FastAPI:
     app.include_router(tasks.router)
     app.include_router(admin.router)
     app.include_router(metrics.router)
-
-    @app.on_event("startup")
-    def create_tables() -> None:
-        if settings.skip_db_bootstrap and settings.app_env != "production":
-            logger.warning("skip_db_bootstrap 已开启，跳过数据库建表与迁移。")
-            return
-        try:
-            Base.metadata.create_all(bind=engine)
-            run_database_upgrades(engine)
-        except Exception as exc:  # pragma: no cover
-            logger.warning("数据库初始化失败，将继续启动：%s", exc)
-            if settings.app_env == "production" and not settings.skip_db_bootstrap:
-                raise
 
     # Static files and SPA routing
     # The 'static' directory should be in the app root (where main.py's parent's parent is)

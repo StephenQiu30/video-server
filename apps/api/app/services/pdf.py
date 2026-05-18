@@ -13,7 +13,7 @@ class PremiumReport(FPDF):
             self.font_name = "Chinese"
             self.has_chinese = True
         else:
-            self.font_name = "Arial"
+            self.font_name = "Helvetica"
             self.has_chinese = False
 
     def _safe_text(self, text: str) -> str:
