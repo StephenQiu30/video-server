@@ -17,7 +17,7 @@ jobs:
           POSTGRES_USER: video
           POSTGRES_PASSWORD: video
         options: >-
-          --health-cmd pg_isready -U video -d video_downloader
+          --health-cmd "pg_isready -U video -d video_downloader"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
