@@ -15,6 +15,11 @@ class PremiumReport(FPDF):
         else:
             self.font_name = "Arial"
             self.has_chinese = False
+
+    def _safe_text(self, text: str) -> str:
+        if self.has_chinese:
+            return text
+        return text.encode("latin-1", errors="ignore").decode("latin-1")
             
     def header(self):
         # Draw top brand accent line (Brand Indigo)
@@ -26,7 +31,7 @@ class PremiumReport(FPDF):
             self.set_font(self.font_name, size=8)
             self.set_text_color(156, 163, 175)
             self.set_y(10)
-            self.cell(0, 10, "Stephen Video Downloader - 智能分析报告", align="R", new_x="LMARGIN", new_y="NEXT")
+            self.cell(0, 10, self._safe_text("Stephen Video Downloader - 智能分析报告"), align="R", new_x="LMARGIN", new_y="NEXT")
             
             # Subtle header divider line
             self.set_draw_color(243, 244, 246)
@@ -38,7 +43,7 @@ class PremiumReport(FPDF):
         self.set_y(-15)
         self.set_font(self.font_name, size=8)
         self.set_text_color(156, 163, 175)
-        self.cell(0, 10, f"第 {self.page_no()} 页", align="C")
+        self.cell(0, 10, self._safe_text(f"第 {self.page_no()} 页"), align="C")
 
 class PDFService:
     def __init__(self):
@@ -65,7 +70,7 @@ class PDFService:
         # 1. Branding Header Title
         pdf.set_font(pdf.font_name, size=22)
         pdf.set_text_color(31, 41, 55) # Deep charcoal dark text
-        pdf.cell(0, 15, "视频智能分析报告", new_x="LMARGIN", new_y="NEXT", align="L")
+        pdf.cell(0, 15, pdf._safe_text("视频智能分析报告"), new_x="LMARGIN", new_y="NEXT", align="L")
         
         # Brand subtitle
         pdf.set_font(pdf.font_name, size=9)
@@ -91,25 +96,25 @@ class PDFService:
         title_text = task.title or "未命名处理任务"
         if len(title_text) > 42:
             title_text = title_text[:40] + "..."
-        pdf.cell(0, 6, f"任务名称: {title_text}", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 6, pdf._safe_text(f"任务名称: {title_text}"), new_x="LMARGIN", new_y="NEXT")
         
         # Task ID
         pdf.set_font(pdf.font_name, size=10)
         pdf.set_text_color(107, 114, 128)
         pdf.cell(10)
-        pdf.cell(0, 6, f"任务标识: {task.id}", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 6, pdf._safe_text(f"任务标识: {task.id}"), new_x="LMARGIN", new_y="NEXT")
         
         # Video Duration
         pdf.cell(10)
         duration_str = "未知"
         if task.duration_seconds:
             duration_str = f"{task.duration_seconds // 60} 分 {task.duration_seconds % 60} 秒"
-        pdf.cell(0, 6, f"视频时长: {duration_str}", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 6, pdf._safe_text(f"视频时长: {duration_str}"), new_x="LMARGIN", new_y="NEXT")
         
         # Complete Date
         pdf.cell(10)
         time_str = task.updated_at.strftime('%Y年%m月%d日 %H:%M:%S') if task.updated_at else "未知"
-        pdf.cell(0, 6, f"分析时间: {time_str}", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 6, pdf._safe_text(f"分析时间: {time_str}"), new_x="LMARGIN", new_y="NEXT")
         
         # Spacer past card boundary
         pdf.set_y(card_y + 36)
@@ -136,7 +141,7 @@ class PDFService:
                     pdf.set_font(pdf.font_name, size=13)
                     pdf.set_text_color(31, 41, 55)
                     pdf.set_x(26) # Indent slightly past block
-                    pdf.multi_cell(164, 8, text=element.get_text())
+                    pdf.multi_cell(164, 8, text=pdf._safe_text(element.get_text()))
                     pdf.ln(2)
                     
                     # Smooth baseline divider line below section
@@ -155,18 +160,18 @@ class PDFService:
                     pdf.rect(23, bullet_y, 2, 2, "F")
                     
                     pdf.set_x(28)
-                    pdf.multi_cell(162, 7, text=element.get_text())
+                    pdf.multi_cell(162, 7, text=pdf._safe_text(element.get_text()))
                     pdf.ln(2.5)
                     
                 else:
                     # Paragraph body text
                     pdf.set_font(pdf.font_name, size=11)
                     pdf.set_text_color(55, 65, 81)
-                    pdf.multi_cell(170, 7, text=element.get_text())
+                    pdf.multi_cell(170, 7, text=pdf._safe_text(element.get_text()))
                     pdf.ln(4)
         else:
             pdf.set_font(pdf.font_name, size=12)
             pdf.set_text_color(156, 163, 175)
-            pdf.cell(0, 10, "暂无智能分析内容", align="C", new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(0, 10, pdf._safe_text("暂无智能分析内容"), align="C", new_x="LMARGIN", new_y="NEXT")
             
         return bytes(pdf.output())
