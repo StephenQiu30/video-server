@@ -2,6 +2,8 @@
 
 这是一个合规、安全、可自部署的视频下载与内容整理工具。采用 FastAPI, RQ, Shadcn UI 和 DeepSeek AI 构建。
 
+> 本仓库为 `video-server`：后端 API-only 服务。前端请单独在 `video-web` 仓库维护。
+
 ## 核心功能
 
 - **📥 视频全能解析**: 支持 YouTube, Bilibili, TikTok 等主流平台多分辨率解析。
@@ -20,9 +22,11 @@
   ```
 
 默认服务地址：
-- 前端：`http://localhost:3000`
 - API：`http://localhost:8000`
 - MinIO 控制台：`http://localhost:9001`
+
+前端说明：
+- 业务前端请使用 `video-web` 仓库。
 
 ## 本地开发指南
 
@@ -45,9 +49,7 @@
    ```
 
 4. **运行前端**：
-   ```bash
-   cd apps/web && npm install && npm run dev
-   ```
+   - 参见 `video-web` 仓库的 `README.md`。
 
 ## 重要边界
 
