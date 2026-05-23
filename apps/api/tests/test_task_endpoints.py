@@ -162,6 +162,33 @@ def test_create_task_accepts_known_bilibili_platform_before_enqueue(
     assert enqueued == [response.json()["id"]]
 
 
+def test_create_task_rate_limits_authenticated_user(monkeypatch, client: TestClient, session: Session) -> None:
+    from app.services.rate_limit import InMemoryRateLimiter
+
+    enqueued = []
+    limiter = InMemoryRateLimiter(1, 60)
+    monkeypatch.setattr("app.routers.tasks.enqueue_download_task", lambda task_id: enqueued.append(task_id))
+    monkeypatch.setattr("app.routers.tasks.get_create_task_rate_limiter", lambda: limiter)
+    user = _make_user(session, email="task-rate@example.com", github_id="task-rate-user")
+    token = create_access_token(user.id)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    first = client.post(
+        "/api/tasks",
+        headers=headers,
+        json={"url": "https://www.bilibili.com/video/BV1xx411c7mD"},
+    )
+    second = client.post(
+        "/api/tasks",
+        headers=headers,
+        json={"url": "https://www.bilibili.com/video/BV1xx411c7mD"},
+    )
+
+    assert first.status_code == 201
+    assert second.status_code == 429
+    assert second.json()["error"]["code"] == "rate_limited"
+
+
 def test_task_list_state_filter_invalid(session: Session, client: TestClient) -> None:
     user = _make_user(session, email="filter@example.com", github_id="filter-user")
     token = create_access_token(user.id)
