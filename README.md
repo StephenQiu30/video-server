@@ -10,18 +10,45 @@
 - **📄 专业报告导出**: 支持将 AI 分析洞察结果一键导出为专业 PDF 文件。
 - **🛡️ 隐私安全存储**: 文件物理存储在私有 MinIO / S3 中，链接定时失效。
 
-## 一键启动
+## 启动方式
 
-本项目通过 Docker Compose 实现快速部署：
+### 本机调试（推荐）
 
-- **全量独立堆栈**（推荐）：一键启动服务及基础设施（PostgreSQL, Redis, MinIO）。
-  ```bash
-  docker compose up -d --build
-  ```
+本机调试只启动项目进程，PostgreSQL、Redis、MinIO 由 `.env` 指向已有本机服务：
+
+```bash
+cp .env.example .env
+npm run dev:install
+npm start
+```
+
+如需调试异步下载 Worker：
+
+```bash
+npm run dev:worker
+# 或同时启动 API + Worker
+npm run dev:all
+```
+
+### Docker 部署
+
+Docker 作为部署方式使用，会启动 API、Worker、PostgreSQL、Redis 和 MinIO：
+
+```bash
+cp .env.production.example .env.production
+# 替换所有 CHANGE_ME、域名、密钥和密码
+npm run docker:up
+```
+
+停止部署：
+
+```bash
+npm run docker:down
+```
 
 默认服务地址：
 - API：`http://localhost:8000`
-- MinIO 控制台：`http://localhost:9001`
+- MinIO 控制台：`http://localhost:19001`
 
 前端仓库已独立拆分：
 
@@ -37,14 +64,12 @@
 
 2. **运行后端**：
    ```bash
-   cd apps/api && pip install -r requirements.txt
-   uvicorn app.main:app --reload
+   npm start
    ```
 
 3. **运行 Worker**：
    ```bash
-   cd apps/worker && pip install -r requirements.txt
-   python -m worker.main
+   npm run dev:worker
    ```
 
 4. **前端请使用独立仓库启动：**

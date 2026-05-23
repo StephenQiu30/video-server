@@ -2,9 +2,9 @@ name: stephen-video-full
 
 services:
   # Infrastructure
-  db:
+  postgres:
     image: postgres:16-alpine
-    container_name: stephen-video-db
+    container_name: stephen-video-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-video}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-video}
@@ -18,8 +18,11 @@ services:
   redis:
     image: redis:7-alpine
     container_name: stephen-video-redis
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a '${REDIS_PASSWORD}' ping | grep PONG"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -31,6 +34,9 @@ services:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-minio}
       MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:-stephenqhd30.}
     command: server /data --console-address ":9001"
+    ports:
+      - "${MINIO_API_PORT:-19000}:9000"
+      - "${MINIO_CONSOLE_PORT:-19001}:9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 5s
@@ -43,13 +49,14 @@ services:
       context: .
       target: api
     container_name: stephen-video-api
-    env_file: .env
+    env_file: ${APP_ENV_FILE:-.env.production}
     environment:
-      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-video}:${POSTGRES_PASSWORD:-video}@db:5432/${POSTGRES_DB:-video_downloader}
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-video}:${POSTGRES_PASSWORD:-video}@postgres:5432/${POSTGRES_DB:-video_downloader}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
       - S3_ENDPOINT_URL=http://minio:9000
+      - S3_PUBLIC_ENDPOINT_URL=${S3_PUBLIC_ENDPOINT_URL}
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -61,13 +68,13 @@ services:
       context: .
       target: worker
     container_name: stephen-video-worker
-    env_file: .env
+    env_file: ${APP_ENV_FILE:-.env.production}
     environment:
-      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-video}:${POSTGRES_PASSWORD:-video}@db:5432/${POSTGRES_DB:-video_downloader}
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-video}:${POSTGRES_PASSWORD:-video}@postgres:5432/${POSTGRES_DB:-video_downloader}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
       - S3_ENDPOINT_URL=http://minio:9000
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
