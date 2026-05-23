@@ -49,7 +49,8 @@ def test_list_users_as_non_admin_fails(client: TestClient, session: Session):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 403
-    assert "enough privileges" in response.json()["detail"]
+    assert response.json()["success"] is False
+    assert response.json()["error"]["code"] == "forbidden"
 
 
 def test_update_user_quota(client: TestClient, session: Session):

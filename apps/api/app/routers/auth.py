@@ -2,24 +2,44 @@ import httpx
 import logging
 import json
 from datetime import timedelta
+from functools import lru_cache
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
-from fastapi.security import OAuth2PasswordRequestForm
+from redis import Redis
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.errors import AppError
 from app.core.security import create_access_token, hash_password, verify_password
 from app.db.session import get_db
 from app.deps import get_current_user
 from app.models import User
-from app.schemas import Token, UserCreate, UserRead
+from app.schemas import Token, UserCreate, UserLogin, UserRead
+from app.services.auth_lock import InMemoryAuthLock, RedisAuthLock
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+
+@lru_cache
+def get_auth_lock():
+    settings = get_settings()
+    if settings.app_env not in {"local", "testing"}:
+        return RedisAuthLock(
+            Redis.from_url(settings.redis_url),
+            max_failures=settings.auth_login_failure_limit,
+            lock_seconds=settings.auth_lock_seconds,
+            register_limit=settings.auth_register_rate_limit_per_hour,
+        )
+    return InMemoryAuthLock(
+        max_failures=settings.auth_login_failure_limit,
+        lock_seconds=settings.auth_lock_seconds,
+        register_limit=settings.auth_register_rate_limit_per_hour,
+    )
 
 
 @router.get("/github/authorize")
@@ -34,6 +54,61 @@ def github_authorize() -> RedirectResponse:
         "&scope=user:email"
     )
     return RedirectResponse(url)
+
+
+@router.post("/register", response_model=Token, status_code=201)
+def register_user(
+    payload: UserCreate,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict:
+    settings = get_settings()
+    if not settings.registration_enabled:
+        raise AppError("registration_disabled", "注册暂未开放", 403)
+    if settings.registration_invite_code and payload.invite_code != settings.registration_invite_code:
+        raise AppError("registration_failed", "注册失败，请检查输入或稍后重试", 400)
+
+    client_ip = _client_ip(request)
+    get_auth_lock().assert_register_allowed(client_ip)
+    normalized_email = payload.email.strip().lower()
+    existing = db.scalar(select(User).where(User.email == normalized_email))
+    if existing:
+        raise AppError("registration_failed", "注册失败，请检查输入或稍后重试", 400)
+
+    user = User(
+        email=normalized_email,
+        password_hash=hash_password(payload.password),
+        display_name=payload.display_name,
+        daily_task_quota=settings.default_daily_task_quota,
+        storage_quota_bytes=settings.default_storage_quota_bytes,
+        concurrent_task_quota=settings.per_user_download_concurrency,
+        max_file_size_bytes=settings.max_file_size_bytes,
+        file_retention_hours=settings.file_retention_hours,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return _token_for_user(user)
+
+
+@router.post("/login", response_model=Token)
+def login_user(
+    request: Request,
+    payload: UserLogin,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict:
+    email = payload.email.strip().lower()
+    client_ip = _client_ip(request)
+    auth_lock = get_auth_lock()
+    auth_lock.assert_login_allowed(email, client_ip)
+    user = db.scalar(select(User).where(User.email == email))
+    if not user or not user.password_hash or not verify_password(payload.password, user.password_hash):
+        auth_lock.record_login_failure(email, client_ip)
+        raise AppError("invalid_credentials", "邮箱或密码错误", 401)
+    if not user.is_active:
+        raise AppError("user_disabled", "账号不可用", 403)
+    auth_lock.clear_login(email)
+    return _token_for_user(user)
 
 
 @router.get("/github/callback", response_model=Token)
@@ -144,3 +219,18 @@ async def github_callback(
 @router.get("/me", response_model=UserRead)
 def get_me(current_user: Annotated[User, Depends(get_current_user)]) -> User:
     return current_user
+
+
+def _token_for_user(user: User) -> dict:
+    settings = get_settings()
+    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    return {
+        "access_token": create_access_token(user.id, expires_delta=access_token_expires),
+        "token_type": "bearer",
+    }
+
+
+def _client_ip(request: Request) -> str:
+    if request.client:
+        return request.client.host
+    return "unknown"

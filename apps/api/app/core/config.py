@@ -51,6 +51,11 @@ class Settings(BaseSettings):
     ytdlp_cookies_from_browser: str | None = None
     parse_rate_limit_per_minute: int = 60
     parse_rate_limit_window_seconds: int = 60
+    create_task_rate_limit_per_minute: int = 20
+    create_task_rate_limit_window_seconds: int = 60
+    auth_login_failure_limit: int = 5
+    auth_lock_seconds: int = 15 * 60
+    auth_register_rate_limit_per_hour: int = 10
 
     s3_endpoint_url: str = "http://127.0.0.1:9000"
     s3_public_endpoint_url: str | None = "http://localhost:9000"
