@@ -140,3 +140,26 @@ class DownloadLinkResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     app: str
+
+
+class ReadinessCheck(BaseModel):
+    ok: bool
+    message: str | None = None
+    name: str | None = None
+    queued_jobs: int | None = None
+    workers: int | None = None
+    path: str | None = None
+    ffmpeg: bool | None = None
+    ffprobe: bool | None = None
+
+
+class ReadinessResponse(BaseModel):
+    status: Literal["ok", "degraded"]
+    checks: dict[str, ReadinessCheck]
+
+
+class AdminMetricsResponse(BaseModel):
+    active_tasks: int
+    total_users: int
+    total_storage_bytes: int
+    queue_depth: int

@@ -111,11 +111,20 @@ def login_user(
     return _token_for_user(user)
 
 
-@router.get("/github/callback", response_model=Token)
+@router.get(
+    "/github/callback",
+    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+    response_class=RedirectResponse,
+    responses={
+        status.HTTP_307_TEMPORARY_REDIRECT: {
+            "description": "GitHub OAuth 登录成功后重定向到前端，并携带一次性前端处理的 token 查询参数。",
+        }
+    },
+)
 async def github_callback(
     code: str,
     db: Annotated[Session, Depends(get_db)],
-) -> dict:
+) -> RedirectResponse:
     settings = get_settings()
     if not settings.github_client_id or not settings.github_client_secret:
         raise HTTPException(status_code=500, detail="GitHub OAuth not configured")
