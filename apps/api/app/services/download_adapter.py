@@ -6,6 +6,7 @@ from pydantic import ValidationError
 
 from app.core.errors import AppError
 from app.schemas import ParseResponse, VideoFormat
+from app.services.platforms import find_platform_profile
 
 RECOMMENDED_FORMAT_ID = "bestvideo+bestaudio/best"
 RESOLUTION_PRESETS = [
@@ -70,41 +71,27 @@ class YtDlpAdapter(PlatformAdapter):
             raise AppError("parse_failed", "解析结果格式暂不兼容，请稍后重试或更新下载内核", 422) from exc
 
     def map_parse_error(self, exc: Exception) -> AppError:
-        message = str(exc).lower()
-        if "members-only" in message:
-            return AppError("platform_restricted", "该内容存在权限限制，当前账号或当前地区可能无法解析", 403)
-        if "private" in message or "仅限" in message:
-            return AppError("platform_restricted", "该视频不可公开访问，解析受限", 403)
-        return AppError("parse_failed", "公开视频解析失败或平台暂不支持", 422)
+        return _classify_parse_error(exc)
 
 
 class BilibiliAdapter(YtDlpAdapter):
     name = "bilibili"
 
     def supports(self, parsed_host: ParsedHost) -> bool:
-        return parsed_host.host.endswith("bilibili.com") or parsed_host.host.endswith("b23.tv")
+        profile = find_platform_profile(parsed_host.raw)
+        return bool(profile and profile.id == "bilibili")
 
     def map_parse_error(self, exc: Exception) -> AppError:
-        message = str(exc).lower()
-        if "need to login" in message or "charge" in message:
-            return AppError("platform_restricted", "B 站视频存在会员/版权限制，当前方式无法解析", 403)
-        return super().map_parse_error(exc)
+        return _classify_parse_error(exc, platform_name="B 站")
 
 
 class DomesticShortVideoAdapter(YtDlpAdapter):
     name = "short-video"
-    hosts = {
-        "douyin.com",
-        "v.douyin.com",
-        "kuaishou.com",
-        "v.kuaishou.com",
-        "xiaohongshu.com",
-        "xhslink.com",
-        "ixigua.com",
-    }
+    platform_ids = {"douyin", "kuaishou", "xiaohongshu", "ixigua", "weibo"}
 
     def supports(self, parsed_host: ParsedHost) -> bool:
-        return any(parsed_host.host == host or parsed_host.host.endswith(f".{host}") for host in self.hosts)
+        profile = find_platform_profile(parsed_host.raw)
+        return bool(profile and profile.id in self.platform_ids)
 
 
 class AdapterRegistry:
@@ -147,7 +134,6 @@ class DownloadEngineAdapter:
 def _extract_with_ytdlp(url: str) -> dict[str, Any]:
     try:
         from yt_dlp import YoutubeDL
-        from yt_dlp.utils import DownloadError
     except ModuleNotFoundError as exc:
         raise AppError("engine_unavailable", "下载内核未安装，请在容器环境中运行", 503) from exc
 
@@ -157,16 +143,14 @@ def _extract_with_ytdlp(url: str) -> dict[str, Any]:
         "skip_download": True,
         "noplaylist": True,
     }
-    try:
-        with YoutubeDL(options) as ydl:
-            info = ydl.extract_info(url, download=False)
-    except DownloadError as exc:
-        raise AppError("parse_failed", "公开视频解析失败或平台暂不支持", 422) from exc
+    with YoutubeDL(options) as ydl:
+        info = ydl.extract_info(url, download=False)
 
     return info or {}
 
 
 def _to_parse_response(url: str, info: dict[str, Any]) -> ParseResponse:
+    platform_profile = find_platform_profile(url)
     raw_formats: list[VideoFormat] = []
     available_heights: set[int] = set()
     for raw in info.get("formats") or []:
@@ -223,7 +207,10 @@ def _to_parse_response(url: str, info: dict[str, Any]) -> ParseResponse:
         title=info.get("title"),
         cover_url=info.get("thumbnail"),
         duration_seconds=_safe_int(info.get("duration")),
-        source_site=_source_site_name(info),
+        source_site=platform_profile.display_name if platform_profile else _source_site_name(info),
+        platform_id=platform_profile.id if platform_profile else None,
+        platform_category=platform_profile.category if platform_profile else None,
+        compliance_note=platform_profile.compliance_note if platform_profile else None,
         extractor=_safe_str(info.get("extractor_key") or info.get("extractor")),
         formats=formats,
     )
@@ -275,6 +262,72 @@ def _source_site_name(info: dict[str, Any]) -> str | None:
         if normalized.startswith(key):
             return label
     return raw
+
+
+def _classify_parse_error(exc: Exception, platform_name: str | None = None) -> AppError:
+    message = str(exc).lower()
+    subject = f"{platform_name}内容" if platform_name else "该内容"
+
+    restricted_markers = (
+        "login required",
+        "need to login",
+        "sign in",
+        "members-only",
+        "member-only",
+        "private",
+        "premium",
+        "paid",
+        "charge",
+        "drm",
+        "copyright",
+        "geo restricted",
+        "georestricted",
+        "region",
+        "仅限",
+        "会员",
+        "付费",
+        "版权",
+    )
+    if any(marker in message for marker in restricted_markers):
+        return AppError(
+            "platform_restricted",
+            f"{subject}存在访问限制，当前服务不会绕过登录、会员、付费、版权、DRM 或地区限制",
+            403,
+        )
+
+    rate_limit_markers = (
+        "too many requests",
+        "http error 429",
+        "429",
+        "rate limit",
+        "captcha",
+        "验证码",
+        "频繁",
+    )
+    if any(marker in message for marker in rate_limit_markers):
+        return AppError("platform_rate_limited", "平台访问频率受限或触发风控，请稍后再试", 429)
+
+    unsupported_markers = (
+        "unsupported url",
+        "no suitable extractor",
+        "no video formats found",
+        "unable to extract",
+    )
+    if any(marker in message for marker in unsupported_markers):
+        return AppError("unsupported_platform", "该链接暂不支持解析，请确认是否为公开视频链接", 422)
+
+    unavailable_markers = (
+        "timed out",
+        "timeout",
+        "temporary failure",
+        "connection reset",
+        "connection aborted",
+        "network is unreachable",
+    )
+    if any(marker in message for marker in unavailable_markers):
+        return AppError("platform_unavailable", "平台暂时不可访问或网络超时，请稍后重试", 503)
+
+    return AppError("parse_failed", "公开视频解析失败或平台暂不支持", 422)
 
 
 def _safe_str(value: Any) -> str | None:

@@ -19,6 +19,7 @@ from app.schemas import DownloadLinkResponse, TaskCreate, TaskEventRead, TaskRea
 from app.services.queue import enqueue_download_task
 from app.services.storage import ObjectStorage
 from app.services.pdf import PDFService
+from app.services.platforms import validate_supported_download_url
 from app.services.tasks import (
     add_task_event,
     annotate_latest_attempts,
@@ -43,6 +44,7 @@ def create_task(
     db: Annotated[Session, Depends(get_db)],
 ) -> DownloadTask:
     source_url = normalize_user_url(payload.url)
+    validate_supported_download_url(source_url)
     assert_concurrency_allowed(db, current_user)
     task = DownloadTask(
         user_id=current_user.id,

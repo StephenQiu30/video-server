@@ -1,0 +1,12 @@
+[
+  {
+    "name": "B 站公开视频样例",
+    "url": "https://www.bilibili.com/video/BV1xx411c7mD",
+    "expected_platform_id": "bilibili"
+  },
+  {
+    "name": "抖音公开视频样例",
+    "url": "https://www.douyin.com/video/123456789",
+    "expected_platform_id": "douyin"
+  }
+]

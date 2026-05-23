@@ -120,6 +120,48 @@ def test_parse_api_requires_auth(client: TestClient) -> None:
     assert response.status_code == 401
 
 
+def test_create_task_rejects_obviously_unsupported_platform_before_enqueue(
+    monkeypatch,
+    client: TestClient,
+    session: Session,
+) -> None:
+    def fail_enqueue(_: str) -> None:
+        raise AssertionError("unsupported platform should not be enqueued")
+
+    monkeypatch.setattr("app.routers.tasks.enqueue_download_task", fail_enqueue)
+    user = _make_user(session, email="unsupported@example.com", github_id="unsupported-user")
+    token = create_access_token(user.id)
+
+    response = client.post(
+        "/api/tasks",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"url": "https://example.invalid/video/1"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "unsupported_platform"
+
+
+def test_create_task_accepts_known_bilibili_platform_before_enqueue(
+    monkeypatch,
+    client: TestClient,
+    session: Session,
+) -> None:
+    enqueued = []
+    monkeypatch.setattr("app.routers.tasks.enqueue_download_task", lambda task_id: enqueued.append(task_id))
+    user = _make_user(session, email="known-platform@example.com", github_id="known-platform-user")
+    token = create_access_token(user.id)
+
+    response = client.post(
+        "/api/tasks",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"url": "https://www.bilibili.com/video/BV1xx411c7mD"},
+    )
+
+    assert response.status_code == 201
+    assert enqueued == [response.json()["id"]]
+
+
 def test_task_list_state_filter_invalid(session: Session, client: TestClient) -> None:
     user = _make_user(session, email="filter@example.com", github_id="filter-user")
     token = create_access_token(user.id)

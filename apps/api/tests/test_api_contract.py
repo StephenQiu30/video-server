@@ -1,4 +1,16 @@
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
+from app.core.security import create_access_token
+from app.models import User
+
+
+def _make_user(session: Session) -> User:
+    user = User(email="parse-contract@example.com", display_name="Parse Contract", github_id="parse-contract")
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
 
 
 def test_api_only_backend_not_serving_spa(client: TestClient) -> None:
@@ -7,3 +19,46 @@ def test_api_only_backend_not_serving_spa(client: TestClient) -> None:
 
     assert response.status_code == 404
     assert response.json() == {"detail": "Not Found"}
+
+
+def test_parse_response_includes_platform_metadata(monkeypatch, client: TestClient, session: Session) -> None:
+    def fake_extract(url: str) -> dict:
+        return {
+            "title": "Douyin contract sample",
+            "duration": 12,
+            "extractor_key": "Douyin",
+            "formats": [
+                {
+                    "format_id": "http-720",
+                    "height": 720,
+                    "width": 1280,
+                    "ext": "mp4",
+                    "vcodec": "h264",
+                    "acodec": "aac",
+                }
+            ],
+        }
+
+    monkeypatch.setattr("app.services.download_adapter._extract_with_ytdlp", fake_extract)
+    user = _make_user(session)
+    token = create_access_token(user.id)
+
+    response = client.post(
+        "/api/parse",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"url": "https://www.douyin.com/video/123"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["platform_id"] == "douyin"
+    assert data["platform_category"] == "domestic_short_video"
+    assert data["compliance_note"]
+    assert data["source_site"] == "抖音"
+    assert data["formats"]
+
+
+def test_parse_requires_authenticated_user(client: TestClient) -> None:
+    response = client.post("/api/parse", json={"url": "https://www.bilibili.com/video/BV1xx411c7mD"})
+
+    assert response.status_code == 401
