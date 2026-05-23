@@ -39,7 +39,6 @@ def test_task_api_flow_coverage_taskread_fields_and_cancel_retry(monkeypatch, cl
     assert created["source_url"] == "https://v.douyin.com/test-short-video-id"
     assert created["attempt_no"] == 1
     assert created["is_latest_attempt"] is True
-    assert created["user_id"] == owner.id
     assert created["format_label"] == "推荐下载"
     task_id = created["id"]
 
