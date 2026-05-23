@@ -1,6 +1,16 @@
 import json
 
+from fastapi.testclient import TestClient
+
+from app.main import create_app
 from app.routers import health
+
+
+def test_app_lifespan_starts_with_test_client() -> None:
+    with TestClient(create_app()) as client:
+        response = client.get("/health")
+
+    assert response.status_code == 200
 
 
 def test_ready_returns_ok_when_all_checks_pass(monkeypatch) -> None:

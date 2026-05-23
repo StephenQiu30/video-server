@@ -15,7 +15,7 @@ from app.routers import admin, auth, health, metrics, parse, tasks
 
 
 @asynccontextmanager
-def _app_lifespan(settings: "Settings"):
+async def _app_lifespan(settings: "Settings"):
     logger = logging.getLogger(__name__)
     try:
         if settings.skip_db_bootstrap and settings.app_env != "production":
