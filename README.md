@@ -1,6 +1,6 @@
 # 万能视频下载器
 
-这是一个合规、安全、可自部署的视频下载与内容整理工具。采用 FastAPI, RQ, Shadcn UI 和 DeepSeek AI 构建。
+这是一个合规、安全、可自部署的视频下载与内容整理工具。采用 FastAPI、RQ、yt-dlp 构建。
 
 ## 核心功能
 
@@ -20,9 +20,12 @@
   ```
 
 默认服务地址：
-- 前端：`http://localhost:3000`
 - API：`http://localhost:8000`
 - MinIO 控制台：`http://localhost:9001`
+
+前端仓库已独立拆分：
+
+- 前端项目：`https://github.com/StephenQiu30/video-web`
 
 ## 本地开发指南
 
@@ -44,9 +47,9 @@
    python -m worker.main
    ```
 
-4. **运行前端**：
+4. **前端请使用独立仓库启动：**
    ```bash
-   cd apps/web && npm install && npm run dev
+   git clone https://github.com/StephenQiu30/video-web.git
    ```
 
 ## 重要边界

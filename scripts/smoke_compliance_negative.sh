@@ -73,7 +73,7 @@ allowed_cookie_config_files = {
 cookie_reader_hits: list[str] = []
 cookie_config_hits: list[str] = []
 
-for root in [Path("apps/api/app"), Path("apps/worker/worker"), Path("apps/web/src")]:
+for root in [Path("apps/api/app"), Path("apps/worker/worker")]:
     for path in root.rglob("*"):
         if path.suffix not in {".py", ".ts", ".tsx"}:
             continue

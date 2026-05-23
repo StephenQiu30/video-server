@@ -41,20 +41,3 @@ jobs:
           SKIP_DB_BOOTSTRAP: true
         run: |
           pytest apps/api/tests
-
-  frontend-build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Install dependencies
-        run: cd apps/web && npm install
-      - name: Lint and Build
-        run: |
-          cd apps/web
-          npm run lint
-          npm run build
-          npm run test:landing

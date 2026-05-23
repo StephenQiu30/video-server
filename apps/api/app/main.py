@@ -1,10 +1,8 @@
-import os
-from contextlib import asynccontextmanager
 import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 
 from app.core.config import get_settings
 from app.core.errors import AppError, app_error_handler
@@ -46,7 +44,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
     # API Routers
     app.include_router(health.router)
     app.include_router(auth.router)
@@ -54,27 +52,6 @@ def create_app() -> FastAPI:
     app.include_router(tasks.router)
     app.include_router(admin.router)
     app.include_router(metrics.router)
-
-    # Static files and SPA routing
-    # The 'static' directory should be in the app root (where main.py's parent's parent is)
-    static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
-    if os.path.exists(static_dir):
-        # Mount assets and other static files
-        app.mount("/assets", StaticFiles(directory=os.path.join(static_dir, "assets")), name="assets")
-        
-        @app.get("/{full_path:path}")
-        async def serve_spa(full_path: str):
-            # 1. Check if the path is an API call - let it fall through to 404 if it is
-            if full_path.startswith("api/") or full_path in ["health", "ready", "metrics"]:
-                return {"detail": "Not Found"}
-            
-            # 2. Check if specific file exists in static dir
-            file_path = os.path.join(static_dir, full_path)
-            if os.path.isfile(file_path):
-                return FileResponse(file_path)
-            
-            # 3. Fallback to index.html for SPA routing
-            return FileResponse(os.path.join(static_dir, "index.html"))
 
     return app
 
