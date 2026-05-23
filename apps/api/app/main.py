@@ -7,9 +7,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.core.errors import AppError, app_error_handler
 from app.core.logging import setup_logging
+from app.core.production import validate_production_settings
 from app.db.base import Base
 from app.db.session import engine
 from app.db.upgrade import run_database_upgrades
+from app.middleware.request_context import request_context_middleware
 from app import models  # noqa: F401
 from app.routers import admin, auth, health, metrics, parse, tasks
 
@@ -33,10 +35,12 @@ async def _app_lifespan(settings: "Settings"):
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    validate_production_settings(settings)
     logger = logging.getLogger(__name__)
     setup_logging(settings.app_env)
     app = FastAPI(title=settings.app_name, lifespan=lambda app_obj: _app_lifespan(settings))
     app.add_exception_handler(AppError, app_error_handler)
+    app.middleware("http")(request_context_middleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origin_list(),

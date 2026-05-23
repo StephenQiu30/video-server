@@ -31,4 +31,16 @@ grep -q "test:" AGENTS.md
 grep -q "impl:" AGENTS.md
 grep -q "Test-first Evidence" .github/pull_request_template.md
 
+for script in scripts/*.sh; do
+  bash -n "$script"
+done
+
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+
+if "$PYTHON_BIN" scripts/validate_prod_env.py .env.production.example >/tmp/video-prod-env-validation.out 2>&1; then
+  echo ".env.production.example must keep unsafe placeholders and fail production validation" >&2
+  exit 1
+fi
+grep -q "replace placeholder values" /tmp/video-prod-env-validation.out
+
 git diff --check

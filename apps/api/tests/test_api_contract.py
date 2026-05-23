@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token
 from app.models import User
+from app.services.rate_limit import InMemoryRateLimiter
 
 
 def _make_user(session: Session) -> User:
@@ -62,3 +63,26 @@ def test_parse_requires_authenticated_user(client: TestClient) -> None:
     response = client.post("/api/parse", json={"url": "https://www.bilibili.com/video/BV1xx411c7mD"})
 
     assert response.status_code == 401
+
+
+def test_parse_rate_limits_authenticated_user(monkeypatch, client: TestClient, session: Session) -> None:
+    limiter = InMemoryRateLimiter(limit=1, window_seconds=60)
+    monkeypatch.setattr("app.routers.parse.get_parse_rate_limiter", lambda: limiter)
+    monkeypatch.setattr(
+        "app.services.download_adapter._extract_with_ytdlp",
+        lambda url: {
+            "title": "Rate limit sample",
+            "extractor_key": "BiliBili",
+            "formats": [{"format_id": "best", "height": 720, "ext": "mp4", "vcodec": "h264"}],
+        },
+    )
+    user = _make_user(session)
+    token = create_access_token(user.id)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    first = client.post("/api/parse", headers=headers, json={"url": "https://www.bilibili.com/video/BV1xx411c7mD"})
+    second = client.post("/api/parse", headers=headers, json={"url": "https://www.bilibili.com/video/BV1xx411c7mD"})
+
+    assert first.status_code == 200
+    assert second.status_code == 429
+    assert second.json()["error"]["code"] == "rate_limited"

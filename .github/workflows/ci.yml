@@ -41,3 +41,8 @@ jobs:
           SKIP_DB_BOOTSTRAP: true
         run: |
           npm test
+      - name: Validate Docker Compose config
+        run: |
+          cp .env.production.example .env.production
+          npm run docker:config
+          rm -f .env.production
