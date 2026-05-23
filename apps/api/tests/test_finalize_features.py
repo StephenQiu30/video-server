@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from app.models import DownloadTask, User
 from app.services.pdf import PDFService
+from app.services.storage import ObjectStorage
 from app.core.security import create_access_token
 from video_downloader_shared.states import TaskState
 
@@ -105,6 +106,49 @@ def test_export_task_pdf_endpoint_success(client: TestClient, session: Session) 
     assert response.headers["content-type"] == "application/pdf"
     assert "attachment" in response.headers["content-disposition"]
     assert response.content.startswith(b"%PDF-")
+
+
+def test_task_download_link_returns_presigned_url_and_ttl(client: TestClient, session: Session, monkeypatch) -> None:
+    # Arrange: Create a succeeded task with object key
+    user = User(
+        email="test_download_link@example.com",
+        display_name="Test Download Link User",
+        github_id="github-download-link-123",
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    token = create_access_token(user.id)
+
+    task = DownloadTask(
+        id="task-download-link-1",
+        user_id=user.id,
+        state=TaskState.SUCCEEDED.value,
+        title="Download Link Task",
+        source_url="https://bilibili.com/video/BV2xx",
+        object_key="object-key-1",
+    )
+    session.add(task)
+    session.commit()
+
+    monkeypatch.setattr(
+        ObjectStorage,
+        "presign_download_url",
+        lambda self, object_key: f"https://mock-storage/{object_key}",
+    )
+
+    # Act: Request temporary download link
+    response = client.get(
+        f"/api/tasks/{task.id}/download-link",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    # Assert: verify link and TTL
+    assert response.status_code == 200
+    data = response.json()
+    assert data["url"] == "https://mock-storage/object-key-1"
+    assert data["expires_in_seconds"] == 900
 
 
 @pytest.mark.anyio
