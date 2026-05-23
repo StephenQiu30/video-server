@@ -39,6 +39,38 @@ python_bin() {
   echo "python3"
 }
 
+port_listener() {
+  local port="$1"
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -nP -iTCP:"${port}" -sTCP:LISTEN 2>/dev/null || true
+    return
+  fi
+  if command -v ss >/dev/null 2>&1; then
+    ss -ltnp "sport = :${port}" 2>/dev/null || true
+    return
+  fi
+  if command -v netstat >/dev/null 2>&1; then
+    netstat -an 2>/dev/null | grep "[.:]${port} .*LISTEN" || true
+  fi
+}
+
+ensure_port_available() {
+  local host="$1"
+  local port="$2"
+  local listeners
+  listeners="$(port_listener "${port}")"
+  if [ -z "${listeners}" ]; then
+    return
+  fi
+
+  echo "Port ${host}:${port} is already in use." >&2
+  echo "${listeners}" >&2
+  echo "" >&2
+  echo "Stop the existing process first, or start this API on another port:" >&2
+  echo "  API_PORT=8001 npm start" >&2
+  exit 1
+}
+
 start_local() {
   ensure_local_env
   cd "${ROOT_DIR}"
@@ -46,6 +78,10 @@ start_local() {
   local py_bin
   py_bin="$(python_bin)"
   export PYTHON_BIN="${py_bin}"
+
+  local api_host="${API_HOST:-127.0.0.1}"
+  local api_port="${API_PORT:-8000}"
+  ensure_port_available "${api_host}" "${api_port}"
 
   PIDS=()
   cleanup() {
@@ -56,7 +92,7 @@ start_local() {
   }
   trap cleanup INT TERM EXIT
 
-  echo "Starting API: http://127.0.0.1:${API_PORT:-8000}"
+  echo "Starting API: http://${api_host}:${api_port}"
   ./scripts/dev_api.sh &
   PIDS+=("$!")
 
