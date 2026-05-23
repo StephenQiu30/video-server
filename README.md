@@ -82,3 +82,16 @@ npm run docker:down
 - 仅用于用户拥有版权或合法授权的内容。
 - 不支持 DRM 规避、付费墙绕过。
 - 下载文件默认保留 24 小时。
+
+## 上线门禁
+
+本仓库的 CI 会执行测试、仓库结构校验、脚本语法检查、生产环境模板负向校验和 Docker Compose 配置渲染。
+
+本地可复现：
+
+```bash
+npm test
+set -e; cp .env.production.example .env.production; npm run docker:config; rm -f .env.production
+```
+
+`.env.production.example` 必须保留 `CHANGE_ME` 等占位符并通过负向校验失败，不能直接作为真实生产配置使用。
