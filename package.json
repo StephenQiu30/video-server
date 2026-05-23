@@ -1,6 +1,7 @@
 {
   "private": true,
   "scripts": {
+    "test": "bash scripts/validate-repository.sh && PYTHONPATH=apps/api:apps/worker:packages/shared pytest apps/api/tests",
     "start": "./scripts/start.sh docker:detached",
     "stop": "./scripts/start.sh docker:stop",
     "check:local": "./scripts/check_local_services.sh",

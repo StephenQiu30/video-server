@@ -40,4 +40,4 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}/apps/api:${{ github.workspace }}/apps/worker:${{ github.workspace }}/packages/shared
           SKIP_DB_BOOTSTRAP: true
         run: |
-          pytest apps/api/tests
+          npm test
