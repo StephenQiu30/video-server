@@ -73,6 +73,9 @@ class ParseResponse(BaseModel):
     cover_url: str | None = None
     duration_seconds: int | None = None
     source_site: str | None = None
+    platform_id: str | None = None
+    platform_category: str | None = None
+    compliance_note: str | None = None
     extractor: str | None = None
     formats: list[VideoFormat]
 
