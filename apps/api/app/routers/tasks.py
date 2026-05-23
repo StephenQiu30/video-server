@@ -178,8 +178,9 @@ def get_download_link(
     cleanup_expired_task_outputs(db)
     task = get_owned_task(db, current_user, task_id)
     _assert_downloadable(task)
+    settings = get_settings()
     url = ObjectStorage().presign_download_url(task.object_key)
-    return DownloadLinkResponse(url=url, expires_in_seconds=ttl)
+    return DownloadLinkResponse(url=url, expires_in_seconds=settings.presigned_url_ttl_seconds)
 
 
 @router.get("/{task_id}/pdf")
