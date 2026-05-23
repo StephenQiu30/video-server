@@ -10,18 +10,16 @@ WORKER_LOG_FILE="${RUNTIME_DIR}/worker.log"
 usage() {
   cat <<'USAGE'
 Usage:
-  ./scripts/start.sh local             Start local API and Web only
-  ./scripts/start.sh docker            Start default Docker API and Web only
-  ./scripts/start.sh docker:detached   Start Docker API/Web and local Worker in background
-  ./scripts/start.sh docker:stop       Stop Docker API/Web and local Worker
+  ./scripts/start.sh local             Start local API and Worker only (optional)
+  ./scripts/start.sh docker            Start Docker API only
+  ./scripts/start.sh docker:detached   Start Docker API and local Worker in background
+  ./scripts/start.sh docker:stop       Stop Docker API and local Worker
   ./scripts/start.sh prod              Start production Docker stack with infra
 
-Local mode only starts project processes and does not start or install
-PostgreSQL, Redis, or MinIO. The default Docker Compose file only defines Web
-and API, then npm start also starts one host Worker so yt-dlp can read local
-browser login state when YTDLP_COOKIES_FROM_BROWSER is explicitly enabled.
-Production mode adds PostgreSQL, Redis, MinIO, Worker, API, and Web through
-the prod Compose override.
+Local mode only starts API and optional Worker; it does not start or install
+PostgreSQL, Redis, or MinIO. The default Docker Compose file defines API +
+Worker only. Production mode adds PostgreSQL, Redis, MinIO, Worker, and API
+through the prod Compose override.
 USAGE
 }
 
@@ -104,11 +102,6 @@ start_local() {
   py_bin="$(python_bin)"
   export PYTHON_BIN="${py_bin}"
 
-  if [ ! -d "apps/web/node_modules" ]; then
-    echo "apps/web/node_modules not found. Run: cd apps/web && npm install"
-    exit 1
-  fi
-
   PIDS=()
   cleanup() {
     for pid in "${PIDS[@]:-}"; do
@@ -130,13 +123,6 @@ start_local() {
     echo "Skipping Worker. Set START_WORKER=true if you need local queued downloads."
   fi
 
-  echo "Starting Web: http://127.0.0.1:3000"
-  (
-    cd "${ROOT_DIR}/apps/web"
-    UMI_APP_API_BASE_URL="${UMI_APP_API_BASE_URL:-http://127.0.0.1:8000}" npm run dev
-  ) &
-  PIDS+=("$!")
-
   echo "Local stack started. Press Ctrl+C to stop."
   while true; do
     for pid in "${PIDS[@]}"; do
@@ -152,8 +138,6 @@ start_local() {
 start_docker() {
   ensure_local_env
   cd "${ROOT_DIR}"
-  mkdir -p apps/web/dist
-
   docker compose \
     --env-file .env \
     -f docker-compose.yml \
@@ -163,8 +147,6 @@ start_docker() {
 start_docker_detached() {
   ensure_local_env
   cd "${ROOT_DIR}"
-  mkdir -p apps/web/dist
-
   docker compose \
     --env-file .env \
     -f docker-compose.yml \
@@ -184,8 +166,6 @@ stop_docker() {
 
 start_prod() {
   cd "${ROOT_DIR}"
-  mkdir -p apps/web/dist
-
   if [ ! -f ".env.production" ]; then
     echo "Missing .env.production. Create it first:"
     echo "  cp .env.production.example .env.production"

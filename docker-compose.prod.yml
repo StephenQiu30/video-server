@@ -55,7 +55,6 @@ services:
         condition: service_healthy
     ports:
       - "8000:8000"
-      - "3000:8000"
 
   worker:
     build:
@@ -74,4 +73,3 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-

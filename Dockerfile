@@ -21,9 +21,6 @@ COPY apps/api/requirements.txt /app/apps/api/requirements.txt
 RUN pip install --no-cache-dir -r /app/apps/api/requirements.txt
 COPY apps/api /app/apps/api
 COPY packages /app/packages
-# Use locally built frontend from host machine
-# Ensure you have run 'npm run build' in apps/web before building docker
-COPY apps/web/dist /app/apps/api/static
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
@@ -38,4 +35,3 @@ COPY apps/api /app/apps/api
 COPY apps/worker /app/apps/worker
 COPY packages /app/packages
 CMD ["python", "-m", "worker.main"]
-
