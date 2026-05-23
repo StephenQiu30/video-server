@@ -9,12 +9,13 @@ from app.core.config import get_settings
 from app.db.session import get_db
 from app.deps import get_current_active_admin
 from app.models import DownloadTask, User
+from app.schemas import AdminMetricsResponse
 from video_downloader_shared.states import ACTIVE_TASK_STATES
 
 router = APIRouter(prefix="/api/admin/metrics", tags=["admin", "metrics"])
 
 
-@router.get("")
+@router.get("", response_model=AdminMetricsResponse)
 def get_metrics(
     _: Annotated[User, Depends(get_current_active_admin)],
     db: Annotated[Session, Depends(get_db)],

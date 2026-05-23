@@ -109,7 +109,15 @@ def list_tasks(
     return _list_user_tasks(db, current_user.id, state, limit)
 
 
-@router.get("/stream")
+@router.get(
+    "/stream",
+    responses={
+        200: {
+            "description": "Server-Sent Events task list stream.",
+            "content": {"text/event-stream": {"schema": {"type": "string"}}},
+        }
+    },
+)
 async def stream_tasks(
     current_user: Annotated[User, Depends(get_current_user)],
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
@@ -208,7 +216,19 @@ def get_download_link(
     return DownloadLinkResponse(url=url, expires_in_seconds=settings.presigned_url_ttl_seconds)
 
 
-@router.get("/{task_id}/pdf")
+@router.get(
+    "/{task_id}/pdf",
+    responses={
+        200: {
+            "description": "PDF task report.",
+            "content": {
+                "application/pdf": {
+                    "schema": {"type": "string", "format": "binary"},
+                }
+            },
+        }
+    },
+)
 def export_task_pdf(
     task_id: str,
     current_user: Annotated[User, Depends(get_current_user)],

@@ -10,7 +10,7 @@ from sqlalchemy import text
 
 from app.core.config import get_settings
 from app.db.session import SessionLocal
-from app.schemas import HealthResponse
+from app.schemas import HealthResponse, ReadinessResponse
 from app.services.storage import ObjectStorage
 
 router = APIRouter(tags=["health"])
@@ -21,7 +21,7 @@ def health() -> HealthResponse:
     return HealthResponse(status="ok", app=get_settings().app_name)
 
 
-@router.get("/ready")
+@router.get("/ready", response_model=ReadinessResponse)
 def ready() -> JSONResponse:
     checks = {
         "database": _check_database(),
