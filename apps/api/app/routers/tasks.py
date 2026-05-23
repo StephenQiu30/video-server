@@ -2,11 +2,13 @@ from datetime import UTC, datetime
 import asyncio
 import json
 import time
+from functools import lru_cache
 from typing import Annotated
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import StreamingResponse
+from redis import Redis
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
@@ -17,6 +19,7 @@ from app.deps import get_current_user
 from app.models import DownloadTask, User
 from app.schemas import DownloadLinkResponse, TaskCreate, TaskEventRead, TaskRead
 from app.services.queue import enqueue_download_task
+from app.services.rate_limit import InMemoryRateLimiter, RateLimitPolicy, RateLimitScope, RedisRateLimiter
 from app.services.storage import ObjectStorage
 from app.services.pdf import PDFService
 from app.services.platforms import validate_supported_download_url
@@ -37,12 +40,32 @@ from video_downloader_shared.states import TaskState
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
 
+@lru_cache
+def get_create_task_rate_limiter():
+    settings = get_settings()
+    if settings.app_env not in {"local", "testing"}:
+        return RedisRateLimiter(
+            Redis.from_url(settings.redis_url),
+            RateLimitPolicy(
+                scope=RateLimitScope.CREATE_TASK,
+                limit=settings.create_task_rate_limit_per_minute,
+                window_seconds=settings.create_task_rate_limit_window_seconds,
+            ),
+        )
+    return InMemoryRateLimiter(
+        limit=settings.create_task_rate_limit_per_minute,
+        window_seconds=settings.create_task_rate_limit_window_seconds,
+        scope=RateLimitScope.CREATE_TASK,
+    )
+
+
 @router.post("", response_model=TaskRead, status_code=201)
 def create_task(
     payload: TaskCreate,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ) -> DownloadTask:
+    get_create_task_rate_limiter().assert_allowed(f"user:{current_user.id}")
     source_url = normalize_user_url(payload.url)
     validate_supported_download_url(source_url)
     assert_concurrency_allowed(db, current_user)
