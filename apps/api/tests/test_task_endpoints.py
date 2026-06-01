@@ -17,6 +17,7 @@ def _make_user(session: Session, *, email: str, github_id: str) -> User:
 
 
 def test_task_api_flow_coverage_taskread_fields_and_cancel_retry(monkeypatch, client: TestClient, session: Session) -> None:
+    """Full task lifecycle: create, list, detail, events, cancel, retry."""
     monkeypatch.setattr("app.routers.tasks.enqueue_download_task", lambda task_id: None)
 
     owner = _make_user(session, email="task-api@example.com", github_id="task-api-owner")
@@ -79,6 +80,7 @@ def test_task_endpoints_cross_user_boundary_and_download_link_expired_or_miss(
     client: TestClient,
     session: Session,
 ) -> None:
+    """Cross-user access returns 404; expired download link returns 410."""
     monkeypatch.setattr("app.routers.tasks.enqueue_download_task", lambda task_id: None)
 
     owner = _make_user(session, email="owner@example.com", github_id="task-boundary-owner")
@@ -117,6 +119,7 @@ def test_succeeded_task_exposes_state_progress_and_download_fields(
     client: TestClient,
     session: Session,
 ) -> None:
+    """SUCCEEDED task response includes state, progress, output_filename, object_size, and expires_at."""
     monkeypatch.setattr("app.routers.tasks.enqueue_download_task", lambda task_id: None)
 
     owner = _make_user(session, email="succeeded@example.com", github_id="succeeded-owner")
@@ -152,6 +155,7 @@ def test_download_link_returns_presigned_url_for_owner(
     client: TestClient,
     session: Session,
 ) -> None:
+    """/api/tasks/{id}/download-link returns presigned url and expires_in_seconds for owner."""
     monkeypatch.setattr("app.routers.tasks.enqueue_download_task", lambda task_id: None)
 
     owner = _make_user(session, email="dl-owner@example.com", github_id="dl-owner")
@@ -185,6 +189,7 @@ def test_download_link_returns_presigned_url_for_owner(
 
 
 def test_parse_api_requires_auth(client: TestClient) -> None:
+    """/api/parse rejects unauthenticated requests with 401."""
     response = client.post(
         "/api/parse",
         json={"url": "https://bilibili.com/video/BV1xx411c7d"},
@@ -197,6 +202,7 @@ def test_create_task_rejects_obviously_unsupported_platform_before_enqueue(
     client: TestClient,
     session: Session,
 ) -> None:
+    """Unsupported platform URLs are rejected with 422 before enqueue."""
     def fail_enqueue(_: str) -> None:
         raise AssertionError("unsupported platform should not be enqueued")
 
@@ -219,6 +225,7 @@ def test_create_task_accepts_known_bilibili_platform_before_enqueue(
     client: TestClient,
     session: Session,
 ) -> None:
+    """Known Bilibili URLs are accepted and enqueued successfully."""
     enqueued = []
     monkeypatch.setattr("app.routers.tasks.enqueue_download_task", lambda task_id: enqueued.append(task_id))
     user = _make_user(session, email="known-platform@example.com", github_id="known-platform-user")
@@ -235,6 +242,7 @@ def test_create_task_accepts_known_bilibili_platform_before_enqueue(
 
 
 def test_create_task_rate_limits_authenticated_user(monkeypatch, client: TestClient, session: Session) -> None:
+    """Rate limiter rejects second task creation within the same window."""
     from app.services.rate_limit import InMemoryRateLimiter
 
     enqueued = []
@@ -262,6 +270,7 @@ def test_create_task_rate_limits_authenticated_user(monkeypatch, client: TestCli
 
 
 def test_task_list_state_filter_invalid(session: Session, client: TestClient) -> None:
+    """Invalid state filter returns 422 with invalid_state error code."""
     user = _make_user(session, email="filter@example.com", github_id="filter-user")
     token = create_access_token(user.id)
 
