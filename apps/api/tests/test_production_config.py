@@ -74,3 +74,18 @@ def test_validate_production_settings_allows_video_database_name_with_safe_passw
     settings.redis_url = "redis://:safe-redis-password@redis:6379/0"
 
     validate_production_settings(settings)
+
+
+def test_production_template_has_change_me_placeholders() -> None:
+    """The .env.production.example must contain CHANGE_ME placeholders so it
+    cannot be accidentally used as a real production config."""
+    from pathlib import Path
+
+    template_path = Path(__file__).resolve().parents[3] / ".env.production.example"
+    assert template_path.exists(), f"Production template not found: {template_path}"
+    content = template_path.read_text(encoding="utf-8")
+
+    assert "CHANGE_ME" in content, "Production template must contain CHANGE_ME placeholders"
+    # Ensure the most dangerous defaults are NOT present as real values
+    assert "minioadmin" not in content.lower(), "Production template must not contain 'minioadmin'"
+    assert content.count("CHANGE_ME") >= 5, "Production template should have CHANGE_ME for all secrets"

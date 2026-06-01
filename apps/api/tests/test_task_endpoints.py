@@ -196,3 +196,118 @@ def test_task_list_state_filter_invalid(session: Session, client: TestClient) ->
     response = client.get("/api/tasks?state=not-exist", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "invalid_state"
+
+
+def test_create_task_requires_auth(client: TestClient) -> None:
+    response = client.post(
+        "/api/tasks",
+        json={"url": "https://www.bilibili.com/video/BV1xx411c7mD", "title": "no-auth"},
+    )
+    assert response.status_code == 401
+
+
+def test_create_task_rejects_daily_quota_exceeded(
+    monkeypatch,
+    client: TestClient,
+    session: Session,
+) -> None:
+    monkeypatch.setattr("app.routers.tasks.enqueue_download_task", lambda task_id: None)
+    user = _make_user(session, email="daily-quota@example.com", github_id="daily-quota-user")
+    user.daily_task_quota = 0
+    session.commit()
+    token = create_access_token(user.id)
+
+    response = client.post(
+        "/api/tasks",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"url": "https://www.bilibili.com/video/BV1xx411c7mD"},
+    )
+
+    assert response.status_code == 429
+    assert response.json()["error"]["code"] == "limit_exceeded"
+
+
+def test_create_task_rejects_storage_quota_exceeded(
+    monkeypatch,
+    client: TestClient,
+    session: Session,
+) -> None:
+    monkeypatch.setattr("app.routers.tasks.enqueue_download_task", lambda task_id: None)
+    user = _make_user(session, email="storage-quota@example.com", github_id="storage-quota-user")
+    user.storage_quota_bytes = 0
+    session.commit()
+    token = create_access_token(user.id)
+
+    # Seed a task with object_size so storage_used >= storage_quota_bytes
+    task = DownloadTask(
+        user_id=user.id,
+        source_url="https://bilibili.com/video/BV1xx411c7d",
+        title="storage-seed",
+        state=TaskState.SUCCEEDED.value,
+        object_key="bucket/user/video.mp4",
+        object_size=1024,
+    )
+    session.add(task)
+    session.commit()
+
+    response = client.post(
+        "/api/tasks",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"url": "https://www.bilibili.com/video/BV1xx411c7mD"},
+    )
+
+    assert response.status_code == 429
+    assert response.json()["error"]["code"] == "limit_exceeded"
+
+
+def test_create_task_rejects_concurrent_task_limit(
+    monkeypatch,
+    client: TestClient,
+    session: Session,
+) -> None:
+    monkeypatch.setattr("app.routers.tasks.enqueue_download_task", lambda task_id: None)
+    user = _make_user(session, email="concurrent@example.com", github_id="concurrent-user")
+    user.concurrent_task_quota = 1
+    session.commit()
+    token = create_access_token(user.id)
+
+    # Seed an active (queued) task to exhaust the concurrency slot
+    active_task = DownloadTask(
+        user_id=user.id,
+        source_url="https://bilibili.com/video/BV1xx411c7d",
+        title="active-seed",
+        state=TaskState.QUEUED.value,
+    )
+    session.add(active_task)
+    session.commit()
+
+    response = client.post(
+        "/api/tasks",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"url": "https://www.bilibili.com/video/BV1xx411c7mD"},
+    )
+
+    assert response.status_code == 429
+    assert response.json()["error"]["code"] == "limit_exceeded"
+
+
+def test_error_responses_do_not_leak_sensitive_params(
+    monkeypatch,
+    client: TestClient,
+    session: Session,
+) -> None:
+    """Error responses must not contain cookie, token, or secret values."""
+    monkeypatch.setattr("app.routers.tasks.enqueue_download_task", lambda task_id: None)
+    user = _make_user(session, email="leak-check@example.com", github_id="leak-check-user")
+    token = create_access_token(user.id)
+
+    response = client.post(
+        "/api/tasks",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"url": "https://example.invalid/video/1"},
+    )
+
+    assert response.status_code == 422
+    body = response.text.lower()
+    for secret in ("cookie", "token", "secret", "password", "minioadmin"):
+        assert secret not in body, f"Sensitive param '{secret}' leaked in error response"
