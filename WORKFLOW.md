@@ -322,6 +322,17 @@ Use this exact structure for the persistent workpad comment and keep it updated 
 - [ ] Criterion 1
 - [ ] Criterion 2
 
+### Test-first Evidence
+
+- [ ] Red: `<failing test or executable validation before implementation>`
+- [ ] Green: `<passing validation after implementation>`
+
+### Commit Plan
+
+- [ ] `test:` red test or documented exception
+- [ ] `impl:`/`feat:` minimal behavior change
+- [ ] optional `refactor:`/`docs:`/`chore:` cleanup
+
 ### Validation
 
 - [ ] targeted tests: `<command>`
