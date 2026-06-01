@@ -234,7 +234,7 @@ def _build_resolution_presets(available_heights: set[int]) -> list[VideoFormat]:
             if higher:
                 note = f"该来源最高可用 {max(higher)}p，将自动降级下载。"
             else:
-                note = "选择平台已有较低清晰度源，不做后端转码。"
+                note = "该清晰度有可用源，将直接下载，不做后端转码。"
         else:
             note = "该来源未提供此清晰度或更高的视频流，不可选择。"
         formats.append(
