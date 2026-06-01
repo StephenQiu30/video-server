@@ -248,15 +248,15 @@ def _build_resolution_presets(
         )
     ]
     for height, label in RESOLUTION_PRESETS:
-        matching_heights = [item for item in available_heights if item <= height]
-        best_height = max(matching_heights) if matching_heights else None
-        available = best_height is not None
-        if not available:
-            note = "该来源未提供此清晰度或更低的视频流"
-        elif best_height < height:
-            note = f"该来源最高可用 {best_height}p，将自动降级下载。"
+        can_match = any(h >= height for h in available_heights)
+        if can_match:
+            higher = [h for h in available_heights if h > height]
+            if higher:
+                note = f"该来源最高可用 {max(higher)}p，将自动降级下载。"
+            else:
+                note = "该清晰度有可用源，将直接下载，不做后端转码。"
         else:
-            note = "选择平台已有较低清晰度源，不做后端转码。"
+            note = "该来源未提供此清晰度或更高的视频流，不可选择。"
         formats.append(
             VideoFormat(
                 format_id=f"bv*[height<={height}]+ba/b[height<={height}]",
@@ -266,7 +266,7 @@ def _build_resolution_presets(
                 resolution=f"最高 {height}p",
                 height=height,
                 kind="video",
-                available=available,
+                available=can_match,
                 note=note,
                 watermark_hint=watermark_hint,
             )

@@ -322,7 +322,7 @@ class AuthLockScope(StrEnum):
 
 1. `docs/03-架构设计/05-后端上线级工程化升级设计.md`
 2. `docs/04-执行计划/05-后端上线级工程化任务拆分.md`
-3. `AGENTS.md`
+3. `CLAUDE.md`
 
 ### 5.2 输出文档
 
