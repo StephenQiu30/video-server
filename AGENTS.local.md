@@ -12,4 +12,4 @@
 
 1. 本项目内的角色配置放在 `.codex/agents/` 目录。
 2. 本项目内的可复用流程放在 `.codex/skills/` 目录。
-3. 本项目内的 OpenSpec 配置放在 `openspec/` 目录。
+3. Codex 入口与 Claude 入口、Cursor 入口并存；不要删除 `CLAUDE.md`、`CURSOR.md`、`.claude/`、`.cursor/` 或 `.cursor/rules/`。
