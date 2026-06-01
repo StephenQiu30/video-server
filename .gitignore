@@ -1,7 +1,13 @@
 .DS_Store
 **/.DS_Store
-.claude/
-.cursor/
+.claude/settings.local.json
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/*.mdc
+!.cursor/agents/
+!.cursor/agents/*.md
+!.cursor/skills/
+!.cursor/skills/**
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -13,5 +19,6 @@ apps/web/src/.umi/
 apps/web/src/.umi-production/
 .env
 downloads/
+.idea
 tmp/
 stephen-video-workspace-*.png
