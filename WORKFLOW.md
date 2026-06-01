@@ -31,10 +31,15 @@ hooks:
   before_remove: |
     true
 agent:
+  default_runtime: codex
   max_concurrent_agents: 10
   max_turns: 20
+  runtime_by_label:
+    agent:codex: codex
+    agent:claude: claude
+    agent:cursor: cursor
 claude:
-  command: claude --dangerously-skip-permissions
+  command: claude -p --dangerously-skip-permissions --output-format stream-json --include-partial-messages --verbose
   approval_policy: never
   thread_sandbox: workspace-write
   turn_sandbox_policy:
