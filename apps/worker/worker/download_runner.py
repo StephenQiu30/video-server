@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 import shutil
 from typing import Callable
@@ -11,6 +12,8 @@ from app.utils.sanitize import safe_filename
 from video_downloader_shared.states import TaskState
 from worker.domain import DownloadArtifact
 from worker.failures import JobFailure, raise_task_canceled
+
+logger = logging.getLogger(__name__)
 
 
 def download_task_artifact(
@@ -58,7 +61,8 @@ def download_task_artifact(
         "socket_timeout": 30,
     }
     apply_download_resilience_options(options)
-    apply_browser_cookie_options(options, settings.ytdlp_cookies_from_browser)
+    cookie_args = build_cookie_args(settings.ytdlp_cookies_from_browser, settings.ytdlp_cookie_file)
+    options.update(cookie_args)
     options["ffmpeg_location"] = ffmpeg_path
     options["merge_output_format"] = "mp4"
     with YoutubeDL(options) as ydl:
@@ -70,13 +74,39 @@ def download_task_artifact(
     return DownloadArtifact(path=output_path, filename=output_path.name, size_bytes=output_path.stat().st_size)
 
 
-def apply_browser_cookie_options(options: dict, browser_name: str | None) -> None:
+_SUPPORTED_BROWSERS = frozenset({"chrome", "chromium", "edge", "firefox", "safari"})
+_DISABLED_VALUES = frozenset({"", "none", "false", "off"})
+
+
+def build_cookie_args(
+    browser_name: str | None = None,
+    cookie_file: str | None = None,
+) -> dict:
+    """Build yt-dlp cookie options dict.
+
+    File path takes precedence over browser when both are configured.
+    Invalid values log a warning but never block the Worker.
+    """
+    # Cookie file takes precedence over browser.
+    if cookie_file:
+        path = Path(cookie_file)
+        if path.is_file():
+            return {"cookiefile": str(path)}
+        logger.warning("Cookie 文件不存在，跳过: %s", cookie_file)
+
     browser = (browser_name or "").strip().lower()
-    if not browser or browser in {"none", "false", "off"}:
-        return
-    if browser not in {"chrome", "chromium", "edge", "firefox", "safari"}:
-        raise JobFailure("browser_cookies_unavailable", "浏览器登录态配置无效，请检查 YTDLP_COOKIES_FROM_BROWSER")
-    options["cookiesfrombrowser"] = (browser,)
+    if browser in _DISABLED_VALUES:
+        return {}
+
+    if browser not in _SUPPORTED_BROWSERS:
+        logger.warning("不支持的浏览器类型 '%s'，跳过 Cookie 配置", browser_name)
+        return {}
+
+    return {"cookiesfrombrowser": (browser,)}
+
+
+def apply_browser_cookie_options(options: dict, browser_name: str | None) -> None:
+    options.update(build_cookie_args(browser_name))
 
 
 def apply_download_resilience_options(options: dict) -> None:

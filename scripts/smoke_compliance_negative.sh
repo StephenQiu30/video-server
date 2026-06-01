@@ -65,6 +65,7 @@ from pathlib import Path
 
 allowed_cookie_reader_files = {
     Path("apps/worker/worker/jobs.py"),
+    Path("apps/worker/worker/download_runner.py"),
 }
 allowed_cookie_config_files = {
     Path("apps/api/app/core/config.py"),
