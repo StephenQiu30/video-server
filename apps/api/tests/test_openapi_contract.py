@@ -52,6 +52,18 @@ def test_openapi_documents_core_video_downloader_response_models() -> None:
     assert _ref_name(_success_schema(openapi, "get", "/api/admin/metrics")) == "AdminMetricsResponse"
 
 
+def test_openapi_video_format_schema_includes_watermark_hint() -> None:
+    openapi = _openapi()
+    video_format = openapi["components"]["schemas"]["VideoFormat"]
+
+    assert "watermark_hint" in video_format["properties"], (
+        "VideoFormat schema must include watermark_hint field"
+    )
+    prop = video_format["properties"]["watermark_hint"]
+    # Should be an optional string (anyOf with string + null, or nullable string)
+    assert prop.get("type") == "string" or prop.get("nullable") is True or "anyOf" in prop
+
+
 def test_openapi_documents_non_json_runtime_responses() -> None:
     openapi = _openapi()
 
