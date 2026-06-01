@@ -119,5 +119,5 @@ SMOKE_SAMPLE_FILE=docs/05-测试验收/smoke-platform-samples.example.json \
 
 - M1 本地验收通过。
 - `production-saas-readiness` 任务中上线门禁全部通过。
-- 后端测试、前端 lint/build、OpenSpec validation、Compose config 校验通过。
+- 后端测试、前端 lint/build、测试验证、Compose config 校验通过。
 - 部署、备份、日志、清理、合规负向样例均有记录。
