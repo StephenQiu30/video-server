@@ -28,6 +28,18 @@ SOURCE_SITE_NAMES = {
     "weibo": "微博",
 }
 
+# Platforms whose default downloads are known to carry a visible watermark.
+WATERMARK_PLATFORM_IDS: frozenset[str] = frozenset({
+    "douyin",
+    "kuaishou",
+    "tiktok",
+    "xiaohongshu",
+    "ixigua",
+    "weibo",
+})
+
+WATERMARK_HINT_TEXT = "该来源可能包含平台水印"
+
 
 @dataclass(frozen=True)
 class ParsedHost:
@@ -153,6 +165,7 @@ def _to_parse_response(url: str, info: dict[str, Any]) -> ParseResponse:
     platform_profile = find_platform_profile(url)
     raw_formats: list[VideoFormat] = []
     available_heights: set[int] = set()
+    watermark_hint = WATERMARK_HINT_TEXT if platform_profile and platform_profile.id in WATERMARK_PLATFORM_IDS else None
     for raw in info.get("formats") or []:
         format_id = str(raw.get("format_id") or "")
         if not format_id:
@@ -185,10 +198,11 @@ def _to_parse_response(url: str, info: dict[str, Any]) -> ParseResponse:
                 height=height,
                 width=width,
                 kind="raw",
+                watermark_hint=watermark_hint,
             )
         )
 
-    formats = _build_resolution_presets(available_heights)
+    formats = _build_resolution_presets(available_heights, watermark_hint=watermark_hint)
     formats.extend(raw_formats)
 
     if not formats:
@@ -199,6 +213,7 @@ def _to_parse_response(url: str, info: dict[str, Any]) -> ParseResponse:
                 quality_label="推荐",
                 ext=info.get("ext"),
                 kind="recommended",
+                watermark_hint=watermark_hint,
             )
         )
 
@@ -216,7 +231,11 @@ def _to_parse_response(url: str, info: dict[str, Any]) -> ParseResponse:
     )
 
 
-def _build_resolution_presets(available_heights: set[int]) -> list[VideoFormat]:
+def _build_resolution_presets(
+    available_heights: set[int],
+    *,
+    watermark_hint: str | None = None,
+) -> list[VideoFormat]:
     formats = [
         VideoFormat(
             format_id=RECOMMENDED_FORMAT_ID,
@@ -225,6 +244,7 @@ def _build_resolution_presets(available_heights: set[int]) -> list[VideoFormat]:
             ext="mp4",
             kind="recommended",
             note="自动选择当前来源可用的最佳音视频并合并。",
+            watermark_hint=watermark_hint,
         )
     ]
     for height, label in RESOLUTION_PRESETS:
@@ -248,6 +268,7 @@ def _build_resolution_presets(available_heights: set[int]) -> list[VideoFormat]:
                 kind="video",
                 available=available,
                 note=note,
+                watermark_hint=watermark_hint,
             )
         )
     return formats

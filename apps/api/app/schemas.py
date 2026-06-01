@@ -70,6 +70,7 @@ class VideoFormat(BaseModel):
     kind: Literal["recommended", "video", "raw"] = "raw"
     available: bool = True
     note: str | None = None
+    watermark_hint: str | None = None
 
 
 class ParseResponse(BaseModel):

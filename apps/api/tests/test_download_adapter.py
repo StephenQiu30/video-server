@@ -2,7 +2,12 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas import TaskCreate
-from app.services.download_adapter import DownloadEngineAdapter, RECOMMENDED_FORMAT_ID, _safe_int
+from app.services.download_adapter import (
+    DownloadEngineAdapter,
+    RECOMMENDED_FORMAT_ID,
+    WATERMARK_HINT_TEXT,
+    _safe_int,
+)
 
 
 def test_safe_int_accepts_bilibili_float_duration() -> None:
@@ -79,3 +84,78 @@ def test_parse_response_builds_resolution_presets_from_available_heights() -> No
 def test_task_create_rejects_too_long_format_selector() -> None:
     with pytest.raises(ValidationError):
         TaskCreate(url="https://example.com/video", format_id="x" * 101)
+
+
+def test_watermark_hint_set_for_douyin_formats() -> None:
+    """Douyin is a known watermark platform; all formats should carry the hint."""
+    response = DownloadEngineAdapter()._to_response(
+        "https://www.douyin.com/video/456",
+        {
+            "title": "Douyin watermark test",
+            "extractor_key": "Douyin",
+            "formats": [
+                {
+                    "format_id": "v-low",
+                    "height": 360,
+                    "width": 640,
+                    "ext": "mp4",
+                    "vcodec": "h264",
+                    "acodec": "aac",
+                },
+            ],
+        },
+    )
+
+    assert response.source_site == "抖音"
+    for fmt in response.formats:
+        assert fmt.watermark_hint == WATERMARK_HINT_TEXT, (
+            f"Format {fmt.format_id} (kind={fmt.kind}) missing watermark_hint for Douyin"
+        )
+
+
+def test_watermark_hint_absent_for_bilibili_formats() -> None:
+    """Bilibili is not a known watermark platform; hint should be None."""
+    response = DownloadEngineAdapter()._to_response(
+        "https://www.bilibili.com/video/BV1iCR7BEEvo/",
+        {
+            "title": "Bilibili no-watermark test",
+            "extractor_key": "BiliBili",
+            "formats": [
+                {
+                    "format_id": "30080",
+                    "width": 1920,
+                    "height": 1080,
+                    "ext": "mp4",
+                    "filesize_approx": 50000,
+                    "acodec": "none",
+                }
+            ],
+        },
+    )
+
+    assert response.source_site == "B 站"
+    for fmt in response.formats:
+        assert fmt.watermark_hint is None, (
+            f"Format {fmt.format_id} (kind={fmt.kind}) has unexpected watermark_hint for Bilibili"
+        )
+
+
+def test_watermark_hint_absent_for_unknown_platform() -> None:
+    """Unknown platforms should not get a watermark hint."""
+    response = DownloadEngineAdapter()._to_response(
+        "https://unknown.example.com/video/789",
+        {
+            "title": "Unknown platform",
+            "formats": [
+                {
+                    "format_id": "default",
+                    "height": 720,
+                    "ext": "mp4",
+                    "vcodec": "h264",
+                },
+            ],
+        },
+    )
+
+    for fmt in response.formats:
+        assert fmt.watermark_hint is None
