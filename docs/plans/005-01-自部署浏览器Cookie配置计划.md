@@ -74,7 +74,7 @@ Then 系统记录警告日志并忽略该配置
 
 | 变量 | 说明 | 默认值 | 示例 |
 | --- | --- | --- | --- |
-| `YT_DLP_COOKIES_BROWSER` | 浏览器类型，用于 `--cookies-from-browser` | 空（不使用） | `chrome`, `firefox`, `edge` |
+| `YT_DLP_COOKIES_BROWSER` | 浏览器类型，用于 `--cookies-from-browser`（支持 `BROWSER:PROFILE` 格式） | 空（不使用） | `chrome`, `firefox`, `edge`, `safari`, `whale`, `chrome:Default` |
 | `YT_DLP_COOKIES_FILE` | Netscape 格式 Cookie 文件路径 | 空（不使用） | `/home/user/cookies.txt` |
 
 优先级：`YT_DLP_COOKIES_FILE` > `YT_DLP_COOKIES_BROWSER`。两者同时设置时使用文件方式。
@@ -105,10 +105,11 @@ def build_cookie_args() -> list[str]:
             return []
 
     if cookies_browser:
-        supported = {"chrome", "firefox", "edge", "opera", "chromium", "brave", "vivaldi"}
-        browser_lower = cookies_browser.lower()
-        if browser_lower in supported:
-            return ["--cookies-from-browser", browser_lower]
+        supported = {"chrome", "firefox", "edge", "opera", "chromium", "brave", "vivaldi", "safari", "whale"}
+        # 支持 BROWSER:PROFILE 或 BROWSER:PROFILE_PATH 格式
+        browser_key = cookies_browser.split(":", 1)[0].lower()
+        if browser_key in supported:
+            return ["--cookies-from-browser", cookies_browser]
         else:
             logger.warning("不支持的浏览器类型，忽略: %s", cookies_browser)
             return []
