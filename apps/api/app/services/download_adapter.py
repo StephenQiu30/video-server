@@ -151,6 +151,8 @@ def _extract_with_ytdlp(url: str) -> dict[str, Any]:
 
 def _to_parse_response(url: str, info: dict[str, Any]) -> ParseResponse:
     platform_profile = find_platform_profile(url)
+    extractor = _safe_str(info.get("extractor_key") or info.get("extractor"))
+    format_watermark_hint = _derive_format_watermark_hint(extractor)
     raw_formats: list[VideoFormat] = []
     available_heights: set[int] = set()
     for raw in info.get("formats") or []:
@@ -166,25 +168,52 @@ def _to_parse_response(url: str, info: dict[str, Any]) -> ParseResponse:
             resolution = f"{width}x{height}"
         ext = raw.get("ext")
         filesize = _safe_int(raw.get("filesize") or raw.get("filesize_approx"))
-        label_parts = [format_id]
-        if raw.get("vcodec") == "none":
-            label_parts.append("仅音频")
-        elif raw.get("acodec") == "none":
-            label_parts.append("仅视频")
-        if resolution:
-            label_parts.append(str(resolution))
-        if ext:
-            label_parts.append(str(ext))
+
+        vcodec = raw.get("vcodec")
+        acodec = raw.get("acodec")
+        # yt-dlp conventions:
+        # - vcodec="none" means audio-only
+        # - acodec="none" means video-only
+        # - Neither means muxed (video+audio)
+        if vcodec == "none":
+            has_video = False
+            has_audio = True
+        elif acodec == "none":
+            has_video = True
+            has_audio = False
+        else:
+            has_video = vcodec is not None or (height and width)
+            has_audio = acodec is not None or vcodec is None
+
+        if has_video and has_audio:
+            stream_type = "video+audio"
+            label_parts = [format_id, resolution, ext]
+        elif has_video:
+            stream_type = "video-only"
+            label_parts = [format_id, "仅视频", resolution, ext]
+        elif has_audio:
+            stream_type = "audio-only"
+            label_parts = [format_id, "仅音频", ext]
+        else:
+            stream_type = None
+            label_parts = [format_id, resolution, ext]
+
+        label = " / ".join(part for part in label_parts if part)
+        if filesize:
+            label += f" ({_human_size(filesize)})"
+
         raw_formats.append(
             VideoFormat(
                 format_id=format_id,
-                label=" / ".join(label_parts),
+                label=label,
                 ext=ext,
                 resolution=resolution,
                 filesize=filesize,
                 height=height,
                 width=width,
                 kind="raw",
+                type=stream_type,
+                watermark_hint=format_watermark_hint,
             )
         )
 
@@ -211,7 +240,8 @@ def _to_parse_response(url: str, info: dict[str, Any]) -> ParseResponse:
         platform_id=platform_profile.id if platform_profile else None,
         platform_category=platform_profile.category if platform_profile else None,
         compliance_note=platform_profile.compliance_note if platform_profile else None,
-        extractor=_safe_str(info.get("extractor_key") or info.get("extractor")),
+        extractor=extractor,
+        watermark_hint=_derive_response_watermark_hint(extractor, platform_profile),
         formats=formats,
     )
 
@@ -344,3 +374,48 @@ def _safe_int(value: Any) -> int | None:
         return int(float(value))
     except (TypeError, ValueError):
         return None
+
+
+def _human_size(size_bytes: int | None) -> str | None:
+    """Format byte count to human-readable string."""
+    if size_bytes is None or size_bytes <= 0:
+        return None
+    for unit in ("B", "KB", "MB", "GB"):
+        if size_bytes < 1024:
+            return f"{size_bytes:.1f} {unit}" if unit != "B" else f"{size_bytes} B"
+        size_bytes /= 1024
+    return f"{size_bytes:.1f} TB"
+
+
+# Platforms known to serve content without watermarks.
+_WATERMARK_FREE_EXTRACTORS = {"BiliBili", "YouTube", "Vimeo", "Dailymotion"}
+
+# Platforms known to embed watermarks on downloaded content.
+_WATERMARK_PLATFORM_EXTRACTORS = {"Douyin", "Kuaishou"}
+
+
+def _derive_format_watermark_hint(extractor: str | None) -> str | None:
+    """Derive watermark hint for individual formats based on extractor."""
+    if not extractor:
+        return None
+    if extractor in _WATERMARK_FREE_EXTRACTORS:
+        return "优先可用源"
+    if extractor in _WATERMARK_PLATFORM_EXTRACTORS:
+        return "可能含平台水印"
+    return "不可确认"
+
+
+def _derive_response_watermark_hint(
+    extractor: str | None,
+    platform_profile: Any | None,
+) -> str | None:
+    """Derive response-level watermark hint."""
+    if not extractor:
+        return None
+    if extractor in _WATERMARK_FREE_EXTRACTORS:
+        return "优先可用源"
+    if extractor in _WATERMARK_PLATFORM_EXTRACTORS:
+        return "可能含平台水印"
+    if platform_profile and platform_profile.compliance_note:
+        return "不可确认"
+    return "不可确认"
