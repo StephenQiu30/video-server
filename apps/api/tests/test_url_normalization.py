@@ -42,3 +42,87 @@ def test_normalize_user_url_extracts_from_share_text() -> None:
     # Bilibili share text format
     bilibili_text = "【B站热门视频】 【小猫咪的作品】 🚀 https://bilibili.com/video/BV1xx411c7mD 哔哩哔哩"
     assert normalize_user_url(bilibili_text) == "https://bilibili.com/video/BV1xx411c7mD"
+
+
+# --- Security: reject localhost, private, loopback, link-local, reserved addresses ---
+
+
+def test_normalize_user_url_rejects_localhost() -> None:
+    """本机地址 localhost 应被拒绝。"""
+    for host in ["localhost", "localhost:8080"]:
+        try:
+            normalize_user_url(f"http://{host}/video")
+        except AppError as exc:
+            assert exc.code == "invalid_url", f"host={host} code={exc.code}"
+        else:
+            raise AssertionError(f"expected rejection for host={host}")
+
+
+def test_normalize_user_url_rejects_private_ip() -> None:
+    """内网地址 (10/172.16/192.168) 应被拒绝。"""
+    for host in ["10.0.0.1", "172.16.0.1", "192.168.1.1", "192.168.1.1:3000"]:
+        try:
+            normalize_user_url(f"http://{host}/video")
+        except AppError as exc:
+            assert exc.code == "invalid_url", f"host={host} code={exc.code}"
+        else:
+            raise AssertionError(f"expected rejection for host={host}")
+
+
+def test_normalize_user_url_rejects_loopback_ip() -> None:
+    """回环地址 127.x 应被拒绝。"""
+    for host in ["127.0.0.1", "127.0.0.1:8080"]:
+        try:
+            normalize_user_url(f"http://{host}/video")
+        except AppError as exc:
+            assert exc.code == "invalid_url", f"host={host} code={exc.code}"
+        else:
+            raise AssertionError(f"expected rejection for host={host}")
+
+
+def test_normalize_user_url_rejects_ipv6_loopback() -> None:
+    """IPv6 回环地址 ::1 应被拒绝。"""
+    try:
+        normalize_user_url("http://[::1]/video")
+    except AppError as exc:
+        assert exc.code == "invalid_url"
+    else:
+        raise AssertionError("expected rejection for ::1")
+
+
+def test_normalize_user_url_rejects_link_local_ip() -> None:
+    """链路本地地址 169.254.x 应被拒绝。"""
+    try:
+        normalize_user_url("http://169.254.1.1/video")
+    except AppError as exc:
+        assert exc.code == "invalid_url"
+    else:
+        raise AssertionError("expected rejection for link-local")
+
+
+def test_normalize_user_url_rejects_reserved_ip() -> None:
+    """保留地址应被拒绝（0.0.0.0、240.x）。"""
+    for host in ["0.0.0.0", "240.0.0.1"]:
+        try:
+            normalize_user_url(f"http://{host}/video")
+        except AppError as exc:
+            assert exc.code == "invalid_url", f"host={host} code={exc.code}"
+        else:
+            raise AssertionError(f"expected rejection for host={host}")
+
+
+def test_normalize_user_url_rejects_localhost_tld() -> None:
+    """*.localhost 和 *.local 域名应被拒绝。"""
+    for host in ["my.localhost", "device.local"]:
+        try:
+            normalize_user_url(f"http://{host}/video")
+        except AppError as exc:
+            assert exc.code == "invalid_url", f"host={host} code={exc.code}"
+        else:
+            raise AssertionError(f"expected rejection for host={host}")
+
+
+def test_normalize_user_url_accepts_public_url() -> None:
+    """公网域名应正常通过。"""
+    assert normalize_user_url("https://bilibili.com/video/BV1xx411c7mD") == "https://bilibili.com/video/BV1xx411c7mD"
+    assert normalize_user_url("https://www.youtube.com/watch?v=dQw4w9WgXcQ") == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
