@@ -51,6 +51,94 @@ def test_download_runner_resolves_latest_output_path(tmp_path: Path) -> None:
     assert resolve_output_path(tmp_path, tmp_path / "missing.webm") == second
 
 
+# ---------------------------------------------------------------------------
+# build_cookie_args — browser cookie configuration tests
+# ---------------------------------------------------------------------------
+
+
+def test_build_cookie_args_chrome() -> None:
+    from worker.download_runner import build_cookie_args
+
+    assert build_cookie_args("chrome") == {"cookiesfrombrowser": ("chrome",)}
+
+
+def test_build_cookie_args_firefox() -> None:
+    from worker.download_runner import build_cookie_args
+
+    assert build_cookie_args("firefox") == {"cookiesfrombrowser": ("firefox",)}
+
+
+def test_build_cookie_args_edge() -> None:
+    from worker.download_runner import build_cookie_args
+
+    assert build_cookie_args("edge") == {"cookiesfrombrowser": ("edge",)}
+
+
+def test_build_cookie_args_case_insensitive() -> None:
+    from worker.download_runner import build_cookie_args
+
+    assert build_cookie_args("CHROME") == {"cookiesfrombrowser": ("chrome",)}
+    assert build_cookie_args("Firefox") == {"cookiesfrombrowser": ("firefox",)}
+    assert build_cookie_args("  Edge  ") == {"cookiesfrombrowser": ("edge",)}
+
+
+def test_build_cookie_args_invalid_browser_warns_and_returns_empty(caplog) -> None:
+    from worker.download_runner import build_cookie_args
+
+    with caplog.at_level("WARNING"):
+        result = build_cookie_args("ie6")
+
+    assert result == {}
+    assert "ie6" in caplog.text
+
+
+def test_build_cookie_args_unconfigured_returns_empty() -> None:
+    from worker.download_runner import build_cookie_args
+
+    assert build_cookie_args(None) == {}
+    assert build_cookie_args("") == {}
+
+
+def test_build_cookie_args_disabled_values() -> None:
+    from worker.download_runner import build_cookie_args
+
+    for val in ("none", "false", "off"):
+        assert build_cookie_args(val) == {}, f"expected empty for '{val}'"
+
+
+def test_build_cookie_args_valid_cookie_file(tmp_path: Path) -> None:
+    from worker.download_runner import build_cookie_args
+
+    cookie_file = tmp_path / "cookies.txt"
+    cookie_file.write_text("# Netscape HTTP Cookie File\n")
+
+    result = build_cookie_args(cookie_file=str(cookie_file))
+
+    assert result == {"cookiefile": str(cookie_file)}
+
+
+def test_build_cookie_args_invalid_file_path_warns(caplog) -> None:
+    from worker.download_runner import build_cookie_args
+
+    with caplog.at_level("WARNING"):
+        result = build_cookie_args(cookie_file="/nonexistent/path/cookies.txt")
+
+    assert result == {}
+    assert "/nonexistent/path/cookies.txt" in caplog.text
+
+
+def test_build_cookie_args_file_takes_precedence_over_browser(tmp_path: Path) -> None:
+    from worker.download_runner import build_cookie_args
+
+    cookie_file = tmp_path / "cookies.txt"
+    cookie_file.write_text("# Netscape HTTP Cookie File\n")
+
+    result = build_cookie_args(browser_name="chrome", cookie_file=str(cookie_file))
+
+    assert result == {"cookiefile": str(cookie_file)}
+    assert "cookiesfrombrowser" not in result
+
+
 def test_failure_mapper_returns_typed_failure_info() -> None:
     from worker.domain import WorkerFailureCode, WorkerStage
     from worker.failures import failure_info_from_exception
