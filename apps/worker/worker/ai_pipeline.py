@@ -1,4 +1,5 @@
 import asyncio
+import re
 import subprocess
 
 from sqlalchemy.orm import Session
@@ -8,6 +9,18 @@ from app.models import DownloadTask
 from app.services.tasks import add_task_event
 from video_downloader_shared.states import TaskState
 from worker.domain import AIProcessResult, AIProcessStatus, DownloadArtifact
+
+
+def _sanitize_error_message(error_message: str, settings) -> str:
+    """Remove sensitive information (API keys) from error messages."""
+    sanitized = error_message
+    # Remove LLM API key if present
+    if settings.llm_api_key:
+        sanitized = sanitized.replace(settings.llm_api_key, "***")
+    # Remove transcription API key if present
+    if settings.transcription_api_key:
+        sanitized = sanitized.replace(settings.transcription_api_key, "***")
+    return sanitized
 
 
 def process_ai_pipeline(db: Session, task: DownloadTask, artifact: DownloadArtifact) -> AIProcessResult:
@@ -64,10 +77,11 @@ def process_ai_pipeline(db: Session, task: DownloadTask, artifact: DownloadArtif
         return AIProcessResult(status=AIProcessStatus.COMPLETED, summary=summary, mindmap=mindmap)
     except Exception as exc:
         task.ai_status = AIProcessStatus.FAILED.value
-        task.ai_error = str(exc)
-        add_task_event(db, task, TaskState.SUCCEEDED, f"AI 智能分析失败: {str(exc)}")
+        sanitized_error = _sanitize_error_message(str(exc), settings)
+        task.ai_error = sanitized_error
+        add_task_event(db, task, TaskState.SUCCEEDED, f"AI 智能分析失败: {sanitized_error}")
         db.commit()
-        return AIProcessResult(status=AIProcessStatus.FAILED, error=str(exc))
+        return AIProcessResult(status=AIProcessStatus.FAILED, error=sanitized_error)
     finally:
         if audio_path.exists():
             audio_path.unlink()
