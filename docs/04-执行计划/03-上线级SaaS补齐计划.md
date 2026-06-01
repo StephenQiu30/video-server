@@ -4,7 +4,7 @@
 
 ## 1. 执行边界
 
-本计划只管理“小范围内测 SaaS”的生产化补齐，不替代 M1 本地 MVP 计划。M1 未完成项继续由 OpenSpec 变更 `bootstrap-mvp-foundation` 收尾；上线级 SaaS 补齐由 OpenSpec 变更 `production-saas-readiness` 管理。
+本计划只管理“小范围内测 SaaS”的生产化补齐，不替代 M1 本地 MVP 计划。M1 未完成项继续由 change `bootstrap-mvp-foundation` 收尾；上线级 SaaS 补齐由 change `production-saas-readiness` 管理。
 
 当前上线基线：
 
@@ -22,7 +22,7 @@
 - 补齐至少 3 个合法公开视频解析样例。
 - 保留至少 1 个小文件完整下载样例，并记录 ffprobe 校验证据。
 - 验证 DRM、付费墙、私密链接、Cookie 托管、平台绕过能力未实现。
-- 保持后端测试、API smoke、Worker smoke、前端 lint/build 和 OpenSpec validation 通过。
+- 保持后端测试、API smoke、Worker smoke、前端 lint/build 和 测试验证 通过。
 
 退出标准：
 
@@ -80,7 +80,7 @@
 
 任务：
 
-- 增加 CI/CD：后端测试、前端 lint/build、OpenSpec validation、Compose config 校验。
+- 增加 CI/CD：后端测试、前端 lint/build、测试验证、Compose config 校验。
 - 增加结构化日志和敏感字段脱敏检查。
 - 增加基础运行指标：API 健康、队列深度、任务失败数、存储占用、清理结果。
 - 增加服务条款、隐私说明、滥用举报和内容投诉处理边界。
@@ -88,7 +88,7 @@
 
 退出标准：
 
-- 每次上线前能通过测试、构建、OpenSpec 和部署配置校验。
+- 每次上线前能通过测试、构建、变更管理 和部署配置校验。
 - 出现下载失败、配额超限、队列异常或存储异常时，有日志和排查入口。
 - 合规禁止能力均有负向验收记录。
 
