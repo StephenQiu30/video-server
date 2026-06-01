@@ -120,6 +120,9 @@ class TaskRead(BaseModel):
     ai_mindmap: str | None = None
     ai_status: str | None = None
     ai_error: str | None = None
+    enhanced_status: str | None = None
+    subtitle_data: str | None = None
+    video_metadata: str | None = None
 
 
 class TaskEventRead(BaseModel):

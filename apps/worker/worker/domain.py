@@ -76,3 +76,16 @@ class AIProcessResult:
     summary: str | None = None
     mindmap: str | None = None
     error: str | None = None
+
+
+class EnhancedArtifactsStatus(StrEnum):
+    COLLECTED = "collected"
+    PARTIAL = "partial"
+    UNAVAILABLE = "unavailable"
+
+
+@dataclass(frozen=True)
+class EnhancedArtifactsResult:
+    status: EnhancedArtifactsStatus
+    subtitle_data: dict | None = None
+    video_metadata: dict | None = None

@@ -18,7 +18,7 @@ def download_task_artifact(
     db: Session,
     task_dir: Path,
     is_canceled: Callable[[Session, DownloadTask], bool],
-) -> DownloadArtifact:
+) -> tuple[DownloadArtifact, dict]:
     try:
         from yt_dlp import YoutubeDL
     except ModuleNotFoundError as exc:
@@ -67,7 +67,8 @@ def download_task_artifact(
     output_path = resolve_output_path(task_dir, Path(filename))
     add_task_event(db, task, TaskState.RUNNING, "源文件下载完成")
     db.commit()
-    return DownloadArtifact(path=output_path, filename=output_path.name, size_bytes=output_path.stat().st_size)
+    artifact = DownloadArtifact(path=output_path, filename=output_path.name, size_bytes=output_path.stat().st_size)
+    return artifact, result
 
 
 def apply_browser_cookie_options(options: dict, browser_name: str | None) -> None:

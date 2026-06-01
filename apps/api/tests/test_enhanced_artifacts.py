@@ -5,6 +5,7 @@ Acceptance: 字幕、封面、元数据可用时随任务归档并可在任务�
 """
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
@@ -166,7 +167,8 @@ def test_task_detail_includes_enhanced_fields_when_populated(
     assert detail["subtitle_data"] is not None
     assert "zh-CN" in detail["subtitle_data"]
     assert detail["video_metadata"] is not None
-    assert detail["video_metadata"]["uploader"] == "测试UP主"
+    metadata = json.loads(detail["video_metadata"])
+    assert metadata["uploader"] == "测试UP主"
 
 
 def test_task_detail_enhanced_fields_null_when_not_enhanced(
