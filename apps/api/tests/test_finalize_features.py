@@ -108,6 +108,54 @@ def test_export_task_pdf_endpoint_success(client: TestClient, session: Session) 
     assert response.content.startswith(b"%PDF-")
 
 
+def test_export_task_pdf_endpoint_non_owner_returns_404(client: TestClient, session: Session) -> None:
+    # Arrange: Create the task owner
+    owner = User(
+        email="pdf_owner@example.com",
+        display_name="PDF Owner",
+        github_id="github-pdf-owner-123",
+    )
+    session.add(owner)
+    session.commit()
+    session.refresh(owner)
+
+    # Create a different user (non-owner)
+    other_user = User(
+        email="pdf_other@example.com",
+        display_name="PDF Other User",
+        github_id="github-pdf-other-123",
+    )
+    session.add(other_user)
+    session.commit()
+    session.refresh(other_user)
+
+    other_token = create_access_token(other_user.id)
+
+    # Create a succeeded task owned by the first user
+    task = DownloadTask(
+        id="task-pdf-nonowner",
+        user_id=owner.id,
+        state=TaskState.SUCCEEDED.value,
+        title="Owner Task Title",
+        updated_at=datetime.now(UTC),
+        source_url="https://bilibili.com/video/BV4xx",
+        ai_summary="# Summary\n- Point 1"
+    )
+    session.add(task)
+    session.commit()
+
+    # Act: Non-owner requests the PDF
+    response = client.get(
+        f"/api/tasks/{task.id}/pdf",
+        headers={"Authorization": f"Bearer {other_token}"},
+    )
+
+    # Assert: Verify it returns 404 (task not found for this user)
+    assert response.status_code == 404
+    json_data = response.json()
+    assert json_data["error"]["code"] == "not_found"
+
+
 def test_task_download_link_returns_presigned_url_and_ttl(client: TestClient, session: Session, monkeypatch) -> None:
     # Arrange: Create a succeeded task with object key
     user = User(
