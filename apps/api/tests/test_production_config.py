@@ -76,6 +76,55 @@ def test_validate_production_settings_allows_video_database_name_with_safe_passw
     validate_production_settings(settings)
 
 
+def test_validate_production_settings_rejects_short_jwt_secret() -> None:
+    settings = DummySettings()
+    settings.jwt_secret_key = "too-short"
+
+    with pytest.raises(RuntimeError) as exc_info:
+        validate_production_settings(settings)
+
+    assert "JWT_SECRET_KEY" in str(exc_info.value)
+
+
+def test_validate_production_settings_rejects_localhost_database_url() -> None:
+    settings = DummySettings()
+    settings.jwt_secret_key = "safe-production-secret-value-with-32-chars"
+    settings.registration_enabled = False
+    settings.database_url = "postgresql+psycopg://video:safe-db-password@localhost:5432/video_downloader"
+
+    with pytest.raises(RuntimeError) as exc_info:
+        validate_production_settings(settings)
+
+    assert "DATABASE_URL" in str(exc_info.value)
+    assert "localhost" in str(exc_info.value)
+
+
+def test_validate_production_settings_rejects_localhost_redis_url() -> None:
+    settings = DummySettings()
+    settings.jwt_secret_key = "safe-production-secret-value-with-32-chars"
+    settings.registration_enabled = False
+    settings.database_url = "postgresql+psycopg://video:safe-db-password@postgres:5432/video_downloader"
+    settings.redis_url = "redis://:safe-redis-password@localhost:6379/0"
+
+    with pytest.raises(RuntimeError) as exc_info:
+        validate_production_settings(settings)
+
+    assert "REDIS_URL" in str(exc_info.value)
+    assert "localhost" in str(exc_info.value)
+
+
+def test_validate_production_settings_rejects_127_0_0_1_database_url() -> None:
+    settings = DummySettings()
+    settings.jwt_secret_key = "safe-production-secret-value-with-32-chars"
+    settings.registration_enabled = False
+    settings.database_url = "postgresql+psycopg://video:safe-db-password@127.0.0.1:5432/video_downloader"
+
+    with pytest.raises(RuntimeError) as exc_info:
+        validate_production_settings(settings)
+
+    assert "DATABASE_URL" in str(exc_info.value)
+
+
 def test_production_template_has_change_me_placeholders() -> None:
     """The .env.production.example must contain CHANGE_ME placeholders so it
     cannot be accidentally used as a real production config."""

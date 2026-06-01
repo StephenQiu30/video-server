@@ -70,6 +70,29 @@ def test_login_locks_after_repeated_failures(monkeypatch, client: TestClient, se
     assert "存在" not in locked.json()["error"]["message"]
 
 
+def test_register_rate_limits_by_ip(monkeypatch, client: TestClient):
+    from app.routers import auth
+    from app.services.auth_lock import InMemoryAuthLock
+
+    lock = InMemoryAuthLock(register_limit=2)
+    monkeypatch.setattr(auth, "get_auth_lock", lambda: lock)
+
+    for i in range(2):
+        response = client.post(
+            "/api/auth/register",
+            json={"email": f"rate{i}@example.com", "password": "password123", "display_name": "Rate"},
+        )
+        assert response.status_code == 201
+
+    blocked = client.post(
+        "/api/auth/register",
+        json={"email": "rate-blocked@example.com", "password": "password123", "display_name": "Rate"},
+    )
+
+    assert blocked.status_code == 429
+    assert blocked.json()["error"]["code"] == "auth_locked"
+
+
 def test_successful_login_clears_email_lock(monkeypatch, client: TestClient, session: Session):
     from app.core.security import hash_password
     from app.routers import auth
