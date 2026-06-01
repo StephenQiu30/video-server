@@ -456,6 +456,4 @@ def _derive_response_watermark_hint(
         return "优先可用源"
     if extractor in _WATERMARK_PLATFORM_EXTRACTORS:
         return "可能含平台水印"
-    if platform_profile and platform_profile.compliance_note:
-        return "不可确认"
     return "不可确认"
