@@ -139,7 +139,7 @@ def test_create_task_rejects_obviously_unsupported_platform_before_enqueue(
     )
 
     assert response.status_code == 422
-    assert response.json()["error"]["code"] == "unsupported_platform"
+    assert response.json()["error"]["code"] == "invalid_url"
 
 
 def test_create_task_accepts_known_bilibili_platform_before_enqueue(

@@ -29,7 +29,7 @@
 
 ## 当前状态
 
-本项目已完成“调研、边界确认、技术选型确认”和本地 MVP 主链路搭建。M1 未完成项继续通过 OpenSpec 变更 `bootstrap-mvp-foundation` 收尾；上线级 SaaS 内测版补齐通过 OpenSpec 变更 `production-saas-readiness` 管理。
+本项目已完成“调研、边界确认、技术选型确认”和本地 MVP 主链路搭建。M1 未完成项和上线级 SaaS 内测版补齐通过多 Agent 任务、验收文档和 PR 流程管理。
 
 ## 关键原则
 
@@ -38,12 +38,13 @@
 3. 下载能力只面向用户有权保存的公开或授权内容，不设计规避 DRM、付费墙、盗版传播或平台访问控制的能力。
 4. 文档、规范、角色分工与验收口径必须和代码实现同步演进。
 
-## 与 `.codex` 的关系
+## 与多 Agent 规范入口的关系
 
 - `docs/` 负责项目事实、需求、方案、计划、验收和合规资料。
-- `.codex/agents/` 负责角色定义。
-- `.codex/skills/` 负责可复用工作流。
-- `AGENTS.md` 是全局协作规范，优先级高于具体角色和技能文件。
+- `AGENTS.md`、`AGENTS.local.md`、`.codex/agents/` 和 `.codex/skills/` 负责 Codex 入口。
+- `CLAUDE.md`、`CLAUDE.local.md`、`.claude/agents/` 和 `.claude/skills/` 负责 Claude 入口。
+- `CURSOR.md`、`CURSOR.local.md`、`.cursor/agents/`、`.cursor/skills/` 和 `.cursor/rules/` 负责 Cursor 入口。
+- 三套入口应表达同一组项目约束，只按工具识别方式拆分，不互相替代。
 
 - [04-执行计划/04-落地页重构实施计划.md](04-执行计划/04-落地页重构实施计划.md)：落地页实施计划。
 - [05-测试验收/04-落地页验收标准.md](05-测试验收/04-落地页验收标准.md)：落地页验收门禁与回归结果。

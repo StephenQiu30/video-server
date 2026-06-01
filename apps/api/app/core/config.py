@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     file_retention_hours: int = 24
     presigned_url_ttl_seconds: int = 15 * 60
     ytdlp_cookies_from_browser: str | None = None
+    ytdlp_cookie_file: str | None = None
     parse_rate_limit_per_minute: int = 60
     parse_rate_limit_window_seconds: int = 60
     create_task_rate_limit_per_minute: int = 20
