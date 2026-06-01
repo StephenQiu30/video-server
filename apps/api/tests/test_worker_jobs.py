@@ -2,6 +2,8 @@ from pathlib import Path
 import os
 
 from worker import jobs
+from worker.domain import DownloadArtifact, WorkerFailureCode
+from worker.failures import failure_info_from_exception
 from worker.jobs import (
     JobFailure,
     _apply_browser_cookie_options,
@@ -13,6 +15,7 @@ from worker.jobs import (
     _raise_task_canceled,
     _resolve_output_path,
 )
+from worker.media_probe import assert_artifact_size
 
 
 def test_resolve_output_path_uses_prepared_file(tmp_path: Path) -> None:
@@ -130,3 +133,58 @@ def test_browser_cookie_failure_is_diagnostic_and_redacted() -> None:
     reason = _format_failure_reason(exc)
     assert "无法读取本机 Chrome 登录态" in reason
     assert "/Users/example/Cookies" not in reason
+
+
+def test_failure_info_has_code_and_reason_for_media_tools_missing() -> None:
+    exc = JobFailure("media_tools_missing", "当前环境缺少媒体工具：ffmpeg, ffprobe")
+
+    info = failure_info_from_exception(exc, __import__("worker.domain", fromlist=["WorkerStage"]).WorkerStage.DOWNLOAD)
+
+    assert info.code == WorkerFailureCode.MEDIA_TOOLS_MISSING
+    assert "媒体工具" in info.reason
+    assert info.retryable is False
+
+
+def test_failure_info_has_code_and_reason_for_file_too_large() -> None:
+    exc = JobFailure("file_too_large", "文件超过限制：9999999999 > 2147483648")
+
+    info = failure_info_from_exception(exc, __import__("worker.domain", fromlist=["WorkerStage"]).WorkerStage.DOWNLOAD)
+
+    assert info.code == WorkerFailureCode.FILE_TOO_LARGE
+    assert "文件超过限制" in info.reason
+    assert info.retryable is False
+
+
+def test_failure_info_has_code_and_reason_for_storage_failed() -> None:
+    exc = JobFailure("storage_failed", "文件上传对象存储失败")
+
+    info = failure_info_from_exception(exc, __import__("worker.domain", fromlist=["WorkerStage"]).WorkerStage.UPLOAD)
+
+    assert info.code == WorkerFailureCode.STORAGE_FAILED
+    assert "对象存储" in info.reason
+    assert info.retryable is True
+
+
+def test_assert_artifact_size_raises_for_oversized_file(monkeypatch) -> None:
+    import types
+
+    class FakeSettings:
+        max_file_size_bytes = 100
+
+    class FakeUser:
+        max_file_size_bytes = 100
+
+    class FakeTask:
+        user = FakeUser()
+
+    monkeypatch.setattr("worker.media_probe.get_settings", lambda: FakeSettings())
+
+    artifact = DownloadArtifact(path=Path("/tmp/fake.mp4"), filename="fake.mp4", size_bytes=999)
+
+    try:
+        assert_artifact_size(artifact, FakeTask())
+    except JobFailure as exc:
+        assert exc.code == "file_too_large"
+        assert _format_failure_reason(exc) == "文件超过限制：999 > 100"
+    else:
+        raise AssertionError("expected file_too_large failure")

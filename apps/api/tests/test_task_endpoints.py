@@ -112,6 +112,78 @@ def test_task_endpoints_cross_user_boundary_and_download_link_expired_or_miss(
     assert expired_response.json()["error"]["code"] == "retention_expired"
 
 
+def test_succeeded_task_exposes_state_progress_and_download_fields(
+    monkeypatch,
+    client: TestClient,
+    session: Session,
+) -> None:
+    monkeypatch.setattr("app.routers.tasks.enqueue_download_task", lambda task_id: None)
+
+    owner = _make_user(session, email="succeeded@example.com", github_id="succeeded-owner")
+    token = create_access_token(owner.id)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    task = DownloadTask(
+        user_id=owner.id,
+        source_url="https://bilibili.com/video/BV1xx411c7d",
+        title="downloaded-video",
+        state=TaskState.SUCCEEDED.value,
+        progress=100,
+        output_filename="downloaded-video.mp4",
+        object_key="users/1/tasks/abc/downloaded-video.mp4",
+        object_size=1024000,
+        expires_at=(datetime.now(UTC) + timedelta(hours=24)),
+    )
+    session.add(task)
+    session.commit()
+
+    response = client.get(f"/api/tasks/{task.id}", headers=headers)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["state"] == TaskState.SUCCEEDED.value
+    assert body["progress"] == 100
+    assert body["output_filename"] == "downloaded-video.mp4"
+    assert body["object_size"] == 1024000
+    assert body["expires_at"] is not None
+
+
+def test_download_link_returns_presigned_url_for_owner(
+    monkeypatch,
+    client: TestClient,
+    session: Session,
+) -> None:
+    monkeypatch.setattr("app.routers.tasks.enqueue_download_task", lambda task_id: None)
+
+    owner = _make_user(session, email="dl-owner@example.com", github_id="dl-owner")
+    token = create_access_token(owner.id)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    task = DownloadTask(
+        user_id=owner.id,
+        source_url="https://bilibili.com/video/BV1xx411c7d",
+        title="presigned-test",
+        state=TaskState.SUCCEEDED.value,
+        progress=100,
+        object_key="users/1/tasks/abc/video.mp4",
+        object_size=500000,
+        expires_at=(datetime.now(UTC) + timedelta(hours=12)),
+    )
+    session.add(task)
+    session.commit()
+
+    fake_url = "https://s3.example.com/bucket/key?X-Amz-Signature=abc123&X-Amz-Expires=900"
+    monkeypatch.setattr(
+        "app.services.storage.ObjectStorage.presign_download_url",
+        lambda self, object_key: fake_url,
+    )
+
+    response = client.get(f"/api/tasks/{task.id}/download-link", headers=headers)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["url"] == fake_url
+    assert body["expires_in_seconds"] > 0
+
+
 def test_parse_api_requires_auth(client: TestClient) -> None:
     response = client.post(
         "/api/parse",
