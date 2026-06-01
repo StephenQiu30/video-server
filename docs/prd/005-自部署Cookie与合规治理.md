@@ -115,7 +115,7 @@ And 模板不能直接用于生产环境
 
 - `apps/worker/worker/jobs.py`（Cookie 读取器）
 - `apps/api/app/core/config.py`（配置定义）
-- `apps/worker/worker/jobs.py`（配置使用）
+- `apps/worker/worker/download_runner.py`（配置使用）
 
 ### 4.3 URL 重写
 
