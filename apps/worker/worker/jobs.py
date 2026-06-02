@@ -10,6 +10,8 @@ from app.services.tasks import add_task_event, cleanup_expired_task_outputs
 from video_downloader_shared.states import TaskState
 from worker.ai_pipeline import process_ai_pipeline
 from worker.artifact_storage import delete_artifact, upload_artifact
+from worker.domain import EnhancedArtifactsStatus
+from worker.enhanced_artifacts import collect_enhanced_artifacts
 from worker.download_runner import (
     apply_browser_cookie_options,
     apply_download_resilience_options,
@@ -40,7 +42,7 @@ def process_download_task(task_id: str) -> None:
         _mark_running(db, task)
         assert_media_tools_available()
 
-        artifact = download_task_artifact(task, db, task_work_dir, _is_canceled)
+        artifact, download_info = download_task_artifact(task, db, task_work_dir, _is_canceled)
         if _is_canceled(db, task):
             return
 
@@ -68,6 +70,8 @@ def process_download_task(task_id: str) -> None:
         db.commit()
 
         process_ai_pipeline(db, task, artifact)
+
+        _collect_and_store_enhanced(db, task, download_info, task_work_dir)
     except Exception as exc:
         _mark_failed(db, task_id, exc)
         raise
@@ -152,8 +156,41 @@ def _upload(task: DownloadTask, output_path: Path) -> str:
 
 
 def _download(task: DownloadTask, db: Session, task_dir: Path) -> Path:
-    return download_task_artifact(task, db, task_dir, _is_canceled).path
+    artifact, _ = download_task_artifact(task, db, task_dir, _is_canceled)
+    return artifact.path
 
 
 def _process_ai_intelligence(db: Session, task: DownloadTask, output_path: Path) -> None:
     process_ai_pipeline(db, task, artifact_from_path(output_path))
+
+
+def _collect_and_store_enhanced(
+    db: Session,
+    task: DownloadTask,
+    download_info: dict,
+    task_work_dir: Path,
+) -> None:
+    """Collect enhanced artifacts. Failure does NOT roll back the main task."""
+    try:
+        enhanced = collect_enhanced_artifacts(download_info, task_work_dir)
+        task.enhanced_status = enhanced.status.value
+        task.subtitle_data = _to_json(enhanced.subtitle_data)
+        task.video_metadata = _to_json(enhanced.video_metadata)
+        add_task_event(db, task, TaskState.SUCCEEDED, "增强产物采集完成")
+        db.commit()
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("增强产物采集异常，不影响主任务")
+        try:
+            db.rollback()
+            task.enhanced_status = EnhancedArtifactsStatus.UNAVAILABLE.value
+            db.commit()
+        except Exception:
+            logging.getLogger(__name__).exception("增强状态回写失败，已忽略")
+
+
+def _to_json(data: dict | None) -> str | None:
+    if data is None:
+        return None
+    import json
+    return json.dumps(data, ensure_ascii=False)

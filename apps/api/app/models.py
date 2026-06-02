@@ -64,6 +64,10 @@ class DownloadTask(Base):
     ai_mindmap: Mapped[str | None] = mapped_column(Text)
     ai_status: Mapped[str | None] = mapped_column(String(32), index=True)
     ai_error: Mapped[str | None] = mapped_column(Text)
+    # Enhanced Artifacts (subtitles, metadata)
+    enhanced_status: Mapped[str | None] = mapped_column(String(32), index=True)
+    subtitle_data: Mapped[str | None] = mapped_column(Text)
+    video_metadata: Mapped[str | None] = mapped_column(Text)
 
     user: Mapped[User] = relationship(back_populates="tasks")
     events: Mapped[list["TaskEvent"]] = relationship(back_populates="task", cascade="all, delete-orphan")
