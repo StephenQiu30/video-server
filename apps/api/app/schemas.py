@@ -68,8 +68,10 @@ class VideoFormat(BaseModel):
     height: int | None = None
     width: int | None = None
     kind: Literal["recommended", "video", "raw"] = "raw"
+    type: Literal["video+audio", "video-only", "audio-only"] | None = None
     available: bool = True
     note: str | None = None
+    watermark_hint: str | None = None
 
 
 class ParseResponse(BaseModel):
@@ -82,6 +84,7 @@ class ParseResponse(BaseModel):
     platform_category: str | None = None
     compliance_note: str | None = None
     extractor: str | None = None
+    watermark_hint: str | None = None
     formats: list[VideoFormat]
 
 

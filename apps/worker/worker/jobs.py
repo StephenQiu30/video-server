@@ -13,6 +13,7 @@ from worker.artifact_storage import delete_artifact, upload_artifact
 from worker.download_runner import (
     apply_browser_cookie_options,
     apply_download_resilience_options,
+    build_cookie_args,
     download_task_artifact,
     resolve_output_path,
 )
@@ -129,6 +130,7 @@ def cleanup_expired_outputs() -> int:
 
 # Compatibility aliases for existing tests and external worker entrypoints.
 _apply_browser_cookie_options = apply_browser_cookie_options
+_build_cookie_args = build_cookie_args
 _apply_download_resilience_options = apply_download_resilience_options
 _failure_code = failure_code
 _format_failure_reason = format_failure_reason
