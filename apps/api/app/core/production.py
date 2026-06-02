@@ -38,15 +38,15 @@ def validate_production_settings(settings: Any) -> None:
         raise RuntimeError("Production settings are unsafe: " + "; ".join(failures))
 
 
+def _normalize_db_url(value: str) -> str:
+    if value.startswith("postgresql+psycopg://"):
+        return "postgresql://" + value.split("://", 1)[1]
+    return value
+
+
 def _password_from_url(value: str) -> str:
-    normalized = value
-    if normalized.startswith("postgresql+psycopg://"):
-        normalized = "postgresql://" + normalized.split("://", 1)[1]
-    return (urlparse(normalized).password or "").lower()
+    return (urlparse(_normalize_db_url(value)).password or "").lower()
 
 
 def _hostname_from_url(value: str) -> str:
-    normalized = value
-    if normalized.startswith("postgresql+psycopg://"):
-        normalized = "postgresql://" + normalized.split("://", 1)[1]
-    return (urlparse(normalized).hostname or "").lower()
+    return (urlparse(_normalize_db_url(value)).hostname or "").lower()
