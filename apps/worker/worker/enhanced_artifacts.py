@@ -64,6 +64,8 @@ def _extract_subtitles(info_dict: dict, work_dir: Path) -> dict | None:
         if not isinstance(entries, list):
             continue
         for entry in entries:
+            if not isinstance(entry, dict):
+                continue
             ext = entry.get("ext", "")
             if ext not in ("srt", "vtt", "json3"):
                 continue

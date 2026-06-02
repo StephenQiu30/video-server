@@ -10,6 +10,7 @@ from app.services.tasks import add_task_event, cleanup_expired_task_outputs
 from video_downloader_shared.states import TaskState
 from worker.ai_pipeline import process_ai_pipeline
 from worker.artifact_storage import delete_artifact, upload_artifact
+from worker.domain import EnhancedArtifactsStatus
 from worker.enhanced_artifacts import collect_enhanced_artifacts
 from worker.download_runner import (
     apply_browser_cookie_options,
@@ -178,8 +179,12 @@ def _collect_and_store_enhanced(
     except Exception:
         import logging
         logging.getLogger(__name__).exception("增强产物采集异常，不影响主任务")
-        task.enhanced_status = "unavailable"
-        db.commit()
+        try:
+            db.rollback()
+            task.enhanced_status = EnhancedArtifactsStatus.UNAVAILABLE.value
+            db.commit()
+        except Exception:
+            logging.getLogger(__name__).exception("增强状态回写失败，已忽略")
 
 
 def _to_json(data: dict | None) -> str | None:
