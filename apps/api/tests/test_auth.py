@@ -70,6 +70,68 @@ def test_login_locks_after_repeated_failures(monkeypatch, client: TestClient, se
     assert "存在" not in locked.json()["error"]["message"]
 
 
+def test_register_rate_limits_by_ip(monkeypatch, client: TestClient):
+    from app.routers import auth
+    from app.services.auth_lock import InMemoryAuthLock
+
+    lock = InMemoryAuthLock(register_limit=2)
+    monkeypatch.setattr(auth, "get_auth_lock", lambda: lock)
+
+    for i in range(2):
+        response = client.post(
+            "/api/auth/register",
+            json={"email": f"rate{i}@example.com", "password": "password123", "display_name": "Rate"},
+        )
+        assert response.status_code == 201
+
+    blocked = client.post(
+        "/api/auth/register",
+        json={"email": "rate-blocked@example.com", "password": "password123", "display_name": "Rate"},
+    )
+
+    assert blocked.status_code == 429
+    assert blocked.json()["error"]["code"] == "auth_locked"
+
+
+def test_register_rate_limits_are_independent_per_ip(monkeypatch, client: TestClient):
+    """Different IPs should have independent register rate limits."""
+    from app.routers import auth
+    from app.services.auth_lock import InMemoryAuthLock
+    from unittest.mock import patch
+
+    lock = InMemoryAuthLock(register_limit=2)
+    monkeypatch.setattr(auth, "get_auth_lock", lambda: lock)
+
+    ip_sequence = iter(["10.0.0.1", "10.0.0.1", "10.0.0.2", "10.0.0.1"])
+
+    def mock_client_ip(request):
+        return next(ip_sequence)
+
+    with patch.object(auth, "_client_ip", side_effect=mock_client_ip):
+        # IP A: first two registrations succeed (hits limit)
+        for i in range(2):
+            resp = client.post(
+                "/api/auth/register",
+                json={"email": f"ip-a-{i}@example.com", "password": "password123", "display_name": "IPA"},
+            )
+            assert resp.status_code == 201
+
+        # IP B: registration succeeds (independent limit)
+        resp = client.post(
+            "/api/auth/register",
+            json={"email": "ip-b@example.com", "password": "password123", "display_name": "IPB"},
+        )
+        assert resp.status_code == 201
+
+        # IP A: third attempt blocked (limit exceeded for this IP)
+        resp = client.post(
+            "/api/auth/register",
+            json={"email": "ip-a-blocked@example.com", "password": "password123", "display_name": "IPA"},
+        )
+        assert resp.status_code == 429
+        assert resp.json()["error"]["code"] == "auth_locked"
+
+
 def test_successful_login_clears_email_lock(monkeypatch, client: TestClient, session: Session):
     from app.core.security import hash_password
     from app.routers import auth
