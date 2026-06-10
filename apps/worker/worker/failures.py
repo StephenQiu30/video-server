@@ -25,6 +25,10 @@ def failure_code(exc: Exception) -> WorkerFailureCode:
         return WorkerFailureCode.FORMAT_UNAVAILABLE
     if "file is larger than max-filesize" in message or "larger than max-filesize" in message:
         return WorkerFailureCode.FILE_TOO_LARGE
+    if _is_platform_restricted(message):
+        return WorkerFailureCode.PLATFORM_RESTRICTED
+    if _is_platform_rate_limited(message):
+        return WorkerFailureCode.PLATFORM_RATE_LIMITED
     if "timed out" in message or "timeout" in message:
         return WorkerFailureCode.TASK_TIMEOUT
     if "unsupported url" in message or "no video formats found" in message:
@@ -38,6 +42,10 @@ def format_failure_reason(exc: Exception) -> str:
     if isinstance(exc, JobFailure) and exc.code == WorkerFailureCode.TASK_CANCELED:
         return "任务已取消"
     lowered = str(exc).lower()
+    if _is_platform_restricted(lowered):
+        return "该内容存在访问限制（登录、会员、付费、版权或地区限制），当前服务不会绕过此类限制。"
+    if _is_platform_rate_limited(lowered):
+        return "平台访问频率受限或触发风控，请稍后再试。"
     if _looks_like_browser_cookie_error(lowered):
         return (
             "无法读取本机 Chrome 登录态。请确认 Chrome 已登录 B 站，并允许当前终端或 Python 访问浏览器数据；"
@@ -67,6 +75,45 @@ def failure_info_from_exception(exc: Exception, stage: WorkerStage) -> FailureIn
             WorkerFailureCode.PLATFORM_RATE_LIMITED,
         },
     )
+
+
+def _is_platform_restricted(message: str) -> bool:
+    """Detect platform restriction patterns (login, DRM, paid, geo, etc.)."""
+    markers = (
+        "login required",
+        "need to login",
+        "sign in",
+        "members-only",
+        "member-only",
+        "private",
+        "premium",
+        "paid",
+        "charge",
+        "drm",
+        "copyright",
+        "geo restricted",
+        "georestricted",
+        "region",
+        "仅限",
+        "会员",
+        "付费",
+        "版权",
+    )
+    return any(marker in message for marker in markers)
+
+
+def _is_platform_rate_limited(message: str) -> bool:
+    """Detect rate-limiting patterns (429, captcha, throttling)."""
+    markers = (
+        "too many requests",
+        "http error 429",
+        "429",
+        "rate limit",
+        "captcha",
+        "验证码",
+        "频繁",
+    )
+    return any(marker in message for marker in markers)
 
 
 def _looks_like_browser_cookie_error(message: str) -> bool:
