@@ -26,6 +26,8 @@ SOURCE_SITE_NAMES = {
     "vimeo": "Vimeo",
     "dailymotion": "Dailymotion",
     "weibo": "微博",
+    "x": "X",
+    "instagram": "Instagram",
 }
 
 # Platforms known to serve watermarked video by default.
