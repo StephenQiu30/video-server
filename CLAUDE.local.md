@@ -12,5 +12,6 @@
 
 1. 本项目内的角色配置放在 `.claude/agents/` 目录。
 2. 本项目内的可复用流程放在 `.claude/skills/` 目录。
-3. Claude 入口与 Codex 入口、Cursor 入口并存；不要删除 `AGENTS.md`、`.codex/` 或 `.cursor/rules/`。
-4. 本项目的统一验证入口为 `npm test`，其中包含仓库结构检查、Shell 脚本语法检查、生产环境示例校验和 API 测试。
+3. 本项目的统一验证入口为 `npm test`，其中包含仓库结构检查、Shell 脚本语法检查、生产环境示例校验和 API 测试。
+4. 本项目采用 OpenSpec 作为 SDD 规范层；`openspec/specs/` 记录当前事实，`openspec/changes/` 承载增量变更。
+5. Symphony workspace 创建后需安装 Node 与 Python 依赖；详见 `WORKFLOW.md` 的 `after_create` hooks。

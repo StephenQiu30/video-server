@@ -83,7 +83,7 @@ def test_openapi_documents_non_json_runtime_responses() -> None:
 
 def test_openapi_export_and_frontend_collaboration_assets_exist() -> None:
     export_script = Path("scripts/export_openapi.py")
-    collaboration_doc = Path("docs/06-运维合规/05-OpenAPI契约与前端生成协作.md")
+    collaboration_doc = Path("docs/operations/001-OpenAPI契约与前端生成协作.md")
 
     assert export_script.exists()
     assert collaboration_doc.exists()

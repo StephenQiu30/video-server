@@ -1,13 +1,7 @@
 .DS_Store
 **/.DS_Store
 .claude/settings.local.json
-.cursor/*
-!.cursor/rules/
-!.cursor/rules/*.mdc
-!.cursor/agents/
-!.cursor/agents/*.md
-!.cursor/skills/
-!.cursor/skills/**
+.cursor/
 __pycache__/
 *.py[cod]
 .pytest_cache/
