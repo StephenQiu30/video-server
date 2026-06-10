@@ -2,7 +2,7 @@ from ipaddress import ip_address
 import re
 from urllib.parse import urlparse
 
-from app.core.errors import AppError
+from app.core.errors import AppError, ErrorCode
 
 _LOCALHOST_PATTERNS = ("localhost", ".localhost", ".local", ".invalid")
 
@@ -10,7 +10,7 @@ _LOCALHOST_PATTERNS = ("localhost", ".localhost", ".local", ".invalid")
 def normalize_user_url(value: str) -> str:
     url = (value or "").strip()
     if not url:
-        raise AppError("invalid_url", "请输入视频链接", 422)
+        raise AppError(ErrorCode.INVALID_URL, "请输入视频链接", 422)
 
     # Extract the clean URL first if the user pasted a raw share text block containing extra copy
     url_pattern = re.compile(r'https?://[a-zA-Z0-9.\-_~:/?#\[\]@!$&\'()*+,;=]+')
@@ -19,7 +19,7 @@ def normalize_user_url(value: str) -> str:
         url = match.group(0).strip()
 
     if any(char.isspace() for char in url):
-        raise AppError("invalid_url", "请输入有效的视频链接，例如 https://example.com/video", 422)
+        raise AppError(ErrorCode.INVALID_URL, "请输入有效的视频链接，例如 https://example.com/video", 422)
 
     parsed = urlparse(url)
     if not parsed.scheme:
@@ -27,13 +27,13 @@ def normalize_user_url(value: str) -> str:
         parsed = urlparse(url)
 
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-        raise AppError("invalid_url", "请输入有效的视频链接，例如 https://example.com/video", 422)
+        raise AppError(ErrorCode.INVALID_URL, "请输入有效的视频链接，例如 https://example.com/video", 422)
 
     if _is_restricted_host(parsed.hostname):
-        raise AppError("unsafe_url", "不允许访问本机地址、内网地址或保留地址", 422)
+        raise AppError(ErrorCode.UNSAFE_URL, "不允许访问本机地址、内网地址或保留地址", 422)
 
     if not _is_valid_host(parsed.hostname):
-        raise AppError("invalid_url", "请输入有效的视频链接，例如 https://example.com/video", 422)
+        raise AppError(ErrorCode.INVALID_URL, "请输入有效的视频链接，例如 https://example.com/video", 422)
 
     return url
 
