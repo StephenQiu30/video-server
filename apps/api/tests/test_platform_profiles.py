@@ -3,11 +3,11 @@ from app.services.platforms import find_platform_profile, validate_supported_dow
 
 def test_platform_profile_matches_mainland_short_video_hosts() -> None:
     cases = [
-        ("https://www.douyin.com/video/123", "douyin", "抖音", "domestic_short_video"),
-        ("https://www.kuaishou.com/short-video/abc", "kuaishou", "快手", "domestic_short_video"),
-        ("https://www.xiaohongshu.com/explore/abc", "xiaohongshu", "小红书", "domestic_short_video"),
-        ("https://www.ixigua.com/123", "ixigua", "西瓜视频", "domestic_short_video"),
-        ("https://m.weibo.cn/status/123", "weibo", "微博", "domestic_short_video"),
+        ("https://www.douyin.com/video/123", "douyin", "抖音", "cn-short-video"),
+        ("https://www.kuaishou.com/short-video/abc", "kuaishou", "快手", "cn-short-video"),
+        ("https://www.xiaohongshu.com/explore/abc", "xiaohongshu", "小红书", "cn-short-video"),
+        ("https://www.ixigua.com/123", "ixigua", "西瓜视频", "cn-short-video"),
+        ("https://m.weibo.cn/status/123", "weibo", "微博", "cn-short-video"),
     ]
 
     for url, platform_id, display_name, category in cases:
@@ -30,7 +30,7 @@ def test_platform_profile_matches_bilibili_short_hosts() -> None:
         assert profile is not None
         assert profile.id == "bilibili"
         assert profile.display_name == "B 站"
-        assert profile.category == "long_video"
+        assert profile.category == "cn-video"
 
 
 def test_platform_profile_marks_known_public_fallback_hosts() -> None:
@@ -54,16 +54,18 @@ def test_platform_profile_marks_known_public_fallback_hosts() -> None:
 def test_all_platforms_have_profile_fields() -> None:
     """Every supported platform returns id, display_name, and category."""
     cases = [
-        ("https://www.douyin.com/video/123", "douyin", "抖音", "domestic_short_video"),
-        ("https://www.kuaishou.com/short-video/abc", "kuaishou", "快手", "domestic_short_video"),
-        ("https://www.xiaohongshu.com/explore/abc", "xiaohongshu", "小红书", "domestic_short_video"),
-        ("https://www.ixigua.com/123", "ixigua", "西瓜视频", "domestic_short_video"),
-        ("https://m.weibo.cn/status/123", "weibo", "微博", "domestic_short_video"),
-        ("https://www.bilibili.com/video/BV1xx411c7mD", "bilibili", "B 站", "long_video"),
-        ("https://www.youtube.com/watch?v=abc", "youtube", "YouTube", "long_video"),
-        ("https://www.tiktok.com/@u/video/123", "tiktok", "TikTok", "short_video"),
-        ("https://vimeo.com/123456", "vimeo", "Vimeo", "long_video"),
-        ("https://www.dailymotion.com/video/abc", "dailymotion", "Dailymotion", "long_video"),
+        ("https://www.douyin.com/video/123", "douyin", "抖音", "cn-short-video"),
+        ("https://www.kuaishou.com/short-video/abc", "kuaishou", "快手", "cn-short-video"),
+        ("https://www.xiaohongshu.com/explore/abc", "xiaohongshu", "小红书", "cn-short-video"),
+        ("https://www.ixigua.com/123", "ixigua", "西瓜视频", "cn-short-video"),
+        ("https://m.weibo.cn/status/123", "weibo", "微博", "cn-short-video"),
+        ("https://www.bilibili.com/video/BV1xx411c7mD", "bilibili", "B 站", "cn-video"),
+        ("https://www.youtube.com/watch?v=abc", "youtube", "YouTube", "overseas-video"),
+        ("https://www.tiktok.com/@u/video/123", "tiktok", "TikTok", "overseas-short-video"),
+        ("https://vimeo.com/123456", "vimeo", "Vimeo", "overseas-video"),
+        ("https://www.dailymotion.com/video/abc", "dailymotion", "Dailymotion", "overseas-video"),
+        ("https://x.com/user/status/123", "x", "X", "social-platform"),
+        ("https://www.instagram.com/reel/abc", "instagram", "Instagram", "social-platform"),
     ]
 
     for url, expected_id, expected_name, expected_category in cases:
@@ -76,7 +78,7 @@ def test_all_platforms_have_profile_fields() -> None:
 
 
 def test_high_risk_platforms_have_compliance_note() -> None:
-    """Domestic short video and bilibili profiles carry a compliance_note."""
+    """All formally supported platforms carry a compliance_note."""
     high_risk_urls = [
         "https://www.douyin.com/video/123",
         "https://www.kuaishou.com/short-video/abc",
@@ -84,6 +86,8 @@ def test_high_risk_platforms_have_compliance_note() -> None:
         "https://www.ixigua.com/123",
         "https://m.weibo.cn/status/123",
         "https://www.bilibili.com/video/BV1xx411c7mD",
+        "https://x.com/user/status/123",
+        "https://www.instagram.com/reel/abc",
     ]
 
     for url in high_risk_urls:
@@ -92,6 +96,38 @@ def test_high_risk_platforms_have_compliance_note() -> None:
         assert profile is not None, f"no profile for {url}"
         assert profile.compliance_note is not None, f"{profile.id} missing compliance_note"
         assert len(profile.compliance_note) > 0
+
+
+def test_platform_profile_matches_x_hosts() -> None:
+    """X (formerly Twitter) URLs are recognized with social-platform category."""
+    for url in [
+        "https://x.com/user/status/123",
+        "https://twitter.com/user/status/123",
+        "https://www.x.com/user/status/123",
+    ]:
+        profile = find_platform_profile(url)
+
+        assert profile is not None, f"no profile for {url}"
+        assert profile.id == "x"
+        assert profile.display_name == "X"
+        assert profile.category == "social-platform"
+        assert profile.compliance_note is not None
+
+
+def test_platform_profile_matches_instagram_hosts() -> None:
+    """Instagram URLs are recognized with social-platform category."""
+    for url in [
+        "https://www.instagram.com/reel/abc",
+        "https://www.instagram.com/p/abc123",
+        "https://instagram.com/stories/user/123",
+    ]:
+        profile = find_platform_profile(url)
+
+        assert profile is not None, f"no profile for {url}"
+        assert profile.id == "instagram"
+        assert profile.display_name == "Instagram"
+        assert profile.category == "social-platform"
+        assert profile.compliance_note is not None
 
 
 def test_unknown_public_host_returns_none() -> None:

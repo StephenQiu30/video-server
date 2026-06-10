@@ -197,17 +197,17 @@ def test_parse_api_requires_auth(client: TestClient) -> None:
     assert response.status_code == 401
 
 
-def test_create_task_rejects_obviously_unsupported_platform_before_enqueue(
+def test_create_task_rejects_unsafe_host_before_enqueue(
     monkeypatch,
     client: TestClient,
     session: Session,
 ) -> None:
-    """Unsupported platform URLs are rejected with 422 before enqueue."""
+    """Restricted host URLs (.invalid TLD) are rejected with unsafe_url before enqueue."""
     def fail_enqueue(_: str) -> None:
-        raise AssertionError("unsupported platform should not be enqueued")
+        raise AssertionError("unsafe host should not be enqueued")
 
     monkeypatch.setattr("app.routers.tasks.enqueue_download_task", fail_enqueue)
-    user = _make_user(session, email="unsupported@example.com", github_id="unsupported-user")
+    user = _make_user(session, email="unsafe-host@example.com", github_id="unsafe-host-user")
     token = create_access_token(user.id)
 
     response = client.post(
@@ -217,7 +217,7 @@ def test_create_task_rejects_obviously_unsupported_platform_before_enqueue(
     )
 
     assert response.status_code == 422
-    assert response.json()["error"]["code"] == "invalid_url"
+    assert response.json()["error"]["code"] == "unsafe_url"
 
 
 def test_create_task_accepts_known_bilibili_platform_before_enqueue(
@@ -370,6 +370,218 @@ def test_create_task_rejects_concurrent_task_limit(
 
     assert response.status_code == 429
     assert response.json()["error"]["code"] == "limit_exceeded"
+
+
+def test_cleanup_expired_task_outputs_nullifies_key_and_sets_retention_expired(
+    monkeypatch,
+    client: TestClient,
+    session: Session,
+) -> None:
+    """After cleanup, expired task has object_key=None and failure_code='retention_expired'."""
+    monkeypatch.setattr("app.routers.tasks.enqueue_download_task", lambda task_id: None)
+    monkeypatch.setattr("app.services.storage.ObjectStorage.delete_object", lambda self, key: None)
+
+    owner = _make_user(session, email="cleanup@example.com", github_id="cleanup-owner")
+    token = create_access_token(owner.id)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    task = DownloadTask(
+        user_id=owner.id,
+        source_url="https://bilibili.com/video/BV1xx411c7d",
+        title="expired-cleanup",
+        state=TaskState.SUCCEEDED.value,
+        progress=100,
+        object_key="users/1/tasks/abc/video.mp4",
+        object_size=500000,
+        expires_at=(datetime.now(UTC) - timedelta(seconds=1)),
+    )
+    session.add(task)
+    session.commit()
+
+    # Trigger cleanup via download-link endpoint
+    response = client.get(f"/api/tasks/{task.id}/download-link", headers=headers)
+    assert response.status_code == 410
+    assert response.json()["error"]["code"] == "retention_expired"
+
+    # Verify task record still exists but object_key is nullified
+    session.refresh(task)
+    assert task.object_key is None
+    assert task.failure_code == "retention_expired"
+    assert task.state == TaskState.SUCCEEDED.value  # state preserved
+
+
+def test_task_detail_returns_metadata_completeness(
+    monkeypatch,
+    client: TestClient,
+    session: Session,
+) -> None:
+    """Task detail includes title, cover_url, duration_seconds, object_size, output_filename."""
+    monkeypatch.setattr("app.routers.tasks.enqueue_download_task", lambda task_id: None)
+
+    owner = _make_user(session, email="meta@example.com", github_id="meta-owner")
+    token = create_access_token(owner.id)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    task = DownloadTask(
+        user_id=owner.id,
+        source_url="https://bilibili.com/video/BV1xx411c7d",
+        title="元数据完整性测试",
+        cover_url="https://example.com/cover.jpg",
+        duration_seconds=120,
+        state=TaskState.SUCCEEDED.value,
+        progress=100,
+        output_filename="元数据完整性测试.mp4",
+        object_key="users/1/tasks/abc/元数据完整性测试.mp4",
+        object_size=1024000,
+        expires_at=(datetime.now(UTC) + timedelta(hours=24)),
+    )
+    session.add(task)
+    session.commit()
+
+    response = client.get(f"/api/tasks/{task.id}", headers=headers)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["title"] == "元数据完整性测试"
+    assert body["cover_url"] == "https://example.com/cover.jpg"
+    assert body["duration_seconds"] == 120
+    assert body["object_size"] == 1024000
+    assert body["output_filename"] == "元数据完整性测试.mp4"
+    assert body["expires_at"] is not None
+
+
+def test_download_link_rejects_non_succeeded_task(
+    monkeypatch,
+    client: TestClient,
+    session: Session,
+) -> None:
+    """Download link for non-succeeded task returns 409."""
+    monkeypatch.setattr("app.routers.tasks.enqueue_download_task", lambda task_id: None)
+
+    owner = _make_user(session, email="not-succeeded@example.com", github_id="not-succeeded-owner")
+    token = create_access_token(owner.id)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    task = DownloadTask(
+        user_id=owner.id,
+        source_url="https://bilibili.com/video/BV1xx411c7d",
+        title="running-task",
+        state=TaskState.RUNNING.value,
+        progress=50,
+    )
+    session.add(task)
+    session.commit()
+
+    response = client.get(f"/api/tasks/{task.id}/download-link", headers=headers)
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "invalid_state"
+
+
+def test_download_link_rejects_missing_object_key(
+    monkeypatch,
+    client: TestClient,
+    session: Session,
+) -> None:
+    """Download link for succeeded task with null object_key returns 410."""
+    monkeypatch.setattr("app.routers.tasks.enqueue_download_task", lambda task_id: None)
+
+    owner = _make_user(session, email="no-key@example.com", github_id="no-key-owner")
+    token = create_access_token(owner.id)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    task = DownloadTask(
+        user_id=owner.id,
+        source_url="https://bilibili.com/video/BV1xx411c7d",
+        title="no-object-key",
+        state=TaskState.SUCCEEDED.value,
+        progress=100,
+        object_key=None,
+        failure_code="retention_expired",
+    )
+    session.add(task)
+    session.commit()
+
+    response = client.get(f"/api/tasks/{task.id}/download-link", headers=headers)
+    assert response.status_code == 410
+    assert response.json()["error"]["code"] == "retention_expired"
+
+
+def test_download_link_schema_includes_url_and_expires(
+    monkeypatch,
+    client: TestClient,
+    session: Session,
+) -> None:
+    """DownloadLinkResponse schema includes 'url' and 'expires_in_seconds'."""
+    monkeypatch.setattr("app.routers.tasks.enqueue_download_task", lambda task_id: None)
+    fake_url = "https://minio.example.com/bucket/key?sig=abc"
+    monkeypatch.setattr(
+        "app.services.storage.ObjectStorage.presign_download_url",
+        lambda self, object_key: fake_url,
+    )
+
+    owner = _make_user(session, email="schema@example.com", github_id="schema-owner")
+    token = create_access_token(owner.id)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    task = DownloadTask(
+        user_id=owner.id,
+        source_url="https://bilibili.com/video/BV1xx411c7d",
+        title="schema-test",
+        state=TaskState.SUCCEEDED.value,
+        progress=100,
+        object_key="users/1/tasks/abc/video.mp4",
+        object_size=500000,
+        expires_at=(datetime.now(UTC) + timedelta(hours=1)),
+    )
+    session.add(task)
+    session.commit()
+
+    response = client.get(f"/api/tasks/{task.id}/download-link", headers=headers)
+    assert response.status_code == 200
+    body = response.json()
+    assert "url" in body
+    assert "expires_in_seconds" in body
+    assert body["url"] == fake_url
+    assert isinstance(body["expires_in_seconds"], int)
+    assert body["expires_in_seconds"] > 0
+
+
+def test_expired_task_record_retained_after_cleanup(
+    monkeypatch,
+    client: TestClient,
+    session: Session,
+) -> None:
+    """After cleanup, task detail still returns the task record (not 404)."""
+    monkeypatch.setattr("app.routers.tasks.enqueue_download_task", lambda task_id: None)
+    monkeypatch.setattr("app.services.storage.ObjectStorage.delete_object", lambda self, key: None)
+
+    owner = _make_user(session, email="retained@example.com", github_id="retained-owner")
+    token = create_access_token(owner.id)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    task = DownloadTask(
+        user_id=owner.id,
+        source_url="https://bilibili.com/video/BV1xx411c7d",
+        title="retained-task",
+        state=TaskState.SUCCEEDED.value,
+        progress=100,
+        object_key="users/1/tasks/abc/video.mp4",
+        object_size=500000,
+        expires_at=(datetime.now(UTC) - timedelta(seconds=1)),
+    )
+    session.add(task)
+    session.commit()
+    task_id = task.id
+
+    # Trigger cleanup
+    client.get(f"/api/tasks/{task_id}/download-link", headers=headers)
+
+    # Task record should still be retrievable
+    detail = client.get(f"/api/tasks/{task_id}", headers=headers)
+    assert detail.status_code == 200
+    body = detail.json()
+    assert body["id"] == task_id
+    assert body["state"] == TaskState.SUCCEEDED.value
+    assert body["failure_code"] == "retention_expired"
 
 
 def test_error_responses_do_not_leak_sensitive_params(
