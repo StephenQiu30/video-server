@@ -32,6 +32,7 @@ downstream:
 
 1. 提供一键启动完整服务的部署路径。
 2. 定义健康检查和启动后验证方式。
+3. 对常见启动失败给出排查路径。
 
 ## 3. 非目标
 
@@ -39,9 +40,14 @@ downstream:
 
 ## 4. 核心内容
 
-1. 明确 API、Worker、Redis、Postgres、MinIO 的 Compose 角色。
-2. 给出启动、停止和健康检查步骤。
-3. 对常见启动失败给出排查路径。
+1. Compose 文件结构：`docker-compose.yml`（基础层，定义 api 和 worker）+ `docker-compose.prod.yml`（覆盖层，添加 postgres、redis、minio 基础设施）。
+2. 多阶段 Dockerfile：`python-base`（Python 3.12-slim + ffmpeg）、`api`（安装 API 依赖，uvicorn 监听 8000）、`worker`（安装 Worker 依赖，运行 `python -m worker.main`）。
+3. 基础设施版本：`postgres:16-alpine`、`redis:7-alpine`、`minio/minio:latest`。三者均有 healthcheck，应用服务通过 `depends_on` + `condition: service_healthy` 等待就绪。
+4. 环境校验：`scripts/validate_prod_env.py` 强制 `.env.production` 中不得含有 `CHANGE_ME` 占位符，且关键 URL 不得指向 localhost。
+5. 启动命令：`npm run docker:up`（后台模式）或 `npm run docker:logs`（查看日志），底层调用 `scripts/start.sh docker:up`。
+6. 健康检查：API 容器内置 healthcheck（每 10 秒请求 `/health`），基础设施容器各有独立 healthcheck（pg_isready、redis-cli ping、minio curl）。
+7. 验证：`curl http://localhost:8000/health` 检查存活，`curl http://localhost:8000/ready` 检查全部组件就绪。
+8. 停止：`npm run docker:down` 执行 `docker compose down`。
 
 ## 5. 关联文档
 
@@ -65,11 +71,11 @@ downstream:
 
 ## 7. 风险与边界
 
-Compose 文件和本机开发配置分叉过大，会让维护成本显著上升。
+Compose 文件和本机开发配置分叉过大，会让维护成本显著上升。当前方案通过统一 `.env.example` 模板和独立 `.env.production` 来缓解，但两者的变量名必须保持同步。
 
 ## 8. 待确认问题
 
-- 是否拆分最小 profile 与完整 profile。
+- 是否拆分最小 profile 与完整 profile（当前为完整 profile，含 MinIO）。
 
 ## 9. 变更记录
 
