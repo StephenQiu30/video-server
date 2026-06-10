@@ -13,7 +13,7 @@ from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.errors import AppError
+from app.core.errors import AppError, ErrorCode
 from app.db.session import SessionLocal, get_db
 from app.deps import get_current_user
 from app.models import DownloadTask, User
@@ -128,6 +128,7 @@ async def stream_tasks(
         last_payload: str | None = None
         while True:
             with SessionLocal() as stream_db:
+                cleanup_expired_task_outputs(stream_db)
                 tasks = _list_user_tasks(stream_db, user_id, None, limit)
                 payload = json.dumps(
                     {
@@ -236,7 +237,7 @@ def export_task_pdf(
 ) -> Response:
     task = get_owned_task(db, current_user, task_id)
     if task.state != TaskState.SUCCEEDED.value:
-        raise AppError("invalid_state", "任务尚未完成，无法导出报告", 409)
+        raise AppError(ErrorCode.INVALID_STATE, "任务尚未完成，无法导出报告", 409)
     
     pdf_content = PDFService().generate_task_report(task)
     filename = f"report_{task.id[:8]}.pdf"
@@ -250,13 +251,13 @@ def export_task_pdf(
 
 def _assert_downloadable(task: DownloadTask) -> None:
     if task.state != TaskState.SUCCEEDED.value:
-        raise AppError("invalid_state", "任务尚未完成，暂不能获取下载链接", 409)
+        raise AppError(ErrorCode.INVALID_STATE, "任务尚未完成，暂不能获取下载链接", 409)
     if not task.object_key:
-        raise AppError("retention_expired", "文件不存在或已过期，请重新创建任务", 410)
+        raise AppError(ErrorCode.RETENTION_EXPIRED, "文件不存在或已过期，请重新创建任务", 410)
     if task.expires_at:
         expires_at = task.expires_at if task.expires_at.tzinfo else task.expires_at.replace(tzinfo=UTC)
         if expires_at <= datetime.now(UTC):
-            raise AppError("retention_expired", "文件保留时间已过期，请重新创建任务", 410)
+            raise AppError(ErrorCode.RETENTION_EXPIRED, "文件保留时间已过期，请重新创建任务", 410)
 
 
 def _list_user_tasks(db: Session, user_id: int, state: str | None = None, limit: int | None = None) -> list[DownloadTask]:
@@ -268,7 +269,7 @@ def _list_user_tasks(db: Session, user_id: int, state: str | None = None, limit:
     if state:
         valid_states = {item.value for item in TaskState}
         if state not in valid_states:
-            raise AppError("invalid_state", "任务状态筛选值无效", 422)
+            raise AppError(ErrorCode.INVALID_STATE, "任务状态筛选值无效", 422)
         query = query.where(DownloadTask.state == state)
     if limit:
         query = query.limit(limit)

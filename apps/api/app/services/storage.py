@@ -1,5 +1,5 @@
 from app.core.config import get_settings
-from app.core.errors import AppError
+from app.core.errors import AppError, ErrorCode
 
 
 class ObjectStorage:
@@ -11,7 +11,7 @@ class ObjectStorage:
             import boto3
             from botocore.client import Config
         except ModuleNotFoundError as exc:
-            raise AppError("storage_unavailable", "对象存储客户端未安装", 503) from exc
+            raise AppError(ErrorCode.STORAGE_UNAVAILABLE, "对象存储客户端未安装", 503) from exc
         
         endpoint = self.settings.s3_public_endpoint_url if public and self.settings.s3_public_endpoint_url else self.settings.s3_endpoint_url
         
@@ -54,7 +54,7 @@ class ObjectStorage:
             response = getattr(exc, "response", {})
             error_code = response.get("Error", {}).get("Code")
             if error_code in {"NoSuchKey", "404", "NotFound"}:
-                raise AppError("retention_expired", "文件不存在或已过期，请重新创建任务", 410) from exc
+                raise AppError(ErrorCode.RETENTION_EXPIRED, "文件不存在或已过期，请重新创建任务", 410) from exc
             raise
 
     def delete_object(self, object_key: str) -> None:

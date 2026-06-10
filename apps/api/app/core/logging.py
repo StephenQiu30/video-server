@@ -1,8 +1,27 @@
 import json
 import logging
+import re
 import sys
 from datetime import UTC, datetime
 from typing import Any
+
+from app.utils.sanitize import redact_url
+
+_URL_PATTERN = re.compile(r"https?://[^\s]+")
+_SENSITIVE_KV_PATTERN = re.compile(
+    r"(?i)\b(token|cookie|password|authorization|secret|key|access_token|session)\s*[=:]\s*\S+"
+)
+
+
+def _redact_message(message: str) -> str:
+    """Redact sensitive information from a log message.
+
+    1. Sanitize URLs found in the message using redact_url().
+    2. Replace sensitive key=value / key: value patterns with key=[REDACTED].
+    """
+    result = _URL_PATTERN.sub(lambda m: redact_url(m.group(0)), message)
+    result = _SENSITIVE_KV_PATTERN.sub(lambda m: m.group(0).split("=")[0].split(":")[0] + "=[REDACTED]", result)
+    return result
 
 
 class JSONFormatter(logging.Formatter):
@@ -10,20 +29,12 @@ class JSONFormatter(logging.Formatter):
         log_data: dict[str, Any] = {
             "timestamp": datetime.now(UTC).isoformat(),
             "level": record.levelname,
-            "message": record.getMessage(),
+            "message": _redact_message(record.getMessage()),
             "logger": record.name,
         }
         if record.exc_info:
             log_data["exception"] = self.formatException(record.exc_info)
-        
-        # Redaction logic for sensitive fields
-        message = log_data["message"]
-        sensitive_keywords = ["token", "cookie", "password", "authorization", "secret", "key"]
-        for keyword in sensitive_keywords:
-            if keyword in message.lower():
-                log_data["message"] = "[REDACTED]"
-                break
-        
+
         return json.dumps(log_data, ensure_ascii=False)
 
 
