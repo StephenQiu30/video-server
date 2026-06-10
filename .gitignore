@@ -12,6 +12,7 @@ dist/
 apps/web/src/.umi/
 apps/web/src/.umi-production/
 .env
+.env.production
 downloads/
 .idea
 tmp/

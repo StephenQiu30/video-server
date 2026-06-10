@@ -46,3 +46,5 @@ jobs:
           cp .env.production.example .env.production
           npm run docker:config
           rm -f .env.production
+      - name: Validate Docker Compose healthchecks
+        run: bash scripts/validate_compose_healthchecks.sh .env.production.example
