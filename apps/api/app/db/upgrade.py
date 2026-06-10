@@ -59,6 +59,16 @@ UPGRADES = [
     "alter table if exists users add column if not exists avatar_url varchar(500)",
     "alter table if exists users alter column password_hash drop not null",
     "create unique index if not exists ix_users_github_id on users (github_id)",
+    """
+    create table if not exists task_events (
+        id serial primary key,
+        task_id varchar(36) not null references download_tasks(id),
+        state varchar(32) not null,
+        message text,
+        created_at timestamp with time zone default now()
+    )
+    """,
+    "create index if not exists ix_task_events_task_id on task_events (task_id)",
 ]
 
 

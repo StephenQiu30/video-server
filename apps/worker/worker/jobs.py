@@ -44,6 +44,8 @@ def process_download_task(task_id: str) -> None:
 
         artifact, download_info = download_task_artifact(task, db, task_work_dir, _is_canceled)
         if _is_canceled(db, task):
+            add_task_event(db, task, TaskState.CANCELED, "Worker 检测到任务已取消，停止执行")
+            db.commit()
             return
 
         assert_artifact_size(artifact, task)
@@ -51,6 +53,8 @@ def process_download_task(task_id: str) -> None:
         db.commit()
         probe_with_ffprobe(artifact, db, task)
         if _is_canceled(db, task):
+            add_task_event(db, task, TaskState.CANCELED, "Worker 检测到任务已取消，停止执行")
+            db.commit()
             return
 
         add_task_event(db, task, TaskState.RUNNING, "开始上传到私有对象存储")
@@ -58,6 +62,8 @@ def process_download_task(task_id: str) -> None:
         stored = upload_artifact(task, artifact)
         if _is_canceled(db, task):
             delete_artifact(stored.object_key)
+            add_task_event(db, task, TaskState.CANCELED, "Worker 检测到任务已取消，停止执行")
+            db.commit()
             return
 
         task.state = TaskState.SUCCEEDED.value
