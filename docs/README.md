@@ -28,10 +28,8 @@
 3. 下载能力只面向用户有权保存的公开或授权内容，不设计规避 DRM、付费墙、盗版传播或平台访问控制的能力。
 4. 文档、规范、角色分工与验收口径必须和代码实现同步演进。
 
-## 与多 Agent 规范入口的关系
+## 与 Claude 规范入口的关系
 
 - `docs/` 负责项目事实、需求、方案、计划、验收和合规资料。
-- `AGENTS.md`、`AGENTS.local.md`、`.codex/agents/` 和 `.codex/skills/` 负责 Codex 入口。
-- `CLAUDE.md`、`CLAUDE.local.md`、`.claude/agents/` 和 `.claude/skills/` 负责 Claude 入口。
-- `CURSOR.md`、`CURSOR.local.md`、`.cursor/agents/`、`.cursor/skills/` 和 `.cursor/rules/` 负责 Cursor 入口。
-- 三套入口应表达同一组项目约束，只按工具识别方式拆分，不互相替代。
+- `CLAUDE.md`、`CLAUDE.local.md`、`.claude/agents/`、`.claude/skills/` 和 `WORKFLOW.md` 负责 Claude Agent 协作规范与 Symphony 编排。
+- `openspec/` 负责长期行为与流程约束的 SDD 规范层。

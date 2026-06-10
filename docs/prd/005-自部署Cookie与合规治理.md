@@ -13,7 +13,7 @@ status: draft
 version: "0.1.0"
 owner: "StephenQiu30"
 inputs:
-  - "AGENTS.md"
+  - "CLAUDE.md"
   - "README.md"
   - "apps/api/app/core/config.py"
   - "apps/worker/worker/download_runner.py"
