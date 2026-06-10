@@ -126,3 +126,54 @@ def test_normalize_user_url_accepts_public_url() -> None:
     """公网域名应正常通过。"""
     assert normalize_user_url("https://bilibili.com/video/BV1xx411c7mD") == "https://bilibili.com/video/BV1xx411c7mD"
     assert normalize_user_url("https://www.youtube.com/watch?v=dQw4w9WgXcQ") == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+
+
+def test_normalize_user_url_rejects_multicast_ip() -> None:
+    """组播地址应被拒绝。"""
+    try:
+        normalize_user_url("http://224.0.0.1/video")
+    except AppError as exc:
+        assert exc.code == "invalid_url"
+    else:
+        raise AssertionError("expected rejection for multicast IP")
+
+
+def test_normalize_user_url_rejects_invalid_tld() -> None:
+    """*.invalid TLD 域名应被拒绝。"""
+    for host in ["test.invalid", "my.test.invalid"]:
+        try:
+            normalize_user_url(f"http://{host}/video")
+        except AppError as exc:
+            assert exc.code == "invalid_url", f"host={host} code={exc.code}"
+        else:
+            raise AssertionError(f"expected rejection for host={host}")
+
+
+def test_normalize_user_url_rejects_ipv6_private_address() -> None:
+    """IPv6 私有地址 (fc00::/7) 应被拒绝。"""
+    try:
+        normalize_user_url("http://[fc00::1]/video")
+    except AppError as exc:
+        assert exc.code == "invalid_url"
+    else:
+        raise AssertionError("expected rejection for IPv6 private address")
+
+
+def test_normalize_user_url_rejects_ipv6_link_local() -> None:
+    """IPv6 链路本地地址 (fe80::) 应被拒绝。"""
+    try:
+        normalize_user_url("http://[fe80::1]/video")
+    except AppError as exc:
+        assert exc.code == "invalid_url"
+    else:
+        raise AssertionError("expected rejection for IPv6 link-local")
+
+
+def test_normalize_user_url_rejects_ipv6_multicast() -> None:
+    """IPv6 组播地址 (ff00::/8) 应被拒绝。"""
+    try:
+        normalize_user_url("http://[ff02::1]/video")
+    except AppError as exc:
+        assert exc.code == "invalid_url"
+    else:
+        raise AssertionError("expected rejection for IPv6 multicast")
