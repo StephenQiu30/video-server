@@ -9,7 +9,7 @@ audience:
 feature_area: minio-archive-download-delivery
 purpose: "定义 MinIO 产物归档、基础元数据保存、下载链接交付和过期清理边界。"
 canonical_path: "docs/prd/04-MinIO产物归档与下载交付.md"
-status: draft
+status: approved
 version: "1.0.0"
 owner: "StephenQiu30"
 inputs:
@@ -50,7 +50,7 @@ And 下载链接通过受控的预签名方式提供
 
 - 不做长期公共 CDN 分发。
 - 不做跨用户共享下载链接。
-- 不在首版中支持字幕、音频或 PDF 等增强产物。
+- 不做公开分享链接。
 
 ## 4. 核心内容
 
@@ -62,15 +62,17 @@ And 下载链接通过受控的预签名方式提供
 
 ### 4.2 交付规则
 
-1. 数据库存储对象索引和元数据，不直接存长期有效外链。
-2. 访问下载文件时由 API 动态签发短期预签名链接。
-3. 产物过期后任务详情仍可查询，但下载链接失效并提示已过期。
+1. 数据库存储对象索引和元数据（`object_key`、`object_size`、`expires_at`），不直接存长期有效外链。
+2. 访问下载文件时由 API 动态签发短期预签名链接（默认 TTL 900 秒，可配置）。
+3. 产物过期后任务详情仍可查询，但下载链接失效并提示已过期（HTTP 410，`retention_expired`）。
+4. 过期清理后任务保持 `SUCCEEDED` 状态，`object_key` 置空，`failure_code` 设为 `retention_expired`。
 
 ### 4.3 产品边界
 
 1. 主视频是成功任务的必要产物。
-2. 封面不可得时记录原因，不影响主视频成功。
-3. 基础元数据必须能从任务详情中读取。
+2. 封面不可得时 `cover_url` 为空，不影响主视频成功。
+3. 基础元数据（`title`、`cover_url`、`duration_seconds`、`object_size`、`output_filename`、`expires_at`）必须能从任务详情中读取。
+4. 增强产物（AI 摘要、字幕、视频元数据）已通过 `enhanced_status`、`subtitle_data`、`video_metadata` 字段支持。
 
 ## 5. 关联文档
 
@@ -109,3 +111,4 @@ MinIO 配置错误、对象命名不稳定或过期策略不一致，会直接�
 | 日期 | 作者 | 版本 | 变更说明 |
 | --- | --- | --- | --- |
 | 2026-06-10 | StephenQiu30 | 1.0.0 | 重建 PRD04：MinIO 产物归档与下载交付 |
+| 2026-06-10 | StephenQiu30 | 1.1.0 | 对齐实现：更新交付规则、产品边界、非目标；状态改为 approved |
