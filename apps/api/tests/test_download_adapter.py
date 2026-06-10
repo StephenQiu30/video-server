@@ -314,3 +314,34 @@ def test_watermark_free_platform_hint() -> None:
         assert "水印" not in fmt.watermark_hint, (
             f"Watermark-free platform format should not mention 水印, got: {fmt.watermark_hint}"
         )
+
+
+def test_watermark_tiktok_hint() -> None:
+    """TikTok should return watermark hint '可能含平台水印', not '不可确认'."""
+    response = DownloadEngineAdapter()._to_response(
+        "https://www.tiktok.com/@user/video/123",
+        {
+            "title": "TikTok sample",
+            "extractor_key": "TikTok",
+            "formats": [
+                {
+                    "format_id": "v-low",
+                    "height": 360,
+                    "width": 640,
+                    "ext": "mp4",
+                    "vcodec": "h264",
+                    "acodec": "aac",
+                },
+            ],
+        },
+    )
+
+    assert response.watermark_hint == "可能含平台水印", (
+        f"TikTok response watermark_hint should be '可能含平台水印', got: {response.watermark_hint}"
+    )
+
+    raw_formats = [item for item in response.formats if item.kind == "raw"]
+    for fmt in raw_formats:
+        assert fmt.watermark_hint == "可能含平台水印", (
+            f"TikTok format watermark_hint should be '可能含平台水印', got: {fmt.watermark_hint}"
+        )
