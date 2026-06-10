@@ -8,7 +8,7 @@
 2. 先读现有代码和规范，再设计方案；优先复用项目既有结构、命名和工具链。
 3. 需求、计划和验收遵循 SMART：具体、可衡量、可达成、相关、有阶段边界。
 4. SDD 是实现前置门禁：涉及架构、数据模型、接口、状态机、队列或权限的任务，先写/更新设计，再写代码。
-5. OpenSpec 是仓库内 SDD 规范层：`openspec/specs/` 记录当前事实，`openspec/changes/` 承载增量变更，`docs/design/` 补充设计解释。
+5. OpenSpec 是仓库内 SDD 规范层：`openspec/specs/` 记录当前事实，`openspec/changes/` 承载提案、规格增量、设计和任务拆解，任务执行默认沿 OpenSpec artifacts 推进。
 6. 修改核心逻辑时默认 TDD：先红灯测试或可执行验收，再最小实现，最后在绿灯保护下重构。
 7. RAG 指红绿测试门禁：Red 必须先证明需求/缺陷未满足，Green 必须证明最小实现已满足验收。
 8. 无法先写测试时，必须说明原因，并提供替代验证证据。
@@ -19,11 +19,11 @@
 ## SDD / TDD / RAG 门禁
 
 1. SDD 至少说明目标、非目标、数据/接口契约、状态流、失败路径、权限边界、验证方式和迁移/回滚影响。
-2. 涉及长期行为、契约或流程约束的修改时，必须同步更新 `openspec/specs/` 中的规范，必要时再决定是否补充解释性文档。
+2. 涉及长期行为、契约或流程约束的修改时，必须先在 `openspec/changes/` 中形成 proposal/specs/design/tasks，再实现并最终同步 `openspec/specs/`。
 3. TDD 必须绑定验收标准：先证明问题或需求，再写最小实现；`test:` commit 先于 `impl:`/`feat:` commit。
 4. RAG（红绿测试）必须记录红灯命令、失败信号、绿灯命令和通过结果；不能只写“已测试”。
 5. 红灯必须能约束实现：不能是空测试、快照噪音、兼容性兜底测试或永远通过的脚本。
-6. 涉及 SDD/TDD/RAG 的 ticket，Workpad 和 PR 都必须记录规范链接、红绿证据和测试命令。
+6. 涉及 SDD/TDD/RAG 的 ticket，Workpad 和 PR 都必须记录 OpenSpec 文档链接、红绿证据和测试命令。
 
 ## 执行流程
 
@@ -63,7 +63,8 @@
 3. `Agent Review` 阶段优先使用 `reviewer:*`，常用标签：`reviewer:claude`、`reviewer:gemini`、`reviewer:codex`、`reviewer:cursor`。
 4. 默认 reviewer 为 `reviewer:claude`；不要使用旧式 `review:*` 标签。
 5. Review 发现问题时，把意见写入 Workpad 的 `Agent Review` 区域，移动到 `Rework`，并保留/恢复实现用的 `agent:*` 标签。
-6. Review 通过后才移动到 `Human Review`。
+6. `Agent Review` 必须对照本次任务对应的 OpenSpec proposal/specs/design/tasks 与 `openspec/specs/` 基线校验实现偏差、漏项和越界项。
+7. Review 通过后才移动到 `Human Review`。
 
 ## Commit 规范
 

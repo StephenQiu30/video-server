@@ -104,6 +104,7 @@ The agent should be able to talk to Linear, either via a configured Linear MCP s
 
 - Start by determining the ticket's current status, then follow the matching flow for that status.
 - Start every task by opening the tracking workpad comment and bringing it up to date before doing new implementation work.
+- Start every task by locating or creating the relevant OpenSpec change artifacts and use them as the SDD source of truth during execution.
 - Spend extra effort up front on planning and verification design before implementation.
 - Reproduce first: always confirm the current behavior/issue signal before changing code so the fix target is explicit.
 - Follow TDD/test-first by default: define the expected behavior as a failing automated test or executable validation before implementation. If a test cannot be written first, document the reason in the workpad and add the closest executable acceptance check before coding.
@@ -130,6 +131,7 @@ Follow `.claude/skills/harness-quality-gate/SKILL.md` as the master checklist. I
 Mandatory Superpowers skills by phase:
 
 - Session / planning: `using-superpowers`, `writing-plans`
+- OpenSpec / SDD: `openspec-new-change`, `openspec-apply-change`, `openspec-verify-change`, and when continuing existing work `openspec-continue-change`
 - Red → green: `test-driven-development` (must align with `test:` then `impl:`/`feat:` commits)
 - Implementation: `executing-plans`; use `systematic-debugging` when blocked on failures
 - Runtime / E2E: `agent-browser`, `harness-local-server`, `harness-playwright-evidence` when UI or app-touching
@@ -186,8 +188,8 @@ Allowed commit types are fixed: `test:`, `docs:`, `impl:`, `chore:`, `feat:`, an
    - `Backlog` -> do not modify issue content/state; stop and wait for human to move it to `Todo`.
    - `Todo` -> immediately move to `In Progress`, then ensure bootstrap workpad comment exists (create if missing), then start execution flow.
      - If PR is already attached, start by reviewing all open PR comments and deciding required changes vs explicit pushback responses.
-   - `In Progress` -> continue execution flow from current scratchpad comment.
-   - `Agent Review` -> run the `code-review` skill. Review the PR and workpad checklist. If issues are found, leave comments, restore the developer's `agent:*` label, and move to `Rework`. If approved, move to `Human Review`.
+   - `In Progress` -> continue execution flow from current scratchpad comment and current OpenSpec change artifacts.
+   - `Agent Review` -> run the `code-review` skill. Review the PR, workpad checklist, and the linked OpenSpec proposal/specs/design/tasks against the implementation. If issues are found, leave comments, restore the developer's `agent:*` label, and move to `Rework`. If approved, move to `Human Review`.
    - `Human Review` -> wait and poll for decision/review updates.
    - `Merging` -> on entry, open and follow `.claude/skills/land/SKILL.md`; do not call `gh pr merge` directly.
    - `Rework` -> run rework flow.
@@ -225,7 +227,7 @@ Allowed commit types are fixed: `test:`, `docs:`, `impl:`, `chore:`, `feat:`, an
     - If changes touch app files or app behavior, add explicit app-specific flow checks to `Acceptance Criteria` in the workpad (for example: launch path, changed interaction path, and expected result path).
     - If the ticket description/comment context includes `Validation`, `Test Plan`, or `Testing` sections, copy those requirements into the workpad `Acceptance Criteria` and `Validation` sections as required checkboxes (no optional downgrade).
 7.  Add a `Test-first Evidence` section to the workpad that names the failing test, acceptance script, or executable validation that will prove the change.
-8.  Open and follow `.claude/skills/writing-plans/SKILL.md` and `.claude/skills/using-superpowers/SKILL.md`; refine the workpad plan from their output.
+8.  Open and follow `.claude/skills/openspec-new-change/SKILL.md` or `.claude/skills/openspec-continue-change/SKILL.md` first, then `.claude/skills/writing-plans/SKILL.md` and `.claude/skills/using-superpowers/SKILL.md`; refine the workpad plan from their output and link the OpenSpec artifacts in the workpad.
 9.  Run a principal-style self-review of the plan and refine it in the comment.
 10. Before implementing, capture a concrete reproduction signal and record it in the workpad `Notes` section (command/output, screenshot, or deterministic UI behavior).
 11. Open and follow `.claude/skills/test-driven-development/SKILL.md`: run the selected test/validation and record the expected red/failing result. If the task is docs-only or cannot have a red test, record the explicit reason and the executable validation that will replace it.
@@ -319,6 +321,7 @@ Use this only when completion is blocked by missing required tools, non-GitHub a
     - Add a short `### Confusions` section at the bottom when any part of task execution was unclear/confusing, with concise bullets.
     - Do not post any additional completion summary comment.
 14. Open and follow `.claude/skills/requesting-code-review/SKILL.md`, then before moving to `Human Review`, poll PR feedback and checks:
+    - Run `.claude/skills/openspec-verify-change/SKILL.md` and compare implementation, validation evidence, and PR/workpad notes against the current OpenSpec artifacts.
     - Read the PR `Manual QA Plan` comment (when present) and use it to sharpen UI/runtime test coverage for the current change.
     - Run the full PR feedback sweep protocol.
     - Confirm PR checks are passing (green) after the latest changes.
@@ -338,7 +341,7 @@ Use this only when completion is blocked by missing required tools, non-GitHub a
 
 ## Step 3: Agent Review, Human Review and merge handling
 
-1. When the issue is in `Agent Review`, the designated reviewing agent should execute the `code-review` skill.
+1. When the issue is in `Agent Review`, the designated reviewing agent should execute the `code-review` skill and compare the delivered change against the linked OpenSpec proposal/specs/design/tasks and `openspec/specs/` baseline.
    - Use `requesting-code-review` and superpowers TDD tools for code review if needed.
    - Update the workpad `### Agent Review` section with review status, reviewer identity, findings, required fixes, and verification expectations.
    - If the code has issues, record each issue as an unchecked finding in `### Agent Review`, move the issue to `Rework`, and restore the original `agent:*` label so the implementation agent can fix them. Do not move to `Human Review` from a failed agent review.

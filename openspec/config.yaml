@@ -5,6 +5,9 @@ context: |
   Stable governance files: CLAUDE.md, CLAUDE.local.md, WORKFLOW.md, docs/
   OpenSpec role: use openspec/specs/ for accepted long-lived requirements and
   openspec/changes/ for in-flight deltas.
+  SDD workflow: execution should begin from OpenSpec change artifacts
+  (proposal/specs/design/tasks) and Agent Review must validate implementation
+  against those artifacts before Human Review.
   Testing entrypoint: npm test
   Boundary rule: stay inside the current project scope and do not add cross-project
   compatibility behavior unless the normative files explicitly require it.
@@ -23,3 +26,4 @@ rules:
     - Explain goals, non-goals, contracts, state flow, failure paths, and rollback impact only when explanatory design text is truly needed.
   tasks:
     - Map work items to concrete repository files and validation commands without crossing project boundaries.
+    - Keep task steps traceable back to the active OpenSpec proposal/specs/design/tasks.
