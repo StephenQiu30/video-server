@@ -48,7 +48,7 @@ def test_normalize_user_url_extracts_from_share_text() -> None:
 
 
 def test_normalize_user_url_rejects_localhost() -> None:
-    """本机地址 localhost 应被拒绝，返回 unsafe_url 错误码。"""
+    """本机地址 localhost 应被拒绝，错误码为 unsafe_url。"""
     for host in ["localhost", "localhost:8080"]:
         try:
             normalize_user_url(f"http://{host}/video")
@@ -60,7 +60,7 @@ def test_normalize_user_url_rejects_localhost() -> None:
 
 
 def test_normalize_user_url_rejects_private_ip() -> None:
-    """内网地址 (10/172.16/192.168) 应被拒绝，返回 unsafe_url 错误码。"""
+    """内网地址 (10/172.16/192.168) 应被拒绝，错误码为 unsafe_url。"""
     for host in ["10.0.0.1", "172.16.0.1", "192.168.1.1", "192.168.1.1:3000"]:
         try:
             normalize_user_url(f"http://{host}/video")
@@ -71,7 +71,7 @@ def test_normalize_user_url_rejects_private_ip() -> None:
 
 
 def test_normalize_user_url_rejects_loopback_ip() -> None:
-    """回环地址 127.x 应被拒绝，返回 unsafe_url 错误码。"""
+    """回环地址 127.x 应被拒绝，错误码为 unsafe_url。"""
     for host in ["127.0.0.1", "127.0.0.1:8080"]:
         try:
             normalize_user_url(f"http://{host}/video")
@@ -82,7 +82,7 @@ def test_normalize_user_url_rejects_loopback_ip() -> None:
 
 
 def test_normalize_user_url_rejects_ipv6_loopback() -> None:
-    """IPv6 回环地址 ::1 应被拒绝，返回 unsafe_url 错误码。"""
+    """IPv6 回环地址 ::1 应被拒绝，错误码为 unsafe_url。"""
     try:
         normalize_user_url("http://[::1]/video")
     except AppError as exc:
@@ -92,7 +92,7 @@ def test_normalize_user_url_rejects_ipv6_loopback() -> None:
 
 
 def test_normalize_user_url_rejects_link_local_ip() -> None:
-    """链路本地地址 169.254.x 应被拒绝，返回 unsafe_url 错误码。"""
+    """链路本地地址 169.254.x 应被拒绝，错误码为 unsafe_url。"""
     try:
         normalize_user_url("http://169.254.1.1/video")
     except AppError as exc:
@@ -102,7 +102,7 @@ def test_normalize_user_url_rejects_link_local_ip() -> None:
 
 
 def test_normalize_user_url_rejects_reserved_ip() -> None:
-    """保留地址应被拒绝（0.0.0.0、240.x），返回 unsafe_url 错误码。"""
+    """保留地址应被拒绝（0.0.0.0、240.x），错误码为 unsafe_url。"""
     for host in ["0.0.0.0", "240.0.0.1"]:
         try:
             normalize_user_url(f"http://{host}/video")
@@ -113,7 +113,7 @@ def test_normalize_user_url_rejects_reserved_ip() -> None:
 
 
 def test_normalize_user_url_rejects_localhost_tld() -> None:
-    """*.localhost 和 *.local 域名应被拒绝，返回 unsafe_url 错误码。"""
+    """*.localhost 和 *.local 域名应被拒绝，错误码为 unsafe_url。"""
     for host in ["my.localhost", "device.local"]:
         try:
             normalize_user_url(f"http://{host}/video")
@@ -121,16 +121,6 @@ def test_normalize_user_url_rejects_localhost_tld() -> None:
             assert exc.code == "unsafe_url", f"host={host} code={exc.code}"
         else:
             raise AssertionError(f"expected rejection for host={host}")
-
-
-def test_normalize_user_url_rejects_multicast_ip() -> None:
-    """组播地址应被拒绝，返回 unsafe_url 错误码。"""
-    try:
-        normalize_user_url("http://224.0.0.1/video")
-    except AppError as exc:
-        assert exc.code == "unsafe_url"
-    else:
-        raise AssertionError("expected rejection for multicast")
 
 
 def test_normalize_user_url_unsafe_url_message_guides_user() -> None:
@@ -168,3 +158,54 @@ def test_normalize_user_url_accepts_public_url() -> None:
     """公网域名应正常通过。"""
     assert normalize_user_url("https://bilibili.com/video/BV1xx411c7mD") == "https://bilibili.com/video/BV1xx411c7mD"
     assert normalize_user_url("https://www.youtube.com/watch?v=dQw4w9WgXcQ") == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+
+
+def test_normalize_user_url_rejects_multicast_ip() -> None:
+    """组播地址应被拒绝，返回 unsafe_url 错误码。"""
+    try:
+        normalize_user_url("http://224.0.0.1/video")
+    except AppError as exc:
+        assert exc.code == "unsafe_url"
+    else:
+        raise AssertionError("expected rejection for multicast IP")
+
+
+def test_normalize_user_url_rejects_invalid_tld() -> None:
+    """*.invalid TLD 域名应被拒绝。"""
+    for host in ["test.invalid", "my.test.invalid"]:
+        try:
+            normalize_user_url(f"http://{host}/video")
+        except AppError as exc:
+            assert exc.code == "unsafe_url", f"host={host} code={exc.code}"
+        else:
+            raise AssertionError(f"expected rejection for host={host}")
+
+
+def test_normalize_user_url_rejects_ipv6_private_address() -> None:
+    """IPv6 私有地址 (fc00::/7) 应被拒绝。"""
+    try:
+        normalize_user_url("http://[fc00::1]/video")
+    except AppError as exc:
+        assert exc.code == "unsafe_url"
+    else:
+        raise AssertionError("expected rejection for IPv6 private address")
+
+
+def test_normalize_user_url_rejects_ipv6_link_local() -> None:
+    """IPv6 链路本地地址 (fe80::) 应被拒绝。"""
+    try:
+        normalize_user_url("http://[fe80::1]/video")
+    except AppError as exc:
+        assert exc.code == "unsafe_url"
+    else:
+        raise AssertionError("expected rejection for IPv6 link-local")
+
+
+def test_normalize_user_url_rejects_ipv6_multicast() -> None:
+    """IPv6 组播地址 (ff00::/8) 应被拒绝。"""
+    try:
+        normalize_user_url("http://[ff02::1]/video")
+    except AppError as exc:
+        assert exc.code == "unsafe_url"
+    else:
+        raise AssertionError("expected rejection for IPv6 multicast")

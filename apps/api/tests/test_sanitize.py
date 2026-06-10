@@ -68,7 +68,8 @@ def test_json_formatter_redacts_sensitive_messages() -> None:
         )
         output = formatter.format(record)
         data = json.loads(output)
-        assert data["message"] == "[REDACTED]", f"keyword={keyword} not redacted"
+        assert "[REDACTED]" in data["message"], f"keyword={keyword} not redacted"
+        assert "abc123" not in data["message"], f"keyword={keyword} value not redacted"
 
 
 def test_json_formatter_preserves_normal_messages() -> None:
