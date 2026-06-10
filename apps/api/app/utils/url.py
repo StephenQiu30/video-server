@@ -26,11 +26,14 @@ def normalize_user_url(value: str) -> str:
         url = f"https://{url}"
         parsed = urlparse(url)
 
-    if parsed.scheme not in {"http", "https"} or not parsed.netloc or not _is_valid_host(parsed.hostname):
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         raise AppError("invalid_url", "请输入有效的视频链接，例如 https://example.com/video", 422)
 
     if _is_restricted_host(parsed.hostname):
-        raise AppError("invalid_url", "不允许访问本机地址、内网地址或保留地址", 422)
+        raise AppError("unsafe_url", "不允许访问本机地址、内网地址或保留地址", 422)
+
+    if not _is_valid_host(parsed.hostname):
+        raise AppError("invalid_url", "请输入有效的视频链接，例如 https://example.com/video", 422)
 
     return url
 

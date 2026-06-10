@@ -112,7 +112,7 @@ def validate_supported_download_url(url: str) -> PlatformProfile | None:
         return profile
 
     if _is_blocked_host(host):
-        raise AppError("unsupported_platform", "该链接暂不支持解析，请确认是否为公开视频链接", 422)
+        raise AppError("unsafe_url", "不允许访问本机地址、内网地址或保留地址", 422)
 
     # Keep yt-dlp's broad public-site fallback for unknown but valid public hosts.
     return None
