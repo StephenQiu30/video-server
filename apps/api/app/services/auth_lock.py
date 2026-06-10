@@ -4,7 +4,7 @@ from enum import StrEnum
 import hashlib
 from time import monotonic
 
-from app.core.errors import AppError
+from app.core.errors import AppError, ErrorCode
 
 
 class AuthLockScope(StrEnum):
@@ -28,7 +28,7 @@ class InMemoryAuthLock:
 
     def assert_login_allowed(self, email: str, ip: str) -> None:
         if self.is_login_locked(email, ip):
-            raise AppError("auth_locked", "登录失败次数过多，请稍后再试", 429)
+            raise AppError(ErrorCode.AUTH_LOCKED, "登录失败次数过多，请稍后再试", 429)
 
     def record_login_failure(self, email: str, ip: str) -> None:
         for key in (self._key(AuthLockScope.LOGIN_EMAIL, _email_hash(email)), self._key(AuthLockScope.LOGIN_IP, ip)):
@@ -49,7 +49,7 @@ class InMemoryAuthLock:
         key = self._key(AuthLockScope.REGISTER_IP, ip)
         counter = self._active_counter(key)
         if counter.count >= self.register_limit:
-            raise AppError("auth_locked", "注册请求过于频繁，请稍后再试", 429)
+            raise AppError(ErrorCode.AUTH_LOCKED, "注册请求过于频繁，请稍后再试", 429)
         counter.count += 1
         counter.expires_at = monotonic() + 3600
 
@@ -74,7 +74,7 @@ class RedisAuthLock:
 
     def assert_login_allowed(self, email: str, ip: str) -> None:
         if self.is_login_locked(email, ip):
-            raise AppError("auth_locked", "登录失败次数过多，请稍后再试", 429)
+            raise AppError(ErrorCode.AUTH_LOCKED, "登录失败次数过多，请稍后再试", 429)
 
     def record_login_failure(self, email: str, ip: str) -> None:
         for key in (self._key(AuthLockScope.LOGIN_EMAIL, _email_hash(email)), self._key(AuthLockScope.LOGIN_IP, ip)):
@@ -97,7 +97,7 @@ class RedisAuthLock:
         if count == 1:
             self.redis.expire(key, 3600)
         if count > self.register_limit:
-            raise AppError("auth_locked", "注册请求过于频繁，请稍后再试", 429)
+            raise AppError(ErrorCode.AUTH_LOCKED, "注册请求过于频繁，请稍后再试", 429)
 
     @staticmethod
     def _key(scope: AuthLockScope, identity: str) -> str:

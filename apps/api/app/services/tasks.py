@@ -4,7 +4,7 @@ from sqlalchemy import asc, func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.errors import AppError
+from app.core.errors import AppError, ErrorCode
 from app.models import DownloadTask, TaskEvent, User
 from app.services.storage import ObjectStorage
 from video_downloader_shared.states import ACTIVE_TASK_STATES, TaskState
@@ -22,7 +22,7 @@ def assert_concurrency_allowed(db: Session, user: User) -> None:
             .where(DownloadTask.user_id == user.id, DownloadTask.created_at >= day_start)
         )
         if daily_count is not None and daily_count >= user.daily_task_quota:
-            raise AppError("limit_exceeded", "今日下载任务额度已用完，请明天再试", 429)
+            raise AppError(ErrorCode.LIMIT_EXCEEDED, "今日下载任务额度已用完，请明天再试", 429)
 
     storage_used = db.scalar(
         select(func.coalesce(func.sum(DownloadTask.object_size), 0))
@@ -30,13 +30,13 @@ def assert_concurrency_allowed(db: Session, user: User) -> None:
         .where(DownloadTask.user_id == user.id, DownloadTask.object_key.is_not(None))
     )
     if user.storage_quota_bytes >= 0 and storage_used is not None and storage_used >= user.storage_quota_bytes:
-        raise AppError("limit_exceeded", "当前账号存储额度已用完，请等待过期清理或联系管理员", 429)
+        raise AppError(ErrorCode.LIMIT_EXCEEDED, "当前账号存储额度已用完，请等待过期清理或联系管理员", 429)
 
     global_count = db.scalar(
         select(func.count()).select_from(DownloadTask).where(DownloadTask.state.in_(active_values))
     )
     if global_count and global_count >= settings.global_download_concurrency:
-        raise AppError("limit_exceeded", "当前全局下载任务已满，请稍后再试", 429)
+        raise AppError(ErrorCode.LIMIT_EXCEEDED, "当前全局下载任务已满，请稍后再试", 429)
 
     user_count = db.scalar(
         select(func.count())
@@ -45,7 +45,7 @@ def assert_concurrency_allowed(db: Session, user: User) -> None:
     )
     user_limit = user.concurrent_task_quota if user.concurrent_task_quota >= 0 else settings.per_user_download_concurrency
     if user_count and user_count >= user_limit:
-        raise AppError("limit_exceeded", "当前账号已有下载任务在执行，请稍后再试", 429)
+        raise AppError(ErrorCode.LIMIT_EXCEEDED, "当前账号已有下载任务在执行，请稍后再试", 429)
 
 
 def add_task_event(db: Session, task: DownloadTask, state: TaskState | str, message: str | None = None) -> None:
@@ -81,14 +81,14 @@ def annotate_latest_attempts(db: Session, tasks: list[DownloadTask]) -> list[Dow
 def get_owned_task(db: Session, user: User, task_id: str) -> DownloadTask:
     task = db.get(DownloadTask, task_id)
     if not task or task.user_id != user.id:
-        raise AppError("not_found", "任务不存在", 404)
+        raise AppError(ErrorCode.NOT_FOUND, "任务不存在", 404)
     annotate_latest_attempts(db, [task])
     return task
 
 
 def cancel_task(db: Session, task: DownloadTask) -> DownloadTask:
     if task.state not in {TaskState.QUEUED.value, TaskState.RUNNING.value}:
-        raise AppError("invalid_state", "当前任务状态不支持取消", 409)
+        raise AppError(ErrorCode.INVALID_STATE, "当前任务状态不支持取消", 409)
     task.state = TaskState.CANCELED.value
     task.failure_code = None
     task.failure_reason = "用户已取消任务"
@@ -101,9 +101,9 @@ def cancel_task(db: Session, task: DownloadTask) -> DownloadTask:
 
 def retry_task(db: Session, user: User, task: DownloadTask) -> DownloadTask:
     if _has_retry_child(db, task):
-        raise AppError("retry_superseded", "该任务已有新的重试任务，请在最新任务上操作", 409)
+        raise AppError(ErrorCode.RETRY_SUPERSEDED, "该任务已有新的重试任务，请在最新任务上操作", 409)
     if not _is_retryable_task(task):
-        raise AppError("invalid_state", "当前任务状态不支持重试", 409)
+        raise AppError(ErrorCode.INVALID_STATE, "当前任务状态不支持重试", 409)
     assert_concurrency_allowed(db, user)
     attempt_no = (task.attempt_no or 1) + 1
     new_task = DownloadTask(

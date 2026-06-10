@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.errors import AppError
+from app.core.errors import AppError, ErrorCode
 from app.core.security import create_access_token, hash_password, verify_password
 from app.db.session import get_db
 from app.deps import get_current_user
@@ -64,16 +64,16 @@ def register_user(
 ) -> dict:
     settings = get_settings()
     if not settings.registration_enabled:
-        raise AppError("registration_disabled", "注册暂未开放", 403)
+        raise AppError(ErrorCode.REGISTRATION_DISABLED, "注册暂未开放", 403)
     if settings.registration_invite_code and payload.invite_code != settings.registration_invite_code:
-        raise AppError("registration_failed", "注册失败，请检查输入或稍后重试", 400)
+        raise AppError(ErrorCode.REGISTRATION_FAILED, "注册失败，请检查输入或稍后重试", 400)
 
     client_ip = _client_ip(request)
     get_auth_lock().assert_register_allowed(client_ip)
     normalized_email = payload.email.strip().lower()
     existing = db.scalar(select(User).where(User.email == normalized_email))
     if existing:
-        raise AppError("registration_failed", "注册失败，请检查输入或稍后重试", 400)
+        raise AppError(ErrorCode.REGISTRATION_FAILED, "注册失败，请检查输入或稍后重试", 400)
 
     user = User(
         email=normalized_email,
@@ -104,9 +104,9 @@ def login_user(
     user = db.scalar(select(User).where(User.email == email))
     if not user or not user.password_hash or not verify_password(payload.password, user.password_hash):
         auth_lock.record_login_failure(email, client_ip)
-        raise AppError("invalid_credentials", "邮箱或密码错误", 401)
+        raise AppError(ErrorCode.INVALID_CREDENTIALS, "邮箱或密码错误", 401)
     if not user.is_active:
-        raise AppError("user_disabled", "账号不可用", 403)
+        raise AppError(ErrorCode.USER_DISABLED, "账号不可用", 403)
     auth_lock.clear_login(email)
     return _token_for_user(user)
 
