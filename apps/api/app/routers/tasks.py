@@ -128,6 +128,7 @@ async def stream_tasks(
         last_payload: str | None = None
         while True:
             with SessionLocal() as stream_db:
+                cleanup_expired_task_outputs(stream_db)
                 tasks = _list_user_tasks(stream_db, user_id, None, limit)
                 payload = json.dumps(
                     {
