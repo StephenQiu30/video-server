@@ -8,6 +8,8 @@ required_files=(
   "WORKFLOW.md"
   "openspec/config.yaml"
   "openspec/specs/agent-governance/spec.md"
+  "openspec/specs/minio-artifact-archive/spec.md"
+  "openspec/specs/presigned-download-delivery/spec.md"
   ".env.example"
   ".env.production.example"
   ".claude/agents/pm.md"
