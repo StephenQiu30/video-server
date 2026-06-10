@@ -17,6 +17,11 @@ if [ ! -f "${ENV_FILE}" ]; then
   exit 1
 fi
 
+# Export APP_ENV_FILE so the env_file directive in docker-compose.prod.yml
+# (${APP_ENV_FILE:-.env.production}) resolves to the provided env file
+# instead of falling back to .env.production (which may not exist in CI).
+export APP_ENV_FILE="${ENV_FILE}"
+
 COMPOSE_JSON="$(docker compose \
   --env-file "${ENV_FILE}" \
   -f docker-compose.yml \
