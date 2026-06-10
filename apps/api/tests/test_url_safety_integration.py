@@ -33,7 +33,7 @@ def test_tasks_api_rejects_localhost(client: TestClient, session: Session) -> No
     assert response.status_code == 422
     body = response.json()
     assert body["success"] is False
-    assert body["error"]["code"] == "invalid_url"
+    assert body["error"]["code"] == "unsafe_url"
 
 
 def test_tasks_api_rejects_private_ip(client: TestClient, session: Session) -> None:
@@ -47,7 +47,7 @@ def test_tasks_api_rejects_private_ip(client: TestClient, session: Session) -> N
             "/api/tasks", headers=headers, json={"url": f"http://{host}/video"}
         )
         assert response.status_code == 422, f"host={host} should be rejected"
-        assert response.json()["error"]["code"] == "invalid_url"
+        assert response.json()["error"]["code"] == "unsafe_url"
 
 
 def test_tasks_api_rejects_loopback_ip(client: TestClient, session: Session) -> None:
@@ -59,7 +59,7 @@ def test_tasks_api_rejects_loopback_ip(client: TestClient, session: Session) -> 
     response = client.post("/api/tasks", headers=headers, json={"url": "http://127.0.0.1/video"})
 
     assert response.status_code == 422
-    assert response.json()["error"]["code"] == "invalid_url"
+    assert response.json()["error"]["code"] == "unsafe_url"
 
 
 def test_tasks_api_rejects_non_http_scheme(client: TestClient, session: Session) -> None:
@@ -122,7 +122,7 @@ def test_parse_api_rejects_localhost(client: TestClient, session: Session) -> No
     response = client.post("/api/parse", headers=headers, json={"url": "http://localhost/video"})
 
     assert response.status_code == 422
-    assert response.json()["error"]["code"] == "invalid_url"
+    assert response.json()["error"]["code"] == "unsafe_url"
 
 
 def test_parse_api_rejects_private_ip(client: TestClient, session: Session) -> None:
@@ -134,7 +134,7 @@ def test_parse_api_rejects_private_ip(client: TestClient, session: Session) -> N
     response = client.post("/api/parse", headers=headers, json={"url": "http://192.168.1.1/video"})
 
     assert response.status_code == 422
-    assert response.json()["error"]["code"] == "invalid_url"
+    assert response.json()["error"]["code"] == "unsafe_url"
 
 
 def test_parse_api_rejects_reserved_ip(client: TestClient, session: Session) -> None:
@@ -146,4 +146,4 @@ def test_parse_api_rejects_reserved_ip(client: TestClient, session: Session) -> 
     response = client.post("/api/parse", headers=headers, json={"url": "http://0.0.0.0/video"})
 
     assert response.status_code == 422
-    assert response.json()["error"]["code"] == "invalid_url"
+    assert response.json()["error"]["code"] == "unsafe_url"

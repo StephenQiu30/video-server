@@ -197,17 +197,17 @@ def test_parse_api_requires_auth(client: TestClient) -> None:
     assert response.status_code == 401
 
 
-def test_create_task_rejects_obviously_unsupported_platform_before_enqueue(
+def test_create_task_rejects_unsafe_host_before_enqueue(
     monkeypatch,
     client: TestClient,
     session: Session,
 ) -> None:
-    """Unsupported platform URLs are rejected with 422 before enqueue."""
+    """Restricted host URLs (.invalid TLD) are rejected with unsafe_url before enqueue."""
     def fail_enqueue(_: str) -> None:
-        raise AssertionError("unsupported platform should not be enqueued")
+        raise AssertionError("unsafe host should not be enqueued")
 
     monkeypatch.setattr("app.routers.tasks.enqueue_download_task", fail_enqueue)
-    user = _make_user(session, email="unsupported@example.com", github_id="unsupported-user")
+    user = _make_user(session, email="unsafe-host@example.com", github_id="unsafe-host-user")
     token = create_access_token(user.id)
 
     response = client.post(

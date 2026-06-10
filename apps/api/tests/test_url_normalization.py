@@ -54,6 +54,7 @@ def test_normalize_user_url_rejects_localhost() -> None:
             normalize_user_url(f"http://{host}/video")
         except AppError as exc:
             assert exc.code == "unsafe_url", f"host={host} code={exc.code}"
+            assert exc.status_code == 422
         else:
             raise AssertionError(f"expected rejection for host={host}")
 
@@ -122,6 +123,37 @@ def test_normalize_user_url_rejects_localhost_tld() -> None:
             raise AssertionError(f"expected rejection for host={host}")
 
 
+def test_normalize_user_url_unsafe_url_message_guides_user() -> None:
+    """unsafe_url 错误消息应指导用户下一步。"""
+    try:
+        normalize_user_url("http://127.0.0.1/video")
+    except AppError as exc:
+        assert exc.code == "unsafe_url"
+        assert "本机" in exc.message or "内网" in exc.message or "保留" in exc.message
+    else:
+        raise AssertionError("expected unsafe_url error")
+
+
+def test_normalize_user_url_rejects_empty_string() -> None:
+    """空字符串应被拒绝，返回 invalid_url 错误码。"""
+    try:
+        normalize_user_url("")
+    except AppError as exc:
+        assert exc.code == "invalid_url"
+    else:
+        raise AssertionError("expected invalid_url for empty string")
+
+
+def test_normalize_user_url_rejects_whitespace_only() -> None:
+    """纯空白字符串应被拒绝，返回 invalid_url 错误码。"""
+    try:
+        normalize_user_url("   ")
+    except AppError as exc:
+        assert exc.code == "invalid_url"
+    else:
+        raise AssertionError("expected invalid_url for whitespace")
+
+
 def test_normalize_user_url_accepts_public_url() -> None:
     """公网域名应正常通过。"""
     assert normalize_user_url("https://bilibili.com/video/BV1xx411c7mD") == "https://bilibili.com/video/BV1xx411c7mD"
@@ -129,11 +161,11 @@ def test_normalize_user_url_accepts_public_url() -> None:
 
 
 def test_normalize_user_url_rejects_multicast_ip() -> None:
-    """组播地址应被拒绝。"""
+    """组播地址应被拒绝，返回 unsafe_url 错误码。"""
     try:
         normalize_user_url("http://224.0.0.1/video")
     except AppError as exc:
-        assert exc.code == "invalid_url"
+        assert exc.code == "unsafe_url"
     else:
         raise AssertionError("expected rejection for multicast IP")
 
@@ -144,7 +176,7 @@ def test_normalize_user_url_rejects_invalid_tld() -> None:
         try:
             normalize_user_url(f"http://{host}/video")
         except AppError as exc:
-            assert exc.code == "invalid_url", f"host={host} code={exc.code}"
+            assert exc.code == "unsafe_url", f"host={host} code={exc.code}"
         else:
             raise AssertionError(f"expected rejection for host={host}")
 
@@ -154,7 +186,7 @@ def test_normalize_user_url_rejects_ipv6_private_address() -> None:
     try:
         normalize_user_url("http://[fc00::1]/video")
     except AppError as exc:
-        assert exc.code == "invalid_url"
+        assert exc.code == "unsafe_url"
     else:
         raise AssertionError("expected rejection for IPv6 private address")
 
@@ -164,7 +196,7 @@ def test_normalize_user_url_rejects_ipv6_link_local() -> None:
     try:
         normalize_user_url("http://[fe80::1]/video")
     except AppError as exc:
-        assert exc.code == "invalid_url"
+        assert exc.code == "unsafe_url"
     else:
         raise AssertionError("expected rejection for IPv6 link-local")
 
@@ -174,6 +206,6 @@ def test_normalize_user_url_rejects_ipv6_multicast() -> None:
     try:
         normalize_user_url("http://[ff02::1]/video")
     except AppError as exc:
-        assert exc.code == "invalid_url"
+        assert exc.code == "unsafe_url"
     else:
         raise AssertionError("expected rejection for IPv6 multicast")
