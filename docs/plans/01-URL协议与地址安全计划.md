@@ -7,7 +7,7 @@ audience:
 feature_area: url-protocol-address-safety
 purpose: "实现 PRD01 中的 URL 协议校验与地址安全规则。"
 canonical_path: "docs/plans/01-URL协议与地址安全计划.md"
-status: draft
+status: active
 version: "1.0.0"
 owner: "StephenQiu30"
 inputs:
