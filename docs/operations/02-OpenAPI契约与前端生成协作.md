@@ -1,13 +1,13 @@
 ---
 layer: Operations
-doc_no: "001"
+doc_no: "02"
 audience:
   - Dev
   - QA
   - Ops
 feature_area: openapi-frontend-contract
 purpose: "定义 video-server OpenAPI 导出、前端生成协作和契约回归的长期操作规则。"
-canonical_path: "docs/operations/001-OpenAPI契约与前端生成协作.md"
+canonical_path: "docs/operations/02-OpenAPI契约与前端生成协作.md"
 status: draft
 version: "0.1.0"
 owner: "StephenQiu30"
@@ -75,4 +75,4 @@ OpenAPI 契约只能描述接口结构，不能证明业务行为正确。功能
 
 | 日期 | 作者 | 版本 | 变更说明 |
 | --- | --- | --- | --- |
-| 2026-06-02 | StephenQiu30 | 0.1.0 | 迁移 OpenAPI 协作说明到 operations 目录 |
+| 2026-06-10 | StephenQiu30 | 0.1.0 | 按新文档编号迁移 OpenAPI 协作说明 |

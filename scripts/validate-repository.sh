@@ -47,24 +47,25 @@ required_files=(
   "docs/design/README.md"
   "docs/acceptance/README.md"
   "docs/operations/README.md"
-  "docs/prd/001-链接解析与平台识别.md"
-  "docs/prd/002-分辨率选择与无水印优先.md"
-  "docs/prd/003-下载任务与产物归档.md"
-  "docs/prd/004-AI摘要与PDF报告.md"
-  "docs/prd/005-自部署Cookie与合规治理.md"
-  "docs/plans/001-万能视频下载器MVP执行计划.md"
-  "docs/plans/001-01-平台画像扩展计划.md"
-  "docs/plans/001-02-解析安全与错误语义计划.md"
-  "docs/plans/002-01-清晰度预设计划.md"
-  "docs/plans/002-02-高级格式与水印提示计划.md"
-  "docs/plans/003-01-下载主链路计划.md"
-  "docs/plans/003-02-字幕封面元数据归档计划.md"
-  "docs/plans/004-01-AI摘要与思维导图计划.md"
-  "docs/plans/004-02-PDF报告导出计划.md"
-  "docs/plans/005-01-自部署浏览器Cookie配置计划.md"
-  "docs/plans/005-02-限流配额与合规负向计划.md"
-  "docs/acceptance/001-万能视频下载器MVP测试计划.md"
-  "docs/operations/001-OpenAPI契约与前端生成协作.md"
+  "docs/prd/01-解析入口与URL安全.md"
+  "docs/prd/02-平台识别与平台画像.md"
+  "docs/prd/03-异步下载任务主链路.md"
+  "docs/prd/04-MinIO产物归档与下载交付.md"
+  "docs/prd/05-自部署运行与环境复用.md"
+  "docs/design/01-个人自部署万能视频下载器技术设计.md"
+  "docs/plans/01-URL协议与地址安全计划.md"
+  "docs/plans/02-错误语义与日志脱敏计划.md"
+  "docs/plans/03-平台画像注册与识别计划.md"
+  "docs/plans/04-创建任务与状态查询计划.md"
+  "docs/plans/05-Worker下载执行与失败分类计划.md"
+  "docs/plans/06-取消重试与事件流计划.md"
+  "docs/plans/07-MinIO对象归档计划.md"
+  "docs/plans/08-预签名下载与过期清理计划.md"
+  "docs/plans/09-本机开发与依赖复用计划.md"
+  "docs/plans/10-DockerCompose部署与健康检查计划.md"
+  "docs/acceptance/01-个人自部署万能视频下载器验收方案.md"
+  "docs/operations/01-个人自部署万能视频下载器运行与部署.md"
+  "docs/operations/02-OpenAPI契约与前端生成协作.md"
   "package.json"
 )
 
@@ -77,6 +78,8 @@ test ! -f CURSOR.md
 test ! -d .codex
 test ! -d .cursor
 
+grep -q "video-server" README.md
+grep -q "docs/" README.md
 grep -q "Commit 规范" CLAUDE.md
 grep -q "Agent Review" CLAUDE.md
 grep -q "test:" CLAUDE.md

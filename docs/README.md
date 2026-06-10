@@ -1,6 +1,6 @@
 # 万能视频下载器项目文档入口
 
-更新时间：2026-06-02
+更新时间：2026-06-10
 
 ## 文档结构
 
@@ -19,17 +19,25 @@
 
 ## 当前状态
 
-本项目已完成规范化 docs 目录治理，并按 PRD -> Plan -> Acceptance/Test Plan 的链路拆解万能视频下载器 MVP。当前 MVP 通过 Linear 项目 `Video Server 万能视频下载器 MVP` 管理 PRD 父 issue 和 Plan 子 issue。
+本项目已按 SDD 方式重建文档链路，采用“一个功能点一个 PRD”的方式组织需求，再把每个 PRD 拆成多个顺序编号的 Plan，最后映射到 Linear 父子 issue。
+
+当前主线只覆盖个人自部署万能视频下载器 MVP：
+
+- `docs/prd/01-解析入口与URL安全.md` 到 `docs/prd/05-自部署运行与环境复用.md`
+- `docs/design/01-个人自部署万能视频下载器技术设计.md`
+- `docs/plans/01-URL协议与地址安全计划.md` 到 `docs/plans/10-DockerCompose部署与健康检查计划.md`
+- `docs/acceptance/01-个人自部署万能视频下载器验收方案.md`
+- `docs/operations/01-个人自部署万能视频下载器运行与部署.md`
 
 ## 关键原则
 
-1. 先完成合规边界、产品范围与技术选型确认，再进入工程实现。
-2. 参考成熟开源项目能力，但不照搬其商业、合规、支付与账号体系设计。
+1. 一个功能点一个 PRD，一个 PRD 可拆成多个 Plan。
+2. 先完成 PRD、Design、Plan，再进入实现。
 3. 下载能力只面向用户有权保存的公开或授权内容，不设计规避 DRM、付费墙、盗版传播或平台访问控制的能力。
-4. 文档、规范、角色分工与验收口径必须和代码实现同步演进。
+4. 文档、规范、验收口径和 Linear issue 必须同步演进。
 
 ## 与 Claude 规范入口的关系
 
 - `docs/` 负责项目事实、需求、方案、计划、验收和合规资料。
-- `CLAUDE.md`、`CLAUDE.local.md`、`.claude/agents/`、`.claude/skills/` 和 `WORKFLOW.md` 负责 Claude Agent 协作规范与 Symphony 编排。
+- `CLAUDE.md`、`CLAUDE.local.md`、`.claude/` 和 `WORKFLOW.md` 负责 Claude Agent 协作规范与 Symphony 编排。
 - `openspec/` 负责长期行为与流程约束的 SDD 规范层。
