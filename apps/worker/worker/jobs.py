@@ -85,6 +85,8 @@ def _should_skip_task(task: DownloadTask) -> bool:
         return True
     if task.state == TaskState.SUCCEEDED.value and task.object_key:
         return True
+    if task.state == TaskState.EXPIRED.value:
+        return True
     if task.state == TaskState.RUNNING.value:
         return True
     return False

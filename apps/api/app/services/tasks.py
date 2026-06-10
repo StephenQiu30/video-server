@@ -145,11 +145,12 @@ def cleanup_expired_task_outputs(db: Session) -> int:
             storage.delete_object(task.object_key)
         except Exception:
             pass
+        task.state = TaskState.EXPIRED.value
         task.object_key = None
         task.failure_code = "retention_expired"
         task.failure_reason = "文件保留时间已过期并已清理，历史记录仍保留"
         task.updated_at = datetime.now(UTC)
-        add_task_event(db, task, task.state, "过期文件已清理，历史记录已保留")
+        add_task_event(db, task, TaskState.EXPIRED, "过期文件已清理，历史记录已保留")
         removed += 1
     if removed:
         db.commit()
@@ -196,7 +197,7 @@ def _has_retry_child(db: Session, task: DownloadTask) -> bool:
 
 
 def _is_retryable_task(task: DownloadTask) -> bool:
-    if task.state in {TaskState.FAILED.value, TaskState.CANCELED.value}:
+    if task.state in {TaskState.FAILED.value, TaskState.CANCELED.value, TaskState.EXPIRED.value}:
         return True
     if task.state != TaskState.SUCCEEDED.value:
         return False

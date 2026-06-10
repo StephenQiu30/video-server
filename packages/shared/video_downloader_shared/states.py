@@ -7,6 +7,7 @@ class TaskState(StrEnum):
     SUCCEEDED = "succeeded"
     FAILED = "failed"
     CANCELED = "canceled"
+    EXPIRED = "expired"
 
 
 ACTIVE_TASK_STATES = (TaskState.QUEUED, TaskState.RUNNING)

@@ -249,6 +249,8 @@ def export_task_pdf(
 
 
 def _assert_downloadable(task: DownloadTask) -> None:
+    if task.state == TaskState.EXPIRED.value:
+        raise AppError("retention_expired", "文件保留时间已过期，请重新创建任务", 410)
     if task.state != TaskState.SUCCEEDED.value:
         raise AppError("invalid_state", "任务尚未完成，暂不能获取下载链接", 409)
     if not task.object_key:
