@@ -45,7 +45,6 @@ def test_download_runner_resolves_latest_output_path(tmp_path: Path) -> None:
     second = tmp_path / "video.mp4"
     first.write_text("old")
     second.write_text("latest")
-    first.touch()
     second.touch()
 
     assert resolve_output_path(tmp_path, tmp_path / "missing.webm") == second
