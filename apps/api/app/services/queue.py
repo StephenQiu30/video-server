@@ -2,7 +2,7 @@ from redis import Redis
 from rq import Queue
 
 from app.core.config import get_settings
-from app.core.errors import AppError
+from app.core.errors import AppError, ErrorCode
 
 
 def enqueue_download_task(task_id: str) -> None:
@@ -18,5 +18,5 @@ def enqueue_download_task(task_id: str) -> None:
             failure_ttl=86400,
         )
     except Exception as exc:
-        raise AppError("queue_unavailable", "任务队列暂不可用，请稍后重试", 503) from exc
+        raise AppError(ErrorCode.QUEUE_UNAVAILABLE, "任务队列暂不可用，请稍后重试", 503) from exc
 

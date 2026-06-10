@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from ipaddress import ip_address
 from urllib.parse import urlparse
 
-from app.core.errors import AppError
+from app.core.errors import AppError, ErrorCode
 
 
 DEFAULT_COMPLIANCE_NOTE = "仅支持公开可访问内容；不支持 DRM、会员、付费或需登录内容。"
@@ -119,14 +119,14 @@ def find_platform_profile(url: str) -> PlatformProfile | None:
 def validate_supported_download_url(url: str) -> PlatformProfile | None:
     host = (urlparse(url).hostname or "").lower()
     if not host:
-        raise AppError("invalid_url", "请输入有效的视频链接", 422)
+        raise AppError(ErrorCode.INVALID_URL, "请输入有效的视频链接", 422)
 
     profile = find_platform_profile(url)
     if profile:
         return profile
 
     if _is_blocked_host(host):
-        raise AppError("unsupported_platform", "该链接暂不支持解析，请确认是否为公开视频链接", 422)
+        raise AppError(ErrorCode.UNSAFE_URL, "不允许访问本机地址、内网地址或保留地址", 422)
 
     # Keep yt-dlp's broad public-site fallback for unknown but valid public hosts.
     return None
