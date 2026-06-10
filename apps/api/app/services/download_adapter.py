@@ -28,10 +28,6 @@ SOURCE_SITE_NAMES = {
     "weibo": "微博",
 }
 
-# Platforms known to serve watermarked video by default.
-_WATERMARK_PLATFORMS = frozenset({"douyin", "kuaishou", "tiktok"})
-# Platforms known to serve watermark-free video.
-_WATERMARK_FREE_PLATFORMS = frozenset({"bilibili", "youtube", "vimeo", "dailymotion"})
 
 
 @dataclass(frozen=True)
@@ -299,28 +295,6 @@ def _human_size(size: int) -> str:
     return f"{size / (1024 * 1024 * 1024):.1f} GB"
 
 
-def _derive_format_watermark_hint(extractor: str) -> str | None:
-    """Return per-format watermark hint based on extractor name."""
-    normalized = extractor.lower() if extractor else ""
-    for key in _WATERMARK_PLATFORMS:
-        if normalized.startswith(key):
-            return "可能含平台水印"
-    for key in _WATERMARK_FREE_PLATFORMS:
-        if normalized.startswith(key):
-            return None
-    return None
-
-
-def _derive_response_watermark_hint(extractor: str, platform_profile: Any) -> str | None:
-    """Return response-level watermark hint for the ParseResponse."""
-    normalized = extractor.lower() if extractor else ""
-    for key in _WATERMARK_PLATFORMS:
-        if normalized.startswith(key):
-            return "该平台内容可能含平台水印"
-    for key in _WATERMARK_FREE_PLATFORMS:
-        if normalized.startswith(key):
-            return "优先可用源"
-    return None
 
 
 def _source_site_name(info: dict[str, Any]) -> str | None:
@@ -431,7 +405,7 @@ def _human_size(size_bytes: int | None) -> str | None:
 _WATERMARK_FREE_EXTRACTORS = {"BiliBili", "YouTube", "Vimeo", "Dailymotion"}
 
 # Platforms known to embed watermarks on downloaded content.
-_WATERMARK_PLATFORM_EXTRACTORS = {"Douyin", "Kuaishou"}
+_WATERMARK_PLATFORM_EXTRACTORS = {"Douyin", "Kuaishou", "TikTok"}
 
 
 def _derive_format_watermark_hint(extractor: str | None) -> str | None:
