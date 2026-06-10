@@ -392,3 +392,62 @@ def test_error_responses_do_not_leak_sensitive_params(
     body = response.text.lower()
     for secret in ("cookie", "token", "secret", "password", "minioadmin"):
         assert secret not in body, f"Sensitive param '{secret}' leaked in error response"
+
+
+def test_worker_logs_cancel_detection_event_when_task_canceled_during_processing(
+    monkeypatch,
+    session: Session,
+) -> None:
+    """Worker logs a CANCELED event when it detects task cancellation during processing."""
+    from worker.jobs import process_download_task
+
+    user = _make_user(session, email="worker-cancel@example.com", github_id="worker-cancel-user")
+    task = DownloadTask(
+        user_id=user.id,
+        source_url="https://example.com/video",
+        title="cancel-during-worker",
+        state=TaskState.QUEUED.value,
+        progress=0,
+    )
+    session.add(task)
+    session.commit()
+    session.refresh(task)
+    task_id = task.id
+
+    # process_download_task closes db in finally; give it its own session so
+    # the test session stays open for final assertions.
+    from sqlalchemy.orm import sessionmaker
+
+    TestSession = sessionmaker(bind=session.get_bind())
+    monkeypatch.setattr("worker.jobs.SessionLocal", TestSession)
+    monkeypatch.setattr("worker.jobs.assert_media_tools_available", lambda: None)
+
+    fake_artifact = type("A", (), {"filename": "video.mp4", "size_bytes": 1024})()
+    fake_info = {"title": "test", "ext": "mp4"}
+    monkeypatch.setattr(
+        "worker.jobs.download_task_artifact",
+        lambda task, db, task_dir, is_canceled: (fake_artifact, fake_info),
+    )
+
+    call_count = {"n": 0}
+
+    def fake_is_canceled(db, task):
+        call_count["n"] += 1
+        if call_count["n"] >= 2:
+            task.state = TaskState.CANCELED.value
+            return True
+        return False
+
+    monkeypatch.setattr("worker.jobs._is_canceled", fake_is_canceled)
+    monkeypatch.setattr("worker.jobs.assert_artifact_size", lambda *a, **kw: None)
+    monkeypatch.setattr("worker.jobs.probe_with_ffprobe", lambda *a, **kw: None)
+
+    process_download_task(task_id)
+
+    from app.models import TaskEvent
+    from sqlalchemy import select
+
+    events = list(session.scalars(select(TaskEvent).where(TaskEvent.task_id == task_id).order_by(TaskEvent.id)).all())
+    cancel_events = [e for e in events if e.state == TaskState.CANCELED.value and "Worker" in (e.message or "")]
+    assert len(cancel_events) == 1
+    assert "取消" in cancel_events[0].message
