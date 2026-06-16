@@ -1,3 +1,5 @@
+import os
+import time
 from pathlib import Path
 
 import pytest
@@ -39,14 +41,19 @@ def _task(session, user: User, state: TaskState, **kwargs) -> DownloadTask:
 
 
 def test_download_runner_resolves_latest_output_path(tmp_path: Path) -> None:
+    import os
+    import time
+
     from worker.download_runner import resolve_output_path
 
     first = tmp_path / "video.f137.mp4"
     second = tmp_path / "video.mp4"
     first.write_text("old")
     second.write_text("latest")
-    first.touch()
-    second.touch()
+    # Ensure strictly different mtimes so max() is deterministic
+    now = time.time()
+    os.utime(first, (now - 2, now - 2))
+    os.utime(second, (now, now))
 
     assert resolve_output_path(tmp_path, tmp_path / "missing.webm") == second
 

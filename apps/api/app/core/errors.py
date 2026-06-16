@@ -1,4 +1,5 @@
 import logging
+from enum import StrEnum
 
 from fastapi import HTTPException, Request
 from fastapi.exceptions import RequestValidationError
@@ -11,9 +12,48 @@ from app.core.responses import failure_response
 logger = logging.getLogger(__name__)
 
 
+class ErrorCode(StrEnum):
+    """Centralized API-layer error codes for stable, machine-readable error semantics."""
+
+    # Entry validation
+    INVALID_URL = "invalid_url"
+    UNSAFE_URL = "unsafe_url"
+
+    # Parse / platform
+    PARSE_FAILED = "parse_failed"
+    PLATFORM_RESTRICTED = "platform_restricted"
+    PLATFORM_RATE_LIMITED = "platform_rate_limited"
+    UNSUPPORTED_PLATFORM = "unsupported_platform"
+    PLATFORM_UNAVAILABLE = "platform_unavailable"
+
+    # Infrastructure
+    ENGINE_UNAVAILABLE = "engine_unavailable"
+    QUEUE_UNAVAILABLE = "queue_unavailable"
+    STORAGE_UNAVAILABLE = "storage_unavailable"
+
+    # Auth
+    INVALID_CREDENTIALS = "invalid_credentials"
+    USER_DISABLED = "user_disabled"
+    AUTH_LOCKED = "auth_locked"
+    REGISTRATION_DISABLED = "registration_disabled"
+    REGISTRATION_FAILED = "registration_failed"
+
+    # Task lifecycle
+    INVALID_STATE = "invalid_state"
+    LIMIT_EXCEEDED = "limit_exceeded"
+    NOT_FOUND = "not_found"
+    RETENTION_EXPIRED = "retention_expired"
+    RETRY_SUPERSEDED = "retry_superseded"
+
+    # General
+    RATE_LIMITED = "rate_limited"
+    VALIDATION_ERROR = "validation_error"
+    INTERNAL_ERROR = "internal_error"
+
+
 class AppError(Exception):
-    def __init__(self, code: str, message: str, status_code: int = 400, details: str | dict | list | None = None):
-        self.code = code
+    def __init__(self, code: str | ErrorCode, message: str, status_code: int = 400, details: str | dict | list | None = None):
+        self.code = str(code)
         self.message = message
         self.status_code = status_code
         self.details = details

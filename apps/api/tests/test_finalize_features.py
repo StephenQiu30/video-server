@@ -239,3 +239,44 @@ async def test_stream_tasks_sse_endpoint(session: Session) -> None:
         first_event = await generator.__anext__()
         assert first_event.startswith("event: tasks")
         assert "SSE Task Title" in first_event
+
+
+@pytest.mark.anyio
+async def test_stream_tasks_calls_cleanup_expired_outputs(session: Session) -> None:
+    """stream_tasks must call cleanup_expired_task_outputs before emitting events."""
+    user = User(
+        email="stream_cleanup@example.com",
+        display_name="Stream Cleanup User",
+        github_id="github-stream-cleanup",
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    task = DownloadTask(
+        id="task-stream-cleanup-1",
+        user_id=user.id,
+        state=TaskState.QUEUED.value,
+        title="Stream Cleanup Task",
+        updated_at=datetime.now(UTC),
+        source_url="https://bilibili.com/video/BV4xx",
+    )
+    session.add(task)
+    session.commit()
+
+    call_log = []
+
+    def fake_cleanup(db):
+        call_log.append("called")
+
+    from app.routers.tasks import stream_tasks
+
+    with (
+        patch("app.routers.tasks.SessionLocal", return_value=session),
+        patch("app.routers.tasks.cleanup_expired_task_outputs", side_effect=fake_cleanup),
+    ):
+        response = await stream_tasks(current_user=user)
+        generator = response.body_iterator
+        _ = await generator.__anext__()
+
+    assert call_log, "cleanup_expired_task_outputs was not called by stream_tasks"

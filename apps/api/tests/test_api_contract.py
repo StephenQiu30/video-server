@@ -115,7 +115,7 @@ def test_parse_response_includes_platform_metadata(monkeypatch, client: TestClie
     assert response.status_code == 200
     data = response.json()
     assert data["platform_id"] == "douyin"
-    assert data["platform_category"] == "domestic_short_video"
+    assert data["platform_category"] == "cn-short-video"
     assert data["compliance_note"]
     assert data["source_site"] == "抖音"
     assert data["formats"]

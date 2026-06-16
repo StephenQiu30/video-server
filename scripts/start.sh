@@ -71,6 +71,16 @@ ensure_port_available() {
   exit 1
 }
 
+preflight_check() {
+  echo "检查本机依赖服务..."
+  if ! "${ROOT_DIR}/scripts/check_local_services.sh"; then
+    echo "" >&2
+    echo "依赖服务未就绪，请先启动缺失的服务，或设置 SKIP_PREFLIGHT_CHECK=1 跳过检查。" >&2
+    return 1
+  fi
+  echo ""
+}
+
 start_local() {
   ensure_local_env
   cd "${ROOT_DIR}"
@@ -78,6 +88,13 @@ start_local() {
   local py_bin
   py_bin="$(python_bin)"
   export PYTHON_BIN="${py_bin}"
+
+  # 启动前依赖预检（可跳过）
+  if [ "${SKIP_PREFLIGHT_CHECK:-0}" != "1" ]; then
+    preflight_check
+  else
+    echo "SKIP_PREFLIGHT_CHECK=1，跳过依赖预检。"
+  fi
 
   local api_host="${API_HOST:-127.0.0.1}"
   local api_port="${API_PORT:-8000}"
@@ -122,6 +139,14 @@ start_worker() {
   local py_bin
   py_bin="$(python_bin)"
   export PYTHON_BIN="${py_bin}"
+
+  # 启动前依赖预检（可跳过）
+  if [ "${SKIP_PREFLIGHT_CHECK:-0}" != "1" ]; then
+    preflight_check
+  else
+    echo "SKIP_PREFLIGHT_CHECK=1，跳过依赖预检。"
+  fi
+
   echo "Starting Worker"
   exec ./scripts/dev_worker.sh
 }

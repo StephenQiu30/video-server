@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from app.core.errors import AppError
+from app.core.errors import AppError, ErrorCode
 from app.schemas import ParseResponse, VideoFormat
 from app.services.platforms import find_platform_profile
 
@@ -26,12 +26,10 @@ SOURCE_SITE_NAMES = {
     "vimeo": "Vimeo",
     "dailymotion": "Dailymotion",
     "weibo": "微博",
+    "x": "X",
+    "instagram": "Instagram",
 }
 
-# Platforms known to serve watermarked video by default.
-_WATERMARK_PLATFORMS = frozenset({"douyin", "kuaishou", "tiktok"})
-# Platforms known to serve watermark-free video.
-_WATERMARK_FREE_PLATFORMS = frozenset({"bilibili", "youtube", "vimeo", "dailymotion"})
 
 
 @dataclass(frozen=True)
@@ -43,7 +41,7 @@ class ParsedHost:
     def from_url(cls, url: str) -> "ParsedHost":
         host = (urlparse(url).hostname or "").lower()
         if not host:
-            raise AppError("invalid_url", "请输入有效的视频链接", 422)
+            raise AppError(ErrorCode.INVALID_URL, "请输入有效的视频链接", 422)
         return cls(raw=url, host=host)
 
 
@@ -59,7 +57,7 @@ class PlatformAdapter:
         raise NotImplementedError
 
     def map_parse_error(self, exc: Exception) -> AppError:
-        return AppError("parse_failed", "公开视频解析失败或平台暂不支持", 422)
+        return AppError(ErrorCode.PARSE_FAILED, "公开视频解析失败或平台暂不支持", 422)
 
 
 class YtDlpAdapter(PlatformAdapter):
@@ -73,7 +71,7 @@ class YtDlpAdapter(PlatformAdapter):
         try:
             return _to_parse_response(url, info)
         except (TypeError, ValueError, ValidationError) as exc:
-            raise AppError("parse_failed", "解析结果格式暂不兼容，请稍后重试或更新下载内核", 422) from exc
+            raise AppError(ErrorCode.PARSE_FAILED, "解析结果格式暂不兼容，请稍后重试或更新下载内核", 422) from exc
 
     def map_parse_error(self, exc: Exception) -> AppError:
         return _classify_parse_error(exc)
@@ -140,7 +138,7 @@ def _extract_with_ytdlp(url: str) -> dict[str, Any]:
     try:
         from yt_dlp import YoutubeDL
     except ModuleNotFoundError as exc:
-        raise AppError("engine_unavailable", "下载内核未安装，请在容器环境中运行", 503) from exc
+        raise AppError(ErrorCode.ENGINE_UNAVAILABLE, "下载内核未安装，请在容器环境中运行", 503) from exc
 
     options = {
         "quiet": True,
@@ -299,28 +297,6 @@ def _human_size(size: int) -> str:
     return f"{size / (1024 * 1024 * 1024):.1f} GB"
 
 
-def _derive_format_watermark_hint(extractor: str) -> str | None:
-    """Return per-format watermark hint based on extractor name."""
-    normalized = extractor.lower() if extractor else ""
-    for key in _WATERMARK_PLATFORMS:
-        if normalized.startswith(key):
-            return "可能含平台水印"
-    for key in _WATERMARK_FREE_PLATFORMS:
-        if normalized.startswith(key):
-            return None
-    return None
-
-
-def _derive_response_watermark_hint(extractor: str, platform_profile: Any) -> str | None:
-    """Return response-level watermark hint for the ParseResponse."""
-    normalized = extractor.lower() if extractor else ""
-    for key in _WATERMARK_PLATFORMS:
-        if normalized.startswith(key):
-            return "该平台内容可能含平台水印"
-    for key in _WATERMARK_FREE_PLATFORMS:
-        if normalized.startswith(key):
-            return "优先可用源"
-    return None
 
 
 def _source_site_name(info: dict[str, Any]) -> str | None:
@@ -360,7 +336,7 @@ def _classify_parse_error(exc: Exception, platform_name: str | None = None) -> A
     )
     if any(marker in message for marker in restricted_markers):
         return AppError(
-            "platform_restricted",
+            ErrorCode.PLATFORM_RESTRICTED,
             f"{subject}存在访问限制，当前服务不会绕过登录、会员、付费、版权、DRM 或地区限制",
             403,
         )
@@ -375,7 +351,7 @@ def _classify_parse_error(exc: Exception, platform_name: str | None = None) -> A
         "频繁",
     )
     if any(marker in message for marker in rate_limit_markers):
-        return AppError("platform_rate_limited", "平台访问频率受限或触发风控，请稍后再试", 429)
+        return AppError(ErrorCode.PLATFORM_RATE_LIMITED, "平台访问频率受限或触发风控，请稍后再试", 429)
 
     unsupported_markers = (
         "unsupported url",
@@ -384,7 +360,7 @@ def _classify_parse_error(exc: Exception, platform_name: str | None = None) -> A
         "unable to extract",
     )
     if any(marker in message for marker in unsupported_markers):
-        return AppError("unsupported_platform", "该链接暂不支持解析，请确认是否为公开视频链接", 422)
+        return AppError(ErrorCode.UNSUPPORTED_PLATFORM, "该链接暂不支持解析，请确认是否为公开视频链接", 422)
 
     unavailable_markers = (
         "timed out",
@@ -395,9 +371,9 @@ def _classify_parse_error(exc: Exception, platform_name: str | None = None) -> A
         "network is unreachable",
     )
     if any(marker in message for marker in unavailable_markers):
-        return AppError("platform_unavailable", "平台暂时不可访问或网络超时，请稍后重试", 503)
+        return AppError(ErrorCode.PLATFORM_UNAVAILABLE, "平台暂时不可访问或网络超时，请稍后重试", 503)
 
-    return AppError("parse_failed", "公开视频解析失败或平台暂不支持", 422)
+    return AppError(ErrorCode.PARSE_FAILED, "公开视频解析失败或平台暂不支持", 422)
 
 
 def _safe_str(value: Any) -> str | None:
@@ -431,7 +407,7 @@ def _human_size(size_bytes: int | None) -> str | None:
 _WATERMARK_FREE_EXTRACTORS = {"BiliBili", "YouTube", "Vimeo", "Dailymotion"}
 
 # Platforms known to embed watermarks on downloaded content.
-_WATERMARK_PLATFORM_EXTRACTORS = {"Douyin", "Kuaishou"}
+_WATERMARK_PLATFORM_EXTRACTORS = {"Douyin", "Kuaishou", "TikTok"}
 
 
 def _derive_format_watermark_hint(extractor: str | None) -> str | None:
