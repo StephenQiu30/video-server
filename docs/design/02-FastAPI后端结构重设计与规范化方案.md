@@ -29,6 +29,12 @@ triggers:
   - "完善解析、格式选择、下载执行、失败分类和归档主链路"
   - "引入新的 FastAPI 代码规范、测试门禁或 OpenAPI 契约约束"
 downstream:
+  - "docs/prd/06-视频源接入与适配器扩展.md"
+  - "docs/prd/07-全局响应格式与异常处理.md"
+  - "docs/prd/08-后端工程规范与架构治理.md"
+  - "docs/plans/11-视频源适配器与注册中心计划.md"
+  - "docs/plans/12-全局响应与异常处理计划.md"
+  - "docs/plans/13-后端工程规范与架构治理计划.md"
   - "docs/plans/05-Worker下载执行与失败分类计划.md"
   - "docs/plans/06-取消重试与事件流计划.md"
   - "docs/plans/07-MinIO对象归档计划.md"
@@ -723,11 +729,17 @@ URL 进入解析或下载前必须完成标准化和安全校验：
 
 ### 5.3 下游文档
 
-1. `docs/plans/05-Worker下载执行与失败分类计划.md`
-2. `docs/plans/06-取消重试与事件流计划.md`
-3. `docs/plans/07-MinIO对象归档计划.md`
-4. `docs/plans/08-预签名下载与过期清理计划.md`
-5. `docs/acceptance/01-个人自部署万能视频下载器验收方案.md`
+1. `docs/prd/06-视频源接入与适配器扩展.md`
+2. `docs/prd/07-全局响应格式与异常处理.md`
+3. `docs/prd/08-后端工程规范与架构治理.md`
+4. `docs/plans/11-视频源适配器与注册中心计划.md`
+5. `docs/plans/12-全局响应与异常处理计划.md`
+6. `docs/plans/13-后端工程规范与架构治理计划.md`
+7. `docs/plans/05-Worker下载执行与失败分类计划.md`
+8. `docs/plans/06-取消重试与事件流计划.md`
+9. `docs/plans/07-MinIO对象归档计划.md`
+10. `docs/plans/08-预签名下载与过期清理计划.md`
+11. `docs/acceptance/01-个人自部署万能视频下载器验收方案.md`
 
 ## 6. 验收门禁
 
