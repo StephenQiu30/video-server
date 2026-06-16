@@ -19,8 +19,10 @@ def test_api_only_backend_not_serving_spa(client: TestClient) -> None:
     response = client.get("/workbench")
 
     assert response.status_code == 404
-    assert response.json()["success"] is False
-    assert response.json()["error"]["code"] == "not_found"
+    body = response.json()
+    assert body["success"] is False
+    assert body["error"]["code"] == "not_found"
+    assert "request_id" in body
 
 
 def test_app_error_uses_unified_failure_envelope(client: TestClient, session: Session) -> None:
@@ -33,14 +35,14 @@ def test_app_error_uses_unified_failure_envelope(client: TestClient, session: Se
     )
 
     assert response.status_code == 422
-    assert response.json() == {
-        "success": False,
-        "error": {
-            "code": "invalid_state",
-            "message": "任务状态筛选值无效",
-            "details": None,
-        },
+    body = response.json()
+    assert body["success"] is False
+    assert body["error"] == {
+        "code": "invalid_state",
+        "message": "任务状态筛选值无效",
+        "details": None,
     }
+    assert "request_id" in body
 
 
 def test_validation_error_uses_unified_failure_envelope(client: TestClient, session: Session) -> None:
@@ -54,9 +56,11 @@ def test_validation_error_uses_unified_failure_envelope(client: TestClient, sess
     )
 
     assert response.status_code == 422
-    assert response.json()["success"] is False
-    assert response.json()["error"]["code"] == "validation_error"
-    assert response.json()["error"]["details"]
+    body = response.json()
+    assert body["success"] is False
+    assert body["error"]["code"] == "validation_error"
+    assert body["error"]["details"]
+    assert "request_id" in body
 
 
 def test_unknown_exception_uses_safe_failure_envelope() -> None:
@@ -74,14 +78,14 @@ def test_unknown_exception_uses_safe_failure_envelope() -> None:
     response = TestClient(app, raise_server_exceptions=False).get("/api/_boom")
 
     assert response.status_code == 500
-    assert response.json() == {
-        "success": False,
-        "error": {
-            "code": "internal_error",
-            "message": "服务暂时不可用，请稍后重试",
-            "details": None,
-        },
+    body = response.json()
+    assert body["success"] is False
+    assert body["error"] == {
+        "code": "internal_error",
+        "message": "服务暂时不可用，请稍后重试",
+        "details": None,
     }
+    assert "request_id" in body
 
 
 def test_parse_response_includes_platform_metadata(monkeypatch, client: TestClient, session: Session) -> None:
