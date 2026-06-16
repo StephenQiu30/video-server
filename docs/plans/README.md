@@ -17,6 +17,7 @@
 | PLAN09 | 本机开发与依赖复用计划 | accepted |
 | PLAN10 | DockerCompose 部署与健康检查计划 | accepted |
 | PLAN13 | 后端工程规范与架构治理计划 | draft |
+| PLAN14 | 视频源可下载能力审计与中心化治理计划 | draft |
 
 ## 适合放入
 
