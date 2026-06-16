@@ -60,36 +60,37 @@ class AppError(Exception):
         super().__init__(message)
 
 
-async def app_error_handler(_: Request, exc: AppError) -> JSONResponse:
+async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code,
-        content=failure_response(exc.code, exc.message, exc.details),
+        content=failure_response(exc.code, exc.message, exc.details, getattr(request.state, "request_id", None)),
     )
 
 
-async def http_exception_handler(_: Request, exc: HTTPException | StarletteHTTPException) -> JSONResponse:
+async def http_exception_handler(request: Request, exc: HTTPException | StarletteHTTPException) -> JSONResponse:
     code, message = _http_error_contract(exc)
-    return JSONResponse(status_code=exc.status_code, content=failure_response(code, message))
+    return JSONResponse(status_code=exc.status_code, content=failure_response(code, message, request_id=getattr(request.state, "request_id", None)))
 
 
-async def validation_exception_handler(_: Request, exc: RequestValidationError) -> JSONResponse:
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content=failure_response("validation_error", "请求参数不符合要求", exc.errors()),
+        content=failure_response("validation_error", "请求参数不符合要求", exc.errors(), getattr(request.state, "request_id", None)),
     )
 
 
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    request_id = getattr(request.state, "request_id", None)
     logger.exception(
         "Unhandled API exception path=%s method=%s request_id=%s",
         request.url.path,
         request.method,
-        getattr(request.state, "request_id", None),
+        request_id,
         exc_info=exc,
     )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content=failure_response("internal_error", "服务暂时不可用，请稍后重试"),
+        content=failure_response("internal_error", "服务暂时不可用，请稍后重试", request_id=request_id),
     )
 
 

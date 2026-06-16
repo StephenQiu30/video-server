@@ -8,7 +8,7 @@ from app.core.config import get_settings
 from app.deps import get_current_user
 from app.models import User
 from app.schemas import ParseRequest, ParseResponse
-from app.services.download_adapter import DownloadEngineAdapter
+from app.services.parse_service import ParseService
 from app.services.rate_limit import InMemoryRateLimiter, RateLimitPolicy, RateLimitScope, RedisRateLimiter
 from app.utils.url import normalize_user_url
 
@@ -37,4 +37,4 @@ def get_parse_rate_limiter() -> InMemoryRateLimiter:
 @router.post("", response_model=ParseResponse)
 def parse_video(current_user: Annotated[User, Depends(get_current_user)], payload: ParseRequest) -> ParseResponse:
     get_parse_rate_limiter().assert_allowed(f"user:{current_user.id}")
-    return DownloadEngineAdapter().parse(normalize_user_url(payload.url))
+    return ParseService().parse(normalize_user_url(payload.url))
