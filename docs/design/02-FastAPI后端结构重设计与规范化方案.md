@@ -9,7 +9,7 @@ feature_area: fastapi-backend-restructure
 purpose: "定义万能视频下载器后端服务的 FastAPI 分层结构、模块边界、解析下载主链路规范化方案和后续实施内容。"
 canonical_path: "docs/design/02-FastAPI后端结构重设计与规范化方案.md"
 status: draft
-version: "0.1.0"
+version: "0.2.0"
 owner: "StephenQiu30"
 inputs:
   - "docs/design/01-个人自部署万能视频下载器技术设计.md"
@@ -22,6 +22,8 @@ outputs:
   - "FastAPI 后端结构重设计方案"
   - "后端模块规范与迁移内容清单"
   - "解析下载与多分辨率能力完善边界"
+  - "视频源接入设计模式与扩展规范"
+  - "全局响应格式与异常处理规范"
 triggers:
   - "调整后端目录结构、模块职责或依赖方向"
   - "完善解析、格式选择、下载执行、失败分类和归档主链路"
@@ -78,6 +80,7 @@ apps/api/app/
     tasks.py
     formats.py
     platforms.py
+    source_adapters.py
     failures.py
   schemas/
     parse.py
@@ -87,6 +90,7 @@ apps/api/app/
     health.py
   services/
     parse_service.py
+    source_registry.py
     task_service.py
     download_policy.py
     retention_service.py
@@ -99,6 +103,7 @@ apps/api/app/
       parser.py
       selectors.py
       errors.py
+      source_clients.py
     storage/
       object_storage.py
     queue/
@@ -225,7 +230,310 @@ API 层应遵循以下规范：
 2. 允许本次解析结果返回的 raw `format_id`。
 3. 拒绝超过长度限制、包含换行、shell 控制字符或不符合 `yt-dlp` selector 语法白名单的值。
 
-### 4.5 下载任务服务设计
+### 4.5 视频源接入设计模式
+
+视频源接入是后端长期扩展点，必须用明确的软件设计模式约束，避免每新增一个平台都在 `parse_service`、`download_executor` 或 router 中堆条件判断。
+
+#### 4.5.1 设计目标
+
+1. 新增视频源时只新增 adapter、profile 和测试，不改动主流程。
+2. 解析、格式转换、下载策略和错误映射可以按平台定制。
+3. 平台差异被封装在 adapter 内，API、任务服务和 Worker 只依赖统一接口。
+4. 支持从“通用 yt-dlp fallback”逐步升级为“平台专用 adapter”。
+
+#### 4.5.2 核心模式
+
+| 模式 | 用途 | 在本项目中的落点 |
+| --- | --- | --- |
+| Adapter | 把平台或 `yt-dlp` 原始能力适配为内部统一接口 | `VideoSourceAdapter` |
+| Strategy | 按平台选择解析策略、格式策略和错误映射策略 | `ParseStrategy`、`FormatStrategy`、`ErrorMappingStrategy` |
+| Registry | 管理所有已注册视频源 adapter | `VideoSourceRegistry` |
+| Factory | 根据 URL、平台画像或 extractor 创建合适 adapter | `VideoSourceAdapterFactory` |
+| Template Method | 固定解析主流程，把平台差异留给 hook | `BaseVideoSourceAdapter.parse()` |
+| Value Object | 表达 URL、平台、格式、selector 等不可变领域值 | `SourceUrl`、`VideoFormatOption`、`FormatSelector` |
+
+#### 4.5.3 统一 adapter 接口
+
+所有视频源 adapter 必须实现同一协议：
+
+```python
+class VideoSourceAdapter(Protocol):
+    source_id: str
+    display_name: str
+
+    def supports(self, source_url: SourceUrl) -> bool:
+        ...
+
+    def parse(self, source_url: SourceUrl) -> ParsedVideo:
+        ...
+
+    def build_download_options(
+        self,
+        task: DownloadTaskSpec,
+        format_selector: FormatSelector,
+    ) -> DownloadOptions:
+        ...
+
+    def map_error(self, exc: Exception) -> FailureInfo:
+        ...
+```
+
+约束：
+
+1. `supports()` 只能做轻量判断，不能访问外部网络。
+2. `parse()` 可以调用 `yt-dlp` 或平台专用解析器，但必须返回内部 `ParsedVideo`。
+3. `build_download_options()` 只能生成下载参数，不执行下载。
+4. `map_error()` 必须把外部异常转换为 shared failure code。
+5. adapter 不能直接写数据库，不能直接创建任务，不能返回 FastAPI response。
+
+#### 4.5.4 Registry 与 Factory
+
+`VideoSourceRegistry` 负责注册和检索 adapter：
+
+```text
+register(BilibiliAdapter)
+register(DouyinAdapter)
+register(YouTubeAdapter)
+register(GenericYtDlpAdapter)
+
+resolve(source_url)
+-> first adapter where supports(source_url) is True
+-> fallback GenericYtDlpAdapter
+```
+
+注册顺序必须从专用到通用：
+
+1. 国内短视频专用 adapter。
+2. Bilibili 专用 adapter。
+3. YouTube/TikTok 等公开平台 adapter。
+4. `GenericYtDlpAdapter` fallback。
+
+Factory 负责把 URL、平台画像、配置开关组合起来，返回可用 adapter。Factory 可以读取配置，但不能执行解析或下载。
+
+#### 4.5.5 平台接入文件结构
+
+新增视频源应按以下结构进入项目：
+
+```text
+apps/api/app/infrastructure/sources/
+  base.py
+  registry.py
+  generic_ytdlp.py
+  bilibili.py
+  douyin.py
+  youtube.py
+
+apps/api/app/domain/
+  source_url.py
+  source_profile.py
+  parsed_video.py
+  format_selector.py
+
+apps/api/tests/sources/
+  test_registry.py
+  test_bilibili_adapter.py
+  test_douyin_adapter.py
+  test_generic_ytdlp_adapter.py
+```
+
+Worker 侧下载执行可以复用同一套 selector 和 error mapping，但不要直接依赖 API router。共享规则应放入 `packages/shared` 或 API/Worker 都能引用的 domain 模块。
+
+#### 4.5.6 新视频源接入流程
+
+接入一个新视频源必须按以下顺序：
+
+1. 新增或更新平台画像：`platform_id`、`display_name`、host 列表、合规说明、能力标记。
+2. 新增 adapter：实现 `supports()`、`parse()`、错误映射和可选下载参数策略。
+3. 注册 adapter：加入 registry，顺序必须在 fallback 之前。
+4. 新增解析测试：覆盖 URL 匹配、解析字段、格式转换、合规提示。
+5. 新增失败测试：覆盖登录限制、格式不可用、平台限流、网络超时。
+6. 新增 OpenAPI 契约测试：确保对外 schema 不因平台差异漂移。
+7. 更新设计或运维文档：记录平台边界和已知限制。
+
+验收标准：
+
+- 新增平台不需要修改 `parse` router。
+- 新增平台不需要修改任务创建主流程。
+- 新增平台不需要在 Worker job 中增加平台条件分支。
+- 所有平台错误都能落到统一 `failure_code`。
+
+### 4.6 全局响应格式与异常处理
+
+后端必须定义全局响应 envelope 和全局异常映射。目标是让 API、测试、OpenAPI 和运维日志对成功和失败有同一套语言。
+
+#### 4.6.1 成功响应格式
+
+业务 API 成功响应统一采用以下概念模型：
+
+```json
+{
+  "success": true,
+  "data": {},
+  "meta": {
+    "request_id": "req_...",
+    "timestamp": "2026-06-16T12:00:00Z"
+  }
+}
+```
+
+考虑到现有 API 已直接返回 `TaskRead`、`ParseResponse` 等 schema，迁移策略为：
+
+1. 新增 API 或管理类 API 优先采用 envelope。
+2. 既有用户主链路 API 在一个兼容阶段内可以保持当前响应体，避免破坏 OpenAPI 和调用方。
+3. 如果决定全量 envelope 化，必须先更新 OpenAPI、契约测试和前后端协作文档。
+
+无论响应体是否 envelope 化，所有请求都必须具备可追踪的 `request_id`。
+
+#### 4.6.2 分页响应格式
+
+列表类 API 应使用统一分页结构：
+
+```json
+{
+  "success": true,
+  "data": {
+    "items": [],
+    "page": 1,
+    "page_size": 20,
+    "total": 0
+  },
+  "meta": {
+    "request_id": "req_..."
+  }
+}
+```
+
+`GET /api/tasks` 当前支持 `limit`，后续如需要分页，应迁移到 `page/page_size` 或 cursor 模式，并在 design/plan 中显式说明兼容策略。
+
+#### 4.6.3 错误响应格式
+
+所有异常响应必须使用统一 failure envelope：
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "format_unavailable",
+    "message": "该视频源未提供所选清晰度，请选择推荐下载或其他可用清晰度后重试。",
+    "details": null
+  },
+  "meta": {
+    "request_id": "req_..."
+  }
+}
+```
+
+约束：
+
+1. `code` 使用 shared error code，不允许自由字符串散落在代码中。
+2. `message` 面向用户，可中文展示，不包含 token、cookie、secret、完整预签名 URL 或外部异常堆栈。
+3. `details` 只放可安全暴露的结构化信息，默认 `null`。
+4. 5xx 错误不能把内部异常原文返回给用户。
+5. 日志可以记录内部异常摘要和 traceback，但必须做敏感信息脱敏。
+
+#### 4.6.4 全局异常映射
+
+FastAPI 应集中注册 exception handlers：
+
+| 异常类型 | HTTP 状态码 | 错误码 |
+| --- | --- | --- |
+| `AppError` | 使用异常自带状态码 | 使用异常自带 code |
+| `RequestValidationError` | 422 | `validation_error` |
+| `AuthenticationError` | 401 | `unauthorized` |
+| `AuthorizationError` | 403 | `forbidden` |
+| `RateLimitError` | 429 | `rate_limited` |
+| `SQLAlchemyError` | 500 | `database_error` |
+| `RedisError` | 503 | `queue_unavailable` |
+| `BotoCoreError` / S3 client error | 503 | `storage_unavailable` 或 `storage_upload_failed` |
+| `yt-dlp` 解析异常 | 422/503 | `platform_restricted`、`platform_rate_limited`、`platform_unavailable` |
+| 未捕获异常 | 500 | `internal_error` |
+
+异常处理器职责：
+
+1. 生成统一 failure envelope。
+2. 注入 `request_id`。
+3. 记录结构化日志。
+4. 对外隐藏内部异常细节。
+5. 保持 OpenAPI 中错误模型可追踪。
+
+#### 4.6.5 领域异常层次
+
+项目应逐步从单个 `AppError` 扩展为可维护的领域异常层次：
+
+```text
+AppError
+  ValidationAppError
+  AuthAppError
+  PermissionAppError
+  RateLimitAppError
+  QuotaExceededError
+  UnsupportedPlatformError
+  FormatUnavailableError
+  DownloadExecutionError
+  StorageAppError
+  QueueAppError
+```
+
+领域异常可以继承统一基类，但每个异常必须显式声明：
+
+- `code`
+- `message`
+- `status_code`
+- `safe_details`
+- `log_level`
+
+### 4.7 软件工程约束
+
+本项目后端后续改造必须使用软件工程范式约束，而不是只追求“能跑”。
+
+#### 4.7.1 SOLID 约束
+
+1. 单一职责：router、service、repository、adapter、schema 各自只承担一种原因的变化。
+2. 开闭原则：新增视频源通过新增 adapter 和注册完成，不修改解析主流程。
+3. 里氏替换：所有 `VideoSourceAdapter` 必须能被 registry 以同一方式调用。
+4. 接口隔离：解析、下载、错误映射不强迫所有 adapter 实现无关能力。
+5. 依赖倒置：业务服务依赖抽象协议，不直接依赖 `yt-dlp`、Redis、MinIO 具体 SDK。
+
+#### 4.7.2 分层架构约束
+
+1. 禁止 router 直接访问 `yt-dlp`、MinIO、Redis SDK。
+2. 禁止 infrastructure 反向依赖 service 或 router。
+3. 禁止 domain 依赖 FastAPI、SQLAlchemy session 或外部 SDK。
+4. repository 返回领域对象或 ORM model 的边界必须明确，不得把查询细节泄漏到 router。
+5. Worker job 只能作为异步入口，不承载复杂业务规则。
+
+#### 4.7.3 契约优先
+
+1. Pydantic schema 是 API 入参和出参契约。
+2. shared 枚举是状态、错误码和 selector 常量的真相源。
+3. OpenAPI 变更必须由测试发现，并同步文档。
+4. 任何破坏兼容的响应格式变化都必须先有 design/plan，再进入实现。
+
+#### 4.7.4 测试优先
+
+涉及行为变化时必须按 Red -> Green -> Refactor：
+
+1. 先写失败测试描述目标行为。
+2. 再写最小实现通过测试。
+3. 最后在测试保护下移动目录或抽象接口。
+
+设计模式相关测试至少包括：
+
+- registry 选择正确 adapter。
+- fallback adapter 在未知公网 host 上生效。
+- adapter 错误映射到统一 failure code。
+- 新增平台不需要改 router 的契约测试。
+- 全局异常 handler 对 AppError、validation error、unknown error 输出统一 envelope。
+
+#### 4.7.5 复杂度控制
+
+1. 单个 Python 文件长期目标不超过 200 行；超过时按职责拆分。
+2. 单个函数优先控制在 40 行以内；复杂流程使用 service 编排和小函数表达。
+3. 禁止通过全局变量保存请求态、用户态或任务态。
+4. 禁止把平台特殊逻辑写成多层 `if platform_id == ...`。
+5. 所有外部依赖都必须被封装到 infrastructure，便于测试替换。
+
+### 4.8 下载任务服务设计
 
 任务创建应由 `TaskService` 统一编排：
 
@@ -248,7 +556,7 @@ normalize URL
 3. 重试任务必须复制原任务的 URL、标题、封面、时长、格式选择，并增加 `attempt_no`。
 4. 取消只能作用于 `queued` 或 `running`，Worker 在下载进度 hook、上传前、上传后均需检查取消状态。
 
-### 4.6 Worker 下载执行设计
+### 4.9 Worker 下载执行设计
 
 Worker 应由 `DownloadJob` 调用 `DownloadExecutor` 完成执行：
 
@@ -278,7 +586,7 @@ load task
 7. `merge_output_format`: `mp4`。
 8. Cookie 配置：优先 cookie file，其次 browser cookie，非法配置只记录 warning，不阻塞公开视频下载。
 
-### 4.7 状态机与错误码
+### 4.10 状态机与错误码
 
 任务状态以 shared 枚举为唯一真相源：
 
@@ -313,7 +621,7 @@ load task
 | `rate_limited` | API 调用限流 |
 | `limit_exceeded` | 用户配额或并发超限 |
 
-### 4.8 URL 与平台安全规范
+### 4.11 URL 与平台安全规范
 
 URL 进入解析或下载前必须完成标准化和安全校验：
 
@@ -327,7 +635,7 @@ URL 进入解析或下载前必须完成标准化和安全校验：
 
 平台画像负责展示能力边界，不承诺所有 `yt-dlp` 支持站点都正式支持。未知公网 host 可以走 best-effort fallback，但错误语义必须稳定。
 
-### 4.9 数据访问与事务规范
+### 4.12 数据访问与事务规范
 
 后续应逐步引入 repository 层，收束 SQLAlchemy 访问：
 
@@ -342,7 +650,7 @@ URL 进入解析或下载前必须完成标准化和安全校验：
 - 进度更新可以短事务提交，但必须避免高频提交压垮数据库。
 - 任务状态与事件日志应在同一事务内写入。
 
-### 4.10 配置与运行规范
+### 4.13 配置与运行规范
 
 配置继续由 Pydantic Settings 管理，但应分组沉淀：
 
@@ -356,7 +664,7 @@ URL 进入解析或下载前必须完成标准化和安全校验：
 
 实际代码可以继续保留单个 `Settings` 类，但字段命名、默认值和环境变量 alias 必须按这些分组维护。
 
-### 4.11 日志与可观测性
+### 4.14 日志与可观测性
 
 后端日志必须满足：
 
@@ -366,7 +674,7 @@ URL 进入解析或下载前必须完成标准化和安全校验：
 4. 平台错误保留可排查摘要，但不把外部异常原文完整返回给用户。
 5. Worker 关键阶段写入 `task_events`，用于任务详情和验收排查。
 
-### 4.12 测试门禁
+### 4.15 测试门禁
 
 后端结构优化必须保持或新增以下测试：
 
@@ -380,17 +688,21 @@ URL 进入解析或下载前必须完成标准化和安全校验：
 8. Worker 失败分类测试。
 9. MinIO 归档、预签名下载和过期清理测试。
 10. OpenAPI 契约测试，保证 schema 变更被显式发现。
+11. 视频源 registry、adapter factory 和 fallback 测试。
+12. 全局响应 envelope 与 exception handler 测试。
 
-### 4.13 渐进迁移顺序
+### 4.16 渐进迁移顺序
 
-后续实施建议分 6 个阶段：
+后续实施建议分 8 个阶段：
 
 1. `shared` 规范化：统一状态枚举、失败码和 selector 常量。
-2. 解析服务规范化：抽出 format domain、selector builder、parse adapter。
-3. 任务服务规范化：引入 `TaskService` 和格式白名单校验。
-4. Worker 规范化：抽出 options builder、download executor、artifact service。
-5. Repository 收束：把任务、事件、用户和平台数据库访问移出 router/job。
-6. 配置、日志和测试门禁收口：补齐 OpenAPI、pytest、健康检查和运行文档。
+2. 全局响应与异常规范化：补齐 envelope、exception handlers、request id 和错误模型测试。
+3. 视频源接入规范化：引入 adapter protocol、registry、factory 和 fallback。
+4. 解析服务规范化：抽出 format domain、selector builder、parse adapter。
+5. 任务服务规范化：引入 `TaskService` 和格式白名单校验。
+6. Worker 规范化：抽出 options builder、download executor、artifact service。
+7. Repository 收束：把任务、事件、用户和平台数据库访问移出 router/job。
+8. 配置、日志和测试门禁收口：补齐 OpenAPI、pytest、健康检查和运行文档。
 
 每个阶段都应保持 API 可运行、测试可通过，禁止一次性大规模移动文件导致行为难以审查。
 
@@ -424,6 +736,9 @@ URL 进入解析或下载前必须完成标准化和安全校验：
 - 明确只覆盖 `video-server` 后端，不包含前端实施内容。
 - 能解释当前 API、Worker、DB、Queue、Storage 的目标分层。
 - 能指导后续代码重构，不需要开发者额外猜测模块职责。
+- 明确视频源接入使用 Adapter、Strategy、Registry、Factory 等设计模式约束。
+- 明确全局响应数据格式、全局异常处理和错误码映射。
+- 明确 SOLID、分层架构、契约优先、测试优先和复杂度控制要求。
 - 覆盖解析、多分辨率选择、下载执行、失败分类、归档和测试门禁。
 - 没有与 `docs/design/01-个人自部署万能视频下载器技术设计.md` 的状态机、对象存储和 API 边界冲突。
 
@@ -434,15 +749,19 @@ URL 进入解析或下载前必须完成标准化和安全校验：
 3. 格式白名单需要在“安全限制”和“高级 raw 格式选择”之间平衡，首版应优先保证预设 selector 稳定。
 4. Worker 下载和进度回写需要避免长事务和高频提交，否则可能影响 Postgres 性能。
 5. Cookie 配置属于自部署增强能力，不能被设计成绕过付费、会员或访问控制的默认能力。
+6. 全局响应 envelope 可能影响现有调用方，实施前必须明确兼容窗口和 OpenAPI 迁移策略。
+7. 设计模式用于隔离变化，不应演化为过度抽象；每个新增抽象都必须由平台接入或测试替换需求驱动。
 
 ## 8. 待确认问题
 
 1. 是否在下一阶段新增 `docs/plans/11-FastAPI后端结构规范化实施计划.md`，把本文档拆成可执行任务。
 2. 是否保留 raw format 对普通任务创建开放，或只允许推荐与分辨率预设。
 3. 是否把 `platform_profiles` 长期保留为代码配置，还是在后续阶段同步为数据库表。
+4. 是否将既有 API 成功响应全量迁移为 envelope，还是只对新增 API 使用 envelope。
 
 ## 9. 变更记录
 
 | 日期 | 作者 | 版本 | 变更说明 |
 | --- | --- | --- | --- |
 | 2026-06-16 | StephenQiu30 | 0.1.0 | 初始化 FastAPI 后端结构重设计与规范化方案 |
+| 2026-06-16 | StephenQiu30 | 0.2.0 | 增补视频源接入设计模式、全局响应异常规范和软件工程约束 |
