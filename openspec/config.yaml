@@ -8,6 +8,11 @@ context: |
   SDD workflow: execution should begin from OpenSpec change artifacts
   (proposal/specs/design/tasks) and Agent Review must validate implementation
   against those artifacts before Human Review.
+  Archive gate: Human Review is forbidden until the active OpenSpec change has
+  been verified and archived.
+  Loop engineering: every task must stay inside one OpenSpec loop
+  (change -> SDD/TDD execution -> Agent Review -> archive -> Human Review),
+  and Rework must re-enter that same loop instead of bypassing it.
   Testing entrypoint: npm test
   Boundary rule: stay inside the current project scope and do not add cross-project
   compatibility behavior unless the normative files explicitly require it.
