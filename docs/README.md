@@ -23,9 +23,9 @@
 
 当前主线只覆盖个人自部署万能视频下载器 MVP：
 
-- `docs/prd/01-解析入口与URL安全.md` 到 `docs/prd/05-自部署运行与环境复用.md`
+- `docs/prd/01-解析入口与URL安全.md` 到 `docs/prd/05-自部署运行与环境复用.md`，`docs/prd/08-后端工程规范与架构治理.md`
 - `docs/design/01-个人自部署万能视频下载器技术设计.md`
-- `docs/plans/01-URL协议与地址安全计划.md` 到 `docs/plans/10-DockerCompose部署与健康检查计划.md`
+- `docs/plans/01-URL协议与地址安全计划.md` 到 `docs/plans/10-DockerCompose部署与健康检查计划.md`，`docs/plans/13-后端工程规范与架构治理计划.md`
 - `docs/acceptance/01-个人自部署万能视频下载器验收方案.md`
 - `docs/operations/01-个人自部署万能视频下载器运行与部署.md`
 
