@@ -2,7 +2,7 @@
 name: pull
 description:
   Pull latest origin/main into the current local branch and resolve merge
-  conflicts (aka update-branch). Use when Claude needs to sync a feature branch
+  conflicts (aka update-branch). Use when Codex needs to sync a feature branch
   with origin, perform a merge-based update (not rebase), and guide conflict
   resolution best practices.
 ---
@@ -30,7 +30,7 @@ description:
 7. If conflicts appear, resolve them (see conflict guidance below), then:
    - `git add <files>`
    - `git commit` (or `git merge --continue` if the merge is paused)
-8. Verify with project checks (follow repo policy in `CLAUDE.md`).
+8. Verify with project checks (follow repo policy in `AGENTS.md`).
 9. Summarize the merge:
    - Call out the most challenging conflicts/files and how they were resolved.
    - Note any assumptions or follow-ups.
