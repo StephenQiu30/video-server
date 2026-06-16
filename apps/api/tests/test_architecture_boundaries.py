@@ -181,3 +181,82 @@ def test_openspec_backend_layer_boundaries_spec_exists() -> None:
     """OpenSpec backend-layer-boundaries spec MUST exist."""
     spec_path = Path("openspec/specs/backend-layer-boundaries/spec.md")
     assert spec_path.exists(), "OpenSpec backend-layer-boundaries spec is missing"
+
+
+def test_download_adapter_does_not_define_independent_registry_center() -> None:
+    """download_adapter.py SHALL NOT define independent adapter/registry center.
+
+    Production code MUST use app.sources.SourceAdapterRegistry as the single
+    video source adapter center. The old PlatformAdapter/AdapterRegistry/
+    DownloadEngineAdapter in download_adapter.py are deprecated and MUST NOT
+    be used as primary entry points by routers or services.
+    """
+    download_adapter_path = Path("apps/api/app/services/download_adapter.py")
+    source = download_adapter_path.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(download_adapter_path))
+
+    # Check that download_adapter.py has deprecation markers
+    has_deprecation_warning = "DEPRECATED" in source or "deprecated" in source.lower()
+    assert has_deprecation_warning, (
+        "download_adapter.py MUST contain deprecation warnings for "
+        "PlatformAdapter, AdapterRegistry, and DownloadEngineAdapter. "
+        "Production code should use app.sources.SourceAdapterRegistry."
+    )
+
+
+def test_routers_do_not_use_download_adapter_as_primary_center() -> None:
+    """Routers MUST NOT use download_adapter classes as primary entry points.
+
+    Routers should use ParseService from app.services.parse_service which
+    delegates to app.sources.SourceAdapterRegistry.
+    """
+    for py_file in ROUTER_DIR.glob("*.py"):
+        if py_file.name == "__init__.py":
+            continue
+        source = py_file.read_text(encoding="utf-8")
+        tree = ast.parse(source, filename=str(py_file))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                if node.module and "download_adapter" in node.module:
+                    # Check if importing the deprecated classes
+                    for alias in node.names:
+                        assert alias.name not in (
+                            "PlatformAdapter",
+                            "AdapterRegistry",
+                            "DownloadEngineAdapter",
+                            "YtDlpAdapter",
+                            "BilibiliAdapter",
+                            "DomesticShortVideoAdapter",
+                        ), (
+                            f"{py_file} imports {alias.name} from download_adapter. "
+                            "Routers should use ParseService from parse_service."
+                        )
+
+
+def test_services_do_not_use_download_adapter_as_primary_center() -> None:
+    """Services MUST NOT use download_adapter classes as primary entry points.
+
+    Exception: parse_service.py may import utility functions but MUST NOT
+    import the deprecated adapter/registry classes.
+    """
+    service_exceptions = {"parse_service.py"}
+    for py_file in SERVICE_DIR.glob("*.py"):
+        if py_file.name == "__init__.py" or py_file.name in service_exceptions:
+            continue
+        source = py_file.read_text(encoding="utf-8")
+        tree = ast.parse(source, filename=str(py_file))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                if node.module and "download_adapter" in node.module:
+                    for alias in node.names:
+                        assert alias.name not in (
+                            "PlatformAdapter",
+                            "AdapterRegistry",
+                            "DownloadEngineAdapter",
+                            "YtDlpAdapter",
+                            "BilibiliAdapter",
+                            "DomesticShortVideoAdapter",
+                        ), (
+                            f"{py_file} imports {alias.name} from download_adapter. "
+                            "Services should use app.sources.SourceAdapterRegistry."
+                        )
