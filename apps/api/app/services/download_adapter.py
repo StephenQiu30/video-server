@@ -1,3 +1,16 @@
+"""
+DEPRECATED: This module contains the old adapter/registry center.
+
+Production code MUST use app.sources.SourceAdapterRegistry as the single
+video source adapter center. The classes in this module (PlatformAdapter,
+AdapterRegistry, DownloadEngineAdapter) are deprecated and retained only
+for backward compatibility with existing tests.
+
+New code should use:
+- app.sources.registry.SourceAdapterRegistry
+- app.services.parse_service.ParseService
+"""
+
 from dataclasses import dataclass
 from urllib.parse import urlparse
 from typing import Any
