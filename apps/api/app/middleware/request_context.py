@@ -10,6 +10,7 @@ async def request_context_middleware(
     call_next: Callable[[Request], Awaitable[Response]],
 ) -> Response:
     request_id = request.headers.get("X-Request-ID") or uuid4().hex
+    request.state.request_id = request_id
     start = time.perf_counter()
     response = await call_next(request)
     duration_ms = int((time.perf_counter() - start) * 1000)
