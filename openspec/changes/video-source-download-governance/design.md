@@ -1,70 +1,77 @@
-# Design: 视频源可下载能力审计与中心化治理
+# 设计：视频源可下载能力与中心化架构
 
-## 架构变更
+## 1. 目标
 
-### 1. 治理旧适配器中心
+以 PRD09 为需求源，建立视频源可下载支持的统一口径和中心化架构约束。
 
-**当前状态**：
-- `app.sources.registry.SourceAdapterRegistry` - 新中心
-- `app.services.download_adapter.AdapterRegistry` - 旧中心
-- `app.services.download_adapter.DownloadEngineAdapter` - 旧中心包装器
+## 2. 非目标
 
-**目标状态**：
-- 只保留 `app.sources.registry.SourceAdapterRegistry`
-- 将 `download_adapter.py` 中有价值的逻辑迁移到 `app.sources.models` 或 `app.sources.adapters.ytdlp`
-- 删除或废弃旧的 `PlatformAdapter`、`AdapterRegistry`、`DownloadEngineAdapter`
+1. 不实现代码改动（代码治理由 PLAN14 子任务执行）。
+2. 不绕过平台限制。
+3. 不承诺 `yt-dlp` 全量 extractor 都是正式支持平台。
 
-**迁移策略**：
-1. `_to_parse_response()` 中的格式转换逻辑已迁移到 `app.sources.models.source_info_to_parse_response()`
-2. `_classify_parse_error()` 中的错误分类逻辑已迁移到各适配器的 `map_error()` 方法
-3. `_build_resolution_presets()` 中的分辨率预设逻辑已迁移到 `app.sources.models`
-4. 水印提示逻辑已迁移到 `app.sources.models`
+## 3. 数据契约
 
-### 2. 建立支持矩阵
+### 3.1 支持状态枚举
 
-**文档位置**：`docs/acceptance/02-视频源可下载支持矩阵.md`
+```python
+class DownloadSupportStatus(str, Enum):
+    SUPPORTED_DOWNLOAD = "supported_download"
+    PARSE_ONLY_OR_UNVERIFIED = "parse_only_or_unverified"
+    FALLBACK_ATTEMPT = "fallback_attempt"
+```
 
-**矩阵结构**：
-- platform_id: 平台标识
-- host: 平台域名
-- adapter: 适配器类名
-- download_engine: 下载引擎
-- required_auth: 是否需要认证
-- known_limits: 已知限制
-- validation_evidence: 验证证据
-- support_status: 支持状态
+### 3.2 支持矩阵字段
 
-### 3. 下载链路测试
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| platform_id | str | 是 | 平台稳定唯一标识 |
+| host | str | 是 | 支持的主域名 |
+| adapter | str | 是 | 适配器类名 |
+| download_engine | str | 是 | 下载引擎 |
+| required_auth | str | 是 | 认证要求 |
+| known_limits | list[str] | 是 | 已知限制 |
+| validation_evidence | str | 是 | 验收证据 |
+| support_status | DownloadSupportStatus | 是 | 支持状态 |
 
-**测试策略**：
-1. B 站：公开 BV URL 解析 -> 任务创建 -> Worker fake download -> 对象存储链路
-2. YouTube：公开测试 URL 解析 -> format selector -> Worker fake download
-3. 未知公网 fallback：安全 host 校验通过 -> unsupported 映射正确
-4. 国内短视频：平台识别 -> 受限/风控失败语义
+## 4. 状态流
 
-**Fake Integration 证据**：
-- 使用 mock 替代真实网络请求
-- 验证 format_id 传递契约
-- 验证失败分类语义
+```text
+URL 输入
+  ↓
+安全校验 + 平台画像识别
+  ↓
+┌─ 匹配平台画像 → 专用适配器 → parse → format → task → worker download → 验证 → 对象存储 → 交付
+│   (supported_download 或 parse_only_or_unverified，取决于是否有验收证据)
+│
+└─ 未匹配 → YtDlpAdapter fallback → parse → format → task → worker download → 验证 → 对象存储 → 交付
+    (fallback_attempt，成功则升级为 parse_only_or_unverified)
+```
 
-## 文件变更清单
+## 5. 失败路径
 
-### 新增文件
-- `openspec/changes/video-source-download-governance/` (OpenSpec change)
-- `docs/acceptance/02-视频源可下载支持矩阵.md` (支持矩阵)
-- `apps/api/tests/test_download_chain.py` (下载链路测试)
+1. 平台限制 → `platform_restricted`
+2. 风控/限流 → `platform_rate_limited`
+3. 不支持的平台 → `unsupported_platform`
+4. 格式不可用 → `format_unavailable`
+5. 下载失败 → `download_failed`
 
-### 修改文件
-- `apps/api/tests/test_architecture_boundaries.py` (增加架构边界约束)
-- `apps/api/tests/test_download_adapter.py` (更新测试引用)
-- `apps/api/tests/test_platform_adapters.py` (更新测试引用)
+## 6. 权限边界
 
-### 删除文件
-- 无（保留旧代码但标记为 deprecated，避免破坏现有依赖）
+1. 不绕过 DRM、付费墙、会员、登录态、版权或地区限制。
+2. 不承诺 `yt-dlp` 所有 extractor 都是项目正式支持平台。
+3. 不把"平台可识别"误写为"平台可下载"。
 
-## 验证方式
+## 7. 迁移/回滚影响
 
-1. 自动化测试：pytest 验证所有测试通过
-2. 架构边界测试：断言 `app.services.download_adapter` 不再定义独立 adapter/registry 中心
-3. 支持矩阵文档：人工审查每个平台的状态和证据
-4. Agent Review：确认"支持"等于可下载交付
+1. 本次变更仅涉及文档和 OpenSpec artifacts，无代码改动。
+2. 代码治理任务由 PLAN14 子任务执行，有独立的迁移和回滚计划。
+3. 如果 PRD09 需要回滚，只需删除文档和索引条目。
+
+## 8. 验证方式
+
+1. PRD09 文档存在且内容完整。
+2. 索引文件已更新。
+3. OpenSpec artifacts 已创建。
+4. `bash scripts/validate-repository.sh` 通过。
+5. `git diff --check` 无问题。
