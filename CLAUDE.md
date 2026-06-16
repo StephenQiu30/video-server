@@ -20,10 +20,11 @@
 
 1. SDD 至少说明目标、非目标、数据/接口契约、状态流、失败路径、权限边界、验证方式和迁移/回滚影响。
 2. 涉及长期行为、契约或流程约束的修改时，必须先在 `openspec/changes/` 中形成 proposal/specs/design/tasks，再实现并最终同步 `openspec/specs/`。
-3. TDD 必须绑定验收标准：先证明问题或需求，再写最小实现；`test:` commit 先于 `impl:`/`feat:` commit。
-4. RAG（红绿测试）必须记录红灯命令、失败信号、绿灯命令和通过结果；不能只写“已测试”。
-5. 红灯必须能约束实现：不能是空测试、快照噪音、兼容性兜底测试或永远通过的脚本。
-6. 涉及 SDD/TDD/RAG 的 ticket，Workpad 和 PR 都必须记录 OpenSpec 文档链接、红绿证据和测试命令。
+3. 每个任务都必须绑定一个 OpenSpec change；没有对应 change 的实现、验收和 review 视为流程不完整。
+4. TDD 必须绑定验收标准：先证明问题或需求，再写最小实现；`test:` commit 先于 `impl:`/`feat:` commit。
+5. RAG（红绿测试）必须记录红灯命令、失败信号、绿灯命令和通过结果；不能只写“已测试”。
+6. 红灯必须能约束实现：不能是空测试、快照噪音、兼容性兜底测试或永远通过的脚本。
+7. 涉及 SDD/TDD/RAG 的 ticket，Workpad 和 PR 都必须记录 OpenSpec 文档链接、红绿证据和测试命令。
 
 ## 执行流程
 
@@ -64,7 +65,9 @@
 4. 默认 reviewer 为 `reviewer:claude`；不要使用旧式 `review:*` 标签。
 5. Review 发现问题时，把意见写入 Workpad 的 `Agent Review` 区域，移动到 `Rework`，并保留/恢复实现用的 `agent:*` 标签。
 6. `Agent Review` 必须对照本次任务对应的 OpenSpec proposal/specs/design/tasks 与 `openspec/specs/` 基线校验实现偏差、漏项和越界项。
-7. Review 通过后才移动到 `Human Review`。
+7. `Agent Review` 通过前，必须确认对应 OpenSpec 任务已经校验完成并归档，未归档的 change 不得进入 `Human Review`。
+8. Review 通过后才移动到 `Human Review`。
+9. `Rework` 必须回到同一条 OpenSpec 任务闭环中继续：补齐 specs/design/tasks、重新执行 TDD 验证、再次进入 `Agent Review`，直到通过归档门禁。
 
 ## Commit 规范
 
@@ -73,7 +76,7 @@
 3. `test:` 只放测试、fixture、mock、期望和测试辅助；不得混入生产实现。
 4. `impl:` commit 是让测试通过的最小实现；`feat:` 是用户可见能力，必须有测试或明确例外。
 5. `refactor:` 只在测试通过后清理结构，不改变行为。
-6. 分支名用 ASCII slug，例如 `feature/vds-123-short-topic`，中文只放 PR 标题、提交信息和 Workpad。
+6. 分支名用 ASCII slug，例如 `feature/ste-123-short-topic`，中文只放 PR 标题、提交信息和 Workpad。
 7. 每个提交职责单一；提交前后检查工作区，避免混入无关修改、缓存、日志和一次性产物。
 
 ## PR 与 Human Review 门禁

@@ -37,6 +37,7 @@ required_files=(
   ".claude/skills/land/SKILL.md"
   ".claude/skills/land/land_watch.py"
   ".claude/skills/linear/SKILL.md"
+  ".claude/skills/linear-create-task/SKILL.md"
   ".github/pull_request_template.md"
   ".github/workflows/ci.yml"
   "Dockerfile"

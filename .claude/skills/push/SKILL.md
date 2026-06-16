@@ -26,10 +26,12 @@ description:
 ## Steps
 
 1. Identify current branch and confirm remote state.
-2. Run local validation (`make -C elixir all`) before pushing.
-3. Push branch to `origin` with upstream tracking if needed, using whatever
+2. Confirm branch commits use only allowed types (`test:`, `docs:`, `impl:`,
+   `chore:`, `feat:`, `refactor:`) with test-first ordering for behavior work.
+3. Run project validation for the change scope before pushing.
+4. Push branch to `origin` with upstream tracking if needed, using whatever
    remote URL is already configured.
-4. If push is not clean/rejected:
+5. If push is not clean/rejected:
    - If the failure is a non-fast-forward or sync problem, run the `pull`
      skill to merge `origin/main`, resolve conflicts, and rerun validation.
    - Push again; use `--force-with-lease` only when history was rewritten.
@@ -37,22 +39,24 @@ description:
      the configured remote, stop and surface the exact error instead of
      rewriting remotes or switching protocols as a workaround.
 
-5. Ensure a PR exists for the branch:
+6. Ensure a PR exists for the branch:
    - If no PR exists, create one.
    - If a PR exists and is open, update it.
    - If branch is tied to a closed/merged PR, create a new branch + PR.
    - Write a proper PR title that clearly describes the change outcome
    - For branch updates, explicitly reconsider whether current PR title still
      matches the latest scope; update it if it no longer does.
-6. Write/update PR body explicitly using `.github/pull_request_template.md`:
+7. Write/update PR body using `.github/pull_request_template.md` and
+   `WORKFLOW.md` `PR submission content (Test-First required)`:
    - Fill every section with concrete content for this change.
+   - Include Test-first Evidence, Tests added, Commands run, Result, Agent Usage,
+     and Reviewer Checklist.
    - Replace all placeholder comments (`<!-- ... -->`).
    - Keep bullets/checkboxes where template expects them.
    - If PR already exists, refresh body content so it reflects the total PR
      scope (all intended work on the branch), not just the newest commits,
      including newly added work, removed work, or changed approach.
    - Do not reuse stale description text from earlier iterations.
-7. Validate PR body with `mix pr_body.check` and fix all reported issues.
 8. Reply with the PR URL from `gh pr view`.
 
 ## Commands
