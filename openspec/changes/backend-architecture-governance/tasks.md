@@ -30,9 +30,9 @@
 
 ## 6. 验证
 
-- [ ] 6.1 运行 `pytest apps/api/tests/test_openapi_contract.py -v`
-- [ ] 6.2 运行 `pytest apps/api/tests/test_api_contract.py -v`
-- [ ] 6.3 运行 `pytest apps/api/tests/test_worker_jobs.py -v`
-- [ ] 6.4 运行 `pytest apps/api/tests/test_task_endpoints.py -v`
-- [ ] 6.5 运行 `pytest apps/api/tests/test_architecture_boundaries.py -v`
-- [ ] 6.6 运行 `bash scripts/validate-repository.sh`
+- [x] 6.1 运行 `pytest apps/api/tests/test_openapi_contract.py -v` (5 passed)
+- [x] 6.2 运行 `pytest apps/api/tests/test_api_contract.py -v` (7 passed)
+- [x] 6.3 运行 `pytest apps/api/tests/test_worker_jobs.py -v` (18 passed)
+- [x] 6.4 运行 `pytest apps/api/tests/test_task_endpoints.py -v` (21 passed)
+- [x] 6.5 运行 `pytest apps/api/tests/test_architecture_boundaries.py -v` (10 passed)
+- [x] 6.6 运行 `bash scripts/validate-repository.sh` (passed)
