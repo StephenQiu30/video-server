@@ -102,7 +102,7 @@ def test_parse_response_includes_platform_metadata(monkeypatch, client: TestClie
             ],
         }
 
-    monkeypatch.setattr("app.services.download_adapter._extract_with_ytdlp", fake_extract)
+    monkeypatch.setattr("app.sources.adapters.ytdlp._extract_with_ytdlp", fake_extract)
     user = _make_user(session)
     token = create_access_token(user.id)
 
@@ -131,7 +131,7 @@ def test_parse_rate_limits_authenticated_user(monkeypatch, client: TestClient, s
     limiter = InMemoryRateLimiter(limit=1, window_seconds=60)
     monkeypatch.setattr("app.routers.parse.get_parse_rate_limiter", lambda: limiter)
     monkeypatch.setattr(
-        "app.services.download_adapter._extract_with_ytdlp",
+        "app.sources.adapters.ytdlp._extract_with_ytdlp",
         lambda url: {
             "title": "Rate limit sample",
             "extractor_key": "BiliBili",
