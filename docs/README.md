@@ -23,11 +23,10 @@
 
 当前主线覆盖个人自部署万能视频下载器 MVP，并补充后端结构规范化扩展：
 
-- `docs/prd/01-解析入口与URL安全.md` 到 `docs/prd/09-视频源可下载能力与中心化架构.md`
-- `docs/design/01-个人自部署万能视频下载器技术设计.md`
-- `docs/design/02-FastAPI后端结构重设计与规范化方案.md`
+- `docs/prd/01-解析入口与URL安全.md` 到 `docs/prd/10-中心化单服务运行时.md`
+- `docs/design/01-个人自部署万能视频下载器技术设计.md` 到 `docs/design/03-中心化单服务架构重评审.md`
 - `docs/plans/01-URL协议与地址安全计划.md` 到 `docs/plans/14-视频源可下载能力审计与中心化治理计划.md`
-- `docs/acceptance/01-个人自部署万能视频下载器验收方案.md`
+- `docs/acceptance/01-个人自部署万能视频下载器验收方案.md` 到 `docs/acceptance/03-中心化单服务与MinIO交付验收标准.md`
 - `docs/operations/01-个人自部署万能视频下载器运行与部署.md`
 
 ## 关键原则
