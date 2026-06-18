@@ -7,8 +7,6 @@
     "check:local": "./scripts/check_local_services.sh",
     "dev:install": "PYTHON_BIN=.venv/bin/python ./scripts/dev_install.sh",
     "dev": "./scripts/start.sh local",
-    "dev:worker": "./scripts/start.sh worker",
-    "dev:all": "./scripts/start.sh local:worker",
     "docker:up": "./scripts/start.sh docker:up",
     "docker:down": "./scripts/start.sh docker:down",
     "docker:logs": "docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml logs -f",

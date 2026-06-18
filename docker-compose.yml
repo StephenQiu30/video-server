@@ -1,11 +1,11 @@
 name: stephen-video
 
 services:
-  api:
+  app:
     build:
       context: .
-      target: api
-    container_name: stephen-video-api
+      target: app
+    container_name: stephen-video-app
     env_file: ${APP_ENV_FILE:-.env.production}
     environment:
       - DATABASE_URL=${DATABASE_URL}
@@ -17,19 +17,7 @@ services:
       - "${API_HTTP_PORT:-8000}:8000"
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)\"" ]
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=2)\"" ]
       interval: 10s
       timeout: 3s
       retries: 5
-
-  worker:
-    build:
-      context: .
-      target: worker
-    container_name: stephen-video-worker
-    env_file: ${APP_ENV_FILE:-.env.production}
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
-      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL}
-    restart: unless-stopped

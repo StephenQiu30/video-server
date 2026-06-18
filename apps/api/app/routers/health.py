@@ -27,6 +27,7 @@ def ready() -> JSONResponse:
         "database": _check_database(),
         "redis": _check_redis(),
         "queue": _check_queue(),
+        "queue_consumer": _check_queue_consumer(),
         "storage": _check_storage(),
         "media_tools": _check_media_tools(),
         "download_work_dir": _check_download_work_dir(),
@@ -69,6 +70,15 @@ def _check_queue() -> dict[str, str | int | bool]:
             "queued_jobs": len(queue),
             "workers": worker_count,
         }
+    except Exception as exc:
+        return {"ok": False, "message": str(exc)[:200]}
+
+
+def _check_queue_consumer() -> dict[str, str | bool]:
+    try:
+        import app.runtime as runtime
+        alive = runtime._worker_ready and runtime._worker_thread is not None and runtime._worker_thread.is_alive()
+        return {"ok": alive, "ready": runtime._worker_ready}
     except Exception as exc:
         return {"ok": False, "message": str(exc)[:200]}
 

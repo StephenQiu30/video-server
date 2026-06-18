@@ -1,5 +1,5 @@
 # ==========================================
-# Phase 1: Python Base (API & Worker)
+# Phase 1: Python Base
 # ==========================================
 FROM python:3.12-slim AS python-base
 
@@ -14,24 +14,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # ==========================================
-# Phase 2: Python API
+# Phase 2: App (API + Queue Consumer)
 # ==========================================
-FROM python-base AS api
-COPY apps/api/requirements.txt /app/apps/api/requirements.txt
-RUN pip install --no-cache-dir -r /app/apps/api/requirements.txt
-COPY apps/api /app/apps/api
-COPY packages /app/packages
-EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-
-# ==========================================
-# Phase 3: Python Worker
-# ==========================================
-FROM python-base AS worker
+FROM python-base AS app
 COPY apps/api/requirements.txt /app/apps/api/requirements.txt
 COPY apps/worker/requirements.txt /app/apps/worker/requirements.txt
-RUN pip install --no-cache-dir -r /app/apps/worker/requirements.txt
+RUN pip install --no-cache-dir -r /app/apps/api/requirements.txt \
+    && pip install --no-cache-dir -r /app/apps/worker/requirements.txt
 COPY apps/api /app/apps/api
 COPY apps/worker /app/apps/worker
 COPY packages /app/packages
-CMD ["python", "-m", "worker.main"]
+EXPOSE 8000
+CMD ["python", "-m", "app.runtime"]
