@@ -34,7 +34,7 @@ import json, sys
 config = json.loads(sys.stdin.read())
 services = config.get('services', {})
 
-required = {'api', 'postgres', 'redis', 'minio'}
+required = {'app', 'postgres', 'redis', 'minio'}
 missing = []
 
 for name in sorted(required):
