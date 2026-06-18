@@ -7,16 +7,15 @@ MODE="${1:-local}"
 usage() {
   cat <<'USAGE'
 Usage:
-  ./scripts/start.sh local             Start local API only
-  ./scripts/start.sh local:worker      Start local API + local Worker
-  ./scripts/start.sh worker            Start local Worker only
+  ./scripts/start.sh local             Start local API + queue consumer
   ./scripts/start.sh docker:up         Start deployment Docker stack in background
   ./scripts/start.sh docker            Start deployment Docker stack in foreground
   ./scripts/start.sh docker:down       Stop deployment Docker stack
 
-Local mode is for development and does not start or install PostgreSQL, Redis,
-or MinIO. Docker mode is for deployment and starts API, Worker, PostgreSQL,
-Redis, and MinIO from .env.production.
+Local mode starts the centralized runtime (API + queue consumer) in one process
+and does not start or install PostgreSQL, Redis, or MinIO.
+Docker mode starts a single app service plus PostgreSQL, Redis, and MinIO from
+.env.production.
 USAGE
 }
 
@@ -100,55 +99,8 @@ start_local() {
   local api_port="${API_PORT:-8000}"
   ensure_port_available "${api_host}" "${api_port}"
 
-  PIDS=()
-  cleanup() {
-    for pid in "${PIDS[@]:-}"; do
-      kill "${pid}" 2>/dev/null || true
-    done
-    wait 2>/dev/null || true
-  }
-  trap cleanup INT TERM EXIT
-
-  echo "Starting API: http://${api_host}:${api_port}"
-  ./scripts/dev_api.sh &
-  PIDS+=("$!")
-
-  if [ "${START_WORKER:-false}" = "true" ]; then
-    echo "Starting Worker"
-    ./scripts/dev_worker.sh &
-    PIDS+=("$!")
-  else
-    echo "Skipping Worker. Set START_WORKER=true if you need local queued downloads."
-  fi
-
-  echo "Local stack started. Press Ctrl+C to stop."
-  while true; do
-    for pid in "${PIDS[@]}"; do
-      if ! kill -0 "${pid}" 2>/dev/null; then
-        echo "One local process exited; stopping the rest."
-        exit 1
-      fi
-    done
-    sleep 2
-  done
-}
-
-start_worker() {
-  ensure_local_env
-  cd "${ROOT_DIR}"
-  local py_bin
-  py_bin="$(python_bin)"
-  export PYTHON_BIN="${py_bin}"
-
-  # 启动前依赖预检（可跳过）
-  if [ "${SKIP_PREFLIGHT_CHECK:-0}" != "1" ]; then
-    preflight_check
-  else
-    echo "SKIP_PREFLIGHT_CHECK=1，跳过依赖预检。"
-  fi
-
-  echo "Starting Worker"
-  exec ./scripts/dev_worker.sh
+  echo "Starting centralized runtime: http://${api_host}:${api_port}"
+  exec "${py_bin}" -m app.runtime
 }
 
 ensure_production_env() {
@@ -194,12 +146,6 @@ stop_docker() {
 case "${MODE}" in
   local)
     start_local
-    ;;
-  local:worker)
-    START_WORKER=true start_local
-    ;;
-  worker)
-    start_worker
     ;;
   docker | compose)
     start_docker

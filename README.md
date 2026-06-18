@@ -4,7 +4,7 @@
 
 ## 简介
 
-`video-server` 提供下载器的 API 与 Worker 运行时，面向「自己部署、自己使用」的场景设计。系统通过 FastAPI 接收请求，经 Redis Queue 调度 Worker，使用 `yt-dlp` 执行下载，并将视频与元数据写入 MinIO / S3 兼容存储，任务状态保存在 PostgreSQL。
+`video-server` 提供下载器的中心化运行时，面向「自己部署、自己使用」的场景设计。单进程同时运行 FastAPI API server 和 RQ 队列消费者，通过 Redis Queue 调度任务，使用 `yt-dlp` 执行下载，并将视频与元数据写入 MinIO / S3 兼容存储，任务状态保存在 PostgreSQL。
 
 **当前主线（MVP）**：URL 安全校验 → 平台识别 → 创建下载任务 → Worker 执行 → MinIO 归档 → 预签名交付。
 
@@ -32,20 +32,12 @@
 
 ### 本机调试（推荐）
 
-本机只启动 API / Worker；PostgreSQL、Redis、MinIO 由 `.env` 指向已有服务：
+本机启动中心化运行时（API + 队列消费者）；PostgreSQL、Redis、MinIO 由 `.env` 指向已有服务：
 
 ```bash
 cp .env.example .env
 npm run dev:install
 npm start
-```
-
-启动 Worker：
-
-```bash
-npm run dev:worker
-# 或 API + Worker 一起启动
-npm run dev:all
 ```
 
 检查依赖服务：
@@ -56,7 +48,7 @@ npm run check:local
 
 ### Docker 部署
 
-启动 API、Worker、PostgreSQL、Redis、MinIO：
+启动 app、PostgreSQL、Redis、MinIO（单容器运行完整业务）：
 
 ```bash
 cp .env.production.example .env.production
@@ -81,8 +73,8 @@ npm run docker:down
 ```text
 video-server/
 ├── apps/
-│   ├── api/          # FastAPI 服务（解析、任务、鉴权、管理）
-│   └── worker/       # RQ Worker（下载、归档、失败处理）
+│   ├── api/          # FastAPI 服务 + 中心化运行时（解析、任务、鉴权、管理、队列消费）
+│   └── worker/       # RQ Worker 任务处理逻辑（下载、归档、失败分类）
 ├── packages/shared/  # API 与 Worker 共享领域模型
 ├── docs/             # PRD、设计、计划、验收、运维文档
 ├── openspec/         # SDD 规范层
@@ -107,9 +99,8 @@ video-server/
 
 ```bash
 npm test              # 仓库结构校验 + API 测试
-npm start             # 本机启动 API
-npm run dev:worker    # 本机启动 Worker
-npm run docker:up     # Docker Compose 部署
+npm start             # 本机启动中心化运行时（API + 队列消费者）
+npm run docker:up     # Docker Compose 部署（单 app 容器）
 npm run docker:config # 渲染并检查 Compose 配置
 ```
 

@@ -1,121 +1,90 @@
-# 设计：中心化单服务运行时
+# 中心化单服务运行时设计
 
-## 1. 目标
+## Goals
 
-以 PRD10 为需求源，定义中心化单服务运行时的技术边界，覆盖单入口、单 Compose 服务、队列内部化、MinIO 交付和 readiness 规则。
+- 个人自部署场景下，一个容器即完整业务服务
+- 消除 api/worker 双容器管理复杂度
+- 保持 Redis/RQ 内部队列机制不变
 
-## 2. 非目标
+## Non-Goals
 
-1. 不移除 Redis/RQ。
-2. 不让 API 同步执行长耗时下载。
-3. 不把本地目录作为最终交付方式。
-4. 不引入 Kubernetes 或多服务编排。
-5. 不在本变更中执行代码改动（代码改动由 PLAN15 子任务执行）。
+- 不移除 Redis/RQ，不改为同步执行
+- 不引入 Kubernetes 多副本调度
+- 不改造前端页面
 
-## 3. 架构决策
+## Architecture
 
-### 3.1 单入口 runtime
-
-```text
-                    ┌─────────────────────────────────┐
-                    │           app (单容器)            │
-                    │                                   │
-                    │  ┌─────────┐  ┌───────────────┐  │
-                    │  │ FastAPI  │  │ RQ Worker Loop │  │
-                    │  │  :8000   │  │  (消费队列)     │  │
-                    │  └─────────┘  └───────────────┘  │
-                    │                                   │
-                    │  共享：Python runtime、依赖库、     │
-                    │  数据库连接、Redis 连接、S3 客户端  │
-                    └─────────────────────────────────┘
-                              │           │
-                    ┌─────────┴───┐  ┌────┴────┐
-                    │  PostgreSQL │  │  Redis   │
-                    │   (独立容器) │  │ (独立容器)│
-                    └─────────────┘  └─────────┘
+```
+┌─────────────────────────────────────────────┐
+│  app container (single process)             │
+│                                             │
+│  ┌───────────────┐  ┌──────────────────┐    │
+│  │  uvicorn       │  │  RQ Worker       │    │
+│  │  (main thread) │  │  (daemon thread) │    │
+│  │  FastAPI :8000 │  │  downloads queue │    │
+│  └───────┬───────┘  └────────┬─────────┘    │
+│          │                   │              │
+│          └───────┬───────────┘              │
+│                  │                          │
+│          ┌───────▼───────┐                  │
+│          │  Redis / RQ   │                  │
+│          └───────────────┘                  │
+└─────────────────────────────────────────────┘
+         │              │              │
+    ┌────▼────┐   ┌─────▼─────┐  ┌────▼────┐
+    │Postgres │   │   Redis   │  │  MinIO  │
+    └─────────┘   └───────────┘  └─────────┘
 ```
 
-### 3.2 Compose 收敛
+## Contracts
 
-```yaml
-# 收敛后
-services:
-  app:
-    build:
-      context: .
-      target: app          # 单 target
-    # ... 环境变量、端口、健康检查
+### runtime.py 入口
 
-  postgres:
-    # ... 基础设施，不变
+- `main()` 函数作为唯一入口
+- 使用 `threading.Thread(daemon=True)` 启动 RQ Worker
+- Worker 线程运行 `worker.main` 模块的 `main()` 函数
+- 主线程运行 `uvicorn.run(app, host, port)`
+- SIGTERM/SIGINT 时，先设置停止标志让 Worker 线程退出
 
-  redis:
-    # ... 基础设施，不变
+### Dockerfile
 
-  minio:
-    # ... 基础设施，不变
-```
+- 单一业务 target `app`
+- 安装 api + worker 的 requirements.txt
+- COPY apps/api、apps/worker、packages
+- CMD: `python -m app.runtime`
 
-### 3.3 Dockerfile 收敛
+### docker-compose.yml
 
-```dockerfile
-# 收敛后
-FROM python-base AS app
-COPY apps/api/requirements.txt /app/apps/api/requirements.txt
-COPY apps/worker/requirements.txt /app/apps/worker/requirements.txt
-RUN pip install --no-cache-dir \
-    -r /app/apps/api/requirements.txt \
-    -r /app/apps/worker/requirements.txt
-COPY apps/api /app/apps/api
-COPY apps/worker /app/apps/worker
-COPY packages /app/packages
-EXPOSE 8000
-CMD ["python", "-m", "app.runtime"]  # 中心化 runtime 入口
-```
+- 单业务 service `app`（替代 api + worker）
+- 基础设施 service 不变：postgres、redis、minio
+- healthcheck 使用 `/ready` 端点
 
-## 4. 数据流
+### /ready 端点
 
-```text
-用户分享 URL
-  → /api/parse (FastAPI)
-  → /api/tasks (FastAPI, 创建任务写入 DB)
-  → RQ enqueue (Redis)
-  → RQ Worker (app 内部消费)
-  → yt-dlp 下载 + FFmpeg 合并
-  → 临时文件存放在容器内部 /tmp
-  → 上传到 MinIO/S3
-  → 写入 presigned_url 到 DB
-  → 清理临时文件
-  → 用户通过 presigned_url 下载
-```
+- 新增 `queue_consumer` 检查项
+- 验证 Worker 线程存活状态（通过全局标志或线程引用）
 
-## 5. 失败路径
+## State Flow
 
-1. 数据库不可用 → `/ready` 返回 503，`db: fail`。
-2. Redis 不可用 → `/ready` 返回 503，`redis: fail`，队列消费停止。
-3. MinIO/S3 不可用 → `/ready` 返回 503，`storage: fail`，产物无法交付。
-4. ffmpeg 缺失 → `/ready` 返回 503，`media_tools: fail`，视频无法合并。
-5. 下载目录不可写 → `/ready` 返回 503，`download_work_dir: fail`。
+1. 容器启动 → `python -m app.runtime`
+2. runtime.main() 初始化
+3. 创建 RQ Worker 线程（daemon=True）
+4. 启动 Worker 线程
+5. 启动 uvicorn（主线程阻塞）
+6. Worker 线程消费队列任务
+7. 收到 SIGTERM → uvicorn 退出 → 主线程退出 → daemon 线程自动终止
 
-## 6. 权限边界
+## Failure Paths
 
-1. 本地临时路径 MUST NOT 出现在 API 响应、数据库或分享链接中。
-2. MinIO/S3 预签名 URL 是唯一用户可访问的下载入口。
-3. 临时文件生命周期由 runtime 管理，任务完成后清理。
+| 场景 | 行为 |
+|------|------|
+| Redis 不可用 | Worker 线程启动失败，API 正常运行，/ready 报告 degraded |
+| Postgres 不可用 | API 启动失败（lifespan 检查），进程退出 |
+| Worker 线程崩溃 | daemon 线程退出，API 继续运行，/ready 报告 degraded |
+| yt-dlp 依赖缺失 | Worker 任务失败，API 正常运行 |
 
-## 7. 迁移/回滚影响
+## Rollback Impact
 
-1. 本次变更仅涉及文档和 OpenSpec artifacts，无代码改动。
-2. 代码改动由 PLAN15 子任务执行，有独立的迁移和回滚计划。
-3. Dockerfile 和 Compose 的收敛是破坏性变更，需要一次性切换。
-4. 如果需要回滚，恢复双 target Dockerfile 和双服务 Compose 即可。
-
-## 8. 验证方式
-
-1. PRD10 文档存在且内容完整。
-2. DESIGN03 文档存在且内容完整。
-3. ACC03 文档存在且内容完整。
-4. 索引文件已更新。
-5. OpenSpec artifacts 已创建。
-6. `bash scripts/validate-repository.sh` 通过。
-7. `git diff --check` 无问题。
+- 回滚只需恢复 Dockerfile 和 compose 文件的双 target/service 结构
+- runtime.py 为新增文件，删除即可
+- 数据库和 Redis 无 schema 变更

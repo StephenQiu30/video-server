@@ -1,43 +1,86 @@
-## 1. PRD 文档
+# Tasks: 中心化单服务运行时
 
-- [ ] 1.1 创建 `docs/prd/10-中心化单服务运行时.md`
-- [ ] 1.2 验证 PRD10 明确要求 Compose 中只有一个业务服务 `app`
-- [ ] 1.3 验证 PRD10 明确要求代码层只有一个部署入口
-- [ ] 1.4 验证 PRD10 明确消息队列必须保留但作为内部机制
-- [ ] 1.5 验证 PRD10 明确 MinIO/S3 是唯一最终交付入口
-- [ ] 1.6 验证 PRD10 明确端到端链路要求
+## Task 1: 创建中心化 runtime 入口
 
-## 2. Design 文档
+**Files**: `apps/api/app/runtime.py`
+**Validation**: `python -c "from app.runtime import main; print('import ok')"`
 
-- [ ] 2.1 创建 `docs/design/03-中心化单服务架构重评审.md`
-- [ ] 2.2 验证 DESIGN03 覆盖单入口、单 Compose 服务、队列内部化设计
-- [ ] 2.3 验证 DESIGN03 包含架构图和数据流
-- [ ] 2.4 验证 DESIGN03 包含失败路径和回滚影响
+- [x] 1.1 创建 `apps/api/app/runtime.py`
+- [x] 1.2 在子线程中启动 RQ Worker（daemon=True）
+- [x] 1.3 主线程运行 uvicorn API server
+- [x] 1.4 全局标志 `_worker_ready` 追踪 Worker 线程状态
+- [x] 1.5 支持 `API_HOST`、`API_PORT`、`RQ_WORKER_MODE` 环境变量
 
-## 3. Acceptance 文档
+## Task 2: 更新 Dockerfile 为单 target
 
-- [ ] 3.1 创建 `docs/acceptance/03-中心化单服务与MinIO交付验收标准.md`
-- [ ] 3.2 验证 ACC03 包含端到端链路验收场景
-- [ ] 3.3 验证 ACC03 包含本地路径隔离验收
-- [ ] 3.4 验证 ACC03 包含 readiness 验收
+**Files**: `Dockerfile`
+**Validation**: `docker build --target app -t video-server-app .`
 
-## 4. 索引更新
+- [x] 2.1 移除 `api` 和 `worker` 两个 target
+- [x] 2.2 创建 `app` target，安装 api + worker 依赖
+- [x] 2.3 CMD 改为 `python -m app.runtime`
 
-- [ ] 4.1 更新 `docs/prd/README.md` 添加 PRD10 条目
-- [ ] 4.2 更新 `docs/design/README.md` 添加 DESIGN03 条目
-- [ ] 4.3 更新 `docs/acceptance/README.md` 添加 ACC03 条目
-- [ ] 4.4 更新 `docs/README.md` 引用新文档路径
+## Task 3: 更新 docker-compose.yml 为单 service
 
-## 5. OpenSpec 变更
+**Files**: `docker-compose.yml`
+**Validation**: `docker compose config`
 
-- [ ] 5.1 创建 `openspec/changes/centralized-single-service-runtime/proposal.md`
-- [ ] 5.2 创建 `openspec/changes/centralized-single-service-runtime/specs/centralized-single-service-runtime.md`
-- [ ] 5.3 创建 `openspec/changes/centralized-single-service-runtime/design.md`
-- [ ] 5.4 创建 `openspec/changes/centralized-single-service-runtime/tasks.md`
+- [x] 3.1 移除 `api` 和 `worker` service
+- [x] 3.2 创建 `app` service，target: app
+- [x] 3.3 healthcheck 使用 `/ready` 端点
 
-## 6. 验证
+## Task 4: 更新 docker-compose.prod.yml
 
-- [ ] 6.1 运行 `bash scripts/validate-repository.sh`
-- [ ] 6.2 运行 `git diff --check`
-- [ ] 6.3 人工复核 PRD10、DESIGN03、ACC03 对单服务、MinIO 交付和本地路径隔离的描述一致
-- [ ] 6.4 复核文档中不再把 API/Worker 表达为两个业务服务
+**Files**: `docker-compose.prod.yml`
+**Validation**: `docker compose -f docker-compose.yml -f docker-compose.prod.yml config`
+
+- [x] 4.1 移除 `api` 和 `worker` service
+- [x] 4.2 创建 `app` service，合并环境变量和依赖
+- [x] 4.3 保留 postgres、redis、minio 基础设施 service
+
+## Task 5: 更新 /ready 端点增加 queue_consumer 检查
+
+**Files**: `apps/api/app/routers/health.py`
+**Validation**: `pytest apps/api/tests/test_health.py -v`
+
+- [x] 5.1 新增 `_check_queue_consumer()` 函数
+- [x] 5.2 读取 `app.runtime._worker_ready` 全局标志
+- [x] 5.3 将 `queue_consumer` 加入 `/ready` checks
+
+## Task 6: 更新启动脚本
+
+**Files**: `scripts/start.sh`
+**Validation**: `bash -n scripts/start.sh`
+
+- [x] 6.1 移除 `worker` 和 `local:worker` 模式
+- [x] 6.2 `local` 模式启动中心化 runtime
+- [x] 6.3 Docker 模式只启动 `app` service
+
+## Task 7: 创建计划文档
+
+**Files**: `docs/plans/15-中心化单服务运行时修复计划.md`
+**Validation**: 文件存在且内容完整
+
+- [x] 7.1 记录目标、变更范围、验收标准
+
+## Task 8: 更新 README
+
+**Files**: `README.md`
+**Validation**: `grep -q "app" README.md`
+
+- [x] 8.1 更新快速开始说明
+- [x] 8.2 更新 Docker 部署说明
+- [x] 8.3 更新常用命令
+
+## Task 9: 运行验收测试
+
+**Validation**:
+
+```bash
+bash scripts/validate-repository.sh
+PYTHONPATH=apps/api:apps/worker:packages/shared pytest apps/api/tests/test_architecture_boundaries.py -v
+PYTHONPATH=apps/api:apps/worker:packages/shared pytest apps/api/tests/test_health.py -v
+PYTHONPATH=apps/api:apps/worker:packages/shared pytest apps/api/tests/test_worker_jobs.py -v
+PYTHONPATH=apps/api:apps/worker:packages/shared pytest apps/api/tests/test_task_endpoints.py -v
+PYTHONPATH=apps/api:apps/worker:packages/shared pytest apps/api/tests/test_openapi_contract.py -v
+```

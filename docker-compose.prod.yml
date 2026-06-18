@@ -43,12 +43,12 @@ services:
       timeout: 5s
       retries: 5
 
-  # Application Services
-  api:
+  # Application Service
+  app:
     build:
       context: .
-      target: api
-    container_name: stephen-video-api
+      target: app
+    container_name: stephen-video-app
     env_file: ${APP_ENV_FILE:-.env.production}
     environment:
       - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-video}:${POSTGRES_PASSWORD:-video}@postgres:5432/${POSTGRES_DB:-video_downloader}
@@ -60,23 +60,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    ports:
-      - "8000:8000"
-
-  worker:
-    build:
-      context: .
-      target: worker
-    container_name: stephen-video-worker
-    env_file: ${APP_ENV_FILE:-.env.production}
-    environment:
-      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-video}:${POSTGRES_PASSWORD:-video}@postgres:5432/${POSTGRES_DB:-video_downloader}
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
-      - S3_ENDPOINT_URL=http://minio:9000
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
       minio:
         condition: service_healthy
+    ports:
+      - "8000:8000"

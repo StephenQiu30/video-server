@@ -1,32 +1,34 @@
 ## Why
 
-当前项目把 API 与 Worker 表达为两个代码入口（`apps/api/app/main.py` 和 `apps/worker/worker/main.py`）、两个 Docker target（`api` 和 `worker`）和两个 Compose 业务服务（`api` 和 `worker`），增加个人自部署场景的部署和排障成本。本次变更以 PRD10 为需求源，定义中心化单服务运行时，使 Docker 一键启动一个 `app` 容器即可同时运行 API、队列消费、下载执行和 MinIO/S3 交付。
+当前 Dockerfile、docker-compose、启动脚本和代码入口仍然维持 `api` 与 `worker` 两个独立业务 target/service。对个人自部署场景，这导致需要管理两个容器生命周期、两次镜像构建、两套健康检查，且无法在单进程内保证队列消费者与 API 同生命周期。本 change 将 video-server 收敛为一个中心化单服务运行时。
 
 ## What Changes
 
-- 定义单业务服务 `app`：Compose 中只有一个业务服务，代码层只有一个部署入口（中心化 runtime）。
-- 定义消息队列内部化：Redis/RQ 保留为同一项目内部机制，不作为独立业务服务暴露。
-- 定义 MinIO/S3 唯一最终交付：本地路径禁止泄漏到 API/DB/分享链接。
-- 定义 readiness 规则：`/ready` 必须覆盖 API、队列消费者、下载执行器和对象存储全部组件。
-- 收敛 Dockerfile 和 Compose：从两个 target + 两个服务收敛为一个 target + 一个服务。
+- 创建 `apps/api/app/runtime.py` 作为中心化入口：在子线程中启动 RQ Worker，主进程运行 uvicorn API server
+- Dockerfile 合并为单个业务 target `app`，安装 api + worker 全部依赖
+- docker-compose.yml 和 docker-compose.prod.yml 将 `api` + `worker` 合并为单个 `app` service
+- `/ready` 端点增加 `queue_consumer` 检查，验证嵌入式 Worker 线程是否存活
+- 移除 `scripts/start.sh` 中独立 worker 启动路径
+- 更新 README 和 operations 文档反映单服务架构
 
 ## Capabilities
 
 ### New Capabilities
 
-- `centralized-single-service-runtime`: 定义中心化单服务运行时需求，包括单入口、单 Compose 服务、队列内部化、MinIO 交付和 readiness 规则。
-- `compose-convergence`: 定义 Dockerfile 从多 target 收敛为单 target、Compose 从多业务服务收敛为单 `app` 服务的规则。
-- `local-path-isolation`: 定义本地临时路径禁止泄漏到 API/DB/分享链接的边界。
+- `centralized-runtime`: 单进程同时运行 API server 和 RQ queue consumer
+- `queue-consumer-health`: `/ready` 端点检查嵌入式队列消费者存活状态
 
 ### Modified Capabilities
 
-- `self-host-runtime`: PRD05 中定义的双服务部署模式需要更新为单服务模式。
-- `minio-artifact-archive`: MinIO/S3 作为唯一最终交付入口的约束需要与 PRD10 对齐。
+- `async-download-task-flow`: 入口从独立 worker 容器改为 app 容器内嵌线程
 
 ## Impact
 
-- **新增文档**: `docs/prd/10-中心化单服务运行时.md`、`docs/design/03-中心化单服务架构重评审.md`、`docs/acceptance/03-中心化单服务与MinIO交付验收标准.md`
-- **索引更新**: `docs/prd/README.md`、`docs/design/README.md`、`docs/acceptance/README.md`、`docs/README.md`
-- **新增 OpenSpec change**: `openspec/changes/centralized-single-service-runtime/`
-- **下游影响**: PLAN15 子任务将执行 Dockerfile/Compose 收敛和代码入口合并
-- **依赖**: 无新增外部依赖
+- `apps/api/app/runtime.py` — 新建，中心化入口
+- `Dockerfile` — 合并 api/worker 为单 target `app`
+- `docker-compose.yml` — 合并 api/worker service 为 `app`
+- `docker-compose.prod.yml` — 同上
+- `scripts/start.sh` — 移除独立 worker 模式
+- `apps/api/app/routers/health.py` — 增加 queue_consumer 检查
+- `README.md` — 更新部署说明
+- `docs/plans/15-中心化单服务运行时修复计划.md` — 新建计划文档
