@@ -17,7 +17,7 @@ from tests.integration.persistence._identity import clear_identity_rows
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _POSTGRES_IMAGE = (
-    "postgres:17-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193"
+    "postgres:17.10-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193"
 )
 
 
