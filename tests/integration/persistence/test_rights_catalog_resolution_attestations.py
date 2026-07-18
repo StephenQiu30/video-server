@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 import pytest
 from sqlalchemy import Engine, text
 
+from tests.integration.persistence._identity import insert_user
 from tests.integration.persistence._resolution_create_store import (
     MutableClock,
     make_command,
@@ -52,6 +53,8 @@ def _superseding_catalog(hour: int) -> RightsCatalog:
 def _create_v1_attestation(engine: Engine) -> PostgresRightsCatalogStore:
     catalog_store = PostgresRightsCatalogStore(engine)
     assert catalog_store.import_catalog(_initial_catalog()) == CatalogImportResult(2, 0, 0)
+    with engine.begin() as connection:
+        insert_user(connection)
     result = make_store(engine, clock=MutableClock(_CONFIRMED_AT)).create(make_command())
     assert result.disposition is CreateDisposition.CREATED
     with engine.connect() as connection:

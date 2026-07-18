@@ -122,7 +122,13 @@ def test_request_scope_and_job_are_one_to_one(migrated_database: Engine) -> None
         insert_current_event(connection)
 
     with pytest.raises(IntegrityError) as duplicate_scope, migrated_database.begin() as connection:
-        insert_request(connection, id="res_01J3H5N7Q9S1V3X5Z7A9C1E3G6")
+        second_job_id = "job_01J3H5N7Q9S1V3X5Z7A9C1E3G6"
+        insert_job(connection, id=second_job_id)
+        insert_request(
+            connection,
+            id="res_01J3H5N7Q9S1V3X5Z7A9C1E3G6",
+            job_id=second_job_id,
+        )
     assert_constraint(
         duplicate_scope.value,
         name="uq_source_resolution_requests_idempotency_scope",
