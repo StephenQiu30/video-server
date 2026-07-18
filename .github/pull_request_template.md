@@ -1,50 +1,38 @@
-# PR Summary
+# Summary
 
-## Test-first Evidence
+- Change:
+- Reason:
+- Non-goals:
 
-- Failing test commit:
-- Test fails before implementation:
-  - [ ] Yes
-  - [ ] No
-  - [ ] Not applicable
+## Execution documents
 
-## Tests added
+- PRD / Design / Plan / Acceptance:
+- Linear issue / `## Codex Workpad`:
 
-- [ ] Unit
-- [ ] Integration
-- [ ] API contract
-- [ ] Worker
-- [ ] E2E
+## Test-first evidence
 
-## Commands run
+- Failing test or executable reproduction:
+- Minimal implementation that made it pass:
+
+## Validation
 
 ```bash
-# test command
+# exact commands
 ```
 
-## Result
+- Result:
+- Unverified scope:
 
-- Failed before implementation:
-- Passed after implementation:
+## Risks and rollback
 
-## Agent Usage
+- Risks:
+- Rollback:
 
-Human-authored:
-- Acceptance criteria:
-- Test cases:
-- Edge cases:
+## Reviewer checklist
 
-Agent-generated:
-- Implementation:
-- Refactor:
-- Boilerplate:
-
-## Reviewer Checklist
-
-- [ ] Test commit reviewed first
-- [ ] Tests express requirement
-- [ ] Edge cases covered
-- [ ] Implementation is minimal
-- [ ] No unrelated changes
-- [ ] Agent code reviewed
-- [ ] CI passed
+- [ ] Scope matches approved execution documents
+- [ ] Test-first evidence is reproducible
+- [ ] Validation passed
+- [ ] No historical implementation was restored implicitly
+- [ ] No unrelated files or generated artifacts are included
+- [ ] Codex Agent Review completed

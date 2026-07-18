@@ -1,19 +1,24 @@
+# Operating systems and editors
 .DS_Store
-**/.DS_Store
-.claude/settings.local.json
-.cursor/
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.playwright-mcp/
-.venv/
-node_modules/
-dist/
-apps/web/src/.umi/
-apps/web/src/.umi-production/
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Secrets and local overrides
 .env
-.env.production
-downloads/
-.idea
+.env.*
+!.env.example
+
+# Logs, caches, and generated output
+*.log
+.cache/
+coverage/
+dist/
+build/
 tmp/
-stephen-video-workspace-*.png
+temp/
+.tmp/
+
+# Local orchestration snapshots
+.symphony-*-prompt.*
