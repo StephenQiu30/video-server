@@ -4,6 +4,18 @@
 
 PRD 的核心目的不是堆叠描述，而是让需求更清楚，让代码更可验证，让错误更早暴露，让重构更安全。
 
+## 当前文档
+
+- [001 服务基础与可部署性需求](001-服务基础与可部署性需求.md)：Accepted for Planning。
+- [002 视频解析下载与文件交付需求](002-视频解析下载与文件交付需求.md)：Accepted for Planning。
+- [003 异步任务与数据持久化需求](003-异步任务与数据持久化需求.md)：Accepted for Planning。
+- [004 AI 内容提取需求](004-AI内容提取需求.md)：Accepted for Planning。
+- [005 API 契约与异常治理需求](005-API契约与异常治理需求.md)：Accepted for Planning。
+
+每份 PRD 与同编号 Design、Plan 一一对应。该状态仅允许进入规划与后续执行门禁，不代表功能已实现。
+
+PRD 的 `Sxxx-AC-*` 只能补充产品验收，不得删除、合并或降低上游 Design 的 `Sxxx-DAC-*`；发现冲突必须先回到 Design 修订并重新确认。
+
 ## 适合放入
 
 1. 产品需求说明。

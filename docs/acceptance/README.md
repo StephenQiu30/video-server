@@ -2,6 +2,22 @@
 
 本目录存放验收与验证类文档。
 
+## 强制结论规则
+
+1. 验收项只能来自 accepted Design 的 `Sxxx-DAC-*`、accepted PRD 的 `Sxxx-AC-*` 和 Ready Plan，不得在本目录临时创造、删除或降级标准。
+2. 每项结论只允许 `passed`、`failed`、`blocked`；缺少证据等同未通过。
+3. 任一项 `failed` 时整体为 `rejected`；无失败但存在 `blocked` 时整体为 `blocked`；只有全部强制项 `passed` 才能为 `accepted`。
+4. 不允许 `accepted_with_risk`、条件通过、部分通过、后补证据或人工口头豁免。
+
+## 必备内容
+
+- Design、PRD、Plan 链接及验收编号完整清单。
+- 当前 branch、完整 commit SHA、工作区状态、执行时间、执行环境和依赖版本。
+- 每项的预期、完整命令或操作、退出码、证据位置和结论。
+- 全量测试、Ruff/格式/类型、覆盖率、构建、迁移、真实依赖集成、失败路径、安全和端到端结果。
+- 独立复核人及逐项复核结论。
+- 只记录已确认非门禁风险；任何影响验收标准的风险必须判定 `failed` 或 `blocked`。
+
 ## 适合放入
 
 1. 验收标准。
