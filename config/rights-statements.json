@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "entries": [
+    {
+      "version": "rights-2026-07-18.1",
+      "locale": "zh-CN",
+      "statement": "我确认：我对该链接指向的内容拥有下载和处理权，或已获得明确授权；我不会使用本工具绕过登录、付费、DRM、创作者禁用下载或来源平台的限制；我理解本确认不会覆盖系统的来源政策。本确认不构成对 AI 处理的同意；若后续主动启用 AI，系统必须另行展示数据处理说明并取得我的明确确认。",
+      "statement_sha256": "cf7fa670727050ffa2edb508f5adb6bb48907f2c374e375fb2253447a74da15f",
+      "effective_at": "2026-07-18T00:00:00Z",
+      "expires_at": null,
+      "superseded_at": null
+    },
+    {
+      "version": "rights-2026-07-18.1",
+      "locale": "en-US",
+      "statement": "I confirm that I own or have explicit permission to download and process the content at this link. I will not use this tool to bypass authentication, payment, DRM, creator-disabled downloads, or source-platform restrictions. This confirmation does not override source policy. This confirmation is not consent to AI processing; if I later enable AI, the system must show a separate data-processing notice and obtain my explicit confirmation.",
+      "statement_sha256": "ef8d7ddcbee41a50c5a3fcc32b4d56e050c551265d587e151934be4826d6ba89",
+      "effective_at": "2026-07-18T00:00:00Z",
+      "expires_at": null,
+      "superseded_at": null
+    }
+  ]
+}

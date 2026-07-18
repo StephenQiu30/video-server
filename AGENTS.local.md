@@ -1,22 +1,30 @@
 # AGENTS.local.md
 
-本文件记录 `video-server` 在全面重置后的局部边界，与 `AGENTS.md` 的通用 Codex 规范配合使用。
+本文件记录 `video-server` 的服务端局部边界，与 `AGENTS.md` 的通用 Codex 规范配合使用。
 
-## 空仓边界
+## 产品边界
 
-1. 当前没有已批准的产品范围、技术栈、架构、接口、数据模型或运行命令。
-2. 当前没有产品源码、测试、部署或运行时实现；不要把 Git 历史和已删除文件解释为现行需求。
-3. 不得为了兼容旧实现恢复历史目录、依赖、配置、接口或文档。
+1. 本仓库实现“授权视频下载与 AI 知识化工作台”的服务端能力。
+2. “万能”指统一入口、能力探测和可扩展来源适配，不代表绕过登录、付费墙、下载禁用、地区限制或 DRM。
+3. 只有同时满足用户拥有处理权、来源政策允许和技术措施未被绕过时，才允许进入下载链路。
+4. 当前 Design、PRD、Plan 与 Acceptance 是新版本事实来源；不得从 Git 历史恢复旧产品实现或兼容层。
 
-## 新设计门禁
+## 执行门禁
 
-1. 新工作按 `PRD -> Design -> Plan -> Acceptance -> Implementation` 建立新的事实链。
-2. PRD 和 Design 未批准前，不选择技术栈，不创建产品脚手架，不写产品实现。
-3. Implementation 阶段遵循 `AGENTS.md` 的 SDD、TDD、RAG 与验证要求。
+1. 新工作按 `Design -> PRD -> Plan -> Acceptance -> Implementation` 建立事实链。
+2. 只有状态为 `ready` 的 Plan 可以进入实现；每次只推进一个依赖就绪的 Plan。
+3. Acceptance 必须在实现前冻结方法和证据要求，实现后逐项记录 `passed`、`failed` 或 `blocked`。
+4. Implementation 遵循 `AGENTS.md` 的 SDD、TDD、RAG 与验证要求，不得以占位实现冒充闭环。
+
+## 当前实施范围
+
+1. 当前唯一可推进候选是 `docs/plans/001-URL异步解析与清晰度目录计划.md`。
+2. Plan 001 仅覆盖 URL 策略校验、异步元数据解析、真实清晰度目录、任务查询与事件恢复。
+3. 实际下载、媒体合流、AI 转录总结、思维导图和 PDF 分属后续 Plan，在其门禁通过前不得实现。
 
 ## Codex 资产
 
 1. Subagent 位于 `.codex/agents/`。
 2. Skill 位于 `.codex/skills/`。
 3. 编排规则位于 `WORKFLOW.md`。
-4. 当前空仓没有产品验证命令；新的验证方式必须由新设计明确引入。
+4. 验证命令必须随 Plan 001 实现进入仓库，并回填到对应 Acceptance。

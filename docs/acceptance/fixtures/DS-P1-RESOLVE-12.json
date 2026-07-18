@@ -1,0 +1,97 @@
+{
+  "schema_version": "1.0",
+  "dataset_id": "DS-P1-RESOLVE-12",
+  "origin_variable": "VIDEO_FIXTURE_ORIGIN",
+  "origin_requirements": {
+    "scheme": "https",
+    "path_mode": "exact",
+    "tls_verification": true,
+    "redirects": false
+  },
+  "cases": [
+    {
+      "id": "P1-PROGRESSIVE-360-MP4",
+      "transport": "progressive",
+      "path": "/p1/progressive/360.mp4",
+      "expected_source": {"platform": "fixture", "title": "Progressive 360", "duration_seconds": 60},
+      "expected_formats": [{"label": "360p · MP4", "width": 640, "height": 360, "fps": 30, "dynamic_range": "SDR", "container": "mp4", "video_codec": "h264", "audio_codec": "aac", "has_audio": true, "has_video": true, "requires_merge": false, "estimated_bytes": 6000000, "size_is_estimate": false, "recommended": true}]
+    },
+    {
+      "id": "P1-PROGRESSIVE-1080-MP4",
+      "transport": "progressive",
+      "path": "/p1/progressive/1080.mp4",
+      "expected_source": {"platform": "fixture", "title": "Progressive 1080", "duration_seconds": 60},
+      "expected_formats": [{"label": "1080p · MP4", "width": 1920, "height": 1080, "fps": 30, "dynamic_range": "SDR", "container": "mp4", "video_codec": "h264", "audio_codec": "aac", "has_audio": true, "has_video": true, "requires_merge": false, "estimated_bytes": 30000000, "size_is_estimate": false, "recommended": true}]
+    },
+    {
+      "id": "P1-PROGRESSIVE-2160-WEBM",
+      "transport": "progressive",
+      "path": "/p1/progressive/2160.webm",
+      "expected_source": {"platform": "fixture", "title": "Progressive 2160", "duration_seconds": 60},
+      "expected_formats": [{"label": "2160p · 60fps · WEBM", "width": 3840, "height": 2160, "fps": 60, "dynamic_range": "SDR", "container": "webm", "video_codec": "vp9", "audio_codec": "opus", "has_audio": true, "has_video": true, "requires_merge": false, "estimated_bytes": 90000000, "size_is_estimate": true, "recommended": true}]
+    },
+    {
+      "id": "P1-SEPARATE-1080-MP4",
+      "transport": "separate",
+      "path": "/p1/separate/1080/index.html",
+      "expected_source": {"platform": "fixture", "title": "Separate 1080", "duration_seconds": 120},
+      "expected_formats": [{"label": "1080p · MP4 · 需合并", "width": 1920, "height": 1080, "fps": 30, "dynamic_range": "SDR", "container": "mp4", "video_codec": "h264", "audio_codec": "aac", "has_audio": true, "has_video": true, "requires_merge": true, "estimated_bytes": 70000000, "size_is_estimate": false, "recommended": true}]
+    },
+    {
+      "id": "P1-SEPARATE-1440-WEBM",
+      "transport": "separate",
+      "path": "/p1/separate/1440/index.html",
+      "expected_source": {"platform": "fixture", "title": "Separate 1440", "duration_seconds": 120},
+      "expected_formats": [{"label": "1440p · 60fps · WEBM · 需合并", "width": 2560, "height": 1440, "fps": 60, "dynamic_range": "SDR", "container": "webm", "video_codec": "vp9", "audio_codec": "opus", "has_audio": true, "has_video": true, "requires_merge": true, "estimated_bytes": 110000000, "size_is_estimate": true, "recommended": true}]
+    },
+    {
+      "id": "P1-SEPARATE-2160-HEVC",
+      "transport": "separate",
+      "path": "/p1/separate/2160/index.html",
+      "expected_source": {"platform": "fixture", "title": "Separate 2160 HEVC", "duration_seconds": 120},
+      "expected_formats": [{"label": "2160p · 60fps · HDR · MP4 · 需合并", "width": 3840, "height": 2160, "fps": 60, "dynamic_range": "HDR", "container": "mp4", "video_codec": "hevc", "audio_codec": "aac", "has_audio": true, "has_video": true, "requires_merge": true, "estimated_bytes": 160000000, "size_is_estimate": true, "recommended": true}]
+    },
+    {
+      "id": "P1-HLS-480-SDR",
+      "transport": "hls",
+      "path": "/p1/hls/480/master.m3u8",
+      "expected_source": {"platform": "fixture", "title": "HLS 480", "duration_seconds": 180},
+      "expected_formats": [{"label": "480p · MP4", "width": 854, "height": 480, "fps": 30, "dynamic_range": "SDR", "container": "mp4", "video_codec": "h264", "audio_codec": "aac", "has_audio": true, "has_video": true, "requires_merge": false, "estimated_bytes": 36000000, "size_is_estimate": true, "recommended": true}]
+    },
+    {
+      "id": "P1-HLS-1080-SDR",
+      "transport": "hls",
+      "path": "/p1/hls/1080/master.m3u8",
+      "expected_source": {"platform": "fixture", "title": "HLS 1080", "duration_seconds": 180},
+      "expected_formats": [{"label": "1080p · MP4", "width": 1920, "height": 1080, "fps": 30, "dynamic_range": "SDR", "container": "mp4", "video_codec": "h264", "audio_codec": "aac", "has_audio": true, "has_video": true, "requires_merge": false, "estimated_bytes": 108000000, "size_is_estimate": true, "recommended": true}]
+    },
+    {
+      "id": "P1-HLS-1080-HDR",
+      "transport": "hls",
+      "path": "/p1/hls/1080-hdr/master.m3u8",
+      "expected_source": {"platform": "fixture", "title": "HLS 1080 HDR", "duration_seconds": 180},
+      "expected_formats": [{"label": "1080p · 60fps · HDR · MP4", "width": 1920, "height": 1080, "fps": 60, "dynamic_range": "HDR", "container": "mp4", "video_codec": "hevc", "audio_codec": "aac", "has_audio": true, "has_video": true, "requires_merge": false, "estimated_bytes": 144000000, "size_is_estimate": true, "recommended": true}]
+    },
+    {
+      "id": "P1-DASH-720-MP4",
+      "transport": "dash",
+      "path": "/p1/dash/720/manifest.mpd",
+      "expected_source": {"platform": "fixture", "title": "DASH 720", "duration_seconds": 240},
+      "expected_formats": [{"label": "720p · MP4 · 需合并", "width": 1280, "height": 720, "fps": 30, "dynamic_range": "SDR", "container": "mp4", "video_codec": "h264", "audio_codec": "aac", "has_audio": true, "has_video": true, "requires_merge": true, "estimated_bytes": 96000000, "size_is_estimate": true, "recommended": true}]
+    },
+    {
+      "id": "P1-DASH-1080-WEBM",
+      "transport": "dash",
+      "path": "/p1/dash/1080/manifest.mpd",
+      "expected_source": {"platform": "fixture", "title": "DASH 1080", "duration_seconds": 240},
+      "expected_formats": [{"label": "1080p · 60fps · WEBM · 需合并", "width": 1920, "height": 1080, "fps": 60, "dynamic_range": "SDR", "container": "webm", "video_codec": "vp9", "audio_codec": "opus", "has_audio": true, "has_video": true, "requires_merge": true, "estimated_bytes": 140000000, "size_is_estimate": true, "recommended": true}]
+    },
+    {
+      "id": "P1-DASH-2160-AV1",
+      "transport": "dash",
+      "path": "/p1/dash/2160/manifest.mpd",
+      "expected_source": {"platform": "fixture", "title": "DASH 2160 AV1", "duration_seconds": 240},
+      "expected_formats": [{"label": "2160p · 60fps · HDR · WEBM · 需合并", "width": 3840, "height": 2160, "fps": 60, "dynamic_range": "HDR", "container": "webm", "video_codec": "av1", "audio_codec": "opus", "has_audio": true, "has_video": true, "requires_merge": true, "estimated_bytes": 240000000, "size_is_estimate": true, "recommended": true}]
+    }
+  ]
+}

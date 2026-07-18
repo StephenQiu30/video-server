@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.0",
+  "dataset_id": "DS-P1-FORMAT-8",
+  "locale_default": "zh-CN",
+  "missing_input_fields_are_null": true,
+  "wire_ignored_fields": ["format_key"],
+  "oracle_only_fields": ["components", "fingerprint_sha256"],
+  "cases": [
+    {
+      "id": "FORMAT-MULTI-SORT",
+      "locale": "zh-CN",
+      "input_formats": [
+        {"format_id": "p360", "ext": "mp4", "vcodec": "avc1.4d401e", "acodec": "mp4a.40.2", "width": 640, "height": 360, "fps": 30, "dynamic_range": "SDR", "filesize": 6000000, "tbr": 800},
+        {"format_id": "p1080", "ext": "mp4", "vcodec": "h264", "acodec": "aac", "width": 1920, "height": 1080, "fps": 30, "dynamic_range": "SDR", "filesize": 30000000, "tbr": 4000},
+        {"format_id": "p2160", "ext": "webm", "vcodec": "vp09.00.51.08", "acodec": "opus", "width": 3840, "height": 2160, "fps": 60, "dynamic_range": "SDR", "filesize_approx": 90000000, "tbr": 12000}
+      ],
+      "expected_formats": [
+        {"components": ["p1080"], "label": "1080p · MP4", "width": 1920, "height": 1080, "fps": 30, "dynamic_range": "SDR", "container": "mp4", "video_codec": "h264", "audio_codec": "aac", "has_audio": true, "has_video": true, "requires_merge": false, "estimated_bytes": 30000000, "size_is_estimate": false, "recommended": true},
+        {"components": ["p2160"], "label": "2160p · 60fps · WEBM", "width": 3840, "height": 2160, "fps": 60, "dynamic_range": "SDR", "container": "webm", "video_codec": "vp9", "audio_codec": "opus", "has_audio": true, "has_video": true, "requires_merge": false, "estimated_bytes": 90000000, "size_is_estimate": true, "recommended": false},
+        {"components": ["p360"], "label": "360p · MP4", "width": 640, "height": 360, "fps": 30, "dynamic_range": "SDR", "container": "mp4", "video_codec": "h264", "audio_codec": "aac", "has_audio": true, "has_video": true, "requires_merge": false, "estimated_bytes": 6000000, "size_is_estimate": false, "recommended": false}
+      ]
+    },
+    {
+      "id": "FORMAT-DEDUP",
+      "locale": "zh-CN",
+      "input_formats": [
+        {"format_id": "dup-a", "ext": "mp4", "vcodec": "h264", "acodec": "aac", "width": 1920, "height": 1080, "fps": 30, "dynamic_range": "SDR", "filesize": 30000000, "tbr": 4000},
+        {"format_id": "dup-b", "ext": "mp4", "vcodec": "avc1", "acodec": "mp4a", "width": 1920, "height": 1080, "fps": 30, "dynamic_range": "SDR", "filesize_approx": 25000000, "tbr": 9000},
+        {"format_id": "dup-c", "ext": "mp4", "vcodec": "avc1", "acodec": "aac", "width": 1920, "height": 1080, "fps": 30, "dynamic_range": "SDR", "filesize": 31000000, "tbr": 5000}
+      ],
+      "expected_formats": [
+        {"components": ["dup-c"], "label": "1080p · MP4", "width": 1920, "height": 1080, "fps": 30, "dynamic_range": "SDR", "container": "mp4", "video_codec": "h264", "audio_codec": "aac", "has_audio": true, "has_video": true, "requires_merge": false, "estimated_bytes": 31000000, "size_is_estimate": false, "recommended": true}
+      ]
+    },
+    {
+      "id": "FORMAT-LOCALE-ZH",
+      "locale": "zh-CN",
+      "input_formats": [
+        {"format_id": "v1080", "ext": "mp4", "vcodec": "avc1", "acodec": "none", "width": 1920, "height": 1080, "fps": 30, "dynamic_range": "SDR", "filesize": 50000000, "tbr": 4000},
+        {"format_id": "a-zh", "ext": "m4a", "vcodec": "none", "acodec": "mp4a", "language": "zh-CN", "filesize": 4000000, "abr": 64, "channels": 2},
+        {"format_id": "a-none", "ext": "m4a", "vcodec": "none", "acodec": "aac", "filesize": 6000000, "abr": 128, "channels": 2},
+        {"format_id": "a-en", "ext": "m4a", "vcodec": "none", "acodec": "aac", "language": "en-US", "filesize": 8000000, "abr": 192, "channels": 2}
+      ],
+      "expected_formats": [
+        {"components": ["v1080", "a-zh"], "label": "1080p · MP4 · 需合并", "width": 1920, "height": 1080, "fps": 30, "dynamic_range": "SDR", "container": "mp4", "video_codec": "h264", "audio_codec": "aac", "has_audio": true, "has_video": true, "requires_merge": true, "estimated_bytes": 54000000, "size_is_estimate": false, "recommended": true}
+      ]
+    },
+    {
+      "id": "FORMAT-LOCALE-FALLBACK",
+      "locale": "fr-FR",
+      "input_formats": [
+        {"format_id": "v720", "ext": "webm", "vcodec": "vp9", "acodec": "none", "width": 1280, "height": 720, "fps": 30, "dynamic_range": "SDR", "filesize": 30000000},
+        {"format_id": "a-none", "ext": "weba", "vcodec": "none", "acodec": "opus", "filesize": 5000000, "abr": 96, "channels": 2},
+        {"format_id": "a-en", "ext": "weba", "vcodec": "none", "acodec": "opus", "language": "en", "filesize": 7000000, "abr": 160, "channels": 2}
+      ],
+      "expected_formats": [
+        {"components": ["v720", "a-none"], "label": "720p · WEBM · 需合并", "width": 1280, "height": 720, "fps": 30, "dynamic_range": "SDR", "container": "webm", "video_codec": "vp9", "audio_codec": "opus", "has_audio": true, "has_video": true, "requires_merge": true, "estimated_bytes": 35000000, "size_is_estimate": false, "recommended": true}
+      ]
+    },
+    {
+      "id": "FORMAT-NULL",
+      "locale": "zh-CN",
+      "input_formats": [
+        {"format_id": "p-null", "ext": "mp4", "vcodec": "avc1", "acodec": "mp4a"}
+      ],
+      "expected_formats": [
+        {"components": ["p-null"], "label": "原始 · MP4", "width": null, "height": null, "fps": null, "dynamic_range": null, "container": "mp4", "video_codec": "h264", "audio_codec": "aac", "has_audio": true, "has_video": true, "requires_merge": false, "estimated_bytes": null, "size_is_estimate": false, "recommended": true}
+      ]
+    },
+    {
+      "id": "FORMAT-INCOMPATIBLE",
+      "locale": "zh-CN",
+      "input_formats": [
+        {"format_id": "v-mp4", "ext": "mp4", "vcodec": "h264", "acodec": "none", "width": 1920, "height": 1080, "fps": 30},
+        {"format_id": "a-webm", "ext": "weba", "vcodec": "none", "acodec": "opus", "language": "zh-CN"}
+      ],
+      "expected_formats": []
+    },
+    {
+      "id": "FORMAT-CODEC-LABEL",
+      "locale": "zh-CN",
+      "input_formats": [
+        {"format_id": "p-hevc", "ext": "mp4", "vcodec": "hev1.2.4.L153.B0", "acodec": "mp4a.40.2", "width": 3840, "height": 2160, "fps": 60, "dynamic_range": "HDR", "filesize_approx": 160000000}
+      ],
+      "expected_formats": [
+        {"components": ["p-hevc"], "label": "2160p · 60fps · HDR · MP4", "width": 3840, "height": 2160, "fps": 60, "dynamic_range": "HDR", "container": "mp4", "video_codec": "hevc", "audio_codec": "aac", "has_audio": true, "has_video": true, "requires_merge": false, "estimated_bytes": 160000000, "size_is_estimate": true, "recommended": true}
+      ]
+    },
+    {
+      "id": "FORMAT-FINGERPRINT-TIE",
+      "locale": "zh-CN",
+      "input_formats": [
+        {"format_id": "tie-sdr", "ext": "mp4", "vcodec": "h264", "acodec": "aac", "width": 1920, "height": 1080, "fps": 30, "dynamic_range": "SDR", "filesize": 30000000},
+        {"format_id": "tie-hlg", "ext": "mp4", "vcodec": "h264", "acodec": "aac", "width": 1920, "height": 1080, "fps": 30, "dynamic_range": "HLG", "filesize": 30000000}
+      ],
+      "expected_formats": [
+        {"components": ["tie-sdr"], "fingerprint_sha256": "80e70fad84e9e28a51800591feed58380f9fe5401d5459e63aae5f33602397ee", "label": "1080p · MP4", "width": 1920, "height": 1080, "fps": 30, "dynamic_range": "SDR", "container": "mp4", "video_codec": "h264", "audio_codec": "aac", "has_audio": true, "has_video": true, "requires_merge": false, "estimated_bytes": 30000000, "size_is_estimate": false, "recommended": true},
+        {"components": ["tie-hlg"], "fingerprint_sha256": "d3bc49f6c076f2e4a89985c73f401679119d4c83019b2b5beebaebf08ccc6473", "label": "1080p · HLG · MP4", "width": 1920, "height": 1080, "fps": 30, "dynamic_range": "HLG", "container": "mp4", "video_codec": "h264", "audio_codec": "aac", "has_audio": true, "has_video": true, "requires_merge": false, "estimated_bytes": 30000000, "size_is_estimate": false, "recommended": false}
+      ]
+    }
+  ]
+}

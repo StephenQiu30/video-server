@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stephen-codex.local/schemas/source-policy-dossier.schema.json",
+  "title": "SourcePolicyDossier",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "payload", "signature"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_id",
+        "name",
+        "revision",
+        "signer_kind",
+        "decision",
+        "permitted_operations",
+        "adapter",
+        "scope",
+        "egress_hosts",
+        "user_actions",
+        "detectors",
+        "evidence",
+        "issued_at",
+        "expires_at"
+      ],
+      "properties": {
+        "policy_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{2,63}$"
+        },
+        "name": {"type": "string", "minLength": 1, "maxLength": 80},
+        "revision": {"type": "integer", "minimum": 1},
+        "signer_kind": {"enum": ["project", "operator"]},
+        "decision": {"enum": ["allow", "block"]},
+        "permitted_operations": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"enum": ["probe", "download"]}
+        },
+        "adapter": {"enum": ["direct_http", "yt_dlp"]},
+        "scope": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["origin", "path_match", "path"],
+            "properties": {
+              "origin": {
+                "type": "string",
+                "format": "uri",
+                "pattern": "^https://(?=.{1,253}$)(?!-)[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+$"
+              },
+              "path_match": {"enum": ["exact", "prefix"]},
+              "path": {"type": "string", "pattern": "^/"}
+            }
+          }
+        },
+        "egress_hosts": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^(?=.{1,253}$)(?!-)[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+$"
+          }
+        },
+        "user_actions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"enum": ["view_supported_sources", "open_official"]}
+        },
+        "official_url": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "format": "uri", "pattern": "^https://"}
+          ]
+        },
+        "detectors": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["reject_auth", "reject_disabled_download", "reject_drm"],
+          "properties": {
+            "reject_auth": {"const": true},
+            "reject_disabled_download": {"const": true},
+            "reject_drm": {"const": true}
+          }
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "url", "sha256", "reviewed_at"],
+          "properties": {
+            "kind": {"enum": ["public_documentation", "origin_control"]},
+            "url": {"type": "string", "format": "uri", "pattern": "^https://"},
+            "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+            "reviewed_at": {"type": "string", "format": "date-time"},
+            "origin_control_proof_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "issued_at": {"type": "string", "format": "date-time"},
+        "expires_at": {"type": "string", "format": "date-time"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"decision": {"const": "allow"}}},
+          "then": {
+            "properties": {
+              "permitted_operations": {
+                "minItems": 1,
+                "contains": {"const": "probe"}
+              }
+            }
+          },
+          "else": {
+            "properties": {"permitted_operations": {"maxItems": 0}}
+          }
+        },
+        {
+          "if": {"properties": {"signer_kind": {"const": "operator"}}},
+          "then": {
+            "properties": {
+              "evidence": {
+                "required": ["origin_control_proof_sha256"],
+                "properties": {"kind": {"const": "origin_control"}}
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "user_actions": {"contains": {"const": "open_official"}}
+            }
+          },
+          "then": {
+            "required": ["official_url"],
+            "properties": {
+              "official_url": {
+                "type": "string",
+                "format": "uri",
+                "pattern": "^https://"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key_id", "algorithm", "value"],
+      "properties": {
+        "key_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{2,63}$"
+        },
+        "algorithm": {"const": "Ed25519"},
+        "value": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9+/]{86}==$"
+        }
+      }
+    }
+  }
+}
