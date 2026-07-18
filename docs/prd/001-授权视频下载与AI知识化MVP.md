@@ -1,7 +1,7 @@
 ---
 layer: PRD
 status: accepted
-version: "1.0.1"
+version: "2.0.0"
 canonical_path: docs/prd/001-授权视频下载与AI知识化MVP.md
 purpose: "冻结 MVP 用户价值、需求编号、范围和成功指标"
 inputs:
@@ -9,12 +9,15 @@ inputs:
   - "docs/design/002-服务端技术与数据架构设计.md"
   - "docs/design/003-API与任务状态契约设计.md"
   - "docs/design/004-Plan001来源解析安全与持久化设计.md"
+  - "docs/design/005-邮箱身份与持久化基础设施设计.md"
 outputs:
+  - "docs/plans/000-邮箱身份与持久化基础设施计划.md"
   - "docs/plans/001-URL异步解析与清晰度目录计划.md"
   - "docs/plans/002-清晰度下载与媒体交付计划.md"
   - "docs/plans/003-AI转录总结与思维导图计划.md"
   - "docs/plans/004-PDF导出与生命周期计划.md"
   - "docs/acceptance/000-MVP验收总览.md"
+  - "docs/acceptance/002-邮箱身份与持久化基础设施验收.md"
 ---
 
 # 授权视频下载与 AI 知识化 MVP
@@ -40,7 +43,14 @@ outputs:
 | --- | --- | --- |
 | `REQ-POL-001` | 用户必须确认版本化权利声明；保存文案 hash/locale/time，平台政策仍可独立阻断 | `AC-POL-001` |
 | `REQ-POL-002` | 来源由签名 dossier 准入，可导入/撤销/过期并同步 egress ACL；至少一个 production canary | `AC-POL-002` |
-| `REQ-ID-001` | Plan 001 默认本地单用户、安装令牌鉴权、资源按 owner 隔离；无鉴权时禁止公网绑定 | `AC-ID-001` |
+| `REQ-AUTH-001` | 用户可用邮箱注册、验证、登录、注销与找回密码；公开响应不得泄露邮箱是否存在 | `AC-AUTH-001` |
+| `REQ-AUTH-002` | 密码使用 Argon2；会话在 PostgreSQL 可撤销并使用安全 HttpOnly Cookie；预认证/已认证 mutation 使用可重新引导的签名 double-submit CSRF 与同源门禁；所有业务资源按 `users.id UUID` 隔离 | `AC-AUTH-002` |
+| `REQ-DATA-001` | PostgreSQL 是用户、会话、任务、事件、outbox、资产元数据和 AI 文档的唯一业务事实 | `AC-DATA-001` |
+| `REQ-REDIS-001` | Redis 只承载 Celery broker、SSE 唤醒、缓存和限流，可在数据全失后由 PostgreSQL/outbox 重建 | `AC-REDIS-001` |
+| `REQ-MAIL-001` | 注册 commit→callback 间隙由未验证用户扫描恢复；重发验证/找回密码先持久化 PostgreSQL delivery intent，再由幂等 callback/reconciler 建 mail outbox，经 aiosmtplib/SMTP 异步有限重试；不得虚构跨 adapter 原子事务或破坏 generic response 防枚举 | `AC-MAIL-001` |
+| `REQ-OBJ-001` | MinIO 私有保存二进制对象；对象只有在 HEAD 与 SHA-256 校验后 READY，权属/状态/version/保留期在 PostgreSQL | `AC-OBJ-001` |
+| `REQ-DR-001` | PostgreSQL WAL/PITR、Redis 重建、MinIO 独立备份与跨层对账必须有可复现恢复演练和明确 RPO/RTO | `AC-DR-001` |
+| `REQ-CONTRACT-001` | 身份、会话、资产与错误 OpenAPI 可重复生成，并作为 video-web 实现的唯一 HTTP 事实来源 | `AC-CONTRACT-001` |
 | `REQ-SRC-001` | 接受公开 HTTPS 链接并异步解析来源能力；不接受明文 HTTP 或协议降级 | `AC-SRC-001` |
 | `REQ-SRC-002` | 展示来源真实存在的规格、音频状态和预计大小 | `AC-SRC-002` |
 | `REQ-SRC-003` | 只暴露不透明格式键，不泄露真实媒体 URL | `AC-SRC-003` |
@@ -62,7 +72,7 @@ outputs:
 - 批量任务与播放列表。
 - 官方 OAuth 来源与用户自有平台资产。
 - 字幕翻译、多语言 PDF 和知识模板。
-- 团队空间、分享、审阅和版本历史。
+- 团队空间、公开分享、审阅和协同版本历史。
 - 完全本地 AI 与私有部署模式。
 - 关键帧与多模态视觉总结。
 
@@ -89,7 +99,7 @@ P1 不能在 P0 Plan 中以“顺手实现”方式进入范围。
 
 ## 7. 约束与限额
 
-初始默认值由配置提供并可在后续 Plan 调整：单视频时长不超过 120 分钟；单任务下载不超过 5 GiB；每安装并发重任务不超过 2；原始媒体 24 小时、未保存结果 7 天、签名下载地址 15 分钟过期。Plan 001 只支持本地单用户部署；公开 SaaS、账号和团队隔离属于后续生产化范围。
+初始默认值由配置提供并可在后续 Plan 调整：单视频时长不超过 120 分钟；单任务下载不超过 5 GiB；每用户并发重任务不超过 2；原始媒体 24 小时、未保存结果 7 天、显式保存输出至用户删除、备份删除不超过 30 天、签名下载地址 15 分钟过期；生产默认 RPO≤5 分钟、RTO≤2 小时。MVP 支持邮箱多用户私有空间，不包含团队、公开分享或跨用户资源复用。
 
 ## 8. 数据与隐私
 
@@ -97,9 +107,11 @@ P1 不能在 P0 Plan 中以“顺手实现”方式进入范围。
 
 下载同意和 AI 第三方处理同意必须分开。未同意 AI 时仍可只下载；无法下载时可只上传本地文件分析。Plan 001 的权利 statement catalog append-only；来源明细 7 天清除，policy/attestation 最小审计不包含 URL 或标题并在 30 天清除。
 
+邮箱规范化值、密码散列、一次性 token 摘要、delivery intent、数据库会话和身份审计只保存在 PostgreSQL；待投递 token material 只能按 Design 005 冻结的 cryptography AES-256-GCM envelope 在 mail outbox 中加密、限时存在。密码重置必须在一个 PostgreSQL command transaction 中同时更新 Argon2id hash、撤销全部数据库会话、消费 current intent 并写审计。Redis 不保存权威 session 或 mail intent。MinIO 只保存私有二进制，公开 API 不返回永久 object key。SMTP 是投递通道，邮件投递状态与 retry outbox 保存在 PostgreSQL。
+
 ## 9. 依赖顺序
 
-`Plan 001 → Plan 002 → Plan 003 → Plan 004 → Plan 005`。每个 Plan 的 Acceptance 全部 `passed` 后才可解锁下一个。
+`Plan 000 → Plan 001 → Plan 002 → Plan 003 → Plan 004 → Plan 005`。每个 Plan 的 Acceptance 全部 `passed` 后才可解锁下一个；Plan 001 已完成的局部 PostgreSQL Green 在 Plan 000 完成前不能升级为全局通过。
 
 ## 10. 风险
 
@@ -108,11 +120,14 @@ P1 不能在 P0 Plan 中以“顺手实现”方式进入范围。
 - AI 供应商可能限流、失败或产生不忠实总结。
 - 中文字体、SVG 和分页可能导致 PDF 兼容问题。
 - 大文件、长音频和并发会放大存储、网络和模型成本。
+- SMTP 延迟或失败会阻断验证/找回，因此必须使用 PostgreSQL mail outbox、有限重试与 generic response。
+- MinIO Community 上游归档会放大安全补丁与运维风险；生产必须明确维护发行版/责任并通过备份恢复验收。
 
 ## 11. 变更记录
 
 | 版本 | 日期 | 变更说明 |
 | --- | --- | --- |
+| 2.0.0 | 2026-07-18 | 独立复审通过；以邮箱 UUID 用户、数据库 Cookie 会话、PG/Redis/MinIO/SMTP 和灾备 P0 替换 installation 身份基线 |
 | 1.0.1 | 2026-07-18 | 将 Plan 001 输入冻结为公开 HTTPS，拒绝明文 HTTP 与协议降级 |
 | 1.0.0 | 2026-07-18 | 独立复审通过，冻结 MVP 需求与指标基线 |
 | 0.3.0 | 2026-07-18 | 增加签名来源生命周期、版本化权利声明和清理审计 |

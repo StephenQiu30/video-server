@@ -18,9 +18,10 @@
 
 ## 当前实施范围
 
-1. 当前唯一可推进候选是 `docs/plans/001-URL异步解析与清晰度目录计划.md`。
-2. Plan 001 仅覆盖 URL 策略校验、异步元数据解析、真实清晰度目录、任务查询与事件恢复。
-3. 实际下载、媒体合流、AI 转录总结、思维导图和 PDF 分属后续 Plan，在其门禁通过前不得实现。
+1. 当前唯一可推进候选是 `docs/plans/000-邮箱身份与持久化基础设施计划.md`；它必须先冻结并实现邮箱身份、PostgreSQL、可重建 Redis、MinIO 对象层和 SMTP 基础设施。
+2. Plan 001 已退回 `review` 并等待 Plan 000 完成；此前完成的 Resolution PostgreSQL 原子创建与 rights history 只作为可复用的局部 Green，不代表 Plan 001 已通过。
+3. Plan 001 仅覆盖 URL 策略校验、异步元数据解析、真实清晰度目录、任务查询与事件恢复；实际下载、媒体合流、AI 转录总结、思维导图和 PDF 分属后续 Plan，在其门禁通过前不得实现。
+4. 所有业务 owner 必须是 PostgreSQL `users.id` 的 UUID；不得恢复安装令牌、共享主体或 Redis session 作为身份事实来源。
 
 ## Codex 资产
 

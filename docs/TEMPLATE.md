@@ -50,6 +50,7 @@ outputs: []
 - Design/PRD：`draft → review → accepted → superseded`。
 - Plan：`draft → review → ready → in_progress → done` 或 `backlog`。
 - Acceptance 文档：`draft → accepted`；执行结果单独使用 `pending/passed/failed/blocked`。
+- 已接受 `1.x` 契约的破坏性调整升 major；未冻结 `0.x` 的破坏性调整升 minor；兼容新增升 minor；澄清和证据回填升 patch。状态与版本独立，重新复审后才能恢复 `accepted/ready`。
 
 ## 10. 变更记录
 
