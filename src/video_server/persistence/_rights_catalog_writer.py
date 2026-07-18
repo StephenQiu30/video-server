@@ -40,6 +40,14 @@ _INSERT_ENTRY = text(
     )
     """
 )
+_SELECT_LATEST_ATTESTATION = text(
+    """
+    SELECT max(rights_confirmed_at)
+    FROM source_resolution_requests
+    WHERE rights_statement_version = :version
+      AND rights_statement_locale = :locale
+    """
+)
 _IMMUTABLE_FIELDS = (
     "version",
     "locale",
@@ -90,6 +98,7 @@ def import_catalog_entries(
             raise CatalogConflictSignal
 
     for values in supersedes:
+        _ensure_supersession_preserves_attestations(connection, values)
         result = connection.execute(_SUPERSEDE_ENTRY, values)
         if result.rowcount != 1:
             raise CatalogConflictSignal
@@ -136,6 +145,16 @@ def _entry_values(entry: RightsCatalogEntry) -> dict[str, object]:
         "expires_at": statement.expires_at,
         "superseded_at": entry.superseded_at,
     }
+
+
+def _ensure_supersession_preserves_attestations(
+    connection: Connection,
+    values: Mapping[str, object],
+) -> None:
+    latest = connection.scalar(_SELECT_LATEST_ATTESTATION, values)
+    superseded_at = values["superseded_at"]
+    if latest is not None and superseded_at <= latest:
+        raise CatalogConflictSignal
 
 
 def _same_immutable(
