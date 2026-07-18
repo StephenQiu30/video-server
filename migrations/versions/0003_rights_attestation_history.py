@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from migrations.revision_ddl.r0003_rights_attestation_guard import (
     install_rights_catalog_guard,
+    validate_existing_rights_attestations,
 )
 
 revision = "0003_rights_attestation_history"
@@ -17,6 +18,7 @@ depends_on = None
 
 
 def upgrade() -> None:
+    validate_existing_rights_attestations()
     install_rights_catalog_guard(protect_attestations=True)
 
 

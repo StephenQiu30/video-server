@@ -8,6 +8,31 @@ _APPEND_ONLY_CONSTRAINT = "ck_rights_statement_catalog_append_only"
 _ATTESTATION_CONSTRAINT = "ck_rights_statement_catalog_supersede_after_attestation"
 
 
+def validate_existing_rights_attestations() -> None:
+    op.execute(
+        f"""
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1
+                FROM rights_statement_catalog AS catalog
+                JOIN source_resolution_requests AS request
+                  ON request.rights_statement_version = catalog.version
+                 AND request.rights_statement_locale = catalog.locale
+                 AND request.rights_statement_sha256 = catalog.statement_sha256
+                WHERE catalog.superseded_at IS NOT NULL
+                  AND request.rights_confirmed_at >= catalog.superseded_at
+            ) THEN
+                RAISE EXCEPTION 'existing rights attestations conflict with supersession history'
+                    USING ERRCODE = '23514',
+                        CONSTRAINT = '{_ATTESTATION_CONSTRAINT}';
+            END IF;
+        END;
+        $$
+        """
+    )
+
+
 def install_rights_catalog_guard(*, protect_attestations: bool) -> None:
     attestation_guard = ""
     if protect_attestations:
