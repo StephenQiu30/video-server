@@ -44,6 +44,11 @@ def test_migration_creates_id_only_resolution_aggregate(migrated_database: Engin
             column["identity"] for column in inspector.get_columns(table) if column["name"] == "id"
         )
         assert identity is not None and identity["always"] is True
+    event_uniques = {
+        constraint["name"]: constraint["column_names"]
+        for constraint in inspector.get_unique_constraints("job_events")
+    }
+    assert event_uniques["uq_job_events_job_snapshot"] == ["job_id", "occurred_at"]
 
     outbox_columns = {column["name"] for column in inspector.get_columns("outbox_messages")}
     assert {"resolution_request_id", "job_id", "owner_id", "kind"} <= outbox_columns
