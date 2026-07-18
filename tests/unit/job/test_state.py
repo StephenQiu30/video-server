@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+
 from video_server.job.state import (
     MAX_ATTEMPTS,
     InvalidJobTransition,
