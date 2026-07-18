@@ -1,7 +1,7 @@
 ---
 layer: PRD
 status: accepted
-version: "1.0.0"
+version: "1.0.1"
 canonical_path: docs/prd/001-授权视频下载与AI知识化MVP.md
 purpose: "冻结 MVP 用户价值、需求编号、范围和成功指标"
 inputs:
@@ -41,7 +41,7 @@ outputs:
 | `REQ-POL-001` | 用户必须确认版本化权利声明；保存文案 hash/locale/time，平台政策仍可独立阻断 | `AC-POL-001` |
 | `REQ-POL-002` | 来源由签名 dossier 准入，可导入/撤销/过期并同步 egress ACL；至少一个 production canary | `AC-POL-002` |
 | `REQ-ID-001` | Plan 001 默认本地单用户、安装令牌鉴权、资源按 owner 隔离；无鉴权时禁止公网绑定 | `AC-ID-001` |
-| `REQ-SRC-001` | 接受 HTTP/HTTPS 链接并异步解析来源能力 | `AC-SRC-001` |
+| `REQ-SRC-001` | 接受公开 HTTPS 链接并异步解析来源能力；不接受明文 HTTP 或协议降级 | `AC-SRC-001` |
 | `REQ-SRC-002` | 展示来源真实存在的规格、音频状态和预计大小 | `AC-SRC-002` |
 | `REQ-SRC-003` | 只暴露不透明格式键，不泄露真实媒体 URL | `AC-SRC-003` |
 | `REQ-SEC-001` | 阻断私网、metadata、危险协议、重定向和 DNS rebinding | `AC-SEC-001` |
@@ -113,6 +113,7 @@ P1 不能在 P0 Plan 中以“顺手实现”方式进入范围。
 
 | 版本 | 日期 | 变更说明 |
 | --- | --- | --- |
+| 1.0.1 | 2026-07-18 | 将 Plan 001 输入冻结为公开 HTTPS，拒绝明文 HTTP 与协议降级 |
 | 1.0.0 | 2026-07-18 | 独立复审通过，冻结 MVP 需求与指标基线 |
 | 0.3.0 | 2026-07-18 | 增加签名来源生命周期、版本化权利声明和清理审计 |
 | 0.2.0 | 2026-07-18 | 增加安装级主体、owner 隔离与 Plan 001 部署边界 |
