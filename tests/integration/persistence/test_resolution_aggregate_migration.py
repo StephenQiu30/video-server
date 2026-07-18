@@ -8,6 +8,7 @@ import pytest
 from sqlalchemy import Engine, inspect, text
 from sqlalchemy.exc import IntegrityError
 
+from tests.integration.persistence._job_event import insert_current_event
 from tests.integration.persistence._resolution_aggregate import (
     ELIGIBLE_AT,
     JOB_ID,
@@ -48,6 +49,7 @@ def test_request_foreign_keys_bind_owner_clock_and_rights(migrated_database: Eng
     seed_rights(migrated_database)
     with migrated_database.begin() as connection:
         insert_job(connection)
+        insert_current_event(connection)
 
     for overrides, constraint_name in (
         ({"owner_id": "owner_other"}, "fk_source_resolution_requests_job_identity"),
@@ -106,6 +108,7 @@ def test_request_scope_and_job_are_one_to_one(migrated_database: Engine) -> None
     with migrated_database.begin() as connection:
         insert_job(connection)
         insert_request(connection)
+        insert_current_event(connection)
 
     with pytest.raises(IntegrityError) as duplicate_scope, migrated_database.begin() as connection:
         insert_request(connection, id="res_01J3H5N7Q9S1V3X5Z7A9C1E3G6")

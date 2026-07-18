@@ -8,6 +8,7 @@ import pytest
 from sqlalchemy import Engine, inspect, text
 from sqlalchemy.exc import IntegrityError
 
+from tests.integration.persistence._job_event import insert_current_event
 from tests.integration.persistence._resolution_aggregate import (
     JOB_ID,
     NOW,
@@ -50,6 +51,7 @@ def test_wait_and_failure_preserve_the_last_running_snapshot(
 ) -> None:
     with migrated_database.begin() as connection:
         insert_job(connection)
+        insert_current_event(connection)
         connection.execute(
             text(
                 """
@@ -98,6 +100,7 @@ def test_error_policy_rejects_extra_keys_and_duplicate_actions(
 def test_error_policy_accepts_the_exact_safe_policy_view(migrated_database: Engine) -> None:
     with migrated_database.begin() as connection:
         insert_job(connection)
+        insert_current_event(connection)
         connection.execute(
             text(
                 """
@@ -119,6 +122,7 @@ def test_error_policy_accepts_the_exact_safe_policy_view(migrated_database: Engi
                 "actions": '["view_supported_sources"]',
             },
         )
+        insert_current_event(connection)
 
 
 def test_event_snapshot_must_match_the_current_job(migrated_database: Engine) -> None:

@@ -8,6 +8,7 @@ import pytest
 from sqlalchemy import Engine, text
 from sqlalchemy.exc import IntegrityError
 
+from tests.integration.persistence._job_event import insert_current_event
 from tests.integration.persistence._resolution_aggregate import (
     ELIGIBLE_AT,
     MUST_PURGE_BY,
@@ -48,6 +49,7 @@ def test_terminal_jobs_and_monotonic_state_cannot_move_backward(
 ) -> None:
     with migrated_database.begin() as connection:
         insert_job(connection)
+        insert_current_event(connection)
         connection.execute(
             text(
                 """
@@ -60,6 +62,7 @@ def test_terminal_jobs_and_monotonic_state_cannot_move_backward(
             ),
             {"terminal_at": NOW + timedelta(seconds=1)},
         )
+        insert_current_event(connection)
 
     with pytest.raises(IntegrityError) as rejected, migrated_database.begin() as connection:
         connection.execute(text("UPDATE jobs SET status='RUNNING', attempt=1, terminal_at=NULL"))
@@ -99,6 +102,7 @@ def test_event_and_outbox_require_exact_aggregate_identity(migrated_database: En
     with migrated_database.begin() as connection:
         insert_job(connection)
         insert_request(connection)
+        insert_current_event(connection)
 
     with pytest.raises(IntegrityError) as bad_event, migrated_database.begin() as connection:
         insert_event(connection, owner_id="owner_other")
