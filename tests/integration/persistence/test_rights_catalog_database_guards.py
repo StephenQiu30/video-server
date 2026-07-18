@@ -6,7 +6,7 @@ import hashlib
 
 import pytest
 from sqlalchemy import Engine, text
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DBAPIError, IntegrityError
 
 from tests.integration.persistence._rights_catalog import assert_constraint, insert_statement
 
@@ -74,12 +74,21 @@ def test_catalog_rejects_postgres_infinite_times(
 def test_catalog_rejects_truncate_and_preserves_rows(migrated_database: Engine) -> None:
     insert_statement(migrated_database, version="rights-2026-07-18.1")
 
-    with pytest.raises(IntegrityError) as rejected, migrated_database.begin() as connection:
-        connection.execute(text("TRUNCATE rights_statement_catalog"))
-    assert_constraint(
-        rejected.value,
-        name="ck_rights_statement_catalog_append_only",
-    )
+    for statement in (
+        "TRUNCATE rights_statement_catalog",
+        "TRUNCATE rights_statement_catalog CASCADE",
+    ):
+        with pytest.raises(DBAPIError) as rejected, migrated_database.begin() as connection:
+            connection.execute(text(statement))
+        sqlstate = getattr(rejected.value.orig, "sqlstate", None)
+        if statement.endswith("CASCADE"):
+            assert sqlstate == "23514"
+            assert (
+                getattr(rejected.value.orig.diag, "constraint_name", None)
+                == "ck_rights_statement_catalog_append_only"
+            )
+        else:
+            assert sqlstate in {"23514", "0A000"}
 
     with migrated_database.connect() as connection:
         assert connection.scalar(text("SELECT count(*) FROM rights_statement_catalog")) == 1
