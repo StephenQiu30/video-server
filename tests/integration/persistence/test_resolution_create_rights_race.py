@@ -28,6 +28,7 @@ from video_server.persistence.resolution_create import (
 from video_server.persistence.rights_catalog import (
     CatalogImportResult,
     PostgresRightsCatalogStore,
+    RightsCatalogPersistenceError,
 )
 from video_server.source.rights import RightsCatalog
 
@@ -66,9 +67,12 @@ def _import_after_barrier(
     store: PostgresRightsCatalogStore,
     catalog: RightsCatalog,
     barrier: Barrier,
-) -> CatalogImportResult:
+) -> CatalogImportResult | RightsCatalogPersistenceError:
     barrier.wait(timeout=5)
-    return store.import_catalog(catalog)
+    try:
+        return store.import_catalog(catalog)
+    except RightsCatalogPersistenceError as error:
+        return error
 
 
 def test_create_and_supersede_have_only_the_two_serializable_outcomes(
@@ -92,18 +96,11 @@ def test_create_and_supersede_have_only_the_two_serializable_outcomes(
         create_outcome = create_future.result(timeout=10)
         import_outcome = import_future.result(timeout=10)
 
-    assert import_outcome == CatalogImportResult(1, 1, 1)
-    with migrated_database.connect() as connection:
-        current_version = connection.scalar(
-            text(
-                "SELECT version FROM rights_statement_catalog "
-                "WHERE locale='zh-CN' AND superseded_at IS NULL"
-            )
-        )
-    assert current_version == _V2
-
     if isinstance(create_outcome, CreateResolutionResult):
         assert create_outcome.disposition is CreateDisposition.CREATED
+        assert isinstance(import_outcome, RightsCatalogPersistenceError)
+        assert import_outcome.code == "RIGHTS_CATALOG_CONFLICT"
+        expected_current = _V1
         assert set(aggregate_counts(migrated_database).values()) == {1}
         with migrated_database.connect() as connection:
             attested = connection.scalar(
@@ -112,4 +109,15 @@ def test_create_and_supersede_have_only_the_two_serializable_outcomes(
         assert attested == _V1
     else:
         assert create_outcome.code == "RIGHTS_STATEMENT_STALE"
+        assert import_outcome == CatalogImportResult(1, 1, 1)
+        expected_current = _V2
         assert set(aggregate_counts(migrated_database).values()) == {0}
+
+    with migrated_database.connect() as connection:
+        current_version = connection.scalar(
+            text(
+                "SELECT version FROM rights_statement_catalog "
+                "WHERE locale='zh-CN' AND superseded_at IS NULL"
+            )
+        )
+    assert current_version == expected_current
