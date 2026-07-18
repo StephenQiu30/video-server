@@ -83,20 +83,19 @@ def test_store_rolls_back_whole_batch_when_one_locale_overlaps(
     store.import_catalog(
         make_catalog(
             catalog_entry(version=_V1, locale="zh-CN"),
-            catalog_entry(
-                version=_V1,
-                locale="en-US",
-                superseded_at="2026-07-19T00:00:00Z",
-            ),
+            catalog_entry(version=_V1, locale="en-US"),
         )
     )
 
     conflicting_batch = make_catalog(
         catalog_entry(
-            version=_V2,
+            version="rights-2026-07-17.1",
             locale="en-US",
-            effective_at="2026-07-19T00:00:00Z",
+            effective_at="2026-07-17T00:00:00Z",
+            superseded_at="2026-07-18T00:00:00Z",
         ),
+        catalog_entry(version=_V1, locale="en-US"),
+        catalog_entry(version=_V1, locale="zh-CN"),
         catalog_entry(
             version=_V2,
             locale="zh-CN",
