@@ -75,6 +75,34 @@ def test_job_rejects_invalid_error_json_shapes(migrated_database: Engine) -> Non
     assert_constraint(rejected.value, name="ck_jobs_error_payload")
 
 
+def test_policy_view_rejects_nonpublic_official_url(migrated_database: Engine) -> None:
+    with migrated_database.begin() as connection:
+        insert_job(connection)
+        with pytest.raises(IntegrityError) as rejected:
+            connection.execute(
+                text(
+                    """
+                    UPDATE jobs
+                    SET status='FAILED', terminal_at=:at, updated_at=:at,
+                        error_code='SOURCE_POLICY_BLOCKED', error_title='Blocked',
+                        error_detail='Policy blocked this source.', error_retryable=false,
+                        error_correlation_id='corr-1',
+                        error_policy=CAST(:policy AS jsonb),
+                        error_actions='["open_official"]'::jsonb
+                    """
+                ),
+                {
+                    "at": NOW + timedelta(seconds=1),
+                    "policy": (
+                        '{"decision":"block","permitted_operations":[],"name":"Blocked",'
+                        '"official_url":"https://docs.example/path?token=secret",'
+                        '"user_actions":["open_official"]}'
+                    ),
+                },
+            )
+    assert_constraint(rejected.value, name="ck_jobs_error_payload")
+
+
 def test_request_confirmation_cannot_follow_creation(migrated_database: Engine) -> None:
     seed_rights(migrated_database)
     with migrated_database.begin() as connection:
