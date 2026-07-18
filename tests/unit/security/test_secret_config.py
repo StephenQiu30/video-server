@@ -16,9 +16,18 @@ def _write_secret(path: Path, data: bytes, *, mode: int = 0o600) -> Path:
     return path
 
 
-def _assert_bind_rejected(host: str, *, provider: bool = False) -> None:
+class _PrincipalProviderStub:
+    def __init__(self) -> None:
+        self.validation_calls = 0
+
+    def validate_startup(self) -> bool:
+        self.validation_calls += 1
+        return True
+
+
+def _assert_bind_rejected(host: str, *, provider: object | None = None) -> None:
     with pytest.raises((DomainError, ValueError)) as error:
-        validate_bind_host(host, principal_provider_configured=provider)
+        validate_bind_host(host, principal_provider=provider)
 
     assert str(error.value)
     if isinstance(error.value, DomainError):
@@ -116,7 +125,6 @@ def test_secret_rejects_file_not_owned_by_current_user(
 @pytest.mark.parametrize(
     ("host", "canonical"),
     [
-        ("localhost", "localhost"),
         ("127.0.0.1", "127.0.0.1"),
         ("127.200.10.4", "127.200.10.4"),
         ("::1", "::1"),
@@ -127,13 +135,13 @@ def test_bind_host_accepts_and_canonicalizes_loopback(
     host: str,
     canonical: str,
 ) -> None:
-    assert validate_bind_host(host, principal_provider_configured=False) == canonical
+    assert validate_bind_host(host, principal_provider=None) == canonical
 
 
 @pytest.mark.security
 @pytest.mark.parametrize(
     "host",
-    ["", "*", "0.0.0.0", "::", "192.168.1.10", "api.example"],
+    ["", "*", "localhost", "0.0.0.0", "::", "192.168.1.10", "api.example"],
 )
 def test_bind_host_fails_closed_without_principal_provider(host: str) -> None:
     _assert_bind_rejected(host)
@@ -148,9 +156,13 @@ def test_bind_host_allows_canonical_non_loopback_with_principal_provider(
     host: str,
     canonical: str,
 ) -> None:
-    assert validate_bind_host(host, principal_provider_configured=True) == canonical
+    provider = _PrincipalProviderStub()
+
+    assert validate_bind_host(host, principal_provider=provider) == canonical
+    assert provider.validation_calls == 1
 
 
 @pytest.mark.security
-def test_bind_host_rejects_empty_value_even_with_principal_provider() -> None:
-    _assert_bind_rejected("", provider=True)
+@pytest.mark.parametrize("host", ["", "*"])
+def test_bind_host_rejects_invalid_value_even_with_principal_provider(host: str) -> None:
+    _assert_bind_rejected(host, provider=_PrincipalProviderStub())
