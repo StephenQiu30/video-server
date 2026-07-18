@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Iterable
+from uuid import UUID
 
 from sqlalchemy import Connection, text
 
@@ -24,7 +25,7 @@ def lock_rights_locales(connection: Connection, locales: Iterable[str]) -> None:
 def lock_resolution_idempotency(
     connection: Connection,
     *,
-    owner_id: str,
+    owner_id: UUID,
     operation: str,
     key_digest: str,
 ) -> None:
@@ -33,7 +34,7 @@ def lock_resolution_idempotency(
         {
             "lock_key": _framed_lock_key(
                 "resolution-idempotency",
-                owner_id,
+                str(owner_id),
                 operation,
                 key_digest,
             )

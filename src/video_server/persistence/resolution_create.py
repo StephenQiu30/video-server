@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -11,6 +10,7 @@ from enum import StrEnum
 from sqlalchemy import Engine
 from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 
+from video_server.identity.principal import Principal
 from video_server.job.idempotency import (
     ResolutionRequest,
     digest_idempotency_key,
@@ -46,7 +46,6 @@ __all__ = [
     "ResolutionCreatePersistenceError",
 ]
 
-_SAFE_OWNER = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 _RETRYABLE_TRANSACTION_STATES = frozenset({"40001", "40P01"})
 _MAX_TRANSACTION_ATTEMPTS = 3
 
@@ -58,13 +57,13 @@ class CreateDisposition(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class CreateResolutionCommand:
-    owner_id: str
+    principal: Principal
     idempotency_key: str = field(repr=False)
     request: ResolutionRequest = field(repr=False)
 
     def __post_init__(self) -> None:
-        if not isinstance(self.owner_id, str) or _SAFE_OWNER.fullmatch(self.owner_id) is None:
-            raise ValueError("owner_id must use the stable safe identifier alphabet")
+        if not isinstance(self.principal, Principal):
+            raise TypeError("principal must be a Principal")
         if not isinstance(self.idempotency_key, str):
             raise TypeError("idempotency_key must be a string")
         if not isinstance(self.request, ResolutionRequest):
@@ -176,7 +175,7 @@ class PostgresResolutionCreateStore:
             raise rejected_create("IDEMPOTENCY_KEY_INVALID") from None
         request = command.request
         return PreparedResolutionCreate(
-            owner_id=command.owner_id,
+            owner_id=command.principal.user_id,
             idempotency_key_digest=key_digest,
             request_digest=digest_resolution_request(request, hmac_key=self._hmac_key),
             canonical_url=canonicalize_source_url(request.url),

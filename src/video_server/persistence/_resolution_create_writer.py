@@ -6,6 +6,7 @@ import hmac
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from uuid import UUID
 
 from sqlalchemy import Connection
 
@@ -29,7 +30,7 @@ IdFactory = Callable[[str], str]
 
 @dataclass(frozen=True, slots=True)
 class PreparedResolutionCreate:
-    owner_id: str
+    owner_id: UUID
     idempotency_key_digest: str
     request_digest: str
     canonical_url: str

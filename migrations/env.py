@@ -7,7 +7,8 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from video_server.persistence.base import Base
+import video_server.identity.models  # noqa: F401
+from video_server.persistence.base import Base, include_managed_object
 
 config = context.config
 
@@ -24,6 +25,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=include_managed_object,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -37,7 +39,11 @@ def run_migrations_online() -> None:
         poolclass=pool.NullPool,
     )
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            include_object=include_managed_object,
+        )
         with context.begin_transaction():
             context.run_migrations()
 

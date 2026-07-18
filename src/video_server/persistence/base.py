@@ -13,8 +13,31 @@ NAMING_CONVENTION = {
     "pk": "pk_%(table_name)s",
 }
 
+_RAW_DDL_TABLES = frozenset(
+    {
+        "rights_statement_catalog",
+        "jobs",
+        "source_resolution_requests",
+        "job_events",
+        "outbox_messages",
+    }
+)
+
 
 class Base(DeclarativeBase):
     """Declarative base used by models and migration drift checks."""
 
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
+
+
+def include_managed_object(
+    object_: object,
+    name: str | None,
+    type_: str,
+    reflected: bool,
+    compare_to: object | None,
+) -> bool:
+    """Exclude frozen raw-DDL tables from ORM metadata drift operations."""
+
+    del object_
+    return not (type_ == "table" and reflected and compare_to is None and name in _RAW_DDL_TABLES)
