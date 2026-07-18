@@ -23,6 +23,12 @@ from tests.integration.persistence._rights_catalog import assert_constraint
 pytestmark = pytest.mark.integration
 
 
+def test_job_commit_requires_a_matching_event(migrated_database: Engine) -> None:
+    with pytest.raises(IntegrityError) as rejected, migrated_database.begin() as connection:
+        insert_job(connection)
+    assert_constraint(rejected.value, name="ck_jobs_event_required")
+
+
 @pytest.mark.parametrize(
     ("status", "error_sql"),
     [
