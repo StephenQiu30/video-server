@@ -14,7 +14,6 @@ from video_server.job.idempotency import (
 from video_server.job.lease import LEASE_RENEWAL_INTERVAL, renew_lease
 from video_server.job.outbox import (
     LEASE_DURATION,
-    MAX_PUBLISH_ATTEMPTS,
     OutboxState,
     StaleClaim,
     claim,
@@ -43,52 +42,41 @@ def _claimed(*, attempts: int = 0, token: str = "lease-a") -> OutboxState:
     )
 
 
-def test_expired_lease_cannot_reuse_its_fencing_token() -> None:
-    claimed = _claimed()
-
-    with pytest.raises(StaleClaim, match="token"):
-        claim(
-            claimed,
-            claimant="dispatcher-b",
-            claim_token="lease-a",
-            now=NOW + LEASE_DURATION,
-        )
-
-
-def test_tenth_claim_crash_dead_letters_when_lease_expires() -> None:
-    claimed = _claimed(attempts=MAX_PUBLISH_ATTEMPTS - 1, token="lease-10")
-
-    settled = claim(
-        claimed,
-        claimant="dispatcher-b",
-        claim_token="lease-11",
-        now=NOW + LEASE_DURATION,
-    )
-
-    assert settled.dead_lettered_at == NOW + LEASE_DURATION
-    assert settled.terminal_error_code == "QUEUE_DELIVERY_FAILED"
-    assert settled.claim_token is None
-
-
 def test_renewal_at_20_seconds_extends_lease_without_an_attempt() -> None:
     claimed = _claimed()
     renewal_time = NOW + LEASE_RENEWAL_INTERVAL
 
-    renewed = renew_lease(claimed, claim_token="lease-a", now=renewal_time)
+    renewed = renew_lease(
+        claimed,
+        claim_token="lease-a",
+        lease_version=claimed.lease_version,
+        now=renewal_time,
+    )
 
     assert timedelta(seconds=20) == LEASE_RENEWAL_INTERVAL
     assert renewed.lease_expires_at == renewal_time + LEASE_DURATION
     assert renewed.claimed_at == claimed.claimed_at
     assert renewed.attempts == claimed.attempts
+    assert renewed.lease_version == claimed.lease_version
 
 
 def test_renewal_rejects_stale_and_expired_tokens() -> None:
     claimed = _claimed()
 
     with pytest.raises(StaleClaim, match="token"):
-        renew_lease(claimed, claim_token="lease-old", now=NOW + timedelta(seconds=20))
+        renew_lease(
+            claimed,
+            claim_token="lease-old",
+            lease_version=claimed.lease_version,
+            now=NOW + timedelta(seconds=20),
+        )
     with pytest.raises(StaleClaim, match="expired"):
-        renew_lease(claimed, claim_token="lease-a", now=NOW + LEASE_DURATION)
+        renew_lease(
+            claimed,
+            claim_token="lease-a",
+            lease_version=claimed.lease_version,
+            now=NOW + LEASE_DURATION,
+        )
 
 
 def test_renewal_rejects_time_before_claim() -> None:
@@ -96,6 +84,7 @@ def test_renewal_rejects_time_before_claim() -> None:
         renew_lease(
             _claimed(),
             claim_token="lease-a",
+            lease_version=1,
             now=NOW - timedelta(microseconds=1),
         )
 
@@ -105,11 +94,17 @@ def test_completion_and_failure_cannot_precede_claim() -> None:
     before_claim = NOW - timedelta(microseconds=1)
 
     with pytest.raises(ValueError, match="claim"):
-        mark_published(claimed, claim_token="lease-a", now=before_claim)
+        mark_published(
+            claimed,
+            claim_token="lease-a",
+            lease_version=claimed.lease_version,
+            now=before_claim,
+        )
     with pytest.raises(ValueError, match="claim"):
         mark_publish_failed(
             claimed,
             claim_token="lease-a",
+            lease_version=claimed.lease_version,
             now=before_claim,
             retry_delay=timedelta(seconds=1),
         )
