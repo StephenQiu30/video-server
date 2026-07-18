@@ -8,6 +8,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from video_server.errors import DomainError
+
+
+class RightsCatalogError(DomainError):
+    """The rights catalog or submitted attestation is invalid."""
+
 
 @dataclass(frozen=True, slots=True)
 class RightsStatement:

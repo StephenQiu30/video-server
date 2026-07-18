@@ -4,6 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
+from video_server.errors import DomainError
+
+
+class SourceURLValidationError(DomainError):
+    """A submitted URL or resolved address violates the source boundary."""
+
 
 def canonicalize_source_url(url: str) -> str:
     """Return the canonical public HTTPS source URL or raise DomainError."""
