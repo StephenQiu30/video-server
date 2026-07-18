@@ -12,8 +12,16 @@ Thumbs.db
 
 # Logs, caches, and generated output
 *.log
+.coverage
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+__pycache__/
+*.py[cod]
 .cache/
 coverage/
+htmlcov/
 dist/
 build/
 tmp/
