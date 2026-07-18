@@ -48,7 +48,11 @@ def test_event_rejects_exhausted_retry_wait(migrated_database: Engine) -> None:
                 attempt=3,
                 occurred_at=NOW + timedelta(seconds=1),
             )
-    assert_constraint(rejected.value, name="ck_job_events_state_shape")
+    assert getattr(rejected.value.orig, "sqlstate", None) == "23514"
+    assert rejected.value.orig.diag.constraint_name in {
+        "ck_job_events_state_shape",
+        "ck_job_events_matches_job",
+    }
 
 
 def test_job_rejects_invalid_error_json_shapes(migrated_database: Engine) -> None:

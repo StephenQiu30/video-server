@@ -89,6 +89,32 @@ def test_error_policy_rejects_extra_keys_and_duplicate_actions(
     assert_constraint(rejected.value, name="ck_jobs_error_payload")
 
 
+def test_error_policy_accepts_the_exact_safe_policy_view(migrated_database: Engine) -> None:
+    with migrated_database.begin() as connection:
+        insert_job(connection)
+        connection.execute(
+            text(
+                """
+                UPDATE jobs
+                SET status='FAILED', terminal_at=:at, updated_at=:at,
+                    error_code='SOURCE_POLICY_BLOCKED', error_title='Blocked',
+                    error_detail='Policy blocked this source.', error_retryable=false,
+                    error_correlation_id='corr-1',
+                    error_policy=CAST(:policy AS jsonb),
+                    error_actions=CAST(:actions AS jsonb)
+                """
+            ),
+            {
+                "at": NOW + timedelta(seconds=1),
+                "policy": (
+                    '{"decision":"block","permitted_operations":[],"name":"Blocked",'
+                    '"official_url":null,"user_actions":["view_supported_sources"]}'
+                ),
+                "actions": '["view_supported_sources"]',
+            },
+        )
+
+
 def test_event_snapshot_must_match_the_current_job(migrated_database: Engine) -> None:
     with migrated_database.begin() as connection:
         insert_job(connection)
