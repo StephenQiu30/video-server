@@ -39,6 +39,11 @@ def test_migration_creates_id_only_resolution_aggregate(migrated_database: Engin
     ]
     assert inspector.get_pk_constraint("job_events")["constrained_columns"] == ["id"]
     assert inspector.get_pk_constraint("outbox_messages")["constrained_columns"] == ["id"]
+    for table in ("job_events", "outbox_messages"):
+        identity = next(
+            column["identity"] for column in inspector.get_columns(table) if column["name"] == "id"
+        )
+        assert identity is not None and identity["always"] is True
 
     outbox_columns = {column["name"] for column in inspector.get_columns("outbox_messages")}
     assert {"resolution_request_id", "job_id", "owner_id", "kind"} <= outbox_columns
