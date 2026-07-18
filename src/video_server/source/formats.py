@@ -1,24 +1,20 @@
-"""Pure source-format normalization boundary."""
+"""Public source-format normalization boundary."""
 
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any, Protocol
+from typing import Any
 
+from video_server.source._format_candidates import build_candidates
+from video_server.source._format_ordering import deduplicate_and_sort
+from video_server.source._format_types import NormalizedFormat
 
-class NormalizedFormat(Protocol):
-    """Public and test-oracle views of one normalized format candidate."""
-
-    component_ids: tuple[str, ...]
-    fingerprint_sha256: str
-
-    def to_public_dict(self) -> dict[str, Any]: ...
+__all__ = ["NormalizedFormat", "normalize_formats"]
 
 
 def normalize_formats(
-    raw_formats: Sequence[Mapping[str, Any]],
-    locale: str,
+    raw_formats: Sequence[Mapping[str, Any]], locale: str
 ) -> list[NormalizedFormat]:
-    """Normalize extractor formats according to Design 004."""
+    """Normalize extractor formats according to the frozen Design 004 rules."""
 
-    raise NotImplementedError("format normalization is not implemented")
+    return deduplicate_and_sort(build_candidates(raw_formats, locale))
