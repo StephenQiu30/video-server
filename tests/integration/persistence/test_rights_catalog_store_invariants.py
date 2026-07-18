@@ -98,21 +98,28 @@ def test_store_rejects_snapshot_that_omits_durable_history(
     migrated_database: Engine,
 ) -> None:
     store = PostgresRightsCatalogStore(migrated_database)
-    initial = _initial_catalog()
-    store.import_catalog(initial)
+    zh_v2 = catalog_entry(
+        version=_V2,
+        locale="zh-CN",
+        effective_at="2026-07-19T00:00:00Z",
+    )
+    en_v1 = catalog_entry(version=_V1, locale="en-US")
+    store.import_catalog(
+        make_catalog(
+            catalog_entry(
+                version=_V1,
+                locale="zh-CN",
+                superseded_at="2026-07-19T00:00:00Z",
+            ),
+            zh_v2,
+            en_v1,
+        )
+    )
     before = _snapshot(migrated_database)
 
-    omitted_locale = make_catalog(
-        catalog_entry(
-            version="rights-2026-07-17.1",
-            locale="zh-CN",
-            effective_at="2026-07-17T00:00:00Z",
-            superseded_at="2026-07-18T00:00:00Z",
-        ),
-        catalog_entry(version=_V1, locale="zh-CN"),
-    )
+    omitted_history = make_catalog(zh_v2, en_v1)
     with pytest.raises(RightsCatalogPersistenceError) as conflict:
-        store.import_catalog(omitted_locale)
+        store.import_catalog(omitted_history)
 
     assert conflict.value.code == "RIGHTS_CATALOG_CONFLICT"
     assert _snapshot(migrated_database) == before
