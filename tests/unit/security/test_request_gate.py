@@ -137,7 +137,7 @@ def test_bearer_header_is_exact_and_never_leaked(authorization: str | None) -> N
 
     assert TOKEN not in str(error)
     assert TOKEN not in error.detail
-    if authorization is not None:
+    if authorization:
         assert authorization not in error.detail
 
 
