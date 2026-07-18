@@ -8,6 +8,7 @@ import pytest
 from sqlalchemy import Engine, text
 from sqlalchemy.exc import IntegrityError
 
+from tests.integration.persistence._job_event import insert_current_event
 from tests.integration.persistence._resolution_aggregate import (
     NOW,
     insert_aggregate,
@@ -101,6 +102,26 @@ def test_policy_view_rejects_nonpublic_official_url(migrated_database: Engine) -
                 },
             )
     assert_constraint(rejected.value, name="ck_jobs_error_payload")
+
+
+def test_error_field_must_be_an_rfc6901_pointer(migrated_database: Engine) -> None:
+    with pytest.raises(IntegrityError) as rejected, migrated_database.begin() as connection:
+        insert_job(connection)
+        insert_current_event(connection)
+        connection.execute(
+            text(
+                """
+                UPDATE jobs
+                SET status='FAILED', terminal_at=:at, updated_at=:at,
+                    error_code='INVALID_URL', error_title='Invalid URL',
+                    error_detail='The URL is invalid.', error_retryable=false,
+                    error_correlation_id='corr-1', error_field='/bad~2escape'
+                """
+            ),
+            {"at": NOW + timedelta(seconds=1)},
+        )
+        insert_current_event(connection)
+    assert_constraint(rejected.value, name="ck_jobs_error_field")
 
 
 def test_request_confirmation_cannot_follow_creation(migrated_database: Engine) -> None:

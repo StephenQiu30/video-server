@@ -87,14 +87,25 @@ def test_request_only_allows_complete_kek_rewrap(migrated_database: Engine) -> N
     assert_constraint(rejected.value, name="ck_source_resolution_requests_immutable")
 
 
-def test_job_events_are_append_only_but_deletable_by_sweeper(migrated_database: Engine) -> None:
+def test_job_events_only_delete_with_the_complete_aggregate(migrated_database: Engine) -> None:
     insert_aggregate(migrated_database)
     with pytest.raises(IntegrityError) as rejected, migrated_database.begin() as connection:
         connection.execute(text("UPDATE job_events SET progress=1"))
     assert_constraint(rejected.value, name="ck_job_events_append_only")
 
+    with pytest.raises(IntegrityError) as orphaned, migrated_database.begin() as connection:
+        connection.execute(text("DELETE FROM job_events"))
+    assert_constraint(orphaned.value, name="ck_job_events_append_only")
+
+    with pytest.raises(IntegrityError) as truncated, migrated_database.begin() as connection:
+        connection.execute(text("TRUNCATE job_events"))
+    assert_constraint(truncated.value, name="ck_job_events_append_only")
+
     with migrated_database.begin() as connection:
-        assert connection.execute(text("DELETE FROM job_events")).rowcount == 1
+        connection.execute(text("DELETE FROM outbox_messages"))
+        connection.execute(text("DELETE FROM source_resolution_requests"))
+        connection.execute(text("DELETE FROM job_events"))
+        connection.execute(text("DELETE FROM jobs"))
 
 
 def test_event_and_outbox_require_exact_aggregate_identity(migrated_database: Engine) -> None:
