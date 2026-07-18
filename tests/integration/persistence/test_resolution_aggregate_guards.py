@@ -105,7 +105,11 @@ def test_event_and_outbox_require_exact_aggregate_identity(migrated_database: En
         insert_current_event(connection)
 
     with pytest.raises(IntegrityError) as bad_event, migrated_database.begin() as connection:
-        insert_event(connection, owner_id="owner_other")
+        insert_event(
+            connection,
+            owner_id="owner_other",
+            occurred_at=NOW + timedelta(seconds=1),
+        )
     assert_constraint(bad_event.value, name="fk_job_events_job_identity", sqlstate="23503")
 
     with pytest.raises(IntegrityError) as bad_outbox, migrated_database.begin() as connection:
