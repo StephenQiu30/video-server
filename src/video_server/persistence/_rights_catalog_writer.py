@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping, Sequence
 
 from sqlalchemy import Connection, text
 from sqlalchemy.engine import RowMapping
 
+from video_server.persistence._advisory_locks import (
+    SUPPORTED_RIGHTS_LOCALES,
+    lock_rights_locales,
+)
 from video_server.source.rights import RightsCatalogEntry
 
-_LOCK_LOCALE = text("SELECT pg_advisory_xact_lock(:lock_key)")
 _SELECT_ALL = text(
     """
     SELECT version, locale, statement, statement_sha256,
@@ -46,7 +48,6 @@ _IMMUTABLE_FIELDS = (
     "effective_at",
     "expires_at",
 )
-_SUPPORTED_LOCALES = ("en-US", "zh-CN")
 
 
 class CatalogConflictSignal(Exception):
@@ -105,7 +106,7 @@ def _ensure_transactional(connection: Connection) -> None:
 
 def _validate_snapshot(entries: Sequence[RightsCatalogEntry]) -> None:
     locales = {entry.statement.locale for entry in entries}
-    if locales != set(_SUPPORTED_LOCALES):
+    if locales != set(SUPPORTED_RIGHTS_LOCALES):
         raise CatalogConflictSignal
     successor_starts = {(entry.statement.locale, entry.statement.effective_at) for entry in entries}
     for entry in entries:
@@ -121,13 +122,7 @@ def _validate_snapshot(entries: Sequence[RightsCatalogEntry]) -> None:
 
 
 def _lock_locales(connection: Connection) -> None:
-    for locale in _SUPPORTED_LOCALES:
-        connection.execute(_LOCK_LOCALE, {"lock_key": _locale_lock_key(locale)})
-
-
-def _locale_lock_key(locale: str) -> int:
-    digest = hashlib.sha256(f"video-server:rights-catalog:{locale}".encode()).digest()
-    return int.from_bytes(digest[:8], "big", signed=True)
+    lock_rights_locales(connection, SUPPORTED_RIGHTS_LOCALES)
 
 
 def _entry_values(entry: RightsCatalogEntry) -> dict[str, object]:
