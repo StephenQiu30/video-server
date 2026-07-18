@@ -105,7 +105,12 @@ def test_event_and_outbox_require_exact_aggregate_identity(migrated_database: En
     assert_constraint(bad_event.value, name="fk_job_events_job_identity", sqlstate="23503")
 
     with pytest.raises(IntegrityError) as bad_outbox, migrated_database.begin() as connection:
-        insert_outbox(connection, aggregate_created_at=NOW + timedelta(seconds=1))
+        insert_outbox(
+            connection,
+            aggregate_created_at=NOW + timedelta(seconds=1),
+            retention_eligible_at=ELIGIBLE_AT + timedelta(seconds=1),
+            retention_must_purge_by=MUST_PURGE_BY + timedelta(seconds=1),
+        )
     assert_constraint(
         bad_outbox.value,
         name="fk_outbox_messages_resolution_identity",

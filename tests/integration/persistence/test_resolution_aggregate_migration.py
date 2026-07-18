@@ -52,7 +52,11 @@ def test_request_foreign_keys_bind_owner_clock_and_rights(migrated_database: Eng
     for overrides, constraint_name in (
         ({"owner_id": "owner_other"}, "fk_source_resolution_requests_job_identity"),
         (
-            {"created_at": NOW + timedelta(seconds=1)},
+            {
+                "created_at": NOW + timedelta(seconds=1),
+                "detail_eligible_at": ELIGIBLE_AT + timedelta(seconds=1),
+                "detail_must_purge_by": MUST_PURGE_BY + timedelta(seconds=1),
+            },
             "fk_source_resolution_requests_job_identity",
         ),
         ({"rights_statement_sha256": "f" * 64}, "fk_source_resolution_requests_rights"),
