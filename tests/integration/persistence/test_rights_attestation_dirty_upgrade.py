@@ -11,15 +11,9 @@ from alembic.config import Config
 from sqlalchemy import Engine, text
 from sqlalchemy.exc import IntegrityError
 
+from tests.integration.persistence._legacy_resolution_aggregate import insert_legacy_aggregate
 from tests.integration.persistence._resolution_aggregate import NOW
-from tests.integration.persistence._resolution_create_store import (
-    MutableClock,
-    make_command,
-    make_store,
-    seed_current_rights,
-)
 from tests.integration.persistence._rights_catalog import assert_constraint
-from video_server.persistence.resolution_create import CreateDisposition
 
 pytestmark = pytest.mark.integration
 
@@ -33,9 +27,7 @@ _V2_HASH = hashlib.sha256(_V2_STATEMENT.encode()).hexdigest()
 
 
 def _seed_retroactive_history(engine: Engine) -> None:
-    seed_current_rights(engine)
-    created = make_store(engine, clock=MutableClock(_CONFIRMED_AT)).create(make_command())
-    assert created.disposition is CreateDisposition.CREATED
+    insert_legacy_aggregate(engine, confirmed_at=_CONFIRMED_AT)
 
     with engine.begin() as connection:
         connection.execute(

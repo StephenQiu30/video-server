@@ -8,6 +8,7 @@ import pytest
 from sqlalchemy import Engine, inspect, text
 from sqlalchemy.exc import IntegrityError
 
+from tests.integration.persistence._identity import OTHER_USER_ID, insert_user
 from tests.integration.persistence._job_event import insert_current_event
 from tests.integration.persistence._resolution_aggregate import (
     ELIGIBLE_AT,
@@ -60,9 +61,10 @@ def test_request_foreign_keys_bind_owner_clock_and_rights(migrated_database: Eng
     with migrated_database.begin() as connection:
         insert_job(connection)
         insert_current_event(connection)
+        insert_user(connection, OTHER_USER_ID)
 
     for overrides, constraint_name in (
-        ({"owner_id": "owner_other"}, "fk_source_resolution_requests_job_identity"),
+        ({"owner_id": OTHER_USER_ID}, "fk_source_resolution_requests_job_identity"),
         (
             {
                 "created_at": NOW + timedelta(seconds=1),
@@ -82,7 +84,6 @@ def test_request_foreign_keys_bind_owner_clock_and_rights(migrated_database: Eng
     ("overrides", "constraint_name"),
     [
         ({"id": "res:unsafe"}, "ck_source_resolution_requests_id_format"),
-        ({"owner_id": "owner:unsafe"}, "ck_source_resolution_requests_owner_format"),
         ({"idempotency_key_digest": "A" * 64}, "ck_source_resolution_requests_key_digest"),
         ({"request_digest": "f" * 63}, "ck_source_resolution_requests_request_digest"),
         ({"url_ciphertext": b"x" * 16}, "ck_source_resolution_requests_ciphertext"),

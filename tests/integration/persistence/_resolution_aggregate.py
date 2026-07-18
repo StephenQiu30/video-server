@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import Connection, Engine, text
 
+from tests.integration.persistence._identity import USER_ID, ensure_user_for_owner
 from tests.integration.persistence._rights_catalog import insert_statement
 
 NOW = datetime(2026, 7, 18, tzinfo=UTC)
@@ -14,7 +15,7 @@ ELIGIBLE_AT = NOW + timedelta(hours=166)
 MUST_PURGE_BY = NOW + timedelta(hours=168)
 JOB_ID = "job_01J3H5N7Q9S1V3X5Z7A9C1E3G5"
 RESOLUTION_ID = "res_01J3H5N7Q9S1V3X5Z7A9C1E3G5"
-OWNER_ID = "owner_local_installation_0001"
+OWNER_ID = USER_ID
 RIGHTS_VERSION = "rights-2026-07-18.1"
 RIGHTS_LOCALE = "zh-CN"
 RIGHTS_STATEMENT = f"statement-{RIGHTS_VERSION}"
@@ -41,6 +42,7 @@ def insert_job(connection: Connection, **overrides: object) -> None:
         "detail_must_purge_by": MUST_PURGE_BY,
     }
     values.update(overrides)
+    ensure_user_for_owner(connection, values["owner_id"])
     connection.execute(
         text(
             """

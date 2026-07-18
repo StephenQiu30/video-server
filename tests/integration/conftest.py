@@ -13,6 +13,8 @@ from sqlalchemy import Engine, create_engine
 from sqlalchemy.engine import make_url
 from testcontainers.postgres import PostgresContainer
 
+from tests.integration.persistence._identity import clear_identity_rows
+
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _POSTGRES_IMAGE = (
     "postgres:17-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193"
@@ -62,5 +64,6 @@ def migrated_database(alembic_config: Config, postgres_url: str) -> Iterator[Eng
     try:
         yield engine
     finally:
+        clear_identity_rows(engine)
         engine.dispose()
         command.downgrade(config, "base")

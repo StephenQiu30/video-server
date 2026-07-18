@@ -8,6 +8,7 @@ import pytest
 from sqlalchemy import Engine, text
 from sqlalchemy.exc import IntegrityError
 
+from tests.integration.persistence._identity import OTHER_USER_ID, insert_user
 from tests.integration.persistence._job_event import insert_current_event
 from tests.integration.persistence._resolution_aggregate import (
     ELIGIBLE_AT,
@@ -83,7 +84,10 @@ def test_request_only_allows_complete_kek_rewrap(migrated_database: Engine) -> N
         )
 
     with pytest.raises(IntegrityError) as rejected, migrated_database.begin() as connection:
-        connection.execute(text("UPDATE source_resolution_requests SET owner_id='owner_other'"))
+        connection.execute(
+            text("UPDATE source_resolution_requests SET owner_id=:owner_id"),
+            {"owner_id": OTHER_USER_ID},
+        )
     assert_constraint(rejected.value, name="ck_source_resolution_requests_immutable")
 
 
@@ -114,11 +118,12 @@ def test_event_and_outbox_require_exact_aggregate_identity(migrated_database: En
         insert_job(connection)
         insert_request(connection)
         insert_current_event(connection)
+        insert_user(connection, OTHER_USER_ID)
 
     with pytest.raises(IntegrityError) as bad_event, migrated_database.begin() as connection:
         insert_event(
             connection,
-            owner_id="owner_other",
+            owner_id=OTHER_USER_ID,
             occurred_at=NOW + timedelta(seconds=1),
         )
     assert_constraint(bad_event.value, name="fk_job_events_job_identity", sqlstate="23503")

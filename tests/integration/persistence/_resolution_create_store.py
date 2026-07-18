@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 
 from sqlalchemy import Engine, text
 
+from tests.identity_contract import make_principal
+from tests.integration.persistence._identity import OTHER_USER_ID, insert_user
 from tests.integration.persistence._resolution_aggregate import (
     JOB_ID,
     NOW,
@@ -59,7 +61,7 @@ def make_command(
     key: str = IDEMPOTENCY_KEY,
 ) -> CreateResolutionCommand:
     return CreateResolutionCommand(
-        owner_id=OWNER_ID,
+        principal=make_principal(OWNER_ID),
         idempotency_key=key,
         request=request or make_request(),
     )
@@ -82,6 +84,9 @@ def make_store(
 
 def seed_current_rights(engine: Engine) -> None:
     seed_rights(engine)
+    with engine.begin() as connection:
+        insert_user(connection)
+        insert_user(connection, OTHER_USER_ID)
 
 
 def supersede_rights(engine: Engine) -> None:

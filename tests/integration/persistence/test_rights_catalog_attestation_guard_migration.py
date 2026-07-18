@@ -10,6 +10,7 @@ from alembic.config import Config
 from sqlalchemy import Engine, text
 from sqlalchemy.exc import IntegrityError
 
+from tests.integration.persistence._legacy_resolution_aggregate import insert_legacy_aggregate
 from tests.integration.persistence._resolution_aggregate import (
     NOW,
     insert_event,
@@ -156,21 +157,24 @@ def test_0003_round_trip_restores_0002_guard_without_residue(
     migrated_database: Engine,
     alembic_config: Config,
 ) -> None:
-    _seed_attestation(migrated_database)
-    assert _CONSTRAINT in _public_function_definitions(migrated_database)
-
-    command.downgrade(alembic_config, "0002_resolution_aggregate")
+    command.downgrade(alembic_config, "0003_rights_attestation_history")
     try:
+        insert_legacy_aggregate(migrated_database, confirmed_at=_CONFIRMED_AT)
+        assert _CONSTRAINT in _public_function_definitions(migrated_database)
+
+        command.downgrade(alembic_config, "0002_resolution_aggregate")
         downgraded = _public_function_definitions(migrated_database)
         assert _CONSTRAINT not in downgraded
         assert "ck_rights_statement_catalog_append_only" in downgraded
         assert _catalog_triggers(migrated_database) == _BASE_TRIGGERS
-    finally:
-        command.upgrade(alembic_config, "head")
+        command.upgrade(alembic_config, "0003_rights_attestation_history")
 
-    assert _CONSTRAINT in _public_function_definitions(migrated_database)
-    before = _history_snapshot(migrated_database)
-    with pytest.raises(IntegrityError) as rejected, migrated_database.begin() as connection:
-        connection.execute(_UPDATE_SUPERSEDED_AT, {"superseded_at": _CONFIRMED_AT})
-    assert_constraint(rejected.value, name=_CONSTRAINT)
-    assert _history_snapshot(migrated_database) == before
+        assert _CONSTRAINT in _public_function_definitions(migrated_database)
+        before = _history_snapshot(migrated_database)
+        with pytest.raises(IntegrityError) as rejected, migrated_database.begin() as connection:
+            connection.execute(_UPDATE_SUPERSEDED_AT, {"superseded_at": _CONFIRMED_AT})
+        assert_constraint(rejected.value, name=_CONSTRAINT)
+        assert _history_snapshot(migrated_database) == before
+    finally:
+        command.downgrade(alembic_config, "base")
+        command.upgrade(alembic_config, "head")
