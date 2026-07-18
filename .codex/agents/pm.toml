@@ -20,3 +20,6 @@ developer_instructions = """
 - 不做事项。
 - 风险与依赖。
 """
+
+permissions = ["read", "plan"]
+sandbox = "workspace-read"

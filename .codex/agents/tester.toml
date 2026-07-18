@@ -20,3 +20,6 @@ developer_instructions = """
 - 失败或跳过原因。
 - 回归风险。
 """
+
+permissions = ["read", "write", "test"]
+sandbox = "workspace-write"

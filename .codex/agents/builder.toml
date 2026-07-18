@@ -20,3 +20,6 @@ developer_instructions = """
 - 对应验收点。
 - 已运行或需要 Tester 复核的命令、场景和结果。
 """
+
+permissions = ["read", "write", "test"]
+sandbox = "workspace-write"

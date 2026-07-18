@@ -1,32 +1,19 @@
-# Operating systems and editors
 .DS_Store
-Thumbs.db
-.idea/
-.vscode/
-*.swp
-
-# Secrets and local overrides
-.env
-.env.*
-!.env.example
-
-# Logs, caches, and generated output
-*.log
-.coverage
-.mypy_cache/
-.pytest_cache/
-.ruff_cache/
-.venv/
-__pycache__/
-*.py[cod]
-.cache/
-coverage/
-htmlcov/
+.agents/
+.symphony-workspaces/
+skills-lock.json
+node_modules/
+npm-debug.log*
+package-lock.json
 dist/
-build/
+coverage/
+artifacts/
+reports/
+test-results/
+playwright-report/
 tmp/
 temp/
 .tmp/
-
-# Local orchestration snapshots
-.symphony-*-prompt.*
+.env
+.env.*
+!.env.example

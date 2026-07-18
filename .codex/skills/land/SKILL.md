@@ -94,7 +94,7 @@ if ! gh pr checks --watch; then
   exit 1
 fi
 
-# Squash-merge after required checks and reviews pass
+# Squash-merge (remote branches auto-delete on merge in this repo)
 gh pr merge --squash --subject "$pr_title" --body "$pr_body"
 ```
 
@@ -124,16 +124,15 @@ Exit codes:
   trigger a fresh CI run. Detect the updated PR head, pull locally, merge
   `origin/main` if needed, add a real author commit, and force-push to retrigger
   CI, then restart the checks loop.
-- If checks fail only on the synthesized merge commit, sync latest
-  `origin/main`, reproduce the failure against the updated branch, fix the
-  verified cause, and rerun CI.
+- If all jobs fail with corrupted pnpm lockfile errors on the merge commit, the
+  remediation is to fetch latest `origin/main`, merge, force-push, and rerun CI.
 - If mergeability is `UNKNOWN`, wait and re-check.
 - Do not merge while review comments (human or Codex review) are outstanding.
 - Codex review jobs retry on failure and are non-blocking; use the presence of
   `## Codex Review — <persona>` issue comments (not job status) as the signal
   that review feedback is available.
-- Do not enable auto-merge unless repository policy explicitly requires it;
-  default to manual merge after every required check and review passes.
+- Do not enable auto-merge; this repo has no required checks so auto-merge can
+  skip tests.
 - If the remote PR branch advanced due to your own prior force-push or merge,
   avoid redundant merges; re-run the formatter locally if needed and
   `git push --force-with-lease`.

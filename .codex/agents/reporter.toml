@@ -19,3 +19,6 @@ developer_instructions = """
 - PR/Workpad/CI 状态。
 - 关键文件。
 """
+
+permissions = ["read"]
+sandbox = "workspace-read"

@@ -20,3 +20,6 @@ developer_instructions = """
 - 依赖关系。
 - 可直接支撑 PM 或 Builder 决策的证据。
 """
+
+permissions = ["read"]
+sandbox = "workspace-read"

@@ -13,7 +13,6 @@ tracker:
     - Cancelled
     - Canceled
     - Duplicate
-    - Blocked
     - Done
 polling:
   interval_ms: 5000
@@ -33,13 +32,23 @@ agent:
   max_turns: 20
   runtime_by_label:
     agent:codex: codex
+    agent:claude: claude
+    agent:cursor: cursor
     reviewer:codex: codex
+    reviewer:claude: claude
+    reviewer:cursor: cursor
 codex:
   command: codex --config shell_environment_policy.inherit=all --config 'model="gpt-5.6-sol"' --config model_reasoning_effort=xhigh app-server
   approval_policy: never
   thread_sandbox: danger-full-access
   turn_sandbox_policy:
     type: dangerFullAccess
+claude:
+  command: claude -p --dangerously-skip-permissions --permission-mode bypassPermissions
+  prompt_mode: stdin
+cursor:
+  command: cursor-agent -p --force --sandbox disabled --output-format stream-json --stream-partial-output --approve-mcps
+  prompt_mode: argument
 ---
 
 You are working on a Linear ticket `{{ issue.identifier }}`
@@ -80,7 +89,11 @@ Work only in the provided repository copy. Do not touch any other path.
 Symphony selects the agent runtime from Linear labels configured in `agent.runtime_by_label`:
 
 - `agent:codex` → Codex app-server
+- `agent:claude` → Claude CLI
+- `agent:cursor` → Cursor CLI
 - `reviewer:codex` → Codex app-server during `Agent Review`
+- `reviewer:claude` → Claude CLI during `Agent Review`
+- `reviewer:cursor` → Cursor CLI during `Agent Review`
 
 When no matching label is present, Symphony uses `agent.default_runtime` (`codex` by default).
 When the issue is in `Agent Review`, `reviewer:*` labels take precedence over `agent:*` labels so the implementation agent and reviewing agent can differ.
@@ -92,8 +105,9 @@ The agent should be able to talk to Linear, either via a configured Linear MCP s
 ## Default posture
 
 - Start by determining the ticket's current status, then follow the matching flow for that status.
-- Start every task by locating the project execution documents that directly govern it, such as linked requirements, designs, plans, and task documents, and use them as the SDD source of truth during execution.
-- Standard SDD means execution-document first: clarify expected behavior, scope boundaries, validation, and non-goals before implementation starts.
+- The repository delivery chain is `Design → PRD → Plan → Acceptance`; link these documents in the workpad and never reverse their order.
+- Before implementation, verify that Design defines the accepted solution, PRD defines scope and measurable acceptance, and Plan is execution-ready. Fill missing upstream stages before coding.
+- After implementation, complete Acceptance against Design, PRD, and Plan with commands, evidence, results, and residual risks. Operations material is post-acceptance support, not another core stage.
 - Start every task by opening the tracking workpad comment and bringing it up to date before doing new implementation work.
 - Spend extra effort up front on planning and verification design before implementation.
 - Reproduce first: always confirm the current behavior/issue signal before changing code so the fix target is explicit.
@@ -168,7 +182,7 @@ Allowed commit types are fixed: `test:`, `docs:`, `impl:`, `chore:`, `feat:`, an
    - `Todo` -> immediately move to `In Progress`, then ensure bootstrap workpad comment exists (create if missing), then start execution flow.
      - If PR is already attached, start by reviewing all open PR comments and deciding required changes vs explicit pushback responses.
    - `In Progress` -> continue execution flow from the current workpad and project execution documents.
-   - `Agent Review` -> the designated reviewer derives a numbered acceptance checklist from the project execution documents, ticket requirements, and workpad. Then verify every item and record its method, evidence, and `passed`, `failed`, or `blocked` result. If any item fails, is blocked, or lacks evidence, leave comments, restore the developer's `agent:*` label, and move the issue to `Rework`. Move to `Human Review` only when every acceptance item passes.
+   - `Agent Review` -> the designated reviewing agent derives a numbered acceptance checklist from the project execution documents, ticket requirements, and workpad. Verify every item and record its method, evidence, and `passed`, `failed`, or `blocked` result. If any item fails, is blocked, or lacks evidence, leave comments, restore the developer's `agent:*` label, and move the issue to `Rework`. Move to `Human Review` only when every acceptance item passes.
    - `Human Review` -> wait and poll for decision/review updates.
    - `Merging` -> on entry, open and follow `.codex/skills/land/SKILL.md`; before merge, create and push a pre-merge annotated tag for the exact commit being landed. Do not call `gh pr merge` directly.
    - `Rework` -> run the rework flow from the failed or blocked acceptance items.
@@ -266,7 +280,7 @@ Use this only when completion is blocked by missing required tools or missing au
     - You may make temporary local proof edits to validate assumptions (for example: tweak a local build input for `make`, or hardcode a UI account / response path) when this increases confidence.
     - Revert every temporary proof edit before commit/push.
     - Document these temporary proof steps and outcomes in the workpad `Validation`/`Notes` sections so reviewers can follow the evidence.
-    - If the change affects a running interface, execute the documented runtime validation and capture durable evidence before handoff.
+    - If app-touching, run `launch-app` validation and capture/upload media via `github-pr-media` before handoff.
 6.  Re-check all acceptance criteria and close any gaps.
 7.  Before every `git push` attempt, run the required validation for your scope and confirm it passes; if it fails, address issues and rerun until green, then commit and push changes.
 8.  Attach PR URL to the issue (prefer attachment; use the workpad comment only if attachment is unavailable).
@@ -289,9 +303,9 @@ Use this only when completion is blocked by missing required tools or missing au
     - Repeat this check-address-verify loop until no outstanding comments remain and checks are fully passing.
     - Re-open and refresh the workpad before state transition so `Plan`, `Acceptance Criteria`, and `Validation` exactly match completed work.
 12. Only then prepare to move the issue to `Agent Review`.
-    - Check if the issue has the `reviewer:codex` label.
+    - Check if the issue has a `reviewer:*` label (e.g. `reviewer:claude`, `reviewer:codex`).
     - If a specific reviewer label is present, leave it in place; Symphony will prefer it while the issue is in `Agent Review`.
-    - If no reviewer label is present, add `reviewer:codex` before moving to `Agent Review`; do not rely on `agent.default_runtime` for review routing.
+    - If no reviewer label is present, add `reviewer:claude` before moving to `Agent Review`; do not rely on `agent.default_runtime` for review routing.
     - Finally, move the issue to `Agent Review`.
     - Exception: if blocked by missing required non-GitHub tools/auth per the blocked-access escape hatch, move to `Blocked` with the blocker brief and explicit unblock actions.
 13. For `Todo` tickets that already had a PR attached at kickoff:
@@ -301,7 +315,7 @@ Use this only when completion is blocked by missing required tools or missing au
 
 ## Step 3: Agent Review, Human Review and merge handling
 
-1. When the issue is in `Agent Review`, the designated reviewing agent must perform item-by-item acceptance.
+1. When the issue is in `Agent Review`, the designated reviewing agent must perform item-by-item acceptance directly from the governing documents, ticket, PR, and workpad.
    - Locate and read the project execution documents directly governing the task, then read the Linear issue, required validation sections, and current workpad.
    - Before testing, create a complete numbered checklist (`AC-01`, `AC-02`, ...) in `### Agent Review`. For every item, define the source, expected result, acceptance method, and required evidence.
    - Review items in number order. Record the actual evidence and exactly one result for each item: `passed`, `failed`, or `blocked`.
@@ -335,7 +349,7 @@ Use this only when completion is blocked by missing required tools or missing au
    - Build a fresh plan/checklist and execute end-to-end.
    - Re-run every required Step 1/2 gate, including execution-document reconciliation, PR feedback sweep, checks, validation, PR metadata, and the full `Completion bar before Agent Review`.
    - After rework fixes are complete, move only to `Agent Review`; the reviewer is the only agent that may approve the issue into `Human Review`.
-   - Preserve the issue's `reviewer:*` label if present, or add `reviewer:codex` before returning to `Agent Review`.
+   - Preserve the issue's `reviewer:*` label if present, or add `reviewer:claude` before returning to `Agent Review`.
 
 ## Completion bar before Agent Review
 

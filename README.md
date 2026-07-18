@@ -1,39 +1,31 @@
 # video-server
 
-`video-server` 是“授权视频下载与 AI 知识化工作台”的服务端。它负责来源能力与合规策略、异步媒体任务、清晰度目录、授权下载、AI 内容解析、思维导图和 PDF 导出。
+`video-server` 是待重新设计的服务端仓库。
 
-## 当前阶段
+## 当前状态
 
-项目正在从全新设计基线开始实施。现行事实链位于 `docs/`：
+- 现有产品设计、PRD、Plan 和 Acceptance 已清除。
+- 当前没有已确认的服务范围、功能需求、技术选型、API 或数据库模型。
+- 当前没有业务源码、依赖、测试、migration、schema、fixture 或业务运行配置。
+- 仓库只保留项目治理文件与文档分类骨架。
 
-1. Design：产品边界、技术架构和 API/状态契约。
-2. PRD：MVP 需求、非目标与可量化验收指标。
-3. Plan：按依赖顺序拆分的单一闭环实施计划。
-4. Acceptance：实现前冻结的验收方法和实现后补充的证据。
+## 重新设计门禁
 
-当前首个基础切片是：
+后续工作固定遵循：
 
-```text
-邮箱 UUID 用户 -> PostgreSQL 会话/owner -> 可恢复邮件 intent -> Redis/outbox -> MinIO 对象 Saga
-```
+`Design → PRD → Plan → Acceptance`
 
-完成该基础后才继续 URL 策略与清晰度解析；实际视频下载、AI 转录总结、思维导图和 PDF 将在后续 Plan 中依次实现。
+下一轮必须先在 Design 中确认服务目标、用户、能力边界、非目标、技术架构、API、数据、安全与风险。Design accepted 前不创建 PRD、Plan 或业务实现。
 
-## 产品原则
+## 项目规范
 
-- 默认拒绝未评审来源，不绕过 DRM、登录、付费墙、下载禁用或平台限制。
-- 只展示来源真实存在的媒体规格，不伪造清晰度。
-- PostgreSQL 保存用户、会话、任务、outbox 和资产元数据的唯一业务真相；Redis 只承载可重建队列/唤醒/缓存/限流。
-- MinIO 只保存私有二进制并由 PostgreSQL Saga 管理；归档的 Community Server 在生产风险决策完成前保持 blocked。
-- 原始媒体、转写与导出遵循最小化、私有和可删除原则。
-- Git 历史仅用于追溯，不构成现行需求或架构依据。
+本仓库按 [stephen-codex](https://github.com/StephenQiu30/stephen-codex) 当前 `main` 整理：
 
-## 仓库入口
+- `AGENTS.md`：长期协作、交付与 Git 规则。
+- `AGENTS.local.md`：本仓库边界与重新设计门禁。
+- `WORKFLOW.md`：Symphony/Linear 编排契约。
+- `.codex/`：Agent 角色与核心流程。
+- `docs/`：正式文档分类骨架。
+- `.github/`：PR 模板与基础 CI。
 
-- `AGENTS.md`：Codex 长期工程规范。
-- `AGENTS.local.md`：服务端产品边界与当前实施门禁。
-- `WORKFLOW.md`：Codex 编排与交付流程。
-- `docs/README.md`：执行文档索引和状态。
-- `.codex/`：项目级 Codex Subagent 与 Skill。
-
-工程运行和验证命令随 Plan 000 的 TDD 切片落地并回填 Acceptance。
+文档入口见 [`docs/README.md`](docs/README.md)。当前不提供安装、运行或部署命令。
