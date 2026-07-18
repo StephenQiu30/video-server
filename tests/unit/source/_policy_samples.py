@@ -120,6 +120,6 @@ def trust_store(*, operator: bool = False) -> dict[str, Any]:
             "path": "/videos/",
             "proof_sha256": PROOF_HASH,
             "verified_at": "2026-07-18T00:00:00Z",
-            "expires_at": "2026-07-25T00:00:00Z",
+            "expires_at": "2026-07-30T00:00:00Z",
         }
     return {"schema_version": "1.0", "keys": [key]}

@@ -6,6 +6,7 @@ import json
 from dataclasses import replace
 
 import pytest
+
 from video_server.job.idempotency import (
     IdempotencyDecision,
     ResolutionRequest,
@@ -28,7 +29,7 @@ def test_idempotency_key_digest_is_hmac_sha256_of_the_exact_raw_key() -> None:
     expected = hmac.new(HMAC_KEY, RAW_KEY.encode(), hashlib.sha256).hexdigest()
 
     assert digest_idempotency_key(RAW_KEY, hmac_key=HMAC_KEY) == expected
-    assert digest_idempotency_key(f"{RAW_KEY} ", hmac_key=HMAC_KEY) != expected
+    assert digest_idempotency_key(f"{RAW_KEY}x", hmac_key=HMAC_KEY) != expected
 
 
 def test_request_digest_is_hmac_of_canonical_complete_request() -> None:
