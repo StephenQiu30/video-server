@@ -38,7 +38,7 @@ class RightsAttestation:
 
 
 @dataclass(frozen=True, slots=True)
-class _CatalogEntry:
+class RightsCatalogEntry:
     statement: RightsStatement
     superseded_at: datetime | None
 
@@ -67,8 +67,13 @@ class RightsCatalog:
 
     _SUPPORTED_LOCALES = frozenset({"zh-CN", "en-US"})
 
-    def __init__(self, entries: tuple[_CatalogEntry, ...]) -> None:
+    def __init__(self, entries: tuple[RightsCatalogEntry, ...]) -> None:
         self._entries = entries
+
+    @property
+    def entries(self) -> tuple[RightsCatalogEntry, ...]:
+        """Return the validated immutable records in document order."""
+        return self._entries
 
     @classmethod
     def load(cls, path: str | Path) -> RightsCatalog:
@@ -143,7 +148,7 @@ class RightsCatalog:
             if next(validator.iter_errors(payload), None) is not None:
                 raise ValueError("catalog schema validation failed")
 
-            parsed_entries: list[_CatalogEntry] = []
+            parsed_entries: list[RightsCatalogEntry] = []
             identities: set[tuple[str, str]] = set()
             for raw_entry in payload["entries"]:
                 identity = (raw_entry["version"], raw_entry["locale"])
@@ -170,7 +175,7 @@ class RightsCatalog:
                 ):
                     raise ValueError("invalid catalog lifecycle")
                 parsed_entries.append(
-                    _CatalogEntry(
+                    RightsCatalogEntry(
                         RightsStatement(
                             version=identity[0],
                             locale=identity[1],
