@@ -5,6 +5,9 @@ skills-lock.json
 node_modules/
 npm-debug.log*
 package-lock.json
+.venv/
+__pycache__/
+*.py[cod]
 dist/
 coverage/
 artifacts/
