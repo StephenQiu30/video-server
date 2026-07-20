@@ -16,3 +16,9 @@ def test_forbidden_optional_infrastructure_is_not_declared() -> None:
 
     for forbidden in ("celery", "redis", "cobalt", "metube"):
         assert forbidden not in pyproject.lower()
+
+
+def test_minio_api_and_console_are_exposed_through_environment_ports() -> None:
+    compose = (ROOT / "compose.yml").read_text(encoding="utf-8")
+    assert '"${MINIO_API_PORT:?MINIO_API_PORT is required}:9000"' in compose
+    assert '"${MINIO_CONSOLE_PORT:?MINIO_CONSOLE_PORT is required}:9001"' in compose
