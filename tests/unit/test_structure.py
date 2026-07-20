@@ -28,3 +28,4 @@ def test_container_build_sets_reproducible_python_timestamp_source() -> None:
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     assert "SOURCE_DATE_EPOCH=0" in dockerfile
     assert "UV_COMPILE_BYTECODE=0" in dockerfile
+    assert "find /app/.venv -exec touch -h -d '@0' {} +" in dockerfile
