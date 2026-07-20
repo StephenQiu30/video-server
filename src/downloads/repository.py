@@ -97,9 +97,15 @@ class DownloadRepository:
     ) -> DownloadJob:
         """Create a queued job, returning an idempotent replay when present."""
         existing = await self.session.scalar(
-            select(DownloadJob).where(
+            select(DownloadJob)
+            .where(
                 DownloadJob.owner_token_hash == owner_token_hash,
                 DownloadJob.client_request_id == client_request_id,
+            )
+            .options(
+                selectinload(DownloadJob.source),
+                selectinload(DownloadJob.format),
+                selectinload(DownloadJob.artifact),
             )
         )
         if existing is not None:
@@ -134,15 +140,27 @@ class DownloadRepository:
         except IntegrityError:
             await self.session.rollback()
             replay = await self.session.scalar(
-                select(DownloadJob).where(
+                select(DownloadJob)
+                .where(
                     DownloadJob.owner_token_hash == owner_token_hash,
                     DownloadJob.client_request_id == client_request_id,
+                )
+                .options(
+                    selectinload(DownloadJob.source),
+                    selectinload(DownloadJob.format),
+                    selectinload(DownloadJob.artifact),
                 )
             )
             if replay is None:
                 raise
             return replay
-        return job
+        # The API serializes the job after this unit of work returns.  Eagerly
+        # load every response relationship before the caller commits/closes
+        # the session so a detached ORM object cannot trigger lazy loading.
+        loaded = await self.get_worker_job(job.id, lock=False)
+        if loaded is None:  # pragma: no cover - the just-flushed row must exist
+            raise NotFoundError("download job not found")
+        return loaded
 
     async def get_job(
         self, owner_token_hash: str, job_id: uuid.UUID, *, lock: bool = False

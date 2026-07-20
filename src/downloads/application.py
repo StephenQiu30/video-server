@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from src.core.errors import AppError
 from src.downloads.models import DownloadJob
@@ -29,9 +30,15 @@ class DownloadApplicationService:
     ) -> tuple[Any, bool]:
         async with self.session_factory() as session:
             existing = await session.scalar(
-                select(DownloadJob).where(
+                select(DownloadJob)
+                .where(
                     DownloadJob.owner_token_hash == owner_token_hash,
                     DownloadJob.client_request_id == client_request_id,
+                )
+                .options(
+                    selectinload(DownloadJob.source),
+                    selectinload(DownloadJob.format),
+                    selectinload(DownloadJob.artifact),
                 )
             )
             if existing is not None:
