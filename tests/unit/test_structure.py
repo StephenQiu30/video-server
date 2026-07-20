@@ -27,3 +27,4 @@ def test_minio_api_and_console_are_exposed_through_environment_ports() -> None:
 def test_container_build_sets_reproducible_python_timestamp_source() -> None:
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     assert "SOURCE_DATE_EPOCH=0" in dockerfile
+    assert "UV_COMPILE_BYTECODE=0" in dockerfile
