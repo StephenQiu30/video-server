@@ -2,14 +2,14 @@
 
 本目录存放设计方案类文档。
 
-## 当前文档
+## 已归档文档
 
-- [001 服务边界与总体架构设计](001-服务边界与总体架构设计.md)：Accepted；开源选型、统一 `.env` 配置、Alembic 边界、部署边界和未来目录结构。
-- [002 视频解析、下载与文件交付设计](002-视频解析下载与文件交付设计.md)：Accepted；yt-dlp/FFmpeg 与 MinIO 交付边界。
-- [003 异步任务与数据库设计](003-异步任务与数据存储设计.md)：Accepted；RabbitMQ、状态机和 4 张 PostgreSQL 业务表。
-- [004 API 契约与异常处理设计](004-API契约与异常处理设计.md)：Accepted；REST/OpenAPI、匿名会话和错误契约。
+- [001 服务边界与总体架构设计](archive/001-服务边界与总体架构设计.md)：Archived；开源选型、统一 `.env` 配置、Alembic 边界和部署边界。
+- [002 视频解析、下载与文件交付设计](archive/002-视频解析下载与文件交付设计.md)：Archived；yt-dlp/FFmpeg 与 MinIO 交付边界。
+- [003 异步任务与数据库设计](archive/003-异步任务与数据存储设计.md)：Archived；RabbitMQ、状态机和 4 张 PostgreSQL 业务表。
+- [004 API 契约与异常处理设计](archive/004-API契约与异常处理设计.md)：Archived；REST/OpenAPI、匿名会话和错误契约。
 
-本组 Design 于 2026-07-20 按最新 MVP 范围确认。PostgreSQL、RabbitMQ、MinIO 为唯一基础设施基线；本目录不保存执行计划。
+本组 Design 于 2026-07-20 确认并由 `main` 实现，现已归档。PostgreSQL、RabbitMQ、MinIO 仍是唯一基础设施基线；新设计放在本目录根级，完成实施后再移入 `archive/`。
 
 ## 执行验收基线（强制）
 

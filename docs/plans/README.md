@@ -4,12 +4,12 @@
 
 ## 当前文档
 
-- [001 服务基座与运行配置计划](001-服务基座与运行配置计划.md)：Ready；无前置 Plan。
-- [003 异步任务与数据持久化计划](003-异步任务与数据持久化计划.md)：Ready；依赖 Plan 001。
-- [002 视频解析、下载与文件交付计划](002-视频解析下载与文件交付计划.md)：Ready；依赖 Plan 001、003。
-- [004 API、会话与异常契约计划](004-API会话与异常契约计划.md)：Ready；依赖 Plan 001、003、002，并负责服务端全量回归。
+- [001 服务基座与运行配置计划](001-服务基座与运行配置计划.md)：Implemented；Acceptance 001 Blocked。
+- [003 异步任务与数据持久化计划](003-异步任务与数据持久化计划.md)：Implemented；Acceptance 003 Blocked。
+- [002 视频解析、下载与文件交付计划](002-视频解析下载与文件交付计划.md)：Implemented；Acceptance 002 Blocked。
+- [004 API、会话与异常契约计划](004-API会话与异常契约计划.md)：Implemented；Acceptance 004 Blocked。
 
-确定执行顺序为 `001 → 003 → 002 → 004`。Ready 只表示任务、文件、Test-first、验证和全部 `Sxxx-DAC/AC` 映射完整；Acceptance 已预定义但尚无执行证据或结论，用户尚未授权实现，不创建业务代码。
+执行已按 `001 → 003 → 002 → 004` 完成并合并到 `main`。Plan 在对应 Acceptance 变为 Accepted 前继续留在活动目录；此处的 Implemented 只表示代码任务完成，不代表强验收通过。
 
 任一上游变化、编号缺少任务/验证/证据、真实依赖不可用或全量命令失败时，对应 Plan 立即失去 Ready 或在执行时标记 `blocked/failed`。
 
