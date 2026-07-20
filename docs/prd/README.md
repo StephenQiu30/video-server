@@ -6,15 +6,14 @@ PRD 的核心目的不是堆叠描述，而是让需求更清楚，让代码更�
 
 ## 当前文档
 
-- [001 服务基础与可部署性需求](001-服务基础与可部署性需求.md)：Accepted for Planning。
-- [002 视频解析下载与文件交付需求](002-视频解析下载与文件交付需求.md)：Accepted for Planning。
-- [003 异步任务与数据持久化需求](003-异步任务与数据持久化需求.md)：Accepted for Planning。
-- [004 AI 内容提取需求](004-AI内容提取需求.md)：Accepted for Planning。
-- [005 API 契约与异常治理需求](005-API契约与异常治理需求.md)：Accepted for Planning。
+- [001 服务基座与运行配置需求](001-服务基座与运行配置需求.md)：Accepted for Planning；对应 Design/Plan 001。
+- [002 视频解析、下载与文件交付需求](002-视频解析下载与文件交付需求.md)：Accepted for Planning；对应 Design/Plan 002。
+- [003 异步任务与数据持久化需求](003-异步任务与数据持久化需求.md)：Accepted for Planning；对应 Design/Plan 003。
+- [004 API、会话与异常契约需求](004-API会话与异常契约需求.md)：Accepted for Planning；对应 Design/Plan 004。
 
-每份 PRD 与同编号 Design、Plan 一一对应。该状态仅允许进入规划与后续执行门禁，不代表功能已实现。
+4 份 PRD 按 Design 职责一一对应，不重复保存总需求。PRD 与 Plan 完成不代表功能已实现。
 
-PRD 的 `Sxxx-AC-*` 只能补充产品验收，不得删除、合并或降低上游 Design 的 `Sxxx-DAC-*`；发现冲突必须先回到 Design 修订并重新确认。
+PRD 的 `Sxxx-AC-*` 只能补充产品验收，不得删除、合并或降低同编号 Design 的 `Sxxx-DAC-*`；发现冲突必须先回到 Design 修订并重新确认。
 
 ## 适合放入
 
@@ -47,4 +46,4 @@ PRD 建议按以下结构扩展：
 7. `状态模型`：列出核心状态、含义和流转约束。
 8. `技术方案`：只写影响产品边界和验收的技术方案，不替代 design 文档。
 9. `首版验收门禁`：列出必须满足的可验证验收项。
-10. `待确认问题`：列出需要产品、研发、QA 或运营继续确认的问题。
+10. `冻结决策`：列出当前版本唯一有效且不得在实现阶段临时替换的选择。

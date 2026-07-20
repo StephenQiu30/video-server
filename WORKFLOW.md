@@ -106,8 +106,8 @@ The agent should be able to talk to Linear, either via a configured Linear MCP s
 
 - Start by determining the ticket's current status, then follow the matching flow for that status.
 - The repository delivery chain is `Design → PRD → Plan → Acceptance`; link these documents in the workpad and never reverse their order.
-- Before implementation, verify that Design defines the accepted solution, PRD defines scope and measurable acceptance, and Plan is execution-ready. Fill missing upstream stages before coding.
-- After implementation, complete Acceptance against Design, PRD, and Plan with commands, evidence, results, and residual risks. Operations material is post-acceptance support, not another core stage.
+- Before implementation, verify that Design defines the accepted solution, PRD defines scope and measurable acceptance, Plan is execution-ready, and the corresponding Acceptance is `Defined` with stage prerequisites, task checks, DAC/AC, commands, and evidence requirements. Fill missing stages before coding.
+- After implementation, complete that same Acceptance against Design, PRD, and Plan with actual commands, evidence, results, and residual risks. Do not create a replacement report or weaken the frozen criteria. Operations material is post-acceptance support, not another core stage.
 - Start every task by opening the tracking workpad comment and bringing it up to date before doing new implementation work.
 - Spend extra effort up front on planning and verification design before implementation.
 - Reproduce first: always confirm the current behavior/issue signal before changing code so the fix target is explicit.

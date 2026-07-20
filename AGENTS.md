@@ -19,14 +19,14 @@
 1. `Design`：定义目标与非目标、架构、接口/数据契约、状态流、失败路径、安全、迁移/回滚以及编号化 Design Acceptance Criteria（DAC）和证据要求。
 2. `PRD`：基于 accepted Design 固化用户价值、范围、业务规则和编号化产品 Acceptance Criteria（AC），不得降低 DAC。
 3. `Plan`：显式映射全部 DAC 与 AC，拆分 test-first 实现、依赖、验证命令和交付顺序；缺项或冲突时状态不得为 Ready。
-4. `Acceptance`：只记录当前实现的命令、退出码、证据和逐项结论，不在验收阶段新增、删除、合并或降级标准。
+4. `Acceptance`：在对应 Plan 实现前以 `Defined` 状态冻结阶段前置条件、逐任务验收、DAC/AC、命令和证据要求；实现后只在同一文档补充实际命令、退出码、证据和逐项结论，不新增、删除、合并或降级标准。
 5. `Operations`：只承载 accepted 后的发布、部署、备份、恢复和回滚说明，不增加核心交付阶段。
 
-上游变化时必须先更新所有受影响的下游文档。Design 与 PRD accepted、Plan Ready 且用户明确要求实现前，不得创建业务实现。
+上游变化时必须先更新所有受影响的下游文档。Design 与 PRD accepted、Plan Ready、对应 Acceptance 为 Defined 且用户明确要求实现前，不得创建业务实现。
 
 ## SDD、TDD 与验收
 
-1. SDD 是实现前置门禁；复杂行为必须先由 Design、PRD 和 Plan 完整定义。
+1. SDD 是实现前置门禁；复杂行为必须先由 Design、PRD、Plan 和对应的 Defined Acceptance 完整定义。
 2. 核心逻辑默认 TDD：先写能证明需求尚未满足的 Red，再用最小实现得到 Green，最后在绿灯保护下 Refactor。
 3. RAG 在本项目仅指 Red/Green 红绿测试门禁，不指检索增强生成；红绿证据必须记录具体命令、失败信号和通过结果。
 4. 无法先写自动测试时，必须在实现前说明原因并定义最接近的可执行验收，不能用实现后的解释替代。

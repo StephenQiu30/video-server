@@ -4,19 +4,18 @@
 
 ## 当前文档
 
-- [001 服务边界与总体架构设计](001-服务边界与总体架构设计.md)：Accepted；6 项执行验收标准。
-- [002 视频解析、下载与文件交付设计](002-视频解析下载与文件交付设计.md)：Accepted；8 项执行验收标准。
-- [003 异步任务与数据存储设计](003-异步任务与数据存储设计.md)：Accepted；8 项执行验收标准。
-- [004 AI 内容提取设计](004-AI内容提取设计.md)：Accepted；8 项执行验收标准。
-- [005 API 契约与异常处理设计](005-API契约与异常处理设计.md)：Accepted；7 项执行验收标准。
+- [001 服务边界与总体架构设计](001-服务边界与总体架构设计.md)：Accepted；开源选型、统一 `.env` 配置、Alembic 边界、部署边界和未来目录结构。
+- [002 视频解析、下载与文件交付设计](002-视频解析下载与文件交付设计.md)：Accepted；yt-dlp/FFmpeg 与 MinIO 交付边界。
+- [003 异步任务与数据库设计](003-异步任务与数据存储设计.md)：Accepted；RabbitMQ、状态机和 4 张 PostgreSQL 业务表。
+- [004 API 契约与异常处理设计](004-API契约与异常处理设计.md)：Accepted；REST/OpenAPI、匿名会话和错误契约。
 
-本组 Design 已于 2026-07-19 确认，并按相同编号拆分为 [PRD](../prd/README.md) 与 [Plan](../plans/README.md)。本目录不保存执行计划。
+本组 Design 于 2026-07-20 按最新 MVP 范围确认。PostgreSQL、RabbitMQ、MinIO 为唯一基础设施基线；本目录不保存执行计划。
 
 ## 执行验收基线（强制）
 
 1. 验收来源固定为 Design 的 `Sxxx-DAC-*`、PRD 的 `Sxxx-AC-*` 和对应 Plan；三者冲突或缺项时 Plan 立即失去 Ready 状态，必须先回到上游修订。
 2. 每项必须在 Design 阶段写明必须证明的行为、失败边界、验证方式和证据；Acceptance 只记录结果，不得现场重写标准。
-3. 单元测试和 fixture 用于快速约束，但不能替代 Design 指定的真实 PostgreSQL、RabbitMQ、MinIO、FFmpeg、yt-dlp、faster-whisper 或模型 Provider 集成证据。
+3. 单元测试和 fixture 用于快速约束，但不能替代 Design 指定的真实 PostgreSQL、RabbitMQ、MinIO、FFmpeg、yt-dlp 和受控文件下载集成证据。
 4. 全量测试必须零失败；Ruff、格式、类型检查、构建和迁移检查必须零错误。新增业务代码综合覆盖率不得低于 90%，关键状态机、安全、故障和幂等分支必须逐项覆盖。
 5. 证据必须来自当前 Git commit，包含完整命令、退出码、依赖与环境版本、日志或测试报告；历史结果、其他分支、口头判断和局部成功无效。
 6. 每项只允许 `passed`、`failed`、`blocked`。缺环境、Secret、外部服务或受控真实样例时是 `blocked`，不是通过理由。
