@@ -29,4 +29,5 @@ def test_container_build_sets_reproducible_python_timestamp_source() -> None:
     assert "SOURCE_DATE_EPOCH=0" in dockerfile
     assert "UV_COMPILE_BYTECODE=0" in dockerfile
     assert "find /app/.venv -name uv_cache.json -delete" in dockerfile
+    assert "find /app/.venv -name RECORD -exec sed -i '/uv_cache.json/d' {} +" in dockerfile
     assert "find /app/.venv -exec touch -h -d '@0' {} +" in dockerfile
