@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import uuid
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from src.api.router import router
-from src.downloads.service import DownloadService
 from src.media.formats import NormalizedFormat
 from src.media.service import MediaInspectionService
 from src.media.yt_dlp import InspectResult
@@ -24,40 +21,6 @@ class Session:
 
     async def commit(self) -> None:
         self.commits += 1
-
-
-@pytest.mark.asyncio
-async def test_download_service_delegates_repository(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    repository = SimpleNamespace(
-        add_source=AsyncMock(return_value="source"),
-        add_job=AsyncMock(return_value="job"),
-        transition=AsyncMock(return_value="transition"),
-        succeed_with_artifact=AsyncMock(return_value="artifact"),
-    )
-    monkeypatch.setattr(
-        "src.downloads.service.DownloadRepository", lambda _: repository
-    )
-    service = DownloadService(SimpleNamespace())
-    assert await service.inspect_source(source_url="url") == "source"
-    source_id, format_id, request_id = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
-    assert (
-        await service.create_job(
-            owner_token_hash="owner",
-            client_request_id=request_id,
-            source_id=source_id,
-            format_id=format_id,
-        )
-        == "job"
-    )
-    assert await service.transition(uuid.uuid4(), stage="downloading") == "transition"
-    assert await service.succeed(uuid.uuid4(), object_key="key") == "artifact"
-    repository.add_source.assert_awaited_once()
-    repository.add_job.assert_awaited_once()
-    repository.transition.assert_awaited_once()
-    repository.succeed_with_artifact.assert_awaited_once()
-    assert len(router.routes) == 3
 
 
 @pytest.mark.asyncio

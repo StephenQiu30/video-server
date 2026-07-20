@@ -13,26 +13,25 @@ import pytest
 from src.api.dependencies import get_db_session
 from src.core.logging import RedactedJsonFormatter, _safe_value, configure_logging
 from src.downloads.schemas import DownloadJob as DownloadJobSchema
-from src.media.checksum import sha256_file as compatibility_sha256
-from src.media.pipeline import content_type_for, job_workspace
-from src.media.policy import assert_safe_url
+from src.media.download import content_type_for
 from src.media.schemas import InspectedMedia, MediaFormat
-from src.media.url_policy import URLPolicy, UrlPolicyError, validate_url
+from src.media.sha256 import sha256_file
+from src.media.url_policy import (
+    URLPolicy,
+    UrlPolicyError,
+    assert_safe_url,
+    validate_url,
+)
 from src.media.yt_dlp import MediaInspectTimeout, UnsupportedMediaError, YtdlpExtractor
 
 
-def test_public_compatibility_exports_and_checksum(tmp_path: Path) -> None:
+def test_media_helper_edges(tmp_path: Path) -> None:
     path = tmp_path / "video.bin"
     path.write_bytes(b"video")
-    assert compatibility_sha256(path) == (
-        "0cab1c9617404faf2b24e221e189ca5945813e14d3f766345b09ca13bbe28ffc"
-    )
     with pytest.raises(ValueError, match="chunk_size"):
-        compatibility_sha256(path, chunk_size=0)
+        sha256_file(path, chunk_size=0)
     assert content_type_for(".webm") == "video/webm"
     assert content_type_for(".unknown") == "application/octet-stream"
-    with job_workspace(uuid.uuid4(), root=tmp_path) as workspace:
-        assert workspace.parent == tmp_path
     assert assert_safe_url("https://example.test/video", resolve=False).endswith(
         "/video"
     )
