@@ -10,6 +10,7 @@ __pycache__/
 *.py[cod]
 dist/
 coverage/
+.coverage
 artifacts/
 reports/
 test-results/
