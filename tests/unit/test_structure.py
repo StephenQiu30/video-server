@@ -22,3 +22,8 @@ def test_minio_api_and_console_are_exposed_through_environment_ports() -> None:
     compose = (ROOT / "compose.yml").read_text(encoding="utf-8")
     assert '"${MINIO_API_PORT:?MINIO_API_PORT is required}:9000"' in compose
     assert '"${MINIO_CONSOLE_PORT:?MINIO_CONSOLE_PORT is required}:9001"' in compose
+
+
+def test_container_build_sets_reproducible_python_timestamp_source() -> None:
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    assert "SOURCE_DATE_EPOCH=0" in dockerfile
