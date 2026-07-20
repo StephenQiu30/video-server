@@ -1,4 +1,4 @@
-FROM python:3.12-slim-bookworm
+FROM python:3.12-slim-bookworm AS builder
 
 ARG UV_VERSION=0.7.12
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -10,10 +10,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-RUN apt-get update \
-    && apt-get install --no-install-recommends -y ca-certificates ffmpeg \
-    && rm -rf /var/lib/apt/lists/* \
-    && pip install --no-cache-dir "uv==${UV_VERSION}"
+RUN pip install --no-cache-dir "uv==${UV_VERSION}"
 
 COPY pyproject.toml uv.lock README.md LICENSE alembic.ini ./
 COPY alembic ./alembic
@@ -34,11 +31,25 @@ RUN uv sync --frozen --no-dev \
     && find /tmp -maxdepth 1 -name 'uv-*.lock' -delete \
     && touch -h -d '@0' /root /tmp
 
-RUN useradd --create-home --uid 10001 appuser \
-    && mkdir -p /tmp/video-downloads \
-    && chown -R appuser:appuser /app /tmp/video-downloads \
-    && touch -h -d '@0' /app /tmp /tmp/video-downloads
+FROM python:3.12-slim-bookworm AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/app/.venv/bin:${PATH}" \
+    XDG_CACHE_HOME=/tmp/.cache
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y ca-certificates ffmpeg \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --uid 10001 appuser \
+    && mkdir -p /tmp/video-downloads /tmp/.cache \
+    && chown -R appuser:appuser /app /tmp/video-downloads /tmp/.cache
+
+COPY --from=builder --chown=appuser:appuser /app /app
+
 USER appuser
 
 EXPOSE 19090
-CMD ["uv", "run", "--no-dev", "python", "-m", "src.main"]
+CMD ["python", "-m", "src.main"]

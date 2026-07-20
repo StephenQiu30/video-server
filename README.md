@@ -29,4 +29,4 @@
 - `docs/`：正式文档分类骨架。
 - `.github/`：PR 模板与基础 CI。
 
-文档入口见 [`docs/README.md`](docs/README.md)，运行配置模板见 [`.env.example`](.env.example)，本地编排见 [`compose.yml`](compose.yml)。
+文档入口见 [`docs/README.md`](docs/README.md)，运行配置模板见 [`.env.example`](.env.example) 和 [`.env.prod.example`](.env.prod.example)。默认完整环境、生产覆盖和仅基础设施环境分别由 [`docker-compose.yml`](docker-compose.yml)、[`docker-compose-prod.yml`](docker-compose-prod.yml) 与 [`docker-compose-env.yml`](docker-compose-env.yml) 提供，启动与回滚命令见 [`docs/operations/001-Docker部署操作.md`](docs/operations/001-Docker部署操作.md)。

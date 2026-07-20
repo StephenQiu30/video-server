@@ -1,0 +1,23 @@
+services:
+  api:
+    image: ${VIDEO_SERVER_IMAGE:?VIDEO_SERVER_IMAGE is required in prod}
+    pull_policy: always
+    environment:
+      APP_ENV: production
+    restart: always
+
+  worker-download:
+    image: ${VIDEO_SERVER_IMAGE:?VIDEO_SERVER_IMAGE is required in prod}
+    pull_policy: always
+    environment:
+      APP_ENV: production
+    restart: always
+
+  postgres:
+    restart: always
+
+  rabbitmq:
+    restart: always
+
+  minio:
+    restart: always

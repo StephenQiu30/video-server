@@ -1,0 +1,142 @@
+name: video-server
+
+x-app-environment: &app-environment
+  APP_ENV: ${APP_ENV:-development}
+  APP_HOST: 0.0.0.0
+  APP_PORT: ${APP_PORT:?APP_PORT is required}
+  APP_PUBLIC_ORIGIN: ${APP_PUBLIC_ORIGIN:?APP_PUBLIC_ORIGIN is required}
+  WEB_ORIGIN: ${WEB_ORIGIN:?WEB_ORIGIN is required}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  APP_VERSION: ${APP_VERSION:-0.1.0}
+  DATABASE_URL: ${COMPOSE_DATABASE_URL:?COMPOSE_DATABASE_URL is required}
+  RABBITMQ_URL: ${COMPOSE_RABBITMQ_URL:?COMPOSE_RABBITMQ_URL is required}
+  RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-video.downloads}
+  RABBITMQ_QUEUE: ${RABBITMQ_QUEUE:-video.download}
+  RABBITMQ_ROUTING_KEY: ${RABBITMQ_ROUTING_KEY:-video.download}
+  RABBITMQ_PREFETCH_COUNT: ${RABBITMQ_PREFETCH_COUNT:-2}
+  MINIO_ENDPOINT: ${COMPOSE_MINIO_ENDPOINT:?COMPOSE_MINIO_ENDPOINT is required}
+  MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:?MINIO_PUBLIC_ENDPOINT is required}
+  MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required}
+  MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required}
+  MINIO_SECURE: ${MINIO_SECURE:-false}
+  MINIO_BUCKET: ${MINIO_BUCKET:?MINIO_BUCKET is required}
+  MINIO_PRESIGNED_URL_TTL_SECONDS: ${MINIO_PRESIGNED_URL_TTL_SECONDS:-900}
+  SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
+  SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-video_session}
+  SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-86400}
+  YTDLP_ALLOWED_EXTRACTORS: ${YTDLP_ALLOWED_EXTRACTORS:-default}
+  INSPECT_TIMEOUT_SECONDS: ${INSPECT_TIMEOUT_SECONDS:-30}
+  INSPECT_TTL_SECONDS: ${INSPECT_TTL_SECONDS:-900}
+  DOWNLOAD_TIMEOUT_SECONDS: ${DOWNLOAD_TIMEOUT_SECONDS:-1800}
+  MAX_VIDEO_DURATION_SECONDS: ${MAX_VIDEO_DURATION_SECONDS:-7200}
+  MAX_FILE_SIZE_BYTES: ${MAX_FILE_SIZE_BYTES:-2147483648}
+  ARTIFACT_TTL_SECONDS: ${ARTIFACT_TTL_SECONDS:-86400}
+  JOB_TOMBSTONE_TTL_SECONDS: ${JOB_TOMBSTONE_TTL_SECONDS:-604800}
+  WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+  WORKER_TEMP_DIR: /tmp/video-downloads
+  PROGRESS_UPDATE_INTERVAL_SECONDS: ${PROGRESS_UPDATE_INTERVAL_SECONDS:-5}
+  HOUSEKEEPING_INTERVAL_SECONDS: ${HOUSEKEEPING_INTERVAL_SECONDS:-300}
+  RUNNING_STALE_AFTER_SECONDS: ${RUNNING_STALE_AFTER_SECONDS:-900}
+
+x-app-service: &app-service
+  image: ${VIDEO_SERVER_IMAGE:-video-server:local}
+  build:
+    context: .
+    dockerfile: Dockerfile
+    target: runtime
+  environment: *app-environment
+  init: true
+  security_opt:
+    - no-new-privileges:true
+  restart: unless-stopped
+
+services:
+  api:
+    <<: *app-service
+    command: ["sh", "-c", "alembic upgrade head && exec python -m src.main"]
+    ports:
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:?APP_PORT is required}:${APP_PORT:?APP_PORT is required}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:${APP_PORT}/health/ready', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    stop_grace_period: 30s
+
+  worker-download:
+    <<: *app-service
+    command: ["python", "-m", "src.worker"]
+    depends_on:
+      api:
+        condition: service_healthy
+    stop_grace_period: 60s
+
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:17.5-alpine}
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  rabbitmq:
+    image: ${RABBITMQ_IMAGE:-rabbitmq:4.0.9-management}
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER is required}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS is required}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  minio:
+    image: ${MINIO_IMAGE:-minio/minio:RELEASE.2025-02-28T09-55-16Z}
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "${MINIO_API_BIND:-127.0.0.1}:${MINIO_API_PORT:?MINIO_API_PORT is required}:9000"
+      - "${MINIO_CONSOLE_BIND:-127.0.0.1}:${MINIO_CONSOLE_PORT:?MINIO_CONSOLE_PORT is required}:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  minio_data:
