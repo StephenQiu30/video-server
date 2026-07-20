@@ -61,9 +61,11 @@ def test_url_policy_rejects_parser_and_resolver_edges() -> None:
         URLPolicy(resolver=lambda *_: ["127.0.0.1"]).validate(
             "https://example.test/video"
         )
-    assert URLPolicy(resolver=lambda *_: ["8.8.8.8"]).check_redirect(
-        "https://example.test/redirect"
-    ).endswith("/redirect")
+    assert (
+        URLPolicy(resolver=lambda *_: ["8.8.8.8"])
+        .check_redirect("https://example.test/redirect")
+        .endswith("/redirect")
+    )
 
 
 def test_ytdlp_normalization_and_async_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -150,9 +152,10 @@ def test_media_schemas_accept_mapping_decimal_and_naive_dates() -> None:
 
 
 def test_logging_redacts_nested_values_and_exception() -> None:
-    assert _safe_value("payload", {"url": "https://example.test/x?token=secret"})[
-        "url"
-    ] == "https://example.test/x"
+    assert (
+        _safe_value("payload", {"url": "https://example.test/x?token=secret"})["url"]
+        == "https://example.test/x"
+    )
     record = logging.LogRecord(
         "video",
         logging.ERROR,
