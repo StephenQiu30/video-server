@@ -8,7 +8,7 @@ x-server-image: &server-image
     dockerfile: Dockerfile
     target: runtime
     args:
-      NPM_VERSION: ${NPM_VERSION:-11.16.0}
+      NPM_VERSION: ${NPM_VERSION:-11.19.0}
       UV_VERSION: ${UV_VERSION:-0.11.32}
 
 x-service-defaults: &service-defaults

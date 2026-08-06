@@ -2,6 +2,8 @@
 
 本目录是基于 Ant Design Pro 官方技术栈的前端应用：React、Ant Design、Pro Components 与 Umi Max。路由、ProLayout、开发代理、请求和 OpenAPI 生成都由 Umi Max 配置管理，不再维护 Vite 入口、自定义路由器或手写基础布局。
 
+本地与镜像构建统一使用 Node.js 24 LTS（`>=24.15.0 <25`）和 npm 11.19；`package.json` 的 `engines` 与 `packageManager` 是版本事实来源。
+
 ## 本地开发
 
 先在仓库的 `backend/` 目录启动 API：

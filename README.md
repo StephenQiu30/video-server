@@ -19,6 +19,8 @@ server/
 
 ## 本地开发
 
+前端要求 Node.js 24 LTS 与 npm 11.19，具体范围以 `frontend/package.json` 为准。
+
 ```bash
 cd backend
 uv sync --frozen --dev

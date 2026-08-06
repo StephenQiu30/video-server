@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:22-alpine AS frontend-builder
+FROM node:24-alpine AS frontend-builder
 
-ARG NPM_VERSION=11.16.0
+ARG NPM_VERSION=11.19.0
 ENV SOURCE_DATE_EPOCH=0
 WORKDIR /workspace/frontend
 

@@ -13,6 +13,7 @@
 **/htmlcov/
 
 **/node_modules/
+**/.turbopack/
 **/.umi/
 **/src/.umi*/
 **/dist/
