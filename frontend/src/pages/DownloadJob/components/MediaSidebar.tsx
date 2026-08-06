@@ -5,7 +5,7 @@ import {
   SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import { ProCard, ProDescriptions } from '@ant-design/pro-components';
-import { Alert, Button, Flex, Progress, Skeleton } from 'antd';
+import { Alert, Button, Flex, Image, Progress, Skeleton } from 'antd';
 
 import stageCover from '@/assets/product-launch-stage.webp';
 import type {
@@ -56,7 +56,13 @@ export default function MediaSidebar({
       variant="outlined"
     >
       <div className={styles.cover}>
-        <img alt="视频预览封面" src={stageCover} />
+        <Image
+          alt={`${title} 视频封面`}
+          fallback={stageCover}
+          placeholder
+          preview={false}
+          src={inspection?.thumbnail_url ?? stageCover}
+        />
         <PlayCircleOutlined aria-hidden className={styles.play} />
         {inspection ? (
           <span className={styles.duration}>

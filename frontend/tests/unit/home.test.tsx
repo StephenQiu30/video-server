@@ -14,7 +14,7 @@ describe('HomePage', () => {
     render(<HomePage />);
 
     expect(
-      screen.getByRole('heading', { name: '万能视频下载与智能分析' }),
+      screen.getByRole('heading', { name: '万能视频下载' }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText('公开视频地址')).toBeInTheDocument();
     expect(screen.getByText(/仅处理你有权下载的公开内容/)).toBeInTheDocument();
@@ -45,6 +45,9 @@ describe('HomePage', () => {
     fireEvent.click(screen.getByRole('button', { name: '解析视频' }));
 
     expect(await screen.findByText('Owned video')).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: /Owned video 视频封面/ }),
+    ).toHaveAttribute('src', inspection.thumbnail_url);
     expect(screen.getByText(/1920 × 1080/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '开始下载' }));
 

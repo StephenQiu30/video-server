@@ -6,6 +6,7 @@ export const inspection: Inspection = {
   provider_media_id: 'video-1',
   title: 'Owned video',
   duration_seconds: 30,
+  thumbnail_url: 'data:image/jpeg;base64,Y292ZXI=',
   expires_at: '2026-08-06T11:00:00Z',
   formats: [
     {

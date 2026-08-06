@@ -3,11 +3,9 @@ import { PageContainer } from '@ant-design/pro-components';
 import { useParams } from '@umijs/max';
 import {
   Alert,
-  Breadcrumb,
   Button,
   Col,
   Flex,
-  Grid,
   Result,
   Row,
   Skeleton,
@@ -40,7 +38,6 @@ export function DownloadJobPage({
   jobId,
   pollIntervalMs = 1500,
 }: DownloadJobPageProps) {
-  const screens = Grid.useBreakpoint();
   const state = useDownloadJob(jobId, pollIntervalMs);
   const [analysisJob, setAnalysisJob] = useState<AnalysisJob | null>(null);
   const handleAnalysisJob = useCallback((current: AnalysisJob | null) => {
@@ -52,40 +49,34 @@ export function DownloadJobPage({
   const title = state.inspection?.title ?? '下载任务';
 
   return (
-    <PageContainer ghost title={false}>
-      <main
-        className={styles.page}
-        style={{ padding: screens.sm ? '22px 24px 38px' : '18px 14px 30px' }}
-      >
-        <Breadcrumb items={[{ title: '任务' }, { title }]} />
-        <Flex
-          align={screens.sm ? 'center' : 'flex-start'}
-          className={styles.heading}
-          component="header"
-          gap={14}
-          vertical={!screens.sm}
-          wrap
-        >
-          <Flex align="baseline" className={styles.titleRow} gap={12} wrap>
-            <Typography.Title level={1}>{title}</Typography.Title>
-            {state.inspection ? (
-              <span>{metadata(state.inspection.duration_seconds, format)}</span>
-            ) : null}
-          </Flex>
-          <Flex gap={8} wrap>
-            {state.job?.status === 'succeeded' ? (
-              <Tag color="success" icon={<CheckCircleFilled />}>
-                文件已验证
-              </Tag>
-            ) : null}
-            {analysisJob?.status === 'succeeded' ? (
-              <Tag color="processing" icon={<CheckCircleFilled />}>
-                分析已完成
-              </Tag>
-            ) : null}
-          </Flex>
+    <PageContainer
+      breadcrumb={{
+        items: [{ title: '新建下载', href: '/' }, { title: '任务' }],
+      }}
+      className={styles.container}
+      ghost
+      subTitle={
+        state.inspection
+          ? metadata(state.inspection.duration_seconds, format)
+          : undefined
+      }
+      tags={
+        <Flex gap={8} wrap>
+          {state.job?.status === 'succeeded' ? (
+            <Tag color="success" icon={<CheckCircleFilled />}>
+              文件已验证
+            </Tag>
+          ) : null}
+          {analysisJob?.status === 'succeeded' ? (
+            <Tag color="processing" icon={<CheckCircleFilled />}>
+              分析已完成
+            </Tag>
+          ) : null}
         </Flex>
-
+      }
+      title={title}
+    >
+      <main className={styles.page}>
         {state.error ? (
           <Alert
             action={

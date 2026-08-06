@@ -1,4 +1,6 @@
-import { Radio } from 'antd';
+import { DownOutlined, UpOutlined } from '@ant-design/icons';
+import { Button, Radio } from 'antd';
+import { useState } from 'react';
 
 import type { MediaFormat } from '@/types/video';
 
@@ -21,6 +23,8 @@ export default function FormatPicker({
   selectedId,
   onChange,
 }: FormatPickerProps) {
+  const [expanded, setExpanded] = useState(false);
+
   if (formats.length === 0) {
     return <p className={styles.empty}>没有可用的下载格式。</p>;
   }
@@ -33,12 +37,17 @@ export default function FormatPicker({
         onChange={(event) => onChange(event.target.value)}
         value={selectedId}
       >
-        {formats.map((format) => {
+        {(expanded ? formats : formats.slice(0, 4)).map((format, index) => {
           const { plan } = format;
           return (
             <Radio className={styles.option} key={format.id} value={format.id}>
               <span className={styles.copy}>
-                <strong>{format.display_name}</strong>
+                <span className={styles.primary}>
+                  {index === 0 ? (
+                    <span className={styles.recommended}>推荐</span>
+                  ) : null}
+                  <strong>{format.display_name}</strong>
+                </span>
                 <span>
                   {plan.width} × {plan.height} · {fpsLabels[plan.fps_bucket]} ·{' '}
                   {plan.dynamic_range.toUpperCase()}
@@ -53,6 +62,17 @@ export default function FormatPicker({
           );
         })}
       </Radio.Group>
+      {formats.length > 4 ? (
+        <Button
+          block
+          className={styles.expand}
+          icon={expanded ? <UpOutlined /> : <DownOutlined />}
+          onClick={() => setExpanded((value) => !value)}
+          type="text"
+        >
+          {expanded ? '收起格式' : `查看全部 ${formats.length} 个格式`}
+        </Button>
+      ) : null}
     </fieldset>
   );
 }

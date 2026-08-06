@@ -5,43 +5,79 @@
 }
 
 .group legend {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   color: #1f2937;
   font-weight: 600;
 }
 
 .options {
   display: grid;
-  gap: 10px;
+  overflow: hidden;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
 }
 
 .option {
   display: flex;
   width: 100%;
-  padding: 12px 14px;
-  border: 1px solid #dfe5ec;
-  border-radius: 8px;
+  min-height: 58px;
+  padding: 9px 12px;
+  margin: 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.option:last-child {
+  border-bottom: 0;
 }
 
 .option:has(:global(.ant-radio-checked)) {
-  background: #f0f6ff;
-  border-color: #1677ff;
+  background: #fafafa;
+  box-shadow: inset 0 0 0 1px #1f1f1f;
 }
 
 .option > span:last-child {
   flex: 1;
+  min-width: 0;
 }
 
 .copy {
   display: grid;
-  gap: 3px;
+  gap: 2px;
+  min-width: 0;
   color: #64748b;
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.primary {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
 }
 
 .copy strong {
+  overflow: hidden;
   color: #1f2937;
-  font-size: 15px;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recommended {
+  flex: none;
+  padding: 1px 6px;
+  color: #1f1f1f;
+  background: #f1f1f1;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.expand {
+  width: min(100%, 300px);
+  margin: 8px auto 0;
+  color: #525252;
 }
 
 .empty {

@@ -33,7 +33,7 @@ describe('DownloadJobPage', () => {
     render(<DownloadJobPage jobId={job().id} />);
 
     expect(await screen.findByText('下载已完成')).toBeInTheDocument();
-    expect(screen.getAllByText('Owned video.MP4')).toHaveLength(3);
+    expect(screen.getAllByText('Owned video.MP4')).toHaveLength(2);
     expect(screen.queryByText('Owned video.MP4.mp4')).not.toBeInTheDocument();
   });
 

@@ -10,7 +10,13 @@
   aspect-ratio: 16 / 9;
 }
 
-.cover img {
+.cover :global(.ant-image) {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.cover :global(.ant-image-img) {
   width: 100%;
   height: 100%;
   object-fit: cover;

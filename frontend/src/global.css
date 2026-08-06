@@ -1,6 +1,6 @@
 :root {
-  color: #1f2937;
-  background: #f8fafc;
+  color: #1f1f1f;
+  background: #fff;
   font-synthesis: none;
 }
 
@@ -12,7 +12,12 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
-  background: #f8fafc;
+  background: #fff;
+}
+
+.ant-pro-layout .ant-layout-header {
+  border-bottom: 1px solid #ededed;
+  box-shadow: none;
 }
 
 button,
