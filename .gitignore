@@ -5,7 +5,12 @@
 **/.mypy_cache/
 **/.pytest_cache/
 **/.ruff_cache/
-**/.coverage
+**/.coverage*
+**/.hypothesis/
+**/*.egg-info/
+**/*.tsbuildinfo
+**/build/
+**/htmlcov/
 
 **/node_modules/
 **/.umi/

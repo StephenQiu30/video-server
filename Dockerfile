@@ -5,9 +5,8 @@ ENV SOURCE_DATE_EPOCH=0
 WORKDIR /workspace/frontend
 
 RUN npm install --global "npm@${NPM_VERSION}"
-COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
 COPY frontend/ ./
+RUN npm ci
 RUN npm run build
 
 FROM python:3.12-slim-bookworm AS backend-builder

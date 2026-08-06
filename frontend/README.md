@@ -1,21 +1,73 @@
 # Frontend
 
-万能视频下载器的 Vite/React Web 模块。
+本目录是基于 Ant Design Pro 官方技术栈的前端应用：React、Ant Design、Pro Components 与 Umi Max。路由、ProLayout、开发代理、请求和 OpenAPI 生成都由 Umi Max 配置管理，不再维护 Vite 入口、自定义路由器或手写基础布局。
 
-本模块只负责浏览器 UI 和同源 `/api/*` 客户端，不保存基础设施或大模型密钥。开发时运行 `npm run dev`，Vite 固定代理到本地 `19090` 端口；生产时由统一 Dockerfile 构建，静态产物交给 FastAPI 提供，不运行独立 Nginx 容器。
+## 本地开发
+
+先在仓库的 `backend/` 目录启动 API：
+
+```bash
+uv run uvicorn app.main:app --host 127.0.0.1 --port 19090 --reload
+```
+
+然后在本目录执行：
+
+```bash
+npm ci
+npm run dev
+```
+
+开发页面由 Umi Max 启动，`/api/` 与 `/health/` 会代理到 `http://127.0.0.1:19090`。
+
+## 目录
+
+```text
+frontend/
+├── config/
+│   ├── config.ts              Umi Max 插件、主题、请求与构建配置
+│   ├── defaultSettings.ts     ProLayout 默认设置
+│   ├── proxy.ts               本地同源代理
+│   └── routes.ts              页面与菜单路由
+├── src/
+│   ├── app.tsx                Umi 运行时布局与请求配置
+│   ├── requestErrorConfig.ts  API 错误归一化
+│   ├── global.css             全局样式
+│   ├── components/            跨页面复用的展示组件
+│   ├── hooks/                 可复用的页面状态逻辑
+│   ├── pages/                 Umi 路由页面
+│   ├── services/
+│   │   ├── video/             OpenAPI 自动生成代码
+│   │   ├── analysis.ts        分析业务请求入口
+│   │   └── download.ts        下载业务请求入口
+│   ├── types/                 前端业务类型别名
+│   └── utils/                 无 UI 的通用函数
+└── tests/                     Vitest 测试
+```
+
+项目不使用 `features/` 切片。页面放在 `pages/`，跨页面组件放在 `components/`，请求放在 `services/`；页面私有组件可以放在对应页面的 `components/` 子目录。
 
 ## OpenAPI 客户端
 
-前端使用 `@umijs/openapi` 从 FastAPI 的 Swagger/OpenAPI 文档生成请求函数与 TypeScript 类型，生成目录为 `src/api`。生成的请求通过 `requestLibPath` 统一交给 `src/shared/api/request.ts` 中的 Axios 实例。先启动本地 API，再执行：
+FastAPI 的 OpenAPI 文档是接口类型的唯一来源。API 启动后执行：
 
 ```bash
-npm run openapi2ts
+npm run openapi
 ```
 
-默认文档地址为 `http://127.0.0.1:19090/openapi.json`。需要使用其他环境的 Swagger 文档时，可显式覆盖：
+默认读取 `http://127.0.0.1:19090/openapi.json`。如需使用其他文档地址，可设置 `OPENAPI_SCHEMA_URL` 后再运行命令。
 
-```bash
-OPENAPI_SCHEMA_URL=https://api.example.com/openapi.json npm run openapi2ts
-```
+生成结果位于 `src/services/video/`，由 `@umijs/max-plugin-openapi` 维护，不要手工修改。页面和 Hooks 只调用 `src/services/analysis.ts` 或 `src/services/download.ts`，避免依赖生成器的函数名扩散到 UI。
 
-`src/api` 只由生成器维护；业务层通过 `features/*/api.ts` 使用生成的服务，不在生成目录中手工修改请求或类型。
+## 常用命令
+
+| 命令 | 用途 |
+| --- | --- |
+| `npm run dev` | 启动 Umi Max 开发服务器 |
+| `npm run openapi` | 从 FastAPI 文档重新生成接口代码 |
+| `npm run lint` | 运行 Biome lint 与 TypeScript 检查 |
+| `npm run format:check` | 检查格式 |
+| `npm test` | 运行 Vitest |
+| `npm run build` | 构建生产静态文件到 `dist/` |
+| `npm run preview` | 本地预览生产构建 |
+
+生产环境不运行独立前端容器。根 Dockerfile 构建 `dist/` 后，由 FastAPI 同源提供页面与 API。

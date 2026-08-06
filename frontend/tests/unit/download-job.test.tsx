@@ -1,22 +1,19 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { request } from '@umijs/max';
+import { describe, expect, it, vi } from 'vitest';
 
-import DownloadJobPage from '@/pages/DownloadJob';
-import { inspection, job, jsonResponse } from './download-fixtures';
+import { DownloadJobPage } from '@/pages/DownloadJob';
+import { ApiError } from '@/requestErrorConfig';
+import { inspection, job } from './download-fixtures';
 
-afterEach(() => {
-  vi.restoreAllMocks();
-  vi.unstubAllGlobals();
-});
+const requestMock = vi.mocked(request);
 
 describe('DownloadJobPage', () => {
   it('polls serially until the job succeeds', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(job('running')))
-      .mockResolvedValueOnce(jsonResponse(inspection))
-      .mockResolvedValueOnce(jsonResponse(job('succeeded')));
-    vi.stubGlobal('fetch', fetchMock);
+    requestMock
+      .mockResolvedValueOnce(job('running'))
+      .mockResolvedValueOnce(inspection)
+      .mockResolvedValueOnce(job('succeeded'));
 
     render(<DownloadJobPage jobId={job().id} pollIntervalMs={5} />);
 
@@ -25,38 +22,34 @@ describe('DownloadJobPage', () => {
     expect(
       screen.getByRole('heading', { name: 'AI 智能分析' }),
     ).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(requestMock).toHaveBeenCalledTimes(3);
   });
 
   it('cancels an active job', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(job('running')))
-      .mockResolvedValueOnce(jsonResponse(inspection))
-      .mockResolvedValueOnce(jsonResponse(job('cancelled')));
-    vi.stubGlobal('fetch', fetchMock);
+    requestMock
+      .mockResolvedValueOnce(job('running'))
+      .mockResolvedValueOnce(inspection)
+      .mockResolvedValueOnce(job('cancelled'));
     render(<DownloadJobPage jobId={job().id} pollIntervalMs={60_000} />);
 
     fireEvent.click(await screen.findByRole('button', { name: '取消任务' }));
 
     expect(await screen.findByText('任务已取消')).toBeInTheDocument();
-    expect(requestPath(fetchMock, 2)).toBe(
+    expect(requestMock).toHaveBeenNthCalledWith(
+      3,
       `/api/v1/downloads/${job().id}/cancel`,
+      expect.objectContaining({ method: 'POST' }),
     );
   });
 
   it('requests a short-lived URL and triggers the file download', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(job('succeeded')))
-      .mockResolvedValueOnce(jsonResponse(inspection))
-      .mockResolvedValueOnce(
-        jsonResponse({
-          url: 'https://objects.example/token',
-          expires_at: '2026-08-06T10:05:00Z',
-        }),
-      );
-    vi.stubGlobal('fetch', fetchMock);
+    requestMock
+      .mockResolvedValueOnce(job('succeeded'))
+      .mockResolvedValueOnce(inspection)
+      .mockResolvedValueOnce({
+        url: 'https://objects.example/token',
+        expires_at: '2026-08-06T10:05:00Z',
+      });
     const click = vi
       .spyOn(HTMLAnchorElement.prototype, 'click')
       .mockImplementation(() => {});
@@ -65,46 +58,32 @@ describe('DownloadJobPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: '获取文件' }));
 
     await waitFor(() => expect(click).toHaveBeenCalledOnce());
-    expect(requestPath(fetchMock, 2)).toBe(
+    expect(requestMock).toHaveBeenNthCalledWith(
+      3,
       `/api/v1/downloads/${job().id}/download-url`,
+      expect.objectContaining({ method: 'POST' }),
     );
   });
 
-  it('shows RFC9457 errors and retries on demand', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
-        jsonResponse(
-          {
-            status: 404,
-            code: 'not_found',
-            title: 'Not found',
-            detail: '任务不存在',
-          },
-          404,
-        ),
+  it('shows request errors and retries on demand', async () => {
+    requestMock
+      .mockRejectedValueOnce(
+        new ApiError(404, 'not_found', 'Not found', '任务不存在'),
       )
-      .mockResolvedValueOnce(jsonResponse(job('queued')))
-      .mockResolvedValueOnce(jsonResponse(inspection));
-    vi.stubGlobal('fetch', fetchMock);
+      .mockResolvedValueOnce(job('queued'))
+      .mockResolvedValueOnce(inspection);
     render(<DownloadJobPage jobId={job().id} />);
 
     expect(await screen.findByText('任务不存在')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /重\s*试/ }));
 
     expect(await screen.findByText('等待处理')).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(requestMock).toHaveBeenCalledTimes(3);
   });
 
   it('renders a terminal failure and its stable fallback code', async () => {
     const failed = { ...job('failed'), error_code: null };
-    vi.stubGlobal(
-      'fetch',
-      vi
-        .fn()
-        .mockResolvedValueOnce(jsonResponse(failed))
-        .mockResolvedValueOnce(jsonResponse(inspection)),
-    );
+    requestMock.mockResolvedValueOnce(failed).mockResolvedValueOnce(inspection);
 
     render(<DownloadJobPage jobId={failed.id} />);
 
@@ -116,22 +95,12 @@ describe('DownloadJobPage', () => {
   });
 
   it('reports cancel failures without losing the current job', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(job('running')))
-      .mockResolvedValueOnce(jsonResponse(inspection))
-      .mockResolvedValueOnce(
-        jsonResponse(
-          {
-            status: 409,
-            code: 'not_cancellable',
-            title: '冲突',
-            detail: '任务无法取消',
-          },
-          409,
-        ),
+    requestMock
+      .mockResolvedValueOnce(job('running'))
+      .mockResolvedValueOnce(inspection)
+      .mockRejectedValueOnce(
+        new ApiError(409, 'not_cancellable', '冲突', '任务无法取消'),
       );
-    vi.stubGlobal('fetch', fetchMock);
     render(<DownloadJobPage jobId={job().id} pollIntervalMs={60_000} />);
 
     fireEvent.click(await screen.findByRole('button', { name: '取消任务' }));
@@ -141,22 +110,12 @@ describe('DownloadJobPage', () => {
   });
 
   it('reports download-url failures', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(job('succeeded')))
-      .mockResolvedValueOnce(jsonResponse(inspection))
-      .mockResolvedValueOnce(
-        jsonResponse(
-          {
-            status: 503,
-            code: 'storage_unavailable',
-            title: '不可用',
-            detail: '文件暂不可用',
-          },
-          503,
-        ),
+    requestMock
+      .mockResolvedValueOnce(job('succeeded'))
+      .mockResolvedValueOnce(inspection)
+      .mockRejectedValueOnce(
+        new ApiError(503, 'storage_unavailable', '不可用', '文件暂不可用'),
       );
-    vi.stubGlobal('fetch', fetchMock);
     render(<DownloadJobPage jobId={job().id} />);
 
     fireEvent.click(await screen.findByRole('button', { name: '获取文件' }));
@@ -164,8 +123,3 @@ describe('DownloadJobPage', () => {
     expect(await screen.findByText('文件暂不可用')).toBeInTheDocument();
   });
 });
-
-function requestPath(fetchMock: ReturnType<typeof vi.fn>, index: number) {
-  const request = fetchMock.mock.calls[index][0] as Request;
-  return new URL(request.url).pathname;
-}

@@ -1,24 +1,19 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { request } from '@umijs/max';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   cancelAnalysis,
   createAnalysis,
   getAnalysis,
-} from '@/features/analysis/api';
+} from '@/services/analysis';
 import { analysisJob } from './analysis-fixtures';
-import { job, jsonResponse } from './download-fixtures';
+import { job } from './download-fixtures';
 
-afterEach(() => {
-  vi.restoreAllMocks();
-  vi.unstubAllGlobals();
-});
+const requestMock = vi.mocked(request);
 
 describe('analysis API', () => {
   it('creates an analysis from a download ID with an idempotency key', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(jsonResponse(analysisJob(), 202));
-    vi.stubGlobal('fetch', fetchMock);
+    requestMock.mockResolvedValue(analysisJob());
 
     await createAnalysis(
       job().id,
@@ -26,41 +21,38 @@ describe('analysis API', () => {
       'analysis-key',
     );
 
-    const request = fetchMock.mock.calls[0][0] as Request;
-    expect(new URL(request.url).pathname).toBe(
+    expect(requestMock).toHaveBeenCalledWith(
       `/api/v1/downloads/${job().id}/analyses`,
-    );
-    expect(request.credentials).toBe('same-origin');
-    expect(request.method).toBe('POST');
-    expect(request.headers.get('Idempotency-Key')).toBe('analysis-key');
-    expect(await request.text()).toBe(
-      JSON.stringify({
-        profile: 'standard-v1',
-        output_language: 'en-US',
+      expect.objectContaining({
+        data: {
+          profile: 'standard-v1',
+          output_language: 'en-US',
+        },
+        headers: { 'Idempotency-Key': 'analysis-key' },
+        method: 'POST',
       }),
     );
   });
 
   it('queries and cancels by analysis ID without an artifact identifier', async () => {
     const current = analysisJob('running');
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(current))
-      .mockResolvedValueOnce(jsonResponse(analysisJob('cancelled')));
-    vi.stubGlobal('fetch', fetchMock);
+    requestMock
+      .mockResolvedValueOnce(current)
+      .mockResolvedValueOnce(analysisJob('cancelled'));
 
     await getAnalysis(current.id);
     await cancelAnalysis(current.id);
 
-    expect(
-      fetchMock.mock.calls.map(
-        ([request]) => new URL((request as Request).url).pathname,
-      ),
-    ).toEqual([
+    expect(requestMock).toHaveBeenNthCalledWith(
+      1,
       `/api/v1/analyses/${current.id}`,
+      expect.objectContaining({ method: 'GET' }),
+    );
+    expect(requestMock).toHaveBeenNthCalledWith(
+      2,
       `/api/v1/analyses/${current.id}/cancel`,
-    ]);
-    expect((fetchMock.mock.calls[1][0] as Request).method).toBe('POST');
-    expect(JSON.stringify(fetchMock.mock.calls)).not.toContain('artifact');
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(JSON.stringify(requestMock.mock.calls)).not.toContain('artifact');
   });
 });

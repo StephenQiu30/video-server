@@ -6,21 +6,22 @@
   "packageManager": "npm@11.16.0",
   "description": "Frontend module for the universal video downloader server",
   "scripts": {
-    "build": "vite build",
-    "dev": "vite",
+    "build": "max build",
+    "dev": "cross-env UMI_ENV=dev MOCK=none max dev",
+    "start": "cross-env UMI_ENV=dev MOCK=none max dev",
     "lint": "npm run biome:lint && npm run typecheck",
     "biome:lint": "biome lint .",
     "format:check": "biome check . --linter-enabled=false",
-    "openapi2ts": "node --experimental-strip-types openapi2ts.config.ts",
-    "preview": "vite preview",
+    "openapi": "max openapi",
+    "prepare": "max setup",
+    "preview": "max preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@ant-design/icons": "^6.3.2",
-    "@ant-design/pro-components": "3.1.14-6",
+    "@ant-design/pro-components": "^3.1.14-2",
     "antd": "^6.5.1",
-    "axios": "^1.19.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
@@ -31,14 +32,19 @@
     "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "@umijs/openapi": "^1.14.1",
-    "@vitejs/plugin-react": "^6.0.5",
-    "jsdom": "^29.1.1",
-    "typescript": "^5.9.3",
-    "vite": "^8.2.0",
+    "@umijs/max": "^4.6.75",
+    "@umijs/max-plugin-openapi": "^2.0.3",
+    "cross-env": "^10.1.0",
+    "happy-dom": "^20.11.1",
+    "typescript": "^7.0.2",
     "vitest": "^4.1.10"
   },
   "engines": {
     "node": ">=22.12.0"
+  },
+  "overrides": {
+    "@umijs/plugins": {
+      "@ant-design/pro-components": "$@ant-design/pro-components"
+    }
   }
 }

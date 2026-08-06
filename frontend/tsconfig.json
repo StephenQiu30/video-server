@@ -1,15 +1,31 @@
 {
   "compilerOptions": {
     "allowJs": false,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "forceConsistentCasingInFileNames": true,
     "noEmit": true,
+    "noImplicitReturns": true,
+    "resolveJsonModule": true,
     "skipLibCheck": true,
+    "strict": true,
     "jsx": "react-jsx",
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "target": "ES2022",
-    "baseUrl": ".",
-    "paths": { "@/*": ["src/*"] },
-    "types": ["vite/client", "vitest/globals"]
+    "paths": {
+      "@/*": ["./src/*"],
+      "@@/*": ["./src/.umi/*"],
+      "@root/*": ["./*"]
+    },
+    "types": ["vitest/globals", "node"]
   },
-  "include": ["src", "tests", "vite.config.ts", "vitest.config.ts"]
+  "include": [
+    "config",
+    "src",
+    "src/.umi/**/*.d.ts",
+    "tests",
+    "vitest.config.ts"
+  ]
 }

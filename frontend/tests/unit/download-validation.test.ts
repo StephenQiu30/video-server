@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { validateMediaUrl } from '@/features/download/validation';
+import { validateMediaUrl } from '@/utils/validation';
 
 describe('validateMediaUrl', () => {
   it('accepts public-looking HTTP(S) URLs', () => {

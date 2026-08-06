@@ -34,7 +34,7 @@ docker build --target runtime --tag video-server:architecture .
 ## 执行证据（2026-08-06）
 
 - 后端：Ruff、format、strict mypy 与 `pytest -q` 全部通过。
-- 前端：Biome lint、format、TypeScript、Vitest 与 Vite production build 全部通过。
+- 前端：Biome lint、format、TypeScript、Vitest 与 Umi Max production build 全部通过。
 - 测试策略：CI 不设置覆盖率数字硬门槛；测试聚焦领域规则、API 契约、安全边界和关键流程，不为覆盖率重复测试实现细节。
 - 依赖：`npm audit --audit-level=high` 为 0 vulnerabilities。
 - 数据库：仓库中只有 `backend/sql/schema.sql`，由 PostgreSQL 在全新数据卷首次启动时执行；没有 Alembic/migrations 或旧 schema 兼容分支。

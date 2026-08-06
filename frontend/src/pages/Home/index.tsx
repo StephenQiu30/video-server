@@ -1,21 +1,20 @@
 import { LinkOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
-import { ProCard } from '@ant-design/pro-components';
+import { PageContainer, ProCard } from '@ant-design/pro-components';
+import { history } from '@umijs/max';
 import { Alert, Button, Col, Grid, Input, Row, Spin, Typography } from 'antd';
 import { type FormEvent, type RefObject, useRef, useState } from 'react';
 
 import stageCover from '@/assets/product-launch-stage.webp';
+import FormatPicker from '@/components/FormatPicker';
 import {
   createDownload,
   createIdempotencyKey,
   displayError,
   inspectMedia,
-} from '@/features/download/api';
-import FormatPicker from '@/features/download/FormatPicker';
-import { navigate } from '@/features/download/navigation';
-import type { Inspection } from '@/features/download/types';
-import { validateMediaUrl } from '@/features/download/validation';
-import { formatDuration } from '@/shared/format';
-import BasicLayout from '@/shared/layout/BasicLayout';
+} from '@/services/download';
+import type { Inspection } from '@/types/video';
+import { formatDuration } from '@/utils/format';
+import { validateMediaUrl } from '@/utils/validation';
 
 import styles from './index.module.css';
 
@@ -74,7 +73,7 @@ export default function HomePage() {
         selectedId,
         keyFor(downloadKey, payload),
       );
-      navigate(`/downloads/${result.id}`);
+      history.push(`/downloads/${result.id}`);
     } catch (reason) {
       setError(displayError(reason));
     } finally {
@@ -83,7 +82,7 @@ export default function HomePage() {
   }
 
   return (
-    <BasicLayout active="new">
+    <PageContainer ghost title={false}>
       <main
         className={styles.page}
         style={{ padding: screens.md ? '88px 24px 56px' : '48px 14px 40px' }}
@@ -192,6 +191,6 @@ export default function HomePage() {
           type="info"
         />
       </main>
-    </BasicLayout>
+    </PageContainer>
   );
 }

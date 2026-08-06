@@ -23,8 +23,10 @@ server/
 │   ├── sql/schema.sql
 │   └── tests/
 ├── frontend/
-│   ├── src/features/         inspect、download、analysis 功能切片
-│   ├── src/shared/           API、组件、错误处理
+│   ├── config/               Umi Max、路由、ProLayout 与开发代理
+│   ├── src/pages/            下载与分析页面
+│   ├── src/components/       跨页面通用组件
+│   ├── src/services/         OpenAPI 生成代码与业务请求入口
 │   └── tests/
 ├── docs/                     当前交付契约
 ├── Dockerfile                统一前后端镜像

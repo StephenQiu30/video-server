@@ -2,7 +2,7 @@
 .github
 **/.venv
 **/node_modules
-**/.umi
+**/.umi*
 **/dist
 **/coverage
 **/.coverage

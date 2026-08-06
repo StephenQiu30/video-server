@@ -13,7 +13,7 @@
 - 后端依赖方向为 `api/workers → application → domain`。领域层不得导入 FastAPI、SQLAlchemy、RabbitMQ、MinIO、yt-dlp、FFmpeg 或模型 SDK。
 - API、下载 Worker、媒体 Runner、AI Worker是独立进程；HTTP 请求内不得执行下载、转码、ASR 或 LLM 长任务。
 - PostgreSQL 是状态事实来源；跨 PostgreSQL/RabbitMQ 使用 transactional outbox，消费者必须支持幂等与 lease/heartbeat。
-- 前端按 `features/` 切片，只访问同源 `/api/*`、`/health/*` 和短时制品地址。生产静态资源由 FastAPI 提供，不设置独立前端容器。
+- 前端遵循 Ant Design Pro / Umi Max 约定，以 `pages/`、`components/`、`services/`、`hooks/` 和 `utils/` 分工；只访问同源 `/api/*`、`/health/*` 和短时制品地址。生产静态资源由 FastAPI 提供，不设置独立前端容器。
 - OpenAPI 是前后端契约来源，不维护平行 DTO 或旧 API 适配层。
 
 ## 下载、AI 与安全

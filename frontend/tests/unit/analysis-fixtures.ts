@@ -1,4 +1,4 @@
-import type { AnalysisJob, AnalysisResult } from '@/features/analysis/types';
+import type { AnalysisJob, AnalysisResult } from '@/types/video';
 
 export const analysisResult: AnalysisResult = {
   language: 'zh-CN',

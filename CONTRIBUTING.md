@@ -5,7 +5,7 @@
 ## 模块边界
 
 - `backend/`：FastAPI、领域服务、Worker、当前态 SQL 与 Python 测试。
-- `frontend/`：Vite/React 页面、组件、API 客户端与前端测试。
+- `frontend/`：Ant Design Pro / Umi Max 页面、组件、OpenAPI 客户端与前端测试。
 - `docs/`：当前产品和架构事实。
 - 根 `Dockerfile` 与三个 `docker-compose*.yml`：唯一部署入口，不建立独立部署目录。
 

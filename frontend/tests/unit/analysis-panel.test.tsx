@@ -1,14 +1,13 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { request } from '@umijs/max';
+import { describe, expect, it, vi } from 'vitest';
 
-import AnalysisPanel from '@/features/analysis/AnalysisPanel';
+import AnalysisPanel from '@/components/AnalysisPanel';
+import { ApiError } from '@/requestErrorConfig';
 import { analysisJob } from './analysis-fixtures';
-import { job, jsonResponse } from './download-fixtures';
+import { job } from './download-fixtures';
 
-afterEach(() => {
-  vi.restoreAllMocks();
-  vi.unstubAllGlobals();
-});
+const requestMock = vi.mocked(request);
 
 describe('AnalysisPanel', () => {
   it('offers the minimum profile and output-language configuration', () => {
@@ -23,11 +22,9 @@ describe('AnalysisPanel', () => {
   });
 
   it('creates, polls serially, and renders every structured result section', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(analysisJob('running'), 202))
-      .mockResolvedValueOnce(jsonResponse(analysisJob('succeeded')));
-    vi.stubGlobal('fetch', fetchMock);
+    requestMock
+      .mockResolvedValueOnce(analysisJob('running'))
+      .mockResolvedValueOnce(analysisJob('succeeded'));
     vi.stubGlobal('crypto', {
       randomUUID: vi.fn().mockReturnValue('analysis-key'),
     });
@@ -57,15 +54,13 @@ describe('AnalysisPanel', () => {
     ).toBeInTheDocument();
     expect(screen.getAllByText('视频下载').length).toBeGreaterThan(0);
     expect(screen.getAllByText('AI 分析').length).toBeGreaterThan(0);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(requestMock).toHaveBeenCalledTimes(2);
   });
 
   it('cancels an active analysis task', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(analysisJob('running'), 202))
-      .mockResolvedValueOnce(jsonResponse(analysisJob('cancelled')));
-    vi.stubGlobal('fetch', fetchMock);
+    requestMock
+      .mockResolvedValueOnce(analysisJob('running'))
+      .mockResolvedValueOnce(analysisJob('cancelled'));
     vi.stubGlobal('crypto', {
       randomUUID: vi.fn().mockReturnValue('analysis-key'),
     });
@@ -75,16 +70,15 @@ describe('AnalysisPanel', () => {
     fireEvent.click(await screen.findByRole('button', { name: '取消分析' }));
 
     expect(await screen.findByText('分析已取消')).toBeInTheDocument();
-    expect(requestPath(fetchMock, 1)).toBe(
+    expect(requestMock).toHaveBeenNthCalledWith(
+      2,
       `/api/v1/analyses/${analysisJob().id}/cancel`,
+      expect.objectContaining({ method: 'POST' }),
     );
   });
 
   it('shows a stable task error and permits a fresh analysis', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(jsonResponse(analysisJob('failed'), 202)),
-    );
+    requestMock.mockResolvedValue(analysisJob('failed'));
     vi.stubGlobal('crypto', {
       randomUUID: vi.fn().mockReturnValue('analysis-key'),
     });
@@ -102,22 +96,17 @@ describe('AnalysisPanel', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows RFC9457 creation errors and keeps retries idempotent', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
-        jsonResponse(
-          {
-            status: 503,
-            code: 'analysis_unavailable',
-            title: '服务不可用',
-            detail: 'AI 分析服务暂时不可用',
-          },
+  it('shows creation errors and keeps retries idempotent', async () => {
+    requestMock
+      .mockRejectedValueOnce(
+        new ApiError(
           503,
+          'analysis_unavailable',
+          '服务不可用',
+          'AI 分析服务暂时不可用',
         ),
       )
-      .mockResolvedValueOnce(jsonResponse(analysisJob(), 202));
-    vi.stubGlobal('fetch', fetchMock);
+      .mockResolvedValueOnce(analysisJob());
     vi.stubGlobal('crypto', {
       randomUUID: vi
         .fn()
@@ -132,21 +121,18 @@ describe('AnalysisPanel', () => {
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '开始 AI 分析' }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-    expect(requestHeader(fetchMock, 0, 'Idempotency-Key')).toBe('stable-key');
-    expect(requestHeader(fetchMock, 1, 'Idempotency-Key')).toBe('stable-key');
+    await waitFor(() => expect(requestMock).toHaveBeenCalledTimes(2));
+    expect(requestHeader(0, 'Idempotency-Key')).toBe('stable-key');
+    expect(requestHeader(1, 'Idempotency-Key')).toBe('stable-key');
   });
 });
 
-function requestPath(fetchMock: ReturnType<typeof vi.fn>, index: number) {
-  const request = fetchMock.mock.calls[index][0] as Request;
-  return new URL(request.url).pathname;
-}
-
-function requestHeader(
-  fetchMock: ReturnType<typeof vi.fn>,
-  index: number,
-  name: string,
-) {
-  return (fetchMock.mock.calls[index][0] as Request).headers.get(name);
+function requestHeader(index: number, name: string) {
+  const [, options] = requestMock.mock.calls[index] as unknown as [
+    string,
+    {
+      headers?: Record<string, string>;
+    },
+  ];
+  return options.headers?.[name];
 }

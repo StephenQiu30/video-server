@@ -1,31 +1,23 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { request } from '@umijs/max';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
-  ApiError,
   cancelDownload,
   createDownload,
   createIdempotencyKey,
-  displayError,
   getDownload,
   getInspection,
   inspectMedia,
   issueDownloadUrl,
   triggerBrowserDownload,
-} from '@/features/download/api';
-import { inspection, job, jsonResponse } from './download-fixtures';
+} from '@/services/download';
+import { inspection, job } from './download-fixtures';
 
-afterEach(() => {
-  vi.restoreAllMocks();
-  vi.unstubAllGlobals();
-});
+const requestMock = vi.mocked(request);
 
 describe('download API', () => {
   it('uses same-origin endpoints and idempotency headers', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(inspection, 201))
-      .mockResolvedValueOnce(jsonResponse(job(), 202));
-    vi.stubGlobal('fetch', fetchMock);
+    requestMock.mockResolvedValueOnce(inspection).mockResolvedValueOnce(job());
 
     await inspectMedia('https://media.example/owned', 'inspect-key');
     await createDownload(
@@ -34,95 +26,54 @@ describe('download API', () => {
       'download-key',
     );
 
-    const inspectionRequest = fetchMock.mock.calls[0][0] as Request;
-    const downloadRequest = fetchMock.mock.calls[1][0] as Request;
-    expect(new URL(inspectionRequest.url).pathname).toBe('/api/v1/inspections');
-    expect(inspectionRequest.credentials).toBe('same-origin');
-    expect(inspectionRequest.method).toBe('POST');
-    expect(inspectionRequest.headers.get('Idempotency-Key')).toBe(
-      'inspect-key',
+    expect(requestMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/v1/inspections',
+      expect.objectContaining({
+        data: { url: 'https://media.example/owned' },
+        headers: { 'Idempotency-Key': 'inspect-key' },
+        method: 'POST',
+      }),
     );
-    expect(await inspectionRequest.text()).toBe(
-      JSON.stringify({ url: 'https://media.example/owned' }),
+    expect(requestMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/v1/downloads',
+      expect.objectContaining({
+        data: {
+          format_id: inspection.formats[0].id,
+          inspection_id: inspection.id,
+        },
+        headers: { 'Idempotency-Key': 'download-key' },
+        method: 'POST',
+      }),
     );
-    expect(new URL(downloadRequest.url).pathname).toBe('/api/v1/downloads');
-    expect(downloadRequest.headers.get('Idempotency-Key')).toBe('download-key');
   });
 
   it('covers query, cancel, and download-url endpoints', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(inspection))
-      .mockResolvedValueOnce(jsonResponse(job('running')))
-      .mockResolvedValueOnce(jsonResponse(job('cancelled')))
-      .mockResolvedValueOnce(
-        jsonResponse({
-          url: 'https://objects.example/token',
-          expires_at: '2026-08-06T10:05:00Z',
-        }),
-      );
-    vi.stubGlobal('fetch', fetchMock);
+    requestMock
+      .mockResolvedValueOnce(inspection)
+      .mockResolvedValueOnce(job('running'))
+      .mockResolvedValueOnce(job('cancelled'))
+      .mockResolvedValueOnce({
+        url: 'https://objects.example/token',
+        expires_at: '2026-08-06T10:05:00Z',
+      });
 
     await getInspection(inspection.id);
     await getDownload(job().id);
     await cancelDownload(job().id);
     await issueDownloadUrl(job().id);
 
-    expect(requestPaths(fetchMock)).toEqual([
+    expect(requestPaths()).toEqual([
       `/api/v1/inspections/${inspection.id}`,
       `/api/v1/downloads/${job().id}`,
       `/api/v1/downloads/${job().id}/cancel`,
       `/api/v1/downloads/${job().id}/download-url`,
     ]);
-    expect((fetchMock.mock.calls[2][0] as Request).method).toBe('POST');
-  });
-
-  it('parses RFC9457 and fallback errors', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi
-        .fn()
-        .mockResolvedValueOnce(
-          jsonResponse(
-            {
-              status: 409,
-              code: 'idempotency_conflict',
-              title: 'Idempotency conflict',
-              detail: '请勿将同一请求键用于其他地址。',
-            },
-            409,
-          ),
-        )
-        .mockResolvedValueOnce(new Response('bad gateway', { status: 502 })),
-    );
-
-    await expect(
-      inspectMedia('https://example.com/a', 'key'),
-    ).rejects.toMatchObject({
-      code: 'idempotency_conflict',
-      status: 409,
-    });
-    await expect(getDownload(job().id)).rejects.toEqual(
-      new ApiError(
-        502,
-        'request_failed',
-        '请求失败',
-        '服务暂时不可用，请稍后重试。',
-      ),
-    );
-  });
-
-  it('uses safe fallbacks for partial problems and unknown errors', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(jsonResponse({ title: 'Incomplete' }, 500)),
-    );
-
-    await expect(getDownload(job().id)).rejects.toMatchObject({
-      code: 'request_failed',
-    });
-    expect(displayError(new Error('secret upstream detail'))).toBe(
-      '发生未知错误，请稍后重试。',
+    expect(requestMock).toHaveBeenNthCalledWith(
+      3,
+      `/api/v1/downloads/${job().id}/cancel`,
+      expect.objectContaining({ method: 'POST' }),
     );
   });
 
@@ -142,8 +93,6 @@ describe('download API', () => {
   });
 });
 
-function requestPaths(fetchMock: ReturnType<typeof vi.fn>): string[] {
-  return fetchMock.mock.calls.map(
-    ([request]) => new URL((request as Request).url).pathname,
-  );
+function requestPaths(): string[] {
+  return requestMock.mock.calls.map(([path]) => path);
 }

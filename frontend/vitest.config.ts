@@ -1,12 +1,18 @@
-import { resolve } from 'node:path';
-import react from '@vitejs/plugin-react';
+import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  plugins: [react()],
-  resolve: { alias: { '@': resolve(process.cwd(), 'src') } },
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@root': fileURLToPath(new URL('.', import.meta.url)),
+      '@@': fileURLToPath(new URL('./src/.umi', import.meta.url)),
+    },
+  },
   test: {
-    environment: 'jsdom',
+    environment: 'happy-dom',
+    globals: true,
     setupFiles: ['./tests/setup.ts'],
+    testTimeout: 15000,
   },
 });

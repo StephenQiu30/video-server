@@ -1,9 +1,25 @@
 import '@testing-library/jest-dom/vitest';
 
 import { cleanup } from '@testing-library/react';
-import { afterEach, vi } from 'vitest';
+import { history, request } from '@umijs/max';
+import { afterEach, beforeEach, vi } from 'vitest';
 
-afterEach(cleanup);
+vi.mock('@umijs/max', () => ({
+  history: { push: vi.fn() },
+  request: vi.fn(),
+  useParams: vi.fn(),
+}));
+
+beforeEach(() => {
+  vi.mocked(request).mockReset();
+  vi.mocked(history.push).mockReset();
+});
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

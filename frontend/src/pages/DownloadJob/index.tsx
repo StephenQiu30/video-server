@@ -1,4 +1,6 @@
 import { CheckCircleFilled } from '@ant-design/icons';
+import { PageContainer } from '@ant-design/pro-components';
+import { useParams } from '@umijs/max';
 import {
   Alert,
   Breadcrumb,
@@ -6,6 +8,7 @@ import {
   Col,
   Flex,
   Grid,
+  Result,
   Row,
   Skeleton,
   Tag,
@@ -13,22 +16,27 @@ import {
 } from 'antd';
 import { useCallback, useState } from 'react';
 
-import AnalysisPanel from '@/features/analysis/AnalysisPanel';
-import type { AnalysisJob } from '@/features/analysis/types';
-import type { MediaFormat } from '@/features/download/types';
-import { formatDuration } from '@/shared/format';
-import BasicLayout from '@/shared/layout/BasicLayout';
-
+import AnalysisPanel from '@/components/AnalysisPanel';
+import { useDownloadJob } from '@/hooks/useDownloadJob';
+import type { AnalysisJob, MediaFormat } from '@/types/video';
+import { formatDuration } from '@/utils/format';
+import MediaSidebar from './components/MediaSidebar';
 import styles from './index.module.css';
-import MediaSidebar from './MediaSidebar';
-import { useDownloadJob } from './useDownloadJob';
 
 type DownloadJobPageProps = {
   jobId: string;
   pollIntervalMs?: number;
 };
 
-export default function DownloadJobPage({
+export default function DownloadJobRoute() {
+  const { jobId } = useParams<{ jobId: string }>();
+  if (!jobId) {
+    return <Result status="404" title="下载任务不存在" />;
+  }
+  return <DownloadJobPage jobId={jobId} />;
+}
+
+export function DownloadJobPage({
   jobId,
   pollIntervalMs = 1500,
 }: DownloadJobPageProps) {
@@ -44,7 +52,7 @@ export default function DownloadJobPage({
   const title = state.inspection?.title ?? '下载任务';
 
   return (
-    <BasicLayout active="tasks">
+    <PageContainer ghost title={false}>
       <main
         className={styles.page}
         style={{ padding: screens.sm ? '22px 24px 38px' : '18px 14px 30px' }}
@@ -132,7 +140,7 @@ export default function DownloadJobPage({
           </Row>
         ) : null}
       </main>
-    </BasicLayout>
+    </PageContainer>
   );
 }
 

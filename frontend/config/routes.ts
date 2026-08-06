@@ -1,0 +1,19 @@
+export default [
+  {
+    component: './Home',
+    icon: 'download',
+    name: '新建下载',
+    path: '/',
+  },
+  {
+    component: './DownloadJob',
+    hideInMenu: true,
+    name: '下载任务',
+    path: '/downloads/:jobId',
+  },
+  {
+    component: './404',
+    layout: false,
+    path: '/*',
+  },
+];

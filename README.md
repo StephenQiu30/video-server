@@ -7,7 +7,7 @@
 ```text
 server/
 ├── backend/       FastAPI、领域逻辑、Worker、当前态 SQL 与测试
-├── frontend/      Vite/React Web 源码、组件与测试
+├── frontend/      Ant Design Pro / Umi Max Web 源码、组件与测试
 ├── docs/          当前 Design、PRD、Plan、Acceptance 与运维文档
 ├── Dockerfile
 ├── docker-compose.yml       默认完整环境

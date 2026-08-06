@@ -7,7 +7,8 @@
       "!**/dist",
       "!**/coverage",
       "!**/node_modules",
-      "!src/api",
+      "!src/.umi*",
+      "!src/services/video",
       "!biome.json",
       "!package-lock.json"
     ]

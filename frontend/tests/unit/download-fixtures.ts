@@ -1,4 +1,4 @@
-import type { DownloadJob, Inspection } from '@/features/download/types';
+import type { DownloadJob, Inspection } from '@/types/video';
 
 export const inspection: Inspection = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -40,11 +40,4 @@ export function job(status: DownloadJob['status'] = 'queued'): DownloadJob {
     updated_at: '2026-08-06T10:00:10Z',
     finished_at: status === 'succeeded' ? '2026-08-06T10:00:10Z' : null,
   };
-}
-
-export function jsonResponse(value: object, status = 200): Response {
-  return new Response(JSON.stringify(value), {
-    status,
-    headers: { 'content-type': 'application/json' },
-  });
 }
