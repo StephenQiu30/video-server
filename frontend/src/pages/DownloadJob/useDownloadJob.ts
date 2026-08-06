@@ -4,16 +4,19 @@ import {
   cancelDownload,
   displayError,
   getDownload,
+  getInspection,
   issueDownloadUrl,
   triggerBrowserDownload,
 } from '@/features/download/api';
-import type { DownloadJob } from '@/features/download/types';
+import type { DownloadJob, Inspection } from '@/features/download/types';
 import { terminalStatuses } from '@/features/download/types';
 
 type Action = 'cancel' | 'download' | null;
 
 export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   const [job, setJob] = useState<DownloadJob | null>(null);
+  const [inspection, setInspection] = useState<Inspection | null>(null);
+  const [inspectionError, setInspectionError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [action, setAction] = useState<Action>(null);
@@ -23,6 +26,7 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   useEffect(() => {
     let disposed = false;
     let timer: number | undefined;
+    let loadedInspectionId: string | null = null;
     setLoading(true);
     setError(null);
 
@@ -34,6 +38,18 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
         }
         setJob(current);
         setLoading(false);
+        if (loadedInspectionId !== current.inspection_id) {
+          loadedInspectionId = current.inspection_id;
+          try {
+            const metadata = await getInspection(current.inspection_id);
+            if (!disposed) {
+              setInspection(metadata);
+              setInspectionError(null);
+            }
+          } catch (reason) {
+            if (!disposed) setInspectionError(displayError(reason));
+          }
+        }
         if (!terminalStatuses.has(current.status)) {
           timer = window.setTimeout(poll, pollIntervalMs);
         }
@@ -83,5 +99,15 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     }
   }, [jobId]);
 
-  return { action, cancel, download, error, job, loading, retry };
+  return {
+    action,
+    cancel,
+    download,
+    error,
+    inspection,
+    inspectionError,
+    job,
+    loading,
+    retry,
+  };
 }

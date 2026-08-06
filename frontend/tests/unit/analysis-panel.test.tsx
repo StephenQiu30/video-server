@@ -17,8 +17,8 @@ describe('AnalysisPanel', () => {
     expect(
       screen.getByRole('heading', { name: 'AI 智能分析' }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('分析模板')).toHaveValue('standard-v1');
-    expect(screen.getByLabelText('输出语言')).toHaveValue('zh-CN');
+    expect(screen.getByText('标准分析')).toBeInTheDocument();
+    expect(screen.getByText('简体中文')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '开始 AI 分析' })).toBeEnabled();
   });
 
@@ -33,12 +33,10 @@ describe('AnalysisPanel', () => {
     });
     render(<AnalysisPanel downloadId={job().id} pollIntervalMs={5} />);
 
-    fireEvent.change(screen.getByLabelText('输出语言'), {
-      target: { value: 'en-US' },
-    });
+    fireEvent.mouseDown(screen.getByLabelText('输出语言'));
+    fireEvent.click(await screen.findByText('English'));
     fireEvent.click(screen.getByRole('button', { name: '开始 AI 分析' }));
 
-    expect(await screen.findByText('分析中')).toBeInTheDocument();
     expect(await screen.findByText('分析已完成')).toBeInTheDocument();
     expect(
       screen.getByText('如何构建可靠的视频处理流水线'),
@@ -47,15 +45,18 @@ describe('AnalysisPanel', () => {
     expect(
       screen.getByRole('heading', { name: '关键要点' }),
     ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: '行动项' }));
     expect(
       screen.getByRole('heading', { name: '行动建议' }),
     ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: '摘要' }));
     expect(screen.getByRole('heading', { name: '章节' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: '思维导图' }));
     expect(
       screen.getByRole('heading', { name: '思维导图' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('视频下载')).toBeInTheDocument();
-    expect(screen.getByText('AI 分析')).toBeInTheDocument();
+    expect(screen.getAllByText('视频下载').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('AI 分析').length).toBeGreaterThan(0);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 

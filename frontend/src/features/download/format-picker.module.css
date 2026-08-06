@@ -1,13 +1,13 @@
 .group {
   padding: 0;
-  margin: 24px 0 0;
+  margin: 0;
   border: 0;
 }
 
 .group legend {
   margin-bottom: 12px;
-  color: #252b42;
-  font-weight: 650;
+  color: #1f2937;
+  font-weight: 600;
 }
 
 .options {
@@ -17,44 +17,34 @@
 
 .option {
   display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  padding: 14px;
-  cursor: pointer;
-  border: 1px solid #dfe2ef;
-  border-radius: 12px;
-  transition:
-    border-color 160ms ease,
-    background 160ms ease;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #dfe5ec;
+  border-radius: 8px;
 }
 
-.option:has(input:checked) {
-  background: #f3f0ff;
-  border-color: #6956e8;
+.option:has(:global(.ant-radio-checked)) {
+  background: #f0f6ff;
+  border-color: #1677ff;
 }
 
-.option:focus-within {
-  outline: 3px solid rgb(105 86 232 / 20%);
-  outline-offset: 2px;
-}
-
-.option input {
-  margin-top: 4px;
-  accent-color: #6956e8;
+.option > span:last-child {
+  flex: 1;
 }
 
 .copy {
   display: grid;
   gap: 3px;
-  color: #697088;
+  color: #64748b;
   font-size: 13px;
 }
 
 .copy strong {
-  color: #20263e;
+  color: #1f2937;
   font-size: 15px;
 }
 
 .empty {
-  color: #697088;
+  margin: 0;
+  color: #64748b;
 }

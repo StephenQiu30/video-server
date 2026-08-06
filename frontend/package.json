@@ -11,12 +11,14 @@
     "lint": "npm run biome:lint && npm run typecheck",
     "biome:lint": "biome lint .",
     "format:check": "biome check . --linter-enabled=false",
+    "openapi": "openapi2ts",
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@ant-design/icons": "^6.3.2",
+    "@ant-design/pro-components": "3.1.14-6",
     "antd": "^6.5.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
@@ -28,6 +30,7 @@
     "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "@umijs/openapi": "^1.14.1",
     "@vitejs/plugin-react": "^6.0.5",
     "jsdom": "^29.1.1",
     "typescript": "^5.9.3",

@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import DownloadJobPage from '@/pages/DownloadJob';
-import { job, jsonResponse } from './download-fixtures';
+import { inspection, job, jsonResponse } from './download-fixtures';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -14,6 +14,7 @@ describe('DownloadJobPage', () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse(job('running')))
+      .mockResolvedValueOnce(jsonResponse(inspection))
       .mockResolvedValueOnce(jsonResponse(job('succeeded')));
     vi.stubGlobal('fetch', fetchMock);
 
@@ -24,13 +25,14 @@ describe('DownloadJobPage', () => {
     expect(
       screen.getByRole('heading', { name: 'AI 智能分析' }),
     ).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it('cancels an active job', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse(job('running')))
+      .mockResolvedValueOnce(jsonResponse(inspection))
       .mockResolvedValueOnce(jsonResponse(job('cancelled')));
     vi.stubGlobal('fetch', fetchMock);
     render(<DownloadJobPage jobId={job().id} pollIntervalMs={60_000} />);
@@ -38,7 +40,7 @@ describe('DownloadJobPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: '取消任务' }));
 
     expect(await screen.findByText('任务已取消')).toBeInTheDocument();
-    expect(fetchMock.mock.calls[1][0]).toBe(
+    expect(fetchMock.mock.calls[2][0]).toBe(
       `/api/v1/downloads/${job().id}/cancel`,
     );
   });
@@ -47,6 +49,7 @@ describe('DownloadJobPage', () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse(job('succeeded')))
+      .mockResolvedValueOnce(jsonResponse(inspection))
       .mockResolvedValueOnce(
         jsonResponse({
           url: 'https://objects.example/token',
@@ -62,7 +65,7 @@ describe('DownloadJobPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: '获取文件' }));
 
     await waitFor(() => expect(click).toHaveBeenCalledOnce());
-    expect(fetchMock.mock.calls[1][0]).toBe(
+    expect(fetchMock.mock.calls[2][0]).toBe(
       `/api/v1/downloads/${job().id}/download-url`,
     );
   });
@@ -81,7 +84,8 @@ describe('DownloadJobPage', () => {
           404,
         ),
       )
-      .mockResolvedValueOnce(jsonResponse(job('queued')));
+      .mockResolvedValueOnce(jsonResponse(job('queued')))
+      .mockResolvedValueOnce(jsonResponse(inspection));
     vi.stubGlobal('fetch', fetchMock);
     render(<DownloadJobPage jobId={job().id} />);
 
@@ -89,12 +93,18 @@ describe('DownloadJobPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /重\s*试/ }));
 
     expect(await screen.findByText('等待处理')).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it('renders a terminal failure and its stable fallback code', async () => {
     const failed = { ...job('failed'), error_code: null };
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(failed)));
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse(failed))
+        .mockResolvedValueOnce(jsonResponse(inspection)),
+    );
 
     render(<DownloadJobPage jobId={failed.id} />);
 
@@ -109,6 +119,7 @@ describe('DownloadJobPage', () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse(job('running')))
+      .mockResolvedValueOnce(jsonResponse(inspection))
       .mockResolvedValueOnce(
         jsonResponse(
           {
@@ -133,6 +144,7 @@ describe('DownloadJobPage', () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse(job('succeeded')))
+      .mockResolvedValueOnce(jsonResponse(inspection))
       .mockResolvedValueOnce(
         jsonResponse(
           {

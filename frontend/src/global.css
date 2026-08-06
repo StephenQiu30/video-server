@@ -1,6 +1,6 @@
 :root {
-  color: #192038;
-  background: #f7f8fc;
+  color: #1f2937;
+  background: #f8fafc;
   font-synthesis: none;
 }
 
@@ -12,8 +12,19 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
-  background:
-    radial-gradient(circle at 12% 8%, rgb(105 86 232 / 12%), transparent 34rem),
-    radial-gradient(circle at 88% 16%, rgb(33 195 184 / 10%), transparent 30rem),
-    #f7f8fc;
+  background: #f8fafc;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid rgb(22 119 255 / 22%);
+  outline-offset: 2px;
 }

@@ -1,4 +1,4 @@
-import { jsonPost, apiRequest as request } from '@/shared/api/client';
+import { request } from '@/shared/api/client';
 import type { DownloadJob, DownloadUrl, Inspection } from './types';
 
 export {
@@ -8,11 +8,15 @@ export {
 } from '@/shared/api/client';
 
 export function inspectMedia(url: string, key: string): Promise<Inspection> {
-  return request('/inspections', jsonPost({ url }, key));
+  return request('/api/v1/inspections', {
+    method: 'POST',
+    headers: { 'Idempotency-Key': key },
+    data: { url },
+  });
 }
 
 export function getInspection(id: string): Promise<Inspection> {
-  return request(`/inspections/${encodeURIComponent(id)}`);
+  return request(`/api/v1/inspections/${encodeURIComponent(id)}`);
 }
 
 export function createDownload(
@@ -20,25 +24,27 @@ export function createDownload(
   formatId: string,
   key: string,
 ): Promise<DownloadJob> {
-  return request(
-    '/downloads',
-    jsonPost({ inspection_id: inspectionId, format_id: formatId }, key),
-  );
+  return request('/api/v1/downloads', {
+    method: 'POST',
+    headers: { 'Idempotency-Key': key },
+    data: { inspection_id: inspectionId, format_id: formatId },
+  });
 }
 
 export function getDownload(id: string): Promise<DownloadJob> {
-  return request(`/downloads/${encodeURIComponent(id)}`);
+  return request(`/api/v1/downloads/${encodeURIComponent(id)}`);
 }
 
 export function cancelDownload(id: string): Promise<DownloadJob> {
-  return request(`/downloads/${encodeURIComponent(id)}/cancel`, jsonPost());
+  return request(`/api/v1/downloads/${encodeURIComponent(id)}/cancel`, {
+    method: 'POST',
+  });
 }
 
 export function issueDownloadUrl(id: string): Promise<DownloadUrl> {
-  return request(
-    `/downloads/${encodeURIComponent(id)}/download-url`,
-    jsonPost(),
-  );
+  return request(`/api/v1/downloads/${encodeURIComponent(id)}/download-url`, {
+    method: 'POST',
+  });
 }
 
 export function triggerBrowserDownload(url: string): void {

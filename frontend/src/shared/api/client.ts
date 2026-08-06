@@ -1,9 +1,24 @@
-const API_ROOT = '/api/v1';
-
 type ProblemDetails = {
   code: string;
   title: string;
   detail: string;
+};
+
+type RequestParameter =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | RequestParameter[];
+
+export type RequestOptions = {
+  method?: string;
+  headers?: Record<string, string>;
+  params?: Record<string, RequestParameter>;
+  data?: unknown;
+  credentials?: RequestCredentials;
+  signal?: AbortSignal;
 };
 
 export class ApiError extends Error {
@@ -18,31 +33,36 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiRequest<T>(
+export async function request<T>(
   path: string,
-  init?: RequestInit,
+  options: RequestOptions = {},
 ): Promise<T> {
-  const response = await fetch(`${API_ROOT}${path}`, {
+  const { data, params, ...init } = options;
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    ...options.headers,
+  };
+  if (data !== undefined && !(data instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
+  const response = await fetch(withQuery(path, params), {
     ...init,
-    credentials: 'same-origin',
-    headers: {
-      Accept: 'application/json',
-      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
-      ...init?.headers,
-    },
+    body:
+      data === undefined
+        ? undefined
+        : data instanceof FormData
+          ? data
+          : JSON.stringify(data),
+    credentials: options.credentials ?? 'same-origin',
+    headers,
   });
   if (!response.ok) {
     throw await responseError(response);
   }
+  if (response.status === 204) {
+    return undefined as T;
+  }
   return response.json() as Promise<T>;
-}
-
-export function jsonPost(body?: object, idempotencyKey?: string): RequestInit {
-  return {
-    method: 'POST',
-    body: body ? JSON.stringify(body) : undefined,
-    headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
-  };
 }
 
 export function createIdempotencyKey(): string {
@@ -75,4 +95,24 @@ async function responseError(response: Response): Promise<ApiError> {
     '请求失败',
     '服务暂时不可用，请稍后重试。',
   );
+}
+
+function withQuery(
+  path: string,
+  params: Record<string, RequestParameter> | undefined,
+): string {
+  if (!params) {
+    return path;
+  }
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    const values = Array.isArray(value) ? value : [value];
+    for (const item of values) {
+      if (item !== undefined && item !== null) {
+        query.append(key, String(item));
+      }
+    }
+  }
+  const suffix = query.toString();
+  return suffix ? `${path}${path.includes('?') ? '&' : '?'}${suffix}` : path;
 }

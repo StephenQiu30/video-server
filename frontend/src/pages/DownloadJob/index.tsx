@@ -1,40 +1,27 @@
-import Alert from 'antd/es/alert';
-import Button from 'antd/es/button';
-import Card from 'antd/es/card';
-import Progress from 'antd/es/progress';
-import Skeleton from 'antd/es/skeleton';
-import Space from 'antd/es/space';
-import Tag from 'antd/es/tag';
-import Typography from 'antd/es/typography';
+import { CheckCircleFilled } from '@ant-design/icons';
+import {
+  Alert,
+  Breadcrumb,
+  Button,
+  Col,
+  Flex,
+  Grid,
+  Row,
+  Skeleton,
+  Tag,
+  Typography,
+} from 'antd';
+import { useCallback, useState } from 'react';
 
 import AnalysisPanel from '@/features/analysis/AnalysisPanel';
-import type { DownloadStage, DownloadStatus } from '@/features/download/types';
+import type { AnalysisJob } from '@/features/analysis/types';
+import type { MediaFormat } from '@/features/download/types';
+import { formatDuration } from '@/shared/format';
+import BasicLayout from '@/shared/layout/BasicLayout';
 
 import styles from './index.module.css';
+import MediaSidebar from './MediaSidebar';
 import { useDownloadJob } from './useDownloadJob';
-
-const statusLabels: Record<DownloadStatus, string> = {
-  queued: '等待处理',
-  running: '下载中',
-  retry_wait: '等待重试',
-  succeeded: '下载已完成',
-  failed: '下载失败',
-  cancelled: '任务已取消',
-};
-
-const stageLabels: Record<DownloadStage, string> = {
-  revalidating: '重新校验格式',
-  downloading: '下载媒体流',
-  remuxing: '封装媒体文件',
-  verifying: '验证文件',
-  uploading: '保存文件',
-};
-
-const cancellable = new Set<DownloadStatus>([
-  'queued',
-  'running',
-  'retry_wait',
-]);
 
 type DownloadJobPageProps = {
   jobId: string;
@@ -45,111 +32,122 @@ export default function DownloadJobPage({
   jobId,
   pollIntervalMs = 1500,
 }: DownloadJobPageProps) {
+  const screens = Grid.useBreakpoint();
   const state = useDownloadJob(jobId, pollIntervalMs);
-  const { action, error, job, loading } = state;
+  const [analysisJob, setAnalysisJob] = useState<AnalysisJob | null>(null);
+  const handleAnalysisJob = useCallback((current: AnalysisJob | null) => {
+    setAnalysisJob(current);
+  }, []);
+  const format = state.inspection?.formats?.find(
+    (item) => item.id === state.job?.format_id,
+  );
+  const title = state.inspection?.title ?? '下载任务';
 
   return (
-    <main className={styles.page}>
-      <a className={styles.back} href="/">
-        ← 返回下载器
-      </a>
-      <Typography.Title level={1}>下载任务</Typography.Title>
-      <Typography.Paragraph type="secondary">
-        任务 ID：<code>{jobId}</code>
-      </Typography.Paragraph>
+    <BasicLayout active="tasks">
+      <main
+        className={styles.page}
+        style={{ padding: screens.sm ? '22px 24px 38px' : '18px 14px 30px' }}
+      >
+        <Breadcrumb items={[{ title: '任务' }, { title }]} />
+        <Flex
+          align={screens.sm ? 'center' : 'flex-start'}
+          className={styles.heading}
+          component="header"
+          gap={14}
+          vertical={!screens.sm}
+          wrap
+        >
+          <Flex align="baseline" className={styles.titleRow} gap={12} wrap>
+            <Typography.Title level={1}>{title}</Typography.Title>
+            {state.inspection ? (
+              <span>{metadata(state.inspection.duration_seconds, format)}</span>
+            ) : null}
+          </Flex>
+          <Flex gap={8} wrap>
+            {state.job?.status === 'succeeded' ? (
+              <Tag color="success" icon={<CheckCircleFilled />}>
+                文件已验证
+              </Tag>
+            ) : null}
+            {analysisJob?.status === 'succeeded' ? (
+              <Tag color="processing" icon={<CheckCircleFilled />}>
+                分析已完成
+              </Tag>
+            ) : null}
+          </Flex>
+        </Flex>
 
-      <Card className={styles.card} variant="borderless">
-        {loading && !job ? <Skeleton active paragraph={{ rows: 4 }} /> : null}
-        {error ? (
+        {state.error ? (
           <Alert
             action={
-              !job ? (
-                <Button onClick={state.retry} size="small">
-                  重试
-                </Button>
+              !state.job ? (
+                <Button onClick={state.retry}>重试</Button>
               ) : undefined
             }
             className={styles.alert}
             showIcon
-            title={error}
+            title={state.error}
             type="error"
           />
         ) : null}
-
-        {job ? (
-          <section aria-live="polite" className={styles.content}>
-            <div className={styles.summary}>
-              <div>
-                <span className={styles.label}>状态</span>
-                <Typography.Title level={3}>
-                  {statusLabels[job.status]}
-                </Typography.Title>
-              </div>
-              <Tag color={job.status === 'succeeded' ? 'green' : 'purple'}>
-                第 {job.attempt} 次尝试
-              </Tag>
-            </div>
-
-            <Progress
-              percent={job.progress}
-              status={progressStatus(job.status)}
-            />
-            <dl className={styles.details}>
-              <div>
-                <dt>当前阶段</dt>
-                <dd>{job.stage ? stageLabels[job.stage] : '—'}</dd>
-              </div>
-              <div>
-                <dt>更新时间</dt>
-                <dd>{new Date(job.updated_at).toLocaleString('zh-CN')}</dd>
-              </div>
-            </dl>
-
-            {job.status === 'failed' ? (
-              <Alert
-                showIcon
-                title={`错误代码：${job.error_code ?? 'unknown_error'}`}
-                type="error"
-              />
-            ) : null}
-
-            <Space wrap>
-              {cancellable.has(job.status) ? (
-                <Button
-                  aria-label="取消任务"
-                  danger
-                  loading={action === 'cancel'}
-                  onClick={state.cancel}
-                >
-                  取消任务
-                </Button>
-              ) : null}
-              {job.status === 'succeeded' ? (
-                <Button
-                  aria-label="获取文件"
-                  loading={action === 'download'}
-                  onClick={state.download}
-                  type="primary"
-                >
-                  获取文件
-                </Button>
-              ) : null}
-            </Space>
-          </section>
+        {state.inspectionError ? (
+          <Alert
+            className={styles.alert}
+            showIcon
+            title={state.inspectionError}
+            type="warning"
+          />
         ) : null}
-      </Card>
-      {job?.status === 'succeeded' ? (
-        <AnalysisPanel downloadId={job.id} pollIntervalMs={pollIntervalMs} />
-      ) : null}
-    </main>
+
+        {state.loading && !state.job ? (
+          <div className={styles.loading}>
+            <Skeleton active paragraph={{ rows: 8 }} />
+          </div>
+        ) : null}
+
+        {state.job ? (
+          <Row align="top" gutter={[{ xs: 16, lg: 28 }, 20]}>
+            <Col xs={24} lg={7} xl={6}>
+              <MediaSidebar
+                action={state.action}
+                analysisResult={analysisJob?.result ?? null}
+                inspection={state.inspection}
+                job={state.job}
+                onCancel={state.cancel}
+                onDownload={state.download}
+              />
+            </Col>
+            <Col xs={24} lg={17} xl={18}>
+              {state.job.status === 'succeeded' ? (
+                <AnalysisPanel
+                  downloadId={state.job.id}
+                  onJobChange={handleAnalysisJob}
+                  pollIntervalMs={pollIntervalMs}
+                />
+              ) : (
+                <WaitingForDownload />
+              )}
+            </Col>
+          </Row>
+        ) : null}
+      </main>
+    </BasicLayout>
   );
 }
 
-function progressStatus(
-  status: DownloadStatus,
-): 'active' | 'exception' | 'success' {
-  if (status === 'failed') {
-    return 'exception';
-  }
-  return status === 'succeeded' ? 'success' : 'active';
+function WaitingForDownload() {
+  return (
+    <section className={styles.waiting}>
+      <Typography.Title level={2}>AI 智能分析</Typography.Title>
+      <Typography.Paragraph>
+        视频下载并验证完成后，即可开始生成摘要、观点和思维导图。
+      </Typography.Paragraph>
+    </section>
+  );
+}
+
+function metadata(duration: number, format?: MediaFormat): string {
+  if (!format) return formatDuration(duration);
+  return `${format.plan.height}p · ${format.plan.container_preference.toUpperCase()} · ${formatDuration(duration)}`;
 }

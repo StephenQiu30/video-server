@@ -1,0 +1,116 @@
+.result {
+  min-width: 0;
+}
+
+.result :global(.ant-tabs-nav) {
+  padding: 0 26px;
+  margin: 0;
+}
+
+.result :global(.ant-tabs-tab) {
+  padding: 17px 6px;
+}
+
+.result :global(.ant-tabs-content-holder) {
+  padding: 24px 28px 28px;
+}
+
+.summaryTab {
+  display: grid;
+  gap: 22px;
+}
+
+.summaryTab h3,
+.result :global(.ant-tabs-tabpane) > section > h3 {
+  margin: 0 0 12px;
+  color: #1f2937;
+  font-size: 18px;
+}
+
+.summaryBlock {
+  padding-bottom: 18px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.summaryBlock p {
+  margin: 0;
+  color: #4b5563;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.summaryBlock span {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 14px;
+  color: #8a94a6;
+  font-size: 13px;
+}
+
+.compactSection {
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.statements {
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  list-style: none;
+}
+
+.statements li {
+  min-height: 52px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.statements li:last-child {
+  border-bottom: 0;
+}
+
+.statements li > span {
+  color: #1677ff;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.statements p {
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.timeline {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.timeline li {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 12px;
+  padding: 0 0 20px;
+}
+
+.timeline li > span {
+  color: #1677ff;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline strong {
+  color: #374151;
+}
+
+.timeline p,
+.empty {
+  margin: 4px 0 0;
+  color: #8a94a6;
+  font-size: 13px;
+  line-height: 1.6;
+}

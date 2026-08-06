@@ -1,10 +1,9 @@
-import AntApp from 'antd/es/app';
-import ConfigProvider from 'antd/es/config-provider';
-import { useEffect, useState } from 'react';
+import { App as AntApp, ConfigProvider } from 'antd';
+import { lazy, Suspense, useEffect, useState } from 'react';
 
-import NotFoundPage from '@/pages/404';
-import DownloadJobPage from '@/pages/DownloadJob';
-import HomePage from '@/pages/Home';
+const HomePage = lazy(() => import('@/pages/Home'));
+const DownloadJobPage = lazy(() => import('@/pages/DownloadJob'));
+const NotFoundPage = lazy(() => import('@/pages/404'));
 
 type AppProps = {
   path?: string;
@@ -43,14 +42,17 @@ export function App({ path }: AppProps) {
     <ConfigProvider
       theme={{
         token: {
-          borderRadius: 10,
-          colorPrimary: '#6956e8',
+          borderRadius: 6,
+          colorBgLayout: '#f8fafc',
+          colorPrimary: '#1677ff',
           fontFamily:
-            "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+            "Inter, 'PingFang SC', 'Microsoft YaHei', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         },
       }}
     >
-      <AntApp>{page}</AntApp>
+      <AntApp>
+        <Suspense fallback={null}>{page}</Suspense>
+      </AntApp>
     </ConfigProvider>
   );
 }

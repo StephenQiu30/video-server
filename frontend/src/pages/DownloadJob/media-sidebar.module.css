@@ -1,0 +1,124 @@
+.sidebar {
+  border: 1px solid #dfe5ec;
+}
+
+.cover {
+  position: relative;
+  overflow: hidden;
+  background: #0b1730;
+  border-radius: 6px;
+  aspect-ratio: 16 / 9;
+}
+
+.cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  color: #fff;
+  font-size: 50px;
+  filter: drop-shadow(0 2px 5px rgb(0 0 0 / 35%));
+  transform: translate(-50%, -50%);
+}
+
+.duration {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  padding: 2px 6px;
+  color: #fff;
+  background: rgb(0 0 0 / 68%);
+  border-radius: 4px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.fileInfo,
+.chapters {
+  margin-top: 18px;
+}
+
+.fileInfo h2,
+.chapters h2 {
+  margin: 0 0 10px;
+  color: #111827;
+  font-size: 16px;
+}
+
+.fileInfo :global(.ant-descriptions-item-content) {
+  overflow: hidden;
+  color: #4b5563;
+  text-overflow: ellipsis;
+}
+
+.status {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  margin-top: 14px;
+  background: #f5fbf7;
+  border: 1px solid #c9ead4;
+  border-radius: 6px;
+}
+
+.status > div {
+  color: #17945d;
+}
+
+.status > span {
+  padding-left: 25px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.actions {
+  margin-top: 12px;
+}
+
+.chapters {
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.chapters ol {
+  padding: 0;
+  margin: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  list-style: none;
+}
+
+.chapters li {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 8px;
+  padding: 11px 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.chapters li:last-child {
+  border-bottom: 0;
+}
+
+.chapters li span {
+  color: #1677ff;
+  font-variant-numeric: tabular-nums;
+}
+
+.chapters li strong {
+  overflow: hidden;
+  color: #4b5563;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chapters p {
+  margin: 0;
+  color: #8a94a6;
+  line-height: 1.6;
+}

@@ -1,10 +1,9 @@
-import Alert from 'antd/es/alert';
-import Button from 'antd/es/button';
-import Card from 'antd/es/card';
-import Spin from 'antd/es/spin';
-import Tag from 'antd/es/tag';
-import Typography from 'antd/es/typography';
+import { LinkOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { ProCard } from '@ant-design/pro-components';
+import { Alert, Button, Col, Grid, Input, Row, Spin, Typography } from 'antd';
 import { type FormEvent, type RefObject, useRef, useState } from 'react';
+
+import stageCover from '@/assets/product-launch-stage.webp';
 import {
   createDownload,
   createIdempotencyKey,
@@ -15,6 +14,8 @@ import FormatPicker from '@/features/download/FormatPicker';
 import { navigate } from '@/features/download/navigation';
 import type { Inspection } from '@/features/download/types';
 import { validateMediaUrl } from '@/features/download/validation';
+import { formatDuration } from '@/shared/format';
+import BasicLayout from '@/shared/layout/BasicLayout';
 
 import styles from './index.module.css';
 
@@ -29,6 +30,7 @@ function keyFor(ref: RefObject<StableKey | null>, payload: string): string {
 }
 
 export default function HomePage() {
+  const screens = Grid.useBreakpoint();
   const [url, setUrl] = useState('');
   const [inspection, setInspection] = useState<Inspection | null>(null);
   const [selectedId, setSelectedId] = useState('');
@@ -62,9 +64,7 @@ export default function HomePage() {
   }
 
   async function handleCreate() {
-    if (!inspection || !selectedId) {
-      return;
-    }
+    if (!inspection || !selectedId) return;
     setBusy('create');
     setError(null);
     try {
@@ -83,92 +83,115 @@ export default function HomePage() {
   }
 
   return (
-    <main className={styles.page}>
-      <section className={styles.hero}>
-        <Tag color="purple">安全的公开内容下载</Tag>
-        <Typography.Title level={1}>万能视频下载与智能分析</Typography.Title>
-        <Typography.Paragraph className={styles.lead}>
-          粘贴公开视频地址，先查看真实可用的清晰度，再创建可追踪、可取消的下载任务。
-        </Typography.Paragraph>
-      </section>
+    <BasicLayout active="new">
+      <main
+        className={styles.page}
+        style={{ padding: screens.md ? '88px 24px 56px' : '48px 14px 40px' }}
+      >
+        <section className={styles.hero}>
+          <Typography.Title level={1}>万能视频下载与智能分析</Typography.Title>
+          <Typography.Paragraph>
+            输入公开视频地址，选择清晰度下载，并用 AI 提取摘要、观点与思维导图。
+          </Typography.Paragraph>
+          <form className={styles.search} onSubmit={handleInspect}>
+            <label className={styles.label} htmlFor="media-url">
+              公开视频地址
+            </label>
+            <Row gutter={[10, 10]}>
+              <Col xs={24} sm={18}>
+                <Input
+                  autoComplete="url"
+                  id="media-url"
+                  maxLength={4096}
+                  onChange={(event) => setUrl(event.target.value)}
+                  placeholder="粘贴 YouTube、Bilibili 等公开视频地址"
+                  prefix={<LinkOutlined />}
+                  size="large"
+                  type="url"
+                  value={url}
+                />
+              </Col>
+              <Col xs={24} sm={6}>
+                <Button
+                  aria-label="解析视频"
+                  block={!screens.sm}
+                  htmlType="submit"
+                  loading={busy === 'inspect'}
+                  size="large"
+                  type="primary"
+                >
+                  解析视频
+                </Button>
+              </Col>
+            </Row>
+          </form>
+        </section>
 
-      <Alert
-        className={styles.legal}
-        title="仅处理你有权下载的公开内容"
-        description="不支持 Cookie、DRM、私有内容、直播或播放列表，也不会协助规避平台访问控制。"
-        showIcon
-        type="warning"
-      />
-
-      <Card className={styles.workspace} variant="borderless">
-        <form className={styles.form} onSubmit={handleInspect}>
-          <label htmlFor="media-url">公开视频地址</label>
-          <div className={styles.inputRow}>
-            <input
-              autoComplete="url"
-              id="media-url"
-              maxLength={4096}
-              onChange={(event) => setUrl(event.target.value)}
-              placeholder="https://media.example/video"
-              type="url"
-              value={url}
-            />
-            <Button
-              aria-label="解析视频"
-              htmlType="submit"
-              loading={busy === 'inspect'}
-              size="large"
-              type="primary"
-            >
-              解析视频
-            </Button>
-          </div>
-        </form>
-
-        {error ? (
-          <Alert
-            className={styles.feedback}
-            showIcon
-            title={error}
-            type="error"
-          />
-        ) : null}
-
+        {error ? <Alert showIcon title={error} type="error" /> : null}
         {busy === 'inspect' && !inspection ? (
-          <div className={styles.loading} aria-live="polite">
+          <div aria-live="polite" className={styles.loading}>
             <Spin /> 正在安全解析视频…
           </div>
         ) : null}
 
         {inspection ? (
-          <section className={styles.result} aria-live="polite">
-            <div>
-              <Typography.Title level={3}>{inspection.title}</Typography.Title>
-              <Typography.Text type="secondary">
-                时长 {Math.ceil(inspection.duration_seconds / 60)} 分钟 · 来源{' '}
-                {inspection.extractor_key}
-              </Typography.Text>
-            </div>
-            <FormatPicker
-              formats={inspection.formats}
-              onChange={setSelectedId}
-              selectedId={selectedId}
-            />
-            <Button
-              aria-label="开始下载"
-              disabled={!selectedId}
-              loading={busy === 'create'}
-              onClick={handleCreate}
-              size="large"
-              type="primary"
-            >
-              开始下载
-            </Button>
-          </section>
-        ) : (
-          <p className={styles.empty}>解析后将在这里显示可下载格式。</p>
-        )}
-      </Card>
-    </main>
+          <ProCard
+            className={styles.preview}
+            styles={{ body: { padding: 0 } }}
+            variant="outlined"
+          >
+            <Row align="stretch">
+              <Col xs={24} md={10}>
+                <img
+                  alt="视频预览封面"
+                  src={stageCover}
+                  style={{ aspectRatio: screens.md ? undefined : '16 / 9' }}
+                />
+              </Col>
+              <Col xs={24} md={14}>
+                <section
+                  className={styles.previewBody}
+                  style={{ padding: screens.md ? 32 : 24 }}
+                >
+                  <div>
+                    <Typography.Title level={2}>
+                      {inspection.title}
+                    </Typography.Title>
+                    <Typography.Text type="secondary">
+                      {formatDuration(inspection.duration_seconds)} · 来源{' '}
+                      {inspection.extractor_key}
+                    </Typography.Text>
+                  </div>
+                  <FormatPicker
+                    formats={inspection.formats}
+                    onChange={setSelectedId}
+                    selectedId={selectedId}
+                  />
+                  <Button
+                    aria-label="开始下载"
+                    disabled={!selectedId}
+                    loading={busy === 'create'}
+                    onClick={handleCreate}
+                    size="large"
+                    type="primary"
+                  >
+                    开始下载
+                  </Button>
+                </section>
+              </Col>
+            </Row>
+          </ProCard>
+        ) : null}
+
+        <Alert
+          className={styles.legal}
+          description="不支持 Cookie、DRM、私有内容、直播或播放列表，也不会协助规避平台访问控制。"
+          icon={<SafetyCertificateOutlined />}
+          showIcon
+          title="仅处理你有权下载的公开内容"
+          type="info"
+        />
+      </main>
+    </BasicLayout>
   );
 }

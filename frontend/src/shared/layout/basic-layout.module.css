@@ -1,0 +1,23 @@
+.layout {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.layout :global(.ant-pro-layout-bg-list) {
+  display: none;
+}
+
+.layout :global(.ant-pro-global-header) {
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: none;
+}
+
+.brandMark {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  color: #fff;
+  background: #1677ff;
+  border-radius: 6px;
+  place-items: center;
+}

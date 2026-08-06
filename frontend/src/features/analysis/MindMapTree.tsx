@@ -1,3 +1,7 @@
+import { Tree, type TreeDataNode } from 'antd';
+
+import { formatMilliseconds } from '@/shared/format';
+
 import styles from './mind-map.module.css';
 import type { MindMapNode } from './types';
 
@@ -8,39 +12,29 @@ type MindMapTreeProps = {
 export default function MindMapTree({ root }: MindMapTreeProps) {
   return (
     <div className={styles.mindMap}>
-      <ul className={styles.mindMapRoot}>
-        <MindMapBranch node={root} />
-      </ul>
+      <Tree
+        blockNode
+        defaultExpandAll
+        selectable={false}
+        showLine
+        treeData={[toTreeNode(root)]}
+      />
     </div>
   );
 }
 
-function MindMapBranch({ node }: { node: MindMapNode }) {
-  return (
-    <li>
-      <article className={styles.mindMapNode}>
-        <div className={styles.nodeHeading}>
-          <strong>{node.title}</strong>
-          {node.start_ms === null ? null : (
-            <span>{formatTime(node.start_ms)}</span>
-          )}
-        </div>
-        {node.summary ? <p>{node.summary}</p> : null}
-      </article>
-      {node.children.length > 0 ? (
-        <ul>
-          {node.children.map((child) => (
-            <MindMapBranch key={child.id} node={child} />
-          ))}
-        </ul>
-      ) : null}
-    </li>
-  );
-}
-
-function formatTime(milliseconds: number): string {
-  const totalSeconds = Math.floor(milliseconds / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = String(totalSeconds % 60).padStart(2, '0');
-  return `${minutes}:${seconds}`;
+function toTreeNode(node: MindMapNode): TreeDataNode {
+  return {
+    key: node.id,
+    title: (
+      <div className={styles.node}>
+        <strong>{node.title}</strong>
+        {node.start_ms === null ? null : (
+          <span>{formatMilliseconds(node.start_ms)}</span>
+        )}
+        {node.summary ? <small>{node.summary}</small> : null}
+      </div>
+    ),
+    children: node.children.map(toTreeNode),
+  };
 }
