@@ -72,7 +72,7 @@ describe('AnalysisPanel', () => {
     expect(await screen.findByText('分析已取消')).toBeInTheDocument();
     expect(requestMock).toHaveBeenNthCalledWith(
       2,
-      `/api/v1/analyses/${analysisJob().id}/cancel`,
+      `/api/analyses/${analysisJob().id}/cancel`,
       expect.objectContaining({ method: 'POST' }),
     );
   });

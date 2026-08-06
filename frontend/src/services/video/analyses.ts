@@ -2,43 +2,43 @@
 /* eslint-disable */
 import { request } from "@umijs/max";
 
-/** Get Analysis GET /api/v1/analyses/${param0} */
-export async function getAnalysisApiV1AnalysesAnalysisIdGet(
+/** 查询视频分析任务 查询分析进度及经过证据校验的结果。 GET /api/analyses/${param0} */
+export async function getAnalysis(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
-  params: API.getAnalysisApiV1AnalysesAnalysisIdGetParams,
+  params: API.getAnalysisParams,
   options?: { [key: string]: any }
 ) {
   const { analysis_id: param0, ...queryParams } = params;
-  return request<API.AnalysisResponse>(`/api/v1/analyses/${param0}`, {
+  return request<API.AnalysisResponse>(`/api/analyses/${param0}`, {
     method: "GET",
     params: { ...queryParams },
     ...(options || {}),
   });
 }
 
-/** Cancel Analysis POST /api/v1/analyses/${param0}/cancel */
-export async function cancelAnalysisApiV1AnalysesAnalysisIdCancelPost(
+/** 取消视频分析任务 请求取消尚未结束的视频分析任务。 POST /api/analyses/${param0}/cancel */
+export async function cancelAnalysis(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
-  params: API.cancelAnalysisApiV1AnalysesAnalysisIdCancelPostParams,
+  params: API.cancelAnalysisParams,
   options?: { [key: string]: any }
 ) {
   const { analysis_id: param0, ...queryParams } = params;
-  return request<API.AnalysisResponse>(`/api/v1/analyses/${param0}/cancel`, {
+  return request<API.AnalysisResponse>(`/api/analyses/${param0}/cancel`, {
     method: "POST",
     params: { ...queryParams },
     ...(options || {}),
   });
 }
 
-/** Create Analysis POST /api/v1/downloads/${param0}/analyses */
-export async function createAnalysisApiV1DownloadsDownloadIdAnalysesPost(
+/** 创建视频分析任务 基于已完成的下载制品创建异步 AI 分析任务。 POST /api/downloads/${param0}/analyses */
+export async function createAnalysis(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
-  params: API.createAnalysisApiV1DownloadsDownloadIdAnalysesPostParams,
+  params: API.createAnalysisParams,
   body: API.AnalysisRequest,
   options?: { [key: string]: any }
 ) {
   const { download_id: param0, ...queryParams } = params;
-  return request<any>(`/api/v1/downloads/${param0}/analyses`, {
+  return request<API.AnalysisResponse>(`/api/downloads/${param0}/analyses`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

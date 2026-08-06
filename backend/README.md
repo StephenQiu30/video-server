@@ -8,8 +8,9 @@ FastAPI API、下载/分析领域逻辑、异步 Worker、当前态数据库 SQL
 
 ```text
 app/
-├── api/              FastAPI 装配、健康检查与版本化 HTTP 契约
-│   └── v1/           v1 路由和请求/响应 schema
+├── api/              FastAPI 装配、健康检查与 HTTP 契约
+│   ├── routes/       `/api/*` 路由
+│   └── schemas/      请求与响应模型
 ├── application/      用例编排与外部能力端口
 ├── domain/           不依赖框架的领域规则
 ├── infrastructure/   数据库、消息、对象存储和模型适配器
@@ -19,6 +20,8 @@ app/
 └── main.py           FastAPI 进程入口
 ```
 
-依赖方向保持为 `api/workers → application → domain`。FastAPI DTO 位于对应 API 版本下；不要把数据库模型、Provider SDK 或 Worker 实现移入 `domain`。
+依赖方向保持为 `api/workers → application → domain`。FastAPI DTO 位于 `api/schemas/`；不要把数据库模型、Provider SDK 或 Worker 实现移入 `domain`。
+
+公共接口不维护无实际兼容需求的版本目录或 URL 前缀。服务启动后可通过 `/docs` 访问 Swagger UI，通过 `/openapi.json` 获取供前端生成客户端的 OpenAPI 契约。
 
 文本分析统一通过 LangChain 的结构化输出接口运行，服务端以 `ANALYSIS_PROVIDER=ollama|deepseek` 选择本地 Ollama 或 DeepSeek。Ollama 默认模型为 `deepseek-r1:8b`，DeepSeek 默认模型为 `deepseek-v4-flash`。音频转录是独立 ASR 端口，不与文本模型配置混用。

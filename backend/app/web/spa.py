@@ -18,7 +18,8 @@ class SPAStaticFiles(StaticFiles):
 
     async def get_response(self, path: str, scope: MutableMapping[str, Any]) -> Any:
         normalized = path.lstrip("/")
-        first_segment = normalized.partition("/")[0]
+        request_path = str(scope.get("path", path)).lstrip("/")
+        first_segment = request_path.partition("/")[0]
         if first_segment in RESERVED_PREFIXES:
             raise HTTPException(status_code=404)
         try:

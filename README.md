@@ -31,6 +31,19 @@ npm run dev
 
 前端开发服务器固定将 `/api/` 和 `/health/` 代理到 `http://127.0.0.1:19090`；生产构建使用相对 API 路径，不需要浏览器可见的后端地址。
 
+## API 文档与客户端
+
+API 启动后访问 `/docs` 查看 Swagger UI，访问 `/openapi.json` 获取 OpenAPI 契约。公共业务接口统一位于 `/api/*`，当前不维护没有实际兼容需求的版本目录或 `/api/v1` 前缀。
+
+前端 API 客户端完全由该契约生成，不手工维护接口类型或请求函数：
+
+```bash
+cd frontend
+npm run openapi
+```
+
+该命令使用 Umi Max OpenAPI 插件直接读取 FastAPI 的 `/openapi.json`，并更新 `frontend/src/services/video/`；执行前需启动后端 API。
+
 ## 容器运行
 
 根目录三份 Compose 各自承担固定职责，不使用 `deploy/` 目录：

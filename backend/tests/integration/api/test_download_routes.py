@@ -27,7 +27,7 @@ def test_download_use_cases_are_resolved_from_app_state(tmp_path: Path) -> None:
     app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
     with TestClient(app) as test_client:
         response = test_client.post(
-            "/api/v1/inspections",
+            "/api/inspections",
             headers={"Idempotency-Key": "inspect-1"},
             json={"url": "https://media.example/owned"},
         )
@@ -40,11 +40,11 @@ def test_inspection_routes_use_stable_session_and_hide_hints(tmp_path: Path) -> 
     test_client, stubs = client(tmp_path)
     with test_client:
         created = test_client.post(
-            "/api/v1/inspections",
+            "/api/inspections",
             headers={"Idempotency-Key": "inspect-1"},
             json={"url": "https://media.example/owned"},
         )
-        fetched = test_client.get(f"/api/v1/inspections/{INSPECTION_ID}")
+        fetched = test_client.get(f"/api/inspections/{INSPECTION_ID}")
 
     assert created.status_code == 201
     assert fetched.status_code == 200
@@ -64,15 +64,16 @@ def test_download_routes_delegate_with_session_owner(tmp_path: Path) -> None:
     body = {"inspection_id": str(INSPECTION_ID), "format_id": str(FORMAT_ID)}
     with test_client:
         created = test_client.post(
-            "/api/v1/downloads",
+            "/api/downloads",
             headers={"Idempotency-Key": "download-1"},
             json=body,
         )
-        fetched = test_client.get(f"/api/v1/downloads/{JOB_ID}")
-        cancelled = test_client.post(f"/api/v1/downloads/{JOB_ID}/cancel")
-        issued = test_client.post(f"/api/v1/downloads/{JOB_ID}/download-url")
+        fetched = test_client.get(f"/api/downloads/{JOB_ID}")
+        cancelled = test_client.post(f"/api/downloads/{JOB_ID}/cancel")
+        issued = test_client.post(f"/api/downloads/{JOB_ID}/download-url")
 
-    assert created.status_code == 202
+    assert created.status_code == 201
+    assert created.headers["location"] == f"/api/downloads/{JOB_ID}"
     assert fetched.status_code == cancelled.status_code == issued.status_code == 200
     assert created.json()["status"] == "queued"
     assert cancelled.json()["status"] == "cancelled"
@@ -90,20 +91,20 @@ def test_creation_contract_rejects_missing_headers_and_invalid_bodies(
     test_client, stubs = client(tmp_path)
     with test_client:
         missing = test_client.post(
-            "/api/v1/inspections", json={"url": "https://media.example/video"}
+            "/api/inspections", json={"url": "https://media.example/video"}
         )
         extra = test_client.post(
-            "/api/v1/inspections",
+            "/api/inspections",
             headers={"Idempotency-Key": "key"},
             json={"url": "https://media.example/video", "cookie": "secret"},
         )
         too_long = test_client.post(
-            "/api/v1/inspections",
+            "/api/inspections",
             headers={"Idempotency-Key": "key"},
             json={"url": "https://example.com/" + "a" * 4_100},
         )
         invalid_uuid = test_client.post(
-            "/api/v1/downloads",
+            "/api/downloads",
             headers={"Idempotency-Key": "key"},
             json={"inspection_id": "bad", "format_id": str(FORMAT_ID)},
         )
@@ -122,12 +123,12 @@ def test_application_errors_are_rfc9457_problem_details(tmp_path: Path) -> None:
     test_client, stubs = client(tmp_path)
     stubs["get"].error = ApplicationError(ApplicationErrorCode.NOT_FOUND)
     with test_client:
-        response = test_client.get(f"/api/v1/downloads/{JOB_ID}")
+        response = test_client.get(f"/api/downloads/{JOB_ID}")
 
     assert response.status_code == 404
     assert response.headers["content-type"].startswith("application/problem+json")
     assert response.json()["code"] == "not_found"
-    assert response.json()["instance"] == f"/api/v1/downloads/{JOB_ID}"
+    assert response.json()["instance"] == f"/api/downloads/{JOB_ID}"
 
 
 @pytest.mark.parametrize(
@@ -148,7 +149,7 @@ def test_inspection_errors_have_stable_http_mapping(
     stubs["inspect"].error = ApplicationError(code)
     with test_client:
         response = test_client.post(
-            "/api/v1/inspections",
+            "/api/inspections",
             headers={"Idempotency-Key": "inspect-1"},
             json={"url": "https://media.example/owned"},
         )

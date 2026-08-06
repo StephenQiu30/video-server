@@ -6,14 +6,21 @@ from uuid import UUID
 
 from pydantic import Field
 
-from app.api.v1.schemas.common import StrictModel
+from app.api.schemas.common import StrictModel
 from app.application.analysis import AnalysisJobView
 from app.domain.analysis import AnalysisErrorCode, AnalysisStage, AnalysisStatus
 
 
 class AnalysisRequest(StrictModel):
-    profile: Literal["standard-v1"]
+    """Selects the analysis profile and requested output language."""
+
+    profile: Literal["standard-v1"] = Field(
+        description="服务支持的结构化分析配置。",
+        examples=["standard-v1"],
+    )
     output_language: str = Field(
+        description="分析结果使用的 BCP 47 语言标签。",
+        examples=["zh-CN"],
         min_length=2,
         max_length=35,
         pattern=r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$",
@@ -57,6 +64,8 @@ class _StoredAnalysisResult(AnalysisResultResponse):
 
 
 class AnalysisResponse(StrictModel):
+    """Current state and optional validated result of an analysis resource."""
+
     id: UUID
     profile: str
     output_language: str

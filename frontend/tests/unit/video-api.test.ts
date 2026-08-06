@@ -28,7 +28,7 @@ describe('download API', () => {
 
     expect(requestMock).toHaveBeenNthCalledWith(
       1,
-      '/api/v1/inspections',
+      '/api/inspections',
       expect.objectContaining({
         data: { url: 'https://media.example/owned' },
         headers: { 'Idempotency-Key': 'inspect-key' },
@@ -37,7 +37,7 @@ describe('download API', () => {
     );
     expect(requestMock).toHaveBeenNthCalledWith(
       2,
-      '/api/v1/downloads',
+      '/api/downloads',
       expect.objectContaining({
         data: {
           format_id: inspection.formats[0].id,
@@ -65,14 +65,14 @@ describe('download API', () => {
     await issueDownloadUrl(job().id);
 
     expect(requestPaths()).toEqual([
-      `/api/v1/inspections/${inspection.id}`,
-      `/api/v1/downloads/${job().id}`,
-      `/api/v1/downloads/${job().id}/cancel`,
-      `/api/v1/downloads/${job().id}/download-url`,
+      `/api/inspections/${inspection.id}`,
+      `/api/downloads/${job().id}`,
+      `/api/downloads/${job().id}/cancel`,
+      `/api/downloads/${job().id}/download-url`,
     ]);
     expect(requestMock).toHaveBeenNthCalledWith(
       3,
-      `/api/v1/downloads/${job().id}/cancel`,
+      `/api/downloads/${job().id}/cancel`,
       expect.objectContaining({ method: 'POST' }),
     );
   });

@@ -48,15 +48,15 @@ frontend/
 
 ## OpenAPI 客户端
 
-FastAPI 的 OpenAPI 文档是接口类型的唯一来源。API 启动后执行：
+FastAPI 的 OpenAPI 文档是接口类型的唯一来源。先启动 FastAPI，再执行 Umi Max 官方生成命令：
 
 ```bash
 npm run openapi
 ```
 
-默认读取 `http://127.0.0.1:19090/openapi.json`。如需使用其他文档地址，可设置 `OPENAPI_SCHEMA_URL` 后再运行命令。
+命令默认读取 `http://127.0.0.1:19090/openapi.json`。如需使用 CI 或远端契约，可设置 `OPENAPI_SCHEMA_URL` 后再运行命令。开发服务器还会提供 `/umi/plugin/openapi`，用于预览插件读取到的 Swagger 文档。
 
-生成结果位于 `src/services/video/`，由 `@umijs/max-plugin-openapi` 维护，不要手工修改。页面和 Hooks 只调用 `src/services/analysis.ts` 或 `src/services/download.ts`，避免依赖生成器的函数名扩散到 UI。
+生成结果位于 `src/services/video/`，由 `@umijs/max-plugin-openapi` 的 `max openapi` 命令维护，不要手工修改。生成器按 OpenAPI tag 分文件，并使用后端声明的 `operationId` 作为函数名；页面和 Hooks 只调用 `src/services/analysis.ts` 或 `src/services/download.ts`，避免生成代码细节扩散到 UI。
 
 ## 常用命令
 

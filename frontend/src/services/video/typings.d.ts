@@ -24,9 +24,9 @@ declare namespace API {
     | "worker_lost";
 
   type AnalysisRequest = {
-    /** Profile */
+    /** Profile 服务支持的结构化分析配置。 */
     profile: string;
-    /** Output Language */
+    /** Output Language 分析结果使用的 BCP 47 语言标签。 */
     output_language: string;
   };
 
@@ -84,11 +84,11 @@ declare namespace API {
 
   type AudioCodecFamily = "aac" | "opus" | "vorbis" | "other";
 
-  type cancelAnalysisApiV1AnalysesAnalysisIdCancelPostParams = {
+  type cancelAnalysisParams = {
     analysis_id: string;
   };
 
-  type cancelDownloadApiV1DownloadsJobIdCancelPostParams = {
+  type cancelDownloadParams = {
     job_id: string;
   };
 
@@ -96,7 +96,7 @@ declare namespace API {
 
   type ContainerPreference = "mp4" | "webm" | "source";
 
-  type createAnalysisApiV1DownloadsDownloadIdAnalysesPostParams = {
+  type createAnalysisParams = {
     download_id: string;
   };
 
@@ -115,9 +115,9 @@ declare namespace API {
     | "worker_lost";
 
   type DownloadRequest = {
-    /** Inspection Id */
+    /** Inspection Id 仍在有效期内的媒体解析资源 ID。 */
     inspection_id: string;
-    /** Format Id */
+    /** Format Id 解析结果中选择的语义下载格式 ID。 */
     format_id: string;
   };
 
@@ -184,25 +184,20 @@ declare namespace API {
 
   type FpsBucket = "fps_30" | "fps_60" | "above_60";
 
-  type getAnalysisApiV1AnalysesAnalysisIdGetParams = {
+  type getAnalysisParams = {
     analysis_id: string;
   };
 
-  type getDownloadApiV1DownloadsJobIdGetParams = {
+  type getDownloadParams = {
     job_id: string;
   };
 
-  type getInspectionApiV1InspectionsInspectionIdGetParams = {
+  type getInspectionParams = {
     inspection_id: string;
   };
 
-  type HTTPValidationError = {
-    /** Detail */
-    detail?: ValidationError[];
-  };
-
   type InspectionRequest = {
-    /** Url */
+    /** Url 用户有权处理的公开、非 DRM HTTP(S) 媒体地址。 */
     url: string;
   };
 
@@ -223,8 +218,13 @@ declare namespace API {
     formats: FormatResponse[];
   };
 
-  type issueDownloadUrlApiV1DownloadsJobIdDownloadUrlPostParams = {
+  type issueDownloadUrlParams = {
     job_id: string;
+  };
+
+  type LivenessResponse = {
+    /** Status */
+    status: string;
   };
 
   type MindMapNodeResponse = {
@@ -242,6 +242,28 @@ declare namespace API {
     children: MindMapNodeResponse[];
   };
 
+  type ProblemDetails = {
+    /** Type 稳定的服务错误类型 URI。 */
+    type: string;
+    /** Title 面向调用方的简短错误标题。 */
+    title: string;
+    /** Status HTTP 状态码。 */
+    status: number;
+    /** Detail 不包含敏感信息的错误说明。 */
+    detail: string;
+    /** Code 供客户端分支处理的稳定错误码。 */
+    code: string;
+    /** Instance 产生错误的请求路径。 */
+    instance: string;
+  };
+
+  type ReadinessResponse = {
+    /** Status */
+    status: "ok" | "unavailable";
+    /** Service */
+    service: string;
+  };
+
   type SemanticPlanResponse = {
     /** Height */
     height: number;
@@ -255,19 +277,6 @@ declare namespace API {
     audio_language: string | null;
     container_preference: ContainerPreference;
     compatibility_profile: CompatibilityProfile;
-  };
-
-  type ValidationError = {
-    /** Location */
-    loc: (string | number)[];
-    /** Message */
-    msg: string;
-    /** Error Type */
-    type: string;
-    /** Input */
-    input?: any;
-    /** Context */
-    ctx?: Record<string, any>;
   };
 
   type VideoCodecFamily = "h264" | "hevc" | "vp9" | "av1" | "other";

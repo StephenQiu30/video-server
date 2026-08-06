@@ -11,13 +11,18 @@ def test_analysis_openapi_is_current_and_excludes_internal_fields(
         Settings(app_env="test", frontend_dist_dir=tmp_path / "none")
     ).openapi()
     paths = schema["paths"]
-    create_path = "/api/v1/downloads/{download_id}/analyses"
+    create_path = "/api/downloads/{download_id}/analyses"
 
     assert {
         create_path,
-        "/api/v1/analyses/{analysis_id}",
-        "/api/v1/analyses/{analysis_id}/cancel",
+        "/api/analyses/{analysis_id}",
+        "/api/analyses/{analysis_id}/cancel",
     } <= paths.keys()
+    assert paths[create_path]["post"]["operationId"] == "createAnalysis"
+    create_response = paths[create_path]["post"]["responses"]["201"]
+    assert create_response["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/AnalysisResponse"
+    }
     header = next(
         item
         for item in paths[create_path]["post"]["parameters"]

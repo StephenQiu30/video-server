@@ -46,7 +46,7 @@ def test_test_app_leaves_download_use_cases_injectable(tmp_path: Path) -> None:
 
     with TestClient(application) as client:
         response = client.post(
-            "/api/v1/inspections",
+            "/api/inspections",
             headers={"Idempotency-Key": "inspect-1"},
             json={"url": "https://media.example/video"},
         )

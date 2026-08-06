@@ -22,7 +22,7 @@ describe('analysis API', () => {
     );
 
     expect(requestMock).toHaveBeenCalledWith(
-      `/api/v1/downloads/${job().id}/analyses`,
+      `/api/downloads/${job().id}/analyses`,
       expect.objectContaining({
         data: {
           profile: 'standard-v1',
@@ -45,12 +45,12 @@ describe('analysis API', () => {
 
     expect(requestMock).toHaveBeenNthCalledWith(
       1,
-      `/api/v1/analyses/${current.id}`,
+      `/api/analyses/${current.id}`,
       expect.objectContaining({ method: 'GET' }),
     );
     expect(requestMock).toHaveBeenNthCalledWith(
       2,
-      `/api/v1/analyses/${current.id}/cancel`,
+      `/api/analyses/${current.id}/cancel`,
       expect.objectContaining({ method: 'POST' }),
     );
     expect(JSON.stringify(requestMock.mock.calls)).not.toContain('artifact');

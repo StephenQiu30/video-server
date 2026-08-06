@@ -2,12 +2,12 @@
 /* eslint-disable */
 import { request } from "@umijs/max";
 
-/** Create Download POST /api/v1/downloads */
-export async function createDownloadApiV1DownloadsPost(
+/** 创建下载任务 根据解析结果和语义格式创建异步下载任务。 POST /api/downloads */
+export async function createDownload(
   body: API.DownloadRequest,
   options?: { [key: string]: any }
 ) {
-  return request<any>("/api/v1/downloads", {
+  return request<API.DownloadResponse>("/api/downloads", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -17,43 +17,43 @@ export async function createDownloadApiV1DownloadsPost(
   });
 }
 
-/** Get Download GET /api/v1/downloads/${param0} */
-export async function getDownloadApiV1DownloadsJobIdGet(
+/** 查询下载任务 查询当前匿名会话拥有的下载任务。 GET /api/downloads/${param0} */
+export async function getDownload(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
-  params: API.getDownloadApiV1DownloadsJobIdGetParams,
+  params: API.getDownloadParams,
   options?: { [key: string]: any }
 ) {
   const { job_id: param0, ...queryParams } = params;
-  return request<API.DownloadResponse>(`/api/v1/downloads/${param0}`, {
+  return request<API.DownloadResponse>(`/api/downloads/${param0}`, {
     method: "GET",
     params: { ...queryParams },
     ...(options || {}),
   });
 }
 
-/** Cancel Download POST /api/v1/downloads/${param0}/cancel */
-export async function cancelDownloadApiV1DownloadsJobIdCancelPost(
+/** 取消下载任务 请求取消尚未结束的下载任务。 POST /api/downloads/${param0}/cancel */
+export async function cancelDownload(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
-  params: API.cancelDownloadApiV1DownloadsJobIdCancelPostParams,
+  params: API.cancelDownloadParams,
   options?: { [key: string]: any }
 ) {
   const { job_id: param0, ...queryParams } = params;
-  return request<API.DownloadResponse>(`/api/v1/downloads/${param0}/cancel`, {
+  return request<API.DownloadResponse>(`/api/downloads/${param0}/cancel`, {
     method: "POST",
     params: { ...queryParams },
     ...(options || {}),
   });
 }
 
-/** Issue Download Url POST /api/v1/downloads/${param0}/download-url */
-export async function issueDownloadUrlApiV1DownloadsJobIdDownloadUrlPost(
+/** 签发文件下载地址 为已完成的下载任务签发短时制品地址。 POST /api/downloads/${param0}/download-url */
+export async function issueDownloadUrl(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
-  params: API.issueDownloadUrlApiV1DownloadsJobIdDownloadUrlPostParams,
+  params: API.issueDownloadUrlParams,
   options?: { [key: string]: any }
 ) {
   const { job_id: param0, ...queryParams } = params;
   return request<API.DownloadUrlResponse>(
-    `/api/v1/downloads/${param0}/download-url`,
+    `/api/downloads/${param0}/download-url`,
     {
       method: "POST",
       params: { ...queryParams },

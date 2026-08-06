@@ -1,10 +1,7 @@
 import { request } from '@umijs/max';
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  liveHealthLiveGet,
-  readyHealthReadyGet,
-} from '@/services/video/system';
+import { getLiveness, getReadiness } from '@/services/video/system';
 
 const requestMock = vi.mocked(request);
 
@@ -14,8 +11,8 @@ describe('system API', () => {
       .mockResolvedValueOnce({ status: 'ok' })
       .mockResolvedValueOnce({ status: 'ok', service: 'api' });
 
-    await expect(liveHealthLiveGet()).resolves.toEqual({ status: 'ok' });
-    await expect(readyHealthReadyGet()).resolves.toEqual({
+    await expect(getLiveness()).resolves.toEqual({ status: 'ok' });
+    await expect(getReadiness()).resolves.toEqual({
       status: 'ok',
       service: 'api',
     });

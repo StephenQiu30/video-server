@@ -29,15 +29,14 @@ export default defineConfig({
       name: 'viewport',
     },
   ],
-  openAPI: [
-    {
-      mock: false,
-      projectName: 'video',
-      requestLibPath: "import { request } from '@umijs/max'",
-      schemaPath:
-        process.env.OPENAPI_SCHEMA_URL ?? 'http://127.0.0.1:19090/openapi.json',
-    },
-  ],
+  openAPI: {
+    mock: false,
+    namespace: 'API',
+    projectName: 'video',
+    requestLibPath: "import { request } from '@umijs/max'",
+    schemaPath:
+      process.env.OPENAPI_SCHEMA_URL ?? 'http://127.0.0.1:19090/openapi.json',
+  },
   plugins: ['@umijs/max-plugin-openapi'],
   proxy,
   request: {

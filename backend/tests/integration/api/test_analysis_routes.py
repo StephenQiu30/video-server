@@ -105,7 +105,7 @@ def test_analysis_service_must_be_wired(tmp_path: Path) -> None:
         Settings(app_env="test", frontend_dist_dir=tmp_path / "none")
     )
     with TestClient(application) as test_client:
-        response = test_client.get(f"/api/v1/analyses/{ANALYSIS_ID}")
+        response = test_client.get(f"/api/analyses/{ANALYSIS_ID}")
 
     assert response.status_code == 503
     assert response.json()["code"] == "service_unavailable"
@@ -117,14 +117,15 @@ def test_analysis_routes_share_owner_and_never_expose_internal_ids(
     test_client, stubs = client(tmp_path)
     with test_client:
         created = test_client.post(
-            f"/api/v1/downloads/{DOWNLOAD_ID}/analyses",
+            f"/api/downloads/{DOWNLOAD_ID}/analyses",
             headers={"Idempotency-Key": "analysis-1"},
             json={"profile": "standard-v1", "output_language": "zh-CN"},
         )
-        fetched = test_client.get(f"/api/v1/analyses/{ANALYSIS_ID}")
-        cancelled = test_client.post(f"/api/v1/analyses/{ANALYSIS_ID}/cancel")
+        fetched = test_client.get(f"/api/analyses/{ANALYSIS_ID}")
+        cancelled = test_client.post(f"/api/analyses/{ANALYSIS_ID}/cancel")
 
-    assert created.status_code == 202
+    assert created.status_code == 201
+    assert created.headers["location"] == f"/api/analyses/{ANALYSIS_ID}"
     assert fetched.status_code == cancelled.status_code == 200
     assert created.json()["result"] is None
     assert cancelled.json()["status"] == "cancelled"
@@ -146,7 +147,7 @@ def test_succeeded_analysis_returns_only_strict_structured_result(
         result=RESULT,
     )
     with test_client:
-        response = test_client.get(f"/api/v1/analyses/{ANALYSIS_ID}")
+        response = test_client.get(f"/api/analyses/{ANALYSIS_ID}")
 
     assert response.status_code == 200
     payload = response.json()
@@ -180,7 +181,7 @@ def test_analysis_creation_rejects_invalid_or_extra_input(tmp_path: Path) -> Non
     with test_client:
         responses = [
             test_client.post(
-                f"/api/v1/downloads/{DOWNLOAD_ID}/analyses",
+                f"/api/downloads/{DOWNLOAD_ID}/analyses",
                 headers=headers,
                 json=body,
             )
@@ -201,7 +202,7 @@ def test_analysis_errors_are_problem_details(tmp_path: Path) -> None:
         ):
             stubs["create"].error = AnalysisApplicationError(code)
             response = test_client.post(
-                f"/api/v1/downloads/{DOWNLOAD_ID}/analyses",
+                f"/api/downloads/{DOWNLOAD_ID}/analyses",
                 headers={"Idempotency-Key": "analysis-1"},
                 json={"profile": "standard-v1", "output_language": "zh-CN"},
             )

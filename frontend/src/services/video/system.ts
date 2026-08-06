@@ -2,17 +2,17 @@
 /* eslint-disable */
 import { request } from "@umijs/max";
 
-/** Live Report process liveness without exposing configuration. GET /health/live */
-export async function liveHealthLiveGet(options?: { [key: string]: any }) {
-  return request<Record<string, any>>("/health/live", {
+/** 检查进程存活状态 Report process liveness without exposing configuration. GET /health/live */
+export async function getLiveness(options?: { [key: string]: any }) {
+  return request<API.LivenessResponse>("/health/live", {
     method: "GET",
     ...(options || {}),
   });
 }
 
-/** Ready Reject traffic when any configured runtime dependency is unavailable. GET /health/ready */
-export async function readyHealthReadyGet(options?: { [key: string]: any }) {
-  return request<any>("/health/ready", {
+/** 检查服务就绪状态 Reject traffic when any configured runtime dependency is unavailable. GET /health/ready */
+export async function getReadiness(options?: { [key: string]: any }) {
+  return request<API.ReadinessResponse>("/health/ready", {
     method: "GET",
     ...(options || {}),
   });

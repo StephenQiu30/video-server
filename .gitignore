@@ -32,4 +32,3 @@ temp/
 !.env.prod.example
 
 npm-debug.log*
-.openapi-schema.json

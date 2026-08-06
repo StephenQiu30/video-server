@@ -148,15 +148,42 @@ def analysis_application_error(error: AnalysisApplicationError) -> AppError:
 
 async def app_error_handler(request: Request, error: Exception) -> JSONResponse:
     app_error = cast(AppError, error)
+    return _problem_response(
+        request,
+        status=app_error.status,
+        code=app_error.code,
+        title=app_error.title,
+        detail=app_error.detail,
+    )
+
+
+async def validation_error_handler(request: Request, _error: Exception) -> JSONResponse:
+    return _problem_response(
+        request,
+        status=422,
+        code="invalid_request",
+        title="Invalid request",
+        detail="The request parameters are invalid.",
+    )
+
+
+def _problem_response(
+    request: Request,
+    *,
+    status: int,
+    code: str,
+    title: str,
+    detail: str,
+) -> JSONResponse:
     return JSONResponse(
-        status_code=app_error.status,
+        status_code=status,
         media_type="application/problem+json",
         content={
-            "type": f"urn:video-server:error:{app_error.code}",
-            "title": app_error.title,
-            "status": app_error.status,
-            "detail": app_error.detail,
-            "code": app_error.code,
+            "type": f"urn:video-server:error:{code}",
+            "title": title,
+            "status": status,
+            "detail": detail,
+            "code": code,
             "instance": request.url.path,
         },
     )

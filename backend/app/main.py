@@ -6,8 +6,10 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 
-from app.api.errors import app_error_handler
+from app.api.errors import app_error_handler, validation_error_handler
+from app.api.openapi import API_DESCRIPTION, OPENAPI_TAGS, SWAGGER_UI_PARAMETERS
 from app.api.router import router
 from app.composition import ApiRuntime, build_api_runtime
 from app.core.config import Settings, get_settings
@@ -32,7 +34,14 @@ def create_app(
                 await configured_runtime.close()
 
     application = FastAPI(
-        title="Universal Video Downloader API",
+        title="视频下载与分析服务 API",
+        description=API_DESCRIPTION,
+        docs_url="/docs",
+        license_info={"name": "MIT", "identifier": "MIT"},
+        openapi_tags=OPENAPI_TAGS,
+        openapi_url="/openapi.json",
+        redoc_url="/redoc",
+        swagger_ui_parameters=SWAGGER_UI_PARAMETERS,
         version=effective.app_version,
         lifespan=lifespan,
     )
@@ -43,6 +52,7 @@ def create_app(
         application.state.readiness_probe = configured_runtime.readiness
     application.include_router(router)
     application.add_exception_handler(AppError, app_error_handler)
+    application.add_exception_handler(RequestValidationError, validation_error_handler)
     mount_frontend(application, effective.frontend_dist_dir)
     return application
 

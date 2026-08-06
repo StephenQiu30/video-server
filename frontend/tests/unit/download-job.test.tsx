@@ -37,7 +37,7 @@ describe('DownloadJobPage', () => {
     expect(await screen.findByText('任务已取消')).toBeInTheDocument();
     expect(requestMock).toHaveBeenNthCalledWith(
       3,
-      `/api/v1/downloads/${job().id}/cancel`,
+      `/api/downloads/${job().id}/cancel`,
       expect.objectContaining({ method: 'POST' }),
     );
   });
@@ -60,7 +60,7 @@ describe('DownloadJobPage', () => {
     await waitFor(() => expect(click).toHaveBeenCalledOnce());
     expect(requestMock).toHaveBeenNthCalledWith(
       3,
-      `/api/v1/downloads/${job().id}/download-url`,
+      `/api/downloads/${job().id}/download-url`,
       expect.objectContaining({ method: 'POST' }),
     );
   });

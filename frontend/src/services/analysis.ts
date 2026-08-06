@@ -1,7 +1,7 @@
 import {
-  cancelAnalysisApiV1AnalysesAnalysisIdCancelPost,
-  createAnalysisApiV1DownloadsDownloadIdAnalysesPost,
-  getAnalysisApiV1AnalysesAnalysisIdGet,
+  cancelAnalysis as cancelAnalysisRequest,
+  createAnalysis as createAnalysisRequest,
+  getAnalysis as getAnalysisRequest,
 } from '@/services/video/analyses';
 
 import type { AnalysisJob, CreateAnalysisInput } from '@/types/video';
@@ -11,17 +11,15 @@ export function createAnalysis(
   input: CreateAnalysisInput,
   idempotencyKey: string,
 ): Promise<AnalysisJob> {
-  return createAnalysisApiV1DownloadsDownloadIdAnalysesPost(
-    { download_id: downloadId },
-    input,
-    { headers: { 'Idempotency-Key': idempotencyKey } },
-  );
+  return createAnalysisRequest({ download_id: downloadId }, input, {
+    headers: { 'Idempotency-Key': idempotencyKey },
+  });
 }
 
 export function getAnalysis(id: string): Promise<AnalysisJob> {
-  return getAnalysisApiV1AnalysesAnalysisIdGet({ analysis_id: id });
+  return getAnalysisRequest({ analysis_id: id });
 }
 
 export function cancelAnalysis(id: string): Promise<AnalysisJob> {
-  return cancelAnalysisApiV1AnalysesAnalysisIdCancelPost({ analysis_id: id });
+  return cancelAnalysisRequest({ analysis_id: id });
 }

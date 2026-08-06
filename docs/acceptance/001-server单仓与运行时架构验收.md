@@ -43,7 +43,7 @@ docker build --target runtime --tag video-server:architecture .
 - 镜像：`docker build --target runtime --tag video-server:architecture .` 返回 0；根目录多阶段 `Dockerfile` 统一构建 frontend dist 与 Python runtime，API、Outbox、下载 Worker、AI Worker 和 Media Runner 复用同一 runtime 镜像。
 - 容器入口修复：backend-builder 与 runtime 均使用 `/app/backend`，虚拟环境固定为 `/app/backend/.venv`，Runner 改由 `python -m uvicorn ...` 启动；完整 Compose 中 API、Outbox、下载 Worker、AI Worker 与 Media Runner 均成功进入运行/健康状态。
 - 应用交付网络：API 与 MinIO 同时加入 `app_ingress`，真实浏览器能够访问 API，并通过 API 签发的 MinIO URL 取回文件；PostgreSQL、RabbitMQ 和 Worker 未加入该网络。
-- 容器 smoke：`/health/ready` 返回 `ok`；`/` 与 `/downloads/example` 返回同一 SPA；未知 `/api/v1/not-found` 返回 JSON 404。
+- 容器 smoke：`/health/ready` 返回 `ok`；`/` 与 `/downloads/example` 返回同一 SPA；未知 `/api/not-found` 返回 JSON 404。
 - 历史：原服务端 HEAD 有迁移前标签 `backup/pre-server-monorepo-20260806`；前端历史通过 subtree commit `d8a1d0a` 并入当前分支。
 
 所有预定义条件已满足，结论为 Passed。

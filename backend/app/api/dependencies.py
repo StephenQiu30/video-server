@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Annotated, cast
 
-from fastapi import Depends, Request, Response
+from fastapi import Depends, Header, Request, Response
 
 from app.application.analysis import CancelAnalysis, CreateAnalysis, GetAnalysis
 from app.application.downloads import (
@@ -19,6 +19,17 @@ from app.application.downloads import (
 from app.core.config import Settings
 from app.core.errors import AppError
 from app.core.session import AnonymousSession, SessionError, SessionManager
+
+IdempotencyKey = Annotated[
+    str,
+    Header(
+        alias="Idempotency-Key",
+        description="同一业务操作的安全重试必须复用相同键值。",
+        examples=["01J4Z3Q9A7M2F6K8P0R1T5V7WX"],
+        min_length=1,
+        max_length=128,
+    ),
+]
 
 
 def get_runtime_settings(request: Request) -> Settings:

@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import Field
 
-from app.api.v1.schemas.common import StrictModel
+from app.api.schemas.common import StrictModel
 from app.application.downloads import InspectionView
 from app.domain.downloads import (
     AudioCodecFamily,
@@ -18,7 +18,14 @@ from app.domain.downloads import (
 
 
 class InspectionRequest(StrictModel):
-    url: str = Field(min_length=8, max_length=4096)
+    """Public media URL submitted for safe metadata inspection."""
+
+    url: str = Field(
+        description="用户有权处理的公开、非 DRM HTTP(S) 媒体地址。",
+        examples=["https://media.example/video"],
+        min_length=8,
+        max_length=4096,
+    )
 
 
 class SemanticPlanResponse(StrictModel):
@@ -40,6 +47,8 @@ class FormatResponse(StrictModel):
 
 
 class InspectionResponse(StrictModel):
+    """Inspection resource with normalized semantic download formats."""
+
     id: UUID
     extractor_key: str
     provider_media_id: str

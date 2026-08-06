@@ -14,18 +14,24 @@ def test_download_openapi_exposes_required_routes_and_idempotency(
     paths = schema["paths"]
 
     assert {
-        "/api/v1/inspections",
-        "/api/v1/inspections/{inspection_id}",
-        "/api/v1/downloads",
-        "/api/v1/downloads/{job_id}",
-        "/api/v1/downloads/{job_id}/cancel",
-        "/api/v1/downloads/{job_id}/download-url",
+        "/api/inspections",
+        "/api/inspections/{inspection_id}",
+        "/api/downloads",
+        "/api/downloads/{job_id}",
+        "/api/downloads/{job_id}/cancel",
+        "/api/downloads/{job_id}/download-url",
     } <= paths.keys()
-    for path in ("/api/v1/inspections", "/api/v1/downloads"):
+    for path in ("/api/inspections", "/api/downloads"):
         parameters = paths[path]["post"]["parameters"]
         header = next(item for item in parameters if item["name"] == "Idempotency-Key")
         assert header["in"] == "header"
         assert header["required"] is True
+    assert paths["/api/inspections"]["post"]["operationId"] == "inspectMedia"
+    assert paths["/api/downloads"]["post"]["operationId"] == "createDownload"
+    create_response = paths["/api/downloads"]["post"]["responses"]["201"]
+    assert create_response["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/DownloadResponse"
+    }
 
 
 def test_request_schemas_forbid_unknown_fields_and_plan_has_no_hints(

@@ -47,6 +47,14 @@ def test_domain_and_application_only_depend_inward() -> None:
     assert not violations, "Invalid outward dependencies:\n" + "\n".join(violations)
 
 
+def test_public_api_uses_one_unversioned_contract_tree() -> None:
+    api_root = APP_ROOT / "api"
+
+    assert (api_root / "routes").is_dir()
+    assert (api_root / "schemas").is_dir()
+    assert not (api_root / "v1").exists()
+
+
 def _imported_modules(source: Path) -> set[str]:
     tree = ast.parse(source.read_text(encoding="utf-8"), filename=str(source))
     modules: set[str] = set()

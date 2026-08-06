@@ -1,12 +1,12 @@
 import {
-  cancelDownloadApiV1DownloadsJobIdCancelPost,
-  createDownloadApiV1DownloadsPost,
-  getDownloadApiV1DownloadsJobIdGet,
-  issueDownloadUrlApiV1DownloadsJobIdDownloadUrlPost,
+  cancelDownload as cancelDownloadRequest,
+  createDownload as createDownloadRequest,
+  getDownload as getDownloadRequest,
+  issueDownloadUrl as issueDownloadUrlRequest,
 } from '@/services/video/downloads';
 import {
-  getInspectionApiV1InspectionsInspectionIdGet,
-  inspectMediaApiV1InspectionsPost,
+  getInspection as getInspectionRequest,
+  inspectMedia as inspectMediaRequest,
 } from '@/services/video/inspections';
 import type { DownloadJob, DownloadUrl, Inspection } from '@/types/video';
 
@@ -17,14 +17,11 @@ export {
 export { createIdempotencyKey } from '@/utils/idempotency';
 
 export function inspectMedia(url: string, key: string): Promise<Inspection> {
-  return inspectMediaApiV1InspectionsPost(
-    { url },
-    { headers: { 'Idempotency-Key': key } },
-  );
+  return inspectMediaRequest({ url }, { headers: { 'Idempotency-Key': key } });
 }
 
 export function getInspection(id: string): Promise<Inspection> {
-  return getInspectionApiV1InspectionsInspectionIdGet({ inspection_id: id });
+  return getInspectionRequest({ inspection_id: id });
 }
 
 export function createDownload(
@@ -32,22 +29,22 @@ export function createDownload(
   formatId: string,
   key: string,
 ): Promise<DownloadJob> {
-  return createDownloadApiV1DownloadsPost(
+  return createDownloadRequest(
     { inspection_id: inspectionId, format_id: formatId },
     { headers: { 'Idempotency-Key': key } },
   );
 }
 
 export function getDownload(id: string): Promise<DownloadJob> {
-  return getDownloadApiV1DownloadsJobIdGet({ job_id: id });
+  return getDownloadRequest({ job_id: id });
 }
 
 export function cancelDownload(id: string): Promise<DownloadJob> {
-  return cancelDownloadApiV1DownloadsJobIdCancelPost({ job_id: id });
+  return cancelDownloadRequest({ job_id: id });
 }
 
 export function issueDownloadUrl(id: string): Promise<DownloadUrl> {
-  return issueDownloadUrlApiV1DownloadsJobIdDownloadUrlPost({ job_id: id });
+  return issueDownloadUrlRequest({ job_id: id });
 }
 
 export function triggerBrowserDownload(url: string): void {

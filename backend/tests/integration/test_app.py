@@ -72,7 +72,7 @@ def test_unknown_api_never_falls_back_to_frontend(tmp_path: Path) -> None:
     app = create_app(Settings(app_env="test", frontend_dist_dir=dist))
 
     with TestClient(app) as client:
-        response = client.get("/api/v1/not-found")
+        response = client.get("/api/not-found")
 
     assert response.status_code == 404
     assert "server-ui" not in response.text

@@ -3,17 +3,23 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from app.api.v1.schemas.common import StrictModel
+from pydantic import Field
+
+from app.api.schemas.common import StrictModel
 from app.application.downloads import DownloadUrl, DownloadView
 from app.domain.downloads import DownloadErrorCode, DownloadStage, DownloadStatus
 
 
 class DownloadRequest(StrictModel):
-    inspection_id: UUID
-    format_id: UUID
+    """References an inspection and one format returned by that inspection."""
+
+    inspection_id: UUID = Field(description="仍在有效期内的媒体解析资源 ID。")
+    format_id: UUID = Field(description="解析结果中选择的语义下载格式 ID。")
 
 
 class DownloadResponse(StrictModel):
+    """Current state of a durable asynchronous download resource."""
+
     id: UUID
     inspection_id: UUID
     format_id: UUID
@@ -32,6 +38,8 @@ class DownloadResponse(StrictModel):
 
 
 class DownloadUrlResponse(StrictModel):
+    """Short-lived URL for retrieving a completed download artifact."""
+
     url: str
     expires_at: datetime
 
