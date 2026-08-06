@@ -93,16 +93,8 @@ describe('HomePage', () => {
     fireEvent.click(screen.getByRole('button', { name: '解析视频' }));
     expect(await screen.findByText('Owned video')).toBeInTheDocument();
 
-    const firstHeaders = fetchMock.mock.calls[0][1]?.headers as Record<
-      string,
-      string
-    >;
-    const secondHeaders = fetchMock.mock.calls[1][1]?.headers as Record<
-      string,
-      string
-    >;
-    expect(firstHeaders['Idempotency-Key']).toBe('stable-key');
-    expect(secondHeaders['Idempotency-Key']).toBe('stable-key');
+    expect(requestHeader(fetchMock, 0, 'Idempotency-Key')).toBe('stable-key');
+    expect(requestHeader(fetchMock, 1, 'Idempotency-Key')).toBe('stable-key');
   });
 
   it('shows an empty format result without enabling download', async () => {
@@ -126,3 +118,11 @@ describe('HomePage', () => {
     expect(screen.getByRole('button', { name: '开始下载' })).toBeDisabled();
   });
 });
+
+function requestHeader(
+  fetchMock: ReturnType<typeof vi.fn>,
+  index: number,
+  name: string,
+) {
+  return (fetchMock.mock.calls[index][0] as Request).headers.get(name);
+}

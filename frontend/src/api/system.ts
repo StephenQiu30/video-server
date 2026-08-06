@@ -1,9 +1,9 @@
 // @ts-ignore
 /* eslint-disable */
-import { request, type RequestOptions } from "@/shared/api/client";
+import { request, type RequestOptions } from "@/shared/api/request";
 
 /** Live Report process liveness without exposing configuration. GET /health/live */
-export async function live(options?: RequestOptions) {
+export async function liveHealthLiveGet(options?: RequestOptions) {
   return request<Record<string, any>>("/health/live", {
     method: "GET",
     ...(options || {}),
@@ -11,7 +11,7 @@ export async function live(options?: RequestOptions) {
 }
 
 /** Ready Reject traffic when any configured runtime dependency is unavailable. GET /health/ready */
-export async function ready(options?: RequestOptions) {
+export async function readyHealthReadyGet(options?: RequestOptions) {
   return request<any>("/health/ready", {
     method: "GET",
     ...(options || {}),

@@ -6,16 +6,16 @@
 
 ## OpenAPI 客户端
 
-前端使用 `@umijs/openapi` 从 FastAPI 的 Swagger/OpenAPI 文档生成请求函数与 TypeScript 类型，生成目录为 `src/generated/api`。先启动本地 API，再执行：
+前端使用 `@umijs/openapi` 从 FastAPI 的 Swagger/OpenAPI 文档生成请求函数与 TypeScript 类型，生成目录为 `src/api`。生成的请求通过 `requestLibPath` 统一交给 `src/shared/api/request.ts` 中的 Axios 实例。先启动本地 API，再执行：
 
 ```bash
-npm run openapi
+npm run openapi2ts
 ```
 
 默认文档地址为 `http://127.0.0.1:19090/openapi.json`。需要使用其他环境的 Swagger 文档时，可显式覆盖：
 
 ```bash
-OPENAPI_SCHEMA_URL=https://api.example.com/openapi.json npm run openapi
+OPENAPI_SCHEMA_URL=https://api.example.com/openapi.json npm run openapi2ts
 ```
 
-`src/generated/api` 只由生成器维护；业务层通过 `features/*/api.ts` 使用生成的服务，不在生成目录中手工修改请求或类型。
+`src/api` 只由生成器维护；业务层通过 `features/*/api.ts` 使用生成的服务，不在生成目录中手工修改请求或类型。

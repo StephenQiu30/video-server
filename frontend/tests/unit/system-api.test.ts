@@ -18,10 +18,10 @@ describe('getSystemReady', () => {
       status: 'ok',
       service: 'api',
     });
-    expect(fetchMock).toHaveBeenCalledWith('/health/ready', {
-      credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
-    });
+    const request = fetchMock.mock.calls[0][0] as Request;
+    expect(new URL(request.url).pathname).toBe('/health/ready');
+    expect(request.credentials).toBe('same-origin');
+    expect(request.headers.get('Accept')).toBe('application/json');
   });
 
   it('rejects an unavailable server', async () => {

@@ -11,7 +11,7 @@
     "lint": "npm run biome:lint && npm run typecheck",
     "biome:lint": "biome lint .",
     "format:check": "biome check . --linter-enabled=false",
-    "openapi": "openapi2ts",
+    "openapi2ts": "node --experimental-strip-types openapi2ts.config.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
@@ -20,6 +20,7 @@
     "@ant-design/icons": "^6.3.2",
     "@ant-design/pro-components": "3.1.14-6",
     "antd": "^6.5.1",
+    "axios": "^1.19.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

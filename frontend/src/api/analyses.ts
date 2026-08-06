@@ -1,11 +1,11 @@
 // @ts-ignore
 /* eslint-disable */
-import { request, type RequestOptions } from "@/shared/api/client";
+import { request, type RequestOptions } from "@/shared/api/request";
 
 /** Get Analysis GET /api/v1/analyses/${param0} */
-export async function getAnalysis(
+export async function getAnalysisApiV1AnalysesAnalysisIdGet(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
-  params: API.getAnalysisParams,
+  params: API.getAnalysisApiV1AnalysesAnalysisIdGetParams,
   options?: RequestOptions
 ) {
   const { analysis_id: param0, ...queryParams } = params;
@@ -17,9 +17,9 @@ export async function getAnalysis(
 }
 
 /** Cancel Analysis POST /api/v1/analyses/${param0}/cancel */
-export async function cancelAnalysis(
+export async function cancelAnalysisApiV1AnalysesAnalysisIdCancelPost(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
-  params: API.cancelAnalysisParams,
+  params: API.cancelAnalysisApiV1AnalysesAnalysisIdCancelPostParams,
   options?: RequestOptions
 ) {
   const { analysis_id: param0, ...queryParams } = params;
@@ -31,9 +31,9 @@ export async function cancelAnalysis(
 }
 
 /** Create Analysis POST /api/v1/downloads/${param0}/analyses */
-export async function createAnalysis(
+export async function createAnalysisApiV1DownloadsDownloadIdAnalysesPost(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
-  params: API.createAnalysisParams,
+  params: API.createAnalysisApiV1DownloadsDownloadIdAnalysesPostParams,
   body: API.AnalysisRequest,
   options?: RequestOptions
 ) {

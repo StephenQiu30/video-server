@@ -84,11 +84,11 @@ declare namespace API {
 
   type AudioCodecFamily = "aac" | "opus" | "vorbis" | "other";
 
-  type cancelAnalysisParams = {
+  type cancelAnalysisApiV1AnalysesAnalysisIdCancelPostParams = {
     analysis_id: string;
   };
 
-  type cancelDownloadParams = {
+  type cancelDownloadApiV1DownloadsJobIdCancelPostParams = {
     job_id: string;
   };
 
@@ -96,7 +96,7 @@ declare namespace API {
 
   type ContainerPreference = "mp4" | "webm" | "source";
 
-  type createAnalysisParams = {
+  type createAnalysisApiV1DownloadsDownloadIdAnalysesPostParams = {
     download_id: string;
   };
 
@@ -184,15 +184,15 @@ declare namespace API {
 
   type FpsBucket = "fps_30" | "fps_60" | "above_60";
 
-  type getAnalysisParams = {
+  type getAnalysisApiV1AnalysesAnalysisIdGetParams = {
     analysis_id: string;
   };
 
-  type getDownloadParams = {
+  type getDownloadApiV1DownloadsJobIdGetParams = {
     job_id: string;
   };
 
-  type getInspectionParams = {
+  type getInspectionApiV1InspectionsInspectionIdGetParams = {
     inspection_id: string;
   };
 
@@ -223,7 +223,7 @@ declare namespace API {
     formats: FormatResponse[];
   };
 
-  type issueDownloadUrlParams = {
+  type issueDownloadUrlApiV1DownloadsJobIdDownloadUrlPostParams = {
     job_id: string;
   };
 

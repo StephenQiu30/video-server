@@ -70,7 +70,7 @@ export function analysisJob(
     stage: status === 'running' ? 'analyzing' : null,
     progress: status === 'succeeded' ? 100 : status === 'running' ? 60 : 0,
     attempt: status === 'queued' ? 0 : 1,
-    error_code: status === 'failed' ? 'analysis_provider_failed' : null,
+    error_code: status === 'failed' ? 'provider_unavailable' : null,
     created_at: '2026-08-06T10:01:00Z',
     updated_at: '2026-08-06T10:02:00Z',
     finished_at:

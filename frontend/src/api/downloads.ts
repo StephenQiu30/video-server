@@ -1,9 +1,9 @@
 // @ts-ignore
 /* eslint-disable */
-import { request, type RequestOptions } from "@/shared/api/client";
+import { request, type RequestOptions } from "@/shared/api/request";
 
 /** Create Download POST /api/v1/downloads */
-export async function createDownload(
+export async function createDownloadApiV1DownloadsPost(
   body: API.DownloadRequest,
   options?: RequestOptions
 ) {
@@ -18,9 +18,9 @@ export async function createDownload(
 }
 
 /** Get Download GET /api/v1/downloads/${param0} */
-export async function getDownload(
+export async function getDownloadApiV1DownloadsJobIdGet(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
-  params: API.getDownloadParams,
+  params: API.getDownloadApiV1DownloadsJobIdGetParams,
   options?: RequestOptions
 ) {
   const { job_id: param0, ...queryParams } = params;
@@ -32,9 +32,9 @@ export async function getDownload(
 }
 
 /** Cancel Download POST /api/v1/downloads/${param0}/cancel */
-export async function cancelDownload(
+export async function cancelDownloadApiV1DownloadsJobIdCancelPost(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
-  params: API.cancelDownloadParams,
+  params: API.cancelDownloadApiV1DownloadsJobIdCancelPostParams,
   options?: RequestOptions
 ) {
   const { job_id: param0, ...queryParams } = params;
@@ -46,9 +46,9 @@ export async function cancelDownload(
 }
 
 /** Issue Download Url POST /api/v1/downloads/${param0}/download-url */
-export async function issueDownloadUrl(
+export async function issueDownloadUrlApiV1DownloadsJobIdDownloadUrlPost(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
-  params: API.issueDownloadUrlParams,
+  params: API.issueDownloadUrlApiV1DownloadsJobIdDownloadUrlPostParams,
   options?: RequestOptions
 ) {
   const { job_id: param0, ...queryParams } = params;

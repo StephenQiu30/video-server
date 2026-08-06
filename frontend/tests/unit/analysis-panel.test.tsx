@@ -75,7 +75,7 @@ describe('AnalysisPanel', () => {
     fireEvent.click(await screen.findByRole('button', { name: '取消分析' }));
 
     expect(await screen.findByText('分析已取消')).toBeInTheDocument();
-    expect(fetchMock.mock.calls[1][0]).toBe(
+    expect(requestPath(fetchMock, 1)).toBe(
       `/api/v1/analyses/${analysisJob().id}/cancel`,
     );
   });
@@ -94,7 +94,7 @@ describe('AnalysisPanel', () => {
 
     expect(await screen.findByText('分析失败')).toBeInTheDocument();
     expect(
-      screen.getByText('错误代码：analysis_provider_failed'),
+      screen.getByText('错误代码：provider_unavailable'),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '重新分析' }));
     expect(
@@ -133,15 +133,20 @@ describe('AnalysisPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: '开始 AI 分析' }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-    const firstHeaders = fetchMock.mock.calls[0][1]?.headers as Record<
-      string,
-      string
-    >;
-    const secondHeaders = fetchMock.mock.calls[1][1]?.headers as Record<
-      string,
-      string
-    >;
-    expect(firstHeaders['Idempotency-Key']).toBe('stable-key');
-    expect(secondHeaders['Idempotency-Key']).toBe('stable-key');
+    expect(requestHeader(fetchMock, 0, 'Idempotency-Key')).toBe('stable-key');
+    expect(requestHeader(fetchMock, 1, 'Idempotency-Key')).toBe('stable-key');
   });
 });
+
+function requestPath(fetchMock: ReturnType<typeof vi.fn>, index: number) {
+  const request = fetchMock.mock.calls[index][0] as Request;
+  return new URL(request.url).pathname;
+}
+
+function requestHeader(
+  fetchMock: ReturnType<typeof vi.fn>,
+  index: number,
+  name: string,
+) {
+  return (fetchMock.mock.calls[index][0] as Request).headers.get(name);
+}

@@ -40,7 +40,7 @@ describe('DownloadJobPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: '取消任务' }));
 
     expect(await screen.findByText('任务已取消')).toBeInTheDocument();
-    expect(fetchMock.mock.calls[2][0]).toBe(
+    expect(requestPath(fetchMock, 2)).toBe(
       `/api/v1/downloads/${job().id}/cancel`,
     );
   });
@@ -65,7 +65,7 @@ describe('DownloadJobPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: '获取文件' }));
 
     await waitFor(() => expect(click).toHaveBeenCalledOnce());
-    expect(fetchMock.mock.calls[2][0]).toBe(
+    expect(requestPath(fetchMock, 2)).toBe(
       `/api/v1/downloads/${job().id}/download-url`,
     );
   });
@@ -164,3 +164,8 @@ describe('DownloadJobPage', () => {
     expect(await screen.findByText('文件暂不可用')).toBeInTheDocument();
   });
 });
+
+function requestPath(fetchMock: ReturnType<typeof vi.fn>, index: number) {
+  const request = fetchMock.mock.calls[index][0] as Request;
+  return new URL(request.url).pathname;
+}

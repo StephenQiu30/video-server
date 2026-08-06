@@ -1,4 +1,8 @@
-import { request } from '@/shared/api/client';
+import {
+  cancelAnalysisApiV1AnalysesAnalysisIdCancelPost,
+  createAnalysisApiV1DownloadsDownloadIdAnalysesPost,
+  getAnalysisApiV1AnalysesAnalysisIdGet,
+} from '@/api/analyses';
 
 import type { AnalysisJob, CreateAnalysisInput } from './types';
 
@@ -7,22 +11,17 @@ export function createAnalysis(
   input: CreateAnalysisInput,
   idempotencyKey: string,
 ): Promise<AnalysisJob> {
-  return request(
-    `/api/v1/downloads/${encodeURIComponent(downloadId)}/analyses`,
-    {
-      method: 'POST',
-      headers: { 'Idempotency-Key': idempotencyKey },
-      data: input,
-    },
+  return createAnalysisApiV1DownloadsDownloadIdAnalysesPost(
+    { download_id: downloadId },
+    input,
+    { headers: { 'Idempotency-Key': idempotencyKey } },
   );
 }
 
 export function getAnalysis(id: string): Promise<AnalysisJob> {
-  return request(`/api/v1/analyses/${encodeURIComponent(id)}`);
+  return getAnalysisApiV1AnalysesAnalysisIdGet({ analysis_id: id });
 }
 
 export function cancelAnalysis(id: string): Promise<AnalysisJob> {
-  return request(`/api/v1/analyses/${encodeURIComponent(id)}/cancel`, {
-    method: 'POST',
-  });
+  return cancelAnalysisApiV1AnalysesAnalysisIdCancelPost({ analysis_id: id });
 }

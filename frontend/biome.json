@@ -7,7 +7,7 @@
       "!**/dist",
       "!**/coverage",
       "!**/node_modules",
-      "!src/generated",
+      "!src/api",
       "!biome.json",
       "!package-lock.json"
     ]

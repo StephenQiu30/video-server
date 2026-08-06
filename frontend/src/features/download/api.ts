@@ -1,22 +1,30 @@
-import { request } from '@/shared/api/client';
+import {
+  cancelDownloadApiV1DownloadsJobIdCancelPost,
+  createDownloadApiV1DownloadsPost,
+  getDownloadApiV1DownloadsJobIdGet,
+  issueDownloadUrlApiV1DownloadsJobIdDownloadUrlPost,
+} from '@/api/downloads';
+import {
+  getInspectionApiV1InspectionsInspectionIdGet,
+  inspectMediaApiV1InspectionsPost,
+} from '@/api/inspections';
 import type { DownloadJob, DownloadUrl, Inspection } from './types';
 
 export {
   ApiError,
   createIdempotencyKey,
   displayError,
-} from '@/shared/api/client';
+} from '@/shared/api/request';
 
 export function inspectMedia(url: string, key: string): Promise<Inspection> {
-  return request('/api/v1/inspections', {
-    method: 'POST',
-    headers: { 'Idempotency-Key': key },
-    data: { url },
-  });
+  return inspectMediaApiV1InspectionsPost(
+    { url },
+    { headers: { 'Idempotency-Key': key } },
+  );
 }
 
 export function getInspection(id: string): Promise<Inspection> {
-  return request(`/api/v1/inspections/${encodeURIComponent(id)}`);
+  return getInspectionApiV1InspectionsInspectionIdGet({ inspection_id: id });
 }
 
 export function createDownload(
@@ -24,27 +32,22 @@ export function createDownload(
   formatId: string,
   key: string,
 ): Promise<DownloadJob> {
-  return request('/api/v1/downloads', {
-    method: 'POST',
-    headers: { 'Idempotency-Key': key },
-    data: { inspection_id: inspectionId, format_id: formatId },
-  });
+  return createDownloadApiV1DownloadsPost(
+    { inspection_id: inspectionId, format_id: formatId },
+    { headers: { 'Idempotency-Key': key } },
+  );
 }
 
 export function getDownload(id: string): Promise<DownloadJob> {
-  return request(`/api/v1/downloads/${encodeURIComponent(id)}`);
+  return getDownloadApiV1DownloadsJobIdGet({ job_id: id });
 }
 
 export function cancelDownload(id: string): Promise<DownloadJob> {
-  return request(`/api/v1/downloads/${encodeURIComponent(id)}/cancel`, {
-    method: 'POST',
-  });
+  return cancelDownloadApiV1DownloadsJobIdCancelPost({ job_id: id });
 }
 
 export function issueDownloadUrl(id: string): Promise<DownloadUrl> {
-  return request(`/api/v1/downloads/${encodeURIComponent(id)}/download-url`, {
-    method: 'POST',
-  });
+  return issueDownloadUrlApiV1DownloadsJobIdDownloadUrlPost({ job_id: id });
 }
 
 export function triggerBrowserDownload(url: string): void {

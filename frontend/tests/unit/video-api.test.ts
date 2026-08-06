@@ -34,16 +34,19 @@ describe('download API', () => {
       'download-key',
     );
 
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/inspections');
-    expect(fetchMock.mock.calls[0][1]).toMatchObject({
-      credentials: 'same-origin',
-      method: 'POST',
-      headers: expect.objectContaining({ 'Idempotency-Key': 'inspect-key' }),
-    });
-    expect(fetchMock.mock.calls[1][0]).toBe('/api/v1/downloads');
-    expect(fetchMock.mock.calls[1][1]).toMatchObject({
-      headers: expect.objectContaining({ 'Idempotency-Key': 'download-key' }),
-    });
+    const inspectionRequest = fetchMock.mock.calls[0][0] as Request;
+    const downloadRequest = fetchMock.mock.calls[1][0] as Request;
+    expect(new URL(inspectionRequest.url).pathname).toBe('/api/v1/inspections');
+    expect(inspectionRequest.credentials).toBe('same-origin');
+    expect(inspectionRequest.method).toBe('POST');
+    expect(inspectionRequest.headers.get('Idempotency-Key')).toBe(
+      'inspect-key',
+    );
+    expect(await inspectionRequest.text()).toBe(
+      JSON.stringify({ url: 'https://media.example/owned' }),
+    );
+    expect(new URL(downloadRequest.url).pathname).toBe('/api/v1/downloads');
+    expect(downloadRequest.headers.get('Idempotency-Key')).toBe('download-key');
   });
 
   it('covers query, cancel, and download-url endpoints', async () => {
@@ -65,13 +68,13 @@ describe('download API', () => {
     await cancelDownload(job().id);
     await issueDownloadUrl(job().id);
 
-    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+    expect(requestPaths(fetchMock)).toEqual([
       `/api/v1/inspections/${inspection.id}`,
       `/api/v1/downloads/${job().id}`,
       `/api/v1/downloads/${job().id}/cancel`,
       `/api/v1/downloads/${job().id}/download-url`,
     ]);
-    expect(fetchMock.mock.calls[2][1]).toMatchObject({ method: 'POST' });
+    expect((fetchMock.mock.calls[2][0] as Request).method).toBe('POST');
   });
 
   it('parses RFC9457 and fallback errors', async () => {
@@ -138,3 +141,9 @@ describe('download API', () => {
     expect(document.querySelector('a[download]')).not.toBeInTheDocument();
   });
 });
+
+function requestPaths(fetchMock: ReturnType<typeof vi.fn>): string[] {
+  return fetchMock.mock.calls.map(
+    ([request]) => new URL((request as Request).url).pathname,
+  );
+}

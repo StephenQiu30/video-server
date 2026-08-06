@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { createIdempotencyKey, displayError } from '@/shared/api/client';
+import { createIdempotencyKey, displayError } from '@/shared/api/request';
 
 import { cancelAnalysis, createAnalysis, getAnalysis } from './api';
 import type { AnalysisJob, CreateAnalysisInput } from './types';
