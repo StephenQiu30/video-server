@@ -169,11 +169,18 @@ function fileDetails(
   format?: MediaFormat,
 ): FileRecord {
   return {
-    name: `${title}.${extension}`,
+    name: downloadFileName(title, extension),
     resolution: format ? `${format.plan.width} × ${format.plan.height}` : '—',
     codec: format ? codecLabel(format) : '—',
     container: extension.toUpperCase(),
   };
+}
+
+function downloadFileName(title: string, extension: string): string {
+  const suffix = `.${extension}`;
+  return title.toLowerCase().endsWith(suffix.toLowerCase())
+    ? title
+    : `${title}${suffix}`;
 }
 
 function codecLabel(format: MediaFormat): string {

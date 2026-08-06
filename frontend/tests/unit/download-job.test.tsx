@@ -25,6 +25,18 @@ describe('DownloadJobPage', () => {
     expect(requestMock).toHaveBeenCalledTimes(3);
   });
 
+  it('does not duplicate an existing output extension', async () => {
+    requestMock
+      .mockResolvedValueOnce(job('succeeded'))
+      .mockResolvedValueOnce({ ...inspection, title: 'Owned video.MP4' });
+
+    render(<DownloadJobPage jobId={job().id} />);
+
+    expect(await screen.findByText('下载已完成')).toBeInTheDocument();
+    expect(screen.getAllByText('Owned video.MP4')).toHaveLength(3);
+    expect(screen.queryByText('Owned video.MP4.mp4')).not.toBeInTheDocument();
+  });
+
   it('cancels an active job', async () => {
     requestMock
       .mockResolvedValueOnce(job('running'))
