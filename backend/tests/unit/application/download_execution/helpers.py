@@ -1,0 +1,185 @@
+from __future__ import annotations
+
+import asyncio
+from dataclasses import dataclass, replace
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from types import SimpleNamespace
+from uuid import UUID, uuid4
+
+from app.application.download_execution import (
+    DownloadExecution,
+    DownloadExecutionSettings,
+)
+from app.application.downloads import EncryptedUrl, plan_to_documents
+from app.domain.downloads import (
+    AudioCodecFamily,
+    CompatibilityProfile,
+    ContainerPreference,
+    DownloadPlan,
+    DownloadStage,
+    DynamicRange,
+    FpsBucket,
+    ProviderHints,
+    VideoCodecFamily,
+)
+from app.infrastructure.media_runner_models import RunnerArtifact, RunnerProgress
+
+NOW = datetime(2026, 8, 6, 8, tzinfo=UTC)
+
+
+class FakeRepository:
+    def __init__(self, job_id: UUID) -> None:
+        self.job_id = job_id
+        self.claimed = True
+        self.status = "running"
+        self.heartbeat_results: list[bool] = []
+        self.heartbeats: list[tuple[str, int]] = []
+        self.failure = None
+        self.success = None
+        semantic, hints = plan_to_documents(download_plan())
+        self.source = SimpleNamespace(
+            semantic_plan=semantic,
+            provider_hints=hints,
+            extractor_key="Controlled",
+            provider_media_id="video-1",
+            url_ciphertext=b"ciphertext",
+            url_nonce=b"nonce",
+            url_key_id="fernet-v1",
+        )
+
+    async def claim_job(self, *args, **kwargs):
+        if not self.claimed:
+            return None
+        return SimpleNamespace(id=self.job_id, attempt=1, status="running")
+
+    async def get_job_source(self, *args, **kwargs):
+        return self.source
+
+    async def heartbeat(self, *args, stage: str, progress: int, **kwargs) -> bool:
+        self.heartbeats.append((stage, progress))
+        return self.heartbeat_results.pop(0) if self.heartbeat_results else True
+
+    async def get_job(self, *args, **kwargs):
+        return SimpleNamespace(
+            id=self.job_id,
+            status=self.status,
+            attempt=1,
+            lease_owner="worker-1" if self.status == "running" else None,
+            lease_expires_at=NOW + timedelta(minutes=1),
+        )
+
+    async def complete_success(self, *args, **kwargs):
+        self.success = args[3]
+
+    async def complete_failure(self, *args, **kwargs):
+        self.failure = kwargs
+        self.status = "retry_wait" if kwargs["retryable"] else "failed"
+        return await self.get_job()
+
+
+class FakeRunner:
+    def __init__(self, artifact: RunnerArtifact) -> None:
+        self.artifact = artifact
+        self.error: Exception | None = None
+        self.delay = 0.0
+        self.block = False
+        self.cancelled = 0
+        self.download_arguments = None
+
+    async def download(self, task_id, url, plan, **kwargs):
+        self.download_arguments = (task_id, url, plan, kwargs)
+        if self.error is not None:
+            raise self.error
+        if self.block:
+            await asyncio.Event().wait()
+        if self.delay:
+            await asyncio.sleep(self.delay)
+        self.artifact = replace(self.artifact, task_id=task_id)
+        return self.artifact
+
+    async def status(self, task_id: str) -> RunnerProgress:
+        return RunnerProgress(DownloadStage.DOWNLOADING, 45)
+
+    async def cancel(self, task_id: str) -> None:
+        self.cancelled += 1
+
+
+class FakeStorage:
+    def __init__(self) -> None:
+        self.uploads: list[tuple[str, Path, str]] = []
+        self.deleted: list[str] = []
+        self.error: Exception | None = None
+
+    async def upload(self, key: str, source: Path, content_type: str) -> int:
+        self.uploads.append((key, source, content_type))
+        if self.error is not None:
+            raise self.error
+        return source.stat().st_size
+
+    async def delete(self, key: str) -> None:
+        self.deleted.append(key)
+
+
+class FakeCipher:
+    def decrypt(self, envelope: EncryptedUrl) -> str:
+        return "https://media.example/video"
+
+
+class FakeCleaner:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, Path | None]] = []
+
+    async def cleanup(self, task_id: str, workspace: Path | None) -> None:
+        self.calls.append((task_id, workspace))
+
+
+@dataclass
+class ExecutionFixture:
+    job_id: UUID
+    repository: FakeRepository
+    runner: FakeRunner
+    storage: FakeStorage
+    cleaner: FakeCleaner
+    execution: DownloadExecution
+
+
+def fixture(artifact: RunnerArtifact) -> ExecutionFixture:
+    job_id = uuid4()
+    repository = FakeRepository(job_id)
+    runner = FakeRunner(artifact)
+    storage = FakeStorage()
+    cleaner = FakeCleaner()
+    execution = DownloadExecution(
+        repository=repository,
+        runner=runner,
+        storage=storage,
+        url_cipher=FakeCipher(),
+        workspace_cleaner=cleaner,
+        clock=lambda: NOW,
+        settings=DownloadExecutionSettings(
+            worker_id="worker-1",
+            bucket="video-artifacts",
+            workspace_root=artifact.workspace.parent,
+            lease_for=timedelta(seconds=60),
+            heartbeat_interval=0.001,
+            artifact_ttl=timedelta(days=1),
+            max_file_size_bytes=1024 * 1024,
+        ),
+    )
+    return ExecutionFixture(job_id, repository, runner, storage, cleaner, execution)
+
+
+def download_plan() -> DownloadPlan:
+    return DownloadPlan(
+        height=720,
+        width=1280,
+        fps_bucket=FpsBucket.FPS_30,
+        dynamic_range=DynamicRange.SDR,
+        video_codec_family=VideoCodecFamily.H264,
+        audio_codec_family=AudioCodecFamily.AAC,
+        audio_language=None,
+        container_preference=ContainerPreference.MP4,
+        compatibility_profile=CompatibilityProfile.BALANCED,
+        hints=ProviderHints(video_id="v1", audio_id="a1"),
+    )

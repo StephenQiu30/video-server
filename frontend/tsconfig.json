@@ -9,7 +9,7 @@
     "target": "ES2022",
     "baseUrl": ".",
     "paths": { "@/*": ["src/*"] },
-    "types": ["vitest/globals"]
+    "types": ["vite/client", "vitest/globals"]
   },
-  "include": ["src", "config", "tests", "vitest.config.ts"]
+  "include": ["src", "tests", "vite.config.ts", "vitest.config.ts"]
 }

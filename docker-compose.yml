@@ -1,61 +1,69 @@
-name: video-server
+name: server
 
-x-app-environment: &app-environment
-  APP_ENV: ${APP_ENV:-development}
-  APP_HOST: 0.0.0.0
-  APP_PORT: ${APP_PORT:?APP_PORT is required}
-  APP_PUBLIC_ORIGIN: ${APP_PUBLIC_ORIGIN:?APP_PUBLIC_ORIGIN is required}
-  WEB_ORIGIN: ${WEB_ORIGIN:?WEB_ORIGIN is required}
-  LOG_LEVEL: ${LOG_LEVEL:-INFO}
-  APP_VERSION: ${APP_VERSION:-0.1.0}
-  DATABASE_URL: ${COMPOSE_DATABASE_URL:?COMPOSE_DATABASE_URL is required}
-  RABBITMQ_URL: ${COMPOSE_RABBITMQ_URL:?COMPOSE_RABBITMQ_URL is required}
-  RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-video.downloads}
-  RABBITMQ_QUEUE: ${RABBITMQ_QUEUE:-video.download}
-  RABBITMQ_ROUTING_KEY: ${RABBITMQ_ROUTING_KEY:-video.download}
-  RABBITMQ_PREFETCH_COUNT: ${RABBITMQ_PREFETCH_COUNT:-2}
-  MINIO_ENDPOINT: ${COMPOSE_MINIO_ENDPOINT:?COMPOSE_MINIO_ENDPOINT is required}
-  MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:?MINIO_PUBLIC_ENDPOINT is required}
-  MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required}
-  MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required}
-  MINIO_SECURE: ${MINIO_SECURE:-false}
-  MINIO_BUCKET: ${MINIO_BUCKET:?MINIO_BUCKET is required}
-  MINIO_PRESIGNED_URL_TTL_SECONDS: ${MINIO_PRESIGNED_URL_TTL_SECONDS:-900}
-  SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
-  SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-video_session}
-  SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-86400}
-  YTDLP_ALLOWED_EXTRACTORS: ${YTDLP_ALLOWED_EXTRACTORS:-default}
-  INSPECT_TIMEOUT_SECONDS: ${INSPECT_TIMEOUT_SECONDS:-30}
-  INSPECT_TTL_SECONDS: ${INSPECT_TTL_SECONDS:-900}
-  DOWNLOAD_TIMEOUT_SECONDS: ${DOWNLOAD_TIMEOUT_SECONDS:-1800}
-  MAX_VIDEO_DURATION_SECONDS: ${MAX_VIDEO_DURATION_SECONDS:-7200}
-  MAX_FILE_SIZE_BYTES: ${MAX_FILE_SIZE_BYTES:-2147483648}
-  ARTIFACT_TTL_SECONDS: ${ARTIFACT_TTL_SECONDS:-86400}
-  JOB_TOMBSTONE_TTL_SECONDS: ${JOB_TOMBSTONE_TTL_SECONDS:-604800}
-  WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
-  WORKER_TEMP_DIR: /tmp/video-downloads
-  PROGRESS_UPDATE_INTERVAL_SECONDS: ${PROGRESS_UPDATE_INTERVAL_SECONDS:-5}
-  HOUSEKEEPING_INTERVAL_SECONDS: ${HOUSEKEEPING_INTERVAL_SECONDS:-300}
-  RUNNING_STALE_AFTER_SECONDS: ${RUNNING_STALE_AFTER_SECONDS:-900}
-
-x-app-service: &app-service
-  image: ${VIDEO_SERVER_IMAGE:-video-server:local}
+x-server-image: &server-image
+  image: video-server:local
   build:
     context: .
     dockerfile: Dockerfile
     target: runtime
-  environment: *app-environment
+
+x-runtime-environment: &runtime-environment
+  DATABASE_URL: postgresql+asyncpg://video:video@postgres:5432/video
+  RABBITMQ_URL: amqp://video:video@rabbitmq:5672/
+
+x-storage-environment: &storage-environment
+  MINIO_ENDPOINT: minio:9000
+
+x-public-storage-environment: &public-storage-environment
+  MINIO_PUBLIC_ENDPOINT: localhost:9000
+
+x-runner-client-environment: &runner-client-environment
+  RUNNER_BASE_URL: http://media-runner:19100
+
+x-runner-environment: &runner-environment
+  RUNNER_HMAC_SECRET: development-runner-secret-change-me
+  RUNNER_EGRESS_PROXY: http://egress-proxy:3128
+  RUNNER_WORKSPACE_ROOT: /work
+  RUNNER_MAX_ACTIVE_TASKS: 4
+
+x-code-security: &code-security
   init: true
+  read_only: true
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=67108864
   security_opt:
     - no-new-privileges:true
-  restart: unless-stopped
+  cap_drop:
+    - ALL
 
 services:
+  workspace-init:
+    <<: *server-image
+    user: "0:0"
+    command:
+      - sh
+      - -c
+      - install -d -o 10001 -g 10001 -m 0700 /work /analysis-work
+    volumes:
+      - runner_work:/work
+      - analysis_work:/analysis-work
+    network_mode: none
+    restart: "no"
+
   api:
-    <<: *app-service
-    command: ["sh", "-c", "alembic upgrade head && exec python -m src.main"]
+    <<: [*server-image, *code-security]
+    command: ["python", "-m", "app.main"]
+    environment:
+      <<:
+        [
+          *runtime-environment,
+          *storage-environment,
+          *public-storage-environment,
+          *runner-client-environment,
+        ]
+      SERVICE_ROLE: api
     ports:
-      - "${APP_BIND:-127.0.0.1}:${APP_PORT:?APP_PORT is required}:${APP_PORT:?APP_PORT is required}"
+      - "127.0.0.1:19090:19090"
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,48 +71,199 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      media-runner:
+        condition: service_healthy
+    networks: [core, runner_control, app_ingress]
     healthcheck:
       test:
         - CMD
         - python
         - -c
-        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:${APP_PORT}/health/ready', timeout=3)"
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:19090/health/ready', timeout=3)"
       interval: 10s
       timeout: 5s
       retries: 12
-      start_period: 20s
-    stop_grace_period: 30s
+      start_period: 10s
+    restart: unless-stopped
+
+  outbox:
+    <<: [*server-image, *code-security]
+    command: ["python", "-m", "app.workers.outbox.main"]
+    environment:
+      <<: *runtime-environment
+      SERVICE_ROLE: outbox
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks: [core]
+    restart: unless-stopped
 
   worker-download:
-    <<: *app-service
-    command: ["python", "-m", "src.worker"]
+    <<: [*server-image, *code-security]
+    command: ["python", "-m", "app.workers.download.main"]
+    environment:
+      <<: [*runtime-environment, *storage-environment, *runner-client-environment]
+      SERVICE_ROLE: download-worker
+    volumes:
+      - runner_work:/work
     depends_on:
-      api:
+      postgres:
         condition: service_healthy
-    stop_grace_period: 60s
+      workspace-init:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      media-runner:
+        condition: service_healthy
+    networks: [core, runner_control]
+    restart: unless-stopped
+
+  worker-analysis:
+    <<: [*server-image, *code-security]
+    command: ["python", "-m", "app.workers.analysis.main"]
+    environment:
+      <<: [*runtime-environment, *storage-environment]
+      SERVICE_ROLE: analysis-worker
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-development-openai-key-not-for-production}
+    volumes:
+      - analysis_work:/analysis-work
+    depends_on:
+      postgres:
+        condition: service_healthy
+      workspace-init:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    networks: [core, ai_egress]
+    pids_limit: 128
+    ulimits:
+      fsize:
+        soft: 2147483648
+        hard: 2147483648
+      nofile:
+        soft: 1024
+        hard: 1024
+    stop_grace_period: 330s
+    restart: unless-stopped
+
+  media-runner:
+    <<: [*server-image, *code-security]
+    command:
+      - python
+      - -m
+      - uvicorn
+      - app.runner.main:create_app
+      - --factory
+      - --host
+      - 0.0.0.0
+      - --port
+      - "19100"
+      - --no-access-log
+    environment: *runner-environment
+    expose:
+      - "19100"
+    volumes:
+      - runner_work:/work
+    depends_on:
+      workspace-init:
+        condition: service_completed_successfully
+      egress-proxy:
+        condition: service_healthy
+    networks:
+      runner_control:
+        ipv4_address: 172.30.0.10
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:19100/health/live', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    pids_limit: 128
+    ulimits:
+      fsize:
+        soft: 2147483648
+        hard: 2147483648
+      nofile:
+        soft: 1024
+        hard: 1024
+    stop_grace_period: 10s
+    restart: unless-stopped
+
+  egress-proxy:
+    image: ubuntu/squid:6.6-24.04_edge
+    entrypoint: ["squid"]
+    command: ["-N", "-f", "/etc/squid/squid.conf"]
+    user: "13:13"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,uid=13,gid=13,mode=0700,size=16777216
+    volumes:
+      - ./backend/config/egress/squid.conf:/etc/squid/squid.conf:ro
+      - ./backend/config/egress/blocked-destinations-docker-desktop.conf:/etc/squid/blocked-destinations.conf:ro
+    networks:
+      runner_control:
+        ipv4_address: 172.30.0.20
+      public_egress: {}
+    healthcheck:
+      test: ["CMD", "squid", "-k", "check", "-f", "/etc/squid/squid.conf"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 64
+    restart: unless-stopped
 
   postgres:
-    image: ${POSTGRES_IMAGE:-postgres:17.5-alpine}
+    image: postgres:17.5-alpine
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
-      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: video
+      POSTGRES_USER: video
+      POSTGRES_PASSWORD: video
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./backend/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test:
+        - CMD-SHELL
+        - >-
+          psql -v ON_ERROR_STOP=1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}
+          -c 'SELECT 1 FROM media_inspections LIMIT 1;
+          SELECT 1 FROM download_jobs LIMIT 1;
+          SELECT 1 FROM analysis_jobs LIMIT 1;
+          SELECT 1 FROM outbox_events LIMIT 1' >/dev/null
       interval: 5s
       timeout: 5s
       retries: 12
+    networks: [core]
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
 
   rabbitmq:
-    image: ${RABBITMQ_IMAGE:-rabbitmq:4.0.9-management}
+    image: rabbitmq:4.0.9-management
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER is required}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS is required}
+      RABBITMQ_DEFAULT_USER: video
+      RABBITMQ_DEFAULT_PASS: video
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -112,31 +271,72 @@ services:
       interval: 5s
       timeout: 5s
       retries: 12
+    networks: [core]
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
 
   minio:
-    image: ${MINIO_IMAGE:-minio/minio:RELEASE.2025-02-28T09-55-16Z}
+    image: minio/minio:RELEASE.2025-02-28T09-55-16Z
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      MINIO_ROOT_USER: video-root
+      MINIO_ROOT_PASSWORD: video-root-secret-change-me
     volumes:
       - minio_data:/data
     ports:
-      - "${MINIO_API_BIND:-127.0.0.1}:${MINIO_API_PORT:?MINIO_API_PORT is required}:9000"
-      - "${MINIO_CONSOLE_BIND:-127.0.0.1}:${MINIO_CONSOLE_PORT:?MINIO_CONSOLE_PORT is required}:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
       interval: 5s
       timeout: 5s
       retries: 12
+    networks: [core, app_ingress]
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
 
+  minio-init:
+    image: minio/mc:RELEASE.2025-02-21T16-00-46Z
+    entrypoint: ["/bin/sh", "/config/init.sh"]
+    environment:
+      MC_CONFIG_DIR: /tmp/.mc
+      MINIO_ROOT_USER: video-root
+      MINIO_ROOT_PASSWORD: video-root-secret-change-me
+      MINIO_ACCESS_KEY: video-app-access
+      MINIO_SECRET_KEY: video-app-secret-change-me
+      MINIO_BUCKET: video-artifacts
+    volumes:
+      - ./backend/config/minio:/config:ro
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks: [core]
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16777216
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: "no"
+
+networks:
+  app_ingress: {}
+  core:
+    internal: true
+  runner_control:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+  public_egress: {}
+  ai_egress: {}
+
 volumes:
-  postgres_data:
-  rabbitmq_data:
-  minio_data:
+  postgres_data: {}
+  rabbitmq_data: {}
+  minio_data: {}
+  runner_work: {}
+  analysis_work: {}

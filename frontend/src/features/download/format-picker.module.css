@@ -1,0 +1,60 @@
+.group {
+  padding: 0;
+  margin: 24px 0 0;
+  border: 0;
+}
+
+.group legend {
+  margin-bottom: 12px;
+  color: #252b42;
+  font-weight: 650;
+}
+
+.options {
+  display: grid;
+  gap: 10px;
+}
+
+.option {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px;
+  cursor: pointer;
+  border: 1px solid #dfe2ef;
+  border-radius: 12px;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.option:has(input:checked) {
+  background: #f3f0ff;
+  border-color: #6956e8;
+}
+
+.option:focus-within {
+  outline: 3px solid rgb(105 86 232 / 20%);
+  outline-offset: 2px;
+}
+
+.option input {
+  margin-top: 4px;
+  accent-color: #6956e8;
+}
+
+.copy {
+  display: grid;
+  gap: 3px;
+  color: #697088;
+  font-size: 13px;
+}
+
+.copy strong {
+  color: #20263e;
+  font-size: 15px;
+}
+
+.empty {
+  color: #697088;
+}

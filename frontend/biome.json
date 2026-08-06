@@ -4,10 +4,6 @@
     "ignoreUnknown": true,
     "includes": [
       "**/*",
-      "!**/.umi",
-      "!**/.umi-production",
-      "!**/.umi-test",
-      "!**/src/services",
       "!**/dist",
       "!**/coverage",
       "!**/node_modules",

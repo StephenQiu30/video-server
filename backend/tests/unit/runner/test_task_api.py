@@ -1,0 +1,53 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from api_helpers import FakeService, settings, signed_headers
+from app.runner.main import create_app
+from fastapi.testclient import TestClient
+
+
+def test_cancel_is_authenticated_and_idempotent(tmp_path: Path) -> None:
+    service = FakeService()
+    client = TestClient(create_app(settings(tmp_path), service=service))
+    path = "/internal/v1/tasks/job_123/cancel"
+
+    responses = []
+    for nonce in ("cancel_nonce_1234567", "cancel_nonce_7654321"):
+        body = b"{}"
+        responses.append(
+            client.post(path, content=body, headers=signed_headers(path, body, nonce))
+        )
+
+    assert [response.status_code for response in responses] == [200, 200]
+    assert (
+        responses[0].json()
+        == responses[1].json()
+        == {
+            "task_id": "job_123",
+            "status": "cancellation_requested",
+        }
+    )
+    assert service.cancelled == ["job_123", "job_123"]
+
+
+def test_task_status_get_is_hmac_authenticated(tmp_path: Path) -> None:
+    service = FakeService()
+    client = TestClient(create_app(settings(tmp_path), service=service))
+    path = "/internal/v1/tasks/job_123"
+    headers = signed_headers(
+        path,
+        b"",
+        "status_nonce_1234567",
+        method="GET",
+    )
+
+    response = client.get(path, headers=headers)
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "task_id": "job_123",
+        "stage": "downloading",
+        "progress": 40,
+    }
+    assert service.status_requests == ["job_123"]

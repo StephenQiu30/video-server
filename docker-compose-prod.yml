@@ -1,23 +1,126 @@
+x-production-runtime: &production-runtime
+  APP_ENV: production
+  DATABASE_URL: postgresql+asyncpg://video:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in production}@postgres:5432/video
+  RABBITMQ_URL: amqp://video:${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required in production}@rabbitmq:5672/
+
+x-production-storage: &production-storage
+  MINIO_ENDPOINT: minio:9000
+  MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required in production}
+  MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required in production}
+
+x-production-public-storage: &production-public-storage
+  MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:?MINIO_PUBLIC_ENDPOINT is required in production}
+  MINIO_PUBLIC_SECURE: "true"
+
+x-production-runner-client: &production-runner-client
+  RUNNER_BASE_URL: http://media-runner:19100
+  RUNNER_HMAC_SECRET: ${RUNNER_HMAC_SECRET:?RUNNER_HMAC_SECRET is required in production}
+
+x-production-api-security: &production-api-security
+  SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required in production}
+  REQUEST_FINGERPRINT_SECRET: ${REQUEST_FINGERPRINT_SECRET:?REQUEST_FINGERPRINT_SECRET is required in production}
+  URL_ENCRYPTION_KEY: ${URL_ENCRYPTION_KEY:?URL_ENCRYPTION_KEY is required in production}
+
+x-production-image: &production-image
+  image: ${SERVER_IMAGE:?SERVER_IMAGE is required in production}
+  build: !reset null
+  pull_policy: always
+
 services:
-  api:
-    image: ${VIDEO_SERVER_IMAGE:?VIDEO_SERVER_IMAGE is required in prod}
+  workspace-init:
+    <<: *production-image
     pull_policy: always
+
+  api:
+    <<: *production-image
     environment:
-      APP_ENV: production
+      <<:
+        [
+          *production-runtime,
+          *production-storage,
+          *production-public-storage,
+          *production-runner-client,
+          *production-api-security,
+        ]
+      SERVICE_ROLE: api
+    restart: always
+
+  outbox:
+    <<: *production-image
+    environment:
+      <<: *production-runtime
+      SERVICE_ROLE: outbox
     restart: always
 
   worker-download:
-    image: ${VIDEO_SERVER_IMAGE:?VIDEO_SERVER_IMAGE is required in prod}
-    pull_policy: always
+    <<: *production-image
     environment:
-      APP_ENV: production
+      <<:
+        [
+          *production-runtime,
+          *production-storage,
+          *production-runner-client,
+        ]
+      SERVICE_ROLE: download-worker
+      URL_ENCRYPTION_KEY: ${URL_ENCRYPTION_KEY:?URL_ENCRYPTION_KEY is required in production}
+    restart: always
+
+  worker-analysis:
+    <<: *production-image
+    environment:
+      <<: [*production-runtime, *production-storage]
+      SERVICE_ROLE: analysis-worker
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY is required in production}
+    restart: always
+
+  media-runner:
+    <<: *production-image
+    environment:
+      RUNNER_HMAC_SECRET: ${RUNNER_HMAC_SECRET:?RUNNER_HMAC_SECRET is required in production}
+      RUNNER_EGRESS_PROXY: http://egress-proxy:3128
+      RUNNER_WORKSPACE_ROOT: /work
+      RUNNER_MAX_ACTIVE_TASKS: 8
+    restart: always
+
+  egress-proxy:
+    image: ubuntu/squid:6.6-24.04_edge@sha256:8a3baed477e2c282ab8aa5edad442f69873246964f225c5c2ae8364b6610963c
+    pull_policy: always
+    volumes:
+      - ./backend/config/egress/blocked-destinations.conf:/etc/squid/blocked-destinations.conf:ro
     restart: always
 
   postgres:
+    image: postgres:17.5-alpine@sha256:6567bca8d7bc8c82c5922425a0baee57be8402df92bae5eacad5f01ae9544daa
+    pull_policy: always
+    environment:
+      POSTGRES_DB: video
+      POSTGRES_USER: video
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in production}
     restart: always
 
   rabbitmq:
+    image: rabbitmq:4.0.9-management@sha256:10adbf34c8cfdb732958a9a07c95ecffe97e202c704a8036f6596c6ce361412d
+    pull_policy: always
+    environment:
+      RABBITMQ_DEFAULT_USER: video
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required in production}
     restart: always
 
   minio:
+    image: minio/minio:RELEASE.2025-02-28T09-55-16Z@sha256:a929054ae025fa7997857cd0e2a2e3029238e31ad89877326dc032f4c1a14259
+    pull_policy: always
+    environment:
+      MINIO_ROOT_USER: video-root
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required in production}
     restart: always
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-02-21T16-00-46Z@sha256:f7089203eca4c8e538d5e5c69303f568735366640e62917e05a98ce615a1edd9
+    pull_policy: always
+    environment:
+      MC_CONFIG_DIR: /tmp/.mc
+      MINIO_ROOT_USER: video-root
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required in production}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required in production}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required in production}
+      MINIO_BUCKET: video-artifacts

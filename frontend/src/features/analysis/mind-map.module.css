@@ -1,0 +1,58 @@
+.mindMap {
+  overflow-x: auto;
+  padding: 4px;
+}
+
+.mindMap ul {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 0 20px;
+  padding: 12px 0 0 20px;
+  border-left: 2px solid #dedbf9;
+  list-style: none;
+}
+
+.mindMap .mindMapRoot {
+  min-width: 360px;
+  margin-left: 0;
+  padding: 0;
+  border-left: 0;
+}
+
+.mindMapNode {
+  position: relative;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #f7f5ff, #f5fbfb);
+  border: 1px solid #e6e2fa;
+  border-radius: 12px;
+}
+
+.mindMap ul:not(.mindMapRoot) > li > .mindMapNode::before {
+  position: absolute;
+  top: 22px;
+  left: -22px;
+  width: 20px;
+  border-top: 2px solid #dedbf9;
+  content: "";
+}
+
+.nodeHeading {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.nodeHeading span {
+  flex: 0 0 auto;
+  color: #7a8198;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mindMapNode p {
+  margin: 6px 0 0;
+  color: #50586f;
+  font-size: 14px;
+  line-height: 1.75;
+}

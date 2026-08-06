@@ -1,0 +1,55 @@
+from pathlib import Path
+
+from app.core.config import Settings
+from app.main import create_app
+from fastapi.testclient import TestClient
+
+
+def test_non_test_app_wires_download_use_cases(tmp_path: Path) -> None:
+    settings = Settings(
+        app_env="development",
+        frontend_dist_dir=tmp_path / "missing",
+        database_url="sqlite+aiosqlite:///:memory:",
+        runner_base_url="http://runner.test",
+    )
+    application = create_app(settings)
+
+    with TestClient(application) as client:
+        assert application.state.download_use_cases is not None
+        assert application.state.analysis_use_cases is not None
+        assert client.get("/health/live").status_code == 200
+
+
+def test_non_test_app_wires_runtime_readiness_into_the_route(tmp_path: Path) -> None:
+    settings = Settings(
+        app_env="development",
+        frontend_dist_dir=tmp_path / "missing",
+        database_url="sqlite+aiosqlite:///:memory:",
+        runner_base_url="http://runner.test",
+    )
+    application = create_app(settings)
+
+    async def unavailable() -> bool:
+        return False
+
+    application.state.readiness_probe.check = unavailable
+    with TestClient(application) as client:
+        response = client.get("/health/ready")
+
+    assert response.status_code == 503
+
+
+def test_test_app_leaves_download_use_cases_injectable(tmp_path: Path) -> None:
+    application = create_app(
+        Settings(app_env="test", frontend_dist_dir=tmp_path / "missing")
+    )
+
+    with TestClient(application) as client:
+        response = client.post(
+            "/api/v1/inspections",
+            headers={"Idempotency-Key": "inspect-1"},
+            json={"url": "https://media.example/video"},
+        )
+
+    assert response.status_code == 503
+    assert response.json()["code"] == "service_unavailable"

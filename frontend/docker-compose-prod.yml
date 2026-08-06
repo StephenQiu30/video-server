@@ -1,5 +1,0 @@
-services:
-  web:
-    image: ${VIDEO_WEB_IMAGE:?VIDEO_WEB_IMAGE is required in prod}
-    pull_policy: always
-    restart: always

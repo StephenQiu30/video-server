@@ -1,0 +1,117 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime
+from uuid import UUID
+
+from app.domain.downloads import (
+    DownloadErrorCode,
+    DownloadStage,
+    DownloadStatus,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class DownloadCreate:
+    id: UUID
+    inspection_id: UUID
+    format_id: UUID
+    owner_hash: str
+    idempotency_key: str
+    request_fingerprint: str
+    semantic_plan: dict[str, object]
+    max_attempts: int = 3
+
+
+@dataclass(frozen=True, slots=True)
+class JobSnapshot:
+    id: UUID
+    inspection_id: UUID
+    format_id: UUID
+    owner_hash: str
+    request_fingerprint: str
+    semantic_plan: dict[str, object]
+    status: str
+    stage: str | None
+    progress: int
+    attempt: int
+    max_attempts: int
+    version: int
+    lease_owner: str | None
+    lease_expires_at: datetime | None
+    heartbeat_at: datetime | None
+    started_at: datetime | None
+    retry_at: datetime | None
+    finished_at: datetime | None
+    error_code: str | None
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def queued(cls, command: DownloadCreate, *, now: datetime) -> JobSnapshot:
+        return cls(
+            id=command.id,
+            inspection_id=command.inspection_id,
+            format_id=command.format_id,
+            owner_hash=command.owner_hash,
+            request_fingerprint=command.request_fingerprint,
+            semantic_plan=command.semantic_plan,
+            status="queued",
+            stage=None,
+            progress=0,
+            attempt=0,
+            max_attempts=command.max_attempts,
+            version=0,
+            lease_owner=None,
+            lease_expires_at=None,
+            heartbeat_at=None,
+            started_at=None,
+            retry_at=None,
+            finished_at=None,
+            error_code=None,
+            created_at=now,
+            updated_at=now,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class JobSaveResult:
+    job: JobSnapshot
+    created: bool
+
+
+@dataclass(frozen=True, slots=True)
+class ArtifactSnapshot:
+    id: UUID
+    job_id: UUID
+    attempt: int
+    bucket: str
+    object_key: str
+    sha256: str
+    size_bytes: int
+    duration_ms: int
+    container: str
+    content_type: str
+    media_metadata: dict[str, object]
+    expires_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class DownloadView:
+    id: UUID
+    inspection_id: UUID
+    format_id: UUID
+    status: DownloadStatus
+    stage: DownloadStage | None
+    progress: int
+    attempt: int
+    error_code: DownloadErrorCode | None
+    created_at: datetime
+    updated_at: datetime
+    finished_at: datetime | None
+
+
+@dataclass(frozen=True, slots=True)
+class DownloadUrl:
+    url: str
+    expires_at: datetime

@@ -1,0 +1,27 @@
+# 001 Server 单仓与运行时架构计划
+
+- 状态：Completed
+
+## 任务
+
+1. 以原服务端历史为 canonical，通过 Git subtree 导入完整前端历史。
+2. 重命名本地项目为 `server`，清理子仓治理、重复部署与旧业务实现。
+3. 建立 `backend/app`、`frontend/src` 和当前 `docs` 骨架；部署文件直接置于根目录。
+4. 重写统一多阶段 Dockerfile、Compose、环境模板和 CI。
+5. FastAPI 同源挂载前端 SPA；保留开发代理。
+6. 增加结构、静态托管、前后端构建与 Compose 配置测试。
+7. 记录 Git/卷/镜像回滚方式并执行 Acceptance。
+
+## 退出条件
+
+001 Acceptance 已于 2026-08-06 判定 Passed，002 下载业务实现可以进入主线。
+
+## 完成证据（2026-08-06）
+
+- 后端 `pytest -q` 与前端 Vitest 全量门禁均通过；文档不固化会随实现变化的用例数量。
+- CI 不设置覆盖率硬门槛，保留 Ruff、format、strict mypy、核心测试和生产构建门禁。
+- 数据库只使用 `backend/sql/schema.sql` 初始化全新 PostgreSQL 数据卷，不维护 migrations 或兼容升级路径。
+- 根目录三份 Compose 分别负责默认完整启动、依赖环境和生产覆盖，三种配置均可解析。
+- 默认与仅依赖 Compose 无需 env 即可启动；生产模板收敛为 12 个必要部署输入。
+- 根多阶段 Dockerfile 产出包含 frontend dist 的统一 runtime 镜像，各代码进程复用该镜像。
+- backend-builder 与 runtime 的绝对工作目录统一为 `/app/backend`，复制后的 `.venv` 路径不变；Python 服务使用 `python -m ...` 入口。API 与 MinIO 通过独立 `app_ingress` 提供应用和签名文件交付面。

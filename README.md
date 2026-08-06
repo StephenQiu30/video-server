@@ -1,32 +1,60 @@
-# video-server
+# server
 
-`video-server` 是万能视频下载器 MVP 的服务端仓库。
+`server` 是万能视频下载器的统一服务仓库。前端源码、后端 API、Outbox、下载 Worker、AI Worker 和运行编排在同一个仓库内维护，并通过同一个生产镜像交付。
 
-## 当前状态
+## 目录
 
-- MVP 只覆盖：解析单个公开非 DRM 视频链接、返回分辨率选项、异步下载与文件获取。
-- 4 份服务端 Design 与 4 份 PRD 已实现并归档，4 份 Plan 已实施。
-- PostgreSQL、RabbitMQ、MinIO 是唯一基础设施选型，不保留候选方案或适配层。
-- FastAPI API、下载 Worker、PostgreSQL、RabbitMQ、MinIO、Alembic、yt-dlp/FFmpeg 与测试代码已进入 `main`。
-- 4 份 Acceptance 已执行但仍为 Blocked；未完成项以 [`docs/acceptance/README.md`](docs/acceptance/README.md) 为准。
+```text
+server/
+├── backend/       FastAPI、领域逻辑、Worker、当前态 SQL 与测试
+├── frontend/      Vite/React Web 源码、组件与测试
+├── docs/          当前 Design、PRD、Plan、Acceptance 与运维文档
+├── Dockerfile
+├── docker-compose.yml       默认完整环境
+├── docker-compose-env.yml   仅基础设施环境
+└── docker-compose-prod.yml  生产覆盖配置
+```
 
-## 重新设计门禁
+生产环境不运行独立的前端容器。根目录 `Dockerfile` 先构建 `frontend/`，再将静态产物复制到统一 Python 镜像，由 FastAPI 同源提供页面和 `/api/*` 接口。API、下载 Worker 和 AI Worker 使用同一代码镜像、不同进程入口。
 
-后续工作固定遵循：
+## 本地开发
 
-`Design → PRD → Plan → Acceptance`
+```bash
+cd backend
+uv sync --frozen --dev
+uv run pytest -q
 
-当前 MVP 已实现。Design/PRD 基线位于归档目录；新增能力必须重新走完整交付链，现有未通过项只在对应 Acceptance 中补充证据与结论。
+cd ../frontend
+npm ci
+npm run dev
+```
 
-## 项目规范
+前端开发服务器固定将 `/api/` 和 `/health/` 代理到 `http://127.0.0.1:19090`；生产构建使用相对 API 路径，不需要浏览器可见的后端地址。
 
-本仓库按 [stephen-codex](https://github.com/StephenQiu30/stephen-codex) 当前 `main` 整理：
+## 容器运行
 
-- `AGENTS.md`：长期协作、交付与 Git 规则。
-- `AGENTS.local.md`：本仓库边界与重新设计门禁。
-- `WORKFLOW.md`：Symphony/Linear 编排契约。
-- `.codex/`：Agent 角色与核心流程。
-- `docs/`：正式文档分类骨架。
-- `.github/`：PR 模板与基础 CI。
+根目录三份 Compose 各自承担固定职责，不使用 `deploy/` 目录：
 
-文档入口见 [`docs/README.md`](docs/README.md)，运行配置模板见 [`.env.example`](.env.example) 和 [`.env.prod.example`](.env.prod.example)。默认完整环境、生产覆盖和仅基础设施环境分别由 [`docker-compose.yml`](docker-compose.yml)、[`docker-compose-prod.yml`](docker-compose-prod.yml) 与 [`docker-compose-env.yml`](docker-compose-env.yml) 提供，启动与回滚命令见 [`docs/operations/001-Docker部署操作.md`](docs/operations/001-Docker部署操作.md)。
+| 文件 | 用途 | 启动方式 |
+| --- | --- | --- |
+| `docker-compose.yml` | 默认完整系统 | 单独使用 |
+| `docker-compose-env.yml` | 仅本地开发依赖 | 单独使用 |
+| `docker-compose-prod.yml` | 线上安全与资源覆盖 | 必须叠加默认文件 |
+
+```bash
+docker compose -f docker-compose.yml up --build
+
+# 只启动 PostgreSQL、RabbitMQ、MinIO 及 MinIO 初始化器
+docker compose -f docker-compose-env.yml up -d
+
+# 线上只为镜像、连接地址和密钥使用 env 文件
+cp .env.prod.example .env.prod
+docker compose --env-file .env.prod \
+  -f docker-compose.yml -f docker-compose-prod.yml up -d
+```
+
+开发 Compose 已内置固定的非敏感配置，无需复制 `.env.example`。只有执行真实 AI 分析时才需设置 `OPENAI_API_KEY`；生产所需的最小变量清单见 `.env.prod.example`。
+
+服务入口默认为 <http://localhost:19090>。仅启动基础设施使用 `docker-compose-env.yml`；线上运行使用 `docker-compose.yml` 叠加 `docker-compose-prod.yml`。
+
+当前架构依据见 [`docs/design/001-server单仓与运行时架构设计.md`](docs/design/001-server单仓与运行时架构设计.md)。数据库只保留 [`backend/sql/schema.sql`](backend/sql/schema.sql) 当前定义，新结构使用空数据卷初始化，不维护历史迁移和兼容分支。002 已通过受控直链 MP4 的真实 PostgreSQL/RabbitMQ/MinIO/yt-dlp/FFmpeg 与浏览器 MVP 核心验收，但不代表第三方站点矩阵均已覆盖；003 的真实 OpenAI E2E 尚未执行，仍保持 Pending。
