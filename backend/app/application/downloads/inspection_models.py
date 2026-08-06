@@ -31,6 +31,7 @@ class RunnerInspection:
     title: str
     duration_seconds: int
     formats: tuple[RunnerFormat, ...]
+    thumbnail_data_url: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,3 +108,4 @@ class InspectionView:
     duration_seconds: int
     expires_at: datetime
     formats: tuple[FormatView, ...]
+    thumbnail_url: str | None = None

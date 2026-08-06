@@ -212,6 +212,8 @@ declare namespace API {
     title: string;
     /** Duration Seconds */
     duration_seconds: number;
+    /** Thumbnail Url */
+    thumbnail_url: string | null;
     /** Expires At */
     expires_at: string;
     /** Formats */

@@ -13,6 +13,7 @@ from app.runner.codecs import (
 )
 from app.runner.errors import RunnerFailure
 from app.runner.options import build_download_options
+from app.runner.url_policy import UrlPolicyError, validate_media_url
 
 __all__ = [
     "MediaInspection",
@@ -31,6 +32,7 @@ class MediaInspection:
     duration_seconds: float
     extractor_key: str
     streams: tuple[CandidateStream, ...]
+    thumbnail_url: str | None = None
 
 
 def enrich_direct_metadata(
@@ -125,7 +127,27 @@ def normalize_metadata(
         duration_seconds=float(payload["duration"]),
         extractor_key=extractor,
         streams=tuple(streams),
+        thumbnail_url=_thumbnail_url(payload),
     )
+
+
+def _thumbnail_url(payload: dict[str, Any]) -> str | None:
+    candidates: list[object] = [payload.get("thumbnail")]
+    thumbnails = payload.get("thumbnails")
+    if isinstance(thumbnails, list):
+        candidates.extend(
+            value.get("url")
+            for value in reversed(thumbnails)
+            if isinstance(value, dict)
+        )
+    for value in candidates:
+        if not isinstance(value, str):
+            continue
+        try:
+            return validate_media_url(value).value
+        except UrlPolicyError:
+            continue
+    return None
 
 
 def _validate_source(payload: dict[str, Any], max_duration: float) -> None:

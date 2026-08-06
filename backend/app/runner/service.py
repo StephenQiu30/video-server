@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import base64
+from urllib.parse import urljoin
+
+import httpx
 
 from app.domain.downloads import FormatSelectionError, select_streams
 from app.runner.active_tasks import ActiveTaskRegistry
@@ -72,7 +76,15 @@ class MediaRunnerService:
             )
             if not plans:
                 raise RunnerFailure("format_unavailable", status=409)
-            return inspect_response(inspection, plans)
+            thumbnail_data_url = await self._thumbnail_data_url(
+                inspection.thumbnail_url,
+                referer=safe_url,
+            )
+            return inspect_response(
+                inspection,
+                plans,
+                thumbnail_data_url=thumbnail_data_url,
+            )
         finally:
             workspace.cleanup()
 
@@ -209,3 +221,68 @@ class MediaRunnerService:
             probe = await self._commands.probe_remote(safe_url, workspace.path)
             payload = enrich_direct_metadata(payload, probe)
         return normalize_for_settings(payload, self._settings)
+
+    async def _thumbnail_data_url(
+        self,
+        thumbnail_url: str | None,
+        *,
+        referer: str,
+    ) -> str | None:
+        if thumbnail_url is None:
+            return None
+        headers = {
+            "Accept": "image/avif,image/webp,image/png,image/jpeg;q=0.9,*/*;q=0.5",
+            "Referer": referer,
+            "User-Agent": "Mozilla/5.0 (compatible; VideoDownloader/1.0)",
+        }
+        timeout = min(self._settings.runner_inspect_timeout_seconds, 15)
+        try:
+            async with httpx.AsyncClient(
+                proxy=self._settings.runner_egress_proxy,
+                follow_redirects=False,
+                timeout=timeout,
+                trust_env=False,
+            ) as client:
+                current_url = thumbnail_url
+                for _ in range(4):
+                    safe_media_url(current_url)
+                    async with client.stream(
+                        "GET",
+                        current_url,
+                        headers=headers,
+                    ) as response:
+                        if response.is_redirect:
+                            location = response.headers.get("location")
+                            if not location:
+                                return None
+                            current_url = urljoin(current_url, location)
+                            continue
+                        if response.status_code != 200:
+                            return None
+                        content_type = response.headers.get("content-type", "")
+                        media_type = content_type.split(";", 1)[0].strip().lower()
+                        if media_type not in {
+                            "image/jpeg",
+                            "image/png",
+                            "image/webp",
+                        }:
+                            return None
+                        content_length = response.headers.get("content-length")
+                        if (
+                            content_length is not None
+                            and int(content_length)
+                            > self._settings.runner_max_thumbnail_bytes
+                        ):
+                            return None
+                        content = bytearray()
+                        async for chunk in response.aiter_bytes():
+                            content.extend(chunk)
+                            if len(content) > self._settings.runner_max_thumbnail_bytes:
+                                return None
+                        if not content:
+                            return None
+                        encoded = base64.b64encode(content).decode("ascii")
+                        return f"data:{media_type};base64,{encoded}"
+        except (httpx.HTTPError, RunnerFailure, ValueError):
+            return None
+        return None

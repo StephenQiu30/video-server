@@ -98,6 +98,7 @@ class MediaSummary(ContractModel):
     title: str = Field(min_length=1, max_length=4096)
     duration_seconds: float = Field(gt=0)
     extractor_key: str = Field(min_length=1, max_length=128)
+    thumbnail_data_url: str | None = Field(default=None, max_length=2_100_000)
 
 
 class DownloadOption(ContractModel):

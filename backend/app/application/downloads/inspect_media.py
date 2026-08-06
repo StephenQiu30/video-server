@@ -99,7 +99,11 @@ class InspectMedia:
             provider_media_id=_required(result.provider_media_id),
             title=_required(result.title),
             duration_seconds=result.duration_seconds,
-            metadata={},
+            metadata=(
+                {"thumbnail_url": result.thumbnail_data_url}
+                if result.thumbnail_data_url is not None
+                else {}
+            ),
             expires_at=expires_at,
             formats=formats,
         )

@@ -58,6 +58,7 @@ def runner_result(*, duration: int = 30) -> RunnerInspection:
         title="Owned video",
         duration_seconds=duration,
         formats=(RunnerFormat("1080p MP4", plan()),),
+        thumbnail_data_url="data:image/jpeg;base64,Y292ZXI=",
     )
 
 
@@ -103,6 +104,8 @@ async def test_inspect_encrypts_url_and_returns_only_semantic_formats() -> None:
         "video_id": "137",
         "audio_id": "140",
     }
+    assert command.metadata == {"thumbnail_url": "data:image/jpeg;base64,Y292ZXI="}
+    assert view.thumbnail_url == "data:image/jpeg;base64,Y292ZXI="
 
 
 @pytest.mark.asyncio

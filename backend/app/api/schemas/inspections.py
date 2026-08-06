@@ -54,6 +54,7 @@ class InspectionResponse(StrictModel):
     provider_media_id: str
     title: str
     duration_seconds: int
+    thumbnail_url: str | None
     expires_at: datetime
     formats: tuple[FormatResponse, ...]
 
@@ -65,6 +66,7 @@ class InspectionResponse(StrictModel):
             provider_media_id=view.provider_media_id,
             title=view.title,
             duration_seconds=view.duration_seconds,
+            thumbnail_url=view.thumbnail_url,
             expires_at=view.expires_at,
             formats=tuple(
                 FormatResponse(

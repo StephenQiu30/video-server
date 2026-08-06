@@ -12,6 +12,37 @@ from app.runner.service import MediaRunnerService
 from helpers import download_request, result, settings, split_media_info
 
 
+class ThumbnailStream:
+    status_code = 200
+    headers = {"content-type": "image/jpeg", "content-length": "5"}
+    is_redirect = False
+
+    async def __aenter__(self) -> ThumbnailStream:
+        return self
+
+    async def __aexit__(self, *_: object) -> None:
+        return None
+
+    async def aiter_bytes(self):
+        yield b"cover"
+
+
+class ThumbnailClient:
+    def __init__(self, **kwargs: object) -> None:
+        self.options = kwargs
+        self.requests: list[tuple[str, str]] = []
+
+    async def __aenter__(self) -> ThumbnailClient:
+        return self
+
+    async def __aexit__(self, *_: object) -> None:
+        return None
+
+    def stream(self, method: str, url: str, **_: object) -> ThumbnailStream:
+        self.requests.append((method, url))
+        return ThumbnailStream()
+
+
 class FixtureSupervisor:
     def __init__(self, info: dict[str, object]) -> None:
         self.info = info
@@ -126,3 +157,27 @@ async def test_inspect_requires_at_least_one_semantic_option(tmp_path: Path) -> 
         await service.inspect("https://media.example.com/video")
 
     assert caught.value.code == "format_unavailable"
+
+
+async def test_inspect_fetches_a_bounded_thumbnail_through_the_proxy(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    info = split_media_info()
+    info["thumbnail"] = "https://images.example.com/cover.jpg"
+    supervisor = FixtureSupervisor(info)
+    clients: list[ThumbnailClient] = []
+
+    def client_factory(**kwargs: object) -> ThumbnailClient:
+        client = ThumbnailClient(**kwargs)
+        clients.append(client)
+        return client
+
+    monkeypatch.setattr("app.runner.service.httpx.AsyncClient", client_factory)
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    response = await service.inspect("https://media.example.com/video")
+
+    assert response.media.thumbnail_data_url == "data:image/jpeg;base64,Y292ZXI="
+    assert clients[0].options["proxy"] == "http://egress-proxy:3128"
+    assert clients[0].requests == [("GET", "https://images.example.com/cover.jpg")]

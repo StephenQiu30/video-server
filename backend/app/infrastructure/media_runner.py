@@ -85,6 +85,7 @@ class MediaRunnerHttpClient:
                 RunnerFormat(item.label, item.plan.to_domain())
                 for item in response.options
             ),
+            thumbnail_data_url=response.media.thumbnail_data_url,
         )
 
     async def download(

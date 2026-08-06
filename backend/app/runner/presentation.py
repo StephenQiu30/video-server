@@ -16,6 +16,8 @@ from app.runner.metadata import MediaInspection
 def inspect_response(
     inspection: MediaInspection,
     plans: tuple[DownloadPlan, ...],
+    *,
+    thumbnail_data_url: str | None = None,
 ) -> InspectResponse:
     return InspectResponse(
         media=MediaSummary(
@@ -23,6 +25,7 @@ def inspect_response(
             title=inspection.title,
             duration_seconds=inspection.duration_seconds,
             extractor_key=inspection.extractor_key,
+            thumbnail_data_url=thumbnail_data_url,
         ),
         streams=[
             CandidateStreamContract.from_domain(stream) for stream in inspection.streams

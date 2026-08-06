@@ -39,6 +39,11 @@ class RunnerSettings(BaseSettings):
     runner_max_workspace_bytes: int = Field(default=4 * 1024**3, ge=1024)
     runner_max_candidate_streams: int = Field(default=200, ge=1, le=1000)
     runner_max_options: int = Field(default=50, ge=1, le=200)
+    runner_max_thumbnail_bytes: int = Field(
+        default=1_500_000,
+        ge=16 * 1024,
+        le=1_500_000,
+    )
     runner_max_active_tasks: int = Field(default=32, ge=1, le=256)
     runner_workspace_poll_interval_seconds: float = Field(
         default=0.25,
