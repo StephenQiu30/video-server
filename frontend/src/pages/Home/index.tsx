@@ -82,9 +82,11 @@ export default function HomePage() {
     <PageContainer className={styles.container} ghost title={false}>
       <main className={styles.page}>
         <section className={styles.hero}>
-          <Typography.Title level={1}>万能视频下载</Typography.Title>
+          <Typography.Title level={1}>
+            解析并下载视频，获取 AI 智能分析
+          </Typography.Title>
           <Typography.Paragraph>
-            输入公开视频地址，选择清晰度下载
+            支持 Bilibili、YouTube 等公开视频平台，粘贴链接即可开始解析
           </Typography.Paragraph>
           <form className={styles.search} onSubmit={handleInspect}>
             <label className={styles.label} htmlFor="media-url">
@@ -96,7 +98,7 @@ export default function HomePage() {
                 id="media-url"
                 maxLength={4096}
                 onChange={(event) => setUrl(event.target.value)}
-                placeholder="粘贴 YouTube、Bilibili 等公开视频地址"
+                placeholder="请输入视频链接（支持 Bilibili、YouTube 等）"
                 prefix={<LinkOutlined />}
                 size="large"
                 type="url"

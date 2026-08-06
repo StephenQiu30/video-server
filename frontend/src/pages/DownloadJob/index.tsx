@@ -1,17 +1,7 @@
 import { CheckCircleFilled } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
 import { useParams } from '@umijs/max';
-import {
-  Alert,
-  Button,
-  Col,
-  Flex,
-  Result,
-  Row,
-  Skeleton,
-  Tag,
-  Typography,
-} from 'antd';
+import { Alert, Button, Flex, Result, Skeleton, Tag, Typography } from 'antd';
 import { useCallback, useState } from 'react';
 
 import AnalysisPanel from '@/components/AnalysisPanel';
@@ -106,8 +96,8 @@ export function DownloadJobPage({
         ) : null}
 
         {state.job ? (
-          <Row align="top" gutter={[{ xs: 16, lg: 28 }, 20]}>
-            <Col xs={24} lg={7} xl={6}>
+          <div className={styles.workspace}>
+            <aside className={styles.mediaColumn}>
               <MediaSidebar
                 action={state.action}
                 analysisResult={analysisJob?.result ?? null}
@@ -116,8 +106,8 @@ export function DownloadJobPage({
                 onCancel={state.cancel}
                 onDownload={state.download}
               />
-            </Col>
-            <Col xs={24} lg={17} xl={18}>
+            </aside>
+            <section className={styles.analysisColumn}>
               {state.job.status === 'succeeded' ? (
                 <AnalysisPanel
                   downloadId={state.job.id}
@@ -127,8 +117,8 @@ export function DownloadJobPage({
               ) : (
                 <WaitingForDownload />
               )}
-            </Col>
-          </Row>
+            </section>
+          </div>
         ) : null}
       </main>
     </PageContainer>

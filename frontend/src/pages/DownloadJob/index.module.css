@@ -4,13 +4,13 @@
 }
 
 .container :global(.ant-page-header) {
-  max-width: 1180px;
-  padding: 18px 24px 14px;
+  max-width: 1380px;
+  padding: 16px 24px 14px;
   margin: 0 auto;
 }
 
 .container :global(.ant-page-header-heading-title) {
-  max-width: min(70vw, 760px);
+  max-width: min(70vw, 860px);
   overflow: hidden;
   color: #171717;
   text-overflow: ellipsis;
@@ -23,31 +23,58 @@
 
 .page {
   width: 100%;
-  max-width: 1180px;
+  max-width: 1380px;
   margin: 0 auto;
 }
 
 .alert {
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .loading {
   padding: 28px;
   background: #fff;
   border: 1px solid #e5e5e5;
-  border-radius: 7px;
+  border-radius: 8px;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(260px, 28fr) minmax(0, 72fr);
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+}
+
+.mediaColumn,
+.analysisColumn {
+  min-width: 0;
+}
+
+.mediaColumn {
+  border-right: 1px solid #e5e5e5;
 }
 
 .waiting {
-  min-height: 420px;
+  min-height: 560px;
   padding: 32px;
   background: #fff;
-  border: 1px solid #e5e5e5;
-  border-radius: 7px;
 }
 
 .waiting h2 {
   margin-top: 0;
+}
+
+@media (max-width: 900px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .mediaColumn {
+    border-right: 0;
+    border-bottom: 1px solid #e5e5e5;
+  }
 }
 
 @media (max-width: 640px) {
@@ -57,5 +84,10 @@
 
   .container :global(.ant-pro-page-container-children-container) {
     padding: 0 14px 30px;
+  }
+
+  .waiting {
+    min-height: 320px;
+    padding: 20px;
   }
 }

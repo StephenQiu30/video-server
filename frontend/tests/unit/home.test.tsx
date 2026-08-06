@@ -14,7 +14,9 @@ describe('HomePage', () => {
     render(<HomePage />);
 
     expect(
-      screen.getByRole('heading', { name: '万能视频下载' }),
+      screen.getByRole('heading', {
+        name: '解析并下载视频，获取 AI 智能分析',
+      }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText('公开视频地址')).toBeInTheDocument();
     expect(screen.getByText(/仅处理你有权下载的公开内容/)).toBeInTheDocument();

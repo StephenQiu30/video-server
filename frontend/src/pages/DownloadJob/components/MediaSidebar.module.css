@@ -1,5 +1,7 @@
 .sidebar {
-  border: 1px solid #dfe5ec;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
 }
 
 .cover {

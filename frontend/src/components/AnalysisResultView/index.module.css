@@ -3,7 +3,7 @@
 }
 
 .result :global(.ant-tabs-nav) {
-  padding: 0 26px;
+  padding: 0 30px;
   margin: 0;
 }
 
@@ -12,7 +12,7 @@
 }
 
 .result :global(.ant-tabs-content-holder) {
-  padding: 24px 28px 28px;
+  padding: 26px 32px 32px;
 }
 
 .summaryTab {
@@ -36,7 +36,7 @@
   margin: 0;
   color: #4b5563;
   font-size: 15px;
-  line-height: 1.8;
+  line-height: 1.85;
 }
 
 .summaryBlock span {
@@ -58,7 +58,7 @@
   margin: 0;
   overflow: hidden;
   border: 1px solid #e5e7eb;
-  border-radius: 7px;
+  border-radius: 6px;
   list-style: none;
 }
 
@@ -95,6 +95,16 @@
   grid-template-columns: 58px minmax(0, 1fr);
   gap: 12px;
   padding: 0 0 20px;
+}
+
+@media (max-width: 640px) {
+  .result :global(.ant-tabs-nav) {
+    padding: 0 16px;
+  }
+
+  .result :global(.ant-tabs-content-holder) {
+    padding: 20px 16px 24px;
+  }
 }
 
 .timeline li > span {
