@@ -19,6 +19,7 @@ class RunnerSettings(BaseSettings):
     runner_workspace_root: Path = Path("/var/lib/video-runner")
 
     runner_ytdlp_bin: str = "yt-dlp"
+    runner_ytdlp_js_runtime: str = "node"
     runner_ffmpeg_bin: str = "ffmpeg"
     runner_ffprobe_bin: str = "ffprobe"
 
@@ -43,6 +44,11 @@ class RunnerSettings(BaseSettings):
         default=1_500_000,
         ge=16 * 1024,
         le=1_500_000,
+    )
+    runner_max_probe_sample_bytes: int = Field(
+        default=8 * 1024**2,
+        ge=1024**2,
+        le=64 * 1024**2,
     )
     runner_max_active_tasks: int = Field(default=32, ge=1, le=256)
     runner_workspace_poll_interval_seconds: float = Field(
@@ -80,7 +86,12 @@ class RunnerSettings(BaseSettings):
     def resolve_workspace(cls, value: Path) -> Path:
         return value.expanduser().resolve()
 
-    @field_validator("runner_ytdlp_bin", "runner_ffmpeg_bin", "runner_ffprobe_bin")
+    @field_validator(
+        "runner_ytdlp_bin",
+        "runner_ytdlp_js_runtime",
+        "runner_ffmpeg_bin",
+        "runner_ffprobe_bin",
+    )
     @classmethod
     def validate_binary(cls, value: str) -> str:
         if not value.strip() or "\x00" in value:

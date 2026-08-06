@@ -25,8 +25,13 @@ from app.runner.metadata import (
     MediaInspection,
     build_download_options,
     enrich_direct_metadata,
+    enrich_format_metadata,
 )
 from app.runner.presentation import inspect_response
+from app.runner.provider_urls import (
+    provider_inspection_attempts,
+    provider_inspection_retry_delay,
+)
 from app.runner.settings import RunnerSettings
 from app.runner.utilities import (
     file_sha256,
@@ -41,6 +46,8 @@ from app.runner.workspace import (
     WorkspaceManager,
     WorkspaceViolation,
 )
+
+_MAX_PROBE_SAMPLE_ATTEMPTS = 8
 
 
 class MediaRunnerService:
@@ -216,11 +223,133 @@ class MediaRunnerService:
     async def _inspect_source(
         self, safe_url: str, workspace: TaskWorkspace
     ) -> MediaInspection:
-        payload = await self._commands.inspect(safe_url, workspace.path)
+        attempts = provider_inspection_attempts(safe_url)
+        retry_delay = provider_inspection_retry_delay(safe_url)
+        for attempt in range(attempts):
+            try:
+                payload = await self._commands.inspect(safe_url, workspace.path)
+                break
+            except RunnerFailure as exc:
+                if exc.code != "inspection_failed" or attempt == attempts - 1:
+                    raise
+                await asyncio.sleep(retry_delay)
         if payload.get("direct") is True:
             probe = await self._commands.probe_remote(safe_url, workspace.path)
             payload = enrich_direct_metadata(payload, probe)
-        return normalize_for_settings(payload, self._settings)
+        try:
+            inspection = normalize_for_settings(payload, self._settings)
+        except RunnerFailure as exc:
+            if exc.code != "format_unavailable":
+                raise
+            inspection = None
+        if inspection is not None and build_download_options(
+            inspection.streams,
+            max_options=1,
+        ):
+            return inspection
+        enriched = await self._enrich_sparse_formats(payload, workspace)
+        try:
+            inspection = normalize_for_settings(enriched, self._settings)
+        except RunnerFailure as exc:
+            if exc.code != "format_unavailable":
+                raise
+            inspection = None
+        if inspection is not None and build_download_options(
+            inspection.streams,
+            max_options=1,
+        ):
+            return inspection
+        sampled = await self._enrich_from_probe_sample(enriched, safe_url, workspace)
+        return normalize_for_settings(sampled, self._settings)
+
+    async def _enrich_sparse_formats(
+        self,
+        payload: dict[str, object],
+        workspace: TaskWorkspace,
+    ) -> dict[str, object]:
+        formats = payload.get("formats")
+        if not isinstance(formats, list):
+            return payload
+
+        candidates: list[tuple[int, dict[str, object], str]] = []
+        for index, value in enumerate(formats):
+            if not isinstance(value, dict):
+                continue
+            url = value.get("url")
+            if isinstance(url, str):
+                candidates.append((index, value, url))
+            if len(candidates) == 12:
+                break
+        semaphore = asyncio.Semaphore(4)
+
+        async def enrich(
+            index: int,
+            raw: dict[str, object],
+            url: str,
+        ) -> tuple[int, dict[str, object]]:
+            try:
+                media_url = safe_media_url(url)
+                async with semaphore:
+                    probe = await self._commands.probe_remote(
+                        media_url,
+                        workspace.path,
+                    )
+                return index, enrich_format_metadata(raw, probe)
+            except (RunnerFailure, ValueError):
+                return index, raw
+
+        results = await asyncio.gather(
+            *(enrich(index, raw, url) for index, raw, url in candidates)
+        )
+        enriched_formats = list(formats)
+        for index, enriched in results:
+            enriched_formats[index] = enriched
+        enriched_payload = dict(payload)
+        enriched_payload["formats"] = enriched_formats
+        return enriched_payload
+
+    async def _enrich_from_probe_sample(
+        self,
+        payload: dict[str, object],
+        source_url: str,
+        workspace: TaskWorkspace,
+    ) -> dict[str, object]:
+        formats = payload.get("formats")
+        if not isinstance(formats, list):
+            return payload
+        candidates: list[tuple[int, dict[str, object], int]] = []
+        for index, value in enumerate(formats):
+            if not isinstance(value, dict):
+                continue
+            provider_id = value.get("format_id")
+            size = value.get("filesize") or value.get("filesize_approx")
+            if not isinstance(provider_id, str) or not isinstance(size, (int, float)):
+                continue
+            size_bytes = int(size)
+            if 0 < size_bytes <= self._settings.runner_max_probe_sample_bytes:
+                candidates.append((index, value, size_bytes))
+        candidates.sort(key=lambda item: item[2])
+
+        output = workspace.path / "format-probe.input"
+        for index, raw, _ in candidates[:_MAX_PROBE_SAMPLE_ATTEMPTS]:
+            try:
+                await self._commands.download_probe_sample(
+                    source_url,
+                    str(raw["format_id"]),
+                    output,
+                    workspace.path,
+                )
+                probe = await self._commands.probe(output, workspace.path)
+                enriched_formats = list(formats)
+                enriched_formats[index] = enrich_format_metadata(raw, probe)
+                enriched_payload = dict(payload)
+                enriched_payload["formats"] = enriched_formats
+                return enriched_payload
+            except (RunnerFailure, OSError):
+                continue
+            finally:
+                output.unlink(missing_ok=True)
+        return payload
 
     async def _thumbnail_data_url(
         self,

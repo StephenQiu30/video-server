@@ -13,6 +13,7 @@ from app.runner.errors import RunnerFailure
 from app.runner.metadata import (
     build_download_options,
     enrich_direct_metadata,
+    enrich_format_metadata,
     normalize_metadata,
 )
 
@@ -140,6 +141,60 @@ def test_enriches_sparse_direct_media_with_ffprobe_metadata() -> None:
     assert inspection.streams[0].kind is StreamKind.MUXED
     assert inspection.streams[0].height == 360
     assert inspection.streams[0].fps == 30
+
+
+def test_enriches_single_sparse_provider_format_with_ffprobe_metadata() -> None:
+    raw = {
+        "format_id": "http-832",
+        "ext": "mp4",
+        "url": "https://cdn.example.com/video.mp4",
+    }
+    probe = {
+        "format": {"size": "409785", "bit_rate": "885064"},
+        "streams": [
+            {
+                "codec_type": "video",
+                "codec_name": "h264",
+                "width": 640,
+                "height": 360,
+                "avg_frame_rate": "30000/1001",
+            },
+            {
+                "codec_type": "audio",
+                "codec_name": "aac",
+                "tags": {"language": "en"},
+            },
+        ],
+    }
+
+    enriched = enrich_format_metadata(raw, probe)
+
+    assert enriched["vcodec"] == "h264"
+    assert enriched["acodec"] == "aac"
+    assert enriched["width"] == 640
+    assert enriched["height"] == 360
+    assert enriched["fps"] == pytest.approx(29.97, rel=0.001)
+    assert enriched["dynamic_range"] == "SDR"
+    assert enriched["language"] == "en"
+    assert enriched["filesize"] == "409785"
+    assert enriched["tbr"] == pytest.approx(885.064)
+
+
+def test_ignores_sub_unit_provider_metrics_after_integer_normalization() -> None:
+    payload = media_info()
+    formats = payload["formats"]
+    assert isinstance(formats, list)
+    first = formats[0]
+    assert isinstance(first, dict)
+    first["tbr"] = 0.248
+
+    inspection = normalize_metadata(
+        payload,
+        max_duration_seconds=7200,
+        max_candidate_streams=200,
+    )
+
+    assert inspection.streams[0].bitrate_kbps is None
 
 
 @pytest.mark.parametrize(

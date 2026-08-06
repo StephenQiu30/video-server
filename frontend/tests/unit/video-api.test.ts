@@ -80,15 +80,19 @@ describe('download API', () => {
   it('creates random keys and triggers a browser download', () => {
     const randomUUID = vi.fn().mockReturnValue('random-id');
     vi.stubGlobal('crypto', { randomUUID });
+    let clickedTarget = '';
     const click = vi
       .spyOn(HTMLAnchorElement.prototype, 'click')
-      .mockImplementation(() => {});
+      .mockImplementation(function (this: HTMLAnchorElement) {
+        clickedTarget = this.target;
+      });
 
     expect(createIdempotencyKey()).toBe('random-id');
     triggerBrowserDownload('https://objects.example/token');
 
     expect(randomUUID).toHaveBeenCalledOnce();
     expect(click).toHaveBeenCalledOnce();
+    expect(clickedTarget).toBe('_blank');
     expect(document.querySelector('a[download]')).not.toBeInTheDocument();
   });
 });

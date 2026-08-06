@@ -19,6 +19,7 @@ __all__ = [
     "MediaInspection",
     "build_download_options",
     "enrich_direct_metadata",
+    "enrich_format_metadata",
     "normalize_metadata",
 ]
 
@@ -82,6 +83,51 @@ def enrich_direct_metadata(
         )
         enriched_formats.append(raw)
     enriched["formats"] = enriched_formats
+    return enriched
+
+
+def enrich_format_metadata(
+    raw: dict[str, Any], probe: dict[str, Any]
+) -> dict[str, Any]:
+    """Fill a single sparse yt-dlp format with bounded ffprobe metadata."""
+    probe_streams = probe.get("streams")
+    if not isinstance(probe_streams, list):
+        return raw
+
+    enriched = dict(raw)
+    video = _first_probe_stream(probe_streams, "video")
+    audio = _first_probe_stream(probe_streams, "audio")
+    if video is None:
+        enriched["vcodec"] = "none"
+    else:
+        enriched.update(
+            {
+                "vcodec": video.get("codec_name") or enriched.get("vcodec"),
+                "width": video.get("width") or enriched.get("width"),
+                "height": video.get("height") or enriched.get("height"),
+                "fps": _frame_rate(
+                    video.get("avg_frame_rate") or video.get("r_frame_rate")
+                )
+                or enriched.get("fps"),
+                "dynamic_range": _probe_dynamic_range(video),
+            }
+        )
+    if audio is None:
+        enriched["acodec"] = "none"
+    else:
+        enriched.update(
+            {
+                "acodec": audio.get("codec_name") or enriched.get("acodec"),
+                "language": _probe_language(audio) or enriched.get("language"),
+            }
+        )
+
+    format_info = probe.get("format")
+    if isinstance(format_info, dict):
+        enriched["filesize"] = format_info.get("size") or enriched.get("filesize")
+        enriched["tbr"] = _kilobits(format_info.get("bit_rate")) or enriched.get(
+            "tbr"
+        )
     return enriched
 
 
@@ -226,7 +272,10 @@ def _positive_number(value: object) -> float | None:
 
 def _positive_int(value: object) -> int | None:
     number = _positive_number(value)
-    return int(number) if number is not None else None
+    if number is None:
+        return None
+    integer = int(number)
+    return integer if integer > 0 else None
 
 
 def _first_probe_stream(

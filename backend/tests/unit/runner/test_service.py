@@ -76,12 +76,43 @@ class FixtureSupervisor:
                         "codec_name": "h264",
                         "width": 1920,
                         "height": 1080,
+                        "avg_frame_rate": "30/1",
                     },
                     {"codec_type": "audio", "codec_name": "aac"},
                 ],
             }
             return result(json.dumps(probe).encode())
         raise AssertionError(command)
+
+
+class ProbeSampleSupervisor(FixtureSupervisor):
+    def __init__(self, info: dict[str, object]) -> None:
+        super().__init__(info)
+        self.inspection_attempts = 0
+
+    async def run(
+        self,
+        argv: Sequence[str],
+        *,
+        cwd: Path,
+        timeout_seconds: float,
+        env: Mapping[str, str] | None = None,
+    ) -> ProcessResult:
+        command = tuple(argv)
+        if "--dump-single-json" in command:
+            self.inspection_attempts += 1
+            if self.inspection_attempts == 1:
+                self.calls.append((command, env))
+                return ProcessResult(1, b"", b"transient", False, False)
+        if command[0] == "ffprobe" and str(command[-1]).startswith("https://"):
+            self.calls.append((command, env))
+            return ProcessResult(1, b"", b"forbidden", False, False)
+        return await super().run(
+            argv,
+            cwd=cwd,
+            timeout_seconds=timeout_seconds,
+            env=env,
+        )
 
 
 async def test_download_reinspects_selects_semantics_and_verifies_artifact(
@@ -99,6 +130,16 @@ async def test_download_reinspects_selects_semantics_and_verifies_artifact(
     ytdlp = [command for command in commands if command[0] == "yt-dlp"]
     assert all("http://egress-proxy:3128" in command for command in ytdlp)
     assert all("--plugin-dirs" in command for command in ytdlp)
+    assert all("--cookies" in command for command in ytdlp)
+    assert all(
+        Path(command[command.index("--cookies") + 1]).name
+        == "provider-cookies.txt"
+        for command in ytdlp
+    )
+    assert all(
+        command[command.index("--js-runtimes") + 1] == "node"
+        for command in ytdlp
+    )
     plugin_root = Path(ytdlp[0][ytdlp[0].index("--plugin-dirs") + 1])
     assert (plugin_root / "plugins/yt_dlp_plugins/extractor/mediatrack.py").is_file()
     assert [command[command.index("--format") + 1] for command in ytdlp[1:]] == [
@@ -157,6 +198,67 @@ async def test_inspect_requires_at_least_one_semantic_option(tmp_path: Path) -> 
         await service.inspect("https://media.example.com/video")
 
     assert caught.value.code == "format_unavailable"
+
+
+async def test_inspect_enriches_sparse_provider_formats_with_bounded_probe(
+    tmp_path: Path,
+) -> None:
+    info = split_media_info()
+    info["formats"] = [
+        {
+            "format_id": "http-832",
+            "ext": "mp4",
+            "url": "https://cdn.example.com/video.mp4",
+        }
+    ]
+    supervisor = FixtureSupervisor(info)
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    response = await service.inspect("https://media.example.com/video")
+
+    assert response.streams[0].height == 1080
+    ffprobe = next(
+        command
+        for command, _ in supervisor.calls
+        if command[0] == "ffprobe" and str(command[-1]).startswith("https://")
+    )
+    assert ffprobe[-1] == "https://cdn.example.com/video.mp4"
+    assert (
+        ffprobe[ffprobe.index("-protocol_whitelist") + 1]
+        == "http,https,tcp,tls,crypto,httpproxy"
+    )
+
+
+async def test_inspect_retries_and_uses_bounded_local_probe_sample(
+    tmp_path: Path,
+) -> None:
+    info = split_media_info()
+    info["formats"] = [
+        {
+            "format_id": "h264-540p",
+            "ext": "mp4",
+            "width": 576,
+            "height": 1024,
+            "vcodec": "h264",
+            "acodec": "aac",
+            "filesize": 1_300_000,
+            "url": "https://cdn.example.com/video.mp4",
+        }
+    ]
+    supervisor = ProbeSampleSupervisor(info)
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    response = await service.inspect("https://media.example.com/video")
+
+    assert supervisor.inspection_attempts == 2
+    assert response.streams[0].fps == 30
+    sample = next(
+        command
+        for command, _ in supervisor.calls
+        if command[0] == "yt-dlp" and "--max-filesize" in command
+    )
+    assert sample[sample.index("--max-filesize") + 1] == str(8 * 1024**2)
+    assert not (tmp_path / "format-probe.input").exists()
 
 
 async def test_inspect_fetches_a_bounded_thumbnail_through_the_proxy(

@@ -59,7 +59,12 @@ async def test_storage_uses_private_and_public_clients(tmp_path: Path) -> None:
     assert any(call[0] == "put" for call in private.calls)
     assert any(call[0] == "get" for call in private.calls)
     assert any(call[0] == "remove" for call in private.calls)
-    assert any(call[0] == "presign" for call in public.calls)
+    presign = next(call for call in public.calls if call[0] == "presign")
+    options = presign[-1]
+    assert isinstance(options, dict)
+    assert options["response_headers"] == {
+        "response-content-disposition": 'attachment; filename="video.mp4"'
+    }
     assert url == "https://objects.example/artifact"
 
 

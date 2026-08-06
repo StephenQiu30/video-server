@@ -8,6 +8,7 @@ from app.domain.downloads import Container
 from app.runner.command_support import child_environment, json_object
 from app.runner.errors import RunnerFailure
 from app.runner.process import ProcessResult, ProcessTimeoutError
+from app.runner.provider_urls import provider_command_args, provider_request_url
 from app.runner.settings import RunnerSettings
 from app.runner.workspace_monitor import (
     WorkspaceLimitExceeded,
@@ -35,11 +36,12 @@ class MediaCommands:
 
     async def inspect(self, url: str, cwd: Path) -> dict[str, Any]:
         command = (
-            *self._ytdlp_base(),
+            *self._ytdlp_base(cwd),
             "--dump-single-json",
             "--skip-download",
+            *provider_command_args(url),
             "--",
-            url,
+            provider_request_url(url),
         )
         result = await self._run(
             command,
@@ -60,7 +62,7 @@ class MediaCommands:
             "-of",
             "json",
             "-protocol_whitelist",
-            "http,https,tcp,tls",
+            "http,https,tcp,tls,crypto,httpproxy",
             url,
         )
         result = await self._run(
@@ -80,15 +82,16 @@ class MediaCommands:
         cwd: Path,
     ) -> None:
         command = (
-            *self._ytdlp_base(),
+            *self._ytdlp_base(cwd),
             "--format",
             provider_id,
             "--max-filesize",
             str(self._settings.runner_max_output_bytes),
             "--output",
             str(output),
+            *provider_command_args(url),
             "--",
-            url,
+            provider_request_url(url),
         )
         await self._run(
             command,
@@ -100,6 +103,36 @@ class MediaCommands:
         )
         if not output.is_file() or output.is_symlink():
             raise RunnerFailure("download_failed", status=502)
+
+    async def download_probe_sample(
+        self,
+        url: str,
+        provider_id: str,
+        output: Path,
+        cwd: Path,
+    ) -> None:
+        command = (
+            *self._ytdlp_base(cwd),
+            "--format",
+            provider_id,
+            "--max-filesize",
+            str(self._settings.runner_max_probe_sample_bytes),
+            "--output",
+            str(output),
+            *provider_command_args(url),
+            "--",
+            provider_request_url(url),
+        )
+        await self._run(
+            command,
+            cwd,
+            self._settings.runner_inspect_timeout_seconds,
+            timeout_code="inspection_timeout",
+            failure_code="inspection_failed",
+            monitor_workspace=True,
+        )
+        if not output.is_file() or output.is_symlink():
+            raise RunnerFailure("inspection_failed", status=502)
 
     async def remux(
         self,
@@ -193,7 +226,7 @@ class MediaCommands:
             raise RunnerFailure(failure_code, status=502)
         return result
 
-    def _ytdlp_base(self) -> tuple[str, ...]:
+    def _ytdlp_base(self, cwd: Path) -> tuple[str, ...]:
         return (
             self._settings.runner_ytdlp_bin,
             "--ignore-config",
@@ -202,6 +235,16 @@ class MediaCommands:
             "--no-playlist",
             "--no-warnings",
             "--no-progress",
+            "--retries",
+            "3",
+            "--fragment-retries",
+            "3",
+            "--extractor-retries",
+            "3",
+            "--cookies",
+            str(cwd / "provider-cookies.txt"),
+            "--js-runtimes",
+            self._settings.runner_ytdlp_js_runtime,
             "--proxy",
             self._settings.runner_egress_proxy,
         )

@@ -16,6 +16,8 @@ RUN npm rebuild \
     && npm run prepare \
     && npm run build
 
+FROM node:24-bookworm-slim AS node-runtime
+
 FROM python:3.12-slim-bookworm AS backend-builder
 
 ARG UV_VERSION=0.11.32
@@ -44,13 +46,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app/backend
 
 RUN apt-get update \
-    && apt-get install --no-install-recommends -y ca-certificates ffmpeg \
+    && apt-get install --no-install-recommends -y ca-certificates ffmpeg libstdc++6 \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --uid 10001 appuser \
     && chown -R appuser:appuser /app
 
 COPY --link --from=backend-builder --chown=10001:10001 /app/backend /app/backend
 COPY --link --from=frontend-builder --chown=10001:10001 /workspace/frontend/dist /app/frontend/dist
+COPY --link --from=node-runtime /usr/local/bin/node /usr/local/bin/node
 
 USER appuser
 EXPOSE 19090

@@ -76,6 +76,11 @@ class MinioObjectStorage:
             self._bucket,
             object_key,
             expires=timedelta(seconds=ttl_seconds),
+            response_headers={
+                "response-content-disposition": (
+                    f'attachment; filename="{_download_filename(object_key)}"'
+                )
+            },
         )
 
     async def delete(self, object_key: str) -> None:
@@ -92,3 +97,8 @@ def _validate_key(object_key: str) -> None:
     )
     if unsafe:
         raise ValueError("unsafe object key")
+
+
+def _download_filename(object_key: str) -> str:
+    suffix = PurePosixPath(object_key).suffix.casefold()
+    return f"video{suffix}" if suffix in {".mp4", ".webm"} else "download"

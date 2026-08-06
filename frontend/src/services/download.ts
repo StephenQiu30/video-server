@@ -52,6 +52,7 @@ export function triggerBrowserDownload(url: string): void {
   anchor.href = url;
   anchor.download = '';
   anchor.rel = 'noopener';
+  anchor.target = '_blank';
   document.body.append(anchor);
   anchor.click();
   anchor.remove();

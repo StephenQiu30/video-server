@@ -19,7 +19,7 @@ dependencies = [
   "pydantic-settings>=2.7,<3",
   "sqlalchemy[asyncio]>=2.0,<3",
   "uvicorn[standard]>=0.34,<1",
-  "yt-dlp>=2026.7,<2027",
+  "yt-dlp[default,curl-cffi]>=2026.7,<2027",
 ]
 
 [dependency-groups]

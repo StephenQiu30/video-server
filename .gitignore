@@ -23,6 +23,7 @@ artifacts/
 reports/
 test-results/
 playwright-report/
+dogfood-output/
 tmp/
 temp/
 .tmp/
