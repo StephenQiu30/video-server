@@ -14,6 +14,8 @@ from app.runner.workspace_monitor import (
     run_with_workspace_limit,
 )
 
+_YTDLP_PLUGIN_ROOT = Path(__file__).resolve().parent
+
 
 class ProcessRunner(Protocol):
     async def run(
@@ -195,6 +197,8 @@ class MediaCommands:
         return (
             self._settings.runner_ytdlp_bin,
             "--ignore-config",
+            "--plugin-dirs",
+            str(_YTDLP_PLUGIN_ROOT),
             "--no-playlist",
             "--no-warnings",
             "--no-progress",

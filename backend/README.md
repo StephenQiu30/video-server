@@ -24,4 +24,6 @@ app/
 
 公共接口不维护无实际兼容需求的版本目录或 URL 前缀。服务启动后可通过 `/docs` 访问 Swagger UI，通过 `/openapi.json` 获取供前端生成客户端的 OpenAPI 契约。
 
+Media Runner 通过 `app/runner/plugins/yt_dlp_plugins/` 加载随项目交付的可信站点提取器。当前 MediaTrack 适配仅处理无需登录的公开审片视频和 API 明确授权的播放转码；不支持 Cookie、账号内容或原文件下载权限绕过。
+
 文本分析统一通过 LangChain 的结构化输出接口运行，服务端以 `ANALYSIS_PROVIDER=ollama|deepseek` 选择本地 Ollama 或 DeepSeek。Ollama 默认模型为 `deepseek-r1:8b`，DeepSeek 默认模型为 `deepseek-v4-flash`。音频转录是独立 ASR 端口，不与文本模型配置混用。
