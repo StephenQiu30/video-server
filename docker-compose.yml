@@ -1,21 +1,33 @@
-name: server
+name: ${COMPOSE_STACK_NAME:-video-server}
 
 x-server-image: &server-image
-  image: video-server:local
+  image: ${SERVER_IMAGE:-video-server:local}
+  pull_policy: build
   build:
     context: .
     dockerfile: Dockerfile
     target: runtime
+    args:
+      NPM_VERSION: ${NPM_VERSION:-11.16.0}
+      UV_VERSION: ${UV_VERSION:-0.11.32}
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: ${COMPOSE_LOG_MAX_SIZE:-10m}
+      max-file: ${COMPOSE_LOG_MAX_FILE:-3}
 
 x-runtime-environment: &runtime-environment
-  DATABASE_URL: postgresql+asyncpg://video:video@postgres:5432/video
-  RABBITMQ_URL: amqp://video:video@rabbitmq:5672/
+  DATABASE_URL: postgresql+asyncpg://${DOCKER_POSTGRES_USER:-video}:${DOCKER_POSTGRES_PASSWORD:-video}@postgres:5432/${DOCKER_POSTGRES_DB:-video}
+  RABBITMQ_URL: amqp://${DOCKER_RABBITMQ_USER:-video}:${DOCKER_RABBITMQ_PASSWORD:-video}@rabbitmq:5672/
 
 x-storage-environment: &storage-environment
   MINIO_ENDPOINT: minio:9000
 
 x-public-storage-environment: &public-storage-environment
-  MINIO_PUBLIC_ENDPOINT: localhost:9000
+  MINIO_PUBLIC_ENDPOINT: ${COMPOSE_MINIO_PUBLIC_ENDPOINT:-localhost:19000}
 
 x-runner-client-environment: &runner-client-environment
   RUNNER_BASE_URL: http://media-runner:19100
@@ -39,6 +51,7 @@ x-code-security: &code-security
 services:
   workspace-init:
     <<: *server-image
+    container_name: ${COMPOSE_CONTAINER_PREFIX:-video-server}-workspace-init
     user: "0:0"
     command:
       - sh
@@ -51,7 +64,8 @@ services:
     restart: "no"
 
   api:
-    <<: [*server-image, *code-security]
+    <<: [*server-image, *service-defaults, *code-security]
+    container_name: ${COMPOSE_CONTAINER_PREFIX:-video-server}-api
     command: ["python", "-m", "app.main"]
     environment:
       <<:
@@ -63,7 +77,7 @@ services:
         ]
       SERVICE_ROLE: api
     ports:
-      - "127.0.0.1:19090:19090"
+      - "${COMPOSE_BIND_ADDRESS:-127.0.0.1}:${COMPOSE_API_PORT:-19090}:19090"
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,10 +100,10 @@ services:
       timeout: 5s
       retries: 12
       start_period: 10s
-    restart: unless-stopped
 
   outbox:
-    <<: [*server-image, *code-security]
+    <<: [*server-image, *service-defaults, *code-security]
+    container_name: ${COMPOSE_CONTAINER_PREFIX:-video-server}-outbox
     command: ["python", "-m", "app.workers.outbox.main"]
     environment:
       <<: *runtime-environment
@@ -100,10 +114,10 @@ services:
       rabbitmq:
         condition: service_healthy
     networks: [core]
-    restart: unless-stopped
 
   worker-download:
-    <<: [*server-image, *code-security]
+    <<: [*server-image, *service-defaults, *code-security]
+    container_name: ${COMPOSE_CONTAINER_PREFIX:-video-server}-worker-download
     command: ["python", "-m", "app.workers.download.main"]
     environment:
       <<: [*runtime-environment, *storage-environment, *runner-client-environment]
@@ -124,10 +138,10 @@ services:
       media-runner:
         condition: service_healthy
     networks: [core, runner_control]
-    restart: unless-stopped
 
   worker-analysis:
-    <<: [*server-image, *code-security]
+    <<: [*server-image, *service-defaults, *code-security]
+    container_name: ${COMPOSE_CONTAINER_PREFIX:-video-server}-worker-analysis
     command: ["python", "-m", "app.workers.analysis.main"]
     environment:
       <<: [*runtime-environment, *storage-environment]
@@ -135,7 +149,7 @@ services:
       ANALYSIS_PROVIDER: ${ANALYSIS_PROVIDER:-ollama}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       DEEPSEEK_ANALYSIS_MODEL: ${DEEPSEEK_ANALYSIS_MODEL:-deepseek-v4-flash}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_BASE_URL: ${DOCKER_OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_ANALYSIS_MODEL: ${OLLAMA_ANALYSIS_MODEL:-deepseek-r1:8b}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-development-openai-key-not-for-production}
     extra_hosts:
@@ -163,10 +177,10 @@ services:
         soft: 1024
         hard: 1024
     stop_grace_period: 330s
-    restart: unless-stopped
 
   media-runner:
-    <<: [*server-image, *code-security]
+    <<: [*server-image, *service-defaults, *code-security]
+    container_name: ${COMPOSE_CONTAINER_PREFIX:-video-server}-media-runner
     command:
       - python
       - -m
@@ -190,7 +204,7 @@ services:
         condition: service_healthy
     networks:
       runner_control:
-        ipv4_address: 172.30.0.10
+        ipv4_address: ${COMPOSE_RUNNER_IP:-172.30.0.10}
     healthcheck:
       test:
         - CMD
@@ -210,9 +224,10 @@ services:
         soft: 1024
         hard: 1024
     stop_grace_period: 10s
-    restart: unless-stopped
 
   egress-proxy:
+    <<: *service-defaults
+    container_name: ${COMPOSE_CONTAINER_PREFIX:-video-server}-egress-proxy
     image: ubuntu/squid:6.6-24.04_edge
     entrypoint: ["squid"]
     command: ["-N", "-f", "/etc/squid/squid.conf"]
@@ -225,7 +240,7 @@ services:
       - ./backend/config/egress/blocked-destinations-docker-desktop.conf:/etc/squid/blocked-destinations.conf:ro
     networks:
       runner_control:
-        ipv4_address: 172.30.0.20
+        ipv4_address: ${COMPOSE_EGRESS_PROXY_IP:-172.30.0.20}
       public_egress: {}
     healthcheck:
       test: ["CMD", "squid", "-k", "check", "-f", "/etc/squid/squid.conf"]
@@ -238,14 +253,15 @@ services:
     cap_drop:
       - ALL
     pids_limit: 64
-    restart: unless-stopped
 
   postgres:
+    <<: *service-defaults
+    container_name: ${COMPOSE_CONTAINER_PREFIX:-video-server}-postgres
     image: postgres:17.5-alpine
     environment:
-      POSTGRES_DB: video
-      POSTGRES_USER: video
-      POSTGRES_PASSWORD: video
+      POSTGRES_DB: ${DOCKER_POSTGRES_DB:-video}
+      POSTGRES_USER: ${DOCKER_POSTGRES_USER:-video}
+      POSTGRES_PASSWORD: ${DOCKER_POSTGRES_PASSWORD:-video}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
@@ -264,13 +280,14 @@ services:
     networks: [core]
     security_opt:
       - no-new-privileges:true
-    restart: unless-stopped
 
   rabbitmq:
+    <<: *service-defaults
+    container_name: ${COMPOSE_CONTAINER_PREFIX:-video-server}-rabbitmq
     image: rabbitmq:4.0.9-management
     environment:
-      RABBITMQ_DEFAULT_USER: video
-      RABBITMQ_DEFAULT_PASS: video
+      RABBITMQ_DEFAULT_USER: ${DOCKER_RABBITMQ_USER:-video}
+      RABBITMQ_DEFAULT_PASS: ${DOCKER_RABBITMQ_PASSWORD:-video}
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -281,19 +298,20 @@ services:
     networks: [core]
     security_opt:
       - no-new-privileges:true
-    restart: unless-stopped
 
   minio:
+    <<: *service-defaults
+    container_name: ${COMPOSE_CONTAINER_PREFIX:-video-server}-minio
     image: minio/minio:RELEASE.2025-02-28T09-55-16Z
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
-      MINIO_ROOT_USER: video-root
-      MINIO_ROOT_PASSWORD: video-root-secret-change-me
+      MINIO_ROOT_USER: ${DOCKER_MINIO_ROOT_USER:-video-root}
+      MINIO_ROOT_PASSWORD: ${DOCKER_MINIO_ROOT_PASSWORD:-video-root-secret-change-me}
     volumes:
       - minio_data:/data
     ports:
-      - "127.0.0.1:9000:9000"
-      - "127.0.0.1:9001:9001"
+      - "${COMPOSE_BIND_ADDRESS:-127.0.0.1}:${COMPOSE_MINIO_API_PORT:-19000}:9000"
+      - "${COMPOSE_BIND_ADDRESS:-127.0.0.1}:${COMPOSE_MINIO_CONSOLE_PORT:-19001}:9001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
       interval: 5s
@@ -302,18 +320,19 @@ services:
     networks: [core, app_ingress]
     security_opt:
       - no-new-privileges:true
-    restart: unless-stopped
 
   minio-init:
-    image: minio/mc:RELEASE.2025-02-21T16-00-46Z
+    container_name: ${COMPOSE_CONTAINER_PREFIX:-video-server}-minio-init
+    image: minio/mc:latest
+    pull_policy: always
     entrypoint: ["/bin/sh", "/config/init.sh"]
     environment:
       MC_CONFIG_DIR: /tmp/.mc
-      MINIO_ROOT_USER: video-root
-      MINIO_ROOT_PASSWORD: video-root-secret-change-me
-      MINIO_ACCESS_KEY: video-app-access
-      MINIO_SECRET_KEY: video-app-secret-change-me
-      MINIO_BUCKET: video-artifacts
+      MINIO_ROOT_USER: ${DOCKER_MINIO_ROOT_USER:-video-root}
+      MINIO_ROOT_PASSWORD: ${DOCKER_MINIO_ROOT_PASSWORD:-video-root-secret-change-me}
+      MINIO_ACCESS_KEY: ${DOCKER_MINIO_ACCESS_KEY:-video-app-access}
+      MINIO_SECRET_KEY: ${DOCKER_MINIO_SECRET_KEY:-video-app-secret-change-me}
+      MINIO_BUCKET: ${DOCKER_MINIO_BUCKET:-video-artifacts}
     volumes:
       - ./backend/config/minio:/config:ro
     depends_on:
@@ -337,7 +356,7 @@ networks:
     internal: true
     ipam:
       config:
-        - subnet: 172.30.0.0/24
+        - subnet: ${COMPOSE_RUNNER_SUBNET:-172.30.0.0/24}
   public_egress: {}
   ai_egress: {}
 

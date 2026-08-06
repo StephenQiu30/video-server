@@ -101,8 +101,8 @@ flowchart LR
 
 - 单一代码镜像、多个命令入口，便于独立扩容 API、下载和分析 Worker。
 - Python builder 与 runtime 固定使用同一绝对目录 `/app/backend`，复制后的虚拟环境保持 `/app/backend/.venv`；容器入口通过该 PATH 下的 `python -m ...` 启动，避免构建路径写入的 venv 解释器在运行时失效。
-- PostgreSQL、RabbitMQ、MinIO 使用 Compose 项目作用域卷；完整环境固定为 `server`，仅依赖环境固定为 `server-env`，避免两种模式并行争用同一卷。
-- 开发 Compose 的镜像、内部 DNS、端口、队列、网络、卷和限制直接版本化或复用类型化代码默认值；外部 env 仅用于生产镜像、凭据、密钥、公共对象地址和 OpenAI Key。
+- PostgreSQL、RabbitMQ、MinIO 使用 Compose 项目作用域卷；完整环境固定为 `video-server`，仅依赖环境固定为 `video-server-env`，避免两种模式并行争用同一卷。单实例服务使用稳定的 `video-server-*` 容器名，前缀可按部署实例覆盖。
+- 开发 Compose 的镜像、宿主机绑定、内部 DNS、队列、网络、卷和限制均在 YAML 中提供默认值；被 Git 忽略的 `.env` 只保存本机进程确实需要覆盖的连接与 Provider 凭据，不重复声明普通默认值。宿主机连接变量与容器内部连接变量分离，生产仍通过独立 `.env.prod` 提供镜像、凭据、密钥、公共对象地址和 Provider Key。
 - 首期保持模块化单体；只有当容量、隔离或团队所有权出现真实证据时才拆仓/拆服务。
 - OpenAPI 是前后端契约；前端服务代码由 schema 生成或由同一 DTO 测试约束。
 

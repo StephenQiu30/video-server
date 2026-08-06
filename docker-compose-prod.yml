@@ -120,7 +120,7 @@ services:
     restart: always
 
   minio-init:
-    image: minio/mc:RELEASE.2025-02-21T16-00-46Z@sha256:f7089203eca4c8e538d5e5c69303f568735366640e62917e05a98ce615a1edd9
+    image: minio/mc:latest
     pull_policy: always
     environment:
       MC_CONFIG_DIR: /tmp/.mc
