@@ -1,0 +1,26 @@
+name: video-web
+
+services:
+  web:
+    image: ${VIDEO_WEB_IMAGE:-video-web:local}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+      args:
+        VIDEO_API_BASE_URL: ${VIDEO_API_BASE_URL:-}
+    environment:
+      VIDEO_API_UPSTREAM: ${VIDEO_API_UPSTREAM:?VIDEO_API_UPSTREAM is required}
+    ports:
+      - "${WEB_BIND:-127.0.0.1}:${WEB_PORT:-8000}:8080"
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--output-document=-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped

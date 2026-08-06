@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "allowJs": false,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022",
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] },
+    "types": ["vitest/globals"]
+  },
+  "include": ["src", "config", "tests", "vitest.config.ts"]
+}
