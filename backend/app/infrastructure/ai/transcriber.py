@@ -7,7 +7,10 @@ from pydantic import ValidationError
 
 from app.application.analysis import AudioChunk
 from app.domain.analysis import Transcript, TranscriptSegment
-from app.infrastructure.ai.config import OpenAIProviderConfig, create_openai_client
+from app.infrastructure.ai.config import (
+    TranscriptionConfig,
+    create_transcription_client,
+)
 from app.infrastructure.ai.error_mapping import provider_error
 from app.infrastructure.ai.errors import ProviderInvalidResponse
 
@@ -15,12 +18,12 @@ from app.infrastructure.ai.errors import ProviderInvalidResponse
 class OpenAITranscriber:
     def __init__(
         self,
-        config: OpenAIProviderConfig,
+        config: TranscriptionConfig,
         *,
         client: AsyncOpenAI | None = None,
     ) -> None:
         self._config = config
-        self._client = client or create_openai_client(config)
+        self._client = client or create_transcription_client(config)
 
     async def transcribe(
         self, chunks: tuple[AudioChunk, ...], language_hint: str | None
@@ -29,7 +32,7 @@ class OpenAITranscriber:
         segments: list[TranscriptSegment] = []
         for chunk in ordered:
             response = await self._transcribe_chunk(chunk, language_hint)
-            if self._config.transcription_model == "whisper-1":
+            if self._config.model == "whisper-1":
                 segments.extend(_whisper_segments(response, chunk, segments))
             else:
                 segments.append(_chunk_segment(response, chunk, language_hint))
@@ -42,14 +45,14 @@ class OpenAITranscriber:
     ) -> object:
         file = (f"chunk-{chunk.index:06d}.wav", chunk.content, "audio/wav")
         try:
-            if self._config.transcription_model == "whisper-1":
+            if self._config.model == "whisper-1":
                 if language_hint is None:
                     return await self._client.audio.transcriptions.create(
                         file=file,
                         model="whisper-1",
                         response_format="verbose_json",
                         timestamp_granularities=["segment"],
-                        timeout=self._config.transcription_timeout_seconds,
+                        timeout=self._config.timeout_seconds,
                     )
                 return await self._client.audio.transcriptions.create(
                     file=file,
@@ -57,19 +60,19 @@ class OpenAITranscriber:
                     language=language_hint,
                     response_format="verbose_json",
                     timestamp_granularities=["segment"],
-                    timeout=self._config.transcription_timeout_seconds,
+                    timeout=self._config.timeout_seconds,
                 )
             if language_hint is None:
                 return await self._client.audio.transcriptions.create(
                     file=file,
-                    model=self._config.transcription_model,
-                    timeout=self._config.transcription_timeout_seconds,
+                    model=self._config.model,
+                    timeout=self._config.timeout_seconds,
                 )
             return await self._client.audio.transcriptions.create(
                 file=file,
-                model=self._config.transcription_model,
+                model=self._config.model,
                 language=language_hint,
-                timeout=self._config.transcription_timeout_seconds,
+                timeout=self._config.timeout_seconds,
             )
         except (OpenAIError, TimeoutError, ValidationError) as error:
             raise provider_error(error) from error

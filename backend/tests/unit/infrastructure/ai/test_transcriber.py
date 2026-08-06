@@ -5,7 +5,10 @@ from types import SimpleNamespace
 import pytest
 from app.application.analysis import AudioChunk
 from app.infrastructure.ai import OpenAITranscriber, ProviderInvalidResponse
-from tests.unit.infrastructure.ai.fakes import fake_client, provider_config
+from tests.unit.infrastructure.ai.fakes import (
+    fake_transcription_client,
+    transcription_config,
+)
 
 
 def _verbose(*segments: tuple[float, float, str], language: str = "en") -> object:
@@ -20,8 +23,8 @@ def _verbose(*segments: tuple[float, float, str], language: str = "en") -> objec
 
 @pytest.mark.asyncio
 async def test_whisper_uses_segment_timestamps_and_absolute_chunk_offsets() -> None:
-    client, _, calls = fake_client(
-        transcription_outcomes=[
+    client, calls = fake_transcription_client(
+        [
             _verbose((0.0, 0.8, "first"), (0.75, 2.0, "second")),
             _verbose((0.0, 1.0, "third"), language="fr"),
         ]
@@ -31,7 +34,7 @@ async def test_whisper_uses_segment_timestamps_and_absolute_chunk_offsets() -> N
         AudioChunk(4, 10_000, 12_000, b"wav-1"),
     )
 
-    result = await OpenAITranscriber(provider_config(), client=client).transcribe(
+    result = await OpenAITranscriber(transcription_config(), client=client).transcribe(
         chunks, "en"
     )
 
@@ -52,13 +55,13 @@ async def test_whisper_uses_segment_timestamps_and_absolute_chunk_offsets() -> N
 
 @pytest.mark.asyncio
 async def test_non_whisper_uses_each_audio_chunks_absolute_boundaries() -> None:
-    client, _, calls = fake_client(
-        transcription_outcomes=[
+    client, calls = fake_transcription_client(
+        [
             SimpleNamespace(text="one"),
             SimpleNamespace(text="two", language="de"),
         ]
     )
-    config = provider_config(transcription_model="gpt-4o-mini-transcribe")
+    config = transcription_config(model="gpt-4o-mini-transcribe")
     chunks = (
         AudioChunk(1, 0, 500, b"a"),
         AudioChunk(2, 500, 1_500, b"b"),
@@ -76,17 +79,15 @@ async def test_non_whisper_uses_each_audio_chunks_absolute_boundaries() -> None:
 
 @pytest.mark.asyncio
 async def test_transcriber_rejects_invalid_input_or_provider_timestamps() -> None:
-    client, _, calls = fake_client()
+    client, calls = fake_transcription_client()
     with pytest.raises(ValueError, match="audio chunks"):
         await OpenAITranscriber(
-            provider_config(max_audio_bytes=2), client=client
+            transcription_config(max_audio_bytes=2), client=client
         ).transcribe((AudioChunk(1, 0, 1_000, b"too-large"),), None)
     assert not calls.calls
 
-    invalid_client, _, _ = fake_client(
-        transcription_outcomes=[_verbose((0.0, 2.0, "outside"))]
-    )
+    invalid_client, _ = fake_transcription_client([_verbose((0.0, 2.0, "outside"))])
     with pytest.raises(ProviderInvalidResponse):
-        await OpenAITranscriber(provider_config(), client=invalid_client).transcribe(
-            (AudioChunk(1, 0, 1_000, b"wav"),), None
-        )
+        await OpenAITranscriber(
+            transcription_config(), client=invalid_client
+        ).transcribe((AudioChunk(1, 0, 1_000, b"wav"),), None)

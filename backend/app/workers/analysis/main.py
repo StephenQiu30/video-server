@@ -12,10 +12,9 @@ from app.application.analysis_execution import (
 )
 from app.core.config import Settings, get_settings
 from app.infrastructure.ai import (
-    OpenAIAnalyzer,
-    OpenAIProviderConfig,
+    LangChainAnalyzer,
     OpenAITranscriber,
-    create_openai_client,
+    create_transcription_client,
 )
 from app.infrastructure.analysis_media import (
     AnalysisMediaSettings,
@@ -34,6 +33,10 @@ from app.workers.analysis.consumer import (
     RabbitMqAnalysisConsumer,
 )
 from app.workers.analysis.persistence import AnalysisExecutionPersistence
+from app.workers.analysis.providers import (
+    analysis_model_config,
+    transcription_config,
+)
 from app.workers.analysis.sweeper import (
     AnalysisRecoverySweeper,
     RecoverySettings,
@@ -49,7 +52,7 @@ class AnalysisWorkerRuntime:
     sweeper: AnalysisRecoverySweeper
     storage: MinioObjectStorage
     loader: LocalAnalysisArtifactLoader
-    ai_client: AsyncOpenAI
+    transcription_client: AsyncOpenAI
     engine: AsyncEngine
 
     async def close(self) -> None:
@@ -57,14 +60,15 @@ class AnalysisWorkerRuntime:
             await self.consumer.close()
         finally:
             try:
-                await self.ai_client.close()
+                await self.transcription_client.close()
             finally:
                 await self.engine.dispose()
 
 
 def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
-    provider = _provider_config(settings)
-    ai_client = create_openai_client(provider)
+    transcription = transcription_config(settings)
+    transcription_client = create_transcription_client(transcription)
+    analysis_model = analysis_model_config(settings)
     engine = create_engine(settings.database_url)
     sessions = create_session_factory(engine)
     analysis = SqlAlchemyAnalysisRepository(sessions)
@@ -86,8 +90,11 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
                 max_total_duration_ms=settings.max_video_duration_seconds * 1000
             )
         ),
-        transcriber=OpenAITranscriber(provider, client=ai_client),
-        analyzer=OpenAIAnalyzer(provider, client=ai_client),
+        transcriber=OpenAITranscriber(
+            transcription,
+            client=transcription_client,
+        ),
+        analyzer=LangChainAnalyzer(analysis_model),
         clock=utc_now,
         settings=AnalysisExecutionSettings(
             worker_id=worker_id(),
@@ -119,22 +126,8 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
         ),
         storage=storage,
         loader=loader,
-        ai_client=ai_client,
+        transcription_client=transcription_client,
         engine=engine,
-    )
-
-
-def _provider_config(settings: Settings) -> OpenAIProviderConfig:
-    if settings.openai_api_key is None:
-        raise ValueError("OPENAI_API_KEY is required by the analysis worker")
-    return OpenAIProviderConfig(
-        api_key=settings.openai_api_key.get_secret_value(),
-        base_url=settings.openai_base_url,
-        analysis_model=settings.openai_analysis_model,
-        transcription_model=settings.openai_transcription_model,
-        analysis_schema_version=settings.analysis_schema_version,
-        analysis_timeout_seconds=settings.analysis_timeout_seconds,
-        transcription_timeout_seconds=settings.transcription_timeout_seconds,
     )
 
 

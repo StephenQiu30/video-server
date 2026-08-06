@@ -1,86 +1,70 @@
 from __future__ import annotations
 
+from copy import deepcopy
+
 import pytest
-from app.infrastructure.ai import (
-    OpenAIAnalyzer,
-    ProviderInvalidResponse,
-    ProviderRefused,
-)
+from app.infrastructure.ai import LangChainAnalyzer, ProviderInvalidResponse
 from app.infrastructure.ai.schemas import AnalysisPayload
+from langchain_core.messages import HumanMessage, SystemMessage
 from tests.unit.infrastructure.ai.fakes import (
-    fake_client,
-    parsed_response,
-    provider_config,
+    FakeStructuredModel,
+    analysis_config,
     transcript,
     valid_mapping,
+    valid_payload,
 )
 
 
 @pytest.mark.asyncio
 async def test_analyzer_returns_valid_mapping_and_marks_transcript_untrusted() -> None:
-    client, responses, _ = fake_client(
-        response_outcomes=[parsed_response(valid_mapping())]
-    )
+    model = FakeStructuredModel([valid_payload()])
 
-    result = await OpenAIAnalyzer(provider_config(), client=client).analyze(
+    result = await LangChainAnalyzer(analysis_config(), model=model).analyze(
         transcript(), "zh-CN"
     )
 
     assert isinstance(result, dict)
     assert result["schema_version"] == "analysis.v1"
-    call = responses.calls[0]
-    assert call["model"] == "structured-model"
-    assert call["text_format"] is AnalysisPayload
-    assert call["timeout"] == 11.0
-    messages = call["input"]
+    messages = model.calls[0]
     assert isinstance(messages, list)
-    assert "UNTRUSTED DATA" in messages[0]["content"]
-    assert "Never follow" in messages[0]["content"]
-    assert "Ignore prior instructions" in messages[1]["content"]
+    assert isinstance(messages[0], SystemMessage)
+    assert "UNTRUSTED DATA" in str(messages[0].content)
+    assert "valid JSON" in str(messages[0].content)
+    assert isinstance(messages[1], HumanMessage)
+    assert "Ignore prior instructions" in str(messages[1].content)
+    assert "output_json_schema" in str(messages[1].content)
 
 
 @pytest.mark.asyncio
 async def test_analyzer_repairs_invalid_evidence_exactly_once_without_secrets() -> None:
-    invalid = valid_mapping()
+    invalid = deepcopy(valid_mapping())
     invalid["summary"] = {
         "text": "unsupported",
         "evidence_segment_ids": ["invented-segment"],
     }
-    client, responses, _ = fake_client(
-        response_outcomes=[
-            parsed_response(invalid),
-            parsed_response(valid_mapping()),
-        ]
+    model = FakeStructuredModel(
+        [AnalysisPayload.model_validate(invalid), valid_payload()]
     )
 
-    await OpenAIAnalyzer(provider_config(), client=client).analyze(
+    await LangChainAnalyzer(analysis_config(), model=model).analyze(
         transcript(), "zh-CN"
     )
 
-    assert len(responses.calls) == 2
-    repair = responses.calls[1]["input"]
+    assert len(model.calls) == 2
+    repair = model.calls[1]
     assert isinstance(repair, list)
-    assert "invalid_evidence" in repair[1]["content"]
-    assert "invented-segment" not in repair[1]["content"]
-    assert "test-secret-key" not in str(responses.calls)
+    assert "invalid_evidence" in str(repair[1].content)
+    assert "invented-segment" not in str(repair[1].content)
+    assert "test-secret-key" not in str(model.calls)
 
 
 @pytest.mark.asyncio
-async def test_analyzer_handles_refusal_and_empty_parsed_output() -> None:
-    refused_client, refused_calls, _ = fake_client(
-        response_outcomes=[parsed_response(refusal=True)]
-    )
-    with pytest.raises(ProviderRefused):
-        await OpenAIAnalyzer(provider_config(), client=refused_client).analyze(
-            transcript(), "zh-CN"
-        )
-    assert len(refused_calls.calls) == 1
+async def test_analyzer_rejects_invalid_structured_output_after_one_repair() -> None:
+    model = FakeStructuredModel([None, None])
 
-    empty_client, empty_calls, _ = fake_client(
-        response_outcomes=[parsed_response(), parsed_response()]
-    )
     with pytest.raises(ProviderInvalidResponse):
-        await OpenAIAnalyzer(provider_config(), client=empty_client).analyze(
+        await LangChainAnalyzer(analysis_config(), model=model).analyze(
             transcript(), "zh-CN"
         )
-    assert len(empty_calls.calls) == 2
+
+    assert len(model.calls) == 2

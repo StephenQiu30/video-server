@@ -5,22 +5,45 @@ from uuid import uuid4
 
 import pytest
 from app.core.config import Settings
-from app.workers.analysis.main import _provider_config
+from app.workers.analysis.providers import (
+    analysis_model_config,
+    transcription_config,
+)
 from app.workers.analysis.sweeper import AnalysisRecoverySweeper
 from pydantic import SecretStr
 
 
-def test_provider_config_requires_secret_only_when_worker_is_built() -> None:
+def test_worker_builds_ollama_or_deepseek_analysis_config() -> None:
+    settings = Settings(app_env="test")
+    ollama = analysis_model_config(settings)
+    assert ollama.provider == "ollama"
+    assert ollama.model == "deepseek-r1:8b"
+
+    with pytest.raises(ValueError, match="DEEPSEEK_API_KEY"):
+        analysis_model_config(Settings(app_env="test", analysis_provider="deepseek"))
+
+    deepseek = analysis_model_config(
+        Settings(
+            app_env="test",
+            analysis_provider="deepseek",
+            deepseek_api_key=SecretStr("controlled-deepseek-key"),
+        )
+    )
+    assert deepseek.provider == "deepseek"
+    assert deepseek.model == "deepseek-v4-flash"
+    assert "controlled-deepseek-key" not in repr(deepseek)
+
+
+def test_transcription_config_requires_its_own_secret() -> None:
     settings = Settings(app_env="test")
     assert settings.openai_api_key is None
     with pytest.raises(ValueError, match="OPENAI_API_KEY"):
-        _provider_config(settings)
+        transcription_config(settings)
 
-    provider = _provider_config(
+    provider = transcription_config(
         Settings(app_env="test", openai_api_key=SecretStr("controlled-key"))
     )
-    assert provider.analysis_model == "gpt-5.6-luna"
-    assert provider.transcription_model == "gpt-4o-mini-transcribe"
+    assert provider.model == "gpt-4o-mini-transcribe"
     assert "controlled-key" not in repr(provider)
 
 

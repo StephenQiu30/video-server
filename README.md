@@ -53,8 +53,8 @@ docker compose --env-file .env.prod \
   -f docker-compose.yml -f docker-compose-prod.yml up -d
 ```
 
-开发 Compose 已内置固定的非敏感配置，无需复制 `.env.example`。只有执行真实 AI 分析时才需设置 `OPENAI_API_KEY`；生产所需的最小变量清单见 `.env.prod.example`。
+开发 Compose 已内置固定的非敏感配置，无需复制 `.env.example`。LLM 默认通过 LangChain 连接宿主机已有的 Ollama 服务与 `deepseek-r1:8b`；项目不安装 Ollama 或拉取模型。切换 DeepSeek 云端时设置 `ANALYSIS_PROVIDER=deepseek` 与 `DEEPSEEK_API_KEY`。音频转录仍使用独立 ASR 配置，真实视频分析需要 `OPENAI_API_KEY`；生产变量见 `.env.prod.example`。
 
 服务入口默认为 <http://localhost:19090>。仅启动基础设施使用 `docker-compose-env.yml`；线上运行使用 `docker-compose.yml` 叠加 `docker-compose-prod.yml`。
 
-当前架构依据见 [`docs/design/001-server单仓与运行时架构设计.md`](docs/design/001-server单仓与运行时架构设计.md)。数据库只保留 [`backend/sql/schema.sql`](backend/sql/schema.sql) 当前定义，新结构使用空数据卷初始化，不维护历史迁移和兼容分支。002 已通过受控直链 MP4 的真实 PostgreSQL/RabbitMQ/MinIO/yt-dlp/FFmpeg 与浏览器 MVP 核心验收，但不代表第三方站点矩阵均已覆盖；003 的真实 OpenAI E2E 尚未执行，仍保持 Pending。
+当前架构依据见 [`docs/design/001-server单仓与运行时架构设计.md`](docs/design/001-server单仓与运行时架构设计.md)。数据库只保留 [`backend/sql/schema.sql`](backend/sql/schema.sql) 当前定义，新结构使用空数据卷初始化，不维护历史迁移和兼容分支。002 已通过受控直链 MP4 的真实 PostgreSQL/RabbitMQ/MinIO/yt-dlp/FFmpeg 与浏览器 MVP 核心验收，但不代表第三方站点矩阵均已覆盖；003 的真实 ASR + DeepSeek/Ollama E2E 尚未执行，仍保持 Pending。

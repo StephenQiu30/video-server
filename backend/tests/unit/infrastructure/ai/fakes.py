@@ -2,10 +2,16 @@ from __future__ import annotations
 
 from copy import deepcopy
 from types import SimpleNamespace
-from typing import cast
+from typing import Any, cast
 
 from app.domain.analysis import Transcript, TranscriptSegment
-from app.infrastructure.ai import AnalysisPayload, OpenAIProviderConfig
+from app.infrastructure.ai import (
+    AnalysisModelConfig,
+    AnalysisPayload,
+    TranscriptionConfig,
+)
+from langchain_core.language_models.base import LanguageModelInput
+from langchain_core.runnables import RunnableConfig
 from openai import AsyncOpenAI
 
 
@@ -22,32 +28,56 @@ class AsyncSequence:
         return outcome
 
 
-def fake_client(
-    *,
-    response_outcomes: list[object] | None = None,
-    transcription_outcomes: list[object] | None = None,
-) -> tuple[AsyncOpenAI, AsyncSequence, AsyncSequence]:
-    responses = AsyncSequence(response_outcomes or [])
-    transcriptions = AsyncSequence(transcription_outcomes or [])
+class FakeStructuredModel:
+    def __init__(self, outcomes: list[object]) -> None:
+        self.outcomes = outcomes
+        self.calls: list[LanguageModelInput] = []
+
+    async def ainvoke(
+        self,
+        input: LanguageModelInput,
+        config: RunnableConfig | None = None,
+        **kwargs: Any,
+    ) -> object:
+        del config, kwargs
+        self.calls.append(input)
+        outcome = self.outcomes.pop(0)
+        if isinstance(outcome, BaseException):
+            raise outcome
+        return outcome
+
+
+def fake_transcription_client(
+    outcomes: list[object] | None = None,
+) -> tuple[AsyncOpenAI, AsyncSequence]:
+    transcriptions = AsyncSequence(outcomes or [])
     client = SimpleNamespace(
-        responses=SimpleNamespace(parse=responses),
         audio=SimpleNamespace(transcriptions=SimpleNamespace(create=transcriptions)),
     )
-    return cast(AsyncOpenAI, client), responses, transcriptions
+    return cast(AsyncOpenAI, client), transcriptions
 
 
-def provider_config(**overrides: object) -> OpenAIProviderConfig:
+def transcription_config(**overrides: object) -> TranscriptionConfig:
     values: dict[str, object] = {
         "api_key": "test-secret-key",
         "base_url": "https://provider.example/v1",
-        "analysis_model": "structured-model",
-        "transcription_model": "whisper-1",
-        "analysis_schema_version": "analysis.v1",
-        "analysis_timeout_seconds": 11.0,
-        "transcription_timeout_seconds": 22.0,
+        "model": "whisper-1",
+        "timeout_seconds": 22.0,
     }
     values.update(overrides)
-    return OpenAIProviderConfig(**values)  # type: ignore[arg-type]
+    return TranscriptionConfig(**values)  # type: ignore[arg-type]
+
+
+def analysis_config(**overrides: object) -> AnalysisModelConfig:
+    values: dict[str, object] = {
+        "provider": "ollama",
+        "base_url": "http://localhost:11434",
+        "model": "deepseek-r1:8b",
+        "schema_version": "analysis.v1",
+        "timeout_seconds": 11.0,
+    }
+    values.update(overrides)
+    return AnalysisModelConfig(**values)  # type: ignore[arg-type]
 
 
 def transcript() -> Transcript:
@@ -63,6 +93,10 @@ def transcript() -> Transcript:
             ),
         )
     )
+
+
+def valid_payload() -> AnalysisPayload:
+    return AnalysisPayload.model_validate(deepcopy(valid_mapping()))
 
 
 def valid_mapping() -> dict[str, object]:
@@ -94,21 +128,3 @@ def valid_mapping() -> dict[str, object]:
             "children": [],
         },
     }
-
-
-def parsed_response(
-    mapping: dict[str, object] | None = None,
-    *,
-    refusal: bool = False,
-) -> object:
-    payload = (
-        None if mapping is None else AnalysisPayload.model_validate(deepcopy(mapping))
-    )
-    output = []
-    if refusal:
-        output = [
-            SimpleNamespace(
-                content=[SimpleNamespace(type="refusal", refusal="declined")]
-            )
-        ]
-    return SimpleNamespace(output_parsed=payload, output=output)

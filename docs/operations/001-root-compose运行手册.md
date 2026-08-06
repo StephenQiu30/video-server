@@ -17,7 +17,7 @@ docker compose -f docker-compose.yml config --quiet
 docker compose -f docker-compose.yml up --build
 ```
 
-入口为 <http://localhost:19090>。默认环境的稳定非敏感配置直接写在 Compose 中，不要求 `.env`；只有真实 AI 调用需要注入 `OPENAI_API_KEY`。PostgreSQL 在全新数据卷首次启动时以单事务执行 `backend/sql/schema.sql`，健康检查同时验证关键业务表；代码进程只在依赖健康后启动。项目不提供旧数据卷升级兼容，schema 变化后应使用新数据卷验证。
+入口为 <http://localhost:19090>。默认文本模型配置指向宿主机已有的 Ollama 服务与 `deepseek-r1:8b`，项目不会安装 Ollama 或拉取模型；运行环境应确保容器可访问 `host.docker.internal:11434`。切换云端 DeepSeek 时设置 `ANALYSIS_PROVIDER=deepseek` 和 `DEEPSEEK_API_KEY`。真实视频分析还需要独立的 `OPENAI_API_KEY` 执行音频转录。PostgreSQL 在全新数据卷首次启动时以单事务执行 `backend/sql/schema.sql`，健康检查同时验证关键业务表；代码进程只在依赖健康后启动。项目不提供旧数据卷升级兼容，schema 变化后应使用新数据卷验证。
 
 统一镜像在 builder 与 runtime 中都使用 `/app/backend`，虚拟环境固定为 `/app/backend/.venv`。不要把 builder 改回其他绝对目录后直接复制 venv；API、Worker 与 Runner 均通过该 venv 的 `python -m ...` 入口启动。
 

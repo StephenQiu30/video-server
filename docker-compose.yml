@@ -132,7 +132,14 @@ services:
     environment:
       <<: [*runtime-environment, *storage-environment]
       SERVICE_ROLE: analysis-worker
+      ANALYSIS_PROVIDER: ${ANALYSIS_PROVIDER:-ollama}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_ANALYSIS_MODEL: ${DEEPSEEK_ANALYSIS_MODEL:-deepseek-v4-flash}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_ANALYSIS_MODEL: ${OLLAMA_ANALYSIS_MODEL:-deepseek-r1:8b}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-development-openai-key-not-for-production}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - analysis_work:/analysis-work
     depends_on:

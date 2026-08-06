@@ -85,9 +85,15 @@ class Settings(BaseSettings):
     max_analysis_attempts: int = Field(default=3, ge=1, le=10)
 
     analysis_workspace_root: Path = Path("/analysis-work")
+    analysis_provider: Literal["deepseek", "ollama"] = "ollama"
+    deepseek_api_key: SecretStr | None = None
+    deepseek_base_url: str = "https://api.deepseek.com"
+    deepseek_analysis_model: str = "deepseek-v4-flash"
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_analysis_model: str = "deepseek-r1:8b"
+    analysis_max_output_tokens: int = Field(default=16_384, ge=1_024, le=131_072)
     openai_api_key: SecretStr | None = None
     openai_base_url: str | None = None
-    openai_analysis_model: str = "gpt-5.6-luna"
     openai_transcription_model: str = "gpt-4o-mini-transcribe"
     analysis_schema_version: str = "analysis.v1"
     analysis_timeout_seconds: float = Field(default=120, ge=1, le=1800)
@@ -162,6 +168,8 @@ class Settings(BaseSettings):
             )
         if self.service_role == "analysis-worker" and self.openai_api_key is not None:
             secret_values.append(self.openai_api_key.get_secret_value())
+        if self.service_role == "analysis-worker" and self.deepseek_api_key is not None:
+            secret_values.append(self.deepseek_api_key.get_secret_value())
         insecure = any(
             value.startswith(("development-", "video-")) or "replace-with" in value
             for value in secret_values

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import cast
 
-from openai import AsyncOpenAI, OpenAIError
 from pydantic import ValidationError
 
 from app.domain.analysis import (
@@ -11,25 +10,26 @@ from app.domain.analysis import (
     Transcript,
     parse_analysis_result,
 )
-from app.infrastructure.ai.config import OpenAIProviderConfig, create_openai_client
+from app.infrastructure.ai.config import AnalysisModelConfig
 from app.infrastructure.ai.error_mapping import provider_error
-from app.infrastructure.ai.errors import (
-    ProviderInvalidResponse,
-    ProviderRefused,
+from app.infrastructure.ai.errors import ProviderInvalidResponse
+from app.infrastructure.ai.models import (
+    StructuredAnalysisModel,
+    create_analysis_model,
 )
-from app.infrastructure.ai.prompts import analysis_input
+from app.infrastructure.ai.prompts import analysis_messages
 from app.infrastructure.ai.schemas import AnalysisPayload
 
 
-class OpenAIAnalyzer:
+class LangChainAnalyzer:
     def __init__(
         self,
-        config: OpenAIProviderConfig,
+        config: AnalysisModelConfig,
         *,
-        client: AsyncOpenAI | None = None,
+        model: StructuredAnalysisModel | None = None,
     ) -> None:
         self._config = config
-        self._client = client or create_openai_client(config)
+        self._model = model or create_analysis_model(config)
 
     async def analyze(
         self, transcript: Transcript, output_language: str
@@ -46,7 +46,7 @@ class OpenAIAnalyzer:
                 parse_analysis_result(
                     mapping,
                     transcript,
-                    expected_schema_version=self._config.analysis_schema_version,
+                    expected_schema_version=self._config.schema_version,
                     expected_language=output_language,
                 )
                 return mapping
@@ -66,35 +66,18 @@ class OpenAIAnalyzer:
         repair_summary: str | None,
     ) -> AnalysisPayload:
         try:
-            response = await self._client.responses.parse(
-                model=self._config.analysis_model,
-                input=analysis_input(
+            result = await self._model.ainvoke(
+                analysis_messages(
                     transcript,
                     output_language=output_language,
-                    schema_version=self._config.analysis_schema_version,
+                    schema_version=self._config.schema_version,
                     repair_summary=repair_summary,
-                ),
-                text_format=AnalysisPayload,
-                timeout=self._config.analysis_timeout_seconds,
+                )
             )
-        except (OpenAIError, TimeoutError, ValidationError) as error:
+            if isinstance(result, AnalysisPayload):
+                return result
+            return AnalysisPayload.model_validate(result)
+        except (ValidationError, TypeError, ValueError) as error:
+            raise ProviderInvalidResponse() from error
+        except Exception as error:
             raise provider_error(error) from error
-        if _contains_refusal(response):
-            raise ProviderRefused()
-        parsed = getattr(response, "output_parsed", None)
-        if not isinstance(parsed, AnalysisPayload):
-            raise ProviderInvalidResponse()
-        return parsed
-
-
-def _contains_refusal(response: object) -> bool:
-    output = getattr(response, "output", None)
-    if not isinstance(output, Sequence) or isinstance(output, (str, bytes)):
-        return False
-    for item in output:
-        content = getattr(item, "content", None)
-        if not isinstance(content, Sequence) or isinstance(content, (str, bytes)):
-            continue
-        if any(getattr(part, "type", None) == "refusal" for part in content):
-            return True
-    return False
