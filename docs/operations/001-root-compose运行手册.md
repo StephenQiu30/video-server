@@ -40,7 +40,7 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod
 
 ## 数据和停止
 
-- 本地和生产组合分别使用独立的 Compose 项目名和作用域卷，不共享数据卷；两套环境容器名相同，同一主机不要同时启动。
+- 本地和生产组合统一使用 Compose 项目名 `video-server` 及其作用域卷；两套环境容器名和数据卷相同，同一主机不要同时启动。
 - Runner 与下载 Worker 共享的工作卷只保存单任务临时文件；成功上传或失败后均应清理。
 - 常规停止使用与启动相同的文件组合执行 `docker compose ... down`；不得在未确认备份时添加 `--volumes`。
 - `.env`、用户 URL、Cookie、Authorization、provider key 和完整模型输出不得进入日志或提交。

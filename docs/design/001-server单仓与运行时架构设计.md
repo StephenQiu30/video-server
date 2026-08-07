@@ -100,7 +100,7 @@ flowchart LR
 
 - 单一代码镜像、多个命令入口，便于独立扩容 API、下载和分析 Worker。
 - Python builder 与 runtime 固定使用同一绝对目录 `/app/backend`，复制后的虚拟环境保持 `/app/backend/.venv`；容器入口通过该 PATH 下的 `python -m ...` 启动，避免构建路径写入的 venv 解释器在运行时失效。
-- PostgreSQL、RabbitMQ、MinIO 使用本地与生产组合各自的 Compose 项目作用域卷，避免并行争用同一卷。单实例服务直接使用服务原名作为稳定容器名；本地与生产容器名相同，因此同一主机不并行启动两套环境。
+- PostgreSQL、RabbitMQ、MinIO 使用 Compose 项目 `video-server` 的作用域卷。单实例服务直接使用服务原名作为稳定容器名；本地与生产共用项目名、容器名和数据卷，因此同一主机不并行启动两套环境。
 - 两份 Compose 文件按职责分层：`docker-compose.yml` 可独立启动本地完整服务，定义拓扑、依赖、健康检查、卷、本地 `.env` 和宿主机端口；`docker-compose-prod.yml` 注入 `.env.prod` 并覆盖生产镜像和对外端口。生产启动通过 `--env-file .env.prod` 显式加载变量，MinIO 初始化器等待服务可用后再执行。
 - 首期保持模块化单体；只有当容量、隔离或团队所有权出现真实证据时才拆仓/拆服务。
 - OpenAPI 是前后端契约；前端服务代码由 schema 生成或由同一 DTO 测试约束。

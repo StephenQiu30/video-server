@@ -1,4 +1,4 @@
-name: video-server-prod
+name: video-server
 
 x-prod-app: &prod-app
   env_file:

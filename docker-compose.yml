@@ -1,4 +1,4 @@
-name: video-server-local
+name: video-server
 
 x-app: &app
   image: video-server:local

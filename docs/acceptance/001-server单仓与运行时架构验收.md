@@ -15,7 +15,7 @@
 - [x] 本地和生产组合 Compose 不存在独立 frontend/Nginx 服务，统一镜像由 FastAPI 同源提供前端。
 - [x] Media Runner 通过 egress proxy 出网，proxy 阻断私网、localhost 和字面量 IP 目的地址。
 - [x] builder 与 runtime 的 `/app/backend/.venv` 绝对路径一致，所有 Python 进程入口可从统一镜像启动。
-- [x] 本地和生产组合使用独立的 Compose 项目名和作用域卷；容器直接使用服务原名，同一主机不并行启动两套环境。
+- [x] 本地和生产组合统一使用 Compose 项目名 `video-server` 和作用域卷；容器直接使用服务原名，同一主机不并行启动两套环境。
 - [x] 本地 Compose 读取 `.env`，生产覆盖读取 `.env.prod`；环境变量值不写入非 env 文件。
 - [x] 原后端与前端历史可从 Git 提交/标签恢复。
 
