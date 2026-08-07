@@ -17,6 +17,7 @@ class ApplicationErrorCode(StrEnum):
     NOT_FOUND = "not_found"
     PROVIDER_ACCESS_REQUIRED = "provider_access_required"
     PROVIDER_LINK_UNAVAILABLE = "provider_link_unavailable"
+    PROVIDER_UNSUPPORTED = "provider_unsupported"
     RESOURCE_EXPIRED = "resource_expired"
 
 
@@ -48,6 +49,10 @@ class MediaInspectionAccessRequired(MediaInspectionFailure):
 
 class MediaInspectionLinkUnavailable(MediaInspectionFailure):
     """The submitted provider link no longer resolves to playable media."""
+
+
+class MediaInspectionUnsupported(MediaInspectionFailure):
+    """The provider is outside the capabilities of the secure runner."""
 
 
 class MediaInspectionTimeout(MediaInspectionFailure):

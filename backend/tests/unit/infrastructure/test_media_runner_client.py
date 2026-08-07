@@ -8,6 +8,7 @@ import pytest
 from app.application.downloads.errors import (
     MediaInspectionAccessRequired,
     MediaInspectionLinkUnavailable,
+    MediaInspectionUnsupported,
 )
 from app.infrastructure.media_runner import MediaRunnerHttpClient
 from app.runner.contracts import DownloadPlanContract
@@ -73,6 +74,38 @@ async def test_inspect_exposes_unavailable_provider_link() -> None:
 
     with pytest.raises(MediaInspectionLinkUnavailable):
         await client.inspect("https://v.douyin.com/KWku50HECg/")
+
+    await http.aclose()
+
+
+@pytest.mark.asyncio
+async def test_inspect_exposes_unsupported_provider() -> None:
+    async def respond(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            422,
+            json={
+                "error": {
+                    "code": "provider_unsupported",
+                    "message": "provider unsupported",
+                }
+            },
+        )
+
+    http = httpx.AsyncClient(
+        base_url="http://runner",
+        transport=httpx.MockTransport(respond),
+    )
+    client = MediaRunnerHttpClient(
+        base_url="http://runner",
+        secret=b"s" * 32,
+        workspace_root=Path("."),
+        inspect_timeout_seconds=1,
+        download_timeout_seconds=1,
+        client=http,
+    )
+
+    with pytest.raises(MediaInspectionUnsupported):
+        await client.inspect("https://weixin.qq.com/sph/AFWYoXF5Bw")
 
     await http.aclose()
 

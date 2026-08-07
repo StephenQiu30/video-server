@@ -74,7 +74,7 @@ _ERRORS: dict[ApplicationErrorCode, tuple[int, str, str]] = {
         422,
         "Provider access required",
         (
-            "This provider requires a fresh browser session; "
+            "This provider requires additional access verification; "
             "cookie uploads are not supported."
         ),
     ),
@@ -85,6 +85,11 @@ _ERRORS: dict[ApplicationErrorCode, tuple[int, str, str]] = {
             "This sharing link no longer resolves to a playable video. "
             "Copy a fresh Douyin video link and try again."
         ),
+    ),
+    ApplicationErrorCode.PROVIDER_UNSUPPORTED: (
+        422,
+        "Provider unsupported",
+        "The current secure media runner does not support this provider.",
     ),
     ApplicationErrorCode.RESOURCE_EXPIRED: (
         404,

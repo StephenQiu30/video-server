@@ -45,6 +45,25 @@ async def test_inspection_classifies_douyin_fresh_cookie_requirement(
 
 
 @pytest.mark.asyncio
+async def test_inspection_classifies_youtube_bot_confirmation_requirement(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(
+            b"ERROR: Sign in to confirm you're not a bot. "
+            b"Use --cookies for authentication"
+        ),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect("https://www.youtube.com/watch?v=owned", tmp_path)
+
+    assert caught.value.code == "provider_access_required"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
 async def test_non_ytdlp_failures_keep_their_original_code(tmp_path: Path) -> None:
     commands = MediaCommands(
         settings(tmp_path),
@@ -86,3 +105,19 @@ async def test_generic_unsupported_url_keeps_inspection_failure(tmp_path: Path) 
 
     assert caught.value.code == "inspection_failed"
     assert caught.value.status == 502
+
+
+@pytest.mark.asyncio
+async def test_wechat_channels_url_is_classified_as_unsupported(tmp_path: Path) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(
+            b"ERROR: Unsupported URL: https://channels.weixin.qq.com/finder-preview"
+        ),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect("https://weixin.qq.com/sph/AFWYoXF5Bw", tmp_path)
+
+    assert caught.value.code == "provider_unsupported"
+    assert caught.value.status == 422

@@ -227,6 +227,8 @@ class MediaCommands:
                 raise RunnerFailure("provider_access_required", status=422)
             if _is_unavailable_provider_link(command, result.stderr):
                 raise RunnerFailure("provider_link_unavailable", status=422)
+            if _is_unsupported_provider(command, result.stderr):
+                raise RunnerFailure("provider_unsupported", status=422)
             raise RunnerFailure(failure_code, status=502)
         return result
 
@@ -258,7 +260,11 @@ def _requires_provider_access(command: Sequence[str], stderr: bytes) -> bool:
     if not command or Path(command[0]).name.casefold() not in {"yt-dlp", "yt-dlp.exe"}:
         return False
     normalized = stderr.lower()
-    return b"fresh cookies" in normalized and b"needed" in normalized
+    requires_fresh_cookies = b"fresh cookies" in normalized and b"needed" in normalized
+    requires_bot_confirmation = (
+        b"sign in to confirm" in normalized and b"not a bot" in normalized
+    )
+    return requires_fresh_cookies or requires_bot_confirmation
 
 
 def _is_unavailable_provider_link(command: Sequence[str], stderr: bytes) -> bool:
@@ -273,5 +279,20 @@ def _is_unavailable_provider_link(command: Sequence[str], stderr: bytes) -> bool
         for host in (
             "douyin.com",
             "iesdouyin.com",
+        )
+    )
+
+
+def _is_unsupported_provider(command: Sequence[str], stderr: bytes) -> bool:
+    if not command or Path(command[0]).name.casefold() not in {"yt-dlp", "yt-dlp.exe"}:
+        return False
+    if b"unsupported url:" not in stderr.lower():
+        return False
+    command_text = " ".join(command).casefold()
+    return any(
+        host in command_text
+        for host in (
+            "channels.weixin.qq.com",
+            "weixin.qq.com/sph/",
         )
     )

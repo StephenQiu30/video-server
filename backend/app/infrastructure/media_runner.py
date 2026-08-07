@@ -21,6 +21,7 @@ from app.application.downloads import (
 from app.application.downloads.errors import (
     MediaInspectionAccessRequired,
     MediaInspectionLinkUnavailable,
+    MediaInspectionUnsupported,
 )
 from app.domain.downloads import DownloadPlan
 from app.infrastructure.media_runner_models import (
@@ -83,6 +84,8 @@ class MediaRunnerHttpClient:
                 raise MediaInspectionAccessRequired from exc
             if exc.code == "provider_link_unavailable":
                 raise MediaInspectionLinkUnavailable from exc
+            if exc.code == "provider_unsupported":
+                raise MediaInspectionUnsupported from exc
             raise MediaInspectionFailure(exc.code) from exc
         return RunnerInspection(
             extractor_key=response.media.extractor_key,

@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     outbox_poll_interval_seconds: float = Field(default=1.0, ge=0.1, le=60)
 
     minio_endpoint: str = "localhost:19190"
-    minio_public_endpoint: str = "localhost:19190"
+    minio_public_endpoint: str = "127.0.0.1:19190"
     minio_access_key: SecretStr = SecretStr("video-app-access")
     minio_secret_key: SecretStr = SecretStr("video-app-secret-change-me")
     minio_internal_secure: bool = False

@@ -53,3 +53,28 @@ Runner 使用 `ProviderStrategy + ProviderRegistry + GenericFallback`：平台�
 - 制品：私有 MinIO bucket + 短时签名 URL。
 - AI：独立 AI Job/Worker；托管 provider 优先，可选 faster-whisper 本地 ASR。
 - 导图：中立 JSON tree + evidence ids，前端按需接 markmap 或自定义渲染。
+
+## 2026-08-07 真实来源回归与后续方案
+
+使用浏览器从 `http://127.0.0.1:8002` 执行解析、格式选择、服务端下载、完整性校验和文件获取，得到以下边界：
+
+| 来源 | 真实样本结果 | 当前处理 |
+| --- | --- | --- |
+| Bilibili | 解析成功，360p MP4 下载并通过完整性校验 | 保持 yt-dlp 主链路 |
+| 小红书 | 带有效 `xsec_token` 的完整分享链接解析、下载、校验成功；无 token 的旧直链失败 | 接受完整公开分享链接；后续补短链规范化与 token 缺失提示 |
+| YouTube | 当前 egress IP 被要求 `Sign in to confirm you're not a bot` | 映射为 `provider_access_required`，不再返回泛化 502 |
+| 抖音 | 当前网页接口要求 fresh browser session | 继续返回 `provider_access_required`，不上传 Cookie |
+| 视频号 | 公开分享页可访问，但当前 yt-dlp/Generic 无法提取 | 不宣称支持；返回不可用结果，不接入 Cookie 或公共中转服务 |
+
+GitHub 调研后的取舍：
+
+1. yt-dlp 官方 [PO Token Guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide) 推荐为 YouTube `mweb` 客户端配置 PO Token Provider。[bgutil-ytdlp-pot-provider](https://github.com/Brainicism/bgutil-ytdlp-pot-provider) 提供独立 HTTP 服务和 yt-dlp 插件，但官方仓库也明确说明它不保证绕过 403 或 bot check。该方案会新增常驻服务、插件供应链和 GPL-3.0 合规评估，因此只作为显式启用的部署选项候选，不在默认 Runner 中静默引入。
+2. 小红书专项实现和公开 issue 均显示新版分享链依赖 `xsec_token`；例如 [XHS-Downloader #261](https://github.com/JoeanAmier/XHS-Downloader/issues/261) 记录了 `/m/` 短链跳转到带 token 长链的变化。后续应在 Runner 内受控跟随短链并保留最终公开 URL，而不是自行生成平台签名。
+3. [wx_channels_download](https://github.com/ltaoo/wx_channels_download) 的服务端分享链接解析需要元宝 Cookie，或将链接交给 Cloudflare Worker；另一条路线是本机 MITM/证书注入。两者分别违反当前“Runner 无业务凭据/不把源链接发送给第三方”和“服务端不安装抓包根证书”的边界，因此不纳入当前服务。
+
+优化顺序：
+
+1. 为已登记 Provider 增加定时真实 canary，记录 `last_verified_at`、错误分类和 extractor 版本；外部站点波动不得阻断普通 PR CI。
+2. 前端展示“已验证 / 需要平台验证 / 当前不支持”，不要把 extractor 清单或“1000+”等同于下载保证。
+3. 监控按 Provider、错误码和 yt-dlp 版本聚合，区分反机器人验证、链接过期、解析器回归、下载失败和对象存储交付失败。
+4. 本地对象存储预签名地址必须与宿主机实际监听地址一致；Windows/Docker Desktop 默认使用 `127.0.0.1`，避免 `localhost` 优先解析到未监听的 IPv6 回环地址。

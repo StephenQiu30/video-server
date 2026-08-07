@@ -97,7 +97,7 @@ describe('HomePage', () => {
           422,
           'provider_access_required',
           'Provider access required',
-          'This provider requires a fresh browser session; cookie uploads are not supported.',
+          'This provider requires additional access verification; cookie uploads are not supported.',
         ),
       );
     render(<HomePage />);
@@ -116,7 +116,7 @@ describe('HomePage', () => {
 
     expect(
       await screen.findByText(
-        'This provider requires a fresh browser session; cookie uploads are not supported.',
+        'This provider requires additional access verification; cookie uploads are not supported.',
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText('Owned video')).not.toBeInTheDocument();
