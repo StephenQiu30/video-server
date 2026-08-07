@@ -10,8 +10,7 @@ server/
 ├── frontend/      Ant Design Pro / Umi Max Web 源码、组件与测试
 ├── docs/          当前 Design、PRD、Plan、Acceptance 与运维文档
 ├── Dockerfile
-├── docker-compose.yml       公共服务拓扑与运行时定义
-├── docker-compose-env.yml   本地环境覆盖（.env、宿主机端口）
+├── docker-compose.yml       本地完整服务拓扑（.env、宿主机端口）
 └── docker-compose-prod.yml  生产环境覆盖（.env.prod、镜像与端口）
 ```
 
@@ -48,24 +47,23 @@ npm run openapi
 
 ## 容器运行
 
-根目录三份 Compose 按职责分层，不使用 `deploy/` 目录：基础文件定义完整服务拓扑，环境文件和生产文件只覆盖对应环境差异。
+根目录两份 Compose 按职责分层，不使用 `deploy/` 目录：本地文件可独立启动完整服务，生产文件只覆盖生产差异。
 
 | 文件 | 用途 | 启动方式 |
 | --- | --- | --- |
-| `docker-compose.yml` | 公共服务拓扑、健康检查、依赖关系、卷和内部端口 | 基础配置，不单独部署 |
-| `docker-compose-env.yml` | 本地 `.env`、宿主机端口和本地镜像运行参数 | 与基础配置组合 |
+| `docker-compose.yml` | 本地 `.env`、宿主机端口、完整服务拓扑、健康检查、依赖关系和卷 | 可直接部署本地环境 |
 | `docker-compose-prod.yml` | 生产 `.env.prod`、生产镜像、容器名和对外端口 | 与基础配置组合 |
 
 ```bash
 cp .env.example .env
-docker compose --env-file .env -f docker-compose.yml -f docker-compose-env.yml up -d --build
+docker compose --env-file .env -f docker-compose.yml up -d --build
 
 # 生产环境使用基础拓扑叠加生产差异
 cp .env.prod.example .env.prod
 docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod.yml up -d --build
 ```
 
-基础文件不填写环境变量具体值；`docker-compose-env.yml` 负责本地 `env_file` 和宿主机端口，
+本地 `docker-compose.yml` 负责本地 `env_file`、宿主机端口和完整服务拓扑，
 `docker-compose-prod.yml` 负责生产 `env_file`、镜像和容器名。Compose 使用带环境前缀的稳定容器名，
 不会出现 `xxx-1` 这类副本后缀；生产覆盖会在 Compose 解析阶段校验关键变量。环境变量模板只维护在
 `.env.example` 与 `.env.prod.example`；真实本地值放在被 Git 忽略的 `.env` 或
@@ -73,7 +71,7 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod
 
 LLM 默认通过 LangChain 连接宿主机已有的 Ollama 服务与 `deepseek-r1:8b`；项目不安装 Ollama 或拉取模型。切换 DeepSeek 云端时设置 `ANALYSIS_PROVIDER=deepseek` 与 `DEEPSEEK_API_KEY`。音频转录仍使用独立 ASR 配置，真实视频分析需要 `OPENAI_API_KEY`。
 
-服务入口默认为 <http://localhost:8101>。本地使用基础配置叠加 `docker-compose-env.yml`，生产使用基础配置叠加 `docker-compose-prod.yml`。
+服务入口默认为 <http://localhost:8101>。本地使用 `docker-compose.yml`，生产使用基础配置叠加 `docker-compose-prod.yml`。
 
 当前架构依据见 [`docs/design/001-server单仓与运行时架构设计.md`](docs/design/001-server单仓与运行时架构设计.md)。数据库只保留 [`backend/sql/schema.sql`](backend/sql/schema.sql) 当前定义，新结构使用空数据卷初始化，不维护历史迁移和兼容分支。002 已通过受控直链 MP4 的真实 PostgreSQL/RabbitMQ/MinIO/yt-dlp/FFmpeg 与浏览器 MVP 核心验收，并通过一个 MediaTrack 公共审片链接的真实解析、HLS 下载与 ffprobe 校验，但不代表第三方站点矩阵均已覆盖；003 的真实 ASR + DeepSeek/Ollama E2E 尚未执行，仍保持 Pending。
 

@@ -1,24 +1,23 @@
 # 根目录 Compose 运行手册
 
-## 三个固定职责
+## 两个固定职责
 
 | 文件 | 职责 |
 | --- | --- |
-| `docker-compose.yml` | 公共服务拓扑、健康检查、依赖关系、卷和内部端口 |
-| `docker-compose-env.yml` | 本地 `.env`、宿主机端口和本地运行差异 |
+| `docker-compose.yml` | 本地 `.env`、宿主机端口、完整服务拓扑、健康检查、依赖关系和卷 |
 | `docker-compose-prod.yml` | 生产 `.env.prod`、生产镜像、容器名和对外端口 |
 
-基础文件集中定义服务拓扑，环境文件只覆盖环境差异，不复制服务依赖和健康检查；生产文件与基础文件组合使用，不再复制整套服务。仓库不使用 `deploy/` 目录。环境变量的具体值只写在 `.env.example`、`.env.prod.example` 或被 Git 忽略的 `.env*` 文件中。
+本地文件集中定义完整服务拓扑和本地环境配置；生产文件只覆盖生产差异，不复制整套服务。仓库不使用 `deploy/` 目录。环境变量的具体值只写在 `.env.example`、`.env.prod.example` 或被 Git 忽略的 `.env*` 文件中。
 
 ## 本地环境
 
 ```bash
 cp .env.example .env
-docker compose --env-file .env -f docker-compose.yml -f docker-compose-env.yml config --quiet
-docker compose --env-file .env -f docker-compose.yml -f docker-compose-env.yml up -d --build
+docker compose --env-file .env -f docker-compose.yml config --quiet
+docker compose --env-file .env -f docker-compose.yml up -d --build
 ```
 
-基础配置与环境配置合并后启动完整本地环境。入口为 <http://localhost:8101>。Swagger UI 位于 <http://localhost:8101/docs>，OpenAPI 契约位于 <http://localhost:8101/openapi.json>。
+本地配置可直接启动完整环境。入口为 <http://localhost:8101>。Swagger UI 位于 <http://localhost:8101/docs>，OpenAPI 契约位于 <http://localhost:8101/openapi.json>。
 
 所有服务都显式声明 `container_name`，容器名稳定为 `video-server-local-api`、`video-server-local-postgres` 等，不会出现 `xxx-1` 副本后缀。环境配置读取被 Git 忽略的 `.env`，首次启动前从 `.env.example` 复制。
 
@@ -51,7 +50,7 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod
 ```bash
 curl --fail http://localhost:8101/health/live
 curl --fail http://localhost:8101/health/ready
-docker compose --env-file .env -f docker-compose.yml -f docker-compose-env.yml ps
+docker compose --env-file .env -f docker-compose.yml ps
 ```
 
 若下载解析失败，先区分 URL/格式业务错误、Runner 健康、egress ACL、队列积压和对象存储，不要通过开放私网、上传 Cookie 或透传 yt-dlp 参数绕过控制。

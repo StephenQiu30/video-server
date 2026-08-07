@@ -24,7 +24,7 @@ services:
     <<: *prod-app
     image: video-server:prod
     container_name: video-server-prod-api
-    ports:
+    ports: !override
       - "8101:8101"
 
   outbox:
@@ -57,6 +57,7 @@ services:
   postgres:
     <<: *prod-infra
     container_name: video-server-prod-postgres
+    ports: !reset []
     environment:
       POSTGRES_DB: "${POSTGRES_DB:?set POSTGRES_DB in .env.prod}"
       POSTGRES_USER: "${POSTGRES_USER:?set POSTGRES_USER in .env.prod}"
@@ -66,6 +67,7 @@ services:
     <<: *prod-infra
     container_name: video-server-prod-rabbitmq
     hostname: video-server-prod-rabbitmq
+    ports: !reset []
     environment:
       RABBITMQ_DEFAULT_USER: "${RABBITMQ_DEFAULT_USER:?set RABBITMQ_DEFAULT_USER in .env.prod}"
       RABBITMQ_DEFAULT_PASS: "${RABBITMQ_DEFAULT_PASS:?set RABBITMQ_DEFAULT_PASS in .env.prod}"
@@ -73,6 +75,7 @@ services:
   minio:
     <<: *prod-infra
     container_name: video-server-prod-minio
+    ports: !reset []
     environment:
       MINIO_ROOT_USER: "${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env.prod}"
       MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env.prod}"

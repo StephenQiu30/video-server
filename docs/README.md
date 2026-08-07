@@ -4,7 +4,7 @@
 
 外部依赖与方案选型记录在 [`research/`](research/)；首份结论见 [GitHub 开源方案调研](research/001-GitHub开源方案调研.md)。
 
-三套根目录 Compose 的使用与安全边界见 [运行手册](operations/001-root-compose运行手册.md)。
+根目录 Compose 的使用与安全边界见 [运行手册](operations/001-root-compose运行手册.md)。
 
 交付顺序固定为 `Design → PRD → Plan → Acceptance`：
 

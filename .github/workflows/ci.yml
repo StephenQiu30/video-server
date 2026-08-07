@@ -19,7 +19,7 @@ jobs:
       - name: Validate Compose modes
         run: |
           cp .env.example .env
-          docker compose --env-file .env -f docker-compose.yml -f docker-compose-env.yml config --quiet
+          docker compose --env-file .env -f docker-compose.yml config --quiet
           cp .env.prod.example .env.prod
           docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod.yml config --quiet
           rm -f .env .env.prod

@@ -16,7 +16,7 @@
 - [x] Media Runner 通过 egress proxy 出网，proxy 阻断私网、localhost 和字面量 IP 目的地址。
 - [x] builder 与 runtime 的 `/app/backend/.venv` 绝对路径一致，所有 Python 进程入口可从统一镜像启动。
 - [x] 本地和生产组合使用稳定且独立的 Compose 项目名、容器名和作用域卷，不会并行争用同一数据卷。
-- [x] 基础 Compose 不包含环境具体值，本地覆盖读取 `.env`，生产覆盖读取 `.env.prod`；环境变量值不写入非 env 文件。
+- [x] 本地 Compose 读取 `.env`，生产覆盖读取 `.env.prod`；环境变量值不写入非 env 文件。
 - [x] 原后端与前端历史可从 Git 提交/标签恢复。
 
 ## 验证命令
@@ -25,7 +25,7 @@
 cd backend && uv run ruff check . && uv run ruff format --check .
 cd backend && uv run mypy --strict app && uv run pytest -q
 cd frontend && npm run lint && npm run format:check && npm test && npm run build
-docker compose --env-file .env -f docker-compose.yml -f docker-compose-env.yml config --quiet
+docker compose --env-file .env -f docker-compose.yml config --quiet
 docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod.yml config --quiet
 docker build --target runtime --tag video-server:architecture .
 ```
@@ -37,7 +37,7 @@ docker build --target runtime --tag video-server:architecture .
 - 测试策略：CI 不设置覆盖率数字硬门槛；测试聚焦领域规则、API 契约、安全边界和关键流程，不为覆盖率重复测试实现细节。
 - 依赖：`npm audit --audit-level=high` 为 0 vulnerabilities。
 - 数据库：仓库中只有 `backend/sql/schema.sql`，由 PostgreSQL 在全新数据卷首次启动时执行；没有 Alembic/migrations 或旧 schema 兼容分支。
-- Compose：根目录保留 `docker-compose.yml`、`docker-compose-env.yml`、`docker-compose-prod.yml` 三份职责清晰的配置；本地和生产组合均可解析，环境文件不复制基础服务定义。
+- Compose：根目录保留 `docker-compose.yml`、`docker-compose-prod.yml` 两份职责清晰的配置；本地配置可独立解析，生产组合可解析，生产文件不复制基础服务定义。
 - 配置收敛：镜像、宿主机绑定、容器内部服务名、队列、网络和卷由 Compose 声明；环境变量值只保留在 `.env.example`、`.env.prod.example` 或被 Git 忽略的 `.env*` 文件中。
 - 镜像：`docker build --target runtime --tag video-server:architecture .` 返回 0；根目录多阶段 `Dockerfile` 统一构建 frontend dist 与 Python runtime，API、Outbox、下载 Worker、AI Worker 和 Media Runner 复用同一 runtime 镜像。
 - 容器入口修复：backend-builder 与 runtime 均使用 `/app/backend`，虚拟环境固定为 `/app/backend/.venv`，Runner 改由 `python -m uvicorn ...` 启动；本地和生产组合中的 API、Outbox、下载 Worker、AI Worker 与 Media Runner 使用统一 runtime 镜像进入运行/健康状态。
