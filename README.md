@@ -49,6 +49,8 @@ npm run openapi
 
 Media Runner 通过可注册的 Provider Strategy 统一处理 YouTube、Bilibili、抖音、TikTok、Vimeo、X/Twitter、Instagram、Facebook、Twitch、Reddit、Pinterest、微博、优酷、腾讯视频、Dailymotion 和 NicoNico 等公开媒体链接；未登记的 HTTP(S) 地址继续交给 yt-dlp 的 Generic extractor。平台规则会变化，且登录、Cookie、DRM 或平台访问验证不在服务边界内，最终是否可下载以实际解析结果为准。
 
+首页输入框也支持直接粘贴抖音分享文案；系统只提取其中唯一的 HTTP(S) 链接，标题、话题和复制提示不会发送到后端。若抖音要求新鲜浏览器会话，页面会显示平台访问提示，不会上传 Cookie 或绕过验证。
+
 ## 容器运行
 
 根目录两份 Compose 按职责分层，不使用 `deploy/` 目录：本地文件可独立启动完整服务，生产文件只覆盖生产差异。

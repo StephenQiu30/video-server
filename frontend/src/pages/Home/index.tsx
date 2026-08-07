@@ -11,7 +11,7 @@ import {
   inspectMedia,
 } from '@/services/download';
 import type { Inspection } from '@/types/video';
-import { validateMediaUrl } from '@/utils/validation';
+import { normalizeMediaUrl, URL_MESSAGE } from '@/utils/validation';
 
 import InspectionResult from './components/InspectionResult';
 import styles from './index.module.css';
@@ -37,10 +37,9 @@ export default function HomePage() {
 
   async function handleInspect(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const normalized = url.trim();
-    const validation = validateMediaUrl(normalized);
-    if (validation) {
-      setError(validation);
+    const normalized = normalizeMediaUrl(url);
+    if (!normalized) {
+      setError(URL_MESSAGE);
       return;
     }
     setBusy('inspect');
@@ -94,14 +93,14 @@ export default function HomePage() {
             </label>
             <Space.Compact block>
               <Input
-                autoComplete="url"
+                autoComplete="off"
                 id="media-url"
                 maxLength={4096}
                 onChange={(event) => setUrl(event.target.value)}
-                placeholder="请输入视频链接（支持 Bilibili、YouTube、抖音分享链接）"
+                placeholder="请输入视频链接，或粘贴抖音分享文案"
                 prefix={<LinkOutlined />}
                 size="large"
-                type="url"
+                type="text"
                 value={url}
               />
               <Button

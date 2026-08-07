@@ -27,7 +27,7 @@ yt-dlp extractor → FFmpeg → ffprobe
 
 当前登记并在镜像 yt-dlp extractor 清单中核验的平台：YouTube、Bilibili、抖音、TikTok、Vimeo、X/Twitter、Instagram、Facebook、Twitch、Reddit、Pinterest、微博、优酷、腾讯视频、Dailymotion、NicoNico。
 
-抖音精选页 `modal_id`、`/share/video/{id}` 与短链会先转换到标准视频地址；TikTok 和抖音使用受限的请求伪装与重试。当前抖音仍可能要求新鲜浏览器会话，服务会返回明确错误，不上传 Cookie 或绕过平台验证。
+抖音精选页 `modal_id` 与 `/share/video/{id}` 会先转换到标准视频地址，短链交由 yt-dlp 的抖音 extractor 解析；TikTok 和抖音使用受限的请求伪装与重试。当前抖音仍可能要求新鲜浏览器会话，服务会返回明确错误，不上传 Cookie 或绕过平台验证。
 
 ## 约束
 
