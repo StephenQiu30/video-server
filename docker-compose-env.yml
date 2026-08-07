@@ -11,7 +11,7 @@ services:
     image: postgres:17.5-alpine
     container_name: video-server-env-postgres
     ports:
-      - "127.0.0.1:15432:5432"
+      - "127.0.0.1:${POSTGRES_HOST_PORT:?set POSTGRES_HOST_PORT in .env}:5432"
     volumes:
       - env_postgres_data:/var/lib/postgresql/data
       - ./backend/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
@@ -27,8 +27,8 @@ services:
     container_name: video-server-env-rabbitmq
     hostname: video-server-env-rabbitmq
     ports:
-      - "127.0.0.1:5673:5672"
-      - "127.0.0.1:15673:15672"
+      - "127.0.0.1:${RABBITMQ_HOST_PORT:?set RABBITMQ_HOST_PORT in .env}:5672"
+      - "127.0.0.1:${RABBITMQ_MANAGEMENT_HOST_PORT:?set RABBITMQ_MANAGEMENT_HOST_PORT in .env}:15672"
     volumes:
       - env_rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -43,8 +43,8 @@ services:
     container_name: video-server-env-minio
     command: ["server", "/data", "--address", ":9000", "--console-address", ":9001"]
     ports:
-      - "127.0.0.1:19190:9000"
-      - "127.0.0.1:19191:9001"
+      - "127.0.0.1:${MINIO_HOST_PORT:?set MINIO_HOST_PORT in .env}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_HOST_PORT:?set MINIO_CONSOLE_HOST_PORT in .env}:9001"
     volumes:
       - env_minio_data:/data
     healthcheck:

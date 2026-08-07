@@ -58,17 +58,17 @@ npm run openapi
 
 ```bash
 cp .env.example .env
-docker compose -f docker-compose-env.yml up -d
+docker compose --env-file .env -f docker-compose-env.yml up -d
 docker compose -f docker-compose.yml up -d --build
 
 # 生产环境只启动生产应用栈，不叠加本地文件
 cp .env.prod.example .env.prod
-docker compose -f docker-compose-prod.yml up -d --build
+docker compose --env-file .env.prod -f docker-compose-prod.yml up -d --build
 ```
 
 三个 Compose 文件互不引用服务、卷、网络或覆盖配置。应用栈通过 `.env` 或
-`.env.prod` 访问外部基础设施；本地环境栈将 PostgreSQL、RabbitMQ、MinIO 发布到
-`15432`、`5673`、`19190/19191`，本地 `.env` 已按这些宿主机端口配置。
+`.env.prod` 访问外部基础设施；本地环境栈通过 `.env` 中的
+`POSTGRES_HOST_PORT`、`RABBITMQ_HOST_PORT`、`MINIO_HOST_PORT` 等变量发布宿主机端口。
 Compose 使用带环境前缀的稳定容器名，不会出现 `xxx-1` 这类副本后缀。环境变量模板只维护在
 `.env.example` 与 `.env.prod.example`；真实本地值放在被 Git 忽略的 `.env` 或
 `.env.prod` 中。Compose 文件只负责引用 env 文件和声明编排关系。

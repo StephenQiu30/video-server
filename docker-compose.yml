@@ -5,6 +5,7 @@ x-local-app: &local-app
   env_file:
     - .env
   restart: unless-stopped
+  stop_grace_period: 30s
 
 services:
   api:

@@ -26,19 +26,21 @@ docker compose -f docker-compose.yml up -d --build
 
 ```bash
 cp .env.example .env
-docker compose -f docker-compose-env.yml config --quiet
-docker compose -f docker-compose-env.yml up -d
+docker compose --env-file .env -f docker-compose-env.yml config --quiet
+docker compose --env-file .env -f docker-compose-env.yml up -d
 ```
 
-此模式不会启动 API、Worker、Runner 或前端构建。固定宿主机端口为：PostgreSQL `localhost:15432`、RabbitMQ `localhost:5673`（管理台 `15673`）、MinIO `localhost:19190`（控制台 `19191`）。本地应用容器通过 `.env` 中的 `host.docker.internal` 访问这些端口。
+此模式不会启动 API、Worker、Runner 或前端构建。宿主机端口由 `.env` 中的
+`POSTGRES_HOST_PORT`、`RABBITMQ_HOST_PORT`、`MINIO_HOST_PORT` 等变量控制；本地应用容器通过
+`.env` 中的 `host.docker.internal` 访问这些端口。
 
 ## 生产应用
 
 ```bash
 cp .env.prod.example .env.prod
 # 替换 .env.prod 中全部 replace-with-* 占位值
-docker compose -f docker-compose-prod.yml config --quiet
-docker compose -f docker-compose-prod.yml up -d --build
+docker compose --env-file .env.prod -f docker-compose-prod.yml config --quiet
+docker compose --env-file .env.prod -f docker-compose-prod.yml up -d --build
 ```
 
 生产文件是完整独立的应用入口，不依赖本地 Compose 文件。生产运行前必须替换 `.env.prod` 中的占位值，并确保其中的数据库、消息队列和对象存储地址可从生产容器访问。

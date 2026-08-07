@@ -5,6 +5,7 @@ x-prod-app: &prod-app
   env_file:
     - .env.prod
   restart: unless-stopped
+  stop_grace_period: 30s
 
 services:
   api:
