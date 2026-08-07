@@ -7,6 +7,7 @@ from uuid import UUID
 from app.application.downloads.errors import (
     ApplicationError,
     ApplicationErrorCode,
+    MediaInspectionAccessRequired,
     MediaInspectionFailure,
     MediaInspectionTimeout,
     PersistenceIdempotencyConflict,
@@ -70,6 +71,10 @@ class InspectMedia:
             raise ApplicationError(ApplicationErrorCode.INVALID_URL) from exc
         try:
             result = await self._runner.inspect(validated_url)
+        except MediaInspectionAccessRequired as exc:
+            raise ApplicationError(
+                ApplicationErrorCode.PROVIDER_ACCESS_REQUIRED
+            ) from exc
         except MediaInspectionTimeout as exc:
             raise ApplicationError(ApplicationErrorCode.INSPECTION_TIMEOUT) from exc
         except MediaInspectionFailure as exc:

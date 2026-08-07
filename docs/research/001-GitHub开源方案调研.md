@@ -28,6 +28,10 @@
 
 本项目改用 yt-dlp 官方插件机制实现最小站点适配：只匹配 `app.mediatrack.cn/reviews/{review}/{asset}`，调用站点公开链接 API 获取短时 token，只接受 API 明确标记 `has_rights=true` 的 `mediatrack.cn` HTTPS 播放转码，并在每次下载前重新解析签名 HLS。插件不读取浏览器 Cookie、不接受账号凭据、不请求被页面禁用的原文件下载接口；最终制品继续经过现有大小/时长限制、FFmpeg remux 和 ffprobe 校验。
 
+## 抖音链接兼容边界
+
+Runner 会将抖音精选页的 `modal_id`、`/share/video/{id}` 和抖音短链交给 yt-dlp 的抖音 extractor，并对抖音请求使用独立的浏览器指纹和有限重试。当前抖音网页接口会要求新鲜浏览器会话（`Fresh cookies ... are needed`），这属于平台反爬验证；本项目不上传 Cookie、不生成平台签名，也不绕过验证。因此当前实现保证分享链接能够进入正确的 extractor，并返回明确的“需要平台访问会话”错误，但不宣称在无浏览器会话时完成所有抖音视频下载。
+
 ## 关键风险与治理
 
 1. yt-dlp 的 2026 发布记录包含命令注入、危险文件类型和外部 downloader 相关安全修复，因此不能把任意参数透传给用户，也不能启用 `--exec`、`--netrc-cmd`、aria2c 或 cookie 上传。

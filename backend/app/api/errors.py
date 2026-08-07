@@ -70,6 +70,14 @@ _ERRORS: dict[ApplicationErrorCode, tuple[int, str, str]] = {
         "Not found",
         "The requested resource was not found.",
     ),
+    ApplicationErrorCode.PROVIDER_ACCESS_REQUIRED: (
+        422,
+        "Provider access required",
+        (
+            "This provider requires a fresh browser session; "
+            "cookie uploads are not supported."
+        ),
+    ),
     ApplicationErrorCode.RESOURCE_EXPIRED: (
         404,
         "Not found",

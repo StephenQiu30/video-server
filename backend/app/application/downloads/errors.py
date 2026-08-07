@@ -15,6 +15,7 @@ class ApplicationErrorCode(StrEnum):
     INVALID_STATE = "invalid_state"
     INVALID_URL = "invalid_url"
     NOT_FOUND = "not_found"
+    PROVIDER_ACCESS_REQUIRED = "provider_access_required"
     RESOURCE_EXPIRED = "resource_expired"
 
 
@@ -38,6 +39,10 @@ class PersistenceConflict(RuntimeError):
 
 class MediaInspectionFailure(RuntimeError):
     """The runner could not return a valid inspection."""
+
+
+class MediaInspectionAccessRequired(MediaInspectionFailure):
+    """The provider requires a browser session that this service does not accept."""
 
 
 class MediaInspectionTimeout(MediaInspectionFailure):

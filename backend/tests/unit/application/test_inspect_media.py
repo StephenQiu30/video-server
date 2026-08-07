@@ -14,6 +14,7 @@ from app.application.downloads import (
     RunnerFormat,
     RunnerInspection,
 )
+from app.application.downloads.errors import MediaInspectionAccessRequired
 from app.domain.downloads import (
     AudioCodecFamily,
     CompatibilityProfile,
@@ -149,6 +150,22 @@ async def test_duration_limit_and_empty_formats_are_rejected() -> None:
         await no_formats(URL, OWNER, "formats")
     assert format_error.value.code is ApplicationErrorCode.FORMAT_UNAVAILABLE
     assert repository.inspection_commands == []
+
+
+@pytest.mark.asyncio
+async def test_provider_access_requirement_is_reported_explicitly() -> None:
+    repository = FakeRepository()
+    inspect, runner, _ = use_case(repository, runner_result())
+    runner.inspect = _raise_provider_access  # type: ignore[method-assign]
+
+    with pytest.raises(ApplicationError) as caught:
+        await inspect(URL, OWNER, "provider-access")
+
+    assert caught.value.code is ApplicationErrorCode.PROVIDER_ACCESS_REQUIRED
+
+
+async def _raise_provider_access(_: str) -> RunnerInspection:
+    raise MediaInspectionAccessRequired
 
 
 @pytest.mark.asyncio

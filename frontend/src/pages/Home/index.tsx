@@ -86,7 +86,7 @@ export default function HomePage() {
             解析并下载视频，获取 AI 智能分析
           </Typography.Title>
           <Typography.Paragraph>
-            支持 Bilibili、YouTube 等公开视频平台，粘贴链接即可开始解析
+            支持 Bilibili、YouTube 等公开视频平台，也兼容抖音分享链接
           </Typography.Paragraph>
           <form className={styles.search} onSubmit={handleInspect}>
             <label className={styles.label} htmlFor="media-url">
@@ -98,7 +98,7 @@ export default function HomePage() {
                 id="media-url"
                 maxLength={4096}
                 onChange={(event) => setUrl(event.target.value)}
-                placeholder="请输入视频链接（支持 Bilibili、YouTube 等）"
+                placeholder="请输入视频链接（支持 Bilibili、YouTube、抖音分享链接）"
                 prefix={<LinkOutlined />}
                 size="large"
                 type="url"

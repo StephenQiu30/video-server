@@ -142,6 +142,7 @@ services:
     entrypoint: ["squid"]
     command: ["-N", "-f", "/etc/squid/squid.conf"]
     restart: unless-stopped
+    stop_grace_period: 35s
     volumes:
       - ./backend/config/egress/squid.conf:/etc/squid/squid.conf:ro
       - ./backend/config/egress/blocked-destinations-docker-desktop.conf:/etc/squid/blocked-destinations.conf:ro

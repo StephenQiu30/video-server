@@ -1,11 +1,45 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import httpx
 import pytest
+from app.application.downloads.errors import MediaInspectionAccessRequired
 from app.infrastructure.media_runner import MediaRunnerHttpClient
 from app.runner.contracts import DownloadPlanContract
+
+
+@pytest.mark.asyncio
+async def test_inspect_exposes_provider_access_requirement() -> None:
+    async def respond(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            422,
+            json={
+                "error": {
+                    "code": "provider_access_required",
+                    "message": "provider access required",
+                }
+            },
+        )
+
+    http = httpx.AsyncClient(
+        base_url="http://runner",
+        transport=httpx.MockTransport(respond),
+    )
+    client = MediaRunnerHttpClient(
+        base_url="http://runner",
+        secret=b"s" * 32,
+        workspace_root=Path("."),
+        inspect_timeout_seconds=1,
+        download_timeout_seconds=1,
+        client=http,
+    )
+
+    with pytest.raises(MediaInspectionAccessRequired):
+        await client.inspect("https://www.douyin.com/video/123")
+
+    await http.aclose()
 
 
 @pytest.mark.asyncio

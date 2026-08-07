@@ -22,6 +22,22 @@ def test_preserves_unlisted_and_non_vimeo_urls() -> None:
         provider_request_url("https://vimeo.com/76979871/private-hash")
         == "https://vimeo.com/76979871/private-hash"
     )
+
+
+def test_normalizes_douyin_shared_video_urls() -> None:
+    assert (
+        provider_request_url(
+            "https://www.douyin.com/jingxuan?modal_id=7647907920252949425"
+        )
+        == "https://www.douyin.com/video/7647907920252949425"
+    )
+    assert (
+        provider_request_url("https://www.douyin.com/share/video/7647907920252949425")
+        == "https://www.douyin.com/video/7647907920252949425"
+    )
+    assert provider_request_url("https://www.douyin.com/video/123") == (
+        "https://www.douyin.com/video/123"
+    )
     assert (
         provider_request_url("https://media.example.com/76979871")
         == "https://media.example.com/76979871"
@@ -40,3 +56,21 @@ def test_targets_tiktok_request_impersonation_and_retries() -> None:
     assert provider_command_args("https://vimeo.com/123") == ()
     assert provider_inspection_attempts("https://vimeo.com/123") == 2
     assert provider_inspection_retry_delay("https://vimeo.com/123") == 1
+
+
+def test_targets_douyin_request_impersonation_and_retries() -> None:
+    url = "https://www.douyin.com/video/123"
+
+    assert provider_command_args(url) == (
+        "--impersonate",
+        "Chrome-136:Macos-15",
+    )
+    assert provider_inspection_attempts(url) == 8
+    assert provider_inspection_retry_delay(url) == 0.5
+
+    short_url = "https://v.douyin.com/example/"
+    assert provider_command_args(short_url) == (
+        "--impersonate",
+        "Chrome-136:Macos-15",
+    )
+    assert provider_inspection_attempts(short_url) == 8

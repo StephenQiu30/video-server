@@ -223,6 +223,8 @@ class MediaCommands:
         except OSError as exc:
             raise RunnerFailure("runner_dependency_unavailable", status=503) from exc
         if result.returncode != 0:
+            if _requires_provider_access(command, result.stderr):
+                raise RunnerFailure("provider_access_required", status=422)
             raise RunnerFailure(failure_code, status=502)
         return result
 
@@ -248,3 +250,10 @@ class MediaCommands:
             "--proxy",
             self._settings.runner_egress_proxy,
         )
+
+
+def _requires_provider_access(command: Sequence[str], stderr: bytes) -> bool:
+    if not command or Path(command[0]).name.casefold() not in {"yt-dlp", "yt-dlp.exe"}:
+        return False
+    normalized = stderr.lower()
+    return b"fresh cookies" in normalized and b"needed" in normalized
