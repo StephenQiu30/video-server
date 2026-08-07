@@ -5,7 +5,7 @@
 | 文件 | 职责 |
 | --- | --- |
 | `docker-compose.yml` | 本地 `.env`、宿主机端口、完整服务拓扑、健康检查、依赖关系和卷 |
-| `docker-compose-prod.yml` | 生产 `.env.prod`、生产镜像、容器名和对外端口 |
+| `docker-compose-prod.yml` | 生产 `.env.prod`、生产镜像和对外端口 |
 
 本地文件集中定义完整服务拓扑和本地环境配置；生产文件只覆盖生产差异，不复制整套服务。仓库不使用 `deploy/` 目录。环境变量的具体值只写在 `.env.example`、`.env.prod.example` 或被 Git 忽略的 `.env*` 文件中。
 
@@ -19,7 +19,7 @@ docker compose --env-file .env -f docker-compose.yml up -d --build
 
 本地配置可直接启动完整环境。入口为 <http://localhost:8101>。Swagger UI 位于 <http://localhost:8101/docs>，OpenAPI 契约位于 <http://localhost:8101/openapi.json>。
 
-所有服务都显式声明 `container_name`，容器名稳定为 `video-server-local-api`、`video-server-local-postgres` 等，不会出现 `xxx-1` 副本后缀。环境配置读取被 Git 忽略的 `.env`，首次启动前从 `.env.example` 复制。
+所有服务都显式声明 `container_name`，直接使用 `api`、`postgres`、`rabbitmq`、`minio` 等服务原名，不会出现 `xxx-1` 副本后缀。环境配置读取被 Git 忽略的 `.env`，首次启动前从 `.env.example` 复制。
 
 ## 生产环境
 
@@ -40,7 +40,7 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod
 
 ## 数据和停止
 
-- 本地和生产组合分别使用独立的 Compose 项目名和作用域卷，不共享数据卷。
+- 本地和生产组合分别使用独立的 Compose 项目名和作用域卷，不共享数据卷；两套环境容器名相同，同一主机不要同时启动。
 - Runner 与下载 Worker 共享的工作卷只保存单任务临时文件；成功上传或失败后均应清理。
 - 常规停止使用与启动相同的文件组合执行 `docker compose ... down`；不得在未确认备份时添加 `--volumes`。
 - `.env`、用户 URL、Cookie、Authorization、provider key 和完整模型输出不得进入日志或提交。

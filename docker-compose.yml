@@ -14,7 +14,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runtime
-    container_name: video-server-local-api
+    container_name: api
     ports:
       - "127.0.0.1:8101:8101"
     command: ["python", "-m", "app.main"]
@@ -46,7 +46,7 @@ services:
     <<: *app
     env_file:
       - .env
-    container_name: video-server-local-outbox
+    container_name: outbox
     command: ["python", "-m", "app.workers.outbox.main"]
     depends_on:
       postgres:
@@ -58,7 +58,7 @@ services:
     <<: *app
     env_file:
       - .env
-    container_name: video-server-local-worker-download
+    container_name: worker-download
     command: ["python", "-m", "app.workers.download.main"]
     volumes:
       - runner_work:/work
@@ -80,7 +80,7 @@ services:
     <<: *app
     env_file:
       - .env
-    container_name: video-server-local-worker-analysis
+    container_name: worker-analysis
     command: ["python", "-m", "app.workers.analysis.main"]
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -102,7 +102,7 @@ services:
     <<: *app
     env_file:
       - .env
-    container_name: video-server-local-media-runner
+    container_name: media-runner
     command:
       [
         "python",
@@ -138,7 +138,7 @@ services:
 
   egress-proxy:
     image: ubuntu/squid:6.6-24.04_edge
-    container_name: video-server-local-egress-proxy
+    container_name: egress-proxy
     entrypoint: ["squid"]
     command: ["-N", "-f", "/etc/squid/squid.conf"]
     restart: unless-stopped
@@ -155,7 +155,7 @@ services:
 
   workspace-init:
     <<: *app
-    container_name: video-server-local-workspace-init
+    container_name: workspace-init
     user: "0:0"
     command: ["sh", "-c", "install -d -o 10001 -g 10001 -m 0700 /work /analysis-work"]
     restart: "no"
@@ -167,7 +167,7 @@ services:
     image: postgres:17.5-alpine
     env_file:
       - .env
-    container_name: video-server-local-postgres
+    container_name: postgres
     restart: unless-stopped
     ports:
       - "127.0.0.1:${POSTGRES_HOST_PORT:-15432}:5432"
@@ -184,8 +184,8 @@ services:
     image: rabbitmq:4.0.9-management
     env_file:
       - .env
-    container_name: video-server-local-rabbitmq
-    hostname: video-server-local-rabbitmq
+    container_name: rabbitmq
+    hostname: rabbitmq
     restart: unless-stopped
     ports:
       - "127.0.0.1:${RABBITMQ_HOST_PORT:-5673}:5672"
@@ -202,7 +202,7 @@ services:
     image: minio/minio:RELEASE.2025-02-28T09-55-16Z
     env_file:
       - .env
-    container_name: video-server-local-minio
+    container_name: minio
     command: ["server", "/data", "--address", ":9000", "--console-address", ":9001"]
     restart: unless-stopped
     ports:
@@ -220,7 +220,7 @@ services:
     image: minio/mc:latest
     env_file:
       - .env
-    container_name: video-server-local-minio-init
+    container_name: minio-init
     entrypoint: ["/bin/sh", "/config/init.sh"]
     restart: "no"
     volumes:
