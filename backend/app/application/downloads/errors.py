@@ -16,6 +16,7 @@ class ApplicationErrorCode(StrEnum):
     INVALID_URL = "invalid_url"
     NOT_FOUND = "not_found"
     PROVIDER_ACCESS_REQUIRED = "provider_access_required"
+    PROVIDER_LINK_UNAVAILABLE = "provider_link_unavailable"
     RESOURCE_EXPIRED = "resource_expired"
 
 
@@ -43,6 +44,10 @@ class MediaInspectionFailure(RuntimeError):
 
 class MediaInspectionAccessRequired(MediaInspectionFailure):
     """The provider requires a browser session that this service does not accept."""
+
+
+class MediaInspectionLinkUnavailable(MediaInspectionFailure):
+    """The submitted provider link no longer resolves to playable media."""
 
 
 class MediaInspectionTimeout(MediaInspectionFailure):

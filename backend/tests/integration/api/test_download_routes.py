@@ -183,6 +183,7 @@ def test_application_errors_are_rfc9457_problem_details(tmp_path: Path) -> None:
         (ApplicationErrorCode.INSPECTION_FAILED, 502),
         (ApplicationErrorCode.INSPECTION_TIMEOUT, 504),
         (ApplicationErrorCode.PROVIDER_ACCESS_REQUIRED, 422),
+        (ApplicationErrorCode.PROVIDER_LINK_UNAVAILABLE, 422),
     ],
 )
 def test_inspection_errors_have_stable_http_mapping(

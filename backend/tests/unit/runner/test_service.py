@@ -229,6 +229,27 @@ async def test_inspect_enriches_sparse_provider_formats_with_bounded_probe(
     )
 
 
+async def test_inspect_recovers_missing_duration_from_sparse_probe(
+    tmp_path: Path,
+) -> None:
+    info = split_media_info()
+    info["duration"] = None
+    info["formats"] = [
+        {
+            "format_id": "http-832",
+            "ext": "mp4",
+            "url": "https://cdn.example.com/video.mp4",
+        }
+    ]
+    supervisor = FixtureSupervisor(info)
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    response = await service.inspect("https://media.example.com/video")
+
+    assert response.media.duration_seconds == 30
+    assert response.streams[0].video_codec_family.value == "h264"
+
+
 async def test_inspect_retries_and_uses_bounded_local_probe_sample(
     tmp_path: Path,
 ) -> None:

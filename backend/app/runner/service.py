@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+from dataclasses import replace
 from urllib.parse import urljoin
 
 import httpx
@@ -190,9 +191,16 @@ class MediaRunnerService:
         output = workspace.validate_outputs([artifact.name])[0]
         self._active.update(request.task_id, RunnerTaskStage.VERIFYING, 85)
         probe_payload = await self._commands.probe(artifact, workspace.path)
+        verification_plan = plan
+        if selection.video.width is not None and selection.video.height is not None:
+            verification_plan = replace(
+                plan,
+                width=selection.video.width,
+                height=selection.video.height,
+            )
         verified = verify_probe(
             probe_payload,
-            plan=plan,
+            plan=verification_plan,
             expected_container=selection.output_container,
             expected_duration=inspection.duration_seconds,
             max_duration=self._settings.runner_max_duration_seconds,
@@ -236,6 +244,12 @@ class MediaRunnerService:
         if payload.get("direct") is True:
             probe = await self._commands.probe_remote(safe_url, workspace.path)
             payload = enrich_direct_metadata(payload, probe)
+        # Some extractors (for example Tencent Video) return only signed media
+        # URLs during the initial pass. Probe those URLs before validating the
+        # top-level metadata so duration and codec fields can be recovered.
+        duration = payload.get("duration")
+        if not isinstance(duration, (int, float)) or duration <= 0:
+            payload = await self._enrich_sparse_formats(payload, workspace)
         try:
             inspection = normalize_for_settings(payload, self._settings)
         except RunnerFailure as exc:
@@ -306,6 +320,15 @@ class MediaRunnerService:
             enriched_formats[index] = enriched
         enriched_payload = dict(payload)
         enriched_payload["formats"] = enriched_formats
+        current_duration = enriched_payload.get("duration")
+        if not isinstance(current_duration, (int, float)) or current_duration <= 0:
+            for value in enriched_formats:
+                if not isinstance(value, dict):
+                    continue
+                duration = value.get("duration")
+                if isinstance(duration, (int, float)) and duration > 0:
+                    enriched_payload["duration"] = duration
+                    break
         return enriched_payload
 
     async def _enrich_from_probe_sample(

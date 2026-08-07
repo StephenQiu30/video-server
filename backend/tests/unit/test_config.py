@@ -39,6 +39,9 @@ def test_download_limits_are_validated() -> None:
     with pytest.raises(ValidationError):
         Settings(app_env="test", download_timeout_seconds=0)
 
+    with pytest.raises(ValidationError):
+        Settings(app_env="test", download_worker_threads=0)
+
 
 def test_signing_secrets_require_adequate_entropy_capacity() -> None:
     with pytest.raises(ValidationError, match="at least 32 bytes"):

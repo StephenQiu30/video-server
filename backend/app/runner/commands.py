@@ -225,6 +225,8 @@ class MediaCommands:
         if result.returncode != 0:
             if _requires_provider_access(command, result.stderr):
                 raise RunnerFailure("provider_access_required", status=422)
+            if _is_unavailable_provider_link(command, result.stderr):
+                raise RunnerFailure("provider_link_unavailable", status=422)
             raise RunnerFailure(failure_code, status=502)
         return result
 
@@ -257,3 +259,19 @@ def _requires_provider_access(command: Sequence[str], stderr: bytes) -> bool:
         return False
     normalized = stderr.lower()
     return b"fresh cookies" in normalized and b"needed" in normalized
+
+
+def _is_unavailable_provider_link(command: Sequence[str], stderr: bytes) -> bool:
+    if not command or Path(command[0]).name.casefold() not in {"yt-dlp", "yt-dlp.exe"}:
+        return False
+    normalized = stderr.lower()
+    if b"unsupported url:" not in normalized:
+        return False
+    command_text = " ".join(command).casefold()
+    return any(
+        host in command_text
+        for host in (
+            "douyin.com",
+            "iesdouyin.com",
+        )
+    )

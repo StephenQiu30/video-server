@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     analysis_queue: str = "video.analysis"
     analysis_routing_key: Literal["analysis.requested"] = "analysis.requested"
     worker_prefetch: int = Field(default=2, ge=1, le=32)
+    download_worker_threads: int = Field(default=4, ge=1, le=64)
     outbox_batch_size: int = Field(default=50, ge=1, le=200)
     outbox_poll_interval_seconds: float = Field(default=1.0, ge=0.1, le=60)
 

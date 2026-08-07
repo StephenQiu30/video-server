@@ -9,6 +9,7 @@ from app.application.downloads.errors import (
     ApplicationErrorCode,
     MediaInspectionAccessRequired,
     MediaInspectionFailure,
+    MediaInspectionLinkUnavailable,
     MediaInspectionTimeout,
     PersistenceIdempotencyConflict,
 )
@@ -74,6 +75,10 @@ class InspectMedia:
         except MediaInspectionAccessRequired as exc:
             raise ApplicationError(
                 ApplicationErrorCode.PROVIDER_ACCESS_REQUIRED
+            ) from exc
+        except MediaInspectionLinkUnavailable as exc:
+            raise ApplicationError(
+                ApplicationErrorCode.PROVIDER_LINK_UNAVAILABLE
             ) from exc
         except MediaInspectionTimeout as exc:
             raise ApplicationError(ApplicationErrorCode.INSPECTION_TIMEOUT) from exc

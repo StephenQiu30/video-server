@@ -95,7 +95,8 @@ def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
             settings.rabbitmq_url,
             topology,
             execution,
-            prefetch=settings.worker_prefetch,
+            prefetch=settings.download_worker_threads,
+            workers=settings.download_worker_threads,
         ),
         sweeper=DownloadRecoverySweeper(
             raw_repository,

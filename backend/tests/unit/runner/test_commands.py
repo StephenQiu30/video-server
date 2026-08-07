@@ -56,3 +56,33 @@ async def test_non_ytdlp_failures_keep_their_original_code(tmp_path: Path) -> No
 
     assert caught.value.code == "inspection_failed"
     assert caught.value.status == 502
+
+
+@pytest.mark.asyncio
+async def test_douyin_short_link_that_redirects_to_home_is_classified_as_unavailable(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(b"ERROR: Unsupported URL: https://www.douyin.com/"),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect("https://v.douyin.com/KWku50HECg/", tmp_path)
+
+    assert caught.value.code == "provider_link_unavailable"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
+async def test_generic_unsupported_url_keeps_inspection_failure(tmp_path: Path) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(b"ERROR: Unsupported URL: https://media.example/"),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect("https://media.example/video", tmp_path)
+
+    assert caught.value.code == "inspection_failed"
+    assert caught.value.status == 502

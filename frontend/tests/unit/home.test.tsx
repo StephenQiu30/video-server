@@ -87,6 +87,42 @@ describe('HomePage', () => {
     expect(requestHeader(1, 'Idempotency-Key')).toBe('stable-key');
   });
 
+  it('clears the previous result when a later inspection fails', async () => {
+    requestMock
+      .mockResolvedValueOnce(inspection)
+      .mockRejectedValueOnce(
+        new ApiError(
+          422,
+          'provider_access_required',
+          'Provider access required',
+          'This provider requires a fresh browser session; cookie uploads are not supported.',
+        ),
+      );
+    render(<HomePage />);
+
+    const input = screen.getByLabelText('公开视频地址');
+    fireEvent.change(input, {
+      target: { value: 'https://media.example/owned' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '解析视频' }));
+    expect(await screen.findByText('Owned video')).toBeInTheDocument();
+
+    fireEvent.change(input, {
+      target: { value: 'https://v.douyin.com/uLK6Ofbm54k/' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '解析视频' }));
+
+    expect(
+      await screen.findByText(
+        'This provider requires a fresh browser session; cookie uploads are not supported.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Owned video')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '开始下载' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('shows an empty format result without enabling download', async () => {
     requestMock.mockResolvedValue({ ...inspection, formats: [] });
     vi.stubGlobal('crypto', {

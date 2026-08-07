@@ -78,6 +78,14 @@ _ERRORS: dict[ApplicationErrorCode, tuple[int, str, str]] = {
             "cookie uploads are not supported."
         ),
     ),
+    ApplicationErrorCode.PROVIDER_LINK_UNAVAILABLE: (
+        422,
+        "Provider link unavailable",
+        (
+            "This sharing link no longer resolves to a playable video. "
+            "Copy a fresh Douyin video link and try again."
+        ),
+    ),
     ApplicationErrorCode.RESOURCE_EXPIRED: (
         404,
         "Not found",

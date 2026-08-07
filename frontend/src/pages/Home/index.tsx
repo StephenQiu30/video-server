@@ -39,11 +39,15 @@ export default function HomePage() {
     event.preventDefault();
     const normalized = normalizeMediaUrl(url);
     if (!normalized) {
+      setInspection(null);
+      setSelectedId('');
       setError(URL_MESSAGE);
       return;
     }
     setBusy('inspect');
     setError(null);
+    setInspection(null);
+    setSelectedId('');
     try {
       const result = await inspectMedia(
         normalized,

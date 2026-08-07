@@ -14,7 +14,10 @@ from app.application.downloads import (
     RunnerFormat,
     RunnerInspection,
 )
-from app.application.downloads.errors import MediaInspectionAccessRequired
+from app.application.downloads.errors import (
+    MediaInspectionAccessRequired,
+    MediaInspectionLinkUnavailable,
+)
 from app.domain.downloads import (
     AudioCodecFamily,
     CompatibilityProfile,
@@ -164,8 +167,24 @@ async def test_provider_access_requirement_is_reported_explicitly() -> None:
     assert caught.value.code is ApplicationErrorCode.PROVIDER_ACCESS_REQUIRED
 
 
+@pytest.mark.asyncio
+async def test_unavailable_provider_link_is_reported_explicitly() -> None:
+    repository = FakeRepository()
+    inspect, runner, _ = use_case(repository, runner_result())
+    runner.inspect = _raise_provider_link_unavailable  # type: ignore[method-assign]
+
+    with pytest.raises(ApplicationError) as caught:
+        await inspect(URL, OWNER, "provider-link-unavailable")
+
+    assert caught.value.code is ApplicationErrorCode.PROVIDER_LINK_UNAVAILABLE
+
+
 async def _raise_provider_access(_: str) -> RunnerInspection:
     raise MediaInspectionAccessRequired
+
+
+async def _raise_provider_link_unavailable(_: str) -> RunnerInspection:
+    raise MediaInspectionLinkUnavailable
 
 
 @pytest.mark.asyncio
