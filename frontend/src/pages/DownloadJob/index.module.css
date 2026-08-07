@@ -1,6 +1,6 @@
 .container {
   min-height: calc(100vh - 60px);
-  background: #f7f7f8;
+  background: #f0f2f5;
 }
 
 .container :global(.ant-page-header) {
@@ -12,7 +12,7 @@
 .container :global(.ant-page-header-heading-title) {
   max-width: min(70vw, 860px);
   overflow: hidden;
-  color: #171717;
+  color: rgb(0 0 0 / 88%);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -34,8 +34,8 @@
 .loading {
   padding: 28px;
   background: #fff;
-  border: 1px solid #e5e5e5;
-  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
 }
 
 .workspace {
@@ -43,8 +43,8 @@
   grid-template-columns: minmax(260px, 28fr) minmax(0, 72fr);
   overflow: hidden;
   background: #fff;
-  border: 1px solid #e5e5e5;
-  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
 }
 
 .mediaColumn,
@@ -53,7 +53,7 @@
 }
 
 .mediaColumn {
-  border-right: 1px solid #e5e5e5;
+  border-right: 1px solid #f0f0f0;
 }
 
 .waiting {
@@ -73,7 +73,7 @@
 
   .mediaColumn {
     border-right: 0;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid #f0f0f0;
   }
 }
 

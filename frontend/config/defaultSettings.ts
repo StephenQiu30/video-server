@@ -1,7 +1,7 @@
 import type { ProLayoutProps } from '@ant-design/pro-components';
 
 const defaultSettings: ProLayoutProps = {
-  colorPrimary: '#171717',
+  colorPrimary: '#1677ff',
   contentWidth: 'Fluid',
   fixedHeader: true,
   layout: 'top',

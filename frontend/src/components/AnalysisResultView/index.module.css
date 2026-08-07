@@ -23,18 +23,18 @@
 .summaryTab h3,
 .result :global(.ant-tabs-tabpane) > section > h3 {
   margin: 0 0 12px;
-  color: #1f2937;
+  color: rgb(0 0 0 / 88%);
   font-size: 18px;
 }
 
 .summaryBlock {
   padding-bottom: 18px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .summaryBlock p {
   margin: 0;
-  color: #4b5563;
+  color: rgb(0 0 0 / 65%);
   font-size: 15px;
   line-height: 1.85;
 }
@@ -44,20 +44,20 @@
   gap: 8px;
   align-items: center;
   margin-top: 14px;
-  color: #8a94a6;
+  color: rgb(0 0 0 / 45%);
   font-size: 13px;
 }
 
 .compactSection {
   padding-bottom: 20px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .statements {
   padding: 0;
   margin: 0;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #f0f0f0;
   border-radius: 6px;
   list-style: none;
 }
@@ -65,7 +65,7 @@
 .statements li {
   min-height: 52px;
   padding: 10px 12px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .statements li:last-child {
@@ -80,7 +80,7 @@
 
 .statements p {
   margin: 0;
-  color: #4b5563;
+  color: rgb(0 0 0 / 65%);
   line-height: 1.6;
 }
 
@@ -114,13 +114,13 @@
 }
 
 .timeline strong {
-  color: #374151;
+  color: rgb(0 0 0 / 88%);
 }
 
 .timeline p,
 .empty {
   margin: 4px 0 0;
-  color: #8a94a6;
+  color: rgb(0 0 0 / 45%);
   font-size: 13px;
   line-height: 1.6;
 }

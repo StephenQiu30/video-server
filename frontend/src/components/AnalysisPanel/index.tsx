@@ -163,23 +163,19 @@ export default function AnalysisPanel({
               第 {job.attempt} 次尝试
             </Tag>
           </Flex>
-          <Progress
-            percent={job.progress}
-            status={job.status === 'failed' ? 'exception' : 'active'}
-          />
+          <Progress percent={job.progress} status="active" />
           <p>当前阶段：{job.stage ? stageLabels[job.stage] : '—'}</p>
           {job.status === 'failed' ? (
             <Alert
               showIcon
               title={`错误代码：${job.error_code ?? 'unknown_error'}`}
-              type="error"
+              type="info"
             />
           ) : null}
           <Space wrap>
             {cancellableAnalysisStatuses.has(job.status) ? (
               <Button
                 aria-label="取消分析"
-                danger
                 loading={action === 'cancel'}
                 onClick={state.cancel}
               >

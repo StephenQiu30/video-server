@@ -1,21 +1,20 @@
-import { ClockCircleOutlined, DownloadOutlined } from '@ant-design/icons';
-import { ProCard } from '@ant-design/pro-components';
+import type { ProColumns } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import {
-  Button,
-  Flex,
-  Image,
-  Progress,
-  Skeleton,
-  Space,
-  Statistic,
-  Tag,
-  Typography,
-} from 'antd';
+import { Button, Image, Progress, Tag, Typography } from 'antd';
 
 import stageCover from '@/assets/product-launch-stage.webp';
 import type { DownloadHistoryItem, DownloadStatus } from '@/types/video';
 import styles from './components.module.css';
+
+export const statusOptions = [
+  { label: '全部状态', value: '' },
+  { label: '排队中', value: 'queued' },
+  { label: '下载中', value: 'running' },
+  { label: '等待重试', value: 'retry_wait' },
+  { label: '已完成', value: 'succeeded' },
+  { label: '失败', value: 'failed' },
+  { label: '已取消', value: 'cancelled' },
+];
 
 const statusLabels: Record<DownloadStatus, string> = {
   queued: '排队中',
@@ -26,120 +25,82 @@ const statusLabels: Record<DownloadStatus, string> = {
   cancelled: '已取消',
 };
 
-const statusColors: Record<DownloadStatus, string> = {
-  queued: 'blue',
-  running: 'processing',
-  retry_wait: 'gold',
-  succeeded: 'success',
-  failed: 'error',
-  cancelled: 'default',
-};
-
-export function StatCard({
-  label,
-  tone,
-  value,
-}: {
-  label: string;
-  tone?: 'success' | 'active' | 'error';
-  value: number;
-}) {
-  return (
-    <ProCard
-      className={`${styles.statCard} ${tone ? styles[tone] : ''}`}
-      variant="outlined"
-    >
-      <Statistic title={label} value={value} />
-    </ProCard>
-  );
-}
-
-export function HistoryItem({
-  item,
-  loading,
+export function historyColumns({
+  downloadId,
   onDownload,
 }: {
-  item: DownloadHistoryItem;
-  loading: boolean;
+  downloadId: string | null;
   onDownload: (item: DownloadHistoryItem) => void;
-}) {
-  const active = ['queued', 'running', 'retry_wait'].includes(item.status);
-  return (
-    <article className={styles.record}>
-      <Image
-        alt={`${item.title} 视频封面`}
-        className={styles.cover}
-        fallback={stageCover}
-        preview={false}
-        src={item.thumbnail_url ?? stageCover}
-      />
-      <div className={styles.recordBody}>
-        <Flex align="center" gap={8} wrap>
-          <Typography.Title
-            className={styles.recordTitle}
-            ellipsis={{ rows: 1 }}
-            level={3}
-          >
+}): ProColumns<DownloadHistoryItem>[] {
+  return [
+    {
+      dataIndex: 'title',
+      title: '视频',
+      render: (_, item) => (
+        <div className={styles.videoCell}>
+          <Image
+            alt={`${item.title} 视频封面`}
+            fallback={stageCover}
+            preview={false}
+            src={item.thumbnail_url ?? stageCover}
+          />
+          <Typography.Text ellipsis strong>
             {item.title}
-          </Typography.Title>
-          <Tag color={statusColors[item.status]}>
-            {statusLabels[item.status]}
-          </Tag>
-        </Flex>
-        <Typography.Text className={styles.format} type="secondary">
-          {item.format_name}
-        </Typography.Text>
-        <Typography.Text className={styles.time} type="secondary">
-          <ClockCircleOutlined /> {formatDate(item.created_at)}
-        </Typography.Text>
-        {active ? (
-          <Progress percent={item.progress} showInfo={false} size="small" />
-        ) : null}
-        {item.status === 'failed' ? (
-          <Typography.Text className={styles.errorCode} type="danger">
-            错误代码：{item.error_code ?? 'unknown_error'}
           </Typography.Text>
-        ) : null}
-      </div>
-      <Space className={styles.actions} orientation="vertical" size={8}>
-        <Button onClick={() => history.push(`/downloads/${item.id}`)}>
+        </div>
+      ),
+    },
+    { dataIndex: 'format_name', title: '清晰度 / 格式', width: 180 },
+    {
+      dataIndex: 'status',
+      title: '状态',
+      width: 180,
+      render: (_, item) => <HistoryStatus item={item} />,
+    },
+    {
+      dataIndex: 'created_at',
+      title: '创建时间',
+      valueType: 'dateTime',
+      width: 190,
+    },
+    {
+      fixed: 'right',
+      title: '操作',
+      valueType: 'option',
+      width: 160,
+      render: (_, item) => [
+        <Button
+          key="view"
+          onClick={() => history.push(`/downloads/${item.id}`)}
+          type="link"
+        >
           查看任务
-        </Button>
-        {item.status === 'succeeded' ? (
+        </Button>,
+        item.status === 'succeeded' ? (
           <Button
-            icon={<DownloadOutlined />}
-            loading={loading}
+            key="download"
+            loading={downloadId === item.id}
             onClick={() => onDownload(item)}
-            type="primary"
+            type="link"
           >
             获取文件
           </Button>
-        ) : null}
-      </Space>
-    </article>
-  );
+        ) : null,
+      ],
+    },
+  ];
 }
 
-export function HistorySkeleton() {
+function HistoryStatus({ item }: { item: DownloadHistoryItem }) {
+  const active = ['queued', 'running', 'retry_wait'].includes(item.status);
   return (
-    <div className={styles.skeleton}>
-      {[1, 2, 3].map((item) => (
-        <Skeleton
-          active
-          avatar={{ shape: 'square', size: 112 }}
-          key={item}
-          paragraph={{ rows: 2 }}
-        />
-      ))}
+    <div className={styles.statusCell}>
+      <Tag color={active || item.status === 'succeeded' ? 'blue' : undefined}>
+        {statusLabels[item.status]}
+      </Tag>
+      {active ? (
+        <Progress percent={item.progress} showInfo={false} size="small" />
+      ) : null}
     </div>
   );
-}
-
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat('zh-CN', {
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    month: '2-digit',
-  }).format(new Date(value));
 }

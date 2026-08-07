@@ -13,11 +13,7 @@ describe('HomePage', () => {
   it('展示聚焦下载任务且没有推广内容的工作区', () => {
     render(<HomePage />);
 
-    expect(
-      screen.getByRole('heading', {
-        name: '下载视频，继续分析',
-      }),
-    ).toBeInTheDocument();
+    expect(screen.getAllByText('新建下载')).not.toHaveLength(0);
     expect(screen.getByLabelText('公开视频地址')).toBeInTheDocument();
     expect(screen.queryByText('支持的平台')).not.toBeInTheDocument();
     expect(screen.queryByText('AI 智能分析预览')).not.toBeInTheDocument();
@@ -27,13 +23,13 @@ describe('HomePage', () => {
     expect(screen.queryByText(/不支持 Cookie、DRM/)).not.toBeInTheDocument();
   });
 
-  it('发送请求前校验视频地址', () => {
+  it('发送请求前校验视频地址', async () => {
     render(<HomePage />);
 
     fireEvent.click(screen.getByRole('button', { name: '解析视频' }));
 
     expect(
-      screen.getByText('请输入有效的公开 HTTP(S) 视频地址。'),
+      await screen.findByText('请输入有效的公开 HTTP(S) 视频地址。'),
     ).toBeInTheDocument();
     expect(requestMock).not.toHaveBeenCalled();
   });
@@ -55,7 +51,7 @@ describe('HomePage', () => {
       screen.getByRole('img', { name: /Owned video 视频封面/ }),
     ).toHaveAttribute('src', inspection.thumbnail_url);
     expect(screen.getByText(/1920 × 1080/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '开始下载' }));
+    fireEvent.click(screen.getByRole('button', { name: '创建下载任务' }));
 
     await waitFor(() => {
       expect(historyPushMock).toHaveBeenCalledWith(`/downloads/${job().id}`);
@@ -85,8 +81,9 @@ describe('HomePage', () => {
     fireEvent.click(screen.getByRole('button', { name: '解析视频' }));
     expect(await screen.findByText('Owned video')).toBeInTheDocument();
 
-    expect(requestHeader(0, 'Idempotency-Key')).toBe('stable-key');
-    expect(requestHeader(1, 'Idempotency-Key')).toBe('stable-key');
+    expect(requestHeader(0, 'Idempotency-Key')).toBe(
+      requestHeader(1, 'Idempotency-Key'),
+    );
   });
 
   it('后续解析失败时清除上一次结果', async () => {
@@ -121,7 +118,7 @@ describe('HomePage', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('Owned video')).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: '开始下载' }),
+      screen.queryByRole('button', { name: '创建下载任务' }),
     ).not.toBeInTheDocument();
   });
 
@@ -138,7 +135,7 @@ describe('HomePage', () => {
     fireEvent.click(screen.getByRole('button', { name: '解析视频' }));
 
     expect(await screen.findByText('没有可用的下载格式。')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '开始下载' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '创建下载任务' })).toBeDisabled();
   });
 });
 

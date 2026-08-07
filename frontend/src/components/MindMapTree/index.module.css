@@ -2,9 +2,9 @@
   min-height: 250px;
   padding: 18px;
   overflow: auto;
-  background: #fbfcfe;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
 }
 
 .mindMap :global(.ant-tree) {
@@ -25,7 +25,7 @@
 }
 
 .node strong {
-  color: #1f2937;
+  color: rgb(0 0 0 / 88%);
 }
 
 .node span {
@@ -37,7 +37,7 @@
 .node small {
   grid-column: 1 / -1;
   max-width: 420px;
-  color: #64748b;
+  color: rgb(0 0 0 / 65%);
   font-size: 12px;
   white-space: normal;
 }

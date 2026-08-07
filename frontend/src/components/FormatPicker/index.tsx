@@ -33,10 +33,10 @@ export default function FormatPicker({
     <fieldset className={styles.group}>
       <legend>可用下载格式</legend>
       <div aria-hidden className={styles.tableHeader}>
-        <span>格式</span>
         <span>清晰度</span>
+        <span>格式</span>
         <span>视频编码</span>
-        <span>帧率</span>
+        <span>音频</span>
       </div>
       <Radio.Group
         className={styles.options}
@@ -49,22 +49,23 @@ export default function FormatPicker({
             <Radio className={styles.option} key={format.id} value={format.id}>
               <span className={styles.copy}>
                 <span className={styles.primary} data-label="格式">
-                  <strong>{plan.container_preference.toUpperCase()}</strong>
-                </span>
-                <span data-label="清晰度">
                   <strong>{plan.height}P</strong>
                   <small>
                     {plan.width} × {plan.height} ·{' '}
                     {plan.dynamic_range.toUpperCase()}
                   </small>
                 </span>
+                <span data-label="格式">
+                  <strong>{plan.container_preference.toUpperCase()}</strong>
+                  <small>{format.display_name}</small>
+                </span>
                 <span data-label="视频编码">
                   <strong>{plan.video_codec_family.toUpperCase()}</strong>
-                  <small>音频 {plan.audio_codec_family.toUpperCase()}</small>
+                  <small>{fpsLabels[plan.fps_bucket]}</small>
                 </span>
-                <span data-label="帧率">
-                  <strong>{fpsLabels[plan.fps_bucket]}</strong>
-                  <small>{format.display_name}</small>
+                <span data-label="音频">
+                  <strong>{plan.audio_codec_family.toUpperCase()}</strong>
+                  <small>{plan.audio_language ?? '默认音轨'}</small>
                 </span>
               </span>
             </Radio>

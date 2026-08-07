@@ -1,5 +1,5 @@
 import { DownloadOutlined } from '@ant-design/icons';
-import { Button, Image, Tag, Typography } from 'antd';
+import { Button, Descriptions, Image, Space, Tag, Typography } from 'antd';
 
 import stageCover from '@/assets/product-launch-stage.webp';
 import FormatPicker from '@/components/FormatPicker';
@@ -23,57 +23,82 @@ export default function InspectionResult({
   onCreate,
   selectedId,
 }: InspectionResultProps) {
+  const selected = inspection.formats.find(({ id }) => id === selectedId);
+
   return (
     <div className={styles.workspace}>
       <section aria-labelledby="inspection-title" className={styles.summary}>
-        <div className={styles.media}>
-          <Image
-            alt={`${inspection.title} 视频封面`}
-            fallback={stageCover}
-            placeholder
-            preview={false}
-            src={inspection.thumbnail_url ?? stageCover}
-          />
-          <span>{formatDuration(inspection.duration_seconds)}</span>
-        </div>
-        <div className={styles.metadata}>
-          <Typography.Title id="inspection-title" level={2}>
-            {inspection.title}
-          </Typography.Title>
-          <div className={styles.metaTags}>
-            <Tag>{inspection.extractor_key}</Tag>
-            <Tag>{formatDuration(inspection.duration_seconds)}</Tag>
-            <Tag>{inspection.formats.length} 个格式</Tag>
+        <Typography.Title className={styles.sectionTitle} level={2}>
+          视频信息
+        </Typography.Title>
+        <div className={styles.overview}>
+          <div
+            className={styles.media}
+            style={{ backgroundImage: `url(${stageCover})` }}
+          >
+            <Image
+              alt={`${inspection.title} 视频封面`}
+              fallback={stageCover}
+              preview={false}
+              src={inspection.thumbnail_url ?? stageCover}
+            />
+            <span>{formatDuration(inspection.duration_seconds)}</span>
           </div>
-          <dl className={styles.details}>
-            <div>
-              <dt>媒体 ID</dt>
-              <dd>{inspection.provider_media_id}</dd>
-            </div>
-          </dl>
+          <div className={styles.metadata}>
+            <Typography.Title id="inspection-title" level={3}>
+              {inspection.title}
+            </Typography.Title>
+            <Space size={6} wrap>
+              <Tag color="blue">{inspection.extractor_key}</Tag>
+              <Tag>{inspection.formats.length} 个格式</Tag>
+            </Space>
+          </div>
         </div>
+        <Descriptions
+          className={styles.details}
+          column={1}
+          items={[
+            {
+              key: 'id',
+              label: '视频 ID',
+              children: inspection.provider_media_id,
+            },
+            {
+              key: 'duration',
+              label: '视频时长',
+              children: formatDuration(inspection.duration_seconds),
+            },
+            {
+              key: 'source',
+              label: '来源平台',
+              children: inspection.extractor_key,
+            },
+          ]}
+          size="small"
+        />
       </section>
 
       <section aria-labelledby="format-title" className={styles.formats}>
-        <header className={styles.formatHeading}>
-          <Typography.Title id="format-title" level={2}>
-            选择下载格式
-          </Typography.Title>
-          <Typography.Text type="secondary">
-            选择适合你的清晰度和文件格式
-          </Typography.Text>
-        </header>
+        <Typography.Title
+          className={styles.sectionTitle}
+          id="format-title"
+          level={2}
+        >
+          选择下载格式
+        </Typography.Title>
         <FormatPicker
           formats={inspection.formats}
           onChange={onChange}
           selectedId={selectedId}
         />
         <div className={styles.downloadBar}>
-          <Typography.Text type="secondary">
-            创建后可在任务页查看进度
+          <Typography.Text>
+            {selected
+              ? `已选择：${selected.plan.height}P · ${selected.plan.container_preference.toUpperCase()}`
+              : '请选择下载格式'}
           </Typography.Text>
           <Button
-            aria-label="开始下载"
+            aria-label="创建下载任务"
             disabled={!selectedId}
             icon={<DownloadOutlined />}
             loading={busy}
@@ -81,7 +106,7 @@ export default function InspectionResult({
             size="large"
             type="primary"
           >
-            开始下载
+            创建下载任务
           </Button>
         </div>
       </section>

@@ -119,8 +119,8 @@ function Summary({
           <section
             style={
               screens.lg
-                ? { borderLeft: '1px solid #e5e7eb', paddingLeft: 28 }
-                : { borderTop: '1px solid #e5e7eb', paddingTop: 22 }
+                ? { borderLeft: '1px solid #f0f0f0', paddingLeft: 28 }
+                : { borderTop: '1px solid #f0f0f0', paddingTop: 22 }
             }
           >
             <Typography.Title level={3}>思维导图预览</Typography.Title>

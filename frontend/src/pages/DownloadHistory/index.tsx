@@ -1,20 +1,7 @@
-import {
-  DownloadOutlined,
-  ReloadOutlined,
-  SearchOutlined,
-} from '@ant-design/icons';
-import { PageContainer, ProCard } from '@ant-design/pro-components';
+import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import { PageContainer, ProTable } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import {
-  Alert,
-  Button,
-  Empty,
-  Flex,
-  Input,
-  Pagination,
-  Select,
-  Typography,
-} from 'antd';
+import { Alert, Button, Empty, Input, Select } from 'antd';
 import { useState } from 'react';
 
 import {
@@ -23,19 +10,9 @@ import {
   triggerBrowserDownload,
 } from '@/services/download';
 import type { DownloadHistoryItem, DownloadStatus } from '@/types/video';
-import { HistoryItem, HistorySkeleton, StatCard } from './components';
+import { historyColumns, statusOptions } from './components';
 import { useDownloadHistory } from './hooks';
 import styles from './index.module.css';
-
-const statusOptions = [
-  { label: '全部状态', value: '' },
-  { label: '排队中', value: 'queued' },
-  { label: '下载中', value: 'running' },
-  { label: '等待重试', value: 'retry_wait' },
-  { label: '已完成', value: 'succeeded' },
-  { label: '失败', value: 'failed' },
-  { label: '已取消', value: 'cancelled' },
-];
 
 export default function DownloadHistoryPage() {
   const [page, setPage] = useState(1);
@@ -51,11 +28,10 @@ export default function DownloadHistoryPage() {
     search: search || undefined,
     status,
   });
-  const summary = state.data?.summary;
 
-  function applySearch() {
+  function applySearch(value = searchInput) {
     setPage(1);
-    setSearch(searchInput.trim());
+    setSearch(value.trim());
   }
 
   function applyStatus(value: string) {
@@ -76,55 +52,25 @@ export default function DownloadHistoryPage() {
     }
   }
 
+  const columns = historyColumns({ downloadId, onDownload: handleDownload });
+
   return (
-    <PageContainer className={styles.container} ghost title={false}>
+    <PageContainer
+      className={styles.container}
+      content="查看、筛选并继续处理已创建的下载任务。"
+      extra={[
+        <Button
+          icon={<PlusOutlined />}
+          key="new"
+          onClick={() => history.push('/')}
+          type="primary"
+        >
+          新建下载
+        </Button>,
+      ]}
+      title="下载历史"
+    >
       <main className={styles.page}>
-        <header className={styles.masthead}>
-          <div>
-            <Typography.Title level={1}>下载历史</Typography.Title>
-            <Typography.Paragraph>
-              每一次解析和下载，都会在这里留下可回到的记录。
-            </Typography.Paragraph>
-          </div>
-          <Button
-            className={styles.newButton}
-            icon={<DownloadOutlined />}
-            onClick={() => history.push('/')}
-            type="primary"
-          >
-            新建下载
-          </Button>
-        </header>
-
-        {summary ? (
-          <section aria-label="下载统计" className={styles.summaryGrid}>
-            <StatCard label="全部记录" value={summary.total} />
-            <StatCard label="已完成" value={summary.succeeded} tone="success" />
-            <StatCard label="处理中" value={summary.active} tone="active" />
-            <StatCard label="失败" value={summary.failed} tone="error" />
-          </section>
-        ) : null}
-
-        <ProCard className={styles.toolbar} variant="outlined">
-          <Flex gap={12} justify="space-between" wrap>
-            <Input.Search
-              allowClear
-              aria-label="搜索下载历史"
-              enterButton={<SearchOutlined />}
-              onChange={(event) => setSearchInput(event.target.value)}
-              onSearch={applySearch}
-              placeholder="按视频标题搜索"
-              value={searchInput}
-            />
-            <Select
-              aria-label="按状态筛选"
-              onChange={applyStatus}
-              options={statusOptions}
-              value={status ?? ''}
-            />
-          </Flex>
-        </ProCard>
-
         {actionError ? (
           <Alert
             action={
@@ -133,7 +79,7 @@ export default function DownloadHistoryPage() {
             className={styles.alert}
             showIcon
             title={actionError}
-            type="warning"
+            type="info"
           />
         ) : null}
         {state.error ? (
@@ -146,45 +92,72 @@ export default function DownloadHistoryPage() {
             className={styles.alert}
             showIcon
             title={state.error}
-            type="error"
+            type="info"
           />
         ) : null}
 
-        <section aria-label="下载记录" className={styles.records}>
-          {state.loading && !state.data ? <HistorySkeleton /> : null}
-          {!state.loading && state.data?.items.length === 0 ? (
-            <Empty
-              className={styles.empty}
-              description={
-                search || status ? '没有匹配的下载记录' : '还没有下载记录'
-              }
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
+        <ProTable<DownloadHistoryItem>
+          className={styles.table}
+          columns={columns}
+          dataSource={state.data?.items ?? []}
+          headerTitle="下载记录"
+          loading={state.loading && !state.data}
+          locale={{
+            emptyText: (
+              <Empty
+                className={styles.empty}
+                description={
+                  search || status ? '没有匹配的下载记录' : '还没有下载记录'
+                }
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              >
+                <Button onClick={() => history.push('/')} type="primary">
+                  新建下载
+                </Button>
+              </Empty>
+            ),
+          }}
+          options={false}
+          pagination={
+            state.data && state.data.total > 0
+              ? {
+                  current: state.data.page,
+                  onChange: setPage,
+                  pageSize: state.data.page_size,
+                  showSizeChanger: false,
+                  total: state.data.total,
+                }
+              : false
+          }
+          rowKey="id"
+          scroll={{ x: 900 }}
+          search={false}
+          toolBarRender={() => [
+            <Input.Search
+              allowClear
+              aria-label="搜索下载历史"
+              key="search"
+              onChange={(event) => setSearchInput(event.target.value)}
+              onSearch={applySearch}
+              placeholder="按视频标题搜索"
+              value={searchInput}
+            />,
+            <Select
+              aria-label="按状态筛选"
+              key="status"
+              onChange={applyStatus}
+              options={statusOptions}
+              value={status ?? ''}
+            />,
+            <Button
+              icon={<ReloadOutlined />}
+              key="refresh"
+              onClick={state.retry}
             >
-              <Button onClick={() => history.push('/')} type="primary">
-                新建下载
-              </Button>
-            </Empty>
-          ) : null}
-          {state.data?.items.map((item) => (
-            <HistoryItem
-              item={item}
-              key={item.id}
-              loading={downloadId === item.id}
-              onDownload={handleDownload}
-            />
-          ))}
-        </section>
-
-        {state.data && state.data.total > 0 ? (
-          <Pagination
-            align="center"
-            current={state.data.page}
-            pageSize={state.data.page_size}
-            showSizeChanger={false}
-            total={state.data.total}
-            onChange={setPage}
-          />
-        ) : null}
+              刷新
+            </Button>,
+          ]}
+        />
       </main>
     </PageContainer>
   );

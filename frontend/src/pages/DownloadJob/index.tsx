@@ -44,7 +44,6 @@ export function DownloadJobPage({
         items: [{ title: '新建下载', href: '/' }, { title: '任务' }],
       }}
       className={styles.container}
-      ghost
       subTitle={
         state.inspection
           ? metadata(state.inspection.duration_seconds, format)
@@ -53,12 +52,12 @@ export function DownloadJobPage({
       tags={
         <Flex gap={8} wrap>
           {state.job?.status === 'succeeded' ? (
-            <Tag color="success" icon={<CheckCircleFilled />}>
+            <Tag color="blue" icon={<CheckCircleFilled />}>
               文件已验证
             </Tag>
           ) : null}
           {analysisJob?.status === 'succeeded' ? (
-            <Tag color="processing" icon={<CheckCircleFilled />}>
+            <Tag color="blue" icon={<CheckCircleFilled />}>
               分析已完成
             </Tag>
           ) : null}
@@ -77,7 +76,7 @@ export function DownloadJobPage({
             className={styles.alert}
             showIcon
             title={state.error}
-            type="error"
+            type="info"
           />
         ) : null}
         {state.inspectionError ? (
@@ -85,7 +84,7 @@ export function DownloadJobPage({
             className={styles.alert}
             showIcon
             title={state.inspectionError}
-            type="warning"
+            type="info"
           />
         ) : null}
 

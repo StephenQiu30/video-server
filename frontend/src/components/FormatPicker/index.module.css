@@ -17,9 +17,9 @@
   grid-template-columns: 1fr 1.25fr 1.15fr 1fr;
   gap: 12px;
   padding: 10px 44px;
-  color: #595959;
+  color: rgb(0 0 0 / 65%);
   background: #fafafa;
-  border: 1px solid #e5e5e5;
+  border: 1px solid #f0f0f0;
   border-bottom: 0;
   border-radius: 6px 6px 0 0;
   font-size: 12px;
@@ -29,7 +29,7 @@
 .options {
   display: grid;
   overflow: hidden;
-  border: 1px solid #e5e5e5;
+  border: 1px solid #f0f0f0;
   border-radius: 0 0 6px 6px;
 }
 
@@ -39,7 +39,7 @@
   min-height: 66px;
   padding: 10px 14px;
   margin: 0;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .option:last-child {
@@ -62,7 +62,7 @@
   gap: 12px;
   align-items: center;
   min-width: 0;
-  color: #64748b;
+  color: rgb(0 0 0 / 65%);
   font-size: 12px;
   line-height: 1.35;
 }
@@ -81,7 +81,7 @@
 
 .copy strong {
   overflow: hidden;
-  color: #1f2937;
+  color: rgb(0 0 0 / 88%);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -89,7 +89,7 @@
 
 .copy small {
   overflow: hidden;
-  color: #8c8c8c;
+  color: rgb(0 0 0 / 45%);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -103,7 +103,7 @@
 
 .empty {
   margin: 0;
-  color: #64748b;
+  color: rgb(0 0 0 / 45%);
 }
 
 @media (max-width: 640px) {
@@ -121,7 +121,7 @@
   }
 
   .copy > span::before {
-    color: #8c8c8c;
+    color: rgb(0 0 0 / 45%);
     content: attr(data-label);
     font-size: 10px;
   }

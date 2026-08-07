@@ -107,7 +107,7 @@ export default function MediaSidebar({
         <Alert
           showIcon
           title={`错误代码：${job.error_code ?? 'unknown_error'}`}
-          type="error"
+          type="info"
         />
       ) : null}
 
@@ -126,7 +126,6 @@ export default function MediaSidebar({
         {isActive ? (
           <Button
             aria-label="取消任务"
-            danger
             loading={action === 'cancel'}
             onClick={onCancel}
           >

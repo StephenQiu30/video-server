@@ -7,7 +7,7 @@
 .cover {
   position: relative;
   overflow: hidden;
-  background: #0b1730;
+  background: #262626;
   border-radius: 6px;
   aspect-ratio: 16 / 9;
 }
@@ -54,13 +54,13 @@
 .fileInfo h2,
 .chapters h2 {
   margin: 0 0 10px;
-  color: #111827;
+  color: rgb(0 0 0 / 88%);
   font-size: 16px;
 }
 
 .fileInfo :global(.ant-descriptions-item-content) {
   overflow: hidden;
-  color: #4b5563;
+  color: rgb(0 0 0 / 65%);
   text-overflow: ellipsis;
 }
 
@@ -69,18 +69,18 @@
   gap: 5px;
   padding: 12px;
   margin-top: 14px;
-  background: #f5fbf7;
-  border: 1px solid #c9ead4;
+  background: #e6f4ff;
+  border: 1px solid #91caff;
   border-radius: 6px;
 }
 
 .status > div {
-  color: #17945d;
+  color: #1677ff;
 }
 
 .status > span {
   padding-left: 25px;
-  color: #64748b;
+  color: rgb(0 0 0 / 65%);
   font-size: 13px;
 }
 
@@ -90,13 +90,13 @@
 
 .chapters {
   padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid #f0f0f0;
 }
 
 .chapters ol {
   padding: 0;
   margin: 0;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #f0f0f0;
   border-radius: 6px;
   list-style: none;
 }
@@ -106,7 +106,7 @@
   grid-template-columns: 56px minmax(0, 1fr);
   gap: 8px;
   padding: 11px 12px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .chapters li:last-child {
@@ -120,13 +120,13 @@
 
 .chapters li strong {
   overflow: hidden;
-  color: #4b5563;
+  color: rgb(0 0 0 / 65%);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .chapters p {
   margin: 0;
-  color: #8a94a6;
+  color: rgb(0 0 0 / 45%);
   line-height: 1.6;
 }

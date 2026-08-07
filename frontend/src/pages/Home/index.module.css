@@ -1,86 +1,45 @@
 .container {
-  min-height: calc(100vh - 60px);
-  background: #f7f7f8;
+  min-height: calc(100vh - 56px);
 }
 
 .container :global(.ant-pro-page-container-children-container) {
-  padding: 0;
+  padding-block: 24px 40px;
 }
 
-.page {
-  width: min(100%, 1040px);
-  padding: 72px 24px 80px;
+.page,
+.emptyPage {
+  width: 100%;
+  max-width: 1440px;
   margin: 0 auto;
 }
 
-.intro {
-  max-width: 680px;
-  margin-bottom: 28px;
+.emptyPage {
+  display: grid;
+  min-height: calc(100vh - 254px);
+  place-items: center;
 }
 
-.intro h1 {
-  margin: 0 0 12px;
-  color: #171717;
-  font-size: clamp(34px, 5vw, 48px);
-  font-weight: 650;
-  letter-spacing: -0.045em;
-  line-height: 1.12;
+.commandCard {
+  width: 100%;
 }
 
-.intro p {
-  margin: 0;
-  color: #666;
-  font-size: 16px;
-  line-height: 1.75;
-}
-
-.commandCard,
-.resultShell {
-  border-color: #e5e5e5;
-  border-radius: 10px;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 2%);
-}
-
-.commandCard :global(.ant-pro-card-body) {
-  padding: 24px;
+.emptyPage .commandCard {
+  width: min(100%, 880px);
 }
 
 .command {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
+  gap: 16px;
   align-items: end;
 }
 
-.field {
-  min-width: 0;
-}
-
-.field label {
-  display: block;
-  margin-bottom: 8px;
-  color: #333;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.field :global(.ant-input-affix-wrapper),
-.command > :global(.ant-btn) {
-  height: 44px;
+.command :global(.ant-form-item) {
+  margin-bottom: 0;
 }
 
 .command > :global(.ant-btn) {
-  min-width: 112px;
-  box-shadow: none;
-}
-
-.note {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding-top: 14px;
-  color: #8a8a8a;
-  font-size: 13px;
+  min-width: 120px;
 }
 
 .feedback,
@@ -90,10 +49,9 @@
 
 .loading {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
-  color: #666;
-  font-size: 13px;
+  color: rgb(0 0 0 / 65%);
 }
 
 .resultShell {
@@ -102,24 +60,12 @@
 }
 
 @media (max-width: 640px) {
-  .page {
-    padding: 44px 16px 56px;
+  .container :global(.ant-pro-page-container-children-container) {
+    padding: 16px;
   }
 
-  .intro {
-    margin-bottom: 22px;
-  }
-
-  .intro h1 {
-    font-size: 34px;
-  }
-
-  .intro p {
-    font-size: 15px;
-  }
-
-  .commandCard :global(.ant-pro-card-body) {
-    padding: 18px;
+  .emptyPage {
+    min-height: calc(100vh - 230px);
   }
 
   .command {
