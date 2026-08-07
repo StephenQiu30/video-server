@@ -1,12 +1,28 @@
-name: video-server-env
+x-include-env: &video-env
+  env_file:
+    - .env
 
 services:
+  api:
+    <<: *video-env
+
+  outbox:
+    <<: *video-env
+
+  worker-download:
+    <<: *video-env
+
+  worker-analysis:
+    <<: *video-env
+
+  media-runner:
+    <<: *video-env
+
   postgres:
+    <<: *video-env
     image: postgres:17.5-alpine
-    container_name: video-server-dev-postgres
+    container_name: video-server-postgres
     restart: unless-stopped
-    env_file:
-      - .env
     ports:
       - "127.0.0.1:15432:5432"
     volumes:
@@ -19,12 +35,11 @@ services:
       retries: 12
 
   rabbitmq:
+    <<: *video-env
     image: rabbitmq:4.0.9-management
-    container_name: video-server-dev-rabbitmq
-    hostname: video-server-dev-rabbitmq
+    container_name: video-server-rabbitmq
+    hostname: video-server-rabbitmq
     restart: unless-stopped
-    env_file:
-      - .env
     ports:
       - "127.0.0.1:5673:5672"
       - "127.0.0.1:15673:15672"
@@ -37,12 +52,11 @@ services:
       retries: 12
 
   minio:
+    <<: *video-env
     image: minio/minio:RELEASE.2025-02-28T09-55-16Z
-    container_name: video-server-dev-minio
+    container_name: video-server-minio
     command: ["server", "/data", "--address", ":9000", "--console-address", ":9001"]
     restart: unless-stopped
-    env_file:
-      - .env
     ports:
       - "127.0.0.1:19190:9000"
       - "127.0.0.1:19191:9001"
@@ -55,12 +69,11 @@ services:
       retries: 12
 
   minio-init:
+    <<: *video-env
     image: minio/mc:latest
-    container_name: video-server-dev-minio-init
+    container_name: video-server-minio-init
     entrypoint: ["/bin/sh", "/config/init.sh"]
     restart: "no"
-    env_file:
-      - .env
     volumes:
       - ./backend/config/minio:/config:ro
     depends_on:

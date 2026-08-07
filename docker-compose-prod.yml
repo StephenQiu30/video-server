@@ -1,44 +1,30 @@
+x-include-prod-env: &video-prod-env
+  env_file: .env.prod
+
 services:
   api:
-    env_file: !override
-      - .env.prod
-    restart: always
+    <<: *video-prod-env
 
   outbox:
-    env_file: !override
-      - .env.prod
-    restart: always
+    <<: *video-prod-env
 
   worker-download:
-    env_file: !override
-      - .env.prod
-    restart: always
+    <<: *video-prod-env
 
   worker-analysis:
-    env_file: !override
-      - .env.prod
-    restart: always
+    <<: *video-prod-env
 
   media-runner:
-    env_file: !override
-      - .env.prod
-    restart: always
+    <<: *video-prod-env
 
   postgres:
-    env_file: !override
-      - .env.prod
-    restart: always
+    <<: *video-prod-env
 
   rabbitmq:
-    env_file: !override
-      - .env.prod
-    restart: always
+    <<: *video-prod-env
 
   minio:
-    env_file: !override
-      - .env.prod
-    restart: always
+    <<: *video-prod-env
 
   minio-init:
-    env_file: !override
-      - .env.prod
+    <<: *video-prod-env
