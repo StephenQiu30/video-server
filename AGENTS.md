@@ -36,9 +36,9 @@ server/
 │   └── tests/                     Vitest 测试
 ├── docs/                          当前设计、需求、计划、验收与运维文档
 ├── Dockerfile                     前后端统一生产镜像
-├── docker-compose.yml             本地应用环境（前后端及运行进程）
-├── docker-compose-env.yml         本地基础设施环境（数据库、消息队列、对象存储）
-└── docker-compose-prod.yml        生产应用环境（前后端及运行进程）
+├── docker-compose.yml             公共服务拓扑与运行时定义
+├── docker-compose-env.yml         本地环境覆盖（.env、宿主机端口）
+└── docker-compose-prod.yml        生产环境覆盖（.env.prod、镜像与端口）
 ```
 
 仓库只保留 `backend/`、`frontend/`、`docs/` 三个业务模块和根治理文件，不新增 `deploy/`、重复子仓库或平行应用目录。生产环境不运行独立前端容器，静态资源由根镜像构建并通过 FastAPI 同源提供。
@@ -71,7 +71,7 @@ server/
 - Worker 开工前重新解析语义下载计划；Provider format id 不能作为唯一恢复依据。
 - AI 任务独立于下载任务；AI 失败不得改变下载成功状态。模型输出必须通过 schema 和 transcript evidence 校验，普通日志不得记录完整转录或原始模型响应。
 - Secret 只来自类型化配置和环境变量，不得进入前端、API 响应、异常、快照、测试夹具或普通日志。外部操作必须设置大小、时长、并发和超时上限，取消时终止整个子进程组。
-- Compose 必须保持三个相互独立的部署入口，禁止通过文件叠加或隐式依赖拼装环境：`docker-compose.yml` 只启动本机应用（API 同源前端、Outbox、下载与分析 Worker、Media Runner 和 egress proxy）；`docker-compose-prod.yml` 只启动线上应用，服务拓扑与本地应用保持一致但读取 `.env.prod`；`docker-compose-env.yml` 只启动本地基础设施（PostgreSQL、RabbitMQ、MinIO 及初始化器），读取 `.env`。每个文件都必须可以单独执行 `docker compose -f <文件> config` 和 `up`，不能引用另一个 Compose 文件中定义的 service、volume、network 或覆盖配置。宿主机端口等可部署参数通过 env 文件插值并使用必填校验，生产命令显式传入 `--env-file .env.prod`；应用栈通过 env 文件提供外部基础设施地址，不在 Compose 文件中硬编码环境变量值。启动前按需复制 `.env.example` 为 `.env`，生产环境复制 `.env.prod.example` 为 `.env.prod` 并替换占位值。所有服务必须显式设置稳定的 `container_name`，避免出现 `xxx-1` 这类副本后缀；本地、生产和环境栈使用不同前缀，避免同一主机上的容器冲突。环境变量的具体值只能写在 `.env.example`、`.env.prod.example` 或被 Git 忽略的 `.env*` 文件中；非 env 文件不得填写环境变量值，只能引用 env 文件或声明服务关系。不要提交 `.env`、制品、缓存、日志、临时目录、虚拟环境或 `node_modules/`。
+- Compose 必须保持职责分层，启动时按环境组合文件：`docker-compose.yml` 只定义完整公共服务拓扑、依赖关系、健康检查、卷和内部端口；`docker-compose-env.yml` 只覆盖本地 `.env`、宿主机端口和本地运行差异；`docker-compose-prod.yml` 只覆盖生产 `.env.prod`、生产镜像、容器名和对外端口。环境文件不得复制基础服务定义、依赖或健康检查；生产命令必须显式传入 `--env-file .env.prod`。本地使用 `docker-compose.yml` 叠加 `docker-compose-env.yml`，生产使用 `docker-compose.yml` 叠加 `docker-compose-prod.yml`，不得把两套环境差异混在基础文件中。宿主机端口等可部署参数通过 env 文件插值并使用必填校验；环境变量的具体值只能写在 `.env.example`、`.env.prod.example` 或被 Git 忽略的 `.env*` 文件中，非 env 文件不得硬编码密钥、密码、连接地址或 Provider Key。所有服务必须显式设置稳定的 `container_name`，避免出现 `xxx-1` 这类副本后缀；本地和生产使用不同前缀，避免同一主机上的容器冲突。启动前按需复制 `.env.example` 为 `.env`，生产环境复制 `.env.prod.example` 为 `.env.prod` 并替换占位值。不要提交 `.env`、制品、缓存、日志、临时目录、虚拟环境或 `node_modules/`。
 
 ## 实现与验证
 
@@ -98,7 +98,7 @@ npm test
 npm run build
 ```
 
-- 涉及接口契约时验证 OpenAPI 生成结果和前后端契约测试；涉及运行时、依赖或容器时分别验证三份 Compose 配置可以独立解析，按需验证本地/生产应用镜像构建和关键健康接口。
+- 涉及接口契约时验证 OpenAPI 生成结果和前后端契约测试；涉及运行时、依赖或容器时分别验证本地组合（`docker-compose.yml` + `docker-compose-env.yml`）和生产组合（`docker-compose.yml` + `docker-compose-prod.yml`）可以解析，按需验证镜像构建和关键健康接口。
 - 不得隐瞒失败的检查。无法在当前平台完成的验证应在交付说明中写明原因、已执行范围和剩余风险。
 
 ## 文档规范

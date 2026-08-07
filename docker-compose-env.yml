@@ -1,71 +1,46 @@
-name: video-server-env
-
-x-env-service: &env-service
-  env_file:
-    - .env
-  restart: unless-stopped
-
 services:
+  api:
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:8101:8101"
+
+  outbox:
+    env_file:
+      - .env
+
+  worker-download:
+    env_file:
+      - .env
+
+  worker-analysis:
+    env_file:
+      - .env
+
+  media-runner:
+    env_file:
+      - .env
+
   postgres:
-    <<: *env-service
-    image: postgres:17.5-alpine
-    container_name: video-server-env-postgres
+    env_file:
+      - .env
     ports:
       - "127.0.0.1:${POSTGRES_HOST_PORT:?set POSTGRES_HOST_PORT in .env}:5432"
-    volumes:
-      - env_postgres_data:/var/lib/postgresql/data
-      - ./backend/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -q -h 127.0.0.1 -p 5432"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
 
   rabbitmq:
-    <<: *env-service
-    image: rabbitmq:4.0.9-management
-    container_name: video-server-env-rabbitmq
-    hostname: video-server-env-rabbitmq
+    env_file:
+      - .env
     ports:
       - "127.0.0.1:${RABBITMQ_HOST_PORT:?set RABBITMQ_HOST_PORT in .env}:5672"
       - "127.0.0.1:${RABBITMQ_MANAGEMENT_HOST_PORT:?set RABBITMQ_MANAGEMENT_HOST_PORT in .env}:15672"
-    volumes:
-      - env_rabbitmq_data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
 
   minio:
-    <<: *env-service
-    image: minio/minio:RELEASE.2025-02-28T09-55-16Z
-    container_name: video-server-env-minio
-    command: ["server", "/data", "--address", ":9000", "--console-address", ":9001"]
+    env_file:
+      - .env
     ports:
       - "127.0.0.1:${MINIO_HOST_PORT:?set MINIO_HOST_PORT in .env}:9000"
       - "127.0.0.1:${MINIO_CONSOLE_HOST_PORT:?set MINIO_CONSOLE_HOST_PORT in .env}:9001"
-    volumes:
-      - env_minio_data:/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
 
   minio-init:
-    <<: *env-service
-    image: minio/mc:latest
-    container_name: video-server-env-minio-init
-    entrypoint: ["/bin/sh", "/config/init.sh"]
-    restart: "no"
-    volumes:
-      - ./backend/config/minio:/config:ro
-    depends_on:
-      minio:
-        condition: service_healthy
-
-volumes:
-  env_postgres_data:
-  env_rabbitmq_data:
-  env_minio_data:
+    env_file:
+      - .env

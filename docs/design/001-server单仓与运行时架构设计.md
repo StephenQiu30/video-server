@@ -30,9 +30,9 @@ server/
 │   └── tests/
 ├── docs/                     当前交付契约
 ├── Dockerfile                统一前后端镜像
-├── docker-compose.yml        本地应用环境
-├── docker-compose-env.yml    本地基础设施环境
-└── docker-compose-prod.yml   生产应用环境
+├── docker-compose.yml        公共服务拓扑与运行时定义
+├── docker-compose-env.yml    本地环境覆盖
+└── docker-compose-prod.yml   生产环境覆盖
 ```
 
 依赖方向固定为：`api/workers → application → domain`；`infrastructure` 实现 application 所需端口。Domain 不得导入 FastAPI、SQLAlchemy、RabbitMQ、MinIO、yt-dlp 或模型 SDK。
@@ -101,8 +101,8 @@ flowchart LR
 
 - 单一代码镜像、多个命令入口，便于独立扩容 API、下载和分析 Worker。
 - Python builder 与 runtime 固定使用同一绝对目录 `/app/backend`，复制后的虚拟环境保持 `/app/backend/.venv`；容器入口通过该 PATH 下的 `python -m ...` 启动，避免构建路径写入的 venv 解释器在运行时失效。
-- PostgreSQL、RabbitMQ、MinIO 使用基础设施栈的 Compose 项目作用域卷；本地应用、生产应用和基础设施分别固定为 `video-server-local`、`video-server-prod`、`video-server-env`，避免并行争用同一卷。单实例服务使用带环境前缀的稳定容器名。
-- 三份 Compose 文件均为独立入口：本地应用和生产应用只包含应用进程，基础设施只包含 PostgreSQL、RabbitMQ、MinIO 及初始化器；应用通过各自 env 文件访问外部基础设施，不通过文件叠加拼装。环境栈的宿主机端口从 `.env` 插值并做必填校验，MinIO 初始化器等待服务可用后再执行；`.env.example` 提供本地模板，被 Git 忽略的 `.env` 保存本机真实值，生产环境使用 `.env.prod.example` 复制出的 `.env.prod`。
+- PostgreSQL、RabbitMQ、MinIO 使用本地与生产组合各自的 Compose 项目作用域卷，避免并行争用同一卷。单实例服务使用带环境前缀的稳定容器名。
+- 三份 Compose 文件按职责分层：基础文件定义完整服务拓扑、依赖、健康检查和卷；`docker-compose-env.yml` 注入本地 `.env` 并发布宿主机端口；`docker-compose-prod.yml` 注入 `.env.prod` 并覆盖生产镜像、容器名和对外端口。生产启动通过 `--env-file .env.prod` 显式加载变量，MinIO 初始化器等待服务可用后再执行。
 - 首期保持模块化单体；只有当容量、隔离或团队所有权出现真实证据时才拆仓/拆服务。
 - OpenAPI 是前后端契约；前端服务代码由 schema 生成或由同一 DTO 测试约束。
 

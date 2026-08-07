@@ -1,24 +1,28 @@
 name: video-server-local
 
-x-local-app: &local-app
+x-app: &app
   image: video-server:local
-  env_file:
-    - .env
   restart: unless-stopped
   stop_grace_period: 30s
 
 services:
   api:
-    <<: *local-app
+    <<: *app
     build:
       context: .
       dockerfile: Dockerfile
       target: runtime
     container_name: video-server-local-api
     command: ["python", "-m", "app.main"]
-    ports:
-      - "127.0.0.1:8101:8101"
     depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
       media-runner:
         condition: service_healthy
     healthcheck:
@@ -35,36 +39,57 @@ services:
       start_period: 10s
 
   outbox:
-    <<: *local-app
+    <<: *app
     container_name: video-server-local-outbox
     command: ["python", "-m", "app.workers.outbox.main"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   worker-download:
-    <<: *local-app
+    <<: *app
     container_name: video-server-local-worker-download
     command: ["python", "-m", "app.workers.download.main"]
     volumes:
-      - local_runner_work:/work
+      - runner_work:/work
     depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
       workspace-init:
         condition: service_completed_successfully
       media-runner:
         condition: service_healthy
 
   worker-analysis:
-    <<: *local-app
+    <<: *app
     container_name: video-server-local-worker-analysis
     command: ["python", "-m", "app.workers.analysis.main"]
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - local_analysis_work:/analysis-work
+      - analysis_work:/analysis-work
     depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
       workspace-init:
         condition: service_completed_successfully
 
   media-runner:
-    <<: *local-app
+    <<: *app
     container_name: video-server-local-media-runner
     command:
       [
@@ -80,7 +105,7 @@ services:
         "--no-access-log",
       ]
     volumes:
-      - local_runner_work:/work
+      - runner_work:/work
     depends_on:
       workspace-init:
         condition: service_completed_successfully
@@ -116,15 +141,68 @@ services:
       start_period: 5s
 
   workspace-init:
-    image: video-server:local
+    <<: *app
     container_name: video-server-local-workspace-init
     user: "0:0"
     command: ["sh", "-c", "install -d -o 10001 -g 10001 -m 0700 /work /analysis-work"]
     restart: "no"
     volumes:
-      - local_runner_work:/work
-      - local_analysis_work:/analysis-work
+      - runner_work:/work
+      - analysis_work:/analysis-work
+
+  postgres:
+    image: postgres:17.5-alpine
+    container_name: video-server-local-postgres
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -q -h 127.0.0.1 -p 5432"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:4.0.9-management
+    container_name: video-server-local-rabbitmq
+    hostname: video-server-local-rabbitmq
+    restart: unless-stopped
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    image: minio/minio:RELEASE.2025-02-28T09-55-16Z
+    container_name: video-server-local-minio
+    command: ["server", "/data", "--address", ":9000", "--console-address", ":9001"]
+    restart: unless-stopped
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: video-server-local-minio-init
+    entrypoint: ["/bin/sh", "/config/init.sh"]
+    restart: "no"
+    volumes:
+      - ./backend/config/minio:/config:ro
+    depends_on:
+      minio:
+        condition: service_healthy
 
 volumes:
-  local_runner_work:
-  local_analysis_work:
+  postgres_data:
+  rabbitmq_data:
+  minio_data:
+  runner_work:
+  analysis_work:
