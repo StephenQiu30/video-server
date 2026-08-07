@@ -130,15 +130,9 @@ async def test_download_reinspects_selects_semantics_and_verifies_artifact(
     ytdlp = [command for command in commands if command[0] == "yt-dlp"]
     assert all("http://egress-proxy:3128" in command for command in ytdlp)
     assert all("--plugin-dirs" in command for command in ytdlp)
-    assert all("--cookies" in command for command in ytdlp)
+    assert all("--cookies" not in command for command in ytdlp)
     assert all(
-        Path(command[command.index("--cookies") + 1]).name
-        == "provider-cookies.txt"
-        for command in ytdlp
-    )
-    assert all(
-        command[command.index("--js-runtimes") + 1] == "node"
-        for command in ytdlp
+        command[command.index("--js-runtimes") + 1] == "node" for command in ytdlp
     )
     plugin_root = Path(ytdlp[0][ytdlp[0].index("--plugin-dirs") + 1])
     assert (plugin_root / "plugins/yt_dlp_plugins/extractor/mediatrack.py").is_file()

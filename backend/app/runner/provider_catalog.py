@@ -102,6 +102,16 @@ DEFAULT_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             "vt.tiktok.com",
         ),
     ),
+    _challenged(
+        "xiaohongshu",
+        "小红书",
+        (
+            "xiaohongshu.com",
+            "www.xiaohongshu.com",
+            "xhslink.com",
+            "www.xhslink.com",
+        ),
+    ),
     _standard(
         "vimeo",
         "Vimeo",

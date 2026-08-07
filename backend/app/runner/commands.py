@@ -8,6 +8,7 @@ from app.domain.downloads import Container
 from app.runner.command_support import child_environment, json_object
 from app.runner.errors import RunnerFailure
 from app.runner.process import ProcessResult, ProcessTimeoutError
+from app.runner.provider_registry import provider_profile
 from app.runner.provider_urls import provider_command_args, provider_request_url
 from app.runner.settings import RunnerSettings
 from app.runner.workspace_monitor import (
@@ -35,8 +36,9 @@ class MediaCommands:
         self._supervisor = supervisor
 
     async def inspect(self, url: str, cwd: Path) -> dict[str, Any]:
+        egress_proxy = self._egress_proxy(url)
         command = (
-            *self._ytdlp_base(cwd),
+            *self._ytdlp_base(egress_proxy),
             "--dump-single-json",
             "--skip-download",
             *provider_command_args(url),
@@ -49,6 +51,7 @@ class MediaCommands:
             self._settings.runner_inspect_timeout_seconds,
             timeout_code="inspection_timeout",
             failure_code="inspection_failed",
+            egress_proxy=egress_proxy,
         )
         return json_object(result.stdout, "invalid_inspection_response")
 
@@ -81,8 +84,9 @@ class MediaCommands:
         output: Path,
         cwd: Path,
     ) -> None:
+        egress_proxy = self._egress_proxy(url)
         command = (
-            *self._ytdlp_base(cwd),
+            *self._ytdlp_base(egress_proxy),
             "--format",
             provider_id,
             "--max-filesize",
@@ -100,6 +104,7 @@ class MediaCommands:
             timeout_code="download_timeout",
             failure_code="download_failed",
             monitor_workspace=True,
+            egress_proxy=egress_proxy,
         )
         if not output.is_file() or output.is_symlink():
             raise RunnerFailure("download_failed", status=502)
@@ -111,8 +116,9 @@ class MediaCommands:
         output: Path,
         cwd: Path,
     ) -> None:
+        egress_proxy = self._egress_proxy(url)
         command = (
-            *self._ytdlp_base(cwd),
+            *self._ytdlp_base(egress_proxy),
             "--format",
             provider_id,
             "--max-filesize",
@@ -130,6 +136,7 @@ class MediaCommands:
             timeout_code="inspection_timeout",
             failure_code="inspection_failed",
             monitor_workspace=True,
+            egress_proxy=egress_proxy,
         )
         if not output.is_file() or output.is_symlink():
             raise RunnerFailure("inspection_failed", status=502)
@@ -197,13 +204,15 @@ class MediaCommands:
         timeout_code: str,
         failure_code: str,
         monitor_workspace: bool = False,
+        egress_proxy: str | None = None,
     ) -> ProcessResult:
+        selected_proxy = egress_proxy or self._settings.runner_egress_proxy
         try:
             operation = self._supervisor.run(
                 command,
                 cwd=cwd,
                 timeout_seconds=timeout,
-                env=child_environment(cwd, self._settings.runner_egress_proxy),
+                env=child_environment(cwd, selected_proxy),
             )
             if monitor_workspace:
                 result = await run_with_workspace_limit(
@@ -232,7 +241,10 @@ class MediaCommands:
             raise RunnerFailure(failure_code, status=502)
         return result
 
-    def _ytdlp_base(self, cwd: Path) -> tuple[str, ...]:
+    def _egress_proxy(self, url: str) -> str:
+        return self._settings.egress_proxy_for(provider_profile(url).key)
+
+    def _ytdlp_base(self, egress_proxy: str) -> tuple[str, ...]:
         return (
             self._settings.runner_ytdlp_bin,
             "--ignore-config",
@@ -247,12 +259,10 @@ class MediaCommands:
             "3",
             "--extractor-retries",
             "3",
-            "--cookies",
-            str(cwd / "provider-cookies.txt"),
             "--js-runtimes",
             self._settings.runner_ytdlp_js_runtime,
             "--proxy",
-            self._settings.runner_egress_proxy,
+            egress_proxy,
         )
 
 
@@ -271,14 +281,28 @@ def _is_unavailable_provider_link(command: Sequence[str], stderr: bytes) -> bool
     if not command or Path(command[0]).name.casefold() not in {"yt-dlp", "yt-dlp.exe"}:
         return False
     normalized = stderr.lower()
-    if b"unsupported url:" not in normalized:
-        return False
     command_text = " ".join(command).casefold()
-    return any(
+    is_douyin = any(
         host in command_text
         for host in (
             "douyin.com",
             "iesdouyin.com",
+        )
+    )
+    if is_douyin and b"unsupported url:" in normalized:
+        return True
+    is_xiaohongshu = any(
+        host in command_text
+        for host in (
+            "xiaohongshu.com",
+            "xhslink.com",
+        )
+    )
+    return is_xiaohongshu and any(
+        marker in normalized
+        for marker in (
+            b"unable to extract initial state",
+            b"unsupported url:",
         )
     )
 

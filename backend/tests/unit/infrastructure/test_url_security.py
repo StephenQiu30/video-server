@@ -49,3 +49,24 @@ def test_media_url_validator_uses_runner_policy() -> None:
     )
     with pytest.raises(ValueError):
         validator.validate("http://127.0.0.1/video")
+
+
+def test_media_url_validator_extracts_scheme_less_xhs_share_link() -> None:
+    validator = MediaUrlValidator()
+
+    assert (
+        validator.validate("复制后打开小红书 xhslink.com/m/AbC123 更多内容。")
+        == "https://xhslink.com/m/AbC123"
+    )
+    assert validator.validate("https://xhslink.com/a/AbC123?source=copy") == (
+        "https://xhslink.com/a/AbC123?source=copy"
+    )
+
+
+def test_media_url_validator_does_not_generalize_scheme_less_input() -> None:
+    validator = MediaUrlValidator()
+
+    with pytest.raises(ValueError):
+        validator.validate("media.example/video")
+    with pytest.raises(ValueError):
+        validator.validate("xhslink.com/m/first xhslink.com/m/second")

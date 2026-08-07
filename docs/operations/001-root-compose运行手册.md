@@ -38,6 +38,14 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod
 - Media Runner 通过 egress proxy 访问外部媒体地址；proxy 不暴露宿主机端口，并继续拒绝私网、localhost 和字面量 IP 目的地址。
 - API、Worker 与 Runner 使用 Compose DNS 互联，不通过宿主机端口绕行。
 
+当某个平台因数据中心出口信誉触发访问验证时，可以让运维侧提供一个同样受控、无凭据的内部代理入口，并按 Provider 覆盖默认出口：
+
+```dotenv
+RUNNER_PROVIDER_EGRESS_PROXIES={"youtube":"http://youtube-egress:3128","douyin":"http://douyin-egress:3128"}
+```
+
+键使用 Provider Registry 中的稳定 key；未配置的平台继续使用 `RUNNER_EGRESS_PROXY`。覆盖地址本身不得携带用户名或密码，内部代理仍须阻断私网目的地址、限制目标端口并在代理侧管理上游凭据。默认值 `{}` 不改变现有拓扑。该能力用于出口隔离和信誉治理，不能用于绕过 DRM、账号权限或平台访问控制。
+
 ## 数据和停止
 
 - 本地和生产组合统一使用 Compose 项目名 `video-server` 及其作用域卷；两套环境容器名和数据卷相同，同一主机不要同时启动。
@@ -53,4 +61,4 @@ curl --fail http://localhost:8101/health/ready
 docker compose --env-file .env -f docker-compose.yml ps
 ```
 
-若下载解析失败，先区分 URL/格式业务错误、Runner 健康、egress ACL、队列积压和对象存储，不要通过开放私网、上传 Cookie 或透传 yt-dlp 参数绕过控制。
+若下载解析失败，先区分 URL/格式业务错误、Runner 健康、平台出口信誉、egress ACL、队列积压和对象存储，不要通过开放私网、上传 Cookie 或透传 yt-dlp 参数绕过控制。

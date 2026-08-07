@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from urllib.parse import urlsplit
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_PROVIDER_KEY = re.compile(r"[a-z][a-z0-9_-]{0,31}")
 
 
 class RunnerSettings(BaseSettings):
@@ -16,6 +19,7 @@ class RunnerSettings(BaseSettings):
 
     runner_hmac_secret: SecretStr
     runner_egress_proxy: str
+    runner_provider_egress_proxies: dict[str, str] = Field(default_factory=dict)
     runner_workspace_root: Path = Path("/var/lib/video-runner")
 
     runner_ytdlp_bin: str = "yt-dlp"
@@ -68,18 +72,23 @@ class RunnerSettings(BaseSettings):
     @field_validator("runner_egress_proxy")
     @classmethod
     def validate_proxy(cls, value: str) -> str:
-        try:
-            parsed = urlsplit(value)
-            _ = parsed.port
-        except ValueError as exc:
-            raise ValueError("runner egress proxy is invalid") from exc
-        if parsed.scheme not in {"http", "https"} or parsed.hostname is None:
-            raise ValueError("runner egress proxy must be HTTP(S)")
-        if parsed.username is not None or parsed.password is not None:
-            raise ValueError("runner egress proxy cannot contain credentials")
-        if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
-            raise ValueError("runner egress proxy must contain authority only")
-        return value.rstrip("/")
+        return _validate_proxy(value)
+
+    @field_validator("runner_provider_egress_proxies")
+    @classmethod
+    def validate_provider_proxies(cls, value: dict[str, str]) -> dict[str, str]:
+        validated: dict[str, str] = {}
+        for provider, proxy in value.items():
+            if _PROVIDER_KEY.fullmatch(provider) is None:
+                raise ValueError("provider proxy key is invalid")
+            validated[provider] = _validate_proxy(proxy)
+        return validated
+
+    def egress_proxy_for(self, provider: str) -> str:
+        return self.runner_provider_egress_proxies.get(
+            provider,
+            self.runner_egress_proxy,
+        )
 
     @field_validator("runner_workspace_root")
     @classmethod
@@ -101,3 +110,18 @@ class RunnerSettings(BaseSettings):
     @property
     def hmac_secret_bytes(self) -> bytes:
         return self.runner_hmac_secret.get_secret_value().encode()
+
+
+def _validate_proxy(value: str) -> str:
+    try:
+        parsed = urlsplit(value)
+        _ = parsed.port
+    except ValueError as exc:
+        raise ValueError("runner egress proxy is invalid") from exc
+    if parsed.scheme not in {"http", "https"} or parsed.hostname is None:
+        raise ValueError("runner egress proxy must be HTTP(S)")
+    if parsed.username is not None or parsed.password is not None:
+        raise ValueError("runner egress proxy cannot contain credentials")
+    if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
+        raise ValueError("runner egress proxy must contain authority only")
+    return value.rstrip("/")

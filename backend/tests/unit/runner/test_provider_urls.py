@@ -77,12 +77,27 @@ def test_targets_douyin_request_impersonation_and_retries() -> None:
     assert provider_inspection_attempts(short_url) == 8
 
 
+def test_targets_xiaohongshu_short_links_with_browser_impersonation() -> None:
+    for url in (
+        "https://xhslink.com/m/AbC123",
+        "https://www.xiaohongshu.com/explore/abc123",
+    ):
+        assert provider_command_args(url) == (
+            "--impersonate",
+            "Chrome-136:Macos-15",
+        )
+        assert provider_inspection_attempts(url) == 8
+        assert provider_inspection_retry_delay(url) == 0.5
+
+
 def test_registry_classifies_mainstream_platform_hosts() -> None:
     expected = {
         "youtube.com": "youtube",
         "b23.tv": "bilibili",
         "www.douyin.com": "douyin",
         "vm.tiktok.com": "tiktok",
+        "xhslink.com": "xiaohongshu",
+        "www.xiaohongshu.com": "xiaohongshu",
         "player.vimeo.com": "vimeo",
         "x.com": "x",
         "www.instagram.com": "instagram",

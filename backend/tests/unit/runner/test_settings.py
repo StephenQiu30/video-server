@@ -29,7 +29,26 @@ def test_loads_minimal_runner_environment(
 
     assert settings.hmac_secret_bytes == SECRET.encode()
     assert settings.runner_egress_proxy == "http://egress-proxy:3128"
+    assert settings.runner_provider_egress_proxies == {}
     assert settings.runner_workspace_root == tmp_path.resolve()
+
+
+def test_loads_credential_free_provider_proxy_overrides(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("RUNNER_HMAC_SECRET", SECRET)
+    monkeypatch.setenv("RUNNER_EGRESS_PROXY", "http://egress-proxy:3128")
+    monkeypatch.setenv(
+        "RUNNER_PROVIDER_EGRESS_PROXIES",
+        '{"youtube":"http://youtube-egress:3128"}',
+    )
+    monkeypatch.setenv("RUNNER_WORKSPACE_ROOT", str(tmp_path))
+
+    settings = RunnerSettings()
+
+    assert settings.egress_proxy_for("youtube") == "http://youtube-egress:3128"
+    assert settings.egress_proxy_for("bilibili") == "http://egress-proxy:3128"
 
 
 @pytest.mark.parametrize(
@@ -46,5 +65,17 @@ def test_rejects_unsafe_proxy_configuration(proxy: str, tmp_path: Path) -> None:
         RunnerSettings(
             runner_hmac_secret=SECRET,
             runner_egress_proxy=proxy,
+            runner_workspace_root=tmp_path,
+        )
+
+
+def test_rejects_provider_proxy_credentials(tmp_path: Path) -> None:
+    with pytest.raises(ValidationError):
+        RunnerSettings(
+            runner_hmac_secret=SECRET,
+            runner_egress_proxy="http://egress-proxy:3128",
+            runner_provider_egress_proxies={
+                "youtube": "http://user:secret@youtube-egress:3128"
+            },
             runner_workspace_root=tmp_path,
         )

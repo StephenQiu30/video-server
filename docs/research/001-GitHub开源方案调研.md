@@ -78,3 +78,22 @@ GitHub 调研后的取舍：
 2. 前端展示“已验证 / 需要平台验证 / 当前不支持”，不要把 extractor 清单或“1000+”等同于下载保证。
 3. 监控按 Provider、错误码和 yt-dlp 版本聚合，区分反机器人验证、链接过期、解析器回归、下载失败和对象存储交付失败。
 4. 本地对象存储预签名地址必须与宿主机实际监听地址一致；Windows/Docker Desktop 默认使用 `127.0.0.1`，避免 `localhost` 优先解析到未监听的 IPv6 回环地址。
+
+## 2026-08-07 GitHub 方案源码复核与落地
+
+本轮不仅查看项目说明，还固定提交并检查了真实实现：
+
+| 方案 | 固定版本/提交 | 关键事实 | 决策 |
+| --- | --- | --- | --- |
+| [bgutil-ytdlp-pot-provider](https://github.com/Brainicism/bgutil-ytdlp-pot-provider) | `1.3.1` / `7608dd5` | GPL-3.0；可用无账号 PO Token sidecar，但不保证绕过 bot check | 在当前出口真实生成 mweb player token 后仍返回 `LOGIN_REQUIRED`，不把无效 sidecar加入默认拓扑 |
+| [Douyin_TikTok_Download_API](https://github.com/Evil0ctal/Douyin_TikTok_Download_API) | `42784ff` | Apache-2.0；实现 A-Bogus/msToken，但单视频 crawler 仍从配置读取 Douyin Cookie，README 明确要求自行更新 Cookie | 只借鉴错误分类和可观测性，不复制需要账号会话的 crawler |
+| [f2](https://github.com/Johnserf-Seed/f2) | `7dab3e2` | Apache-2.0；Downloader 在 Cookie 为空时直接拒绝启动，并推荐浏览器 Cookie | 不接入 Runner |
+| [wx_channels_download](https://github.com/ltaoo/wx_channels_download) | `3551436` | Commons Clause 附加许可；桌面主链路要求管理员安装证书并 MITM 微信，在线分享解析使用 Worker | 不进入服务端默认链路 |
+| [XHS-Downloader #261](https://github.com/JoeanAmier/XHS-Downloader/issues/261) / [cobalt #1394](https://github.com/imputnet/cobalt/issues/1394) | 对应 2025 修复 | 分享文案可能省略 `http://`，`/m/` 短链需要 GET/重定向兜底 | 已在 API 安全边界内提取唯一短链、补 `https://`，并为小红书启用固定浏览器指纹与有限重试 |
+
+落地内容：
+
+1. 删除所有 yt-dlp 命令上的空 `--cookies` 文件，保证“无 Cookie Runner”既是策略也是实际命令行为。
+2. 新增小红书 Provider Profile，识别完整作品地址及 `xhslink.com/a|m`，对复制文案中唯一的无 scheme 短链进行安全规范化；过期或缺少有效 token 的链接返回 `provider_link_unavailable`。
+3. 新增 `RUNNER_PROVIDER_EGRESS_PROXIES`。YouTube/抖音这类依赖出口信誉的平台可以由运维路由到独立的内部代理池；Runner 配置仍拒绝代理 URL 凭据，未配置时回退到统一 egress proxy。
+4. 不引入公开解析 API、公共 Worker、浏览器 Cookie、元宝 Cookie 或 MITM 根证书。市场工具能完成个人桌面下载，不代表其凭据模型、许可证和网络边界适合多用户服务端。

@@ -83,7 +83,7 @@ _ERRORS: dict[ApplicationErrorCode, tuple[int, str, str]] = {
         "Provider link unavailable",
         (
             "This sharing link no longer resolves to a playable video. "
-            "Copy a fresh Douyin video link and try again."
+            "Copy a fresh public sharing link and try again."
         ),
     ),
     ApplicationErrorCode.PROVIDER_UNSUPPORTED: (

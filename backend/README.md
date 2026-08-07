@@ -26,6 +26,6 @@ app/
 
 Media Runner 通过 `app/runner/plugins/yt_dlp_plugins/` 加载随项目交付的可信站点提取器。当前 MediaTrack 适配仅处理无需登录的公开审片视频和 API 明确授权的播放转码；不支持 Cookie、账号内容或原文件下载权限绕过。
 
-主流视频源通过 `app/runner/provider_registry.py` 与 `app/runner/provider_catalog.py` 采用 Strategy + Registry 统一匹配；`provider_urls.py` 只保留兼容入口，未知站点使用 yt-dlp Generic extractor。新增平台应先确认 yt-dlp extractor 存在，再补充 Profile、域名别名和解析测试。
+主流视频源通过 `app/runner/provider_registry.py` 与 `app/runner/provider_catalog.py` 采用 Strategy + Registry 统一匹配；`provider_urls.py` 只保留兼容入口，未知站点使用 yt-dlp Generic extractor。新增平台应先确认 yt-dlp extractor 存在，再补充 Profile、域名别名和解析测试。Runner 不再为命令创建或传入空 Cookie 文件；平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 Provider key 指向受控内部代理。
 
 文本分析统一通过 LangChain 的结构化输出接口运行，服务端以 `ANALYSIS_PROVIDER=ollama|deepseek` 选择本地 Ollama 或 DeepSeek。Ollama 默认模型为 `qwen3:latest`，DeepSeek 默认模型为 `deepseek-v4-flash`。音频转录是独立 ASR 端口，不与文本模型配置混用。
