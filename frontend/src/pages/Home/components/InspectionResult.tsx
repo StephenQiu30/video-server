@@ -6,7 +6,7 @@ import {
   NodeIndexOutlined,
   PlayCircleFilled,
 } from '@ant-design/icons';
-import { Button, Card, Image, Tabs, Tag, Typography } from 'antd';
+import { Button, Image, Steps, Tabs, Tag, Typography } from 'antd';
 import type { ReactNode } from 'react';
 
 import stageCover from '@/assets/product-launch-stage.webp';
@@ -75,11 +75,7 @@ export default function InspectionResult({
   selectedId,
 }: InspectionResultProps) {
   return (
-    <Card
-      className={styles.result}
-      styles={{ body: { padding: 0 } }}
-      variant="outlined"
-    >
+    <div className={styles.result}>
       <div className={styles.workspace}>
         <section aria-labelledby="inspection-title" className={styles.summary}>
           <div className={styles.media}>
@@ -112,6 +108,22 @@ export default function InspectionResult({
                 <dd>{inspection.provider_media_id}</dd>
               </div>
             </dl>
+            <Steps
+              className={styles.statusRail}
+              orientation="vertical"
+              current={1}
+              items={[
+                {
+                  content: '视频信息获取成功',
+                  title: '链接已解析',
+                },
+                {
+                  content: '请选择下载格式并开始下载',
+                  title: '准备就绪',
+                },
+              ]}
+              size="small"
+            />
           </div>
         </section>
 
@@ -165,7 +177,7 @@ export default function InspectionResult({
         </div>
         <Tabs defaultActiveKey="summary" items={analysisItems} />
       </section>
-    </Card>
+    </div>
   );
 }
 

@@ -3,12 +3,11 @@ import {
   ReloadOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
-import { PageContainer } from '@ant-design/pro-components';
+import { PageContainer, ProCard } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
 import {
   Alert,
   Button,
-  Card,
   Empty,
   Flex,
   Input,
@@ -109,8 +108,8 @@ export default function DownloadHistoryPage() {
           </section>
         ) : null}
 
-        <Card className={styles.toolbar} variant="outlined">
-          <Flex gap={12} justify="space-between" wrap>
+          <ProCard className={styles.toolbar} variant="outlined">
+            <Flex gap={12} justify="space-between" wrap>
             <Input.Search
               allowClear
               aria-label="搜索下载历史"
@@ -127,7 +126,7 @@ export default function DownloadHistoryPage() {
               value={status ?? ''}
             />
           </Flex>
-        </Card>
+          </ProCard>
 
         {actionError ? (
           <Alert

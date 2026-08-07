@@ -1,6 +1,6 @@
 .container {
-  min-height: calc(100vh - 56px);
-  background: #f7f9fc;
+  min-height: calc(100vh - 68px);
+  background: #fff;
 }
 
 .container :global(.ant-pro-page-container-children-container) {
@@ -8,8 +8,8 @@
 }
 
 .page {
-  width: min(100%, 1180px);
-  padding: 36px clamp(16px, 4vw, 42px) 48px;
+  width: min(100%, 1280px);
+  padding: 48px clamp(16px, 4vw, 56px) 64px;
   margin: 0 auto;
 }
 
@@ -22,29 +22,32 @@
 }
 
 .eyebrow {
-  color: #5274ad;
+  color: #1677ff;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.16em;
 }
 
 .masthead h1 {
-  margin: 8px 0 6px;
-  color: #12223d;
-  font-size: clamp(30px, 4vw, 42px);
-  letter-spacing: -0.045em;
+  margin: 10px 0 6px;
+  color: #111827;
+  font-size: clamp(36px, 5vw, 58px);
+  font-weight: 720;
+  letter-spacing: -0.06em;
 }
 
 .masthead p {
-  max-width: 500px;
+  max-width: 540px;
   margin: 0;
-  color: #73809a;
+  color: #667085;
+  line-height: 1.7;
 }
 
 .newButton {
-  min-width: 112px;
+  min-width: 124px;
   height: 42px;
-  box-shadow: 0 8px 20px rgb(22 119 255 / 16%);
+  border-radius: 7px;
+  box-shadow: none;
 }
 
 .summaryGrid {
@@ -56,16 +59,21 @@
 
 .toolbar {
   margin-bottom: 14px;
-  border-color: #e1e7f0;
+  border-color: #dfe5ec;
   border-radius: 8px;
+  box-shadow: none;
+}
+
+.toolbar :global(.ant-pro-card-body) {
+  padding: 16px;
 }
 
 .toolbar :global(.ant-input-search) {
-  width: min(100%, 360px);
+  width: min(100%, 380px);
 }
 
 .toolbar :global(.ant-select) {
-  min-width: 132px;
+  min-width: 142px;
 }
 
 .alert {
@@ -75,9 +83,9 @@
 .records {
   overflow: hidden;
   background: #fff;
-  border: 1px solid #e1e7f0;
+  border: 1px solid #dfe5ec;
   border-radius: 8px;
-  box-shadow: 0 12px 32px rgb(31 53 86 / 4%);
+  box-shadow: 0 18px 48px rgb(31 78 121 / 6%);
 }
 
 .empty {
@@ -116,11 +124,5 @@
 
   .toolbar :global(.ant-flex) {
     flex-direction: column;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .newButton {
-    box-shadow: none;
   }
 }

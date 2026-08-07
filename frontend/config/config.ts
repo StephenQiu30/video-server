@@ -10,8 +10,13 @@ export default defineConfig({
       theme: {
         token: {
           borderRadius: 6,
-          colorBgLayout: '#f8fafc',
+          colorBgContainer: '#ffffff',
+          colorBgLayout: '#ffffff',
+          colorBorder: '#dfe5ec',
+          colorBorderSecondary: '#edf0f4',
           colorPrimary: '#1677ff',
+          colorText: '#111827',
+          colorTextSecondary: '#667085',
           fontFamily:
             "Inter, 'PingFang SC', 'Microsoft YaHei', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         },

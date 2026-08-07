@@ -1,8 +1,8 @@
 import { ClockCircleOutlined, DownloadOutlined } from '@ant-design/icons';
+import { ProCard } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
 import {
   Button,
-  Card,
   Flex,
   Image,
   Progress,
@@ -45,12 +45,12 @@ export function StatCard({
   value: number;
 }) {
   return (
-    <Card
+    <ProCard
       className={`${styles.statCard} ${tone ? styles[tone] : ''}`}
       variant="outlined"
     >
       <Statistic title={label} value={value} />
-    </Card>
+    </ProCard>
   );
 }
 
