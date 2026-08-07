@@ -37,8 +37,7 @@ server/
 ├── docs/                          当前设计、需求、计划、验收与运维文档
 ├── Dockerfile                     前后端统一生产镜像
 ├── docker-compose.yml             默认完整环境
-├── docker-compose-env.yml         本地基础设施环境
-└── docker-compose-prod.yml        生产覆盖配置
+└── docker-compose-env.yml         本地基础设施环境
 ```
 
 仓库只保留 `backend/`、`frontend/`、`docs/` 三个业务模块和根治理文件，不新增 `deploy/`、重复子仓库或平行应用目录。生产环境不运行独立前端容器，静态资源由根镜像构建并通过 FastAPI 同源提供。
@@ -71,7 +70,7 @@ server/
 - Worker 开工前重新解析语义下载计划；Provider format id 不能作为唯一恢复依据。
 - AI 任务独立于下载任务；AI 失败不得改变下载成功状态。模型输出必须通过 schema 和 transcript evidence 校验，普通日志不得记录完整转录或原始模型响应。
 - Secret 只来自类型化配置和环境变量，不得进入前端、API 响应、异常、快照、测试夹具或普通日志。外部操作必须设置大小、时长、并发和超时上限，取消时终止整个子进程组。
-- 开发 Compose 应零配置启动；外部 env 只用于生产镜像、凭据、密钥和公共端点。不要提交 `.env`、制品、缓存、日志、临时目录、虚拟环境或 `node_modules/`。
+- Compose 启动方式保持直接清晰：`docker-compose.yml` 启动完整系统，`docker-compose-env.yml` 只启动本地基础设施；不要新增没有明确运行目标的生产覆盖、部署目录或多层启动模板。`.env` 仅用于覆盖本地默认密码、对象存储公开地址或 AI Provider 凭据。不要提交 `.env`、制品、缓存、日志、临时目录、虚拟环境或 `node_modules/`。
 
 ## 实现与验证
 
@@ -98,7 +97,7 @@ npm test
 npm run build
 ```
 
-- 涉及接口契约时验证 OpenAPI 生成结果和前后端契约测试；涉及运行时、依赖或容器时验证三个 Compose 配置、统一镜像构建和关键健康接口。
+- 涉及接口契约时验证 OpenAPI 生成结果和前后端契约测试；涉及运行时、依赖或容器时验证两份 Compose 配置、统一镜像构建和关键健康接口。
 - 不得隐瞒失败的检查。无法在当前平台完成的验证应在交付说明中写明原因、已执行范围和剩余风险。
 
 ## 文档规范

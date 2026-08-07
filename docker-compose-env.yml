@@ -1,50 +1,41 @@
-name: ${COMPOSE_ENV_STACK_NAME:-video-server-env}
-
-x-service-defaults: &service-defaults
-  restart: unless-stopped
-  logging:
-    driver: json-file
-    options:
-      max-size: ${COMPOSE_LOG_MAX_SIZE:-10m}
-      max-file: ${COMPOSE_LOG_MAX_FILE:-3}
+name: video-server-env
 
 services:
   postgres:
-    <<: *service-defaults
-    container_name: ${COMPOSE_CONTAINER_PREFIX:-video-server}-dev-postgres
     image: postgres:17.5-alpine
+    container_name: video-server-dev-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DOCKER_POSTGRES_DB:-video}
-      POSTGRES_USER: ${DOCKER_POSTGRES_USER:-video}
-      POSTGRES_PASSWORD: ${DOCKER_POSTGRES_PASSWORD:-video}
+      POSTGRES_DB: ${POSTGRES_DB:-video}
+      POSTGRES_USER: ${POSTGRES_USER:-video}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-video}
     ports:
-      - "${COMPOSE_BIND_ADDRESS:-127.0.0.1}:${COMPOSE_POSTGRES_PORT:-15432}:5432"
+      - "127.0.0.1:15432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
     healthcheck:
       test:
-        - CMD-SHELL
-        - >-
-          psql -v ON_ERROR_STOP=1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}
-          -c 'SELECT 1 FROM media_inspections LIMIT 1;
-          SELECT 1 FROM download_jobs LIMIT 1;
-          SELECT 1 FROM analysis_jobs LIMIT 1;
-          SELECT 1 FROM outbox_events LIMIT 1' >/dev/null
+        [
+          "CMD-SHELL",
+          "psql -v ON_ERROR_STOP=1 -U $${POSTGRES_USER} -d $${POSTGRES_DB} -c 'SELECT 1 FROM media_inspections LIMIT 1; SELECT 1 FROM download_jobs LIMIT 1; SELECT 1 FROM analysis_jobs LIMIT 1; SELECT 1 FROM outbox_events LIMIT 1' >/dev/null",
+        ]
       interval: 5s
       timeout: 5s
       retries: 12
+    networks:
+      - video-server-env-network
 
   rabbitmq:
-    <<: *service-defaults
-    container_name: ${COMPOSE_CONTAINER_PREFIX:-video-server}-dev-rabbitmq
     image: rabbitmq:4.0.9-management
+    container_name: video-server-dev-rabbitmq
+    restart: unless-stopped
     environment:
-      RABBITMQ_DEFAULT_USER: ${DOCKER_RABBITMQ_USER:-video}
-      RABBITMQ_DEFAULT_PASS: ${DOCKER_RABBITMQ_PASSWORD:-video}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-video}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-video}
     ports:
-      - "${COMPOSE_BIND_ADDRESS:-127.0.0.1}:${COMPOSE_RABBITMQ_PORT:-5673}:5672"
-      - "${COMPOSE_BIND_ADDRESS:-127.0.0.1}:${COMPOSE_RABBITMQ_MANAGEMENT_PORT:-15673}:15672"
+      - "127.0.0.1:5673:5672"
+      - "127.0.0.1:15673:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -52,18 +43,20 @@ services:
       interval: 5s
       timeout: 5s
       retries: 12
+    networks:
+      - video-server-env-network
 
   minio:
-    <<: *service-defaults
-    container_name: ${COMPOSE_CONTAINER_PREFIX:-video-server}-dev-minio
     image: minio/minio:RELEASE.2025-02-28T09-55-16Z
+    container_name: video-server-dev-minio
     command: ["server", "/data", "--console-address", ":9001"]
+    restart: unless-stopped
     environment:
-      MINIO_ROOT_USER: ${DOCKER_MINIO_ROOT_USER:-video-root}
-      MINIO_ROOT_PASSWORD: ${DOCKER_MINIO_ROOT_PASSWORD:-video-root-secret-change-me}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-video-root}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-video-root-secret-change-me}
     ports:
-      - "${COMPOSE_BIND_ADDRESS:-127.0.0.1}:${COMPOSE_MINIO_API_PORT:-19000}:9000"
-      - "${COMPOSE_BIND_ADDRESS:-127.0.0.1}:${COMPOSE_MINIO_CONSOLE_PORT:-19001}:9001"
+      - "127.0.0.1:19190:9000"
+      - "127.0.0.1:19191:9001"
     volumes:
       - minio_data:/data
     healthcheck:
@@ -71,34 +64,35 @@ services:
       interval: 5s
       timeout: 5s
       retries: 12
+    networks:
+      - video-server-env-network
 
   minio-init:
-    container_name: ${COMPOSE_CONTAINER_PREFIX:-video-server}-dev-minio-init
     image: minio/mc:latest
-    pull_policy: always
+    container_name: video-server-dev-minio-init
     entrypoint: ["/bin/sh", "/config/init.sh"]
+    restart: "no"
     environment:
       MC_CONFIG_DIR: /tmp/.mc
-      MINIO_ROOT_USER: ${DOCKER_MINIO_ROOT_USER:-video-root}
-      MINIO_ROOT_PASSWORD: ${DOCKER_MINIO_ROOT_PASSWORD:-video-root-secret-change-me}
-      MINIO_ACCESS_KEY: ${DOCKER_MINIO_ACCESS_KEY:-video-app-access}
-      MINIO_SECRET_KEY: ${DOCKER_MINIO_SECRET_KEY:-video-app-secret-change-me}
-      MINIO_BUCKET: ${DOCKER_MINIO_BUCKET:-video-artifacts}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-video-root}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-video-root-secret-change-me}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-video-app-access}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-video-app-secret-change-me}
+      MINIO_BUCKET: ${MINIO_BUCKET:-video-artifacts}
     volumes:
       - ./backend/config/minio:/config:ro
     depends_on:
       minio:
         condition: service_healthy
-    read_only: true
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=16777216
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    restart: "no"
+    networks:
+      - video-server-env-network
+
+networks:
+  video-server-env-network:
+    name: video-server-env-network
+    driver: bridge
 
 volumes:
-  postgres_data: {}
-  rabbitmq_data: {}
-  minio_data: {}
+  postgres_data:
+  rabbitmq_data:
+  minio_data:

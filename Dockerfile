@@ -56,5 +56,5 @@ COPY --link --from=frontend-builder --chown=10001:10001 /workspace/frontend/dist
 COPY --link --from=node-runtime /usr/local/bin/node /usr/local/bin/node
 
 USER appuser
-EXPOSE 19090
+EXPOSE 8101
 CMD ["python", "-m", "app.main"]

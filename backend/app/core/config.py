@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     app_env: Literal["development", "test", "staging", "production"] = "development"
     service_role: Literal["api", "outbox", "download-worker", "analysis-worker"] = "api"
     app_host: str = "0.0.0.0"
-    app_port: int = Field(default=19090, ge=1, le=65535)
+    app_port: int = Field(default=8101, ge=1, le=65535)
     app_version: str = "0.1.0"
     frontend_dist_dir: Path = REPOSITORY_ROOT / "frontend" / "dist"
     readiness_timeout_seconds: float = Field(default=2.0, ge=0.1, le=10)
@@ -44,8 +44,8 @@ class Settings(BaseSettings):
     outbox_batch_size: int = Field(default=50, ge=1, le=200)
     outbox_poll_interval_seconds: float = Field(default=1.0, ge=0.1, le=60)
 
-    minio_endpoint: str = "localhost:19000"
-    minio_public_endpoint: str = "localhost:19000"
+    minio_endpoint: str = "localhost:19190"
+    minio_public_endpoint: str = "localhost:19190"
     minio_access_key: SecretStr = SecretStr("video-app-access")
     minio_secret_key: SecretStr = SecretStr("video-app-secret-change-me")
     minio_internal_secure: bool = False

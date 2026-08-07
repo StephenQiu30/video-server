@@ -35,7 +35,7 @@ export default defineConfig({
     projectName: 'video',
     requestLibPath: "import { request } from '@umijs/max'",
     schemaPath:
-      process.env.OPENAPI_SCHEMA_URL ?? 'http://127.0.0.1:19090/openapi.json',
+      process.env.OPENAPI_SCHEMA_URL ?? 'http://127.0.0.1:8101/openapi.json',
   },
   plugins: ['@umijs/max-plugin-openapi'],
   proxy,

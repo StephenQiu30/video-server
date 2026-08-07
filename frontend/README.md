@@ -9,7 +9,7 @@
 先在仓库的 `backend/` 目录启动 API：
 
 ```bash
-uv run uvicorn app.main:app --host 127.0.0.1 --port 19090 --reload
+uv run uvicorn app.main:app --host 127.0.0.1 --port 8101 --reload
 ```
 
 然后在本目录执行：
@@ -19,7 +19,7 @@ npm ci
 npm run dev
 ```
 
-开发页面由 Umi Max 启动，`/api/` 与 `/health/` 会代理到 `http://127.0.0.1:19090`。
+开发页面由 Umi Max 启动，`/api/` 与 `/health/` 会代理到 `http://127.0.0.1:8101`。
 
 ## 目录
 
@@ -56,7 +56,7 @@ FastAPI 的 OpenAPI 文档是接口类型的唯一来源。先启动 FastAPI，�
 npm run openapi
 ```
 
-命令默认读取 `http://127.0.0.1:19090/openapi.json`。如需使用 CI 或远端契约，可设置 `OPENAPI_SCHEMA_URL` 后再运行命令。开发服务器还会提供 `/umi/plugin/openapi`，用于预览插件读取到的 Swagger 文档。
+命令默认读取 `http://127.0.0.1:8101/openapi.json`。如需使用 CI 或远端契约，可设置 `OPENAPI_SCHEMA_URL` 后再运行命令。开发服务器还会提供 `/umi/plugin/openapi`，用于预览插件读取到的 Swagger 文档。
 
 生成结果位于 `src/services/video/`，由 `@umijs/max-plugin-openapi` 的 `max openapi` 命令维护，不要手工修改。生成器按 OpenAPI tag 分文件，并使用后端声明的 `operationId` 作为函数名；页面和 Hooks 只调用 `src/services/analysis.ts` 或 `src/services/download.ts`，避免生成代码细节扩散到 UI。
 
