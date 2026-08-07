@@ -45,6 +45,10 @@ npm run openapi
 
 该命令使用 Umi Max OpenAPI 插件直接读取 FastAPI 的 `/openapi.json`，并更新 `frontend/src/services/video/`；执行前需启动后端 API。
 
+## 视频源
+
+Media Runner 通过可注册的 Provider Strategy 统一处理 YouTube、Bilibili、抖音、TikTok、Vimeo、X/Twitter、Instagram、Facebook、Twitch、Reddit、Pinterest、微博、优酷、腾讯视频、Dailymotion 和 NicoNico 等公开媒体链接；未登记的 HTTP(S) 地址继续交给 yt-dlp 的 Generic extractor。平台规则会变化，且登录、Cookie、DRM 或平台访问验证不在服务边界内，最终是否可下载以实际解析结果为准。
+
 ## 容器运行
 
 根目录两份 Compose 按职责分层，不使用 `deploy/` 目录：本地文件可独立启动完整服务，生产文件只覆盖生产差异。

@@ -32,6 +32,12 @@
 
 Runner 会将抖音精选页的 `modal_id`、`/share/video/{id}` 和抖音短链交给 yt-dlp 的抖音 extractor，并对抖音请求使用独立的浏览器指纹和有限重试。当前抖音网页接口会要求新鲜浏览器会话（`Fresh cookies ... are needed`），这属于平台反爬验证；本项目不上传 Cookie、不生成平台签名，也不绕过验证。因此当前实现保证分享链接能够进入正确的 extractor，并返回明确的“需要平台访问会话”错误，但不宣称在无浏览器会话时完成所有抖音视频下载。
 
+## 主流平台策略注册表
+
+Runner 使用 `ProviderStrategy + ProviderRegistry + GenericFallback`：平台策略只管理域名别名、规范化 URL、固定请求参数和有限重试；下载、格式选择、FFmpeg 校验仍走同一条流水线。当前登记并经过 extractor 清单核验的平台包括 YouTube、哔哩哔哩、抖音、TikTok、Vimeo、X/Twitter、Instagram、Facebook、Twitch、Reddit、Pinterest、微博、优酷、腾讯视频、Dailymotion 和 NicoNico。未登记但被 yt-dlp 支持的 HTTP(S) 地址仍交给 Generic extractor；平台目录不等于可用性保证，yt-dlp 官方也明确说明站点规则会变化，最终必须以实际解析结果为准。[Supported sites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md)
+
+当前镜像中的 yt-dlp extractor 清单未包含快手，因此快手仅保留域名识别，不宣称已具备下载能力；只有在 extractor 可用并通过实际解析测试后，才会将其升级为正式平台。
+
 ## 关键风险与治理
 
 1. yt-dlp 的 2026 发布记录包含命令注入、危险文件类型和外部 downloader 相关安全修复，因此不能把任意参数透传给用户，也不能启用 `--exec`、`--netrc-cmd`、aria2c 或 cookie 上传。

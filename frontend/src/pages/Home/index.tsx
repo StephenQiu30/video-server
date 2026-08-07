@@ -86,7 +86,7 @@ export default function HomePage() {
             解析并下载视频，获取 AI 智能分析
           </Typography.Title>
           <Typography.Paragraph>
-            支持 Bilibili、YouTube 等公开视频平台，也兼容抖音分享链接
+            支持 YouTube、Bilibili、抖音、TikTok、Vimeo 等主流公开视频平台
           </Typography.Paragraph>
           <form className={styles.search} onSubmit={handleInspect}>
             <label className={styles.label} htmlFor="media-url">

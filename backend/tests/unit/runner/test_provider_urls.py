@@ -1,3 +1,4 @@
+from app.runner.provider_registry import provider_profile
 from app.runner.provider_urls import (
     provider_command_args,
     provider_inspection_attempts,
@@ -74,3 +75,37 @@ def test_targets_douyin_request_impersonation_and_retries() -> None:
         "Chrome-136:Macos-15",
     )
     assert provider_inspection_attempts(short_url) == 8
+
+
+def test_registry_classifies_mainstream_platform_hosts() -> None:
+    expected = {
+        "youtube.com": "youtube",
+        "b23.tv": "bilibili",
+        "www.douyin.com": "douyin",
+        "vm.tiktok.com": "tiktok",
+        "player.vimeo.com": "vimeo",
+        "x.com": "x",
+        "www.instagram.com": "instagram",
+        "fb.watch": "facebook",
+        "clips.twitch.tv": "twitch",
+        "redd.it": "reddit",
+        "pin.it": "pinterest",
+        "m.weibo.cn": "weibo",
+        "v.youku.com": "youku",
+        "v.qq.com": "qqvideo",
+        "dai.ly": "dailymotion",
+        "nico.ms": "niconico",
+    }
+
+    assert {
+        hostname: provider_profile(f"https://{hostname}/video/1").key
+        for hostname in expected
+    } == expected
+
+
+def test_unknown_hosts_use_the_safe_generic_strategy() -> None:
+    profile = provider_profile("https://media.example.com/video/1")
+
+    assert profile.key == "generic"
+    assert profile.command_args == ()
+    assert profile.inspection_attempts == 2
