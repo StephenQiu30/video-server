@@ -31,7 +31,8 @@ server/
 ├── docs/                     当前交付契约
 ├── Dockerfile                统一前后端镜像
 ├── docker-compose.yml        默认完整系统
-└── docker-compose-env.yml    仅依赖环境
+├── docker-compose-env.yml    仅依赖环境
+└── docker-compose-prod.yml   生产覆盖配置
 ```
 
 依赖方向固定为：`api/workers → application → domain`；`infrastructure` 实现 application 所需端口。Domain 不得导入 FastAPI、SQLAlchemy、RabbitMQ、MinIO、yt-dlp 或模型 SDK。
@@ -93,7 +94,7 @@ flowchart LR
 - Runner 只接受内部网络请求和带时间戳的 HMAC；请求体大小、并发、时长、磁盘和输出数量均有限制。
 - 用户提供的 URL 加密存储并按 TTL 清理；日志不得记录 query、cookie、Authorization、API key 或完整转录。
 - 浏览器永远不接触 DB/MQ/MinIO/AI provider 凭据。
-- Compose 使用明确命名的应用网络；浏览器只访问 API 入口和 API 签发的短时对象地址。Media Runner 通过 egress proxy 出网，proxy 拒绝私网、localhost 和字面量 IP 目的地址。
+- Compose 使用默认网络完成服务互联；浏览器只访问 API 入口和 API 签发的短时对象地址。Media Runner 通过 egress proxy 出网，proxy 拒绝私网、localhost 和字面量 IP 目的地址。
 - 不支持 DRM 绕过、私有内容规避、任意文件协议、直播录制或未授权内容下载。
 
 ## 7. 部署与演进
@@ -101,7 +102,7 @@ flowchart LR
 - 单一代码镜像、多个命令入口，便于独立扩容 API、下载和分析 Worker。
 - Python builder 与 runtime 固定使用同一绝对目录 `/app/backend`，复制后的虚拟环境保持 `/app/backend/.venv`；容器入口通过该 PATH 下的 `python -m ...` 启动，避免构建路径写入的 venv 解释器在运行时失效。
 - PostgreSQL、RabbitMQ、MinIO 使用 Compose 项目作用域卷；完整环境固定为 `video-server-app`，仅依赖环境固定为 `video-server-env`，避免两种模式并行争用同一卷。单实例服务使用稳定的 `video-server-*` 容器名。
-- Compose 的镜像、宿主机绑定、内部 DNS、队列、网络和卷均在 YAML 中提供默认值；被 Git 忽略的 `.env` 只保存本机确实需要覆盖的密码、对象存储公开地址、依赖连接与 Provider 凭据，不重复声明普通默认值。
+- Compose 的镜像、宿主机绑定、内部 DNS、队列和卷在 YAML 中声明；`.env.example` 提供本地模板，被 Git 忽略的 `.env` 保存本机真实值，生产环境使用 `.env.prod.example` 复制出的 `.env.prod`。
 - 首期保持模块化单体；只有当容量、隔离或团队所有权出现真实证据时才拆仓/拆服务。
 - OpenAPI 是前后端契约；前端服务代码由 schema 生成或由同一 DTO 测试约束。
 

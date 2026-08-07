@@ -1,0 +1,44 @@
+services:
+  api:
+    env_file: !override
+      - .env.prod
+    restart: always
+
+  outbox:
+    env_file: !override
+      - .env.prod
+    restart: always
+
+  worker-download:
+    env_file: !override
+      - .env.prod
+    restart: always
+
+  worker-analysis:
+    env_file: !override
+      - .env.prod
+    restart: always
+
+  media-runner:
+    env_file: !override
+      - .env.prod
+    restart: always
+
+  postgres:
+    env_file: !override
+      - .env.prod
+    restart: always
+
+  rabbitmq:
+    env_file: !override
+      - .env.prod
+    restart: always
+
+  minio:
+    env_file: !override
+      - .env.prod
+    restart: always
+
+  minio-init:
+    env_file: !override
+      - .env.prod

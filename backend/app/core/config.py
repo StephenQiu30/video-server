@@ -188,3 +188,9 @@ class Settings(BaseSettings):
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     return Settings()
+
+
+def get_settings_for_role(
+    role: Literal["api", "outbox", "download-worker", "analysis-worker"],
+) -> Settings:
+    return Settings(service_role=role)

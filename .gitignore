@@ -31,5 +31,6 @@ temp/
 .env
 .env.*
 !.env.example
+!.env.prod.example
 
 npm-debug.log*

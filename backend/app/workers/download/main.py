@@ -14,7 +14,7 @@ from app.application.download_execution import (
     DownloadExecution,
     DownloadExecutionSettings,
 )
-from app.core.config import Settings, get_settings
+from app.core.config import Settings, get_settings_for_role
 from app.core.url_cipher import URLCipher
 from app.infrastructure.database import (
     SqlAlchemyDownloadRepository,
@@ -112,7 +112,7 @@ def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
 
 
 async def run() -> None:
-    runtime = build_runtime(get_settings())
+    runtime = build_runtime(get_settings_for_role("download-worker"))
     stop = asyncio.Event()
     _install_signal_handlers(stop)
     try:

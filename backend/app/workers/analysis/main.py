@@ -10,7 +10,7 @@ from app.application.analysis_execution import (
     AnalysisExecution,
     AnalysisExecutionSettings,
 )
-from app.core.config import Settings, get_settings
+from app.core.config import Settings, get_settings_for_role
 from app.infrastructure.ai import (
     LangChainAnalyzer,
     OpenAITranscriber,
@@ -132,7 +132,7 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
 
 
 async def run() -> None:
-    runtime = build_runtime(get_settings())
+    runtime = build_runtime(get_settings_for_role("analysis-worker"))
     stop = asyncio.Event()
     install_signal_handlers(stop)
     try:

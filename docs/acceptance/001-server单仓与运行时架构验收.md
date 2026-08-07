@@ -16,7 +16,7 @@
 - [x] Media Runner 通过 egress proxy 出网，proxy 阻断私网、localhost 和字面量 IP 目的地址。
 - [x] builder 与 runtime 的 `/app/backend/.venv` 绝对路径一致，所有 Python 进程入口可从统一镜像启动。
 - [x] 完整环境与仅依赖环境使用稳定且独立的 Compose 项目名、容器名和作用域卷，不会并行争用同一数据卷。
-- [x] 默认与仅依赖 Compose 无需 env 即可解析/启动，`.env.example` 只作为本地覆盖模板。
+- [x] 默认完整与仅依赖 Compose 读取被 Git 忽略的 `.env`，生产覆盖读取 `.env.prod`；环境变量值不写入非 env 文件。
 - [x] 原后端与前端历史可从 Git 提交/标签恢复。
 
 ## 验证命令
@@ -27,6 +27,7 @@ cd backend && uv run mypy --strict app && uv run pytest -q
 cd frontend && npm run lint && npm run format:check && npm test && npm run build
 docker compose -f docker-compose.yml config --quiet
 docker compose -f docker-compose-env.yml config --quiet
+docker compose -f docker-compose.yml -f docker-compose-prod.yml config --quiet
 docker build --target runtime --tag video-server:architecture .
 ```
 
@@ -37,8 +38,8 @@ docker build --target runtime --tag video-server:architecture .
 - 测试策略：CI 不设置覆盖率数字硬门槛；测试聚焦领域规则、API 契约、安全边界和关键流程，不为覆盖率重复测试实现细节。
 - 依赖：`npm audit --audit-level=high` 为 0 vulnerabilities。
 - 数据库：仓库中只有 `backend/sql/schema.sql`，由 PostgreSQL 在全新数据卷首次启动时执行；没有 Alembic/migrations 或旧 schema 兼容分支。
-- Compose：根目录只有 `docker-compose.yml`、`docker-compose-env.yml` 两份入口；完整与仅依赖配置均可解析。
-- 配置收敛：镜像、宿主机绑定、容器内部服务名、队列、网络和卷由 Compose 提供默认值；`.env.example` 只保留本地确实需要覆盖的凭据、依赖连接和可选 Provider 凭据。
+- Compose：根目录保留 `docker-compose.yml`、`docker-compose-env.yml`、`docker-compose-prod.yml` 三份入口；完整、仅依赖与生产覆盖配置均可解析。
+- 配置收敛：镜像、宿主机绑定、容器内部服务名、队列、网络和卷由 Compose 声明；环境变量值只保留在 `.env.example`、`.env.prod.example` 或被 Git 忽略的 `.env*` 文件中。
 - 镜像：`docker build --target runtime --tag video-server:architecture .` 返回 0；根目录多阶段 `Dockerfile` 统一构建 frontend dist 与 Python runtime，API、Outbox、下载 Worker、AI Worker 和 Media Runner 复用同一 runtime 镜像。
 - 容器入口修复：backend-builder 与 runtime 均使用 `/app/backend`，虚拟环境固定为 `/app/backend/.venv`，Runner 改由 `python -m uvicorn ...` 启动；完整 Compose 中 API、Outbox、下载 Worker、AI Worker 与 Media Runner 均成功进入运行/健康状态。
 - 应用交付网络：API 固定暴露 `127.0.0.1:8101`，真实浏览器能够访问 API，并通过 API 签发的 MinIO URL 取回文件；Media Runner 仍通过 egress proxy 出网。
