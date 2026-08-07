@@ -18,9 +18,12 @@ jobs:
       - uses: actions/checkout@v7
       - name: Validate Compose modes
         run: |
+          cp .env.example .env
           docker compose -f docker-compose.yml config --quiet
           docker compose -f docker-compose-env.yml config --quiet
-          docker compose --env-file .env.prod.example -f docker-compose.yml -f docker-compose-prod.yml config --quiet
+          cp .env.prod.example .env.prod
+          docker compose -f docker-compose-prod.yml config --quiet
+          rm -f .env .env.prod
 
   backend-quality:
     name: Backend quality

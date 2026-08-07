@@ -7,7 +7,7 @@
 - `backend/`：FastAPI、领域服务、Worker、当前态 SQL 与 Python 测试。
 - `frontend/`：Ant Design Pro / Umi Max 页面、组件、OpenAPI 客户端与前端测试。
 - `docs/`：当前产品和架构事实。
-- 根 `Dockerfile`、`docker-compose.yml`、`docker-compose-env.yml` 与 `docker-compose-prod.yml`：唯一运行入口，不建立独立部署目录。
+- 根 `Dockerfile`、`docker-compose.yml`、`docker-compose-env.yml` 与 `docker-compose-prod.yml`：唯一运行入口，不建立独立部署目录。三份 Compose 分别是本地应用、基础设施和生产应用的独立入口，不通过文件叠加启动。
 
 功能交付遵循 `Design → PRD → Plan → Acceptance`，并保持测试、契约、文档和实际运行方式一致。具体目录、依赖、安全、配置和测试规则以 `AGENTS.md` 为准。提交前分别运行后端与前端质量门禁；涉及运行时变更时还需验证三份根 Compose 配置和统一镜像构建。
 

@@ -10,9 +10,9 @@ server/
 ├── frontend/      Ant Design Pro / Umi Max Web 源码、组件与测试
 ├── docs/          当前 Design、PRD、Plan、Acceptance 与运维文档
 ├── Dockerfile
-├── docker-compose.yml       默认完整环境
-├── docker-compose-env.yml   仅基础设施环境
-└── docker-compose-prod.yml  生产覆盖配置
+├── docker-compose.yml       本地应用环境（前后端及运行进程）
+├── docker-compose-env.yml   本地基础设施环境
+└── docker-compose-prod.yml  生产应用环境（前后端及运行进程）
 ```
 
 生产环境不运行独立的前端容器。根目录 `Dockerfile` 先构建 `frontend/`，再将静态产物复制到统一 Python 镜像，由 FastAPI 同源提供页面和 `/api/*` 接口。API、下载 Worker 和 AI Worker 使用同一代码镜像、不同进程入口。
@@ -48,36 +48,34 @@ npm run openapi
 
 ## 容器运行
 
-根目录三份 Compose 各自承担固定职责，不使用 `deploy/` 目录：
+根目录三份 Compose 是三个可以独立执行的入口，不使用 `deploy/` 目录，也不通过文件叠加启动：
 
 | 文件 | 用途 | 启动方式 |
 | --- | --- | --- |
-| `docker-compose.yml` | API、Worker、Runner 与依赖完整启动 | 单独使用 |
-| `docker-compose-env.yml` | 只启动 PostgreSQL、RabbitMQ、MinIO | 单独使用 |
-| `docker-compose-prod.yml` | 生产环境覆盖 | 叠加默认文件使用 |
+| `docker-compose.yml` | 本机 API 同源前端、Worker、Runner 与 egress proxy | 单独使用 |
+| `docker-compose-env.yml` | 本机 PostgreSQL、RabbitMQ、MinIO 及初始化器 | 单独使用 |
+| `docker-compose-prod.yml` | 线上 API 同源前端、Worker、Runner 与 egress proxy | 单独使用 |
 
 ```bash
 cp .env.example .env
+docker compose -f docker-compose-env.yml up -d
 docker compose -f docker-compose.yml up -d --build
 
-# 只启动 PostgreSQL、RabbitMQ、MinIO 及 MinIO 初始化器
-cp .env.example .env
-docker compose -f docker-compose-env.yml up -d
-
-# 生产环境先复制并替换全部占位值
+# 生产环境只启动生产应用栈，不叠加本地文件
 cp .env.prod.example .env.prod
-docker compose -f docker-compose.yml -f docker-compose-prod.yml up -d --build
+docker compose -f docker-compose-prod.yml up -d --build
 ```
 
-Compose 使用 `video-server-*` 稳定容器名。API 固定绑定
-`127.0.0.1:8101`，MinIO API 与控制台固定绑定 `127.0.0.1:19190/19191`。
-容器名均显式指定，不会出现 `xxx-1` 这类副本后缀。环境变量模板只维护在
+三个 Compose 文件互不引用服务、卷、网络或覆盖配置。应用栈通过 `.env` 或
+`.env.prod` 访问外部基础设施；本地环境栈将 PostgreSQL、RabbitMQ、MinIO 发布到
+`15432`、`5673`、`19190/19191`，本地 `.env` 已按这些宿主机端口配置。
+Compose 使用带环境前缀的稳定容器名，不会出现 `xxx-1` 这类副本后缀。环境变量模板只维护在
 `.env.example` 与 `.env.prod.example`；真实本地值放在被 Git 忽略的 `.env` 或
 `.env.prod` 中。Compose 文件只负责引用 env 文件和声明编排关系。
 
 LLM 默认通过 LangChain 连接宿主机已有的 Ollama 服务与 `deepseek-r1:8b`；项目不安装 Ollama 或拉取模型。切换 DeepSeek 云端时设置 `ANALYSIS_PROVIDER=deepseek` 与 `DEEPSEEK_API_KEY`。音频转录仍使用独立 ASR 配置，真实视频分析需要 `OPENAI_API_KEY`。
 
-服务入口默认为 <http://localhost:8101>。仅启动基础设施使用 `docker-compose-env.yml`；完整系统使用 `docker-compose.yml`；生产覆盖使用 `docker-compose.yml` 叠加 `docker-compose-prod.yml`。
+服务入口默认为 <http://localhost:8101>。本地应用和生产应用分别使用自己的 Compose 文件；基础设施单独使用 `docker-compose-env.yml`。
 
 当前架构依据见 [`docs/design/001-server单仓与运行时架构设计.md`](docs/design/001-server单仓与运行时架构设计.md)。数据库只保留 [`backend/sql/schema.sql`](backend/sql/schema.sql) 当前定义，新结构使用空数据卷初始化，不维护历史迁移和兼容分支。002 已通过受控直链 MP4 的真实 PostgreSQL/RabbitMQ/MinIO/yt-dlp/FFmpeg 与浏览器 MVP 核心验收，并通过一个 MediaTrack 公共审片链接的真实解析、HLS 下载与 ffprobe 校验，但不代表第三方站点矩阵均已覆盖；003 的真实 ASR + DeepSeek/Ollama E2E 尚未执行，仍保持 Pending。
 

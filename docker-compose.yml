@@ -1,26 +1,23 @@
-name: video-server-app
+name: video-server-local
+
+x-local-app: &local-app
+  image: video-server:local
+  env_file:
+    - .env
+  restart: unless-stopped
 
 services:
   api:
-    image: video-server:local
+    <<: *local-app
     build:
       context: .
       dockerfile: Dockerfile
       target: runtime
-    container_name: video-server-api
+    container_name: video-server-local-api
     command: ["python", "-m", "app.main"]
-    restart: unless-stopped
     ports:
       - "127.0.0.1:8101:8101"
     depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
       media-runner:
         condition: service_healthy
     healthcheck:
@@ -37,61 +34,37 @@ services:
       start_period: 10s
 
   outbox:
-    image: video-server:local
-    container_name: video-server-outbox
+    <<: *local-app
+    container_name: video-server-local-outbox
     command: ["python", "-m", "app.workers.outbox.main"]
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
 
   worker-download:
-    image: video-server:local
-    container_name: video-server-worker-download
+    <<: *local-app
+    container_name: video-server-local-worker-download
     command: ["python", "-m", "app.workers.download.main"]
-    restart: unless-stopped
     volumes:
-      - runner_work:/work
+      - local_runner_work:/work
     depends_on:
-      postgres:
-        condition: service_healthy
       workspace-init:
-        condition: service_completed_successfully
-      rabbitmq:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-      minio-init:
         condition: service_completed_successfully
       media-runner:
         condition: service_healthy
 
   worker-analysis:
-    image: video-server:local
-    container_name: video-server-worker-analysis
+    <<: *local-app
+    container_name: video-server-local-worker-analysis
     command: ["python", "-m", "app.workers.analysis.main"]
-    restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - analysis_work:/analysis-work
+      - local_analysis_work:/analysis-work
     depends_on:
-      postgres:
-        condition: service_healthy
       workspace-init:
-        condition: service_completed_successfully
-      rabbitmq:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-      minio-init:
         condition: service_completed_successfully
 
   media-runner:
-    image: video-server:local
-    container_name: video-server-media-runner
+    <<: *local-app
+    container_name: video-server-local-media-runner
     command:
       [
         "python",
@@ -105,9 +78,8 @@ services:
         "19100",
         "--no-access-log",
       ]
-    restart: unless-stopped
     volumes:
-      - runner_work:/work
+      - local_runner_work:/work
     depends_on:
       workspace-init:
         condition: service_completed_successfully
@@ -128,7 +100,7 @@ services:
 
   egress-proxy:
     image: ubuntu/squid:6.6-24.04_edge
-    container_name: video-server-egress-proxy
+    container_name: video-server-local-egress-proxy
     entrypoint: ["squid"]
     command: ["-N", "-f", "/etc/squid/squid.conf"]
     restart: unless-stopped
@@ -144,14 +116,14 @@ services:
 
   workspace-init:
     image: video-server:local
-    container_name: video-server-workspace-init
+    container_name: video-server-local-workspace-init
     user: "0:0"
     command: ["sh", "-c", "install -d -o 10001 -g 10001 -m 0700 /work /analysis-work"]
     restart: "no"
     volumes:
-      - runner_work:/work
-      - analysis_work:/analysis-work
+      - local_runner_work:/work
+      - local_analysis_work:/analysis-work
 
 volumes:
-  runner_work:
-  analysis_work:
+  local_runner_work:
+  local_analysis_work:

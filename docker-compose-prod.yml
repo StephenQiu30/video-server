@@ -1,30 +1,129 @@
-x-include-prod-env: &video-prod-env
-  env_file: .env.prod
+name: video-server-prod
+
+x-prod-app: &prod-app
+  image: video-server:prod
+  env_file:
+    - .env.prod
+  restart: unless-stopped
 
 services:
   api:
-    <<: *video-prod-env
+    <<: *prod-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: video-server-prod-api
+    command: ["python", "-m", "app.main"]
+    ports:
+      - "8101:8101"
+    depends_on:
+      media-runner:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8101/health/ready', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   outbox:
-    <<: *video-prod-env
+    <<: *prod-app
+    container_name: video-server-prod-outbox
+    command: ["python", "-m", "app.workers.outbox.main"]
 
   worker-download:
-    <<: *video-prod-env
+    <<: *prod-app
+    container_name: video-server-prod-worker-download
+    command: ["python", "-m", "app.workers.download.main"]
+    volumes:
+      - prod_runner_work:/work
+    depends_on:
+      workspace-init:
+        condition: service_completed_successfully
+      media-runner:
+        condition: service_healthy
 
   worker-analysis:
-    <<: *video-prod-env
+    <<: *prod-app
+    container_name: video-server-prod-worker-analysis
+    command: ["python", "-m", "app.workers.analysis.main"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - prod_analysis_work:/analysis-work
+    depends_on:
+      workspace-init:
+        condition: service_completed_successfully
 
   media-runner:
-    <<: *video-prod-env
+    <<: *prod-app
+    container_name: video-server-prod-media-runner
+    command:
+      [
+        "python",
+        "-m",
+        "uvicorn",
+        "app.runner.main:create_app",
+        "--factory",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "19100",
+        "--no-access-log",
+      ]
+    volumes:
+      - prod_runner_work:/work
+    depends_on:
+      workspace-init:
+        condition: service_completed_successfully
+      egress-proxy:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:19100/health/live', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
-  postgres:
-    <<: *video-prod-env
+  egress-proxy:
+    image: ubuntu/squid:6.6-24.04_edge
+    container_name: video-server-prod-egress-proxy
+    entrypoint: ["squid"]
+    command: ["-N", "-f", "/etc/squid/squid.conf"]
+    restart: unless-stopped
+    volumes:
+      - ./backend/config/egress/squid.conf:/etc/squid/squid.conf:ro
+      - ./backend/config/egress/blocked-destinations-docker-desktop.conf:/etc/squid/blocked-destinations.conf:ro
+    healthcheck:
+      test: ["CMD", "squid", "-k", "check", "-f", "/etc/squid/squid.conf"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
 
-  rabbitmq:
-    <<: *video-prod-env
+  workspace-init:
+    image: video-server:prod
+    container_name: video-server-prod-workspace-init
+    user: "0:0"
+    command: ["sh", "-c", "install -d -o 10001 -g 10001 -m 0700 /work /analysis-work"]
+    restart: "no"
+    volumes:
+      - prod_runner_work:/work
+      - prod_analysis_work:/analysis-work
 
-  minio:
-    <<: *video-prod-env
-
-  minio-init:
-    <<: *video-prod-env
+volumes:
+  prod_runner_work:
+  prod_analysis_work:

@@ -21,7 +21,7 @@
 - 后端 `pytest -q` 与前端 Vitest 全量门禁均通过；文档不固化会随实现变化的用例数量。
 - CI 不设置覆盖率硬门槛，保留 Ruff、format、strict mypy、核心测试和生产构建门禁。
 - 数据库只使用 `backend/sql/schema.sql` 初始化全新 PostgreSQL 数据卷，不维护 migrations 或兼容升级路径。
-- 根目录三份 Compose 分别负责默认完整启动、仅依赖环境和生产覆盖，三种配置均可解析。
-- 默认完整与仅依赖 Compose 读取被 Git 忽略的 `.env`，由 `.env.example` 复制得到；生产覆盖叠加 `docker-compose-prod.yml` 并读取 `.env.prod`，环境变量值不写入非 env 文件。
+- 根目录三份 Compose 分别负责本地应用、基础设施和生产应用，三种配置均可独立解析和启动。
+- 本地应用、基础设施和生产应用分别由三份可独立执行的 Compose 文件负责；本地应用和基础设施读取 `.env`，生产应用读取 `.env.prod`，生产文件不再叠加本地文件。环境变量值不写入非 env 文件。
 - 根多阶段 Dockerfile 产出包含 frontend dist 的统一 runtime 镜像，各代码进程复用该镜像。
 - backend-builder 与 runtime 的绝对工作目录统一为 `/app/backend`，复制后的 `.venv` 路径不变；Python 服务使用 `python -m ...` 入口。API 固定通过 `127.0.0.1:8101` 提供应用入口，签名文件地址由 API 生成。

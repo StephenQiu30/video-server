@@ -1,32 +1,19 @@
-x-include-env: &video-env
+name: video-server-env
+
+x-env-service: &env-service
   env_file:
     - .env
+  restart: unless-stopped
 
 services:
-  api:
-    <<: *video-env
-
-  outbox:
-    <<: *video-env
-
-  worker-download:
-    <<: *video-env
-
-  worker-analysis:
-    <<: *video-env
-
-  media-runner:
-    <<: *video-env
-
   postgres:
-    <<: *video-env
+    <<: *env-service
     image: postgres:17.5-alpine
-    container_name: video-server-postgres
-    restart: unless-stopped
+    container_name: video-server-env-postgres
     ports:
       - "127.0.0.1:15432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - env_postgres_data:/var/lib/postgresql/data
       - ./backend/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -q -h 127.0.0.1 -p 5432"]
@@ -35,16 +22,15 @@ services:
       retries: 12
 
   rabbitmq:
-    <<: *video-env
+    <<: *env-service
     image: rabbitmq:4.0.9-management
-    container_name: video-server-rabbitmq
-    hostname: video-server-rabbitmq
-    restart: unless-stopped
+    container_name: video-server-env-rabbitmq
+    hostname: video-server-env-rabbitmq
     ports:
       - "127.0.0.1:5673:5672"
       - "127.0.0.1:15673:15672"
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      - env_rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
@@ -52,16 +38,15 @@ services:
       retries: 12
 
   minio:
-    <<: *video-env
+    <<: *env-service
     image: minio/minio:RELEASE.2025-02-28T09-55-16Z
-    container_name: video-server-minio
+    container_name: video-server-env-minio
     command: ["server", "/data", "--address", ":9000", "--console-address", ":9001"]
-    restart: unless-stopped
     ports:
       - "127.0.0.1:19190:9000"
       - "127.0.0.1:19191:9001"
     volumes:
-      - minio_data:/data
+      - env_minio_data:/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
       interval: 5s
@@ -69,9 +54,9 @@ services:
       retries: 12
 
   minio-init:
-    <<: *video-env
+    <<: *env-service
     image: minio/mc:latest
-    container_name: video-server-minio-init
+    container_name: video-server-env-minio-init
     entrypoint: ["/bin/sh", "/config/init.sh"]
     restart: "no"
     volumes:
@@ -81,6 +66,6 @@ services:
         condition: service_healthy
 
 volumes:
-  postgres_data:
-  rabbitmq_data:
-  minio_data:
+  env_postgres_data:
+  env_rabbitmq_data:
+  env_minio_data:
