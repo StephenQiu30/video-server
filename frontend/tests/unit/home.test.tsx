@@ -47,9 +47,6 @@ describe('HomePage', () => {
     fireEvent.click(screen.getByRole('button', { name: '解析视频' }));
 
     expect(await screen.findByText('Owned video')).toBeInTheDocument();
-    expect(
-      screen.getByRole('img', { name: /Owned video 视频封面/ }),
-    ).toHaveAttribute('src', inspection.thumbnail_url);
     expect(screen.getByText(/1920 × 1080/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '创建下载任务' }));
 

@@ -9,7 +9,6 @@ export default defineConfig({
     configProvider: {
       theme: {
         token: {
-          colorBgLayout: '#f0f2f5',
           colorError: '#1677ff',
           colorInfo: '#1677ff',
           colorPrimary: '#1677ff',

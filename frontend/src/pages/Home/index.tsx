@@ -1,12 +1,11 @@
 import { LinkOutlined } from '@ant-design/icons';
 import {
   PageContainer,
-  ProCard,
   ProForm,
   ProFormText,
 } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { Alert, Button, Spin } from 'antd';
+import { Alert, Button, Col, Flex, Form, Row, Spin } from 'antd';
 import { type RefObject, useRef, useState } from 'react';
 
 import {
@@ -19,7 +18,6 @@ import type { Inspection } from '@/types/video';
 import { normalizeMediaUrl, URL_MESSAGE } from '@/utils/validation';
 
 import InspectionResult from './components/InspectionResult';
-import styles from './index.module.css';
 
 type BusyAction = 'inspect' | 'create' | null;
 type StableKey = { payload: string; value: string };
@@ -87,61 +85,61 @@ export default function HomePage() {
 
   return (
     <PageContainer
-      className={styles.container}
       content="粘贴公开视频链接，解析后选择格式并创建下载任务。"
+      ghost
       title="新建下载"
     >
-      <main className={inspection ? styles.page : styles.emptyPage}>
-        <ProCard className={styles.commandCard} variant="outlined">
-          <ProForm<InspectForm>
-            className={styles.command}
-            onFinish={handleInspect}
-            submitter={false}
-          >
-            <ProFormText
-              fieldProps={{
-                'aria-label': '公开视频地址',
-                autoComplete: 'off',
-                id: 'media-url',
-                maxLength: 4096,
-                prefix: <LinkOutlined />,
-                size: 'large',
-              }}
-              label="公开视频地址"
-              name="url"
-              placeholder="粘贴视频链接或分享文案"
-            />
-            <Button
-              aria-label="解析视频"
-              htmlType="submit"
-              loading={busy === 'inspect'}
-              size="large"
-              type="primary"
-            >
-              解析视频
-            </Button>
+      <main>
+        <Flex
+          gap={16}
+          vertical
+          style={{
+            margin: inspection ? 0 : '56px auto 0',
+            maxWidth: inspection ? 'none' : 960,
+            width: '100%',
+          }}
+        >
+          <ProForm<InspectForm> onFinish={handleInspect} submitter={false}>
+            <Row align="bottom" gutter={16}>
+              <Col sm={20} xs={24}>
+                <ProFormText
+                  fieldProps={{
+                    'aria-label': '公开视频地址',
+                    autoComplete: 'off',
+                    id: 'media-url',
+                    maxLength: 4096,
+                    prefix: <LinkOutlined />,
+                    size: 'large',
+                  }}
+                  label="公开视频地址"
+                  name="url"
+                  placeholder="粘贴视频链接或分享文案"
+                />
+              </Col>
+              <Col sm={4} xs={24}>
+                <Form.Item label=" ">
+                  <Button
+                    aria-label="解析视频"
+                    block
+                    htmlType="submit"
+                    loading={busy === 'inspect'}
+                    size="large"
+                    type="primary"
+                  >
+                    解析视频
+                  </Button>
+                </Form.Item>
+              </Col>
+            </Row>
           </ProForm>
-        </ProCard>
 
-        {error ? (
-          <Alert
-            className={styles.feedback}
-            showIcon
-            title={error}
-            type="info"
-          />
-        ) : null}
-        {busy === 'inspect' && !inspection ? (
-          <div aria-live="polite" className={styles.loading}>
-            <Spin size="small" /> 正在解析视频信息…
-          </div>
-        ) : null}
-        {inspection ? (
-          <ProCard
-            className={styles.resultShell}
-            styles={{ body: { padding: 0 } }}
-            variant="outlined"
-          >
+          {error ? <Alert showIcon title={error} type="info" /> : null}
+          {busy === 'inspect' && !inspection ? (
+            <Flex align="center" aria-live="polite" gap={8}>
+              <Spin size="small" /> 正在解析视频信息…
+            </Flex>
+          ) : null}
+          {inspection ? (
             <InspectionResult
               busy={busy === 'create'}
               inspection={inspection}
@@ -149,8 +147,8 @@ export default function HomePage() {
               onCreate={handleCreate}
               selectedId={selectedId}
             />
-          </ProCard>
-        ) : null}
+          ) : null}
+        </Flex>
       </main>
     </PageContainer>
   );

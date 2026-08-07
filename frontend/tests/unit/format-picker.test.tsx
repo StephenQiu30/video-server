@@ -28,7 +28,7 @@ describe('FormatPicker', () => {
     expect(onChange).toHaveBeenCalledWith(inspection.formats[0].id);
   });
 
-  it('keeps the initial format list compact and expands on demand', () => {
+  it('keeps the initial format list compact and paginates on demand', () => {
     const formats = Array.from({ length: 8 }, (_, index) => ({
       ...inspection.formats[0],
       id: `format-${index}`,
@@ -44,10 +44,8 @@ describe('FormatPicker', () => {
     );
 
     expect(screen.getAllByRole('radio')).toHaveLength(4);
-    fireEvent.click(screen.getByRole('button', { name: /查看全部 8 个格式/ }));
-    expect(screen.getAllByRole('radio')).toHaveLength(8);
-    expect(
-      screen.getByRole('button', { name: /收起格式/ }),
-    ).toBeInTheDocument();
+    fireEvent.click(screen.getByTitle('2'));
+    expect(screen.getAllByRole('radio')).toHaveLength(4);
+    expect(screen.getByText('450p MP4')).toBeInTheDocument();
   });
 });
