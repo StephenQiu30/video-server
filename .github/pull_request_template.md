@@ -1,50 +1,51 @@
-# PR Summary
+# 变更摘要
 
-## Test-first Evidence
+## 测试优先证据
 
-- Failing test commit:
-- Test fails before implementation:
-  - [ ] Yes
-  - [ ] No
-  - [ ] Not applicable
+- 失败测试提交：
+- 实现前测试是否失败：
+  - [ ] 是
+  - [ ] 否
+  - [ ] 不适用
 
-## Tests added
+## 新增或调整的测试
 
-- [ ] Unit
-- [ ] Integration
-- [ ] UI
-- [ ] Snapshot
-- [ ] Performance
+- [ ] 单元测试
+- [ ] 集成测试
+- [ ] UI 测试
+- [ ] 快照测试
+- [ ] 性能测试
 
-## Commands run
+## 已执行命令
 
 ```bash
-# test command
+# 测试命令
 ```
 
-## Result
+## 执行结果
 
-- Failed before implementation
-- Passed after implementation
+- 实现前失败：
+- 实现后通过：
 
-## Agent Usage
+## Agent 使用情况
 
-Human-authored:
-- Acceptance criteria:
-- Test cases:
-- Edge cases:
+人工编写：
+- 验收标准：
+- 测试用例：
+- 边界情况：
 
-Agent-generated:
-- Implementation:
-- Refactor:
-- Boilerplate:
+Agent 生成：
+- 功能实现：
+- 重构内容：
+- 样板代码：
 
-## Reviewer Checklist
+## 审查清单
 
-- [ ] Test commit reviewed first
-- [ ] Tests express requirement
-- [ ] Edge cases covered
-- [ ] Implementation is minimal
-- [ ] No unrelated changes
-- [ ] Agent code reviewed
-- [ ] CI passed
+- [ ] 提交信息符合中文 Conventional Commits 规范
+- [ ] 已优先审查测试提交
+- [ ] 测试能够表达需求
+- [ ] 已覆盖边界情况
+- [ ] 实现范围保持最小
+- [ ] 不包含无关改动
+- [ ] 已审查 Agent 生成代码
+- [ ] CI 已通过

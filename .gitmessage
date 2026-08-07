@@ -1,0 +1,15 @@
+# <type>(<scope>): <中文描述>
+#
+# 示例：
+# feat(frontend): 优化视频下载页面
+# fix(api): 修复下载任务状态不同步
+# docs: 完善本地开发说明
+#
+# 可用 type：feat、fix、refactor、docs、test、perf、build、ci、chore、style、revert
+# scope 可省略；使用时填写小写英文模块名，禁止空括号。
+# 标题不超过 72 个字符，中文描述末尾不加句号。
+#
+# 可选正文：说明修改动机、实现方式和影响，标题与正文之间保留空行。
+#
+# 可选关联：
+# Refs: #123
