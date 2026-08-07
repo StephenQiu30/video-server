@@ -1,4 +1,4 @@
-import { LinkOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { LinkOutlined } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
 import { Alert, Button, Input, Space, Spin, Typography } from 'antd';
@@ -141,15 +141,6 @@ export default function HomePage() {
             selectedId={selectedId}
           />
         ) : null}
-
-        <Alert
-          className={styles.legal}
-          description="不支持 Cookie、DRM、私有内容、直播或播放列表，也不会协助规避平台访问控制。"
-          icon={<SafetyCertificateOutlined />}
-          showIcon
-          title="仅处理你有权下载的公开内容"
-          type="info"
-        />
       </main>
     </PageContainer>
   );

@@ -43,15 +43,12 @@ export default function FormatPicker({
         onChange={(event) => onChange(event.target.value)}
         value={selectedId}
       >
-        {(expanded ? formats : formats.slice(0, 4)).map((format, index) => {
+        {(expanded ? formats : formats.slice(0, 4)).map((format) => {
           const { plan } = format;
           return (
             <Radio className={styles.option} key={format.id} value={format.id}>
               <span className={styles.copy}>
                 <span className={styles.primary} data-label="格式">
-                  {index === 0 ? (
-                    <span className={styles.recommended}>推荐</span>
-                  ) : null}
                   <strong>{plan.container_preference.toUpperCase()}</strong>
                 </span>
                 <span data-label="清晰度">

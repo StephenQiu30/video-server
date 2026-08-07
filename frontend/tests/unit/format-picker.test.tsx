@@ -22,7 +22,7 @@ describe('FormatPicker', () => {
     );
     const option = screen.getByRole('radio', { name: /1080p MP4/ });
     expect(option).not.toBeChecked();
-    expect(screen.getByText('推荐')).toBeInTheDocument();
+    expect(screen.queryByText('推荐')).not.toBeInTheDocument();
     fireEvent.click(option);
 
     expect(onChange).toHaveBeenCalledWith(inspection.formats[0].id);

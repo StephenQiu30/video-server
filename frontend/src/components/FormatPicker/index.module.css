@@ -95,16 +95,6 @@
   white-space: nowrap;
 }
 
-.recommended {
-  flex: none;
-  padding: 1px 6px;
-  color: #1677ff;
-  background: #e6f4ff;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 600;
-}
-
 .expand {
   width: min(100%, 300px);
   margin: 8px auto 0;

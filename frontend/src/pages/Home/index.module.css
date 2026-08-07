@@ -292,21 +292,6 @@
   color: #1677ff;
 }
 
-.legal {
-  width: 100%;
-  margin: 14px auto 0;
-  background: #fafafa;
-  border: 1px solid #ededed;
-}
-
-.legal :global(.ant-alert-message) {
-  font-size: 14px;
-}
-
-.legal :global(.ant-alert-description) {
-  font-size: 12px;
-}
-
 @media (max-width: 900px) {
   .workspace {
     grid-template-columns: 1fr;

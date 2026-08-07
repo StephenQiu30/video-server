@@ -10,7 +10,7 @@ const historyPushMock = vi.mocked(history.push);
 const requestMock = vi.mocked(request);
 
 describe('HomePage', () => {
-  it('shows the downloader and explicit legal boundary', () => {
+  it('shows the downloader without the removed legal banner', () => {
     render(<HomePage />);
 
     expect(
@@ -19,8 +19,10 @@ describe('HomePage', () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText('公开视频地址')).toBeInTheDocument();
-    expect(screen.getByText(/仅处理你有权下载的公开内容/)).toBeInTheDocument();
-    expect(screen.getByText(/不支持 Cookie、DRM/)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/仅处理你有权下载的公开内容/),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/不支持 Cookie、DRM/)).not.toBeInTheDocument();
   });
 
   it('validates the URL before sending a request', () => {
