@@ -81,9 +81,6 @@ export default function DownloadHistoryPage() {
       <main className={styles.page}>
         <header className={styles.masthead}>
           <div>
-            <Typography.Text className={styles.eyebrow}>
-              DOWNLOAD ARCHIVE
-            </Typography.Text>
             <Typography.Title level={1}>下载历史</Typography.Title>
             <Typography.Paragraph>
               每一次解析和下载，都会在这里留下可回到的记录。
@@ -108,8 +105,8 @@ export default function DownloadHistoryPage() {
           </section>
         ) : null}
 
-          <ProCard className={styles.toolbar} variant="outlined">
-            <Flex gap={12} justify="space-between" wrap>
+        <ProCard className={styles.toolbar} variant="outlined">
+          <Flex gap={12} justify="space-between" wrap>
             <Input.Search
               allowClear
               aria-label="搜索下载历史"
@@ -126,7 +123,7 @@ export default function DownloadHistoryPage() {
               value={status ?? ''}
             />
           </Flex>
-          </ProCard>
+        </ProCard>
 
         {actionError ? (
           <Alert

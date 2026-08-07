@@ -9,16 +9,26 @@ export default defineConfig({
     configProvider: {
       theme: {
         token: {
-          borderRadius: 6,
+          borderRadius: 8,
           colorBgContainer: '#ffffff',
-          colorBgLayout: '#ffffff',
-          colorBorder: '#dfe5ec',
-          colorBorderSecondary: '#edf0f4',
-          colorPrimary: '#1677ff',
-          colorText: '#111827',
-          colorTextSecondary: '#667085',
+          colorBgLayout: '#f7f7f8',
+          colorBorder: '#e5e5e5',
+          colorBorderSecondary: '#ededed',
+          colorPrimary: '#171717',
+          colorText: '#171717',
+          colorTextSecondary: '#666666',
+          controlHeight: 36,
           fontFamily:
             "Inter, 'PingFang SC', 'Microsoft YaHei', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        },
+        components: {
+          Button: {
+            defaultShadow: 'none',
+            primaryShadow: 'none',
+          },
+          Card: {
+            boxShadowTertiary: 'none',
+          },
         },
       },
     },

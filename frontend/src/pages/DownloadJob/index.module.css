@@ -1,6 +1,6 @@
 .container {
-  min-height: calc(100vh - 56px);
-  background: #fff;
+  min-height: calc(100vh - 60px);
+  background: #f7f7f8;
 }
 
 .container :global(.ant-page-header) {

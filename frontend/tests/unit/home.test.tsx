@@ -10,22 +10,24 @@ const historyPushMock = vi.mocked(history.push);
 const requestMock = vi.mocked(request);
 
 describe('HomePage', () => {
-  it('shows the downloader without the removed legal banner', () => {
+  it('展示聚焦下载任务且没有推广内容的工作区', () => {
     render(<HomePage />);
 
     expect(
       screen.getByRole('heading', {
-        name: '解析并下载视频，获取 AI 智能分析',
+        name: '下载视频，继续分析',
       }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText('公开视频地址')).toBeInTheDocument();
+    expect(screen.queryByText('支持的平台')).not.toBeInTheDocument();
+    expect(screen.queryByText('AI 智能分析预览')).not.toBeInTheDocument();
     expect(
       screen.queryByText(/仅处理你有权下载的公开内容/),
     ).not.toBeInTheDocument();
     expect(screen.queryByText(/不支持 Cookie、DRM/)).not.toBeInTheDocument();
   });
 
-  it('validates the URL before sending a request', () => {
+  it('发送请求前校验视频地址', () => {
     render(<HomePage />);
 
     fireEvent.click(screen.getByRole('button', { name: '解析视频' }));
@@ -36,7 +38,7 @@ describe('HomePage', () => {
     expect(requestMock).not.toHaveBeenCalled();
   });
 
-  it('completes inspection, format selection, and job creation', async () => {
+  it('完成视频解析、格式选择和任务创建', async () => {
     requestMock.mockResolvedValueOnce(inspection).mockResolvedValueOnce(job());
     vi.stubGlobal('crypto', {
       randomUUID: vi.fn().mockReturnValue('stable-key'),
@@ -61,7 +63,7 @@ describe('HomePage', () => {
     expect(requestMock).toHaveBeenCalledTimes(2);
   });
 
-  it('keeps the idempotency key stable when retrying the same URL', async () => {
+  it('重试同一地址时保持幂等键不变', async () => {
     requestMock
       .mockRejectedValueOnce(
         new ApiError(502, 'inspection_failed', '失败', '解析失败'),
@@ -87,7 +89,7 @@ describe('HomePage', () => {
     expect(requestHeader(1, 'Idempotency-Key')).toBe('stable-key');
   });
 
-  it('clears the previous result when a later inspection fails', async () => {
+  it('后续解析失败时清除上一次结果', async () => {
     requestMock
       .mockResolvedValueOnce(inspection)
       .mockRejectedValueOnce(
@@ -123,7 +125,7 @@ describe('HomePage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows an empty format result without enabling download', async () => {
+  it('没有可用格式时禁用下载操作', async () => {
     requestMock.mockResolvedValue({ ...inspection, formats: [] });
     vi.stubGlobal('crypto', {
       randomUUID: vi.fn().mockReturnValue('empty-key'),
