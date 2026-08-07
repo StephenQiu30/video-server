@@ -2,58 +2,54 @@
 
 **Source visual truth**
 
-- `C:\Users\ADMINI~1\AppData\Local\Temp\codex-clipboard-26068c4e-130d-47e0-805c-e5174604df5c.png`
-- Source pixels: 2560 × 1380.
-- Source state: empty new-download page showing the detached white form card and excessive vertical separation called out by the user.
-- Normalization: the browser pane was cropped from the supplied screenshot and resized to 987 × 985 with Lanczos filtering.
+- `C:\Users\ADMINI~1\AppData\Local\Temp\codex-clipboard-5334e463-1f0f-40e9-a56e-e020c3ee49ff.png`
+- Source pixels: 2560 × 1229.
+- Source state: 下载历史页包含一条已完成记录；页面标题由 PageContainer 管理，但表格仍被独立的 1440px 容器缩窄。
 
 **Implementation evidence**
 
-- Desktop empty state: `E:\StephenQiu\Video\tmp\product-design-redesign\final-idle-no-css.png`
-- Desktop parsed state: `E:\StephenQiu\Video\tmp\product-design-redesign\final-active-no-css.png`
-- Mobile empty state: `E:\StephenQiu\Video\tmp\product-design-redesign\final-mobile-no-css.png`
-- Desktop CSS viewport and pixels: 987 × 985 at device scale 1.
-- Mobile CSS viewport and pixels: 390 × 844 at device scale 1.
-- Full-view comparison: `E:\StephenQiu\Video\tmp\product-design-redesign\no-css-feedback-comparison.png`
+- Browser-rendered implementation: `E:\StephenQiu\Video\tmp\product-design-redesign\pagecontainer-history-2560x1229.png`
+- Full-view side-by-side comparison: `E:\StephenQiu\Video\tmp\product-design-redesign\pagecontainer-history-comparison.png`
+- Implementation pixels: 2560 × 1229.
+- CSS viewport: 2560 × 1230 at device scale 1；截图输出为 2560 × 1229。
+- Responsive check: 390 × 844 at device scale 1.
+- Implementation state: 下载历史为空。数据状态与参考图不同，属于当前 API 数据差异；本轮只比较 PageContainer 的页面宽度、对齐和响应式行为，不对记录内容作像素级判断。
 
 **Findings**
 
 - No remaining P0, P1, or P2 findings.
-- Fonts and typography: the page uses the native Ant Design type scale, weights and line heights. The title, description, label and form now read as one continuous hierarchy.
-- Spacing and layout rhythm: the form moved from the lower half of the viewport to the next content section below the page description. The detached card shell and excessive center gap are gone.
-- Colors and visual tokens: the home page does not declare a background color. Browser inspection reports transparent backgrounds for the ProLayout content, PageContainer and ghost page header. Only the existing Ant Design primary color is configured.
-- Image quality and asset fidelity: the invalid transparent thumbnail treatment was removed instead of replacing it with placeholder art.
-- Copy and content: all prompts remain Chinese and no promotional or compatibility copy was added.
-- Accessibility and interaction: the visible input label, accessible submit button, radio row selection and native focus states remain intact.
+- Fonts and typography: 标题、说明、工具栏和表格继续使用 Ant Design Pro 原生字号、字重与行高，没有新增字体覆盖。
+- Spacing and layout rhythm: 页面标题左边界为 48px；历史表格左边界同为 48px，宽度为 2464px；首页表单同样从 48px 延伸至 2512px。标题区与内容区现在由同一个 PageContainer 节奏控制。
+- Colors and visual tokens: 本轮没有新增任何颜色或页面背景；任务详情页原有的显式页面背景也已移除。
+- Image quality and asset fidelity: 本轮未新增或替换图片资产。参考图中的视频封面因当前实现为空状态而未出现，不构成设计偏差。
+- Copy and content: 页面提示保持中文，没有添加宣传文案或兼容性说明。
+- Accessibility and responsiveness: 390px 宽度下文档宽度仍为 390px，没有页面级横向溢出；搜索、状态筛选和刷新按钮按 Ant Design 原生断点纵向排列。
 
 **Comparison history**
 
-1. The supplied screenshot exposed a P1 composition issue: the title occupied the top content region while the form floated in a separate white card near the lower half of the viewport.
-2. Removed the home-page card shell, the custom vertical-centering CSS and all explicit home-page backgrounds. Rebuilt the form with native PageContainer, ProForm, Row, Col and Form.Item components.
-3. The first parsed-state pass exposed a P2 empty thumbnail region. Removed that invalid image area and kept the video metadata in a compact native ProCard.
-4. Replaced the custom format-picker CSS with the native Ant Design Table and radio row selection.
-5. Final desktop and mobile captures show a continuous content flow with no page-level horizontal overflow and no console errors.
+1. 参考图暴露出 P1 页面结构问题：标题使用全宽 PageContainer，而下载记录通过 `.page { max-width: 1440px; margin: 0 auto; }` 二次缩窄，宽屏下左右边界明显不一致。
+2. 删除首页、下载历史和任务详情中的二次页面容器；删除下载历史两份 CSS 模块，并移除任务详情对 PageContainer 头部、内容边距和最大宽度的覆盖。
+3. 首次同尺寸复核确认：下载历史表格从参考图的居中窄容器扩展为 PageContainer 内容宽度，标题与表格左边界一致。
+4. 响应式复核确认：390 × 844 下页面无横向溢出，筛选控件保持完整可用。
 
 **Primary interactions tested**
 
-- Parsed a public BiliBili URL successfully.
-- Verified native radio format selection and four-row pagination state.
-- Verified empty and parsed layouts at desktop width.
-- Verified the mobile empty layout at 390 × 844.
-- Checked browser console errors: none.
+- 打开新建下载页和下载历史页。
+- 验证下载历史搜索、状态筛选、刷新和新建下载控件可见且语义完整。
+- 验证宽屏与移动端 PageContainer 对齐和文档宽度。
+- 检查浏览器控制台错误：无。
 
 **Focused region comparison**
 
-- The normalized side-by-side comparison keeps the complete header, page title, description and form readable, so an additional crop was not required.
+- 本轮关注页面容器边界。浏览器几何测量显示标题左边界、首页表单左边界和历史表格左边界均为 48px，因此不需要额外的局部截图。
 
 **Implementation Checklist**
 
-- [x] Removed the detached white form card.
-- [x] Removed custom Home and FormatPicker CSS modules.
-- [x] Removed the global CSS background overrides.
-- [x] Removed the explicit layout-background theme token.
-- [x] Rebuilt the page from native Ant Design Pro and Ant Design components.
-- [x] Passed desktop, mobile, interaction and console checks.
+- [x] PageContainer 成为三类页面唯一的页面宽度与边距入口。
+- [x] 删除下载历史的二次 `max-width` 容器。
+- [x] 删除下载历史两份自定义 CSS 文件。
+- [x] 移除任务详情对 PageContainer 的尺寸、边距和背景覆盖。
+- [x] 通过宽屏、移动端、控制台和生产构建检查。
 
 **Follow-up Polish**
 

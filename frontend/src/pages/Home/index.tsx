@@ -89,67 +89,57 @@ export default function HomePage() {
       ghost
       title="新建下载"
     >
-      <main>
-        <Flex
-          gap={16}
-          vertical
-          style={{
-            margin: inspection ? 0 : '56px auto 0',
-            maxWidth: inspection ? 'none' : 960,
-            width: '100%',
-          }}
-        >
-          <ProForm<InspectForm> onFinish={handleInspect} submitter={false}>
-            <Row align="bottom" gutter={16}>
-              <Col sm={20} xs={24}>
-                <ProFormText
-                  fieldProps={{
-                    'aria-label': '公开视频地址',
-                    autoComplete: 'off',
-                    id: 'media-url',
-                    maxLength: 4096,
-                    prefix: <LinkOutlined />,
-                    size: 'large',
-                  }}
-                  label="公开视频地址"
-                  name="url"
-                  placeholder="粘贴视频链接或分享文案"
-                />
-              </Col>
-              <Col sm={4} xs={24}>
-                <Form.Item label=" ">
-                  <Button
-                    aria-label="解析视频"
-                    block
-                    htmlType="submit"
-                    loading={busy === 'inspect'}
-                    size="large"
-                    type="primary"
-                  >
-                    解析视频
-                  </Button>
-                </Form.Item>
-              </Col>
-            </Row>
-          </ProForm>
+      <Flex gap={16} vertical style={{ marginTop: inspection ? 0 : 56 }}>
+        <ProForm<InspectForm> onFinish={handleInspect} submitter={false}>
+          <Row align="bottom" gutter={16}>
+            <Col sm={20} xs={24}>
+              <ProFormText
+                fieldProps={{
+                  'aria-label': '公开视频地址',
+                  autoComplete: 'off',
+                  id: 'media-url',
+                  maxLength: 4096,
+                  prefix: <LinkOutlined />,
+                  size: 'large',
+                }}
+                label="公开视频地址"
+                name="url"
+                placeholder="粘贴视频链接或分享文案"
+              />
+            </Col>
+            <Col sm={4} xs={24}>
+              <Form.Item label=" ">
+                <Button
+                  aria-label="解析视频"
+                  block
+                  htmlType="submit"
+                  loading={busy === 'inspect'}
+                  size="large"
+                  type="primary"
+                >
+                  解析视频
+                </Button>
+              </Form.Item>
+            </Col>
+          </Row>
+        </ProForm>
 
-          {error ? <Alert showIcon title={error} type="info" /> : null}
-          {busy === 'inspect' && !inspection ? (
-            <Flex align="center" aria-live="polite" gap={8}>
-              <Spin size="small" /> 正在解析视频信息…
-            </Flex>
-          ) : null}
-          {inspection ? (
-            <InspectionResult
-              busy={busy === 'create'}
-              inspection={inspection}
-              onChange={setSelectedId}
-              onCreate={handleCreate}
-              selectedId={selectedId}
-            />
-          ) : null}
-        </Flex>
-      </main>
+        {error ? <Alert showIcon title={error} type="info" /> : null}
+        {busy === 'inspect' && !inspection ? (
+          <Flex align="center" aria-live="polite" gap={8}>
+            <Spin size="small" /> 正在解析视频信息…
+          </Flex>
+        ) : null}
+        {inspection ? (
+          <InspectionResult
+            busy={busy === 'create'}
+            inspection={inspection}
+            onChange={setSelectedId}
+            onCreate={handleCreate}
+            selectedId={selectedId}
+          />
+        ) : null}
+      </Flex>
     </PageContainer>
   );
 }

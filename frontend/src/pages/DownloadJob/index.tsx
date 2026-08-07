@@ -43,7 +43,6 @@ export function DownloadJobPage({
       breadcrumb={{
         items: [{ title: '新建下载', href: '/' }, { title: '任务' }],
       }}
-      className={styles.container}
       subTitle={
         state.inspection
           ? metadata(state.inspection.duration_seconds, format)
@@ -65,61 +64,57 @@ export function DownloadJobPage({
       }
       title={title}
     >
-      <main className={styles.page}>
-        {state.error ? (
-          <Alert
-            action={
-              !state.job ? (
-                <Button onClick={state.retry}>重试</Button>
-              ) : undefined
-            }
-            className={styles.alert}
-            showIcon
-            title={state.error}
-            type="info"
-          />
-        ) : null}
-        {state.inspectionError ? (
-          <Alert
-            className={styles.alert}
-            showIcon
-            title={state.inspectionError}
-            type="info"
-          />
-        ) : null}
+      {state.error ? (
+        <Alert
+          action={
+            !state.job ? <Button onClick={state.retry}>重试</Button> : undefined
+          }
+          className={styles.alert}
+          showIcon
+          title={state.error}
+          type="info"
+        />
+      ) : null}
+      {state.inspectionError ? (
+        <Alert
+          className={styles.alert}
+          showIcon
+          title={state.inspectionError}
+          type="info"
+        />
+      ) : null}
 
-        {state.loading && !state.job ? (
-          <div className={styles.loading}>
-            <Skeleton active paragraph={{ rows: 8 }} />
-          </div>
-        ) : null}
+      {state.loading && !state.job ? (
+        <div className={styles.loading}>
+          <Skeleton active paragraph={{ rows: 8 }} />
+        </div>
+      ) : null}
 
-        {state.job ? (
-          <div className={styles.workspace}>
-            <aside className={styles.mediaColumn}>
-              <MediaSidebar
-                action={state.action}
-                analysisResult={analysisJob?.result ?? null}
-                inspection={state.inspection}
-                job={state.job}
-                onCancel={state.cancel}
-                onDownload={state.download}
+      {state.job ? (
+        <div className={styles.workspace}>
+          <aside className={styles.mediaColumn}>
+            <MediaSidebar
+              action={state.action}
+              analysisResult={analysisJob?.result ?? null}
+              inspection={state.inspection}
+              job={state.job}
+              onCancel={state.cancel}
+              onDownload={state.download}
+            />
+          </aside>
+          <section className={styles.analysisColumn}>
+            {state.job.status === 'succeeded' ? (
+              <AnalysisPanel
+                downloadId={state.job.id}
+                onJobChange={handleAnalysisJob}
+                pollIntervalMs={pollIntervalMs}
               />
-            </aside>
-            <section className={styles.analysisColumn}>
-              {state.job.status === 'succeeded' ? (
-                <AnalysisPanel
-                  downloadId={state.job.id}
-                  onJobChange={handleAnalysisJob}
-                  pollIntervalMs={pollIntervalMs}
-                />
-              ) : (
-                <WaitingForDownload />
-              )}
-            </section>
-          </div>
-        ) : null}
-      </main>
+            ) : (
+              <WaitingForDownload />
+            )}
+          </section>
+        </div>
+      ) : null}
     </PageContainer>
   );
 }

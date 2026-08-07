@@ -1,7 +1,7 @@
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { Alert, Button, Empty, Input, Select } from 'antd';
+import { Alert, Button, Empty, Flex, Grid, Input, Select } from 'antd';
 import { useState } from 'react';
 
 import {
@@ -12,7 +12,6 @@ import {
 import type { DownloadHistoryItem, DownloadStatus } from '@/types/video';
 import { historyColumns, statusOptions } from './components';
 import { useDownloadHistory } from './hooks';
-import styles from './index.module.css';
 
 export default function DownloadHistoryPage() {
   const [page, setPage] = useState(1);
@@ -21,6 +20,7 @@ export default function DownloadHistoryPage() {
   const [status, setStatus] = useState<DownloadStatus | undefined>();
   const [downloadId, setDownloadId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const screens = Grid.useBreakpoint();
   const pageSize = 20;
   const state = useDownloadHistory({
     page,
@@ -56,7 +56,6 @@ export default function DownloadHistoryPage() {
 
   return (
     <PageContainer
-      className={styles.container}
       content="查看、筛选并继续处理已创建的下载任务。"
       extra={[
         <Button
@@ -70,13 +69,12 @@ export default function DownloadHistoryPage() {
       ]}
       title="下载历史"
     >
-      <main className={styles.page}>
+      <Flex gap={16} vertical>
         {actionError ? (
           <Alert
             action={
               <Button onClick={() => setActionError(null)}>知道了</Button>
             }
-            className={styles.alert}
             showIcon
             title={actionError}
             type="info"
@@ -89,7 +87,6 @@ export default function DownloadHistoryPage() {
                 重试
               </Button>
             }
-            className={styles.alert}
             showIcon
             title={state.error}
             type="info"
@@ -97,7 +94,6 @@ export default function DownloadHistoryPage() {
         ) : null}
 
         <ProTable<DownloadHistoryItem>
-          className={styles.table}
           columns={columns}
           dataSource={state.data?.items ?? []}
           headerTitle="下载记录"
@@ -105,7 +101,6 @@ export default function DownloadHistoryPage() {
           locale={{
             emptyText: (
               <Empty
-                className={styles.empty}
                 description={
                   search || status ? '没有匹配的下载记录' : '还没有下载记录'
                 }
@@ -133,32 +128,40 @@ export default function DownloadHistoryPage() {
           scroll={{ x: 900 }}
           search={false}
           toolBarRender={() => [
-            <Input.Search
-              allowClear
-              aria-label="搜索下载历史"
-              key="search"
-              onChange={(event) => setSearchInput(event.target.value)}
-              onSearch={applySearch}
-              placeholder="按视频标题搜索"
-              value={searchInput}
-            />,
-            <Select
-              aria-label="按状态筛选"
-              key="status"
-              onChange={applyStatus}
-              options={statusOptions}
-              value={status ?? ''}
-            />,
-            <Button
-              icon={<ReloadOutlined />}
-              key="refresh"
-              onClick={state.retry}
+            <Flex
+              gap={8}
+              key="filters"
+              style={{ width: screens.sm ? undefined : '100%' }}
+              vertical={!screens.sm}
+              wrap={screens.sm}
             >
-              刷新
-            </Button>,
+              <Input.Search
+                allowClear
+                aria-label="搜索下载历史"
+                onChange={(event) => setSearchInput(event.target.value)}
+                onSearch={applySearch}
+                placeholder="按视频标题搜索"
+                style={{ width: screens.sm ? 280 : '100%' }}
+                value={searchInput}
+              />
+              <Select
+                aria-label="按状态筛选"
+                onChange={applyStatus}
+                options={statusOptions}
+                style={{ width: screens.sm ? 128 : '100%' }}
+                value={status ?? ''}
+              />
+              <Button
+                block={!screens.sm}
+                icon={<ReloadOutlined />}
+                onClick={state.retry}
+              >
+                刷新
+              </Button>
+            </Flex>,
           ]}
         />
-      </main>
+      </Flex>
     </PageContainer>
   );
 }

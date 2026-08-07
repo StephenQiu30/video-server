@@ -1,10 +1,9 @@
 import type { ProColumns } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
-import { Button, Image, Progress, Tag, Typography } from 'antd';
+import { Button, Flex, Image, Progress, Tag, Typography } from 'antd';
 
 import stageCover from '@/assets/product-launch-stage.webp';
 import type { DownloadHistoryItem, DownloadStatus } from '@/types/video';
-import styles from './components.module.css';
 
 export const statusOptions = [
   { label: '全部状态', value: '' },
@@ -37,17 +36,20 @@ export function historyColumns({
       dataIndex: 'title',
       title: '视频',
       render: (_, item) => (
-        <div className={styles.videoCell}>
+        <Flex align="center" gap={12} style={{ minWidth: 240 }}>
           <Image
             alt={`${item.title} 视频封面`}
             fallback={stageCover}
+            height={48}
             preview={false}
             src={item.thumbnail_url ?? stageCover}
+            style={{ objectFit: 'cover' }}
+            width={80}
           />
           <Typography.Text ellipsis strong>
             {item.title}
           </Typography.Text>
-        </div>
+        </Flex>
       ),
     },
     { dataIndex: 'format_name', title: '清晰度 / 格式', width: 180 },
@@ -94,13 +96,18 @@ export function historyColumns({
 function HistoryStatus({ item }: { item: DownloadHistoryItem }) {
   const active = ['queued', 'running', 'retry_wait'].includes(item.status);
   return (
-    <div className={styles.statusCell}>
+    <Flex gap={4} vertical>
       <Tag color={active || item.status === 'succeeded' ? 'blue' : undefined}>
         {statusLabels[item.status]}
       </Tag>
       {active ? (
-        <Progress percent={item.progress} showInfo={false} size="small" />
+        <Progress
+          percent={item.progress}
+          showInfo={false}
+          size="small"
+          style={{ margin: 0, width: 120 }}
+        />
       ) : null}
-    </div>
+    </Flex>
   );
 }
