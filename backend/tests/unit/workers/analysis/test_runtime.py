@@ -17,7 +17,7 @@ def test_worker_builds_ollama_or_deepseek_analysis_config() -> None:
     settings = Settings(app_env="test")
     ollama = analysis_model_config(settings)
     assert ollama.provider == "ollama"
-    assert ollama.model == "deepseek-r1:8b"
+    assert ollama.model == "qwen3:latest"
 
     with pytest.raises(ValueError, match="DEEPSEEK_API_KEY"):
         analysis_model_config(Settings(app_env="test", analysis_provider="deepseek"))

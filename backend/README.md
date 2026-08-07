@@ -28,4 +28,4 @@ Media Runner 通过 `app/runner/plugins/yt_dlp_plugins/` 加载随项目交付�
 
 主流视频源通过 `app/runner/provider_registry.py` 与 `app/runner/provider_catalog.py` 采用 Strategy + Registry 统一匹配；`provider_urls.py` 只保留兼容入口，未知站点使用 yt-dlp Generic extractor。新增平台应先确认 yt-dlp extractor 存在，再补充 Profile、域名别名和解析测试。
 
-文本分析统一通过 LangChain 的结构化输出接口运行，服务端以 `ANALYSIS_PROVIDER=ollama|deepseek` 选择本地 Ollama 或 DeepSeek。Ollama 默认模型为 `deepseek-r1:8b`，DeepSeek 默认模型为 `deepseek-v4-flash`。音频转录是独立 ASR 端口，不与文本模型配置混用。
+文本分析统一通过 LangChain 的结构化输出接口运行，服务端以 `ANALYSIS_PROVIDER=ollama|deepseek` 选择本地 Ollama 或 DeepSeek。Ollama 默认模型为 `qwen3:latest`，DeepSeek 默认模型为 `deepseek-v4-flash`。音频转录是独立 ASR 端口，不与文本模型配置混用。

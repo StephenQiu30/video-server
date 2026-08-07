@@ -22,6 +22,8 @@ def analysis_model_config(settings: Settings) -> AnalysisModelConfig:
             if settings.deepseek_api_key is None
             else settings.deepseek_api_key.get_secret_value()
         )
+        if key is None or not key.strip():
+            raise ValueError("DEEPSEEK_API_KEY is required for DeepSeek")
         return AnalysisModelConfig(
             provider="deepseek",
             model=settings.deepseek_analysis_model,

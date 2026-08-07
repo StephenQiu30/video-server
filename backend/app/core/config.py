@@ -90,7 +90,7 @@ class Settings(BaseSettings):
     deepseek_base_url: str = "https://api.deepseek.com"
     deepseek_analysis_model: str = "deepseek-v4-flash"
     ollama_base_url: str = "http://localhost:11434"
-    ollama_analysis_model: str = "deepseek-r1:8b"
+    ollama_analysis_model: str = "qwen3:latest"
     analysis_max_output_tokens: int = Field(default=16_384, ge=1_024, le=131_072)
     openai_api_key: SecretStr | None = None
     openai_base_url: str | None = None
@@ -115,6 +115,13 @@ class Settings(BaseSettings):
     @classmethod
     def absolute_analysis_workspace(cls, value: Path) -> Path:
         return value.expanduser().absolute()
+
+    @field_validator("deepseek_api_key", "openai_api_key")
+    @classmethod
+    def empty_optional_secret_to_none(cls, value: SecretStr | None) -> SecretStr | None:
+        if value is not None and not value.get_secret_value().strip():
+            return None
+        return value
 
     @field_validator("url_encryption_key")
     @classmethod

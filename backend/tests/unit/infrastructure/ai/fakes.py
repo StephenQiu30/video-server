@@ -72,7 +72,7 @@ def analysis_config(**overrides: object) -> AnalysisModelConfig:
     values: dict[str, object] = {
         "provider": "ollama",
         "base_url": "http://localhost:11434",
-        "model": "deepseek-r1:8b",
+        "model": "qwen3:latest",
         "schema_version": "analysis.v1",
         "timeout_seconds": 11.0,
     }

@@ -45,7 +45,7 @@ def test_provider_configs_are_explicit_and_never_echo_secrets() -> None:
         AnalysisModelConfig(
             provider="ollama",
             base_url="ftp://provider.example",
-            model="deepseek-r1:8b",
+            model="qwen3:latest",
             schema_version="analysis.v1",
         )
 
@@ -64,7 +64,7 @@ def test_langchain_models_are_built_for_deepseek_and_ollama() -> None:
         AnalysisModelConfig(
             provider="ollama",
             base_url="http://localhost:11434",
-            model="deepseek-r1:8b",
+            model="qwen3:latest",
             schema_version="analysis.v1",
         )
     )
