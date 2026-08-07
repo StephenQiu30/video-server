@@ -19,6 +19,7 @@ export default defineConfig({
     },
   },
   fastRefresh: true,
+  favicons: ['/favicon.ico'],
   hash: true,
   layout: defaultSettings,
   locale: false,

@@ -5,6 +5,7 @@ const defaultSettings: ProLayoutProps = {
   contentWidth: 'Fluid',
   fixedHeader: true,
   layout: 'top',
+  logo: '/logo.svg',
   navTheme: 'light',
   title: '视频下载',
 };
