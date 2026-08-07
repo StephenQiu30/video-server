@@ -71,7 +71,7 @@ server/
 - Worker 开工前重新解析语义下载计划；Provider format id 不能作为唯一恢复依据。
 - AI 任务独立于下载任务；AI 失败不得改变下载成功状态。模型输出必须通过 schema 和 transcript evidence 校验，普通日志不得记录完整转录或原始模型响应。
 - Secret 只来自类型化配置和环境变量，不得进入前端、API 响应、异常、快照、测试夹具或普通日志。外部操作必须设置大小、时长、并发和超时上限，取消时终止整个子进程组。
-- Compose 必须保持职责分层，启动时按环境组合文件：`docker-compose.yml` 只定义完整公共服务拓扑、依赖关系、健康检查、卷和内部端口；`docker-compose-env.yml` 只覆盖本地 `.env`、宿主机端口和本地运行差异；`docker-compose-prod.yml` 只覆盖生产 `.env.prod`、生产镜像、容器名和对外端口。环境文件不得复制基础服务定义、依赖或健康检查；生产命令必须显式传入 `--env-file .env.prod`。本地使用 `docker-compose.yml` 叠加 `docker-compose-env.yml`，生产使用 `docker-compose.yml` 叠加 `docker-compose-prod.yml`，不得把两套环境差异混在基础文件中。宿主机端口等可部署参数通过 env 文件插值并使用必填校验；环境变量的具体值只能写在 `.env.example`、`.env.prod.example` 或被 Git 忽略的 `.env*` 文件中，非 env 文件不得硬编码密钥、密码、连接地址或 Provider Key。所有服务必须显式设置稳定的 `container_name`，避免出现 `xxx-1` 这类副本后缀；本地和生产使用不同前缀，避免同一主机上的容器冲突。启动前按需复制 `.env.example` 为 `.env`，生产环境复制 `.env.prod.example` 为 `.env.prod` 并替换占位值。不要提交 `.env`、制品、缓存、日志、临时目录、虚拟环境或 `node_modules/`。
+- Compose 必须保持职责分层，启动时按环境组合文件：`docker-compose.yml` 只定义完整公共服务拓扑、依赖关系、健康检查、卷和内部端口；`docker-compose-env.yml` 只覆盖本地 `.env`、宿主机端口和本地运行差异；`docker-compose-prod.yml` 只覆盖生产 `.env.prod`、生产镜像、容器名和对外端口。环境文件不得复制基础服务定义、依赖或健康检查；生产命令必须显式传入 `--env-file .env.prod`，生产覆盖必须使用 `${VAR:?set VAR in .env.prod}` 在 Compose 解析阶段校验关键配置。本地使用 `docker-compose.yml` 叠加 `docker-compose-env.yml`，生产使用 `docker-compose.yml` 叠加 `docker-compose-prod.yml`，不得把两套环境差异混在基础文件中。宿主机端口等可部署参数通过 env 文件插值并使用必填校验；环境变量的具体值只能写在 `.env.example`、`.env.prod.example` 或被 Git 忽略的 `.env*` 文件中，非 env 文件不得硬编码密钥、密码、连接地址或 Provider Key。所有服务必须显式设置稳定的 `container_name`，避免出现 `xxx-1` 这类副本后缀；本地和生产使用不同前缀，避免同一主机上的容器冲突。启动前按需复制 `.env.example` 为 `.env`，生产环境复制 `.env.prod.example` 为 `.env.prod` 并替换占位值。不要提交 `.env`、制品、缓存、日志、临时目录、虚拟环境或 `node_modules/`。
 
 ## 实现与验证
 

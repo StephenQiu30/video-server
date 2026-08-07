@@ -31,7 +31,7 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod
 docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod.yml up -d --build
 ```
 
-生产文件只提供生产环境差异；生产运行前必须替换 `.env.prod` 中的占位值。
+生产文件只提供生产环境差异，并在 Compose 解析阶段检查关键配置是否存在；生产运行前必须替换 `.env.prod` 中的占位值。
 
 ## 网络边界
 

@@ -67,7 +67,7 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod
 
 基础文件不填写环境变量具体值；`docker-compose-env.yml` 负责本地 `env_file` 和宿主机端口，
 `docker-compose-prod.yml` 负责生产 `env_file`、镜像和容器名。Compose 使用带环境前缀的稳定容器名，
-不会出现 `xxx-1` 这类副本后缀。环境变量模板只维护在
+不会出现 `xxx-1` 这类副本后缀；生产覆盖会在 Compose 解析阶段校验关键变量。环境变量模板只维护在
 `.env.example` 与 `.env.prod.example`；真实本地值放在被 Git 忽略的 `.env` 或
 `.env.prod` 中。
 
