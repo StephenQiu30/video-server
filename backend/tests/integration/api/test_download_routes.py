@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from app.application.downloads import ApplicationError, ApplicationErrorCode
 from app.core.config import Settings
+from app.domain.downloads import DownloadStatus
 from app.main import create_app
 from fastapi.testclient import TestClient
 from tests.integration.api.fakes import (
@@ -85,6 +86,49 @@ def test_download_routes_delegate_with_session_owner(tmp_path: Path) -> None:
     assert len(set(owners)) == 1
 
 
+def test_download_history_route_supports_filters_and_returns_public_fields(
+    tmp_path: Path,
+) -> None:
+    test_client, stubs = client(tmp_path)
+    with test_client:
+        response = test_client.get(
+            "/api/downloads/history",
+            params={
+                "page": 2,
+                "page_size": 10,
+                "status": "succeeded",
+                "search": "Owned",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["items"][0] == {
+        "id": str(JOB_ID),
+        "title": "Owned video",
+        "thumbnail_url": "data:image/jpeg;base64,Y292ZXI=",
+        "format_name": "1080p MP4",
+        "status": "succeeded",
+        "progress": 100,
+        "error_code": None,
+        "created_at": "2026-08-06T10:00:00Z",
+        "updated_at": "2026-08-06T10:00:00Z",
+        "finished_at": "2026-08-06T10:00:00Z",
+    }
+    assert response.json()["summary"] == {
+        "total": 1,
+        "succeeded": 1,
+        "active": 0,
+        "failed": 0,
+    }
+    _, kwargs = stubs["history"].calls[0]
+    assert kwargs == {
+        "page": 2,
+        "page_size": 10,
+        "status": DownloadStatus.SUCCEEDED,
+        "search": "Owned",
+    }
+
+
 def test_creation_contract_rejects_missing_headers_and_invalid_bodies(
     tmp_path: Path,
 ) -> None:
@@ -138,6 +182,7 @@ def test_application_errors_are_rfc9457_problem_details(tmp_path: Path) -> None:
         (ApplicationErrorCode.INVALID_URL, 422),
         (ApplicationErrorCode.INSPECTION_FAILED, 502),
         (ApplicationErrorCode.INSPECTION_TIMEOUT, 504),
+        (ApplicationErrorCode.PROVIDER_ACCESS_REQUIRED, 422),
     ],
 )
 def test_inspection_errors_have_stable_http_mapping(

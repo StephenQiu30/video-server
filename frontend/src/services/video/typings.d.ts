@@ -114,6 +114,50 @@ declare namespace API {
     | "unsupported_source"
     | "worker_lost";
 
+  type DownloadHistoryItemResponse = {
+    /** Id */
+    id: string;
+    /** Title */
+    title: string;
+    /** Thumbnail Url */
+    thumbnail_url: string | null;
+    /** Format Name */
+    format_name: string;
+    status: DownloadStatus;
+    /** Progress */
+    progress: number;
+    error_code: DownloadErrorCode | null;
+    /** Created At */
+    created_at: string;
+    /** Updated At */
+    updated_at: string;
+    /** Finished At */
+    finished_at: string | null;
+  };
+
+  type DownloadHistoryResponse = {
+    /** Items */
+    items: DownloadHistoryItemResponse[];
+    /** Page */
+    page: number;
+    /** Page Size */
+    page_size: number;
+    /** Total */
+    total: number;
+    summary: DownloadHistorySummaryResponse;
+  };
+
+  type DownloadHistorySummaryResponse = {
+    /** Total */
+    total: number;
+    /** Succeeded */
+    succeeded: number;
+    /** Active */
+    active: number;
+    /** Failed */
+    failed: number;
+  };
+
   type DownloadRequest = {
     /** Inspection Id 仍在有效期内的媒体解析资源 ID。 */
     inspection_id: string;
@@ -186,6 +230,13 @@ declare namespace API {
 
   type getAnalysisParams = {
     analysis_id: string;
+  };
+
+  type getDownloadHistoryParams = {
+    page?: number;
+    page_size?: number;
+    status?: DownloadStatus | null;
+    search?: string | null;
   };
 
   type getDownloadParams = {

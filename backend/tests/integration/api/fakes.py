@@ -6,6 +6,9 @@ from uuid import UUID
 from app.api.dependencies import DownloadUseCases
 from app.application.downloads import (
     ApplicationError,
+    DownloadHistoryItemView,
+    DownloadHistorySummaryView,
+    DownloadHistoryView,
     DownloadUrl,
     DownloadView,
     FormatView,
@@ -84,6 +87,34 @@ def download_view(status: DownloadStatus = DownloadStatus.QUEUED) -> DownloadVie
     )
 
 
+def history_view() -> DownloadHistoryView:
+    return DownloadHistoryView(
+        items=(
+            DownloadHistoryItemView(
+                id=JOB_ID,
+                title="Owned video",
+                thumbnail_url="data:image/jpeg;base64,Y292ZXI=",
+                format_name="1080p MP4",
+                status=DownloadStatus.SUCCEEDED,
+                progress=100,
+                error_code=None,
+                created_at=NOW,
+                updated_at=NOW,
+                finished_at=NOW,
+            ),
+        ),
+        page=1,
+        page_size=20,
+        total=1,
+        summary=DownloadHistorySummaryView(
+            total=1,
+            succeeded=1,
+            active=0,
+            failed=0,
+        ),
+    )
+
+
 def use_cases() -> tuple[DownloadUseCases, dict[str, StubUseCase]]:
     stubs = {
         "inspect": StubUseCase(inspection_view()),
@@ -97,6 +128,7 @@ def use_cases() -> tuple[DownloadUseCases, dict[str, StubUseCase]]:
                 NOW + timedelta(minutes=5),
             )
         ),
+        "history": StubUseCase(history_view()),
     }
     container = DownloadUseCases(
         inspect_media=stubs["inspect"],
@@ -105,5 +137,6 @@ def use_cases() -> tuple[DownloadUseCases, dict[str, StubUseCase]]:
         get_download=stubs["get"],
         cancel_download=stubs["cancel"],
         issue_download_url=stubs["issue_url"],
+        get_download_history=stubs["history"],
     )
     return container, stubs

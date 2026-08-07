@@ -14,6 +14,7 @@ from app.application.downloads import (
     CancelDownload,
     CreateDownload,
     GetDownload,
+    GetDownloadHistory,
     GetInspection,
     HmacRequestFingerprinter,
     InspectMedia,
@@ -91,6 +92,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             max_attempts=settings.max_download_attempts,
         ),
         get_download=GetDownload(store),
+        get_download_history=GetDownloadHistory(store),
         cancel_download=CancelDownload(store, now=clock),
         issue_download_url=IssueDownloadUrl(
             store,

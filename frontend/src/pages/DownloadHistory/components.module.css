@@ -1,0 +1,124 @@
+.statCard {
+  position: relative;
+  overflow: hidden;
+  border-color: #e1e7f0;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(31 53 86 / 4%);
+}
+
+.statCard::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: #7298d6;
+  content: "";
+}
+
+.statCard :global(.ant-statistic-title) {
+  color: #8793a7;
+  font-size: 12px;
+}
+
+.statCard :global(.ant-statistic-content) {
+  color: #203450;
+  font-variant-numeric: tabular-nums;
+}
+
+.success::before {
+  background: #3caa78;
+}
+
+.active::before {
+  background: #eaad4b;
+}
+
+.error::before {
+  background: #d96b68;
+}
+
+.record {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 18px 20px;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.record:last-child {
+  border-bottom: 0;
+}
+
+.cover {
+  width: 112px;
+  height: 74px;
+  overflow: hidden;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.recordBody {
+  min-width: 0;
+}
+
+.recordTitle {
+  max-width: min(100%, 520px);
+  margin: 0;
+  color: #1c2e4a;
+  font-size: 16px;
+}
+
+.format,
+.time,
+.errorCode {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.time :global(.anticon) {
+  margin-right: 4px;
+}
+
+.recordBody :global(.ant-progress) {
+  max-width: 360px;
+  margin-top: 8px;
+}
+
+.actions {
+  min-width: 92px;
+}
+
+.actions button {
+  width: 100%;
+}
+
+.skeleton {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.skeleton :global(.ant-skeleton-header) {
+  padding-top: 0;
+}
+
+@media (max-width: 720px) {
+  .record {
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .cover {
+    width: 88px;
+    height: 60px;
+  }
+
+  .actions {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+}

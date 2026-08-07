@@ -38,7 +38,7 @@ async def test_download_store_maps_the_complete_application_lifecycle() -> None:
             provider_media_id="media-1",
             title="Controlled sample",
             duration_seconds=10,
-            metadata={},
+            metadata={"thumbnail_url": "data:image/jpeg;base64,Y292ZXI="},
             expires_at=expires,
             formats=(
                 application.FormatCreate(
@@ -71,6 +71,25 @@ async def test_download_store_maps_the_complete_application_lifecycle() -> None:
     assert loaded.formats[0].display_name == "720p MP4"
     assert created.job.id == job_id
     assert (await store.get_job(job_id)).status == "queued"
+    history = await store.list_download_history(
+        owner,
+        page=1,
+        page_size=20,
+        status="queued",
+        search="Controlled",
+    )
+    assert history.total == 1
+    assert history.items[0].title == "Controlled sample"
+    assert history.items[0].thumbnail_url == "data:image/jpeg;base64,Y292ZXI="
+    assert history.summary.active == 1
+    other_owner = await store.list_download_history(
+        "b" * 64,
+        page=1,
+        page_size=20,
+        status=None,
+        search=None,
+    )
+    assert other_owner.total == 0
 
     claimed = await repository.claim_job(
         job_id,
@@ -109,6 +128,19 @@ async def test_download_store_maps_the_complete_application_lifecycle() -> None:
 
     assert artifact.object_key.endswith("/video.mp4")
     assert (await store.get_job(job_id)).status == "succeeded"
+    async with async_sessionmaker(engine, expire_on_commit=False)() as session:
+        inspection = await session.get(database.MediaInspectionRow, inspection_id)
+        assert inspection is not None
+        inspection.expires_at = NOW - timedelta(minutes=1)
+        await session.commit()
+    expired_source_history = await store.list_download_history(
+        owner,
+        page=1,
+        page_size=20,
+        status="succeeded",
+        search="Controlled",
+    )
+    assert expired_source_history.items[0].title == "Controlled sample"
     await engine.dispose()
 
 

@@ -136,6 +136,37 @@ class JobCreateResult:
 
 
 @dataclass(frozen=True, slots=True)
+class DownloadHistoryItemSnapshot:
+    id: UUID
+    title: str
+    thumbnail_url: str | None
+    format_name: str
+    status: str
+    progress: int
+    error_code: str | None
+    created_at: datetime
+    updated_at: datetime
+    finished_at: datetime | None
+
+
+@dataclass(frozen=True, slots=True)
+class DownloadHistorySummarySnapshot:
+    total: int
+    succeeded: int
+    active: int
+    failed: int
+
+
+@dataclass(frozen=True, slots=True)
+class DownloadHistoryPageSnapshot:
+    items: tuple[DownloadHistoryItemSnapshot, ...]
+    page: int
+    page_size: int
+    total: int
+    summary: DownloadHistorySummarySnapshot
+
+
+@dataclass(frozen=True, slots=True)
 class ArtifactSnapshot:
     id: UUID
     job_id: UUID

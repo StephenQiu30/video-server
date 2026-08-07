@@ -1,6 +1,7 @@
 import {
   cancelDownload as cancelDownloadRequest,
   createDownload as createDownloadRequest,
+  getDownloadHistory as getDownloadHistoryRequest,
   getDownload as getDownloadRequest,
   issueDownloadUrl as issueDownloadUrlRequest,
 } from '@/services/video/downloads';
@@ -8,7 +9,13 @@ import {
   getInspection as getInspectionRequest,
   inspectMedia as inspectMediaRequest,
 } from '@/services/video/inspections';
-import type { DownloadJob, DownloadUrl, Inspection } from '@/types/video';
+import type {
+  DownloadHistory,
+  DownloadHistoryQuery,
+  DownloadJob,
+  DownloadUrl,
+  Inspection,
+} from '@/types/video';
 
 export {
   ApiError,
@@ -37,6 +44,12 @@ export function createDownload(
 
 export function getDownload(id: string): Promise<DownloadJob> {
   return getDownloadRequest({ job_id: id });
+}
+
+export function getDownloadHistory(
+  params: DownloadHistoryQuery,
+): Promise<DownloadHistory> {
+  return getDownloadHistoryRequest(params);
 }
 
 export function cancelDownload(id: string): Promise<DownloadJob> {

@@ -3,6 +3,9 @@
 from .base import as_utc
 from .contracts import (
     ArtifactSnapshot,
+    DownloadHistoryItemSnapshot,
+    DownloadHistoryPageSnapshot,
+    DownloadHistorySummarySnapshot,
     FormatSnapshot,
     InspectionSnapshot,
     JobSnapshot,
@@ -69,6 +72,51 @@ def job_snapshot(row: DownloadJobRow) -> JobSnapshot:
         error_code=row.error_code,
         created_at=as_utc(row.created_at),
         updated_at=as_utc(row.updated_at),
+    )
+
+
+def download_history_item_snapshot(
+    job: DownloadJobRow,
+    inspection: MediaInspectionRow,
+    selected_format: MediaFormatRow,
+) -> DownloadHistoryItemSnapshot:
+    metadata = dict(inspection.metadata_json)
+    thumbnail = metadata.get("thumbnail_url")
+    return DownloadHistoryItemSnapshot(
+        id=job.id,
+        title=inspection.title,
+        thumbnail_url=thumbnail if isinstance(thumbnail, str) else None,
+        format_name=selected_format.display_name,
+        status=job.status,
+        progress=job.progress,
+        error_code=job.error_code,
+        created_at=as_utc(job.created_at),
+        updated_at=as_utc(job.updated_at),
+        finished_at=None if job.finished_at is None else as_utc(job.finished_at),
+    )
+
+
+def download_history_page_snapshot(
+    items: tuple[DownloadHistoryItemSnapshot, ...],
+    *,
+    page: int,
+    page_size: int,
+    total: int,
+    counts: dict[str, int],
+) -> DownloadHistoryPageSnapshot:
+    return DownloadHistoryPageSnapshot(
+        items=items,
+        page=page,
+        page_size=page_size,
+        total=total,
+        summary=DownloadHistorySummarySnapshot(
+            total=sum(counts.values()),
+            succeeded=counts.get("succeeded", 0),
+            active=sum(
+                counts.get(value, 0) for value in ("queued", "running", "retry_wait")
+            ),
+            failed=counts.get("failed", 0),
+        ),
     )
 
 

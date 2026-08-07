@@ -17,6 +17,15 @@ from app.application.downloads.errors import (
     PersistenceNotFound,
 )
 from app.application.downloads.fingerprints import HmacRequestFingerprinter
+from app.application.downloads.history import GetDownloadHistory
+from app.application.downloads.history_models import (
+    DownloadHistoryItemSnapshot,
+    DownloadHistoryItemView,
+    DownloadHistoryPageSnapshot,
+    DownloadHistorySummarySnapshot,
+    DownloadHistorySummaryView,
+    DownloadHistoryView,
+)
 from app.application.downloads.inspect_media import InspectMedia
 from app.application.downloads.inspection_models import (
     EncryptedUrl,
@@ -65,8 +74,15 @@ __all__ = [
     "FormatSnapshot",
     "FormatView",
     "GetDownload",
+    "GetDownloadHistory",
     "GetInspection",
     "HmacRequestFingerprinter",
+    "DownloadHistoryItemView",
+    "DownloadHistoryItemSnapshot",
+    "DownloadHistoryPageSnapshot",
+    "DownloadHistorySummarySnapshot",
+    "DownloadHistorySummaryView",
+    "DownloadHistoryView",
     "InspectMedia",
     "InspectionCreate",
     "InspectionSaveResult",

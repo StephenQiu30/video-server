@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.api.dependencies import (
     DownloadUseCases,
@@ -17,8 +17,10 @@ from app.api.schemas.downloads import (
     DownloadResponse,
     DownloadUrlResponse,
 )
+from app.api.schemas.history import DownloadHistoryResponse
 from app.application.downloads import ApplicationError
 from app.core.session import AnonymousSession
+from app.domain.downloads import DownloadStatus
 
 router = APIRouter(prefix="/downloads", tags=["downloads"])
 Session = Annotated[AnonymousSession, Depends(get_anonymous_session)]
@@ -51,6 +53,34 @@ async def create_download(
         raise application_error(exc) from exc
     response.headers["Location"] = f"/api/downloads/{view.id}"
     return DownloadResponse.from_view(view)
+
+
+@router.get(
+    "/history",
+    operation_id="getDownloadHistory",
+    response_model=DownloadHistoryResponse,
+    summary="查询下载历史",
+)
+async def get_download_history(
+    session: Session,
+    use_cases: UseCases,
+    page: Annotated[int, Query(ge=1, le=10_000)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=50)] = 20,
+    status_filter: Annotated[DownloadStatus | None, Query(alias="status")] = None,
+    search: Annotated[str | None, Query(max_length=128)] = None,
+) -> DownloadHistoryResponse:
+    """查询当前匿名会话的下载历史。"""
+    try:
+        view = await use_cases.get_download_history(
+            session.owner_hash,
+            page=page,
+            page_size=page_size,
+            status=status_filter,
+            search=search,
+        )
+    except ApplicationError as exc:
+        raise application_error(exc) from exc
+    return DownloadHistoryResponse.from_view(view)
 
 
 @router.get(

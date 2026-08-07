@@ -10,6 +10,7 @@ from app.application.downloads.download_models import (
     JobSaveResult,
     JobSnapshot,
 )
+from app.application.downloads.history_models import DownloadHistoryPageSnapshot
 from app.application.downloads.inspection_models import (
     EncryptedUrl,
     InspectionCreate,
@@ -49,6 +50,16 @@ class DownloadRepository(Protocol):
     ) -> JobSaveResult: ...
 
     async def get_job(self, job_id: UUID) -> JobSnapshot | None: ...
+
+    async def list_download_history(
+        self,
+        owner_hash: str,
+        *,
+        page: int,
+        page_size: int,
+        status: str | None,
+        search: str | None,
+    ) -> DownloadHistoryPageSnapshot: ...
 
     async def cancel_job(
         self, job_id: UUID, owner_hash: str, now: datetime

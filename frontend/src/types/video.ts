@@ -26,6 +26,9 @@ export type DownloadStatus = API.DownloadStatus;
 export type DownloadStage = API.DownloadStage;
 export type DownloadJob = API.DownloadResponse;
 export type DownloadUrl = API.DownloadUrlResponse;
+export type DownloadHistoryItem = API.DownloadHistoryItemResponse;
+export type DownloadHistory = API.DownloadHistoryResponse;
+export type DownloadHistoryQuery = API.getDownloadHistoryParams;
 
 export const terminalAnalysisStatuses = new Set<AnalysisStatus>([
   'succeeded',

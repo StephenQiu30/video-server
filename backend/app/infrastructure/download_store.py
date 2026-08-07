@@ -82,6 +82,49 @@ class SqlAlchemyDownloadStore:
     async def get_job(self, job_id: UUID) -> application.JobSnapshot:
         return job_snapshot(await self.repository.get_job(job_id))
 
+    async def list_download_history(
+        self,
+        owner_hash: str,
+        *,
+        page: int,
+        page_size: int,
+        status: str | None,
+        search: str | None,
+    ) -> application.DownloadHistoryPageSnapshot:
+        stored = await self.repository.list_download_history(
+            owner_hash,
+            page=page,
+            page_size=page_size,
+            status=status,
+            search=search,
+        )
+        return application.DownloadHistoryPageSnapshot(
+            items=tuple(
+                application.DownloadHistoryItemSnapshot(
+                    id=item.id,
+                    title=item.title,
+                    thumbnail_url=item.thumbnail_url,
+                    format_name=item.format_name,
+                    status=item.status,
+                    progress=item.progress,
+                    error_code=item.error_code,
+                    created_at=item.created_at,
+                    updated_at=item.updated_at,
+                    finished_at=item.finished_at,
+                )
+                for item in stored.items
+            ),
+            page=stored.page,
+            page_size=stored.page_size,
+            total=stored.total,
+            summary=application.DownloadHistorySummarySnapshot(
+                total=stored.summary.total,
+                succeeded=stored.summary.succeeded,
+                active=stored.summary.active,
+                failed=stored.summary.failed,
+            ),
+        )
+
     async def cancel_job(
         self, job_id: UUID, owner_hash: str, now: datetime
     ) -> application.JobSnapshot:

@@ -12,6 +12,7 @@ from app.application.downloads import (
     CancelDownload,
     CreateDownload,
     GetDownload,
+    GetDownloadHistory,
     GetInspection,
     InspectMedia,
     IssueDownloadUrl,
@@ -42,6 +43,7 @@ class DownloadUseCases:
     get_inspection: GetInspection
     create_download: CreateDownload
     get_download: GetDownload
+    get_download_history: GetDownloadHistory
     cancel_download: CancelDownload
     issue_download_url: IssueDownloadUrl
 
