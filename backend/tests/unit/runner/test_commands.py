@@ -83,6 +83,22 @@ async def test_inspection_classifies_youtube_bot_confirmation_requirement(
 
 
 @pytest.mark.asyncio
+async def test_inspection_classifies_vimeo_login_requirement(tmp_path: Path) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(
+            b"ERROR: The Vimeo extractor only works when logged-in. Use --cookies"
+        ),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect("https://vimeo.com/76979871", tmp_path)
+
+    assert caught.value.code == "provider_access_required"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
 async def test_youtube_uses_operator_managed_provider_egress(tmp_path: Path) -> None:
     supervisor = RecordingSupervisor()
     configured = settings(tmp_path).model_copy(

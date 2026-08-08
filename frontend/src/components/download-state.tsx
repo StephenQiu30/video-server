@@ -49,7 +49,7 @@ export default function DownloadState({
           value={format?.plan.container_preference.toUpperCase() ?? '—'}
         />
         <Meta label="清晰度" value={format ? `${format.plan.height}P` : '—'} />
-        <Meta label="阶段" value={stageLabels[job.stage ?? 'queued']} />
+        <Meta label="阶段" value={displayStage(job)} />
       </dl>
       <div className="mt-8">
         <div className="mb-3 flex items-end justify-between">
@@ -124,3 +124,10 @@ const stageLabels = {
   verifying: '校验文件',
   uploading: '保存制品',
 };
+
+function displayStage(job: DownloadJob): string {
+  if (job.status === 'succeeded') return '已完成';
+  if (job.status === 'failed') return '已失败';
+  if (job.status === 'cancelled') return '已取消';
+  return stageLabels[job.stage ?? 'queued'];
+}

@@ -274,7 +274,8 @@ def _requires_provider_access(command: Sequence[str], stderr: bytes) -> bool:
     requires_bot_confirmation = (
         b"sign in to confirm" in normalized and b"not a bot" in normalized
     )
-    return requires_fresh_cookies or requires_bot_confirmation
+    requires_vimeo_login = b"vimeo extractor only works when logged-in" in normalized
+    return requires_fresh_cookies or requires_bot_confirmation or requires_vimeo_login
 
 
 def _is_unavailable_provider_link(command: Sequence[str], stderr: bytes) -> bool:
