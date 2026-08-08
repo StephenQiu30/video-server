@@ -23,7 +23,9 @@ def test_request_guard_rejects_large_bodies_and_adds_security_headers(
     assert response.status_code == 413
     assert response.json()["code"] == "request_too_large"
     assert response.headers["x-content-type-options"] == "nosniff"
-    assert "frame-ancestors 'none'" in response.headers["content-security-policy"]
+    csp = response.headers["content-security-policy"]
+    assert "frame-ancestors 'none'" in csp
+    assert "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net" in csp
 
 
 def test_rate_limit_returns_problem_details_and_retry_after(tmp_path: Path) -> None:

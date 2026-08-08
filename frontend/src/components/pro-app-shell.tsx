@@ -13,6 +13,7 @@ import { App, Button, ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 const route = {
   path: '/',
@@ -28,6 +29,11 @@ export default function ProAppShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname() ?? '/';
+  const [collapsed, setCollapsed] = useState(true);
+
+  useEffect(() => {
+    setCollapsed(Boolean(pathname));
+  }, [pathname]);
 
   return (
     <ConfigProvider locale={zhCN}>
@@ -35,6 +41,8 @@ export default function ProAppShell({
         <ProConfigProvider hashed={false}>
           <ProLayout
             className="app-shell"
+            collapsed={collapsed}
+            onCollapse={setCollapsed}
             headerContentRender={false}
             layout="top"
             location={{ pathname }}

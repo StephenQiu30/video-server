@@ -92,7 +92,8 @@ def _csp() -> str:
     return (
         "default-src 'self'; script-src 'self' 'unsafe-inline' "
         "https://cdn.jsdelivr.net; "
-        "style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "img-src 'self' data: https:; "
         "connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; "
         "form-action 'self'"
     )
