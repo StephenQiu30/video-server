@@ -1,6 +1,6 @@
 # Frontend
 
-本目录是视频下载器的 Next.js App Router 前端，使用 React、shadcn/ui、Radix UI、Tailwind CSS 和 Geist 字体。页面以静态导出形式构建，生产环境继续由 FastAPI 同源提供页面、`/api/*` 与 `/health/*`。
+本目录是视频下载器的 Next.js App Router 前端，使用 React、Ant Design（`antd`）与 Ant Design Pro Components（`@ant-design/pro-components`）搭建，采用 Ant Design 主题色（`#1677FF`）与自备品牌 Logo。页面以静态导出形式构建，生产环境继续由 FastAPI 同源提供页面、`/api/*` 与 `/health/*`。
 
 本地与镜像构建统一使用 Node.js 24 LTS（`>=24.15.0 <25`）和 npm 11.19；`package.json` 的 `engines` 与 `packageManager` 是版本事实来源。
 

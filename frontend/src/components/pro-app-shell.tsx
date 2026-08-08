@@ -6,7 +6,6 @@ import {
   BookOutlined,
   CloudDownloadOutlined,
   HistoryOutlined,
-  PlayCircleFilled,
 } from '@ant-design/icons';
 import { ProConfigProvider, ProLayout } from '@ant-design/pro-components';
 import { App, Button, ConfigProvider } from 'antd';
@@ -35,6 +34,16 @@ export default function ProAppShell({
     setCollapsed(Boolean(pathname));
   }, [pathname]);
 
+  const logo = (
+    <img
+      alt="帧取 Logo"
+      className="app-logo"
+      height={32}
+      src="/logo.svg"
+      width={32}
+    />
+  );
+
   return (
     <ConfigProvider locale={zhCN}>
       <App>
@@ -46,7 +55,7 @@ export default function ProAppShell({
             headerContentRender={false}
             layout="top"
             location={{ pathname }}
-            logo={<PlayCircleFilled className="app-logo-icon" />}
+            logo={logo}
             menuItemRender={(item, dom) => (
               <Link href={item.path ?? '/'}>{dom}</Link>
             )}

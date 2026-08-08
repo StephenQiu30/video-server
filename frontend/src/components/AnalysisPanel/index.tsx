@@ -10,6 +10,7 @@ import {
   Select,
   Space,
   Tag,
+  theme,
   Typography,
 } from 'antd';
 import { useEffect, useState } from 'react';
@@ -42,6 +43,7 @@ export default function AnalysisPanel({
   const [profile, setProfile] = useState<AnalysisProfile>('standard-v1');
   const [language, setLanguage] = useState<OutputLanguage>('zh-CN');
   const { action, error, job } = state;
+  const { token } = theme.useToken();
 
   useEffect(() => onJobChange?.(job), [job, onJobChange]);
 
@@ -75,7 +77,7 @@ export default function AnalysisPanel({
             生成摘要、关键观点、章节和思维导图。
           </Typography.Text>
         </div>
-        <RobotOutlined style={{ color: '#1677ff', fontSize: 26 }} />
+        <RobotOutlined style={{ color: token.colorPrimary, fontSize: 26 }} />
       </div>
 
       {error ? (

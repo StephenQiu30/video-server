@@ -23,6 +23,12 @@ select {
   display: none;
 }
 
+/* 顶栏品牌 Logo：使用用户提供的品牌图，保持方形与主题蓝色一致 */
+.app-logo {
+  display: block;
+  object-fit: contain;
+}
+
 .workspace-stack {
   display: grid;
   gap: 24px;
@@ -88,7 +94,7 @@ select {
   z-index: 2;
   padding: 2px 6px;
   border-radius: 6px;
-  background: rgb(0 0 0 / 75%);
+  background: rgba(0, 0, 0, 0.75);
   color: #fff;
 }
 
@@ -220,7 +226,7 @@ select {
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 16px;
   padding-block: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--ant-color-split, #f0f0f0);
 }
 
 .mind-map-node:last-child {
