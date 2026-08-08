@@ -1,17 +1,11 @@
-import { DownloadSimpleIcon } from '@phosphor-icons/react';
+'use client';
+
+import { DownloadOutlined, EyeOutlined } from '@ant-design/icons';
+import type { ProColumns } from '@ant-design/pro-components';
+import { ProTable } from '@ant-design/pro-components';
+import { Button, Tag } from 'antd';
 
 import MediaCover from '@/components/media-cover';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import type {
   DownloadHistory,
   DownloadHistoryItem,
@@ -31,107 +25,79 @@ export default function DownloadHistoryTable({
   onDownload,
   onOpen,
 }: DownloadHistoryTableProps) {
-  return (
-    <div className="mt-7 overflow-hidden rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>视频</TableHead>
-            <TableHead>格式</TableHead>
-            <TableHead>状态</TableHead>
-            <TableHead>创建时间</TableHead>
-            <TableHead className="text-right">操作</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {loading && !data ? <LoadingRows /> : null}
-          {data?.items.map((item) => (
-            <HistoryRow
-              item={item}
-              key={item.id}
-              onDownload={onDownload}
-              onOpen={() => onOpen(item.id)}
-            />
-          ))}
-          {data && !data.items.length ? (
-            <TableRow>
-              <TableCell
-                className="h-32 text-center text-muted-foreground"
-                colSpan={5}
-              >
-                没有匹配的下载记录
-              </TableCell>
-            </TableRow>
-          ) : null}
-        </TableBody>
-      </Table>
-    </div>
-  );
-}
-
-function HistoryRow({
-  item,
-  onDownload,
-  onOpen,
-}: {
-  item: DownloadHistoryItem;
-  onDownload: (item: DownloadHistoryItem) => void;
-  onOpen: () => void;
-}) {
-  return (
-    <TableRow>
-      <TableCell>
-        <div className="flex min-w-64 items-center gap-3">
-          <MediaCover
-            alt={`${item.title} 视频封面`}
-            className="w-24 shrink-0"
-            src={item.thumbnail_url}
-          />
-          <button
-            className="text-left font-medium hover:underline"
-            onClick={onOpen}
-            type="button"
-          >
+  const columns: ProColumns<DownloadHistoryItem>[] = [
+    {
+      title: '视频',
+      dataIndex: 'title',
+      render: (_, item) => (
+        <div className="history-video-cell">
+          <MediaCover alt={`${item.title} 视频封面`} src={item.thumbnail_url} />
+          <Button onClick={() => onOpen(item.id)} type="link">
             {item.title}
-          </button>
+          </Button>
         </div>
-      </TableCell>
-      <TableCell>{item.format_name}</TableCell>
-      <TableCell>
-        <Badge variant="outline">
+      ),
+    },
+    { title: '格式', dataIndex: 'format_name', width: 150 },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      width: 150,
+      render: (_, item) => (
+        <Tag color={statusColors[item.status]}>
           {downloadStatusLabels[item.status]}
           {activeStatuses.has(item.status) ? ` · ${item.progress}%` : ''}
-        </Badge>
-      </TableCell>
-      <TableCell className="font-mono text-xs text-muted-foreground">
-        {new Intl.DateTimeFormat('zh-CN', {
+        </Tag>
+      ),
+    },
+    {
+      title: '创建时间',
+      dataIndex: 'created_at',
+      width: 190,
+      renderText: (value: string) =>
+        new Intl.DateTimeFormat('zh-CN', {
           dateStyle: 'medium',
           timeStyle: 'short',
-        }).format(new Date(item.created_at))}
-      </TableCell>
-      <TableCell className="text-right">
-        {item.status === 'succeeded' ? (
-          <Button onClick={() => onDownload(item)} size="sm" variant="ghost">
-            <DownloadSimpleIcon data-icon="inline-start" /> 获取文件
+        }).format(new Date(value)),
+    },
+    {
+      title: '操作',
+      valueType: 'option',
+      width: 130,
+      render: (_, item) =>
+        item.status === 'succeeded' ? (
+          <Button
+            icon={<DownloadOutlined />}
+            onClick={() => onDownload(item)}
+            type="link"
+          >
+            获取文件
           </Button>
         ) : (
-          <Button onClick={onOpen} size="sm" variant="ghost">
+          <Button
+            icon={<EyeOutlined />}
+            onClick={() => onOpen(item.id)}
+            type="link"
+          >
             查看任务
           </Button>
-        )}
-      </TableCell>
-    </TableRow>
-  );
-}
+        ),
+    },
+  ];
 
-function LoadingRows() {
-  return ['first', 'second', 'third'].map((key) => (
-    <TableRow key={key}>
-      <TableCell colSpan={5}>
-        <Skeleton className="h-14 w-full" />
-      </TableCell>
-    </TableRow>
-  ));
+  return (
+    <ProTable<DownloadHistoryItem>
+      columns={columns}
+      dataSource={data?.items ?? []}
+      loading={loading}
+      locale={{ emptyText: '没有匹配的下载记录' }}
+      options={false}
+      pagination={false}
+      rowKey="id"
+      search={false}
+      toolBarRender={false}
+    />
+  );
 }
 
 export const downloadStatusLabels: Record<DownloadStatus, string> = {
@@ -141,6 +107,15 @@ export const downloadStatusLabels: Record<DownloadStatus, string> = {
   succeeded: '已完成',
   failed: '失败',
   cancelled: '已取消',
+};
+
+const statusColors: Record<DownloadStatus, string> = {
+  queued: 'default',
+  running: 'processing',
+  retry_wait: 'warning',
+  succeeded: 'success',
+  failed: 'error',
+  cancelled: 'default',
 };
 
 const activeStatuses = new Set<DownloadStatus>([

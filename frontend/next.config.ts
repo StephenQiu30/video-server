@@ -23,6 +23,18 @@ const nextConfig: NextConfig = {
               source: '/health/:path*',
               destination: 'http://127.0.0.1:8101/health/:path*',
             },
+            {
+              source: '/docs/:path*',
+              destination: 'http://127.0.0.1:8101/docs/:path*',
+            },
+            {
+              source: '/redoc/:path*',
+              destination: 'http://127.0.0.1:8101/redoc/:path*',
+            },
+            {
+              source: '/openapi.json',
+              destination: 'http://127.0.0.1:8101/openapi.json',
+            },
           ];
         },
       }

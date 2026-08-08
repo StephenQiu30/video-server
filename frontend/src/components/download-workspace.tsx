@@ -1,24 +1,12 @@
 'use client';
 
-import {
-  ArrowClockwiseIcon,
-  CheckCircleIcon,
-  LinkSimpleIcon,
-} from '@phosphor-icons/react';
+import { LinkOutlined, ReloadOutlined } from '@ant-design/icons';
+import { PageContainer, ProCard } from '@ant-design/pro-components';
+import { Alert, Button, Empty, Flex, Input, Space, Typography } from 'antd';
 import { useRouter } from 'next/navigation';
-import {
-  type FormEvent,
-  type RefObject,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { type RefObject, useEffect, useRef, useState } from 'react';
 
 import InspectionView from '@/components/inspection-view';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { demoInspection } from '@/lib/demo-inspection';
 import {
   createDownload,
   createIdempotencyKey,
@@ -31,6 +19,14 @@ import { normalizeMediaUrl, URL_MESSAGE } from '@/utils/validation';
 type BusyAction = 'inspect' | 'create' | null;
 type StableKey = { payload: string; value: string };
 
+const DESIGN_SOURCE_URL = 'https://www.bilibili.com/video/BV1D6u86fETf/';
+const DESIGN_KEY_STORAGE = 'video-server:design-inspection-key';
+const sourceExamples = [
+  { label: 'Bilibili', url: DESIGN_SOURCE_URL },
+  { label: 'YouTube', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
+  { label: 'Vimeo', url: 'https://vimeo.com/76979871' },
+];
+
 export default function DownloadWorkspace() {
   const router = useRouter();
   const [url, setUrl] = useState('');
@@ -42,18 +38,40 @@ export default function DownloadWorkspace() {
   const downloadKey = useRef<StableKey | null>(null);
 
   useEffect(() => {
-    if (
+    const isDesignInspection =
       process.env.NODE_ENV !== 'production' &&
-      new URLSearchParams(window.location.search).get('design') === 'inspection'
-    ) {
-      setUrl('https://www.bilibili.com/video/BV1x84y1d7QK/');
-      setInspection(demoInspection);
-      setSelectedId(demoInspection.formats[0].id);
-    }
+      new URLSearchParams(window.location.search).get('design') ===
+        'inspection';
+    if (!isDesignInspection) return;
+
+    let active = true;
+    const storedKey = window.sessionStorage.getItem(DESIGN_KEY_STORAGE);
+    const key = storedKey ?? createIdempotencyKey();
+    window.sessionStorage.setItem(DESIGN_KEY_STORAGE, key);
+    inspectionKey.current = { payload: DESIGN_SOURCE_URL, value: key };
+    setUrl(DESIGN_SOURCE_URL);
+    setBusy('inspect');
+    setError(null);
+
+    void inspectMedia(DESIGN_SOURCE_URL, key)
+      .then((result) => {
+        if (!active) return;
+        setInspection(result);
+        setSelectedId(result.formats[0]?.id ?? '');
+      })
+      .catch((reason: unknown) => {
+        if (active) setError(displayError(reason));
+      })
+      .finally(() => {
+        if (active) setBusy(null);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  async function handleInspect(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleInspect() {
     const normalized = normalizeMediaUrl(url);
     if (!normalized) {
       setError(URL_MESSAGE);
@@ -97,91 +115,104 @@ export default function DownloadWorkspace() {
   }
 
   return (
-    <main className="page-shell">
-      <section className="py-10 sm:py-12">
-        <form
-          className="flex flex-col overflow-hidden rounded-md border bg-background sm:flex-row sm:items-center"
-          onSubmit={handleInspect}
-        >
-          <div className="relative min-w-0 flex-1">
-            <LinkSimpleIcon className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              aria-label="公开视频地址"
-              autoComplete="off"
-              className="h-14 rounded-none border-0 pl-12 text-base shadow-none focus-visible:ring-0"
-              maxLength={4096}
-              onChange={(event) => setUrl(event.target.value)}
-              placeholder="粘贴 Bilibili、YouTube、抖音等公开视频链接"
-              value={url}
-            />
-          </div>
-          {inspection ? (
-            <span className="flex shrink-0 items-center gap-1.5 px-4 text-sm font-medium text-emerald-600">
-              <CheckCircleIcon weight="fill" /> 解析完成
-            </span>
-          ) : null}
-          <Button
-            className="h-14 rounded-none px-8 text-base"
-            disabled={busy !== null}
-            type="submit"
-            variant="ghost"
+    <PageContainer
+      className="home-page"
+      content="粘贴公开视频链接，识别真实封面与可用格式，并创建下载任务。"
+      title="公开视频解析与下载"
+    >
+      <div className="workspace-stack">
+        <ProCard title="解析视频">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleInspect();
+            }}
           >
-            {inspection ? (
-              <ArrowClockwiseIcon data-icon="inline-start" />
-            ) : null}
-            {busy === 'inspect'
-              ? '正在解析…'
-              : inspection
-                ? '重新解析'
-                : '解析视频'}
-          </Button>
-        </form>
-        {!inspection ? (
-          <p className="mt-4 text-sm text-muted-foreground">
-            支持 Bilibili、YouTube、抖音等 yt-dlp 可识别的公开来源
-          </p>
+            <Space.Compact block>
+              <Input
+                allowClear
+                aria-label="公开视频地址"
+                maxLength={4096}
+                onChange={(event) => setUrl(event.target.value)}
+                placeholder="粘贴 Bilibili、YouTube、抖音等公开视频链接"
+                prefix={<LinkOutlined aria-hidden />}
+                value={url}
+              />
+              <Button
+                aria-label={inspection ? '重新解析' : '解析视频'}
+                htmlType="submit"
+                icon={inspection ? <ReloadOutlined aria-hidden /> : undefined}
+                loading={busy === 'inspect'}
+                type="primary"
+              >
+                {inspection ? '重新解析' : '解析视频'}
+              </Button>
+            </Space.Compact>
+          </form>
+
+          <Flex className="source-examples" gap="small" wrap>
+            <Typography.Text type="secondary">
+              支持 yt-dlp 可识别的公开来源。示例：
+            </Typography.Text>
+            {!inspection
+              ? sourceExamples.map((example) => (
+                  <Button
+                    key={example.label}
+                    onClick={() => setUrl(example.url)}
+                    size="small"
+                    type="link"
+                  >
+                    {example.label}
+                  </Button>
+                ))
+              : null}
+          </Flex>
+        </ProCard>
+
+        {error ? (
+          <Alert
+            description={error}
+            message="操作未完成"
+            showIcon
+            type="error"
+          />
         ) : null}
-      </section>
 
-      {error ? (
-        <Alert className="mb-8" variant="destructive">
-          <AlertTitle>操作未完成</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
-
-      {inspection ? (
-        <InspectionView
-          busy={busy === 'create'}
-          inspection={inspection}
-          onChange={setSelectedId}
-          onCreate={handleCreate}
-          selectedId={selectedId}
-        />
-      ) : (
-        <EmptyHero loading={busy === 'inspect'} />
-      )}
-    </main>
+        {inspection ? (
+          <InspectionView
+            busy={busy === 'create'}
+            inspection={inspection}
+            onChange={setSelectedId}
+            onCreate={handleCreate}
+            selectedId={selectedId}
+          />
+        ) : (
+          <EmptyResult loading={busy === 'inspect'} />
+        )}
+      </div>
+    </PageContainer>
   );
 }
 
-function EmptyHero({ loading }: { loading: boolean }) {
+function EmptyResult({ loading }: { loading: boolean }) {
   return (
-    <section className="technical-grid -mx-5 border-y px-5 py-24 sm:-mx-8 sm:px-8 lg:-mx-10 lg:px-10 lg:py-32">
-      <p className="mb-4 text-xs font-medium tracking-[0.2em] text-muted-foreground uppercase">
-        Universal media workspace
-      </p>
-      <h1 className="max-w-4xl text-balance text-5xl leading-[0.96] font-semibold tracking-[-0.055em] sm:text-7xl lg:text-8xl">
-        先确认内容，
-        <br />
-        再下载清晰原片
-      </h1>
-      <p className="mt-8 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
-        {loading
-          ? '正在安全识别媒体信息和可用格式…'
-          : '一个链接完成解析、格式选择、文件下载，并可在完成后继续生成摘要与思维导图。'}
-      </p>
-    </section>
+    <ProCard title="解析结果">
+      <Empty
+        description={
+          <Space direction="vertical" size={4}>
+            <Typography.Text strong>
+              {loading ? '正在识别视频' : '等待解析公开视频'}
+            </Typography.Text>
+            <Typography.Text type="secondary">
+              {loading
+                ? '正在安全识别媒体信息和可用格式，请稍候。'
+                : '解析结果将在这里展示真实封面、媒体信息与可下载格式。'}
+            </Typography.Text>
+          </Space>
+        }
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+      />
+    </ProCard>
   );
 }
 

@@ -1,8 +1,8 @@
+import { AntdRegistry } from '@ant-design/nextjs-registry';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 
-import SiteHeader from '@/components/site-header';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import AppShell from '@/components/app-shell';
 
 import './globals.css';
 
@@ -26,10 +26,9 @@ export default function RootLayout({
       lang="zh-CN"
     >
       <body>
-        <TooltipProvider>
-          <SiteHeader />
-          {children}
-        </TooltipProvider>
+        <AntdRegistry>
+          <AppShell>{children}</AppShell>
+        </AntdRegistry>
       </body>
     </html>
   );

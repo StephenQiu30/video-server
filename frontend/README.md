@@ -22,7 +22,7 @@ npm ci
 npm run dev
 ```
 
-页面位于 <http://127.0.0.1:8000>。Next.js 开发服务器将 `/api/*` 和 `/health/*` 代理到 `http://127.0.0.1:8101`；生产构建使用同源相对路径，不需要额外浏览器环境变量。
+页面位于 <http://localhost:3000>。Next.js 开发服务器将 `/api/*` 和 `/health/*` 代理到 `http://127.0.0.1:8101`；生产构建使用同源相对路径，不需要额外浏览器环境变量。
 
 ## 目录
 
@@ -58,7 +58,7 @@ npm run openapi
 
 | 命令 | 用途 |
 | --- | --- |
-| `npm run dev` | 在 8000 端口启动 Next.js 开发服务器 |
+| `npm run dev` | 使用 Next.js 默认的 3000 端口启动开发服务器 |
 | `npm run openapi` | 从 FastAPI 重新生成接口类型 |
 | `npm run lint` | 运行 Biome lint 与 TypeScript 检查 |
 | `npm run format:check` | 检查格式 |

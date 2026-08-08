@@ -13,7 +13,7 @@ describe('DownloadWorkspace', () => {
     render(<DownloadWorkspace />);
     expect(screen.getByLabelText('公开视频地址')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '解析视频' })).toBeEnabled();
-    expect(screen.getByText(/先确认内容/)).toBeInTheDocument();
+    expect(screen.getByText(/公开视频解析与下载/)).toBeInTheDocument();
   });
 
   it('validates the URL before sending a request', async () => {

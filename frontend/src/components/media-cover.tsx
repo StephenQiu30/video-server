@@ -1,10 +1,8 @@
 'use client';
 
-import Image from 'next/image';
+import { PictureOutlined } from '@ant-design/icons';
+import { Empty, Image } from 'antd';
 import { useState } from 'react';
-
-import fallbackCover from '@/assets/product-launch-stage.webp';
-import { cn } from '@/lib/utils';
 
 type MediaCoverProps = {
   alt: string;
@@ -21,33 +19,34 @@ export default function MediaCover({
   platform,
   src,
 }: MediaCoverProps) {
-  const [failed, setFailed] = useState(false);
-  const source = src && !failed ? src : fallbackCover;
+  const [failedSource, setFailedSource] = useState<string | null>(null);
+  const source = src && src !== failedSource ? src : null;
 
   return (
-    <div
-      className={cn(
-        'relative aspect-video overflow-hidden rounded-md bg-muted',
-        className,
+    <div className={`media-cover${className ? ` ${className}` : ''}`}>
+      {source ? (
+        <Image
+          alt={alt}
+          fallback=""
+          onError={() => setFailedSource(source)}
+          preview={false}
+          src={source}
+        />
+      ) : (
+        <div className="media-cover-empty">
+          <Empty
+            description="该视频未提供可用封面"
+            image={<PictureOutlined style={{ fontSize: 40 }} />}
+          />
+        </div>
       )}
-    >
-      <Image
-        alt={alt}
-        className="object-cover"
-        fill
-        onError={() => setFailed(true)}
-        priority
-        sizes="(min-width: 1024px) 52vw, 100vw"
-        src={source}
-        unoptimized={typeof source === 'string'}
-      />
       {platform ? (
-        <span className="absolute bottom-3 left-3 rounded bg-black/78 px-2 py-1 text-xs font-medium text-white">
+        <span className="media-cover-badge media-cover-platform">
           {platform}
         </span>
       ) : null}
       {duration ? (
-        <span className="absolute right-3 bottom-3 rounded bg-black/78 px-2 py-1 font-mono text-xs text-white">
+        <span className="media-cover-badge media-cover-duration">
           {duration}
         </span>
       ) : null}

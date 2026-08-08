@@ -1,11 +1,14 @@
 'use client';
 
-import { CheckIcon, CopyIcon, InfoIcon } from '@phosphor-icons/react';
+import {
+  CheckOutlined,
+  CopyOutlined,
+  InfoCircleOutlined,
+} from '@ant-design/icons';
+import { Button, List, Tabs, Typography } from 'antd';
 import { useState } from 'react';
 
 import MindMapTree from '@/components/MindMapTree';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { AnalysisResult, EvidenceStatement } from '@/types/video';
 import { formatMilliseconds } from '@/utils/format';
 
@@ -15,41 +18,54 @@ export default function AnalysisResultView({
   result: AnalysisResult;
 }) {
   return (
-    <section aria-label="AI 分析结果">
-      <Tabs defaultValue="summary">
-        <TabsList>
-          <TabsTrigger value="summary">摘要</TabsTrigger>
-          <TabsTrigger value="points">关键观点</TabsTrigger>
-          <TabsTrigger value="actions">行动项</TabsTrigger>
-          <TabsTrigger value="mind-map">思维导图</TabsTrigger>
-        </TabsList>
-        <TabsContent className="mt-8 space-y-10" value="summary">
-          <section className="max-w-4xl">
-            <h3 className="text-xl font-semibold">摘要</h3>
-            <p className="mt-4 text-base leading-7">{result.summary.text}</p>
-            <p className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
-              <InfoIcon /> 所有观点均来自本次视频转录证据
-            </p>
-          </section>
-          <Statements items={result.key_points} title="关键要点" />
-          <div className="grid gap-10 lg:grid-cols-[0.75fr_1.25fr]">
-            <Chapters result={result} />
-            <section className="lg:border-l lg:pl-10">
-              <h3 className="mb-5 text-xl font-semibold">思维导图预览</h3>
-              <MindMapTree root={result.mind_map} />
-            </section>
-          </div>
-        </TabsContent>
-        <TabsContent className="mt-8" value="points">
-          <Statements items={result.key_points} title="关键观点" />
-        </TabsContent>
-        <TabsContent className="mt-8" value="actions">
-          <Statements items={result.action_items} title="行动建议" />
-        </TabsContent>
-        <TabsContent className="mt-8" value="mind-map">
-          <MindMapTree root={result.mind_map} />
-        </TabsContent>
-      </Tabs>
+    <section aria-label="AI 分析结果" className="analysis-tabs">
+      <Tabs
+        defaultActiveKey="summary"
+        items={[
+          {
+            key: 'summary',
+            label: '摘要',
+            children: (
+              <>
+                <section className="result-section">
+                  <Typography.Title level={3}>摘要</Typography.Title>
+                  <Typography.Paragraph>
+                    {result.summary.text}
+                  </Typography.Paragraph>
+                  <Typography.Text type="secondary">
+                    <InfoCircleOutlined /> 所有观点均来自本次视频转录证据
+                  </Typography.Text>
+                </section>
+                <Statements items={result.key_points} title="关键要点" />
+                <div className="result-grid">
+                  <Chapters result={result} />
+                  <section>
+                    <Typography.Title level={3}>思维导图预览</Typography.Title>
+                    <MindMapTree root={result.mind_map} />
+                  </section>
+                </div>
+              </>
+            ),
+          },
+          {
+            key: 'points',
+            label: '关键观点',
+            children: <Statements items={result.key_points} title="关键观点" />,
+          },
+          {
+            key: 'actions',
+            label: '行动项',
+            children: (
+              <Statements items={result.action_items} title="行动建议" />
+            ),
+          },
+          {
+            key: 'mind-map',
+            label: '思维导图',
+            children: <MindMapTree root={result.mind_map} />,
+          },
+        ]}
+      />
     </section>
   );
 }
@@ -62,17 +78,17 @@ function Statements({
   title: string;
 }) {
   return (
-    <section>
-      <h3 className="mb-4 text-xl font-semibold">{title}</h3>
-      {items.length ? (
-        <ol className="divide-y border-y">
-          {items.map((item, index) => (
-            <Statement item={item} index={index} key={item.text} />
-          ))}
-        </ol>
-      ) : (
-        <p className="text-sm text-muted-foreground">暂无内容。</p>
-      )}
+    <section className="result-section">
+      <Typography.Title level={3}>{title}</Typography.Title>
+      <List
+        dataSource={items}
+        locale={{ emptyText: '暂无内容。' }}
+        renderItem={(item, index) => (
+          <List.Item>
+            <Statement index={index} item={item} />
+          </List.Item>
+        )}
+      />
     </section>
   );
 }
@@ -91,45 +107,43 @@ function Statement({
     window.setTimeout(() => setCopied(false), 1200);
   }
   return (
-    <li className="grid grid-cols-[42px_1fr_auto] items-center gap-4 py-4">
-      <span className="font-mono text-sm text-muted-foreground">
+    <div className="statement-row">
+      <Typography.Text code>
         {String(index + 1).padStart(2, '0')}
-      </span>
-      <p className="leading-6">{item.text}</p>
+      </Typography.Text>
+      <Typography.Text>{item.text}</Typography.Text>
       <Button
         aria-label={`复制观点 ${index + 1}`}
-        onClick={copy}
-        size="icon"
-        variant="ghost"
-      >
-        {copied ? <CheckIcon /> : <CopyIcon />}
-      </Button>
-    </li>
+        icon={copied ? <CheckOutlined /> : <CopyOutlined />}
+        onClick={() => void copy()}
+        type="text"
+      />
+    </div>
   );
 }
 
 function Chapters({ result }: { result: AnalysisResult }) {
   return (
     <section>
-      <h3 className="mb-5 text-xl font-semibold">章节</h3>
-      <ol className="space-y-5">
-        {result.chapters.map((chapter) => (
-          <li
-            className="grid grid-cols-[58px_1fr] gap-4"
-            key={`${chapter.start_ms}:${chapter.title}`}
-          >
-            <span className="font-mono text-sm text-brand">
-              {formatMilliseconds(chapter.start_ms)}
-            </span>
-            <div>
-              <strong>{chapter.title}</strong>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                {chapter.summary}
-              </p>
+      <Typography.Title level={3}>章节</Typography.Title>
+      <List
+        dataSource={result.chapters}
+        renderItem={(chapter) => (
+          <List.Item>
+            <div className="chapter-row">
+              <span className="chapter-time">
+                {formatMilliseconds(chapter.start_ms)}
+              </span>
+              <span>
+                <Typography.Text strong>{chapter.title}</Typography.Text>
+                <Typography.Paragraph type="secondary">
+                  {chapter.summary}
+                </Typography.Paragraph>
+              </span>
             </div>
-          </li>
-        ))}
-      </ol>
+          </List.Item>
+        )}
+      />
     </section>
   );
 }

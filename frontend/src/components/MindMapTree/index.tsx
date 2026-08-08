@@ -1,9 +1,12 @@
+import { CaretRightFilled } from '@ant-design/icons';
+import { Typography } from 'antd';
+
 import type { MindMapNode } from '@/types/video';
 import { formatMilliseconds } from '@/utils/format';
 
 export default function MindMapTree({ root }: { root: MindMapNode }) {
   return (
-    <div className="overflow-hidden rounded-md border">
+    <div className="mind-map">
       <TreeNode depth={0} node={root} />
     </div>
   );
@@ -13,22 +16,22 @@ function TreeNode({ depth, node }: { depth: number; node: MindMapNode }) {
   return (
     <div>
       <div
-        className="grid grid-cols-[auto_1fr_auto] gap-3 border-b px-4 py-3 last:border-b-0"
+        className="mind-map-node"
         style={{ paddingInlineStart: `${16 + depth * 22}px` }}
       >
-        <CircleIcon className="mt-1 size-2 text-brand" weight="fill" />
+        <CaretRightFilled className="mind-map-dot" />
         <span>
-          <strong className="text-sm">{node.title}</strong>
+          <Typography.Text strong>{node.title}</Typography.Text>
           {node.summary ? (
-            <small className="mt-1 block leading-5 text-muted-foreground">
+            <Typography.Paragraph type="secondary">
               {node.summary}
-            </small>
+            </Typography.Paragraph>
           ) : null}
         </span>
         {node.start_ms === null ? null : (
-          <span className="font-mono text-xs text-muted-foreground">
+          <Typography.Text code>
             {formatMilliseconds(node.start_ms)}
-          </span>
+          </Typography.Text>
         )}
       </div>
       {node.children.map((child) => (
@@ -37,5 +40,3 @@ function TreeNode({ depth, node }: { depth: number; node: MindMapNode }) {
     </div>
   );
 }
-
-import { CircleIcon } from '@phosphor-icons/react';

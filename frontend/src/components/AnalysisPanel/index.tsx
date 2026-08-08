@@ -1,20 +1,20 @@
 'use client';
 
-import { ArrowClockwiseIcon, SparkleIcon } from '@phosphor-icons/react';
+import { ReloadOutlined, RobotOutlined } from '@ant-design/icons';
+import { ProCard } from '@ant-design/pro-components';
+import {
+  Alert,
+  Button,
+  Flex,
+  Progress,
+  Select,
+  Space,
+  Tag,
+  Typography,
+} from 'antd';
 import { useEffect, useState } from 'react';
 
 import AnalysisResultView from '@/components/AnalysisResultView';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useAnalysisJob } from '@/hooks/useAnalysisJob';
 import type {
   AnalysisJob,
@@ -47,82 +47,72 @@ export default function AnalysisPanel({
 
   if (job?.status === 'succeeded' && job.result) {
     return (
-      <section className="border-t pt-10">
-        <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
+      <ProCard className="analysis-card">
+        <div className="analysis-heading">
           <div>
-            <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-              AI analysis
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold">{job.result.title}</h2>
+            <p className="page-eyebrow">AI analysis</p>
+            <Typography.Title level={2}>{job.result.title}</Typography.Title>
           </div>
-          <div className="flex items-center gap-3">
-            <Badge variant="secondary">分析已完成</Badge>
-            <Button onClick={state.restart} variant="outline">
-              <ArrowClockwiseIcon data-icon="inline-start" />
+          <Space wrap>
+            <Tag color="success">分析已完成</Tag>
+            <Button icon={<ReloadOutlined />} onClick={state.restart}>
               重新分析
             </Button>
-          </div>
+          </Space>
         </div>
         <AnalysisResultView result={job.result} />
-      </section>
+      </ProCard>
     );
   }
 
   return (
-    <section className="border-t py-10">
-      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+    <ProCard className="analysis-card">
+      <div className="analysis-heading">
         <div>
-          <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-            AI analysis
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold">AI 智能分析</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="page-eyebrow">AI analysis</p>
+          <Typography.Title level={2}>AI 智能分析</Typography.Title>
+          <Typography.Text type="secondary">
             生成摘要、关键观点、章节和思维导图。
-          </p>
+          </Typography.Text>
         </div>
-        <SparkleIcon className="size-6 text-brand" />
+        <RobotOutlined style={{ color: '#1677ff', fontSize: 26 }} />
       </div>
 
       {error ? (
-        <Alert className="mb-6" variant="destructive">
-          <AlertTitle>分析服务暂时不可用</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+        <Alert
+          description={error}
+          message="操作未完成"
+          showIcon
+          style={{ marginBlock: 24 }}
+          type="error"
+        />
       ) : null}
 
       {!job ? (
-        <div className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+        <div className="analysis-form">
           <Field label="分析模板">
             <Select
+              id="analysis-profile"
+              onChange={(value) => setProfile(value)}
+              options={[{ label: '标准分析', value: 'standard-v1' }]}
               value={profile}
-              onValueChange={(value) => setProfile(value as AnalysisProfile)}
-            >
-              <SelectTrigger aria-label="分析模板">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="standard-v1">标准分析</SelectItem>
-              </SelectContent>
-            </Select>
+            />
           </Field>
           <Field label="输出语言">
             <Select
+              id="analysis-language"
+              onChange={(value) => setLanguage(value)}
+              options={[
+                { label: '简体中文', value: 'zh-CN' },
+                { label: 'English', value: 'en-US' },
+              ]}
               value={language}
-              onValueChange={(value) => setLanguage(value as OutputLanguage)}
-            >
-              <SelectTrigger aria-label="输出语言">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="zh-CN">简体中文</SelectItem>
-                <SelectItem value="en-US">English</SelectItem>
-              </SelectContent>
-            </Select>
+            />
           </Field>
           <Button
-            className="h-9"
-            disabled={action === 'start'}
+            loading={action === 'start'}
             onClick={() => state.start({ profile, output_language: language })}
+            type="primary"
           >
             开始 AI 分析
           </Button>
@@ -130,7 +120,7 @@ export default function AnalysisPanel({
       ) : (
         <AnalysisJobState job={job} state={state} />
       )}
-    </section>
+    </ProCard>
   );
 }
 
@@ -142,10 +132,10 @@ function Field({
   label: string;
 }) {
   return (
-    <div className="grid gap-2 text-sm font-medium">
-      <span>{label}</span>
-      {children}
-    </div>
+    <fieldset aria-label={label} className="analysis-field">
+      <Typography.Text strong>{label}</Typography.Text>
+      <div style={{ marginTop: 8 }}>{children}</div>
+    </fieldset>
   );
 }
 
@@ -157,28 +147,26 @@ function AnalysisJobState({
   state: ReturnType<typeof useAnalysisJob>;
 }) {
   return (
-    <div className="max-w-3xl space-y-5">
-      <div className="flex items-center justify-between gap-4">
-        <strong>{statusLabels[job.status]}</strong>
-        <span className="font-mono text-sm text-muted-foreground">
-          {job.progress}%
-        </span>
-      </div>
-      <Progress value={job.progress} />
-      <p className="text-sm text-muted-foreground">
+    <div className="analysis-progress">
+      <Flex align="center" justify="space-between">
+        <Typography.Text strong>{statusLabels[job.status]}</Typography.Text>
+        <Typography.Text code>{job.progress}%</Typography.Text>
+      </Flex>
+      <Progress percent={job.progress} showInfo={false} />
+      <Typography.Paragraph type="secondary">
         当前阶段：{job.stage ? stageLabels[job.stage] : '等待调度'} · 第{' '}
         {job.attempt} 次尝试
-      </p>
-      <div className="flex gap-3">
+      </Typography.Paragraph>
+      <Space>
         {cancellableAnalysisStatuses.has(job.status) ? (
-          <Button onClick={state.cancel} variant="outline">
-            取消分析
-          </Button>
+          <Button onClick={state.cancel}>取消分析</Button>
         ) : null}
         {job.status === 'failed' || job.status === 'cancelled' ? (
-          <Button onClick={state.restart}>重新分析</Button>
+          <Button onClick={state.restart} type="primary">
+            重新分析
+          </Button>
         ) : null}
-      </div>
+      </Space>
     </div>
   );
 }
