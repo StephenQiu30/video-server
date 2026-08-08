@@ -1,46 +1,57 @@
 name: video-server
 
-x-prod-app: &prod-app
-  env_file:
-    - .env.prod
-  environment:
-    APP_ENV: "${APP_ENV:?set APP_ENV in .env.prod}"
-    DATABASE_URL: "${DATABASE_URL:?set DATABASE_URL in .env.prod}"
-    RABBITMQ_URL: "${RABBITMQ_URL:?set RABBITMQ_URL in .env.prod}"
-    MINIO_ENDPOINT: "${MINIO_ENDPOINT:?set MINIO_ENDPOINT in .env.prod}"
-    MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?set MINIO_ACCESS_KEY in .env.prod}"
-    MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?set MINIO_SECRET_KEY in .env.prod}"
-    SESSION_SECRET: "${SESSION_SECRET:?set SESSION_SECRET in .env.prod}"
-    REQUEST_FINGERPRINT_SECRET: "${REQUEST_FINGERPRINT_SECRET:?set REQUEST_FINGERPRINT_SECRET in .env.prod}"
-    URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:?set URL_ENCRYPTION_KEY in .env.prod}"
-    RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
+x-prod-api-env: &prod-api-env
+  APP_ENV: "${APP_ENV:?set APP_ENV in .env.prod}"
+  DATABASE_URL: "${DATABASE_URL:?set DATABASE_URL in .env.prod}"
+  RABBITMQ_URL: "${RABBITMQ_URL:?set RABBITMQ_URL in .env.prod}"
+  VALKEY_URL: "${VALKEY_URL:?set VALKEY_URL in .env.prod}"
+  MINIO_ENDPOINT: "${MINIO_ENDPOINT:?set MINIO_ENDPOINT in .env.prod}"
+  MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?set MINIO_ACCESS_KEY in .env.prod}"
+  MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?set MINIO_SECRET_KEY in .env.prod}"
+  SESSION_SECRET: "${SESSION_SECRET:?set SESSION_SECRET in .env.prod}"
+  REQUEST_FINGERPRINT_SECRET: "${REQUEST_FINGERPRINT_SECRET:?set REQUEST_FINGERPRINT_SECRET in .env.prod}"
+  URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:?set URL_ENCRYPTION_KEY in .env.prod}"
+  RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
 
-x-prod-infra: &prod-infra
-  env_file:
-    - .env.prod
+x-prod-worker-env: &prod-worker-env
+  APP_ENV: "${APP_ENV:?set APP_ENV in .env.prod}"
+  DATABASE_URL: "${DATABASE_URL:?set DATABASE_URL in .env.prod}"
+  RABBITMQ_URL: "${RABBITMQ_URL:?set RABBITMQ_URL in .env.prod}"
+
+x-prod-download-env: &prod-download-env
+  <<: *prod-worker-env
+  MINIO_ENDPOINT: "${MINIO_ENDPOINT:?set MINIO_ENDPOINT in .env.prod}"
+  MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?set MINIO_ACCESS_KEY in .env.prod}"
+  MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?set MINIO_SECRET_KEY in .env.prod}"
+  URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:?set URL_ENCRYPTION_KEY in .env.prod}"
+  RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
+
+x-prod-runner-env: &prod-runner-env
+  RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
+  RUNNER_EGRESS_PROXY: "${RUNNER_EGRESS_PROXY:?set RUNNER_EGRESS_PROXY in .env.prod}"
 
 services:
   api:
-    <<: *prod-app
     image: video-server:prod
+    environment: *prod-api-env
     ports: !override
       - "8101:8101"
 
   outbox:
-    <<: *prod-app
     image: video-server:prod
+    environment: *prod-worker-env
 
   worker-download:
-    <<: *prod-app
     image: video-server:prod
+    environment: *prod-download-env
 
   worker-analysis:
-    <<: *prod-app
     image: video-server:prod
+    environment: *prod-worker-env
 
   media-runner:
-    <<: *prod-app
     image: video-server:prod
+    environment: *prod-runner-env
 
   egress-proxy:
 
@@ -48,7 +59,6 @@ services:
     image: video-server:prod
 
   postgres:
-    <<: *prod-infra
     ports: !reset []
     environment:
       POSTGRES_DB: "${POSTGRES_DB:?set POSTGRES_DB in .env.prod}"
@@ -56,21 +66,18 @@ services:
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}"
 
   rabbitmq:
-    <<: *prod-infra
     ports: !reset []
     environment:
       RABBITMQ_DEFAULT_USER: "${RABBITMQ_DEFAULT_USER:?set RABBITMQ_DEFAULT_USER in .env.prod}"
       RABBITMQ_DEFAULT_PASS: "${RABBITMQ_DEFAULT_PASS:?set RABBITMQ_DEFAULT_PASS in .env.prod}"
 
   minio:
-    <<: *prod-infra
     ports: !reset []
     environment:
       MINIO_ROOT_USER: "${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env.prod}"
       MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env.prod}"
 
   minio-init:
-    <<: *prod-infra
     environment:
       MINIO_ROOT_USER: "${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env.prod}"
       MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env.prod}"

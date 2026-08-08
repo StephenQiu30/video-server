@@ -124,9 +124,9 @@ def enrich_format_metadata(
 
     format_info = probe.get("format")
     if isinstance(format_info, dict):
-        enriched["duration"] = _positive_number(format_info.get("duration")) or enriched.get(
-            "duration"
-        )
+        enriched["duration"] = _positive_number(
+            format_info.get("duration")
+        ) or enriched.get("duration")
         enriched["filesize"] = format_info.get("size") or enriched.get("filesize")
         enriched["tbr"] = _kilobits(format_info.get("bit_rate")) or enriched.get("tbr")
     return enriched

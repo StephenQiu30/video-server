@@ -93,7 +93,7 @@ flowchart LR
 - Runner 只接受内部网络请求和带时间戳的 HMAC；请求体大小、并发、时长、磁盘和输出数量均有限制。
 - 用户提供的 URL 加密存储并按 TTL 清理；日志不得记录 query、cookie、Authorization、API key 或完整转录。
 - 浏览器永远不接触 DB/MQ/MinIO/AI provider 凭据。
-- Compose 使用默认网络完成服务互联；浏览器只访问 API 入口和 API 签发的短时对象地址。Media Runner 通过 egress proxy 出网，proxy 拒绝私网、localhost 和字面量 IP 目的地址。
+- Compose 使用按职责拆分的内部网络完成服务互联；浏览器只访问 API 入口和 API 签发的短时对象地址。Media Runner 通过 egress proxy 出网，proxy 拒绝私网、localhost 和字面量 IP 目的地址。
 - 不支持 DRM 绕过、私有内容规避、任意文件协议、直播录制或未授权内容下载。
 
 ## 7. 部署与演进

@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 
 from app.api.errors import app_error_handler, validation_error_handler
+from app.api.middleware import request_guard
 from app.api.openapi import API_DESCRIPTION, OPENAPI_TAGS, SWAGGER_UI_PARAMETERS
 from app.api.router import router
 from app.composition import ApiRuntime, build_api_runtime
@@ -51,6 +52,15 @@ def create_app(
         application.state.analysis_use_cases = configured_runtime.analysis_use_cases
         application.state.readiness_probe = configured_runtime.readiness
     application.include_router(router)
+    application.middleware("http")(
+        lambda request, call_next: request_guard(
+            request,
+            call_next,
+            max_body_bytes=effective.request_max_bytes,
+            timeout_seconds=effective.request_timeout_seconds,
+            production=effective.app_env == "production",
+        )
+    )
     application.add_exception_handler(AppError, app_error_handler)
     application.add_exception_handler(RequestValidationError, validation_error_handler)
     mount_frontend(application, effective.frontend_dist_dir)

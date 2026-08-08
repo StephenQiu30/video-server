@@ -25,6 +25,10 @@ from app.infrastructure.media_runner import MediaRunnerHttpClient
 from app.infrastructure.messaging import RabbitMqTopology
 from app.infrastructure.object_storage import MinioObjectStorage
 from app.infrastructure.url_security import FernetUrlEnvelope
+from app.workers.download.artifacts import (
+    ArtifactCleanupSettings,
+    ArtifactGarbageCollector,
+)
 from app.workers.download.consumer import RabbitMqDownloadConsumer
 from app.workers.download.persistence import DownloadExecutionRepository
 from app.workers.download.sweeper import (
@@ -39,6 +43,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 class DownloadWorkerRuntime:
     consumer: RabbitMqDownloadConsumer
     sweeper: DownloadRecoverySweeper
+    artifact_gc: ArtifactGarbageCollector
     storage: MinioObjectStorage
     runner: MediaRunnerHttpClient
     engine: AsyncEngine
@@ -106,6 +111,16 @@ def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
                 batch_size=100,
             ),
         ),
+        artifact_gc=ArtifactGarbageCollector(
+            raw_repository,
+            storage.delete,
+            _utc_now,
+            ArtifactCleanupSettings(
+                interval=settings.artifact_gc_interval_seconds,
+                batch_size=settings.artifact_gc_batch_size,
+                delete_timeout=settings.artifact_delete_timeout_seconds,
+            ),
+        ),
         storage=storage,
         runner=runner,
         engine=engine,
@@ -127,11 +142,12 @@ async def run() -> None:
 async def _serve(runtime: DownloadWorkerRuntime, stop: asyncio.Event) -> None:
     consumer = asyncio.create_task(runtime.consumer.run(stop))
     sweeper = asyncio.create_task(runtime.sweeper.run(stop))
+    artifact_gc = asyncio.create_task(runtime.artifact_gc.run(stop))
     stop_wait = asyncio.create_task(stop.wait())
-    tasks = (consumer, sweeper)
+    tasks = (consumer, sweeper, artifact_gc)
     try:
         await asyncio.wait(
-            {consumer, sweeper, stop_wait},
+            {consumer, sweeper, artifact_gc, stop_wait},
             return_when=asyncio.FIRST_COMPLETED,
         )
         stop.set()

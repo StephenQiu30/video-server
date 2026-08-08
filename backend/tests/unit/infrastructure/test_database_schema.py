@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
 from app.infrastructure.database import Base
+from app.infrastructure.database.artifact_repository import expired_artifact_statement
 from app.infrastructure.database.outbox_repository import outbox_claim_statement
 from app.infrastructure.database.recovery_repository import stale_jobs_statement
 from sqlalchemy.dialects import postgresql
@@ -60,5 +61,8 @@ def test_postgres_claims_use_skip_locked_for_parallel_consumers() -> None:
     dialect = postgresql.dialect()
     stale_sql = str(stale_jobs_statement(now, 10).compile(dialect=dialect))
     outbox_sql = str(outbox_claim_statement(now, 10).compile(dialect=dialect))
+    artifact_sql = str(expired_artifact_statement(now, 10).compile(dialect=dialect))
     assert "FOR UPDATE SKIP LOCKED" in stale_sql
     assert "FOR UPDATE SKIP LOCKED" in outbox_sql
+    assert "FOR UPDATE SKIP LOCKED" in artifact_sql
+    assert "NOT (EXISTS" in artifact_sql

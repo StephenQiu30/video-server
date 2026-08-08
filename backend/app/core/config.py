@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     frontend_dist_dir: Path = REPOSITORY_ROOT / "frontend" / "dist"
     readiness_timeout_seconds: float = Field(default=2.0, ge=0.1, le=10)
+    request_max_bytes: int = Field(default=256 * 1024, ge=1024, le=4 * 1024 * 1024)
+    request_timeout_seconds: float = Field(default=30, ge=1, le=300)
 
     database_url: str = "postgresql+asyncpg://video:video@localhost:15432/video"
     rabbitmq_url: str = "amqp://video:video@localhost:5673/"
@@ -44,6 +46,7 @@ class Settings(BaseSettings):
     download_worker_threads: int = Field(default=4, ge=1, le=64)
     outbox_batch_size: int = Field(default=50, ge=1, le=200)
     outbox_poll_interval_seconds: float = Field(default=1.0, ge=0.1, le=60)
+    valkey_url: str | None = None
 
     minio_endpoint: str = "localhost:19190"
     minio_public_endpoint: str = "127.0.0.1:19190"
@@ -79,6 +82,9 @@ class Settings(BaseSettings):
     max_workspace_size_bytes: int = Field(default=4 * 1024**3, ge=1, le=40 * 1024**3)
     inspection_ttl_seconds: int = Field(default=900, ge=60, le=86400)
     artifact_ttl_seconds: int = Field(default=86400, ge=300, le=2592000)
+    artifact_gc_interval_seconds: float = Field(default=300, ge=5, le=86400)
+    artifact_gc_batch_size: int = Field(default=50, ge=1, le=200)
+    artifact_delete_timeout_seconds: float = Field(default=30, ge=1, le=300)
     artifact_download_url_ttl_seconds: int = Field(default=300, ge=60, le=3600)
     job_lease_seconds: int = Field(default=60, ge=15, le=600)
     heartbeat_interval_seconds: int = Field(default=15, ge=5, le=120)
@@ -190,6 +196,8 @@ class Settings(BaseSettings):
         )
         if insecure or insecure_urls or default_url_key:
             raise ValueError("production secrets must be explicitly configured")
+        if self.service_role == "api" and not self.valkey_url:
+            raise ValueError("production API requires VALKEY_URL")
         return self
 
 

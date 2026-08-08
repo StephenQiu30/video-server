@@ -148,7 +148,6 @@ class AccessRepository(RecoveryRepository):
                 expires_at=as_utc(inspection.expires_at),
             )
 
-
     async def cancel_job(
         self, job_id: UUID, owner_hash: str, now: datetime
     ) -> JobSnapshot:

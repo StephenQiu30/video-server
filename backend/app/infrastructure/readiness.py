@@ -47,6 +47,7 @@ def build_runtime_readiness(
     engine: AsyncEngine,
     *,
     client: httpx.AsyncClient | None = None,
+    valkey_check: AsyncCheck | None = None,
 ) -> RuntimeReadiness:
     http_client = client or httpx.AsyncClient(
         timeout=settings.readiness_timeout_seconds,
@@ -74,13 +75,16 @@ def build_runtime_readiness(
         )
         await connection.close()
 
+    checks: list[AsyncCheck] = [
+        database_check,
+        lambda: http_check(runner_url),
+        lambda: http_check(minio_url),
+        rabbitmq_check,
+    ]
+    if valkey_check is not None:
+        checks.append(valkey_check)
     return RuntimeReadiness(
-        (
-            database_check,
-            lambda: http_check(runner_url),
-            lambda: http_check(minio_url),
-            rabbitmq_check,
-        ),
+        tuple(checks),
         http_client,
         timeout_seconds=settings.readiness_timeout_seconds,
     )

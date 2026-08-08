@@ -183,6 +183,12 @@ class ArtifactSnapshot:
 
 
 @dataclass(frozen=True, slots=True)
+class ArtifactPurgeResult:
+    deleted: int
+    failed: int
+
+
+@dataclass(frozen=True, slots=True)
 class OutboxSnapshot:
     id: UUID
     aggregate_type: str

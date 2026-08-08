@@ -31,6 +31,7 @@ from app.infrastructure.database import (
 from app.infrastructure.download_store import SqlAlchemyDownloadStore
 from app.infrastructure.media_runner import MediaRunnerHttpClient
 from app.infrastructure.object_storage import MinioObjectStorage
+from app.infrastructure.rate_limiter import ValkeyRateLimiter
 from app.infrastructure.readiness import RuntimeReadiness, build_runtime_readiness
 from app.infrastructure.url_security import FernetUrlEnvelope, MediaUrlValidator
 
@@ -41,11 +42,14 @@ class ApiRuntime:
     analysis_use_cases: AnalysisUseCases
     engine: AsyncEngine
     runner: MediaRunnerHttpClient
+    rate_limiter: ValkeyRateLimiter | None
     readiness: RuntimeReadiness
 
     async def close(self) -> None:
         await self.readiness.close()
         await self.runner.close()
+        if self.rate_limiter is not None:
+            await self.rate_limiter.close()
         await self.engine.dispose()
 
 
@@ -63,6 +67,14 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         download_timeout_seconds=settings.download_timeout_seconds,
     )
     storage = MinioObjectStorage(settings, enable_public_signing=True)
+    rate_limiter = (
+        ValkeyRateLimiter(
+            settings.valkey_url,
+            settings.request_fingerprint_secret.get_secret_value().encode(),
+        )
+        if settings.valkey_url
+        else None
+    )
     clock = _utc_now
     fingerprinter = HmacRequestFingerprinter(
         settings.request_fingerprint_secret.get_secret_value().encode()
@@ -118,7 +130,12 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         analysis_use_cases=analysis_use_cases,
         engine=engine,
         runner=runner,
-        readiness=build_runtime_readiness(settings, engine),
+        rate_limiter=rate_limiter,
+        readiness=build_runtime_readiness(
+            settings,
+            engine,
+            valkey_check=rate_limiter.ping if rate_limiter is not None else None,
+        ),
     )
 
 

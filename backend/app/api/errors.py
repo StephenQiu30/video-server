@@ -175,6 +175,7 @@ async def app_error_handler(request: Request, error: Exception) -> JSONResponse:
         code=app_error.code,
         title=app_error.title,
         detail=app_error.detail,
+        headers=app_error.headers,
     )
 
 
@@ -195,10 +196,12 @@ def _problem_response(
     code: str,
     title: str,
     detail: str,
+    headers: dict[str, str] | None = None,
 ) -> JSONResponse:
     return JSONResponse(
         status_code=status,
         media_type="application/problem+json",
+        headers=headers,
         content={
             "type": f"urn:video-server:error:{code}",
             "title": title,

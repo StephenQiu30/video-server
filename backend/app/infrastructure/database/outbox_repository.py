@@ -7,7 +7,7 @@ from uuid import UUID
 
 from sqlalchemy import Select, or_, select
 
-from .access_repository import AccessRepository
+from .artifact_repository import ArtifactLifecycleRepository
 from .contracts import OutboxSnapshot
 from .mapping import outbox_snapshot
 from .models import OutboxEventRow
@@ -34,7 +34,7 @@ def outbox_claim_statement(now: datetime, limit: int) -> Select[tuple[OutboxEven
     )
 
 
-class SqlAlchemyDownloadRepository(AccessRepository):
+class SqlAlchemyDownloadRepository(ArtifactLifecycleRepository):
     async def claim_outbox(
         self,
         publisher_id: str,

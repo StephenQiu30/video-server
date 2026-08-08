@@ -69,11 +69,13 @@ cp .env.prod.example .env.prod
 docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod.yml up -d --build
 ```
 
-本地 `docker-compose.yml` 负责本地 `env_file`、宿主机端口和完整服务拓扑，
-`docker-compose-prod.yml` 负责生产 `env_file`、镜像和容器名。Compose 使用带环境前缀的稳定容器名，
+本地 `docker-compose.yml` 负责本地环境插值、宿主机端口和完整服务拓扑，
+`docker-compose-prod.yml` 负责生产环境校验、镜像和对外端口。Compose 使用带环境前缀的稳定容器名，
 不会出现 `xxx-1` 这类副本后缀；生产覆盖会在 Compose 解析阶段校验关键变量。环境变量模板只维护在
 `.env.example` 与 `.env.prod.example`；真实本地值放在被 Git 忽略的 `.env` 或
 `.env.prod` 中。
+
+API 的短窗口限流状态存放在独立 Valkey 服务；数据库、队列、配额、对象存储和 Runner RPC 使用独立内部网络，Media Runner 只接收 Runner HMAC 与受控出口代理配置。
 
 LLM 默认通过 LangChain 连接宿主机已有的 Ollama 服务与 `qwen3:latest`；项目不安装 Ollama 或拉取模型。切换 DeepSeek 云端时设置 `ANALYSIS_PROVIDER=deepseek` 与 `DEEPSEEK_API_KEY`。音频转录仍使用独立 ASR 配置，真实视频分析需要 `OPENAI_API_KEY`。
 

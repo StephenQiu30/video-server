@@ -11,6 +11,7 @@ class AppError(Exception):
     code: str
     title: str
     detail: str
+    headers: dict[str, str] | None = None
 
     def __post_init__(self) -> None:
         Exception.__init__(self, self.detail)
