@@ -1,11 +1,11 @@
 // @ts-ignore
 /* eslint-disable */
-import { request } from "@umijs/max";
+import { request, type RequestOptions } from "@/lib/request";
 
 /** 解析媒体信息 校验公开媒体地址并返回可供选择的语义下载格式。 POST /api/inspections */
 export async function inspectMedia(
   body: API.InspectionRequest,
-  options?: { [key: string]: any }
+  options?: RequestOptions
 ) {
   return request<API.InspectionResponse>("/api/inspections", {
     method: "POST",
@@ -21,7 +21,7 @@ export async function inspectMedia(
 export async function getInspection(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.getInspectionParams,
-  options?: { [key: string]: any }
+  options?: RequestOptions
 ) {
   const { inspection_id: param0, ...queryParams } = params;
   return request<API.InspectionResponse>(`/api/inspections/${param0}`, {

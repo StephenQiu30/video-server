@@ -2,11 +2,18 @@
   "compilerOptions": {
     "allowJs": false,
     "allowSyntheticDefaultImports": true,
+    "incremental": true,
+    "isolatedModules": true,
+    "lib": ["dom", "dom.iterable", "esnext"],
     "esModuleInterop": true,
-    "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "noImplicitReturns": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
@@ -15,17 +22,18 @@
     "moduleResolution": "Bundler",
     "target": "ES2022",
     "paths": {
-      "@/*": ["./src/*"],
-      "@@/*": ["./src/.umi/*"],
-      "@root/*": ["./*"]
+      "@/*": ["./src/*"]
     },
     "types": ["vitest/globals", "node"]
   },
   "include": [
-    "config",
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
     "src",
-    "src/.umi/**/*.d.ts",
     "tests",
-    "vitest.config.ts"
-  ]
+    "next.config.ts",
+    "vitest.config.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
 }

@@ -13,7 +13,6 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci --ignore-scripts
 COPY --link frontend/ ./
 RUN npm rebuild \
-    && npm run prepare \
     && npm run build
 
 FROM node:24-bookworm-slim AS node-runtime
@@ -52,7 +51,7 @@ RUN apt-get update \
     && chown -R appuser:appuser /app
 
 COPY --link --from=backend-builder --chown=10001:10001 /app/backend /app/backend
-COPY --link --from=frontend-builder --chown=10001:10001 /workspace/frontend/dist /app/frontend/dist
+COPY --link --from=frontend-builder --chown=10001:10001 /workspace/frontend/out /app/frontend/dist
 COPY --link --from=node-runtime /usr/local/bin/node /usr/local/bin/node
 
 USER appuser

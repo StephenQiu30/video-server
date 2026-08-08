@@ -1,40 +1,41 @@
-import { Tree, type TreeDataNode } from 'antd';
-
 import type { MindMapNode } from '@/types/video';
 import { formatMilliseconds } from '@/utils/format';
 
-import styles from './index.module.css';
-
-type MindMapTreeProps = {
-  root: MindMapNode;
-};
-
-export default function MindMapTree({ root }: MindMapTreeProps) {
+export default function MindMapTree({ root }: { root: MindMapNode }) {
   return (
-    <div className={styles.mindMap}>
-      <Tree
-        blockNode
-        defaultExpandAll
-        selectable={false}
-        showLine
-        treeData={[toTreeNode(root)]}
-      />
+    <div className="overflow-hidden rounded-md border">
+      <TreeNode depth={0} node={root} />
     </div>
   );
 }
 
-function toTreeNode(node: MindMapNode): TreeDataNode {
-  return {
-    key: node.id,
-    title: (
-      <div className={styles.node}>
-        <strong>{node.title}</strong>
+function TreeNode({ depth, node }: { depth: number; node: MindMapNode }) {
+  return (
+    <div>
+      <div
+        className="grid grid-cols-[auto_1fr_auto] gap-3 border-b px-4 py-3 last:border-b-0"
+        style={{ paddingInlineStart: `${16 + depth * 22}px` }}
+      >
+        <CircleIcon className="mt-1 size-2 text-brand" weight="fill" />
+        <span>
+          <strong className="text-sm">{node.title}</strong>
+          {node.summary ? (
+            <small className="mt-1 block leading-5 text-muted-foreground">
+              {node.summary}
+            </small>
+          ) : null}
+        </span>
         {node.start_ms === null ? null : (
-          <span>{formatMilliseconds(node.start_ms)}</span>
+          <span className="font-mono text-xs text-muted-foreground">
+            {formatMilliseconds(node.start_ms)}
+          </span>
         )}
-        {node.summary ? <small>{node.summary}</small> : null}
       </div>
-    ),
-    children: node.children.map(toTreeNode),
-  };
+      {node.children.map((child) => (
+        <TreeNode depth={depth + 1} key={child.id} node={child} />
+      ))}
+    </div>
+  );
 }
+
+import { CircleIcon } from '@phosphor-icons/react';

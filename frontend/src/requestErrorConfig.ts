@@ -1,16 +1,7 @@
-import type { RequestConfig } from '@umijs/max';
-
 type ProblemDetails = {
   code: string;
   detail: string;
   title: string;
-};
-
-type ResponseError = {
-  response?: {
-    data?: unknown;
-    status?: number;
-  };
 };
 
 export class ApiError extends Error {
@@ -25,28 +16,18 @@ export class ApiError extends Error {
   }
 }
 
-export const requestErrorConfig: RequestConfig = {
-  errorConfig: {
-    errorHandler(error: unknown) {
-      throw toApiError(error);
-    },
-  },
-  timeout: 30000,
-};
-
 export function displayError(error: unknown): string {
   return error instanceof ApiError
     ? error.detail
     : '发生未知错误，请稍后重试。';
 }
 
-function toApiError(error: unknown): ApiError {
-  if (error instanceof ApiError) {
-    return error;
-  }
-  const responseError = error as ResponseError;
-  const status = responseError.response?.status ?? 0;
-  const problem = parseProblemDetails(responseError.response?.data);
+export function apiErrorFrom(
+  status: number,
+  payload: unknown,
+  fallbackDetail?: string,
+): ApiError {
+  const problem = parseProblemDetails(payload);
   if (problem) {
     return new ApiError(status, problem.code, problem.title, problem.detail);
   }
@@ -54,7 +35,10 @@ function toApiError(error: unknown): ApiError {
     status,
     'request_failed',
     '请求失败',
-    '服务暂时不可用，请稍后重试。',
+    fallbackDetail ??
+      (status >= 500
+        ? '服务暂时不可用，请稍后重试。'
+        : '请求未能完成，请检查后重试。'),
   );
 }
 

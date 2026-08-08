@@ -14,9 +14,11 @@
 
 **/node_modules/
 **/.turbopack/
+**/.next/
 **/.umi/
 **/src/.umi*/
 **/dist/
+**/out/
 **/coverage/
 
 artifacts/

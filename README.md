@@ -7,7 +7,7 @@
 ```text
 server/
 ├── backend/       FastAPI、领域逻辑、Worker、当前态 SQL 与测试
-├── frontend/      Ant Design Pro / Umi Max Web 源码、组件与测试
+├── frontend/      Next.js、shadcn/ui、Radix UI、Tailwind CSS 前端与测试
 ├── docs/          当前 Design、PRD、Plan、Acceptance 与运维文档
 ├── Dockerfile
 ├── docker-compose.yml       本地完整服务拓扑（.env、宿主机端口）
@@ -36,14 +36,14 @@ npm run dev
 
 API 启动后访问 `/docs` 查看 Swagger UI，访问 `/openapi.json` 获取 OpenAPI 契约。公共业务接口统一位于 `/api/*`，当前不维护没有实际兼容需求的版本目录或 `/api/v1` 前缀。
 
-前端 API 客户端完全由该契约生成，不手工维护接口类型或请求函数：
+前端接口类型和请求方法完全由该契约生成，请求统一通过 Axios 封装：
 
 ```bash
 cd frontend
 npm run openapi
 ```
 
-该命令使用 Umi Max OpenAPI 插件直接读取 FastAPI 的 `/openapi.json`，并更新 `frontend/src/services/video/`；执行前需启动后端 API。
+该命令使用 `@umijs/openapi` 读取 FastAPI 的 `/openapi.json`，并更新 `frontend/src/services/video/`；生成代码通过 `frontend/src/lib/request.ts` 调用同源 Axios 实例。执行前需启动后端 API，可通过 `OPENAPI_SCHEMA_URL` 临时覆盖契约地址。
 
 ## 视频源
 

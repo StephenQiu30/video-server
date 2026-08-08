@@ -11,15 +11,19 @@ export function createAnalysis(
   input: CreateAnalysisInput,
   idempotencyKey: string,
 ): Promise<AnalysisJob> {
-  return createAnalysisRequest({ download_id: downloadId }, input, {
-    headers: { 'Idempotency-Key': idempotencyKey },
-  });
+  return createAnalysisRequest(
+    { download_id: encodeURIComponent(downloadId) },
+    input,
+    {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    },
+  );
 }
 
 export function getAnalysis(id: string): Promise<AnalysisJob> {
-  return getAnalysisRequest({ analysis_id: id });
+  return getAnalysisRequest({ analysis_id: encodeURIComponent(id) });
 }
 
 export function cancelAnalysis(id: string): Promise<AnalysisJob> {
-  return cancelAnalysisRequest({ analysis_id: id });
+  return cancelAnalysisRequest({ analysis_id: encodeURIComponent(id) });
 }

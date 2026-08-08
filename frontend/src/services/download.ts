@@ -24,11 +24,16 @@ export {
 export { createIdempotencyKey } from '@/utils/idempotency';
 
 export function inspectMedia(url: string, key: string): Promise<Inspection> {
-  return inspectMediaRequest({ url }, { headers: { 'Idempotency-Key': key } });
+  return inspectMediaRequest(
+    { url },
+    {
+      headers: { 'Idempotency-Key': key },
+    },
+  );
 }
 
 export function getInspection(id: string): Promise<Inspection> {
-  return getInspectionRequest({ inspection_id: id });
+  return getInspectionRequest({ inspection_id: encodeURIComponent(id) });
 }
 
 export function createDownload(
@@ -37,13 +42,18 @@ export function createDownload(
   key: string,
 ): Promise<DownloadJob> {
   return createDownloadRequest(
-    { inspection_id: inspectionId, format_id: formatId },
-    { headers: { 'Idempotency-Key': key } },
+    {
+      inspection_id: inspectionId,
+      format_id: formatId,
+    },
+    {
+      headers: { 'Idempotency-Key': key },
+    },
   );
 }
 
 export function getDownload(id: string): Promise<DownloadJob> {
-  return getDownloadRequest({ job_id: id });
+  return getDownloadRequest({ job_id: encodeURIComponent(id) });
 }
 
 export function getDownloadHistory(
@@ -53,11 +63,11 @@ export function getDownloadHistory(
 }
 
 export function cancelDownload(id: string): Promise<DownloadJob> {
-  return cancelDownloadRequest({ job_id: id });
+  return cancelDownloadRequest({ job_id: encodeURIComponent(id) });
 }
 
 export function issueDownloadUrl(id: string): Promise<DownloadUrl> {
-  return issueDownloadUrlRequest({ job_id: id });
+  return issueDownloadUrlRequest({ job_id: encodeURIComponent(id) });
 }
 
 export function triggerBrowserDownload(url: string): void {

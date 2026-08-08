@@ -1,179 +1,135 @@
-import { CopyOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import { Button, Col, Flex, Grid, Row, Tabs, Typography } from 'antd';
+'use client';
+
+import { CheckIcon, CopyIcon, InfoIcon } from '@phosphor-icons/react';
+import { useState } from 'react';
 
 import MindMapTree from '@/components/MindMapTree';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { AnalysisResult, EvidenceStatement } from '@/types/video';
 import { formatMilliseconds } from '@/utils/format';
 
-import styles from './index.module.css';
-
-type AnalysisResultViewProps = {
-  result: AnalysisResult;
-};
-
 export default function AnalysisResultView({
   result,
-}: AnalysisResultViewProps) {
-  const screens = Grid.useBreakpoint();
-  const items = [
-    {
-      key: 'summary',
-      label: '摘要',
-      children: <Summary result={result} screens={screens} />,
-    },
-    {
-      key: 'points',
-      label: '关键观点',
-      children: (
-        <StatementSection
-          emptyText="暂无关键观点。"
-          items={result.key_points}
-          screens={screens}
-          title="关键要点"
-        />
-      ),
-    },
-    {
-      key: 'actions',
-      label: '行动项',
-      children: (
-        <StatementSection
-          emptyText="暂无行动建议。"
-          items={result.action_items}
-          screens={screens}
-          title="行动建议"
-        />
-      ),
-    },
-    {
-      key: 'mind-map',
-      label: '思维导图',
-      children: (
-        <section>
-          <Typography.Title level={3}>思维导图</Typography.Title>
-          <MindMapTree root={result.mind_map} />
-        </section>
-      ),
-    },
-  ];
-
+}: {
+  result: AnalysisResult;
+}) {
   return (
-    <section aria-label="AI 分析结果" className={styles.result}>
-      <Tabs
-        defaultActiveKey="summary"
-        items={items}
-        size={screens.sm ? 'middle' : 'small'}
-        tabBarGutter={screens.sm ? 32 : 16}
-      />
+    <section aria-label="AI 分析结果">
+      <Tabs defaultValue="summary">
+        <TabsList>
+          <TabsTrigger value="summary">摘要</TabsTrigger>
+          <TabsTrigger value="points">关键观点</TabsTrigger>
+          <TabsTrigger value="actions">行动项</TabsTrigger>
+          <TabsTrigger value="mind-map">思维导图</TabsTrigger>
+        </TabsList>
+        <TabsContent className="mt-8 space-y-10" value="summary">
+          <section className="max-w-4xl">
+            <h3 className="text-xl font-semibold">摘要</h3>
+            <p className="mt-4 text-base leading-7">{result.summary.text}</p>
+            <p className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+              <InfoIcon /> 所有观点均来自本次视频转录证据
+            </p>
+          </section>
+          <Statements items={result.key_points} title="关键要点" />
+          <div className="grid gap-10 lg:grid-cols-[0.75fr_1.25fr]">
+            <Chapters result={result} />
+            <section className="lg:border-l lg:pl-10">
+              <h3 className="mb-5 text-xl font-semibold">思维导图预览</h3>
+              <MindMapTree root={result.mind_map} />
+            </section>
+          </div>
+        </TabsContent>
+        <TabsContent className="mt-8" value="points">
+          <Statements items={result.key_points} title="关键观点" />
+        </TabsContent>
+        <TabsContent className="mt-8" value="actions">
+          <Statements items={result.action_items} title="行动建议" />
+        </TabsContent>
+        <TabsContent className="mt-8" value="mind-map">
+          <MindMapTree root={result.mind_map} />
+        </TabsContent>
+      </Tabs>
     </section>
   );
 }
 
-function Summary({
-  result,
-  screens,
-}: {
-  result: AnalysisResult;
-  screens: ReturnType<typeof Grid.useBreakpoint>;
-}) {
-  return (
-    <div className={styles.summaryTab}>
-      <section className={styles.summaryBlock}>
-        <Typography.Title level={3}>摘要</Typography.Title>
-        <p>{result.summary.text}</p>
-        <span>
-          <InfoCircleOutlined /> 所有观点均来自本次视频转录证据
-        </span>
-      </section>
-
-      <StatementSection
-        compact
-        emptyText="暂无关键观点。"
-        items={result.key_points}
-        screens={screens}
-        title="关键要点"
-      />
-
-      <Row gutter={[{ xs: 0, lg: 28 }, 22]}>
-        <Col xs={24} lg={9}>
-          <section>
-            <Typography.Title level={3}>章节</Typography.Title>
-            {result.chapters.length ? (
-              <ol className={styles.timeline}>
-                {result.chapters.map((chapter) => (
-                  <li key={`${chapter.start_ms}:${chapter.title}`}>
-                    <span>{formatMilliseconds(chapter.start_ms)}</span>
-                    <div>
-                      <strong>{chapter.title}</strong>
-                      <p>{chapter.summary}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className={styles.empty}>暂无章节。</p>
-            )}
-          </section>
-        </Col>
-        <Col xs={24} lg={15}>
-          <section
-            style={
-              screens.lg
-                ? { borderLeft: '1px solid #f0f0f0', paddingLeft: 28 }
-                : { borderTop: '1px solid #f0f0f0', paddingTop: 22 }
-            }
-          >
-            <Typography.Title level={3}>思维导图预览</Typography.Title>
-            <MindMapTree root={result.mind_map} />
-          </section>
-        </Col>
-      </Row>
-    </div>
-  );
-}
-
-function StatementSection({
-  compact = false,
-  emptyText,
+function Statements({
   items,
-  screens,
   title,
 }: {
-  compact?: boolean;
-  emptyText: string;
   items: EvidenceStatement[];
-  screens: ReturnType<typeof Grid.useBreakpoint>;
   title: string;
 }) {
   return (
-    <section className={compact ? styles.compactSection : undefined}>
-      <Typography.Title level={3}>{title}</Typography.Title>
+    <section>
+      <h3 className="mb-4 text-xl font-semibold">{title}</h3>
       {items.length ? (
-        <ul className={styles.statements}>
+        <ol className="divide-y border-y">
           {items.map((item, index) => (
-            <Flex
-              align="center"
-              component="li"
-              gap={screens.sm ? 12 : 8}
-              key={`${item.text}:${item.evidence_segment_ids.join(',')}`}
-            >
-              <span style={{ width: screens.sm ? 50 : 24 }}>
-                {compact ? `0${index + 1}` : '•'}
-              </span>
-              <p style={{ flex: 1 }}>{item.text}</p>
-              <Button
-                aria-label={`复制观点 ${index + 1}`}
-                icon={<CopyOutlined />}
-                onClick={() => void navigator.clipboard?.writeText(item.text)}
-                size="small"
-                type="text"
-              />
-            </Flex>
+            <Statement item={item} index={index} key={item.text} />
           ))}
-        </ul>
+        </ol>
       ) : (
-        <p className={styles.empty}>{emptyText}</p>
+        <p className="text-sm text-muted-foreground">暂无内容。</p>
       )}
+    </section>
+  );
+}
+
+function Statement({
+  item,
+  index,
+}: {
+  item: EvidenceStatement;
+  index: number;
+}) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    await navigator.clipboard?.writeText(item.text);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1200);
+  }
+  return (
+    <li className="grid grid-cols-[42px_1fr_auto] items-center gap-4 py-4">
+      <span className="font-mono text-sm text-muted-foreground">
+        {String(index + 1).padStart(2, '0')}
+      </span>
+      <p className="leading-6">{item.text}</p>
+      <Button
+        aria-label={`复制观点 ${index + 1}`}
+        onClick={copy}
+        size="icon"
+        variant="ghost"
+      >
+        {copied ? <CheckIcon /> : <CopyIcon />}
+      </Button>
+    </li>
+  );
+}
+
+function Chapters({ result }: { result: AnalysisResult }) {
+  return (
+    <section>
+      <h3 className="mb-5 text-xl font-semibold">章节</h3>
+      <ol className="space-y-5">
+        {result.chapters.map((chapter) => (
+          <li
+            className="grid grid-cols-[58px_1fr] gap-4"
+            key={`${chapter.start_ms}:${chapter.title}`}
+          >
+            <span className="font-mono text-sm text-brand">
+              {formatMilliseconds(chapter.start_ms)}
+            </span>
+            <div>
+              <strong>{chapter.title}</strong>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                {chapter.summary}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }

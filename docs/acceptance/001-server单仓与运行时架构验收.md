@@ -33,13 +33,13 @@ docker build --target runtime --tag video-server:architecture .
 ## 执行证据（2026-08-06）
 
 - 后端：Ruff、format、strict mypy 与 `pytest -q` 全部通过。
-- 前端：Biome lint、format、TypeScript、Vitest 与 Umi Max production build 全部通过。
+- 前端：Biome lint、format、TypeScript、Vitest 与 Next.js static export build 全部通过。
 - 测试策略：CI 不设置覆盖率数字硬门槛；测试聚焦领域规则、API 契约、安全边界和关键流程，不为覆盖率重复测试实现细节。
 - 依赖：`npm audit --audit-level=high` 为 0 vulnerabilities。
 - 数据库：仓库中只有 `backend/sql/schema.sql`，由 PostgreSQL 在全新数据卷首次启动时执行；没有 Alembic/migrations 或旧 schema 兼容分支。
 - Compose：根目录保留 `docker-compose.yml`、`docker-compose-prod.yml` 两份职责清晰的配置；本地配置可独立解析，生产组合可解析，生产文件不复制基础服务定义。
 - 配置收敛：镜像、宿主机绑定、容器内部服务名、队列、网络和卷由 Compose 声明；环境变量值只保留在 `.env.example`、`.env.prod.example` 或被 Git 忽略的 `.env*` 文件中。
-- 镜像：`docker build --target runtime --tag video-server:architecture .` 返回 0；根目录多阶段 `Dockerfile` 统一构建 frontend dist 与 Python runtime，API、Outbox、下载 Worker、AI Worker 和 Media Runner 复用同一 runtime 镜像。
+- 镜像：`docker build --target runtime --tag video-server:architecture .` 返回 0；根目录多阶段 `Dockerfile` 统一构建 Next.js static export 与 Python runtime，API、Outbox、下载 Worker、AI Worker 和 Media Runner 复用同一 runtime 镜像。
 - 容器入口修复：backend-builder 与 runtime 均使用 `/app/backend`，虚拟环境固定为 `/app/backend/.venv`，Runner 改由 `python -m uvicorn ...` 启动；本地和生产组合中的 API、Outbox、下载 Worker、AI Worker 与 Media Runner 使用统一 runtime 镜像进入运行/健康状态。
 - 应用交付网络：本地组合 API 固定暴露 `127.0.0.1:8101`，生产组合 API 暴露 `8101`，真实浏览器能够访问 API，并通过 API 签发的 MinIO URL 取回文件；Media Runner 仍通过 egress proxy 出网。
 - 容器 smoke：`/health/ready` 返回 `ok`；`/` 与 `/downloads/example` 返回同一 SPA；未知 `/api/not-found` 返回 JSON 404。

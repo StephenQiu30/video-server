@@ -2,8 +2,10 @@
 .github
 **/.venv
 **/node_modules
+**/.next
 **/.umi*
 **/dist
+**/out
 **/coverage
 **/.coverage
 **/.mypy_cache

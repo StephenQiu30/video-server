@@ -1,24 +1,23 @@
 import '@testing-library/jest-dom/vitest';
 
 import { cleanup } from '@testing-library/react';
-import { history, request } from '@umijs/max';
 import { afterEach, beforeEach, vi } from 'vitest';
 
-vi.mock('@umijs/max', () => ({
-  history: { push: vi.fn() },
-  request: vi.fn(),
-  useParams: vi.fn(),
+import { httpClient } from '@/lib/request';
+
+vi.mock('next/navigation', () => ({
+  usePathname: vi.fn(() => '/'),
+  useRouter: vi.fn(() => ({ push: vi.fn() })),
+  useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
 
 beforeEach(() => {
-  vi.mocked(request).mockReset();
-  vi.mocked(history.push).mockReset();
+  vi.spyOn(httpClient, 'request');
 });
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
-  vi.unstubAllGlobals();
 });
 
 Object.defineProperty(window, 'matchMedia', {

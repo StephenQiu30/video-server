@@ -22,16 +22,15 @@ server/
 │   ├── config/                    Egress、MinIO 等运行配置
 │   ├── sql/schema.sql             PostgreSQL 当前态结构
 │   └── tests/                     architecture/contract/integration/unit 测试
-├── frontend/                      Ant Design Pro / Umi Max 前端
-│   ├── config/                    Umi 配置、路由、代理与 ProLayout 设置
+├── frontend/                      Next.js App Router 前端
+│   ├── src/app/                   页面、布局与全局 Tailwind 主题
 │   ├── src/
-│   │   ├── components/            跨页面复用组件
+│   │   ├── components/            业务组件与 shadcn/ui 源码
 │   │   ├── hooks/                 可复用状态和流程 Hooks
-│   │   ├── pages/                 路由页面及页面私有组件
-│   │   ├── services/              业务请求入口与 OpenAPI 生成客户端
+│   │   ├── lib/                   Axios 请求基础设施与通用工具
+│   │   ├── services/              业务请求入口与 OpenAPI 生成代码
 │   │   ├── types/                 前端业务类型
 │   │   ├── utils/                 无 UI 的通用函数
-│   │   ├── app.tsx                Umi 运行时布局与请求配置
 │   │   └── requestErrorConfig.ts  统一请求错误处理
 │   └── tests/                     Vitest 测试
 ├── docs/                          当前设计、需求、计划、验收与运维文档
@@ -48,11 +47,11 @@ server/
 - 请求与响应模型放在 `api/schemas/`，不得直接暴露 ORM 模型或基础设施对象。
 - 用例编排和外部能力接口放在 `application/`；纯业务规则放在 `domain/`；具体 SDK、数据库、消息和存储实现放在 `infrastructure/`。
 - 进程入口放在 `workers/` 或 `runner/`，不要把下载、转码、ASR 或 LLM 长任务放进 HTTP 请求进程。
-- 前端不使用 `features/` 目录。路由页面放在 `pages/`，跨页面复用组件放在 `components/`，页面私有组件放在该页面的 `components/` 子目录。
+- 前端不使用 `features/` 目录。App Router 页面放在 `src/app/`，跨页面业务组件放在 `src/components/`，shadcn/ui 源码放在 `src/components/ui/`。
 - 前端请求统一从 `services/` 暴露，状态流程优先放在 `hooks/`；不要在页面中散落原始请求、轮询或错误映射逻辑。
-- `frontend/src/services/video/` 由 `@umijs/max-plugin-openapi` 的 `max openapi` 命令生成，禁止手工修改或另写生成器。OpenAPI 配置统一放在 `frontend/config/config.ts`；接口变化时先更新 FastAPI 契约并启动 API，再运行 `npm run openapi`。
-- 后端公开操作必须声明稳定且唯一的 `operationId` 和 tag，供 Umi 生成函数名与文件分组。创建出可查询资源的接口返回 `201 Created` 和 `Location`；异步执行状态放在响应模型中，不用 `202` 损失生成客户端的返回类型。
-- 路由、菜单和布局遵循 Ant Design Pro / Umi Max 官方约定，分别由 `config/routes.ts`、`config/defaultSettings.ts` 和 `src/app.tsx` 管理；不得重新引入 Vite 入口、自定义基础布局或平行路由器。
+- `frontend/src/services/video/` 由 `@umijs/openapi` 的 `npm run openapi` 命令根据 FastAPI Swagger/OpenAPI 契约生成，禁止手工修改。生成代码统一导入 `frontend/src/lib/request.ts` 的 Axios 请求封装；接口变化时先更新并启动 API，再重新生成服务文件。
+- 后端公开操作必须声明稳定且唯一的 `operationId` 和 tag，供 OpenAPI 类型生成和契约测试使用。创建出可查询资源的接口返回 `201 Created` 和 `Location`；异步执行状态放在响应模型中，不用 `202` 损失返回类型。
+- 路由、布局和元数据遵循 Next.js App Router 官方约定；交互组件使用 shadcn/ui 与 Radix UI，样式使用 Tailwind CSS 主题 token，不得重新引入 Umi、Ant Design、Vite 入口或平行路由器。
 - 测试目录应与被测职责对应；通用测试数据和 Fake 可以复用，但不得为了覆盖率复制实现细节。
 
 ## 架构与数据边界

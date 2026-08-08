@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import FormatPicker from '@/components/FormatPicker';
+import FormatPicker from '@/components/format-picker';
 import { inspection } from './download-fixtures';
 
 describe('FormatPicker', () => {
@@ -11,7 +11,9 @@ describe('FormatPicker', () => {
       <FormatPicker formats={[]} onChange={onChange} selectedId="" />,
     );
 
-    expect(screen.getByText('没有可用的下载格式。')).toBeInTheDocument();
+    expect(
+      screen.getByText('当前视频没有可用的下载版本。'),
+    ).toBeInTheDocument();
 
     rerender(
       <FormatPicker
@@ -20,7 +22,7 @@ describe('FormatPicker', () => {
         selectedId=""
       />,
     );
-    const option = screen.getByRole('radio', { name: /1080p MP4/ });
+    const option = screen.getByRole('radio', { name: /1080P · MP4/ });
     expect(option).not.toBeChecked();
     expect(screen.queryByText('推荐')).not.toBeInTheDocument();
     fireEvent.click(option);
@@ -28,7 +30,7 @@ describe('FormatPicker', () => {
     expect(onChange).toHaveBeenCalledWith(inspection.formats[0].id);
   });
 
-  it('keeps the initial format list compact and paginates on demand', () => {
+  it('renders every semantic format as an accessible radio option', () => {
     const formats = Array.from({ length: 8 }, (_, index) => ({
       ...inspection.formats[0],
       id: `format-${index}`,
@@ -43,9 +45,7 @@ describe('FormatPicker', () => {
       />,
     );
 
-    expect(screen.getAllByRole('radio')).toHaveLength(4);
-    fireEvent.click(screen.getByTitle('2'));
-    expect(screen.getAllByRole('radio')).toHaveLength(4);
-    expect(screen.getByText('450p MP4')).toBeInTheDocument();
+    expect(screen.getAllByRole('radio')).toHaveLength(8);
+    expect(screen.getAllByText(/1080P · MP4/)).toHaveLength(8);
   });
 });

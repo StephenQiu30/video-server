@@ -23,10 +23,10 @@ server/
 │   ├── sql/schema.sql
 │   └── tests/
 ├── frontend/
-│   ├── config/               Umi Max、路由、ProLayout 与开发代理
-│   ├── src/pages/            下载与分析页面
-│   ├── src/components/       跨页面通用组件
-│   ├── src/services/         OpenAPI 生成代码与业务请求入口
+│   ├── src/app/              Next.js App Router 页面与全局主题
+│   ├── src/components/       业务组件与 shadcn/ui 源码
+│   ├── src/hooks/            下载与分析状态流程
+│   ├── src/services/         Umi OpenAPI 生成代码与业务请求入口
 │   └── tests/
 ├── docs/                     当前交付契约
 ├── Dockerfile                统一前后端镜像
@@ -76,7 +76,7 @@ flowchart LR
 | `worker-analysis` | DB、MQ、MinIO、AI provider | 音频提取、ASR、结构化分析、证据校验 |
 | `egress-proxy` | 无 | 仅代理 HTTP(S)，阻断私网、链路本地和云元数据地址 |
 
-前端不是独立生产服务。多阶段镜像构建 `frontend/dist`，API 在所有 API/health 路由之后挂载 SPA 静态文件。
+前端不是独立生产服务。Next.js 以静态导出生成 `frontend/out`，多阶段镜像将其复制到 `/app/frontend/dist`，API 在所有 API/health 路由之后挂载静态页面。
 
 ## 5. 数据与消息原则
 
@@ -103,7 +103,7 @@ flowchart LR
 - PostgreSQL、RabbitMQ、MinIO 使用 Compose 项目 `video-server` 的作用域卷。单实例服务直接使用服务原名作为稳定容器名；本地与生产共用项目名、容器名和数据卷，因此同一主机不并行启动两套环境。
 - 两份 Compose 文件按职责分层：`docker-compose.yml` 可独立启动本地完整服务，定义拓扑、依赖、健康检查、卷、本地 `.env` 和宿主机端口；`docker-compose-prod.yml` 注入 `.env.prod` 并覆盖生产镜像和对外端口。生产启动通过 `--env-file .env.prod` 显式加载变量，MinIO 初始化器等待服务可用后再执行。
 - 首期保持模块化单体；只有当容量、隔离或团队所有权出现真实证据时才拆仓/拆服务。
-- OpenAPI 是前后端契约；前端服务代码由 schema 生成或由同一 DTO 测试约束。
+- OpenAPI 是前后端契约；前端使用 `@umijs/openapi` 生成服务代码和类型，所有生成请求统一进入 Axios `request.ts`，页面不维护平行 DTO 或原始 HTTP 调用。
 
 ## 8. 架构验收条件
 

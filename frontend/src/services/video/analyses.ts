@@ -1,12 +1,12 @@
 // @ts-ignore
 /* eslint-disable */
-import { request } from "@umijs/max";
+import { request, type RequestOptions } from "@/lib/request";
 
 /** 查询视频分析任务 查询分析进度及经过证据校验的结果。 GET /api/analyses/${param0} */
 export async function getAnalysis(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.getAnalysisParams,
-  options?: { [key: string]: any }
+  options?: RequestOptions
 ) {
   const { analysis_id: param0, ...queryParams } = params;
   return request<API.AnalysisResponse>(`/api/analyses/${param0}`, {
@@ -20,7 +20,7 @@ export async function getAnalysis(
 export async function cancelAnalysis(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.cancelAnalysisParams,
-  options?: { [key: string]: any }
+  options?: RequestOptions
 ) {
   const { analysis_id: param0, ...queryParams } = params;
   return request<API.AnalysisResponse>(`/api/analyses/${param0}/cancel`, {
@@ -35,7 +35,7 @@ export async function createAnalysis(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.createAnalysisParams,
   body: API.AnalysisRequest,
-  options?: { [key: string]: any }
+  options?: RequestOptions
 ) {
   const { download_id: param0, ...queryParams } = params;
   return request<API.AnalysisResponse>(`/api/downloads/${param0}/analyses`, {

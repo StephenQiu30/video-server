@@ -1,26 +1,26 @@
-import { ReloadOutlined } from '@ant-design/icons';
-import { ProCard } from '@ant-design/pro-components';
-import {
-  Alert,
-  Button,
-  Col,
-  Flex,
-  Form,
-  Grid,
-  Progress,
-  Row,
-  Select,
-  Space,
-  Tag,
-  Typography,
-} from 'antd';
-import { useEffect } from 'react';
+'use client';
+
+import { ArrowClockwiseIcon, SparkleIcon } from '@phosphor-icons/react';
+import { useEffect, useState } from 'react';
 
 import AnalysisResultView from '@/components/AnalysisResultView';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAnalysisJob } from '@/hooks/useAnalysisJob';
-import type { AnalysisJob, CreateAnalysisInput } from '@/types/video';
-
-import styles from './index.module.css';
+import type {
+  AnalysisJob,
+  AnalysisProfile,
+  OutputLanguage,
+} from '@/types/video';
 import {
   cancellableAnalysisStatuses,
   stageLabels,
@@ -38,159 +38,147 @@ export default function AnalysisPanel({
   onJobChange,
   pollIntervalMs = 1500,
 }: AnalysisPanelProps) {
-  const screens = Grid.useBreakpoint();
   const state = useAnalysisJob(downloadId, pollIntervalMs);
+  const [profile, setProfile] = useState<AnalysisProfile>('standard-v1');
+  const [language, setLanguage] = useState<OutputLanguage>('zh-CN');
   const { action, error, job } = state;
 
   useEffect(() => onJobChange?.(job), [job, onJobChange]);
 
+  if (job?.status === 'succeeded' && job.result) {
+    return (
+      <section className="border-t pt-10">
+        <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+              AI analysis
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold">{job.result.title}</h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary">分析已完成</Badge>
+            <Button onClick={state.restart} variant="outline">
+              <ArrowClockwiseIcon data-icon="inline-start" />
+              重新分析
+            </Button>
+          </div>
+        </div>
+        <AnalysisResultView result={job.result} />
+      </section>
+    );
+  }
+
   return (
-    <ProCard
-      className={styles.panel}
-      styles={{ body: { padding: 0 } }}
-      variant="outlined"
-    >
+    <section className="border-t py-10">
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
+            AI analysis
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold">AI 智能分析</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            生成摘要、关键观点、章节和思维导图。
+          </p>
+        </div>
+        <SparkleIcon className="size-6 text-brand" />
+      </div>
+
       {error ? (
-        <Alert
-          action={
-            job && cancellableAnalysisStatuses.has(job.status) ? (
-              <Button onClick={state.retryPoll}>重试查询</Button>
-            ) : undefined
-          }
-          className={styles.alert}
-          showIcon
-          title={error}
-          type="error"
-        />
+        <Alert className="mb-6" variant="destructive">
+          <AlertTitle>分析服务暂时不可用</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       ) : null}
 
       {!job ? (
-        <section
-          className={styles.setup}
-          style={{ padding: screens.sm ? 28 : 20 }}
-        >
-          <Flex
-            align={screens.sm ? 'flex-start' : 'stretch'}
-            gap={16}
-            justify="space-between"
-            vertical={!screens.sm}
+        <div className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+          <Field label="分析模板">
+            <Select
+              value={profile}
+              onValueChange={(value) => setProfile(value as AnalysisProfile)}
+            >
+              <SelectTrigger aria-label="分析模板">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="standard-v1">标准分析</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="输出语言">
+            <Select
+              value={language}
+              onValueChange={(value) => setLanguage(value as OutputLanguage)}
+            >
+              <SelectTrigger aria-label="输出语言">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="zh-CN">简体中文</SelectItem>
+                <SelectItem value="en-US">English</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+          <Button
+            className="h-9"
+            disabled={action === 'start'}
+            onClick={() => state.start({ profile, output_language: language })}
           >
-            <div className={styles.setupHeading}>
-              <Typography.Title level={2}>AI 智能分析</Typography.Title>
-              <Typography.Paragraph type="secondary">
-                下载完成后生成摘要、观点、行动项、章节与思维导图。
-              </Typography.Paragraph>
-            </div>
-            <Tag color="blue">结构化结果</Tag>
-          </Flex>
-          <Form<CreateAnalysisInput>
-            className={styles.form}
-            initialValues={{ profile: 'standard-v1', output_language: 'zh-CN' }}
-            layout="vertical"
-            onFinish={(values) => void state.start(values)}
-          >
-            <Row align="bottom" gutter={[16, 0]}>
-              <Col xs={24} sm={9}>
-                <Form.Item label="分析模板" name="profile">
-                  <Select
-                    options={[{ label: '标准分析', value: 'standard-v1' }]}
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={9}>
-                <Form.Item label="输出语言" name="output_language">
-                  <Select
-                    options={[
-                      { label: '简体中文', value: 'zh-CN' },
-                      { label: 'English', value: 'en-US' },
-                    ]}
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={6}>
-                <Form.Item>
-                  <Button
-                    aria-label="开始 AI 分析"
-                    block
-                    htmlType="submit"
-                    loading={action === 'start'}
-                    type="primary"
-                  >
-                    开始 AI 分析
-                  </Button>
-                </Form.Item>
-              </Col>
-            </Row>
-          </Form>
-        </section>
-      ) : job.status === 'succeeded' && job.result ? (
-        <>
-          <Flex
-            align={screens.sm ? 'center' : 'flex-start'}
-            className={styles.resultToolbar}
-            gap={12}
-            justify="space-between"
-            vertical={!screens.sm}
-          >
-            <strong>{job.result.title}</strong>
-            <Flex align="center" gap={12} wrap>
-              <Tag color="processing">分析已完成</Tag>
-              <span>
-                输出语言：
-                {job.output_language === 'zh-CN' ? '简体中文' : 'English'}
-              </span>
-              <Button icon={<ReloadOutlined />} onClick={state.restart}>
-                重新分析
-              </Button>
-            </Flex>
-          </Flex>
-          <AnalysisResultView result={job.result} />
-        </>
+            开始 AI 分析
+          </Button>
+        </div>
       ) : (
-        <section
-          aria-live="polite"
-          className={styles.job}
-          style={{ padding: screens.sm ? 28 : 20 }}
-        >
-          <Flex align="flex-start" justify="space-between">
-            <div className={styles.jobHeading}>
-              <span>分析状态</span>
-              <Typography.Title level={2}>
-                {statusLabels[job.status]}
-              </Typography.Title>
-            </div>
-            <Tag color={job.status === 'failed' ? 'red' : 'blue'}>
-              第 {job.attempt} 次尝试
-            </Tag>
-          </Flex>
-          <Progress percent={job.progress} status="active" />
-          <p>当前阶段：{job.stage ? stageLabels[job.stage] : '—'}</p>
-          {job.status === 'failed' ? (
-            <Alert
-              showIcon
-              title={`错误代码：${job.error_code ?? 'unknown_error'}`}
-              type="info"
-            />
-          ) : null}
-          <Space wrap>
-            {cancellableAnalysisStatuses.has(job.status) ? (
-              <Button
-                aria-label="取消分析"
-                loading={action === 'cancel'}
-                onClick={state.cancel}
-              >
-                取消分析
-              </Button>
-            ) : null}
-            {job.status === 'failed' || job.status === 'cancelled' ? (
-              <Button onClick={state.restart}>重新分析</Button>
-            ) : null}
-          </Space>
-        </section>
+        <AnalysisJobState job={job} state={state} />
       )}
-      {job?.status === 'succeeded' && !job.result ? (
-        <Alert showIcon title="分析结果暂不可用" type="warning" />
-      ) : null}
-    </ProCard>
+    </section>
+  );
+}
+
+function Field({
+  children,
+  label,
+}: {
+  children: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <div className="grid gap-2 text-sm font-medium">
+      <span>{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function AnalysisJobState({
+  job,
+  state,
+}: {
+  job: AnalysisJob;
+  state: ReturnType<typeof useAnalysisJob>;
+}) {
+  return (
+    <div className="max-w-3xl space-y-5">
+      <div className="flex items-center justify-between gap-4">
+        <strong>{statusLabels[job.status]}</strong>
+        <span className="font-mono text-sm text-muted-foreground">
+          {job.progress}%
+        </span>
+      </div>
+      <Progress value={job.progress} />
+      <p className="text-sm text-muted-foreground">
+        当前阶段：{job.stage ? stageLabels[job.stage] : '等待调度'} · 第{' '}
+        {job.attempt} 次尝试
+      </p>
+      <div className="flex gap-3">
+        {cancellableAnalysisStatuses.has(job.status) ? (
+          <Button onClick={state.cancel} variant="outline">
+            取消分析
+          </Button>
+        ) : null}
+        {job.status === 'failed' || job.status === 'cancelled' ? (
+          <Button onClick={state.restart}>重新分析</Button>
+        ) : null}
+      </div>
+    </div>
   );
 }
