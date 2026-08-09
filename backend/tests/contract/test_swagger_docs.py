@@ -20,6 +20,7 @@ def test_swagger_ui_and_openapi_contract_are_available(tmp_path: Path) -> None:
     assert schema["info"]["title"] == "视频下载与分析服务 API"
     assert {tag["name"] for tag in schema["tags"]} == {
         "system",
+        "auth",
         "inspections",
         "downloads",
         "analyses",
@@ -35,6 +36,11 @@ def test_swagger_ui_and_openapi_contract_are_available(tmp_path: Path) -> None:
     assert set(operations) == {
         "getLiveness",
         "getReadiness",
+        "registerUser",
+        "loginUser",
+        "getCurrentUser",
+        "refreshUserSession",
+        "logoutUser",
         "inspectMedia",
         "getInspection",
         "createDownload",

@@ -16,3 +16,4 @@
 | 004 | 下载历史 | [Design](design/004-下载历史设计.md) | [PRD](prd/004-下载历史需求.md) | [Plan](plans/004-下载历史计划.md) | [Acceptance](acceptance/004-下载历史验收.md) |
 | 005 | 多平台 Provider 策略 | [Design](design/005-多平台Provider策略设计.md) | — | — | — |
 | 006 | 上线产品能力补全 | [Design](design/006-上线产品能力补全设计.md) | [PRD](prd/006-上线产品能力补全需求.md) | [Plan](plans/006-上线产品能力补全计划.md) | [Acceptance](acceptance/006-上线产品能力补全验收.md) |
+| 007 | 邮箱账户与 JWT 认证 | [Design](design/007-邮箱账户与JWT认证设计.md) | [PRD](prd/007-邮箱账户与JWT认证需求.md) | [Plan](plans/007-邮箱账户与JWT认证计划.md) | [Acceptance](acceptance/007-邮箱账户与JWT认证验收.md) |

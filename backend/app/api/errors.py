@@ -11,6 +11,7 @@ from app.application.analysis import (
     AnalysisApplicationError,
     AnalysisApplicationErrorCode,
 )
+from app.application.auth import AuthError, AuthErrorCode
 from app.application.downloads import ApplicationError, ApplicationErrorCode
 from app.core.errors import AppError
 
@@ -146,6 +147,24 @@ _ANALYSIS_ERRORS: dict[AnalysisApplicationErrorCode, tuple[int, str, str]] = {
     ),
 }
 
+_AUTH_ERRORS: dict[AuthErrorCode, tuple[int, str, str]] = {
+    AuthErrorCode.EMAIL_ALREADY_REGISTERED: (
+        409,
+        "Email already registered",
+        "An account with this email already exists.",
+    ),
+    AuthErrorCode.INVALID_CREDENTIALS: (
+        401,
+        "Invalid credentials",
+        "The email or password is incorrect.",
+    ),
+    AuthErrorCode.UNAUTHENTICATED: (
+        401,
+        "Authentication required",
+        "Sign in to continue.",
+    ),
+}
+
 
 def application_error(error: ApplicationError) -> AppError:
     status, title, detail = _ERRORS[error.code]
@@ -165,6 +184,11 @@ def analysis_application_error(error: AnalysisApplicationError) -> AppError:
         title=title,
         detail=detail,
     )
+
+
+def auth_application_error(error: AuthError) -> AppError:
+    status, title, detail = _AUTH_ERRORS[error.code]
+    return AppError(status=status, code=error.code.value, title=title, detail=detail)
 
 
 async def app_error_handler(request: Request, error: Exception) -> JSONResponse:

@@ -24,6 +24,8 @@ app/
 
 公共接口不维护无实际兼容需求的版本目录或 URL 前缀。服务启动后可通过 `/docs` 访问 Swagger UI，通过 `/openapi.json` 获取供前端生成客户端的 OpenAPI 契约。
 
+业务接口要求邮箱账户登录。密码使用 Argon2 哈希；短期 Access JWT 与可轮换、可撤销的 Refresh JWT 通过 `HttpOnly` Cookie 维护。JWT 密钥、签发方、受众、Cookie 名和有效期从根目录 `.env` 的 `AUTH_*` 配置读取，原始 Refresh JWT 不写入数据库。
+
 Media Runner 通过 `app/runner/plugins/yt_dlp_plugins/` 加载随项目交付的可信站点提取器。当前 MediaTrack 适配仅处理无需登录的公开审片视频和 API 明确授权的播放转码；不支持 Cookie、账号内容或原文件下载权限绕过。
 
 主流视频源通过 `app/runner/provider_registry.py` 与 `app/runner/provider_catalog.py` 采用 Strategy + Registry 统一匹配；`provider_urls.py` 只保留兼容入口，未知站点使用 yt-dlp Generic extractor。新增平台应先确认 yt-dlp extractor 存在，再补充 Profile、域名别名和解析测试。Runner 不再为命令创建或传入空 Cookie 文件；平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 Provider key 指向受控内部代理。

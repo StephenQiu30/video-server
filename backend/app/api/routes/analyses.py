@@ -5,19 +5,19 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Response, status
 
+from app.api.auth_dependencies import get_current_user
 from app.api.dependencies import (
     AnalysisUseCases,
     IdempotencyKey,
     get_analysis_use_cases,
-    get_anonymous_session,
 )
 from app.api.errors import analysis_application_error
 from app.api.schemas.analyses import AnalysisRequest, AnalysisResponse
 from app.application.analysis import AnalysisApplicationError
-from app.core.session import AnonymousSession
+from app.application.auth import CurrentUser
 
 router = APIRouter(tags=["analyses"])
-Session = Annotated[AnonymousSession, Depends(get_anonymous_session)]
+User = Annotated[CurrentUser, Depends(get_current_user)]
 UseCases = Annotated[AnalysisUseCases, Depends(get_analysis_use_cases)]
 
 
@@ -33,14 +33,14 @@ async def create_analysis(
     body: AnalysisRequest,
     idempotency_key: IdempotencyKey,
     response: Response,
-    session: Session,
+    user: User,
     use_cases: UseCases,
 ) -> AnalysisResponse:
     """基于已完成的下载制品创建异步 AI 分析任务。"""
     try:
         view = await use_cases.create_analysis(
             download_id,
-            session.owner_hash,
+            user.owner_hash,
             idempotency_key,
             body.profile,
             body.output_language,
@@ -59,12 +59,12 @@ async def create_analysis(
 )
 async def get_analysis(
     analysis_id: UUID,
-    session: Session,
+    user: User,
     use_cases: UseCases,
 ) -> AnalysisResponse:
     """查询分析进度及经过证据校验的结果。"""
     try:
-        view = await use_cases.get_analysis(analysis_id, session.owner_hash)
+        view = await use_cases.get_analysis(analysis_id, user.owner_hash)
     except AnalysisApplicationError as exc:
         raise analysis_application_error(exc) from exc
     return AnalysisResponse.from_view(view)
@@ -78,12 +78,12 @@ async def get_analysis(
 )
 async def cancel_analysis(
     analysis_id: UUID,
-    session: Session,
+    user: User,
     use_cases: UseCases,
 ) -> AnalysisResponse:
     """请求取消尚未结束的视频分析任务。"""
     try:
-        view = await use_cases.cancel_analysis(analysis_id, session.owner_hash)
+        view = await use_cases.cancel_analysis(analysis_id, user.owner_hash)
     except AnalysisApplicationError as exc:
         raise analysis_application_error(exc) from exc
     return AnalysisResponse.from_view(view)

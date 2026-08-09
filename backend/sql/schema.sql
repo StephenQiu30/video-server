@@ -4,6 +4,28 @@
 
 BEGIN;
 
+CREATE TABLE users (
+    id UUID PRIMARY KEY,
+    email VARCHAR(320) NOT NULL,
+    password_hash VARCHAR(512) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_users_email UNIQUE (email)
+);
+
+CREATE TABLE auth_sessions (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    token_hash VARCHAR(64) NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_auth_sessions_token_hash UNIQUE (token_hash)
+);
+
+CREATE INDEX ix_auth_sessions_user ON auth_sessions (user_id);
+CREATE INDEX ix_auth_sessions_expires ON auth_sessions (expires_at);
+
 CREATE TABLE media_inspections (
     id UUID PRIMARY KEY,
     owner_hash VARCHAR(64) NOT NULL,

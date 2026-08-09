@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Annotated, cast
 
-from fastapi import Depends, Header, Request, Response
+from fastapi import Header, Request
 
 from app.application.analysis import CancelAnalysis, CreateAnalysis, GetAnalysis
 from app.application.downloads import (
@@ -19,12 +19,6 @@ from app.application.downloads import (
 )
 from app.core.config import Settings
 from app.core.errors import AppError
-from app.core.session import AnonymousSession, SessionError, SessionManager
-from app.infrastructure.rate_limiter import (
-    RateLimiterUnavailable,
-    RateLimitExceeded,
-    ValkeyRateLimiter,
-)
 
 IdempotencyKey = Annotated[
     str,
@@ -82,75 +76,3 @@ def get_analysis_use_cases(request: Request) -> AnalysisUseCases:
             detail="The analysis service is not available.",
         )
     return cast(AnalysisUseCases, container)
-
-
-async def get_anonymous_session(
-    request: Request,
-    response: Response,
-    settings: Annotated[Settings, Depends(get_runtime_settings)],
-) -> AnonymousSession:
-    manager = SessionManager(
-        settings.session_secret.get_secret_value().encode(),
-        ttl_seconds=settings.session_ttl_seconds,
-    )
-    token = request.cookies.get(settings.session_cookie_name)
-    session: AnonymousSession | None = None
-    if token:
-        try:
-            session = manager.verify(token)
-        except SessionError:
-            session = None
-    if session is None:
-        session = manager.issue()
-        response.set_cookie(
-            key=settings.session_cookie_name,
-            value=session.token,
-            max_age=settings.session_ttl_seconds,
-            httponly=True,
-            secure=settings.app_env in {"staging", "production"},
-            samesite="lax",
-            path="/",
-        )
-    operation = _rate_limit_operation(request)
-    if operation is not None:
-        limiter = cast(
-            ValkeyRateLimiter | None,
-            getattr(request.app.state, "rate_limiter", None),
-        )
-        if limiter is not None:
-            client_host = request.client.host if request.client else "unknown"
-            try:
-                await limiter.check(
-                    operation=operation,
-                    owner_hash=session.owner_hash,
-                    client_host=client_host,
-                )
-            except RateLimitExceeded as exc:
-                raise AppError(
-                    status=429,
-                    code="rate_limited",
-                    title="Too many requests",
-                    detail="The operation rate limit has been exceeded.",
-                    headers={"Retry-After": str(exc.retry_after)},
-                ) from exc
-            except RateLimiterUnavailable as exc:
-                raise AppError(
-                    status=503,
-                    code="rate_limiter_unavailable",
-                    title="Service unavailable",
-                    detail="The operation admission service is unavailable.",
-                ) from exc
-    return session
-
-
-def _rate_limit_operation(request: Request) -> str | None:
-    if request.method != "POST":
-        return None
-    path = request.url.path.rstrip("/")
-    if path == "/api/inspections":
-        return "inspect"
-    if path == "/api/downloads":
-        return "download"
-    if path.endswith("/analyses") and path.startswith("/api/downloads/"):
-        return "analysis"
-    return None

@@ -6,4 +6,6 @@ export default {
   'menu.download': 'Download',
   'menu.download-detail': 'Download details',
   'menu.history': 'History',
+  'menu.login': 'Sign in',
+  'menu.register': 'Register',
 };

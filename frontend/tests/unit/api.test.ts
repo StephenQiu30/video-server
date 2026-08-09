@@ -6,6 +6,13 @@ import {
   getAnalysis,
 } from '@/services/analysis';
 import {
+  getCurrentUser,
+  login,
+  logout,
+  refreshSession,
+  register,
+} from '@/services/auth';
+import {
   cancelDownload,
   createDownload,
   getDownload,
@@ -14,11 +21,34 @@ import {
   issueDownloadUrl,
 } from '@/services/download';
 import { getLiveness, getReadiness } from '@/services/system';
-import { httpRequests, mockHttpResponses } from '../helpers/http';
 import { analysisJob } from '../fixtures/analysis-fixtures';
 import { inspection, job } from '../fixtures/download-fixtures';
+import { httpRequests, mockHttpResponses } from '../helpers/http';
 
 describe('typed API client', () => {
+  it('covers email registration, JWT session restore and logout endpoints', async () => {
+    const user = {
+      id: '11111111-1111-4111-8111-111111111111',
+      email: 'user@example.com',
+      created_at: '2026-08-09T10:00:00Z',
+    };
+    mockHttpResponses(user, user, user, user, undefined);
+
+    await register({ email: user.email, password: 'strong-pass-123' });
+    await login({ email: user.email, password: 'strong-pass-123' });
+    await getCurrentUser();
+    await refreshSession();
+    await logout();
+
+    expect(httpRequests().map(({ url }) => url)).toEqual([
+      '/api/auth/register',
+      '/api/auth/login',
+      '/api/auth/me',
+      '/api/auth/refresh',
+      '/api/auth/logout',
+    ]);
+  });
+
   it('uses same-origin download endpoints and idempotency headers', async () => {
     mockHttpResponses(inspection, job());
     await inspectMedia('https://media.example/owned', 'inspect-key');

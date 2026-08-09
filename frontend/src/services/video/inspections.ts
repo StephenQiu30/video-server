@@ -17,7 +17,7 @@ export async function inspectMedia(
   });
 }
 
-/** 查询媒体解析结果 查询当前匿名会话拥有的媒体解析结果。 GET /api/inspections/${param0} */
+/** 查询媒体解析结果 查询当前登录用户拥有的媒体解析结果。 GET /api/inspections/${param0} */
 export async function getInspection(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.getInspectionParams,

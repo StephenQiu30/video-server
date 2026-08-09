@@ -5,19 +5,19 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
 
+from app.api.auth_dependencies import get_current_user
 from app.api.dependencies import (
     DownloadUseCases,
     IdempotencyKey,
-    get_anonymous_session,
     get_download_use_cases,
 )
 from app.api.errors import application_error
 from app.api.schemas.inspections import InspectionRequest, InspectionResponse
+from app.application.auth import CurrentUser
 from app.application.downloads import ApplicationError
-from app.core.session import AnonymousSession
 
 router = APIRouter(prefix="/inspections", tags=["inspections"])
-Session = Annotated[AnonymousSession, Depends(get_anonymous_session)]
+User = Annotated[CurrentUser, Depends(get_current_user)]
 UseCases = Annotated[DownloadUseCases, Depends(get_download_use_cases)]
 
 
@@ -31,14 +31,12 @@ UseCases = Annotated[DownloadUseCases, Depends(get_download_use_cases)]
 async def inspect_media(
     body: InspectionRequest,
     idempotency_key: IdempotencyKey,
-    session: Session,
+    user: User,
     use_cases: UseCases,
 ) -> InspectionResponse:
     """校验公开媒体地址并返回可供选择的语义下载格式。"""
     try:
-        view = await use_cases.inspect_media(
-            body.url, session.owner_hash, idempotency_key
-        )
+        view = await use_cases.inspect_media(body.url, user.owner_hash, idempotency_key)
     except ApplicationError as exc:
         raise application_error(exc) from exc
     return InspectionResponse.from_view(view)
@@ -52,12 +50,12 @@ async def inspect_media(
 )
 async def get_inspection(
     inspection_id: UUID,
-    session: Session,
+    user: User,
     use_cases: UseCases,
 ) -> InspectionResponse:
-    """查询当前匿名会话拥有的媒体解析结果。"""
+    """查询当前登录用户拥有的媒体解析结果。"""
     try:
-        view = await use_cases.get_inspection(inspection_id, session.owner_hash)
+        view = await use_cases.get_inspection(inspection_id, user.owner_hash)
     except ApplicationError as exc:
         raise application_error(exc) from exc
     return InspectionResponse.from_view(view)

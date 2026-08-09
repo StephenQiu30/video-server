@@ -5,12 +5,14 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID
 
+from app.api.auth_dependencies import get_current_user
 from app.api.dependencies import AnalysisUseCases
 from app.application.analysis import (
     AnalysisApplicationError,
     AnalysisApplicationErrorCode,
     AnalysisJobView,
 )
+from app.application.auth import CurrentUser
 from app.core.config import Settings
 from app.domain.analysis import AnalysisStatus
 from app.main import create_app
@@ -44,6 +46,11 @@ RESULT = {
         "children": [],
     },
 }
+TEST_USER = CurrentUser(
+    id=DOWNLOAD_ID,
+    email="user@example.com",
+    created_at=NOW,
+)
 
 
 class StubUseCase:
@@ -97,6 +104,7 @@ def client(tmp_path: Path) -> tuple[TestClient, dict[str, StubUseCase]]:
         get_analysis=stubs["get"],
         cancel_analysis=stubs["cancel"],
     )
+    application.dependency_overrides[get_current_user] = lambda: TEST_USER
     return TestClient(application), stubs
 
 

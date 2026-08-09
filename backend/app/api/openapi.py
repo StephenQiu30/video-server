@@ -9,10 +9,15 @@ API_DESCRIPTION = """
 
 - 媒体解析、下载和分析均为异步任务，请通过对应查询接口获取进度。
 - 创建媒体解析、下载或分析任务时必须提供 `Idempotency-Key` 请求头。
+- 业务接口需要先通过邮箱和密码注册或登录，会话由安全 Cookie 维护。
 - 仅允许处理用户有权访问的公开、非 DRM HTTP(S) 媒体。
 """.strip()
 
 OPENAPI_TAGS: list[dict[str, Any]] = [
+    {
+        "name": "auth",
+        "description": "邮箱注册、登录、JWT 刷新、注销与当前用户会话。",
+    },
     {
         "name": "system",
         "description": "进程存活与运行依赖就绪状态。",
@@ -39,8 +44,10 @@ SWAGGER_UI_PARAMETERS: dict[str, Any] = {
 }
 
 ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
+    401: {"model": ProblemDetails, "description": "未登录或会话已经失效"},
     404: {"model": ProblemDetails, "description": "资源不存在或已经过期"},
     409: {"model": ProblemDetails, "description": "资源状态或幂等键冲突"},
+    429: {"model": ProblemDetails, "description": "请求频率超过限制"},
     422: {"model": ProblemDetails, "description": "请求参数或业务输入无效"},
     500: {"model": ProblemDetails, "description": "服务内部错误"},
     502: {"model": ProblemDetails, "description": "上游媒体或模型服务失败"},

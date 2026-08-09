@@ -36,7 +36,8 @@ src/
 ├── pages/         # 业务页面（路由组件）
 │   ├── Download/        # 解析与下载主页
 │   ├── DownloadDetail/  # 下载任务详情 + AI 分析
-│   └── History/         # 下载历史
+│   ├── History/         # 下载历史
+│   └── User/            # 邮箱登录与注册
 ├── components/    # 跨页业务组件（MediaCover、AnalysisPanel 等）
 ├── hooks/         # 下载 / 分析 / 历史业务 hooks
 ├── services/      # API 客户端（video/ 目录由 OpenAPI 生成）
@@ -63,4 +64,5 @@ npm run openapi
 ## 技术要点
 
 - 页面路由按路由 `name` 使用 `menu.*` 国际化文案（`src/locales/zh-CN.ts`、`en-US.ts`）。
+- `getInitialState` 通过 `/api/auth/me` 恢复用户；请求遇到 401 时统一轮换 Refresh JWT 并重试一次，JWT 不进入 localStorage。
 - `exportStatic` 为每个路由生成 HTML，配合后端 SPA 回退到 `index.html`，支持浏览器路由刷新。

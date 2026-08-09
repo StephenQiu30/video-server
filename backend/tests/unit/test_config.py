@@ -45,7 +45,7 @@ def test_download_limits_are_validated() -> None:
 
 def test_signing_secrets_require_adequate_entropy_capacity() -> None:
     with pytest.raises(ValidationError, match="at least 32 bytes"):
-        Settings(app_env="test", session_secret=SecretStr("too-short"))
+        Settings(app_env="test", auth_jwt_secret=SecretStr("too-short"))
 
 
 def test_production_rejects_development_secrets() -> None:
@@ -59,7 +59,7 @@ def test_production_accepts_explicit_secrets() -> None:
         database_url="postgresql+asyncpg://app:db-secret@postgres:5432/video",
         rabbitmq_url="amqp://app:mq-secret@rabbitmq:5672/",
         valkey_url="redis://valkey:6379/0",
-        session_secret=SecretStr("s" * 48),
+        auth_jwt_secret=SecretStr("s" * 48),
         request_fingerprint_secret=SecretStr("f" * 48),
         url_encryption_key=SecretStr("MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="),
         runner_hmac_secret=SecretStr("r" * 48),
@@ -76,7 +76,7 @@ def test_production_rejects_default_url_encryption_key() -> None:
             app_env="production",
             database_url="postgresql+asyncpg://app:db-secret@postgres:5432/video",
             rabbitmq_url="amqp://app:mq-secret@rabbitmq:5672/",
-            session_secret=SecretStr("s" * 48),
+            auth_jwt_secret=SecretStr("s" * 48),
             request_fingerprint_secret=SecretStr("f" * 48),
             runner_hmac_secret=SecretStr("r" * 48),
             minio_access_key=SecretStr("production-access"),

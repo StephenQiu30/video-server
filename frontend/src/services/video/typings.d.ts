@@ -211,6 +211,13 @@ declare namespace API {
 
   type DynamicRange = "sdr" | "hdr";
 
+  type EmailPasswordRequest = {
+    /** Email */
+    email: string;
+    /** Password */
+    password: string;
+  };
+
   type EvidenceStatementResponse = {
     /** Text */
     text: string;
@@ -330,6 +337,15 @@ declare namespace API {
     audio_language: string | null;
     container_preference: ContainerPreference;
     compatibility_profile: CompatibilityProfile;
+  };
+
+  type UserResponse = {
+    /** Id */
+    id: string;
+    /** Email */
+    email: string;
+    /** Created At */
+    created_at: string;
   };
 
   type VideoCodecFamily = "h264" | "hevc" | "vp9" | "av1" | "other";

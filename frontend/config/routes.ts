@@ -11,6 +11,16 @@
  */
 export default [
   {
+    path: '/user/login',
+    component: './User/Login',
+    layout: false,
+  },
+  {
+    path: '/user/register',
+    component: './User/Register',
+    layout: false,
+  },
+  {
     path: '/',
     name: 'download',
     icon: 'cloudDownload',

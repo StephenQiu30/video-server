@@ -17,6 +17,7 @@ def test_non_test_app_wires_download_use_cases(tmp_path: Path) -> None:
     with TestClient(application) as client:
         assert application.state.download_use_cases is not None
         assert application.state.analysis_use_cases is not None
+        assert application.state.auth_service is not None
         assert client.get("/health/live").status_code == 200
 
 

@@ -1,4 +1,8 @@
-import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios';
+import axios, {
+  type AxiosError,
+  type AxiosInstance,
+  type AxiosRequestConfig,
+} from 'axios';
 
 import { apiErrorFrom } from '@/utils/requestErrorConfig';
 
@@ -9,6 +13,12 @@ export type RequestOptions = AxiosRequestConfig & {
   skipErrorHandler?: boolean;
 };
 
+type RetriableRequestConfig = AxiosRequestConfig & {
+  authRetried?: boolean;
+};
+
+let refreshRequest: Promise<void> | null = null;
+
 export const httpClient: AxiosInstance = axios.create({
   timeout: API_TIMEOUT_MS,
   withCredentials: true,
@@ -17,9 +27,21 @@ export const httpClient: AxiosInstance = axios.create({
 
 httpClient.interceptors.response.use(
   (response) => response,
-  (error: unknown) => {
+  async (error: unknown) => {
     if (!axios.isAxiosError(error)) {
       return Promise.reject(error);
+    }
+
+    const config = error.config as RetriableRequestConfig | undefined;
+    if (shouldRefresh(error, config)) {
+      config.authRetried = true;
+      try {
+        await refreshAccessToken();
+        return await httpClient.request(config);
+      } catch (refreshError) {
+        redirectToLogin();
+        return Promise.reject(refreshError);
+      }
     }
 
     if (!error.response) {
@@ -33,6 +55,46 @@ httpClient.interceptors.response.use(
     );
   },
 );
+
+function shouldRefresh(
+  error: AxiosError,
+  config: RetriableRequestConfig | undefined,
+): config is RetriableRequestConfig {
+  if (error.response?.status !== 401 || !config || config.authRetried) {
+    return false;
+  }
+  const url = config.url ?? '';
+  return ![
+    '/api/auth/login',
+    '/api/auth/register',
+    '/api/auth/refresh',
+  ].includes(url);
+}
+
+async function refreshAccessToken(): Promise<void> {
+  if (!refreshRequest) {
+    refreshRequest = httpClient
+      .post('/api/auth/refresh')
+      .then(() => undefined)
+      .finally(() => {
+        refreshRequest = null;
+      });
+  }
+  await refreshRequest;
+}
+
+function redirectToLogin(): void {
+  if (
+    typeof window === 'undefined' ||
+    window.location.pathname.startsWith('/user/')
+  ) {
+    return;
+  }
+  const redirect = `${window.location.pathname}${window.location.search}`;
+  window.location.replace(
+    `/user/login?redirect=${encodeURIComponent(redirect)}`,
+  );
+}
 
 export async function request<T>(
   url: string,

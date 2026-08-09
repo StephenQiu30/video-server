@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.api.dependencies import AnalysisUseCases, DownloadUseCases
 from app.application.analysis import CancelAnalysis, CreateAnalysis, GetAnalysis
+from app.application.auth import AuthService
 from app.application.downloads import (
     CancelDownload,
     CreateDownload,
@@ -23,14 +24,17 @@ from app.application.downloads import (
 from app.core.config import Settings
 from app.core.url_cipher import URLCipher
 from app.infrastructure.analysis_repository import SqlAlchemyAnalysisRepository
+from app.infrastructure.auth_repository import SqlAlchemyAuthRepository
 from app.infrastructure.database import (
     SqlAlchemyDownloadRepository,
     create_engine,
     create_session_factory,
 )
 from app.infrastructure.download_store import SqlAlchemyDownloadStore
+from app.infrastructure.jwt_tokens import JwtTokenService
 from app.infrastructure.media_runner import MediaRunnerHttpClient
 from app.infrastructure.object_storage import MinioObjectStorage
+from app.infrastructure.passwords import Argon2PasswordHasher
 from app.infrastructure.rate_limiter import ValkeyRateLimiter
 from app.infrastructure.readiness import RuntimeReadiness, build_runtime_readiness
 from app.infrastructure.url_security import FernetUrlEnvelope, MediaUrlValidator
@@ -38,6 +42,7 @@ from app.infrastructure.url_security import FernetUrlEnvelope, MediaUrlValidator
 
 @dataclass(slots=True)
 class ApiRuntime:
+    auth_service: AuthService
     use_cases: DownloadUseCases
     analysis_use_cases: AnalysisUseCases
     engine: AsyncEngine
@@ -58,6 +63,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
     sessions = create_session_factory(engine)
     repository = SqlAlchemyDownloadRepository(sessions)
     analysis_repository = SqlAlchemyAnalysisRepository(sessions)
+    auth_repository = SqlAlchemyAuthRepository(sessions)
     store = SqlAlchemyDownloadStore(repository)
     runner = MediaRunnerHttpClient(
         base_url=settings.runner_base_url,
@@ -76,6 +82,19 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         else None
     )
     clock = _utc_now
+    auth_service = AuthService(
+        repository=auth_repository,
+        passwords=Argon2PasswordHasher(),
+        tokens=JwtTokenService(
+            secret=settings.auth_jwt_secret.get_secret_value().encode(),
+            issuer=settings.auth_jwt_issuer,
+            audience=settings.auth_jwt_audience,
+            access_ttl=timedelta(seconds=settings.auth_access_token_ttl_seconds),
+            refresh_ttl=timedelta(seconds=settings.auth_refresh_token_ttl_seconds),
+        ),
+        now=clock,
+        new_id=uuid4,
+    )
     fingerprinter = HmacRequestFingerprinter(
         settings.request_fingerprint_secret.get_secret_value().encode()
     )
@@ -126,6 +145,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         cancel_analysis=CancelAnalysis(analysis_repository, now=clock),
     )
     return ApiRuntime(
+        auth_service=auth_service,
         use_cases=use_cases,
         analysis_use_cases=analysis_use_cases,
         engine=engine,

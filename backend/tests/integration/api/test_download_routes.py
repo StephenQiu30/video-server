@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+from app.api.auth_dependencies import get_current_user
+from app.application.auth import CurrentUser
 from app.application.downloads import ApplicationError, ApplicationErrorCode
 from app.core.config import Settings
 from app.domain.downloads import DownloadStatus
@@ -16,11 +19,18 @@ from tests.integration.api.fakes import (
     use_cases,
 )
 
+TEST_USER = CurrentUser(
+    id=JOB_ID,
+    email="user@example.com",
+    created_at=datetime(2026, 8, 6, tzinfo=UTC),
+)
+
 
 def client(tmp_path: Path) -> tuple[TestClient, dict[str, StubUseCase]]:
     app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
     container, stubs = use_cases()
     app.state.download_use_cases = container
+    app.dependency_overrides[get_current_user] = lambda: TEST_USER
     return TestClient(app), stubs
 
 
@@ -57,7 +67,6 @@ def test_inspection_routes_use_stable_session_and_hide_hints(tmp_path: Path) -> 
     get_owner = stubs["get_inspection"].calls[0][0][1]
     assert create_owner == get_owner
     assert len(str(create_owner)) == 64
-    assert "httponly" in created.headers["set-cookie"].lower()
 
 
 def test_download_routes_delegate_with_session_owner(tmp_path: Path) -> None:

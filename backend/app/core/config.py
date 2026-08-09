@@ -57,12 +57,22 @@ class Settings(BaseSettings):
     minio_region: str = "us-east-1"
     minio_bucket: str = "video-artifacts"
 
-    session_secret: SecretStr = SecretStr("development-session-secret-change-me")
+    auth_jwt_secret: SecretStr = SecretStr("development-jwt-secret-change-me-32-bytes")
+    auth_jwt_issuer: str = Field(default="video-server", min_length=1, max_length=128)
+    auth_jwt_audience: str = Field(default="video-web", min_length=1, max_length=128)
+    auth_access_cookie_name: str = Field(
+        default="video_access_token", min_length=1, max_length=128
+    )
+    auth_refresh_cookie_name: str = Field(
+        default="video_refresh_token", min_length=1, max_length=128
+    )
+    auth_access_token_ttl_seconds: int = Field(default=900, ge=60, le=3600)
+    auth_refresh_token_ttl_seconds: int = Field(
+        default=2_592_000, ge=3600, le=31_536_000
+    )
     request_fingerprint_secret: SecretStr = SecretStr(
         "development-fingerprint-secret-change-me"
     )
-    session_cookie_name: str = "video_session"
-    session_ttl_seconds: int = Field(default=86400, ge=300, le=2592000)
     url_encryption_key: SecretStr = SecretStr(DEFAULT_URL_ENCRYPTION_KEY)
     url_encryption_key_id: str = Field(
         default="fernet-v1",
@@ -140,7 +150,7 @@ class Settings(BaseSettings):
         return value
 
     @field_validator(
-        "session_secret",
+        "auth_jwt_secret",
         "request_fingerprint_secret",
         "runner_hmac_secret",
     )
@@ -158,7 +168,7 @@ class Settings(BaseSettings):
         if self.service_role == "api":
             secret_values.extend(
                 (
-                    self.session_secret.get_secret_value(),
+                    self.auth_jwt_secret.get_secret_value(),
                     self.request_fingerprint_secret.get_secret_value(),
                     self.runner_hmac_secret.get_secret_value(),
                     self.minio_access_key.get_secret_value(),

@@ -32,10 +32,12 @@ from .models import (
     AnalysisJobRow,
     AnalysisResultRow,
     ArtifactRow,
+    AuthSessionRow,
     DownloadJobRow,
     MediaFormatRow,
     MediaInspectionRow,
     OutboxEventRow,
+    UserRow,
 )
 from .outbox_repository import SqlAlchemyDownloadRepository
 from .session import create_engine, create_session_factory
@@ -45,6 +47,7 @@ __all__ = [
     "ArtifactPurgeResult",
     "ArtifactRow",
     "ArtifactSnapshot",
+    "AuthSessionRow",
     "AnalysisArtifactLockRow",
     "AnalysisJobRow",
     "AnalysisResultRow",
@@ -72,6 +75,7 @@ __all__ = [
     "RepositoryError",
     "RepositoryNotFound",
     "SqlAlchemyDownloadRepository",
+    "UserRow",
     "build_artifact_object_key",
     "create_engine",
     "create_session_factory",

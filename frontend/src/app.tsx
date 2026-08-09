@@ -1,40 +1,98 @@
+import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
 import type { Settings as LayoutSettings } from '@ant-design/pro-components';
 import type { RunTimeLayoutConfig } from '@umijs/max';
-import { Link } from '@umijs/max';
+import { history, Link } from '@umijs/max';
+import type { MenuProps } from 'antd';
+import { Dropdown } from 'antd';
 import React from 'react';
 
 import defaultSettings from '../config/defaultSettings';
+import { type AuthUser, getCurrentUser, logout } from './services/auth';
 
-/**
- * @see https://umijs.org/docs/api/runtime-config#getinitialstate
- * 本项目为匿名应用，无需登录，直接返回布局设置。
- * */
-export async function getInitialState(): Promise<{
+export type InitialState = {
+  currentUser?: AuthUser;
+  fetchCurrentUser: () => Promise<AuthUser | undefined>;
   settings?: Partial<LayoutSettings>;
-}> {
+};
+
+async function fetchCurrentUser(): Promise<AuthUser | undefined> {
+  try {
+    return await getCurrentUser();
+  } catch {
+    return undefined;
+  }
+}
+
+export async function getInitialState(): Promise<InitialState> {
   return {
+    currentUser: await fetchCurrentUser(),
+    fetchCurrentUser,
     settings: defaultSettings as Partial<LayoutSettings>,
   };
 }
 
-// ProLayout 支持的api https://procomponents.ant.design/components/layout
-export const layout: RunTimeLayoutConfig = ({ initialState }) => {
-  return {
-    menuItemRender: (item, dom) => {
-      if (item.path) {
-        return (
-          <Link to={item.path} prefetch>
-            {dom}
-          </Link>
-        );
+export const layout: RunTimeLayoutConfig = ({
+  initialState,
+  setInitialState,
+}) => {
+  const currentUser = initialState?.currentUser;
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      await setInitialState({
+        currentUser: undefined,
+        fetchCurrentUser,
+        settings: initialState?.settings,
+      });
+      history.replace('/user/login');
+    }
+  };
+  const accountMenu: MenuProps = {
+    items: [
+      {
+        key: 'logout',
+        icon: <LogoutOutlined />,
+        label: '退出登录',
+      },
+    ],
+    onClick: ({ key }) => {
+      if (key === 'logout') {
+        void handleLogout();
       }
-      return dom;
     },
+  };
+
+  return {
+    menuItemRender: (item, dom) =>
+      item.path ? (
+        <Link to={item.path} prefetch>
+          {dom}
+        </Link>
+      ) : (
+        dom
+      ),
     actionsRender: () => [],
-    // 关闭用户头像菜单
-    avatarProps: undefined,
+    avatarProps: currentUser
+      ? {
+          icon: <UserOutlined />,
+          size: 'small',
+          title: currentUser.email,
+          render: (_props, avatar) => (
+            <Dropdown menu={accountMenu} placement="bottomRight">
+              <span className="account-entry">{avatar}</span>
+            </Dropdown>
+          ),
+        }
+      : undefined,
     footerRender: () => undefined,
-    onPageChange: () => {},
+    onPageChange: () => {
+      const path = history.location.pathname;
+      if (!currentUser && !path.startsWith('/user/')) {
+        const redirect = `${path}${history.location.search}`;
+        history.replace(`/user/login?redirect=${encodeURIComponent(redirect)}`);
+      }
+    },
     bgLayoutImgList: undefined,
     menuHeaderRender: undefined,
     ...initialState?.settings,

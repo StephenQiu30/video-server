@@ -12,10 +12,12 @@ def test_download_schema_contains_required_tables_and_columns() -> None:
     tables = Base.metadata.tables
     assert {
         "artifacts",
+        "auth_sessions",
         "download_jobs",
         "media_formats",
         "media_inspections",
         "outbox_events",
+        "users",
     } <= set(tables)
     jobs = tables["download_jobs"]
     assert {
@@ -30,6 +32,12 @@ def test_download_schema_contains_required_tables_and_columns() -> None:
         "semantic_plan",
     } <= set(jobs.columns.keys())
     assert jobs.c.semantic_plan.type.compile(postgresql.dialect()) == "JSONB"
+    assert {"email", "password_hash", "is_active"} <= set(
+        tables["users"].columns.keys()
+    )
+    assert {"user_id", "token_hash", "expires_at"} <= set(
+        tables["auth_sessions"].columns.keys()
+    )
 
 
 def test_sensitive_url_is_not_a_plaintext_column() -> None:

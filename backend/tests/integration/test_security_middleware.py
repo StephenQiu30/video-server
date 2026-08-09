@@ -36,11 +36,11 @@ def test_rate_limit_returns_problem_details_and_retry_after(tmp_path: Path) -> N
             raise RateLimitExceeded(7)
 
     app.state.rate_limiter = BlockedLimiter()
+    app.state.auth_service = object()
     with TestClient(app) as client:
         response = client.post(
-            "/api/inspections",
-            headers={"Idempotency-Key": "inspect-1"},
-            json={"url": "https://media.example/video"},
+            "/api/auth/login",
+            json={"email": "user@example.com", "password": "strong-pass-123"},
         )
 
     assert response.status_code == 429
