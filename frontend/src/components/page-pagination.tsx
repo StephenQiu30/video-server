@@ -33,7 +33,7 @@ export function PagePagination({
             aria-label="上一页"
             disabled={page <= 1}
             onClick={() => onPageChange(page - 1)}
-            size={compact ? 'icon-lg' : 'default'}
+            size={compact ? 'icon-lg' : 'lg'}
             type="button"
             variant={compact ? 'outline' : 'ghost'}
           >
@@ -47,7 +47,7 @@ export function PagePagination({
             aria-live="polite"
             className={cn(
               'flex min-w-20 items-center justify-center font-mono font-normal text-muted-foreground',
-              compact ? 'h-7 bg-background' : 'h-10 text-sm',
+              compact ? 'h-7 bg-background' : 'h-11 text-sm',
             )}
           >
             {page} / {pages}
@@ -58,7 +58,7 @@ export function PagePagination({
             aria-label="下一页"
             disabled={page >= pages}
             onClick={() => onPageChange(page + 1)}
-            size={compact ? 'icon-lg' : 'default'}
+            size={compact ? 'icon-lg' : 'lg'}
             type="button"
             variant={compact ? 'outline' : 'ghost'}
           >

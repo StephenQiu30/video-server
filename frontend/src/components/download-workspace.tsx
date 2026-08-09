@@ -28,6 +28,7 @@ export default function DownloadWorkspace() {
   const [selectedId, setSelectedId] = useState('');
   const [busy, setBusy] = useState<BusyAction>(null);
   const [error, setError] = useState<string | null>(null);
+  const [urlInvalid, setUrlInvalid] = useState(false);
   const inspectionKey = useRef<StableKey | null>(null);
   const downloadKey = useRef<StableKey | null>(null);
 
@@ -45,9 +46,11 @@ export default function DownloadWorkspace() {
   async function inspect() {
     const normalized = normalizeMediaUrl(url);
     if (!normalized) {
+      setUrlInvalid(true);
       setError(URL_MESSAGE);
       return;
     }
+    setUrlInvalid(false);
     setBusy('inspect');
     setError(null);
     setInspection(null);
@@ -68,6 +71,7 @@ export default function DownloadWorkspace() {
 
   async function create() {
     if (!inspection || !selectedId) return;
+    setUrlInvalid(false);
     setBusy('create');
     setError(null);
     try {
@@ -91,14 +95,23 @@ export default function DownloadWorkspace() {
       <DownloadHero
         busy={busy === 'inspect'}
         inspection={inspection}
+        invalid={urlInvalid}
         onInspect={() => void inspect()}
-        onUrlChange={setUrl}
+        onUrlChange={(value) => {
+          setUrl(value);
+          if (urlInvalid) {
+            setUrlInvalid(false);
+            setError(null);
+          }
+        }}
         url={url}
       />
       {error ? (
         <Alert className="mt-8" variant="destructive">
           <AlertTitle>操作未完成</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription id="download-workspace-error">
+            {error}
+          </AlertDescription>
         </Alert>
       ) : null}
       {inspection ? (

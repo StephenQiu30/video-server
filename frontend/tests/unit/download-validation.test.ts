@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { normalizeMediaUrl, validateMediaUrl } from '@/utils/validation';
+import { reportedDouyinShareMessage } from '../fixtures/download-fixtures';
 
 describe('validateMediaUrl', () => {
   it('accepts public-looking HTTP(S) URLs', () => {
@@ -25,6 +26,13 @@ describe('validateMediaUrl', () => {
       'https://v.douyin.com/uLK6Ofbm54k/',
     );
     expect(validateMediaUrl(shareMessage)).toBeNull();
+  });
+
+  it('extracts the short link from the reported full Douyin share message', () => {
+    expect(normalizeMediaUrl(reportedDouyinShareMessage)).toBe(
+      'https://v.douyin.com/Tq0eYJRMYRk/',
+    );
+    expect(validateMediaUrl(reportedDouyinShareMessage)).toBeNull();
   });
 
   it('rejects share text containing more than one URL', () => {

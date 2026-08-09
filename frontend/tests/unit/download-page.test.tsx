@@ -3,9 +3,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import DownloadWorkspace from '@/components/download-workspace';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { ApiError } from '@/services/download';
 import { URL_MESSAGE } from '@/utils/validation';
-import { inspection, job } from '../fixtures/download-fixtures';
-import { httpRequests, mockHttpResponses } from '../helpers/http';
+import {
+  inspection,
+  job,
+  reportedDouyinShareMessage,
+} from '../fixtures/download-fixtures';
+import {
+  httpRequests,
+  mockHttpError,
+  mockHttpResponses,
+} from '../helpers/http';
 
 const runtime = vi.hoisted(() => ({
   push: vi.fn(),
@@ -40,13 +49,74 @@ describe('DownloadWorkspace', () => {
   it('rejects an invalid address before making an API request', async () => {
     renderWorkspace();
 
-    fireEvent.change(screen.getByLabelText('公开视频地址'), {
+    const input = screen.getByLabelText('公开视频地址');
+    fireEvent.change(input, {
       target: { value: 'file:///tmp/private-video' },
     });
     fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
 
-    expect(await screen.findByText(URL_MESSAGE)).toBeInTheDocument();
+    const error = await screen.findByText(URL_MESSAGE);
+    expect(error).toHaveAttribute('id', 'download-workspace-error');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveAttribute(
+      'aria-describedby',
+      'download-workspace-error',
+    );
     expect(httpRequests()).toHaveLength(0);
+  });
+
+  it('normalizes the reported Douyin share message before inspection', async () => {
+    mockHttpResponses(inspection);
+    renderWorkspace();
+
+    fireEvent.change(screen.getByLabelText('公开视频地址'), {
+      target: { value: reportedDouyinShareMessage },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
+
+    expect(await screen.findByText(inspection.title)).toBeInTheDocument();
+    expect(httpRequests()[0]).toMatchObject({
+      data: { url: 'https://v.douyin.com/Tq0eYJRMYRk/' },
+      method: 'POST',
+      url: '/api/inspections',
+    });
+  });
+
+  it('does not mark the URL field invalid when inspection fails downstream', async () => {
+    mockHttpError(
+      new ApiError(504, 'inspection_timeout', '解析超时', '媒体解析超时。'),
+    );
+    renderWorkspace();
+
+    const input = screen.getByLabelText('公开视频地址');
+    fireEvent.change(input, {
+      target: { value: 'https://media.example/slow' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
+
+    expect(await screen.findByText('媒体解析超时。')).toBeInTheDocument();
+    expect(input).not.toHaveAttribute('aria-invalid');
+    expect(input).not.toHaveAttribute('aria-describedby');
+  });
+
+  it('does not mark the URL field invalid when task creation fails', async () => {
+    mockHttpResponses(inspection);
+    mockHttpError(
+      new ApiError(503, 'download_failed', '创建失败', '任务创建失败。'),
+    );
+    renderWorkspace();
+
+    const input = screen.getByLabelText('公开视频地址');
+    fireEvent.change(input, {
+      target: { value: 'https://media.example/owned' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
+    await screen.findByText(inspection.title);
+    fireEvent.click(screen.getByRole('button', { name: '创建下载任务' }));
+
+    expect(await screen.findByText('任务创建失败。')).toBeInTheDocument();
+    expect(input).not.toHaveAttribute('aria-invalid');
+    expect(input).not.toHaveAttribute('aria-describedby');
   });
 
   it('inspects a public URL, creates a download, and opens its Next route', async () => {

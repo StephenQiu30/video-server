@@ -1,5 +1,8 @@
 import type { DownloadJob, Inspection } from '@/types/video';
 
+export const reportedDouyinShareMessage =
+  '9.25 04/21 :1pm F@U.yt Bgb:/ ୨୧⊹ ࣪ 幸福是一步步变成小蛋糕( 𓏼˙ ᴥ ˙𓏼 )🍰 # lolilta# 小甜裙# 变装( yc@7仔 )# lolilta # 奶芙泡泡原创Lolita  https://v.douyin.com/Tq0eYJRMYRk/ 复制此链接，打开Dou音搜索，直接观看视频！';
+
 export const inspection: Inspection = {
   id: '11111111-1111-4111-8111-111111111111',
   extractor_key: 'Controlled',

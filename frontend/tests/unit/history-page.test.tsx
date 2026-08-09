@@ -155,6 +155,10 @@ describe('download history', () => {
     expect(
       within(pagination).getByRole('button', { name: '上一页' }),
     ).toBeDisabled();
+    expect(
+      within(pagination).getByRole('button', { name: '上一页' }),
+    ).toHaveClass('h-11');
+    expect(within(pagination).getByText('1 / 2')).toHaveClass('h-11');
 
     fireEvent.click(within(pagination).getByRole('button', { name: '下一页' }));
     await waitFor(() =>

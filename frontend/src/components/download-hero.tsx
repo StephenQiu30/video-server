@@ -20,6 +20,7 @@ import type { Inspection } from '@/types/video';
 type DownloadHeroProps = {
   busy: boolean;
   inspection: Inspection | null;
+  invalid: boolean;
   onInspect: () => void;
   onUrlChange: (value: string) => void;
   url: string;
@@ -28,6 +29,7 @@ type DownloadHeroProps = {
 export default function DownloadHero({
   busy,
   inspection,
+  invalid,
   onInspect,
   onUrlChange,
   url,
@@ -56,6 +58,8 @@ export default function DownloadHero({
       >
         <InputGroup className="h-16 rounded-md bg-input sm:h-[68px]">
           <InputGroupInput
+            aria-describedby={invalid ? 'download-workspace-error' : undefined}
+            aria-invalid={invalid ? true : undefined}
             aria-label="公开视频地址"
             autoComplete="url"
             className="h-full px-2 text-[15px]"
