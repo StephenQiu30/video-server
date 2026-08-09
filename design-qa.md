@@ -1,4 +1,4 @@
-# Vercel / shadcn 第二轮设计 QA
+# Vercel / shadcn 页面一致性设计 QA
 
 ## 对照目标与证据
 
@@ -9,6 +9,16 @@
 - 最终同视口对照：`vercel-refinement-comparison-final.jpg`，左侧为 Vercel，右侧为帧取。
 - 最终移动端实现：`vercel-refinement-implementation-mobile-final.png`。
 - 检查路由与状态：`/?design=inspection`，开发态演示用户、Bilibili 链接已解析、1080P 已选中。
+
+## 本轮页面一致性复核
+
+- 2026-08-09 在同一次比较输入中打开 `vercel-home-hero-reference-2026-08-09.png` 与最新 `/?design=inspection` 浏览器截图；最新首页已删除装饰性英文眉题，继续保留 Vercel 式浅色画布、大留白、发丝线和低容器感。
+- 1280×720 首页实测 `documentElement.clientWidth = scrollWidth = 1265`；Header `.page-shell` 与 `main.content-shell` 均为 1200px，左右边界同为 32.5px。首页 H1 为 56px，正文色为 `rgb(29, 29, 31)`。
+- 1280×720 404 页实测 `clientWidth = scrollWidth = 1280`；Header 与 main 均为 1200px，左右边界同为 40px；H1 为 32px/38.4px，`404` 元数据为 muted 灰色。
+- 认证页实测 PageShell 为 1200px、左右边界 40px，H1 为 32px/38.4px；Card 的可见 border、圆角和阴影均为 0，不再形成页面级外框。
+- 标准内页统一复用 `PageHeader`：390px 为 28px，`sm` 起为 32px；全局唯一页面外框在桌面保留 24px gutter、390px 保留 16px gutter。首页 Hero 是唯一 38.4–56px H1 例外，详情与空页面使用同一 28/32px 标准。
+- 源码已删除 `Public media workflow`、`Available formats`、`Download status`、`AI analysis` 及“任务记录 / 账户设置 / 系统管理 / 欢迎回来 / 开始使用”等装饰性眉题；证据编号、章节时间、平台 Badge、头像和装饰图标均改为中性色。Apple 蓝只保留在操作、链接、焦点、选择、当前步骤和加载状态。
+- 本轮受保护内页由共享 PageHeader、页面级 CSS、54 项 Vitest 与 production static build 回归；浏览器中的开发态预览身份在跨文档导航后不会保留，因此 Acceptance 仍不把“全路由逐页截图与 axe”标为完成。
 
 ## 视口与归一化
 
@@ -21,7 +31,7 @@
 
 最终对照无可操作的 P0、P1 或 P2 差异。
 
-- 排版：Geist 的 56px / 500 首屏标题、紧凑行高、Mono eyebrow 与大留白，和 Vercel 当前首页的视觉节奏一致；中文在 390px 下自然折为两行。
+- 排版：Geist 的 56px / 500 首屏标题、紧凑行高与大留白，和 Vercel 当前首页的视觉节奏一致；装饰性 Mono eyebrow 已删除，中文在 390px 下自然折为两行。
 - 画布与层级：背景为 `#FAFAFA`，Header 为 64px sticky 细线结构；主内容依靠留白、`1px` 分隔和真实媒体画面组织，不使用大面积阴影或卡片套卡片。
 - 颜色：主操作使用 `#0071E3`，焦点环为 `#007AFF`；Card、Popover、Muted、Border、Input 与半径均来自语义 token。
 - 组件：页面实际使用官方 shadcn / Radix 的 Card、Table、Sheet、Tooltip、Avatar、Field、InputGroup、Item、Empty、Pagination、AlertDialog、AspectRatio、Select、RadioGroup、Switch、Dialog、DropdownMenu 和 Tabs 组合。
@@ -46,7 +56,10 @@
 - [x] 官方 shadcn / Radix 组件源码与语义 token。
 - [x] 390×844 检查，无横向溢出。
 - [x] 关键鼠标、键盘、菜单、Sheet、Radio 和 AlertDialog 交互。
-- [x] lint、TypeScript、51 项单元测试和 Next.js 静态导出构建。
+- [x] Header、main 与 footer 统一 1200px 页面边界；标准内页 H1 统一为 28/32px。
+- [x] 删除非交互蓝色眉题；保留操作、链接、焦点、选择、当前步骤与状态色。
+- [x] 页面级 Card 视觉改为无 border/ring/shadow，保留输入、分隔和浮层等功能边界。
+- [x] lint、format、TypeScript、54 项单元测试和 Next.js 静态导出构建。
 
 ## Open Questions
 

@@ -23,6 +23,11 @@ describe('DownloadJobView', () => {
     expect((await screen.findAllByText('下载已完成')).length).toBeGreaterThan(
       0,
     );
+    expect(
+      screen.getByRole('heading', { level: 1, name: inspection.title }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Download status')).not.toBeInTheDocument();
+    expect(screen.queryByText('AI analysis')).not.toBeInTheDocument();
     expect(screen.getByText('已完成')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'AI 智能分析' }),

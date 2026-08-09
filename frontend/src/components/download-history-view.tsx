@@ -14,6 +14,7 @@ import { useState } from 'react';
 import DownloadHistoryList, {
   downloadStatusLabels,
 } from '@/components/download-history-list';
+import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupText } from '@/components/ui/button-group';
@@ -64,23 +65,18 @@ export default function DownloadHistoryView() {
 
   return (
     <main className="content-shell py-12 sm:py-16">
-      <div className="flex flex-wrap items-end justify-between gap-6">
-        <div>
-          <p className="text-sm font-medium text-primary">任务记录</p>
-          <h1 className="mt-2 text-4xl font-semibold tracking-[-0.035em]">
-            下载历史
-          </h1>
-          <p className="mt-3 text-muted-foreground">
-            继续查看、获取或分析已创建的任务。
-          </p>
-        </div>
-        <Button asChild size="lg">
-          <Link href="/">
-            <Plus size={17} />
-            新建下载
-          </Link>
-        </Button>
-      </div>
+      <PageHeader
+        action={
+          <Button asChild size="lg">
+            <Link href="/">
+              <Plus size={17} />
+              新建下载
+            </Link>
+          </Button>
+        }
+        description="继续查看、获取或分析已创建的任务。"
+        title="下载历史"
+      />
 
       <div className="mt-11 flex flex-col gap-3 border-y py-5 sm:flex-row">
         <form

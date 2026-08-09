@@ -18,7 +18,7 @@ export default function DownloadDetailPage() {
 
 function DetailSkeleton() {
   return (
-    <main className="content-shell space-y-6 py-12">
+    <main className="content-shell space-y-6 py-12 sm:py-16">
       <Skeleton className="h-6 w-32" />
       <div className="grid gap-10 lg:grid-cols-2">
         <Skeleton className="aspect-video w-full" />

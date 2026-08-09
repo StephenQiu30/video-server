@@ -8,20 +8,19 @@ import {
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
-  EmptyTitle,
 } from '@/components/ui/empty';
 
 export default function MissingDownload() {
   return (
-    <main className="content-shell grid min-h-[65vh] place-items-center py-16 text-center">
+    <main className="content-shell grid min-h-[70vh] place-items-center py-12 text-center sm:py-16">
       <Empty className="border-0">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <WarningCircle aria-hidden />
           </EmptyMedia>
-          <EmptyTitle className="text-3xl font-medium tracking-[-0.035em]">
+          <h1 className="text-[28px] font-semibold leading-[1.2] tracking-[-0.03em] sm:text-[32px]">
             下载任务不存在
-          </EmptyTitle>
+          </h1>
           <EmptyDescription>请从下载历史重新打开任务。</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>

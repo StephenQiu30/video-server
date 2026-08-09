@@ -55,10 +55,7 @@ export default function AnalysisPanel({
       <section aria-label="AI 智能分析" className="border-b py-10">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div>
-            <p className="font-mono text-xs uppercase tracking-[0.16em] text-primary">
-              AI analysis
-            </p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.035em]">
+            <h2 className="text-3xl font-semibold tracking-[-0.035em]">
               {state.job.result.title}
             </h2>
           </div>
@@ -79,11 +76,8 @@ export default function AnalysisPanel({
     <section aria-labelledby="analysis-title" className="border-b py-10">
       <div className="flex items-start justify-between gap-5">
         <div>
-          <p className="font-mono text-xs uppercase tracking-[0.16em] text-primary">
-            AI analysis
-          </p>
           <h2
-            className="mt-3 text-3xl font-semibold tracking-[-0.035em]"
+            className="text-3xl font-semibold tracking-[-0.035em]"
             id="analysis-title"
           >
             AI 智能分析
@@ -92,7 +86,7 @@ export default function AnalysisPanel({
             生成摘要、关键观点、章节和思维导图。
           </p>
         </div>
-        <Robot aria-hidden className="text-primary" size={28} />
+        <Robot aria-hidden className="text-muted-foreground" size={28} />
       </div>
 
       {state.error ? (

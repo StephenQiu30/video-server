@@ -1,10 +1,6 @@
-import {
-  CaretLeft,
-  CaretRight,
-  CheckCircle,
-  UsersThree,
-} from '@phosphor-icons/react';
+import { CaretLeft, CaretRight, CheckCircle } from '@phosphor-icons/react';
 
+import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupText } from '@/components/ui/button-group';
@@ -58,29 +54,19 @@ export function AdminUsersScreen({
 
   return (
     <section className="space-y-7">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b pb-7">
-        <div className="flex items-start gap-4">
-          <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-accent text-primary">
-            <UsersThree size={27} weight="duotone" />
-          </span>
-          <div>
-            <p className="text-sm font-medium text-primary">系统管理</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-[-0.025em]">
-              用户管理
-            </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              查看账户并调整角色与启用状态。
-            </p>
-          </div>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          共{' '}
-          <strong className="font-semibold text-foreground">
-            {result.total}
-          </strong>{' '}
-          个账户
-        </p>
-      </header>
+      <PageHeader
+        action={
+          <p className="text-sm text-muted-foreground">
+            共{' '}
+            <strong className="font-semibold text-foreground">
+              {result.total}
+            </strong>{' '}
+            个账户
+          </p>
+        }
+        description="查看账户并调整角色与启用状态。"
+        title="用户管理"
+      />
 
       <UserFilters
         query={query}

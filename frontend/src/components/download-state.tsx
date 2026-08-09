@@ -71,11 +71,8 @@ export default function DownloadState({
     <section aria-labelledby="download-status-title" className="self-center">
       <div className="flex items-start justify-between gap-5">
         <div>
-          <p className="font-mono text-xs uppercase tracking-[0.16em] text-primary">
-            Download status
-          </p>
           <h2
-            className="mt-3 text-3xl font-semibold tracking-[-0.035em]"
+            className="text-3xl font-semibold tracking-[-0.035em]"
             id="download-status-title"
           >
             {statusLabels[job.status]}

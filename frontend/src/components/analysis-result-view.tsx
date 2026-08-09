@@ -64,7 +64,7 @@ function Chapters({ result }: { result: AnalysisResult }) {
             className="grid grid-cols-[64px_1fr] gap-4 py-4"
             key={`${chapter.start_ms}-${chapter.title}`}
           >
-            <span className="font-mono text-xs text-primary">
+            <span className="font-mono text-xs text-muted-foreground">
               {formatMilliseconds(chapter.start_ms)}
             </span>
             <span>

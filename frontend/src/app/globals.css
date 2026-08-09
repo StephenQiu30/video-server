@@ -101,18 +101,9 @@
 }
 
 @layer utilities {
-  .page-shell {
-    width: min(calc(100% - 48px), 1440px);
-    margin-inline: auto;
-  }
-
+  .page-shell,
   .content-shell {
     width: min(calc(100% - 48px), 1200px);
-    margin-inline: auto;
-  }
-
-  .hero-shell {
-    width: min(calc(100% - 48px), 960px);
     margin-inline: auto;
   }
 
@@ -137,8 +128,7 @@
 
 @media (max-width: 640px) {
   .page-shell,
-  .content-shell,
-  .hero-shell {
+  .content-shell {
     width: min(calc(100% - 32px), 1200px);
   }
 }

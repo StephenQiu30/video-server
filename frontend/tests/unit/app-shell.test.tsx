@@ -121,7 +121,6 @@ describe('AppShell', () => {
     const { container } = render(
       <AuthPageFrame
         description="登录后继续使用。"
-        eyebrow="欢迎回来"
         title="登录帧取"
         titleId="login-title"
       >
@@ -149,6 +148,10 @@ describe('AppShell', () => {
       'email-error',
     );
     expect(screen.getByRole('alert')).toHaveTextContent('请输入邮箱地址');
-    expect(container.querySelector('[data-slot="card"]')).toBeInTheDocument();
+    expect(container.querySelector('[data-slot="card"]')).toHaveClass(
+      'rounded-none',
+      'bg-transparent',
+      'ring-0',
+    );
   });
 });

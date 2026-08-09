@@ -47,9 +47,6 @@ export default function DownloadHero({
   return (
     <section className="pt-16 sm:pt-20 lg:pt-24">
       <div className="text-center">
-        <p className="mb-4 font-mono text-xs uppercase tracking-[0.18em] text-primary">
-          Public media workflow
-        </p>
         <h1 className="text-balance text-[clamp(2.4rem,5vw,3.5rem)] font-medium leading-[1.05] tracking-[-0.035em]">
           粘贴链接，剩下的交给帧取
         </h1>
@@ -119,8 +116,10 @@ function WorkflowSteps({ hasInspection }: { hasInspection: boolean }) {
     <ol className="mx-auto mb-14 mt-9 flex max-w-[760px] items-center text-sm sm:mb-16">
       {steps.map(([index, label], position) => {
         const active = position === 0 || (position === 1 && hasInspection);
+        const current = position === (hasInspection ? 1 : 0);
         return (
           <li
+            aria-current={current ? 'step' : undefined}
             className={position < 2 ? 'flex min-w-0 flex-1 items-center' : ''}
             key={index}
           >
@@ -174,7 +173,7 @@ function CapabilityGrid() {
           }
           key={title}
         >
-          <Icon aria-hidden className="mb-4 size-5 text-primary" />
+          <Icon aria-hidden className="mb-4 size-5 text-muted-foreground" />
           <h2 className="font-medium">{title}</h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {description}

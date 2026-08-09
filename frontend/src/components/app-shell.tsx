@@ -3,13 +3,9 @@
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+import { PageHeader } from '@/components/page-header';
 import SiteHeader, { BrandLink } from '@/components/site-header';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
   Field,
   FieldDescription,
@@ -18,7 +14,6 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { InputGroup, InputGroupAddon } from '@/components/ui/input-group';
-import { Separator } from '@/components/ui/separator';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -45,7 +40,6 @@ export function AppShell({ children }: { children: ReactNode }) {
 type AuthPageFrameProps = {
   children: ReactNode;
   description: string;
-  eyebrow: string;
   title: string;
   titleId: string;
 };
@@ -53,36 +47,27 @@ type AuthPageFrameProps = {
 export function AuthPageFrame({
   children,
   description,
-  eyebrow,
   title,
   titleId,
 }: AuthPageFrameProps) {
   return (
     <main className="min-h-screen bg-background" id="main-content">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col px-5 py-5 sm:px-6 sm:py-6">
+      <div className="content-shell flex min-h-screen flex-col py-5 sm:py-6">
         <BrandLink />
         <div className="flex flex-1 items-center justify-center py-12 sm:py-16">
           <Card
             aria-labelledby={titleId}
-            className="w-full max-w-[440px] gap-0 rounded-xl bg-card py-0 shadow-none ring-1 ring-border"
+            className="w-full max-w-[440px] gap-0 rounded-none bg-transparent py-0 shadow-none ring-0"
             role="region"
           >
-            <CardHeader className="gap-0 px-6 py-6 sm:px-8 sm:py-7">
-              <p className="mb-2 text-sm font-medium text-primary">{eyebrow}</p>
-              <h1
-                className="text-[32px] font-medium tracking-[-0.03em]"
-                id={titleId}
-              >
-                {title}
-              </h1>
-              <CardDescription className="mt-2 text-[15px] leading-6">
-                {description}
-              </CardDescription>
+            <CardHeader className="gap-0 rounded-t-none px-0 py-0">
+              <PageHeader
+                description={description}
+                title={title}
+                titleId={titleId}
+              />
             </CardHeader>
-            <Separator />
-            <CardContent className="px-6 py-6 sm:px-8 sm:py-7">
-              {children}
-            </CardContent>
+            <CardContent className="px-0 pt-8 pb-0">{children}</CardContent>
           </Card>
         </div>
       </div>

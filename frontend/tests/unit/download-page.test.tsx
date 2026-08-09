@@ -27,6 +27,14 @@ describe('DownloadWorkspace', () => {
     expect(
       screen.getByRole('heading', { name: '粘贴链接，剩下的交给帧取' }),
     ).toBeInTheDocument();
+    expect(screen.queryByText('Public media workflow')).not.toBeInTheDocument();
+    expect(screen.getByText('链接').closest('li')).toHaveAttribute(
+      'aria-current',
+      'step',
+    );
+    expect(screen.getByText('格式').closest('li')).not.toHaveAttribute(
+      'aria-current',
+    );
     expect(screen.getByLabelText('公开视频地址')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '解析' })).toBeEnabled();
     expect(
@@ -56,6 +64,13 @@ describe('DownloadWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: '解析' }));
 
     expect(await screen.findByText(inspection.title)).toBeInTheDocument();
+    expect(screen.getByText('格式').closest('li')).toHaveAttribute(
+      'aria-current',
+      'step',
+    );
+    expect(screen.getByText('链接').closest('li')).not.toHaveAttribute(
+      'aria-current',
+    );
     expect(screen.getByRole('radio')).toBeChecked();
     fireEvent.click(screen.getByRole('button', { name: '开始下载' }));
 

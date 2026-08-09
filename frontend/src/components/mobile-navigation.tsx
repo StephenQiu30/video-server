@@ -70,7 +70,7 @@ export function MobileNavigation({
         {user ? (
           <div className="flex items-center gap-3 px-5 py-4">
             <Avatar size="lg">
-              <AvatarFallback className="bg-accent text-accent-foreground">
+              <AvatarFallback className="bg-muted text-foreground">
                 {user.username.slice(0, 1).toUpperCase()}
               </AvatarFallback>
             </Avatar>

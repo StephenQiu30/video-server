@@ -12,6 +12,7 @@ import { type FormEvent, useEffect, useState } from 'react';
 
 import { ReadOnlyField } from '@/components/app-shell';
 import { useAuth } from '@/components/auth-provider';
+import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -66,10 +67,7 @@ export function AccountView() {
 
   if (loading) {
     return (
-      <section
-        className="mx-auto max-w-3xl space-y-6"
-        aria-label="正在加载个人资料"
-      >
+      <section className="max-w-3xl space-y-6" aria-label="正在加载个人资料">
         <Skeleton className="h-16 w-64 max-w-full" />
         <Skeleton className="h-32 w-full" />
         <Skeleton className="h-24 w-full" />
@@ -79,7 +77,7 @@ export function AccountView() {
 
   if (!user) {
     return (
-      <Alert variant="destructive" className="mx-auto max-w-2xl">
+      <Alert variant="destructive" className="max-w-2xl">
         <WarningCircle />
         <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
           登录状态已失效，请重新检查账户状态。
@@ -100,29 +98,23 @@ export function AccountView() {
   const initials = user.username.trim().slice(0, 2).toUpperCase();
 
   return (
-    <section className="mx-auto max-w-3xl">
-      <Card className="gap-0 py-0 shadow-none ring-1 ring-border">
-        <CardHeader className="px-6 py-6 sm:px-8 sm:py-7">
-          <div className="flex items-start gap-4">
-            <Avatar aria-hidden className="size-12">
-              <AvatarFallback className="bg-accent text-base font-medium text-primary">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="text-sm font-medium text-primary">账户设置</p>
-              <h1 className="mt-1 text-2xl font-medium tracking-[-0.025em]">
-                个人资料
-              </h1>
-              <p className="mt-2 text-sm text-muted-foreground">
-                管理公开用户名并查看账户身份信息。
-              </p>
-            </div>
-          </div>
+    <section>
+      <Card className="gap-0 rounded-none bg-transparent py-0 shadow-none ring-0">
+        <CardHeader className="rounded-t-none px-0 py-0">
+          <PageHeader
+            action={
+              <Avatar aria-hidden className="size-12">
+                <AvatarFallback className="bg-muted text-base font-medium text-foreground">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+            }
+            description="管理公开用户名并查看账户身份信息。"
+            title="个人资料"
+          />
         </CardHeader>
-        <Separator />
-        <form onSubmit={submit}>
-          <CardContent className="px-6 py-7 sm:px-8">
+        <form className="mt-10 max-w-3xl" onSubmit={submit}>
+          <CardContent className="px-0 py-0">
             <FieldGroup className="gap-7">
               <Field>
                 <div className="flex items-center justify-between gap-3">
@@ -183,7 +175,7 @@ export function AccountView() {
               ) : null}
             </FieldGroup>
           </CardContent>
-          <CardFooter className="justify-end bg-muted/30 px-6 py-4 sm:px-8">
+          <CardFooter className="mt-8 justify-start rounded-b-none border-t-0 bg-transparent p-0">
             <Button disabled={saving || unchanged} size="lg" type="submit">
               {saving ? (
                 <Spinner aria-hidden role="presentation" />

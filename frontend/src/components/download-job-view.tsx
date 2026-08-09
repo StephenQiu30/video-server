@@ -28,7 +28,7 @@ export default function DownloadJobView({
   if (state.loading && !state.job) return <DownloadJobSkeleton />;
 
   return (
-    <main className="content-shell py-10 sm:py-14">
+    <main className="content-shell py-12 sm:py-16">
       <Button asChild className="-ml-3" variant="ghost">
         <Link href="/">
           <ArrowLeft aria-hidden size={17} />
@@ -56,7 +56,7 @@ export default function DownloadJobView({
                 priority
                 src={state.inspection?.thumbnail_url}
               />
-              <h1 className="mt-6 text-2xl font-semibold tracking-[-0.025em]">
+              <h1 className="mt-6 text-[28px] font-semibold leading-[1.2] tracking-[-0.03em] sm:text-[32px]">
                 {state.inspection?.title ?? '视频下载任务'}
               </h1>
               <p className="mt-2 text-sm text-muted-foreground">
@@ -89,7 +89,7 @@ export default function DownloadJobView({
 
 function DownloadJobSkeleton() {
   return (
-    <main className="content-shell grid gap-10 py-16 lg:grid-cols-2">
+    <main className="content-shell grid gap-10 py-12 sm:py-16 lg:grid-cols-2">
       <Skeleton className="aspect-video" />
       <Skeleton className="h-80" />
     </main>

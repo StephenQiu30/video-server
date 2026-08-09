@@ -69,7 +69,6 @@ export function LoginView() {
   return (
     <AuthPageFrame
       description="继续解析、下载和管理你有权处理的公开视频。"
-      eyebrow="欢迎回来"
       title="登录帧取"
       titleId="login-title"
     >

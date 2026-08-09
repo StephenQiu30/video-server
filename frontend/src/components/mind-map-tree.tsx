@@ -25,7 +25,11 @@ function TreeNode({ depth, node }: { depth: number; node: MindMapNode }) {
         className="grid grid-cols-[18px_1fr_auto] gap-2 border-b py-3 last:border-0"
         style={{ paddingInlineStart: `${Math.min(depth, 5) * 18}px` }}
       >
-        <CaretRight aria-hidden className="mt-0.5 text-primary" size={15} />
+        <CaretRight
+          aria-hidden
+          className="mt-0.5 text-muted-foreground"
+          size={15}
+        />
         <span>
           <strong className="block text-sm">{node.title}</strong>
           {node.summary ? (

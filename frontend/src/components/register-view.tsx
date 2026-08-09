@@ -79,7 +79,6 @@ export function RegisterView() {
   return (
     <AuthPageFrame
       description="使用邮箱注册，登录状态会在受信任设备上自动保持。"
-      eyebrow="开始使用"
       title="创建账号"
       titleId="register-title"
     >

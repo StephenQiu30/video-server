@@ -31,10 +31,7 @@ export default function InspectionWorkspace({
       className="grid border-y lg:grid-cols-[5fr_7fr]"
     >
       <div className="min-w-0 py-7 lg:pr-8">
-        <p className="font-mono text-xs uppercase tracking-[0.16em] text-primary">
-          Available formats
-        </p>
-        <h2 className="mt-3 text-xl font-medium">选择下载格式</h2>
+        <h2 className="text-xl font-medium">选择下载格式</h2>
         <p className="mb-5 mt-2 text-sm leading-6 text-muted-foreground">
           比较清晰度与编码，选择适合设备的版本。
         </p>

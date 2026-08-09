@@ -49,7 +49,7 @@ export default function MediaCover({
       />
       {platform ? (
         <Badge
-          className="absolute bottom-3 left-3 bg-card/95 text-primary backdrop-blur"
+          className="absolute bottom-3 left-3 bg-card/95 text-foreground backdrop-blur"
           variant="outline"
         >
           {platform}

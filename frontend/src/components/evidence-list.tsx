@@ -53,7 +53,7 @@ function Statement({
 
   return (
     <li className="grid grid-cols-[34px_1fr_40px] items-start gap-3 py-4">
-      <span className="font-mono text-xs text-primary">
+      <span className="font-mono text-xs text-muted-foreground">
         {String(index + 1).padStart(2, '0')}
       </span>
       <span className="text-sm leading-6">{item.text}</span>
