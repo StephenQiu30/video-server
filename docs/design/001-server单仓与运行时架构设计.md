@@ -76,6 +76,8 @@ flowchart LR
 | `worker-analysis` | DB、MQ、MinIO、AI provider | 音频提取、ASR、结构化分析、证据校验 |
 | `egress-proxy` | 无 | 仅代理 HTTP(S)，阻断私网、链路本地和云元数据地址 |
 
+该表描述当前 anonymous Runner 基线。005 的 Proposed 目标会新增与匿名池隔离的 credentialed Runner；它只能获得单 Provider、短时、限域会话，仍不得获得 DB、MQ、MinIO 或 AI 凭据。005 验收前不属于当前运行能力。
+
 前端不是独立生产服务。Next.js 以静态导出生成 `frontend/out`，多阶段镜像将其复制到 `/app/frontend/out`，API 在所有 API/health 路由之后挂载静态页面。
 
 ## 5. 数据与消息原则

@@ -36,7 +36,7 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod
 
 - PostgreSQL、RabbitMQ、Valkey、MinIO、Runner RPC 和 Runner 出口分别使用独立网络；数据库、队列、配额、存储和 Runner RPC 网络均为 `internal`，不允许从宿主机或公网直接进入。
 - API、下载 Worker 只加入它们实际需要的内部网络；分析 Worker 不加入 Runner RPC；Outbox 不加入存储或 Runner 网络。
-- Media Runner 只收到 Runner 运行时变量（HMAC、工作目录和受控代理），业务数据库、队列、对象存储、会话密钥和 Provider Key 不注入 Runner。
+- 当前 Media Runner 只收到 Runner 运行时变量（HMAC、工作目录和受控代理），业务数据库、队列、对象存储、会话密钥和 Provider Key 不注入 Runner。005 的 credentialed Runner 尚未实现；未来也只能使用单 Provider 只读 Secret/短租约，不能获得业务 Secret。
 - Media Runner 通过 egress proxy 访问外部媒体地址；proxy 不暴露宿主机端口，并继续拒绝私网、localhost 和字面量 IP 目的地址。
 - API、Worker 与 Runner 使用 Compose DNS 互联，不通过宿主机端口绕行。
 
@@ -63,4 +63,4 @@ curl --fail http://localhost:8101/health/ready
 docker compose --env-file .env -f docker-compose.yml ps
 ```
 
-若下载解析失败，先区分 URL/格式业务错误、Runner 健康、平台出口信誉、egress ACL、队列积压和对象存储，不要通过开放私网、上传 Cookie 或透传 yt-dlp 参数绕过控制。
+若下载解析失败，先区分 URL/格式、会话、请求证明、出口信誉、egress ACL、Runner、队列和对象存储。不要在普通解析请求中粘贴 Cookie、开放私网或透传 yt-dlp 参数；受控 Provider 会话的导入、轮换和撤销只按 005 及专用运维 runbook 执行。

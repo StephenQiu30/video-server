@@ -5,6 +5,8 @@
 - 范围：当前 `video-server` 仓库、GitHub 公开仓库、现有自动化门禁
 - 结论：保留自有安全编排和领域层，按边界引入成熟组件；当前尚不满足公网生产上线条件。
 
+> 2026-08-10 边界更新：Cookie 不再一刀切排除；005 将其定义为默认关闭、Provider allowlist、与出口绑定的受控会话。普通媒体请求、消息、日志和 Generic 仍不得携带 Cookie，私有/DRM 边界不变。
+
 ## 执行摘要
 
 当前项目已经完成了一个结构扎实的下载与 AI 分析 MVP，不应改造成另一套一体化下载站，也不应重新实现 extractor、FFmpeg、队列或对象存储。推荐路线仍是“成熟底层工具 + 自有安全编排与产品领域层”。
@@ -79,7 +81,7 @@
 - 媒体库/Plex/Jellyfin/Kodi 元数据与 RSS。
 - SponsorBlock、章节切割和高级命名模板。
 
-P2 中涉及 Cookie、私有内容、任意 yt-dlp 参数或自定义脚本的能力仍然不进入当前产品安全边界。
+P2 中的未受管 Cookie、私有内容、任意 yt-dlp 参数或自定义脚本仍不进入当前产品安全边界；受控 Provider 会话按 005 独立实施和验收。
 
 ## GitHub 候选项目与整合结论
 
@@ -88,7 +90,7 @@ P2 中涉及 Cookie、私有内容、任意 yt-dlp 参数或自定义脚本的�
 | 项目 | 可借鉴/复用能力 | 许可证与边界 | 决策 |
 | --- | --- | --- | --- |
 | [yt-dlp/yt-dlp](https://github.com/yt-dlp/yt-dlp) | extractor、格式、字幕、音频、playlist、插件机制 | 仓库源码为 Unlicense，但发行物可能包含其他许可证；参数面很大 | 继续作为固定提交的 Runner 内核；只开放自有语义计划，不开放原始参数 |
-| [alexta69/metube](https://github.com/alexta69/metube) | 音频、字幕、缩略图、播放列表、队列并发、订阅、清理 UX | AGPL-3.0；支持 Cookie 上传和可选任意 yt-dlp override，与当前边界冲突 | 只借鉴需求和交互，不复制代码、不直接部署为内部服务 |
+| [alexta69/metube](https://github.com/alexta69/metube) | 音频、字幕、缩略图、播放列表、队列并发、订阅、清理 UX | AGPL-3.0；Cookie 与可选任意 yt-dlp override 没有本项目的业务面隔离 | 借鉴其 Cookie 文件权限/原子替换和交互，不复制代码、不直接部署为内部服务 |
 | [imputnet/cobalt](https://github.com/imputnet/cobalt) | 粘贴即下载、服务能力矩阵、IP/session/API key 限流、Turnstile、防滥用文档 | AGPL-3.0；代理式交付和专用 extractor 架构不同 | 借鉴防滥用与 Provider 状态模型，不复制 API/Web 代码 |
 | [kieraneglin/pinchflat](https://github.com/kieraneglin/pinchflat) | 定时订阅、自动清理、通知、Prometheus、媒体中心元数据 | AGPL-3.0；偏 YouTube 归档且允许 Cookie/自定义脚本 | 只作为 P2 归档产品参照 |
 
@@ -112,7 +114,7 @@ MeTube 和 cobalt 的公开文档都提醒：频繁更新 yt-dlp、限制并发�
 1. 不 fork MeTube/cobalt/Pinchflat 来替换当前服务。
 2. 不复制 AGPL 项目源码到 MIT 仓库；若未来改变策略，必须先做正式许可证评估。
 3. 不接公共解析 API、公共 Cloudflare Worker 或用户不可审计的中转服务。
-4. 不上传或托管浏览器 Cookie，不接私有/DRM 内容，不生成平台签名绕过访问控制。
+4. 不在普通媒体 API 上传 Cookie、不托管未受管的全浏览器 Cookie；005 的受控 Provider 会话使用独立 Vault/Secret。私有/DRM 内容和签名绕过仍不允许。
 5. 不开放任意 yt-dlp 参数、输出模板、外部 downloader、`--exec` 或自定义脚本。
 6. 不用 Provider 列表或 yt-dlp supported-sites 数量宣称可用性；只能用真实 canary 结果。
 
@@ -132,10 +134,14 @@ API + static frontend
 Download Worker ── DB/RabbitMQ/MinIO/HMAC ──→ Media Runner
 Analysis Worker ── DB/RabbitMQ/MinIO/AI provider
 
-Media Runner（仅 HMAC + 工作区 + 无凭据代理地址）
+Anonymous Media Runner（仅 HMAC + 工作区 + 无凭据代理地址）
   ↓ internal-only network
 Egress Proxy（唯一具有外网路由的媒体组件）
   ↓
+Public media providers
+
+Credentialed Runner（005 验收后；单 Provider 短租约 + 独占 tmpfs）
+  ↓ 同一 Egress Proxy / 固定 affinity
 Public media providers
 
 Lifecycle Worker ── DB/MinIO（过期删除、孤儿对账）

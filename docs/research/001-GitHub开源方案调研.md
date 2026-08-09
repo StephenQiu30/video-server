@@ -3,11 +3,13 @@
 - 调研日期：2026-08-06，最近复核：2026-08-09
 - 结论：采用“成熟底层工具 + 自有安全编排与产品领域层”，不直接 fork 一体化下载站。
 
+> 2026-08-10 复核：本文关于“不接 Cookie”的一刀切结论已由 `research/003` 和 005 细化为“当前匿名 Runner 基线 + allowlist 下的受控 Provider 会话”。普通媒体请求、业务消息和 Generic 仍不得携带 Cookie；运维/用户会话必须经过独立 Secret 生命周期和验收。
+
 ## 候选方案
 
 | 项目 | 可复用能力 | 结论 |
 | --- | --- | --- |
-| [yt-dlp](https://github.com/yt-dlp/yt-dlp) | 活跃的站点 extractor、格式探测与下载；支持 Python 嵌入和 CLI | 采用，但只在无业务凭据的 Media Runner 子进程中运行；固定版本并持续跟进安全发布 |
+| [yt-dlp](https://github.com/yt-dlp/yt-dlp) | 活跃的站点 extractor、格式探测与下载；支持 Python 嵌入和 CLI | 采用；当前 anonymous Runner 无 Provider 凭据，005 验收后 credentialed Runner 可获得单 Provider 短时会话；固定版本并持续跟进安全发布 |
 | [yt-dlp sample plugins](https://github.com/yt-dlp/yt-dlp-sample-plugins) | 官方 `yt_dlp_plugins.extractor` 扩展结构与加载约定 | 采用其插件边界，在 Runner 镜像内随项目交付可信站点适配器，不开放用户插件目录 |
 | [liyupi/free-video-downloader](https://github.com/liyupi/free-video-downloader) | 抖音短链、旧公开 API 与分享页 fallback 的教学实现 | 只借鉴“公开分享页 fallback”思路；其仓库无 LICENSE，host 子串匹配、未逐跳校验重定向、同步 WAF 计算和无界下载不进入本项目 |
 | [MeTube](https://github.com/alexta69/metube) | yt-dlp Web UI、队列、并发与自托管经验 | 仅借鉴产品流程；其本地文件/状态和高度可配置 yt-dlp 模式不符合本项目的 PostgreSQL 事实源、对象存储、AI 分析与严格 Runner 边界 |
@@ -37,13 +39,13 @@
 
 ## 主流平台策略注册表
 
-Runner 使用 `ProviderStrategy + ProviderRegistry + GenericFallback`：平台策略只管理域名别名、规范化 URL、固定请求参数和有限重试；下载、格式选择、FFmpeg 校验仍走同一条流水线。当前登记并经过 extractor 清单核验的平台包括 YouTube、哔哩哔哩、抖音、TikTok、Vimeo、X/Twitter、Instagram、Facebook、Twitch、Reddit、Pinterest、微博、优酷、腾讯视频、Dailymotion 和 NicoNico。未登记但被 yt-dlp 支持的 HTTP(S) 地址仍交给 Generic extractor；平台目录不等于可用性保证，yt-dlp 官方也明确说明站点规则会变化，最终必须以实际解析结果为准。[Supported sites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md)
+Runner 使用 `ProviderStrategy + ProviderRegistry + GenericFallback`：平台策略只管理域名别名、规范化 URL、固定请求参数和有限重试；下载、格式选择、FFmpeg 校验仍走同一条流水线。当前登记的 17 个 Provider key 包括 YouTube、哔哩哔哩、抖音、TikTok、小红书、Vimeo、X/Twitter、Instagram、Facebook、Twitch、Reddit、Pinterest、微博、优酷、腾讯视频、Dailymotion 和 NicoNico。登记域名、extractor 存在和真实 canary 是不同状态；未登记但被 yt-dlp 支持的 HTTP(S) 地址仍交给 Generic extractor，最终能力以带时间戳的实际解析/媒体验证为准。[Supported sites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md)
 
-当前镜像中的 yt-dlp extractor 清单未包含快手，因此快手仅保留域名识别，不宣称已具备下载能力；只有在 extractor 可用并通过实际解析测试后，才会将其升级为正式平台。
+当前镜像中的 yt-dlp extractor 清单和 Provider Registry 都不包含快手，因此不宣称已具备下载能力；只有在 extractor 可用并通过实际解析测试后，才会新增 Profile 并升级为正式平台。
 
 ## 关键风险与治理
 
-1. yt-dlp 的 2026 发布记录包含命令注入、危险文件类型和外部 downloader 相关安全修复，因此不能把任意参数透传给用户，也不能启用 `--exec`、`--netrc-cmd`、aria2c 或 cookie 上传。
+1. yt-dlp 的 2026 发布记录包含命令注入、危险文件类型和外部 downloader 相关安全修复，因此不能把任意参数透传给用户，也不能启用 `--exec`、`--netrc-cmd`、aria2c，或在普通媒体请求中直接提交 Cookie；005 的受控会话使用固定命令模板和独立 Secret 边界。
 2. 站点规则会变化。数据库保存语义下载计划，Worker 开工前重新 inspect；provider format id 只作短期 hint。
 3. “入口 URL 校验”不能阻止 DNS rebinding 或重定向 SSRF。Runner 必须处于无默认出网的内部网络，并只通过拒绝私网地址的 egress proxy 访问公网。
 4. AI adapter 必须输出 schema 化 JSON，并由应用层验证所有章节、观点和导图节点引用真实 transcript segment；模型原始输出不直接成为产品事实。
@@ -73,7 +75,7 @@ GitHub 调研后的取舍：
 
 1. yt-dlp 官方 [PO Token Guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide) 推荐为 YouTube `mweb` 客户端配置 PO Token Provider。[bgutil-ytdlp-pot-provider](https://github.com/Brainicism/bgutil-ytdlp-pot-provider) 提供独立 HTTP 服务和 yt-dlp 插件，但官方仓库也明确说明它不保证绕过 403 或 bot check。该方案会新增常驻服务、插件供应链和 GPL-3.0 合规评估，因此只作为显式启用的部署选项候选，不在默认 Runner 中静默引入。
 2. 小红书专项实现和公开 issue 均显示新版分享链依赖 `xsec_token`；例如 [XHS-Downloader #261](https://github.com/JoeanAmier/XHS-Downloader/issues/261) 记录了 `/m/` 短链跳转到带 token 长链的变化。后续应在 Runner 内受控跟随短链并保留最终公开 URL，而不是自行生成平台签名。
-3. [wx_channels_download](https://github.com/ltaoo/wx_channels_download) 的服务端分享链接解析需要元宝 Cookie，或将链接交给 Cloudflare Worker；另一条路线是本机 MITM/证书注入。两者分别违反当前“Runner 无业务凭据/不把源链接发送给第三方”和“服务端不安装抓包根证书”的边界，因此不纳入当前服务。
+3. [wx_channels_download](https://github.com/ltaoo/wx_channels_download) 的服务端分享链接解析需要元宝 Cookie，或将链接交给 Cloudflare Worker；另一条路线是本机 MITM/证书注入。这些路径没有 005 要求的 Provider allowlist、Secret 隔离和权限证明，或会把源链接交给第三方、安装抓包根证书，因此不纳入当前服务。
 
 优化顺序：
 
@@ -97,8 +99,8 @@ GitHub 调研后的取舍：
 
 落地内容：
 
-1. 删除所有 yt-dlp 命令上的空 `--cookies` 文件，保证“无 Cookie Runner”既是策略也是实际命令行为。
+1. 删除所有 yt-dlp 命令上的空 `--cookies` 文件，保证当前 anonymous Runner 的无会话基线是真实命令行为；后续 credentialed path 必须按 005 显式选择，不能影响匿名命令。
 2. 新增小红书 Provider Profile，识别完整作品地址及 `xhslink.com/a|m`，对复制文案中唯一的无 scheme 短链进行安全规范化；过期或缺少有效 token 的链接返回 `provider_link_unavailable`。
 3. 新增 `RUNNER_PROVIDER_EGRESS_PROXIES`。YouTube/抖音这类依赖出口信誉的平台可以由运维路由到独立的内部代理池；Runner 配置仍拒绝代理 URL 凭据，未配置时回退到统一 egress proxy。
-4. 不引入公开解析 API、公共 Worker、浏览器 Cookie、元宝 Cookie 或 MITM 根证书。市场工具能完成个人桌面下载，不代表其凭据模型、许可证和网络边界适合多用户服务端。
+4. 不引入公开解析 API、公共 Worker、未受管的全浏览器 Cookie、元宝 Cookie 或 MITM 根证书。市场工具能完成个人桌面下载，不代表其凭据模型、许可证和网络边界适合多用户服务端；受控 Provider Cookie 另按 005 实施。
 5. 抖音公开分享页由可信插件提取，远程格式先带固定浏览器请求头执行 ffprobe，并以实际可下载流时长覆盖陈旧页面时长；inspection 重试受单一总 deadline 约束，Runner 与调用方超时保持稳定 `inspection_timeout` 分类。
