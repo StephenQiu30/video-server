@@ -177,7 +177,7 @@ CREATE TABLE analysis_jobs (
     CONSTRAINT ck_analysis_jobs_attempt CHECK (attempt >= 0),
     CONSTRAINT ck_analysis_jobs_max_attempts CHECK (max_attempts > 0),
     CONSTRAINT ck_analysis_jobs_version CHECK (version >= 0),
-    CONSTRAINT ck_analysis_jobs_stage_rank CHECK (stage_rank BETWEEN 0 AND 4),
+    CONSTRAINT ck_analysis_jobs_stage_rank CHECK (stage_rank BETWEEN 0 AND 3),
     CONSTRAINT ck_analysis_jobs_sha256_length CHECK (length(input_sha256) = 64)
 );
 
@@ -193,6 +193,10 @@ CREATE TABLE analysis_results (
     input_sha256 VARCHAR(64) NOT NULL,
     schema_version VARCHAR(128) NOT NULL,
     language VARCHAR(35) NOT NULL,
+    provider VARCHAR(32) NOT NULL,
+    model VARCHAR(128) NOT NULL,
+    cli_version VARCHAR(128) NOT NULL,
+    prompt_version VARCHAR(128) NOT NULL,
     result_json JSONB NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_analysis_results_job UNIQUE (job_id),

@@ -19,9 +19,8 @@ from app.infrastructure.database.models import AnalysisJobRow
 
 STAGE_RANKS = {
     "preparing": 1,
-    "transcribing": 2,
-    "analyzing": 3,
-    "validating": 4,
+    "analyzing": 2,
+    "validating": 3,
 }
 
 

@@ -14,9 +14,7 @@ OUTER_APP_LAYERS = (
 INFRASTRUCTURE_PACKAGES = (
     "aio_pika",
     "fastapi",
-    "langchain",
     "minio",
-    "openai",
     "sqlalchemy",
     "yt_dlp",
 )

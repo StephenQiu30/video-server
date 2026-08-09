@@ -22,29 +22,38 @@ NOW = datetime(2026, 8, 6, 10, tzinfo=UTC)
 DOWNLOAD_ID = UUID("44444444-4444-4444-8444-444444444444")
 ANALYSIS_ID = UUID("55555555-5555-4555-8555-555555555555")
 RESULT = {
-    "schema_version": "analysis.v1",
+    "schema_version": "visual-analysis.v1",
     "language": "zh-CN",
-    "title": "可验证摘要",
-    "summary": {"text": "摘要", "evidence_segment_ids": ["s1"]},
-    "key_points": [{"text": "观点", "evidence_segment_ids": ["s1"]}],
-    "action_items": [],
-    "chapters": [
+    "title": "可验证视觉分析",
+    "summary": {"text": "摘要", "evidence_shot_ids": ["shot-1"]},
+    "media": {"duration_ms": 1_000, "container": "mp4", "size_bytes": 100},
+    "shot_count": 1,
+    "shots": [
         {
-            "title": "章节",
+            "id": "shot-1",
+            "index": 1,
             "start_ms": 0,
-            "end_ms": 1000,
-            "summary": "章节摘要",
-            "evidence_segment_ids": ["s1"],
+            "end_ms": 1_000,
+            "representative_frame_ms": 500,
+            "description": "开场画面",
+            "transition_in": "none",
+            "shot_size": "wide",
+            "camera_motion": "static",
+            "visual_tags": ["开场"],
+            "asset_ids": ["asset-1"],
         }
     ],
-    "mind_map": {
-        "id": "root",
-        "title": "主题",
-        "summary": None,
-        "start_ms": 0,
-        "evidence_segment_ids": ["s1"],
-        "children": [],
-    },
+    "highlights": [],
+    "assets": [
+        {
+            "id": "asset-1",
+            "type": "logo",
+            "label": "示例标志",
+            "description": "画面标志",
+            "first_seen_ms": 0,
+            "evidence_shot_ids": ["shot-1"],
+        }
+    ],
 }
 TEST_USER = CurrentUser(
     id=DOWNLOAD_ID,
@@ -76,7 +85,7 @@ def analysis_view(
 ) -> AnalysisJobView:
     return AnalysisJobView(
         id=ANALYSIS_ID,
-        profile="standard-v1",
+        profile="visual-shot-v1",
         output_language="zh-CN",
         status=status,
         stage=None,
@@ -130,7 +139,7 @@ def test_analysis_routes_share_owner_and_never_expose_internal_ids(
         created = test_client.post(
             f"/api/downloads/{DOWNLOAD_ID}/analyses",
             headers={"Idempotency-Key": "analysis-1"},
-            json={"profile": "standard-v1", "output_language": "zh-CN"},
+            json={"profile": "visual-shot-v1", "output_language": "zh-CN"},
         )
         fetched = test_client.get(f"/api/analyses/{ANALYSIS_ID}")
         cancelled = test_client.post(f"/api/analyses/{ANALYSIS_ID}/cancel")
@@ -162,7 +171,8 @@ def test_succeeded_analysis_returns_only_strict_structured_result(
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["result"]["mind_map"]["evidence_segment_ids"] == ["s1"]
+    assert payload["result"]["shot_count"] == 1
+    assert payload["result"]["assets"][0]["evidence_shot_ids"] == ["shot-1"]
     assert "schema_version" not in payload["result"]
     assert "transcript" not in response.text
     assert "provider" not in response.text
@@ -171,19 +181,19 @@ def test_succeeded_analysis_returns_only_strict_structured_result(
 def test_analysis_creation_rejects_invalid_or_extra_input(tmp_path: Path) -> None:
     test_client, stubs = client(tmp_path)
     requests = (
-        ({}, {"profile": "standard-v1", "output_language": "zh-CN"}),
+        ({}, {"profile": "visual-shot-v1", "output_language": "zh-CN"}),
         (
             {"Idempotency-Key": "analysis-1"},
             {"profile": "legacy", "output_language": "zh-CN"},
         ),
         (
             {"Idempotency-Key": "analysis-1"},
-            {"profile": "standard-v1", "output_language": "not a language"},
+            {"profile": "visual-shot-v1", "output_language": "not a language"},
         ),
         (
             {"Idempotency-Key": "analysis-1"},
             {
-                "profile": "standard-v1",
+                "profile": "visual-shot-v1",
                 "output_language": "zh-CN",
                 "prompt": "leak",
             },
@@ -210,12 +220,13 @@ def test_analysis_errors_are_problem_details(tmp_path: Path) -> None:
             (AnalysisApplicationErrorCode.NOT_FOUND, 404),
             (AnalysisApplicationErrorCode.ARTIFACT_NOT_READY, 409),
             (AnalysisApplicationErrorCode.IDEMPOTENCY_CONFLICT, 409),
+            (AnalysisApplicationErrorCode.SERVICE_UNAVAILABLE, 503),
         ):
             stubs["create"].error = AnalysisApplicationError(code)
             response = test_client.post(
                 f"/api/downloads/{DOWNLOAD_ID}/analyses",
                 headers={"Idempotency-Key": "analysis-1"},
-                json={"profile": "standard-v1", "output_language": "zh-CN"},
+                json={"profile": "visual-shot-v1", "output_language": "zh-CN"},
             )
             assert response.status_code == expected_status
             assert response.headers["content-type"].startswith(

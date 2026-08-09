@@ -60,6 +60,10 @@ class AnalysisPublishRepository(AnalysisRecoveryRepository):
                     input_sha256=row.input_sha256,
                     schema_version=row.schema_version,
                     language=row.output_language,
+                    provider=command.provider,
+                    model=command.model,
+                    cli_version=command.cli_version,
+                    prompt_version=command.prompt_version,
                     result_json=document,
                     created_at=command.now,
                 )

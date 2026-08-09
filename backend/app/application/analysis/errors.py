@@ -13,6 +13,7 @@ class AnalysisApplicationErrorCode(StrEnum):
     NOT_FOUND = "not_found"
     PROVIDER_FAILURE = "provider_failure"
     RESOURCE_EXPIRED = "resource_expired"
+    SERVICE_UNAVAILABLE = "analysis_unavailable"
 
 
 class AnalysisApplicationError(RuntimeError):

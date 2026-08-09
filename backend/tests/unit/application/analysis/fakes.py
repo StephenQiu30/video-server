@@ -15,22 +15,11 @@ from app.application.analysis import (
     PersistenceIdempotencyConflict,
     PersistenceNotFound,
 )
-from app.domain.analysis import Transcript
 
 
 class FakeFingerprinter:
     def fingerprint(self, namespace: str, *values: str) -> str:
         return "|".join((namespace, *values))
-
-
-class FakeAnalyzer:
-    def __init__(self, output: object) -> None:
-        self.output = output
-        self.calls: list[tuple[Transcript, str]] = []
-
-    async def analyze(self, transcript: Transcript, output_language: str) -> object:
-        self.calls.append((transcript, output_language))
-        return self.output
 
 
 class FakeRepository:

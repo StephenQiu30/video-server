@@ -10,7 +10,9 @@ from .models import (
     AnalysisDisposition,
     AnalysisExecutionSettings,
     LocalAnalysisArtifact,
+    VideoAnalysisRequest,
 )
+from .ports import VideoAnalyzer
 from .service import AnalysisExecution
 
 __all__ = [
@@ -24,4 +26,6 @@ __all__ = [
     "AnalysisPersistenceUnavailable",
     "AnalysisSourceUnavailable",
     "LocalAnalysisArtifact",
+    "VideoAnalysisRequest",
+    "VideoAnalyzer",
 ]

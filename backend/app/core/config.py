@@ -102,20 +102,32 @@ class Settings(BaseSettings):
     max_download_attempts: int = Field(default=3, ge=1, le=10)
     max_analysis_attempts: int = Field(default=3, ge=1, le=10)
 
-    analysis_workspace_root: Path = Path("/analysis-work")
-    analysis_provider: Literal["deepseek", "ollama"] = "ollama"
-    deepseek_api_key: SecretStr | None = None
-    deepseek_base_url: str = "https://api.deepseek.com"
-    deepseek_analysis_model: str = "deepseek-v4-flash"
-    ollama_base_url: str = "http://localhost:11434"
-    ollama_analysis_model: str = "qwen3:latest"
-    analysis_max_output_tokens: int = Field(default=16_384, ge=1_024, le=131_072)
-    openai_api_key: SecretStr | None = None
-    openai_base_url: str | None = None
-    openai_transcription_model: str = "gpt-4o-mini-transcribe"
-    analysis_schema_version: str = "analysis.v1"
-    analysis_timeout_seconds: float = Field(default=120, ge=1, le=1800)
-    transcription_timeout_seconds: float = Field(default=300, ge=1, le=1800)
+    analysis_enabled: bool = True
+    analysis_workspace_root: Path = Path("./.analysis-work")
+    analysis_cli_provider: Literal["codex", "claude"] = "codex"
+    analysis_codex_binary: Path = Path("codex")
+    analysis_codex_model: str = Field(default="gpt-5.6-sol", min_length=1)
+    analysis_claude_binary: Path = Path("claude")
+    analysis_claude_model: str = Field(default="sonnet", min_length=1)
+    analysis_ffmpeg_binary: Path = Path("ffmpeg")
+    analysis_ffprobe_binary: Path = Path("ffprobe")
+    analysis_schema_version: str = "visual-analysis.v1"
+    analysis_prompt_version: str = "visual-shot.v1"
+    analysis_timeout_seconds: float = Field(default=900, ge=1, le=3600)
+    analysis_max_stdout_bytes: int = Field(default=2 * 1024**2, ge=1024)
+    analysis_max_stderr_bytes: int = Field(default=128 * 1024, ge=1024)
+    analysis_max_workspace_bytes: int = Field(default=4 * 1024**3, ge=1024)
+    analysis_max_workspace_files: int = Field(default=512, ge=8, le=4096)
+    analysis_max_frames: int = Field(default=256, ge=1, le=1024)
+    analysis_max_image_bytes: int = Field(default=20 * 1024**2, ge=1024)
+    analysis_workspace_poll_seconds: float = Field(default=0.25, ge=0.05, le=5)
+    analysis_terminate_grace_seconds: float = Field(default=2, ge=0.1, le=30)
+    analysis_claude_max_turns: int = Field(default=40, ge=1, le=100)
+    analysis_database_url: str = (
+        "postgresql+asyncpg://video:video@localhost:15432/video"
+    )
+    analysis_rabbitmq_url: str = "amqp://video:video@localhost:5673/"
+    analysis_minio_endpoint: str = "localhost:19190"
 
     @field_validator("frontend_dist_dir")
     @classmethod
@@ -138,13 +150,6 @@ class Settings(BaseSettings):
     @classmethod
     def empty_bootstrap_admin_email_to_none(cls, value: object) -> object | None:
         if isinstance(value, str) and not value.strip():
-            return None
-        return value
-
-    @field_validator("deepseek_api_key", "openai_api_key")
-    @classmethod
-    def empty_optional_secret_to_none(cls, value: SecretStr | None) -> SecretStr | None:
-        if value is not None and not value.get_secret_value().strip():
             return None
         return value
 
@@ -198,10 +203,6 @@ class Settings(BaseSettings):
                     self.minio_secret_key.get_secret_value(),
                 )
             )
-        if self.service_role == "analysis-worker" and self.openai_api_key is not None:
-            secret_values.append(self.openai_api_key.get_secret_value())
-        if self.service_role == "analysis-worker" and self.deepseek_api_key is not None:
-            secret_values.append(self.deepseek_api_key.get_secret_value())
         insecure = any(
             value.startswith(("development-", "video-")) or "replace-with" in value
             for value in secret_values
@@ -218,6 +219,8 @@ class Settings(BaseSettings):
             raise ValueError("production API requires VALKEY_URL")
         if self.service_role == "api" and self.auth_bootstrap_admin_email is None:
             raise ValueError("production API requires AUTH_BOOTSTRAP_ADMIN_EMAIL")
+        if self.service_role == "api" and self.analysis_enabled:
+            raise ValueError("production API must disable host-only analysis")
         return self
 
 

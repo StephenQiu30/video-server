@@ -25,40 +25,35 @@ class AnalysisArtifactError(RuntimeError):
         super().__init__(code)
 
 
+_ERROR_CODES = {
+    "analysis_cli_unavailable": AnalysisErrorCode.CLI_UNAVAILABLE,
+    "analysis_cli_unsupported": AnalysisErrorCode.CLI_UNSUPPORTED,
+    "analysis_cli_not_authenticated": AnalysisErrorCode.CLI_NOT_AUTHENTICATED,
+    "analysis_sandbox_unavailable": AnalysisErrorCode.SANDBOX_UNAVAILABLE,
+    "analysis_media_invalid": AnalysisErrorCode.MEDIA_INVALID,
+    "analysis_provider_rate_limited": AnalysisErrorCode.PROVIDER_RATE_LIMITED,
+    "analysis_provider_usage_limited": AnalysisErrorCode.PROVIDER_USAGE_LIMITED,
+    "analysis_cli_timeout": AnalysisErrorCode.CLI_TIMEOUT,
+    "analysis_cli_failed": AnalysisErrorCode.CLI_FAILED,
+    "invalid_model_output": AnalysisErrorCode.INVALID_MODEL_OUTPUT,
+    "analysis_resource_limit": AnalysisErrorCode.RESOURCE_LIMIT,
+    "artifact_integrity_failed": AnalysisErrorCode.INPUT_ARTIFACT_UNAVAILABLE,
+    "input_artifact_unavailable": AnalysisErrorCode.INPUT_ARTIFACT_UNAVAILABLE,
+    "invalid_media_artifact": AnalysisErrorCode.MEDIA_INVALID,
+}
+
+
 def classify_analysis_failure(
     error: BaseException, stage: AnalysisStage
 ) -> AnalysisErrorCode:
+    del stage
     code = getattr(error, "code", None)
-    if code == "provider_rate_limited":
-        return AnalysisErrorCode.PROVIDER_RATE_LIMITED
-    if code in {"provider_unavailable", "provider_timeout"}:
-        if stage is AnalysisStage.TRANSCRIBING and code == "provider_timeout":
-            return AnalysisErrorCode.ASR_TIMEOUT
-        return AnalysisErrorCode.PROVIDER_UNAVAILABLE
-    if code in {"provider_invalid_response", "provider_rejected", "provider_refused"}:
-        if stage is AnalysisStage.TRANSCRIBING:
-            return AnalysisErrorCode.INVALID_TRANSCRIPT
-        return AnalysisErrorCode.INVALID_MODEL_OUTPUT
-    if code in {
-        "media_probe_timeout",
-        "audio_extraction_timeout",
-    }:
-        return AnalysisErrorCode.ASR_TIMEOUT
+    if isinstance(code, str) and code in _ERROR_CODES:
+        return _ERROR_CODES[code]
     if code in {
         "media_dependency_unavailable",
         "artifact_storage_unavailable",
         "invalid_analysis_workspace",
     }:
         return AnalysisErrorCode.WORKER_LOST
-    if code in {
-        "artifact_integrity_failed",
-        "input_artifact_unavailable",
-    }:
-        return AnalysisErrorCode.INPUT_ARTIFACT_UNAVAILABLE
-    if isinstance(code, str) and (
-        code.startswith("invalid_")
-        or code.endswith("_exceeded")
-        or code in {"media_probe_failed", "audio_extraction_failed"}
-    ):
-        return AnalysisErrorCode.INVALID_TRANSCRIPT
-    return AnalysisErrorCode.WORKER_LOST
+    return AnalysisErrorCode.CLI_FAILED

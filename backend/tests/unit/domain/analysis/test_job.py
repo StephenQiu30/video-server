@@ -20,8 +20,8 @@ def job() -> AnalysisJob:
         job_id="analysis-1",
         artifact_id="artifact-1",
         input_sha256=SHA256,
-        profile="standard-v1",
-        schema_version="analysis.v1",
+        profile="visual-shot-v1",
+        schema_version="visual-analysis.v1",
         output_language="zh-CN",
     )
 
@@ -48,11 +48,10 @@ def test_stages_are_linear_and_success_requires_validation() -> None:
     value = claimed()
 
     with pytest.raises(InvalidAnalysisTransition):
-        value.advance("worker-a", AnalysisStage.ANALYZING, 30, NOW)
+        value.advance("worker-a", AnalysisStage.VALIDATING, 30, NOW)
 
     for stage, progress in (
         (AnalysisStage.PREPARING, 5),
-        (AnalysisStage.TRANSCRIBING, 35),
         (AnalysisStage.ANALYZING, 70),
         (AnalysisStage.VALIDATING, 90),
     ):

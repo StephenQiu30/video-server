@@ -85,6 +85,7 @@ def test_production_accepts_explicit_secrets() -> None:
         minio_access_key=SecretStr("production-access"),
         minio_secret_key=SecretStr("m" * 48),
         auth_bootstrap_admin_email="admin@example.com",
+        analysis_enabled=False,
     )
 
     assert settings.app_env == "production"
@@ -101,4 +102,14 @@ def test_production_rejects_default_url_encryption_key() -> None:
             runner_hmac_secret=SecretStr("r" * 48),
             minio_access_key=SecretStr("production-access"),
             minio_secret_key=SecretStr("m" * 48),
+            analysis_enabled=False,
         )
+
+
+def test_analysis_cli_settings_use_host_services_without_api_keys() -> None:
+    settings = Settings(app_env="test", _env_file=None)
+
+    assert settings.analysis_cli_provider == "codex"
+    assert settings.analysis_schema_version == "visual-analysis.v1"
+    assert "localhost:15432" in settings.analysis_database_url
+    assert not any("openai" in name for name in type(settings).model_fields)

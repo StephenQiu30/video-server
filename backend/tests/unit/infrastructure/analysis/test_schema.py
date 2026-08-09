@@ -34,5 +34,8 @@ def test_result_is_strict_jsonb_without_transcript_or_provider_payload_columns()
     assert result.c.result_json.type.compile(postgresql.dialect()) == "JSONB"
     assert "transcript" not in result.columns
     assert "provider_response" not in result.columns
+    assert {"provider", "model", "cli_version", "prompt_version"} <= set(
+        result.columns.keys()
+    )
     ddl = str(CreateTable(result).compile(dialect=postgresql.dialect()))
     assert "jsonb_typeof(result_json) = 'object'" in ddl

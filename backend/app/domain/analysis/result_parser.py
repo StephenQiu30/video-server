@@ -3,20 +3,25 @@ from __future__ import annotations
 from app.domain.analysis.enums import AnalysisValidationCode
 from app.domain.analysis.errors import AnalysisValidationError
 from app.domain.analysis.parse_helpers import ParseContext
+from app.domain.analysis.result_drafts import (
+    evidence_ids,
+    parse_asset,
+    parse_highlight,
+    parse_shot,
+)
+from app.domain.analysis.result_items import Highlight, Shot, VisualAsset
 from app.domain.analysis.result_models import (
-    AnalysisChapter,
     AnalysisLimits,
+    AnalysisMedia,
     AnalysisResult,
-    EvidenceStatement,
-    MindMapNode,
+    EvidenceSummary,
 )
 from app.domain.analysis.result_validation import validate_analysis_result
-from app.domain.analysis.transcript import Transcript
 
 
 def parse_analysis_result(
     payload: object,
-    transcript: Transcript,
+    media: AnalysisMedia,
     *,
     expected_schema_version: str,
     expected_language: str,
@@ -31,10 +36,9 @@ def parse_analysis_result(
             "language",
             "title",
             "summary",
-            "key_points",
-            "action_items",
-            "chapters",
-            "mind_map",
+            "shots",
+            "highlights",
+            "assets",
         },
     )
     schema_version = context.text(root["schema_version"], "schema_version", maximum=128)
@@ -44,91 +48,108 @@ def parse_analysis_result(
             AnalysisValidationCode.INVALID_SCHEMA,
             "schema version or output language does not match the job",
         )
+
+    shot_drafts = tuple(
+        parse_shot(context, value, index)
+        for index, value in enumerate(
+            context.array(root["shots"], "shots", allow_empty=False)
+        )
+    )
+    highlight_drafts = tuple(
+        parse_highlight(context, value, index)
+        for index, value in enumerate(
+            context.array(root["highlights"], "highlights", allow_empty=True)
+        )
+    )
+    asset_drafts = tuple(
+        parse_asset(context, value, index)
+        for index, value in enumerate(
+            context.array(root["assets"], "assets", allow_empty=True)
+        )
+    )
+    shot_by_id = {shot.id: shot for shot in shot_drafts}
+    assets = tuple(
+        VisualAsset(
+            id=item.id,
+            type=item.type,
+            label=item.label,
+            description=item.description,
+            first_seen_ms=_first_seen(item.evidence_shot_ids, shot_by_id),
+            evidence_shot_ids=item.evidence_shot_ids,
+        )
+        for item in asset_drafts
+    )
+    shots = tuple(
+        Shot(
+            id=item.id,
+            index=item.index,
+            start_ms=item.start_ms,
+            end_ms=item.end_ms,
+            representative_frame_ms=item.representative_frame_ms,
+            description=item.description,
+            transition_in=item.transition_in,
+            shot_size=item.shot_size,
+            camera_motion=item.camera_motion,
+            visual_tags=item.visual_tags,
+            asset_ids=tuple(
+                asset.id for asset in assets if item.id in asset.evidence_shot_ids
+            ),
+        )
+        for item in shot_drafts
+    )
+    highlights = tuple(
+        Highlight(
+            id=item.id,
+            title=item.title,
+            description=item.description,
+            score=item.score,
+            reason=item.reason,
+            start_ms=_first_seen(item.evidence_shot_ids, shot_by_id),
+            end_ms=_last_seen(item.evidence_shot_ids, shot_by_id),
+            evidence_shot_ids=item.evidence_shot_ids,
+        )
+        for item in highlight_drafts
+    )
     result = AnalysisResult(
         schema_version=schema_version,
         language=language,
         title=context.text(root["title"], "title"),
-        summary=_statement(context, root["summary"], "summary"),
-        key_points=tuple(
-            _statement(context, item, f"key_points[{index}]")
-            for index, item in enumerate(
-                context.array(root["key_points"], "key_points", allow_empty=False)
-            )
-        ),
-        action_items=tuple(
-            _statement(context, item, f"action_items[{index}]")
-            for index, item in enumerate(
-                context.array(root["action_items"], "action_items", allow_empty=True)
-            )
-        ),
-        chapters=tuple(
-            _chapter(context, item, index)
-            for index, item in enumerate(
-                context.array(root["chapters"], "chapters", allow_empty=False)
-            )
-        ),
-        mind_map=_node(context, root["mind_map"], depth=1),
+        summary=_summary(context, root["summary"]),
+        media=media,
+        shot_count=len(shots),
+        shots=shots,
+        highlights=highlights,
+        assets=assets,
     )
-    validate_analysis_result(result, transcript, limits=context.limits)
+    validate_analysis_result(result, limits=context.limits)
     return result
 
 
-def _evidence_ids(context: ParseContext, value: object, path: str) -> tuple[str, ...]:
-    values = context.array(value, path, allow_empty=False)
-    return tuple(
-        context.text(item, f"{path}[{index}]", maximum=128)
-        for index, item in enumerate(values)
-    )
-
-
-def _statement(context: ParseContext, value: object, path: str) -> EvidenceStatement:
-    source = context.mapping(value, path, {"text", "evidence_segment_ids"})
-    return EvidenceStatement(
-        text=context.text(source["text"], f"{path}.text"),
-        evidence_segment_ids=_evidence_ids(
-            context, source["evidence_segment_ids"], f"{path}.evidence_segment_ids"
+def _summary(context: ParseContext, value: object) -> EvidenceSummary:
+    source = context.mapping(value, "summary", {"text", "evidence_shot_ids"})
+    return EvidenceSummary(
+        text=context.text(source["text"], "summary.text"),
+        evidence_shot_ids=evidence_ids(
+            context, source["evidence_shot_ids"], "summary.evidence_shot_ids"
         ),
     )
 
 
-def _chapter(context: ParseContext, value: object, index: int) -> AnalysisChapter:
-    path = f"chapters[{index}]"
-    source = context.mapping(
-        value,
-        path,
-        {"title", "start_ms", "end_ms", "summary", "evidence_segment_ids"},
-    )
-    return AnalysisChapter(
-        title=context.text(source["title"], f"{path}.title"),
-        start_ms=context.integer(source["start_ms"], f"{path}.start_ms"),
-        end_ms=context.integer(source["end_ms"], f"{path}.end_ms"),
-        summary=context.text(source["summary"], f"{path}.summary"),
-        evidence_segment_ids=_evidence_ids(
-            context, source["evidence_segment_ids"], f"{path}.evidence_segment_ids"
-        ),
-    )
+def _first_seen(references: tuple[str, ...], shots: dict[str, Shot]) -> int:
+    return min(_referenced(references, shots), key=lambda shot: shot.start_ms).start_ms
 
 
-def _node(context: ParseContext, value: object, depth: int) -> MindMapNode:
-    source = context.mapping(
-        value,
-        "mind_map node",
-        {"id", "title", "evidence_segment_ids", "children"},
-        {"summary", "start_ms"},
-    )
-    context.enter_node(source, depth)
-    summary = source.get("summary")
-    start_ms = source.get("start_ms")
-    children = context.array(source["children"], "node.children", allow_empty=True)
-    return MindMapNode(
-        id=context.text(source["id"], "node.id", maximum=128),
-        title=context.text(source["title"], "node.title"),
-        summary=None if summary is None else context.text(summary, "node.summary"),
-        start_ms=None
-        if start_ms is None
-        else context.integer(start_ms, "node.start_ms"),
-        evidence_segment_ids=_evidence_ids(
-            context, source["evidence_segment_ids"], "node.evidence_segment_ids"
-        ),
-        children=tuple(_node(context, child, depth + 1) for child in children),
-    )
+def _last_seen(references: tuple[str, ...], shots: dict[str, Shot]) -> int:
+    return max(_referenced(references, shots), key=lambda shot: shot.end_ms).end_ms
+
+
+def _referenced(
+    references: tuple[str, ...], shots: dict[str, Shot]
+) -> tuple[Shot, ...]:
+    try:
+        return tuple(shots[shot_id] for shot_id in references)
+    except KeyError as exc:
+        raise AnalysisValidationError(
+            AnalysisValidationCode.INVALID_EVIDENCE,
+            f"unknown evidence shot id: {exc.args[0]}",
+        ) from exc

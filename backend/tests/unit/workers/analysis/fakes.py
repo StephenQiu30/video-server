@@ -5,13 +5,13 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID, uuid4
 
-from app.application.analysis import AnalysisJobSnapshot, AudioChunk
+from app.application.analysis import AnalysisJobSnapshot
 from app.application.analysis_execution import (
     AnalysisArtifactSource,
     AnalysisExecutionSettings,
     LocalAnalysisArtifact,
 )
-from app.domain.analysis import AnalysisResult, Transcript, TranscriptSegment
+from app.domain.analysis import AnalysisResult
 
 NOW = datetime(2026, 8, 6, 12, tzinfo=UTC)
 
@@ -24,7 +24,7 @@ def running_job() -> AnalysisJobSnapshot:
         request_fingerprint="b" * 64,
         input_sha256="c" * 64,
         profile="default",
-        schema_version="analysis.v1",
+        schema_version="visual-analysis.v1",
         output_language="zh-CN",
         status="running",
         stage="preparing",
@@ -73,6 +73,7 @@ class FakeRepository:
             f"downloads/{job.id}/1/video.mp4",
             job.input_sha256,
             5,
+            2_000,
             "mp4",
         )
 
@@ -114,9 +115,19 @@ class FakeRepository:
         worker_id: str,
         expected_version: int,
         result: AnalysisResult,
+        provider: str,
+        model: str,
+        cli_version: str,
+        prompt_version: str,
         now: datetime,
     ) -> None:
         assert expected_version == self.job.version
+        assert (provider, model, cli_version, prompt_version) == (
+            "controlled",
+            "controlled",
+            "controlled",
+            "visual-shot.v1",
+        )
         self.published.append(result)
         self.job = replace(self.job, status="succeeded", stage=None)
 
@@ -145,29 +156,6 @@ class FakeLoader:
 
     async def cleanup(self, local: LocalAnalysisArtifact) -> None:
         self.cleaned = True
-
-
-class FakePreprocessor:
-    async def extract_chunks(
-        self, artifact: Path, *, workspace: Path
-    ) -> tuple[AudioChunk, ...]:
-        return (AudioChunk(0, 0, 2_000, b"wav"),)
-
-
-class FakeTranscriber:
-    def __init__(self, failure: Exception | None = None) -> None:
-        self.failure = failure
-
-    async def transcribe(
-        self, chunks: tuple[AudioChunk, ...], language_hint: str | None
-    ) -> Transcript:
-        if self.failure is not None:
-            raise self.failure
-        return transcript()
-
-
-def transcript() -> Transcript:
-    return Transcript((TranscriptSegment("seg-a", 0, 2_000, "en", "Evidence"),))
 
 
 def settings() -> AnalysisExecutionSettings:

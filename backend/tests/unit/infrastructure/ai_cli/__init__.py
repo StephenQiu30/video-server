@@ -1,0 +1,1 @@
+"""CLI analysis adapter tests."""

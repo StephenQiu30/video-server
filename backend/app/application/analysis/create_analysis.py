@@ -33,6 +33,7 @@ class CreateAnalysis:
         new_id: Callable[[], UUID],
         max_attempts: int,
         schema_version: str,
+        enabled: bool = True,
     ) -> None:
         if max_attempts <= 0:
             raise ValueError("max attempts must be positive")
@@ -42,6 +43,7 @@ class CreateAnalysis:
         self._new_id = new_id
         self._max_attempts = max_attempts
         self._schema_version = validate_label(schema_version, maximum=128)
+        self._enabled = enabled
 
     async def __call__(
         self,
@@ -51,6 +53,10 @@ class CreateAnalysis:
         profile: str,
         output_language: str,
     ) -> AnalysisJobView:
+        if not self._enabled:
+            raise AnalysisApplicationError(
+                AnalysisApplicationErrorCode.SERVICE_UNAVAILABLE
+            )
         owner_hash = validate_owner_hash(owner_hash)
         idempotency_key = validate_idempotency_key(idempotency_key)
         profile = validate_label(profile, maximum=128)

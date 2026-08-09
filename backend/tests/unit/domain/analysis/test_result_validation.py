@@ -5,181 +5,168 @@ from copy import deepcopy
 import pytest
 from app.domain.analysis import (
     AnalysisLimits,
+    AnalysisMedia,
     AnalysisValidationCode,
     AnalysisValidationError,
-    Transcript,
-    TranscriptSegment,
     parse_analysis_result,
 )
 
 
-def transcript() -> Transcript:
-    return Transcript(
-        (
-            TranscriptSegment("s1", 0, 1_000, "zh-CN", "第一段。"),
-            TranscriptSegment("s2", 1_000, 2_000, "en-US", "Second segment."),
-            TranscriptSegment("s3", 2_000, 3_000, "zh-CN", "第三段。"),
-        )
-    )
+def media() -> AnalysisMedia:
+    return AnalysisMedia(duration_ms=3_000, container="mp4", size_bytes=4_096)
 
 
 def document() -> dict[str, object]:
     return {
-        "schema_version": "analysis.v1",
+        "schema_version": "visual-analysis.v1",
         "language": "zh-CN",
-        "title": "双语视频分析",
-        "summary": {"text": "主要摘要", "evidence_segment_ids": ["s1", "s2"]},
-        "key_points": [
-            {"text": "关键观点", "evidence_segment_ids": ["s1"]},
-        ],
-        "action_items": [
-            {"text": "后续行动", "evidence_segment_ids": ["s3"]},
-        ],
-        "chapters": [
+        "title": "视觉分析",
+        "summary": {
+            "text": "三个连续分镜。",
+            "evidence_shot_ids": ["shot-1", "shot-3"],
+        },
+        "shots": [
             {
-                "title": "开场",
+                "id": "shot-1",
+                "index": 1,
                 "start_ms": 0,
-                "end_ms": 2_000,
-                "summary": "开场摘要",
-                "evidence_segment_ids": ["s1", "s2"],
+                "end_ms": 1_000,
+                "representative_frame_ms": 500,
+                "description": "人物进入画面。",
+                "transition_in": "none",
+                "shot_size": "wide",
+                "camera_motion": "static",
+                "visual_tags": ["人物", "室内"],
             },
             {
-                "title": "结尾",
+                "id": "shot-2",
+                "index": 2,
+                "start_ms": 1_000,
+                "end_ms": 2_000,
+                "representative_frame_ms": 1_500,
+                "description": "产品特写。",
+                "transition_in": "cut",
+                "shot_size": "close_up",
+                "camera_motion": "zoom",
+                "visual_tags": ["产品"],
+            },
+            {
+                "id": "shot-3",
+                "index": 3,
                 "start_ms": 2_000,
                 "end_ms": 3_000,
-                "summary": "结尾摘要",
-                "evidence_segment_ids": ["s3"],
+                "representative_frame_ms": 2_500,
+                "description": "品牌标识收尾。",
+                "transition_in": "dissolve",
+                "shot_size": "medium",
+                "camera_motion": "pan",
+                "visual_tags": ["标识"],
             },
         ],
-        "mind_map": {
-            "id": "root",
-            "title": "主题",
-            "summary": "根节点",
-            "start_ms": 0,
-            "evidence_segment_ids": ["s1", "s2"],
-            "children": [
-                {
-                    "id": "child",
-                    "title": "子主题",
-                    "summary": None,
-                    "start_ms": 2_000,
-                    "evidence_segment_ids": ["s3"],
-                    "children": [],
-                }
-            ],
-        },
+        "highlights": [
+            {
+                "id": "highlight-1",
+                "title": "产品亮相",
+                "description": "产品在中心位置出现。",
+                "score": 91,
+                "reason": "视觉主体清晰且信息密度高。",
+                "evidence_shot_ids": ["shot-2", "shot-3"],
+            }
+        ],
+        "assets": [
+            {
+                "id": "asset-person",
+                "type": "person",
+                "label": "出镜人物",
+                "description": "穿深色上衣的人物。",
+                "evidence_shot_ids": ["shot-1"],
+            },
+            {
+                "id": "asset-product",
+                "type": "product",
+                "label": "演示产品",
+                "description": "画面中心的产品。",
+                "evidence_shot_ids": ["shot-2", "shot-3"],
+            },
+        ],
     }
 
 
-def parse(payload: object) -> object:
+def parse(payload: object, *, limits: AnalysisLimits | None = None) -> object:
     return parse_analysis_result(
         payload,
-        transcript(),
-        expected_schema_version="analysis.v1",
+        media(),
+        expected_schema_version="visual-analysis.v1",
         expected_language="zh-CN",
+        limits=limits,
     )
 
 
-def test_valid_result_maps_every_conclusion_to_real_evidence() -> None:
+def test_valid_result_derives_counts_times_and_reverse_asset_index() -> None:
     result = parse(document())
 
-    assert result.title == "双语视频分析"
-    assert result.summary.evidence_segment_ids == ("s1", "s2")
-    assert result.action_items[0].evidence_segment_ids == ("s3",)
-    assert result.mind_map.children[0].start_ms == 2_000
+    assert result.shot_count == 3
+    assert result.media.duration_ms == 3_000
+    assert result.highlights[0].start_ms == 1_000
+    assert result.highlights[0].end_ms == 3_000
+    assert result.assets[1].first_seen_ms == 1_000
+    assert result.shots[0].asset_ids == ("asset-person",)
+    assert result.shots[2].asset_ids == ("asset-product",)
 
 
-@pytest.mark.parametrize("section", ["summary", "key_points", "action_items"])
-def test_orphan_evidence_is_rejected_for_conclusions(section: str) -> None:
+@pytest.mark.parametrize(
+    ("mutation", "code"),
+    [
+        (("shots", 1, "start_ms", 1_100), AnalysisValidationCode.INVALID_TIME_RANGE),
+        (("shots", 2, "end_ms", 2_900), AnalysisValidationCode.INVALID_TIME_RANGE),
+        (("shots", 1, "index", 3), AnalysisValidationCode.INVALID_TIME_RANGE),
+        (("shots", 0, "transition_in", "cut"), AnalysisValidationCode.INVALID_SCHEMA),
+        (("shots", 1, "camera_motion", "orbit"), AnalysisValidationCode.INVALID_SCHEMA),
+        (("highlights", 0, "score", 101), AnalysisValidationCode.INVALID_SCHEMA),
+        (("assets", 0, "type", "identity"), AnalysisValidationCode.INVALID_SCHEMA),
+    ],
+)
+def test_time_enum_and_score_contracts_are_strict(
+    mutation: tuple[str, int, str, object], code: AnalysisValidationCode
+) -> None:
     payload = document()
-    target = payload[section]
-    if isinstance(target, list):
-        target[0]["evidence_segment_ids"] = ["missing"]
-    else:
-        target["evidence_segment_ids"] = ["missing"]
+    collection, index, field, value = mutation
+    payload[collection][index][field] = value
 
     with pytest.raises(AnalysisValidationError) as caught:
         parse(payload)
-    assert caught.value.code is AnalysisValidationCode.INVALID_EVIDENCE
+    assert caught.value.code is code
 
 
-def test_chapter_and_mind_map_evidence_must_match_time_ranges() -> None:
-    chapter = document()
-    chapter["chapters"][0]["evidence_segment_ids"] = ["s3"]
-    with pytest.raises(AnalysisValidationError) as chapter_error:
-        parse(chapter)
-    assert chapter_error.value.code is AnalysisValidationCode.INVALID_TIME_RANGE
-
-    node = document()
-    node["mind_map"]["children"][0]["start_ms"] = 1_000
-    with pytest.raises(AnalysisValidationError) as node_error:
-        parse(node)
-    assert node_error.value.code is AnalysisValidationCode.INVALID_TIME_RANGE
-
-
-def test_empty_duplicate_and_orphan_evidence_are_rejected() -> None:
-    empty = document()
-    empty["summary"]["evidence_segment_ids"] = []
-    duplicate = document()
-    duplicate["summary"]["evidence_segment_ids"] = ["s1", "s1"]
-    orphan = document()
-    orphan["mind_map"]["evidence_segment_ids"] = ["missing"]
-
-    for payload in (empty, duplicate, orphan):
-        with pytest.raises(AnalysisValidationError):
-            parse(payload)
-
-
-def test_extra_fields_duplicate_nodes_cycles_depth_and_size_are_rejected() -> None:
+def test_unknown_empty_duplicate_and_orphan_evidence_are_rejected() -> None:
     extra = document()
-    extra["unexpected"] = "model commentary"
+    extra["confidence"] = 0.9
+    empty = document()
+    empty["summary"]["evidence_shot_ids"] = []
     duplicate = document()
-    duplicate["mind_map"]["children"][0]["id"] = "root"
-    cyclic = document()
-    root = cyclic["mind_map"]
-    root["children"] = [root]
+    duplicate["assets"][0]["evidence_shot_ids"] = ["shot-1", "shot-1"]
+    orphan = document()
+    orphan["highlights"][0]["evidence_shot_ids"] = ["missing"]
 
-    for payload in (extra, duplicate, cyclic):
+    for payload in (extra, empty, duplicate, orphan):
         with pytest.raises(AnalysisValidationError):
             parse(payload)
 
-    limited = document()
-    with pytest.raises(AnalysisValidationError) as too_deep:
-        parse_analysis_result(
-            limited,
-            transcript(),
-            expected_schema_version="analysis.v1",
-            expected_language="zh-CN",
-            limits=AnalysisLimits(max_mind_map_depth=1, max_mind_map_nodes=20),
-        )
-    assert too_deep.value.code is AnalysisValidationCode.LIMIT_EXCEEDED
 
-    with pytest.raises(AnalysisValidationError) as too_many:
-        parse_analysis_result(
-            limited,
-            transcript(),
-            expected_schema_version="analysis.v1",
-            expected_language="zh-CN",
-            limits=AnalysisLimits(max_mind_map_depth=8, max_mind_map_nodes=1),
-        )
-    assert too_many.value.code is AnalysisValidationCode.LIMIT_EXCEEDED
-
-
-def test_schema_language_chapter_order_and_nested_extra_fields_are_strict() -> None:
+def test_schema_language_nested_fields_ids_and_collection_limits_are_strict() -> None:
     wrong_schema = document()
-    wrong_schema["schema_version"] = "analysis.v2"
+    wrong_schema["schema_version"] = "unsupported.v0"
     wrong_language = document()
     wrong_language["language"] = "en-US"
-    reversed_chapters = document()
-    reversed_chapters["chapters"] = list(reversed(reversed_chapters["chapters"]))
     nested_extra = deepcopy(document())
-    nested_extra["summary"]["confidence"] = 0.9
+    nested_extra["shots"][0]["confidence"] = 0.9
+    duplicate_id = document()
+    duplicate_id["shots"][1]["id"] = "shot-1"
 
-    for payload in (
-        wrong_schema,
-        wrong_language,
-        reversed_chapters,
-        nested_extra,
-    ):
+    for payload in (wrong_schema, wrong_language, nested_extra, duplicate_id):
         with pytest.raises(AnalysisValidationError):
             parse(payload)
+
+    with pytest.raises(AnalysisValidationError) as limited:
+        parse(document(), limits=AnalysisLimits(max_collection_items=2))
+    assert limited.value.code is AnalysisValidationCode.LIMIT_EXCEEDED

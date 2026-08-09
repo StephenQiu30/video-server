@@ -28,7 +28,7 @@ def requested_body(*, event_type: str = "analysis.requested") -> tuple[bytes, UU
             "artifact_id": str(artifact_id),
             "input_sha256": "a" * 64,
             "profile": "default",
-            "schema_version": "analysis.v1",
+            "schema_version": "visual-analysis.v1",
             "output_language": "zh-CN",
             "attempt": 0,
             "version": 0,

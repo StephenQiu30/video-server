@@ -27,6 +27,7 @@ def source(content: bytes, *, sha256: str | None = None) -> AnalysisArtifactSour
         object_key="downloads/job/1/video.mp4",
         sha256=sha256 or hashlib.sha256(content).hexdigest(),
         size_bytes=len(content),
+        duration_ms=1_000,
         container="mp4",
     )
 
@@ -46,6 +47,8 @@ async def test_loader_verifies_source_and_removes_success_or_failure_workspaces(
 
     local = await loader.materialize(source(content), job_id=uuid4(), attempt=1)
     assert local.artifact.read_bytes() == content
+    assert local.artifact == local.workspace / "input" / "video.bin"
+    assert local.artifact.stat().st_mode & 0o777 == 0o400
     await loader.cleanup(local)
     assert not local.workspace.exists()
 

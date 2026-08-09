@@ -106,6 +106,10 @@ class AnalysisPublish:
     result: AnalysisResult
     lease_owner: str
     expected_version: int
+    provider: str
+    model: str
+    cli_version: str
+    prompt_version: str
     now: datetime
 
 
@@ -123,11 +127,3 @@ class AnalysisJobView:
     updated_at: datetime
     finished_at: datetime | None
     result: dict[str, Any] | None
-
-
-@dataclass(frozen=True, slots=True)
-class AudioChunk:
-    index: int
-    start_ms: int
-    end_ms: int
-    content: bytes

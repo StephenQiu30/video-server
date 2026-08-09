@@ -4,15 +4,16 @@ import asyncio
 from pathlib import Path
 
 import pytest
-from app.application.analysis_execution import AnalysisDisposition, AnalysisExecution
-from app.domain.analysis import Transcript
+from app.application.analysis_execution import (
+    AnalysisDisposition,
+    AnalysisExecution,
+    VideoAnalysisRequest,
+)
 
 from .fakes import (
     NOW,
     FakeLoader,
-    FakePreprocessor,
     FakeRepository,
-    FakeTranscriber,
     running_job,
     settings,
 )
@@ -23,7 +24,9 @@ class FakeAnalyzer:
     def __init__(self, output: object) -> None:
         self.output = output
 
-    async def analyze(self, transcript: Transcript, output_language: str) -> object:
+    async def analyze(self, request: VideoAnalysisRequest) -> object:
+        if isinstance(self.output, BaseException):
+            raise self.output
         return self.output
 
 
@@ -32,7 +35,7 @@ class BlockingAnalyzer:
         self.started = asyncio.Event()
         self.cancelled = False
 
-    async def analyze(self, transcript: Transcript, output_language: str) -> object:
+    async def analyze(self, request: VideoAnalysisRequest) -> object:
         self.started.set()
         try:
             await asyncio.Event().wait()
@@ -53,13 +56,10 @@ def execution(
     loader: FakeLoader,
     *,
     analyzer: object,
-    transcriber: FakeTranscriber | None = None,
 ) -> AnalysisExecution:
     return AnalysisExecution(
         repository=repository,  # type: ignore[arg-type]
         loader=loader,
-        preprocessor=FakePreprocessor(),
-        transcriber=transcriber or FakeTranscriber(),
         analyzer=analyzer,  # type: ignore[arg-type]
         clock=lambda: NOW,
         settings=settings(),
@@ -78,8 +78,6 @@ async def test_success_runs_linear_stages_publishes_and_cleans(tmp_path: Path) -
     assert disposition is AnalysisDisposition.ACK
     assert [stage for stage, _ in repository.heartbeats] == [
         "preparing",
-        "transcribing",
-        "transcribing",
         "analyzing",
         "validating",
     ]
@@ -112,31 +110,30 @@ async def test_cancelled_lease_cancels_active_provider_and_cleans(
 async def test_rate_limit_records_retry_and_cleans(tmp_path: Path) -> None:
     repository = FakeRepository(running_job())
     loader = FakeLoader(tmp_path)
-    transcriber = FakeTranscriber(ProviderFailure("provider_rate_limited"))
-
     disposition = await execution(
         repository,
         loader,
-        analyzer=FakeAnalyzer(valid_mapping()),
-        transcriber=transcriber,
+        analyzer=FakeAnalyzer(ProviderFailure("analysis_provider_rate_limited")),
     ).execute(repository.job.id)
 
     assert disposition is AnalysisDisposition.ACK
     assert repository.job.status == "retry_wait"
-    assert repository.failures[0]["error_code"] == "provider_rate_limited"
+    assert repository.failures[0]["error_code"] == "analysis_provider_rate_limited"
     assert repository.failures[0]["retryable"] is True
     assert repository.failures[0]["retry_at"] is not None
     assert loader.cleaned is True
 
 
 @pytest.mark.asyncio
-async def test_invalid_model_evidence_fails_without_retry(tmp_path: Path) -> None:
+async def test_invalid_model_evidence_retries_with_attempt_limit(
+    tmp_path: Path,
+) -> None:
     repository = FakeRepository(running_job())
     loader = FakeLoader(tmp_path)
     invalid = valid_mapping()
     invalid["summary"] = {
         "text": "invented",
-        "evidence_segment_ids": ["not-real"],
+        "evidence_shot_ids": ["not-real"],
     }
 
     disposition = await execution(
@@ -144,7 +141,7 @@ async def test_invalid_model_evidence_fails_without_retry(tmp_path: Path) -> Non
     ).execute(repository.job.id)
 
     assert disposition is AnalysisDisposition.ACK
-    assert repository.job.status == "failed"
+    assert repository.job.status == "retry_wait"
     assert repository.failures[0]["error_code"] == "invalid_model_output"
-    assert repository.failures[0]["retryable"] is False
+    assert repository.failures[0]["retryable"] is True
     assert loader.cleaned is True

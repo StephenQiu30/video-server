@@ -40,7 +40,7 @@ class AnalysisJobRow(Base):
         CheckConstraint("max_attempts > 0", name="ck_analysis_jobs_max_attempts"),
         CheckConstraint("version >= 0", name="ck_analysis_jobs_version"),
         CheckConstraint(
-            "stage_rank BETWEEN 0 AND 4", name="ck_analysis_jobs_stage_rank"
+            "stage_rank BETWEEN 0 AND 3", name="ck_analysis_jobs_stage_rank"
         ),
         CheckConstraint(
             "length(input_sha256) = 64", name="ck_analysis_jobs_sha256_length"
@@ -108,6 +108,10 @@ class AnalysisResultRow(Base):
     input_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
     schema_version: Mapped[str] = mapped_column(String(128), nullable=False)
     language: Mapped[str] = mapped_column(String(35), nullable=False)
+    provider: Mapped[str] = mapped_column(String(32), nullable=False)
+    model: Mapped[str] = mapped_column(String(128), nullable=False)
+    cli_version: Mapped[str] = mapped_column(String(128), nullable=False)
+    prompt_version: Mapped[str] = mapped_column(String(128), nullable=False)
     result_json: Mapped[dict[str, Any]] = mapped_column(JSON_DOCUMENT, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now

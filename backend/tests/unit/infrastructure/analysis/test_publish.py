@@ -29,9 +29,8 @@ async def validating_job(analysis_db):
     )
     assert current is not None
     for offset, stage, progress in (
-        (1, "transcribing", 30),
-        (2, "analyzing", 70),
-        (3, "validating", 90),
+        (1, "analyzing", 70),
+        (2, "validating", 90),
     ):
         assert await analysis_db.repository.heartbeat(
             command.id,
@@ -62,7 +61,11 @@ async def test_result_and_success_publish_atomically_without_transcript(
         result=analysis_result(),
         lease_owner="worker-a",
         expected_version=job.version,
-        now=NOW + timedelta(seconds=4),
+        provider="codex",
+        model="controlled-model",
+        cli_version="codex-cli controlled",
+        prompt_version="visual-shot.v1",
+        now=NOW + timedelta(seconds=3),
     )
 
     succeeded = await analysis_db.repository.publish_result(publish)
@@ -75,15 +78,21 @@ async def test_result_and_success_publish_atomically_without_transcript(
             select(AnalysisResultRow).where(AnalysisResultRow.job_id == command.id)
         )
         assert row is not None
+        assert (row.provider, row.model, row.prompt_version) == (
+            "codex",
+            "controlled-model",
+            "visual-shot.v1",
+        )
         assert set(row.result_json) == {
             "schema_version",
             "language",
             "title",
             "summary",
-            "key_points",
-            "action_items",
-            "chapters",
-            "mind_map",
+            "media",
+            "shot_count",
+            "shots",
+            "highlights",
+            "assets",
         }
         serialized = json.dumps(row.result_json, ensure_ascii=False).lower()
         assert "transcript" not in serialized
@@ -111,7 +120,11 @@ async def test_publish_requires_matching_validating_lease_and_version(
         result=analysis_result(),
         lease_owner="worker-a",
         expected_version=job.version,
-        now=NOW + timedelta(seconds=4),
+        provider="codex",
+        model="controlled-model",
+        cli_version="codex-cli controlled",
+        prompt_version="visual-shot.v1",
+        now=NOW + timedelta(seconds=3),
     )
 
     for invalid in (

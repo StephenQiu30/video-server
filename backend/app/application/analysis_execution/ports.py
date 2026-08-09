@@ -2,14 +2,13 @@ from __future__ import annotations
 
 from collections.abc import Callable, Coroutine
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Any, Protocol
 from uuid import UUID
 
-from app.application.analysis import AnalysisJobSnapshot, AudioChunk
-from app.domain.analysis import AnalysisResult, Transcript
+from app.application.analysis import AnalysisJobSnapshot
+from app.domain.analysis import AnalysisResult
 
-from .models import AnalysisArtifactSource, LocalAnalysisArtifact
+from .models import AnalysisArtifactSource, LocalAnalysisArtifact, VideoAnalysisRequest
 
 
 class AnalysisExecutionRepository(Protocol):
@@ -41,6 +40,10 @@ class AnalysisExecutionRepository(Protocol):
         worker_id: str,
         expected_version: int,
         result: AnalysisResult,
+        provider: str,
+        model: str,
+        cli_version: str,
+        prompt_version: str,
         now: datetime,
     ) -> None: ...
 
@@ -70,20 +73,8 @@ class ArtifactLoader(Protocol):
     async def cleanup(self, local: LocalAnalysisArtifact) -> None: ...
 
 
-class AudioPreprocessor(Protocol):
-    async def extract_chunks(
-        self, artifact: Path, *, workspace: Path
-    ) -> tuple[AudioChunk, ...]: ...
-
-
-class Transcriber(Protocol):
-    async def transcribe(
-        self, chunks: tuple[AudioChunk, ...], language_hint: str | None
-    ) -> Transcript: ...
-
-
-class Analyzer(Protocol):
-    async def analyze(self, transcript: Transcript, output_language: str) -> object: ...
+class VideoAnalyzer(Protocol):
+    async def analyze(self, request: VideoAnalysisRequest) -> object: ...
 
 
 type Clock = Callable[[], datetime]

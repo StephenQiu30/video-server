@@ -7,10 +7,9 @@ from uuid import UUID, uuid4
 
 from app.application.analysis import AnalysisCreate
 from app.domain.analysis import (
-    AnalysisChapter,
+    AnalysisMedia,
     AnalysisResult,
-    EvidenceStatement,
-    MindMapNode,
+    parse_analysis_result,
 )
 from app.infrastructure.database.models import (
     ArtifactRow,
@@ -19,6 +18,7 @@ from app.infrastructure.database.models import (
     MediaInspectionRow,
 )
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from tests.unit.workers.analysis.fixtures import valid_mapping
 
 OWNER = "a" * 64
 
@@ -130,11 +130,11 @@ def analysis_command(
         idempotency_key=idempotency_key or f"analysis-{source.artifact_id}",
         request_fingerprint=fingerprint
         or hashlib.sha256(
-            f"{source.artifact_id}:standard-v1:analysis.v1:zh-CN".encode()
+            f"{source.artifact_id}:visual-shot-v1:visual-analysis.v1:zh-CN".encode()
         ).hexdigest(),
         input_sha256=source.sha256,
-        profile="standard-v1",
-        schema_version="analysis.v1",
+        profile="visual-shot-v1",
+        schema_version="visual-analysis.v1",
         output_language="zh-CN",
         max_attempts=max_attempts,
         outbox_event_id=event_id or uuid4(),
@@ -143,13 +143,9 @@ def analysis_command(
 
 
 def analysis_result() -> AnalysisResult:
-    return AnalysisResult(
-        schema_version="analysis.v1",
-        language="zh-CN",
-        title="双语内容",
-        summary=EvidenceStatement("内容摘要", ("s1", "s2")),
-        key_points=(EvidenceStatement("关键观点", ("s1",)),),
-        action_items=(EvidenceStatement("行动项", ("s2",)),),
-        chapters=(AnalysisChapter("章节", 0, 2_000, "章节摘要", ("s1", "s2")),),
-        mind_map=MindMapNode("root", "主题", None, 0, ("s1",), ()),
+    return parse_analysis_result(
+        valid_mapping(),
+        AnalysisMedia(duration_ms=2_000, container="mp4", size_bytes=1_024),
+        expected_schema_version="visual-analysis.v1",
+        expected_language="zh-CN",
     )

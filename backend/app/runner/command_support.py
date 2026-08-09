@@ -12,7 +12,8 @@ from app.runner.settings import RunnerSettings
 
 def default_supervisor(settings: RunnerSettings) -> ProcessSupervisor:
     return ProcessSupervisor(
-        output_limit_bytes=settings.runner_output_capture_bytes,
+        stdout_limit_bytes=settings.runner_output_capture_bytes,
+        stderr_limit_bytes=settings.runner_output_capture_bytes,
         terminate_grace_seconds=settings.runner_terminate_grace_seconds,
     )
 

@@ -14,18 +14,23 @@ class AnalysisStatus(StrEnum):
 
 class AnalysisStage(StrEnum):
     PREPARING = "preparing"
-    TRANSCRIBING = "transcribing"
     ANALYZING = "analyzing"
     VALIDATING = "validating"
 
 
 class AnalysisErrorCode(StrEnum):
     CANCELLED = "cancelled"
-    ASR_TIMEOUT = "asr_timeout"
-    PROVIDER_RATE_LIMITED = "provider_rate_limited"
-    PROVIDER_UNAVAILABLE = "provider_unavailable"
+    CLI_UNAVAILABLE = "analysis_cli_unavailable"
+    CLI_UNSUPPORTED = "analysis_cli_unsupported"
+    CLI_NOT_AUTHENTICATED = "analysis_cli_not_authenticated"
+    SANDBOX_UNAVAILABLE = "analysis_sandbox_unavailable"
+    MEDIA_INVALID = "analysis_media_invalid"
+    PROVIDER_RATE_LIMITED = "analysis_provider_rate_limited"
+    PROVIDER_USAGE_LIMITED = "analysis_provider_usage_limited"
+    CLI_TIMEOUT = "analysis_cli_timeout"
+    CLI_FAILED = "analysis_cli_failed"
     INVALID_MODEL_OUTPUT = "invalid_model_output"
-    INVALID_TRANSCRIPT = "invalid_transcript"
+    RESOURCE_LIMIT = "analysis_resource_limit"
     INPUT_ARTIFACT_UNAVAILABLE = "input_artifact_unavailable"
     INTERNAL_ERROR = "internal_error"
     WORKER_LOST = "worker_lost"
@@ -33,9 +38,10 @@ class AnalysisErrorCode(StrEnum):
     @property
     def retryable(self) -> bool:
         return self in {
-            self.ASR_TIMEOUT,
             self.PROVIDER_RATE_LIMITED,
-            self.PROVIDER_UNAVAILABLE,
+            self.CLI_TIMEOUT,
+            self.CLI_FAILED,
+            self.INVALID_MODEL_OUTPUT,
             self.WORKER_LOST,
         }
 

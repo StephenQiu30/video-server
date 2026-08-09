@@ -8,6 +8,7 @@ from uuid import UUID
 from app.application.analysis import AnalysisJobSnapshot
 from app.domain.analysis import (
     AnalysisErrorCode,
+    AnalysisMedia,
     AnalysisStage,
     AnalysisStatus,
     AnalysisValidationError,
@@ -25,15 +26,14 @@ from .models import (
     AnalysisDisposition,
     AnalysisExecutionSettings,
     LocalAnalysisArtifact,
+    VideoAnalysisRequest,
 )
 from .monitor import AnalysisLeaseMonitor
 from .ports import (
     AnalysisExecutionRepository,
-    Analyzer,
     ArtifactLoader,
-    AudioPreprocessor,
     Clock,
-    Transcriber,
+    VideoAnalyzer,
 )
 from .transitions import AnalysisTransitions
 
@@ -44,16 +44,12 @@ class AnalysisExecution:
         *,
         repository: AnalysisExecutionRepository,
         loader: ArtifactLoader,
-        preprocessor: AudioPreprocessor,
-        transcriber: Transcriber,
-        analyzer: Analyzer,
+        analyzer: VideoAnalyzer,
         clock: Clock,
         settings: AnalysisExecutionSettings,
     ) -> None:
         self._repository = repository
         self._loader = loader
-        self._preprocessor = preprocessor
-        self._transcriber = transcriber
         self._analyzer = analyzer
         self._clock = clock
         self._settings = settings
@@ -88,28 +84,29 @@ class AnalysisExecution:
                 stage=stage,
                 progress=10,
             )
-            stage = AnalysisStage.TRANSCRIBING
-            chunks = await monitor.run(
-                lambda: self._preprocessor.extract_chunks(
-                    local.artifact, workspace=local.workspace
-                ),
-                stage=stage,
-                progress=30,
-            )
-            transcript = await monitor.run(
-                lambda: self._transcriber.transcribe(chunks, None),
-                stage=stage,
-                progress=55,
-            )
             stage = AnalysisStage.ANALYZING
+            request = VideoAnalysisRequest(
+                artifact=local.artifact,
+                workspace=local.workspace,
+                duration_ms=source.duration_ms,
+                size_bytes=source.size_bytes,
+                container=source.container,
+                output_language=job.output_language,
+                schema_version=job.schema_version,
+                prompt_version=self._settings.prompt_version,
+            )
             payload = await monitor.run(
-                lambda: self._analyzer.analyze(transcript, job.output_language),
+                lambda: self._analyzer.analyze(request),
                 stage=stage,
-                progress=75,
+                progress=70,
             )
             result = parse_analysis_result(
                 payload,
-                transcript,
+                AnalysisMedia(
+                    duration_ms=source.duration_ms,
+                    container=source.container,
+                    size_bytes=source.size_bytes,
+                ),
                 expected_schema_version=job.schema_version,
                 expected_language=job.output_language,
             )
@@ -125,6 +122,10 @@ class AnalysisExecution:
                 self._settings.worker_id,
                 current.version,
                 result,
+                self._settings.provider,
+                self._settings.model,
+                self._settings.cli_version,
+                self._settings.prompt_version,
                 self._clock(),
             )
             return AnalysisDisposition.ACK
@@ -139,12 +140,9 @@ class AnalysisExecution:
         except asyncio.CancelledError:
             raise
         except AnalysisValidationError:
-            code = (
-                AnalysisErrorCode.INVALID_TRANSCRIPT
-                if stage is AnalysisStage.TRANSCRIBING
-                else AnalysisErrorCode.INVALID_MODEL_OUTPUT
+            return await self._transitions.fail(
+                job.id, job.attempt, AnalysisErrorCode.INVALID_MODEL_OUTPUT
             )
-            return await self._transitions.fail(job.id, job.attempt, code)
         except Exception as error:
             return await self._transitions.fail(
                 job.id,

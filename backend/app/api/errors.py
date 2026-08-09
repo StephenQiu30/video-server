@@ -145,6 +145,11 @@ _ANALYSIS_ERRORS: dict[AnalysisApplicationErrorCode, tuple[int, str, str]] = {
         "Not found",
         "The requested resource was not found.",
     ),
+    AnalysisApplicationErrorCode.SERVICE_UNAVAILABLE: (
+        503,
+        "Analysis unavailable",
+        "Video analysis is not enabled for this deployment.",
+    ),
 }
 
 _AUTH_ERRORS: dict[AuthErrorCode, tuple[int, str, str]] = {

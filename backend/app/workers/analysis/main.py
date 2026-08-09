@@ -11,15 +11,6 @@ from app.application.analysis_execution import (
     AnalysisExecutionSettings,
 )
 from app.core.config import Settings, get_settings_for_role
-from app.infrastructure.ai import (
-    LangChainAnalyzer,
-    OpenAITranscriber,
-    create_transcription_client,
-)
-from app.infrastructure.analysis_media import (
-    AnalysisMediaSettings,
-    FfmpegAudioPreprocessor,
-)
 from app.infrastructure.analysis_repository import SqlAlchemyAnalysisRepository
 from app.infrastructure.database import (
     SqlAlchemyDownloadRepository,
@@ -33,16 +24,12 @@ from app.workers.analysis.consumer import (
     RabbitMqAnalysisConsumer,
 )
 from app.workers.analysis.persistence import AnalysisExecutionPersistence
-from app.workers.analysis.providers import (
-    analysis_model_config,
-    transcription_config,
-)
+from app.workers.analysis.providers import build_video_analyzer
 from app.workers.analysis.sweeper import (
     AnalysisRecoverySweeper,
     RecoverySettings,
 )
 from app.workers.analysis.utilities import install_signal_handlers, utc_now, worker_id
-from openai import AsyncOpenAI
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 
@@ -52,30 +39,31 @@ class AnalysisWorkerRuntime:
     sweeper: AnalysisRecoverySweeper
     storage: MinioObjectStorage
     loader: LocalAnalysisArtifactLoader
-    transcription_client: AsyncOpenAI
     engine: AsyncEngine
 
     async def close(self) -> None:
         try:
             await self.consumer.close()
         finally:
-            try:
-                await self.transcription_client.close()
-            finally:
-                await self.engine.dispose()
+            await self.engine.dispose()
 
 
 def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
-    transcription = transcription_config(settings)
-    transcription_client = create_transcription_client(transcription)
-    analysis_model = analysis_model_config(settings)
-    engine = create_engine(settings.database_url)
+    analyzer_runtime = build_video_analyzer(settings)
+    host_settings = settings.model_copy(
+        update={
+            "database_url": settings.analysis_database_url,
+            "rabbitmq_url": settings.analysis_rabbitmq_url,
+            "minio_endpoint": settings.analysis_minio_endpoint,
+        }
+    )
+    engine = create_engine(host_settings.database_url)
     sessions = create_session_factory(engine)
     analysis = SqlAlchemyAnalysisRepository(sessions)
     persistence = AnalysisExecutionPersistence(
         analysis, SqlAlchemyDownloadRepository(sessions)
     )
-    storage = MinioObjectStorage(settings)
+    storage = MinioObjectStorage(host_settings)
     loader = LocalAnalysisArtifactLoader(
         storage,
         workspace_root=settings.analysis_workspace_root,
@@ -85,16 +73,7 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
     execution = AnalysisExecution(
         repository=persistence,
         loader=loader,
-        preprocessor=FfmpegAudioPreprocessor(
-            AnalysisMediaSettings(
-                max_total_duration_ms=settings.max_video_duration_seconds * 1000
-            )
-        ),
-        transcriber=OpenAITranscriber(
-            transcription,
-            client=transcription_client,
-        ),
-        analyzer=LangChainAnalyzer(analysis_model),
+        analyzer=analyzer_runtime.analyzer,
         clock=utc_now,
         settings=AnalysisExecutionSettings(
             worker_id=worker_id(),
@@ -102,6 +81,10 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
             lease_for=timedelta(seconds=settings.job_lease_seconds),
             heartbeat_interval=settings.heartbeat_interval_seconds,
             max_source_bytes=settings.max_file_size_bytes,
+            prompt_version=settings.analysis_prompt_version,
+            provider=analyzer_runtime.provider,
+            model=analyzer_runtime.model,
+            cli_version=analyzer_runtime.cli_version,
         ),
     )
     topology = AnalysisQueueTopology(
@@ -111,10 +94,10 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
     )
     return AnalysisWorkerRuntime(
         consumer=RabbitMqAnalysisConsumer(
-            settings.rabbitmq_url,
+            host_settings.rabbitmq_url,
             topology,
             execution,
-            prefetch=settings.worker_prefetch,
+            prefetch=1,
         ),
         sweeper=AnalysisRecoverySweeper(
             analysis,
@@ -126,7 +109,6 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
         ),
         storage=storage,
         loader=loader,
-        transcription_client=transcription_client,
         engine=engine,
     )
 

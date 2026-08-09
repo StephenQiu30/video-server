@@ -35,3 +35,8 @@ def test_analysis_openapi_is_current_and_excludes_internal_fields(
     assert {"artifact_id", "schema_version", "transcript", "provider"}.isdisjoint(
         fields
     )
+    result_fields = components["AnalysisResultResponse"]["properties"]
+    assert {"media", "shot_count", "shots", "highlights", "assets"} <= set(
+        result_fields
+    )
+    assert {"provider", "model", "cli_version"}.isdisjoint(result_fields)

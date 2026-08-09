@@ -1,50 +1,63 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
 from app.core.config import Settings
+from app.infrastructure.ai_cli import (
+    AnalysisCliError,
+    ClaudeCliVideoAnalyzer,
+    CliCapabilities,
+    CodexCliVideoAnalyzer,
+)
+from app.workers.analysis import providers
 from app.workers.analysis.providers import (
-    analysis_model_config,
-    transcription_config,
+    authentication_environment,
+    build_video_analyzer,
 )
 from app.workers.analysis.sweeper import AnalysisRecoverySweeper
-from pydantic import SecretStr
 
 
-def test_worker_builds_ollama_or_deepseek_analysis_config() -> None:
-    settings = Settings(app_env="test")
-    ollama = analysis_model_config(settings)
-    assert ollama.provider == "ollama"
-    assert ollama.model == "qwen3:latest"
-
-    with pytest.raises(ValueError, match="DEEPSEEK_API_KEY"):
-        analysis_model_config(Settings(app_env="test", analysis_provider="deepseek"))
-
-    deepseek = analysis_model_config(
-        Settings(
-            app_env="test",
-            analysis_provider="deepseek",
-            deepseek_api_key=SecretStr("controlled-deepseek-key"),
+@pytest.mark.parametrize(
+    ("provider", "expected"),
+    [("codex", CodexCliVideoAnalyzer), ("claude", ClaudeCliVideoAnalyzer)],
+)
+def test_worker_builds_selected_oauth_cli_adapter(
+    monkeypatch: pytest.MonkeyPatch,
+    provider: str,
+    expected: type[object],
+) -> None:
+    def successful_preflight(*args: object, **kwargs: object) -> CliCapabilities:
+        del args, kwargs
+        return CliCapabilities(
+            provider=provider,
+            binary=Path("/opt/tools/ai-cli"),
+            version="controlled",
+            ffmpeg=Path("/opt/tools/ffmpeg"),
+            ffprobe=Path("/opt/tools/ffprobe"),
         )
-    )
-    assert deepseek.provider == "deepseek"
-    assert deepseek.model == "deepseek-v4-flash"
-    assert "controlled-deepseek-key" not in repr(deepseek)
+
+    monkeypatch.setattr(providers, "preflight", successful_preflight)
+    settings = Settings(app_env="test", analysis_cli_provider=provider)
+
+    runtime = build_video_analyzer(settings)
+
+    assert isinstance(runtime.analyzer, expected)
+    assert runtime.provider == provider
+    assert runtime.cli_version == "controlled"
 
 
-def test_transcription_config_requires_its_own_secret() -> None:
-    settings = Settings(app_env="test")
-    assert settings.openai_api_key is None
-    with pytest.raises(ValueError, match="OPENAI_API_KEY"):
-        transcription_config(settings)
+def test_worker_rejects_api_key_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "must-not-be-used")
 
-    provider = transcription_config(
-        Settings(app_env="test", openai_api_key=SecretStr("controlled-key"))
-    )
-    assert provider.model == "gpt-4o-mini-transcribe"
-    assert "controlled-key" not in repr(provider)
+    with pytest.raises(AnalysisCliError, match="analysis_cli_not_authenticated"):
+        authentication_environment()
+
+    monkeypatch.delenv("OPENAI_API_KEY")
+    assert "OPENAI_API_KEY" not in authentication_environment()
+    assert "HOME" in authentication_environment()
 
 
 class FakeRecovery:

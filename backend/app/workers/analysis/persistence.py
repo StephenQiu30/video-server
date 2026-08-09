@@ -72,6 +72,7 @@ class AnalysisExecutionPersistence:
                 object_key=artifact.object_key,
                 sha256=artifact.sha256,
                 size_bytes=artifact.size_bytes,
+                duration_ms=artifact.duration_ms,
                 container=artifact.container,
             )
         raise AssertionError("unreachable")
@@ -105,11 +106,25 @@ class AnalysisExecutionPersistence:
         worker_id: str,
         expected_version: int,
         result: AnalysisResult,
+        provider: str,
+        model: str,
+        cli_version: str,
+        prompt_version: str,
         now: datetime,
     ) -> None:
         with _translate_errors():
             await self._analysis.publish_result(
-                AnalysisPublish(job_id, result, worker_id, expected_version, now)
+                AnalysisPublish(
+                    job_id=job_id,
+                    result=result,
+                    lease_owner=worker_id,
+                    expected_version=expected_version,
+                    provider=provider,
+                    model=model,
+                    cli_version=cli_version,
+                    prompt_version=prompt_version,
+                    now=now,
+                )
             )
 
     async def complete_failure(

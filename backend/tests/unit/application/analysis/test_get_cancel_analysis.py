@@ -20,29 +20,29 @@ from tests.unit.application.analysis.test_create_analysis import (
 )
 
 RESULT = {
-    "schema_version": "analysis.v1",
+    "schema_version": "visual-analysis.v1",
     "language": "zh-CN",
-    "title": "可验证摘要",
-    "summary": {"text": "摘要", "evidence_segment_ids": ["s1"]},
-    "key_points": [{"text": "观点", "evidence_segment_ids": ["s1"]}],
-    "action_items": [],
-    "chapters": [
+    "title": "可验证视觉分析",
+    "summary": {"text": "摘要", "evidence_shot_ids": ["shot-1"]},
+    "media": {"duration_ms": 1_000, "container": "mp4", "size_bytes": 100},
+    "shot_count": 1,
+    "shots": [
         {
-            "title": "章节",
+            "id": "shot-1",
+            "index": 1,
             "start_ms": 0,
-            "end_ms": 1000,
-            "summary": "章节摘要",
-            "evidence_segment_ids": ["s1"],
+            "end_ms": 1_000,
+            "representative_frame_ms": 500,
+            "description": "开场画面",
+            "transition_in": "none",
+            "shot_size": "wide",
+            "camera_motion": "static",
+            "visual_tags": ["开场"],
+            "asset_ids": [],
         }
     ],
-    "mind_map": {
-        "id": "root",
-        "title": "主题",
-        "summary": None,
-        "start_ms": 0,
-        "evidence_segment_ids": ["s1"],
-        "children": [],
-    },
+    "highlights": [],
+    "assets": [],
 }
 
 
@@ -50,7 +50,7 @@ async def saved_job(repository: FakeRepository) -> None:
     source = artifact()
     repository.artifacts[source.id] = source
     await creator(repository)(
-        source.download_id, OWNER, "request", "standard-v1", "zh-CN"
+        source.download_id, OWNER, "request", "visual-shot-v1", "zh-CN"
     )
 
 

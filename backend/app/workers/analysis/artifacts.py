@@ -51,9 +51,11 @@ class LocalAnalysisArtifactLoader:
     ) -> LocalAnalysisArtifact:
         _validate_source(source, self._bucket, self._max_source_bytes)
         workspace = await asyncio.to_thread(self._create_workspace, job_id, attempt)
+        input_directory = workspace / "input"
+        input_directory.mkdir(mode=0o700)
         local = LocalAnalysisArtifact(
             workspace,
-            workspace / f"source.{source.container}",
+            input_directory / "video.bin",
         )
         try:
             await self._storage.download(source.object_key, local.artifact)
@@ -63,6 +65,7 @@ class LocalAnalysisArtifactLoader:
                 source,
                 self._max_source_bytes,
             )
+            local.artifact.chmod(0o400)
             return local
         except asyncio.CancelledError:
             await asyncio.shield(self.cleanup(local))

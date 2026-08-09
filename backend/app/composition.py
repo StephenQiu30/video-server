@@ -151,6 +151,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             new_id=uuid4,
             max_attempts=settings.max_analysis_attempts,
             schema_version=settings.analysis_schema_version,
+            enabled=settings.analysis_enabled,
         ),
         get_analysis=GetAnalysis(analysis_repository),
         cancel_analysis=CancelAnalysis(analysis_repository, now=clock),

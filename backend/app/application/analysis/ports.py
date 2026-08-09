@@ -10,23 +10,11 @@ from app.application.analysis.models import (
     AnalysisJobSaveResult,
     AnalysisJobSnapshot,
     AnalysisPublish,
-    AudioChunk,
 )
-from app.domain.analysis import Transcript
 
 
 class RequestFingerprinter(Protocol):
     def fingerprint(self, namespace: str, *values: str) -> str: ...
-
-
-class Transcriber(Protocol):
-    async def transcribe(
-        self, chunks: tuple[AudioChunk, ...], language_hint: str | None
-    ) -> Transcript: ...
-
-
-class Analyzer(Protocol):
-    async def analyze(self, transcript: Transcript, output_language: str) -> object: ...
 
 
 class AnalysisRepository(Protocol):

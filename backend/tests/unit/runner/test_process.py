@@ -40,7 +40,7 @@ async def wait_for_file(path: Path) -> None:
 async def test_executes_argv_without_a_shell(tmp_path: Path) -> None:
     marker = tmp_path / "shell-owned"
     dangerous = f"; touch {marker}"
-    supervisor = ProcessSupervisor(output_limit_bytes=1024)
+    supervisor = ProcessSupervisor(stdout_limit_bytes=1024, stderr_limit_bytes=1024)
 
     result = await supervisor.run(
         python_command("import sys; print(sys.argv[1])", dangerous),
@@ -54,7 +54,7 @@ async def test_executes_argv_without_a_shell(tmp_path: Path) -> None:
 
 
 async def test_captures_bounded_stdout_and_stderr(tmp_path: Path) -> None:
-    supervisor = ProcessSupervisor(output_limit_bytes=128)
+    supervisor = ProcessSupervisor(stdout_limit_bytes=128, stderr_limit_bytes=64)
 
     result = await supervisor.run(
         python_command(
@@ -65,15 +65,33 @@ async def test_captures_bounded_stdout_and_stderr(tmp_path: Path) -> None:
     )
 
     assert len(result.stdout) == 128
-    assert len(result.stderr) == 128
+    assert len(result.stderr) == 64
     assert result.stdout_truncated is True
     assert result.stderr_truncated is True
+
+
+async def test_writes_bounded_prompt_through_stdin(tmp_path: Path) -> None:
+    supervisor = ProcessSupervisor(
+        stdout_limit_bytes=1024,
+        stderr_limit_bytes=1024,
+    )
+
+    result = await supervisor.run(
+        python_command("import sys; sys.stdout.buffer.write(sys.stdin.buffer.read())"),
+        cwd=tmp_path,
+        timeout_seconds=2,
+        input_bytes=b"private prompt",
+    )
+
+    assert result.returncode == 0
+    assert result.stdout == b"private prompt"
 
 
 async def test_timeout_terminates_entire_process_group(tmp_path: Path) -> None:
     child_pid_path = tmp_path / "child.pid"
     supervisor = ProcessSupervisor(
-        output_limit_bytes=1024,
+        stdout_limit_bytes=1024,
+        stderr_limit_bytes=1024,
         terminate_grace_seconds=0.05,
     )
     source = (
@@ -99,7 +117,8 @@ async def test_timeout_kills_child_that_ignores_term_and_closes_pipes(
 ) -> None:
     child_pid_path = tmp_path / "stubborn.pid"
     supervisor = ProcessSupervisor(
-        output_limit_bytes=1024,
+        stdout_limit_bytes=1024,
+        stderr_limit_bytes=1024,
         terminate_grace_seconds=0.05,
     )
     child_source = (
@@ -127,7 +146,8 @@ async def test_timeout_kills_child_that_ignores_term_and_closes_pipes(
 async def test_cancellation_terminates_process(tmp_path: Path) -> None:
     pid_path = tmp_path / "runner.pid"
     supervisor = ProcessSupervisor(
-        output_limit_bytes=1024,
+        stdout_limit_bytes=1024,
+        stderr_limit_bytes=1024,
         terminate_grace_seconds=0.05,
     )
     command = python_command(

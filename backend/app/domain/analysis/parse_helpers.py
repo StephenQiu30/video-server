@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import cast
 
 from app.domain.analysis.enums import AnalysisValidationCode
@@ -12,8 +12,6 @@ from app.domain.analysis.result_models import AnalysisLimits
 class ParseContext:
     limits: AnalysisLimits
     total_characters: int = 0
-    node_count: int = 0
-    seen_objects: set[int] = field(default_factory=set)
 
     def mapping(
         self,
@@ -72,24 +70,6 @@ class ParseContext:
                 AnalysisValidationCode.INVALID_TIME_RANGE, f"{path} is invalid"
             )
         return value
-
-    def enter_node(self, value: dict[str, object], depth: int) -> None:
-        identity = id(value)
-        if identity in self.seen_objects:
-            raise AnalysisValidationError(
-                AnalysisValidationCode.DUPLICATE_IDENTIFIER,
-                "mind map contains a repeated object or cycle",
-            )
-        self.seen_objects.add(identity)
-        self.node_count += 1
-        if (
-            depth > self.limits.max_mind_map_depth
-            or self.node_count > self.limits.max_mind_map_nodes
-        ):
-            raise AnalysisValidationError(
-                AnalysisValidationCode.LIMIT_EXCEEDED,
-                "mind map exceeds depth or node limits",
-            )
 
     @staticmethod
     def invalid(detail: str) -> None:

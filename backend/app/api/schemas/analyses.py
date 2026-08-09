@@ -12,11 +12,9 @@ from app.domain.analysis import AnalysisErrorCode, AnalysisStage, AnalysisStatus
 
 
 class AnalysisRequest(StrictModel):
-    """Selects the analysis profile and requested output language."""
-
-    profile: Literal["standard-v1"] = Field(
-        description="服务支持的结构化分析配置。",
-        examples=["standard-v1"],
+    profile: Literal["visual-shot-v1"] = Field(
+        description="视觉分镜、高光与资产分析配置。",
+        examples=["visual-shot-v1"],
     )
     output_language: str = Field(
         description="分析结果使用的 BCP 47 语言标签。",
@@ -27,36 +25,60 @@ class AnalysisRequest(StrictModel):
     )
 
 
-class EvidenceStatementResponse(StrictModel):
+class AnalysisMediaResponse(StrictModel):
+    duration_ms: int
+    container: str
+    size_bytes: int
+
+
+class EvidenceSummaryResponse(StrictModel):
     text: str
-    evidence_segment_ids: tuple[str, ...]
+    evidence_shot_ids: tuple[str, ...]
 
 
-class AnalysisChapterResponse(StrictModel):
-    title: str
+class ShotResponse(StrictModel):
+    id: str
+    index: int
     start_ms: int
     end_ms: int
-    summary: str
-    evidence_segment_ids: tuple[str, ...]
+    representative_frame_ms: int
+    description: str
+    transition_in: str
+    shot_size: str
+    camera_motion: str
+    visual_tags: tuple[str, ...]
+    asset_ids: tuple[str, ...]
 
 
-class MindMapNodeResponse(StrictModel):
+class HighlightResponse(StrictModel):
     id: str
     title: str
-    summary: str | None
-    start_ms: int | None
-    evidence_segment_ids: tuple[str, ...]
-    children: tuple[MindMapNodeResponse, ...]
+    description: str
+    score: int
+    reason: str
+    start_ms: int
+    end_ms: int
+    evidence_shot_ids: tuple[str, ...]
+
+
+class VisualAssetResponse(StrictModel):
+    id: str
+    type: str
+    label: str
+    description: str
+    first_seen_ms: int
+    evidence_shot_ids: tuple[str, ...]
 
 
 class AnalysisResultResponse(StrictModel):
     language: str
     title: str
-    summary: EvidenceStatementResponse
-    key_points: tuple[EvidenceStatementResponse, ...]
-    action_items: tuple[EvidenceStatementResponse, ...]
-    chapters: tuple[AnalysisChapterResponse, ...]
-    mind_map: MindMapNodeResponse
+    summary: EvidenceSummaryResponse
+    media: AnalysisMediaResponse
+    shot_count: int
+    shots: tuple[ShotResponse, ...]
+    highlights: tuple[HighlightResponse, ...]
+    assets: tuple[VisualAssetResponse, ...]
 
 
 class _StoredAnalysisResult(AnalysisResultResponse):
@@ -64,8 +86,6 @@ class _StoredAnalysisResult(AnalysisResultResponse):
 
 
 class AnalysisResponse(StrictModel):
-    """Current state and optional validated result of an analysis resource."""
-
     id: UUID
     profile: str
     output_language: str

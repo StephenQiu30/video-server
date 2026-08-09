@@ -42,8 +42,28 @@ def creator(repository: FakeRepository) -> CreateAnalysis:
         now=lambda: NOW,
         new_id=lambda: next(ids),
         max_attempts=3,
-        schema_version="analysis.v1",
+        schema_version="visual-analysis.v1",
     )
+
+
+@pytest.mark.asyncio
+async def test_create_fails_before_persistence_when_analysis_is_disabled() -> None:
+    repository = FakeRepository()
+    create = CreateAnalysis(
+        repository=repository,
+        fingerprinter=FakeFingerprinter(),
+        now=lambda: NOW,
+        new_id=uuid4,
+        max_attempts=3,
+        schema_version="visual-analysis.v1",
+        enabled=False,
+    )
+
+    with pytest.raises(AnalysisApplicationError) as caught:
+        await create(DOWNLOAD_ID, OWNER, "request-1", "visual-shot-v1", "zh-CN")
+
+    assert caught.value.code is AnalysisApplicationErrorCode.SERVICE_UNAVAILABLE
+    assert repository.commands == []
 
 
 @pytest.mark.asyncio
@@ -52,8 +72,8 @@ async def test_create_persists_job_and_replays_the_same_idempotency_key() -> Non
     repository.artifacts[ARTIFACT_ID] = artifact()
     create = creator(repository)
 
-    first = await create(DOWNLOAD_ID, OWNER, "request-1", "standard-v1", "zh-CN")
-    replay = await create(DOWNLOAD_ID, OWNER, "request-1", "standard-v1", "zh-CN")
+    first = await create(DOWNLOAD_ID, OWNER, "request-1", "visual-shot-v1", "zh-CN")
+    replay = await create(DOWNLOAD_ID, OWNER, "request-1", "visual-shot-v1", "zh-CN")
 
     assert first.id == replay.id == JOB_ID
     assert first.status is AnalysisStatus.QUEUED
@@ -86,7 +106,7 @@ async def test_create_requires_owned_succeeded_unexpired_artifact() -> None:
                 DOWNLOAD_ID,
                 OWNER,
                 "request",
-                "standard-v1",
+                "visual-shot-v1",
                 "zh-CN",
             )
         assert caught.value.code is expected
@@ -105,13 +125,13 @@ async def test_idempotency_key_cannot_be_reused_for_another_input() -> None:
     )
     create = creator(repository)
 
-    await create(DOWNLOAD_ID, OWNER, "same-key", "standard-v1", "zh-CN")
+    await create(DOWNLOAD_ID, OWNER, "same-key", "visual-shot-v1", "zh-CN")
     with pytest.raises(AnalysisApplicationError) as caught:
         await create(
             second_download,
             OWNER,
             "same-key",
-            "standard-v1",
+            "visual-shot-v1",
             "zh-CN",
         )
     assert caught.value.code is AnalysisApplicationErrorCode.IDEMPOTENCY_CONFLICT
@@ -124,10 +144,10 @@ async def test_create_validates_owner_key_profile_schema_and_language() -> None:
     create = creator(repository)
 
     invalid = (
-        ("owner", "key", "standard-v1", "zh-CN"),
-        (OWNER, "", "standard-v1", "zh-CN"),
+        ("owner", "key", "visual-shot-v1", "zh-CN"),
+        (OWNER, "", "visual-shot-v1", "zh-CN"),
         (OWNER, "key", "", "zh-CN"),
-        (OWNER, "key", "standard-v1", ""),
+        (OWNER, "key", "visual-shot-v1", ""),
     )
     for owner, key, profile, language in invalid:
         with pytest.raises(AnalysisApplicationError) as caught:

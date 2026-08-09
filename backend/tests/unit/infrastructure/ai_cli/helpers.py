@@ -1,0 +1,55 @@
+from __future__ import annotations
+
+import json
+from collections.abc import Mapping, Sequence
+from pathlib import Path
+
+from app.application.analysis_execution import VideoAnalysisRequest
+from app.runner.process import ProcessResult
+from tests.unit.workers.analysis.fixtures import valid_mapping
+
+
+def request(tmp_path: Path) -> VideoAnalysisRequest:
+    workspace = tmp_path / "job"
+    artifact = workspace / "input" / "video.bin"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_bytes(b"controlled-video")
+    return VideoAnalysisRequest(
+        artifact=artifact,
+        workspace=workspace,
+        duration_ms=2_000,
+        size_bytes=artifact.stat().st_size,
+        container="mp4",
+        output_language="zh-CN",
+        schema_version="visual-analysis.v1",
+        prompt_version="visual-shot.v1",
+    )
+
+
+class FakeSupervisor:
+    def __init__(self, *, provider: str, payload: object | None = None) -> None:
+        self.provider = provider
+        self.payload = payload if payload is not None else valid_mapping()
+        self.argv: tuple[str, ...] = ()
+        self.environment: dict[str, str] = {}
+        self.input_bytes: bytes | None = None
+
+    async def run(
+        self,
+        argv: Sequence[str],
+        *,
+        cwd: Path,
+        timeout_seconds: float,
+        env: Mapping[str, str] | None = None,
+        input_bytes: bytes | None = None,
+    ) -> ProcessResult:
+        self.argv = tuple(argv)
+        self.environment = dict(env or {})
+        self.input_bytes = input_bytes
+        if self.provider == "codex":
+            target = Path(self.argv[self.argv.index("--output-last-message") + 1])
+            target.write_text(json.dumps(self.payload), encoding="utf-8")
+            stdout = b""
+        else:
+            stdout = json.dumps({"structured_output": self.payload}).encode()
+        return ProcessResult(0, stdout, b"", False, False)
