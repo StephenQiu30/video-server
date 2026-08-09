@@ -1,10 +1,10 @@
-export type AnalysisProfile = 'standard-v1';
+export type AnalysisProfile = 'visual-shot-v1';
 export type OutputLanguage = 'zh-CN' | 'en-US';
 export type AnalysisStatus = API.AnalysisStatus;
 export type AnalysisStage = API.AnalysisStage;
-export type EvidenceStatement = API.EvidenceStatementResponse;
-export type AnalysisChapter = API.AnalysisChapterResponse;
-export type MindMapNode = API.MindMapNodeResponse;
+export type AnalysisShot = API.ShotResponse;
+export type AnalysisHighlight = API.HighlightResponse;
+export type VisualAsset = API.VisualAssetResponse;
 export type AnalysisResult = API.AnalysisResultResponse;
 export type AnalysisJob = API.AnalysisResponse;
 

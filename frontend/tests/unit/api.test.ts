@@ -186,7 +186,7 @@ describe('typed API client', () => {
     );
     await createAnalysis(
       job().id,
-      { profile: 'standard-v1', output_language: 'en-US' },
+      { profile: 'visual-shot-v1', output_language: 'en-US' },
       'analysis-key',
     );
     await getAnalysis(analysisJob().id);

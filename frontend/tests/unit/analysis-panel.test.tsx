@@ -2,8 +2,9 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import AnalysisPanel from '@/components/analysis-panel';
+import AnalysisResultView from '@/components/analysis-result-view';
 import { ApiError } from '@/requestErrorConfig';
-import { analysisJob } from '../fixtures/analysis-fixtures';
+import { analysisJob, analysisResult } from '../fixtures/analysis-fixtures';
 import { job } from '../fixtures/download-fixtures';
 import {
   httpRequests,
@@ -36,12 +37,47 @@ describe('AnalysisPanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '开始 AI 分析' }));
     expect(await screen.findByText('分析已完成')).toBeInTheDocument();
+    expect(screen.getByText('可靠的视频处理流水线')).toBeInTheDocument();
     expect(
-      screen.getByText('如何构建可靠的视频处理流水线'),
+      screen.getByRole('heading', { name: '视觉摘要' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '摘要' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: '行动项' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: '思维导图' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '分镜' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '高光' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '资产' })).toBeInTheDocument();
+  });
+
+  it('exposes shot timestamps for a video player integration', () => {
+    const onSelectTime = vi.fn();
+    render(
+      <AnalysisResultView
+        onSelectTime={onSelectTime}
+        result={analysisResult}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole('button', { name: '0:30' })[0]);
+    expect(onSelectTime).toHaveBeenCalledWith(30_000);
+  });
+
+  it('renders empty highlight and asset states', async () => {
+    render(
+      <AnalysisResultView
+        result={{ ...analysisResult, assets: [], highlights: [] }}
+      />,
+    );
+
+    const highlightsTab = screen.getByRole('tab', { name: '高光' });
+    fireEvent.mouseDown(highlightsTab, { button: 0, ctrlKey: false });
+    fireEvent.click(highlightsTab);
+    expect(
+      await screen.findByText('未识别出独立视觉高光。'),
+    ).toBeInTheDocument();
+    const assetsTab = screen.getByRole('tab', { name: '资产' });
+    fireEvent.mouseDown(assetsTab, { button: 0, ctrlKey: false });
+    fireEvent.click(assetsTab);
+    expect(
+      await screen.findByText('未识别出可复用的视觉资产。'),
+    ).toBeInTheDocument();
   });
 
   it('cancels an active analysis task', async () => {

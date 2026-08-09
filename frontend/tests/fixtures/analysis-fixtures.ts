@@ -2,61 +2,63 @@ import type { AnalysisJob, AnalysisResult } from '@/types/video';
 
 export const analysisResult: AnalysisResult = {
   language: 'zh-CN',
-  title: '如何构建可靠的视频处理流水线',
+  title: '可靠的视频处理流水线',
   summary: {
-    text: '视频介绍了从下载、转写到结构化分析的完整处理流程。',
-    evidence_segment_ids: ['segment-1'],
+    text: '画面展示了下载任务与 AI 分析流程的两个连续分镜。',
+    evidence_shot_ids: ['shot-1', 'shot-2'],
   },
-  key_points: [
+  media: { duration_ms: 62_000, container: 'mp4', size_bytes: 1_024_000 },
+  shot_count: 2,
+  shots: [
     {
-      text: '下载任务和分析任务需要独立建模。',
-      evidence_segment_ids: ['segment-1'],
-    },
-    {
-      text: '长任务必须支持状态查询和取消。',
-      evidence_segment_ids: ['segment-2'],
-    },
-  ],
-  action_items: [
-    {
-      text: '为每个异步阶段补充可观测性。',
-      evidence_segment_ids: ['segment-2'],
-    },
-  ],
-  chapters: [
-    {
-      title: '任务建模',
+      id: 'shot-1',
+      index: 1,
       start_ms: 0,
+      end_ms: 30_000,
+      representative_frame_ms: 15_000,
+      description: '宽景展示视频下载任务界面。',
+      transition_in: 'none',
+      shot_size: 'wide',
+      camera_motion: 'static',
+      visual_tags: ['界面', '下载'],
+      asset_ids: ['asset-1'],
+    },
+    {
+      id: 'shot-2',
+      index: 2,
+      start_ms: 30_000,
       end_ms: 62_000,
-      summary: '说明下载与分析的任务边界。',
-      evidence_segment_ids: ['segment-1'],
+      representative_frame_ms: 46_000,
+      description: '镜头切换到结构化分析结果。',
+      transition_in: 'cut',
+      shot_size: 'medium',
+      camera_motion: 'static',
+      visual_tags: ['界面', '分析'],
+      asset_ids: [],
     },
   ],
-  mind_map: {
-    id: 'root',
-    title: '视频处理流水线',
-    summary: '可靠地处理长耗时视频任务。',
-    start_ms: 0,
-    evidence_segment_ids: ['segment-1'],
-    children: [
-      {
-        id: 'download',
-        title: '视频下载',
-        summary: '选择格式并安全下载。',
-        start_ms: 5_000,
-        evidence_segment_ids: ['segment-1'],
-        children: [],
-      },
-      {
-        id: 'analysis',
-        title: 'AI 分析',
-        summary: '转写后生成结构化结果。',
-        start_ms: 32_000,
-        evidence_segment_ids: ['segment-2'],
-        children: [],
-      },
-    ],
-  },
+  highlights: [
+    {
+      id: 'highlight-1',
+      title: '流程切换',
+      description: '画面从下载任务切换到分析结果。',
+      score: 88,
+      reason: '这是视觉叙事的主要转折点。',
+      start_ms: 30_000,
+      end_ms: 62_000,
+      evidence_shot_ids: ['shot-2'],
+    },
+  ],
+  assets: [
+    {
+      id: 'asset-1',
+      type: 'logo',
+      label: '帧取标志',
+      description: '界面左上角的产品标志。',
+      first_seen_ms: 0,
+      evidence_shot_ids: ['shot-1'],
+    },
+  ],
 };
 
 export function analysisJob(
@@ -64,13 +66,13 @@ export function analysisJob(
 ): AnalysisJob {
   return {
     id: '44444444-4444-4444-8444-444444444444',
-    profile: 'standard-v1',
+    profile: 'visual-shot-v1',
     output_language: 'zh-CN',
     status,
     stage: status === 'running' ? 'analyzing' : null,
     progress: status === 'succeeded' ? 100 : status === 'running' ? 60 : 0,
     attempt: status === 'queued' ? 0 : 1,
-    error_code: status === 'failed' ? 'provider_unavailable' : null,
+    error_code: status === 'failed' ? 'analysis_cli_failed' : null,
     created_at: '2026-08-06T10:01:00Z',
     updated_at: '2026-08-06T10:02:00Z',
     finished_at:

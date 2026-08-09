@@ -1,30 +1,32 @@
 declare namespace API {
-  type AnalysisChapterResponse = {
-    /** Title */
-    title: string;
-    /** Start Ms */
-    start_ms: number;
-    /** End Ms */
-    end_ms: number;
-    /** Summary */
-    summary: string;
-    /** Evidence Segment Ids */
-    evidence_segment_ids: string[];
-  };
-
   type AnalysisErrorCode =
     | "cancelled"
-    | "asr_timeout"
-    | "provider_rate_limited"
-    | "provider_unavailable"
+    | "analysis_cli_unavailable"
+    | "analysis_cli_unsupported"
+    | "analysis_cli_not_authenticated"
+    | "analysis_sandbox_unavailable"
+    | "analysis_media_invalid"
+    | "analysis_provider_rate_limited"
+    | "analysis_provider_usage_limited"
+    | "analysis_cli_timeout"
+    | "analysis_cli_failed"
     | "invalid_model_output"
-    | "invalid_transcript"
+    | "analysis_resource_limit"
     | "input_artifact_unavailable"
     | "internal_error"
     | "worker_lost";
 
+  type AnalysisMediaResponse = {
+    /** Duration Ms */
+    duration_ms: number;
+    /** Container */
+    container: string;
+    /** Size Bytes */
+    size_bytes: number;
+  };
+
   type AnalysisRequest = {
-    /** Profile 服务支持的结构化分析配置。 */
+    /** Profile 视觉分镜、高光与资产分析配置。 */
     profile: string;
     /** Output Language 分析结果使用的 BCP 47 语言标签。 */
     output_language: string;
@@ -58,21 +60,19 @@ declare namespace API {
     language: string;
     /** Title */
     title: string;
-    summary: EvidenceStatementResponse;
-    /** Key Points */
-    key_points: EvidenceStatementResponse[];
-    /** Action Items */
-    action_items: EvidenceStatementResponse[];
-    /** Chapters */
-    chapters: AnalysisChapterResponse[];
-    mind_map: MindMapNodeResponse;
+    summary: EvidenceSummaryResponse;
+    media: AnalysisMediaResponse;
+    /** Shot Count */
+    shot_count: number;
+    /** Shots */
+    shots: ShotResponse[];
+    /** Highlights */
+    highlights: HighlightResponse[];
+    /** Assets */
+    assets: VisualAssetResponse[];
   };
 
-  type AnalysisStage =
-    | "preparing"
-    | "transcribing"
-    | "analyzing"
-    | "validating";
+  type AnalysisStage = "preparing" | "analyzing" | "validating";
 
   type AnalysisStatus =
     | "queued"
@@ -289,11 +289,11 @@ declare namespace API {
     password: string;
   };
 
-  type EvidenceStatementResponse = {
+  type EvidenceSummaryResponse = {
     /** Text */
     text: string;
-    /** Evidence Segment Ids */
-    evidence_segment_ids: string[];
+    /** Evidence Shot Ids */
+    evidence_shot_ids: string[];
   };
 
   type FormatResponse = {
@@ -327,6 +327,25 @@ declare namespace API {
 
   type getInspectionParams = {
     inspection_id: string;
+  };
+
+  type HighlightResponse = {
+    /** Id */
+    id: string;
+    /** Title */
+    title: string;
+    /** Description */
+    description: string;
+    /** Score */
+    score: number;
+    /** Reason */
+    reason: string;
+    /** Start Ms */
+    start_ms: number;
+    /** End Ms */
+    end_ms: number;
+    /** Evidence Shot Ids */
+    evidence_shot_ids: string[];
   };
 
   type InspectionRequest = {
@@ -397,21 +416,6 @@ declare namespace API {
     updated_at: string;
   };
 
-  type MindMapNodeResponse = {
-    /** Id */
-    id: string;
-    /** Title */
-    title: string;
-    /** Summary */
-    summary: string | null;
-    /** Start Ms */
-    start_ms: number | null;
-    /** Evidence Segment Ids */
-    evidence_segment_ids: string[];
-    /** Children */
-    children: MindMapNodeResponse[];
-  };
-
   type ProblemDetails = {
     /** Type 稳定的服务错误类型 URI。 */
     type: string;
@@ -458,6 +462,31 @@ declare namespace API {
     compatibility_profile: CompatibilityProfile;
   };
 
+  type ShotResponse = {
+    /** Id */
+    id: string;
+    /** Index */
+    index: number;
+    /** Start Ms */
+    start_ms: number;
+    /** End Ms */
+    end_ms: number;
+    /** Representative Frame Ms */
+    representative_frame_ms: number;
+    /** Description */
+    description: string;
+    /** Transition In */
+    transition_in: string;
+    /** Shot Size */
+    shot_size: string;
+    /** Camera Motion */
+    camera_motion: string;
+    /** Visual Tags */
+    visual_tags: string[];
+    /** Asset Ids */
+    asset_ids: string[];
+  };
+
   type UpdateProfileRequest = {
     /** Username */
     username: string;
@@ -490,4 +519,19 @@ declare namespace API {
   type UserRole = "admin" | "user";
 
   type VideoCodecFamily = "h264" | "hevc" | "vp9" | "av1" | "other";
+
+  type VisualAssetResponse = {
+    /** Id */
+    id: string;
+    /** Type */
+    type: string;
+    /** Label */
+    label: string;
+    /** Description */
+    description: string;
+    /** First Seen Ms */
+    first_seen_ms: number;
+    /** Evidence Shot Ids */
+    evidence_shot_ids: string[];
+  };
 }

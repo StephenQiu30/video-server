@@ -71,7 +71,7 @@ export default function DownloadJobView({
             <AnalysisPanel downloadId={state.job.id} />
           ) : (
             <p className="mt-14 border-t py-8 text-sm text-muted-foreground sm:mt-16">
-              下载并验证完成后，可继续生成摘要与思维导图。
+              下载并验证完成后，可继续生成视觉分镜、高光与资产目录。
             </p>
           )}
         </>

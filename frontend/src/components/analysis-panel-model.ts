@@ -10,8 +10,7 @@ export const statusLabels: Record<AnalysisStatus, string> = {
 };
 
 export const stageLabels: Record<AnalysisStage, string> = {
-  preparing: '准备转录',
-  transcribing: '转录音频',
-  analyzing: '提炼内容',
-  validating: '校验证据',
+  preparing: '准备视频',
+  analyzing: '观察画面',
+  validating: '校验分镜证据',
 };

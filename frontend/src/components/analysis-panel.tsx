@@ -44,7 +44,7 @@ export default function AnalysisPanel({
   pollIntervalMs?: number;
 }) {
   const state = useAnalysisJob(downloadId, pollIntervalMs);
-  const [profile, setProfile] = useState<AnalysisProfile>('standard-v1');
+  const [profile, setProfile] = useState<AnalysisProfile>('visual-shot-v1');
   const [language, setLanguage] = useState<OutputLanguage>('zh-CN');
 
   if (state.job?.status === 'succeeded' && state.job.result) {
@@ -88,7 +88,7 @@ export default function AnalysisPanel({
             AI 智能分析
           </h2>
           <p className="mt-4 max-w-2xl leading-7 text-muted-foreground">
-            生成摘要、关键观点、章节和思维导图。
+            由 AI 观察视频画面，生成连续分镜、视觉高光和资产目录。
           </p>
         </div>
       </div>
@@ -106,7 +106,7 @@ export default function AnalysisPanel({
             id="analysis-profile"
             label="分析模板"
             onChange={(value) => setProfile(value as AnalysisProfile)}
-            options={[['standard-v1', '标准分析']]}
+            options={[['visual-shot-v1', '视觉分镜分析']]}
             value={profile}
           />
           <AnalysisSelect
@@ -225,7 +225,7 @@ function AnalysisJobState({
       </div>
       <p className="mt-8 flex items-center gap-2 text-sm text-muted-foreground">
         <ShieldCheck className="text-success" />
-        分析结果经证据校验，观点均来自视频转录内容。
+        分析结果经连续时间轴与分镜证据校验；模型查看的抽帧会发送到所选云端服务。
       </p>
     </div>
   );
