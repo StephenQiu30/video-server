@@ -1,0 +1,50 @@
+.format-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.format-card {
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+  position: relative;
+  padding: 8px;
+
+  &--selected {
+    border-color: var(--ant-color-primary, #1677ff);
+    box-shadow: 0 0 0 2px rgb(22 119 255 / 12%);
+  }
+
+  &:hover {
+    border-color: var(--ant-color-primary, #1677ff);
+  }
+
+  .format-card-main {
+    padding-right: 28px;
+  }
+
+  .format-label {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .format-resolution {
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .format-meta {
+    margin-top: 4px;
+  }
+
+  .format-check {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-size: 18px;
+  }
+}

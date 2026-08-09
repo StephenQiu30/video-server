@@ -67,6 +67,25 @@ def test_frontend_is_same_origin_and_supports_spa_routes(tmp_path: Path) -> None
     assert asset.text == "window.SERVER_UI = true;"
 
 
+def test_directory_route_serves_index_directly_without_redirect(tmp_path: Path) -> None:
+    # Umi `exportStatic` emits real directories (dist/history/index.html); a
+    # browser refresh of /history must return the SPA shell (200), not a 307
+    # trailing-slash redirect to /history/.
+    dist = build_dist(tmp_path)
+    (dist / "history").mkdir()
+    (dist / "history" / "index.html").write_text(
+        "<!doctype html><title>server-history</title><div id='root'></div>",
+        encoding="utf-8",
+    )
+    app = create_app(Settings(app_env="test", frontend_dist_dir=dist))
+
+    with TestClient(app) as client:
+        response = client.get("/history", follow_redirects=False)
+
+    assert response.status_code == 200
+    assert "server-history" in response.text
+
+
 def test_unknown_api_never_falls_back_to_frontend(tmp_path: Path) -> None:
     dist = build_dist(tmp_path)
     app = create_app(Settings(app_env="test", frontend_dist_dir=dist))

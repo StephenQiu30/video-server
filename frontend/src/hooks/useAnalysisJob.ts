@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { displayError } from '@/requestErrorConfig';
+import { displayError } from '@/utils/requestErrorConfig';
 import {
   cancelAnalysis,
   createAnalysis,
@@ -23,7 +23,6 @@ export function useAnalysisJob(downloadId: string, pollIntervalMs: number) {
   const analysisId = job?.id ?? null;
   const shouldPoll = job ? !terminalAnalysisStatuses.has(job.status) : false;
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: pollCycle is the explicit retry trigger.
   useEffect(() => {
     if (!analysisId || !shouldPoll) {
       return;

@@ -1,5 +1,3 @@
-'use client';
-
 import {
   CheckOutlined,
   CopyOutlined,
@@ -11,6 +9,7 @@ import { useState } from 'react';
 import MindMapTree from '@/components/MindMapTree';
 import type { AnalysisResult, EvidenceStatement } from '@/types/video';
 import { formatMilliseconds } from '@/utils/format';
+import './index.less';
 
 export default function AnalysisResultView({
   result,

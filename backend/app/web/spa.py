@@ -8,6 +8,7 @@ from typing import Any
 
 from fastapi import FastAPI
 from starlette.exceptions import HTTPException
+from starlette.responses import RedirectResponse
 from starlette.staticfiles import StaticFiles
 
 RESERVED_PREFIXES = ("api", "health")
@@ -23,11 +24,21 @@ class SPAStaticFiles(StaticFiles):
         if first_segment in RESERVED_PREFIXES:
             raise HTTPException(status_code=404)
         try:
-            return await super().get_response(normalized, scope)
+            response = await super().get_response(normalized, scope)
         except HTTPException as exc:
             if exc.status_code != 404:
                 raise
             return await super().get_response("index.html", scope)
+        # Starlette redirects /history -> /history/ when dist/history/index.html
+        # exists (Umi exportStatic emits real directories). Serve the directory
+        # index directly so browser-route refreshes never bounce through a 307.
+        if isinstance(response, RedirectResponse) and response.headers.get(
+            "location", ""
+        ).endswith("/"):
+            return await super().get_response(
+                f"{normalized}/index.html".lstrip("/"), scope
+            )
+        return response
 
 
 def mount_frontend(app: FastAPI, directory: Path) -> bool:

@@ -3,6 +3,7 @@ import { Typography } from 'antd';
 
 import type { MindMapNode } from '@/types/video';
 import { formatMilliseconds } from '@/utils/format';
+import './index.less';
 
 export default function MindMapTree({ root }: { root: MindMapNode }) {
   return (

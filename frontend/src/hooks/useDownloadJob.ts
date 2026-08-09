@@ -22,7 +22,6 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   const [action, setAction] = useState<Action>(null);
   const [cycle, setCycle] = useState(0);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: cycle is the explicit retry trigger.
   useEffect(() => {
     let disposed = false;
     let timer: number | undefined;

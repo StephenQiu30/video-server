@@ -1,39 +1,23 @@
 {
   "compilerOptions": {
-    "allowJs": false,
-    "allowSyntheticDefaultImports": true,
-    "incremental": true,
-    "isolatedModules": true,
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "noEmit": true,
-    "noImplicitReturns": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "strict": true,
+    "target": "esnext",
+    "moduleResolution": "bundler",
     "jsx": "react-jsx",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "target": "ES2022",
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitReturns": true,
+    "declaration": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["vitest/globals", "node"],
     "paths": {
-      "@/*": ["./src/*"]
-    },
-    "types": ["vitest/globals", "node"]
+      "@/*": ["./src/*"],
+      "@@/*": ["./src/.umi/*"],
+      "@@test/*": ["./src/.umi-test/*"],
+      "@root/*": ["./*"]
+    }
   },
-  "include": [
-    "next-env.d.ts",
-    ".next/types/**/*.ts",
-    "src",
-    "tests",
-    "next.config.ts",
-    "vitest.config.ts",
-    ".next/dev/types/**/*.ts"
-  ],
-  "exclude": ["node_modules"]
+  "include": ["./**/*.d.ts", "./**/*.ts", "./**/*.tsx"]
 }

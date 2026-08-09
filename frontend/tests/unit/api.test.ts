@@ -15,8 +15,8 @@ import {
 } from '@/services/download';
 import { getLiveness, getReadiness } from '@/services/system';
 import { httpRequests, mockHttpResponses } from '../helpers/http';
-import { analysisJob } from './analysis-fixtures';
-import { inspection, job } from './download-fixtures';
+import { analysisJob } from '../fixtures/analysis-fixtures';
+import { inspection, job } from '../fixtures/download-fixtures';
 
 describe('typed API client', () => {
   it('uses same-origin download endpoints and idempotency headers', async () => {

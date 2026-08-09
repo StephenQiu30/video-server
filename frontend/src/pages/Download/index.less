@@ -1,0 +1,118 @@
+.download-page {
+  min-height: 100%;
+}
+
+.download-hero {
+  display: flex;
+  justify-content: center;
+  padding: 64px 24px 48px;
+  text-align: center;
+  background: linear-gradient(
+    180deg,
+    rgb(22 119 255 / 6%) 0%,
+    transparent 100%
+  );
+
+  .hero-inner {
+    width: 100%;
+    max-width: 760px;
+  }
+
+  .hero-logo {
+    width: 72px;
+    height: 72px;
+    margin-bottom: 20px;
+  }
+
+  .hero-title {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-block: 8px;
+  }
+
+  .hero-subtitle {
+    margin-bottom: 32px;
+    font-size: 16px;
+  }
+
+  .hero-input-group {
+    .hero-input input {
+      font-size: 16px;
+    }
+  }
+
+  .hero-submit {
+    height: 48px;
+    padding-inline: 28px;
+    font-size: 16px;
+  }
+
+  .source-examples {
+    justify-content: center;
+    margin-top: 20px;
+
+    .source-label {
+      font-size: 13px;
+    }
+
+    .platform-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 16px;
+      padding-inline: 10px;
+    }
+
+    .platform-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex: none;
+    }
+  }
+}
+
+.content-wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px 48px;
+}
+
+.inspection-card {
+  margin-top: 8px;
+  padding: 24px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 16px;
+  background: var(--ant-color-bg-container);
+
+  .inspection-grid {
+    display: grid;
+    grid-template-columns: minmax(280px, 420px) 1fr;
+    gap: 28px;
+    align-items: start;
+
+    @media (max-width: 900px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .inspection-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-block: 8px 20px;
+    flex-wrap: wrap;
+  }
+
+  .format-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .create-download-button {
+    margin-top: 20px;
+  }
+}

@@ -1,7 +1,8 @@
-'use client';
-
-import { ReloadOutlined, RobotOutlined } from '@ant-design/icons';
-import { ProCard } from '@ant-design/pro-components';
+import {
+  ReloadOutlined,
+  RobotOutlined,
+  SafetyCertificateOutlined,
+} from '@ant-design/icons';
 import {
   Alert,
   Button,
@@ -27,6 +28,7 @@ import {
   stageLabels,
   statusLabels,
 } from './status';
+import './index.less';
 
 type AnalysisPanelProps = {
   downloadId: string;
@@ -49,7 +51,7 @@ export default function AnalysisPanel({
 
   if (job?.status === 'succeeded' && job.result) {
     return (
-      <ProCard className="analysis-card">
+      <section className="analysis-card" aria-label="AI 智能分析">
         <div className="analysis-heading">
           <div>
             <p className="page-eyebrow">AI analysis</p>
@@ -63,16 +65,18 @@ export default function AnalysisPanel({
           </Space>
         </div>
         <AnalysisResultView result={job.result} />
-      </ProCard>
+      </section>
     );
   }
 
   return (
-    <ProCard className="analysis-card">
+    <section className="analysis-card" aria-labelledby="analysis-title">
       <div className="analysis-heading">
         <div>
           <p className="page-eyebrow">AI analysis</p>
-          <Typography.Title level={2}>AI 智能分析</Typography.Title>
+          <Typography.Title id="analysis-title" level={2}>
+            AI 智能分析
+          </Typography.Title>
           <Typography.Text type="secondary">
             生成摘要、关键观点、章节和思维导图。
           </Typography.Text>
@@ -83,7 +87,7 @@ export default function AnalysisPanel({
       {error ? (
         <Alert
           description={error}
-          message="操作未完成"
+          title="操作未完成"
           showIcon
           style={{ marginBlock: 24 }}
           type="error"
@@ -92,25 +96,31 @@ export default function AnalysisPanel({
 
       {!job ? (
         <div className="analysis-form">
-          <Field label="分析模板">
-            <Select
-              id="analysis-profile"
-              onChange={(value) => setProfile(value)}
-              options={[{ label: '标准分析', value: 'standard-v1' }]}
-              value={profile}
-            />
-          </Field>
-          <Field label="输出语言">
-            <Select
-              id="analysis-language"
-              onChange={(value) => setLanguage(value)}
-              options={[
-                { label: '简体中文', value: 'zh-CN' },
-                { label: 'English', value: 'en-US' },
-              ]}
-              value={language}
-            />
-          </Field>
+          <fieldset aria-label="分析模板" className="analysis-field">
+            <Typography.Text strong>分析模板</Typography.Text>
+            <div style={{ marginTop: 8 }}>
+              <Select
+                id="analysis-profile"
+                onChange={(value) => setProfile(value as AnalysisProfile)}
+                options={[{ label: '标准分析', value: 'standard-v1' }]}
+                value={profile}
+              />
+            </div>
+          </fieldset>
+          <fieldset aria-label="输出语言" className="analysis-field">
+            <Typography.Text strong>输出语言</Typography.Text>
+            <div style={{ marginTop: 8 }}>
+              <Select
+                id="analysis:language"
+                onChange={(value) => setLanguage(value as OutputLanguage)}
+                options={[
+                  { label: '简体中文', value: 'zh-CN' },
+                  { label: 'English', value: 'en-US' },
+                ]}
+                value={language}
+              />
+            </div>
+          </fieldset>
           <Button
             loading={action === 'start'}
             onClick={() => state.start({ profile, output_language: language })}
@@ -122,22 +132,7 @@ export default function AnalysisPanel({
       ) : (
         <AnalysisJobState job={job} state={state} />
       )}
-    </ProCard>
-  );
-}
-
-function Field({
-  children,
-  label,
-}: {
-  children: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <fieldset aria-label={label} className="analysis-field">
-      <Typography.Text strong>{label}</Typography.Text>
-      <div style={{ marginTop: 8 }}>{children}</div>
-    </fieldset>
+    </section>
   );
 }
 
@@ -169,6 +164,11 @@ function AnalysisJobState({
           </Button>
         ) : null}
       </Space>
+
+      <Typography.Text type="secondary">
+        <SafetyCertificateOutlined style={{ marginInlineEnd: 4 }} />
+        分析结果经证据校验，观点均来自视频转录内容。
+      </Typography.Text>
     </div>
   );
 }

@@ -1,0 +1,36 @@
+.download-state {
+  &-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .download-meta {
+    margin-block: 20px;
+  }
+
+  .progress-labels {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 6px;
+
+    .progress-number {
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--ant-color-primary);
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .download-actions {
+    margin-block: 20px;
+  }
+
+  .status-footnote {
+    margin-top: 4px;
+    color: var(--ant-color-text-secondary);
+    font-size: 13px;
+  }
+}

@@ -1,18 +1,29 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
   "files": {
     "ignoreUnknown": true,
     "includes": [
       "**/*",
+      "!**/.umi",
+      "!**/.umi-production",
+      "!**/.umi-test",
+      "!**/.umi-test-production",
+      "!**/src/services",
+      "!**/mock",
       "!**/dist",
+      "!**/server",
+      "!**/public",
       "!**/coverage",
       "!**/node_modules",
-      "!.next",
-      "!out",
-      "!src/services/video",
-      "!next-env.d.ts",
       "!biome.json",
-      "!package-lock.json"
+      "!tailwind.css",
+      "!package-lock.json",
+      "!**/.worktrees"
     ]
   },
   "formatter": {
@@ -24,21 +35,24 @@
     "rules": {
       "preset": "recommended",
       "suspicious": {
-        "noExplicitAny": "off"
+        "noExplicitAny": "off",
+        "noUnknownAtRules": "off"
+      },
+      "correctness": {
+        "useUniqueElementIds": "off",
+        "useExhaustiveDependencies": "off"
       },
       "a11y": {
-        "useValidAnchor": "off"
+        "noStaticElementInteractions": "off",
+        "useValidAnchor": "off",
+        "useKeyWithClickEvents": "off"
       }
     }
   },
   "javascript": {
+    "jsxRuntime": "reactClassic",
     "formatter": {
       "quoteStyle": "single"
-    }
-  },
-  "css": {
-    "parser": {
-      "tailwindDirectives": true
     }
   }
 }

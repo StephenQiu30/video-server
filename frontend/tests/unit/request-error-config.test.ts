@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ApiError, apiErrorFrom, displayError } from '@/requestErrorConfig';
+import { ApiError, apiErrorFrom, displayError } from '@/utils/requestErrorConfig';
 
 describe('request errors', () => {
   it('converts RFC problem responses into ApiError', () => {
@@ -24,8 +24,15 @@ describe('request errors', () => {
     expect(displayError(new Error('secret upstream detail'))).toBe(
       '发生未知错误，请稍后重试。',
     );
-    expect(displayError(new ApiError(0, 'x', 'x', '安全信息'))).toBe(
-      '安全信息',
-    );
+    expect(displayError(apiError(0, 'x', 'x', '安全信息'))).toBe('安全信息');
   });
 });
+
+function apiError(
+  status: number,
+  code: string,
+  title: string,
+  detail: string,
+) {
+  return new ApiError(status, code, title, detail);
+}
