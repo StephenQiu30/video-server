@@ -13,12 +13,16 @@ const runtime = vi.hoisted(() => ({
   getDownloadHistory: vi.fn(),
   issueDownloadUrl: vi.fn(),
   navigate: vi.fn(),
+  pageProps: undefined as unknown,
   tableProps: undefined as unknown,
   triggerBrowserDownload: vi.fn(),
 }));
 
 vi.mock('@ant-design/pro-components', () => ({
-  PageContainer: ({ children }: { children: ReactNode }) => <>{children}</>,
+  PageContainer: (props: { children: ReactNode }) => {
+    runtime.pageProps = props;
+    return <>{props.children}</>;
+  },
   ProTable: (props: unknown) => {
     runtime.tableProps = props;
     return <div data-testid="history-table" />;
@@ -47,6 +51,7 @@ type CapturedColumn = {
 
 type CapturedTableProps = {
   columns: CapturedColumn[];
+  headerTitle: string;
   options: Record<string, boolean>;
   pagination: {
     defaultPageSize: number;
@@ -63,11 +68,18 @@ type CapturedTableProps = {
     total: number;
   }>;
   search: Record<string, unknown>;
+  toolBarRender: () => ReactNode[];
+};
+
+type CapturedPageProps = {
+  breadcrumb: { items: Array<{ href?: string; title: string }> };
+  title: string;
 };
 
 describe('HistoryPage', () => {
   beforeEach(() => {
     runtime.getDownloadHistory.mockReset();
+    runtime.pageProps = undefined;
     runtime.tableProps = undefined;
   });
 
@@ -110,7 +122,16 @@ describe('HistoryPage', () => {
     expect(props.options).toMatchObject({
       density: false,
       fullScreen: false,
+      reload: true,
       setting: false,
+    });
+    expect(props.headerTitle).toBe('下载任务');
+    expect(props.toolBarRender()).toHaveLength(1);
+    expect(runtime.pageProps as CapturedPageProps).toMatchObject({
+      breadcrumb: {
+        items: [{ title: '解析下载', href: '/' }, { title: '下载历史' }],
+      },
+      title: '下载历史',
     });
   });
 
