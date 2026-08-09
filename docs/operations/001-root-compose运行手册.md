@@ -19,7 +19,7 @@ docker compose --env-file .env -f docker-compose.yml up -d --build
 
 本地配置可直接启动完整环境。入口为 <http://localhost:8101>。Swagger UI 位于 <http://localhost:8101/docs>，OpenAPI 契约位于 <http://localhost:8101/openapi.json>。
 
-所有服务都显式声明 `container_name`，直接使用 `api`、`postgres`、`rabbitmq`、`minio` 等服务原名，不会出现 `xxx-1` 副本后缀。环境配置读取被 Git 忽略的 `.env`，首次启动前从 `.env.example` 复制。
+所有服务都显式声明 `container_name`；公开主服务使用 `video-server`，基础服务使用 `postgres`、`rabbitmq`、`minio` 等简单名称，不会出现 `xxx-1` 副本后缀。环境配置读取被 Git 忽略的 `.env`，首次启动前从 `.env.example` 复制。
 
 ## 生产环境
 

@@ -106,7 +106,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runtime
-    container_name: api
+    container_name: video-server
     ports:
       - "127.0.0.1:8101:8101"
     command: ["python", "-m", "app.main"]
