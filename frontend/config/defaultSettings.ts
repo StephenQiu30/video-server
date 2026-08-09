@@ -11,7 +11,6 @@ const Settings: ProLayoutProps & {
   layout: 'top',
   contentWidth: 'Fluid',
   fixedHeader: true,
-  fixSiderbar: true,
   colorWeak: false,
   title: '帧取',
   logo: '/logo.svg',
