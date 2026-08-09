@@ -1,31 +1,36 @@
 import { DownloadOutlined, EyeOutlined } from '@ant-design/icons';
-import { ProTable, type ProColumns } from '@ant-design/pro-components';
+import type { ProColumns } from '@ant-design/pro-components';
 import { Button, Tag } from 'antd';
 
 import MediaCover from '@/components/MediaCover';
-import type {
-  DownloadHistory,
-  DownloadHistoryItem,
-  DownloadStatus,
-} from '@/types/video';
+import type { DownloadHistoryItem, DownloadStatus } from '@/types/video';
 
-type HistoryTableProps = {
-  data: DownloadHistory | null;
-  loading: boolean;
+type HistoryColumnActions = {
   onDownload: (item: DownloadHistoryItem) => void;
   onOpen: (id: string) => void;
 };
 
-export default function HistoryTable({
-  data,
-  loading,
+export function createHistoryColumns({
   onDownload,
   onOpen,
-}: HistoryTableProps) {
-  const columns: ProColumns<DownloadHistoryItem>[] = [
+}: HistoryColumnActions): ProColumns<DownloadHistoryItem>[] {
+  return [
+    {
+      title: '视频标题',
+      dataIndex: 'search',
+      valueType: 'text',
+      hideInTable: true,
+      order: 2,
+      fieldProps: {
+        allowClear: true,
+        maxLength: 128,
+        placeholder: '按视频标题搜索',
+      },
+    },
     {
       title: '视频',
       dataIndex: 'title',
+      search: false,
       render: (_, item) => (
         <div className="history-video-cell">
           <MediaCover
@@ -39,11 +44,23 @@ export default function HistoryTable({
         </div>
       ),
     },
-    { title: '格式', dataIndex: 'format_name', width: 150 },
+    {
+      title: '格式',
+      dataIndex: 'format_name',
+      search: false,
+      width: 150,
+    },
     {
       title: '状态',
       dataIndex: 'status',
+      valueType: 'select',
+      valueEnum: statusValueEnum,
+      order: 1,
       width: 160,
+      fieldProps: {
+        allowClear: true,
+        placeholder: '全部状态',
+      },
       render: (_, item) => (
         <Tag color={statusColors[item.status]}>
           {statusLabels[item.status]}
@@ -54,12 +71,9 @@ export default function HistoryTable({
     {
       title: '创建时间',
       dataIndex: 'created_at',
+      valueType: 'dateTime',
+      search: false,
       width: 190,
-      renderText: (value: string) =>
-        new Intl.DateTimeFormat('zh-CN', {
-          dateStyle: 'medium',
-          timeStyle: 'short',
-        }).format(new Date(value)),
     },
     {
       title: '操作',
@@ -85,20 +99,6 @@ export default function HistoryTable({
         ),
     },
   ];
-
-  return (
-    <ProTable<DownloadHistoryItem>
-      columns={columns}
-      dataSource={data?.items ?? []}
-      loading={loading}
-      locale={{ emptyText: '没有匹配的下载记录' }}
-      options={false}
-      pagination={false}
-      rowKey="id"
-      search={false}
-      toolBarRender={false}
-    />
-  );
 }
 
 const statusLabels: Record<DownloadStatus, string> = {
@@ -109,6 +109,13 @@ const statusLabels: Record<DownloadStatus, string> = {
   failed: '失败',
   cancelled: '已取消',
 };
+
+const statusValueEnum = Object.fromEntries(
+  Object.entries(statusLabels).map(([value, label]) => [
+    value,
+    { text: label },
+  ]),
+);
 
 const statusColors: Record<DownloadStatus, string> = {
   queued: 'default',
