@@ -6,19 +6,23 @@
 
 .format-card {
   cursor: pointer;
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
   position: relative;
   padding: 8px;
+  border-radius: 8px;
+  background: var(--ant-color-fill-quaternary);
+  box-shadow: none;
+  transition: background 0.2s ease;
+
+  &.ant-card {
+    box-shadow: none;
+  }
 
   &--selected {
-    border-color: var(--ant-color-primary, #1677ff);
-    box-shadow: 0 0 0 2px rgb(22 119 255 / 12%);
+    background: rgb(22 119 255 / 8%);
   }
 
   &:hover {
-    border-color: var(--ant-color-primary, #1677ff);
+    background: var(--ant-color-fill-secondary);
   }
 
   .format-card-main {

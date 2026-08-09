@@ -38,7 +38,7 @@ export default function FormatPicker({
         const selected = format.id === selectedId;
         return (
           <Card
-            variant="outlined"
+            variant="borderless"
             className={`format-card${selected ? ' format-card--selected' : ''}`}
             hoverable
             key={format.id}

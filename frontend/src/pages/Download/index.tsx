@@ -3,15 +3,15 @@ import {
   LinkOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
-import { PageContainer, ProCard } from '@ant-design/pro-components';
+import { PageContainer } from '@ant-design/pro-components';
 import { useNavigate } from '@umijs/max';
 import {
   Alert,
   Button,
-  Empty,
   Flex,
   Input,
   Space,
+  Spin,
   Tag,
   Typography,
 } from 'antd';
@@ -177,101 +177,95 @@ export default function DownloadPage() {
             </Space.Compact>
           </form>
 
-          <Flex className="source-examples" gap={8} align="center" wrap>
+          <Flex className="source-examples" gap={20} align="center" wrap>
             <Typography.Text type="secondary" className="source-label">
               支持：
             </Typography.Text>
             {platforms.map((p) => (
-              <Tag key={p.label} className="platform-chip">
+              <span key={p.label} className="platform-item">
                 <span
                   className="platform-dot"
                   style={{ background: p.color }}
                 />
                 {p.label}
-              </Tag>
+              </span>
             ))}
           </Flex>
         </div>
       </section>
 
-      <div className="content-wrap">
-        {error ? (
-          <Alert
-            description={error}
-            title="操作未完成"
-            showIcon
-            type="error"
-          />
-        ) : null}
-
-        {inspection ? (
-          <section className="inspection-card" aria-label="解析结果">
-            <div className="inspection-grid">
-              <div className="inspection-media">
-                <MediaCover
-                  alt={`${inspection.title} 视频封面`}
-                  durationSeconds={inspection.duration_seconds}
-                  platform={inspection.extractor_key}
-                  src={inspection.thumbnail_url}
-                />
-              </div>
-              <div className="inspection-detail">
-                <Typography.Title level={3} style={{ marginTop: 0 }}>
-                  {inspection.title}
-                </Typography.Title>
-                <div className="inspection-meta">
-                  <Tag>{inspection.extractor_key}</Tag>
-                  <Typography.Text type="secondary">
-                    {formatDuration(inspection.duration_seconds)} · 媒体 ID：
-                    {inspection.provider_media_id}
-                  </Typography.Text>
-                </div>
-
-                <div className="format-heading">
-                  <Typography.Text strong>选择下载格式</Typography.Text>
-                  <Tag>{inspection.formats.length} 个版本</Tag>
-                </div>
-                <FormatPicker
-                  formats={inspection.formats}
-                  onChange={setSelectedId}
-                  selectedId={selectedId}
-                />
-
-                <Button
-                  block
-                  className="create-download-button"
-                  disabled={!selectedId}
-                  icon={<DownloadOutlined aria-hidden />}
-                  loading={busy === 'create'}
-                  onClick={() => void handleCreate()}
-                  size="large"
-                  type="primary"
-                >
-                  {busy === 'create' ? '正在创建任务…' : '开始下载'}
-                </Button>
-              </div>
-            </div>
-          </section>
-        ) : (
-          <ProCard>
-            <Empty
-              description={
-                <Flex vertical gap={4}>
-                  <Typography.Text strong>
-                    {busy === 'inspect' ? '正在识别视频' : '等待解析公开视频'}
-                  </Typography.Text>
-                  <Typography.Text type="secondary">
-                    {busy === 'inspect'
-                      ? '正在安全识别媒体信息和可用格式，请稍候。'
-                      : '解析结果将在这里展示真实封面、媒体信息与可下载格式。'}
-                  </Typography.Text>
-                </Flex>
-              }
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
+      {error || inspection || busy === 'inspect' ? (
+        <div className="content-wrap">
+          {error ? (
+            <Alert
+              className="content-alert"
+              description={error}
+              title="操作未完成"
+              showIcon
+              type="error"
             />
-          </ProCard>
-        )}
-      </div>
+          ) : null}
+
+          {inspection ? (
+            <section className="inspection-result" aria-label="解析结果">
+              <div className="inspection-grid">
+                <div className="inspection-media">
+                  <MediaCover
+                    alt={`${inspection.title} 视频封面`}
+                    durationSeconds={inspection.duration_seconds}
+                    platform={inspection.extractor_key}
+                    src={inspection.thumbnail_url}
+                  />
+                </div>
+                <div className="inspection-detail">
+                  <Typography.Title level={3} style={{ marginTop: 0 }}>
+                    {inspection.title}
+                  </Typography.Title>
+                  <div className="inspection-meta">
+                    <Tag variant="filled">{inspection.extractor_key}</Tag>
+                    <Typography.Text type="secondary">
+                      {formatDuration(inspection.duration_seconds)} · 媒体 ID：
+                      {inspection.provider_media_id}
+                    </Typography.Text>
+                  </div>
+
+                  <div className="format-heading">
+                    <Typography.Text strong>选择下载格式</Typography.Text>
+                    <Tag variant="filled">
+                      {inspection.formats.length} 个版本
+                    </Tag>
+                  </div>
+                  <FormatPicker
+                    formats={inspection.formats}
+                    onChange={setSelectedId}
+                    selectedId={selectedId}
+                  />
+
+                  <Button
+                    block
+                    className="create-download-button"
+                    disabled={!selectedId}
+                    icon={<DownloadOutlined aria-hidden />}
+                    loading={busy === 'create'}
+                    onClick={() => void handleCreate()}
+                    size="large"
+                    type="primary"
+                  >
+                    {busy === 'create' ? '正在创建任务…' : '开始下载'}
+                  </Button>
+                </div>
+              </div>
+            </section>
+          ) : busy === 'inspect' ? (
+            <Flex className="inspection-loading" align="center" gap={10}>
+              <Spin size="small" />
+              <Typography.Text type="secondary">
+                正在识别媒体信息和可用格式…
+              </Typography.Text>
+            </Flex>
+          ) : null}
+        </div>
+      ) : null}
     </PageContainer>
   );
 }

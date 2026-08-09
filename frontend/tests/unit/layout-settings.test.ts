@@ -11,5 +11,15 @@ describe('Ant Design Pro 布局配置', () => {
       logo: '/logo.png',
       title: '帧取',
     });
+    expect(defaultSettings.token).toMatchObject({
+      bgLayout: '#fff',
+      header: {
+        colorBgHeader: '#fff',
+      },
+      pageContainer: {
+        colorBgPageContainer: '#fff',
+        colorBgPageContainerFixed: '#fff',
+      },
+    });
   });
 });
