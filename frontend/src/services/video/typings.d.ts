@@ -282,9 +282,44 @@ declare namespace API {
     job_id: string;
   };
 
+  type listUsersParams = {
+    page?: number;
+    page_size?: number;
+    search?: string | null;
+    role?: UserRole | null;
+    is_active?: boolean | null;
+  };
+
   type LivenessResponse = {
     /** Status */
     status: string;
+  };
+
+  type ManagedUserListResponse = {
+    /** Items */
+    items: ManagedUserResponse[];
+    /** Page */
+    page: number;
+    /** Page Size */
+    page_size: number;
+    /** Total */
+    total: number;
+  };
+
+  type ManagedUserResponse = {
+    /** Id */
+    id: string;
+    /** Username */
+    username: string;
+    /** Email */
+    email: string;
+    role: UserRole;
+    /** Is Active */
+    is_active: boolean;
+    /** Created At */
+    created_at: string;
+    /** Updated At */
+    updated_at: string;
   };
 
   type MindMapNodeResponse = {
@@ -324,6 +359,15 @@ declare namespace API {
     service: string;
   };
 
+  type RegisterRequest = {
+    /** Email */
+    email: string;
+    /** Password */
+    password: string;
+    /** Username 唯一用户名，支持字母、数字、中文以及 _-. 字符。 */
+    username: string;
+  };
+
   type SemanticPlanResponse = {
     /** Height */
     height: number;
@@ -339,14 +383,36 @@ declare namespace API {
     compatibility_profile: CompatibilityProfile;
   };
 
+  type UpdateProfileRequest = {
+    /** Username */
+    username: string;
+  };
+
+  type updateUserAccessParams = {
+    user_id: string;
+  };
+
+  type UpdateUserAccessRequest = {
+    role?: UserRole | null;
+    /** Is Active */
+    is_active?: boolean | null;
+  };
+
   type UserResponse = {
     /** Id */
     id: string;
+    /** Username */
+    username: string;
     /** Email */
     email: string;
+    role: UserRole;
     /** Created At */
     created_at: string;
+    /** Updated At */
+    updated_at: string;
   };
+
+  type UserRole = "admin" | "user";
 
   type VideoCodecFamily = "h264" | "hevc" | "vp9" | "av1" | "other";
 }

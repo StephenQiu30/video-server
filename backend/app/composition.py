@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.api.dependencies import AnalysisUseCases, DownloadUseCases
 from app.application.analysis import CancelAnalysis, CreateAnalysis, GetAnalysis
-from app.application.auth import AuthService
+from app.application.auth import AuthService, UserService
 from app.application.downloads import (
     CancelDownload,
     CreateDownload,
@@ -38,11 +38,13 @@ from app.infrastructure.passwords import Argon2PasswordHasher
 from app.infrastructure.rate_limiter import ValkeyRateLimiter
 from app.infrastructure.readiness import RuntimeReadiness, build_runtime_readiness
 from app.infrastructure.url_security import FernetUrlEnvelope, MediaUrlValidator
+from app.infrastructure.user_repository import SqlAlchemyUserRepository
 
 
 @dataclass(slots=True)
 class ApiRuntime:
     auth_service: AuthService
+    user_service: UserService
     use_cases: DownloadUseCases
     analysis_use_cases: AnalysisUseCases
     engine: AsyncEngine
@@ -64,6 +66,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
     repository = SqlAlchemyDownloadRepository(sessions)
     analysis_repository = SqlAlchemyAnalysisRepository(sessions)
     auth_repository = SqlAlchemyAuthRepository(sessions)
+    user_repository = SqlAlchemyUserRepository(sessions)
     store = SqlAlchemyDownloadStore(repository)
     runner = MediaRunnerHttpClient(
         base_url=settings.runner_base_url,
@@ -94,7 +97,13 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         ),
         now=clock,
         new_id=uuid4,
+        bootstrap_admin_email=(
+            str(settings.auth_bootstrap_admin_email)
+            if settings.auth_bootstrap_admin_email is not None
+            else None
+        ),
     )
+    user_service = UserService(repository=user_repository, now=clock)
     fingerprinter = HmacRequestFingerprinter(
         settings.request_fingerprint_secret.get_secret_value().encode()
     )
@@ -146,6 +155,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
     )
     return ApiRuntime(
         auth_service=auth_service,
+        user_service=user_service,
         use_cases=use_cases,
         analysis_use_cases=analysis_use_cases,
         engine=engine,

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 from app.api.auth_dependencies import get_current_user
-from app.application.auth import CurrentUser
+from app.application.auth import CurrentUser, UserRole
 from app.application.downloads import ApplicationError, ApplicationErrorCode
 from app.core.config import Settings
 from app.domain.downloads import DownloadStatus
@@ -21,8 +21,11 @@ from tests.integration.api.fakes import (
 
 TEST_USER = CurrentUser(
     id=JOB_ID,
+    username="video_user",
     email="user@example.com",
+    role=UserRole.USER,
     created_at=datetime(2026, 8, 6, tzinfo=UTC),
+    updated_at=datetime(2026, 8, 6, tzinfo=UTC),
 )
 
 

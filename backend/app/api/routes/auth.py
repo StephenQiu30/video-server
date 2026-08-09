@@ -14,7 +14,7 @@ from app.api.auth_dependencies import (
 )
 from app.api.dependencies import get_runtime_settings
 from app.api.errors import auth_application_error
-from app.api.schemas.auth import EmailPasswordRequest, UserResponse
+from app.api.schemas.auth import EmailPasswordRequest, RegisterRequest, UserResponse
 from app.application.auth import AuthError, AuthErrorCode, AuthService, CurrentUser
 from app.core.config import Settings
 
@@ -32,7 +32,7 @@ User = Annotated[CurrentUser, Depends(get_current_user)]
     summary="使用邮箱注册",
 )
 async def register_user(
-    body: EmailPasswordRequest,
+    body: RegisterRequest,
     request: Request,
     response: Response,
     auth: Auth,
@@ -40,7 +40,7 @@ async def register_user(
 ) -> UserResponse:
     await enforce_rate_limit(request, "register", _email_hash(str(body.email)))
     try:
-        grant = await auth.register(str(body.email), body.password)
+        grant = await auth.register(body.username, str(body.email), body.password)
     except AuthError as exc:
         raise auth_application_error(exc) from exc
     set_auth_cookies(response, settings, grant)

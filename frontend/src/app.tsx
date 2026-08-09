@@ -1,4 +1,9 @@
-import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
+import {
+  LogoutOutlined,
+  SettingOutlined,
+  TeamOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
 import type { Settings as LayoutSettings } from '@ant-design/pro-components';
 import type { RunTimeLayoutConfig } from '@umijs/max';
 import { history, Link } from '@umijs/max';
@@ -51,6 +56,21 @@ export const layout: RunTimeLayoutConfig = ({
   const accountMenu: MenuProps = {
     items: [
       {
+        key: 'profile',
+        icon: <SettingOutlined />,
+        label: '个人资料',
+      },
+      ...(currentUser?.role === 'admin'
+        ? [
+            {
+              key: 'users',
+              icon: <TeamOutlined />,
+              label: '用户管理',
+            },
+          ]
+        : []),
+      { type: 'divider' },
+      {
         key: 'logout',
         icon: <LogoutOutlined />,
         label: '退出登录',
@@ -59,6 +79,10 @@ export const layout: RunTimeLayoutConfig = ({
     onClick: ({ key }) => {
       if (key === 'logout') {
         void handleLogout();
+      } else if (key === 'profile') {
+        history.push('/account');
+      } else if (key === 'users') {
+        history.push('/admin/users');
       }
     },
   };
@@ -77,7 +101,7 @@ export const layout: RunTimeLayoutConfig = ({
       ? {
           icon: <UserOutlined />,
           size: 'small',
-          title: currentUser.email,
+          title: currentUser.username,
           render: (_props, avatar) => (
             <Dropdown menu={accountMenu} placement="bottomRight">
               <span className="account-entry">{avatar}</span>

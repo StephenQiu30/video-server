@@ -19,6 +19,14 @@ OPENAPI_TAGS: list[dict[str, Any]] = [
         "description": "邮箱注册、登录、JWT 刷新、注销与当前用户会话。",
     },
     {
+        "name": "users",
+        "description": "当前登录用户的公开账户资料。",
+    },
+    {
+        "name": "admin",
+        "description": "管理员用户查询、角色分配与账号状态管理。",
+    },
+    {
         "name": "system",
         "description": "进程存活与运行依赖就绪状态。",
     },
@@ -45,6 +53,7 @@ SWAGGER_UI_PARAMETERS: dict[str, Any] = {
 
 ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     401: {"model": ProblemDetails, "description": "未登录或会话已经失效"},
+    403: {"model": ProblemDetails, "description": "当前用户没有操作权限"},
     404: {"model": ProblemDetails, "description": "资源不存在或已经过期"},
     409: {"model": ProblemDetails, "description": "资源状态或幂等键冲突"},
     429: {"model": ProblemDetails, "description": "请求频率超过限制"},

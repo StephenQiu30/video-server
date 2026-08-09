@@ -21,6 +21,11 @@ import {
   issueDownloadUrl,
 } from '@/services/download';
 import { getLiveness, getReadiness } from '@/services/system';
+import {
+  listUsers,
+  updateCurrentUser,
+  updateUserAccess,
+} from '@/services/users';
 import { analysisJob } from '../fixtures/analysis-fixtures';
 import { inspection, job } from '../fixtures/download-fixtures';
 import { httpRequests, mockHttpResponses } from '../helpers/http';
@@ -29,12 +34,19 @@ describe('typed API client', () => {
   it('covers email registration, JWT session restore and logout endpoints', async () => {
     const user = {
       id: '11111111-1111-4111-8111-111111111111',
+      username: 'video_user',
       email: 'user@example.com',
+      role: 'user' as const,
       created_at: '2026-08-09T10:00:00Z',
+      updated_at: '2026-08-09T10:00:00Z',
     };
     mockHttpResponses(user, user, user, user, undefined);
 
-    await register({ email: user.email, password: 'strong-pass-123' });
+    await register({
+      username: user.username,
+      email: user.email,
+      password: 'strong-pass-123',
+    });
     await login({ email: user.email, password: 'strong-pass-123' });
     await getCurrentUser();
     await refreshSession();
@@ -123,6 +135,45 @@ describe('typed API client', () => {
       { url: `/api/downloads/${job().id}/analyses`, method: 'POST' },
       { url: `/api/analyses/${analysisJob().id}`, method: 'GET' },
       { url: `/api/analyses/${analysisJob().id}/cancel`, method: 'POST' },
+    ]);
+  });
+
+  it('covers profile and administrator user management endpoints', async () => {
+    const managedUser = {
+      id: '11111111-1111-4111-8111-111111111111',
+      username: 'video_user',
+      email: 'user@example.com',
+      role: 'user' as const,
+      is_active: true,
+      created_at: '2026-08-09T10:00:00Z',
+      updated_at: '2026-08-09T10:00:00Z',
+    };
+    mockHttpResponses(
+      managedUser,
+      { items: [managedUser], page: 1, page_size: 20, total: 1 },
+      { ...managedUser, role: 'admin' },
+    );
+
+    await updateCurrentUser({ username: 'video_user' });
+    await listUsers({ page: 1, page_size: 20, role: 'user' });
+    await updateUserAccess(managedUser.id, { role: 'admin' });
+
+    expect(httpRequests()).toMatchObject([
+      {
+        url: '/api/users/me',
+        method: 'PATCH',
+        data: { username: 'video_user' },
+      },
+      {
+        url: '/api/admin/users',
+        method: 'GET',
+        params: { page: 1, page_size: 20, role: 'user' },
+      },
+      {
+        url: `/api/admin/users/${managedUser.id}`,
+        method: 'PATCH',
+        data: { role: 'admin' },
+      },
     ]);
   });
 });

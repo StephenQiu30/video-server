@@ -43,7 +43,7 @@ export async function refreshUserSession(options?: { [key: string]: any }) {
 
 /** 使用邮箱注册 POST /api/auth/register */
 export async function registerUser(
-  body: API.EmailPasswordRequest,
+  body: API.RegisterRequest,
   options?: { [key: string]: any }
 ) {
   return request<API.UserResponse>("/api/auth/register", {

@@ -37,9 +37,11 @@ src/
 │   ├── Download/        # 解析与下载主页
 │   ├── DownloadDetail/  # 下载任务详情 + AI 分析
 │   ├── History/         # 下载历史
+│   ├── Account/         # 当前用户资料
+│   ├── AdminUsers/      # 管理员用户管理
 │   └── User/            # 邮箱登录与注册
 ├── components/    # 跨页业务组件（MediaCover、AnalysisPanel 等）
-├── hooks/         # 下载 / 分析 / 历史业务 hooks
+├── hooks/         # 下载与分析业务 hooks
 ├── services/      # API 客户端（video/ 目录由 OpenAPI 生成）
 ├── utils/         # request、格式化、校验、幂等键
 └── types/         # 业务类型别名
@@ -65,4 +67,5 @@ npm run openapi
 
 - 页面路由按路由 `name` 使用 `menu.*` 国际化文案（`src/locales/zh-CN.ts`、`en-US.ts`）。
 - `getInitialState` 通过 `/api/auth/me` 恢复用户；请求遇到 401 时统一轮换 Refresh JWT 并重试一次，JWT 不进入 localStorage。
+- Umi Max `access` 根据当前用户角色控制管理员路由；后端仍独立执行角色校验。
 - `exportStatic` 为每个路由生成 HTML，配合后端 SPA 回退到 `index.html`，支持浏览器路由刷新。

@@ -17,3 +17,4 @@
 | 005 | 多平台 Provider 策略 | [Design](design/005-多平台Provider策略设计.md) | — | — | — |
 | 006 | 上线产品能力补全 | [Design](design/006-上线产品能力补全设计.md) | [PRD](prd/006-上线产品能力补全需求.md) | [Plan](plans/006-上线产品能力补全计划.md) | [Acceptance](acceptance/006-上线产品能力补全验收.md) |
 | 007 | 邮箱账户与 JWT 认证 | [Design](design/007-邮箱账户与JWT认证设计.md) | [PRD](prd/007-邮箱账户与JWT认证需求.md) | [Plan](plans/007-邮箱账户与JWT认证计划.md) | [Acceptance](acceptance/007-邮箱账户与JWT认证验收.md) |
+| 008 | 用户资料与角色管理 | [Design](design/008-用户资料与角色管理设计.md) | [PRD](prd/008-用户资料与角色管理需求.md) | [Plan](plans/008-用户资料与角色管理计划.md) | [Acceptance](acceptance/008-用户资料与角色管理验收.md) |

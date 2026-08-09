@@ -158,6 +158,31 @@ _AUTH_ERRORS: dict[AuthErrorCode, tuple[int, str, str]] = {
         "Invalid credentials",
         "The email or password is incorrect.",
     ),
+    AuthErrorCode.USERNAME_ALREADY_REGISTERED: (
+        409,
+        "Username already registered",
+        "This username is already in use.",
+    ),
+    AuthErrorCode.INVALID_USERNAME: (
+        422,
+        "Invalid username",
+        "The username format is invalid.",
+    ),
+    AuthErrorCode.FORBIDDEN: (
+        403,
+        "Forbidden",
+        "Administrator access is required.",
+    ),
+    AuthErrorCode.USER_NOT_FOUND: (
+        404,
+        "User not found",
+        "The requested user does not exist.",
+    ),
+    AuthErrorCode.SELF_ADMIN_CHANGE: (
+        409,
+        "Self administration conflict",
+        "Administrators cannot demote or disable their own account.",
+    ),
     AuthErrorCode.UNAUTHENTICATED: (
         401,
         "Authentication required",

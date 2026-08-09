@@ -4,7 +4,15 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from .models import AccountRecord, CurrentUser, IssuedTokens, PasswordCheck, TokenClaims
+from .models import (
+    AccountRecord,
+    CurrentUser,
+    IssuedTokens,
+    ManagedUserPage,
+    PasswordCheck,
+    TokenClaims,
+    UserRole,
+)
 
 
 class AuthRepository(Protocol):
@@ -12,10 +20,15 @@ class AuthRepository(Protocol):
         self,
         *,
         account_id: UUID,
+        username: str,
+        normalized_username: str,
         email: str,
         password_hash: str,
+        role: UserRole,
         now: datetime,
     ) -> AccountRecord: ...
+
+    async def has_accounts(self) -> bool: ...
 
     async def find_account_by_email(self, email: str) -> AccountRecord | None: ...
 
@@ -51,6 +64,36 @@ class AuthRepository(Protocol):
         expires_at: datetime,
         now: datetime,
     ) -> bool: ...
+
+
+class UserRepository(Protocol):
+    async def update_username(
+        self,
+        *,
+        account_id: UUID,
+        username: str,
+        normalized_username: str,
+        now: datetime,
+    ) -> AccountRecord | None: ...
+
+    async def list_accounts(
+        self,
+        *,
+        page: int,
+        page_size: int,
+        search: str | None,
+        role: UserRole | None,
+        is_active: bool | None,
+    ) -> ManagedUserPage: ...
+
+    async def update_account_access(
+        self,
+        *,
+        account_id: UUID,
+        role: UserRole | None,
+        is_active: bool | None,
+        now: datetime,
+    ) -> AccountRecord | None: ...
 
 
 class PasswordHasher(Protocol):

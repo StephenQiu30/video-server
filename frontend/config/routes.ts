@@ -33,6 +33,19 @@ export default [
     component: './History',
   },
   {
+    path: '/account',
+    name: 'account',
+    hideInMenu: true,
+    component: './Account',
+  },
+  {
+    path: '/admin/users',
+    name: 'user-management',
+    icon: 'team',
+    access: 'canAdmin',
+    component: './AdminUsers',
+  },
+  {
     path: '/downloads/:jobId',
     name: 'download-detail',
     hideInMenu: true,

@@ -16,6 +16,9 @@ def test_auth_openapi_exposes_email_session_contract(tmp_path: Path) -> None:
         "/api/auth/me",
         "/api/auth/refresh",
         "/api/auth/logout",
+        "/api/users/me",
+        "/api/admin/users",
+        "/api/admin/users/{user_id}",
     } <= paths.keys()
     assert paths["/api/auth/register"]["post"]["operationId"] == "registerUser"
     assert paths["/api/auth/register"]["post"]["responses"]["201"]["content"][
@@ -25,6 +28,8 @@ def test_auth_openapi_exposes_email_session_contract(tmp_path: Path) -> None:
         "description": "Successful Response"
     }
     assert paths["/api/auth/refresh"]["post"]["operationId"] == ("refreshUserSession")
-    request_schema = schema["components"]["schemas"]["EmailPasswordRequest"]
+    request_schema = schema["components"]["schemas"]["RegisterRequest"]
     assert request_schema["additionalProperties"] is False
-    assert request_schema["required"] == ["email", "password"]
+    assert request_schema["required"] == ["email", "password", "username"]
+    assert paths["/api/admin/users"]["get"]["operationId"] == "listUsers"
+    assert paths["/api/users/me"]["patch"]["operationId"] == "updateCurrentUser"

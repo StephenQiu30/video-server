@@ -6,6 +6,8 @@ export default {
   'menu.download': '解析下载',
   'menu.download-detail': '下载详情',
   'menu.history': '下载历史',
+  'menu.account': '个人资料',
+  'menu.user-management': '用户管理',
   'menu.login': '登录',
   'menu.register': '注册',
 };

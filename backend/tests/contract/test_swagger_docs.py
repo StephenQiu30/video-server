@@ -21,6 +21,8 @@ def test_swagger_ui_and_openapi_contract_are_available(tmp_path: Path) -> None:
     assert {tag["name"] for tag in schema["tags"]} == {
         "system",
         "auth",
+        "users",
+        "admin",
         "inspections",
         "downloads",
         "analyses",
@@ -41,6 +43,9 @@ def test_swagger_ui_and_openapi_contract_are_available(tmp_path: Path) -> None:
         "getCurrentUser",
         "refreshUserSession",
         "logoutUser",
+        "updateCurrentUser",
+        "listUsers",
+        "updateUserAccess",
         "inspectMedia",
         "getInspection",
         "createDownload",

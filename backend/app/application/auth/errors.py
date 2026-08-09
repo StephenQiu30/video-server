@@ -3,7 +3,12 @@ from enum import StrEnum
 
 class AuthErrorCode(StrEnum):
     EMAIL_ALREADY_REGISTERED = "email_already_registered"
+    USERNAME_ALREADY_REGISTERED = "username_already_registered"
     INVALID_CREDENTIALS = "invalid_credentials"
+    INVALID_USERNAME = "invalid_username"
+    FORBIDDEN = "forbidden"
+    USER_NOT_FOUND = "user_not_found"
+    SELF_ADMIN_CHANGE = "self_admin_change"
     UNAUTHENTICATED = "unauthenticated"
 
 
@@ -15,3 +20,7 @@ class AuthError(Exception):
 
 class DuplicateEmailError(RuntimeError):
     """Raised by an authentication repository on a unique email conflict."""
+
+
+class DuplicateUsernameError(RuntimeError):
+    """Raised when a normalized username is already assigned."""

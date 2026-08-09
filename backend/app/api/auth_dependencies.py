@@ -6,7 +6,14 @@ from typing import Annotated, cast
 
 from fastapi import Depends, Request, Response
 
-from app.application.auth import AuthError, AuthService, CurrentUser, SessionGrant
+from app.application.auth import (
+    AuthError,
+    AuthService,
+    CurrentUser,
+    SessionGrant,
+    UserRole,
+    UserService,
+)
 from app.core.config import Settings
 from app.core.errors import AppError
 from app.infrastructure.rate_limiter import (
@@ -28,6 +35,18 @@ def get_auth_service(request: Request) -> AuthService:
             detail="The authentication service is not available.",
         )
     return cast(AuthService, service)
+
+
+def get_user_service(request: Request) -> UserService:
+    service = getattr(request.app.state, "user_service", None)
+    if service is None:
+        raise AppError(
+            status=503,
+            code="service_unavailable",
+            title="Service unavailable",
+            detail="The user service is not available.",
+        )
+    return cast(UserService, service)
 
 
 async def get_current_user(
@@ -58,6 +77,19 @@ async def get_current_user(
     operation = _rate_limit_operation(request)
     if operation is not None:
         await enforce_rate_limit(request, operation, user.owner_hash)
+    return user
+
+
+async def get_current_admin(
+    user: Annotated[CurrentUser, Depends(get_current_user)],
+) -> CurrentUser:
+    if user.role is not UserRole.ADMIN:
+        raise AppError(
+            status=403,
+            code="forbidden",
+            title="Forbidden",
+            detail="Administrator access is required.",
+        )
     return user
 
 

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Literal
 
 from cryptography.fernet import Fernet
-from pydantic import Field, SecretStr, field_validator, model_validator
+from pydantic import EmailStr, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -70,6 +70,7 @@ class Settings(BaseSettings):
     auth_refresh_token_ttl_seconds: int = Field(
         default=2_592_000, ge=3600, le=31_536_000
     )
+    auth_bootstrap_admin_email: EmailStr | None = None
     request_fingerprint_secret: SecretStr = SecretStr(
         "development-fingerprint-secret-change-me"
     )
@@ -208,6 +209,8 @@ class Settings(BaseSettings):
             raise ValueError("production secrets must be explicitly configured")
         if self.service_role == "api" and not self.valkey_url:
             raise ValueError("production API requires VALKEY_URL")
+        if self.service_role == "api" and self.auth_bootstrap_admin_email is None:
+            raise ValueError("production API requires AUTH_BOOTSTRAP_ADMIN_EMAIL")
         return self
 
 

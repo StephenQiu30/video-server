@@ -4,9 +4,15 @@ from collections.abc import Callable
 from datetime import datetime
 from uuid import UUID
 
-from .errors import AuthError, AuthErrorCode, DuplicateEmailError
-from .models import CurrentUser, SessionGrant
+from .errors import (
+    AuthError,
+    AuthErrorCode,
+    DuplicateEmailError,
+    DuplicateUsernameError,
+)
+from .models import CurrentUser, SessionGrant, UserRole
 from .ports import AuthRepository, AuthTokens, PasswordHasher
+from .usernames import normalize_username
 
 
 class AuthService:
@@ -18,28 +24,55 @@ class AuthService:
         tokens: AuthTokens,
         now: Callable[[], datetime],
         new_id: Callable[[], UUID],
+        bootstrap_admin_email: str | None = None,
     ) -> None:
         self._repository = repository
         self._passwords = passwords
         self._tokens = tokens
         self._now = now
         self._new_id = new_id
+        self._bootstrap_admin_email = (
+            _normalize_email(bootstrap_admin_email)
+            if bootstrap_admin_email is not None
+            else None
+        )
 
-    async def register(self, email: str, password: str) -> SessionGrant:
+    async def register(self, username: str, email: str, password: str) -> SessionGrant:
         normalized = _normalize_email(email)
+        try:
+            display_username, normalized_username = normalize_username(username)
+        except ValueError as exc:
+            raise AuthError(AuthErrorCode.INVALID_USERNAME) from exc
         _validate_password(password)
         password_hash = await self._passwords.hash(password)
         now = self._now()
+        role = await self._registration_role(normalized)
         try:
             account = await self._repository.create_account(
                 account_id=self._new_id(),
+                username=display_username,
+                normalized_username=normalized_username,
                 email=normalized,
                 password_hash=password_hash,
+                role=role,
                 now=now,
             )
         except DuplicateEmailError as exc:
             raise AuthError(AuthErrorCode.EMAIL_ALREADY_REGISTERED) from exc
+        except DuplicateUsernameError as exc:
+            raise AuthError(AuthErrorCode.USERNAME_ALREADY_REGISTERED) from exc
         return await self._grant(account.public_view(), now)
+
+    async def _registration_role(self, email: str) -> UserRole:
+        if self._bootstrap_admin_email is not None:
+            return (
+                UserRole.ADMIN
+                if email == self._bootstrap_admin_email
+                else UserRole.USER
+            )
+        return (
+            UserRole.USER if await self._repository.has_accounts() else UserRole.ADMIN
+        )
 
     async def login(self, email: str, password: str) -> SessionGrant:
         account = await self._repository.find_account_by_email(_normalize_email(email))

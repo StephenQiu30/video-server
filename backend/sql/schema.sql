@@ -6,12 +6,17 @@ BEGIN;
 
 CREATE TABLE users (
     id UUID PRIMARY KEY,
+    username VARCHAR(32) NOT NULL,
+    normalized_username VARCHAR(64) NOT NULL,
     email VARCHAR(320) NOT NULL,
     password_hash VARCHAR(512) NOT NULL,
+    role VARCHAR(16) NOT NULL DEFAULT 'user',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_users_email UNIQUE (email)
+    CONSTRAINT uq_users_email UNIQUE (email),
+    CONSTRAINT uq_users_normalized_username UNIQUE (normalized_username),
+    CONSTRAINT ck_users_role CHECK (role IN ('admin', 'user'))
 );
 
 CREATE TABLE auth_sessions (

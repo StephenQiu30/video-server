@@ -12,7 +12,7 @@ from app.application.analysis import (
     AnalysisApplicationErrorCode,
     AnalysisJobView,
 )
-from app.application.auth import CurrentUser
+from app.application.auth import CurrentUser, UserRole
 from app.core.config import Settings
 from app.domain.analysis import AnalysisStatus
 from app.main import create_app
@@ -48,8 +48,11 @@ RESULT = {
 }
 TEST_USER = CurrentUser(
     id=DOWNLOAD_ID,
+    username="video_user",
     email="user@example.com",
+    role=UserRole.USER,
     created_at=NOW,
+    updated_at=NOW,
 )
 
 

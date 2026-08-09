@@ -32,9 +32,14 @@ def test_download_schema_contains_required_tables_and_columns() -> None:
         "semantic_plan",
     } <= set(jobs.columns.keys())
     assert jobs.c.semantic_plan.type.compile(postgresql.dialect()) == "JSONB"
-    assert {"email", "password_hash", "is_active"} <= set(
-        tables["users"].columns.keys()
-    )
+    assert {
+        "username",
+        "normalized_username",
+        "email",
+        "password_hash",
+        "role",
+        "is_active",
+    } <= set(tables["users"].columns.keys())
     assert {"user_id", "token_hash", "expires_at"} <= set(
         tables["auth_sessions"].columns.keys()
     )
@@ -58,10 +63,12 @@ def test_constraints_cover_idempotency_progress_and_artifact_identity() -> None:
     artifact_ddl = str(
         CreateTable(Base.metadata.tables["artifacts"]).compile(dialect=dialect)
     )
+    user_ddl = str(CreateTable(Base.metadata.tables["users"]).compile(dialect=dialect))
     assert "uq_download_jobs_owner_idempotency" in job_ddl
     assert "progress BETWEEN 0 AND 100" in job_ddl
     assert "uq_artifacts_job" in artifact_ddl
     assert "uq_artifacts_object" in artifact_ddl
+    assert "ck_users_role" in user_ddl
 
 
 def test_postgres_claims_use_skip_locked_for_parallel_consumers() -> None:

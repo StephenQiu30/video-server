@@ -1,4 +1,4 @@
-import { LockOutlined, MailOutlined } from '@ant-design/icons';
+import { LockOutlined, MailOutlined, UserOutlined } from '@ant-design/icons';
 import { LoginForm, ProFormText } from '@ant-design/pro-components';
 import { history, Link, useLocation, useModel } from '@umijs/max';
 import { Alert } from 'antd';
@@ -9,7 +9,7 @@ import { authRedirect } from '@/utils/authRedirect';
 
 import styles from '../auth.less';
 
-type RegisterValues = API.EmailPasswordRequest & {
+type RegisterValues = API.RegisterRequest & {
   confirmPassword: string;
 };
 
@@ -33,10 +33,10 @@ export default function RegisterPage() {
           title="创建账号"
           subTitle="使用邮箱注册，登录状态会在受信任设备上自动保持"
           submitter={{ searchConfig: { submitText: '注册并登录' } }}
-          onFinish={async ({ email, password }) => {
+          onFinish={async ({ username, email, password }) => {
             setErrorMessage(undefined);
             try {
-              const currentUser = await register({ email, password });
+              const currentUser = await register({ username, email, password });
               await setInitialState({
                 currentUser,
                 fetchCurrentUser: getCurrentUser,
@@ -58,6 +58,20 @@ export default function RegisterPage() {
               showIcon
             />
           ) : null}
+          <ProFormText
+            name="username"
+            fieldProps={{
+              autoComplete: 'username',
+              prefix: <UserOutlined />,
+              size: 'large',
+            }}
+            placeholder="用户名"
+            rules={[
+              { required: true, message: '请设置用户名' },
+              { min: 2, message: '用户名至少需要 2 个字符' },
+              { max: 32, message: '用户名不能超过 32 个字符' },
+            ]}
+          />
           <ProFormText
             name="email"
             fieldProps={{
