@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import DownloadWorkspace from '@/components/download-workspace';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { URL_MESSAGE } from '@/utils/validation';
 import { inspection, job } from '../fixtures/download-fixtures';
 import { httpRequests, mockHttpResponses } from '../helpers/http';
@@ -21,7 +22,7 @@ describe('DownloadWorkspace', () => {
   });
 
   it('starts with one focused, accessible inspection form', () => {
-    render(<DownloadWorkspace />);
+    renderWorkspace();
 
     expect(
       screen.getByRole('heading', { name: '粘贴链接，剩下的交给帧取' }),
@@ -34,7 +35,7 @@ describe('DownloadWorkspace', () => {
   });
 
   it('rejects an invalid address before making an API request', async () => {
-    render(<DownloadWorkspace />);
+    renderWorkspace();
 
     fireEvent.change(screen.getByLabelText('公开视频地址'), {
       target: { value: 'file:///tmp/private-video' },
@@ -47,7 +48,7 @@ describe('DownloadWorkspace', () => {
 
   it('inspects a public URL, creates a download, and opens its Next route', async () => {
     mockHttpResponses(inspection, job());
-    render(<DownloadWorkspace />);
+    renderWorkspace();
 
     fireEvent.change(screen.getByLabelText('公开视频地址'), {
       target: { value: ' https://media.example/owned ' },
@@ -82,3 +83,11 @@ describe('DownloadWorkspace', () => {
     ]);
   });
 });
+
+function renderWorkspace() {
+  return render(
+    <TooltipProvider>
+      <DownloadWorkspace />
+    </TooltipProvider>,
+  );
+}

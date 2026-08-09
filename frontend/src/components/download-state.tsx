@@ -9,9 +9,22 @@ import {
 } from '@phosphor-icons/react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
 import type {
   DownloadJob,
   DownloadStage,
@@ -73,7 +86,8 @@ export default function DownloadState({
         </Badge>
       </div>
 
-      <dl className="mt-8 grid grid-cols-3 gap-4 border-y py-5 text-sm">
+      <Separator className="mt-8" />
+      <dl className="grid grid-cols-3 gap-4 py-5 text-sm">
         <Meta
           label="格式"
           value={format?.plan.container_preference.toUpperCase() ?? '—'}
@@ -81,6 +95,7 @@ export default function DownloadState({
         <Meta label="清晰度" value={format ? `${format.plan.height}P` : '—'} />
         <Meta label="阶段" value={displayStage(job)} />
       </dl>
+      <Separator />
 
       <div className="mt-7 flex items-end justify-between">
         <span className="font-mono text-4xl font-semibold tracking-[-0.05em]">
@@ -121,19 +136,39 @@ export default function DownloadState({
           </Button>
         ) : null}
         {active ? (
-          <Button
-            disabled={action === 'cancel'}
-            onClick={onCancel}
-            size="lg"
-            variant="outline"
-          >
-            {action === 'cancel' ? (
-              <SpinnerGap className="animate-spin" />
-            ) : (
-              <X />
-            )}
-            取消任务
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                disabled={action === 'cancel'}
+                size="lg"
+                variant="outline"
+              >
+                {action === 'cancel' ? (
+                  <SpinnerGap className="animate-spin" />
+                ) : (
+                  <X />
+                )}
+                取消任务
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent size="sm">
+              <AlertDialogHeader>
+                <AlertDialogMedia>
+                  <X aria-hidden />
+                </AlertDialogMedia>
+                <AlertDialogTitle>取消当前下载任务？</AlertDialogTitle>
+                <AlertDialogDescription>
+                  确认后将停止当前下载。你仍可返回首页重新创建下载任务。
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>继续下载</AlertDialogCancel>
+                <AlertDialogAction variant="destructive" onClick={onCancel}>
+                  确认取消下载
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         ) : null}
       </div>
 

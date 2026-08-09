@@ -1,6 +1,12 @@
 'use client';
 
-import { ArrowClockwise, MagnifyingGlass, Plus } from '@phosphor-icons/react';
+import {
+  ArrowClockwise,
+  CaretLeft,
+  CaretRight,
+  MagnifyingGlass,
+  Plus,
+} from '@phosphor-icons/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -10,7 +16,14 @@ import DownloadHistoryList, {
 } from '@/components/download-history-list';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { ButtonGroup, ButtonGroupText } from '@/components/ui/button-group';
+import { Field, FieldLabel } from '@/components/ui/field';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '@/components/ui/input-group';
+import { Pagination } from '@/components/ui/pagination';
 import {
   Select,
   SelectContent,
@@ -71,42 +84,63 @@ export default function DownloadHistoryView() {
 
       <div className="mt-11 flex flex-col gap-3 border-y py-5 sm:flex-row">
         <form
-          className="relative flex-1"
+          className="flex-1"
           onSubmit={(event) => {
             event.preventDefault();
             setPage(1);
             setSearch(searchInput.trim());
           }}
         >
-          <MagnifyingGlass className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            aria-label="搜索下载历史"
-            className="pl-9"
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="按视频标题搜索"
-            value={searchInput}
-          />
+          <Field>
+            <FieldLabel className="sr-only" htmlFor="history-search">
+              搜索下载历史
+            </FieldLabel>
+            <InputGroup className="h-10">
+              <InputGroupInput
+                className="h-full"
+                id="history-search"
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="按视频标题搜索"
+                value={searchInput}
+              />
+              <InputGroupAddon>
+                <MagnifyingGlass aria-hidden />
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
         </form>
-        <Select
-          onValueChange={(value) => {
-            setPage(1);
-            setStatus(value === 'all' ? undefined : (value as DownloadStatus));
-          }}
-          value={status ?? 'all'}
+        <Field className="sm:w-40">
+          <FieldLabel className="sr-only" htmlFor="history-status">
+            按状态筛选
+          </FieldLabel>
+          <Select
+            onValueChange={(value) => {
+              setPage(1);
+              setStatus(
+                value === 'all' ? undefined : (value as DownloadStatus),
+              );
+            }}
+            value={status ?? 'all'}
+          >
+            <SelectTrigger className="h-10" id="history-status">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部状态</SelectItem>
+              {Object.entries(downloadStatusLabels).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Button
+          className="h-10"
+          onClick={state.retry}
+          type="button"
+          variant="outline"
         >
-          <SelectTrigger aria-label="按状态筛选" className="sm:w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部状态</SelectItem>
-            {Object.entries(downloadStatusLabels).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button onClick={state.retry} variant="outline">
           <ArrowClockwise size={17} />
           刷新
         </Button>
@@ -135,25 +169,36 @@ export default function DownloadHistoryView() {
       />
 
       {state.data && state.data.total > state.data.page_size ? (
-        <div className="mt-8 flex items-center justify-end gap-3">
-          <Button
-            disabled={page <= 1}
-            onClick={() => setPage((value) => value - 1)}
-            variant="outline"
-          >
-            上一页
-          </Button>
-          <span className="font-mono text-sm text-muted-foreground">
-            第 {page} 页
-          </span>
-          <Button
-            disabled={page * state.data.page_size >= state.data.total}
-            onClick={() => setPage((value) => value + 1)}
-            variant="outline"
-          >
-            下一页
-          </Button>
-        </div>
+        <Pagination aria-label="下载历史分页" className="mt-8 justify-end">
+          <ButtonGroup>
+            <Button
+              aria-label="上一页"
+              disabled={page <= 1}
+              onClick={() => setPage((value) => value - 1)}
+              type="button"
+              variant="outline"
+            >
+              <CaretLeft aria-hidden />
+              <span className="hidden sm:inline">上一页</span>
+            </Button>
+            <ButtonGroupText
+              aria-live="polite"
+              className="min-w-20 justify-center bg-background font-mono font-normal text-muted-foreground"
+            >
+              {page} / {Math.ceil(state.data.total / state.data.page_size)}
+            </ButtonGroupText>
+            <Button
+              aria-label="下一页"
+              disabled={page * state.data.page_size >= state.data.total}
+              onClick={() => setPage((value) => value + 1)}
+              type="button"
+              variant="outline"
+            >
+              <span className="hidden sm:inline">下一页</span>
+              <CaretRight aria-hidden />
+            </Button>
+          </ButtonGroup>
+        </Pagination>
       ) : null}
     </main>
   );

@@ -1,8 +1,26 @@
 import { DownloadSimple } from '@phosphor-icons/react';
+import { Fragment } from 'react';
 
 import MediaCover from '@/components/media-cover';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty';
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemSeparator,
+  ItemTitle,
+} from '@/components/ui/item';
 import { Skeleton } from '@/components/ui/skeleton';
 import type {
   DownloadHistory,
@@ -24,21 +42,28 @@ export default function DownloadHistoryList({
   return (
     <section aria-label="下载任务" className="mt-3 border-t">
       {loading && !data ? <LoadingRows /> : null}
-      {data?.items.map((item) => (
-        <HistoryRow
-          item={item}
-          key={item.id}
-          onDownload={onDownload}
-          onOpen={onOpen}
-        />
-      ))}
+      {data?.items.length ? (
+        <ItemGroup className="gap-0">
+          {data.items.map((item) => (
+            <Fragment key={item.id}>
+              <HistoryRow item={item} onDownload={onDownload} onOpen={onOpen} />
+              <ItemSeparator className="my-0" />
+            </Fragment>
+          ))}
+        </ItemGroup>
+      ) : null}
       {data && !data.items.length ? (
-        <div className="py-20 text-center">
-          <p className="text-lg font-medium">没有匹配的下载记录</p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            调整筛选条件，或新建一个下载任务。
-          </p>
-        </div>
+        <Empty className="min-h-64 rounded-none border-b py-16">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <DownloadSimple aria-hidden />
+            </EmptyMedia>
+            <EmptyTitle>没有匹配的下载记录</EmptyTitle>
+            <EmptyDescription>
+              调整筛选条件，或新建一个下载任务。
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : null}
     </section>
   );
@@ -54,27 +79,37 @@ function HistoryRow({
   onOpen: (id: string) => void;
 }) {
   return (
-    <article className="grid gap-4 border-b py-5 sm:grid-cols-[112px_minmax(0,1fr)_auto] sm:items-center">
-      <MediaCover
-        alt={`${item.title} 视频封面`}
-        className="w-28"
-        src={item.thumbnail_url}
-      />
-      <div className="min-w-0">
-        <button
-          className="focus-ring line-clamp-2 rounded text-left font-medium hover:text-primary"
-          onClick={() => onOpen(item.id)}
-          type="button"
-        >
-          {item.title}
-        </button>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+    <Item
+      className="grid gap-4 rounded-none border-0 px-0 py-5 sm:grid-cols-[112px_minmax(0,1fr)_auto] sm:items-center"
+      role="listitem"
+    >
+      <ItemMedia>
+        <MediaCover
+          alt={`${item.title} 视频封面`}
+          className="w-28"
+          src={item.thumbnail_url}
+        />
+      </ItemMedia>
+      <ItemContent className="min-w-0">
+        <ItemTitle className="line-clamp-2">
+          <Button
+            aria-label={item.title}
+            className="h-auto justify-start whitespace-normal p-0 text-left text-foreground hover:text-primary"
+            onClick={() => onOpen(item.id)}
+            size="sm"
+            variant="link"
+            type="button"
+          >
+            {item.title}
+          </Button>
+        </ItemTitle>
+        <ItemDescription className="flex flex-wrap items-center gap-2">
           <span>{item.format_name}</span>
           <span>·</span>
           <time dateTime={item.created_at}>{formatDate(item.created_at)}</time>
-        </div>
-      </div>
-      <div className="flex items-center justify-between gap-3 sm:justify-end">
+        </ItemDescription>
+      </ItemContent>
+      <ItemActions className="w-full justify-between sm:w-auto sm:justify-end">
         <Badge variant={statusVariant(item.status)}>
           {downloadStatusLabels[item.status]}
           {activeStatuses.has(item.status) ? ` · ${item.progress}%` : ''}
@@ -89,8 +124,8 @@ function HistoryRow({
             查看任务
           </Button>
         )}
-      </div>
-    </article>
+      </ItemActions>
+    </Item>
   );
 }
 

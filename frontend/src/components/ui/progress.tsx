@@ -13,6 +13,7 @@ function Progress({
   const percentage = value ?? 0;
   return (
     <ProgressPrimitive.Root
+      data-slot="progress"
       className={cn(
         'relative h-1.5 w-full overflow-hidden rounded-full bg-muted',
         className,
@@ -21,7 +22,8 @@ function Progress({
       {...props}
     >
       <ProgressPrimitive.Indicator
-        className="h-full bg-primary transition-transform duration-500"
+        data-slot="progress-indicator"
+        className="h-full bg-primary transition-transform duration-500 motion-reduce:transition-none"
         style={{ transform: `translateX(-${100 - percentage}%)` }}
       />
     </ProgressPrimitive.Root>

@@ -6,6 +6,13 @@ import {
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function AdminSkeleton({ rowsOnly = false }: { rowsOnly?: boolean }) {
@@ -38,7 +45,7 @@ export function UsersLoadError({
       <WarningCircle />
       <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
         {error}
-        <Button variant="outline" size="sm" onClick={onRetry}>
+        <Button onClick={onRetry} size="sm" type="button" variant="outline">
           <ArrowClockwise />
           重试
         </Button>
@@ -49,19 +56,15 @@ export function UsersLoadError({
 
 export function EmptyUsers() {
   return (
-    <div className="grid min-h-64 place-items-center border-y py-12 text-center">
-      <div>
-        <UsersThree
-          className="mx-auto text-primary"
-          size={36}
-          weight="duotone"
-        />
-        <h2 className="mt-4 font-semibold">没有匹配的用户</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          尝试清空搜索词或更换筛选条件。
-        </p>
-      </div>
-    </div>
+    <Empty className="min-h-64 rounded-none border-y py-12">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <UsersThree aria-hidden weight="duotone" />
+        </EmptyMedia>
+        <EmptyTitle>没有匹配的用户</EmptyTitle>
+        <EmptyDescription>尝试清空搜索词或更换筛选条件。</EmptyDescription>
+      </EmptyHeader>
+    </Empty>
   );
 }
 

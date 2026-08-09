@@ -4,7 +4,6 @@ import {
   ArrowRightIcon,
   EnvelopeSimpleIcon,
   LockKeyIcon,
-  SpinnerGapIcon,
   UserIcon,
   WarningCircleIcon,
 } from '@phosphor-icons/react';
@@ -20,7 +19,9 @@ import {
 } from '@/components/register-form-model';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { FieldGroup } from '@/components/ui/field';
+import { InputGroupInput } from '@/components/ui/input-group';
+import { Spinner } from '@/components/ui/spinner';
 import { displayError, register } from '@/services/auth';
 import { authRedirect } from '@/utils/authRedirect';
 
@@ -84,7 +85,7 @@ export function RegisterView() {
     >
       <form
         aria-busy={submitting}
-        className="mt-8 space-y-4"
+        className="space-y-5"
         noValidate
         onSubmit={handleSubmit}
       >
@@ -94,83 +95,85 @@ export function RegisterView() {
             <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
         ) : null}
-        <AuthField
-          error={errors.username}
-          icon={<UserIcon aria-hidden />}
-          idPrefix="register"
-          label="用户名"
-          name="username"
-        >
-          <Input
-            aria-describedby={errors.username ? 'username-error' : undefined}
-            aria-invalid={Boolean(errors.username)}
-            autoComplete="username"
-            className="pl-11"
-            id="register-username"
-            maxLength={32}
-            minLength={2}
+        <FieldGroup className="gap-4">
+          <AuthField
+            error={errors.username}
+            icon={<UserIcon aria-hidden />}
+            idPrefix="register"
+            label="用户名"
             name="username"
-            placeholder="2–32 个字符"
-          />
-        </AuthField>
-        <AuthField
-          error={errors.email}
-          icon={<EnvelopeSimpleIcon aria-hidden />}
-          idPrefix="register"
-          label="邮箱地址"
-          name="email"
-        >
-          <Input
-            aria-describedby={errors.email ? 'email-error' : undefined}
-            aria-invalid={Boolean(errors.email)}
-            autoComplete="email"
-            className="pl-11"
-            id="register-email"
+          >
+            <InputGroupInput
+              aria-describedby={errors.username ? 'username-error' : undefined}
+              aria-invalid={Boolean(errors.username)}
+              autoComplete="username"
+              className="h-full"
+              id="register-username"
+              maxLength={32}
+              minLength={2}
+              name="username"
+              placeholder="2–32 个字符"
+            />
+          </AuthField>
+          <AuthField
+            error={errors.email}
+            icon={<EnvelopeSimpleIcon aria-hidden />}
+            idPrefix="register"
+            label="邮箱地址"
             name="email"
-            placeholder="name@example.com"
-            type="email"
-          />
-        </AuthField>
-        <AuthField
-          error={errors.password}
-          icon={<LockKeyIcon aria-hidden />}
-          idPrefix="register"
-          label="密码"
-          name="password"
-        >
-          <Input
-            aria-describedby={errors.password ? 'password-error' : undefined}
-            aria-invalid={Boolean(errors.password)}
-            autoComplete="new-password"
-            className="pl-11"
-            id="register-password"
-            maxLength={128}
-            minLength={8}
+          >
+            <InputGroupInput
+              aria-describedby={errors.email ? 'email-error' : undefined}
+              aria-invalid={Boolean(errors.email)}
+              autoComplete="email"
+              className="h-full"
+              id="register-email"
+              name="email"
+              placeholder="name@example.com"
+              type="email"
+            />
+          </AuthField>
+          <AuthField
+            error={errors.password}
+            icon={<LockKeyIcon aria-hidden />}
+            idPrefix="register"
+            label="密码"
             name="password"
-            placeholder="至少 8 个字符"
-            type="password"
-          />
-        </AuthField>
-        <AuthField
-          error={errors.confirmPassword}
-          icon={<LockKeyIcon aria-hidden />}
-          idPrefix="register"
-          label="确认密码"
-          name="confirmPassword"
-        >
-          <Input
-            aria-describedby={
-              errors.confirmPassword ? 'confirmPassword-error' : undefined
-            }
-            aria-invalid={Boolean(errors.confirmPassword)}
-            autoComplete="new-password"
-            className="pl-11"
-            id="register-confirmPassword"
+          >
+            <InputGroupInput
+              aria-describedby={errors.password ? 'password-error' : undefined}
+              aria-invalid={Boolean(errors.password)}
+              autoComplete="new-password"
+              className="h-full"
+              id="register-password"
+              maxLength={128}
+              minLength={8}
+              name="password"
+              placeholder="至少 8 个字符"
+              type="password"
+            />
+          </AuthField>
+          <AuthField
+            error={errors.confirmPassword}
+            icon={<LockKeyIcon aria-hidden />}
+            idPrefix="register"
+            label="确认密码"
             name="confirmPassword"
-            placeholder="再次输入密码"
-            type="password"
-          />
-        </AuthField>
+          >
+            <InputGroupInput
+              aria-describedby={
+                errors.confirmPassword ? 'confirmPassword-error' : undefined
+              }
+              aria-invalid={Boolean(errors.confirmPassword)}
+              autoComplete="new-password"
+              className="h-full"
+              id="register-confirmPassword"
+              name="confirmPassword"
+              placeholder="再次输入密码"
+              type="password"
+            />
+          </AuthField>
+        </FieldGroup>
         <Button
           className="h-12 w-full text-[15px]"
           disabled={loading || submitting}
@@ -178,9 +181,10 @@ export function RegisterView() {
           type="submit"
         >
           {submitting ? (
-            <SpinnerGapIcon
+            <Spinner
               aria-hidden
-              className="size-5 animate-spin motion-reduce:animate-none"
+              className="motion-reduce:animate-none"
+              role="presentation"
             />
           ) : null}
           {submitting ? '正在创建…' : '注册并登录'}

@@ -13,6 +13,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { useAuth } from '@/components/auth-provider';
+import { MobileNavigation } from '@/components/mobile-navigation';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -29,13 +31,13 @@ export function BrandLink({ className }: { className?: string }) {
     <Link
       aria-label="帧取首页"
       className={cn(
-        'focus-ring inline-flex min-h-11 items-center gap-2.5 rounded-lg text-[21px] font-semibold tracking-[-0.03em]',
+        'focus-ring inline-flex min-h-11 items-center gap-2.5 rounded-lg text-[19px] font-semibold tracking-[-0.03em]',
         className,
       )}
       href="/"
     >
-      <span className="flex size-8 items-center justify-center rounded-[9px] bg-primary text-white">
-        <DownloadSimpleIcon aria-hidden className="size-5" weight="bold" />
+      <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-white">
+        <DownloadSimpleIcon aria-hidden className="size-[18px]" weight="bold" />
       </span>
       <span>帧取</span>
     </Link>
@@ -57,10 +59,13 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="relative z-40 bg-white">
-      <div className="flex h-[68px] w-full items-center justify-between px-4 sm:px-7">
+    <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85">
+      <div className="page-shell flex h-14 items-center justify-between sm:h-16">
         <BrandLink />
-        <nav aria-label="主要导航" className="flex items-center gap-1 sm:gap-2">
+        <nav
+          aria-label="主要导航"
+          className="hidden items-center gap-1 sm:flex"
+        >
           <Button
             asChild
             className={cn(
@@ -87,8 +92,12 @@ export function SiteHeader() {
                   disabled={loading}
                   variant="ghost"
                 >
-                  <UserCircleIcon aria-hidden className="size-5" />
-                  <span className="hidden sm:inline">账户</span>
+                  <Avatar size="sm">
+                    <AvatarFallback>
+                      {user.username.slice(0, 1).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span>账户</span>
                   <CaretDownIcon
                     aria-hidden
                     className="hidden size-3.5 sm:block"
@@ -141,6 +150,13 @@ export function SiteHeader() {
             </Button>
           )}
         </nav>
+        <MobileNavigation
+          loading={loading}
+          onSignOut={handleSignOut}
+          pathname={pathname}
+          signingOut={signingOut}
+          user={user}
+        />
       </div>
     </header>
   );

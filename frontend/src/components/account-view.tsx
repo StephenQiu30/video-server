@@ -5,17 +5,32 @@ import {
   EnvelopeSimple,
   FloppyDisk,
   ShieldCheck,
-  SpinnerGap,
   UserCircle,
   WarningCircle,
 } from '@phosphor-icons/react';
 import { type FormEvent, useEffect, useState } from 'react';
 
+import { ReadOnlyField } from '@/components/app-shell';
 import { useAuth } from '@/components/auth-provider';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from '@/components/ui/card';
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Spinner } from '@/components/ui/spinner';
 import { displayError, updateCurrentUser } from '@/services/users';
 
 type Notice = { kind: 'error' | 'success'; text: string } | null;
@@ -52,12 +67,12 @@ export function AccountView() {
   if (loading) {
     return (
       <section
-        className="mx-auto max-w-2xl space-y-6"
+        className="mx-auto max-w-3xl space-y-6"
         aria-label="正在加载个人资料"
       >
-        <Skeleton className="h-16 w-64" />
-        <Skeleton className="h-44 w-full" />
-        <Skeleton className="h-28 w-full" />
+        <Skeleton className="h-16 w-64 max-w-full" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-24 w-full" />
       </section>
     );
   }
@@ -82,106 +97,104 @@ export function AccountView() {
 
   const unchanged = username.trim() === user.username;
   const role = user.role === 'admin' ? '管理员' : '普通用户';
+  const initials = user.username.trim().slice(0, 2).toUpperCase();
 
   return (
-    <section className="mx-auto max-w-2xl">
-      <header className="flex items-start gap-4 border-b pb-7">
-        <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-accent text-primary">
-          <UserCircle size={27} weight="duotone" />
-        </span>
-        <div>
-          <p className="text-sm font-medium text-primary">账户设置</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-[-0.025em]">
-            个人资料
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            管理公开用户名并查看账户身份信息。
-          </p>
-        </div>
-      </header>
-
-      <form onSubmit={submit} className="space-y-7 py-7">
-        <div className="space-y-2.5 border-b pb-7">
-          <label
-            htmlFor="username"
-            className="flex items-center justify-between gap-3 text-sm font-medium"
-          >
-            <span className="flex items-center gap-2">
-              <UserCircle size={17} />
-              用户名
-            </span>
-            <span className="font-normal text-muted-foreground">
-              {username.length}/32
-            </span>
-          </label>
-          <Input
-            id="username"
-            value={username}
-            minLength={2}
-            maxLength={32}
-            required
-            aria-describedby="username-help"
-            onChange={(event) => {
-              setUsername(event.target.value);
-              setNotice(null);
-            }}
-          />
-          <p id="username-help" className="text-sm text-muted-foreground">
-            2–32 个字符，将显示在导航和任务记录中。
-          </p>
-        </div>
-
-        <div className="grid gap-5 border-b pb-7 sm:grid-cols-2">
-          <div className="space-y-2.5">
-            <label
-              htmlFor="email"
-              className="flex items-center gap-2 text-sm font-medium"
-            >
-              <EnvelopeSimple size={17} />
-              登录邮箱
-            </label>
-            <Input
-              id="email"
-              value={user.email}
-              readOnly
-              aria-readonly="true"
-              className="bg-muted/70 text-muted-foreground"
-            />
+    <section className="mx-auto max-w-3xl">
+      <Card className="gap-0 py-0 shadow-none ring-1 ring-border">
+        <CardHeader className="px-6 py-6 sm:px-8 sm:py-7">
+          <div className="flex items-start gap-4">
+            <Avatar aria-hidden className="size-12">
+              <AvatarFallback className="bg-accent text-base font-medium text-primary">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="text-sm font-medium text-primary">账户设置</p>
+              <h1 className="mt-1 text-2xl font-medium tracking-[-0.025em]">
+                个人资料
+              </h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                管理公开用户名并查看账户身份信息。
+              </p>
+            </div>
           </div>
-          <div className="space-y-2.5">
-            <label
-              htmlFor="role"
-              className="flex items-center gap-2 text-sm font-medium"
-            >
-              <ShieldCheck size={17} />
-              账户身份
-            </label>
-            <Input
-              id="role"
-              value={role}
-              readOnly
-              aria-readonly="true"
-              className="bg-muted/70 text-muted-foreground"
-            />
-          </div>
-        </div>
-
-        {notice && (
-          <Alert
-            variant={notice.kind === 'success' ? 'success' : 'destructive'}
-          >
-            {notice.kind === 'success' ? <CheckCircle /> : <WarningCircle />}
-            <AlertDescription>{notice.text}</AlertDescription>
-          </Alert>
-        )}
-
-        <div className="flex justify-end">
-          <Button type="submit" size="lg" disabled={saving || unchanged}>
-            {saving ? <SpinnerGap className="animate-spin" /> : <FloppyDisk />}
-            {saving ? '正在保存' : '保存资料'}
-          </Button>
-        </div>
-      </form>
+        </CardHeader>
+        <Separator />
+        <form onSubmit={submit}>
+          <CardContent className="px-6 py-7 sm:px-8">
+            <FieldGroup className="gap-7">
+              <Field>
+                <div className="flex items-center justify-between gap-3">
+                  <FieldLabel htmlFor="username">
+                    <UserCircle aria-hidden size={17} />
+                    用户名
+                  </FieldLabel>
+                  <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                    {username.length}/32
+                  </span>
+                </div>
+                <Input
+                  aria-describedby="username-help"
+                  id="username"
+                  maxLength={32}
+                  minLength={2}
+                  onChange={(event) => {
+                    setUsername(event.target.value);
+                    setNotice(null);
+                  }}
+                  required
+                  value={username}
+                />
+                <FieldDescription id="username-help">
+                  2–32 个字符，将显示在导航和任务记录中。
+                </FieldDescription>
+              </Field>
+              <Separator />
+              <div className="grid gap-6 sm:grid-cols-2">
+                <ReadOnlyField
+                  description="用于登录账户，暂不支持在此修改。"
+                  icon={<EnvelopeSimple aria-hidden size={17} />}
+                  id="email"
+                  label="登录邮箱"
+                  value={user.email}
+                />
+                <ReadOnlyField
+                  description="由账户权限策略分配。"
+                  icon={<ShieldCheck aria-hidden size={17} />}
+                  id="role"
+                  label="账户身份"
+                  value={role}
+                />
+              </div>
+              {notice ? (
+                <Alert
+                  variant={
+                    notice.kind === 'success' ? 'success' : 'destructive'
+                  }
+                >
+                  {notice.kind === 'success' ? (
+                    <CheckCircle aria-hidden />
+                  ) : (
+                    <WarningCircle aria-hidden />
+                  )}
+                  <AlertDescription>{notice.text}</AlertDescription>
+                </Alert>
+              ) : null}
+            </FieldGroup>
+          </CardContent>
+          <CardFooter className="justify-end bg-muted/30 px-6 py-4 sm:px-8">
+            <Button disabled={saving || unchanged} size="lg" type="submit">
+              {saving ? (
+                <Spinner aria-hidden role="presentation" />
+              ) : (
+                <FloppyDisk aria-hidden />
+              )}
+              {saving ? '正在保存' : '保存资料'}
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
     </section>
   );
 }

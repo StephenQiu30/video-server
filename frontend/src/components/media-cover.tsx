@@ -3,6 +3,8 @@
 import Image from 'next/image';
 import { useState } from 'react';
 
+import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 type MediaCoverProps = {
@@ -25,11 +27,12 @@ export default function MediaCover({
   const [failed, setFailed] = useState(false);
   const source = src && !failed ? src : '/logo.png';
   return (
-    <div
+    <AspectRatio
       className={cn(
-        'relative aspect-video overflow-hidden rounded-xl bg-[#f3f7fc]',
+        'relative overflow-hidden rounded-lg bg-muted ring-1 ring-foreground/10',
         className,
       )}
+      ratio={16 / 9}
     >
       <Image
         alt={alt}
@@ -45,15 +48,18 @@ export default function MediaCover({
         unoptimized={source.startsWith('http')}
       />
       {platform ? (
-        <span className="absolute bottom-3 left-3 rounded-md bg-white/94 px-2 py-1 text-xs font-medium text-primary shadow-sm">
+        <Badge
+          className="absolute bottom-3 left-3 bg-card/95 text-primary backdrop-blur"
+          variant="outline"
+        >
           {platform}
-        </span>
+        </Badge>
       ) : null}
       {duration ? (
-        <span className="absolute bottom-3 right-3 rounded-md bg-[#252b33]/88 px-2 py-1 font-mono text-xs text-white">
+        <Badge className="absolute right-3 bottom-3 bg-foreground/85 font-mono text-background">
           {duration}
-        </span>
+        </Badge>
       ) : null}
-    </div>
+    </AspectRatio>
   );
 }

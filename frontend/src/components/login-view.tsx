@@ -4,7 +4,6 @@ import {
   ArrowRightIcon,
   EnvelopeSimpleIcon,
   LockKeyIcon,
-  SpinnerGapIcon,
   WarningCircleIcon,
 } from '@phosphor-icons/react';
 import Link from 'next/link';
@@ -15,7 +14,9 @@ import { AuthField, AuthPageFrame } from '@/components/app-shell';
 import { useAuth } from '@/components/auth-provider';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { FieldGroup } from '@/components/ui/field';
+import { InputGroupInput } from '@/components/ui/input-group';
+import { Spinner } from '@/components/ui/spinner';
 import { displayError, login } from '@/services/auth';
 import { authRedirect } from '@/utils/authRedirect';
 
@@ -74,7 +75,7 @@ export function LoginView() {
     >
       <form
         aria-busy={submitting}
-        className="mt-9 space-y-5"
+        className="space-y-5"
         noValidate
         onSubmit={handleSubmit}
       >
@@ -84,43 +85,45 @@ export function LoginView() {
             <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
         ) : null}
-        <AuthField
-          error={errors.email}
-          icon={<EnvelopeSimpleIcon aria-hidden />}
-          idPrefix="login"
-          label="邮箱地址"
-          name="email"
-        >
-          <Input
-            aria-describedby={errors.email ? 'email-error' : undefined}
-            aria-invalid={Boolean(errors.email)}
-            autoComplete="email"
-            className="pl-11"
-            id="login-email"
+        <FieldGroup className="gap-4">
+          <AuthField
+            error={errors.email}
+            icon={<EnvelopeSimpleIcon aria-hidden />}
+            idPrefix="login"
+            label="邮箱地址"
             name="email"
-            placeholder="name@example.com"
-            type="email"
-          />
-        </AuthField>
-        <AuthField
-          error={errors.password}
-          icon={<LockKeyIcon aria-hidden />}
-          idPrefix="login"
-          label="密码"
-          name="password"
-        >
-          <Input
-            aria-describedby={errors.password ? 'password-error' : undefined}
-            aria-invalid={Boolean(errors.password)}
-            autoComplete="current-password"
-            className="pl-11"
-            id="login-password"
-            minLength={8}
+          >
+            <InputGroupInput
+              aria-describedby={errors.email ? 'email-error' : undefined}
+              aria-invalid={Boolean(errors.email)}
+              autoComplete="email"
+              className="h-full"
+              id="login-email"
+              name="email"
+              placeholder="name@example.com"
+              type="email"
+            />
+          </AuthField>
+          <AuthField
+            error={errors.password}
+            icon={<LockKeyIcon aria-hidden />}
+            idPrefix="login"
+            label="密码"
             name="password"
-            placeholder="至少 8 个字符"
-            type="password"
-          />
-        </AuthField>
+          >
+            <InputGroupInput
+              aria-describedby={errors.password ? 'password-error' : undefined}
+              aria-invalid={Boolean(errors.password)}
+              autoComplete="current-password"
+              className="h-full"
+              id="login-password"
+              minLength={8}
+              name="password"
+              placeholder="至少 8 个字符"
+              type="password"
+            />
+          </AuthField>
+        </FieldGroup>
         <Button
           className="h-12 w-full text-[15px]"
           disabled={loading || submitting}
@@ -128,9 +131,10 @@ export function LoginView() {
           type="submit"
         >
           {submitting ? (
-            <SpinnerGapIcon
+            <Spinner
               aria-hidden
-              className="size-5 animate-spin motion-reduce:animate-none"
+              className="motion-reduce:animate-none"
+              role="presentation"
             />
           ) : null}
           {submitting ? '正在登录…' : '登录'}
@@ -139,7 +143,7 @@ export function LoginView() {
           ) : null}
         </Button>
       </form>
-      <p className="mt-7 text-center text-sm text-muted-foreground">
+      <p className="mt-6 text-center text-sm text-muted-foreground">
         还没有账号？{' '}
         <Link
           className="focus-ring rounded text-primary hover:underline"

@@ -1,60 +1,54 @@
-# 方案 2 设计 QA
+# Vercel / shadcn 第二轮设计 QA
 
 ## 对照目标与证据
 
-- 视觉真值：`/Users/stephenqiu/.codex/generated_images/019fe595-9cfd-7e10-8cc2-ca36f82e7f0b/exec-093b654f-524e-4641-aeb6-a196aa75c23c.png`
-- 最终实现截图：`/Users/stephenqiu/Desktop/StephenQiu/Video/video-server/design-qa-implementation-desktop-final.jpg`
-- 最终全景对照（左为方案 2，右为实现）：`/Users/stephenqiu/Desktop/StephenQiu/Video/video-server/design-qa-comparison-desktop-final.jpg`
-- 聚焦对照：`design-qa-comparison-focus-hero-final.jpg` 与 `design-qa-comparison-focus-workspace-final.jpg`
-- 移动端证据：`design-qa-implementation-mobile-final.jpg` 与 `design-qa-implementation-mobile-lower-final.jpg`
-- 路由与状态：`/?design=inspection`，开发态设计检查用户，Bilibili 链接已解析，1080P 已选中。
+- 主要风格真值：`vercel-home-hero-reference-2026-08-09.png`。
+- 分区与网格参考：`vercel-home-section-reference-2026-08-09.png`、`vercel-home-grid-reference-2026-08-09.png`。
+- 业务布局基线：`vercel-refinement-baseline.png` 与方案 2 原图 `/Users/stephenqiu/.codex/generated_images/019fe595-9cfd-7e10-8cc2-ca36f82e7f0b/exec-093b654f-524e-4641-aeb6-a196aa75c23c.png`。
+- 最终桌面实现：`vercel-refinement-implementation-desktop-final.png`。
+- 最终同视口对照：`vercel-refinement-comparison-final.jpg`，左侧为 Vercel，右侧为帧取。
+- 最终移动端实现：`vercel-refinement-implementation-mobile-final.png`。
+- 检查路由与状态：`/?design=inspection`，开发态演示用户、Bilibili 链接已解析、1080P 已选中。
 
-## 视口与密度归一化
+## 视口与归一化
 
-- 源图像素：1487×1058；按 1487×1058 CSS 目标视口解读。
-- 桌面实现 CSS 视口：1487×1058，`devicePixelRatio = 2`。浏览器截图已归一化为 1487×1058 像素，即 1 个截图像素对应 1 个 CSS 像素，与源图等尺寸比较。
-- 全景对照图：2974×1058，左右均为 1487×1058，无缩放或额外画布留白。
-- 移动端 CSS 视口：390×844。由于系统滚动条和浏览器截图边界，证据图为 375×812；DOM 实测 `scrollWidth = clientWidth = 375`，无页面级横向溢出。该证据仅用于响应式检查，不与桌面源图做像素级判断。
+- Vercel 参考和桌面实现截图均为 1265×712 像素，同尺寸水平拼接为 2530×712，不做缩放。
+- 桌面浏览器视口为 1280×720，页面 `clientWidth = scrollWidth = 1265`，无页面级横向溢出。
+- 移动浏览器视口为 390×844，截图内容宽 375，页面 `clientWidth = scrollWidth = 375`，无页面级横向溢出。
+- 本轮比较 Vercel 的视觉语言，不复制其营销内容或黑色品牌主色；帧取保留任务型产品的信息顺序和 Apple 蓝主操作。
 
 ## Findings
 
 最终对照无可操作的 P0、P1 或 P2 差异。
 
-- 字体与排版：Geist/PingFang 组合的字重、字号、字距和标题光学层级与源图一致；桌面媒体标题已收敛为单行，窄屏按内容自然换行。
-- 间距与布局节奏：Header、Hero、72px 链接框、步骤条、双栏工作区与页脚的纵向基线已对齐；实现与源图均为约 1180px 主内容宽度。
-- 颜色与 token：白色表面、冷灰文字/分隔线与 Apple 蓝主操作符合方案 2；浏览器计算样式确认主色为 `rgb(0, 122, 255)`（`#007AFF`），焦点和选中态使用同一语义 token。
-- 图像质量：使用 1672×941 的 16:9 项目内生成封面，虚构电竞选手、右侧人物与左侧对局的主体关系和裁切方向与源图一致，无拉伸、透明光晕或占位图。
-- 文案与内容：主标题、副标题、三步流程、下载文案与合规提示与方案 2 一致。文件大小和发布日期未伪造：当前 OpenAPI 格式契约不提供这两个字段，实现改用契约中的媒体 ID 与时长。
-- 图标：全部可见图标来自 Phosphor 同一图标族，线宽、大小和对齐一致；未使用 emoji、CSS 绘图或手写 SVG 替代资产。
-- 交互与可访问性：链接清空/重填、Radix 格式单选、键盘方向键选择、账户菜单打开/Escape 关闭均已浏览器实测。控件有语义标签和可见焦点，动画尊重 reduced motion。
-- 响应式：390px 下链接框切换为垂直表单，双栏收敛为格式列表后接媒体预览；主操作、标题、合规提示与封面均未被裁切。
+- 排版：Geist 的 56px / 500 首屏标题、紧凑行高、Mono eyebrow 与大留白，和 Vercel 当前首页的视觉节奏一致；中文在 390px 下自然折为两行。
+- 画布与层级：背景为 `#FAFAFA`，Header 为 64px sticky 细线结构；主内容依靠留白、`1px` 分隔和真实媒体画面组织，不使用大面积阴影或卡片套卡片。
+- 颜色：主操作使用 `#0071E3`，焦点环为 `#007AFF`；Card、Popover、Muted、Border、Input 与半径均来自语义 token。
+- 组件：页面实际使用官方 shadcn / Radix 的 Card、Table、Sheet、Tooltip、Avatar、Field、InputGroup、Item、Empty、Pagination、AlertDialog、AspectRatio、Select、RadioGroup、Switch、Dialog、DropdownMenu 和 Tabs 组合。
+- 内容：格式区只展示契约真实提供的分辨率、封装、编码与帧率；不虚构文件大小、发布日期或其他后端未返回字段。
+- 响应式：桌面 5/7 双栏在移动端按“格式 → 下载 → 预览”收敛为单列；Header 使用 Sheet 导航，触控目标、字段和主按钮保持可达。
+- 交互：浏览器实测链接清空、RadioGroup 方向键选择、账户菜单打开/Escape 关闭、移动 Sheet 打开/Escape 关闭；焦点返回触发控件。
+- 取消安全：下载和 AI 分析的取消操作均通过 AlertDialog 二次确认，取消弹窗不会调用 API，确认后才执行原动作。
+- 运行时：最终页面日志没有产品代码 error；检查期间仅出现开发态 HMR 重载提示。生产静态构建不包含 Next.js 开发工具。
 
-## 对照历史
+## QA 历史
 
-1. Pass 1 证据：`design-qa-comparison-desktop-pass1.jpg`
-   - P2：链接框仅 64px，Hero 与步骤条相对源图偏下；演示状态显示 8 个格式和额外的行尾选中图标；媒体标题换成两行。
-   - 修复：链接框调整为 72px，重置 Hero/步骤/工作区间距；演示格式收敛为方案 2 的 4 档，移除重复选中图标，将标题字号调整到单行容量。
-   - 复核：`design-qa-comparison-desktop-pass2.jpg`，上述差异已消除。
-2. Pass 2 证据：`design-qa-comparison-desktop-pass2.jpg`
-   - P2：主内容已匹配，但页脚比方案 2 高约 40px；移动页脚间距调整后桌面 `scrollHeight` 一度为 1071px，超过 1058px 目标视口。
-   - 修复：增加页脚前节奏，同时将主区底部 padding 从 32px 收敛到 16px，保留页脚基线且消除桌面滚动条。
-   - 复核：`design-qa-comparison-desktop-final.jpg`，DOM 实测 `scrollWidth = 1487`、`scrollHeight = 1058`，与目标视口一致。
-
-## Open Questions
-
-- 无阻塞问题。封面中人物为隐私安全的虚构电竞选手，不复制源图可识别人物；这是明确的资产约束，不影响布局和产品信息层级。
+1. 初始实现偏 Apple 消费级：纯白背景、38px 标题、72px 大圆角输入和自定义组合较多。
+2. Pass 1 改为 Vercel 式 `#FAFAFA` 画布、56px 标题、64px Header、细线网格，并接入官方 shadcn 组件；发现当前 Radix 运行时使用 `data-state="checked"`，而最新 registry 样式使用 `data-checked`，导致选中 Radio 与 Switch 状态不可见。
+3. 最终修复将官方组件的状态选择器适配到实际 Radix `data-state`，并复核 Radio 计算样式为 `rgb(0, 113, 227)`、键盘切换后第二项 `aria-checked="true"`。
 
 ## Implementation Checklist
 
-- [x] 1487×1058 等尺寸全景对照。
-- [x] Hero 与解析工作区聚焦对照。
-- [x] 方案 2 信息层级、白色表面和 Apple 蓝色 token。
-- [x] 390×844 首屏与下半流程检查，无横向溢出。
-- [x] 核心鼠标/键盘交互和账户菜单检查。
-- [x] 浏览器日志检查：无 warning/error，仅 React DevTools 与 HMR 信息。
+- [x] 捕获并打开 Vercel 首页 Hero、产品分区和网格参考。
+- [x] 同一 1265×712 尺寸合并参考与实现并逐项比较。
+- [x] `#FAFAFA`、Geist、Apple 蓝、细线 Header 和无重阴影层级。
+- [x] 官方 shadcn / Radix 组件源码与语义 token。
+- [x] 390×844 检查，无横向溢出。
+- [x] 关键鼠标、键盘、菜单、Sheet、Radio 和 AlertDialog 交互。
+- [x] lint、TypeScript、50 项单元测试和 Next.js 静态导出构建。
 
-## Follow-up Polish
+## Open Questions
 
-- P3：若未来 OpenAPI 格式模型增加预估文件大小或发布日期，可按方案 2 在格式行和媒体元数据中补充；当前不伪造后端未提供的数据。
+- 无阻塞问题。Vercel 参考使用营销型三栏叙事，帧取按任务完成顺序保留居中解析入口与结果双栏，这是有意的产品映射而不是视觉遗漏。
 
 final result: passed

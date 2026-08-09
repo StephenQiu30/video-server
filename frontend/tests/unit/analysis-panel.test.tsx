@@ -1,11 +1,15 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import AnalysisPanel from '@/components/analysis-panel';
 import { ApiError } from '@/requestErrorConfig';
 import { analysisJob } from '../fixtures/analysis-fixtures';
 import { job } from '../fixtures/download-fixtures';
-import { mockHttpError, mockHttpResponses } from '../helpers/http';
+import {
+  httpRequests,
+  mockHttpError,
+  mockHttpResponses,
+} from '../helpers/http';
 
 describe('AnalysisPanel', () => {
   it('offers a focused profile and language configuration', () => {
@@ -39,8 +43,29 @@ describe('AnalysisPanel', () => {
     render(<AnalysisPanel downloadId={job().id} pollIntervalMs={60_000} />);
 
     fireEvent.click(screen.getByRole('button', { name: '开始 AI 分析' }));
-    fireEvent.click(await screen.findByRole('button', { name: '取消分析' }));
+    const trigger = await screen.findByRole('button', { name: '取消分析' });
+    fireEvent.click(trigger);
+
+    expect(
+      await screen.findByRole('alertdialog', {
+        name: '取消当前分析任务？',
+      }),
+    ).toHaveTextContent('确认后将停止当前分析。你之后仍可重新发起分析任务。');
+    expect(httpRequests()).toHaveLength(1);
+
+    const keepAnalyzing = screen.getByRole('button', { name: '继续分析' });
+    await waitFor(() => expect(keepAnalyzing).toHaveFocus());
+    fireEvent.click(keepAnalyzing);
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    await waitFor(() => expect(trigger).toHaveFocus());
+    expect(httpRequests()).toHaveLength(1);
+
+    fireEvent.click(trigger);
+    fireEvent.click(
+      await screen.findByRole('button', { name: '确认取消分析' }),
+    );
     expect(await screen.findByText('分析已取消')).toBeInTheDocument();
+    expect(httpRequests()[1]?.url).toContain('/cancel');
   });
 
   it('shows safe creation errors', async () => {

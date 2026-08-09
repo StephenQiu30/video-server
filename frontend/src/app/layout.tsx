@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import { AppShell } from '@/components/app-shell';
 import { AuthProvider } from '@/components/auth-provider';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 import './globals.css';
 
@@ -27,10 +28,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="zh-CN">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html
+      className={`${geistSans.variable} ${geistMono.variable}`}
+      lang="zh-CN"
+    >
+      <body>
         <AuthProvider>
-          <AppShell>{children}</AppShell>
+          <TooltipProvider delayDuration={300}>
+            <AppShell>{children}</AppShell>
+          </TooltipProvider>
         </AuthProvider>
       </body>
     </html>

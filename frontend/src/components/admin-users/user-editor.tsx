@@ -1,4 +1,4 @@
-import { CheckCircle, SpinnerGap, WarningCircle } from '@phosphor-icons/react';
+import { CheckCircle, WarningCircle } from '@phosphor-icons/react';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -10,12 +10,20 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from '@/components/ui/field';
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 
 import type { UserEditorState } from './model';
@@ -49,61 +57,71 @@ export function UserEditor({
         <DialogDescription>
           角色和停用状态会在该用户下一次认证请求时立即生效。
         </DialogDescription>
-        <div className="mt-6 space-y-6">
-          <div className="space-y-2">
-            <label htmlFor="edit-role" className="text-sm font-medium">
-              账户身份
-            </label>
-            <Select
-              value={editor.role}
-              onValueChange={(value) => onRoleChange(value as API.UserRole)}
+        <form
+          aria-busy={editor.saving}
+          className="mt-6"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!editor.saving) onSave();
+          }}
+        >
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="edit-role">账户身份</FieldLabel>
+              <Select
+                disabled={editor.saving}
+                value={editor.role}
+                onValueChange={(value) => onRoleChange(value as API.UserRole)}
+              >
+                <SelectTrigger id="edit-role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">管理员</SelectItem>
+                  <SelectItem value="user">普通用户</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field
+              className="rounded-xl bg-surface px-4 py-3"
+              orientation="horizontal"
             >
-              <SelectTrigger id="edit-role">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="admin">管理员</SelectItem>
-                <SelectItem value="user">普通用户</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center justify-between gap-5 rounded-xl bg-surface px-4 py-3">
-            <div>
-              <label htmlFor="edit-active" className="text-sm font-medium">
-                启用账号
-              </label>
-              <p className="mt-1 text-xs text-muted-foreground">
-                停用后将撤销该账户的 Refresh 会话。
-              </p>
-            </div>
-            <Switch
-              id="edit-active"
-              checked={editor.active}
-              onCheckedChange={onActiveChange}
-            />
-          </div>
-          {editor.error && (
-            <Alert variant="destructive">
-              <WarningCircle />
-              <AlertDescription>{editor.error}</AlertDescription>
-            </Alert>
-          )}
-          <div className="flex justify-end gap-3">
-            <DialogClose asChild>
-              <Button variant="ghost" disabled={editor.saving}>
-                取消
+              <FieldContent>
+                <FieldLabel htmlFor="edit-active">启用账号</FieldLabel>
+                <FieldDescription className="text-xs">
+                  停用后将撤销该账户的 Refresh 会话。
+                </FieldDescription>
+              </FieldContent>
+              <Switch
+                checked={editor.active}
+                disabled={editor.saving}
+                id="edit-active"
+                onCheckedChange={onActiveChange}
+              />
+            </Field>
+            {editor.error ? (
+              <Alert variant="destructive">
+                <WarningCircle aria-hidden />
+                <AlertDescription>{editor.error}</AlertDescription>
+              </Alert>
+            ) : null}
+            <div className="flex justify-end gap-3">
+              <DialogClose asChild>
+                <Button disabled={editor.saving} type="button" variant="ghost">
+                  取消
+                </Button>
+              </DialogClose>
+              <Button disabled={editor.saving || !editor.user} type="submit">
+                {editor.saving ? (
+                  <Spinner aria-hidden />
+                ) : (
+                  <CheckCircle aria-hidden />
+                )}
+                {editor.saving ? '正在保存' : '保存更改'}
               </Button>
-            </DialogClose>
-            <Button onClick={onSave} disabled={editor.saving}>
-              {editor.saving ? (
-                <SpinnerGap className="animate-spin" />
-              ) : (
-                <CheckCircle />
-              )}
-              {editor.saving ? '正在保存' : '保存更改'}
-            </Button>
-          </div>
-        </div>
+            </div>
+          </FieldGroup>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -1,10 +1,10 @@
 'use client';
 
-import { SpinnerGapIcon } from '@phosphor-icons/react';
 import { usePathname, useRouter } from 'next/navigation';
 import { type ReactNode, useEffect } from 'react';
 
 import { useAuth } from '@/components/auth-provider';
+import { Spinner } from '@/components/ui/spinner';
 
 type ProtectedRouteProps = {
   children: ReactNode;
@@ -46,9 +46,10 @@ function RouteStatus({ label }: { label: string }) {
       className="flex min-h-[60vh] items-center justify-center gap-2 text-sm text-muted-foreground"
       role="status"
     >
-      <SpinnerGapIcon
+      <Spinner
         aria-hidden
         className="size-5 animate-spin text-primary motion-reduce:animate-none"
+        role="presentation"
       />
       <span>{label}</span>
     </div>

@@ -6,7 +6,9 @@ export const metadata = { title: '账户' };
 export default function AccountPage() {
   return (
     <ProtectedRoute>
-      <AccountView />
+      <main className="content-shell py-12 sm:py-16">
+        <AccountView />
+      </main>
     </ProtectedRoute>
   );
 }

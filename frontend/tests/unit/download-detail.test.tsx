@@ -33,7 +33,28 @@ describe('DownloadJobView', () => {
     mockHttpResponses(job('running'), inspection, job('cancelled'));
     render(<DownloadJobView jobId={job().id} pollIntervalMs={60_000} />);
 
-    fireEvent.click(await screen.findByRole('button', { name: '取消任务' }));
+    const trigger = await screen.findByRole('button', { name: '取消任务' });
+    fireEvent.click(trigger);
+
+    const dialog = await screen.findByRole('alertdialog', {
+      name: '取消当前下载任务？',
+    });
+    expect(dialog).toHaveTextContent(
+      '确认后将停止当前下载。你仍可返回首页重新创建下载任务。',
+    );
+    expect(httpRequests()).toHaveLength(2);
+
+    const keepDownloading = screen.getByRole('button', { name: '继续下载' });
+    await waitFor(() => expect(keepDownloading).toHaveFocus());
+    fireEvent.click(keepDownloading);
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    await waitFor(() => expect(trigger).toHaveFocus());
+    expect(httpRequests()).toHaveLength(2);
+
+    fireEvent.click(trigger);
+    fireEvent.click(
+      await screen.findByRole('button', { name: '确认取消下载' }),
+    );
     expect((await screen.findAllByText('任务已取消')).length).toBeGreaterThan(
       0,
     );

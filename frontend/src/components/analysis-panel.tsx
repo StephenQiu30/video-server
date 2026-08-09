@@ -10,6 +10,18 @@ import { useState } from 'react';
 import { stageLabels, statusLabels } from '@/components/analysis-panel-model';
 import AnalysisResultView from '@/components/analysis-result-view';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -169,16 +181,44 @@ function AnalysisJobState({
         <span>{statusLabels[job.status]}</span>
         <span className="font-mono">{job.progress}%</span>
       </div>
-      <Progress className="mt-3" value={job.progress} />
+      <Progress
+        aria-label={`分析进度 ${job.progress}%`}
+        className="mt-3"
+        value={job.progress}
+      />
       <p className="mt-3 text-sm text-muted-foreground">
         当前阶段：{job.stage ? stageLabels[job.stage] : '等待调度'} · 第{' '}
         {job.attempt} 次尝试
       </p>
       <div className="mt-6 flex gap-3">
         {cancellable ? (
-          <Button onClick={state.cancel} variant="outline">
-            取消分析
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button disabled={state.action === 'cancel'} variant="outline">
+                {state.action === 'cancel' ? (
+                  <SpinnerGap className="animate-spin" />
+                ) : null}
+                取消分析
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent size="sm">
+              <AlertDialogHeader>
+                <AlertDialogMedia>
+                  <Robot aria-hidden />
+                </AlertDialogMedia>
+                <AlertDialogTitle>取消当前分析任务？</AlertDialogTitle>
+                <AlertDialogDescription>
+                  确认后将停止当前分析。你之后仍可重新发起分析任务。
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>继续分析</AlertDialogCancel>
+                <AlertDialogAction variant="destructive" onClick={state.cancel}>
+                  确认取消分析
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         ) : null}
         {['failed', 'cancelled'].includes(job.status) ? (
           <Button onClick={state.restart}>重新分析</Button>

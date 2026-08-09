@@ -7,6 +7,8 @@ import {
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { ButtonGroup, ButtonGroupText } from '@/components/ui/button-group';
+import { Pagination } from '@/components/ui/pagination';
 
 import {
   PAGE_SIZE,
@@ -90,7 +92,7 @@ export function AdminUsersScreen({
 
       {notice && (
         <Alert variant="success">
-          <CheckCircle />
+          <CheckCircle aria-hidden />
           <AlertDescription>{notice}</AlertDescription>
         </Alert>
       )}
@@ -113,29 +115,36 @@ export function AdminUsersScreen({
           <span>
             显示 {first}–{last}，共 {result.total} 项
           </span>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={result.page <= 1}
-              onClick={() => actions.onPageChange(result.page - 1)}
-              aria-label="上一页"
-            >
-              <CaretLeft />
-            </Button>
-            <span className="min-w-20 text-center">
-              {result.page} / {pages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={result.page >= pages}
-              onClick={() => actions.onPageChange(result.page + 1)}
-              aria-label="下一页"
-            >
-              <CaretRight />
-            </Button>
-          </div>
+          <Pagination aria-label="用户列表分页" className="w-auto justify-end">
+            <ButtonGroup>
+              <Button
+                aria-label="上一页"
+                disabled={result.page <= 1}
+                onClick={() => actions.onPageChange(result.page - 1)}
+                size="icon-sm"
+                type="button"
+                variant="outline"
+              >
+                <CaretLeft aria-hidden />
+              </Button>
+              <ButtonGroupText
+                aria-live="polite"
+                className="min-w-20 justify-center bg-background font-normal"
+              >
+                {result.page} / {pages}
+              </ButtonGroupText>
+              <Button
+                aria-label="下一页"
+                disabled={result.page >= pages}
+                onClick={() => actions.onPageChange(result.page + 1)}
+                size="icon-sm"
+                type="button"
+                variant="outline"
+              >
+                <CaretRight aria-hidden />
+              </Button>
+            </ButtonGroup>
+          </Pagination>
         </footer>
       )}
 

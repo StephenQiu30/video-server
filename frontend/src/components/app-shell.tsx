@@ -4,6 +4,21 @@ import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import SiteHeader, { BrandLink } from '@/components/site-header';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+} from '@/components/ui/card';
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { InputGroup, InputGroupAddon } from '@/components/ui/input-group';
+import { Separator } from '@/components/ui/separator';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -43,23 +58,32 @@ export function AuthPageFrame({
   titleId,
 }: AuthPageFrameProps) {
   return (
-    <main className="min-h-screen bg-white" id="main-content">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col px-5 py-5 sm:px-8 sm:py-7">
+    <main className="min-h-screen bg-background" id="main-content">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col px-5 py-5 sm:px-6 sm:py-6">
         <BrandLink />
-        <div className="flex flex-1 items-center justify-center py-10 sm:py-16">
-          <section aria-labelledby={titleId} className="w-full max-w-[420px]">
-            <p className="mb-3 text-sm font-medium text-primary">{eyebrow}</p>
-            <h1
-              className="text-[32px] font-semibold tracking-[-0.035em] sm:text-[38px]"
-              id={titleId}
-            >
-              {title}
-            </h1>
-            <p className="mt-3 text-[15px] leading-7 text-muted-foreground">
-              {description}
-            </p>
-            {children}
-          </section>
+        <div className="flex flex-1 items-center justify-center py-12 sm:py-16">
+          <Card
+            aria-labelledby={titleId}
+            className="w-full max-w-[440px] gap-0 rounded-xl bg-card py-0 shadow-none ring-1 ring-border"
+            role="region"
+          >
+            <CardHeader className="gap-0 px-6 py-6 sm:px-8 sm:py-7">
+              <p className="mb-2 text-sm font-medium text-primary">{eyebrow}</p>
+              <h1
+                className="text-[32px] font-medium tracking-[-0.03em]"
+                id={titleId}
+              >
+                {title}
+              </h1>
+              <CardDescription className="mt-2 text-[15px] leading-6">
+                {description}
+              </CardDescription>
+            </CardHeader>
+            <Separator />
+            <CardContent className="px-6 py-6 sm:px-8 sm:py-7">
+              {children}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </main>
@@ -68,6 +92,7 @@ export function AuthPageFrame({
 
 type AuthFieldProps = {
   children: ReactNode;
+  description?: string;
   error?: string;
   icon: ReactNode;
   idPrefix: string;
@@ -77,6 +102,7 @@ type AuthFieldProps = {
 
 export function AuthField({
   children,
+  description,
   error,
   icon,
   idPrefix,
@@ -84,23 +110,55 @@ export function AuthField({
   name,
 }: AuthFieldProps) {
   return (
-    <div>
-      <label
-        className="mb-2 block text-sm font-medium"
-        htmlFor={`${idPrefix}-${name}`}
-      >
-        {label}
-      </label>
-      <div className="relative [&>svg]:pointer-events-none [&>svg]:absolute [&>svg]:left-3.5 [&>svg]:top-3.5 [&>svg]:size-4 [&>svg]:text-muted-foreground">
-        {icon}
+    <Field data-invalid={Boolean(error)}>
+      <FieldLabel htmlFor={`${idPrefix}-${name}`}>{label}</FieldLabel>
+      <InputGroup className="h-10 bg-background">
         {children}
-      </div>
-      {error ? (
-        <p className="mt-1.5 text-sm text-destructive" id={`${name}-error`}>
-          {error}
-        </p>
+        <InputGroupAddon align="inline-start" className="pl-3">
+          {icon}
+        </InputGroupAddon>
+      </InputGroup>
+      {description ? (
+        <FieldDescription id={`${name}-description`}>
+          {description}
+        </FieldDescription>
       ) : null}
-    </div>
+      <FieldError id={`${name}-error`}>{error}</FieldError>
+    </Field>
+  );
+}
+
+type ReadOnlyFieldProps = {
+  description: string;
+  icon: ReactNode;
+  id: string;
+  label: string;
+  value: string;
+};
+
+export function ReadOnlyField({
+  description,
+  icon,
+  id,
+  label,
+  value,
+}: ReadOnlyFieldProps) {
+  return (
+    <Field>
+      <FieldLabel htmlFor={id}>
+        {icon}
+        {label}
+      </FieldLabel>
+      <Input
+        aria-describedby={`${id}-help`}
+        aria-readonly="true"
+        className="bg-muted/70 text-muted-foreground"
+        id={id}
+        readOnly
+        value={value}
+      />
+      <FieldDescription id={`${id}-help`}>{description}</FieldDescription>
+    </Field>
   );
 }
 

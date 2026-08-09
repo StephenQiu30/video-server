@@ -83,7 +83,7 @@ export default function DownloadWorkspace() {
   }
 
   return (
-    <main className="content-shell pb-4">
+    <main className="content-shell pb-8">
       <DownloadHero
         busy={busy === 'inspect'}
         inspection={inspection}
@@ -106,9 +106,9 @@ export default function DownloadWorkspace() {
           selectedId={selectedId}
         />
       ) : null}
-      <p className="mt-24 text-center text-xs text-muted-foreground">
+      <footer className="mt-16 border-t py-8 text-center text-xs text-muted-foreground">
         帧取 · 合法合规的公开视频下载工具
-      </p>
+      </footer>
     </main>
   );
 }

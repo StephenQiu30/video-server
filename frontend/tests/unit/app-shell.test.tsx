@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AppShell } from '@/components/app-shell';
+import { AppShell, AuthField, AuthPageFrame } from '@/components/app-shell';
+import { InputGroupInput } from '@/components/ui/input-group';
 
 const runtime = vi.hoisted(() => ({
   pathname: '/',
@@ -64,5 +65,40 @@ describe('AppShell', () => {
     expect(screen.getByText('登录页面')).toBeInTheDocument();
     expect(screen.queryByRole('banner')).not.toBeInTheDocument();
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+  });
+
+  it('keeps the authentication card heading and field semantics accessible', () => {
+    const { container } = render(
+      <AuthPageFrame
+        description="登录后继续使用。"
+        eyebrow="欢迎回来"
+        title="登录帧取"
+        titleId="login-title"
+      >
+        <AuthField
+          error="请输入邮箱地址"
+          icon={<span aria-hidden>@</span>}
+          idPrefix="login"
+          label="邮箱地址"
+          name="email"
+        >
+          <InputGroupInput
+            aria-describedby="email-error"
+            aria-invalid
+            id="login-email"
+          />
+        </AuthField>
+      </AuthPageFrame>,
+    );
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      '登录帧取',
+    );
+    expect(screen.getByLabelText('邮箱地址')).toHaveAttribute(
+      'aria-describedby',
+      'email-error',
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('请输入邮箱地址');
+    expect(container.querySelector('[data-slot="card"]')).toBeInTheDocument();
   });
 });
