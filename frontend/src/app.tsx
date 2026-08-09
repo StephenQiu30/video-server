@@ -1,4 +1,3 @@
-import { QuestionCircleOutlined } from '@ant-design/icons';
 import type { Settings as LayoutSettings } from '@ant-design/pro-components';
 import type { RunTimeLayoutConfig } from '@umijs/max';
 import { Link } from '@umijs/max';
@@ -32,19 +31,7 @@ export const layout: RunTimeLayoutConfig = ({ initialState }) => {
       }
       return dom;
     },
-    // 右上角：后端 OpenAPI 文档入口
-    actionsRender: () => [
-      <a
-        key="docs"
-        href="/docs"
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
-      >
-        <QuestionCircleOutlined />
-        <span>接口文档</span>
-      </a>,
-    ],
+    actionsRender: () => [],
     // 关闭用户头像菜单
     avatarProps: undefined,
     footerRender: () => undefined,

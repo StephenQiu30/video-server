@@ -3,7 +3,7 @@ import {
   LinkOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
-import { ProCard } from '@ant-design/pro-components';
+import { PageContainer, ProCard } from '@ant-design/pro-components';
 import { useNavigate } from '@umijs/max';
 import {
   Alert,
@@ -131,10 +131,9 @@ export default function DownloadPage() {
   }
 
   return (
-    <div className="download-page">
+    <PageContainer className="download-page" title={false}>
       <section className="download-hero">
         <div className="hero-inner">
-          <img className="hero-logo" src="/logo.svg" alt="帧取" />
           <p className="page-eyebrow">Universal video downloader</p>
           <Typography.Title className="hero-title" level={1}>
             万能视频下载器
@@ -273,7 +272,7 @@ export default function DownloadPage() {
           </ProCard>
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }
 

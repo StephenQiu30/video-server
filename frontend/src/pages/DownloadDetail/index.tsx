@@ -1,4 +1,5 @@
 import { ArrowLeftOutlined } from '@ant-design/icons';
+import { PageContainer } from '@ant-design/pro-components';
 import { useNavigate, useParams } from '@umijs/max';
 import { Alert, Button, Result, Skeleton, Typography } from 'antd';
 import { useCallback, useState } from 'react';
@@ -31,27 +32,29 @@ export default function DownloadDetailPage({
 
   if (!jobId) {
     return (
-      <Result
-        status="404"
-        subTitle="请从下载历史重新打开任务。"
-        title={<Typography.Title level={1}>下载任务不存在</Typography.Title>}
-      />
+      <PageContainer className="job-page" title={false}>
+        <Result
+          status="404"
+          subTitle="请从下载历史重新打开任务。"
+          title={<Typography.Title level={1}>下载任务不存在</Typography.Title>}
+        />
+      </PageContainer>
     );
   }
 
   if (state.loading && !state.job) {
     return (
-      <div className="job-page">
+      <PageContainer className="job-page" title={false}>
         <div className="job-skeleton">
           <Skeleton.Image active style={{ height: 320, width: '100%' }} />
           <Skeleton active paragraph={{ rows: 6 }} />
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="job-page">
+    <PageContainer className="job-page" title={false}>
       <Button
         className="job-back"
         icon={<ArrowLeftOutlined />}
@@ -115,7 +118,7 @@ export default function DownloadDetailPage({
           {analysisJob?.status === 'succeeded' ? <span hidden>分析已完成</span> : null}
         </>
       ) : null}
-    </div>
+    </PageContainer>
   );
 }
 

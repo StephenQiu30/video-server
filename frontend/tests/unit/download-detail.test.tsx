@@ -12,6 +12,12 @@ import { inspection, job } from '../fixtures/download-fixtures';
 
 const mockNavigate = vi.fn();
 
+vi.mock('@ant-design/pro-components', () => ({
+  PageContainer: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+}));
+
 vi.mock('@umijs/max', () => ({
   useNavigate: () => mockNavigate,
   useParams: () => ({ jobId: job().id }),

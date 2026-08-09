@@ -3,6 +3,7 @@ import {
   ReloadOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
+import { PageContainer } from '@ant-design/pro-components';
 import { useNavigate } from '@umijs/max';
 import {
   Alert,
@@ -45,7 +46,7 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="history-page">
+    <PageContainer className="history-page" title={false}>
       <div className="page-heading-row">
         <div>
           <p className="page-eyebrow">Download history</p>
@@ -129,7 +130,7 @@ export default function HistoryPage() {
           />
         </Flex>
       ) : null}
-    </div>
+    </PageContainer>
   );
 }
 
