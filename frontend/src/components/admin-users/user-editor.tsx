@@ -50,22 +50,25 @@ export function UserEditor({
         if (!open) onClose();
       }}
     >
-      <DialogContent>
-        <DialogTitle>
-          管理用户{editor.user ? `：${editor.user.username}` : ''}
-        </DialogTitle>
-        <DialogDescription>
-          角色和停用状态会在该用户下一次认证请求时立即生效。
-        </DialogDescription>
+      <DialogContent className="max-h-[calc(100svh-2rem)] gap-0 overflow-y-auto p-0 sm:max-w-[520px]">
+        <div className="px-6 pt-6">
+          <p className="eyebrow mb-4 text-muted-foreground">账户权限</p>
+          <DialogTitle className="text-xl font-medium tracking-[-0.025em]">
+            管理用户{editor.user ? `：${editor.user.username}` : ''}
+          </DialogTitle>
+          <DialogDescription className="mt-2 max-w-md leading-6">
+            角色和停用状态会在该用户下一次认证请求时立即生效。
+          </DialogDescription>
+        </div>
         <form
           aria-busy={editor.saving}
-          className="mt-6"
+          className="hairline mt-8 border-t px-6 py-6"
           onSubmit={(event) => {
             event.preventDefault();
             if (!editor.saving) onSave();
           }}
         >
-          <FieldGroup>
+          <FieldGroup className="gap-6">
             <Field>
               <FieldLabel htmlFor="edit-role">账户身份</FieldLabel>
               <Select
@@ -73,7 +76,7 @@ export function UserEditor({
                 value={editor.role}
                 onValueChange={(value) => onRoleChange(value as API.UserRole)}
               >
-                <SelectTrigger id="edit-role">
+                <SelectTrigger className="w-full" id="edit-role">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -83,7 +86,7 @@ export function UserEditor({
               </Select>
             </Field>
             <Field
-              className="rounded-xl bg-surface px-4 py-3"
+              className="rounded-md bg-surface px-4 py-4"
               orientation="horizontal"
             >
               <FieldContent>
@@ -105,7 +108,7 @@ export function UserEditor({
                 <AlertDescription>{editor.error}</AlertDescription>
               </Alert>
             ) : null}
-            <div className="flex justify-end gap-3">
+            <div className="hairline -mx-6 -mb-6 mt-2 flex justify-end gap-3 border-t px-6 py-5">
               <DialogClose asChild>
                 <Button disabled={editor.saving} type="button" variant="ghost">
                   取消

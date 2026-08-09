@@ -2,11 +2,11 @@ import type { Inspection, MediaFormat } from '@/types/video';
 
 export const demoInspection: Inspection = {
   id: '00000000-0000-4000-8000-000000000001',
-  extractor_key: 'Bilibili',
-  provider_media_id: 'BV1D6u86fETf',
-  title: '哈哈哈，给卓哥打开开心了！牛逼今天的TES！｜官方赛后队内语音',
-  duration_seconds: 51,
-  thumbnail_url: '/demo/esports-stream-cover.png',
+  extractor_key: 'Public media',
+  provider_media_id: 'alpine-lake-demo',
+  title: '群山与湖泊的早晨',
+  duration_seconds: 337,
+  thumbnail_url: '/images/media-preview-mountain.webp',
   expires_at: '2026-08-09T11:30:00+08:00',
   formats: [
     demoFormat('1080P · MP4 · H.264', 1920, 1080, 'h264'),

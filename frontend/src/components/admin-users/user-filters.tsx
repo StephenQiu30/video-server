@@ -41,13 +41,16 @@ export function UserFilters({
   return (
     <form
       onSubmit={submit}
-      className="grid gap-3 sm:grid-cols-[minmax(220px,1fr)_160px_160px_auto]"
+      className="grid items-end gap-4 md:grid-cols-2 lg:grid-cols-[minmax(220px,1fr)_160px_160px_auto]"
     >
       <Field>
-        <FieldLabel className="sr-only" htmlFor="user-search">
+        <FieldLabel
+          className="text-xs text-muted-foreground"
+          htmlFor="user-search"
+        >
           搜索用户名或邮箱
         </FieldLabel>
-        <InputGroup className="h-10">
+        <InputGroup>
           <InputGroupInput
             className="h-full"
             id="user-search"
@@ -61,14 +64,17 @@ export function UserFilters({
         </InputGroup>
       </Field>
       <Field>
-        <FieldLabel className="sr-only" htmlFor="user-role-filter">
-          按账户身份筛选
+        <FieldLabel
+          className="text-xs text-muted-foreground"
+          htmlFor="user-role-filter"
+        >
+          账户身份
         </FieldLabel>
         <Select
           value={query.role}
           onValueChange={(value) => onRoleChange(value as RoleFilter)}
         >
-          <SelectTrigger className="h-10" id="user-role-filter">
+          <SelectTrigger className="w-full" id="user-role-filter">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -79,14 +85,17 @@ export function UserFilters({
         </Select>
       </Field>
       <Field>
-        <FieldLabel className="sr-only" htmlFor="user-active-filter">
-          按账户状态筛选
+        <FieldLabel
+          className="text-xs text-muted-foreground"
+          htmlFor="user-active-filter"
+        >
+          账户状态
         </FieldLabel>
         <Select
           value={query.active}
           onValueChange={(value) => onActiveChange(value as ActiveFilter)}
         >
-          <SelectTrigger className="h-10" id="user-active-filter">
+          <SelectTrigger className="w-full" id="user-active-filter">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

@@ -18,9 +18,9 @@ export default function EvidenceList({
 }) {
   return (
     <section className={className}>
-      <h3 className="text-lg font-semibold">{title}</h3>
+      <h3 className="text-xl font-medium tracking-[-0.02em]">{title}</h3>
       {items.length ? (
-        <ol className="mt-4 divide-y border-y">
+        <ol className="mt-5 divide-y border-y">
           {items.map((item, index) => (
             <Statement
               index={index}
@@ -52,11 +52,11 @@ function Statement({
   }
 
   return (
-    <li className="grid grid-cols-[34px_1fr_40px] items-start gap-3 py-4">
-      <span className="font-mono text-xs text-muted-foreground">
+    <li className="grid grid-cols-[34px_minmax(0,1fr)_40px] items-start gap-3 py-5">
+      <span className="pt-1 font-mono text-xs text-muted-foreground">
         {String(index + 1).padStart(2, '0')}
       </span>
-      <span className="text-sm leading-6">{item.text}</span>
+      <span className="text-sm leading-7">{item.text}</span>
       <Button
         aria-label={`复制观点 ${index + 1}`}
         onClick={() => void copy()}

@@ -6,7 +6,7 @@ export const metadata = { title: '用户管理' };
 export default function AdminUsersPage() {
   return (
     <ProtectedRoute requireAdmin>
-      <main className="content-shell py-12 sm:py-16">
+      <main className="content-shell py-14 sm:py-20 lg:py-24">
         <AdminUsersView />
       </main>
     </ProtectedRoute>

@@ -40,11 +40,7 @@ describe('AppShell', () => {
       'href',
       '/',
     );
-    expect(screen.getByRole('link', { name: '视频解析' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
-    const historyLink = screen.getByRole('link', { name: /下载历史/ });
+    const historyLink = screen.getByRole('link', { name: /下载记录/ });
     expect(historyLink).toHaveAttribute('href', '/history');
     expect(historyLink).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('link', { name: /账户/ })).toHaveAttribute(
@@ -64,7 +60,7 @@ describe('AppShell', () => {
       within(mobileNavigation).getByRole('link', { name: '视频解析' }),
     ).toHaveAttribute('aria-current', 'page');
     expect(
-      within(mobileNavigation).getByRole('link', { name: '下载历史' }),
+      within(mobileNavigation).getByRole('link', { name: '下载记录' }),
     ).not.toHaveAttribute('aria-current');
   });
 
@@ -76,14 +72,15 @@ describe('AppShell', () => {
       </AppShell>,
     );
 
+    expect(screen.getByRole('link', { name: '帧取首页' })).toHaveAttribute(
+      'href',
+      '/',
+    );
     const desktopNavigation = screen.getByRole('navigation', {
       name: '主要导航',
     });
     expect(
-      within(desktopNavigation).getByRole('link', { name: '视频解析' }),
-    ).toHaveAttribute('href', '/');
-    expect(
-      within(desktopNavigation).getByRole('link', { name: '下载历史' }),
+      within(desktopNavigation).getByRole('link', { name: '下载记录' }),
     ).toHaveAttribute('aria-current', 'page');
 
     fireEvent.click(screen.getByRole('button', { name: '打开导航菜单' }));
@@ -96,7 +93,7 @@ describe('AppShell', () => {
     expect(mobileParserLink).toHaveAttribute('href', '/');
     expect(mobileParserLink).not.toHaveAttribute('aria-current');
     expect(
-      within(mobileNavigation).getByRole('link', { name: '下载历史' }),
+      within(mobileNavigation).getByRole('link', { name: '下载记录' }),
     ).toHaveAttribute('aria-current', 'page');
     fireEvent.click(mobileParserLink);
     expect(

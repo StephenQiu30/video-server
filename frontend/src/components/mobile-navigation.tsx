@@ -11,6 +11,7 @@ import {
 import Link from 'next/link';
 import { useState } from 'react';
 
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -60,8 +61,11 @@ export function MobileNavigation({
           <ListIcon aria-hidden className="size-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-[min(88vw,360px)] bg-card" side="right">
-        <SheetHeader className="border-b px-5 py-5">
+      <SheetContent
+        className="w-[min(88vw,360px)] border-0 bg-card"
+        side="right"
+      >
+        <SheetHeader className="px-5 py-5">
           <SheetTitle>导航</SheetTitle>
           <SheetDescription>
             访问视频解析、下载任务与账户设置。
@@ -97,7 +101,7 @@ export function MobileNavigation({
             onNavigate={() => setOpen(false)}
           >
             <ClockCounterClockwiseIcon aria-hidden />
-            下载历史
+            下载记录
           </MobileLink>
           {user ? (
             <>
@@ -125,6 +129,10 @@ export function MobileNavigation({
             </MobileLink>
           )}
         </nav>
+        <div className="mt-2 flex items-center justify-between px-5 py-3">
+          <span className="text-sm text-muted-foreground">外观</span>
+          <ThemeToggle />
+        </div>
         {user ? (
           <div className="mt-auto px-3 pb-4">
             <Separator className="mb-3" />

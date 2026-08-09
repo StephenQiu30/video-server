@@ -1,12 +1,10 @@
 'use client';
 
-import { DownloadSimple, ShieldCheck } from '@phosphor-icons/react';
+import { DownloadSimple } from '@phosphor-icons/react';
 
 import FormatPicker from '@/components/format-picker';
 import MediaCover from '@/components/media-cover';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import type { Inspection } from '@/types/video';
 import { formatDuration } from '@/utils/format';
 
@@ -25,69 +23,97 @@ export default function InspectionWorkspace({
   onCreate,
   selectedId,
 }: InspectionWorkspaceProps) {
+  const selected = inspection.formats.find((item) => item.id === selectedId);
+
   return (
     <section
       aria-label="解析结果"
-      className="grid border-y lg:grid-cols-[5fr_7fr]"
+      className="grid gap-10 pt-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(360px,1fr)] lg:gap-0"
     >
-      <div className="min-w-0 py-7 lg:pr-8">
-        <h2 className="text-xl font-medium">选择下载格式</h2>
-        <p className="mb-5 mt-2 text-sm leading-6 text-muted-foreground">
-          比较清晰度与编码，选择适合设备的版本。
-        </p>
+      <div className="min-w-0 lg:pr-10">
+        <MediaCover
+          alt={`${inspection.title} 视频封面`}
+          priority
+          src={inspection.thumbnail_url}
+        />
+        <h2 className="mt-5 text-xl font-medium leading-8 tracking-[-0.025em] sm:text-2xl">
+          {inspection.title}
+        </h2>
+        <dl className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-xs text-muted-foreground">
+          <Meta label="平台" value={inspection.extractor_key} />
+          <Meta
+            label="时长"
+            value={formatDuration(inspection.duration_seconds)}
+          />
+          {selected ? (
+            <Meta
+              label="当前清晰度"
+              value={`${selected.plan.width}×${selected.plan.height}`}
+            />
+          ) : null}
+        </dl>
+      </div>
+
+      <div className="hairline min-w-0 lg:border-l lg:pl-10">
+        <h2 className="text-base font-medium">画质预设</h2>
         <FormatPicker
           formats={inspection.formats}
           onChange={onChange}
           selectedId={selectedId}
         />
+        {selected ? (
+          <dl className="mt-7 grid grid-cols-2 gap-x-5 gap-y-4 border-t pt-5 text-sm">
+            <SelectionMeta
+              label="容器"
+              value={selected.plan.container_preference.toUpperCase()}
+            />
+            <SelectionMeta
+              label="兼容策略"
+              value={compatibilityLabel(selected.plan.compatibility_profile)}
+            />
+            <SelectionMeta
+              label="视频编码"
+              value={selected.plan.video_codec_family.toUpperCase()}
+            />
+            <SelectionMeta
+              label="音频编码"
+              value={selected.plan.audio_codec_family.toUpperCase()}
+            />
+          </dl>
+        ) : null}
         <Button
-          className="mt-5 h-12 w-full text-[15px]"
+          className="mt-7 h-13 w-full text-[15px]"
           disabled={!selectedId || busy}
           onClick={onCreate}
         >
           <DownloadSimple size={19} />
-          {busy ? '正在创建任务…' : '开始下载'}
+          {busy ? '正在创建任务…' : '创建下载任务'}
         </Button>
-        <p className="mt-5 flex items-start gap-2 text-xs leading-5 text-muted-foreground">
-          <ShieldCheck className="mt-0.5 size-4 shrink-0" />
-          仅支持你有权处理的公开、非 DRM
-          视频；请遵守平台服务条款及相关法律法规。
-        </p>
-      </div>
-
-      <div className="min-w-0 border-t py-7 lg:border-t-0 lg:border-l lg:pl-8">
-        <MediaCover
-          alt={`${inspection.title} 视频封面`}
-          duration={formatDuration(inspection.duration_seconds)}
-          platform={inspection.extractor_key}
-          priority
-          src={inspection.thumbnail_url}
-        />
-        <h2 className="mt-5 text-xl font-medium leading-8 tracking-[-0.015em]">
-          {inspection.title}
-        </h2>
-        <Separator className="my-4" />
-        <dl className="flex flex-wrap items-center gap-x-5 gap-y-3 text-sm text-muted-foreground">
-          <div>
-            <dt className="sr-only">平台</dt>
-            <dd>
-              <Badge variant="neutral">{inspection.extractor_key}</Badge>
-            </dd>
-          </div>
-          <div>
-            <dt className="sr-only">时长</dt>
-            <dd className="font-mono">
-              {formatDuration(inspection.duration_seconds)}
-            </dd>
-          </div>
-          <div className="min-w-0">
-            <dt className="sr-only">媒体 ID</dt>
-            <dd className="break-all font-mono text-xs">
-              {inspection.provider_media_id}
-            </dd>
-          </div>
-        </dl>
       </div>
     </section>
   );
+}
+
+function Meta({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-3 before:content-['·'] first:before:hidden">
+      <dt className="sr-only">{label}</dt>
+      <dd>{value}</dd>
+    </div>
+  );
+}
+
+function SelectionMeta({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="mt-1 font-medium">{value}</dd>
+    </div>
+  );
+}
+
+function compatibilityLabel(value: string) {
+  if (value === 'quality') return '画质优先';
+  if (value === 'smallest') return '体积优先';
+  return '均衡';
 }

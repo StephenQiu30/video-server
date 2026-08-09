@@ -19,9 +19,9 @@ describe('PageHeader', () => {
       'task-title',
     );
     expect(screen.getByRole('heading', { level: 1 })).toHaveClass(
-      'text-[28px]',
-      'sm:text-[32px]',
-      'leading-[1.2]',
+      'text-[clamp(2.25rem,4vw,3.75rem)]',
+      'leading-[0.98]',
+      'tracking-[-0.055em]',
     );
     expect(screen.getByRole('banner')).not.toHaveClass('text-primary');
     expect(screen.getByText('查看当前任务。')).toBeInTheDocument();

@@ -18,11 +18,21 @@ export default function DownloadDetailPage() {
 
 function DetailSkeleton() {
   return (
-    <main className="content-shell space-y-6 py-12 sm:py-16">
-      <Skeleton className="h-6 w-32" />
-      <div className="grid gap-10 lg:grid-cols-2">
-        <Skeleton className="aspect-video w-full" />
-        <Skeleton className="h-72 w-full" />
+    <main className="content-shell py-10 sm:py-14 lg:py-16">
+      <Skeleton className="h-4 w-28" />
+      <Skeleton className="mt-7 h-10 w-40" />
+      <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)] lg:gap-0">
+        <div className="lg:pr-12">
+          <Skeleton className="aspect-video w-full rounded-none" />
+          <Skeleton className="mt-6 h-9 w-3/4" />
+          <Skeleton className="mt-3 h-4 w-1/2" />
+        </div>
+        <div className="lg:border-l lg:pl-12">
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="mt-8 h-24 w-full" />
+          <Skeleton className="mt-8 h-20 w-full" />
+          <Skeleton className="mt-8 h-11 w-full" />
+        </div>
       </div>
     </main>
   );

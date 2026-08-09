@@ -21,7 +21,7 @@ export const inspection: Inspection = {
         audio_codec_family: 'aac',
         audio_language: 'zh-cn',
         container_preference: 'mp4',
-        compatibility_profile: 'balanced',
+        compatibility_profile: 'smallest',
       },
     },
   ],

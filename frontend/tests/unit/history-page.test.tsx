@@ -96,7 +96,8 @@ describe('download history', () => {
     expect(await screen.findByText('示例视频')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { level: 1, name: '下载历史' }),
-    ).toHaveClass('text-[28px]', 'sm:text-[32px]');
+    ).toBeInTheDocument();
+    expect(screen.getByText('02 / 下载记录')).toBeInTheDocument();
     expect(screen.queryByText('任务记录')).not.toBeInTheDocument();
     expect(
       screen.getByText('共 1 项 · 已完成 1 · 进行中 0'),

@@ -4,7 +4,6 @@ import {
   CaretDownIcon,
   ClockCounterClockwiseIcon,
   DownloadSimpleIcon,
-  LinkSimpleIcon,
   SignOutIcon,
   UserCircleIcon,
   UsersThreeIcon,
@@ -15,6 +14,7 @@ import { useState } from 'react';
 
 import { useAuth } from '@/components/auth-provider';
 import { MobileNavigation } from '@/components/mobile-navigation';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,13 +32,13 @@ export function BrandLink({ className }: { className?: string }) {
     <Link
       aria-label="帧取首页"
       className={cn(
-        'focus-ring inline-flex min-h-11 items-center gap-2.5 rounded-lg text-[19px] font-semibold tracking-[-0.03em]',
+        'focus-ring inline-flex min-h-11 items-center gap-2.5 rounded-md text-[15px] font-semibold tracking-[-0.02em]',
         className,
       )}
       href="/"
     >
-      <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-white">
-        <DownloadSimpleIcon aria-hidden className="size-[18px]" weight="bold" />
+      <span className="flex size-6 items-center justify-center rounded-[4px] bg-primary text-primary-foreground">
+        <DownloadSimpleIcon aria-hidden className="size-3.5" weight="bold" />
       </span>
       <span>帧取</span>
     </Link>
@@ -50,7 +50,6 @@ export function SiteHeader() {
   const [signingOut, setSigningOut] = useState(false);
   const pathname = usePathname() ?? '/';
   const router = useRouter();
-  const parserActive = pathname === '/';
   const historyActive = pathname.startsWith('/history');
 
   async function handleSignOut() {
@@ -61,8 +60,8 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85">
-      <div className="page-shell flex h-16 items-center justify-between">
+    <header className="sticky top-0 z-40 bg-background">
+      <div className="page-shell flex h-[72px] items-center justify-between">
         <BrandLink />
         <nav
           aria-label="主要导航"
@@ -71,21 +70,8 @@ export function SiteHeader() {
           <Button
             asChild
             className={cn(
-              'min-h-11 px-2.5 text-muted-foreground sm:px-3.5',
-              parserActive && 'bg-accent text-accent-foreground',
-            )}
-            variant="ghost"
-          >
-            <Link aria-current={parserActive ? 'page' : undefined} href="/">
-              <LinkSimpleIcon aria-hidden className="size-[19px]" />
-              <span>视频解析</span>
-            </Link>
-          </Button>
-          <Button
-            asChild
-            className={cn(
-              'min-h-11 px-2.5 text-muted-foreground sm:px-3.5',
-              historyActive && 'bg-accent text-accent-foreground',
+              'min-h-10 px-3 text-foreground',
+              historyActive && 'bg-muted',
             )}
             variant="ghost"
           >
@@ -94,7 +80,7 @@ export function SiteHeader() {
               href="/history"
             >
               <ClockCounterClockwiseIcon aria-hidden className="size-[19px]" />
-              <span>下载历史</span>
+              <span>下载记录</span>
             </Link>
           </Button>
           {user ? (
@@ -102,7 +88,7 @@ export function SiteHeader() {
               <DropdownMenuTrigger asChild>
                 <Button
                   aria-label="打开账户菜单"
-                  className="min-h-11 px-2.5 text-muted-foreground sm:px-3.5"
+                  className="min-h-10 px-2 text-foreground"
                   disabled={loading}
                   variant="ghost"
                 >
@@ -111,7 +97,6 @@ export function SiteHeader() {
                       {user.username.slice(0, 1).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <span>账户</span>
                   <CaretDownIcon
                     aria-hidden
                     className="hidden size-3.5 sm:block"
@@ -153,7 +138,7 @@ export function SiteHeader() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button asChild className="min-h-11 px-3" variant="ghost">
+            <Button asChild className="min-h-10 px-3" variant="ghost">
               <Link
                 href={`/user/login?redirect=${encodeURIComponent(pathname)}`}
               >
@@ -162,6 +147,8 @@ export function SiteHeader() {
               </Link>
             </Button>
           )}
+          <span aria-hidden className="mx-1 h-5 w-px bg-border" />
+          <ThemeToggle />
         </nav>
         <MobileNavigation
           loading={loading}

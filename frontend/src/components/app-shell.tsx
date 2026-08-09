@@ -24,7 +24,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <a
-        className="focus-ring fixed left-4 top-3 z-[60] -translate-y-20 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white focus:translate-y-0"
+        className="focus-ring fixed left-4 top-3 z-[60] -translate-y-20 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground focus:translate-y-0"
         href="#main-content"
       >
         跳到主要内容
@@ -52,23 +52,45 @@ export function AuthPageFrame({
 }: AuthPageFrameProps) {
   return (
     <main className="min-h-screen bg-background" id="main-content">
-      <div className="content-shell flex min-h-screen flex-col py-5 sm:py-6">
-        <BrandLink />
-        <div className="flex flex-1 items-center justify-center py-12 sm:py-16">
-          <Card
-            aria-labelledby={titleId}
-            className="w-full max-w-[440px] gap-0 rounded-none bg-transparent py-0 shadow-none ring-0"
-            role="region"
+      <div className="page-shell flex min-h-screen flex-col">
+        <div className="flex h-[72px] items-center">
+          <BrandLink />
+        </div>
+        <div className="grid flex-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)]">
+          <section
+            aria-label="产品介绍"
+            className="hidden flex-col justify-between py-20 pr-16 lg:flex xl:pr-24"
           >
-            <CardHeader className="gap-0 rounded-t-none px-0 py-0">
-              <PageHeader
-                description={description}
-                title={title}
-                titleId={titleId}
-              />
-            </CardHeader>
-            <CardContent className="px-0 pt-8 pb-0">{children}</CardContent>
-          </Card>
+            <div>
+              <p className="eyebrow text-muted-foreground">公开视频工作流</p>
+              <p className="mt-7 max-w-[720px] text-[clamp(3.5rem,6vw,6rem)] font-medium leading-[0.94] tracking-[-0.065em]">
+                把视频，
+                <br />
+                安全带回本地。
+              </p>
+            </div>
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="size-1.5 rounded-full bg-success" />
+              公开链接 · 无 DRM · 安全解析
+            </p>
+          </section>
+          <div className="flex items-center py-12 lg:border-l lg:py-20 lg:pl-16 xl:pl-24">
+            <Card
+              aria-labelledby={titleId}
+              className="w-full max-w-[440px] gap-0 rounded-none bg-transparent py-0 shadow-none ring-0"
+              role="region"
+            >
+              <CardHeader className="gap-0 rounded-t-none px-0 py-0">
+                <PageHeader
+                  description={description}
+                  title={title}
+                  titleClassName="text-[clamp(2.5rem,4vw,3rem)]"
+                  titleId={titleId}
+                />
+              </CardHeader>
+              <CardContent className="px-0 pt-8 pb-0">{children}</CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </main>
@@ -97,7 +119,7 @@ export function AuthField({
   return (
     <Field data-invalid={Boolean(error)}>
       <FieldLabel htmlFor={`${idPrefix}-${name}`}>{label}</FieldLabel>
-      <InputGroup className="h-10 bg-background">
+      <InputGroup className="h-11 bg-input">
         {children}
         <InputGroupAddon align="inline-start" className="pl-3">
           {icon}
@@ -137,7 +159,7 @@ export function ReadOnlyField({
       <Input
         aria-describedby={`${id}-help`}
         aria-readonly="true"
-        className="bg-muted/70 text-muted-foreground"
+        className="bg-muted text-muted-foreground"
         id={id}
         readOnly
         value={value}

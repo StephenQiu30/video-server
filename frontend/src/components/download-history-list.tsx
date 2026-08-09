@@ -1,5 +1,4 @@
 import { DownloadSimple } from '@phosphor-icons/react';
-import { Fragment } from 'react';
 
 import MediaCover from '@/components/media-cover';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +17,6 @@ import {
   ItemDescription,
   ItemGroup,
   ItemMedia,
-  ItemSeparator,
   ItemTitle,
 } from '@/components/ui/item';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -40,20 +38,22 @@ export default function DownloadHistoryList({
   onOpen: (id: string) => void;
 }) {
   return (
-    <section aria-label="下载任务" className="mt-3 border-t">
+    <section aria-label="下载任务" className="mt-4 border-t border-border/70">
       {loading && !data ? <LoadingRows /> : null}
       {data?.items.length ? (
-        <ItemGroup className="gap-0">
+        <ItemGroup className="gap-0 divide-y divide-border/70">
           {data.items.map((item) => (
-            <Fragment key={item.id}>
-              <HistoryRow item={item} onDownload={onDownload} onOpen={onOpen} />
-              <ItemSeparator className="my-0" />
-            </Fragment>
+            <HistoryRow
+              item={item}
+              key={item.id}
+              onDownload={onDownload}
+              onOpen={onOpen}
+            />
           ))}
         </ItemGroup>
       ) : null}
       {data && !data.items.length ? (
-        <Empty className="min-h-64 rounded-none border-b py-16">
+        <Empty className="min-h-72 rounded-none border-0 py-20">
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <DownloadSimple aria-hidden />
@@ -80,21 +80,21 @@ function HistoryRow({
 }) {
   return (
     <Item
-      className="grid gap-4 rounded-none border-0 px-0 py-5 sm:grid-cols-[112px_minmax(0,1fr)_auto] sm:items-center"
+      className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 rounded-none border-0 px-0 py-5 sm:grid-cols-[128px_minmax(0,1fr)_auto] sm:gap-x-6 sm:py-6"
       role="listitem"
     >
-      <ItemMedia>
+      <ItemMedia className="self-center">
         <MediaCover
           alt={`${item.title} 视频封面`}
-          className="w-28"
+          className="w-24 rounded-md ring-0 sm:w-32"
           src={item.thumbnail_url}
         />
       </ItemMedia>
-      <ItemContent className="min-w-0">
+      <ItemContent className="min-w-0 gap-1.5">
         <ItemTitle className="line-clamp-2">
           <Button
             aria-label={item.title}
-            className="h-auto justify-start whitespace-normal p-0 text-left text-foreground hover:text-primary"
+            className="h-auto justify-start whitespace-normal p-0 text-left text-[15px] leading-snug text-foreground hover:text-muted-foreground hover:no-underline"
             onClick={() => onOpen(item.id)}
             size="sm"
             variant="link"
@@ -103,24 +103,37 @@ function HistoryRow({
             {item.title}
           </Button>
         </ItemTitle>
-        <ItemDescription className="flex flex-wrap items-center gap-2">
+        <ItemDescription className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
           <span>{item.format_name}</span>
-          <span>·</span>
+          <span aria-hidden>·</span>
           <time dateTime={item.created_at}>{formatDate(item.created_at)}</time>
         </ItemDescription>
       </ItemContent>
-      <ItemActions className="w-full justify-between sm:w-auto sm:justify-end">
-        <Badge variant={statusVariant(item.status)}>
+      <ItemActions className="col-span-2 w-full justify-between sm:col-auto sm:w-auto sm:justify-end">
+        <Badge
+          className="rounded-md px-2 py-1 font-normal"
+          variant={statusVariant(item.status)}
+        >
           {downloadStatusLabels[item.status]}
           {activeStatuses.has(item.status) ? ` · ${item.progress}%` : ''}
         </Badge>
         {item.status === 'succeeded' ? (
-          <Button onClick={() => onDownload(item)} size="sm" variant="ghost">
+          <Button
+            className="-mr-2"
+            onClick={() => onDownload(item)}
+            size="sm"
+            variant="ghost"
+          >
             <DownloadSimple size={16} />
             获取文件
           </Button>
         ) : (
-          <Button onClick={() => onOpen(item.id)} size="sm" variant="ghost">
+          <Button
+            className="-mr-2"
+            onClick={() => onOpen(item.id)}
+            size="sm"
+            variant="ghost"
+          >
             查看任务
           </Button>
         )}
@@ -130,9 +143,28 @@ function HistoryRow({
 }
 
 function LoadingRows() {
-  return ['first', 'second', 'third'].map((key) => (
-    <Skeleton className="my-5 h-24 w-full" key={key} />
-  ));
+  return (
+    <>
+      <span className="sr-only" role="status">
+        正在加载下载记录
+      </span>
+      <div aria-hidden className="divide-y divide-border/70">
+        {['first', 'second', 'third'].map((key) => (
+          <div
+            className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-4 py-5 sm:grid-cols-[128px_minmax(0,1fr)_auto] sm:gap-6 sm:py-6"
+            key={key}
+          >
+            <Skeleton className="aspect-video w-24 rounded-md sm:w-32" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-2/5" />
+              <Skeleton className="h-3 w-3/5" />
+            </div>
+            <Skeleton className="col-span-2 h-7 w-28 justify-self-end sm:col-auto" />
+          </div>
+        ))}
+      </div>
+    </>
+  );
 }
 
 function formatDate(value: string) {

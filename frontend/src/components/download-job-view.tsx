@@ -28,56 +28,61 @@ export default function DownloadJobView({
   if (state.loading && !state.job) return <DownloadJobSkeleton />;
 
   return (
-    <main className="content-shell py-12 sm:py-16">
-      <Button asChild className="-ml-3" variant="ghost">
+    <main className="content-shell py-10 sm:py-14 lg:py-16">
+      <Button
+        asChild
+        className="-ml-3 text-muted-foreground hover:text-foreground"
+        variant="ghost"
+      >
         <Link href="/">
           <ArrowLeft aria-hidden size={17} />
           返回新建下载
         </Link>
       </Button>
+      <p className="eyebrow mt-7 text-muted-foreground">02 / 下载任务</p>
       {state.error ? (
-        <Alert className="mt-7" variant="destructive">
+        <Alert className="mt-8" variant="destructive">
           <AlertTitle>无法读取下载任务</AlertTitle>
           <AlertDescription>{state.error}</AlertDescription>
         </Alert>
       ) : null}
       {state.job ? (
         <>
-          <section className="mt-8 grid gap-10 border-y py-9 lg:grid-cols-[minmax(0,0.9fr)_minmax(380px,1.1fr)] lg:gap-14">
-            <div>
+          <section className="mt-9 grid gap-10 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)] lg:gap-0">
+            <div className="min-w-0 lg:pr-12">
               <MediaCover
                 alt={`${state.inspection?.title ?? '视频'}封面`}
-                duration={
-                  state.inspection
-                    ? formatDuration(state.inspection.duration_seconds)
-                    : undefined
-                }
-                platform={state.inspection?.extractor_key}
+                className="rounded-none ring-0"
                 priority
                 src={state.inspection?.thumbnail_url}
               />
-              <h1 className="mt-6 text-[28px] font-semibold leading-[1.2] tracking-[-0.03em] sm:text-[32px]">
+              <h1 className="mt-6 max-w-4xl text-[28px] font-medium leading-[1.12] tracking-[-0.035em] sm:text-[36px]">
                 {state.inspection?.title ?? '视频下载任务'}
               </h1>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-3 text-sm text-muted-foreground">
+                {state.inspection?.extractor_key
+                  ? `${state.inspection.extractor_key} · `
+                  : ''}
                 {formatLabel(format, state.inspection?.duration_seconds)}
               </p>
             </div>
-            <DownloadState
-              action={state.action}
-              format={format}
-              job={state.job}
-              onCancel={state.cancel}
-              onDownload={state.download}
-            />
+            <div className="min-w-0 lg:border-l lg:pl-12">
+              <DownloadState
+                action={state.action}
+                format={format}
+                job={state.job}
+                onCancel={state.cancel}
+                onDownload={state.download}
+              />
+            </div>
           </section>
           {state.inspectionError ? (
-            <p className="mt-4 text-sm text-warning">{state.inspectionError}</p>
+            <p className="mt-6 text-sm text-warning">{state.inspectionError}</p>
           ) : null}
           {state.job.status === 'succeeded' ? (
             <AnalysisPanel downloadId={state.job.id} />
           ) : (
-            <p className="border-b py-8 text-sm text-muted-foreground">
+            <p className="mt-14 border-t py-8 text-sm text-muted-foreground sm:mt-16">
               下载并验证完成后，可继续生成摘要与思维导图。
             </p>
           )}
@@ -89,9 +94,18 @@ export default function DownloadJobView({
 
 function DownloadJobSkeleton() {
   return (
-    <main className="content-shell grid gap-10 py-12 sm:py-16 lg:grid-cols-2">
-      <Skeleton className="aspect-video" />
-      <Skeleton className="h-80" />
+    <main className="content-shell py-10 sm:py-14 lg:py-16">
+      <Skeleton className="h-4 w-28" />
+      <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)] lg:gap-0">
+        <div className="lg:pr-12">
+          <Skeleton className="aspect-video rounded-none" />
+          <Skeleton className="mt-6 h-9 w-3/4" />
+          <Skeleton className="mt-3 h-4 w-1/2" />
+        </div>
+        <div className="lg:border-l lg:pl-12">
+          <Skeleton className="h-80" />
+        </div>
+      </div>
     </main>
   );
 }

@@ -22,8 +22,8 @@ function TreeNode({ depth, node }: { depth: number; node: MindMapNode }) {
   return (
     <div>
       <div
-        className="grid grid-cols-[18px_1fr_auto] gap-2 border-b py-3 last:border-0"
-        style={{ paddingInlineStart: `${Math.min(depth, 5) * 18}px` }}
+        className="grid grid-cols-[18px_minmax(0,1fr)] gap-x-2 gap-y-1 border-b py-4 last:border-0 sm:grid-cols-[18px_minmax(0,1fr)_auto]"
+        style={{ paddingInlineStart: `${Math.min(depth, 4) * 16}px` }}
       >
         <CaretRight
           aria-hidden
@@ -31,7 +31,7 @@ function TreeNode({ depth, node }: { depth: number; node: MindMapNode }) {
           size={15}
         />
         <span>
-          <strong className="block text-sm">{node.title}</strong>
+          <strong className="block text-sm font-medium">{node.title}</strong>
           {node.summary ? (
             <span className="mt-1 block text-sm leading-6 text-muted-foreground">
               {node.summary}
@@ -39,7 +39,7 @@ function TreeNode({ depth, node }: { depth: number; node: MindMapNode }) {
           ) : null}
         </span>
         {node.start_ms === null ? null : (
-          <span className="font-mono text-xs text-muted-foreground">
+          <span className="col-start-2 font-mono text-xs text-muted-foreground sm:col-start-3">
             {formatMilliseconds(node.start_ms)}
           </span>
         )}

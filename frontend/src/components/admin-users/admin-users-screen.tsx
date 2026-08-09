@@ -53,10 +53,10 @@ export function AdminUsersScreen({
   const last = Math.min(result.page * PAGE_SIZE, result.total);
 
   return (
-    <section className="space-y-7">
+    <section className="space-y-10">
       <PageHeader
         action={
-          <p className="text-sm text-muted-foreground">
+          <p className="font-mono text-xs text-muted-foreground tabular-nums">
             共{' '}
             <strong className="font-semibold text-foreground">
               {result.total}
@@ -64,17 +64,20 @@ export function AdminUsersScreen({
             个账户
           </p>
         }
-        description="查看账户并调整角色与启用状态。"
+        description="查找账户，并在不离开当前页面的情况下调整角色与启用状态。"
+        eyebrow="03 / 系统管理"
         title="用户管理"
       />
 
-      <UserFilters
-        query={query}
-        onDraftSearch={actions.onDraftSearch}
-        onSearch={actions.onSearch}
-        onRoleChange={actions.onRoleChange}
-        onActiveChange={actions.onActiveChange}
-      />
+      <div className="hairline border-t pt-7">
+        <UserFilters
+          query={query}
+          onDraftSearch={actions.onDraftSearch}
+          onSearch={actions.onSearch}
+          onRoleChange={actions.onRoleChange}
+          onActiveChange={actions.onActiveChange}
+        />
+      </div>
 
       {notice && (
         <Alert variant="success">
@@ -97,7 +100,7 @@ export function AdminUsersScreen({
       )}
 
       {!result.loading && !result.error && result.total > 0 && (
-        <footer className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+        <footer className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
           <span>
             显示 {first}–{last}，共 {result.total} 项
           </span>

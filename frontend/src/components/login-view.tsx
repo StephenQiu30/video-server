@@ -68,13 +68,13 @@ export function LoginView() {
 
   return (
     <AuthPageFrame
-      description="继续解析、下载和管理你有权处理的公开视频。"
-      title="登录帧取"
+      description="回到你的下载记录，继续处理有权使用的公开视频。"
+      title="登录，继续下载。"
       titleId="login-title"
     >
       <form
         aria-busy={submitting}
-        className="space-y-5"
+        className="space-y-7"
         noValidate
         onSubmit={handleSubmit}
       >
@@ -84,7 +84,7 @@ export function LoginView() {
             <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
         ) : null}
-        <FieldGroup className="gap-4">
+        <FieldGroup className="gap-5">
           <AuthField
             error={errors.email}
             icon={<EnvelopeSimpleIcon aria-hidden />}
@@ -142,10 +142,10 @@ export function LoginView() {
           ) : null}
         </Button>
       </form>
-      <p className="mt-6 text-center text-sm text-muted-foreground">
+      <p className="mt-7 text-sm text-muted-foreground">
         还没有账号？{' '}
         <Link
-          className="focus-ring rounded text-primary hover:underline"
+          className="focus-ring rounded-sm font-medium text-foreground underline underline-offset-4 decoration-foreground/25 hover:decoration-foreground"
           href={`/user/register${search}`}
         >
           创建账号

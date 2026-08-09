@@ -52,14 +52,18 @@ export default function AnalysisPanel({
 
   if (state.job?.status === 'succeeded' && state.job.result) {
     return (
-      <section aria-label="AI 智能分析" className="border-b py-10">
-        <div className="flex flex-wrap items-start justify-between gap-5">
-          <div>
-            <h2 className="text-3xl font-semibold tracking-[-0.035em]">
+      <section
+        aria-label="AI 智能分析"
+        className="mt-14 border-t py-12 sm:mt-16 sm:py-16"
+      >
+        <p className="eyebrow text-muted-foreground">03 / 内容分析</p>
+        <div className="mt-6 flex flex-wrap items-start justify-between gap-6">
+          <div className="max-w-4xl">
+            <h2 className="text-[32px] font-medium leading-[1.05] tracking-[-0.045em] sm:text-[44px]">
               {state.job.result.title}
             </h2>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Badge variant="success">分析已完成</Badge>
             <Button onClick={state.restart} variant="outline">
               <ArrowClockwise />
@@ -73,20 +77,23 @@ export default function AnalysisPanel({
   }
 
   return (
-    <section aria-labelledby="analysis-title" className="border-b py-10">
-      <div className="flex items-start justify-between gap-5">
-        <div>
+    <section
+      aria-labelledby="analysis-title"
+      className="mt-14 border-t py-12 sm:mt-16 sm:py-16"
+    >
+      <p className="eyebrow text-muted-foreground">03 / 内容分析</p>
+      <div className="mt-6 flex items-start justify-between gap-6">
+        <div className="max-w-3xl">
           <h2
-            className="text-3xl font-semibold tracking-[-0.035em]"
+            className="text-[32px] font-medium leading-none tracking-[-0.045em] sm:text-[44px]"
             id="analysis-title"
           >
             AI 智能分析
           </h2>
-          <p className="mt-3 text-muted-foreground">
+          <p className="mt-4 max-w-2xl leading-7 text-muted-foreground">
             生成摘要、关键观点、章节和思维导图。
           </p>
         </div>
-        <Robot aria-hidden className="text-muted-foreground" size={28} />
       </div>
 
       {state.error ? (
@@ -97,7 +104,7 @@ export default function AnalysisPanel({
       ) : null}
 
       {!state.job ? (
-        <div className="mt-8 grid gap-5 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
           <AnalysisSelect
             label="分析模板"
             onChange={(value) => setProfile(value as AnalysisProfile)}
@@ -114,6 +121,7 @@ export default function AnalysisPanel({
             value={language}
           />
           <Button
+            className="w-full lg:w-auto"
             disabled={state.action === 'start'}
             onClick={() => state.start({ profile, output_language: language })}
             size="lg"
@@ -146,7 +154,7 @@ function AnalysisSelect({
     <div className="grid gap-2 text-sm font-medium">
       <span>{label}</span>
       <Select onValueChange={onChange} value={value}>
-        <SelectTrigger aria-label={label}>
+        <SelectTrigger aria-label={label} className="w-full">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -170,7 +178,7 @@ function AnalysisJobState({
 }) {
   const cancellable = ['queued', 'running', 'retry_wait'].includes(job.status);
   return (
-    <div className="mt-8 max-w-2xl">
+    <div className="mt-10 max-w-3xl">
       <div className="flex justify-between gap-4 text-sm font-medium">
         <span>{statusLabels[job.status]}</span>
         <span className="font-mono">{job.progress}%</span>
@@ -184,7 +192,7 @@ function AnalysisJobState({
         当前阶段：{job.stage ? stageLabels[job.stage] : '等待调度'} · 第{' '}
         {job.attempt} 次尝试
       </p>
-      <div className="mt-6 flex gap-3">
+      <div className="mt-7 flex flex-wrap gap-3">
         {cancellable ? (
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -218,7 +226,7 @@ function AnalysisJobState({
           <Button onClick={state.restart}>重新分析</Button>
         ) : null}
       </div>
-      <p className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
+      <p className="mt-8 flex items-center gap-2 text-sm text-muted-foreground">
         <ShieldCheck className="text-success" />
         分析结果经证据校验，观点均来自视频转录内容。
       </p>

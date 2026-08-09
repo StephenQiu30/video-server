@@ -78,13 +78,13 @@ export function RegisterView() {
 
   return (
     <AuthPageFrame
-      description="使用邮箱注册，登录状态会在受信任设备上自动保持。"
-      title="创建账号"
+      description="保存下载进度，并在受信任设备上保持登录状态。"
+      title="创建账户，保存进度。"
       titleId="register-title"
     >
       <form
         aria-busy={submitting}
-        className="space-y-5"
+        className="space-y-7"
         noValidate
         onSubmit={handleSubmit}
       >
@@ -94,7 +94,7 @@ export function RegisterView() {
             <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
         ) : null}
-        <FieldGroup className="gap-4">
+        <FieldGroup className="gap-5">
           <AuthField
             error={errors.username}
             icon={<UserIcon aria-hidden />}
@@ -192,10 +192,10 @@ export function RegisterView() {
           ) : null}
         </Button>
       </form>
-      <p className="mt-6 text-center text-sm text-muted-foreground">
+      <p className="mt-7 text-sm text-muted-foreground">
         已有账号？{' '}
         <Link
-          className="focus-ring rounded text-primary hover:underline"
+          className="focus-ring rounded-sm font-medium text-foreground underline underline-offset-4 decoration-foreground/25 hover:decoration-foreground"
           href={`/user/login${search}`}
         >
           返回登录

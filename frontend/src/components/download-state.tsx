@@ -68,11 +68,12 @@ export default function DownloadState({
   const complete = job.status === 'succeeded';
 
   return (
-    <section aria-labelledby="download-status-title" className="self-center">
-      <div className="flex items-start justify-between gap-5">
+    <section aria-labelledby="download-status-title" className="self-start">
+      <p className="eyebrow text-muted-foreground">任务状态</p>
+      <div className="mt-5 flex items-start justify-between gap-5">
         <div>
           <h2
-            className="text-3xl font-semibold tracking-[-0.035em]"
+            className="text-[32px] font-medium leading-none tracking-[-0.045em] sm:text-[38px]"
             id="download-status-title"
           >
             {statusLabels[job.status]}
@@ -83,8 +84,8 @@ export default function DownloadState({
         </Badge>
       </div>
 
-      <Separator className="mt-8" />
-      <dl className="grid grid-cols-3 gap-4 py-5 text-sm">
+      <Separator className="mt-9" />
+      <dl className="grid grid-cols-2 gap-x-5 gap-y-6 py-6 text-sm sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
         <Meta
           label="格式"
           value={format?.plan.container_preference.toUpperCase() ?? '—'}
@@ -94,8 +95,8 @@ export default function DownloadState({
       </dl>
       <Separator />
 
-      <div className="mt-7 flex items-end justify-between">
-        <span className="font-mono text-4xl font-semibold tracking-[-0.05em]">
+      <div className="mt-8 flex items-end justify-between gap-5">
+        <span className="font-mono text-[42px] font-medium leading-none tracking-[-0.06em]">
           {job.progress}%
         </span>
         <span className="text-sm text-muted-foreground">
@@ -117,9 +118,10 @@ export default function DownloadState({
         </Alert>
       ) : null}
 
-      <div className="mt-7 flex flex-wrap gap-3">
+      <div className="mt-8 grid gap-3">
         {complete ? (
           <Button
+            className="w-full"
             disabled={action === 'download'}
             onClick={onDownload}
             size="lg"
@@ -136,6 +138,7 @@ export default function DownloadState({
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
+                className="w-full"
                 disabled={action === 'cancel'}
                 size="lg"
                 variant="outline"
@@ -169,7 +172,7 @@ export default function DownloadState({
         ) : null}
       </div>
 
-      <p className="mt-7 flex items-center gap-2 text-sm text-muted-foreground">
+      <p className="mt-8 flex items-center gap-2 text-sm text-muted-foreground">
         {complete ? <ShieldCheck className="text-success" /> : <CheckCircle />}
         {complete ? '文件完整性验证通过' : '任务由隔离的媒体 Runner 执行'}
       </p>
@@ -181,7 +184,7 @@ function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-1.5 font-medium">{value}</dd>
+      <dd className="mt-2 font-medium">{value}</dd>
     </div>
   );
 }

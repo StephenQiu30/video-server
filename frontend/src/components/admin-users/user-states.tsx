@@ -20,13 +20,16 @@ export function AdminSkeleton({ rowsOnly = false }: { rowsOnly?: boolean }) {
     <div role="status" className="space-y-6" aria-label="正在加载用户列表">
       {!rowsOnly && (
         <>
-          <Skeleton className="h-16 w-64" />
-          <Skeleton className="h-11 w-full" />
+          <Skeleton className="h-3 w-32" />
+          <Skeleton className="h-20 w-full max-w-2xl" />
+          <Skeleton className="h-16 w-full" />
         </>
       )}
-      <div className="space-y-1 border-y py-2">
+      <div className="hairline divide-y border-y">
         {['first', 'second', 'third', 'fourth', 'fifth'].map((row) => (
-          <Skeleton key={row} className="h-16 w-full" />
+          <div className="hairline py-3" key={row}>
+            <Skeleton className="h-12 w-full" />
+          </div>
         ))}
       </div>
     </div>
@@ -56,10 +59,10 @@ export function UsersLoadError({
 
 export function EmptyUsers() {
   return (
-    <Empty className="min-h-64 rounded-none border-y py-12">
+    <Empty className="hairline min-h-64 rounded-none border-y py-14">
       <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <UsersThree aria-hidden weight="duotone" />
+        <EmptyMedia className="mb-3 text-muted-foreground">
+          <UsersThree aria-hidden className="size-5" weight="regular" />
         </EmptyMedia>
         <EmptyTitle>没有匹配的用户</EmptyTitle>
         <EmptyDescription>尝试清空搜索词或更换筛选条件。</EmptyDescription>

@@ -25,18 +25,13 @@ describe('DownloadWorkspace', () => {
     renderWorkspace();
 
     expect(
-      screen.getByRole('heading', { name: '粘贴链接，剩下的交给帧取' }),
+      screen.getByRole('heading', { name: /把视频，\s*带回本地。/u }),
     ).toBeInTheDocument();
     expect(screen.queryByText('Public media workflow')).not.toBeInTheDocument();
-    expect(screen.getByText('链接').closest('li')).toHaveAttribute(
-      'aria-current',
-      'step',
-    );
-    expect(screen.getByText('格式').closest('li')).not.toHaveAttribute(
-      'aria-current',
-    );
+    expect(screen.getByText('02 / 选择画质')).toBeInTheDocument();
+    expect(screen.getByText('03 / 创建任务')).toBeInTheDocument();
     expect(screen.getByLabelText('公开视频地址')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '解析' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '解析媒体' })).toBeEnabled();
     expect(
       screen.queryByRole('region', { name: '解析结果' }),
     ).not.toBeInTheDocument();
@@ -48,7 +43,7 @@ describe('DownloadWorkspace', () => {
     fireEvent.change(screen.getByLabelText('公开视频地址'), {
       target: { value: 'file:///tmp/private-video' },
     });
-    fireEvent.click(screen.getByRole('button', { name: '解析' }));
+    fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
 
     expect(await screen.findByText(URL_MESSAGE)).toBeInTheDocument();
     expect(httpRequests()).toHaveLength(0);
@@ -61,18 +56,15 @@ describe('DownloadWorkspace', () => {
     fireEvent.change(screen.getByLabelText('公开视频地址'), {
       target: { value: ' https://media.example/owned ' },
     });
-    fireEvent.click(screen.getByRole('button', { name: '解析' }));
+    fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
 
     expect(await screen.findByText(inspection.title)).toBeInTheDocument();
-    expect(screen.getByText('格式').closest('li')).toHaveAttribute(
-      'aria-current',
-      'step',
-    );
-    expect(screen.getByText('链接').closest('li')).not.toHaveAttribute(
-      'aria-current',
-    );
+    expect(
+      screen.getByRole('heading', { name: '画质预设' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('体积优先')).toBeInTheDocument();
     expect(screen.getByRole('radio')).toBeChecked();
-    fireEvent.click(screen.getByRole('button', { name: '开始下载' }));
+    fireEvent.click(screen.getByRole('button', { name: '创建下载任务' }));
 
     await waitFor(() =>
       expect(runtime.push).toHaveBeenCalledWith(

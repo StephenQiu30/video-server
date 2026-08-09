@@ -50,25 +50,25 @@ export default function FormatPicker({
         const plan = format.plan;
         return (
           <div key={format.id}>
-            {index > 0 ? <Separator /> : null}
+            {index > 0 ? <Separator className="opacity-80" /> : null}
             <FieldLabel
               className={cn(
-                'min-h-[78px] cursor-pointer flex-row rounded-none border-0 px-3 py-3 transition-colors hover:bg-muted/60',
-                selected && 'bg-accent hover:bg-accent',
+                'min-h-[62px] cursor-pointer flex-row rounded-none border-0 px-0 py-3 transition-colors has-data-[state=checked]:bg-transparent hover:text-foreground',
+                selected ? 'text-foreground' : 'text-muted-foreground',
               )}
               htmlFor={format.id}
             >
               <RadioGroupItem id={format.id} value={format.id} />
               <span className="min-w-0">
                 <span className="flex items-baseline gap-2">
-                  <strong className="text-lg tracking-[-0.02em]">
+                  <strong className="text-[15px] tracking-[-0.02em]">
                     {plan.height}P
                   </strong>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="font-mono text-xs text-muted-foreground">
                     {plan.container_preference.toUpperCase()}
                   </span>
                 </span>
-                <span className="mt-1 block truncate text-sm text-muted-foreground">
+                <span className="mt-1 block truncate text-xs text-muted-foreground">
                   {plan.width}×{plan.height} ·{' '}
                   {plan.video_codec_family.toUpperCase()} ·{' '}
                   {plan.audio_codec_family.toUpperCase()} ·{' '}

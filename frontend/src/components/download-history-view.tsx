@@ -64,7 +64,7 @@ export default function DownloadHistoryView() {
   }
 
   return (
-    <main className="content-shell py-12 sm:py-16">
+    <main className="content-shell py-14 sm:py-20 lg:py-24">
       <PageHeader
         action={
           <Button asChild size="lg">
@@ -75,12 +75,13 @@ export default function DownloadHistoryView() {
           </Button>
         }
         description="继续查看、获取或分析已创建的任务。"
+        eyebrow="02 / 下载记录"
         title="下载历史"
       />
 
-      <div className="mt-11 flex flex-col gap-3 border-y py-5 sm:flex-row">
+      <div className="mt-12 grid gap-2 sm:grid-cols-[minmax(0,1fr)_11rem_auto] sm:items-end lg:mt-16">
         <form
-          className="flex-1"
+          className="min-w-0"
           onSubmit={(event) => {
             event.preventDefault();
             setPage(1);
@@ -91,7 +92,7 @@ export default function DownloadHistoryView() {
             <FieldLabel className="sr-only" htmlFor="history-search">
               搜索下载历史
             </FieldLabel>
-            <InputGroup className="h-10">
+            <InputGroup className="h-11 border-0 bg-surface">
               <InputGroupInput
                 className="h-full"
                 id="history-search"
@@ -105,7 +106,7 @@ export default function DownloadHistoryView() {
             </InputGroup>
           </Field>
         </form>
-        <Field className="sm:w-40">
+        <Field>
           <FieldLabel className="sr-only" htmlFor="history-status">
             按状态筛选
           </FieldLabel>
@@ -118,7 +119,10 @@ export default function DownloadHistoryView() {
             }}
             value={status ?? 'all'}
           >
-            <SelectTrigger className="h-10" id="history-status">
+            <SelectTrigger
+              className="h-11 w-full border-0 bg-surface"
+              id="history-status"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -132,7 +136,7 @@ export default function DownloadHistoryView() {
           </Select>
         </Field>
         <Button
-          className="h-10"
+          className="h-11 border-0 bg-surface px-4"
           onClick={state.retry}
           type="button"
           variant="outline"
@@ -143,7 +147,10 @@ export default function DownloadHistoryView() {
       </div>
 
       {state.data ? (
-        <p className="mt-6 text-sm text-muted-foreground">
+        <p
+          aria-live="polite"
+          className="mt-12 font-mono text-xs text-muted-foreground"
+        >
           共 {state.data.total} 项 · 已完成 {state.data.summary.succeeded} ·
           进行中 {state.data.summary.active}
         </p>
@@ -165,21 +172,21 @@ export default function DownloadHistoryView() {
       />
 
       {state.data && state.data.total > state.data.page_size ? (
-        <Pagination aria-label="下载历史分页" className="mt-8 justify-end">
+        <Pagination aria-label="下载历史分页" className="mt-10 justify-end">
           <ButtonGroup>
             <Button
               aria-label="上一页"
               disabled={page <= 1}
               onClick={() => setPage((value) => value - 1)}
               type="button"
-              variant="outline"
+              variant="ghost"
             >
               <CaretLeft aria-hidden />
               <span className="hidden sm:inline">上一页</span>
             </Button>
             <ButtonGroupText
               aria-live="polite"
-              className="min-w-20 justify-center bg-background font-mono font-normal text-muted-foreground"
+              className="min-w-20 justify-center border-0 bg-transparent font-mono font-normal text-muted-foreground"
             >
               {page} / {Math.ceil(state.data.total / state.data.page_size)}
             </ButtonGroupText>
@@ -188,7 +195,7 @@ export default function DownloadHistoryView() {
               disabled={page * state.data.page_size >= state.data.total}
               onClick={() => setPage((value) => value + 1)}
               type="button"
-              variant="outline"
+              variant="ghost"
             >
               <span className="hidden sm:inline">下一页</span>
               <CaretRight aria-hidden />

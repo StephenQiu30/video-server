@@ -1,5 +1,6 @@
 'use client';
 
+import { ShieldCheck } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
 import { type RefObject, useEffect, useRef, useState } from 'react';
 
@@ -34,7 +35,7 @@ export default function DownloadWorkspace() {
       process.env.NODE_ENV !== 'production' &&
       new URLSearchParams(window.location.search).get('design') === 'inspection'
     ) {
-      setUrl('https://www.bilibili.com/video/BV1D6u86fETf/');
+      setUrl('https://media.example/alpine-lake');
       setInspection(demoInspection);
       setSelectedId(demoInspection.formats[0]?.id ?? '');
     }
@@ -83,7 +84,7 @@ export default function DownloadWorkspace() {
   }
 
   return (
-    <main className="content-shell pb-8">
+    <main className="content-shell pb-6">
       <DownloadHero
         busy={busy === 'inspect'}
         inspection={inspection}
@@ -92,7 +93,7 @@ export default function DownloadWorkspace() {
         url={url}
       />
       {error ? (
-        <Alert className="mb-7" variant="destructive">
+        <Alert className="mt-8" variant="destructive">
           <AlertTitle>操作未完成</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
@@ -106,8 +107,15 @@ export default function DownloadWorkspace() {
           selectedId={selectedId}
         />
       ) : null}
-      <footer className="mt-16 border-t py-8 text-center text-xs text-muted-foreground">
-        帧取 · 合法合规的公开视频下载工具
+      <footer className="mt-10 flex flex-col gap-3 border-t py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+        <span className="flex items-center gap-2">
+          <span className="size-1.5 rounded-full bg-success" />
+          公开链接 · 无 DRM · 安全解析
+        </span>
+        <span className="flex items-center gap-1.5">
+          <ShieldCheck aria-hidden className="size-4" />
+          隐私保护
+        </span>
       </footer>
     </main>
   );

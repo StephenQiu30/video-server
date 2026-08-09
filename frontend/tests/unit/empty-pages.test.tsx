@@ -9,7 +9,7 @@ describe('empty route states', () => {
     render(<NotFound />);
 
     expect(
-      screen.getByRole('heading', { level: 1, name: '页面未找到' }),
+      screen.getByRole('heading', { level: 1, name: '页面，没有找到。' }),
     ).toBeInTheDocument();
     expect(screen.getByText('404')).toHaveClass('text-muted-foreground');
   });

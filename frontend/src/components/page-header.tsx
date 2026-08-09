@@ -6,7 +6,9 @@ type PageHeaderProps = {
   action?: ReactNode;
   className?: string;
   description?: ReactNode;
+  eyebrow?: ReactNode;
   title: ReactNode;
+  titleClassName?: string;
   titleId?: string;
 };
 
@@ -14,19 +16,27 @@ export function PageHeader({
   action,
   className,
   description,
+  eyebrow,
   title,
+  titleClassName,
   titleId,
 }: PageHeaderProps) {
   return (
     <header
       className={cn(
-        'flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between',
+        'flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between',
         className,
       )}
     >
-      <div className="min-w-0 max-w-3xl">
+      <div className="min-w-0 max-w-4xl">
+        {eyebrow ? (
+          <p className="eyebrow mb-5 text-muted-foreground">{eyebrow}</p>
+        ) : null}
         <h1
-          className="text-[28px] font-semibold leading-[1.2] tracking-[-0.03em] sm:text-[32px]"
+          className={cn(
+            'text-[clamp(2.25rem,4vw,3.75rem)] font-medium leading-[0.98] tracking-[-0.055em]',
+            titleClassName,
+          )}
           id={titleId}
         >
           {title}
@@ -37,7 +47,7 @@ export function PageHeader({
           </p>
         ) : null}
       </div>
-      {action ? <div className="shrink-0">{action}</div> : null}
+      {action ? <div className="shrink-0 sm:pt-1">{action}</div> : null}
     </header>
   );
 }
