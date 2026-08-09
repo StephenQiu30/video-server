@@ -3,18 +3,13 @@ import {
   LinkOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
-import { PageContainer } from '@ant-design/pro-components';
-import { useNavigate } from '@umijs/max';
 import {
-  Alert,
-  Button,
-  Flex,
-  Input,
-  Space,
-  Spin,
-  Tag,
-  Typography,
-} from 'antd';
+  PageContainer,
+  ProForm,
+  ProFormText,
+} from '@ant-design/pro-components';
+import { useNavigate } from '@umijs/max';
+import { Alert, Button, Flex, Form, Spin, Tag, Typography } from 'antd';
 import { type RefObject, useEffect, useRef, useState } from 'react';
 
 import FormatPicker from '@/components/FormatPicker';
@@ -32,20 +27,14 @@ import './index.less';
 
 type BusyAction = 'inspect' | 'create' | null;
 type StableKey = { payload: string; value: string };
-
-const platforms = [
-  { label: 'Bilibili', color: '#fb7299' },
-  { label: 'YouTube', color: '#ff0000' },
-  { label: '抖音', color: '#25f4ee' },
-  { label: 'Vimeo', color: '#1ab7ea' },
-];
+type InspectionFormValues = { url: string };
 
 const DESIGN_SOURCE_URL = 'https://www.bilibili.com/video/BV1D6u86fETf/';
 const DESIGN_KEY_STORAGE = 'video-server:design-inspection-key';
 
 export default function DownloadPage() {
   const navigate = useNavigate();
-  const [url, setUrl] = useState('');
+  const [form] = Form.useForm<InspectionFormValues>();
   const [inspection, setInspection] = useState<Inspection | null>(null);
   const [selectedId, setSelectedId] = useState('');
   const [busy, setBusy] = useState<BusyAction>(null);
@@ -65,7 +54,7 @@ export default function DownloadPage() {
     const key = storedKey ?? createIdempotencyKey();
     window.sessionStorage.setItem(DESIGN_KEY_STORAGE, key);
     inspectionKey.current = { payload: DESIGN_SOURCE_URL, value: key };
-    setUrl(DESIGN_SOURCE_URL);
+    form.setFieldsValue({ url: DESIGN_SOURCE_URL });
     setBusy('inspect');
     setError(null);
 
@@ -85,10 +74,10 @@ export default function DownloadPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [form]);
 
-  async function handleInspect() {
-    const normalized = normalizeMediaUrl(url);
+  async function handleInspect(value: string) {
+    const normalized = normalizeMediaUrl(value);
     if (!normalized) {
       setError(URL_MESSAGE);
       return;
@@ -131,68 +120,40 @@ export default function DownloadPage() {
   }
 
   return (
-    <PageContainer className="download-page" title={false}>
-      <section className="download-hero">
-        <div className="hero-inner">
-          <p className="page-eyebrow">Universal video downloader</p>
-          <Typography.Title className="hero-title" level={1}>
-            万能视频下载器
-          </Typography.Title>
-          <Typography.Paragraph className="hero-subtitle">
-            粘贴公开视频链接，识别真实封面与可用格式，一键下载到本地。
-          </Typography.Paragraph>
-
-          <form
-            className="hero-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void handleInspect();
-            }}
-          >
-            <Space.Compact block className="hero-input-group">
-              <Input
-                allowClear
-                aria-label="公开视频地址"
-                className="hero-input"
-                maxLength={4096}
-                onChange={(event) => setUrl(event.target.value)}
-                placeholder="粘贴 Bilibili、YouTube、抖音等公开视频链接"
-                prefix={<LinkOutlined aria-hidden />}
-                size="large"
-                value={url}
-              />
-              <Button
-                aria-label={inspection ? '重新解析' : '解析视频'}
-                className="hero-submit"
-                htmlType="submit"
-                icon={
-                  inspection ? <ReloadOutlined aria-hidden /> : undefined
-                }
-                loading={busy === 'inspect'}
-                size="large"
-                type="primary"
-              >
-                {inspection ? '重新解析' : '解析视频'}
-              </Button>
-            </Space.Compact>
-          </form>
-
-          <Flex className="source-examples" gap={20} align="center" wrap>
-            <Typography.Text type="secondary" className="source-label">
-              支持：
-            </Typography.Text>
-            {platforms.map((p) => (
-              <span key={p.label} className="platform-item">
-                <span
-                  className="platform-dot"
-                  style={{ background: p.color }}
-                />
-                {p.label}
-              </span>
-            ))}
-          </Flex>
-        </div>
-      </section>
+    <PageContainer className="download-page" title="解析下载">
+      <ProForm<InspectionFormValues>
+        className="download-form"
+        form={form}
+        layout="vertical"
+        onFinish={async ({ url }) => {
+          await handleInspect(url);
+          return true;
+        }}
+        submitter={{
+          resetButtonProps: false,
+          searchConfig: {
+            submitText: inspection ? '重新解析' : '解析视频',
+          },
+          submitButtonProps: {
+            icon: inspection ? <ReloadOutlined aria-hidden /> : undefined,
+            loading: busy === 'inspect',
+          },
+        }}
+      >
+        <ProFormText
+          fieldProps={{
+            allowClear: true,
+            'aria-label': '公开视频地址',
+            maxLength: 4096,
+            prefix: <LinkOutlined aria-hidden />,
+          }}
+          label="公开视频地址"
+          name="url"
+          placeholder="粘贴 Bilibili、YouTube、抖音等公开视频链接"
+          rules={[{ required: true, message: '请输入公开视频链接' }]}
+          width="xl"
+        />
+      </ProForm>
 
       {error || inspection || busy === 'inspect' ? (
         <div className="content-wrap">

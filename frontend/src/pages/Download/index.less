@@ -2,87 +2,8 @@
   min-height: 100%;
 }
 
-.download-hero {
-  display: flex;
-  justify-content: center;
-  padding: clamp(64px, 9vh, 104px) 0 56px;
-  text-align: center;
-
-  .hero-inner {
-    width: 100%;
-    max-width: 760px;
-  }
-
-  .hero-title {
-    margin-block: 10px;
-    font-size: 44px;
-    font-weight: 700;
-    letter-spacing: -1.4px;
-    line-height: 1.1;
-  }
-
-  .hero-subtitle {
-    margin-bottom: 32px;
-    font-size: 16px;
-  }
-
-  .hero-input-group {
-    overflow: hidden;
-    border-radius: 8px;
-    background: var(--ant-color-bg-container);
-    box-shadow:
-      0 0 0 1px rgb(0 0 0 / 12%),
-      0 1px 2px rgb(0 0 0 / 4%);
-    transition: box-shadow 0.2s ease;
-
-    &:focus-within {
-      box-shadow:
-        0 0 0 1px rgb(0 0 0 / 42%),
-        0 1px 2px rgb(0 0 0 / 4%);
-    }
-
-    .hero-input.ant-input-affix-wrapper {
-      border: 0;
-      box-shadow: none;
-    }
-
-    .hero-input input {
-      font-size: 16px;
-    }
-  }
-
-  .hero-submit {
-    height: 48px;
-    border: 0;
-    border-radius: 0;
-    padding-inline: 28px;
-    font-size: 16px;
-    box-shadow: none;
-  }
-
-  .source-examples {
-    justify-content: center;
-    margin-top: 20px;
-
-    .source-label {
-      font-size: 13px;
-    }
-
-    .platform-item {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--ant-color-text-secondary);
-      font-size: 13px;
-    }
-
-    .platform-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      flex: none;
-    }
-  }
+.download-form {
+  max-width: 760px;
 }
 
 .content-wrap {
@@ -93,8 +14,7 @@
   }
 
   .inspection-loading {
-    justify-content: center;
-    padding-block: 24px;
+    padding-block: 16px;
   }
 }
 
