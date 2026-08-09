@@ -45,6 +45,8 @@ npm run openapi
 
 该命令直接使用 `@umijs/openapi` 和 `frontend/openapi2ts.config.ts` 读取 FastAPI 的 `/openapi.json`，更新 `frontend/src/services/video/`；生成代码通过 `frontend/src/lib/request.ts` 调用同源 Axios 实例。执行前需启动后端 API，可用 `OPENAPI_SCHEMA_URL` 临时覆盖契约地址。
 
+管理员可从 `/admin/analytics` 查看 7、30 或 90 天的下载摘要、每日趋势和视频来源分布；数据由 `GET /api/admin/downloads/analytics` 从 PostgreSQL 聚合。原始 URL 仍只以密文包保存在解析记录中，统计响应不返回 URL、`owner_hash`、`provider_hints` 或 `error_message`。
+
 ## 视频源
 
 Media Runner 通过可注册的 Provider Strategy 统一处理 YouTube、Bilibili、抖音、TikTok、Vimeo、X/Twitter、Instagram、Facebook、Twitch、Reddit、Pinterest、微博、优酷、腾讯视频、Dailymotion 和 NicoNico 等公开媒体链接；未登记的 HTTP(S) 地址继续交给 yt-dlp 的 Generic extractor。平台规则会变化，且登录、Cookie、DRM 或平台访问验证不在服务边界内，最终是否可下载以实际解析结果为准。

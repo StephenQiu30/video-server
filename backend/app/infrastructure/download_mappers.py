@@ -2,6 +2,10 @@
 
 from app.application.downloads import (
     ArtifactSnapshot,
+    DownloadAnalyticsDailySnapshot,
+    DownloadAnalyticsSnapshot,
+    DownloadAnalyticsSourceSnapshot,
+    DownloadAnalyticsSummarySnapshot,
     FormatSnapshot,
     InspectionSaveResult,
     InspectionSnapshot,
@@ -10,6 +14,9 @@ from app.application.downloads import (
 )
 from app.infrastructure.database import (
     ArtifactSnapshot as StoredArtifact,
+)
+from app.infrastructure.database import (
+    DownloadAnalyticsSnapshot as StoredDownloadAnalytics,
 )
 from app.infrastructure.database import (
     InspectionCreateResult as StoredInspectionResult,
@@ -97,4 +104,44 @@ def artifact_snapshot(value: StoredArtifact) -> ArtifactSnapshot:
         content_type=value.content_type,
         media_metadata=dict(value.media_metadata),
         expires_at=value.expires_at,
+    )
+
+
+def download_analytics_snapshot(
+    value: StoredDownloadAnalytics,
+) -> DownloadAnalyticsSnapshot:
+    return DownloadAnalyticsSnapshot(
+        summary=DownloadAnalyticsSummarySnapshot(
+            total=value.summary.total,
+            succeeded=value.summary.succeeded,
+            failed=value.summary.failed,
+            cancelled=value.summary.cancelled,
+            active=value.summary.active,
+            unique_users=value.summary.unique_users,
+            downloaded_bytes=value.summary.downloaded_bytes,
+            duration_seconds=value.summary.duration_seconds,
+        ),
+        daily=tuple(
+            DownloadAnalyticsDailySnapshot(
+                date=item.date,
+                total=item.total,
+                succeeded=item.succeeded,
+                failed=item.failed,
+                cancelled=item.cancelled,
+            )
+            for item in value.daily
+        ),
+        sources=tuple(
+            DownloadAnalyticsSourceSnapshot(
+                source_key=item.source_key,
+                total=item.total,
+                succeeded=item.succeeded,
+                failed=item.failed,
+                cancelled=item.cancelled,
+                active=item.active,
+                unique_users=item.unique_users,
+                downloaded_bytes=item.downloaded_bytes,
+            )
+            for item in value.sources
+        ),
     )

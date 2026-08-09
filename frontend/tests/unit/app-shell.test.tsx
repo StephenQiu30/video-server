@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppShell, AuthField, AuthPageFrame } from '@/components/app-shell';
@@ -7,13 +13,23 @@ import { InputGroupInput } from '@/components/ui/input-group';
 const runtime = vi.hoisted(() => ({
   pathname: '/',
   replace: vi.fn(),
+  user: undefined as
+    | undefined
+    | {
+        created_at: string;
+        email: string;
+        id: string;
+        role: 'admin' | 'user';
+        updated_at: string;
+        username: string;
+      },
 }));
 
 vi.mock('@/components/auth-provider', () => ({
   useAuth: () => ({
     loading: false,
     signOut: vi.fn(),
-    user: undefined,
+    user: runtime.user,
   }),
 }));
 
@@ -26,6 +42,7 @@ describe('AppShell', () => {
   beforeEach(() => {
     runtime.pathname = '/';
     runtime.replace.mockReset();
+    runtime.user = undefined;
   });
 
   it('renders the accessible Next.js product navigation on application routes', () => {
@@ -103,6 +120,49 @@ describe('AppShell', () => {
     expect(
       screen.queryByRole('navigation', { name: '移动导航' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('exposes download analytics to administrators on desktop and mobile', async () => {
+    runtime.pathname = '/admin/analytics';
+    runtime.user = {
+      created_at: '2026-08-09T10:00:00Z',
+      email: 'owner@example.com',
+      id: 'owner-id',
+      role: 'admin',
+      updated_at: '2026-08-09T10:00:00Z',
+      username: 'owner',
+    };
+    render(
+      <AppShell>
+        <main>下载分析页面</main>
+      </AppShell>,
+    );
+
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: '打开账户菜单' }),
+      { button: 0, ctrlKey: false },
+    );
+    const desktopLink = await screen.findByRole('menuitem', {
+      name: '下载分析',
+    });
+    expect(desktopLink).toHaveAttribute('href', '/admin/analytics');
+    expect(desktopLink).toHaveAttribute('aria-current', 'page');
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('menuitem', { name: '下载分析' }),
+      ).not.toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '打开导航菜单' }));
+    const mobileNavigation = await screen.findByRole('navigation', {
+      name: '移动导航',
+    });
+    const mobileLink = within(mobileNavigation).getByRole('link', {
+      name: '下载分析',
+    });
+    expect(mobileLink).toHaveAttribute('href', '/admin/analytics');
+    expect(mobileLink).toHaveAttribute('aria-current', 'page');
   });
 
   it('removes the main navigation from authentication routes', () => {

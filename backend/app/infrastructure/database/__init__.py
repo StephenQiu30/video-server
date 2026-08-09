@@ -1,5 +1,11 @@
 """PostgreSQL persistence adapter for inspections, jobs and the outbox."""
 
+from .analytics_contracts import (
+    DownloadAnalyticsDailySnapshot,
+    DownloadAnalyticsSnapshot,
+    DownloadAnalyticsSourceSnapshot,
+    DownloadAnalyticsSummarySnapshot,
+)
 from .base import Base
 from .completion_repository import build_artifact_object_key
 from .contracts import (
@@ -53,6 +59,10 @@ __all__ = [
     "AnalysisResultRow",
     "Base",
     "DownloadCreate",
+    "DownloadAnalyticsDailySnapshot",
+    "DownloadAnalyticsSnapshot",
+    "DownloadAnalyticsSourceSnapshot",
+    "DownloadAnalyticsSummarySnapshot",
     "DownloadHistoryItemSnapshot",
     "DownloadHistoryPageSnapshot",
     "DownloadHistorySummarySnapshot",

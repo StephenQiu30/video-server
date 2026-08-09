@@ -7,6 +7,7 @@ from app.application import downloads as application
 from app.infrastructure import database
 from app.infrastructure.download_mappers import (
     artifact_snapshot,
+    download_analytics_snapshot,
     inspection_result,
     inspection_snapshot,
     job_result,
@@ -124,6 +125,15 @@ class SqlAlchemyDownloadStore:
                 failed=stored.summary.failed,
             ),
         )
+
+    async def get_download_analytics(
+        self,
+        *,
+        start: datetime,
+        end: datetime,
+    ) -> application.DownloadAnalyticsSnapshot:
+        stored = await self.repository.get_download_analytics(start=start, end=end)
+        return download_analytics_snapshot(stored)
 
     async def cancel_job(
         self, job_id: UUID, owner_hash: str, now: datetime

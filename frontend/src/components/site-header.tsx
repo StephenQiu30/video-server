@@ -2,6 +2,7 @@
 
 import {
   CaretDownIcon,
+  ChartLineUpIcon,
   ClockCounterClockwiseIcon,
   SignOutIcon,
   UserCircleIcon,
@@ -56,6 +57,8 @@ export function SiteHeader() {
   const pathname = usePathname() ?? '/';
   const router = useRouter();
   const historyActive = pathname.startsWith('/history');
+  const analyticsActive = pathname.startsWith('/admin/analytics');
+  const usersActive = pathname.startsWith('/admin/users');
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -125,12 +128,26 @@ export function SiteHeader() {
                   </Link>
                 </DropdownMenuItem>
                 {user.role === 'admin' ? (
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin/users">
-                      <UsersThreeIcon aria-hidden className="size-4" />
-                      用户管理
-                    </Link>
-                  </DropdownMenuItem>
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link
+                        aria-current={analyticsActive ? 'page' : undefined}
+                        href="/admin/analytics"
+                      >
+                        <ChartLineUpIcon aria-hidden className="size-4" />
+                        下载分析
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link
+                        aria-current={usersActive ? 'page' : undefined}
+                        href="/admin/users"
+                      >
+                        <UsersThreeIcon aria-hidden className="size-4" />
+                        用户管理
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
                 ) : null}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

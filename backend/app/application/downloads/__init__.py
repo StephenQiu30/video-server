@@ -1,3 +1,14 @@
+from app.application.downloads.analytics import GetDownloadAnalytics
+from app.application.downloads.analytics_models import (
+    DownloadAnalyticsDailySnapshot,
+    DownloadAnalyticsDailyView,
+    DownloadAnalyticsSnapshot,
+    DownloadAnalyticsSourceSnapshot,
+    DownloadAnalyticsSourceView,
+    DownloadAnalyticsSummarySnapshot,
+    DownloadAnalyticsSummaryView,
+    DownloadAnalyticsView,
+)
 from app.application.downloads.create_download import CreateDownload
 from app.application.downloads.download_models import (
     ArtifactSnapshot,
@@ -68,6 +79,14 @@ __all__ = [
     "CancelDownload",
     "CreateDownload",
     "DownloadCreate",
+    "DownloadAnalyticsDailySnapshot",
+    "DownloadAnalyticsDailyView",
+    "DownloadAnalyticsSnapshot",
+    "DownloadAnalyticsSourceSnapshot",
+    "DownloadAnalyticsSourceView",
+    "DownloadAnalyticsSummarySnapshot",
+    "DownloadAnalyticsSummaryView",
+    "DownloadAnalyticsView",
     "DownloadRepository",
     "DownloadUrl",
     "DownloadView",
@@ -76,6 +95,7 @@ __all__ = [
     "FormatSnapshot",
     "FormatView",
     "GetDownload",
+    "GetDownloadAnalytics",
     "GetDownloadHistory",
     "GetInspection",
     "HmacRequestFingerprinter",

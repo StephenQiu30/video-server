@@ -100,6 +100,77 @@ declare namespace API {
     download_id: string;
   };
 
+  type DownloadAnalyticsDailyResponse = {
+    /** Date */
+    date: string;
+    /** Total */
+    total: number;
+    /** Succeeded */
+    succeeded: number;
+    /** Failed */
+    failed: number;
+    /** Cancelled */
+    cancelled: number;
+  };
+
+  type DownloadAnalyticsResponse = {
+    /** Period Days */
+    period_days: number;
+    /** Start */
+    start: string;
+    /** End */
+    end: string;
+    summary: DownloadAnalyticsSummaryResponse;
+    /** Daily */
+    daily: DownloadAnalyticsDailyResponse[];
+    /** Sources */
+    sources: DownloadAnalyticsSourceResponse[];
+  };
+
+  type DownloadAnalyticsSourceResponse = {
+    /** Source Key */
+    source_key: string;
+    /** Source Name */
+    source_name: string;
+    /** Total */
+    total: number;
+    /** Succeeded */
+    succeeded: number;
+    /** Failed */
+    failed: number;
+    /** Cancelled */
+    cancelled: number;
+    /** Active */
+    active: number;
+    /** Unique Users */
+    unique_users: number;
+    /** Downloaded Bytes */
+    downloaded_bytes: number;
+    /** Success Rate */
+    success_rate: number;
+  };
+
+  type DownloadAnalyticsSummaryResponse = {
+    /** Total */
+    total: number;
+    /** Succeeded */
+    succeeded: number;
+    /** Failed */
+    failed: number;
+    /** Cancelled */
+    cancelled: number;
+    /** Active */
+    active: number;
+    /** Unique Users */
+    unique_users: number;
+    /** Downloaded Bytes */
+    downloaded_bytes: number;
+    /** Average Duration Seconds */
+    average_duration_seconds: number;
+    /** Success Rate */
+    success_rate: number;
+  };
+
   type DownloadErrorCode =
     | "cancelled"
     | "download_timeout"
@@ -237,6 +308,10 @@ declare namespace API {
 
   type getAnalysisParams = {
     analysis_id: string;
+  };
+
+  type getDownloadAnalyticsParams = {
+    days?: number;
   };
 
   type getDownloadHistoryParams = {

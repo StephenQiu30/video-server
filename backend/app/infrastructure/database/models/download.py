@@ -45,6 +45,7 @@ class DownloadJobRow(Base):
             "stage_rank BETWEEN 0 AND 5", name="ck_download_jobs_stage_rank"
         ),
         Index("ix_download_jobs_owner_created", "owner_hash", "created_at"),
+        Index("ix_download_jobs_created", "created_at"),
         Index("ix_download_jobs_claim", "status", "retry_at"),
         Index("ix_download_jobs_stale", "status", "lease_expires_at"),
     )

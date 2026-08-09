@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
+from app.application.downloads.analytics_models import DownloadAnalyticsSnapshot
 from app.application.downloads.download_models import (
     ArtifactSnapshot,
     DownloadCreate,
@@ -60,6 +61,13 @@ class DownloadRepository(Protocol):
         status: str | None,
         search: str | None,
     ) -> DownloadHistoryPageSnapshot: ...
+
+    async def get_download_analytics(
+        self,
+        *,
+        start: datetime,
+        end: datetime,
+    ) -> DownloadAnalyticsSnapshot: ...
 
     async def cancel_job(
         self, job_id: UUID, owner_hash: str, now: datetime

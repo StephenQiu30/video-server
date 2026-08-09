@@ -32,6 +32,7 @@ def test_download_schema_contains_required_tables_and_columns() -> None:
         "semantic_plan",
     } <= set(jobs.columns.keys())
     assert jobs.c.semantic_plan.type.compile(postgresql.dialect()) == "JSONB"
+    assert "ix_download_jobs_created" in {index.name for index in jobs.indexes}
     assert {
         "username",
         "normalized_username",

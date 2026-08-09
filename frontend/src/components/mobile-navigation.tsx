@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ChartLineUpIcon,
   ClockCounterClockwiseIcon,
   LinkSimpleIcon,
   ListIcon,
@@ -93,10 +94,22 @@ export function MobileNavigation({
                 个人资料
               </MobileLink>
               {user.role === 'admin' ? (
-                <MobileLink href="/admin/users">
-                  <UsersThreeIcon aria-hidden />
-                  用户管理
-                </MobileLink>
+                <>
+                  <MobileLink
+                    active={pathname.startsWith('/admin/analytics')}
+                    href="/admin/analytics"
+                  >
+                    <ChartLineUpIcon aria-hidden />
+                    下载分析
+                  </MobileLink>
+                  <MobileLink
+                    active={pathname.startsWith('/admin/users')}
+                    href="/admin/users"
+                  >
+                    <UsersThreeIcon aria-hidden />
+                    用户管理
+                  </MobileLink>
+                </>
               ) : null}
             </>
           ) : (

@@ -7,6 +7,7 @@ from uuid import UUID
 
 from sqlalchemy import func, select
 
+from .analytics_repository import AnalyticsRepository
 from .base import as_utc
 from .contracts import (
     ArtifactSnapshot,
@@ -27,10 +28,9 @@ from .models import (
     MediaFormatRow,
     MediaInspectionRow,
 )
-from .recovery_repository import RecoveryRepository
 
 
-class AccessRepository(RecoveryRepository):
+class AccessRepository(AnalyticsRepository):
     async def list_download_history(
         self,
         owner_hash: str,

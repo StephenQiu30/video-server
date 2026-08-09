@@ -111,6 +111,7 @@ CREATE TABLE download_jobs (
 
 CREATE INDEX ix_download_jobs_owner_created
     ON download_jobs (owner_hash, created_at);
+CREATE INDEX ix_download_jobs_created ON download_jobs (created_at);
 CREATE INDEX ix_download_jobs_claim ON download_jobs (status, retry_at);
 CREATE INDEX ix_download_jobs_stale ON download_jobs (status, lease_expires_at);
 

@@ -24,7 +24,7 @@ OPENAPI_TAGS: list[dict[str, Any]] = [
     },
     {
         "name": "admin",
-        "description": "管理员用户查询、角色分配与账号状态管理。",
+        "description": "管理员用户管理与全局下载分析。",
     },
     {
         "name": "system",

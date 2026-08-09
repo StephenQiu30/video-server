@@ -5,6 +5,7 @@ import {
   createAnalysis,
   getAnalysis,
 } from '@/services/analysis';
+import { getAdminDownloadAnalytics } from '@/services/analytics';
 import {
   getCurrentUser,
   login,
@@ -145,6 +146,35 @@ describe('typed API client', () => {
         status: 'succeeded',
       },
       url: '/api/downloads/history',
+    });
+  });
+
+  it('loads administrator download analytics for the selected period', async () => {
+    const result = {
+      period_days: 30,
+      start: '2026-07-12',
+      end: '2026-08-10',
+      summary: {
+        total: 0,
+        succeeded: 0,
+        failed: 0,
+        cancelled: 0,
+        active: 0,
+        unique_users: 0,
+        downloaded_bytes: 0,
+        average_duration_seconds: 0,
+        success_rate: 0,
+      },
+      daily: [],
+      sources: [],
+    };
+    mockHttpResponses(result);
+
+    await expect(getAdminDownloadAnalytics(30)).resolves.toEqual(result);
+    expect(httpRequests()[0]).toMatchObject({
+      method: 'GET',
+      params: { days: 30 },
+      url: '/api/admin/downloads/analytics',
     });
   });
 

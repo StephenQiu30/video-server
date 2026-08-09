@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from uuid import UUID
 
 from app.api.dependencies import DownloadUseCases
 from app.application.downloads import (
     ApplicationError,
+    DownloadAnalyticsDailyView,
+    DownloadAnalyticsSourceView,
+    DownloadAnalyticsSummaryView,
+    DownloadAnalyticsView,
     DownloadHistoryItemView,
     DownloadHistorySummaryView,
     DownloadHistoryView,
@@ -115,6 +119,48 @@ def history_view() -> DownloadHistoryView:
     )
 
 
+def analytics_view() -> DownloadAnalyticsView:
+    return DownloadAnalyticsView(
+        period_days=7,
+        start=datetime(2026, 7, 31, tzinfo=UTC),
+        end=NOW,
+        summary=DownloadAnalyticsSummaryView(
+            total=4,
+            succeeded=3,
+            failed=1,
+            cancelled=0,
+            active=0,
+            unique_users=2,
+            downloaded_bytes=12_345,
+            average_duration_seconds=90.5,
+            success_rate=75.0,
+        ),
+        daily=(
+            DownloadAnalyticsDailyView(
+                date=date(2026, 8, 6),
+                total=4,
+                succeeded=3,
+                failed=1,
+                cancelled=0,
+            ),
+        ),
+        sources=(
+            DownloadAnalyticsSourceView(
+                source_key="youtube",
+                source_name="YouTube",
+                total=4,
+                succeeded=3,
+                failed=1,
+                cancelled=0,
+                active=0,
+                unique_users=2,
+                downloaded_bytes=12_345,
+                success_rate=75.0,
+            ),
+        ),
+    )
+
+
 def use_cases() -> tuple[DownloadUseCases, dict[str, StubUseCase]]:
     stubs = {
         "inspect": StubUseCase(inspection_view()),
@@ -129,6 +175,7 @@ def use_cases() -> tuple[DownloadUseCases, dict[str, StubUseCase]]:
             )
         ),
         "history": StubUseCase(history_view()),
+        "analytics": StubUseCase(analytics_view()),
     }
     container = DownloadUseCases(
         inspect_media=stubs["inspect"],
@@ -138,5 +185,6 @@ def use_cases() -> tuple[DownloadUseCases, dict[str, StubUseCase]]:
         cancel_download=stubs["cancel"],
         issue_download_url=stubs["issue_url"],
         get_download_history=stubs["history"],
+        get_download_analytics=stubs["analytics"],
     )
     return container, stubs

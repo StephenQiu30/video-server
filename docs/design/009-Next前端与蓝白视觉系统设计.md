@@ -45,6 +45,7 @@ frontend/src/
 │   ├── history/page.tsx
 │   ├── account/page.tsx
 │   ├── admin/users/page.tsx
+│   ├── admin/analytics/page.tsx
 │   ├── downloads/detail/page.tsx
 │   ├── user/login/page.tsx
 │   ├── user/register/page.tsx
@@ -71,6 +72,7 @@ App Router 页面默认保持可静态渲染；只有表单、菜单、选择器
 | `/history` | `app/history/page.tsx` | 已登录 | 搜索、筛选、分页、打开任务或获取文件 |
 | `/account` | `app/account/page.tsx` | 已登录 | 查看邮箱与身份、修改用户名 |
 | `/admin/users` | `app/admin/users/page.tsx` | 管理员 | 搜索、筛选、分页并更新他人角色/启用状态 |
+| `/admin/analytics` | `app/admin/analytics/page.tsx` | 管理员 | 查看 7/30/90 天下载摘要、日趋势与视频来源分布 |
 | `/downloads/detail?jobId=<id>` | `app/downloads/detail/page.tsx` | 已登录且拥有任务 | 下载状态、取消/取件、AI 分析与思维导图；静态导出的 canonical 地址 |
 | `/user/login` | `app/user/login/page.tsx` | 公开 | 登录并返回经过校验的站内 `redirect` |
 | `/user/register` | `app/user/register/page.tsx` | 公开 | 注册并返回经过校验的站内 `redirect` |
@@ -146,7 +148,8 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 | 信息/交互语义 | 官方组件 | 项目使用规则 |
 | --- | --- | --- |
 | 页内内容分组 | 语义化 section + [Separator](https://ui.shadcn.com/docs/components/radix/separator) | 不呈现 Card 外壳；通过排版、留白和必要的 1px 发丝线分组 |
-| 桌面数据 | [Table](https://ui.shadcn.com/docs/components/radix/table) | 仅用于管理员桌面用户列表；保留 `caption`、列头和行语义，390px 下切换为 Item |
+| 桌面数据 | [Table](https://ui.shadcn.com/docs/components/radix/table) | 用于管理员用户列表和下载分析的精确数值；保留 `caption`、列头和行语义，390px 下切换为 Item/摘要列表 |
+| 数据可视化 | 语义化 `figure` + 响应式图表 | 图表有可读标题和等价表格/列表；数值不只靠颜色或 Tooltip 传达，不增加 Card 外壳 |
 | 移动导航/补充内容 | [Sheet](https://ui.shadcn.com/docs/components/radix/sheet) | 从右侧进入，标题与描述可读，关闭后焦点返回触发器 |
 | 图标辅助说明 | [Tooltip](https://ui.shadcn.com/docs/components/radix/tooltip) | 只补充说明，不承载唯一必要信息；支持 hover 与键盘 focus |
 | 用户身份 | [Avatar](https://ui.shadcn.com/docs/components/radix/avatar) | 必须有稳定 fallback，同时保留可读用户名 |
@@ -163,11 +166,11 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 
 ### 全局导航
 
-桌面端为 72px 单行轻量 Header：左侧使用 Next.js `Image` 渲染 `public/logo.svg`，与文字“帧取”共同构成指向 `/` 的品牌链接；品牌文字与右侧导航统一使用 `text-sm`，通过字重而不是更大字号表达品牌。右侧提供“下载记录”（`href="/history"`）、Avatar 账户菜单和主题操作，管理员入口位于账户菜单。Header 与 main/footer 共用 `.content-shell` 的 1376px 上限和桌面 80px gutter，保持导航与主体严格对齐；没有底线、侧栏、面包屑容器、外框或浮起阴影。当前路由链接使用 `aria-current="page"`，并通过中性填充面和文本色同步表达当前页。
+桌面端为 72px 单行轻量 Header：左侧使用 Next.js `Image` 渲染 `public/logo.svg`，与文字“帧取”共同构成指向 `/` 的品牌链接；品牌文字与右侧导航统一使用 `text-sm`，通过字重而不是更大字号表达品牌。右侧提供“下载记录”（`href="/history"`）、Avatar 账户菜单和主题操作；账户菜单只向管理员显示“用户管理”与“下载分析”入口。Header 与 main/footer 共用 `.content-shell` 的 1376px 上限和桌面 80px gutter，保持导航与主体严格对齐；没有底线、侧栏、面包屑容器、外框或浮起阴影。当前路由链接使用 `aria-current="page"`，并通过中性填充面和文本色同步表达当前页。
 
 390px 下保留品牌和一个明确的导航触发器，下载记录、账户与主题操作进入 Sheet；不把桌面导航强行压缩到同一行。Sheet 打开后焦点进入其可操作内容，链接均可通过 Tab 到达并以键盘激活；关闭而未导航时，焦点返回触发器。品牌链接始终提供返回 `/` 的明确可读名称。图标按钮有可见或屏幕阅读器标签，Tooltip 仅作辅助，触控区域至少 44×44px。
 
-所有已认证的非首页页面在内容标题前提供统一 `BackLink`，文字为“返回上一步”，触控高度至少 44px。应用在当前标签页内记录最小站内导航栈：存在上一条站内记录时调用浏览器历史返回，直接打开页面或历史不可用时使用明确的层级 fallback（历史→首页、账户→首页、用户管理→账户、下载详情/任务缺失→下载历史、404→首页）。记录使用完整的站内 pathname + search，并为浏览器历史条目分配不含业务数据的临时标记，保证 query-only 详情切换、前进/后退和重复路径都能精确定位；`sessionStorage` 仅保存这些站内路由、标记和当前索引，不包含账户、任务内容或凭据。登录与注册不显示通用历史返回，只保留彼此之间的明确交叉链接和校验后的安全 `redirect`；认证守卫继续使用 replace，避免过期受保护页面参与回退并形成登录循环。
+所有已认证的非首页页面在内容标题前提供统一 `BackLink`，文字为“返回上一步”，触控高度至少 44px。应用在当前标签页内记录最小站内导航栈：存在上一条站内记录时调用浏览器历史返回，直接打开页面或历史不可用时使用明确的层级 fallback（历史→首页、账户→首页、用户管理/下载分析→账户、下载详情/任务缺失→下载历史、404→首页）。记录使用完整的站内 pathname + search，并为浏览器历史条目分配不含业务数据的临时标记，保证 query-only 详情切换、前进/后退和重复路径都能精确定位；`sessionStorage` 仅保存这些站内路由、标记和当前索引，不包含账户、任务内容或凭据。登录与注册不显示通用历史返回，只保留彼此之间的明确交叉链接和校验后的安全 `redirect`；认证守卫继续使用 replace，避免过期受保护页面参与回退并形成登录循环。
 
 ### 首页 `/`
 
@@ -198,11 +201,13 @@ PageHeader 直接显示“下载历史”及一句用途说明、可选的“新
 
 认证页使用 `.page-shell` 的无外框双栏版式：桌面左栏承载简短产品主张与合法使用提示，右栏用发丝分隔后放置不超过 440px 的表单；不足 `lg` 时隐藏介绍栏并让表单自然占满可用宽度。登录突出邮箱、密码和单一近黑主按钮；注册增加用户名与密码确认。标题使用“登录，继续下载。”或“创建账户，保存进度。”等直接动作句，不增加编号流程眉题。字段统一由 Field + InputGroup 组合 label、描述、密码可见性与错误，错误出现在对应字段附近并在提交失败时聚焦摘要。登录态用户访问认证页时返回校验后的安全站内目标；登录和注册通过明确的交叉链接互相切换，不显示可能回到过期受保护页面的通用历史返回。
 
-### 个人资料与用户管理
+### 个人资料与管理员页面
 
 个人资料以 Avatar 身份摘要和单列 Field 表单展示可编辑用户名，以及只读邮箱和角色；PageHeader 直接显示“个人资料”，不增加“账户设置”等眉题，保存后导航名称同步更新。用户管理 PageHeader 直接显示“用户管理”，不增加“系统管理”等眉题；桌面端为 Table 与筛选条，编辑角色和状态使用普通 Dialog，不使用 AlertDialog。管理员不能修改自己的角色或启用状态，禁用原因必须可感知。
 
-390px 下用户管理转为 Item 摘要列表，详情和编辑进入适配视口的 Sheet/Dialog；禁止依赖横向滚动查看邮箱、角色或操作。
+下载分析 PageHeader 直接显示“下载分析”，提供 7/30/90 天周期和刷新。摘要以排版、留白和发丝 Separator 组织，每日趋势与来源分布使用响应式图表，并提供完整的表格/列表数值。页面不解密或显示来源 URL，不显示用户或单任务明细。
+
+390px 下用户管理和下载分析的精确数值转为 Item/摘要列表，图表不超出可用宽度；用户详情和编辑进入适配视口的 Sheet/Dialog，禁止依赖横向滚动查看核心数据或操作。
 
 ### 404
 
@@ -216,7 +221,7 @@ PageHeader 直接显示“下载历史”及一句用途说明、可选的“新
 - 页面不得出现横向滚动，任何固定宽度必须受 `max-width: 100%` 约束。
 - 首页 URL 输入与解析按钮改为上下排列，按钮满宽；结果改为单列，先展示媒体摘要，再展示真实格式与下载动作。
 - 封面保持 1.86:1，不拉伸、不裁掉关键信息；长标题最多按上下文截断并保留完整可访问名称。
-- 管理员桌面 Table 在 390px 下切换为 Item 列表；历史始终使用 Item/ItemGroup；筛选条、表单按钮和 Dialog/Sheet 采用移动布局；主操作满宽，操作之间至少 8px。
+- 管理员桌面 Table 在 390px 下切换为 Item/摘要列表，下载分析图表响应式重排并保留等价文本数值；历史始终使用 Item/ItemGroup；筛选条、表单按钮和 Dialog/Sheet 采用移动布局；主操作满宽，操作之间至少 8px。
 - Sheet 宽度不超过视口，内容过长时自身可滚动；AlertDialog 的标题、后果说明和取消/确认操作在 390px 下不被裁切。
 - Pagination 优先保留上一页、当前页和下一页；Tooltip 不作为触屏用户获得必要信息的唯一方式。
 - 导航、单选行、菜单、分页和关闭按钮的触控目标至少 44×44px。
