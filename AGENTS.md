@@ -16,7 +16,7 @@ server/
 │   │   ├── infrastructure/        数据库、消息、存储、AI 与媒体适配器
 │   │   ├── runner/                隔离执行媒体命令的进程
 │   │   ├── workers/               Outbox、下载与分析 Worker
-│   │   ├── web/                   前端静态资源与 SPA 回退
+│   │   ├── web/                   Next.js 静态导出、404 与旧路由转发
 │   │   ├── composition.py         运行时依赖装配
 │   │   └── main.py                FastAPI 入口
 │   ├── config/                    Egress、MinIO 等运行配置

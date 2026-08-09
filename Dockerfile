@@ -41,7 +41,7 @@ FROM python:3.12-slim-bookworm AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/app/backend/.venv/bin:${PATH}" \
-    FRONTEND_DIST_DIR=/app/frontend/dist
+    FRONTEND_DIST_DIR=/app/frontend/out
 WORKDIR /app/backend
 
 RUN apt-get update \
@@ -51,7 +51,7 @@ RUN apt-get update \
     && chown -R appuser:appuser /app
 
 COPY --link --from=backend-builder --chown=10001:10001 /app/backend /app/backend
-COPY --link --from=frontend-builder --chown=10001:10001 /workspace/frontend/dist /app/frontend/dist
+COPY --link --from=frontend-builder --chown=10001:10001 /workspace/frontend/out /app/frontend/out
 COPY --link --from=node-runtime /usr/local/bin/node /usr/local/bin/node
 
 USER appuser

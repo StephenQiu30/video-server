@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, vi } from 'vitest';
 
-import { httpClient } from '@/utils/request';
+import { httpClient } from '@/lib/request';
 
 beforeEach(() => {
   vi.spyOn(httpClient, 'request');

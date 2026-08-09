@@ -3,6 +3,7 @@ export function authRedirect(search: string): string {
   if (
     !redirect?.startsWith('/') ||
     redirect.startsWith('//') ||
+    redirect.includes('\\') ||
     redirect.startsWith('/user/')
   ) {
     return '/';

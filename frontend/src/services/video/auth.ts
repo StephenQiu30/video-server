@@ -1,11 +1,11 @@
 // @ts-ignore
 /* eslint-disable */
-import { request, type RequestOptions } from "@/utils/request";
+import { request, type RequestOptions } from "@/lib/request";
 
 /** 使用邮箱登录 POST /api/auth/login */
 export async function loginUser(
   body: API.EmailPasswordRequest,
-  options?: { [key: string]: any }
+  options?: RequestOptions
 ) {
   return request<API.UserResponse>("/api/auth/login", {
     method: "POST",
@@ -18,7 +18,7 @@ export async function loginUser(
 }
 
 /** 退出登录 POST /api/auth/logout */
-export async function logoutUser(options?: { [key: string]: any }) {
+export async function logoutUser(options?: RequestOptions) {
   return request<any>("/api/auth/logout", {
     method: "POST",
     ...(options || {}),
@@ -26,7 +26,7 @@ export async function logoutUser(options?: { [key: string]: any }) {
 }
 
 /** 查询当前用户 GET /api/auth/me */
-export async function getCurrentUser(options?: { [key: string]: any }) {
+export async function getCurrentUser(options?: RequestOptions) {
   return request<API.UserResponse>("/api/auth/me", {
     method: "GET",
     ...(options || {}),
@@ -34,7 +34,7 @@ export async function getCurrentUser(options?: { [key: string]: any }) {
 }
 
 /** 刷新登录会话 POST /api/auth/refresh */
-export async function refreshUserSession(options?: { [key: string]: any }) {
+export async function refreshUserSession(options?: RequestOptions) {
   return request<API.UserResponse>("/api/auth/refresh", {
     method: "POST",
     ...(options || {}),
@@ -44,7 +44,7 @@ export async function refreshUserSession(options?: { [key: string]: any }) {
 /** 使用邮箱注册 POST /api/auth/register */
 export async function registerUser(
   body: API.RegisterRequest,
-  options?: { [key: string]: any }
+  options?: RequestOptions
 ) {
   return request<API.UserResponse>("/api/auth/register", {
     method: "POST",

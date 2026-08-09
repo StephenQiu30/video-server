@@ -10,7 +10,7 @@ from pydantic import SecretStr, ValidationError
 def test_settings_resolve_frontend_dist_from_repository_root() -> None:
     settings = Settings(app_env="test")
 
-    assert settings.frontend_dist_dir.name == "dist"
+    assert settings.frontend_dist_dir.name == "out"
     assert settings.frontend_dist_dir.parent.name == "frontend"
 
 

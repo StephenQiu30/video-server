@@ -16,6 +16,7 @@ import {
   cancelDownload,
   createDownload,
   getDownload,
+  getDownloadHistory,
   getInspection,
   inspectMedia,
   issueDownloadUrl,
@@ -115,6 +116,36 @@ describe('typed API client', () => {
       '/health/live',
       '/health/ready',
     ]);
+  });
+
+  it('forwards typed pagination and filters to the download history endpoint', async () => {
+    const history = {
+      items: [],
+      page: 2,
+      page_size: 20,
+      summary: { active: 1, failed: 2, succeeded: 10, total: 41 },
+      total: 41,
+    };
+    mockHttpResponses(history);
+
+    await expect(
+      getDownloadHistory({
+        page: 2,
+        page_size: 20,
+        search: 'Owned video',
+        status: 'succeeded',
+      }),
+    ).resolves.toEqual(history);
+    expect(httpRequests()[0]).toMatchObject({
+      method: 'GET',
+      params: {
+        page: 2,
+        page_size: 20,
+        search: 'Owned video',
+        status: 'succeeded',
+      },
+      url: '/api/downloads/history',
+    });
   });
 
   it('creates, queries and cancels analysis resources', async () => {

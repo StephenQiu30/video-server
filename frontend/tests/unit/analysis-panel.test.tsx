@@ -1,11 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import AnalysisPanel from '@/components/AnalysisPanel';
-import { ApiError } from '@/utils/requestErrorConfig';
-import { mockHttpError, mockHttpResponses } from '../helpers/http';
+import AnalysisPanel from '@/components/analysis-panel';
+import { ApiError } from '@/requestErrorConfig';
 import { analysisJob } from '../fixtures/analysis-fixtures';
 import { job } from '../fixtures/download-fixtures';
+import { mockHttpError, mockHttpResponses } from '../helpers/http';
 
 describe('AnalysisPanel', () => {
   it('offers a focused profile and language configuration', () => {

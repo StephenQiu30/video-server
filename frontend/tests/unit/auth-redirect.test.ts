@@ -12,6 +12,8 @@ describe('auth redirect validation', () => {
   it('rejects external and recursive auth redirects', () => {
     expect(authRedirect('?redirect=https%3A%2F%2Fexample.com')).toBe('/');
     expect(authRedirect('?redirect=%2F%2Fevil.example')).toBe('/');
+    expect(authRedirect('?redirect=%2F%5Cevil.example')).toBe('/');
+    expect(authRedirect('?redirect=%2Fhistory%5Csettings')).toBe('/');
     expect(authRedirect('?redirect=%2Fuser%2Flogin')).toBe('/');
   });
 });

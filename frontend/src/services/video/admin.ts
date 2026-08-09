@@ -1,12 +1,12 @@
 // @ts-ignore
 /* eslint-disable */
-import { request, type RequestOptions } from "@/utils/request";
+import { request, type RequestOptions } from "@/lib/request";
 
 /** 查询用户列表 GET /api/admin/users */
 export async function listUsers(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.listUsersParams,
-  options?: { [key: string]: any }
+  options?: RequestOptions
 ) {
   return request<API.ManagedUserListResponse>("/api/admin/users", {
     method: "GET",
@@ -27,7 +27,7 @@ export async function updateUserAccess(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.updateUserAccessParams,
   body: API.UpdateUserAccessRequest,
-  options?: { [key: string]: any }
+  options?: RequestOptions
 ) {
   const { user_id: param0, ...queryParams } = params;
   return request<API.ManagedUserResponse>(`/api/admin/users/${param0}`, {

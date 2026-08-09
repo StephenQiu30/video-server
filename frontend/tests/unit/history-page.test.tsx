@@ -1,165 +1,160 @@
-import { render } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import {
+  act,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import HistoryPage from '@/pages/History';
+import DownloadHistoryView from '@/components/download-history-view';
+import { useDownloadHistory } from '@/hooks/useDownloadHistory';
 import type {
   DownloadHistory,
   DownloadHistoryItem,
-  DownloadStatus,
+  DownloadHistoryQuery,
 } from '@/types/video';
 
 const runtime = vi.hoisted(() => ({
   getDownloadHistory: vi.fn(),
   issueDownloadUrl: vi.fn(),
-  navigate: vi.fn(),
-  pageProps: undefined as unknown,
-  tableProps: undefined as unknown,
+  push: vi.fn(),
   triggerBrowserDownload: vi.fn(),
 }));
 
-vi.mock('@ant-design/pro-components', () => ({
-  PageContainer: (props: { children: ReactNode }) => {
-    runtime.pageProps = props;
-    return <>{props.children}</>;
-  },
-  ProTable: (props: unknown) => {
-    runtime.tableProps = props;
-    return <div data-testid="history-table" />;
-  },
-}));
-
-vi.mock('@umijs/max', () => ({
-  useNavigate: () => runtime.navigate,
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: runtime.push }),
 }));
 
 vi.mock('@/services/download', () => ({
-  displayError: () => '请求失败',
+  displayError: (reason: unknown) =>
+    reason instanceof Error ? reason.message : '请求失败',
   getDownloadHistory: runtime.getDownloadHistory,
   issueDownloadUrl: runtime.issueDownloadUrl,
   triggerBrowserDownload: runtime.triggerBrowserDownload,
 }));
 
-type CapturedColumn = {
-  dataIndex?: string;
-  fieldProps?: Record<string, unknown>;
-  hideInTable?: boolean;
-  search?: boolean;
-  valueEnum?: Record<string, { text: string }>;
-  valueType?: string;
-};
-
-type CapturedTableProps = {
-  columns: CapturedColumn[];
-  headerTitle: string;
-  options: Record<string, boolean>;
-  pagination: {
-    defaultPageSize: number;
-    showSizeChanger: boolean;
-  };
-  request: (params: {
-    current?: number;
-    pageSize?: number;
-    search?: string;
-    status?: DownloadStatus;
-  }) => Promise<{
-    data: DownloadHistoryItem[];
-    success: boolean;
-    total: number;
-  }>;
-  search: Record<string, unknown>;
-  toolBarRender: () => ReactNode[];
-};
-
-type CapturedPageProps = {
-  breadcrumb: { items: Array<{ href?: string; title: string }> };
-  title: string;
-};
-
-describe('HistoryPage', () => {
+describe('download history', () => {
   beforeEach(() => {
     runtime.getDownloadHistory.mockReset();
-    runtime.pageProps = undefined;
-    runtime.tableProps = undefined;
+    runtime.issueDownloadUrl.mockReset();
+    runtime.push.mockReset();
+    runtime.triggerBrowserDownload.mockReset();
   });
 
-  it('uses ProColumns as the single source of search fields', () => {
-    render(<HistoryPage />);
-
-    const props = runtime.tableProps as CapturedTableProps;
-    const titleSearch = props.columns.find(
-      (column) => column.dataIndex === 'search',
-    );
-    const statusSearch = props.columns.find(
-      (column) => column.dataIndex === 'status',
-    );
-
-    expect(titleSearch).toMatchObject({
-      hideInTable: true,
-      valueType: 'text',
-    });
-    expect(statusSearch).toMatchObject({
-      valueType: 'select',
-      valueEnum: {
-        queued: { text: '排队中' },
-        succeeded: { text: '已完成' },
-        failed: { text: '失败' },
-      },
-    });
-    expect(
-      props.columns
-        .filter((column) =>
-          ['title', 'format_name', 'created_at'].includes(
-            column.dataIndex ?? '',
-          ),
-        )
-        .every((column) => column.search === false),
-    ).toBe(true);
-    expect(props.pagination).toMatchObject({
-      defaultPageSize: 20,
-      showSizeChanger: false,
-    });
-    expect(props.options).toMatchObject({
-      density: false,
-      fullScreen: false,
-      reload: true,
-      setting: false,
-    });
-    expect(props.headerTitle).toBe('下载任务');
-    expect(props.toolBarRender()).toHaveLength(1);
-    expect(runtime.pageProps as CapturedPageProps).toMatchObject({
-      breadcrumb: {
-        items: [{ title: '解析下载', href: '/' }, { title: '下载历史' }],
-      },
-      title: '下载历史',
-    });
-  });
-
-  it('maps native ProTable request parameters to the history API', async () => {
-    const response: DownloadHistory = {
-      items: [],
-      page: 3,
+  it('maps pagination, search, status, and refresh to the history facade', async () => {
+    runtime.getDownloadHistory.mockResolvedValue(history());
+    const initialQuery: DownloadHistoryQuery = {
+      page: 1,
       page_size: 20,
-      total: 41,
-      summary: { total: 41, succeeded: 10, active: 1, failed: 2 },
     };
-    runtime.getDownloadHistory.mockResolvedValue(response);
-    render(<HistoryPage />);
+    const { result, rerender } = renderHook(
+      ({ query }: { query: DownloadHistoryQuery }) => useDownloadHistory(query),
+      { initialProps: { query: initialQuery } },
+    );
 
-    const props = runtime.tableProps as CapturedTableProps;
-    const result = await props.request({
-      current: 3,
-      pageSize: 20,
-      search: '  示例视频  ',
-      status: 'succeeded',
-    });
-
-    expect(runtime.getDownloadHistory).toHaveBeenCalledWith({
-      page: 3,
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith({
+      page: 1,
       page_size: 20,
-      search: '示例视频',
-      status: 'succeeded',
+      search: undefined,
+      status: undefined,
     });
-    expect(result).toEqual({ data: [], success: true, total: 41 });
+
+    rerender({
+      query: {
+        page: 3,
+        page_size: 20,
+        search: '示例视频',
+        status: 'succeeded',
+      },
+    });
+    await waitFor(() =>
+      expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith({
+        page: 3,
+        page_size: 20,
+        search: '示例视频',
+        status: 'succeeded',
+      }),
+    );
+
+    act(() => result.current.retry());
+    await waitFor(() =>
+      expect(runtime.getDownloadHistory).toHaveBeenCalledTimes(3),
+    );
+  });
+
+  it('renders history rows and performs detail and file actions', async () => {
+    runtime.getDownloadHistory.mockResolvedValue(history());
+    runtime.issueDownloadUrl.mockResolvedValue({
+      expires_at: '2026-08-09T10:05:00Z',
+      url: 'https://objects.example/signed',
+    });
+    render(<DownloadHistoryView />);
+
+    expect(await screen.findByText('示例视频')).toBeInTheDocument();
+    expect(
+      screen.getByText('共 1 项 · 已完成 1 · 进行中 0'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '示例视频' }));
+    expect(runtime.push).toHaveBeenCalledWith(
+      '/downloads/detail?jobId=history-job-1',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '获取文件' }));
+    await waitFor(() =>
+      expect(runtime.triggerBrowserDownload).toHaveBeenCalledWith(
+        'https://objects.example/signed',
+      ),
+    );
+    expect(runtime.issueDownloadUrl).toHaveBeenCalledWith('history-job-1');
+  });
+
+  it('submits a trimmed title search from the accessible form', async () => {
+    runtime.getDownloadHistory.mockResolvedValue(history());
+    render(<DownloadHistoryView />);
+    await screen.findByText('示例视频');
+
+    const input = screen.getByRole('textbox', { name: '搜索下载历史' });
+    fireEvent.change(input, { target: { value: '  示例视频  ' } });
+    fireEvent.submit(input.closest('form') as HTMLFormElement);
+
+    await waitFor(() =>
+      expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith({
+        page: 1,
+        page_size: 20,
+        search: '示例视频',
+        status: undefined,
+      }),
+    );
   });
 });
+
+function historyItem(
+  overrides: Partial<DownloadHistoryItem> = {},
+): DownloadHistoryItem {
+  return {
+    created_at: '2026-08-09T10:00:00Z',
+    error_code: null,
+    finished_at: '2026-08-09T10:02:00Z',
+    format_name: '1080p MP4',
+    id: 'history-job-1',
+    progress: 100,
+    status: 'succeeded',
+    thumbnail_url: null,
+    title: '示例视频',
+    updated_at: '2026-08-09T10:02:00Z',
+    ...overrides,
+  };
+}
+
+function history(): DownloadHistory {
+  return {
+    items: [historyItem()],
+    page: 1,
+    page_size: 20,
+    summary: { active: 0, failed: 0, succeeded: 1, total: 1 },
+    total: 1,
+  };
+}

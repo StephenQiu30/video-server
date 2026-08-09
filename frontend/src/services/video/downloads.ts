@@ -1,11 +1,11 @@
 // @ts-ignore
 /* eslint-disable */
-import { request, type RequestOptions } from "@/utils/request";
+import { request, type RequestOptions } from "@/lib/request";
 
 /** 创建下载任务 根据解析结果和语义格式创建异步下载任务。 POST /api/downloads */
 export async function createDownload(
   body: API.DownloadRequest,
-  options?: { [key: string]: any }
+  options?: RequestOptions
 ) {
   return request<API.DownloadResponse>("/api/downloads", {
     method: "POST",
@@ -21,7 +21,7 @@ export async function createDownload(
 export async function getDownload(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.getDownloadParams,
-  options?: { [key: string]: any }
+  options?: RequestOptions
 ) {
   const { job_id: param0, ...queryParams } = params;
   return request<API.DownloadResponse>(`/api/downloads/${param0}`, {
@@ -35,7 +35,7 @@ export async function getDownload(
 export async function cancelDownload(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.cancelDownloadParams,
-  options?: { [key: string]: any }
+  options?: RequestOptions
 ) {
   const { job_id: param0, ...queryParams } = params;
   return request<API.DownloadResponse>(`/api/downloads/${param0}/cancel`, {
@@ -49,7 +49,7 @@ export async function cancelDownload(
 export async function issueDownloadUrl(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.issueDownloadUrlParams,
-  options?: { [key: string]: any }
+  options?: RequestOptions
 ) {
   const { job_id: param0, ...queryParams } = params;
   return request<API.DownloadUrlResponse>(
@@ -66,7 +66,7 @@ export async function issueDownloadUrl(
 export async function getDownloadHistory(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.getDownloadHistoryParams,
-  options?: { [key: string]: any }
+  options?: RequestOptions
 ) {
   return request<API.DownloadHistoryResponse>("/api/downloads/history", {
     method: "GET",

@@ -8,7 +8,7 @@
 2. 重命名本地项目为 `server`，清理子仓治理、重复部署与旧业务实现。
 3. 建立 `backend/app`、`frontend/src` 和当前 `docs` 骨架；部署文件直接置于根目录。
 4. 重写统一多阶段 Dockerfile、Compose、环境模板和 CI。
-5. FastAPI 同源挂载前端 SPA；保留开发代理。
+5. FastAPI 同源挂载 Next.js 静态导出；保留开发代理。
 6. 增加结构、静态托管、前后端构建与 Compose 配置测试。
 7. 记录 Git/卷/镜像回滚方式并执行 Acceptance。
 

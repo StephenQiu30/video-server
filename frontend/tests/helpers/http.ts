@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 
-import { httpClient } from '@/utils/request';
+import { httpClient } from '@/lib/request';
 
 export function mockHttpResponses(...values: unknown[]): void {
   for (const value of values) {

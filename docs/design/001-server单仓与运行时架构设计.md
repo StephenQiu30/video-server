@@ -26,7 +26,7 @@ server/
 │   ├── src/app/              Next.js App Router 页面与全局主题
 │   ├── src/components/       业务组件与 shadcn/ui 源码
 │   ├── src/hooks/            下载与分析状态流程
-│   ├── src/services/         Umi OpenAPI 生成代码与业务请求入口
+│   ├── src/services/         @umijs/openapi 生成代码与业务请求入口
 │   └── tests/
 ├── docs/                     当前交付契约
 ├── Dockerfile                统一前后端镜像
@@ -76,7 +76,7 @@ flowchart LR
 | `worker-analysis` | DB、MQ、MinIO、AI provider | 音频提取、ASR、结构化分析、证据校验 |
 | `egress-proxy` | 无 | 仅代理 HTTP(S)，阻断私网、链路本地和云元数据地址 |
 
-前端不是独立生产服务。Next.js 以静态导出生成 `frontend/out`，多阶段镜像将其复制到 `/app/frontend/dist`，API 在所有 API/health 路由之后挂载静态页面。
+前端不是独立生产服务。Next.js 以静态导出生成 `frontend/out`，多阶段镜像将其复制到 `/app/frontend/out`，API 在所有 API/health 路由之后挂载静态页面。
 
 ## 5. 数据与消息原则
 

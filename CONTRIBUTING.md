@@ -5,13 +5,17 @@
 ## 模块边界
 
 - `backend/`：FastAPI、领域服务、Worker、当前态 SQL 与 Python 测试。
-- `frontend/`：Ant Design Pro / Umi Max 页面、组件、OpenAPI 客户端与前端测试。
+- `frontend/`：Next.js App Router 页面、Radix UI/shadcn 组件、Tailwind CSS 主题、OpenAPI 客户端与前端测试。
 - `docs/`：当前产品和架构事实。
 - 根 `Dockerfile`、`docker-compose.yml` 与 `docker-compose-prod.yml`：唯一运行入口，不建立独立部署目录。基础 Compose 负责完整本地环境，生产 Compose 只覆盖生产差异。
 
 功能交付遵循 `Design → PRD → Plan → Acceptance`，并保持测试、契约、文档和实际运行方式一致。具体目录、依赖、安全、配置和测试规则以 `AGENTS.md` 为准。提交前分别运行后端与前端质量门禁；涉及运行时变更时还需验证本地 Compose、生产 Compose 组合和统一镜像构建。
 
 安全边界和漏洞报告方式见 `SECURITY.md`；任何下载能力变更都必须保留公开、授权、非 DRM 的产品边界。
+
+前端路由只放在 `frontend/src/app/`，组件优先复用 `src/components/ui/` 中的 Radix/shadcn 源码并通过 Tailwind 语义 token 统一主题。`frontend/src/services/video/` 由独立的 `@umijs/openapi` 生成，禁止手工修改；生成请求统一进入 `src/lib/request.ts`，页面通过 `src/services/` 的稳定入口调用。客户端鉴权只使用同源 HttpOnly Cookie，请求层最多刷新并重试一次，浏览器不得持久化 JWT。
+
+前端提交前执行 `npm run lint`、`npm run format:check`、`npm test` 和 `npm run build`。生产构建必须静态导出到 `out/` 并继续由 FastAPI 同源托管；UI 变更同时验证键盘操作、可见焦点、错误状态以及 390px 窄屏无页面级横向溢出。
 
 ## 提交规范
 

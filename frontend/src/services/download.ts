@@ -20,7 +20,7 @@ import type {
 export {
   ApiError,
   displayError,
-} from '@/utils/requestErrorConfig';
+} from '@/requestErrorConfig';
 export { createIdempotencyKey } from '@/utils/idempotency';
 
 export function inspectMedia(url: string, key: string): Promise<Inspection> {

@@ -20,7 +20,10 @@ export function updateUserAccess(
   userId: string,
   input: API.UpdateUserAccessRequest,
 ): Promise<API.ManagedUserResponse> {
-  return updateUserAccessRequest({ user_id: encodeURIComponent(userId) }, input);
+  return updateUserAccessRequest(
+    { user_id: encodeURIComponent(userId) },
+    input,
+  );
 }
 
-export { displayError } from '@/utils/requestErrorConfig';
+export { displayError } from '@/requestErrorConfig';

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { displayError } from '@/utils/requestErrorConfig';
+import { displayError } from '@/requestErrorConfig';
 import {
   cancelAnalysis,
   createAnalysis,
@@ -24,6 +24,7 @@ export function useAnalysisJob(downloadId: string, pollIntervalMs: number) {
   const shouldPoll = job ? !terminalAnalysisStatuses.has(job.status) : false;
 
   useEffect(() => {
+    void pollCycle;
     if (!analysisId || !shouldPoll) {
       return;
     }

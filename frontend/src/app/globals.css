@@ -1,0 +1,121 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme inline {
+  --font-sans:
+    var(--font-geist-sans), "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), "SFMono-Regular", Consolas, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-destructive: var(--destructive);
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #1d1d1f;
+  --surface: #f7faff;
+  --muted: #f2f4f7;
+  --muted-foreground: #6e6e73;
+  --primary: #007aff;
+  --primary-hover: #0077ed;
+  --primary-foreground: #ffffff;
+  --accent: #f2f7ff;
+  --accent-foreground: #0067d8;
+  --border: #e8e8ed;
+  --input: #d2d2d7;
+  --ring: #007aff;
+  --success: #248a3d;
+  --warning: #b25e09;
+  --destructive: #d70015;
+  --radius: 12px;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    min-width: 320px;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    min-height: 100vh;
+    margin: 0;
+    background: var(--background);
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  button,
+  a,
+  input,
+  select {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 18%, transparent);
+  }
+}
+
+@layer utilities {
+  .page-shell {
+    width: min(100% - 40px, 1200px);
+    margin-inline: auto;
+  }
+
+  .content-shell {
+    width: min(100% - 40px, 1180px);
+    margin-inline: auto;
+  }
+
+  .focus-ring {
+    outline: none;
+  }
+
+  .focus-ring:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd1da transparent;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-shell,
+  .content-shell {
+    width: min(100% - 28px, 1200px);
+  }
+}

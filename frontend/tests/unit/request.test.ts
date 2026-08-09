@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { httpClient, request } from '@/utils/request';
+import { httpClient, request } from '@/lib/request';
 
 describe('Axios request wrapper', () => {
   it('unwraps response data and keeps generated request options', async () => {

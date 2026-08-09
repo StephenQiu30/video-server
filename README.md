@@ -7,7 +7,7 @@
 ```text
 server/
 ├── backend/       FastAPI、领域逻辑、Worker、当前态 SQL 与测试
-├── frontend/      Next.js、shadcn/ui、Radix UI、Tailwind CSS 前端与测试
+├── frontend/      Next.js App Router、Radix UI、Tailwind CSS 前端与测试
 ├── docs/          当前 Design、PRD、Plan、Acceptance 与运维文档
 ├── Dockerfile
 ├── docker-compose.yml       本地完整服务拓扑（.env、宿主机端口）
@@ -43,7 +43,7 @@ cd frontend
 npm run openapi
 ```
 
-该命令使用 `@umijs/openapi` 读取 FastAPI 的 `/openapi.json`，并更新 `frontend/src/services/video/`；生成代码通过 `frontend/src/lib/request.ts` 调用同源 Axios 实例。执行前需启动后端 API，可通过 `OPENAPI_SCHEMA_URL` 临时覆盖契约地址。
+该命令直接使用 `@umijs/openapi` 和 `frontend/openapi2ts.config.ts` 读取 FastAPI 的 `/openapi.json`，更新 `frontend/src/services/video/`；生成代码通过 `frontend/src/lib/request.ts` 调用同源 Axios 实例。执行前需启动后端 API，可用 `OPENAPI_SCHEMA_URL` 临时覆盖契约地址。
 
 ## 视频源
 

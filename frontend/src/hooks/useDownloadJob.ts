@@ -23,6 +23,7 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   const [cycle, setCycle] = useState(0);
 
   useEffect(() => {
+    void cycle;
     let disposed = false;
     let timer: number | undefined;
     let loadedInspectionId: string | null = null;

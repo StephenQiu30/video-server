@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ApiError, apiErrorFrom, displayError } from '@/utils/requestErrorConfig';
+import { ApiError, apiErrorFrom, displayError } from '@/requestErrorConfig';
 
 describe('request errors', () => {
   it('converts RFC problem responses into ApiError', () => {
@@ -28,11 +28,6 @@ describe('request errors', () => {
   });
 });
 
-function apiError(
-  status: number,
-  code: string,
-  title: string,
-  detail: string,
-) {
+function apiError(status: number, code: string, title: string, detail: string) {
   return new ApiError(status, code, title, detail);
 }

@@ -23,6 +23,9 @@ def build_dist(root: Path) -> Path:
         "<!doctype html><title>server-ui</title><div id='root'></div>",
         encoding="utf-8",
     )
+    (dist / "404.html").write_text(
+        "<!doctype html><title>not-found</title>", encoding="utf-8"
+    )
     (assets / "app.js").write_text("window.SERVER_UI = true;", encoding="utf-8")
     return dist
 
@@ -51,26 +54,35 @@ def test_ready_returns_503_when_a_runtime_dependency_is_unavailable(
     assert response.json() == {"status": "unavailable", "service": "api"}
 
 
-def test_frontend_is_same_origin_and_supports_spa_routes(tmp_path: Path) -> None:
+def test_frontend_is_same_origin_and_redirects_legacy_download_route(
+    tmp_path: Path,
+) -> None:
     dist = build_dist(tmp_path)
+    detail = dist / "downloads" / "detail"
+    detail.mkdir(parents=True)
+    (detail / "index.html").write_text(
+        "<!doctype html><title>download-detail</title>", encoding="utf-8"
+    )
     app = create_app(Settings(app_env="test", frontend_dist_dir=dist))
 
     with TestClient(app) as client:
         index = client.get("/")
-        deep_link = client.get("/downloads/123")
+        legacy = client.get("/downloads/123", follow_redirects=False)
+        detail_page = client.get("/downloads/detail?jobId=123")
         asset = client.get("/assets/app.js")
 
     assert index.status_code == 200
     assert "server-ui" in index.text
-    assert deep_link.status_code == 200
-    assert "server-ui" in deep_link.text
+    assert legacy.status_code == 308
+    assert legacy.headers["location"] == "/downloads/detail?jobId=123"
+    assert detail_page.status_code == 200
+    assert "download-detail" in detail_page.text
     assert asset.text == "window.SERVER_UI = true;"
 
 
 def test_directory_route_serves_index_directly_without_redirect(tmp_path: Path) -> None:
-    # Umi `exportStatic` emits real directories (dist/history/index.html); a
-    # browser refresh of /history must return the SPA shell (200), not a 307
-    # trailing-slash redirect to /history/.
+    # Next.js static export emits route directories. A refresh of /history must
+    # return the page directly, not a trailing-slash redirect.
     dist = build_dist(tmp_path)
     (dist / "history").mkdir()
     (dist / "history" / "index.html").write_text(
@@ -84,6 +96,17 @@ def test_directory_route_serves_index_directly_without_redirect(tmp_path: Path) 
 
     assert response.status_code == 200
     assert "server-history" in response.text
+
+
+def test_unknown_ui_route_returns_exported_404(tmp_path: Path) -> None:
+    dist = build_dist(tmp_path)
+    app = create_app(Settings(app_env="test", frontend_dist_dir=dist))
+
+    with TestClient(app) as client:
+        response = client.get("/missing-page")
+
+    assert response.status_code == 404
+    assert "not-found" in response.text
 
 
 def test_unknown_api_never_falls_back_to_frontend(tmp_path: Path) -> None:

@@ -1,37 +1,23 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import DownloadDetailPage from '@/pages/DownloadDetail';
-import { ApiError } from '@/utils/requestErrorConfig';
+import DownloadJobView from '@/components/download-job-view';
+import { ApiError } from '@/requestErrorConfig';
+import { inspection, job } from '../fixtures/download-fixtures';
 import {
   httpRequests,
   mockHttpError,
   mockHttpResponses,
 } from '../helpers/http';
-import { inspection, job } from '../fixtures/download-fixtures';
 
-const mockNavigate = vi.fn();
-
-vi.mock('@ant-design/pro-components', () => ({
-  PageContainer: ({ children }: { children: React.ReactNode }) => (
-    <>{children}</>
-  ),
-}));
-
-vi.mock('@umijs/max', () => ({
-  useNavigate: () => mockNavigate,
-  useParams: () => ({ jobId: job().id }),
-  Link: ({ children }: { children: React.ReactNode }) => children,
-}));
-
-describe('DownloadDetailPage', () => {
+describe('DownloadJobView', () => {
   beforeEach(() => {
-    mockNavigate.mockReset();
+    window.history.replaceState({}, '', '/downloads/detail/');
   });
 
   it('polls until the job succeeds and exposes analysis', async () => {
     mockHttpResponses(job('running'), inspection, job('succeeded'));
-    render(<DownloadDetailPage pollIntervalMs={5} />);
+    render(<DownloadJobView jobId={job().id} pollIntervalMs={5} />);
 
     expect((await screen.findAllByText('正在下载')).length).toBeGreaterThan(0);
     expect((await screen.findAllByText('下载已完成')).length).toBeGreaterThan(
@@ -45,7 +31,7 @@ describe('DownloadDetailPage', () => {
 
   it('cancels an active download', async () => {
     mockHttpResponses(job('running'), inspection, job('cancelled'));
-    render(<DownloadDetailPage pollIntervalMs={60_000} />);
+    render(<DownloadJobView jobId={job().id} pollIntervalMs={60_000} />);
 
     fireEvent.click(await screen.findByRole('button', { name: '取消任务' }));
     expect((await screen.findAllByText('任务已取消')).length).toBeGreaterThan(
@@ -62,7 +48,7 @@ describe('DownloadDetailPage', () => {
     const click = vi
       .spyOn(HTMLAnchorElement.prototype, 'click')
       .mockImplementation(() => {});
-    render(<DownloadDetailPage />);
+    render(<DownloadJobView jobId={job().id} />);
 
     fireEvent.click(
       await screen.findByRole('button', { name: '获取视频文件' }),
@@ -72,7 +58,7 @@ describe('DownloadDetailPage', () => {
 
   it('renders stable task errors without leaking details', async () => {
     mockHttpError(new ApiError(404, 'not_found', 'Not found', '任务不存在'));
-    render(<DownloadDetailPage />);
+    render(<DownloadJobView jobId={job().id} />);
     expect(await screen.findByText('任务不存在')).toBeInTheDocument();
   });
 });

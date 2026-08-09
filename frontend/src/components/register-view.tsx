@@ -1,0 +1,203 @@
+'use client';
+
+import {
+  ArrowRightIcon,
+  EnvelopeSimpleIcon,
+  LockKeyIcon,
+  SpinnerGapIcon,
+  UserIcon,
+  WarningCircleIcon,
+} from '@phosphor-icons/react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
+
+import { AuthField, AuthPageFrame } from '@/components/app-shell';
+import { useAuth } from '@/components/auth-provider';
+import {
+  type FieldErrors,
+  validateRegistration,
+} from '@/components/register-form-model';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { displayError, register } from '@/services/auth';
+import { authRedirect } from '@/utils/authRedirect';
+
+export function RegisterView() {
+  const { user, loading, setUser } = useAuth();
+  const [redirect, setRedirect] = useState('/');
+  const [search, setSearch] = useState('');
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [errorMessage, setErrorMessage] = useState<string>();
+  const [submitting, setSubmitting] = useState(false);
+  const errorRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const currentSearch = window.location.search;
+    const destination = authRedirect(currentSearch);
+    setRedirect(destination);
+    setSearch(currentSearch);
+    if (!loading && user) router.replace(destination);
+  }, [loading, router, user]);
+  useEffect(() => {
+    if (errorMessage) errorRef.current?.focus();
+  }, [errorMessage]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const values = {
+      username: String(data.get('username') ?? '').trim(),
+      email: String(data.get('email') ?? '').trim(),
+      password: String(data.get('password') ?? ''),
+      confirmPassword: String(data.get('confirmPassword') ?? ''),
+    };
+    const nextErrors = validateRegistration(values);
+    setErrors(nextErrors);
+    setErrorMessage(undefined);
+    if (Object.keys(nextErrors).length) return;
+
+    setSubmitting(true);
+    try {
+      const currentUser = await register({
+        username: values.username,
+        email: values.email,
+        password: values.password,
+      });
+      setUser(currentUser);
+      router.replace(redirect);
+    } catch (error) {
+      setErrorMessage(displayError(error));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <AuthPageFrame
+      description="使用邮箱注册，登录状态会在受信任设备上自动保持。"
+      eyebrow="开始使用"
+      title="创建账号"
+      titleId="register-title"
+    >
+      <form
+        aria-busy={submitting}
+        className="mt-8 space-y-4"
+        noValidate
+        onSubmit={handleSubmit}
+      >
+        {errorMessage ? (
+          <Alert ref={errorRef} tabIndex={-1} variant="destructive">
+            <WarningCircleIcon aria-hidden />
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        ) : null}
+        <AuthField
+          error={errors.username}
+          icon={<UserIcon aria-hidden />}
+          idPrefix="register"
+          label="用户名"
+          name="username"
+        >
+          <Input
+            aria-describedby={errors.username ? 'username-error' : undefined}
+            aria-invalid={Boolean(errors.username)}
+            autoComplete="username"
+            className="pl-11"
+            id="register-username"
+            maxLength={32}
+            minLength={2}
+            name="username"
+            placeholder="2–32 个字符"
+          />
+        </AuthField>
+        <AuthField
+          error={errors.email}
+          icon={<EnvelopeSimpleIcon aria-hidden />}
+          idPrefix="register"
+          label="邮箱地址"
+          name="email"
+        >
+          <Input
+            aria-describedby={errors.email ? 'email-error' : undefined}
+            aria-invalid={Boolean(errors.email)}
+            autoComplete="email"
+            className="pl-11"
+            id="register-email"
+            name="email"
+            placeholder="name@example.com"
+            type="email"
+          />
+        </AuthField>
+        <AuthField
+          error={errors.password}
+          icon={<LockKeyIcon aria-hidden />}
+          idPrefix="register"
+          label="密码"
+          name="password"
+        >
+          <Input
+            aria-describedby={errors.password ? 'password-error' : undefined}
+            aria-invalid={Boolean(errors.password)}
+            autoComplete="new-password"
+            className="pl-11"
+            id="register-password"
+            maxLength={128}
+            minLength={8}
+            name="password"
+            placeholder="至少 8 个字符"
+            type="password"
+          />
+        </AuthField>
+        <AuthField
+          error={errors.confirmPassword}
+          icon={<LockKeyIcon aria-hidden />}
+          idPrefix="register"
+          label="确认密码"
+          name="confirmPassword"
+        >
+          <Input
+            aria-describedby={
+              errors.confirmPassword ? 'confirmPassword-error' : undefined
+            }
+            aria-invalid={Boolean(errors.confirmPassword)}
+            autoComplete="new-password"
+            className="pl-11"
+            id="register-confirmPassword"
+            name="confirmPassword"
+            placeholder="再次输入密码"
+            type="password"
+          />
+        </AuthField>
+        <Button
+          className="h-12 w-full text-[15px]"
+          disabled={loading || submitting}
+          size="lg"
+          type="submit"
+        >
+          {submitting ? (
+            <SpinnerGapIcon
+              aria-hidden
+              className="size-5 animate-spin motion-reduce:animate-none"
+            />
+          ) : null}
+          {submitting ? '正在创建…' : '注册并登录'}
+          {!submitting ? (
+            <ArrowRightIcon aria-hidden className="size-4" />
+          ) : null}
+        </Button>
+      </form>
+      <p className="mt-6 text-center text-sm text-muted-foreground">
+        已有账号？{' '}
+        <Link
+          className="focus-ring rounded text-primary hover:underline"
+          href={`/user/login${search}`}
+        >
+          返回登录
+        </Link>
+      </p>
+    </AuthPageFrame>
+  );
+}
