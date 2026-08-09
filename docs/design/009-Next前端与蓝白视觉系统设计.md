@@ -163,7 +163,7 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 
 ### 全局导航
 
-桌面端为 72px 单行轻量 Header：左侧使用 Next.js `Image` 渲染 `public/logo.svg`，与文字“帧取”共同构成指向 `/` 的品牌链接；右侧提供“下载记录”（`href="/history"`）、Avatar 账户菜单和主题操作，管理员入口位于账户菜单。Header 与 main/footer 共用 `.content-shell` 的 1376px 上限和桌面 80px gutter，保持导航与主体严格对齐；没有底线、侧栏、面包屑容器、外框或浮起阴影。当前路由链接使用 `aria-current="page"`，并通过中性填充面和文本色同步表达当前页。
+桌面端为 72px 单行轻量 Header：左侧使用 Next.js `Image` 渲染 `public/logo.svg`，与文字“帧取”共同构成指向 `/` 的品牌链接；品牌文字与右侧导航统一使用 `text-sm`，通过字重而不是更大字号表达品牌。右侧提供“下载记录”（`href="/history"`）、Avatar 账户菜单和主题操作，管理员入口位于账户菜单。Header 与 main/footer 共用 `.content-shell` 的 1376px 上限和桌面 80px gutter，保持导航与主体严格对齐；没有底线、侧栏、面包屑容器、外框或浮起阴影。当前路由链接使用 `aria-current="page"`，并通过中性填充面和文本色同步表达当前页。
 
 390px 下保留品牌和一个明确的导航触发器，下载记录、账户与主题操作进入 Sheet；不把桌面导航强行压缩到同一行。Sheet 打开后焦点进入其可操作内容，链接均可通过 Tab 到达并以键盘激活；关闭而未导航时，焦点返回触发器。品牌链接始终提供返回 `/` 的明确可读名称。图标按钮有可见或屏幕阅读器标签，Tooltip 仅作辅助，触控区域至少 44×44px。
 

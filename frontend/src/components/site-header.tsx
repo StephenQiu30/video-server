@@ -32,7 +32,7 @@ export function BrandLink({ className }: { className?: string }) {
     <Link
       aria-label="帧取首页"
       className={cn(
-        'focus-ring inline-flex min-h-11 items-center gap-2.5 rounded-md text-[15px] font-semibold tracking-[-0.02em]',
+        'focus-ring inline-flex min-h-11 items-center gap-2.5 rounded-md text-sm font-semibold tracking-[-0.02em]',
         className,
       )}
       href="/"
