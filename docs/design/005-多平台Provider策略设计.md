@@ -27,9 +27,9 @@ yt-dlp extractor → FFmpeg → ffprobe
 
 当前登记并在镜像 yt-dlp extractor 清单中核验的平台：YouTube、Bilibili、抖音、TikTok、小红书、Vimeo、X/Twitter、Instagram、Facebook、Twitch、Reddit、Pinterest、微博、优酷、腾讯视频、Dailymotion、NicoNico。
 
-抖音精选页 `modal_id` 与 `/share/video/{id}` 会先转换到标准视频地址，短链交由 yt-dlp 的抖音 extractor 解析；TikTok 和抖音使用受限的请求伪装与重试。当前抖音仍可能要求新鲜浏览器会话，服务会返回明确错误，不上传 Cookie 或绕过平台验证。
+抖音精选页 `modal_id` 与 `/share/video/{id}` 会先转换到标准视频地址，短链由 yt-dlp Generic extractor 在受控代理内跟随到标准地址。随 Runner 交付的可信抖音插件覆盖内置 extractor：它只用已校验的数字视频 ID 请求固定的 `www.iesdouyin.com/share/video/{id}/` 公开分享页、校验返回 ID 一致后复用 yt-dlp 元数据解析器。分享页缺失或受限时回退到官方 extractor 和稳定错误分类；系统不上传 Cookie、不生成平台签名，也不承诺无水印或原始母版。
 
-小红书完整作品地址与 `xhslink.com/a|m` 短链使用受限浏览器指纹和有限重试。API 入口只会从分享文案中提取唯一的小红书短链，并为新版省略 scheme 的短链补 `https://`；其他平台仍必须提交完整 HTTP(S) URL。
+小红书完整作品地址与 `xhslink.com/a|m` 短链使用受限浏览器指纹和有限重试。API 入口可从分享文案中提取恰好一个 HTTP(S) URL；多个 URL 仍拒绝。对新版省略 scheme 的小红书短链保留专用 `https://` 补全，其他无 scheme 输入不泛化。
 
 ## 约束
 

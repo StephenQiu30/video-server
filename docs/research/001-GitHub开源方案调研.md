@@ -1,6 +1,6 @@
 # GitHub 开源方案调研
 
-- 调研日期：2026-08-06
+- 调研日期：2026-08-06，最近复核：2026-08-09
 - 结论：采用“成熟底层工具 + 自有安全编排与产品领域层”，不直接 fork 一体化下载站。
 
 ## 候选方案
@@ -9,6 +9,7 @@
 | --- | --- | --- |
 | [yt-dlp](https://github.com/yt-dlp/yt-dlp) | 活跃的站点 extractor、格式探测与下载；支持 Python 嵌入和 CLI | 采用，但只在无业务凭据的 Media Runner 子进程中运行；固定版本并持续跟进安全发布 |
 | [yt-dlp sample plugins](https://github.com/yt-dlp/yt-dlp-sample-plugins) | 官方 `yt_dlp_plugins.extractor` 扩展结构与加载约定 | 采用其插件边界，在 Runner 镜像内随项目交付可信站点适配器，不开放用户插件目录 |
+| [liyupi/free-video-downloader](https://github.com/liyupi/free-video-downloader) | 抖音短链、旧公开 API 与分享页 fallback 的教学实现 | 只借鉴“公开分享页 fallback”思路；其仓库无 LICENSE，host 子串匹配、未逐跳校验重定向、同步 WAF 计算和无界下载不进入本项目 |
 | [MeTube](https://github.com/alexta69/metube) | yt-dlp Web UI、队列、并发与自托管经验 | 仅借鉴产品流程；其本地文件/状态和高度可配置 yt-dlp 模式不符合本项目的 PostgreSQL 事实源、对象存储、AI 分析与严格 Runner 边界 |
 | [cobalt](https://github.com/imputnet/cobalt) | 轻量粘贴即下载体验、服务适配器和限流思路 | 仅借鉴交互；AGPL-3.0、代理式交付和服务专用逻辑不作为本项目代码基线 |
 | [lux](https://github.com/iawia002/lux) | Go 下载库、清晰度枚举和 FFmpeg 合并 | 不采用；最近可见 release 为 2024，当前 extractor 维护速度不如 yt-dlp，且切换 Go 会增加双技术栈成本 |
@@ -30,7 +31,9 @@
 
 ## 抖音链接兼容边界
 
-Runner 会将抖音精选页的 `modal_id`、`/share/video/{id}` 和抖音短链交给 yt-dlp 的抖音 extractor，并对抖音请求使用独立的浏览器指纹和有限重试。当前抖音网页接口会要求新鲜浏览器会话（`Fresh cookies ... are needed`），这属于平台反爬验证；本项目不上传 Cookie、不生成平台签名，也不绕过验证。因此当前实现保证分享链接能够进入正确的 extractor，并返回明确的“需要平台访问会话”错误，但不宣称在无浏览器会话时完成所有抖音视频下载。
+当前固定的 yt-dlp 提交仍通过 `/aweme/v1/web/aweme/detail/` 提取抖音，空响应后明确抛出 `Fresh cookies ... needed`；官方 [#9667](https://github.com/yt-dlp/yt-dlp/issues/9667) 仍记录同类问题，因此升级版本或浏览器 TLS impersonation 不能单独解决。参考项目的旧 `iteminfo` API 对本轮样例返回 `encrypt_data_miss`，也不能作为新主链路。
+
+本项目改用 yt-dlp 官方插件覆盖机制实现最小 fallback：抖音精选页 `modal_id`、`/share/video/{id}` 与短链最终进入标准 `/video/{id}`；插件只访问固定公开分享页、读取 `window._ROUTER_DATA`、要求返回 `aweme_id` 与请求 ID 一致，并复用 yt-dlp 自身解析器。媒体 URL、探测和下载仍全部经过 Squid，且保留总时限、Workspace、大小、重新 inspect、FFmpeg 与 ffprobe 校验。分享页不可用时 fail closed，不引入 Cookie、WAF challenge solver、`playwm → play` 猜测或第三方解析服务。
 
 ## 主流平台策略注册表
 
@@ -63,7 +66,7 @@ Runner 使用 `ProviderStrategy + ProviderRegistry + GenericFallback`：平台�
 | Bilibili | 解析成功，360p MP4 下载并通过完整性校验 | 保持 yt-dlp 主链路 |
 | 小红书 | 带有效 `xsec_token` 的完整分享链接解析、下载、校验成功；无 token 的旧直链失败 | 接受完整公开分享链接；后续补短链规范化与 token 缺失提示 |
 | YouTube | 当前 egress IP 被要求 `Sign in to confirm you're not a bot` | 映射为 `provider_access_required`，不再返回泛化 502 |
-| 抖音 | 当前网页接口要求 fresh browser session | 继续返回 `provider_access_required`，不上传 Cookie |
+| 抖音 | 用户短链与截图中的 `modal_id` 均可从公开分享页解析；短链样例完成约 2.12 MB MP4 下载、封装和音视频流校验 | 使用可信 share-page 插件；仅声明当前公开分享流可用，不承诺无水印、原画或受限内容 |
 | 视频号 | 公开分享页可访问，但当前 yt-dlp/Generic 无法提取 | 不宣称支持；返回不可用结果，不接入 Cookie 或公共中转服务 |
 
 GitHub 调研后的取舍：
@@ -88,6 +91,7 @@ GitHub 调研后的取舍：
 | [bgutil-ytdlp-pot-provider](https://github.com/Brainicism/bgutil-ytdlp-pot-provider) | `1.3.1` / `7608dd5` | GPL-3.0；可用无账号 PO Token sidecar，但不保证绕过 bot check | 在当前出口真实生成 mweb player token 后仍返回 `LOGIN_REQUIRED`，不把无效 sidecar加入默认拓扑 |
 | [Douyin_TikTok_Download_API](https://github.com/Evil0ctal/Douyin_TikTok_Download_API) | `42784ff` | Apache-2.0；实现 A-Bogus/msToken，但单视频 crawler 仍从配置读取 Douyin Cookie，README 明确要求自行更新 Cookie | 只借鉴错误分类和可观测性，不复制需要账号会话的 crawler |
 | [f2](https://github.com/Johnserf-Seed/f2) | `7dab3e2` | Apache-2.0；Downloader 在 Cookie 为空时直接拒绝启动，并推荐浏览器 Cookie | 不接入 Runner |
+| [liyupi/free-video-downloader](https://github.com/liyupi/free-video-downloader) | `6783636` | 无 LICENSE；有公开分享页 fallback，但入口分派无法识别整段文案，且重定向、下载和 WAF 计算不满足本项目边界 | 只采用经重写和测试的 share-page 插件思路，不复制源码 |
 | [wx_channels_download](https://github.com/ltaoo/wx_channels_download) | `3551436` | Commons Clause 附加许可；桌面主链路要求管理员安装证书并 MITM 微信，在线分享解析使用 Worker | 不进入服务端默认链路 |
 | [XHS-Downloader #261](https://github.com/JoeanAmier/XHS-Downloader/issues/261) / [cobalt #1394](https://github.com/imputnet/cobalt/issues/1394) | 对应 2025 修复 | 分享文案可能省略 `http://`，`/m/` 短链需要 GET/重定向兜底 | 已在 API 安全边界内提取唯一短链、补 `https://`，并为小红书启用固定浏览器指纹与有限重试 |
 
@@ -97,3 +101,4 @@ GitHub 调研后的取舍：
 2. 新增小红书 Provider Profile，识别完整作品地址及 `xhslink.com/a|m`，对复制文案中唯一的无 scheme 短链进行安全规范化；过期或缺少有效 token 的链接返回 `provider_link_unavailable`。
 3. 新增 `RUNNER_PROVIDER_EGRESS_PROXIES`。YouTube/抖音这类依赖出口信誉的平台可以由运维路由到独立的内部代理池；Runner 配置仍拒绝代理 URL 凭据，未配置时回退到统一 egress proxy。
 4. 不引入公开解析 API、公共 Worker、浏览器 Cookie、元宝 Cookie 或 MITM 根证书。市场工具能完成个人桌面下载，不代表其凭据模型、许可证和网络边界适合多用户服务端。
+5. 抖音公开分享页由可信插件提取，远程格式先带固定浏览器请求头执行 ffprobe，并以实际可下载流时长覆盖陈旧页面时长；inspection 重试受单一总 deadline 约束，Runner 与调用方超时保持稳定 `inspection_timeout` 分类。
