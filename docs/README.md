@@ -19,3 +19,4 @@
 | 007 | 邮箱账户与 JWT 认证 | [Design](design/007-邮箱账户与JWT认证设计.md) | [PRD](prd/007-邮箱账户与JWT认证需求.md) | [Plan](plans/007-邮箱账户与JWT认证计划.md) | [Acceptance](acceptance/007-邮箱账户与JWT认证验收.md) |
 | 008 | 用户资料与角色管理 | [Design](design/008-用户资料与角色管理设计.md) | [PRD](prd/008-用户资料与角色管理需求.md) | [Plan](plans/008-用户资料与角色管理计划.md) | [Acceptance](acceptance/008-用户资料与角色管理验收.md) |
 | 009 | Next 前端与页面重设计 | [Design](design/009-Next前端与蓝白视觉系统设计.md) | [PRD](prd/009-前端体验重构需求.md) | [Plan](plans/009-前端迁移与页面重设计计划.md) | [Acceptance](acceptance/009-前端迁移与页面重设计验收.md) |
+| 010 | Codex 与 Claude CLI 视频分析 | [Design](design/010-Codex与Claude CLI视频分析设计.md) | [PRD](prd/010-Codex与Claude CLI视频分析需求.md) | [Plan](plans/010-Codex与Claude CLI视频分析迁移计划.md) | [Acceptance](acceptance/010-Codex与Claude CLI视频分析验收.md) |
