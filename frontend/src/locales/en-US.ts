@@ -4,5 +4,6 @@ export default {
   'layout.user.link.privacy': 'Privacy',
   'layout.user.link.terms': 'Terms',
   'menu.download': 'Download',
+  'menu.download-detail': 'Download details',
   'menu.history': 'History',
 };

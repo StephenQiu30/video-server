@@ -4,5 +4,6 @@ export default {
   'layout.user.link.privacy': '隐私',
   'layout.user.link.terms': '条款',
   'menu.download': '解析下载',
+  'menu.download-detail': '下载详情',
   'menu.history': '下载历史',
 };
