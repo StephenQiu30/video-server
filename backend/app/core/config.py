@@ -134,6 +134,13 @@ class Settings(BaseSettings):
     def absolute_analysis_workspace(cls, value: Path) -> Path:
         return value.expanduser().absolute()
 
+    @field_validator("auth_bootstrap_admin_email", mode="before")
+    @classmethod
+    def empty_bootstrap_admin_email_to_none(cls, value: object) -> object | None:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
     @field_validator("deepseek_api_key", "openai_api_key")
     @classmethod
     def empty_optional_secret_to_none(cls, value: SecretStr | None) -> SecretStr | None:

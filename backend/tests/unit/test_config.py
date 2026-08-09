@@ -48,6 +48,25 @@ def test_signing_secrets_require_adequate_entropy_capacity() -> None:
         Settings(app_env="test", auth_jwt_secret=SecretStr("too-short"))
 
 
+@pytest.mark.parametrize("value", ["", "   "])
+def test_empty_bootstrap_admin_email_is_normalized_to_none(
+    monkeypatch: pytest.MonkeyPatch, value: str
+) -> None:
+    monkeypatch.setenv("AUTH_BOOTSTRAP_ADMIN_EMAIL", value)
+
+    settings = Settings(app_env="test")
+
+    assert settings.auth_bootstrap_admin_email is None
+
+
+def test_bootstrap_admin_email_retains_email_validation() -> None:
+    settings = Settings(app_env="test", auth_bootstrap_admin_email="admin@example.com")
+
+    assert settings.auth_bootstrap_admin_email == "admin@example.com"
+    with pytest.raises(ValidationError):
+        Settings(app_env="test", auth_bootstrap_admin_email="not-an-email")
+
+
 def test_production_rejects_development_secrets() -> None:
     with pytest.raises(ValidationError, match="production secrets"):
         Settings(app_env="production")
