@@ -216,9 +216,7 @@ export default function DownloadPage() {
                     platform={inspection.extractor_key}
                     src={inspection.thumbnail_url}
                   />
-                </div>
-                <div className="inspection-detail">
-                  <Typography.Title level={3} style={{ marginTop: 0 }}>
+                  <Typography.Title level={3} className="inspection-title">
                     {inspection.title}
                   </Typography.Title>
                   <div className="inspection-meta">
@@ -228,7 +226,8 @@ export default function DownloadPage() {
                       {inspection.provider_media_id}
                     </Typography.Text>
                   </div>
-
+                </div>
+                <div className="inspection-formats">
                   <div className="format-heading">
                     <Typography.Text strong>选择下载格式</Typography.Text>
                     <Tag variant="filled">

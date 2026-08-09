@@ -2,44 +2,44 @@
 
 ## Comparison target
 
-- Source visual truth: `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/vercel-home-reference-1440x1024.png`
-- Implementation screenshot: `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/video-server-vercel-borderless-1440x1024.png`
-- Source and implementation pixels: `1440 × 1024`.
-- Implementation CSS viewport: `1440 × 1024`, device scale factor `1`.
-- State: desktop home page before an inspection task has started.
-- Comparison scope: reproduce Vercel's restrained white canvas, sparse composition, low-separation surfaces, and generous whitespace while retaining the product's Chinese copy, blue brand accent, and Ant Design Pro shell.
+- Source visual truth: `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-659a2e96-c895-42d1-b706-be28f986846c.png`
+- Implementation screenshot: `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/video-server-balanced-result-1440x1024.png`
+- Source pixels: `3372 × 1940`; the source includes Chrome chrome and a larger desktop density.
+- Implementation: `1440 × 1024` CSS viewport, captured at `1440 × 1024` pixels.
+- State: parsed Bilibili media with eight selectable formats.
+- Normalization: comparison uses the parsed-result region and relative column proportions rather than browser chrome or exact source pixels.
 
 ## Evidence
 
-- Full view: both source and implementation use a slim top navigation, a white page canvas, a single focused hero, and substantial unoccupied space instead of stacked cards.
-- Focused empty-state check: `.content-wrap`, `.ant-pro-card`, and `.ant-empty` all have a count of `0` before inspection starts.
-- Fixed layout check: at `1440px`, the native Ant Design Pro content rail is `1152px` wide and centered from `x=144` to `x=1296`.
-- Typography: the hero uses a compact high-contrast hierarchy with tightened display tracking; existing system/Ant Design fonts remain readable and consistent with the application shell.
-- Spacing and rhythm: hero spacing is independent of a result placeholder, so the page no longer ends in a large bordered block. The input is the only outlined surface in the empty state because its interaction boundary must remain clear.
-- Colors and tokens: ProLayout background, header, and PageContainer backgrounds are explicitly white through native layout tokens. The existing project blue is retained only as the brand/action accent.
-- Image quality and assets: the existing project logo is preserved; there are no generated, placeholder, or code-drawn assets in the empty state.
-- Copy: navigation, hero, placeholder, platform support, loading, validation, and result copy remain product-specific and unchanged except for removing obsolete empty-state instructions.
-- Parsed-result check: the result wrapper has no border, background, or shadow. Format choices use borderless filled states and no card shadow while retaining selection affordance.
+- Full view: the former layout placed almost all descriptive content and a tall four-row format grid on the right while leaving the left column as a cover-only surface. The implementation distributes media description to the left and keeps actions on the right.
+- Column geometry: both columns are `512px` wide with a `48px` gap inside the native fixed content rail.
+- Height balance: the final left media-information column is `401px` high and the right format-action column is `406px` high, a difference of only `5px`.
+- Left information: cover, title, provider, duration, and media ID now form one coherent media summary.
+- Right information: format count, eight format options, selection state, and the primary download action remain together as one task flow.
+- Format density: each format option is `80px` high and uses a compact horizontal label/meta layout, preserving all resolution, container, codec, audio, and FPS information.
+- Typography: media title remains the dominant descriptive element; format names remain scannable at compact density; secondary metadata uses the existing Ant Design hierarchy.
+- Colors and tokens: the existing white, borderless Vercel-inspired surface and project blue selection/action accent are unchanged.
+- Images and assets: the real parsed media cover and existing project assets are used without placeholder or synthetic substitutes.
+- Copy: no business information was removed; only its placement and density changed.
 
-## Interaction and console checks
+## Interaction and responsive checks
 
-- Submitted an invalid URL and received the expected inline validation message.
-- Loaded the development inspection state and confirmed that the real media result and format selection render without a surrounding result card.
-- Checked a fresh page load after the final changes: no browser console errors were present.
+- Selected the second format option and verified that `aria-checked` moved from the first option to the second.
+- At `820 × 900`, the result changes to one column, retains a `725px` format region, and has no horizontal overflow.
+- Build, lint, unit tests, and Ant Design checks passed before final comparison.
 
 ## Comparison history
 
-1. Initial implementation: gray layout gradient and a large bordered empty `ProCard` remained below the hero. Classified as P1 because it directly contradicted the requested empty state and Vercel visual direction.
-2. First fix: switched ProLayout/PageContainer to white native tokens, removed the idle result subtree, converted platform pills to plain labels, and made the parsed result wrapper borderless.
-3. Result-state review: Ant Card's default shadow remained on format choices. Classified as P2 because it reintroduced card separation inside the result.
-4. Final fix: changed format choices to the borderless variant and explicitly removed card shadows. The empty state, parsed state, console, and primary validation interaction then passed.
+1. Source state: unequal column widths and a right column extending far beyond the cover produced a P1 information-balance issue.
+2. First fix: changed the result to equal-width columns and moved title/provider/duration/media ID below the cover. Right-column height was still `528px` versus `401px` on the left, leaving a P2 density mismatch.
+3. Final fix: converted each format option to a compact horizontal row and reduced its height. Final measurements are `401px` left and `406px` right with all information preserved.
 
 ## Findings
 
-- No actionable P0, P1, or P2 differences remain within the selected Vercel-inspired visual scope.
+- No actionable P0, P1, or P2 differences remain for the requested information balance.
 
 ## Follow-up polish
 
-- The project blue remains intentionally different from Vercel's black CTA so the existing brand is not erased.
+- None required for this adjustment.
 
 final result: passed

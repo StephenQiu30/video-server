@@ -1,13 +1,13 @@
 .format-picker {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
+  gap: 8px;
 }
 
 .format-card {
   cursor: pointer;
   position: relative;
-  padding: 8px;
+  padding: 0;
   border-radius: 8px;
   background: var(--ant-color-fill-quaternary);
   box-shadow: none;
@@ -15,6 +15,13 @@
 
   &.ant-card {
     box-shadow: none;
+  }
+
+  .ant-card-body {
+    display: flex;
+    min-height: 68px;
+    align-items: center;
+    padding: 10px 12px;
   }
 
   &--selected {
@@ -26,29 +33,43 @@
   }
 
   .format-card-main {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 12px;
     padding-right: 28px;
   }
 
   .format-label {
     display: flex;
+    flex: none;
     align-items: baseline;
-    gap: 8px;
+    gap: 6px;
   }
 
   .format-resolution {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 600;
     line-height: 1.2;
   }
 
+  .format-container {
+    font-size: 12px;
+  }
+
   .format-meta {
-    margin-top: 4px;
+    min-width: 0;
+    line-height: 1.35;
+
+    .ant-typography {
+      font-size: 12px;
+    }
   }
 
   .format-check {
     position: absolute;
-    top: 12px;
-    right: 12px;
-    font-size: 18px;
+    top: 10px;
+    right: 10px;
+    font-size: 16px;
   }
 }
