@@ -4,6 +4,7 @@ import {
   CaretDownIcon,
   ClockCounterClockwiseIcon,
   DownloadSimpleIcon,
+  LinkSimpleIcon,
   SignOutIcon,
   UserCircleIcon,
   UsersThreeIcon,
@@ -49,6 +50,7 @@ export function SiteHeader() {
   const [signingOut, setSigningOut] = useState(false);
   const pathname = usePathname() ?? '/';
   const router = useRouter();
+  const parserActive = pathname === '/';
   const historyActive = pathname.startsWith('/history');
 
   async function handleSignOut() {
@@ -70,6 +72,19 @@ export function SiteHeader() {
             asChild
             className={cn(
               'min-h-11 px-2.5 text-muted-foreground sm:px-3.5',
+              parserActive && 'bg-accent text-accent-foreground',
+            )}
+            variant="ghost"
+          >
+            <Link aria-current={parserActive ? 'page' : undefined} href="/">
+              <LinkSimpleIcon aria-hidden className="size-[19px]" />
+              <span>视频解析</span>
+            </Link>
+          </Button>
+          <Button
+            asChild
+            className={cn(
+              'min-h-11 px-2.5 text-muted-foreground sm:px-3.5',
               historyActive && 'bg-accent text-accent-foreground',
             )}
             variant="ghost"
@@ -79,8 +94,7 @@ export function SiteHeader() {
               href="/history"
             >
               <ClockCounterClockwiseIcon aria-hidden className="size-[19px]" />
-              <span className="hidden sm:inline">下载历史</span>
-              <span className="sr-only sm:hidden">下载历史</span>
+              <span>下载历史</span>
             </Link>
           </Button>
           {user ? (
@@ -144,8 +158,7 @@ export function SiteHeader() {
                 href={`/user/login?redirect=${encodeURIComponent(pathname)}`}
               >
                 <UserCircleIcon aria-hidden className="size-5" />
-                <span className="hidden sm:inline">账户</span>
-                <span className="sr-only sm:hidden">登录账户</span>
+                <span>账户</span>
               </Link>
             </Button>
           )}

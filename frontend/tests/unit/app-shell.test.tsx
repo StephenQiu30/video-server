@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppShell, AuthField, AuthPageFrame } from '@/components/app-shell';
@@ -40,10 +40,13 @@ describe('AppShell', () => {
       'href',
       '/',
     );
-    expect(screen.getByRole('link', { name: /下载历史/ })).toHaveAttribute(
-      'href',
-      '/history',
+    expect(screen.getByRole('link', { name: '视频解析' })).toHaveAttribute(
+      'aria-current',
+      'page',
     );
+    const historyLink = screen.getByRole('link', { name: /下载历史/ });
+    expect(historyLink).toHaveAttribute('href', '/history');
+    expect(historyLink).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('link', { name: /账户/ })).toHaveAttribute(
       'href',
       '/user/login?redirect=%2F',
@@ -52,6 +55,53 @@ describe('AppShell', () => {
       'href',
       '#main-content',
     );
+
+    fireEvent.click(screen.getByRole('button', { name: '打开导航菜单' }));
+    const mobileNavigation = screen.getByRole('navigation', {
+      name: '移动导航',
+    });
+    expect(
+      within(mobileNavigation).getByRole('link', { name: '视频解析' }),
+    ).toHaveAttribute('aria-current', 'page');
+    expect(
+      within(mobileNavigation).getByRole('link', { name: '下载历史' }),
+    ).not.toHaveAttribute('aria-current');
+  });
+
+  it('keeps explicit desktop and mobile routes from history back to parsing', async () => {
+    runtime.pathname = '/history';
+    render(
+      <AppShell>
+        <main>历史页面</main>
+      </AppShell>,
+    );
+
+    const desktopNavigation = screen.getByRole('navigation', {
+      name: '主要导航',
+    });
+    expect(
+      within(desktopNavigation).getByRole('link', { name: '视频解析' }),
+    ).toHaveAttribute('href', '/');
+    expect(
+      within(desktopNavigation).getByRole('link', { name: '下载历史' }),
+    ).toHaveAttribute('aria-current', 'page');
+
+    fireEvent.click(screen.getByRole('button', { name: '打开导航菜单' }));
+    const mobileNavigation = await screen.findByRole('navigation', {
+      name: '移动导航',
+    });
+    const mobileParserLink = within(mobileNavigation).getByRole('link', {
+      name: '视频解析',
+    });
+    expect(mobileParserLink).toHaveAttribute('href', '/');
+    expect(mobileParserLink).not.toHaveAttribute('aria-current');
+    expect(
+      within(mobileNavigation).getByRole('link', { name: '下载历史' }),
+    ).toHaveAttribute('aria-current', 'page');
+    fireEvent.click(mobileParserLink);
+    expect(
+      screen.queryByRole('navigation', { name: '移动导航' }),
+    ).not.toBeInTheDocument();
   });
 
   it('removes the main navigation from authentication routes', () => {

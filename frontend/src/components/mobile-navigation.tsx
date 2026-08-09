@@ -2,6 +2,7 @@
 
 import {
   ClockCounterClockwiseIcon,
+  LinkSimpleIcon,
   ListIcon,
   SignOutIcon,
   UserCircleIcon,
@@ -21,6 +22,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
 import type { AuthUser } from '@/services/auth';
 
 type MobileNavigationProps = {
@@ -61,7 +63,9 @@ export function MobileNavigation({
       <SheetContent className="w-[min(88vw,360px)] bg-card" side="right">
         <SheetHeader className="border-b px-5 py-5">
           <SheetTitle>导航</SheetTitle>
-          <SheetDescription>访问下载任务与账户设置。</SheetDescription>
+          <SheetDescription>
+            访问视频解析、下载任务与账户设置。
+          </SheetDescription>
         </SheetHeader>
         {user ? (
           <div className="flex items-center gap-3 px-5 py-4">
@@ -79,7 +83,19 @@ export function MobileNavigation({
           </div>
         ) : null}
         <nav aria-label="移动导航" className="grid gap-1 px-3">
-          <MobileLink href="/history" onNavigate={() => setOpen(false)}>
+          <MobileLink
+            active={pathname === '/'}
+            href="/"
+            onNavigate={() => setOpen(false)}
+          >
+            <LinkSimpleIcon aria-hidden />
+            视频解析
+          </MobileLink>
+          <MobileLink
+            active={pathname.startsWith('/history')}
+            href="/history"
+            onNavigate={() => setOpen(false)}
+          >
             <ClockCounterClockwiseIcon aria-hidden />
             下载历史
           </MobileLink>
@@ -129,17 +145,30 @@ export function MobileNavigation({
 }
 
 function MobileLink({
+  active = false,
   children,
   href,
   onNavigate,
 }: {
+  active?: boolean;
   children: React.ReactNode;
   href: string;
   onNavigate: () => void;
 }) {
   return (
-    <Button asChild className="h-11 justify-start" variant="ghost">
-      <Link href={href} onClick={onNavigate}>
+    <Button
+      asChild
+      className={cn(
+        'h-11 justify-start',
+        active && 'bg-accent text-accent-foreground',
+      )}
+      variant="ghost"
+    >
+      <Link
+        aria-current={active ? 'page' : undefined}
+        href={href}
+        onClick={onNavigate}
+      >
         {children}
       </Link>
     </Button>

@@ -28,6 +28,7 @@
 - 内容：格式区只展示契约真实提供的分辨率、封装、编码与帧率；不虚构文件大小、发布日期或其他后端未返回字段。
 - 响应式：桌面 5/7 双栏在移动端按“格式 → 下载 → 预览”收敛为单列；Header 使用 Sheet 导航，触控目标、字段和主按钮保持可达。
 - 交互：浏览器实测链接清空、RadioGroup 方向键选择、账户菜单打开/Escape 关闭、移动 Sheet 打开/Escape 关闭；焦点返回触发控件。
+- 导航：桌面 Header 与移动 Sheet 均提供“视频解析”和“下载历史”；真实页面已从历史页回到 `/`，验证互斥 `aria-current`、移动 Sheet 导航后关闭与 390px 无横向溢出。
 - 取消安全：下载和 AI 分析的取消操作均通过 AlertDialog 二次确认，取消弹窗不会调用 API，确认后才执行原动作。
 - 运行时：最终页面日志没有产品代码 error；检查期间仅出现开发态 HMR 重载提示。生产静态构建不包含 Next.js 开发工具。
 
@@ -45,7 +46,7 @@
 - [x] 官方 shadcn / Radix 组件源码与语义 token。
 - [x] 390×844 检查，无横向溢出。
 - [x] 关键鼠标、键盘、菜单、Sheet、Radio 和 AlertDialog 交互。
-- [x] lint、TypeScript、50 项单元测试和 Next.js 静态导出构建。
+- [x] lint、TypeScript、51 项单元测试和 Next.js 静态导出构建。
 
 ## Open Questions
 
