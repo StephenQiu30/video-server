@@ -56,7 +56,7 @@ export default function DownloadHistoryView() {
   }
 
   return (
-    <main className="content-shell py-14 sm:py-20 lg:py-24">
+    <main className="content-shell py-10 sm:py-14 lg:py-16">
       <BackLink className="mb-7" fallbackHref="/" />
       <PageHeader
         action={

@@ -35,7 +35,10 @@ describe('AppShell', () => {
       </AppShell>,
     );
 
-    expect(screen.getByRole('banner')).toBeInTheDocument();
+    const banner = screen.getByRole('banner');
+    expect(banner).toBeInTheDocument();
+    expect(banner.firstElementChild).toHaveClass('content-shell');
+    expect(banner.firstElementChild).not.toHaveClass('page-shell');
     expect(screen.getByRole('link', { name: '帧取首页' })).toHaveAttribute(
       'href',
       '/',

@@ -86,9 +86,15 @@ describe('download history', () => {
       expires_at: '2026-08-09T10:05:00Z',
       url: 'https://objects.example/signed',
     });
-    render(<DownloadHistoryView />);
+    const { container } = render(<DownloadHistoryView />);
 
     expect(await screen.findByText('示例视频')).toBeInTheDocument();
+    expect(container.querySelector('main')).toHaveClass(
+      'content-shell',
+      'py-10',
+      'sm:py-14',
+      'lg:py-16',
+    );
     expect(
       screen.getByRole('heading', { level: 1, name: '下载历史' }),
     ).toBeInTheDocument();

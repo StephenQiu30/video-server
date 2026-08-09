@@ -61,7 +61,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 bg-background">
-      <div className="page-shell flex h-[72px] items-center justify-between">
+      <div className="content-shell flex h-[72px] items-center justify-between">
         <BrandLink />
         <nav
           aria-label="主要导航"

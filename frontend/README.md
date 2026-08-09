@@ -87,7 +87,7 @@ npm run openapi
 
 - 页面优先组合已有 Radix/shadcn 组件，不重新实现对话框、菜单、选择器、标签页、提示或表单控件。
 - 当前视觉基准是用户选定的 Product Design 方案 3 无边框修订稿：`/Users/stephenqiu/.codex/generated_images/019fe657-3556-7102-a4d8-f0f95698076b/exec-6ad65a6b-a139-48c1-a789-730a53116807.png`。风格贴近 Vercel Home：`#FAFAFA` 偏白画布、Geist、`#0A0A0A` 前景、`#111111` 近黑主操作、大尺寸编辑式首页 Hero 和克制的中性表面。
-- Header 高 72px 且无下边线/外框/阴影。布局使用两级隐形网格：Header `.page-shell` 为 `min(calc(100% - 80px), 1456px)`；main 与 footer `.content-shell` 为 `min(calc(100% - 160px), 1376px)`。641–1023px 时内容 gutter 各 32px；不超过 640px 时两级网格 gutter 均为 16px。这些是对齐约束，不能显示成页面外壳。
+- Header 高 72px 且无下边线/外框/阴影。Header、main 与 footer 统一使用 `.content-shell = min(calc(100% - 160px), 1376px)`，使导航与主体对齐；认证双栏可在内部使用更宽的 `.page-shell = min(calc(100% - 80px), 1456px)`。641–1023px 时常规内容 gutter 各 32px；不超过 640px 时两种网格 gutter 均为 16px。这些是对齐约束，不能显示成页面外壳。
 - 首页 Hero 与内页标题使用 Geist 响应式标题阶梯，不强制旧的固定页标尺寸。只有真实流程序号可使用中性 mono eyebrow，不使用彩色装饰性分类标签或与标题重复的说明。
 - 页面根、标题区、筛选区、列表区和表单区不使用可见 PageShell/Card 外壳、装饰 ring、阴影或大边框。输入、选择器和按钮优先使用无边框实心填充面；内容层级只使用必要的 1px 发丝 Separator。错误边界、可见键盘焦点轮廓与 Radix 覆盖层的表面/遮罩必须保留。
 - 首页格式选择必须使用 Radix RadioGroup 直接渲染 API 返回的真实 `MediaFormat`。不使用旧三步 UI、伪画质预设、伪字幕/容器选择器或静态封面上的伪播放按钮。群山湖泊演示/回归资产位于 `public/images/media-preview-mountain.webp`（约 221 KiB），真实封面仍优先。
