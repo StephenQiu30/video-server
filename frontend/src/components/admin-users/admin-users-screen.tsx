@@ -1,10 +1,9 @@
-import { CaretLeft, CaretRight, CheckCircle } from '@phosphor-icons/react';
+import { CheckCircle } from '@phosphor-icons/react';
 
+import { BackLink } from '@/components/back-link';
 import { PageHeader } from '@/components/page-header';
+import { PagePagination } from '@/components/page-pagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { ButtonGroup, ButtonGroupText } from '@/components/ui/button-group';
-import { Pagination } from '@/components/ui/pagination';
 
 import {
   PAGE_SIZE,
@@ -54,20 +53,22 @@ export function AdminUsersScreen({
 
   return (
     <section className="space-y-10">
-      <PageHeader
-        action={
-          <p className="font-mono text-xs text-muted-foreground tabular-nums">
-            共{' '}
-            <strong className="font-semibold text-foreground">
-              {result.total}
-            </strong>{' '}
-            个账户
-          </p>
-        }
-        description="查找账户，并在不离开当前页面的情况下调整角色与启用状态。"
-        eyebrow="03 / 系统管理"
-        title="用户管理"
-      />
+      <div>
+        <BackLink className="mb-7" fallbackHref="/account" />
+        <PageHeader
+          action={
+            <p className="font-mono text-xs text-muted-foreground tabular-nums">
+              共{' '}
+              <strong className="font-semibold text-foreground">
+                {result.total}
+              </strong>{' '}
+              个账户
+            </p>
+          }
+          description="查找账户，并在不离开当前页面的情况下调整角色与启用状态。"
+          title="用户管理"
+        />
+      </div>
 
       <div className="hairline border-t pt-7">
         <UserFilters
@@ -104,36 +105,14 @@ export function AdminUsersScreen({
           <span>
             显示 {first}–{last}，共 {result.total} 项
           </span>
-          <Pagination aria-label="用户列表分页" className="w-auto justify-end">
-            <ButtonGroup>
-              <Button
-                aria-label="上一页"
-                disabled={result.page <= 1}
-                onClick={() => actions.onPageChange(result.page - 1)}
-                size="icon-sm"
-                type="button"
-                variant="outline"
-              >
-                <CaretLeft aria-hidden />
-              </Button>
-              <ButtonGroupText
-                aria-live="polite"
-                className="min-w-20 justify-center bg-background font-normal"
-              >
-                {result.page} / {pages}
-              </ButtonGroupText>
-              <Button
-                aria-label="下一页"
-                disabled={result.page >= pages}
-                onClick={() => actions.onPageChange(result.page + 1)}
-                size="icon-sm"
-                type="button"
-                variant="outline"
-              >
-                <CaretRight aria-hidden />
-              </Button>
-            </ButtonGroup>
-          </Pagination>
+          <PagePagination
+            ariaLabel="用户列表分页"
+            className="w-auto justify-end"
+            compact
+            onPageChange={actions.onPageChange}
+            page={result.page}
+            pages={pages}
+          />
         </footer>
       )}
 

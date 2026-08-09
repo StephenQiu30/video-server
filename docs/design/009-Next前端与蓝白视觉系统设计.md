@@ -115,13 +115,13 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 | `--background` | `#FAFAFA` | 页面主画布，对应 Vercel/Geist 浅色内容背景 |
 | `--card` | `#FFFFFF` | 仅供 Popover、Dialog、Sheet 等覆盖层分层；页面内不显示 Card 外壳 |
 | `--foreground` | `#0A0A0A` | 正文与标题 |
-| `--muted-foreground` | `#707070` | 次要说明与元数据 |
+| `--muted-foreground` | `#686868` | 次要说明与元数据 |
 | `--primary` | `#111111` | 主操作与高强调填充面 |
 | `--primary-hover` | `#2B2B2B` | 主操作悬停 |
 | `--ring` | `#111111` | 键盘焦点轮廓，不用作装饰 ring |
 | `--surface` | `#F5F5F5` | 无边框次级控件与静默区域的填充面 |
-| `--divider` | `#E6E6E6` | 仅用于内容节奏所需的 1px 发丝分隔 |
-| `--success` | `#36A269` | 成功状态 |
+| `--border` | `#E6E6E6` | 仅用于内容节奏所需的 1px 发丝分隔与功能边界 |
+| `--success` | `#16824D` | 成功状态 |
 | `--warning` | `#A16207` | 等待与重试状态 |
 | `--destructive` | `#DC2626` | 错误与破坏性操作 |
 
@@ -130,10 +130,10 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 ### 字体、间距与容器
 
 - 字体栈以 Next.js 自托管 Geist Sans 为西文与数字基线，中文依次回退到 `PingFang SC`、`Hiragino Sans GB`、`Microsoft YaHei` 与系统无衬线字体；运行时不从第三方加载字体。尺度参考 [Geist Typography](https://vercel.com/geist/typography)：首页 H1 使用随视口流动的大尺寸编辑式尺度与紧凑行高；内页根据信息密度使用同一响应式标题阶梯，不再强制旧的 32px/28px 固定页标尺寸。
-- 所有路由复用两级隐形布局网格：Header `.page-shell` 为 `min(calc(100% - 80px), 1456px)`；main 与 footer `.content-shell` 为 `min(calc(100% - 160px), 1376px)`。在 641–1023px，`.content-shell` 改为两侧各 32px gutter；在 `<=640px`，`.page-shell` 与 `.content-shell` 都改为两侧各 16px gutter。这是对齐约束，不得呈现为可见页面外壳。认证表单、资料表单、说明文字和媒体可在 `.content-shell` 内二次收窄。
+- 所有路由复用两级隐形布局网格：Header `.page-shell` 为 `min(calc(100% - 80px), 1456px)`；常规 main 与 footer `.content-shell` 为 `min(calc(100% - 160px), 1376px)`。认证页的无外框双栏 main 是唯一例外，可使用 `.page-shell`，右侧表单在内部收窄到 440px，不足 `lg` 时隐藏介绍栏。在 641–1023px，`.content-shell` 改为两侧各 32px gutter；在 `<=640px`，`.page-shell` 与 `.content-shell` 都改为两侧各 16px gutter。这是对齐约束，不得呈现为可见页面外壳；资料表单、说明文字和媒体可在对应网格内二次收窄。
 - 间距采用 4px 基准，控件内部使用 8/12/16px，内容组使用 24/32px，主要段落使用 48/64/96px。标题、描述和主操作之间必须保留明显层级，不通过额外卡片填满空白。
 - 内页标题保持短、直接并与首页共用 Geist 层级；只有真实流程编号才可使用中性色 mono eyebrow，不使用装饰性彩色分类标签或与 H1 重复的说明。
-- Header 视觉高度为 72px，与主网格共用水平 gutter；Header 本身不使用下边线、外框、ring 或阴影。
+- Header 视觉高度为 72px，使用 `.page-shell` 的桌面 40px gutter；main/footer 使用 `.content-shell` 的桌面 80px gutter，形成有意的两级对齐。Header 本身不使用下边线、外框、ring 或阴影。
 - 页面根、标题区、筛选区、列表区和表单区不使用可见 Card 外壳、装饰 ring、阴影或装饰性大边框。输入、选择器和按钮优先用实心中性填充面与颜色对比建立边界；内容分组只使用必要的 1px 发丝 Separator。Dialog、Sheet、Popover 等 Radix 覆盖层仍保留可辨识表面、遮罩、焦点圈定和 Escape/焦点恢复。键盘焦点轮廓是功能性边界，不属于装饰 ring。
 - 动效以 120–200ms 的透明度或位移过渡为主，并遵循 `prefers-reduced-motion`。
 
@@ -155,7 +155,7 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 | 无数据 | [Empty](https://ui.shadcn.com/docs/components/radix/empty) | 包含状态名、一句原因和至多一个主恢复动作 |
 | 分页 | [Pagination](https://ui.shadcn.com/docs/components/radix/pagination) | 有当前页语义和可读名称；390px 优先上/下页而非完整页码 |
 | 破坏性确认 | [Alert Dialog](https://ui.shadcn.com/docs/components/radix/alert-dialog) | 仅用于取消下载和取消分析；取消为安全默认，明确后果，管理员编辑仍在普通 Dialog 中完成 |
-| 媒体尺寸 | [Aspect Ratio](https://ui.shadcn.com/docs/components/radix/aspect-ratio) | 缩略图和预览固定 16:9，加载失败也不造成布局塌陷 |
+| 媒体尺寸 | [Aspect Ratio](https://ui.shadcn.com/docs/components/radix/aspect-ratio) | 缩略图和预览固定 1.86:1，加载失败也不造成布局塌陷 |
 
 布局所需的 Separator、Badge、Button、Select、Dropdown Menu、Dialog、Tabs、Progress、Skeleton、Spinner 同样复用 registry 实现。页面可以用 Tailwind 排列它们，但不得绕过组件另造不具备语义和焦点行为的可点击 `div`。
 
@@ -167,6 +167,8 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 
 390px 下保留品牌和一个明确的导航触发器，下载记录、账户与主题操作进入 Sheet；不把桌面导航强行压缩到同一行。Sheet 打开后焦点进入其可操作内容，链接均可通过 Tab 到达并以键盘激活；关闭而未导航时，焦点返回触发器。品牌链接始终提供返回 `/` 的明确可读名称。图标按钮有可见或屏幕阅读器标签，Tooltip 仅作辅助，触控区域至少 44×44px。
 
+所有已认证的非首页页面在内容标题前提供统一 `BackLink`，文字为“返回上一步”，触控高度至少 44px。应用在当前标签页内记录最小站内导航栈：存在上一条站内记录时调用浏览器历史返回，直接打开页面或历史不可用时使用明确的层级 fallback（历史→首页、账户→首页、用户管理→账户、下载详情/任务缺失→下载历史、404→首页）。记录使用完整的站内 pathname + search，并为浏览器历史条目分配不含业务数据的临时标记，保证 query-only 详情切换、前进/后退和重复路径都能精确定位；`sessionStorage` 仅保存这些站内路由、标记和当前索引，不包含账户、任务内容或凭据。登录与注册不显示通用历史返回，只保留彼此之间的明确交叉链接和校验后的安全 `redirect`；认证守卫继续使用 replace，避免过期受保护页面参与回退并形成登录循环。
+
 ### 首页 `/`
 
 首页严格延续方案 3：
@@ -176,7 +178,7 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 3. 旧的“链接 → 格式 → 下载”三步导航/进度 UI 不再出现；页面用留白、编号眉题和结果内容的自然顺序表达流程。
 4. 解析成功后展示媒体画面与真实格式选择双栏：媒体区使用真实封面、标题、平台和时长；选择区必须用 Radix `RadioGroup` 直接渲染 API 返回的每一个 `MediaFormat`，并展示其分辨率、容器、编码与帧率。不得伪造“最佳画质/兼容优先/仅音频”预设，不增加未由契约支持的字幕或容器选择器，也不在静态封面上放置伪播放控件。
 5. 页面内不放置结果 Card 外壳；双栏只用留白和必要的发丝 Separator 组织。方案 3 中的群山湖泊媒体示例使用 `frontend/public/images/media-preview-mountain.webp`（约 221 KiB），用于稳定演示/视觉回归；生产解析成功态仍优先显示真实媒体封面。
-6. 页面底部保留合法使用提示与解析时间；不展示无关营销模块。
+6. 页面底部保留合法使用与隐私提示；不伪造契约未提供的解析耗时，也不展示无关营销模块。
 
 首页必须覆盖初始、URL 校验失败、解析中、解析失败、无可用格式、已解析、创建任务中七种状态。提交不得重复创建任务，幂等键语义与旧实现一致。创建成功直接进入 canonical 详情地址。
 
@@ -188,13 +190,13 @@ PageHeader 直接显示“下载历史”及一句用途说明、可选的“新
 
 ### 下载详情 `/downloads/detail`
 
-页面读取并校验 `jobId` 查询参数。缺失、格式非法、无权限或不存在时使用 Empty/Alert 给出不同但不泄露敏感信息的恢复路径。正常态使用连续内容区：AspectRatio 封面、任务状态、操作和分析内容按阅读顺序排列，区段间使用 Separator，不包在一张 Card 中。任务阶段决定取消、获取文件、开始分析、取消分析或重新分析动作；取消下载或分析使用 AlertDialog，不使用浏览器原生 `confirm`。
+页面读取并校验 `jobId` 查询参数。缺失、格式非法、无权限或不存在时使用 Empty/Alert 给出不同但不泄露敏感信息的恢复路径。统一返回入口优先回到实际上一条站内记录，直接访问时回落到 `/history`。正常态使用连续内容区：AspectRatio 封面、任务状态、操作和分析内容按阅读顺序排列，区段间使用 Separator，不包在一张 Card 中。任务阶段决定取消、获取文件、开始分析、取消分析或重新分析动作；取消下载或分析使用 AlertDialog，不使用浏览器原生 `confirm`。
 
 进度值使用文本与 Radix Progress 同时表达，并通过节流的 `aria-live="polite"` 发布关键阶段变化。AI 分析成功后展示摘要、关键观点、章节和可键盘浏览的思维导图；下载失败不伪装为空状态，AI 失败不改变下载成功表达。
 
 ### 登录与注册
 
-在 `.content-shell` 内使用居中窄列表单，不显示 Card 外壳、装饰性 border/ring/shadow。登录突出邮箱、密码和单一近黑主按钮；注册增加用户名与密码确认。标题直接显示“登录”或“创建账户”，不增加与任务重复的装饰眉题。字段统一由 Field + InputGroup 组合 label、描述、密码可见性与错误，错误出现在对应字段附近并在提交失败时聚焦摘要。登录态用户访问认证页时返回安全的站内目标。
+认证页使用 `.page-shell` 的无外框双栏版式：桌面左栏承载简短产品主张与合法使用提示，右栏用发丝分隔后放置不超过 440px 的表单；不足 `lg` 时隐藏介绍栏并让表单自然占满可用宽度。登录突出邮箱、密码和单一近黑主按钮；注册增加用户名与密码确认。标题使用“登录，继续下载。”或“创建账户，保存进度。”等直接动作句，不增加编号流程眉题。字段统一由 Field + InputGroup 组合 label、描述、密码可见性与错误，错误出现在对应字段附近并在提交失败时聚焦摘要。登录态用户访问认证页时返回校验后的安全站内目标；登录和注册通过明确的交叉链接互相切换，不显示可能回到过期受保护页面的通用历史返回。
 
 ### 个人资料与用户管理
 
@@ -212,8 +214,8 @@ PageHeader 直接显示“下载历史”及一句用途说明、可选的“新
 
 - 桌面验收同时覆盖常见 1280px 宽视口与方案 3 原始 1487×1058 视口；Header 始终为 72px，`.page-shell`/`.content-shell` 按 1456px/1376px 上限和各自 gutter 对齐，不因宽屏无限拉长行文。
 - 页面不得出现横向滚动，任何固定宽度必须受 `max-width: 100%` 约束。
-- 首页 URL 输入与解析按钮改为上下排列，按钮满宽；结果改为单列，先展示格式与下载动作，再展示媒体摘要。
-- 封面保持 16:9，不拉伸、不裁掉关键信息；长标题最多按上下文截断并保留完整可访问名称。
+- 首页 URL 输入与解析按钮改为上下排列，按钮满宽；结果改为单列，先展示媒体摘要，再展示真实格式与下载动作。
+- 封面保持 1.86:1，不拉伸、不裁掉关键信息；长标题最多按上下文截断并保留完整可访问名称。
 - 管理员桌面 Table 在 390px 下切换为 Item 列表；历史始终使用 Item/ItemGroup；筛选条、表单按钮和 Dialog/Sheet 采用移动布局；主操作满宽，操作之间至少 8px。
 - Sheet 宽度不超过视口，内容过长时自身可滚动；AlertDialog 的标题、后果说明和取消/确认操作在 390px 下不被裁切。
 - Pagination 优先保留上一页、当前页和下一页；Tooltip 不作为触屏用户获得必要信息的唯一方式。

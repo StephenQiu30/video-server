@@ -5,6 +5,7 @@ import {
   renderHook,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -19,12 +20,7 @@ import type {
 const runtime = vi.hoisted(() => ({
   getDownloadHistory: vi.fn(),
   issueDownloadUrl: vi.fn(),
-  push: vi.fn(),
   triggerBrowserDownload: vi.fn(),
-}));
-
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: runtime.push }),
 }));
 
 vi.mock('@/services/download', () => ({
@@ -39,7 +35,6 @@ describe('download history', () => {
   beforeEach(() => {
     runtime.getDownloadHistory.mockReset();
     runtime.issueDownloadUrl.mockReset();
-    runtime.push.mockReset();
     runtime.triggerBrowserDownload.mockReset();
   });
 
@@ -97,13 +92,17 @@ describe('download history', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: '下载历史' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('02 / 下载记录')).toBeInTheDocument();
+    expect(screen.queryByText('02 / 下载记录')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '返回上一步' })).toHaveAttribute(
+      'href',
+      '/',
+    );
     expect(screen.queryByText('任务记录')).not.toBeInTheDocument();
     expect(
       screen.getByText('共 1 项 · 已完成 1 · 进行中 0'),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '示例视频' }));
-    expect(runtime.push).toHaveBeenCalledWith(
+    expect(screen.getByRole('link', { name: '示例视频' })).toHaveAttribute(
+      'href',
       '/downloads/detail?jobId=history-job-1',
     );
 
@@ -114,6 +113,59 @@ describe('download history', () => {
       ),
     );
     expect(runtime.issueDownloadUrl).toHaveBeenCalledWith('history-job-1');
+  });
+
+  it('renders pending task actions as detail links', async () => {
+    runtime.getDownloadHistory.mockResolvedValue(
+      history({
+        items: [historyItem({ progress: 42, status: 'running' })],
+        summary: { active: 1, failed: 0, succeeded: 0, total: 1 },
+      }),
+    );
+    render(<DownloadHistoryView />);
+
+    const detailHref = '/downloads/detail?jobId=history-job-1';
+    expect(
+      await screen.findByRole('link', { name: '示例视频' }),
+    ).toHaveAttribute('href', detailHref);
+    expect(screen.getByRole('link', { name: '查看任务' })).toHaveAttribute(
+      'href',
+      detailHref,
+    );
+  });
+
+  it('changes pages through the shared pagination controls', async () => {
+    runtime.getDownloadHistory.mockImplementation(
+      async ({ page = 1 }: DownloadHistoryQuery) =>
+        history({
+          items: [historyItem({ id: `history-job-${page}` })],
+          page,
+          total: 21,
+        }),
+    );
+    render(<DownloadHistoryView />);
+
+    const pagination = await screen.findByRole('navigation', {
+      name: '下载历史分页',
+    });
+    expect(within(pagination).getByText('1 / 2')).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(
+      within(pagination).getByRole('button', { name: '上一页' }),
+    ).toBeDisabled();
+
+    fireEvent.click(within(pagination).getByRole('button', { name: '下一页' }));
+    await waitFor(() =>
+      expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith(
+        expect.objectContaining({ page: 2 }),
+      ),
+    );
+    expect(within(pagination).getByText('2 / 2')).toBeInTheDocument();
+    expect(
+      within(pagination).getByRole('button', { name: '下一页' }),
+    ).toBeDisabled();
   });
 
   it('submits a trimmed title search from the accessible form', async () => {
@@ -154,12 +206,13 @@ function historyItem(
   };
 }
 
-function history(): DownloadHistory {
+function history(overrides: Partial<DownloadHistory> = {}): DownloadHistory {
   return {
     items: [historyItem()],
     page: 1,
     page_size: 20,
     summary: { active: 0, failed: 0, succeeded: 1, total: 1 },
     total: 1,
+    ...overrides,
   };
 }

@@ -52,6 +52,10 @@ describe('administrator user management', () => {
     render(<AdminUsersView />);
 
     await screen.findAllByText('owner');
+    expect(screen.getByRole('link', { name: '返回上一步' })).toHaveAttribute(
+      'href',
+      '/account',
+    );
     expect(runtime.listUsers).toHaveBeenLastCalledWith({
       is_active: undefined,
       page: 1,
@@ -87,12 +91,26 @@ describe('administrator user management', () => {
     );
 
     const pagination = screen.getByRole('navigation', { name: '用户列表分页' });
+    expect(within(pagination).getByText('1 / 2')).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(
+      within(pagination).getByRole('button', { name: '上一页' }),
+    ).toBeDisabled();
     fireEvent.click(within(pagination).getByRole('button', { name: '下一页' }));
     await waitFor(() =>
       expect(runtime.listUsers).toHaveBeenLastCalledWith(
         expect.objectContaining({ page: 2, search: 'editor' }),
       ),
     );
+    const updatedPagination = screen.getByRole('navigation', {
+      name: '用户列表分页',
+    });
+    expect(within(updatedPagination).getByText('2 / 2')).toBeInTheDocument();
+    expect(
+      within(updatedPagination).getByRole('button', { name: '下一页' }),
+    ).toBeDisabled();
   });
 
   it('ignores a stale list response after the query changes', async () => {

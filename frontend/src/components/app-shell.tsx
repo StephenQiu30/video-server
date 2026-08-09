@@ -3,9 +3,10 @@
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+import { NavigationHistoryProvider } from '@/components/navigation-history';
 import { PageHeader } from '@/components/page-header';
 import SiteHeader, { BrandLink } from '@/components/site-header';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import {
   Field,
   FieldDescription,
@@ -19,21 +20,25 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isAuthRoute = pathname?.startsWith('/user/');
 
-  if (isAuthRoute) return <>{children}</>;
-
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <a
-        className="focus-ring fixed left-4 top-3 z-[60] -translate-y-20 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground focus:translate-y-0"
-        href="#main-content"
-      >
-        跳到主要内容
-      </a>
-      <SiteHeader />
-      <div id="main-content" tabIndex={-1}>
-        {children}
-      </div>
-    </div>
+    <NavigationHistoryProvider currentPath={pathname ?? '/'}>
+      {isAuthRoute ? (
+        children
+      ) : (
+        <div className="min-h-screen bg-background text-foreground">
+          <Button
+            asChild
+            className="fixed left-4 top-3 z-[60] h-11 -translate-y-[calc(100%+1rem)] focus-visible:translate-y-0"
+          >
+            <a href="#main-content">跳到主要内容</a>
+          </Button>
+          <SiteHeader />
+          <div id="main-content" tabIndex={-1}>
+            {children}
+          </div>
+        </div>
+      )}
+    </NavigationHistoryProvider>
   );
 }
 
@@ -75,21 +80,15 @@ export function AuthPageFrame({
             </p>
           </section>
           <div className="flex items-center py-12 lg:border-l lg:py-20 lg:pl-16 xl:pl-24">
-            <Card
-              aria-labelledby={titleId}
-              className="w-full max-w-[440px] gap-0 rounded-none bg-transparent py-0 shadow-none ring-0"
-              role="region"
-            >
-              <CardHeader className="gap-0 rounded-t-none px-0 py-0">
-                <PageHeader
-                  description={description}
-                  title={title}
-                  titleClassName="text-[clamp(2.5rem,4vw,3rem)]"
-                  titleId={titleId}
-                />
-              </CardHeader>
-              <CardContent className="px-0 pt-8 pb-0">{children}</CardContent>
-            </Card>
+            <section aria-labelledby={titleId} className="w-full max-w-[440px]">
+              <PageHeader
+                description={description}
+                title={title}
+                titleClassName="text-[clamp(2.5rem,4vw,3rem)]"
+                titleId={titleId}
+              />
+              <div className="pt-8">{children}</div>
+            </section>
           </div>
         </div>
       </div>

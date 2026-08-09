@@ -1,7 +1,6 @@
-import { ArrowLeft, WarningCircle } from '@phosphor-icons/react/dist/ssr';
-import Link from 'next/link';
+import { WarningCircle } from '@phosphor-icons/react/dist/ssr';
 
-import { Button } from '@/components/ui/button';
+import { BackLink } from '@/components/back-link';
 import {
   Empty,
   EmptyContent,
@@ -27,12 +26,7 @@ export default function MissingDownload() {
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent className="mt-4 items-start">
-          <Button asChild variant="outline">
-            <Link href="/history">
-              <ArrowLeft aria-hidden size={17} />
-              返回下载历史
-            </Link>
-          </Button>
+          <BackLink className="ml-0" fallbackHref="/history" />
         </EmptyContent>
       </Empty>
     </main>

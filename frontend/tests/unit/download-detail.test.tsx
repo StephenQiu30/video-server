@@ -32,6 +32,10 @@ describe('DownloadJobView', () => {
     expect(
       screen.getByRole('heading', { name: 'AI 智能分析' }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '返回上一步' })).toHaveAttribute(
+      'href',
+      '/history',
+    );
   });
 
   it('cancels an active download', async () => {

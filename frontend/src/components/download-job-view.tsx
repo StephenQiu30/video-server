@@ -1,13 +1,10 @@
 'use client';
 
-import { ArrowLeft } from '@phosphor-icons/react';
-import Link from 'next/link';
-
 import AnalysisPanel from '@/components/analysis-panel';
+import { BackLink } from '@/components/back-link';
 import DownloadState from '@/components/download-state';
 import MediaCover from '@/components/media-cover';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDownloadJob } from '@/hooks/useDownloadJob';
 import type { MediaFormat } from '@/types/video';
@@ -29,16 +26,7 @@ export default function DownloadJobView({
 
   return (
     <main className="content-shell py-10 sm:py-14 lg:py-16">
-      <Button
-        asChild
-        className="-ml-3 text-muted-foreground hover:text-foreground"
-        variant="ghost"
-      >
-        <Link href="/">
-          <ArrowLeft aria-hidden size={17} />
-          返回新建下载
-        </Link>
-      </Button>
+      <BackLink fallbackHref="/history" />
       <p className="eyebrow mt-7 text-muted-foreground">02 / 下载任务</p>
       {state.error ? (
         <Alert className="mt-8" variant="destructive">
@@ -95,7 +83,7 @@ export default function DownloadJobView({
 function DownloadJobSkeleton() {
   return (
     <main className="content-shell py-10 sm:py-14 lg:py-16">
-      <Skeleton className="h-4 w-28" />
+      <BackLink fallbackHref="/history" />
       <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)] lg:gap-0">
         <div className="lg:pr-12">
           <Skeleton className="aspect-video rounded-none" />

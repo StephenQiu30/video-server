@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  ArrowClockwise,
-  Robot,
-  ShieldCheck,
-  SpinnerGap,
-} from '@phosphor-icons/react';
+import { ArrowClockwise, Robot, ShieldCheck } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { stageLabels, statusLabels } from '@/components/analysis-panel-model';
 import AnalysisResultView from '@/components/analysis-result-view';
@@ -24,6 +19,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Field, FieldLabel } from '@/components/ui/field';
 import { Progress } from '@/components/ui/progress';
 import {
   Select,
@@ -32,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
 import { useAnalysisJob } from '@/hooks/useAnalysisJob';
 import type {
   AnalysisJob,
@@ -106,12 +103,14 @@ export default function AnalysisPanel({
       {!state.job ? (
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
           <AnalysisSelect
+            id="analysis-profile"
             label="分析模板"
             onChange={(value) => setProfile(value as AnalysisProfile)}
             options={[['standard-v1', '标准分析']]}
             value={profile}
           />
           <AnalysisSelect
+            id="analysis-language"
             label="输出语言"
             onChange={(value) => setLanguage(value as OutputLanguage)}
             options={[
@@ -126,9 +125,7 @@ export default function AnalysisPanel({
             onClick={() => state.start({ profile, output_language: language })}
             size="lg"
           >
-            {state.action === 'start' ? (
-              <SpinnerGap className="animate-spin" />
-            ) : null}
+            {state.action === 'start' ? <Spinner aria-hidden /> : null}
             开始 AI 分析
           </Button>
         </div>
@@ -140,21 +137,23 @@ export default function AnalysisPanel({
 }
 
 function AnalysisSelect({
+  id,
   label,
   onChange,
   options,
   value,
 }: {
+  id: string;
   label: string;
   onChange: (value: string) => void;
   options: [string, string][];
   value: string;
 }) {
   return (
-    <div className="grid gap-2 text-sm font-medium">
-      <span>{label}</span>
+    <Field>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <Select onValueChange={onChange} value={value}>
-        <SelectTrigger aria-label={label} className="w-full">
+        <SelectTrigger className="w-full" id={id}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -165,7 +164,7 @@ function AnalysisSelect({
           ))}
         </SelectContent>
       </Select>
-    </div>
+    </Field>
   );
 }
 
@@ -197,9 +196,7 @@ function AnalysisJobState({
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button disabled={state.action === 'cancel'} variant="outline">
-                {state.action === 'cancel' ? (
-                  <SpinnerGap className="animate-spin" />
-                ) : null}
+                {state.action === 'cancel' ? <Spinner aria-hidden /> : null}
                 取消分析
               </Button>
             </AlertDialogTrigger>

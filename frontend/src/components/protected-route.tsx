@@ -48,7 +48,7 @@ function RouteStatus({ label }: { label: string }) {
     >
       <Spinner
         aria-hidden
-        className="size-5 animate-spin text-primary motion-reduce:animate-none"
+        className="size-5 text-primary"
         role="presentation"
       />
       <span>{label}</span>

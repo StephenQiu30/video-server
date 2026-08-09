@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 
+import { BackLink } from '@/components/back-link';
 import DownloadRoute from '@/components/download-route';
 import { ProtectedRoute } from '@/components/protected-route';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,7 +20,7 @@ export default function DownloadDetailPage() {
 function DetailSkeleton() {
   return (
     <main className="content-shell py-10 sm:py-14 lg:py-16">
-      <Skeleton className="h-4 w-28" />
+      <BackLink fallbackHref="/history" />
       <Skeleton className="mt-7 h-10 w-40" />
       <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)] lg:gap-0">
         <div className="lg:pr-12">

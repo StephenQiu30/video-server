@@ -18,8 +18,14 @@ describe('AnalysisPanel', () => {
       screen.getByRole('heading', { name: 'AI 智能分析' }),
     ).toBeInTheDocument();
     expect(screen.queryByText('AI analysis')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('分析模板')).toBeInTheDocument();
-    expect(screen.getByLabelText('输出语言')).toBeInTheDocument();
+    expect(screen.getByLabelText('分析模板')).toHaveAttribute(
+      'id',
+      'analysis-profile',
+    );
+    expect(screen.getByLabelText('输出语言')).toHaveAttribute(
+      'id',
+      'analysis-language',
+    );
     expect(screen.getByRole('button', { name: '开始 AI 分析' })).toBeEnabled();
   });
 

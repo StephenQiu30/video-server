@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  DownloadSimple,
-  LinkSimple,
-  SpinnerGap,
-  X,
-} from '@phosphor-icons/react';
+import { DownloadSimple, LinkSimple, X } from '@phosphor-icons/react';
 import type { FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,6 +9,7 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from '@/components/ui/input-group';
+import { Spinner } from '@/components/ui/spinner';
 import {
   Tooltip,
   TooltipContent,
@@ -45,7 +41,7 @@ export default function DownloadHero({
     <section className="pt-14 sm:pt-16 lg:pt-[72px]">
       <p className="eyebrow text-muted-foreground">01 / 解析媒体</p>
       <div className="mt-6">
-        <h1 className="text-[clamp(3.2rem,5.4vw,4.25rem)] font-medium leading-[0.96] tracking-[-0.06em] sm:whitespace-nowrap">
+        <h1 className="editorial-title sm:whitespace-nowrap">
           把视频，
           <span className="block sm:ml-[0.85em] sm:inline">带回本地。</span>
         </h1>
@@ -99,35 +95,10 @@ export default function DownloadHero({
           disabled={busy}
           type="submit"
         >
-          {busy ? (
-            <SpinnerGap className="animate-spin" />
-          ) : (
-            <DownloadSimple aria-hidden />
-          )}
+          {busy ? <Spinner aria-hidden /> : <DownloadSimple aria-hidden />}
           {busy ? '解析中…' : inspection ? '重新解析' : '解析媒体'}
         </Button>
       </form>
-
-      {!inspection ? <EmptyWorkflow /> : null}
     </section>
-  );
-}
-
-function EmptyWorkflow() {
-  return (
-    <div className="mt-16 grid gap-10 border-t pt-7 sm:grid-cols-2 lg:mt-20">
-      <div>
-        <p className="eyebrow text-muted-foreground">02 / 选择画质</p>
-        <p className="mt-3 max-w-sm text-sm leading-6 text-muted-foreground">
-          解析完成后，按分辨率、编码与兼容性选择可用版本。
-        </p>
-      </div>
-      <div>
-        <p className="eyebrow text-muted-foreground">03 / 创建任务</p>
-        <p className="mt-3 max-w-sm text-sm leading-6 text-muted-foreground">
-          下载、封装、校验与保存状态会持续更新，随时可从记录中继续。
-        </p>
-      </div>
-    </div>
   );
 }

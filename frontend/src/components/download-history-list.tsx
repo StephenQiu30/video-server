@@ -1,4 +1,5 @@
 import { DownloadSimple } from '@phosphor-icons/react';
+import Link from 'next/link';
 
 import MediaCover from '@/components/media-cover';
 import { Badge } from '@/components/ui/badge';
@@ -30,12 +31,10 @@ export default function DownloadHistoryList({
   data,
   loading,
   onDownload,
-  onOpen,
 }: {
   data: DownloadHistory | null;
   loading: boolean;
   onDownload: (item: DownloadHistoryItem) => void;
-  onOpen: (id: string) => void;
 }) {
   return (
     <section aria-label="下载任务" className="mt-4 border-t border-border/70">
@@ -43,12 +42,7 @@ export default function DownloadHistoryList({
       {data?.items.length ? (
         <ItemGroup className="gap-0 divide-y divide-border/70">
           {data.items.map((item) => (
-            <HistoryRow
-              item={item}
-              key={item.id}
-              onDownload={onDownload}
-              onOpen={onOpen}
-            />
+            <HistoryRow item={item} key={item.id} onDownload={onDownload} />
           ))}
         </ItemGroup>
       ) : null}
@@ -72,12 +66,12 @@ export default function DownloadHistoryList({
 function HistoryRow({
   item,
   onDownload,
-  onOpen,
 }: {
   item: DownloadHistoryItem;
   onDownload: (item: DownloadHistoryItem) => void;
-  onOpen: (id: string) => void;
 }) {
+  const detailHref = `/downloads/detail?jobId=${encodeURIComponent(item.id)}`;
+
   return (
     <Item
       className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 rounded-none border-0 px-0 py-5 sm:grid-cols-[128px_minmax(0,1fr)_auto] sm:gap-x-6 sm:py-6"
@@ -93,14 +87,12 @@ function HistoryRow({
       <ItemContent className="min-w-0 gap-1.5">
         <ItemTitle className="line-clamp-2">
           <Button
-            aria-label={item.title}
+            asChild
             className="h-auto justify-start whitespace-normal p-0 text-left text-[15px] leading-snug text-foreground hover:text-muted-foreground hover:no-underline"
-            onClick={() => onOpen(item.id)}
             size="sm"
             variant="link"
-            type="button"
           >
-            {item.title}
+            <Link href={detailHref}>{item.title}</Link>
           </Button>
         </ItemTitle>
         <ItemDescription className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
@@ -128,13 +120,8 @@ function HistoryRow({
             获取文件
           </Button>
         ) : (
-          <Button
-            className="-mr-2"
-            onClick={() => onOpen(item.id)}
-            size="sm"
-            variant="ghost"
-          >
-            查看任务
+          <Button asChild className="-mr-2" size="sm" variant="ghost">
+            <Link href={detailHref}>查看任务</Link>
           </Button>
         )}
       </ItemActions>

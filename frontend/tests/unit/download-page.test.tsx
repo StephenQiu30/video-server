@@ -28,8 +28,8 @@ describe('DownloadWorkspace', () => {
       screen.getByRole('heading', { name: /把视频，\s*带回本地。/u }),
     ).toBeInTheDocument();
     expect(screen.queryByText('Public media workflow')).not.toBeInTheDocument();
-    expect(screen.getByText('02 / 选择画质')).toBeInTheDocument();
-    expect(screen.getByText('03 / 创建任务')).toBeInTheDocument();
+    expect(screen.queryByText('02 / 选择画质')).not.toBeInTheDocument();
+    expect(screen.queryByText('03 / 创建任务')).not.toBeInTheDocument();
     expect(screen.getByLabelText('公开视频地址')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '解析媒体' })).toBeEnabled();
     expect(

@@ -4,7 +4,6 @@ import {
   CheckCircle,
   DownloadSimple,
   ShieldCheck,
-  SpinnerGap,
   X,
 } from '@phosphor-icons/react';
 
@@ -25,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import { Spinner } from '@/components/ui/spinner';
 import type {
   DownloadJob,
   DownloadStage,
@@ -127,7 +127,7 @@ export default function DownloadState({
             size="lg"
           >
             {action === 'download' ? (
-              <SpinnerGap className="animate-spin" />
+              <Spinner aria-hidden />
             ) : (
               <DownloadSimple />
             )}
@@ -143,11 +143,7 @@ export default function DownloadState({
                 size="lg"
                 variant="outline"
               >
-                {action === 'cancel' ? (
-                  <SpinnerGap className="animate-spin" />
-                ) : (
-                  <X />
-                )}
+                {action === 'cancel' ? <Spinner aria-hidden /> : <X />}
                 取消任务
               </Button>
             </AlertDialogTrigger>

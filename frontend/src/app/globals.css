@@ -141,10 +141,10 @@
   }
 
   .editorial-title {
-    font-size: clamp(2.8rem, 6.4vw, 6rem);
+    font-size: clamp(3.2rem, 5.4vw, 4.25rem);
     font-weight: 500;
     line-height: 0.96;
-    letter-spacing: -0.065em;
+    letter-spacing: -0.06em;
     text-wrap: balance;
   }
 
@@ -153,12 +153,6 @@
     font-size: 0.75rem;
     font-weight: 500;
     letter-spacing: -0.02em;
-  }
-
-  .surface-control {
-    border-color: transparent;
-    background: var(--surface);
-    box-shadow: none;
   }
 
   .hairline {
@@ -180,7 +174,7 @@
 
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: #cbd1da transparent;
+    scrollbar-color: var(--border) transparent;
   }
 }
 

@@ -1,30 +1,23 @@
 'use client';
 
-import {
-  ArrowClockwise,
-  CaretLeft,
-  CaretRight,
-  MagnifyingGlass,
-  Plus,
-} from '@phosphor-icons/react';
+import { ArrowClockwise, MagnifyingGlass, Plus } from '@phosphor-icons/react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { BackLink } from '@/components/back-link';
 import DownloadHistoryList, {
   downloadStatusLabels,
 } from '@/components/download-history-list';
 import { PageHeader } from '@/components/page-header';
+import { PagePagination } from '@/components/page-pagination';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { ButtonGroup, ButtonGroupText } from '@/components/ui/button-group';
 import { Field, FieldLabel } from '@/components/ui/field';
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from '@/components/ui/input-group';
-import { Pagination } from '@/components/ui/pagination';
 import {
   Select,
   SelectContent,
@@ -41,7 +34,6 @@ import {
 import type { DownloadHistoryItem, DownloadStatus } from '@/types/video';
 
 export default function DownloadHistoryView() {
-  const router = useRouter();
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -65,6 +57,7 @@ export default function DownloadHistoryView() {
 
   return (
     <main className="content-shell py-14 sm:py-20 lg:py-24">
+      <BackLink className="mb-7" fallbackHref="/" />
       <PageHeader
         action={
           <Button asChild size="lg">
@@ -75,7 +68,6 @@ export default function DownloadHistoryView() {
           </Button>
         }
         description="继续查看、获取或分析已创建的任务。"
-        eyebrow="02 / 下载记录"
         title="下载历史"
       />
 
@@ -166,42 +158,16 @@ export default function DownloadHistoryView() {
         data={state.data}
         loading={state.loading}
         onDownload={(item) => void download(item)}
-        onOpen={(id) =>
-          router.push(`/downloads/detail?jobId=${encodeURIComponent(id)}`)
-        }
       />
 
       {state.data && state.data.total > state.data.page_size ? (
-        <Pagination aria-label="下载历史分页" className="mt-10 justify-end">
-          <ButtonGroup>
-            <Button
-              aria-label="上一页"
-              disabled={page <= 1}
-              onClick={() => setPage((value) => value - 1)}
-              type="button"
-              variant="ghost"
-            >
-              <CaretLeft aria-hidden />
-              <span className="hidden sm:inline">上一页</span>
-            </Button>
-            <ButtonGroupText
-              aria-live="polite"
-              className="min-w-20 justify-center border-0 bg-transparent font-mono font-normal text-muted-foreground"
-            >
-              {page} / {Math.ceil(state.data.total / state.data.page_size)}
-            </ButtonGroupText>
-            <Button
-              aria-label="下一页"
-              disabled={page * state.data.page_size >= state.data.total}
-              onClick={() => setPage((value) => value + 1)}
-              type="button"
-              variant="ghost"
-            >
-              <span className="hidden sm:inline">下一页</span>
-              <CaretRight aria-hidden />
-            </Button>
-          </ButtonGroup>
-        </Pagination>
+        <PagePagination
+          ariaLabel="下载历史分页"
+          className="mt-10 justify-end"
+          onPageChange={setPage}
+          page={page}
+          pages={Math.ceil(state.data.total / state.data.page_size)}
+        />
       ) : null}
     </main>
   );

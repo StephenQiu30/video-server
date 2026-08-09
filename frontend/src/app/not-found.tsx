@@ -1,7 +1,4 @@
-import { ArrowLeft } from '@phosphor-icons/react/dist/ssr';
-import Link from 'next/link';
-
-import { Button } from '@/components/ui/button';
+import { BackLink } from '@/components/back-link';
 import {
   Empty,
   EmptyContent,
@@ -22,16 +19,11 @@ export default function NotFound() {
             页面，没有找到。
           </h1>
           <EmptyDescription className="mt-6 max-w-xl text-left text-base leading-7">
-            这个地址可能已经移动或失效。返回首页，重新粘贴一个公开视频链接。
+            这个地址可能已经移动或失效。返回上一步，或回到首页重新粘贴一个公开视频链接。
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent className="max-w-none items-start">
-          <Button asChild size="lg">
-            <Link href="/">
-              <ArrowLeft aria-hidden size={17} />
-              返回首页
-            </Link>
-          </Button>
+          <BackLink className="ml-0" fallbackHref="/" />
         </EmptyContent>
       </Empty>
     </main>

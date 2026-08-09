@@ -6,6 +6,7 @@ import { type RefObject, useEffect, useRef, useState } from 'react';
 
 import DownloadHero from '@/components/download-hero';
 import InspectionWorkspace from '@/components/inspection-workspace';
+import { markNavigationPush } from '@/components/navigation-history';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { demoInspection } from '@/lib/demo-inspection';
 import {
@@ -75,7 +76,9 @@ export default function DownloadWorkspace() {
         selectedId,
         stableKey(downloadKey, `${inspection.id}:${selectedId}`),
       );
-      router.push(`/downloads/detail?jobId=${encodeURIComponent(result.id)}`);
+      const target = `/downloads/detail?jobId=${encodeURIComponent(result.id)}`;
+      markNavigationPush(target);
+      router.push(target);
     } catch (reason) {
       setError(displayError(reason));
     } finally {

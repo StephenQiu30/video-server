@@ -1,16 +1,13 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
-import Script from 'next/script';
 import type { ReactNode } from 'react';
 
 import { AppShell } from '@/components/app-shell';
 import { AuthProvider } from '@/components/auth-provider';
-import { ThemeInitializer } from '@/components/theme-toggle';
+import { ThemeProvider } from '@/components/theme-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 import './globals.css';
-
-const themeScript = `(function(){try{var stored=localStorage.getItem('framegrab-theme');var dark=stored?stored==='dark':matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',dark);document.documentElement.style.colorScheme=dark?'dark':'light';}catch(error){}})();`;
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -37,18 +34,20 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       lang="zh-CN"
       suppressHydrationWarning
     >
-      <head>
-        <Script id="framegrab-theme" strategy="beforeInteractive">
-          {themeScript}
-        </Script>
-      </head>
       <body>
-        <ThemeInitializer />
-        <AuthProvider>
-          <TooltipProvider delayDuration={300}>
-            <AppShell>{children}</AppShell>
-          </TooltipProvider>
-        </AuthProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          disableTransitionOnChange
+          enableSystem
+          storageKey="framegrab-theme"
+        >
+          <AuthProvider>
+            <TooltipProvider delayDuration={300}>
+              <AppShell>{children}</AppShell>
+            </TooltipProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

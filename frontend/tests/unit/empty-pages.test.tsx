@@ -20,7 +20,7 @@ describe('empty route states', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: '下载任务不存在' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '返回下载历史' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: '返回上一步' })).toHaveAttribute(
       'href',
       '/history',
     );

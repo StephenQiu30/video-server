@@ -9,7 +9,6 @@ import {
   UsersThreeIcon,
 } from '@phosphor-icons/react';
 import Link from 'next/link';
-import { useState } from 'react';
 
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -17,8 +16,10 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -41,15 +42,8 @@ export function MobileNavigation({
   signingOut,
   user,
 }: MobileNavigationProps) {
-  const [open, setOpen] = useState(false);
-
-  async function signOut() {
-    setOpen(false);
-    await onSignOut();
-  }
-
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
+    <Sheet>
       <SheetTrigger asChild>
         <Button
           aria-label="打开导航菜单"
@@ -61,11 +55,8 @@ export function MobileNavigation({
           <ListIcon aria-hidden className="size-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent
-        className="w-[min(88vw,360px)] border-0 bg-card"
-        side="right"
-      >
-        <SheetHeader className="px-5 py-5">
+      <SheetContent className="w-[min(88vw,360px)]" side="right">
+        <SheetHeader>
           <SheetTitle>导航</SheetTitle>
           <SheetDescription>
             访问视频解析、下载任务与账户设置。
@@ -87,33 +78,22 @@ export function MobileNavigation({
           </div>
         ) : null}
         <nav aria-label="移动导航" className="grid gap-1 px-3">
-          <MobileLink
-            active={pathname === '/'}
-            href="/"
-            onNavigate={() => setOpen(false)}
-          >
+          <MobileLink active={pathname === '/'} href="/">
             <LinkSimpleIcon aria-hidden />
             视频解析
           </MobileLink>
-          <MobileLink
-            active={pathname.startsWith('/history')}
-            href="/history"
-            onNavigate={() => setOpen(false)}
-          >
+          <MobileLink active={pathname.startsWith('/history')} href="/history">
             <ClockCounterClockwiseIcon aria-hidden />
             下载记录
           </MobileLink>
           {user ? (
             <>
-              <MobileLink href="/account" onNavigate={() => setOpen(false)}>
+              <MobileLink href="/account">
                 <UserCircleIcon aria-hidden />
                 个人资料
               </MobileLink>
               {user.role === 'admin' ? (
-                <MobileLink
-                  href="/admin/users"
-                  onNavigate={() => setOpen(false)}
-                >
+                <MobileLink href="/admin/users">
                   <UsersThreeIcon aria-hidden />
                   用户管理
                 </MobileLink>
@@ -122,7 +102,6 @@ export function MobileNavigation({
           ) : (
             <MobileLink
               href={`/user/login?redirect=${encodeURIComponent(pathname)}`}
-              onNavigate={() => setOpen(false)}
             >
               <UserCircleIcon aria-hidden />
               登录账户
@@ -134,18 +113,20 @@ export function MobileNavigation({
           <ThemeToggle />
         </div>
         {user ? (
-          <div className="mt-auto px-3 pb-4">
-            <Separator className="mb-3" />
-            <Button
-              className="w-full justify-start text-destructive hover:text-destructive"
-              disabled={signingOut}
-              onClick={() => void signOut()}
-              variant="ghost"
-            >
-              <SignOutIcon aria-hidden />
-              {signingOut ? '正在退出…' : '退出登录'}
-            </Button>
-          </div>
+          <SheetFooter>
+            <Separator />
+            <SheetClose asChild>
+              <Button
+                className="w-full justify-start text-destructive hover:text-destructive"
+                disabled={signingOut}
+                onClick={() => void onSignOut()}
+                variant="ghost"
+              >
+                <SignOutIcon aria-hidden />
+                {signingOut ? '正在退出…' : '退出登录'}
+              </Button>
+            </SheetClose>
+          </SheetFooter>
         ) : null}
       </SheetContent>
     </Sheet>
@@ -156,29 +137,25 @@ function MobileLink({
   active = false,
   children,
   href,
-  onNavigate,
 }: {
   active?: boolean;
   children: React.ReactNode;
   href: string;
-  onNavigate: () => void;
 }) {
   return (
-    <Button
-      asChild
-      className={cn(
-        'h-11 justify-start',
-        active && 'bg-accent text-accent-foreground',
-      )}
-      variant="ghost"
-    >
-      <Link
-        aria-current={active ? 'page' : undefined}
-        href={href}
-        onClick={onNavigate}
+    <SheetClose asChild>
+      <Button
+        asChild
+        className={cn(
+          'h-11 justify-start',
+          active && 'bg-accent text-accent-foreground',
+        )}
+        variant="ghost"
       >
-        {children}
-      </Link>
-    </Button>
+        <Link aria-current={active ? 'page' : undefined} href={href}>
+          {children}
+        </Link>
+      </Button>
+    </SheetClose>
   );
 }

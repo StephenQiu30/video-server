@@ -12,6 +12,7 @@ import { type FormEvent, useEffect, useState } from 'react';
 
 import { ReadOnlyField } from '@/components/app-shell';
 import { useAuth } from '@/components/auth-provider';
+import { BackLink } from '@/components/back-link';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -99,9 +100,9 @@ export function AccountView() {
 
   return (
     <section>
+      <BackLink className="mb-7" fallbackHref="/" />
       <PageHeader
         description="管理公开用户名，并查看不会随任务变化的账户身份信息。"
-        eyebrow="02 / 账户资料"
         title="个人资料"
       />
 

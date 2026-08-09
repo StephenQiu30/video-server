@@ -1,56 +1,24 @@
 'use client';
 
 import { MoonIcon, SunIcon } from '@phosphor-icons/react';
-import { useEffect, useState } from 'react';
+import { useTheme } from 'next-themes';
 
 import { Button } from '@/components/ui/button';
 
-const THEME_KEY = 'framegrab-theme';
-
-export function ThemeInitializer() {
-  useEffect(() => {
-    setTheme(readPreferredTheme());
-  }, []);
-
-  return null;
-}
-
 export function ThemeToggle() {
-  const [dark, setDark] = useState(false);
-
-  useEffect(() => {
-    const shouldUseDark = readPreferredTheme();
-    setTheme(shouldUseDark);
-    setDark(shouldUseDark);
-  }, []);
-
-  function toggleTheme() {
-    const next = !dark;
-    setDark(next);
-    setTheme(next);
-    window.localStorage.setItem(THEME_KEY, next ? 'dark' : 'light');
-  }
+  const { resolvedTheme, setTheme } = useTheme();
+  const dark = resolvedTheme === 'dark';
 
   return (
     <Button
-      aria-label={dark ? '切换到浅色模式' : '切换到深色模式'}
+      aria-label="切换颜色主题"
       className="size-10 rounded-full"
-      onClick={toggleTheme}
+      onClick={() => setTheme(dark ? 'light' : 'dark')}
       size="icon"
       variant="ghost"
     >
-      {dark ? <MoonIcon aria-hidden /> : <SunIcon aria-hidden />}
+      <SunIcon aria-hidden className="dark:hidden" />
+      <MoonIcon aria-hidden className="hidden dark:block" />
     </Button>
   );
-}
-
-function readPreferredTheme() {
-  const stored = window.localStorage.getItem(THEME_KEY);
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  return stored ? stored === 'dark' : prefersDark;
-}
-
-function setTheme(dark: boolean) {
-  document.documentElement.classList.toggle('dark', dark);
-  document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
 }

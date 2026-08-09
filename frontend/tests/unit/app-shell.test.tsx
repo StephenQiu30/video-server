@@ -114,7 +114,7 @@ describe('AppShell', () => {
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
   });
 
-  it('keeps the authentication card heading and field semantics accessible', () => {
+  it('keeps the authentication heading and field semantics accessible', () => {
     const { container } = render(
       <AuthPageFrame
         description="登录后继续使用。"
@@ -140,15 +140,17 @@ describe('AppShell', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       '登录帧取',
     );
+    expect(
+      screen.queryByRole('link', { name: '返回上一步' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByLabelText('邮箱地址')).toHaveAttribute(
       'aria-describedby',
       'email-error',
     );
     expect(screen.getByRole('alert')).toHaveTextContent('请输入邮箱地址');
-    expect(container.querySelector('[data-slot="card"]')).toHaveClass(
-      'rounded-none',
-      'bg-transparent',
-      'ring-0',
-    );
+    expect(
+      container.querySelector('section[aria-labelledby="login-title"]'),
+    ).toHaveClass('max-w-[440px]');
+    expect(container.querySelector('[data-slot="card"]')).toBeNull();
   });
 });

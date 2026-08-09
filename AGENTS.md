@@ -54,6 +54,38 @@ server/
 - 路由、布局和元数据遵循 Next.js App Router 官方约定；交互组件使用 shadcn/ui 与 Radix UI，样式使用 Tailwind CSS 主题 token，不得重新引入 Umi、Ant Design、Vite 入口或平行路由器。
 - 测试目录应与被测职责对应；通用测试数据和 Fake 可以复用，但不得为了覆盖率复制实现细节。
 
+## 前端设计系统规范（强制）
+
+本项目唯一视觉方向是用户确认的“方案 3”：Vercel Home 式无边框界面。详细设计决策见 [009 前端视觉系统设计](docs/design/009-Next前端与蓝白视觉系统设计.md)，视觉回归证据见 [设计 QA](design-qa.md)。本节是所有前端变更必须满足的仓库级门禁；`frontend/src/app/globals.css` 是 token 和布局公式的可执行事实来源。三者不一致时视为缺陷，必须在同一变更中同步，不得另建平行规范。
+
+### 视觉、token 与网格
+
+- 画面以内容、排版和留白组织层级：浅色主题使用 `#FAFAFA` 画布、`#0A0A0A` 前景和 `#111111` 主操作；深色主题使用 `#0A0A0A` 画布、`#F5F5F5` 前景。控件表面、弱化文字、边界、成功、警告和错误只能消费 `background`、`foreground`、`surface`、`muted`、`primary`、`border`、`success`、`warning`、`destructive` 等语义 token，不在业务组件中散落十六进制色值或近似色。
+- 基础圆角为 `6px`，只通过 `--radius` 派生。默认不使用阴影；层级优先依靠明度、间距和排版，覆盖层仅保留识别层级所必需的表面与遮罩。
+- 所有路由复用两级隐形网格：72px Header 使用 `.page-shell = min(calc(100% - 80px), 1456px)`，常规 main/footer 使用 `.content-shell = min(calc(100% - 160px), 1376px)`。认证页的无外框双栏 main 是唯一例外，可使用 `.page-shell`，但表单必须在内部收窄到 440px；不足 `lg` 时隐藏介绍栏。641–1023px 时内容区两侧各 32px；不超过 640px 时两级网格两侧均为 16px。网格只负责对齐，不得被渲染成可见应用外壳。
+- 字体统一为自托管 Geist Sans/Mono，中文按 `PingFang SC`、`Hiragino Sans GB`、`Microsoft YaHei`、系统无衬线顺序回退。首页编辑式标题复用 `.editorial-title`（`clamp(3.2rem, 5.4vw, 4.25rem)`、字重 500、行高 0.96、负字距）；页面主标题上方的编号眉题只在真实流程步骤存在时使用 `.eyebrow` 和 Geist Mono，普通区段可克制复用同一小标题样式，但不得编号或重复 H1。内页保持短标题与清晰层级，不增加装饰标签或营销式副标题。
+
+### 控件、组件与交互
+
+- 页面根、标题区、筛选区、列表区和表单区禁止可见 Card 外壳、装饰性 border/ring、重阴影和大面积圆角容器。Input、Select、Button 等默认使用无边框实心中性表面；内容分组只使用必要的 1px 发丝 Separator。错误边界、键盘焦点轮廓和 Radix 覆盖层边界属于功能反馈，不得以“无边框”为由移除。
+- 交互原语优先组合 `frontend/src/components/ui/` 中 shadcn/ui `radix-nova` 源码与 Radix UI。Dialog、AlertDialog、Sheet、Select、Dropdown Menu、Tabs、RadioGroup、Progress、Tooltip 等必须保留语义、焦点圈定、Escape 行为和触发器焦点恢复；不得用可点击 `div`、自制浮层或第二套基础组件绕过这些能力。
+- 图标只使用 `@phosphor-icons/react` 的同一家族，并提供可访问名称；禁止用 emoji、文本符号、CSS 图形、临时手绘 SVG 或混用图标库代替业务图标。
+- 所有已认证的非首页页面与多步骤流程必须提供明确、可键盘操作的返回路径。返回上一步优先遵循由应用记录的站内浏览历史，并为无可用历史的直接访问提供稳定站内 fallback；登录与注册不渲染通用历史返回，改用彼此之间的明确交叉链接和校验后的 `redirect`，避免过期受保护页面参与回退并形成认证循环。不得让用户只能依赖浏览器工具栏，也不得用硬编码跳转破坏正常返回链路。
+- 首页格式选择必须用 Radix RadioGroup 渲染 API 返回的真实 `MediaFormat`。界面不得虚构后端没有的画质预设、字幕、容器、音频模式、文件大小、播放能力或任务状态。
+
+### 响应式、状态与可访问性
+
+- 390×844 是强制移动验收视口，桌面同时覆盖 1280px 与方案稿桌面尺寸。页面不得产生横向滚动；固定尺寸必须受 `max-width: 100%` 约束。移动端重排信息而非缩放桌面：导航进入 Sheet，输入/主操作纵向满宽，媒体与格式单列，表格转换为可读 Item，Dialog/Sheet 内容可滚动。
+- 每个异步流程都必须设计并验证初始、加载、成功、空、校验失败、请求失败、禁用和重试状态；状态不能只靠颜色表达，也不得用空白区域冒充失败或无数据。轮询状态通过节流的 `aria-live` 播报，避免每次刷新重复朗读。
+- 目标为 WCAG 2.2 AA：语义化结构、唯一 `h1`、顺序标题、真实 label/button/table、正文至少 4.5:1 对比度、可见 `2px` 焦点环与 `2px` 偏移、至少 44×44px 触控目标、完整键盘路径、准确图片替代文本，并遵循 `prefers-reduced-motion`。Tooltip 不能承载唯一必要信息。
+- 生产界面优先使用真实媒体封面；失败时显示准确的不可用状态。视觉回归专用山景资产固定为 `frontend/public/images/media-preview-mountain.webp`，新增位图必须按显示尺寸裁切并优先压缩为 WebP/AVIF，禁止提交无用途原图、外链热链、伪造业务数据或仅用于装饰的大图。
+
+### 禁止事项与变更门禁
+
+- 禁止恢复侧栏后台壳、卡片堆叠、三步向导、高密度工具栏、渐变炫光、玻璃拟态、重投影或蓝色企业后台视觉；禁止重新引入 Ant Design、Ant Design Pro、Umi、Less、CSS-in-JS 或平行主题系统。
+- 修改颜色、字体、圆角、网格、断点或基础控件时，必须同步更新 `globals.css`、[009 设计文档](docs/design/009-Next前端与蓝白视觉系统设计.md) 和必要测试；修改导航模式或核心页面信息层级时，必须同步更新 009 设计文档与必要测试。视觉基准变化还必须重做 [design-qa.md](design-qa.md) 的桌面/390px 同状态比较。
+- 交付前至少运行前端 `npm run lint`、`npm run format:check`、`npm test`、`npm run build`，并实际检查键盘返回路径、明暗主题、加载/空/错误状态、Radix 覆盖层和页面级横向溢出。视觉 QA 只有在没有剩余 P0/P1/P2 差异且 `design-qa.md` 写明 `final result: passed` 时才算通过；QA 截图不能替代功能和无障碍验证。
+
 ## 架构与数据边界
 
 - 后端依赖方向为 `api/workers → application → domain`。`domain` 不得导入 FastAPI、SQLAlchemy、RabbitMQ、MinIO、yt-dlp、FFmpeg 或模型 SDK。

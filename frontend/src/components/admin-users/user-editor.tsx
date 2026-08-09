@@ -7,6 +7,8 @@ import {
   DialogClose,
   DialogContent,
   DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
@@ -50,19 +52,19 @@ export function UserEditor({
         if (!open) onClose();
       }}
     >
-      <DialogContent className="max-h-[calc(100svh-2rem)] gap-0 overflow-y-auto p-0 sm:max-w-[520px]">
-        <div className="px-6 pt-6">
+      <DialogContent className="max-h-[calc(100svh-2rem)] overflow-y-auto sm:max-w-[520px]">
+        <DialogHeader>
           <p className="eyebrow mb-4 text-muted-foreground">账户权限</p>
           <DialogTitle className="text-xl font-medium tracking-[-0.025em]">
             管理用户{editor.user ? `：${editor.user.username}` : ''}
           </DialogTitle>
-          <DialogDescription className="mt-2 max-w-md leading-6">
+          <DialogDescription className="max-w-md leading-6">
             角色和停用状态会在该用户下一次认证请求时立即生效。
           </DialogDescription>
-        </div>
+        </DialogHeader>
         <form
           aria-busy={editor.saving}
-          className="hairline mt-8 border-t px-6 py-6"
+          className="grid gap-6"
           onSubmit={(event) => {
             event.preventDefault();
             if (!editor.saving) onSave();
@@ -108,22 +110,22 @@ export function UserEditor({
                 <AlertDescription>{editor.error}</AlertDescription>
               </Alert>
             ) : null}
-            <div className="hairline -mx-6 -mb-6 mt-2 flex justify-end gap-3 border-t px-6 py-5">
-              <DialogClose asChild>
-                <Button disabled={editor.saving} type="button" variant="ghost">
-                  取消
-                </Button>
-              </DialogClose>
-              <Button disabled={editor.saving || !editor.user} type="submit">
-                {editor.saving ? (
-                  <Spinner aria-hidden />
-                ) : (
-                  <CheckCircle aria-hidden />
-                )}
-                {editor.saving ? '正在保存' : '保存更改'}
-              </Button>
-            </div>
           </FieldGroup>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button disabled={editor.saving} type="button" variant="ghost">
+                取消
+              </Button>
+            </DialogClose>
+            <Button disabled={editor.saving || !editor.user} type="submit">
+              {editor.saving ? (
+                <Spinner aria-hidden />
+              ) : (
+                <CheckCircle aria-hidden />
+              )}
+              {editor.saving ? '正在保存' : '保存更改'}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
