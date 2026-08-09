@@ -2,6 +2,7 @@ name: video-server
 
 x-prod-api-env: &prod-api-env
   APP_ENV: "${APP_ENV:?set APP_ENV in .env.prod}"
+  ANALYSIS_ENABLED: "${ANALYSIS_ENABLED:-false}"
   DATABASE_URL: "${DATABASE_URL:?set DATABASE_URL in .env.prod}"
   RABBITMQ_URL: "${RABBITMQ_URL:?set RABBITMQ_URL in .env.prod}"
   VALKEY_URL: "${VALKEY_URL:?set VALKEY_URL in .env.prod}"
@@ -51,10 +52,6 @@ services:
   worker-download:
     image: video-server:prod
     environment: *prod-download-env
-
-  worker-analysis:
-    image: video-server:prod
-    environment: *prod-worker-env
 
   media-runner:
     image: video-server:prod

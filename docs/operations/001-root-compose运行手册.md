@@ -4,10 +4,10 @@
 
 | 文件 | 职责 |
 | --- | --- |
-| `docker-compose.yml` | 本地 `.env`、宿主机端口、完整服务拓扑、健康检查、依赖关系和卷 |
+| `docker-compose.yml` | 本地 `.env`、API/下载拓扑、基础设施、健康检查和卷 |
 | `docker-compose-prod.yml` | 生产 `.env.prod`、生产镜像和对外端口 |
 
-本地文件集中定义完整服务拓扑和本地环境配置；生产文件只覆盖生产差异，不复制整套服务。仓库不使用 `deploy/` 目录。环境变量的具体值只写在 `.env.example`、`.env.prod.example` 或被 Git 忽略的 `.env*` 文件中。
+本地文件集中定义容器服务拓扑和本地环境配置；需要复用本机 OAuth 的 AI Worker 明确排除在 Compose 外。生产文件只覆盖生产差异，不复制整套服务。仓库不使用 `deploy/` 目录。环境变量的具体值只写在 `.env.example`、`.env.prod.example` 或被 Git 忽略的 `.env*` 文件中。
 
 ## 本地环境
 
@@ -17,7 +17,16 @@ docker compose --env-file .env -f docker-compose.yml config --quiet
 docker compose --env-file .env -f docker-compose.yml up -d --build
 ```
 
-本地配置可直接启动完整环境。入口为 <http://localhost:8101>。Swagger UI 位于 <http://localhost:8101/docs>，OpenAPI 契约位于 <http://localhost:8101/openapi.json>。
+本地配置可直接启动 API、下载链路与基础设施。入口为 <http://localhost:8101>。Swagger UI 位于 <http://localhost:8101/docs>，OpenAPI 契约位于 <http://localhost:8101/openapi.json>。
+
+AI 分析还需由已登录 Codex 或 Claude CLI 的同一宿主机用户启动：
+
+```bash
+cd backend
+uv run python -m app.workers.analysis.main
+```
+
+Worker preflight 通过后才连接 RabbitMQ；不要同时启动另一个分析消费者。当前生产 Compose 使用 `ANALYSIS_ENABLED=false`，不会创建无人消费的分析任务。
 
 所有服务都显式声明 `container_name`；公开主服务使用 `video-server`，基础服务使用 `postgres`、`rabbitmq`、`minio` 等简单名称，不会出现 `xxx-1` 副本后缀。环境配置读取被 Git 忽略的 `.env`，首次启动前从 `.env.example` 复制。
 
@@ -35,10 +44,10 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod
 ## 网络边界
 
 - PostgreSQL、RabbitMQ、Valkey、MinIO、Runner RPC 和 Runner 出口分别使用独立网络；数据库、队列、配额、存储和 Runner RPC 网络均为 `internal`，不允许从宿主机或公网直接进入。
-- API、下载 Worker 只加入它们实际需要的内部网络；分析 Worker 不加入 Runner RPC；Outbox 不加入存储或 Runner 网络。
+- API、下载 Worker 只加入它们实际需要的内部网络；宿主机 AI Worker 通过 `.env` 中独立的 `ANALYSIS_*` 地址访问发布到 loopback 的基础设施；Outbox 不加入存储或 Runner 网络。
 - 当前 Media Runner 只收到 Runner 运行时变量（HMAC、工作目录和受控代理），业务数据库、队列、对象存储、会话密钥和 Provider Key 不注入 Runner。005 的 credentialed Runner 尚未实现；未来也只能使用单 Provider 只读 Secret/短租约，不能获得业务 Secret。
 - Media Runner 通过 egress proxy 访问外部媒体地址；proxy 不暴露宿主机端口，并继续拒绝私网、localhost 和字面量 IP 目的地址。
-- API、Worker 与 Runner 使用 Compose DNS 互联，不通过宿主机端口绕行。
+- 容器内 API、下载 Worker 与 Runner 使用 Compose DNS 互联；只有宿主机 AI Worker 使用 loopback 发布端口。
 
 当某个平台因数据中心出口信誉触发访问验证时，可以让运维侧提供一个同样受控、无凭据的内部代理入口，并按 Provider 覆盖默认出口：
 

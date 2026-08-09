@@ -15,15 +15,13 @@
 | [MeTube](https://github.com/alexta69/metube) | yt-dlp Web UI、队列、并发与自托管经验 | 仅借鉴产品流程；其本地文件/状态和高度可配置 yt-dlp 模式不符合本项目的 PostgreSQL 事实源、对象存储、AI 分析与严格 Runner 边界 |
 | [cobalt](https://github.com/imputnet/cobalt) | 轻量粘贴即下载体验、服务适配器和限流思路 | 仅借鉴交互；AGPL-3.0、代理式交付和服务专用逻辑不作为本项目代码基线 |
 | [lux](https://github.com/iawia002/lux) | Go 下载库、清晰度枚举和 FFmpeg 合并 | 不采用；最近可见 release 为 2024，当前 extractor 维护速度不如 yt-dlp，且切换 Go 会增加双技术栈成本 |
-| [faster-whisper](https://github.com/SYSTRAN/faster-whisper) | 本地 CTranslate2 Whisper 转录、时间戳 segment | 作为可选本地 ASR adapter；默认部署不强绑模型或 GPU |
-| [OpenAI Python](https://github.com/openai/openai-python) | 官方异步客户端、Responses API 与类型定义 | 作为首个托管 AI adapter；密钥只进入 AI Worker，并保持 provider port 可替换 |
-| [markmap](https://github.com/markmap/markmap) | Markdown/树结构思维导图渲染 | 前端渲染候选；后端只保存带 transcript evidence 的中立 JSON tree，避免绑定渲染库格式 |
+| Codex CLI / Claude Code CLI | 复用本机 OAuth 的代理式视觉分析 | 由宿主机 Analysis Worker 调用，统一产出 shot evidence；当前默认 Codex |
 
 ## 为什么不直接 fork 下载站
 
-现成项目能快速完成“输入 URL、拿到文件”，但本产品还要求语义清晰度计划、下载前重解析、任务 lease/outbox、对象存储、匿名资源隔离、AI 证据链和思维导图。直接 fork 会让这些能力依附于原项目的队列、文件系统和 API 约定，长期演进成本更高。
+现成项目能快速完成“输入 URL、拿到文件”，但本产品还要求语义清晰度计划、下载前重解析、任务 lease/outbox、对象存储、匿名资源隔离和可校验的 AI 视觉证据。直接 fork 会让这些能力依附于原项目的队列、文件系统和 API 约定，长期演进成本更高。
 
-因此本项目只复用成熟且边界清晰的能力：yt-dlp 负责 extractor，FFmpeg/ffprobe 负责媒体处理与验证，ASR/LLM 通过 adapter 接入；任务、权限、安全和产品契约由本仓库拥有。
+因此本项目只复用成熟且边界清晰的能力：yt-dlp 负责 extractor，FFmpeg/ffprobe 负责媒体处理与验证，Codex/Claude CLI 通过 adapter 接入云端视觉模型；任务、权限、安全和产品契约由本仓库拥有。
 
 ## MediaTrack 兼容方案
 
@@ -48,7 +46,7 @@ Runner 使用 `ProviderStrategy + ProviderRegistry + GenericFallback`：平台�
 1. yt-dlp 的 2026 发布记录包含命令注入、危险文件类型和外部 downloader 相关安全修复，因此不能把任意参数透传给用户，也不能启用 `--exec`、`--netrc-cmd`、aria2c，或在普通媒体请求中直接提交 Cookie；005 的受控会话使用固定命令模板和独立 Secret 边界。
 2. 站点规则会变化。数据库保存语义下载计划，Worker 开工前重新 inspect；provider format id 只作短期 hint。
 3. “入口 URL 校验”不能阻止 DNS rebinding 或重定向 SSRF。Runner 必须处于无默认出网的内部网络，并只通过拒绝私网地址的 egress proxy 访问公网。
-4. AI adapter 必须输出 schema 化 JSON，并由应用层验证所有章节、观点和导图节点引用真实 transcript segment；模型原始输出不直接成为产品事实。
+4. AI adapter 必须输出 schema 化 JSON，并由应用层验证分镜连续分区、高光和资产引用真实 shot id；模型原始输出不直接成为产品事实。
 
 ## 推荐基线
 
@@ -56,7 +54,7 @@ Runner 使用 `ProviderStrategy + ProviderRegistry + GenericFallback`：平台�
 - 状态与异步：PostgreSQL + transactional outbox + RabbitMQ。
 - 下载：隔离 Media Runner + yt-dlp + FFmpeg/ffprobe。
 - 制品：私有 MinIO bucket + 短时签名 URL。
-- AI：独立 AI Job/Worker；托管 provider 优先，可选 faster-whisper 本地 ASR。
+- AI：独立 AI Job；宿主机 Worker 调用受限 Codex/Claude CLI，当前不包含音频转录。
 - 导图：中立 JSON tree + evidence ids，前端按需接 markmap 或自定义渲染。
 
 ## 2026-08-07 真实来源回归与后续方案

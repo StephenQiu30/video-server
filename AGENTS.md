@@ -46,7 +46,7 @@ server/
 - FastAPI 路由只负责协议转换、依赖注入和调用应用用例；业务规则不得写在 `api/`。
 - 请求与响应模型放在 `api/schemas/`，不得直接暴露 ORM 模型或基础设施对象。
 - 用例编排和外部能力接口放在 `application/`；纯业务规则放在 `domain/`；具体 SDK、数据库、消息和存储实现放在 `infrastructure/`。
-- 进程入口放在 `workers/` 或 `runner/`，不要把下载、转码、ASR 或 LLM 长任务放进 HTTP 请求进程。
+- 进程入口放在 `workers/` 或 `runner/`，不要把下载、转码或 AI 长任务放进 HTTP 请求进程。
 - 前端不使用 `features/` 目录。App Router 页面放在 `src/app/`，跨页面业务组件放在 `src/components/`，shadcn/ui 源码放在 `src/components/ui/`。
 - 前端请求统一从 `services/` 暴露，状态流程优先放在 `hooks/`；不要在页面中散落原始请求、轮询或错误映射逻辑。
 - `frontend/src/services/video/` 由 `@umijs/openapi` 的 `npm run openapi` 命令根据 FastAPI Swagger/OpenAPI 契约生成，禁止手工修改。生成代码统一导入 `frontend/src/lib/request.ts` 的 Axios 请求封装；接口变化时先更新并启动 API，再重新生成服务文件。
@@ -99,8 +99,9 @@ server/
 - 仅处理用户有权下载和分析的公开、非 DRM HTTP(S) 内容；禁止 Cookie 上传、DRM 绕过、私网 URL、任意 yt-dlp 参数和 shell 输入。
 - 媒体流量只能由无业务凭据的 Runner 发起并经过阻断私网的 egress proxy；入口 URL 校验不能替代网络隔离。
 - Worker 开工前重新解析语义下载计划；Provider format id 不能作为唯一恢复依据。
-- AI 任务独立于下载任务；AI 失败不得改变下载成功状态。模型输出必须通过 schema 和 transcript evidence 校验，普通日志不得记录完整转录或原始模型响应。
+- AI 任务独立于下载任务；AI 失败不得改变下载成功状态。模型输出必须通过严格 schema、连续分镜时间轴和 shot evidence 校验，普通日志不得记录完整 Prompt、抽帧或原始模型响应。
 - Secret 只来自类型化配置和环境变量，不得进入前端、API 响应、异常、快照、测试夹具或普通日志。外部操作必须设置大小、时长、并发和超时上限，取消时终止整个子进程组。
+- 复用本机 OAuth 的 AI Worker 是 Compose 完整拓扑的唯一例外：必须由已登录 Codex 或 Claude CLI 的宿主机用户启动，容器不得挂载或复制 CLI 认证目录。
 - Compose 必须保持职责清晰：`docker-compose.yml` 是可独立启动的本地完整配置，定义服务拓扑、依赖关系、健康检查、卷、内部端口、本地 `.env` 和宿主机端口；`docker-compose-prod.yml` 只覆盖生产 `.env.prod`、生产镜像和对外端口。生产命令必须显式传入 `--env-file .env.prod`，生产覆盖必须使用 `${VAR:?set VAR in .env.prod}` 在 Compose 解析阶段校验关键配置。本地只使用 `docker-compose.yml`，生产使用 `docker-compose.yml` 叠加 `docker-compose-prod.yml`，不得再维护独立的环境覆盖文件。宿主机端口通过 env 文件插值并提供安全默认值，生产覆盖移除本地基础设施端口；环境变量的具体值只能写在 `.env.example`、`.env.prod.example` 或被 Git 忽略的 `.env*` 文件中，非 env 文件不得硬编码密钥、密码、连接地址或 Provider Key。所有服务必须显式设置稳定的 `container_name`；公开主服务使用 `video-server`，基础服务使用 `postgres`、`rabbitmq`、`minio` 等简单名称，避免出现 `xxx-1` 这类副本后缀。本地和生产统一使用 Compose 项目名 `video-server` 及其作用域卷，因此同一主机不要同时启动两套环境。启动前按需复制 `.env.example` 为 `.env`，生产环境复制 `.env.prod.example` 为 `.env.prod` 并替换占位值。不要提交 `.env`、制品、缓存、日志、临时目录、虚拟环境或 `node_modules/`。
 
 ## 实现与验证

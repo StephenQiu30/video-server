@@ -35,7 +35,7 @@
 | 用户隔离 | HttpOnly/Secure/SameSite 匿名签名 Cookie、`owner_hash` 资源隔离 | 适合匿名 MVP，不等于账户体系 |
 | 多平台 | Provider Registry、Generic fallback、独立出口配置、MediaTrack 插件 | 目录存在，但真实可用性受站点和出口影响 |
 | 历史 | 当前会话分页、搜索、状态过滤、统计、详情跳转 | 已实现，真实依赖验收仍未冻结 |
-| AI | 独立任务/Worker、ASR、LLM schema、evidence 校验、摘要/章节/导图 UI | 自动化完成，真实 ASR + 视频 E2E Pending |
+| AI | 独立任务/宿主机 Worker、CLI 视觉 schema、shot evidence、分镜/高光/资产 UI | Codex 真实 E2E 通过；Claude 当前本机模型路由视觉 E2E 未通过 |
 | API 契约 | FastAPI OpenAPI、稳定 operationId、生成前端客户端、Problem Details | 已实现 |
 | 交付 | Next.js 静态构建 + FastAPI 同源单镜像、Compose 本地/生产覆盖 | 可构建，不等于生产拓扑完整 |
 | 测试 | 348 个后端测试、29 个前端测试；mypy 与前端全门禁通过 | 当前 Ruff 与 format 失败 |
@@ -52,7 +52,7 @@
 | P0-04 | 数据库只支持空卷初始化 | 仓库明确禁止 migrations，只保留 `schema.sql` | 生产升级只能丢数据或人工改表，无法回滚和审计 | 引入 Alembic，从基线 revision 开始做前向迁移；schema 快照仅用于新环境 |
 | P0-05 | 缺少备份、恢复与灾难演练 | Compose 有持久卷，但没有 PostgreSQL/MinIO/RabbitMQ 备份策略、恢复脚本或 RPO/RTO 验收 | 节点/磁盘故障后不可恢复 | 定义 RPO/RTO，完成加密备份、恢复演练和证据记录 |
 | P0-06 | 缺少生产可观测性 | 无结构化日志、请求 ID、中间件指标、Provider 聚合指标、Tracing 或告警规则；Runner 关闭 access log | 无法定位错误、容量、出口或平台回归 | 脱敏 JSON 日志、Prometheus 指标、队列/Worker/Provider/存储仪表盘、告警与 runbook |
-| P0-07 | 真实可靠性证据不足 | 002 的第三方矩阵与故障注入未完成；003 真实 ASR E2E Pending；004 真实依赖验收 Pending | 上线后才暴露格式漂移、重复投递、磁盘耗尽和 Provider 失败 | 固定受控 E2E、故障注入、负载/容量基线、定时 Provider canary 与状态页 |
+| P0-07 | 真实可靠性证据不足 | 002 的第三方矩阵与故障注入未完成；Claude 当前视觉 E2E 未通过；004 真实依赖验收 Pending | 上线后才暴露格式漂移、重复投递、磁盘耗尽和 Provider 失败 | 固定受控 E2E、故障注入、负载/容量基线、定时 Provider canary 与状态页 |
 | P0-08 | 生产入口和响应安全未冻结 | 生产 Compose 直接暴露 API 端口，没有仓库内 TLS/反向代理/安全 header/body limit 方案 | TLS、请求体、超时和代理 IP 语义依赖外部手工配置 | 明确受支持 ingress，配置 TLS、HSTS、CSP、body/header/timeouts、可信代理链 |
 | P0-09 | CI/供应链门禁不完整且当前不绿 | 后端 Ruff 1 个 E501、format 3 文件失败；CI 使用 Node 22/npm 11.16，而 package/Docker 要求 Node 24/npm 11.19；无镜像/Secret/SBOM 扫描 | 合并门禁与真实构建环境漂移，依赖风险不可见 | 恢复全绿、统一工具链、依赖/镜像/Secret 扫描、SBOM、固定镜像 digest 与发布签名 |
 | P0-10 | 上线治理与法律入口缺失 | Security 说明了边界，但产品内没有使用确认、隐私/保留策略、投诉/下架流程、运维值班和发布/回滚清单 | 滥用与合规请求无法处理，事故响应不可执行 | 产品内展示边界，建立隐私/条款/投诉/删除/事件响应和回滚手册 |
@@ -68,7 +68,7 @@
 | 用户操作 | 没有删除历史、删除制品、重新下载、失败后显式重试 | 增加幂等删除、重试、过期说明和审计事件 |
 | Provider 透明度 | 页面把 extractor 目录描述成“支持”，没有实时健康状态 | 展示 `verified/degraded/access_required/unsupported`、最近验证时间和错误分类 |
 | 实时任务状态 | 前端每 1.5 秒轮询下载和分析 | 增加 SSE；保留轮询作为降级路径并支持退避/抖动 |
-| AI 产品闭环 | 没有真实 E2E、分析历史、导出和可选本地 ASR | 先完成真实证据；再补 JSON/Markdown 导出和 faster-whisper adapter |
+| AI 产品闭环 | Codex 有真实 E2E；Claude 当前模型路由未通过，尚无分析导出 | 保持 Codex 默认并补 Claude 视觉 canary；再补 JSON/Markdown 导出 |
 | 匿名会话体验 | Cookie 到期后 owner 变化，旧历史不可恢复 | 滚动续期；是否引入账户与跨设备同步作为独立产品决策 |
 | 可访问性/国际化 | UI 文案和错误主要为中文，尚无系统级 a11y/E2E | WCAG 基础检查、键盘/读屏测试、错误与状态国际化 |
 
@@ -106,8 +106,7 @@ MeTube 和 cobalt 的公开文档都提醒：频繁更新 yt-dlp、限制并发�
 | [open-telemetry/opentelemetry-python-contrib](https://github.com/open-telemetry/opentelemetry-python-contrib) | API→DB→消息→Worker 跨进程追踪 | P1 可选；先验证所选 instrumentation 的稳定性 | 上游明确提示 contrib instrumentation 多数仍为 beta，不作为 P0 唯一诊断手段 |
 | [caddyserver/caddy](https://github.com/caddyserver/caddy) | 单机/Compose ingress、TLS、安全 header、请求限制 | 作为可选受支持入口，静态前端仍由 FastAPI 同源提供 | Apache-2.0；不改变“无独立前端容器”原则 |
 | [aquasecurity/trivy](https://github.com/aquasecurity/trivy) | 依赖、镜像、配置与 Secret 扫描，生成 SBOM | GitHub Actions + 发布前镜像扫描 | Apache-2.0；扫描规则与例外必须版本化 |
-| [SYSTRAN/faster-whisper](https://github.com/SYSTRAN/faster-whisper) | 可选本地 ASR | 独立 analysis adapter/worker profile | MIT；默认镜像不打包大模型，不阻塞托管 ASR |
-| [markmap/markmap](https://github.com/markmap/markmap) | 思维导图渲染与导出 | 只消费中立 evidence tree | MIT；后端不可持久化 markmap 私有格式 |
+| Codex CLI / Claude Code CLI | OAuth 代理式视觉分析 | 宿主机 analysis adapter/worker | 个人 OAuth 仅限可信单用户；抽帧会发送到云端模型 |
 
 ### 明确不做的整合
 
@@ -146,7 +145,7 @@ Public media providers
 
 Lifecycle Worker ── DB/MinIO（过期删除、孤儿对账）
 Canary Worker ── 受控样本/Provider 状态
-Metrics/Logs ── 内部采集，不含源 URL query、transcript 或 Secret
+Metrics/Logs ── 内部采集，不含源 URL query、任务帧、模型原文或 Secret
 ```
 
 ## 推荐实施顺序

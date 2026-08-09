@@ -1,11 +1,10 @@
 # 010 Codex 与 Claude CLI 视频分析需求
 
-- 状态：Draft（待实现）
+- 状态：Implemented（Claude Provider 当前环境未通过视觉验收）
 - 日期：2026-08-10
 - 关联 Design：`docs/design/010-Codex与Claude CLI视频分析设计.md`
-- 当前基线：`docs/design/003-AI分析与思维导图设计.md`
-- 实现状态：尚未实现；010 验收通过前，产品仍运行 OpenAI ASR 与 DeepSeek/Ollama 分析链路
-- 生效条件：代码、配置、依赖、测试和两套真实 CLI E2E 全部完成后切换
+- 当前实现：`visual-analysis.v1`、宿主机 Analysis Worker、Codex 默认 Provider
+- 验收状态：Codex 真实 E2E 通过；Claude 当前本机模型路由不具备可用视觉理解
 
 ## 1. 背景与用户问题
 

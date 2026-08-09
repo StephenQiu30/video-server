@@ -62,7 +62,7 @@ flowchart LR
     AW["worker-analysis"] --> DB
     MQ --> AW
     AW --> OBJ
-    AW --> MODEL["ASR / LLM endpoint"]
+    AW --> MODEL["Codex / Claude cloud model"]
 ```
 
 ## 4. 进程职责
@@ -73,7 +73,7 @@ flowchart LR
 | `outbox` | DB、MQ | 领取并发布已提交的 outbox 事件，确认后标记投递结果 |
 | `worker-download` | DB、MQ、MinIO | 任务租约、调用 Runner、验证制品、上传、状态收敛 |
 | `media-runner` | 仅内部 HMAC token | yt-dlp/FFmpeg/ffprobe 子进程；不得访问 DB、MQ、MinIO 或模型 |
-| `worker-analysis` | DB、MQ、MinIO、AI provider | 音频提取、ASR、结构化分析、证据校验 |
+| 宿主机 `worker-analysis` | DB、MQ、MinIO、本机 CLI OAuth | AI 自主抽帧、视觉分镜分析、shot evidence 校验 |
 | `egress-proxy` | 无 | 仅代理 HTTP(S)，阻断私网、链路本地和云元数据地址 |
 
 该表描述当前 anonymous Runner 基线。005 的 Proposed 目标会新增与匿名池隔离的 credentialed Runner；它只能获得单 Provider、短时、限域会话，仍不得获得 DB、MQ、MinIO 或 AI 凭据。005 验收前不属于当前运行能力。

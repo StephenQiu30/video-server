@@ -1,6 +1,6 @@
 # server
 
-`server` 是万能视频下载器的统一服务仓库。前端源码、后端 API、Outbox、下载 Worker、AI Worker 和运行编排在同一个仓库内维护，并通过同一个生产镜像交付。
+`server` 是万能视频下载器的统一服务仓库。前端源码、后端 API、Outbox、下载 Worker、宿主机 AI Worker 和运行编排在同一个仓库内维护。
 
 ## 目录
 
@@ -14,7 +14,7 @@ server/
 └── docker-compose-prod.yml  生产环境覆盖（.env.prod、镜像与端口）
 ```
 
-生产环境不运行独立的前端容器。根目录 `Dockerfile` 先构建 `frontend/`，再将静态产物复制到统一 Python 镜像，由 FastAPI 同源提供页面和 `/api/*` 接口。API、下载 Worker 和 AI Worker 使用同一代码镜像、不同进程入口。
+生产环境不运行独立的前端容器。根目录 `Dockerfile` 先构建 `frontend/`，再将静态产物复制到统一 Python 镜像，由 FastAPI 同源提供页面和 `/api/*` 接口。API 与下载 Worker 使用同一代码镜像；AI Worker 作为本机登录用户的宿主机进程运行，以复用 Codex 或 Claude CLI 的 OAuth 登录。
 
 ## 本地开发
 
@@ -55,11 +55,11 @@ Media Runner 通过可注册的 Provider Strategy 统一处理 YouTube、Bilibil
 
 ## 容器运行
 
-根目录两份 Compose 按职责分层，不使用 `deploy/` 目录：本地文件可独立启动完整服务，生产文件只覆盖生产差异。
+根目录两份 Compose 按职责分层，不使用 `deploy/` 目录：Compose 启动 API、下载链路和基础设施，宿主机单独启动 AI Worker；生产文件只覆盖生产差异。
 
 | 文件 | 用途 | 启动方式 |
 | --- | --- | --- |
-| `docker-compose.yml` | 本地 `.env`、宿主机端口、完整服务拓扑、健康检查、依赖关系和卷 | 可直接部署本地环境 |
+| `docker-compose.yml` | 本地 `.env`、API/下载拓扑、基础设施、健康检查和卷 | 启动本地基础环境 |
 | `docker-compose-prod.yml` | 生产 `.env.prod`、生产镜像、容器名和对外端口 | 与基础配置组合 |
 
 ```bash
@@ -79,13 +79,18 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod
 
 API 的短窗口限流状态存放在独立 Valkey 服务；数据库、队列、配额、对象存储和 Runner RPC 使用独立内部网络，Media Runner 只接收 Runner HMAC 与受控出口代理配置。
 
-LLM 默认通过 LangChain 连接宿主机已有的 Ollama 服务与 `qwen3:latest`；项目不安装 Ollama 或拉取模型。切换 DeepSeek 云端时设置 `ANALYSIS_PROVIDER=deepseek` 与 `DEEPSEEK_API_KEY`。音频转录仍使用独立 ASR 配置，真实视频分析需要 `OPENAI_API_KEY`。
+AI 分析通过宿主机 Codex CLI 或 Claude CLI adapter 运行，不使用项目 API Key、本地 ASR 或本地模型。当前本机已验收的默认 Provider 是 Codex；启用 Claude 前必须确认实际模型路由能理解 Read 图片并通过真实视频 canary。先完成对应 CLI 登录，再从 `backend/` 启动 Worker：
 
-Docker 本地开发时，`OLLAMA_BASE_URL` 默认使用 `http://host.docker.internal:11434`，因此 Ollama 必须监听容器可达的宿主机地址（不能只监听 `127.0.0.1`）。若直接在宿主机运行 analysis worker，可将其覆盖为 `http://localhost:11434`；Windows 上可在启动 Ollama 前设置 `OLLAMA_HOST=0.0.0.0:11434`。
+```bash
+cd backend
+uv run python -m app.workers.analysis.main
+```
+
+Worker 会先验证 CLI、OAuth 登录、FFmpeg 与 FFprobe，再连接队列。应用把受限抽帧交给所选云端模型观察，因此这不是离线推理；视频容器不直接上传，但模型查看的帧会离开本机。当前生产 Compose 没有受支持的宿主机 OAuth Worker，必须保持 `ANALYSIS_ENABLED=false`。
 
 服务入口默认为 <http://localhost:8101>。本地使用 `docker-compose.yml`，生产使用基础配置叠加 `docker-compose-prod.yml`。
 
-当前架构依据见 [`docs/design/001-server单仓与运行时架构设计.md`](docs/design/001-server单仓与运行时架构设计.md)。数据库只保留 [`backend/sql/schema.sql`](backend/sql/schema.sql) 当前定义，新结构使用空数据卷初始化，不维护历史迁移和兼容分支。002 已通过受控直链 MP4 的真实 PostgreSQL/RabbitMQ/MinIO/yt-dlp/FFmpeg 与浏览器 MVP 核心验收，并通过一个 MediaTrack 公共审片链接的真实解析、HLS 下载与 ffprobe 校验，但不代表第三方站点矩阵均已覆盖；003 的真实 ASR + DeepSeek/Ollama E2E 尚未执行，仍保持 Pending。本轮已在宿主机 Ollama 的 `qwen3:latest` 上通过 LangChain 结构化分析冒烟；完整 ASR + 视频端到端仍待真实 OpenAI Key 与视频样本。
+当前架构依据见 [`docs/design/001-server单仓与运行时架构设计.md`](docs/design/001-server单仓与运行时架构设计.md) 与 [`docs/design/010-Codex与Claude CLI视频分析设计.md`](docs/design/010-Codex与Claude CLI视频分析设计.md)。数据库只保留 [`backend/sql/schema.sql`](backend/sql/schema.sql) 当前定义，新结构使用空数据卷初始化，不维护历史迁移和兼容分支。002 已通过受控直链 MP4 的真实下载闭环验收；010 的自动化与真实 CLI 验收状态以对应 Acceptance 文档为准。
 
 ## 贡献与提交
 

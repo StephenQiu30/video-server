@@ -73,7 +73,7 @@ App Router 页面默认保持可静态渲染；只有表单、菜单、选择器
 | `/account` | `app/account/page.tsx` | 已登录 | 查看邮箱与身份、修改用户名 |
 | `/admin/users` | `app/admin/users/page.tsx` | 管理员 | 搜索、筛选、分页并更新他人角色/启用状态 |
 | `/admin/analytics` | `app/admin/analytics/page.tsx` | 管理员 | 查看 7/30/90 天下载摘要、日趋势与视频来源分布 |
-| `/downloads/detail?jobId=<id>` | `app/downloads/detail/page.tsx` | 已登录且拥有任务 | 下载状态、取消/取件、AI 分析与思维导图；静态导出的 canonical 地址 |
+| `/downloads/detail?jobId=<id>` | `app/downloads/detail/page.tsx` | 已登录且拥有任务 | 下载状态、取消/取件、AI 视觉分镜、高光与资产；静态导出的 canonical 地址 |
 | `/user/login` | `app/user/login/page.tsx` | 公开 | 登录并返回经过校验的站内 `redirect` |
 | `/user/register` | `app/user/register/page.tsx` | 公开 | 注册并返回经过校验的站内 `redirect` |
 | `/downloads/{jobId}` | FastAPI 308 | 与目标页一致 | 旧详情地址永久重定向到 `/downloads/detail?jobId=<id>` |
@@ -195,7 +195,7 @@ PageHeader 直接显示“下载历史”及一句用途说明、可选的“新
 
 页面读取并校验 `jobId` 查询参数。缺失、格式非法、无权限或不存在时使用 Empty/Alert 给出不同但不泄露敏感信息的恢复路径。统一返回入口优先回到实际上一条站内记录，直接访问时回落到 `/history`。正常态使用连续内容区：AspectRatio 封面、任务状态、操作和分析内容按阅读顺序排列，区段间使用 Separator，不包在一张 Card 中。任务阶段决定取消、获取文件、开始分析、取消分析或重新分析动作；取消下载或分析使用 AlertDialog，不使用浏览器原生 `confirm`。
 
-进度值使用文本与 Radix Progress 同时表达，并通过节流的 `aria-live="polite"` 发布关键阶段变化。AI 分析成功后展示摘要、关键观点、章节和可键盘浏览的思维导图；下载失败不伪装为空状态，AI 失败不改变下载成功表达。
+进度值使用文本与 Radix Progress 同时表达，并通过节流的 `aria-live="polite"` 发布关键阶段变化。AI 分析成功后展示视觉摘要、分镜、高光和资产，时间按钮为后续播放器联动保留键盘语义；下载失败不伪装为空状态，AI 失败不改变下载成功表达。
 
 ### 登录与注册
 

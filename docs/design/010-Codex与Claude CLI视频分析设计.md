@@ -1,21 +1,20 @@
 # 010 Codex 与 Claude CLI 视频分析设计
 
-- 状态：Proposed（目标方案，尚未实现）
+- 状态：Implemented（Codex 已通过真实视觉 E2E；Claude 受当前本机模型路由限制）
 - 日期：2026-08-10
-- 当前基线：`docs/design/003-AI分析与思维导图设计.md`
-- 实现状态：尚未实现；010 验收通过前，运行时仍使用 003 描述的 OpenAI ASR 与 DeepSeek/Ollama 分析链路
-- 生效条件：代码、配置、依赖、测试和 Codex/Claude 真实 CLI E2E 全部完成后一次性切换
+- 当前实现：宿主机 CLI 视觉分析；默认 Provider 为 Codex
+- 验收状态：代码与 Codex E2E 已完成，Claude 真实视觉 E2E 未通过，详见 010 Acceptance
 
 ## 1. 当前基线与迁移范围
 
-当前 `AnalysisExecution` 的真实链路是“下载制品物化 → FFmpeg 提取音频 → OpenAI ASR → DeepSeek/Ollama 文本分析 → transcript evidence 校验”。`worker-analysis` 在 Docker Compose 内运行，并依赖 `OPENAI_API_KEY`、DeepSeek 或宿主机 Ollama。这条链路与目标存在四个根本偏差：
+当前 `AnalysisExecution` 链路是“下载制品物化 → 宿主机 CLI 自主抽帧与视觉观察 → `visual-analysis.v1` 校验 → shot evidence 持久化”。旧 OpenAI ASR、DeepSeek/Ollama 文本分析和容器化 Analysis Worker 已从运行时删除。
 
 1. 用户需要的是视频画面的分镜数量、分镜内容、视觉高光和资产目录，不是对白转录后的文本总结。
 2. 本机已经登录 Codex CLI 与 Claude Code CLI，不需要项目再管理 OpenAI、DeepSeek 或 Ollama 的 API Key 和模型服务。
 3. 容器不能自然复用宿主机 CLI、Keychain 和用户登录状态，强行挂载认证目录会扩大 Secret 面。
 4. transcript segment 不能证明画面中的镜头、人物、地点、物体、Logo 或文字；目标证据必须切换为分镜和时间范围。
 
-目标迁移是破坏性替换，不保留旧 Provider 双轨：
+本次迁移已按破坏性替换实施，不保留旧 Provider 双轨：
 
 - 删除 OpenAI ASR、DeepSeek、Ollama、LangChain 相关配置、依赖、适配器和音频分块链路。
 - 用一个公共 `VideoAnalyzer` 端口承接 Codex CLI 与 Claude CLI 两个宿主机适配器。
@@ -47,12 +46,12 @@
 
 ### 3.1 本机只读核验
 
-2026-08-10 已完成以下只读核验，未发起真实视频推理：
+2026-08-10 已完成以下运行时核验与真实视频推理：
 
 | 能力 | 当前本机状态 | 结论 |
 | --- | --- | --- |
-| Codex CLI | `0.147.0`，`codex login status` 为 ChatGPT 登录 | 可复用本机订阅登录 |
-| Claude Code | `2.1.226`，`claude auth status --json` 为 first-party OAuth | 可复用本机订阅登录 |
+| Codex CLI | `0.147.0`，ChatGPT 登录；真实 8 秒视频 E2E 通过 | 当前默认 Provider |
+| Claude Code | `2.1.226`，first-party OAuth；图片成功进入 Read，但本机三个模型别名均路由到 `deepseek-v4-pro` 并无法解释图像 | CLI/认证/工具链可用，当前环境视觉 E2E 未通过 |
 | FFmpeg/FFprobe | `8.1.2` | 可在宿主机解码和按时间提取画面 |
 | 项目 `.env` | 没有 AI Key | 符合目标，不应再添加 AI Key |
 
@@ -232,18 +231,18 @@ materialize → prepare isolated workspace → run VideoAnalyzer
 目标适配器使用参数数组直接启动进程，不经过 shell。Prompt 通过 stdin 传入，避免动态文本进入进程列表：
 
 ```text
-codex --ask-for-approval never exec
+codex --ask-for-approval never --strict-config exec
   --cd <job-workspace>
   --skip-git-repo-check
   --ephemeral
   --ignore-user-config
   --ignore-rules
-  --strict-config
-  --sandbox workspace-write
+  -c default_permissions="video_analysis"
+  -c permissions.video_analysis.filesystem=<least-privilege-profile>
+  -c permissions.video_analysis.network.enabled=false
   --model <trusted-model>
   --output-schema <job-workspace>/policy/output-schema.json
   --output-last-message <job-workspace>/output/result.json
-  -c sandbox_workspace_write.network_access=false
   -c web_search="disabled"
   -
 ```
@@ -252,7 +251,7 @@ codex --ask-for-approval never exec
 
 - `--ignore-user-config` 不读取个人 `config.toml`，但官方明确认证仍使用 `CODEX_HOME`；因此可以复用 ChatGPT 登录而不继承个人 MCP/网络配置。
 - `--ephemeral` 禁止保存 rollout；不得使用 `resume`。
-- workspace-write 只为 AI 生成帧和 contact sheet；网络显式关闭，approval 设为 `never`，任何越界请求直接失败而不是等待无人处理的确认。
+- Codex 0.138+ permission profile 将任务根设为只读，只开放 `work/`、`output/`、`tmp/` 写入，并只读开放 FFmpeg 安装前缀；网络关闭，approval 为 `never`。
 - 结果只从受限大小的 `output/result.json` 读取；stdout/stderr 仅用于受限诊断。
 - 启动前 `codex login status` 必须确认 ChatGPT 管理登录；若检测到 API Key 模式或相关 Key 环境变量则 fail-fast。
 - 禁止 `--dangerously-bypass-approvals-and-sandbox`、`--yolo`、`danger-full-access`、live web search、MCP、插件和额外 writable root。
@@ -270,8 +269,8 @@ claude --safe-mode -p
   --settings <job-workspace>/policy/claude-settings.json
   --tools Bash,Read
   --permission-mode dontAsk
-  --allowedTools "Read(/input/manifest.json)"
-  --allowedTools "Read(/work/**)"
+  --allowedTools "Read(<absolute-job-workspace>/input/manifest.json)"
+  --allowedTools "Read(<absolute-job-workspace>/work/**)"
   --allowedTools "Bash(<resolved-ffprobe> *)"
   --allowedTools "Bash(<resolved-ffmpeg> *)"
   --model <trusted-model>
@@ -399,16 +398,16 @@ VisualAsset
 
 ```text
 ANALYSIS_CLI_PROVIDER=codex|claude
-ANALYSIS_CODEX_BIN=codex
+ANALYSIS_CODEX_BINARY=codex
 ANALYSIS_CODEX_MODEL=<required model id>
-ANALYSIS_CLAUDE_BIN=claude
+ANALYSIS_CLAUDE_BINARY=claude
 ANALYSIS_CLAUDE_MODEL=<required model id>
 ANALYSIS_CLI_TIMEOUT_SECONDS=<bounded positive number>
 ANALYSIS_CLAUDE_MAX_TURNS=<bounded positive number>
-ANALYSIS_CLI_MAX_OUTPUT_BYTES=<bounded positive number>
-ANALYSIS_CLI_MAX_WORKSPACE_BYTES=<bounded positive number>
-ANALYSIS_CLI_MAX_FRAMES=<bounded positive number>
-ANALYSIS_CLI_CONCURRENCY=1
+ANALYSIS_MAX_STDOUT_BYTES=<bounded positive number>
+ANALYSIS_MAX_STDERR_BYTES=<bounded positive number>
+ANALYSIS_MAX_WORKSPACE_BYTES=<bounded positive number>
+ANALYSIS_MAX_FRAMES=<bounded positive number>
 ANALYSIS_ENABLED=true|false
 ANALYSIS_SCHEMA_VERSION=visual-analysis.v1
 ANALYSIS_PROMPT_VERSION=visual-shot.v1
@@ -464,9 +463,7 @@ Worker 启动顺序：
 
 ## 18. 切换策略与已知限制
 
-切换必须在一个实施序列中完成：先建立新契约和两个适配器，通过 fake/security/真实 E2E 后，再删除旧 ASR/Provider 代码、依赖、配置和 UI。不得长期保留 `legacy` profile、旧 Provider 开关或结果双读。
-
-010 生效时同步收口 003 文档和所有 README/运维说明，使仓库只描述 CLI 视觉分析当前态；历史实现通过 Git 查阅。
+切换已经完成：新契约和两个适配器已落地，旧 ASR/Provider 代码、依赖、配置、UI 与 003 当前文档已删除；历史实现通过 Git 查阅。Claude 适配器保留为受信配置选项，但当前本机视觉 E2E 失败，不能作为已验收 Provider 启用。
 
 已知限制：
 
@@ -476,6 +473,7 @@ Worker 启动顺序：
 - CLI 升级可能改变 flag、模型、输出 wrapper 或 sandbox 行为，必须经过版本预检与 E2E 才能升级。
 - 无 ASR 时所有高光和资产结论仅代表视觉观察。
 - AI 自主取样不能保证捕获任意短闪切；UI 和文档不得把结果宣传为逐帧精确剪辑决策表。
+- Claude Code 的 CLI 认证成功不等于所选模型具备视觉能力；部署前必须用真实图片和视频验收实际路由。当前本机 `sonnet`、`haiku`、`opus` 都路由到 `deepseek-v4-pro`，图片 Read 返回后模型仍误判为空并耗尽 turns。
 
 ## 19. 官方依据
 

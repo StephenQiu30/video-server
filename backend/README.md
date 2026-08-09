@@ -30,4 +30,4 @@ Media Runner 通过 `app/runner/plugins/yt_dlp_plugins/` 加载随项目交付�
 
 主流视频源通过 `app/runner/provider_registry.py` 与 `app/runner/provider_catalog.py` 采用 Strategy + Registry 统一匹配；`provider_urls.py` 只保留兼容入口，未知站点使用 yt-dlp Generic extractor。新增平台应先确认 yt-dlp extractor 存在，再补充 Profile、域名别名和解析测试。Runner 不再为命令创建或传入空 Cookie 文件；平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 Provider key 指向受控内部代理。
 
-文本分析统一通过 LangChain 的结构化输出接口运行，服务端以 `ANALYSIS_PROVIDER=ollama|deepseek` 选择本地 Ollama 或 DeepSeek。Ollama 默认模型为 `qwen3:latest`，DeepSeek 默认模型为 `deepseek-v4-flash`。音频转录是独立 ASR 端口，不与文本模型配置混用。
+视觉分析通过宿主机 `codex exec` 或 `claude -p` adapter 运行，统一实现 `VideoAnalyzer` 端口并返回 `visual-analysis.v1`。应用只提供受限 FFmpeg/FFprobe 解码工具，由 AI 自主观察画面并生成连续分镜、高光和视觉资产；不运行 ASR，也不管理模型 API Key。当前本机真实视觉 E2E 只通过 Codex；Claude 启用前必须验证实际模型路由具备图片理解。Worker 必须由已经完成 CLI OAuth 登录的本机用户从 `backend/` 启动。

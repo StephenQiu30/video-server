@@ -19,6 +19,7 @@ x-api-env: &api-env
   RABBITMQ_EXCHANGE: "${RABBITMQ_EXCHANGE:-video.events}"
   DOWNLOAD_QUEUE: "${DOWNLOAD_QUEUE:-video.download}"
   ANALYSIS_QUEUE: "${ANALYSIS_QUEUE:-video.analysis}"
+  ANALYSIS_ENABLED: "${ANALYSIS_ENABLED:-true}"
   MINIO_ENDPOINT: "${MINIO_ENDPOINT:-minio:9000}"
   MINIO_PUBLIC_ENDPOINT: "${MINIO_PUBLIC_ENDPOINT:-127.0.0.1:19190}"
   MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:-video-app-access}"
@@ -73,30 +74,6 @@ x-download-env: &download-env
   RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
   RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
-
-x-analysis-env: &analysis-env
-  APP_ENV: "${APP_ENV:-development}"
-  SERVICE_ROLE: analysis-worker
-  DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
-  RABBITMQ_URL: "${RABBITMQ_URL:-amqp://video:video@rabbitmq:5672/}"
-  RABBITMQ_EXCHANGE: "${RABBITMQ_EXCHANGE:-video.events}"
-  ANALYSIS_QUEUE: "${ANALYSIS_QUEUE:-video.analysis}"
-  ANALYSIS_ROUTING_KEY: "${ANALYSIS_ROUTING_KEY:-analysis.requested}"
-  WORKER_PREFETCH: "${WORKER_PREFETCH:-2}"
-  MINIO_ENDPOINT: "${MINIO_ENDPOINT:-minio:9000}"
-  MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:-video-app-access}"
-  MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:-video-app-secret-change-me}"
-  MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
-  MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
-  ANALYSIS_WORKSPACE_ROOT: "${ANALYSIS_WORKSPACE_ROOT:-/analysis-work}"
-  ANALYSIS_PROVIDER: "${ANALYSIS_PROVIDER:-ollama}"
-  DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY:-}"
-  DEEPSEEK_BASE_URL: "${DEEPSEEK_BASE_URL:-https://api.deepseek.com}"
-  DEEPSEEK_ANALYSIS_MODEL: "${DEEPSEEK_ANALYSIS_MODEL:-deepseek-v4-flash}"
-  OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://host.docker.internal:11434}"
-  OLLAMA_ANALYSIS_MODEL: "${OLLAMA_ANALYSIS_MODEL:-qwen3:latest}"
-  OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
-  OPENAI_TRANSCRIPTION_MODEL: "${OPENAI_TRANSCRIPTION_MODEL:-gpt-4o-mini-transcribe}"
 
 x-runner-env: &runner-env
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
@@ -177,28 +154,6 @@ services:
       media-runner:
         condition: service_healthy
 
-  worker-analysis:
-    <<: *app
-    environment: *analysis-env
-    networks: [db_net, queue_net, storage_net]
-    container_name: worker-analysis
-    command: ["python", "-m", "app.workers.analysis.main"]
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    volumes:
-      - analysis_work:/analysis-work
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
-      workspace-init:
-        condition: service_completed_successfully
-
   media-runner:
     <<: *app
     environment: *runner-env
@@ -260,11 +215,10 @@ services:
     container_name: workspace-init
     network_mode: none
     user: "0:0"
-    command: ["sh", "-c", "install -d -o 10001 -g 10001 -m 0700 /work /analysis-work"]
+    command: ["sh", "-c", "install -d -o 10001 -g 10001 -m 0700 /work"]
     restart: "no"
     volumes:
       - runner_work:/work
-      - analysis_work:/analysis-work
 
   postgres:
     image: postgres:17.5-alpine
@@ -361,7 +315,6 @@ volumes:
   rabbitmq_data:
   minio_data:
   runner_work:
-  analysis_work:
 
 networks:
   db_net:

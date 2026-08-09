@@ -1,12 +1,11 @@
 # 010 Codex 与 Claude CLI 视频分析迁移计划
 
-- 状态：Ready（尚未执行）
+- 状态：Completed（实现完成，Claude 视觉验收未通过）
 - 日期：2026-08-10
 - 关联 Design：`docs/design/010-Codex与Claude CLI视频分析设计.md`
 - 关联 PRD：`docs/prd/010-Codex与Claude CLI视频分析需求.md`
-- 当前基线：`docs/design/003-AI分析与思维导图设计.md`
-- 实现状态：尚未实现；本计划中的代码、配置和真实 CLI 验证均未完成
-- 生效条件：全部阶段完成且 `docs/acceptance/010-Codex与Claude CLI视频分析验收.md` 通过
+- 当前实现：010 已替换旧 AI 链路并成为运行时事实
+- 验收结果：Codex 通过；Claude 因当前本机实际模型路由无法理解 Read 图片而未通过
 
 ## 1. 实施原则
 
@@ -16,7 +15,7 @@
 - 两个 Provider 独立实现、共享端口与验收；不得复制整套任务编排。
 - 自动化使用 fake CLI，真实账户 E2E 只作为受控人工门禁。
 - 每个阶段是可独立验证和提交的小任务；不得把所有迁移堆进一个不可审查提交。
-- 010 验收通过前不改写 003 为已经上线；最终切换时一次性收口旧文档和运行说明。
+- 旧 003 当前文档已删除，历史只通过 Git 查阅；Acceptance 如实保留 Claude 未通过项。
 
 ## 2. Phase 0：冻结基线并验证两套 CLI
 
