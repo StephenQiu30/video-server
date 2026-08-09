@@ -69,7 +69,7 @@ server/
 
 - 页面根、标题区、筛选区、列表区和表单区禁止可见 Card 外壳、装饰性 border/ring、重阴影和大面积圆角容器。Input、Select、Button 等默认使用无边框实心中性表面；内容分组只使用必要的 1px 发丝 Separator。错误边界、键盘焦点轮廓和 Radix 覆盖层边界属于功能反馈，不得以“无边框”为由移除。
 - 交互原语优先组合 `frontend/src/components/ui/` 中 shadcn/ui `radix-nova` 源码与 Radix UI。Dialog、AlertDialog、Sheet、Select、Dropdown Menu、Tabs、RadioGroup、Progress、Tooltip 等必须保留语义、焦点圈定、Escape 行为和触发器焦点恢复；不得用可点击 `div`、自制浮层或第二套基础组件绕过这些能力。
-- 图标只使用 `@phosphor-icons/react` 的同一家族，并提供可访问名称；禁止用 emoji、文本符号、CSS 图形、临时手绘 SVG 或混用图标库代替业务图标。
+- 功能图标只使用 `@phosphor-icons/react` 的同一家族，并提供可访问名称；品牌标识统一通过 Next.js `Image` 使用已经设计好的 `frontend/public/logo.svg`。禁止用 emoji、文本符号、CSS 图形、临时手绘 SVG 或混用图标库代替业务图标。
 - 所有已认证的非首页页面与多步骤流程必须提供明确、可键盘操作的返回路径。返回上一步优先遵循由应用记录的站内浏览历史，并为无可用历史的直接访问提供稳定站内 fallback；登录与注册不渲染通用历史返回，改用彼此之间的明确交叉链接和校验后的 `redirect`，避免过期受保护页面参与回退并形成认证循环。不得让用户只能依赖浏览器工具栏，也不得用硬编码跳转破坏正常返回链路。
 - 首页格式选择必须用 Radix RadioGroup 渲染 API 返回的真实 `MediaFormat`。界面不得虚构后端没有的画质预设、字幕、容器、音频模式、文件大小、播放能力或任务状态。
 

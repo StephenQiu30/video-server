@@ -1,6 +1,6 @@
 'use client';
 
-import { ShieldCheck } from '@phosphor-icons/react';
+import { CheckCircle, ShieldCheck } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
 import { type RefObject, useEffect, useRef, useState } from 'react';
 
@@ -125,7 +125,7 @@ export default function DownloadWorkspace() {
       ) : null}
       <footer className="mt-10 flex flex-col gap-3 border-t py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <span className="flex items-center gap-2">
-          <span className="size-1.5 rounded-full bg-success" />
+          <CheckCircle aria-hidden className="size-4 text-success" />
           公开链接 · 无 DRM · 安全解析
         </span>
         <span className="flex items-center gap-1.5">

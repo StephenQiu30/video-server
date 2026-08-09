@@ -3,11 +3,11 @@
 import {
   CaretDownIcon,
   ClockCounterClockwiseIcon,
-  DownloadSimpleIcon,
   SignOutIcon,
   UserCircleIcon,
   UsersThreeIcon,
 } from '@phosphor-icons/react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -37,9 +37,14 @@ export function BrandLink({ className }: { className?: string }) {
       )}
       href="/"
     >
-      <span className="flex size-6 items-center justify-center rounded-[4px] bg-primary text-primary-foreground">
-        <DownloadSimpleIcon aria-hidden className="size-3.5" weight="bold" />
-      </span>
+      <Image
+        alt=""
+        aria-hidden
+        className="size-6 shrink-0"
+        height={24}
+        src="/logo.svg"
+        width={24}
+      />
       <span>帧取</span>
     </Link>
   );

@@ -86,13 +86,7 @@ export default function DownloadHero({
                 <TooltipContent>清空链接</TooltipContent>
               </Tooltip>
             </InputGroupAddon>
-          ) : (
-            <InputGroupAddon align="inline-end" className="hidden pr-4 sm:flex">
-              <kbd className="rounded bg-background px-2 py-1 font-mono text-[11px] font-normal text-muted-foreground">
-                ⌘V
-              </kbd>
-            </InputGroupAddon>
-          )}
+          ) : null}
         </InputGroup>
         <Button
           className="h-16 px-6 text-[15px] sm:h-[68px]"

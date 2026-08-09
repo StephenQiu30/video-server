@@ -31,7 +31,7 @@
 | 路由与构建 | Next.js App Router | 使用 `src/app/`、静态导出和路由组；不使用 Pages Router、Umi 路由或 Next 运行时服务 |
 | UI 原语 | shadcn/ui `radix-nova` + Radix UI | 使用官方 registry 源码和语义 token；Dialog、Dropdown Menu、Select、Tabs、Progress、Sheet、Tooltip、AlertDialog 等交互保留 Radix 语义与焦点行为 |
 | 样式 | Tailwind CSS | 全局 token 由 CSS 变量定义，组件只消费语义类；不新增 Less、CSS-in-JS 或另一套主题系统 |
-| 图标 | 项目已有 `@phosphor-icons/react` | 继续使用 Phosphor 的同一线性/填充家族；禁止用 emoji、文本符号、手绘 SVG、CSS 图形代替图标 |
+| 图标与品牌 | `@phosphor-icons/react` + `public/logo.svg` | 功能图标继续使用 Phosphor 的同一线性/填充家族；Header 品牌标识与页面 metadata 通过 Next.js `Image`/icons 使用已经设计好的 Logo；禁止用 emoji、文本符号、手绘 SVG、CSS 图形代替功能图标 |
 | API 生成 | `@umijs/openapi` | 直接作为开发依赖，通过 `openapi2ts` 读取 FastAPI `/openapi.json`；不依赖 Umi Max 插件 |
 | HTTP | 单一 Axios 封装 | 生成服务统一导入 `src/lib/request.ts`；业务页面不得直接拼接请求或重复声明 DTO |
 | 测试 | Vitest + Testing Library + 浏览器端 E2E/axe | 验证功能、路由、键盘操作、390px 布局和视觉基准 |
@@ -163,7 +163,7 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 
 ### 全局导航
 
-桌面端为 72px 单行轻量 Header：左侧品牌标识“帧取”指向 `/`，右侧提供“下载记录”（`href="/history"`）、Avatar 账户菜单和主题操作，管理员入口位于账户菜单。Header 与 main/footer 共用 `.content-shell` 的 1376px 上限和桌面 80px gutter，保持导航与主体严格对齐；没有底线、侧栏、面包屑容器、外框或浮起阴影。当前路由链接使用 `aria-current="page"`，并通过中性填充面和文本色同步表达当前页。
+桌面端为 72px 单行轻量 Header：左侧使用 Next.js `Image` 渲染 `public/logo.svg`，与文字“帧取”共同构成指向 `/` 的品牌链接；右侧提供“下载记录”（`href="/history"`）、Avatar 账户菜单和主题操作，管理员入口位于账户菜单。Header 与 main/footer 共用 `.content-shell` 的 1376px 上限和桌面 80px gutter，保持导航与主体严格对齐；没有底线、侧栏、面包屑容器、外框或浮起阴影。当前路由链接使用 `aria-current="page"`，并通过中性填充面和文本色同步表达当前页。
 
 390px 下保留品牌和一个明确的导航触发器，下载记录、账户与主题操作进入 Sheet；不把桌面导航强行压缩到同一行。Sheet 打开后焦点进入其可操作内容，链接均可通过 Tab 到达并以键盘激活；关闭而未导航时，焦点返回触发器。品牌链接始终提供返回 `/` 的明确可读名称。图标按钮有可见或屏幕阅读器标签，Tooltip 仅作辅助，触控区域至少 44×44px。
 

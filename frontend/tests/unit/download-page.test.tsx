@@ -40,6 +40,7 @@ describe('DownloadWorkspace', () => {
     expect(screen.queryByText('02 / 选择画质')).not.toBeInTheDocument();
     expect(screen.queryByText('03 / 创建任务')).not.toBeInTheDocument();
     expect(screen.getByLabelText('公开视频地址')).toBeInTheDocument();
+    expect(screen.queryByText('⌘V')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '解析媒体' })).toBeEnabled();
     expect(
       screen.queryByRole('region', { name: '解析结果' }),
