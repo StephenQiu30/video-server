@@ -63,6 +63,23 @@ def test_media_url_validator_extracts_scheme_less_xhs_share_link() -> None:
     )
 
 
+def test_media_url_validator_extracts_douyin_url_from_share_message() -> None:
+    validator = MediaUrlValidator()
+    message = (
+        "9.25 04/21 :1pm F@U.yt Bgb:/ ୨୧⊹ ࣪ 幸福是一步步变成小蛋糕 "
+        "https://v.douyin.com/Tq0eYJRMYRk/ 复制此链接，打开Dou音搜索"
+    )
+
+    assert validator.validate(message) == "https://v.douyin.com/Tq0eYJRMYRk/"
+
+
+def test_media_url_validator_rejects_share_message_with_multiple_urls() -> None:
+    validator = MediaUrlValidator()
+
+    with pytest.raises(ValueError):
+        validator.validate("https://v.douyin.com/first/ https://v.douyin.com/second/")
+
+
 def test_media_url_validator_does_not_generalize_scheme_less_input() -> None:
     validator = MediaUrlValidator()
 

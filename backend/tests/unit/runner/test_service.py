@@ -115,6 +115,20 @@ class ProbeSampleSupervisor(FixtureSupervisor):
         )
 
 
+class TransientFailureSupervisor(FixtureSupervisor):
+    async def run(
+        self,
+        argv: Sequence[str],
+        *,
+        cwd: Path,
+        timeout_seconds: float,
+        env: Mapping[str, str] | None = None,
+    ) -> ProcessResult:
+        del cwd, timeout_seconds
+        self.calls.append((tuple(argv), env))
+        return ProcessResult(1, b"", b"transient", False, False)
+
+
 async def test_download_reinspects_selects_semantics_and_verifies_artifact(
     tmp_path: Path,
 ) -> None:
@@ -194,6 +208,21 @@ async def test_inspect_requires_at_least_one_semantic_option(tmp_path: Path) -> 
     assert caught.value.code == "format_unavailable"
 
 
+async def test_inspect_retries_stay_within_the_total_deadline(tmp_path: Path) -> None:
+    configured = settings(tmp_path).model_copy(
+        update={"runner_inspect_timeout_seconds": 0.05}
+    )
+    supervisor = TransientFailureSupervisor(split_media_info())
+    service = MediaRunnerService(configured, supervisor=supervisor)
+
+    with pytest.raises(RunnerFailure) as caught:
+        await service.inspect("https://www.douyin.com/video/7662711608636889201")
+
+    assert caught.value.code == "inspection_timeout"
+    assert len(supervisor.calls) == 1
+    assert list(tmp_path.iterdir()) == []
+
+
 async def test_inspect_enriches_sparse_provider_formats_with_bounded_probe(
     tmp_path: Path,
 ) -> None:
@@ -206,14 +235,22 @@ async def test_inspect_enriches_sparse_provider_formats_with_bounded_probe(
         }
     ]
     supervisor = FixtureSupervisor(info)
-    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+    source_url = "https://www.douyin.com/video/7662711608636889201"
+    configured = settings(tmp_path).model_copy(
+        update={
+            "runner_provider_egress_proxies": {
+                "douyin": "http://douyin-egress-proxy:3128"
+            }
+        }
+    )
+    service = MediaRunnerService(configured, supervisor=supervisor)
 
-    response = await service.inspect("https://media.example.com/video")
+    response = await service.inspect(source_url)
 
     assert response.streams[0].height == 1080
-    ffprobe = next(
-        command
-        for command, _ in supervisor.calls
+    ffprobe, probe_environment = next(
+        (command, environment)
+        for command, environment in supervisor.calls
         if command[0] == "ffprobe" and str(command[-1]).startswith("https://")
     )
     assert ffprobe[-1] == "https://cdn.example.com/video.mp4"
@@ -221,6 +258,10 @@ async def test_inspect_enriches_sparse_provider_formats_with_bounded_probe(
         ffprobe[ffprobe.index("-protocol_whitelist") + 1]
         == "http,https,tcp,tls,crypto,httpproxy"
     )
+    assert ffprobe[ffprobe.index("-referer") + 1] == source_url
+    assert "Mozilla/5.0" in ffprobe[ffprobe.index("-user_agent") + 1]
+    assert probe_environment is not None
+    assert probe_environment["HTTPS_PROXY"] == "http://douyin-egress-proxy:3128"
 
 
 async def test_inspect_recovers_missing_duration_from_sparse_probe(
@@ -244,6 +285,26 @@ async def test_inspect_recovers_missing_duration_from_sparse_probe(
     assert response.streams[0].video_codec_family.value == "h264"
 
 
+async def test_inspect_prefers_downloadable_stream_duration_from_probe(
+    tmp_path: Path,
+) -> None:
+    info = split_media_info()
+    info["duration"] = 24
+    info["formats"] = [
+        {
+            "format_id": "http-832",
+            "ext": "mp4",
+            "url": "https://cdn.example.com/video.mp4",
+        }
+    ]
+    supervisor = FixtureSupervisor(info)
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    response = await service.inspect("https://media.example.com/video")
+
+    assert response.media.duration_seconds == 30
+
+
 async def test_inspect_retries_and_uses_bounded_local_probe_sample(
     tmp_path: Path,
 ) -> None:
@@ -257,6 +318,7 @@ async def test_inspect_retries_and_uses_bounded_local_probe_sample(
             "vcodec": "h264",
             "acodec": "aac",
             "filesize": 1_300_000,
+            "duration": 12,
             "url": "https://cdn.example.com/video.mp4",
         }
     ]
@@ -266,6 +328,7 @@ async def test_inspect_retries_and_uses_bounded_local_probe_sample(
     response = await service.inspect("https://media.example.com/video")
 
     assert supervisor.inspection_attempts == 2
+    assert response.media.duration_seconds == 30
     assert response.streams[0].fps == 30
     sample = next(
         command

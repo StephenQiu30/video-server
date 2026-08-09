@@ -16,6 +16,7 @@ _XHS_SHORT_LINK = re.compile(
     r"(?:a|m)/[A-Za-z0-9]+(?:[/?#][^\s]*)?)",
     re.IGNORECASE,
 )
+_HTTP_URL = re.compile(r"https?://[^\s]+", re.IGNORECASE)
 _SHARE_TRAILING_PUNCTUATION = ".,;:!?，。；：！？)]}）】》"
 
 
@@ -25,9 +26,14 @@ class MediaUrlValidator:
 
 
 def _normalize_public_share_input(value: str) -> str:
-    """Extract the single known-safe URL form emitted by the XHS share sheet."""
+    """Extract exactly one HTTP(S) URL from a provider share-sheet message."""
     if not isinstance(value, str):
         return value
+    public_urls: list[str] = _HTTP_URL.findall(value)
+    if len(public_urls) > 1:
+        return value
+    if len(public_urls) == 1:
+        return public_urls[0].rstrip(_SHARE_TRAILING_PUNCTUATION)
     matches = tuple(_XHS_SHORT_LINK.finditer(value))
     if len(matches) != 1:
         return value

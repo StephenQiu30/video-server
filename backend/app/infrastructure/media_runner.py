@@ -21,6 +21,7 @@ from app.application.downloads import (
 from app.application.downloads.errors import (
     MediaInspectionAccessRequired,
     MediaInspectionLinkUnavailable,
+    MediaInspectionTimeout,
     MediaInspectionUnsupported,
 )
 from app.domain.downloads import DownloadPlan
@@ -78,6 +79,7 @@ class MediaRunnerHttpClient:
                 InspectRequest(url=url).model_dump_json().encode(),
                 InspectResponse,
                 self._inspect_timeout,
+                timeout_code="inspection_timeout",
             )
         except MediaRunnerClientError as exc:
             if exc.code == "provider_access_required":
@@ -86,6 +88,8 @@ class MediaRunnerHttpClient:
                 raise MediaInspectionLinkUnavailable from exc
             if exc.code == "provider_unsupported":
                 raise MediaInspectionUnsupported from exc
+            if exc.code == "inspection_timeout":
+                raise MediaInspectionTimeout from exc
             raise MediaInspectionFailure(exc.code) from exc
         return RunnerInspection(
             extractor_key=response.media.extractor_key,
@@ -126,6 +130,7 @@ class MediaRunnerHttpClient:
             body,
             DownloadResponse,
             self._download_timeout,
+            timeout_code="download_timeout",
         )
         workspace = Path(response.workspace_path).resolve()
         artifact = (workspace / response.artifact.relative_path).resolve()
@@ -153,6 +158,7 @@ class MediaRunnerHttpClient:
             b"",
             TaskStatusResponse,
             self._inspect_timeout,
+            timeout_code="runner_unavailable",
         )
         return RunnerProgress(download_stage(response.stage), response.progress)
 
@@ -164,6 +170,7 @@ class MediaRunnerHttpClient:
             CancelCommand().model_dump_json().encode(),
             CancelResponse,
             self._inspect_timeout,
+            timeout_code="runner_unavailable",
         )
 
     async def close(self) -> None:
@@ -177,6 +184,8 @@ class MediaRunnerHttpClient:
         body: bytes,
         model: type[ResponseModel],
         timeout: float,
+        *,
+        timeout_code: str,
     ) -> ResponseModel:
         timestamp, nonce = self._clock(), self._nonce()
         headers = {
@@ -195,6 +204,8 @@ class MediaRunnerHttpClient:
                 headers=headers,
                 timeout=timeout,
             )
+        except httpx.TimeoutException as exc:
+            raise MediaRunnerClientError(timeout_code, 504) from exc
         except httpx.HTTPError as exc:
             raise MediaRunnerClientError("runner_unavailable", 503) from exc
         if response.is_error:

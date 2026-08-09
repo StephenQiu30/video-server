@@ -17,6 +17,11 @@ from app.runner.workspace_monitor import (
 )
 
 _YTDLP_PLUGIN_ROOT = Path(__file__).resolve().parent
+_REMOTE_PROBE_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/136.0.0.0 Safari/537.36"
+)
 
 
 class ProcessRunner(Protocol):
@@ -55,7 +60,14 @@ class MediaCommands:
         )
         return json_object(result.stdout, "invalid_inspection_response")
 
-    async def probe_remote(self, url: str, cwd: Path) -> dict[str, Any]:
+    async def probe_remote(
+        self,
+        url: str,
+        cwd: Path,
+        *,
+        referer: str | None = None,
+    ) -> dict[str, Any]:
+        egress_proxy = self._egress_proxy(referer or url)
         command = (
             self._settings.runner_ffprobe_bin,
             "-v",
@@ -66,6 +78,10 @@ class MediaCommands:
             "json",
             "-protocol_whitelist",
             "http,https,tcp,tls,crypto,httpproxy",
+            "-user_agent",
+            _REMOTE_PROBE_USER_AGENT,
+            "-referer",
+            referer or url,
             url,
         )
         result = await self._run(
@@ -74,6 +90,7 @@ class MediaCommands:
             self._settings.runner_inspect_timeout_seconds,
             timeout_code="inspection_timeout",
             failure_code="inspection_failed",
+            egress_proxy=egress_proxy,
         )
         return json_object(result.stdout, "invalid_inspection_response")
 

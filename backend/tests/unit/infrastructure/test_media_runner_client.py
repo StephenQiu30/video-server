@@ -7,7 +7,9 @@ import httpx
 import pytest
 from app.application.downloads.errors import (
     MediaInspectionAccessRequired,
+    MediaInspectionFailure,
     MediaInspectionLinkUnavailable,
+    MediaInspectionTimeout,
     MediaInspectionUnsupported,
 )
 from app.infrastructure.media_runner import MediaRunnerHttpClient
@@ -107,6 +109,82 @@ async def test_inspect_exposes_unsupported_provider() -> None:
     with pytest.raises(MediaInspectionUnsupported):
         await client.inspect("https://weixin.qq.com/sph/AFWYoXF5Bw")
 
+    await http.aclose()
+
+
+@pytest.mark.asyncio
+async def test_inspect_exposes_runner_timeout_response() -> None:
+    async def respond(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            504,
+            json={"error": {"code": "inspection_timeout", "message": "timeout"}},
+        )
+
+    http = httpx.AsyncClient(
+        base_url="http://runner",
+        transport=httpx.MockTransport(respond),
+    )
+    client = MediaRunnerHttpClient(
+        base_url="http://runner",
+        secret=b"s" * 32,
+        workspace_root=Path("."),
+        inspect_timeout_seconds=1,
+        download_timeout_seconds=1,
+        client=http,
+    )
+
+    with pytest.raises(MediaInspectionTimeout):
+        await client.inspect("https://www.douyin.com/video/123")
+
+    await http.aclose()
+
+
+@pytest.mark.asyncio
+async def test_inspect_exposes_client_read_timeout() -> None:
+    async def respond(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("runner timed out", request=request)
+
+    http = httpx.AsyncClient(
+        base_url="http://runner",
+        transport=httpx.MockTransport(respond),
+    )
+    client = MediaRunnerHttpClient(
+        base_url="http://runner",
+        secret=b"s" * 32,
+        workspace_root=Path("."),
+        inspect_timeout_seconds=1,
+        download_timeout_seconds=1,
+        client=http,
+    )
+
+    with pytest.raises(MediaInspectionTimeout):
+        await client.inspect("https://www.douyin.com/video/123")
+
+    await http.aclose()
+
+
+@pytest.mark.asyncio
+async def test_inspect_keeps_non_timeout_network_failure_generic() -> None:
+    async def respond(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("runner unavailable", request=request)
+
+    http = httpx.AsyncClient(
+        base_url="http://runner",
+        transport=httpx.MockTransport(respond),
+    )
+    client = MediaRunnerHttpClient(
+        base_url="http://runner",
+        secret=b"s" * 32,
+        workspace_root=Path("."),
+        inspect_timeout_seconds=1,
+        download_timeout_seconds=1,
+        client=http,
+    )
+
+    with pytest.raises(MediaInspectionFailure) as caught:
+        await client.inspect("https://www.douyin.com/video/123")
+
+    assert type(caught.value) is MediaInspectionFailure
     await http.aclose()
 
 

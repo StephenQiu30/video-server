@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import math
 from dataclasses import replace
 from urllib.parse import urljoin
 
@@ -77,22 +78,28 @@ class MediaRunnerService:
         safe_url = safe_media_url(url)
         workspace = self._workspaces.create("inspect")
         try:
-            inspection = await self._inspect_source(safe_url, workspace)
-            plans = build_download_options(
-                inspection.streams,
-                max_options=self._settings.runner_max_options,
-            )
-            if not plans:
-                raise RunnerFailure("format_unavailable", status=409)
-            thumbnail_data_url = await self._thumbnail_data_url(
-                inspection.thumbnail_url,
-                referer=safe_url,
-            )
-            return inspect_response(
-                inspection,
-                plans,
-                thumbnail_data_url=thumbnail_data_url,
-            )
+            try:
+                async with asyncio.timeout(
+                    self._settings.runner_inspect_timeout_seconds
+                ):
+                    inspection = await self._inspect_source(safe_url, workspace)
+                    plans = build_download_options(
+                        inspection.streams,
+                        max_options=self._settings.runner_max_options,
+                    )
+                    if not plans:
+                        raise RunnerFailure("format_unavailable", status=409)
+                    thumbnail_data_url = await self._thumbnail_data_url(
+                        inspection.thumbnail_url,
+                        referer=safe_url,
+                    )
+                    return inspect_response(
+                        inspection,
+                        plans,
+                        thumbnail_data_url=thumbnail_data_url,
+                    )
+            except TimeoutError as exc:
+                raise RunnerFailure("inspection_timeout", status=504) from exc
         finally:
             workspace.cleanup()
 
@@ -242,14 +249,22 @@ class MediaRunnerService:
                     raise
                 await asyncio.sleep(retry_delay)
         if payload.get("direct") is True:
-            probe = await self._commands.probe_remote(safe_url, workspace.path)
+            probe = await self._commands.probe_remote(
+                safe_url,
+                workspace.path,
+                referer=safe_url,
+            )
             payload = enrich_direct_metadata(payload, probe)
         # Some extractors (for example Tencent Video) return only signed media
         # URLs during the initial pass. Probe those URLs before validating the
         # top-level metadata so duration and codec fields can be recovered.
         duration = payload.get("duration")
         if not isinstance(duration, (int, float)) or duration <= 0:
-            payload = await self._enrich_sparse_formats(payload, workspace)
+            payload = await self._enrich_sparse_formats(
+                payload,
+                workspace,
+                referer=safe_url,
+            )
         try:
             inspection = normalize_for_settings(payload, self._settings)
         except RunnerFailure as exc:
@@ -261,7 +276,11 @@ class MediaRunnerService:
             max_options=1,
         ):
             return inspection
-        enriched = await self._enrich_sparse_formats(payload, workspace)
+        enriched = await self._enrich_sparse_formats(
+            payload,
+            workspace,
+            referer=safe_url,
+        )
         try:
             inspection = normalize_for_settings(enriched, self._settings)
         except RunnerFailure as exc:
@@ -280,6 +299,8 @@ class MediaRunnerService:
         self,
         payload: dict[str, object],
         workspace: TaskWorkspace,
+        *,
+        referer: str,
     ) -> dict[str, object]:
         formats = payload.get("formats")
         if not isinstance(formats, list):
@@ -300,35 +321,32 @@ class MediaRunnerService:
             index: int,
             raw: dict[str, object],
             url: str,
-        ) -> tuple[int, dict[str, object]]:
+        ) -> tuple[int, dict[str, object], float | None]:
             try:
                 media_url = safe_media_url(url)
                 async with semaphore:
                     probe = await self._commands.probe_remote(
                         media_url,
                         workspace.path,
+                        referer=referer,
                     )
-                return index, enrich_format_metadata(raw, probe)
+                return index, enrich_format_metadata(raw, probe), _probe_duration(probe)
             except (RunnerFailure, ValueError):
-                return index, raw
+                return index, raw, None
 
         results = await asyncio.gather(
             *(enrich(index, raw, url) for index, raw, url in candidates)
         )
         enriched_formats = list(formats)
-        for index, enriched in results:
+        probed_duration: float | None = None
+        for index, enriched, duration in results:
             enriched_formats[index] = enriched
+            if probed_duration is None and duration is not None:
+                probed_duration = duration
         enriched_payload = dict(payload)
         enriched_payload["formats"] = enriched_formats
-        current_duration = enriched_payload.get("duration")
-        if not isinstance(current_duration, (int, float)) or current_duration <= 0:
-            for value in enriched_formats:
-                if not isinstance(value, dict):
-                    continue
-                duration = value.get("duration")
-                if isinstance(duration, (int, float)) and duration > 0:
-                    enriched_payload["duration"] = duration
-                    break
+        if probed_duration is not None:
+            enriched_payload["duration"] = probed_duration
         return enriched_payload
 
     async def _enrich_from_probe_sample(
@@ -438,3 +456,14 @@ class MediaRunnerService:
         except (httpx.HTTPError, RunnerFailure, ValueError):
             return None
         return None
+
+
+def _probe_duration(probe: dict[str, object]) -> float | None:
+    format_info = probe.get("format")
+    if not isinstance(format_info, dict):
+        return None
+    try:
+        duration = float(format_info.get("duration"))  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    return duration if math.isfinite(duration) and duration > 0 else None
