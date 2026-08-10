@@ -132,11 +132,12 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 ### 字体、间距与容器
 
 - 字体栈以 Next.js 自托管 Geist Sans 为西文与数字基线，中文依次回退到 `PingFang SC`、`Hiragino Sans GB`、`Microsoft YaHei` 与系统无衬线字体；运行时不从第三方加载字体。尺度参考 [Geist Typography](https://vercel.com/geist/typography)：首页 H1 使用随视口流动的大尺寸编辑式尺度与紧凑行高；内页根据信息密度使用同一响应式标题阶梯，不再强制旧的 32px/28px 固定页标尺寸。
-- Header、常规 main 与 footer 统一使用 `.content-shell = min(calc(100% - 160px), 1376px)`，让品牌、导航操作和页面主体共享左右对齐线。认证页的无外框双栏 main 是唯一例外，可使用更宽的 `.page-shell = min(calc(100% - 80px), 1456px)`，右侧表单在内部收窄到 440px，不足 `lg` 时隐藏介绍栏。在 641–1023px，`.content-shell` 改为两侧各 32px gutter；在 `<=640px`，`.page-shell` 与 `.content-shell` 都改为两侧各 16px gutter。这是对齐约束，不得呈现为可见页面外壳；资料表单、说明文字和媒体可在对应网格内二次收窄。
+- Header、常规 main 与 footer 统一使用 `.content-shell = min(calc(100% - 160px), 1376px)`，让品牌、导航操作和页面主体共享左右对齐线。根滚动容器使用 `scrollbar-gutter: stable`，避免长短页面切换时经典滚动条改变可用宽度；Header 内的认证账户区域使用固定宽度槽位，加载占位、登录入口与 Avatar 菜单切换时不得重排其他导航项。认证页的无外框双栏 main 是唯一例外，可使用更宽的 `.page-shell = min(calc(100% - 80px), 1456px)`，右侧表单在内部收窄到 440px，不足 `lg` 时隐藏介绍栏。在 641–1023px，`.content-shell` 改为两侧各 32px gutter；在 `<=640px`，`.page-shell` 与 `.content-shell` 都改为两侧各 16px gutter。这是对齐约束，不得呈现为可见页面外壳；资料表单、说明文字和媒体可在对应网格内二次收窄。
 - 间距采用 4px 基准，控件内部使用 8/12/16px，内容组使用 24/32px，主要段落使用 48/64/96px。标题、描述和主操作之间必须保留明显层级，不通过额外卡片填满空白。
 - 内页标题保持短、直接并与首页共用 Geist 层级；只有真实流程编号才可使用中性色 mono eyebrow，不使用装饰性彩色分类标签或与 H1 重复的说明。
 - Header 视觉高度为 80px，与 main/footer 共用 `.content-shell` 的桌面 80px gutter 和 1376px 最大宽度。品牌标识为 32px，品牌文字为 17px，桌面导航文字为 15px，导航控件高度为 44px，以明确的品牌层级与宽屏主体保持稳定的视觉比例。Header 本身不使用下边线、外框、ring 或阴影。
 - 页面根、标题区、筛选区、列表区和表单区不使用可见 Card 外壳、装饰 ring、阴影或装饰性大边框。输入、选择器和按钮优先用实心中性填充面与颜色对比建立边界；内容分组只使用必要的 1px 发丝 Separator。Dialog、Sheet、Popover 等 Radix 覆盖层仍保留可辨识表面、遮罩、焦点圈定和 Escape/焦点恢复。键盘焦点轮廓是功能性边界，不属于装饰 ring。
+- Button、Link 与 Radix Trigger 的 hover、active、loading、展开和选中反馈只改变颜色、透明度或不参与文档流的覆盖层，不得通过 `top`、`left`、margin、尺寸或 translate 改变控件几何；异步状态切换必须保留稳定外框与必要的图标、账户占位槽。
 - 动效以 120–200ms 的透明度或位移过渡为主，并遵循 `prefers-reduced-motion`。
 
 “无边框”指移除应用壳、卡片、控件轮廓和区域的装饰性边框；不影响 Separator、错误表达和可见键盘焦点等功能性边界。

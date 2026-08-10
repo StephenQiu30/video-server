@@ -1,32 +1,16 @@
 'use client';
 
-import {
-  CaretDownIcon,
-  ChartLineUpIcon,
-  ClockCounterClockwiseIcon,
-  PulseIcon,
-  SignOutIcon,
-  UserCircleIcon,
-  UsersThreeIcon,
-} from '@phosphor-icons/react';
+import { ClockCounterClockwiseIcon, PulseIcon } from '@phosphor-icons/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { useAuth } from '@/components/auth-provider';
+import { HeaderAccount } from '@/components/header-account';
 import { MobileNavigation } from '@/components/mobile-navigation';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 export function BrandLink({ className }: { className?: string }) {
@@ -109,85 +93,15 @@ export function SiteHeader() {
               <span>平台状态</span>
             </Link>
           </Button>
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  aria-label="打开账户菜单"
-                  className="min-h-11 px-2.5 text-foreground"
-                  disabled={loading}
-                  variant="ghost"
-                >
-                  <Avatar>
-                    <AvatarFallback>
-                      {user.username.slice(0, 1).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <CaretDownIcon aria-hidden className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent aria-label="账户菜单" className="w-56">
-                <DropdownMenuLabel>
-                  <span className="block truncate font-medium text-foreground">
-                    {user.username}
-                  </span>
-                  <span className="mt-0.5 block truncate normal-case">
-                    {user.email}
-                  </span>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/account">
-                    <UserCircleIcon aria-hidden className="size-4" />
-                    个人资料
-                  </Link>
-                </DropdownMenuItem>
-                {user.role === 'admin' ? (
-                  <>
-                    <DropdownMenuItem asChild>
-                      <Link
-                        aria-current={analyticsActive ? 'page' : undefined}
-                        href="/admin/analytics"
-                      >
-                        <ChartLineUpIcon aria-hidden className="size-4" />
-                        下载分析
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link
-                        aria-current={usersActive ? 'page' : undefined}
-                        href="/admin/users"
-                      >
-                        <UsersThreeIcon aria-hidden className="size-4" />
-                        用户管理
-                      </Link>
-                    </DropdownMenuItem>
-                  </>
-                ) : null}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  disabled={signingOut}
-                  onSelect={() => void handleSignOut()}
-                >
-                  <SignOutIcon aria-hidden className="size-4" />
-                  {signingOut ? '正在退出…' : '退出登录'}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Button
-              asChild
-              className="min-h-11 px-3.5 text-[15px]"
-              variant="ghost"
-            >
-              <Link
-                href={`/user/login?redirect=${encodeURIComponent(pathname)}`}
-              >
-                <UserCircleIcon aria-hidden className="size-[21px]" />
-                <span>账户</span>
-              </Link>
-            </Button>
-          )}
+          <HeaderAccount
+            analyticsActive={analyticsActive}
+            loading={loading}
+            onSignOut={() => void handleSignOut()}
+            pathname={pathname}
+            signingOut={signingOut}
+            user={user}
+            usersActive={usersActive}
+          />
           <span aria-hidden className="mx-1.5 h-6 w-px bg-border" />
           <ThemeToggle />
         </nav>

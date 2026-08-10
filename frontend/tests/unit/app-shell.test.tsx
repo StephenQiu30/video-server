@@ -11,6 +11,7 @@ import { AppShell, AuthField, AuthPageFrame } from '@/components/app-shell';
 import { InputGroupInput } from '@/components/ui/input-group';
 
 const runtime = vi.hoisted(() => ({
+  loading: false,
   pathname: '/',
   replace: vi.fn(),
   user: undefined as
@@ -27,7 +28,7 @@ const runtime = vi.hoisted(() => ({
 
 vi.mock('@/components/auth-provider', () => ({
   useAuth: () => ({
-    loading: false,
+    loading: runtime.loading,
     signOut: vi.fn(),
     user: runtime.user,
   }),
@@ -40,6 +41,7 @@ vi.mock('next/navigation', () => ({
 
 describe('AppShell', () => {
   beforeEach(() => {
+    runtime.loading = false;
     runtime.pathname = '/';
     runtime.replace.mockReset();
     runtime.user = undefined;
@@ -65,6 +67,7 @@ describe('AppShell', () => {
     const historyLink = screen.getByRole('link', { name: /下载记录/ });
     expect(historyLink).toHaveAttribute('href', '/history');
     expect(historyLink).toHaveClass('min-h-11', 'text-[15px]');
+    expect(historyLink.className).not.toContain('translate-y-px');
     expect(historyLink).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('link', { name: /平台状态/ })).toHaveAttribute(
       'href',
@@ -73,6 +76,10 @@ describe('AppShell', () => {
     expect(screen.getByRole('link', { name: /账户/ })).toHaveAttribute(
       'href',
       '/user/login?redirect=%2F',
+    );
+    expect(document.querySelector('[data-slot="header-account"]')).toHaveClass(
+      'w-[88px]',
+      'shrink-0',
     );
     expect(screen.getByRole('navigation', { name: '主要导航' })).toHaveClass(
       'hidden',
@@ -100,6 +107,26 @@ describe('AppShell', () => {
     expect(
       within(mobileNavigation).getByRole('link', { name: '平台状态' }),
     ).toHaveAttribute('href', '/providers');
+  });
+
+  it('reserves the desktop account slot while authentication is loading', () => {
+    runtime.loading = true;
+    const { container } = render(
+      <AppShell>
+        <main>正在加载</main>
+      </AppShell>,
+    );
+
+    const accountSlot = container.querySelector('[data-slot="header-account"]');
+    expect(accountSlot).toHaveClass('w-[88px]', 'shrink-0');
+    expect(accountSlot?.querySelector('[data-slot="skeleton"]')).toHaveClass(
+      'h-11',
+      'w-[74px]',
+    );
+    expect(
+      screen.queryByRole('link', { name: /账户/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '打开导航菜单' })).toBeDisabled();
   });
 
   it('keeps explicit desktop and mobile routes from history back to parsing', async () => {
