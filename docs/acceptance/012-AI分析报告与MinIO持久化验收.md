@@ -1,8 +1,8 @@
 # 012 AI 分析报告与 MinIO 持久化验收
 
-- 状态：Pending
+- 状态：Partial
 - 日期：2026-08-10
-- 结论：Pending
+- 结论：未通过（核心发布链路通过；生命周期与最小权限仍待实现）
 - 关联 Design：`docs/design/012-AI分析报告与MinIO持久化设计.md`
 - 关联 PRD：`docs/prd/012-AI分析报告与MinIO持久化需求.md`
 - 关联 Plan：`docs/plans/012-AI分析报告与MinIO持久化计划.md`
@@ -61,4 +61,6 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod
 
 ## 4. 验收证据
 
-待实际执行后记录提交哈希、命令退出码、测试数量、报告/对象 ID、两个文件 SHA-256、故障注入点、MinIO 对账结果和浏览器视口证据。未完成真实对象下载与 DOCX 打开前，结论不得改为 Passed。
+2026-08-10 已完成：真实 Codex 完整视频分析产生两个 run/两个不可变报告版本；MinIO 中每版各有 Markdown/DOCX，API 下载 SHA-256 与数据库一致；重复消息保持同一 report/object；DOCX 可由 `python-docx` 打开且无外部关系；401/owner 404/对象完整性错误契约、刷新恢复、1280 与 390×844 浏览器和 axe 均通过。代表报告 `a36eeb11-236b-45a0-b43d-f9b50f6766c9`。
+
+阻塞项：A9 的用户删除、报告 TTL 和孤儿对象清理尚无完整 Worker；A11 的对象不可用浏览器状态尚未实测；MinIO 仍使用共享应用账号。因此本文保持 Partial，不虚假标记 Passed。

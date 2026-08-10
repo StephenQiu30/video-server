@@ -1,8 +1,8 @@
 # 014 WebSocket 任务状态同步验收
 
-- 状态：Pending
+- 状态：Partial
 - 日期：2026-08-10
-- 结论：Pending
+- 结论：未通过（单 Gateway 核心链路通过；多实例与会话失效仍待补齐）
 - 关联 Design：`docs/design/014-WebSocket任务状态同步设计.md`
 - 关联 PRD：`docs/prd/014-WebSocket任务状态同步需求.md`
 - 关联 Plan：`docs/plans/014-WebSocket任务状态同步计划.md`
@@ -62,4 +62,6 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod
 
 ## 4. 验收证据
 
-待实际执行后记录提交哈希、protocol/close code、task/version/event ID、重放或快照路径、Gateway 实例、网络中断时间线、HTTP fallback 频率、发送队列峰值和浏览器网络/视口证据。未完成真实恢复竞态与慢消费者验证前不得标记 Passed。
+2026-08-10 已完成：真实 WebSocket protocol v1 回放版本 10–19，并实时经历 queued、preparing、analyzing、validating、publishing、succeeded；恢复接管竞态使用服务端有界缓冲测试覆盖，前端处理重复/跳版/resync.required，慢消费者触发 resync。终态后连续 16 秒无轮询 GET。刷新恢复、390×844 无溢出、axe 0 violations。
+
+阻塞项：A2 的连接数上限、禁用账户既有连接回收，A6/A7 的真实断网与双 Gateway，A10 的跨登录会话清理仍未完整实测，因此保持 Partial。

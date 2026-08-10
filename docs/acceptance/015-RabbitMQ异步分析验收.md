@@ -1,8 +1,8 @@
 # 015 RabbitMQ 异步分析与可靠投递验收
 
-- 状态：Pending
+- 状态：Partial
 - 日期：2026-08-10
-- 结论：Pending
+- 结论：未通过（可靠主链路通过；权限、回灌和指标告警仍待补齐）
 - 关联 Design：`docs/design/015-RabbitMQ异步分析设计.md`
 - 关联 PRD：`docs/prd/015-RabbitMQ异步分析需求.md`
 - 关联 Plan：`docs/plans/015-RabbitMQ异步分析计划.md`
@@ -64,4 +64,8 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod
 
 ## 4. 验收证据
 
-待实际执行后记录提交哈希、job/run/event/report ID、消息 envelope、confirm 与 delivery 次数、lease owner、故障注入时间线、DLQ/回灌审计、进程树检查、对象哈希、指标截图和全部命令退出码。未完成真实 broker 故障恢复与完整视频队列级 E2E 前不得标记 Passed。
+2026-08-10 已完成：真实完整 MP4 经 API/Outbox/RabbitMQ/Host Codex/Report queue/MinIO/API/UI 全链路成功。RabbitMQ 停机时重试在 38ms 返回 201，并留下唯一 execution/state Outbox；恢复后自动完成 run 2、报告切换且未发布 Outbox 归零。三条 durable queue/DLQ、mandatory persistent confirm、严格 ID-only envelope、重复/poison/redelivery、数据库 retry_wait 与报告恢复均有自动化或真实证据。
+
+工程门禁：后端 ruff/format/mypy 与 437 tests 通过；前端 OpenAPI 稳定生成 28 operations、lint/format、99 tests、production build 通过；空库 schema 连续两次、已有库 schema、开发/生产 Compose 均通过。
+
+阻塞项：A9 的受审计 DLQ 回灌工具、A12 的 RabbitMQ 分角色最小权限账号、A14 的低基数业务指标与告警尚未实现，因此保持 Partial。
