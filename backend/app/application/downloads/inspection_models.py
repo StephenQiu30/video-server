@@ -5,6 +5,7 @@ from datetime import datetime
 from uuid import UUID
 
 from app.domain.downloads import DownloadPlan
+from app.domain.providers import ProviderAccessContextRef
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,6 +32,7 @@ class RunnerInspection:
     title: str
     duration_seconds: int
     formats: tuple[RunnerFormat, ...]
+    access_context: ProviderAccessContextRef
     thumbnail_data_url: str | None = None
 
 

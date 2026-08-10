@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from api_helpers import FakeService, settings, signed_headers
+from api_helpers import FakeService, anonymous_access_context, settings, signed_headers
 from app.runner.main import create_app
 from fastapi.testclient import TestClient
 
@@ -65,6 +65,7 @@ def test_download_uses_signed_stable_contract(tmp_path: Path) -> None:
         "url": "https://media.example.com/video",
         "expected_provider_media_id": "controlled",
         "expected_extractor_key": "Controlled",
+        "access_context": anonymous_access_context(),
         "plan": {
             "height": 1080,
             "width": 1920,
@@ -102,6 +103,7 @@ def test_download_rejects_invalid_semantic_plan_before_service(tmp_path: Path) -
             "url": "https://media.example.com/video",
             "expected_provider_media_id": "controlled",
             "expected_extractor_key": "Controlled",
+            "access_context": anonymous_access_context(),
             "plan": {
                 "height": -1,
                 "width": 1920,

@@ -3,12 +3,14 @@ from __future__ import annotations
 import hashlib
 
 from app.domain.downloads import DownloadPlan
+from app.domain.providers import ProviderAccessContextRef
 from app.runner.contracts import (
     CandidateStreamContract,
     DownloadOption,
     DownloadPlanContract,
     InspectResponse,
     MediaSummary,
+    ProviderAccessContextContract,
 )
 from app.runner.metadata import MediaInspection
 
@@ -17,6 +19,7 @@ def inspect_response(
     inspection: MediaInspection,
     plans: tuple[DownloadPlan, ...],
     *,
+    access_context: ProviderAccessContextRef,
     thumbnail_data_url: str | None = None,
 ) -> InspectResponse:
     return InspectResponse(
@@ -31,6 +34,7 @@ def inspect_response(
             CandidateStreamContract.from_domain(stream) for stream in inspection.streams
         ],
         options=[_option(plan) for plan in plans],
+        access_context=ProviderAccessContextContract.from_domain(access_context),
     )
 
 

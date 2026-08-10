@@ -18,6 +18,7 @@ from app.application.downloads import (
     InspectMedia,
     IssueDownloadUrl,
 )
+from app.application.providers import ProviderStatusView
 from app.core.config import Settings
 from app.core.errors import AppError
 
@@ -78,3 +79,7 @@ def get_analysis_use_cases(request: Request) -> AnalysisUseCases:
             detail="The analysis service is not available.",
         )
     return cast(AnalysisUseCases, container)
+
+
+def get_provider_statuses(request: Request) -> tuple[ProviderStatusView, ...]:
+    return cast(tuple[ProviderStatusView, ...], request.app.state.provider_statuses)

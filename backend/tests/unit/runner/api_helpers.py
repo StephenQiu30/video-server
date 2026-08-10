@@ -9,6 +9,7 @@ from app.runner.contracts import (
     DownloadResponse,
     InspectResponse,
     MediaSummary,
+    ProviderAccessContextContract,
     RunnerTaskStage,
     TaskStatusResponse,
 )
@@ -36,6 +37,9 @@ class FakeService:
             ),
             streams=[],
             options=[],
+            access_context=ProviderAccessContextContract.model_validate(
+                anonymous_access_context()
+            ),
         )
 
     async def download(self, request: DownloadRequest) -> DownloadResponse:
@@ -75,6 +79,19 @@ def settings(tmp_path: Path) -> RunnerSettings:
         runner_egress_proxy="http://egress-proxy:3128",
         runner_workspace_root=tmp_path,
     )
+
+
+def anonymous_access_context() -> dict[str, object]:
+    return {
+        "provider_key": "generic",
+        "profile_version": "1",
+        "access_mode": "anonymous",
+        "credential_version_id": None,
+        "egress_affinity_id": "default",
+        "client_profile_id": "yt-dlp-default",
+        "attestation_provider_version": None,
+        "engine_commit": "5d6b8c8cd19785c3086ae3a9ec618c45e25eb3bc",
+    }
 
 
 def signed_headers(

@@ -7,11 +7,18 @@ from uuid import UUID
 from app.application.downloads.errors import (
     ApplicationError,
     ApplicationErrorCode,
-    MediaInspectionAccessRequired,
+    MediaInspectionAuthRequired,
+    MediaInspectionContentRestricted,
+    MediaInspectionDrmProtected,
     MediaInspectionFailure,
+    MediaInspectionGeoRestricted,
     MediaInspectionLinkUnavailable,
+    MediaInspectionRateLimited,
+    MediaInspectionSessionExpired,
+    MediaInspectionTemporarilyUnavailable,
     MediaInspectionTimeout,
     MediaInspectionUnsupported,
+    MediaInspectionVerificationFailed,
     PersistenceIdempotencyConflict,
 )
 from app.application.downloads.inspection_models import (
@@ -19,6 +26,7 @@ from app.application.downloads.inspection_models import (
     InspectionCreate,
     InspectionView,
     RunnerFormat,
+    RunnerInspection,
 )
 from app.application.downloads.plans import plan_fingerprint, plan_to_documents
 from app.application.downloads.ports import (
@@ -73,9 +81,31 @@ class InspectMedia:
             raise ApplicationError(ApplicationErrorCode.INVALID_URL) from exc
         try:
             result = await self._runner.inspect(validated_url)
-        except MediaInspectionAccessRequired as exc:
+        except MediaInspectionAuthRequired as exc:
+            raise ApplicationError(ApplicationErrorCode.PROVIDER_AUTH_REQUIRED) from exc
+        except MediaInspectionSessionExpired as exc:
             raise ApplicationError(
-                ApplicationErrorCode.PROVIDER_ACCESS_REQUIRED
+                ApplicationErrorCode.PROVIDER_SESSION_EXPIRED
+            ) from exc
+        except MediaInspectionVerificationFailed as exc:
+            raise ApplicationError(
+                ApplicationErrorCode.PROVIDER_VERIFICATION_FAILED
+            ) from exc
+        except MediaInspectionRateLimited as exc:
+            raise ApplicationError(ApplicationErrorCode.PROVIDER_RATE_LIMITED) from exc
+        except MediaInspectionGeoRestricted as exc:
+            raise ApplicationError(
+                ApplicationErrorCode.PROVIDER_GEO_RESTRICTED
+            ) from exc
+        except MediaInspectionContentRestricted as exc:
+            raise ApplicationError(
+                ApplicationErrorCode.PROVIDER_CONTENT_RESTRICTED
+            ) from exc
+        except MediaInspectionDrmProtected as exc:
+            raise ApplicationError(ApplicationErrorCode.PROVIDER_DRM_PROTECTED) from exc
+        except MediaInspectionTemporarilyUnavailable as exc:
+            raise ApplicationError(
+                ApplicationErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE
             ) from exc
         except MediaInspectionLinkUnavailable as exc:
             raise ApplicationError(
@@ -112,11 +142,7 @@ class InspectMedia:
             provider_media_id=_required(result.provider_media_id),
             title=_required(result.title),
             duration_seconds=result.duration_seconds,
-            metadata=(
-                {"thumbnail_url": result.thumbnail_data_url}
-                if result.thumbnail_data_url is not None
-                else {}
-            ),
+            metadata=_inspection_metadata(result),
             expires_at=expires_at,
             formats=formats,
         )
@@ -152,3 +178,12 @@ def _required(value: str) -> str:
     if not value:
         raise ApplicationError(ApplicationErrorCode.INSPECTION_FAILED)
     return value
+
+
+def _inspection_metadata(result: RunnerInspection) -> dict[str, object]:
+    metadata: dict[str, object] = {
+        "provider_access_context": result.access_context.to_document()
+    }
+    if result.thumbnail_data_url is not None:
+        metadata["thumbnail_url"] = result.thumbnail_data_url
+    return metadata

@@ -19,12 +19,20 @@ from app.application.downloads import (
     RunnerInspection,
 )
 from app.application.downloads.errors import (
-    MediaInspectionAccessRequired,
+    MediaInspectionAuthRequired,
+    MediaInspectionContentRestricted,
+    MediaInspectionDrmProtected,
+    MediaInspectionGeoRestricted,
     MediaInspectionLinkUnavailable,
+    MediaInspectionRateLimited,
+    MediaInspectionSessionExpired,
+    MediaInspectionTemporarilyUnavailable,
     MediaInspectionTimeout,
     MediaInspectionUnsupported,
+    MediaInspectionVerificationFailed,
 )
 from app.domain.downloads import DownloadPlan
+from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
 from app.infrastructure.media_runner_models import (
     MediaRunnerClientError,
     RunnerArtifact,
@@ -39,8 +47,10 @@ from app.runner.contracts import (
     DownloadResponse,
     InspectRequest,
     InspectResponse,
+    ProviderAccessContextContract,
     TaskStatusResponse,
 )
+from app.runner.provider_registry import provider_profile
 from app.runner.signing import sign_request
 
 _TASK_ID = re.compile(r"[A-Za-z0-9_-]{1,64}")
@@ -82,8 +92,39 @@ class MediaRunnerHttpClient:
                 timeout_code="inspection_timeout",
             )
         except MediaRunnerClientError as exc:
-            if exc.code == "provider_access_required":
-                raise MediaInspectionAccessRequired from exc
+            if exc.code in {"credential_required", "provider_session_not_allowed"}:
+                raise MediaInspectionAuthRequired from exc
+            if exc.code in {
+                "credential_expired",
+                "credential_rejected",
+                "credential_revoked",
+            }:
+                raise MediaInspectionSessionExpired from exc
+            if exc.code in {
+                "egress_challenged",
+                "pot_required",
+                "pot_rejected",
+                "client_context_mismatch",
+            }:
+                raise MediaInspectionVerificationFailed from exc
+            if exc.code == "provider_rate_limited":
+                raise MediaInspectionRateLimited from exc
+            if exc.code == "provider_geo_restricted":
+                raise MediaInspectionGeoRestricted from exc
+            if exc.code in {
+                "content_private",
+                "content_not_entitled",
+                "content_entitlement_unknown",
+            }:
+                raise MediaInspectionContentRestricted from exc
+            if exc.code == "drm_protected":
+                raise MediaInspectionDrmProtected from exc
+            if exc.code in {
+                "pot_provider_unavailable",
+                "extractor_regression",
+                "provider_session_unavailable",
+            }:
+                raise MediaInspectionTemporarilyUnavailable from exc
             if exc.code == "provider_link_unavailable":
                 raise MediaInspectionLinkUnavailable from exc
             if exc.code == "provider_unsupported":
@@ -100,6 +141,7 @@ class MediaRunnerHttpClient:
                 RunnerFormat(item.label, item.plan.to_domain())
                 for item in response.options
             ),
+            access_context=response.access_context.to_domain(),
             thumbnail_data_url=response.media.thumbnail_data_url,
         )
 
@@ -111,6 +153,7 @@ class MediaRunnerHttpClient:
         *,
         expected_provider_media_id: str,
         expected_extractor_key: str,
+        access_context: ProviderAccessContextRef,
     ) -> RunnerArtifact:
         self._validate_task_id(task_id)
         body = (
@@ -120,6 +163,9 @@ class MediaRunnerHttpClient:
                 expected_provider_media_id=expected_provider_media_id,
                 expected_extractor_key=expected_extractor_key,
                 plan=DownloadPlanContract.from_domain(plan),
+                access_context=ProviderAccessContextContract.from_domain(
+                    access_context
+                ),
             )
             .model_dump_json()
             .encode()
@@ -219,6 +265,69 @@ class MediaRunnerHttpClient:
     def _validate_task_id(task_id: str) -> None:
         if _TASK_ID.fullmatch(task_id) is None:
             raise ValueError("invalid runner task id")
+
+
+class MediaRunnerRouter:
+    """Route anonymous and operator contexts to physically separate runners."""
+
+    def __init__(
+        self,
+        anonymous: MediaRunnerHttpClient,
+        operator: MediaRunnerHttpClient | None = None,
+    ) -> None:
+        self._anonymous = anonymous
+        self._operator = operator
+        self._active: dict[str, MediaRunnerHttpClient] = {}
+
+    async def inspect(self, url: str) -> RunnerInspection:
+        try:
+            return await self._anonymous.inspect(url)
+        except (MediaInspectionAuthRequired, MediaInspectionVerificationFailed):
+            if self._operator is None or provider_profile(url).key != "youtube":
+                raise
+            return await self._operator.inspect(url)
+
+    async def download(
+        self,
+        task_id: str,
+        url: str,
+        plan: DownloadPlan,
+        *,
+        expected_provider_media_id: str,
+        expected_extractor_key: str,
+        access_context: ProviderAccessContextRef,
+    ) -> RunnerArtifact:
+        client = self._client_for(access_context.access_mode)
+        self._active[task_id] = client
+        try:
+            return await client.download(
+                task_id,
+                url,
+                plan,
+                expected_provider_media_id=expected_provider_media_id,
+                expected_extractor_key=expected_extractor_key,
+                access_context=access_context,
+            )
+        finally:
+            self._active.pop(task_id, None)
+
+    async def status(self, task_id: str) -> RunnerProgress:
+        return await self._active.get(task_id, self._anonymous).status(task_id)
+
+    async def cancel(self, task_id: str) -> None:
+        await self._active.get(task_id, self._anonymous).cancel(task_id)
+
+    async def close(self) -> None:
+        await self._anonymous.close()
+        if self._operator is not None:
+            await self._operator.close()
+
+    def _client_for(self, mode: ProviderAccessMode) -> MediaRunnerHttpClient:
+        if mode is ProviderAccessMode.ANONYMOUS:
+            return self._anonymous
+        if mode is ProviderAccessMode.OPERATOR_MANAGED and self._operator is not None:
+            return self._operator
+        raise MediaRunnerClientError("credential_required", 422)
 
 
 def _error_code(response: httpx.Response) -> str:

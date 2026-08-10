@@ -38,6 +38,7 @@ x-api-env: &api-env
   REQUEST_FINGERPRINT_SECRET: "${REQUEST_FINGERPRINT_SECRET:-development-fingerprint-secret-change-me}"
   URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:-ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE=}"
   RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
+  RUNNER_OPERATOR_BASE_URL: "${RUNNER_OPERATOR_BASE_URL:-}"
   RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
 
@@ -72,6 +73,7 @@ x-download-env: &download-env
   MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
   URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:-ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE=}"
   RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
+  RUNNER_OPERATOR_BASE_URL: "${RUNNER_OPERATOR_BASE_URL:-}"
   RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
 
@@ -80,6 +82,7 @@ x-runner-env: &runner-env
   RUNNER_EGRESS_PROXY: "${RUNNER_EGRESS_PROXY:-http://egress-proxy:3128}"
   RUNNER_PROVIDER_EGRESS_PROXIES: "${RUNNER_PROVIDER_EGRESS_PROXIES:-{}}"
   RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
+  RUNNER_ACCESS_MODE: anonymous
 
 services:
   api:
@@ -174,6 +177,11 @@ services:
       ]
     volumes:
       - runner_work:/work
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
     depends_on:
       workspace-init:
         condition: service_completed_successfully
@@ -186,6 +194,90 @@ services:
           "python",
           "-c",
           "import urllib.request; urllib.request.urlopen('http://127.0.0.1:19100/health/live', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  youtube-operator-runner:
+    <<: *app
+    profiles: [youtube-operator]
+    environment:
+      <<: *runner-env
+      RUNNER_ACCESS_MODE: operator_managed
+      RUNNER_MAX_ACTIVE_TASKS: "1"
+      RUNNER_OPERATOR_SESSION_VERSIONS: '{"youtube":"${YOUTUBE_COOKIE_VERSION:-disabled}"}'
+      RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS: "${RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS:-{}}"
+      RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${YOUTUBE_OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
+      RUNNER_PROVIDER_SECRET_ROOT: /run/provider-secrets
+      RUNNER_PROVIDER_SECRET_TEMP_ROOT: /run/provider-secrets-tmp
+      RUNNER_YOUTUBE_POT_BASE_URL: http://youtube-pot-provider:4416
+      RUNNER_YOUTUBE_POT_PROVIDER_VERSION: bgutil-http-1.3.1
+    networks: [runner_rpc_net, runner_egress_net, youtube_pot_net]
+    container_name: youtube-operator-runner
+    command:
+      [
+        "python",
+        "-m",
+        "uvicorn",
+        "app.runner.main:create_app",
+        "--factory",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "19100",
+        "--no-access-log",
+      ]
+    volumes:
+      - runner_work:/work
+      - type: bind
+        source: "${YOUTUBE_COOKIE_SECRET_DIR:-./.provider-secrets/youtube}"
+        target: /run/provider-secrets/youtube
+        read_only: true
+        bind:
+          create_host_path: false
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /run/provider-secrets-tmp:rw,noexec,nosuid,size=16m,mode=0700,uid=10001,gid=10001
+    depends_on:
+      workspace-init:
+        condition: service_completed_successfully
+      egress-proxy:
+        condition: service_healthy
+      youtube-pot-provider:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:19100/health/live', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  youtube-pot-provider:
+    image: brainicism/bgutil-ytdlp-pot-provider:1.3.1@sha256:1aaa43a0ca72dfca6a6d2129a0fb4a23465c25adb1b043f8aff829a20825646b
+    profiles: [youtube-operator]
+    container_name: youtube-pot-provider
+    restart: unless-stopped
+    networks: [youtube_pot_net, runner_egress_net]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "const s=require('net').connect(4416,'127.0.0.1',()=>{s.end();process.exit(0)});s.on('error',()=>process.exit(1))",
         ]
       interval: 10s
       timeout: 5s
@@ -328,5 +420,7 @@ networks:
   runner_rpc_net:
     internal: true
   runner_egress_net:
+    internal: true
+  youtube_pot_net:
     internal: true
   public_egress_net:

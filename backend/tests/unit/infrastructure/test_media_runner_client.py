@@ -6,12 +6,13 @@ from pathlib import Path
 import httpx
 import pytest
 from app.application.downloads.errors import (
-    MediaInspectionAccessRequired,
+    MediaInspectionAuthRequired,
     MediaInspectionFailure,
     MediaInspectionLinkUnavailable,
     MediaInspectionTimeout,
     MediaInspectionUnsupported,
 )
+from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
 from app.infrastructure.media_runner import MediaRunnerHttpClient
 from app.runner.contracts import DownloadPlanContract
 
@@ -23,7 +24,7 @@ async def test_inspect_exposes_provider_access_requirement() -> None:
             422,
             json={
                 "error": {
-                    "code": "provider_access_required",
+                    "code": "credential_required",
                     "message": "provider access required",
                 }
             },
@@ -42,7 +43,7 @@ async def test_inspect_exposes_provider_access_requirement() -> None:
         client=http,
     )
 
-    with pytest.raises(MediaInspectionAccessRequired):
+    with pytest.raises(MediaInspectionAuthRequired):
         await client.inspect("https://www.douyin.com/video/123")
 
     await http.aclose()
@@ -246,8 +247,23 @@ async def test_download_sends_expected_inspection_identity(tmp_path) -> None:
         plan,
         expected_provider_media_id="video-1",
         expected_extractor_key="Controlled",
+        access_context=_access_context(),
     )
 
     assert captured["expected_provider_media_id"] == "video-1"
     assert captured["expected_extractor_key"] == "Controlled"
+    assert captured["access_context"] == _access_context().to_document()
     await http.aclose()
+
+
+def _access_context() -> ProviderAccessContextRef:
+    return ProviderAccessContextRef(
+        provider_key="generic",
+        profile_version="1",
+        access_mode=ProviderAccessMode.ANONYMOUS,
+        credential_version_id=None,
+        egress_affinity_id="default",
+        client_profile_id="yt-dlp-default",
+        attestation_provider_version=None,
+        engine_commit="5d6b8c8",
+    )

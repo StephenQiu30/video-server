@@ -15,7 +15,7 @@ from app.application.downloads import (
     RunnerInspection,
 )
 from app.application.downloads.errors import (
-    MediaInspectionAccessRequired,
+    MediaInspectionAuthRequired,
     MediaInspectionLinkUnavailable,
     MediaInspectionUnsupported,
 )
@@ -29,6 +29,7 @@ from app.domain.downloads import (
     ProviderHints,
     VideoCodecFamily,
 )
+from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
 from tests.unit.application.fakes import (
     FakeCipher,
     FakeRepository,
@@ -63,6 +64,7 @@ def runner_result(*, duration: int = 30) -> RunnerInspection:
         title="Owned video",
         duration_seconds=duration,
         formats=(RunnerFormat("1080p MP4", plan()),),
+        access_context=access_context(),
         thumbnail_data_url="data:image/jpeg;base64,Y292ZXI=",
     )
 
@@ -109,7 +111,10 @@ async def test_inspect_encrypts_url_and_returns_only_semantic_formats() -> None:
         "video_id": "137",
         "audio_id": "140",
     }
-    assert command.metadata == {"thumbnail_url": "data:image/jpeg;base64,Y292ZXI="}
+    assert command.metadata == {
+        "provider_access_context": access_context().to_document(),
+        "thumbnail_url": "data:image/jpeg;base64,Y292ZXI=",
+    }
     assert view.thumbnail_url == "data:image/jpeg;base64,Y292ZXI="
 
 
@@ -148,7 +153,14 @@ async def test_duration_limit_and_empty_formats_are_rejected() -> None:
         await too_long(URL, OWNER, "duration")
     assert duration_error.value.code is ApplicationErrorCode.DURATION_LIMIT_EXCEEDED
 
-    empty_result = RunnerInspection("Controlled", "id", "title", 30, ())
+    empty_result = RunnerInspection(
+        "Controlled",
+        "id",
+        "title",
+        30,
+        (),
+        access_context(),
+    )
     no_formats, _, _ = use_case(repository, empty_result)
     with pytest.raises(ApplicationError) as format_error:
         await no_formats(URL, OWNER, "formats")
@@ -165,7 +177,7 @@ async def test_provider_access_requirement_is_reported_explicitly() -> None:
     with pytest.raises(ApplicationError) as caught:
         await inspect(URL, OWNER, "provider-access")
 
-    assert caught.value.code is ApplicationErrorCode.PROVIDER_ACCESS_REQUIRED
+    assert caught.value.code is ApplicationErrorCode.PROVIDER_AUTH_REQUIRED
 
 
 @pytest.mark.asyncio
@@ -193,7 +205,7 @@ async def test_unsupported_provider_is_reported_explicitly() -> None:
 
 
 async def _raise_provider_access(_: str) -> RunnerInspection:
-    raise MediaInspectionAccessRequired
+    raise MediaInspectionAuthRequired
 
 
 async def _raise_provider_link_unavailable(_: str) -> RunnerInspection:
@@ -202,6 +214,19 @@ async def _raise_provider_link_unavailable(_: str) -> RunnerInspection:
 
 async def _raise_provider_unsupported(_: str) -> RunnerInspection:
     raise MediaInspectionUnsupported
+
+
+def access_context() -> ProviderAccessContextRef:
+    return ProviderAccessContextRef(
+        provider_key="generic",
+        profile_version="1",
+        access_mode=ProviderAccessMode.ANONYMOUS,
+        credential_version_id=None,
+        egress_affinity_id="default",
+        client_profile_id="yt-dlp-default",
+        attestation_provider_version=None,
+        engine_commit="5d6b8c8",
+    )
 
 
 @pytest.mark.asyncio

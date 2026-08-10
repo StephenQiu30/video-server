@@ -141,6 +141,29 @@ def test_download_history_route_supports_filters_and_returns_public_fields(
     }
 
 
+def test_provider_status_distinguishes_registered_verified_and_unsupported(
+    tmp_path: Path,
+) -> None:
+    test_client, _ = client(tmp_path)
+    with test_client:
+        response = test_client.get("/api/providers")
+
+    assert response.status_code == 200
+    items = {item["key"]: item for item in response.json()["items"]}
+    assert len(items) == 19
+    assert items["youtube"]["registered"] is True
+    assert items["youtube"]["status"] == "access_required"
+    assert items["bilibili"]["status"] == "verified"
+    assert items["tiktok"]["status"] == "unknown"
+    assert items["wechat_channels"]["status"] == "unsupported"
+    assert items["wechat_channels"]["registered"] is False
+    assert items["kuaishou"]["extractor_exists"] is False
+    assert all(
+        sensitive not in response.text.casefold()
+        for sensitive in ("credential_version", "egress_affinity", "po_token")
+    )
+
+
 def test_creation_contract_rejects_missing_headers_and_invalid_bodies(
     tmp_path: Path,
 ) -> None:
@@ -194,7 +217,7 @@ def test_application_errors_are_rfc9457_problem_details(tmp_path: Path) -> None:
         (ApplicationErrorCode.INVALID_URL, 422),
         (ApplicationErrorCode.INSPECTION_FAILED, 502),
         (ApplicationErrorCode.INSPECTION_TIMEOUT, 504),
-        (ApplicationErrorCode.PROVIDER_ACCESS_REQUIRED, 422),
+        (ApplicationErrorCode.PROVIDER_AUTH_REQUIRED, 422),
         (ApplicationErrorCode.PROVIDER_LINK_UNAVAILABLE, 422),
     ],
 )

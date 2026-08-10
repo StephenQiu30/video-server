@@ -135,6 +135,9 @@ class AccessRepository(AnalyticsRepository):
                 raise LeaseConflict("worker no longer owns this job attempt")
             if as_utc(inspection.expires_at) <= as_utc(now):
                 raise RepositoryNotFound("download source expired")
+            access_context = inspection.metadata_json.get("provider_access_context")
+            if not isinstance(access_context, dict):
+                raise RepositoryNotFound("provider access context is unavailable")
             return JobSourceSnapshot(
                 job_id=job.id,
                 inspection_id=inspection.id,
@@ -142,6 +145,7 @@ class AccessRepository(AnalyticsRepository):
                 provider_hints=dict(selected_format.provider_hints),
                 extractor_key=inspection.extractor_key,
                 provider_media_id=inspection.provider_media_id,
+                access_context=dict(access_context),
                 url_ciphertext=inspection.url_ciphertext,
                 url_nonce=inspection.url_nonce,
                 url_key_id=inspection.url_key_id,

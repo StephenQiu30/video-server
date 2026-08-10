@@ -8,6 +8,7 @@ from uuid import UUID
 
 from app.application.downloads import EncryptedUrl
 from app.domain.downloads import DownloadPlan, DownloadStage
+from app.domain.providers import ProviderAccessContextRef
 
 from .models import ArtifactDetails
 
@@ -38,6 +39,9 @@ class JobSource(Protocol):
 
     @property
     def provider_media_id(self) -> str: ...
+
+    @property
+    def access_context(self) -> dict[str, object]: ...
 
     @property
     def url_ciphertext(self) -> bytes: ...
@@ -143,6 +147,7 @@ class ExecutionRunner(Protocol):
         *,
         expected_provider_media_id: str,
         expected_extractor_key: str,
+        access_context: ProviderAccessContextRef,
     ) -> RunnerArtifactView: ...
 
     async def status(self, task_id: str) -> RunnerProgressView: ...

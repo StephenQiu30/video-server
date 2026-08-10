@@ -21,7 +21,7 @@ from app.infrastructure.database import (
     create_engine,
     create_session_factory,
 )
-from app.infrastructure.media_runner import MediaRunnerHttpClient
+from app.infrastructure.media_runner import MediaRunnerHttpClient, MediaRunnerRouter
 from app.infrastructure.messaging import RabbitMqTopology
 from app.infrastructure.object_storage import MinioObjectStorage
 from app.infrastructure.url_security import FernetUrlEnvelope
@@ -45,7 +45,7 @@ class DownloadWorkerRuntime:
     sweeper: DownloadRecoverySweeper
     artifact_gc: ArtifactGarbageCollector
     storage: MinioObjectStorage
-    runner: MediaRunnerHttpClient
+    runner: MediaRunnerRouter
     engine: AsyncEngine
 
     async def close(self) -> None:
@@ -62,13 +62,25 @@ def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
     engine = create_engine(settings.database_url)
     raw_repository = SqlAlchemyDownloadRepository(create_session_factory(engine))
     repository = DownloadExecutionRepository(raw_repository)
-    runner = MediaRunnerHttpClient(
+    anonymous_runner = MediaRunnerHttpClient(
         base_url=settings.runner_base_url,
         secret=settings.runner_hmac_secret.get_secret_value().encode(),
         workspace_root=settings.runner_workspace_root,
         inspect_timeout_seconds=settings.inspect_timeout_seconds,
         download_timeout_seconds=settings.download_timeout_seconds,
     )
+    operator_runner = (
+        MediaRunnerHttpClient(
+            base_url=settings.runner_operator_base_url,
+            secret=settings.runner_hmac_secret.get_secret_value().encode(),
+            workspace_root=settings.runner_workspace_root,
+            inspect_timeout_seconds=settings.inspect_timeout_seconds,
+            download_timeout_seconds=settings.download_timeout_seconds,
+        )
+        if settings.runner_operator_base_url is not None
+        else None
+    )
+    runner = MediaRunnerRouter(anonymous_runner, operator_runner)
     storage = MinioObjectStorage(settings)
     execution = DownloadExecution(
         repository=repository,

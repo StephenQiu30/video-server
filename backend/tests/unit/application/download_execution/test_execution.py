@@ -39,10 +39,10 @@ async def test_success_revalidates_identity_uploads_and_completes(tmp_path) -> N
     result = await case.execution.execute(case.job_id)
 
     assert result is ExecutionDisposition.ACK
-    assert case.runner.download_arguments[3] == {
-        "expected_provider_media_id": "video-1",
-        "expected_extractor_key": "Controlled",
-    }
+    download_kwargs = case.runner.download_arguments[3]
+    assert download_kwargs["expected_provider_media_id"] == "video-1"
+    assert download_kwargs["expected_extractor_key"] == "Controlled"
+    assert download_kwargs["access_context"].provider_key == "generic"
     assert case.storage.uploads[0][0] == (f"downloads/{case.job_id}/1/video.mp4")
     assert case.repository.success.sha256 == case.runner.artifact.sha256
     stages = [item[0] for item in case.repository.heartbeats]
@@ -77,6 +77,41 @@ async def test_runner_and_storage_failures_converge_before_ack(tmp_path) -> None
     )
     assert storage_case.repository.failure["retryable"] is True
     assert storage_case.cleaner.calls
+
+
+@pytest.mark.parametrize(
+    ("runner_code", "expected", "retryable"),
+    [
+        ("credential_required", DownloadErrorCode.PROVIDER_AUTH_REQUIRED, False),
+        ("credential_expired", DownloadErrorCode.PROVIDER_SESSION_EXPIRED, False),
+        (
+            "egress_challenged",
+            DownloadErrorCode.PROVIDER_VERIFICATION_FAILED,
+            False,
+        ),
+        ("provider_rate_limited", DownloadErrorCode.PROVIDER_RATE_LIMITED, True),
+        ("content_private", DownloadErrorCode.PROVIDER_CONTENT_RESTRICTED, False),
+        ("drm_protected", DownloadErrorCode.PROVIDER_DRM_PROTECTED, False),
+        (
+            "provider_new_failure",
+            DownloadErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE,
+            True,
+        ),
+    ],
+)
+async def test_provider_failures_never_degrade_to_worker_lost(
+    tmp_path,
+    runner_code: str,
+    expected: DownloadErrorCode,
+    retryable: bool,
+) -> None:
+    case = fixture(artifact(tmp_path))
+    case.runner.error = MediaRunnerClientError(runner_code, 422)
+
+    assert await case.execution.execute(case.job_id) is ExecutionDisposition.ACK
+
+    assert case.repository.failure["error_code"] == expected.value
+    assert case.repository.failure["retryable"] is retryable
 
 
 @pytest.mark.asyncio

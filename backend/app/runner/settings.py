@@ -4,10 +4,13 @@ import re
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.domain.providers import ProviderAccessMode
+
 _PROVIDER_KEY = re.compile(r"[a-z][a-z0-9_-]{0,31}")
+_REFERENCE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
 
 
 class RunnerSettings(BaseSettings):
@@ -21,9 +24,20 @@ class RunnerSettings(BaseSettings):
     runner_egress_proxy: str
     runner_provider_egress_proxies: dict[str, str] = Field(default_factory=dict)
     runner_workspace_root: Path = Path("/var/lib/video-runner")
+    runner_access_mode: ProviderAccessMode = ProviderAccessMode.ANONYMOUS
+    runner_operator_session_versions: dict[str, str] = Field(default_factory=dict)
+    runner_operator_retained_session_versions: dict[str, list[str]] = Field(
+        default_factory=dict
+    )
+    runner_operator_account_baseline_attested: bool = False
+    runner_provider_secret_root: Path = Path("/run/provider-secrets")
+    runner_provider_secret_temp_root: Path = Path("/run/provider-secrets-tmp")
 
     runner_ytdlp_bin: str = "yt-dlp"
     runner_ytdlp_js_runtime: str = "node"
+    runner_ytdlp_commit: str = "5d6b8c8cd19785c3086ae3a9ec618c45e25eb3bc"
+    runner_youtube_pot_base_url: str | None = None
+    runner_youtube_pot_provider_version: str = "bgutil-http-1.3.1"
     runner_ffmpeg_bin: str = "ffmpeg"
     runner_ffprobe_bin: str = "ffprobe"
 
@@ -90,10 +104,77 @@ class RunnerSettings(BaseSettings):
             self.runner_egress_proxy,
         )
 
-    @field_validator("runner_workspace_root")
+    def egress_affinity_for(self, provider: str) -> str:
+        if provider in self.runner_provider_egress_proxies:
+            return f"provider:{provider}"
+        return "default"
+
+    @field_validator(
+        "runner_workspace_root",
+        "runner_provider_secret_root",
+        "runner_provider_secret_temp_root",
+    )
     @classmethod
     def resolve_workspace(cls, value: Path) -> Path:
         return value.expanduser().resolve()
+
+    @field_validator("runner_operator_session_versions")
+    @classmethod
+    def validate_operator_versions(cls, value: dict[str, str]) -> dict[str, str]:
+        for provider, version in value.items():
+            if provider != "youtube" or _REFERENCE.fullmatch(version) is None:
+                raise ValueError("operator session version is invalid")
+        return value
+
+    @field_validator("runner_operator_retained_session_versions")
+    @classmethod
+    def validate_retained_versions(
+        cls, value: dict[str, list[str]]
+    ) -> dict[str, list[str]]:
+        for provider, versions in value.items():
+            if provider != "youtube" or not versions:
+                raise ValueError("retained session versions are invalid")
+            if len(set(versions)) != len(versions):
+                raise ValueError("retained session versions must be unique")
+            if any(_REFERENCE.fullmatch(version) is None for version in versions):
+                raise ValueError("retained session version is invalid")
+        return value
+
+    @field_validator("runner_ytdlp_commit", "runner_youtube_pot_provider_version")
+    @classmethod
+    def validate_version_reference(cls, value: str) -> str:
+        if _REFERENCE.fullmatch(value) is None:
+            raise ValueError("runner version reference is invalid")
+        return value
+
+    @field_validator("runner_youtube_pot_base_url")
+    @classmethod
+    def validate_pot_url(cls, value: str | None) -> str | None:
+        if value is None or not value.strip():
+            return None
+        return _validate_service_url(value)
+
+    @model_validator(mode="after")
+    def validate_session_boundary(self) -> RunnerSettings:
+        if self.runner_provider_secret_temp_root.is_relative_to(
+            self.runner_workspace_root
+        ):
+            raise ValueError("provider session temp root cannot be in the workspace")
+        operator = self.runner_access_mode is ProviderAccessMode.OPERATOR_MANAGED
+        if operator:
+            if set(self.runner_operator_session_versions) != {"youtube"}:
+                raise ValueError("operator runner requires one YouTube session version")
+            if not self.runner_operator_account_baseline_attested:
+                raise ValueError("operator account baseline must be attested")
+            if self.runner_max_active_tasks != 1:
+                raise ValueError("operator runner concurrency must be one")
+        elif self.runner_operator_session_versions:
+            raise ValueError("anonymous runner cannot configure provider sessions")
+        elif self.runner_operator_retained_session_versions:
+            raise ValueError("anonymous runner cannot retain provider sessions")
+        if self.runner_youtube_pot_base_url is not None and not operator:
+            raise ValueError("POT provider is restricted to the operator runner")
+        return self
 
     @field_validator(
         "runner_ytdlp_bin",
@@ -124,4 +205,19 @@ def _validate_proxy(value: str) -> str:
         raise ValueError("runner egress proxy cannot contain credentials")
     if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
         raise ValueError("runner egress proxy must contain authority only")
+    return value.rstrip("/")
+
+
+def _validate_service_url(value: str) -> str:
+    try:
+        parsed = urlsplit(value)
+        _ = parsed.port
+    except ValueError as exc:
+        raise ValueError("provider service URL is invalid") from exc
+    if parsed.scheme != "http" or parsed.hostname is None:
+        raise ValueError("provider service URL must use HTTP")
+    if parsed.username is not None or parsed.password is not None:
+        raise ValueError("provider service URL cannot contain credentials")
+    if parsed.query or parsed.fragment:
+        raise ValueError("provider service URL cannot contain query or fragment")
     return value.rstrip("/")

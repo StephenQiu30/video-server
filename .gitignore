@@ -8,6 +8,7 @@
 **/.coverage*
 **/.hypothesis/
 **/.analysis-work/
+**/.provider-secrets/
 **/*.egg-info/
 **/*.tsbuildinfo
 **/build/

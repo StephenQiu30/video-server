@@ -40,16 +40,42 @@ _RUNNER_CODES = {
     "source_changed": DownloadErrorCode.UNSUPPORTED_SOURCE,
     "unsupported_source": DownloadErrorCode.UNSUPPORTED_SOURCE,
     "unsupported_url": DownloadErrorCode.UNSUPPORTED_SOURCE,
+    "credential_required": DownloadErrorCode.PROVIDER_AUTH_REQUIRED,
+    "provider_session_not_allowed": DownloadErrorCode.PROVIDER_AUTH_REQUIRED,
+    "credential_expired": DownloadErrorCode.PROVIDER_SESSION_EXPIRED,
+    "credential_rejected": DownloadErrorCode.PROVIDER_SESSION_EXPIRED,
+    "credential_revoked": DownloadErrorCode.PROVIDER_SESSION_EXPIRED,
+    "egress_challenged": DownloadErrorCode.PROVIDER_VERIFICATION_FAILED,
+    "pot_required": DownloadErrorCode.PROVIDER_VERIFICATION_FAILED,
+    "pot_rejected": DownloadErrorCode.PROVIDER_VERIFICATION_FAILED,
+    "client_context_mismatch": DownloadErrorCode.PROVIDER_VERIFICATION_FAILED,
+    "provider_rate_limited": DownloadErrorCode.PROVIDER_RATE_LIMITED,
+    "provider_geo_restricted": DownloadErrorCode.PROVIDER_GEO_RESTRICTED,
+    "provider_link_unavailable": DownloadErrorCode.PROVIDER_LINK_UNAVAILABLE,
+    "content_deleted": DownloadErrorCode.PROVIDER_LINK_UNAVAILABLE,
+    "content_private": DownloadErrorCode.PROVIDER_CONTENT_RESTRICTED,
+    "content_not_entitled": DownloadErrorCode.PROVIDER_CONTENT_RESTRICTED,
+    "content_entitlement_unknown": DownloadErrorCode.PROVIDER_CONTENT_RESTRICTED,
+    "drm_protected": DownloadErrorCode.PROVIDER_DRM_PROTECTED,
+    "provider_unsupported": DownloadErrorCode.PROVIDER_UNSUPPORTED,
+    "pot_provider_unavailable": DownloadErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE,
+    "provider_session_unavailable": DownloadErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE,
+    "extractor_regression": DownloadErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE,
     "runner_dependency_unavailable": DownloadErrorCode.WORKER_LOST,
     "runner_unavailable": DownloadErrorCode.WORKER_LOST,
     "runner_busy": DownloadErrorCode.WORKER_LOST,
     "task_not_found": DownloadErrorCode.WORKER_LOST,
-    "cancelled": DownloadErrorCode.WORKER_LOST,
+    "cancelled": DownloadErrorCode.CANCELLED,
 }
 
 
 def classify_runner_failure(error: BaseException) -> DownloadErrorCode:
     code = getattr(error, "code", None)
     if isinstance(code, str):
-        return _RUNNER_CODES.get(code, DownloadErrorCode.WORKER_LOST)
+        known = _RUNNER_CODES.get(code)
+        if known is not None:
+            return known
+        if code.startswith("provider_"):
+            return DownloadErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE
+        return DownloadErrorCode.WORKER_LOST
     return DownloadErrorCode.WORKER_LOST

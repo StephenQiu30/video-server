@@ -59,7 +59,7 @@ async def test_inspection_classifies_douyin_fresh_cookie_requirement(
     with pytest.raises(RunnerFailure) as caught:
         await commands.inspect("https://www.douyin.com/video/123", tmp_path)
 
-    assert caught.value.code == "provider_access_required"
+    assert caught.value.code == "credential_required"
     assert caught.value.status == 422
 
 
@@ -78,7 +78,7 @@ async def test_inspection_classifies_youtube_bot_confirmation_requirement(
     with pytest.raises(RunnerFailure) as caught:
         await commands.inspect("https://www.youtube.com/watch?v=owned", tmp_path)
 
-    assert caught.value.code == "provider_access_required"
+    assert caught.value.code == "egress_challenged"
     assert caught.value.status == 422
 
 
@@ -94,7 +94,7 @@ async def test_inspection_classifies_vimeo_login_requirement(tmp_path: Path) -> 
     with pytest.raises(RunnerFailure) as caught:
         await commands.inspect("https://vimeo.com/76979871", tmp_path)
 
-    assert caught.value.code == "provider_access_required"
+    assert caught.value.code == "credential_required"
     assert caught.value.status == 422
 
 

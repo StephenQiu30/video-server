@@ -10,6 +10,7 @@ from app.api.routes.analyses import router as analyses_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.downloads import router as downloads_router
 from app.api.routes.inspections import router as inspections_router
+from app.api.routes.providers import router as providers_router
 from app.api.routes.users import router as users_router
 
 router = APIRouter()
@@ -21,6 +22,7 @@ api_router.include_router(users_router)
 api_router.include_router(admin_users_router)
 api_router.include_router(admin_downloads_router)
 api_router.include_router(inspections_router)
+api_router.include_router(providers_router)
 api_router.include_router(downloads_router)
 api_router.include_router(analyses_router)
 router.include_router(api_router)

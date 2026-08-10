@@ -20,6 +20,7 @@ x-prod-api-env: &prod-api-env
   REQUEST_FINGERPRINT_SECRET: "${REQUEST_FINGERPRINT_SECRET:?set REQUEST_FINGERPRINT_SECRET in .env.prod}"
   URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:?set URL_ENCRYPTION_KEY in .env.prod}"
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
+  RUNNER_OPERATOR_BASE_URL: "${RUNNER_OPERATOR_BASE_URL:-}"
 
 x-prod-worker-env: &prod-worker-env
   APP_ENV: "${APP_ENV:?set APP_ENV in .env.prod}"
@@ -33,6 +34,7 @@ x-prod-download-env: &prod-download-env
   MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?set MINIO_SECRET_KEY in .env.prod}"
   URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:?set URL_ENCRYPTION_KEY in .env.prod}"
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
+  RUNNER_OPERATOR_BASE_URL: "${RUNNER_OPERATOR_BASE_URL:-}"
 
 x-prod-runner-env: &prod-runner-env
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
@@ -56,6 +58,11 @@ services:
   media-runner:
     image: video-server:prod
     environment: *prod-runner-env
+
+  youtube-operator-runner:
+    image: video-server:prod
+
+  youtube-pot-provider:
 
   egress-proxy:
 

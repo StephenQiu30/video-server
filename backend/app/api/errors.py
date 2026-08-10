@@ -71,13 +71,45 @@ _ERRORS: dict[ApplicationErrorCode, tuple[int, str, str]] = {
         "Not found",
         "The requested resource was not found.",
     ),
-    ApplicationErrorCode.PROVIDER_ACCESS_REQUIRED: (
+    ApplicationErrorCode.PROVIDER_AUTH_REQUIRED: (
         422,
-        "Provider access required",
-        (
-            "This provider requires additional access verification; "
-            "cookie uploads are not supported."
-        ),
+        "Provider session required",
+        "This provider requires an approved session for the requested public media.",
+    ),
+    ApplicationErrorCode.PROVIDER_SESSION_EXPIRED: (
+        422,
+        "Provider session unavailable",
+        "The approved provider session is no longer available. Try again later.",
+    ),
+    ApplicationErrorCode.PROVIDER_VERIFICATION_FAILED: (
+        503,
+        "Provider verification failed",
+        "The provider could not verify this request. Try again later.",
+    ),
+    ApplicationErrorCode.PROVIDER_RATE_LIMITED: (
+        429,
+        "Provider rate limited",
+        "The provider is temporarily rate limiting requests. Try again later.",
+    ),
+    ApplicationErrorCode.PROVIDER_GEO_RESTRICTED: (
+        422,
+        "Provider region restricted",
+        "This media is not available from the configured service region.",
+    ),
+    ApplicationErrorCode.PROVIDER_CONTENT_RESTRICTED: (
+        403,
+        "Provider content restricted",
+        "This media is private or requires an entitlement this service cannot use.",
+    ),
+    ApplicationErrorCode.PROVIDER_DRM_PROTECTED: (
+        422,
+        "DRM protected media",
+        "DRM-protected media is outside the supported product boundary.",
+    ),
+    ApplicationErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE: (
+        503,
+        "Provider temporarily unavailable",
+        "The provider adapter is temporarily degraded. Try again later.",
     ),
     ApplicationErrorCode.PROVIDER_LINK_UNAVAILABLE: (
         422,

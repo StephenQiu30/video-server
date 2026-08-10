@@ -98,6 +98,7 @@ class JobSourceSnapshot:
     provider_hints: dict[str, Any]
     extractor_key: str
     provider_media_id: str
+    access_context: dict[str, Any]
     url_ciphertext: bytes
     url_nonce: bytes
     url_key_id: str

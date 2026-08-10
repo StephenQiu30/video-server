@@ -4,11 +4,13 @@ import asyncio
 import base64
 import math
 from dataclasses import replace
+from pathlib import Path
 from urllib.parse import urljoin
 
 import httpx
 
 from app.domain.downloads import FormatSelectionError, select_streams
+from app.domain.providers import ProviderAccessContextRef
 from app.runner.active_tasks import ActiveTaskRegistry
 from app.runner.command_support import default_supervisor
 from app.runner.commands import MediaCommands, ProcessRunner
@@ -22,6 +24,7 @@ from app.runner.contracts import (
     SelectedStreamsContract,
     TaskStatusResponse,
 )
+from app.runner.entitlements import enforce_media_rights
 from app.runner.errors import RunnerFailure
 from app.runner.metadata import (
     MediaInspection,
@@ -30,6 +33,7 @@ from app.runner.metadata import (
     enrich_format_metadata,
 )
 from app.runner.presentation import inspect_response
+from app.runner.provider_sessions import ProviderSessionStore
 from app.runner.provider_urls import (
     provider_inspection_attempts,
     provider_inspection_retry_delay,
@@ -73,31 +77,43 @@ class MediaRunnerService:
             ),
         )
         self._active = ActiveTaskRegistry(settings.runner_max_active_tasks)
+        self._sessions = ProviderSessionStore(settings)
 
     async def inspect(self, url: str) -> InspectResponse:
         safe_url = safe_media_url(url)
+        context = self._sessions.context_for(safe_url)
         workspace = self._workspaces.create("inspect")
         try:
             try:
                 async with asyncio.timeout(
                     self._settings.runner_inspect_timeout_seconds
                 ):
-                    inspection = await self._inspect_source(safe_url, workspace)
-                    plans = build_download_options(
-                        inspection.streams,
-                        max_options=self._settings.runner_max_options,
-                    )
-                    if not plans:
-                        raise RunnerFailure("format_unavailable", status=409)
-                    thumbnail_data_url = await self._thumbnail_data_url(
-                        inspection.thumbnail_url,
-                        referer=safe_url,
-                    )
-                    return inspect_response(
-                        inspection,
-                        plans,
-                        thumbnail_data_url=thumbnail_data_url,
-                    )
+                    async with self._sessions.operation(context) as cookie_jar:
+                        inspection = await self._inspect_source(
+                            safe_url,
+                            workspace,
+                            context=context,
+                            cookie_jar=cookie_jar,
+                        )
+                        plans = build_download_options(
+                            inspection.streams,
+                            max_options=self._settings.runner_max_options,
+                        )
+                        if not plans:
+                            raise RunnerFailure("format_unavailable", status=409)
+                        thumbnail_data_url = await self._thumbnail_data_url(
+                            inspection.thumbnail_url,
+                            referer=safe_url,
+                            egress_proxy=self._settings.egress_proxy_for(
+                                context.provider_key
+                            ),
+                        )
+                        return inspect_response(
+                            inspection,
+                            plans,
+                            access_context=context,
+                            thumbnail_data_url=thumbnail_data_url,
+                        )
             except TimeoutError as exc:
                 raise RunnerFailure("inspection_timeout", status=504) from exc
         finally:
@@ -112,13 +128,20 @@ class MediaRunnerService:
         succeeded = False
         try:
             safe_url = safe_media_url(request.url)
+            context = self._sessions.validate_context(
+                safe_url,
+                request.access_context.to_domain(),
+            )
             workspace = self._workspaces.create(request.task_id)
             async with asyncio.timeout(self._settings.runner_download_timeout_seconds):
-                response = await self._download_in_workspace(
-                    request,
-                    safe_url,
-                    workspace,
-                )
+                async with self._sessions.operation(context) as cookie_jar:
+                    response = await self._download_in_workspace(
+                        request,
+                        safe_url,
+                        workspace,
+                        context=context,
+                        cookie_jar=cookie_jar,
+                    )
             self._active.complete(request.task_id, task)
             succeeded = True
             return response
@@ -152,8 +175,16 @@ class MediaRunnerService:
         request: DownloadRequest,
         safe_url: str,
         workspace: TaskWorkspace,
+        *,
+        context: ProviderAccessContextRef,
+        cookie_jar: Path | None,
     ) -> DownloadResponse:
-        inspection = await self._inspect_source(safe_url, workspace)
+        inspection = await self._inspect_source(
+            safe_url,
+            workspace,
+            context=context,
+            cookie_jar=cookie_jar,
+        )
         require_source_identity(
             inspection,
             provider_media_id=request.expected_provider_media_id,
@@ -173,6 +204,7 @@ class MediaRunnerService:
             selection.video.provider_id,
             inputs[0],
             workspace.path,
+            cookie_jar=cookie_jar,
         )
         completed_streams = 1
         progress = 10 + 60 * completed_streams // total_streams
@@ -184,6 +216,7 @@ class MediaRunnerService:
                 selection.audio.provider_id,
                 inputs[1],
                 workspace.path,
+                cookie_jar=cookie_jar,
             )
             completed_streams += 1
             progress = 10 + 60 * completed_streams // total_streams
@@ -236,19 +269,33 @@ class MediaRunnerService:
         )
 
     async def _inspect_source(
-        self, safe_url: str, workspace: TaskWorkspace
+        self,
+        safe_url: str,
+        workspace: TaskWorkspace,
+        *,
+        context: ProviderAccessContextRef,
+        cookie_jar: Path | None,
     ) -> MediaInspection:
         attempts = provider_inspection_attempts(safe_url)
         retry_delay = provider_inspection_retry_delay(safe_url)
         for attempt in range(attempts):
             try:
-                payload = await self._commands.inspect(safe_url, workspace.path)
+                payload = await self._commands.inspect(
+                    safe_url,
+                    workspace.path,
+                    cookie_jar=cookie_jar,
+                )
                 break
             except RunnerFailure as exc:
                 if exc.code != "inspection_failed" or attempt == attempts - 1:
                     raise
                 await asyncio.sleep(retry_delay)
-        if payload.get("direct") is True:
+        enforce_media_rights(
+            payload,
+            provider_key=context.provider_key,
+            access_mode=context.access_mode,
+        )
+        if payload.get("direct") is True and cookie_jar is None:
             probe = await self._commands.probe_remote(
                 safe_url,
                 workspace.path,
@@ -264,6 +311,7 @@ class MediaRunnerService:
                 payload,
                 workspace,
                 referer=safe_url,
+                cookie_jar=cookie_jar,
             )
         try:
             inspection = normalize_for_settings(payload, self._settings)
@@ -280,6 +328,7 @@ class MediaRunnerService:
             payload,
             workspace,
             referer=safe_url,
+            cookie_jar=cookie_jar,
         )
         try:
             inspection = normalize_for_settings(enriched, self._settings)
@@ -292,7 +341,12 @@ class MediaRunnerService:
             max_options=1,
         ):
             return inspection
-        sampled = await self._enrich_from_probe_sample(enriched, safe_url, workspace)
+        sampled = await self._enrich_from_probe_sample(
+            enriched,
+            safe_url,
+            workspace,
+            cookie_jar=cookie_jar,
+        )
         return normalize_for_settings(sampled, self._settings)
 
     async def _enrich_sparse_formats(
@@ -301,7 +355,10 @@ class MediaRunnerService:
         workspace: TaskWorkspace,
         *,
         referer: str,
+        cookie_jar: Path | None,
     ) -> dict[str, object]:
+        if cookie_jar is not None:
+            return payload
         formats = payload.get("formats")
         if not isinstance(formats, list):
             return payload
@@ -354,6 +411,8 @@ class MediaRunnerService:
         payload: dict[str, object],
         source_url: str,
         workspace: TaskWorkspace,
+        *,
+        cookie_jar: Path | None,
     ) -> dict[str, object]:
         formats = payload.get("formats")
         if not isinstance(formats, list):
@@ -379,6 +438,7 @@ class MediaRunnerService:
                     str(raw["format_id"]),
                     output,
                     workspace.path,
+                    cookie_jar=cookie_jar,
                 )
                 probe = await self._commands.probe(output, workspace.path)
                 enriched_formats = list(formats)
@@ -397,6 +457,7 @@ class MediaRunnerService:
         thumbnail_url: str | None,
         *,
         referer: str,
+        egress_proxy: str,
     ) -> str | None:
         if thumbnail_url is None:
             return None
@@ -408,7 +469,7 @@ class MediaRunnerService:
         timeout = min(self._settings.runner_inspect_timeout_seconds, 15)
         try:
             async with httpx.AsyncClient(
-                proxy=self._settings.runner_egress_proxy,
+                proxy=egress_proxy,
                 follow_redirects=False,
                 timeout=timeout,
                 trust_env=False,

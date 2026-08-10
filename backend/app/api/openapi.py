@@ -39,6 +39,10 @@ OPENAPI_TAGS: list[dict[str, Any]] = [
         "description": "创建、查询、取消下载任务并签发制品地址。",
     },
     {
+        "name": "providers",
+        "description": "查询平台能力、访问模式和最近验证状态。",
+    },
+    {
         "name": "analyses",
         "description": "创建、查询和取消视频 AI 分析任务。",
     },

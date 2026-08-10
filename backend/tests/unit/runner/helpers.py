@@ -59,6 +59,16 @@ def download_request(height: int = 1080, width: int = 1920) -> DownloadRequest:
             "url": "https://media.example.com/video",
             "expected_provider_media_id": "controlled",
             "expected_extractor_key": "Controlled",
+            "access_context": {
+                "provider_key": "generic",
+                "profile_version": "1",
+                "access_mode": "anonymous",
+                "credential_version_id": None,
+                "egress_affinity_id": "default",
+                "client_profile_id": "yt-dlp-default",
+                "attestation_provider_version": None,
+                "engine_commit": "5d6b8c8cd19785c3086ae3a9ec618c45e25eb3bc",
+            },
             "plan": {
                 "height": height,
                 "width": width,

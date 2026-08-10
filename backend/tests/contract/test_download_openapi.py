@@ -21,6 +21,7 @@ def test_download_openapi_exposes_required_routes_and_idempotency(
         "/api/downloads/{job_id}/cancel",
         "/api/downloads/{job_id}/download-url",
         "/api/admin/downloads/analytics",
+        "/api/providers",
     } <= paths.keys()
     for path in ("/api/inspections", "/api/downloads"):
         parameters = paths[path]["post"]["parameters"]
@@ -29,6 +30,7 @@ def test_download_openapi_exposes_required_routes_and_idempotency(
         assert header["required"] is True
     assert paths["/api/inspections"]["post"]["operationId"] == "inspectMedia"
     assert paths["/api/downloads"]["post"]["operationId"] == "createDownload"
+    assert paths["/api/providers"]["get"]["operationId"] == "listProviders"
     create_response = paths["/api/downloads"]["post"]["responses"]["201"]
     assert create_response["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/DownloadResponse"
@@ -82,3 +84,31 @@ def test_request_schemas_forbid_unknown_fields_and_plan_has_no_hints(
     plan_properties = components["SemanticPlanResponse"]["properties"]
     assert "hints" not in plan_properties
     assert "provider_hints" not in plan_properties
+
+
+def test_provider_status_contract_is_coarse_and_non_secret(tmp_path: Path) -> None:
+    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    components = app.openapi()["components"]["schemas"]
+    contract = str(components["ProviderStatusResponse"])
+
+    assert all(
+        field in contract
+        for field in (
+            "registered",
+            "extractor_exists",
+            "capabilities",
+            "access_modes",
+            "status",
+            "last_verified_at",
+        )
+    )
+    assert all(
+        sensitive not in contract
+        for sensitive in (
+            "cookie",
+            "credential_version",
+            "egress_affinity",
+            "canary_url",
+            "po_token",
+        )
+    )

@@ -44,7 +44,19 @@ async def _inspection(repository: SqlAlchemyDownloadRepository) -> tuple:
             provider_media_id="controlled-video",
             title="Controlled video",
             duration_seconds=30,
-            metadata={"thumbnail": None},
+            metadata={
+                "thumbnail": None,
+                "provider_access_context": {
+                    "provider_key": "youtube",
+                    "profile_version": "youtube-v2",
+                    "access_mode": "anonymous",
+                    "credential_version_id": None,
+                    "egress_affinity_id": "default",
+                    "client_profile_id": "yt-dlp-default",
+                    "attestation_provider_version": None,
+                    "engine_commit": "5d6b8c8",
+                },
+            },
             expires_at=now + timedelta(minutes=15),
             formats=(
                 FormatCreate(
@@ -96,6 +108,7 @@ async def test_job_outbox_lease_progress_and_success_are_atomic(repository) -> N
     assert source.url_ciphertext == b"ciphertext"
     assert source.semantic_plan["height"] == 1080
     assert source.provider_hints["video"] == "137"
+    assert source.access_context["provider_key"] == "youtube"
     with pytest.raises(RepositoryNotFound):
         await repository.get_job_source(uuid4(), "worker-1", 1, now)
 

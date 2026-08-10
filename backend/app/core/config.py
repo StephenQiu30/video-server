@@ -83,6 +83,7 @@ class Settings(BaseSettings):
     )
 
     runner_base_url: str = "http://localhost:19100"
+    runner_operator_base_url: str | None = None
     runner_workspace_root: Path = Path("/work")
     runner_hmac_secret: SecretStr = SecretStr("development-runner-secret-change-me")
     runner_signature_ttl_seconds: int = Field(default=30, ge=5, le=300)
@@ -149,6 +150,13 @@ class Settings(BaseSettings):
     @field_validator("auth_bootstrap_admin_email", mode="before")
     @classmethod
     def empty_bootstrap_admin_email_to_none(cls, value: object) -> object | None:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @field_validator("runner_operator_base_url", mode="before")
+    @classmethod
+    def empty_runner_operator_url_to_none(cls, value: object) -> object | None:
         if isinstance(value, str) and not value.strip():
             return None
         return value

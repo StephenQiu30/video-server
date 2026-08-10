@@ -5,6 +5,11 @@ from __future__ import annotations
 import re
 from urllib.parse import SplitResult, parse_qs
 
+from app.domain.providers import (
+    ProviderAccessMode,
+    ProviderCapability,
+    ProviderSupportStatus,
+)
 from app.runner.provider_registry import ProviderProfile, UrlNormalizer, _identity
 
 _VIMEO_ID = re.compile(r"/([0-9]+)/?$")
@@ -35,9 +40,22 @@ def _standard(
     hosts: tuple[str, ...],
     *,
     normalize_url: UrlNormalizer = _identity,
+    capabilities: frozenset[ProviderCapability] | None = None,
+    status: ProviderSupportStatus = ProviderSupportStatus.UNKNOWN,
 ) -> ProviderProfile:
     return ProviderProfile(
-        key, display_name, frozenset(hosts), normalize_url=normalize_url
+        key,
+        display_name,
+        frozenset(hosts),
+        capabilities=capabilities
+        or frozenset(
+            {
+                ProviderCapability.SINGLE_VIDEO,
+                ProviderCapability.AUDIO_VIDEO_SPLIT,
+            }
+        ),
+        support_status=status,
+        normalize_url=normalize_url,
     )
 
 
@@ -47,11 +65,20 @@ def _challenged(
     hosts: tuple[str, ...],
     *,
     normalize_url: UrlNormalizer = _identity,
+    status: ProviderSupportStatus = ProviderSupportStatus.UNKNOWN,
 ) -> ProviderProfile:
     return ProviderProfile(
         key,
         display_name,
         frozenset(hosts),
+        capabilities=frozenset(
+            {
+                ProviderCapability.SINGLE_VIDEO,
+                ProviderCapability.SHORT_VIDEO,
+                ProviderCapability.AUDIO_VIDEO_SPLIT,
+            }
+        ),
+        support_status=status,
         command_args=_CHROME_IMPERSONATION,
         inspection_attempts=8,
         inspection_retry_delay=0.5,
@@ -60,23 +87,45 @@ def _challenged(
 
 
 DEFAULT_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
-    _standard(
-        "youtube",
-        "YouTube",
-        (
-            "youtube.com",
-            "www.youtube.com",
-            "m.youtube.com",
-            "music.youtube.com",
-            "youtu.be",
-            "youtube-nocookie.com",
-            "www.youtube-nocookie.com",
+    ProviderProfile(
+        key="youtube",
+        display_name="YouTube",
+        hosts=frozenset(
+            {
+                "youtube.com",
+                "www.youtube.com",
+                "m.youtube.com",
+                "music.youtube.com",
+                "youtu.be",
+                "youtube-nocookie.com",
+                "www.youtube-nocookie.com",
+            }
         ),
+        version="youtube-v2",
+        capabilities=frozenset(
+            {
+                ProviderCapability.SINGLE_VIDEO,
+                ProviderCapability.SHORT_VIDEO,
+                ProviderCapability.AUDIO_VIDEO_SPLIT,
+                ProviderCapability.SUBTITLES,
+            }
+        ),
+        access_modes=(
+            ProviderAccessMode.ANONYMOUS,
+            ProviderAccessMode.OPERATOR_MANAGED,
+        ),
+        cookie_domain_allowlist=frozenset({"youtube.com", "youtube-nocookie.com"}),
+        attestation_policy="bgutil-mweb-gvs-optional",
+        egress_pool="youtube-sticky",
+        credential_concurrency=1,
+        support_status=ProviderSupportStatus.ACCESS_REQUIRED,
+        canary_suite="youtube-anonymous-operator-pot",
     ),
     _standard(
         "bilibili",
         "哔哩哔哩",
         ("bilibili.com", "www.bilibili.com", "m.bilibili.com", "b23.tv"),
+        status=ProviderSupportStatus.VERIFIED,
     ),
     _challenged(
         "douyin",
@@ -90,6 +139,7 @@ DEFAULT_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             "www.iesdouyin.com",
         ),
         normalize_url=_douyin_url,
+        status=ProviderSupportStatus.VERIFIED,
     ),
     _challenged(
         "tiktok",
@@ -111,6 +161,7 @@ DEFAULT_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             "xhslink.com",
             "www.xhslink.com",
         ),
+        status=ProviderSupportStatus.VERIFIED,
     ),
     _standard(
         "vimeo",

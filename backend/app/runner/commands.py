@@ -8,6 +8,7 @@ from app.domain.downloads import Container
 from app.runner.command_support import child_environment, json_object
 from app.runner.errors import RunnerFailure
 from app.runner.process import ProcessResult, ProcessTimeoutError
+from app.runner.provider_errors import classify_provider_failure
 from app.runner.provider_registry import provider_profile
 from app.runner.provider_urls import provider_command_args, provider_request_url
 from app.runner.settings import RunnerSettings
@@ -40,10 +41,12 @@ class MediaCommands:
         self._settings = settings
         self._supervisor = supervisor
 
-    async def inspect(self, url: str, cwd: Path) -> dict[str, Any]:
+    async def inspect(
+        self, url: str, cwd: Path, *, cookie_jar: Path | None = None
+    ) -> dict[str, Any]:
         egress_proxy = self._egress_proxy(url)
-        command = (
-            *self._ytdlp_base(egress_proxy),
+        command: tuple[str, ...] = (
+            *self._ytdlp_base(egress_proxy, url, cookie_jar),
             "--dump-single-json",
             "--skip-download",
             *provider_command_args(url),
@@ -100,10 +103,12 @@ class MediaCommands:
         provider_id: str,
         output: Path,
         cwd: Path,
+        *,
+        cookie_jar: Path | None = None,
     ) -> None:
         egress_proxy = self._egress_proxy(url)
         command = (
-            *self._ytdlp_base(egress_proxy),
+            *self._ytdlp_base(egress_proxy, url, cookie_jar),
             "--format",
             provider_id,
             "--max-filesize",
@@ -132,10 +137,12 @@ class MediaCommands:
         provider_id: str,
         output: Path,
         cwd: Path,
+        *,
+        cookie_jar: Path | None = None,
     ) -> None:
         egress_proxy = self._egress_proxy(url)
         command = (
-            *self._ytdlp_base(egress_proxy),
+            *self._ytdlp_base(egress_proxy, url, cookie_jar),
             "--format",
             provider_id,
             "--max-filesize",
@@ -249,20 +256,26 @@ class MediaCommands:
         except OSError as exc:
             raise RunnerFailure("runner_dependency_unavailable", status=503) from exc
         if result.returncode != 0:
-            if _requires_provider_access(command, result.stderr):
-                raise RunnerFailure("provider_access_required", status=422)
-            if _is_unavailable_provider_link(command, result.stderr):
-                raise RunnerFailure("provider_link_unavailable", status=422)
-            if _is_unsupported_provider(command, result.stderr):
-                raise RunnerFailure("provider_unsupported", status=422)
+            provider_failure = classify_provider_failure(command, result.stderr)
+            if provider_failure is not None:
+                code, status = provider_failure
+                raise RunnerFailure(code, status=status)
             raise RunnerFailure(failure_code, status=502)
         return result
 
     def _egress_proxy(self, url: str) -> str:
         return self._settings.egress_proxy_for(provider_profile(url).key)
 
-    def _ytdlp_base(self, egress_proxy: str) -> tuple[str, ...]:
-        return (
+    def _ytdlp_base(
+        self,
+        egress_proxy: str,
+        url: str,
+        cookie_jar: Path | None,
+    ) -> tuple[str, ...]:
+        profile = provider_profile(url)
+        if cookie_jar is not None and profile.key != "youtube":
+            raise RunnerFailure("provider_session_not_allowed", status=422)
+        command: tuple[str, ...] = (
             self._settings.runner_ytdlp_bin,
             "--ignore-config",
             "--plugin-dirs",
@@ -281,60 +294,14 @@ class MediaCommands:
             "--proxy",
             egress_proxy,
         )
-
-
-def _requires_provider_access(command: Sequence[str], stderr: bytes) -> bool:
-    if not command or Path(command[0]).name.casefold() not in {"yt-dlp", "yt-dlp.exe"}:
-        return False
-    normalized = stderr.lower()
-    requires_fresh_cookies = b"fresh cookies" in normalized and b"needed" in normalized
-    requires_bot_confirmation = (
-        b"sign in to confirm" in normalized and b"not a bot" in normalized
-    )
-    requires_vimeo_login = b"vimeo extractor only works when logged-in" in normalized
-    return requires_fresh_cookies or requires_bot_confirmation or requires_vimeo_login
-
-
-def _is_unavailable_provider_link(command: Sequence[str], stderr: bytes) -> bool:
-    if not command or Path(command[0]).name.casefold() not in {"yt-dlp", "yt-dlp.exe"}:
-        return False
-    normalized = stderr.lower()
-    command_text = " ".join(command).casefold()
-    is_douyin = any(
-        host in command_text
-        for host in (
-            "douyin.com",
-            "iesdouyin.com",
-        )
-    )
-    if is_douyin and b"unsupported url:" in normalized:
-        return True
-    is_xiaohongshu = any(
-        host in command_text
-        for host in (
-            "xiaohongshu.com",
-            "xhslink.com",
-        )
-    )
-    return is_xiaohongshu and any(
-        marker in normalized
-        for marker in (
-            b"unable to extract initial state",
-            b"unsupported url:",
-        )
-    )
-
-
-def _is_unsupported_provider(command: Sequence[str], stderr: bytes) -> bool:
-    if not command or Path(command[0]).name.casefold() not in {"yt-dlp", "yt-dlp.exe"}:
-        return False
-    if b"unsupported url:" not in stderr.lower():
-        return False
-    command_text = " ".join(command).casefold()
-    return any(
-        host in command_text
-        for host in (
-            "channels.weixin.qq.com",
-            "weixin.qq.com/sph/",
-        )
-    )
+        if cookie_jar is not None:
+            command += ("--cookies", str(cookie_jar))
+        if profile.key == "youtube" and self._settings.runner_youtube_pot_base_url:
+            command += (
+                "--extractor-args",
+                "youtube:player_client=default,mweb",
+                "--extractor-args",
+                "youtubepot-bgutilhttp:base_url="
+                f"{self._settings.runner_youtube_pot_base_url}",
+            )
+        return command

@@ -33,7 +33,7 @@ from app.infrastructure.database import (
 )
 from app.infrastructure.download_store import SqlAlchemyDownloadStore
 from app.infrastructure.jwt_tokens import JwtTokenService
-from app.infrastructure.media_runner import MediaRunnerHttpClient
+from app.infrastructure.media_runner import MediaRunnerHttpClient, MediaRunnerRouter
 from app.infrastructure.object_storage import MinioObjectStorage
 from app.infrastructure.passwords import Argon2PasswordHasher
 from app.infrastructure.rate_limiter import ValkeyRateLimiter
@@ -49,7 +49,7 @@ class ApiRuntime:
     use_cases: DownloadUseCases
     analysis_use_cases: AnalysisUseCases
     engine: AsyncEngine
-    runner: MediaRunnerHttpClient
+    runner: MediaRunnerRouter
     rate_limiter: ValkeyRateLimiter | None
     readiness: RuntimeReadiness
 
@@ -69,13 +69,25 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
     auth_repository = SqlAlchemyAuthRepository(sessions)
     user_repository = SqlAlchemyUserRepository(sessions)
     store = SqlAlchemyDownloadStore(repository)
-    runner = MediaRunnerHttpClient(
+    anonymous_runner = MediaRunnerHttpClient(
         base_url=settings.runner_base_url,
         secret=settings.runner_hmac_secret.get_secret_value().encode(),
         workspace_root=settings.runner_workspace_root,
         inspect_timeout_seconds=settings.inspect_timeout_seconds,
         download_timeout_seconds=settings.download_timeout_seconds,
     )
+    operator_runner = (
+        MediaRunnerHttpClient(
+            base_url=settings.runner_operator_base_url,
+            secret=settings.runner_hmac_secret.get_secret_value().encode(),
+            workspace_root=settings.runner_workspace_root,
+            inspect_timeout_seconds=settings.inspect_timeout_seconds,
+            download_timeout_seconds=settings.download_timeout_seconds,
+        )
+        if settings.runner_operator_base_url is not None
+        else None
+    )
+    runner = MediaRunnerRouter(anonymous_runner, operator_runner)
     storage = MinioObjectStorage(settings, enable_public_signing=True)
     rate_limiter = (
         ValkeyRateLimiter(

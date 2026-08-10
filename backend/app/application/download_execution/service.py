@@ -7,6 +7,7 @@ from uuid import UUID
 
 from app.application.downloads import EncryptedUrl, plan_from_documents
 from app.domain.downloads import DownloadErrorCode, DownloadStage
+from app.domain.providers import ProviderAccessContextRef
 
 from .artifact import verify_artifact
 from .delivery import ArtifactDelivery
@@ -101,6 +102,9 @@ class DownloadExecution:
                     )
                 )
                 plan = plan_from_documents(source.semantic_plan, source.provider_hints)
+                access_context = ProviderAccessContextRef.from_document(
+                    source.access_context
+                )
             except Exception:
                 return await self._transitions.fail(
                     job_id, attempt, DownloadErrorCode.INTERNAL_ERROR
@@ -111,6 +115,7 @@ class DownloadExecution:
                     plan,
                     provider_media_id=source.provider_media_id,
                     extractor_key=source.extractor_key,
+                    access_context=access_context,
                 )
                 workspace = artifact.workspace
             except (LeaseLost, ExecutionOwnershipLost):

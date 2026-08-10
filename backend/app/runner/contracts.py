@@ -18,6 +18,7 @@ from app.domain.downloads import (
     StreamKind,
     VideoCodecFamily,
 )
+from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
 
 
 class ContractModel(BaseModel):
@@ -27,6 +28,33 @@ class ContractModel(BaseModel):
 class ProviderHintsContract(ContractModel):
     video_id: str | None = Field(default=None, max_length=128)
     audio_id: str | None = Field(default=None, max_length=128)
+
+
+class ProviderAccessContextContract(ContractModel):
+    provider_key: str = Field(pattern=r"^[a-z][a-z0-9_-]{0,31}$")
+    profile_version: str = Field(min_length=1, max_length=128)
+    access_mode: ProviderAccessMode
+    credential_version_id: str | None = Field(default=None, max_length=128)
+    egress_affinity_id: str = Field(min_length=1, max_length=128)
+    client_profile_id: str = Field(min_length=1, max_length=128)
+    attestation_provider_version: str | None = Field(default=None, max_length=128)
+    engine_commit: str = Field(min_length=1, max_length=128)
+
+    def to_domain(self) -> ProviderAccessContextRef:
+        return ProviderAccessContextRef(**self.model_dump())
+
+    @classmethod
+    def from_domain(cls, value: ProviderAccessContextRef) -> Self:
+        return cls(
+            provider_key=value.provider_key,
+            profile_version=value.profile_version,
+            access_mode=value.access_mode,
+            credential_version_id=value.credential_version_id,
+            egress_affinity_id=value.egress_affinity_id,
+            client_profile_id=value.client_profile_id,
+            attestation_provider_version=value.attestation_provider_version,
+            engine_commit=value.engine_commit,
+        )
 
 
 class DownloadPlanContract(ContractModel):
@@ -115,6 +143,7 @@ class InspectResponse(ContractModel):
     media: MediaSummary
     streams: list[CandidateStreamContract]
     options: list[DownloadOption]
+    access_context: ProviderAccessContextContract
 
 
 class DownloadRequest(ContractModel):
@@ -123,6 +152,7 @@ class DownloadRequest(ContractModel):
     expected_provider_media_id: str = Field(min_length=1, max_length=256)
     expected_extractor_key: str = Field(min_length=1, max_length=128)
     plan: DownloadPlanContract
+    access_context: ProviderAccessContextContract
 
     @field_validator("expected_provider_media_id", "expected_extractor_key")
     @classmethod

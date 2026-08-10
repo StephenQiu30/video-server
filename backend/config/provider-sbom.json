@@ -1,0 +1,69 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "video-server-provider-runtime",
+      "version": "phase1"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "yt-dlp",
+      "version": "2026.7.4",
+      "purl": "pkg:github/yt-dlp/yt-dlp@5d6b8c8cd19785c3086ae3a9ec618c45e25eb3bc",
+      "licenses": [{ "license": { "id": "Unlicense" } }],
+      "properties": [
+        {
+          "name": "video-server:git-commit",
+          "value": "5d6b8c8cd19785c3086ae3a9ec618c45e25eb3bc"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "yt-dlp-ejs",
+      "version": "0.8.0",
+      "purl": "pkg:pypi/yt-dlp-ejs@0.8.0",
+      "licenses": [
+        { "expression": "Unlicense AND MIT AND ISC" }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "curl-cffi",
+      "version": "0.15.0",
+      "purl": "pkg:pypi/curl-cffi@0.15.0",
+      "licenses": [{ "license": { "id": "MIT" } }]
+    },
+    {
+      "type": "library",
+      "name": "bgutil-ytdlp-pot-provider",
+      "version": "1.3.1",
+      "purl": "pkg:pypi/bgutil-ytdlp-pot-provider@1.3.1",
+      "licenses": [{ "license": { "id": "GPL-3.0-only" } }]
+    },
+    {
+      "type": "container",
+      "name": "brainicism/bgutil-ytdlp-pot-provider",
+      "version": "1.3.1",
+      "purl": "pkg:oci/bgutil-ytdlp-pot-provider@sha256:1aaa43a0ca72dfca6a6d2129a0fb4a23465c25adb1b043f8aff829a20825646b",
+      "licenses": [{ "license": { "id": "GPL-3.0-only" } }]
+    },
+    {
+      "type": "library",
+      "name": "video-server-trusted-extractor-plugins",
+      "version": "0.1.0",
+      "licenses": [{ "license": { "id": "MIT" } }],
+      "properties": [
+        {
+          "name": "video-server:plugins",
+          "value": "douyin_share,mediatrack"
+        }
+      ]
+    }
+  ]
+}

@@ -15,7 +15,14 @@ class ApplicationErrorCode(StrEnum):
     INVALID_STATE = "invalid_state"
     INVALID_URL = "invalid_url"
     NOT_FOUND = "not_found"
-    PROVIDER_ACCESS_REQUIRED = "provider_access_required"
+    PROVIDER_AUTH_REQUIRED = "provider_auth_required"
+    PROVIDER_SESSION_EXPIRED = "provider_session_expired"
+    PROVIDER_VERIFICATION_FAILED = "provider_verification_failed"
+    PROVIDER_RATE_LIMITED = "provider_rate_limited"
+    PROVIDER_GEO_RESTRICTED = "provider_geo_restricted"
+    PROVIDER_CONTENT_RESTRICTED = "provider_content_restricted"
+    PROVIDER_DRM_PROTECTED = "provider_drm_protected"
+    PROVIDER_TEMPORARILY_UNAVAILABLE = "provider_temporarily_unavailable"
     PROVIDER_LINK_UNAVAILABLE = "provider_link_unavailable"
     PROVIDER_UNSUPPORTED = "provider_unsupported"
     RESOURCE_EXPIRED = "resource_expired"
@@ -43,8 +50,36 @@ class MediaInspectionFailure(RuntimeError):
     """The runner could not return a valid inspection."""
 
 
-class MediaInspectionAccessRequired(MediaInspectionFailure):
-    """The provider requires a browser session that this service does not accept."""
+class MediaInspectionAuthRequired(MediaInspectionFailure):
+    """The provider requires an approved session."""
+
+
+class MediaInspectionSessionExpired(MediaInspectionFailure):
+    """The selected provider session is no longer usable."""
+
+
+class MediaInspectionVerificationFailed(MediaInspectionFailure):
+    """Provider request proof, script challenge, or egress verification failed."""
+
+
+class MediaInspectionRateLimited(MediaInspectionFailure):
+    """The provider rejected the bounded request rate."""
+
+
+class MediaInspectionGeoRestricted(MediaInspectionFailure):
+    """The content is unavailable in the configured region."""
+
+
+class MediaInspectionContentRestricted(MediaInspectionFailure):
+    """The content is private or requires an entitlement."""
+
+
+class MediaInspectionDrmProtected(MediaInspectionFailure):
+    """The content is DRM protected and outside the product boundary."""
+
+
+class MediaInspectionTemporarilyUnavailable(MediaInspectionFailure):
+    """The provider adapter or attestation service is degraded."""
 
 
 class MediaInspectionLinkUnavailable(MediaInspectionFailure):

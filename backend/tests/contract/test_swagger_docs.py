@@ -24,6 +24,7 @@ def test_swagger_ui_and_openapi_contract_are_available(tmp_path: Path) -> None:
         "users",
         "admin",
         "inspections",
+        "providers",
         "downloads",
         "analyses",
     }
@@ -49,6 +50,7 @@ def test_swagger_ui_and_openapi_contract_are_available(tmp_path: Path) -> None:
         "getDownloadAnalytics",
         "inspectMedia",
         "getInspection",
+        "listProviders",
         "createDownload",
         "getDownload",
         "getDownloadHistory",
