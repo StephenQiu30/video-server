@@ -21,6 +21,7 @@ from app.application.downloads import (
     HmacRequestFingerprinter,
     InspectMedia,
     IssueDownloadUrl,
+    RetryDownload,
 )
 from app.core.config import Settings
 from app.core.url_cipher import URLCipher
@@ -148,6 +149,13 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         get_download_history=GetDownloadHistory(store),
         get_download_analytics=GetDownloadAnalytics(store, now=clock),
         cancel_download=CancelDownload(store, now=clock),
+        retry_download=RetryDownload(
+            repository=store,
+            fingerprinter=fingerprinter,
+            now=clock,
+            new_id=uuid4,
+            max_attempts=settings.max_download_attempts,
+        ),
         issue_download_url=IssueDownloadUrl(
             store,
             storage,

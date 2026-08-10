@@ -122,6 +122,33 @@ async def cancel_download(
 
 
 @router.post(
+    "/{job_id}/retry",
+    operation_id="retryDownload",
+    response_model=DownloadResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="重试下载任务",
+)
+async def retry_download(
+    job_id: UUID,
+    idempotency_key: IdempotencyKey,
+    response: Response,
+    user: User,
+    use_cases: UseCases,
+) -> DownloadResponse:
+    """从失败或已取消的任务创建一条新的下载任务。"""
+    try:
+        view = await use_cases.retry_download(
+            job_id,
+            user.owner_hash,
+            idempotency_key,
+        )
+    except ApplicationError as exc:
+        raise application_error(exc) from exc
+    response.headers["Location"] = f"/api/downloads/{view.id}"
+    return DownloadResponse.from_view(view)
+
+
+@router.post(
     "/{job_id}/download-url",
     operation_id="issueDownloadUrl",
     response_model=DownloadUrlResponse,

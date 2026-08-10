@@ -17,6 +17,7 @@ from app.application.downloads import (
     GetInspection,
     InspectMedia,
     IssueDownloadUrl,
+    RetryDownload,
 )
 from app.application.providers import ProviderStatusView
 from app.core.config import Settings
@@ -47,6 +48,7 @@ class DownloadUseCases:
     get_download_history: GetDownloadHistory
     get_download_analytics: GetDownloadAnalytics
     cancel_download: CancelDownload
+    retry_download: RetryDownload
     issue_download_url: IssueDownloadUrl
 
 

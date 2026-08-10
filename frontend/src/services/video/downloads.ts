@@ -62,6 +62,20 @@ export async function issueDownloadUrl(
   );
 }
 
+/** 重试下载任务 从失败或已取消的任务创建一条新的下载任务。 POST /api/downloads/${param0}/retry */
+export async function retryDownload(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.retryDownloadParams,
+  options?: RequestOptions
+) {
+  const { job_id: param0, ...queryParams } = params;
+  return request<API.DownloadResponse>(`/api/downloads/${param0}/retry`, {
+    method: "POST",
+    params: { ...queryParams },
+    ...(options || {}),
+  });
+}
+
 /** 查询下载历史 查询当前登录用户的下载历史。 GET /api/downloads/history */
 export async function getDownloadHistory(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)

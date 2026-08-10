@@ -83,19 +83,27 @@ def test_download_routes_delegate_with_session_owner(tmp_path: Path) -> None:
         )
         fetched = test_client.get(f"/api/downloads/{JOB_ID}")
         cancelled = test_client.post(f"/api/downloads/{JOB_ID}/cancel")
+        retried = test_client.post(
+            f"/api/downloads/{JOB_ID}/retry",
+            headers={"Idempotency-Key": "retry-1"},
+        )
         issued = test_client.post(f"/api/downloads/{JOB_ID}/download-url")
 
     assert created.status_code == 201
     assert created.headers["location"] == f"/api/downloads/{JOB_ID}"
     assert fetched.status_code == cancelled.status_code == issued.status_code == 200
+    assert retried.status_code == 201
+    assert retried.headers["location"] == f"/api/downloads/{JOB_ID}"
     assert created.json()["status"] == "queued"
     assert cancelled.json()["status"] == "cancelled"
     assert issued.json()["url"] == "https://objects.example/token"
     owners = [
         stubs["create"].calls[0][0][-2],
         *(stubs[name].calls[0][0][-1] for name in ("get", "cancel", "issue_url")),
+        stubs["retry"].calls[0][0][-2],
     ]
     assert len(set(owners)) == 1
+    assert stubs["retry"].calls[0][0][-1] == "retry-1"
 
 
 def test_download_history_route_supports_filters_and_returns_public_fields(

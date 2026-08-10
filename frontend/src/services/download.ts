@@ -4,6 +4,7 @@ import {
   getDownloadHistory as getDownloadHistoryRequest,
   getDownload as getDownloadRequest,
   issueDownloadUrl as issueDownloadUrlRequest,
+  retryDownload as retryDownloadRequest,
 } from '@/services/video/downloads';
 import {
   getInspection as getInspectionRequest,
@@ -64,6 +65,13 @@ export function getDownloadHistory(
 
 export function cancelDownload(id: string): Promise<DownloadJob> {
   return cancelDownloadRequest({ job_id: encodeURIComponent(id) });
+}
+
+export function retryDownload(id: string, key: string): Promise<DownloadJob> {
+  return retryDownloadRequest(
+    { job_id: encodeURIComponent(id) },
+    { headers: { 'Idempotency-Key': key } },
+  );
 }
 
 export function issueDownloadUrl(id: string): Promise<DownloadUrl> {

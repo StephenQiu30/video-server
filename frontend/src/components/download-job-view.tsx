@@ -1,9 +1,11 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import AnalysisPanel from '@/components/analysis-panel';
 import { BackLink } from '@/components/back-link';
 import DownloadState from '@/components/download-state';
 import MediaCover from '@/components/media-cover';
+import { markNavigationPush } from '@/components/navigation-history';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDownloadJob } from '@/hooks/useDownloadJob';
@@ -17,10 +19,19 @@ export default function DownloadJobView({
   jobId: string;
   pollIntervalMs?: number;
 }) {
+  const router = useRouter();
   const state = useDownloadJob(jobId, pollIntervalMs);
   const format = state.inspection?.formats.find(
     (item) => item.id === state.job?.format_id,
   );
+
+  async function retry() {
+    const retried = await state.retry();
+    if (!retried) return;
+    const target = `/downloads/detail?jobId=${encodeURIComponent(retried.id)}`;
+    markNavigationPush(target);
+    router.push(target);
+  }
 
   if (state.loading && !state.job) return <DownloadJobSkeleton />;
 
@@ -61,6 +72,7 @@ export default function DownloadJobView({
                 job={state.job}
                 onCancel={state.cancel}
                 onDownload={state.download}
+                onRetry={() => void retry()}
               />
             </div>
           </section>

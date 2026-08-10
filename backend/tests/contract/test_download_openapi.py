@@ -19,17 +19,25 @@ def test_download_openapi_exposes_required_routes_and_idempotency(
         "/api/downloads",
         "/api/downloads/{job_id}",
         "/api/downloads/{job_id}/cancel",
+        "/api/downloads/{job_id}/retry",
         "/api/downloads/{job_id}/download-url",
         "/api/admin/downloads/analytics",
         "/api/providers",
     } <= paths.keys()
-    for path in ("/api/inspections", "/api/downloads"):
+    for path in (
+        "/api/inspections",
+        "/api/downloads",
+        "/api/downloads/{job_id}/retry",
+    ):
         parameters = paths[path]["post"]["parameters"]
         header = next(item for item in parameters if item["name"] == "Idempotency-Key")
         assert header["in"] == "header"
         assert header["required"] is True
     assert paths["/api/inspections"]["post"]["operationId"] == "inspectMedia"
     assert paths["/api/downloads"]["post"]["operationId"] == "createDownload"
+    assert (
+        paths["/api/downloads/{job_id}/retry"]["post"]["operationId"] == "retryDownload"
+    )
     assert paths["/api/providers"]["get"]["operationId"] == "listProviders"
     create_response = paths["/api/downloads"]["post"]["responses"]["201"]
     assert create_response["content"]["application/json"]["schema"] == {

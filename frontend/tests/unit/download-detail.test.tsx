@@ -10,8 +10,17 @@ import {
   mockHttpResponses,
 } from '../helpers/http';
 
+const runtime = vi.hoisted(() => ({
+  push: vi.fn(),
+}));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: runtime.push }),
+}));
+
 describe('DownloadJobView', () => {
   beforeEach(() => {
+    runtime.push.mockReset();
     window.history.replaceState({}, '', '/downloads/detail/');
   });
 
@@ -49,7 +58,7 @@ describe('DownloadJobView', () => {
       name: '取消当前下载任务？',
     });
     expect(dialog).toHaveTextContent(
-      '确认后将停止当前下载。你仍可返回首页重新创建下载任务。',
+      '确认后将停止当前下载。取消后可在当前页面重新下载。',
     );
     expect(httpRequests()).toHaveLength(2);
 
@@ -69,6 +78,31 @@ describe('DownloadJobView', () => {
     );
     expect(httpRequests()[2]?.url).toBe(`/api/downloads/${job().id}/cancel`);
   });
+
+  it.each(['failed', 'cancelled'] as const)(
+    'creates a new download when a %s task is retried',
+    async (status) => {
+      const retried = {
+        ...job('queued'),
+        id: '44444444-4444-4444-8444-444444444444',
+      };
+      mockHttpResponses(job(status), inspection, retried);
+      render(<DownloadJobView jobId={job().id} pollIntervalMs={60_000} />);
+
+      fireEvent.click(await screen.findByRole('button', { name: '重新下载' }));
+
+      await waitFor(() =>
+        expect(runtime.push).toHaveBeenCalledWith(
+          `/downloads/detail?jobId=${retried.id}`,
+        ),
+      );
+      expect(httpRequests()[2]).toMatchObject({
+        method: 'POST',
+        url: `/api/downloads/${job().id}/retry`,
+        headers: { 'Idempotency-Key': expect.any(String) },
+      });
+    },
+  );
 
   it('issues a short-lived URL for completed downloads', async () => {
     mockHttpResponses(job('succeeded'), inspection, {

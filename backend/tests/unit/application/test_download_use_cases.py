@@ -16,6 +16,7 @@ from app.application.downloads import (
     HmacRequestFingerprinter,
     InspectionSnapshot,
     IssueDownloadUrl,
+    RetryDownload,
     plan_to_documents,
 )
 from app.domain.downloads import DownloadStatus
@@ -57,6 +58,16 @@ def seed_inspection(
 
 def creator(repository: FakeRepository) -> CreateDownload:
     return CreateDownload(
+        repository=repository,
+        fingerprinter=HmacRequestFingerprinter(b"k" * 32),
+        now=lambda: NOW,
+        new_id=uuid4,
+        max_attempts=3,
+    )
+
+
+def retrier(repository: FakeRepository) -> RetryDownload:
+    return RetryDownload(
         repository=repository,
         fingerprinter=HmacRequestFingerprinter(b"k" * 32),
         now=lambda: NOW,
@@ -132,6 +143,73 @@ async def test_get_and_cancel_enforce_owner_and_status() -> None:
     with pytest.raises(ApplicationError) as terminal:
         await CancelDownload(repository, now=lambda: NOW)(created.id, OWNER)
     assert terminal.value.code is ApplicationErrorCode.INVALID_STATE
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("terminal_status", ["failed", "cancelled"])
+async def test_retry_creates_a_new_job_and_preserves_terminal_history(
+    terminal_status: str,
+) -> None:
+    repository = FakeRepository()
+    inspection_id, format_id = seed_inspection(repository)
+    original = await creator(repository)(inspection_id, format_id, OWNER, "original")
+    repository.jobs[original.id] = replace(
+        repository.jobs[original.id],
+        status=terminal_status,
+        attempt=3,
+        finished_at=NOW,
+    )
+
+    retried = await retrier(repository)(original.id, OWNER, "manual-retry")
+    replay = await retrier(repository)(original.id, OWNER, "manual-retry")
+
+    assert retried.id != original.id
+    assert replay.id == retried.id
+    assert retried.status is DownloadStatus.QUEUED
+    assert retried.attempt == 0
+    assert repository.jobs[original.id].status == terminal_status
+    assert repository.outbox_events == 2
+
+
+@pytest.mark.asyncio
+async def test_retry_rejects_active_successful_and_foreign_jobs() -> None:
+    repository = FakeRepository()
+    inspection_id, format_id = seed_inspection(repository)
+    original = await creator(repository)(inspection_id, format_id, OWNER, "original")
+    retry = retrier(repository)
+
+    for status in ("queued", "running", "retry_wait", "succeeded"):
+        repository.jobs[original.id] = replace(
+            repository.jobs[original.id], status=status
+        )
+        with pytest.raises(ApplicationError) as invalid:
+            await retry(original.id, OWNER, f"retry-{status}")
+        assert invalid.value.code is ApplicationErrorCode.INVALID_STATE
+
+    repository.jobs[original.id] = replace(
+        repository.jobs[original.id], status="failed"
+    )
+    with pytest.raises(ApplicationError) as foreign:
+        await retry(original.id, "b" * 64, "retry-foreign")
+    assert foreign.value.code is ApplicationErrorCode.NOT_FOUND
+
+
+@pytest.mark.asyncio
+async def test_retry_rejects_an_expired_source_inspection() -> None:
+    repository = FakeRepository()
+    inspection_id, format_id = seed_inspection(repository)
+    original = await creator(repository)(inspection_id, format_id, OWNER, "original")
+    repository.jobs[original.id] = replace(
+        repository.jobs[original.id], status="failed", finished_at=NOW
+    )
+    repository.inspections[inspection_id] = replace(
+        repository.inspections[inspection_id], expires_at=NOW
+    )
+
+    with pytest.raises(ApplicationError) as expired:
+        await retrier(repository)(original.id, OWNER, "retry-expired")
+
+    assert expired.value.code is ApplicationErrorCode.RESOURCE_EXPIRED
 
 
 @pytest.mark.asyncio

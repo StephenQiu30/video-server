@@ -1,17 +1,19 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   cancelDownload,
+  createIdempotencyKey,
   displayError,
   getDownload,
   getInspection,
   issueDownloadUrl,
+  retryDownload,
   triggerBrowserDownload,
 } from '@/services/download';
 import type { DownloadJob, Inspection } from '@/types/video';
 import { terminalDownloadStatuses } from '@/types/video';
 
-type Action = 'cancel' | 'download' | null;
+type Action = 'cancel' | 'download' | 'retry' | null;
 
 export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   const [job, setJob] = useState<DownloadJob | null>(null);
@@ -21,6 +23,7 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   const [loading, setLoading] = useState(true);
   const [action, setAction] = useState<Action>(null);
   const [cycle, setCycle] = useState(0);
+  const retryRequest = useRef<{ jobId: string; key: string } | null>(null);
 
   useEffect(() => {
     void cycle;
@@ -70,9 +73,27 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     };
   }, [cycle, jobId, pollIntervalMs]);
 
-  const retry = useCallback(() => {
+  const refresh = useCallback(() => {
     setCycle((current) => current + 1);
   }, []);
+
+  const retry = useCallback(async (): Promise<DownloadJob | null> => {
+    setAction('retry');
+    setError(null);
+    if (retryRequest.current?.jobId !== jobId) {
+      retryRequest.current = { jobId, key: createIdempotencyKey() };
+    }
+    try {
+      const retried = await retryDownload(jobId, retryRequest.current.key);
+      setJob(retried);
+      return retried;
+    } catch (reason) {
+      setError(displayError(reason));
+      return null;
+    } finally {
+      setAction(null);
+    }
+  }, [jobId]);
 
   const cancel = useCallback(async () => {
     setAction('cancel');
@@ -108,6 +129,7 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     inspectionError,
     job,
     loading,
+    refresh,
     retry,
   };
 }

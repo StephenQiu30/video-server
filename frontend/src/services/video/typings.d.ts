@@ -504,6 +504,10 @@ declare namespace API {
     username: string;
   };
 
+  type retryDownloadParams = {
+    job_id: string;
+  };
+
   type SemanticPlanResponse = {
     /** Height */
     height: number;

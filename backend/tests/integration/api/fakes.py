@@ -168,6 +168,7 @@ def use_cases() -> tuple[DownloadUseCases, dict[str, StubUseCase]]:
         "create": StubUseCase(download_view()),
         "get": StubUseCase(download_view()),
         "cancel": StubUseCase(download_view(DownloadStatus.CANCELLED)),
+        "retry": StubUseCase(download_view()),
         "issue_url": StubUseCase(
             DownloadUrl(
                 "https://objects.example/token",
@@ -183,6 +184,7 @@ def use_cases() -> tuple[DownloadUseCases, dict[str, StubUseCase]]:
         create_download=stubs["create"],
         get_download=stubs["get"],
         cancel_download=stubs["cancel"],
+        retry_download=stubs["retry"],
         issue_download_url=stubs["issue_url"],
         get_download_history=stubs["history"],
         get_download_analytics=stubs["analytics"],

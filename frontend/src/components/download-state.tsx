@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ArrowClockwise,
   CheckCircle,
   DownloadSimple,
   ShieldCheck,
@@ -33,11 +34,12 @@ import type {
 } from '@/types/video';
 
 type Props = {
-  action: 'cancel' | 'download' | null;
+  action: 'cancel' | 'download' | 'retry' | null;
   format?: MediaFormat;
   job: DownloadJob;
   onCancel: () => void;
   onDownload: () => void;
+  onRetry: () => void;
 };
 
 const statusLabels: Record<DownloadStatus, string> = {
@@ -63,9 +65,11 @@ export default function DownloadState({
   job,
   onCancel,
   onDownload,
+  onRetry,
 }: Props) {
   const active = ['queued', 'running', 'retry_wait'].includes(job.status);
   const complete = job.status === 'succeeded';
+  const retryable = ['failed', 'cancelled'].includes(job.status);
 
   return (
     <section aria-labelledby="download-status-title" className="self-start">
@@ -134,6 +138,17 @@ export default function DownloadState({
             获取视频文件
           </Button>
         ) : null}
+        {retryable ? (
+          <Button
+            className="w-full"
+            disabled={action === 'retry'}
+            onClick={onRetry}
+            size="lg"
+          >
+            {action === 'retry' ? <Spinner aria-hidden /> : <ArrowClockwise />}
+            重新下载
+          </Button>
+        ) : null}
         {active ? (
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -154,7 +169,7 @@ export default function DownloadState({
                 </AlertDialogMedia>
                 <AlertDialogTitle>取消当前下载任务？</AlertDialogTitle>
                 <AlertDialogDescription>
-                  确认后将停止当前下载。你仍可返回首页重新创建下载任务。
+                  确认后将停止当前下载。取消后可在当前页面重新下载。
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

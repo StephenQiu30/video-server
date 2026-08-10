@@ -79,6 +79,7 @@ from app.application.downloads.queries import (
     GetInspection,
     IssueDownloadUrl,
 )
+from app.application.downloads.retry_download import RetryDownload
 
 __all__ = [
     "ApplicationError",
@@ -119,6 +120,7 @@ __all__ = [
     "InspectionSnapshot",
     "InspectionView",
     "IssueDownloadUrl",
+    "RetryDownload",
     "JobSaveResult",
     "JobSnapshot",
     "MediaInspectionFailure",
