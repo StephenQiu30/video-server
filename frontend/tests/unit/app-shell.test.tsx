@@ -74,12 +74,20 @@ describe('AppShell', () => {
       'href',
       '/user/login?redirect=%2F',
     );
+    expect(screen.getByRole('navigation', { name: '主要导航' })).toHaveClass(
+      'hidden',
+      'lg:flex',
+    );
     expect(screen.getByRole('link', { name: '跳到主要内容' })).toHaveAttribute(
       'href',
       '#main-content',
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '打开导航菜单' }));
+    const mobileMenuTrigger = screen.getByRole('button', {
+      name: '打开导航菜单',
+    });
+    expect(mobileMenuTrigger).toHaveClass('lg:hidden');
+    fireEvent.click(mobileMenuTrigger);
     const mobileNavigation = screen.getByRole('navigation', {
       name: '移动导航',
     });
@@ -224,6 +232,10 @@ describe('AppShell', () => {
     expect(
       container.querySelector('section[aria-labelledby="login-title"]'),
     ).toHaveClass('max-w-[440px]');
+    expect(
+      container.querySelector('section[aria-labelledby="login-title"]')
+        ?.parentElement,
+    ).toHaveClass('justify-center', 'lg:justify-start');
     expect(container.querySelector('[data-slot="card"]')).toBeNull();
   });
 });

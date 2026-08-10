@@ -75,7 +75,7 @@ export function SiteHeader() {
         <BrandLink />
         <nav
           aria-label="主要导航"
-          className="hidden items-center gap-2 sm:flex"
+          className="hidden items-center gap-2 lg:flex"
         >
           <Button
             asChild
@@ -123,10 +123,7 @@ export function SiteHeader() {
                       {user.username.slice(0, 1).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <CaretDownIcon
-                    aria-hidden
-                    className="hidden size-4 sm:block"
-                  />
+                  <CaretDownIcon aria-hidden className="size-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent aria-label="账户菜单" className="w-56">

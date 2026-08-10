@@ -49,7 +49,7 @@ export function MobileNavigation({
       <SheetTrigger asChild>
         <Button
           aria-label="打开导航菜单"
-          className="size-11 sm:hidden"
+          className="size-11 lg:hidden"
           disabled={loading}
           size="icon"
           variant="ghost"
@@ -57,7 +57,10 @@ export function MobileNavigation({
           <ListIcon aria-hidden className="size-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-[min(88vw,360px)]" side="right">
+      <SheetContent
+        className="w-[min(88vw,360px)] overflow-y-auto overscroll-contain"
+        side="right"
+      >
         <SheetHeader>
           <SheetTitle>导航</SheetTitle>
           <SheetDescription>
@@ -97,7 +100,10 @@ export function MobileNavigation({
           </MobileLink>
           {user ? (
             <>
-              <MobileLink href="/account">
+              <MobileLink
+                active={pathname.startsWith('/account')}
+                href="/account"
+              >
                 <UserCircleIcon aria-hidden />
                 个人资料
               </MobileLink>

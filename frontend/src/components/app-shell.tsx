@@ -79,7 +79,7 @@ export function AuthPageFrame({
               公开链接 · 无 DRM · 安全解析
             </p>
           </section>
-          <div className="flex items-center py-12 lg:border-l lg:py-20 lg:pl-16 xl:pl-24">
+          <div className="flex items-center justify-center py-12 lg:justify-start lg:border-l lg:py-20 lg:pl-16 xl:pl-24">
             <section aria-labelledby={titleId} className="w-full max-w-[440px]">
               <PageHeader
                 description={description}
