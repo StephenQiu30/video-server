@@ -12,6 +12,7 @@ from app.api.dependencies import AnalysisUseCases, DownloadUseCases
 from app.application.analysis import (
     CancelAnalysis,
     CreateAnalysis,
+    DeleteAnalysis,
     ExportAnalysisMarkdown,
     ExportAnalysisReport,
     GetAnalysis,
@@ -46,6 +47,7 @@ from app.infrastructure.download_store import SqlAlchemyDownloadStore
 from app.infrastructure.jwt_tokens import JwtTokenService
 from app.infrastructure.media_runner import MediaRunnerHttpClient, MediaRunnerRouter
 from app.infrastructure.object_storage import MinioObjectStorage
+from app.infrastructure.operational_metrics import OperationalMetrics
 from app.infrastructure.passwords import Argon2PasswordHasher
 from app.infrastructure.rate_limiter import ValkeyRateLimiter
 from app.infrastructure.readiness import RuntimeReadiness, build_runtime_readiness
@@ -68,6 +70,7 @@ class ApiRuntime:
     realtime_hub: RealtimeHub
     task_event_store: TaskEventStore
     realtime_consumer: RabbitMqRealtimeConsumer
+    operational_metrics: OperationalMetrics
 
     async def start(self) -> None:
         await self.realtime_consumer.start()
@@ -84,7 +87,10 @@ class ApiRuntime:
 def build_api_runtime(settings: Settings) -> ApiRuntime:
     engine = create_engine(settings.database_url)
     sessions = create_session_factory(engine)
-    realtime_hub = RealtimeHub()
+    realtime_hub = RealtimeHub(
+        max_connections=settings.websocket_max_connections,
+        max_per_owner=settings.websocket_max_connections_per_owner,
+    )
     repository = SqlAlchemyDownloadRepository(sessions)
     analysis_repository = SqlAlchemyAnalysisRepository(sessions)
     auth_repository = SqlAlchemyAuthRepository(sessions)
@@ -199,6 +205,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             skill_catalog=skill_catalog,
             enabled=settings.analysis_enabled,
         ),
+        delete_analysis=DeleteAnalysis(analysis_repository, now=clock),
         get_analysis=get_analysis,
         get_latest_download_analysis=GetLatestDownloadAnalysis(
             analysis_repository, get_analysis
@@ -208,6 +215,9 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             analysis_repository,
             now=clock,
             new_id=uuid4,
+            max_runs_per_job=settings.analysis_max_runs_per_job,
+            min_interval_seconds=(settings.analysis_manual_retry_min_interval_seconds),
+            retries_per_day=settings.analysis_manual_retries_per_day,
         ),
         export_analysis_report=ExportAnalysisReport(
             get_analysis, analysis_repository, storage
@@ -234,6 +244,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         realtime_consumer=RabbitMqRealtimeConsumer(
             settings.rabbitmq_url, settings.rabbitmq_exchange, realtime_hub
         ),
+        operational_metrics=OperationalMetrics(sessions),
     )
 
 

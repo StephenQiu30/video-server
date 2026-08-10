@@ -1,6 +1,7 @@
 import {
   cancelAnalysis as cancelAnalysisRequest,
   createAnalysis as createAnalysisRequest,
+  deleteAnalysis as deleteAnalysisRequest,
   getAnalysis as getAnalysisRequest,
   getLatestDownloadAnalysis as getLatestDownloadAnalysisRequest,
   listAnalysisSkills as listAnalysisSkillsRequest,
@@ -45,6 +46,10 @@ export function getLatestDownloadAnalysis(
 
 export function cancelAnalysis(id: string): Promise<AnalysisJob> {
   return cancelAnalysisRequest({ analysis_id: encodeURIComponent(id) });
+}
+
+export function deleteAnalysis(id: string): Promise<void> {
+  return deleteAnalysisRequest({ analysis_id: encodeURIComponent(id) });
 }
 
 export function retryAnalysis(

@@ -11,6 +11,7 @@ from app.application.analysis.errors import (
     PersistenceArtifactUnavailable,
     PersistenceIdempotencyConflict,
     PersistenceNotFound,
+    PersistenceRetryLimited,
 )
 from app.application.analysis.models import AnalysisJobView, AnalysisRetry
 from app.application.analysis.ports import AnalysisRepository
@@ -29,10 +30,16 @@ class RetryAnalysis:
         *,
         now: Callable[[], datetime],
         new_id: Callable[[], UUID],
+        max_runs_per_job: int = 10,
+        min_interval_seconds: int = 0,
+        retries_per_day: int = 20,
     ) -> None:
         self._repository = repository
         self._now = now
         self._new_id = new_id
+        self._max_runs_per_job = max_runs_per_job
+        self._min_interval_seconds = min_interval_seconds
+        self._retries_per_day = retries_per_day
 
     async def __call__(
         self, job_id: UUID, owner_hash: str, idempotency_key: str
@@ -53,6 +60,9 @@ class RetryAnalysis:
             ),
             outbox_event_id=self._new_id(),
             max_attempts=current.max_attempts,
+            max_runs_per_job=self._max_runs_per_job,
+            min_interval_seconds=self._min_interval_seconds,
+            retries_per_day=self._retries_per_day,
         )
         try:
             saved = await self._repository.retry_job_and_enqueue(command, now=now)
@@ -71,6 +81,10 @@ class RetryAnalysis:
         except PersistenceNotFound as exc:
             raise AnalysisApplicationError(
                 AnalysisApplicationErrorCode.NOT_FOUND
+            ) from exc
+        except PersistenceRetryLimited as exc:
+            raise AnalysisApplicationError(
+                AnalysisApplicationErrorCode.RETRY_LIMITED
             ) from exc
         previous_result = await self._repository.get_result(job_id)
         return analysis_job_view(saved.job, result=previous_result)

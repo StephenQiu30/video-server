@@ -38,6 +38,7 @@ class AnalysisCreate:
     max_attempts: int
     outbox_event_id: UUID
     outbox_event_type: str
+    retry_available_until: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,6 +71,7 @@ class AnalysisJobSnapshot:
     created_at: datetime
     updated_at: datetime
     current_report_id: UUID | None = None
+    retry_available_until: datetime | None = None
 
     @classmethod
     def queued(cls, command: AnalysisCreate, *, now: datetime) -> AnalysisJobSnapshot:
@@ -101,6 +103,7 @@ class AnalysisJobSnapshot:
             error_code=None,
             created_at=now,
             updated_at=now,
+            retry_available_until=command.retry_available_until,
         )
 
 
@@ -119,6 +122,9 @@ class AnalysisRetry:
     trigger: str
     outbox_event_id: UUID
     max_attempts: int
+    max_runs_per_job: int = 10
+    min_interval_seconds: int = 0
+    retries_per_day: int = 20
 
 
 @dataclass(frozen=True, slots=True)
@@ -154,6 +160,7 @@ class AnalysisJobView:
     result: AnalysisResult | None
     report: AnalysisReportSnapshot | None = None
     current_report_id: UUID | None = None
+    retry_available_until: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -2,8 +2,10 @@
 
 import { ArrowClockwise, DownloadSimple, Robot } from '@phosphor-icons/react';
 import AnalysisConfigurator from '@/components/analysis-configurator';
+import AnalysisDeleteDialog from '@/components/analysis-delete-dialog';
 import { stageLabels, statusLabels } from '@/components/analysis-panel-model';
 import AnalysisResultView from '@/components/analysis-result-view';
+import AnalysisRetryWindow from '@/components/analysis-retry-window';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -35,6 +37,12 @@ export default function AnalysisPanel({
   const state = useAnalysisJob(downloadId, pollIntervalMs);
 
   if (state.job?.status === 'succeeded' && state.job.result) {
+    const formats = new Set(
+      state.job.report?.status === 'available'
+        ? state.job.report.artifacts.map((artifact) => artifact.format)
+        : [],
+    );
+    const reportAvailable = formats.has('markdown') && formats.has('docx');
     return (
       <section
         aria-label="AI 智能分析"
@@ -49,24 +57,28 @@ export default function AnalysisPanel({
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Badge variant="success">第 {state.job.run_no} 次执行已完成</Badge>
-            <Button asChild variant="outline">
-              <a
-                download={`analysis-report-${state.job.id}.md`}
-                href={analysisMarkdownUrl(state.job.id)}
-              >
-                <DownloadSimple />
-                导出 Markdown
-              </a>
-            </Button>
-            <Button asChild>
-              <a
-                download={`analysis-report-${state.job.id}.docx`}
-                href={analysisReportUrl(state.job.id)}
-              >
-                <DownloadSimple />
-                导出 DOCX
-              </a>
-            </Button>
+            {reportAvailable ? (
+              <>
+                <Button asChild variant="outline">
+                  <a
+                    download={`analysis-report-${state.job.id}.md`}
+                    href={analysisMarkdownUrl(state.job.id)}
+                  >
+                    <DownloadSimple />
+                    导出 Markdown
+                  </a>
+                </Button>
+                <Button asChild>
+                  <a
+                    download={`analysis-report-${state.job.id}.docx`}
+                    href={analysisReportUrl(state.job.id)}
+                  >
+                    <DownloadSimple />
+                    导出 DOCX
+                  </a>
+                </Button>
+              </>
+            ) : null}
             <Button
               disabled={state.action === 'retry'}
               onClick={() => void state.retry()}
@@ -75,7 +87,22 @@ export default function AnalysisPanel({
               <ArrowClockwise />
               {state.action === 'retry' ? '正在重新分析' : '重新分析'}
             </Button>
+            <AnalysisDeleteDialog
+              busy={state.action === 'delete'}
+              onDelete={state.remove}
+            />
           </div>
+        </div>
+        {!reportAvailable ? (
+          <Alert className="mt-8" variant="destructive">
+            <AlertTitle>报告已过期或暂时不可用</AlertTitle>
+            <AlertDescription>
+              分析结果仍可查看，但下载文件已经失效。你可以重新分析以生成新报告。
+            </AlertDescription>
+          </Alert>
+        ) : null}
+        <div className="mt-5">
+          <AnalysisRetryWindow job={state.job} />
         </div>
         <AnalysisResultView
           reportMarkdown={state.job.report_markdown}
@@ -150,6 +177,9 @@ function AnalysisJobState({
           ? `本次第 ${job.attempt} 个技术尝试`
           : '尚未开始技术尝试'}
       </p>
+      <div className="mt-2">
+        <AnalysisRetryWindow job={job} />
+      </div>
       <p aria-live="polite" className="mt-2 text-xs text-muted-foreground">
         {state.socketStatus === 'connected'
           ? '实时状态已连接'
@@ -194,6 +224,10 @@ function AnalysisJobState({
             {state.action === 'retry' ? '正在重试' : '重试分析'}
           </Button>
         ) : null}
+        <AnalysisDeleteDialog
+          busy={state.action === 'delete'}
+          onDelete={state.remove}
+        />
       </div>
       <p className="mt-8 text-sm text-muted-foreground">
         分析结果会经过连续时间轴、严格结构与分镜证据校验。

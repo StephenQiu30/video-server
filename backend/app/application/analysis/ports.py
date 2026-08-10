@@ -55,6 +55,10 @@ class AnalysisRepository(Protocol):
         self, job_id: UUID, owner_hash: str, now: datetime
     ) -> AnalysisJobSnapshot: ...
 
+    async def delete_job(
+        self, job_id: UUID, owner_hash: str, now: datetime
+    ) -> bool: ...
+
     async def publish_result(self, command: AnalysisPublish) -> AnalysisJobSnapshot: ...
 
 

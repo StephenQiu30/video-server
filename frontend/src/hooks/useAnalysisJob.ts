@@ -5,6 +5,7 @@ import { type TaskSocketStatus, taskSocket } from '@/lib/task-socket';
 import {
   cancelAnalysis,
   createAnalysis,
+  deleteAnalysis,
   getAnalysis,
   getLatestDownloadAnalysis,
   retryAnalysis,
@@ -13,7 +14,7 @@ import type { AnalysisJob, CreateAnalysisInput } from '@/types/video';
 import { terminalAnalysisStatuses } from '@/types/video';
 import { createIdempotencyKey } from '@/utils/idempotency';
 
-type Action = 'start' | 'cancel' | 'retry' | null;
+type Action = 'start' | 'cancel' | 'retry' | 'delete' | null;
 type StableKey = { payload: string; value: string };
 
 export function useAnalysisJob(downloadId: string, pollIntervalMs: number) {
@@ -164,11 +165,28 @@ export function useAnalysisJob(downloadId: string, pollIntervalMs: number) {
     }
   }, [analysisId]);
 
+  const remove = useCallback(async () => {
+    if (!analysisId) return;
+    setAction('delete');
+    setError(null);
+    try {
+      await deleteAnalysis(analysisId);
+      hasLocalJob.current = false;
+      retryKey.current = null;
+      setJob(null);
+    } catch (reason) {
+      setError(displayError(reason));
+    } finally {
+      setAction(null);
+    }
+  }, [analysisId]);
+
   return {
     action,
     cancel,
     error,
     job,
+    remove,
     retry,
     retryPoll,
     socketStatus,

@@ -12,7 +12,7 @@ import {
   useRef,
   useState,
 } from 'react';
-
+import { taskSocket } from '@/lib/task-socket';
 import { type AuthUser, getCurrentUser, logout } from '@/services/auth';
 
 type AuthContextValue = {
@@ -43,9 +43,16 @@ function isDesignInspection(): boolean {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser>();
+  const [user, setUserState] = useState<AuthUser>();
   const [loading, setLoading] = useState(true);
   const designPreview = useRef(false);
+  const setUser = useCallback<Dispatch<SetStateAction<AuthUser | undefined>>>(
+    (value) => {
+      taskSocket.reset();
+      setUserState(value);
+    },
+    [],
+  );
 
   const refreshUser = useCallback(async () => {
     if (designPreview.current) {
@@ -65,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setUser]);
 
   useEffect(() => {
     if (isDesignInspection()) {
@@ -75,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     void refreshUser();
-  }, [refreshUser]);
+  }, [refreshUser, setUser]);
 
   const signOut = useCallback(async () => {
     try {
@@ -87,11 +94,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(undefined);
       setLoading(false);
     }
-  }, []);
+  }, [setUser]);
 
   const value = useMemo(
     () => ({ user, loading, setUser, refreshUser, signOut }),
-    [loading, refreshUser, signOut, user],
+    [loading, refreshUser, setUser, signOut, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -6,7 +6,6 @@ import asyncio
 from contextlib import suppress
 
 import aio_pika
-from aio_pika import ExchangeType
 from aio_pika.abc import (
     AbstractIncomingMessage,
     AbstractQueue,
@@ -68,27 +67,8 @@ class RabbitMqReportConsumer:
             async with asyncio.timeout(self._connection_timeout):
                 channel = await connection.channel()
                 await channel.set_qos(prefetch_count=2)
-                exchange = await channel.declare_exchange(
-                    self._topology.exchange, ExchangeType.TOPIC, durable=True
-                )
-                dead_exchange = await channel.declare_exchange(
-                    self._topology.dead_exchange, ExchangeType.DIRECT, durable=True
-                )
                 binding = self._topology.report
-                dead = await channel.declare_queue(binding.dead_queue, durable=True)
-                await dead.bind(dead_exchange, routing_key=binding.dead_routing_key)
-                queue = await channel.declare_queue(
-                    binding.queue,
-                    durable=True,
-                    arguments={
-                        "x-dead-letter-exchange": self._topology.dead_exchange,
-                        "x-dead-letter-routing-key": binding.dead_routing_key,
-                        "x-message-ttl": binding.message_ttl_ms,
-                        "x-max-length": binding.max_length,
-                        "x-overflow": "reject-publish-dlx",
-                    },
-                )
-                await queue.bind(exchange, routing_key=binding.routing_key)
+                queue = await channel.declare_queue(binding.queue, passive=True)
                 self._queue = queue
                 self._tag = await queue.consume(self._consume)
         except BaseException:

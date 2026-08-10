@@ -1,5 +1,6 @@
 from app.application.analysis.cancel_analysis import CancelAnalysis
 from app.application.analysis.create_analysis import CreateAnalysis
+from app.application.analysis.delete_analysis import DeleteAnalysis
 from app.application.analysis.errors import (
     AnalysisApplicationError,
     AnalysisApplicationErrorCode,
@@ -8,6 +9,7 @@ from app.application.analysis.errors import (
     PersistenceConflict,
     PersistenceIdempotencyConflict,
     PersistenceNotFound,
+    PersistenceRetryLimited,
 )
 from app.application.analysis.export_report import (
     DOCX_MEDIA_TYPE,
@@ -65,6 +67,7 @@ __all__ = [
     "AnalysisResult",
     "CancelAnalysis",
     "CreateAnalysis",
+    "DeleteAnalysis",
     "DOCX_MEDIA_TYPE",
     "MARKDOWN_MEDIA_TYPE",
     "ExportAnalysisMarkdown",
@@ -77,6 +80,7 @@ __all__ = [
     "PersistenceArtifactUnavailable",
     "PersistenceIdempotencyConflict",
     "PersistenceNotFound",
+    "PersistenceRetryLimited",
     "RequestFingerprinter",
     "RetryAnalysis",
     "render_analysis_report_markdown",

@@ -8,8 +8,10 @@ from .analysis_report import (
 )
 from .analysis_run import AnalysisRetryOperationRow, AnalysisRunRow
 from .auth import AuthSessionRow, UserRow
+from .dlq_replay import DlqReplayRow
 from .download import ArtifactRow, DownloadJobRow
 from .media import MediaFormatRow, MediaInspectionRow
+from .operational_metric import OperationalCounterRow
 from .outbox import OutboxEventRow
 from .task_event import TaskEventRow
 
@@ -24,9 +26,11 @@ __all__ = [
     "AnalysisRetryOperationRow",
     "AnalysisRunRow",
     "DownloadJobRow",
+    "DlqReplayRow",
     "MediaFormatRow",
     "MediaInspectionRow",
     "OutboxEventRow",
+    "OperationalCounterRow",
     "TaskEventRow",
     "UserRow",
 ]

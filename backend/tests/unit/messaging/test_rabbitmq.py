@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
-from aio_pika import DeliveryMode, ExchangeType
+from aio_pika import DeliveryMode
 from app.infrastructure.messaging import (
     EventEnvelope,
     PublishNotConfirmed,
@@ -41,9 +41,9 @@ class FakeChannel:
         self.exchange_calls = []
         self.queue_calls = []
 
-    async def declare_exchange(self, name, kind, *, durable):
-        self.exchange_calls.append((name, kind, durable))
-        return self.dead if name.endswith(".dead") else self.main
+    async def declare_exchange(self, name, *, passive):
+        self.exchange_calls.append((name, passive))
+        return self.main
 
     async def declare_queue(self, name, *, durable, arguments=None):
         self.queue_calls.append((name, durable, arguments))
@@ -94,27 +94,8 @@ async def test_robust_topology_and_confirmed_mandatory_publish(monkeypatch) -> N
 
     channel = connection.channel_value
     assert connection.channel_calls == [(True, True)]
-    assert ("video.events", ExchangeType.TOPIC, True) in channel.exchange_calls
-    assert ("video.events.dead", ExchangeType.DIRECT, True) in channel.exchange_calls
-    queue_call = next(
-        item for item in channel.queue_calls if item[0] == "video.download"
-    )
-    assert queue_call[1] is True
-    assert queue_call[2] == {
-        "x-dead-letter-exchange": "video.events.dead",
-        "x-dead-letter-routing-key": "video.download.dead",
-        "x-message-ttl": 1_800_000,
-        "x-max-length": 10_000,
-        "x-overflow": "reject-publish-dlx",
-    }
-    assert {item[0] for item in channel.queue_calls} == {
-        "video.download",
-        "video.download.dead",
-        "video.analysis",
-        "video.analysis.dead",
-        "video.analysis-report",
-        "video.analysis-report.dead",
-    }
+    assert channel.exchange_calls == [("video.events", True)]
+    assert channel.queue_calls == []
     message, routing_key, mandatory, timeout = channel.main.published[0]
     assert (routing_key, mandatory, timeout) == ("download.requested", True, 10)
     assert message.delivery_mode is DeliveryMode.PERSISTENT
@@ -147,10 +128,10 @@ async def test_nack_is_not_treated_as_success(monkeypatch) -> None:
 async def test_topology_failure_closes_partial_connection(monkeypatch) -> None:
     connection = FakeConnection()
 
-    async def fail_queue(*args, **kwargs):
+    async def fail_exchange(*args, **kwargs):
         raise RuntimeError("topology declaration failed")
 
-    connection.channel_value.declare_queue = fail_queue
+    connection.channel_value.declare_exchange = fail_exchange
 
     async def connect(*args, **kwargs):
         return connection

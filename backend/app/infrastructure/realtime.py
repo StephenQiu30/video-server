@@ -7,7 +7,6 @@ from dataclasses import dataclass, field
 from uuid import UUID, uuid4
 
 import aio_pika
-from aio_pika import ExchangeType
 from aio_pika.abc import (
     AbstractIncomingMessage,
     AbstractQueue,
@@ -31,17 +30,36 @@ class RealtimeConnection:
     send_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
 
+class RealtimeConnectionLimit(RuntimeError):
+    """The gateway or owner connection budget is exhausted."""
+
+
 class RealtimeHub:
-    def __init__(self) -> None:
+    def __init__(self, *, max_connections: int = 1000, max_per_owner: int = 4) -> None:
+        self._max_connections = max_connections
+        self._max_per_owner = max_per_owner
         self._connections: set[RealtimeConnection] = set()
 
     def register(self, owner_hash: str) -> RealtimeConnection:
+        owner_connections = sum(
+            connection.owner_hash == owner_hash for connection in self._connections
+        )
+        if (
+            len(self._connections) >= self._max_connections
+            or owner_connections >= self._max_per_owner
+        ):
+            raise RealtimeConnectionLimit("realtime connection limit reached")
         connection = RealtimeConnection(owner_hash)
         self._connections.add(connection)
         return connection
 
     def unregister(self, connection: RealtimeConnection) -> None:
         self._connections.discard(connection)
+
+    def invalidate_owner(self, owner_hash: str) -> None:
+        for connection in tuple(self._connections):
+            if connection.owner_hash == owner_hash:
+                self._enqueue(connection, {"type": "session.invalidated"})
 
     def begin_subscription(
         self, connection: RealtimeConnection, task_type: str, task_id: UUID
@@ -119,9 +137,7 @@ class RabbitMqRealtimeConsumer:
         self._connection = connection
         channel = await connection.channel()
         await channel.set_qos(prefetch_count=100)
-        exchange = await channel.declare_exchange(
-            self._exchange, ExchangeType.TOPIC, durable=True
-        )
+        exchange = await channel.declare_exchange(self._exchange, passive=True)
         queue = await channel.declare_queue("", exclusive=True, auto_delete=True)
         await queue.bind(exchange, routing_key="task.state.changed")
         self._queue = queue

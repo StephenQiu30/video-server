@@ -114,6 +114,7 @@ class CreateAnalysis:
             max_attempts=self._max_attempts,
             outbox_event_id=self._new_id(),
             outbox_event_type="analysis.requested",
+            retry_available_until=artifact.expires_at,
         )
         try:
             saved = await self._repository.create_job_and_enqueue(command, now=now)

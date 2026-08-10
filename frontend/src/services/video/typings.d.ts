@@ -93,6 +93,8 @@ declare namespace API {
     report_markdown: string | null;
     /** Current Report Id */
     current_report_id: string | null;
+    /** Retry Available Until */
+    retry_available_until: string | null;
     report: AnalysisReportResponse | null;
   };
 
@@ -151,6 +153,10 @@ declare namespace API {
 
   type createAnalysisParams = {
     download_id: string;
+  };
+
+  type deleteAnalysisParams = {
+    analysis_id: string;
   };
 
   type DownloadAnalyticsDailyResponse = {

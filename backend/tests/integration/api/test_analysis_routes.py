@@ -153,6 +153,7 @@ def client(tmp_path: Path) -> tuple[TestClient, dict[str, StubUseCase]]:
             replace(queued, status=AnalysisStatus.CANCELLED, finished_at=NOW)
         ),
         "retry": StubUseCase(replace(queued, run_no=2, run_trigger="manual_retry")),
+        "delete": StubUseCase(None),
     }
     application.state.analysis_use_cases = AnalysisUseCases(
         list_analysis_skills=lambda: (
@@ -164,6 +165,7 @@ def client(tmp_path: Path) -> tuple[TestClient, dict[str, StubUseCase]]:
             ),
         ),
         create_analysis=stubs["create"],
+        delete_analysis=stubs["delete"],
         get_analysis=stubs["get"],
         get_latest_download_analysis=stubs["get"],
         cancel_analysis=stubs["cancel"],
@@ -240,12 +242,14 @@ def test_analysis_routes_share_owner_and_never_expose_internal_ids(
             headers={"Idempotency-Key": "retry-2"},
             json={"skill_id": "highlights"},
         )
+        deleted = test_client.delete(f"/api/analyses/{ANALYSIS_ID}")
 
     assert created.status_code == 201
     assert created.headers["location"] == f"/api/analyses/{ANALYSIS_ID}"
     assert fetched.status_code == restored.status_code == cancelled.status_code == 200
     assert retried.status_code == 201
     assert mutable_retry.status_code == 422
+    assert deleted.status_code == 204
     assert retried.headers["location"] == f"/api/analyses/{ANALYSIS_ID}"
     assert retried.json()["run_no"] == 2
     assert created.json()["result"] is None
@@ -262,6 +266,7 @@ def test_analysis_routes_share_owner_and_never_expose_internal_ids(
         stubs["get"].calls[0][1],
         stubs["cancel"].calls[0][1],
         stubs["retry"].calls[0][1],
+        stubs["delete"].calls[0][1],
     )
     assert len(set(owners)) == 1
 

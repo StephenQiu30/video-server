@@ -116,10 +116,18 @@ async def logout_user(
     auth: Auth,
     settings: SettingsDependency,
 ) -> None:
+    access_token = request.cookies.get(settings.auth_access_cookie_name)
+    try:
+        user = await auth.current_user(access_token or "")
+    except AuthError:
+        user = None
     refresh_token = request.cookies.get(settings.auth_refresh_cookie_name)
     if refresh_token:
         await auth.logout(refresh_token)
     clear_auth_cookies(response, settings)
+    hub = getattr(request.app.state, "realtime_hub", None)
+    if user is not None and hub is not None:
+        hub.invalidate_owner(user.owner_hash)
 
 
 def _email_hash(email: str) -> str:

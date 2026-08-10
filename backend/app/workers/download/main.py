@@ -144,7 +144,6 @@ async def run() -> None:
     stop = asyncio.Event()
     _install_signal_handlers(stop)
     try:
-        await runtime.storage.ensure_bucket()
         await _serve(runtime, stop)
     finally:
         stop.set()

@@ -33,6 +33,10 @@ def test_analysis_openapi_is_current_and_excludes_internal_fields(
     assert header["required"] is True
     retry = paths["/api/analyses/{analysis_id}/retry"]["post"]
     assert retry["operationId"] == "retryAnalysis"
+
+    delete = paths["/api/analyses/{analysis_id}"]["delete"]
+    assert delete["operationId"] == "deleteAnalysis"
+    assert "204" in delete["responses"]
     assert retry["responses"]["201"]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/AnalysisResponse"
     }

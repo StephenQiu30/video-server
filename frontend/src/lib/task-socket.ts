@@ -53,6 +53,13 @@ class TaskSocketManager {
     };
   }
 
+  reset() {
+    this.disconnect();
+    this.subscriptions.clear();
+    this.statusListeners.clear();
+    this.reconnectAttempt = 0;
+  }
+
   private connect() {
     if (typeof window === 'undefined' || this.socket) return;
     this.setStatus('connecting');

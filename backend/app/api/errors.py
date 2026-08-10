@@ -192,6 +192,11 @@ _ANALYSIS_ERRORS: dict[AnalysisApplicationErrorCode, tuple[int, str, str]] = {
         "Analysis report unavailable",
         "The published analysis report could not be verified.",
     ),
+    AnalysisApplicationErrorCode.RETRY_LIMITED: (
+        429,
+        "Analysis retry limited",
+        "The analysis retry limit was reached. Try again later.",
+    ),
     AnalysisApplicationErrorCode.RESOURCE_EXPIRED: (
         404,
         "Not found",

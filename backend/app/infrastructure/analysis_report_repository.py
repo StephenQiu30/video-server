@@ -9,7 +9,9 @@ from uuid import UUID, uuid4
 from sqlalchemy import exists, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.infrastructure.analysis_repository_base import AnalysisRepositoryBase
+from app.infrastructure.analysis_report_lifecycle import (
+    AnalysisReportLifecycleRepository,
+)
 from app.infrastructure.database.base import as_utc
 from app.infrastructure.database.models import (
     AnalysisJobRow,
@@ -18,6 +20,7 @@ from app.infrastructure.database.models import (
     AnalysisRunRow,
     OutboxEventRow,
 )
+from app.infrastructure.database.operational_counter import increment_counter
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,9 +44,15 @@ class ReportObject:
     sha256: str
 
 
-class SqlAlchemyAnalysisReportRepository(AnalysisRepositoryBase):
-    def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
+class SqlAlchemyAnalysisReportRepository(AnalysisReportLifecycleRepository):
+    def __init__(
+        self,
+        sessions: async_sessionmaker[AsyncSession],
+        *,
+        retention: timedelta = timedelta(days=1),
+    ) -> None:
         super().__init__(sessions)
+        self._retention = retention
 
     async def claim(
         self,
@@ -63,20 +72,25 @@ class SqlAlchemyAnalysisReportRepository(AnalysisRepositoryBase):
                 .with_for_update()
             )
             if report is None or report.job_id != job_id or report.run_id != run_id:
+                await increment_counter(session, "claim_noop", "report")
                 return None
             job = await session.get(AnalysisJobRow, job_id)
             run = await session.get(AnalysisRunRow, run_id)
             if job is None or run is None or run.job_id != job_id:
+                await increment_counter(session, "claim_noop", "report")
                 return None
             if report.status == "available":
+                await increment_counter(session, "claim_noop", "report")
                 return None
             if job.active_run_id != run_id or job.version != expected_version:
+                await increment_counter(session, "claim_noop", "report")
                 return None
             if (
                 report.status == "publishing"
                 and report.lease_expires_at is not None
                 and as_utc(report.lease_expires_at) > as_utc(now)
             ):
+                await increment_counter(session, "claim_noop", "report")
                 return None
             report.status = "publishing"
             report.attempt += 1
@@ -142,6 +156,7 @@ class SqlAlchemyAnalysisReportRepository(AnalysisRepositoryBase):
                             status="available",
                             created_at=now,
                             available_at=now,
+                            expires_at=now + self._retention,
                         )
                     )
                 elif (row.object_key, row.size_bytes, row.sha256) != (

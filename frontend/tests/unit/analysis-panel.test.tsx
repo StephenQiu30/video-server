@@ -64,6 +64,51 @@ describe('AnalysisPanel', () => {
       'href',
       `/api/analyses/${analysisJob('succeeded').id}/report.docx`,
     );
+    expect(screen.getByText(/原视频可重试至/)).toBeInTheDocument();
+  });
+
+  it('shows an explicit unavailable state instead of stale report links', async () => {
+    vi.mocked(httpClient.request).mockReset();
+    const available = analysisJob('succeeded');
+    if (!available.report) throw new Error('report fixture is required');
+    const unavailable = {
+      ...available,
+      report: { ...available.report, artifacts: [] },
+    };
+    mockHttpResponses(analysisSkills, unavailable);
+
+    render(<AnalysisPanel downloadId={job().id} />);
+
+    expect(
+      await screen.findByText('报告已过期或暂时不可用'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: '导出 DOCX' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/分析结果仍可查看，但下载文件已经失效/),
+    ).toBeInTheDocument();
+  });
+
+  it('deletes an analysis only after accessible confirmation', async () => {
+    vi.mocked(httpClient.request).mockReset();
+    const succeeded = analysisJob('succeeded');
+    mockHttpResponses(analysisSkills, succeeded, undefined, analysisSkills);
+    render(<AnalysisPanel downloadId={job().id} />);
+
+    const trigger = await screen.findByRole('button', { name: '删除分析' });
+    fireEvent.click(trigger);
+    expect(
+      await screen.findByRole('alertdialog', { name: '删除分析与报告？' }),
+    ).toHaveTextContent('此操作不可撤销');
+    fireEvent.click(screen.getByRole('button', { name: '确认删除' }));
+
+    await waitFor(() =>
+      expect(screen.queryByText(analysisResult.title)).not.toBeInTheDocument(),
+    );
+    expect(httpRequests().some((request) => request.method === 'DELETE')).toBe(
+      true,
+    );
   });
 
   it('creates, receives WebSocket state and renders a structured result', async () => {

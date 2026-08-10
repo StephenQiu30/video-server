@@ -75,8 +75,8 @@ def test_production_rejects_development_secrets() -> None:
 def test_production_accepts_explicit_secrets() -> None:
     settings = Settings(
         app_env="production",
-        database_url="postgresql+asyncpg://app:db-secret@postgres:5432/video",
-        rabbitmq_url="amqp://app:mq-secret@rabbitmq:5672/",
+        database_url="postgresql+asyncpg://app:StrongDbPass123@postgres:5432/video",
+        rabbitmq_url="amqp://app:StrongMqPass123@rabbitmq:5672/",
         valkey_url="redis://valkey:6379/0",
         auth_jwt_secret=SecretStr("s" * 48),
         request_fingerprint_secret=SecretStr("f" * 48),
@@ -84,6 +84,7 @@ def test_production_accepts_explicit_secrets() -> None:
         runner_hmac_secret=SecretStr("r" * 48),
         minio_access_key=SecretStr("production-access"),
         minio_secret_key=SecretStr("m" * 48),
+        metrics_access_key=SecretStr("k" * 48),
         auth_bootstrap_admin_email="admin@example.com",
         analysis_enabled=True,
     )

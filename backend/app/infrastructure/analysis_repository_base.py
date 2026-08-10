@@ -69,7 +69,12 @@ class AnalysisRepositoryBase:
 
     async def get_job(self, job_id: UUID) -> AnalysisJobSnapshot | None:
         async with self._sessions() as session:
-            row = await session.get(AnalysisJobRow, job_id)
+            row = await session.scalar(
+                select(AnalysisJobRow).where(
+                    AnalysisJobRow.id == job_id,
+                    AnalysisJobRow.deleted_at.is_(None),
+                )
+            )
             return None if row is None else analysis_job_snapshot(row)
 
     async def get_result(self, job_id: UUID) -> AnalysisResult | None:
@@ -141,6 +146,7 @@ class AnalysisRepositoryBase:
                 )
                 .where(
                     AnalysisJobRow.id == job_id,
+                    AnalysisJobRow.deleted_at.is_(None),
                     AnalysisReportArtifactRow.format == report_format,
                     AnalysisReportArtifactRow.status == "available",
                 )

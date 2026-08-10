@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Mapping
 
 import aio_pika
-from aio_pika import DeliveryMode, ExchangeType, Message
+from aio_pika import DeliveryMode, Message
 from aio_pika.abc import AbstractExchange, AbstractRobustConnection
 from pamqp.commands import Basic
 
@@ -25,6 +26,8 @@ class RabbitMqPublisher:
         *,
         connection_timeout: float = 10,
         publish_timeout: float = 10,
+        connection_name: str = "video-server-outbox",
+        app_id: str = "video-server-outbox",
     ) -> None:
         if not url:
             raise ValueError("RabbitMQ URL cannot be blank")
@@ -34,6 +37,8 @@ class RabbitMqPublisher:
         self._topology = topology
         self._connection_timeout = connection_timeout
         self._publish_timeout = publish_timeout
+        self._connection_name = connection_name
+        self._app_id = app_id
         self._connection: AbstractRobustConnection | None = None
         self._exchange: AbstractExchange | None = None
 
@@ -43,7 +48,7 @@ class RabbitMqPublisher:
         connection = await aio_pika.connect_robust(
             self._url,
             timeout=self._connection_timeout,
-            client_properties={"connection_name": "video-server-outbox"},
+            client_properties={"connection_name": self._connection_name},
         )
         self._connection = connection
         try:
@@ -53,42 +58,19 @@ class RabbitMqPublisher:
                     on_return_raises=True,
                 )
                 exchange = await channel.declare_exchange(
-                    self._topology.exchange,
-                    ExchangeType.TOPIC,
-                    durable=True,
+                    self._topology.exchange, passive=True
                 )
-                dead_exchange = await channel.declare_exchange(
-                    self._topology.dead_exchange,
-                    ExchangeType.DIRECT,
-                    durable=True,
-                )
-                for binding in self._topology.durable_queues:
-                    dead_queue = await channel.declare_queue(
-                        binding.dead_queue,
-                        durable=True,
-                    )
-                    await dead_queue.bind(
-                        dead_exchange,
-                        routing_key=binding.dead_routing_key,
-                    )
-                    queue = await channel.declare_queue(
-                        binding.queue,
-                        durable=True,
-                        arguments={
-                            "x-dead-letter-exchange": self._topology.dead_exchange,
-                            "x-dead-letter-routing-key": binding.dead_routing_key,
-                            "x-message-ttl": binding.message_ttl_ms,
-                            "x-max-length": binding.max_length,
-                            "x-overflow": "reject-publish-dlx",
-                        },
-                    )
-                    await queue.bind(exchange, routing_key=binding.routing_key)
             self._exchange = exchange
         except BaseException:
             await asyncio.shield(self.close())
             raise
 
-    async def publish(self, envelope: EventEnvelope) -> None:
+    async def publish(
+        self,
+        envelope: EventEnvelope,
+        *,
+        headers: Mapping[str, str | int] | None = None,
+    ) -> None:
         if self._exchange is None:
             raise RuntimeError("RabbitMQ publisher has not been started")
         message = Message(
@@ -100,8 +82,8 @@ class RabbitMqPublisher:
             message_id=str(envelope.event_id),
             timestamp=envelope.occurred_at,
             type=envelope.event_type,
-            app_id="video-server-outbox",
-            headers={"schema_version": envelope.schema_version},
+            app_id=self._app_id,
+            headers={"schema_version": envelope.schema_version, **(headers or {})},
         )
         confirmation = await self._exchange.publish(
             message,

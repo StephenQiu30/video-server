@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from io import BytesIO
 from pathlib import Path, PurePosixPath
 
@@ -17,6 +17,12 @@ from app.core.config import Settings
 class StoredObjectStat:
     size_bytes: int
     sha256: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class StoredObject:
+    object_key: str
+    last_modified: datetime
 
 
 class MinioObjectStorage:
@@ -138,6 +144,20 @@ class MinioObjectStorage:
     async def delete(self, object_key: str) -> None:
         _validate_key(object_key)
         await asyncio.to_thread(self._private.remove_object, self._bucket, object_key)
+
+    async def list(self, prefix: str) -> tuple[StoredObject, ...]:
+        _validate_key(prefix)
+
+        def collect() -> tuple[StoredObject, ...]:
+            return tuple(
+                StoredObject(item.object_name, item.last_modified)
+                for item in self._private.list_objects(
+                    self._bucket, prefix=prefix, recursive=True
+                )
+                if item.object_name is not None and item.last_modified is not None
+            )
+
+        return await asyncio.to_thread(collect)
 
 
 def _validate_key(object_key: str) -> None:

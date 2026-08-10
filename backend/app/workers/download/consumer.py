@@ -6,7 +6,6 @@ from typing import Protocol
 from uuid import UUID
 
 import aio_pika
-from aio_pika import ExchangeType
 from aio_pika.abc import (
     AbstractIncomingMessage,
     AbstractQueue,
@@ -92,36 +91,8 @@ class RabbitMqDownloadConsumer:
             async with asyncio.timeout(self._connection_timeout):
                 channel = await connection.channel()
                 await channel.set_qos(prefetch_count=self._prefetch)
-                exchange = await channel.declare_exchange(
-                    self._topology.exchange,
-                    ExchangeType.TOPIC,
-                    durable=True,
-                )
-                dead_exchange = await channel.declare_exchange(
-                    self._topology.dead_exchange,
-                    ExchangeType.DIRECT,
-                    durable=True,
-                )
-                dead_queue = await channel.declare_queue(
-                    self._topology.dead_queue, durable=True
-                )
-                await dead_queue.bind(
-                    dead_exchange,
-                    routing_key=self._topology.dead_routing_key,
-                )
                 queue = await channel.declare_queue(
-                    self._topology.download_queue,
-                    durable=True,
-                    arguments={
-                        "x-dead-letter-exchange": self._topology.dead_exchange,
-                        "x-dead-letter-routing-key": (self._topology.dead_routing_key),
-                        "x-message-ttl": self._topology.message_ttl_ms,
-                        "x-max-length": self._topology.max_length,
-                        "x-overflow": "reject-publish-dlx",
-                    },
-                )
-                await queue.bind(
-                    exchange, routing_key=self._topology.download_routing_key
+                    self._topology.download_queue, passive=True
                 )
                 self._queue = queue
                 await self._pool.start()

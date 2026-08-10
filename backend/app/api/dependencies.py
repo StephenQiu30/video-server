@@ -10,6 +10,7 @@ from fastapi import Header, Request
 from app.application.analysis import (
     CancelAnalysis,
     CreateAnalysis,
+    DeleteAnalysis,
     ExportAnalysisMarkdown,
     ExportAnalysisReport,
     GetAnalysis,
@@ -65,6 +66,7 @@ class DownloadUseCases:
 class AnalysisUseCases:
     list_analysis_skills: ListAnalysisSkills
     create_analysis: CreateAnalysis
+    delete_analysis: DeleteAnalysis
     get_analysis: GetAnalysis
     get_latest_download_analysis: GetLatestDownloadAnalysis
     cancel_analysis: CancelAnalysis

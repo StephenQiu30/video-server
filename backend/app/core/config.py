@@ -36,9 +36,12 @@ class Settings(BaseSettings):
     readiness_timeout_seconds: float = Field(default=2.0, ge=0.1, le=10)
     request_max_bytes: int = Field(default=256 * 1024, ge=1024, le=4 * 1024 * 1024)
     request_timeout_seconds: float = Field(default=30, ge=1, le=300)
+    metrics_access_key: SecretStr = SecretStr(
+        "development-metrics-access-key-change-me"
+    )
 
     database_url: str = "postgresql+asyncpg://video:video@localhost:15432/video"
-    rabbitmq_url: str = "amqp://video:video@localhost:5673/"
+    rabbitmq_url: str = "amqp://video-api:video-api-secret@localhost:5673/video"
     rabbitmq_exchange: str = "video.events"
     download_queue: str = "video.download"
     download_routing_key: Literal["download.requested"] = "download.requested"
@@ -56,8 +59,8 @@ class Settings(BaseSettings):
 
     minio_endpoint: str = "localhost:19190"
     minio_public_endpoint: str = "127.0.0.1:19190"
-    minio_access_key: SecretStr = SecretStr("video-app-access")
-    minio_secret_key: SecretStr = SecretStr("video-app-secret-change-me")
+    minio_access_key: SecretStr = SecretStr("video-api-access")
+    minio_secret_key: SecretStr = SecretStr("video-api-secret-change-me")
     minio_internal_secure: bool = False
     minio_public_secure: bool = False
     minio_region: str = "us-east-1"
@@ -108,6 +111,16 @@ class Settings(BaseSettings):
     heartbeat_interval_seconds: int = Field(default=15, ge=5, le=120)
     max_download_attempts: int = Field(default=3, ge=1, le=10)
     max_analysis_attempts: int = Field(default=3, ge=1, le=10)
+    analysis_max_runs_per_job: int = Field(default=10, ge=1, le=100)
+    analysis_manual_retry_min_interval_seconds: int = Field(default=30, ge=0, le=86400)
+    analysis_manual_retries_per_day: int = Field(default=20, ge=1, le=1000)
+    analysis_report_ttl_seconds: int = Field(default=86400, ge=300, le=2592000)
+    analysis_report_gc_interval_seconds: float = Field(default=300, ge=5, le=86400)
+    analysis_report_gc_batch_size: int = Field(default=50, ge=1, le=200)
+    analysis_report_orphan_grace_seconds: int = Field(default=3600, ge=300, le=604800)
+    websocket_max_connections: int = Field(default=1000, ge=1, le=100000)
+    websocket_max_connections_per_owner: int = Field(default=4, ge=1, le=100)
+    websocket_auth_recheck_seconds: float = Field(default=15, ge=1, le=300)
 
     analysis_enabled: bool = True
     analysis_workspace_root: Path = Path("./.analysis-work")
@@ -131,8 +144,12 @@ class Settings(BaseSettings):
     analysis_database_url: str = (
         "postgresql+asyncpg://video:video@localhost:15432/video"
     )
-    analysis_rabbitmq_url: str = "amqp://video:video@localhost:5673/"
+    analysis_rabbitmq_url: str = (
+        "amqp://video-analysis:video-analysis-secret@localhost:5673/video"
+    )
     analysis_minio_endpoint: str = "localhost:19190"
+    analysis_minio_access_key: SecretStr = SecretStr("video-analysis-access")
+    analysis_minio_secret_key: SecretStr = SecretStr("video-analysis-secret-change-me")
 
     @field_validator("frontend_dist_dir")
     @classmethod
@@ -196,6 +213,7 @@ class Settings(BaseSettings):
                     self.auth_jwt_secret.get_secret_value(),
                     self.request_fingerprint_secret.get_secret_value(),
                     self.runner_hmac_secret.get_secret_value(),
+                    self.metrics_access_key.get_secret_value(),
                     self.minio_access_key.get_secret_value(),
                     self.minio_secret_key.get_secret_value(),
                 )
@@ -208,7 +226,14 @@ class Settings(BaseSettings):
                     self.minio_secret_key.get_secret_value(),
                 )
             )
-        elif self.service_role in {"analysis-worker", "report-worker"}:
+        elif self.service_role == "analysis-worker":
+            secret_values.extend(
+                (
+                    self.analysis_minio_access_key.get_secret_value(),
+                    self.analysis_minio_secret_key.get_secret_value(),
+                )
+            )
+        elif self.service_role == "report-worker":
             secret_values.extend(
                 (
                     self.minio_access_key.get_secret_value(),
@@ -219,8 +244,14 @@ class Settings(BaseSettings):
             value.startswith(("development-", "video-")) or "replace-with" in value
             for value in secret_values
         )
-        insecure_urls = "video:video@" in self.database_url or "video:video@" in (
-            self.rabbitmq_url
+        rabbitmq_url = (
+            self.analysis_rabbitmq_url
+            if self.service_role == "analysis-worker"
+            else self.rabbitmq_url
+        )
+        insecure_urls = any(
+            marker in f"{self.database_url} {rabbitmq_url}"
+            for marker in ("video:video@", "replace-with", "-secret@")
         )
         default_url_key = self.service_role in {"api", "download-worker"} and (
             self.url_encryption_key.get_secret_value() == DEFAULT_URL_ENCRYPTION_KEY

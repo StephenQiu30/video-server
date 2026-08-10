@@ -232,3 +232,22 @@ async def retry_analysis(
         raise analysis_application_error(exc) from exc
     response.headers["Location"] = f"/api/analyses/{view.id}"
     return AnalysisResponse.from_view(view)
+
+
+@router.delete(
+    "/analyses/{analysis_id}",
+    operation_id="deleteAnalysis",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="删除视频分析与报告",
+)
+async def delete_analysis(
+    analysis_id: UUID,
+    user: User,
+    use_cases: UseCases,
+) -> Response:
+    """隐藏分析任务并异步清理其私有报告对象。"""
+    try:
+        await use_cases.delete_analysis(analysis_id, user.owner_hash)
+    except AnalysisApplicationError as exc:
+        raise analysis_application_error(exc) from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

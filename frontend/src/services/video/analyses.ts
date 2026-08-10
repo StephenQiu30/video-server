@@ -16,6 +16,20 @@ export async function getAnalysis(
   });
 }
 
+/** 删除视频分析与报告 隐藏分析任务并异步清理其私有报告对象。 DELETE /api/analyses/${param0} */
+export async function deleteAnalysis(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.deleteAnalysisParams,
+  options?: RequestOptions
+) {
+  const { analysis_id: param0, ...queryParams } = params;
+  return request<any>(`/api/analyses/${param0}`, {
+    method: "DELETE",
+    params: { ...queryParams },
+    ...(options || {}),
+  });
+}
+
 /** 取消视频分析任务 请求取消尚未结束的视频分析任务。 POST /api/analyses/${param0}/cancel */
 export async function cancelAnalysis(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)

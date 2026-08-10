@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.application.analysis import (
     AnalysisJobSnapshot,
@@ -15,7 +15,13 @@ from app.application.analysis import (
 from app.infrastructure.analysis_repository_mapping import analysis_job_snapshot
 from app.infrastructure.analysis_repository_retry import AnalysisRetryRepository
 from app.infrastructure.database.base import as_utc
-from app.infrastructure.database.models import AnalysisJobRow, ArtifactRow
+from app.infrastructure.database.models import (
+    AnalysisJobRow,
+    AnalysisReportArtifactRow,
+    AnalysisResultRow,
+    ArtifactRow,
+)
+from app.infrastructure.database.operational_counter import increment_counter
 
 STAGE_RANKS = {
     "preparing": 1,
@@ -35,11 +41,61 @@ class AnalysisLifecycleRepository(AnalysisRetryRepository):
                 .where(
                     ArtifactRow.job_id == download_id,
                     AnalysisJobRow.owner_hash == owner_hash,
+                    AnalysisJobRow.deleted_at.is_(None),
                 )
                 .order_by(AnalysisJobRow.created_at.desc())
                 .limit(1)
             )
             return None if row is None else analysis_job_snapshot(row)
+
+    async def delete_job(self, job_id: UUID, owner_hash: str, now: datetime) -> bool:
+        async with self._sessions() as session, session.begin():
+            row = await session.scalar(
+                select(AnalysisJobRow)
+                .where(
+                    AnalysisJobRow.id == job_id,
+                    AnalysisJobRow.owner_hash == owner_hash,
+                )
+                .with_for_update()
+            )
+            if row is None:
+                raise PersistenceNotFound("analysis job does not exist")
+            if row.deleted_at is not None:
+                return False
+            run = await self.active_run(session, row, for_update=True)
+            if row.status in {"queued", "running", "retry_wait"}:
+                row.status = "cancelled"
+                row.stage = None
+                row.stage_rank = 0
+                row.error_code = "cancelled"
+                row.finished_at = now
+                row.lease_owner = None
+                row.lease_expires_at = None
+                row.heartbeat_at = None
+                row.version += 1
+                self.sync_run(row, run)
+                await self.release_lock(session, row.id)
+            else:
+                row.version += 1
+            row.deleted_at = now
+            row.updated_at = now
+            report_ids = select(AnalysisResultRow.id).where(
+                AnalysisResultRow.job_id == row.id
+            )
+            await session.execute(
+                update(AnalysisResultRow)
+                .where(AnalysisResultRow.job_id == row.id)
+                .values(status="delete_pending")
+            )
+            await session.execute(
+                update(AnalysisReportArtifactRow)
+                .where(
+                    AnalysisReportArtifactRow.report_id.in_(report_ids),
+                    AnalysisReportArtifactRow.deleted_at.is_(None),
+                )
+                .values(status="delete_pending")
+            )
+            return True
 
     async def claim_job(
         self,
@@ -68,9 +124,11 @@ class AnalysisLifecycleRepository(AnalysisRetryRepository):
                 or row.attempt >= row.max_attempts
                 or row.retry_at is not None
             ):
+                await increment_counter(session, "claim_noop", "analysis")
                 return None
             run = await self.active_run(session, row, for_update=True)
             if run.status != "queued" or run.run_no != row.current_run_no:
+                await increment_counter(session, "claim_noop", "analysis")
                 return None
             row.status = "running"
             row.stage = "preparing"

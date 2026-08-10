@@ -1,0 +1,28 @@
+groups:
+  - name: video-server-analysis
+    rules:
+      - alert: VideoRabbitMqDeadLetters
+        expr: rabbitmq_queue_messages_ready{vhost="video",queue=~"video\\..*\\.dead"} > 0
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: "RabbitMQ dead-letter queue is not empty"}
+      - alert: VideoRabbitMqQueueBacklog
+        expr: rabbitmq_queue_messages_ready{vhost="video",queue=~"video\\.(download|analysis|analysis-report)"} > 100
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: "RabbitMQ command queue backlog is growing"}
+      - alert: VideoOutboxLag
+        expr: video_outbox_oldest_seconds > 60
+        for: 5m
+        labels: {severity: critical}
+        annotations: {summary: "Transactional outbox publication is delayed"}
+      - alert: VideoAnalysisLeaseExpired
+        expr: video_analysis_expired_leases > 0
+        for: 2m
+        labels: {severity: warning}
+        annotations: {summary: "Analysis worker lease recovery is required"}
+      - alert: VideoAnalysisReportBacklog
+        expr: sum(video_analysis_reports{state=~"validated|publishing|publish_failed"}) > 20
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: "Analysis report publication backlog is growing"}

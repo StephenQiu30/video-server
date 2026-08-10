@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,9 +15,11 @@ from app.application.analysis import (
     PersistenceArtifactUnavailable,
     PersistenceConflict,
     PersistenceNotFound,
+    PersistenceRetryLimited,
 )
 from app.infrastructure.analysis_repository_create import AnalysisCreationRepository
 from app.infrastructure.analysis_repository_mapping import analysis_job_snapshot
+from app.infrastructure.database.base import as_utc
 from app.infrastructure.database.models import (
     AnalysisArtifactLockRow,
     AnalysisJobRow,
@@ -50,6 +52,7 @@ class AnalysisRetryRepository(AnalysisCreationRepository):
                         return replay
                     if row.status not in {"failed", "cancelled", "succeeded"}:
                         raise PersistenceActiveRun("analysis already has an active run")
+                    await self._require_retry_capacity(session, row, command, now)
                     await self._require_artifact(session, row, now)
                     run = self._new_run(
                         run_id=command.run_id,
@@ -129,6 +132,37 @@ class AnalysisRetryRepository(AnalysisCreationRepository):
         if run is None:
             raise PersistenceConflict("retry run is missing")
         return AnalysisJobSaveResult(analysis_job_snapshot(row, run), created=False)
+
+    @staticmethod
+    async def _require_retry_capacity(
+        session: AsyncSession,
+        row: AnalysisJobRow,
+        command: AnalysisRetry,
+        now: datetime,
+    ) -> None:
+        if row.current_run_no >= command.max_runs_per_job:
+            raise PersistenceRetryLimited("analysis run limit reached")
+        current_run = await session.get(AnalysisRunRow, row.active_run_id)
+        if (
+            current_run is not None
+            and command.min_interval_seconds > 0
+            and as_utc(current_run.created_at)
+            + timedelta(seconds=command.min_interval_seconds)
+            > as_utc(now)
+        ):
+            raise PersistenceRetryLimited("analysis retry interval not elapsed")
+        daily_retries = await session.scalar(
+            select(func.count())
+            .select_from(AnalysisRunRow)
+            .join(AnalysisJobRow, AnalysisJobRow.id == AnalysisRunRow.job_id)
+            .where(
+                AnalysisJobRow.owner_hash == command.owner_hash,
+                AnalysisRunRow.trigger.in_({"manual_retry", "manual_rerun"}),
+                AnalysisRunRow.created_at >= now - timedelta(days=1),
+            )
+        )
+        if int(daily_retries or 0) >= command.retries_per_day:
+            raise PersistenceRetryLimited("owner daily analysis retry limit reached")
 
     @staticmethod
     async def _require_artifact(

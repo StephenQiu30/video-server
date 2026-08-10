@@ -50,6 +50,11 @@ def analysis_job_snapshot(
         error_code=row.error_code,
         created_at=as_utc(row.created_at),
         updated_at=as_utc(row.updated_at),
+        retry_available_until=(
+            None
+            if row.retry_available_until is None
+            else as_utc(row.retry_available_until)
+        ),
     )
 
 

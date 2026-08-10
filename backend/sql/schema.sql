@@ -173,6 +173,8 @@ CREATE TABLE IF NOT EXISTS analysis_jobs (
     finished_at TIMESTAMPTZ,
     error_code VARCHAR(64),
     error_message VARCHAR(512),
+    deleted_at TIMESTAMPTZ,
+    retry_available_until TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_analysis_jobs_owner_idempotency
@@ -202,6 +204,13 @@ ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS current_report_id UUID;
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS skill_id VARCHAR(128);
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS skill_instructions TEXT;
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS custom_prompt TEXT;
+ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS retry_available_until TIMESTAMPTZ;
+UPDATE analysis_jobs AS analysis
+SET retry_available_until = artifact.expires_at
+FROM artifacts AS artifact
+WHERE artifact.id = analysis.artifact_id
+  AND analysis.retry_available_until IS NULL;
 UPDATE analysis_jobs SET
     skill_id = COALESCE(skill_id, 'director-breakdown'),
     skill_instructions = COALESCE(
@@ -316,7 +325,10 @@ CREATE TABLE IF NOT EXISTS analysis_report_versions (
     published_at TIMESTAMPTZ,
     CONSTRAINT uq_analysis_report_versions_run UNIQUE (run_id),
     CONSTRAINT ck_analysis_report_versions_status CHECK (
-        status IN ('validated', 'publishing', 'available', 'publish_failed')
+        status IN (
+            'validated', 'publishing', 'available', 'publish_failed',
+            'delete_pending', 'deleted'
+        )
     ),
     CONSTRAINT ck_analysis_report_versions_input_sha CHECK (length(input_sha256) = 64),
     CONSTRAINT ck_analysis_report_versions_content_sha CHECK (length(content_sha256) = 64),
@@ -336,6 +348,7 @@ CREATE TABLE IF NOT EXISTS analysis_report_artifacts (
     status VARCHAR(24) NOT NULL DEFAULT 'available',
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     available_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL '1 day'),
     deleted_at TIMESTAMPTZ,
     CONSTRAINT uq_analysis_report_artifacts_format UNIQUE (report_id, format),
     CONSTRAINT uq_analysis_report_artifacts_object UNIQUE (bucket, object_key),
@@ -346,6 +359,22 @@ CREATE TABLE IF NOT EXISTS analysis_report_artifacts (
     CONSTRAINT ck_analysis_report_artifacts_size CHECK (size_bytes > 0),
     CONSTRAINT ck_analysis_report_artifacts_sha CHECK (length(sha256) = 64)
 );
+
+ALTER TABLE analysis_report_versions
+    DROP CONSTRAINT IF EXISTS ck_analysis_report_versions_status;
+ALTER TABLE analysis_report_versions
+    ADD CONSTRAINT ck_analysis_report_versions_status CHECK (
+        status IN (
+            'validated', 'publishing', 'available', 'publish_failed',
+            'delete_pending', 'deleted'
+        )
+    );
+ALTER TABLE analysis_report_artifacts
+    ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+UPDATE analysis_report_artifacts
+SET expires_at = created_at + INTERVAL '1 day'
+WHERE expires_at IS NULL;
+ALTER TABLE analysis_report_artifacts ALTER COLUMN expires_at SET NOT NULL;
 
 CREATE TABLE IF NOT EXISTS analysis_artifact_locks (
     job_id UUID PRIMARY KEY
@@ -379,6 +408,41 @@ CREATE TABLE IF NOT EXISTS outbox_events (
 CREATE INDEX IF NOT EXISTS ix_outbox_events_publishable
     ON outbox_events (published_at, available_at, next_attempt_at);
 CREATE INDEX IF NOT EXISTS ix_outbox_events_lock ON outbox_events (lock_expires_at);
+
+CREATE TABLE IF NOT EXISTS rabbitmq_dlq_replays (
+    id UUID PRIMARY KEY,
+    source_queue VARCHAR(64) NOT NULL,
+    original_event_id UUID NOT NULL,
+    replay_event_id UUID NOT NULL UNIQUE,
+    replay_count INTEGER NOT NULL,
+    actor VARCHAR(128) NOT NULL,
+    reason VARCHAR(256) NOT NULL,
+    status VARCHAR(24) NOT NULL,
+    error_code VARCHAR(128),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMPTZ,
+    CONSTRAINT uq_rabbitmq_dlq_replay_attempt
+        UNIQUE (source_queue, original_event_id, replay_count),
+    CONSTRAINT ck_rabbitmq_dlq_replay_queue CHECK (
+        source_queue IN (
+            'video.download.dead',
+            'video.analysis.dead',
+            'video.analysis-report.dead'
+        )
+    ),
+    CONSTRAINT ck_rabbitmq_dlq_replay_status CHECK (
+        status IN ('pending', 'published', 'failed')
+    ),
+    CONSTRAINT ck_rabbitmq_dlq_replay_count CHECK (replay_count BETWEEN 1 AND 3)
+);
+
+CREATE TABLE IF NOT EXISTS operational_counters (
+    metric VARCHAR(64) NOT NULL,
+    dimension VARCHAR(64) NOT NULL,
+    value BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (metric, dimension),
+    CONSTRAINT ck_operational_counters_value CHECK (value >= 0)
+);
 
 CREATE TABLE IF NOT EXISTS task_events (
     id UUID PRIMARY KEY,

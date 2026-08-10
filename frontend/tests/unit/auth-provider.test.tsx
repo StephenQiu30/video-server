@@ -6,11 +6,16 @@ import { AuthProvider, useAuth } from '@/components/auth-provider';
 const runtime = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   logout: vi.fn(),
+  resetSocket: vi.fn(),
 }));
 
 vi.mock('@/services/auth', () => ({
   getCurrentUser: runtime.getCurrentUser,
   logout: runtime.logout,
+}));
+
+vi.mock('@/lib/task-socket', () => ({
+  taskSocket: { reset: runtime.resetSocket },
 }));
 
 const user = {
@@ -26,6 +31,7 @@ describe('AuthProvider', () => {
   beforeEach(() => {
     runtime.getCurrentUser.mockReset();
     runtime.logout.mockReset();
+    runtime.resetSocket.mockReset();
     window.history.replaceState({}, '', '/');
     vi.unstubAllEnvs();
   });
@@ -72,6 +78,7 @@ describe('AuthProvider', () => {
 
     await waitFor(() => expect(screen.getByText('guest')).toBeInTheDocument());
     expect(runtime.logout).toHaveBeenCalledOnce();
+    expect(runtime.resetSocket).toHaveBeenCalled();
   });
 });
 

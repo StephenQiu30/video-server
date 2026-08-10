@@ -53,6 +53,8 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
             "database_url": settings.analysis_database_url,
             "rabbitmq_url": settings.analysis_rabbitmq_url,
             "minio_endpoint": settings.analysis_minio_endpoint,
+            "minio_access_key": settings.analysis_minio_access_key,
+            "minio_secret_key": settings.analysis_minio_secret_key,
         }
     )
     engine = create_engine(host_settings.database_url)
@@ -119,7 +121,6 @@ async def run() -> None:
     stop = asyncio.Event()
     install_signal_handlers(stop)
     try:
-        await runtime.storage.ensure_bucket()
         await runtime.loader.prepare_root()
         await _serve(runtime, stop)
     finally:

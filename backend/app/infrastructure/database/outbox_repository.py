@@ -11,6 +11,7 @@ from .artifact_repository import ArtifactLifecycleRepository
 from .contracts import OutboxSnapshot
 from .mapping import outbox_snapshot
 from .models import OutboxEventRow
+from .operational_counter import increment_counter
 
 
 def outbox_claim_statement(now: datetime, limit: int) -> Select[tuple[OutboxEventRow]]:
@@ -75,6 +76,7 @@ class SqlAlchemyDownloadRepository(ArtifactLifecycleRepository):
             row.lock_owner = None
             row.lock_expires_at = None
             row.last_error = None
+            await increment_counter(session, "outbox_confirm", "ack")
             return True
 
     async def mark_outbox_failed(
@@ -102,4 +104,5 @@ class SqlAlchemyDownloadRepository(ArtifactLifecycleRepository):
             row.lock_owner = None
             row.lock_expires_at = None
             row.last_attempt_at = now
+            await increment_counter(session, "outbox_confirm", "failed")
             return True

@@ -173,6 +173,13 @@ class FakeRepository:
         self.jobs[job_id] = cancelled
         return cancelled
 
+    async def delete_job(self, job_id: UUID, owner_hash: str, now: datetime) -> bool:
+        current = self.jobs.get(job_id)
+        if current is None or current.owner_hash != owner_hash:
+            raise PersistenceNotFound
+        del self.jobs[job_id]
+        return True
+
     async def publish_result(self, command: AnalysisPublish) -> AnalysisJobSnapshot:
         self.published.append(command)
         current = self.jobs[command.job_id]

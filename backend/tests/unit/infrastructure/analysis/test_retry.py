@@ -4,7 +4,11 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
-from app.application.analysis import AnalysisRetry, PersistenceActiveRun
+from app.application.analysis import (
+    AnalysisRetry,
+    PersistenceActiveRun,
+    PersistenceRetryLimited,
+)
 from app.infrastructure.database.models import (
     AnalysisArtifactLockRow,
     AnalysisRetryOperationRow,
@@ -94,3 +98,59 @@ async def test_manual_retry_rejects_an_active_run(analysis_db) -> None:
             ),
             now=NOW,
         )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("max_runs_per_job", "min_interval_seconds"),
+    ((1, 0), (10, 60)),
+)
+async def test_manual_retry_limits_leave_no_partial_facts(
+    analysis_db, max_runs_per_job: int, min_interval_seconds: int
+) -> None:
+    source = await seed_artifact(analysis_db.sessions, NOW)
+    initial = analysis_command(source)
+    await analysis_db.repository.create_job_and_enqueue(initial, now=NOW)
+    await analysis_db.repository.claim_job(
+        initial.id,
+        initial.run_id,
+        1,
+        0,
+        "worker-a",
+        NOW,
+        timedelta(seconds=30),
+    )
+    await analysis_db.repository.complete_failure(
+        initial.id,
+        "worker-a",
+        1,
+        error_code="analysis_cli_failed",
+        error_message="failed",
+        retryable=False,
+        now=NOW + timedelta(seconds=1),
+    )
+    before = {
+        model: await count_rows(analysis_db, model)
+        for model in (AnalysisRunRow, AnalysisRetryOperationRow, OutboxEventRow)
+    }
+
+    with pytest.raises(PersistenceRetryLimited):
+        await analysis_db.repository.retry_job_and_enqueue(
+            AnalysisRetry(
+                job_id=initial.id,
+                run_id=uuid4(),
+                owner_hash=initial.owner_hash,
+                idempotency_key="limited-retry",
+                trigger="manual_retry",
+                outbox_event_id=uuid4(),
+                max_attempts=3,
+                max_runs_per_job=max_runs_per_job,
+                min_interval_seconds=min_interval_seconds,
+            ),
+            now=NOW + timedelta(seconds=2),
+        )
+
+    assert {
+        model: await count_rows(analysis_db, model)
+        for model in (AnalysisRunRow, AnalysisRetryOperationRow, OutboxEventRow)
+    } == before

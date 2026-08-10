@@ -26,7 +26,8 @@ class AnalysisReportVersionRow(Base):
     __table_args__ = (
         UniqueConstraint("run_id", name="uq_analysis_report_versions_run"),
         CheckConstraint(
-            "status IN ('validated','publishing','available','publish_failed')",
+            "status IN ('validated','publishing','available','publish_failed',"
+            "'delete_pending','deleted')",
             name="ck_analysis_report_versions_status",
         ),
         CheckConstraint(
@@ -108,6 +109,9 @@ class AnalysisReportArtifactRow(Base):
     )
     available_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now
+    )
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 

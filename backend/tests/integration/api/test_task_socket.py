@@ -115,3 +115,36 @@ def test_socket_buffers_events_during_replay_takeover(tmp_path) -> None:
         assert socket.receive_json()["version"] == 4
         assert socket.receive_json()["type"] == "subscribed"
         assert socket.receive_json()["version"] == 5
+
+
+def test_socket_enforces_owner_connection_limit(tmp_path) -> None:
+    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app.state.auth_service = FakeAuth()
+    app.state.realtime_hub = RealtimeHub(max_connections=2, max_per_owner=1)
+    app.state.task_event_store = FakeStore()
+    client = TestClient(app)
+    client.cookies.set("video_access_token", "valid")
+
+    with client.websocket_connect("/api/ws/tasks") as first:
+        first.receive_json()
+        with pytest.raises(WebSocketDisconnect) as caught:
+            with client.websocket_connect("/api/ws/tasks"):
+                pass
+        assert caught.value.code == 4429
+
+
+def test_socket_closes_when_owner_session_is_invalidated(tmp_path) -> None:
+    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app.state.auth_service = FakeAuth()
+    hub = RealtimeHub()
+    app.state.realtime_hub = hub
+    app.state.task_event_store = FakeStore()
+    client = TestClient(app)
+    client.cookies.set("video_access_token", "valid")
+
+    with client.websocket_connect("/api/ws/tasks") as socket:
+        socket.receive_json()
+        hub.invalidate_owner("a" * 64)
+        with pytest.raises(WebSocketDisconnect) as caught:
+            socket.receive_json()
+        assert caught.value.code == 4401

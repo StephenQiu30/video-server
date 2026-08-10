@@ -215,6 +215,25 @@ async def test_report_finalization_atomically_switches_current_report(
     assert await row_count(analysis_db, AnalysisArtifactLockRow) == 0
     assert (await repository.get_current_report_file(command.id, "docx")) is not None
 
+    assert await analysis_db.repository.delete_job(
+        command.id, command.owner_hash, NOW + timedelta(seconds=6)
+    )
+    assert await analysis_db.repository.get_job(command.id) is None
+    deleted_keys: list[str] = []
+
+    async def delete_object(key: str) -> None:
+        deleted_keys.append(key)
+
+    purged = await repository.purge_report_artifacts(
+        NOW + timedelta(seconds=7), delete_object, limit=10
+    )
+    assert (purged.deleted, purged.failed) == (2, 0)
+    assert set(deleted_keys) == {item.object_key for item in objects}
+    deleted_report = await repository.get_latest_report(command.id)
+    assert deleted_report is not None and deleted_report.status == "deleted"
+    assert deleted_report.artifacts == ()
+    assert await repository.get_current_report_file(command.id, "docx") is None
+
 
 @pytest.mark.asyncio
 async def test_failed_report_publication_is_reenqueued_once(analysis_db) -> None:

@@ -107,6 +107,7 @@ export function analysisJob(
       status === 'succeeded' || status === 'failed' || status === 'cancelled'
         ? '2026-08-06T10:02:00Z'
         : null,
+    retry_available_until: '2026-08-07T10:01:00Z',
     result: status === 'succeeded' ? analysisResult : null,
     report_markdown:
       status === 'succeeded'
@@ -122,7 +123,21 @@ export function analysisJob(
             renderer_version: 'analysis-report-v1',
             content_sha256: 'a'.repeat(64),
             published_at: '2026-08-06T10:02:00Z',
-            artifacts: [],
+            artifacts: [
+              {
+                format: 'markdown',
+                media_type: 'text/markdown; charset=utf-8',
+                size_bytes: 128,
+                sha256: 'b'.repeat(64),
+              },
+              {
+                format: 'docx',
+                media_type:
+                  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                size_bytes: 512,
+                sha256: 'c'.repeat(64),
+              },
+            ],
           }
         : null,
   };

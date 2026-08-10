@@ -16,6 +16,7 @@ class AnalysisApplicationErrorCode(StrEnum):
     PROVIDER_FAILURE = "provider_failure"
     REPORT_NOT_READY = "analysis_report_not_ready"
     REPORT_UNAVAILABLE = "analysis_report_unavailable"
+    RETRY_LIMITED = "analysis_retry_limited"
     RESOURCE_EXPIRED = "resource_expired"
     SERVICE_UNAVAILABLE = "analysis_unavailable"
 
@@ -44,3 +45,7 @@ class PersistenceActiveRun(PersistenceConflict):
 
 class PersistenceArtifactUnavailable(PersistenceConflict):
     """The immutable input artifact can no longer be analyzed."""
+
+
+class PersistenceRetryLimited(PersistenceConflict):
+    """A stable manual retry run or owner frequency limit was reached."""

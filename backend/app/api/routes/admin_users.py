@@ -1,7 +1,8 @@
+import hashlib
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 
 from app.api.auth_dependencies import get_current_admin, get_user_service
 from app.api.errors import auth_application_error
@@ -57,6 +58,7 @@ async def update_user_access(
     body: UpdateUserAccessRequest,
     admin: Admin,
     users: Users,
+    request: Request,
 ) -> ManagedUserResponse:
     try:
         updated = await users.update_access(
@@ -67,4 +69,8 @@ async def update_user_access(
         )
     except AuthError as exc:
         raise auth_application_error(exc) from exc
+    hub = getattr(request.app.state, "realtime_hub", None)
+    if hub is not None:
+        owner_hash = hashlib.sha256(str(updated.id).encode()).hexdigest()
+        hub.invalidate_owner(owner_hash)
     return ManagedUserResponse.from_user(updated)

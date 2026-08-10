@@ -10,7 +10,11 @@ from uuid import UUID
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.application.auth import AuthError
-from app.infrastructure.realtime import RealtimeConnection, RealtimeHub
+from app.infrastructure.realtime import (
+    RealtimeConnection,
+    RealtimeConnectionLimit,
+    RealtimeHub,
+)
 from app.infrastructure.task_event_store import TaskEventStore
 
 router = APIRouter(tags=["realtime"])
@@ -32,7 +36,11 @@ async def task_socket(websocket: WebSocket) -> None:
         return
     hub: RealtimeHub = websocket.app.state.realtime_hub
     store: TaskEventStore = websocket.app.state.task_event_store
-    connection = hub.register(user.owner_hash)
+    try:
+        connection = hub.register(user.owner_hash)
+    except RealtimeConnectionLimit:
+        await websocket.close(code=4429)
+        return
     await websocket.accept()
     await _send_json(
         websocket,
@@ -45,6 +53,16 @@ async def task_socket(websocket: WebSocket) -> None:
         },
     )
     writer = asyncio.create_task(_write_events(websocket, connection))
+    session_monitor = asyncio.create_task(
+        _monitor_session(
+            websocket,
+            connection,
+            websocket.app.state.auth_service,
+            token or "",
+            user,
+            settings.websocket_auth_recheck_seconds,
+        )
+    )
     try:
         while True:
             message = await websocket.receive_json()
@@ -54,7 +72,8 @@ async def task_socket(websocket: WebSocket) -> None:
     finally:
         hub.unregister(connection)
         writer.cancel()
-        await asyncio.gather(writer, return_exceptions=True)
+        session_monitor.cancel()
+        await asyncio.gather(writer, session_monitor, return_exceptions=True)
 
 
 async def _subscribe(
@@ -111,8 +130,40 @@ async def _subscribe(
 async def _write_events(websocket: WebSocket, connection: RealtimeConnection) -> None:
     while True:
         event = await connection.queue.get()
+        if event.get("type") == "session.invalidated":
+            await websocket.close(code=4401)
+            return
         with suppress(WebSocketDisconnect):
             await _send_json(websocket, connection, event)
+
+
+async def _monitor_session(
+    websocket: WebSocket,
+    connection: RealtimeConnection,
+    auth_service: object,
+    token: str,
+    original_user: object,
+    interval: float,
+) -> None:
+    original_identity = _identity(original_user)
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            current = await auth_service.current_user(token)  # type: ignore[attr-defined]
+        except (AuthError, AttributeError):
+            current = None
+        if current is None or _identity(current) != original_identity:
+            await websocket.close(code=4401)
+            return
+        await _send_json(websocket, connection, {"type": "heartbeat"})
+
+
+def _identity(user: object) -> tuple[object, object, object]:
+    return (
+        getattr(user, "id", None),
+        getattr(user, "role", None),
+        getattr(user, "owner_hash", None),
+    )
 
 
 async def _send_json(
