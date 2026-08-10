@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -58,6 +59,10 @@ def test_worker_discards_api_key_environment(monkeypatch: pytest.MonkeyPatch) ->
     assert "OPENAI_API_KEY" not in environment
     assert "ANTHROPIC_AUTH_TOKEN" not in environment
     assert "HOME" in environment
+    if sys.platform == "win32":
+        assert environment["SYSTEMROOT"] == os.environ["SYSTEMROOT"]
+        if "WINDIR" in os.environ:
+            assert environment["WINDIR"] == os.environ["WINDIR"]
 
 
 class FakeRecovery:

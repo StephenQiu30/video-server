@@ -60,6 +60,11 @@ def validate_analysis_result(
         if any(asset_id not in asset_by_id for asset_id in shot.asset_ids):
             _invalid_evidence("shot references an unknown asset")
         previous_end = shot.end_ms
+    if all(
+        shot.shot_size == "unknown" and shot.camera_motion == "unknown"
+        for shot in result.shots
+    ):
+        _invalid_evidence("analysis must contain observable shot evidence")
     if result.shots[0].transition_in != "none":
         _invalid_schema("the first shot transition_in must be none")
     if previous_end != result.media.duration_ms:

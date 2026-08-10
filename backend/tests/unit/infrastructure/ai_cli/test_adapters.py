@@ -44,9 +44,15 @@ async def test_codex_uses_stdin_and_global_approval_flag(tmp_path: Path) -> None
     assert 'default_permissions="video_analysis"' in supervisor.argv
     assert any(":workspace_roots" in item for item in supervisor.argv)
     assert "permissions.video_analysis.network.enabled=false" in supervisor.argv
+    assert "mcp_servers.video_observer.required=true" in supervisor.argv
+    assert any(
+        item.startswith("mcp_servers.video_observer.enabled_tools=[")
+        for item in supervisor.argv
+    )
     assert supervisor.argv[-1] == "-"
     assert supervisor.input_bytes is not None
     assert b"input/video.bin" in supervisor.input_bytes
+    assert "完整视频已通过 video_observer 工具交给你".encode() in supervisor.input_bytes
     assert all("input/video.bin" not in item for item in supervisor.argv)
     assert _has_no_api_keys(supervisor.environment)
 

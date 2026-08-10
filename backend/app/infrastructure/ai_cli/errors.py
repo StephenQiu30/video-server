@@ -15,7 +15,16 @@ def classify_cli_failure(output: bytes) -> AnalysisCliError:
         return AnalysisCliError("analysis_provider_usage_limited")
     if any(marker in detail for marker in ("login", "auth", "unauthorized")):
         return AnalysisCliError("analysis_cli_not_authenticated")
-    if "sandbox" in detail:
+    sandbox_markers = (
+        "sandbox unavailable",
+        "sandbox is unavailable",
+        "failed to initialize sandbox",
+        "failed to start sandbox",
+        "sandbox initialization failed",
+        "unable to apply sandbox",
+        "cannot enforce sandbox",
+    )
+    if any(marker in detail for marker in sandbox_markers):
         return AnalysisCliError("analysis_sandbox_unavailable")
     turn_markers = ("max turns", "max_turns", "error_max_turns")
     if any(marker in detail for marker in turn_markers):

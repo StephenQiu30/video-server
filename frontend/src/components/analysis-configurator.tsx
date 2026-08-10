@@ -54,7 +54,7 @@ export default function AnalysisConfigurator({
   }
 
   return (
-    <div className="mt-10 max-w-5xl">
+    <div className="mt-10 w-full">
       <div className="grid gap-5 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="analysis-skill">分析 Skill</FieldLabel>

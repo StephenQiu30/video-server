@@ -314,9 +314,7 @@ async def test_download_url_requires_success_and_unexpired_artifact() -> None:
     repository.artifacts[created.id] = replace(
         repository.artifacts[created.id], expires_at=NOW
     )
-    expired_details = await GetDownload(repository, now=lambda: NOW)(
-        created.id, OWNER
-    )
+    expired_details = await GetDownload(repository, now=lambda: NOW)(created.id, OWNER)
     assert expired_details.file_available is False
     with pytest.raises(ApplicationError) as expired:
         await issue(created.id, OWNER)

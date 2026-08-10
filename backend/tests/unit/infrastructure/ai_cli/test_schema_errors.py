@@ -29,3 +29,17 @@ def test_claude_max_turns_maps_to_resource_limit() -> None:
     )
 
     assert error.code == "analysis_resource_limit"
+
+
+def test_codex_banner_does_not_hide_transport_failure() -> None:
+    error = classify_cli_failure(
+        b"sandbox: custom permissions\nerror sending request for url"
+    )
+
+    assert error.code == "analysis_cli_failed"
+
+
+def test_explicit_sandbox_initialization_failure_is_classified() -> None:
+    error = classify_cli_failure(b"failed to initialize sandbox policy")
+
+    assert error.code == "analysis_sandbox_unavailable"

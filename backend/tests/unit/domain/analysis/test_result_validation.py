@@ -163,6 +163,18 @@ def test_unknown_empty_duplicate_and_orphan_evidence_are_rejected() -> None:
             parse(payload)
 
 
+def test_result_without_observable_shot_evidence_is_rejected() -> None:
+    payload = document()
+    for shot in payload["shots"]:
+        shot["shot_size"] = "unknown"
+        shot["camera_motion"] = "unknown"
+
+    with pytest.raises(AnalysisValidationError) as caught:
+        parse(payload)
+
+    assert caught.value.code is AnalysisValidationCode.INVALID_EVIDENCE
+
+
 def test_language_nested_fields_ids_and_collection_limits_are_strict() -> None:
     wrong_language = document()
     wrong_language["language"] = "en-US"

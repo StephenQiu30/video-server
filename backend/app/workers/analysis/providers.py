@@ -12,6 +12,7 @@ from app.infrastructure.ai_cli import (
     CodexCliVideoAnalyzer,
     preflight,
 )
+from app.infrastructure.ai_cli.environment import minimum_host_environment
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,17 +64,9 @@ def build_video_analyzer(
 
 def authentication_environment() -> dict[str, str]:
     # Build from an explicit allowlist so inherited API credentials can never
-    # reach the CLI, while unrelated host-level variables do not disable OAuth.
-    environment = {
-        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-        "HOME": str(Path.home()),
-        "LANG": "C.UTF-8",
-        "LC_ALL": "C.UTF-8",
-    }
-    codex_home = os.environ.get("CODEX_HOME")
-    if codex_home:
-        environment["CODEX_HOME"] = codex_home
-    return environment
+    # reach the CLI. Windows still needs its core runtime variables for DNS
+    # and process creation, so keep that non-secret allowlist in one place.
+    return minimum_host_environment(os.environ.get("PATH", "/usr/bin:/bin"))
 
 
 def _provider_values(settings: Settings) -> tuple[Path, str]:

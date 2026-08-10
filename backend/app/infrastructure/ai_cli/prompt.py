@@ -8,13 +8,22 @@ def analysis_prompt(
     *,
     ffmpeg: str,
     ffprobe: str,
+    video_observer: bool = False,
 ) -> str:
-    short_video_rule = (
-        "- 本视频不超过 10 秒：只生成 1 张全片接触表；确有边界歧义时最多再生成 "
-        "1 张边界接触表。不要逐帧 Read，观察完成后立即输出。"
-        if request.duration_ms <= 10_000
-        else "- 根据视频时长分批生成接触表，避免逐帧 Read；只对真实边界歧义做一次细化。"
-    )
+    if video_observer:
+        short_video_rule = (
+            "- 本视频不超过 10 秒：仍须覆盖完整时间轴，并在每个真实画面变化点附近复核。"
+            if request.duration_ms <= 10_000
+            else "- 根据视频时长分批覆盖完整时间轴，只对真实边界歧义做必要细化。"
+        )
+    else:
+        short_video_rule = (
+            "- 本视频不超过 10 秒：只生成 1 张全片接触表；确有边界歧义时最多再生成 "
+            "1 张边界接触表。不要逐帧 Read，观察完成后立即输出。"
+            if request.duration_ms <= 10_000
+            else "- 根据视频时长分批生成接触表，避免逐帧 Read；"
+            "只对真实边界歧义做一次细化。"
+        )
     lines = (
         "你是视频视觉分析代理。请自主观察任务目录内的 input/video.bin，"
         "输出完整的视觉分镜、高光和资产目录。",
@@ -22,13 +31,11 @@ def analysis_prompt(
         "硬性边界：",
         f"- 视频权威时长为 {request.duration_ms} ms；"
         f"输出语言为 {request.output_language}。",
-        f"- 你可以使用 {ffprobe} 获取确定性媒体信息，使用 {ffmpeg} "
-        "在已存在的 work/frames 或 work/contact-sheets 中抽取图片，再用图片读取"
-        "能力观察。",
-        "- 抽帧时间与细化策略由你决定。先覆盖全片，再在疑似边界和高光附近"
-        "加密观察；不要使用固定 scene detection 阈值替代视觉判断。",
-        "- 优先用接触表批量观察；除非图片不可读，不要对同一时间点反复生成"
-        "不同格式或尺寸的图片。证据足够后立即输出结果。",
+        *_observation_lines(
+            video_observer=video_observer,
+            ffmpeg=ffmpeg,
+            ffprobe=ffprobe,
+        ),
         short_video_rule,
         "- 只能读取 input/video.bin、input/manifest.json 和你在 work 下生成的图片；"
         "不得访问网络、Home、仓库、其他任务或 Secret。",
@@ -53,6 +60,34 @@ def analysis_prompt(
         *_custom_prompt_lines(request.custom_prompt),
     )
     return "\n".join(lines) + "\n"
+
+
+def _observation_lines(
+    *,
+    video_observer: bool,
+    ffmpeg: str,
+    ffprobe: str,
+) -> tuple[str, ...]:
+    if video_observer:
+        return (
+            "- 完整视频已通过 video_observer 工具交给你。必须先对 0 到权威时长做"
+            "全片观察，再自主缩小区间，细化每个疑似分镜边界和高光；"
+            "不得用一次固定采样替代完整分析。",
+            "- 使用 probe_video 获取确定性媒体信息，使用 inspect_video_overview "
+            "遍历任意时间区间，并在边界或高光附近使用 inspect_video_frame 复核。"
+            "不得运行 shell、FFmpeg 或 FFprobe。",
+            "- 观察次数和时间区间由你根据完整视频内容决定。优先批量覆盖全片，"
+            "再对真实边界歧义加密观察；证据充分后立即输出。",
+        )
+    return (
+        f"- 你可以使用 {ffprobe} 获取确定性媒体信息，使用 {ffmpeg} "
+        "在已存在的 work/frames 或 work/contact-sheets 中抽取图片，"
+        "再用图片读取能力观察。",
+        "- 抽帧时间与细化策略由你决定。先覆盖全片，再在疑似边界和高光附近"
+        "加密观察；不要使用固定 scene detection 阈值替代视觉判断。",
+        "- 优先用接触表批量观察；除非图片不可读，不要对同一时间点反复生成"
+        "不同格式或尺寸的图片。证据足够后立即输出结果。",
+    )
 
 
 def _custom_prompt_lines(custom_prompt: str | None) -> tuple[str, ...]:

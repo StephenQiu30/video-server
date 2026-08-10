@@ -23,3 +23,20 @@ def test_custom_prompt_is_bounded_by_trusted_instructions(tmp_path: Path) -> Non
     assert "不得访问网络" in prompt
     assert "schema_version" not in prompt
     assert "prompt_version" not in prompt
+
+
+def test_video_observer_requires_agent_directed_full_video_analysis(
+    tmp_path: Path,
+) -> None:
+    prompt = analysis_prompt(
+        request(tmp_path),
+        ffmpeg="ffmpeg",
+        ffprobe="ffprobe",
+        video_observer=True,
+    )
+
+    assert "完整视频已通过 video_observer 工具交给你" in prompt
+    assert "不得用一次固定采样替代完整分析" in prompt
+    assert "自主缩小区间" in prompt
+    assert "不得运行 shell" in prompt
+    assert "你可以使用 ffprobe" not in prompt

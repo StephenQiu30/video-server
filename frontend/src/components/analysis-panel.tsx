@@ -129,7 +129,7 @@ function AnalysisJobState({
 }) {
   const cancellable = ['queued', 'running', 'retry_wait'].includes(job.status);
   return (
-    <div className="mt-10 max-w-3xl">
+    <div className="mt-10 w-full">
       <div className="flex justify-between gap-4 text-sm font-medium">
         <span>{statusLabels[job.status]}</span>
         <span className="font-mono">{job.progress}%</span>

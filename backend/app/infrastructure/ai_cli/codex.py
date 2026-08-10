@@ -5,6 +5,7 @@ from pathlib import Path
 from app.application.analysis_execution import VideoAnalysisRequest
 from app.runner.process import ProcessSupervisor, ProcessTimeoutError
 
+from .codex_mcp import video_observer_arguments
 from .codex_policy import codex_permission_arguments
 from .config import CliAdapterConfig
 from .environment import child_environment
@@ -34,9 +35,15 @@ class CodexCliVideoAnalyzer:
             request,
             ffmpeg=str(self._config.ffmpeg),
             ffprobe=str(self._config.ffprobe),
+            video_observer=True,
         )
         files = prepare_job_files(request, schema, prompt)
-        argv = self._argv(files.root, files.schema, files.result)
+        argv = self._argv(
+            files.root,
+            files.schema,
+            files.result,
+            request.duration_ms,
+        )
         try:
             result = await run_with_workspace_policy(
                 self._supervisor.run(
@@ -63,7 +70,13 @@ class CodexCliVideoAnalyzer:
             maximum=self._config.max_stdout_bytes,
         )
 
-    def _argv(self, root: Path, schema: Path, result: Path) -> tuple[str, ...]:
+    def _argv(
+        self,
+        root: Path,
+        schema: Path,
+        result: Path,
+        duration_ms: int,
+    ) -> tuple[str, ...]:
         return (
             str(self._config.binary),
             "--ask-for-approval",
@@ -76,7 +89,12 @@ class CodexCliVideoAnalyzer:
             "--ephemeral",
             "--ignore-user-config",
             "--ignore-rules",
-            *codex_permission_arguments(self._config),
+            *video_observer_arguments(
+                self._config,
+                root=root,
+                duration_ms=duration_ms,
+            ),
+            *codex_permission_arguments(),
             "--model",
             self._config.model,
             "--output-schema",
