@@ -85,10 +85,11 @@ def test_production_accepts_explicit_secrets() -> None:
         minio_access_key=SecretStr("production-access"),
         minio_secret_key=SecretStr("m" * 48),
         auth_bootstrap_admin_email="admin@example.com",
-        analysis_enabled=False,
+        analysis_enabled=True,
     )
 
     assert settings.app_env == "production"
+    assert settings.analysis_enabled is True
 
 
 def test_production_rejects_default_url_encryption_key() -> None:
@@ -102,7 +103,7 @@ def test_production_rejects_default_url_encryption_key() -> None:
             runner_hmac_secret=SecretStr("r" * 48),
             minio_access_key=SecretStr("production-access"),
             minio_secret_key=SecretStr("m" * 48),
-            analysis_enabled=False,
+            analysis_enabled=True,
         )
 
 

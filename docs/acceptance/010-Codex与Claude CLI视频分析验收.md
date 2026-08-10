@@ -78,4 +78,4 @@
 
 ## 7. 最终判定
 
-010 已成为代码和文档的当前实现，Codex 路径可以作为本机单用户默认能力；整体双 Provider Acceptance 仍为 `Not Passed`。生产配置继续保持 `ANALYSIS_ENABLED=false`。Claude 视觉 E2E、完整队列级 E2E和剩余安全 fixture 完成后，才可把本文件改为 Passed。
+010 已成为代码和文档的当前实现，Codex 路径可以作为本机单用户默认能力；整体双 Provider Acceptance 仍为 `Not Passed`。按运维决策，生产 API 默认开启 `ANALYSIS_ENABLED=true`，生产 Compose 仅向 loopback 发布宿主机 Worker 必需的 PostgreSQL、RabbitMQ 和 MinIO 端口；这不代表 Claude 或完整生产验收通过。Claude 视觉 E2E、完整队列级 E2E和剩余安全 fixture 完成后，才可把本文件改为 Passed。

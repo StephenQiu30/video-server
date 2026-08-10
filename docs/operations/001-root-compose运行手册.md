@@ -26,7 +26,7 @@ cd backend
 uv run python -m app.workers.analysis.main
 ```
 
-Worker preflight 通过后才连接 RabbitMQ；不要同时启动另一个分析消费者。当前生产 Compose 使用 `ANALYSIS_ENABLED=false`，不会创建无人消费的分析任务。
+Worker preflight 通过后才连接 RabbitMQ；不要同时启动另一个分析消费者。本地 API 默认开启 `ANALYSIS_ENABLED`。
 
 所有服务都显式声明 `container_name`；公开主服务使用 `video-server`，基础服务使用 `postgres`、`rabbitmq`、`minio` 等简单名称，不会出现 `xxx-1` 副本后缀。环境配置读取被 Git 忽略的 `.env`，首次启动前从 `.env.example` 复制。
 
@@ -39,11 +39,18 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod
 docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod.yml up -d --build
 ```
 
-生产文件只提供生产环境差异，并在 Compose 解析阶段检查关键配置是否存在；生产运行前必须替换 `.env.prod` 中的占位值。
+生产文件只提供生产环境差异，并在 Compose 解析阶段检查关键配置是否存在；生产运行前必须替换 `.env.prod` 中的占位值。生产 API 默认开启分析入口，Compose 只把 PostgreSQL、RabbitMQ 和 MinIO 的必要端口发布到宿主机 loopback，不运行 AI Worker。使用同一份生产配置另开宿主机进程：
+
+```bash
+cd backend
+uv run --env-file ../.env.prod python -m app.workers.analysis.main
+```
+
+Worker preflight 成功并持续运行后才能接收分析任务；若没有宿主机 Worker，应显式设置 `ANALYSIS_ENABLED=false` 后重建 API，避免继续创建无人消费的任务。
 
 ## 网络边界
 
-- PostgreSQL、RabbitMQ、Valkey、MinIO、Runner RPC 和 Runner 出口分别使用独立网络；数据库、队列、配额、存储和 Runner RPC 网络均为 `internal`，不允许从宿主机或公网直接进入。
+- PostgreSQL、RabbitMQ、Valkey、MinIO、Runner RPC 和 Runner 出口分别使用独立网络；数据库、队列、配额、存储和 Runner RPC 网络均为 `internal`。为宿主机 AI Worker 仅把 PostgreSQL、RabbitMQ 和 MinIO 的必要端口绑定到 `127.0.0.1`，不向公网发布。
 - API、下载 Worker 只加入它们实际需要的内部网络；宿主机 AI Worker 通过 `.env` 中独立的 `ANALYSIS_*` 地址访问发布到 loopback 的基础设施；Outbox 不加入存储或 Runner 网络。
 - 默认 `media-runner` 只收到 Runner 运行时变量（HMAC、工作目录和受控代理），不获得 Provider Secret。显式启用 `youtube-operator` Profile 时，独立 `youtube-operator-runner` 只能读取版本化 YouTube Cookie Secret，并在 Runner 独占 tmpfs 生成操作级副本；它仍不能获得数据库、队列、对象存储、Valkey 或 AI 凭据。
 - Media Runner 通过 egress proxy 访问外部媒体地址；proxy 不暴露宿主机端口，并继续拒绝私网、localhost 和字面量 IP 目的地址。

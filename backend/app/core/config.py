@@ -227,8 +227,6 @@ class Settings(BaseSettings):
             raise ValueError("production API requires VALKEY_URL")
         if self.service_role == "api" and self.auth_bootstrap_admin_email is None:
             raise ValueError("production API requires AUTH_BOOTSTRAP_ADMIN_EMAIL")
-        if self.service_role == "api" and self.analysis_enabled:
-            raise ValueError("production API must disable host-only analysis")
         return self
 
 

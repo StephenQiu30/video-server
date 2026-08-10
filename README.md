@@ -86,7 +86,7 @@ cd backend
 uv run python -m app.workers.analysis.main
 ```
 
-Worker 会先验证 CLI、OAuth 登录、FFmpeg 与 FFprobe，再连接队列。应用把受限抽帧交给所选云端模型观察，因此这不是离线推理；视频容器不直接上传，但模型查看的帧会离开本机。当前生产 Compose 没有受支持的宿主机 OAuth Worker，必须保持 `ANALYSIS_ENABLED=false`。
+Worker 会先验证 CLI、OAuth 登录、FFmpeg 与 FFprobe，再连接队列。应用把受限抽帧交给所选云端模型观察，因此这不是离线推理；视频容器不直接上传，但模型查看的帧会离开本机。本地与生产 API 默认开启 `ANALYSIS_ENABLED`；生产部署必须在同一宿主机持续运行已登录 OAuth 的 Worker，否则分析任务会保持排队状态。
 
 服务入口默认为 <http://localhost:8101>。本地使用 `docker-compose.yml`，生产使用基础配置叠加 `docker-compose-prod.yml`。
 

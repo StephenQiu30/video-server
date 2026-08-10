@@ -2,7 +2,7 @@ name: video-server
 
 x-prod-api-env: &prod-api-env
   APP_ENV: "${APP_ENV:?set APP_ENV in .env.prod}"
-  ANALYSIS_ENABLED: "${ANALYSIS_ENABLED:-false}"
+  ANALYSIS_ENABLED: "${ANALYSIS_ENABLED:-true}"
   DATABASE_URL: "${DATABASE_URL:?set DATABASE_URL in .env.prod}"
   RABBITMQ_URL: "${RABBITMQ_URL:?set RABBITMQ_URL in .env.prod}"
   VALKEY_URL: "${VALKEY_URL:?set VALKEY_URL in .env.prod}"
@@ -70,20 +70,23 @@ services:
     image: video-server:prod
 
   postgres:
-    ports: !reset []
+    ports: !override
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-15432}:5432"
     environment:
       POSTGRES_DB: "${POSTGRES_DB:?set POSTGRES_DB in .env.prod}"
       POSTGRES_USER: "${POSTGRES_USER:?set POSTGRES_USER in .env.prod}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}"
 
   rabbitmq:
-    ports: !reset []
+    ports: !override
+      - "127.0.0.1:${RABBITMQ_HOST_PORT:-5673}:5672"
     environment:
       RABBITMQ_DEFAULT_USER: "${RABBITMQ_DEFAULT_USER:?set RABBITMQ_DEFAULT_USER in .env.prod}"
       RABBITMQ_DEFAULT_PASS: "${RABBITMQ_DEFAULT_PASS:?set RABBITMQ_DEFAULT_PASS in .env.prod}"
 
   minio:
-    ports: !reset []
+    ports: !override
+      - "127.0.0.1:${MINIO_HOST_PORT:-19190}:9000"
     environment:
       MINIO_ROOT_USER: "${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env.prod}"
       MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env.prod}"

@@ -202,7 +202,7 @@ Prompt 与 Codex 一样由父进程写入 stdin，不作为 argv 暴露在进程
    - 更新本地 `.env.example` 为连接本地基础设施的非 Secret AI 配置。
    - 从 Compose 移除无法复用本机登录的容器化 `worker-analysis`，或按最终运行规范明确排除；不得保留一个默认必失败或会与宿主机竞争消费的服务。
    - 同步修改 `AGENTS.md`、根/后端 README 和运行手册中“Compose 完整拓扑”的描述。
-   - 增加明确的 `ANALYSIS_ENABLED` 能力开关；没有受支持宿主机 Worker 的生产组合关闭分析创建入口并返回稳定不可用错误，不能创建无人消费的任务。
+   - 增加明确的 `ANALYSIS_ENABLED` 能力开关；本地与生产默认开启，生产组合只向 loopback 发布宿主机 Worker 所需端口。没有运行受支持宿主机 Worker 时，运维必须关闭该开关，不能继续创建无人消费的任务。
 6. 不把登录命令自动化到 Worker；未登录错误只给出 `codex login` 或 `claude` 登录提示。
 
 ### 验证
