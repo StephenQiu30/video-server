@@ -9,6 +9,7 @@
 - 最终移动实现：`/Users/stephenqiu/.codex/visualizations/2026/08/09/019fe657-3556-7102-a4d8-f0f95698076b/product-design/implementation-390x844.png`。
 - 同一比较输入：`/Users/stephenqiu/.codex/visualizations/2026/08/09/019fe657-3556-7102-a4d8-f0f95698076b/product-design/comparison-reference-left-implementation-right.png`，左侧为方案 3，右侧为最终实现。
 - 路由与状态：`/?design=inspection`，开发态演示账户、媒体已解析、1080P 已选中。
+- 2026-08-10 Header 比例回归：在已登录的 `/downloads/detail` 真实任务页上完成 2048px、1280px 和 390px 实时测量与可见截图检查。
 
 ## 视口与归一化
 
@@ -16,10 +17,12 @@
 - 方案稿原图为 1487×1058。并排图为两个 1521×1058 单元格，均保持原始比例居中，不做非等比拉伸；中间使用 24px 中性分隔。
 - 移动浏览器视口为 390×844，页面 `clientWidth = scrollWidth = 375`，无页面级横向溢出。
 - 桌面与移动均使用同一已解析演示状态、浅色主题和同一真实预览素材。
+- Header 比例回归的 2048px 视口中，Header/main 均为 `x = 328.4px / width = 1376px`；1280px 视口中均为 `x = 80px / width = 1104.8px`。Header 高度为 80px，Logo 为 28px，导航控件为 44px。
+- 390×844 回归中 Header/main 均为 `x = 16px / width = 343.2px`，移动导航触发器为 44px，`clientWidth = scrollWidth = 375`。
 
 ## 最终对照结论
 
-- 首屏结构与真值一致：导航与主体共用约 80px 内容边距、72px 无底边 Header、编号眉题、单行编辑式中文标题、68px 浅灰输入带、黑色主操作、媒体与设置双栏、发丝分隔和底部安全状态。
+- 首屏结构与真值一致：导航与主体共用约 80px 内容边距、80px 无底边 Header、编号眉题、单行编辑式中文标题、68px 浅灰输入带、黑色主操作、媒体与设置双栏、发丝分隔和底部安全状态。
 - 排版节奏一致：标题、描述、输入带和结果区的垂直起点与方案稿基本对齐；Geist、近黑文字、`#FAFAFA` 画布和小半径控件形成 Vercel Home 的克制层级。
 - 无边框要求已落实：页面级 Card、筛选壳、认证壳和主要控件不使用可见描边或重阴影；只在表格行、内容分区、双栏和 Footer 保留必要的发丝线。
 - 业务差异均为有意映射：最终实现展示 API 实际返回的 4 个完整格式，不复制稿中后端不存在的“字幕”“仅音频”“容器独立选择”和播放按钮；不虚构文件大小或精确 FPS。
@@ -39,7 +42,7 @@
 - 无边框控件的唯一焦点状态提高到 60% ring 对比；浅色 muted 文本、success 状态与深色 warning/destructive 状态均使用可读性更高的语义色。
 - 媒体元数据保持合法 `dl > div > dt + dd` 内容模型；图片失败状态使用准确的辅助技术名称。
 - 下载创建仍只提交 `inspection_id + format_id`，格式枚举使用 `balanced | quality | smallest` 的真实映射；`smallest` 显示为“体积优先”。
-- 管理员编辑 Dialog 在小屏和放大场景具备视口高度上限与内部滚动；404 高度按真实 72px Header 计算。
+- 管理员编辑 Dialog 在小屏和放大场景具备视口高度上限与内部滚动；404 高度按真实 80px Header 计算。
 
 ## QA 历史
 
@@ -50,14 +53,15 @@
 5. 最终同输入比较确认没有剩余可操作的 P0、P1 或 P2 视觉差异。
 6. 下载历史页复核后将 Header 切换为与主体相同的 `.content-shell`，并把桌面顶部留白从 96px 收紧到 64px。浏览器量测在 1280px 视口得到 Header/main 同为 80px 左 gutter，在 390px 视口得到同为 16px 左 gutter、40px 顶部留白且 `scrollWidth = clientWidth`；两个视口均无框架错误层或控制台错误。
 7. 首页移除没有功能绑定的 `⌘V` 占位提示；Header 与页面 metadata 改为复用既有 `logo.svg`/`logo.png` 品牌资源，Logo 由 Next.js `Image` 渲染，功能状态继续使用 Phosphor 图标；同时移除未引用的旧 Pro 图标与电竞演示 PNG，保留真实封面和 WebP 回归资产。
-8. 品牌文字移除独立的 15px 字号，改为与导航 Button 一致的 `text-sm`；品牌识别仅保留 semibold 字重和 Logo，不再通过更大字号制造跳变。
+8. 首轮品牌密度收敛曾将字号统一为 `text-sm`；后续在 2048px 真实任务页复核发现，24px Logo、40px 导航控件与大尺寸媒体主体之间的视觉比例偏弱。
+9. Header 调整为 80px，品牌 Logo 为 28px，品牌/导航文字为 15px，桌面导航控件为 44px；仍保持无边框、无阴影与 `.content-shell` 对齐。2048px、1280px 和 390px 实测均无横向溢出或对齐偏差。
 
 ## 工程门槛
 
 - `npm run lint`：通过。
-- `npm run format:check`：通过。
-- `npm test`：22 个测试文件、71 项测试全部通过。
-- `npm run build`：Next.js 16.3 静态导出通过，8 个业务路由与 404 均成功生成。
+- `npm run format:check`：仓库存量 CRLF 换行基线仍会报告 129 项差异；本次 6 个变更的前端文件已通过定向 Biome check。
+- `npm test`：25 个测试文件、83 项测试全部通过。
+- `npm run build`：Next.js 16.3 静态导出通过，9 个业务路由与 404 均成功生成。
 - 独立前端差异审查：无剩余 P0/P1；报告的 P2 已全部修复。
 
 final result: passed
