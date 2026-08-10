@@ -17,6 +17,11 @@ docker compose --env-file .env -f docker-compose.yml config --quiet
 docker compose --env-file .env -f docker-compose.yml up -d --build
 ```
 
+Compose 会先等待 PostgreSQL 健康，再由一次性 `database-init` 容器幂等执行
+`backend/sql/schema.sql`。API、Outbox 和下载 Worker 只有在数据库初始化成功后才启动；
+因此全新卷和缺少当前表/索引的已有卷都不需要手工执行 SQL。可用
+`docker compose --env-file .env -f docker-compose.yml logs database-init` 检查初始化结果。
+
 本地配置可直接启动 API、下载链路与基础设施。入口为 <http://localhost:8101>。Swagger UI 位于 <http://localhost:8101/docs>，OpenAPI 契约位于 <http://localhost:8101/openapi.json>。
 
 AI 分析还需由已登录 Codex 或 Claude CLI 的同一宿主机用户启动：

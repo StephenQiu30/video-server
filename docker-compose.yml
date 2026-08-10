@@ -84,6 +84,11 @@ x-runner-env: &runner-env
   RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
   RUNNER_ACCESS_MODE: anonymous
 
+x-postgres-env: &postgres-env
+  POSTGRES_DB: "${POSTGRES_DB:-video}"
+  POSTGRES_USER: "${POSTGRES_USER:-video}"
+  POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-video}"
+
 services:
   api:
     <<: *app
@@ -100,6 +105,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      database-init:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
       valkey:
@@ -132,6 +139,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      database-init:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
 
@@ -146,6 +155,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      database-init:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
       minio:
@@ -314,10 +325,7 @@ services:
 
   postgres:
     image: postgres:17.5-alpine
-    environment:
-      POSTGRES_DB: "${POSTGRES_DB:-video}"
-      POSTGRES_USER: "${POSTGRES_USER:-video}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-video}"
+    environment: *postgres-env
     container_name: postgres
     networks: [db_net, public_egress_net]
     restart: unless-stopped
@@ -325,12 +333,37 @@ services:
       - "127.0.0.1:${POSTGRES_HOST_PORT:-15432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -q -h 127.0.0.1 -p 5432"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -q -h 127.0.0.1 -p 5432 -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\"",
+        ]
       interval: 5s
       timeout: 5s
       retries: 20
+
+  database-init:
+    image: postgres:17.5-alpine
+    environment: *postgres-env
+    container_name: database-init
+    networks: [db_net]
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        export PGPASSWORD="$${POSTGRES_PASSWORD}"
+        psql \
+          --host=postgres \
+          --username="$${POSTGRES_USER}" \
+          --dbname="$${POSTGRES_DB}" \
+          --set=ON_ERROR_STOP=1 \
+          --file=/schema/schema.sql
+    restart: "no"
+    volumes:
+      - ./backend/sql/schema.sql:/schema/schema.sql:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   rabbitmq:
     image: rabbitmq:4.0.9-management

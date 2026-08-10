@@ -1,10 +1,12 @@
 -- Universal video downloader: current PostgreSQL schema.
--- This file initializes a new database. The project intentionally carries no
--- migration history or compatibility upgrade path.
+-- The Docker database-init service applies this file on every Compose startup.
+-- Keep creation idempotent so both empty and already initialized volumes converge
+-- on all currently required tables and indexes. This remains a current-state
+-- schema, not a historical migration chain.
 
 BEGIN;
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY,
     username VARCHAR(32) NOT NULL,
     normalized_username VARCHAR(64) NOT NULL,
@@ -19,7 +21,7 @@ CREATE TABLE users (
     CONSTRAINT ck_users_role CHECK (role IN ('admin', 'user'))
 );
 
-CREATE TABLE auth_sessions (
+CREATE TABLE IF NOT EXISTS auth_sessions (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     token_hash VARCHAR(64) NOT NULL,
@@ -28,10 +30,10 @@ CREATE TABLE auth_sessions (
     CONSTRAINT uq_auth_sessions_token_hash UNIQUE (token_hash)
 );
 
-CREATE INDEX ix_auth_sessions_user ON auth_sessions (user_id);
-CREATE INDEX ix_auth_sessions_expires ON auth_sessions (expires_at);
+CREATE INDEX IF NOT EXISTS ix_auth_sessions_user ON auth_sessions (user_id);
+CREATE INDEX IF NOT EXISTS ix_auth_sessions_expires ON auth_sessions (expires_at);
 
-CREATE TABLE media_inspections (
+CREATE TABLE IF NOT EXISTS media_inspections (
     id UUID PRIMARY KEY,
     owner_hash VARCHAR(64) NOT NULL,
     idempotency_key VARCHAR(128) NOT NULL,
@@ -51,10 +53,10 @@ CREATE TABLE media_inspections (
     CONSTRAINT ck_inspection_duration CHECK (duration_seconds > 0)
 );
 
-CREATE INDEX ix_media_inspections_owner_expires
+CREATE INDEX IF NOT EXISTS ix_media_inspections_owner_expires
     ON media_inspections (owner_hash, expires_at);
 
-CREATE TABLE media_formats (
+CREATE TABLE IF NOT EXISTS media_formats (
     id UUID PRIMARY KEY,
     inspection_id UUID NOT NULL
         REFERENCES media_inspections (id) ON DELETE CASCADE,
@@ -68,10 +70,10 @@ CREATE TABLE media_formats (
         UNIQUE (inspection_id, plan_fingerprint)
 );
 
-CREATE INDEX ix_media_formats_inspection ON media_formats (inspection_id);
-CREATE INDEX ix_media_formats_expires ON media_formats (expires_at);
+CREATE INDEX IF NOT EXISTS ix_media_formats_inspection ON media_formats (inspection_id);
+CREATE INDEX IF NOT EXISTS ix_media_formats_expires ON media_formats (expires_at);
 
-CREATE TABLE download_jobs (
+CREATE TABLE IF NOT EXISTS download_jobs (
     id UUID PRIMARY KEY,
     inspection_id UUID NOT NULL REFERENCES media_inspections (id),
     format_id UUID NOT NULL REFERENCES media_formats (id),
@@ -109,13 +111,13 @@ CREATE TABLE download_jobs (
     CONSTRAINT ck_download_jobs_stage_rank CHECK (stage_rank BETWEEN 0 AND 5)
 );
 
-CREATE INDEX ix_download_jobs_owner_created
+CREATE INDEX IF NOT EXISTS ix_download_jobs_owner_created
     ON download_jobs (owner_hash, created_at);
-CREATE INDEX ix_download_jobs_created ON download_jobs (created_at);
-CREATE INDEX ix_download_jobs_claim ON download_jobs (status, retry_at);
-CREATE INDEX ix_download_jobs_stale ON download_jobs (status, lease_expires_at);
+CREATE INDEX IF NOT EXISTS ix_download_jobs_created ON download_jobs (created_at);
+CREATE INDEX IF NOT EXISTS ix_download_jobs_claim ON download_jobs (status, retry_at);
+CREATE INDEX IF NOT EXISTS ix_download_jobs_stale ON download_jobs (status, lease_expires_at);
 
-CREATE TABLE artifacts (
+CREATE TABLE IF NOT EXISTS artifacts (
     id UUID PRIMARY KEY,
     job_id UUID NOT NULL REFERENCES download_jobs (id) ON DELETE CASCADE,
     attempt INTEGER NOT NULL,
@@ -138,9 +140,9 @@ CREATE TABLE artifacts (
     CONSTRAINT ck_artifacts_sha256_length CHECK (length(sha256) = 64)
 );
 
-CREATE INDEX ix_artifacts_expires ON artifacts (expires_at);
+CREATE INDEX IF NOT EXISTS ix_artifacts_expires ON artifacts (expires_at);
 
-CREATE TABLE analysis_jobs (
+CREATE TABLE IF NOT EXISTS analysis_jobs (
     id UUID PRIMARY KEY,
     artifact_id UUID NOT NULL,
     owner_hash VARCHAR(64) NOT NULL,
@@ -181,13 +183,13 @@ CREATE TABLE analysis_jobs (
     CONSTRAINT ck_analysis_jobs_sha256_length CHECK (length(input_sha256) = 64)
 );
 
-CREATE INDEX ix_analysis_jobs_owner_created
+CREATE INDEX IF NOT EXISTS ix_analysis_jobs_owner_created
     ON analysis_jobs (owner_hash, created_at);
-CREATE INDEX ix_analysis_jobs_claim ON analysis_jobs (status, retry_at);
-CREATE INDEX ix_analysis_jobs_stale ON analysis_jobs (status, lease_expires_at);
-CREATE INDEX ix_analysis_jobs_artifact ON analysis_jobs (artifact_id);
+CREATE INDEX IF NOT EXISTS ix_analysis_jobs_claim ON analysis_jobs (status, retry_at);
+CREATE INDEX IF NOT EXISTS ix_analysis_jobs_stale ON analysis_jobs (status, lease_expires_at);
+CREATE INDEX IF NOT EXISTS ix_analysis_jobs_artifact ON analysis_jobs (artifact_id);
 
-CREATE TABLE analysis_results (
+CREATE TABLE IF NOT EXISTS analysis_results (
     id UUID PRIMARY KEY,
     job_id UUID NOT NULL REFERENCES analysis_jobs (id) ON DELETE CASCADE,
     input_sha256 VARCHAR(64) NOT NULL,
@@ -204,7 +206,7 @@ CREATE TABLE analysis_results (
     CONSTRAINT ck_analysis_results_json_object CHECK (jsonb_typeof(result_json) = 'object')
 );
 
-CREATE TABLE analysis_artifact_locks (
+CREATE TABLE IF NOT EXISTS analysis_artifact_locks (
     job_id UUID PRIMARY KEY
         REFERENCES analysis_jobs (id) ON DELETE CASCADE,
     artifact_id UUID NOT NULL
@@ -212,10 +214,10 @@ CREATE TABLE analysis_artifact_locks (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX ix_analysis_artifact_locks_artifact
+CREATE INDEX IF NOT EXISTS ix_analysis_artifact_locks_artifact
     ON analysis_artifact_locks (artifact_id);
 
-CREATE TABLE outbox_events (
+CREATE TABLE IF NOT EXISTS outbox_events (
     id UUID PRIMARY KEY,
     aggregate_type VARCHAR(64) NOT NULL,
     aggregate_id UUID NOT NULL,
@@ -233,8 +235,8 @@ CREATE TABLE outbox_events (
     CONSTRAINT ck_outbox_publish_attempts CHECK (publish_attempts >= 0)
 );
 
-CREATE INDEX ix_outbox_events_publishable
+CREATE INDEX IF NOT EXISTS ix_outbox_events_publishable
     ON outbox_events (published_at, available_at, next_attempt_at);
-CREATE INDEX ix_outbox_events_lock ON outbox_events (lock_expires_at);
+CREATE INDEX IF NOT EXISTS ix_outbox_events_lock ON outbox_events (lock_expires_at);
 
 COMMIT;

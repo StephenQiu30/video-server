@@ -90,7 +90,7 @@ server/
 
 - 后端依赖方向为 `api/workers → application → domain`。`domain` 不得导入 FastAPI、SQLAlchemy、RabbitMQ、MinIO、yt-dlp、FFmpeg 或模型 SDK。
 - API、下载 Worker、媒体 Runner、AI Worker 是独立进程。PostgreSQL 是状态事实来源；跨 PostgreSQL/RabbitMQ 使用 transactional outbox，消费者必须支持幂等和 lease/heartbeat。
-- PostgreSQL 只通过 `backend/sql/schema.sql` 初始化全新数据库。项目不维护迁移目录、历史 schema 或旧版本兼容逻辑；结构变化时同步更新当前态 SQL、ORM 和测试，并使用新数据卷验证。
+- PostgreSQL 只通过 `backend/sql/schema.sql` 维护当前态结构。Compose 的一次性 `database-init` 服务必须在每次启动时幂等执行该文件，API、Outbox 和数据库 Worker 必须等待初始化成功；项目不维护迁移目录、历史 schema 或旧版本兼容逻辑。结构变化时同步更新可重复执行的当前态 SQL、ORM 和测试，并同时使用空数据卷与已有当前态数据卷验证。
 - OpenAPI 是前后端接口契约的唯一来源，通过 `/openapi.json` 提供，并由 `/docs` 展示 Swagger UI；不维护平行 DTO、手写生成类型或旧 API 适配层。
 - 只实现当前需求，不添加旧目录、旧 API、旧 Provider 或旧数据库的兼容分支。单个源码文件原则上不超过 200 行，超过时按职责拆分。
 
@@ -102,7 +102,7 @@ server/
 - AI 任务独立于下载任务；AI 失败不得改变下载成功状态。模型输出必须通过严格 schema、连续分镜时间轴和 shot evidence 校验，普通日志不得记录完整 Prompt、抽帧或原始模型响应。
 - Secret 只来自类型化配置和环境变量，不得进入前端、API 响应、异常、快照、测试夹具或普通日志。外部操作必须设置大小、时长、并发和超时上限，取消时终止整个子进程组。
 - 复用本机 OAuth 的 AI Worker 是 Compose 完整拓扑的唯一例外：必须由已登录 Codex 或 Claude CLI 的宿主机用户启动，容器不得挂载或复制 CLI 认证目录。
-- Compose 必须保持职责清晰：`docker-compose.yml` 是可独立启动的本地完整配置，定义服务拓扑、依赖关系、健康检查、卷、内部端口、本地 `.env` 和宿主机端口；`docker-compose-prod.yml` 只覆盖生产 `.env.prod`、生产镜像和对外端口。生产命令必须显式传入 `--env-file .env.prod`，生产覆盖必须使用 `${VAR:?set VAR in .env.prod}` 在 Compose 解析阶段校验关键配置。本地只使用 `docker-compose.yml`，生产使用 `docker-compose.yml` 叠加 `docker-compose-prod.yml`，不得再维护独立的环境覆盖文件。宿主机端口通过 env 文件插值并提供安全默认值，生产覆盖移除本地基础设施端口；环境变量的具体值只能写在 `.env.example`、`.env.prod.example` 或被 Git 忽略的 `.env*` 文件中，非 env 文件不得硬编码密钥、密码、连接地址或 Provider Key。所有服务必须显式设置稳定的 `container_name`；公开主服务使用 `video-server`，基础服务使用 `postgres`、`rabbitmq`、`minio` 等简单名称，避免出现 `xxx-1` 这类副本后缀。本地和生产统一使用 Compose 项目名 `video-server` 及其作用域卷，因此同一主机不要同时启动两套环境。启动前按需复制 `.env.example` 为 `.env`，生产环境复制 `.env.prod.example` 为 `.env.prod` 并替换占位值。不要提交 `.env`、制品、缓存、日志、临时目录、虚拟环境或 `node_modules/`。
+- Compose 必须保持职责清晰：`docker-compose.yml` 是可独立启动的本地完整配置，定义服务拓扑、依赖关系、数据库初始化、健康检查、卷、内部端口、本地 `.env` 和宿主机端口；`docker-compose-prod.yml` 只覆盖生产 `.env.prod`、生产镜像和对外端口。生产命令必须显式传入 `--env-file .env.prod`，生产覆盖必须使用 `${VAR:?set VAR in .env.prod}` 在 Compose 解析阶段校验关键配置。本地只使用 `docker-compose.yml`，生产使用 `docker-compose.yml` 叠加 `docker-compose-prod.yml`，不得再维护独立的环境覆盖文件。宿主机端口通过 env 文件插值并提供安全默认值，生产覆盖移除本地基础设施端口；环境变量的具体值只能写在 `.env.example`、`.env.prod.example` 或被 Git 忽略的 `.env*` 文件中，非 env 文件不得硬编码密钥、密码、连接地址或 Provider Key。所有服务必须显式设置稳定的 `container_name`；公开主服务使用 `video-server`，基础服务使用 `postgres`、`database-init`、`rabbitmq`、`minio` 等简单名称，避免出现 `xxx-1` 这类副本后缀。本地和生产统一使用 Compose 项目名 `video-server` 及其作用域卷，因此同一主机不要同时启动两套环境。启动前按需复制 `.env.example` 为 `.env`，生产环境复制 `.env.prod.example` 为 `.env.prod` 并替换占位值。不要提交 `.env`、制品、缓存、日志、临时目录、虚拟环境或 `node_modules/`。
 
 ## 实现与验证
 

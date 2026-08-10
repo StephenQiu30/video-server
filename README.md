@@ -71,7 +71,10 @@ cp .env.prod.example .env.prod
 docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod.yml up -d --build
 ```
 
-本地 `docker-compose.yml` 负责本地环境插值、宿主机端口和完整服务拓扑，
+本地 `docker-compose.yml` 负责本地环境插值、宿主机端口和完整服务拓扑。每次启动时，
+`database-init` 会在 PostgreSQL 健康后幂等执行当前 `backend/sql/schema.sql`；只有初始化成功，
+API、Outbox 和下载 Worker 才会启动。已有数据卷会补建缺失的当前表和索引，不再依赖
+PostgreSQL 仅在空数据目录执行的 `/docker-entrypoint-initdb.d`。随后，
 `docker-compose-prod.yml` 负责生产环境校验、镜像和对外端口。Compose 使用带环境前缀的稳定容器名，
 不会出现 `xxx-1` 这类副本后缀；生产覆盖会在 Compose 解析阶段校验关键变量。环境变量模板只维护在
 `.env.example` 与 `.env.prod.example`；真实本地值放在被 Git 忽略的 `.env` 或
@@ -90,7 +93,7 @@ Worker 会先验证 CLI、OAuth 登录、FFmpeg 与 FFprobe，再连接队列。
 
 服务入口默认为 <http://localhost:8101>。本地使用 `docker-compose.yml`，生产使用基础配置叠加 `docker-compose-prod.yml`。
 
-当前架构依据见 [`docs/design/001-server单仓与运行时架构设计.md`](docs/design/001-server单仓与运行时架构设计.md) 与 [`docs/design/010-Codex与Claude CLI视频分析设计.md`](docs/design/010-Codex与Claude CLI视频分析设计.md)。数据库只保留 [`backend/sql/schema.sql`](backend/sql/schema.sql) 当前定义，新结构使用空数据卷初始化，不维护历史迁移和兼容分支。002 已通过受控直链 MP4 的真实下载闭环验收；010 的自动化与真实 CLI 验收状态以对应 Acceptance 文档为准。
+当前架构依据见 [`docs/design/001-server单仓与运行时架构设计.md`](docs/design/001-server单仓与运行时架构设计.md) 与 [`docs/design/010-Codex与Claude CLI视频分析设计.md`](docs/design/010-Codex与Claude CLI视频分析设计.md)。数据库只保留可重复执行的 [`backend/sql/schema.sql`](backend/sql/schema.sql) 当前定义，由 Compose 在每次启动时初始化并校验依赖顺序，不维护历史迁移和兼容分支。002 已通过受控直链 MP4 的真实下载闭环验收；010 的自动化与真实 CLI 验收状态以对应 Acceptance 文档为准。
 
 ## 贡献与提交
 

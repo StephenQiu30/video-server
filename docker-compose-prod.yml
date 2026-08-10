@@ -77,6 +77,12 @@ services:
       POSTGRES_USER: "${POSTGRES_USER:?set POSTGRES_USER in .env.prod}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}"
 
+  database-init:
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:?set POSTGRES_DB in .env.prod}"
+      POSTGRES_USER: "${POSTGRES_USER:?set POSTGRES_USER in .env.prod}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}"
+
   rabbitmq:
     ports: !override
       - "127.0.0.1:${RABBITMQ_HOST_PORT:-5673}:5672"
