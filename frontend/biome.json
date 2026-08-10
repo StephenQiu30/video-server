@@ -22,8 +22,7 @@
     "enabled": true,
     "rules": {
       "preset": "recommended",
-      "suspicious": { "noExplicitAny": "off" },
-      "a11y": { "useValidAnchor": "off" }
+      "suspicious": { "noExplicitAny": "off" }
     }
   },
   "javascript": { "formatter": { "quoteStyle": "single" } },

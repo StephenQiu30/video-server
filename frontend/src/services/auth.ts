@@ -30,4 +30,4 @@ export function logout(): Promise<void> {
   return logoutUserRequest();
 }
 
-export { ApiError, displayError } from '@/requestErrorConfig';
+export { ApiError, displayError } from '@/lib/request-error';

@@ -27,11 +27,10 @@ server/
 │   ├── src/
 │   │   ├── components/            业务组件与 shadcn/ui 源码
 │   │   ├── hooks/                 可复用状态和流程 Hooks
-│   │   ├── lib/                   Axios 请求基础设施与通用工具
+│   │   ├── lib/                   Axios、请求错误与通用基础设施
 │   │   ├── services/              业务请求入口与 OpenAPI 生成代码
 │   │   ├── types/                 前端业务类型
-│   │   ├── utils/                 无 UI 的通用函数
-│   │   └── requestErrorConfig.ts  统一请求错误处理
+│   │   └── utils/                 无 UI 的通用函数
 │   └── tests/                     Vitest 测试
 ├── docs/                          当前设计、需求、计划、验收与运维文档
 ├── Dockerfile                     前后端统一生产镜像

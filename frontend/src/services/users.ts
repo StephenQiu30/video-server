@@ -26,4 +26,4 @@ export function updateUserAccess(
   );
 }
 
-export { displayError } from '@/requestErrorConfig';
+export { displayError } from '@/lib/request-error';

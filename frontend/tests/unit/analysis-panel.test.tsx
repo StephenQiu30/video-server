@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalysisPanel from '@/components/analysis-panel';
 import AnalysisReportPreview from '@/components/analysis-report-preview';
 import AnalysisResultView from '@/components/analysis-result-view';
-import { ApiError } from '@/requestErrorConfig';
+import { ApiError } from '@/lib/request-error';
 import {
   analysisJob,
   analysisResult,
@@ -77,9 +77,7 @@ describe('AnalysisPanel', () => {
       'href',
       `/api/analyses/${analysisJob('succeeded').id}/report.docx`,
     );
-    expect(
-      screen.getByRole('link', { name: '导出 Markdown' }),
-    ).toHaveAttribute(
+    expect(screen.getByRole('link', { name: '导出 Markdown' })).toHaveAttribute(
       'href',
       `/api/analyses/${analysisJob('succeeded').id}/report.md`,
     );

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { displayError } from '@/requestErrorConfig';
+import { displayError } from '@/lib/request-error';
 import {
   cancelAnalysis,
   createAnalysis,

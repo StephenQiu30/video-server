@@ -4,7 +4,7 @@ import axios, {
   type AxiosRequestConfig,
 } from 'axios';
 
-import { apiErrorFrom } from '@/requestErrorConfig';
+import { apiErrorFrom } from '@/lib/request-error';
 
 const API_TIMEOUT_MS = 30_000;
 

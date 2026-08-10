@@ -11,4 +11,4 @@ export function getAdminDownloadAnalytics(
   return getDownloadAnalyticsRequest({ days });
 }
 
-export { displayError } from '@/requestErrorConfig';
+export { displayError } from '@/lib/request-error';

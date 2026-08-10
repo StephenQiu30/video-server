@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { displayError } from '@/requestErrorConfig';
+import { displayError } from '@/lib/request-error';
 import { listAnalysisSkills } from '@/services/analysis';
 import type { AnalysisSkill } from '@/types/video';
 

@@ -22,10 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
 import { useAnalysisJob } from '@/hooks/useAnalysisJob';
-import {
-  analysisMarkdownUrl,
-  analysisReportUrl,
-} from '@/services/analysis';
+import { analysisMarkdownUrl, analysisReportUrl } from '@/services/analysis';
 import type { AnalysisJob } from '@/types/video';
 
 export default function AnalysisPanel({

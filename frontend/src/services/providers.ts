@@ -9,4 +9,4 @@ export function listProviders(): Promise<ProviderStatusList> {
   return listProvidersRequest();
 }
 
-export { displayError } from '@/requestErrorConfig';
+export { displayError } from '@/lib/request-error';

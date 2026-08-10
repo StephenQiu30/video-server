@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ApiError, apiErrorFrom, displayError } from '@/requestErrorConfig';
+import { ApiError, apiErrorFrom, displayError } from '@/lib/request-error';
 
 describe('request errors', () => {
   it('converts RFC problem responses into ApiError', () => {
@@ -25,6 +25,19 @@ describe('request errors', () => {
       '发生未知错误，请稍后重试。',
     );
     expect(displayError(apiError(0, 'x', 'x', '安全信息'))).toBe('安全信息');
+  });
+
+  it('localizes the stable backend validation error', () => {
+    expect(
+      displayError(
+        apiError(
+          422,
+          'invalid_request',
+          'Invalid request',
+          'The request parameters are invalid.',
+        ),
+      ),
+    ).toBe('提交内容不符合要求，请检查各字段后重试。');
   });
 });
 

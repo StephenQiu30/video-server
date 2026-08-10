@@ -21,6 +21,7 @@
 - 390×844 回归中 Header/main 均为 `x = 16px / width = 343.2px`，移动导航触发器为 44px，`clientWidth = scrollWidth = 375`。
 - 2026-08-10 认证与导航响应式回归中，820×900 登录表单为 `x = 190px / width = 440px`，中心与视口中心偏差为 `0px`；390×844 登录表单为 `x = 16px / width = 358.4px`，中心偏差仅为设备像素舍入产生的 `0.2px`，两个视口均满足 `clientWidth = scrollWidth`。
 - 2026-08-10 布局稳定性回归在 1280×600 复现了长短页面切换问题：修复前短 404 页右侧导航 `x = 804.2px`，长历史页 `x = 789px`，存在 `15.2px` 位移。启用稳定 scrollbar gutter 与固定账户槽后，两页 Header shell 均为 `x = 80px / width = 1104.8px`，导航均为 `x = 776.6px / width = 408.2px`，页面切换位移降为 `0px`。
+- 2026-08-10 冷启动追踪进一步定位到历史页摘要只在数据返回后挂载，导致列表区域下移 64px、CLS 为 `0.0179`。摘要改为加载态与完成态共享 18px 固定槽位后，Docker 生产镜像连续两次冷加载 CLS 均为 `0`；Header 仍为 80px，页面无横向溢出。
 
 ## 最终对照结论
 
@@ -61,13 +62,16 @@
 9. Header 调整为 80px，品牌 Logo 为 28px，品牌/导航文字为 15px，桌面导航控件为 44px；仍保持无边框、无阴影与 `.content-shell` 对齐。2048px、1280px 和 390px 实测均无横向溢出或对齐偏差。
 10. 品牌层级后续增强为 32px Logo 与 17px 品牌文字；窄屏认证表单改为居中，完整桌面导航断点调整到 `lg`，其余宽度使用可滚动的 Radix Sheet。820px、390px 与 1024px 实测确认居中、断点、当前页语义、Escape/焦点恢复及横向溢出均通过。
 11. 跨页面导航抖动定位为经典滚动条增减与认证账户控件宽度变化叠加，组件按下抖动定位为共享 Button 的 1px translate。根滚动槽、88px 账户槽与无几何位移的基础 Button 已统一收敛，并通过长短页面、认证态和浏览器 computed style 回归。
+12. `agent-browser` 冷启动追踪发现历史页仍有异步摘要插入造成的残余 CLS；现以固定几何槽承载摘要/骨架，并把 Switch、Tabs 的 `transition-all` 收敛为绘制属性。注册页同时补齐无效保留域名的前置中文校验，实测不会再发出无效注册请求。
 
 ## 工程门槛
 
 - `npm run lint`：通过。
-- `npm run format:check`：仓库存量 CRLF 换行基线仍会报告 129 项差异；本次 6 个变更的前端文件已通过定向 Biome check。
-- `npm test`：25 个测试文件、86 项测试全部通过。
+- `npm run format:check`：155 个文件全部通过；前端换行契约已由 `.gitattributes` 固定为 LF，不再依赖开发机 Git 配置。
+- `npm test`：27 个测试文件、97 项测试全部通过。
 - `npm run build`：Next.js 16.3 静态导出通过，9 个业务路由与 404 均成功生成。
-- 独立前端差异审查：无剩余 P0/P1；报告的 P2 已全部修复。
+- Docker 启动链路：`database-init` 幂等执行并以 0 退出，API readiness 为 200，PostgreSQL、RabbitMQ、Valkey、MinIO 与 Media Runner 均健康。
+- 部署后浏览器回归：历史页连续两次 CLS 为 `0`；390×844 注册页 CLS 为 `0`、无横向溢出，无效 `.invalid` 邮箱显示中文字段错误且未产生 `/api/auth/register` 请求。
+- 独立前端差异审查：无剩余 P0/P1/P2；本轮发现的 2 个中等级问题均已修复。
 
 final result: passed

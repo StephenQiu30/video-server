@@ -90,6 +90,30 @@ describe('download history', () => {
     );
   });
 
+  it('reserves the summary geometry while initial data loads', async () => {
+    let resolveHistory!: (value: DownloadHistory) => void;
+    runtime.getDownloadHistory.mockReturnValue(
+      new Promise<DownloadHistory>((resolve) => {
+        resolveHistory = resolve;
+      }),
+    );
+    const { container } = render(<DownloadHistoryView />);
+
+    const summary = container.querySelector(
+      '[data-slot="download-history-summary"]',
+    );
+    expect(summary).toHaveClass('h-[1.125rem]');
+    expect(summary).toHaveAttribute('aria-busy', 'true');
+    expect(summary?.querySelector('[data-slot="skeleton"]')).toHaveClass(
+      'h-full',
+    );
+
+    act(() => resolveHistory(history()));
+    await waitFor(() => expect(summary).toHaveAttribute('aria-busy', 'false'));
+    expect(summary).toHaveTextContent('共 1 项 · 已完成 1 · 进行中 0');
+    expect(summary).toHaveClass('h-[1.125rem]');
+  });
+
   it('renders history rows and performs detail and file actions', async () => {
     runtime.getDownloadHistory.mockResolvedValue(history());
     runtime.issueDownloadUrl.mockResolvedValue({

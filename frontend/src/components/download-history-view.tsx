@@ -9,6 +9,7 @@ import { BackLink } from '@/components/back-link';
 import DownloadHistoryList, {
   downloadStatusLabels,
 } from '@/components/download-history-list';
+import { DownloadHistorySummary } from '@/components/download-history-summary';
 import { markNavigationPush } from '@/components/navigation-history';
 import { PageHeader } from '@/components/page-header';
 import { PagePagination } from '@/components/page-pagination';
@@ -167,15 +168,7 @@ export default function DownloadHistoryView() {
         </Button>
       </div>
 
-      {state.data ? (
-        <p
-          aria-live="polite"
-          className="mt-12 font-mono text-xs text-muted-foreground"
-        >
-          共 {state.data.total} 项 · 已完成 {state.data.summary.succeeded} ·
-          进行中 {state.data.summary.active}
-        </p>
-      ) : null}
+      <DownloadHistorySummary data={state.data} loading={state.loading} />
       {state.error || actionError ? (
         <Alert className="mt-6" variant="destructive">
           <AlertTitle>操作未完成</AlertTitle>
