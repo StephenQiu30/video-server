@@ -11,7 +11,7 @@ import {
 
 export default function MissingDownload() {
   return (
-    <main className="content-shell flex min-h-[calc(100svh-144px)] items-center py-12 sm:py-16">
+    <main className="content-shell flex min-h-[calc(100svh-160px)] items-center py-12 sm:py-16">
       <Empty className="items-start border-0 p-0 text-left">
         <EmptyHeader className="items-start">
           <EmptyMedia className="mb-4" variant="icon">

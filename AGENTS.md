@@ -62,7 +62,7 @@ server/
 
 - 画面以内容、排版和留白组织层级：浅色主题使用 `#FAFAFA` 画布、`#0A0A0A` 前景和 `#111111` 主操作；深色主题使用 `#0A0A0A` 画布、`#F5F5F5` 前景。控件表面、弱化文字、边界、成功、警告和错误只能消费 `background`、`foreground`、`surface`、`muted`、`primary`、`border`、`success`、`warning`、`destructive` 等语义 token，不在业务组件中散落十六进制色值或近似色。
 - 基础圆角为 `6px`，只通过 `--radius` 派生。默认不使用阴影；层级优先依靠明度、间距和排版，覆盖层仅保留识别层级所必需的表面与遮罩。
-- 72px Header 与常规 main/footer 复用 `.content-shell = min(calc(100% - 160px), 1376px)`，保证全局导航和页面主体在同一条对齐线上。认证页的无外框双栏 main 是唯一例外，可使用更宽的 `.page-shell = min(calc(100% - 80px), 1456px)`，但表单必须在内部收窄到 440px；不足 `lg` 时隐藏介绍栏。641–1023px 时常规内容两侧各 32px；不超过 640px 时两种网格两侧均为 16px。网格只负责对齐，不得被渲染成可见应用外壳。
+- 80px Header 与常规 main/footer 复用 `.content-shell = min(calc(100% - 160px), 1376px)`，保证全局导航和页面主体在同一条对齐线上。Header 品牌标识使用 28px，桌面导航控件至少 44px 高，以与宽屏主体的视觉尺度匹配。认证页的无外框双栏 main 是唯一例外，可使用更宽的 `.page-shell = min(calc(100% - 80px), 1456px)`，但表单必须在内部收窄到 440px；不足 `lg` 时隐藏介绍栏。641–1023px 时常规内容两侧各 32px；不超过 640px 时两种网格两侧均为 16px。网格只负责对齐，不得被渲染成可见应用外壳。
 - 字体统一为自托管 Geist Sans/Mono，中文按 `PingFang SC`、`Hiragino Sans GB`、`Microsoft YaHei`、系统无衬线顺序回退。首页编辑式标题复用 `.editorial-title`（`clamp(3.2rem, 5.4vw, 4.25rem)`、字重 500、行高 0.96、负字距）；页面主标题上方的编号眉题只在真实流程步骤存在时使用 `.eyebrow` 和 Geist Mono，普通区段可克制复用同一小标题样式，但不得编号或重复 H1。内页保持短标题与清晰层级，不增加装饰标签或营销式副标题。
 
 ### 控件、组件与交互

@@ -8,7 +8,7 @@ import {
 
 export default function NotFound() {
   return (
-    <main className="content-shell flex min-h-[calc(100svh-72px)] items-center py-14 sm:py-20">
+    <main className="content-shell flex min-h-[calc(100svh-80px)] items-center py-14 sm:py-20">
       <Empty className="items-start gap-8 rounded-none border-0 p-0 text-left">
         <EmptyHeader className="max-w-3xl items-start gap-0">
           <p className="eyebrow text-muted-foreground">

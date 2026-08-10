@@ -55,14 +55,16 @@ describe('AppShell', () => {
     const banner = screen.getByRole('banner');
     expect(banner).toBeInTheDocument();
     expect(banner.firstElementChild).toHaveClass('content-shell');
+    expect(banner.firstElementChild).toHaveClass('h-20');
     expect(banner.firstElementChild).not.toHaveClass('page-shell');
     const brandLink = screen.getByRole('link', { name: '帧取首页' });
     expect(brandLink).toHaveAttribute('href', '/');
-    expect(brandLink).toHaveClass('text-sm');
-    expect(brandLink).not.toHaveClass('text-[15px]');
+    expect(brandLink).toHaveClass('text-[15px]');
     expect(brandLink.querySelector('img')).toHaveAttribute('src', '/logo.svg');
+    expect(brandLink.querySelector('img')).toHaveAttribute('width', '28');
     const historyLink = screen.getByRole('link', { name: /下载记录/ });
     expect(historyLink).toHaveAttribute('href', '/history');
+    expect(historyLink).toHaveClass('min-h-11', 'text-[15px]');
     expect(historyLink).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('link', { name: /平台状态/ })).toHaveAttribute(
       'href',

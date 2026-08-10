@@ -58,7 +58,7 @@ export function AuthPageFrame({
   return (
     <main className="min-h-screen bg-background" id="main-content">
       <div className="page-shell flex min-h-screen flex-col">
-        <div className="flex h-[72px] items-center">
+        <div className="flex h-20 items-center">
           <BrandLink />
         </div>
         <div className="grid flex-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)]">

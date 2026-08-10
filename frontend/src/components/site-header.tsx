@@ -34,7 +34,7 @@ export function BrandLink({ className }: { className?: string }) {
     <Link
       aria-label="帧取首页"
       className={cn(
-        'focus-ring inline-flex min-h-11 items-center gap-2.5 rounded-md text-sm font-semibold tracking-[-0.02em]',
+        'focus-ring inline-flex min-h-11 items-center gap-3 rounded-md text-[15px] font-semibold tracking-[-0.025em]',
         className,
       )}
       href="/"
@@ -42,10 +42,10 @@ export function BrandLink({ className }: { className?: string }) {
       <Image
         alt=""
         aria-hidden
-        className="size-6 shrink-0"
-        height={24}
+        className="size-7 shrink-0"
+        height={28}
         src="/logo.svg"
-        width={24}
+        width={28}
       />
       <span>帧取</span>
     </Link>
@@ -71,16 +71,16 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 bg-background">
-      <div className="content-shell flex h-[72px] items-center justify-between">
+      <div className="content-shell flex h-20 items-center justify-between">
         <BrandLink />
         <nav
           aria-label="主要导航"
-          className="hidden items-center gap-1 sm:flex"
+          className="hidden items-center gap-2 sm:flex"
         >
           <Button
             asChild
             className={cn(
-              'min-h-10 px-3 text-foreground',
+              'min-h-11 px-3.5 text-[15px] text-foreground',
               historyActive && 'bg-muted',
             )}
             variant="ghost"
@@ -89,14 +89,14 @@ export function SiteHeader() {
               aria-current={historyActive ? 'page' : undefined}
               href="/history"
             >
-              <ClockCounterClockwiseIcon aria-hidden className="size-[19px]" />
+              <ClockCounterClockwiseIcon aria-hidden className="size-5" />
               <span>下载记录</span>
             </Link>
           </Button>
           <Button
             asChild
             className={cn(
-              'min-h-10 px-3 text-foreground',
+              'min-h-11 px-3.5 text-[15px] text-foreground',
               providersActive && 'bg-muted',
             )}
             variant="ghost"
@@ -105,7 +105,7 @@ export function SiteHeader() {
               aria-current={providersActive ? 'page' : undefined}
               href="/providers"
             >
-              <PulseIcon aria-hidden className="size-[19px]" />
+              <PulseIcon aria-hidden className="size-5" />
               <span>平台状态</span>
             </Link>
           </Button>
@@ -114,18 +114,18 @@ export function SiteHeader() {
               <DropdownMenuTrigger asChild>
                 <Button
                   aria-label="打开账户菜单"
-                  className="min-h-10 px-2 text-foreground"
+                  className="min-h-11 px-2.5 text-foreground"
                   disabled={loading}
                   variant="ghost"
                 >
-                  <Avatar size="sm">
+                  <Avatar>
                     <AvatarFallback>
                       {user.username.slice(0, 1).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <CaretDownIcon
                     aria-hidden
-                    className="hidden size-3.5 sm:block"
+                    className="hidden size-4 sm:block"
                   />
                 </Button>
               </DropdownMenuTrigger>
@@ -178,16 +178,20 @@ export function SiteHeader() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button asChild className="min-h-10 px-3" variant="ghost">
+            <Button
+              asChild
+              className="min-h-11 px-3.5 text-[15px]"
+              variant="ghost"
+            >
               <Link
                 href={`/user/login?redirect=${encodeURIComponent(pathname)}`}
               >
-                <UserCircleIcon aria-hidden className="size-5" />
+                <UserCircleIcon aria-hidden className="size-[21px]" />
                 <span>账户</span>
               </Link>
             </Button>
           )}
-          <span aria-hidden className="mx-1 h-5 w-px bg-border" />
+          <span aria-hidden className="mx-1.5 h-6 w-px bg-border" />
           <ThemeToggle />
         </nav>
         <MobileNavigation

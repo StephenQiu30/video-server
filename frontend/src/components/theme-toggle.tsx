@@ -12,7 +12,7 @@ export function ThemeToggle() {
   return (
     <Button
       aria-label="切换颜色主题"
-      className="size-10 rounded-full"
+      className="size-11 rounded-full [&_svg]:size-5"
       onClick={() => setTheme(dark ? 'light' : 'dark')}
       size="icon"
       variant="ghost"
