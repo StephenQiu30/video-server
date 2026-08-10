@@ -135,7 +135,7 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 - Header、常规 main 与 footer 统一使用 `.content-shell = min(calc(100% - 160px), 1376px)`，让品牌、导航操作和页面主体共享左右对齐线。认证页的无外框双栏 main 是唯一例外，可使用更宽的 `.page-shell = min(calc(100% - 80px), 1456px)`，右侧表单在内部收窄到 440px，不足 `lg` 时隐藏介绍栏。在 641–1023px，`.content-shell` 改为两侧各 32px gutter；在 `<=640px`，`.page-shell` 与 `.content-shell` 都改为两侧各 16px gutter。这是对齐约束，不得呈现为可见页面外壳；资料表单、说明文字和媒体可在对应网格内二次收窄。
 - 间距采用 4px 基准，控件内部使用 8/12/16px，内容组使用 24/32px，主要段落使用 48/64/96px。标题、描述和主操作之间必须保留明显层级，不通过额外卡片填满空白。
 - 内页标题保持短、直接并与首页共用 Geist 层级；只有真实流程编号才可使用中性色 mono eyebrow，不使用装饰性彩色分类标签或与 H1 重复的说明。
-- Header 视觉高度为 80px，与 main/footer 共用 `.content-shell` 的桌面 80px gutter 和 1376px 最大宽度。品牌标识为 28px，品牌与桌面导航文字为 15px，导航控件高度为 44px，以与宽屏主体保持稳定的视觉比例。Header 本身不使用下边线、外框、ring 或阴影。
+- Header 视觉高度为 80px，与 main/footer 共用 `.content-shell` 的桌面 80px gutter 和 1376px 最大宽度。品牌标识为 32px，品牌文字为 17px，桌面导航文字为 15px，导航控件高度为 44px，以明确的品牌层级与宽屏主体保持稳定的视觉比例。Header 本身不使用下边线、外框、ring 或阴影。
 - 页面根、标题区、筛选区、列表区和表单区不使用可见 Card 外壳、装饰 ring、阴影或装饰性大边框。输入、选择器和按钮优先用实心中性填充面与颜色对比建立边界；内容分组只使用必要的 1px 发丝 Separator。Dialog、Sheet、Popover 等 Radix 覆盖层仍保留可辨识表面、遮罩、焦点圈定和 Escape/焦点恢复。键盘焦点轮廓是功能性边界，不属于装饰 ring。
 - 动效以 120–200ms 的透明度或位移过渡为主，并遵循 `prefers-reduced-motion`。
 
@@ -166,7 +166,7 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 
 ### 全局导航
 
-桌面端为 80px 单行轻量 Header：左侧使用 Next.js `Image` 渲染 28px 的 `public/logo.svg`，与文字“帧取”共同构成指向 `/` 的品牌链接；品牌文字与右侧导航统一使用 15px 尺寸，桌面导航控件高度为 44px。右侧提供“下载记录”（`href="/history"`）、Avatar 账户菜单和主题操作；账户菜单只向管理员显示“用户管理”与“下载分析”入口。Header 与 main/footer 共用 `.content-shell` 的 1376px 上限和桌面 80px gutter，保持导航与主体严格对齐；没有底线、侧栏、面包屑容器、外框或浮起阴影。当前路由链接使用 `aria-current="page"`，并通过中性填充面和文本色同步表达当前页。
+桌面端为 80px 单行轻量 Header：左侧使用 Next.js `Image` 渲染 32px 的 `public/logo.svg`，与 17px 文字“帧取”共同构成指向 `/` 的品牌链接；右侧导航保持 15px 尺寸，桌面导航控件高度为 44px，使品牌在功能导航之上建立清晰层级。右侧提供“下载记录”（`href="/history"`）、Avatar 账户菜单和主题操作；账户菜单只向管理员显示“用户管理”与“下载分析”入口。Header 与 main/footer 共用 `.content-shell` 的 1376px 上限和桌面 80px gutter，保持导航与主体严格对齐；没有底线、侧栏、面包屑容器、外框或浮起阴影。当前路由链接使用 `aria-current="page"`，并通过中性填充面和文本色同步表达当前页。
 
 390px 下保留品牌和一个明确的导航触发器，下载记录、账户与主题操作进入 Sheet；不把桌面导航强行压缩到同一行。Sheet 打开后焦点进入其可操作内容，链接均可通过 Tab 到达并以键盘激活；关闭而未导航时，焦点返回触发器。品牌链接始终提供返回 `/` 的明确可读名称。图标按钮有可见或屏幕阅读器标签，Tooltip 仅作辅助，触控区域至少 44×44px。
 

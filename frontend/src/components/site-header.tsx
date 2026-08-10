@@ -34,7 +34,7 @@ export function BrandLink({ className }: { className?: string }) {
     <Link
       aria-label="帧取首页"
       className={cn(
-        'focus-ring inline-flex min-h-11 items-center gap-3 rounded-md text-[15px] font-semibold tracking-[-0.025em]',
+        'focus-ring inline-flex min-h-11 items-center gap-3 rounded-md text-[17px] font-semibold tracking-[-0.02em]',
         className,
       )}
       href="/"
@@ -42,10 +42,10 @@ export function BrandLink({ className }: { className?: string }) {
       <Image
         alt=""
         aria-hidden
-        className="size-7 shrink-0"
-        height={28}
+        className="size-8 shrink-0"
+        height={32}
         src="/logo.svg"
-        width={28}
+        width={32}
       />
       <span>帧取</span>
     </Link>
