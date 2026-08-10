@@ -95,7 +95,7 @@ flowchart LR
 1. 写入/锁定稳定 job 与 run。
 2. 写入当前任务事件。
 3. 写入唯一 Outbox 事件。
-4. 提交后立即返回 `201` 或 `202`，不等待 RabbitMQ 或 AI。
+4. 提交后立即返回 `201 Created`、`Location` 和可查询的任务状态投影，不等待 RabbitMQ 或 AI。
 
 Outbox Publisher 批量 claim 可发布记录，将 envelope mandatory publish 到 RabbitMQ，并只在 broker confirm ACK 后标记 published。连接中断或 confirm 不确定时保留记录重投；消费者依靠幂等 claim 处理重复消息。RabbitMQ 不可用时创建事务仍可成功，任务保持 `queued`，Outbox backlog 产生告警并在恢复后发布。
 
