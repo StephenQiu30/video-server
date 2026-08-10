@@ -104,6 +104,16 @@ async def test_robust_topology_and_confirmed_mandatory_publish(monkeypatch) -> N
         "x-dead-letter-exchange": "video.events.dead",
         "x-dead-letter-routing-key": "video.download.dead",
         "x-message-ttl": 1_800_000,
+        "x-max-length": 10_000,
+        "x-overflow": "reject-publish-dlx",
+    }
+    assert {item[0] for item in channel.queue_calls} == {
+        "video.download",
+        "video.download.dead",
+        "video.analysis",
+        "video.analysis.dead",
+        "video.analysis-report",
+        "video.analysis-report.dead",
     }
     message, routing_key, mandatory, timeout = channel.main.published[0]
     assert (routing_key, mandatory, timeout) == ("download.requested", True, 10)

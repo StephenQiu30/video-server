@@ -17,6 +17,7 @@ NOW = datetime(2026, 8, 6, 12, tzinfo=UTC)
 
 
 def running_job() -> AnalysisJobSnapshot:
+    run_id = uuid4()
     return AnalysisJobSnapshot(
         id=uuid4(),
         artifact_id=uuid4(),
@@ -33,6 +34,9 @@ def running_job() -> AnalysisJobSnapshot:
         attempt=1,
         max_attempts=3,
         version=1,
+        run_id=run_id,
+        run_no=1,
+        run_trigger="initial",
         lease_owner="analysis-worker",
         lease_expires_at=NOW + timedelta(minutes=5),
         heartbeat_at=NOW,
@@ -56,9 +60,25 @@ class FakeRepository:
         self._stage_counts: dict[str, int] = {}
 
     async def claim_job(
-        self, job_id: UUID, worker_id: str, now: datetime, lease_for: timedelta
+        self,
+        job_id: UUID,
+        run_id: UUID,
+        run_no: int,
+        expected_version: int,
+        worker_id: str,
+        now: datetime,
+        lease_for: timedelta,
     ) -> AnalysisJobSnapshot | None:
-        return self.job if job_id == self.job.id else None
+        return (
+            self.job
+            if (
+                job_id == self.job.id
+                and run_id == self.job.run_id
+                and run_no == self.job.run_no
+                and expected_version == self.job.version
+            )
+            else None
+        )
 
     async def get_job(self, job_id: UUID) -> AnalysisJobSnapshot | None:
         return self.job if job_id == self.job.id else None
@@ -113,6 +133,7 @@ class FakeRepository:
     async def publish_result(
         self,
         job_id: UUID,
+        run_id: UUID,
         worker_id: str,
         expected_version: int,
         result: AnalysisResult,
@@ -121,6 +142,7 @@ class FakeRepository:
         cli_version: str,
         now: datetime,
     ) -> None:
+        assert run_id == self.job.run_id
         assert expected_version == self.job.version
         assert (provider, model, cli_version) == (
             "controlled",

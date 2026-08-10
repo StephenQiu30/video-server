@@ -30,6 +30,8 @@ def create_app(
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         try:
+            if owned_runtime and configured_runtime is not None:
+                await configured_runtime.start()
             yield
         finally:
             if owned_runtime and configured_runtime is not None:
@@ -56,6 +58,8 @@ def create_app(
         application.state.analysis_use_cases = configured_runtime.analysis_use_cases
         application.state.rate_limiter = configured_runtime.rate_limiter
         application.state.readiness_probe = configured_runtime.readiness
+        application.state.realtime_hub = configured_runtime.realtime_hub
+        application.state.task_event_store = configured_runtime.task_event_store
     application.include_router(router)
     application.middleware("http")(
         lambda request, call_next: request_guard(

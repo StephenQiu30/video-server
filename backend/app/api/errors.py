@@ -132,6 +132,16 @@ _ERRORS: dict[ApplicationErrorCode, tuple[int, str, str]] = {
 }
 
 _ANALYSIS_ERRORS: dict[AnalysisApplicationErrorCode, tuple[int, str, str]] = {
+    AnalysisApplicationErrorCode.ALREADY_ACTIVE: (
+        409,
+        "Analysis already active",
+        "The analysis already has an active execution run.",
+    ),
+    AnalysisApplicationErrorCode.ARTIFACT_UNAVAILABLE: (
+        409,
+        "Analysis artifact unavailable",
+        "The original video artifact is no longer available for analysis.",
+    ),
     AnalysisApplicationErrorCode.ARTIFACT_NOT_READY: (
         409,
         "Artifact not ready",
@@ -171,6 +181,16 @@ _ANALYSIS_ERRORS: dict[AnalysisApplicationErrorCode, tuple[int, str, str]] = {
         502,
         "Analysis provider failure",
         "The analysis provider could not complete the request.",
+    ),
+    AnalysisApplicationErrorCode.REPORT_NOT_READY: (
+        409,
+        "Analysis report not ready",
+        "The analysis report has not finished publishing.",
+    ),
+    AnalysisApplicationErrorCode.REPORT_UNAVAILABLE: (
+        503,
+        "Analysis report unavailable",
+        "The published analysis report could not be verified.",
     ),
     AnalysisApplicationErrorCode.RESOURCE_EXPIRED: (
         404,

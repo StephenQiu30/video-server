@@ -74,6 +74,20 @@ export default function DownloadJobView({
                 onDownload={state.download}
                 onRetry={() => void retry()}
               />
+              {!['succeeded', 'failed', 'cancelled'].includes(
+                state.job.status,
+              ) ? (
+                <p
+                  aria-live="polite"
+                  className="mt-4 text-xs text-muted-foreground"
+                >
+                  {state.socketStatus === 'connected'
+                    ? '实时状态已连接'
+                    : state.socketStatus === 'degraded'
+                      ? '实时连接中断，正在低频恢复'
+                      : '正在连接实时状态'}
+                </p>
+              ) : null}
             </div>
           </section>
           {state.inspectionError ? (

@@ -1,0 +1,174 @@
+"""Atomic same-job manual analysis retry creation."""
+
+from __future__ import annotations
+
+from datetime import datetime
+
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.application.analysis import (
+    AnalysisJobSaveResult,
+    AnalysisRetry,
+    PersistenceActiveRun,
+    PersistenceArtifactUnavailable,
+    PersistenceConflict,
+    PersistenceNotFound,
+)
+from app.infrastructure.analysis_repository_create import AnalysisCreationRepository
+from app.infrastructure.analysis_repository_mapping import analysis_job_snapshot
+from app.infrastructure.database.models import (
+    AnalysisArtifactLockRow,
+    AnalysisJobRow,
+    AnalysisRetryOperationRow,
+    AnalysisRunRow,
+    ArtifactRow,
+    DownloadJobRow,
+)
+
+
+class AnalysisRetryRepository(AnalysisCreationRepository):
+    async def retry_job_and_enqueue(
+        self, command: AnalysisRetry, *, now: datetime
+    ) -> AnalysisJobSaveResult:
+        async with self._sessions() as session:
+            try:
+                async with session.begin():
+                    row = await session.scalar(
+                        select(AnalysisJobRow)
+                        .where(
+                            AnalysisJobRow.id == command.job_id,
+                            AnalysisJobRow.owner_hash == command.owner_hash,
+                        )
+                        .with_for_update()
+                    )
+                    if row is None:
+                        raise PersistenceNotFound("analysis job does not exist")
+                    replay = await self._replay(session, row, command)
+                    if replay is not None:
+                        return replay
+                    if row.status not in {"failed", "cancelled", "succeeded"}:
+                        raise PersistenceActiveRun("analysis already has an active run")
+                    await self._require_artifact(session, row, now)
+                    run = self._new_run(
+                        run_id=command.run_id,
+                        job_id=row.id,
+                        run_no=row.current_run_no + 1,
+                        trigger=command.trigger,
+                        max_attempts=command.max_attempts,
+                        now=now,
+                    )
+                    session.add(run)
+                    # The retry operation references the new run, but the ORM models do
+                    # not expose a relationship from which SQLAlchemy can infer insert
+                    # ordering. Persist the run before adding dependent rows.
+                    await session.flush()
+                    session.add(
+                        AnalysisArtifactLockRow(
+                            job_id=row.id,
+                            artifact_id=row.artifact_id,
+                            created_at=now,
+                        )
+                    )
+                    session.add(
+                        AnalysisRetryOperationRow(
+                            job_id=row.id,
+                            run_id=run.id,
+                            operation="retry",
+                            idempotency_key=command.idempotency_key,
+                            created_at=now,
+                        )
+                    )
+                    self._reset_job(row, run, now)
+                    session.add(
+                        self.requested_event(
+                            row,
+                            run,
+                            command.outbox_event_id,
+                            "analysis.requested",
+                            now,
+                        )
+                    )
+                    await session.flush()
+                    return AnalysisJobSaveResult(
+                        analysis_job_snapshot(row, run), created=True
+                    )
+            except IntegrityError as exc:
+                await session.rollback()
+                async with session.begin():
+                    row = await session.scalar(
+                        select(AnalysisJobRow).where(
+                            AnalysisJobRow.id == command.job_id,
+                            AnalysisJobRow.owner_hash == command.owner_hash,
+                        )
+                    )
+                    if row is None:
+                        raise PersistenceNotFound(
+                            "analysis job does not exist"
+                        ) from exc
+                    replay = await self._replay(session, row, command)
+                    if replay is None:
+                        raise
+                    return replay
+
+    @staticmethod
+    async def _replay(
+        session: AsyncSession, row: AnalysisJobRow, command: AnalysisRetry
+    ) -> AnalysisJobSaveResult | None:
+        operation = await session.scalar(
+            select(AnalysisRetryOperationRow).where(
+                AnalysisRetryOperationRow.job_id == row.id,
+                AnalysisRetryOperationRow.operation == "retry",
+                AnalysisRetryOperationRow.idempotency_key == command.idempotency_key,
+            )
+        )
+        if operation is None:
+            return None
+        run = await session.get(AnalysisRunRow, operation.run_id)
+        if run is None:
+            raise PersistenceConflict("retry run is missing")
+        return AnalysisJobSaveResult(analysis_job_snapshot(row, run), created=False)
+
+    @staticmethod
+    async def _require_artifact(
+        session: AsyncSession, row: AnalysisJobRow, now: datetime
+    ) -> None:
+        source = await session.scalar(
+            select(ArtifactRow)
+            .join(DownloadJobRow, DownloadJobRow.id == ArtifactRow.job_id)
+            .where(
+                ArtifactRow.id == row.artifact_id,
+                ArtifactRow.deleted_at.is_(None),
+                ArtifactRow.expires_at > now,
+                ArtifactRow.sha256 == row.input_sha256,
+                DownloadJobRow.owner_hash == row.owner_hash,
+                DownloadJobRow.status == "succeeded",
+            )
+            .with_for_update()
+        )
+        if source is None:
+            raise PersistenceArtifactUnavailable("analysis artifact is unavailable")
+
+    @staticmethod
+    def _reset_job(row: AnalysisJobRow, run: AnalysisRunRow, now: datetime) -> None:
+        row.active_run_id = run.id
+        row.current_run_no = run.run_no
+        row.current_run_trigger = run.trigger
+        row.status = "queued"
+        row.stage = None
+        row.stage_rank = 0
+        row.progress = 0
+        row.attempt = 0
+        row.max_attempts = run.max_attempts
+        row.version += 1
+        row.lease_owner = None
+        row.lease_expires_at = None
+        row.heartbeat_at = None
+        row.started_at = None
+        row.retry_at = None
+        row.cancel_requested_at = None
+        row.finished_at = None
+        row.error_code = None
+        row.error_message = None
+        row.updated_at = now

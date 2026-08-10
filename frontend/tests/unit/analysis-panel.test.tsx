@@ -10,7 +10,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalysisPanel from '@/components/analysis-panel';
 import AnalysisReportPreview from '@/components/analysis-report-preview';
 import AnalysisResultView from '@/components/analysis-result-view';
+import { httpClient } from '@/lib/request';
 import { ApiError } from '@/lib/request-error';
+import type { AnalysisJob } from '@/types/video';
 import {
   analysisJob,
   analysisResult,
@@ -22,10 +24,11 @@ import {
   mockHttpError,
   mockHttpResponses,
 } from '../helpers/http';
+import { emitTaskUpdate } from '../helpers/websocket';
 
 describe('AnalysisPanel', () => {
   beforeEach(() => {
-    mockHttpResponses(analysisSkills);
+    mockHttpResponses(analysisSkills, null);
   });
 
   it('loads analysis skills and exposes an editable prompt', async () => {
@@ -50,7 +53,20 @@ describe('AnalysisPanel', () => {
     expect(screen.getByRole('button', { name: '开始 AI 分析' })).toBeEnabled();
   });
 
-  it('creates, polls and renders a structured result', async () => {
+  it('restores the latest persisted analysis after a page load', async () => {
+    vi.mocked(httpClient.request).mockReset();
+    mockHttpResponses(analysisSkills, analysisJob('succeeded'));
+
+    render(<AnalysisPanel downloadId={job().id} />);
+
+    expect(await screen.findByText('第 1 次执行已完成')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '导出 DOCX' })).toHaveAttribute(
+      'href',
+      `/api/analyses/${analysisJob('succeeded').id}/report.docx`,
+    );
+  });
+
+  it('creates, receives WebSocket state and renders a structured result', async () => {
     mockHttpResponses(analysisJob('running'), analysisJob('succeeded'));
     vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'analysis-key') });
     render(<AnalysisPanel downloadId={job().id} pollIntervalMs={5} />);
@@ -59,8 +75,10 @@ describe('AnalysisPanel', () => {
       target: { value: '重点识别产品功能演示。' },
     });
     fireEvent.click(screen.getByRole('button', { name: '开始 AI 分析' }));
-    expect(await screen.findByText('分析已完成')).toBeInTheDocument();
-    expect(httpRequests()[1]?.data).toEqual({
+    await screen.findByText('正在分析');
+    emitTaskUpdate('analysis', analysisJob('running').id, 2);
+    expect(await screen.findByText('第 1 次执行已完成')).toBeInTheDocument();
+    expect(httpRequests()[2]?.data).toEqual({
       skill_id: 'director-breakdown',
       output_language: 'zh-CN',
       custom_prompt: '重点识别产品功能演示。',
@@ -153,21 +171,49 @@ describe('AnalysisPanel', () => {
         name: '取消当前分析任务？',
       }),
     ).toHaveTextContent('确认后将停止当前分析。你之后仍可重新发起分析任务。');
-    expect(httpRequests()).toHaveLength(2);
+    expect(httpRequests()).toHaveLength(3);
 
     const keepAnalyzing = screen.getByRole('button', { name: '继续分析' });
     await waitFor(() => expect(keepAnalyzing).toHaveFocus());
     fireEvent.click(keepAnalyzing);
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     await waitFor(() => expect(trigger).toHaveFocus());
-    expect(httpRequests()).toHaveLength(2);
+    expect(httpRequests()).toHaveLength(3);
 
     fireEvent.click(trigger);
     fireEvent.click(
       await screen.findByRole('button', { name: '确认取消分析' }),
     );
     expect(await screen.findByText('分析已取消')).toBeInTheDocument();
-    expect(httpRequests()[2]?.url).toContain('/cancel');
+    expect(httpRequests()[3]?.url).toContain('/cancel');
+  });
+
+  it('retries the same analysis id with an idempotency key', async () => {
+    const failed = analysisJob('failed');
+    const retried = {
+      ...analysisJob('queued'),
+      id: failed.id,
+      run_id: '66666666-6666-4666-8666-666666666666',
+      run_no: 2,
+      run_trigger: 'manual_retry',
+      version: failed.version + 1,
+    } satisfies AnalysisJob;
+    mockHttpResponses(failed, retried);
+    vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'stable-action-key') });
+    render(<AnalysisPanel downloadId={job().id} pollIntervalMs={60_000} />);
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: '开始 AI 分析' }),
+    );
+    fireEvent.click(await screen.findByRole('button', { name: '重试分析' }));
+
+    expect(await screen.findByText(/第 2 次执行/)).toBeInTheDocument();
+    const retryRequest = httpRequests()[3];
+    expect(retryRequest?.url).toContain(`/analyses/${failed.id}/retry`);
+    expect(retryRequest?.headers?.['Idempotency-Key']).toBe(
+      'stable-action-key',
+    );
+    expect(retried.id).toBe(failed.id);
   });
 
   it('shows safe creation errors', async () => {

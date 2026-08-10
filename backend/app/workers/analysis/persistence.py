@@ -37,10 +37,25 @@ class AnalysisExecutionPersistence:
         self._downloads = downloads
 
     async def claim_job(
-        self, job_id: UUID, worker_id: str, now: datetime, lease_for: timedelta
+        self,
+        job_id: UUID,
+        run_id: UUID,
+        run_no: int,
+        expected_version: int,
+        worker_id: str,
+        now: datetime,
+        lease_for: timedelta,
     ) -> AnalysisJobSnapshot | None:
         with _translate_errors():
-            return await self._analysis.claim_job(job_id, worker_id, now, lease_for)
+            return await self._analysis.claim_job(
+                job_id,
+                run_id,
+                run_no,
+                expected_version,
+                worker_id,
+                now,
+                lease_for,
+            )
         raise AssertionError("unreachable")
 
     async def get_job(self, job_id: UUID) -> AnalysisJobSnapshot | None:
@@ -103,6 +118,7 @@ class AnalysisExecutionPersistence:
     async def publish_result(
         self,
         job_id: UUID,
+        run_id: UUID,
         worker_id: str,
         expected_version: int,
         result: AnalysisResult,
@@ -115,6 +131,7 @@ class AnalysisExecutionPersistence:
             await self._analysis.publish_result(
                 AnalysisPublish(
                     job_id=job_id,
+                    run_id=run_id,
                     result=result,
                     lease_owner=worker_id,
                     expected_version=expected_version,

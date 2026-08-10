@@ -13,7 +13,9 @@ from app.application.analysis import (
     ExportAnalysisMarkdown,
     ExportAnalysisReport,
     GetAnalysis,
+    GetLatestDownloadAnalysis,
     ListAnalysisSkills,
+    RetryAnalysis,
 )
 from app.application.downloads import (
     CancelDownload,
@@ -64,7 +66,9 @@ class AnalysisUseCases:
     list_analysis_skills: ListAnalysisSkills
     create_analysis: CreateAnalysis
     get_analysis: GetAnalysis
+    get_latest_download_analysis: GetLatestDownloadAnalysis
     cancel_analysis: CancelAnalysis
+    retry_analysis: RetryAnalysis
     export_analysis_report: ExportAnalysisReport
     export_analysis_markdown: ExportAnalysisMarkdown
 

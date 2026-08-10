@@ -90,6 +90,10 @@ export function analysisJob(
 ): AnalysisJob {
   return {
     id: '44444444-4444-4444-8444-444444444444',
+    run_id: '55555555-5555-4555-8555-555555555555',
+    run_no: 1,
+    run_trigger: 'initial',
+    version: status === 'queued' ? 0 : status === 'running' ? 1 : 2,
     skill_id: 'director-breakdown',
     output_language: 'zh-CN',
     status,
@@ -107,6 +111,19 @@ export function analysisJob(
     report_markdown:
       status === 'succeeded'
         ? '# 可靠的视频处理流水线 · 逐镜头导演拉片分析报告\n\n## 一、基础信息\n\n已完成分析。\n'
+        : null,
+    current_report_id:
+      status === 'succeeded' ? '66666666-6666-4666-8666-666666666666' : null,
+    report:
+      status === 'succeeded'
+        ? {
+            id: '66666666-6666-4666-8666-666666666666',
+            status: 'available',
+            renderer_version: 'analysis-report-v1',
+            content_sha256: 'a'.repeat(64),
+            published_at: '2026-08-06T10:02:00Z',
+            artifacts: [],
+          }
         : null,
   };
 }

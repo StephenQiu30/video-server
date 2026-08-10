@@ -116,6 +116,8 @@ class RabbitMqDownloadConsumer:
                         "x-dead-letter-exchange": self._topology.dead_exchange,
                         "x-dead-letter-routing-key": (self._topology.dead_routing_key),
                         "x-message-ttl": self._topology.message_ttl_ms,
+                        "x-max-length": self._topology.max_length,
+                        "x-overflow": "reject-publish-dlx",
                     },
                 )
                 await queue.bind(

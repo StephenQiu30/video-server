@@ -17,6 +17,7 @@ def test_analysis_openapi_is_current_and_excludes_internal_fields(
         create_path,
         "/api/analyses/{analysis_id}",
         "/api/analyses/{analysis_id}/cancel",
+        "/api/analyses/{analysis_id}/retry",
         "/api/analyses/{analysis_id}/report.docx",
     } <= paths.keys()
     assert paths[create_path]["post"]["operationId"] == "createAnalysis"
@@ -30,10 +31,21 @@ def test_analysis_openapi_is_current_and_excludes_internal_fields(
         if item["name"] == "Idempotency-Key"
     )
     assert header["required"] is True
+    retry = paths["/api/analyses/{analysis_id}/retry"]["post"]
+    assert retry["operationId"] == "retryAnalysis"
+    assert retry["responses"]["201"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/AnalysisResponse"
+    }
+    retry_header = next(
+        item for item in retry["parameters"] if item["name"] == "Idempotency-Key"
+    )
+    assert retry_header["required"] is True
+    assert "requestBody" not in retry
     components = schema["components"]["schemas"]
     assert components["AnalysisRequest"]["additionalProperties"] is False
     fields = components["AnalysisResponse"]["properties"]
     assert "report_markdown" in fields
+    assert {"run_id", "run_no", "run_trigger", "version"} <= set(fields)
     assert {"artifact_id", "schema_version", "transcript", "provider"}.isdisjoint(
         fields
     )

@@ -1,6 +1,14 @@
+import hashlib
 from dataclasses import replace
 
-from app.application.analysis import render_analysis_report_markdown
+import pytest
+from app.application.analysis import (
+    AnalysisApplicationError,
+    AnalysisApplicationErrorCode,
+    AnalysisStoredReportFile,
+    render_analysis_report_markdown,
+)
+from app.application.analysis.export_report import _read_verified
 from app.domain.analysis import (
     AnalysisMedia,
     Highlight,
@@ -62,3 +70,30 @@ def test_markdown_report_is_complete_and_escapes_model_text() -> None:
     assert "&lt;script&gt;alert\\(1\\)&lt;/script&gt;" in markdown
     assert "\\*\\*重点\\*\\*" in markdown
     assert markdown.endswith("\n")
+
+
+class ObjectReader:
+    def __init__(self, content: bytes | Exception) -> None:
+        self.content = content
+
+    async def read(self, object_key: str) -> bytes:
+        if isinstance(self.content, Exception):
+            raise self.content
+        return self.content
+
+
+@pytest.mark.asyncio
+async def test_stored_report_download_verifies_size_and_sha256() -> None:
+    content = b"# verified report\n"
+    stored = AnalysisStoredReportFile(
+        object_key="private/report.md",
+        media_type="text/markdown; charset=utf-8",
+        size_bytes=len(content),
+        sha256=hashlib.sha256(content).hexdigest(),
+    )
+
+    assert await _read_verified(ObjectReader(content), stored) == content
+    for reader in (ObjectReader(b"corrupt"), ObjectReader(FileNotFoundError())):
+        with pytest.raises(AnalysisApplicationError) as caught:
+            await _read_verified(reader, stored)
+        assert caught.value.code is AnalysisApplicationErrorCode.REPORT_UNAVAILABLE

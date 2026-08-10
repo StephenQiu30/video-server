@@ -101,6 +101,7 @@ class CreateAnalysis:
         )
         command = AnalysisCreate(
             id=self._new_id(),
+            run_id=self._new_id(),
             artifact_id=artifact.id,
             owner_hash=owner_hash,
             idempotency_key=idempotency_key,
@@ -128,11 +129,7 @@ class CreateAnalysis:
             raise AnalysisApplicationError(
                 AnalysisApplicationErrorCode.ARTIFACT_NOT_READY
             ) from exc
-        result = None
-        if saved.job.status == "succeeded":
-            result = await self._repository.get_result(saved.job.id)
-            if result is None:
-                raise AnalysisApplicationError(
-                    AnalysisApplicationErrorCode.INTERNAL_ERROR
-                )
+        result = await self._repository.get_result(saved.job.id)
+        if saved.job.status == "succeeded" and result is None:
+            raise AnalysisApplicationError(AnalysisApplicationErrorCode.INTERNAL_ERROR)
         return analysis_job_view(saved.job, result=result)

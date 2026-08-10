@@ -73,7 +73,12 @@ async def test_success_runs_linear_stages_publishes_and_cleans(tmp_path: Path) -
 
     disposition = await execution(
         repository, loader, analyzer=FakeAnalyzer(valid_mapping())
-    ).execute(repository.job.id)
+    ).execute(
+        repository.job.id,
+        repository.job.run_id,
+        repository.job.run_no,
+        repository.job.version,
+    )
 
     assert disposition is AnalysisDisposition.ACK
     assert [stage for stage, _ in repository.heartbeats] == [
@@ -96,7 +101,10 @@ async def test_cancelled_lease_cancels_active_provider_and_cleans(
     analyzer = BlockingAnalyzer()
 
     disposition = await execution(repository, loader, analyzer=analyzer).execute(
-        repository.job.id
+        repository.job.id,
+        repository.job.run_id,
+        repository.job.run_no,
+        repository.job.version,
     )
 
     assert analyzer.started.is_set()
@@ -114,7 +122,12 @@ async def test_rate_limit_records_retry_and_cleans(tmp_path: Path) -> None:
         repository,
         loader,
         analyzer=FakeAnalyzer(ProviderFailure("analysis_provider_rate_limited")),
-    ).execute(repository.job.id)
+    ).execute(
+        repository.job.id,
+        repository.job.run_id,
+        repository.job.run_no,
+        repository.job.version,
+    )
 
     assert disposition is AnalysisDisposition.ACK
     assert repository.job.status == "retry_wait"
@@ -138,7 +151,12 @@ async def test_invalid_model_evidence_retries_with_attempt_limit(
 
     disposition = await execution(
         repository, loader, analyzer=FakeAnalyzer(invalid)
-    ).execute(repository.job.id)
+    ).execute(
+        repository.job.id,
+        repository.job.run_id,
+        repository.job.run_no,
+        repository.job.version,
+    )
 
     assert disposition is AnalysisDisposition.ACK
     assert repository.job.status == "retry_wait"

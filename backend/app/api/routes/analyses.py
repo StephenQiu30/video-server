@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
 from app.api.auth_dependencies import get_current_user
 from app.api.dependencies import (
@@ -74,6 +74,27 @@ async def create_analysis(
         raise analysis_application_error(exc) from exc
     response.headers["Location"] = f"/api/analyses/{view.id}"
     return AnalysisResponse.from_view(view)
+
+
+@router.get(
+    "/downloads/{download_id}/analysis",
+    operation_id="getLatestDownloadAnalysis",
+    response_model=AnalysisResponse | None,
+    summary="读取下载任务最近的视频分析",
+)
+async def get_latest_download_analysis(
+    download_id: UUID,
+    user: User,
+    use_cases: UseCases,
+) -> AnalysisResponse | None:
+    """恢复当前用户在该下载任务上最近创建的分析与报告。"""
+    try:
+        view = await use_cases.get_latest_download_analysis(
+            download_id, user.owner_hash
+        )
+    except AnalysisApplicationError as exc:
+        raise analysis_application_error(exc) from exc
+    return None if view is None else AnalysisResponse.from_view(view)
 
 
 @router.get(
@@ -179,4 +200,35 @@ async def cancel_analysis(
         view = await use_cases.cancel_analysis(analysis_id, user.owner_hash)
     except AnalysisApplicationError as exc:
         raise analysis_application_error(exc) from exc
+    return AnalysisResponse.from_view(view)
+
+
+@router.post(
+    "/analyses/{analysis_id}/retry",
+    operation_id="retryAnalysis",
+    response_model=AnalysisResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="重试原视频分析任务",
+)
+async def retry_analysis(
+    analysis_id: UUID,
+    request: Request,
+    idempotency_key: IdempotencyKey,
+    response: Response,
+    user: User,
+    use_cases: UseCases,
+) -> AnalysisResponse:
+    """为同一分析任务创建下一执行代次，不改变任务资源 ID。"""
+    if (await request.body()).strip() not in {b"", b"null"}:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="retry request body must be empty",
+        )
+    try:
+        view = await use_cases.retry_analysis(
+            analysis_id, user.owner_hash, idempotency_key
+        )
+    except AnalysisApplicationError as exc:
+        raise analysis_application_error(exc) from exc
+    response.headers["Location"] = f"/api/analyses/{view.id}"
     return AnalysisResponse.from_view(view)

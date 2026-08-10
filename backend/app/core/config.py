@@ -26,7 +26,9 @@ class Settings(BaseSettings):
     )
 
     app_env: Literal["development", "test", "staging", "production"] = "development"
-    service_role: Literal["api", "outbox", "download-worker", "analysis-worker"] = "api"
+    service_role: Literal[
+        "api", "outbox", "download-worker", "analysis-worker", "report-worker"
+    ] = "api"
     app_host: str = "0.0.0.0"
     app_port: int = Field(default=8101, ge=1, le=65535)
     app_version: str = "0.1.0"
@@ -42,6 +44,10 @@ class Settings(BaseSettings):
     download_routing_key: Literal["download.requested"] = "download.requested"
     analysis_queue: str = "video.analysis"
     analysis_routing_key: Literal["analysis.requested"] = "analysis.requested"
+    analysis_report_queue: str = "video.analysis-report"
+    analysis_report_routing_key: Literal["analysis.report.publish.requested"] = (
+        "analysis.report.publish.requested"
+    )
     worker_prefetch: int = Field(default=2, ge=1, le=32)
     download_worker_threads: int = Field(default=4, ge=1, le=64)
     outbox_batch_size: int = Field(default=50, ge=1, le=200)
@@ -202,7 +208,7 @@ class Settings(BaseSettings):
                     self.minio_secret_key.get_secret_value(),
                 )
             )
-        elif self.service_role == "analysis-worker":
+        elif self.service_role in {"analysis-worker", "report-worker"}:
             secret_values.extend(
                 (
                     self.minio_access_key.get_secret_value(),
@@ -234,6 +240,8 @@ def get_settings() -> Settings:
 
 
 def get_settings_for_role(
-    role: Literal["api", "outbox", "download-worker", "analysis-worker"],
+    role: Literal[
+        "api", "outbox", "download-worker", "analysis-worker", "report-worker"
+    ],
 ) -> Settings:
     return Settings(service_role=role)

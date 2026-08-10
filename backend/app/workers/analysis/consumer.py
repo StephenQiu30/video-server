@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import suppress
-from dataclasses import dataclass
 from typing import Protocol
 from uuid import UUID
 
@@ -14,47 +13,24 @@ from aio_pika.abc import (
     AbstractRobustConnection,
 )
 from app.application.analysis_execution import AnalysisDisposition
+from app.infrastructure.messaging import RabbitMqTopology
 
 from .message import AnalysisMessageError, parse_analysis_requested
 
 
 class AnalysisHandler(Protocol):
-    async def execute(self, job_id: UUID) -> AnalysisDisposition: ...
+    async def execute(
+        self, job_id: UUID, run_id: UUID, run_no: int, expected_version: int
+    ) -> AnalysisDisposition: ...
 
 
 class Delivery(Protocol):
     body: bytes
+    redelivered: bool | None
 
     async def ack(self) -> None: ...
 
     async def nack(self, *, requeue: bool) -> None: ...
-
-
-@dataclass(frozen=True, slots=True)
-class AnalysisQueueTopology:
-    exchange: str
-    queue: str
-    routing_key: str
-    message_ttl_ms: int = 1_800_000
-
-    def __post_init__(self) -> None:
-        if (
-            any(not value or value != value.strip() for value in self.names)
-            or self.message_ttl_ms <= 0
-        ):
-            raise ValueError("invalid analysis queue topology")
-
-    @property
-    def names(self) -> tuple[str, str, str]:
-        return self.exchange, self.queue, self.routing_key
-
-    @property
-    def dead_exchange(self) -> str:
-        return f"{self.exchange}.dead"
-
-    @property
-    def dead_queue(self) -> str:
-        return f"{self.queue}.dead"
 
 
 async def process_delivery(message: Delivery, handler: AnalysisHandler) -> None:
@@ -64,25 +40,30 @@ async def process_delivery(message: Delivery, handler: AnalysisHandler) -> None:
         await message.nack(requeue=False)
         return
     try:
-        disposition = await handler.execute(requested.job_id)
+        disposition = await handler.execute(
+            requested.job_id,
+            requested.run_id,
+            requested.run_no,
+            requested.version,
+        )
     except asyncio.CancelledError:
         with suppress(Exception):
             await asyncio.shield(message.nack(requeue=True))
         raise
     except Exception:
-        await message.nack(requeue=True)
+        await message.nack(requeue=not bool(message.redelivered))
         return
     if disposition is AnalysisDisposition.ACK:
         await message.ack()
     else:
-        await message.nack(requeue=True)
+        await message.nack(requeue=not bool(message.redelivered))
 
 
 class RabbitMqAnalysisConsumer:
     def __init__(
         self,
         url: str,
-        topology: AnalysisQueueTopology,
+        topology: RabbitMqTopology,
         handler: AnalysisHandler,
         *,
         prefetch: int,
@@ -119,22 +100,25 @@ class RabbitMqAnalysisConsumer:
                 dead_exchange = await channel.declare_exchange(
                     self._topology.dead_exchange, ExchangeType.DIRECT, durable=True
                 )
+                binding = self._topology.analysis
                 dead_queue = await channel.declare_queue(
-                    self._topology.dead_queue, durable=True
+                    binding.dead_queue, durable=True
                 )
                 await dead_queue.bind(
-                    dead_exchange, routing_key=self._topology.dead_queue
+                    dead_exchange, routing_key=binding.dead_routing_key
                 )
                 queue = await channel.declare_queue(
-                    self._topology.queue,
+                    binding.queue,
                     durable=True,
                     arguments={
                         "x-dead-letter-exchange": self._topology.dead_exchange,
-                        "x-dead-letter-routing-key": self._topology.dead_queue,
-                        "x-message-ttl": self._topology.message_ttl_ms,
+                        "x-dead-letter-routing-key": binding.dead_routing_key,
+                        "x-message-ttl": binding.message_ttl_ms,
+                        "x-max-length": binding.max_length,
+                        "x-overflow": "reject-publish-dlx",
                     },
                 )
-                await queue.bind(exchange, routing_key=self._topology.routing_key)
+                await queue.bind(exchange, routing_key=binding.routing_key)
                 self._queue = queue
                 self._consumer_tag = await queue.consume(self._consume)
         except BaseException:

@@ -10,6 +10,7 @@ import {
   mockHttpError,
   mockHttpResponses,
 } from '../helpers/http';
+import { emitTaskUpdate } from '../helpers/websocket';
 
 const runtime = vi.hoisted(() => ({
   push: vi.fn(),
@@ -25,11 +26,18 @@ describe('DownloadJobView', () => {
     window.history.replaceState({}, '', '/downloads/detail/');
   });
 
-  it('polls until the job succeeds and exposes analysis', async () => {
-    mockHttpResponses(job('running'), inspection, job('succeeded'));
+  it('uses WebSocket state until the job succeeds and exposes analysis', async () => {
+    mockHttpResponses(
+      job('running'),
+      inspection,
+      job('succeeded'),
+      analysisSkills,
+      null,
+    );
     render(<DownloadJobView jobId={job().id} pollIntervalMs={5} />);
 
     expect((await screen.findAllByText('正在下载')).length).toBeGreaterThan(0);
+    emitTaskUpdate('download', job('running').id, 2);
     expect((await screen.findAllByText('下载已完成')).length).toBeGreaterThan(
       0,
     );
@@ -106,7 +114,7 @@ describe('DownloadJobView', () => {
   );
 
   it('issues a short-lived URL for completed downloads', async () => {
-    mockHttpResponses(job('succeeded'), inspection, analysisSkills, {
+    mockHttpResponses(job('succeeded'), inspection, analysisSkills, null, {
       url: 'https://objects.example/token',
       expires_at: '2026-08-06T10:05:00Z',
     });
@@ -125,6 +133,8 @@ describe('DownloadJobView', () => {
     mockHttpResponses(
       { ...job('succeeded'), file_available: false, file_expires_at: null },
       inspection,
+      analysisSkills,
+      null,
     );
     render(<DownloadJobView jobId={job().id} />);
 

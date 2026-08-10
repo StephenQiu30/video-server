@@ -1,19 +1,14 @@
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from uuid import UUID
 
 from app.infrastructure.messaging import EventEnvelope, EventEnvelopeError
 
-_SHA256 = re.compile(r"[0-9a-f]{64}")
 _FIELDS = {
     "job_id",
-    "artifact_id",
-    "input_sha256",
-    "skill_id",
-    "output_language",
-    "attempt",
+    "run_id",
+    "run_no",
     "version",
 }
 
@@ -25,8 +20,8 @@ class AnalysisMessageError(ValueError):
 @dataclass(frozen=True, slots=True)
 class AnalysisRequested:
     job_id: UUID
-    artifact_id: UUID
-    attempt: int
+    run_id: UUID
+    run_no: int
     version: int
 
 
@@ -39,29 +34,14 @@ def parse_analysis_requested(body: bytes) -> AnalysisRequested:
         raise AnalysisMessageError("analysis payload fields do not match schema")
     try:
         job_id = _uuid(envelope.payload["job_id"])
-        artifact_id = _uuid(envelope.payload["artifact_id"])
-        attempt = _integer(envelope.payload["attempt"])
+        run_id = _uuid(envelope.payload["run_id"])
+        run_no = _integer(envelope.payload["run_no"], positive=True)
         version = _integer(envelope.payload["version"])
-        sha256 = envelope.payload["input_sha256"]
-        labels = tuple(
-            envelope.payload[field] for field in ("skill_id", "output_language")
-        )
     except (TypeError, ValueError) as exc:
         raise AnalysisMessageError("analysis payload values are invalid") from exc
-    if (
-        job_id != envelope.aggregate_id
-        or not isinstance(sha256, str)
-        or _SHA256.fullmatch(sha256) is None
-        or any(
-            not isinstance(value, str)
-            or not value
-            or value != value.strip()
-            or len(value) > 128
-            for value in labels
-        )
-    ):
+    if job_id != envelope.aggregate_id:
         raise AnalysisMessageError("analysis payload values are invalid")
-    return AnalysisRequested(job_id, artifact_id, attempt, version)
+    return AnalysisRequested(job_id, run_id, run_no, version)
 
 
 def _uuid(value: object) -> UUID:
@@ -73,7 +53,7 @@ def _uuid(value: object) -> UUID:
     return parsed
 
 
-def _integer(value: object) -> int:
-    if type(value) is not int or value < 0:
+def _integer(value: object, *, positive: bool = False) -> int:
+    if type(value) is not int or value < (1 if positive else 0):
         raise ValueError
     return value

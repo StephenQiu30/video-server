@@ -36,6 +36,13 @@ x-prod-download-env: &prod-download-env
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
   RUNNER_OPERATOR_BASE_URL: "${RUNNER_OPERATOR_BASE_URL:-}"
 
+x-prod-report-env: &prod-report-env
+  <<: *prod-worker-env
+  MINIO_ENDPOINT: "${MINIO_ENDPOINT:?set MINIO_ENDPOINT in .env.prod}"
+  MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?set MINIO_ACCESS_KEY in .env.prod}"
+  MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?set MINIO_SECRET_KEY in .env.prod}"
+  MINIO_BUCKET: "${MINIO_BUCKET:?set MINIO_BUCKET in .env.prod}"
+
 x-prod-runner-env: &prod-runner-env
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
   RUNNER_EGRESS_PROXY: "${RUNNER_EGRESS_PROXY:?set RUNNER_EGRESS_PROXY in .env.prod}"
@@ -54,6 +61,10 @@ services:
   worker-download:
     image: video-server:prod
     environment: *prod-download-env
+
+  worker-report:
+    image: video-server:prod
+    environment: *prod-report-env
 
   media-runner:
     image: video-server:prod

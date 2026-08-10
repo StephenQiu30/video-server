@@ -25,6 +25,32 @@ declare namespace API {
     size_bytes: number;
   };
 
+  type AnalysisReportArtifactResponse = {
+    /** Format */
+    format: string;
+    /** Media Type */
+    media_type: string;
+    /** Size Bytes */
+    size_bytes: number;
+    /** Sha256 */
+    sha256: string;
+  };
+
+  type AnalysisReportResponse = {
+    /** Id */
+    id: string;
+    /** Status */
+    status: string;
+    /** Renderer Version */
+    renderer_version: string;
+    /** Content Sha256 */
+    content_sha256: string;
+    /** Published At */
+    published_at: string | null;
+    /** Artifacts */
+    artifacts: AnalysisReportArtifactResponse[];
+  };
+
   type AnalysisRequest = {
     /** Skill Id 分析 Skill 的稳定标识，由分析 Skill 清单接口提供。 */
     skill_id: string;
@@ -37,6 +63,14 @@ declare namespace API {
   type AnalysisResponse = {
     /** Id */
     id: string;
+    /** Run Id */
+    run_id: string;
+    /** Run No */
+    run_no: number;
+    /** Run Trigger */
+    run_trigger: string;
+    /** Version */
+    version: number;
     /** Skill Id */
     skill_id: string;
     /** Output Language */
@@ -57,6 +91,9 @@ declare namespace API {
     result: AnalysisResultResponse | null;
     /** Report Markdown */
     report_markdown: string | null;
+    /** Current Report Id */
+    current_report_id: string | null;
+    report: AnalysisReportResponse | null;
   };
 
   type AnalysisResultResponse = {
@@ -88,7 +125,7 @@ declare namespace API {
     default_prompt: string;
   };
 
-  type AnalysisStage = "preparing" | "analyzing" | "validating";
+  type AnalysisStage = "preparing" | "analyzing" | "validating" | "publishing";
 
   type AnalysisStatus =
     | "queued"
@@ -279,6 +316,8 @@ declare namespace API {
     progress: number;
     /** Attempt */
     attempt: number;
+    /** Version */
+    version: number;
     error_code: DownloadErrorCode | null;
     /** Created At */
     created_at: string;
@@ -369,6 +408,10 @@ declare namespace API {
 
   type getInspectionParams = {
     inspection_id: string;
+  };
+
+  type getLatestDownloadAnalysisParams = {
+    download_id: string;
   };
 
   type HighlightResponse = {
@@ -543,6 +586,10 @@ declare namespace API {
     password: string;
     /** Username 唯一用户名，支持字母、数字、中文以及 _-. 字符。 */
     username: string;
+  };
+
+  type retryAnalysisParams = {
+    analysis_id: string;
   };
 
   type retryDownloadParams = {

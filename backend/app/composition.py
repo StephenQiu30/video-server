@@ -15,7 +15,9 @@ from app.application.analysis import (
     ExportAnalysisMarkdown,
     ExportAnalysisReport,
     GetAnalysis,
+    GetLatestDownloadAnalysis,
     ListAnalysisSkills,
+    RetryAnalysis,
 )
 from app.application.auth import AuthService, UserService
 from app.application.downloads import (
@@ -32,7 +34,6 @@ from app.application.downloads import (
 )
 from app.core.config import Settings
 from app.core.url_cipher import URLCipher
-from app.infrastructure.analysis_report_docx import PythonDocxAnalysisReportRenderer
 from app.infrastructure.analysis_repository import SqlAlchemyAnalysisRepository
 from app.infrastructure.analysis_skill_catalog import BuiltinAnalysisSkillCatalog
 from app.infrastructure.auth_repository import SqlAlchemyAuthRepository
@@ -48,6 +49,8 @@ from app.infrastructure.object_storage import MinioObjectStorage
 from app.infrastructure.passwords import Argon2PasswordHasher
 from app.infrastructure.rate_limiter import ValkeyRateLimiter
 from app.infrastructure.readiness import RuntimeReadiness, build_runtime_readiness
+from app.infrastructure.realtime import RabbitMqRealtimeConsumer, RealtimeHub
+from app.infrastructure.task_event_store import TaskEventStore
 from app.infrastructure.url_security import FernetUrlEnvelope, MediaUrlValidator
 from app.infrastructure.user_repository import SqlAlchemyUserRepository
 
@@ -62,8 +65,15 @@ class ApiRuntime:
     runner: MediaRunnerRouter
     rate_limiter: ValkeyRateLimiter | None
     readiness: RuntimeReadiness
+    realtime_hub: RealtimeHub
+    task_event_store: TaskEventStore
+    realtime_consumer: RabbitMqRealtimeConsumer
+
+    async def start(self) -> None:
+        await self.realtime_consumer.start()
 
     async def close(self) -> None:
+        await self.realtime_consumer.close()
         await self.readiness.close()
         await self.runner.close()
         if self.rate_limiter is not None:
@@ -74,6 +84,7 @@ class ApiRuntime:
 def build_api_runtime(settings: Settings) -> ApiRuntime:
     engine = create_engine(settings.database_url)
     sessions = create_session_factory(engine)
+    realtime_hub = RealtimeHub()
     repository = SqlAlchemyDownloadRepository(sessions)
     analysis_repository = SqlAlchemyAnalysisRepository(sessions)
     auth_repository = SqlAlchemyAuthRepository(sessions)
@@ -189,12 +200,21 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             enabled=settings.analysis_enabled,
         ),
         get_analysis=get_analysis,
-        cancel_analysis=CancelAnalysis(analysis_repository, now=clock),
-        export_analysis_report=ExportAnalysisReport(
-            get_analysis,
-            PythonDocxAnalysisReportRenderer(),
+        get_latest_download_analysis=GetLatestDownloadAnalysis(
+            analysis_repository, get_analysis
         ),
-        export_analysis_markdown=ExportAnalysisMarkdown(get_analysis),
+        cancel_analysis=CancelAnalysis(analysis_repository, now=clock),
+        retry_analysis=RetryAnalysis(
+            analysis_repository,
+            now=clock,
+            new_id=uuid4,
+        ),
+        export_analysis_report=ExportAnalysisReport(
+            get_analysis, analysis_repository, storage
+        ),
+        export_analysis_markdown=ExportAnalysisMarkdown(
+            get_analysis, analysis_repository, storage
+        ),
     )
     return ApiRuntime(
         auth_service=auth_service,
@@ -208,6 +228,11 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             settings,
             engine,
             valkey_check=rate_limiter.ping if rate_limiter is not None else None,
+        ),
+        realtime_hub=realtime_hub,
+        task_event_store=TaskEventStore(sessions),
+        realtime_consumer=RabbitMqRealtimeConsumer(
+            settings.rabbitmq_url, settings.rabbitmq_exchange, realtime_hub
         ),
     )
 

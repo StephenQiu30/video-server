@@ -25,6 +25,7 @@ class AnalysisArtifactSnapshot:
 @dataclass(frozen=True, slots=True)
 class AnalysisCreate:
     id: UUID
+    run_id: UUID
     artifact_id: UUID
     owner_hash: str
     idempotency_key: str
@@ -56,6 +57,9 @@ class AnalysisJobSnapshot:
     attempt: int
     max_attempts: int
     version: int
+    run_id: UUID
+    run_no: int
+    run_trigger: str
     lease_owner: str | None
     lease_expires_at: datetime | None
     heartbeat_at: datetime | None
@@ -65,6 +69,7 @@ class AnalysisJobSnapshot:
     error_code: str | None
     created_at: datetime
     updated_at: datetime
+    current_report_id: UUID | None = None
 
     @classmethod
     def queued(cls, command: AnalysisCreate, *, now: datetime) -> AnalysisJobSnapshot:
@@ -84,6 +89,9 @@ class AnalysisJobSnapshot:
             attempt=0,
             max_attempts=command.max_attempts,
             version=0,
+            run_id=command.run_id,
+            run_no=1,
+            run_trigger="initial",
             lease_owner=None,
             lease_expires_at=None,
             heartbeat_at=None,
@@ -103,8 +111,20 @@ class AnalysisJobSaveResult:
 
 
 @dataclass(frozen=True, slots=True)
+class AnalysisRetry:
+    job_id: UUID
+    run_id: UUID
+    owner_hash: str
+    idempotency_key: str
+    trigger: str
+    outbox_event_id: UUID
+    max_attempts: int
+
+
+@dataclass(frozen=True, slots=True)
 class AnalysisPublish:
     job_id: UUID
+    run_id: UUID
     result: AnalysisResult
     lease_owner: str
     expected_version: int
@@ -117,6 +137,10 @@ class AnalysisPublish:
 @dataclass(frozen=True, slots=True)
 class AnalysisJobView:
     id: UUID
+    run_id: UUID
+    run_no: int
+    run_trigger: str
+    version: int
     skill_id: str
     output_language: str
     status: AnalysisStatus
@@ -128,6 +152,31 @@ class AnalysisJobView:
     updated_at: datetime
     finished_at: datetime | None
     result: AnalysisResult | None
+    report: AnalysisReportSnapshot | None = None
+    current_report_id: UUID | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class AnalysisReportArtifactSnapshot:
+    format: str
+    object_key: str
+    media_type: str
+    size_bytes: int
+    sha256: str
+
+
+@dataclass(frozen=True, slots=True)
+class AnalysisReportSnapshot:
+    id: UUID
+    job_id: UUID
+    run_id: UUID
+    status: str
+    markdown: str
+    content_sha256: str
+    renderer_version: str
+    created_at: datetime
+    published_at: datetime | None
+    artifacts: tuple[AnalysisReportArtifactSnapshot, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -135,6 +184,14 @@ class AnalysisReportFile:
     content: bytes
     filename: str
     media_type: str
+
+
+@dataclass(frozen=True, slots=True)
+class AnalysisStoredReportFile:
+    object_key: str
+    media_type: str
+    size_bytes: int
+    sha256: str
 
 
 @dataclass(frozen=True, slots=True)

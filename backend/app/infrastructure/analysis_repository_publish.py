@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from uuid import uuid4
 
 from sqlalchemy import select
@@ -11,6 +12,7 @@ from app.application.analysis import (
     AnalysisPublish,
     PersistenceConflict,
     PersistenceNotFound,
+    render_analysis_report_markdown,
 )
 from app.infrastructure.analysis_repository_mapping import analysis_job_snapshot
 from app.infrastructure.analysis_repository_recovery import AnalysisRecoveryRepository
@@ -32,9 +34,14 @@ class AnalysisPublishRepository(AnalysisRecoveryRepository):
             )
             if row is None:
                 raise PersistenceNotFound("analysis job does not exist")
-            if row.status == "succeeded":
+            if row.active_run_id != command.run_id:
+                raise PersistenceConflict("analysis publish run is no longer active")
+            run = await self.active_run(session, row, for_update=True)
+            if row.status == "succeeded" or row.stage == "publishing":
                 stored = await session.scalar(
-                    select(AnalysisResultRow).where(AnalysisResultRow.job_id == row.id)
+                    select(AnalysisResultRow).where(
+                        AnalysisResultRow.run_id == command.run_id
+                    )
                 )
                 if stored is None or stored.result_json != document:
                     raise PersistenceConflict("analysis result replay differs")
@@ -50,31 +57,51 @@ class AnalysisPublishRepository(AnalysisRecoveryRepository):
                 raise PersistenceConflict("analysis publish lease or version lost")
             if row.output_language != command.result.language:
                 raise PersistenceConflict("analysis result contract differs from job")
+            report_id = uuid4()
+            markdown = render_analysis_report_markdown(command.result)
+            markdown_sha256 = hashlib.sha256(markdown.encode("utf-8")).hexdigest()
             session.add(
                 AnalysisResultRow(
-                    id=uuid4(),
+                    id=report_id,
                     job_id=row.id,
+                    run_id=run.id,
                     input_sha256=row.input_sha256,
                     language=row.output_language,
                     provider=command.provider,
                     model=command.model,
                     cli_version=command.cli_version,
                     result_json=document,
+                    report_markdown=markdown,
+                    content_sha256=markdown_sha256,
+                    renderer_version="analysis-report-v1",
+                    status="validated",
+                    attempt=0,
                     created_at=command.now,
                 )
             )
-            row.status = "succeeded"
-            row.stage = None
-            row.stage_rank = 0
-            row.progress = 100
+            row.status = "running"
+            row.stage = "publishing"
+            row.stage_rank = 4
+            row.progress = 95
             row.version += 1
-            row.finished_at = command.now
+            row.finished_at = None
             row.error_code = None
             row.error_message = None
             row.lease_owner = None
             row.lease_expires_at = None
             row.heartbeat_at = None
             row.updated_at = command.now
-            await self.release_lock(session, row.id)
+            run.provider = command.provider
+            run.model = command.model
+            run.cli_version = command.cli_version
+            self.sync_run(row, run)
+            run.status = "running"
+            run.stage = "publishing"
+            run.stage_rank = 4
+            run.progress = 95
+            report_event = self.report_requested_event(
+                row, run, report_id, uuid4(), command.now
+            )
+            session.add(report_event)
             await session.flush()
             return analysis_job_snapshot(row)

@@ -3,6 +3,8 @@ from app.application.analysis.create_analysis import CreateAnalysis
 from app.application.analysis.errors import (
     AnalysisApplicationError,
     AnalysisApplicationErrorCode,
+    PersistenceActiveRun,
+    PersistenceArtifactUnavailable,
     PersistenceConflict,
     PersistenceIdempotencyConflict,
     PersistenceNotFound,
@@ -14,6 +16,7 @@ from app.application.analysis.export_report import (
     ExportAnalysisReport,
 )
 from app.application.analysis.get_analysis import GetAnalysis
+from app.application.analysis.get_latest_analysis import GetLatestDownloadAnalysis
 from app.application.analysis.list_skills import ListAnalysisSkills
 from app.application.analysis.models import (
     AnalysisArtifactSnapshot,
@@ -22,16 +25,22 @@ from app.application.analysis.models import (
     AnalysisJobSnapshot,
     AnalysisJobView,
     AnalysisPublish,
+    AnalysisReportArtifactSnapshot,
     AnalysisReportFile,
+    AnalysisReportSnapshot,
+    AnalysisRetry,
     AnalysisSkillView,
+    AnalysisStoredReportFile,
 )
 from app.application.analysis.ports import (
+    AnalysisReportObjectReader,
     AnalysisReportRenderer,
     AnalysisRepository,
     AnalysisSkillCatalog,
     RequestFingerprinter,
 )
 from app.application.analysis.report import render_analysis_report_markdown
+from app.application.analysis.retry_analysis import RetryAnalysis
 from app.domain.analysis import AnalysisResult
 
 __all__ = [
@@ -43,9 +52,14 @@ __all__ = [
     "AnalysisJobSnapshot",
     "AnalysisJobView",
     "AnalysisPublish",
+    "AnalysisRetry",
     "AnalysisRepository",
     "AnalysisReportFile",
+    "AnalysisReportArtifactSnapshot",
+    "AnalysisReportSnapshot",
+    "AnalysisStoredReportFile",
     "AnalysisReportRenderer",
+    "AnalysisReportObjectReader",
     "AnalysisSkillCatalog",
     "AnalysisSkillView",
     "AnalysisResult",
@@ -56,10 +70,14 @@ __all__ = [
     "ExportAnalysisMarkdown",
     "ExportAnalysisReport",
     "GetAnalysis",
+    "GetLatestDownloadAnalysis",
     "ListAnalysisSkills",
     "PersistenceConflict",
+    "PersistenceActiveRun",
+    "PersistenceArtifactUnavailable",
     "PersistenceIdempotencyConflict",
     "PersistenceNotFound",
     "RequestFingerprinter",
+    "RetryAnalysis",
     "render_analysis_report_markdown",
 ]

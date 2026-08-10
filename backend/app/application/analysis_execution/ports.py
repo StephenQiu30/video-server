@@ -13,7 +13,14 @@ from .models import AnalysisArtifactSource, LocalAnalysisArtifact, VideoAnalysis
 
 class AnalysisExecutionRepository(Protocol):
     async def claim_job(
-        self, job_id: UUID, worker_id: str, now: datetime, lease_for: timedelta
+        self,
+        job_id: UUID,
+        run_id: UUID,
+        run_no: int,
+        expected_version: int,
+        worker_id: str,
+        now: datetime,
+        lease_for: timedelta,
     ) -> AnalysisJobSnapshot | None: ...
 
     async def get_job(self, job_id: UUID) -> AnalysisJobSnapshot | None: ...
@@ -37,6 +44,7 @@ class AnalysisExecutionRepository(Protocol):
     async def publish_result(
         self,
         job_id: UUID,
+        run_id: UUID,
         worker_id: str,
         expected_version: int,
         result: AnalysisResult,

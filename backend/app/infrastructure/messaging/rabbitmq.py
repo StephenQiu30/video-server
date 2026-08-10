@@ -62,27 +62,27 @@ class RabbitMqPublisher:
                     ExchangeType.DIRECT,
                     durable=True,
                 )
-                dead_queue = await channel.declare_queue(
-                    self._topology.dead_queue,
-                    durable=True,
-                )
-                await dead_queue.bind(
-                    dead_exchange,
-                    routing_key=self._topology.dead_routing_key,
-                )
-                queue = await channel.declare_queue(
-                    self._topology.download_queue,
-                    durable=True,
-                    arguments={
-                        "x-dead-letter-exchange": self._topology.dead_exchange,
-                        "x-dead-letter-routing-key": self._topology.dead_routing_key,
-                        "x-message-ttl": self._topology.message_ttl_ms,
-                    },
-                )
-                await queue.bind(
-                    exchange,
-                    routing_key=self._topology.download_routing_key,
-                )
+                for binding in self._topology.durable_queues:
+                    dead_queue = await channel.declare_queue(
+                        binding.dead_queue,
+                        durable=True,
+                    )
+                    await dead_queue.bind(
+                        dead_exchange,
+                        routing_key=binding.dead_routing_key,
+                    )
+                    queue = await channel.declare_queue(
+                        binding.queue,
+                        durable=True,
+                        arguments={
+                            "x-dead-letter-exchange": self._topology.dead_exchange,
+                            "x-dead-letter-routing-key": binding.dead_routing_key,
+                            "x-message-ttl": binding.message_ttl_ms,
+                            "x-max-length": binding.max_length,
+                            "x-overflow": "reject-publish-dlx",
+                        },
+                    )
+                    await queue.bind(exchange, routing_key=binding.routing_key)
             self._exchange = exchange
         except BaseException:
             await asyncio.shield(self.close())

@@ -67,6 +67,7 @@ class AnalysisRecoveryRepository(AnalysisLifecycleRepository):
             )
             if row is None:
                 raise PersistenceNotFound("analysis job does not exist")
+            run = await self.active_run(session, row, for_update=True)
             self.require_lease(row, worker_id, attempt, now)
             should_retry = retryable and row.attempt < row.max_attempts
             if should_retry and (retry_at is None or as_utc(retry_at) <= as_utc(now)):
@@ -83,6 +84,7 @@ class AnalysisRecoveryRepository(AnalysisLifecycleRepository):
             row.lease_expires_at = None
             row.heartbeat_at = None
             row.updated_at = now
+            self.sync_run(row, run)
             if not should_retry:
                 await self.release_lock(session, row.id)
             await session.flush()
@@ -97,6 +99,7 @@ class AnalysisRecoveryRepository(AnalysisLifecycleRepository):
                 (await session.scalars(stale_analyses_statement(now, limit))).all()
             )
             for row in rows:
+                run = await self.active_run(session, row, for_update=True)
                 can_retry = row.attempt < row.max_attempts
                 row.status = "retry_wait" if can_retry else "failed"
                 row.stage = None
@@ -110,6 +113,7 @@ class AnalysisRecoveryRepository(AnalysisLifecycleRepository):
                 row.lease_expires_at = None
                 row.heartbeat_at = None
                 row.updated_at = now
+                self.sync_run(row, run)
                 if not can_retry:
                     await self.release_lock(session, row.id)
             await session.flush()
@@ -126,12 +130,14 @@ class AnalysisRecoveryRepository(AnalysisLifecycleRepository):
                 ).all()
             )
             for row in rows:
+                run = await self.active_run(session, row, for_update=True)
                 row.status = "queued"
                 row.retry_at = None
                 row.version += 1
                 row.updated_at = now
+                self.sync_run(row, run)
                 session.add(
-                    self.requested_event(row, uuid4(), "analysis.requested", now)
+                    self.requested_event(row, run, uuid4(), "analysis.requested", now)
                 )
             await session.flush()
             return tuple(row.id for row in rows)

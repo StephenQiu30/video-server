@@ -97,6 +97,7 @@ async def test_owner_key_is_idempotent_and_rejects_different_input(
         replace(
             first,
             id=uuid4(),
+            run_id=uuid4(),
             idempotency_key="new-user-action",
             outbox_event_id=uuid4(),
         ),

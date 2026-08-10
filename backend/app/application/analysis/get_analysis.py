@@ -22,11 +22,8 @@ class GetAnalysis:
         if snapshot is None or snapshot.owner_hash != owner_hash:
             raise AnalysisApplicationError(AnalysisApplicationErrorCode.NOT_FOUND)
 
-        result = None
-        if snapshot.status == "succeeded":
-            result = await self._repository.get_result(job_id)
-            if result is None:
-                raise AnalysisApplicationError(
-                    AnalysisApplicationErrorCode.INTERNAL_ERROR
-                )
-        return analysis_job_view(snapshot, result=result)
+        result = await self._repository.get_result(job_id)
+        report = await self._repository.get_latest_report(job_id)
+        if snapshot.status == "succeeded" and result is None:
+            raise AnalysisApplicationError(AnalysisApplicationErrorCode.INTERNAL_ERROR)
+        return analysis_job_view(snapshot, result=result, report=report)

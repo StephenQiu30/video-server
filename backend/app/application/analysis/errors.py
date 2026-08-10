@@ -4,6 +4,8 @@ from enum import StrEnum
 
 
 class AnalysisApplicationErrorCode(StrEnum):
+    ALREADY_ACTIVE = "analysis_already_active"
+    ARTIFACT_UNAVAILABLE = "analysis_artifact_unavailable"
     ARTIFACT_NOT_READY = "artifact_not_ready"
     IDEMPOTENCY_CONFLICT = "idempotency_conflict"
     INTERNAL_ERROR = "internal_error"
@@ -12,6 +14,8 @@ class AnalysisApplicationErrorCode(StrEnum):
     INVALID_STATE = "invalid_state"
     NOT_FOUND = "not_found"
     PROVIDER_FAILURE = "provider_failure"
+    REPORT_NOT_READY = "analysis_report_not_ready"
+    REPORT_UNAVAILABLE = "analysis_report_unavailable"
     RESOURCE_EXPIRED = "resource_expired"
     SERVICE_UNAVAILABLE = "analysis_unavailable"
 
@@ -32,3 +36,11 @@ class PersistenceConflict(RuntimeError):
 
 class PersistenceNotFound(RuntimeError):
     """An analysis persistence projection could not be found."""
+
+
+class PersistenceActiveRun(PersistenceConflict):
+    """The stable analysis job already has an active execution run."""
+
+
+class PersistenceArtifactUnavailable(PersistenceConflict):
+    """The immutable input artifact can no longer be analyzed."""

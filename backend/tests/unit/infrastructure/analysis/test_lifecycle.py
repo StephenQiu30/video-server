@@ -33,7 +33,13 @@ async def test_claim_and_heartbeat_enforce_lease_stage_and_progress(
 ) -> None:
     _, command = await create_job(analysis_db)
     claimed = await analysis_db.repository.claim_job(
-        command.id, "worker-a", NOW, timedelta(seconds=30)
+        command.id,
+        command.run_id,
+        1,
+        0,
+        "worker-a",
+        NOW,
+        timedelta(seconds=30),
     )
     assert claimed is not None
     assert (claimed.status, claimed.stage, claimed.attempt, claimed.version) == (
@@ -94,7 +100,13 @@ async def test_claim_and_heartbeat_enforce_lease_stage_and_progress(
 async def test_retry_keeps_lock_until_terminal_failure(analysis_db) -> None:
     _, command = await create_job(analysis_db, max_attempts=2)
     await analysis_db.repository.claim_job(
-        command.id, "worker-a", NOW, timedelta(seconds=30)
+        command.id,
+        command.run_id,
+        1,
+        0,
+        "worker-a",
+        NOW,
+        timedelta(seconds=30),
     )
     retry_at = NOW + timedelta(seconds=10)
     retrying = await analysis_db.repository.complete_failure(
@@ -113,7 +125,13 @@ async def test_retry_keeps_lock_until_terminal_failure(analysis_db) -> None:
         command.id,
     )
     await analysis_db.repository.claim_job(
-        command.id, "worker-b", retry_at, timedelta(seconds=30)
+        command.id,
+        command.run_id,
+        1,
+        3,
+        "worker-b",
+        retry_at,
+        timedelta(seconds=30),
     )
     failed = await analysis_db.repository.complete_failure(
         command.id,
@@ -129,7 +147,13 @@ async def test_retry_keeps_lock_until_terminal_failure(analysis_db) -> None:
 
     _, stale = await create_job(analysis_db, max_attempts=1)
     await analysis_db.repository.claim_job(
-        stale.id, "dead-worker", NOW, timedelta(seconds=5)
+        stale.id,
+        stale.run_id,
+        1,
+        0,
+        "dead-worker",
+        NOW,
+        timedelta(seconds=5),
     )
     reclaimed = await analysis_db.repository.reclaim_stale(
         NOW + timedelta(seconds=6), limit=10

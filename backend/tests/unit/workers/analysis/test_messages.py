@@ -14,9 +14,11 @@ from app.workers.analysis.message import (
 from .fakes import NOW
 
 
-def requested_body(*, event_type: str = "analysis.requested") -> tuple[bytes, UUID]:
+def requested_body(
+    *, event_type: str = "analysis.requested"
+) -> tuple[bytes, UUID, UUID]:
     job_id = uuid4()
-    artifact_id = uuid4()
+    run_id = uuid4()
     envelope = EventEnvelope(
         schema_version=1,
         event_id=uuid4(),
@@ -25,20 +27,18 @@ def requested_body(*, event_type: str = "analysis.requested") -> tuple[bytes, UU
         occurred_at=NOW,
         payload={
             "job_id": str(job_id),
-            "artifact_id": str(artifact_id),
-            "input_sha256": "a" * 64,
-            "skill_id": "director-breakdown",
-            "output_language": "zh-CN",
-            "attempt": 0,
+            "run_id": str(run_id),
+            "run_no": 1,
             "version": 0,
         },
     )
-    return envelope.to_bytes(), job_id
+    return envelope.to_bytes(), job_id, run_id
 
 
 class FakeDelivery:
     def __init__(self, body: bytes) -> None:
         self.body = body
+        self.redelivered = False
         self.acked = 0
         self.nacked: list[bool] = []
 
@@ -52,20 +52,22 @@ class FakeDelivery:
 class FakeHandler:
     def __init__(self, disposition: AnalysisDisposition) -> None:
         self.disposition = disposition
-        self.calls: list[UUID] = []
+        self.calls: list[tuple[UUID, UUID, int, int]] = []
 
-    async def execute(self, job_id: UUID) -> AnalysisDisposition:
-        self.calls.append(job_id)
+    async def execute(
+        self, job_id: UUID, run_id: UUID, run_no: int, version: int
+    ) -> AnalysisDisposition:
+        self.calls.append((job_id, run_id, run_no, version))
         return self.disposition
 
 
 def test_analysis_message_is_strict_and_identity_bound() -> None:
-    body, job_id = requested_body()
+    body, job_id, run_id = requested_body()
     requested = parse_analysis_requested(body)
     assert requested.job_id == job_id
-    assert requested.attempt == 0
+    assert (requested.run_id, requested.run_no, requested.version) == (run_id, 1, 0)
 
-    wrong_type, _ = requested_body(event_type="download.requested")
+    wrong_type, _, _ = requested_body(event_type="download.requested")
     with pytest.raises(AnalysisMessageError):
         parse_analysis_requested(wrong_type)
     with pytest.raises(AnalysisMessageError):
@@ -74,16 +76,21 @@ def test_analysis_message_is_strict_and_identity_bound() -> None:
 
 @pytest.mark.asyncio
 async def test_delivery_ack_requeue_and_dead_letters_bad_messages() -> None:
-    body, job_id = requested_body()
+    body, job_id, run_id = requested_body()
     accepted = FakeDelivery(body)
     handler = FakeHandler(AnalysisDisposition.ACK)
     await process_delivery(accepted, handler)
     assert accepted.acked == 1
-    assert handler.calls == [job_id]
+    assert handler.calls == [(job_id, run_id, 1, 0)]
 
     retried = FakeDelivery(body)
     await process_delivery(retried, FakeHandler(AnalysisDisposition.REQUEUE))
     assert retried.nacked == [True]
+
+    poison = FakeDelivery(body)
+    poison.redelivered = True
+    await process_delivery(poison, FakeHandler(AnalysisDisposition.REQUEUE))
+    assert poison.nacked == [False]
 
     rejected = FakeDelivery(b"bad")
     await process_delivery(rejected, handler)

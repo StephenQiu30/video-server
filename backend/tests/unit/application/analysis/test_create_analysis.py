@@ -22,6 +22,7 @@ NOW = datetime(2026, 8, 6, 8, tzinfo=UTC)
 OWNER = "a" * 64
 ARTIFACT_ID = UUID("11111111-1111-4111-8111-111111111111")
 JOB_ID = UUID("22222222-2222-4222-8222-222222222222")
+RUN_ID = UUID("22222222-2222-4222-8222-222222222223")
 EVENT_ID = UUID("33333333-3333-4333-8333-333333333333")
 DOWNLOAD_ID = UUID("44444444-4444-4444-8444-444444444444")
 
@@ -39,7 +40,7 @@ def artifact(**changes: object) -> AnalysisArtifactSnapshot:
 
 
 def creator(repository: FakeRepository) -> CreateAnalysis:
-    ids = iter((JOB_ID, EVENT_ID, uuid4(), uuid4()))
+    ids = iter((JOB_ID, RUN_ID, EVENT_ID, *(uuid4() for _ in range(20))))
     return CreateAnalysis(
         repository=repository,
         fingerprinter=FakeFingerprinter(),

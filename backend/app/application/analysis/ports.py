@@ -10,7 +10,10 @@ from app.application.analysis.models import (
     AnalysisJobSaveResult,
     AnalysisJobSnapshot,
     AnalysisPublish,
+    AnalysisReportSnapshot,
+    AnalysisRetry,
     AnalysisSkillView,
+    AnalysisStoredReportFile,
 )
 from app.domain.analysis import AnalysisResult
 
@@ -30,7 +33,23 @@ class AnalysisRepository(Protocol):
 
     async def get_job(self, job_id: UUID) -> AnalysisJobSnapshot | None: ...
 
+    async def get_latest_job_for_download(
+        self, download_id: UUID, owner_hash: str
+    ) -> AnalysisJobSnapshot | None: ...
+
+    async def retry_job_and_enqueue(
+        self, command: AnalysisRetry, *, now: datetime
+    ) -> AnalysisJobSaveResult: ...
+
     async def get_result(self, job_id: UUID) -> AnalysisResult | None: ...
+
+    async def get_latest_report(
+        self, job_id: UUID
+    ) -> AnalysisReportSnapshot | None: ...
+
+    async def get_current_report_file(
+        self, job_id: UUID, report_format: str
+    ) -> AnalysisStoredReportFile | None: ...
 
     async def cancel_job(
         self, job_id: UUID, owner_hash: str, now: datetime
@@ -41,6 +60,10 @@ class AnalysisRepository(Protocol):
 
 class AnalysisReportRenderer(Protocol):
     def render(self, markdown: str) -> bytes: ...
+
+
+class AnalysisReportObjectReader(Protocol):
+    async def read(self, object_key: str) -> bytes: ...
 
 
 class AnalysisSkillCatalog(Protocol):

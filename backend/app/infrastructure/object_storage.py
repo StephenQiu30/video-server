@@ -3,12 +3,20 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 from datetime import timedelta
+from io import BytesIO
 from pathlib import Path, PurePosixPath
 
 from minio import Minio
 
 from app.core.config import Settings
+
+
+@dataclass(frozen=True, slots=True)
+class StoredObjectStat:
+    size_bytes: int
+    sha256: str | None
 
 
 class MinioObjectStorage:
@@ -56,6 +64,50 @@ class MinioObjectStorage:
             content_type=content_type,
         )
         return size
+
+    async def upload_bytes(
+        self, object_key: str, content: bytes, content_type: str, sha256: str
+    ) -> int:
+        _validate_key(object_key)
+        if not content:
+            raise ValueError("object content cannot be empty")
+        await asyncio.to_thread(
+            self._private.put_object,
+            self._bucket,
+            object_key,
+            BytesIO(content),
+            len(content),
+            content_type=content_type,
+            metadata={"sha256": sha256},
+        )
+        return len(content)
+
+    async def stat(self, object_key: str) -> StoredObjectStat | None:
+        _validate_key(object_key)
+        try:
+            result = await asyncio.to_thread(
+                self._private.stat_object, self._bucket, object_key
+            )
+        except Exception as error:
+            if getattr(error, "code", None) in {"NoSuchKey", "NoSuchObject"}:
+                return None
+            raise
+        metadata = getattr(result, "metadata", {}) or {}
+        sha256 = metadata.get("x-amz-meta-sha256") or metadata.get("sha256")
+        if result.size is None:
+            raise RuntimeError("object storage returned no size")
+        return StoredObjectStat(size_bytes=result.size, sha256=sha256)
+
+    async def read(self, object_key: str) -> bytes:
+        _validate_key(object_key)
+        response = await asyncio.to_thread(
+            self._private.get_object, self._bucket, object_key
+        )
+        try:
+            return await asyncio.to_thread(response.read)
+        finally:
+            response.close()
+            response.release_conn()
 
     async def download(self, object_key: str, target: Path) -> None:
         _validate_key(object_key)

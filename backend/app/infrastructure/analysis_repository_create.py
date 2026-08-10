@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from uuid import UUID
 
 from sqlalchemy import Select, select
 from sqlalchemy.exc import IntegrityError
@@ -20,6 +21,7 @@ from app.infrastructure.analysis_repository_mapping import analysis_job_snapshot
 from app.infrastructure.database.models import (
     AnalysisArtifactLockRow,
     AnalysisJobRow,
+    AnalysisRunRow,
     ArtifactRow,
     DownloadJobRow,
 )
@@ -44,6 +46,15 @@ class AnalysisCreationRepository(AnalysisRepositoryBase):
                     # instead of relying on SQLAlchemy to infer an ORM dependency
                     # from UUID values alone (there is no relationship configured).
                     await session.flush((row,))
+                    run = self._new_run(
+                        run_id=command.run_id,
+                        job_id=row.id,
+                        run_no=1,
+                        trigger="initial",
+                        max_attempts=command.max_attempts,
+                        now=now,
+                    )
+                    session.add(run)
                     session.add(
                         AnalysisArtifactLockRow(
                             job_id=row.id,
@@ -54,6 +65,7 @@ class AnalysisCreationRepository(AnalysisRepositoryBase):
                     session.add(
                         self.requested_event(
                             row,
+                            run,
                             command.outbox_event_id,
                             command.outbox_event_type,
                             now,
@@ -124,6 +136,29 @@ class AnalysisCreationRepository(AnalysisRepositoryBase):
             output_language=command.output_language,
             custom_prompt=command.custom_prompt,
             max_attempts=command.max_attempts,
+            active_run_id=command.run_id,
+            current_run_no=1,
+            current_run_trigger="initial",
+            created_at=now,
+            updated_at=now,
+        )
+
+    @staticmethod
+    def _new_run(
+        *,
+        run_id: UUID,
+        job_id: UUID,
+        run_no: int,
+        trigger: str,
+        max_attempts: int,
+        now: datetime,
+    ) -> AnalysisRunRow:
+        return AnalysisRunRow(
+            id=run_id,
+            job_id=job_id,
+            run_no=run_no,
+            trigger=trigger,
+            max_attempts=max_attempts,
             created_at=now,
             updated_at=now,
         )

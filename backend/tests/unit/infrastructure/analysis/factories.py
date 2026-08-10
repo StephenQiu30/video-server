@@ -67,6 +67,7 @@ async def seed_artifact(
                 created_at=now,
             )
         )
+        await session.flush()
         session.add(
             MediaFormatRow(
                 id=format_id,
@@ -79,6 +80,7 @@ async def seed_artifact(
                 created_at=now,
             )
         )
+        await session.flush()
         session.add(
             DownloadJobRow(
                 id=download_id,
@@ -94,6 +96,7 @@ async def seed_artifact(
                 updated_at=now,
             )
         )
+        await session.flush()
         session.add(
             ArtifactRow(
                 id=artifact_id,
@@ -125,6 +128,7 @@ def analysis_command(
 ) -> AnalysisCreate:
     return AnalysisCreate(
         id=job_id or uuid4(),
+        run_id=uuid4(),
         artifact_id=source.artifact_id,
         owner_hash=source.owner_hash,
         idempotency_key=idempotency_key or f"analysis-{source.artifact_id}",

@@ -7,12 +7,18 @@ from app.application.analysis import (
 from app.infrastructure.database.base import as_utc
 from app.infrastructure.database.models import (
     AnalysisJobRow,
+    AnalysisRunRow,
     ArtifactRow,
     DownloadJobRow,
 )
 
 
-def analysis_job_snapshot(row: AnalysisJobRow) -> AnalysisJobSnapshot:
+def analysis_job_snapshot(
+    row: AnalysisJobRow, run: AnalysisRunRow | None = None
+) -> AnalysisJobSnapshot:
+    run_id = run.id if run is not None else row.active_run_id
+    run_no = run.run_no if run is not None else row.current_run_no
+    run_trigger = run.trigger if run is not None else row.current_run_trigger
     return AnalysisJobSnapshot(
         id=row.id,
         artifact_id=row.artifact_id,
@@ -29,6 +35,10 @@ def analysis_job_snapshot(row: AnalysisJobRow) -> AnalysisJobSnapshot:
         attempt=row.attempt,
         max_attempts=row.max_attempts,
         version=row.version,
+        run_id=run_id,
+        run_no=run_no,
+        run_trigger=run_trigger,
+        current_report_id=row.current_report_id,
         lease_owner=row.lease_owner,
         lease_expires_at=None
         if row.lease_expires_at is None

@@ -55,10 +55,15 @@ class AnalysisExecution:
         self._settings = settings
         self._transitions = AnalysisTransitions(repository, settings, clock)
 
-    async def execute(self, job_id: UUID) -> AnalysisDisposition:
+    async def execute(
+        self, job_id: UUID, run_id: UUID, run_no: int, expected_version: int
+    ) -> AnalysisDisposition:
         try:
             claimed = await self._repository.claim_job(
                 job_id,
+                run_id,
+                run_no,
+                expected_version,
                 self._settings.worker_id,
                 self._clock(),
                 self._settings.lease_for,
@@ -119,6 +124,7 @@ class AnalysisExecution:
                 raise AnalysisLeaseLost
             await self._repository.publish_result(
                 job.id,
+                current.run_id,
                 self._settings.worker_id,
                 current.version,
                 result,

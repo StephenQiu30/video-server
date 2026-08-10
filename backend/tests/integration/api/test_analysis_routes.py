@@ -14,7 +14,9 @@ from app.application.analysis import (
     AnalysisApplicationErrorCode,
     AnalysisJobView,
     AnalysisReportFile,
+    AnalysisReportSnapshot,
     AnalysisSkillView,
+    render_analysis_report_markdown,
 )
 from app.application.auth import CurrentUser, UserRole
 from app.core.config import Settings
@@ -101,8 +103,28 @@ def analysis_view(
     *,
     result: AnalysisResult | None = None,
 ) -> AnalysisJobView:
+    report = (
+        AnalysisReportSnapshot(
+            id=ANALYSIS_ID,
+            job_id=ANALYSIS_ID,
+            run_id=ANALYSIS_ID,
+            status="available",
+            markdown=render_analysis_report_markdown(result),
+            content_sha256="a" * 64,
+            renderer_version="analysis-report-v1",
+            created_at=NOW,
+            published_at=NOW,
+            artifacts=(),
+        )
+        if status is AnalysisStatus.SUCCEEDED and result is not None
+        else None
+    )
     return AnalysisJobView(
         id=ANALYSIS_ID,
+        run_id=ANALYSIS_ID,
+        run_no=1,
+        run_trigger="initial",
+        version=0,
         skill_id="director-breakdown",
         output_language="zh-CN",
         status=status,
@@ -114,6 +136,8 @@ def analysis_view(
         updated_at=NOW,
         finished_at=NOW if status is AnalysisStatus.SUCCEEDED else None,
         result=result,
+        report=report,
+        current_report_id=None if report is None else report.id,
     )
 
 
@@ -128,6 +152,7 @@ def client(tmp_path: Path) -> tuple[TestClient, dict[str, StubUseCase]]:
         "cancel": StubUseCase(
             replace(queued, status=AnalysisStatus.CANCELLED, finished_at=NOW)
         ),
+        "retry": StubUseCase(replace(queued, run_no=2, run_trigger="manual_retry")),
     }
     application.state.analysis_use_cases = AnalysisUseCases(
         list_analysis_skills=lambda: (
@@ -140,7 +165,9 @@ def client(tmp_path: Path) -> tuple[TestClient, dict[str, StubUseCase]]:
         ),
         create_analysis=stubs["create"],
         get_analysis=stubs["get"],
+        get_latest_download_analysis=stubs["get"],
         cancel_analysis=stubs["cancel"],
+        retry_analysis=stubs["retry"],
         export_analysis_report=StubUseCase(
             AnalysisReportFile(
                 content=b"docx fixture",
@@ -202,11 +229,25 @@ def test_analysis_routes_share_owner_and_never_expose_internal_ids(
             },
         )
         fetched = test_client.get(f"/api/analyses/{ANALYSIS_ID}")
+        restored = test_client.get(f"/api/downloads/{DOWNLOAD_ID}/analysis")
         cancelled = test_client.post(f"/api/analyses/{ANALYSIS_ID}/cancel")
+        retried = test_client.post(
+            f"/api/analyses/{ANALYSIS_ID}/retry",
+            headers={"Idempotency-Key": "retry-1"},
+        )
+        mutable_retry = test_client.post(
+            f"/api/analyses/{ANALYSIS_ID}/retry",
+            headers={"Idempotency-Key": "retry-2"},
+            json={"skill_id": "highlights"},
+        )
 
     assert created.status_code == 201
     assert created.headers["location"] == f"/api/analyses/{ANALYSIS_ID}"
-    assert fetched.status_code == cancelled.status_code == 200
+    assert fetched.status_code == restored.status_code == cancelled.status_code == 200
+    assert retried.status_code == 201
+    assert mutable_retry.status_code == 422
+    assert retried.headers["location"] == f"/api/analyses/{ANALYSIS_ID}"
+    assert retried.json()["run_no"] == 2
     assert created.json()["result"] is None
     assert cancelled.json()["status"] == "cancelled"
     assert "artifact_id" not in created.text
@@ -220,6 +261,7 @@ def test_analysis_routes_share_owner_and_never_expose_internal_ids(
         stubs["create"].calls[0][1],
         stubs["get"].calls[0][1],
         stubs["cancel"].calls[0][1],
+        stubs["retry"].calls[0][1],
     )
     assert len(set(owners)) == 1
 

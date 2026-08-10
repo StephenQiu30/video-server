@@ -6,11 +6,16 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from app.application.analysis import AnalysisPublish, PersistenceConflict
-from app.infrastructure.database.models.analysis import (
+from app.infrastructure.analysis_report_repository import (
+    ReportObject,
+    SqlAlchemyAnalysisReportRepository,
+)
+from app.infrastructure.database.models import (
     AnalysisArtifactLockRow,
     AnalysisResultRow,
+    OutboxEventRow,
 )
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from tests.unit.infrastructure.analysis.factories import (
     analysis_command,
     analysis_result,
@@ -25,7 +30,13 @@ async def validating_job(analysis_db):
     command = analysis_command(source)
     await analysis_db.repository.create_job_and_enqueue(command, now=NOW)
     current = await analysis_db.repository.claim_job(
-        command.id, "worker-a", NOW, timedelta(seconds=30)
+        command.id,
+        command.run_id,
+        1,
+        0,
+        "worker-a",
+        NOW,
+        timedelta(seconds=30),
     )
     assert current is not None
     for offset, stage, progress in (
@@ -58,6 +69,7 @@ async def test_result_and_success_publish_atomically_without_transcript(
     command, job = await validating_job(analysis_db)
     publish = AnalysisPublish(
         job_id=command.id,
+        run_id=command.run_id,
         result=analysis_result(),
         lease_owner="worker-a",
         expected_version=job.version,
@@ -69,8 +81,12 @@ async def test_result_and_success_publish_atomically_without_transcript(
 
     succeeded = await analysis_db.repository.publish_result(publish)
 
-    assert (succeeded.status, succeeded.progress) == ("succeeded", 100)
-    assert await row_count(analysis_db, AnalysisArtifactLockRow) == 0
+    assert (succeeded.status, succeeded.stage, succeeded.progress) == (
+        "running",
+        "publishing",
+        95,
+    )
+    assert await row_count(analysis_db, AnalysisArtifactLockRow) == 1
     assert await row_count(analysis_db, AnalysisResultRow) == 1
     async with analysis_db.sessions() as session:
         row = await session.scalar(
@@ -95,10 +111,12 @@ async def test_result_and_success_publish_atomically_without_transcript(
         serialized = json.dumps(row.result_json, ensure_ascii=False).lower()
         assert "transcript" not in serialized
         assert "provider_response" not in serialized
+        assert row.status == "validated"
+        assert len(row.content_sha256) == 64
     assert await analysis_db.repository.get_result(command.id) == publish.result
 
     replay = await analysis_db.repository.publish_result(publish)
-    assert replay.status == "succeeded"
+    assert replay.stage == "publishing"
     assert await row_count(analysis_db, AnalysisResultRow) == 1
 
     changed = replace(analysis_result(), title="不同输出")
@@ -113,6 +131,7 @@ async def test_publish_requires_matching_validating_lease_and_version(
     command, job = await validating_job(analysis_db)
     valid = AnalysisPublish(
         job_id=command.id,
+        run_id=command.run_id,
         result=analysis_result(),
         lease_owner="worker-a",
         expected_version=job.version,
@@ -130,3 +149,118 @@ async def test_publish_requires_matching_validating_lease_and_version(
         with pytest.raises(PersistenceConflict):
             await analysis_db.repository.publish_result(invalid)
         assert await row_count(analysis_db, AnalysisResultRow) == 0
+
+
+@pytest.mark.asyncio
+async def test_report_finalization_atomically_switches_current_report(
+    analysis_db,
+) -> None:
+    command, job = await validating_job(analysis_db)
+    publishing = await analysis_db.repository.publish_result(
+        AnalysisPublish(
+            job_id=command.id,
+            run_id=command.run_id,
+            result=analysis_result(),
+            lease_owner="worker-a",
+            expected_version=job.version,
+            provider="codex",
+            model="controlled-model",
+            cli_version="codex-cli controlled",
+            now=NOW + timedelta(seconds=3),
+        )
+    )
+    repository = SqlAlchemyAnalysisReportRepository(analysis_db.sessions)
+    report = await repository.get_latest_report(command.id)
+    assert report is not None and report.status == "validated"
+    publication = await repository.claim(
+        report_id=report.id,
+        job_id=command.id,
+        run_id=command.run_id,
+        expected_version=publishing.version,
+        worker_id="report-a",
+        now=NOW + timedelta(seconds=4),
+        lease_for=timedelta(minutes=1),
+    )
+    assert publication is not None
+    objects = tuple(
+        ReportObject(
+            format=report_format,
+            bucket="video-artifacts",
+            object_key=f"analyses/{command.id}/{report.id}/report.{suffix}",
+            content_type=content_type,
+            size_bytes=12,
+            sha256=letter * 64,
+        )
+        for report_format, suffix, content_type, letter in (
+            ("markdown", "md", "text/markdown; charset=utf-8", "a"),
+            (
+                "docx",
+                "docx",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "b",
+            ),
+        )
+    )
+    await repository.complete(
+        publication, "report-a", objects, NOW + timedelta(seconds=5)
+    )
+
+    completed = await repository.get_job(command.id)
+    assert completed is not None
+    assert (completed.status, completed.progress, completed.current_report_id) == (
+        "succeeded",
+        100,
+        report.id,
+    )
+    assert await row_count(analysis_db, AnalysisArtifactLockRow) == 0
+    assert (await repository.get_current_report_file(command.id, "docx")) is not None
+
+
+@pytest.mark.asyncio
+async def test_failed_report_publication_is_reenqueued_once(analysis_db) -> None:
+    command, job = await validating_job(analysis_db)
+    publishing = await analysis_db.repository.publish_result(
+        AnalysisPublish(
+            job_id=command.id,
+            run_id=command.run_id,
+            result=analysis_result(),
+            lease_owner="worker-a",
+            expected_version=job.version,
+            provider="codex",
+            model="controlled-model",
+            cli_version="codex-cli controlled",
+            now=NOW + timedelta(seconds=3),
+        )
+    )
+    repository = SqlAlchemyAnalysisReportRepository(analysis_db.sessions)
+    report = await repository.get_latest_report(command.id)
+    assert report is not None
+    async with analysis_db.sessions() as session, session.begin():
+        await session.execute(
+            update(OutboxEventRow)
+            .where(OutboxEventRow.aggregate_id == report.id)
+            .values(published_at=NOW + timedelta(seconds=4))
+        )
+    publication = await repository.claim(
+        report_id=report.id,
+        job_id=command.id,
+        run_id=command.run_id,
+        expected_version=publishing.version,
+        worker_id="report-a",
+        now=NOW + timedelta(seconds=5),
+        lease_for=timedelta(minutes=1),
+    )
+    assert publication is not None
+    await repository.fail(
+        report.id, "report-a", "controlled failure", NOW + timedelta(seconds=6)
+    )
+
+    assert await repository.recover_pending(NOW + timedelta(seconds=7)) == (report.id,)
+    assert await repository.recover_pending(NOW + timedelta(seconds=8)) == ()
+    async with analysis_db.sessions() as session:
+        count = await session.scalar(
+            select(func.count())
+            .select_from(OutboxEventRow)
+            .where(OutboxEventRow.aggregate_id == report.id)
+        )
+    assert count == 2

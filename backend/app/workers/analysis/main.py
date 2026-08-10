@@ -17,12 +17,10 @@ from app.infrastructure.database import (
     create_engine,
     create_session_factory,
 )
+from app.infrastructure.messaging import RabbitMqTopology
 from app.infrastructure.object_storage import MinioObjectStorage
 from app.workers.analysis.artifacts import LocalAnalysisArtifactLoader
-from app.workers.analysis.consumer import (
-    AnalysisQueueTopology,
-    RabbitMqAnalysisConsumer,
-)
+from app.workers.analysis.consumer import RabbitMqAnalysisConsumer
 from app.workers.analysis.persistence import AnalysisExecutionPersistence
 from app.workers.analysis.providers import build_video_analyzer
 from app.workers.analysis.sweeper import (
@@ -86,10 +84,14 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
             cli_version=analyzer_runtime.cli_version,
         ),
     )
-    topology = AnalysisQueueTopology(
+    topology = RabbitMqTopology(
         settings.rabbitmq_exchange,
+        settings.download_queue,
+        settings.download_routing_key,
         settings.analysis_queue,
         settings.analysis_routing_key,
+        settings.analysis_report_queue,
+        settings.analysis_report_routing_key,
     )
     return AnalysisWorkerRuntime(
         consumer=RabbitMqAnalysisConsumer(

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
@@ -19,7 +18,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from ..base import JSON_DOCUMENT, Base, utc_now
+from ..base import Base, utc_now
 
 
 class AnalysisJobRow(Base):
@@ -40,8 +39,9 @@ class AnalysisJobRow(Base):
         CheckConstraint("attempt >= 0", name="ck_analysis_jobs_attempt"),
         CheckConstraint("max_attempts > 0", name="ck_analysis_jobs_max_attempts"),
         CheckConstraint("version >= 0", name="ck_analysis_jobs_version"),
+        CheckConstraint("current_run_no > 0", name="ck_analysis_jobs_run_no"),
         CheckConstraint(
-            "stage_rank BETWEEN 0 AND 3", name="ck_analysis_jobs_stage_rank"
+            "stage_rank BETWEEN 0 AND 4", name="ck_analysis_jobs_stage_rank"
         ),
         CheckConstraint(
             "length(input_sha256) = 64", name="ck_analysis_jobs_sha256_length"
@@ -69,6 +69,12 @@ class AnalysisJobRow(Base):
     attempt: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     max_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    active_run_id: Mapped[UUID] = mapped_column(Uuid, nullable=False)
+    current_report_id: Mapped[UUID | None] = mapped_column(Uuid)
+    current_run_no: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    current_run_trigger: Mapped[str] = mapped_column(
+        String(24), nullable=False, default="initial"
+    )
     lease_owner: Mapped[str | None] = mapped_column(String(128))
     lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -85,36 +91,6 @@ class AnalysisJobRow(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now
-    )
-
-
-class AnalysisResultRow(Base):
-    __tablename__ = "analysis_results"
-    __table_args__ = (
-        UniqueConstraint("job_id", name="uq_analysis_results_job"),
-        CheckConstraint(
-            "length(input_sha256) = 64", name="ck_analysis_results_sha256_length"
-        ),
-        CheckConstraint(
-            "jsonb_typeof(result_json) = 'object'",
-            name="ck_analysis_results_json_object",
-        ).ddl_if(dialect="postgresql"),
-    )
-
-    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
-    job_id: Mapped[UUID] = mapped_column(
-        Uuid,
-        ForeignKey("analysis_jobs.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    input_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
-    language: Mapped[str] = mapped_column(String(35), nullable=False)
-    provider: Mapped[str] = mapped_column(String(32), nullable=False)
-    model: Mapped[str] = mapped_column(String(128), nullable=False)
-    cli_version: Mapped[str] = mapped_column(String(128), nullable=False)
-    result_json: Mapped[dict[str, Any]] = mapped_column(JSON_DOCUMENT, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utc_now
     )
 
 

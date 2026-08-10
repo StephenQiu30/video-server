@@ -27,6 +27,7 @@ class DownloadResponse(StrictModel):
     stage: DownloadStage | None
     progress: int
     attempt: int
+    version: int
     error_code: DownloadErrorCode | None
     created_at: datetime
     updated_at: datetime

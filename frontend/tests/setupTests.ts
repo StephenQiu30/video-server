@@ -2,9 +2,11 @@ import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, vi } from 'vitest';
 
 import { httpClient } from '@/lib/request';
+import { MockWebSocket } from './helpers/websocket';
 
 beforeEach(() => {
   vi.spyOn(httpClient, 'request');
+  MockWebSocket.instances = [];
 });
 
 afterEach(() => {
@@ -52,6 +54,7 @@ class MockWorker {
 }
 
 globalThis.Worker = MockWorker as unknown as typeof Worker;
+globalThis.WebSocket = MockWebSocket as unknown as typeof WebSocket;
 
 if (typeof globalThis.MessageChannel === 'undefined') {
   class PolyMessageChannel {

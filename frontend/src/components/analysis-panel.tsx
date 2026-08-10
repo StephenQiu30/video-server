@@ -48,7 +48,7 @@ export default function AnalysisPanel({
             </h2>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Badge variant="success">分析已完成</Badge>
+            <Badge variant="success">第 {state.job.run_no} 次执行已完成</Badge>
             <Button asChild variant="outline">
               <a
                 download={`analysis-report-${state.job.id}.md`}
@@ -67,9 +67,13 @@ export default function AnalysisPanel({
                 导出 DOCX
               </a>
             </Button>
-            <Button onClick={state.restart} variant="outline">
+            <Button
+              disabled={state.action === 'retry'}
+              onClick={() => void state.retry()}
+              variant="outline"
+            >
               <ArrowClockwise />
-              重新分析
+              {state.action === 'retry' ? '正在重新分析' : '重新分析'}
             </Button>
           </div>
         </div>
@@ -140,8 +144,18 @@ function AnalysisJobState({
         value={job.progress}
       />
       <p className="mt-3 text-sm text-muted-foreground">
-        当前阶段：{job.stage ? stageLabels[job.stage] : '等待调度'} · 第{' '}
-        {job.attempt} 次尝试
+        第 {job.run_no} 次执行 · 当前阶段：
+        {job.stage ? stageLabels[job.stage] : '等待调度'} ·{' '}
+        {job.attempt > 0
+          ? `本次第 ${job.attempt} 个技术尝试`
+          : '尚未开始技术尝试'}
+      </p>
+      <p aria-live="polite" className="mt-2 text-xs text-muted-foreground">
+        {state.socketStatus === 'connected'
+          ? '实时状态已连接'
+          : state.socketStatus === 'degraded'
+            ? '实时连接中断，正在低频恢复'
+            : '正在连接实时状态'}
       </p>
       <div className="mt-7 flex flex-wrap gap-3">
         {cancellable ? (
@@ -172,12 +186,45 @@ function AnalysisJobState({
           </AlertDialog>
         ) : null}
         {['failed', 'cancelled'].includes(job.status) ? (
-          <Button onClick={state.restart}>重新分析</Button>
+          <Button
+            disabled={state.action === 'retry'}
+            onClick={() => void state.retry()}
+          >
+            {state.action === 'retry' ? <Spinner aria-hidden /> : null}
+            {state.action === 'retry' ? '正在重试' : '重试分析'}
+          </Button>
         ) : null}
       </div>
       <p className="mt-8 text-sm text-muted-foreground">
         分析结果会经过连续时间轴、严格结构与分镜证据校验。
       </p>
+      {job.result ? (
+        <div className="mt-10 border-t pt-10">
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge variant="neutral">
+              {job.report?.status === 'publishing'
+                ? '新报告发布中'
+                : job.report?.status === 'publish_failed'
+                  ? '报告发布失败，等待恢复'
+                  : '上一版本报告'}
+            </Badge>
+            {job.current_report_id ? (
+              <>
+                <Button asChild size="sm" variant="outline">
+                  <a href={analysisMarkdownUrl(job.id)}>下载上一版 Markdown</a>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <a href={analysisReportUrl(job.id)}>下载上一版 DOCX</a>
+                </Button>
+              </>
+            ) : null}
+          </div>
+          <AnalysisResultView
+            reportMarkdown={job.report_markdown}
+            result={job.result}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

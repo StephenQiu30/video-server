@@ -12,10 +12,10 @@ from app.application.analysis import (
     PersistenceConflict,
     PersistenceNotFound,
 )
-from app.infrastructure.analysis_repository_create import AnalysisCreationRepository
 from app.infrastructure.analysis_repository_mapping import analysis_job_snapshot
+from app.infrastructure.analysis_repository_retry import AnalysisRetryRepository
 from app.infrastructure.database.base import as_utc
-from app.infrastructure.database.models import AnalysisJobRow
+from app.infrastructure.database.models import AnalysisJobRow, ArtifactRow
 
 STAGE_RANKS = {
     "preparing": 1,
@@ -24,10 +24,29 @@ STAGE_RANKS = {
 }
 
 
-class AnalysisLifecycleRepository(AnalysisCreationRepository):
+class AnalysisLifecycleRepository(AnalysisRetryRepository):
+    async def get_latest_job_for_download(
+        self, download_id: UUID, owner_hash: str
+    ) -> AnalysisJobSnapshot | None:
+        async with self._sessions() as session:
+            row = await session.scalar(
+                select(AnalysisJobRow)
+                .join(ArtifactRow, ArtifactRow.id == AnalysisJobRow.artifact_id)
+                .where(
+                    ArtifactRow.job_id == download_id,
+                    AnalysisJobRow.owner_hash == owner_hash,
+                )
+                .order_by(AnalysisJobRow.created_at.desc())
+                .limit(1)
+            )
+            return None if row is None else analysis_job_snapshot(row)
+
     async def claim_job(
         self,
         job_id: UUID,
+        run_id: UUID,
+        run_no: int,
+        expected_version: int,
         worker_id: str,
         now: datetime,
         lease_for: timedelta,
@@ -42,10 +61,16 @@ class AnalysisLifecycleRepository(AnalysisCreationRepository):
             )
             if (
                 row is None
+                or row.active_run_id != run_id
+                or row.current_run_no != run_no
+                or row.version != expected_version
                 or row.status != "queued"
                 or row.attempt >= row.max_attempts
                 or row.retry_at is not None
             ):
+                return None
+            run = await self.active_run(session, row, for_update=True)
+            if run.status != "queued" or run.run_no != row.current_run_no:
                 return None
             row.status = "running"
             row.stage = "preparing"
@@ -60,6 +85,7 @@ class AnalysisLifecycleRepository(AnalysisCreationRepository):
             row.error_code = None
             row.error_message = None
             row.updated_at = now
+            self.sync_run(row, run)
             await session.flush()
             return analysis_job_snapshot(row)
 
@@ -87,6 +113,7 @@ class AnalysisLifecycleRepository(AnalysisCreationRepository):
             )
             if row is None or not self._owns(row, worker_id, attempt, now):
                 return False
+            run = await self.active_run(session, row, for_update=True)
             if requested_rank not in {row.stage_rank, row.stage_rank + 1}:
                 raise PersistenceConflict("analysis stage must advance linearly")
             if progress < row.progress:
@@ -98,6 +125,7 @@ class AnalysisLifecycleRepository(AnalysisCreationRepository):
             row.heartbeat_at = now
             row.lease_expires_at = now + lease_for
             row.updated_at = now
+            self.sync_run(row, run)
             await session.flush()
             return True
 
@@ -119,6 +147,7 @@ class AnalysisLifecycleRepository(AnalysisCreationRepository):
                 return analysis_job_snapshot(row)
             if row.status not in {"queued", "running", "retry_wait"}:
                 raise PersistenceConflict("terminal analysis cannot be cancelled")
+            run = await self.active_run(session, row, for_update=True)
             row.status = "cancelled"
             row.stage = None
             row.stage_rank = 0
@@ -132,6 +161,7 @@ class AnalysisLifecycleRepository(AnalysisCreationRepository):
             row.lease_expires_at = None
             row.heartbeat_at = None
             row.updated_at = now
+            self.sync_run(row, run)
             await self.release_lock(session, row.id)
             await session.flush()
             return analysis_job_snapshot(row)

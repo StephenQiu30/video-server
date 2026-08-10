@@ -1,66 +1,99 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { displayError } from '@/lib/request-error';
+import { type TaskSocketStatus, taskSocket } from '@/lib/task-socket';
 import {
   cancelAnalysis,
   createAnalysis,
   getAnalysis,
+  getLatestDownloadAnalysis,
+  retryAnalysis,
 } from '@/services/analysis';
 import type { AnalysisJob, CreateAnalysisInput } from '@/types/video';
 import { terminalAnalysisStatuses } from '@/types/video';
 import { createIdempotencyKey } from '@/utils/idempotency';
 
-type Action = 'start' | 'cancel' | null;
+type Action = 'start' | 'cancel' | 'retry' | null;
 type StableKey = { payload: string; value: string };
 
 export function useAnalysisJob(downloadId: string, pollIntervalMs: number) {
   const [job, setJob] = useState<AnalysisJob | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [action, setAction] = useState<Action>(null);
-  const [pollCycle, setPollCycle] = useState(0);
+  const [socketStatus, setSocketStatus] =
+    useState<TaskSocketStatus>('disconnected');
   const createKey = useRef<StableKey | null>(null);
+  const retryKey = useRef<StableKey | null>(null);
+  const hasLocalJob = useRef(false);
+  const versionRef = useRef(0);
 
   const analysisId = job?.id ?? null;
-  const shouldPoll = job ? !terminalAnalysisStatuses.has(job.status) : false;
+  const shouldSync = job ? !terminalAnalysisStatuses.has(job.status) : false;
+  versionRef.current = job?.version ?? 0;
 
   useEffect(() => {
-    void pollCycle;
-    if (!analysisId || !shouldPoll) {
-      return;
-    }
-
     let disposed = false;
-    let timer: number | undefined;
-
-    async function poll() {
-      try {
-        const current = await getAnalysis(analysisId as string);
-        if (disposed) {
-          return;
-        }
+    void getLatestDownloadAnalysis(downloadId)
+      .then((current) => {
+        if (disposed || hasLocalJob.current || current === null) return;
+        hasLocalJob.current = true;
         setJob(current);
-        setError(null);
-        if (!terminalAnalysisStatuses.has(current.status)) {
-          timer = window.setTimeout(poll, pollIntervalMs);
-        }
-      } catch (reason) {
-        if (!disposed) {
-          setError(displayError(reason));
-        }
-      }
-    }
-
-    timer = window.setTimeout(poll, pollIntervalMs);
+      })
+      .catch((reason: unknown) => {
+        if (!disposed && !hasLocalJob.current) setError(displayError(reason));
+      });
     return () => {
       disposed = true;
-      if (timer !== undefined) {
-        window.clearTimeout(timer);
+    };
+  }, [downloadId]);
+
+  useEffect(() => {
+    if (!analysisId || !shouldSync) {
+      return;
+    }
+    let disposed = false;
+    const refresh = async () => {
+      try {
+        const current = await getAnalysis(analysisId as string);
+        if (disposed) return;
+        setJob(current);
+        setError(null);
+      } catch (reason) {
+        if (!disposed) setError(displayError(reason));
       }
     };
-  }, [analysisId, pollCycle, pollIntervalMs, shouldPoll]);
+    const unsubscribe = taskSocket.subscribe(
+      'analysis',
+      analysisId,
+      versionRef.current,
+      () => void refresh(),
+      setSocketStatus,
+    );
+    return () => {
+      disposed = true;
+      unsubscribe();
+    };
+  }, [analysisId, shouldSync]);
+
+  useEffect(() => {
+    if (!analysisId || !shouldSync || socketStatus !== 'degraded') return;
+    const timer = window.setTimeout(
+      async () => {
+        try {
+          setJob(await getAnalysis(analysisId));
+          setError(null);
+        } catch (reason) {
+          setError(displayError(reason));
+        }
+      },
+      Math.max(15_000, pollIntervalMs * 10),
+    );
+    return () => window.clearTimeout(timer);
+  }, [analysisId, pollIntervalMs, shouldSync, socketStatus]);
 
   const start = useCallback(
     async (input: CreateAnalysisInput) => {
+      hasLocalJob.current = true;
       const payload = JSON.stringify([downloadId, input]);
       if (createKey.current?.payload !== payload) {
         createKey.current = {
@@ -99,24 +132,46 @@ export function useAnalysisJob(downloadId: string, pollIntervalMs: number) {
     }
   }, [analysisId]);
 
-  const retryPoll = useCallback(() => {
+  const retryPoll = useCallback(async () => {
     setError(null);
-    setPollCycle((current) => current + 1);
-  }, []);
+    if (!analysisId) return;
+    try {
+      setJob(await getAnalysis(analysisId));
+    } catch (reason) {
+      setError(displayError(reason));
+    }
+  }, [analysisId]);
 
-  const restart = useCallback(() => {
-    createKey.current = null;
+  const retry = useCallback(async () => {
+    if (!analysisId) {
+      return;
+    }
+    if (retryKey.current?.payload !== analysisId) {
+      retryKey.current = {
+        payload: analysisId,
+        value: createIdempotencyKey(),
+      };
+    }
+    setAction('retry');
     setError(null);
-    setJob(null);
-  }, []);
+    try {
+      setJob(await retryAnalysis(analysisId, retryKey.current.value));
+      retryKey.current = null;
+    } catch (reason) {
+      setError(displayError(reason));
+    } finally {
+      setAction(null);
+    }
+  }, [analysisId]);
 
   return {
     action,
     cancel,
     error,
     job,
-    restart,
+    retry,
     retryPoll,
+    socketStatus,
     start,
   };
 }

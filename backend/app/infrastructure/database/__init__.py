@@ -37,6 +37,8 @@ from .errors import (
 from .models import (
     AnalysisArtifactLockRow,
     AnalysisJobRow,
+    AnalysisReportArtifactRow,
+    AnalysisReportVersionRow,
     AnalysisResultRow,
     ArtifactRow,
     AuthSessionRow,
@@ -44,6 +46,7 @@ from .models import (
     MediaFormatRow,
     MediaInspectionRow,
     OutboxEventRow,
+    TaskEventRow,
     UserRow,
 )
 from .outbox_repository import SqlAlchemyDownloadRepository
@@ -57,6 +60,8 @@ __all__ = [
     "AuthSessionRow",
     "AnalysisArtifactLockRow",
     "AnalysisJobRow",
+    "AnalysisReportArtifactRow",
+    "AnalysisReportVersionRow",
     "AnalysisResultRow",
     "Base",
     "DownloadCreate",
@@ -81,6 +86,7 @@ __all__ = [
     "MediaFormatRow",
     "MediaInspectionRow",
     "OutboxEventRow",
+    "TaskEventRow",
     "OutboxSnapshot",
     "RepositoryConflict",
     "RepositoryError",

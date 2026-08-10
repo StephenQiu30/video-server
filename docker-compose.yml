@@ -50,6 +50,8 @@ x-outbox-env: &outbox-env
   RABBITMQ_EXCHANGE: "${RABBITMQ_EXCHANGE:-video.events}"
   DOWNLOAD_QUEUE: "${DOWNLOAD_QUEUE:-video.download}"
   DOWNLOAD_ROUTING_KEY: "${DOWNLOAD_ROUTING_KEY:-download.requested}"
+  ANALYSIS_QUEUE: "${ANALYSIS_QUEUE:-video.analysis}"
+  ANALYSIS_REPORT_QUEUE: "${ANALYSIS_REPORT_QUEUE:-video.analysis-report}"
   JOB_LEASE_SECONDS: "${JOB_LEASE_SECONDS:-60}"
   OUTBOX_BATCH_SIZE: "${OUTBOX_BATCH_SIZE:-50}"
   OUTBOX_POLL_INTERVAL_SECONDS: "${OUTBOX_POLL_INTERVAL_SECONDS:-1.0}"
@@ -76,6 +78,21 @@ x-download-env: &download-env
   RUNNER_OPERATOR_BASE_URL: "${RUNNER_OPERATOR_BASE_URL:-}"
   RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
+
+x-report-env: &report-env
+  APP_ENV: "${APP_ENV:-development}"
+  SERVICE_ROLE: report-worker
+  DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
+  RABBITMQ_URL: "${RABBITMQ_URL:-amqp://video:video@rabbitmq:5672/}"
+  RABBITMQ_EXCHANGE: "${RABBITMQ_EXCHANGE:-video.events}"
+  DOWNLOAD_QUEUE: "${DOWNLOAD_QUEUE:-video.download}"
+  ANALYSIS_QUEUE: "${ANALYSIS_QUEUE:-video.analysis}"
+  ANALYSIS_REPORT_QUEUE: "${ANALYSIS_REPORT_QUEUE:-video.analysis-report}"
+  MINIO_ENDPOINT: "${MINIO_ENDPOINT:-minio:9000}"
+  MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:-video-app-access}"
+  MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:-video-app-secret-change-me}"
+  MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
+  MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
 
 x-runner-env: &runner-env
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
@@ -167,6 +184,24 @@ services:
         condition: service_completed_successfully
       media-runner:
         condition: service_healthy
+
+  worker-report:
+    <<: *app
+    environment: *report-env
+    networks: [db_net, queue_net, storage_net]
+    container_name: worker-report
+    command: ["python", "-m", "app.workers.report.main"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      database-init:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
 
   media-runner:
     <<: *app

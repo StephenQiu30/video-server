@@ -11,7 +11,9 @@ from app.application.analysis import (
     AnalysisJobSnapshot,
     AnalysisPublish,
     AnalysisResult,
+    AnalysisRetry,
     AnalysisSkillView,
+    PersistenceActiveRun,
     PersistenceConflict,
     PersistenceIdempotencyConflict,
     PersistenceNotFound,
@@ -60,6 +62,7 @@ class FakeRepository:
         self.results: dict[UUID, AnalysisResult] = {}
         self.outbox_events = 0
         self._keys: dict[tuple[str, str], UUID] = {}
+        self._retry_keys: dict[tuple[UUID, str], UUID] = {}
 
     async def get_artifact_for_download(
         self, download_id: UUID
@@ -93,8 +96,61 @@ class FakeRepository:
     async def get_job(self, job_id: UUID) -> AnalysisJobSnapshot | None:
         return self.jobs.get(job_id)
 
+    async def get_latest_job_for_download(
+        self, download_id: UUID, owner_hash: str
+    ) -> AnalysisJobSnapshot | None:
+        matches = [
+            job
+            for job in self.jobs.values()
+            if job.owner_hash == owner_hash
+            and self.artifacts[job.artifact_id].download_id == download_id
+        ]
+        return max(matches, key=lambda job: job.created_at, default=None)
+
     async def get_result(self, job_id: UUID) -> AnalysisResult | None:
         return self.results.get(job_id)
+
+    async def get_latest_report(self, job_id: UUID):
+        return None
+
+    async def get_current_report_file(self, job_id: UUID, report_format: str):
+        return None
+
+    async def retry_job_and_enqueue(
+        self, command: AnalysisRetry, *, now: datetime
+    ) -> AnalysisJobSaveResult:
+        current = self.jobs.get(command.job_id)
+        if current is None or current.owner_hash != command.owner_hash:
+            raise PersistenceNotFound
+        key = (command.job_id, command.idempotency_key)
+        existing = self._retry_keys.get(key)
+        if existing is not None:
+            return AnalysisJobSaveResult(current, created=False)
+        if current.status not in {"failed", "cancelled", "succeeded"}:
+            raise PersistenceActiveRun
+        retried = replace(
+            current,
+            status="queued",
+            stage=None,
+            progress=0,
+            attempt=0,
+            version=current.version + 1,
+            run_id=command.run_id,
+            run_no=current.run_no + 1,
+            run_trigger=command.trigger,
+            lease_owner=None,
+            lease_expires_at=None,
+            heartbeat_at=None,
+            started_at=None,
+            retry_at=None,
+            finished_at=None,
+            error_code=None,
+            updated_at=now,
+        )
+        self.jobs[command.job_id] = retried
+        self._retry_keys[key] = command.run_id
+        self.outbox_events += 1
+        return AnalysisJobSaveResult(retried, created=True)
 
     async def cancel_job(
         self, job_id: UUID, owner_hash: str, now: datetime

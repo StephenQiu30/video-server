@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { type TaskSocketStatus, taskSocket } from '@/lib/task-socket';
 import {
   cancelDownload,
   createIdempotencyKey,
@@ -23,17 +24,20 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   const [loading, setLoading] = useState(true);
   const [action, setAction] = useState<Action>(null);
   const [cycle, setCycle] = useState(0);
+  const [socketStatus, setSocketStatus] =
+    useState<TaskSocketStatus>('disconnected');
   const retryRequest = useRef<{ jobId: string; key: string } | null>(null);
+  const versionRef = useRef(0);
+  versionRef.current = job?.version ?? 0;
+  const jobStatus = job?.status ?? null;
 
   useEffect(() => {
     void cycle;
     let disposed = false;
-    let timer: number | undefined;
-    let loadedInspectionId: string | null = null;
     setLoading(true);
     setError(null);
 
-    async function poll() {
+    async function load() {
       try {
         const current = await getDownload(jobId);
         if (disposed) {
@@ -41,20 +45,14 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
         }
         setJob(current);
         setLoading(false);
-        if (loadedInspectionId !== current.inspection_id) {
-          loadedInspectionId = current.inspection_id;
-          try {
-            const metadata = await getInspection(current.inspection_id);
-            if (!disposed) {
-              setInspection(metadata);
-              setInspectionError(null);
-            }
-          } catch (reason) {
-            if (!disposed) setInspectionError(displayError(reason));
+        try {
+          const metadata = await getInspection(current.inspection_id);
+          if (!disposed) {
+            setInspection(metadata);
+            setInspectionError(null);
           }
-        }
-        if (!terminalDownloadStatuses.has(current.status)) {
-          timer = window.setTimeout(poll, pollIntervalMs);
+        } catch (reason) {
+          if (!disposed) setInspectionError(displayError(reason));
         }
       } catch (reason) {
         if (!disposed) {
@@ -64,14 +62,50 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
       }
     }
 
-    void poll();
+    void load();
     return () => {
       disposed = true;
-      if (timer !== undefined) {
-        window.clearTimeout(timer);
-      }
     };
-  }, [cycle, jobId, pollIntervalMs]);
+  }, [cycle, jobId]);
+
+  useEffect(() => {
+    if (!jobStatus || terminalDownloadStatuses.has(jobStatus)) return;
+    return taskSocket.subscribe(
+      'download',
+      jobId,
+      versionRef.current,
+      async () => {
+        try {
+          setJob(await getDownload(jobId));
+          setError(null);
+        } catch (reason) {
+          setError(displayError(reason));
+        }
+      },
+      setSocketStatus,
+    );
+  }, [jobId, jobStatus]);
+
+  useEffect(() => {
+    if (
+      !jobStatus ||
+      terminalDownloadStatuses.has(jobStatus) ||
+      socketStatus !== 'degraded'
+    )
+      return;
+    const timer = window.setInterval(
+      async () => {
+        try {
+          setJob(await getDownload(jobId));
+          setError(null);
+        } catch (reason) {
+          setError(displayError(reason));
+        }
+      },
+      Math.max(15_000, pollIntervalMs * 10),
+    );
+    return () => window.clearInterval(timer);
+  }, [jobId, jobStatus, pollIntervalMs, socketStatus]);
 
   const refresh = useCallback(() => {
     setCycle((current) => current + 1);
@@ -131,5 +165,6 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     loading,
     refresh,
     retry,
+    socketStatus,
   };
 }

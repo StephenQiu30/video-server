@@ -16,6 +16,7 @@ class AnalysisStage(StrEnum):
     PREPARING = "preparing"
     ANALYZING = "analyzing"
     VALIDATING = "validating"
+    PUBLISHING = "publishing"
 
 
 class AnalysisErrorCode(StrEnum):

@@ -13,4 +13,5 @@ export const stageLabels: Record<AnalysisStage, string> = {
   preparing: '准备视频',
   analyzing: '观察画面',
   validating: '校验分镜证据',
+  publishing: '发布分析报告',
 };

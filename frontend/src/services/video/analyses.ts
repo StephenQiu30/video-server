@@ -58,6 +58,20 @@ export async function exportAnalysisMarkdown(
   });
 }
 
+/** 重试原视频分析任务 为同一分析任务创建下一执行代次，不改变任务资源 ID。 POST /api/analyses/${param0}/retry */
+export async function retryAnalysis(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.retryAnalysisParams,
+  options?: RequestOptions
+) {
+  const { analysis_id: param0, ...queryParams } = params;
+  return request<API.AnalysisResponse>(`/api/analyses/${param0}/retry`, {
+    method: "POST",
+    params: { ...queryParams },
+    ...(options || {}),
+  });
+}
+
 /** 列出视频分析 Skill 返回可选 Skill 及用户可编辑的默认提示词。 GET /api/analysis-skills */
 export async function listAnalysisSkills(options?: RequestOptions) {
   return request<API.AnalysisSkillResponse[]>("/api/analysis-skills", {
@@ -83,4 +97,21 @@ export async function createAnalysis(
     data: body,
     ...(options || {}),
   });
+}
+
+/** 读取下载任务最近的视频分析 恢复当前用户在该下载任务上最近创建的分析与报告。 GET /api/downloads/${param0}/analysis */
+export async function getLatestDownloadAnalysis(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getLatestDownloadAnalysisParams,
+  options?: RequestOptions
+) {
+  const { download_id: param0, ...queryParams } = params;
+  return request<API.AnalysisResponse | null>(
+    `/api/downloads/${param0}/analysis`,
+    {
+      method: "GET",
+      params: { ...queryParams },
+      ...(options || {}),
+    }
+  );
 }

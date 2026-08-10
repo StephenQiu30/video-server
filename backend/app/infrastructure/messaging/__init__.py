@@ -2,12 +2,13 @@
 
 from .envelope import EventEnvelope, EventEnvelopeError, JsonValue
 from .rabbitmq import PublishNotConfirmed, RabbitMqPublisher
-from .topology import RabbitMqTopology
+from .topology import DurableQueueTopology, RabbitMqTopology
 
 __all__ = [
     "EventEnvelope",
     "EventEnvelopeError",
     "JsonValue",
+    "DurableQueueTopology",
     "PublishNotConfirmed",
     "RabbitMqPublisher",
     "RabbitMqTopology",
