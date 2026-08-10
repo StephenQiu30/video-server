@@ -20,3 +20,7 @@
 | 009 | Next 前端与页面重设计 | [Design](design/009-Next前端与蓝白视觉系统设计.md) | [PRD](prd/009-前端体验重构需求.md) | [Plan](plans/009-前端迁移与页面重设计计划.md) | [Acceptance](acceptance/009-前端迁移与页面重设计验收.md) |
 | 010 | Codex 与 Claude CLI 视频分析 | [Design](design/010-Codex与Claude CLI视频分析设计.md) | [PRD](prd/010-Codex与Claude CLI视频分析需求.md) | [Plan](plans/010-Codex与Claude CLI视频分析迁移计划.md) | [Acceptance](acceptance/010-Codex与Claude CLI视频分析验收.md) |
 | 011 | 管理员下载数据分析 | [Design](design/011-管理员下载数据分析设计.md) | [PRD](prd/011-管理员下载数据分析需求.md) | [Plan](plans/011-管理员下载数据分析计划.md) | [Acceptance](acceptance/011-管理员下载数据分析验收.md) |
+| 012 | AI 分析报告与 MinIO 持久化 | [Design](design/012-AI分析报告与MinIO持久化设计.md) | — | — | — |
+| 013 | AI 分析原任务重试 | [Design](design/013-AI分析原任务重试设计.md) | — | — | — |
+| 014 | WebSocket 任务状态同步 | [Design](design/014-WebSocket任务状态同步设计.md) | — | — | — |
+| 015 | RabbitMQ 异步分析与可靠投递 | [Design](design/015-RabbitMQ异步分析设计.md) | — | — | — |
