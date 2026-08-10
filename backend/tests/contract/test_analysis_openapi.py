@@ -17,6 +17,7 @@ def test_analysis_openapi_is_current_and_excludes_internal_fields(
         create_path,
         "/api/analyses/{analysis_id}",
         "/api/analyses/{analysis_id}/cancel",
+        "/api/analyses/{analysis_id}/report.docx",
     } <= paths.keys()
     assert paths[create_path]["post"]["operationId"] == "createAnalysis"
     create_response = paths[create_path]["post"]["responses"]["201"]
@@ -32,11 +33,25 @@ def test_analysis_openapi_is_current_and_excludes_internal_fields(
     components = schema["components"]["schemas"]
     assert components["AnalysisRequest"]["additionalProperties"] is False
     fields = components["AnalysisResponse"]["properties"]
+    assert "report_markdown" in fields
     assert {"artifact_id", "schema_version", "transcript", "provider"}.isdisjoint(
         fields
     )
     result_fields = components["AnalysisResultResponse"]["properties"]
-    assert {"media", "shot_count", "shots", "highlights", "assets"} <= set(
-        result_fields
-    )
+    assert {
+        "media",
+        "shot_count",
+        "shots",
+        "highlights",
+        "assets",
+        "production_advice",
+    } <= set(result_fields)
+    shot_fields = components["ShotResponse"]["properties"]
+    assert {"narrative_function", "highlight_score"} <= set(shot_fields)
     assert {"provider", "model", "cli_version"}.isdisjoint(result_fields)
+    export = paths["/api/analyses/{analysis_id}/report.docx"]["get"]
+    assert export["operationId"] == "exportAnalysisReport"
+    assert (
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        in export["responses"]["200"]["content"]
+    )

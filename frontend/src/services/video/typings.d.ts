@@ -26,17 +26,19 @@ declare namespace API {
   };
 
   type AnalysisRequest = {
-    /** Profile 视觉分镜、高光与资产分析配置。 */
-    profile: string;
+    /** Skill Id 分析 Skill 的稳定标识，由分析 Skill 清单接口提供。 */
+    skill_id: string;
     /** Output Language 分析结果使用的 BCP 47 语言标签。 */
     output_language: string;
+    /** Custom Prompt 用户可编辑的分析要求，仅影响观察重点和表达，不能覆盖工具、安全边界或结果结构。 */
+    custom_prompt?: string | null;
   };
 
   type AnalysisResponse = {
     /** Id */
     id: string;
-    /** Profile */
-    profile: string;
+    /** Skill Id */
+    skill_id: string;
     /** Output Language */
     output_language: string;
     status: AnalysisStatus;
@@ -53,6 +55,8 @@ declare namespace API {
     /** Finished At */
     finished_at: string | null;
     result: AnalysisResultResponse | null;
+    /** Report Markdown */
+    report_markdown: string | null;
   };
 
   type AnalysisResultResponse = {
@@ -70,6 +74,18 @@ declare namespace API {
     highlights: HighlightResponse[];
     /** Assets */
     assets: VisualAssetResponse[];
+    production_advice: ProductionAdviceResponse;
+  };
+
+  type AnalysisSkillResponse = {
+    /** Id */
+    id: string;
+    /** Display Name */
+    display_name: string;
+    /** Description */
+    description: string;
+    /** Default Prompt */
+    default_prompt: string;
   };
 
   type AnalysisStage = "preparing" | "analyzing" | "validating";
@@ -306,6 +322,14 @@ declare namespace API {
     evidence_shot_ids: string[];
   };
 
+  type exportAnalysisMarkdownParams = {
+    analysis_id: string;
+  };
+
+  type exportAnalysisReportParams = {
+    analysis_id: string;
+  };
+
   type FormatResponse = {
     /** Id */
     id: string;
@@ -441,6 +465,15 @@ declare namespace API {
     instance: string;
   };
 
+  type ProductionAdviceResponse = {
+    /** Summary */
+    summary: string;
+    /** Priority Shot Ids */
+    priority_shot_ids: string[];
+    /** Recommended Extensions */
+    recommended_extensions: string[];
+  };
+
   type ProviderAccessMode = "anonymous" | "operator_managed";
 
   type ProviderCapability =
@@ -542,6 +575,10 @@ declare namespace API {
     shot_size: string;
     /** Camera Motion */
     camera_motion: string;
+    /** Narrative Function */
+    narrative_function: string;
+    /** Highlight Score */
+    highlight_score: number;
     /** Visual Tags */
     visual_tags: string[];
     /** Asset Ids */

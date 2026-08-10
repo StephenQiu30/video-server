@@ -21,8 +21,8 @@ def request(tmp_path: Path) -> VideoAnalysisRequest:
         size_bytes=artifact.stat().st_size,
         container="mp4",
         output_language="zh-CN",
-        schema_version="visual-analysis.v1",
-        prompt_version="visual-shot.v1",
+        skill_id="director-breakdown",
+        skill_instructions="按 Cut 逐镜头完成导演拉片分析。",
     )
 
 

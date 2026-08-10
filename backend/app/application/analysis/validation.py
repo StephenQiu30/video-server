@@ -10,6 +10,7 @@ from app.application.analysis.errors import (
 
 _OWNER_HASH = re.compile(r"[0-9a-f]{64}")
 _SHA256 = re.compile(r"[0-9a-f]{64}")
+MAX_CUSTOM_PROMPT_LENGTH = 4_000
 
 
 def validate_owner_hash(value: str) -> str:
@@ -28,6 +29,17 @@ def validate_label(value: str, *, maximum: int) -> str:
     if not value or value != value.strip() or len(value) > maximum:
         _invalid()
     return value
+
+
+def validate_custom_prompt(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    if not normalized:
+        return None
+    if "\x00" in normalized or len(normalized) > MAX_CUSTOM_PROMPT_LENGTH:
+        _invalid()
+    return normalized
 
 
 def validate_sha256(value: str) -> str:

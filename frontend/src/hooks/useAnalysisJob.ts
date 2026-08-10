@@ -61,7 +61,7 @@ export function useAnalysisJob(downloadId: string, pollIntervalMs: number) {
 
   const start = useCallback(
     async (input: CreateAnalysisInput) => {
-      const payload = `${downloadId}:${input.profile}:${input.output_language}`;
+      const payload = JSON.stringify([downloadId, input]);
       if (createKey.current?.payload !== payload) {
         createKey.current = {
           payload,

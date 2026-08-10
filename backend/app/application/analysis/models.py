@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
 from uuid import UUID
 
 from app.domain.analysis import (
@@ -31,9 +30,10 @@ class AnalysisCreate:
     idempotency_key: str
     request_fingerprint: str
     input_sha256: str
-    profile: str
-    schema_version: str
+    skill_id: str
+    skill_instructions: str
     output_language: str
+    custom_prompt: str | None
     max_attempts: int
     outbox_event_id: UUID
     outbox_event_type: str
@@ -46,9 +46,10 @@ class AnalysisJobSnapshot:
     owner_hash: str
     request_fingerprint: str
     input_sha256: str
-    profile: str
-    schema_version: str
+    skill_id: str
+    skill_instructions: str
     output_language: str
+    custom_prompt: str | None
     status: str
     stage: str | None
     progress: int
@@ -73,9 +74,10 @@ class AnalysisJobSnapshot:
             owner_hash=command.owner_hash,
             request_fingerprint=command.request_fingerprint,
             input_sha256=command.input_sha256,
-            profile=command.profile,
-            schema_version=command.schema_version,
+            skill_id=command.skill_id,
+            skill_instructions=command.skill_instructions,
             output_language=command.output_language,
+            custom_prompt=command.custom_prompt,
             status=AnalysisStatus.QUEUED.value,
             stage=None,
             progress=0,
@@ -109,14 +111,13 @@ class AnalysisPublish:
     provider: str
     model: str
     cli_version: str
-    prompt_version: str
     now: datetime
 
 
 @dataclass(frozen=True, slots=True)
 class AnalysisJobView:
     id: UUID
-    profile: str
+    skill_id: str
     output_language: str
     status: AnalysisStatus
     stage: AnalysisStage | None
@@ -126,4 +127,19 @@ class AnalysisJobView:
     created_at: datetime
     updated_at: datetime
     finished_at: datetime | None
-    result: dict[str, Any] | None
+    result: AnalysisResult | None
+
+
+@dataclass(frozen=True, slots=True)
+class AnalysisReportFile:
+    content: bytes
+    filename: str
+    media_type: str
+
+
+@dataclass(frozen=True, slots=True)
+class AnalysisSkillView:
+    id: str
+    display_name: str
+    description: str
+    default_prompt: str

@@ -48,6 +48,8 @@ class Shot:
     transition_in: str
     shot_size: str
     camera_motion: str
+    narrative_function: str
+    highlight_score: int
     visual_tags: tuple[str, ...]
     asset_ids: tuple[str, ...]
 
@@ -77,6 +79,20 @@ class Shot:
                 self,
                 field,
                 required_text(getattr(self, field), field, maximum=32),
+            )
+        object.__setattr__(
+            self,
+            "narrative_function",
+            required_text(self.narrative_function, "shot narrative function"),
+        )
+        if (
+            isinstance(self.highlight_score, bool)
+            or not isinstance(self.highlight_score, int)
+            or not 1 <= self.highlight_score <= 5
+        ):
+            raise AnalysisValidationError(
+                AnalysisValidationCode.INVALID_SCHEMA,
+                "shot highlight_score must be between 1 and 5",
             )
         object.__setattr__(
             self, "visual_tags", _strings(self.visual_tags, "visual tag")

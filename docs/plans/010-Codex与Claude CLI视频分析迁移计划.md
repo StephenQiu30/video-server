@@ -43,7 +43,7 @@
 
 ### 工作项
 
-1. 在 `backend/app/domain/analysis/` 将结果切换为 `visual-analysis.v1`：
+1. 在 `backend/app/domain/analysis/` 将结果切换为唯一当前态视觉结果契约：
    - 新增/重写 `VisualAnalysisResult`、`Shot`、`Highlight`、`VisualAsset` 和限制对象。
    - 将 evidence 从 transcript segment 改为 shot id。
    - 实现严格解析、连续时间分区、引用、媒体元数据和总大小校验。
@@ -56,7 +56,7 @@
    - `materialize → analyze → validate → publish`。
    - 阶段改为 `preparing → analyzing → validating`。
    - 保持 claim、lease、heartbeat、cancel、retry 和 cleanup 语义。
-4. 将唯一 profile 改为 `visual-shot-v1`，Schema 版本改为 `visual-analysis.v1`。
+4. 删除公共视觉结果的 Schema 版本字段，并用仓库内 Skill 提供多种分析场景。
 5. 删除不再使用的 `Transcript`、`TranscriptSegment`、`AudioChunk` 领域/应用类型；不保留兼容字段。
 
 ### 验证
@@ -218,10 +218,10 @@ Prompt 与 Codex 一样由父进程写入 stdin，不作为 argv 暴露在进程
 1. 更新 `backend/sql/schema.sql` 当前态：
    - analysis stage 约束删除 `transcribing` 对应 rank。
    - 增加内部 provider/model/cli/prompt/schema provenance 所需字段。
-   - `analysis_results` 只保存 `visual-analysis.v1` Provider 无关 JSON。
+   - `analysis_results` 只保存唯一当前态的 Provider 无关 JSON。
 2. 同步 ORM、repository、snapshot 和序列化，不建立迁移目录或旧 JSON 解析器。
 3. 更新 `api/schemas/analyses.py` 与 OpenAPI：
-   - profile 为 `visual-shot-v1`。
+   - Skill 为 `director-breakdown`，任务中保存 Skill 指令快照。
    - 结果为服务端派生的 media/shot count、高光/资产时间，以及模型提供的 shots/highlights/assets 语义。
    - 不公开 provider、model、CLI/session/account/Prompt 元数据。
 4. 保持创建/查询/取消 URL、owner 404、幂等和 Problem Details 语义。

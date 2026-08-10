@@ -84,7 +84,7 @@ flowchart LR
 
 1. PostgreSQL 是任务状态的唯一事实来源。
 2. RabbitMQ 使用固定 envelope：`schema_version`、`event_id`、`aggregate_id`、`event_type`、`occurred_at` 和受限 `payload`。
-3. `download.requested` payload 仅包含 `job_id`、`attempt`、`version`；`analysis.requested` 仅包含 `job_id`、`artifact_id`、`input_sha256`、`profile`、`schema_version`、`output_language`、`attempt`、`version`。payload 有大小、深度和敏感字段校验，不得携带 URL、cookie、token、密钥、完整转录、模型原始响应或分析结果。
+3. `download.requested` payload 仅包含 `job_id`、`attempt`、`version`；`analysis.requested` 仅包含 `job_id`、`artifact_id`、`input_sha256`、`skill_id`、`output_language`、`attempt`、`version`。完整 Skill 指令快照保存在任务表中，不进入消息。payload 有大小、深度和敏感字段校验，不得携带 URL、cookie、token、密钥、完整转录、模型原始响应或分析结果。
 4. 业务事务与 outbox 事件同事务提交；Outbox Publisher 负责投递并标记，消费者按 event/job/version 幂等处理。API 不直接发布业务消息。
 5. MinIO 保存已验证的视频制品；分析音频只在受限工作目录中临时存在并在终态清理，可查询的结构化分析结果保存在 PostgreSQL JSONB。
 6. 所有任务使用 UUID、幂等键、乐观版本与 lease；进度不是锁，心跳必须独立刷新。

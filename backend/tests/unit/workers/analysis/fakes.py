@@ -23,9 +23,10 @@ def running_job() -> AnalysisJobSnapshot:
         owner_hash="a" * 64,
         request_fingerprint="b" * 64,
         input_sha256="c" * 64,
-        profile="default",
-        schema_version="visual-analysis.v1",
+        skill_id="director-breakdown",
+        skill_instructions="导演拉片完整指令",
         output_language="zh-CN",
+        custom_prompt=None,
         status="running",
         stage="preparing",
         progress=0,
@@ -118,15 +119,13 @@ class FakeRepository:
         provider: str,
         model: str,
         cli_version: str,
-        prompt_version: str,
         now: datetime,
     ) -> None:
         assert expected_version == self.job.version
-        assert (provider, model, cli_version, prompt_version) == (
+        assert (provider, model, cli_version) == (
             "controlled",
             "controlled",
             "controlled",
-            "visual-shot.v1",
         )
         self.published.append(result)
         self.job = replace(self.job, status="succeeded", stage=None)

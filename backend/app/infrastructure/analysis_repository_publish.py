@@ -48,22 +48,17 @@ class AnalysisPublishRepository(AnalysisRecoveryRepository):
                 or row.version != command.expected_version
             ):
                 raise PersistenceConflict("analysis publish lease or version lost")
-            if (
-                row.schema_version != command.result.schema_version
-                or row.output_language != command.result.language
-            ):
+            if row.output_language != command.result.language:
                 raise PersistenceConflict("analysis result contract differs from job")
             session.add(
                 AnalysisResultRow(
                     id=uuid4(),
                     job_id=row.id,
                     input_sha256=row.input_sha256,
-                    schema_version=row.schema_version,
                     language=row.output_language,
                     provider=command.provider,
                     model=command.model,
                     cli_version=command.cli_version,
-                    prompt_version=command.prompt_version,
                     result_json=document,
                     created_at=command.now,
                 )

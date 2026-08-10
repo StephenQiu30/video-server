@@ -24,8 +24,7 @@ class AnalysisJob(AnalysisJobRules):
     id: str
     artifact_id: str
     input_sha256: str
-    profile: str
-    schema_version: str
+    skill_id: str
     output_language: str
     status: AnalysisStatus = AnalysisStatus.QUEUED
     stage: AnalysisStage | None = None
@@ -47,10 +46,7 @@ class AnalysisJob(AnalysisJobRules):
             value not in "0123456789abcdef" for value in self.input_sha256
         ):
             raise ValueError("input_sha256 must be lowercase SHA-256")
-        self.profile = required_text(self.profile, "analysis profile", maximum=128)
-        self.schema_version = required_text(
-            self.schema_version, "schema version", maximum=128
-        )
+        self.skill_id = required_text(self.skill_id, "analysis skill id", maximum=128)
         self.output_language = required_text(
             self.output_language, "output language", maximum=35
         )
@@ -66,16 +62,14 @@ class AnalysisJob(AnalysisJobRules):
         job_id: str,
         artifact_id: str,
         input_sha256: str,
-        profile: str,
-        schema_version: str,
+        skill_id: str,
         output_language: str,
     ) -> AnalysisJob:
         return cls(
             id=job_id,
             artifact_id=artifact_id,
             input_sha256=input_sha256,
-            profile=profile,
-            schema_version=schema_version,
+            skill_id=skill_id,
             output_language=output_language,
         )
 

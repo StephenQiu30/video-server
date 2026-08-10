@@ -11,6 +11,7 @@ from app.application.analysis import (
     AnalysisJobSnapshot,
     AnalysisPublish,
     AnalysisResult,
+    AnalysisSkillView,
     PersistenceConflict,
     PersistenceIdempotencyConflict,
     PersistenceNotFound,
@@ -22,13 +23,41 @@ class FakeFingerprinter:
         return "|".join((namespace, *values))
 
 
+class FakeSkillCatalog:
+    def list(self) -> tuple[AnalysisSkillView, ...]:
+        return (
+            AnalysisSkillView(
+                id="director-breakdown",
+                display_name="导演拉片",
+                description="逐镜头分析",
+                default_prompt="逐镜头分析视频。",
+            ),
+            AnalysisSkillView(
+                id="highlights",
+                display_name="高光提炼",
+                description="识别高光",
+                default_prompt="识别高光片段。",
+            ),
+        )
+
+    def resolve(self, skill_id: str) -> tuple[AnalysisSkillView, str] | None:
+        return next(
+            (
+                (skill, f"{skill.display_name}完整指令")
+                for skill in self.list()
+                if skill.id == skill_id
+            ),
+            None,
+        )
+
+
 class FakeRepository:
     def __init__(self) -> None:
         self.artifacts: dict[UUID, AnalysisArtifactSnapshot] = {}
         self.jobs: dict[UUID, AnalysisJobSnapshot] = {}
         self.commands: list[AnalysisCreate] = []
         self.published: list[AnalysisPublish] = []
-        self.results: dict[UUID, dict[str, object]] = {}
+        self.results: dict[UUID, AnalysisResult] = {}
         self.outbox_events = 0
         self._keys: dict[tuple[str, str], UUID] = {}
 
@@ -64,7 +93,7 @@ class FakeRepository:
     async def get_job(self, job_id: UUID) -> AnalysisJobSnapshot | None:
         return self.jobs.get(job_id)
 
-    async def get_result(self, job_id: UUID) -> dict[str, object] | None:
+    async def get_result(self, job_id: UUID) -> AnalysisResult | None:
         return self.results.get(job_id)
 
     async def cancel_job(

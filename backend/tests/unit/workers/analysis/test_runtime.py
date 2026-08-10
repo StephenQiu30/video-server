@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
@@ -7,7 +8,6 @@ from uuid import uuid4
 import pytest
 from app.core.config import Settings
 from app.infrastructure.ai_cli import (
-    AnalysisCliError,
     ClaudeCliVideoAnalyzer,
     CliCapabilities,
     CodexCliVideoAnalyzer,
@@ -33,10 +33,10 @@ def test_worker_builds_selected_oauth_cli_adapter(
         del args, kwargs
         return CliCapabilities(
             provider=provider,
-            binary=Path("/opt/tools/ai-cli"),
+            binary=Path(sys.executable),
             version="controlled",
-            ffmpeg=Path("/opt/tools/ffmpeg"),
-            ffprobe=Path("/opt/tools/ffprobe"),
+            ffmpeg=Path(sys.executable),
+            ffprobe=Path(sys.executable),
         )
 
     monkeypatch.setattr(providers, "preflight", successful_preflight)
@@ -49,15 +49,15 @@ def test_worker_builds_selected_oauth_cli_adapter(
     assert runtime.cli_version == "controlled"
 
 
-def test_worker_rejects_api_key_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_worker_discards_api_key_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "must-not-be-used")
+    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "must-not-be-used")
 
-    with pytest.raises(AnalysisCliError, match="analysis_cli_not_authenticated"):
-        authentication_environment()
+    environment = authentication_environment()
 
-    monkeypatch.delenv("OPENAI_API_KEY")
-    assert "OPENAI_API_KEY" not in authentication_environment()
-    assert "HOME" in authentication_environment()
+    assert "OPENAI_API_KEY" not in environment
+    assert "ANTHROPIC_AUTH_TOKEN" not in environment
+    assert "HOME" in environment
 
 
 class FakeRecovery:

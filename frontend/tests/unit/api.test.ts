@@ -4,6 +4,7 @@ import {
   cancelAnalysis,
   createAnalysis,
   getAnalysis,
+  listAnalysisSkills,
 } from '@/services/analysis';
 import { getAdminDownloadAnalytics } from '@/services/analytics';
 import {
@@ -28,7 +29,7 @@ import {
   updateCurrentUser,
   updateUserAccess,
 } from '@/services/users';
-import { analysisJob } from '../fixtures/analysis-fixtures';
+import { analysisJob, analysisSkills } from '../fixtures/analysis-fixtures';
 import { inspection, job } from '../fixtures/download-fixtures';
 import { httpRequests, mockHttpResponses } from '../helpers/http';
 
@@ -186,7 +187,11 @@ describe('typed API client', () => {
     );
     await createAnalysis(
       job().id,
-      { profile: 'visual-shot-v1', output_language: 'en-US' },
+      {
+        skill_id: 'highlights',
+        output_language: 'en-US',
+        custom_prompt: 'Focus on product reveals.',
+      },
       'analysis-key',
     );
     await getAnalysis(analysisJob().id);
@@ -197,6 +202,21 @@ describe('typed API client', () => {
       { url: `/api/analyses/${analysisJob().id}`, method: 'GET' },
       { url: `/api/analyses/${analysisJob().id}/cancel`, method: 'POST' },
     ]);
+    expect(httpRequests()[0]?.data).toEqual({
+      skill_id: 'highlights',
+      output_language: 'en-US',
+      custom_prompt: 'Focus on product reveals.',
+    });
+  });
+
+  it('lists server-defined analysis skills', async () => {
+    mockHttpResponses(analysisSkills);
+
+    await expect(listAnalysisSkills()).resolves.toEqual(analysisSkills);
+    expect(httpRequests()[0]).toMatchObject({
+      url: '/api/analysis-skills',
+      method: 'GET',
+    });
   });
 
   it('covers profile and administrator user management endpoints', async () => {

@@ -130,12 +130,13 @@ def analysis_command(
         idempotency_key=idempotency_key or f"analysis-{source.artifact_id}",
         request_fingerprint=fingerprint
         or hashlib.sha256(
-            f"{source.artifact_id}:visual-shot-v1:visual-analysis.v1:zh-CN".encode()
+            f"{source.artifact_id}:director-breakdown:zh-CN".encode()
         ).hexdigest(),
         input_sha256=source.sha256,
-        profile="visual-shot-v1",
-        schema_version="visual-analysis.v1",
+        skill_id="director-breakdown",
+        skill_instructions="导演拉片完整指令",
         output_language="zh-CN",
+        custom_prompt=None,
         max_attempts=max_attempts,
         outbox_event_id=event_id or uuid4(),
         outbox_event_type="analysis.requested",
@@ -146,6 +147,5 @@ def analysis_result() -> AnalysisResult:
     return parse_analysis_result(
         valid_mapping(),
         AnalysisMedia(duration_ms=2_000, container="mp4", size_bytes=1_024),
-        expected_schema_version="visual-analysis.v1",
         expected_language="zh-CN",
     )

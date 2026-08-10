@@ -112,8 +112,6 @@ class Settings(BaseSettings):
     analysis_claude_model: str = Field(default="sonnet", min_length=1)
     analysis_ffmpeg_binary: Path = Path("ffmpeg")
     analysis_ffprobe_binary: Path = Path("ffprobe")
-    analysis_schema_version: str = "visual-analysis.v1"
-    analysis_prompt_version: str = "visual-shot.v1"
     analysis_timeout_seconds: float = Field(default=900, ge=1, le=3600)
     analysis_max_stdout_bytes: int = Field(default=2 * 1024**2, ge=1024)
     analysis_max_stderr_bytes: int = Field(default=128 * 1024, ge=1024)

@@ -7,7 +7,14 @@ from typing import Annotated, cast
 
 from fastapi import Header, Request
 
-from app.application.analysis import CancelAnalysis, CreateAnalysis, GetAnalysis
+from app.application.analysis import (
+    CancelAnalysis,
+    CreateAnalysis,
+    ExportAnalysisMarkdown,
+    ExportAnalysisReport,
+    GetAnalysis,
+    ListAnalysisSkills,
+)
 from app.application.downloads import (
     CancelDownload,
     CreateDownload,
@@ -54,9 +61,12 @@ class DownloadUseCases:
 
 @dataclass(frozen=True, slots=True)
 class AnalysisUseCases:
+    list_analysis_skills: ListAnalysisSkills
     create_analysis: CreateAnalysis
     get_analysis: GetAnalysis
     cancel_analysis: CancelAnalysis
+    export_analysis_report: ExportAnalysisReport
+    export_analysis_markdown: ExportAnalysisMarkdown
 
 
 def get_download_use_cases(request: Request) -> DownloadUseCases:

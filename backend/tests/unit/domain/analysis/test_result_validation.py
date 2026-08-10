@@ -18,7 +18,6 @@ def media() -> AnalysisMedia:
 
 def document() -> dict[str, object]:
     return {
-        "schema_version": "visual-analysis.v1",
         "language": "zh-CN",
         "title": "视觉分析",
         "summary": {
@@ -36,6 +35,8 @@ def document() -> dict[str, object]:
                 "transition_in": "none",
                 "shot_size": "wide",
                 "camera_motion": "static",
+                "narrative_function": "建立故事空间。",
+                "highlight_score": 3,
                 "visual_tags": ["人物", "室内"],
             },
             {
@@ -48,6 +49,8 @@ def document() -> dict[str, object]:
                 "transition_in": "cut",
                 "shot_size": "close_up",
                 "camera_motion": "zoom",
+                "narrative_function": "突出核心产品信息。",
+                "highlight_score": 5,
                 "visual_tags": ["产品"],
             },
             {
@@ -60,6 +63,8 @@ def document() -> dict[str, object]:
                 "transition_in": "dissolve",
                 "shot_size": "medium",
                 "camera_motion": "pan",
+                "narrative_function": "完成品牌信息收束。",
+                "highlight_score": 4,
                 "visual_tags": ["标识"],
             },
         ],
@@ -89,6 +94,11 @@ def document() -> dict[str, object]:
                 "evidence_shot_ids": ["shot-2", "shot-3"],
             },
         ],
+        "production_advice": {
+            "summary": "优先还原产品特写与品牌收尾镜头。",
+            "priority_shot_ids": ["shot-2", "shot-3"],
+            "recommended_extensions": ["镜头 Prompt", "产品资产"],
+        },
     }
 
 
@@ -96,7 +106,6 @@ def parse(payload: object, *, limits: AnalysisLimits | None = None) -> object:
     return parse_analysis_result(
         payload,
         media(),
-        expected_schema_version="visual-analysis.v1",
         expected_language="zh-CN",
         limits=limits,
     )
@@ -123,6 +132,7 @@ def test_valid_result_derives_counts_times_and_reverse_asset_index() -> None:
         (("shots", 0, "transition_in", "cut"), AnalysisValidationCode.INVALID_SCHEMA),
         (("shots", 1, "camera_motion", "orbit"), AnalysisValidationCode.INVALID_SCHEMA),
         (("highlights", 0, "score", 101), AnalysisValidationCode.INVALID_SCHEMA),
+        (("shots", 0, "highlight_score", 0), AnalysisValidationCode.INVALID_SCHEMA),
         (("assets", 0, "type", "identity"), AnalysisValidationCode.INVALID_SCHEMA),
     ],
 )
@@ -153,9 +163,7 @@ def test_unknown_empty_duplicate_and_orphan_evidence_are_rejected() -> None:
             parse(payload)
 
 
-def test_schema_language_nested_fields_ids_and_collection_limits_are_strict() -> None:
-    wrong_schema = document()
-    wrong_schema["schema_version"] = "unsupported.v0"
+def test_language_nested_fields_ids_and_collection_limits_are_strict() -> None:
     wrong_language = document()
     wrong_language["language"] = "en-US"
     nested_extra = deepcopy(document())
@@ -163,7 +171,7 @@ def test_schema_language_nested_fields_ids_and_collection_limits_are_strict() ->
     duplicate_id = document()
     duplicate_id["shots"][1]["id"] = "shot-1"
 
-    for payload in (wrong_schema, wrong_language, nested_extra, duplicate_id):
+    for payload in (wrong_language, nested_extra, duplicate_id):
         with pytest.raises(AnalysisValidationError):
             parse(payload)
 

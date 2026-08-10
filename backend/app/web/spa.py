@@ -9,7 +9,7 @@ from urllib.parse import quote, urlsplit
 
 from fastapi import FastAPI
 from starlette.exceptions import HTTPException
-from starlette.responses import RedirectResponse
+from starlette.responses import FileResponse, RedirectResponse
 from starlette.staticfiles import StaticFiles
 
 RESERVED_PREFIXES = ("api", "health")
@@ -61,5 +61,18 @@ def mount_frontend(app: FastAPI, directory: Path) -> bool:
     """Mount a built frontend when present and return whether it was mounted."""
     if not (directory / "index.html").is_file():
         return False
+
+    @app.get("/downloads/{download_id}", include_in_schema=False)
+    async def legacy_download(download_id: str) -> Any:
+        if download_id == "detail":
+            detail = directory / "downloads" / "detail" / "index.html"
+            if detail.is_file():
+                return FileResponse(detail)
+            raise HTTPException(status_code=404)
+        return RedirectResponse(
+            url=f"/downloads/detail?jobId={quote(download_id, safe='')}",
+            status_code=308,
+        )
+
     app.mount("/", SPAStaticFiles(directory=directory, html=True), name="frontend")
     return True

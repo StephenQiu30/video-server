@@ -109,6 +109,11 @@ class LocalAnalysisArtifactLoader:
             if workspace.is_symlink() or not workspace.is_dir():
                 workspace.unlink(missing_ok=True)
             else:
+                # Windows honors the read-only bit set on the source artifact;
+                # make only this verified workspace writable before removal.
+                for path in workspace.rglob("*"):
+                    with suppress(OSError):
+                        path.chmod(0o700)
                 shutil.rmtree(workspace)
 
 

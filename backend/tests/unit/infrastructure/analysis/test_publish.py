@@ -64,7 +64,6 @@ async def test_result_and_success_publish_atomically_without_transcript(
         provider="codex",
         model="controlled-model",
         cli_version="codex-cli controlled",
-        prompt_version="visual-shot.v1",
         now=NOW + timedelta(seconds=3),
     )
 
@@ -78,13 +77,11 @@ async def test_result_and_success_publish_atomically_without_transcript(
             select(AnalysisResultRow).where(AnalysisResultRow.job_id == command.id)
         )
         assert row is not None
-        assert (row.provider, row.model, row.prompt_version) == (
+        assert (row.provider, row.model) == (
             "codex",
             "controlled-model",
-            "visual-shot.v1",
         )
         assert set(row.result_json) == {
-            "schema_version",
             "language",
             "title",
             "summary",
@@ -93,13 +90,12 @@ async def test_result_and_success_publish_atomically_without_transcript(
             "shots",
             "highlights",
             "assets",
+            "production_advice",
         }
         serialized = json.dumps(row.result_json, ensure_ascii=False).lower()
         assert "transcript" not in serialized
         assert "provider_response" not in serialized
-        expected_document = row.result_json
-
-    assert await analysis_db.repository.get_result(command.id) == expected_document
+    assert await analysis_db.repository.get_result(command.id) == publish.result
 
     replay = await analysis_db.repository.publish_result(publish)
     assert replay.status == "succeeded"
@@ -123,7 +119,6 @@ async def test_publish_requires_matching_validating_lease_and_version(
         provider="codex",
         model="controlled-model",
         cli_version="codex-cli controlled",
-        prompt_version="visual-shot.v1",
         now=NOW + timedelta(seconds=3),
     )
 

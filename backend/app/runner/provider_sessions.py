@@ -123,7 +123,7 @@ class ProviderSessionStore:
                     output.write(payload)
                     output.flush()
                     os.fsync(output.fileno())
-                if stat.S_IMODE(jar.stat().st_mode) != 0o600:
+                if os.name == "posix" and stat.S_IMODE(jar.stat().st_mode) != 0o600:
                     raise RunnerFailure("provider_session_unavailable", status=503)
                 yield jar
             finally:

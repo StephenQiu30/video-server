@@ -109,7 +109,6 @@ class AnalysisExecutionPersistence:
         provider: str,
         model: str,
         cli_version: str,
-        prompt_version: str,
         now: datetime,
     ) -> None:
         with _translate_errors():
@@ -122,7 +121,6 @@ class AnalysisExecutionPersistence:
                     provider=provider,
                     model=model,
                     cli_version=cli_version,
-                    prompt_version=prompt_version,
                     now=now,
                 )
             )

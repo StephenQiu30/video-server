@@ -55,6 +55,26 @@ async def test_job_outbox_and_retention_lock_are_created_atomically(
         assert event.event_type == "analysis.requested"
         assert "transcript" not in event.payload
         assert "owner_hash" not in event.payload
+        assert "custom_prompt" not in event.payload
+
+
+@pytest.mark.asyncio
+async def test_custom_prompt_is_persisted_without_entering_outbox(
+    analysis_db,
+) -> None:
+    source = await seed_artifact(analysis_db.sessions, NOW)
+    command = replace(
+        analysis_command(source),
+        custom_prompt="重点识别产品功能演示。",
+    )
+
+    created = await analysis_db.repository.create_job_and_enqueue(command, now=NOW)
+
+    assert created.job.custom_prompt == "重点识别产品功能演示。"
+    async with analysis_db.sessions() as session:
+        event = await session.get(OutboxEventRow, command.outbox_event_id)
+        assert event is not None
+        assert "custom_prompt" not in event.payload
 
 
 @pytest.mark.asyncio

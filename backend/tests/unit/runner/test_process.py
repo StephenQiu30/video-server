@@ -18,6 +18,10 @@ def process_exists(pid: int) -> bool:
         os.kill(pid, 0)
     except ProcessLookupError:
         return False
+    except OSError as exc:
+        if os.name == "nt" and exc.winerror == 87:
+            return False
+        raise
     return True
 
 

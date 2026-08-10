@@ -7,6 +7,7 @@ from app.domain.analysis.result_drafts import (
     evidence_ids,
     parse_asset,
     parse_highlight,
+    parse_production_advice,
     parse_shot,
 )
 from app.domain.analysis.result_items import Highlight, Shot, VisualAsset
@@ -23,7 +24,6 @@ def parse_analysis_result(
     payload: object,
     media: AnalysisMedia,
     *,
-    expected_schema_version: str,
     expected_language: str,
     limits: AnalysisLimits | None = None,
 ) -> AnalysisResult:
@@ -32,21 +32,20 @@ def parse_analysis_result(
         payload,
         "result",
         {
-            "schema_version",
             "language",
             "title",
             "summary",
             "shots",
             "highlights",
             "assets",
+            "production_advice",
         },
     )
-    schema_version = context.text(root["schema_version"], "schema_version", maximum=128)
     language = context.text(root["language"], "language", maximum=35)
-    if schema_version != expected_schema_version or language != expected_language:
+    if language != expected_language:
         raise AnalysisValidationError(
             AnalysisValidationCode.INVALID_SCHEMA,
-            "schema version or output language does not match the job",
+            "output language does not match the job",
         )
 
     shot_drafts = tuple(
@@ -90,6 +89,8 @@ def parse_analysis_result(
             transition_in=item.transition_in,
             shot_size=item.shot_size,
             camera_motion=item.camera_motion,
+            narrative_function=item.narrative_function,
+            highlight_score=item.highlight_score,
             visual_tags=item.visual_tags,
             asset_ids=tuple(
                 asset.id for asset in assets if item.id in asset.evidence_shot_ids
@@ -111,7 +112,6 @@ def parse_analysis_result(
         for item in highlight_drafts
     )
     result = AnalysisResult(
-        schema_version=schema_version,
         language=language,
         title=context.text(root["title"], "title"),
         summary=_summary(context, root["summary"]),
@@ -120,6 +120,7 @@ def parse_analysis_result(
         shots=shots,
         highlights=highlights,
         assets=assets,
+        production_advice=parse_production_advice(context, root["production_advice"]),
     )
     validate_analysis_result(result, limits=context.limits)
     return result

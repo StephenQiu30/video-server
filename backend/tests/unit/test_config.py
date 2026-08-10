@@ -111,6 +111,7 @@ def test_analysis_cli_settings_use_host_services_without_api_keys() -> None:
     settings = Settings(app_env="test", _env_file=None)
 
     assert settings.analysis_cli_provider == "codex"
-    assert settings.analysis_schema_version == "visual-analysis.v1"
+    assert "analysis_schema_version" not in type(settings).model_fields
+    assert "analysis_prompt_version" not in type(settings).model_fields
     assert "localhost:15432" in settings.analysis_database_url
     assert not any("openai" in name for name in type(settings).model_fields)

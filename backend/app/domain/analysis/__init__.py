@@ -15,6 +15,7 @@ from app.domain.analysis.result_models import (
     AnalysisMedia,
     AnalysisResult,
     EvidenceSummary,
+    ProductionAdvice,
 )
 from app.domain.analysis.result_parser import parse_analysis_result
 from app.domain.analysis.result_validation import validate_analysis_result
@@ -33,6 +34,7 @@ __all__ = [
     "Highlight",
     "InvalidAnalysisTransition",
     "Shot",
+    "ProductionAdvice",
     "VisualAsset",
     "parse_analysis_result",
     "validate_analysis_result",

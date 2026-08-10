@@ -55,9 +55,13 @@ def test_swagger_ui_and_openapi_contract_are_available(tmp_path: Path) -> None:
         "getDownload",
         "getDownloadHistory",
         "cancelDownload",
+        "retryDownload",
         "issueDownloadUrl",
+        "listAnalysisSkills",
         "createAnalysis",
         "getAnalysis",
+        "exportAnalysisMarkdown",
+        "exportAnalysisReport",
         "cancelAnalysis",
     }
     assert all(len(operation["tags"]) == 1 for operation in operations.values())

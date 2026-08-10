@@ -1,5 +1,5 @@
-export type AnalysisProfile = 'visual-shot-v1';
 export type OutputLanguage = 'zh-CN' | 'en-US';
+export type AnalysisSkill = API.AnalysisSkillResponse;
 export type AnalysisStatus = API.AnalysisStatus;
 export type AnalysisStage = API.AnalysisStage;
 export type AnalysisShot = API.ShotResponse;
@@ -9,8 +9,9 @@ export type AnalysisResult = API.AnalysisResultResponse;
 export type AnalysisJob = API.AnalysisResponse;
 
 export type CreateAnalysisInput = API.AnalysisRequest & {
-  profile: AnalysisProfile;
+  skill_id: string;
   output_language: OutputLanguage;
+  custom_prompt?: string | null;
 };
 
 export type FpsBucket = API.FpsBucket;

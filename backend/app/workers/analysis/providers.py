@@ -13,14 +13,6 @@ from app.infrastructure.ai_cli import (
     preflight,
 )
 
-_FORBIDDEN_AUTH = (
-    "OPENAI_API_KEY",
-    "CODEX_API_KEY",
-    "ANTHROPIC_API_KEY",
-    "ANTHROPIC_AUTH_TOKEN",
-    "CLAUDE_CODE_OAUTH_TOKEN",
-)
-
 
 @dataclass(frozen=True, slots=True)
 class AnalyzerRuntime:
@@ -70,8 +62,8 @@ def build_video_analyzer(
 
 
 def authentication_environment() -> dict[str, str]:
-    if any(os.environ.get(name) for name in _FORBIDDEN_AUTH):
-        raise AnalysisCliError("analysis_cli_not_authenticated")
+    # Build from an explicit allowlist so inherited API credentials can never
+    # reach the CLI, while unrelated host-level variables do not disable OAuth.
     environment = {
         "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
         "HOME": str(Path.home()),

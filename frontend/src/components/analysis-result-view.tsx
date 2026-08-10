@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 
+import AnalysisReportPreview from '@/components/analysis-report-preview';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { AnalysisResult } from '@/types/video';
@@ -18,9 +19,11 @@ const assetTypeLabels: Record<string, string> = {
 
 export default function AnalysisResultView({
   onSelectTime,
+  reportMarkdown,
   result,
 }: {
   onSelectTime?: (milliseconds: number) => void;
+  reportMarkdown?: string | null;
   result: AnalysisResult;
 }) {
   return (
@@ -47,6 +50,9 @@ export default function AnalysisResultView({
           <ResultTab value="shots">分镜</ResultTab>
           <ResultTab value="highlights">高光</ResultTab>
           <ResultTab value="assets">资产</ResultTab>
+          {reportMarkdown ? (
+            <ResultTab value="report">报告预览</ResultTab>
+          ) : null}
         </TabsList>
       </div>
       <TabsContent className="pt-7" value="shots">
@@ -128,6 +134,11 @@ export default function AnalysisResultView({
           <EmptyState>未识别出可复用的视觉资产。</EmptyState>
         )}
       </TabsContent>
+      {reportMarkdown ? (
+        <TabsContent className="pt-7" value="report">
+          <AnalysisReportPreview markdown={reportMarkdown} />
+        </TabsContent>
+      ) : null}
     </Tabs>
   );
 }

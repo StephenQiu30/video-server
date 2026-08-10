@@ -81,7 +81,6 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
             lease_for=timedelta(seconds=settings.job_lease_seconds),
             heartbeat_interval=settings.heartbeat_interval_seconds,
             max_source_bytes=settings.max_file_size_bytes,
-            prompt_version=settings.analysis_prompt_version,
             provider=analyzer_runtime.provider,
             model=analyzer_runtime.model,
             cli_version=analyzer_runtime.cli_version,

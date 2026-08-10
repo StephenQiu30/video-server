@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 
-def analysis_output_schema(schema_version: str, language: str) -> dict[str, Any]:
+def analysis_output_schema(language: str) -> dict[str, Any]:
     reference_array = {
         "type": "array",
         "items": {"type": "string"},
@@ -12,16 +12,15 @@ def analysis_output_schema(schema_version: str, language: str) -> dict[str, Any]
         "type": "object",
         "additionalProperties": False,
         "required": [
-            "schema_version",
             "language",
             "title",
             "summary",
             "shots",
             "highlights",
             "assets",
+            "production_advice",
         ],
         "properties": {
-            "schema_version": {"type": "string", "enum": [schema_version]},
             "language": {"type": "string", "enum": [language]},
             "title": _text(),
             "summary": _object(
@@ -40,6 +39,7 @@ def analysis_output_schema(schema_version: str, language: str) -> dict[str, Any]
                 "type": "array",
                 "items": _asset(reference_array),
             },
+            "production_advice": _production_advice(reference_array),
         },
     }
 
@@ -55,6 +55,8 @@ def _shot() -> dict[str, Any]:
         "transition_in",
         "shot_size",
         "camera_motion",
+        "narrative_function",
+        "highlight_score",
         "visual_tags",
     ]
     return _object(
@@ -93,6 +95,8 @@ def _shot() -> dict[str, Any]:
                     "unknown",
                 ]
             },
+            "narrative_function": _text(),
+            "highlight_score": {"type": "integer", "minimum": 1, "maximum": 5},
             "visual_tags": {
                 "type": "array",
                 "items": {"type": "string"},
@@ -135,6 +139,21 @@ def _asset(references: dict[str, Any]) -> dict[str, Any]:
             "label": _text(),
             "description": _text(),
             "evidence_shot_ids": references,
+        },
+    )
+
+
+def _production_advice(references: dict[str, Any]) -> dict[str, Any]:
+    fields = ["summary", "priority_shot_ids", "recommended_extensions"]
+    return _object(
+        fields,
+        {
+            "summary": _text(),
+            "priority_shot_ids": references,
+            "recommended_extensions": {
+                "type": "array",
+                "items": {"type": "string"},
+            },
         },
     )
 

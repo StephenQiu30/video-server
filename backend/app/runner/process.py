@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import os
 import signal
+import subprocess
 from collections.abc import Mapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
@@ -61,19 +62,7 @@ class ProcessSupervisor:
         if timeout_seconds <= 0:
             raise ValueError("process timeout must be positive")
 
-        process = await asyncio.create_subprocess_exec(
-            *command,
-            cwd=cwd,
-            env=None if env is None else dict(env),
-            stdin=(
-                asyncio.subprocess.PIPE
-                if input_bytes is not None
-                else asyncio.subprocess.DEVNULL
-            ),
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            start_new_session=True,
-        )
+        process = await _create_process(command, cwd, env, input_bytes)
         assert process.stdout is not None
         assert process.stderr is not None
         combined = asyncio.create_task(self._collect(process, input_bytes))
@@ -151,26 +140,84 @@ class ProcessSupervisor:
         process: asyncio.subprocess.Process,
         combined: asyncio.Task[ProcessResult],
     ) -> ProcessResult:
-        _signal_process_group(process.pid, signal.SIGTERM)
+        if os.name == "nt":
+            await _terminate_windows_tree(process.pid)
+            return await combined
+        _signal_process_group(process.pid, int(signal.SIGTERM))
         group_exited = await _wait_for_group_exit(
             process.pid,
             self._terminate_grace,
         )
         if not group_exited:
-            _signal_process_group(process.pid, signal.SIGKILL)
+            _signal_process_group(
+                process.pid,
+                int(getattr(signal, "SIGKILL", signal.SIGTERM)),
+            )
         return await combined
 
 
-def _signal_process_group(pid: int, action: signal.Signals) -> None:
+async def _create_process(
+    command: tuple[str, ...],
+    cwd: Path,
+    env: Mapping[str, str] | None,
+    input_bytes: bytes | None,
+) -> asyncio.subprocess.Process:
+    stdin = (
+        asyncio.subprocess.PIPE
+        if input_bytes is not None
+        else asyncio.subprocess.DEVNULL
+    )
+    if os.name == "nt":
+        return await asyncio.create_subprocess_exec(
+            *command,
+            cwd=cwd,
+            env=None if env is None else dict(env),
+            stdin=stdin,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            creationflags=int(getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)),
+        )
+    return await asyncio.create_subprocess_exec(
+        *command,
+        cwd=cwd,
+        env=None if env is None else dict(env),
+        stdin=stdin,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        start_new_session=True,
+    )
+
+
+async def _terminate_windows_tree(pid: int) -> None:
+    def terminate() -> None:
+        subprocess.run(
+            ("taskkill", "/PID", str(pid), "/T", "/F"),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+            creationflags=int(getattr(subprocess, "CREATE_NO_WINDOW", 0)),
+        )
+
+    await asyncio.to_thread(terminate)
+
+
+def _signal_process_group(pid: int, action: int) -> None:
+    kill_group = getattr(os, "killpg", None)
+    if kill_group is None:
+        return
     try:
-        os.killpg(pid, action)
+        kill_group(pid, action)
     except ProcessLookupError:
         return
 
 
 def _process_group_exists(pid: int) -> bool:
+    kill_group = getattr(os, "killpg", None)
+    if kill_group is None:
+        return False
     try:
-        os.killpg(pid, 0)
+        kill_group(pid, 0)
     except ProcessLookupError:
         return False
     except PermissionError:

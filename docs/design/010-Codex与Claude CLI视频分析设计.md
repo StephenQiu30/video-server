@@ -7,7 +7,7 @@
 
 ## 1. 当前基线与迁移范围
 
-当前 `AnalysisExecution` 链路是“下载制品物化 → 宿主机 CLI 自主抽帧与视觉观察 → `visual-analysis.v1` 校验 → shot evidence 持久化”。旧 OpenAI ASR、DeepSeek/Ollama 文本分析和容器化 Analysis Worker 已从运行时删除。
+当前 `AnalysisExecution` 链路是“下载制品物化 → 宿主机 CLI 自主抽帧与视觉观察 → 唯一当前态契约校验 → shot evidence 持久化”。旧 OpenAI ASR、DeepSeek/Ollama 文本分析和容器化 Analysis Worker 已从运行时删除。
 
 1. 用户需要的是视频画面的分镜数量、分镜内容、视觉高光和资产目录，不是对白转录后的文本总结。
 2. 本机已经登录 Codex CLI 与 Claude Code CLI，不需要项目再管理 OpenAI、DeepSeek 或 Ollama 的 API Key 和模型服务。
@@ -18,7 +18,7 @@
 
 - 删除 OpenAI ASR、DeepSeek、Ollama、LangChain 相关配置、依赖、适配器和音频分块链路。
 - 用一个公共 `VideoAnalyzer` 端口承接 Codex CLI 与 Claude CLI 两个宿主机适配器。
-- 将 `analysis.v1` 的 transcript evidence 结果替换为 `visual-analysis.v1` 的 shot evidence 结果。
+- 将旧 transcript evidence 结果替换为唯一当前态的 shot evidence 结果，不保留公共 Schema 版本字段。
 - `worker-analysis` 改为可信宿主机进程，直接调用本机 CLI；不在容器中复制或挂载登录凭据。
 - 下载任务、分析任务独立状态机、Outbox、lease/heartbeat、幂等、取消和 artifact retention lock 继续复用。
 
@@ -38,8 +38,8 @@
 - 不恢复本地 ASR，不分析对白、音乐、掌声、音效或说话人。
 - 不引入 PySceneDetect、OpenCV 场景检测、FFmpeg `scene` 阈值等应用侧分镜算法。
 - 不把 Codex/Claude 登录状态包装为面向多用户 SaaS 的共享凭据。
-- 不允许浏览器选择 Provider、模型、Prompt、CLI 参数或本机路径。
-- 不支持 DRM 视频、远程 URL 直传 CLI、用户 Cookie、任意 shell 参数或自定义 Prompt。
+- 不允许浏览器选择 Provider、模型、系统安全 Prompt、CLI 参数或本机路径。
+- 不支持 DRM 视频、远程 URL 直传 CLI、用户 Cookie、任意 shell 参数；用户只可编辑被系统 Prompt 约束的分析偏好。
 - 首期不承诺逐帧编辑级 EDL 精度，也不做人物真实身份识别。
 
 ## 3. 可行性结论与能力边界
@@ -102,7 +102,7 @@ uv run python -m app.workers.analysis.main
 ### 4.2 单任务单 Provider
 
 - `ANALYSIS_CLI_PROVIDER=codex|claude` 仅由可信 Worker 配置决定。
-- Provider、模型、CLI 版本、Prompt 版本和 Schema 版本在首次 claim 时固定为内部执行元数据。
+- Provider、模型和 CLI 版本在首次 claim 时固定为内部执行元数据；分析语义由任务保存的 Skill 指令快照固定。
 - 同一 attempt 只允许一次 Provider 调用；不得在 Codex 失败后静默改用 Claude，反之亦然。
 - 重试必须保持任务已经固定的 Provider 与版本约束；主动换 Provider 需要创建新分析任务。
 - API 请求和公开结果不出现 Provider 或模型选择字段。
@@ -137,7 +137,7 @@ flowchart LR
     P -->|claude| A["claude -p"]
     C --> T["sandboxed ffprobe / ffmpeg / image view"]
     A --> T
-    T --> O["visual-analysis.v1 JSON"]
+    T --> O["current-state analysis JSON"]
     O --> V["domain validation"]
     V --> DB
 ```
@@ -155,8 +155,8 @@ class VideoAnalysisRequest:
     workspace: Path
     duration_ms: int
     output_language: str
-    schema_version: str
-    prompt_version: str
+    skill_id: str
+    skill_instructions: str
 
 class VideoAnalyzer(Protocol):
     async def analyze(self, request: VideoAnalysisRequest) -> object: ...
@@ -165,7 +165,7 @@ class VideoAnalyzer(Protocol):
 职责放置遵守现有依赖方向：
 
 - `application/analysis_execution/`：任务编排、公共端口、lease/heartbeat/cancel，不导入 CLI SDK。
-- `domain/analysis/`：`visual-analysis.v1` 纯领域模型、解析和交叉引用校验。
+- `domain/analysis/`：唯一当前态结果的纯领域模型、解析和交叉引用校验。
 - `infrastructure/ai_cli/`：Codex/Claude argv、输出解析、认证预检、错误映射、Prompt 与 Schema 资源。
 - `infrastructure/analysis_media/`：任务工作区、固定输入路径、大小配额和媒体安全辅助，不实现分镜判断。
 - `workers/analysis/`：按可信配置装配一个 `VideoAnalyzer`，启动前 fail-fast。
@@ -175,7 +175,7 @@ class VideoAnalyzer(Protocol):
 
 ```text
 materialize → prepare isolated workspace → run VideoAnalyzer
-            → parse visual-analysis.v1 → validate shot evidence
+            → parse current-state result → validate shot evidence
             → publish result → cleanup
 ```
 
@@ -206,7 +206,7 @@ materialize → prepare isolated workspace → run VideoAnalyzer
 
 - `video.bin` 的内容、大小和 SHA-256 必须与锁定 artifact 一致；CLI 只看到当前 attempt 目录。
 - 视频输入设为只读，输出仅允许写入 `work/`、`output/` 和 `tmp/`。
-- Prompt、Schema 和 policy 由应用从版本化资源复制，任务输入不能修改。
+- 系统 Prompt、Schema 和 policy 由应用从版本化资源复制，任务输入不能修改；用户分析偏好单独存储并作为不可信文本包裹。
 - `HOME` 仅为 CLI 自身读取本机认证所需；模型工具必须被 OS sandbox/permission policy 阻止读取 Home、仓库、其他任务和 Secret 文件。
 - 子进程只接收最小环境：受控 `PATH`、真实 `HOME`、任务 `TMPDIR`、locale 和必要的 CLI 配置路径；显式删除数据库、对象存储、队列、签名、云凭据及所有 API Key/Token 环境变量。
 - 父进程持续监控工作区总字节数、文件数和图片数，越限立即终止进程组。
@@ -311,11 +311,10 @@ claude --safe-mode -p
 
 ## 11. 结构化结果契约
 
-新结果唯一版本为 `visual-analysis.v1`：
+分析结果只有一份确定的当前态契约，不包含 Schema 名称或版本字段：
 
 ```text
 ProviderVisualAnalysisDraft
-  schema_version: "visual-analysis.v1"
   language: BCP 47 string
   title: string
   summary: {text, evidence_shot_ids[]}
@@ -409,8 +408,6 @@ ANALYSIS_MAX_STDERR_BYTES=<bounded positive number>
 ANALYSIS_MAX_WORKSPACE_BYTES=<bounded positive number>
 ANALYSIS_MAX_FRAMES=<bounded positive number>
 ANALYSIS_ENABLED=true|false
-ANALYSIS_SCHEMA_VERSION=visual-analysis.v1
-ANALYSIS_PROMPT_VERSION=visual-shot.v1
 ```
 
 模型 ID 显式配置，避免用户个人 CLI 默认值改变任务语义。首期并发固定为 1，防止两套订阅 CLI、磁盘和图片上下文相互争用。
@@ -428,9 +425,11 @@ Worker 启动顺序：
 ## 15. 数据、API 与前端影响
 
 - `POST /api/downloads/{download_id}/analyses` 和查询/取消资源路径保持不变。
-- 请求 profile 切换为唯一 `visual-shot-v1`；`output_language` 保留。
+- `GET /api/analysis-skills` 动态返回 Skill 清单和可编辑默认提示词；创建请求使用稳定且无版本后缀的 `skill_id`，`output_language` 保留。
+- `custom_prompt` 最大 4000 字符，参与幂等指纹并持久化到分析任务，但不进入 outbox、普通日志或公开响应。
+- 结构化结果只生成一次规范 Markdown；`report_markdown` 前端预览、`report.md` 下载和 `report.docx` 转换必须消费同一 Markdown。DOCX 使用 `markdown-it-py` 的 CommonMark token 流并显式启用表格，禁止维护第二套领域对象到 Word 的内容映射。
 - 公开结果替换为第 11 节契约；Provider、模型、CLI 路径、登录用户和原始 CLI metadata 不公开。
-- `analysis_jobs` 保存固定后的内部 provider/model/prompt/schema/cli version；`analysis_results.result_json` 保存已验证并补齐服务端派生字段的 Provider 无关结果。
+- `analysis_jobs` 保存 `skill_id` 和完整 Skill 指令快照；`analysis_results` 保存 Provider/model/CLI 审计信息，`result_json` 保存已验证并补齐服务端派生字段的 Provider 无关结果，不保存 Schema 或 Prompt 版本。
 - `backend/sql/schema.sql`、ORM、repository、OpenAPI 和前端生成类型同步更新，不维护旧 JSON 兼容解析。
 - 前端 Analysis Panel 改为分镜总数、时间轴/分镜列表、高光列表和资产目录；移除转录阶段、行动项、章节和思维导图声明。
 - 点击 Highlight 或资产跳转到最早关联分镜，点击分镜跳转到 `start_ms`。
@@ -439,7 +438,7 @@ Worker 启动顺序：
 
 视频、帧、容器元数据、字幕、Logo 和画面文字全部属于不可信输入。Prompt 中写“忽略画面指令”不是安全边界，必须同时满足：
 
-- 固定 Prompt 与 JSON Schema 不来自用户输入。
+- 固定系统 Prompt 与 JSON Schema 不来自用户输入；用户偏好放在显式不可信边界中，冲突时系统边界优先。
 - CLI 运行在单任务目录，模型工具无宿主网络、无其他目录读取、无 Secret 环境变量。
 - Codex 禁止 full access、MCP、web search 和 session resume；Claude 禁止 WebFetch、Agent、Chrome、MCP、Edit/Write 和 unsandboxed escape hatch。
 - `ffmpeg/ffprobe` 使用固定本地输入，禁止远程协议；argv 不经过 shell。

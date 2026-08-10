@@ -1,19 +1,22 @@
 from __future__ import annotations
 
-from typing import Any
-
 from app.application.analysis.errors import (
     AnalysisApplicationError,
     AnalysisApplicationErrorCode,
 )
 from app.application.analysis.models import AnalysisJobSnapshot, AnalysisJobView
-from app.domain.analysis import AnalysisErrorCode, AnalysisStage, AnalysisStatus
+from app.domain.analysis import (
+    AnalysisErrorCode,
+    AnalysisResult,
+    AnalysisStage,
+    AnalysisStatus,
+)
 
 
 def analysis_job_view(
     snapshot: AnalysisJobSnapshot,
     *,
-    result: dict[str, Any] | None = None,
+    result: AnalysisResult | None = None,
 ) -> AnalysisJobView:
     try:
         status = AnalysisStatus(snapshot.status)
@@ -29,7 +32,7 @@ def analysis_job_view(
         ) from exc
     return AnalysisJobView(
         id=snapshot.id,
-        profile=snapshot.profile,
+        skill_id=snapshot.skill_id,
         output_language=snapshot.output_language,
         status=status,
         stage=stage,

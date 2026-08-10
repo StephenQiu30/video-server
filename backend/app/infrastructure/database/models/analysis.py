@@ -13,6 +13,7 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
+    Text,
     UniqueConstraint,
     Uuid,
 )
@@ -57,9 +58,10 @@ class AnalysisJobRow(Base):
     idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
     request_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
     input_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
-    profile: Mapped[str] = mapped_column(String(128), nullable=False)
-    schema_version: Mapped[str] = mapped_column(String(128), nullable=False)
+    skill_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    skill_instructions: Mapped[str] = mapped_column(Text, nullable=False)
     output_language: Mapped[str] = mapped_column(String(35), nullable=False)
+    custom_prompt: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(24), nullable=False, default="queued")
     stage: Mapped[str | None] = mapped_column(String(24))
     stage_rank: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -106,12 +108,10 @@ class AnalysisResultRow(Base):
         nullable=False,
     )
     input_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
-    schema_version: Mapped[str] = mapped_column(String(128), nullable=False)
     language: Mapped[str] = mapped_column(String(35), nullable=False)
     provider: Mapped[str] = mapped_column(String(32), nullable=False)
     model: Mapped[str] = mapped_column(String(128), nullable=False)
     cli_version: Mapped[str] = mapped_column(String(128), nullable=False)
-    prompt_version: Mapped[str] = mapped_column(String(128), nullable=False)
     result_json: Mapped[dict[str, Any]] = mapped_column(JSON_DOCUMENT, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now

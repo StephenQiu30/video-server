@@ -7,7 +7,7 @@ from app.infrastructure.ai_cli.schema import analysis_output_schema
 
 
 def test_schema_uses_codex_and_claude_supported_subset() -> None:
-    schema = analysis_output_schema("visual-analysis.v1", "zh-CN")
+    schema = analysis_output_schema("zh-CN")
     serialized = json.dumps(schema)
 
     for unsupported in (

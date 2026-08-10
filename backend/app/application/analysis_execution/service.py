@@ -92,8 +92,9 @@ class AnalysisExecution:
                 size_bytes=source.size_bytes,
                 container=source.container,
                 output_language=job.output_language,
-                schema_version=job.schema_version,
-                prompt_version=self._settings.prompt_version,
+                skill_id=job.skill_id,
+                skill_instructions=job.skill_instructions,
+                custom_prompt=job.custom_prompt,
             )
             payload = await monitor.run(
                 lambda: self._analyzer.analyze(request),
@@ -107,7 +108,6 @@ class AnalysisExecution:
                     container=source.container,
                     size_bytes=source.size_bytes,
                 ),
-                expected_schema_version=job.schema_version,
                 expected_language=job.output_language,
             )
             stage = AnalysisStage.VALIDATING
@@ -125,7 +125,6 @@ class AnalysisExecution:
                 self._settings.provider,
                 self._settings.model,
                 self._settings.cli_version,
-                self._settings.prompt_version,
                 self._clock(),
             )
             return AnalysisDisposition.ACK

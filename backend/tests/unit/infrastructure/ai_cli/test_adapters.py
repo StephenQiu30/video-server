@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -14,10 +15,10 @@ from tests.unit.workers.analysis.fixtures import valid_mapping
 
 def config() -> CliAdapterConfig:
     return CliAdapterConfig(
-        binary=Path("/opt/tools/ai-cli"),
+        binary=Path(sys.executable),
         model="controlled-model",
-        ffmpeg=Path("/opt/tools/ffmpeg"),
-        ffprobe=Path("/opt/tools/ffprobe"),
+        ffmpeg=Path(sys.executable),
+        ffprobe=Path(sys.executable),
     )
 
 
@@ -30,7 +31,7 @@ async def test_codex_uses_stdin_and_global_approval_flag(tmp_path: Path) -> None
 
     assert payload == valid_mapping()
     assert supervisor.argv[:4] == (
-        "/opt/tools/ai-cli",
+        sys.executable,
         "--ask-for-approval",
         "never",
         "--strict-config",

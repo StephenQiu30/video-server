@@ -66,6 +66,7 @@ def validate_analysis_result(
         _invalid_time("shots must end at the authoritative media duration")
 
     _shot_refs(result.summary.evidence_shot_ids, shot_by_id)
+    _shot_refs(result.production_advice.priority_shot_ids, shot_by_id)
     for highlight in result.highlights:
         evidence = _shot_refs(highlight.evidence_shot_ids, shot_by_id)
         if highlight.start_ms != min(item.start_ms for item in evidence):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
 from uuid import uuid4
 
@@ -48,7 +49,8 @@ async def test_loader_verifies_source_and_removes_success_or_failure_workspaces(
     local = await loader.materialize(source(content), job_id=uuid4(), attempt=1)
     assert local.artifact.read_bytes() == content
     assert local.artifact == local.workspace / "input" / "video.bin"
-    assert local.artifact.stat().st_mode & 0o777 == 0o400
+    if os.name == "posix":
+        assert local.artifact.stat().st_mode & 0o777 == 0o400
     await loader.cleanup(local)
     assert not local.workspace.exists()
 

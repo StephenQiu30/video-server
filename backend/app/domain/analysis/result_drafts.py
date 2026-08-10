@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from app.domain.analysis.parse_helpers import ParseContext
 from app.domain.analysis.result_items import Highlight, Shot, VisualAsset
+from app.domain.analysis.result_models import ProductionAdvice
 
 
 def parse_shot(context: ParseContext, value: object, index: int) -> Shot:
@@ -19,6 +20,8 @@ def parse_shot(context: ParseContext, value: object, index: int) -> Shot:
             "transition_in",
             "shot_size",
             "camera_motion",
+            "narrative_function",
+            "highlight_score",
             "visual_tags",
         },
     )
@@ -38,6 +41,12 @@ def parse_shot(context: ParseContext, value: object, index: int) -> Shot:
         shot_size=context.text(source["shot_size"], f"{path}.shot_size", maximum=32),
         camera_motion=context.text(
             source["camera_motion"], f"{path}.camera_motion", maximum=32
+        ),
+        narrative_function=context.text(
+            source["narrative_function"], f"{path}.narrative_function"
+        ),
+        highlight_score=context.integer(
+            source["highlight_score"], f"{path}.highlight_score"
         ),
         visual_tags=_strings(context, source["visual_tags"], f"{path}.visual_tags"),
         asset_ids=(),
@@ -88,6 +97,26 @@ def evidence_ids(context: ParseContext, value: object, path: str) -> tuple[str, 
     return tuple(
         context.text(item, f"{path}[{index}]", maximum=128)
         for index, item in enumerate(context.array(value, path, allow_empty=False))
+    )
+
+
+def parse_production_advice(context: ParseContext, value: object) -> ProductionAdvice:
+    path = "production_advice"
+    source = context.mapping(
+        value,
+        path,
+        {"summary", "priority_shot_ids", "recommended_extensions"},
+    )
+    return ProductionAdvice(
+        summary=context.text(source["summary"], f"{path}.summary"),
+        priority_shot_ids=evidence_ids(
+            context, source["priority_shot_ids"], f"{path}.priority_shot_ids"
+        ),
+        recommended_extensions=_strings(
+            context,
+            source["recommended_extensions"],
+            f"{path}.recommended_extensions",
+        ),
     )
 
 

@@ -40,6 +40,10 @@ class AnalysisCreationRepository(AnalysisRepositoryBase):
                     await self._validate_source(session, command, now)
                     row = self._new_row(command, now)
                     session.add(row)
+                    # The lock references analysis_jobs. Flush the parent first
+                    # instead of relying on SQLAlchemy to infer an ORM dependency
+                    # from UUID values alone (there is no relationship configured).
+                    await session.flush((row,))
                     session.add(
                         AnalysisArtifactLockRow(
                             job_id=row.id,
@@ -115,9 +119,10 @@ class AnalysisCreationRepository(AnalysisRepositoryBase):
             idempotency_key=command.idempotency_key,
             request_fingerprint=command.request_fingerprint,
             input_sha256=command.input_sha256,
-            profile=command.profile,
-            schema_version=command.schema_version,
+            skill_id=command.skill_id,
+            skill_instructions=command.skill_instructions,
             output_language=command.output_language,
+            custom_prompt=command.custom_prompt,
             max_attempts=command.max_attempts,
             created_at=now,
             updated_at=now,

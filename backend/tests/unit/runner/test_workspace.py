@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import stat
 from pathlib import Path
 
@@ -18,7 +19,8 @@ def test_allocates_private_unique_task_workspace(tmp_path: Path) -> None:
     second = manager.create("job_123")
 
     assert first.path != second.path
-    assert stat.S_IMODE(first.path.stat().st_mode) == 0o700
+    if os.name == "posix":
+        assert stat.S_IMODE(first.path.stat().st_mode) == 0o700
     first.cleanup()
     second.cleanup()
     assert not first.path.exists()

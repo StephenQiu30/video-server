@@ -1,7 +1,7 @@
 'use client';
 
-import { ArrowClockwise, Robot, ShieldCheck } from '@phosphor-icons/react';
-import { useState } from 'react';
+import { ArrowClockwise, DownloadSimple, Robot } from '@phosphor-icons/react';
+import AnalysisConfigurator from '@/components/analysis-configurator';
 import { stageLabels, statusLabels } from '@/components/analysis-panel-model';
 import AnalysisResultView from '@/components/analysis-result-view';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -19,22 +19,14 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Field, FieldLabel } from '@/components/ui/field';
 import { Progress } from '@/components/ui/progress';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { useAnalysisJob } from '@/hooks/useAnalysisJob';
-import type {
-  AnalysisJob,
-  AnalysisProfile,
-  OutputLanguage,
-} from '@/types/video';
+import {
+  analysisMarkdownUrl,
+  analysisReportUrl,
+} from '@/services/analysis';
+import type { AnalysisJob } from '@/types/video';
 
 export default function AnalysisPanel({
   downloadId,
@@ -44,8 +36,6 @@ export default function AnalysisPanel({
   pollIntervalMs?: number;
 }) {
   const state = useAnalysisJob(downloadId, pollIntervalMs);
-  const [profile, setProfile] = useState<AnalysisProfile>('visual-shot-v1');
-  const [language, setLanguage] = useState<OutputLanguage>('zh-CN');
 
   if (state.job?.status === 'succeeded' && state.job.result) {
     return (
@@ -62,13 +52,34 @@ export default function AnalysisPanel({
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Badge variant="success">分析已完成</Badge>
+            <Button asChild variant="outline">
+              <a
+                download={`analysis-report-${state.job.id}.md`}
+                href={analysisMarkdownUrl(state.job.id)}
+              >
+                <DownloadSimple />
+                导出 Markdown
+              </a>
+            </Button>
+            <Button asChild>
+              <a
+                download={`analysis-report-${state.job.id}.docx`}
+                href={analysisReportUrl(state.job.id)}
+              >
+                <DownloadSimple />
+                导出 DOCX
+              </a>
+            </Button>
             <Button onClick={state.restart} variant="outline">
               <ArrowClockwise />
               重新分析
             </Button>
           </div>
         </div>
-        <AnalysisResultView result={state.job.result} />
+        <AnalysisResultView
+          reportMarkdown={state.job.report_markdown}
+          result={state.job.result}
+        />
       </section>
     );
   }
@@ -101,70 +112,14 @@ export default function AnalysisPanel({
       ) : null}
 
       {!state.job ? (
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
-          <AnalysisSelect
-            id="analysis-profile"
-            label="分析模板"
-            onChange={(value) => setProfile(value as AnalysisProfile)}
-            options={[['visual-shot-v1', '视觉分镜分析']]}
-            value={profile}
-          />
-          <AnalysisSelect
-            id="analysis-language"
-            label="输出语言"
-            onChange={(value) => setLanguage(value as OutputLanguage)}
-            options={[
-              ['zh-CN', '简体中文'],
-              ['en-US', 'English'],
-            ]}
-            value={language}
-          />
-          <Button
-            className="w-full lg:w-auto"
-            disabled={state.action === 'start'}
-            onClick={() => state.start({ profile, output_language: language })}
-            size="lg"
-          >
-            {state.action === 'start' ? <Spinner aria-hidden /> : null}
-            开始 AI 分析
-          </Button>
-        </div>
+        <AnalysisConfigurator
+          busy={state.action === 'start'}
+          onStart={state.start}
+        />
       ) : (
         <AnalysisJobState job={state.job} state={state} />
       )}
     </section>
-  );
-}
-
-function AnalysisSelect({
-  id,
-  label,
-  onChange,
-  options,
-  value,
-}: {
-  id: string;
-  label: string;
-  onChange: (value: string) => void;
-  options: [string, string][];
-  value: string;
-}) {
-  return (
-    <Field>
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <Select onValueChange={onChange} value={value}>
-        <SelectTrigger className="w-full" id={id}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map(([option, name]) => (
-            <SelectItem key={option} value={option}>
-              {name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </Field>
   );
 }
 
@@ -223,9 +178,8 @@ function AnalysisJobState({
           <Button onClick={state.restart}>重新分析</Button>
         ) : null}
       </div>
-      <p className="mt-8 flex items-center gap-2 text-sm text-muted-foreground">
-        <ShieldCheck className="text-success" />
-        分析结果经连续时间轴与分镜证据校验；模型查看的抽帧会发送到所选云端服务。
+      <p className="mt-8 text-sm text-muted-foreground">
+        分析结果会经过连续时间轴、严格结构与分镜证据校验。
       </p>
     </div>
   );

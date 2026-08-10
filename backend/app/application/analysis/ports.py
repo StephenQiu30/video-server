@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Protocol
+from typing import Protocol
 from uuid import UUID
 
 from app.application.analysis.models import (
@@ -10,7 +10,9 @@ from app.application.analysis.models import (
     AnalysisJobSaveResult,
     AnalysisJobSnapshot,
     AnalysisPublish,
+    AnalysisSkillView,
 )
+from app.domain.analysis import AnalysisResult
 
 
 class RequestFingerprinter(Protocol):
@@ -28,10 +30,20 @@ class AnalysisRepository(Protocol):
 
     async def get_job(self, job_id: UUID) -> AnalysisJobSnapshot | None: ...
 
-    async def get_result(self, job_id: UUID) -> dict[str, Any] | None: ...
+    async def get_result(self, job_id: UUID) -> AnalysisResult | None: ...
 
     async def cancel_job(
         self, job_id: UUID, owner_hash: str, now: datetime
     ) -> AnalysisJobSnapshot: ...
 
     async def publish_result(self, command: AnalysisPublish) -> AnalysisJobSnapshot: ...
+
+
+class AnalysisReportRenderer(Protocol):
+    def render(self, markdown: str) -> bytes: ...
+
+
+class AnalysisSkillCatalog(Protocol):
+    def list(self) -> tuple[AnalysisSkillView, ...]: ...
+
+    def resolve(self, skill_id: str) -> tuple[AnalysisSkillView, str] | None: ...

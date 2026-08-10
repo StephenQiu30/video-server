@@ -43,7 +43,6 @@ class AnalysisExecutionRepository(Protocol):
         provider: str,
         model: str,
         cli_version: str,
-        prompt_version: str,
         now: datetime,
     ) -> None: ...
 

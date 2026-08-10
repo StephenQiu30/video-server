@@ -30,6 +30,42 @@ export async function cancelAnalysis(
   });
 }
 
+/** 导出视频分析报告 将已完成的结构化分析结果导出为 DOCX 报告。 GET /api/analyses/${param0}/report.docx */
+export async function exportAnalysisReport(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.exportAnalysisReportParams,
+  options?: RequestOptions
+) {
+  const { analysis_id: param0, ...queryParams } = params;
+  return request<string>(`/api/analyses/${param0}/report.docx`, {
+    method: "GET",
+    params: { ...queryParams },
+    ...(options || {}),
+  });
+}
+
+/** 导出 Markdown 视频分析报告 导出与前端预览、DOCX 转换共用的唯一 Markdown 报告。 GET /api/analyses/${param0}/report.md */
+export async function exportAnalysisMarkdown(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.exportAnalysisMarkdownParams,
+  options?: RequestOptions
+) {
+  const { analysis_id: param0, ...queryParams } = params;
+  return request<string>(`/api/analyses/${param0}/report.md`, {
+    method: "GET",
+    params: { ...queryParams },
+    ...(options || {}),
+  });
+}
+
+/** 列出视频分析 Skill 返回可选 Skill 及用户可编辑的默认提示词。 GET /api/analysis-skills */
+export async function listAnalysisSkills(options?: RequestOptions) {
+  return request<API.AnalysisSkillResponse[]>("/api/analysis-skills", {
+    method: "GET",
+    ...(options || {}),
+  });
+}
+
 /** 创建视频分析任务 基于已完成的下载制品创建异步 AI 分析任务。 POST /api/downloads/${param0}/analyses */
 export async function createAnalysis(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)

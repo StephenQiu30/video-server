@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import DownloadJobView from '@/components/download-job-view';
 import { ApiError } from '@/requestErrorConfig';
+import { analysisSkills } from '../fixtures/analysis-fixtures';
 import { inspection, job } from '../fixtures/download-fixtures';
 import {
   httpRequests,
@@ -105,7 +106,7 @@ describe('DownloadJobView', () => {
   );
 
   it('issues a short-lived URL for completed downloads', async () => {
-    mockHttpResponses(job('succeeded'), inspection, {
+    mockHttpResponses(job('succeeded'), inspection, analysisSkills, {
       url: 'https://objects.example/token',
       expires_at: '2026-08-06T10:05:00Z',
     });

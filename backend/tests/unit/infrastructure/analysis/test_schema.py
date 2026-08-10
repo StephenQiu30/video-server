@@ -14,8 +14,8 @@ def test_analysis_schema_has_jobs_results_and_runtime_retention_locks() -> None:
     assert {
         "artifact_id",
         "input_sha256",
-        "profile",
-        "schema_version",
+        "skill_id",
+        "skill_instructions",
         "output_language",
         "attempt",
         "version",
@@ -34,8 +34,9 @@ def test_result_is_strict_jsonb_without_transcript_or_provider_payload_columns()
     assert result.c.result_json.type.compile(postgresql.dialect()) == "JSONB"
     assert "transcript" not in result.columns
     assert "provider_response" not in result.columns
-    assert {"provider", "model", "cli_version", "prompt_version"} <= set(
+    assert {"provider", "model", "cli_version"} <= set(
         result.columns.keys()
     )
+    assert {"schema_version", "prompt_version"}.isdisjoint(result.columns)
     ddl = str(CreateTable(result).compile(dialect=postgresql.dialect()))
     assert "jsonb_typeof(result_json) = 'object'" in ddl

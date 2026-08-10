@@ -11,8 +11,7 @@ _FIELDS = {
     "job_id",
     "artifact_id",
     "input_sha256",
-    "profile",
-    "schema_version",
+    "skill_id",
     "output_language",
     "attempt",
     "version",
@@ -45,8 +44,7 @@ def parse_analysis_requested(body: bytes) -> AnalysisRequested:
         version = _integer(envelope.payload["version"])
         sha256 = envelope.payload["input_sha256"]
         labels = tuple(
-            envelope.payload[field]
-            for field in ("profile", "schema_version", "output_language")
+            envelope.payload[field] for field in ("skill_id", "output_language")
         )
     except (TypeError, ValueError) as exc:
         raise AnalysisMessageError("analysis payload values are invalid") from exc

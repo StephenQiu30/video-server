@@ -111,8 +111,9 @@ async def test_operation_uses_unique_0600_copy_and_preserves_source(
         assert jar is not None
         first_path = jar
         assert jar.parent.parent == settings.runner_provider_secret_temp_root
-        assert stat.S_IMODE(jar.stat().st_mode) == 0o600
-        assert stat.S_IMODE(jar.parent.stat().st_mode) == 0o700
+        if os.name == "posix":
+            assert stat.S_IMODE(jar.stat().st_mode) == 0o600
+            assert stat.S_IMODE(jar.parent.stat().st_mode) == 0o700
         jar.write_bytes(COOKIE + b"# operation-only\n")
 
     assert not first_path.exists()

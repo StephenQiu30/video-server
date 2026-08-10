@@ -9,7 +9,14 @@ from uuid import uuid4
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.api.dependencies import AnalysisUseCases, DownloadUseCases
-from app.application.analysis import CancelAnalysis, CreateAnalysis, GetAnalysis
+from app.application.analysis import (
+    CancelAnalysis,
+    CreateAnalysis,
+    ExportAnalysisMarkdown,
+    ExportAnalysisReport,
+    GetAnalysis,
+    ListAnalysisSkills,
+)
 from app.application.auth import AuthService, UserService
 from app.application.downloads import (
     CancelDownload,
@@ -25,7 +32,9 @@ from app.application.downloads import (
 )
 from app.core.config import Settings
 from app.core.url_cipher import URLCipher
+from app.infrastructure.analysis_report_docx import PythonDocxAnalysisReportRenderer
 from app.infrastructure.analysis_repository import SqlAlchemyAnalysisRepository
+from app.infrastructure.analysis_skill_catalog import BuiltinAnalysisSkillCatalog
 from app.infrastructure.auth_repository import SqlAlchemyAuthRepository
 from app.infrastructure.database import (
     SqlAlchemyDownloadRepository,
@@ -163,18 +172,26 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             url_ttl=timedelta(seconds=settings.artifact_download_url_ttl_seconds),
         ),
     )
+    get_analysis = GetAnalysis(analysis_repository)
+    skill_catalog = BuiltinAnalysisSkillCatalog()
     analysis_use_cases = AnalysisUseCases(
+        list_analysis_skills=ListAnalysisSkills(skill_catalog),
         create_analysis=CreateAnalysis(
             repository=analysis_repository,
             fingerprinter=fingerprinter,
             now=clock,
             new_id=uuid4,
             max_attempts=settings.max_analysis_attempts,
-            schema_version=settings.analysis_schema_version,
+            skill_catalog=skill_catalog,
             enabled=settings.analysis_enabled,
         ),
-        get_analysis=GetAnalysis(analysis_repository),
+        get_analysis=get_analysis,
         cancel_analysis=CancelAnalysis(analysis_repository, now=clock),
+        export_analysis_report=ExportAnalysisReport(
+            get_analysis,
+            PythonDocxAnalysisReportRenderer(),
+        ),
+        export_analysis_markdown=ExportAnalysisMarkdown(get_analysis),
     )
     return ApiRuntime(
         auth_service=auth_service,

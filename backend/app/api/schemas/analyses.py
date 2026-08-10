@@ -1,20 +1,22 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from app.api.schemas.common import StrictModel
-from app.application.analysis import AnalysisJobView
+from app.application.analysis import AnalysisJobView, render_analysis_report_markdown
 from app.domain.analysis import AnalysisErrorCode, AnalysisStage, AnalysisStatus
 
 
 class AnalysisRequest(StrictModel):
-    profile: Literal["visual-shot-v1"] = Field(
-        description="视觉分镜、高光与资产分析配置。",
-        examples=["visual-shot-v1"],
+    skill_id: str = Field(
+        description="分析 Skill 的稳定标识，由分析 Skill 清单接口提供。",
+        examples=["director-breakdown"],
+        min_length=1,
+        max_length=128,
+        pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
     )
     output_language: str = Field(
         description="分析结果使用的 BCP 47 语言标签。",
@@ -23,6 +25,23 @@ class AnalysisRequest(StrictModel):
         max_length=35,
         pattern=r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$",
     )
+    custom_prompt: str | None = Field(
+        default=None,
+        description=(
+            "用户可编辑的分析要求，仅影响观察重点和表达，不能覆盖工具、"
+            "安全边界或结果结构。"
+        ),
+        max_length=4_000,
+        examples=["重点识别产品功能演示和界面切换。"],
+    )
+
+    @field_validator("custom_prompt")
+    @classmethod
+    def normalize_custom_prompt(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
 
 
 class AnalysisMediaResponse(StrictModel):
@@ -46,6 +65,8 @@ class ShotResponse(StrictModel):
     transition_in: str
     shot_size: str
     camera_motion: str
+    narrative_function: str
+    highlight_score: int
     visual_tags: tuple[str, ...]
     asset_ids: tuple[str, ...]
 
@@ -70,6 +91,12 @@ class VisualAssetResponse(StrictModel):
     evidence_shot_ids: tuple[str, ...]
 
 
+class ProductionAdviceResponse(StrictModel):
+    summary: str
+    priority_shot_ids: tuple[str, ...]
+    recommended_extensions: tuple[str, ...]
+
+
 class AnalysisResultResponse(StrictModel):
     language: str
     title: str
@@ -79,15 +106,12 @@ class AnalysisResultResponse(StrictModel):
     shots: tuple[ShotResponse, ...]
     highlights: tuple[HighlightResponse, ...]
     assets: tuple[VisualAssetResponse, ...]
-
-
-class _StoredAnalysisResult(AnalysisResultResponse):
-    schema_version: str
+    production_advice: ProductionAdviceResponse
 
 
 class AnalysisResponse(StrictModel):
     id: UUID
-    profile: str
+    skill_id: str
     output_language: str
     status: AnalysisStatus
     stage: AnalysisStage | None
@@ -98,6 +122,7 @@ class AnalysisResponse(StrictModel):
     updated_at: datetime
     finished_at: datetime | None
     result: AnalysisResultResponse | None
+    report_markdown: str | None
 
     @classmethod
     def from_view(cls, view: AnalysisJobView) -> AnalysisResponse:
@@ -106,7 +131,7 @@ class AnalysisResponse(StrictModel):
             raise ValueError("analysis status and result are inconsistent")
         return cls(
             id=view.id,
-            profile=view.profile,
+            skill_id=view.skill_id,
             output_language=view.output_language,
             status=view.status,
             stage=view.stage,
@@ -117,15 +142,24 @@ class AnalysisResponse(StrictModel):
             updated_at=view.updated_at,
             finished_at=view.finished_at,
             result=result,
+            report_markdown=(
+                render_analysis_report_markdown(view.result)
+                if view.result is not None
+                else None
+            ),
         )
 
     @staticmethod
     def _public_result(
-        document: dict[str, Any] | None,
+        result: object | None,
     ) -> AnalysisResultResponse | None:
-        if document is None:
+        if result is None:
             return None
-        stored = _StoredAnalysisResult.model_validate(document)
-        return AnalysisResultResponse.model_validate(
-            stored.model_dump(exclude={"schema_version"})
-        )
+        return AnalysisResultResponse.model_validate(result)
+
+
+class AnalysisSkillResponse(StrictModel):
+    id: str
+    display_name: str
+    description: str
+    default_prompt: str

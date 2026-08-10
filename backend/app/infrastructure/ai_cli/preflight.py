@@ -57,6 +57,9 @@ def preflight(
 
 def _resolve(value: str | Path) -> Path:
     candidate = str(value)
+    explicit = Path(candidate).expanduser()
+    if explicit.is_absolute() and explicit.is_file():
+        return explicit.resolve()
     resolved = shutil.which(candidate)
     if resolved is None:
         raise AnalysisCliError("analysis_cli_unavailable")

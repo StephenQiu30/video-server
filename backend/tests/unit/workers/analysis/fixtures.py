@@ -3,7 +3,6 @@ from __future__ import annotations
 
 def valid_mapping() -> dict[str, object]:
     return {
-        "schema_version": "visual-analysis.v1",
         "language": "zh-CN",
         "title": "Visual analysis",
         "summary": {"text": "grounded", "evidence_shot_ids": ["shot-a"]},
@@ -18,9 +17,16 @@ def valid_mapping() -> dict[str, object]:
                 "transition_in": "none",
                 "shot_size": "wide",
                 "camera_motion": "static",
+                "narrative_function": "建立开场空间与叙事基调。",
+                "highlight_score": 3,
                 "visual_tags": ["opening"],
             }
         ],
         "highlights": [],
         "assets": [],
+        "production_advice": {
+            "summary": "优先还原开场镜头的空间关系与视觉基调。",
+            "priority_shot_ids": ["shot-a"],
+            "recommended_extensions": ["镜头 Prompt", "场景资产"],
+        },
     }

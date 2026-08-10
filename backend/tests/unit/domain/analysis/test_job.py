@@ -20,8 +20,7 @@ def job() -> AnalysisJob:
         job_id="analysis-1",
         artifact_id="artifact-1",
         input_sha256=SHA256,
-        profile="visual-shot-v1",
-        schema_version="visual-analysis.v1",
+        skill_id="director-breakdown",
         output_language="zh-CN",
     )
 

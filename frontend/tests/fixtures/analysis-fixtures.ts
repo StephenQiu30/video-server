@@ -1,4 +1,19 @@
-import type { AnalysisJob, AnalysisResult } from '@/types/video';
+import type { AnalysisJob, AnalysisResult, AnalysisSkill } from '@/types/video';
+
+export const analysisSkills: AnalysisSkill[] = [
+  {
+    id: 'director-breakdown',
+    display_name: '导演拉片',
+    description: '按真实 Cut 拆解镜头语言、叙事作用与高光价值。',
+    default_prompt: '逐镜头分析画面、叙事作用和高光价值。',
+  },
+  {
+    id: 'highlights',
+    display_name: '高光提炼',
+    description: '识别传播力和情绪价值较高的片段。',
+    default_prompt: '识别高传播力和高情绪价值的片段。',
+  },
+];
 
 export const analysisResult: AnalysisResult = {
   language: 'zh-CN',
@@ -20,6 +35,8 @@ export const analysisResult: AnalysisResult = {
       transition_in: 'none',
       shot_size: 'wide',
       camera_motion: 'static',
+      narrative_function: '建立视频处理任务的工作空间。',
+      highlight_score: 3,
       visual_tags: ['界面', '下载'],
       asset_ids: ['asset-1'],
     },
@@ -33,6 +50,8 @@ export const analysisResult: AnalysisResult = {
       transition_in: 'cut',
       shot_size: 'medium',
       camera_motion: 'static',
+      narrative_function: '完成从下载到结构化分析的流程转折。',
+      highlight_score: 5,
       visual_tags: ['界面', '分析'],
       asset_ids: [],
     },
@@ -59,6 +78,11 @@ export const analysisResult: AnalysisResult = {
       evidence_shot_ids: ['shot-1'],
     },
   ],
+  production_advice: {
+    summary: '优先还原下载与分析结果之间的流程切换。',
+    priority_shot_ids: ['shot-2'],
+    recommended_extensions: ['镜头 Prompt', '产品界面资产'],
+  },
 };
 
 export function analysisJob(
@@ -66,7 +90,7 @@ export function analysisJob(
 ): AnalysisJob {
   return {
     id: '44444444-4444-4444-8444-444444444444',
-    profile: 'visual-shot-v1',
+    skill_id: 'director-breakdown',
     output_language: 'zh-CN',
     status,
     stage: status === 'running' ? 'analyzing' : null,
@@ -80,5 +104,9 @@ export function analysisJob(
         ? '2026-08-06T10:02:00Z'
         : null,
     result: status === 'succeeded' ? analysisResult : null,
+    report_markdown:
+      status === 'succeeded'
+        ? '# 可靠的视频处理流水线 · 逐镜头导演拉片分析报告\n\n## 一、基础信息\n\n已完成分析。\n'
+        : null,
   };
 }

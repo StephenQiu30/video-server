@@ -3,7 +3,7 @@
 - 状态：Implemented（Claude Provider 当前环境未通过视觉验收）
 - 日期：2026-08-10
 - 关联 Design：`docs/design/010-Codex与Claude CLI视频分析设计.md`
-- 当前实现：`visual-analysis.v1`、宿主机 Analysis Worker、Codex 默认 Provider
+- 当前实现：唯一当前态结果契约、宿主机 Analysis Worker、Codex 默认 Provider
 - 验收状态：Codex 真实 E2E 通过；Claude 当前本机模型路由不具备可用视觉理解
 
 ## 1. 背景与用户问题
@@ -39,7 +39,7 @@
 - 应用侧本地镜头检测算法或固定阈值 scene detection。
 - 逐帧法证分析、专业剪辑 EDL、帧级无误差保证。
 - 人物真实身份识别或敏感属性推断。
-- 用户自定义 Prompt、模型、CLI 参数、工具、文件路径或 Provider。
+- 用户自定义模型、CLI 参数、工具、文件路径或 Provider；用户只能编辑受长度限制的分析偏好，不能修改系统安全提示词。
 - 多租户共享个人 Codex/Claude 登录、远程托管 CLI 或容器内复制 OAuth。
 - 同一任务在两个 Provider 之间自动 fallback、投票或并行对比。
 
@@ -91,7 +91,7 @@
 
 ### FR-010-07 严格 JSON 与分镜证据
 
-- 两个 Provider 必须使用同一 `visual-analysis.v1` JSON Schema。
+- 两个 Provider 必须使用同一份无版本字段的当前态 JSON Schema。
 - Provider 的 structured output 成功不替代应用校验；应用必须再次校验字段集合、类型、大小、连续时间分区、引用和媒体元数据，并补齐确定性派生字段。
 - 任何未知字段、非法时间、悬空引用、重复 ID、越限数组或超大结果都必须拒绝，不能保存部分成功结果。
 - 公开结果不得包含 CLI stdout wrapper、session id、账户、原始 Prompt、工具日志或 Provider 私有字段。
@@ -115,7 +115,8 @@
 
 ### FR-010-10 API 与前端结果呈现
 
-- 分析资源的创建、查询和取消 URL 保持不变；请求 profile 唯一值改为 `visual-shot-v1`。
+- 分析资源的创建、查询和取消 URL 保持不变；请求使用服务端 Skill 清单中的稳定 `skill_id`。首批 Skill 为 `director-breakdown`、`comprehensive`、`visual-shots`、`highlights` 与 `asset-catalog`，均不使用版本后缀。
+- 创建请求可包含不超过 4000 字符的 `custom_prompt`。它只改变观察重点与文字表达，必须被包裹在不可编辑的系统安全提示词内，不能改变工具、网络、文件访问或结果 Schema。
 - OpenAPI 是新结果的唯一前后端契约，前端类型必须重新生成。
 - Analysis Panel 必须显示分镜总数、分镜时间轴/列表、高光和资产目录，并为加载、空、失败、取消和重试提供明确状态。
 - 旧转录阶段、行动项、章节和思维导图 UI 必须删除，不保留兼容切换。
@@ -165,7 +166,7 @@
 
 - `AC-010-01`：仓库中不再存在运行时 OpenAI ASR、DeepSeek、Ollama、LangChain 配置、依赖或实现；`.env` 不需要 AI Key。
 - `AC-010-02`：可信配置可分别启动 Codex 和 Claude Worker；两者都复用允许的本机登录，未登录时 fail-fast。
-- `AC-010-03`：同一个受控短视频通过 Codex 和 Claude 各生成一个通过 `visual-analysis.v1` 校验的结果。
+- `AC-010-03`：同一个受控短视频通过 Codex 和 Claude 各生成一个通过唯一当前态契约校验的结果。
 - `AC-010-04`：受控视频的服务端派生 `shot_count` 与分镜数组一致，分镜从 0 到权威时长形成无间隙、无重叠的连续分区，人工核对能覆盖预设硬切镜头。
 - `AC-010-05`：每个高光只引用有效分镜，理由明确为视觉依据，跳转时间有效。
 - `AC-010-06`：人物、地点、物体、产品、Logo、画面文字 fixture 能形成去重资产，资产只引用有效分镜，首次出现时间和反向索引由服务端正确派生。
@@ -186,7 +187,7 @@
 
 ## 9. 首期不包含
 
-音频理解、字幕抽取、人物身份识别、逐帧精确镜头检测、跨视频资产库、向量检索、视频问答、用户 Prompt、多 Provider 对比、远程 CLI 主机、多租户 SaaS 和自动内容发布。
+音频理解、字幕抽取、人物身份识别、逐帧精确镜头检测、跨视频资产库、向量检索、视频问答、多 Provider 对比、远程 CLI 主机、多租户 SaaS 和自动内容发布。
 
 ## 10. 依赖与已知限制
 

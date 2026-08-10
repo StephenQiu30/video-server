@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from copy import deepcopy
 from datetime import datetime
-from typing import Any
 from uuid import UUID
 
 from sqlalchemy import delete, select
@@ -16,9 +15,13 @@ from app.application.analysis import (
     AnalysisJobSnapshot,
     PersistenceConflict,
 )
+from app.domain.analysis import AnalysisResult
 from app.infrastructure.analysis_repository_mapping import (
     analysis_artifact_snapshot,
     analysis_job_snapshot,
+)
+from app.infrastructure.analysis_repository_serialization import (
+    analysis_result_from_document,
 )
 from app.infrastructure.database.base import as_utc
 from app.infrastructure.database.models import (
@@ -64,14 +67,16 @@ class AnalysisRepositoryBase:
             row = await session.get(AnalysisJobRow, job_id)
             return None if row is None else analysis_job_snapshot(row)
 
-    async def get_result(self, job_id: UUID) -> dict[str, Any] | None:
+    async def get_result(self, job_id: UUID) -> AnalysisResult | None:
         async with self._sessions() as session:
             document = await session.scalar(
                 select(AnalysisResultRow.result_json).where(
                     AnalysisResultRow.job_id == job_id
                 )
             )
-            return None if document is None else deepcopy(document)
+            if document is None:
+                return None
+            return analysis_result_from_document(deepcopy(document))
 
     @staticmethod
     def requested_event(
@@ -86,8 +91,7 @@ class AnalysisRepositoryBase:
                 "job_id": str(row.id),
                 "artifact_id": str(row.artifact_id),
                 "input_sha256": row.input_sha256,
-                "profile": row.profile,
-                "schema_version": row.schema_version,
+                "skill_id": row.skill_id,
                 "output_language": row.output_language,
                 "attempt": row.attempt,
                 "version": row.version,

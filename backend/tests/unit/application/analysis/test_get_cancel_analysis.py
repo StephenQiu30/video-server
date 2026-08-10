@@ -9,7 +9,14 @@ from app.application.analysis import (
     CancelAnalysis,
     GetAnalysis,
 )
-from app.domain.analysis import AnalysisStatus
+from app.domain.analysis import (
+    AnalysisMedia,
+    AnalysisResult,
+    AnalysisStatus,
+    EvidenceSummary,
+    ProductionAdvice,
+    Shot,
+)
 from tests.unit.application.analysis.fakes import FakeRepository
 from tests.unit.application.analysis.test_create_analysis import (
     JOB_ID,
@@ -19,38 +26,44 @@ from tests.unit.application.analysis.test_create_analysis import (
     creator,
 )
 
-RESULT = {
-    "schema_version": "visual-analysis.v1",
-    "language": "zh-CN",
-    "title": "可验证视觉分析",
-    "summary": {"text": "摘要", "evidence_shot_ids": ["shot-1"]},
-    "media": {"duration_ms": 1_000, "container": "mp4", "size_bytes": 100},
-    "shot_count": 1,
-    "shots": [
-        {
-            "id": "shot-1",
-            "index": 1,
-            "start_ms": 0,
-            "end_ms": 1_000,
-            "representative_frame_ms": 500,
-            "description": "开场画面",
-            "transition_in": "none",
-            "shot_size": "wide",
-            "camera_motion": "static",
-            "visual_tags": ["开场"],
-            "asset_ids": [],
-        }
-    ],
-    "highlights": [],
-    "assets": [],
-}
+RESULT = AnalysisResult(
+    language="zh-CN",
+    title="可验证视觉分析",
+    summary=EvidenceSummary(text="摘要", evidence_shot_ids=("shot-1",)),
+    media=AnalysisMedia(duration_ms=1_000, container="mp4", size_bytes=100),
+    shot_count=1,
+    shots=(
+        Shot(
+            id="shot-1",
+            index=1,
+            start_ms=0,
+            end_ms=1_000,
+            representative_frame_ms=500,
+            description="开场画面",
+            transition_in="none",
+            shot_size="wide",
+            camera_motion="static",
+            narrative_function="建立故事空间。",
+            highlight_score=3,
+            visual_tags=("开场",),
+            asset_ids=(),
+        ),
+    ),
+    highlights=(),
+    assets=(),
+    production_advice=ProductionAdvice(
+        summary="优先还原开场镜头。",
+        priority_shot_ids=("shot-1",),
+        recommended_extensions=("镜头 Prompt",),
+    ),
+)
 
 
 async def saved_job(repository: FakeRepository) -> None:
     source = artifact()
     repository.artifacts[source.id] = source
     await creator(repository)(
-        source.download_id, OWNER, "request", "visual-shot-v1", "zh-CN"
+        source.download_id, OWNER, "request", "director-breakdown", "zh-CN"
     )
 
 

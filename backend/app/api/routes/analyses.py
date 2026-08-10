@@ -12,13 +12,37 @@ from app.api.dependencies import (
     get_analysis_use_cases,
 )
 from app.api.errors import analysis_application_error
-from app.api.schemas.analyses import AnalysisRequest, AnalysisResponse
-from app.application.analysis import AnalysisApplicationError
+from app.api.schemas.analyses import (
+    AnalysisRequest,
+    AnalysisResponse,
+    AnalysisSkillResponse,
+)
+from app.application.analysis import (
+    DOCX_MEDIA_TYPE,
+    MARKDOWN_MEDIA_TYPE,
+    AnalysisApplicationError,
+)
 from app.application.auth import CurrentUser
 
 router = APIRouter(tags=["analyses"])
 User = Annotated[CurrentUser, Depends(get_current_user)]
 UseCases = Annotated[AnalysisUseCases, Depends(get_analysis_use_cases)]
+
+
+@router.get(
+    "/analysis-skills",
+    operation_id="listAnalysisSkills",
+    response_model=tuple[AnalysisSkillResponse, ...],
+    summary="列出视频分析 Skill",
+)
+async def list_analysis_skills(
+    use_cases: UseCases,
+) -> tuple[AnalysisSkillResponse, ...]:
+    """返回可选 Skill 及用户可编辑的默认提示词。"""
+    return tuple(
+        AnalysisSkillResponse.model_validate(skill)
+        for skill in use_cases.list_analysis_skills()
+    )
 
 
 @router.post(
@@ -42,8 +66,9 @@ async def create_analysis(
             download_id,
             user.owner_hash,
             idempotency_key,
-            body.profile,
+            body.skill_id,
             body.output_language,
+            body.custom_prompt,
         )
     except AnalysisApplicationError as exc:
         raise analysis_application_error(exc) from exc
@@ -68,6 +93,74 @@ async def get_analysis(
     except AnalysisApplicationError as exc:
         raise analysis_application_error(exc) from exc
     return AnalysisResponse.from_view(view)
+
+
+@router.get(
+    "/analyses/{analysis_id}/report.md",
+    operation_id="exportAnalysisMarkdown",
+    response_class=Response,
+    responses={
+        200: {
+            "description": "Canonical Markdown analysis report",
+            "content": {
+                "text/markdown": {"schema": {"type": "string", "format": "binary"}}
+            },
+        }
+    },
+    summary="导出 Markdown 视频分析报告",
+)
+async def export_analysis_markdown(
+    analysis_id: UUID,
+    user: User,
+    use_cases: UseCases,
+) -> Response:
+    """导出与前端预览、DOCX 转换共用的唯一 Markdown 报告。"""
+    try:
+        report = await use_cases.export_analysis_markdown(analysis_id, user.owner_hash)
+    except AnalysisApplicationError as exc:
+        raise analysis_application_error(exc) from exc
+    return Response(
+        content=report.content,
+        media_type=MARKDOWN_MEDIA_TYPE,
+        headers={
+            "Content-Disposition": f'attachment; filename="{report.filename}"',
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+@router.get(
+    "/analyses/{analysis_id}/report.docx",
+    operation_id="exportAnalysisReport",
+    response_class=Response,
+    responses={
+        200: {
+            "description": "Microsoft Word analysis report",
+            "content": {
+                DOCX_MEDIA_TYPE: {"schema": {"type": "string", "format": "binary"}}
+            },
+        }
+    },
+    summary="导出视频分析报告",
+)
+async def export_analysis_report(
+    analysis_id: UUID,
+    user: User,
+    use_cases: UseCases,
+) -> Response:
+    """将已完成的结构化分析结果导出为 DOCX 报告。"""
+    try:
+        report = await use_cases.export_analysis_report(analysis_id, user.owner_hash)
+    except AnalysisApplicationError as exc:
+        raise analysis_application_error(exc) from exc
+    return Response(
+        content=report.content,
+        media_type=report.media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{report.filename}"',
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 @router.post(
