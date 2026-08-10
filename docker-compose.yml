@@ -88,7 +88,7 @@ services:
   api:
     <<: *app
     environment: *api-env
-    networks: [db_net, queue_net, quota_net, storage_net, runner_rpc_net]
+    networks: [db_net, queue_net, quota_net, storage_net, runner_rpc_net, public_egress_net]
     build:
       context: .
       dockerfile: Dockerfile
@@ -319,7 +319,7 @@ services:
       POSTGRES_USER: "${POSTGRES_USER:-video}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-video}"
     container_name: postgres
-    networks: [db_net]
+    networks: [db_net, public_egress_net]
     restart: unless-stopped
     ports:
       - "127.0.0.1:${POSTGRES_HOST_PORT:-15432}:5432"
@@ -339,7 +339,7 @@ services:
       RABBITMQ_DEFAULT_PASS: "${RABBITMQ_DEFAULT_PASS:-video}"
     container_name: rabbitmq
     hostname: rabbitmq
-    networks: [queue_net]
+    networks: [queue_net, public_egress_net]
     restart: unless-stopped
     ports:
       - "127.0.0.1:${RABBITMQ_HOST_PORT:-5673}:5672"
@@ -370,7 +370,7 @@ services:
       MINIO_ROOT_USER: "${MINIO_ROOT_USER:-video-root}"
       MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-video-root-secret-change-me}"
     container_name: minio
-    networks: [storage_net]
+    networks: [storage_net, public_egress_net]
     command: ["server", "/data", "--address", ":9000", "--console-address", ":9001"]
     restart: unless-stopped
     ports:
