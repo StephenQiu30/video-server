@@ -1,6 +1,6 @@
 # 012 AI 分析报告与 MinIO 持久化设计
 
-- 状态：Proposed
+- 状态：Accepted
 - 日期：2026-08-10
 - DAC：DAC-012-01 ～ DAC-012-10
 - 关联设计：`docs/design/010-Codex与Claude CLI视频分析设计.md`、`docs/design/013-AI分析原任务重试设计.md`、`docs/design/015-RabbitMQ异步分析设计.md`
@@ -11,9 +11,9 @@
 
 本设计只定义报告发布、存储、读取和生命周期，不改变 010 的视频视觉分析语义。分析对象仍是完整下载制品，由 Agent 自主检查视频并形成分镜、高光和视觉资产；报告持久化不得退化为应用侧预先抽帧后只分析零散图片。
 
-## 2. 当前事实与目标差异
+## 2. 设计冻结时的事实与目标差异
 
-当前实现已经把经过校验的 `result_json`、Provider、模型和 CLI 版本写入 `analysis_results`，但每个任务只能保存一条结果。`GET /api/analyses/{id}/report.md` 与 `report.docx` 会在每次请求时从结果即时渲染，MinIO 中没有可复用的报告对象，也没有对象校验和、渲染版本或发布状态。
+设计冻结时，实现已经把经过校验的 `result_json`、Provider、模型和 CLI 版本写入 `analysis_results`，但每个任务只能保存一条结果。`GET /api/analyses/{id}/report.md` 与 `report.docx` 会在每次请求时从结果即时渲染，MinIO 中没有可复用的报告对象，也没有对象校验和、渲染版本或发布状态。
 
 目标状态为：
 

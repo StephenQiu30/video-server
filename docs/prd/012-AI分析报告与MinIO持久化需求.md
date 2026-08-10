@@ -1,6 +1,6 @@
 # 012 AI 分析报告与 MinIO 持久化需求
 
-- 状态：Draft
+- 状态：Accepted
 - 日期：2026-08-10
 - 关联 Design：`docs/design/012-AI分析报告与MinIO持久化设计.md`
 

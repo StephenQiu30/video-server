@@ -1,10 +1,11 @@
 # 015 RabbitMQ 异步分析与可靠投递计划
 
-- 状态：Ready
+- 状态：Completed
 - 日期：2026-08-10
 - 关联 Design：`docs/design/015-RabbitMQ异步分析设计.md`
 - 关联 PRD：`docs/prd/015-RabbitMQ异步分析需求.md`
 - 依赖：013 run/version 模型；012 报告发布状态；014 公开实时事件契约
+- 完成证据：`docs/acceptance/015-RabbitMQ异步分析验收.md`
 
 ## 1. 实施顺序
 

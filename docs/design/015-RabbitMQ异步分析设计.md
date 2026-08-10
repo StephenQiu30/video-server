@@ -1,6 +1,6 @@
 # 015 RabbitMQ 异步分析与可靠投递设计
 
-- 状态：Proposed（`analysis.requested` 基础链路已实现，本设计补齐执行代次、报告发布与实时事件）
+- 状态：Accepted
 - 日期：2026-08-10
 - DAC：DAC-015-01 ～ DAC-015-12
 - 关联设计：`docs/design/010-Codex与Claude CLI视频分析设计.md`、`docs/design/012-AI分析报告与MinIO持久化设计.md`、`docs/design/013-AI分析原任务重试设计.md`、`docs/design/014-WebSocket任务状态同步设计.md`
@@ -11,9 +11,9 @@
 
 Analysis Worker 获得的是完整视频 artifact 的受控引用，并把完整视频物化到单任务工作区交给 Agent 自主分析。RabbitMQ 消息不携带视频、预抽帧包、报告正文或模型输出；本设计不把“消息异步化”误解为“应用先抽取少量帧后交给模型”。010 定义的 Agent 自主视频检查、分镜、高光和资产证据规则保持不变。
 
-## 2. 当前事实与建设差异
+## 2. 设计冻结时的事实与建设差异
 
-当前创建分析任务已经在 PostgreSQL 事务中写入 `analysis.requested` Outbox 事件，由 Publisher 发送到 `video.events` topic exchange，宿主机 Worker 从 durable `video.analysis` queue 消费，并具备 ACK/NACK、lease、heartbeat、自动重试和 dead-letter 基础能力。
+设计冻结时，创建分析任务已经在 PostgreSQL 事务中写入 `analysis.requested` Outbox 事件，由 Publisher 发送到 `video.events` topic exchange，宿主机 Worker 从 durable `video.analysis` queue 消费，并具备 ACK/NACK、lease、heartbeat、自动重试和 dead-letter 基础能力。
 
 本设计保留该基线，不重复建设第二条队列。需要补齐的是：
 

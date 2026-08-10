@@ -1,10 +1,11 @@
 # 012 AI 分析报告与 MinIO 持久化计划
 
-- 状态：Ready
+- 状态：Completed
 - 日期：2026-08-10
 - 关联 Design：`docs/design/012-AI分析报告与MinIO持久化设计.md`
 - 关联 PRD：`docs/prd/012-AI分析报告与MinIO持久化需求.md`
 - 依赖：013 执行代次模型；015 报告发布队列
+- 完成证据：`docs/acceptance/012-AI分析报告与MinIO持久化验收.md`
 
 ## 1. 实施顺序
 

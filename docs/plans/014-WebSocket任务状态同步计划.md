@@ -1,10 +1,11 @@
 # 014 WebSocket 任务状态同步计划
 
-- 状态：Ready
+- 状态：Completed
 - 日期：2026-08-10
 - 关联 Design：`docs/design/014-WebSocket任务状态同步设计.md`
 - 关联 PRD：`docs/prd/014-WebSocket任务状态同步需求.md`
 - 依赖：013 任务版本/run 投影；015 `task.state.changed` 事件
+- 完成证据：`docs/acceptance/014-WebSocket任务状态同步验收.md`
 
 ## 1. 实施顺序
 

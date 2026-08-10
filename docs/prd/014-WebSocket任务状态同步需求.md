@@ -1,6 +1,6 @@
 # 014 WebSocket 任务状态同步需求
 
-- 状态：Draft
+- 状态：Accepted
 - 日期：2026-08-10
 - 关联 Design：`docs/design/014-WebSocket任务状态同步设计.md`
 

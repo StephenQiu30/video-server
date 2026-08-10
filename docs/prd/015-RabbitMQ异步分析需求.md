@@ -1,6 +1,6 @@
 # 015 RabbitMQ 异步分析与可靠投递需求
 
-- 状态：Draft
+- 状态：Accepted
 - 日期：2026-08-10
 - 关联 Design：`docs/design/015-RabbitMQ异步分析设计.md`
 
