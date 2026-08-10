@@ -96,8 +96,8 @@ server/
 
 ## 安全与运行约束
 
-- 仅处理用户有权下载和分析的公开、非 DRM HTTP(S) 内容；禁止 Cookie 上传、DRM 绕过、私网 URL、任意 yt-dlp 参数和 shell 输入。
-- 媒体流量只能由无业务凭据的 Runner 发起并经过阻断私网的 egress proxy；入口 URL 校验不能替代网络隔离。
+- 仅处理用户有权下载和分析的公开、非 DRM HTTP(S) 内容；普通业务 JSON 禁止上传原始 Cookie，DRM 绕过、私网 URL、任意 yt-dlp 参数和 shell 输入始终禁止。受控 Provider 会话只能按 005 的 allowlist、独立 Runner、只读 Secret、权益防火墙和验收门禁启用。
+- 匿名媒体流量只能由无 Provider 凭据的 Runner 发起；凭据 Runner 只能获得单 Provider、版本化的只读会话 Secret，不得获得数据库、队列、对象存储或 AI 凭据。两类 Runner 均须经过阻断私网的 egress proxy；入口 URL 校验不能替代网络隔离。
 - Worker 开工前重新解析语义下载计划；Provider format id 不能作为唯一恢复依据。
 - AI 任务独立于下载任务；AI 失败不得改变下载成功状态。模型输出必须通过严格 schema、连续分镜时间轴和 shot evidence 校验，普通日志不得记录完整 Prompt、抽帧或原始模型响应。
 - Secret 只来自类型化配置和环境变量，不得进入前端、API 响应、异常、快照、测试夹具或普通日志。外部操作必须设置大小、时长、并发和超时上限，取消时终止整个子进程组。

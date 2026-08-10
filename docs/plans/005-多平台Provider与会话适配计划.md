@@ -1,6 +1,6 @@
 # 005 多平台 Provider 与会话适配计划
 
-- 状态：Ready
+- 状态：In Progress；Phase 1 implementation available，production acceptance pending
 - 日期：2026-08-10
 - 关联 Design：`docs/design/005-多平台Provider策略设计.md`
 - 关联 PRD：`docs/prd/005-多平台Provider与会话适配需求.md`
@@ -18,6 +18,8 @@
 
 ## 2. Phase 0：治理、基线与许可证
 
+实施状态：代码/文档/SBOM 已完成；真实账号风险确认、production-like threat/leak evidence 待验收。
+
 ### 交付
 
 - 将 `AGENTS.md`、`SECURITY.md`、根 README、backend README 和相关 002/006 文档的一刀切 Cookie 禁令改为受控 Provider 会话边界。
@@ -33,6 +35,8 @@
 - 现有无 Cookie 单元/集成测试保持通过，并明确标记为 anonymous path。
 
 ## 3. Phase 1：错误 taxonomy 与 Provider Profile v2
+
+实施状态：Profile、context、错误链、API 映射和契约测试已完成；跨 Provider redirect 独立 re-admission 尚未完成。
 
 ### 交付
 
@@ -52,6 +56,8 @@
 
 ## 4. Phase 2：Runner Secret 边界
 
+实施状态：只读版本源、Runner-only tmpfs、权限/域验证、操作级 jar 和 Compose 隔离已完成；SIGTERM/restart 与全系统泄漏扫描仍待 production-like 验收。
+
 ### 交付
 
 - `RunnerSettings` 只增加 allowlist Secret 路径、会话临时根和非 Secret version id；不增加 Cookie 内容环境变量。
@@ -70,6 +76,8 @@
 - Runner 仍无法连接 DB/MQ/MinIO/Valkey 或绕过 egress proxy。
 
 ## 5. Phase 3：YouTube 运维 Cookie 全链路
+
+实施状态：三条 yt-dlp 路径、快照传递、匿名→运维路由、权益 metadata fail-closed、本地单并发和轮换旧版本引用已完成；真实 Cookie E2E、自动权益漂移停用、版本 canary 状态机和分布式并发尚未完成。
 
 ### 交付
 
@@ -93,6 +101,8 @@
 
 ## 6. Phase 4：PO Token、固定出口与统一重试预算
 
+实施状态：固定版本插件/sidecar、内部网络、YouTube mweb 参数、非 Secret context 引用和初步错误分类已完成；真实 token/session/proxy binding、刷新一次、`Retry-After` 与统一重试/cooldown 尚未完成。
+
 ### 交付
 
 - 以独立 sidecar 方式接入固定版本 bgutil POT Provider；只允许 credentialed YouTube Runner 访问。
@@ -110,6 +120,8 @@
 - SBOM、NOTICE 和镜像扫描列出插件及许可证，未登记插件在 CI 被拒绝。
 
 ## 7. Phase 5：Capability Canary 与状态页
+
+实施状态：`GET /api/providers`、生成客户端、受保护状态页和明确 `verified/access_required/unknown/unsupported` 快照已完成；定时 canary 执行器、阈值/恢复迟滞与动态聚合尚未完成。
 
 ### 交付
 
@@ -129,6 +141,8 @@
 
 ## 8. Phase 6：其他平台专用 Profile
 
+实施状态：17 个 Profile 与逐平台上游策略已登记，Bilibili/抖音/小红书沿用 2026-08-07 历史回归；其余平台的当前版本 metadata + media canary 尚未执行，因此保持 `unknown`。
+
 按真实 canary 证据逐个平台交付，不一次性启用所有 Cookie：
 
 1. TikTok：web challenge、impersonation、可选 `sid_tt` 和 IP block 分类。
@@ -140,6 +154,8 @@
 每个平台必须先交付：Profile、域名/Cookie allowlist、固定参数、错误 marker、anonymous canary、会话 canary、限流和 kill switch。缺一项则保持 anonymous/disabled。
 
 ## 9. Phase 7：用户 ProviderCredential
+
+实施状态：Not started；仍属 Phase 2 产品范围。
 
 ### 交付
 
@@ -158,6 +174,8 @@
 - 用户凭据不会被 operator/anonymous/Generic pool 复用。
 
 ## 10. Phase 8：gallery-dl 与多媒体模型
+
+实施状态：Not started；仍属 Phase 2 产品范围。
 
 ### 交付
 
@@ -220,3 +238,5 @@ feat(provider): 增加多媒体引擎适配器
 - 没有 Cookie/POT/URL 泄漏，没有未接受 Critical/High 风险，没有未登记许可证。
 - Provider 页面只展示 canary 支持的能力；未知/失败项保持准确状态。
 - Phase 1 与 Phase 2 的上线结论分别记录，不能用本地 Cookie 成功替代生产安全门禁。
+
+截至 2026-08-10，Phase 1 的实现可以进入受限 production-like 验收，但尚不满足上线完成定义：真实 YouTube Cookie/POT E2E、全系统泄漏扫描、自动 canary、账号权益漂移停用、分布式单并发和统一重试预算没有证据。Phase 2 保持未开始。

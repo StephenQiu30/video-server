@@ -5,6 +5,8 @@
 - 范围：当前仓库、固定 yt-dlp 提交、GitHub 上游实现、公开视频平台的会话与请求证明机制
 - 结论：保留 yt-dlp + EJS + FFmpeg 主链，把 Cookie 禁令调整为默认关闭、Provider allowlist 下的受控会话能力；优先修复 YouTube 的会话、PO Token、固定出口和错误分类，再按真实 canary 扩展其他平台。
 
+> 2026-08-10 实施更新：本文第 3 节记录的是实施前基线。Profile/context、操作级 Cookie jar、YouTube 运维 Runner、POT sidecar 拓扑、错误映射和 Provider 状态 API/UI 已落地；真实 Cookie/POT E2E、动态 canary 与生产验收状态以 005 Acceptance 为准。
+
 ## 1. 执行摘要
 
 当前 YouTube 失败不是“项目不支持 Shorts”，也不是 yt-dlp 版本过旧或 JavaScript challenge runtime 缺失。仓库固定 commit `5d6b8c8` 的包报告版本为 `2026.07.04`，镜像同时包含 Node 24 和 `yt-dlp-ejs 0.8.0`；用户样本和另一个公开样本都在当前统一出口上返回 `LOGIN_REQUIRED / Sign in to confirm you're not a bot`。这说明当前主要故障是出口信誉或平台访问验证，Cookie 可以成为解决方案的一部分，但不能替代 PO Token、正确 client/EJS 或稳定出口。

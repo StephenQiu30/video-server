@@ -65,7 +65,7 @@ Runner 使用 `ProviderStrategy + ProviderRegistry + GenericFallback`：平台�
 | --- | --- | --- |
 | Bilibili | 解析成功，360p MP4 下载并通过完整性校验 | 保持 yt-dlp 主链路 |
 | 小红书 | 带有效 `xsec_token` 的完整分享链接解析、下载、校验成功；无 token 的旧直链失败 | 接受完整公开分享链接；后续补短链规范化与 token 缺失提示 |
-| YouTube | 当前 egress IP 被要求 `Sign in to confirm you're not a bot` | 映射为 `provider_access_required`，不再返回泛化 502 |
+| YouTube | 当前 egress IP 被要求 `Sign in to confirm you're not a bot` | 005 实施前映射为 `provider_access_required`；当前内部归为 `egress_challenged`，公开归为 `provider_verification_failed` |
 | 抖音 | 用户短链与截图中的 `modal_id` 均可从公开分享页解析；短链样例完成约 2.12 MB MP4 下载、封装和音视频流校验 | 使用可信 share-page 插件；仅声明当前公开分享流可用，不承诺无水印、原画或受限内容 |
 | 视频号 | 公开分享页可访问，但当前 yt-dlp/Generic 无法提取 | 不宣称支持；返回不可用结果，不接入 Cookie 或公共中转服务 |
 

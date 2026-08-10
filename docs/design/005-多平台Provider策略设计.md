@@ -1,9 +1,9 @@
 # 005 多平台 Provider 与会话适配设计
 
-- 状态：Proposed
+- 状态：Partially Implemented；production verification pending
 - 日期：2026-08-10
 - 前置调研：`docs/research/003-多平台下载会话与GitHub适配调研.md`
-- 实现状态：当前 Registry、yt-dlp/EJS/FFmpeg 和公开 Provider 主链已存在；本文的受控 Cookie、PO Token、能力状态和凭据 Broker 尚未实现。
+- 实现状态：Phase 1 已落地版本化 Profile、非 Secret 访问上下文、匿名/YouTube 运维 Runner 路由、操作级 Cookie jar、权益防火墙、可选 POT sidecar、稳定错误、`GET /api/providers` 与前端状态页。真实 Cookie/POT canary、自动状态聚合、账号权益漂移自动停用和统一重试预算仍是生产发布门禁；Phase 2 的用户 Credential Broker/Vault 与 gallery-dl 尚未实现。
 
 ## 1. 目标
 
@@ -29,7 +29,7 @@ Cookie 的一刀切禁令被调整为“默认关闭、Provider allowlist、生�
 
 ## 3. 当前基线与根因
 
-### 3.1 已实现
+### 3.1 实施前基线
 
 - `ProviderRegistry` 根据标准化 hostname 选择 17 个 Provider key 或 Generic fallback。
 - `ProviderProfile` 可提供 URL 规范化、固定命令参数、检查重试和 Provider 专用出口。
@@ -37,16 +37,24 @@ Cookie 的一刀切禁令被调整为“默认关闭、Provider allowlist、生�
 - Bilibili、抖音公开分享页和带有效 token 的小红书样本曾完成真实解析/下载验证。
 - Runner 只经拒绝私网的 egress proxy 出网，下载前会重新 inspect。
 
-### 3.2 未实现与缺陷
+### 3.2 已修复缺陷
 
-- Profile 没有 capability、auth mode、Cookie 域、POT、会话版本、限流或 canary 策略。
-- Runner 没有会话配置，三条 yt-dlp 命令都不传 `--cookies`。
-- 用户截图的 YouTube bot challenge 被合并为 `provider_access_required`，API 又硬编码成“Cookie 上传不支持”。
-- 下载阶段不映射 `provider_*`，会把下载前重解析失败归为 `worker_lost`。
-- Runner 与 Download Worker 共享 `/work`；该卷不能用于凭据临时文件。
-- 当前统一出口没有 Provider 专用覆盖，Cookie、POT 和 IP 无法形成稳定 session coherence。
+- Profile v2 已增加 capability、access mode、Cookie 域、client、attestation、egress、并发、状态和 canary suite；稳定错误仍由共享 classifier 管理。
+- YouTube 运维 Runner 的 inspect、download stream 和 probe sample 统一使用操作级 `--cookies`，匿名、Generic 与非 YouTube 路径不携带 Cookie。
+- YouTube bot challenge、credential、POT、rate、geo、private/entitlement、DRM 与 extractor regression 已分层；download re-inspect 的 Provider 错误不再降为 `worker_lost`。
+- Cookie 源按不可变版本只读挂载，临时 jar 位于 Runner 独占 `/run/provider-secrets-tmp`，不位于共享 `/work`。
+- inspection 冻结 `ProviderAccessContextRef` 并随下载快照传递；匿名与运维 Runner 物理分离，YouTube 可选择固定 Provider 出口和内部 POT sidecar。
 
-因此当前 YouTube 问题不是一个布尔值 `cookies_enabled` 可以修复，而是访问上下文缺失和错误模型过粗。
+### 3.3 仍待生产验收
+
+- 尚未提供生产专用账号和授权样本，因此未执行真实 Cookie/POT 的完整 Runner → Worker → MinIO E2E。
+- `GET /api/providers` 当前返回配置/历史基线快照；定时 canary、连续失败阈值、恢复迟滞和自动状态聚合尚未实现。
+- 账号最小权益使用启动 attestation 和媒体 metadata fail-closed；自动检测账号权益漂移并 disable version 尚未实现。
+- 凭据并发当前由单运维 Runner 的 `RUNNER_MAX_ACTIVE_TASKS=1` 和本地 semaphore 约束；跨副本分布式租约尚未实现。
+- 429 `Retry-After`、Worker/Runner/yt-dlp 统一预算、POT 刷新一次和出口 cooldown 尚未实现。
+- Generic 仍依赖 yt-dlp 内部重定向；“跨 Provider redirect 后重新 admission/context”尚未完成独立控制面实现。
+
+因此 YouTube 修复不是一个布尔值 `cookies_enabled`，而是访问上下文、Secret 生命周期、权益防火墙、请求证明和出口策略的组合；当前实现提供了受控路径，但生产状态必须由真实 canary 决定。
 
 ## 4. 设计原则
 
@@ -59,7 +67,9 @@ Cookie 的一刀切禁令被调整为“默认关闭、Provider allowlist、生�
 7. **可验证支持**：Provider 状态由 capability + auth mode + region/egress + engine version 的 canary 计算。
 8. **固定执行面**：引擎参数由可信 Profile 生成，用户不能透传原始 options。
 
-## 5. 目标架构
+## 5. 架构
+
+下图同时包含当前 Phase 1 与 Phase 2 目标。当前已经实现 Anonymous Runner、YouTube Operator Runner、Runner-only tmpfs、POT sidecar 和非 Secret context 路由；`User Credential Runner`/Broker、动态 canary 控制面仍是未实现目标。
 
 ```mermaid
 flowchart LR
@@ -83,7 +93,7 @@ flowchart LR
 
 ### 5.1 Provider Control Plane
 
-控制面负责：
+目标控制面负责：
 
 - 解析 URL 后选择版本化 Profile；redirect 改变 Provider 时重新分类。
 - 根据 capability、access mode、账号状态、出口状态和配额选择 Runner pool。
@@ -292,7 +302,7 @@ pending → canary → active → retired
 | `provider_drm_protected` | DRM | 不支持处理 |
 | `provider_temporarily_unavailable` | extractor regression、sidecar/Provider degraded | 稍后重试并由运维处理 |
 
-`provider_content_restricted` 只聚合 private/未获权益，不包含链接失效或删除。inspect 和 download 必须使用同一映射。`provider_access_required` 可作为迁移期公开聚合码，但内部不能继续把未知 Provider 错误降为 `worker_lost`。
+`provider_content_restricted` 只聚合 private/未获权益，不包含链接失效或删除。inspect 和 download 使用同一映射；旧 `provider_access_required` 已删除，未知 `provider_*` 也不再降为 `worker_lost`。
 
 ## 12. API 与前端
 
@@ -314,7 +324,7 @@ OpenAPI 仍是前后端唯一契约；新增接口使用稳定 operationId，前
 
 ## 13. Capability、Canary 与状态
 
-状态计算维度：
+目标状态聚合维度：
 
 ```text
 provider + capability + access_mode + egress_region + client_profile + engine_version
@@ -326,7 +336,7 @@ provider + capability + access_mode + egress_region + client_profile + engine_ve
 unknown | verified | degraded | access_required | rate_limited | blocked | disabled | unsupported
 ```
 
-Canary：
+目标 Canary：
 
 - 匿名 metadata canary：每 6 小时。
 - 运维会话 metadata canary：每 6 小时。
@@ -334,7 +344,7 @@ Canary：
 - 只使用项目自有或明确授权样本，不使用用户 URL/Cookie。
 - 记录 Provider、capability、access mode、Profile/engine/POT 版本、egress affinity 引用、阶段、耗时和稳定错误；不记录完整 URL 或 Secret。
 
-最近 5 次至少 4 次成功且最近成功不超过 6 小时可标记 `verified`；至少 2 次失败进入 `degraded`；连续 3 次同类永久失败进入 `blocked`。会话失效立即进入 `access_required`，恢复至少需要连续 2 次成功，避免状态抖动。
+最近 5 次至少 4 次成功且最近成功不超过 6 小时可标记 `verified`；至少 2 次失败进入 `degraded`；连续 3 次同类永久失败进入 `blocked`。会话失效立即进入 `access_required`，恢复至少需要连续 2 次成功，避免状态抖动。当前 API 尚未实现该聚合器，只发布明确标注的配置/历史基线：Bilibili、抖音、小红书为 2026-08-07 已记录回归，YouTube 为 `access_required`，无证据的平台保持 `unknown`，视频号/快手为 `unsupported`。
 
 ## 14. 可观测性与审计
 
@@ -357,7 +367,7 @@ CI 应拒绝未登记许可证、未固定版本或可从用户目录动态加�
 
 ## 16. 决策门与迁移
 
-1. 实现前必须把 `AGENTS.md`、`SECURITY.md`、根/后端 README 的一刀切 Cookie 禁令改成本文的受控会话边界。
+1. `AGENTS.md`、`SECURITY.md`、根/后端 README 必须持续保持本文的受控会话边界；普通 JSON 与 Generic 仍禁止 Cookie。
 2. Phase 1 只允许 YouTube 运维会话；其他 Provider 要有真实 canary 和域名 allowlist 后才能启用。
 3. 用户 Credential 在 Vault/Broker、跨 owner 隔离、删除和审计通过前不得上线。
 4. POT sidecar 和 gallery-dl 通过许可证、SBOM、网络及故障隔离门禁后才能进入生产镜像。

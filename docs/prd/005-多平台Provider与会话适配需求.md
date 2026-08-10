@@ -192,7 +192,7 @@ Phase 2 不因本文存在而自动获得上线授权；必须完成对应验收
 
 ## 9. 依赖与决策
 
-- 实现前需同步调整 `AGENTS.md`、`SECURITY.md`、根 README 和 backend README 中的一刀切 Cookie 禁令。
+- `AGENTS.md`、`SECURITY.md`、根 README 和 backend README 已同步为受控会话边界；后续实现不得恢复一刀切禁令或把 Cookie 带回普通业务 JSON。
 - POT Provider 和 gallery-dl 需要许可证/分发评估；未经批准不进入默认生产镜像。
 - Phase 1 需要 Secret mount、Runner 独占 tmpfs、Provider 出口 affinity 和分布式 credential 并发控制。
 - Phase 2 需要 KMS/Vault、Credential Broker、审计与用户删除/撤销流程。
