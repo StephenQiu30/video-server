@@ -4,6 +4,7 @@ import {
   CaretDownIcon,
   ChartLineUpIcon,
   ClockCounterClockwiseIcon,
+  PulseIcon,
   SignOutIcon,
   UserCircleIcon,
   UsersThreeIcon,
@@ -57,6 +58,7 @@ export function SiteHeader() {
   const pathname = usePathname() ?? '/';
   const router = useRouter();
   const historyActive = pathname.startsWith('/history');
+  const providersActive = pathname.startsWith('/providers');
   const analyticsActive = pathname.startsWith('/admin/analytics');
   const usersActive = pathname.startsWith('/admin/users');
 
@@ -89,6 +91,22 @@ export function SiteHeader() {
             >
               <ClockCounterClockwiseIcon aria-hidden className="size-[19px]" />
               <span>下载记录</span>
+            </Link>
+          </Button>
+          <Button
+            asChild
+            className={cn(
+              'min-h-10 px-3 text-foreground',
+              providersActive && 'bg-muted',
+            )}
+            variant="ghost"
+          >
+            <Link
+              aria-current={providersActive ? 'page' : undefined}
+              href="/providers"
+            >
+              <PulseIcon aria-hidden className="size-[19px]" />
+              <span>平台状态</span>
             </Link>
           </Button>
           {user ? (

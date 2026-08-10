@@ -5,6 +5,7 @@ import {
   ClockCounterClockwiseIcon,
   LinkSimpleIcon,
   ListIcon,
+  PulseIcon,
   SignOutIcon,
   UserCircleIcon,
   UsersThreeIcon,
@@ -86,6 +87,13 @@ export function MobileNavigation({
           <MobileLink active={pathname.startsWith('/history')} href="/history">
             <ClockCounterClockwiseIcon aria-hidden />
             下载记录
+          </MobileLink>
+          <MobileLink
+            active={pathname.startsWith('/providers')}
+            href="/providers"
+          >
+            <PulseIcon aria-hidden />
+            平台状态
           </MobileLink>
           {user ? (
             <>

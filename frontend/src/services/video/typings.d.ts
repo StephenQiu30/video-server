@@ -179,6 +179,16 @@ declare namespace API {
     | "internal_error"
     | "media_validation_failed"
     | "output_limit_exceeded"
+    | "provider_auth_required"
+    | "provider_content_restricted"
+    | "provider_drm_protected"
+    | "provider_geo_restricted"
+    | "provider_link_unavailable"
+    | "provider_rate_limited"
+    | "provider_session_expired"
+    | "provider_temporarily_unavailable"
+    | "provider_unsupported"
+    | "provider_verification_failed"
     | "storage_unavailable"
     | "temp_space_exhausted"
     | "transcode_required"
@@ -430,6 +440,53 @@ declare namespace API {
     /** Instance 产生错误的请求路径。 */
     instance: string;
   };
+
+  type ProviderAccessMode = "anonymous" | "operator_managed";
+
+  type ProviderCapability =
+    | "single_video"
+    | "short_video"
+    | "clip_or_vod"
+    | "audio_video_split"
+    | "subtitles"
+    | "image_or_carousel"
+    | "live"
+    | "playlist";
+
+  type ProviderListResponse = {
+    /** Items */
+    items: ProviderStatusResponse[];
+  };
+
+  type ProviderStatusResponse = {
+    /** Key */
+    key: string;
+    /** Display Name */
+    display_name: string;
+    /** Registered */
+    registered: boolean;
+    /** Extractor Exists */
+    extractor_exists: boolean;
+    /** Capabilities */
+    capabilities: ProviderCapability[];
+    /** Access Modes */
+    access_modes: ProviderAccessMode[];
+    status: ProviderSupportStatus;
+    /** Last Verified At */
+    last_verified_at: string | null;
+    /** User Action */
+    user_action: string | null;
+  };
+
+  type ProviderSupportStatus =
+    | "unknown"
+    | "verified"
+    | "degraded"
+    | "access_required"
+    | "rate_limited"
+    | "blocked"
+    | "disabled"
+    | "unsupported";
 
   type ReadinessResponse = {
     /** Status */

@@ -64,6 +64,10 @@ describe('AppShell', () => {
     const historyLink = screen.getByRole('link', { name: /下载记录/ });
     expect(historyLink).toHaveAttribute('href', '/history');
     expect(historyLink).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: /平台状态/ })).toHaveAttribute(
+      'href',
+      '/providers',
+    );
     expect(screen.getByRole('link', { name: /账户/ })).toHaveAttribute(
       'href',
       '/user/login?redirect=%2F',
@@ -83,6 +87,9 @@ describe('AppShell', () => {
     expect(
       within(mobileNavigation).getByRole('link', { name: '下载记录' }),
     ).not.toHaveAttribute('aria-current');
+    expect(
+      within(mobileNavigation).getByRole('link', { name: '平台状态' }),
+    ).toHaveAttribute('href', '/providers');
   });
 
   it('keeps explicit desktop and mobile routes from history back to parsing', async () => {

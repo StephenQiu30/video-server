@@ -1,0 +1,107 @@
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { ProviderStatusView } from '@/components/provider-status-view';
+import type { ProviderStatusList } from '@/services/providers';
+
+const runtime = vi.hoisted(() => ({
+  listProviders: vi.fn(),
+}));
+
+vi.mock('@/services/providers', () => ({
+  displayError: (reason: unknown) =>
+    reason instanceof Error ? reason.message : '请求失败',
+  listProviders: runtime.listProviders,
+}));
+
+describe('provider status page', () => {
+  beforeEach(() => {
+    runtime.listProviders.mockReset();
+  });
+
+  it('distinguishes registration, verification and controlled access', async () => {
+    runtime.listProviders.mockResolvedValue(statuses());
+    render(<ProviderStatusView />);
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: '平台状态' }),
+    ).toBeInTheDocument();
+    const list = screen.getByRole('list', { name: '平台能力状态' });
+    const youtube = within(list)
+      .getByRole('heading', { name: 'YouTube' })
+      .closest('li');
+    expect(youtube).not.toBeNull();
+    expect(youtube).toHaveTextContent('需受控会话');
+    expect(youtube).toHaveTextContent('匿名优先');
+    expect(youtube).toHaveTextContent('暂无当前版本证据');
+    expect(youtube).not.toHaveTextContent('Cookie 版本');
+
+    const bilibili = within(list)
+      .getByRole('heading', { name: '哔哩哔哩' })
+      .closest('li');
+    expect(bilibili).not.toBeNull();
+    expect(bilibili).toHaveTextContent('已验证');
+    expect(bilibili).toHaveTextContent('仅匿名公开内容');
+    expect(bilibili).toHaveTextContent('2026年8月10日');
+  });
+
+  it('supports loading, safe error and retry states', async () => {
+    const first = deferred<ProviderStatusList>();
+    runtime.listProviders
+      .mockReturnValueOnce(first.promise)
+      .mockRejectedValueOnce(new Error('状态服务暂不可用'))
+      .mockResolvedValueOnce(statuses());
+    render(<ProviderStatusView />);
+
+    expect(
+      screen.getByRole('status', { name: '正在加载平台状态' }),
+    ).toBeInTheDocument();
+    await act(async () => first.resolve(statuses()));
+    expect(await screen.findByText('YouTube')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '刷新状态' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '状态服务暂不可用',
+    );
+    fireEvent.click(screen.getByRole('button', { name: '重试' }));
+    expect(await screen.findByText('哔哩哔哩')).toBeInTheDocument();
+    expect(runtime.listProviders).toHaveBeenCalledTimes(3);
+  });
+});
+
+function statuses(): ProviderStatusList {
+  return {
+    items: [
+      {
+        key: 'youtube',
+        display_name: 'YouTube',
+        registered: true,
+        extractor_exists: true,
+        capabilities: ['single_video', 'audio_video_split'],
+        access_modes: ['anonymous', 'operator_managed'],
+        status: 'access_required',
+        last_verified_at: null,
+        user_action: '该平台需要部署已批准的受控会话。',
+      },
+      {
+        key: 'bilibili',
+        display_name: '哔哩哔哩',
+        registered: true,
+        extractor_exists: true,
+        capabilities: ['single_video'],
+        access_modes: ['anonymous'],
+        status: 'verified',
+        last_verified_at: '2026-08-10T00:00:00Z',
+        user_action: null,
+      },
+    ],
+  };
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
