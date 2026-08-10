@@ -20,6 +20,7 @@
 - Header 比例回归的 2048px 视口中，Header/main 均为 `x = 328.4px / width = 1376px`；1280px 视口中均为 `x = 80px / width = 1104.8px`。Header 高度为 80px，Logo 为 28px，导航控件为 44px。
 - 390×844 回归中 Header/main 均为 `x = 16px / width = 343.2px`，移动导航触发器为 44px，`clientWidth = scrollWidth = 375`。
 - 2026-08-10 认证与导航响应式回归中，820×900 登录表单为 `x = 190px / width = 440px`，中心与视口中心偏差为 `0px`；390×844 登录表单为 `x = 16px / width = 358.4px`，中心偏差仅为设备像素舍入产生的 `0.2px`，两个视口均满足 `clientWidth = scrollWidth`。
+- 2026-08-10 布局稳定性回归在 1280×600 复现了长短页面切换问题：修复前短 404 页右侧导航 `x = 804.2px`，长历史页 `x = 789px`，存在 `15.2px` 位移。启用稳定 scrollbar gutter 与固定账户槽后，两页 Header shell 均为 `x = 80px / width = 1104.8px`，导航均为 `x = 776.6px / width = 408.2px`，页面切换位移降为 `0px`。
 
 ## 最终对照结论
 
@@ -34,6 +35,7 @@
 - 390×844 首屏自然收敛为标题、输入、主按钮、媒体和画质单列；下半屏的 4 个格式、真实元数据、创建任务与安全状态均可达。
 - 移动 Sheet 可打开/关闭，包含视频解析、下载记录、个人资料、退出与主题切换；Sheet 无可见边框。
 - 响应式导航在 820px 使用移动 Sheet、在 1024px 切换为桌面导航；Sheet 保留当前页 `aria-current="page"`、内部 `overflow-y: auto`、Escape 关闭与触发器焦点恢复。1024px 实测 Logo 为 32px、品牌文字为 17px，页面无横向溢出。
+- Header 账户槽在认证恢复、未登录入口和 Avatar 菜单之间固定为 88px，已登录控件为 74×44px；共享 Button 与 `asChild` 导航链接的 computed `transform` 为 `none`，transition 仅包含 `background-color, color, opacity`，按下和异步状态不再改变组件几何。
 - 浏览器实测：清空链接、重新填入链接、720P/480P/1080P Radio 切换、明暗主题切换、移动菜单、移动主题切换和主题跨刷新保持。
 - 直接打开登录页时已保存的深色主题能够恢复；首屏前置主题脚本与 hydration 后初始化共同避免主题缺失。
 - 最终完整重载后浏览器日志没有产品代码 error；开发期曾出现的主题脚本挂载告警已修正为根 `<head>` 内的 `beforeInteractive` 脚本。
@@ -58,12 +60,13 @@
 8. 首轮品牌密度收敛曾将字号统一为 `text-sm`；后续在 2048px 真实任务页复核发现，24px Logo、40px 导航控件与大尺寸媒体主体之间的视觉比例偏弱。
 9. Header 调整为 80px，品牌 Logo 为 28px，品牌/导航文字为 15px，桌面导航控件为 44px；仍保持无边框、无阴影与 `.content-shell` 对齐。2048px、1280px 和 390px 实测均无横向溢出或对齐偏差。
 10. 品牌层级后续增强为 32px Logo 与 17px 品牌文字；窄屏认证表单改为居中，完整桌面导航断点调整到 `lg`，其余宽度使用可滚动的 Radix Sheet。820px、390px 与 1024px 实测确认居中、断点、当前页语义、Escape/焦点恢复及横向溢出均通过。
+11. 跨页面导航抖动定位为经典滚动条增减与认证账户控件宽度变化叠加，组件按下抖动定位为共享 Button 的 1px translate。根滚动槽、88px 账户槽与无几何位移的基础 Button 已统一收敛，并通过长短页面、认证态和浏览器 computed style 回归。
 
 ## 工程门槛
 
 - `npm run lint`：通过。
 - `npm run format:check`：仓库存量 CRLF 换行基线仍会报告 129 项差异；本次 6 个变更的前端文件已通过定向 Biome check。
-- `npm test`：25 个测试文件、83 项测试全部通过。
+- `npm test`：25 个测试文件、86 项测试全部通过。
 - `npm run build`：Next.js 16.3 静态导出通过，9 个业务路由与 404 均成功生成。
 - 独立前端差异审查：无剩余 P0/P1；报告的 P2 已全部修复。
 
