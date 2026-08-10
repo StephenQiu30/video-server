@@ -114,6 +114,14 @@ def test_selector_never_silently_downgrades_resolution() -> None:
     assert caught.value.code is DownloadErrorCode.FORMAT_UNAVAILABLE
 
 
+def test_selector_accepts_small_same_aspect_provider_dimension_drift() -> None:
+    wanted = plan(height=960, width=540)
+
+    selected = select_streams(wanted, [muxed("fresh", height=1024, width=576)])
+
+    assert selected.video.provider_id == "fresh"
+
+
 def test_muxed_stream_is_preferred_over_compatible_split_streams() -> None:
     selected = select_streams(
         plan(),

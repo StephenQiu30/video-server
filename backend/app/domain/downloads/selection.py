@@ -8,6 +8,7 @@ from app.domain.downloads.enums import (
     Container,
     ContainerPreference,
     DownloadErrorCode,
+    FpsBucket,
     StreamKind,
     VideoCodecFamily,
 )
@@ -38,7 +39,7 @@ def select_streams(
         stream
         for stream in available
         if stream.kind is StreamKind.MUXED
-        and plan.matches_video(stream)
+        and _matches_video(plan, stream)
         and plan.matches_audio(stream)
     ]
     compatible_muxed = [
@@ -58,7 +59,7 @@ def select_streams(
     videos = [
         stream
         for stream in available
-        if stream.kind is StreamKind.VIDEO and plan.matches_video(stream)
+        if stream.kind is StreamKind.VIDEO and _matches_video(plan, stream)
     ]
     audios = [
         stream
@@ -91,6 +92,32 @@ def select_streams(
     if muxed or pairs:
         raise FormatSelectionError(DownloadErrorCode.TRANSCODE_REQUIRED)
     raise FormatSelectionError(DownloadErrorCode.FORMAT_UNAVAILABLE)
+
+
+def _matches_video(plan: DownloadPlan, stream: CandidateStream) -> bool:
+    if plan.matches_video(stream):
+        return True
+    if (
+        stream.kind not in {StreamKind.MUXED, StreamKind.VIDEO}
+        or stream.height is None
+        or stream.width is None
+        or stream.fps is None
+        or stream.dynamic_range is not plan.dynamic_range
+        or stream.video_codec_family is not plan.video_codec_family
+        or FpsBucket.from_fps(stream.fps) is not plan.fps_bucket
+    ):
+        return False
+
+    # Some providers (notably TikTok) rotate CDN renditions between requests,
+    # changing the encoded pixel dimensions by a few percent while retaining
+    # the same quality tier. Accept only a close, same-aspect-ratio rendition;
+    # a real resolution downgrade remains unavailable.
+    target_ratio = plan.width / plan.height
+    stream_ratio = stream.width / stream.height
+    ratio_delta = abs(stream_ratio - target_ratio) / target_ratio
+    width_delta = abs(stream.width - plan.width) / plan.width
+    height_delta = abs(stream.height - plan.height) / plan.height
+    return ratio_delta <= 0.02 and width_delta <= 0.12 and height_delta <= 0.12
 
 
 def _output_for(
