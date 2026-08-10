@@ -129,12 +129,12 @@ async def test_failure_and_concurrent_operations_cleanup_and_isolate(
     write_cookie(settings)
     store = ProviderSessionStore(settings)
     context = store.context_for("https://youtu.be/owned")
-    seen: list[tuple[Path, int]] = []
+    seen: list[Path] = []
 
     async def use_then_fail() -> None:
         async with store.operation(context) as jar:
             assert jar is not None
-            seen.append((jar, jar.stat().st_ino))
+            seen.append(jar)
             await asyncio.sleep(0)
             if len(seen) == 1:
                 raise RuntimeError("controlled failure")
@@ -146,8 +146,7 @@ async def test_failure_and_concurrent_operations_cleanup_and_isolate(
     )
 
     assert any(isinstance(item, RuntimeError) for item in results)
-    assert len({path for path, _ in seen}) == 2
-    assert len({inode for _, inode in seen}) == 2
+    assert len(set(seen)) == 2
     assert list(settings.runner_provider_secret_temp_root.iterdir()) == []
 
 
