@@ -67,6 +67,13 @@ class InspectionCreateResult:
 
 
 @dataclass(frozen=True, slots=True)
+class RetrySourceSnapshot:
+    url_ciphertext: bytes
+    url_nonce: bytes
+    url_key_id: str
+
+
+@dataclass(frozen=True, slots=True)
 class DownloadCreate:
     id: UUID
     inspection_id: UUID
@@ -148,6 +155,8 @@ class DownloadHistoryItemSnapshot:
     created_at: datetime
     updated_at: datetime
     finished_at: datetime | None
+    file_available: bool = False
+    file_expires_at: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)

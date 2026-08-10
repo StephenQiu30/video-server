@@ -36,11 +36,23 @@ async def _owned_job(
 
 
 class GetDownload:
-    def __init__(self, repository: DownloadRepository) -> None:
+    def __init__(
+        self, repository: DownloadRepository, *, now: Callable[[], datetime]
+    ) -> None:
         self._repository = repository
+        self._now = now
 
     async def __call__(self, job_id: UUID, owner_hash: str) -> DownloadView:
-        return download_view(await _owned_job(self._repository, job_id, owner_hash))
+        job = await _owned_job(self._repository, job_id, owner_hash)
+        artifact = None
+        if job.status == DownloadStatus.SUCCEEDED.value:
+            try:
+                artifact = await self._repository.get_artifact(
+                    job_id, owner_hash, validate_now(self._now())
+                )
+            except PersistenceNotFound:
+                artifact = None
+        return download_view(job, artifact)
 
 
 class GetInspection:
@@ -61,8 +73,8 @@ class GetInspection:
             raise ApplicationError(ApplicationErrorCode.NOT_FOUND) from exc
         if inspection is None or inspection.owner_hash != owner_hash:
             raise ApplicationError(ApplicationErrorCode.NOT_FOUND)
-        if now >= inspection.expires_at or not inspection.formats:
-            raise ApplicationError(ApplicationErrorCode.RESOURCE_EXPIRED)
+        if not inspection.formats:
+            raise ApplicationError(ApplicationErrorCode.NOT_FOUND)
         return inspection_view(inspection)
 
 
@@ -117,9 +129,9 @@ class IssueDownloadUrl:
         try:
             artifact = await self._repository.get_artifact(job_id, owner_hash, now)
         except PersistenceNotFound as exc:
-            raise ApplicationError(ApplicationErrorCode.NOT_FOUND) from exc
+            raise ApplicationError(ApplicationErrorCode.RESOURCE_EXPIRED) from exc
         if artifact is None or artifact.job_id != job_id:
-            raise ApplicationError(ApplicationErrorCode.NOT_FOUND)
+            raise ApplicationError(ApplicationErrorCode.RESOURCE_EXPIRED)
         remaining = int((artifact.expires_at - now).total_seconds())
         if remaining <= 0:
             raise ApplicationError(ApplicationErrorCode.RESOURCE_EXPIRED)

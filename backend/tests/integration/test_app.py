@@ -18,7 +18,9 @@ class StubReadinessProbe:
 def build_dist(root: Path) -> Path:
     dist = root / "dist"
     assets = dist / "assets"
+    next_assets = dist / "_next" / "static" / "chunks"
     assets.mkdir(parents=True)
+    next_assets.mkdir(parents=True)
     (dist / "index.html").write_text(
         "<!doctype html><title>server-ui</title><div id='root'></div>",
         encoding="utf-8",
@@ -27,6 +29,7 @@ def build_dist(root: Path) -> Path:
         "<!doctype html><title>not-found</title>", encoding="utf-8"
     )
     (assets / "app.js").write_text("window.SERVER_UI = true;", encoding="utf-8")
+    (next_assets / "app.123.js").write_text("window.NEXT_UI = true;", encoding="utf-8")
     return dist
 
 
@@ -70,6 +73,7 @@ def test_frontend_is_same_origin_and_redirects_legacy_download_route(
         legacy = client.get("/downloads/123", follow_redirects=False)
         detail_page = client.get("/downloads/detail?jobId=123")
         asset = client.get("/assets/app.js")
+        next_asset = client.get("/_next/static/chunks/app.123.js")
 
     assert index.status_code == 200
     assert "server-ui" in index.text
@@ -78,6 +82,11 @@ def test_frontend_is_same_origin_and_redirects_legacy_download_route(
     assert detail_page.status_code == 200
     assert "download-detail" in detail_page.text
     assert asset.text == "window.SERVER_UI = true;"
+    assert index.headers["cache-control"] == "no-store, max-age=0"
+    assert detail_page.headers["cache-control"] == "no-store, max-age=0"
+    assert next_asset.headers["cache-control"] == (
+        "public, max-age=31536000, immutable"
+    )
 
 
 def test_directory_route_serves_index_directly_without_redirect(tmp_path: Path) -> None:
@@ -96,6 +105,7 @@ def test_directory_route_serves_index_directly_without_redirect(tmp_path: Path) 
 
     assert response.status_code == 200
     assert "server-history" in response.text
+    assert response.headers["cache-control"] == "no-store, max-age=0"
 
 
 def test_unknown_ui_route_returns_exported_404(tmp_path: Path) -> None:
@@ -107,6 +117,7 @@ def test_unknown_ui_route_returns_exported_404(tmp_path: Path) -> None:
 
     assert response.status_code == 404
     assert "not-found" in response.text
+    assert response.headers["cache-control"] == "no-store, max-age=0"
 
 
 def test_unknown_api_never_falls_back_to_frontend(tmp_path: Path) -> None:

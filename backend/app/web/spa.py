@@ -9,7 +9,7 @@ from urllib.parse import quote, urlsplit
 
 from fastapi import FastAPI
 from starlette.exceptions import HTTPException
-from starlette.responses import FileResponse, RedirectResponse
+from starlette.responses import FileResponse, RedirectResponse, Response
 from starlette.staticfiles import StaticFiles
 
 RESERVED_PREFIXES = ("api", "health")
@@ -37,17 +37,28 @@ class SPAStaticFiles(StaticFiles):
                 raise
             not_found = await super().get_response("404.html", scope)
             not_found.status_code = 404
-            return not_found
+            return _with_frontend_cache_policy(not_found, "404.html")
         # Next.js exports route directories. Serve their index directly so a
         # refresh such as /downloads/detail?jobId=... never gains a 307 hop.
         if isinstance(response, RedirectResponse) and response.headers.get("location"):
             location = response.headers["location"]
             if not urlsplit(location).path.endswith("/"):
                 return response
-            return await super().get_response(
+            route_response = await super().get_response(
                 f"{normalized}/index.html".lstrip("/"), scope
             )
-        return response
+            return _with_frontend_cache_policy(route_response, request_path)
+        return _with_frontend_cache_policy(response, request_path)
+
+
+def _with_frontend_cache_policy(response: Response, path: str) -> Response:
+    """Keep route HTML fresh while caching fingerprinted Next.js assets."""
+    content_type = response.headers.get("content-type", "")
+    if content_type.startswith("text/html"):
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+    elif path.startswith("_next/static/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    return response
 
 
 def _legacy_download_id(path: str) -> str | None:
@@ -67,7 +78,10 @@ def mount_frontend(app: FastAPI, directory: Path) -> bool:
         if download_id == "detail":
             detail = directory / "downloads" / "detail" / "index.html"
             if detail.is_file():
-                return FileResponse(detail)
+                return FileResponse(
+                    detail,
+                    headers={"Cache-Control": "no-store, max-age=0"},
+                )
             raise HTTPException(status_code=404)
         return RedirectResponse(
             url=f"/downloads/detail?jobId={quote(download_id, safe='')}",

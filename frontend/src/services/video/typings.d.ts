@@ -230,6 +230,10 @@ declare namespace API {
     updated_at: string;
     /** Finished At */
     finished_at: string | null;
+    /** File Available */
+    file_available: boolean;
+    /** File Expires At */
+    file_expires_at: string | null;
   };
 
   type DownloadHistoryResponse = {
@@ -282,6 +286,10 @@ declare namespace API {
     updated_at: string;
     /** Finished At */
     finished_at: string | null;
+    /** File Available */
+    file_available: boolean;
+    /** File Expires At */
+    file_expires_at: string | null;
   };
 
   type DownloadStage =

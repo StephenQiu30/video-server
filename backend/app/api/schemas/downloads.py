@@ -31,6 +31,8 @@ class DownloadResponse(StrictModel):
     created_at: datetime
     updated_at: datetime
     finished_at: datetime | None
+    file_available: bool
+    file_expires_at: datetime | None
 
     @classmethod
     def from_view(cls, view: DownloadView) -> DownloadResponse:

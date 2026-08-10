@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from datetime import datetime
+
 from app.application.downloads.errors import ApplicationError, ApplicationErrorCode
 from app.application.downloads.history_models import (
     DownloadHistoryItemSnapshot,
@@ -9,13 +12,16 @@ from app.application.downloads.history_models import (
     DownloadHistoryView,
 )
 from app.application.downloads.ports import DownloadRepository
-from app.application.downloads.validation import validate_owner_hash
+from app.application.downloads.validation import validate_now, validate_owner_hash
 from app.domain.downloads import DownloadErrorCode, DownloadStatus
 
 
 class GetDownloadHistory:
-    def __init__(self, repository: DownloadRepository) -> None:
+    def __init__(
+        self, repository: DownloadRepository, *, now: Callable[[], datetime]
+    ) -> None:
         self._repository = repository
+        self._now = now
 
     async def __call__(
         self,
@@ -37,6 +43,7 @@ class GetDownloadHistory:
             page_size=page_size,
             status=None if status is None else status.value,
             search=normalized_search or None,
+            now=validate_now(self._now()),
         )
         return _history_view(snapshot)
 
@@ -74,6 +81,8 @@ def _item_view(item: DownloadHistoryItemSnapshot) -> DownloadHistoryItemView:
         created_at=item.created_at,
         updated_at=item.updated_at,
         finished_at=item.finished_at,
+        file_available=item.file_available,
+        file_expires_at=item.file_expires_at,
     )
 
 

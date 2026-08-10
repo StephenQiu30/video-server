@@ -1,5 +1,7 @@
 """Convert mutable ORM rows into immutable persistence snapshots."""
 
+from datetime import datetime
+
 from .base import as_utc
 from .contracts import (
     ArtifactSnapshot,
@@ -79,6 +81,8 @@ def download_history_item_snapshot(
     job: DownloadJobRow,
     inspection: MediaInspectionRow,
     selected_format: MediaFormatRow,
+    artifact: ArtifactRow | None,
+    now: datetime,
 ) -> DownloadHistoryItemSnapshot:
     metadata = dict(inspection.metadata_json)
     thumbnail = metadata.get("thumbnail_url")
@@ -93,6 +97,13 @@ def download_history_item_snapshot(
         created_at=as_utc(job.created_at),
         updated_at=as_utc(job.updated_at),
         finished_at=None if job.finished_at is None else as_utc(job.finished_at),
+        file_available=(
+            job.status == "succeeded"
+            and artifact is not None
+            and artifact.deleted_at is None
+            and as_utc(artifact.expires_at) > as_utc(now)
+        ),
+        file_expires_at=(None if artifact is None else as_utc(artifact.expires_at)),
     )
 
 

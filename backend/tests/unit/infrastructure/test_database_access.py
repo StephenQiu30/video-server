@@ -54,7 +54,7 @@ def _inspection(inspection_id, format_id, now) -> InspectionCreate:
 
 
 @pytest.mark.asyncio
-async def test_inspection_idempotency_owner_and_ttl(repository) -> None:
+async def test_inspection_idempotency_owner_and_historical_read(repository) -> None:
     now = datetime.now(UTC)
     inspection_id, format_id = uuid4(), uuid4()
     first = await repository.save_inspection(_inspection(inspection_id, format_id, now))
@@ -68,10 +68,11 @@ async def test_inspection_idempotency_owner_and_ttl(repository) -> None:
     )
     with pytest.raises(RepositoryNotFound):
         await repository.get_inspection(inspection_id, "x" * 64, now)
-    with pytest.raises(RepositoryNotFound):
-        await repository.get_inspection(
-            inspection_id, "a" * 64, now + timedelta(minutes=16)
-        )
+    expired = await repository.get_inspection(
+        inspection_id, "a" * 64, now + timedelta(minutes=16)
+    )
+    assert expired.id == inspection_id
+    assert len(expired.formats) == 1
 
 
 @pytest.mark.asyncio

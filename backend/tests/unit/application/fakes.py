@@ -15,6 +15,7 @@ from app.application.downloads import (
     JobSaveResult,
     JobSnapshot,
     PersistenceIdempotencyConflict,
+    RetrySourceSnapshot,
     RunnerInspection,
 )
 
@@ -37,6 +38,11 @@ class FakeCipher:
     def encrypt(self, url: str) -> EncryptedUrl:
         self.seen.append(url)
         return EncryptedUrl(b"opaque-ciphertext", b"nonce", "primary")
+
+    def decrypt(self, envelope: EncryptedUrl) -> str:
+        if envelope.key_id != "primary":
+            raise ValueError("unknown key")
+        return "https://example.com/video"
 
 
 class FakeRunner:
@@ -69,6 +75,7 @@ class FakeRepository:
         self._download_keys: dict[tuple[str, str], UUID] = {}
         self._download_fingerprints: dict[UUID, str] = {}
         self.outbox_events = 0
+        self.retry_sources: dict[UUID, EncryptedUrl] = {}
 
     async def save_inspection(self, command: InspectionCreate) -> InspectionSaveResult:
         self.inspection_commands.append(command)
@@ -133,6 +140,17 @@ class FakeRepository:
     async def get_job(self, job_id: UUID) -> JobSnapshot | None:
         return self.jobs.get(job_id)
 
+    async def get_retry_source(
+        self, job_id: UUID, owner_hash: str
+    ) -> RetrySourceSnapshot | None:
+        job = self.jobs.get(job_id)
+        if job is None or job.owner_hash != owner_hash:
+            return None
+        source = self.retry_sources.get(
+            job_id, EncryptedUrl(b"opaque-ciphertext", b"nonce", "primary")
+        )
+        return RetrySourceSnapshot(encrypted_url=source)
+
     async def cancel_job(
         self, job_id: UUID, owner_hash: str, now: datetime
     ) -> JobSnapshot | None:
@@ -153,5 +171,13 @@ class FakeRepository:
     async def get_artifact(
         self, job_id: UUID, owner_hash: str, now: datetime
     ) -> ArtifactSnapshot | None:
-        del owner_hash, now
-        return self.artifacts.get(job_id)
+        job = self.jobs.get(job_id)
+        artifact = self.artifacts.get(job_id)
+        if (
+            job is None
+            or job.owner_hash != owner_hash
+            or artifact is None
+            or artifact.expires_at <= now
+        ):
+            return None
+        return artifact

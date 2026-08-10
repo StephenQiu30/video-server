@@ -25,6 +25,7 @@ from .contracts import (
     JobSnapshot,
     JobSourceSnapshot,
     OutboxSnapshot,
+    RetrySourceSnapshot,
 )
 from .errors import (
     IdempotencyConflict,
@@ -84,6 +85,7 @@ __all__ = [
     "RepositoryConflict",
     "RepositoryError",
     "RepositoryNotFound",
+    "RetrySourceSnapshot",
     "SqlAlchemyDownloadRepository",
     "UserRow",
     "build_artifact_object_key",

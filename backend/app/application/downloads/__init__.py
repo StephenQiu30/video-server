@@ -57,6 +57,7 @@ from app.application.downloads.inspection_models import (
     InspectionSaveResult,
     InspectionSnapshot,
     InspectionView,
+    RetrySourceSnapshot,
     RunnerFormat,
     RunnerInspection,
 )
@@ -119,6 +120,7 @@ __all__ = [
     "InspectionSaveResult",
     "InspectionSnapshot",
     "InspectionView",
+    "RetrySourceSnapshot",
     "IssueDownloadUrl",
     "RetryDownload",
     "JobSaveResult",

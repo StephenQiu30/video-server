@@ -134,18 +134,19 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         URLCipher(settings.url_encryption_key.get_secret_value().encode()),
         key_id=settings.url_encryption_key_id,
     )
+    inspect_media = InspectMedia(
+        repository=store,
+        runner=runner,
+        url_validator=MediaUrlValidator(),
+        url_cipher=envelope,
+        fingerprinter=fingerprinter,
+        now=clock,
+        new_id=uuid4,
+        inspection_ttl=timedelta(seconds=settings.inspection_ttl_seconds),
+        max_duration_seconds=settings.max_video_duration_seconds,
+    )
     use_cases = DownloadUseCases(
-        inspect_media=InspectMedia(
-            repository=store,
-            runner=runner,
-            url_validator=MediaUrlValidator(),
-            url_cipher=envelope,
-            fingerprinter=fingerprinter,
-            now=clock,
-            new_id=uuid4,
-            inspection_ttl=timedelta(seconds=settings.inspection_ttl_seconds),
-            max_duration_seconds=settings.max_video_duration_seconds,
-        ),
+        inspect_media=inspect_media,
         get_inspection=GetInspection(store, now=clock),
         create_download=CreateDownload(
             repository=store,
@@ -154,12 +155,14 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             new_id=uuid4,
             max_attempts=settings.max_download_attempts,
         ),
-        get_download=GetDownload(store),
-        get_download_history=GetDownloadHistory(store),
+        get_download=GetDownload(store, now=clock),
+        get_download_history=GetDownloadHistory(store, now=clock),
         get_download_analytics=GetDownloadAnalytics(store, now=clock),
         cancel_download=CancelDownload(store, now=clock),
         retry_download=RetryDownload(
             repository=store,
+            inspect_media=inspect_media,
+            url_cipher=envelope,
             fingerprinter=fingerprinter,
             now=clock,
             new_id=uuid4,

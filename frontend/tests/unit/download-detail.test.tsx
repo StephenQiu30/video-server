@@ -121,9 +121,27 @@ describe('DownloadJobView', () => {
     await waitFor(() => expect(click).toHaveBeenCalledOnce());
   });
 
+  it('offers a new download when a completed file has expired', async () => {
+    mockHttpResponses(
+      { ...job('succeeded'), file_available: false, file_expires_at: null },
+      inspection,
+    );
+    render(<DownloadJobView jobId={job().id} />);
+
+    expect(
+      await screen.findByRole('button', { name: '重新下载' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('视频文件已过期')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '获取视频文件' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('renders stable task errors without leaking details', async () => {
     mockHttpError(new ApiError(404, 'not_found', 'Not found', '任务不存在'));
     render(<DownloadJobView jobId={job().id} />);
-    expect(await screen.findByText('任务不存在')).toBeInTheDocument();
+    expect(
+      await screen.findByText('任务或相关资源不存在，请返回下载记录确认。'),
+    ).toBeInTheDocument();
   });
 });

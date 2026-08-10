@@ -69,7 +69,9 @@ export default function DownloadState({
 }: Props) {
   const active = ['queued', 'running', 'retry_wait'].includes(job.status);
   const complete = job.status === 'succeeded';
-  const retryable = ['failed', 'cancelled'].includes(job.status);
+  const retryable =
+    ['failed', 'cancelled'].includes(job.status) ||
+    (complete && !job.file_available);
 
   return (
     <section aria-labelledby="download-status-title" className="self-start">
@@ -96,6 +98,16 @@ export default function DownloadState({
         />
         <Meta label="清晰度" value={format ? `${format.plan.height}P` : '—'} />
         <Meta label="阶段" value={displayStage(job)} />
+        {complete ? (
+          <Meta
+            label="文件状态"
+            value={
+              job.file_available
+                ? formatFileExpiry(job.file_expires_at)
+                : '已过期'
+            }
+          />
+        ) : null}
       </dl>
       <Separator />
 
@@ -122,8 +134,17 @@ export default function DownloadState({
         </Alert>
       ) : null}
 
+      {complete && !job.file_available ? (
+        <Alert className="mt-6" variant="warning">
+          <AlertTitle>视频文件已过期</AlertTitle>
+          <AlertDescription>
+            下载记录仍会保留。你可以重新解析原视频并创建新的下载任务。
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       <div className="mt-8 grid gap-3">
-        {complete ? (
+        {complete && job.file_available ? (
           <Button
             className="w-full"
             disabled={action === 'download'}
@@ -206,3 +227,13 @@ function displayStage(job: DownloadJob): string {
   if (job.status === 'cancelled') return '已取消';
   return job.stage ? stageLabels[job.stage] : '等待调度';
 }
+
+function formatFileExpiry(value: string | null): string {
+  if (!value) return '可下载';
+  return `保留至 ${fileDateFormatter.format(new Date(value))}`;
+}
+
+const fileDateFormatter = new Intl.DateTimeFormat('zh-CN', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});

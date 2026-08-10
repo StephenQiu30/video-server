@@ -20,7 +20,13 @@ import type {
 const runtime = vi.hoisted(() => ({
   getDownloadHistory: vi.fn(),
   issueDownloadUrl: vi.fn(),
+  push: vi.fn(),
+  retryDownload: vi.fn(),
   triggerBrowserDownload: vi.fn(),
+}));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: runtime.push }),
 }));
 
 vi.mock('@/services/download', () => ({
@@ -28,6 +34,8 @@ vi.mock('@/services/download', () => ({
     reason instanceof Error ? reason.message : '请求失败',
   getDownloadHistory: runtime.getDownloadHistory,
   issueDownloadUrl: runtime.issueDownloadUrl,
+  createIdempotencyKey: () => 'history-retry-key',
+  retryDownload: runtime.retryDownload,
   triggerBrowserDownload: runtime.triggerBrowserDownload,
 }));
 
@@ -35,6 +43,8 @@ describe('download history', () => {
   beforeEach(() => {
     runtime.getDownloadHistory.mockReset();
     runtime.issueDownloadUrl.mockReset();
+    runtime.push.mockReset();
+    runtime.retryDownload.mockReset();
     runtime.triggerBrowserDownload.mockReset();
   });
 
@@ -140,6 +150,34 @@ describe('download history', () => {
     );
   });
 
+  it('retries failed and expired-file records from history', async () => {
+    runtime.getDownloadHistory.mockResolvedValue(
+      history({
+        items: [
+          historyItem({
+            file_available: false,
+            file_expires_at: '2026-08-08T10:00:00Z',
+            status: 'succeeded',
+          }),
+        ],
+      }),
+    );
+    runtime.retryDownload.mockResolvedValue({ id: 'retried-job' });
+    render(<DownloadHistoryView />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '重新下载' }));
+
+    await waitFor(() =>
+      expect(runtime.retryDownload).toHaveBeenCalledWith(
+        'history-job-1',
+        'history-retry-key',
+      ),
+    );
+    expect(runtime.push).toHaveBeenCalledWith(
+      '/downloads/detail?jobId=retried-job',
+    );
+  });
+
   it('changes pages through the shared pagination controls', async () => {
     runtime.getDownloadHistory.mockImplementation(
       async ({ page = 1 }: DownloadHistoryQuery) =>
@@ -205,6 +243,8 @@ function historyItem(
     created_at: '2026-08-09T10:00:00Z',
     error_code: null,
     finished_at: '2026-08-09T10:02:00Z',
+    file_available: true,
+    file_expires_at: '2026-08-10T10:02:00Z',
     format_name: '1080p MP4',
     id: 'history-job-1',
     progress: 100,

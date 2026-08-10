@@ -14,6 +14,7 @@ from .contracts import (
     DownloadHistoryPageSnapshot,
     JobSnapshot,
     JobSourceSnapshot,
+    RetrySourceSnapshot,
 )
 from .errors import LeaseConflict, RepositoryConflict, RepositoryNotFound
 from .mapping import (
@@ -31,6 +32,32 @@ from .models import (
 
 
 class AccessRepository(AnalyticsRepository):
+    async def get_retry_source(
+        self, job_id: UUID, owner_hash: str
+    ) -> RetrySourceSnapshot:
+        async with self._sessions() as session:
+            row = (
+                await session.execute(
+                    select(MediaInspectionRow)
+                    .join(
+                        DownloadJobRow,
+                        DownloadJobRow.inspection_id == MediaInspectionRow.id,
+                    )
+                    .where(
+                        DownloadJobRow.id == job_id,
+                        DownloadJobRow.owner_hash == owner_hash,
+                        MediaInspectionRow.owner_hash == owner_hash,
+                    )
+                )
+            ).scalar_one_or_none()
+            if row is None:
+                raise RepositoryNotFound("download retry source does not exist")
+            return RetrySourceSnapshot(
+                url_ciphertext=row.url_ciphertext,
+                url_nonce=row.url_nonce,
+                url_key_id=row.url_key_id,
+            )
+
     async def list_download_history(
         self,
         owner_hash: str,
@@ -39,6 +66,7 @@ class AccessRepository(AnalyticsRepository):
         page_size: int,
         status: str | None,
         search: str | None,
+        now: datetime,
     ) -> DownloadHistoryPageSnapshot:
         filters = [DownloadJobRow.owner_hash == owner_hash]
         if status is not None:
@@ -56,12 +84,18 @@ class AccessRepository(AnalyticsRepository):
         async with self._sessions() as session:
             rows = (
                 await session.execute(
-                    select(DownloadJobRow, MediaInspectionRow, MediaFormatRow)
+                    select(
+                        DownloadJobRow,
+                        MediaInspectionRow,
+                        MediaFormatRow,
+                        ArtifactRow,
+                    )
                     .join(
                         MediaInspectionRow,
                         MediaInspectionRow.id == DownloadJobRow.inspection_id,
                     )
                     .join(MediaFormatRow, MediaFormatRow.id == DownloadJobRow.format_id)
+                    .outerjoin(ArtifactRow, ArtifactRow.job_id == DownloadJobRow.id)
                     .where(*filters)
                     .order_by(
                         DownloadJobRow.created_at.desc(), DownloadJobRow.id.desc()
@@ -96,8 +130,10 @@ class AccessRepository(AnalyticsRepository):
                 status_value: int(count) for status_value, count in count_rows
             }
         items = tuple(
-            download_history_item_snapshot(job, inspection, selected_format)
-            for job, inspection, selected_format in rows
+            download_history_item_snapshot(
+                job, inspection, selected_format, artifact, now
+            )
+            for job, inspection, selected_format, artifact in rows
         )
         return download_history_page_snapshot(
             items, page=page, page_size=page_size, total=total, counts=counts

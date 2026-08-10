@@ -133,6 +133,8 @@ def test_download_history_route_supports_filters_and_returns_public_fields(
         "created_at": "2026-08-06T10:00:00Z",
         "updated_at": "2026-08-06T10:00:00Z",
         "finished_at": "2026-08-06T10:00:00Z",
+        "file_available": False,
+        "file_expires_at": None,
     }
     assert response.json()["summary"] == {
         "total": 1,

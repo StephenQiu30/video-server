@@ -83,6 +83,18 @@ class SqlAlchemyDownloadStore:
     async def get_job(self, job_id: UUID) -> application.JobSnapshot:
         return job_snapshot(await self.repository.get_job(job_id))
 
+    async def get_retry_source(
+        self, job_id: UUID, owner_hash: str
+    ) -> application.RetrySourceSnapshot:
+        stored = await self.repository.get_retry_source(job_id, owner_hash)
+        return application.RetrySourceSnapshot(
+            encrypted_url=application.EncryptedUrl(
+                ciphertext=stored.url_ciphertext,
+                nonce=stored.url_nonce,
+                key_id=stored.url_key_id,
+            )
+        )
+
     async def list_download_history(
         self,
         owner_hash: str,
@@ -91,6 +103,7 @@ class SqlAlchemyDownloadStore:
         page_size: int,
         status: str | None,
         search: str | None,
+        now: datetime,
     ) -> application.DownloadHistoryPageSnapshot:
         stored = await self.repository.list_download_history(
             owner_hash,
@@ -98,6 +111,7 @@ class SqlAlchemyDownloadStore:
             page_size=page_size,
             status=status,
             search=search,
+            now=now,
         )
         return application.DownloadHistoryPageSnapshot(
             items=tuple(
@@ -112,6 +126,8 @@ class SqlAlchemyDownloadStore:
                     created_at=item.created_at,
                     updated_at=item.updated_at,
                     finished_at=item.finished_at,
+                    file_available=item.file_available,
+                    file_expires_at=item.file_expires_at,
                 )
                 for item in stored.items
             ),

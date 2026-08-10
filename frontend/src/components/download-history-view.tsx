@@ -2,12 +2,14 @@
 
 import { ArrowClockwise, MagnifyingGlass, Plus } from '@phosphor-icons/react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useRef, useState } from 'react';
 
 import { BackLink } from '@/components/back-link';
 import DownloadHistoryList, {
   downloadStatusLabels,
 } from '@/components/download-history-list';
+import { markNavigationPush } from '@/components/navigation-history';
 import { PageHeader } from '@/components/page-header';
 import { PagePagination } from '@/components/page-pagination';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -27,18 +29,26 @@ import {
 } from '@/components/ui/select';
 import { useDownloadHistory } from '@/hooks/useDownloadHistory';
 import {
+  createIdempotencyKey,
   displayError,
   issueDownloadUrl,
+  retryDownload,
   triggerBrowserDownload,
 } from '@/services/download';
 import type { DownloadHistoryItem, DownloadStatus } from '@/types/video';
 
 export default function DownloadHistoryView() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<DownloadStatus | undefined>();
   const [actionError, setActionError] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<{
+    id: string;
+    type: 'download' | 'retry';
+  } | null>(null);
+  const retryKeys = useRef(new Map<string, string>());
   const state = useDownloadHistory({
     page,
     page_size: 20,
@@ -48,10 +58,29 @@ export default function DownloadHistoryView() {
 
   async function download(item: DownloadHistoryItem) {
     setActionError(null);
+    setPendingAction({ id: item.id, type: 'download' });
     try {
       triggerBrowserDownload((await issueDownloadUrl(item.id)).url);
     } catch (reason) {
       setActionError(displayError(reason));
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function retry(item: DownloadHistoryItem) {
+    setActionError(null);
+    setPendingAction({ id: item.id, type: 'retry' });
+    const key = retryKeys.current.get(item.id) ?? createIdempotencyKey();
+    retryKeys.current.set(item.id, key);
+    try {
+      const retried = await retryDownload(item.id, key);
+      const target = `/downloads/detail?jobId=${encodeURIComponent(retried.id)}`;
+      markNavigationPush(target);
+      router.push(target);
+    } catch (reason) {
+      setActionError(displayError(reason));
+      setPendingAction(null);
     }
   }
 
@@ -158,6 +187,8 @@ export default function DownloadHistoryView() {
         data={state.data}
         loading={state.loading}
         onDownload={(item) => void download(item)}
+        onRetry={(item) => void retry(item)}
+        pendingAction={pendingAction}
       />
 
       {state.data && state.data.total > state.data.page_size ? (

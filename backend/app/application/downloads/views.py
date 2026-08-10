@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from app.application.downloads.download_models import DownloadView, JobSnapshot
+from app.application.downloads.download_models import (
+    ArtifactSnapshot,
+    DownloadView,
+    JobSnapshot,
+)
 from app.application.downloads.errors import (
     ApplicationError,
     ApplicationErrorCode,
@@ -56,7 +60,9 @@ def _thumbnail_url(metadata: dict[str, object]) -> str | None:
     return value if value.startswith(allowed_prefixes) else None
 
 
-def download_view(snapshot: JobSnapshot) -> DownloadView:
+def download_view(
+    snapshot: JobSnapshot, artifact: ArtifactSnapshot | None = None
+) -> DownloadView:
     try:
         status = DownloadStatus(snapshot.status)
         stage = DownloadStage(snapshot.stage) if snapshot.stage is not None else None
@@ -79,4 +85,6 @@ def download_view(snapshot: JobSnapshot) -> DownloadView:
         created_at=snapshot.created_at,
         updated_at=snapshot.updated_at,
         finished_at=snapshot.finished_at,
+        file_available=artifact is not None,
+        file_expires_at=None if artifact is None else artifact.expires_at,
     )

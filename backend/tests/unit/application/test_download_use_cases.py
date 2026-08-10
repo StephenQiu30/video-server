@@ -21,7 +21,13 @@ from app.application.downloads import (
 )
 from app.domain.downloads import DownloadStatus
 from tests.unit.application.fakes import FakeRepository, FakeStorage
-from tests.unit.application.test_inspect_media import NOW, OWNER, plan
+from tests.unit.application.test_inspect_media import (
+    NOW,
+    OWNER,
+    plan,
+    runner_result,
+    use_case,
+)
 
 
 def seed_inspection(
@@ -67,8 +73,11 @@ def creator(repository: FakeRepository) -> CreateDownload:
 
 
 def retrier(repository: FakeRepository) -> RetryDownload:
+    inspect_media, _, cipher = use_case(repository, runner_result())
     return RetryDownload(
         repository=repository,
+        inspect_media=inspect_media,
+        url_cipher=cipher,
         fingerprinter=HmacRequestFingerprinter(b"k" * 32),
         now=lambda: NOW,
         new_id=uuid4,
@@ -135,7 +144,7 @@ async def test_get_and_cancel_enforce_owner_and_status() -> None:
     created = await creator(repository)(inspection_id, format_id, OWNER, "download-1")
 
     with pytest.raises(ApplicationError) as foreign:
-        await GetDownload(repository)(created.id, "b" * 64)
+        await GetDownload(repository, now=lambda: NOW)(created.id, "b" * 64)
     assert foreign.value.code is ApplicationErrorCode.NOT_FOUND
 
     cancelled = await CancelDownload(repository, now=lambda: NOW)(created.id, OWNER)
@@ -172,19 +181,40 @@ async def test_retry_creates_a_new_job_and_preserves_terminal_history(
 
 
 @pytest.mark.asyncio
-async def test_retry_rejects_active_successful_and_foreign_jobs() -> None:
+async def test_retry_rejects_active_successful_with_file_and_foreign_jobs() -> None:
     repository = FakeRepository()
     inspection_id, format_id = seed_inspection(repository)
     original = await creator(repository)(inspection_id, format_id, OWNER, "original")
     retry = retrier(repository)
 
-    for status in ("queued", "running", "retry_wait", "succeeded"):
+    for status in ("queued", "running", "retry_wait"):
         repository.jobs[original.id] = replace(
             repository.jobs[original.id], status=status
         )
         with pytest.raises(ApplicationError) as invalid:
             await retry(original.id, OWNER, f"retry-{status}")
         assert invalid.value.code is ApplicationErrorCode.INVALID_STATE
+
+    repository.jobs[original.id] = replace(
+        repository.jobs[original.id], status="succeeded", progress=100
+    )
+    repository.artifacts[original.id] = ArtifactSnapshot(
+        id=uuid4(),
+        job_id=original.id,
+        attempt=1,
+        bucket="video-artifacts",
+        object_key=f"downloads/{original.id}/1/video.mp4",
+        sha256="d" * 64,
+        size_bytes=1_024,
+        duration_ms=30_000,
+        container="mp4",
+        content_type="video/mp4",
+        media_metadata={},
+        expires_at=NOW + timedelta(minutes=5),
+    )
+    with pytest.raises(ApplicationError) as available:
+        await retry(original.id, OWNER, "retry-succeeded-available")
+    assert available.value.code is ApplicationErrorCode.INVALID_STATE
 
     repository.jobs[original.id] = replace(
         repository.jobs[original.id], status="failed"
@@ -195,7 +225,7 @@ async def test_retry_rejects_active_successful_and_foreign_jobs() -> None:
 
 
 @pytest.mark.asyncio
-async def test_retry_rejects_an_expired_source_inspection() -> None:
+async def test_retry_reinspects_an_expired_source_and_preserves_semantic_plan() -> None:
     repository = FakeRepository()
     inspection_id, format_id = seed_inspection(repository)
     original = await creator(repository)(inspection_id, format_id, OWNER, "original")
@@ -206,10 +236,40 @@ async def test_retry_rejects_an_expired_source_inspection() -> None:
         repository.inspections[inspection_id], expires_at=NOW
     )
 
-    with pytest.raises(ApplicationError) as expired:
-        await retrier(repository)(original.id, OWNER, "retry-expired")
+    retried = await retrier(repository)(original.id, OWNER, "retry-expired")
 
-    assert expired.value.code is ApplicationErrorCode.RESOURCE_EXPIRED
+    assert retried.id != original.id
+    command = repository.download_commands[-1]
+    assert command.inspection_id != inspection_id
+    assert command.semantic_plan == repository.jobs[original.id].semantic_plan
+
+
+@pytest.mark.asyncio
+async def test_retry_allows_a_succeeded_job_after_its_file_expires() -> None:
+    repository = FakeRepository()
+    inspection_id, format_id = seed_inspection(repository)
+    original = await creator(repository)(inspection_id, format_id, OWNER, "original")
+    repository.jobs[original.id] = replace(
+        repository.jobs[original.id], status="succeeded", progress=100
+    )
+    repository.artifacts[original.id] = ArtifactSnapshot(
+        id=uuid4(),
+        job_id=original.id,
+        attempt=1,
+        bucket="video-artifacts",
+        object_key=f"downloads/{original.id}/1/video.mp4",
+        sha256="d" * 64,
+        size_bytes=1_024,
+        duration_ms=30_000,
+        container="mp4",
+        content_type="video/mp4",
+        media_metadata={},
+        expires_at=NOW,
+    )
+
+    retried = await retrier(repository)(original.id, OWNER, "retry-expired-file")
+
+    assert retried.status is DownloadStatus.QUEUED
 
 
 @pytest.mark.asyncio
@@ -242,6 +302,9 @@ async def test_download_url_requires_success_and_unexpired_artifact() -> None:
         media_metadata={},
         expires_at=NOW + timedelta(seconds=90),
     )
+    details = await GetDownload(repository, now=lambda: NOW)(created.id, OWNER)
+    assert details.file_available is True
+    assert details.file_expires_at == NOW + timedelta(seconds=90)
     result = await issue(created.id, OWNER)
 
     assert result.url == "https://objects.example/download-token"
@@ -251,6 +314,10 @@ async def test_download_url_requires_success_and_unexpired_artifact() -> None:
     repository.artifacts[created.id] = replace(
         repository.artifacts[created.id], expires_at=NOW
     )
+    expired_details = await GetDownload(repository, now=lambda: NOW)(
+        created.id, OWNER
+    )
+    assert expired_details.file_available is False
     with pytest.raises(ApplicationError) as expired:
         await issue(created.id, OWNER)
     assert expired.value.code is ApplicationErrorCode.RESOURCE_EXPIRED

@@ -109,6 +109,8 @@ class DownloadView:
     created_at: datetime
     updated_at: datetime
     finished_at: datetime | None
+    file_available: bool = False
+    file_expires_at: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)

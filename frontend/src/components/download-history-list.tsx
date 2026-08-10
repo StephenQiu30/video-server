@@ -1,4 +1,4 @@
-import { DownloadSimple } from '@phosphor-icons/react';
+import { ArrowClockwise, DownloadSimple } from '@phosphor-icons/react';
 import Link from 'next/link';
 
 import MediaCover from '@/components/media-cover';
@@ -21,6 +21,7 @@ import {
   ItemTitle,
 } from '@/components/ui/item';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Spinner } from '@/components/ui/spinner';
 import type {
   DownloadHistory,
   DownloadHistoryItem,
@@ -31,10 +32,14 @@ export default function DownloadHistoryList({
   data,
   loading,
   onDownload,
+  onRetry,
+  pendingAction,
 }: {
   data: DownloadHistory | null;
   loading: boolean;
   onDownload: (item: DownloadHistoryItem) => void;
+  onRetry: (item: DownloadHistoryItem) => void;
+  pendingAction: { id: string; type: 'download' | 'retry' } | null;
 }) {
   return (
     <section aria-label="下载任务" className="mt-4 border-t border-border/70">
@@ -42,7 +47,13 @@ export default function DownloadHistoryList({
       {data?.items.length ? (
         <ItemGroup className="gap-0 divide-y divide-border/70">
           {data.items.map((item) => (
-            <HistoryRow item={item} key={item.id} onDownload={onDownload} />
+            <HistoryRow
+              item={item}
+              key={item.id}
+              onDownload={onDownload}
+              onRetry={onRetry}
+              pendingAction={pendingAction}
+            />
           ))}
         </ItemGroup>
       ) : null}
@@ -66,11 +77,20 @@ export default function DownloadHistoryList({
 function HistoryRow({
   item,
   onDownload,
+  onRetry,
+  pendingAction,
 }: {
   item: DownloadHistoryItem;
   onDownload: (item: DownloadHistoryItem) => void;
+  onRetry: (item: DownloadHistoryItem) => void;
+  pendingAction: { id: string; type: 'download' | 'retry' } | null;
 }) {
   const detailHref = `/downloads/detail?jobId=${encodeURIComponent(item.id)}`;
+  const canDownload = item.status === 'succeeded' && item.file_available;
+  const canRetry =
+    ['failed', 'cancelled'].includes(item.status) ||
+    (item.status === 'succeeded' && !item.file_available);
+  const busy = pendingAction?.id === item.id;
 
   return (
     <Item
@@ -99,6 +119,12 @@ function HistoryRow({
           <span>{item.format_name}</span>
           <span aria-hidden>·</span>
           <time dateTime={item.created_at}>{formatDate(item.created_at)}</time>
+          {item.status === 'succeeded' ? (
+            <>
+              <span aria-hidden>·</span>
+              <span>{fileAvailabilityLabel(item)}</span>
+            </>
+          ) : null}
         </ItemDescription>
       </ItemContent>
       <ItemActions className="col-span-2 w-full justify-between sm:col-auto sm:w-auto sm:justify-end">
@@ -109,15 +135,35 @@ function HistoryRow({
           {downloadStatusLabels[item.status]}
           {activeStatuses.has(item.status) ? ` · ${item.progress}%` : ''}
         </Badge>
-        {item.status === 'succeeded' ? (
+        {canDownload ? (
           <Button
             className="-mr-2"
+            disabled={busy}
             onClick={() => onDownload(item)}
             size="sm"
             variant="ghost"
           >
-            <DownloadSimple size={16} />
+            {busy && pendingAction?.type === 'download' ? (
+              <Spinner aria-hidden />
+            ) : (
+              <DownloadSimple size={16} />
+            )}
             获取文件
+          </Button>
+        ) : canRetry ? (
+          <Button
+            className="-mr-2"
+            disabled={busy}
+            onClick={() => onRetry(item)}
+            size="sm"
+            variant="ghost"
+          >
+            {busy && pendingAction?.type === 'retry' ? (
+              <Spinner aria-hidden />
+            ) : (
+              <ArrowClockwise size={16} />
+            )}
+            重新下载
           </Button>
         ) : (
           <Button asChild className="-mr-2" size="sm" variant="ghost">
@@ -156,6 +202,13 @@ function LoadingRows() {
 
 function formatDate(value: string) {
   return historyDateFormatter.format(new Date(value));
+}
+
+function fileAvailabilityLabel(item: DownloadHistoryItem) {
+  if (!item.file_available) return '文件已过期';
+  return item.file_expires_at
+    ? `文件保留至 ${formatDate(item.file_expires_at)}`
+    : '文件可下载';
 }
 
 function statusVariant(

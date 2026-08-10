@@ -12,7 +12,13 @@ from app.application.downloads.errors import (
     PersistenceIdempotencyConflict,
     PersistenceNotFound,
 )
-from app.application.downloads.ports import DownloadRepository, RequestFingerprinter
+from app.application.downloads.inspect_media import InspectMedia
+from app.application.downloads.plans import plan_to_documents
+from app.application.downloads.ports import (
+    DownloadRepository,
+    RequestFingerprinter,
+    UrlCipher,
+)
 from app.application.downloads.queries import _owned_job
 from app.application.downloads.validation import (
     validate_idempotency_key,
@@ -30,6 +36,8 @@ class RetryDownload:
         self,
         *,
         repository: DownloadRepository,
+        inspect_media: InspectMedia,
+        url_cipher: UrlCipher,
         fingerprinter: RequestFingerprinter,
         now: Callable[[], datetime],
         new_id: Callable[[], UUID],
@@ -38,6 +46,8 @@ class RetryDownload:
         if max_attempts <= 0:
             raise ValueError("max attempts must be positive")
         self._repository = repository
+        self._inspect_media = inspect_media
+        self._url_cipher = url_cipher
         self._fingerprinter = fingerprinter
         self._now = now
         self._new_id = new_id
@@ -53,36 +63,51 @@ class RetryDownload:
         idempotency_key = validate_idempotency_key(idempotency_key)
         now = validate_now(self._now())
         original = await _owned_job(self._repository, job_id, owner_hash)
-        if original.status not in {
+        retryable_statuses = {
             DownloadStatus.FAILED.value,
             DownloadStatus.CANCELLED.value,
-        }:
+        }
+        if original.status == DownloadStatus.SUCCEEDED.value:
+            try:
+                artifact = await self._repository.get_artifact(job_id, owner_hash, now)
+            except PersistenceNotFound:
+                artifact = None
+            if artifact is not None:
+                raise ApplicationError(ApplicationErrorCode.INVALID_STATE)
+        elif original.status not in retryable_statuses:
             raise ApplicationError(ApplicationErrorCode.INVALID_STATE)
         try:
-            inspection = await self._repository.get_inspection(
-                original.inspection_id,
-                owner_hash,
-                now,
-            )
+            source = await self._repository.get_retry_source(job_id, owner_hash)
         except PersistenceNotFound as exc:
-            raise ApplicationError(ApplicationErrorCode.RESOURCE_EXPIRED) from exc
-        if inspection is None or inspection.owner_hash != owner_hash:
-            raise ApplicationError(ApplicationErrorCode.RESOURCE_EXPIRED)
+            raise ApplicationError(ApplicationErrorCode.NOT_FOUND) from exc
+        if source is None:
+            raise ApplicationError(ApplicationErrorCode.NOT_FOUND)
+        try:
+            url = self._url_cipher.decrypt(source.encrypted_url)
+        except (TypeError, ValueError) as exc:
+            raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
+
+        inspection_key = self._fingerprinter.fingerprint(
+            "download-retry-inspection",
+            str(original.id),
+            idempotency_key,
+        )
+        inspection = await self._inspect_media(url, owner_hash, inspection_key)
         selected = next(
-            (item for item in inspection.formats if item.id == original.format_id),
+            (
+                item
+                for item in inspection.formats
+                if plan_to_documents(item.plan)[0] == original.semantic_plan
+            ),
             None,
         )
-        if (
-            now >= inspection.expires_at
-            or selected is None
-            or now >= selected.expires_at
-        ):
-            raise ApplicationError(ApplicationErrorCode.RESOURCE_EXPIRED)
+        if selected is None:
+            raise ApplicationError(ApplicationErrorCode.FORMAT_UNAVAILABLE)
 
         command = DownloadCreate(
             id=self._new_id(),
-            inspection_id=original.inspection_id,
-            format_id=original.format_id,
+            inspection_id=inspection.id,
+            format_id=selected.id,
             owner_hash=owner_hash,
             idempotency_key=idempotency_key,
             request_fingerprint=self._fingerprinter.fingerprint(

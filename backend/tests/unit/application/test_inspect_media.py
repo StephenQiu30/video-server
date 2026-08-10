@@ -230,7 +230,7 @@ def access_context() -> ProviderAccessContextRef:
 
 
 @pytest.mark.asyncio
-async def test_get_inspection_enforces_owner_and_ttl() -> None:
+async def test_get_inspection_keeps_expired_metadata_readable() -> None:
     repository = FakeRepository()
     inspect, _, _ = use_case(repository, runner_result())
     created = await inspect(URL, OWNER, "inspect-1")
@@ -242,7 +242,7 @@ async def test_get_inspection_enforces_owner_and_ttl() -> None:
     assert foreign.value.code is ApplicationErrorCode.NOT_FOUND
 
     snapshot = repository.inspections[created.id]
-    repository.inspections[created.id] = replace(snapshot, expires_at=NOW, formats=())
-    with pytest.raises(ApplicationError) as expired:
-        await get(created.id, OWNER)
-    assert expired.value.code is ApplicationErrorCode.RESOURCE_EXPIRED
+    repository.inspections[created.id] = replace(snapshot, expires_at=NOW)
+    expired = await get(created.id, OWNER)
+    assert expired.id == created.id
+    assert expired.expires_at == NOW

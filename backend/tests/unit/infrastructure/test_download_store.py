@@ -77,6 +77,7 @@ async def test_download_store_maps_the_complete_application_lifecycle() -> None:
         page_size=20,
         status="queued",
         search="Controlled",
+        now=NOW,
     )
     assert history.total == 1
     assert history.items[0].title == "Controlled sample"
@@ -88,6 +89,7 @@ async def test_download_store_maps_the_complete_application_lifecycle() -> None:
         page_size=20,
         status=None,
         search=None,
+        now=NOW,
     )
     assert other_owner.total == 0
 
@@ -139,8 +141,23 @@ async def test_download_store_maps_the_complete_application_lifecycle() -> None:
         page_size=20,
         status="succeeded",
         search="Controlled",
+        now=NOW,
     )
     assert expired_source_history.items[0].title == "Controlled sample"
+    assert expired_source_history.items[0].file_available is True
+    assert expired_source_history.items[0].file_expires_at == expires
+    retry_source = await store.get_retry_source(job_id, owner)
+    assert retry_source.encrypted_url.ciphertext == b"encrypted"
+
+    expired_file_history = await store.list_download_history(
+        owner,
+        page=1,
+        page_size=20,
+        status="succeeded",
+        search="Controlled",
+        now=expires,
+    )
+    assert expired_file_history.items[0].file_available is False
     await engine.dispose()
 
 
