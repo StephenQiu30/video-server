@@ -20,14 +20,11 @@ import type {
 const runtime = vi.hoisted(() => ({
   getDownloadHistory: vi.fn(),
   issueDownloadUrl: vi.fn(),
-  push: vi.fn(),
   retryDownload: vi.fn(),
   triggerBrowserDownload: vi.fn(),
 }));
 
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: runtime.push }),
-}));
+vi.mock('next/navigation', () => ({}));
 
 vi.mock('@/services/download', () => ({
   displayError: (reason: unknown) =>
@@ -43,7 +40,6 @@ describe('download history', () => {
   beforeEach(() => {
     runtime.getDownloadHistory.mockReset();
     runtime.issueDownloadUrl.mockReset();
-    runtime.push.mockReset();
     runtime.retryDownload.mockReset();
     runtime.triggerBrowserDownload.mockReset();
   });
@@ -187,6 +183,9 @@ describe('download history', () => {
       }),
     );
     runtime.retryDownload.mockResolvedValue({ id: 'retried-job' });
+    const assign = vi
+      .spyOn(window.location, 'assign')
+      .mockImplementation(() => undefined);
     render(<DownloadHistoryView />);
 
     fireEvent.click(await screen.findByRole('button', { name: '重新下载' }));
@@ -197,9 +196,7 @@ describe('download history', () => {
         'history-retry-key',
       ),
     );
-    expect(runtime.push).toHaveBeenCalledWith(
-      '/downloads/detail?jobId=retried-job',
-    );
+    expect(assign).toHaveBeenCalledWith('/downloads/detail?jobId=retried-job');
   });
 
   it('changes pages through the shared pagination controls', async () => {
@@ -254,6 +251,25 @@ describe('download history', () => {
         page: 1,
         page_size: 20,
         search: '示例视频',
+        status: undefined,
+      }),
+    );
+  });
+
+  it('submits the search when the colored search icon is clicked', async () => {
+    runtime.getDownloadHistory.mockResolvedValue(history());
+    render(<DownloadHistoryView />);
+    await screen.findByText('示例视频');
+
+    const input = screen.getByRole('textbox', { name: '搜索下载历史' });
+    fireEvent.change(input, { target: { value: ' 夹克  ' } });
+    fireEvent.click(screen.getByRole('button', { name: '搜索下载历史' }));
+
+    await waitFor(() =>
+      expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith({
+        page: 1,
+        page_size: 20,
+        search: '夹克',
         status: undefined,
       }),
     );

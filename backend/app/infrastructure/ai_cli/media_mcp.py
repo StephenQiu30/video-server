@@ -28,8 +28,16 @@ class VideoObserver:
             if name == "inspect_video_frame":
                 return self._frame(arguments)
             raise ValueError("unknown video observation tool")
-        except (OSError, ValueError, subprocess.SubprocessError):
-            return _error("Video observation failed for the requested interval.")
+        except subprocess.CalledProcessError as exc:
+            stderr = exc.stderr or b""
+            detail = f"ffmpeg returned {exc.returncode}"
+            if stderr:
+                detail += f": {stderr[-500:].decode('utf-8', errors='replace')}"
+            return _error(detail)
+        except subprocess.TimeoutExpired:
+            return _error("ffmpeg timed out after 60 s")
+        except (OSError, ValueError) as exc:
+            return _error(f"Video observation failed: {exc}")
 
     def _probe(self) -> dict[str, Any]:
         result = self._run(

@@ -136,7 +136,16 @@ class IssueDownloadUrl:
         if remaining <= 0:
             raise ApplicationError(ApplicationErrorCode.RESOURCE_EXPIRED)
         ttl_seconds = min(int(self._url_ttl.total_seconds()), remaining)
+        title = await self._inspection_title(job, owner_hash, now)
         url = await self._storage.presigned_download(
-            artifact.object_key, ttl_seconds=ttl_seconds
+            artifact.object_key, title=title, ttl_seconds=ttl_seconds
         )
         return DownloadUrl(url=url, expires_at=now + timedelta(seconds=ttl_seconds))
+
+    async def _inspection_title(
+        self, job: JobSnapshot, owner_hash: str, now: datetime
+    ) -> str | None:
+        inspection = await self._repository.get_inspection(
+            job.inspection_id, owner_hash, now
+        )
+        return inspection.title if inspection is not None else None

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 import os
 import shutil
 from pathlib import Path
 
 from .config import CliAdapterConfig
+
+_log = logging.getLogger(__name__)
 
 _WINDOWS_RUNTIME_VARIABLES = ("SYSTEMROOT", "WINDIR", "COMSPEC", "PATHEXT")
 
@@ -39,6 +42,12 @@ def child_environment(config: CliAdapterConfig, workspace: Path) -> dict[str, st
     if node is not None:
         directories.insert(1, Path(node).resolve().parent)
     path = os.pathsep.join(dict.fromkeys(str(item) for item in directories))
+    _log.debug(
+        "child environment PATH: %s; ffmpeg=%s; ffprobe=%s",
+        path,
+        config.ffmpeg,
+        config.ffprobe,
+    )
     environment = minimum_host_environment(path)
     temporary = str(workspace / "tmp")
     environment["TMPDIR"] = temporary

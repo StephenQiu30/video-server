@@ -2,7 +2,6 @@
 
 import { ArrowClockwise, MagnifyingGlass, Plus } from '@phosphor-icons/react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 import { BackLink } from '@/components/back-link';
@@ -19,6 +18,7 @@ import { Field, FieldLabel } from '@/components/ui/field';
 import {
   InputGroup,
   InputGroupAddon,
+  InputGroupButton,
   InputGroupInput,
 } from '@/components/ui/input-group';
 import {
@@ -39,7 +39,6 @@ import {
 import type { DownloadHistoryItem, DownloadStatus } from '@/types/video';
 
 export default function DownloadHistoryView() {
-  const router = useRouter();
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -78,7 +77,7 @@ export default function DownloadHistoryView() {
       const retried = await retryDownload(item.id, key);
       const target = `/downloads/detail?jobId=${encodeURIComponent(retried.id)}`;
       markNavigationPush(target);
-      router.push(target);
+      window.location.assign(target);
     } catch (reason) {
       setActionError(displayError(reason));
       setPendingAction(null);
@@ -122,8 +121,14 @@ export default function DownloadHistoryView() {
                 placeholder="按视频标题搜索"
                 value={searchInput}
               />
-              <InputGroupAddon>
-                <MagnifyingGlass aria-hidden />
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton
+                  aria-label="搜索下载历史"
+                  size="icon-sm"
+                  type="submit"
+                >
+                  <MagnifyingGlass aria-hidden />
+                </InputGroupButton>
               </InputGroupAddon>
             </InputGroup>
           </Field>

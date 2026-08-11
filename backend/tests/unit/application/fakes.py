@@ -57,10 +57,12 @@ class FakeRunner:
 
 class FakeStorage:
     def __init__(self) -> None:
-        self.calls: list[tuple[str, int]] = []
+        self.calls: list[tuple[str, int, str | None]] = []
 
-    async def presigned_download(self, object_key: str, *, ttl_seconds: int) -> str:
-        self.calls.append((object_key, ttl_seconds))
+    async def presigned_download(
+        self, object_key: str, *, title: str | None = None, ttl_seconds: int
+    ) -> str:
+        self.calls.append((object_key, ttl_seconds, title))
         return "https://objects.example/download-token"
 
 

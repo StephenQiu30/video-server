@@ -1,7 +1,6 @@
 'use client';
 
 import { CheckCircle, ShieldCheck } from '@phosphor-icons/react';
-import { useRouter } from 'next/navigation';
 import { type RefObject, useEffect, useRef, useState } from 'react';
 
 import DownloadHero from '@/components/download-hero';
@@ -22,7 +21,6 @@ type BusyAction = 'inspect' | 'create' | null;
 type StableKey = { payload: string; value: string };
 
 export default function DownloadWorkspace() {
-  const router = useRouter();
   const [url, setUrl] = useState('');
   const [inspection, setInspection] = useState<Inspection | null>(null);
   const [selectedId, setSelectedId] = useState('');
@@ -82,7 +80,7 @@ export default function DownloadWorkspace() {
       );
       const target = `/downloads/detail?jobId=${encodeURIComponent(result.id)}`;
       markNavigationPush(target);
-      router.push(target);
+      window.location.assign(target);
     } catch (reason) {
       setError(displayError(reason));
     } finally {

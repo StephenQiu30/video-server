@@ -309,7 +309,7 @@ async def test_download_url_requires_success_and_unexpired_artifact() -> None:
 
     assert result.url == "https://objects.example/download-token"
     assert result.expires_at == NOW + timedelta(seconds=90)
-    assert storage.calls == [(f"downloads/{created.id}/1/video.mp4", 90)]
+    assert storage.calls == [(f"downloads/{created.id}/1/video.mp4", 90, "Owned video")]
 
     repository.artifacts[created.id] = replace(
         repository.artifacts[created.id], expires_at=NOW
@@ -319,3 +319,74 @@ async def test_download_url_requires_success_and_unexpired_artifact() -> None:
     with pytest.raises(ApplicationError) as expired:
         await issue(created.id, OWNER)
     assert expired.value.code is ApplicationErrorCode.RESOURCE_EXPIRED
+
+
+@pytest.mark.asyncio
+async def test_download_url_passes_inspection_title_to_storage() -> None:
+    repository, storage = FakeRepository(), FakeStorage()
+    inspection_id, format_id = seed_inspection(repository)
+    created = await creator(repository)(inspection_id, format_id, OWNER, "download-2")
+    repository.jobs[created.id] = replace(
+        repository.jobs[created.id], status="succeeded", progress=100
+    )
+    repository.artifacts[created.id] = ArtifactSnapshot(
+        id=uuid4(),
+        job_id=created.id,
+        attempt=1,
+        bucket="video-artifacts",
+        object_key=f"downloads/{created.id}/1/video.mp4",
+        sha256="d" * 64,
+        size_bytes=1_024,
+        duration_ms=30_000,
+        container="mp4",
+        content_type="video/mp4",
+        media_metadata={},
+        expires_at=NOW + timedelta(seconds=90),
+    )
+    issue = IssueDownloadUrl(
+        repository, storage, now=lambda: NOW, url_ttl=timedelta(minutes=5)
+    )
+
+    await issue(created.id, OWNER)
+
+    assert storage.calls[-1] == (
+        f"downloads/{created.id}/1/video.mp4",
+        90,
+        "Owned video",
+    )
+
+
+@pytest.mark.asyncio
+async def test_download_url_omits_missing_inspection_title() -> None:
+    repository, storage = FakeRepository(), FakeStorage()
+    inspection_id, format_id = seed_inspection(repository)
+    created = await creator(repository)(inspection_id, format_id, OWNER, "download-3")
+    repository.jobs[created.id] = replace(
+        repository.jobs[created.id], status="succeeded", progress=100
+    )
+    repository.artifacts[created.id] = ArtifactSnapshot(
+        id=uuid4(),
+        job_id=created.id,
+        attempt=1,
+        bucket="video-artifacts",
+        object_key=f"downloads/{created.id}/1/video.mp4",
+        sha256="d" * 64,
+        size_bytes=1_024,
+        duration_ms=30_000,
+        container="mp4",
+        content_type="video/mp4",
+        media_metadata={},
+        expires_at=NOW + timedelta(seconds=90),
+    )
+    issue = IssueDownloadUrl(
+        repository, storage, now=lambda: NOW, url_ttl=timedelta(minutes=5)
+    )
+    repository.inspections.pop(inspection_id)
+
+    await issue(created.id, OWNER)
+
+    assert storage.calls[-1] == (
+        f"downloads/{created.id}/1/video.mp4",
+        90,
+        None,
+    )

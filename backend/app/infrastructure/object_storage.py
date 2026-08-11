@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from io import BytesIO
 from pathlib import Path, PurePosixPath
+from urllib.parse import quote
 
 from minio import Minio
 
@@ -125,7 +127,9 @@ class MinioObjectStorage:
             str(target),
         )
 
-    async def presigned_download(self, object_key: str, *, ttl_seconds: int) -> str:
+    async def presigned_download(
+        self, object_key: str, *, title: str | None = None, ttl_seconds: int
+    ) -> str:
         _validate_key(object_key)
         if self._public is None:
             raise RuntimeError("public download signing is not enabled")
@@ -135,9 +139,7 @@ class MinioObjectStorage:
             object_key,
             expires=timedelta(seconds=ttl_seconds),
             response_headers={
-                "response-content-disposition": (
-                    f'attachment; filename="{_download_filename(object_key)}"'
-                )
+                "response-content-disposition": _download_disposition(object_key, title)
             },
         )
 
@@ -174,3 +176,29 @@ def _validate_key(object_key: str) -> None:
 def _download_filename(object_key: str) -> str:
     suffix = PurePosixPath(object_key).suffix.casefold()
     return f"video{suffix}" if suffix in {".mp4", ".webm"} else "download"
+
+
+def _download_disposition(object_key: str, title: str | None) -> str:
+    """Build an RFC 6266 attachment disposition using the video title.
+
+    Non-ASCII titles use RFC 5987 ``filename*=UTF-8''...`` encoding so browsers
+    save the file with a readable name; an ASCII ``filename=`` fallback is always
+    included so legacy agents still get a name.
+    """
+    fallback = _download_filename(object_key)
+    clean_title = _sanitize_filename(title) if title else ""
+    if not clean_title:
+        return f'attachment; filename="{fallback}"'
+    extension = PurePosixPath(object_key).suffix
+    encoded_name = f"{clean_title}{extension}"
+    if encoded_name.isascii():
+        return f'attachment; filename="{encoded_name}"'
+    return (
+        f'attachment; filename="{fallback}"; '
+        f"filename*=UTF-8''{quote(encoded_name, safe='')}"
+    )
+
+
+def _sanitize_filename(title: str) -> str:
+    value = re.sub(r'[\\/:*?"<>|\x00-\x1f\x7f]', "", title).strip()
+    return value[:128].rstrip(".") if value else ""
