@@ -41,6 +41,12 @@ x-prod-download-env: &prod-download-env
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
   RUNNER_OPERATOR_BASE_URL: "${RUNNER_OPERATOR_BASE_URL:-}"
 
+x-prod-canary-env: &prod-canary-env
+  <<: *prod-worker-env
+  RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
+  RUNNER_OPERATOR_BASE_URL: "${RUNNER_OPERATOR_BASE_URL:-}"
+  PROVIDER_CANARY_TARGETS: "${PROVIDER_CANARY_TARGETS:-[]}"
+
 x-prod-report-env: &prod-report-env
   <<: *prod-worker-env
   RABBITMQ_URL: "${RABBITMQ_REPORT_URL:?set RABBITMQ_REPORT_URL in .env.prod}"
@@ -67,6 +73,10 @@ services:
   worker-download:
     image: video-server:prod
     environment: *prod-download-env
+
+  provider-canary:
+    image: video-server:prod
+    environment: *prod-canary-env
 
   worker-report:
     image: video-server:prod

@@ -33,6 +33,7 @@ from app.application.downloads import (
     IssueDownloadUrl,
     RetryDownload,
 )
+from app.application.provider_canaries import ProviderStatusService
 from app.core.config import Settings
 from app.core.url_cipher import URLCipher
 from app.infrastructure.analysis_repository import SqlAlchemyAnalysisRepository
@@ -49,6 +50,10 @@ from app.infrastructure.media_runner import MediaRunnerHttpClient, MediaRunnerRo
 from app.infrastructure.object_storage import MinioObjectStorage
 from app.infrastructure.operational_metrics import OperationalMetrics
 from app.infrastructure.passwords import Argon2PasswordHasher
+from app.infrastructure.provider_canary_repository import (
+    SqlAlchemyProviderCanaryRepository,
+)
+from app.infrastructure.provider_status import configured_provider_statuses
 from app.infrastructure.rate_limiter import ValkeyRateLimiter
 from app.infrastructure.readiness import RuntimeReadiness, build_runtime_readiness
 from app.infrastructure.realtime import RabbitMqRealtimeConsumer, RealtimeHub
@@ -71,6 +76,7 @@ class ApiRuntime:
     task_event_store: TaskEventStore
     realtime_consumer: RabbitMqRealtimeConsumer
     operational_metrics: OperationalMetrics
+    provider_status_service: ProviderStatusService
 
     async def start(self) -> None:
         await self.realtime_consumer.start()
@@ -245,6 +251,11 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             settings.rabbitmq_url, settings.rabbitmq_exchange, realtime_hub
         ),
         operational_metrics=OperationalMetrics(sessions),
+        provider_status_service=ProviderStatusService(
+            SqlAlchemyProviderCanaryRepository(sessions),
+            configured_provider_statuses(),
+            now=clock,
+        ),
     )
 
 

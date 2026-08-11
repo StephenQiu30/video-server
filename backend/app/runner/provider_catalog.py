@@ -10,12 +10,14 @@ from app.domain.providers import (
     ProviderCapability,
     ProviderSupportStatus,
 )
+from app.runner.errors import RunnerFailure
 from app.runner.provider_registry import ProviderProfile, UrlNormalizer, _identity
 
 _VIMEO_ID = re.compile(r"/([0-9]+)/?$")
 _DOUYIN_VIDEO = re.compile(r"/video/(?P<id>[0-9]+)/?$")
 _DOUYIN_SHARE = re.compile(r"/share/video/(?P<id>[0-9]+)/?$")
 _KUAISHOU_VIDEO = re.compile(r"/short-video/(?P<id>[A-Za-z0-9]+)/?$")
+_ACFUN_VIDEO = re.compile(r"/v/ac[0-9]+/?$")
 _DIGITS = re.compile(r"[0-9]+$")
 _CHROME_IMPERSONATION = ("--impersonate", "Chrome-136:Macos-15")
 _ANDROID_IMPERSONATION = ("--impersonate", "Chrome-131:Android-14")
@@ -41,6 +43,12 @@ def _kuaishou_url(url: str, parsed: SplitResult) -> str:
     if match is None:
         return url
     return f"https://v.m.chenzhongtech.com/fw/photo/{match.group('id')}"
+
+
+def _acfun_url(url: str, parsed: SplitResult) -> str:
+    if _ACFUN_VIDEO.fullmatch(parsed.path) is None:
+        raise RunnerFailure("provider_unsupported", status=422)
+    return url
 
 
 def _standard(
@@ -202,6 +210,21 @@ DEFAULT_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         inspection_attempts=4,
         inspection_retry_delay=0.5,
         normalize_url=_kuaishou_url,
+    ),
+    ProviderProfile(
+        key="acfun",
+        display_name="AcFun",
+        hosts=frozenset({"acfun.cn", "www.acfun.cn"}),
+        version="acfun-public-v1",
+        capabilities=frozenset(
+            {
+                ProviderCapability.SINGLE_VIDEO,
+                ProviderCapability.AUDIO_VIDEO_SPLIT,
+            }
+        ),
+        support_status=ProviderSupportStatus.UNKNOWN,
+        canary_suite="acfun-public-single-video",
+        normalize_url=_acfun_url,
     ),
     _standard(
         "vimeo",

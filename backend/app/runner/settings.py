@@ -8,6 +8,7 @@ from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.domain.providers import ProviderAccessMode
+from app.runner.version import YTDLP_ENGINE_COMMIT
 
 _PROVIDER_KEY = re.compile(r"[a-z][a-z0-9_-]{0,31}")
 _REFERENCE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
@@ -35,7 +36,7 @@ class RunnerSettings(BaseSettings):
 
     runner_ytdlp_bin: str = "yt-dlp"
     runner_ytdlp_js_runtime: str = "node"
-    runner_ytdlp_commit: str = "5d6b8c8cd19785c3086ae3a9ec618c45e25eb3bc"
+    runner_ytdlp_commit: str = YTDLP_ENGINE_COMMIT
     runner_youtube_pot_base_url: str | None = None
     runner_youtube_pot_provider_version: str = "bgutil-http-1.3.1"
     runner_ffmpeg_bin: str = "ffmpeg"

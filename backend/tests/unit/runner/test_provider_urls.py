@@ -1,3 +1,4 @@
+from app.runner.errors import RunnerFailure
 from app.runner.provider_registry import provider_profile
 from app.runner.provider_urls import (
     provider_command_args,
@@ -107,6 +108,18 @@ def test_normalizes_kuaishou_public_videos_and_uses_android_impersonation() -> N
     )
 
 
+def test_acfun_admits_only_public_single_video_paths() -> None:
+    url = "https://www.acfun.cn/v/ac35457073?part=1"
+
+    assert provider_request_url(url) == url
+    try:
+        provider_request_url("https://www.acfun.cn/bangumi/aa123")
+    except RunnerFailure as exc:
+        assert exc.code == "provider_unsupported"
+    else:
+        raise AssertionError("non-UGC AcFun path was accepted")
+
+
 def test_registry_classifies_mainstream_platform_hosts() -> None:
     expected = {
         "youtube.com": "youtube",
@@ -118,6 +131,7 @@ def test_registry_classifies_mainstream_platform_hosts() -> None:
         "v.kuaishou.com": "kuaishou",
         "v.m.chenzhongtech.com": "kuaishou",
         "m.gifshow.com": "kuaishou",
+        "www.acfun.cn": "acfun",
         "player.vimeo.com": "vimeo",
         "x.com": "x",
         "www.instagram.com": "instagram",
@@ -144,3 +158,12 @@ def test_unknown_hosts_use_the_safe_generic_strategy() -> None:
     assert profile.key == "generic"
     assert profile.command_args == ()
     assert profile.inspection_attempts == 2
+
+
+def test_acfun_has_a_versioned_unknown_public_profile() -> None:
+    profile = provider_profile("https://www.acfun.cn/v/ac35457073")
+
+    assert profile.key == "acfun"
+    assert profile.version == "acfun-public-v1"
+    assert profile.canary_suite == "acfun-public-single-video"
+    assert profile.support_status.value == "unknown"

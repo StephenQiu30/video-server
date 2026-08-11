@@ -1,0 +1,99 @@
+from __future__ import annotations
+
+from collections import defaultdict
+from collections.abc import Mapping
+from datetime import datetime
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+from app.domain.providers import (
+    ProviderAccessMode,
+    ProviderCanaryOutcome,
+    ProviderCanaryResult,
+    ProviderCanaryStage,
+)
+from app.infrastructure.database.base import as_utc
+from app.infrastructure.database.models import ProviderCanaryResultRow
+
+
+class SqlAlchemyProviderCanaryRepository:
+    def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
+        self._sessions = sessions
+
+    async def save(self, result: ProviderCanaryResult) -> None:
+        async with self._sessions() as session, session.begin():
+            session.add(
+                ProviderCanaryResultRow(
+                    target_id=result.target_id,
+                    provider_key=result.provider_key,
+                    profile_version=result.profile_version,
+                    stage=result.stage.value,
+                    access_mode=result.access_mode.value,
+                    outcome=result.outcome.value,
+                    stable_error_code=result.stable_error_code,
+                    checked_at=result.checked_at,
+                    duration_ms=result.duration_ms,
+                    engine_commit=result.engine_commit,
+                    egress_affinity_id=result.egress_affinity_id,
+                    client_profile_id=result.client_profile_id,
+                )
+            )
+
+    async def list_recent(
+        self, *, limit_per_provider: int
+    ) -> Mapping[str, tuple[ProviderCanaryResult, ...]]:
+        if limit_per_provider < 1:
+            raise ValueError("canary result limit must be positive")
+        rank = (
+            func.row_number()
+            .over(
+                partition_by=ProviderCanaryResultRow.provider_key,
+                order_by=ProviderCanaryResultRow.checked_at.desc(),
+            )
+            .label("provider_rank")
+        )
+        ranked = select(ProviderCanaryResultRow.id.label("id"), rank).subquery()
+        statement = (
+            select(ProviderCanaryResultRow)
+            .join(ranked, ProviderCanaryResultRow.id == ranked.c.id)
+            .where(ranked.c.provider_rank <= limit_per_provider)
+            .order_by(
+                ProviderCanaryResultRow.provider_key,
+                ProviderCanaryResultRow.checked_at.desc(),
+            )
+        )
+        async with self._sessions() as session:
+            rows = (await session.execute(statement)).scalars().all()
+        grouped: defaultdict[str, list[ProviderCanaryResult]] = defaultdict(list)
+        for row in rows:
+            grouped[row.provider_key].append(_to_domain(row))
+        return {key: tuple(values) for key, values in grouped.items()}
+
+    async def latest_checked_at(
+        self, target_id: str, stage: ProviderCanaryStage
+    ) -> datetime | None:
+        statement = select(func.max(ProviderCanaryResultRow.checked_at)).where(
+            ProviderCanaryResultRow.target_id == target_id,
+            ProviderCanaryResultRow.stage == stage.value,
+        )
+        async with self._sessions() as session:
+            value = await session.scalar(statement)
+        return None if value is None else as_utc(value)
+
+
+def _to_domain(row: ProviderCanaryResultRow) -> ProviderCanaryResult:
+    return ProviderCanaryResult(
+        target_id=row.target_id,
+        provider_key=row.provider_key,
+        profile_version=row.profile_version,
+        stage=ProviderCanaryStage(row.stage),
+        access_mode=ProviderAccessMode(row.access_mode),
+        outcome=ProviderCanaryOutcome(row.outcome),
+        stable_error_code=row.stable_error_code,
+        checked_at=as_utc(row.checked_at),
+        duration_ms=row.duration_ms,
+        engine_commit=row.engine_commit,
+        egress_affinity_id=row.egress_affinity_id,
+        client_profile_id=row.client_profile_id,
+    )

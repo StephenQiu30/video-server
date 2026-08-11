@@ -11,7 +11,7 @@ from app.runner.provider_registry import DEFAULT_PROVIDER_REGISTRY
 _LAST_BASELINE = datetime(2026, 8, 11, tzinfo=UTC)
 
 
-def current_provider_statuses() -> tuple[ProviderStatusView, ...]:
+def configured_provider_statuses() -> tuple[ProviderStatusView, ...]:
     configured = tuple(
         ProviderStatusView(
             key=profile.key,
@@ -44,6 +44,9 @@ def current_provider_statuses() -> tuple[ProviderStatusView, ...]:
         ),
     )
     return configured + unsupported
+
+
+current_provider_statuses = configured_provider_statuses
 
 
 def _user_action(status: ProviderSupportStatus) -> str | None:

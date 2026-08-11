@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import datetime
 from enum import StrEnum
 from typing import Self
 
@@ -35,6 +36,53 @@ class ProviderSupportStatus(StrEnum):
     BLOCKED = "blocked"
     DISABLED = "disabled"
     UNSUPPORTED = "unsupported"
+
+
+class ProviderCanaryStage(StrEnum):
+    METADATA = "metadata"
+    MEDIA = "media"
+
+
+class ProviderCanaryOutcome(StrEnum):
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+
+
+@dataclass(frozen=True, slots=True)
+class ProviderCanaryResult:
+    target_id: str
+    provider_key: str
+    profile_version: str
+    stage: ProviderCanaryStage
+    access_mode: ProviderAccessMode
+    outcome: ProviderCanaryOutcome
+    checked_at: datetime
+    duration_ms: int
+    engine_commit: str
+    egress_affinity_id: str
+    client_profile_id: str
+    stable_error_code: str | None = None
+
+    def __post_init__(self) -> None:
+        references = (
+            self.target_id,
+            self.provider_key,
+            self.profile_version,
+            self.engine_commit,
+            self.egress_affinity_id,
+            self.client_profile_id,
+        )
+        if any(_REFERENCE.fullmatch(value) is None for value in references):
+            raise ValueError("provider canary contains an invalid reference")
+        if self.checked_at.tzinfo is None or self.duration_ms < 0:
+            raise ValueError("provider canary timing is invalid")
+        failed = self.outcome is ProviderCanaryOutcome.FAILED
+        if failed != (self.stable_error_code is not None):
+            raise ValueError("provider canary error does not match outcome")
+        if self.stable_error_code is not None and (
+            _REFERENCE.fullmatch(self.stable_error_code) is None
+        ):
+            raise ValueError("provider canary error code is invalid")
 
 
 @dataclass(frozen=True, slots=True)

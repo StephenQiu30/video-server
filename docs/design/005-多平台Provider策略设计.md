@@ -3,7 +3,7 @@
 - 状态：Partially Implemented；production verification pending
 - 日期：2026-08-10
 - 前置调研：`docs/research/003-多平台下载会话与GitHub适配调研.md`
-- 实现状态：Phase 1 已落地版本化 Profile、非 Secret 访问上下文、匿名/YouTube 运维 Runner 路由、操作级 Cookie jar、权益防火墙、可选 POT sidecar、稳定错误、`GET /api/providers` 与前端状态页。真实 Cookie/POT canary、自动状态聚合、账号权益漂移自动停用和统一重试预算仍是生产发布门禁；Phase 2 的用户 Credential Broker/Vault 与 gallery-dl 尚未实现。
+- 实现状态：Phase 1 已落地版本化 Profile、非 Secret 访问上下文、匿名/YouTube 运维 Runner 路由、操作级 Cookie jar、权益防火墙、可选 POT sidecar、稳定错误、Provider 探针结果表/定时执行器/动态状态聚合、`GET /api/providers` 与前端状态页。授权目标的真实 Cookie/POT canary、完整视频 Agent E2E、账号权益漂移自动停用和统一重试预算仍是生产发布门禁；Phase 2 的用户 Credential Broker/Vault 与 gallery-dl 尚未实现。
 
 ## 1. 目标
 
@@ -48,7 +48,7 @@ Cookie 的一刀切禁令被调整为“默认关闭、Provider allowlist、生�
 ### 3.3 仍待生产验收
 
 - 尚未提供生产专用账号和授权样本，因此未执行真实 Cookie/POT 的完整 Runner → Worker → MinIO E2E。
-- `GET /api/providers` 当前返回配置/历史基线快照；定时 canary、连续失败阈值、恢复迟滞和自动状态聚合尚未实现。
+- `GET /api/providers` 已合并配置/历史基线与最近 5 条持久化探针结果；定时 metadata/media 执行、连续失败阈值、恢复迟滞和动态降级已实现。真实授权目标默认未配置，能力/Agent E2E gate、指标和自动 kill switch 仍待补齐。
 - 账号最小权益使用启动 attestation 和媒体 metadata fail-closed；自动检测账号权益漂移并 disable version 尚未实现。
 - 凭据并发当前由单运维 Runner 的 `RUNNER_MAX_ACTIVE_TASKS=1` 和本地 semaphore 约束；跨副本分布式租约尚未实现。
 - 429 `Retry-After`、Worker/Runner/yt-dlp 统一预算、POT 刷新一次和出口 cooldown 尚未实现。
@@ -69,7 +69,7 @@ Cookie 的一刀切禁令被调整为“默认关闭、Provider allowlist、生�
 
 ## 5. 架构
 
-下图同时包含当前 Phase 1 与 Phase 2 目标。当前已经实现 Anonymous Runner、YouTube Operator Runner、Runner-only tmpfs、POT sidecar 和非 Secret context 路由；`User Credential Runner`/Broker、动态 canary 控制面仍是未实现目标。
+下图同时包含当前 Phase 1 与 Phase 2 目标。当前已经实现 Anonymous Runner、YouTube Operator Runner、Runner-only tmpfs、POT sidecar、非 Secret context 路由和动态 canary 控制面；`User Credential Runner`/Broker 仍是未实现目标。
 
 ```mermaid
 flowchart LR
@@ -345,7 +345,7 @@ unknown | verified | degraded | access_required | rate_limited | blocked | disab
 - 只使用项目自有或明确授权样本，不使用用户 URL/Cookie。
 - 记录 Provider、capability、access mode、Profile/engine/POT 版本、egress affinity 引用、阶段、耗时和稳定错误；不记录完整 URL 或 Secret。
 
-最近 5 次至少 4 次成功且最近成功不超过 6 小时可标记 `verified`；至少 2 次失败进入 `degraded`；连续 3 次同类永久失败进入 `blocked`。会话失效立即进入 `access_required`，恢复至少需要连续 2 次成功，避免状态抖动。当前 API 尚未实现该聚合器，只发布明确标注的配置/历史基线：Bilibili、抖音、小红书为已有回归，快手为 2026-08-11 的公开分享页 metadata/media 回归，YouTube 为 `access_required`，无证据的平台保持 `unknown`，视频号为 `unsupported`。
+最近 5 次至少 4 次成功、最近 2 次连续成功、metadata 成功不超过 6 小时且 media 成功不超过 26 小时，已批准基线才可恢复 `verified`；至少 2 次失败进入 `degraded`；连续 3 次同类永久失败进入 `blocked`。会话失效立即进入 `access_required`。API 已实现该聚合器，但新平台的 `unknown/access_required` 基线不能被下载探针自动提升，必须先完成完整视频 Agent E2E 并显式批准。当前基线：Bilibili、抖音、小红书为已有回归，快手为 2026-08-11 的公开分享页 metadata/media 回归，YouTube 为 `access_required`，AcFun 与其他无证据平台保持 `unknown`，视频号为 `unsupported`。
 
 ## 14. 可观测性与审计
 

@@ -13,6 +13,7 @@ from .download import ArtifactRow, DownloadJobRow
 from .media import MediaFormatRow, MediaInspectionRow
 from .operational_metric import OperationalCounterRow
 from .outbox import OutboxEventRow
+from .provider_canary import ProviderCanaryResultRow
 from .task_event import TaskEventRow
 
 __all__ = [
@@ -31,6 +32,7 @@ __all__ = [
     "MediaInspectionRow",
     "OutboxEventRow",
     "OperationalCounterRow",
+    "ProviderCanaryResultRow",
     "TaskEventRow",
     "UserRow",
 ]

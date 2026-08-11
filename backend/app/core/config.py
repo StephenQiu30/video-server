@@ -27,7 +27,12 @@ class Settings(BaseSettings):
 
     app_env: Literal["development", "test", "staging", "production"] = "development"
     service_role: Literal[
-        "api", "outbox", "download-worker", "analysis-worker", "report-worker"
+        "api",
+        "outbox",
+        "download-worker",
+        "analysis-worker",
+        "report-worker",
+        "provider-canary",
     ] = "api"
     app_host: str = "0.0.0.0"
     app_port: int = Field(default=8101, ge=1, le=65535)
@@ -95,6 +100,14 @@ class Settings(BaseSettings):
     runner_operator_base_url: str | None = None
     runner_workspace_root: Path = Path("/work")
     runner_hmac_secret: SecretStr = SecretStr("development-runner-secret-change-me")
+    provider_canary_targets: SecretStr = SecretStr("[]")
+    provider_canary_metadata_interval_seconds: int = Field(
+        default=21_600, ge=300, le=604_800
+    )
+    provider_canary_media_interval_seconds: int = Field(
+        default=86_400, ge=300, le=2_592_000
+    )
+    provider_canary_poll_seconds: float = Field(default=60, ge=5, le=3600)
     runner_signature_ttl_seconds: int = Field(default=30, ge=5, le=300)
     inspect_timeout_seconds: int = Field(default=30, ge=1, le=300)
     download_timeout_seconds: int = Field(default=1800, ge=1, le=7200)
@@ -240,15 +253,17 @@ class Settings(BaseSettings):
                     self.minio_secret_key.get_secret_value(),
                 )
             )
+        elif self.service_role == "provider-canary":
+            secret_values.append(self.runner_hmac_secret.get_secret_value())
         insecure = any(
             value.startswith(("development-", "video-")) or "replace-with" in value
             for value in secret_values
         )
-        rabbitmq_url = (
-            self.analysis_rabbitmq_url
-            if self.service_role == "analysis-worker"
-            else self.rabbitmq_url
-        )
+        rabbitmq_url = ""
+        if self.service_role == "analysis-worker":
+            rabbitmq_url = self.analysis_rabbitmq_url
+        elif self.service_role != "provider-canary":
+            rabbitmq_url = self.rabbitmq_url
         insecure_urls = any(
             marker in f"{self.database_url} {rabbitmq_url}"
             for marker in ("video:video@", "replace-with", "-secret@")
@@ -272,7 +287,12 @@ def get_settings() -> Settings:
 
 def get_settings_for_role(
     role: Literal[
-        "api", "outbox", "download-worker", "analysis-worker", "report-worker"
+        "api",
+        "outbox",
+        "download-worker",
+        "analysis-worker",
+        "report-worker",
+        "provider-canary",
     ],
 ) -> Settings:
     return Settings(service_role=role)

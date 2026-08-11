@@ -1,0 +1,1 @@
+"""Scheduled Provider canary worker."""

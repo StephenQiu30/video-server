@@ -28,7 +28,7 @@
 
 ## 3. B. Provider Profile 与访问上下文
 
-- [x] B1：18 个 Registry key 有版本化 Profile、capability、access mode、Cookie 域、client、attestation、出口、并发、错误和 canary 配置。
+- [x] B1：19 个 Registry key 有版本化 Profile、capability、access mode、Cookie 域、client、attestation、出口、并发、错误和 canary 配置。
 - [x] B2：registered host、extractor exists、verified、access required、unknown 和 unsupported 是不同状态。
 - [ ] B3：Generic 永远没有 Cookie/POT；redirect 到已知 Provider 后重新校验和选择 context。
 - [x] B4：inspection 冻结 profile、access mode、credential version、egress affinity、client、POT Provider 和 engine commit 引用。
@@ -89,9 +89,9 @@
 
 - [ ] G1：Canary 使用项目自有或明确授权样本，不使用用户 URL/Cookie。
 - [ ] G2：每个平台至少有 anonymous metadata + Range/fragment；启用会话的平台另有独立 auth canary。
-- [ ] G3：Canary 记录 provider、capability、access mode、Profile/engine/POT version、egress affinity 引用、stage、latency 和稳定码，不记完整 URL/Secret。
-- [ ] G4：状态阈值、连续失败和恢复迟滞测试通过；用户内容 404/private 不错误拉低 Provider SLO。
-- [ ] G5：单 Provider blocked 不影响 API readiness 或其他 Provider。
+- [ ] G3：Canary 已记录 provider、access mode、Profile/engine、egress/client 引用、stage、latency 和稳定码且不记完整 URL/Secret；capability 与 POT version 尚未进入结果合同。
+- [ ] G4：最近 5 次、4 次成功、最近 2 次成功、2 次失败降级、3 次同类永久失败阻断和新平台显式批准 gate 已有确定性测试；授权目标真实性与用户内容隔离的运行证据待补。
+- [x] G5：单 Provider 结果只改变该 Provider 聚合视图，不参与 API readiness；默认无目标的 Compose 服务已独立健康运行。
 - [x] G6：Bilibili 公开 UGC 回归成功，命令不含 Cookie/POT。
 - [x] G7：抖音公开分享页回归成功；动态签名/schema 故障不伪报 Cookie 缺失。
 - [x] G8：小红书有效公开分享链回归成功；短链失效、图文笔记、原画缺失分别分类。
@@ -103,7 +103,7 @@
 
 ## 9. H. API、可观测性与供应链
 
-- [ ] H1：`GET /api/providers` 的 capability/access-mode 状态与最近 canary 聚合一致。
+- [x] H1：`GET /api/providers` 已从数据库最近结果动态聚合并保留配置 capability/access-mode；无 URL、账号、Cookie、出口地址或异常文本响应字段。
 - [ ] H2：指标 labels 只含低基数 Provider/阶段/错误/version，不含 URL/job/owner/credential/异常文本。
 - [ ] H3：凭据创建/激活/验证/撤销/lease 审计只记录非 Secret 元数据。
 - [ ] H4：未登记许可证、未固定 version 或用户可加载的插件在 CI 被拒绝。
@@ -166,10 +166,11 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod
 | 2026-08-10 | runtime 镜像 | 本次提交（基线 `a72b2f0`） | Provider runtime | N/A | yt-dlp `2026.07.04` / bgutil plugin | N/A | build/import | runtime build 通过；SBOM/NOTICE 与插件入口存在 | image `video-server:phase1-validation`（本地） |
 | 2026-08-10 | 前端本地 | 本次提交（基线 `a72b2f0`） | Provider status | authenticated | OpenAPI `listProviders` | N/A | API/UI | `81 passed`；lint/type/format/build 通过；`/providers` 静态导出 | 前端测试与 build 报告 |
 | 2026-08-07 | 本地浏览器 E2E | historical | Bilibili/抖音/小红书 single video | anonymous | 当时固定 Runner | historical | metadata/media/remux/probe | 成功；范围见研究记录 | `docs/research/001-GitHub开源方案调研.md` |
+| 2026-08-11 | 本地容器与浏览器 | 本次提交（基线 `84b8cae`） | 动态 Provider canary + AcFun Profile | anonymous / 默认无目标 | yt-dlp `5d6b8c8` / `acfun-public-v1` | non-secret default | schema/scheduler/API/UI | 结果表幂等创建；服务运行且不访问第三方；AcFun 仍为 unknown；桌面/移动对齐且无溢出 | `docs/acceptance/017-其他短视频平台分阶段接入验收.md` |
 | Pending | production-like | Pending | YouTube public + rights-negative | operator + POT | Pending | Pending | full Worker/Runner/MinIO | 未执行：无批准的专用 Cookie/授权 canary | `docs/operations/002-YouTube受控会话运行手册.md` |
 
 ## 14. 当前结论
 
-截至 2026-08-10，Phase 1 已提供可配置的 YouTube 运维 Cookie/POT 执行路径，并通过代码级 session 隔离、context 一致性、权益拒绝、错误映射、API/UI、runtime 镜像与 production-like Compose 拓扑验证。验收结论仍为 **production conditional fail**：A2a、B3/B7、C6/C8、YouTube 真实 D1–D3/D5/D7–D9/D11、POT/出口 E2–E6/E8、动态 canary G1–G5/G9/G12、H1–H5 均缺完整证据或尚未实现。不得把 YouTube 标记为 `verified`，也不得启用生产运维会话。
+截至 2026-08-11，Phase 1 已提供可配置的 YouTube 运维 Cookie/POT 路径，以及持久化 Provider 探针、定时执行器、阈值/恢复迟滞和动态 API 聚合；AcFun Profile 已登记但显式保持 `unknown`。验收结论仍为 **production conditional fail**：A2a、B3/B7、C6/C8、YouTube 真实 D1–D3/D5/D7–D9/D11、POT/出口 E2–E6/E8、授权 canary G1–G4/G9/G12、低基数指标/供应链 H2–H5 与完整视频 Agent E2E gate 均缺完整证据或尚未实现。不得把 YouTube 或 AcFun 标记为 `verified`，也不得启用生产运维会话。
 
 Phase 2 的 I–J 全部保持 Pending；本轮没有实现用户 Cookie 上传/Vault/Broker 或 gallery-dl。下一验收批次必须使用无额外权益的专用账号与授权样本，按 runbook 完成真实 Worker/Runner/MinIO E2E、全系统泄漏扫描、sidecar/出口绑定、轮换/撤销、账号权益漂移和故障注入。

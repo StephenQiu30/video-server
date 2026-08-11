@@ -86,6 +86,19 @@ x-download-env: &download-env
   RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
 
+x-canary-env: &canary-env
+  APP_ENV: "${APP_ENV:-development}"
+  SERVICE_ROLE: provider-canary
+  DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
+  RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
+  RUNNER_OPERATOR_BASE_URL: "${RUNNER_OPERATOR_BASE_URL:-}"
+  RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
+  RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
+  PROVIDER_CANARY_TARGETS: "${PROVIDER_CANARY_TARGETS:-[]}"
+  PROVIDER_CANARY_METADATA_INTERVAL_SECONDS: "${PROVIDER_CANARY_METADATA_INTERVAL_SECONDS:-21600}"
+  PROVIDER_CANARY_MEDIA_INTERVAL_SECONDS: "${PROVIDER_CANARY_MEDIA_INTERVAL_SECONDS:-86400}"
+  PROVIDER_CANARY_POLL_SECONDS: "${PROVIDER_CANARY_POLL_SECONDS:-60}"
+
 x-report-env: &report-env
   APP_ENV: "${APP_ENV:-development}"
   SERVICE_ROLE: report-worker
@@ -196,6 +209,24 @@ services:
       minio:
         condition: service_healthy
       minio-init:
+        condition: service_completed_successfully
+      workspace-init:
+        condition: service_completed_successfully
+      media-runner:
+        condition: service_healthy
+
+  provider-canary:
+    <<: *app
+    environment: *canary-env
+    networks: [db_net, runner_rpc_net]
+    container_name: provider-canary
+    command: ["python", "-m", "app.workers.canary.main"]
+    volumes:
+      - runner_work:/work
+    depends_on:
+      postgres:
+        condition: service_healthy
+      database-init:
         condition: service_completed_successfully
       workspace-init:
         condition: service_completed_successfully

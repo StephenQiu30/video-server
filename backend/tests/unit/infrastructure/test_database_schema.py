@@ -18,6 +18,7 @@ def test_download_schema_contains_required_tables_and_columns() -> None:
         "media_inspections",
         "outbox_events",
         "users",
+        "provider_canary_results",
     } <= set(tables)
     jobs = tables["download_jobs"]
     assert {
@@ -44,6 +45,17 @@ def test_download_schema_contains_required_tables_and_columns() -> None:
     assert {"user_id", "token_hash", "expires_at"} <= set(
         tables["auth_sessions"].columns.keys()
     )
+    canaries = tables["provider_canary_results"]
+    assert "url" not in canaries.columns
+    assert {
+        "target_id",
+        "provider_key",
+        "profile_version",
+        "stage",
+        "outcome",
+        "stable_error_code",
+        "checked_at",
+    } <= set(canaries.columns.keys())
 
 
 def test_sensitive_url_is_not_a_plaintext_column() -> None:

@@ -1,0 +1,146 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
+
+import pytest
+from app.application.provider_canaries import ProviderStatusService
+from app.application.providers import ProviderStatusView
+from app.domain.providers import (
+    ProviderAccessMode,
+    ProviderCanaryOutcome,
+    ProviderCanaryResult,
+    ProviderCanaryStage,
+    ProviderCapability,
+    ProviderSupportStatus,
+)
+
+NOW = datetime(2026, 8, 11, 6, tzinfo=UTC)
+
+
+class Reader:
+    def __init__(self, results: tuple[ProviderCanaryResult, ...]) -> None:
+        self.results = results
+
+    async def list_recent(
+        self, *, limit_per_provider: int
+    ) -> dict[str, tuple[ProviderCanaryResult, ...]]:
+        assert limit_per_provider == 5
+        return {"acfun": self.results}
+
+
+def baseline(
+    status: ProviderSupportStatus = ProviderSupportStatus.UNKNOWN,
+) -> ProviderStatusView:
+    return ProviderStatusView(
+        key="acfun",
+        display_name="AcFun",
+        registered=True,
+        extractor_exists=True,
+        capabilities=(ProviderCapability.SINGLE_VIDEO,),
+        access_modes=(ProviderAccessMode.ANONYMOUS,),
+        status=status,
+        last_verified_at=None,
+        user_action="待验证",
+    )
+
+
+def result(
+    minutes: int,
+    *,
+    stage: ProviderCanaryStage = ProviderCanaryStage.METADATA,
+    error: str | None = None,
+) -> ProviderCanaryResult:
+    return ProviderCanaryResult(
+        target_id="acfun-owned-1",
+        provider_key="acfun",
+        profile_version="acfun-public-v1",
+        stage=stage,
+        access_mode=ProviderAccessMode.ANONYMOUS,
+        outcome=(
+            ProviderCanaryOutcome.FAILED
+            if error is not None
+            else ProviderCanaryOutcome.SUCCEEDED
+        ),
+        stable_error_code=error,
+        checked_at=NOW - timedelta(minutes=minutes),
+        duration_ms=100,
+        engine_commit="5d6b8c8cd19785c3086ae3a9ec618c45e25eb3bc",
+        egress_affinity_id="default",
+        client_profile_id="yt-dlp-default",
+    )
+
+
+@pytest.mark.asyncio
+async def test_unapproved_profile_stays_unknown_after_media_evidence() -> None:
+    results = (
+        result(0),
+        result(30),
+        result(60, stage=ProviderCanaryStage.MEDIA),
+        result(90),
+        result(120, error="inspection_timeout"),
+    )
+    service = ProviderStatusService(Reader(results), (baseline(),), now=lambda: NOW)
+
+    view = (await service.list())[0]
+
+    assert view.status is ProviderSupportStatus.UNKNOWN
+    assert view.last_verified_at == NOW - timedelta(minutes=60)
+    assert view.user_action == "该平台尚未完成当前版本的真实下载验证。"
+
+
+@pytest.mark.asyncio
+async def test_approved_profile_recovers_after_fresh_canary_evidence() -> None:
+    results = (
+        result(0),
+        result(30),
+        result(60, stage=ProviderCanaryStage.MEDIA),
+        result(90),
+        result(120, error="inspection_timeout"),
+    )
+    service = ProviderStatusService(
+        Reader(results),
+        (baseline(ProviderSupportStatus.VERIFIED),),
+        now=lambda: NOW,
+    )
+
+    assert (await service.list())[0].status is ProviderSupportStatus.VERIFIED
+
+
+@pytest.mark.asyncio
+async def test_access_and_repeated_permanent_failures_override_baseline() -> None:
+    access = ProviderStatusService(
+        Reader((result(0, error="provider_auth_required"),)),
+        (baseline(),),
+        now=lambda: NOW,
+    )
+    blocked = ProviderStatusService(
+        Reader(
+            tuple(
+                result(index, error="provider_content_restricted") for index in range(3)
+            )
+        ),
+        (baseline(),),
+        now=lambda: NOW,
+    )
+
+    assert (await access.list())[0].status is ProviderSupportStatus.ACCESS_REQUIRED
+    assert (await blocked.list())[0].status is ProviderSupportStatus.BLOCKED
+
+
+@pytest.mark.asyncio
+async def test_two_transient_failures_degrade_without_leaking_details() -> None:
+    service = ProviderStatusService(
+        Reader(
+            (
+                result(0, error="inspection_timeout"),
+                result(1, error="extractor_regression"),
+            )
+        ),
+        (baseline(),),
+        now=lambda: NOW,
+    )
+
+    view = (await service.list())[0]
+
+    assert view.status is ProviderSupportStatus.DEGRADED
+    assert view.user_action == "平台当前不稳定，请稍后重试。"

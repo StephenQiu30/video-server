@@ -46,6 +46,7 @@ from .models import (
     MediaFormatRow,
     MediaInspectionRow,
     OutboxEventRow,
+    ProviderCanaryResultRow,
     TaskEventRow,
     UserRow,
 )
@@ -86,6 +87,7 @@ __all__ = [
     "MediaFormatRow",
     "MediaInspectionRow",
     "OutboxEventRow",
+    "ProviderCanaryResultRow",
     "TaskEventRow",
     "OutboxSnapshot",
     "RepositoryConflict",

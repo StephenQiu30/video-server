@@ -121,7 +121,7 @@
 
 ## 7. Phase 5：Capability Canary 与状态页
 
-实施状态：`GET /api/providers`、生成客户端、受保护状态页和明确 `verified/access_required/unknown/unsupported` 快照已完成；定时 canary 执行器、阈值/恢复迟滞与动态聚合尚未完成。
+实施状态：`GET /api/providers`、生成客户端、受保护状态页、持久化结果表、定时 metadata/media 执行器、阈值/恢复迟滞与动态聚合已完成；授权目标、能力/完整视频 Agent E2E gate、低基数指标、自动 kill switch 与各平台真实证据尚未完成。
 
 ### 交付
 
@@ -141,7 +141,7 @@
 
 ## 8. Phase 6：其他平台专用 Profile
 
-实施状态：17 个 Profile 与逐平台上游策略已登记，Bilibili/抖音/小红书沿用 2026-08-07 历史回归；其余平台的当前版本 metadata + media canary 尚未执行，因此保持 `unknown`。
+实施状态：19 个可下载 Profile 与逐平台上游策略已登记；新增 AcFun `acfun-public-v1` 保持 `unknown`。Bilibili/抖音/小红书沿用 2026-08-07 历史回归，快手沿用 2026-08-11 真实回归；其余平台的当前版本 metadata + media + 完整视频 Agent E2E 尚未执行。
 
 按真实 canary 证据逐个平台交付，不一次性启用所有 Cookie：
 
@@ -239,4 +239,4 @@ feat(provider): 增加多媒体引擎适配器
 - Provider 页面只展示 canary 支持的能力；未知/失败项保持准确状态。
 - Phase 1 与 Phase 2 的上线结论分别记录，不能用本地 Cookie 成功替代生产安全门禁。
 
-截至 2026-08-10，Phase 1 的实现可以进入受限 production-like 验收，但尚不满足上线完成定义：真实 YouTube Cookie/POT E2E、全系统泄漏扫描、自动 canary、账号权益漂移停用、分布式单并发和统一重试预算没有证据。Phase 2 保持未开始。
+截至 2026-08-11，Phase 1 的实现可以进入受限 production-like 验收，但尚不满足上线完成定义：真实 YouTube Cookie/POT E2E、授权 Provider canary、完整视频 Agent E2E gate、全系统泄漏扫描、账号权益漂移停用、分布式单并发和统一重试预算没有完整证据。Phase 2 保持未开始。

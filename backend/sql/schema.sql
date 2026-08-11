@@ -444,6 +444,38 @@ CREATE TABLE IF NOT EXISTS operational_counters (
     CONSTRAINT ck_operational_counters_value CHECK (value >= 0)
 );
 
+CREATE TABLE IF NOT EXISTS provider_canary_results (
+    id UUID PRIMARY KEY,
+    target_id VARCHAR(128) NOT NULL,
+    provider_key VARCHAR(32) NOT NULL,
+    profile_version VARCHAR(128) NOT NULL,
+    stage VARCHAR(16) NOT NULL,
+    access_mode VARCHAR(24) NOT NULL,
+    outcome VARCHAR(16) NOT NULL,
+    stable_error_code VARCHAR(128),
+    checked_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    duration_ms INTEGER NOT NULL,
+    engine_commit VARCHAR(128) NOT NULL,
+    egress_affinity_id VARCHAR(128) NOT NULL,
+    client_profile_id VARCHAR(128) NOT NULL,
+    CONSTRAINT ck_provider_canary_stage CHECK (stage IN ('metadata', 'media')),
+    CONSTRAINT ck_provider_canary_access_mode CHECK (
+        access_mode IN ('anonymous', 'operator_managed')
+    ),
+    CONSTRAINT ck_provider_canary_outcome CHECK (
+        outcome IN ('succeeded', 'failed')
+    ),
+    CONSTRAINT ck_provider_canary_duration CHECK (duration_ms >= 0),
+    CONSTRAINT ck_provider_canary_error CHECK (
+        (outcome = 'failed') = (stable_error_code IS NOT NULL)
+    )
+);
+
+CREATE INDEX IF NOT EXISTS ix_provider_canary_provider_checked
+    ON provider_canary_results (provider_key, checked_at);
+CREATE INDEX IF NOT EXISTS ix_provider_canary_target_checked
+    ON provider_canary_results (target_id, stage, checked_at);
+
 CREATE TABLE IF NOT EXISTS task_events (
     id UUID PRIMARY KEY,
     owner_hash VARCHAR(64) NOT NULL,

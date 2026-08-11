@@ -40,7 +40,7 @@ def test_compose_initializes_database_before_database_consumers_start() -> None:
     assert "postgres:\n        condition: service_healthy" in initializer
     assert "/docker-entrypoint-initdb.d/" not in compose
 
-    for service in ("api", "outbox", "worker-download"):
+    for service in ("api", "outbox", "worker-download", "provider-canary"):
         service_config = _service_block(compose, service)
         assert (
             "database-init:\n        condition: service_completed_successfully"

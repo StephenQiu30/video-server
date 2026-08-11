@@ -61,6 +61,9 @@ def create_app(
         application.state.realtime_hub = configured_runtime.realtime_hub
         application.state.task_event_store = configured_runtime.task_event_store
         application.state.operational_metrics = configured_runtime.operational_metrics
+        application.state.provider_status_service = (
+            configured_runtime.provider_status_service
+        )
     application.include_router(router)
     application.middleware("http")(
         lambda request, call_next: request_guard(

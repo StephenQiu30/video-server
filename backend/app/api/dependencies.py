@@ -29,6 +29,7 @@ from app.application.downloads import (
     IssueDownloadUrl,
     RetryDownload,
 )
+from app.application.provider_canaries import ProviderStatusService
 from app.application.providers import ProviderStatusView
 from app.core.config import Settings
 from app.core.errors import AppError
@@ -99,5 +100,8 @@ def get_analysis_use_cases(request: Request) -> AnalysisUseCases:
     return cast(AnalysisUseCases, container)
 
 
-def get_provider_statuses(request: Request) -> tuple[ProviderStatusView, ...]:
+async def get_provider_statuses(request: Request) -> tuple[ProviderStatusView, ...]:
+    service = getattr(request.app.state, "provider_status_service", None)
+    if service is not None:
+        return await cast(ProviderStatusService, service).list()
     return cast(tuple[ProviderStatusView, ...], request.app.state.provider_statuses)
