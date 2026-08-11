@@ -24,3 +24,4 @@
 | 013 | AI 分析原任务重试 | [Design](design/013-AI分析原任务重试设计.md) | [PRD](prd/013-AI分析原任务重试需求.md) | [Plan](plans/013-AI分析原任务重试计划.md) | [Acceptance](acceptance/013-AI分析原任务重试验收.md) |
 | 014 | WebSocket 任务状态同步 | [Design](design/014-WebSocket任务状态同步设计.md) | [PRD](prd/014-WebSocket任务状态同步需求.md) | [Plan](plans/014-WebSocket任务状态同步计划.md) | [Acceptance](acceptance/014-WebSocket任务状态同步验收.md) |
 | 015 | RabbitMQ 异步分析与可靠投递 | [Design](design/015-RabbitMQ异步分析设计.md) | [PRD](prd/015-RabbitMQ异步分析需求.md) | [Plan](plans/015-RabbitMQ异步分析计划.md) | [Acceptance](acceptance/015-RabbitMQ异步分析验收.md) |
+| 016 | 中国短视频平台支持 | [Design](design/016-中国短视频平台支持设计.md) | 待补 | 待补 | 待补 |
