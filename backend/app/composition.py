@@ -38,6 +38,10 @@ from app.core.config import Settings
 from app.core.url_cipher import URLCipher
 from app.infrastructure.analysis_repository import SqlAlchemyAnalysisRepository
 from app.infrastructure.analysis_skill_catalog import BuiltinAnalysisSkillCatalog
+from app.infrastructure.analysis_worker_registry import (
+    ANALYSIS_MESSAGE_SCHEMA_VERSION,
+    SqlAlchemyAnalysisWorkerRegistry,
+)
 from app.infrastructure.auth_repository import SqlAlchemyAuthRepository
 from app.infrastructure.database import (
     SqlAlchemyDownloadRepository,
@@ -101,6 +105,12 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
     )
     repository = SqlAlchemyDownloadRepository(sessions)
     analysis_repository = SqlAlchemyAnalysisRepository(sessions)
+    analysis_availability = SqlAlchemyAnalysisWorkerRegistry(
+        sessions,
+        expected_app_version=settings.app_version,
+        expected_message_schema_version=ANALYSIS_MESSAGE_SCHEMA_VERSION,
+        stale_after=timedelta(seconds=settings.analysis_worker_stale_seconds),
+    )
     auth_repository = SqlAlchemyAuthRepository(sessions)
     user_repository = SqlAlchemyUserRepository(sessions)
     store = SqlAlchemyDownloadStore(repository)
@@ -210,6 +220,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             new_id=uuid4,
             max_attempts=settings.max_analysis_attempts,
             skill_catalog=skill_catalog,
+            availability=analysis_availability,
             enabled=settings.analysis_enabled,
         ),
         delete_analysis=DeleteAnalysis(analysis_repository, now=clock),
@@ -249,7 +260,12 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         realtime_hub=realtime_hub,
         task_event_store=TaskEventStore(sessions),
         realtime_consumer=RabbitMqRealtimeConsumer(
-            settings.rabbitmq_url, settings.rabbitmq_exchange, realtime_hub
+            settings.rabbitmq_url,
+            settings.rabbitmq_exchange,
+            realtime_hub,
+            connection_timeout=settings.rabbitmq_connection_timeout_seconds,
+            heartbeat=settings.rabbitmq_heartbeat_seconds,
+            reconnect_interval=settings.rabbitmq_reconnect_interval_seconds,
         ),
         operational_metrics=OperationalMetrics(sessions),
         provider_status_service=ProviderStatusService(

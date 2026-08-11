@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
 import pytest
@@ -10,6 +11,7 @@ from app.infrastructure.messaging import (
     PublishNotConfirmed,
     RabbitMqPublisher,
     RabbitMqTopology,
+    configured_rabbitmq_url,
 )
 from pamqp.commands import Basic
 
@@ -80,7 +82,13 @@ async def test_robust_topology_and_confirmed_mandatory_publish(monkeypatch) -> N
     connection = FakeConnection()
 
     async def connect(url, **kwargs):
-        assert url == "amqp://broker/"
+        parsed = urlsplit(url)
+        assert parsed.scheme == "amqp" and parsed.hostname == "broker"
+        assert parse_qs(parsed.query) == {
+            "heartbeat": ["60"],
+            "reconnect_interval": ["5"],
+            "name": ["video-server-outbox"],
+        }
         assert kwargs["timeout"] == 10
         return connection
 
@@ -102,6 +110,28 @@ async def test_robust_topology_and_confirmed_mandatory_publish(monkeypatch) -> N
     assert message.message_id is not None
     await publisher.close()
     assert connection.closed
+
+
+def test_connection_url_preserves_vhost_and_overrides_runtime_options() -> None:
+    result = configured_rabbitmq_url(
+        "amqps://worker:secret@rabbit.internal:5671/video?heartbeat=30&locale=en_US",
+        heartbeat=90,
+        reconnect_interval=2.5,
+        connection_name="analysis worker 1",
+    )
+    parsed = urlsplit(result)
+    assert (parsed.scheme, parsed.hostname, parsed.port, parsed.path) == (
+        "amqps",
+        "rabbit.internal",
+        5671,
+        "/video",
+    )
+    assert parse_qs(parsed.query) == {
+        "heartbeat": ["90"],
+        "locale": ["en_US"],
+        "reconnect_interval": ["2.5"],
+        "name": ["analysis worker 1"],
+    }
 
 
 @pytest.mark.asyncio

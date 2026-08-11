@@ -2,12 +2,18 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import aio_pika
 import httpx
 import pytest
 from app.core.config import Settings
+from app.infrastructure.analysis_worker_registry import (
+    ANALYSIS_MESSAGE_SCHEMA_VERSION,
+    SqlAlchemyAnalysisWorkerRegistry,
+)
+from app.infrastructure.database import Base, create_session_factory
 from app.infrastructure.readiness import build_runtime_readiness
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -36,6 +42,8 @@ def rabbitmq_is_available(monkeypatch: pytest.MonkeyPatch) -> None:
 @asynccontextmanager
 async def runtime_probe(
     handler: httpx.AsyncBaseTransport,
+    *,
+    worker_schema_version: int | None = ANALYSIS_MESSAGE_SCHEMA_VERSION,
 ) -> AsyncIterator[Any]:
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     client = httpx.AsyncClient(transport=handler)
@@ -47,6 +55,21 @@ async def runtime_probe(
         minio_endpoint="minio.test:9000",
         readiness_timeout_seconds=1,
     )
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    registry = SqlAlchemyAnalysisWorkerRegistry(
+        create_session_factory(engine),
+        expected_app_version=settings.app_version,
+        expected_message_schema_version=ANALYSIS_MESSAGE_SCHEMA_VERSION,
+        stale_after=timedelta(seconds=settings.analysis_worker_stale_seconds),
+    )
+    if worker_schema_version is not None:
+        await registry.heartbeat(
+            "analysis-worker-test",
+            app_version=settings.app_version,
+            message_schema_version=worker_schema_version,
+            now=datetime.now(UTC),
+        )
     probe = build_runtime_readiness(settings, engine, client=client)
     try:
         yield probe
@@ -74,4 +97,15 @@ async def test_runtime_readiness_fails_closed_without_exposing_dependency_error(
         return httpx.Response(status)
 
     async with runtime_probe(httpx.MockTransport(respond)) as probe:
+        assert await probe.check() is False
+
+
+@pytest.mark.usefixtures("rabbitmq_is_available")
+async def test_runtime_readiness_requires_a_compatible_analysis_worker() -> None:
+    async def respond(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200)
+
+    async with runtime_probe(
+        httpx.MockTransport(respond), worker_schema_version=2
+    ) as probe:
         assert await probe.check() is False

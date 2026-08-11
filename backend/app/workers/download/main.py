@@ -115,6 +115,9 @@ def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
             execution,
             prefetch=settings.download_worker_threads,
             workers=settings.download_worker_threads,
+            connection_timeout=settings.rabbitmq_connection_timeout_seconds,
+            heartbeat=settings.rabbitmq_heartbeat_seconds,
+            reconnect_interval=settings.rabbitmq_reconnect_interval_seconds,
         ),
         sweeper=DownloadRecoverySweeper(
             raw_repository,
@@ -122,6 +125,9 @@ def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
             RecoverySettings(
                 interval=min(5.0, settings.heartbeat_interval_seconds),
                 batch_size=100,
+                queued_stale_after=timedelta(
+                    seconds=settings.download_queued_recovery_seconds
+                ),
             ),
         ),
         artifact_gc=ArtifactGarbageCollector(

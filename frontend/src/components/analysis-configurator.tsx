@@ -146,7 +146,8 @@ export default function AnalysisConfigurator({
         <p className="flex max-w-2xl items-start gap-2 text-sm leading-6 text-muted-foreground">
           <ShieldCheck className="mt-1 shrink-0 text-success" />
           完整视频文件会交给本机 Agent；Agent
-          必须覆盖全片时间轴并自主复核分镜边界与高光，不以预先抽取的固定帧集替代分析。
+          必须覆盖全片时间轴并自主复核分镜边界与高光，不以预先抽取的固定帧集替代分析。Agent
+          实际查看的画面帧、任务指令和必要上下文会发送到所选云端模型处理；应用不会把原始视频容器直接上传给模型服务。
         </p>
         <Button
           className="w-full shrink-0 sm:w-auto"

@@ -10,9 +10,15 @@ from app.workers.download.workspace import SharedWorkspaceCleaner
 
 class FakeRecoveryRepository:
     def __init__(self) -> None:
+        self.queued = (uuid4(),)
         self.stale = (uuid4(),)
         self.ready = (uuid4(),)
         self.calls: list[str] = []
+
+    async def recover_stale_queued(self, now, stale_before, *, limit=100):
+        assert stale_before < now
+        self.calls.append("queued")
+        return self.queued
 
     async def reclaim_stale(self, now, *, limit=100):
         self.calls.append("stale")
@@ -24,13 +30,17 @@ class FakeRecoveryRepository:
 
 
 @pytest.mark.asyncio
-async def test_recovery_reclaims_stale_then_releases_due_retry() -> None:
+async def test_recovery_republishes_queued_reclaims_stale_and_releases_retry() -> None:
     repository = FakeRecoveryRepository()
     sweeper = DownloadRecoverySweeper(
         repository, lambda: datetime(2026, 8, 6, tzinfo=UTC)
     )
-    assert await sweeper.tick() == (repository.stale, repository.ready)
-    assert repository.calls == ["stale", "ready"]
+    assert await sweeper.tick() == (
+        repository.queued,
+        repository.stale,
+        repository.ready,
+    )
+    assert repository.calls == ["queued", "stale", "ready"]
 
 
 @pytest.mark.asyncio

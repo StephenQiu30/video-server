@@ -12,7 +12,7 @@ from aio_pika.abc import (
     AbstractRobustConnection,
 )
 from app.application.analysis_execution import AnalysisDisposition
-from app.infrastructure.messaging import RabbitMqTopology
+from app.infrastructure.messaging import RabbitMqTopology, configured_rabbitmq_url
 
 from .message import AnalysisMessageError, parse_analysis_requested
 
@@ -67,14 +67,24 @@ class RabbitMqAnalysisConsumer:
         *,
         prefetch: int,
         connection_timeout: float = 10,
+        heartbeat: int = 60,
+        reconnect_interval: float = 5,
     ) -> None:
-        if not url or prefetch < 1 or connection_timeout <= 0:
+        if (
+            not url
+            or prefetch < 1
+            or connection_timeout <= 0
+            or heartbeat < 10
+            or reconnect_interval <= 0
+        ):
             raise ValueError("invalid RabbitMQ consumer settings")
         self._url = url
         self._topology = topology
         self._handler = handler
         self._prefetch = prefetch
         self._connection_timeout = connection_timeout
+        self._heartbeat = heartbeat
+        self._reconnect_interval = reconnect_interval
         self._connection: AbstractRobustConnection | None = None
         self._queue: AbstractQueue | None = None
         self._consumer_tag: str | None = None
@@ -84,9 +94,13 @@ class RabbitMqAnalysisConsumer:
         if self._connection is not None:
             return
         connection = await aio_pika.connect_robust(
-            self._url,
+            configured_rabbitmq_url(
+                self._url,
+                heartbeat=self._heartbeat,
+                reconnect_interval=self._reconnect_interval,
+                connection_name="video-server-analysis-worker",
+            ),
             timeout=self._connection_timeout,
-            client_properties={"connection_name": "video-server-analysis-worker"},
         )
         self._connection = connection
         try:

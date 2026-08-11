@@ -13,7 +13,11 @@ from aio_pika.abc import (
     AbstractRobustConnection,
 )
 
-from app.infrastructure.messaging import EventEnvelope, EventEnvelopeError
+from app.infrastructure.messaging import (
+    EventEnvelope,
+    EventEnvelopeError,
+    configured_rabbitmq_url,
+)
 
 
 @dataclass(slots=True, eq=False)
@@ -120,28 +124,61 @@ class RealtimeHub:
 
 
 class RabbitMqRealtimeConsumer:
-    def __init__(self, url: str, exchange: str, hub: RealtimeHub) -> None:
+    def __init__(
+        self,
+        url: str,
+        exchange: str,
+        hub: RealtimeHub,
+        *,
+        connection_timeout: float = 10,
+        heartbeat: int = 60,
+        reconnect_interval: float = 5,
+    ) -> None:
+        if (
+            not url
+            or not exchange
+            or connection_timeout <= 0
+            or heartbeat < 10
+            or reconnect_interval <= 0
+        ):
+            raise ValueError("invalid RabbitMQ consumer settings")
         self._url = url
         self._exchange = exchange
         self._hub = hub
+        self._connection_timeout = connection_timeout
+        self._heartbeat = heartbeat
+        self._reconnect_interval = reconnect_interval
         self._connection: AbstractRobustConnection | None = None
         self._queue: AbstractQueue | None = None
         self._tag: str | None = None
 
     async def start(self) -> None:
+        if self._connection is not None:
+            return
         connection = await aio_pika.connect_robust(
-            self._url,
-            timeout=10,
-            client_properties={"connection_name": "video-server-realtime-gateway"},
+            configured_rabbitmq_url(
+                self._url,
+                heartbeat=self._heartbeat,
+                reconnect_interval=self._reconnect_interval,
+                connection_name="video-server-realtime-gateway",
+            ),
+            timeout=self._connection_timeout,
         )
         self._connection = connection
-        channel = await connection.channel()
-        await channel.set_qos(prefetch_count=100)
-        exchange = await channel.declare_exchange(self._exchange, passive=True)
-        queue = await channel.declare_queue("", exclusive=True, auto_delete=True)
-        await queue.bind(exchange, routing_key="task.state.changed")
-        self._queue = queue
-        self._tag = await queue.consume(self._consume)
+        try:
+            async with asyncio.timeout(self._connection_timeout):
+                channel = await connection.channel()
+                await channel.set_qos(prefetch_count=100)
+                exchange = await channel.declare_exchange(self._exchange, passive=True)
+                queue = await channel.declare_queue(
+                    "", exclusive=True, auto_delete=True
+                )
+                await queue.bind(exchange, routing_key="task.state.changed")
+                self._queue = queue
+                self._tag = await queue.consume(self._consume)
+        except BaseException:
+            await asyncio.shield(self.close())
+            raise
 
     async def close(self) -> None:
         if self._queue is not None and self._tag is not None:

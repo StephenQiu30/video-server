@@ -51,6 +51,12 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+asyncpg://video:video@localhost:15432/video"
     rabbitmq_url: str = "amqp://video-api:video-api-secret@localhost:5673/video"
+    rabbitmq_vhost: str = Field(
+        default="video",
+        min_length=1,
+        max_length=128,
+        pattern=r"^[A-Za-z0-9._-]+$",
+    )
     rabbitmq_exchange: str = "video.events"
     download_queue: str = "video.download"
     download_routing_key: Literal["download.requested"] = "download.requested"
@@ -60,6 +66,10 @@ class Settings(BaseSettings):
     analysis_report_routing_key: Literal["analysis.report.publish.requested"] = (
         "analysis.report.publish.requested"
     )
+    rabbitmq_connection_timeout_seconds: float = Field(default=10, ge=1, le=60)
+    rabbitmq_publish_timeout_seconds: float = Field(default=10, ge=1, le=60)
+    rabbitmq_heartbeat_seconds: int = Field(default=60, ge=10, le=600)
+    rabbitmq_reconnect_interval_seconds: float = Field(default=5, ge=1, le=60)
     worker_prefetch: int = Field(default=2, ge=1, le=32)
     download_worker_threads: int = Field(default=4, ge=1, le=64)
     outbox_batch_size: int = Field(default=50, ge=1, le=200)
@@ -130,7 +140,11 @@ class Settings(BaseSettings):
     heartbeat_interval_seconds: int = Field(default=15, ge=5, le=120)
     max_download_attempts: int = Field(default=3, ge=1, le=10)
     max_analysis_attempts: int = Field(default=3, ge=1, le=10)
+    download_queued_recovery_seconds: int = Field(default=60, ge=15, le=3600)
     analysis_max_runs_per_job: int = Field(default=10, ge=1, le=100)
+    analysis_queued_recovery_seconds: int = Field(default=60, ge=15, le=3600)
+    analysis_worker_heartbeat_seconds: float = Field(default=10, ge=1, le=60)
+    analysis_worker_stale_seconds: int = Field(default=45, ge=5, le=300)
     analysis_manual_retry_min_interval_seconds: int = Field(default=30, ge=0, le=86400)
     analysis_manual_retries_per_day: int = Field(default=20, ge=1, le=1000)
     analysis_report_ttl_seconds: int = Field(default=86400, ge=300, le=2592000)
@@ -252,6 +266,10 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def reject_development_secrets_in_production(self) -> Settings:
+        if self.analysis_worker_stale_seconds <= self.analysis_worker_heartbeat_seconds:
+            raise ValueError(
+                "analysis worker stale window must exceed its heartbeat interval"
+            )
         if self.app_env != "production":
             return self
         secret_values: list[str] = []

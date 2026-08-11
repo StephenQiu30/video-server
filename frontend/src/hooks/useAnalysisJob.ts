@@ -78,7 +78,7 @@ export function useAnalysisJob(downloadId: string, pollIntervalMs: number) {
 
   useEffect(() => {
     if (!analysisId || !shouldSync || socketStatus !== 'degraded') return;
-    const timer = window.setTimeout(
+    const timer = window.setInterval(
       async () => {
         try {
           setJob(await getAnalysis(analysisId));
@@ -89,7 +89,7 @@ export function useAnalysisJob(downloadId: string, pollIntervalMs: number) {
       },
       Math.max(15_000, pollIntervalMs * 10),
     );
-    return () => window.clearTimeout(timer);
+    return () => window.clearInterval(timer);
   }, [analysisId, pollIntervalMs, shouldSync, socketStatus]);
 
   const start = useCallback(

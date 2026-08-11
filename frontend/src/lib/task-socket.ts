@@ -97,13 +97,18 @@ class TaskSocketManager {
       }
       return;
     }
-    if (event.type !== 'task.updated') return;
+    if (event.type !== 'task.updated' && event.type !== 'task.snapshot') return;
     const taskType = String(event.task_type) as TaskType;
     const taskId = String(event.task_id);
     const version = Number(event.version);
     const subscription = this.subscriptions.get(`${taskType}:${taskId}`);
     if (!subscription || !Number.isSafeInteger(version)) return;
     if (version <= subscription.version) return;
+    if (event.type === 'task.snapshot') {
+      subscription.version = version;
+      for (const listener of subscription.listeners) listener(event);
+      return;
+    }
     if (version > subscription.version + 1) {
       this.sendSubscribe(subscription, 'resync');
       return;

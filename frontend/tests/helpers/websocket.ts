@@ -52,3 +52,27 @@ export function emitTaskUpdate(
     }),
   );
 }
+
+export function emitTaskSnapshot(
+  taskType: 'analysis' | 'download',
+  taskId: string,
+  version: number,
+) {
+  const socket = MockWebSocket.instances.at(-1);
+  socket?.onmessage?.(
+    new MessageEvent('message', {
+      data: JSON.stringify({
+        type: 'task.snapshot',
+        event_id: crypto.randomUUID(),
+        task_type: taskType,
+        task_id: taskId,
+        version,
+      }),
+    }),
+  );
+}
+
+export function degradeLatestSocket() {
+  const socket = MockWebSocket.instances.at(-1);
+  socket?.onerror?.(new Event('error'));
+}

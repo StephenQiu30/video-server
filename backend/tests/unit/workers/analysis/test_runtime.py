@@ -14,6 +14,7 @@ from app.infrastructure.ai_cli import (
     CodexCliVideoAnalyzer,
 )
 from app.workers.analysis import providers
+from app.workers.analysis.main import _rabbitmq_worker_url
 from app.workers.analysis.providers import (
     authentication_environment,
     build_video_analyzer,
@@ -65,11 +66,25 @@ def test_worker_discards_api_key_environment(monkeypatch: pytest.MonkeyPatch) ->
             assert environment["WINDIR"] == os.environ["WINDIR"]
 
 
+def test_worker_uses_the_declared_shared_rabbitmq_vhost() -> None:
+    result = _rabbitmq_worker_url("amqp://analysis:secret@localhost:5673/", "video")
+
+    assert result == "amqp://analysis:secret@localhost:5673/video"
+
+
 class FakeRecovery:
     def __init__(self) -> None:
+        self.queued = (uuid4(),)
         self.stale = (uuid4(),)
         self.ready = (uuid4(),)
         self.calls: list[tuple[str, int]] = []
+
+    async def recover_stale_queued(
+        self, now: datetime, stale_before: datetime, *, limit: int = 100
+    ) -> tuple[object, ...]:
+        assert stale_before < now
+        self.calls.append(("queued", limit))
+        return self.queued
 
     async def reclaim_stale(
         self, now: datetime, *, limit: int = 100
@@ -93,5 +108,9 @@ async def test_recovery_sweeper_reclaims_then_requeues_ready_jobs() -> None:
         lambda: now,
     )
 
-    assert await sweeper.tick() == (repository.stale, repository.ready)
-    assert repository.calls == [("stale", 100), ("ready", 100)]
+    assert await sweeper.tick() == (
+        repository.queued,
+        repository.stale,
+        repository.ready,
+    )
+    assert repository.calls == [("queued", 100), ("stale", 100), ("ready", 100)]

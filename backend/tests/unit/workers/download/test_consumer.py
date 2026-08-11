@@ -10,8 +10,9 @@ from app.workers.download.consumer import process_delivery
 
 
 class FakeDelivery:
-    def __init__(self, body: bytes) -> None:
+    def __init__(self, body: bytes, *, redelivered: bool = False) -> None:
         self.body = body
+        self.redelivered = redelivered
         self.acked = 0
         self.nacked: list[bool] = []
 
@@ -67,3 +68,7 @@ async def test_consumer_dead_letters_bad_contract_and_requeues_faults() -> None:
     handler.error = OSError("database unavailable")
     await process_delivery(transient, handler)
     assert transient.nacked == [True]
+
+    poison = FakeDelivery(body(), redelivered=True)
+    await process_delivery(poison, handler)
+    assert poison.nacked == [False]

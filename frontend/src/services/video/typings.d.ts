@@ -13,6 +13,7 @@ declare namespace API {
     | "invalid_model_output"
     | "analysis_resource_limit"
     | "input_artifact_unavailable"
+    | "analysis_report_unavailable"
     | "internal_error"
     | "worker_lost";
 

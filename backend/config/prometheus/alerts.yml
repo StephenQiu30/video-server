@@ -11,6 +11,29 @@ groups:
         for: 10m
         labels: {severity: warning}
         annotations: {summary: "RabbitMQ command queue backlog is growing"}
+      - alert: VideoRabbitMqConsumerMissing
+        expr: rabbitmq_queue_consumers{vhost="video",queue=~"video\\.(download|analysis|analysis-report)"} == 0 and rabbitmq_queue_messages_ready{vhost="video",queue=~"video\\.(download|analysis|analysis-report)"} > 0
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: "RabbitMQ command queue has work but no consumer"}
+      - alert: VideoRabbitMqQueueNearCapacity
+        expr: rabbitmq_queue_messages_ready{vhost="video",queue=~"video\\.(download|analysis|analysis-report)"} > 8000
+        for: 5m
+        labels: {severity: critical}
+        annotations: {summary: "RabbitMQ command queue is near its configured limit"}
+      - alert: VideoRabbitMqUnackedStalled
+        expr: rabbitmq_queue_messages_unacked{vhost="video",queue=~"video\\.(download|analysis|analysis-report)"} > 0
+        for: 45m
+        labels: {severity: warning}
+        annotations: {summary: "RabbitMQ delivery has remained unacknowledged too long"}
+      - alert: VideoRabbitMqDeliveryLimitExceeded
+        expr: increase(rabbitmq_global_messages_dead_lettered_delivery_limit_total[5m]) > 0
+        labels: {severity: warning}
+        annotations: {summary: "RabbitMQ poison message exceeded its delivery limit"}
+      - alert: VideoRabbitMqUnroutableReturned
+        expr: increase(rabbitmq_global_messages_unroutable_returned_total[5m]) > 0
+        labels: {severity: critical}
+        annotations: {summary: "RabbitMQ mandatory publish was returned as unroutable"}
       - alert: VideoOutboxLag
         expr: video_outbox_oldest_seconds > 60
         for: 5m

@@ -1,4 +1,5 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -24,7 +25,7 @@ import {
   mockHttpError,
   mockHttpResponses,
 } from '../helpers/http';
-import { emitTaskUpdate } from '../helpers/websocket';
+import { degradeLatestSocket, emitTaskUpdate } from '../helpers/websocket';
 
 describe('AnalysisPanel', () => {
   beforeEach(() => {
@@ -52,7 +53,14 @@ describe('AnalysisPanel', () => {
     expect(
       screen.getByText(/完整视频文件会交给本机 Agent/),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/模型实际查看的抽帧/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /实际查看的画面帧、任务指令和必要上下文会发送到所选云端模型/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/不会把原始视频容器直接上传给模型服务/),
+    ).toBeInTheDocument();
     expect(screen.queryByText('0/4000')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '开始 AI 分析' })).toBeEnabled();
   });
@@ -154,6 +162,43 @@ describe('AnalysisPanel', () => {
     fireEvent.click(reportTab);
     const preview = await screen.findByLabelText('Markdown 分析报告预览');
     expect(within(preview).getByText('一、基础信息')).toBeInTheDocument();
+  });
+
+  it('polls repeatedly while realtime synchronization is degraded', async () => {
+    vi.useFakeTimers();
+    try {
+      mockHttpResponses(
+        analysisJob('running'),
+        analysisJob('running'),
+        analysisJob('running'),
+      );
+      vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'analysis-key') });
+      render(<AnalysisPanel downloadId={job().id} pollIntervalMs={5} />);
+      await vi.waitFor(() =>
+        expect(
+          screen.getByRole('button', { name: '开始 AI 分析' }),
+        ).toBeEnabled(),
+      );
+      fireEvent.click(screen.getByRole('button', { name: '开始 AI 分析' }));
+      await vi.waitFor(() =>
+        expect(screen.getByText('正在分析')).toBeInTheDocument(),
+      );
+
+      await act(async () => {
+        await Promise.resolve();
+        degradeLatestSocket();
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(30_001);
+      });
+
+      const refreshes = httpRequests().filter((request) =>
+        (request.url ?? '').includes(`/analyses/${analysisJob('running').id}`),
+      );
+      expect(refreshes.length).toBeGreaterThanOrEqual(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('renders Markdown without executable HTML or outbound links', () => {

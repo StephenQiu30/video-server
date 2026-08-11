@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from app.application.analysis import PersistenceConflict, PersistenceNotFound
+from app.infrastructure.database.models import OutboxEventRow
 from app.infrastructure.database.models.analysis import AnalysisArtifactLockRow
 from sqlalchemy import func, select
 from tests.unit.infrastructure.analysis.factories import (
@@ -162,3 +163,40 @@ async def test_retry_keeps_lock_until_terminal_failure(analysis_db) -> None:
     stale_job = await analysis_db.repository.get_job(stale.id)
     assert stale_job is not None and stale_job.status == "failed"
     assert await lock_count(analysis_db) == 0
+
+
+@pytest.mark.asyncio
+async def test_stale_queued_job_is_republished_without_changing_identity(
+    analysis_db,
+) -> None:
+    _, command = await create_job(analysis_db)
+    recovery_time = NOW + timedelta(seconds=61)
+
+    recovered = await analysis_db.repository.recover_stale_queued(
+        recovery_time,
+        recovery_time - timedelta(seconds=60),
+        limit=10,
+    )
+
+    assert recovered == (command.id,)
+    job = await analysis_db.repository.get_job(command.id)
+    assert job is not None
+    assert (job.id, job.run_id, job.version, job.status) == (
+        command.id,
+        command.run_id,
+        0,
+        "queued",
+    )
+    async with analysis_db.sessions() as session:
+        outbox_count = int(
+            await session.scalar(select(func.count()).select_from(OutboxEventRow)) or 0
+        )
+    assert outbox_count == 2
+    assert (
+        await analysis_db.repository.recover_stale_queued(
+            recovery_time,
+            recovery_time - timedelta(seconds=60),
+            limit=10,
+        )
+        == ()
+    )

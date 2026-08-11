@@ -29,6 +29,9 @@ def test_current_schema_can_be_applied_repeatedly() -> None:
     assert table_names == EXPECTED_DATABASE_TABLES
     assert not re.search(r"^CREATE TABLE (?!IF NOT EXISTS)", schema, re.MULTILINE)
     assert not re.search(r"^CREATE INDEX (?!IF NOT EXISTS)", schema, re.MULTILINE)
+    assert "analysis_report_unavailable" in schema
+    assert "ck_analysis_jobs_succeeded_report" in schema
+    assert "ix_download_jobs_queued_recovery" in schema
 
 
 def test_compose_initializes_database_before_database_consumers_start() -> None:

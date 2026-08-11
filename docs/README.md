@@ -2,7 +2,7 @@
 
 根目录 `docs/` 是 `server` 的唯一产品与技术事实来源。
 
-外部依赖与方案选型记录在 [`research/`](research/)；下载内核选型见 [GitHub 开源方案调研](research/001-GitHub开源方案调研.md)，公网产品完备性、开源整合与优先级见 [上线能力与 GitHub 开源整合调研](research/002-上线能力与GitHub开源整合调研.md)，Cookie、PO Token、出口一致性和逐平台适配见 [多平台下载会话与 GitHub 适配调研](research/003-多平台下载会话与GitHub适配调研.md)，其他短视频/社交视频平台的 extractor、维护状态、许可与接入优先级见 [其他短视频平台接入调研](research/005-其他短视频平台接入调研.md)。
+外部依赖与方案选型记录在 [`research/`](research/)；下载内核选型见 [GitHub 开源方案调研](research/001-GitHub开源方案调研.md)，公网产品完备性、开源整合与优先级见 [上线能力与 GitHub 开源整合调研](research/002-上线能力与GitHub开源整合调研.md)，Cookie、PO Token、出口一致性和逐平台适配见 [多平台下载会话与 GitHub 适配调研](research/003-多平台下载会话与GitHub适配调研.md)，其他短视频/社交视频平台的 extractor、维护状态、许可与接入优先级见 [其他短视频平台接入调研](research/005-其他短视频平台接入调研.md)，RabbitMQ producer/consumer、quorum、DLQ 与可观测性选型见 [RabbitMQ 可靠投递 GitHub 调研](research/006-RabbitMQ可靠投递GitHub调研.md)。
 
 根目录 Compose 的使用与安全边界见 [运行手册](operations/001-root-compose运行手册.md)；YouTube 运维会话的账号基线、Secret 导入、启动、轮换、撤销和脱敏验收见 [YouTube 受控会话运行手册](operations/002-YouTube受控会话运行手册.md)；TikTok、Instagram、Facebook、X、Reddit、Vimeo 与 VK 的逐 Provider 隔离部署见 [多平台受控会话运行手册](operations/003-多平台受控会话运行手册.md)。
 
@@ -28,3 +28,4 @@
 | 015 | RabbitMQ 异步分析与可靠投递 | [Design](design/015-RabbitMQ异步分析设计.md) | [PRD](prd/015-RabbitMQ异步分析需求.md) | [Plan](plans/015-RabbitMQ异步分析计划.md) | [Acceptance](acceptance/015-RabbitMQ异步分析验收.md) |
 | 016 | 中国短视频平台支持 | [Design](design/016-中国短视频平台支持设计.md) | 待补 | 待补 | 待补 |
 | 017 | 其他短视频平台分阶段接入 | [Design](design/017-其他短视频平台分阶段接入设计.md) | [PRD](prd/017-其他短视频平台分阶段接入需求.md) | [Plan](plans/017-其他短视频平台分阶段接入计划.md) | [Acceptance](acceptance/017-其他短视频平台分阶段接入验收.md) |
+| 018 | RabbitMQ 生产可靠性增强 | [Design](design/018-RabbitMQ生产可靠性增强设计.md) | 待补 | 待补 | 待补 |

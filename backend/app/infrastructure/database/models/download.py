@@ -48,6 +48,7 @@ class DownloadJobRow(Base):
         Index("ix_download_jobs_created", "created_at"),
         Index("ix_download_jobs_claim", "status", "retry_at"),
         Index("ix_download_jobs_stale", "status", "lease_expires_at"),
+        Index("ix_download_jobs_queued_recovery", "status", "updated_at"),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)

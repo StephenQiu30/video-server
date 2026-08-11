@@ -33,6 +33,7 @@ class AnalysisErrorCode(StrEnum):
     INVALID_MODEL_OUTPUT = "invalid_model_output"
     RESOURCE_LIMIT = "analysis_resource_limit"
     INPUT_ARTIFACT_UNAVAILABLE = "input_artifact_unavailable"
+    REPORT_UNAVAILABLE = "analysis_report_unavailable"
     INTERNAL_ERROR = "internal_error"
     WORKER_LOST = "worker_lost"
 

@@ -116,6 +116,7 @@ CREATE INDEX IF NOT EXISTS ix_download_jobs_owner_created
 CREATE INDEX IF NOT EXISTS ix_download_jobs_created ON download_jobs (created_at);
 CREATE INDEX IF NOT EXISTS ix_download_jobs_claim ON download_jobs (status, retry_at);
 CREATE INDEX IF NOT EXISTS ix_download_jobs_stale ON download_jobs (status, lease_expires_at);
+CREATE INDEX IF NOT EXISTS ix_download_jobs_queued_recovery ON download_jobs (status, updated_at);
 
 CREATE TABLE IF NOT EXISTS artifacts (
     id UUID PRIMARY KEY,
@@ -195,6 +196,8 @@ CREATE INDEX IF NOT EXISTS ix_analysis_jobs_owner_created
     ON analysis_jobs (owner_hash, created_at);
 CREATE INDEX IF NOT EXISTS ix_analysis_jobs_claim ON analysis_jobs (status, retry_at);
 CREATE INDEX IF NOT EXISTS ix_analysis_jobs_stale ON analysis_jobs (status, lease_expires_at);
+CREATE INDEX IF NOT EXISTS ix_analysis_jobs_queued_recovery
+    ON analysis_jobs (status, updated_at);
 CREATE INDEX IF NOT EXISTS ix_analysis_jobs_artifact ON analysis_jobs (artifact_id);
 
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS active_run_id UUID;
@@ -376,6 +379,47 @@ SET expires_at = created_at + INTERVAL '1 day'
 WHERE expires_at IS NULL;
 ALTER TABLE analysis_report_artifacts ALTER COLUMN expires_at SET NOT NULL;
 
+-- Legacy releases could mark a job succeeded before the durable Markdown and
+-- DOCX report existed. Fail those inconsistent projections closed so clients
+-- can retry instead of receiving a false success without downloadable output.
+UPDATE analysis_jobs
+SET
+    status = 'failed',
+    stage = NULL,
+    stage_rank = 0,
+    version = version + 1,
+    error_code = 'analysis_report_unavailable',
+    error_message = 'durable analysis report is unavailable',
+    finished_at = COALESCE(finished_at, CURRENT_TIMESTAMP),
+    updated_at = CURRENT_TIMESTAMP
+WHERE status = 'succeeded' AND current_report_id IS NULL;
+
+UPDATE analysis_runs AS run
+SET
+    status = analysis.status,
+    stage = analysis.stage,
+    stage_rank = analysis.stage_rank,
+    progress = analysis.progress,
+    attempt = analysis.attempt,
+    max_attempts = analysis.max_attempts,
+    version = analysis.version,
+    finished_at = analysis.finished_at,
+    error_code = analysis.error_code,
+    error_message = analysis.error_message,
+    updated_at = analysis.updated_at
+FROM analysis_jobs AS analysis
+WHERE run.id = analysis.active_run_id
+  AND run.status = 'succeeded'
+  AND analysis.status = 'failed'
+  AND analysis.error_code = 'analysis_report_unavailable';
+
+ALTER TABLE analysis_jobs
+    DROP CONSTRAINT IF EXISTS ck_analysis_jobs_succeeded_report;
+ALTER TABLE analysis_jobs
+    ADD CONSTRAINT ck_analysis_jobs_succeeded_report CHECK (
+        status <> 'succeeded' OR current_report_id IS NOT NULL
+    );
+
 CREATE TABLE IF NOT EXISTS analysis_artifact_locks (
     job_id UUID PRIMARY KEY
         REFERENCES analysis_jobs (id) ON DELETE CASCADE,
@@ -386,6 +430,19 @@ CREATE TABLE IF NOT EXISTS analysis_artifact_locks (
 
 CREATE INDEX IF NOT EXISTS ix_analysis_artifact_locks_artifact
     ON analysis_artifact_locks (artifact_id);
+
+CREATE TABLE IF NOT EXISTS analysis_worker_heartbeats (
+    worker_id VARCHAR(128) PRIMARY KEY,
+    app_version VARCHAR(128) NOT NULL,
+    message_schema_version INTEGER NOT NULL,
+    last_seen_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ck_analysis_worker_heartbeats_schema_version CHECK (
+        message_schema_version > 0
+    )
+);
+
+CREATE INDEX IF NOT EXISTS ix_analysis_worker_heartbeats_last_seen
+    ON analysis_worker_heartbeats (last_seen_at);
 
 CREATE TABLE IF NOT EXISTS outbox_events (
     id UUID PRIMARY KEY,

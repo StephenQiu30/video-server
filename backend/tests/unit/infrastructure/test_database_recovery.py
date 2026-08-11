@@ -71,6 +71,31 @@ async def _queued_job(repository, *, max_attempts: int = 3):
 
 
 @pytest.mark.asyncio
+async def test_stale_queued_job_is_republished_without_changing_identity(
+    repository,
+) -> None:
+    job_id, now = await _queued_job(repository)
+    initial = await repository.claim_outbox(
+        "publisher", now, timedelta(seconds=30), limit=10
+    )
+    assert await repository.mark_outbox_published(initial[0].id, "publisher", now)
+
+    assert await repository.recover_stale_queued(
+        now + timedelta(seconds=59), now, limit=10
+    ) == (job_id,)
+    recovered = await repository.claim_outbox(
+        "publisher",
+        now + timedelta(seconds=59),
+        timedelta(seconds=30),
+        limit=10,
+    )
+    assert len(recovered) == 1
+    assert recovered[0].aggregate_id == job_id
+    assert recovered[0].payload["version"] == 0
+    assert (await repository.get_job(job_id)).version == 0
+
+
+@pytest.mark.asyncio
 async def test_stale_lease_is_requeued_with_a_new_outbox_event(repository) -> None:
     job_id, now = await _queued_job(repository)
     initial = await repository.claim_outbox(

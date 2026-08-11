@@ -40,6 +40,10 @@ async def run() -> None:
             settings.analysis_report_queue,
             settings.analysis_report_routing_key,
         ),
+        connection_timeout=settings.rabbitmq_connection_timeout_seconds,
+        publish_timeout=settings.rabbitmq_publish_timeout_seconds,
+        heartbeat=settings.rabbitmq_heartbeat_seconds,
+        reconnect_interval=settings.rabbitmq_reconnect_interval_seconds,
     )
     publisher_loop = OutboxPublisherLoop(
         repository=repository,

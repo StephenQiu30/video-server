@@ -13,6 +13,7 @@ from app.application.analysis.errors import (
 )
 from app.application.analysis.models import AnalysisCreate, AnalysisJobView
 from app.application.analysis.ports import (
+    AnalysisAvailability,
     AnalysisRepository,
     AnalysisSkillCatalog,
     RequestFingerprinter,
@@ -38,6 +39,7 @@ class CreateAnalysis:
         new_id: Callable[[], UUID],
         max_attempts: int,
         skill_catalog: AnalysisSkillCatalog,
+        availability: AnalysisAvailability | None = None,
         enabled: bool = True,
     ) -> None:
         if max_attempts <= 0:
@@ -48,6 +50,7 @@ class CreateAnalysis:
         self._new_id = new_id
         self._max_attempts = max_attempts
         self._skill_catalog = skill_catalog
+        self._availability = availability
         self._enabled = enabled
 
     async def __call__(
@@ -59,7 +62,11 @@ class CreateAnalysis:
         output_language: str,
         custom_prompt: str | None = None,
     ) -> AnalysisJobView:
-        if not self._enabled:
+        now = validate_now(self._now())
+        if not self._enabled or (
+            self._availability is not None
+            and not await self._availability.is_available(now)
+        ):
             raise AnalysisApplicationError(
                 AnalysisApplicationErrorCode.SERVICE_UNAVAILABLE
             )
@@ -72,7 +79,6 @@ class CreateAnalysis:
         _, skill_instructions = skill
         output_language = validate_label(output_language, maximum=35)
         custom_prompt = validate_custom_prompt(custom_prompt)
-        now = validate_now(self._now())
         try:
             artifact = await self._repository.get_artifact_for_download(download_id)
         except PersistenceNotFound as exc:

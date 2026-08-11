@@ -12,7 +12,7 @@ from aio_pika.abc import (
     AbstractRobustConnection,
 )
 from app.application.download_execution import ExecutionDisposition
-from app.infrastructure.messaging import RabbitMqTopology
+from app.infrastructure.messaging import RabbitMqTopology, configured_rabbitmq_url
 
 from .message import DownloadMessageError, parse_download_requested
 from .pool import AsyncWorkerPool
@@ -24,6 +24,7 @@ class DownloadHandler(Protocol):
 
 class Delivery(Protocol):
     body: bytes
+    redelivered: bool | None
 
     async def ack(self) -> None: ...
 
@@ -43,12 +44,12 @@ async def process_delivery(message: Delivery, handler: DownloadHandler) -> None:
             await asyncio.shield(message.nack(requeue=True))
         raise
     except Exception:
-        await message.nack(requeue=True)
+        await message.nack(requeue=not bool(message.redelivered))
         return
     if result is ExecutionDisposition.ACK:
         await message.ack()
     else:
-        await message.nack(requeue=True)
+        await message.nack(requeue=not bool(message.redelivered))
 
 
 class RabbitMqDownloadConsumer:
@@ -61,9 +62,18 @@ class RabbitMqDownloadConsumer:
         prefetch: int,
         workers: int | None = None,
         connection_timeout: float = 10,
+        heartbeat: int = 60,
+        reconnect_interval: float = 5,
     ) -> None:
         worker_count = prefetch if workers is None else workers
-        if not url or prefetch < 1 or worker_count < 1 or connection_timeout <= 0:
+        if (
+            not url
+            or prefetch < 1
+            or worker_count < 1
+            or connection_timeout <= 0
+            or heartbeat < 10
+            or reconnect_interval <= 0
+        ):
             raise ValueError("invalid RabbitMQ consumer settings")
         self._url = url
         self._topology = topology
@@ -74,6 +84,8 @@ class RabbitMqDownloadConsumer:
             workers=worker_count,
         )
         self._connection_timeout = connection_timeout
+        self._heartbeat = heartbeat
+        self._reconnect_interval = reconnect_interval
         self._connection: AbstractRobustConnection | None = None
         self._queue: AbstractQueue | None = None
         self._consumer_tag: str | None = None
@@ -82,9 +94,13 @@ class RabbitMqDownloadConsumer:
         if self._connection is not None:
             return
         connection = await aio_pika.connect_robust(
-            self._url,
+            configured_rabbitmq_url(
+                self._url,
+                heartbeat=self._heartbeat,
+                reconnect_interval=self._reconnect_interval,
+                connection_name="video-server-download-worker",
+            ),
             timeout=self._connection_timeout,
-            client_properties={"connection_name": "video-server-download-worker"},
         )
         self._connection = connection
         try:

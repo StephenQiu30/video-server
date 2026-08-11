@@ -8,7 +8,11 @@ from datetime import UTC, datetime
 import aio_pika
 from app.core.config import Settings
 from app.infrastructure.database import create_engine, create_session_factory
-from app.infrastructure.messaging import RabbitMqPublisher, RabbitMqTopology
+from app.infrastructure.messaging import (
+    RabbitMqPublisher,
+    RabbitMqTopology,
+    configured_rabbitmq_url,
+)
 
 from .repository import DlqReplayRepository
 from .service import ALLOWED_EVENTS, DlqReplayService
@@ -32,10 +36,22 @@ async def run(queue_name: str, actor: str, reason: str) -> None:
     publisher = RabbitMqPublisher(
         url,
         topology,
+        connection_timeout=settings.rabbitmq_connection_timeout_seconds,
+        publish_timeout=settings.rabbitmq_publish_timeout_seconds,
+        heartbeat=settings.rabbitmq_heartbeat_seconds,
+        reconnect_interval=settings.rabbitmq_reconnect_interval_seconds,
         connection_name="video-server-dlq-replay",
         app_id="video-server-dlq-replay",
     )
-    connection = await aio_pika.connect_robust(url, timeout=10)
+    connection = await aio_pika.connect_robust(
+        configured_rabbitmq_url(
+            url,
+            heartbeat=settings.rabbitmq_heartbeat_seconds,
+            reconnect_interval=settings.rabbitmq_reconnect_interval_seconds,
+            connection_name="video-server-dlq-reader",
+        ),
+        timeout=settings.rabbitmq_connection_timeout_seconds,
+    )
     try:
         channel = await connection.channel()
         queue = await channel.declare_queue(queue_name, passive=True)

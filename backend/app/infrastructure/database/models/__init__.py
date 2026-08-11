@@ -7,6 +7,7 @@ from .analysis_report import (
     AnalysisResultRow,
 )
 from .analysis_run import AnalysisRetryOperationRow, AnalysisRunRow
+from .analysis_worker import AnalysisWorkerHeartbeatRow
 from .auth import AuthSessionRow, UserRow
 from .dlq_replay import DlqReplayRow
 from .download import ArtifactRow, DownloadJobRow
@@ -21,6 +22,7 @@ __all__ = [
     "AuthSessionRow",
     "AnalysisArtifactLockRow",
     "AnalysisJobRow",
+    "AnalysisWorkerHeartbeatRow",
     "AnalysisReportArtifactRow",
     "AnalysisReportVersionRow",
     "AnalysisResultRow",

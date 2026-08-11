@@ -12,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.analysis_repository_base import AnalysisRepositoryBase
 from app.infrastructure.database.models import (
-    AnalysisJobRow,
     AnalysisReportArtifactRow,
     AnalysisResultRow,
     AnalysisRunRow,
@@ -109,8 +108,3 @@ class AnalysisReportLifecycleRepository(AnalysisRepositoryBase):
         report = await session.get(AnalysisResultRow, report_id)
         if report is not None:
             report.status = "deleted"
-        job = await session.scalar(
-            select(AnalysisJobRow).where(AnalysisJobRow.current_report_id == report_id)
-        )
-        if job is not None:
-            job.current_report_id = None

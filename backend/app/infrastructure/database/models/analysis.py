@@ -41,6 +41,10 @@ class AnalysisJobRow(Base):
         CheckConstraint("version >= 0", name="ck_analysis_jobs_version"),
         CheckConstraint("current_run_no > 0", name="ck_analysis_jobs_run_no"),
         CheckConstraint(
+            "status <> 'succeeded' OR current_report_id IS NOT NULL",
+            name="ck_analysis_jobs_succeeded_report",
+        ),
+        CheckConstraint(
             "stage_rank BETWEEN 0 AND 4", name="ck_analysis_jobs_stage_rank"
         ),
         CheckConstraint(
@@ -49,6 +53,7 @@ class AnalysisJobRow(Base):
         Index("ix_analysis_jobs_owner_created", "owner_hash", "created_at"),
         Index("ix_analysis_jobs_claim", "status", "retry_at"),
         Index("ix_analysis_jobs_stale", "status", "lease_expires_at"),
+        Index("ix_analysis_jobs_queued_recovery", "status", "updated_at"),
         Index("ix_analysis_jobs_artifact", "artifact_id"),
     )
 

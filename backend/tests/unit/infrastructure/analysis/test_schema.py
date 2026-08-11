@@ -14,6 +14,7 @@ def test_analysis_schema_has_jobs_runs_results_and_runtime_retention_locks() -> 
         "analysis_report_versions",
         "analysis_report_artifacts",
         "analysis_artifact_locks",
+        "analysis_worker_heartbeats",
         "task_events",
     } <= set(tables)
     jobs = tables["analysis_jobs"]
@@ -35,10 +36,18 @@ def test_analysis_schema_has_jobs_runs_results_and_runtime_retention_locks() -> 
     ddl = str(CreateTable(jobs).compile(dialect=postgresql.dialect()))
     assert "uq_analysis_jobs_owner_idempotency" in ddl
     assert "progress BETWEEN 0 AND 100" in ddl
+    assert "status <> 'succeeded' OR current_report_id IS NOT NULL" in ddl
     runs = tables["analysis_runs"]
     assert {"job_id", "run_no", "trigger", "attempt", "version"} <= set(
         runs.columns.keys()
     )
+    worker_heartbeats = tables["analysis_worker_heartbeats"]
+    assert {
+        "worker_id",
+        "app_version",
+        "message_schema_version",
+        "last_seen_at",
+    } <= set(worker_heartbeats.columns.keys())
 
 
 def test_result_is_strict_jsonb_without_transcript_or_provider_payload_columns() -> (

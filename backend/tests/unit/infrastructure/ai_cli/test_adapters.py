@@ -42,7 +42,7 @@ async def test_codex_uses_stdin_and_global_approval_flag(tmp_path: Path) -> None
     )
     assert "--sandbox" not in supervisor.argv
     assert 'default_permissions="video_analysis"' in supervisor.argv
-    assert 'sandbox_mode="danger-full-access"' in supervisor.argv
+    assert not any("danger-full-access" in item for item in supervisor.argv)
     assert any(":workspace_roots" in item for item in supervisor.argv)
     assert "permissions.video_analysis.network.enabled=false" in supervisor.argv
     assert "mcp_servers.video_observer.required=true" in supervisor.argv

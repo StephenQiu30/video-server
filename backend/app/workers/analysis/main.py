@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from datetime import timedelta
+from urllib.parse import quote, urlsplit, urlunsplit
 
 from app.application.analysis_execution import (
     AnalysisExecution,
@@ -12,6 +13,10 @@ from app.application.analysis_execution import (
 )
 from app.core.config import Settings, get_settings_for_role
 from app.infrastructure.analysis_repository import SqlAlchemyAnalysisRepository
+from app.infrastructure.analysis_worker_registry import (
+    ANALYSIS_MESSAGE_SCHEMA_VERSION,
+    SqlAlchemyAnalysisWorkerRegistry,
+)
 from app.infrastructure.database import (
     SqlAlchemyDownloadRepository,
     create_engine,
@@ -21,6 +26,7 @@ from app.infrastructure.messaging import RabbitMqTopology
 from app.infrastructure.object_storage import MinioObjectStorage
 from app.workers.analysis.artifacts import LocalAnalysisArtifactLoader
 from app.workers.analysis.consumer import RabbitMqAnalysisConsumer
+from app.workers.analysis.heartbeat import AnalysisWorkerHeartbeat
 from app.workers.analysis.persistence import AnalysisExecutionPersistence
 from app.workers.analysis.providers import build_video_analyzer
 from app.workers.analysis.sweeper import (
@@ -35,6 +41,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 class AnalysisWorkerRuntime:
     consumer: RabbitMqAnalysisConsumer
     sweeper: AnalysisRecoverySweeper
+    heartbeat: AnalysisWorkerHeartbeat
     storage: MinioObjectStorage
     loader: LocalAnalysisArtifactLoader
     engine: AsyncEngine
@@ -43,7 +50,10 @@ class AnalysisWorkerRuntime:
         try:
             await self.consumer.close()
         finally:
-            await self.engine.dispose()
+            try:
+                await self.heartbeat.close()
+            finally:
+                await self.engine.dispose()
 
 
 def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
@@ -51,7 +61,9 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
     host_settings = settings.model_copy(
         update={
             "database_url": settings.analysis_database_url,
-            "rabbitmq_url": settings.analysis_rabbitmq_url,
+            "rabbitmq_url": _rabbitmq_worker_url(
+                settings.analysis_rabbitmq_url, settings.rabbitmq_vhost
+            ),
             "minio_endpoint": settings.analysis_minio_endpoint,
             "minio_access_key": settings.analysis_minio_access_key,
             "minio_secret_key": settings.analysis_minio_secret_key,
@@ -60,6 +72,13 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
     engine = create_engine(host_settings.database_url)
     sessions = create_session_factory(engine)
     analysis = SqlAlchemyAnalysisRepository(sessions)
+    runtime_worker_id = worker_id()
+    worker_registry = SqlAlchemyAnalysisWorkerRegistry(
+        sessions,
+        expected_app_version=settings.app_version,
+        expected_message_schema_version=ANALYSIS_MESSAGE_SCHEMA_VERSION,
+        stale_after=timedelta(seconds=settings.analysis_worker_stale_seconds),
+    )
     persistence = AnalysisExecutionPersistence(
         analysis, SqlAlchemyDownloadRepository(sessions)
     )
@@ -76,7 +95,7 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
         analyzer=analyzer_runtime.analyzer,
         clock=utc_now,
         settings=AnalysisExecutionSettings(
-            worker_id=worker_id(),
+            worker_id=runtime_worker_id,
             bucket=settings.minio_bucket,
             lease_for=timedelta(seconds=settings.job_lease_seconds),
             heartbeat_interval=settings.heartbeat_interval_seconds,
@@ -101,6 +120,9 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
             topology,
             execution,
             prefetch=1,
+            connection_timeout=settings.rabbitmq_connection_timeout_seconds,
+            heartbeat=settings.rabbitmq_heartbeat_seconds,
+            reconnect_interval=settings.rabbitmq_reconnect_interval_seconds,
         ),
         sweeper=AnalysisRecoverySweeper(
             analysis,
@@ -108,7 +130,18 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
             RecoverySettings(
                 interval=min(5.0, settings.heartbeat_interval_seconds),
                 batch_size=100,
+                queued_stale_after=timedelta(
+                    seconds=settings.analysis_queued_recovery_seconds
+                ),
             ),
+        ),
+        heartbeat=AnalysisWorkerHeartbeat(
+            worker_registry,
+            worker_id=runtime_worker_id,
+            app_version=settings.app_version,
+            message_schema_version=ANALYSIS_MESSAGE_SCHEMA_VERSION,
+            interval=settings.analysis_worker_heartbeat_seconds,
+            clock=utc_now,
         ),
         storage=storage,
         loader=loader,
@@ -131,11 +164,13 @@ async def run() -> None:
 async def _serve(runtime: AnalysisWorkerRuntime, stop: asyncio.Event) -> None:
     consumer = asyncio.create_task(runtime.consumer.run(stop))
     sweeper = asyncio.create_task(runtime.sweeper.run(stop))
+    heartbeat = asyncio.create_task(runtime.heartbeat.run(stop))
     stop_wait = asyncio.create_task(stop.wait())
-    tasks = (consumer, sweeper)
+    tasks = (consumer, sweeper, heartbeat)
     try:
         await asyncio.wait(
-            {consumer, sweeper, stop_wait}, return_when=asyncio.FIRST_COMPLETED
+            {consumer, sweeper, heartbeat, stop_wait},
+            return_when=asyncio.FIRST_COMPLETED,
         )
         stop.set()
         await runtime.consumer.close()
@@ -153,6 +188,11 @@ async def _serve(runtime: AnalysisWorkerRuntime, stop: asyncio.Event) -> None:
 
 def main() -> None:
     asyncio.run(run())
+
+
+def _rabbitmq_worker_url(url: str, vhost: str) -> str:
+    parsed = urlsplit(url)
+    return urlunsplit(parsed._replace(path=f"/{quote(vhost, safe='')}"))
 
 
 if __name__ == "__main__":

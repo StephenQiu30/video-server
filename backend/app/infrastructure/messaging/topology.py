@@ -1,4 +1,4 @@
-"""Single source of truth for durable RabbitMQ command queues."""
+"""Application-side names and bounds for durable RabbitMQ command queues."""
 
 from dataclasses import dataclass
 
@@ -7,7 +7,7 @@ from dataclasses import dataclass
 class DurableQueueTopology:
     queue: str
     routing_key: str
-    message_ttl_ms: int = 1_800_000
+    message_ttl_ms: int = 86_400_000
     max_length: int = 10_000
 
     def __post_init__(self) -> None:
@@ -35,7 +35,7 @@ class RabbitMqTopology:
     analysis_routing_key: str = "analysis.requested"
     report_queue: str = "video.analysis-report"
     report_routing_key: str = "analysis.report.publish.requested"
-    message_ttl_ms: int = 1_800_000
+    message_ttl_ms: int = 86_400_000
     max_length: int = 10_000
 
     def __post_init__(self) -> None:

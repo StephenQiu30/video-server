@@ -46,7 +46,15 @@ async def run() -> None:
         worker_id=worker_id().replace("analysis-", "report-", 1),
         clock=lambda: datetime.now(UTC),
     )
-    consumer = RabbitMqReportConsumer(settings.rabbitmq_url, topology, publisher)
+    consumer = RabbitMqReportConsumer(
+        settings.rabbitmq_url,
+        topology,
+        publisher,
+        connection_timeout=settings.rabbitmq_connection_timeout_seconds,
+        prefetch=settings.worker_prefetch,
+        heartbeat=settings.rabbitmq_heartbeat_seconds,
+        reconnect_interval=settings.rabbitmq_reconnect_interval_seconds,
+    )
     stop = asyncio.Event()
     install_signal_handlers(stop)
     try:

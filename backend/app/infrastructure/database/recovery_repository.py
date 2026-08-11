@@ -37,7 +37,41 @@ def ready_retries_statement(now: datetime, limit: int) -> Select[tuple[DownloadJ
     )
 
 
+def stale_queued_jobs_statement(
+    stale_before: datetime, limit: int
+) -> Select[tuple[DownloadJobRow]]:
+    return (
+        select(DownloadJobRow)
+        .where(
+            DownloadJobRow.status == "queued",
+            DownloadJobRow.updated_at <= stale_before,
+        )
+        .order_by(DownloadJobRow.updated_at, DownloadJobRow.id)
+        .limit(limit)
+        .with_for_update(skip_locked=True)
+    )
+
+
 class RecoveryRepository(CompletionRepository):
+    async def recover_stale_queued(
+        self,
+        now: datetime,
+        stale_before: datetime,
+        *,
+        limit: int = 100,
+    ) -> tuple[UUID, ...]:
+        if not 1 <= limit <= 1000:
+            raise ValueError("limit must be between 1 and 1000")
+        statement = stale_queued_jobs_statement(stale_before, limit)
+        async with self._sessions() as session, session.begin():
+            rows = tuple((await session.scalars(statement)).all())
+            for row in rows:
+                session.add(self._requested_event(row, now))
+                # Throttle recovery publication while preserving job/version identity.
+                row.updated_at = now
+            await session.flush()
+            return tuple(row.id for row in rows)
+
     async def reclaim_stale(
         self, now: datetime, *, limit: int = 100
     ) -> tuple[UUID, ...]:

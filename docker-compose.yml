@@ -5,7 +5,14 @@ x-app: &app
   restart: unless-stopped
   stop_grace_period: 30s
 
+x-rabbit-client-env: &rabbit-client-env
+  RABBITMQ_CONNECTION_TIMEOUT_SECONDS: "${RABBITMQ_CONNECTION_TIMEOUT_SECONDS:-10}"
+  RABBITMQ_PUBLISH_TIMEOUT_SECONDS: "${RABBITMQ_PUBLISH_TIMEOUT_SECONDS:-10}"
+  RABBITMQ_HEARTBEAT_SECONDS: "${RABBITMQ_HEARTBEAT_SECONDS:-60}"
+  RABBITMQ_RECONNECT_INTERVAL_SECONDS: "${RABBITMQ_RECONNECT_INTERVAL_SECONDS:-5}"
+
 x-api-env: &api-env
+  <<: *rabbit-client-env
   APP_ENV: "${APP_ENV:-development}"
   SERVICE_ROLE: api
   APP_HOST: "${APP_HOST:-0.0.0.0}"
@@ -16,12 +23,14 @@ x-api-env: &api-env
   APP_VERSION: "${APP_VERSION:-0.1.0}"
   DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
   RABBITMQ_URL: "${RABBITMQ_API_URL:-amqp://video-api:video-api-secret@rabbitmq:5672/video}"
+  RABBITMQ_VHOST: "${RABBITMQ_VHOST:-video}"
   VALKEY_URL: "${VALKEY_URL:-redis://valkey:6379/0}"
   RABBITMQ_EXCHANGE: "${RABBITMQ_EXCHANGE:-video.events}"
   DOWNLOAD_QUEUE: "${DOWNLOAD_QUEUE:-video.download}"
   ANALYSIS_QUEUE: "${ANALYSIS_QUEUE:-video.analysis}"
   ANALYSIS_ENABLED: "${ANALYSIS_ENABLED:-true}"
   ANALYSIS_MAX_RUNS_PER_JOB: "${ANALYSIS_MAX_RUNS_PER_JOB:-10}"
+  ANALYSIS_WORKER_STALE_SECONDS: "${ANALYSIS_WORKER_STALE_SECONDS:-45}"
   ANALYSIS_MANUAL_RETRY_MIN_INTERVAL_SECONDS: "${ANALYSIS_MANUAL_RETRY_MIN_INTERVAL_SECONDS:-30}"
   ANALYSIS_MANUAL_RETRIES_PER_DAY: "${ANALYSIS_MANUAL_RETRIES_PER_DAY:-20}"
   WEBSOCKET_MAX_CONNECTIONS: "${WEBSOCKET_MAX_CONNECTIONS:-1000}"
@@ -52,6 +61,7 @@ x-api-env: &api-env
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
 
 x-outbox-env: &outbox-env
+  <<: *rabbit-client-env
   APP_ENV: "${APP_ENV:-development}"
   SERVICE_ROLE: outbox
   DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
@@ -66,6 +76,7 @@ x-outbox-env: &outbox-env
   OUTBOX_POLL_INTERVAL_SECONDS: "${OUTBOX_POLL_INTERVAL_SECONDS:-1.0}"
 
 x-download-env: &download-env
+  <<: *rabbit-client-env
   APP_ENV: "${APP_ENV:-development}"
   SERVICE_ROLE: download-worker
   DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
@@ -74,6 +85,7 @@ x-download-env: &download-env
   DOWNLOAD_QUEUE: "${DOWNLOAD_QUEUE:-video.download}"
   DOWNLOAD_ROUTING_KEY: "${DOWNLOAD_ROUTING_KEY:-download.requested}"
   DOWNLOAD_WORKER_THREADS: "${DOWNLOAD_WORKER_THREADS:-4}"
+  DOWNLOAD_QUEUED_RECOVERY_SECONDS: "${DOWNLOAD_QUEUED_RECOVERY_SECONDS:-60}"
   ARTIFACT_GC_INTERVAL_SECONDS: "${ARTIFACT_GC_INTERVAL_SECONDS:-300}"
   ARTIFACT_GC_BATCH_SIZE: "${ARTIFACT_GC_BATCH_SIZE:-50}"
   ARTIFACT_DELETE_TIMEOUT_SECONDS: "${ARTIFACT_DELETE_TIMEOUT_SECONDS:-30}"
@@ -111,6 +123,7 @@ x-canary-env: &canary-env
   PROVIDER_CANARY_POLL_SECONDS: "${PROVIDER_CANARY_POLL_SECONDS:-60}"
 
 x-report-env: &report-env
+  <<: *rabbit-client-env
   APP_ENV: "${APP_ENV:-development}"
   SERVICE_ROLE: report-worker
   DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
@@ -542,6 +555,7 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
       - ./backend/config/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
+      - ./backend/config/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
@@ -566,6 +580,14 @@ services:
       RABBITMQ_REPORT_PASS: "${RABBITMQ_REPORT_PASS:-video-report-secret}"
       RABBITMQ_DLQ_USER: "${RABBITMQ_DLQ_USER:-video-dlq}"
       RABBITMQ_DLQ_PASS: "${RABBITMQ_DLQ_PASS:-video-dlq-secret}"
+      RABBITMQ_QUEUE_TYPE: "${RABBITMQ_QUEUE_TYPE:-classic}"
+      RABBITMQ_MESSAGE_TTL_MS: "${RABBITMQ_MESSAGE_TTL_MS:-86400000}"
+      RABBITMQ_MAX_LENGTH: "${RABBITMQ_MAX_LENGTH:-10000}"
+      RABBITMQ_MAX_LENGTH_BYTES: "${RABBITMQ_MAX_LENGTH_BYTES:-268435456}"
+      RABBITMQ_DELIVERY_LIMIT: "${RABBITMQ_DELIVERY_LIMIT:-5}"
+      RABBITMQ_DLQ_MAX_LENGTH: "${RABBITMQ_DLQ_MAX_LENGTH:-10000}"
+      RABBITMQ_DLQ_MAX_LENGTH_BYTES: "${RABBITMQ_DLQ_MAX_LENGTH_BYTES:-268435456}"
+      RABBITMQ_MIGRATE_LEGACY_QUEUE_ARGUMENTS: "${RABBITMQ_MIGRATE_LEGACY_QUEUE_ARGUMENTS:-false}"
     container_name: rabbitmq-init
     networks: [queue_net]
     entrypoint: ["/bin/sh", "/config/init.sh"]

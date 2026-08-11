@@ -22,6 +22,10 @@ class RequestFingerprinter(Protocol):
     def fingerprint(self, namespace: str, *values: str) -> str: ...
 
 
+class AnalysisAvailability(Protocol):
+    async def is_available(self, now: datetime) -> bool: ...
+
+
 class AnalysisRepository(Protocol):
     async def get_artifact_for_download(
         self, download_id: UUID

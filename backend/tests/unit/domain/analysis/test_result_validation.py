@@ -175,10 +175,9 @@ def test_result_without_observable_shot_evidence_is_rejected() -> None:
     assert caught.value.code is AnalysisValidationCode.INVALID_EVIDENCE
 
 
-def test_result_with_all_placeholder_visual_tags_is_rejected() -> None:
+def test_result_with_any_placeholder_visual_tags_is_rejected() -> None:
     payload = document()
-    for shot in payload["shots"]:
-        shot["visual_tags"] = ["画面不可观察", "待重新抽帧分析"]
+    payload["shots"][1]["visual_tags"] = ["画面不可观察", "待重新抽帧分析"]
 
     with pytest.raises(AnalysisValidationError) as caught:
         parse(payload)

@@ -31,6 +31,21 @@ def stale_analyses_statement(
     )
 
 
+def stale_queued_analyses_statement(
+    stale_before: datetime, limit: int
+) -> Select[tuple[AnalysisJobRow]]:
+    return (
+        select(AnalysisJobRow)
+        .where(
+            AnalysisJobRow.status == "queued",
+            AnalysisJobRow.updated_at <= stale_before,
+        )
+        .order_by(AnalysisJobRow.updated_at, AnalysisJobRow.id)
+        .limit(limit)
+        .with_for_update(skip_locked=True)
+    )
+
+
 def ready_analysis_retries_statement(
     now: datetime, limit: int
 ) -> Select[tuple[AnalysisJobRow]]:
@@ -47,6 +62,29 @@ def ready_analysis_retries_statement(
 
 
 class AnalysisRecoveryRepository(AnalysisLifecycleRepository):
+    async def recover_stale_queued(
+        self, now: datetime, stale_before: datetime, *, limit: int = 100
+    ) -> tuple[UUID, ...]:
+        _valid_limit(limit)
+        if stale_before >= now:
+            raise ValueError("stale_before must be before now")
+        async with self._sessions() as session, session.begin():
+            rows = tuple(
+                (
+                    await session.scalars(
+                        stale_queued_analyses_statement(stale_before, limit)
+                    )
+                ).all()
+            )
+            for row in rows:
+                run = await self.active_run(session, row, for_update=True)
+                session.add(
+                    self.requested_event(row, run, uuid4(), "analysis.requested", now)
+                )
+                row.updated_at = now
+            await session.flush()
+            return tuple(row.id for row in rows)
+
     async def complete_failure(
         self,
         job_id: UUID,

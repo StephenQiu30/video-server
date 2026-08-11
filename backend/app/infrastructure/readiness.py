@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime, timedelta
 
 import aio_pika
 import httpx
@@ -11,7 +12,11 @@ from sqlalchemy import bindparam, text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.core.config import Settings
-from app.infrastructure.database import Base
+from app.infrastructure.analysis_worker_registry import (
+    ANALYSIS_MESSAGE_SCHEMA_VERSION,
+    SqlAlchemyAnalysisWorkerRegistry,
+)
+from app.infrastructure.database import Base, create_session_factory
 
 AsyncCheck = Callable[[], Awaitable[None]]
 EXPECTED_DATABASE_TABLES = frozenset(Base.metadata.tables)
@@ -67,6 +72,12 @@ def build_runtime_readiness(
     minio_url = (
         f"{minio_scheme}://{settings.minio_endpoint.rstrip('/')}/minio/health/live"
     )
+    analysis_workers = SqlAlchemyAnalysisWorkerRegistry(
+        create_session_factory(engine),
+        expected_app_version=settings.app_version,
+        expected_message_schema_version=ANALYSIS_MESSAGE_SCHEMA_VERSION,
+        stale_after=timedelta(seconds=settings.analysis_worker_stale_seconds),
+    )
 
     async def database_check() -> None:
         async with engine.connect() as connection:
@@ -93,6 +104,10 @@ def build_runtime_readiness(
         )
         await connection.close()
 
+    async def analysis_worker_check() -> None:
+        if not await analysis_workers.is_available(datetime.now(UTC)):
+            raise RuntimeError("compatible analysis worker is unavailable")
+
     checks: list[AsyncCheck] = [
         database_check,
         lambda: http_check(runner_url),
@@ -101,6 +116,8 @@ def build_runtime_readiness(
     ]
     if valkey_check is not None:
         checks.append(valkey_check)
+    if settings.analysis_enabled:
+        checks.append(analysis_worker_check)
     return RuntimeReadiness(
         tuple(checks),
         http_client,

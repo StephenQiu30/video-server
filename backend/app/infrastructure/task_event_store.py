@@ -53,7 +53,25 @@ class TaskEventStore:
                 ).all()
             )
             if len(events) > limit:
-                events = events[-1:]
+                latest = await session.scalar(
+                    select(TaskEventRow)
+                    .where(
+                        TaskEventRow.owner_hash == owner_hash,
+                        TaskEventRow.task_type == task_type,
+                        TaskEventRow.task_id == task_id,
+                    )
+                    .order_by(TaskEventRow.version.desc())
+                    .limit(1)
+                )
+                if latest is None:
+                    return ()
+                return (
+                    {
+                        "type": "task.snapshot",
+                        "event_id": str(latest.id),
+                        **latest.payload,
+                    },
+                )
             return tuple(
                 {
                     "type": "task.updated",

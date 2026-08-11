@@ -65,7 +65,7 @@ def validate_analysis_result(
         for shot in result.shots
     ):
         _invalid_evidence("analysis must contain observable shot evidence")
-    if all(_references_placeholder(shot.visual_tags) for shot in result.shots):
+    if any(_references_placeholder(shot.visual_tags) for shot in result.shots):
         _invalid_evidence("analysis output contains placeholder observation markers")
     if result.shots[0].transition_in != "none":
         _invalid_schema("the first shot transition_in must be none")

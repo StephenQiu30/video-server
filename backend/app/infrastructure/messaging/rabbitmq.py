@@ -10,6 +10,7 @@ from aio_pika import DeliveryMode, Message
 from aio_pika.abc import AbstractExchange, AbstractRobustConnection
 from pamqp.commands import Basic
 
+from .connection import configured_rabbitmq_url
 from .envelope import EventEnvelope
 from .topology import RabbitMqTopology
 
@@ -26,17 +27,26 @@ class RabbitMqPublisher:
         *,
         connection_timeout: float = 10,
         publish_timeout: float = 10,
+        heartbeat: int = 60,
+        reconnect_interval: float = 5,
         connection_name: str = "video-server-outbox",
         app_id: str = "video-server-outbox",
     ) -> None:
         if not url:
             raise ValueError("RabbitMQ URL cannot be blank")
-        if connection_timeout <= 0 or publish_timeout <= 0:
-            raise ValueError("RabbitMQ timeouts must be positive")
+        if (
+            connection_timeout <= 0
+            or publish_timeout <= 0
+            or heartbeat < 10
+            or reconnect_interval <= 0
+        ):
+            raise ValueError("invalid RabbitMQ publisher settings")
         self._url = url
         self._topology = topology
         self._connection_timeout = connection_timeout
         self._publish_timeout = publish_timeout
+        self._heartbeat = heartbeat
+        self._reconnect_interval = reconnect_interval
         self._connection_name = connection_name
         self._app_id = app_id
         self._connection: AbstractRobustConnection | None = None
@@ -46,9 +56,13 @@ class RabbitMqPublisher:
         if self._connection is not None:
             return
         connection = await aio_pika.connect_robust(
-            self._url,
+            configured_rabbitmq_url(
+                self._url,
+                heartbeat=self._heartbeat,
+                reconnect_interval=self._reconnect_interval,
+                connection_name=self._connection_name,
+            ),
             timeout=self._connection_timeout,
-            client_properties={"connection_name": self._connection_name},
         )
         self._connection = connection
         try:
