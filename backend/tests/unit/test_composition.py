@@ -1,8 +1,19 @@
 from pathlib import Path
 
+import pytest
 from app.core.config import Settings
+from app.infrastructure.realtime import RabbitMqRealtimeConsumer
 from app.main import create_app
 from fastapi.testclient import TestClient
+
+
+@pytest.fixture(autouse=True)
+def disable_external_realtime(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def no_op(_consumer: RabbitMqRealtimeConsumer) -> None:
+        return None
+
+    monkeypatch.setattr(RabbitMqRealtimeConsumer, "start", no_op)
+    monkeypatch.setattr(RabbitMqRealtimeConsumer, "close", no_op)
 
 
 def test_non_test_app_wires_download_use_cases(tmp_path: Path) -> None:

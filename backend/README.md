@@ -26,7 +26,7 @@ app/
 
 业务接口要求邮箱账户登录，注册时同时设置唯一用户名。密码使用 Argon2 哈希；短期 Access JWT 与可轮换、可撤销的 Refresh JWT 通过 `HttpOnly` Cookie 维护。JWT 密钥、签发方、受众、Cookie 名、有效期和初始管理员邮箱从根目录 `.env` 的 `AUTH_*` 配置读取，原始 Refresh JWT 不写入数据库。角色和启用状态以 PostgreSQL 为准，管理员可通过 `/api/admin/users` 管理账号。
 
-Media Runner 通过 `app/runner/plugins/yt_dlp_plugins/` 加载随项目交付的可信站点提取器。MediaTrack 适配仅处理无需登录的公开审片视频和 API 明确授权的播放转码；抖音适配只用数字视频 ID 构造固定公开分享页并读取其公开媒体数据。两者都继续经过受控代理、大小/时长限制、重新 inspect、FFmpeg 和 ffprobe 校验，不使用 YouTube 运维 Cookie，不支持账号内容、无水印承诺或原文件权限绕过。
+Media Runner 通过 `app/runner/plugins/yt_dlp_plugins/` 加载随项目交付的可信站点提取器。MediaTrack 适配仅处理无需登录的公开审片视频和 API 明确授权的播放转码；抖音适配用数字视频 ID 构造固定公开分享页，快手适配把公开作品规范化到第一方移动分享页并限制短链重定向域。三者都继续经过受控代理、作品身份校验、大小/时长限制、重新 inspect、FFmpeg 和 ffprobe 校验，不使用 YouTube 运维 Cookie，不支持图集截断、账号内容、无水印承诺或原文件权限绕过。
 
 主流视频源通过 `app/runner/provider_registry.py` 与 `app/runner/provider_catalog.py` 采用版本化 Profile + Registry 统一匹配；`provider_urls.py` 只保留兼容入口，未知站点使用无凭据的 yt-dlp Generic extractor。新增平台应先确认 extractor，再补 Profile、能力状态、错误 marker 与 metadata + Range canary。YouTube 运维会话只在独立 Runner 中从只读 Secret 建立操作级 `0600` Cookie jar；匿名与其他 Provider 命令不携带 Cookie。平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 key 指向受控内部代理。
 

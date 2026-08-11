@@ -145,7 +145,8 @@ export default function AnalysisConfigurator({
       <div className="mt-7 flex flex-col-reverse items-start justify-between gap-5 sm:flex-row sm:items-center">
         <p className="flex max-w-2xl items-start gap-2 text-sm leading-6 text-muted-foreground">
           <ShieldCheck className="mt-1 shrink-0 text-success" />
-          本机负责解码和编排；模型实际查看的抽帧会发送到所选云端 AI 服务。
+          完整视频文件会交给本机 Agent；Agent
+          必须覆盖全片时间轴并自主复核分镜边界与高光，不以预先抽取的固定帧集替代分析。
         </p>
         <Button
           className="w-full shrink-0 sm:w-auto"

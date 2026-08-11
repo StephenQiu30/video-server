@@ -66,12 +66,16 @@ def test_frontend_is_same_origin_and_redirects_legacy_download_route(
     (detail / "index.html").write_text(
         "<!doctype html><title>download-detail</title>", encoding="utf-8"
     )
+    (detail / "index.txt").write_text("download-detail-payload", encoding="utf-8")
     app = create_app(Settings(app_env="test", frontend_dist_dir=dist))
 
     with TestClient(app) as client:
         index = client.get("/")
         legacy = client.get("/downloads/123", follow_redirects=False)
         detail_page = client.get("/downloads/detail?jobId=123")
+        detail_payload = client.get(
+            "/downloads/detail.txt?jobId=123", follow_redirects=False
+        )
         asset = client.get("/assets/app.js")
         next_asset = client.get("/_next/static/chunks/app.123.js")
 
@@ -81,9 +85,13 @@ def test_frontend_is_same_origin_and_redirects_legacy_download_route(
     assert legacy.headers["location"] == "/downloads/detail?jobId=123"
     assert detail_page.status_code == 200
     assert "download-detail" in detail_page.text
+    assert detail_payload.status_code == 200
+    assert detail_payload.text == "download-detail-payload"
+    assert "location" not in detail_payload.headers
     assert asset.text == "window.SERVER_UI = true;"
     assert index.headers["cache-control"] == "no-store, max-age=0"
     assert detail_page.headers["cache-control"] == "no-store, max-age=0"
+    assert detail_payload.headers["cache-control"] == "no-store, max-age=0"
     assert next_asset.headers["cache-control"] == (
         "public, max-age=31536000, immutable"
     )

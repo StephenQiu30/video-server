@@ -18,6 +18,7 @@ DOWNLOAD_SOURCES: tuple[DownloadSource, ...] = (
     DownloadSource("douyin", "抖音", ("douyin",)),
     DownloadSource("tiktok", "TikTok", ("tiktok",)),
     DownloadSource("xiaohongshu", "小红书", ("xiaohongshu",)),
+    DownloadSource("kuaishou", "快手", ("kuaishou",)),
     DownloadSource("vimeo", "Vimeo", ("vimeo",)),
     DownloadSource("x", "X / Twitter", ("twitter",)),
     DownloadSource("instagram", "Instagram", ("instagram",)),

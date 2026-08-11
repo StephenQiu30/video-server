@@ -90,6 +90,23 @@ def test_targets_xiaohongshu_short_links_with_browser_impersonation() -> None:
         assert provider_inspection_retry_delay(url) == 0.5
 
 
+def test_normalizes_kuaishou_public_videos_and_uses_android_impersonation() -> None:
+    url = "https://www.kuaishou.com/short-video/3x888mrikrur4g2"
+
+    assert provider_request_url(url) == (
+        "https://v.m.chenzhongtech.com/fw/photo/3x888mrikrur4g2"
+    )
+    assert provider_command_args(url) == (
+        "--impersonate",
+        "Chrome-131:Android-14",
+    )
+    assert provider_inspection_attempts(url) == 4
+    assert provider_inspection_retry_delay(url) == 0.5
+    assert provider_request_url("https://v.kuaishou.com/8qIlZu") == (
+        "https://v.kuaishou.com/8qIlZu"
+    )
+
+
 def test_registry_classifies_mainstream_platform_hosts() -> None:
     expected = {
         "youtube.com": "youtube",
@@ -98,6 +115,9 @@ def test_registry_classifies_mainstream_platform_hosts() -> None:
         "vm.tiktok.com": "tiktok",
         "xhslink.com": "xiaohongshu",
         "www.xiaohongshu.com": "xiaohongshu",
+        "v.kuaishou.com": "kuaishou",
+        "v.m.chenzhongtech.com": "kuaishou",
+        "m.gifshow.com": "kuaishou",
         "player.vimeo.com": "vimeo",
         "x.com": "x",
         "www.instagram.com": "instagram",

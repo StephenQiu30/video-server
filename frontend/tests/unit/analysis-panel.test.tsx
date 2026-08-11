@@ -49,6 +49,10 @@ describe('AnalysisPanel', () => {
       '逐镜头分析画面、叙事作用和高光价值。',
     );
     expect(screen.getByText('导演拉片')).toBeInTheDocument();
+    expect(
+      screen.getByText(/完整视频文件会交给本机 Agent/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/模型实际查看的抽帧/)).not.toBeInTheDocument();
     expect(screen.queryByText('0/4000')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '开始 AI 分析' })).toBeEnabled();
   });

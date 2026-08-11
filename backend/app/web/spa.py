@@ -24,6 +24,9 @@ class SPAStaticFiles(StaticFiles):
         first_segment = request_path.partition("/")[0]
         if first_segment in RESERVED_PREFIXES:
             raise HTTPException(status_code=404)
+        if normalized.endswith(".txt"):
+            response = await self._next_route_payload(normalized, scope)
+            return _with_frontend_cache_policy(response, request_path)
         legacy_download_id = _legacy_download_id(normalized)
         if legacy_download_id is not None:
             return RedirectResponse(
@@ -50,11 +53,34 @@ class SPAStaticFiles(StaticFiles):
             return _with_frontend_cache_policy(route_response, request_path)
         return _with_frontend_cache_policy(response, request_path)
 
+    async def _next_route_payload(
+        self,
+        path: str,
+        scope: MutableMapping[str, Any],
+    ) -> Any:
+        """Resolve exported Next route payloads without changing query values."""
+        try:
+            return await super().get_response(path, scope)
+        except HTTPException as exc:
+            if exc.status_code != 404:
+                raise
+        route_payload = f"{path.removesuffix('.txt')}/index.txt"
+        try:
+            return await super().get_response(route_payload, scope)
+        except HTTPException as exc:
+            if exc.status_code != 404:
+                raise
+            not_found = await super().get_response("404.html", scope)
+            not_found.status_code = 404
+            return not_found
+
 
 def _with_frontend_cache_policy(response: Response, path: str) -> Response:
     """Keep route HTML fresh while caching fingerprinted Next.js assets."""
     content_type = response.headers.get("content-type", "")
     if content_type.startswith("text/html"):
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+    elif path.endswith(".txt"):
         response.headers["Cache-Control"] = "no-store, max-age=0"
     elif path.startswith("_next/static/"):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
@@ -63,7 +89,12 @@ def _with_frontend_cache_policy(response: Response, path: str) -> Response:
 
 def _legacy_download_id(path: str) -> str | None:
     parts = path.rstrip("/").split("/")
-    if len(parts) == 2 and parts[0] == "downloads" and parts[1] != "detail":
+    if (
+        len(parts) == 2
+        and parts[0] == "downloads"
+        and parts[1] != "detail"
+        and not parts[1].endswith(".txt")
+    ):
         return parts[1]
     return None
 
@@ -75,8 +106,9 @@ def mount_frontend(app: FastAPI, directory: Path) -> bool:
 
     @app.get("/downloads/{download_id}", include_in_schema=False)
     async def legacy_download(download_id: str) -> Any:
-        if download_id == "detail":
-            detail = directory / "downloads" / "detail" / "index.html"
+        if download_id in {"detail", "detail.txt"}:
+            export_name = "index.txt" if download_id.endswith(".txt") else "index.html"
+            detail = directory / "downloads" / "detail" / export_name
             if detail.is_file():
                 return FileResponse(
                     detail,

@@ -167,7 +167,9 @@ def test_provider_status_distinguishes_registered_verified_and_unsupported(
     assert items["tiktok"]["status"] == "unknown"
     assert items["wechat_channels"]["status"] == "unsupported"
     assert items["wechat_channels"]["registered"] is False
-    assert items["kuaishou"]["extractor_exists"] is False
+    assert items["kuaishou"]["registered"] is True
+    assert items["kuaishou"]["extractor_exists"] is True
+    assert items["kuaishou"]["status"] == "verified"
     assert all(
         sensitive not in response.text.casefold()
         for sensitive in ("credential_version", "egress_affinity", "po_token")

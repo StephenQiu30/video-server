@@ -31,7 +31,7 @@ Cookie 的一刀切禁令被调整为“默认关闭、Provider allowlist、生�
 
 ### 3.1 实施前基线
 
-- `ProviderRegistry` 根据标准化 hostname 选择 17 个 Provider key 或 Generic fallback。
+- `ProviderRegistry` 根据标准化 hostname 选择 18 个 Provider key 或 Generic fallback。
 - `ProviderProfile` 可提供 URL 规范化、固定命令参数、检查重试和 Provider 专用出口。
 - 仓库固定 yt-dlp commit `5d6b8c8`，该包报告版本 `2026.07.04`；镜像包含 EJS、Node 24、curl-cffi、FFmpeg 和 ffprobe。
 - Bilibili、抖音公开分享页和带有效 token 的小红书样本曾完成真实解析/下载验证。
@@ -261,7 +261,8 @@ pending → canary → active → retired
 | Twitch / Reddit | yt-dlp 公开 clip/VOD/post | 权益 Cookie 后续评审 | live/私有/quarantine 不在首期 |
 | Pinterest / 微博 / 优酷 / QQVideo / Dailymotion / NicoNico | yt-dlp | 默认 anonymous | `unknown` 直至真实 canary；付费/DRM fail closed |
 | Generic | 公开 direct/HLS/DASH/embed | 永不携带 Provider Secret | redirect 后重新归类 |
-| 视频号 / 快手 | 无受支持 extractor/Profile | 无 | `unsupported` |
+| 快手 | 仓库可信 `KuaishouPublicIE` + 第一方移动分享页 | anonymous | `kuaishou-public-v1` 已完成真实 metadata/media 回归 |
+| 视频号 | 无安全、稳定的匿名 extractor/Profile | 无 | `unsupported` |
 
 图片、carousel、gallery 和用户时间线若进入产品范围，使用独立 gallery-dl engine adapter，返回受限 manifest；在领域模型支持多条目之前不静默只取第一项。gallery-dl 为 GPL-2.0，必须以独立进程/镜像评估分发义务，不直接导入当前核心源码。
 
@@ -344,7 +345,7 @@ unknown | verified | degraded | access_required | rate_limited | blocked | disab
 - 只使用项目自有或明确授权样本，不使用用户 URL/Cookie。
 - 记录 Provider、capability、access mode、Profile/engine/POT 版本、egress affinity 引用、阶段、耗时和稳定错误；不记录完整 URL 或 Secret。
 
-最近 5 次至少 4 次成功且最近成功不超过 6 小时可标记 `verified`；至少 2 次失败进入 `degraded`；连续 3 次同类永久失败进入 `blocked`。会话失效立即进入 `access_required`，恢复至少需要连续 2 次成功，避免状态抖动。当前 API 尚未实现该聚合器，只发布明确标注的配置/历史基线：Bilibili、抖音、小红书为 2026-08-07 已记录回归，YouTube 为 `access_required`，无证据的平台保持 `unknown`，视频号/快手为 `unsupported`。
+最近 5 次至少 4 次成功且最近成功不超过 6 小时可标记 `verified`；至少 2 次失败进入 `degraded`；连续 3 次同类永久失败进入 `blocked`。会话失效立即进入 `access_required`，恢复至少需要连续 2 次成功，避免状态抖动。当前 API 尚未实现该聚合器，只发布明确标注的配置/历史基线：Bilibili、抖音、小红书为已有回归，快手为 2026-08-11 的公开分享页 metadata/media 回归，YouTube 为 `access_required`，无证据的平台保持 `unknown`，视频号为 `unsupported`。
 
 ## 14. 可观测性与审计
 

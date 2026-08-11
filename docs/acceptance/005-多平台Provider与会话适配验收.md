@@ -28,7 +28,7 @@
 
 ## 3. B. Provider Profile 与访问上下文
 
-- [x] B1：17 个 Registry key 有版本化 Profile、capability、access mode、Cookie 域、client、attestation、出口、并发、错误和 canary 配置。
+- [x] B1：18 个 Registry key 有版本化 Profile、capability、access mode、Cookie 域、client、attestation、出口、并发、错误和 canary 配置。
 - [x] B2：registered host、extractor exists、verified、access required、unknown 和 unsupported 是不同状态。
 - [ ] B3：Generic 永远没有 Cookie/POT；redirect 到已知 Provider 后重新校验和选择 context。
 - [x] B4：inspection 冻结 profile、access mode、credential version、egress affinity、client、POT Provider 和 engine commit 引用。
@@ -97,7 +97,8 @@
 - [x] G8：小红书有效公开分享链回归成功；短链失效、图文笔记、原画缺失分别分类。
 - [ ] G9：TikTok、Vimeo、X、Instagram、Facebook、Twitch、Reddit 在显示 verified 前完成 metadata + media canary。
 - [x] G10：Pinterest、微博、优酷、腾讯视频、Dailymotion、NicoNico 无真实证据时保持 unknown。
-- [x] G11：视频号、快手稳定为 unsupported，Generic 不会把它们提升为 supported。
+- [x] G11：视频号稳定为 unsupported，Generic 不会把它提升为 supported。
+- [x] G11a：快手由可信 `KuaishouPublicIE` 处理第一方公开单视频；图集和非第一方重定向 fail closed。
 - [ ] G12：本地带 ContentProtection 的 fixture 稳定返回 `drm_protected`。
 
 ## 9. H. API、可观测性与供应链

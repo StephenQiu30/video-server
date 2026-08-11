@@ -15,8 +15,10 @@ from app.runner.provider_registry import ProviderProfile, UrlNormalizer, _identi
 _VIMEO_ID = re.compile(r"/([0-9]+)/?$")
 _DOUYIN_VIDEO = re.compile(r"/video/(?P<id>[0-9]+)/?$")
 _DOUYIN_SHARE = re.compile(r"/share/video/(?P<id>[0-9]+)/?$")
+_KUAISHOU_VIDEO = re.compile(r"/short-video/(?P<id>[A-Za-z0-9]+)/?$")
 _DIGITS = re.compile(r"[0-9]+$")
 _CHROME_IMPERSONATION = ("--impersonate", "Chrome-136:Macos-15")
+_ANDROID_IMPERSONATION = ("--impersonate", "Chrome-131:Android-14")
 
 
 def _vimeo_url(url: str, parsed: SplitResult) -> str:
@@ -32,6 +34,13 @@ def _douyin_url(url: str, parsed: SplitResult) -> str:
     if len(modal_id) == 1 and _DIGITS.fullmatch(modal_id[0]):
         return f"https://www.douyin.com/video/{modal_id[0]}"
     return url
+
+
+def _kuaishou_url(url: str, parsed: SplitResult) -> str:
+    match = _KUAISHOU_VIDEO.fullmatch(parsed.path)
+    if match is None:
+        return url
+    return f"https://v.m.chenzhongtech.com/fw/photo/{match.group('id')}"
 
 
 def _standard(
@@ -162,6 +171,37 @@ DEFAULT_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             "www.xhslink.com",
         ),
         status=ProviderSupportStatus.VERIFIED,
+    ),
+    ProviderProfile(
+        key="kuaishou",
+        display_name="快手",
+        hosts=frozenset(
+            {
+                "kuaishou.com",
+                "www.kuaishou.com",
+                "m.kuaishou.com",
+                "v.kuaishou.com",
+                "kuaishou.cn",
+                "www.kuaishou.cn",
+                "c.kuaishou.com",
+                "v.m.chenzhongtech.com",
+                "m.gifshow.com",
+            }
+        ),
+        version="kuaishou-public-v1",
+        capabilities=frozenset(
+            {
+                ProviderCapability.SINGLE_VIDEO,
+                ProviderCapability.SHORT_VIDEO,
+            }
+        ),
+        client_profile_id="chrome-131-android-14",
+        support_status=ProviderSupportStatus.VERIFIED,
+        canary_suite="kuaishou-public-share-page",
+        command_args=_ANDROID_IMPERSONATION,
+        inspection_attempts=4,
+        inspection_retry_delay=0.5,
+        normalize_url=_kuaishou_url,
     ),
     _standard(
         "vimeo",

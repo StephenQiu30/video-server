@@ -21,7 +21,7 @@ def _service_block(document: str, service: str) -> str:
 
 
 def test_current_schema_can_be_applied_repeatedly() -> None:
-    schema = SCHEMA_PATH.read_text()
+    schema = SCHEMA_PATH.read_text(encoding="utf-8")
     table_names = set(
         re.findall(r"^CREATE TABLE IF NOT EXISTS ([a-z_]+)", schema, re.MULTILINE)
     )
@@ -32,7 +32,7 @@ def test_current_schema_can_be_applied_repeatedly() -> None:
 
 
 def test_compose_initializes_database_before_database_consumers_start() -> None:
-    compose = COMPOSE_PATH.read_text()
+    compose = COMPOSE_PATH.read_text(encoding="utf-8")
     initializer = _service_block(compose, "database-init")
 
     assert "psql" in initializer
@@ -49,7 +49,9 @@ def test_compose_initializes_database_before_database_consumers_start() -> None:
 
 
 def test_production_compose_requires_database_initializer_credentials() -> None:
-    initializer = _service_block(PROD_COMPOSE_PATH.read_text(), "database-init")
+    initializer = _service_block(
+        PROD_COMPOSE_PATH.read_text(encoding="utf-8"), "database-init"
+    )
 
     assert 'POSTGRES_DB: "${POSTGRES_DB:?set POSTGRES_DB in .env.prod}"' in initializer
     assert (

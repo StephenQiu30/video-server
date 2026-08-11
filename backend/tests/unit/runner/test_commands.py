@@ -191,3 +191,37 @@ async def test_wechat_channels_url_is_classified_as_unsupported(tmp_path: Path) 
 
     assert caught.value.code == "provider_unsupported"
     assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
+async def test_kuaishou_expired_link_is_classified_as_unavailable(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(b"ERROR: Kuaishou public link unavailable"),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect("https://v.kuaishou.com/expired", tmp_path)
+
+    assert caught.value.code == "provider_link_unavailable"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
+async def test_kuaishou_image_post_is_classified_as_unsupported(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(
+            b"ERROR: Kuaishou image posts are not supported by the video runner"
+        ),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect("https://v.kuaishou.com/image", tmp_path)
+
+    assert caught.value.code == "provider_unsupported"
+    assert caught.value.status == 422

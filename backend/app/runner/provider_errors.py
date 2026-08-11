@@ -74,20 +74,41 @@ def _is_ytdlp(command: Sequence[str]) -> bool:
 def _unavailable_share_link(command: str, stderr: bytes) -> bool:
     unavailable = b"unsupported url:" in stderr
     missing_state = b"unable to extract initial state" in stderr
-    if not unavailable and not missing_state:
+    kuaishou_unavailable = b"kuaishou public link unavailable" in stderr
+    if not unavailable and not missing_state and not kuaishou_unavailable:
         return False
     return any(
         host in command
-        for host in ("douyin.com", "iesdouyin.com", "xiaohongshu.com", "xhslink.com")
+        for host in (
+            "douyin.com",
+            "iesdouyin.com",
+            "xiaohongshu.com",
+            "xhslink.com",
+            "kuaishou.com",
+            "kuaishou.cn",
+            "chenzhongtech.com",
+            "gifshow.com",
+        )
     )
 
 
 def _unsupported_provider(command: str, stderr: bytes) -> bool:
-    if b"unsupported url:" not in stderr:
-        return False
-    return any(
+    wechat = b"unsupported url:" in stderr and any(
         host in command for host in ("channels.weixin.qq.com", "weixin.qq.com/sph/")
     )
+    kuaishou_image = (
+        b"kuaishou image posts are not supported by the video runner" in stderr
+        and any(
+            host in command
+            for host in (
+                "kuaishou.com",
+                "kuaishou.cn",
+                "chenzhongtech.com",
+                "gifshow.com",
+            )
+        )
+    )
+    return wechat or kuaishou_image
 
 
 def _any(value: bytes, *markers: bytes) -> bool:

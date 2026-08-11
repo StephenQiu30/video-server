@@ -131,6 +131,28 @@ async def test_download_analytics_includes_the_exact_end_timestamp(
 
 
 @pytest.mark.asyncio
+async def test_download_analytics_recognizes_kuaishou_plugin(
+    analytics_database,
+) -> None:
+    repository, sessions = analytics_database
+    await add_job(
+        sessions,
+        extractor="KuaishouPublic",
+        owner="k" * 64,
+        status="succeeded",
+        created_at=datetime(2026, 8, 10, 10, tzinfo=UTC),
+        duration=22,
+        size_bytes=2_661_003,
+    )
+
+    analytics = await repository.get_download_analytics(start=START, end=END)
+
+    source = next(item for item in analytics.sources if item.source_key == "kuaishou")
+    assert source.total == 1
+    assert source.downloaded_bytes == 2_661_003
+
+
+@pytest.mark.asyncio
 async def test_download_analytics_rejects_an_empty_period(analytics_database) -> None:
     repository, _sessions = analytics_database
 

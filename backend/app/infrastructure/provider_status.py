@@ -8,7 +8,7 @@ from app.application.providers import ProviderStatusView
 from app.domain.providers import ProviderSupportStatus
 from app.runner.provider_registry import DEFAULT_PROVIDER_REGISTRY
 
-_LAST_BASELINE = datetime(2026, 8, 10, tzinfo=UTC)
+_LAST_BASELINE = datetime(2026, 8, 11, tzinfo=UTC)
 
 
 def current_provider_statuses() -> tuple[ProviderStatusView, ...]:
@@ -34,17 +34,6 @@ def current_provider_statuses() -> tuple[ProviderStatusView, ...]:
         ProviderStatusView(
             key="wechat_channels",
             display_name="微信视频号",
-            registered=False,
-            extractor_exists=False,
-            capabilities=(),
-            access_modes=(),
-            status=ProviderSupportStatus.UNSUPPORTED,
-            last_verified_at=None,
-            user_action="当前安全执行器不支持该平台。",
-        ),
-        ProviderStatusView(
-            key="kuaishou",
-            display_name="快手",
             registered=False,
             extractor_exists=False,
             capabilities=(),

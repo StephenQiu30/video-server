@@ -49,9 +49,9 @@ npm run openapi
 
 ## 视频源
 
-Media Runner 通过版本化 Provider Profile 统一处理 YouTube、Bilibili、抖音、TikTok、小红书、Vimeo、X/Twitter、Instagram、Facebook、Twitch、Reddit、Pinterest、微博、优酷、腾讯视频、Dailymotion 和 NicoNico 等公开媒体链接；未登记的 HTTP(S) 地址继续交给无凭据的 yt-dlp Generic extractor。登记域名不等于已经验证，实际状态通过 `GET /api/providers` 查询。YouTube 可显式启用独立运维 Runner 的受控会话与 PO Token sidecar；普通请求仍不接受 Cookie，private、会员、购买和 DRM 内容仍会拒绝。
+Media Runner 通过版本化 Provider Profile 统一处理 YouTube、Bilibili、抖音、快手、TikTok、小红书、Vimeo、X/Twitter、Instagram、Facebook、Twitch、Reddit、Pinterest、微博、优酷、腾讯视频、Dailymotion 和 NicoNico 等公开媒体链接；未登记的 HTTP(S) 地址继续交给无凭据的 yt-dlp Generic extractor。登记域名不等于已经验证，实际状态通过 `GET /api/providers` 查询。YouTube 可显式启用独立运维 Runner 的受控会话与 PO Token sidecar；普通请求仍不接受 Cookie，private、会员、购买和 DRM 内容仍会拒绝。
 
-首页与 API 都支持只包含一个 HTTP(S) 链接的公开分享文案；首页会先提取链接，因此标题、话题和复制提示不会随请求发送。抖音公开单视频优先由随 Runner 交付的可信插件读取公开分享页，再进入原有格式选择、下载和制品校验链路；该能力不上传 Cookie、不生成平台签名，也不承诺无水印、原始母版或受限内容可用。
+首页与 API 都支持只包含一个 HTTP(S) 链接的公开分享文案；首页会先提取链接，因此标题、话题和复制提示不会随请求发送。抖音与快手公开单视频优先由随 Runner 交付的可信插件读取各自第一方公开分享页，再进入原有格式选择、下载和制品校验链路；快手短链重定向只接受第一方域名，图集不会伪装成单视频。该能力不上传 Cookie、不生成平台签名，也不承诺无水印、原始母版或受限内容可用。
 
 ## 容器运行
 
