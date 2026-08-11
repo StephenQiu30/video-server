@@ -1,4 +1,5 @@
 import pytest
+from app.domain.providers import ProviderAccessMode
 from app.runner.errors import RunnerFailure
 from app.runner.provider_registry import configure_provider_instances, provider_profile
 from app.runner.provider_urls import (
@@ -112,7 +113,10 @@ def test_normalizes_kuaishou_public_videos_and_uses_android_impersonation() -> N
 def test_acfun_admits_only_public_single_video_paths() -> None:
     url = "https://www.acfun.cn/v/ac35457073?part=1"
 
-    assert provider_request_url(url) == url
+    assert provider_request_url(url) == "https://www.acfun.cn/v/ac35457073"
+    assert provider_request_url("https://www.acfun.cn/v/ac35468952_2") == (
+        "https://www.acfun.cn/v/ac35468952_2"
+    )
     try:
         provider_request_url("https://www.acfun.cn/bangumi/aa123")
     except RunnerFailure as exc:
@@ -130,9 +134,15 @@ def test_rutube_admits_only_public_single_video_paths() -> None:
     ):
         assert provider_request_url(url) == url
 
+    assert (
+        provider_request_url(
+            f"https://rutube.ru/video/{video_id}/?pl_id=4252&utm_source=share#player"
+        )
+        == f"https://rutube.ru/video/{video_id}/"
+    )
+
     for url in (
         f"https://rutube.ru/video/private/{video_id}",
-        f"https://rutube.ru/video/{video_id}?from=channel",
         "https://rutube.ru/channel/123/videos/",
     ):
         with pytest.raises(RunnerFailure) as captured:
@@ -148,9 +158,15 @@ def test_vk_admits_only_direct_public_video_and_clip_paths() -> None:
     ):
         assert provider_request_url(url) == url
 
+    assert (
+        provider_request_url(
+            "https://vk.com/video-123_456?list=ln-abc&utm_source=share#comments"
+        )
+        == "https://vk.com/video-123_456"
+    )
+
     for url in (
         "https://vk.com/feed?z=video-123_456",
-        "https://vk.com/video-123_456?list=abc",
         "https://vk.com/video_ext.php?oid=-123&id=456",
     ):
         with pytest.raises(RunnerFailure) as captured:
@@ -237,6 +253,20 @@ def test_incremental_profiles_are_versioned_and_unverified(
     assert profile.version == version
     assert profile.canary_suite == suite
     assert profile.support_status.value == "unknown"
+
+
+def test_only_explicit_incremental_profile_can_use_operator_session() -> None:
+    rutube = provider_profile(
+        "https://rutube.ru/video/0123456789abcdef0123456789abcdef"
+    )
+    vk = provider_profile("https://vk.com/video-123_456")
+
+    assert rutube.access_modes == (ProviderAccessMode.ANONYMOUS,)
+    assert vk.access_modes == (
+        ProviderAccessMode.ANONYMOUS,
+        ProviderAccessMode.OPERATOR_MANAGED,
+    )
+    assert vk.cookie_domain_allowlist == frozenset({"vk.com", "vk.ru", "vkvideo.ru"})
 
 
 def test_peertube_requires_an_exact_approved_instance_and_video_path() -> None:

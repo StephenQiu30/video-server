@@ -6,6 +6,7 @@ import re
 from urllib.parse import SplitResult
 
 from app.domain.providers import (
+    ProviderAccessMode,
     ProviderCapability,
     ProviderSupportStatus,
 )
@@ -23,22 +24,22 @@ _PEERTUBE_VIDEO = re.compile(
 )
 
 
-def _strict_public_url(
+def _canonical_public_url(
     url: str,
     parsed: SplitResult,
     patterns: tuple[re.Pattern[str], ...],
 ) -> str:
-    if (
-        parsed.query
-        or parsed.fragment
-        or not any(pattern.fullmatch(parsed.path) for pattern in patterns)
-    ):
+    if not any(pattern.fullmatch(parsed.path) for pattern in patterns):
         raise RunnerFailure("provider_unsupported", status=422)
-    return url
+    # The media identity is entirely carried by the admitted path.  Share pages
+    # commonly append playlist/list/tracking state, which must not turn an
+    # otherwise public single-video URL into an unsupported input.  Removing it
+    # also prevents opaque query tokens from reaching the extractor.
+    return parsed._replace(query="", fragment="").geturl()
 
 
 def _rutube_url(url: str, parsed: SplitResult) -> str:
-    return _strict_public_url(
+    return _canonical_public_url(
         url,
         parsed,
         (_RUTUBE_VIDEO, _RUTUBE_NUMERIC_EMBED),
@@ -46,11 +47,11 @@ def _rutube_url(url: str, parsed: SplitResult) -> str:
 
 
 def _vk_url(url: str, parsed: SplitResult) -> str:
-    return _strict_public_url(url, parsed, (_VK_VIDEO,))
+    return _canonical_public_url(url, parsed, (_VK_VIDEO,))
 
 
 def _peertube_url(url: str, parsed: SplitResult) -> str:
-    return _strict_public_url(url, parsed, (_PEERTUBE_VIDEO,))
+    return _canonical_public_url(url, parsed, (_PEERTUBE_VIDEO,))
 
 
 def peertube_profile(hosts: frozenset[str]) -> ProviderProfile:
@@ -116,6 +117,12 @@ INCREMENTAL_PUBLIC_PROFILES: tuple[ProviderProfile, ...] = (
                 ProviderCapability.AUDIO_VIDEO_SPLIT,
             }
         ),
+        access_modes=(
+            ProviderAccessMode.ANONYMOUS,
+            ProviderAccessMode.OPERATOR_MANAGED,
+        ),
+        cookie_domain_allowlist=frozenset({"vk.com", "vk.ru", "vkvideo.ru"}),
+        credential_concurrency=1,
         support_status=ProviderSupportStatus.UNKNOWN,
         canary_suite="vk-public-video-or-clip",
         normalize_url=_vk_url,

@@ -18,7 +18,7 @@ _VIMEO_ID = re.compile(r"/([0-9]+)/?$")
 _DOUYIN_VIDEO = re.compile(r"/video/(?P<id>[0-9]+)/?$")
 _DOUYIN_SHARE = re.compile(r"/share/video/(?P<id>[0-9]+)/?$")
 _KUAISHOU_VIDEO = re.compile(r"/short-video/(?P<id>[A-Za-z0-9]+)/?$")
-_ACFUN_VIDEO = re.compile(r"/v/ac[0-9]+/?$")
+_ACFUN_VIDEO = re.compile(r"/v/ac[0-9]+(?:_[1-9][0-9]*)?/?$")
 _DIGITS = re.compile(r"[0-9]+$")
 _CHROME_IMPERSONATION = ("--impersonate", "Chrome-136:Macos-15")
 _ANDROID_IMPERSONATION = ("--impersonate", "Chrome-131:Android-14")
@@ -49,7 +49,7 @@ def _kuaishou_url(url: str, parsed: SplitResult) -> str:
 def _acfun_url(url: str, parsed: SplitResult) -> str:
     if _ACFUN_VIDEO.fullmatch(parsed.path) is None:
         raise RunnerFailure("provider_unsupported", status=422)
-    return url
+    return parsed._replace(query="", fragment="").geturl()
 
 
 def _standard(
@@ -60,6 +60,7 @@ def _standard(
     normalize_url: UrlNormalizer = _identity,
     capabilities: frozenset[ProviderCapability] | None = None,
     status: ProviderSupportStatus = ProviderSupportStatus.UNKNOWN,
+    operator_cookie_domains: frozenset[str] = frozenset(),
 ) -> ProviderProfile:
     return ProviderProfile(
         key,
@@ -73,6 +74,16 @@ def _standard(
             }
         ),
         support_status=status,
+        access_modes=(
+            (
+                ProviderAccessMode.ANONYMOUS,
+                ProviderAccessMode.OPERATOR_MANAGED,
+            )
+            if operator_cookie_domains
+            else (ProviderAccessMode.ANONYMOUS,)
+        ),
+        cookie_domain_allowlist=operator_cookie_domains,
+        credential_concurrency=1 if operator_cookie_domains else 0,
         normalize_url=normalize_url,
     )
 
@@ -84,6 +95,7 @@ def _challenged(
     *,
     normalize_url: UrlNormalizer = _identity,
     status: ProviderSupportStatus = ProviderSupportStatus.UNKNOWN,
+    operator_cookie_domains: frozenset[str] = frozenset(),
 ) -> ProviderProfile:
     return ProviderProfile(
         key,
@@ -97,6 +109,16 @@ def _challenged(
             }
         ),
         support_status=status,
+        access_modes=(
+            (
+                ProviderAccessMode.ANONYMOUS,
+                ProviderAccessMode.OPERATOR_MANAGED,
+            )
+            if operator_cookie_domains
+            else (ProviderAccessMode.ANONYMOUS,)
+        ),
+        cookie_domain_allowlist=operator_cookie_domains,
+        credential_concurrency=1 if operator_cookie_domains else 0,
         command_args=_CHROME_IMPERSONATION,
         inspection_attempts=8,
         inspection_retry_delay=0.5,
@@ -169,6 +191,9 @@ DEFAULT_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             "vm.tiktok.com",
             "vt.tiktok.com",
         ),
+        operator_cookie_domains=frozenset(
+            {"tiktok.com", "tiktokv.com", "byteoversea.com"}
+        ),
     ),
     _challenged(
         "xiaohongshu",
@@ -233,23 +258,32 @@ DEFAULT_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         "Vimeo",
         ("vimeo.com", "www.vimeo.com", "player.vimeo.com"),
         normalize_url=_vimeo_url,
+        operator_cookie_domains=frozenset({"vimeo.com"}),
     ),
     _standard(
         "x",
         "X / Twitter",
         ("x.com", "www.x.com", "twitter.com", "www.twitter.com", "mobile.twitter.com"),
+        operator_cookie_domains=frozenset({"x.com", "twitter.com"}),
     ),
-    _standard("instagram", "Instagram", ("instagram.com", "www.instagram.com")),
+    _standard(
+        "instagram",
+        "Instagram",
+        ("instagram.com", "www.instagram.com"),
+        operator_cookie_domains=frozenset({"instagram.com"}),
+    ),
     _standard(
         "facebook",
         "Facebook",
         ("facebook.com", "www.facebook.com", "m.facebook.com", "fb.watch"),
+        operator_cookie_domains=frozenset({"facebook.com"}),
     ),
     _standard("twitch", "Twitch", ("twitch.tv", "www.twitch.tv", "clips.twitch.tv")),
     _standard(
         "reddit",
         "Reddit",
         ("reddit.com", "www.reddit.com", "old.reddit.com", "redd.it"),
+        operator_cookie_domains=frozenset({"reddit.com"}),
     ),
     _standard(
         "pinterest", "Pinterest", ("pinterest.com", "www.pinterest.com", "pin.it")

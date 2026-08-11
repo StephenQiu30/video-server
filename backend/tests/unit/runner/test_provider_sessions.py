@@ -67,7 +67,16 @@ def write_cookie(settings: RunnerSettings, payload: bytes = COOKIE) -> Path:
         ),
         (
             {"runner_youtube_pot_base_url": "http://youtube-pot-provider:4416"},
-            "POT provider is restricted to the operator runner",
+            "POT provider is restricted to the YouTube operator",
+        ),
+        (
+            {
+                "runner_access_mode": ProviderAccessMode.OPERATOR_MANAGED,
+                "runner_operator_session_versions": {"bilibili": "version-1"},
+                "runner_operator_account_baseline_attested": True,
+                "runner_max_active_tasks": 1,
+            },
+            "operator provider is not allowlisted",
         ),
     ],
 )
@@ -191,6 +200,40 @@ def test_operator_context_cannot_cross_provider(tmp_path: Path) -> None:
         store.context_for("https://www.bilibili.com/video/BV1xx")
 
     assert caught.value.code == "provider_session_not_allowed"
+
+
+def test_tiktok_operator_accepts_only_tiktok_cookie_domains(tmp_path: Path) -> None:
+    values = dict(
+        runner_hmac_secret=SECRET,
+        runner_egress_proxy="http://egress-proxy:3128",
+        runner_workspace_root=tmp_path / "work",
+        runner_access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+        runner_operator_session_versions={"tiktok": "version-1"},
+        runner_operator_account_baseline_attested=True,
+        runner_provider_secret_root=tmp_path / "secrets",
+        runner_provider_secret_temp_root=tmp_path / "session-tmp",
+        runner_max_active_tasks=1,
+    )
+    settings = RunnerSettings(**values)
+    source = settings.runner_provider_secret_root / "tiktok/version-1.cookies.txt"
+    source.parent.mkdir(parents=True)
+    source.write_bytes(
+        b"# Netscape HTTP Cookie File\n"
+        b".tiktok.com\tTRUE\t/\tTRUE\t2147483647\tsid_tt\tfixture-secret\n"
+    )
+
+    store = ProviderSessionStore(settings)
+    context = store.context_for("https://www.tiktok.com/@creator/video/123")
+
+    assert context.provider_key == "tiktok"
+    assert context.access_mode is ProviderAccessMode.OPERATOR_MANAGED
+    with pytest.raises(RunnerFailure) as caught:
+        source.write_bytes(
+            b"# Netscape HTTP Cookie File\n"
+            b".example.com\tTRUE\t/\tTRUE\t0\tSID\twrong-domain\n"
+        )
+        ProviderSessionStore(settings)
+    assert caught.value.code == "credential_rejected"
 
 
 async def test_retained_version_can_finish_but_unlisted_version_is_revoked(

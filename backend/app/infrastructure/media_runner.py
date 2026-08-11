@@ -6,7 +6,7 @@ import math
 import re
 import secrets
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import TypeVar
 
@@ -273,19 +273,24 @@ class MediaRunnerRouter:
     def __init__(
         self,
         anonymous: MediaRunnerHttpClient,
-        operator: MediaRunnerHttpClient | None = None,
+        operators: Mapping[str, MediaRunnerHttpClient] | None = None,
     ) -> None:
         self._anonymous = anonymous
-        self._operator = operator
+        self._operators = dict(operators or {})
         self._active: dict[str, MediaRunnerHttpClient] = {}
 
     async def inspect(self, url: str) -> RunnerInspection:
         try:
             return await self._anonymous.inspect(url)
-        except (MediaInspectionAuthRequired, MediaInspectionVerificationFailed):
-            if self._operator is None or provider_profile(url).key != "youtube":
+        except (
+            MediaInspectionAuthRequired,
+            MediaInspectionTemporarilyUnavailable,
+            MediaInspectionVerificationFailed,
+        ):
+            operator = self._operators.get(provider_profile(url).key)
+            if operator is None:
                 raise
-            return await self._operator.inspect(url)
+            return await operator.inspect(url)
 
     async def download(
         self,
@@ -297,7 +302,7 @@ class MediaRunnerRouter:
         expected_extractor_key: str,
         access_context: ProviderAccessContextRef,
     ) -> RunnerArtifact:
-        client = self._client_for(access_context.access_mode)
+        client = self._client_for(access_context)
         self._active[task_id] = client
         try:
             return await client.download(
@@ -319,14 +324,16 @@ class MediaRunnerRouter:
 
     async def close(self) -> None:
         await self._anonymous.close()
-        if self._operator is not None:
-            await self._operator.close()
+        for operator in self._operators.values():
+            await operator.close()
 
-    def _client_for(self, mode: ProviderAccessMode) -> MediaRunnerHttpClient:
-        if mode is ProviderAccessMode.ANONYMOUS:
+    def _client_for(self, context: ProviderAccessContextRef) -> MediaRunnerHttpClient:
+        if context.access_mode is ProviderAccessMode.ANONYMOUS:
             return self._anonymous
-        if mode is ProviderAccessMode.OPERATOR_MANAGED and self._operator is not None:
-            return self._operator
+        if context.access_mode is ProviderAccessMode.OPERATOR_MANAGED:
+            operator = self._operators.get(context.provider_key)
+            if operator is not None:
+                return operator
         raise MediaRunnerClientError("credential_required", 422)
 
 

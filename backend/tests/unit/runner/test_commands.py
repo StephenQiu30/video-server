@@ -99,6 +99,40 @@ async def test_inspection_classifies_vimeo_login_requirement(tmp_path: Path) -> 
 
 
 @pytest.mark.asyncio
+async def test_inspection_classifies_tiktok_webpage_regression(tmp_path: Path) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(b"ERROR: Unexpected response from webpage request"),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect(
+            "https://www.tiktok.com/@creator/video/123",
+            tmp_path,
+        )
+
+    assert caught.value.code == "extractor_regression"
+    assert caught.value.status == 502
+
+
+@pytest.mark.asyncio
+async def test_inspection_classifies_reddit_account_requirement(tmp_path: Path) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(b"ERROR: Account authentication is required. Use --cookies"),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect(
+            "https://www.reddit.com/r/example/comments/123",
+            tmp_path,
+        )
+
+    assert caught.value.code == "credential_required"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
 async def test_youtube_uses_operator_managed_provider_egress(tmp_path: Path) -> None:
     supervisor = RecordingSupervisor()
     configured = settings(tmp_path).model_copy(
@@ -115,6 +149,39 @@ async def test_youtube_uses_operator_managed_provider_egress(tmp_path: Path) -> 
     )
     assert supervisor.env["HTTPS_PROXY"] == "http://youtube-egress:3128"
     assert "--cookies" not in supervisor.argv
+
+
+@pytest.mark.asyncio
+async def test_tiktok_operator_command_uses_only_issued_cookie_jar(
+    tmp_path: Path,
+) -> None:
+    supervisor = RecordingSupervisor()
+    commands = MediaCommands(settings(tmp_path), supervisor)
+    cookie_jar = tmp_path / "operation.cookies.txt"
+
+    await commands.inspect(
+        "https://www.tiktok.com/@creator/video/123",
+        tmp_path,
+        cookie_jar=cookie_jar,
+    )
+
+    assert supervisor.argv[supervisor.argv.index("--cookies") + 1] == str(cookie_jar)
+
+
+@pytest.mark.asyncio
+async def test_non_allowlisted_provider_cannot_receive_cookie_jar(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(settings(tmp_path), RecordingSupervisor())
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect(
+            "https://www.bilibili.com/video/BV1xx",
+            tmp_path,
+            cookie_jar=tmp_path / "operation.cookies.txt",
+        )
+
+    assert caught.value.code == "provider_session_not_allowed"
 
 
 @pytest.mark.asyncio

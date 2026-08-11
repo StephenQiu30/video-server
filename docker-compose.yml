@@ -47,7 +47,7 @@ x-api-env: &api-env
   PROVIDER_VERIFIED_KEYS: "${PROVIDER_VERIFIED_KEYS:-[]}"
   PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
   RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
-  RUNNER_OPERATOR_BASE_URL: "${RUNNER_OPERATOR_BASE_URL:-}"
+  RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
   RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
 
@@ -85,7 +85,7 @@ x-download-env: &download-env
   URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:-ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE=}"
   PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
   RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
-  RUNNER_OPERATOR_BASE_URL: "${RUNNER_OPERATOR_BASE_URL:-}"
+  RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
   RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
 
@@ -94,7 +94,7 @@ x-canary-env: &canary-env
   SERVICE_ROLE: provider-canary
   DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
   RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
-  RUNNER_OPERATOR_BASE_URL: "${RUNNER_OPERATOR_BASE_URL:-}"
+  RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
   RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
   URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:-ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE=}"
@@ -361,6 +361,65 @@ services:
       egress-proxy:
         condition: service_healthy
       youtube-pot-provider:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:19100/health/live', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  provider-operator-runner:
+    <<: *app
+    profiles: [provider-operator]
+    environment:
+      <<: *runner-env
+      RUNNER_ACCESS_MODE: operator_managed
+      RUNNER_MAX_ACTIVE_TASKS: "1"
+      RUNNER_OPERATOR_SESSION_VERSIONS: '{"${OPERATOR_PROVIDER_KEY:-disabled}":"${OPERATOR_COOKIE_VERSION:-disabled}"}'
+      RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS: "${OPERATOR_RETAINED_SESSION_VERSIONS:-{}}"
+      RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
+      RUNNER_PROVIDER_SECRET_ROOT: /run/provider-secrets
+      RUNNER_PROVIDER_SECRET_TEMP_ROOT: /run/provider-secrets-tmp
+    networks: [runner_rpc_net, runner_egress_net]
+    container_name: provider-operator-runner
+    command:
+      [
+        "python",
+        "-m",
+        "uvicorn",
+        "app.runner.main:create_app",
+        "--factory",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "19100",
+        "--no-access-log",
+      ]
+    volumes:
+      - runner_work:/work
+      - type: bind
+        source: "${OPERATOR_COOKIE_SECRET_DIR:-./.provider-secrets/provider}"
+        target: "/run/provider-secrets/${OPERATOR_PROVIDER_KEY:-disabled}"
+        read_only: true
+        bind:
+          create_host_path: false
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /run/provider-secrets-tmp:rw,noexec,nosuid,size=16m,mode=0700,uid=10001,gid=10001
+    depends_on:
+      workspace-init:
+        condition: service_completed_successfully
+      egress-proxy:
         condition: service_healthy
     healthcheck:
       test:

@@ -3,7 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from app.application.downloads import MediaInspectionAuthRequired, RunnerInspection
+from app.application.downloads import (
+    MediaInspectionAuthRequired,
+    MediaInspectionTemporarilyUnavailable,
+    RunnerInspection,
+)
 from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
 from app.infrastructure.media_runner import MediaRunnerRouter
 from app.infrastructure.media_runner_models import RunnerArtifact
@@ -57,7 +61,7 @@ async def test_youtube_access_failure_falls_back_to_operator_pool() -> None:
     anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
     anonymous.inspect_error = MediaInspectionAuthRequired()
     operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED))
-    router = MediaRunnerRouter(anonymous, operator)  # type: ignore[arg-type]
+    router = MediaRunnerRouter(anonymous, {"youtube": operator})  # type: ignore[arg-type]
 
     result = await router.inspect("https://www.youtube.com/watch?v=owned")
 
@@ -65,11 +69,11 @@ async def test_youtube_access_failure_falls_back_to_operator_pool() -> None:
     assert len(anonymous.inspected) == len(operator.inspected) == 1
 
 
-async def test_non_youtube_access_failure_does_not_receive_operator_session() -> None:
+async def test_unconfigured_provider_does_not_receive_operator_session() -> None:
     anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
     anonymous.inspect_error = MediaInspectionAuthRequired()
     operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED))
-    router = MediaRunnerRouter(anonymous, operator)  # type: ignore[arg-type]
+    router = MediaRunnerRouter(anonymous, {"youtube": operator})  # type: ignore[arg-type]
 
     with pytest.raises(MediaInspectionAuthRequired):
         await router.inspect("https://www.bilibili.com/video/BV1xx")
@@ -77,10 +81,22 @@ async def test_non_youtube_access_failure_does_not_receive_operator_session() ->
     assert operator.inspected == []
 
 
+async def test_tiktok_access_failure_uses_its_isolated_operator() -> None:
+    anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
+    anonymous.inspect_error = MediaInspectionTemporarilyUnavailable()
+    operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED, "tiktok"))
+    router = MediaRunnerRouter(anonymous, {"tiktok": operator})  # type: ignore[arg-type]
+
+    result = await router.inspect("https://www.tiktok.com/@creator/video/123")
+
+    assert result.access_context.provider_key == "tiktok"
+    assert operator.inspected == ["https://www.tiktok.com/@creator/video/123"]
+
+
 async def test_download_routes_frozen_context_to_matching_pool() -> None:
     anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
     operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED))
-    router = MediaRunnerRouter(anonymous, operator)  # type: ignore[arg-type]
+    router = MediaRunnerRouter(anonymous, {"youtube": operator})  # type: ignore[arg-type]
 
     await router.download(
         "task-1",
@@ -95,14 +111,16 @@ async def test_download_routes_frozen_context_to_matching_pool() -> None:
     assert operator.downloaded == ["task-1"]
 
 
-def context(mode: ProviderAccessMode) -> ProviderAccessContextRef:
+def context(
+    mode: ProviderAccessMode, provider: str = "youtube"
+) -> ProviderAccessContextRef:
     operator = mode is ProviderAccessMode.OPERATOR_MANAGED
     return ProviderAccessContextRef(
-        provider_key="youtube" if operator else "generic",
-        profile_version="youtube-v2" if operator else "1",
+        provider_key=provider if operator else "generic",
+        profile_version=f"{provider}-v2" if operator else "1",
         access_mode=mode,
         credential_version_id="version-1" if operator else None,
-        egress_affinity_id="provider:youtube" if operator else "default",
+        egress_affinity_id=f"provider:{provider}" if operator else "default",
         client_profile_id="yt-dlp-default",
         attestation_provider_version=None,
         engine_commit="5d6b8c8",

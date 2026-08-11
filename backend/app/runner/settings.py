@@ -130,7 +130,10 @@ class RunnerSettings(BaseSettings):
     @classmethod
     def validate_operator_versions(cls, value: dict[str, str]) -> dict[str, str]:
         for provider, version in value.items():
-            if provider != "youtube" or _REFERENCE.fullmatch(version) is None:
+            if (
+                _PROVIDER_KEY.fullmatch(provider) is None
+                or _REFERENCE.fullmatch(version) is None
+            ):
                 raise ValueError("operator session version is invalid")
         return value
 
@@ -140,7 +143,7 @@ class RunnerSettings(BaseSettings):
         cls, value: dict[str, list[str]]
     ) -> dict[str, list[str]]:
         for provider, versions in value.items():
-            if provider != "youtube" or not versions:
+            if _PROVIDER_KEY.fullmatch(provider) is None or not versions:
                 raise ValueError("retained session versions are invalid")
             if len(set(versions)) != len(versions):
                 raise ValueError("retained session versions must be unique")
@@ -170,8 +173,29 @@ class RunnerSettings(BaseSettings):
             raise ValueError("provider session temp root cannot be in the workspace")
         operator = self.runner_access_mode is ProviderAccessMode.OPERATOR_MANAGED
         if operator:
-            if set(self.runner_operator_session_versions) != {"youtube"}:
-                raise ValueError("operator runner requires one YouTube session version")
+            providers = set(self.runner_operator_session_versions)
+            if len(providers) != 1:
+                raise ValueError(
+                    "operator runner requires exactly one provider session"
+                )
+            provider = next(iter(providers))
+            if set(self.runner_operator_retained_session_versions) - providers:
+                raise ValueError("retained sessions must match the operator provider")
+            from app.runner.provider_registry import DEFAULT_PROVIDER_REGISTRY
+
+            profile = next(
+                (
+                    item
+                    for item in DEFAULT_PROVIDER_REGISTRY.profiles
+                    if item.key == provider
+                ),
+                None,
+            )
+            if (
+                profile is None
+                or ProviderAccessMode.OPERATOR_MANAGED not in profile.access_modes
+            ):
+                raise ValueError("operator provider is not allowlisted")
             if not self.runner_operator_account_baseline_attested:
                 raise ValueError("operator account baseline must be attested")
             if self.runner_max_active_tasks != 1:
@@ -180,8 +204,12 @@ class RunnerSettings(BaseSettings):
             raise ValueError("anonymous runner cannot configure provider sessions")
         elif self.runner_operator_retained_session_versions:
             raise ValueError("anonymous runner cannot retain provider sessions")
-        if self.runner_youtube_pot_base_url is not None and not operator:
-            raise ValueError("POT provider is restricted to the operator runner")
+        if self.runner_youtube_pot_base_url is not None:
+            youtube_operator = operator and set(
+                self.runner_operator_session_versions
+            ) == {"youtube"}
+            if not youtube_operator:
+                raise ValueError("POT provider is restricted to the YouTube operator")
         return self
 
     @field_validator(

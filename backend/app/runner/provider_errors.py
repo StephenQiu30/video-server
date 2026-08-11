@@ -57,9 +57,21 @@ def classify_provider_failure(
             return "pot_required", 422
     requires_fresh_cookies = b"fresh cookies" in text and b"needed" in text
     requires_vimeo_login = b"vimeo extractor only works when logged-in" in text
-    if requires_fresh_cookies or requires_vimeo_login:
+    requires_account = _any(
+        text,
+        b"account authentication is required",
+        b"rate-limit reached or login required",
+        b"login required. use --cookies",
+    )
+    if requires_fresh_cookies or requires_vimeo_login or requires_account:
         return "credential_required", 422
-    if _any(text, b"unable to extract", b"expected one video in the playlist"):
+    if _any(
+        text,
+        b"unable to extract",
+        b"expected one video in the playlist",
+        b"unexpected response from webpage request",
+        b"universal data for rehydration",
+    ):
         return "extractor_regression", 502
     return None
 

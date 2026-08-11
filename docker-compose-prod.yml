@@ -21,7 +21,7 @@ x-prod-api-env: &prod-api-env
   REQUEST_FINGERPRINT_SECRET: "${REQUEST_FINGERPRINT_SECRET:?set REQUEST_FINGERPRINT_SECRET in .env.prod}"
   URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:?set URL_ENCRYPTION_KEY in .env.prod}"
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
-  RUNNER_OPERATOR_BASE_URL: "${RUNNER_OPERATOR_BASE_URL:-}"
+  RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
   PROVIDER_VERIFIED_KEYS: "${PROVIDER_VERIFIED_KEYS:-[]}"
   PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
 
@@ -42,7 +42,7 @@ x-prod-download-env: &prod-download-env
   URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:?set URL_ENCRYPTION_KEY in .env.prod}"
   PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
-  RUNNER_OPERATOR_BASE_URL: "${RUNNER_OPERATOR_BASE_URL:-}"
+  RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
 
 x-prod-canary-env: &prod-canary-env
   <<: *prod-worker-env
@@ -53,7 +53,7 @@ x-prod-canary-env: &prod-canary-env
   MINIO_SECRET_KEY: "${MINIO_CANARY_SECRET_KEY:?set MINIO_CANARY_SECRET_KEY in .env.prod}"
   MINIO_BUCKET: "${MINIO_BUCKET:?set MINIO_BUCKET in .env.prod}"
   PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
-  RUNNER_OPERATOR_BASE_URL: "${RUNNER_OPERATOR_BASE_URL:-}"
+  RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
   PROVIDER_CANARY_TARGETS: "${PROVIDER_CANARY_TARGETS:-[]}"
   PROVIDER_VERIFIED_KEYS: "${PROVIDER_VERIFIED_KEYS:-[]}"
 
@@ -98,6 +98,9 @@ services:
     environment: *prod-runner-env
 
   youtube-operator-runner:
+    image: video-server:prod
+
+  provider-operator-runner:
     image: video-server:prod
 
   youtube-pot-provider:

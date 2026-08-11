@@ -45,18 +45,17 @@ def build_runtime(settings: Settings) -> ProviderCanaryRuntime:
         inspect_timeout_seconds=settings.inspect_timeout_seconds,
         download_timeout_seconds=settings.download_timeout_seconds,
     )
-    operator = (
-        MediaRunnerHttpClient(
-            base_url=settings.runner_operator_base_url,
+    operators = {
+        provider: MediaRunnerHttpClient(
+            base_url=base_url,
             secret=settings.runner_hmac_secret.get_secret_value().encode(),
             workspace_root=settings.runner_workspace_root,
             inspect_timeout_seconds=settings.inspect_timeout_seconds,
             download_timeout_seconds=settings.download_timeout_seconds,
         )
-        if settings.runner_operator_base_url is not None
-        else None
-    )
-    runner = MediaRunnerRouter(anonymous, operator)
+        for provider, base_url in settings.runner_operator_base_urls.items()
+    }
+    runner = MediaRunnerRouter(anonymous, operators)
     service = ProviderCanaryService(
         repository,
         runner,

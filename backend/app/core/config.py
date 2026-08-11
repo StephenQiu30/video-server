@@ -6,6 +6,7 @@ import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
+from urllib.parse import urlsplit
 
 from cryptography.fernet import Fernet
 from pydantic import EmailStr, Field, SecretStr, field_validator, model_validator
@@ -100,7 +101,7 @@ class Settings(BaseSettings):
     )
 
     runner_base_url: str = "http://localhost:19100"
-    runner_operator_base_url: str | None = None
+    runner_operator_base_urls: dict[str, str] = Field(default_factory=dict)
     runner_workspace_root: Path = Path("/work")
     runner_hmac_secret: SecretStr = SecretStr("development-runner-secret-change-me")
     provider_canary_targets: SecretStr = SecretStr("[]")
@@ -193,12 +194,29 @@ class Settings(BaseSettings):
             return None
         return value
 
-    @field_validator("runner_operator_base_url", mode="before")
+    @field_validator("runner_operator_base_urls")
     @classmethod
-    def empty_runner_operator_url_to_none(cls, value: object) -> object | None:
-        if isinstance(value, str) and not value.strip():
-            return None
-        return value
+    def validate_runner_operator_urls(cls, value: dict[str, str]) -> dict[str, str]:
+        validated: dict[str, str] = {}
+        for provider, endpoint in value.items():
+            if re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", provider) is None:
+                raise ValueError("runner operator provider key is invalid")
+            try:
+                parsed = urlsplit(endpoint)
+                _ = parsed.port
+            except ValueError as exc:
+                raise ValueError("runner operator URL is invalid") from exc
+            if (
+                parsed.scheme != "http"
+                or parsed.hostname is None
+                or parsed.username is not None
+                or parsed.password is not None
+                or parsed.query
+                or parsed.fragment
+            ):
+                raise ValueError("runner operator URL must be an internal HTTP URL")
+            validated[provider] = endpoint.rstrip("/")
+        return validated
 
     @field_validator("url_encryption_key")
     @classmethod

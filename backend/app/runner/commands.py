@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from app.domain.downloads import Container
+from app.domain.providers import ProviderAccessMode
 from app.runner.command_support import child_environment, json_object
 from app.runner.errors import RunnerFailure
 from app.runner.process import ProcessResult, ProcessTimeoutError
@@ -273,7 +274,10 @@ class MediaCommands:
         cookie_jar: Path | None,
     ) -> tuple[str, ...]:
         profile = provider_profile(url)
-        if cookie_jar is not None and profile.key != "youtube":
+        if (
+            cookie_jar is not None
+            and ProviderAccessMode.OPERATOR_MANAGED not in profile.access_modes
+        ):
             raise RunnerFailure("provider_session_not_allowed", status=422)
         command: tuple[str, ...] = (
             self._settings.runner_ytdlp_bin,

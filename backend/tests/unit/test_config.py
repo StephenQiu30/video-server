@@ -70,6 +70,28 @@ def test_peertube_allowlist_accepts_only_exact_domain_names() -> None:
             Settings(app_env="test", peertube_allowed_instances=frozenset({invalid}))
 
 
+def test_operator_runner_endpoints_are_provider_keyed_internal_urls() -> None:
+    settings = Settings(
+        app_env="test",
+        runner_operator_base_urls={
+            "youtube": "http://youtube-operator-runner:19100/",
+            "tiktok": "http://provider-operator-runner:19100",
+        },
+    )
+
+    assert settings.runner_operator_base_urls == {
+        "youtube": "http://youtube-operator-runner:19100",
+        "tiktok": "http://provider-operator-runner:19100",
+    }
+    for invalid in (
+        {"TikTok": "http://provider-operator-runner:19100"},
+        {"tiktok": "https://public.example/runner"},
+        {"tiktok": "http://user:pass@provider-operator-runner:19100"},
+    ):
+        with pytest.raises(ValidationError, match="runner operator"):
+            Settings(app_env="test", runner_operator_base_urls=invalid)
+
+
 @pytest.mark.parametrize("value", ["", "   "])
 def test_empty_bootstrap_admin_email_is_normalized_to_none(
     monkeypatch: pytest.MonkeyPatch, value: str

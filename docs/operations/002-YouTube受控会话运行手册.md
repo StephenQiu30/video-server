@@ -36,7 +36,7 @@
 默认 `.env` 保持：
 
 ```dotenv
-RUNNER_OPERATOR_BASE_URL=
+RUNNER_OPERATOR_BASE_URLS={}
 YOUTUBE_COOKIE_VERSION=
 RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS={}
 YOUTUBE_OPERATOR_ACCOUNT_BASELINE_ATTESTED=false
@@ -45,7 +45,7 @@ YOUTUBE_OPERATOR_ACCOUNT_BASELINE_ATTESTED=false
 完成门禁后，在受保护的 `.env`/`.env.prod` 中配置非 Secret 引用：
 
 ```dotenv
-RUNNER_OPERATOR_BASE_URL=http://youtube-operator-runner:19100
+RUNNER_OPERATOR_BASE_URLS={"youtube":"http://youtube-operator-runner:19100"}
 YOUTUBE_COOKIE_SECRET_DIR=./.provider-secrets/youtube
 YOUTUBE_COOKIE_VERSION=yt-20260810-01
 RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS={}
@@ -84,7 +84,7 @@ docker compose --env-file .env --profile youtube-operator ps
 3. 滚动重启运维 Runner；新 inspection 使用新 version，旧任务只可使用自己冻结的 retained version。
 4. 等待 inspection TTL 与最大排队窗口结束，再移除 retained version 和对应只读文件。
 
-出现账号权益漂移、Cookie 泄漏、账号警告、跨 Provider、未知 availability、无法解释的访问扩张或撤销指令时：立即清空 `RUNNER_OPERATOR_BASE_URL`、停止 `youtube-operator` Profile、在 Google 账号侧撤销会话，并移除 active/retained version。不要用匿名、其他账号或新出口自动接管旧任务。
+出现账号权益漂移、Cookie 泄漏、账号警告、跨 Provider、未知 availability、无法解释的访问扩张或撤销指令时：立即从 `RUNNER_OPERATOR_BASE_URLS` 删除 `youtube`、停止 `youtube-operator` Profile、在 Google 账号侧撤销会话，并移除 active/retained version。不要用匿名、其他账号或新出口自动接管旧任务。
 
 ## 6. 故障定位
 
