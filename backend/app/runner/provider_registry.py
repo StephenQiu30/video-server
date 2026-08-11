@@ -107,7 +107,25 @@ class ProviderRegistry:
 from app.runner.provider_catalog import DEFAULT_PROVIDER_PROFILES  # noqa: E402
 
 DEFAULT_PROVIDER_REGISTRY = ProviderRegistry(DEFAULT_PROVIDER_PROFILES)
+_ACTIVE_PROVIDER_REGISTRY = DEFAULT_PROVIDER_REGISTRY
+
+
+def configure_provider_instances(peertube_hosts: frozenset[str]) -> None:
+    """Replace the process-local registry during startup only."""
+    global _ACTIVE_PROVIDER_REGISTRY
+    if not peertube_hosts:
+        _ACTIVE_PROVIDER_REGISTRY = DEFAULT_PROVIDER_REGISTRY
+        return
+    from app.runner.provider_catalog_incremental import peertube_profile
+    from app.runner.provider_instances import validated_instance_hosts
+
+    profile = peertube_profile(validated_instance_hosts(peertube_hosts))
+    _ACTIVE_PROVIDER_REGISTRY = ProviderRegistry((*DEFAULT_PROVIDER_PROFILES, profile))
+
+
+def current_provider_registry() -> ProviderRegistry:
+    return _ACTIVE_PROVIDER_REGISTRY
 
 
 def provider_profile(url: str) -> ProviderProfile:
-    return DEFAULT_PROVIDER_REGISTRY.resolve(url)
+    return _ACTIVE_PROVIDER_REGISTRY.resolve(url)

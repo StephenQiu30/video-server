@@ -18,6 +18,7 @@ from app.runner.contracts import (
     TaskStatusResponse,
 )
 from app.runner.errors import RunnerFailure
+from app.runner.provider_registry import configure_provider_instances
 from app.runner.service import MediaRunnerService
 from app.runner.settings import RunnerSettings
 from app.runner.signing import (
@@ -48,6 +49,7 @@ def create_app(
     service: RunnerService | None = None,
 ) -> FastAPI:
     configured = settings or RunnerSettings()
+    configure_provider_instances(configured.peertube_allowed_instances)
     runner = service or MediaRunnerService(configured)
     authenticator = HmacRequestAuthenticator(
         configured.hmac_secret_bytes,

@@ -11,6 +11,7 @@ from app.domain.providers import (
     ProviderSupportStatus,
 )
 from app.runner.errors import RunnerFailure
+from app.runner.provider_catalog_incremental import INCREMENTAL_PUBLIC_PROFILES
 from app.runner.provider_registry import ProviderProfile, UrlNormalizer, _identity
 
 _VIMEO_ID = re.compile(r"/([0-9]+)/?$")
@@ -226,6 +227,7 @@ DEFAULT_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         canary_suite="acfun-public-single-video",
         normalize_url=_acfun_url,
     ),
+    *INCREMENTAL_PUBLIC_PROFILES,
     _standard(
         "vimeo",
         "Vimeo",

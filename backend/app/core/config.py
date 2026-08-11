@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -9,6 +10,8 @@ from typing import Literal
 from cryptography.fernet import Fernet
 from pydantic import EmailStr, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.runner.provider_instances import validated_instance_hosts
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_URL_ENCRYPTION_KEY = "ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE="
@@ -101,6 +104,8 @@ class Settings(BaseSettings):
     runner_workspace_root: Path = Path("/work")
     runner_hmac_secret: SecretStr = SecretStr("development-runner-secret-change-me")
     provider_canary_targets: SecretStr = SecretStr("[]")
+    provider_verified_keys: frozenset[str] = frozenset()
+    peertube_allowed_instances: frozenset[str] = frozenset()
     provider_canary_metadata_interval_seconds: int = Field(
         default=21_600, ge=300, le=604_800
     )
@@ -204,6 +209,18 @@ class Settings(BaseSettings):
             raise ValueError("URL_ENCRYPTION_KEY must be a Fernet key") from exc
         return value
 
+    @field_validator("provider_verified_keys")
+    @classmethod
+    def validate_provider_verified_keys(cls, value: frozenset[str]) -> frozenset[str]:
+        if any(re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", key) is None for key in value):
+            raise ValueError("PROVIDER_VERIFIED_KEYS contains an invalid key")
+        return value
+
+    @field_validator("peertube_allowed_instances")
+    @classmethod
+    def validate_peertube_instances(cls, value: frozenset[str]) -> frozenset[str]:
+        return validated_instance_hosts(value)
+
     @field_validator(
         "auth_jwt_secret",
         "request_fingerprint_secret",
@@ -254,7 +271,13 @@ class Settings(BaseSettings):
                 )
             )
         elif self.service_role == "provider-canary":
-            secret_values.append(self.runner_hmac_secret.get_secret_value())
+            secret_values.extend(
+                (
+                    self.runner_hmac_secret.get_secret_value(),
+                    self.minio_access_key.get_secret_value(),
+                    self.minio_secret_key.get_secret_value(),
+                )
+            )
         insecure = any(
             value.startswith(("development-", "video-")) or "replace-with" in value
             for value in secret_values
@@ -268,9 +291,11 @@ class Settings(BaseSettings):
             marker in f"{self.database_url} {rabbitmq_url}"
             for marker in ("video:video@", "replace-with", "-secret@")
         )
-        default_url_key = self.service_role in {"api", "download-worker"} and (
-            self.url_encryption_key.get_secret_value() == DEFAULT_URL_ENCRYPTION_KEY
-        )
+        default_url_key = self.service_role in {
+            "api",
+            "download-worker",
+            "provider-canary",
+        } and (self.url_encryption_key.get_secret_value() == DEFAULT_URL_ENCRYPTION_KEY)
         if insecure or insecure_urls or default_url_key:
             raise ValueError("production secrets must be explicitly configured")
         if self.service_role == "api" and not self.valkey_url:

@@ -160,7 +160,7 @@ def test_provider_status_distinguishes_registered_verified_and_unsupported(
 
     assert response.status_code == 200
     items = {item["key"]: item for item in response.json()["items"]}
-    assert len(items) == 20
+    assert len(items) == 22
     assert items["youtube"]["registered"] is True
     assert items["youtube"]["status"] == "access_required"
     assert items["bilibili"]["status"] == "verified"
@@ -172,6 +172,9 @@ def test_provider_status_distinguishes_registered_verified_and_unsupported(
     assert items["kuaishou"]["status"] == "verified"
     assert items["acfun"]["registered"] is True
     assert items["acfun"]["status"] == "unknown"
+    assert items["rutube"]["status"] == "unknown"
+    assert items["vk"]["status"] == "unknown"
+    assert "peertube" not in items
     assert all(
         sensitive not in response.text.casefold()
         for sensitive in ("credential_version", "egress_affinity", "po_token")

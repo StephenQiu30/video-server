@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 from app.application.providers import ProviderStatusView
 from app.domain.providers import ProviderSupportStatus
-from app.runner.provider_registry import DEFAULT_PROVIDER_REGISTRY
+from app.runner.provider_registry import current_provider_registry
 
 _LAST_BASELINE = datetime(2026, 8, 11, tzinfo=UTC)
 
@@ -28,7 +28,7 @@ def configured_provider_statuses() -> tuple[ProviderStatusView, ...]:
             ),
             user_action=_user_action(profile.support_status),
         )
-        for profile in DEFAULT_PROVIDER_REGISTRY.profiles
+        for profile in current_provider_registry().profiles
     )
     unsupported = (
         ProviderStatusView(

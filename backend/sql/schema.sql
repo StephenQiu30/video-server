@@ -458,7 +458,9 @@ CREATE TABLE IF NOT EXISTS provider_canary_results (
     engine_commit VARCHAR(128) NOT NULL,
     egress_affinity_id VARCHAR(128) NOT NULL,
     client_profile_id VARCHAR(128) NOT NULL,
-    CONSTRAINT ck_provider_canary_stage CHECK (stage IN ('metadata', 'media')),
+    CONSTRAINT ck_provider_canary_stage CHECK (
+        stage IN ('metadata', 'media', 'analysis')
+    ),
     CONSTRAINT ck_provider_canary_access_mode CHECK (
         access_mode IN ('anonymous', 'operator_managed')
     ),
@@ -470,6 +472,13 @@ CREATE TABLE IF NOT EXISTS provider_canary_results (
         (outcome = 'failed') = (stable_error_code IS NOT NULL)
     )
 );
+
+ALTER TABLE provider_canary_results
+    DROP CONSTRAINT IF EXISTS ck_provider_canary_stage;
+ALTER TABLE provider_canary_results
+    ADD CONSTRAINT ck_provider_canary_stage CHECK (
+        stage IN ('metadata', 'media', 'analysis')
+    );
 
 CREATE INDEX IF NOT EXISTS ix_provider_canary_provider_checked
     ON provider_canary_results (provider_key, checked_at);

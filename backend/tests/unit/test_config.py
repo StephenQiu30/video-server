@@ -48,6 +48,28 @@ def test_signing_secrets_require_adequate_entropy_capacity() -> None:
         Settings(app_env="test", auth_jwt_secret=SecretStr("too-short"))
 
 
+def test_provider_release_approvals_are_typed_keys() -> None:
+    settings = Settings(
+        app_env="test", provider_verified_keys=frozenset({"acfun", "vk"})
+    )
+
+    assert settings.provider_verified_keys == frozenset({"acfun", "vk"})
+    with pytest.raises(ValidationError, match="invalid key"):
+        Settings(app_env="test", provider_verified_keys=frozenset({"VK Clips"}))
+
+
+def test_peertube_allowlist_accepts_only_exact_domain_names() -> None:
+    settings = Settings(
+        app_env="test",
+        peertube_allowed_instances=frozenset({"VIDEO.EXAMPLE.COM"}),
+    )
+
+    assert settings.peertube_allowed_instances == frozenset({"video.example.com"})
+    for invalid in ("*.example.com", "https://video.example.com", "127.0.0.1"):
+        with pytest.raises(ValidationError, match="invalid host"):
+            Settings(app_env="test", peertube_allowed_instances=frozenset({invalid}))
+
+
 @pytest.mark.parametrize("value", ["", "   "])
 def test_empty_bootstrap_admin_email_is_normalized_to_none(
     monkeypatch: pytest.MonkeyPatch, value: str
@@ -105,6 +127,32 @@ def test_production_rejects_default_url_encryption_key() -> None:
             minio_access_key=SecretStr("production-access"),
             minio_secret_key=SecretStr("m" * 48),
             analysis_enabled=True,
+        )
+
+
+def test_production_canary_requires_dedicated_storage_credentials() -> None:
+    settings = Settings(
+        app_env="production",
+        service_role="provider-canary",
+        database_url="postgresql+asyncpg://canary:StrongDbPass@postgres:5432/video",
+        runner_hmac_secret=SecretStr("r" * 48),
+        url_encryption_key=SecretStr("MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="),
+        minio_access_key=SecretStr("canary-read-access"),
+        minio_secret_key=SecretStr("m" * 48),
+    )
+
+    assert settings.service_role == "provider-canary"
+    with pytest.raises(ValidationError, match="production secrets"):
+        Settings(
+            app_env="production",
+            service_role="provider-canary",
+            database_url=(
+                "postgresql+asyncpg://canary:StrongDbPass@postgres:5432/video"
+            ),
+            runner_hmac_secret=SecretStr("r" * 48),
+            url_encryption_key=SecretStr(
+                "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+            ),
         )
 
 

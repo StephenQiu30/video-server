@@ -36,16 +36,30 @@ class ProviderStatusService:
         baselines: tuple[ProviderStatusView, ...],
         *,
         now: Callable[[], datetime],
+        approved_keys: frozenset[str] = frozenset(),
     ) -> None:
+        registered = {
+            item.key
+            for item in baselines
+            if item.registered and item.status is not ProviderSupportStatus.UNSUPPORTED
+        }
+        if not approved_keys <= registered:
+            raise ValueError("approved Provider key is not registered")
         self._reader = reader
         self._baselines = baselines
         self._now = now
+        self._approved_keys = approved_keys
 
     async def list(self) -> tuple[ProviderStatusView, ...]:
-        recent = await self._reader.list_recent(limit_per_provider=5)
+        recent = await self._reader.list_recent(limit_per_provider=32)
         now = self._now()
         return tuple(
-            _merge_status(view, recent.get(view.key, ()), now)
+            _merge_status(
+                view,
+                recent.get(view.key, ()),
+                now,
+                explicitly_approved=view.key in self._approved_keys,
+            )
             for view in self._baselines
         )
 
@@ -54,13 +68,15 @@ def _merge_status(
     baseline: ProviderStatusView,
     results: tuple[ProviderCanaryResult, ...],
     now: datetime,
+    *,
+    explicitly_approved: bool,
 ) -> ProviderStatusView:
     if not results or baseline.status is ProviderSupportStatus.UNSUPPORTED:
         return baseline
     ordered = tuple(sorted(results, key=lambda item: item.checked_at, reverse=True))
     latest = ordered[0]
     failures = tuple(
-        item for item in ordered if item.outcome is ProviderCanaryOutcome.FAILED
+        item for item in ordered[:5] if item.outcome is ProviderCanaryOutcome.FAILED
     )
     error = latest.stable_error_code
     if error in _ACCESS_ERRORS:
@@ -73,11 +89,13 @@ def _merge_status(
         status = ProviderSupportStatus.DEGRADED
     # Unknown/access-required profiles need an explicit complete-video Agent E2E
     # approval before configuration can make them eligible for verified recovery.
-    elif baseline.status is ProviderSupportStatus.VERIFIED and _verified(ordered, now):
+    elif (
+        baseline.status is ProviderSupportStatus.VERIFIED or explicitly_approved
+    ) and _verified(ordered, now):
         status = ProviderSupportStatus.VERIFIED
     else:
         status = baseline.status
-    verified_at = _latest_media_success(ordered)
+    verified_at = _latest_analysis_success(ordered)
     return ProviderStatusView(
         key=baseline.key,
         display_name=baseline.display_name,
@@ -99,37 +117,50 @@ def _blocked(results: tuple[ProviderCanaryResult, ...]) -> bool:
 
 
 def _verified(results: tuple[ProviderCanaryResult, ...], now: datetime) -> bool:
-    if len(results) < 5 or any(
-        item.outcome is ProviderCanaryOutcome.FAILED for item in results[:2]
+    operational = tuple(
+        item for item in results if item.stage is not ProviderCanaryStage.ANALYSIS
+    )[:5]
+    if len(operational) < 5 or any(
+        item.outcome is ProviderCanaryOutcome.FAILED for item in operational[:2]
     ):
         return False
-    successes = sum(item.outcome is ProviderCanaryOutcome.SUCCEEDED for item in results)
+    successes = sum(
+        item.outcome is ProviderCanaryOutcome.SUCCEEDED for item in operational
+    )
     if successes < 4:
         return False
     metadata_cutoff = now - timedelta(hours=6)
     media_cutoff = now - timedelta(hours=26)
     metadata_ok = any(
         item.outcome is ProviderCanaryOutcome.SUCCEEDED
+        and item.stage is ProviderCanaryStage.METADATA
         and item.checked_at >= metadata_cutoff
-        for item in results
+        for item in operational
     )
     media_ok = any(
         item.outcome is ProviderCanaryOutcome.SUCCEEDED
         and item.stage is ProviderCanaryStage.MEDIA
         and item.checked_at >= media_cutoff
+        for item in operational
+    )
+    analysis_cutoff = now - timedelta(days=7)
+    analysis_ok = any(
+        item.outcome is ProviderCanaryOutcome.SUCCEEDED
+        and item.stage is ProviderCanaryStage.ANALYSIS
+        and item.checked_at >= analysis_cutoff
         for item in results
     )
-    return metadata_ok and media_ok
+    return metadata_ok and media_ok and analysis_ok
 
 
-def _latest_media_success(
+def _latest_analysis_success(
     results: tuple[ProviderCanaryResult, ...],
 ) -> datetime | None:
     return next(
         (
             item.checked_at
             for item in results
-            if item.stage is ProviderCanaryStage.MEDIA
+            if item.stage is ProviderCanaryStage.ANALYSIS
             and item.outcome is ProviderCanaryOutcome.SUCCEEDED
         ),
         None,

@@ -8,6 +8,7 @@ from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.domain.providers import ProviderAccessMode
+from app.runner.provider_instances import validated_instance_hosts
 from app.runner.version import YTDLP_ENGINE_COMMIT
 
 _PROVIDER_KEY = re.compile(r"[a-z][a-z0-9_-]{0,31}")
@@ -33,6 +34,7 @@ class RunnerSettings(BaseSettings):
     runner_operator_account_baseline_attested: bool = False
     runner_provider_secret_root: Path = Path("/run/provider-secrets")
     runner_provider_secret_temp_root: Path = Path("/run/provider-secrets-tmp")
+    peertube_allowed_instances: frozenset[str] = frozenset()
 
     runner_ytdlp_bin: str = "yt-dlp"
     runner_ytdlp_js_runtime: str = "node"
@@ -83,6 +85,11 @@ class RunnerSettings(BaseSettings):
         if len(value.get_secret_value().encode()) < 32:
             raise ValueError("runner HMAC secret must contain at least 32 bytes")
         return value
+
+    @field_validator("peertube_allowed_instances")
+    @classmethod
+    def validate_peertube_instances(cls, value: frozenset[str]) -> frozenset[str]:
+        return validated_instance_hosts(value)
 
     @field_validator("runner_egress_proxy")
     @classmethod

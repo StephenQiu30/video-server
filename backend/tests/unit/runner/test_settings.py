@@ -51,6 +51,26 @@ def test_loads_credential_free_provider_proxy_overrides(
     assert settings.egress_proxy_for("bilibili") == "http://egress-proxy:3128"
 
 
+def test_runner_uses_the_same_exact_peertube_instance_allowlist(
+    tmp_path: Path,
+) -> None:
+    settings = RunnerSettings(
+        runner_hmac_secret=SECRET,
+        runner_egress_proxy="http://egress-proxy:3128",
+        runner_workspace_root=tmp_path,
+        peertube_allowed_instances=frozenset({"VIDEO.EXAMPLE.COM"}),
+    )
+
+    assert settings.peertube_allowed_instances == frozenset({"video.example.com"})
+    with pytest.raises(ValidationError, match="invalid host"):
+        RunnerSettings(
+            runner_hmac_secret=SECRET,
+            runner_egress_proxy="http://egress-proxy:3128",
+            runner_workspace_root=tmp_path,
+            peertube_allowed_instances=frozenset({"*.example.com"}),
+        )
+
+
 @pytest.mark.parametrize(
     "proxy",
     [

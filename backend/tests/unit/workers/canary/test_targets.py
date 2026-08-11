@@ -32,6 +32,12 @@ def test_rejects_insecure_mismatched_and_duplicate_targets() -> None:
         '"url":"https://www.acfun.cn/v/ac1"},{"target_id":"one",'
         '"provider_key":"acfun","stage":"metadata",'
         '"url":"https://www.acfun.cn/v/ac2"}]',
+        '[{"target_id":"one","provider_key":"acfun","stage":"analysis",'
+        '"url":"https://www.acfun.cn/v/ac1"}]',
+        '[{"target_id":"one","provider_key":"acfun","stage":"metadata",'
+        '"url":"https://www.acfun.cn/v/ac1"},{"target_id":"one",'
+        '"provider_key":"acfun","stage":"media",'
+        '"url":"https://www.acfun.cn/v/ac2"}]',
     )
 
     for value in values:

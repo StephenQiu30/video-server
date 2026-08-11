@@ -13,6 +13,7 @@ from app.infrastructure.media_runner import MediaRunnerHttpClient, MediaRunnerRo
 from app.infrastructure.provider_canary_repository import (
     SqlAlchemyProviderCanaryRepository,
 )
+from app.runner.provider_registry import configure_provider_instances
 from app.workers.canary.scheduler import ProviderCanaryScheduler
 from app.workers.canary.service import ProviderCanaryService
 from app.workers.canary.targets import parse_canary_targets
@@ -34,6 +35,7 @@ class ProviderCanaryRuntime:
 
 
 def build_runtime(settings: Settings) -> ProviderCanaryRuntime:
+    configure_provider_instances(settings.peertube_allowed_instances)
     engine = create_engine(settings.database_url)
     repository = SqlAlchemyProviderCanaryRepository(create_session_factory(engine))
     anonymous = MediaRunnerHttpClient(

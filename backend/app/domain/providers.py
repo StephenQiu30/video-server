@@ -41,6 +41,7 @@ class ProviderSupportStatus(StrEnum):
 class ProviderCanaryStage(StrEnum):
     METADATA = "metadata"
     MEDIA = "media"
+    ANALYSIS = "analysis"
 
 
 class ProviderCanaryOutcome(StrEnum):

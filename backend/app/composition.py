@@ -60,6 +60,7 @@ from app.infrastructure.realtime import RabbitMqRealtimeConsumer, RealtimeHub
 from app.infrastructure.task_event_store import TaskEventStore
 from app.infrastructure.url_security import FernetUrlEnvelope, MediaUrlValidator
 from app.infrastructure.user_repository import SqlAlchemyUserRepository
+from app.runner.provider_registry import configure_provider_instances
 
 
 @dataclass(slots=True)
@@ -91,6 +92,7 @@ class ApiRuntime:
 
 
 def build_api_runtime(settings: Settings) -> ApiRuntime:
+    configure_provider_instances(settings.peertube_allowed_instances)
     engine = create_engine(settings.database_url)
     sessions = create_session_factory(engine)
     realtime_hub = RealtimeHub(
@@ -255,6 +257,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             SqlAlchemyProviderCanaryRepository(sessions),
             configured_provider_statuses(),
             now=clock,
+            approved_keys=settings.provider_verified_keys,
         ),
     )
 

@@ -25,6 +25,7 @@ from app.infrastructure.media_runner import MediaRunnerHttpClient, MediaRunnerRo
 from app.infrastructure.messaging import RabbitMqTopology
 from app.infrastructure.object_storage import MinioObjectStorage
 from app.infrastructure.url_security import FernetUrlEnvelope
+from app.runner.provider_registry import configure_provider_instances
 from app.workers.download.artifacts import (
     ArtifactCleanupSettings,
     ArtifactGarbageCollector,
@@ -59,6 +60,7 @@ class DownloadWorkerRuntime:
 
 
 def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
+    configure_provider_instances(settings.peertube_allowed_instances)
     engine = create_engine(settings.database_url)
     raw_repository = SqlAlchemyDownloadRepository(create_session_factory(engine))
     repository = DownloadExecutionRepository(raw_repository)

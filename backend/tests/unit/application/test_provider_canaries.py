@@ -24,7 +24,7 @@ class Reader:
     async def list_recent(
         self, *, limit_per_provider: int
     ) -> dict[str, tuple[ProviderCanaryResult, ...]]:
-        assert limit_per_provider == 5
+        assert limit_per_provider == 32
         return {"acfun": self.results}
 
 
@@ -74,6 +74,7 @@ def result(
 async def test_unapproved_profile_stays_unknown_after_media_evidence() -> None:
     results = (
         result(0),
+        result(15, stage=ProviderCanaryStage.ANALYSIS),
         result(30),
         result(60, stage=ProviderCanaryStage.MEDIA),
         result(90),
@@ -84,7 +85,7 @@ async def test_unapproved_profile_stays_unknown_after_media_evidence() -> None:
     view = (await service.list())[0]
 
     assert view.status is ProviderSupportStatus.UNKNOWN
-    assert view.last_verified_at == NOW - timedelta(minutes=60)
+    assert view.last_verified_at == NOW - timedelta(minutes=15)
     assert view.user_action == "该平台尚未完成当前版本的真实下载验证。"
 
 
@@ -92,6 +93,7 @@ async def test_unapproved_profile_stays_unknown_after_media_evidence() -> None:
 async def test_approved_profile_recovers_after_fresh_canary_evidence() -> None:
     results = (
         result(0),
+        result(15, stage=ProviderCanaryStage.ANALYSIS),
         result(30),
         result(60, stage=ProviderCanaryStage.MEDIA),
         result(90),
@@ -104,6 +106,55 @@ async def test_approved_profile_recovers_after_fresh_canary_evidence() -> None:
     )
 
     assert (await service.list())[0].status is ProviderSupportStatus.VERIFIED
+
+
+@pytest.mark.asyncio
+async def test_explicitly_approved_profile_promotes_only_with_full_chain() -> None:
+    results = (
+        result(0),
+        result(15, stage=ProviderCanaryStage.ANALYSIS),
+        result(30),
+        result(60, stage=ProviderCanaryStage.MEDIA),
+        result(90),
+        result(120, error="inspection_timeout"),
+    )
+    service = ProviderStatusService(
+        Reader(results),
+        (baseline(),),
+        now=lambda: NOW,
+        approved_keys=frozenset({"acfun"}),
+    )
+
+    assert (await service.list())[0].status is ProviderSupportStatus.VERIFIED
+
+
+@pytest.mark.asyncio
+async def test_explicit_approval_without_analysis_evidence_stays_unknown() -> None:
+    results = (
+        result(0),
+        result(30),
+        result(60, stage=ProviderCanaryStage.MEDIA),
+        result(90),
+        result(120, error="inspection_timeout"),
+    )
+    service = ProviderStatusService(
+        Reader(results),
+        (baseline(),),
+        now=lambda: NOW,
+        approved_keys=frozenset({"acfun"}),
+    )
+
+    assert (await service.list())[0].status is ProviderSupportStatus.UNKNOWN
+
+
+def test_rejects_approval_for_an_unregistered_provider() -> None:
+    with pytest.raises(ValueError, match="not registered"):
+        ProviderStatusService(
+            Reader(()),
+            (baseline(),),
+            now=lambda: NOW,
+            approved_keys=frozenset({"missing"}),
+        )
 
 
 @pytest.mark.asyncio
@@ -125,6 +176,23 @@ async def test_access_and_repeated_permanent_failures_override_baseline() -> Non
 
     assert (await access.list())[0].status is ProviderSupportStatus.ACCESS_REQUIRED
     assert (await blocked.list())[0].status is ProviderSupportStatus.BLOCKED
+
+
+@pytest.mark.asyncio
+async def test_failures_outside_the_recent_decision_window_do_not_degrade() -> None:
+    service = ProviderStatusService(
+        Reader(
+            (
+                *(result(index) for index in range(5)),
+                result(6, error="inspection_timeout"),
+                result(7, error="extractor_regression"),
+            )
+        ),
+        (baseline(),),
+        now=lambda: NOW,
+    )
+
+    assert (await service.list())[0].status is ProviderSupportStatus.UNKNOWN
 
 
 @pytest.mark.asyncio

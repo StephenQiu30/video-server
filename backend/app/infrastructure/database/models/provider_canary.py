@@ -15,7 +15,8 @@ class ProviderCanaryResultRow(Base):
     __tablename__ = "provider_canary_results"
     __table_args__ = (
         CheckConstraint(
-            "stage IN ('metadata','media')", name="ck_provider_canary_stage"
+            "stage IN ('metadata','media','analysis')",
+            name="ck_provider_canary_stage",
         ),
         CheckConstraint(
             "access_mode IN ('anonymous','operator_managed')",

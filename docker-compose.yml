@@ -44,6 +44,8 @@ x-api-env: &api-env
   AUTH_BOOTSTRAP_ADMIN_EMAIL: "${AUTH_BOOTSTRAP_ADMIN_EMAIL:-}"
   REQUEST_FINGERPRINT_SECRET: "${REQUEST_FINGERPRINT_SECRET:-development-fingerprint-secret-change-me}"
   URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:-ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE=}"
+  PROVIDER_VERIFIED_KEYS: "${PROVIDER_VERIFIED_KEYS:-[]}"
+  PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
   RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
   RUNNER_OPERATOR_BASE_URL: "${RUNNER_OPERATOR_BASE_URL:-}"
   RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
@@ -81,6 +83,7 @@ x-download-env: &download-env
   MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
   MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
   URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:-ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE=}"
+  PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
   RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
   RUNNER_OPERATOR_BASE_URL: "${RUNNER_OPERATOR_BASE_URL:-}"
   RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
@@ -94,7 +97,15 @@ x-canary-env: &canary-env
   RUNNER_OPERATOR_BASE_URL: "${RUNNER_OPERATOR_BASE_URL:-}"
   RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
+  URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:-ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE=}"
+  MINIO_ENDPOINT: "${MINIO_ENDPOINT:-minio:9000}"
+  MINIO_ACCESS_KEY: "${MINIO_CANARY_ACCESS_KEY:-video-canary-access}"
+  MINIO_SECRET_KEY: "${MINIO_CANARY_SECRET_KEY:-video-canary-secret-change-me}"
+  MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
+  MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
   PROVIDER_CANARY_TARGETS: "${PROVIDER_CANARY_TARGETS:-[]}"
+  PROVIDER_VERIFIED_KEYS: "${PROVIDER_VERIFIED_KEYS:-[]}"
+  PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
   PROVIDER_CANARY_METADATA_INTERVAL_SECONDS: "${PROVIDER_CANARY_METADATA_INTERVAL_SECONDS:-21600}"
   PROVIDER_CANARY_MEDIA_INTERVAL_SECONDS: "${PROVIDER_CANARY_MEDIA_INTERVAL_SECONDS:-86400}"
   PROVIDER_CANARY_POLL_SECONDS: "${PROVIDER_CANARY_POLL_SECONDS:-60}"
@@ -120,6 +131,7 @@ x-report-env: &report-env
 
 x-runner-env: &runner-env
   RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
+  PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
   RUNNER_EGRESS_PROXY: "${RUNNER_EGRESS_PROXY:-http://egress-proxy:3128}"
   RUNNER_PROVIDER_EGRESS_PROXIES: "${RUNNER_PROVIDER_EGRESS_PROXIES:-{}}"
   RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
@@ -218,7 +230,7 @@ services:
   provider-canary:
     <<: *app
     environment: *canary-env
-    networks: [db_net, runner_rpc_net]
+    networks: [db_net, storage_net, runner_rpc_net]
     container_name: provider-canary
     command: ["python", "-m", "app.workers.canary.main"]
     volumes:
@@ -227,6 +239,10 @@ services:
       postgres:
         condition: service_healthy
       database-init:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+      minio-init:
         condition: service_completed_successfully
       workspace-init:
         condition: service_completed_successfully
@@ -546,6 +562,8 @@ services:
       MINIO_REPORT_SECRET_KEY: "${MINIO_REPORT_SECRET_KEY:-video-report-secret-change-me}"
       MINIO_ANALYSIS_ACCESS_KEY: "${MINIO_ANALYSIS_ACCESS_KEY:-video-analysis-access}"
       MINIO_ANALYSIS_SECRET_KEY: "${MINIO_ANALYSIS_SECRET_KEY:-video-analysis-secret-change-me}"
+      MINIO_CANARY_ACCESS_KEY: "${MINIO_CANARY_ACCESS_KEY:-video-canary-access}"
+      MINIO_CANARY_SECRET_KEY: "${MINIO_CANARY_SECRET_KEY:-video-canary-secret-change-me}"
       MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
     container_name: minio-init
     networks: [storage_net]

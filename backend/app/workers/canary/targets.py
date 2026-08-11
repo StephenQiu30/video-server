@@ -43,6 +43,10 @@ def parse_canary_targets(value: SecretStr) -> tuple[ProviderCanaryTarget, ...]:
 def _validate_targets(targets: tuple[ProviderCanaryTarget, ...]) -> None:
     identities: set[tuple[str, ProviderCanaryStage]] = set()
     for target in targets:
+        if target.stage is ProviderCanaryStage.ANALYSIS:
+            # Analysis evidence is accepted only by the explicit attestation
+            # command after the normal RabbitMQ/Agent/report workflow succeeds.
+            raise ValueError
         identity = (target.target_id, target.stage)
         if identity in identities:
             raise ValueError
@@ -58,3 +62,10 @@ def _validate_targets(targets: tuple[ProviderCanaryTarget, ...]) -> None:
         ):
             raise ValueError
         provider_request_url(url)
+
+    grouped: dict[str, tuple[str, str]] = {}
+    for target in targets:
+        target_reference = (target.provider_key, target.safe_url())
+        existing = grouped.setdefault(target.target_id, target_reference)
+        if existing != target_reference:
+            raise ValueError
