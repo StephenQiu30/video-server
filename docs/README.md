@@ -8,6 +8,8 @@
 
 交付顺序固定为 `Design → PRD → Plan → Acceptance`：
 
+已完成真实验收的文档集通过受门禁保护的归档命令移动到 `archive/<编号>/`；索引行随归档同步更新，禁止手工移动形成部分归档状态。
+
 | 编号 | 主题 | Design | PRD | Plan | Acceptance |
 | --- | --- | --- | --- | --- | --- |
 | 001 | 单仓与运行时架构 | [Design](design/001-server单仓与运行时架构设计.md) | [PRD](prd/001-server单仓与运行时架构需求.md) | [Plan](plans/001-server单仓与运行时架构计划.md) | [Acceptance](acceptance/001-server单仓与运行时架构验收.md) |

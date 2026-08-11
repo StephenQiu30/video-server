@@ -17,7 +17,7 @@ from app.infrastructure.provider_status import configured_provider_statuses
 from app.runner.provider_registry import configure_provider_instances
 
 
-async def _run() -> int:
+async def pending_provider_statuses() -> tuple[dict[str, str], ...]:
     settings = get_settings_for_role("provider-canary")
     configure_provider_instances(settings.peertube_allowed_instances)
     engine = create_engine(settings.database_url)
@@ -31,11 +31,15 @@ async def _run() -> int:
         views = await service.list()
     finally:
         await engine.dispose()
-    pending = tuple(
+    return tuple(
         {"key": item.key, "status": item.status.value}
         for item in views
         if item.registered and item.status is not ProviderSupportStatus.VERIFIED
     )
+
+
+async def _run() -> int:
+    pending = await pending_provider_statuses()
     print(
         json.dumps(
             {"archive_ready": not pending, "pending": pending},
