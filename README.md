@@ -1,100 +1,167 @@
-# server
+<div align="center">
+  <img src="frontend/public/logo.png" alt="帧取 Logo" width="88" />
+  <h1>帧取</h1>
+  <p><strong>可自托管的多平台公开视频下载与 AI 视觉分析工作流</strong></p>
+  <p>解析真实媒体格式，异步下载并追踪任务，再把视频转化为可检索、可导出的结构化分析报告。</p>
+  <p>
+    <a href="https://github.com/StephenQiu30/video-server/actions/workflows/ci.yml"><img src="https://github.com/StephenQiu30/video-server/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-111111.svg" alt="MIT License" /></a>
+    <img src="https://img.shields.io/badge/Python-3.12-3776AB.svg" alt="Python 3.12" />
+    <img src="https://img.shields.io/badge/Node.js-24-339933.svg" alt="Node.js 24" />
+  </p>
+  <p>
+    <a href="#快速开始">快速开始</a> ·
+    <a href="#界面预览">界面预览</a> ·
+    <a href="#工作流与架构">工作流与架构</a> ·
+    <a href="#文档">文档</a>
+  </p>
+</div>
 
-`server` 是万能视频下载器的统一服务仓库。前端源码、后端 API、Outbox、下载 Worker、宿主机 AI Worker 和运行编排在同一个仓库内维护。
+![帧取媒体解析与格式选择页面](docs/images/home.png)
 
-## 目录
+> 截图使用仓库内置视觉回归媒体资产，不包含真实用户数据或第三方图片热链。
 
-```text
-server/
-├── backend/       FastAPI、领域逻辑、Worker、当前态 SQL 与测试
-├── frontend/      Next.js App Router、Radix UI、Tailwind CSS 前端与测试
-├── docs/          当前 Design、PRD、Plan、Acceptance 与运维文档
-├── Dockerfile
-├── docker-compose.yml       本地完整服务拓扑（.env、宿主机端口）
-└── docker-compose-prod.yml  生产环境覆盖（.env.prod、镜像与端口）
+## 为什么使用帧取
+
+- **真实格式解析**：从公开链接或只包含单个链接的分享文案中读取媒体信息，直接呈现后端返回的可用格式。
+- **可靠异步下载**：RabbitMQ、Transactional Outbox 与独立 Worker 共同驱动任务，WebSocket 实时同步状态。
+- **完整任务闭环**：支持下载历史、进度查看、取消、重试以及 MinIO 预签名文件获取。
+- **结构化 AI 分析**：通过宿主机 Codex CLI 或 Claude CLI 适配器生成连续分镜、高光、视觉资产与制作建议，并导出 Markdown / DOCX；当前真实视觉闭环以 Codex 为验收基线。
+- **账户与管理能力**：提供 HttpOnly Cookie 会话、用户资料、角色管理、Provider 状态和下载数据分析。
+- **默认安全边界**：入口 URL 校验、私网阻断、受控出口、Runner HMAC 与 Secret 隔离贯穿下载链路。
+
+项目只面向你有权处理的**公开、非 DRM** 内容。帧取不会绕过 DRM，也不承诺私密、会员、付费或受地域限制的内容可用。
+
+## 界面预览
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/providers.png" alt="平台状态页面" /></td>
+    <td width="50%"><img src="docs/images/login.png" alt="登录页面" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>平台能力与最近验证状态</strong></td>
+    <td align="center"><strong>账户登录与安全会话入口</strong></td>
+  </tr>
+</table>
+
+主要页面均采用响应式、可键盘操作的 Next.js App Router 界面：
+
+| 路由 | 作用 |
+| --- | --- |
+| `/` | 解析媒体、选择真实格式并创建下载任务 |
+| `/history` | 搜索和分页查看自己的下载历史 |
+| `/downloads/detail?jobId=...` | 查看下载进度、获取文件并发起或阅读 AI 分析 |
+| `/providers` | 查看平台能力、访问模式与最近验证状态 |
+| `/account` | 管理公开用户名并查看账户信息 |
+| `/admin/analytics` | 查看下载 KPI、每日趋势与来源表现 |
+| `/admin/users` | 搜索用户并管理角色与启用状态 |
+| `/user/login`、`/user/register` | 登录、注册与受保护页面回跳 |
+
+除登录和注册外，业务页面需要有效会话；管理员页面还会由后端独立校验角色。
+
+## 快速开始
+
+### Docker Compose
+
+需要 Docker Engine 与 Docker Compose。复制本地环境模板后启动完整拓扑：
+
+```bash
+git clone https://github.com/StephenQiu30/video-server.git
+cd video-server
+cp .env.example .env
+docker compose --env-file .env -f docker-compose.yml up -d --build
 ```
 
-生产环境不运行独立的前端容器。根目录 `Dockerfile` 先构建 `frontend/`，再将静态产物复制到统一 Python 镜像，由 FastAPI 同源提供页面和 `/api/*` 接口。API 与下载 Worker 使用同一代码镜像；AI Worker 作为本机登录用户的宿主机进程运行，以复用 Codex 或 Claude CLI 的 OAuth 登录。
+启动完成后访问：
 
-## 本地开发
+- Web 应用：<http://localhost:8101>
+- Swagger UI：<http://localhost:8101/docs>
+- OpenAPI 契约：<http://localhost:8101/openapi.json>
 
-前端要求 Node.js 24 LTS 与 npm 11.19，具体范围以 `frontend/package.json` 为准。
+首次对外暴露服务前，请检查并替换 `.env` 中的示例配置。完整的启动、健康检查、停止与故障恢复步骤见[运行手册](docs/operations/001-root-compose运行手册.md)。
+
+### 启用 AI 分析
+
+AI Worker 复用宿主机已经完成 OAuth 登录的 Codex CLI 或 Claude CLI，不把 CLI 认证目录挂载进容器。完成对应 CLI 登录后，从 `backend/` 启动：
 
 ```bash
 cd backend
 uv sync --frozen --dev
-uv run pytest -q
+uv run python -m app.workers.analysis.main
+```
 
-cd ../frontend
+下载能力不依赖 AI Worker。启用分析时，选定的抽帧会交给所选云端模型观察；视频容器不会直接上传，但这些帧可能离开本机。请先确认内容授权、模型服务条款和组织的数据策略。
+
+当前默认验收 Provider 为 Codex；启用 Claude 前，请先用真实视频 canary 验证模型路由与图片理解能力。
+
+## 工作流与架构
+
+`解析链接 → 选择格式 → 创建任务 → 异步下载 → 获取文件 → AI 分析与报告导出`
+
+```mermaid
+flowchart LR
+  Browser["浏览器"] --> API["FastAPI + 静态前端"]
+  API --> DB["PostgreSQL"]
+  DB --> Outbox["Outbox Worker"]
+  Outbox --> MQ["RabbitMQ"]
+  MQ --> Download["下载 Worker"]
+  Download --> Runner["隔离 Media Runner"]
+  Runner --> Proxy["受控 Egress Proxy"]
+  Download --> Storage["MinIO"]
+  MQ --> AI["宿主机 AI Worker"]
+  AI <--> Storage
+  API -. "WebSocket 状态" .-> Browser
+```
+
+前端使用 Next.js 16、React 19、TypeScript、Tailwind CSS 与 Radix UI；后端使用 Python 3.12、FastAPI、PostgreSQL、RabbitMQ、Valkey 和 MinIO。生产镜像先静态导出前端，再由 FastAPI 同源交付页面、`/api/*` 与 WebSocket，不运行独立的前端生产容器。
+
+## 平台与能力状态
+
+内置目录覆盖 YouTube、哔哩哔哩、抖音、快手、小红书、TikTok、Vimeo、X / Twitter、Instagram、Facebook、Twitch、Reddit 等公开媒体来源，并可继续交给无凭据的 yt-dlp Generic extractor 尝试解析。
+
+**目录登记不代表当前版本实时可用。** 平台可能处于“已验证”“需要会话”或“待验证”状态；请以应用内 `/providers` 或 `GET /api/providers` 的结果为准。需要受控会话的平台必须遵循对应的隔离部署与验收门禁。
+
+## 本地开发
+
+前端要求 Node.js 24 与 npm 11.19，后端要求 Python 3.12 与 [uv](https://docs.astral.sh/uv/)。先通过 Compose 启动 API 与基础设施，再运行前端开发服务器：
+
+```bash
+cd frontend
 npm ci
 npm run dev
 ```
 
-前端开发服务器固定将 `/api/` 和 `/health/` 代理到 `http://127.0.0.1:8101`；生产构建使用相对 API 路径，不需要浏览器可见的后端地址。
+开发页面位于 <http://127.0.0.1:8000>，并将 `/api/*` 与 `/health/*` 代理到 `127.0.0.1:8101`。接口变化后，在 API 运行时执行 `npm run openapi` 重新生成客户端；不要手工修改 `frontend/src/services/video/`。
 
-## API 文档与客户端
-
-API 启动后访问 `/docs` 查看 Swagger UI，访问 `/openapi.json` 获取 OpenAPI 契约。公共业务接口统一位于 `/api/*`，当前不维护没有实际兼容需求的版本目录或 `/api/v1` 前缀。
-
-前端接口类型和请求方法完全由该契约生成，请求统一通过 Axios 封装：
+与 CI 一致的质量检查：
 
 ```bash
-cd frontend
-npm run openapi
+# backend/
+uv sync --frozen --dev
+uv run --frozen ruff check .
+uv run --frozen ruff format --check .
+uv run --frozen mypy --strict app
+uv run --frozen pytest -q
+
+# frontend/
+npm ci
+npm run lint
+npm run format:check
+npm test
+npm run build
 ```
 
-该命令直接使用 `@umijs/openapi` 和 `frontend/openapi2ts.config.ts` 读取 FastAPI 的 `/openapi.json`，更新 `frontend/src/services/video/`；生成代码通过 `frontend/src/lib/request.ts` 调用同源 Axios 实例。执行前需启动后端 API，可用 `OPENAPI_SCHEMA_URL` 临时覆盖契约地址。
+## 文档
 
-管理员可从 `/admin/analytics` 查看 7、30 或 90 天的下载摘要、每日趋势和视频来源分布；数据由 `GET /api/admin/downloads/analytics` 从 PostgreSQL 聚合。原始 URL 仍只以密文包保存在解析记录中，统计响应不返回 URL、`owner_hash`、`provider_hints` 或 `error_message`。
+- [文档索引](docs/README.md)：Design、PRD、Plan、Acceptance、研究与运维资料
+- [后端说明](backend/README.md) / [前端说明](frontend/README.md)：模块边界与开发方式
+- [运行手册](docs/operations/001-root-compose运行手册.md)：Compose 拓扑、健康检查与恢复
+- [贡献指南](CONTRIBUTING.md)：开发流程、质量门禁与提交规范
+- [安全策略](SECURITY.md)：安全边界与漏洞报告方式
 
-## 视频源
+## 贡献与许可
 
-Media Runner 通过版本化 Provider Profile 统一处理 YouTube、Bilibili、抖音、快手、TikTok、小红书、Vimeo、X/Twitter、Instagram、Facebook、Twitch、Reddit、Pinterest、微博、优酷、腾讯视频、Dailymotion 和 NicoNico 等公开媒体链接；未登记的 HTTP(S) 地址继续交给无凭据的 yt-dlp Generic extractor。登记域名不等于已经验证，实际状态通过 `GET /api/providers` 查询。YouTube 可显式启用独立运维 Runner 的受控会话与 PO Token sidecar；普通请求仍不接受 Cookie，private、会员、购买和 DRM 内容仍会拒绝。
+欢迎提交 Issue 与 Pull Request。开始前请阅读[贡献指南](CONTRIBUTING.md)，并保持 `Design → PRD → Plan → Acceptance` 的交付链、OpenAPI 契约和测试证据同步。
 
-首页与 API 都支持只包含一个 HTTP(S) 链接的公开分享文案；首页会先提取链接，因此标题、话题和复制提示不会随请求发送。抖音与快手公开单视频优先由随 Runner 交付的可信插件读取各自第一方公开分享页，再进入原有格式选择、下载和制品校验链路；快手短链重定向只接受第一方域名，图集不会伪装成单视频。该能力不上传 Cookie、不生成平台签名，也不承诺无水印、原始母版或受限内容可用。
-
-## 容器运行
-
-根目录两份 Compose 按职责分层，不使用 `deploy/` 目录：Compose 启动 API、下载链路和基础设施，宿主机单独启动 AI Worker；生产文件只覆盖生产差异。
-
-| 文件 | 用途 | 启动方式 |
-| --- | --- | --- |
-| `docker-compose.yml` | 本地 `.env`、API/下载拓扑、基础设施、健康检查和卷 | 启动本地基础环境 |
-| `docker-compose-prod.yml` | 生产 `.env.prod`、生产镜像、容器名和对外端口 | 与基础配置组合 |
-
-```bash
-cp .env.example .env
-docker compose --env-file .env -f docker-compose.yml up -d --build
-
-# 生产环境使用基础拓扑叠加生产差异
-cp .env.prod.example .env.prod
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod.yml up -d --build
-```
-
-本地 `docker-compose.yml` 负责本地环境插值、宿主机端口和完整服务拓扑。每次启动时，
-`database-init` 会在 PostgreSQL 健康后幂等执行当前 `backend/sql/schema.sql`；只有初始化成功，
-API、Outbox 和下载 Worker 才会启动。已有数据卷会补建缺失的当前表和索引，不再依赖
-PostgreSQL 仅在空数据目录执行的 `/docker-entrypoint-initdb.d`。随后，
-`docker-compose-prod.yml` 负责生产环境校验、镜像和对外端口。Compose 使用带环境前缀的稳定容器名，
-不会出现 `xxx-1` 这类副本后缀；生产覆盖会在 Compose 解析阶段校验关键变量。环境变量模板只维护在
-`.env.example` 与 `.env.prod.example`；真实本地值放在被 Git 忽略的 `.env` 或
-`.env.prod` 中。
-
-API 的短窗口限流状态存放在独立 Valkey 服务；数据库、队列、配额、对象存储和 Runner RPC 使用独立内部网络，Media Runner 只接收 Runner HMAC 与受控出口代理配置。
-
-AI 分析通过宿主机 Codex CLI 或 Claude CLI adapter 运行，不使用项目 API Key、本地 ASR 或本地模型。当前本机已验收的默认 Provider 是 Codex；启用 Claude 前必须确认实际模型路由能理解 Read 图片并通过真实视频 canary。先完成对应 CLI 登录，再从 `backend/` 启动 Worker：
-
-```bash
-cd backend
-uv run python -m app.workers.analysis.main
-```
-
-Worker 会先验证 CLI、OAuth 登录、FFmpeg 与 FFprobe，再连接队列。应用把受限抽帧交给所选云端模型观察，因此这不是离线推理；视频容器不直接上传，但模型查看的帧会离开本机。本地与生产 API 默认开启 `ANALYSIS_ENABLED`；生产部署必须在同一宿主机持续运行已登录 OAuth 的 Worker，否则分析任务会保持排队状态。
-
-服务入口默认为 <http://localhost:8101>。本地使用 `docker-compose.yml`，生产使用基础配置叠加 `docker-compose-prod.yml`。
-
-当前架构依据见 [`docs/design/001-server单仓与运行时架构设计.md`](docs/design/001-server单仓与运行时架构设计.md) 与 [`docs/design/010-Codex与Claude CLI视频分析设计.md`](docs/design/010-Codex与Claude CLI视频分析设计.md)。数据库只保留可重复执行的 [`backend/sql/schema.sql`](backend/sql/schema.sql) 当前定义，由 Compose 在每次启动时初始化并校验依赖顺序，不维护历史迁移和兼容分支。002 已通过受控直链 MP4 的真实下载闭环验收；010 的自动化与真实 CLI 验收状态以对应 Acceptance 文档为准。
-
-## 贡献与提交
-
-项目结构、架构边界和质量门禁见 [`AGENTS.md`](AGENTS.md)，贡献流程见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。每个可独立验证的小任务使用 Conventional Commits 格式和中文描述提交，例如 `feat(api): 增加下载任务取消接口`；不需要作用域时写成 `feat: 增加功能`，不要使用空作用域 `feat(): ...`。首次克隆后可按贡献指南启用仓库提交模板与本地校验钩子，CI 也会检查新增提交。
+项目基于 [MIT License](LICENSE) 开源。下载、保存或分析媒体前，请确认你拥有相应权利，并遵守内容来源、所在地和部署环境适用的规则。
