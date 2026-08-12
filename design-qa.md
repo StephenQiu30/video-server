@@ -83,7 +83,7 @@ final result: passed
 - 下载分析页继续使用无边框内容流：页面、筛选、指标、趋势和来源区均无 Card 外壳与装饰边框；仅指标列、数据表行保留必要发丝分隔，趋势绘图区使用无描边的中性实心表面。
 - 7/30/90 天筛选改为单选 Radix Toggle Group；趋势图例使用多选 Radix Toggle Group，支持键盘逐项切换全部、成功、失败与取消系列；成功率和来源占比使用 Radix Progress，并保留等价精确数据表。
 - 趋势图新增低对比总量面积层、末端数据点、日均任务与单日峰值摘要。桌面浅色、桌面深色和 390×844 移动端均完成真实渲染检查；系列开关高度为 44px，状态切换不改变布局几何。
-- 桌面证据：`E:/StephenQiu/Video/qa-output/analytics-radix-desktop-final.png`；移动证据：`E:/StephenQiu/Video/qa-output/analytics-radix-mobile-final.png`；深色证据：`E:/StephenQiu/Video/qa-output/analytics-radix-dark.png`。
+- 桌面证据：`E:/StephenQiu/Video/qa-output/archive/analytics-radix-20260812/analytics-radix-desktop-final.png`；移动证据：`E:/StephenQiu/Video/qa-output/archive/analytics-radix-20260812/analytics-radix-mobile-final.png`；深色证据：`E:/StephenQiu/Video/qa-output/archive/analytics-radix-20260812/analytics-radix-dark.png`。
 - 1440px 桌面与 390px 移动端均满足 `scrollWidth = clientWidth`；移动列表按 Item 摘要重排，未出现表格横向滚动。浏览器控制台仅包含开发态 React DevTools/HMR 信息，无产品代码错误。
 - 当前工程门槛：lint/typecheck 通过；format check 172 个文件通过；31 个测试文件、108 项测试通过；Next.js 生产构建与 11 个静态页面导出通过。
 
