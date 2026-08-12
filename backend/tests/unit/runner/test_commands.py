@@ -292,3 +292,42 @@ async def test_kuaishou_image_post_is_classified_as_unsupported(
 
     assert caught.value.code == "provider_unsupported"
     assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
+async def test_facebook_image_post_is_classified_as_unsupported_media(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(
+            b"ERROR: Facebook image and multi-asset posts are not supported "
+            b"by the video runner"
+        ),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect(
+            "https://www.facebook.com/share/p/example/", tmp_path
+        )
+
+    assert caught.value.code == "provider_media_unsupported"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
+async def test_facebook_parse_failure_is_classified_as_extractor_regression(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(b"ERROR: [facebook] 123: Cannot parse data"),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect(
+            "https://www.facebook.com/example/videos/123/", tmp_path
+        )
+
+    assert caught.value.code == "extractor_regression"
+    assert caught.value.status == 502

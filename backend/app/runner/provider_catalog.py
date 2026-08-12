@@ -52,6 +52,7 @@ def _standard(
     capabilities: frozenset[ProviderCapability] | None = None,
     status: ProviderSupportStatus = ProviderSupportStatus.UNKNOWN,
     operator_cookie_domains: frozenset[str] = frozenset(),
+    command_args: tuple[str, ...] = (),
 ) -> ProviderProfile:
     return ProviderProfile(
         key,
@@ -75,6 +76,7 @@ def _standard(
         ),
         cookie_domain_allowlist=operator_cookie_domains,
         credential_concurrency=1 if operator_cookie_domains else 0,
+        command_args=command_args,
         normalize_url=normalize_url,
     )
 
@@ -253,8 +255,15 @@ DEFAULT_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
     _standard(
         "facebook",
         "Facebook",
-        ("facebook.com", "www.facebook.com", "m.facebook.com", "fb.watch"),
+        (
+            "facebook.com",
+            "www.facebook.com",
+            "web.facebook.com",
+            "m.facebook.com",
+            "fb.watch",
+        ),
         operator_cookie_domains=frozenset({"facebook.com"}),
+        command_args=_CHROME_IMPERSONATION,
     ),
     _standard("twitch", "Twitch", ("twitch.tv", "www.twitch.tv", "clips.twitch.tv")),
     _standard(

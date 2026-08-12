@@ -15,6 +15,8 @@ def classify_provider_failure(
     command_text = " ".join(command).casefold()
     if _unsupported_provider(command_text, text):
         return "provider_unsupported", 422
+    if _unsupported_media(command_text, text):
+        return "provider_media_unsupported", 422
     if _unavailable_share_link(command_text, text):
         return "provider_link_unavailable", 422
     if _any(text, b"only drm protected formats", b"this video is drm protected"):
@@ -65,6 +67,15 @@ def classify_provider_failure(
     )
     if requires_fresh_cookies or requires_vimeo_login or requires_account:
         return "credential_required", 422
+    if (
+        "facebook.com" in command_text
+        and _any(
+            text,
+            b"cannot parse data",
+            b"facebook post media structure could not be identified",
+        )
+    ):
+        return "extractor_regression", 502
     if _any(
         text,
         b"unable to extract",
@@ -121,6 +132,12 @@ def _unsupported_provider(command: str, stderr: bytes) -> bool:
         )
     )
     return wechat or kuaishou_image
+
+
+def _unsupported_media(command: str, stderr: bytes) -> bool:
+    return "facebook.com" in command and (
+        b"facebook image and multi-asset posts are not supported" in stderr
+    )
 
 
 def _any(value: bytes, *markers: bytes) -> bool:

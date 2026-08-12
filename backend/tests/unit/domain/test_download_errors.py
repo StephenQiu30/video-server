@@ -15,6 +15,7 @@ def test_error_codes_are_stable_snake_case_values() -> None:
         "provider_drm_protected",
         "provider_geo_restricted",
         "provider_link_unavailable",
+        "provider_media_unsupported",
         "provider_rate_limited",
         "provider_session_expired",
         "provider_temporarily_unavailable",

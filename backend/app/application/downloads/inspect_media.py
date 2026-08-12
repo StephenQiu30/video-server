@@ -13,6 +13,7 @@ from app.application.downloads.errors import (
     MediaInspectionFailure,
     MediaInspectionGeoRestricted,
     MediaInspectionLinkUnavailable,
+    MediaInspectionMediaUnsupported,
     MediaInspectionRateLimited,
     MediaInspectionSessionExpired,
     MediaInspectionTemporarilyUnavailable,
@@ -110,6 +111,10 @@ class InspectMedia:
         except MediaInspectionLinkUnavailable as exc:
             raise ApplicationError(
                 ApplicationErrorCode.PROVIDER_LINK_UNAVAILABLE
+            ) from exc
+        except MediaInspectionMediaUnsupported as exc:
+            raise ApplicationError(
+                ApplicationErrorCode.PROVIDER_MEDIA_UNSUPPORTED
             ) from exc
         except MediaInspectionUnsupported as exc:
             raise ApplicationError(ApplicationErrorCode.PROVIDER_UNSUPPORTED) from exc

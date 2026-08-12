@@ -9,6 +9,7 @@ from app.application.downloads.errors import (
     MediaInspectionAuthRequired,
     MediaInspectionFailure,
     MediaInspectionLinkUnavailable,
+    MediaInspectionMediaUnsupported,
     MediaInspectionTimeout,
     MediaInspectionUnsupported,
 )
@@ -109,6 +110,38 @@ async def test_inspect_exposes_unsupported_provider() -> None:
 
     with pytest.raises(MediaInspectionUnsupported):
         await client.inspect("https://weixin.qq.com/sph/AFWYoXF5Bw")
+
+    await http.aclose()
+
+
+@pytest.mark.asyncio
+async def test_inspect_exposes_unsupported_provider_media() -> None:
+    async def respond(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            422,
+            json={
+                "error": {
+                    "code": "provider_media_unsupported",
+                    "message": "provider media unsupported",
+                }
+            },
+        )
+
+    http = httpx.AsyncClient(
+        base_url="http://runner",
+        transport=httpx.MockTransport(respond),
+    )
+    client = MediaRunnerHttpClient(
+        base_url="http://runner",
+        secret=b"s" * 32,
+        workspace_root=Path("."),
+        inspect_timeout_seconds=1,
+        download_timeout_seconds=1,
+        client=http,
+    )
+
+    with pytest.raises(MediaInspectionMediaUnsupported):
+        await client.inspect("https://www.facebook.com/share/p/example/")
 
     await http.aclose()
 

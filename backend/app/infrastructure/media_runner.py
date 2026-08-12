@@ -24,6 +24,7 @@ from app.application.downloads.errors import (
     MediaInspectionDrmProtected,
     MediaInspectionGeoRestricted,
     MediaInspectionLinkUnavailable,
+    MediaInspectionMediaUnsupported,
     MediaInspectionRateLimited,
     MediaInspectionSessionExpired,
     MediaInspectionTemporarilyUnavailable,
@@ -127,6 +128,8 @@ class MediaRunnerHttpClient:
                 raise MediaInspectionTemporarilyUnavailable from exc
             if exc.code == "provider_link_unavailable":
                 raise MediaInspectionLinkUnavailable from exc
+            if exc.code == "provider_media_unsupported":
+                raise MediaInspectionMediaUnsupported from exc
             if exc.code == "provider_unsupported":
                 raise MediaInspectionUnsupported from exc
             if exc.code == "inspection_timeout":

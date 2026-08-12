@@ -94,6 +94,7 @@ class DownloadErrorCode(StrEnum):
     PROVIDER_DRM_PROTECTED = "provider_drm_protected"
     PROVIDER_GEO_RESTRICTED = "provider_geo_restricted"
     PROVIDER_LINK_UNAVAILABLE = "provider_link_unavailable"
+    PROVIDER_MEDIA_UNSUPPORTED = "provider_media_unsupported"
     PROVIDER_RATE_LIMITED = "provider_rate_limited"
     PROVIDER_SESSION_EXPIRED = "provider_session_expired"
     PROVIDER_TEMPORARILY_UNAVAILABLE = "provider_temporarily_unavailable"

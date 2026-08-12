@@ -119,6 +119,14 @@ _ERRORS: dict[ApplicationErrorCode, tuple[int, str, str]] = {
             "Copy a fresh public sharing link and try again."
         ),
     ),
+    ApplicationErrorCode.PROVIDER_MEDIA_UNSUPPORTED: (
+        422,
+        "Unsupported media type",
+        (
+            "The submitted link does not contain one supported video. "
+            "Image and multi-attachment posts are not supported."
+        ),
+    ),
     ApplicationErrorCode.PROVIDER_UNSUPPORTED: (
         422,
         "Provider unsupported",

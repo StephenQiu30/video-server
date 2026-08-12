@@ -160,6 +160,7 @@ def test_registry_classifies_mainstream_platform_hosts() -> None:
         "x.com": "x",
         "www.instagram.com": "instagram",
         "fb.watch": "facebook",
+        "web.facebook.com": "facebook",
         "clips.twitch.tv": "twitch",
         "redd.it": "reddit",
         "pin.it": "pinterest",

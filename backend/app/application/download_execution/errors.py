@@ -52,6 +52,7 @@ _RUNNER_CODES = {
     "provider_rate_limited": DownloadErrorCode.PROVIDER_RATE_LIMITED,
     "provider_geo_restricted": DownloadErrorCode.PROVIDER_GEO_RESTRICTED,
     "provider_link_unavailable": DownloadErrorCode.PROVIDER_LINK_UNAVAILABLE,
+    "provider_media_unsupported": DownloadErrorCode.PROVIDER_MEDIA_UNSUPPORTED,
     "content_deleted": DownloadErrorCode.PROVIDER_LINK_UNAVAILABLE,
     "content_private": DownloadErrorCode.PROVIDER_CONTENT_RESTRICTED,
     "content_not_entitled": DownloadErrorCode.PROVIDER_CONTENT_RESTRICTED,

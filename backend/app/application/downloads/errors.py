@@ -24,6 +24,7 @@ class ApplicationErrorCode(StrEnum):
     PROVIDER_DRM_PROTECTED = "provider_drm_protected"
     PROVIDER_TEMPORARILY_UNAVAILABLE = "provider_temporarily_unavailable"
     PROVIDER_LINK_UNAVAILABLE = "provider_link_unavailable"
+    PROVIDER_MEDIA_UNSUPPORTED = "provider_media_unsupported"
     PROVIDER_UNSUPPORTED = "provider_unsupported"
     RESOURCE_EXPIRED = "resource_expired"
 
@@ -84,6 +85,10 @@ class MediaInspectionTemporarilyUnavailable(MediaInspectionFailure):
 
 class MediaInspectionLinkUnavailable(MediaInspectionFailure):
     """The submitted provider link no longer resolves to playable media."""
+
+
+class MediaInspectionMediaUnsupported(MediaInspectionFailure):
+    """The submitted provider item is not a supported single video."""
 
 
 class MediaInspectionUnsupported(MediaInspectionFailure):

@@ -90,6 +90,11 @@ async def test_runner_and_storage_failures_converge_before_ack(tmp_path) -> None
             False,
         ),
         ("provider_rate_limited", DownloadErrorCode.PROVIDER_RATE_LIMITED, True),
+        (
+            "provider_media_unsupported",
+            DownloadErrorCode.PROVIDER_MEDIA_UNSUPPORTED,
+            False,
+        ),
         ("content_private", DownloadErrorCode.PROVIDER_CONTENT_RESTRICTED, False),
         ("drm_protected", DownloadErrorCode.PROVIDER_DRM_PROTECTED, False),
         (
