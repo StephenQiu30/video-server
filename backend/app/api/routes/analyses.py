@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi.exceptions import RequestValidationError
 
 from app.api.auth_dependencies import get_current_user
 from app.api.dependencies import (
@@ -218,11 +219,20 @@ async def retry_analysis(
     user: User,
     use_cases: UseCases,
 ) -> AnalysisResponse:
-    """为同一分析任务创建下一执行代次，不改变任务资源 ID。"""
+    """为同一分析任务创建下一执行代次，不改变任务资源 ID。
+
+    Retry 是上一运行的无参数重放；带请求体的请求按校验错误拒绝。
+    """
     if (await request.body()).strip() not in {b"", b"null"}:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="retry request body must be empty",
+        raise RequestValidationError(
+            errors=[
+                {
+                    "type": "extra_forbidden",
+                    "loc": ("body",),
+                    "msg": "Retry does not accept a request body.",
+                    "input": None,
+                }
+            ]
         )
     try:
         view = await use_cases.retry_analysis(

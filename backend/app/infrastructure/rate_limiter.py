@@ -96,5 +96,6 @@ _POLICIES = {
     "register": RateLimitPolicy(limit=5, window_seconds=3600),
     "inspect": RateLimitPolicy(limit=20, window_seconds=60),
     "download": RateLimitPolicy(limit=10, window_seconds=60),
+    "download_retry": RateLimitPolicy(limit=5, window_seconds=60),
     "analysis": RateLimitPolicy(limit=5, window_seconds=60),
 }

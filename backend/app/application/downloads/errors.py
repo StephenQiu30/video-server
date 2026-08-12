@@ -91,6 +91,10 @@ class MediaInspectionMediaUnsupported(MediaInspectionFailure):
     """The submitted provider item is not a supported single video."""
 
 
+class MediaInspectionFormatUnavailable(MediaInspectionFailure):
+    """The media resolved but offers no supported semantic download format."""
+
+
 class MediaInspectionUnsupported(MediaInspectionFailure):
     """The provider is outside the capabilities of the secure runner."""
 

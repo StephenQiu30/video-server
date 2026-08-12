@@ -217,3 +217,58 @@ async def test_download_store_maps_cancellation() -> None:
 
     assert cancelled.status == "cancelled"
     await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_get_inspection_filters_expired_formats() -> None:
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as connection:
+        await connection.run_sync(database.Base.metadata.create_all)
+    repository = database.SqlAlchemyDownloadRepository(
+        async_sessionmaker(engine, expire_on_commit=False)
+    )
+    store = SqlAlchemyDownloadStore(repository)
+    inspection_id, fresh_format_id, stale_format_id = uuid4(), uuid4(), uuid4()
+    owner = "a" * 64
+    fresh_expires = NOW + timedelta(hours=1)
+
+    await store.save_inspection(
+        application.InspectionCreate(
+            id=inspection_id,
+            owner_hash=owner,
+            idempotency_key="inspect-expiry",
+            request_fingerprint="f" * 64,
+            url_ciphertext=b"encrypted",
+            url_nonce=b"n" * 16,
+            url_key_id="fernet-v1",
+            extractor_key="Example",
+            provider_media_id="media-1",
+            title="Controlled sample",
+            duration_seconds=10,
+            metadata={"thumbnail_url": "data:image/avif;base64,Y292ZXI="},
+            expires_at=fresh_expires,
+            formats=(
+                application.FormatCreate(
+                    id=fresh_format_id,
+                    display_name="720p MP4",
+                    plan_fingerprint="p" * 64,
+                    semantic_plan={"height": 720},
+                    provider_hints={"video_id": "v1"},
+                    expires_at=fresh_expires,
+                ),
+                application.FormatCreate(
+                    id=stale_format_id,
+                    display_name="过期格式",
+                    plan_fingerprint="s" * 64,
+                    semantic_plan={"height": 360},
+                    provider_hints={"video_id": "v2"},
+                    expires_at=NOW - timedelta(minutes=1),
+                ),
+            ),
+        )
+    )
+
+    loaded = await store.get_inspection(inspection_id, owner, NOW)
+
+    assert [f.display_name for f in loaded.formats] == ["720p MP4"]
+    await engine.dispose()

@@ -95,7 +95,6 @@ class MediaRepository(RepositoryBase):
     async def get_inspection(
         self, inspection_id: UUID, owner_hash: str, now: datetime
     ) -> InspectionSnapshot:
-        del now
         async with self._sessions() as session:
             row = await session.scalar(
                 select(MediaInspectionRow).where(
@@ -105,7 +104,7 @@ class MediaRepository(RepositoryBase):
             )
             if row is None:
                 raise RepositoryNotFound("media inspection does not exist")
-            return await self._snapshot(session, row)
+            return await self._snapshot(session, row, now=now)
 
     @staticmethod
     async def _snapshot(

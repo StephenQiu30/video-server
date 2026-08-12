@@ -124,6 +124,7 @@ export default function DownloadHistoryView() {
               <InputGroupAddon align="inline-end">
                 <InputGroupButton
                   aria-label="搜索下载历史"
+                  className="size-11"
                   size="icon-sm"
                   type="submit"
                 >

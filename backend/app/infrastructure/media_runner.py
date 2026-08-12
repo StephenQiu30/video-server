@@ -22,6 +22,7 @@ from app.application.downloads.errors import (
     MediaInspectionAuthRequired,
     MediaInspectionContentRestricted,
     MediaInspectionDrmProtected,
+    MediaInspectionFormatUnavailable,
     MediaInspectionGeoRestricted,
     MediaInspectionLinkUnavailable,
     MediaInspectionMediaUnsupported,
@@ -130,6 +131,8 @@ class MediaRunnerHttpClient:
                 raise MediaInspectionLinkUnavailable from exc
             if exc.code == "provider_media_unsupported":
                 raise MediaInspectionMediaUnsupported from exc
+            if exc.code == "format_unavailable":
+                raise MediaInspectionFormatUnavailable from exc
             if exc.code == "provider_unsupported":
                 raise MediaInspectionUnsupported from exc
             if exc.code == "inspection_timeout":

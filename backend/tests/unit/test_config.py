@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from app.core.config import Settings
+from app.core.config import DEFAULT_URL_ENCRYPTION_KEY, Settings
 from pydantic import SecretStr, ValidationError
 
 
@@ -175,7 +175,50 @@ def test_production_canary_requires_dedicated_storage_credentials() -> None:
             url_encryption_key=SecretStr(
                 "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
             ),
+            _env_file=None,
         )
+
+
+@pytest.mark.parametrize(
+    "role",
+    (
+        "api",
+        "outbox",
+        "download-worker",
+        "analysis-worker",
+        "report-worker",
+        "provider-canary",
+    ),
+)
+def test_production_rejects_default_url_key_for_every_role(role: str) -> None:
+    kwargs: dict[str, object] = {
+        "app_env": "production",
+        "service_role": role,
+        "database_url": "postgresql+asyncpg://app:db-secret@postgres:5432/video",
+    }
+    if role in {"api", "outbox", "download-worker"}:
+        kwargs["rabbitmq_url"] = "amqp://app:mq-secret@rabbitmq:5672/"
+        kwargs["auth_jwt_secret"] = SecretStr("s" * 48)
+        kwargs["request_fingerprint_secret"] = SecretStr("f" * 48)
+        kwargs["runner_hmac_secret"] = SecretStr("r" * 48)
+        kwargs["minio_access_key"] = SecretStr("production-access")
+        kwargs["minio_secret_key"] = SecretStr("m" * 48)
+    elif role == "analysis-worker":
+        kwargs["analysis_rabbitmq_url"] = "amqp://app:mq-secret@rabbitmq:5672/"
+        kwargs["analysis_minio_access_key"] = SecretStr("production-access")
+        kwargs["analysis_minio_secret_key"] = SecretStr("m" * 48)
+    elif role == "report-worker":
+        kwargs["minio_access_key"] = SecretStr("production-access")
+        kwargs["minio_secret_key"] = SecretStr("m" * 48)
+    elif role == "provider-canary":
+        kwargs["rabbitmq_url"] = "amqp://app:mq-secret@rabbitmq:5672/"
+        kwargs["runner_hmac_secret"] = SecretStr("r" * 48)
+        kwargs["minio_access_key"] = SecretStr("production-access")
+        kwargs["minio_secret_key"] = SecretStr("m" * 48)
+
+    # All roles share the same default URL key; leaving it unset must fail closed.
+    with pytest.raises(ValidationError, match="production secrets"):
+        Settings(**kwargs, url_encryption_key=SecretStr(DEFAULT_URL_ENCRYPTION_KEY))
 
 
 def test_analysis_cli_settings_use_host_services_without_api_keys() -> None:

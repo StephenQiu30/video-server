@@ -14,11 +14,13 @@ class AsyncWorkerPool[T]:
         processor: Callable[[T], Awaitable[None]],
         *,
         workers: int,
+        drain_timeout: float = 60.0,
     ) -> None:
         if workers < 1:
             raise ValueError("worker count must be positive")
         self._processor = processor
         self._workers = workers
+        self._drain_timeout = drain_timeout
         self._queue: asyncio.Queue[T | None] = asyncio.Queue(maxsize=workers)
         self._tasks: tuple[asyncio.Task[None], ...] = ()
         self._started = False
@@ -46,10 +48,19 @@ class AsyncWorkerPool[T]:
         self._closed = True
 
         # Drain accepted deliveries before stopping workers. The consumer is
-        # cancelled by its owner before this method is called.
-        await self._queue.join()
-        for _ in self._tasks:
-            await self._queue.put(None)
+        # cancelled by its owner before this method is called. The drain is
+        # bounded so a hung processor cannot block process shutdown forever;
+        # a timed-out delivery is still unacked, so RabbitMQ returns it to the
+        # queue when the channel closes and a healthy worker retries it.
+        try:
+            async with asyncio.timeout(self._drain_timeout):
+                await self._queue.join()
+        except TimeoutError:
+            for task in self._tasks:
+                task.cancel()
+        else:
+            for _ in self._tasks:
+                await self._queue.put(None)
         await asyncio.gather(*self._tasks, return_exceptions=True)
         self._tasks = ()
 

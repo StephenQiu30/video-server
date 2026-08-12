@@ -49,9 +49,10 @@ export function ProviderCatalogList({
 
   function actions(item: API.ProviderCatalogEntryResponse) {
     return (
-      <span className="inline-flex items-center justify-end gap-1">
+      <span className="inline-flex items-center justify-end gap-0.5">
         <Button
           aria-label={`编辑平台 ${item.display_name}`}
+          className="h-11"
           onClick={() => onEdit(item)}
           size="sm"
           type="button"
@@ -64,7 +65,7 @@ export function ProviderCatalogList({
           aria-label={`删除平台 ${item.display_name}`}
           className="text-destructive hover:text-destructive"
           onClick={() => onDelete(item)}
-          size="icon-sm"
+          size="icon-lg"
           type="button"
           variant="ghost"
         >

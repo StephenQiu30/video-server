@@ -67,13 +67,10 @@ def classify_provider_failure(
     )
     if requires_fresh_cookies or requires_vimeo_login or requires_account:
         return "credential_required", 422
-    if (
-        "facebook.com" in command_text
-        and _any(
-            text,
-            b"cannot parse data",
-            b"facebook post media structure could not be identified",
-        )
+    if "facebook.com" in command_text and _any(
+        text,
+        b"cannot parse data",
+        b"facebook post media structure could not be identified",
     ):
         return "extractor_regression", 502
     if _any(

@@ -90,4 +90,8 @@ class CreateDownload:
             saved = await self._repository.create_job(command, now=now)
         except PersistenceIdempotencyConflict as exc:
             raise ApplicationError(ApplicationErrorCode.IDEMPOTENCY_CONFLICT) from exc
+        except PersistenceNotFound as exc:
+            # The inspection or selected format expired between the read above and
+            # the atomic source re-validation inside create_job (TOCTOU window).
+            raise ApplicationError(ApplicationErrorCode.NOT_FOUND) from exc
         return download_view(saved.job)

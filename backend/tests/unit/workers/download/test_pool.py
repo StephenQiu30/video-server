@@ -41,3 +41,41 @@ async def test_pool_rejects_submissions_after_close() -> None:
 
     with pytest.raises(RuntimeError, match="not accepting"):
         await pool.submit(1)
+
+
+@pytest.mark.asyncio
+async def test_pool_close_is_bounded_when_processor_hangs() -> None:
+    started = asyncio.Event()
+    hung = asyncio.Event()
+
+    async def hang(_: int) -> None:
+        started.set()
+        await hung.wait()
+
+    pool = AsyncWorkerPool(hang, workers=1, drain_timeout=0.05)
+    await pool.start()
+    await pool.submit(1)
+    await started.wait()
+
+    # close() must not wait for the hung processor forever; a stalled delivery
+    # stays unacked and is requeued by RabbitMQ when the channel closes.
+    await asyncio.wait_for(pool.close(), timeout=2)
+
+
+@pytest.mark.asyncio
+async def test_pool_close_drains_in_flight_jobs_within_timeout() -> None:
+    release = asyncio.Event()
+    completed: list[int] = []
+
+    async def process(item: int) -> None:
+        await release.wait()
+        completed.append(item)
+
+    pool = AsyncWorkerPool(process, workers=1, drain_timeout=2)
+    await pool.start()
+    await pool.submit(7)
+    await asyncio.sleep(0)
+    release.set()
+    await asyncio.wait_for(pool.close(), timeout=2)
+
+    assert completed == [7]

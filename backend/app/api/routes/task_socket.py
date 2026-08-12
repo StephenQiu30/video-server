@@ -26,9 +26,10 @@ async def task_socket(websocket: WebSocket) -> None:
     if not _same_origin(websocket, settings.app_env == "production"):
         await websocket.close(code=4403)
         return
-    token = websocket.cookies.get(settings.auth_access_cookie_name)
+    access_token = websocket.cookies.get(settings.auth_access_cookie_name)
+    auth_service = websocket.app.state.auth_service
     try:
-        user = await websocket.app.state.auth_service.current_user(token or "")
+        user = await auth_service.current_user(access_token or "")
     except (AuthError, AttributeError):
         user = None
     if user is None:
@@ -57,8 +58,8 @@ async def task_socket(websocket: WebSocket) -> None:
         _monitor_session(
             websocket,
             connection,
-            websocket.app.state.auth_service,
-            token or "",
+            auth_service,
+            access_token or "",
             user,
             settings.websocket_auth_recheck_seconds,
         )
@@ -141,7 +142,7 @@ async def _monitor_session(
     websocket: WebSocket,
     connection: RealtimeConnection,
     auth_service: object,
-    token: str,
+    access_token: str,
     original_user: object,
     interval: float,
 ) -> None:
@@ -149,10 +150,15 @@ async def _monitor_session(
     while True:
         await asyncio.sleep(interval)
         try:
-            current = await auth_service.current_user(token)  # type: ignore[attr-defined]
+            current = await auth_service.current_user(access_token)  # type: ignore[attr-defined]
         except (AuthError, AttributeError):
             current = None
         if current is None or _identity(current) != original_identity:
+            # Access token expired (or the session was revoked). Close with
+            # 4401 and let the client's exponential-backoff reconnect plus
+            # HTTP polling fallback recover — never rotate the refresh token
+            # here, since that invalidates the browser cookie and would force
+            # a logout on the next HTTP refresh.
             await websocket.close(code=4401)
             return
         await _send_json(websocket, connection, {"type": "heartbeat"})

@@ -72,7 +72,9 @@ async def test_inspection_idempotency_owner_and_historical_read(repository) -> N
         inspection_id, "a" * 64, now + timedelta(minutes=16)
     )
     assert expired.id == inspection_id
-    assert len(expired.formats) == 1
+    # The inspection row itself is returned, but its expired formats must be
+    # filtered out so clients cannot keep creating jobs from stale selections.
+    assert expired.formats == ()
 
 
 @pytest.mark.asyncio

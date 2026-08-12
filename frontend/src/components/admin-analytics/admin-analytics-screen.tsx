@@ -62,7 +62,7 @@ export function AdminAnalyticsScreen({
         >
           {periods.map((period) => (
             <ToggleGroupItem
-              className="h-9 min-w-16 px-4 opacity-100 data-[state=on]:bg-foreground data-[state=on]:text-background"
+              className="h-11 min-w-16 px-4 opacity-100 data-[state=on]:bg-foreground data-[state=on]:text-background"
               key={period}
               value={String(period)}
             >

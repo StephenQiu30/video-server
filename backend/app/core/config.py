@@ -327,11 +327,12 @@ class Settings(BaseSettings):
             marker in f"{self.database_url} {rabbitmq_url}"
             for marker in ("video:video@", "replace-with", "-secret@")
         )
-        default_url_key = self.service_role in {
-            "api",
-            "download-worker",
-            "provider-canary",
-        } and (self.url_encryption_key.get_secret_value() == DEFAULT_URL_ENCRYPTION_KEY)
+        # Every role loads url_encryption_key from Settings, and api/download/canary
+        # use it to encrypt/decrypt user URLs. A production deployment must never
+        # fall back to the hardcoded development key, regardless of service role.
+        default_url_key = (
+            self.url_encryption_key.get_secret_value() == DEFAULT_URL_ENCRYPTION_KEY
+        )
         if insecure or insecure_urls or default_url_key:
             raise ValueError("production secrets must be explicitly configured")
         if self.service_role == "api" and not self.valkey_url:

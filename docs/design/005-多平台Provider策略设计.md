@@ -22,10 +22,10 @@
 - 不在 inspection/download JSON 中直接上传 Cookie、Authorization、PO Token 或原始浏览器 profile。
 - 不开放任意 yt-dlp/gallery-dl 参数、输出模板、插件、外部 downloader、shell 或文件路径。
 - 不把用户 URL 或凭据发送到公共解析 API、公共 Worker 或公共 cobalt 实例。
-- 不通过高频代理轮换、伪造平台签名或安装 MITM 根证书规避访问控制。
+- 中心服务和 Provider Runner 不通过高频代理轮换、伪造平台签名或安装 MITM 根证书规避访问控制。用户设备 Edge Agent 按 019 的独立产品路径实施，不纳入本编号的 Cookie Runner。
 - 不在本编号中开放直播录制、无限播放列表、频道归档或多媒体帖子下载。
 
-Cookie 的一刀切禁令被调整为“默认关闭、Provider allowlist、生命周期受控”的会话能力；这不改变“用户有权处理、非 DRM”的产品边界。
+Cookie 的一刀切禁令被调整为“默认关闭、Provider allowlist、生命周期受控”的会话能力；本设计中的 Cookie 会话仍只处理用户有权使用的公开、非 DRM 内容。平台保护内容必须通过官方授权 Provider，或按 `docs/design/019-用户设备EdgeAgent与媒体制品导入设计.md` 的用户设备 Edge Agent 处理；两者都不能复用 Cookie 会话扩大权益。
 
 ## 3. 当前基线与根因
 
@@ -152,6 +152,7 @@ engine_version / plugin_version / license
 | `anonymous` | 已有 | 无 Provider Secret，所有平台默认首选 |
 | `operator_managed` | Phase 1 | 运维专用账号，仅为 allowlist Provider 和公开/用户有权内容提供会话 |
 | `user_managed` | Phase 2 | owner 创建独立 Credential 资源并显式引用，不跨 owner 共享 |
+| `user_device` | 019 待实施 | 用户自有设备本地执行平台 Adapter，只向服务端导入已验证制品；不进入任何 Runner pool |
 
 Profile 的 precedence 是白名单，不是自动穷举。例如 YouTube 可配置 `anonymous → operator_managed`；用户显式选择 `user_managed` 后不自动切换到运维账号，反之亦然。
 

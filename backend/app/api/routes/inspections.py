@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 
 from app.api.auth_dependencies import get_current_user
 from app.api.dependencies import (
@@ -33,12 +33,14 @@ async def inspect_media(
     idempotency_key: IdempotencyKey,
     user: User,
     use_cases: UseCases,
+    response: Response,
 ) -> InspectionResponse:
     """校验公开媒体地址并返回可供选择的语义下载格式。"""
     try:
         view = await use_cases.inspect_media(body.url, user.owner_hash, idempotency_key)
     except ApplicationError as exc:
         raise application_error(exc) from exc
+    response.headers["Location"] = f"/api/inspections/{view.id}"
     return InspectionResponse.from_view(view)
 
 

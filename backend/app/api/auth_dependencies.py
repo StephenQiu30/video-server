@@ -183,4 +183,8 @@ def _rate_limit_operation(request: Request) -> str | None:
         return "download"
     if path.endswith("/analyses") and path.startswith("/api/downloads/"):
         return "analysis"
+    if path.startswith("/api/downloads/") and path.endswith("/retry"):
+        # A retry re-runs an expensive runner re-inspection inside the HTTP
+        # request, so it is an admission-bound operation like inspect/download.
+        return "download_retry"
     return None

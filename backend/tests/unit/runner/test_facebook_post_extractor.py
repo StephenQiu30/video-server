@@ -10,10 +10,7 @@ from yt_dlp.utils import ExtractorError
 
 SHARE_URL = "https://www.facebook.com/share/p/example/"
 POST_ID = "1347155834118247"
-POST_URL = (
-    "https://www.facebook.com/groups/claudeaicommunity/"
-    f"permalink/{POST_ID}/"
-)
+POST_URL = f"https://www.facebook.com/groups/claudeaicommunity/permalink/{POST_ID}/"
 
 
 def facebook_page(*media: dict[str, Any]) -> str:
@@ -24,9 +21,7 @@ def facebook_page(*media: dict[str, Any]) -> str:
                     "result": {
                         "data": {
                             "node_v2": {
-                                "attachments": [
-                                    {"media": item} for item in media
-                                ]
+                                "attachments": [{"media": item} for item in media]
                             }
                         }
                     }

@@ -77,6 +77,7 @@ export default function DownloadHero({
                 <TooltipTrigger asChild>
                   <InputGroupButton
                     aria-label="清空链接"
+                    className="size-11"
                     onClick={() => onUrlChange('')}
                     size="icon-sm"
                   >

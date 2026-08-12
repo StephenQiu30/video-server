@@ -307,9 +307,7 @@ async def test_facebook_image_post_is_classified_as_unsupported_media(
     )
 
     with pytest.raises(RunnerFailure) as caught:
-        await commands.inspect(
-            "https://www.facebook.com/share/p/example/", tmp_path
-        )
+        await commands.inspect("https://www.facebook.com/share/p/example/", tmp_path)
 
     assert caught.value.code == "provider_media_unsupported"
     assert caught.value.status == 422
@@ -325,9 +323,7 @@ async def test_facebook_parse_failure_is_classified_as_extractor_regression(
     )
 
     with pytest.raises(RunnerFailure) as caught:
-        await commands.inspect(
-            "https://www.facebook.com/example/videos/123/", tmp_path
-        )
+        await commands.inspect("https://www.facebook.com/example/videos/123/", tmp_path)
 
     assert caught.value.code == "extractor_regression"
     assert caught.value.status == 502
