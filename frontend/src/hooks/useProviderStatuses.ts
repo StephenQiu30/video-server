@@ -15,13 +15,14 @@ export function useProviderStatuses() {
   useEffect(() => {
     let disposed = false;
     void retryKey;
-    setData(null);
-    setError(null);
     setLoading(true);
 
     listProviders()
       .then((result) => {
-        if (!disposed) setData(result);
+        if (!disposed) {
+          setData(result);
+          setError(null);
+        }
       })
       .catch((reason) => {
         if (!disposed) setError(displayError(reason));

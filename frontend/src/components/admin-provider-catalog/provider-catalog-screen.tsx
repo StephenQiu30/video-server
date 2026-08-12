@@ -40,9 +40,9 @@ export function ProviderCatalogScreen({
   onRetry,
 }: ProviderCatalogScreenProps) {
   return (
-    <section className="space-y-10">
+    <section aria-busy={result.loading} className="space-y-10">
       <div>
-        <BackLink className="mb-5 sm:mb-6" fallbackHref="/providers" />
+        <BackLink className="mb-4" fallbackHref="/providers" />
         <PageHeader
           action={
             <Button onClick={onCreate}>
@@ -55,7 +55,7 @@ export function ProviderCatalogScreen({
         />
       </div>
 
-      <div className="hairline flex flex-wrap items-center justify-between gap-4 border-y py-4 text-sm text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
         <p>
           共 <strong className="text-foreground">{result.items.length}</strong>{' '}
           个目录条目
@@ -69,7 +69,7 @@ export function ProviderCatalogScreen({
           <AlertDescription>{notice}</AlertDescription>
         </Alert>
       ) : null}
-      {result.loading ? (
+      {result.loading && result.items.length === 0 ? (
         <CatalogSkeleton />
       ) : result.error ? (
         <Alert variant="destructive">

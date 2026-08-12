@@ -78,6 +78,17 @@
 
 final result: passed
 
+## 2026-08-12 无边框一致性与页头二次收紧回归
+
+- 按 `agent-browser` dogfood 流程对首页、下载历史、下载详情缺失态、平台状态、账户、用户管理、平台目录与下载分析进行真实浏览器审查，覆盖 1440×900、390×844、浅色/深色、Radix Dialog 与 Sheet；记录并修复 3 个可复现视觉/UX 问题，详见 `dogfood-output/report.md`。
+- 常规认证内页统一改为 `.inner-page`：390px 为 24px，641px 及以上为 32px；`BackLink` 到 PageHeader 固定 16px。1440px 平台目录/用户管理实测返回入口 `y = 112px`、标题 `y = 172px`；390px 实测返回入口 `y = 104px`、标题 `y = 164px`。
+- 首页保留编辑式 Hero 的差异化节奏，但从移动/平板/桌面 56/64/72px 收紧为 40/48/56px；实测移动眉题 `y = 120px`、桌面眉题 `y = 136px`，避免导航后留白吞噬首屏内容。
+- 平台目录统计摘要移除上下双分隔，编辑 Dialog 的能力说明继续复用 shadcn Alert 并改为无边框 `surface` 表面；计算样式确认能力说明 `border-width = 0px`。Radix Dialog/Sheet 的遮罩、焦点圈定、Escape、焦点恢复和覆盖层边界不受影响。
+- 下载任务缺失态恢复统一内页与顶部返回路径；浅色/深色桌面和 390px 页面均满足 `scrollWidth = clientWidth`，浏览器未发现产品控制台异常。
+- 工程门禁：lint/typecheck 通过；format check 172 个文件通过；31 个测试文件、109 项测试通过；Next.js 生产构建与 11 个静态页面导出通过；完整 Compose 重建后 API、Media Runner、egress proxy 与基础设施健康，宿主机 AI Worker 已恢复，`/health/ready` 返回 200。
+
+final result: passed
+
 ## 2026-08-12 内页页头密度与无边框组件回归
 
 - 常规认证内页统一复用 `.inner-page`：390px 为 40px、641–1023px 为 56px、1024px 及以上为 64px。管理员页面原有 96px 桌面顶部留白已移除，80px Header 下不再叠加过长空档；BackLink 与共享 PageHeader 的间距统一为移动 20px、其余视口 24px。
@@ -106,5 +117,15 @@ final result: passed
 - 根因修复以 `body` 的常驻纵向滚动条稳定长短页面切换，同时移除根节点的第二套滚动条槽位编排；未覆盖 `data-scroll-locked`，滚动锁、焦点圈定与 Escape 行为继续由 Radix 原语统一负责。
 - 1440×500 下 Dropdown、Dialog、Select 打开前后 `.content-shell` 均为 `x = 80px / width = 1265px`；390×500 下移动 Sheet 打开前后均为 `x = 16px / width = 343px`。
 - 浅色、深色和主题切换均无布局位移；浏览器页面错误为空。
+
+final result: passed
+
+## 2026-08-12 异步按钮刷新稳定性回归
+
+- `agent-browser` 在保留 15px 经典滚动条的 1262×900 环境复核 Dropdown、Dialog、Select 与普通数据刷新按钮。Dropdown/Dialog/Select 打开前后 Header 与 main 的 `x / width` 均不变，移动 390×844 Sheet 打开前后 Header shell 均为 `x = 16px / width = 343px`，因此本轮抖动并非 Radix 滚动锁补偿回归。
+- 通过在浏览器内把 XHR 延迟 1 秒，稳定复现真实根因：用户管理点击搜索后，10 行 Table 被 5 行骨架替换，文档高度从 `1314px` 瞬间降至 `824px`；平台状态点击刷新后清空已有 22 行，文档高度从 `2756px` 降至 `568px`。请求返回时内容再次展开，形成肉眼可见的两次跳动。
+- 用户搜索/分页、平台目录写入后回读、平台状态刷新、下载分析周期切换与刷新现统一保留已有内容；骨架只用于首次无数据加载。后台请求期间容器使用 `aria-busy`，不卸载 Table、ItemGroup、指标或图表。
+- 同样的 1 秒延迟回归中，用户管理刷新期间 Table 保持 `top = 427px / height = 770px`、文档高度保持 `1314px`；平台状态列表保持 `top = 325px / height = 2399px`、文档高度保持 `2756px`。证据为 `dogfood-output/jitter/admin-users-refresh-fixed.png` 与 `dogfood-output/jitter/providers-refresh-fixed.png`。
+- 工程门禁：format check 172 个文件通过；lint/typecheck 通过；31 个测试文件、111 项测试通过；Next.js 生产构建与 11 个业务/错误路由静态导出通过；Compose 重建后 readiness 返回 200。
 
 final result: passed

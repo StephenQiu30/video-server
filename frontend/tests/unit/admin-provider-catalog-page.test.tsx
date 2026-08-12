@@ -7,6 +7,7 @@ import {
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ProviderCatalogScreen } from '@/components/admin-provider-catalog/provider-catalog-screen';
 import { AdminProviderCatalogView } from '@/components/admin-provider-catalog-view';
 
 const runtime = vi.hoisted(() => ({
@@ -98,6 +99,39 @@ describe('administrator provider catalog management', () => {
     expect(alert).toHaveTextContent('系统下载 Profile 不会因此被删除');
     fireEvent.click(within(alert).getByRole('button', { name: '确认删除' }));
     await waitFor(() => expect(runtime.delete).toHaveBeenCalledWith('custom'));
+  });
+
+  it('keeps the current catalog mounted during a background reload', () => {
+    const actions = {
+      onCreate: vi.fn(),
+      onDelete: vi.fn(),
+      onEdit: vi.fn(),
+      onRetry: vi.fn(),
+    };
+    const { rerender } = render(
+      <ProviderCatalogScreen
+        {...actions}
+        notice=""
+        result={{ error: '', items: [youtube(), custom()], loading: false }}
+      />,
+    );
+
+    rerender(
+      <ProviderCatalogScreen
+        {...actions}
+        notice=""
+        result={{ error: '', items: [youtube(), custom()], loading: true }}
+      />,
+    );
+
+    expect(screen.getAllByText('YouTube')).toHaveLength(2);
+    expect(screen.getAllByText('Custom Video')).toHaveLength(2);
+    expect(
+      screen.queryByRole('status', { name: '正在加载平台目录' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: '平台目录' }).closest('section'),
+    ).toHaveAttribute('aria-busy', 'true');
   });
 });
 

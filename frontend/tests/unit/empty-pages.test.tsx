@@ -15,14 +15,22 @@ describe('empty route states', () => {
   });
 
   it('gives a missing download a semantic page title', () => {
-    render(<MissingDownload />);
+    const { container } = render(<MissingDownload />);
 
-    expect(
-      screen.getByRole('heading', { level: 1, name: '下载任务不存在' }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '返回上一步' })).toHaveAttribute(
-      'href',
-      '/history',
+    const heading = screen.getByRole('heading', {
+      level: 1,
+      name: '下载任务不存在',
+    });
+    const backLink = screen.getByRole('link', { name: '返回上一步' });
+
+    expect(heading).toBeInTheDocument();
+    expect(backLink).toHaveAttribute('href', '/history');
+    expect(container.querySelector('main')).toHaveClass(
+      'content-shell',
+      'inner-page',
+    );
+    expect(backLink.compareDocumentPosition(heading)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
     );
   });
 });

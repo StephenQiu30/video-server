@@ -135,6 +135,33 @@ describe('administrator user management', () => {
     );
     expect(screen.queryByText('stale')).not.toBeInTheDocument();
   });
+
+  it('keeps the current rows mounted while a search refresh is pending', async () => {
+    const refresh = deferred<API.ManagedUserListResponse>();
+    runtime.listUsers
+      .mockResolvedValueOnce(result([managedUser()]))
+      .mockReturnValueOnce(refresh.promise);
+    render(<AdminUsersView />);
+
+    expect(await screen.findAllByText('editor')).toHaveLength(2);
+    const search = screen.getByRole('textbox', { name: '搜索用户名或邮箱' });
+    fireEvent.change(search, { target: { value: 'fresh' } });
+    fireEvent.submit(search.closest('form') as HTMLFormElement);
+    await waitFor(() => expect(runtime.listUsers).toHaveBeenCalledTimes(2));
+
+    expect(screen.getAllByText('editor')).toHaveLength(2);
+    expect(
+      screen.queryByRole('status', { name: '正在加载用户列表' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: '用户管理' }).closest('section'),
+    ).toHaveAttribute('aria-busy', 'true');
+
+    await act(async () =>
+      refresh.resolve(result([managedUser({ username: 'fresh' })])),
+    );
+    expect(await screen.findAllByText('fresh')).toHaveLength(2);
+  });
 });
 
 function owner(): API.ManagedUserResponse {

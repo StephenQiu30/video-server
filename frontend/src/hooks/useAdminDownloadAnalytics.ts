@@ -16,13 +16,14 @@ export function useAdminDownloadAnalytics(days: AnalyticsPeriod) {
   useEffect(() => {
     let disposed = false;
     void retryKey;
-    setData(null);
-    setError(null);
     setLoading(true);
 
     getAdminDownloadAnalytics(days)
       .then((result) => {
-        if (!disposed) setData(result);
+        if (!disposed) {
+          setData(result);
+          setError(null);
+        }
       })
       .catch((reason) => {
         if (!disposed) setError(displayError(reason));

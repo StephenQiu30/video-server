@@ -52,9 +52,9 @@ export function AdminUsersScreen({
   const last = Math.min(result.page * PAGE_SIZE, result.total);
 
   return (
-    <section className="space-y-10">
+    <section aria-busy={result.loading} className="space-y-10">
       <div>
-        <BackLink className="mb-5 sm:mb-6" fallbackHref="/account" />
+        <BackLink className="mb-4" fallbackHref="/account" />
         <PageHeader
           action={
             <p className="font-mono text-xs text-muted-foreground tabular-nums">
@@ -86,7 +86,7 @@ export function AdminUsersScreen({
           <AlertDescription>{notice}</AlertDescription>
         </Alert>
       )}
-      {result.loading ? (
+      {result.loading && result.items.length === 0 ? (
         <AdminSkeleton rowsOnly />
       ) : result.error ? (
         <UsersLoadError error={result.error} onRetry={actions.onRetry} />
@@ -100,7 +100,7 @@ export function AdminUsersScreen({
         />
       )}
 
-      {!result.loading && !result.error && result.total > 0 && (
+      {!result.error && result.total > 0 && (
         <footer className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
           <span>
             显示 {first}–{last}，共 {result.total} 项

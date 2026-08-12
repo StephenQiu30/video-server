@@ -133,7 +133,7 @@ export function ProviderCatalogEditor({
               />
             </Field>
             {!creating ? (
-              <Alert>
+              <Alert className="border-0 bg-surface">
                 <AlertDescription className="flex items-center gap-2">
                   <Badge
                     variant={editor.systemRegistered ? 'success' : 'warning'}

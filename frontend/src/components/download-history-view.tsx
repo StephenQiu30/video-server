@@ -86,7 +86,7 @@ export default function DownloadHistoryView() {
 
   return (
     <main className="content-shell inner-page">
-      <BackLink className="mb-5 sm:mb-6" fallbackHref="/" />
+      <BackLink className="mb-4" fallbackHref="/" />
       <PageHeader
         action={
           <Button asChild size="lg">

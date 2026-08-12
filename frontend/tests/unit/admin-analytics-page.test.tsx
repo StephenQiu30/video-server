@@ -87,7 +87,11 @@ describe('administrator download analytics', () => {
   });
 
   it('maps period changes and refresh to the analytics request', async () => {
-    runtime.getAdminDownloadAnalytics.mockResolvedValue(analytics());
+    const periodRefresh = deferred<AdminDownloadAnalytics>();
+    runtime.getAdminDownloadAnalytics
+      .mockResolvedValueOnce(analytics())
+      .mockReturnValueOnce(periodRefresh.promise)
+      .mockResolvedValueOnce(analytics());
     render(<AdminAnalyticsView />);
     await screen.findByText('下载总数');
 
@@ -99,10 +103,17 @@ describe('administrator download analytics', () => {
     await waitFor(() =>
       expect(runtime.getAdminDownloadAnalytics).toHaveBeenLastCalledWith(7),
     );
+    expect(screen.getByText('下载总数').nextElementSibling).toHaveTextContent(
+      '48',
+    );
+    expect(
+      screen.queryByRole('status', { name: '正在加载下载分析' }),
+    ).not.toBeInTheDocument();
     expect(
       within(periodGroup).getByRole('radio', { name: '7 天' }),
     ).toHaveAttribute('aria-checked', 'true');
 
+    await act(async () => periodRefresh.resolve(analytics()));
     await waitFor(() =>
       expect(screen.getByRole('button', { name: '刷新' })).toBeEnabled(),
     );

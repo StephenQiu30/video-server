@@ -100,7 +100,7 @@ export function AccountView() {
 
   return (
     <section>
-      <BackLink className="mb-5 sm:mb-6" fallbackHref="/" />
+      <BackLink className="mb-4" fallbackHref="/" />
       <PageHeader
         description="管理公开用户名，并查看不会随任务变化的账户身份信息。"
         title="个人资料"

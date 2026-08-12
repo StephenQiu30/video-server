@@ -40,7 +40,7 @@ export default function DownloadHero({
   }
 
   return (
-    <section className="pt-14 sm:pt-16 lg:pt-[72px]">
+    <section className="pt-10 sm:pt-12 lg:pt-14">
       <p className="eyebrow text-muted-foreground">01 / 解析媒体</p>
       <div className="mt-6">
         <h1 className="editorial-title sm:whitespace-nowrap">

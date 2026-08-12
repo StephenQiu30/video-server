@@ -38,7 +38,7 @@ export function ProviderStatusView() {
 
   return (
     <section aria-labelledby="provider-status-title">
-      <BackLink className="mb-5 sm:mb-6" fallbackHref="/" />
+      <BackLink className="mb-4" fallbackHref="/" />
       <PageHeader
         action={
           <Button
@@ -56,7 +56,7 @@ export function ProviderStatusView() {
       />
 
       <div className="mt-10 sm:mt-12">
-        {state.loading ? (
+        {state.loading && !state.data ? (
           <StatusMessage label="正在加载平台状态" loading />
         ) : null}
         {state.error ? (

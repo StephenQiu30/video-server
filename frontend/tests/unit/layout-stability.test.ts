@@ -18,13 +18,13 @@ describe('global layout stability', () => {
     const styles = readFileSync(globalsPath, 'utf8');
 
     expect(styles).toMatch(
-      /\.inner-page \{[\s\S]*padding-block: 2\.5rem;[\s\S]*\}/,
+      /\.inner-page \{[\s\S]*padding-block: 1\.5rem;[\s\S]*\}/,
     );
     expect(styles).toMatch(
-      /@media \(min-width: 641px\)[\s\S]*\.inner-page \{[\s\S]*padding-block: 3\.5rem;/,
+      /@media \(min-width: 641px\)[\s\S]*\.inner-page \{[\s\S]*padding-block: 2rem;/,
     );
     expect(styles).toMatch(
-      /@media \(min-width: 1024px\)[\s\S]*\.inner-page \{[\s\S]*padding-block: 4rem;/,
+      /@media \(min-width: 1024px\)[\s\S]*\.inner-page \{[\s\S]*padding-block: 2rem;/,
     );
 
     for (const path of [

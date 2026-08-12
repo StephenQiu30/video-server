@@ -3,7 +3,6 @@ import { WarningCircle } from '@phosphor-icons/react/dist/ssr';
 import { BackLink } from '@/components/back-link';
 import {
   Empty,
-  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
@@ -11,8 +10,9 @@ import {
 
 export default function MissingDownload() {
   return (
-    <main className="content-shell flex min-h-[calc(100svh-160px)] items-center py-12 sm:py-16">
-      <Empty className="items-start border-0 p-0 text-left">
+    <main className="content-shell inner-page">
+      <BackLink className="mb-4" fallbackHref="/history" />
+      <Empty className="min-h-80 items-start justify-start border-0 p-0 pt-8 text-left sm:pt-10">
         <EmptyHeader className="items-start">
           <EmptyMedia className="mb-4" variant="icon">
             <WarningCircle aria-hidden />
@@ -25,9 +25,6 @@ export default function MissingDownload() {
             请从下载历史重新打开任务，或返回首页创建新的下载。
           </EmptyDescription>
         </EmptyHeader>
-        <EmptyContent className="mt-4 items-start">
-          <BackLink className="ml-0" fallbackHref="/history" />
-        </EmptyContent>
       </Empty>
     </main>
   );

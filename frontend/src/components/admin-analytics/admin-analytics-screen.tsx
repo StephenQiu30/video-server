@@ -42,7 +42,7 @@ export function AdminAnalyticsScreen({
   return (
     <section className="space-y-12">
       <div>
-        <BackLink className="mb-5 sm:mb-6" fallbackHref="/account" />
+        <BackLink className="mb-4" fallbackHref="/account" />
         <PageHeader
           description="查看下载规模、完成情况与各视频源表现。"
           title="下载分析"

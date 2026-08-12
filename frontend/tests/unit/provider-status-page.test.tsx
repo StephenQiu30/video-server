@@ -51,9 +51,10 @@ describe('provider status page', () => {
 
   it('supports loading, safe error and retry states', async () => {
     const first = deferred<ProviderStatusList>();
+    const refresh = deferred<ProviderStatusList>();
     runtime.listProviders
       .mockReturnValueOnce(first.promise)
-      .mockRejectedValueOnce(new Error('状态服务暂不可用'))
+      .mockReturnValueOnce(refresh.promise)
       .mockResolvedValueOnce(statuses());
     render(<ProviderStatusView />);
 
@@ -64,6 +65,11 @@ describe('provider status page', () => {
     expect(await screen.findByText('YouTube')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '刷新状态' }));
+    expect(screen.getByText('YouTube')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: '正在加载平台状态' }),
+    ).not.toBeInTheDocument();
+    await act(async () => refresh.reject(new Error('状态服务暂不可用')));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       '状态服务暂不可用',
     );
@@ -104,8 +110,10 @@ function statuses(): ProviderStatusList {
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((done) => {
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<T>((done, fail) => {
     resolve = done;
+    reject = fail;
   });
-  return { promise, resolve };
+  return { promise, reject, resolve };
 }
