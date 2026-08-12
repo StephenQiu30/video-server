@@ -95,8 +95,8 @@
 - [x] G6：Bilibili 公开 UGC 回归成功，命令不含 Cookie/POT。
 - [x] G7：抖音公开分享页回归成功；动态签名/schema 故障不伪报 Cookie 缺失。
 - [x] G8：小红书有效公开分享链回归成功；短链失效、图文笔记、原画缺失分别分类。
-- [ ] G9：TikTok、Vimeo、X、Instagram、Facebook、Twitch、Reddit 在显示 verified 前完成 metadata + media canary。
-- [x] G10：Pinterest、微博、优酷、腾讯视频无真实证据时保持 unknown；AcFun、Rutube、VK Clips、Dailymotion、NicoNico 不登记且相关域名 fail closed。
+- [ ] G9：Facebook、Twitch 已完成当前 Profile 的 metadata + media canary；TikTok 保持 degraded，Reddit 保持 access_required，因此本组合项仍未全部通过。
+- [x] G10：Pinterest 视频 Pin、微博/优酷/腾讯视频公开单视频已完成当前固定引擎 metadata + media；图片/相册/多资产继续 fail closed；AcFun、Rutube、VK Clips、Dailymotion、NicoNico 不登记且相关域名 fail closed。
 - [x] G11：视频号稳定为 unsupported，Generic 不会把它提升为 supported。
 - [x] G11a：快手由可信 `KuaishouPublicIE` 处理第一方公开单视频；图集和非第一方重定向 fail closed。
 - [ ] G12：本地带 ContentProtection 的 fixture 稳定返回 `drm_protected`。
@@ -169,10 +169,12 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod
 | 2026-08-07 | 本地浏览器 E2E | historical | Bilibili/抖音/小红书 single video | anonymous | 当时固定 Runner | historical | metadata/media/remux/probe | 成功；范围见研究记录 | `docs/research/001-GitHub开源方案调研.md` |
 | 2026-08-12 | 本地后端 | 本次提交 | Provider 范围收缩 | anonymous / 默认无目标 | yt-dlp `5d6b8c8` | non-secret default | Registry/API/Runner | 五个平台从 API 移除；相关域名不落入 Generic，稳定返回 `provider_unsupported` | `docs/acceptance/017-其他短视频平台分阶段接入验收.md` |
 | 2026-08-12 | 本地全栈与浏览器 | 本次提交 | 管理员平台目录 | admin catalog / public status projection | OpenAPI `list/create/update/deleteProviderCatalogEntry` | N/A | API/UI/schema | 后端 `519 passed, 1 skipped`；前端 `107 passed`、lint/format/build 通过；Compose 开发/生产配置通过；1440px/390px 浏览器复核无问题 | `/admin/providers`、浏览器 QA 截图与本次门禁输出 |
+| 2026-08-12 | 本地固定引擎/Compose Runner | 本次提交 | Facebook/Twitch/Pinterest/微博/优酷/腾讯视频公开单视频或 Clip | anonymous | yt-dlp `5d6b8c8` / Provider versioned profiles | 当前本地受控出口 | metadata/media/probe/hash | 六个平台 metadata 与实际媒体通过；Facebook 最近 5 次 4 成功且最近 4 次连续成功；结果已脱敏写入 canary 表 | `docs/research/007-剩余Provider逐平台验证调研.md` |
+| 2026-08-12 | 本地固定引擎/Compose Runner | 本次提交 | YouTube/TikTok/Reddit | anonymous | yt-dlp `5d6b8c8` | 当前本地受控出口 | metadata negative | YouTube bot challenge → `access_required`；Reddit account authentication → `access_required`；TikTok unexpected webpage response → `degraded` | `docs/research/007-剩余Provider逐平台验证调研.md` |
 | Pending | production-like | Pending | YouTube public + rights-negative | operator + POT | Pending | Pending | full Worker/Runner/MinIO | 未执行：无批准的专用 Cookie/授权 canary | `docs/operations/002-YouTube受控会话运行手册.md` |
 
 ## 14. 当前结论
 
-截至 2026-08-12，Phase 1 已提供可配置的 YouTube 运维 Cookie/POT 路径，以及持久化 Provider 探针、定时执行器、阈值/恢复迟滞和动态 API 聚合。验收结论仍为 **production conditional fail**：A2a、B3/B7、C6/C8、YouTube 真实 D1–D3/D5/D7–D9/D11、POT/出口 E2–E6/E8、授权 canary G1–G4/G9/G12、低基数指标/供应链 H2–H5 与完整视频 Agent E2E gate 均缺完整证据或尚未实现。不得把 YouTube 标记为 `verified`，也不得启用生产运维会话。
+截至 2026-08-12，Phase 1 已提供可配置的 YouTube 运维 Cookie/POT 路径，以及持久化 Provider 探针、定时执行器、阈值/恢复迟滞和动态 API 聚合。Facebook、Twitch、Pinterest 视频 Pin、微博、优酷和腾讯视频的当前匿名公开单视频/Clip Profile 已完成 metadata 与真实媒体证据；YouTube、Reddit 保持 `access_required`，TikTok 保持 `degraded`。验收结论仍为 **production conditional fail**：A2a、B3/B7、C6/C8、YouTube 真实 D1–D3/D5/D7–D9/D11、POT/出口 E2–E6/E8、授权 canary G1–G4/G9/G12、低基数指标/供应链 H2–H5 与完整视频 Agent E2E gate 均缺完整证据或尚未实现。不得把 YouTube 标记为 `verified`，也不得启用生产运维会话。
 
 Phase 2 的 I–J 全部保持 Pending；本轮没有实现用户 Cookie 上传/Vault/Broker 或 gallery-dl。下一验收批次必须使用无额外权益的专用账号与授权样本，按 runbook 完成真实 Worker/Runner/MinIO E2E、全系统泄漏扫描、sidecar/出口绑定、轮换/撤销、账号权益漂移和故障注入。

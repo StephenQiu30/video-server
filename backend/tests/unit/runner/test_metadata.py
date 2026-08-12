@@ -92,6 +92,33 @@ def test_normalizes_ytdlp_formats_into_domain_streams_and_options() -> None:
     }
 
 
+def test_image_scrubber_format_does_not_become_a_download_option() -> None:
+    payload = media_info()
+    formats = payload["formats"]
+    assert isinstance(formats, list)
+    formats.insert(
+        0,
+        {
+            "format_id": "scrubber_hd",
+            "ext": "jpg",
+            "width": 320,
+            "height": 180,
+            "vcodec": "unknown",
+            "acodec": "none",
+        },
+    )
+
+    inspection = normalize_metadata(
+        payload,
+        max_duration_seconds=7200,
+        max_candidate_streams=200,
+    )
+    options = build_download_options(inspection.streams, max_options=20)
+
+    assert options
+    assert all(option.hints.video_id != "scrubber_hd" for option in options)
+
+
 def test_ignores_unsafe_thumbnail_urls() -> None:
     payload = media_info()
     payload["thumbnail"] = "http://127.0.0.1/private-cover"

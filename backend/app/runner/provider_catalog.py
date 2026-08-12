@@ -48,16 +48,20 @@ def _standard(
     display_name: str,
     hosts: tuple[str, ...],
     *,
+    version: str = "1",
     normalize_url: UrlNormalizer = _identity,
     capabilities: frozenset[ProviderCapability] | None = None,
     status: ProviderSupportStatus = ProviderSupportStatus.UNKNOWN,
     operator_cookie_domains: frozenset[str] = frozenset(),
     command_args: tuple[str, ...] = (),
+    client_profile_id: str = "yt-dlp-default",
+    canary_suite: str = "anonymous-metadata-range",
 ) -> ProviderProfile:
     return ProviderProfile(
         key,
         display_name,
         frozenset(hosts),
+        version=version,
         capabilities=capabilities
         or frozenset(
             {
@@ -75,7 +79,9 @@ def _standard(
             else (ProviderAccessMode.ANONYMOUS,)
         ),
         cookie_domain_allowlist=operator_cookie_domains,
+        client_profile_id=client_profile_id,
         credential_concurrency=1 if operator_cookie_domains else 0,
+        canary_suite=canary_suite,
         command_args=command_args,
         normalize_url=normalize_url,
     )
@@ -86,14 +92,18 @@ def _challenged(
     display_name: str,
     hosts: tuple[str, ...],
     *,
+    version: str = "1",
     normalize_url: UrlNormalizer = _identity,
     status: ProviderSupportStatus = ProviderSupportStatus.UNKNOWN,
     operator_cookie_domains: frozenset[str] = frozenset(),
+    client_profile_id: str = "chrome-136-macos-15",
+    canary_suite: str = "anonymous-metadata-range",
 ) -> ProviderProfile:
     return ProviderProfile(
         key,
         display_name,
         frozenset(hosts),
+        version=version,
         capabilities=frozenset(
             {
                 ProviderCapability.SINGLE_VIDEO,
@@ -111,7 +121,9 @@ def _challenged(
             else (ProviderAccessMode.ANONYMOUS,)
         ),
         cookie_domain_allowlist=operator_cookie_domains,
+        client_profile_id=client_profile_id,
         credential_concurrency=1 if operator_cookie_domains else 0,
+        canary_suite=canary_suite,
         command_args=_CHROME_IMPERSONATION,
         inspection_attempts=8,
         inspection_retry_delay=0.5,
@@ -184,9 +196,12 @@ DEFAULT_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             "vm.tiktok.com",
             "vt.tiktok.com",
         ),
+        version="tiktok-web-v1",
+        status=ProviderSupportStatus.DEGRADED,
         operator_cookie_domains=frozenset(
             {"tiktok.com", "tiktokv.com", "byteoversea.com"}
         ),
+        canary_suite="tiktok-anonymous-operator-video",
     ),
     _challenged(
         "xiaohongshu",
@@ -262,22 +277,78 @@ DEFAULT_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             "m.facebook.com",
             "fb.watch",
         ),
+        version="facebook-public-reel-v1",
+        capabilities=frozenset(
+            {
+                ProviderCapability.SINGLE_VIDEO,
+                ProviderCapability.SHORT_VIDEO,
+                ProviderCapability.AUDIO_VIDEO_SPLIT,
+            }
+        ),
+        status=ProviderSupportStatus.VERIFIED,
         operator_cookie_domains=frozenset({"facebook.com"}),
         command_args=_CHROME_IMPERSONATION,
+        client_profile_id="chrome-136-macos-15",
+        canary_suite="facebook-public-reel-single-video",
     ),
-    _standard("twitch", "Twitch", ("twitch.tv", "www.twitch.tv", "clips.twitch.tv")),
+    _standard(
+        "twitch",
+        "Twitch",
+        ("twitch.tv", "www.twitch.tv", "clips.twitch.tv"),
+        version="twitch-public-clip-v1",
+        capabilities=frozenset(
+            {
+                ProviderCapability.SINGLE_VIDEO,
+                ProviderCapability.CLIP_OR_VOD,
+            }
+        ),
+        status=ProviderSupportStatus.VERIFIED,
+        canary_suite="twitch-public-clip",
+    ),
     _standard(
         "reddit",
         "Reddit",
         ("reddit.com", "www.reddit.com", "old.reddit.com", "redd.it"),
+        version="reddit-public-video-v1",
+        capabilities=frozenset({ProviderCapability.SINGLE_VIDEO}),
+        status=ProviderSupportStatus.ACCESS_REQUIRED,
         operator_cookie_domains=frozenset({"reddit.com"}),
+        canary_suite="reddit-anonymous-operator-video",
     ),
     _standard(
-        "pinterest", "Pinterest", ("pinterest.com", "www.pinterest.com", "pin.it")
+        "pinterest",
+        "Pinterest",
+        ("pinterest.com", "www.pinterest.com", "pin.it"),
+        version="pinterest-public-video-pin-v1",
+        capabilities=frozenset({ProviderCapability.SINGLE_VIDEO}),
+        status=ProviderSupportStatus.VERIFIED,
+        canary_suite="pinterest-public-video-pin",
     ),
     _standard(
-        "weibo", "微博", ("weibo.com", "www.weibo.com", "weibo.cn", "m.weibo.cn")
+        "weibo",
+        "微博",
+        ("weibo.com", "www.weibo.com", "weibo.cn", "m.weibo.cn"),
+        version="weibo-public-video-v1",
+        capabilities=frozenset({ProviderCapability.SINGLE_VIDEO}),
+        status=ProviderSupportStatus.VERIFIED,
+        canary_suite="weibo-public-single-video",
     ),
-    _standard("youku", "优酷", ("youku.com", "www.youku.com", "v.youku.com")),
-    _standard("qqvideo", "腾讯视频", ("v.qq.com",)),
+    _standard(
+        "youku",
+        "优酷",
+        ("youku.com", "www.youku.com", "v.youku.com"),
+        version="youku-public-video-v1",
+        capabilities=frozenset({ProviderCapability.SINGLE_VIDEO}),
+        status=ProviderSupportStatus.VERIFIED,
+        canary_suite="youku-public-single-video",
+    ),
+    _standard(
+        "qqvideo",
+        "腾讯视频",
+        ("v.qq.com",),
+        version="qqvideo-public-video-v1",
+        capabilities=frozenset({ProviderCapability.SINGLE_VIDEO}),
+        status=ProviderSupportStatus.VERIFIED,
+        canary_suite="qqvideo-public-single-video",
+    ),
 )

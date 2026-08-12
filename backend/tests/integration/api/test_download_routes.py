@@ -164,7 +164,12 @@ def test_provider_status_distinguishes_registered_verified_and_unsupported(
     assert items["youtube"]["registered"] is True
     assert items["youtube"]["status"] == "access_required"
     assert items["bilibili"]["status"] == "verified"
-    assert items["tiktok"]["status"] == "unknown"
+    assert items["tiktok"]["status"] == "degraded"
+    assert items["reddit"]["status"] == "access_required"
+    assert {
+        items[key]["status"]
+        for key in ("facebook", "twitch", "pinterest", "weibo", "youku", "qqvideo")
+    } == {"verified"}
     assert items["wechat_channels"]["status"] == "unsupported"
     assert items["wechat_channels"]["registered"] is False
     assert items["kuaishou"]["registered"] is True

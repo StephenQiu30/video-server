@@ -259,6 +259,7 @@ declare namespace API {
     | "provider_drm_protected"
     | "provider_geo_restricted"
     | "provider_link_unavailable"
+    | "provider_media_unsupported"
     | "provider_rate_limited"
     | "provider_session_expired"
     | "provider_temporarily_unavailable"

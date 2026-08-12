@@ -1,5 +1,5 @@
 import pytest
-from app.domain.providers import ProviderSupportStatus
+from app.domain.providers import ProviderCapability, ProviderSupportStatus
 from app.runner.errors import RunnerFailure
 from app.runner.provider_registry import configure_provider_instances, provider_profile
 from app.runner.provider_urls import (
@@ -27,13 +27,16 @@ def test_uses_public_vimeo_player_endpoint_for_canonical_video() -> None:
         "https://vimeo.com/76979871",
         "https://x.com/canghe/status/2087368911625052411",
         "https://www.instagram.com/reel/DbKfjdhTMAY/",
+        "https://www.facebook.com/reel/1195289147628387",
+        "https://clips.twitch.tv/FaintLightGullWholeWheat",
+        "https://www.pinterest.com/pin/664281013778109217/",
+        "https://weibo.com/7827771738/N4xlMvjhI",
+        "https://v.youku.com/v_show/id_XOTUxMzg4NDMy.html",
+        "https://v.qq.com/x/page/q326831cny0.html",
     ),
 )
 def test_verified_provider_status(url: str) -> None:
-    assert (
-        provider_profile(url).support_status
-        is ProviderSupportStatus.VERIFIED
-    )
+    assert provider_profile(url).support_status is ProviderSupportStatus.VERIFIED
 
 
 def test_preserves_unlisted_and_non_vimeo_urls() -> None:
@@ -41,6 +44,30 @@ def test_preserves_unlisted_and_non_vimeo_urls() -> None:
         provider_request_url("https://vimeo.com/76979871/private-hash")
         == "https://vimeo.com/76979871/private-hash"
     )
+
+
+def test_remaining_provider_profiles_record_verified_access_boundaries() -> None:
+    facebook = provider_profile("https://www.facebook.com/reel/1195289147628387")
+    twitch = provider_profile("https://clips.twitch.tv/FaintLightGullWholeWheat")
+    reddit = provider_profile("https://www.reddit.com/comments/124pp33")
+    tiktok = provider_profile(
+        "https://www.tiktok.com/@creator/video/6742501081818877190"
+    )
+
+    assert facebook.version == "facebook-public-reel-v1"
+    assert facebook.client_profile_id == "chrome-136-macos-15"
+    assert ProviderCapability.SHORT_VIDEO in facebook.capabilities
+    assert twitch.version == "twitch-public-clip-v1"
+    assert twitch.capabilities == frozenset(
+        {
+            ProviderCapability.SINGLE_VIDEO,
+            ProviderCapability.CLIP_OR_VOD,
+        }
+    )
+    assert reddit.support_status is ProviderSupportStatus.ACCESS_REQUIRED
+    assert reddit.version == "reddit-public-video-v1"
+    assert tiktok.support_status is ProviderSupportStatus.DEGRADED
+    assert tiktok.version == "tiktok-web-v1"
 
 
 def test_normalizes_douyin_shared_video_urls() -> None:
