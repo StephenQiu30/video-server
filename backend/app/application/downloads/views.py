@@ -15,6 +15,7 @@ from app.application.downloads.inspection_models import (
     InspectionView,
 )
 from app.application.downloads.plans import plan_from_documents, public_plan
+from app.application.downloads.thumbnail import safe_thumbnail_data_url
 from app.domain.downloads import (
     DownloadErrorCode,
     DownloadStage,
@@ -44,20 +45,8 @@ def inspection_view(snapshot: InspectionSnapshot) -> InspectionView:
         duration_seconds=snapshot.duration_seconds,
         expires_at=snapshot.expires_at,
         formats=formats,
-        thumbnail_url=_thumbnail_url(snapshot.metadata),
+        thumbnail_url=safe_thumbnail_data_url(snapshot.metadata.get("thumbnail_url")),
     )
-
-
-def _thumbnail_url(metadata: dict[str, object]) -> str | None:
-    value = metadata.get("thumbnail_url")
-    if not isinstance(value, str) or len(value) > 2_100_000:
-        return None
-    allowed_prefixes = (
-        "data:image/jpeg;base64,",
-        "data:image/png;base64,",
-        "data:image/webp;base64,",
-    )
-    return value if value.startswith(allowed_prefixes) else None
 
 
 def download_view(

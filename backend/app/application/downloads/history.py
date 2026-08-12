@@ -12,6 +12,7 @@ from app.application.downloads.history_models import (
     DownloadHistoryView,
 )
 from app.application.downloads.ports import DownloadRepository
+from app.application.downloads.thumbnail import safe_thumbnail_data_url
 from app.application.downloads.validation import validate_now, validate_owner_hash
 from app.domain.downloads import DownloadErrorCode, DownloadStatus
 
@@ -71,7 +72,7 @@ def _item_view(item: DownloadHistoryItemSnapshot) -> DownloadHistoryItemView:
     return DownloadHistoryItemView(
         id=item.id,
         title=item.title or "未命名视频",
-        thumbnail_url=_safe_thumbnail_url(item.thumbnail_url),
+        thumbnail_url=safe_thumbnail_data_url(item.thumbnail_url),
         format_name=item.format_name,
         status=DownloadStatus(item.status),
         progress=item.progress,
@@ -84,14 +85,3 @@ def _item_view(item: DownloadHistoryItemSnapshot) -> DownloadHistoryItemView:
         file_available=item.file_available,
         file_expires_at=item.file_expires_at,
     )
-
-
-def _safe_thumbnail_url(value: str | None) -> str | None:
-    if not isinstance(value, str) or len(value) > 2_100_000:
-        return None
-    prefixes = (
-        "data:image/jpeg;base64,",
-        "data:image/png;base64,",
-        "data:image/webp;base64,",
-    )
-    return value if value.startswith(prefixes) else None

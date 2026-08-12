@@ -38,7 +38,7 @@ async def test_download_store_maps_the_complete_application_lifecycle() -> None:
             provider_media_id="media-1",
             title="Controlled sample",
             duration_seconds=10,
-            metadata={"thumbnail_url": "data:image/jpeg;base64,Y292ZXI="},
+            metadata={"thumbnail_url": "data:image/avif;base64,Y292ZXI="},
             expires_at=expires,
             formats=(
                 application.FormatCreate(
@@ -81,7 +81,7 @@ async def test_download_store_maps_the_complete_application_lifecycle() -> None:
     )
     assert history.total == 1
     assert history.items[0].title == "Controlled sample"
-    assert history.items[0].thumbnail_url == "data:image/jpeg;base64,Y292ZXI="
+    assert history.items[0].thumbnail_url == "data:image/avif;base64,Y292ZXI="
     assert history.summary.active == 1
     other_owner = await store.list_download_history(
         "b" * 64,

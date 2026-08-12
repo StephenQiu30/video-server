@@ -65,7 +65,7 @@ def runner_result(*, duration: int = 30) -> RunnerInspection:
         duration_seconds=duration,
         formats=(RunnerFormat("1080p MP4", plan()),),
         access_context=access_context(),
-        thumbnail_data_url="data:image/jpeg;base64,Y292ZXI=",
+        thumbnail_data_url="data:image/avif;base64,Y292ZXI=",
     )
 
 
@@ -113,9 +113,9 @@ async def test_inspect_encrypts_url_and_returns_only_semantic_formats() -> None:
     }
     assert command.metadata == {
         "provider_access_context": access_context().to_document(),
-        "thumbnail_url": "data:image/jpeg;base64,Y292ZXI=",
+        "thumbnail_url": "data:image/avif;base64,Y292ZXI=",
     }
-    assert view.thumbnail_url == "data:image/jpeg;base64,Y292ZXI="
+    assert view.thumbnail_url == "data:image/avif;base64,Y292ZXI="
 
 
 @pytest.mark.asyncio
