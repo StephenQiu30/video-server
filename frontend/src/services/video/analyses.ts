@@ -72,7 +72,9 @@ export async function exportAnalysisMarkdown(
   });
 }
 
-/** 重试原视频分析任务 为同一分析任务创建下一执行代次，不改变任务资源 ID。 POST /api/analyses/${param0}/retry */
+/** 重试原视频分析任务 为同一分析任务创建下一执行代次，不改变任务资源 ID。
+
+Retry 是上一运行的无参数重放；带请求体的请求按校验错误拒绝。 POST /api/analyses/${param0}/retry */
 export async function retryAnalysis(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.retryAnalysisParams,
