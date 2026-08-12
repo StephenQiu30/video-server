@@ -93,12 +93,24 @@ npm run openapi
 - 首页 Hero 与内页标题使用 Geist 响应式标题阶梯，不强制旧的固定页标尺寸。只有真实流程序号可使用中性 mono eyebrow，不使用彩色装饰性分类标签或与标题重复的说明。
 - 页面根、标题区、筛选区、列表区和表单区不使用可见 PageShell/Card 外壳、装饰 ring、阴影或大边框。输入、选择器和按钮优先使用无边框实心填充面；内容层级只使用必要的 1px 发丝 Separator。错误边界、可见键盘焦点轮廓与 Radix 覆盖层的表面/遮罩必须保留。
 - 首页格式选择必须使用 Radix RadioGroup 直接渲染 API 返回的真实 `MediaFormat`。不使用旧三步 UI、伪画质预设、伪字幕/容器选择器或静态封面上的伪播放按钮。群山湖泊演示/回归资产位于 `public/images/media-preview-mountain.webp`（约 221 KiB），真实封面仍优先。
+- 管理员下载分析页保持连续的无边框内容流，不使用指标 Card 或图表外壳。7/30/90 天周期使用单选 Radix Toggle Group；全部、成功、失败和取消趋势使用多选 Toggle Group，并以线型、文字和状态共同表达；成功率与来源占比使用 Radix Progress。趋势图可使用无描边中性表面、低对比总量面积层和末端数据点，但必须保留完整的屏幕阅读器数据表与移动摘要。
 - 功能图标继续使用已有 `@phosphor-icons/react`，品牌标识通过 Next.js `Image` 复用 `public/logo.svg`，浏览器与 Apple 图标复用同组品牌资源；不用 emoji、手绘 SVG、CSS 图形或文本符号代替标准图标。
 - 业务颜色和尺寸使用语义 token 与 Tailwind utility，不在页面散落近似色值、任意阴影或一次性 CSS。
 - Client Component 只用于交互和浏览器 API；其余页面、布局和元数据保持 Server Component。
 - 所有交互支持键盘，表单控件有可关联标签，错误和异步状态可被辅助技术感知；RadioGroup 支持标准方向键，Dialog、Sheet、Popover、Dropdown Menu 保留 Radix 焦点圈定、Escape 关闭与触发器焦点恢复；尊重 reduced motion。
 - 首次加载与异步刷新必须为最终摘要、工具条和关键操作保留同尺寸槽位；Skeleton 只能替换槽位内容，不能让成功、空或错误状态把后续内容推移。
 - 桌面和 390px 窄屏均不得出现页面级横向溢出，主操作、错误恢复和核心数据在两种尺寸下都必须可用。
+
+## 页面与视觉回归
+
+下载分析的业务组合位于 `src/components/admin-analytics/`，路由入口为 `src/app/admin/analytics/page.tsx`。修改统计周期、趋势图、来源分布或响应式表格时，至少验证以下内容：
+
+- 单选周期和多选趋势系列可通过 Tab 与方向键操作，状态变化不会改变外部几何尺寸。
+- 浅色、深色、常规桌面和 390×844 视口下，`scrollWidth` 不大于 `clientWidth`。
+- 图表显隐不移除等价精确数据，颜色不是区分成功、失败和取消的唯一手段。
+- 初始加载、请求失败、空数据、刷新以及真实数据状态都保留清晰恢复路径。
+
+对应测试位于 `tests/unit/admin-analytics-page.test.tsx`。视觉系统决策与最近一次浏览器回归证据分别记录在 `../docs/design/009-Next前端与蓝白视觉系统设计.md` 和 `../design-qa.md`。
 
 ## 常用命令
 

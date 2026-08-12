@@ -54,7 +54,7 @@
 | `/downloads/detail?jobId=...` | 查看下载进度、获取文件并发起或阅读 AI 分析 |
 | `/providers` | 查看平台能力、访问模式与最近验证状态 |
 | `/account` | 管理公开用户名并查看账户信息 |
-| `/admin/analytics` | 查看下载 KPI、每日趋势与来源表现 |
+| `/admin/analytics` | 通过无边框 KPI、可切换趋势系列与来源进度查看全局下载表现（仅管理员） |
 | `/admin/providers` | 维护平台状态页名称、排序与可见性（仅管理员） |
 | `/admin/users` | 搜索用户并管理角色与启用状态 |
 | `/user/login`、`/user/register` | 登录、注册与受保护页面回跳 |
@@ -82,6 +82,21 @@ docker compose --env-file .env -f docker-compose.yml up -d --build
 
 首次对外暴露服务前，请检查并替换 `.env` 中的示例配置。完整的启动、健康检查、停止与故障恢复步骤见[运行手册](docs/operations/001-root-compose运行手册.md)。
 
+已有本地部署需要载入最新前后端代码时，先构建镜像，再强制重建服务。命令不会删除 PostgreSQL、RabbitMQ、MinIO 等命名卷：
+
+```bash
+docker compose --env-file .env -f docker-compose.yml build
+docker compose --env-file .env -f docker-compose.yml up -d --force-recreate
+```
+
+重建完成后检查存活、依赖就绪和 Web 页面：
+
+```bash
+curl --fail http://127.0.0.1:8101/health/live
+curl --fail http://127.0.0.1:8101/health/ready
+curl --fail --head http://127.0.0.1:8101/
+```
+
 ### 启用 AI 分析
 
 AI Worker 复用宿主机已经完成 OAuth 登录的 Codex CLI 或 Claude CLI，不把 CLI 认证目录挂载进容器。完成对应 CLI 登录后，从 `backend/` 启动：
@@ -92,7 +107,9 @@ uv sync --frozen --dev
 uv run python -m app.workers.analysis.main
 ```
 
-下载能力不依赖 AI Worker。启用分析时，选定的抽帧会交给所选云端模型观察；视频容器不会直接上传，但这些帧可能离开本机。请先确认内容授权、模型服务条款和组织的数据策略。
+AI Worker 直接连接宿主机回环地址发布的 PostgreSQL、RabbitMQ 和 MinIO。Compose 强制重建这些依赖时，正在运行的宿主机 Worker 可能因连接中断而退出，因此每次完整重建后都应确认只存在一个 Worker 进程并重新启动它。本地默认 `ANALYSIS_ENABLED=true`；在这种配置下，API 只有收到兼容 Worker 的持续心跳后才会让 `/health/ready` 返回 `200`。如果部署明确不提供 AI 分析，应设置 `ANALYSIS_ENABLED=false` 后重建 API，而不是长期忽略就绪失败。
+
+下载能力本身不依赖 AI Worker。启用分析时，选定的抽帧会交给所选云端模型观察；视频容器不会直接上传，但这些帧可能离开本机。请先确认内容授权、模型服务条款和组织的数据策略。
 
 当前默认验收 Provider 为 Codex；启用 Claude 前，请先用真实视频 canary 验证模型路由与图片理解能力。
 
@@ -115,7 +132,7 @@ flowchart LR
   API -. "WebSocket 状态" .-> Browser
 ```
 
-前端使用 Next.js 16、React 19、TypeScript、Tailwind CSS 与 Radix UI；后端使用 Python 3.12、FastAPI、PostgreSQL、RabbitMQ、Valkey 和 MinIO。生产镜像先静态导出前端，再由 FastAPI 同源交付页面、`/api/*` 与 WebSocket，不运行独立的前端生产容器。
+前端使用 Next.js 16、React 19、TypeScript、Tailwind CSS 与 Radix UI；后端使用 Python 3.12、FastAPI、PostgreSQL、RabbitMQ、Valkey 和 MinIO。生产镜像先静态导出前端，再由 FastAPI 同源交付页面、`/api/*` 与 WebSocket，不运行独立的前端生产容器。管理端下载分析延续统一的无边框视觉系统：周期与趋势系列使用 Radix Toggle Group，成功率和来源占比使用 Radix Progress，精确数值继续提供等价表格/移动摘要。
 
 ## 平台与能力状态
 

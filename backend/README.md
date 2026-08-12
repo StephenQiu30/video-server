@@ -31,3 +31,22 @@ Media Runner 通过 `app/runner/plugins/yt_dlp_plugins/` 加载随项目交付�
 主流视频源通过 `app/runner/provider_registry.py` 与 `app/runner/provider_catalog.py` 采用版本化 Profile + Registry 统一匹配；`provider_urls.py` 只保留兼容入口，未知站点使用无凭据的 yt-dlp Generic extractor。新增平台应先确认 extractor，再补 Profile、能力状态、错误 marker 与 metadata + Range canary。YouTube 运维会话只在独立 Runner 中从只读 Secret 建立操作级 `0600` Cookie jar；匿名与其他 Provider 命令不携带 Cookie。平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 key 指向受控内部代理。
 
 视觉分析通过宿主机 `codex exec` 或 `claude -p` adapter 运行，统一实现 `VideoAnalyzer` 端口并返回唯一当前态结果契约。分析能力由 `app/analysis_skills/*/SKILL.md` 注册：稳定 Skill ID 不带版本后缀，任务创建时保存完整指令快照，用户可在前端编辑该 Skill 的默认提示词。应用只提供受限 FFmpeg/FFprobe 解码工具，由 AI 自主观察画面并生成连续分镜、逐镜头叙事作用与高光等级、高光、视觉资产和制作建议；不运行 ASR，也不管理模型 API Key。报告以 Markdown 为唯一内容源，可在前端安全预览、下载 `.md`，DOCX 由 `markdown-it-py` 解析同一 Markdown 后生成。当前本机真实视觉 E2E 只通过 Codex；Claude 启用前必须验证实际模型路由具备图片理解。Worker 必须由已经完成 CLI OAuth 登录的本机用户从 `backend/` 启动。
+
+## 运行与就绪
+
+完整本地拓扑从仓库根目录通过 Compose 启动；`database-init`、`rabbitmq-init`、`minio-init` 和 `workspace-init` 是应以 `0` 退出的一次性初始化服务，其余 API、Worker 与基础设施保持运行：
+
+```bash
+docker compose --env-file .env -f docker-compose.yml build
+docker compose --env-file .env -f docker-compose.yml up -d --force-recreate
+docker compose ps --all
+```
+
+宿主机 AI Worker 不属于 Compose。默认启用分析时，从 `backend/` 单独启动且只运行一个实例：
+
+```bash
+uv sync --frozen --dev
+uv run python -m app.workers.analysis.main
+```
+
+API `/health/live` 只证明进程存活；`/health/ready` 还会在有界超时内检查数据库结构、Media Runner、MinIO、RabbitMQ、Valkey，以及启用分析时兼容 AI Worker 的心跳。Compose 重建数据库或消息队列可能使宿主机 Worker 的长连接中断并退出，应在重建后重新启动 Worker，再以 `/health/ready` 返回 `200` 作为交付条件。没有 AI Worker 的部署必须显式设置 `ANALYSIS_ENABLED=false` 并重建 API。
