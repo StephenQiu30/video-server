@@ -65,7 +65,12 @@ INSERT INTO provider_catalog_entries (
     ('weibo', '微博', 140, TRUE, FALSE),
     ('youku', '优酷', 150, TRUE, FALSE),
     ('qqvideo', '腾讯视频', 160, TRUE, FALSE),
-    ('wechat_channels', '微信视频号', 170, TRUE, FALSE)
+    ('wechat_channels', '微信视频号', 170, TRUE, FALSE),
+    ('snapchat', 'Snapchat Spotlight', 180, TRUE, FALSE),
+    ('linkedin', 'LinkedIn', 190, TRUE, FALSE),
+    ('telegram', 'Telegram', 200, TRUE, FALSE),
+    ('kick', 'Kick', 210, TRUE, FALSE),
+    ('tumblr', 'Tumblr', 220, TRUE, FALSE)
 ON CONFLICT (key) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS media_inspections (

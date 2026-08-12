@@ -10,12 +10,26 @@ from app.domain.providers import (
     ProviderCapability,
     ProviderSupportStatus,
 )
+from app.runner.errors import RunnerFailure
 from app.runner.provider_registry import ProviderProfile, UrlNormalizer, _identity
 
 _VIMEO_ID = re.compile(r"/([0-9]+)/?$")
 _DOUYIN_VIDEO = re.compile(r"/video/(?P<id>[0-9]+)/?$")
 _DOUYIN_SHARE = re.compile(r"/share/video/(?P<id>[0-9]+)/?$")
 _KUAISHOU_VIDEO = re.compile(r"/short-video/(?P<id>[A-Za-z0-9]+)/?$")
+_SNAPCHAT_SPOTLIGHT = re.compile(r"/spotlight/(?P<id>[A-Za-z0-9_-]+)/?$")
+_LINKEDIN_POST = re.compile(
+    r"/(?:posts/[^/]+-(?:activity|ugcpost)-[0-9]+-[^/]+"
+    r"|feed/update/urn:li:(?:activity|ugcpost):[0-9]+)/?$",
+    re.IGNORECASE,
+)
+_TELEGRAM_POST = re.compile(r"/(?:s/)?[A-Za-z0-9_]+/[0-9]+/?$")
+_KICK_CHANNEL = re.compile(r"/(?P<channel>[A-Za-z0-9_-]+)/?$")
+_KICK_CLIP = re.compile(
+    r"/(?P<channel>[A-Za-z0-9_-]+)/clips/(?P<id>clip_[A-Za-z0-9]+)/?$",
+    re.IGNORECASE,
+)
+_TUMBLR_POST = re.compile(r"/[A-Za-z0-9_-]+/(?P<id>[0-9]+)(?:/[^/?#]+)?/?$")
 _DIGITS = re.compile(r"[0-9]+$")
 _CHROME_IMPERSONATION = ("--impersonate", "Chrome-136:Macos-15")
 _ANDROID_IMPERSONATION = ("--impersonate", "Chrome-131:Android-14")
@@ -41,6 +55,61 @@ def _kuaishou_url(url: str, parsed: SplitResult) -> str:
     if match is None:
         return url
     return f"https://v.m.chenzhongtech.com/fw/photo/{match.group('id')}"
+
+
+def _require_path(
+    url: str,
+    parsed: SplitResult,
+    pattern: re.Pattern[str],
+    *,
+    allowed_query: frozenset[str] = frozenset({""}),
+) -> str:
+    if pattern.fullmatch(parsed.path) is None or parsed.query not in allowed_query:
+        raise RunnerFailure("provider_unsupported", status=422)
+    return url
+
+
+def _snapchat_url(url: str, parsed: SplitResult) -> str:
+    return _require_path(url, parsed, _SNAPCHAT_SPOTLIGHT)
+
+
+def _linkedin_url(url: str, parsed: SplitResult) -> str:
+    if _LINKEDIN_POST.fullmatch(parsed.path) is None:
+        raise RunnerFailure("provider_unsupported", status=422)
+    query = parse_qs(parsed.query)
+    if not set(query) <= {"utm_source", "utm_medium", "utm_campaign"}:
+        raise RunnerFailure("provider_unsupported", status=422)
+    return f"https://www.linkedin.com{parsed.path}"
+
+
+def _telegram_url(url: str, parsed: SplitResult) -> str:
+    return _require_path(
+        url,
+        parsed,
+        _TELEGRAM_POST,
+        allowed_query=frozenset({"", "single"}),
+    )
+
+
+def _kick_url(url: str, parsed: SplitResult) -> str:
+    clip_match = _KICK_CLIP.fullmatch(parsed.path)
+    if clip_match is not None and not parsed.query:
+        return url
+    channel_match = _KICK_CHANNEL.fullmatch(parsed.path)
+    query = parse_qs(parsed.query)
+    clip_ids = query.get("clip", [])
+    if (
+        channel_match is None
+        or set(query) != {"clip"}
+        or len(clip_ids) != 1
+        or re.fullmatch(r"clip_[A-Za-z0-9]+", clip_ids[0], re.IGNORECASE) is None
+    ):
+        raise RunnerFailure("provider_unsupported", status=422)
+    return f"https://kick.com/{channel_match.group('channel')}/clips/{clip_ids[0]}"
+
+
+def _tumblr_url(url: str, parsed: SplitResult) -> str:
+    return _require_path(url, parsed, _TUMBLR_POST)
 
 
 def _standard(
@@ -350,5 +419,67 @@ DEFAULT_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         capabilities=frozenset({ProviderCapability.SINGLE_VIDEO}),
         status=ProviderSupportStatus.VERIFIED,
         canary_suite="qqvideo-public-single-video",
+    ),
+    _standard(
+        "snapchat",
+        "Snapchat Spotlight",
+        ("snapchat.com", "www.snapchat.com"),
+        version="snapchat-spotlight-v1",
+        normalize_url=_snapchat_url,
+        capabilities=frozenset(
+            {
+                ProviderCapability.SINGLE_VIDEO,
+                ProviderCapability.SHORT_VIDEO,
+            }
+        ),
+        status=ProviderSupportStatus.VERIFIED,
+        canary_suite="snapchat-public-spotlight",
+    ),
+    _standard(
+        "linkedin",
+        "LinkedIn",
+        ("linkedin.com", "www.linkedin.com"),
+        version="linkedin-public-post-v1",
+        normalize_url=_linkedin_url,
+        capabilities=frozenset({ProviderCapability.SINGLE_VIDEO}),
+        status=ProviderSupportStatus.VERIFIED,
+        canary_suite="linkedin-public-single-video-post",
+    ),
+    _standard(
+        "telegram",
+        "Telegram",
+        ("t.me",),
+        version="telegram-public-channel-post-v1",
+        normalize_url=_telegram_url,
+        capabilities=frozenset({ProviderCapability.SINGLE_VIDEO}),
+        status=ProviderSupportStatus.VERIFIED,
+        canary_suite="telegram-public-channel-single-video",
+    ),
+    _standard(
+        "kick",
+        "Kick",
+        ("kick.com", "www.kick.com"),
+        version="kick-public-clip-v1",
+        normalize_url=_kick_url,
+        capabilities=frozenset(
+            {
+                ProviderCapability.SINGLE_VIDEO,
+                ProviderCapability.CLIP_OR_VOD,
+            }
+        ),
+        status=ProviderSupportStatus.VERIFIED,
+        canary_suite="kick-public-clip",
+    ),
+    _standard(
+        "tumblr",
+        "Tumblr",
+        ("tumblr.com", "www.tumblr.com"),
+        version="tumblr-public-video-post-v1",
+        normalize_url=_tumblr_url,
+        capabilities=frozenset({ProviderCapability.SINGLE_VIDEO}),
+        status=ProviderSupportStatus.VERIFIED,
+        command_args=_CHROME_IMPERSONATION,
+        client_profile_id="chrome-136-macos-15",
+        canary_suite="tumblr-public-single-video-post",
     ),
 )

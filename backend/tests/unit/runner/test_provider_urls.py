@@ -33,6 +33,11 @@ def test_uses_public_vimeo_player_endpoint_for_canonical_video() -> None:
         "https://weibo.com/7827771738/N4xlMvjhI",
         "https://v.youku.com/v_show/id_XOTUxMzg4NDMy.html",
         "https://v.qq.com/x/page/q326831cny0.html",
+        "https://www.snapchat.com/spotlight/W7_EDlXWTBiXAEEniNoMPwAAYYWtidGhudGZpAX1TKn0JAX1TKnXJAAAAAA",
+        "https://www.linkedin.com/posts/the-mathworks_2_what-is-mathworks-cloud-center-activity-7151241570371948544-4Gu7",
+        "https://t.me/europa_press/613",
+        "https://kick.com/spreen/clips/clip_01J8RGZRKHXHXXKJEHGRM932A5",
+        "https://www.tumblr.com/maskofthedragon/626907179849564160/mona-talking-in-english",
     ),
 )
 def test_verified_provider_status(url: str) -> None:
@@ -68,6 +73,67 @@ def test_remaining_provider_profiles_record_verified_access_boundaries() -> None
     assert reddit.version == "reddit-public-video-v1"
     assert tiktok.support_status is ProviderSupportStatus.DEGRADED
     assert tiktok.version == "tiktok-web-v1"
+
+
+def test_new_social_profiles_have_versioned_single_media_boundaries() -> None:
+    expected = {
+        "https://www.snapchat.com/spotlight/example_1": (
+            "snapchat-spotlight-v1",
+            "yt-dlp-default",
+        ),
+        "https://www.linkedin.com/posts/example-activity-1234567890-example": (
+            "linkedin-public-post-v1",
+            "yt-dlp-default",
+        ),
+        "https://t.me/example_channel/613": (
+            "telegram-public-channel-post-v1",
+            "yt-dlp-default",
+        ),
+        "https://kick.com/example/clips/clip_01ABCDEF": (
+            "kick-public-clip-v1",
+            "yt-dlp-default",
+        ),
+        "https://www.tumblr.com/example/1234567890/video": (
+            "tumblr-public-video-post-v1",
+            "chrome-136-macos-15",
+        ),
+    }
+
+    assert {
+        url: (provider_profile(url).version, provider_profile(url).client_profile_id)
+        for url in expected
+    } == expected
+
+
+@pytest.mark.parametrize(
+    "url",
+    (
+        "https://www.snapchat.com/add/example",
+        "https://www.linkedin.com/company/example/",
+        "https://t.me/example_channel",
+        "https://kick.com/example",
+        "https://kick.com/example/videos/12345678-abcd",
+        "https://www.tumblr.com/example",
+    ),
+)
+def test_new_social_profiles_reject_non_single_video_paths(url: str) -> None:
+    with pytest.raises(RunnerFailure) as captured:
+        provider_request_url(url)
+    assert captured.value.code == "provider_unsupported"
+
+
+def test_normalizes_kick_clip_query_to_the_clip_endpoint() -> None:
+    assert (
+        provider_request_url("https://kick.com/example?clip=clip_01ABCDEF")
+        == "https://kick.com/example/clips/clip_01ABCDEF"
+    )
+
+
+def test_strips_linkedin_share_tracking_from_public_video_posts() -> None:
+    assert provider_request_url(
+        "https://www.linkedin.com/feed/update/urn:li:activity:7016901149999955968/"
+        "?utm_source=share&utm_medium=member_desktop"
+    ) == ("https://www.linkedin.com/feed/update/urn:li:activity:7016901149999955968/")
 
 
 def test_normalizes_douyin_shared_video_urls() -> None:
@@ -194,6 +260,11 @@ def test_registry_classifies_mainstream_platform_hosts() -> None:
         "m.weibo.cn": "weibo",
         "v.youku.com": "youku",
         "v.qq.com": "qqvideo",
+        "www.snapchat.com": "snapchat",
+        "www.linkedin.com": "linkedin",
+        "t.me": "telegram",
+        "kick.com": "kick",
+        "www.tumblr.com": "tumblr",
     }
 
     assert {
