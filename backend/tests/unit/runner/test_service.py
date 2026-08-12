@@ -17,7 +17,7 @@ from helpers import download_request, result, settings, split_media_info
 
 class ThumbnailStream:
     status_code = 200
-    headers = {"content-type": "image/jpeg", "content-length": "5"}
+    headers = {"content-type": "image/avif", "content-length": "5"}
     is_redirect = False
 
     async def __aenter__(self) -> ThumbnailStream:
@@ -462,6 +462,6 @@ async def test_inspect_fetches_a_bounded_thumbnail_through_the_proxy(
 
     response = await service.inspect("https://media.example.com/video")
 
-    assert response.media.thumbnail_data_url == "data:image/jpeg;base64,Y292ZXI="
+    assert response.media.thumbnail_data_url == "data:image/avif;base64,Y292ZXI="
     assert clients[0].options["proxy"] == "http://egress-proxy:3128"
     assert clients[0].requests == [("GET", "https://images.example.com/cover.jpg")]

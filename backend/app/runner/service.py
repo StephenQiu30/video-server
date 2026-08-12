@@ -493,6 +493,7 @@ class MediaRunnerService:
                         content_type = response.headers.get("content-type", "")
                         media_type = content_type.split(";", 1)[0].strip().lower()
                         if media_type not in {
+                            "image/avif",
                             "image/jpeg",
                             "image/png",
                             "image/webp",

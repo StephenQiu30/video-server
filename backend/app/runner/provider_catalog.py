@@ -233,18 +233,21 @@ DEFAULT_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         "Vimeo",
         ("vimeo.com", "www.vimeo.com", "player.vimeo.com"),
         normalize_url=_vimeo_url,
+        status=ProviderSupportStatus.VERIFIED,
         operator_cookie_domains=frozenset({"vimeo.com"}),
     ),
     _standard(
         "x",
         "X / Twitter",
         ("x.com", "www.x.com", "twitter.com", "www.twitter.com", "mobile.twitter.com"),
+        status=ProviderSupportStatus.VERIFIED,
         operator_cookie_domains=frozenset({"x.com", "twitter.com"}),
     ),
     _standard(
         "instagram",
         "Instagram",
         ("instagram.com", "www.instagram.com"),
+        status=ProviderSupportStatus.VERIFIED,
         operator_cookie_domains=frozenset({"instagram.com"}),
     ),
     _standard(

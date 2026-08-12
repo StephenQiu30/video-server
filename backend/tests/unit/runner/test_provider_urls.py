@@ -1,4 +1,5 @@
 import pytest
+from app.domain.providers import ProviderSupportStatus
 from app.runner.errors import RunnerFailure
 from app.runner.provider_registry import configure_provider_instances, provider_profile
 from app.runner.provider_urls import (
@@ -17,6 +18,21 @@ def test_uses_public_vimeo_player_endpoint_for_canonical_video() -> None:
     assert (
         provider_request_url("https://www.vimeo.com/76979871/")
         == "https://player.vimeo.com/video/76979871"
+    )
+
+
+@pytest.mark.parametrize(
+    "url",
+    (
+        "https://vimeo.com/76979871",
+        "https://x.com/canghe/status/2087368911625052411",
+        "https://www.instagram.com/reel/DbKfjdhTMAY/",
+    ),
+)
+def test_verified_provider_status(url: str) -> None:
+    assert (
+        provider_profile(url).support_status
+        is ProviderSupportStatus.VERIFIED
     )
 
 
