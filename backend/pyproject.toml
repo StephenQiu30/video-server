@@ -17,7 +17,7 @@ dependencies = [
   "email-validator>=2.2,<3",
   "pwdlib[argon2]>=0.3,<1",
   "PyJWT>=2.10,<3",
-  "redis>=5.2,<7",
+  "valkey>=6.1,<7",
   "sqlalchemy[asyncio]>=2.0,<3",
   "uvicorn[standard]>=0.34,<1",
   "yt-dlp[default,curl-cffi] @ https://github.com/yt-dlp/yt-dlp/archive/5d6b8c8cd19785c3086ae3a9ec618c45e25eb3bc.tar.gz",

@@ -845,15 +845,6 @@ wheels = [
 ]
 
 [[package]]
-name = "redis"
-version = "6.4.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/0d/d6/e8b92798a5bd67d659d51a18170e91c16ac3b59738d91894651ee255ed49/redis-6.4.0.tar.gz", hash = "sha256:b01bc7282b8444e28ec36b261df5375183bb47a07eb9c603f284e89cbc5ef010", size = 4647399, upload-time = "2025-08-07T08:10:11.441Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e8/02/89e2ed7e85db6c93dfa9e8f691c5087df4e3551ab39081a4d7c6d1f90e05/redis-6.4.0-py3-none-any.whl", hash = "sha256:f0544fa9604264e9464cdf4814e7d4830f74b165d52f2a330a760a88dd248b7f", size = 279847, upload-time = "2025-08-07T08:10:09.84Z" },
-]
-
-[[package]]
 name = "requests"
 version = "2.34.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1012,6 +1003,15 @@ wheels = [
 ]
 
 [[package]]
+name = "valkey"
+version = "6.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c3/ee/7fd930fc712275084722ddd464a0ea296abdb997d2da396320507968daeb/valkey-6.1.1.tar.gz", hash = "sha256:5880792990c6c2b5eb604a5ed5f98f300880b6dd92d123819b66ed54bb259731", size = 4601372, upload-time = "2025-08-11T06:41:10.63Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d0/a2/252afa4da08c714460f49e943070f86a02931f99f886182765194002fe33/valkey-6.1.1-py3-none-any.whl", hash = "sha256:e2691541c6e1503b53c714ad9a35551ac9b7c0bbac93865f063dbc859a46de92", size = 259474, upload-time = "2025-08-11T06:41:08.769Z" },
+]
+
+[[package]]
 name = "video-server-backend"
 version = "0.1.0"
 source = { editable = "." }
@@ -1029,9 +1029,9 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "pyjwt" },
     { name = "python-docx" },
-    { name = "redis" },
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "uvicorn", extra = ["standard"] },
+    { name = "valkey" },
     { name = "yt-dlp", extra = ["curl-cffi", "default"] },
 ]
 
@@ -1059,9 +1059,9 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.7,<3" },
     { name = "pyjwt", specifier = ">=2.10,<3" },
     { name = "python-docx", specifier = ">=1.2,<2" },
-    { name = "redis", specifier = ">=5.2,<7" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0,<3" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34,<1" },
+    { name = "valkey", specifier = ">=6.1,<7" },
     { name = "yt-dlp", extras = ["default", "curl-cffi"], url = "https://github.com/yt-dlp/yt-dlp/archive/5d6b8c8cd19785c3086ae3a9ec618c45e25eb3bc.tar.gz" },
 ]
 

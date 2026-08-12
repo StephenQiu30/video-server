@@ -7,7 +7,7 @@ import hmac
 from dataclasses import dataclass
 from typing import Any
 
-from redis.asyncio import Redis
+from valkey.asyncio import Valkey
 
 
 class RateLimiterUnavailable(RuntimeError):
@@ -50,7 +50,7 @@ class ValkeyRateLimiter:
     def __init__(self, url: str, salt: bytes) -> None:
         if not url or len(salt) < 16:
             raise ValueError("rate limiter URL and salt are required")
-        self._client: Any = Redis.from_url(url, decode_responses=False)
+        self._client: Any = Valkey.from_url(url, decode_responses=False)
         self._salt = salt
 
     async def check(self, *, operation: str, owner_hash: str, client_host: str) -> None:
