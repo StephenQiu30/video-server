@@ -31,6 +31,7 @@ from app.runner.metadata import (
     build_download_options,
     enrich_direct_metadata,
     enrich_format_metadata,
+    normalize_selected_format_metadata,
 )
 from app.runner.presentation import inspect_response
 from app.runner.provider_sessions import ProviderSessionStore
@@ -295,6 +296,7 @@ class MediaRunnerService:
             provider_key=context.provider_key,
             access_mode=context.access_mode,
         )
+        payload = normalize_selected_format_metadata(payload)
         if payload.get("direct") is True and cookie_jar is None:
             probe = await self._commands.probe_remote(
                 safe_url,

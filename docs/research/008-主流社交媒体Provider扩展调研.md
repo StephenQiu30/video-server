@@ -35,6 +35,7 @@
 - Tumblr 当前出口需要 Profile 级 Chrome impersonation；其他四个平台保持默认客户端，避免全局伪装。
 - Kick 的 `?clip=` 入口规范化到稳定 `/clips/{id}` 入口；额外 query、其他路径和不合法 id 均拒绝。
 - Telegram 多资产帖由 yt-dlp 返回 playlist；当前单视频模型不静默选择其中一项，因此最终会 fail closed。
+- Snapchat 暴露了 yt-dlp 的标准单表示输出差异：`--dump-single-json` 可能只在顶层返回已选 `format_id`/`url`，而没有 `formats[]`。Runner 现已在统一 metadata 层把该结构归一化为一个候选，再复用既有受控 proxy probe 和语义格式选择；没有增加平台专用 fallback。
 
 ## 4. 未新增的平台
 

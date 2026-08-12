@@ -21,6 +21,7 @@ __all__ = [
     "enrich_direct_metadata",
     "enrich_format_metadata",
     "normalize_metadata",
+    "normalize_selected_format_metadata",
 ]
 
 _PROVIDER_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")
@@ -34,6 +35,47 @@ class MediaInspection:
     extractor_key: str
     streams: tuple[CandidateStream, ...]
     thumbnail_url: str | None = None
+
+
+def normalize_selected_format_metadata(payload: dict[str, Any]) -> dict[str, Any]:
+    """Represent yt-dlp's valid top-level selected format as one candidate.
+
+    Single-representation extractors may omit ``formats`` from
+    ``--dump-single-json`` while returning a selected ``format_id`` and media
+    URL at the top level. Preserve that representation for the runner's common
+    bounded-probe and semantic-format pipeline.
+    """
+    if isinstance(payload.get("formats"), list):
+        return payload
+    format_id = payload.get("format_id")
+    url = payload.get("url")
+    if not isinstance(format_id, str) or not isinstance(url, str):
+        return payload
+    selected = {
+        key: value
+        for key, value in payload.items()
+        if key
+        in {
+            "abr",
+            "acodec",
+            "dynamic_range",
+            "ext",
+            "filesize",
+            "filesize_approx",
+            "format_id",
+            "fps",
+            "height",
+            "language",
+            "tbr",
+            "url",
+            "vbr",
+            "vcodec",
+            "width",
+        }
+    }
+    normalized = dict(payload)
+    normalized["formats"] = [selected]
+    return normalized
 
 
 def enrich_direct_metadata(

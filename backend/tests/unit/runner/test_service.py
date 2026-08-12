@@ -368,6 +368,30 @@ async def test_inspect_enriches_sparse_provider_formats_with_bounded_probe(
     assert probe_environment["HTTPS_PROXY"] == "http://douyin-egress-proxy:3128"
 
 
+async def test_inspect_accepts_ytdlp_top_level_selected_direct_format(
+    tmp_path: Path,
+) -> None:
+    info = split_media_info()
+    info.pop("formats")
+    info.update(
+        {
+            "format_id": "direct-0",
+            "ext": "mp4",
+            "url": "https://cdn.example.com/spotlight.mp4",
+            "vcodec": None,
+            "acodec": None,
+        }
+    )
+    supervisor = FixtureSupervisor(info)
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    response = await service.inspect("https://media.example.com/video")
+
+    assert response.streams[0].provider_id == "direct-0"
+    assert response.streams[0].video_codec_family.value == "h264"
+    assert response.streams[0].audio_codec_family.value == "aac"
+
+
 async def test_inspect_recovers_missing_duration_from_sparse_probe(
     tmp_path: Path,
 ) -> None:

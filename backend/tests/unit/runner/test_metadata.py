@@ -15,6 +15,7 @@ from app.runner.metadata import (
     enrich_direct_metadata,
     enrich_format_metadata,
     normalize_metadata,
+    normalize_selected_format_metadata,
 )
 
 
@@ -117,6 +118,36 @@ def test_image_scrubber_format_does_not_become_a_download_option() -> None:
 
     assert options
     assert all(option.hints.video_id != "scrubber_hd" for option in options)
+
+
+def test_top_level_selected_format_becomes_one_semantic_candidate() -> None:
+    payload = {
+        "id": "spotlight-id",
+        "title": "Spotlight",
+        "duration": 4.665,
+        "extractor_key": "SnapchatSpotlight",
+        "format_id": "0",
+        "ext": "mp4",
+        "url": "https://cdn.example.com/spotlight.mp4",
+        "requested_downloads": [{"filename": "ignored.mp4"}],
+    }
+
+    normalized = normalize_selected_format_metadata(payload)
+
+    assert normalized["formats"] == [
+        {
+            "format_id": "0",
+            "ext": "mp4",
+            "url": "https://cdn.example.com/spotlight.mp4",
+        }
+    ]
+    assert "formats" not in payload
+
+
+def test_existing_format_list_is_preserved_by_selected_format_normalization() -> None:
+    payload = {"formats": [{"format_id": "720p"}], "format_id": "selected"}
+
+    assert normalize_selected_format_metadata(payload) is payload
 
 
 def test_ignores_unsafe_thumbnail_urls() -> None:
