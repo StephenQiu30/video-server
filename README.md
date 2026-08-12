@@ -152,29 +152,25 @@ npm run dev
 
 开发页面位于 <http://127.0.0.1:8000>，并将 `/api/*` 与 `/health/*` 代理到 `127.0.0.1:8101`。接口变化后，在 API 运行时执行 `npm run openapi` 重新生成客户端；不要手工修改 `frontend/src/services/video/`。
 
-与 CI 一致的质量检查：
+与 CI 一致的质量检查统一从仓库根目录执行：
 
 ```bash
-# backend/
-uv sync --frozen --dev
-uv run --frozen ruff check .
-uv run --frozen ruff format --check .
-uv run --frozen mypy --strict app
-uv run --frozen pytest -q
-
-# frontend/
-npm ci
-npm run lint
-npm run format:check
-npm test
-npm run build
+python scripts/install_git_hooks.py  # 首次克隆后执行一次
+python scripts/ci.py repository
+python scripts/ci.py backend
+python scripts/ci.py frontend
+python scripts/ci.py pre-push       # 完整代码级门禁
+./scripts/ci-runtime.sh             # 隔离的 Compose 运行边界烟测
 ```
+
+本地 `pre-commit` 运行快速的受影响模块检查，`pre-push` 运行完整代码级门禁；GitHub 的 `Required CI` 还会构建统一镜像、启动完整 Compose 拓扑、验证健康接口、SQL 幂等与 OpenAPI 客户端无漂移。`main` 只接受通过该检查的 squash PR。
 
 ## 文档
 
 - [文档索引](docs/README.md)：Design、PRD、Plan、Acceptance、研究与运维资料
 - [后端说明](backend/README.md) / [前端说明](frontend/README.md)：模块边界与开发方式
 - [运行手册](docs/operations/001-root-compose运行手册.md)：Compose 拓扑、健康检查与恢复
+- [CI 运行手册](docs/operations/004-CI与主分支门禁运行手册.md)：本地钩子、必需检查与故障定位
 - [贡献指南](CONTRIBUTING.md)：开发流程、质量门禁与提交规范
 - [安全策略](SECURITY.md)：安全边界与漏洞报告方式
 

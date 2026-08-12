@@ -65,14 +65,16 @@ BREAKING CHANGE: 客户端需要迁移到新版下载接口
 首次克隆后运行以下命令，启用仓库提供的提交模板和本地校验钩子：
 
 ```bash
-git config commit.template .gitmessage
-git config core.hooksPath .githooks
+python scripts/install_git_hooks.py
 ```
 
-本地钩子和 CI 使用同一个校验脚本。也可以在提交前手动检查：
+`commit-msg` 校验提交信息，`pre-commit` 对暂存区和受影响模块执行快速门禁，`pre-push` 校验待推送提交并执行完整代码级门禁。本地钩子和 CI 使用相同脚本；不要通过 `--no-verify` 绕过失败。也可以手动执行：
 
 ```bash
 python scripts/validate_commit_message.py --message "feat(frontend): 优化视频下载页面"
+python scripts/ci.py pre-push
 ```
+
+Pull Request 标题同样遵循中文 Conventional Commits，并作为 squash 后进入 `main` 的提交标题。`main` 禁止直接推送和非快进更新，只允许 squash PR；唯一分支必需检查是 `Required CI`，它聚合仓库规则、后端、前端和运行边界，任一子门禁失败都不能合并。
 
 提交前只暂存当前任务文件并完成相关验证；提交后运行 `git status --short`，确保没有本任务遗留的未提交文件。只有在明确要求时才推送远端或创建 PR。包括合并和回退在内的所有提交均执行上述中文规范，不设置格式豁免或兼容分支。

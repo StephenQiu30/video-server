@@ -5,100 +5,128 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  merge_group:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   repository-check:
     name: Repository rules
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v7
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.12"
-      - name: Test commit message rules
-        run: python -m unittest discover -s scripts/tests -v
-      - name: Validate pull request commit messages
+      - name: Repository configuration
+        run: python scripts/ci.py repository
+      - name: Validate pull request title
+        if: github.event_name == 'pull_request'
+        env:
+          PULL_REQUEST_TITLE: ${{ github.event.pull_request.title }}
+        run: python scripts/validate_commit_message.py --message "$PULL_REQUEST_TITLE"
+      - name: Validate pull request commits
         if: github.event_name == 'pull_request'
         run: >-
           python scripts/validate_commit_message.py
           --range "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
-      - name: Validate pushed commit messages
+      - name: Validate pull request diff
+        if: github.event_name == 'pull_request'
+        run: git diff --check "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+      - name: Validate pushed commits
         if: github.event_name == 'push'
         run: >-
           python scripts/validate_commit_message.py
           --range "${{ github.event.before }}..${{ github.sha }}"
-      - name: Validate Compose modes
-        run: |
-          cp .env.example .env
-          docker compose --env-file .env -f docker-compose.yml config --quiet
-          cp .env.prod.example .env.prod
-          docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod.yml config --quiet
-          rm -f .env .env.prod
+      - name: Validate pushed diff
+        if: github.event_name == 'push'
+        run: git diff --check "${{ github.event.before }}..${{ github.sha }}"
 
   backend-quality:
     name: Backend quality
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: backend
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.12"
-      - name: Install uv
-        run: python -m pip install uv==0.11.32
-      - name: Install locked dependencies
-        run: uv sync --frozen --dev
-      - name: Ruff
-        run: uv run --frozen ruff check .
-      - name: Format
-        run: uv run --frozen ruff format --check .
-      - name: Strict types
-        run: uv run --frozen mypy --strict app
-      - name: Core tests
-        run: uv run --frozen pytest -q
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        with:
+          version: "0.11.32"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Backend quality gates
+        run: python scripts/ci.py backend
 
   frontend-quality:
     name: Frontend quality
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: frontend
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: "24.15.0"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Pin npm version
         run: npm install --global npm@11.19.0
-      - name: Install locked dependencies
-        run: npm ci
-      - name: Lint and types
-        run: npm run lint
-      - name: Format
-        run: npm run format:check
-      - name: Core tests
-        run: npm test
-      - name: Production build
-        run: npm run build
+      - name: Frontend quality gates
+        run: python scripts/ci.py frontend
 
-  image-build:
-    name: Unified image
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [backend-quality, frontend-quality]
+  runtime-smoke:
+    name: Runtime boundary
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    needs: [repository-check, backend-quality, frontend-quality]
     steps:
-      - uses: actions/checkout@v7
-      - name: Build runtime image
-        run: docker build --target runtime --tag video-server:ci .
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24.15.0"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Pin npm version
+        run: npm install --global npm@11.19.0
+      - name: Build and verify runtime topology
+        run: ./scripts/ci-runtime.sh
+
+  required-ci:
+    name: Required CI
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    needs: [repository-check, backend-quality, frontend-quality, runtime-smoke]
+    steps:
+      - name: Require every boundary
+        env:
+          REPOSITORY_RESULT: ${{ needs.repository-check.result }}
+          BACKEND_RESULT: ${{ needs.backend-quality.result }}
+          FRONTEND_RESULT: ${{ needs.frontend-quality.result }}
+          RUNTIME_RESULT: ${{ needs.runtime-smoke.result }}
+        run: |
+          test "$REPOSITORY_RESULT" = success
+          test "$BACKEND_RESULT" = success
+          test "$FRONTEND_RESULT" = success
+          test "$RUNTIME_RESULT" = success
