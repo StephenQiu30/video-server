@@ -4,6 +4,8 @@ import type { ReactNode } from 'react';
 
 import AnalysisReportPreview from '@/components/analysis-report-preview';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Item, ItemGroup } from '@/components/ui/item';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { AnalysisResult } from '@/types/video';
 import { formatMilliseconds } from '@/utils/format';
@@ -56,80 +58,101 @@ export default function AnalysisResultView({
         </TabsList>
       </div>
       <TabsContent className="pt-7" value="shots">
-        <ol className="divide-y border-y">
-          {result.shots.map((shot) => (
-            <li
-              className="grid gap-4 py-6 sm:grid-cols-[72px_minmax(0,1fr)]"
-              key={shot.id}
-            >
-              <TimeButton
-                milliseconds={shot.start_ms}
-                onSelect={onSelectTime}
-              />
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <strong className="font-medium">分镜 {shot.index}</strong>
-                  <Badge variant="outline">{shot.shot_size}</Badge>
-                  <Badge variant="outline">{shot.camera_motion}</Badge>
-                </div>
-                <p className="mt-2 leading-7 text-muted-foreground">
-                  {shot.description}
-                </p>
-                {shot.visual_tags.length ? (
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    {shot.visual_tags.join(' · ')}
-                  </p>
-                ) : null}
-              </div>
-            </li>
-          ))}
-        </ol>
+        <ItemGroup asChild className="hairline gap-0 border-y">
+          <ol>
+            {result.shots.map((shot) => (
+              <Item
+                asChild
+                className="hairline grid gap-4 rounded-none border-0 border-b px-0 py-6 last:border-b-0 sm:grid-cols-[72px_minmax(0,1fr)]"
+                key={shot.id}
+              >
+                <li>
+                  <TimeButton
+                    milliseconds={shot.start_ms}
+                    onSelect={onSelectTime}
+                  />
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <strong className="font-medium">分镜 {shot.index}</strong>
+                      <Badge variant="outline">{shot.shot_size}</Badge>
+                      <Badge variant="outline">{shot.camera_motion}</Badge>
+                    </div>
+                    <p className="mt-2 leading-7 text-muted-foreground">
+                      {shot.description}
+                    </p>
+                    {shot.visual_tags.length ? (
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        {shot.visual_tags.join(' · ')}
+                      </p>
+                    ) : null}
+                  </div>
+                </li>
+              </Item>
+            ))}
+          </ol>
+        </ItemGroup>
       </TabsContent>
       <TabsContent className="pt-7" value="highlights">
         {result.highlights.length ? (
-          <ul className="grid gap-4 md:grid-cols-2">
-            {result.highlights.map((highlight) => (
-              <li className="border p-5" key={highlight.id}>
-                <div className="flex items-start justify-between gap-4">
-                  <strong className="font-medium">{highlight.title}</strong>
-                  <Badge>{highlight.score}</Badge>
-                </div>
-                <p className="mt-3 leading-7 text-muted-foreground">
-                  {highlight.description}
-                </p>
-                <p className="mt-3 text-sm">{highlight.reason}</p>
-                <TimeButton
-                  milliseconds={highlight.start_ms}
-                  onSelect={onSelectTime}
-                />
-              </li>
-            ))}
-          </ul>
+          <ItemGroup asChild className="hairline gap-0 border-y">
+            <ul>
+              {result.highlights.map((highlight) => (
+                <Item
+                  asChild
+                  className="hairline block rounded-none border-0 border-b px-0 py-6 last:border-b-0"
+                  key={highlight.id}
+                >
+                  <li>
+                    <div className="flex items-start justify-between gap-4">
+                      <strong className="font-medium">{highlight.title}</strong>
+                      <Badge>{highlight.score}</Badge>
+                    </div>
+                    <p className="mt-3 leading-7 text-muted-foreground">
+                      {highlight.description}
+                    </p>
+                    <p className="mt-3 text-sm">{highlight.reason}</p>
+                    <TimeButton
+                      milliseconds={highlight.start_ms}
+                      onSelect={onSelectTime}
+                    />
+                  </li>
+                </Item>
+              ))}
+            </ul>
+          </ItemGroup>
         ) : (
           <EmptyState>未识别出独立视觉高光。</EmptyState>
         )}
       </TabsContent>
       <TabsContent className="pt-7" value="assets">
         {result.assets.length ? (
-          <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {result.assets.map((asset) => (
-              <li className="border p-5" key={asset.id}>
-                <Badge variant="outline">
-                  {assetTypeLabels[asset.type] ?? asset.type}
-                </Badge>
-                <strong className="mt-3 block font-medium">
-                  {asset.label}
-                </strong>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {asset.description}
-                </p>
-                <TimeButton
-                  milliseconds={asset.first_seen_ms}
-                  onSelect={onSelectTime}
-                />
-              </li>
-            ))}
-          </ul>
+          <ItemGroup asChild className="hairline gap-0 border-y">
+            <ul>
+              {result.assets.map((asset) => (
+                <Item
+                  asChild
+                  className="hairline block rounded-none border-0 border-b px-0 py-6 last:border-b-0"
+                  key={asset.id}
+                >
+                  <li>
+                    <Badge variant="outline">
+                      {assetTypeLabels[asset.type] ?? asset.type}
+                    </Badge>
+                    <strong className="mt-3 block font-medium">
+                      {asset.label}
+                    </strong>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                      {asset.description}
+                    </p>
+                    <TimeButton
+                      milliseconds={asset.first_seen_ms}
+                      onSelect={onSelectTime}
+                    />
+                  </li>
+                </Item>
+              ))}
+            </ul>
+          </ItemGroup>
         ) : (
           <EmptyState>未识别出可复用的视觉资产。</EmptyState>
         )}
@@ -151,14 +174,15 @@ function TimeButton({
   onSelect?: (milliseconds: number) => void;
 }) {
   return (
-    <button
-      className="mt-3 w-fit font-mono text-xs text-muted-foreground underline-offset-4 enabled:hover:underline disabled:no-underline"
+    <Button
+      className="mt-2 h-11 w-fit px-0 font-mono text-xs text-muted-foreground"
       disabled={!onSelect}
       onClick={() => onSelect?.(milliseconds)}
       type="button"
+      variant="link"
     >
       {formatMilliseconds(milliseconds)}
-    </button>
+    </Button>
   );
 }
 

@@ -36,7 +36,7 @@ export default function DownloadJobView({
   if (state.loading && !state.job) return <DownloadJobSkeleton />;
 
   return (
-    <main className="content-shell py-10 sm:py-14 lg:py-16">
+    <main className="content-shell inner-page">
       <BackLink fallbackHref="/history" />
       <p className="eyebrow mt-7 text-muted-foreground">02 / 下载任务</p>
       {state.error ? (
@@ -108,7 +108,7 @@ export default function DownloadJobView({
 
 function DownloadJobSkeleton() {
   return (
-    <main className="content-shell py-10 sm:py-14 lg:py-16">
+    <main className="content-shell inner-page">
       <BackLink fallbackHref="/history" />
       <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)] lg:gap-0">
         <div className="lg:pr-12">

@@ -26,6 +26,10 @@ describe('provider status page', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: '平台状态' }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('banner')).toHaveAttribute(
+      'data-slot',
+      'page-header',
+    );
     const list = screen.getByRole('list', { name: '平台能力状态' });
     const youtube = within(list)
       .getByRole('heading', { name: 'YouTube' })

@@ -78,13 +78,14 @@ export default function AnalysisConfigurator({
             {catalog.error ? (
               <>
                 Skill 清单加载失败。{' '}
-                <button
-                  className="underline underline-offset-4"
+                <Button
+                  className="h-auto p-0 align-baseline text-inherit"
                   onClick={() => void catalog.retry()}
+                  variant="link"
                   type="button"
                 >
                   重试
-                </button>
+                </Button>
               </>
             ) : (
               (selected?.description ?? '正在加载可用的分析 Skill…')

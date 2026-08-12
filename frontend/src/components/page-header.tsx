@@ -23,8 +23,9 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <header
+      data-slot="page-header"
       className={cn(
-        'flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between',
+        'flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between sm:gap-8',
         className,
       )}
     >
@@ -47,7 +48,7 @@ export function PageHeader({
           </p>
         ) : null}
       </div>
-      {action ? <div className="shrink-0 sm:pt-1">{action}</div> : null}
+      {action ? <div className="shrink-0 sm:pt-0.5">{action}</div> : null}
     </header>
   );
 }

@@ -121,9 +121,7 @@ describe('download history', () => {
     expect(await screen.findByText('示例视频')).toBeInTheDocument();
     expect(container.querySelector('main')).toHaveClass(
       'content-shell',
-      'py-10',
-      'sm:py-14',
-      'lg:py-16',
+      'inner-page',
     );
     expect(
       screen.getByRole('heading', { level: 1, name: '下载历史' }),

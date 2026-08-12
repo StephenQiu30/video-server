@@ -4,10 +4,14 @@ import type * as React from 'react';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
-function ItemGroup({ className, ...props }: React.ComponentProps<'div'>) {
+function ItemGroup({
+  className,
+  asChild = false,
+  ...props
+}: React.ComponentProps<'div'> & { asChild?: boolean }) {
+  const Comp = asChild ? Slot.Root : 'div';
   return (
-    // biome-ignore lint/a11y/useSemanticElements: ItemGroup supports mixed article and action children, not only list items.
-    <div
+    <Comp
       role="list"
       data-slot="item-group"
       className={cn(

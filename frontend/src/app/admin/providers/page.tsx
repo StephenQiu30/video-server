@@ -6,7 +6,7 @@ export const metadata = { title: '平台目录' };
 export default function AdminProvidersPage() {
   return (
     <ProtectedRoute requireAdmin>
-      <main className="content-shell py-14 sm:py-20 lg:py-24">
+      <main className="content-shell inner-page">
         <AdminProviderCatalogView />
       </main>
     </ProtectedRoute>

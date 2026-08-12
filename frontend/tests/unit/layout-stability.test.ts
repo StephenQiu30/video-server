@@ -13,4 +13,32 @@ describe('global layout stability', () => {
     expect(styles).not.toContain('data-scroll-locked');
     expect(styles).not.toContain('--removed-body-scroll-bar-size');
   });
+
+  it('uses one compact top rhythm for authenticated inner pages', () => {
+    const styles = readFileSync(globalsPath, 'utf8');
+
+    expect(styles).toMatch(
+      /\.inner-page \{[\s\S]*padding-block: 2\.5rem;[\s\S]*\}/,
+    );
+    expect(styles).toMatch(
+      /@media \(min-width: 641px\)[\s\S]*\.inner-page \{[\s\S]*padding-block: 3\.5rem;/,
+    );
+    expect(styles).toMatch(
+      /@media \(min-width: 1024px\)[\s\S]*\.inner-page \{[\s\S]*padding-block: 4rem;/,
+    );
+
+    for (const path of [
+      'src/app/account/page.tsx',
+      'src/app/providers/page.tsx',
+      'src/app/admin/users/page.tsx',
+      'src/app/admin/providers/page.tsx',
+      'src/app/admin/analytics/page.tsx',
+      'src/components/download-history-view.tsx',
+      'src/components/download-job-view.tsx',
+    ]) {
+      expect(readFileSync(resolve(process.cwd(), path), 'utf8')).toContain(
+        'content-shell inner-page',
+      );
+    }
+  });
 });

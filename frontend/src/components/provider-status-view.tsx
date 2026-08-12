@@ -3,8 +3,10 @@
 import { ArrowClockwiseIcon } from '@phosphor-icons/react';
 
 import { BackLink } from '@/components/back-link';
+import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Item, ItemGroup } from '@/components/ui/item';
 import { Spinner } from '@/components/ui/spinner';
 import { useProviderStatuses } from '@/hooks/useProviderStatuses';
 import type { ProviderStatus } from '@/services/providers';
@@ -36,30 +38,24 @@ export function ProviderStatusView() {
 
   return (
     <section aria-labelledby="provider-status-title">
-      <BackLink fallbackHref="/" />
-      <div className="mt-8 flex flex-wrap items-end justify-between gap-5">
-        <div className="max-w-3xl">
-          <h1
-            className="text-3xl font-semibold tracking-[-0.04em] sm:text-4xl"
-            id="provider-status-title"
+      <BackLink className="mb-5 sm:mb-6" fallbackHref="/" />
+      <PageHeader
+        action={
+          <Button
+            disabled={state.loading}
+            onClick={state.retry}
+            variant="secondary"
           >
-            平台状态
-          </h1>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-base">
-            登记域名或存在提取器不代表实时可用。这里只展示当前版本的能力、访问模式与最近验证状态，不展示账号、Cookie、出口或探针地址。
-          </p>
-        </div>
-        <Button
-          disabled={state.loading}
-          onClick={state.retry}
-          variant="secondary"
-        >
-          <ArrowClockwiseIcon aria-hidden />
-          刷新状态
-        </Button>
-      </div>
+            <ArrowClockwiseIcon aria-hidden />
+            刷新状态
+          </Button>
+        }
+        description="登记域名或存在提取器不代表实时可用。这里只展示当前版本的能力、访问模式与最近验证状态，不展示账号、Cookie、出口或探针地址。"
+        title="平台状态"
+        titleId="provider-status-title"
+      />
 
-      <div className="mt-12 border-t border-border">
+      <div className="mt-10 sm:mt-12">
         {state.loading ? (
           <StatusMessage label="正在加载平台状态" loading />
         ) : null}
@@ -72,11 +68,17 @@ export function ProviderStatusView() {
           </div>
         ) : null}
         {state.data ? (
-          <ul aria-label="平台能力状态">
-            {state.data.items.map((provider) => (
-              <ProviderRow key={provider.key} provider={provider} />
-            ))}
-          </ul>
+          <ItemGroup
+            aria-label="平台能力状态"
+            asChild
+            className="hairline gap-0 border-y"
+          >
+            <ul>
+              {state.data.items.map((provider) => (
+                <ProviderRow key={provider.key} provider={provider} />
+              ))}
+            </ul>
+          </ItemGroup>
         ) : null}
       </div>
     </section>
@@ -85,37 +87,44 @@ export function ProviderStatusView() {
 
 function ProviderRow({ provider }: { provider: ProviderStatus }) {
   return (
-    <li className="grid gap-4 border-b border-border py-6 md:grid-cols-[minmax(10rem,0.8fr)_minmax(18rem,1.4fr)_minmax(12rem,1fr)] md:items-start">
-      <div>
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="font-medium">{provider.display_name}</h2>
-          <Badge variant={statusVariant(provider.status)}>
-            {STATUS_LABELS[provider.status]}
-          </Badge>
-        </div>
-        <p className="mt-1 font-mono text-xs text-muted-foreground">
-          {provider.key}
-        </p>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {provider.capabilities.length > 0 ? (
-          provider.capabilities.map((capability) => (
-            <Badge key={capability} variant="neutral">
-              {CAPABILITY_LABELS[capability]}
+    <Item
+      asChild
+      className="hairline grid gap-4 rounded-none border-0 border-b px-0 py-6 last:border-b-0 md:grid-cols-[minmax(10rem,0.8fr)_minmax(18rem,1.4fr)_minmax(12rem,1fr)] md:items-start"
+    >
+      <li>
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-medium">{provider.display_name}</h2>
+            <Badge variant={statusVariant(provider.status)}>
+              {STATUS_LABELS[provider.status]}
             </Badge>
-          ))
-        ) : (
-          <span className="text-sm text-muted-foreground">暂无已登记能力</span>
-        )}
-      </div>
-      <div className="text-sm leading-6 text-muted-foreground">
-        <p>{accessDescription(provider)}</p>
-        <p className="mt-1">{verificationDescription(provider)}</p>
-        {provider.user_action ? (
-          <p className="mt-2">{provider.user_action}</p>
-        ) : null}
-      </div>
-    </li>
+          </div>
+          <p className="mt-1 font-mono text-xs text-muted-foreground">
+            {provider.key}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {provider.capabilities.length > 0 ? (
+            provider.capabilities.map((capability) => (
+              <Badge key={capability} variant="neutral">
+                {CAPABILITY_LABELS[capability]}
+              </Badge>
+            ))
+          ) : (
+            <span className="text-sm text-muted-foreground">
+              暂无已登记能力
+            </span>
+          )}
+        </div>
+        <div className="text-sm leading-6 text-muted-foreground">
+          <p>{accessDescription(provider)}</p>
+          <p className="mt-1">{verificationDescription(provider)}</p>
+          {provider.user_action ? (
+            <p className="mt-2">{provider.user_action}</p>
+          ) : null}
+        </div>
+      </li>
+    </Item>
   );
 }
 

@@ -42,7 +42,7 @@ export function ProviderCatalogScreen({
   return (
     <section className="space-y-10">
       <div>
-        <BackLink className="mb-7" fallbackHref="/providers" />
+        <BackLink className="mb-5 sm:mb-6" fallbackHref="/providers" />
         <PageHeader
           action={
             <Button onClick={onCreate}>

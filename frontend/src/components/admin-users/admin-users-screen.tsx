@@ -54,7 +54,7 @@ export function AdminUsersScreen({
   return (
     <section className="space-y-10">
       <div>
-        <BackLink className="mb-7" fallbackHref="/account" />
+        <BackLink className="mb-5 sm:mb-6" fallbackHref="/account" />
         <PageHeader
           action={
             <p className="font-mono text-xs text-muted-foreground tabular-nums">

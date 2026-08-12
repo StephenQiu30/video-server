@@ -85,8 +85,8 @@ export default function DownloadHistoryView() {
   }
 
   return (
-    <main className="content-shell py-10 sm:py-14 lg:py-16">
-      <BackLink className="mb-7" fallbackHref="/" />
+    <main className="content-shell inner-page">
+      <BackLink className="mb-5 sm:mb-6" fallbackHref="/" />
       <PageHeader
         action={
           <Button asChild size="lg">

@@ -141,6 +141,10 @@
     margin-inline: auto;
   }
 
+  .inner-page {
+    padding-block: 2.5rem;
+  }
+
   .editorial-title {
     font-size: clamp(3.2rem, 5.4vw, 4.25rem);
     font-weight: 500;
@@ -189,6 +193,16 @@
 @media (min-width: 641px) and (max-width: 1023px) {
   .content-shell {
     width: min(calc(100% - 64px), 1376px);
+  }
+
+  .inner-page {
+    padding-block: 3.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .inner-page {
+    padding-block: 4rem;
   }
 }
 

@@ -78,6 +78,17 @@
 
 final result: passed
 
+## 2026-08-12 内页页头密度与无边框组件回归
+
+- 常规认证内页统一复用 `.inner-page`：390px 为 40px、641–1023px 为 56px、1024px 及以上为 64px。管理员页面原有 96px 桌面顶部留白已移除，80px Header 下不再叠加过长空档；BackLink 与共享 PageHeader 的间距统一为移动 20px、其余视口 24px。
+- 1280×900 用户管理与平台目录实测 main 均为 `x = 80px / width = 1120px / top = 80px`，PageHeader 均从 `y = 212px` 开始；390×844 用户管理与平台目录 main 均为 `x = 16px / width = 358px / top = 80px`，PageHeader 均从 `y = 184px` 开始。
+- 平台状态已改为共享 PageHeader，并使用 shadcn Item/ItemGroup 表达连续能力列表。AI 结果中的分镜、高光和资产同样使用 Tabs + Item/ItemGroup + 发丝 Separator，重试和时间操作统一复用 shadcn Button；逐项可见边框卡片与业务组件中的原生按钮已清除。
+- 1280px 用户管理、平台目录、平台状态，以及 390px 用户管理、平台目录均满足 `scrollWidth = clientWidth`。桌面表格与移动 Item 重排、无边框填充筛选、近黑主操作和发丝分隔均正常，页面没有可见 Card/PageShell 外壳。
+- 浏览器证据：`E:/StephenQiu/Video/qa-output/ui-refresh-users-1280.png`、`E:/StephenQiu/Video/qa-output/ui-refresh-users-390.png`、`E:/StephenQiu/Video/qa-output/ui-refresh-providers-1280.png`、`E:/StephenQiu/Video/qa-output/ui-refresh-providers-390.png`、`E:/StephenQiu/Video/qa-output/ui-refresh-status-1280.png`。
+- 工程门禁：lint/typecheck 通过；format check 172 个文件通过；31 个测试文件、109 项测试通过；Next.js 生产构建与 11 个静态页面导出通过。`npm run openapi:check` 发现同步后的后端契约会机械改写 `analyses.ts` 的重试接口注释，生成漂移与本轮 UI 变更无关，本轮未保留该生成差异。
+
+final result: passed
+
 ## 2026-08-12 下载分析 Radix 可视化回归
 
 - 下载分析页继续使用无边框内容流：页面、筛选、指标、趋势和来源区均无 Card 外壳与装饰边框；仅指标列、数据表行保留必要发丝分隔，趋势绘图区使用无描边的中性实心表面。

@@ -24,6 +24,10 @@ describe('PageHeader', () => {
       'tracking-[-0.055em]',
     );
     expect(screen.getByRole('banner')).not.toHaveClass('text-primary');
+    expect(screen.getByRole('banner')).toHaveAttribute(
+      'data-slot',
+      'page-header',
+    );
     expect(screen.getByText('查看当前任务。')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: '新建任务' }),
