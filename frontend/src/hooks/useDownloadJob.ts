@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { ApiError } from '@/lib/request-error';
 import { type TaskSocketStatus, taskSocket } from '@/lib/task-socket';
 import {
   cancelDownload,
@@ -52,7 +53,7 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
             setInspectionError(null);
           }
         } catch (reason) {
-          if (!disposed) setInspectionError(displayError(reason));
+          if (!disposed) setInspectionError(inspectionFailureMessage(reason));
         }
       } catch (reason) {
         if (!disposed) {
@@ -167,4 +168,14 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     retry,
     socketStatus,
   };
+}
+
+function inspectionFailureMessage(reason: unknown): string {
+  if (
+    reason instanceof ApiError &&
+    ['not_found', 'resource_expired'].includes(reason.code)
+  ) {
+    return '原始媒体信息已过期，下载任务和已生成文件仍可继续使用。';
+  }
+  return displayError(reason);
 }

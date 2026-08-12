@@ -58,6 +58,7 @@ class AnalysisWorkerRuntime:
 
 def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
     analyzer_runtime = build_video_analyzer(settings)
+    minio_access_key, minio_secret_key = settings.analysis_minio_credentials()
     host_settings = settings.model_copy(
         update={
             "database_url": settings.analysis_database_url,
@@ -65,8 +66,8 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
                 settings.analysis_rabbitmq_url, settings.rabbitmq_vhost
             ),
             "minio_endpoint": settings.analysis_minio_endpoint,
-            "minio_access_key": settings.analysis_minio_access_key,
-            "minio_secret_key": settings.analysis_minio_secret_key,
+            "minio_access_key": minio_access_key,
+            "minio_secret_key": minio_secret_key,
         }
     )
     engine = create_engine(host_settings.database_url)

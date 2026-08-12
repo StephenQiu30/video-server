@@ -147,6 +147,27 @@ describe('DownloadJobView', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('keeps a completed task usable after inspection metadata expires', async () => {
+    mockHttpResponses(job('succeeded'));
+    mockHttpError(
+      new ApiError(404, 'not_found', 'Not found', '解析结果不存在'),
+    );
+    mockHttpResponses(analysisSkills, null);
+    render(<DownloadJobView jobId={job().id} />);
+
+    expect(
+      await screen.findByText(
+        '原始媒体信息已过期，下载任务和已生成文件仍可继续使用。',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: '下载已完成' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'AI 智能分析' }),
+    ).toBeInTheDocument();
+  });
+
   it('renders stable task errors without leaking details', async () => {
     mockHttpError(new ApiError(404, 'not_found', 'Not found', '任务不存在'));
     render(<DownloadJobView jobId={job().id} />);

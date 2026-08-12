@@ -229,3 +229,43 @@ def test_analysis_cli_settings_use_host_services_without_api_keys() -> None:
     assert "analysis_prompt_version" not in type(settings).model_fields
     assert "localhost:15432" in settings.analysis_database_url
     assert not any("openai" in name for name in type(settings).model_fields)
+
+
+def test_analysis_worker_reuses_shared_minio_credentials_when_not_overridden() -> None:
+    access = SecretStr("shared-access")
+    secret = SecretStr("shared-secret")
+    settings = Settings(
+        app_env="test",
+        service_role="analysis-worker",
+        minio_access_key=access,
+        minio_secret_key=secret,
+        _env_file=None,
+    )
+
+    assert settings.analysis_minio_credentials() == (access, secret)
+
+
+def test_analysis_worker_prefers_dedicated_minio_credentials() -> None:
+    access = SecretStr("analysis-access")
+    secret = SecretStr("analysis-secret")
+    settings = Settings(
+        app_env="test",
+        service_role="analysis-worker",
+        minio_access_key=SecretStr("shared-access"),
+        minio_secret_key=SecretStr("shared-secret"),
+        analysis_minio_access_key=access,
+        analysis_minio_secret_key=secret,
+        _env_file=None,
+    )
+
+    assert settings.analysis_minio_credentials() == (access, secret)
+
+
+def test_analysis_worker_rejects_partial_minio_override() -> None:
+    with pytest.raises(ValidationError, match="must be configured together"):
+        Settings(
+            app_env="test",
+            service_role="analysis-worker",
+            analysis_minio_access_key=SecretStr("analysis-access"),
+            _env_file=None,
+        )

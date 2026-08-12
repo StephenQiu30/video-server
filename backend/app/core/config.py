@@ -181,8 +181,8 @@ class Settings(BaseSettings):
         "amqp://video-analysis:video-analysis-secret@localhost:5673/video"
     )
     analysis_minio_endpoint: str = "localhost:19190"
-    analysis_minio_access_key: SecretStr = SecretStr("video-analysis-access")
-    analysis_minio_secret_key: SecretStr = SecretStr("video-analysis-secret-change-me")
+    analysis_minio_access_key: SecretStr | None = None
+    analysis_minio_secret_key: SecretStr | None = None
 
     @field_validator("frontend_dist_dir")
     @classmethod
@@ -266,6 +266,12 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def reject_development_secrets_in_production(self) -> Settings:
+        if (self.analysis_minio_access_key is None) != (
+            self.analysis_minio_secret_key is None
+        ):
+            raise ValueError(
+                "analysis MinIO access and secret keys must be configured together"
+            )
         if self.analysis_worker_stale_seconds <= self.analysis_worker_heartbeat_seconds:
             raise ValueError(
                 "analysis worker stale window must exceed its heartbeat interval"
@@ -293,6 +299,13 @@ class Settings(BaseSettings):
                 )
             )
         elif self.service_role == "analysis-worker":
+            if (
+                self.analysis_minio_access_key is None
+                or self.analysis_minio_secret_key is None
+            ):
+                raise ValueError(
+                    "production analysis worker requires dedicated MinIO credentials"
+                )
             secret_values.extend(
                 (
                     self.analysis_minio_access_key.get_secret_value(),
@@ -340,6 +353,13 @@ class Settings(BaseSettings):
         if self.service_role == "api" and self.auth_bootstrap_admin_email is None:
             raise ValueError("production API requires AUTH_BOOTSTRAP_ADMIN_EMAIL")
         return self
+
+    def analysis_minio_credentials(self) -> tuple[SecretStr, SecretStr]:
+        """Prefer dedicated worker credentials, with a shared local fallback."""
+        return (
+            self.analysis_minio_access_key or self.minio_access_key,
+            self.analysis_minio_secret_key or self.minio_secret_key,
+        )
 
 
 @lru_cache(maxsize=1)
