@@ -12,6 +12,7 @@ import { BackLink } from '@/components/back-link';
 import { PageHeader } from '@/components/page-header';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import type {
   AdminDownloadAnalytics,
   AnalyticsPeriod,
@@ -48,22 +49,27 @@ export function AdminAnalyticsScreen({
         />
       </div>
 
-      <div className="hairline flex flex-col gap-4 border-t pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <fieldset className="flex min-w-0 gap-1 border-0 p-0">
-          <legend className="sr-only">统计周期</legend>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <ToggleGroup
+          aria-label="统计周期"
+          className="w-fit gap-0 rounded-md bg-surface p-1"
+          onValueChange={(value) => {
+            if (value) onDaysChange(Number(value) as AnalyticsPeriod);
+          }}
+          role="group"
+          type="single"
+          value={String(days)}
+        >
           {periods.map((period) => (
-            <Button
-              aria-pressed={days === period}
-              className="h-11 min-w-16"
+            <ToggleGroupItem
+              className="h-9 min-w-16 px-4 opacity-100 data-[state=on]:bg-foreground data-[state=on]:text-background"
               key={period}
-              onClick={() => onDaysChange(period)}
-              type="button"
-              variant={days === period ? 'secondary' : 'ghost'}
+              value={String(period)}
             >
               {period} 天
-            </Button>
+            </ToggleGroupItem>
           ))}
-        </fieldset>
+        </ToggleGroup>
         <div className="flex items-center justify-between gap-4 sm:justify-end">
           {data ? (
             <p className="font-mono text-xs text-muted-foreground">
@@ -71,7 +77,7 @@ export function AdminAnalyticsScreen({
             </p>
           ) : null}
           <Button
-            className="h-11 border-0 bg-surface"
+            className="h-11 border-0 bg-surface px-4"
             disabled={loading}
             onClick={onRetry}
             type="button"

@@ -1,3 +1,4 @@
+import { Progress } from '@/components/ui/progress';
 import type { AdminDownloadAnalytics } from '@/services/analytics';
 
 import { formatInteger, formatPercent } from './analytics-format';
@@ -14,10 +15,7 @@ export function SourceBreakdown({
   const sorted = [...sources].sort((left, right) => right.total - left.total);
 
   return (
-    <section
-      aria-labelledby="source-breakdown-title"
-      className="hairline border-t pt-8"
-    >
+    <section aria-labelledby="source-breakdown-title" className="pt-2">
       <h2 className="text-xl font-medium" id="source-breakdown-title">
         视频源分布
       </h2>
@@ -56,15 +54,11 @@ export function SourceBreakdown({
                 >
                   {formatPercent(share)}
                 </meter>
-                <div
+                <Progress
                   aria-hidden
-                  className="mt-2 h-2 overflow-hidden rounded-sm bg-muted"
-                >
-                  <div
-                    className="h-full rounded-sm bg-foreground"
-                    style={{ width: `${Math.min(100, share)}%` }}
-                  />
-                </div>
+                  className="mt-2 h-2"
+                  value={Math.min(100, share)}
+                />
               </li>
             );
           })}

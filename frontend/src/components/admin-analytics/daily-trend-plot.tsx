@@ -65,11 +65,13 @@ export function DailyTrendPlot({
   frame,
   maximum,
   points,
+  visibleSeries,
 }: {
   className: string;
   frame: ChartFrame;
   maximum: number;
   points: DailyPoint[];
+  visibleSeries: SeriesKey[];
 }) {
   const { width, height, padding } = frame;
   const plotWidth = width - padding.left - padding.right;
@@ -117,32 +119,57 @@ export function DailyTrendPlot({
           </g>
         );
       })}
-      {trendSeries.map((item) => (
+      {visibleSeries.includes('total') ? (
         <path
-          className={item.stroke}
-          d={linePath(points, item.key, x, y)}
-          fill="none"
-          key={item.key}
-          strokeDasharray={item.dashArray}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={item.width}
-          vectorEffect="non-scaling-stroke"
+          className="fill-foreground/5"
+          d={areaPath(points, 'total', x, y, padding.top + plotHeight)}
         />
-      ))}
+      ) : null}
+      {trendSeries
+        .filter((item) => visibleSeries.includes(item.key))
+        .map((item) => (
+          <path
+            className={item.stroke}
+            d={linePath(points, item.key, x, y)}
+            fill="none"
+            key={item.key}
+            strokeDasharray={item.dashArray}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={item.width}
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
       {points.length === 1
-        ? trendSeries.map((item) => (
-            <circle
-              className={`${item.stroke} fill-background`}
-              cx={x(0)}
-              cy={y(points[0][item.key])}
-              key={item.key}
-              r={3}
-              strokeWidth={2}
-              vectorEffect="non-scaling-stroke"
-            />
-          ))
-        : null}
+        ? trendSeries
+            .filter((item) => visibleSeries.includes(item.key))
+            .map((item) => (
+              <circle
+                className={`${item.stroke} fill-background`}
+                cx={x(0)}
+                cy={y(points[0][item.key])}
+                key={item.key}
+                r={3}
+                strokeWidth={2}
+                vectorEffect="non-scaling-stroke"
+              />
+            ))
+        : trendSeries
+            .filter((item) => visibleSeries.includes(item.key))
+            .map((item) => {
+              const index = points.length - 1;
+              return (
+                <circle
+                  className={`${item.stroke} fill-surface`}
+                  cx={x(index)}
+                  cy={y(points[index][item.key])}
+                  key={item.key}
+                  r={2.75}
+                  strokeWidth={2}
+                  vectorEffect="non-scaling-stroke"
+                />
+              );
+            })}
       {labelIndexes.map((index) => (
         <text
           className="fill-muted-foreground text-[11px]"
@@ -156,6 +183,19 @@ export function DailyTrendPlot({
       ))}
     </svg>
   );
+}
+
+function areaPath(
+  points: DailyPoint[],
+  key: SeriesKey,
+  x: (index: number) => number,
+  y: (value: number) => number,
+  baseline: number,
+): string {
+  if (points.length === 0) return '';
+  const line = linePath(points, key, x, y);
+  const last = points.length - 1;
+  return `${line} L ${x(last)} ${baseline} L ${x(0)} ${baseline} Z`;
 }
 
 function gridLines(maximum: number): number[] {

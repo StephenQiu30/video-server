@@ -47,6 +47,9 @@ describe('administrator download analytics', () => {
       '3 GB',
     );
     expect(screen.getByText(/平均视频时长/)).toHaveTextContent('2 分 5 秒');
+    expect(
+      screen.getByRole('progressbar', { name: '下载成功率 75%' }),
+    ).toHaveAttribute('aria-valuenow', '75');
 
     const responsiveCharts = screen.getAllByRole('img', {
       name: '每日下载任务折线趋势',
@@ -61,6 +64,10 @@ describe('administrator download analytics', () => {
     expect(
       within(exactData).getByRole('row', { name: /2026-08-09 20 16 2 1/ }),
     ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '隐藏失败趋势' }));
+    expect(
+      screen.getByRole('button', { name: '显示失败趋势' }),
+    ).toHaveAttribute('data-state', 'off');
 
     expect(screen.getAllByRole('meter')).toHaveLength(2);
     expect(
@@ -86,15 +93,15 @@ describe('administrator download analytics', () => {
 
     const periodGroup = screen.getByRole('group', { name: '统计周期' });
     expect(
-      within(periodGroup).getByRole('button', { name: '30 天' }),
-    ).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(within(periodGroup).getByRole('button', { name: '7 天' }));
+      within(periodGroup).getByRole('radio', { name: '30 天' }),
+    ).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(within(periodGroup).getByRole('radio', { name: '7 天' }));
     await waitFor(() =>
       expect(runtime.getAdminDownloadAnalytics).toHaveBeenLastCalledWith(7),
     );
     expect(
-      within(periodGroup).getByRole('button', { name: '7 天' }),
-    ).toHaveAttribute('aria-pressed', 'true');
+      within(periodGroup).getByRole('radio', { name: '7 天' }),
+    ).toHaveAttribute('aria-checked', 'true');
 
     await waitFor(() =>
       expect(screen.getByRole('button', { name: '刷新' })).toBeEnabled(),

@@ -30,10 +30,7 @@ export function SourcePerformance({ sources }: { sources: Source[] }) {
   if (sorted.length === 0) return null;
 
   return (
-    <section
-      aria-labelledby="source-performance-title"
-      className="hairline border-t pt-8"
-    >
+    <section aria-labelledby="source-performance-title" className="pt-2">
       <h2 className="text-xl font-medium" id="source-performance-title">
         来源表现
       </h2>
