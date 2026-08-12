@@ -50,9 +50,25 @@ docker build --target runtime --tag video-server:local .
 started=1
 "${compose[@]}" up \
   --detach \
+  database-init rabbitmq-init valkey minio-init
+initializer_statuses=$(docker wait database-init rabbitmq-init minio-init)
+initializer_count=0
+for initializer_status in $initializer_statuses; do
+  initializer_count=$((initializer_count + 1))
+  if [[ "$initializer_status" != 0 ]]; then
+    printf '初始化任务失败，退出码：%s\n' "$initializer_status" >&2
+    exit 1
+  fi
+done
+if ((initializer_count != 3)); then
+  printf '未能读取全部初始化任务退出状态。\n' >&2
+  exit 1
+fi
+"${compose[@]}" up \
+  --detach \
   --wait \
   --wait-timeout 240 \
-  database-init rabbitmq-init valkey minio-init
+  postgres rabbitmq valkey minio
 "${compose[@]}" up \
   --detach \
   --wait \

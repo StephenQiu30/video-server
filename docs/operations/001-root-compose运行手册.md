@@ -19,7 +19,8 @@ docker compose --env-file .env \
   config --quiet
 docker compose --env-file .env \
   -f docker-compose.yml --profile environment \
-  up -d --wait database-init rabbitmq-init valkey minio-init
+  up -d database-init rabbitmq-init valkey minio-init
+docker wait database-init rabbitmq-init minio-init
 docker compose --env-file .env -f docker-compose.yml up -d --build
 ```
 
@@ -58,7 +59,8 @@ docker compose --env-file .env.prod \
   config --quiet
 docker compose --env-file .env.prod \
   -f docker-compose.yml -f docker-compose-prod.yml --profile environment \
-  up -d --wait database-init rabbitmq-init valkey minio-init
+  up -d database-init rabbitmq-init valkey minio-init
+docker wait database-init rabbitmq-init minio-init
 docker compose --env-file .env.prod \
   -f docker-compose.yml -f docker-compose-prod.yml \
   up -d --build

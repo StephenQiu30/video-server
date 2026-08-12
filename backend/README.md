@@ -40,7 +40,8 @@ Media Runner 通过 `app/runner/plugins/yt_dlp_plugins/` 加载随项目交付�
 docker compose --env-file .env -f docker-compose.yml build
 docker compose --env-file .env \
   -f docker-compose.yml --profile environment \
-  up -d --wait database-init rabbitmq-init valkey minio-init
+  up -d database-init rabbitmq-init valkey minio-init
+docker wait database-init rabbitmq-init minio-init
 docker compose --env-file .env -f docker-compose.yml up -d --force-recreate
 docker compose --env-file .env \
   -f docker-compose.yml --profile environment \

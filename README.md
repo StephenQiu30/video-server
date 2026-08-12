@@ -73,7 +73,8 @@ cd video-server
 cp .env.example .env
 docker compose --env-file .env \
   -f docker-compose.yml --profile environment \
-  up -d --wait database-init rabbitmq-init valkey minio-init
+  up -d database-init rabbitmq-init valkey minio-init
+docker wait database-init rabbitmq-init minio-init
 docker compose --env-file .env -f docker-compose.yml up -d --build
 ```
 
