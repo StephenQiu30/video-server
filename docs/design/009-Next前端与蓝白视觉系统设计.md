@@ -73,6 +73,7 @@ App Router 页面默认保持可静态渲染；只有表单、菜单、选择器
 | `/account` | `app/account/page.tsx` | 已登录 | 查看邮箱与身份、修改用户名 |
 | `/admin/users` | `app/admin/users/page.tsx` | 管理员 | 搜索、筛选、分页并更新他人角色/启用状态 |
 | `/admin/analytics` | `app/admin/analytics/page.tsx` | 管理员 | 查看 7/30/90 天下载摘要、日趋势与视频来源分布 |
+| `/admin/providers` | `app/admin/providers/page.tsx` | 管理员 | 维护平台状态页名称、排序与可见性，不修改系统下载能力 |
 | `/downloads/detail?jobId=<id>` | `app/downloads/detail/page.tsx` | 已登录且拥有任务 | 下载状态、取消/取件、AI 视觉分镜、高光与资产；静态导出的 canonical 地址 |
 | `/user/login` | `app/user/login/page.tsx` | 公开 | 登录并返回经过校验的站内 `redirect` |
 | `/user/register` | `app/user/register/page.tsx` | 公开 | 注册并返回经过校验的站内 `redirect` |
@@ -167,7 +168,7 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 
 ### 全局导航
 
-桌面端为 80px 单行轻量 Header：左侧使用 Next.js `Image` 渲染 32px 的 `public/logo.svg`，与 17px 文字“帧取”共同构成指向 `/` 的品牌链接；右侧导航保持 15px 尺寸，桌面导航控件高度为 44px，使品牌在功能导航之上建立清晰层级。右侧提供“下载记录”（`href="/history"`）、Avatar 账户菜单和主题操作；账户菜单只向管理员显示“用户管理”与“下载分析”入口。Header 与 main/footer 共用 `.content-shell` 的 1376px 上限和桌面 80px gutter，保持导航与主体严格对齐；没有底线、侧栏、面包屑容器、外框或浮起阴影。当前路由链接使用 `aria-current="page"`，并通过中性填充面和文本色同步表达当前页。
+桌面端为 80px 单行轻量 Header：左侧使用 Next.js `Image` 渲染 32px 的 `public/logo.svg`，与 17px 文字“帧取”共同构成指向 `/` 的品牌链接；右侧导航保持 15px 尺寸，桌面导航控件高度为 44px，使品牌在功能导航之上建立清晰层级。右侧提供“下载记录”（`href="/history"`）、Avatar 账户菜单和主题操作；账户菜单只向管理员显示“用户管理”“平台目录”与“下载分析”入口。Header 与 main/footer 共用 `.content-shell` 的 1376px 上限和桌面 80px gutter，保持导航与主体严格对齐；没有底线、侧栏、面包屑容器、外框或浮起阴影。当前路由链接使用 `aria-current="page"`，并通过中性填充面和文本色同步表达当前页。
 
 不足 `lg` 的窄屏与平板宽度保留品牌和一个明确的导航触发器，下载记录、平台状态、账户与主题操作进入 Sheet；不把完整桌面导航强行压缩到同一行。Sheet 打开后焦点进入其可操作内容，过长时在 Sheet 内部滚动，链接均可通过 Tab 到达并以键盘激活；关闭而未导航时，焦点返回触发器。品牌链接始终提供返回 `/` 的明确可读名称。图标按钮有可见或屏幕阅读器标签，Tooltip 仅作辅助，触控区域至少 44×44px。
 
@@ -204,7 +205,7 @@ PageHeader 直接显示“下载历史”及一句用途说明、可选的“新
 
 ### 个人资料与管理员页面
 
-个人资料以 Avatar 身份摘要和单列 Field 表单展示可编辑用户名，以及只读邮箱和角色；PageHeader 直接显示“个人资料”，不增加“账户设置”等眉题，保存后导航名称同步更新。用户管理 PageHeader 直接显示“用户管理”，不增加“系统管理”等眉题；桌面端为 Table 与筛选条，编辑角色和状态使用普通 Dialog，不使用 AlertDialog。管理员不能修改自己的角色或启用状态，禁用原因必须可感知。
+个人资料以 Avatar 身份摘要和单列 Field 表单展示可编辑用户名，以及只读邮箱和角色；PageHeader 直接显示“个人资料”，不增加“账户设置”等眉题，保存后导航名称同步更新。用户管理 PageHeader 直接显示“用户管理”，不增加“系统管理”等眉题；桌面端为 Table 与筛选条，编辑角色和状态使用普通 Dialog，不使用 AlertDialog。管理员不能修改自己的角色或启用状态，禁用原因必须可感知。平台目录采用同一桌面 Table/移动 Item 语言，编辑使用 Dialog、删除使用 AlertDialog，并以“系统已注册/仅目录”徽标明确展示安全执行能力是否存在。
 
 下载分析 PageHeader 直接显示“下载分析”，提供 7/30/90 天周期和刷新。摘要以排版、留白和发丝 Separator 组织，每日趋势与来源分布使用响应式图表，并提供完整的表格/列表数值。页面不解密或显示来源 URL，不显示用户或单任务明细。
 

@@ -22,6 +22,65 @@ export async function getDownloadAnalytics(
   );
 }
 
+/** 查询平台目录 GET /api/admin/providers */
+export async function listProviderCatalogEntries(options?: RequestOptions) {
+  return request<API.ProviderCatalogListResponse>("/api/admin/providers", {
+    method: "GET",
+    ...(options || {}),
+  });
+}
+
+/** 新增平台目录条目 POST /api/admin/providers */
+export async function createProviderCatalogEntry(
+  body: API.CreateProviderCatalogEntryRequest,
+  options?: RequestOptions
+) {
+  return request<API.ProviderCatalogEntryResponse>("/api/admin/providers", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+/** 删除平台目录条目 DELETE /api/admin/providers/${param0} */
+export async function deleteProviderCatalogEntry(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.deleteProviderCatalogEntryParams,
+  options?: RequestOptions
+) {
+  const { provider_key: param0, ...queryParams } = params;
+  return request<any>(`/api/admin/providers/${param0}`, {
+    method: "DELETE",
+    params: { ...queryParams },
+    ...(options || {}),
+  });
+}
+
+/** 更新平台目录条目 PATCH /api/admin/providers/${param0} */
+export async function updateProviderCatalogEntry(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.updateProviderCatalogEntryParams,
+  body: API.UpdateProviderCatalogEntryRequest,
+  options?: RequestOptions
+) {
+  const { provider_key: param0, ...queryParams } = params;
+  return request<API.ProviderCatalogEntryResponse>(
+    `/api/admin/providers/${param0}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      params: { ...queryParams },
+      data: body,
+      ...(options || {}),
+    }
+  );
+}
+
 /** 查询用户列表 GET /api/admin/users */
 export async function listUsers(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)

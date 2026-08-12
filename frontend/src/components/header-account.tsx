@@ -4,6 +4,7 @@ import {
   CaretDownIcon,
   ChartLineUpIcon,
   SignOutIcon,
+  StackIcon,
   UserCircleIcon,
   UsersThreeIcon,
 } from '@phosphor-icons/react';
@@ -24,6 +25,7 @@ import type { AuthUser } from '@/services/auth';
 
 type HeaderAccountProps = {
   analyticsActive: boolean;
+  catalogActive: boolean;
   loading: boolean;
   onSignOut: () => void;
   pathname: string;
@@ -34,6 +36,7 @@ type HeaderAccountProps = {
 
 export function HeaderAccount({
   analyticsActive,
+  catalogActive,
   loading,
   onSignOut,
   pathname,
@@ -89,6 +92,15 @@ export function HeaderAccount({
                   >
                     <ChartLineUpIcon aria-hidden className="size-4" />
                     下载分析
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link
+                    aria-current={catalogActive ? 'page' : undefined}
+                    href="/admin/providers"
+                  >
+                    <StackIcon aria-hidden className="size-4" />
+                    平台目录
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>

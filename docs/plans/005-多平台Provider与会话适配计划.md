@@ -194,6 +194,8 @@
 
 ## 11. 测试与证据矩阵
 
+平台目录管理已于 2026-08-12 纳入 Phase 1：增加 PostgreSQL 目录表、管理员 CRUD、公开状态投影、OpenAPI 生成客户端和 `/admin/providers` 响应式维护页。验证必须覆盖非管理员 403、重复 key、逻辑删除/恢复、目录排序/隐藏、自定义条目不获得系统能力，以及桌面/移动导航。
+
 | 层次 | 必测内容 | 证据 |
 | --- | --- | --- |
 | Unit | Profile、domain allowlist、错误 marker、context equality、权限/cleanup | pytest 输出 |

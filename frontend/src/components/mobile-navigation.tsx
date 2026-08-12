@@ -7,6 +7,7 @@ import {
   ListIcon,
   PulseIcon,
   SignOutIcon,
+  StackIcon,
   UserCircleIcon,
   UsersThreeIcon,
 } from '@phosphor-icons/react';
@@ -115,6 +116,13 @@ export function MobileNavigation({
                   >
                     <ChartLineUpIcon aria-hidden />
                     下载分析
+                  </MobileLink>
+                  <MobileLink
+                    active={pathname.startsWith('/admin/providers')}
+                    href="/admin/providers"
+                  >
+                    <StackIcon aria-hidden />
+                    平台目录
                   </MobileLink>
                   <MobileLink
                     active={pathname.startsWith('/admin/users')}

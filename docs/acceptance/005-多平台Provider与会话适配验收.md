@@ -109,6 +109,7 @@
 - [ ] H4：未登记许可证、未固定 version 或用户可加载的插件在 CI 被拒绝。
 - [ ] H5：镜像和依赖扫描无未接受 Critical/High；发布物可追溯 Git SHA、Profile/engine/POT 版本和 SBOM digest。
 - [x] H6：production-like Compose 证明 Runner pool、Secret mount、tmpfs、网络和 kill switch 符合设计。
+- [x] H7：平台目录由 PostgreSQL 持久化，只有管理员可通过 CRUD API 和 `/admin/providers` 页面维护名称、排序与可见性；普通用户返回 403，自定义目录条目保持 `unsupported`，不能创建下载 Profile 或扩大域名 admission。
 
 ## 10. I. Phase 2 用户 ProviderCredential
 
@@ -167,6 +168,7 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod
 | 2026-08-10 | 前端本地 | 本次提交（基线 `a72b2f0`） | Provider status | authenticated | OpenAPI `listProviders` | N/A | API/UI | `81 passed`；lint/type/format/build 通过；`/providers` 静态导出 | 前端测试与 build 报告 |
 | 2026-08-07 | 本地浏览器 E2E | historical | Bilibili/抖音/小红书 single video | anonymous | 当时固定 Runner | historical | metadata/media/remux/probe | 成功；范围见研究记录 | `docs/research/001-GitHub开源方案调研.md` |
 | 2026-08-12 | 本地后端 | 本次提交 | Provider 范围收缩 | anonymous / 默认无目标 | yt-dlp `5d6b8c8` | non-secret default | Registry/API/Runner | 五个平台从 API 移除；相关域名不落入 Generic，稳定返回 `provider_unsupported` | `docs/acceptance/017-其他短视频平台分阶段接入验收.md` |
+| 2026-08-12 | 本地全栈与浏览器 | 本次提交 | 管理员平台目录 | admin catalog / public status projection | OpenAPI `list/create/update/deleteProviderCatalogEntry` | N/A | API/UI/schema | 后端 `519 passed, 1 skipped`；前端 `107 passed`、lint/format/build 通过；Compose 开发/生产配置通过；1440px/390px 浏览器复核无问题 | `/admin/providers`、浏览器 QA 截图与本次门禁输出 |
 | Pending | production-like | Pending | YouTube public + rights-negative | operator + POT | Pending | Pending | full Worker/Runner/MinIO | 未执行：无批准的专用 Cookie/授权 canary | `docs/operations/002-YouTube受控会话运行手册.md` |
 
 ## 14. 当前结论

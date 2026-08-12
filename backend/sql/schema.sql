@@ -33,6 +33,41 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
 CREATE INDEX IF NOT EXISTS ix_auth_sessions_user ON auth_sessions (user_id);
 CREATE INDEX IF NOT EXISTS ix_auth_sessions_expires ON auth_sessions (expires_at);
 
+CREATE TABLE IF NOT EXISTS provider_catalog_entries (
+    key VARCHAR(32) PRIMARY KEY,
+    display_name VARCHAR(64) NOT NULL,
+    sort_order INTEGER NOT NULL,
+    is_visible BOOLEAN NOT NULL DEFAULT TRUE,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ck_provider_catalog_sort_order CHECK (
+        sort_order BETWEEN 0 AND 10000
+    )
+);
+
+INSERT INTO provider_catalog_entries (
+    key, display_name, sort_order, is_visible, is_deleted
+) VALUES
+    ('youtube', 'YouTube', 10, TRUE, FALSE),
+    ('bilibili', '哔哩哔哩', 20, TRUE, FALSE),
+    ('douyin', '抖音', 30, TRUE, FALSE),
+    ('tiktok', 'TikTok', 40, TRUE, FALSE),
+    ('xiaohongshu', '小红书', 50, TRUE, FALSE),
+    ('kuaishou', '快手', 60, TRUE, FALSE),
+    ('vimeo', 'Vimeo', 70, TRUE, FALSE),
+    ('x', 'X / Twitter', 80, TRUE, FALSE),
+    ('instagram', 'Instagram', 90, TRUE, FALSE),
+    ('facebook', 'Facebook', 100, TRUE, FALSE),
+    ('twitch', 'Twitch', 110, TRUE, FALSE),
+    ('reddit', 'Reddit', 120, TRUE, FALSE),
+    ('pinterest', 'Pinterest', 130, TRUE, FALSE),
+    ('weibo', '微博', 140, TRUE, FALSE),
+    ('youku', '优酷', 150, TRUE, FALSE),
+    ('qqvideo', '腾讯视频', 160, TRUE, FALSE),
+    ('wechat_channels', '微信视频号', 170, TRUE, FALSE)
+ON CONFLICT (key) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS media_inspections (
     id UUID PRIMARY KEY,
     owner_hash VARCHAR(64) NOT NULL,

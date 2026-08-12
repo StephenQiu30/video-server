@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from app.application.provider_canaries import ProviderStatusService
+from app.application.provider_catalog import ProviderCatalogEntry
 from app.application.providers import ProviderStatusView
 from app.domain.providers import (
     ProviderAccessMode,
@@ -26,6 +27,31 @@ class Reader:
     ) -> dict[str, tuple[ProviderCanaryResult, ...]]:
         assert limit_per_provider == 32
         return {"vimeo": self.results}
+
+
+class Catalog:
+    async def list_entries(
+        self, *, visible_only: bool = False
+    ) -> tuple[ProviderCatalogEntry, ...]:
+        assert visible_only is True
+        return (
+            ProviderCatalogEntry(
+                key="custom",
+                display_name="Custom platform",
+                sort_order=1,
+                is_visible=True,
+                created_at=NOW,
+                updated_at=NOW,
+            ),
+            ProviderCatalogEntry(
+                key="vimeo",
+                display_name="Vimeo 视频",
+                sort_order=2,
+                is_visible=True,
+                created_at=NOW,
+                updated_at=NOW,
+            ),
+        )
 
 
 def baseline(
@@ -212,3 +238,20 @@ async def test_two_transient_failures_degrade_without_leaking_details() -> None:
 
     assert view.status is ProviderSupportStatus.DEGRADED
     assert view.user_action == "平台当前不稳定，请稍后重试。"
+
+
+@pytest.mark.asyncio
+async def test_admin_catalog_controls_public_order_names_and_custom_entries() -> None:
+    service = ProviderStatusService(
+        Reader(()),
+        (baseline(),),
+        now=lambda: NOW,
+        catalog=Catalog(),  # type: ignore[arg-type]
+    )
+
+    views = await service.list()
+
+    assert [item.key for item in views] == ["custom", "vimeo"]
+    assert views[0].status is ProviderSupportStatus.UNSUPPORTED
+    assert views[0].registered is False
+    assert views[1].display_name == "Vimeo 视频"

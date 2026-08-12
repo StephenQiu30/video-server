@@ -23,6 +23,12 @@ import {
   inspectMedia,
   issueDownloadUrl,
 } from '@/services/download';
+import {
+  createProviderCatalogEntry,
+  deleteProviderCatalogEntry,
+  listProviderCatalogEntries,
+  updateProviderCatalogEntry,
+} from '@/services/provider-catalog';
 import { getLiveness, getReadiness } from '@/services/system';
 import {
   listUsers,
@@ -255,6 +261,57 @@ describe('typed API client', () => {
         method: 'PATCH',
         data: { role: 'admin' },
       },
+    ]);
+  });
+
+  it('covers administrator platform catalog endpoints', async () => {
+    const entry = {
+      key: 'youtube',
+      display_name: 'YouTube',
+      sort_order: 10,
+      is_visible: true,
+      system_registered: true,
+      system_status: 'verified' as const,
+      created_at: '2026-08-12T10:00:00Z',
+      updated_at: '2026-08-12T10:00:00Z',
+    };
+    mockHttpResponses(
+      { items: [entry] },
+      entry,
+      { ...entry, display_name: 'YouTube Video' },
+      undefined,
+    );
+
+    await listProviderCatalogEntries();
+    await createProviderCatalogEntry({
+      key: entry.key,
+      display_name: entry.display_name,
+      sort_order: entry.sort_order,
+      is_visible: entry.is_visible,
+    });
+    await updateProviderCatalogEntry(entry.key, {
+      display_name: 'YouTube Video',
+    });
+    await deleteProviderCatalogEntry(entry.key);
+
+    expect(httpRequests().slice(-4)).toMatchObject([
+      { url: '/api/admin/providers', method: 'GET' },
+      {
+        url: '/api/admin/providers',
+        method: 'POST',
+        data: {
+          key: 'youtube',
+          display_name: 'YouTube',
+          sort_order: 10,
+          is_visible: true,
+        },
+      },
+      {
+        url: '/api/admin/providers/youtube',
+        method: 'PATCH',
+        data: { display_name: 'YouTube Video' },
+      },
+      { url: '/api/admin/providers/youtube', method: 'DELETE' },
     ]);
   });
 });

@@ -15,6 +15,7 @@ from .media import MediaFormatRow, MediaInspectionRow
 from .operational_metric import OperationalCounterRow
 from .outbox import OutboxEventRow
 from .provider_canary import ProviderCanaryResultRow
+from .provider_catalog import ProviderCatalogEntryRow
 from .task_event import TaskEventRow
 
 __all__ = [
@@ -35,6 +36,7 @@ __all__ = [
     "OutboxEventRow",
     "OperationalCounterRow",
     "ProviderCanaryResultRow",
+    "ProviderCatalogEntryRow",
     "TaskEventRow",
     "UserRow",
 ]

@@ -30,6 +30,7 @@ from app.application.downloads import (
     RetryDownload,
 )
 from app.application.provider_canaries import ProviderStatusService
+from app.application.provider_catalog import ProviderCatalogService
 from app.application.providers import ProviderStatusView
 from app.core.config import Settings
 from app.core.errors import AppError
@@ -98,6 +99,18 @@ def get_analysis_use_cases(request: Request) -> AnalysisUseCases:
             detail="The analysis service is not available.",
         )
     return cast(AnalysisUseCases, container)
+
+
+def get_provider_catalog_service(request: Request) -> ProviderCatalogService:
+    service = getattr(request.app.state, "provider_catalog_service", None)
+    if service is None:
+        raise AppError(
+            status=503,
+            code="service_unavailable",
+            title="Service unavailable",
+            detail="The Provider catalog service is not available.",
+        )
+    return cast(ProviderCatalogService, service)
 
 
 async def get_provider_statuses(request: Request) -> tuple[ProviderStatusView, ...]:

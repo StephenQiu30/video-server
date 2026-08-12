@@ -64,6 +64,9 @@ def create_app(
         application.state.provider_status_service = (
             configured_runtime.provider_status_service
         )
+        application.state.provider_catalog_service = (
+            configured_runtime.provider_catalog_service
+        )
     application.include_router(router)
     application.middleware("http")(
         lambda request, call_next: request_guard(

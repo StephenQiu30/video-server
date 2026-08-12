@@ -314,6 +314,8 @@ pending → canary → active → retired
 - `GET /api/providers` 返回 Provider、capability、粗粒度状态、最近验证时间和合法用户动作。
 - 错误 detail 不再宣称 Cookie 永远不支持；根据稳定码显示“需要平台会话”“会话已失效”“出口正在验证”“请求证明不可用”等。
 - 管理端只展示会话 Provider、版本、状态、最后 canary、启用/撤销；不回显 Secret。
+- `GET/POST /api/admin/providers` 与 `PATCH/DELETE /api/admin/providers/{provider_key}` 由管理员维护独立的平台目录。目录表只保存名称、排序和可见性，应用层再与不可由前端修改的 Profile/Canary 基线合并；自定义 key 固定映射为 `unsupported`，不能借目录写入扩大 Runner admission。
+- `GET /api/providers` 只返回目录中公开条目并采用管理员名称与排序。目录删除使用逻辑删除，schema seed 仅补充从未出现过的默认 key，不复活已删除条目。
 
 ### 12.2 Phase 2
 

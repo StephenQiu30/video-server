@@ -156,8 +156,23 @@ declare namespace API {
     download_id: string;
   };
 
+  type CreateProviderCatalogEntryRequest = {
+    /** Key */
+    key: string;
+    /** Display Name */
+    display_name: string;
+    /** Sort Order */
+    sort_order: number;
+    /** Is Visible */
+    is_visible?: boolean;
+  };
+
   type deleteAnalysisParams = {
     analysis_id: string;
+  };
+
+  type deleteProviderCatalogEntryParams = {
+    provider_key: string;
   };
 
   type DownloadAnalyticsDailyResponse = {
@@ -544,6 +559,29 @@ declare namespace API {
     | "live"
     | "playlist";
 
+  type ProviderCatalogEntryResponse = {
+    /** Key */
+    key: string;
+    /** Display Name */
+    display_name: string;
+    /** Sort Order */
+    sort_order: number;
+    /** Is Visible */
+    is_visible: boolean;
+    /** System Registered */
+    system_registered: boolean;
+    system_status: ProviderSupportStatus;
+    /** Created At */
+    created_at: string;
+    /** Updated At */
+    updated_at: string;
+  };
+
+  type ProviderCatalogListResponse = {
+    /** Items */
+    items: ProviderCatalogEntryResponse[];
+  };
+
   type ProviderListResponse = {
     /** Items */
     items: ProviderStatusResponse[];
@@ -650,6 +688,19 @@ declare namespace API {
   type UpdateProfileRequest = {
     /** Username */
     username: string;
+  };
+
+  type updateProviderCatalogEntryParams = {
+    provider_key: string;
+  };
+
+  type UpdateProviderCatalogEntryRequest = {
+    /** Display Name */
+    display_name?: string | null;
+    /** Sort Order */
+    sort_order?: number | null;
+    /** Is Visible */
+    is_visible?: boolean | null;
   };
 
   type updateUserAccessParams = {

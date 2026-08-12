@@ -44,6 +44,7 @@ export function SiteHeader() {
   const historyActive = pathname.startsWith('/history');
   const providersActive = pathname.startsWith('/providers');
   const analyticsActive = pathname.startsWith('/admin/analytics');
+  const catalogActive = pathname.startsWith('/admin/providers');
   const usersActive = pathname.startsWith('/admin/users');
 
   async function handleSignOut() {
@@ -95,6 +96,7 @@ export function SiteHeader() {
           </Button>
           <HeaderAccount
             analyticsActive={analyticsActive}
+            catalogActive={catalogActive}
             loading={loading}
             onSignOut={() => void handleSignOut()}
             pathname={pathname}

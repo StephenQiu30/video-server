@@ -34,6 +34,7 @@ from app.application.downloads import (
     RetryDownload,
 )
 from app.application.provider_canaries import ProviderStatusService
+from app.application.provider_catalog import ProviderCatalogService
 from app.core.config import Settings
 from app.core.url_cipher import URLCipher
 from app.infrastructure.analysis_repository import SqlAlchemyAnalysisRepository
@@ -56,6 +57,9 @@ from app.infrastructure.operational_metrics import OperationalMetrics
 from app.infrastructure.passwords import Argon2PasswordHasher
 from app.infrastructure.provider_canary_repository import (
     SqlAlchemyProviderCanaryRepository,
+)
+from app.infrastructure.provider_catalog_repository import (
+    SqlAlchemyProviderCatalogRepository,
 )
 from app.infrastructure.provider_status import configured_provider_statuses
 from app.infrastructure.rate_limiter import ValkeyRateLimiter
@@ -82,6 +86,7 @@ class ApiRuntime:
     realtime_consumer: RabbitMqRealtimeConsumer
     operational_metrics: OperationalMetrics
     provider_status_service: ProviderStatusService
+    provider_catalog_service: ProviderCatalogService
 
     async def start(self) -> None:
         await self.realtime_consumer.start()
@@ -113,6 +118,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
     )
     auth_repository = SqlAlchemyAuthRepository(sessions)
     user_repository = SqlAlchemyUserRepository(sessions)
+    provider_catalog_repository = SqlAlchemyProviderCatalogRepository(sessions)
     store = SqlAlchemyDownloadStore(repository)
     anonymous_runner = MediaRunnerHttpClient(
         base_url=settings.runner_base_url,
@@ -161,6 +167,12 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         ),
     )
     user_service = UserService(repository=user_repository, now=clock)
+    provider_baselines = configured_provider_statuses()
+    provider_catalog_service = ProviderCatalogService(
+        provider_catalog_repository,
+        provider_baselines,
+        now=clock,
+    )
     fingerprinter = HmacRequestFingerprinter(
         settings.request_fingerprint_secret.get_secret_value().encode()
     )
@@ -270,10 +282,12 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         operational_metrics=OperationalMetrics(sessions),
         provider_status_service=ProviderStatusService(
             SqlAlchemyProviderCanaryRepository(sessions),
-            configured_provider_statuses(),
+            provider_baselines,
             now=clock,
             approved_keys=settings.provider_verified_keys,
+            catalog=provider_catalog_repository,
         ),
+        provider_catalog_service=provider_catalog_service,
     )
 
 

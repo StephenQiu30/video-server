@@ -19,6 +19,7 @@ def test_download_schema_contains_required_tables_and_columns() -> None:
         "outbox_events",
         "users",
         "provider_canary_results",
+        "provider_catalog_entries",
     } <= set(tables)
     jobs = tables["download_jobs"]
     assert {
@@ -56,6 +57,16 @@ def test_download_schema_contains_required_tables_and_columns() -> None:
         "stable_error_code",
         "checked_at",
     } <= set(canaries.columns.keys())
+    catalog = tables["provider_catalog_entries"]
+    assert {
+        "key",
+        "display_name",
+        "sort_order",
+        "is_visible",
+        "is_deleted",
+        "created_at",
+        "updated_at",
+    } <= set(catalog.columns.keys())
 
 
 def test_sensitive_url_is_not_a_plaintext_column() -> None:

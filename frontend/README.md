@@ -67,7 +67,7 @@ npm run openapi
 
 该命令根据 `openapi2ts.config.ts` 读取 `/openapi.json`，生成 `src/services/video/` 中的请求函数和 `API` 类型。需要临时读取其他契约地址时使用 `OPENAPI_SCHEMA_URL`，不要修改并提交本地地址。
 
-`src/services/video/` 是生成目录，禁止手工修改，也不得维护平行 DTO 或手写 API 客户端。生成代码通过配置的 import statement 统一调用 `src/lib/request.ts`；页面应优先调用 `src/services/download.ts`、`analysis.ts`、`auth.ts`、`users.ts` 或 `system.ts` 等稳定业务入口。接口变化时先更新并启动 FastAPI，再执行 `npm run openapi`，最后提交契约对应的生成差异。
+`src/services/video/` 是生成目录，禁止手工修改，也不得维护平行 DTO 或手写 API 客户端。生成代码通过配置的 import statement 统一调用 `src/lib/request.ts`；页面应优先调用 `src/services/download.ts`、`analysis.ts`、`auth.ts`、`users.ts`、`provider-catalog.ts` 或 `system.ts` 等稳定业务入口。接口变化时先更新并启动 FastAPI，再执行 `npm run openapi`，最后提交契约对应的生成差异。
 
 ## 请求与鉴权
 

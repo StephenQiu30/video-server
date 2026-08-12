@@ -55,6 +55,7 @@
 | `/providers` | 查看平台能力、访问模式与最近验证状态 |
 | `/account` | 管理公开用户名并查看账户信息 |
 | `/admin/analytics` | 查看下载 KPI、每日趋势与来源表现 |
+| `/admin/providers` | 维护平台状态页名称、排序与可见性（仅管理员） |
 | `/admin/users` | 搜索用户并管理角色与启用状态 |
 | `/user/login`、`/user/register` | 登录、注册与受保护页面回跳 |
 

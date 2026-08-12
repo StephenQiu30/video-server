@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import Protocol
 
+from app.application.provider_catalog import ProviderCatalogRepository
 from app.application.providers import ProviderStatusView
 from app.domain.providers import (
     ProviderCanaryOutcome,
@@ -37,6 +39,7 @@ class ProviderStatusService:
         *,
         now: Callable[[], datetime],
         approved_keys: frozenset[str] = frozenset(),
+        catalog: ProviderCatalogRepository | None = None,
     ) -> None:
         registered = {
             item.key
@@ -49,11 +52,12 @@ class ProviderStatusService:
         self._baselines = baselines
         self._now = now
         self._approved_keys = approved_keys
+        self._catalog = catalog
 
     async def list(self) -> tuple[ProviderStatusView, ...]:
         recent = await self._reader.list_recent(limit_per_provider=32)
         now = self._now()
-        return tuple(
+        merged = tuple(
             _merge_status(
                 view,
                 recent.get(view.key, ()),
@@ -61,6 +65,26 @@ class ProviderStatusService:
                 explicitly_approved=view.key in self._approved_keys,
             )
             for view in self._baselines
+        )
+        if self._catalog is None:
+            return merged
+        entries = await self._catalog.list_entries(visible_only=True)
+        by_key = {item.key: item for item in merged}
+        return tuple(
+            replace(by_key[entry.key], display_name=entry.display_name)
+            if entry.key in by_key
+            else ProviderStatusView(
+                key=entry.key,
+                display_name=entry.display_name,
+                registered=False,
+                extractor_exists=False,
+                capabilities=(),
+                access_modes=(),
+                status=ProviderSupportStatus.UNSUPPORTED,
+                last_verified_at=None,
+                user_action="当前安全执行器不支持该平台。",
+            )
+            for entry in entries
         )
 
 

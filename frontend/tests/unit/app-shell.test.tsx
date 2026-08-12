@@ -191,6 +191,10 @@ describe('AppShell', () => {
     });
     expect(desktopLink).toHaveAttribute('href', '/admin/analytics');
     expect(desktopLink).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('menuitem', { name: '平台目录' })).toHaveAttribute(
+      'href',
+      '/admin/providers',
+    );
     fireEvent.keyDown(document, { key: 'Escape' });
     await waitFor(() =>
       expect(
@@ -207,6 +211,9 @@ describe('AppShell', () => {
     });
     expect(mobileLink).toHaveAttribute('href', '/admin/analytics');
     expect(mobileLink).toHaveAttribute('aria-current', 'page');
+    expect(
+      within(mobileNavigation).getByRole('link', { name: '平台目录' }),
+    ).toHaveAttribute('href', '/admin/providers');
   });
 
   it('removes the main navigation from authentication routes', () => {
