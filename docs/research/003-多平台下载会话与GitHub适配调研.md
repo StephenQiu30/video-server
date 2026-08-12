@@ -144,7 +144,7 @@ PO Token 与 Cookie 不是同一个凭据。当前官方 TL;DR 是通过 Provide
 | Reddit | 已登记；未冻结 canary | yt-dlp guest/loid；v.redd.it HLS/DASH | `reddit_session` 仅对获准 private/quarantine 场景评审 | processing 可延迟重试；gallery/profile 属多媒体扩展 |
 | Pinterest / 微博 | 已登记；未冻结 canary | yt-dlp public/guest 流程 | 默认关闭运维账号 | 先建 metadata + Range canary，再决定专用 Profile |
 | 优酷 / 腾讯视频 | 已登记；未冻结 canary | yt-dlp 公开免费内容 | 登录/会员不在首期 | 地域、付费、DRM fail closed；格式稀疏继续受 probe 限制 |
-| Dailymotion / NicoNico | 已登记；未冻结 canary | yt-dlp 公开内容 | 登录内容后续评审 | geo、age、登录历史/点赞等不作为单视频支持承诺 |
+| Dailymotion / NicoNico | 产品范围排除 | 无 | 无 | 域名 fail closed，不进入 Generic |
 | Generic | 未知站点 fallback | 仅公开 direct media/HLS/DASH/embed | 永远不授予 Provider Cookie | redirect 后必须重新归类；不得成为万能签名/验证绕过器 |
 | 视频号 / 快手 | 当前没有受支持 extractor/Profile | 无 | 无 | 明确 `unsupported`；不使用 MITM、公共 Worker 或第三方解析 API |
 

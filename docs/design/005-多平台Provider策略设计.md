@@ -259,7 +259,8 @@ pending → canary → active → retired
 | X / Instagram / Facebook | 单视频用 yt-dlp | user-managed 优先于共享运维账号 | 登录墙、NSFW/private、频控和 schema 分开报错 |
 | Vimeo | player URL + impersonation | Cookie、password、Referer 分开建模 | private/password 内容不因 Cookie 开放而自动允许 |
 | Twitch / Reddit | yt-dlp 公开 clip/VOD/post | 权益 Cookie 后续评审 | live/私有/quarantine 不在首期 |
-| Pinterest / 微博 / 优酷 / QQVideo / Dailymotion / NicoNico | yt-dlp | 默认 anonymous | `unknown` 直至真实 canary；付费/DRM fail closed |
+| Pinterest / 微博 / 优酷 / QQVideo | yt-dlp | 默认 anonymous | `unknown` 直至真实 canary；付费/DRM fail closed |
+| AcFun / Rutube / VK Clips / Dailymotion / NicoNico | 无 | 无 | 不在产品范围；主域及子域 fail closed，不进入 Generic |
 | Generic | 公开 direct/HLS/DASH/embed | 永不携带 Provider Secret | redirect 后重新归类 |
 | 快手 | 仓库可信 `KuaishouPublicIE` + 第一方移动分享页 | anonymous | `kuaishou-public-v1` 已完成真实 metadata/media 回归 |
 | 视频号 | 无安全、稳定的匿名 extractor/Profile | 无 | `unsupported` |
@@ -345,7 +346,7 @@ unknown | verified | degraded | access_required | rate_limited | blocked | disab
 - 只使用项目自有或明确授权样本，不使用用户 URL/Cookie。
 - 记录 Provider、capability、access mode、Profile/engine/POT 版本、egress affinity 引用、阶段、耗时和稳定错误；不记录完整 URL 或 Secret。
 
-最近 5 次至少 4 次成功、最近 2 次连续成功、metadata 成功不超过 6 小时且 media 成功不超过 26 小时，已批准基线才可恢复 `verified`；至少 2 次失败进入 `degraded`；连续 3 次同类永久失败进入 `blocked`。会话失效立即进入 `access_required`。API 已实现该聚合器，但新平台的 `unknown/access_required` 基线不能被下载探针自动提升，必须先完成完整视频 Agent E2E 并显式批准。当前基线：Bilibili、抖音、小红书为已有回归，快手为 2026-08-11 的公开分享页 metadata/media 回归，YouTube 为 `access_required`，AcFun 与其他无证据平台保持 `unknown`，视频号为 `unsupported`。
+最近 5 次至少 4 次成功、最近 2 次连续成功、metadata 成功不超过 6 小时且 media 成功不超过 26 小时，已批准基线才可恢复 `verified`；至少 2 次失败进入 `degraded`；连续 3 次同类永久失败进入 `blocked`。会话失效立即进入 `access_required`。API 已实现该聚合器，但新平台的 `unknown/access_required` 基线不能被下载探针自动提升，必须先完成完整视频 Agent E2E 并显式批准。当前基线：Bilibili、抖音、小红书为已有回归，快手为 2026-08-11 的公开分享页 metadata/media 回归，YouTube 为 `access_required`，其他无证据平台保持 `unknown`，视频号为 `unsupported`；AcFun、Rutube、VK Clips、Dailymotion 和 NicoNico 不登记。
 
 ## 14. 可观测性与审计
 

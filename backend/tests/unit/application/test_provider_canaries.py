@@ -25,15 +25,15 @@ class Reader:
         self, *, limit_per_provider: int
     ) -> dict[str, tuple[ProviderCanaryResult, ...]]:
         assert limit_per_provider == 32
-        return {"acfun": self.results}
+        return {"vimeo": self.results}
 
 
 def baseline(
     status: ProviderSupportStatus = ProviderSupportStatus.UNKNOWN,
 ) -> ProviderStatusView:
     return ProviderStatusView(
-        key="acfun",
-        display_name="AcFun",
+        key="vimeo",
+        display_name="Vimeo",
         registered=True,
         extractor_exists=True,
         capabilities=(ProviderCapability.SINGLE_VIDEO,),
@@ -51,9 +51,9 @@ def result(
     error: str | None = None,
 ) -> ProviderCanaryResult:
     return ProviderCanaryResult(
-        target_id="acfun-owned-1",
-        provider_key="acfun",
-        profile_version="acfun-public-v1",
+        target_id="vimeo-owned-1",
+        provider_key="vimeo",
+        profile_version="1",
         stage=stage,
         access_mode=ProviderAccessMode.ANONYMOUS,
         outcome=(
@@ -122,7 +122,7 @@ async def test_explicitly_approved_profile_promotes_only_with_full_chain() -> No
         Reader(results),
         (baseline(),),
         now=lambda: NOW,
-        approved_keys=frozenset({"acfun"}),
+        approved_keys=frozenset({"vimeo"}),
     )
 
     assert (await service.list())[0].status is ProviderSupportStatus.VERIFIED
@@ -141,7 +141,7 @@ async def test_explicit_approval_without_analysis_evidence_stays_unknown() -> No
         Reader(results),
         (baseline(),),
         now=lambda: NOW,
-        approved_keys=frozenset({"acfun"}),
+        approved_keys=frozenset({"vimeo"}),
     )
 
     assert (await service.list())[0].status is ProviderSupportStatus.UNKNOWN

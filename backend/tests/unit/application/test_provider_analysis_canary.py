@@ -20,11 +20,11 @@ from app.domain.providers import (
 )
 
 NOW = datetime(2026, 8, 11, 6, tzinfo=UTC)
-URL = "https://www.acfun.cn/v/ac35457073"
+URL = "https://vimeo.com/76979871"
 TARGET = AnalysisCanaryTarget(
-    "acfun-owned-1",
-    "acfun",
-    "acfun-public-v1",
+    "vimeo-owned-1",
+    "vimeo",
+    "1",
     "default",
     "yt-dlp-default",
     URL,
@@ -70,8 +70,8 @@ def evidence() -> AnalysisCanaryEvidence:
     return AnalysisCanaryEvidence(
         EncryptedUrl(b"ciphertext", b"nonce", "fernet-v1"),
         ProviderAccessContextRef(
-            provider_key="acfun",
-            profile_version="acfun-public-v1",
+            provider_key="vimeo",
+            profile_version="1",
             access_mode=ProviderAccessMode.ANONYMOUS,
             credential_version_id=None,
             egress_affinity_id="default",
@@ -110,7 +110,7 @@ async def test_source_mismatch_persists_only_a_stable_failure_code() -> None:
     service = ProviderAnalysisCanaryService(
         Reader(evidence()),
         writer,
-        Decryptor("https://www.acfun.cn/v/ac999"),
+        Decryptor("https://vimeo.com/22439234"),
         Storage(),
         now=lambda: NOW,
         timer=lambda: 1.0,

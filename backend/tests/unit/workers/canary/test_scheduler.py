@@ -8,7 +8,7 @@ from app.workers.canary.scheduler import ProviderCanaryScheduler
 from app.workers.canary.targets import ProviderCanaryTarget
 
 NOW = datetime(2026, 8, 11, 6, tzinfo=UTC)
-URL = "https://www.acfun.cn/v/ac35457073"
+URL = "https://vimeo.com/76979871"
 
 
 class Repository:
@@ -18,7 +18,7 @@ class Repository:
     async def latest_checked_at(
         self, target_id: str, stage: ProviderCanaryStage
     ) -> datetime | None:
-        assert target_id == "acfun-owned-1"
+        assert target_id == "vimeo-owned-1"
         return self.checked[stage]
 
 
@@ -32,8 +32,8 @@ class Service:
 
 def target(stage: ProviderCanaryStage) -> ProviderCanaryTarget:
     return ProviderCanaryTarget(
-        target_id="acfun-owned-1",
-        provider_key="acfun",
+        target_id="vimeo-owned-1",
+        provider_key="vimeo",
         stage=stage,
         url=URL,
     )

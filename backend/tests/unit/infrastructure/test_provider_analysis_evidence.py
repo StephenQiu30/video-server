@@ -43,7 +43,7 @@ async def test_reads_only_complete_download_agent_report_and_realtime_chain() ->
     evidence = await reader.get(job_id, now=NOW)
 
     assert evidence is not None
-    assert evidence.access_context.provider_key == "acfun"
+    assert evidence.access_context.provider_key == "vimeo"
     assert evidence.source_url.ciphertext == b"ciphertext"
     assert len(evidence.objects) == 3
 
@@ -69,8 +69,8 @@ async def _seed_complete_chain(sessions) -> object:
     job_id, run_id, report_id = uuid4(), uuid4(), uuid4()
     expiry = NOW + timedelta(days=1)
     context = ProviderAccessContextRef(
-        provider_key="acfun",
-        profile_version="acfun-public-v1",
+        provider_key="vimeo",
+        profile_version="1",
         access_mode=ProviderAccessMode.ANONYMOUS,
         credential_version_id=None,
         egress_affinity_id="default",
@@ -92,8 +92,8 @@ async def _seed_complete_chain(sessions) -> object:
             url_ciphertext=b"ciphertext",
             url_nonce=b"nonce",
             url_key_id="fernet-v1",
-            extractor_key="AcFunVideo",
-            provider_media_id="35457073",
+            extractor_key="Vimeo",
+            provider_media_id="76979871",
             title="Fixture",
             duration_seconds=2,
             metadata_json={"provider_access_context": context.to_document()},

@@ -96,7 +96,7 @@
 - [x] G7：抖音公开分享页回归成功；动态签名/schema 故障不伪报 Cookie 缺失。
 - [x] G8：小红书有效公开分享链回归成功；短链失效、图文笔记、原画缺失分别分类。
 - [ ] G9：TikTok、Vimeo、X、Instagram、Facebook、Twitch、Reddit 在显示 verified 前完成 metadata + media canary。
-- [x] G10：Pinterest、微博、优酷、腾讯视频、Dailymotion、NicoNico 无真实证据时保持 unknown。
+- [x] G10：Pinterest、微博、优酷、腾讯视频无真实证据时保持 unknown；AcFun、Rutube、VK Clips、Dailymotion、NicoNico 不登记且相关域名 fail closed。
 - [x] G11：视频号稳定为 unsupported，Generic 不会把它提升为 supported。
 - [x] G11a：快手由可信 `KuaishouPublicIE` 处理第一方公开单视频；图集和非第一方重定向 fail closed。
 - [ ] G12：本地带 ContentProtection 的 fixture 稳定返回 `drm_protected`。
@@ -166,11 +166,11 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod
 | 2026-08-10 | runtime 镜像 | 本次提交（基线 `a72b2f0`） | Provider runtime | N/A | yt-dlp `2026.07.04` / bgutil plugin | N/A | build/import | runtime build 通过；SBOM/NOTICE 与插件入口存在 | image `video-server:phase1-validation`（本地） |
 | 2026-08-10 | 前端本地 | 本次提交（基线 `a72b2f0`） | Provider status | authenticated | OpenAPI `listProviders` | N/A | API/UI | `81 passed`；lint/type/format/build 通过；`/providers` 静态导出 | 前端测试与 build 报告 |
 | 2026-08-07 | 本地浏览器 E2E | historical | Bilibili/抖音/小红书 single video | anonymous | 当时固定 Runner | historical | metadata/media/remux/probe | 成功；范围见研究记录 | `docs/research/001-GitHub开源方案调研.md` |
-| 2026-08-11 | 本地容器与浏览器 | 本次提交（基线 `84b8cae`） | 动态 Provider canary + AcFun Profile | anonymous / 默认无目标 | yt-dlp `5d6b8c8` / `acfun-public-v1` | non-secret default | schema/scheduler/API/UI | 结果表幂等创建；服务运行且不访问第三方；AcFun 仍为 unknown；桌面/移动对齐且无溢出 | `docs/acceptance/017-其他短视频平台分阶段接入验收.md` |
+| 2026-08-12 | 本地后端 | 本次提交 | Provider 范围收缩 | anonymous / 默认无目标 | yt-dlp `5d6b8c8` | non-secret default | Registry/API/Runner | 五个平台从 API 移除；相关域名不落入 Generic，稳定返回 `provider_unsupported` | `docs/acceptance/017-其他短视频平台分阶段接入验收.md` |
 | Pending | production-like | Pending | YouTube public + rights-negative | operator + POT | Pending | Pending | full Worker/Runner/MinIO | 未执行：无批准的专用 Cookie/授权 canary | `docs/operations/002-YouTube受控会话运行手册.md` |
 
 ## 14. 当前结论
 
-截至 2026-08-11，Phase 1 已提供可配置的 YouTube 运维 Cookie/POT 路径，以及持久化 Provider 探针、定时执行器、阈值/恢复迟滞和动态 API 聚合；AcFun Profile 已登记但显式保持 `unknown`。验收结论仍为 **production conditional fail**：A2a、B3/B7、C6/C8、YouTube 真实 D1–D3/D5/D7–D9/D11、POT/出口 E2–E6/E8、授权 canary G1–G4/G9/G12、低基数指标/供应链 H2–H5 与完整视频 Agent E2E gate 均缺完整证据或尚未实现。不得把 YouTube 或 AcFun 标记为 `verified`，也不得启用生产运维会话。
+截至 2026-08-12，Phase 1 已提供可配置的 YouTube 运维 Cookie/POT 路径，以及持久化 Provider 探针、定时执行器、阈值/恢复迟滞和动态 API 聚合。验收结论仍为 **production conditional fail**：A2a、B3/B7、C6/C8、YouTube 真实 D1–D3/D5/D7–D9/D11、POT/出口 E2–E6/E8、授权 canary G1–G4/G9/G12、低基数指标/供应链 H2–H5 与完整视频 Agent E2E gate 均缺完整证据或尚未实现。不得把 YouTube 标记为 `verified`，也不得启用生产运维会话。
 
 Phase 2 的 I–J 全部保持 Pending；本轮没有实现用户 Cookie 上传/Vault/Broker 或 gallery-dl。下一验收批次必须使用无额外权益的专用账号与授权样本，按 runbook 完成真实 Worker/Runner/MinIO E2E、全系统泄漏扫描、sidecar/出口绑定、轮换/撤销、账号权益漂移和故障注入。

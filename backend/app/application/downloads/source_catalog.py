@@ -33,8 +33,6 @@ DOWNLOAD_SOURCES: tuple[DownloadSource, ...] = (
         "腾讯视频",
         ("vqqvideo", "qqvideo", "tencentvideo"),
     ),
-    DownloadSource("dailymotion", "Dailymotion", ("dailymotion",)),
-    DownloadSource("niconico", "ニコニコ動画", ("niconico",)),
     DownloadSource("mediatrack", "MediaTrack", ("mediatrack",)),
 )
 OTHER_DOWNLOAD_SOURCE = DownloadSource("other", "其他来源", ())

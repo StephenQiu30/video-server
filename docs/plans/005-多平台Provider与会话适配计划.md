@@ -129,7 +129,8 @@
 - 匿名/运维 metadata 每 6 小时、小文件 download/remux/probe/SHA 每日执行。
 - 首批矩阵：YouTube anonymous/operator/POT；Bilibili、抖音、小红书 anonymous；Generic direct/HLS/DRM fixture。
 - 第二批矩阵：TikTok、Vimeo、X、Instagram、Facebook、Twitch、Reddit metadata + Range。
-- 第三批：Pinterest、微博、优酷、腾讯视频、Dailymotion、NicoNico；无证据前保持 unknown。
+- 第三批：Pinterest、微博、优酷、腾讯视频；无证据前保持 unknown。
+- 排除清单：AcFun、Rutube、VK Clips、Dailymotion、NicoNico；不登记且相关域名 fail closed。
 - 新增 `GET /api/providers` 和前端 Provider 状态/最近验证时间；错误页使用真实状态。
 
 ### 验证
@@ -141,7 +142,7 @@
 
 ## 8. Phase 6：其他平台专用 Profile
 
-实施状态：19 个可下载 Profile 与逐平台上游策略已登记；新增 AcFun `acfun-public-v1` 保持 `unknown`。Bilibili/抖音/小红书沿用 2026-08-07 历史回归，快手沿用 2026-08-11 真实回归；其余平台的当前版本 metadata + media + 完整视频 Agent E2E 尚未执行。
+实施状态：16 个可下载 Profile 与逐平台上游策略已登记。Bilibili/抖音/小红书沿用 2026-08-07 历史回归，快手沿用 2026-08-11 真实回归；其余平台的当前版本 metadata + media + 完整视频 Agent E2E 尚未执行。AcFun、Rutube、VK Clips、Dailymotion 和 NicoNico 已从注册表移除并显式拒绝。
 
 按真实 canary 证据逐个平台交付，不一次性启用所有 Cookie：
 

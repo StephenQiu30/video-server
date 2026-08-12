@@ -11,6 +11,21 @@ from app.domain.providers import (
     ProviderCapability,
     ProviderSupportStatus,
 )
+from app.runner.errors import RunnerFailure
+
+UNSUPPORTED_PROVIDER_DOMAINS = frozenset(
+    {
+        "acfun.cn",
+        "rutube.ru",
+        "vk.com",
+        "vk.ru",
+        "vkvideo.ru",
+        "dailymotion.com",
+        "dai.ly",
+        "nicovideo.jp",
+        "nico.ms",
+    }
+)
 
 UrlNormalizer = Callable[[str, SplitResult], str]
 
@@ -97,6 +112,11 @@ class ProviderRegistry:
 
     def resolve(self, url: str) -> ProviderProfile:
         hostname = urlsplit(url).hostname
+        if hostname is not None and any(
+            hostname == domain or hostname.endswith(f".{domain}")
+            for domain in UNSUPPORTED_PROVIDER_DOMAINS
+        ):
+            raise RunnerFailure("provider_unsupported", status=422)
         return (
             self._fallback
             if hostname is None

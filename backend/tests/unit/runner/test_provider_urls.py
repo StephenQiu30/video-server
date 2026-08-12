@@ -1,5 +1,4 @@
 import pytest
-from app.domain.providers import ProviderAccessMode
 from app.runner.errors import RunnerFailure
 from app.runner.provider_registry import configure_provider_instances, provider_profile
 from app.runner.provider_urls import (
@@ -110,68 +109,24 @@ def test_normalizes_kuaishou_public_videos_and_uses_android_impersonation() -> N
     )
 
 
-def test_acfun_admits_only_public_single_video_paths() -> None:
-    url = "https://www.acfun.cn/v/ac35457073?part=1"
-
-    assert provider_request_url(url) == "https://www.acfun.cn/v/ac35457073"
-    assert provider_request_url("https://www.acfun.cn/v/ac35468952_2") == (
-        "https://www.acfun.cn/v/ac35468952_2"
-    )
-    try:
-        provider_request_url("https://www.acfun.cn/bangumi/aa123")
-    except RunnerFailure as exc:
-        assert exc.code == "provider_unsupported"
-    else:
-        raise AssertionError("non-UGC AcFun path was accepted")
-
-
-def test_rutube_admits_only_public_single_video_paths() -> None:
-    video_id = "0123456789abcdef0123456789abcdef"
-    for url in (
-        f"https://rutube.ru/video/{video_id}/",
-        f"https://rutube.ru/play/embed/{video_id}",
-        "https://rutube.ru/video/embed/12345",
-    ):
-        assert provider_request_url(url) == url
-
-    assert (
-        provider_request_url(
-            f"https://rutube.ru/video/{video_id}/?pl_id=4252&utm_source=share#player"
-        )
-        == f"https://rutube.ru/video/{video_id}/"
-    )
-
-    for url in (
-        f"https://rutube.ru/video/private/{video_id}",
-        "https://rutube.ru/channel/123/videos/",
-    ):
-        with pytest.raises(RunnerFailure) as captured:
-            provider_request_url(url)
-        assert captured.value.code == "provider_unsupported"
-
-
-def test_vk_admits_only_direct_public_video_and_clip_paths() -> None:
-    for url in (
-        "https://vk.com/video-123_456",
+@pytest.mark.parametrize(
+    "url",
+    (
+        "https://www.acfun.cn/v/ac35457073",
+        "https://rutube.ru/video/0123456789abcdef0123456789abcdef",
         "https://m.vk.ru/clip123_456/",
-        "https://vkvideo.ru/video1_2",
-    ):
-        assert provider_request_url(url) == url
+        "https://geo.dailymotion.com/video/1",
+        "https://www.nicovideo.jp/watch/sm1",
+    ),
+)
+def test_removed_platforms_fail_closed_instead_of_using_generic(url: str) -> None:
+    with pytest.raises(RunnerFailure) as captured:
+        provider_profile(url)
+    assert captured.value.code == "provider_unsupported"
 
-    assert (
-        provider_request_url(
-            "https://vk.com/video-123_456?list=ln-abc&utm_source=share#comments"
-        )
-        == "https://vk.com/video-123_456"
-    )
-
-    for url in (
-        "https://vk.com/feed?z=video-123_456",
-        "https://vk.com/video_ext.php?oid=-123&id=456",
-    ):
-        with pytest.raises(RunnerFailure) as captured:
-            provider_request_url(url)
-        assert captured.value.code == "provider_unsupported"
+    with pytest.raises(RunnerFailure) as captured:
+        provider_request_url(url)
+    assert captured.value.code == "provider_unsupported"
 
 
 def test_registry_classifies_mainstream_platform_hosts() -> None:
@@ -185,11 +140,6 @@ def test_registry_classifies_mainstream_platform_hosts() -> None:
         "v.kuaishou.com": "kuaishou",
         "v.m.chenzhongtech.com": "kuaishou",
         "m.gifshow.com": "kuaishou",
-        "www.acfun.cn": "acfun",
-        "rutube.ru": "rutube",
-        "vk.com": "vk",
-        "m.vk.ru": "vk",
-        "vkvideo.ru": "vk",
         "player.vimeo.com": "vimeo",
         "x.com": "x",
         "www.instagram.com": "instagram",
@@ -200,8 +150,6 @@ def test_registry_classifies_mainstream_platform_hosts() -> None:
         "m.weibo.cn": "weibo",
         "v.youku.com": "youku",
         "v.qq.com": "qqvideo",
-        "dai.ly": "dailymotion",
-        "nico.ms": "niconico",
     }
 
     assert {
@@ -216,57 +164,6 @@ def test_unknown_hosts_use_the_safe_generic_strategy() -> None:
     assert profile.key == "generic"
     assert profile.command_args == ()
     assert profile.inspection_attempts == 2
-
-
-def test_acfun_has_a_versioned_unknown_public_profile() -> None:
-    profile = provider_profile("https://www.acfun.cn/v/ac35457073")
-
-    assert profile.key == "acfun"
-    assert profile.version == "acfun-public-v1"
-    assert profile.canary_suite == "acfun-public-single-video"
-    assert profile.support_status.value == "unknown"
-
-
-@pytest.mark.parametrize(
-    ("url", "key", "version", "suite"),
-    (
-        (
-            "https://rutube.ru/video/0123456789abcdef0123456789abcdef",
-            "rutube",
-            "rutube-public-v1",
-            "rutube-public-single-video",
-        ),
-        (
-            "https://vk.com/clip-123_456",
-            "vk",
-            "vk-public-v1",
-            "vk-public-video-or-clip",
-        ),
-    ),
-)
-def test_incremental_profiles_are_versioned_and_unverified(
-    url: str, key: str, version: str, suite: str
-) -> None:
-    profile = provider_profile(url)
-
-    assert profile.key == key
-    assert profile.version == version
-    assert profile.canary_suite == suite
-    assert profile.support_status.value == "unknown"
-
-
-def test_only_explicit_incremental_profile_can_use_operator_session() -> None:
-    rutube = provider_profile(
-        "https://rutube.ru/video/0123456789abcdef0123456789abcdef"
-    )
-    vk = provider_profile("https://vk.com/video-123_456")
-
-    assert rutube.access_modes == (ProviderAccessMode.ANONYMOUS,)
-    assert vk.access_modes == (
-        ProviderAccessMode.ANONYMOUS,
-        ProviderAccessMode.OPERATOR_MANAGED,
-    )
-    assert vk.cookie_domain_allowlist == frozenset({"vk.com", "vk.ru", "vkvideo.ru"})
 
 
 def test_peertube_requires_an_exact_approved_instance_and_video_path() -> None:

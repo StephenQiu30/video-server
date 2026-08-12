@@ -22,7 +22,7 @@ from app.workers.canary.targets import ProviderCanaryTarget
 from tests.unit.runner.helpers import download_request
 
 NOW = datetime(2026, 8, 11, 5, tzinfo=UTC)
-URL = "https://www.acfun.cn/v/ac35457073"
+URL = "https://vimeo.com/76979871"
 
 
 class Repository:
@@ -58,14 +58,14 @@ class Runner:
             raise MediaInspectionAuthRequired
         request = download_request()
         return RunnerInspection(
-            extractor_key="AcFunVideo",
-            provider_media_id="35457073",
+            extractor_key="Vimeo",
+            provider_media_id="76979871",
             title="Authorized canary",
             duration_seconds=30,
             formats=(RunnerFormat("1080p", request.plan.to_domain()),),
             access_context=ProviderAccessContextRef(
-                provider_key="acfun",
-                profile_version="acfun-public-v1",
+                provider_key="vimeo",
+                profile_version="1",
                 access_mode=ProviderAccessMode.ANONYMOUS,
                 credential_version_id=None,
                 egress_affinity_id="default",
@@ -92,8 +92,8 @@ class Runner:
 
 def target(stage: ProviderCanaryStage) -> ProviderCanaryTarget:
     return ProviderCanaryTarget(
-        target_id="acfun-owned-1",
-        provider_key="acfun",
+        target_id="vimeo-owned-1",
+        provider_key="vimeo",
         stage=stage,
         url=URL,
     )

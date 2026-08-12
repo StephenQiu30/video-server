@@ -50,10 +50,10 @@ def test_signing_secrets_require_adequate_entropy_capacity() -> None:
 
 def test_provider_release_approvals_are_typed_keys() -> None:
     settings = Settings(
-        app_env="test", provider_verified_keys=frozenset({"acfun", "vk"})
+        app_env="test", provider_verified_keys=frozenset({"tiktok", "vimeo"})
     )
 
-    assert settings.provider_verified_keys == frozenset({"acfun", "vk"})
+    assert settings.provider_verified_keys == frozenset({"tiktok", "vimeo"})
     with pytest.raises(ValidationError, match="invalid key"):
         Settings(app_env="test", provider_verified_keys=frozenset({"VK Clips"}))
 

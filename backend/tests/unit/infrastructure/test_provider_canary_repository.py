@@ -42,17 +42,17 @@ async def test_persists_sanitized_evidence_and_limits_each_provider() -> None:
         await connection.run_sync(Base.metadata.create_all)
     repository = SqlAlchemyProviderCanaryRepository(create_session_factory(engine))
     for age in range(6):
-        await repository.save(canary("acfun", age))
-    for age in range(2):
         await repository.save(canary("vimeo", age))
+    for age in range(2):
+        await repository.save(canary("youtube", age))
 
     recent = await repository.list_recent(limit_per_provider=5)
     latest = await repository.latest_checked_at(
-        "acfun-owned-1", ProviderCanaryStage.METADATA
+        "vimeo-owned-1", ProviderCanaryStage.METADATA
     )
 
-    assert len(recent["acfun"]) == 5
-    assert len(recent["vimeo"]) == 2
-    assert recent["acfun"][0].checked_at == NOW
+    assert len(recent["vimeo"]) == 5
+    assert len(recent["youtube"]) == 2
+    assert recent["vimeo"][0].checked_at == NOW
     assert latest == NOW
     await engine.dispose()
