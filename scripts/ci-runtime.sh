@@ -8,6 +8,7 @@ compose=(
   --project-name video-server-ci
   --env-file "$environment_file"
   -f "$repository_root/docker-compose.yml"
+  --profile environment
 )
 started=0
 
@@ -47,7 +48,17 @@ fi
 
 docker build --target runtime --tag video-server:local .
 started=1
-"${compose[@]}" up --detach --wait --wait-timeout 240 --no-build
+"${compose[@]}" up \
+  --detach \
+  --wait \
+  --wait-timeout 240 \
+  database-init rabbitmq-init valkey minio-init
+"${compose[@]}" up \
+  --detach \
+  --wait \
+  --wait-timeout 240 \
+  --no-build \
+  api outbox worker-download provider-canary worker-report media-runner
 
 python3 - <<'PY'
 import json

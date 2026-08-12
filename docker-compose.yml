@@ -1,164 +1,35 @@
 name: video-server
 
-x-app: &app
-  image: video-server:local
-  restart: unless-stopped
-  stop_grace_period: 30s
-
-x-rabbit-client-env: &rabbit-client-env
-  RABBITMQ_CONNECTION_TIMEOUT_SECONDS: "${RABBITMQ_CONNECTION_TIMEOUT_SECONDS:-10}"
-  RABBITMQ_PUBLISH_TIMEOUT_SECONDS: "${RABBITMQ_PUBLISH_TIMEOUT_SECONDS:-10}"
-  RABBITMQ_HEARTBEAT_SECONDS: "${RABBITMQ_HEARTBEAT_SECONDS:-60}"
-  RABBITMQ_RECONNECT_INTERVAL_SECONDS: "${RABBITMQ_RECONNECT_INTERVAL_SECONDS:-5}"
-
-x-api-env: &api-env
-  <<: *rabbit-client-env
-  APP_ENV: "${APP_ENV:-development}"
-  SERVICE_ROLE: api
-  APP_HOST: "${APP_HOST:-0.0.0.0}"
-  APP_PORT: "${APP_PORT:-8101}"
-  REQUEST_MAX_BYTES: "${REQUEST_MAX_BYTES:-262144}"
-  REQUEST_TIMEOUT_SECONDS: "${REQUEST_TIMEOUT_SECONDS:-30}"
-  METRICS_ACCESS_KEY: "${METRICS_ACCESS_KEY:-development-metrics-access-key-change-me}"
-  APP_VERSION: "${APP_VERSION:-0.1.0}"
-  DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
-  RABBITMQ_URL: "${RABBITMQ_API_URL:-amqp://video-api:video-api-secret@rabbitmq:5672/video}"
-  RABBITMQ_VHOST: "${RABBITMQ_VHOST:-video}"
-  VALKEY_URL: "${VALKEY_URL:-redis://valkey:6379/0}"
-  RABBITMQ_EXCHANGE: "${RABBITMQ_EXCHANGE:-video.events}"
-  DOWNLOAD_QUEUE: "${DOWNLOAD_QUEUE:-video.download}"
-  ANALYSIS_QUEUE: "${ANALYSIS_QUEUE:-video.analysis}"
-  ANALYSIS_ENABLED: "${ANALYSIS_ENABLED:-true}"
-  ANALYSIS_MAX_RUNS_PER_JOB: "${ANALYSIS_MAX_RUNS_PER_JOB:-10}"
-  ANALYSIS_WORKER_STALE_SECONDS: "${ANALYSIS_WORKER_STALE_SECONDS:-45}"
-  ANALYSIS_MANUAL_RETRY_MIN_INTERVAL_SECONDS: "${ANALYSIS_MANUAL_RETRY_MIN_INTERVAL_SECONDS:-30}"
-  ANALYSIS_MANUAL_RETRIES_PER_DAY: "${ANALYSIS_MANUAL_RETRIES_PER_DAY:-20}"
-  WEBSOCKET_MAX_CONNECTIONS: "${WEBSOCKET_MAX_CONNECTIONS:-1000}"
-  WEBSOCKET_MAX_CONNECTIONS_PER_OWNER: "${WEBSOCKET_MAX_CONNECTIONS_PER_OWNER:-4}"
-  WEBSOCKET_AUTH_RECHECK_SECONDS: "${WEBSOCKET_AUTH_RECHECK_SECONDS:-15}"
-  MINIO_ENDPOINT: "${MINIO_ENDPOINT:-minio:9000}"
-  MINIO_PUBLIC_ENDPOINT: "${MINIO_PUBLIC_ENDPOINT:-127.0.0.1:19190}"
-  MINIO_ACCESS_KEY: "${MINIO_API_ACCESS_KEY:-video-api-access}"
-  MINIO_SECRET_KEY: "${MINIO_API_SECRET_KEY:-video-api-secret-change-me}"
-  MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
-  MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
-  MINIO_PUBLIC_SECURE: "${MINIO_PUBLIC_SECURE:-false}"
-  AUTH_JWT_SECRET: "${AUTH_JWT_SECRET:-development-jwt-secret-change-me-32-bytes}"
-  AUTH_JWT_ISSUER: "${AUTH_JWT_ISSUER:-video-server}"
-  AUTH_JWT_AUDIENCE: "${AUTH_JWT_AUDIENCE:-video-web}"
-  AUTH_ACCESS_COOKIE_NAME: "${AUTH_ACCESS_COOKIE_NAME:-video_access_token}"
-  AUTH_REFRESH_COOKIE_NAME: "${AUTH_REFRESH_COOKIE_NAME:-video_refresh_token}"
-  AUTH_ACCESS_TOKEN_TTL_SECONDS: "${AUTH_ACCESS_TOKEN_TTL_SECONDS:-900}"
-  AUTH_REFRESH_TOKEN_TTL_SECONDS: "${AUTH_REFRESH_TOKEN_TTL_SECONDS:-2592000}"
-  AUTH_BOOTSTRAP_ADMIN_EMAIL: "${AUTH_BOOTSTRAP_ADMIN_EMAIL:-}"
-  REQUEST_FINGERPRINT_SECRET: "${REQUEST_FINGERPRINT_SECRET:-development-fingerprint-secret-change-me}"
-  URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:-ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE=}"
-  PROVIDER_VERIFIED_KEYS: "${PROVIDER_VERIFIED_KEYS:-[]}"
-  PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
-  RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
-  RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
-  RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
-  RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
-
-x-outbox-env: &outbox-env
-  <<: *rabbit-client-env
-  APP_ENV: "${APP_ENV:-development}"
-  SERVICE_ROLE: outbox
-  DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
-  RABBITMQ_URL: "${RABBITMQ_OUTBOX_URL:-amqp://video-outbox:video-outbox-secret@rabbitmq:5672/video}"
-  RABBITMQ_EXCHANGE: "${RABBITMQ_EXCHANGE:-video.events}"
-  DOWNLOAD_QUEUE: "${DOWNLOAD_QUEUE:-video.download}"
-  DOWNLOAD_ROUTING_KEY: "${DOWNLOAD_ROUTING_KEY:-download.requested}"
-  ANALYSIS_QUEUE: "${ANALYSIS_QUEUE:-video.analysis}"
-  ANALYSIS_REPORT_QUEUE: "${ANALYSIS_REPORT_QUEUE:-video.analysis-report}"
-  JOB_LEASE_SECONDS: "${JOB_LEASE_SECONDS:-60}"
-  OUTBOX_BATCH_SIZE: "${OUTBOX_BATCH_SIZE:-50}"
-  OUTBOX_POLL_INTERVAL_SECONDS: "${OUTBOX_POLL_INTERVAL_SECONDS:-1.0}"
-
-x-download-env: &download-env
-  <<: *rabbit-client-env
-  APP_ENV: "${APP_ENV:-development}"
-  SERVICE_ROLE: download-worker
-  DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
-  RABBITMQ_URL: "${RABBITMQ_DOWNLOAD_URL:-amqp://video-download:video-download-secret@rabbitmq:5672/video}"
-  RABBITMQ_EXCHANGE: "${RABBITMQ_EXCHANGE:-video.events}"
-  DOWNLOAD_QUEUE: "${DOWNLOAD_QUEUE:-video.download}"
-  DOWNLOAD_ROUTING_KEY: "${DOWNLOAD_ROUTING_KEY:-download.requested}"
-  DOWNLOAD_WORKER_THREADS: "${DOWNLOAD_WORKER_THREADS:-4}"
-  DOWNLOAD_QUEUED_RECOVERY_SECONDS: "${DOWNLOAD_QUEUED_RECOVERY_SECONDS:-60}"
-  ARTIFACT_GC_INTERVAL_SECONDS: "${ARTIFACT_GC_INTERVAL_SECONDS:-300}"
-  ARTIFACT_GC_BATCH_SIZE: "${ARTIFACT_GC_BATCH_SIZE:-50}"
-  ARTIFACT_DELETE_TIMEOUT_SECONDS: "${ARTIFACT_DELETE_TIMEOUT_SECONDS:-30}"
-  MINIO_ENDPOINT: "${MINIO_ENDPOINT:-minio:9000}"
-  MINIO_ACCESS_KEY: "${MINIO_DOWNLOAD_ACCESS_KEY:-video-download-access}"
-  MINIO_SECRET_KEY: "${MINIO_DOWNLOAD_SECRET_KEY:-video-download-secret-change-me}"
-  MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
-  MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
-  URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:-ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE=}"
-  PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
-  RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
-  RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
-  RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
-  RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
-
-x-canary-env: &canary-env
-  APP_ENV: "${APP_ENV:-development}"
-  SERVICE_ROLE: provider-canary
-  DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
-  RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
-  RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
-  RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
-  RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
-  URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:-ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE=}"
-  MINIO_ENDPOINT: "${MINIO_ENDPOINT:-minio:9000}"
-  MINIO_ACCESS_KEY: "${MINIO_CANARY_ACCESS_KEY:-video-canary-access}"
-  MINIO_SECRET_KEY: "${MINIO_CANARY_SECRET_KEY:-video-canary-secret-change-me}"
-  MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
-  MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
-  PROVIDER_CANARY_TARGETS: "${PROVIDER_CANARY_TARGETS:-[]}"
-  PROVIDER_VERIFIED_KEYS: "${PROVIDER_VERIFIED_KEYS:-[]}"
-  PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
-  PROVIDER_CANARY_METADATA_INTERVAL_SECONDS: "${PROVIDER_CANARY_METADATA_INTERVAL_SECONDS:-21600}"
-  PROVIDER_CANARY_MEDIA_INTERVAL_SECONDS: "${PROVIDER_CANARY_MEDIA_INTERVAL_SECONDS:-86400}"
-  PROVIDER_CANARY_POLL_SECONDS: "${PROVIDER_CANARY_POLL_SECONDS:-60}"
-
-x-report-env: &report-env
-  <<: *rabbit-client-env
-  APP_ENV: "${APP_ENV:-development}"
-  SERVICE_ROLE: report-worker
-  DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
-  RABBITMQ_URL: "${RABBITMQ_REPORT_URL:-amqp://video-report:video-report-secret@rabbitmq:5672/video}"
-  RABBITMQ_EXCHANGE: "${RABBITMQ_EXCHANGE:-video.events}"
-  DOWNLOAD_QUEUE: "${DOWNLOAD_QUEUE:-video.download}"
-  ANALYSIS_QUEUE: "${ANALYSIS_QUEUE:-video.analysis}"
-  ANALYSIS_REPORT_QUEUE: "${ANALYSIS_REPORT_QUEUE:-video.analysis-report}"
-  ANALYSIS_REPORT_TTL_SECONDS: "${ANALYSIS_REPORT_TTL_SECONDS:-86400}"
-  ANALYSIS_REPORT_GC_INTERVAL_SECONDS: "${ANALYSIS_REPORT_GC_INTERVAL_SECONDS:-300}"
-  ANALYSIS_REPORT_GC_BATCH_SIZE: "${ANALYSIS_REPORT_GC_BATCH_SIZE:-50}"
-  ANALYSIS_REPORT_ORPHAN_GRACE_SECONDS: "${ANALYSIS_REPORT_ORPHAN_GRACE_SECONDS:-3600}"
-  MINIO_ENDPOINT: "${MINIO_ENDPOINT:-minio:9000}"
-  MINIO_ACCESS_KEY: "${MINIO_REPORT_ACCESS_KEY:-video-report-access}"
-  MINIO_SECRET_KEY: "${MINIO_REPORT_SECRET_KEY:-video-report-secret-change-me}"
-  MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
-  MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
-
-x-runner-env: &runner-env
-  RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
-  PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
-  RUNNER_EGRESS_PROXY: "${RUNNER_EGRESS_PROXY:-http://egress-proxy:3128}"
-  RUNNER_PROVIDER_EGRESS_PROXIES: "${RUNNER_PROVIDER_EGRESS_PROXIES:-{}}"
-  RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
-  RUNNER_ACCESS_MODE: anonymous
-
-x-postgres-env: &postgres-env
-  POSTGRES_DB: "${POSTGRES_DB:-video}"
-  POSTGRES_USER: "${POSTGRES_USER:-video}"
-  POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-video}"
-
 services:
   api:
-    <<: *app
-    environment: *api-env
+    image: video-server:local
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      APP_ENV: "${APP_ENV:-development}"
+      SERVICE_ROLE: api
+      DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
+      RABBITMQ_URL: "${RABBITMQ_API_URL:-amqp://video-api:video-api-secret@rabbitmq:5672/video}"
+      VALKEY_URL: "${VALKEY_URL:-redis://valkey:6379/0}"
+      METRICS_ACCESS_KEY: "${METRICS_ACCESS_KEY:-development-metrics-access-key-change-me}"
+      MINIO_ENDPOINT: "${MINIO_ENDPOINT:-minio:9000}"
+      MINIO_PUBLIC_ENDPOINT: "${MINIO_PUBLIC_ENDPOINT:-127.0.0.1:19190}"
+      MINIO_ACCESS_KEY: "${MINIO_API_ACCESS_KEY:-video-api-access}"
+      MINIO_SECRET_KEY: "${MINIO_API_SECRET_KEY:-video-api-secret-change-me}"
+      MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
+      MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
+      MINIO_PUBLIC_SECURE: "${MINIO_PUBLIC_SECURE:-false}"
+      AUTH_JWT_SECRET: "${AUTH_JWT_SECRET:-development-jwt-secret-change-me-32-bytes}"
+      AUTH_BOOTSTRAP_ADMIN_EMAIL: "${AUTH_BOOTSTRAP_ADMIN_EMAIL:-}"
+      REQUEST_FINGERPRINT_SECRET: "${REQUEST_FINGERPRINT_SECRET:-development-fingerprint-secret-change-me}"
+      URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:-ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE=}"
+      ANALYSIS_ENABLED: "${ANALYSIS_ENABLED:-true}"
+      PROVIDER_VERIFIED_KEYS: "${PROVIDER_VERIFIED_KEYS:-[]}"
+      PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
+      RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
+      RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
+      RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
+      RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
     networks: [db_net, queue_net, quota_net, storage_net, runner_rpc_net, public_egress_net]
     build:
       context: .
@@ -169,20 +40,6 @@ services:
       - "127.0.0.1:8101:8101"
     command: ["python", "-m", "app.main"]
     depends_on:
-      postgres:
-        condition: service_healthy
-      database-init:
-        condition: service_completed_successfully
-      rabbitmq:
-        condition: service_healthy
-      rabbitmq-init:
-        condition: service_completed_successfully
-      valkey:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
       media-runner:
         condition: service_healthy
     healthcheck:
@@ -199,92 +56,110 @@ services:
       start_period: 10s
 
   outbox:
-    <<: *app
-    environment: *outbox-env
-    networks: [db_net, queue_net]
+    image: video-server:local
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      APP_ENV: "${APP_ENV:-development}"
+      SERVICE_ROLE: outbox
+      DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
+      RABBITMQ_URL: "${RABBITMQ_OUTBOX_URL:-amqp://video-outbox:video-outbox-secret@rabbitmq:5672/video}"
+    networks: [db_net, queue_net, public_egress_net]
     container_name: outbox
     command: ["python", "-m", "app.workers.outbox.main"]
-    depends_on:
-      postgres:
-        condition: service_healthy
-      database-init:
-        condition: service_completed_successfully
-      rabbitmq:
-        condition: service_healthy
-      rabbitmq-init:
-        condition: service_completed_successfully
 
   worker-download:
-    <<: *app
-    environment: *download-env
-    networks: [db_net, queue_net, storage_net, runner_rpc_net]
+    image: video-server:local
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      APP_ENV: "${APP_ENV:-development}"
+      SERVICE_ROLE: download-worker
+      DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
+      RABBITMQ_URL: "${RABBITMQ_DOWNLOAD_URL:-amqp://video-download:video-download-secret@rabbitmq:5672/video}"
+      MINIO_ENDPOINT: "${MINIO_ENDPOINT:-minio:9000}"
+      MINIO_ACCESS_KEY: "${MINIO_DOWNLOAD_ACCESS_KEY:-video-download-access}"
+      MINIO_SECRET_KEY: "${MINIO_DOWNLOAD_SECRET_KEY:-video-download-secret-change-me}"
+      MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
+      MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
+      URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:-ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE=}"
+      PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
+      RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
+      RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
+      RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
+      RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
+    networks: [db_net, queue_net, storage_net, runner_rpc_net, public_egress_net]
     container_name: worker-download
     command: ["python", "-m", "app.workers.download.main"]
     volumes:
       - runner_work:/work
     depends_on:
-      postgres:
-        condition: service_healthy
-      database-init:
-        condition: service_completed_successfully
-      rabbitmq:
-        condition: service_healthy
-      rabbitmq-init:
-        condition: service_completed_successfully
-      minio:
-        condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
       workspace-init:
         condition: service_completed_successfully
       media-runner:
         condition: service_healthy
 
   provider-canary:
-    <<: *app
-    environment: *canary-env
-    networks: [db_net, storage_net, runner_rpc_net]
+    image: video-server:local
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      APP_ENV: "${APP_ENV:-development}"
+      SERVICE_ROLE: provider-canary
+      DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
+      MINIO_ENDPOINT: "${MINIO_ENDPOINT:-minio:9000}"
+      MINIO_ACCESS_KEY: "${MINIO_CANARY_ACCESS_KEY:-video-canary-access}"
+      MINIO_SECRET_KEY: "${MINIO_CANARY_SECRET_KEY:-video-canary-secret-change-me}"
+      MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
+      MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
+      URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:-ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE=}"
+      PROVIDER_CANARY_TARGETS: "${PROVIDER_CANARY_TARGETS:-[]}"
+      PROVIDER_VERIFIED_KEYS: "${PROVIDER_VERIFIED_KEYS:-[]}"
+      PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
+      RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
+      RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
+      RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
+      RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
+    networks: [db_net, storage_net, runner_rpc_net, public_egress_net]
     container_name: provider-canary
     command: ["python", "-m", "app.workers.canary.main"]
     volumes:
       - runner_work:/work
     depends_on:
-      postgres:
-        condition: service_healthy
-      database-init:
-        condition: service_completed_successfully
-      minio:
-        condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
       workspace-init:
         condition: service_completed_successfully
       media-runner:
         condition: service_healthy
 
   worker-report:
-    <<: *app
-    environment: *report-env
-    networks: [db_net, queue_net, storage_net]
+    image: video-server:local
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      APP_ENV: "${APP_ENV:-development}"
+      SERVICE_ROLE: report-worker
+      DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
+      RABBITMQ_URL: "${RABBITMQ_REPORT_URL:-amqp://video-report:video-report-secret@rabbitmq:5672/video}"
+      MINIO_ENDPOINT: "${MINIO_ENDPOINT:-minio:9000}"
+      MINIO_ACCESS_KEY: "${MINIO_REPORT_ACCESS_KEY:-video-report-access}"
+      MINIO_SECRET_KEY: "${MINIO_REPORT_SECRET_KEY:-video-report-secret-change-me}"
+      MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
+      MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
+    networks: [db_net, queue_net, storage_net, public_egress_net]
     container_name: worker-report
     command: ["python", "-m", "app.workers.report.main"]
-    depends_on:
-      postgres:
-        condition: service_healthy
-      database-init:
-        condition: service_completed_successfully
-      rabbitmq:
-        condition: service_healthy
-      rabbitmq-init:
-        condition: service_completed_successfully
-      minio:
-        condition: service_healthy
-      minio-init:
-        condition: service_completed_successfully
 
   media-runner:
-    <<: *app
-    environment: *runner-env
+    image: video-server:local
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
+      RUNNER_EGRESS_PROXY: "${RUNNER_EGRESS_PROXY:-http://egress-proxy:3128}"
+      RUNNER_PROVIDER_EGRESS_PROXIES: "${RUNNER_PROVIDER_EGRESS_PROXIES:-{}}"
+      RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
+      RUNNER_ACCESS_MODE: anonymous
+      PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
     networks: [runner_rpc_net, runner_egress_net]
     container_name: media-runner
     command:
@@ -326,10 +201,15 @@ services:
       start_period: 10s
 
   youtube-operator-runner:
-    <<: *app
+    image: video-server:local
+    restart: unless-stopped
+    stop_grace_period: 30s
     profiles: [youtube-operator]
     environment:
-      <<: *runner-env
+      RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
+      RUNNER_EGRESS_PROXY: "${RUNNER_EGRESS_PROXY:-http://egress-proxy:3128}"
+      RUNNER_PROVIDER_EGRESS_PROXIES: "${RUNNER_PROVIDER_EGRESS_PROXIES:-{}}"
+      RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
       RUNNER_ACCESS_MODE: operator_managed
       RUNNER_MAX_ACTIVE_TASKS: "1"
       RUNNER_OPERATOR_SESSION_VERSIONS: '{"youtube":"${YOUTUBE_COOKIE_VERSION:-disabled}"}'
@@ -339,6 +219,7 @@ services:
       RUNNER_PROVIDER_SECRET_TEMP_ROOT: /run/provider-secrets-tmp
       RUNNER_YOUTUBE_POT_BASE_URL: http://youtube-pot-provider:4416
       RUNNER_YOUTUBE_POT_PROVIDER_VERSION: bgutil-http-1.3.1
+      PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
     networks: [runner_rpc_net, runner_egress_net, youtube_pot_net]
     container_name: youtube-operator-runner
     command:
@@ -389,10 +270,15 @@ services:
       start_period: 10s
 
   provider-operator-runner:
-    <<: *app
+    image: video-server:local
+    restart: unless-stopped
+    stop_grace_period: 30s
     profiles: [provider-operator]
     environment:
-      <<: *runner-env
+      RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
+      RUNNER_EGRESS_PROXY: "${RUNNER_EGRESS_PROXY:-http://egress-proxy:3128}"
+      RUNNER_PROVIDER_EGRESS_PROXIES: "${RUNNER_PROVIDER_EGRESS_PROXIES:-{}}"
+      RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
       RUNNER_ACCESS_MODE: operator_managed
       RUNNER_MAX_ACTIVE_TASKS: "1"
       RUNNER_OPERATOR_SESSION_VERSIONS: '{"${OPERATOR_PROVIDER_KEY:-disabled}":"${OPERATOR_COOKIE_VERSION:-disabled}"}'
@@ -400,6 +286,7 @@ services:
       RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
       RUNNER_PROVIDER_SECRET_ROOT: /run/provider-secrets
       RUNNER_PROVIDER_SECRET_TEMP_ROOT: /run/provider-secrets-tmp
+      PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
     networks: [runner_rpc_net, runner_egress_net]
     container_name: provider-operator-runner
     command:
@@ -476,6 +363,8 @@ services:
     restart: unless-stopped
     stop_grace_period: 35s
     networks: [runner_egress_net, public_egress_net]
+    ports:
+      - "127.0.0.1:${EGRESS_PROXY_HOST_PORT:-13128}:3128"
     volumes:
       - ./backend/config/egress/squid.conf:/etc/squid/squid.conf:ro
       - ./backend/config/egress/blocked-destinations-docker-desktop.conf:/etc/squid/blocked-destinations.conf:ro
@@ -487,7 +376,7 @@ services:
       start_period: 5s
 
   workspace-init:
-    <<: *app
+    image: video-server:local
     container_name: workspace-init
     network_mode: none
     user: "0:0"
@@ -498,7 +387,11 @@ services:
 
   postgres:
     image: postgres:17.5-alpine
-    environment: *postgres-env
+    profiles: [environment]
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-video}"
+      POSTGRES_USER: "${POSTGRES_USER:-video}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-video}"
     container_name: postgres
     networks: [db_net, public_egress_net]
     restart: unless-stopped
@@ -518,7 +411,11 @@ services:
 
   database-init:
     image: postgres:17.5-alpine
-    environment: *postgres-env
+    profiles: [environment]
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-video}"
+      POSTGRES_USER: "${POSTGRES_USER:-video}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-video}"
     container_name: database-init
     networks: [db_net]
     entrypoint: ["/bin/sh", "-ec"]
@@ -540,6 +437,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:4.0.9-management
+    profiles: [environment]
     environment:
       RABBITMQ_DEFAULT_USER: "${RABBITMQ_ADMIN_USER:-video}"
       RABBITMQ_DEFAULT_PASS: "${RABBITMQ_ADMIN_PASS:-video}"
@@ -564,6 +462,7 @@ services:
 
   rabbitmq-init:
     image: curlimages/curl:8.12.1
+    profiles: [environment]
     environment:
       RABBITMQ_ADMIN_USER: "${RABBITMQ_ADMIN_USER:-video}"
       RABBITMQ_ADMIN_PASS: "${RABBITMQ_ADMIN_PASS:-video}"
@@ -600,6 +499,7 @@ services:
 
   valkey:
     image: valkey/valkey:8.1.1-alpine
+    profiles: [environment]
     container_name: valkey
     command: ["valkey-server", "--save", "", "--appendonly", "no"]
     restart: unless-stopped
@@ -612,6 +512,7 @@ services:
 
   minio:
     image: minio/minio:RELEASE.2025-02-28T09-55-16Z
+    profiles: [environment]
     environment:
       MINIO_ROOT_USER: "${MINIO_ROOT_USER:-video-root}"
       MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-video-root-secret-change-me}"
@@ -632,6 +533,7 @@ services:
 
   minio-init:
     image: minio/mc:latest
+    profiles: [environment]
     environment:
       MINIO_ROOT_USER: "${MINIO_ROOT_USER:-video-root}"
       MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-video-root-secret-change-me}"
@@ -657,10 +559,10 @@ services:
         condition: service_healthy
 
 volumes:
+  runner_work:
   postgres_data:
   rabbitmq_data:
   minio_data:
-  runner_work:
 
 networks:
   db_net:

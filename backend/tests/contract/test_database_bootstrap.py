@@ -34,6 +34,21 @@ def test_current_schema_can_be_applied_repeatedly() -> None:
     assert "ix_download_jobs_queued_recovery" in schema
 
 
+def test_optional_environment_services_use_one_profile() -> None:
+    compose = COMPOSE_PATH.read_text(encoding="utf-8")
+    for service in (
+        "postgres",
+        "database-init",
+        "rabbitmq",
+        "rabbitmq-init",
+        "valkey",
+        "minio",
+        "minio-init",
+    ):
+        service_config = _service_block(compose, service)
+        assert "profiles: [environment]" in service_config
+
+
 def test_compose_initializes_database_before_database_consumers_start() -> None:
     compose = COMPOSE_PATH.read_text(encoding="utf-8")
     initializer = _service_block(compose, "database-init")
@@ -42,13 +57,6 @@ def test_compose_initializes_database_before_database_consumers_start() -> None:
     assert "/schema/schema.sql" in initializer
     assert "postgres:\n        condition: service_healthy" in initializer
     assert "/docker-entrypoint-initdb.d/" not in compose
-
-    for service in ("api", "outbox", "worker-download", "provider-canary"):
-        service_config = _service_block(compose, service)
-        assert (
-            "database-init:\n        condition: service_completed_successfully"
-            in service_config
-        )
 
 
 def test_production_compose_requires_database_initializer_credentials() -> None:

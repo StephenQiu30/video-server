@@ -4,25 +4,38 @@
 
 | 文件 | 职责 |
 | --- | --- |
-| `docker-compose.yml` | 本地 `.env`、API/下载拓扑、基础设施、健康检查和卷 |
+| `docker-compose.yml` | 完整服务拓扑；基础设施与初始化任务位于 `environment` Profile |
 | `docker-compose-prod.yml` | 生产 `.env.prod`、生产镜像和对外端口 |
 
-本地文件集中定义容器服务拓扑和本地环境配置；需要复用本机 OAuth 的 AI Worker 明确排除在 Compose 外。生产文件只覆盖生产差异，不复制整套服务。仓库不使用 `deploy/` 目录。环境变量的具体值只写在 `.env.example`、`.env.prod.example` 或被 Git 忽略的 `.env*` 文件中。
+仓库不维护额外的环境 Compose 文件。运行服务、可选基础设施和各自的初始化命令都在同一服务文件中；本机已有基础设施时不启用 `environment` Profile，需要完整隔离环境时才启用。需要复用本机 OAuth 的 AI Worker 明确排除在 Compose 外。生产文件只覆盖生产差异，不复制整套服务。
 
 ## 本地环境
 
 ```bash
 cp .env.example .env
 docker compose --env-file .env -f docker-compose.yml config --quiet
+docker compose --env-file .env \
+  -f docker-compose.yml --profile environment \
+  config --quiet
+docker compose --env-file .env \
+  -f docker-compose.yml --profile environment \
+  up -d --wait database-init rabbitmq-init valkey minio-init
 docker compose --env-file .env -f docker-compose.yml up -d --build
 ```
 
-Compose 会先等待 PostgreSQL 健康，再由一次性 `database-init` 容器幂等执行
-`backend/sql/schema.sql`。API、Outbox 和下载 Worker 只有在数据库初始化成功后才启动；
-因此全新卷和缺少当前表/索引的已有卷都不需要手工执行 SQL。可用
-`docker compose --env-file .env -f docker-compose.yml logs database-init` 检查初始化结果。
+第一条 `up` 只启动可选基础设施并等待三个初始化任务成功；`database-init` 会幂等执行 `backend/sql/schema.sql`。随后再启动运行服务，避免把数据库初始化隐藏在环境变量或镜像入口中。可用 `docker compose --env-file .env -f docker-compose.yml logs database-init` 检查结果。
 
-本地配置可直接启动 API、下载链路与基础设施。入口为 <http://localhost:8101>。Swagger UI 位于 <http://localhost:8101/docs>，OpenAPI 契约位于 <http://localhost:8101/openapi.json>。
+入口为 <http://localhost:8101>。Swagger UI 位于 <http://localhost:8101/docs>，OpenAPI 契约位于 <http://localhost:8101/openapi.json>。已有本机基础设施时跳过第一条 `up`，并在 `.env` 中把连接地址设置为容器可达地址；本机进程使用回环地址，Docker Desktop 容器通常使用 `host.docker.internal`。
+
+如果 API、Worker 和 Runner 都在本机运行，只需要 Docker 提供受控出口代理：
+
+```bash
+docker compose --env-file .env \
+  -f docker-compose.yml \
+  up -d egress-proxy
+```
+
+该命令只启动 `egress-proxy`，不会启动 PostgreSQL、RabbitMQ、Valkey 或 MinIO。将本机 Runner 的 `RUNNER_EGRESS_PROXY` 指向 `http://127.0.0.1:${EGRESS_PROXY_HOST_PORT:-13128}`。
 
 AI 分析还需由已登录 Codex 或 Claude CLI 的同一宿主机用户启动：
 
@@ -40,8 +53,15 @@ Worker preflight 通过后才连接 RabbitMQ；不要同时启动另一个分析
 ```bash
 cp .env.prod.example .env.prod
 # 替换 .env.prod 中全部 replace-with-* 占位值
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod.yml config --quiet
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod.yml up -d --build
+docker compose --env-file .env.prod \
+  -f docker-compose.yml -f docker-compose-prod.yml --profile environment \
+  config --quiet
+docker compose --env-file .env.prod \
+  -f docker-compose.yml -f docker-compose-prod.yml --profile environment \
+  up -d --wait database-init rabbitmq-init valkey minio-init
+docker compose --env-file .env.prod \
+  -f docker-compose.yml -f docker-compose-prod.yml \
+  up -d --build
 ```
 
 生产文件只提供生产环境差异，并在 Compose 解析阶段检查关键配置是否存在；生产运行前必须替换 `.env.prod` 中的占位值。生产 API 默认开启分析入口，Compose 只把 PostgreSQL、RabbitMQ 和 MinIO 的必要端口发布到宿主机 loopback，不运行 AI Worker。使用同一份生产配置另开宿主机进程：
@@ -56,9 +76,9 @@ Worker preflight 成功并持续运行后才能接收分析任务；若没有宿
 ## 网络边界
 
 - PostgreSQL、RabbitMQ、Valkey、MinIO、Runner RPC 和 Runner 出口分别使用独立网络；数据库、队列、配额、存储和 Runner RPC 网络均为 `internal`。为宿主机 AI Worker 仅把 PostgreSQL、RabbitMQ 和 MinIO 的必要端口绑定到 `127.0.0.1`，不向公网发布。
-- API、下载 Worker 只加入它们实际需要的内部网络；宿主机 AI Worker 通过 `.env` 中独立的 `ANALYSIS_*` 地址访问发布到 loopback 的基础设施；Outbox 不加入存储或 Runner 网络。
+- API 与 Worker 只加入它们实际需要的内部网络；为允许容器复用宿主机已有环境，它们同时通过普通应用网络访问 `.env` 指定的连接地址。宿主机 AI Worker 通过独立的 `ANALYSIS_*` 地址访问基础设施；Outbox 不加入存储或 Runner 网络。
 - 默认 `media-runner` 只收到 Runner 运行时变量（HMAC、工作目录和受控代理），不获得 Provider Secret。显式启用 `youtube-operator` Profile 时，独立 `youtube-operator-runner` 只能读取版本化 YouTube Cookie Secret，并在 Runner 独占 tmpfs 生成操作级副本；它仍不能获得数据库、队列、对象存储、Valkey 或 AI 凭据。
-- Media Runner 通过 egress proxy 访问外部媒体地址；proxy 不暴露宿主机端口，并继续拒绝私网、localhost 和字面量 IP 目的地址。
+- Media Runner 通过 egress proxy 访问外部媒体地址；本地环境组合只把代理绑定到宿主机回环地址，供本机 Runner 复用，并继续拒绝私网、localhost 和字面量 IP 目的地址。生产覆盖移除该端口。
 - 容器内 API、下载 Worker 与 Runner 使用 Compose DNS 互联；只有宿主机 AI Worker 使用 loopback 发布端口。
 
 当某个平台因数据中心出口信誉触发访问验证时，可以让运维侧提供一个同样受控、无凭据的内部代理入口，并按 Provider 覆盖默认出口：
@@ -81,7 +101,9 @@ RUNNER_PROVIDER_EGRESS_PROXIES={"youtube":"http://youtube-egress:3128","douyin":
 ```bash
 curl --fail http://localhost:8101/health/live
 curl --fail http://localhost:8101/health/ready
-docker compose --env-file .env -f docker-compose.yml ps
+docker compose --env-file .env \
+  -f docker-compose.yml \
+  ps
 ```
 
 若下载解析失败，先区分 URL/格式、会话、请求证明、出口信誉、egress ACL、Runner、队列和对象存储。不要在普通解析请求中粘贴 Cookie、开放私网或透传 yt-dlp 参数；受控 Provider 会话的导入、轮换和撤销只按 005 及专用运维 runbook 执行。

@@ -56,8 +56,8 @@ npm run build
 根目录配置解析：
 
 ```bash
-docker compose --env-file .env -f docker-compose.yml config --quiet
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod.yml config --quiet
+docker compose --env-file .env -f docker-compose.yml --profile environment config --quiet
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod.yml --profile environment config --quiet
 ```
 
 ## 4. 验收证据

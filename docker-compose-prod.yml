@@ -1,112 +1,87 @@
 name: video-server
 
-x-prod-api-env: &prod-api-env
-  APP_ENV: "${APP_ENV:?set APP_ENV in .env.prod}"
-  ANALYSIS_ENABLED: "${ANALYSIS_ENABLED:-true}"
-  ANALYSIS_WORKER_STALE_SECONDS: "${ANALYSIS_WORKER_STALE_SECONDS:-45}"
-  DATABASE_URL: "${DATABASE_URL:?set DATABASE_URL in .env.prod}"
-  RABBITMQ_URL: "${RABBITMQ_API_URL:?set RABBITMQ_API_URL in .env.prod}"
-  VALKEY_URL: "${VALKEY_URL:?set VALKEY_URL in .env.prod}"
-  METRICS_ACCESS_KEY: "${METRICS_ACCESS_KEY:?set METRICS_ACCESS_KEY in .env.prod}"
-  MINIO_ENDPOINT: "${MINIO_ENDPOINT:?set MINIO_ENDPOINT in .env.prod}"
-  MINIO_ACCESS_KEY: "${MINIO_API_ACCESS_KEY:?set MINIO_API_ACCESS_KEY in .env.prod}"
-  MINIO_SECRET_KEY: "${MINIO_API_SECRET_KEY:?set MINIO_API_SECRET_KEY in .env.prod}"
-  AUTH_JWT_SECRET: "${AUTH_JWT_SECRET:?set AUTH_JWT_SECRET in .env.prod}"
-  AUTH_JWT_ISSUER: "${AUTH_JWT_ISSUER:-video-server}"
-  AUTH_JWT_AUDIENCE: "${AUTH_JWT_AUDIENCE:-video-web}"
-  AUTH_ACCESS_COOKIE_NAME: "${AUTH_ACCESS_COOKIE_NAME:-video_access_token}"
-  AUTH_REFRESH_COOKIE_NAME: "${AUTH_REFRESH_COOKIE_NAME:-video_refresh_token}"
-  AUTH_ACCESS_TOKEN_TTL_SECONDS: "${AUTH_ACCESS_TOKEN_TTL_SECONDS:-900}"
-  AUTH_REFRESH_TOKEN_TTL_SECONDS: "${AUTH_REFRESH_TOKEN_TTL_SECONDS:-2592000}"
-  AUTH_BOOTSTRAP_ADMIN_EMAIL: "${AUTH_BOOTSTRAP_ADMIN_EMAIL:?set AUTH_BOOTSTRAP_ADMIN_EMAIL in .env.prod}"
-  REQUEST_FINGERPRINT_SECRET: "${REQUEST_FINGERPRINT_SECRET:?set REQUEST_FINGERPRINT_SECRET in .env.prod}"
-  URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:?set URL_ENCRYPTION_KEY in .env.prod}"
-  RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
-  RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
-  PROVIDER_VERIFIED_KEYS: "${PROVIDER_VERIFIED_KEYS:-[]}"
-  PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
-
-x-prod-worker-env: &prod-worker-env
-  APP_ENV: "${APP_ENV:?set APP_ENV in .env.prod}"
-  DATABASE_URL: "${DATABASE_URL:?set DATABASE_URL in .env.prod}"
-
-x-prod-outbox-env: &prod-outbox-env
-  <<: *prod-worker-env
-  RABBITMQ_URL: "${RABBITMQ_OUTBOX_URL:?set RABBITMQ_OUTBOX_URL in .env.prod}"
-
-x-prod-download-env: &prod-download-env
-  <<: *prod-worker-env
-  RABBITMQ_URL: "${RABBITMQ_DOWNLOAD_URL:?set RABBITMQ_DOWNLOAD_URL in .env.prod}"
-  MINIO_ENDPOINT: "${MINIO_ENDPOINT:?set MINIO_ENDPOINT in .env.prod}"
-  MINIO_ACCESS_KEY: "${MINIO_DOWNLOAD_ACCESS_KEY:?set MINIO_DOWNLOAD_ACCESS_KEY in .env.prod}"
-  MINIO_SECRET_KEY: "${MINIO_DOWNLOAD_SECRET_KEY:?set MINIO_DOWNLOAD_SECRET_KEY in .env.prod}"
-  URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:?set URL_ENCRYPTION_KEY in .env.prod}"
-  PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
-  RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
-  RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
-
-x-prod-canary-env: &prod-canary-env
-  <<: *prod-worker-env
-  RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
-  URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:?set URL_ENCRYPTION_KEY in .env.prod}"
-  MINIO_ENDPOINT: "${MINIO_ENDPOINT:?set MINIO_ENDPOINT in .env.prod}"
-  MINIO_ACCESS_KEY: "${MINIO_CANARY_ACCESS_KEY:?set MINIO_CANARY_ACCESS_KEY in .env.prod}"
-  MINIO_SECRET_KEY: "${MINIO_CANARY_SECRET_KEY:?set MINIO_CANARY_SECRET_KEY in .env.prod}"
-  MINIO_BUCKET: "${MINIO_BUCKET:?set MINIO_BUCKET in .env.prod}"
-  PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
-  RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
-  PROVIDER_CANARY_TARGETS: "${PROVIDER_CANARY_TARGETS:-[]}"
-  PROVIDER_VERIFIED_KEYS: "${PROVIDER_VERIFIED_KEYS:-[]}"
-
-x-prod-report-env: &prod-report-env
-  <<: *prod-worker-env
-  RABBITMQ_URL: "${RABBITMQ_REPORT_URL:?set RABBITMQ_REPORT_URL in .env.prod}"
-  MINIO_ENDPOINT: "${MINIO_ENDPOINT:?set MINIO_ENDPOINT in .env.prod}"
-  MINIO_ACCESS_KEY: "${MINIO_REPORT_ACCESS_KEY:?set MINIO_REPORT_ACCESS_KEY in .env.prod}"
-  MINIO_SECRET_KEY: "${MINIO_REPORT_SECRET_KEY:?set MINIO_REPORT_SECRET_KEY in .env.prod}"
-  MINIO_BUCKET: "${MINIO_BUCKET:?set MINIO_BUCKET in .env.prod}"
-
-x-prod-runner-env: &prod-runner-env
-  RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
-  RUNNER_EGRESS_PROXY: "${RUNNER_EGRESS_PROXY:?set RUNNER_EGRESS_PROXY in .env.prod}"
-  PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
-
 services:
   api:
     image: video-server:prod
-    environment: *prod-api-env
+    environment:
+      APP_ENV: "${APP_ENV:?set APP_ENV in .env.prod}"
+      DATABASE_URL: "${DATABASE_URL:?set DATABASE_URL in .env.prod}"
+      RABBITMQ_URL: "${RABBITMQ_API_URL:?set RABBITMQ_API_URL in .env.prod}"
+      VALKEY_URL: "${VALKEY_URL:?set VALKEY_URL in .env.prod}"
+      METRICS_ACCESS_KEY: "${METRICS_ACCESS_KEY:?set METRICS_ACCESS_KEY in .env.prod}"
+      MINIO_ENDPOINT: "${MINIO_ENDPOINT:?set MINIO_ENDPOINT in .env.prod}"
+      MINIO_ACCESS_KEY: "${MINIO_API_ACCESS_KEY:?set MINIO_API_ACCESS_KEY in .env.prod}"
+      MINIO_SECRET_KEY: "${MINIO_API_SECRET_KEY:?set MINIO_API_SECRET_KEY in .env.prod}"
+      AUTH_JWT_SECRET: "${AUTH_JWT_SECRET:?set AUTH_JWT_SECRET in .env.prod}"
+      AUTH_BOOTSTRAP_ADMIN_EMAIL: "${AUTH_BOOTSTRAP_ADMIN_EMAIL:?set AUTH_BOOTSTRAP_ADMIN_EMAIL in .env.prod}"
+      REQUEST_FINGERPRINT_SECRET: "${REQUEST_FINGERPRINT_SECRET:?set REQUEST_FINGERPRINT_SECRET in .env.prod}"
+      URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:?set URL_ENCRYPTION_KEY in .env.prod}"
+      RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
     ports: !override
       - "8101:8101"
 
   outbox:
     image: video-server:prod
-    environment: *prod-outbox-env
+    environment:
+      APP_ENV: "${APP_ENV:?set APP_ENV in .env.prod}"
+      DATABASE_URL: "${DATABASE_URL:?set DATABASE_URL in .env.prod}"
+      RABBITMQ_URL: "${RABBITMQ_OUTBOX_URL:?set RABBITMQ_OUTBOX_URL in .env.prod}"
 
   worker-download:
     image: video-server:prod
-    environment: *prod-download-env
+    environment:
+      APP_ENV: "${APP_ENV:?set APP_ENV in .env.prod}"
+      DATABASE_URL: "${DATABASE_URL:?set DATABASE_URL in .env.prod}"
+      RABBITMQ_URL: "${RABBITMQ_DOWNLOAD_URL:?set RABBITMQ_DOWNLOAD_URL in .env.prod}"
+      MINIO_ENDPOINT: "${MINIO_ENDPOINT:?set MINIO_ENDPOINT in .env.prod}"
+      MINIO_ACCESS_KEY: "${MINIO_DOWNLOAD_ACCESS_KEY:?set MINIO_DOWNLOAD_ACCESS_KEY in .env.prod}"
+      MINIO_SECRET_KEY: "${MINIO_DOWNLOAD_SECRET_KEY:?set MINIO_DOWNLOAD_SECRET_KEY in .env.prod}"
+      URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:?set URL_ENCRYPTION_KEY in .env.prod}"
+      RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
 
   provider-canary:
     image: video-server:prod
-    environment: *prod-canary-env
+    environment:
+      APP_ENV: "${APP_ENV:?set APP_ENV in .env.prod}"
+      DATABASE_URL: "${DATABASE_URL:?set DATABASE_URL in .env.prod}"
+      MINIO_ENDPOINT: "${MINIO_ENDPOINT:?set MINIO_ENDPOINT in .env.prod}"
+      MINIO_ACCESS_KEY: "${MINIO_CANARY_ACCESS_KEY:?set MINIO_CANARY_ACCESS_KEY in .env.prod}"
+      MINIO_SECRET_KEY: "${MINIO_CANARY_SECRET_KEY:?set MINIO_CANARY_SECRET_KEY in .env.prod}"
+      URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:?set URL_ENCRYPTION_KEY in .env.prod}"
+      RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
 
   worker-report:
     image: video-server:prod
-    environment: *prod-report-env
+    environment:
+      APP_ENV: "${APP_ENV:?set APP_ENV in .env.prod}"
+      DATABASE_URL: "${DATABASE_URL:?set DATABASE_URL in .env.prod}"
+      RABBITMQ_URL: "${RABBITMQ_REPORT_URL:?set RABBITMQ_REPORT_URL in .env.prod}"
+      MINIO_ENDPOINT: "${MINIO_ENDPOINT:?set MINIO_ENDPOINT in .env.prod}"
+      MINIO_ACCESS_KEY: "${MINIO_REPORT_ACCESS_KEY:?set MINIO_REPORT_ACCESS_KEY in .env.prod}"
+      MINIO_SECRET_KEY: "${MINIO_REPORT_SECRET_KEY:?set MINIO_REPORT_SECRET_KEY in .env.prod}"
 
   media-runner:
     image: video-server:prod
-    environment: *prod-runner-env
+    environment:
+      RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
+      RUNNER_EGRESS_PROXY: "${RUNNER_EGRESS_PROXY:?set RUNNER_EGRESS_PROXY in .env.prod}"
 
   youtube-operator-runner:
     image: video-server:prod
+    environment:
+      RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
+      RUNNER_EGRESS_PROXY: "${RUNNER_EGRESS_PROXY:?set RUNNER_EGRESS_PROXY in .env.prod}"
 
   provider-operator-runner:
     image: video-server:prod
+    environment:
+      RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:?set RUNNER_HMAC_SECRET in .env.prod}"
+      RUNNER_EGRESS_PROXY: "${RUNNER_EGRESS_PROXY:?set RUNNER_EGRESS_PROXY in .env.prod}"
 
   youtube-pot-provider:
 
   egress-proxy:
+    ports: !reset []
 
   workspace-init:
     image: video-server:prod

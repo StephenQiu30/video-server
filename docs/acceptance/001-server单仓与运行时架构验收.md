@@ -26,8 +26,8 @@
 cd backend && uv run ruff check . && uv run ruff format --check .
 cd backend && uv run mypy --strict app && uv run pytest -q
 cd frontend && npm run lint && npm run format:check && npm test && npm run build
-docker compose --env-file .env -f docker-compose.yml config --quiet
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod.yml config --quiet
+docker compose --env-file .env -f docker-compose.yml --profile environment config --quiet
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod.yml --profile environment config --quiet
 docker build --target runtime --tag video-server:architecture .
 ```
 

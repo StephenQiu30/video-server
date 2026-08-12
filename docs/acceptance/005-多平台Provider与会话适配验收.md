@@ -151,8 +151,8 @@ npm test
 npm run build
 
 cd ..
-docker compose config
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod.yml config
+docker compose --env-file .env -f docker-compose.yml --profile environment config
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod.yml --profile environment config
 ```
 
 真实 Cookie、POT 和 Provider canary 命令必须放在受限运维 runbook/CI Secret 环境，文档只记录脱敏结果，不把值写入 shell history 或验收文件。

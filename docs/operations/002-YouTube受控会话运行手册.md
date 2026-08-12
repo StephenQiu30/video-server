@@ -55,9 +55,9 @@ YOUTUBE_OPERATOR_ACCOUNT_BASELINE_ATTESTED=true
 先只解析配置，再启动显式 Profile：
 
 ```bash
-docker compose --env-file .env --profile youtube-operator config --quiet
-docker compose --env-file .env --profile youtube-operator up -d --build
-docker compose --env-file .env --profile youtube-operator ps
+docker compose --env-file .env -f docker-compose.yml --profile youtube-operator config --quiet
+docker compose --env-file .env -f docker-compose.yml --profile youtube-operator up -d --build
+docker compose --env-file .env -f docker-compose.yml --profile youtube-operator ps
 ```
 
 生产命令必须叠加 `docker-compose-prod.yml` 并显式使用 `.env.prod`。`youtube-operator-runner`、`youtube-pot-provider` 和匿名 Runner 没有可发布的宿主机端口；POT sidecar 只在内部 `youtube_pot_net` 对运维 Runner 可见。

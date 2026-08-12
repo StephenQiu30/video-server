@@ -34,7 +34,7 @@ server/
 │   └── tests/                     Vitest 测试
 ├── docs/                          当前设计、需求、计划、验收与运维文档
 ├── Dockerfile                     前后端统一生产镜像
-├── docker-compose.yml             本地完整服务拓扑（.env、宿主机端口）
+├── docker-compose.yml             单一服务拓扑（可选 environment Profile）
 └── docker-compose-prod.yml        生产环境覆盖（.env.prod、镜像与端口）
 ```
 
@@ -103,7 +103,7 @@ server/
 - AI 任务独立于下载任务；AI 失败不得改变下载成功状态。模型输出必须通过严格 schema、连续分镜时间轴和 shot evidence 校验，普通日志不得记录完整 Prompt、抽帧或原始模型响应。
 - Secret 只来自类型化配置和环境变量，不得进入前端、API 响应、异常、快照、测试夹具或普通日志。外部操作必须设置大小、时长、并发和超时上限，取消时终止整个子进程组。
 - 复用本机 OAuth 的 AI Worker 是 Compose 完整拓扑的唯一例外：必须由已登录 Codex 或 Claude CLI 的宿主机用户启动，容器不得挂载或复制 CLI 认证目录。
-- Compose 必须保持职责清晰：`docker-compose.yml` 是可独立启动的本地完整配置，定义服务拓扑、依赖关系、数据库初始化、健康检查、卷、内部端口、本地 `.env` 和宿主机端口；`docker-compose-prod.yml` 只覆盖生产 `.env.prod`、生产镜像和对外端口。生产命令必须显式传入 `--env-file .env.prod`，生产覆盖必须使用 `${VAR:?set VAR in .env.prod}` 在 Compose 解析阶段校验关键配置。本地只使用 `docker-compose.yml`，生产使用 `docker-compose.yml` 叠加 `docker-compose-prod.yml`，不得再维护独立的环境覆盖文件。宿主机端口通过 env 文件插值并提供安全默认值，生产覆盖移除本地基础设施端口；环境变量的具体值只能写在 `.env.example`、`.env.prod.example` 或被 Git 忽略的 `.env*` 文件中，非 env 文件不得硬编码密钥、密码、连接地址或 Provider Key。所有服务必须显式设置稳定的 `container_name`；公开主服务使用 `video-server`，基础服务使用 `postgres`、`database-init`、`rabbitmq`、`minio` 等简单名称，避免出现 `xxx-1` 这类副本后缀。本地和生产统一使用 Compose 项目名 `video-server` 及其作用域卷，因此同一主机不要同时启动两套环境。启动前按需复制 `.env.example` 为 `.env`，生产环境复制 `.env.prod.example` 为 `.env.prod` 并替换占位值。不要提交 `.env`、制品、缓存、日志、临时目录、虚拟环境或 `node_modules/`。
+- Compose 必须保持职责清晰：`docker-compose.yml` 是唯一基础配置，直接定义应用、Worker、Runner、出口代理及必要的跨服务连接；PostgreSQL、RabbitMQ、Valkey、MinIO 和初始化任务统一放在 `environment` Profile 中，本机已有基础设施时不启用该 Profile。`docker-compose-prod.yml` 只覆盖生产 `.env.prod`、生产镜像和对外端口。生产命令必须显式传入 `--env-file .env.prod`，生产覆盖必须使用 `${VAR:?set VAR in .env.prod}` 在 Compose 解析阶段校验关键配置。后端配置模型已有默认值的普通运行参数不得在 Compose 重复声明；Compose 只传递服务角色、连接地址、跨进程密钥和容器专用地址。所有服务必须显式设置稳定的 `container_name`；公开主服务使用 `video-server`，基础服务使用 `postgres`、`database-init`、`rabbitmq`、`minio` 等简单名称。启动前按需复制 `.env.example` 为 `.env`，生产环境复制 `.env.prod.example` 为 `.env.prod` 并替换占位值。不要提交 `.env`、制品、缓存、日志、临时目录、虚拟环境或 `node_modules/`。
 
 ## 实现与验证
 
@@ -131,7 +131,7 @@ npm test
 npm run build
 ```
 
-- 涉及接口契约时验证 OpenAPI 生成结果和前后端契约测试；涉及运行时、依赖或容器时分别验证本地配置（`docker-compose.yml`）和生产组合（`docker-compose.yml` + `docker-compose-prod.yml`）可以解析，按需验证镜像构建和关键健康接口。
+- 涉及接口契约时验证 OpenAPI 生成结果和前后端契约测试；涉及运行时、依赖或容器时分别验证默认配置、`environment` Profile 和生产覆盖可以解析，按需验证镜像构建和关键健康接口。
 - 不得隐瞒失败的检查。无法在当前平台完成的验证应在交付说明中写明原因、已执行范围和剩余风险。
 
 ## 文档规范

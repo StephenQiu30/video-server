@@ -71,6 +71,9 @@
 git clone https://github.com/StephenQiu30/video-server.git
 cd video-server
 cp .env.example .env
+docker compose --env-file .env \
+  -f docker-compose.yml --profile environment \
+  up -d --wait database-init rabbitmq-init valkey minio-init
 docker compose --env-file .env -f docker-compose.yml up -d --build
 ```
 
@@ -142,7 +145,15 @@ flowchart LR
 
 ## 本地开发
 
-前端要求 Node.js 24 与 npm 11.19，后端要求 Python 3.12 与 [uv](https://docs.astral.sh/uv/)。先通过 Compose 启动 API 与基础设施，再运行前端开发服务器：
+前端要求 Node.js 24 与 npm 11.19，后端要求 Python 3.12 与 [uv](https://docs.astral.sh/uv/)。本机已有 PostgreSQL、RabbitMQ、Redis/Valkey、MinIO 时不要启用 Compose 的 `environment` Profile；前后端和 Worker 可直接复用现有环境。
+
+需要为本机 Runner 提供受控出口时，只启动代理，不会连带启动环境服务：
+
+```bash
+docker compose --env-file .env \
+  -f docker-compose.yml \
+  up -d egress-proxy
+```
 
 ```bash
 cd frontend

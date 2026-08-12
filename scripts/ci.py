@@ -77,6 +77,19 @@ def repository() -> None:
             "--quiet",
         )
         run(
+            "完整环境 Compose 配置",
+            "docker",
+            "compose",
+            "--env-file",
+            str(development_env),
+            "-f",
+            "docker-compose.yml",
+            "--profile",
+            "environment",
+            "config",
+            "--quiet",
+        )
+        run(
             "生产 Compose 配置",
             "docker",
             "compose",
@@ -86,6 +99,8 @@ def repository() -> None:
             "docker-compose.yml",
             "-f",
             "docker-compose-prod.yml",
+            "--profile",
+            "environment",
             "config",
             "--quiet",
         )

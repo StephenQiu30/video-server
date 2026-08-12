@@ -34,12 +34,17 @@ Media Runner 通过 `app/runner/plugins/yt_dlp_plugins/` 加载随项目交付�
 
 ## 运行与就绪
 
-完整本地拓扑从仓库根目录通过 Compose 启动；`database-init`、`rabbitmq-init`、`minio-init` 和 `workspace-init` 是应以 `0` 退出的一次性初始化服务，其余 API、Worker 与基础设施保持运行：
+完整本地拓扑从仓库根目录通过 `environment` Profile 启动；`database-init`、`rabbitmq-init`、`minio-init` 和 `workspace-init` 是应以 `0` 退出的一次性初始化服务，其余 API、Worker 与基础设施保持运行：
 
 ```bash
 docker compose --env-file .env -f docker-compose.yml build
+docker compose --env-file .env \
+  -f docker-compose.yml --profile environment \
+  up -d --wait database-init rabbitmq-init valkey minio-init
 docker compose --env-file .env -f docker-compose.yml up -d --force-recreate
-docker compose ps --all
+docker compose --env-file .env \
+  -f docker-compose.yml --profile environment \
+  ps --all
 ```
 
 宿主机 AI Worker 不属于 Compose。默认启用分析时，从 `backend/` 单独启动且只运行一个实例：
