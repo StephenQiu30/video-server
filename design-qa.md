@@ -77,3 +77,12 @@
 - 独立前端差异审查：无剩余 P0/P1/P2；本轮发现的 2 个中等级问题均已修复。
 
 final result: passed
+
+## 2026-08-12 覆盖层滚动锁回归
+
+- `agent-browser` 使用经典滚动条模式复现：根节点 `scrollbar-gutter: stable` 与 Radix 的 `react-remove-scroll` 同时补偿 15px，导致所有 Dropdown、Dialog、AlertDialog、Select 和 Sheet 触发器看起来像“按钮点击后整页抖动”。
+- 根因修复以 `body` 的常驻纵向滚动条稳定长短页面切换，同时移除根节点的第二套滚动条槽位编排；未覆盖 `data-scroll-locked`，滚动锁、焦点圈定与 Escape 行为继续由 Radix 原语统一负责。
+- 1440×500 下 Dropdown、Dialog、Select 打开前后 `.content-shell` 均为 `x = 80px / width = 1265px`；390×500 下移动 Sheet 打开前后均为 `x = 16px / width = 343px`。
+- 浅色、深色和主题切换均无布局位移；浏览器页面错误为空。
+
+final result: passed

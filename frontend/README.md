@@ -77,6 +77,8 @@ npm run openapi
 - 客户端可以隐藏管理员入口，但角色与启用状态仍由后端独立校验；前端权限判断不能成为安全边界。
 - RFC Problem Details 在请求层统一映射，页面不直接展示后端内部错误、URL、令牌或 Provider 信息。
 
+全局 `body` 使用始终可见的纵向滚动容器来稳定长短页面切换，滚动条锁定与宽度补偿统一由 Radix 覆盖层原语负责。根节点不得再通过 `scrollbar-gutter` 预留第二份槽位，也不得覆盖 `data-scroll-locked` 的运行时样式；Dropdown、Dialog、Select 和 Sheet 共用同一套滚动锁编排，避免重复补偿引发整页横向抖动。
+
 ## 静态导出与同源交付
 
 `npm run build` 使用 Next.js static export 生成 `out/`。根 Dockerfile 将该目录复制到 `/app/frontend/out`，FastAPI 在 API 与健康检查路由之后挂载静态页面。已知路由可直接刷新，未知页面返回导出的 `404.html`；未知 `/api/*` 必须继续返回 JSON 404。
