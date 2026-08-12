@@ -155,22 +155,21 @@ npm run dev
 与 CI 一致的质量检查统一从仓库根目录执行：
 
 ```bash
-python scripts/install_git_hooks.py  # 首次克隆后执行一次
 python scripts/ci.py repository
 python scripts/ci.py backend
 python scripts/ci.py frontend
-python scripts/ci.py pre-push       # 完整代码级门禁
-./scripts/ci-runtime.sh             # 隔离的 Compose 运行边界烟测
+python scripts/ci.py all             # 完整代码级门禁
+./scripts/ci-runtime.sh              # 隔离的 Compose 运行边界烟测
 ```
 
-本地 `pre-commit` 运行快速的受影响模块检查，`pre-push` 运行完整代码级门禁；GitHub 的 `Required CI` 还会构建统一镜像、启动完整 Compose 拓扑、验证健康接口、SQL 幂等与 OpenAPI 客户端无漂移。`main` 只接受通过该检查的 squash PR。
+GitHub 的 `Required CI` 会聚合仓库、后端、前端和运行边界检查，包括统一镜像、完整 Compose 拓扑、健康接口、SQL 幂等与 OpenAPI 客户端漂移。
 
 ## 文档
 
 - [文档索引](docs/README.md)：Design、PRD、Plan、Acceptance、研究与运维资料
 - [后端说明](backend/README.md) / [前端说明](frontend/README.md)：模块边界与开发方式
 - [运行手册](docs/operations/001-root-compose运行手册.md)：Compose 拓扑、健康检查与恢复
-- [CI 运行手册](docs/operations/004-CI与主分支门禁运行手册.md)：本地钩子、必需检查与故障定位
+- [CI 运行手册](docs/operations/004-CI与主分支门禁运行手册.md)：本地命令、远端检查与故障定位
 - [贡献指南](CONTRIBUTING.md)：开发流程、质量门禁与提交规范
 - [安全策略](SECURITY.md)：安全边界与漏洞报告方式
 

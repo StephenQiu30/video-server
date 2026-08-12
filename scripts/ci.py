@@ -91,9 +91,8 @@ def repository() -> None:
         )
 
 
-def backend(*, quick: bool = False) -> None:
-    if not quick:
-        run("后端锁定依赖", "uv", "sync", "--frozen", "--dev", cwd=ROOT / "backend")
+def backend() -> None:
+    run("后端锁定依赖", "uv", "sync", "--frozen", "--dev", cwd=ROOT / "backend")
     run(
         "后端 Ruff",
         "uv",
@@ -117,8 +116,6 @@ def backend(*, quick: bool = False) -> None:
         "tests",
         cwd=ROOT / "backend",
     )
-    if quick:
-        return
     run(
         "后端严格类型",
         "uv",
@@ -132,51 +129,27 @@ def backend(*, quick: bool = False) -> None:
     run("后端测试", "uv", "run", "--frozen", "pytest", "-q", cwd=ROOT / "backend")
 
 
-def frontend(*, quick: bool = False) -> None:
-    if not quick:
-        run("前端锁定依赖", "npm", "ci", cwd=ROOT / "frontend")
-        run(
-            "前端生产依赖审计",
-            "npm",
-            "audit",
-            "--omit=dev",
-            "--audit-level=high",
-            cwd=ROOT / "frontend",
-        )
+def frontend() -> None:
+    run("前端锁定依赖", "npm", "ci", cwd=ROOT / "frontend")
+    run(
+        "前端生产依赖审计",
+        "npm",
+        "audit",
+        "--omit=dev",
+        "--audit-level=high",
+        cwd=ROOT / "frontend",
+    )
     run("前端 lint 与类型", "npm", "run", "lint", cwd=ROOT / "frontend")
     run("前端格式", "npm", "run", "format:check", cwd=ROOT / "frontend")
-    if quick:
-        return
     run("前端测试", "npm", "test", cwd=ROOT / "frontend")
     run("前端生产构建", "npm", "run", "build", cwd=ROOT / "frontend")
-
-
-def staged_files() -> tuple[str, ...]:
-    result = subprocess.run(
-        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
-        cwd=ROOT,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return tuple(result.stdout.splitlines())
-
-
-def pre_commit() -> None:
-    run("暂存区空白错误检查", "git", "diff", "--cached", "--check")
-    repository()
-    files = staged_files()
-    if any(path.startswith("backend/") for path in files):
-        backend(quick=True)
-    if any(path.startswith("frontend/") for path in files):
-        frontend(quick=True)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "stage",
-        choices=("repository", "backend", "frontend", "pre-commit", "pre-push", "all"),
+        choices=("repository", "backend", "frontend", "all"),
     )
     stage = parser.parse_args().stage
     if stage == "repository":
@@ -185,9 +158,7 @@ def main() -> int:
         backend()
     elif stage == "frontend":
         frontend()
-    elif stage == "pre-commit":
-        pre_commit()
-    else:
+    elif stage == "all":
         repository()
         backend()
         frontend()

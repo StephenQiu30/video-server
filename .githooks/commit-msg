@@ -1,5 +1,0 @@
-#!/bin/sh
-set -eu
-
-repository_root=$(git rev-parse --show-toplevel)
-exec python3 "$repository_root/scripts/validate_commit_message.py" --message-file "$1"

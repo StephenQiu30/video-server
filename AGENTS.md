@@ -110,7 +110,7 @@ server/
 - 修改前先阅读相邻代码、对应 README 和测试，优先复用现有模型、端口、组件与工具函数。
 - 删除失效文件、引用、依赖和文档，不保留“以后可能使用”的空目录、转发层或重复实现。
 - 根据改动范围执行最小充分验证；修复缺陷时补充能稳定复现问题的测试。
-- 本地钩子与 GitHub Actions 统一调用根目录 `scripts/ci.py`；完整代码级门禁为 `python scripts/ci.py pre-push`，Compose 运行边界门禁为 `./scripts/ci-runtime.sh`。下列命令是各模块的等价底层检查。
+- GitHub Actions 统一调用根目录 `scripts/ci.py`；完整代码级门禁为 `python scripts/ci.py all`，Compose 运行边界门禁为 `./scripts/ci-runtime.sh`。下列命令是各模块的等价底层检查。
 - 后端命令从 `backend/` 执行：
 
 ```bash

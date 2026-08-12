@@ -4,7 +4,7 @@
 
 外部依赖与方案选型记录在 [`research/`](research/)；下载内核选型见 [GitHub 开源方案调研](research/001-GitHub开源方案调研.md)，公网产品完备性、开源整合与优先级见 [上线能力与 GitHub 开源整合调研](research/002-上线能力与GitHub开源整合调研.md)，Cookie、PO Token、出口一致性和逐平台适配见 [多平台下载会话与 GitHub 适配调研](research/003-多平台下载会话与GitHub适配调研.md)，短视频提取与集成方案见 [GitHub 短视频提取方案调研](research/004-GitHub短视频提取方案调研.md)，其他短视频/社交视频平台的 extractor、维护状态、许可与接入优先级见 [其他短视频平台接入调研](research/005-其他短视频平台接入调研.md)，Facebook 分享帖子解析适配见 [Facebook 分享帖子解析调研](research/006-Facebook分享帖子解析调研.md)，RabbitMQ producer/consumer、quorum、DLQ 与可观测性选型见 [RabbitMQ 可靠投递 GitHub 调研](research/006-RabbitMQ可靠投递GitHub调研.md)，剩余 Provider 的逐平台能力验证见 [剩余 Provider 逐平台验证调研](research/007-剩余Provider逐平台验证调研.md)，主流社交媒体 Provider 扩展方向见 [主流社交媒体 Provider 扩展调研](research/008-主流社交媒体Provider扩展调研.md)，红果官方 App、开源设备采集器、DRM 与 Edge Agent 路径见 [红果短剧 Provider 接入调研](research/009-红果短剧Provider接入调研.md)，微信视频号本地代理、分享链接、媒体转换和 Edge Agent 架构见 [微信视频号 Provider 接入调研](research/010-微信视频号Provider接入调研.md)。
 
-根目录 Compose 的使用与安全边界见 [运行手册](operations/001-root-compose运行手册.md)；YouTube 运维会话的账号基线、Secret 导入、启动、轮换、撤销和脱敏验收见 [YouTube 受控会话运行手册](operations/002-YouTube受控会话运行手册.md)；TikTok、Instagram、Facebook、X、Reddit 与 Vimeo 的逐 Provider 隔离部署见 [多平台受控会话运行手册](operations/003-多平台受控会话运行手册.md)；本地钩子、GitHub 必需检查、运行边界和失败恢复见 [CI 与主分支门禁运行手册](operations/004-CI与主分支门禁运行手册.md)。
+根目录 Compose 的使用与安全边界见 [运行手册](operations/001-root-compose运行手册.md)；YouTube 运维会话的账号基线、Secret 导入、启动、轮换、撤销和脱敏验收见 [YouTube 受控会话运行手册](operations/002-YouTube受控会话运行手册.md)；TikTok、Instagram、Facebook、X、Reddit 与 Vimeo 的逐 Provider 隔离部署见 [多平台受控会话运行手册](operations/003-多平台受控会话运行手册.md)；本地 CI 命令、GitHub 检查、运行边界和失败恢复见 [CI 与主分支门禁运行手册](operations/004-CI与主分支门禁运行手册.md)。
 
 交付顺序固定为 `Design → PRD → Plan → Acceptance`：
 
