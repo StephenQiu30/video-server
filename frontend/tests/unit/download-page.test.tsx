@@ -88,7 +88,9 @@ describe('DownloadWorkspace', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
 
-    expect(await screen.findByText('媒体解析超时。')).toBeInTheDocument();
+    expect(
+      await screen.findByText('读取视频信息超时，请稍后重试。'),
+    ).toBeInTheDocument();
     expect(input).not.toHaveAttribute('aria-invalid');
     expect(input).not.toHaveAttribute('aria-describedby');
   });

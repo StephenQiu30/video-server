@@ -25,6 +25,9 @@ describe('request errors', () => {
       '发生未知错误，请稍后重试。',
     );
     expect(displayError(apiError(0, 'x', 'x', '安全信息'))).toBe('安全信息');
+    expect(
+      displayError(apiError(502, 'unknown_upstream', 'Bad gateway', 'Failed')),
+    ).toBe('上游服务暂时不可用，请稍后重试。');
   });
 
   it('localizes the stable backend validation error', () => {
@@ -38,6 +41,16 @@ describe('request errors', () => {
         ),
       ),
     ).toBe('提交内容不符合要求，请检查各字段后重试。');
+  });
+
+  it.each([
+    ['invalid_credentials', '邮箱或密码错误，请重新输入。'],
+    ['provider_rate_limited', '平台请求过于频繁，请稍后重试。'],
+    ['analysis_cli_not_authenticated', 'AI 分析服务未登录，请完成登录后重试。'],
+  ])('localizes the stable %s error', (code, expected) => {
+    expect(
+      displayError(apiError(400, code, 'English title', 'English detail')),
+    ).toBe(expected);
   });
 });
 

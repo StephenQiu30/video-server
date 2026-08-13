@@ -310,6 +310,20 @@ describe('AnalysisPanel', () => {
     expect(retried.id).toBe(failed.id);
   });
 
+  it('shows a Chinese message for a failed analysis', async () => {
+    mockHttpResponses(analysisJob('failed'));
+    vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'analysis-key') });
+    render(<AnalysisPanel downloadId={job().id} pollIntervalMs={60_000} />);
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: '开始 AI 分析' }),
+    );
+    expect(
+      await screen.findByText('AI 分析执行失败，请稍后重试。'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('analysis_cli_failed')).not.toBeInTheDocument();
+  });
+
   it('shows safe creation errors', async () => {
     mockHttpError(
       new ApiError(
@@ -324,7 +338,7 @@ describe('AnalysisPanel', () => {
       await screen.findByRole('button', { name: '开始 AI 分析' }),
     );
     expect(
-      await screen.findByText('AI 分析服务暂时不可用'),
+      await screen.findByText('AI 分析服务暂时不可用，请稍后重试。'),
     ).toBeInTheDocument();
   });
 });

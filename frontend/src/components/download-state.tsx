@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
+import { localizedErrorMessage } from '@/lib/error-messages';
 import type {
   DownloadJob,
   DownloadStage,
@@ -129,7 +130,8 @@ export default function DownloadState({
         <Alert className="mt-6" variant="destructive">
           <AlertTitle>下载失败</AlertTitle>
           <AlertDescription>
-            {job.error_code ?? 'unknown_error'}
+            {localizedErrorMessage(job.error_code) ??
+              '下载任务未能完成，请稍后重试。'}
           </AlertDescription>
         </Alert>
       ) : null}

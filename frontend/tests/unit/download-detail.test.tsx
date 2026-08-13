@@ -113,6 +113,16 @@ describe('DownloadJobView', () => {
     },
   );
 
+  it('shows a Chinese message for a failed download', async () => {
+    mockHttpResponses(job('failed'), inspection);
+    render(<DownloadJobView jobId={job().id} pollIntervalMs={60_000} />);
+
+    expect(
+      await screen.findByText('视频下载超时，请稍后重试。'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('download_timeout')).not.toBeInTheDocument();
+  });
+
   it('issues a short-lived URL for completed downloads', async () => {
     mockHttpResponses(job('succeeded'), inspection, analysisSkills, null, {
       url: 'https://objects.example/token',

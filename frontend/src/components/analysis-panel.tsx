@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
 import { useAnalysisJob } from '@/hooks/useAnalysisJob';
+import { localizedErrorMessage } from '@/lib/error-messages';
 import { analysisMarkdownUrl, analysisReportUrl } from '@/services/analysis';
 import type { AnalysisJob } from '@/types/video';
 
@@ -180,6 +181,15 @@ function AnalysisJobState({
       <div className="mt-2">
         <AnalysisRetryWindow job={job} />
       </div>
+      {job.status === 'failed' ? (
+        <Alert className="mt-6" variant="destructive">
+          <AlertTitle>分析失败</AlertTitle>
+          <AlertDescription>
+            {localizedErrorMessage(job.error_code) ??
+              'AI 分析未能完成，请稍后重试。'}
+          </AlertDescription>
+        </Alert>
+      ) : null}
       <p aria-live="polite" className="mt-2 text-xs text-muted-foreground">
         {state.socketStatus === 'connected'
           ? '实时状态已连接'
