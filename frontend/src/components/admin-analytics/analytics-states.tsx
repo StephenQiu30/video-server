@@ -1,10 +1,7 @@
-import { ChartBarIcon } from '@phosphor-icons/react';
-
 import {
   Empty,
   EmptyDescription,
   EmptyHeader,
-  EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -35,9 +32,6 @@ export function AnalyticsEmpty() {
   return (
     <Empty className="min-h-80 rounded-none border-0 py-20">
       <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <ChartBarIcon aria-hidden />
-        </EmptyMedia>
         <EmptyTitle>当前周期还没有下载数据</EmptyTitle>
         <EmptyDescription>
           切换统计周期，或等待用户创建下载任务后再查看。

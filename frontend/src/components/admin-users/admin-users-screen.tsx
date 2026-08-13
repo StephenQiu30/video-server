@@ -57,7 +57,7 @@ export function AdminUsersScreen({
         <BackLink className="mb-4" fallbackHref="/account" />
         <PageHeader
           action={
-            <p className="font-mono text-xs text-muted-foreground tabular-nums">
+            <p className="text-xs text-muted-foreground tabular-nums">
               共{' '}
               <strong className="font-semibold text-foreground">
                 {result.total}

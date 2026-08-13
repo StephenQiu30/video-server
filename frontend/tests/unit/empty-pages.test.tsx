@@ -29,6 +29,8 @@ describe('empty route states', () => {
       'content-shell',
       'inner-page',
     );
+    expect(container.querySelector('[data-slot="empty-icon"]')).toBeNull();
+    expect(screen.queryByText('任务不可用')).not.toBeInTheDocument();
     expect(backLink.compareDocumentPosition(heading)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );

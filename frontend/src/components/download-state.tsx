@@ -21,7 +21,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
@@ -86,9 +85,9 @@ export default function DownloadState({
             {statusLabels[job.status]}
           </h2>
         </div>
-        <Badge variant={complete ? 'success' : 'neutral'}>
+        <span className="text-sm text-muted-foreground tabular-nums">
           第 {job.attempt} 次尝试
-        </Badge>
+        </span>
       </div>
 
       <Separator className="mt-9" />
@@ -113,7 +112,7 @@ export default function DownloadState({
       <Separator />
 
       <div className="mt-8 flex items-end justify-between gap-5">
-        <span className="font-mono text-[42px] font-medium leading-none tracking-[-0.06em]">
+        <span className="text-[42px] font-medium leading-none tracking-[-0.06em] tabular-nums">
           {job.progress}%
         </span>
         <span className="text-sm text-muted-foreground">

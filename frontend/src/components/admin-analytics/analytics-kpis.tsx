@@ -63,7 +63,7 @@ export function AnalyticsKpis({
               <Icon aria-hidden className="size-4" />
               {metric.label}
             </dt>
-            <dd className="mt-3 font-mono text-[clamp(2rem,4vw,3rem)] font-medium leading-none tracking-[-0.055em] tabular-nums">
+            <dd className="mt-3 text-[clamp(2rem,4vw,3rem)] font-medium leading-none tracking-[-0.055em] tabular-nums">
               {metric.value}
             </dd>
             <dd className="mt-3 text-xs text-muted-foreground">

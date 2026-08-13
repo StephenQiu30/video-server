@@ -72,7 +72,7 @@ export function AdminAnalyticsScreen({
         </ToggleGroup>
         <div className="flex items-center justify-between gap-4 sm:justify-end">
           {data ? (
-            <p className="font-mono text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground tabular-nums">
               {formatDateRange(data.start, data.end)}
             </p>
           ) : null}

@@ -1,8 +1,4 @@
-import {
-  ArrowClockwise,
-  UsersThree,
-  WarningCircle,
-} from '@phosphor-icons/react';
+import { ArrowClockwise, WarningCircle } from '@phosphor-icons/react';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -10,7 +6,6 @@ import {
   Empty,
   EmptyDescription,
   EmptyHeader,
-  EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -61,9 +56,6 @@ export function EmptyUsers() {
   return (
     <Empty className="hairline min-h-64 rounded-none border-y py-14">
       <EmptyHeader>
-        <EmptyMedia className="mb-3 text-muted-foreground">
-          <UsersThree aria-hidden className="size-5" weight="regular" />
-        </EmptyMedia>
         <EmptyTitle>没有匹配的用户</EmptyTitle>
         <EmptyDescription>尝试清空搜索词或更换筛选条件。</EmptyDescription>
       </EmptyHeader>

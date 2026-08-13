@@ -44,10 +44,18 @@ export function SourcePerformance({ sources }: { sources: Source[] }) {
           <TableHeader className="bg-muted/35">
             <TableRow className="hairline hover:bg-transparent">
               <SourceHead className="w-[20%]">视频源</SourceHead>
-              <SourceHead className="w-[10%]">任务</SourceHead>
-              <SourceHead className="w-[11%]">成功率</SourceHead>
-              <SourceHead className="w-[11%]">用户</SourceHead>
-              <SourceHead className="w-[15%]">数据量</SourceHead>
+              <SourceHead className="w-[10%]" numeric>
+                任务
+              </SourceHead>
+              <SourceHead className="w-[11%]" numeric>
+                成功率
+              </SourceHead>
+              <SourceHead className="w-[11%]" numeric>
+                用户
+              </SourceHead>
+              <SourceHead className="w-[15%]" numeric>
+                数据量
+              </SourceHead>
               <SourceHead className="w-[33%]">状态分布</SourceHead>
             </TableRow>
           </TableHeader>
@@ -88,7 +96,7 @@ export function SourcePerformance({ sources }: { sources: Source[] }) {
                   {source.source_key}
                 </ItemDescription>
               </ItemContent>
-              <ItemActions className="font-mono text-sm tabular-nums">
+              <ItemActions className="text-sm tabular-nums">
                 {formatPercent(source.success_rate)}
               </ItemActions>
               <ItemFooter className="grid w-full gap-3">
@@ -113,13 +121,15 @@ export function SourcePerformance({ sources }: { sources: Source[] }) {
 function SourceHead({
   children,
   className,
+  numeric = false,
 }: {
   children: React.ReactNode;
   className: string;
+  numeric?: boolean;
 }) {
   return (
     <TableHead
-      className={`${className} px-4 font-mono text-[11px] font-normal text-muted-foreground`}
+      className={`${className} px-4 text-[11px] font-normal text-muted-foreground ${numeric ? 'text-right tabular-nums' : ''}`}
       scope="col"
     >
       {children}
@@ -129,7 +139,7 @@ function SourceHead({
 
 function MetricCell({ value }: { value: string }) {
   return (
-    <TableCell className="px-4 py-5 font-mono text-xs tabular-nums whitespace-normal">
+    <TableCell className="px-4 py-5 text-right text-xs tabular-nums whitespace-normal">
       {value}
     </TableCell>
   );
@@ -137,7 +147,7 @@ function MetricCell({ value }: { value: string }) {
 
 function StatusSummary({ source }: { source: Source }) {
   return (
-    <span className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+    <span className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground tabular-nums">
       <span className="text-success">成功 {source.succeeded}</span>
       <span className="text-destructive">失败 {source.failed}</span>
       <span>取消 {source.cancelled}</span>

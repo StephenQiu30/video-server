@@ -36,6 +36,10 @@ describe('provider status page', () => {
       .closest('li');
     expect(youtube).not.toBeNull();
     expect(youtube).toHaveTextContent('需受控会话');
+    const capabilities = within(youtube as HTMLElement).getByText(
+      '单视频 · 音视频分离',
+    );
+    expect(capabilities).not.toHaveAttribute('data-slot', 'badge');
     expect(youtube).toHaveTextContent('匿名优先');
     expect(youtube).toHaveTextContent('暂无当前版本证据');
     expect(youtube).not.toHaveTextContent('Cookie 版本');

@@ -85,7 +85,7 @@ export function ProviderCatalogList({
               <TableHead className="w-[25%] px-4">平台</TableHead>
               <TableHead className="w-[22%] px-4">目录键</TableHead>
               <TableHead className="w-[28%] px-4">能力与可见性</TableHead>
-              <TableHead className="w-[10%] px-4">排序</TableHead>
+              <TableHead className="w-[10%] px-4 text-right">排序</TableHead>
               <TableHead className="w-[15%] px-4 text-right">操作</TableHead>
             </TableRow>
           </TableHeader>
@@ -99,7 +99,7 @@ export function ProviderCatalogList({
                   {item.key}
                 </TableCell>
                 <TableCell className="px-4 py-5">{badges(item)}</TableCell>
-                <TableCell className="px-4 py-5 font-mono text-xs tabular-nums">
+                <TableCell className="px-4 py-5 text-right text-xs tabular-nums">
                   {item.sort_order}
                 </TableCell>
                 <TableCell className="px-4 py-5 text-right">
@@ -116,8 +116,9 @@ export function ProviderCatalogList({
             <Item className="rounded-none border-0 px-0 py-5" role="listitem">
               <ItemContent className="min-w-0">
                 <ItemTitle>{item.display_name}</ItemTitle>
-                <ItemDescription className="font-mono">
-                  {item.key} · 排序 {item.sort_order}
+                <ItemDescription>
+                  <span className="font-mono">{item.key}</span> · 排序{' '}
+                  <span className="tabular-nums">{item.sort_order}</span>
                 </ItemDescription>
               </ItemContent>
               <ItemActions>{actions(item)}</ItemActions>

@@ -69,19 +69,19 @@ export function UserList({ items, currentUserId, onEdit }: UserListProps) {
           <TableCaption className="sr-only">用户账户列表</TableCaption>
           <TableHeader className="bg-muted/35">
             <TableRow className="hairline hover:bg-transparent">
-              <TableHead className="w-[24%] px-4 font-mono text-[11px] font-normal text-muted-foreground">
+              <TableHead className="w-[24%] px-4 text-[11px] font-normal text-muted-foreground">
                 用户名
               </TableHead>
-              <TableHead className="w-[28%] px-4 font-mono text-[11px] font-normal text-muted-foreground">
+              <TableHead className="w-[28%] px-4 text-[11px] font-normal text-muted-foreground">
                 邮箱
               </TableHead>
-              <TableHead className="w-[23%] px-4 font-mono text-[11px] font-normal text-muted-foreground">
+              <TableHead className="w-[23%] px-4 text-[11px] font-normal text-muted-foreground">
                 身份与状态
               </TableHead>
-              <TableHead className="w-[15%] px-4 font-mono text-[11px] font-normal text-muted-foreground">
+              <TableHead className="w-[15%] px-4 text-[11px] font-normal text-muted-foreground">
                 注册日期
               </TableHead>
-              <TableHead className="w-[10%] px-4 text-right font-mono text-[11px] font-normal text-muted-foreground">
+              <TableHead className="w-[10%] px-4 text-right text-[11px] font-normal text-muted-foreground">
                 操作
               </TableHead>
             </TableRow>
@@ -96,7 +96,7 @@ export function UserList({ items, currentUserId, onEdit }: UserListProps) {
                   {item.email}
                 </TableCell>
                 <TableCell className="px-4 py-5">{badges(item)}</TableCell>
-                <TableCell className="px-4 py-5 font-mono text-xs text-muted-foreground">
+                <TableCell className="px-4 py-5 text-xs text-muted-foreground tabular-nums">
                   {item.created_at.slice(0, 10)}
                 </TableCell>
                 <TableCell className="px-4 py-5 text-right">

@@ -39,8 +39,8 @@ export default function InspectionWorkspace({
         <h2 className="mt-5 text-xl font-medium leading-8 tracking-[-0.025em] sm:text-2xl">
           {inspection.title}
         </h2>
-        <dl className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-xs text-muted-foreground">
-          <Meta label="平台" value={inspection.extractor_key} />
+        <dl className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
+          <Meta label="平台" mono value={inspection.extractor_key} />
           <Meta
             label="时长"
             value={formatDuration(inspection.duration_seconds)}
@@ -94,11 +94,19 @@ export default function InspectionWorkspace({
   );
 }
 
-function Meta({ label, value }: { label: string; value: string }) {
+function Meta({
+  label,
+  mono = false,
+  value,
+}: {
+  label: string;
+  mono?: boolean;
+  value: string;
+}) {
   return (
     <div className="flex items-center gap-3 before:content-['·'] first:before:hidden">
       <dt className="sr-only">{label}</dt>
-      <dd>{value}</dd>
+      <dd className={mono ? 'font-mono' : 'tabular-nums'}>{value}</dd>
     </div>
   );
 }

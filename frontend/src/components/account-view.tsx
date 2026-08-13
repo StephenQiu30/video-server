@@ -139,7 +139,7 @@ export function AccountView() {
                   <UserCircle aria-hidden size={17} />
                   用户名
                 </FieldLabel>
-                <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                <span className="text-xs text-muted-foreground tabular-nums">
                   {username.length}/32
                 </span>
               </div>

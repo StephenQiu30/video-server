@@ -129,3 +129,15 @@ final result: passed
 - 工程门禁：format check 172 个文件通过；lint/typecheck 通过；31 个测试文件、111 项测试通过；Next.js 生产构建与 11 个业务/错误路由静态导出通过；Compose 重建后 readiness 返回 200。
 
 final result: passed
+
+## 2026-08-13 Vercel/Geist 产品规范审查
+
+- 以根目录 `design.md` 的 Vercel 判断为基准，并按 `agent-browser` dogfood 流程审查全部前端路由；覆盖 1440×900、390×844、浅色/深色、移动 Sheet 与桌面 Radix Dialog。审查发现 2 个中等级和 1 个低等级偏差，均已修复，详见 `dogfood-output/vercel-design-audit/report.md`。
+- 平台状态页只保留验证/访问状态 Badge，能力改为 Geist Sans 辅助文字与 `·` 分隔。部署后 DOM 中 22 个 Badge 对应 22 个平台状态，不再为能力额外生成胶囊；桌面和 390px 均无横向溢出。
+- 管理员平台排序列，以及下载分析的任务、成功率、用户、数据量列，表头与单元格统一右对齐并使用 `tabular-nums`。浏览器 computed style 确认全部 `text-align = right`；KPI 与数值单元格使用 Geist Sans，目录键和来源键继续使用 Geist Mono。
+- 缺失任务、下载历史、下载分析、平台目录和用户管理的 Empty 状态移除无独立语义的圆角图标底座；缺失任务同时移除重复“任务不可用”眉题并收紧标题前间距。浏览器复验 `empty-icon = 0`、H1 `y = 204px`、`scrollWidth = clientWidth`。
+- AI 结果中的镜头属性、资产类型、评分和下载尝试次数改为普通元数据；状态、角色与可见性继续使用 Badge。根规范同时明确产品主题切换是允许的项目例外，不引入报告站 `vbg-*` 平行层。
+- 覆盖层稳定性复验：1440px 深色平台编辑 Dialog 打开前后 main 均为 `x = 80px / width = 1265px`，无滚动锁位移；390×844 明暗主题平台状态页均无横向溢出，浏览器页面错误和产品控制台错误为空。
+- 工程门禁：lint/typecheck 通过；format check 173 个文件通过；31 个测试文件、117 项测试通过；Next.js 生产构建与 11 个业务/错误路由静态导出通过。Compose 重建后 API、Media Runner、egress proxy 与基础设施健康，宿主机 AI Worker 已恢复，`/health/ready` 返回 200。
+
+final result: passed

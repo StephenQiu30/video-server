@@ -2,7 +2,6 @@ import {
   ArrowClockwise,
   CheckCircle,
   Plus,
-  Stack,
   WarningCircle,
 } from '@phosphor-icons/react';
 
@@ -14,7 +13,6 @@ import {
   Empty,
   EmptyDescription,
   EmptyHeader,
-  EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -85,9 +83,6 @@ export function ProviderCatalogScreen({
       ) : result.items.length === 0 ? (
         <Empty className="hairline min-h-64 rounded-none border-y py-14">
           <EmptyHeader>
-            <EmptyMedia className="mb-3 text-muted-foreground">
-              <Stack aria-hidden className="size-5" />
-            </EmptyMedia>
             <EmptyTitle>平台目录为空</EmptyTitle>
             <EmptyDescription>
               新增条目后，可在平台状态页公开展示。

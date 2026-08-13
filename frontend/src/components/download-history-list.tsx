@@ -8,7 +8,6 @@ import {
   Empty,
   EmptyDescription,
   EmptyHeader,
-  EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty';
 import {
@@ -60,9 +59,6 @@ export default function DownloadHistoryList({
       {data && !data.items.length ? (
         <Empty className="min-h-72 rounded-none border-0 py-20">
           <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <DownloadSimple aria-hidden />
-            </EmptyMedia>
             <EmptyTitle>没有匹配的下载记录</EmptyTitle>
             <EmptyDescription>
               调整筛选条件，或新建一个下载任务。

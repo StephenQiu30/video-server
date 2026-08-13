@@ -3,7 +3,6 @@
 import type { ReactNode } from 'react';
 
 import AnalysisReportPreview from '@/components/analysis-report-preview';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Item, ItemGroup } from '@/components/ui/item';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -72,10 +71,11 @@ export default function AnalysisResultView({
                     onSelect={onSelectTime}
                   />
                   <div>
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                       <strong className="font-medium">分镜 {shot.index}</strong>
-                      <Badge variant="outline">{shot.shot_size}</Badge>
-                      <Badge variant="outline">{shot.camera_motion}</Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {shot.shot_size} · {shot.camera_motion}
+                      </span>
                     </div>
                     <p className="mt-2 leading-7 text-muted-foreground">
                       {shot.description}
@@ -105,7 +105,9 @@ export default function AnalysisResultView({
                   <li>
                     <div className="flex items-start justify-between gap-4">
                       <strong className="font-medium">{highlight.title}</strong>
-                      <Badge>{highlight.score}</Badge>
+                      <span className="text-sm text-muted-foreground tabular-nums">
+                        评分 {highlight.score}
+                      </span>
                     </div>
                     <p className="mt-3 leading-7 text-muted-foreground">
                       {highlight.description}
@@ -135,9 +137,9 @@ export default function AnalysisResultView({
                   key={asset.id}
                 >
                   <li>
-                    <Badge variant="outline">
+                    <p className="text-xs text-muted-foreground">
                       {assetTypeLabels[asset.type] ?? asset.type}
-                    </Badge>
+                    </p>
                     <strong className="mt-3 block font-medium">
                       {asset.label}
                     </strong>
@@ -190,7 +192,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 font-mono text-2xl">{value}</p>
+      <p className="mt-1 text-2xl tabular-nums">{value}</p>
     </div>
   );
 }

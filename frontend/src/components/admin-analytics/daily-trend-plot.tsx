@@ -109,7 +109,7 @@ export function DailyTrendPlot({
               y2={lineY}
             />
             <text
-              className="fill-muted-foreground font-mono text-[11px]"
+              className="fill-muted-foreground text-[11px] tabular-nums"
               textAnchor="end"
               x={padding.left - 8}
               y={lineY + 4}

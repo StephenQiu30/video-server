@@ -51,13 +51,13 @@ export function DailyTrendChart({ daily }: { daily: DailyPoint[] }) {
           <dl className="hidden gap-6 sm:flex">
             <div>
               <dt className="text-[11px] text-muted-foreground">日均任务</dt>
-              <dd className="mt-1 font-mono text-sm tabular-nums">
+              <dd className="mt-1 text-sm tabular-nums">
                 {formatInteger(Math.round(average))}
               </dd>
             </div>
             <div>
               <dt className="text-[11px] text-muted-foreground">单日峰值</dt>
-              <dd className="mt-1 font-mono text-sm tabular-nums">
+              <dd className="mt-1 text-sm tabular-nums">
                 {formatInteger(peak)}
               </dd>
             </div>

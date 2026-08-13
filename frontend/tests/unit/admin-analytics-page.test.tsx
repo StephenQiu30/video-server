@@ -37,6 +37,9 @@ describe('administrator download analytics', () => {
     expect(screen.getByText('下载总数').nextElementSibling).toHaveTextContent(
       '48',
     );
+    expect(screen.getByText('下载总数').nextElementSibling).not.toHaveClass(
+      'font-mono',
+    );
     expect(
       screen.getByText('成功率', { selector: 'dt' }).nextElementSibling,
     ).toHaveTextContent('75%');
@@ -73,9 +76,20 @@ describe('administrator download analytics', () => {
     expect(
       screen.getByRole('meter', { name: '抖音占全部下载的62.5%' }),
     ).toHaveAttribute('value', '62.5');
-    expect(
-      screen.getByRole('table', { name: '各视频源下载表现' }),
-    ).toBeInTheDocument();
+    const sourceTable = screen.getByRole('table', {
+      name: '各视频源下载表现',
+    });
+    const taskHeader = within(sourceTable).getByRole('columnheader', {
+      name: '任务',
+    });
+    expect(taskHeader).toHaveClass('text-right', 'tabular-nums');
+    const douyinRow = within(sourceTable).getByRole('row', {
+      name: /抖音 douyin/,
+    });
+    expect(within(douyinRow).getAllByRole('cell')[0]).toHaveClass(
+      'text-right',
+      'tabular-nums',
+    );
     expect(
       screen.getByRole('rowheader', { name: /抖音 douyin/ }),
     ).toBeInTheDocument();

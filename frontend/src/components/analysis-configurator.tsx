@@ -137,7 +137,7 @@ export default function AnalysisConfigurator({
           <span>
             可修改或清空分析重点；工具权限、安全边界与结果结构不可修改。
           </span>
-          <span aria-live="polite" className="shrink-0 font-mono">
+          <span aria-live="polite" className="shrink-0 tabular-nums">
             {prompt.length}/{MAX_PROMPT_LENGTH}
           </span>
         </div>

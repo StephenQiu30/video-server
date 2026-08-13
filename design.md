@@ -352,3 +352,25 @@ Use landmarks, one descriptive `h1`, ordered headings, a skip link, native contr
 Do not conceal page overflow. Give grid and flex children `min-width: 0`; reflow before shrinking. Preserve readable type and control sizes. Short comparisons may stack; long ledgers may scroll locally when reordering and simplification cannot preserve lookup. The page must remain usable in light and dark and across desktop and narrow screens without a visible theme switcher.
 
 The target is Vercel judgment, not Vercel decoration.
+
+## 帧取产品界面适配（仓库强制）
+
+本节把上面的 Vercel 设计判断适配到“帧取”产品界面，是本仓库 UI 审查的直接基准。报告站专用的 Vercel wordmark、triangle footer、`vbg-*` 类名和“页面内不显示主题切换”不适用于本产品；继续使用项目已有品牌、语义 token、shadcn/ui `radix-nova`、Radix UI 与主题能力，不引入平行视觉层。其余关于层级、排版、数据表达、克制和响应式质量的判断均适用。
+
+### 排版与数字
+
+- 正文、标题、标签、控件、表头、日期、KPI、数量、百分比、时长和文件大小使用 Geist Sans。只为代码、命令、路径、原始 token、精确时间戳和 `provider_key`、`source_key` 等短操作标识使用 Geist Mono；不要因为内容是数字就自动使用等宽字体。
+- 可比较数字使用 `tabular-nums`。桌面表格的数值列必须让表头和单元格共同右对齐，精度和单位保持一致；文本列与状态分布保持左对齐。移动端改为 Item 摘要，不复制桌面表格的横向布局。
+- 页面主标题上方只允许首页真实流程步骤使用编号 `.eyebrow`。错误、空状态和普通内页直接用清楚的标题与说明，不增加重复状态眉题或装饰标签。
+
+### 元数据、状态与图标
+
+- `Badge` 只表示状态、身份、选择或确有交互语义的短标签。平台能力、镜头属性、资产类型、评分、尝试次数等普通元数据使用正文/辅助文字和 `·` 分隔；同一区域不得让普通元数据与状态 Badge 争夺视觉层级。
+- 胶囊形状只用于状态、选择或交互。不得为普通分类、说明或计数批量生成全圆角胶囊；需要分组时优先使用对齐、间距和发丝 Separator。
+- 空状态默认由一个直接标题、一句原因和至多一个恢复动作组成。图标只有在提供标题之外的独立语义时才出现，并直接使用 Phosphor 图标；不得放入无交互、无额外含义的圆角方形 tile。错误图标仍可在 Alert 等语义组件中使用。
+
+### 产品壳与验证
+
+- 页面保持连续画布和共享 `.content-shell`，不用可见 PageShell/Card 包裹标题、筛选、列表或指标。Header、main 与 footer 共用隐形网格；常规内页使用 `.inner-page`，首页 Hero 保留独立但受控的顶部节奏。
+- 产品级明暗主题切换保留，因为它是用户偏好，不套用报告站“无可见主题开关”的限制。主题按钮、账户菜单和移动 Sheet 必须保持至少 44px 触控目标、可访问名称、焦点恢复和稳定几何。
+- 视觉变更必须用真实浏览器覆盖首屏与整页、浅色与深色、1280px 以上桌面和 390×844 移动端，并打开相关 Dialog、Select、Dropdown Menu、Sheet 等 portaled 状态。记录横向溢出、滚动锁位移、异步刷新 CLS 与控制台错误；未解决的 P0/P1/P2 设计偏差不得标记通过。

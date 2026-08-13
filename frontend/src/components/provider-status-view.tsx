@@ -103,13 +103,13 @@ function ProviderRow({ provider }: { provider: ProviderStatus }) {
             {provider.key}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div>
           {provider.capabilities.length > 0 ? (
-            provider.capabilities.map((capability) => (
-              <Badge key={capability} variant="neutral">
-                {CAPABILITY_LABELS[capability]}
-              </Badge>
-            ))
+            <p className="text-sm leading-6 text-muted-foreground">
+              {provider.capabilities
+                .map((capability) => CAPABILITY_LABELS[capability])
+                .join(' · ')}
+            </p>
           ) : (
             <span className="text-sm text-muted-foreground">
               暂无已登记能力

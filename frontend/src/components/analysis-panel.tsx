@@ -164,7 +164,7 @@ function AnalysisJobState({
     <div className="mt-10 w-full">
       <div className="flex justify-between gap-4 text-sm font-medium">
         <span>{statusLabels[job.status]}</span>
-        <span className="font-mono">{job.progress}%</span>
+        <span className="tabular-nums">{job.progress}%</span>
       </div>
       <Progress
         aria-label={`分析进度 ${job.progress}%`}

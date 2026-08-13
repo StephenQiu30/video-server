@@ -41,7 +41,7 @@ export function SourceBreakdown({
                       </p>
                     ) : null}
                   </div>
-                  <p className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                  <p className="shrink-0 text-xs tabular-nums text-muted-foreground">
                     {formatInteger(source.total)} · {formatPercent(share)}
                   </p>
                 </div>
