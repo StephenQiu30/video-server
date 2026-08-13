@@ -7,6 +7,7 @@ from uuid import UUID
 from app.application.downloads import (
     ArtifactSnapshot,
     DownloadCreate,
+    DownloadPresentationSnapshot,
     EncryptedUrl,
     FormatSnapshot,
     InspectionCreate,
@@ -17,6 +18,8 @@ from app.application.downloads import (
     PersistenceIdempotencyConflict,
     RetrySourceSnapshot,
     RunnerInspection,
+    ThumbnailObject,
+    ThumbnailSource,
 )
 
 
@@ -78,6 +81,7 @@ class FakeRepository:
         self._download_fingerprints: dict[UUID, str] = {}
         self.outbox_events = 0
         self.retry_sources: dict[UUID, EncryptedUrl] = {}
+        self.thumbnails: dict[UUID, ThumbnailObject] = {}
 
     async def save_inspection(self, command: InspectionCreate) -> InspectionSaveResult:
         self.inspection_commands.append(command)
@@ -108,6 +112,7 @@ class FakeRepository:
             title=command.title,
             duration_seconds=command.duration_seconds,
             metadata=command.metadata,
+            thumbnail_available=False,
             expires_at=command.expires_at,
             formats=formats,
         )
@@ -141,6 +146,56 @@ class FakeRepository:
 
     async def get_job(self, job_id: UUID) -> JobSnapshot | None:
         return self.jobs.get(job_id)
+
+    async def get_download_presentation(
+        self, job_id: UUID, owner_hash: str
+    ) -> DownloadPresentationSnapshot | None:
+        job = self.jobs.get(job_id)
+        if job is None or job.owner_hash != owner_hash:
+            return None
+        inspection = self.inspections.get(job.inspection_id)
+        if inspection is None:
+            return None
+        legacy_thumbnail = inspection.metadata.get("thumbnail_url")
+        return DownloadPresentationSnapshot(
+            title=inspection.title,
+            extractor_key=inspection.extractor_key,
+            duration_seconds=inspection.duration_seconds,
+            thumbnail_available=(
+                job.inspection_id in self.thumbnails
+                or isinstance(legacy_thumbnail, str)
+            ),
+        )
+
+    async def get_thumbnail_source(
+        self, inspection_id: UUID, owner_hash: str
+    ) -> ThumbnailSource | None:
+        inspection = self.inspections.get(inspection_id)
+        if inspection is None or inspection.owner_hash != owner_hash:
+            return None
+        legacy = inspection.metadata.get("thumbnail_url")
+        return ThumbnailSource(
+            inspection_id=inspection_id,
+            owner_hash=owner_hash,
+            object=self.thumbnails.get(inspection_id),
+            legacy_data_url=legacy if isinstance(legacy, str) else None,
+        )
+
+    async def save_thumbnail(
+        self,
+        inspection_id: UUID,
+        owner_hash: str,
+        thumbnail: ThumbnailObject,
+    ) -> None:
+        inspection = self.inspections.get(inspection_id)
+        if inspection is None or inspection.owner_hash != owner_hash:
+            return
+        self.thumbnails[inspection_id] = thumbnail
+        metadata = dict(inspection.metadata)
+        metadata.pop("thumbnail_url", None)
+        self.inspections[inspection_id] = replace(
+            inspection, metadata=metadata, thumbnail_available=True
+        )
 
     async def get_retry_source(
         self, job_id: UUID, owner_hash: str

@@ -43,6 +43,19 @@ def test_download_openapi_exposes_required_routes_and_idempotency(
     assert create_response["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/DownloadResponse"
     }
+    download_fields = schema["components"]["schemas"]["DownloadResponse"]["properties"]
+    presentation_fields = {
+        "title",
+        "thumbnail_url",
+        "duration_seconds",
+        "extractor_key",
+        "format",
+    }
+    assert presentation_fields <= download_fields.keys()
+    assert all(
+        sensitive not in download_fields
+        for sensitive in ("object_key", "provider_hints", "url")
+    )
 
 
 def test_admin_download_analytics_openapi_is_bounded_and_safe(

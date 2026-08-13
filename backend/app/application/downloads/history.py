@@ -12,7 +12,7 @@ from app.application.downloads.history_models import (
     DownloadHistoryView,
 )
 from app.application.downloads.ports import DownloadRepository
-from app.application.downloads.thumbnail import safe_thumbnail_data_url
+from app.application.downloads.thumbnail import thumbnail_resource_url
 from app.application.downloads.validation import validate_now, validate_owner_hash
 from app.domain.downloads import DownloadErrorCode, DownloadStatus
 
@@ -72,7 +72,11 @@ def _item_view(item: DownloadHistoryItemSnapshot) -> DownloadHistoryItemView:
     return DownloadHistoryItemView(
         id=item.id,
         title=item.title or "未命名视频",
-        thumbnail_url=safe_thumbnail_data_url(item.thumbnail_url),
+        thumbnail_url=(
+            thumbnail_resource_url(item.inspection_id)
+            if item.thumbnail_available
+            else None
+        ),
         format_name=item.format_name,
         status=DownloadStatus(item.status),
         progress=item.progress,

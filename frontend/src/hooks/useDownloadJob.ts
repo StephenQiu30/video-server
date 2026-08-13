@@ -1,26 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { ApiError } from '@/lib/request-error';
 import { type TaskSocketStatus, taskSocket } from '@/lib/task-socket';
 import {
   cancelDownload,
   createIdempotencyKey,
   displayError,
   getDownload,
-  getInspection,
   issueDownloadUrl,
   retryDownload,
   triggerBrowserDownload,
 } from '@/services/download';
-import type { DownloadJob, Inspection } from '@/types/video';
+import type { DownloadJob } from '@/types/video';
 import { terminalDownloadStatuses } from '@/types/video';
 
 type Action = 'cancel' | 'download' | 'retry' | null;
 
 export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   const [job, setJob] = useState<DownloadJob | null>(null);
-  const [inspection, setInspection] = useState<Inspection | null>(null);
-  const [inspectionError, setInspectionError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [action, setAction] = useState<Action>(null);
@@ -46,15 +42,6 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
         }
         setJob(current);
         setLoading(false);
-        try {
-          const metadata = await getInspection(current.inspection_id);
-          if (!disposed) {
-            setInspection(metadata);
-            setInspectionError(null);
-          }
-        } catch (reason) {
-          if (!disposed) setInspectionError(inspectionFailureMessage(reason));
-        }
       } catch (reason) {
         if (!disposed) {
           setError(displayError(reason));
@@ -134,7 +121,8 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     setAction('cancel');
     setError(null);
     try {
-      setJob(await cancelDownload(jobId));
+      const cancelled = await cancelDownload(jobId);
+      setJob((current) => mergePresentation(current, cancelled));
     } catch (reason) {
       setError(displayError(reason));
     } finally {
@@ -160,8 +148,6 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     cancel,
     download,
     error,
-    inspection,
-    inspectionError,
     job,
     loading,
     refresh,
@@ -170,12 +156,17 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   };
 }
 
-function inspectionFailureMessage(reason: unknown): string {
-  if (
-    reason instanceof ApiError &&
-    ['not_found', 'resource_expired'].includes(reason.code)
-  ) {
-    return '原始媒体信息已过期，下载任务和已生成文件仍可继续使用。';
-  }
-  return displayError(reason);
+function mergePresentation(
+  current: DownloadJob | null,
+  next: DownloadJob,
+): DownloadJob {
+  if (!current) return next;
+  return {
+    ...next,
+    title: next.title ?? current.title,
+    extractor_key: next.extractor_key ?? current.extractor_key,
+    duration_seconds: next.duration_seconds ?? current.duration_seconds,
+    thumbnail_url: next.thumbnail_url ?? current.thumbnail_url,
+    format: next.format ?? current.format,
+  };
 }

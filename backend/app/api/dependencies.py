@@ -25,6 +25,7 @@ from app.application.downloads import (
     GetDownloadAnalytics,
     GetDownloadHistory,
     GetInspection,
+    GetThumbnail,
     InspectMedia,
     IssueDownloadUrl,
     RetryDownload,
@@ -55,6 +56,7 @@ def get_runtime_settings(request: Request) -> Settings:
 class DownloadUseCases:
     inspect_media: InspectMedia
     get_inspection: GetInspection
+    get_thumbnail: GetThumbnail
     create_download: CreateDownload
     get_download: GetDownload
     get_download_history: GetDownloadHistory

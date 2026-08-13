@@ -30,3 +30,17 @@ export async function getInspection(
     ...(options || {}),
   });
 }
+
+/** 读取持久化媒体封面 读取当前用户拥有且存储在私有对象存储中的媒体封面。 GET /api/inspections/${param0}/thumbnail */
+export async function getInspectionThumbnail(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getInspectionThumbnailParams,
+  options?: RequestOptions
+) {
+  const { inspection_id: param0, ...queryParams } = params;
+  return request<{ id?: number }>(`/api/inspections/${param0}/thumbnail`, {
+    method: "GET",
+    params: { ...queryParams },
+    ...(options || {}),
+  });
+}

@@ -30,12 +30,12 @@ import type {
   DownloadJob,
   DownloadStage,
   DownloadStatus,
-  MediaFormat,
+  SemanticPlan,
 } from '@/types/video';
 
 type Props = {
   action: 'cancel' | 'download' | 'retry' | null;
-  format?: MediaFormat;
+  format?: SemanticPlan;
   job: DownloadJob;
   onCancel: () => void;
   onDownload: () => void;
@@ -76,54 +76,56 @@ export default function DownloadState({
   return (
     <section aria-labelledby="download-status-title" className="self-start">
       <p className="text-sm font-medium">任务状态</p>
-      <div className="mt-5 flex items-start justify-between gap-5">
-        <div>
-          <h2
-            className="text-[32px] font-medium leading-none tracking-[-0.045em] sm:text-[38px]"
-            id="download-status-title"
-          >
-            {statusLabels[job.status]}
-          </h2>
-        </div>
-        <span className="text-sm text-muted-foreground tabular-nums">
-          第 {job.attempt} 次尝试
-        </span>
-      </div>
+      <h2
+        className="mt-5 text-[32px] font-medium leading-none tracking-[-0.045em] sm:text-[38px]"
+        id="download-status-title"
+      >
+        {statusLabels[job.status]}
+      </h2>
 
-      <Separator className="mt-9" />
-      <dl className="grid grid-cols-2 gap-x-5 gap-y-6 py-6 text-sm sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+      <Separator className="mt-8" />
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-6 py-6 text-sm">
         <Meta
           label="格式"
-          value={format?.plan.container_preference.toUpperCase() ?? '—'}
+          value={format?.container_preference.toUpperCase() ?? '—'}
         />
-        <Meta label="清晰度" value={format ? `${format.plan.height}P` : '—'} />
-        <Meta label="阶段" value={displayStage(job)} />
+        <Meta
+          label="分辨率"
+          value={format ? `${format.width}×${format.height}` : '—'}
+        />
         {complete ? (
           <Meta
-            label="文件状态"
+            label="文件保留"
             value={
               job.file_available
                 ? formatFileExpiry(job.file_expires_at)
                 : '已过期'
             }
           />
-        ) : null}
+        ) : (
+          <Meta label="当前阶段" value={displayStage(job)} />
+        )}
+        <Meta label="执行尝试" value={`第 ${job.attempt} 次`} />
       </dl>
       <Separator />
 
-      <div className="mt-8 flex items-end justify-between gap-5">
-        <span className="text-[42px] font-medium leading-none tracking-[-0.06em] tabular-nums">
-          {job.progress}%
-        </span>
-        <span className="text-sm text-muted-foreground">
-          {statusLabels[job.status]}
-        </span>
-      </div>
-      <Progress
-        aria-label={`下载进度 ${job.progress}%`}
-        className="mt-3"
-        value={job.progress}
-      />
+      {!complete ? (
+        <>
+          <div className="mt-8 flex items-end justify-between gap-5">
+            <span className="text-[42px] font-medium leading-none tracking-[-0.06em] tabular-nums">
+              {job.progress}%
+            </span>
+            <span className="text-sm text-muted-foreground">
+              {displayStage(job)}
+            </span>
+          </div>
+          <Progress
+            aria-label={`下载进度 ${job.progress}%`}
+            className="mt-3"
+            value={job.progress}
+          />
+        </>
+      ) : null}
 
       {job.status === 'failed' ? (
         <Alert className="mt-6" variant="destructive">
@@ -144,7 +146,7 @@ export default function DownloadState({
         </Alert>
       ) : null}
 
-      <div className="mt-8 grid gap-3">
+      <div className={complete ? 'mt-7 grid gap-3' : 'mt-8 grid gap-3'}>
         {complete && job.file_available ? (
           <Button
             className="w-full"

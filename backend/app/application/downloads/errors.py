@@ -27,6 +27,7 @@ class ApplicationErrorCode(StrEnum):
     PROVIDER_MEDIA_UNSUPPORTED = "provider_media_unsupported"
     PROVIDER_UNSUPPORTED = "provider_unsupported"
     RESOURCE_EXPIRED = "resource_expired"
+    STORAGE_UNAVAILABLE = "storage_unavailable"
 
 
 class ApplicationError(RuntimeError):

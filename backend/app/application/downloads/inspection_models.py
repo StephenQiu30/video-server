@@ -91,6 +91,7 @@ class InspectionSnapshot:
     metadata: dict[str, object]
     expires_at: datetime
     formats: tuple[FormatSnapshot, ...]
+    thumbnail_available: bool = False
 
 
 @dataclass(frozen=True, slots=True)

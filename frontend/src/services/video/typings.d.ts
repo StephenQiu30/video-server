@@ -352,6 +352,15 @@ declare namespace API {
     file_available: boolean;
     /** File Expires At */
     file_expires_at: string | null;
+    /** Title */
+    title: string | null;
+    /** Extractor Key */
+    extractor_key: string | null;
+    /** Duration Seconds */
+    duration_seconds: number | null;
+    /** Thumbnail Url */
+    thumbnail_url: string | null;
+    format: SemanticPlanResponse | null;
   };
 
   type DownloadStage =
@@ -430,6 +439,10 @@ declare namespace API {
   };
 
   type getInspectionParams = {
+    inspection_id: string;
+  };
+
+  type getInspectionThumbnailParams = {
     inspection_id: string;
   };
 

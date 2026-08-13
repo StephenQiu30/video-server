@@ -53,6 +53,18 @@ async def test_download_store_maps_the_complete_application_lifecycle() -> None:
         )
     )
     loaded = await store.get_inspection(inspection_id, owner, NOW)
+    await store.save_thumbnail(
+        inspection_id,
+        owner,
+        application.ThumbnailObject(
+            bucket="video-artifacts",
+            object_key=f"thumbnails/{inspection_id}/cover.avif",
+            content_type="image/avif",
+            sha256="c" * 64,
+            size_bytes=5,
+        ),
+    )
+    thumbnail = await store.get_thumbnail_source(inspection_id, owner)
     job_id = uuid4()
     created = await store.create_job(
         application.DownloadCreate(
@@ -69,8 +81,14 @@ async def test_download_store_maps_the_complete_application_lifecycle() -> None:
 
     assert saved.created is True
     assert loaded.formats[0].display_name == "720p MP4"
+    assert thumbnail.object is not None
+    assert thumbnail.object.object_key.endswith("/cover.avif")
+    assert thumbnail.legacy_data_url is None
     assert created.job.id == job_id
     assert (await store.get_job(job_id)).status == "queued"
+    presentation = await store.get_download_presentation(job_id, owner)
+    assert presentation.title == "Controlled sample"
+    assert presentation.thumbnail_available is True
     history = await store.list_download_history(
         owner,
         page=1,
@@ -81,7 +99,7 @@ async def test_download_store_maps_the_complete_application_lifecycle() -> None:
     )
     assert history.total == 1
     assert history.items[0].title == "Controlled sample"
-    assert history.items[0].thumbnail_url == "data:image/avif;base64,Y292ZXI="
+    assert history.items[0].thumbnail_available is True
     assert history.summary.active == 1
     other_owner = await store.list_download_history(
         "b" * 64,

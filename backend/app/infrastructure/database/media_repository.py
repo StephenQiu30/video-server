@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .contracts import InspectionCreate, InspectionCreateResult, InspectionSnapshot
 from .errors import IdempotencyConflict, RepositoryNotFound
 from .mapping import inspection_snapshot
-from .models import MediaFormatRow, MediaInspectionRow
+from .models import MediaFormatRow, MediaInspectionRow, MediaThumbnailRow
 from .repository_base import RepositoryBase
 
 
@@ -119,4 +119,7 @@ class MediaRepository(RepositoryBase):
         formats = tuple(
             (await session.scalars(statement.order_by(MediaFormatRow.id))).all()
         )
-        return inspection_snapshot(row, formats)
+        thumbnail_available = (await session.get(MediaThumbnailRow, row.id)) is not None
+        return inspection_snapshot(
+            row, formats, thumbnail_available=thumbnail_available
+        )

@@ -56,6 +56,10 @@ class MinioObjectStorage:
                 region=settings.minio_region,
             )
 
+    @property
+    def bucket(self) -> str:
+        return self._bucket
+
     async def ensure_bucket(self) -> None:
         exists = await asyncio.to_thread(self._private.bucket_exists, self._bucket)
         if not exists:

@@ -8,13 +8,16 @@ from uuid import UUID
 from sqlalchemy import func, select
 
 from .analytics_repository import AnalyticsRepository
-from .base import as_utc
+from .base import as_utc, utc_now
 from .contracts import (
     ArtifactSnapshot,
     DownloadHistoryPageSnapshot,
+    DownloadPresentationSnapshot,
     JobSnapshot,
     JobSourceSnapshot,
     RetrySourceSnapshot,
+    ThumbnailSnapshot,
+    ThumbnailSourceSnapshot,
 )
 from .errors import LeaseConflict, RepositoryConflict, RepositoryNotFound
 from .mapping import (
@@ -28,10 +31,117 @@ from .models import (
     DownloadJobRow,
     MediaFormatRow,
     MediaInspectionRow,
+    MediaThumbnailRow,
 )
 
 
 class AccessRepository(AnalyticsRepository):
+    async def get_download_presentation(
+        self, job_id: UUID, owner_hash: str
+    ) -> DownloadPresentationSnapshot:
+        async with self._sessions() as session:
+            result = (
+                await session.execute(
+                    select(MediaInspectionRow, MediaThumbnailRow)
+                    .join(
+                        DownloadJobRow,
+                        DownloadJobRow.inspection_id == MediaInspectionRow.id,
+                    )
+                    .outerjoin(
+                        MediaThumbnailRow,
+                        MediaThumbnailRow.inspection_id == MediaInspectionRow.id,
+                    )
+                    .where(
+                        DownloadJobRow.id == job_id,
+                        DownloadJobRow.owner_hash == owner_hash,
+                        MediaInspectionRow.owner_hash == owner_hash,
+                    )
+                )
+            ).one_or_none()
+            if result is None:
+                raise RepositoryNotFound("download presentation does not exist")
+            row, stored_thumbnail = result
+            metadata = dict(row.metadata_json)
+            legacy_thumbnail = metadata.get("thumbnail_url")
+            return DownloadPresentationSnapshot(
+                title=row.title,
+                extractor_key=row.extractor_key,
+                duration_seconds=row.duration_seconds,
+                thumbnail_available=(
+                    stored_thumbnail is not None or isinstance(legacy_thumbnail, str)
+                ),
+            )
+
+    async def get_thumbnail_source(
+        self, inspection_id: UUID, owner_hash: str
+    ) -> ThumbnailSourceSnapshot:
+        async with self._sessions() as session:
+            result = (
+                await session.execute(
+                    select(MediaInspectionRow, MediaThumbnailRow)
+                    .outerjoin(
+                        MediaThumbnailRow,
+                        MediaThumbnailRow.inspection_id == MediaInspectionRow.id,
+                    )
+                    .where(
+                        MediaInspectionRow.id == inspection_id,
+                        MediaInspectionRow.owner_hash == owner_hash,
+                    )
+                )
+            ).one_or_none()
+            if result is None:
+                raise RepositoryNotFound("media thumbnail does not exist")
+            inspection, thumbnail = result
+            legacy = inspection.metadata_json.get("thumbnail_url")
+            return ThumbnailSourceSnapshot(
+                inspection_id=inspection.id,
+                owner_hash=inspection.owner_hash,
+                object=(
+                    None
+                    if thumbnail is None
+                    else ThumbnailSnapshot(
+                        bucket=thumbnail.bucket,
+                        object_key=thumbnail.object_key,
+                        content_type=thumbnail.content_type,
+                        sha256=thumbnail.sha256,
+                        size_bytes=thumbnail.size_bytes,
+                    )
+                ),
+                legacy_data_url=legacy if isinstance(legacy, str) else None,
+            )
+
+    async def save_thumbnail(
+        self,
+        inspection_id: UUID,
+        owner_hash: str,
+        thumbnail: ThumbnailSnapshot,
+    ) -> None:
+        async with self._sessions() as session, session.begin():
+            inspection = await session.scalar(
+                select(MediaInspectionRow)
+                .where(
+                    MediaInspectionRow.id == inspection_id,
+                    MediaInspectionRow.owner_hash == owner_hash,
+                )
+                .with_for_update()
+            )
+            if inspection is None:
+                raise RepositoryNotFound("media inspection does not exist")
+            row = await session.get(MediaThumbnailRow, inspection_id)
+            if row is None:
+                row = MediaThumbnailRow(inspection_id=inspection_id)
+                session.add(row)
+            row.bucket = thumbnail.bucket
+            row.object_key = thumbnail.object_key
+            row.content_type = thumbnail.content_type
+            row.sha256 = thumbnail.sha256
+            row.size_bytes = thumbnail.size_bytes
+            row.updated_at = utc_now()
+            metadata = dict(inspection.metadata_json)
+            metadata.pop("thumbnail_url", None)
+            inspection.metadata_json = metadata
+            await session.flush()
+
     async def get_retry_source(
         self, job_id: UUID, owner_hash: str
     ) -> RetrySourceSnapshot:
@@ -89,6 +199,7 @@ class AccessRepository(AnalyticsRepository):
                         MediaInspectionRow,
                         MediaFormatRow,
                         ArtifactRow,
+                        MediaThumbnailRow,
                     )
                     .join(
                         MediaInspectionRow,
@@ -96,6 +207,10 @@ class AccessRepository(AnalyticsRepository):
                     )
                     .join(MediaFormatRow, MediaFormatRow.id == DownloadJobRow.format_id)
                     .outerjoin(ArtifactRow, ArtifactRow.job_id == DownloadJobRow.id)
+                    .outerjoin(
+                        MediaThumbnailRow,
+                        MediaThumbnailRow.inspection_id == MediaInspectionRow.id,
+                    )
                     .where(*filters)
                     .order_by(
                         DownloadJobRow.created_at.desc(), DownloadJobRow.id.desc()
@@ -131,9 +246,9 @@ class AccessRepository(AnalyticsRepository):
             }
         items = tuple(
             download_history_item_snapshot(
-                job, inspection, selected_format, artifact, now
+                job, inspection, selected_format, artifact, thumbnail, now
             )
-            for job, inspection, selected_format, artifact in rows
+            for job, inspection, selected_format, artifact, thumbnail in rows
         )
         return download_history_page_snapshot(
             items, page=page, page_size=page_size, total=total, counts=counts

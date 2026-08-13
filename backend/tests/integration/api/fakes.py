@@ -17,6 +17,7 @@ from app.application.downloads import (
     DownloadView,
     FormatView,
     InspectionView,
+    ThumbnailContent,
 )
 from app.domain.downloads import (
     AudioCodecFamily,
@@ -97,7 +98,7 @@ def history_view() -> DownloadHistoryView:
             DownloadHistoryItemView(
                 id=JOB_ID,
                 title="Owned video",
-                thumbnail_url="data:image/jpeg;base64,Y292ZXI=",
+                thumbnail_url=f"/api/inspections/{INSPECTION_ID}/thumbnail",
                 format_name="1080p MP4",
                 status=DownloadStatus.SUCCEEDED,
                 progress=100,
@@ -165,6 +166,9 @@ def use_cases() -> tuple[DownloadUseCases, dict[str, StubUseCase]]:
     stubs = {
         "inspect": StubUseCase(inspection_view()),
         "get_inspection": StubUseCase(inspection_view()),
+        "get_thumbnail": StubUseCase(
+            ThumbnailContent(b"image", "image/jpeg", "a" * 64)
+        ),
         "create": StubUseCase(download_view()),
         "get": StubUseCase(download_view()),
         "cancel": StubUseCase(download_view(DownloadStatus.CANCELLED)),
@@ -181,6 +185,7 @@ def use_cases() -> tuple[DownloadUseCases, dict[str, StubUseCase]]:
     container = DownloadUseCases(
         inspect_media=stubs["inspect"],
         get_inspection=stubs["get_inspection"],
+        get_thumbnail=stubs["get_thumbnail"],
         create_download=stubs["create"],
         get_download=stubs["get"],
         cancel_download=stubs["cancel"],

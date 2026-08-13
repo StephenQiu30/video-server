@@ -9,7 +9,7 @@ import { markNavigationPush } from '@/components/navigation-history';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDownloadJob } from '@/hooks/useDownloadJob';
-import type { MediaFormat } from '@/types/video';
+import type { SemanticPlan } from '@/types/video';
 import { formatDuration } from '@/utils/format';
 
 export default function DownloadJobView({
@@ -21,9 +21,11 @@ export default function DownloadJobView({
 }) {
   const router = useRouter();
   const state = useDownloadJob(jobId, pollIntervalMs);
-  const format = state.inspection?.formats.find(
-    (item) => item.id === state.job?.format_id,
-  );
+  const format = state.job?.format ?? undefined;
+  const title = state.job?.title ?? '视频下载任务';
+  const thumbnail = state.job?.thumbnail_url ?? null;
+  const extractor = state.job?.extractor_key ?? null;
+  const duration = state.job?.duration_seconds ?? undefined;
 
   async function retry() {
     const retried = await state.retry();
@@ -46,22 +48,20 @@ export default function DownloadJobView({
       ) : null}
       {state.job ? (
         <>
-          <section className="mt-9 grid gap-10 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)] lg:gap-0">
+          <section className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.85fr)] lg:gap-0">
             <div className="min-w-0 lg:pr-12">
               <MediaCover
-                alt={`${state.inspection?.title ?? '视频'}封面`}
+                alt={`${title}封面`}
                 className="rounded-none ring-0"
                 priority
-                src={state.inspection?.thumbnail_url}
+                src={thumbnail}
               />
-              <h1 className="mt-6 max-w-4xl text-[28px] font-medium leading-[1.12] tracking-[-0.035em] sm:text-[36px]">
-                {state.inspection?.title ?? '视频下载任务'}
+              <h1 className="mt-5 max-w-4xl text-[28px] font-medium leading-[1.12] tracking-[-0.035em] sm:text-[34px]">
+                {title}
               </h1>
               <p className="mt-3 text-sm text-muted-foreground">
-                {state.inspection?.extractor_key
-                  ? `${state.inspection.extractor_key} · `
-                  : ''}
-                {formatLabel(format, state.inspection?.duration_seconds)}
+                {extractor ? `${extractor} · ` : ''}
+                {formatLabel(format, duration)}
               </p>
             </div>
             <div className="min-w-0 lg:border-l lg:pl-12">
@@ -89,9 +89,6 @@ export default function DownloadJobView({
               ) : null}
             </div>
           </section>
-          {state.inspectionError ? (
-            <p className="mt-6 text-sm text-warning">{state.inspectionError}</p>
-          ) : null}
           {state.job.status === 'succeeded' ? (
             <AnalysisPanel downloadId={state.job.id} />
           ) : (
@@ -109,7 +106,7 @@ function DownloadJobSkeleton() {
   return (
     <main className="content-shell inner-page">
       <BackLink fallbackHref="/history" />
-      <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)] lg:gap-0">
+      <div className="mt-9 grid gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.85fr)] lg:gap-0">
         <div className="lg:pr-12">
           <Skeleton className="aspect-video rounded-none" />
           <Skeleton className="mt-6 h-9 w-3/4" />
@@ -123,7 +120,7 @@ function DownloadJobSkeleton() {
   );
 }
 
-function formatLabel(format?: MediaFormat, duration?: number) {
+function formatLabel(format?: SemanticPlan, duration?: number) {
   if (!format) return duration ? formatDuration(duration) : '正在读取媒体信息';
-  return `${format.plan.width}×${format.plan.height} · ${format.plan.video_codec_family.toUpperCase()} + ${format.plan.audio_codec_family.toUpperCase()}${duration ? ` · ${formatDuration(duration)}` : ''}`;
+  return `${format.width}×${format.height} · ${format.video_codec_family.toUpperCase()} + ${format.audio_codec_family.toUpperCase()}${duration ? ` · ${formatDuration(duration)}` : ''}`;
 }

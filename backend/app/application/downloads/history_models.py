@@ -10,8 +10,9 @@ from app.domain.downloads import DownloadErrorCode, DownloadStatus
 @dataclass(frozen=True, slots=True)
 class DownloadHistoryItemSnapshot:
     id: UUID
+    inspection_id: UUID
     title: str
-    thumbnail_url: str | None
+    thumbnail_available: bool
     format_name: str
     status: str
     progress: int

@@ -46,5 +46,10 @@ export function job(status: DownloadJob['status'] = 'queued'): DownloadJob {
     finished_at: status === 'succeeded' ? '2026-08-06T10:00:10Z' : null,
     file_available: status === 'succeeded',
     file_expires_at: status === 'succeeded' ? '2026-08-13T10:00:10Z' : null,
+    title: inspection.title,
+    extractor_key: inspection.extractor_key,
+    duration_seconds: inspection.duration_seconds,
+    thumbnail_url: inspection.thumbnail_url,
+    format: inspection.formats[0].plan,
   };
 }

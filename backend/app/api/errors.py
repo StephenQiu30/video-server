@@ -137,6 +137,11 @@ _ERRORS: dict[ApplicationErrorCode, tuple[int, str, str]] = {
         "Not found",
         "The requested resource was not found.",
     ),
+    ApplicationErrorCode.STORAGE_UNAVAILABLE: (
+        503,
+        "Storage unavailable",
+        "The media preview is temporarily unavailable.",
+    ),
 }
 
 _ANALYSIS_ERRORS: dict[AnalysisApplicationErrorCode, tuple[int, str, str]] = {

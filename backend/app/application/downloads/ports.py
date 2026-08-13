@@ -8,6 +8,7 @@ from app.application.downloads.analytics_models import DownloadAnalyticsSnapshot
 from app.application.downloads.download_models import (
     ArtifactSnapshot,
     DownloadCreate,
+    DownloadPresentationSnapshot,
     JobSaveResult,
     JobSnapshot,
 )
@@ -20,6 +21,7 @@ from app.application.downloads.inspection_models import (
     RetrySourceSnapshot,
     RunnerInspection,
 )
+from app.application.downloads.thumbnail import ThumbnailObject, ThumbnailSource
 
 
 class UrlValidator(Protocol):
@@ -54,6 +56,21 @@ class DownloadRepository(Protocol):
     ) -> JobSaveResult: ...
 
     async def get_job(self, job_id: UUID) -> JobSnapshot | None: ...
+
+    async def get_download_presentation(
+        self, job_id: UUID, owner_hash: str
+    ) -> DownloadPresentationSnapshot | None: ...
+
+    async def get_thumbnail_source(
+        self, inspection_id: UUID, owner_hash: str
+    ) -> ThumbnailSource | None: ...
+
+    async def save_thumbnail(
+        self,
+        inspection_id: UUID,
+        owner_hash: str,
+        thumbnail: ThumbnailObject,
+    ) -> None: ...
 
     async def get_retry_source(
         self, job_id: UUID, owner_hash: str
@@ -90,3 +107,9 @@ class ObjectStorage(Protocol):
     async def presigned_download(
         self, object_key: str, *, title: str | None = None, ttl_seconds: int
     ) -> str: ...
+
+
+class ThumbnailObjectStorage(Protocol):
+    async def store(self, inspection_id: UUID, data_url: str) -> ThumbnailObject: ...
+
+    async def read(self, thumbnail: ThumbnailObject) -> bytes: ...

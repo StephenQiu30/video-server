@@ -54,6 +54,7 @@ def test_swagger_ui_and_openapi_contract_are_available(tmp_path: Path) -> None:
         "deleteProviderCatalogEntry",
         "inspectMedia",
         "getInspection",
+        "getInspectionThumbnail",
         "listProviders",
         "createDownload",
         "getDownload",

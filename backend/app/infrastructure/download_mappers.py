@@ -45,6 +45,7 @@ def inspection_snapshot(value: StoredInspection) -> InspectionSnapshot:
         title=value.title,
         duration_seconds=value.duration_seconds,
         metadata=dict(value.metadata),
+        thumbnail_available=value.thumbnail_available,
         expires_at=value.expires_at,
         formats=tuple(
             FormatSnapshot(

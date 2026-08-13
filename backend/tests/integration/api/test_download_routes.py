@@ -72,6 +72,22 @@ def test_inspection_routes_use_stable_session_and_hide_hints(tmp_path: Path) -> 
     assert len(str(create_owner)) == 64
 
 
+def test_thumbnail_route_returns_private_image_with_integrity_headers(
+    tmp_path: Path,
+) -> None:
+    test_client, stubs = client(tmp_path)
+    with test_client:
+        response = test_client.get(f"/api/inspections/{INSPECTION_ID}/thumbnail")
+
+    assert response.status_code == 200
+    assert response.content == b"image"
+    assert response.headers["content-type"] == "image/jpeg"
+    assert response.headers["cache-control"] == "private, max-age=3600"
+    assert response.headers["etag"] == f'"{"a" * 64}"'
+    assert stubs["get_thumbnail"].calls[0][0][0] == INSPECTION_ID
+    assert len(str(stubs["get_thumbnail"].calls[0][0][1])) == 64
+
+
 def test_download_routes_delegate_with_session_owner(tmp_path: Path) -> None:
     test_client, stubs = client(tmp_path)
     body = {"inspection_id": str(INSPECTION_ID), "format_id": str(FORMAT_ID)}
@@ -125,7 +141,7 @@ def test_download_history_route_supports_filters_and_returns_public_fields(
     assert response.json()["items"][0] == {
         "id": str(JOB_ID),
         "title": "Owned video",
-        "thumbnail_url": "data:image/jpeg;base64,Y292ZXI=",
+        "thumbnail_url": f"/api/inspections/{INSPECTION_ID}/thumbnail",
         "format_name": "1080p MP4",
         "status": "succeeded",
         "progress": 100,

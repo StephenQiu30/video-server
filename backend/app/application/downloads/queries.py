@@ -44,6 +44,9 @@ class GetDownload:
 
     async def __call__(self, job_id: UUID, owner_hash: str) -> DownloadView:
         job = await _owned_job(self._repository, job_id, owner_hash)
+        presentation = await self._repository.get_download_presentation(
+            job_id, validate_owner_hash(owner_hash)
+        )
         artifact = None
         if job.status == DownloadStatus.SUCCEEDED.value:
             try:
@@ -52,7 +55,7 @@ class GetDownload:
                 )
             except PersistenceNotFound:
                 artifact = None
-        return download_view(job, artifact)
+        return download_view(job, artifact, presentation)
 
 
 class GetInspection:

@@ -46,7 +46,7 @@ def seed_inspection(
         provider_media_id="video-1",
         title="Owned video",
         duration_seconds=30,
-        metadata={},
+        metadata={"thumbnail_url": "data:image/avif;base64,Y292ZXI="},
         expires_at=expires_at or NOW + timedelta(minutes=15),
         formats=(
             FormatSnapshot(
@@ -305,6 +305,10 @@ async def test_download_url_requires_success_and_unexpired_artifact() -> None:
     details = await GetDownload(repository, now=lambda: NOW)(created.id, OWNER)
     assert details.file_available is True
     assert details.file_expires_at == NOW + timedelta(seconds=90)
+    assert details.title == "Owned video"
+    assert details.thumbnail_url == f"/api/inspections/{inspection_id}/thumbnail"
+    assert details.format_plan is not None
+    assert details.format_plan.height == 1080
     result = await issue(created.id, OWNER)
 
     assert result.url == "https://objects.example/download-token"

@@ -58,6 +58,7 @@ class InspectionSnapshot:
     metadata: dict[str, Any]
     expires_at: datetime
     formats: tuple[FormatSnapshot, ...]
+    thumbnail_available: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -146,8 +147,9 @@ class JobCreateResult:
 @dataclass(frozen=True, slots=True)
 class DownloadHistoryItemSnapshot:
     id: UUID
+    inspection_id: UUID
     title: str
-    thumbnail_url: str | None
+    thumbnail_available: bool
     format_name: str
     status: str
     progress: int
@@ -157,6 +159,31 @@ class DownloadHistoryItemSnapshot:
     finished_at: datetime | None
     file_available: bool = False
     file_expires_at: datetime | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class DownloadPresentationSnapshot:
+    title: str
+    extractor_key: str
+    duration_seconds: int
+    thumbnail_available: bool
+
+
+@dataclass(frozen=True, slots=True)
+class ThumbnailSnapshot:
+    bucket: str
+    object_key: str
+    content_type: str
+    sha256: str
+    size_bytes: int
+
+
+@dataclass(frozen=True, slots=True)
+class ThumbnailSourceSnapshot:
+    inspection_id: UUID
+    owner_hash: str
+    object: ThumbnailSnapshot | None
+    legacy_data_url: str | None
 
 
 @dataclass(frozen=True, slots=True)

@@ -38,6 +38,8 @@ from app.application.downloads.ports import (
     UrlCipher,
     UrlValidator,
 )
+from app.application.downloads.thumbnail import ThumbnailStorageError
+from app.application.downloads.thumbnail_use_cases import PersistThumbnail
 from app.application.downloads.validation import (
     validate_idempotency_key,
     validate_now,
@@ -59,6 +61,7 @@ class InspectMedia:
         new_id: Callable[[], UUID],
         inspection_ttl: timedelta,
         max_duration_seconds: int,
+        persist_thumbnail: PersistThumbnail | None = None,
     ) -> None:
         if inspection_ttl <= timedelta(0) or max_duration_seconds <= 0:
             raise ValueError("inspection limits must be positive")
@@ -71,6 +74,7 @@ class InspectMedia:
         self._new_id = new_id
         self._ttl = inspection_ttl
         self._max_duration = max_duration_seconds
+        self._persist_thumbnail = persist_thumbnail
 
     async def __call__(
         self, url: str, owner_hash: str, idempotency_key: str
@@ -158,6 +162,18 @@ class InspectMedia:
             saved = await self._repository.save_inspection(command)
         except PersistenceIdempotencyConflict as exc:
             raise ApplicationError(ApplicationErrorCode.IDEMPOTENCY_CONFLICT) from exc
+        if (
+            self._persist_thumbnail is not None
+            and result.thumbnail_data_url is not None
+        ):
+            try:
+                await self._persist_thumbnail(
+                    saved.inspection.id, owner_hash, result.thumbnail_data_url
+                )
+            except (ThumbnailStorageError, ValueError):
+                # The inline value remains in inspection metadata so the authenticated
+                # thumbnail endpoint can retry the idempotent object migration later.
+                pass
         return inspection_view(saved.inspection)
 
     def _formats(

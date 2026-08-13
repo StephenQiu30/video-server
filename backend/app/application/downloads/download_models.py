@@ -6,6 +6,7 @@ from uuid import UUID
 
 from app.domain.downloads import (
     DownloadErrorCode,
+    DownloadPlan,
     DownloadStage,
     DownloadStatus,
 )
@@ -97,6 +98,14 @@ class ArtifactSnapshot:
 
 
 @dataclass(frozen=True, slots=True)
+class DownloadPresentationSnapshot:
+    title: str
+    extractor_key: str
+    duration_seconds: int
+    thumbnail_available: bool
+
+
+@dataclass(frozen=True, slots=True)
 class DownloadView:
     id: UUID
     inspection_id: UUID
@@ -112,6 +121,11 @@ class DownloadView:
     file_available: bool = False
     file_expires_at: datetime | None = None
     version: int = 0
+    title: str | None = None
+    extractor_key: str | None = None
+    duration_seconds: int | None = None
+    thumbnail_url: str | None = None
+    format_plan: DownloadPlan | None = None
 
 
 @dataclass(frozen=True, slots=True)

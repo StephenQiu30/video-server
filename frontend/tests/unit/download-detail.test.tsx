@@ -27,13 +27,7 @@ describe('DownloadJobView', () => {
   });
 
   it('uses WebSocket state until the job succeeds and exposes analysis', async () => {
-    mockHttpResponses(
-      job('running'),
-      inspection,
-      job('succeeded'),
-      analysisSkills,
-      null,
-    );
+    mockHttpResponses(job('running'), job('succeeded'), analysisSkills, null);
     render(<DownloadJobView jobId={job().id} pollIntervalMs={5} />);
 
     expect((await screen.findAllByText('正在下载')).length).toBeGreaterThan(0);
@@ -46,8 +40,8 @@ describe('DownloadJobView', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('Download status')).not.toBeInTheDocument();
     expect(screen.queryByText('AI analysis')).not.toBeInTheDocument();
-    expect(screen.getByText('已完成')).toBeInTheDocument();
     expect(screen.getByText(/保留至/)).toBeInTheDocument();
+    expect(screen.queryByText('100%')).not.toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'AI 智能分析' }),
     ).toBeInTheDocument();
@@ -58,7 +52,7 @@ describe('DownloadJobView', () => {
   });
 
   it('cancels an active download', async () => {
-    mockHttpResponses(job('running'), inspection, job('cancelled'));
+    mockHttpResponses(job('running'), job('cancelled'));
     render(<DownloadJobView jobId={job().id} pollIntervalMs={60_000} />);
 
     const trigger = await screen.findByRole('button', { name: '取消任务' });
@@ -70,14 +64,14 @@ describe('DownloadJobView', () => {
     expect(dialog).toHaveTextContent(
       '确认后将停止当前下载。取消后可在当前页面重新下载。',
     );
-    expect(httpRequests()).toHaveLength(2);
+    expect(httpRequests()).toHaveLength(1);
 
     const keepDownloading = screen.getByRole('button', { name: '继续下载' });
     await waitFor(() => expect(keepDownloading).toHaveFocus());
     fireEvent.click(keepDownloading);
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     await waitFor(() => expect(trigger).toHaveFocus());
-    expect(httpRequests()).toHaveLength(2);
+    expect(httpRequests()).toHaveLength(1);
 
     fireEvent.click(trigger);
     fireEvent.click(
@@ -86,7 +80,7 @@ describe('DownloadJobView', () => {
     expect((await screen.findAllByText('任务已取消')).length).toBeGreaterThan(
       0,
     );
-    expect(httpRequests()[2]?.url).toBe(`/api/downloads/${job().id}/cancel`);
+    expect(httpRequests()[1]?.url).toBe(`/api/downloads/${job().id}/cancel`);
   });
 
   it.each(['failed', 'cancelled'] as const)(
@@ -96,7 +90,7 @@ describe('DownloadJobView', () => {
         ...job('queued'),
         id: '44444444-4444-4444-8444-444444444444',
       };
-      mockHttpResponses(job(status), inspection, retried);
+      mockHttpResponses(job(status), retried);
       render(<DownloadJobView jobId={job().id} pollIntervalMs={60_000} />);
 
       fireEvent.click(await screen.findByRole('button', { name: '重新下载' }));
@@ -106,7 +100,7 @@ describe('DownloadJobView', () => {
           `/downloads/detail?jobId=${retried.id}`,
         ),
       );
-      expect(httpRequests()[2]).toMatchObject({
+      expect(httpRequests()[1]).toMatchObject({
         method: 'POST',
         url: `/api/downloads/${job().id}/retry`,
         headers: { 'Idempotency-Key': expect.any(String) },
@@ -115,7 +109,7 @@ describe('DownloadJobView', () => {
   );
 
   it('shows a Chinese message for a failed download', async () => {
-    mockHttpResponses(job('failed'), inspection);
+    mockHttpResponses(job('failed'));
     render(<DownloadJobView jobId={job().id} pollIntervalMs={60_000} />);
 
     expect(
@@ -125,7 +119,7 @@ describe('DownloadJobView', () => {
   });
 
   it('issues a short-lived URL for completed downloads', async () => {
-    mockHttpResponses(job('succeeded'), inspection, analysisSkills, null, {
+    mockHttpResponses(job('succeeded'), analysisSkills, null, {
       url: 'https://objects.example/token',
       expires_at: '2026-08-06T10:05:00Z',
     });
@@ -143,7 +137,6 @@ describe('DownloadJobView', () => {
   it('offers a new download when a completed file has expired', async () => {
     mockHttpResponses(
       { ...job('succeeded'), file_available: false, file_expires_at: null },
-      inspection,
       analysisSkills,
       null,
     );
@@ -160,20 +153,22 @@ describe('DownloadJobView', () => {
 
   it('keeps a completed task usable after inspection metadata expires', async () => {
     mockHttpResponses(job('succeeded'));
-    mockHttpError(
-      new ApiError(404, 'not_found', 'Not found', '解析结果不存在'),
-    );
     mockHttpResponses(analysisSkills, null);
     render(<DownloadJobView jobId={job().id} />);
 
+    await screen.findByRole('heading', { level: 1, name: inspection.title });
     expect(
-      await screen.findByText(
+      screen.queryByText(
         '原始媒体信息已过期，下载任务和已生成文件仍可继续使用。',
       ),
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: '下载已完成' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: `${inspection.title}封面` }),
+    ).toHaveAttribute('src', inspection.thumbnail_url);
+    expect(screen.getByText('1920×1080')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'AI 智能分析' }),
     ).toBeInTheDocument();

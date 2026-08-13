@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from app.application.downloads.download_models import (
     ArtifactSnapshot,
+    DownloadPresentationSnapshot,
     DownloadView,
     JobSnapshot,
 )
@@ -15,7 +16,10 @@ from app.application.downloads.inspection_models import (
     InspectionView,
 )
 from app.application.downloads.plans import plan_from_documents, public_plan
-from app.application.downloads.thumbnail import safe_thumbnail_data_url
+from app.application.downloads.thumbnail import (
+    safe_thumbnail_data_url,
+    thumbnail_resource_url,
+)
 from app.domain.downloads import (
     DownloadErrorCode,
     DownloadStage,
@@ -37,6 +41,9 @@ def inspection_view(snapshot: InspectionSnapshot) -> InspectionView:
         )
     except (TypeError, ValueError) as exc:
         raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
+    thumbnail_available = snapshot.thumbnail_available or (
+        safe_thumbnail_data_url(snapshot.metadata.get("thumbnail_url")) is not None
+    )
     return InspectionView(
         id=snapshot.id,
         extractor_key=snapshot.extractor_key,
@@ -45,12 +52,16 @@ def inspection_view(snapshot: InspectionSnapshot) -> InspectionView:
         duration_seconds=snapshot.duration_seconds,
         expires_at=snapshot.expires_at,
         formats=formats,
-        thumbnail_url=safe_thumbnail_data_url(snapshot.metadata.get("thumbnail_url")),
+        thumbnail_url=(
+            thumbnail_resource_url(snapshot.id) if thumbnail_available else None
+        ),
     )
 
 
 def download_view(
-    snapshot: JobSnapshot, artifact: ArtifactSnapshot | None = None
+    snapshot: JobSnapshot,
+    artifact: ArtifactSnapshot | None = None,
+    presentation: DownloadPresentationSnapshot | None = None,
 ) -> DownloadView:
     try:
         status = DownloadStatus(snapshot.status)
@@ -61,6 +72,10 @@ def download_view(
             else None
         )
     except ValueError as exc:
+        raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
+    try:
+        format_plan = public_plan(plan_from_documents(snapshot.semantic_plan, {}))
+    except (TypeError, ValueError) as exc:
         raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
     return DownloadView(
         id=snapshot.id,
@@ -77,4 +92,15 @@ def download_view(
         file_available=artifact is not None,
         file_expires_at=None if artifact is None else artifact.expires_at,
         version=snapshot.version,
+        title=None if presentation is None else presentation.title,
+        extractor_key=None if presentation is None else presentation.extractor_key,
+        duration_seconds=(
+            None if presentation is None else presentation.duration_seconds
+        ),
+        thumbnail_url=(
+            thumbnail_resource_url(snapshot.inspection_id)
+            if presentation is not None and presentation.thumbnail_available
+            else None
+        ),
+        format_plan=format_plan,
     )

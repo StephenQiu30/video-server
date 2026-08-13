@@ -83,6 +83,56 @@ class SqlAlchemyDownloadStore:
     async def get_job(self, job_id: UUID) -> application.JobSnapshot:
         return job_snapshot(await self.repository.get_job(job_id))
 
+    async def get_download_presentation(
+        self, job_id: UUID, owner_hash: str
+    ) -> application.DownloadPresentationSnapshot:
+        stored = await self.repository.get_download_presentation(job_id, owner_hash)
+        return application.DownloadPresentationSnapshot(
+            title=stored.title,
+            extractor_key=stored.extractor_key,
+            duration_seconds=stored.duration_seconds,
+            thumbnail_available=stored.thumbnail_available,
+        )
+
+    async def get_thumbnail_source(
+        self, inspection_id: UUID, owner_hash: str
+    ) -> application.ThumbnailSource:
+        stored = await self.repository.get_thumbnail_source(inspection_id, owner_hash)
+        return application.ThumbnailSource(
+            inspection_id=stored.inspection_id,
+            owner_hash=stored.owner_hash,
+            object=(
+                None
+                if stored.object is None
+                else application.ThumbnailObject(
+                    bucket=stored.object.bucket,
+                    object_key=stored.object.object_key,
+                    content_type=stored.object.content_type,
+                    sha256=stored.object.sha256,
+                    size_bytes=stored.object.size_bytes,
+                )
+            ),
+            legacy_data_url=stored.legacy_data_url,
+        )
+
+    async def save_thumbnail(
+        self,
+        inspection_id: UUID,
+        owner_hash: str,
+        thumbnail: application.ThumbnailObject,
+    ) -> None:
+        await self.repository.save_thumbnail(
+            inspection_id,
+            owner_hash,
+            database.ThumbnailSnapshot(
+                bucket=thumbnail.bucket,
+                object_key=thumbnail.object_key,
+                content_type=thumbnail.content_type,
+                sha256=thumbnail.sha256,
+                size_bytes=thumbnail.size_bytes,
+            ),
+        )
+
     async def get_retry_source(
         self, job_id: UUID, owner_hash: str
     ) -> application.RetrySourceSnapshot:
@@ -117,8 +167,9 @@ class SqlAlchemyDownloadStore:
             items=tuple(
                 application.DownloadHistoryItemSnapshot(
                     id=item.id,
+                    inspection_id=item.inspection_id,
                     title=item.title,
-                    thumbnail_url=item.thumbnail_url,
+                    thumbnail_available=item.thumbnail_available,
                     format_name=item.format_name,
                     status=item.status,
                     progress=item.progress,

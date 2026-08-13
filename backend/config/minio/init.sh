@@ -20,7 +20,8 @@ mc anonymous set none "local/$MINIO_BUCKET"
 bucket="arn:aws:s3:::$MINIO_BUCKET"
 cat > /tmp/api-policy.json <<EOF
 {"Version":"2012-10-17","Statement":[
-  {"Effect":"Allow","Action":["s3:GetObject"],"Resource":["$bucket/downloads/*","$bucket/analyses/*"]}
+  {"Effect":"Allow","Action":["s3:GetObject"],"Resource":["$bucket/downloads/*","$bucket/analyses/*"]},
+  {"Effect":"Allow","Action":["s3:GetObject","s3:PutObject","s3:DeleteObject"],"Resource":["$bucket/thumbnails/*"]}
 ]}
 EOF
 cat > /tmp/download-policy.json <<EOF

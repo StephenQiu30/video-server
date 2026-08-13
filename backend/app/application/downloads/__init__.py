@@ -13,6 +13,7 @@ from app.application.downloads.create_download import CreateDownload
 from app.application.downloads.download_models import (
     ArtifactSnapshot,
     DownloadCreate,
+    DownloadPresentationSnapshot,
     DownloadUrl,
     DownloadView,
     JobSaveResult,
@@ -82,6 +83,13 @@ from app.application.downloads.queries import (
     IssueDownloadUrl,
 )
 from app.application.downloads.retry_download import RetryDownload
+from app.application.downloads.thumbnail import (
+    ThumbnailContent,
+    ThumbnailObject,
+    ThumbnailSource,
+    ThumbnailStorageError,
+)
+from app.application.downloads.thumbnail_use_cases import GetThumbnail, PersistThumbnail
 
 __all__ = [
     "ApplicationError",
@@ -90,6 +98,7 @@ __all__ = [
     "CancelDownload",
     "CreateDownload",
     "DownloadCreate",
+    "DownloadPresentationSnapshot",
     "DownloadAnalyticsDailySnapshot",
     "DownloadAnalyticsDailyView",
     "DownloadAnalyticsSnapshot",
@@ -109,6 +118,7 @@ __all__ = [
     "GetDownloadAnalytics",
     "GetDownloadHistory",
     "GetInspection",
+    "GetThumbnail",
     "HmacRequestFingerprinter",
     "DownloadHistoryItemView",
     "DownloadHistoryItemSnapshot",
@@ -124,6 +134,7 @@ __all__ = [
     "RetrySourceSnapshot",
     "IssueDownloadUrl",
     "RetryDownload",
+    "PersistThumbnail",
     "JobSaveResult",
     "JobSnapshot",
     "MediaInspectionFailure",
@@ -147,6 +158,10 @@ __all__ = [
     "RequestFingerprinter",
     "RunnerFormat",
     "RunnerInspection",
+    "ThumbnailContent",
+    "ThumbnailObject",
+    "ThumbnailSource",
+    "ThumbnailStorageError",
     "UrlCipher",
     "UrlValidator",
     "plan_fingerprint",

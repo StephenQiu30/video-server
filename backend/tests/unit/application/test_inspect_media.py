@@ -115,7 +115,7 @@ async def test_inspect_encrypts_url_and_returns_only_semantic_formats() -> None:
         "provider_access_context": access_context().to_document(),
         "thumbnail_url": "data:image/avif;base64,Y292ZXI=",
     }
-    assert view.thumbnail_url == "data:image/avif;base64,Y292ZXI="
+    assert view.thumbnail_url == f"/api/inspections/{view.id}/thumbnail"
 
 
 @pytest.mark.asyncio

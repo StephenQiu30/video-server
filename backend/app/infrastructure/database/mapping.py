@@ -18,12 +18,16 @@ from .models import (
     DownloadJobRow,
     MediaFormatRow,
     MediaInspectionRow,
+    MediaThumbnailRow,
     OutboxEventRow,
 )
 
 
 def inspection_snapshot(
-    row: MediaInspectionRow, formats: tuple[MediaFormatRow, ...]
+    row: MediaInspectionRow,
+    formats: tuple[MediaFormatRow, ...],
+    *,
+    thumbnail_available: bool = False,
 ) -> InspectionSnapshot:
     return InspectionSnapshot(
         id=row.id,
@@ -34,6 +38,7 @@ def inspection_snapshot(
         title=row.title,
         duration_seconds=row.duration_seconds,
         metadata=dict(row.metadata_json),
+        thumbnail_available=thumbnail_available,
         expires_at=as_utc(row.expires_at),
         formats=tuple(
             FormatSnapshot(
@@ -82,14 +87,18 @@ def download_history_item_snapshot(
     inspection: MediaInspectionRow,
     selected_format: MediaFormatRow,
     artifact: ArtifactRow | None,
+    thumbnail: MediaThumbnailRow | None,
     now: datetime,
 ) -> DownloadHistoryItemSnapshot:
     metadata = dict(inspection.metadata_json)
-    thumbnail = metadata.get("thumbnail_url")
+    legacy_thumbnail = metadata.get("thumbnail_url")
     return DownloadHistoryItemSnapshot(
         id=job.id,
+        inspection_id=inspection.id,
         title=inspection.title,
-        thumbnail_url=thumbnail if isinstance(thumbnail, str) else None,
+        thumbnail_available=(
+            thumbnail is not None or isinstance(legacy_thumbnail, str)
+        ),
         format_name=selected_format.display_name,
         status=job.status,
         progress=job.progress,

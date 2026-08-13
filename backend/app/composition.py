@@ -28,9 +28,11 @@ from app.application.downloads import (
     GetDownloadAnalytics,
     GetDownloadHistory,
     GetInspection,
+    GetThumbnail,
     HmacRequestFingerprinter,
     InspectMedia,
     IssueDownloadUrl,
+    PersistThumbnail,
     RetryDownload,
 )
 from app.application.provider_canaries import ProviderStatusService
@@ -66,6 +68,7 @@ from app.infrastructure.rate_limiter import ValkeyRateLimiter
 from app.infrastructure.readiness import RuntimeReadiness, build_runtime_readiness
 from app.infrastructure.realtime import RabbitMqRealtimeConsumer, RealtimeHub
 from app.infrastructure.task_event_store import TaskEventStore
+from app.infrastructure.thumbnail_storage import MinioThumbnailStorage
 from app.infrastructure.url_security import FernetUrlEnvelope, MediaUrlValidator
 from app.infrastructure.user_repository import SqlAlchemyUserRepository
 from app.runner.provider_registry import configure_provider_instances
@@ -139,6 +142,8 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
     }
     runner = MediaRunnerRouter(anonymous_runner, operator_runners)
     storage = MinioObjectStorage(settings, enable_public_signing=True)
+    thumbnail_storage = MinioThumbnailStorage(storage)
+    persist_thumbnail = PersistThumbnail(store, thumbnail_storage)
     rate_limiter = (
         ValkeyRateLimiter(
             settings.valkey_url,
@@ -190,10 +195,12 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         new_id=uuid4,
         inspection_ttl=timedelta(seconds=settings.inspection_ttl_seconds),
         max_duration_seconds=settings.max_video_duration_seconds,
+        persist_thumbnail=persist_thumbnail,
     )
     use_cases = DownloadUseCases(
         inspect_media=inspect_media,
         get_inspection=GetInspection(store, now=clock),
+        get_thumbnail=GetThumbnail(store, thumbnail_storage, persist_thumbnail),
         create_download=CreateDownload(
             repository=store,
             fingerprinter=fingerprinter,
