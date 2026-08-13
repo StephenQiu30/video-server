@@ -43,6 +43,27 @@ def test_download_limits_are_validated() -> None:
         Settings(app_env="test", download_worker_threads=0)
 
 
+def test_user_artifacts_default_to_seven_days_and_allow_thirty_days() -> None:
+    defaults = Settings(app_env="test", _env_file=None)
+    seven_days = 7 * 24 * 60 * 60
+    thirty_days = 30 * 24 * 60 * 60
+    configured = Settings(
+        app_env="test",
+        artifact_ttl_seconds=thirty_days,
+        analysis_report_ttl_seconds=thirty_days,
+        _env_file=None,
+    )
+
+    assert defaults.artifact_ttl_seconds == seven_days
+    assert defaults.analysis_report_ttl_seconds == seven_days
+    assert configured.artifact_ttl_seconds == thirty_days
+    assert configured.analysis_report_ttl_seconds == thirty_days
+    with pytest.raises(ValidationError):
+        Settings(app_env="test", artifact_ttl_seconds=86_400, _env_file=None)
+    with pytest.raises(ValidationError):
+        Settings(app_env="test", analysis_report_ttl_seconds=86_400, _env_file=None)
+
+
 def test_signing_secrets_require_adequate_entropy_capacity() -> None:
     with pytest.raises(ValidationError, match="at least 32 bytes"):
         Settings(app_env="test", auth_jwt_secret=SecretStr("too-short"))

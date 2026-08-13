@@ -183,6 +183,14 @@ CREATE TABLE IF NOT EXISTS artifacts (
 
 CREATE INDEX IF NOT EXISTS ix_artifacts_expires ON artifacts (expires_at);
 
+-- Upgrade still-present artifacts created under the former one-day default.
+-- The 25-hour bound makes this idempotent and does not override deployments
+-- that had already chosen a longer retention period.
+UPDATE artifacts
+SET expires_at = created_at + INTERVAL '7 days'
+WHERE deleted_at IS NULL
+  AND expires_at <= created_at + INTERVAL '25 hours';
+
 CREATE TABLE IF NOT EXISTS analysis_jobs (
     id UUID PRIMARY KEY,
     artifact_id UUID NOT NULL,
@@ -391,7 +399,7 @@ CREATE TABLE IF NOT EXISTS analysis_report_artifacts (
     status VARCHAR(24) NOT NULL DEFAULT 'available',
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     available_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL '1 day'),
+    expires_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL '7 days'),
     deleted_at TIMESTAMPTZ,
     CONSTRAINT uq_analysis_report_artifacts_format UNIQUE (report_id, format),
     CONSTRAINT uq_analysis_report_artifacts_object UNIQUE (bucket, object_key),
@@ -415,9 +423,16 @@ ALTER TABLE analysis_report_versions
 ALTER TABLE analysis_report_artifacts
     ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
 UPDATE analysis_report_artifacts
-SET expires_at = created_at + INTERVAL '1 day'
+SET expires_at = created_at + INTERVAL '7 days'
 WHERE expires_at IS NULL;
 ALTER TABLE analysis_report_artifacts ALTER COLUMN expires_at SET NOT NULL;
+
+-- Keep existing reports that still use the legacy one-day policy aligned with
+-- their source artifacts. Explicitly longer policies remain untouched.
+UPDATE analysis_report_artifacts
+SET expires_at = created_at + INTERVAL '7 days'
+WHERE deleted_at IS NULL
+  AND expires_at <= created_at + INTERVAL '25 hours';
 
 -- Legacy releases could mark a job succeeded before the durable Markdown and
 -- DOCX report existed. Fail those inconsistent projections closed so clients

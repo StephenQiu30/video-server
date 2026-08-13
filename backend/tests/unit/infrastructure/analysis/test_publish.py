@@ -10,8 +10,10 @@ from app.infrastructure.analysis_report_repository import (
     ReportObject,
     SqlAlchemyAnalysisReportRepository,
 )
+from app.infrastructure.database.base import as_utc
 from app.infrastructure.database.models import (
     AnalysisArtifactLockRow,
+    AnalysisReportArtifactRow,
     AnalysisResultRow,
     OutboxEventRow,
 )
@@ -214,6 +216,19 @@ async def test_report_finalization_atomically_switches_current_report(
     )
     assert await row_count(analysis_db, AnalysisArtifactLockRow) == 0
     assert (await repository.get_current_report_file(command.id, "docx")) is not None
+    async with analysis_db.sessions() as session:
+        report_artifacts = tuple(
+            (
+                await session.scalars(
+                    select(AnalysisReportArtifactRow).where(
+                        AnalysisReportArtifactRow.report_id == report.id
+                    )
+                )
+            ).all()
+        )
+    assert {as_utc(item.expires_at) for item in report_artifacts} == {
+        NOW + timedelta(days=7, seconds=5)
+    }
 
     assert await analysis_db.repository.delete_job(
         command.id, command.owner_hash, NOW + timedelta(seconds=6)

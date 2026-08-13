@@ -49,7 +49,7 @@ class SqlAlchemyAnalysisReportRepository(AnalysisReportLifecycleRepository):
         self,
         sessions: async_sessionmaker[AsyncSession],
         *,
-        retention: timedelta = timedelta(days=1),
+        retention: timedelta = timedelta(days=7),
     ) -> None:
         super().__init__(sessions)
         self._retention = retention

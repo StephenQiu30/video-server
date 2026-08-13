@@ -19,7 +19,12 @@ def classify_provider_failure(
         return "provider_media_unsupported", 422
     if _unavailable_share_link(command_text, text):
         return "provider_link_unavailable", 422
-    if _any(text, b"only drm protected formats", b"this video is drm protected"):
+    if _any(
+        text,
+        b"only drm protected formats",
+        b"this video is drm protected",
+        b"this format is drm protected",
+    ):
         return "drm_protected", 422
     if _any(text, b"private video", b"this video is private"):
         return "content_private", 403

@@ -80,6 +80,7 @@ Worker preflight 成功并持续运行后才能接收分析任务；若没有宿
 - PostgreSQL、RabbitMQ、Valkey、MinIO、Runner RPC 和 Runner 出口分别使用独立网络；数据库、队列、配额、存储和 Runner RPC 网络均为 `internal`。为宿主机 AI Worker 仅把 PostgreSQL、RabbitMQ 和 MinIO 的必要端口绑定到 `127.0.0.1`，不向公网发布。
 - API 与 Worker 只加入它们实际需要的内部网络；为允许容器复用宿主机已有环境，它们同时通过普通应用网络访问 `.env` 指定的连接地址。宿主机 AI Worker 通过独立的 `ANALYSIS_*` 地址访问基础设施；Outbox 不加入存储或 Runner 网络。
 - 默认 `media-runner` 只收到 Runner 运行时变量（HMAC、工作目录和受控代理），不获得 Provider Secret。显式启用 `youtube-operator` Profile 时，独立 `youtube-operator-runner` 只能读取版本化 YouTube Cookie Secret，并在 Runner 独占 tmpfs 生成操作级副本；它仍不能获得数据库、队列、对象存储、Valkey 或 AI 凭据。
+- Compose 内的 Runner、下载 Worker 与 Canary 统一把共享命名卷挂载到固定的 `/work`，该容器路径不读取宿主机 `RUNNER_WORKSPACE_ROOT` 覆盖；宿主机直接运行 Runner 时才按本机环境单独设置工作目录，避免两侧返回不可访问的制品路径。
 - Media Runner 通过 egress proxy 访问外部媒体地址；本地环境组合只把代理绑定到宿主机回环地址，供本机 Runner 复用，并继续拒绝私网、localhost 和字面量 IP 目的地址。生产覆盖移除该端口。
 - 容器内 API、下载 Worker 与 Runner 使用 Compose DNS 互联；只有宿主机 AI Worker 使用 loopback 发布端口。
 

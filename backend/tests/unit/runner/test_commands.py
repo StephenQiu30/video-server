@@ -99,6 +99,27 @@ async def test_inspection_classifies_vimeo_login_requirement(tmp_path: Path) -> 
 
 
 @pytest.mark.asyncio
+async def test_download_classifies_selected_drm_format(tmp_path: Path) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(
+            b"ERROR: This format is DRM protected; Try selecting another format"
+        ),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.download_stream(
+            "https://vimeo.com/76979871",
+            "hls-video",
+            tmp_path / "video.input",
+            tmp_path,
+        )
+
+    assert caught.value.code == "drm_protected"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
 async def test_inspection_classifies_tiktok_webpage_regression(tmp_path: Path) -> None:
     commands = MediaCommands(
         settings(tmp_path),

@@ -19,6 +19,7 @@ services:
       MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
       MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
       MINIO_PUBLIC_SECURE: "${MINIO_PUBLIC_SECURE:-false}"
+      ARTIFACT_DOWNLOAD_URL_TTL_SECONDS: "${ARTIFACT_DOWNLOAD_URL_TTL_SECONDS:-300}"
       AUTH_JWT_SECRET: "${AUTH_JWT_SECRET:-development-jwt-secret-change-me-32-bytes}"
       AUTH_BOOTSTRAP_ADMIN_EMAIL: "${AUTH_BOOTSTRAP_ADMIN_EMAIL:-}"
       REQUEST_FINGERPRINT_SECRET: "${REQUEST_FINGERPRINT_SECRET:-development-fingerprint-secret-change-me}"
@@ -28,7 +29,7 @@ services:
       PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
       RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
       RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
-      RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
+      RUNNER_WORKSPACE_ROOT: /work
       RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
     networks: [db_net, queue_net, quota_net, storage_net, runner_rpc_net, public_egress_net]
     build:
@@ -86,8 +87,12 @@ services:
       PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
       RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
       RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
-      RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
+      RUNNER_WORKSPACE_ROOT: /work
       RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
+      ARTIFACT_TTL_SECONDS: "${ARTIFACT_TTL_SECONDS:-604800}"
+      ARTIFACT_GC_INTERVAL_SECONDS: "${ARTIFACT_GC_INTERVAL_SECONDS:-300}"
+      ARTIFACT_GC_BATCH_SIZE: "${ARTIFACT_GC_BATCH_SIZE:-50}"
+      ARTIFACT_DELETE_TIMEOUT_SECONDS: "${ARTIFACT_DELETE_TIMEOUT_SECONDS:-30}"
     networks: [db_net, queue_net, storage_net, runner_rpc_net, public_egress_net]
     container_name: worker-download
     command: ["python", "-m", "app.workers.download.main"]
@@ -118,7 +123,7 @@ services:
       PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
       RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
       RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
-      RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
+      RUNNER_WORKSPACE_ROOT: /work
       RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
     networks: [db_net, storage_net, runner_rpc_net, public_egress_net]
     container_name: provider-canary
@@ -145,6 +150,11 @@ services:
       MINIO_SECRET_KEY: "${MINIO_REPORT_SECRET_KEY:-video-report-secret-change-me}"
       MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
       MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
+      ANALYSIS_REPORT_TTL_SECONDS: "${ANALYSIS_REPORT_TTL_SECONDS:-604800}"
+      ANALYSIS_REPORT_GC_INTERVAL_SECONDS: "${ANALYSIS_REPORT_GC_INTERVAL_SECONDS:-300}"
+      ANALYSIS_REPORT_GC_BATCH_SIZE: "${ANALYSIS_REPORT_GC_BATCH_SIZE:-50}"
+      ANALYSIS_REPORT_ORPHAN_GRACE_SECONDS: "${ANALYSIS_REPORT_ORPHAN_GRACE_SECONDS:-3600}"
+      ARTIFACT_DELETE_TIMEOUT_SECONDS: "${ARTIFACT_DELETE_TIMEOUT_SECONDS:-30}"
     networks: [db_net, queue_net, storage_net, public_egress_net]
     container_name: worker-report
     command: ["python", "-m", "app.workers.report.main"]
@@ -157,7 +167,7 @@ services:
       RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
       RUNNER_EGRESS_PROXY: "${RUNNER_EGRESS_PROXY:-http://egress-proxy:3128}"
       RUNNER_PROVIDER_EGRESS_PROXIES: "${RUNNER_PROVIDER_EGRESS_PROXIES:-{}}"
-      RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
+      RUNNER_WORKSPACE_ROOT: /work
       RUNNER_ACCESS_MODE: anonymous
       PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
     networks: [runner_rpc_net, runner_egress_net]
@@ -209,7 +219,7 @@ services:
       RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
       RUNNER_EGRESS_PROXY: "${RUNNER_EGRESS_PROXY:-http://egress-proxy:3128}"
       RUNNER_PROVIDER_EGRESS_PROXIES: "${RUNNER_PROVIDER_EGRESS_PROXIES:-{}}"
-      RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
+      RUNNER_WORKSPACE_ROOT: /work
       RUNNER_ACCESS_MODE: operator_managed
       RUNNER_MAX_ACTIVE_TASKS: "1"
       RUNNER_OPERATOR_SESSION_VERSIONS: '{"youtube":"${YOUTUBE_COOKIE_VERSION:-disabled}"}'
@@ -278,7 +288,7 @@ services:
       RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
       RUNNER_EGRESS_PROXY: "${RUNNER_EGRESS_PROXY:-http://egress-proxy:3128}"
       RUNNER_PROVIDER_EGRESS_PROXIES: "${RUNNER_PROVIDER_EGRESS_PROXIES:-{}}"
-      RUNNER_WORKSPACE_ROOT: "${RUNNER_WORKSPACE_ROOT:-/work}"
+      RUNNER_WORKSPACE_ROOT: /work
       RUNNER_ACCESS_MODE: operator_managed
       RUNNER_MAX_ACTIVE_TASKS: "1"
       RUNNER_OPERATOR_SESSION_VERSIONS: '{"${OPERATOR_PROVIDER_KEY:-disabled}":"${OPERATOR_COOKIE_VERSION:-disabled}"}'
