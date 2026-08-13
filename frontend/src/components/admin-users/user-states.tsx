@@ -54,10 +54,12 @@ export function UsersLoadError({
 
 export function EmptyUsers() {
   return (
-    <Empty className="hairline min-h-64 rounded-none border-y py-14">
-      <EmptyHeader>
+    <Empty className="hairline min-h-64 items-start rounded-none border-y py-14 text-left">
+      <EmptyHeader className="items-start">
         <EmptyTitle>没有匹配的用户</EmptyTitle>
-        <EmptyDescription>尝试清空搜索词或更换筛选条件。</EmptyDescription>
+        <EmptyDescription className="text-left">
+          尝试清空搜索词或更换筛选条件。
+        </EmptyDescription>
       </EmptyHeader>
     </Empty>
   );

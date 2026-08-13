@@ -30,10 +30,10 @@ export function AnalyticsLoading() {
 
 export function AnalyticsEmpty() {
   return (
-    <Empty className="min-h-80 rounded-none border-0 py-20">
-      <EmptyHeader>
+    <Empty className="min-h-80 items-start rounded-none border-0 py-20 text-left">
+      <EmptyHeader className="items-start">
         <EmptyTitle>当前周期还没有下载数据</EmptyTitle>
-        <EmptyDescription>
+        <EmptyDescription className="text-left">
           切换统计周期，或等待用户创建下载任务后再查看。
         </EmptyDescription>
       </EmptyHeader>

@@ -124,11 +124,11 @@ export default function DownloadWorkspace() {
       <footer className="mt-10 flex flex-col gap-3 border-t py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <span className="flex items-center gap-2">
           <CheckCircle aria-hidden className="size-4 text-success" />
-          公开链接 · 无 DRM · 安全解析
+          请仅提交你有权处理的公开链接
         </span>
         <span className="flex items-center gap-1.5">
           <ShieldCheck aria-hidden className="size-4" />
-          隐私保护
+          请勿提交包含账号或访问凭据的链接
         </span>
       </footer>
     </main>

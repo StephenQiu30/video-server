@@ -47,6 +47,7 @@ describe('DownloadJobView', () => {
     expect(screen.queryByText('Download status')).not.toBeInTheDocument();
     expect(screen.queryByText('AI analysis')).not.toBeInTheDocument();
     expect(screen.getByText('已完成')).toBeInTheDocument();
+    expect(screen.getByText(/保留至/)).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'AI 智能分析' }),
     ).toBeInTheDocument();

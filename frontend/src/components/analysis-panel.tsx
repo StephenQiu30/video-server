@@ -49,8 +49,7 @@ export default function AnalysisPanel({
         aria-label="AI 智能分析"
         className="mt-14 border-t py-12 sm:mt-16 sm:py-16"
       >
-        <p className="eyebrow text-muted-foreground">03 / 内容分析</p>
-        <div className="mt-6 flex flex-wrap items-start justify-between gap-6">
+        <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="max-w-4xl">
             <h2 className="text-[32px] font-medium leading-[1.05] tracking-[-0.045em] sm:text-[44px]">
               {state.job.result.title}
@@ -118,8 +117,7 @@ export default function AnalysisPanel({
       aria-labelledby="analysis-title"
       className="mt-14 border-t py-12 sm:mt-16 sm:py-16"
     >
-      <p className="eyebrow text-muted-foreground">03 / 内容分析</p>
-      <div className="mt-6 flex items-start justify-between gap-6">
+      <div className="flex items-start justify-between gap-6">
         <div className="max-w-3xl">
           <h2
             className="text-[32px] font-medium leading-none tracking-[-0.045em] sm:text-[44px]"

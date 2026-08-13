@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     default: '帧取 · 公开视频下载工具',
     template: '%s · 帧取',
   },
-  description: '解析你有权处理的公开视频，选择格式并安全下载。',
+  description: '解析你有权处理的公开视频，选择格式并创建下载任务。',
   icons: {
     icon: [{ url: '/logo.svg', type: 'image/svg+xml' }],
     apple: [{ url: '/logo.png', sizes: '1024x1024', type: 'image/png' }],

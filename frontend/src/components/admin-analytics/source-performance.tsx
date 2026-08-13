@@ -129,7 +129,7 @@ function SourceHead({
 }) {
   return (
     <TableHead
-      className={`${className} px-4 text-[11px] font-normal text-muted-foreground ${numeric ? 'text-right tabular-nums' : ''}`}
+      className={`${className} px-4 text-xs font-normal text-muted-foreground ${numeric ? 'text-right tabular-nums' : ''}`}
       scope="col"
     >
       {children}

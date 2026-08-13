@@ -153,13 +153,6 @@
     text-wrap: balance;
   }
 
-  .eyebrow {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    font-weight: 500;
-    letter-spacing: -0.02em;
-  }
-
   .hairline {
     border-color: color-mix(in srgb, var(--foreground) 10%, transparent);
   }

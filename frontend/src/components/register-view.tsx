@@ -1,12 +1,6 @@
 'use client';
 
-import {
-  ArrowRightIcon,
-  EnvelopeSimpleIcon,
-  LockKeyIcon,
-  UserIcon,
-  WarningCircleIcon,
-} from '@phosphor-icons/react';
+import { ArrowRightIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
@@ -97,7 +91,6 @@ export function RegisterView() {
         <FieldGroup className="gap-5">
           <AuthField
             error={errors.username}
-            icon={<UserIcon aria-hidden />}
             idPrefix="register"
             label="用户名"
             name="username"
@@ -116,7 +109,6 @@ export function RegisterView() {
           </AuthField>
           <AuthField
             error={errors.email}
-            icon={<EnvelopeSimpleIcon aria-hidden />}
             idPrefix="register"
             label="邮箱地址"
             name="email"
@@ -134,7 +126,6 @@ export function RegisterView() {
           </AuthField>
           <AuthField
             error={errors.password}
-            icon={<LockKeyIcon aria-hidden />}
             idPrefix="register"
             label="密码"
             name="password"
@@ -154,7 +145,6 @@ export function RegisterView() {
           </AuthField>
           <AuthField
             error={errors.confirmPassword}
-            icon={<LockKeyIcon aria-hidden />}
             idPrefix="register"
             label="确认密码"
             name="confirmPassword"

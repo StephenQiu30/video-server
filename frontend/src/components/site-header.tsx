@@ -9,7 +9,6 @@ import { useState } from 'react';
 import { useAuth } from '@/components/auth-provider';
 import { HeaderAccount } from '@/components/header-account';
 import { MobileNavigation } from '@/components/mobile-navigation';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -104,8 +103,6 @@ export function SiteHeader() {
             user={user}
             usersActive={usersActive}
           />
-          <span aria-hidden className="mx-1.5 h-6 w-px bg-border" />
-          <ThemeToggle />
         </nav>
         <MobileNavigation
           loading={loading}

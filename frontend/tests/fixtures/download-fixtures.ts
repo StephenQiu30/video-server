@@ -45,6 +45,6 @@ export function job(status: DownloadJob['status'] = 'queued'): DownloadJob {
     updated_at: '2026-08-06T10:00:10Z',
     finished_at: status === 'succeeded' ? '2026-08-06T10:00:10Z' : null,
     file_available: status === 'succeeded',
-    file_expires_at: status === 'succeeded' ? '2026-08-07T10:00:10Z' : null,
+    file_expires_at: status === 'succeeded' ? '2026-08-13T10:00:10Z' : null,
   };
 }

@@ -41,16 +41,13 @@ export default function DownloadHero({
 
   return (
     <section className="pt-10 sm:pt-12 lg:pt-14">
-      <p className="eyebrow text-muted-foreground">01 / 解析媒体</p>
-      <div className="mt-6">
-        <h1 className="editorial-title sm:whitespace-nowrap">
-          把视频，
-          <span className="block sm:ml-[0.85em] sm:inline">带回本地。</span>
-        </h1>
-        <p className="mt-5 max-w-2xl text-[15px] leading-7 text-muted-foreground">
-          粘贴你有权处理的公开视频链接，读取媒体信息，选择画质并创建可追踪的下载任务。
-        </p>
-      </div>
+      <h1 className="editorial-title sm:whitespace-nowrap">
+        把视频，
+        <span className="block sm:ml-[0.85em] sm:inline">带回本地。</span>
+      </h1>
+      <p className="mt-5 max-w-2xl text-[15px] leading-7 text-muted-foreground">
+        粘贴你有权处理的公开视频链接，读取媒体信息，选择画质并创建可追踪的下载任务。
+      </p>
 
       <form
         className="mt-8 grid gap-2 sm:grid-cols-[minmax(0,1fr)_148px] lg:mt-9"

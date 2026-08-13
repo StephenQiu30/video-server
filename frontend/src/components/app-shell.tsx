@@ -14,7 +14,7 @@ import {
   FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { InputGroup, InputGroupAddon } from '@/components/ui/input-group';
+import { InputGroup } from '@/components/ui/input-group';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -67,16 +67,14 @@ export function AuthPageFrame({
             className="hidden flex-col justify-between py-20 pr-16 lg:flex xl:pr-24"
           >
             <div>
-              <p className="eyebrow text-muted-foreground">公开视频工作流</p>
-              <p className="mt-7 max-w-[720px] text-[clamp(3.5rem,6vw,6rem)] font-medium leading-[0.94] tracking-[-0.065em]">
+              <p className="max-w-[720px] text-[clamp(3.5rem,6vw,6rem)] font-medium leading-[0.94] tracking-[-0.065em]">
                 把视频，
                 <br />
-                安全带回本地。
+                带回本地。
               </p>
             </div>
-            <p className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="size-1.5 rounded-full bg-success" />
-              公开链接 · 无 DRM · 安全解析
+            <p className="text-xs text-muted-foreground">
+              请仅提交你有权处理的公开链接
             </p>
           </section>
           <div className="flex items-center justify-center py-12 lg:justify-start lg:border-l lg:py-20 lg:pl-16 xl:pl-24">
@@ -100,7 +98,6 @@ type AuthFieldProps = {
   children: ReactNode;
   description?: string;
   error?: string;
-  icon: ReactNode;
   idPrefix: string;
   label: string;
   name: string;
@@ -110,7 +107,6 @@ export function AuthField({
   children,
   description,
   error,
-  icon,
   idPrefix,
   label,
   name,
@@ -118,12 +114,7 @@ export function AuthField({
   return (
     <Field data-invalid={Boolean(error)}>
       <FieldLabel htmlFor={`${idPrefix}-${name}`}>{label}</FieldLabel>
-      <InputGroup className="h-11 bg-input">
-        {children}
-        <InputGroupAddon align="inline-start" className="pl-3">
-          {icon}
-        </InputGroupAddon>
-      </InputGroup>
+      <InputGroup className="h-11 bg-input">{children}</InputGroup>
       {description ? (
         <FieldDescription id={`${name}-description`}>
           {description}
@@ -136,7 +127,6 @@ export function AuthField({
 
 type ReadOnlyFieldProps = {
   description: string;
-  icon: ReactNode;
   id: string;
   label: string;
   value: string;
@@ -144,17 +134,13 @@ type ReadOnlyFieldProps = {
 
 export function ReadOnlyField({
   description,
-  icon,
   id,
   label,
   value,
 }: ReadOnlyFieldProps) {
   return (
     <Field>
-      <FieldLabel htmlFor={id}>
-        {icon}
-        {label}
-      </FieldLabel>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <Input
         aria-describedby={`${id}-help`}
         aria-readonly="true"

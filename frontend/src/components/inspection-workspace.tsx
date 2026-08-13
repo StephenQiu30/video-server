@@ -39,7 +39,7 @@ export default function InspectionWorkspace({
         <h2 className="mt-5 text-xl font-medium leading-8 tracking-[-0.025em] sm:text-2xl">
           {inspection.title}
         </h2>
-        <dl className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
+        <dl className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground tabular-nums">
           <Meta label="平台" mono value={inspection.extractor_key} />
           <Meta
             label="时长"

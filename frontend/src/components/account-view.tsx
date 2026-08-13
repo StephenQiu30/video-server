@@ -1,13 +1,6 @@
 'use client';
 
-import {
-  CheckCircle,
-  EnvelopeSimple,
-  FloppyDisk,
-  ShieldCheck,
-  UserCircle,
-  WarningCircle,
-} from '@phosphor-icons/react';
+import { CheckCircle, FloppyDisk, WarningCircle } from '@phosphor-icons/react';
 import { type FormEvent, useEffect, useState } from 'react';
 
 import { ReadOnlyField } from '@/components/app-shell';
@@ -111,7 +104,7 @@ export function AccountView() {
         onSubmit={submit}
       >
         <aside className="lg:pr-12">
-          <p className="eyebrow text-muted-foreground">当前身份</p>
+          <h2 className="text-sm font-medium">当前身份</h2>
           <div className="mt-5 flex items-center gap-4">
             <Avatar aria-hidden className="size-14">
               <AvatarFallback className="bg-muted text-lg font-medium text-foreground">
@@ -131,14 +124,11 @@ export function AccountView() {
         </aside>
 
         <div className="hairline border-t pt-10 lg:border-t-0 lg:border-l lg:pl-12 lg:pt-0">
-          <p className="eyebrow mb-6 text-muted-foreground">资料字段</p>
+          <h2 className="mb-6 text-sm font-medium">资料字段</h2>
           <FieldGroup className="gap-8">
             <Field>
               <div className="flex items-center justify-between gap-3">
-                <FieldLabel htmlFor="username">
-                  <UserCircle aria-hidden size={17} />
-                  用户名
-                </FieldLabel>
+                <FieldLabel htmlFor="username">用户名</FieldLabel>
                 <span className="text-xs text-muted-foreground tabular-nums">
                   {username.length}/32
                 </span>
@@ -163,14 +153,12 @@ export function AccountView() {
             <div className="grid gap-6 sm:grid-cols-2">
               <ReadOnlyField
                 description="用于登录账户，暂不支持在此修改。"
-                icon={<EnvelopeSimple aria-hidden size={17} />}
                 id="email"
                 label="登录邮箱"
                 value={user.email}
               />
               <ReadOnlyField
                 description="由账户权限策略分配。"
-                icon={<ShieldCheck aria-hidden size={17} />}
                 id="role"
                 label="账户身份"
                 value={role}

@@ -57,10 +57,10 @@ export default function DownloadHistoryList({
         </ItemGroup>
       ) : null}
       {data && !data.items.length ? (
-        <Empty className="min-h-72 rounded-none border-0 py-20">
-          <EmptyHeader>
+        <Empty className="min-h-72 items-start rounded-none border-0 py-20 text-left">
+          <EmptyHeader className="items-start">
             <EmptyTitle>没有匹配的下载记录</EmptyTitle>
-            <EmptyDescription>
+            <EmptyDescription className="text-left">
               调整筛选条件，或新建一个下载任务。
             </EmptyDescription>
           </EmptyHeader>

@@ -75,7 +75,7 @@ export default function DownloadState({
 
   return (
     <section aria-labelledby="download-status-title" className="self-start">
-      <p className="eyebrow text-muted-foreground">任务状态</p>
+      <p className="text-sm font-medium">任务状态</p>
       <div className="mt-5 flex items-start justify-between gap-5">
         <div>
           <h2

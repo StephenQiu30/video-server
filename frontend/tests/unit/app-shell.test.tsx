@@ -238,7 +238,6 @@ describe('AppShell', () => {
       >
         <AuthField
           error="请输入邮箱地址"
-          icon={<span aria-hidden>@</span>}
           idPrefix="login"
           label="邮箱地址"
           name="email"

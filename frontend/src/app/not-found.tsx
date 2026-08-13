@@ -11,10 +11,7 @@ export default function NotFound() {
     <main className="content-shell flex min-h-[calc(100svh-80px)] items-center py-14 sm:py-20">
       <Empty className="items-start gap-8 rounded-none border-0 p-0 text-left">
         <EmptyHeader className="max-w-3xl items-start gap-0">
-          <p className="eyebrow text-muted-foreground">
-            <span className="text-muted-foreground">404</span>
-            <span aria-hidden> / 页面状态</span>
-          </p>
+          <p className="font-mono text-sm text-muted-foreground">404</p>
           <h1 className="mt-6 text-[clamp(3.5rem,8vw,6rem)] font-medium leading-[0.94] tracking-[-0.065em]">
             页面，没有找到。
           </h1>

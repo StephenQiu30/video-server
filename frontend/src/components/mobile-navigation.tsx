@@ -13,7 +13,6 @@ import {
 } from '@phosphor-icons/react';
 import Link from 'next/link';
 
-import { ThemeToggle } from '@/components/theme-toggle';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -143,10 +142,6 @@ export function MobileNavigation({
             </MobileLink>
           )}
         </nav>
-        <div className="mt-2 flex items-center justify-between px-5 py-3">
-          <span className="text-sm text-muted-foreground">外观</span>
-          <ThemeToggle />
-        </div>
         {user ? (
           <SheetFooter>
             <Separator />

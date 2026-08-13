@@ -26,7 +26,7 @@
 
 ## 最终对照结论
 
-- 首屏结构与真值一致：导航与主体共用约 80px 内容边距、80px 无底边 Header、编号眉题、单行编辑式中文标题、68px 浅灰输入带、黑色主操作、媒体与设置双栏、发丝分隔和底部安全状态。
+- 首屏结构与真值一致：导航与主体共用约 80px 内容边距、80px 无底边 Header、直接的编辑式中文标题、68px 浅灰输入带、黑色主操作、媒体与设置双栏、发丝分隔和底部事实型使用提示。
 - 排版节奏一致：标题、描述、输入带和结果区的垂直起点与方案稿基本对齐；Geist、近黑文字、`#FAFAFA` 画布和小半径控件形成 Vercel Home 的克制层级。
 - 无边框要求已落实：页面级 Card、筛选壳、认证壳和主要控件不使用可见描边或重阴影；只在表格行、内容分区、双栏和 Footer 保留必要的发丝线。
 - 业务差异均为有意映射：最终实现展示 API 实际返回的 4 个完整格式，不复制稿中后端不存在的“字幕”“仅音频”“容器独立选择”和播放按钮；不虚构文件大小或精确 FPS。
@@ -35,10 +35,10 @@
 ## 响应式与交互验证
 
 - 390×844 首屏自然收敛为标题、输入、主按钮、媒体和画质单列；下半屏的 4 个格式、真实元数据、创建任务与安全状态均可达。
-- 移动 Sheet 可打开/关闭，包含视频解析、下载记录、个人资料、退出与主题切换；Sheet 无可见边框。
+- 移动 Sheet 可打开/关闭，包含视频解析、下载记录、个人资料与退出；Sheet 无可见边框，明暗主题跟随系统偏好。
 - 响应式导航在 820px 使用移动 Sheet、在 1024px 切换为桌面导航；Sheet 保留当前页 `aria-current="page"`、内部 `overflow-y: auto`、Escape 关闭与触发器焦点恢复。1024px 实测 Logo 为 32px、品牌文字为 17px，页面无横向溢出。
 - Header 账户槽在认证恢复、未登录入口和 Avatar 菜单之间固定为 88px，已登录控件为 74×44px；共享 Button 与 `asChild` 导航链接的 computed `transform` 为 `none`，transition 仅包含 `background-color, color, opacity`，按下和异步状态不再改变组件几何。
-- 浏览器实测：清空链接、重新填入链接、720P/480P/1080P Radio 切换、明暗主题切换、移动菜单、移动主题切换和主题跨刷新保持。
+- 浏览器实测：清空链接、重新填入链接、720P/480P/1080P Radio 切换、移动菜单，以及系统明暗主题跨刷新保持。
 - 直接打开登录页时已保存的深色主题能够恢复；首屏前置主题脚本与 hydration 后初始化共同避免主题缺失。
 - 最终完整重载后浏览器日志没有产品代码 error；开发期曾出现的主题脚本挂载告警已修正为根 `<head>` 内的 `beforeInteractive` 脚本。
 
@@ -78,11 +78,35 @@
 
 final result: passed
 
+## 2026-08-13 Frontend 与 `design.md` 一致性修复
+
+- 明确以仓库根 `design.md` 约束 Frontend，而不是反向改写规范：保留既有 Geist、语义 token、连续内容画布与 shadcn/ui + Radix 交互原语。
+- 移除 Header 与移动 Sheet 中的可见主题切换器；明暗主题继续由 `next-themes` 跟随系统偏好，浅色与深色使用同一套信息层级。
+- 清理认证页、账户页、任务状态、编辑器和 404 中的装饰性 eyebrow；移除认证字段、空状态和分析 KPI 中不增加任务意义的图标。
+- 表头、KPI、进度、分页和普通统计值统一使用 Geist Sans + `tabular-nums`；Geist Mono 仅保留给来源键、目录键、日期时间和技术标识符。
+- 空状态改为左对齐、任务特定的文字结构，不再用通用插图占位；错误、警告与操作图标仍保留语义和非颜色提示。
+- 浏览器实测覆盖 1440×900 深色首页与认证页、390×844 浅色首页与移动 Sheet；桌面认证页 `scrollWidth = clientWidth = 1440`，控制台无产品代码 error。
+- 新证据：`qa-output/frontend-design-md-audit-20260813/03-home-after-dark.png`、`qa-output/frontend-design-md-audit-20260813/05-home-after-mobile-light.png`、`qa-output/frontend-design-md-audit-20260813/06-mobile-menu-after-light.png`、`qa-output/frontend-design-md-audit-20260813/09-login-after-dark-desktop.png`。
+- 工程门禁：format check 与 lint/typecheck 通过（仅保留既有 `.agents/skills` 断链 warning）；30 个测试文件、115 项测试通过；Next.js 生产构建与 12 个静态页面导出通过。
+
+final result: passed
+
+## 2026-08-13 `design.md` audit remediation
+
+- Removed the decorative `01 / 02 / 03` eyebrows from the home hero, download task detail and both AI analysis states. Flow remains explicit through headings, actions and state content.
+- Replaced “安全解析”“隐私保护” and “安全下载” with specific authorization and credential-boundary guidance that can be checked against the current validation rules and repository policy.
+- Fresh desktop evidence: `/Users/stephenqiu/Desktop/StephenQiu/Video/video-server/qa-output/design-md-fix-20260813/web-home-1440.png`.
+- Fresh mobile evidence: `/Users/stephenqiu/Desktop/StephenQiu/Video/video-server/qa-output/design-md-fix-20260813/web-home-390.png`.
+- Browser verification at 1440×900 and 390×844 found meaningful content, no Next.js error overlay, no numbered flow labels and `scrollWidth = clientWidth` in both viewports. The H1 remained “把视频，带回本地。” and the refreshed authorization/credential footer guidance rendered in both layouts.
+- `npm run format:check` and `npm run lint` passed with only the pre-existing broken `.agents/skills` symlink warning; 31 test files / 117 tests passed; the Next.js production build generated all 12 static pages successfully.
+
+final result: passed
+
 ## 2026-08-12 无边框一致性与页头二次收紧回归
 
 - 按 `agent-browser` dogfood 流程对首页、下载历史、下载详情缺失态、平台状态、账户、用户管理、平台目录与下载分析进行真实浏览器审查，覆盖 1440×900、390×844、浅色/深色、Radix Dialog 与 Sheet；记录并修复 3 个可复现视觉/UX 问题，详见 `dogfood-output/report.md`。
 - 常规认证内页统一改为 `.inner-page`：390px 为 24px，641px 及以上为 32px；`BackLink` 到 PageHeader 固定 16px。1440px 平台目录/用户管理实测返回入口 `y = 112px`、标题 `y = 172px`；390px 实测返回入口 `y = 104px`、标题 `y = 164px`。
-- 首页保留编辑式 Hero 的差异化节奏，但从移动/平板/桌面 56/64/72px 收紧为 40/48/56px；实测移动眉题 `y = 120px`、桌面眉题 `y = 136px`，避免导航后留白吞噬首屏内容。
+- 首页保留编辑式 Hero 的差异化节奏，但从移动/平板/桌面 56/64/72px 收紧为 40/48/56px；移除装饰性眉题后，标题直接占据首个内容层级，避免导航后留白吞噬首屏内容。
 - 平台目录统计摘要移除上下双分隔，编辑 Dialog 的能力说明继续复用 shadcn Alert 并改为无边框 `surface` 表面；计算样式确认能力说明 `border-width = 0px`。Radix Dialog/Sheet 的遮罩、焦点圈定、Escape、焦点恢复和覆盖层边界不受影响。
 - 下载任务缺失态恢复统一内页与顶部返回路径；浅色/深色桌面和 390px 页面均满足 `scrollWidth = clientWidth`，浏览器未发现产品控制台异常。
 - 工程门禁：lint/typecheck 通过；format check 172 个文件通过；31 个测试文件、109 项测试通过；Next.js 生产构建与 11 个静态页面导出通过；完整 Compose 重建后 API、Media Runner、egress proxy 与基础设施健康，宿主机 AI Worker 已恢复，`/health/ready` 返回 200。
@@ -116,7 +140,7 @@ final result: passed
 - `agent-browser` 使用经典滚动条模式复现：根节点 `scrollbar-gutter: stable` 与 Radix 的 `react-remove-scroll` 同时补偿 15px，导致所有 Dropdown、Dialog、AlertDialog、Select 和 Sheet 触发器看起来像“按钮点击后整页抖动”。
 - 根因修复以 `body` 的常驻纵向滚动条稳定长短页面切换，同时移除根节点的第二套滚动条槽位编排；未覆盖 `data-scroll-locked`，滚动锁、焦点圈定与 Escape 行为继续由 Radix 原语统一负责。
 - 1440×500 下 Dropdown、Dialog、Select 打开前后 `.content-shell` 均为 `x = 80px / width = 1265px`；390×500 下移动 Sheet 打开前后均为 `x = 16px / width = 343px`。
-- 浅色、深色和主题切换均无布局位移；浏览器页面错误为空。
+- 浅色、深色与系统主题恢复均无布局位移；浏览器页面错误为空。
 
 final result: passed
 

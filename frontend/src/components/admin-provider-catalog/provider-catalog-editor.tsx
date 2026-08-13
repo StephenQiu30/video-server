@@ -47,7 +47,7 @@ export function ProviderCatalogEditor({
     >
       <DialogContent className="max-h-[calc(100svh-2rem)] overflow-y-auto sm:max-w-[540px]">
         <DialogHeader>
-          <p className="eyebrow mb-4 text-muted-foreground">平台目录</p>
+          <p className="mb-4 text-sm font-medium">平台目录</p>
           <DialogTitle className="text-xl font-medium tracking-[-0.025em]">
             {creating ? '新增平台' : `编辑 ${editor.displayName}`}
           </DialogTitle>

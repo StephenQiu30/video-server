@@ -54,7 +54,7 @@ export function UserEditor({
     >
       <DialogContent className="max-h-[calc(100svh-2rem)] overflow-y-auto sm:max-w-[520px]">
         <DialogHeader>
-          <p className="eyebrow mb-4 text-muted-foreground">账户权限</p>
+          <p className="mb-4 text-sm font-medium">账户权限</p>
           <DialogTitle className="text-xl font-medium tracking-[-0.025em]">
             管理用户{editor.user ? `：${editor.user.username}` : ''}
           </DialogTitle>

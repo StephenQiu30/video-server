@@ -6,7 +6,6 @@ type PageHeaderProps = {
   action?: ReactNode;
   className?: string;
   description?: ReactNode;
-  eyebrow?: ReactNode;
   title: ReactNode;
   titleClassName?: string;
   titleId?: string;
@@ -16,7 +15,6 @@ export function PageHeader({
   action,
   className,
   description,
-  eyebrow,
   title,
   titleClassName,
   titleId,
@@ -30,9 +28,6 @@ export function PageHeader({
       )}
     >
       <div className="min-w-0 max-w-4xl">
-        {eyebrow ? (
-          <p className="eyebrow mb-5 text-muted-foreground">{eyebrow}</p>
-        ) : null}
         <h1
           className={cn(
             'text-[clamp(2.25rem,4vw,3.75rem)] font-medium leading-[0.98] tracking-[-0.055em]',

@@ -81,10 +81,10 @@ export function ProviderCatalogScreen({
           </AlertDescription>
         </Alert>
       ) : result.items.length === 0 ? (
-        <Empty className="hairline min-h-64 rounded-none border-y py-14">
-          <EmptyHeader>
+        <Empty className="hairline min-h-64 items-start rounded-none border-y py-14 text-left">
+          <EmptyHeader className="items-start">
             <EmptyTitle>平台目录为空</EmptyTitle>
-            <EmptyDescription>
+            <EmptyDescription className="text-left">
               新增条目后，可在平台状态页公开展示。
             </EmptyDescription>
           </EmptyHeader>

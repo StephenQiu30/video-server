@@ -38,7 +38,6 @@ export default function DownloadJobView({
   return (
     <main className="content-shell inner-page">
       <BackLink fallbackHref="/history" />
-      <p className="eyebrow mt-7 text-muted-foreground">02 / 下载任务</p>
       {state.error ? (
         <Alert className="mt-8" variant="destructive">
           <AlertTitle>无法读取下载任务</AlertTitle>

@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  ArrowRightIcon,
-  EnvelopeSimpleIcon,
-  LockKeyIcon,
-  WarningCircleIcon,
-} from '@phosphor-icons/react';
+import { ArrowRightIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
@@ -87,7 +82,6 @@ export function LoginView() {
         <FieldGroup className="gap-5">
           <AuthField
             error={errors.email}
-            icon={<EnvelopeSimpleIcon aria-hidden />}
             idPrefix="login"
             label="邮箱地址"
             name="email"
@@ -105,7 +99,6 @@ export function LoginView() {
           </AuthField>
           <AuthField
             error={errors.password}
-            icon={<LockKeyIcon aria-hidden />}
             idPrefix="login"
             label="密码"
             name="password"
