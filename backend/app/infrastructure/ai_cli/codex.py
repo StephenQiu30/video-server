@@ -89,6 +89,7 @@ class CodexCliVideoAnalyzer:
             "--ephemeral",
             "--ignore-user-config",
             "--ignore-rules",
+            *self._config.provider_arguments,
             *video_observer_arguments(
                 self._config,
                 root=root,

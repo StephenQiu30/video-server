@@ -1,5 +1,6 @@
 """Database row exports kept in one metadata graph."""
 
+from .ai_provider import AiProviderProfileRow
 from .analysis import AnalysisArtifactLockRow, AnalysisJobRow
 from .analysis_report import (
     AnalysisReportArtifactRow,
@@ -24,6 +25,7 @@ __all__ = [
     "AnalysisArtifactLockRow",
     "AnalysisJobRow",
     "AnalysisWorkerHeartbeatRow",
+    "AiProviderProfileRow",
     "AnalysisReportArtifactRow",
     "AnalysisReportVersionRow",
     "AnalysisResultRow",

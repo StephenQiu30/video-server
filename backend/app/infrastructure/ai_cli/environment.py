@@ -54,4 +54,5 @@ def child_environment(config: CliAdapterConfig, workspace: Path) -> dict[str, st
     if os.name == "nt":
         environment["TEMP"] = temporary
         environment["TMP"] = temporary
+    environment.update(config.extra_environment)
     return environment

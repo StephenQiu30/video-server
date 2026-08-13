@@ -7,6 +7,11 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
+from app.application.ai_providers import (
+    AiProviderAuthMode,
+    AiProviderEngine,
+    AiProviderProfile,
+)
 from app.core.config import Settings
 from app.infrastructure.ai_cli import (
     ClaudeCliVideoAnalyzer,
@@ -16,6 +21,7 @@ from app.infrastructure.ai_cli import (
 from app.workers.analysis import providers
 from app.workers.analysis.main import _rabbitmq_worker_url
 from app.workers.analysis.providers import (
+    ConfiguredAnalyzerResolver,
     authentication_environment,
     build_video_analyzer,
 )
@@ -64,6 +70,68 @@ def test_worker_discards_api_key_environment(monkeypatch: pytest.MonkeyPatch) ->
         assert environment["SYSTEMROOT"] == os.environ["SYSTEMROOT"]
         if "WINDIR" in os.environ:
             assert environment["WINDIR"] == os.environ["WINDIR"]
+
+
+@pytest.mark.asyncio
+async def test_active_api_provider_is_injected_only_into_selected_cli_adapter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[bool] = []
+
+    def successful_preflight(*args: object, **kwargs: object) -> CliCapabilities:
+        del args
+        calls.append(bool(kwargs["verify_authentication"]))
+        return CliCapabilities(
+            provider="codex",
+            binary=Path(sys.executable),
+            version="controlled",
+            ffmpeg=Path(sys.executable),
+            ffprobe=Path(sys.executable),
+        )
+
+    class Repository:
+        async def get_active_profile(self) -> AiProviderProfile:
+            return AiProviderProfile(
+                key="custom",
+                display_name="Custom Provider",
+                engine=AiProviderEngine.CODEX,
+                auth_mode=AiProviderAuthMode.API_KEY,
+                base_url="https://api.example.com/v1",
+                model="gpt-custom",
+                credential_ciphertext=b"ciphertext",
+                credential_key_id="fernet-test",
+                is_active=True,
+                created_at=datetime(2026, 8, 13, tzinfo=UTC),
+                updated_at=datetime(2026, 8, 13, tzinfo=UTC),
+            )
+
+    class Cipher:
+        def decrypt(self, provider_key: str, ciphertext: bytes, key_id: str) -> str:
+            assert (provider_key, ciphertext, key_id) == (
+                "custom",
+                b"ciphertext",
+                "fernet-test",
+            )
+            return "secret-value"
+
+    monkeypatch.setattr(providers, "preflight", successful_preflight)
+    resolver = ConfiguredAnalyzerResolver(
+        Settings(app_env="test"),
+        Repository(),  # type: ignore[arg-type]
+        Cipher(),  # type: ignore[arg-type]
+    )
+
+    selection = await resolver.resolve()
+    again = await resolver.resolve()
+
+    assert selection is again
+    assert selection.provider == "custom"
+    config = selection.analyzer._config  # type: ignore[attr-defined]
+    assert dict(config.extra_environment) == {
+        "VIDEO_ANALYSIS_PROVIDER_KEY": "secret-value"
+    }
+    assert any("api.example.com" in value for value in config.provider_arguments)
+    assert calls == [False]
 
 
 def test_worker_uses_the_declared_shared_rabbitmq_vhost() -> None:

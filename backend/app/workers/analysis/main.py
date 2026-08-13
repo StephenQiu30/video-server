@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from dataclasses import dataclass
 from datetime import timedelta
 from urllib.parse import quote, urlsplit, urlunsplit
@@ -11,7 +12,10 @@ from app.application.analysis_execution import (
     AnalysisExecution,
     AnalysisExecutionSettings,
 )
+from app.core.ai_provider_cipher import FernetAiProviderSecretCipher
 from app.core.config import Settings, get_settings_for_role
+from app.core.url_cipher import URLCipher
+from app.infrastructure.ai_provider_repository import SqlAlchemyAiProviderRepository
 from app.infrastructure.analysis_repository import SqlAlchemyAnalysisRepository
 from app.infrastructure.analysis_worker_registry import (
     ANALYSIS_MESSAGE_SCHEMA_VERSION,
@@ -28,13 +32,15 @@ from app.workers.analysis.artifacts import LocalAnalysisArtifactLoader
 from app.workers.analysis.consumer import RabbitMqAnalysisConsumer
 from app.workers.analysis.heartbeat import AnalysisWorkerHeartbeat
 from app.workers.analysis.persistence import AnalysisExecutionPersistence
-from app.workers.analysis.providers import build_video_analyzer
+from app.workers.analysis.providers import ConfiguredAnalyzerResolver
 from app.workers.analysis.sweeper import (
     AnalysisRecoverySweeper,
     RecoverySettings,
 )
 from app.workers.analysis.utilities import install_signal_handlers, utc_now, worker_id
 from sqlalchemy.ext.asyncio import AsyncEngine
+
+_log = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -45,6 +51,7 @@ class AnalysisWorkerRuntime:
     storage: MinioObjectStorage
     loader: LocalAnalysisArtifactLoader
     engine: AsyncEngine
+    resolver: ConfiguredAnalyzerResolver
 
     async def close(self) -> None:
         try:
@@ -57,7 +64,6 @@ class AnalysisWorkerRuntime:
 
 
 def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
-    analyzer_runtime = build_video_analyzer(settings)
     minio_access_key, minio_secret_key = settings.analysis_minio_credentials()
     host_settings = settings.model_copy(
         update={
@@ -72,6 +78,14 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
     )
     engine = create_engine(host_settings.database_url)
     sessions = create_session_factory(engine)
+    resolver = ConfiguredAnalyzerResolver(
+        settings,
+        SqlAlchemyAiProviderRepository(sessions),
+        FernetAiProviderSecretCipher(
+            URLCipher(settings.url_encryption_key.get_secret_value().encode()),
+            key_id=settings.url_encryption_key_id,
+        ),
+    )
     analysis = SqlAlchemyAnalysisRepository(sessions)
     runtime_worker_id = worker_id()
     worker_registry = SqlAlchemyAnalysisWorkerRegistry(
@@ -93,7 +107,7 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
     execution = AnalysisExecution(
         repository=persistence,
         loader=loader,
-        analyzer=analyzer_runtime.analyzer,
+        resolver=resolver,
         clock=utc_now,
         settings=AnalysisExecutionSettings(
             worker_id=runtime_worker_id,
@@ -101,9 +115,6 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
             lease_for=timedelta(seconds=settings.job_lease_seconds),
             heartbeat_interval=settings.heartbeat_interval_seconds,
             max_source_bytes=settings.max_file_size_bytes,
-            provider=analyzer_runtime.provider,
-            model=analyzer_runtime.model,
-            cli_version=analyzer_runtime.cli_version,
         ),
     )
     topology = RabbitMqTopology(
@@ -147,6 +158,7 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
         storage=storage,
         loader=loader,
         engine=engine,
+        resolver=resolver,
     )
 
 
@@ -156,6 +168,7 @@ async def run() -> None:
     install_signal_handlers(stop)
     try:
         await runtime.loader.prepare_root()
+        await runtime.resolver.resolve()
         await _serve(runtime, stop)
     finally:
         stop.set()
@@ -163,28 +176,49 @@ async def run() -> None:
 
 
 async def _serve(runtime: AnalysisWorkerRuntime, stop: asyncio.Event) -> None:
-    consumer = asyncio.create_task(runtime.consumer.run(stop))
-    sweeper = asyncio.create_task(runtime.sweeper.run(stop))
-    heartbeat = asyncio.create_task(runtime.heartbeat.run(stop))
-    stop_wait = asyncio.create_task(stop.wait())
-    tasks = (consumer, sweeper, heartbeat)
+    tasks = (
+        asyncio.create_task(
+            _run_resilient("consumer", runtime.consumer.run, stop),
+            name="analysis-consumer",
+        ),
+        asyncio.create_task(
+            _run_resilient("sweeper", runtime.sweeper.run, stop),
+            name="analysis-sweeper",
+        ),
+        asyncio.create_task(
+            _run_resilient("heartbeat", runtime.heartbeat.run, stop),
+            name="analysis-heartbeat",
+        ),
+    )
     try:
-        await asyncio.wait(
-            {consumer, sweeper, heartbeat, stop_wait},
-            return_when=asyncio.FIRST_COMPLETED,
-        )
+        await stop.wait()
+    finally:
         stop.set()
         await runtime.consumer.close()
-        await asyncio.gather(*tasks, return_exceptions=True)
         for task in tasks:
-            if task.cancelled():
-                continue
-            failure = task.exception()
-            if failure is not None:
-                raise failure
-    finally:
-        stop_wait.cancel()
-        await asyncio.gather(stop_wait, return_exceptions=True)
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+
+async def _run_resilient(
+    component: str,
+    operation: object,
+    stop: asyncio.Event,
+) -> None:
+    delay = 1.0
+    while not stop.is_set():
+        try:
+            await operation(stop)  # type: ignore[operator]
+            if stop.is_set():
+                return
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            _log.exception("analysis worker %s failed; restarting", component)
+        try:
+            await asyncio.wait_for(stop.wait(), timeout=delay)
+        except TimeoutError:
+            delay = min(delay * 2, 30.0)
 
 
 def main() -> None:

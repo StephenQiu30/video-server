@@ -1,4 +1,40 @@
 declare namespace API {
+  type activateAiProviderProfileParams = {
+    provider_key: string;
+  };
+
+  type AiProviderAuthMode = "host_login" | "api_key";
+
+  type AiProviderEngine = "codex" | "claude";
+
+  type AiProviderProfileListResponse = {
+    /** Items */
+    items: AiProviderProfileResponse[];
+    /** Agent Available */
+    agent_available: boolean;
+  };
+
+  type AiProviderProfileResponse = {
+    /** Key */
+    key: string;
+    /** Display Name */
+    display_name: string;
+    engine: AiProviderEngine;
+    auth_mode: AiProviderAuthMode;
+    /** Base Url */
+    base_url: string | null;
+    /** Model */
+    model: string;
+    /** Credential Configured */
+    credential_configured: boolean;
+    /** Is Active */
+    is_active: boolean;
+    /** Created At */
+    created_at: string;
+    /** Updated At */
+    updated_at: string;
+  };
+
   type AnalysisErrorCode =
     | "cancelled"
     | "analysis_cli_unavailable"
@@ -152,6 +188,21 @@ declare namespace API {
 
   type ContainerPreference = "mp4" | "webm" | "source";
 
+  type CreateAiProviderProfileRequest = {
+    /** Key */
+    key: string;
+    /** Display Name */
+    display_name: string;
+    engine: AiProviderEngine;
+    auth_mode: AiProviderAuthMode;
+    /** Base Url */
+    base_url?: string | null;
+    /** Model */
+    model: string;
+    /** Api Key */
+    api_key?: string | null;
+  };
+
   type createAnalysisParams = {
     download_id: string;
   };
@@ -165,6 +216,10 @@ declare namespace API {
     sort_order: number;
     /** Is Visible */
     is_visible?: boolean;
+  };
+
+  type deleteAiProviderProfileParams = {
+    provider_key: string;
   };
 
   type deleteAnalysisParams = {
@@ -697,6 +752,23 @@ declare namespace API {
     visual_tags: string[];
     /** Asset Ids */
     asset_ids: string[];
+  };
+
+  type updateAiProviderProfileParams = {
+    provider_key: string;
+  };
+
+  type UpdateAiProviderProfileRequest = {
+    /** Display Name */
+    display_name?: string | null;
+    engine?: AiProviderEngine | null;
+    auth_mode?: AiProviderAuthMode | null;
+    /** Base Url */
+    base_url?: string | null;
+    /** Model */
+    model?: string | null;
+    /** Api Key */
+    api_key?: string | null;
   };
 
   type UpdateProfileRequest = {

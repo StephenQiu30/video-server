@@ -2,6 +2,82 @@
 /* eslint-disable */
 import { request, type RequestOptions } from "@/lib/request";
 
+/** 查询 AI 分析 Provider GET /api/admin/ai-providers */
+export async function listAiProviderProfiles(options?: RequestOptions) {
+  return request<API.AiProviderProfileListResponse>("/api/admin/ai-providers", {
+    method: "GET",
+    ...(options || {}),
+  });
+}
+
+/** 新增 AI 分析 Provider POST /api/admin/ai-providers */
+export async function createAiProviderProfile(
+  body: API.CreateAiProviderProfileRequest,
+  options?: RequestOptions
+) {
+  return request<API.AiProviderProfileResponse>("/api/admin/ai-providers", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+/** 删除 AI 分析 Provider DELETE /api/admin/ai-providers/${param0} */
+export async function deleteAiProviderProfile(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.deleteAiProviderProfileParams,
+  options?: RequestOptions
+) {
+  const { provider_key: param0, ...queryParams } = params;
+  return request<any>(`/api/admin/ai-providers/${param0}`, {
+    method: "DELETE",
+    params: { ...queryParams },
+    ...(options || {}),
+  });
+}
+
+/** 更新 AI 分析 Provider PATCH /api/admin/ai-providers/${param0} */
+export async function updateAiProviderProfile(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.updateAiProviderProfileParams,
+  body: API.UpdateAiProviderProfileRequest,
+  options?: RequestOptions
+) {
+  const { provider_key: param0, ...queryParams } = params;
+  return request<API.AiProviderProfileResponse>(
+    `/api/admin/ai-providers/${param0}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      params: { ...queryParams },
+      data: body,
+      ...(options || {}),
+    }
+  );
+}
+
+/** 启用 AI 分析 Provider POST /api/admin/ai-providers/${param0}/activate */
+export async function activateAiProviderProfile(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.activateAiProviderProfileParams,
+  options?: RequestOptions
+) {
+  const { provider_key: param0, ...queryParams } = params;
+  return request<API.AiProviderProfileResponse>(
+    `/api/admin/ai-providers/${param0}/activate`,
+    {
+      method: "POST",
+      params: { ...queryParams },
+      ...(options || {}),
+    }
+  );
+}
+
 /** 查询下载分析 按 UTC 自然日查询管理员可见的全局下载聚合。 GET /api/admin/downloads/analytics */
 export async function getDownloadAnalytics(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)

@@ -6,6 +6,7 @@ import {
   LinkSimpleIcon,
   ListIcon,
   PulseIcon,
+  RobotIcon,
   SignOutIcon,
   StackIcon,
   UserCircleIcon,
@@ -109,6 +110,13 @@ export function MobileNavigation({
               </MobileLink>
               {user.role === 'admin' ? (
                 <>
+                  <MobileLink
+                    active={pathname.startsWith('/admin/ai-providers')}
+                    href="/admin/ai-providers"
+                  >
+                    <RobotIcon aria-hidden />
+                    AI 服务
+                  </MobileLink>
                   <MobileLink
                     active={pathname.startsWith('/admin/analytics')}
                     href="/admin/analytics"

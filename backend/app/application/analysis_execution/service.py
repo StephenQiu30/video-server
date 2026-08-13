@@ -31,6 +31,8 @@ from .models import (
 from .monitor import AnalysisLeaseMonitor
 from .ports import (
     AnalysisExecutionRepository,
+    AnalyzerResolver,
+    AnalyzerSelection,
     ArtifactLoader,
     Clock,
     VideoAnalyzer,
@@ -44,13 +46,23 @@ class AnalysisExecution:
         *,
         repository: AnalysisExecutionRepository,
         loader: ArtifactLoader,
-        analyzer: VideoAnalyzer,
+        analyzer: VideoAnalyzer | None = None,
+        resolver: AnalyzerResolver | None = None,
         clock: Clock,
         settings: AnalysisExecutionSettings,
     ) -> None:
         self._repository = repository
         self._loader = loader
-        self._analyzer = analyzer
+        if resolver is None:
+            if analyzer is None:
+                raise ValueError("an analyzer or resolver is required")
+            resolver = _StaticAnalyzerResolver(
+                analyzer,
+                provider=settings.provider,
+                model=settings.model,
+                cli_version=settings.cli_version,
+            )
+        self._resolver = resolver
         self._clock = clock
         self._settings = settings
         self._transitions = AnalysisTransitions(repository, settings, clock)
@@ -101,8 +113,8 @@ class AnalysisExecution:
                 skill_instructions=job.skill_instructions,
                 custom_prompt=job.custom_prompt,
             )
-            payload = await monitor.run(
-                lambda: self._analyzer.analyze(request),
+            selection, payload = await monitor.run(
+                lambda: self._analyze(request),
                 stage=stage,
                 progress=70,
             )
@@ -128,9 +140,9 @@ class AnalysisExecution:
                 self._settings.worker_id,
                 current.version,
                 result,
-                self._settings.provider,
-                self._settings.model,
-                self._settings.cli_version,
+                selection.provider,
+                selection.model,
+                selection.cli_version,
                 self._clock(),
             )
             return AnalysisDisposition.ACK
@@ -169,6 +181,32 @@ class AnalysisExecution:
             lease_for=self._settings.lease_for,
             interval=self._settings.heartbeat_interval,
         )
+
+    async def _analyze(
+        self, request: VideoAnalysisRequest
+    ) -> tuple[AnalyzerSelection, object]:
+        selection = await self._resolver.resolve()
+        return selection, await selection.analyzer.analyze(request)
+
+
+class _StaticAnalyzerResolver:
+    def __init__(
+        self,
+        analyzer: VideoAnalyzer,
+        *,
+        provider: str,
+        model: str,
+        cli_version: str,
+    ) -> None:
+        self._selection = AnalyzerSelection(
+            analyzer=analyzer,
+            provider=provider,
+            model=model,
+            cli_version=cli_version,
+        )
+
+    async def resolve(self) -> AnalyzerSelection:
+        return self._selection
 
 
 def _owns(

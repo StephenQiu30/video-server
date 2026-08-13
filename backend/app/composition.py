@@ -9,6 +9,7 @@ from uuid import uuid4
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.api.dependencies import AnalysisUseCases, DownloadUseCases
+from app.application.ai_providers import AiProviderService
 from app.application.analysis import (
     CancelAnalysis,
     CreateAnalysis,
@@ -37,8 +38,10 @@ from app.application.downloads import (
 )
 from app.application.provider_canaries import ProviderStatusService
 from app.application.provider_catalog import ProviderCatalogService
+from app.core.ai_provider_cipher import FernetAiProviderSecretCipher
 from app.core.config import Settings
 from app.core.url_cipher import URLCipher
+from app.infrastructure.ai_provider_repository import SqlAlchemyAiProviderRepository
 from app.infrastructure.analysis_repository import SqlAlchemyAnalysisRepository
 from app.infrastructure.analysis_skill_catalog import BuiltinAnalysisSkillCatalog
 from app.infrastructure.analysis_worker_registry import (
@@ -90,6 +93,7 @@ class ApiRuntime:
     operational_metrics: OperationalMetrics
     provider_status_service: ProviderStatusService
     provider_catalog_service: ProviderCatalogService
+    ai_provider_service: AiProviderService
 
     async def start(self) -> None:
         await self.realtime_consumer.start()
@@ -122,6 +126,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
     auth_repository = SqlAlchemyAuthRepository(sessions)
     user_repository = SqlAlchemyUserRepository(sessions)
     provider_catalog_repository = SqlAlchemyProviderCatalogRepository(sessions)
+    ai_provider_repository = SqlAlchemyAiProviderRepository(sessions)
     store = SqlAlchemyDownloadStore(repository)
     anonymous_runner = MediaRunnerHttpClient(
         base_url=settings.runner_base_url,
@@ -177,6 +182,15 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         provider_catalog_repository,
         provider_baselines,
         now=clock,
+    )
+    ai_provider_service = AiProviderService(
+        ai_provider_repository,
+        FernetAiProviderSecretCipher(
+            URLCipher(settings.url_encryption_key.get_secret_value().encode()),
+            key_id=settings.url_encryption_key_id,
+        ),
+        now=clock,
+        availability=analysis_availability,
     )
     fingerprinter = HmacRequestFingerprinter(
         settings.request_fingerprint_secret.get_secret_value().encode()
@@ -295,6 +309,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             catalog=provider_catalog_repository,
         ),
         provider_catalog_service=provider_catalog_service,
+        ai_provider_service=ai_provider_service,
     )
 
 

@@ -43,6 +43,7 @@ export function SiteHeader() {
   const historyActive = pathname.startsWith('/history');
   const providersActive = pathname.startsWith('/providers');
   const analyticsActive = pathname.startsWith('/admin/analytics');
+  const aiProvidersActive = pathname.startsWith('/admin/ai-providers');
   const catalogActive = pathname.startsWith('/admin/providers');
   const usersActive = pathname.startsWith('/admin/users');
 
@@ -95,6 +96,7 @@ export function SiteHeader() {
           </Button>
           <HeaderAccount
             analyticsActive={analyticsActive}
+            aiProvidersActive={aiProvidersActive}
             catalogActive={catalogActive}
             loading={loading}
             onSignOut={() => void handleSignOut()}

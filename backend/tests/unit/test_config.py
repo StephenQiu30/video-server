@@ -252,14 +252,16 @@ def test_analysis_cli_settings_use_host_services_without_api_keys() -> None:
     assert not any("openai" in name for name in type(settings).model_fields)
 
 
-def test_analysis_worker_reuses_shared_minio_credentials_when_not_overridden() -> None:
-    access = SecretStr("shared-access")
-    secret = SecretStr("shared-secret")
+def test_analysis_worker_uses_compose_role_credentials_when_not_overridden() -> None:
+    access = SecretStr("analysis-role-access")
+    secret = SecretStr("analysis-role-secret")
     settings = Settings(
         app_env="test",
         service_role="analysis-worker",
-        minio_access_key=access,
-        minio_secret_key=secret,
+        minio_access_key=SecretStr("shared-access"),
+        minio_secret_key=SecretStr("shared-secret"),
+        minio_analysis_access_key=access,
+        minio_analysis_secret_key=secret,
         _env_file=None,
     )
 

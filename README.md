@@ -54,6 +54,7 @@
 | `/downloads/detail?jobId=...` | 查看下载进度、获取文件并发起或阅读 AI 分析 |
 | `/providers` | 查看平台能力、访问模式与最近验证状态 |
 | `/account` | 管理公开用户名并查看账户信息 |
+| `/admin/ai-providers` | 管理本机登录与 API Key AI 路由，并查看宿主 Agent 在线状态（仅管理员） |
 | `/admin/analytics` | 通过无边框 KPI、可切换趋势系列与来源进度查看全局下载表现（仅管理员） |
 | `/admin/providers` | 维护平台状态页名称、排序与可见性（仅管理员） |
 | `/admin/users` | 搜索用户并管理角色与启用状态 |

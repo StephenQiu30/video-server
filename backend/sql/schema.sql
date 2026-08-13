@@ -33,6 +33,50 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
 CREATE INDEX IF NOT EXISTS ix_auth_sessions_user ON auth_sessions (user_id);
 CREATE INDEX IF NOT EXISTS ix_auth_sessions_expires ON auth_sessions (expires_at);
 
+CREATE TABLE IF NOT EXISTS ai_provider_profiles (
+    key VARCHAR(32) PRIMARY KEY,
+    display_name VARCHAR(64) NOT NULL,
+    engine VARCHAR(16) NOT NULL,
+    auth_mode VARCHAR(16) NOT NULL,
+    base_url VARCHAR(2048),
+    model VARCHAR(128) NOT NULL,
+    credential_ciphertext BYTEA,
+    credential_key_id VARCHAR(64),
+    is_active BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ck_ai_provider_engine CHECK (engine IN ('codex', 'claude')),
+    CONSTRAINT ck_ai_provider_auth_mode CHECK (
+        auth_mode IN ('host_login', 'api_key')
+    ),
+    CONSTRAINT ck_ai_provider_auth_shape CHECK (
+        (
+            auth_mode = 'host_login'
+            AND base_url IS NULL
+            AND credential_ciphertext IS NULL
+            AND credential_key_id IS NULL
+        ) OR (
+            auth_mode = 'api_key'
+            AND base_url IS NOT NULL
+            AND credential_ciphertext IS NOT NULL
+            AND credential_key_id IS NOT NULL
+        )
+    )
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_ai_provider_active
+    ON ai_provider_profiles (is_active)
+    WHERE is_active;
+
+INSERT INTO ai_provider_profiles (
+    key, display_name, engine, auth_mode, base_url, model,
+    credential_ciphertext, credential_key_id, is_active
+) VALUES (
+    'local-codex', '本机 Codex', 'codex', 'host_login', NULL,
+    'gpt-5.6-sol', NULL, NULL, TRUE
+)
+ON CONFLICT (key) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS provider_catalog_entries (
     key VARCHAR(32) PRIMARY KEY,
     display_name VARCHAR(64) NOT NULL,

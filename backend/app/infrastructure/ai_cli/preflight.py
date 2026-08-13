@@ -31,6 +31,7 @@ def preflight(
     ffmpeg_binary: str | Path,
     ffprobe_binary: str | Path,
     environment: Mapping[str, str],
+    verify_authentication: bool = True,
     runner: CommandRunner | None = None,
 ) -> CliCapabilities:
     execute = runner or _run
@@ -41,9 +42,9 @@ def preflight(
     _successful(execute, (str(ffmpeg), "-version"), environment)
     _successful(execute, (str(ffprobe), "-version"), environment)
     if provider == "codex":
-        _verify_codex(execute, binary, environment)
+        _verify_codex(execute, binary, environment, verify_authentication)
     elif provider == "claude":
-        _verify_claude(execute, binary, environment)
+        _verify_claude(execute, binary, environment, verify_authentication)
     else:
         raise AnalysisCliError("analysis_cli_unsupported")
     return CliCapabilities(
@@ -73,6 +74,7 @@ def _verify_codex(
     execute: CommandRunner,
     binary: Path,
     environment: Mapping[str, str],
+    verify_authentication: bool,
 ) -> None:
     version = _successful(execute, (str(binary), "--version"), environment)
     match = re.search(r"(\d+)\.(\d+)\.(\d+)", version)
@@ -82,6 +84,8 @@ def _verify_codex(
     required = ("--ephemeral", "--output-schema", "--output-last-message")
     if any(option not in help_text for option in required):
         raise AnalysisCliError("analysis_cli_unsupported")
+    if not verify_authentication:
+        return
     status = _successful(
         execute,
         (str(binary), "login", "status"),
@@ -97,11 +101,14 @@ def _verify_claude(
     execute: CommandRunner,
     binary: Path,
     environment: Mapping[str, str],
+    verify_authentication: bool,
 ) -> None:
     help_text = _successful(execute, (str(binary), "--help"), environment)
     required = ("--safe-mode", "--json-schema", "--strict-mcp-config")
     if any(option not in help_text for option in required):
         raise AnalysisCliError("analysis_cli_unsupported")
+    if not verify_authentication:
+        return
     raw = _successful(
         execute,
         (str(binary), "auth", "status", "--json"),

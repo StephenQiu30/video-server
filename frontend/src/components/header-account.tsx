@@ -3,6 +3,7 @@
 import {
   CaretDownIcon,
   ChartLineUpIcon,
+  RobotIcon,
   SignOutIcon,
   StackIcon,
   UserCircleIcon,
@@ -25,6 +26,7 @@ import type { AuthUser } from '@/services/auth';
 
 type HeaderAccountProps = {
   analyticsActive: boolean;
+  aiProvidersActive: boolean;
   catalogActive: boolean;
   loading: boolean;
   onSignOut: () => void;
@@ -36,6 +38,7 @@ type HeaderAccountProps = {
 
 export function HeaderAccount({
   analyticsActive,
+  aiProvidersActive,
   catalogActive,
   loading,
   onSignOut,
@@ -85,6 +88,15 @@ export function HeaderAccount({
             </DropdownMenuItem>
             {user.role === 'admin' ? (
               <>
+                <DropdownMenuItem asChild>
+                  <Link
+                    aria-current={aiProvidersActive ? 'page' : undefined}
+                    href="/admin/ai-providers"
+                  >
+                    <RobotIcon aria-hidden className="size-4" />
+                    AI 服务
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link
                     aria-current={analyticsActive ? 'page' : undefined}

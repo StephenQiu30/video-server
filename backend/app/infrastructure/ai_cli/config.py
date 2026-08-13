@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -20,6 +21,8 @@ class CliAdapterConfig:
     workspace_poll_seconds: float = 0.25
     terminate_grace_seconds: float = 2
     max_turns: int = 40
+    extra_environment: tuple[tuple[str, str], ...] = ()
+    provider_arguments: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         paths = (self.binary, self.ffmpeg, self.ffprobe)
@@ -39,3 +42,8 @@ class CliAdapterConfig:
         )
         if any(isinstance(value, bool) or value <= 0 for value in limits):
             raise ValueError("CLI adapter limits must be positive")
+        if any(
+            re.fullmatch(r"[A-Z][A-Z0-9_]*", name) is None or not value
+            for name, value in self.extra_environment
+        ):
+            raise ValueError("extra CLI environment entries must be non-blank")

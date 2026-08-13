@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Coroutine
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Protocol
 from uuid import UUID
@@ -82,6 +83,18 @@ class ArtifactLoader(Protocol):
 
 class VideoAnalyzer(Protocol):
     async def analyze(self, request: VideoAnalysisRequest) -> object: ...
+
+
+@dataclass(frozen=True, slots=True)
+class AnalyzerSelection:
+    analyzer: VideoAnalyzer
+    provider: str
+    model: str
+    cli_version: str
+
+
+class AnalyzerResolver(Protocol):
+    async def resolve(self) -> AnalyzerSelection: ...
 
 
 type Clock = Callable[[], datetime]

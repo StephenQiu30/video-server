@@ -80,6 +80,8 @@ class Settings(BaseSettings):
     minio_public_endpoint: str = "127.0.0.1:19190"
     minio_access_key: SecretStr = SecretStr("video-api-access")
     minio_secret_key: SecretStr = SecretStr("video-api-secret-change-me")
+    minio_analysis_access_key: SecretStr = SecretStr("video-analysis-access")
+    minio_analysis_secret_key: SecretStr = SecretStr("video-analysis-secret-change-me")
     minio_internal_secure: bool = False
     minio_public_secure: bool = False
     minio_region: str = "us-east-1"
@@ -355,10 +357,10 @@ class Settings(BaseSettings):
         return self
 
     def analysis_minio_credentials(self) -> tuple[SecretStr, SecretStr]:
-        """Prefer dedicated worker credentials, with a shared local fallback."""
+        """Prefer host overrides, then the Compose analysis-only credentials."""
         return (
-            self.analysis_minio_access_key or self.minio_access_key,
-            self.analysis_minio_secret_key or self.minio_secret_key,
+            self.analysis_minio_access_key or self.minio_analysis_access_key,
+            self.analysis_minio_secret_key or self.minio_analysis_secret_key,
         )
 
 

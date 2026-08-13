@@ -38,7 +38,7 @@ cat > /tmp/report-policy.json <<EOF
 EOF
 cat > /tmp/analysis-policy.json <<EOF
 {"Version":"2012-10-17","Statement":[
-  {"Effect":"Allow","Action":["s3:GetObject"],"Resource":["$bucket/downloads/*"]}
+  {"Effect":"Allow","Action":["s3:GetObject"],"Resource":["$bucket/downloads/*","$bucket/system/analysis-readiness-v1"]}
 ]}
 EOF
 cat > /tmp/canary-policy.json <<EOF
@@ -62,6 +62,7 @@ create_role "$MINIO_DOWNLOAD_ACCESS_KEY" "$MINIO_DOWNLOAD_SECRET_KEY" video-down
 create_role "$MINIO_REPORT_ACCESS_KEY" "$MINIO_REPORT_SECRET_KEY" video-report /tmp/report-policy.json
 create_role "$MINIO_ANALYSIS_ACCESS_KEY" "$MINIO_ANALYSIS_SECRET_KEY" video-analysis /tmp/analysis-policy.json
 create_role "$MINIO_CANARY_ACCESS_KEY" "$MINIO_CANARY_SECRET_KEY" video-canary /tmp/canary-policy.json
+printf '%s' 'framefetch-analysis-readiness-v1' | mc pipe "local/$MINIO_BUCKET/system/analysis-readiness-v1" >/dev/null
 
 # Disable the former broad development account when upgrading an existing volume.
 mc admin user disable local video-app-access >/dev/null 2>&1 || true

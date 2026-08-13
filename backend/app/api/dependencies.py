@@ -7,6 +7,7 @@ from typing import Annotated, cast
 
 from fastapi import Header, Request
 
+from app.application.ai_providers import AiProviderService
 from app.application.analysis import (
     CancelAnalysis,
     CreateAnalysis,
@@ -113,6 +114,18 @@ def get_provider_catalog_service(request: Request) -> ProviderCatalogService:
             detail="The Provider catalog service is not available.",
         )
     return cast(ProviderCatalogService, service)
+
+
+def get_ai_provider_service(request: Request) -> AiProviderService:
+    service = getattr(request.app.state, "ai_provider_service", None)
+    if service is None:
+        raise AppError(
+            status=503,
+            code="service_unavailable",
+            title="Service unavailable",
+            detail="The AI Provider service is not available.",
+        )
+    return cast(AiProviderService, service)
 
 
 async def get_provider_statuses(request: Request) -> tuple[ProviderStatusView, ...]:

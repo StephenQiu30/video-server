@@ -12,7 +12,7 @@ from .models import (
     LocalAnalysisArtifact,
     VideoAnalysisRequest,
 )
-from .ports import VideoAnalyzer
+from .ports import AnalyzerResolver, AnalyzerSelection, VideoAnalyzer
 from .service import AnalysisExecution
 
 __all__ = [
@@ -28,4 +28,6 @@ __all__ = [
     "LocalAnalysisArtifact",
     "VideoAnalysisRequest",
     "VideoAnalyzer",
+    "AnalyzerResolver",
+    "AnalyzerSelection",
 ]

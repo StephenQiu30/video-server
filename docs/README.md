@@ -31,3 +31,4 @@
 | 018 | RabbitMQ 生产可靠性增强 | [Design](design/018-RabbitMQ生产可靠性增强设计.md) | 待补 | 待补 | 待补 |
 | 019 | 用户设备 Edge Agent 与媒体制品导入 | [Design](design/019-用户设备EdgeAgent与媒体制品导入设计.md) | [PRD](prd/019-用户设备EdgeAgent与媒体制品导入需求.md) | [Plan](plans/019-用户设备EdgeAgent与媒体制品导入计划.md) | [Acceptance](acceptance/019-用户设备EdgeAgent与媒体制品导入验收.md) |
 | 020 | 用户制品持久化与保留策略 | [Design](design/020-用户制品持久化与保留策略设计.md) | [PRD](prd/020-用户制品持久化与保留策略需求.md) | [Plan](plans/020-用户制品持久化与保留策略计划.md) | [Acceptance](acceptance/020-用户制品持久化与保留策略验收.md) |
+| 022 | 跨平台 AI 分析 Agent 与模型 Provider 配置 | [Design](design/022-跨平台AI分析Agent与模型Provider配置设计.md) | [PRD](prd/022-跨平台AI分析Agent与模型Provider配置需求.md) | [Plan](plans/022-跨平台AI分析Agent与模型Provider配置计划.md) | [Acceptance](acceptance/022-跨平台AI分析Agent与模型Provider配置验收.md) |
