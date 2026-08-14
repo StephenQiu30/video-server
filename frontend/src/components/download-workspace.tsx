@@ -1,12 +1,24 @@
 'use client';
 
 import { CheckCircle, ShieldCheck } from '@phosphor-icons/react';
-import { type RefObject, useEffect, useRef, useState } from 'react';
+import {
+  type RefObject,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
-import DownloadHero from '@/components/download-hero';
+import {
+  ContentIntakeHero,
+  type IntakeMode,
+} from '@/components/content-intake-hero';
 import InspectionWorkspace from '@/components/inspection-workspace';
+import { LinkDownloadForm } from '@/components/link-download-form';
+import { MediaUploadForm } from '@/components/media-upload-form';
 import { markNavigationPush } from '@/components/navigation-history';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useMediaImport } from '@/hooks/useMediaImport';
 import { demoInspection } from '@/lib/demo-inspection';
 import {
   createDownload,
@@ -21,6 +33,7 @@ type BusyAction = 'inspect' | 'create' | null;
 type StableKey = { payload: string; value: string };
 
 export default function DownloadWorkspace() {
+  const [mode, setMode] = useState<IntakeMode>('link');
   const [url, setUrl] = useState('');
   const [inspection, setInspection] = useState<Inspection | null>(null);
   const [selectedId, setSelectedId] = useState('');
@@ -29,6 +42,12 @@ export default function DownloadWorkspace() {
   const [urlInvalid, setUrlInvalid] = useState(false);
   const inspectionKey = useRef<StableKey | null>(null);
   const downloadKey = useRef<StableKey | null>(null);
+  const openDownload = useCallback((downloadId: string) => {
+    const target = `/downloads/detail?jobId=${encodeURIComponent(downloadId)}`;
+    markNavigationPush(target);
+    window.location.assign(target);
+  }, []);
+  const mediaImport = useMediaImport(openDownload);
 
   useEffect(() => {
     if (
@@ -78,9 +97,7 @@ export default function DownloadWorkspace() {
         selectedId,
         stableKey(downloadKey, `${inspection.id}:${selectedId}`),
       );
-      const target = `/downloads/detail?jobId=${encodeURIComponent(result.id)}`;
-      markNavigationPush(target);
-      window.location.assign(target);
+      openDownload(result.id);
     } catch (reason) {
       setError(displayError(reason));
     } finally {
@@ -90,29 +107,58 @@ export default function DownloadWorkspace() {
 
   return (
     <main className="content-shell pb-6">
-      <DownloadHero
-        busy={busy === 'inspect'}
-        inspection={inspection}
-        invalid={urlInvalid}
-        onInspect={() => void inspect()}
-        onUrlChange={(value) => {
-          setUrl(value);
-          if (urlInvalid) {
-            setUrlInvalid(false);
-            setError(null);
-          }
-        }}
-        url={url}
+      <ContentIntakeHero
+        disabled={busy !== null || mediaImport.busy}
+        linkForm={
+          <LinkDownloadForm
+            busy={busy === 'inspect'}
+            inspection={inspection}
+            invalid={urlInvalid}
+            onInspect={() => void inspect()}
+            onUrlChange={(value) => {
+              setUrl(value);
+              if (urlInvalid) {
+                setUrlInvalid(false);
+                setError(null);
+              }
+            }}
+            url={url}
+          />
+        }
+        mode={mode}
+        onModeChange={setMode}
+        uploadForm={
+          <MediaUploadForm
+            busy={mediaImport.busy}
+            canCancel={mediaImport.canCancel}
+            file={mediaImport.file}
+            fileInvalid={mediaImport.fileInvalid}
+            onCancel={() => void mediaImport.cancel()}
+            onFileSelect={mediaImport.selectFile}
+            onRightsChange={mediaImport.setRightsAccepted}
+            onStart={() => void mediaImport.start()}
+            phase={mediaImport.phase}
+            progress={mediaImport.progress}
+            rightsAccepted={mediaImport.rightsAccepted}
+            rightsInvalid={mediaImport.rightsInvalid}
+          />
+        }
       />
-      {error ? (
+      {(mode === 'link' ? error : mediaImport.error) ? (
         <Alert className="mt-8" variant="destructive">
           <AlertTitle>操作未完成</AlertTitle>
           <AlertDescription id="download-workspace-error">
-            {error}
+            {mode === 'link' ? error : mediaImport.error}
           </AlertDescription>
         </Alert>
       ) : null}
-      {inspection ? (
+      {mode === 'upload' && mediaImport.notice ? (
+        <Alert className="mt-8">
+          <AlertTitle>上传已取消</AlertTitle>
+          <AlertDescription>{mediaImport.notice}</AlertDescription>
+        </Alert>
+      ) : null}
+      {mode === 'link' && inspection ? (
         <InspectionWorkspace
           busy={busy === 'create'}
           inspection={inspection}
@@ -124,7 +170,7 @@ export default function DownloadWorkspace() {
       <footer className="mt-10 flex flex-col gap-3 border-t py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <span className="flex items-center gap-2">
           <CheckCircle aria-hidden className="size-4 text-success" />
-          请仅提交你有权处理的公开链接
+          请仅提交你有权处理的公开链接或本地视频
         </span>
         <span className="flex items-center gap-1.5">
           <ShieldCheck aria-hidden className="size-4" />

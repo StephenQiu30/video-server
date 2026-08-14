@@ -105,6 +105,28 @@ def test_local_import_limit_must_fit_multipart_budget() -> None:
         )
 
 
+def test_minio_public_endpoint_is_safe_for_browser_policy() -> None:
+    settings = Settings(
+        app_env="test",
+        minio_public_endpoint="storage.example.com:9443",
+        minio_public_secure=True,
+        _env_file=None,
+    )
+
+    assert settings.minio_public_origin() == "https://storage.example.com:9443"
+    for endpoint in (
+        "https://storage.example.com",
+        "storage.example.com/path",
+        "storage.example.com;script-src",
+    ):
+        with pytest.raises(ValidationError, match="MINIO_PUBLIC_ENDPOINT"):
+            Settings(
+                app_env="test",
+                minio_public_endpoint=endpoint,
+                _env_file=None,
+            )
+
+
 def test_import_worker_runtime_limits_are_relationally_safe() -> None:
     with pytest.raises(ValidationError, match="heartbeat interval"):
         Settings(

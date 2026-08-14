@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from functools import lru_cache
+from ipaddress import ip_address
 from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
@@ -254,6 +255,41 @@ class Settings(BaseSettings):
             return None
         return value
 
+    @field_validator("minio_public_endpoint")
+    @classmethod
+    def validate_minio_public_endpoint(cls, value: str) -> str:
+        if not value or value != value.strip():
+            raise ValueError("MINIO_PUBLIC_ENDPOINT must be a host with optional port")
+        try:
+            parsed = urlsplit(f"//{value}")
+            _ = parsed.port
+        except ValueError as exc:
+            raise ValueError(
+                "MINIO_PUBLIC_ENDPOINT must be a host with optional port"
+            ) from exc
+        if (
+            parsed.hostname is None
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.path
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ValueError("MINIO_PUBLIC_ENDPOINT must be a host with optional port")
+        host = parsed.hostname
+        try:
+            ip_address(host)
+        except ValueError:
+            labels = host.split(".")
+            if any(
+                re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", label) is None
+                for label in labels
+            ):
+                raise ValueError(
+                    "MINIO_PUBLIC_ENDPOINT must be a host with optional port"
+                ) from None
+        return value
+
     @field_validator("runner_operator_base_urls")
     @classmethod
     def validate_runner_operator_urls(cls, value: dict[str, str]) -> dict[str, str]:
@@ -426,6 +462,11 @@ class Settings(BaseSettings):
             self.analysis_minio_access_key or self.minio_analysis_access_key,
             self.analysis_minio_secret_key or self.minio_analysis_secret_key,
         )
+
+    def minio_public_origin(self) -> str:
+        """Return the validated browser-visible object storage origin."""
+        scheme = "https" if self.minio_public_secure else "http"
+        return f"{scheme}://{self.minio_public_endpoint}"
 
 
 @lru_cache(maxsize=1)

@@ -166,6 +166,7 @@ services:
     environment:
       MINIO_ROOT_USER: "${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env.prod}"
       MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env.prod}"
+      MINIO_API_CORS_ALLOW_ORIGIN: "${MINIO_CORS_ALLOWED_ORIGINS:?set MINIO_CORS_ALLOWED_ORIGINS in .env.prod}"
 
   minio-init:
     environment:

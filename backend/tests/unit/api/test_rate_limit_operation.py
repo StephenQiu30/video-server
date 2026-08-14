@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.api.auth_dependencies import _rate_limit_operation
+from app.infrastructure.rate_limiter import _POLICIES
 
 
 class _Request:
@@ -67,6 +68,10 @@ def test_media_import_mutations_are_rate_limited() -> None:
         )
         == "media_import_upload"
     )
+
+
+def test_media_import_rate_limit_operations_have_admission_policies() -> None:
+    assert {"media_import", "media_import_upload"} <= _POLICIES.keys()
 
 
 def test_download_cancel_post_is_not_rate_limited() -> None:

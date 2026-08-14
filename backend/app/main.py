@@ -79,6 +79,11 @@ def create_app(
             max_body_bytes=effective.request_max_bytes,
             timeout_seconds=effective.request_timeout_seconds,
             production=effective.app_env == "production",
+            connect_origins=(
+                (effective.minio_public_origin(),)
+                if effective.media_import_enabled
+                else ()
+            ),
         )
     )
     application.add_exception_handler(AppError, app_error_handler)

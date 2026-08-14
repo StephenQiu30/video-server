@@ -25,6 +25,9 @@ const localizedErrorMessages: Record<string, string> = {
   format_unavailable: '原下载规格目前不可用，请重新解析视频并选择其他格式。',
   idempotency_conflict: '请求内容已经发生变化，请重新操作。',
   input_artifact_unavailable: '原视频文件已失效，请重新下载后再分析。',
+  import_sha256_mismatch: '上传文件的校验值不一致，请重新选择原文件上传。',
+  import_size_mismatch: '上传文件大小与选择时不一致，请重新选择文件。',
+  import_storage_unavailable: '文件存储暂时不可用，请稍后继续上传。',
   inspection_failed: '暂时无法读取视频信息，请检查链接后重试。',
   inspection_timeout: '读取视频信息超时，请稍后重试。',
   internal_error: '服务处理失败，请稍后重试。',
@@ -65,9 +68,12 @@ const localizedErrorMessages: Record<string, string> = {
   transcode_required: '该视频需要转码，当前下载规格不受支持。',
   unauthenticated: '登录状态已失效，请重新登录。',
   unsupported_source: '视频来源已变化或不受支持，请重新解析链接。',
+  upload_incomplete: '视频分片尚未完整上传，请检查网络后重试。',
+  upload_session_expired: '上传会话已过期，请重新上传。',
   user_not_found: '用户不存在或已被删除。',
   username_already_registered: '该用户名已被使用，请更换后重试。',
   worker_lost: '任务执行服务连接中断，请确认服务正常后重试。',
+  video_import_invalid: '视频未通过 MP4 安全校验，请更换有效文件。',
 };
 
 export function localizedErrorMessage(

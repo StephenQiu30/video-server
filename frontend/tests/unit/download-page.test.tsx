@@ -36,6 +36,11 @@ describe('DownloadWorkspace', () => {
     expect(screen.getByLabelText('公开视频地址')).toBeInTheDocument();
     expect(screen.queryByText('⌘V')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '解析媒体' })).toBeEnabled();
+    expect(screen.getByRole('tab', { name: '链接解析' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByRole('tab', { name: '本地上传' })).toBeEnabled();
     expect(
       screen.queryByRole('region', { name: '解析结果' }),
     ).not.toBeInTheDocument();

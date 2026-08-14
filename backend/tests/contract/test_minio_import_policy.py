@@ -68,6 +68,17 @@ def test_quarantine_lifecycle_expires_objects_and_incomplete_uploads() -> None:
     }
 
 
+def test_browser_upload_cors_is_origin_scoped_at_minio_api() -> None:
+    script = INIT_SCRIPT.read_text(encoding="utf-8")
+    compose = COMPOSE.read_text(encoding="utf-8")
+
+    assert "mc cors set" not in script
+    assert 'MINIO_API_CORS_ALLOW_ORIGIN: "${MINIO_CORS_ALLOWED_ORIGINS:-' in compose
+    assert 'MINIO_API_CORS_ALLOW_ORIGIN: "*"' not in compose
+    assert "http://127.0.0.1:8000" in compose
+    assert "http://127.0.0.1:8101" in compose
+
+
 def test_compose_requires_import_credentials_in_production() -> None:
     compose = COMPOSE.read_text(encoding="utf-8")
     production = PROD_COMPOSE.read_text(encoding="utf-8")
@@ -76,6 +87,7 @@ def test_compose_requires_import_credentials_in_production() -> None:
         "MINIO_IMPORT_ACCESS_KEY",
         "MINIO_IMPORT_SECRET_KEY",
         "IMPORT_QUARANTINE_RETENTION_DAYS",
+        "MINIO_CORS_ALLOWED_ORIGINS",
     ):
         assert variable in compose
         assert f"${{{variable}:?" in production

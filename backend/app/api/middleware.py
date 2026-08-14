@@ -16,6 +16,7 @@ async def request_guard(
     max_body_bytes: int,
     timeout_seconds: float,
     production: bool,
+    connect_origins: tuple[str, ...] = (),
 ) -> Response:
     content_length = request.headers.get("content-length")
     if content_length is not None:
@@ -27,6 +28,7 @@ async def request_guard(
                     "request_too_large",
                     "Request body is too large.",
                     production=production,
+                    connect_origins=connect_origins,
                 )
         except ValueError:
             return _problem(
@@ -35,6 +37,7 @@ async def request_guard(
                 "invalid_request",
                 "The request is invalid.",
                 production=production,
+                connect_origins=connect_origins,
             )
     try:
         async with asyncio.timeout(timeout_seconds):
@@ -46,8 +49,13 @@ async def request_guard(
             "request_timeout",
             "The request exceeded its deadline.",
             production=production,
+            connect_origins=connect_origins,
         )
-    _security_headers(response, production=production)
+    _security_headers(
+        response,
+        production=production,
+        connect_origins=connect_origins,
+    )
     return response
 
 
@@ -58,6 +66,7 @@ def _problem(
     detail: str,
     *,
     production: bool,
+    connect_origins: tuple[str, ...],
 ) -> JSONResponse:
     response = JSONResponse(
         status_code=status,
@@ -71,29 +80,41 @@ def _problem(
             "instance": request.url.path,
         },
     )
-    _security_headers(response, production=production)
+    _security_headers(
+        response,
+        production=production,
+        connect_origins=connect_origins,
+    )
     return response
 
 
-def _security_headers(response: Response, *, production: bool) -> None:
+def _security_headers(
+    response: Response,
+    *,
+    production: bool,
+    connect_origins: tuple[str, ...],
+) -> None:
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault(
         "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
     )
-    response.headers.setdefault("Content-Security-Policy", _csp())
+    response.headers.setdefault(
+        "Content-Security-Policy", _csp(connect_origins=connect_origins)
+    )
     if production:
         response.headers.setdefault(
             "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
         )
 
 
-def _csp() -> str:
+def _csp(*, connect_origins: tuple[str, ...]) -> str:
+    connect_sources = " ".join(("'self'", *connect_origins))
     return (
         "default-src 'self'; script-src 'self' 'unsafe-inline' "
         "https://cdn.jsdelivr.net; "
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
         "img-src 'self' data: https:; "
-        "connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; "
+        f"connect-src {connect_sources}; frame-ancestors 'none'; base-uri 'self'; "
         "form-action 'self'"
     )
