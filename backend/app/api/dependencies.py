@@ -19,6 +19,7 @@ from app.application.analysis import (
     ListAnalysisSkills,
     RetryAnalysis,
 )
+from app.application.documents import DeleteDocument, GetDocument, ListDocuments
 from app.application.downloads import (
     CancelDownload,
     CreateDownload,
@@ -96,6 +97,18 @@ class MediaImportUseCases:
     cancel_import: CancelImport
 
 
+@dataclass(frozen=True, slots=True)
+class DocumentImportUseCases:
+    create_resource: CreateImportResource
+    create_upload_session: CreateUploadSession
+    complete_upload: CompleteImportUpload
+    get_import: GetImport
+    cancel_import: CancelImport
+    get_document: GetDocument
+    list_documents: ListDocuments
+    delete_document: DeleteDocument
+
+
 def get_download_use_cases(request: Request) -> DownloadUseCases:
     container = getattr(request.app.state, "download_use_cases", None)
     if container is None:
@@ -130,6 +143,18 @@ def get_media_import_use_cases(request: Request) -> MediaImportUseCases:
             detail="The media import service is not available.",
         )
     return cast(MediaImportUseCases, container)
+
+
+def get_document_import_use_cases(request: Request) -> DocumentImportUseCases:
+    container = getattr(request.app.state, "document_import_use_cases", None)
+    if container is None:
+        raise AppError(
+            status=503,
+            code="service_unavailable",
+            title="Service unavailable",
+            detail="The document import service is not available.",
+        )
+    return cast(DocumentImportUseCases, container)
 
 
 def get_provider_catalog_service(request: Request) -> ProviderCatalogService:

@@ -174,9 +174,11 @@ def _unauthenticated() -> AppError:
 
 
 def _rate_limit_operation(request: Request) -> str | None:
+    path = request.url.path.rstrip("/")
+    if request.method == "DELETE" and path.startswith("/api/documents/"):
+        return "document_import"
     if request.method != "POST":
         return None
-    path = request.url.path.rstrip("/")
     if path == "/api/inspections":
         return "inspect"
     if path == "/api/downloads":
@@ -187,6 +189,12 @@ def _rate_limit_operation(request: Request) -> str | None:
         ("/upload-sessions", "/complete")
     ):
         return "media_import_upload"
+    if path == "/api/documents":
+        return "document_import"
+    if path.startswith("/api/documents/") and path.endswith(
+        ("/upload-sessions", "/complete")
+    ):
+        return "document_import_upload"
     if path.endswith("/analyses") and path.startswith("/api/downloads/"):
         return "analysis"
     if path.startswith("/api/downloads/") and path.endswith("/retry"):

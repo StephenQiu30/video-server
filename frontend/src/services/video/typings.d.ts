@@ -191,11 +191,24 @@ declare namespace API {
     analysis_id: string;
   };
 
+  type cancelDocumentImportParams = {
+    document_id: string;
+  };
+
   type cancelDownloadParams = {
     job_id: string;
   };
 
   type CompatibilityProfile = "balanced" | "quality" | "smallest";
+
+  type completeDocumentImportParams = {
+    document_id: string;
+  };
+
+  type CompleteDocumentImportRequest = {
+    /** Parts */
+    parts: CompletedPartRequest[];
+  };
 
   type CompletedPartRequest = {
     /** Part Number */
@@ -234,6 +247,10 @@ declare namespace API {
     download_id: string;
   };
 
+  type createDocumentUploadSessionParams = {
+    document_id: string;
+  };
+
   type createMediaUploadSessionParams = {
     resource_id: string;
   };
@@ -257,8 +274,110 @@ declare namespace API {
     analysis_id: string;
   };
 
+  type deleteDocumentParams = {
+    document_id: string;
+  };
+
   type deleteProviderCatalogEntryParams = {
     provider_key: string;
+  };
+
+  type DocumentImportRequest = {
+    /** File Name */
+    file_name: string;
+    source_format: DocumentSourceFormat;
+    /** Declared Size Bytes */
+    declared_size_bytes: number;
+    /** Declared Sha256 */
+    declared_sha256: string;
+    /** Rights Accepted */
+    rights_accepted: boolean;
+  };
+
+  type DocumentImportResponse = {
+    /** Id */
+    id: string;
+    source_format: DocumentSourceFormat;
+    /** Original Filename */
+    original_filename: string;
+    /** Declared Size Bytes */
+    declared_size_bytes: number;
+    status: ImportStatus;
+    /** Attempt */
+    attempt: number;
+    error_code: ImportErrorCode | null;
+    /** Version */
+    version: number;
+    /** Created At */
+    created_at: string;
+    /** Updated At */
+    updated_at: string;
+    /** Finished At */
+    finished_at: string | null;
+  };
+
+  type DocumentPageResponse = {
+    /** Items */
+    items: DocumentResponse[];
+    /** Page */
+    page: number;
+    /** Page Size */
+    page_size: number;
+    /** Total */
+    total: number;
+  };
+
+  type DocumentResponse = {
+    /** Id */
+    id: string;
+    /** Title */
+    title: string;
+    /** Original Filename */
+    original_filename: string;
+    source_format: DocumentSourceFormat;
+    /** Declared Size Bytes */
+    declared_size_bytes: number;
+    status: ImportStatus;
+    /** Attempt */
+    attempt: number;
+    error_code: ImportErrorCode | null;
+    /** Version */
+    version: number;
+    /** Detected Language */
+    detected_language: string | null;
+    /** Scene Count */
+    scene_count: number | null;
+    /** Character Count */
+    character_count: number | null;
+    /** Quality Warnings */
+    quality_warnings: string[];
+    /** Expires At */
+    expires_at: string | null;
+    /** Created At */
+    created_at: string;
+    /** Updated At */
+    updated_at: string;
+    /** Finished At */
+    finished_at: string | null;
+  };
+
+  type DocumentSourceFormat = "docx" | "pdf" | "txt" | "markdown" | "fountain";
+
+  type DocumentUploadSessionResponse = {
+    /** Resource Id */
+    resource_id: string;
+    /** Attempt */
+    attempt: number;
+    /** Part Size Bytes */
+    part_size_bytes: number;
+    /** Part Count */
+    part_count: number;
+    /** Max Concurrency */
+    max_concurrency: number;
+    /** Expires At */
+    expires_at: string;
+    /** Parts */
+    parts: UploadPartResponse[];
   };
 
   type DownloadAnalyticsDailyResponse = {
@@ -517,6 +636,10 @@ declare namespace API {
     analysis_id: string;
   };
 
+  type getDocumentImportParams = {
+    document_id: string;
+  };
+
   type getDownloadAnalyticsParams = {
     days?: number;
   };
@@ -622,6 +745,11 @@ declare namespace API {
 
   type issueDownloadUrlParams = {
     job_id: string;
+  };
+
+  type listDocumentsParams = {
+    page?: number;
+    page_size?: number;
   };
 
   type listUsersParams = {

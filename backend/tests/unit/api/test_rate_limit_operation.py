@@ -74,6 +74,29 @@ def test_media_import_rate_limit_operations_have_admission_policies() -> None:
     assert {"media_import", "media_import_upload"} <= _POLICIES.keys()
 
 
+def test_document_import_mutations_have_admission_policies() -> None:
+    resource = "2a11fb32-0e3d-4a2b-8a5d-0f2d1a4f9f4e"
+
+    assert _rate_limit_operation(_request("POST", "/api/documents")) == (
+        "document_import"
+    )
+    assert (
+        _rate_limit_operation(
+            _request("POST", f"/api/documents/{resource}/upload-sessions")
+        )
+        == "document_import_upload"
+    )
+    assert (
+        _rate_limit_operation(_request("POST", f"/api/documents/{resource}/complete"))
+        == "document_import_upload"
+    )
+    assert {"document_import", "document_import_upload"} <= _POLICIES.keys()
+    assert (
+        _rate_limit_operation(_request("DELETE", f"/api/documents/{resource}"))
+        == "document_import"
+    )
+
+
 def test_download_cancel_post_is_not_rate_limited() -> None:
     assert (
         _rate_limit_operation(

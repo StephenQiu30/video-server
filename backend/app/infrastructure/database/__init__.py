@@ -30,6 +30,8 @@ from .contracts import (
     ThumbnailSnapshot,
     ThumbnailSourceSnapshot,
 )
+from .document_catalog_repository import SqlAlchemyDocumentCatalogRepository
+from .document_delete_repository import SqlAlchemyDocumentDeleteRepository
 from .document_import_repository import SqlAlchemyDocumentImportRepository
 from .errors import (
     IdempotencyConflict,
@@ -120,6 +122,8 @@ __all__ = [
     "ThumbnailSourceSnapshot",
     "SqlAlchemyDownloadRepository",
     "SqlAlchemyDocumentImportRepository",
+    "SqlAlchemyDocumentCatalogRepository",
+    "SqlAlchemyDocumentDeleteRepository",
     "SqlAlchemyMediaImportRepository",
     "UserRow",
     "build_artifact_object_key",

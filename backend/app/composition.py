@@ -8,7 +8,12 @@ from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from app.api.dependencies import AnalysisUseCases, DownloadUseCases, MediaImportUseCases
+from app.api.dependencies import (
+    AnalysisUseCases,
+    DocumentImportUseCases,
+    DownloadUseCases,
+    MediaImportUseCases,
+)
 from app.application.ai_providers import AiProviderService
 from app.application.analysis import (
     CancelAnalysis,
@@ -22,6 +27,7 @@ from app.application.analysis import (
     RetryAnalysis,
 )
 from app.application.auth import AuthService, UserService
+from app.application.documents import DeleteDocument, GetDocument, ListDocuments
 from app.application.downloads import (
     CancelDownload,
     CreateDownload,
@@ -58,6 +64,9 @@ from app.infrastructure.analysis_worker_registry import (
 )
 from app.infrastructure.auth_repository import SqlAlchemyAuthRepository
 from app.infrastructure.database import (
+    SqlAlchemyDocumentCatalogRepository,
+    SqlAlchemyDocumentDeleteRepository,
+    SqlAlchemyDocumentImportRepository,
     SqlAlchemyDownloadRepository,
     SqlAlchemyMediaImportRepository,
     create_engine,
@@ -93,6 +102,7 @@ class ApiRuntime:
     use_cases: DownloadUseCases
     analysis_use_cases: AnalysisUseCases
     media_import_use_cases: MediaImportUseCases
+    document_import_use_cases: DocumentImportUseCases
     engine: AsyncEngine
     runner: MediaRunnerRouter
     rate_limiter: ValkeyRateLimiter | None
@@ -127,6 +137,9 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
     )
     repository = SqlAlchemyDownloadRepository(sessions)
     media_import_repository = SqlAlchemyMediaImportRepository(sessions)
+    document_import_repository = SqlAlchemyDocumentImportRepository(sessions)
+    document_catalog_repository = SqlAlchemyDocumentCatalogRepository(sessions)
+    document_delete_repository = SqlAlchemyDocumentDeleteRepository(sessions)
     analysis_repository = SqlAlchemyAnalysisRepository(sessions)
     analysis_availability = SqlAlchemyAnalysisWorkerRegistry(
         sessions,
@@ -223,6 +236,12 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         max_duration_seconds=settings.max_video_duration_seconds,
         persist_thumbnail=persist_thumbnail,
     )
+    upload_limits = UploadLimits(
+        part_size_bytes=settings.import_upload_part_size_bytes,
+        max_parts=settings.import_upload_max_parts,
+        max_concurrency=settings.import_upload_max_concurrency,
+        session_ttl=timedelta(seconds=settings.import_upload_session_ttl_seconds),
+    )
     cancel_import = CancelImport(
         media_import_repository,
         import_storage,
@@ -244,14 +263,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             media_import_repository,
             import_storage,
             now=clock,
-            limits=UploadLimits(
-                part_size_bytes=settings.import_upload_part_size_bytes,
-                max_parts=settings.import_upload_max_parts,
-                max_concurrency=settings.import_upload_max_concurrency,
-                session_ttl=timedelta(
-                    seconds=settings.import_upload_session_ttl_seconds
-                ),
-            ),
+            limits=upload_limits,
         ),
         complete_upload=CompleteImportUpload(
             media_import_repository,
@@ -260,6 +272,43 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         ),
         get_import=GetImport(media_import_repository),
         cancel_import=cancel_import,
+    )
+    document_import_use_cases = DocumentImportUseCases(
+        create_resource=CreateImportResource(
+            repository=document_import_repository,
+            fingerprinter=fingerprinter,
+            now=clock,
+            new_id=uuid4,
+            media_enabled=False,
+            document_enabled=settings.document_import_enabled,
+            media_max_bytes=settings.media_import_max_bytes,
+            document_max_bytes=settings.document_import_max_bytes,
+            rights_statement_version=settings.import_rights_statement_version,
+        ),
+        create_upload_session=CreateUploadSession(
+            document_import_repository,
+            import_storage,
+            now=clock,
+            limits=upload_limits,
+        ),
+        complete_upload=CompleteImportUpload(
+            document_import_repository,
+            import_storage,
+            now=clock,
+        ),
+        get_import=GetImport(document_import_repository),
+        cancel_import=CancelImport(
+            document_import_repository,
+            import_storage,
+            now=clock,
+        ),
+        get_document=GetDocument(document_catalog_repository),
+        list_documents=ListDocuments(document_catalog_repository),
+        delete_document=DeleteDocument(
+            document_delete_repository,
+            import_storage,
+            now=clock,
+        ),
     )
     use_cases = DownloadUseCases(
         inspect_media=inspect_media,
@@ -337,6 +386,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         use_cases=use_cases,
         analysis_use_cases=analysis_use_cases,
         media_import_use_cases=media_import_use_cases,
+        document_import_use_cases=document_import_use_cases,
         engine=engine,
         runner=runner,
         rate_limiter=rate_limiter,

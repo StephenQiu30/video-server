@@ -59,6 +59,9 @@ def create_app(
         application.state.media_import_use_cases = (
             configured_runtime.media_import_use_cases
         )
+        application.state.document_import_use_cases = (
+            configured_runtime.document_import_use_cases
+        )
         application.state.rate_limiter = configured_runtime.rate_limiter
         application.state.readiness_probe = configured_runtime.readiness
         application.state.realtime_hub = configured_runtime.realtime_hub
@@ -81,7 +84,7 @@ def create_app(
             production=effective.app_env == "production",
             connect_origins=(
                 (effective.minio_public_origin(),)
-                if effective.media_import_enabled
+                if effective.media_import_enabled or effective.document_import_enabled
                 else ()
             ),
         )

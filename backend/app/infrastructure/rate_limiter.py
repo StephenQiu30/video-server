@@ -99,5 +99,7 @@ _POLICIES = {
     "download_retry": RateLimitPolicy(limit=5, window_seconds=60),
     "media_import": RateLimitPolicy(limit=10, window_seconds=60),
     "media_import_upload": RateLimitPolicy(limit=30, window_seconds=60),
+    "document_import": RateLimitPolicy(limit=10, window_seconds=60),
+    "document_import_upload": RateLimitPolicy(limit=30, window_seconds=60),
     "analysis": RateLimitPolicy(limit=5, window_seconds=60),
 }

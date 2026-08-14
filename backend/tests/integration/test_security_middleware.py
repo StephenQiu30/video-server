@@ -50,6 +50,24 @@ def test_media_import_csp_allows_only_configured_storage_origin(
     assert "connect-src *" not in csp
 
 
+def test_document_import_enables_bounded_storage_origin(tmp_path: Path) -> None:
+    app = create_app(
+        Settings(
+            app_env="test",
+            frontend_dist_dir=tmp_path / "missing",
+            document_import_enabled=True,
+            minio_public_endpoint="documents.example.com:9443",
+            minio_public_secure=True,
+            _env_file=None,
+        )
+    )
+
+    with TestClient(app) as client:
+        csp = client.get("/health/live").headers["content-security-policy"]
+
+    assert "connect-src 'self' https://documents.example.com:9443" in csp
+
+
 def test_rate_limit_returns_problem_details_and_retry_after(tmp_path: Path) -> None:
     app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "missing"))
 
