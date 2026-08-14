@@ -19,6 +19,7 @@ from app.application.analysis.export_report import (
 )
 from app.application.analysis.get_analysis import GetAnalysis
 from app.application.analysis.get_latest_analysis import GetLatestDownloadAnalysis
+from app.application.analysis.input_models import AnalysisDocumentSnapshot
 from app.application.analysis.list_skills import ListAnalysisSkills
 from app.application.analysis.models import (
     AnalysisArtifactSnapshot,
@@ -50,6 +51,7 @@ __all__ = [
     "AnalysisApplicationErrorCode",
     "AnalysisArtifactSnapshot",
     "AnalysisCreate",
+    "AnalysisDocumentSnapshot",
     "AnalysisJobSaveResult",
     "AnalysisJobSnapshot",
     "AnalysisJobView",

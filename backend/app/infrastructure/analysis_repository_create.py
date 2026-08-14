@@ -7,24 +7,22 @@ from uuid import UUID
 
 from sqlalchemy import Select, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.analysis import (
     AnalysisCreate,
     AnalysisJobSaveResult,
     PersistenceConflict,
     PersistenceIdempotencyConflict,
-    PersistenceNotFound,
 )
-from app.domain.analysis import AnalysisInputKind, AnalysisResultContract
 from app.infrastructure.analysis_repository_base import AnalysisRepositoryBase
 from app.infrastructure.analysis_repository_mapping import analysis_job_snapshot
+from app.infrastructure.analysis_repository_sources import (
+    new_source_lock,
+    validate_create_source,
+)
 from app.infrastructure.database.models import (
-    AnalysisArtifactLockRow,
     AnalysisJobRow,
     AnalysisRunRow,
-    ArtifactRow,
-    DownloadJobRow,
 )
 
 
@@ -40,7 +38,7 @@ class AnalysisCreationRepository(AnalysisRepositoryBase):
                     existing = await session.scalar(self._key_query(command))
                     if existing is not None:
                         return self._key_replay(existing, command)
-                    await self._validate_source(session, command, now)
+                    await validate_create_source(session, command, now)
                     row = self._new_row(command, now)
                     session.add(row)
                     # The lock references analysis_jobs. Flush the parent first
@@ -56,14 +54,7 @@ class AnalysisCreationRepository(AnalysisRepositoryBase):
                         now=now,
                     )
                     session.add(run)
-                    if row.artifact_id is not None:
-                        session.add(
-                            AnalysisArtifactLockRow(
-                                job_id=row.id,
-                                artifact_id=row.artifact_id,
-                                created_at=now,
-                            )
-                        )
+                    session.add(new_source_lock(row, now))
                     session.add(
                         self.requested_event(
                             row,
@@ -99,38 +90,6 @@ class AnalysisCreationRepository(AnalysisRepositoryBase):
         if row.request_fingerprint != command.request_fingerprint:
             raise PersistenceIdempotencyConflict("analysis idempotency key reused")
         return AnalysisJobSaveResult(analysis_job_snapshot(row), created=False)
-
-    @staticmethod
-    async def _validate_source(
-        session: AsyncSession, command: AnalysisCreate, now: datetime
-    ) -> None:
-        if (
-            command.input_kind is not AnalysisInputKind.VIDEO
-            or command.result_contract
-            is not AnalysisResultContract.VIDEO_VISUAL_ANALYSIS
-            or command.artifact_id is None
-            or command.document_id is not None
-        ):
-            raise PersistenceNotFound("screenplay analysis source is not available")
-        source = (
-            await session.execute(
-                select(ArtifactRow, DownloadJobRow)
-                .join(DownloadJobRow, DownloadJobRow.id == ArtifactRow.job_id)
-                .where(
-                    ArtifactRow.id == command.artifact_id,
-                    ArtifactRow.deleted_at.is_(None),
-                    ArtifactRow.expires_at > now,
-                    DownloadJobRow.owner_hash == command.owner_hash,
-                    DownloadJobRow.status == "succeeded",
-                )
-                .with_for_update()
-            )
-        ).one_or_none()
-        if source is None:
-            raise PersistenceNotFound("analysis artifact is unavailable")
-        artifact, _ = source
-        if artifact.sha256 != command.input_sha256:
-            raise PersistenceConflict("analysis input SHA changed")
 
     @staticmethod
     def _new_row(command: AnalysisCreate, now: datetime) -> AnalysisJobRow:

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -13,21 +12,21 @@ from app.application.analysis import (
     AnalysisJobSaveResult,
     AnalysisRetry,
     PersistenceActiveRun,
-    PersistenceArtifactUnavailable,
     PersistenceConflict,
     PersistenceNotFound,
     PersistenceRetryLimited,
 )
 from app.infrastructure.analysis_repository_create import AnalysisCreationRepository
 from app.infrastructure.analysis_repository_mapping import analysis_job_snapshot
+from app.infrastructure.analysis_repository_sources import (
+    new_source_lock,
+    require_retry_source,
+)
 from app.infrastructure.database.base import as_utc
 from app.infrastructure.database.models import (
-    AnalysisArtifactLockRow,
     AnalysisJobRow,
     AnalysisRetryOperationRow,
     AnalysisRunRow,
-    ArtifactRow,
-    DownloadJobRow,
 )
 
 
@@ -54,7 +53,7 @@ class AnalysisRetryRepository(AnalysisCreationRepository):
                     if row.status not in {"failed", "cancelled", "succeeded"}:
                         raise PersistenceActiveRun("analysis already has an active run")
                     await self._require_retry_capacity(session, row, command, now)
-                    await self._require_artifact(session, row, now)
+                    await require_retry_source(session, row, now)
                     run = self._new_run(
                         run_id=command.run_id,
                         job_id=row.id,
@@ -68,13 +67,7 @@ class AnalysisRetryRepository(AnalysisCreationRepository):
                     # not expose a relationship from which SQLAlchemy can infer insert
                     # ordering. Persist the run before adding dependent rows.
                     await session.flush()
-                    session.add(
-                        AnalysisArtifactLockRow(
-                            job_id=row.id,
-                            artifact_id=self._video_artifact_id(row),
-                            created_at=now,
-                        )
-                    )
+                    session.add(new_source_lock(row, now))
                     session.add(
                         AnalysisRetryOperationRow(
                             job_id=row.id,
@@ -164,35 +157,6 @@ class AnalysisRetryRepository(AnalysisCreationRepository):
         )
         if int(daily_retries or 0) >= command.retries_per_day:
             raise PersistenceRetryLimited("owner daily analysis retry limit reached")
-
-    @staticmethod
-    async def _require_artifact(
-        session: AsyncSession, row: AnalysisJobRow, now: datetime
-    ) -> None:
-        artifact_id = AnalysisRetryRepository._video_artifact_id(row)
-        source = await session.scalar(
-            select(ArtifactRow)
-            .join(DownloadJobRow, DownloadJobRow.id == ArtifactRow.job_id)
-            .where(
-                ArtifactRow.id == artifact_id,
-                ArtifactRow.deleted_at.is_(None),
-                ArtifactRow.expires_at > now,
-                ArtifactRow.sha256 == row.input_sha256,
-                DownloadJobRow.owner_hash == row.owner_hash,
-                DownloadJobRow.status == "succeeded",
-            )
-            .with_for_update()
-        )
-        if source is None:
-            raise PersistenceArtifactUnavailable("analysis artifact is unavailable")
-
-    @staticmethod
-    def _video_artifact_id(row: AnalysisJobRow) -> UUID:
-        if row.input_kind != "video" or row.artifact_id is None:
-            raise PersistenceArtifactUnavailable(
-                "screenplay retry source is not available"
-            )
-        return row.artifact_id
 
     @staticmethod
     def _reset_job(row: AnalysisJobRow, run: AnalysisRunRow, now: datetime) -> None:

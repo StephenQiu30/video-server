@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
+from app.application.analysis.input_models import AnalysisDocumentSnapshot
 from app.application.analysis.models import (
     AnalysisArtifactSnapshot,
     AnalysisCreate,
@@ -30,6 +31,10 @@ class AnalysisRepository(Protocol):
     async def get_artifact_for_download(
         self, download_id: UUID
     ) -> AnalysisArtifactSnapshot | None: ...
+
+    async def get_document_for_analysis(
+        self, document_id: UUID
+    ) -> AnalysisDocumentSnapshot | None: ...
 
     async def create_job_and_enqueue(
         self, command: AnalysisCreate, *, now: datetime

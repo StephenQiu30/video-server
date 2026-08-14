@@ -6,12 +6,10 @@ from copy import deepcopy
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.analysis import (
-    AnalysisArtifactSnapshot,
     AnalysisJobSnapshot,
     AnalysisReportArtifactSnapshot,
     AnalysisReportSnapshot,
@@ -19,54 +17,23 @@ from app.application.analysis import (
     PersistenceConflict,
 )
 from app.domain.analysis import AnalysisResult
-from app.infrastructure.analysis_repository_mapping import (
-    analysis_artifact_snapshot,
-    analysis_job_snapshot,
-)
+from app.infrastructure.analysis_repository_inputs import AnalysisInputRepository
+from app.infrastructure.analysis_repository_mapping import analysis_job_snapshot
 from app.infrastructure.analysis_repository_serialization import (
     analysis_result_from_document,
 )
+from app.infrastructure.analysis_repository_sources import release_source_locks
 from app.infrastructure.database.base import as_utc
 from app.infrastructure.database.models import (
-    AnalysisArtifactLockRow,
     AnalysisJobRow,
     AnalysisReportArtifactRow,
     AnalysisResultRow,
     AnalysisRunRow,
-    ArtifactRow,
-    DownloadJobRow,
     OutboxEventRow,
 )
 
 
-class AnalysisRepositoryBase:
-    def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
-        self._sessions = sessions
-
-    async def get_artifact_for_download(
-        self, download_id: UUID
-    ) -> AnalysisArtifactSnapshot | None:
-        return await self._artifact_projection(ArtifactRow.job_id == download_id)
-
-    async def get_artifact(self, artifact_id: UUID) -> AnalysisArtifactSnapshot | None:
-        return await self._artifact_projection(ArtifactRow.id == artifact_id)
-
-    async def _artifact_projection(
-        self, criterion: ColumnElement[bool]
-    ) -> AnalysisArtifactSnapshot | None:
-        async with self._sessions() as session:
-            result = (
-                await session.execute(
-                    select(ArtifactRow, DownloadJobRow)
-                    .join(DownloadJobRow, DownloadJobRow.id == ArtifactRow.job_id)
-                    .where(criterion, ArtifactRow.deleted_at.is_(None))
-                )
-            ).one_or_none()
-            if result is None:
-                return None
-            artifact, download = result
-            return analysis_artifact_snapshot(artifact, download)
-
+class AnalysisRepositoryBase(AnalysisInputRepository):
     async def get_job(self, job_id: UUID) -> AnalysisJobSnapshot | None:
         async with self._sessions() as session:
             row = await session.scalar(
@@ -209,11 +176,7 @@ class AnalysisRepositoryBase:
 
     @staticmethod
     async def release_lock(session: AsyncSession, job_id: UUID) -> None:
-        await session.execute(
-            delete(AnalysisArtifactLockRow).where(
-                AnalysisArtifactLockRow.job_id == job_id
-            )
-        )
+        await release_source_locks(session, job_id)
 
     @staticmethod
     async def active_run(
