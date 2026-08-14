@@ -5,6 +5,11 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from app.application.imports import (
+    ImportObjectStorageError,
+    MultipartUploadNotFound,
+    MultipartUploadRejected,
+)
 from app.core.config import Settings
 from app.infrastructure.object_storage import MinioObjectStorage, MultipartUploadPart
 from minio.commonconfig import CopySource
@@ -321,6 +326,69 @@ class PromotionMinio(FakeMinio):
 class SimpleStorageError(Exception):
     def __init__(self, code: str) -> None:
         self.code = code
+
+
+class ErrorMinio(FakeMinio):
+    def __init__(self, code: str) -> None:
+        super().__init__()
+        self.code = code
+
+    def _complete_multipart_upload(
+        self,
+        bucket: str,
+        object_key: str,
+        upload_id: str,
+        parts: list[MultipartUploadPart],
+    ) -> SimpleNamespace:
+        raise SimpleStorageError(self.code)
+
+    def _abort_multipart_upload(
+        self, bucket: str, object_key: str, upload_id: str
+    ) -> None:
+        raise SimpleStorageError(self.code)
+
+    def stat_object(self, bucket: str, object_key: str) -> SimpleNamespace:
+        raise SimpleStorageError(self.code)
+
+
+@pytest.mark.parametrize(
+    ("code", "error_type"),
+    (
+        ("InvalidPart", MultipartUploadRejected),
+        ("InvalidPartOrder", MultipartUploadRejected),
+        ("EntityTooSmall", MultipartUploadRejected),
+        ("NoSuchUpload", MultipartUploadNotFound),
+        ("AccessDenied", ImportObjectStorageError),
+    ),
+)
+async def test_storage_translates_multipart_completion_errors(
+    code: str, error_type: type[Exception]
+) -> None:
+    storage = MinioObjectStorage(settings(), private=ErrorMinio(code))
+
+    with pytest.raises(error_type):
+        await storage.complete_multipart_upload(
+            "quarantine/video/resource/1/source",
+            "upload-id",
+            (_multipart_part(1, "1" * 32),),
+        )
+
+
+async def test_storage_abort_is_idempotent_when_upload_is_missing() -> None:
+    storage = MinioObjectStorage(settings(), private=ErrorMinio("NoSuchUpload"))
+
+    await storage.abort_multipart_upload(
+        "quarantine/video/resource/1/source", "upload-id"
+    )
+
+
+async def test_storage_translates_head_access_error() -> None:
+    storage = MinioObjectStorage(settings(), private=ErrorMinio("AccessDenied"))
+
+    with pytest.raises(ImportObjectStorageError) as captured:
+        await storage.stat("quarantine/video/resource/1/source")
+
+    assert getattr(captured.value.__cause__, "code", None) == "AccessDenied"
 
 
 async def test_storage_promotes_verified_object_idempotently() -> None:

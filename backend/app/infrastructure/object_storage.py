@@ -8,12 +8,18 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from io import BytesIO
 from pathlib import Path, PurePosixPath
+from typing import Protocol
 from urllib.parse import quote
 
 from minio import Minio
 from minio.commonconfig import REPLACE, CopySource
 from minio.datatypes import Part
 
+from app.application.imports.errors import (
+    ImportObjectStorageError,
+    MultipartUploadNotFound,
+    MultipartUploadRejected,
+)
 from app.core.config import Settings
 
 
@@ -34,6 +40,14 @@ class StoredObject:
 class MultipartUploadPart:
     part_number: int
     etag: str
+
+
+class MultipartUploadPartLike(Protocol):
+    @property
+    def part_number(self) -> int: ...
+
+    @property
+    def etag(self) -> str: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -141,7 +155,7 @@ class MinioObjectStorage:
         except Exception as error:
             if getattr(error, "code", None) in {"NoSuchKey", "NoSuchObject"}:
                 return None
-            raise
+            raise ImportObjectStorageError("object HEAD failed") from error
         metadata = getattr(result, "metadata", {}) or {}
         sha256 = metadata.get("x-amz-meta-sha256") or metadata.get("sha256")
         if result.size is None:
@@ -172,12 +186,15 @@ class MinioObjectStorage:
         }
         if declared_sha256 is not None:
             headers["X-Amz-Meta-Declared-Sha256"] = _validate_sha256(declared_sha256)
-        upload_id = await asyncio.to_thread(
-            self._private._create_multipart_upload,
-            self._bucket,
-            object_key,
-            headers,
-        )
+        try:
+            upload_id = await asyncio.to_thread(
+                self._private._create_multipart_upload,
+                self._bucket,
+                object_key,
+                headers,
+            )
+        except Exception as error:
+            raise ImportObjectStorageError("multipart creation failed") from error
         return _validate_upload_id(upload_id)
 
     async def presign_upload_part(
@@ -196,45 +213,61 @@ class MinioObjectStorage:
             raise ValueError("part number must be between 1 and 10000")
         if isinstance(ttl_seconds, bool) or not 1 <= ttl_seconds <= 604_800:
             raise ValueError("upload signing TTL must be between 1 and 604800")
-        return await asyncio.to_thread(
-            self._public.get_presigned_url,
-            "PUT",
-            self._bucket,
-            object_key,
-            expires=timedelta(seconds=ttl_seconds),
-            extra_query_params={
-                "partNumber": str(part_number),
-                "uploadId": upload_id,
-            },
-        )
+        try:
+            return await asyncio.to_thread(
+                self._public.get_presigned_url,
+                "PUT",
+                self._bucket,
+                object_key,
+                expires=timedelta(seconds=ttl_seconds),
+                extra_query_params={
+                    "partNumber": str(part_number),
+                    "uploadId": upload_id,
+                },
+            )
+        except Exception as error:
+            raise ImportObjectStorageError("upload part signing failed") from error
 
     async def complete_multipart_upload(
         self,
         object_key: str,
         upload_id: str,
-        parts: tuple[MultipartUploadPart, ...],
+        parts: tuple[MultipartUploadPartLike, ...],
     ) -> str | None:
         _validate_key(object_key)
         upload_id = _validate_upload_id(upload_id)
         normalized = _normalize_multipart_parts(parts)
-        result = await asyncio.to_thread(
-            self._private._complete_multipart_upload,
-            self._bucket,
-            object_key,
-            upload_id,
-            normalized,
-        )
+        try:
+            result = await asyncio.to_thread(
+                self._private._complete_multipart_upload,
+                self._bucket,
+                object_key,
+                upload_id,
+                normalized,
+            )
+        except Exception as error:
+            code = getattr(error, "code", None)
+            if code == "NoSuchUpload":
+                raise MultipartUploadNotFound("multipart upload not found") from error
+            if code in {"EntityTooSmall", "InvalidPart", "InvalidPartOrder"}:
+                raise MultipartUploadRejected("multipart manifest rejected") from error
+            raise ImportObjectStorageError("multipart completion failed") from error
         return getattr(result, "etag", None)
 
     async def abort_multipart_upload(self, object_key: str, upload_id: str) -> None:
         _validate_key(object_key)
         upload_id = _validate_upload_id(upload_id)
-        await asyncio.to_thread(
-            self._private._abort_multipart_upload,
-            self._bucket,
-            object_key,
-            upload_id,
-        )
+        try:
+            await asyncio.to_thread(
+                self._private._abort_multipart_upload,
+                self._bucket,
+                object_key,
+                upload_id,
+            )
+        except Exception as error:
+            if getattr(error, "code", None) == "NoSuchUpload":
+                return
+            raise ImportObjectStorageError("multipart abort failed") from error
 
     async def list_incomplete_multipart_uploads(
         self, prefix: str, *, limit: int = 1000
@@ -243,12 +276,17 @@ class MinioObjectStorage:
         _validate_key(prefix)
         if isinstance(limit, bool) or not 1 <= limit <= 1000:
             raise ValueError("multipart list limit must be between 1 and 1000")
-        result = await asyncio.to_thread(
-            self._private._list_multipart_uploads,
-            self._bucket,
-            prefix=prefix,
-            max_uploads=limit,
-        )
+        try:
+            result = await asyncio.to_thread(
+                self._private._list_multipart_uploads,
+                self._bucket,
+                prefix=prefix,
+                max_uploads=limit,
+            )
+        except Exception as error:
+            raise ImportObjectStorageError(
+                "multipart reconciliation list failed"
+            ) from error
         uploads: list[IncompleteMultipartUpload] = []
         for item in result.uploads:
             if item.upload_id is None or item.initiated_time is None:
@@ -299,14 +337,17 @@ class MinioObjectStorage:
         source = await self.stat(source_key)
         if source is None or source.size_bytes != expected_size_bytes:
             raise RuntimeError("source object conflicts with promotion")
-        await asyncio.to_thread(
-            self._private.copy_object,
-            self._bucket,
-            destination_key,
-            CopySource(self._bucket, source_key),
-            metadata={"Content-Type": content_type, "sha256": sha256},
-            metadata_directive=REPLACE,
-        )
+        try:
+            await asyncio.to_thread(
+                self._private.copy_object,
+                self._bucket,
+                destination_key,
+                CopySource(self._bucket, source_key),
+                metadata={"Content-Type": content_type, "sha256": sha256},
+                metadata_directive=REPLACE,
+            )
+        except Exception as error:
+            raise ImportObjectStorageError("object promotion failed") from error
         promoted = await self.stat(destination_key)
         if promoted is None or (promoted.size_bytes, promoted.sha256) != (
             expected_size_bytes,
@@ -354,7 +395,12 @@ class MinioObjectStorage:
 
     async def delete(self, object_key: str) -> None:
         _validate_key(object_key)
-        await asyncio.to_thread(self._private.remove_object, self._bucket, object_key)
+        try:
+            await asyncio.to_thread(
+                self._private.remove_object, self._bucket, object_key
+            )
+        except Exception as error:
+            raise ImportObjectStorageError("object deletion failed") from error
 
     async def list(self, prefix: str) -> tuple[StoredObject, ...]:
         _validate_key(prefix)
@@ -411,7 +457,9 @@ def _validate_content_type(value: str) -> None:
         raise ValueError("invalid content type")
 
 
-def _normalize_multipart_parts(parts: tuple[MultipartUploadPart, ...]) -> list[Part]:
+def _normalize_multipart_parts(
+    parts: tuple[MultipartUploadPartLike, ...],
+) -> list[Part]:
     if not parts or len(parts) > 10_000:
         raise ValueError("multipart completion requires between 1 and 10000 parts")
     normalized: list[Part] = []
