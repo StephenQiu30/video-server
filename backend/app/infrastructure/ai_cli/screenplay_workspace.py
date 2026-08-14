@@ -15,10 +15,31 @@ def prepare_screenplay_job_files(
     schema: dict[str, Any],
     prompt: str,
 ) -> JobFiles:
+    return prepare_screenplay_call_files(
+        workspace=request.workspace,
+        screenplay=request.screenplay,
+        schema=schema,
+        prompt=prompt,
+        manifest={
+            "call": "screenplay-analysis",
+            "source_language": request.source_language,
+            "source_scene_ids": list(request.source_scene_ids),
+        },
+    )
+
+
+def prepare_screenplay_call_files(
+    *,
+    workspace: Path,
+    screenplay: Path,
+    schema: dict[str, Any],
+    prompt: str,
+    manifest: dict[str, object],
+) -> JobFiles:
     try:
-        root = request.workspace.resolve(strict=True)
-        screenplay = request.screenplay.resolve(strict=True)
-        if screenplay != root / "input" / "screenplay.md":
+        root = workspace.resolve(strict=True)
+        resolved_screenplay = screenplay.resolve(strict=True)
+        if resolved_screenplay != root / "input" / "screenplay.md":
             raise OSError
     except OSError as exc:
         raise AnalysisCliError("artifact_integrity_failed") from exc
@@ -35,11 +56,7 @@ def prepare_screenplay_job_files(
             directory.chmod(0o700)
         _write_json(
             root / "input" / "manifest.json",
-            {
-                "input": "input/screenplay.md",
-                "source_language": request.source_language,
-                "source_scene_ids": list(request.source_scene_ids),
-            },
+            {"input": "input/screenplay.md", **manifest},
         )
         schema_path = root / "policy" / "output-schema.json"
         _write_json(schema_path, schema)

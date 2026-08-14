@@ -1,12 +1,19 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from app.application.analysis_execution import (
     ScreenplayAnalysisRequest,
+    ScreenplayGlossaryRequest,
+    ScreenplayRewriteChunkRequest,
     VideoAnalysisRequest,
+)
+from app.domain.analysis import (
+    ScreenplayGlossaryTerm,
+    ScreenplayRewriteGlossary,
 )
 from app.runner.process import ProcessResult
 from tests.unit.workers.analysis.fixtures import (
@@ -35,7 +42,7 @@ def request(tmp_path: Path) -> VideoAnalysisRequest:
 def screenplay_request(tmp_path: Path) -> ScreenplayAnalysisRequest:
     workspace = tmp_path / "screenplay-job"
     screenplay = workspace / "input" / "screenplay.md"
-    screenplay.parent.mkdir(parents=True)
+    screenplay.parent.mkdir(parents=True, exist_ok=True)
     text = "INT. EDITING ROOM - NIGHT\n\n林舟发现结局素材消失了。\n"
     screenplay.write_text(text, encoding="utf-8")
     return ScreenplayAnalysisRequest(
@@ -47,6 +54,47 @@ def screenplay_request(tmp_path: Path) -> ScreenplayAnalysisRequest:
         output_language="zh-CN",
         skill_id="screenplay-analysis",
         skill_instructions="分析结构、人物、场景和对白，并引用原文场景。",
+    )
+
+
+def screenplay_glossary_request(tmp_path: Path) -> ScreenplayGlossaryRequest:
+    source = screenplay_request(tmp_path)
+    return ScreenplayGlossaryRequest(
+        screenplay=source.screenplay,
+        workspace=source.workspace,
+        screenplay_text=source.screenplay_text,
+        source_language=source.source_language,
+        target_language="en-US",
+        skill_id="screenplay-rewrite",
+        skill_instructions="保持人物、场景意图和剧本格式，统一跨场景术语。",
+    )
+
+
+def screenplay_rewrite_chunk_request(tmp_path: Path) -> ScreenplayRewriteChunkRequest:
+    source = screenplay_request(tmp_path)
+    text = "林舟发现结局素材消失了。\n"
+    return ScreenplayRewriteChunkRequest(
+        screenplay=source.screenplay,
+        workspace=source.workspace,
+        source_text=text,
+        context_before="INT. EDITING ROOM - NIGHT\n",
+        context_after="林舟开始检查备份。\n",
+        source_scene_id="scene-1",
+        part_no=1,
+        source_sha256=hashlib.sha256(text.encode()).hexdigest(),
+        target_language="en-US",
+        glossary=ScreenplayRewriteGlossary(
+            source_language="mixed",
+            target_language="en-US",
+            terms=(
+                ScreenplayGlossaryTerm(
+                    source="林舟", target="Lin Zhou", category="character"
+                ),
+            ),
+            style_rules=("使用自然简洁的英文剧本表达。",),
+        ),
+        skill_id="screenplay-rewrite",
+        skill_instructions="保持人物、场景意图和剧本格式，统一跨场景术语。",
     )
 
 

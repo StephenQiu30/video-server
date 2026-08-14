@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 
 from app.domain.analysis.enums import AnalysisValidationCode
 from app.domain.analysis.errors import AnalysisValidationError
+from app.domain.analysis.result_items import _strings
 from app.domain.analysis.text import identifier, required_text
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -22,6 +24,38 @@ class ScreenplayGlossaryTerm:
                 self,
                 field_name,
                 required_text(getattr(self, field_name), f"glossary {field_name}"),
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class ScreenplayRewriteGlossary:
+    source_language: str
+    target_language: str
+    terms: tuple[ScreenplayGlossaryTerm, ...]
+    style_rules: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "style_rules",
+            _strings(self.style_rules, "screenplay glossary style rule"),
+        )
+        if (
+            self.source_language not in {"zh-CN", "en-US", "mixed", "unknown"}
+            or self.target_language not in {"zh-CN", "en-US"}
+            or not self.style_rules
+            or len(self.terms) > 512
+            or len(self.style_rules) > 64
+        ):
+            raise AnalysisValidationError(
+                AnalysisValidationCode.INVALID_SCHEMA,
+                "screenplay rewrite glossary is invalid",
+            )
+        sources = [term.source.casefold() for term in self.terms]
+        if len(set(sources)) != len(sources):
+            raise AnalysisValidationError(
+                AnalysisValidationCode.DUPLICATE_IDENTIFIER,
+                "screenplay glossary source terms must be unique",
             )
 
 
@@ -52,12 +86,34 @@ class ScreenplayRewriteChunk:
                 AnalysisValidationCode.INVALID_SCHEMA,
                 "rewrite source SHA-256 is invalid",
             )
+        if (
+            not isinstance(self.rewritten_text, str)
+            or not self.rewritten_text.strip()
+            or len(self.rewritten_text) > 200_000
+            or "\r" in self.rewritten_text
+            or "\x00" in self.rewritten_text
+            or unicodedata.normalize("NFC", self.rewritten_text) != self.rewritten_text
+        ):
+            raise AnalysisValidationError(
+                AnalysisValidationCode.INVALID_TEXT,
+                "rewritten text is invalid",
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class ScreenplayRewriteChunkOutput:
+    target_language: str
+    chunk: ScreenplayRewriteChunk
+    change_summary: tuple[str, ...]
+
+    def __post_init__(self) -> None:
         object.__setattr__(
             self,
-            "rewritten_text",
-            required_text(
-                self.rewritten_text,
-                "rewritten text",
-                maximum=200_000,
-            ),
+            "change_summary",
+            _strings(self.change_summary, "screenplay rewrite change summary"),
         )
+        if self.target_language not in {"zh-CN", "en-US"} or not self.change_summary:
+            raise AnalysisValidationError(
+                AnalysisValidationCode.INVALID_SCHEMA,
+                "screenplay rewrite chunk output is invalid",
+            )

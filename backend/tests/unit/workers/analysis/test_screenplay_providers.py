@@ -35,6 +35,14 @@ class NoToolScreenplayAnalyzer(VideoOnlyAnalyzer):
         del request
         return {}
 
+    async def build_screenplay_glossary(self, request: object) -> object:
+        del request
+        return {}
+
+    async def rewrite_screenplay_chunk(self, request: object) -> object:
+        del request
+        return {}
+
 
 @pytest.mark.asyncio
 async def test_screenplay_resolver_preserves_supported_provider_metadata() -> None:
@@ -45,6 +53,13 @@ async def test_screenplay_resolver_preserves_supported_provider_metadata() -> No
     selection = await resolver.resolve_screenplay()
 
     assert (selection.provider, selection.model, selection.cli_version) == (
+        "provider",
+        "model",
+        "version",
+    )
+
+    rewrite = await resolver.resolve_screenplay_rewrite()
+    assert (rewrite.provider, rewrite.model, rewrite.cli_version) == (
         "provider",
         "model",
         "version",
@@ -61,3 +76,8 @@ async def test_screenplay_resolver_rejects_video_only_provider() -> None:
         await resolver.resolve_screenplay()
 
     assert error.value.code == "analysis_cli_unsupported"
+
+    with pytest.raises(AnalysisCliError) as rewrite_error:
+        await resolver.resolve_screenplay_rewrite()
+
+    assert rewrite_error.value.code == "analysis_cli_unsupported"

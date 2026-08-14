@@ -15,7 +15,9 @@ from app.infrastructure.ai_cli import (
 from tests.unit.infrastructure.ai_cli.helpers import (
     FakeSupervisor,
     request,
+    screenplay_glossary_request,
     screenplay_request,
+    screenplay_rewrite_chunk_request,
     screenplay_supervisor,
 )
 from tests.unit.workers.analysis.fixtures import (
@@ -129,6 +131,62 @@ async def test_claude_screenplay_rejects_oversized_schema_before_process(
 
     assert error.value.code == "analysis_resource_limit"
     assert supervisor.argv == ()
+
+
+@pytest.mark.asyncio
+async def test_claude_builds_screenplay_glossary_without_tools(tmp_path: Path) -> None:
+    payload = {
+        "source_language": "mixed",
+        "target_language": "en-US",
+        "terms": [{"source": "林舟", "target": "Lin Zhou", "category": "character"}],
+        "style_rules": ["Use concise screenplay English."],
+    }
+    supervisor = FakeSupervisor(provider="claude", payload=payload)
+    analyzer = ClaudeCliVideoAnalyzer(config(), supervisor=supervisor)  # type: ignore[arg-type]
+    request_value = screenplay_glossary_request(tmp_path)
+
+    result = await analyzer.build_screenplay_glossary(request_value)
+
+    assert result == payload
+    assert supervisor.argv[supervisor.argv.index("--tools") + 1] == ""
+    assert supervisor.argv[supervisor.argv.index("--max-turns") + 1] == "1"
+    assert supervisor.input_bytes is not None
+    assert (
+        json.dumps(request_value.screenplay_text, ensure_ascii=False).encode()
+        in supervisor.input_bytes
+    )
+
+
+@pytest.mark.asyncio
+async def test_claude_rewrites_one_hash_bound_chunk_without_tools(
+    tmp_path: Path,
+) -> None:
+    request_value = screenplay_rewrite_chunk_request(tmp_path)
+    payload = {
+        "source_scene_id": request_value.source_scene_id,
+        "part_no": request_value.part_no,
+        "source_sha256": request_value.source_sha256,
+        "target_language": request_value.target_language,
+        "rewritten_text": "LIN ZHOU discovers that the ending is missing.\n",
+        "change_summary": ["Localized the character name."],
+    }
+    supervisor = FakeSupervisor(provider="claude", payload=payload)
+    analyzer = ClaudeCliVideoAnalyzer(config(), supervisor=supervisor)  # type: ignore[arg-type]
+
+    result = await analyzer.rewrite_screenplay_chunk(request_value)
+
+    assert result == payload
+    assert supervisor.argv[supervisor.argv.index("--tools") + 1] == ""
+    assert supervisor.input_bytes is not None
+    assert (
+        json.dumps(request_value.source_text, ensure_ascii=False).encode()
+        in supervisor.input_bytes
+    )
+    manifest = json.loads(
+        (request_value.workspace / "input" / "manifest.json").read_text()
+    )
+    assert manifest["source_sha256"] == request_value.source_sha256
+    assert "rewritten_text" not in manifest
 
 
 def _has_no_api_keys(environment: dict[str, str]) -> bool:

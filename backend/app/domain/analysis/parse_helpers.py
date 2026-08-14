@@ -71,6 +71,22 @@ class ParseContext:
             )
         return value
 
+    def preserved_text(
+        self, value: object, path: str, *, maximum: int | None = None
+    ) -> str:
+        limit = maximum or self.limits.max_string_characters
+        if not isinstance(value, str) or not value.strip() or len(value) > limit:
+            raise AnalysisValidationError(
+                AnalysisValidationCode.INVALID_TEXT, f"{path} is invalid"
+            )
+        self.total_characters += len(value)
+        if self.total_characters > self.limits.max_total_characters:
+            raise AnalysisValidationError(
+                AnalysisValidationCode.LIMIT_EXCEEDED,
+                "analysis result text exceeds the total limit",
+            )
+        return value
+
     @staticmethod
     def invalid(detail: str) -> None:
         raise AnalysisValidationError(AnalysisValidationCode.INVALID_SCHEMA, detail)

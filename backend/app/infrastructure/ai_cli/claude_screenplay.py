@@ -2,16 +2,32 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
-from app.application.analysis_execution import ScreenplayAnalysisRequest
+from app.application.analysis_execution import (
+    ScreenplayAnalysisRequest,
+    ScreenplayGlossaryRequest,
+    ScreenplayRewriteChunkRequest,
+)
 from app.runner.process import ProcessSupervisor, ProcessTimeoutError
 
 from .config import CliAdapterConfig
 from .environment import child_environment
 from .errors import AnalysisCliError, classify_cli_failure
 from .screenplay_prompt import screenplay_analysis_prompt
+from .screenplay_rewrite_prompt import (
+    screenplay_glossary_prompt,
+    screenplay_rewrite_chunk_prompt,
+)
+from .screenplay_rewrite_schema import (
+    screenplay_glossary_output_schema,
+    screenplay_rewrite_chunk_output_schema,
+)
 from .screenplay_schema import screenplay_analysis_output_schema
-from .screenplay_workspace import prepare_screenplay_job_files
+from .screenplay_workspace import (
+    prepare_screenplay_call_files,
+    prepare_screenplay_job_files,
+)
 from .workspace import run_with_workspace_policy
 
 _MAX_SCHEMA_BYTES = 28_000
@@ -35,23 +51,73 @@ class ClaudeCliScreenplayAnalyzer:
         schema = screenplay_analysis_output_schema(
             request.output_language, request.source_scene_ids
         )
+        prompt = screenplay_analysis_prompt(request)
+        files = prepare_screenplay_job_files(request, schema, prompt)
+        return await self._invoke(files.root, files.claude_settings, schema, prompt)
+
+    async def build_glossary(self, request: ScreenplayGlossaryRequest) -> object:
+        schema = screenplay_glossary_output_schema(
+            request.source_language, request.target_language
+        )
+        prompt = screenplay_glossary_prompt(request)
+        files = prepare_screenplay_call_files(
+            workspace=request.workspace,
+            screenplay=request.screenplay,
+            schema=schema,
+            prompt=prompt,
+            manifest={
+                "call": "screenplay-glossary",
+                "source_language": request.source_language,
+                "target_language": request.target_language,
+            },
+        )
+        return await self._invoke(files.root, files.claude_settings, schema, prompt)
+
+    async def rewrite_chunk(self, request: ScreenplayRewriteChunkRequest) -> object:
+        schema = screenplay_rewrite_chunk_output_schema(
+            source_scene_id=request.source_scene_id,
+            part_no=request.part_no,
+            source_sha256=request.source_sha256,
+            target_language=request.target_language,
+        )
+        prompt = screenplay_rewrite_chunk_prompt(request)
+        files = prepare_screenplay_call_files(
+            workspace=request.workspace,
+            screenplay=request.screenplay,
+            schema=schema,
+            prompt=prompt,
+            manifest={
+                "call": "screenplay-rewrite-chunk",
+                "source_scene_id": request.source_scene_id,
+                "part_no": request.part_no,
+                "source_sha256": request.source_sha256,
+                "target_language": request.target_language,
+            },
+        )
+        return await self._invoke(files.root, files.claude_settings, schema, prompt)
+
+    async def _invoke(
+        self,
+        root: Path,
+        settings: Path,
+        schema: dict[str, Any],
+        prompt: str,
+    ) -> object:
         schema_json = json.dumps(schema, separators=(",", ":"))
         if len(schema_json.encode()) > _MAX_SCHEMA_BYTES:
             raise AnalysisCliError("analysis_resource_limit")
-        prompt = screenplay_analysis_prompt(request)
-        files = prepare_screenplay_job_files(request, schema, prompt)
-        environment = child_environment(self._config, files.root)
+        environment = child_environment(self._config, root)
         environment["CLAUDE_CODE_SKIP_PROMPT_HISTORY"] = "1"
         try:
             result = await run_with_workspace_policy(
                 self._supervisor.run(
-                    self._argv(files.claude_settings, schema_json),
-                    cwd=files.root,
+                    self._argv(settings, schema_json),
+                    cwd=root,
                     timeout_seconds=self._config.timeout_seconds,
                     env=environment,
                     input_bytes=prompt.encode(),
                 ),
-                root=files.root,
+                root=root,
                 config=self._config,
             )
         except ProcessTimeoutError as exc:

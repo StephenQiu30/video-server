@@ -24,9 +24,16 @@ from .ports import (
     ScreenplayAnalyzer,
     ScreenplayAnalyzerResolver,
     ScreenplayAnalyzerSelection,
+    ScreenplayRewriteAnalyzer,
+    ScreenplayRewriteAnalyzerResolver,
+    ScreenplayRewriteAnalyzerSelection,
     VideoAnalyzer,
 )
 from .screenplay_executor import ScreenplayAnalysisExecutor
+from .screenplay_rewrite_models import (
+    ScreenplayGlossaryRequest,
+    ScreenplayRewriteChunkRequest,
+)
 from .screenplay_rewrite_plan import (
     ScreenplayRewriteSourceChunk,
     plan_screenplay_rewrite,
@@ -55,6 +62,11 @@ __all__ = [
     "ScreenplayAnalyzer",
     "ScreenplayAnalyzerResolver",
     "ScreenplayAnalyzerSelection",
+    "ScreenplayGlossaryRequest",
+    "ScreenplayRewriteChunkRequest",
+    "ScreenplayRewriteAnalyzer",
+    "ScreenplayRewriteAnalyzerResolver",
+    "ScreenplayRewriteAnalyzerSelection",
     "ScreenplayRewriteSourceChunk",
     "VideoAnalysisRequest",
     "VideoAnalysisExecutor",

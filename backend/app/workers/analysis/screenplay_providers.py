@@ -6,6 +6,8 @@ from app.application.analysis_execution import (
     AnalyzerResolver,
     ScreenplayAnalyzer,
     ScreenplayAnalyzerSelection,
+    ScreenplayRewriteAnalyzer,
+    ScreenplayRewriteAnalyzerSelection,
 )
 from app.infrastructure.ai_cli import AnalysisCliError
 
@@ -23,6 +25,19 @@ class ConfiguredScreenplayAnalyzerResolver:
             raise AnalysisCliError("analysis_cli_unsupported")
         return ScreenplayAnalyzerSelection(
             analyzer=cast(ScreenplayAnalyzer, selection.analyzer),
+            provider=selection.provider,
+            model=selection.model,
+            cli_version=selection.cli_version,
+        )
+
+    async def resolve_screenplay_rewrite(self) -> ScreenplayRewriteAnalyzerSelection:
+        selection = await self._resolver.resolve()
+        glossary = getattr(selection.analyzer, "build_screenplay_glossary", None)
+        rewrite = getattr(selection.analyzer, "rewrite_screenplay_chunk", None)
+        if not callable(glossary) or not callable(rewrite):
+            raise AnalysisCliError("analysis_cli_unsupported")
+        return ScreenplayRewriteAnalyzerSelection(
+            analyzer=cast(ScreenplayRewriteAnalyzer, selection.analyzer),
             provider=selection.provider,
             model=selection.model,
             cli_version=selection.cli_version,

@@ -43,6 +43,12 @@ from app.domain.analysis.screenplay_results import (
 from app.domain.analysis.screenplay_rewrite_items import (
     ScreenplayGlossaryTerm,
     ScreenplayRewriteChunk,
+    ScreenplayRewriteChunkOutput,
+    ScreenplayRewriteGlossary,
+)
+from app.domain.analysis.screenplay_rewrite_parser import (
+    parse_screenplay_glossary,
+    parse_screenplay_rewrite_chunk,
 )
 
 __all__ = [
@@ -68,6 +74,8 @@ __all__ = [
     "ScreenplayEvidenceItem",
     "ScreenplayGlossaryTerm",
     "ScreenplayRewriteChunk",
+    "ScreenplayRewriteChunkOutput",
+    "ScreenplayRewriteGlossary",
     "ScreenplayRewriteResult",
     "ScreenplayScene",
     "ScreenplayStructure",
@@ -75,6 +83,8 @@ __all__ = [
     "VisualAsset",
     "parse_analysis_result",
     "parse_screenplay_analysis_result",
+    "parse_screenplay_glossary",
+    "parse_screenplay_rewrite_chunk",
     "analysis_result_contract",
     "analysis_result_language",
     "validate_analysis_result",

@@ -5,6 +5,8 @@ from pathlib import Path
 
 from app.application.analysis_execution import (
     ScreenplayAnalysisRequest,
+    ScreenplayGlossaryRequest,
+    ScreenplayRewriteChunkRequest,
     VideoAnalysisRequest,
 )
 from app.runner.process import ProcessSupervisor, ProcessTimeoutError
@@ -74,6 +76,16 @@ class ClaudeCliVideoAnalyzer:
 
     async def analyze_screenplay(self, request: ScreenplayAnalysisRequest) -> object:
         return await self._screenplay.analyze(request)
+
+    async def build_screenplay_glossary(
+        self, request: ScreenplayGlossaryRequest
+    ) -> object:
+        return await self._screenplay.build_glossary(request)
+
+    async def rewrite_screenplay_chunk(
+        self, request: ScreenplayRewriteChunkRequest
+    ) -> object:
+        return await self._screenplay.rewrite_chunk(request)
 
     def _argv(
         self,
