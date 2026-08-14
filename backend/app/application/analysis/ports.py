@@ -47,6 +47,10 @@ class AnalysisRepository(Protocol):
         self, download_id: UUID, owner_hash: str
     ) -> AnalysisJobSnapshot | None: ...
 
+    async def get_latest_job_for_document(
+        self, document_id: UUID, owner_hash: str
+    ) -> AnalysisJobSnapshot | None: ...
+
     async def retry_job_and_enqueue(
         self, command: AnalysisRetry, *, now: datetime
     ) -> AnalysisJobSaveResult: ...

@@ -68,6 +68,43 @@ async def test_screenplay_projection_creation_and_lock_are_owner_scoped(
 
 
 @pytest.mark.asyncio
+async def test_latest_screenplay_analysis_is_owner_and_document_scoped(
+    analysis_db,
+) -> None:
+    source = await seed_screenplay(analysis_db.sessions, NOW)
+    other = await seed_screenplay(analysis_db.sessions, NOW)
+    first = screenplay_command(source)
+    second = replace(
+        screenplay_command(source),
+        idempotency_key="analysis-latest",
+        request_fingerprint="b" * 64,
+    )
+    other_command = screenplay_command(other)
+    await analysis_db.repository.create_job_and_enqueue(first, now=NOW)
+    await analysis_db.repository.create_job_and_enqueue(
+        second, now=NOW + timedelta(seconds=1)
+    )
+    await analysis_db.repository.create_job_and_enqueue(
+        other_command, now=NOW + timedelta(seconds=2)
+    )
+
+    latest = await analysis_db.repository.get_latest_job_for_document(
+        source.document_id, OWNER
+    )
+
+    assert latest is not None and latest.id == second.id
+    assert (
+        await analysis_db.repository.get_latest_job_for_document(
+            source.document_id, "b" * 64
+        )
+        is None
+    )
+    assert (
+        await analysis_db.repository.get_latest_job_for_document(uuid4(), OWNER) is None
+    )
+
+
+@pytest.mark.asyncio
 async def test_screenplay_creation_revalidates_state_owner_expiry_and_sha(
     analysis_db,
 ) -> None:

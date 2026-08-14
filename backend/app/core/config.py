@@ -200,6 +200,7 @@ class Settings(BaseSettings):
     websocket_auth_recheck_seconds: float = Field(default=15, ge=1, le=300)
 
     analysis_enabled: bool = True
+    screenplay_analysis_enabled: bool = False
     analysis_workspace_root: Path = Path("./.analysis-work")
     analysis_cli_provider: Literal["codex", "claude"] = "codex"
     analysis_codex_binary: Path = Path("codex")

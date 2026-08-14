@@ -47,6 +47,8 @@ uv run python -m app.workers.analysis.main
 
 Worker preflight 通过后才连接 RabbitMQ；不要同时启动另一个分析消费者。本地 API 默认开启 `ANALYSIS_ENABLED`。
 
+`SCREENPLAY_ANALYSIS_ENABLED` 独立控制剧本分析/改写任务，当前默认关闭。只有部署版本已包含受限剧本执行器并完成中文/英文真实 E2E 时才可设为 `true`；单独开启 `ANALYSIS_ENABLED` 只代表视频分析可创建。
+
 所有服务都显式声明 `container_name`；公开主服务使用 `video-server`，基础服务使用 `postgres`、`rabbitmq`、`minio` 等简单名称，不会出现 `xxx-1` 副本后缀。环境配置读取被 Git 忽略的 `.env`，首次启动前从 `.env.example` 复制。
 
 ## 生产环境

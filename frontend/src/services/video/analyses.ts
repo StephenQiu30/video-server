@@ -103,6 +103,42 @@ export async function listAnalysisSkills(
   });
 }
 
+/** 创建剧本分析或改写任务 基于已规范化的剧本文档创建异步分析或改写任务。 POST /api/documents/${param0}/analyses */
+export async function createDocumentAnalysis(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.createDocumentAnalysisParams,
+  body: API.AnalysisRequest,
+  options?: RequestOptions
+) {
+  const { document_id: param0, ...queryParams } = params;
+  return request<API.AnalysisResponse>(`/api/documents/${param0}/analyses`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    params: { ...queryParams },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+/** 读取文档最近的剧本分析 恢复当前用户在该剧本文档上最近创建的分析与报告。 GET /api/documents/${param0}/analysis */
+export async function getLatestDocumentAnalysis(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getLatestDocumentAnalysisParams,
+  options?: RequestOptions
+) {
+  const { document_id: param0, ...queryParams } = params;
+  return request<API.AnalysisResponse | null>(
+    `/api/documents/${param0}/analysis`,
+    {
+      method: "GET",
+      params: { ...queryParams },
+      ...(options || {}),
+    }
+  );
+}
+
 /** 创建视频分析任务 基于已完成的下载制品创建异步 AI 分析任务。 POST /api/downloads/${param0}/analyses */
 export async function createAnalysis(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)

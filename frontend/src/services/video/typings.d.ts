@@ -237,6 +237,10 @@ declare namespace API {
     download_id: string;
   };
 
+  type createDocumentAnalysisParams = {
+    document_id: string;
+  };
+
   type createDocumentUploadSessionParams = {
     document_id: string;
   };
@@ -689,6 +693,10 @@ declare namespace API {
 
   type getInspectionThumbnailParams = {
     inspection_id: string;
+  };
+
+  type getLatestDocumentAnalysisParams = {
+    document_id: string;
   };
 
   type getLatestDownloadAnalysisParams = {

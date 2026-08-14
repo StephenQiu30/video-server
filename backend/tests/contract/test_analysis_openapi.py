@@ -12,15 +12,25 @@ def test_analysis_openapi_is_current_and_excludes_internal_fields(
     ).openapi()
     paths = schema["paths"]
     create_path = "/api/downloads/{download_id}/analyses"
+    create_document_path = "/api/documents/{document_id}/analyses"
 
     assert {
         create_path,
+        create_document_path,
+        "/api/documents/{document_id}/analysis",
         "/api/analyses/{analysis_id}",
         "/api/analyses/{analysis_id}/cancel",
         "/api/analyses/{analysis_id}/retry",
         "/api/analyses/{analysis_id}/report.docx",
     } <= paths.keys()
     assert paths[create_path]["post"]["operationId"] == "createAnalysis"
+    assert (
+        paths[create_document_path]["post"]["operationId"] == "createDocumentAnalysis"
+    )
+    assert (
+        paths["/api/documents/{document_id}/analysis"]["get"]["operationId"]
+        == "getLatestDocumentAnalysis"
+    )
     create_response = paths[create_path]["post"]["responses"]["201"]
     assert create_response["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/AnalysisResponse"

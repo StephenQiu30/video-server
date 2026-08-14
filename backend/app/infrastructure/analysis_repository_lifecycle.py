@@ -48,6 +48,22 @@ class AnalysisLifecycleRepository(AnalysisRetryRepository):
             )
             return None if row is None else analysis_job_snapshot(row)
 
+    async def get_latest_job_for_document(
+        self, document_id: UUID, owner_hash: str
+    ) -> AnalysisJobSnapshot | None:
+        async with self._sessions() as session:
+            row = await session.scalar(
+                select(AnalysisJobRow)
+                .where(
+                    AnalysisJobRow.document_id == document_id,
+                    AnalysisJobRow.owner_hash == owner_hash,
+                    AnalysisJobRow.deleted_at.is_(None),
+                )
+                .order_by(AnalysisJobRow.created_at.desc(), AnalysisJobRow.id.desc())
+                .limit(1)
+            )
+            return None if row is None else analysis_job_snapshot(row)
+
     async def delete_job(self, job_id: UUID, owner_hash: str, now: datetime) -> bool:
         async with self._sessions() as session, session.begin():
             row = await session.scalar(

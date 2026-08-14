@@ -7,6 +7,7 @@ from uuid import UUID
 from app.application.analysis import (
     AnalysisArtifactSnapshot,
     AnalysisCreate,
+    AnalysisDocumentSnapshot,
     AnalysisJobSaveResult,
     AnalysisJobSnapshot,
     AnalysisPublish,
@@ -29,9 +30,7 @@ class FakeFingerprinter:
 
 class FakeSkillCatalog:
     def list(self, input_kind: AnalysisInputKind) -> tuple[AnalysisSkillView, ...]:
-        if input_kind is not AnalysisInputKind.VIDEO:
-            return ()
-        return (
+        video = (
             AnalysisSkillView(
                 id="director-breakdown",
                 display_name="导演拉片",
@@ -49,6 +48,25 @@ class FakeSkillCatalog:
                 result_contract=AnalysisResultContract.VIDEO_VISUAL_ANALYSIS,
             ),
         )
+        screenplay = (
+            AnalysisSkillView(
+                id="screenplay-analysis",
+                display_name="剧本综合分析",
+                description="分析结构、人物、场景和对白",
+                default_prompt="分析完整剧本。",
+                input_kinds=(AnalysisInputKind.SCREENPLAY,),
+                result_contract=AnalysisResultContract.SCREENPLAY_ANALYSIS,
+            ),
+            AnalysisSkillView(
+                id="screenplay-rewrite",
+                display_name="剧本改写",
+                description="中英文改写和润色",
+                default_prompt="改写完整剧本。",
+                input_kinds=(AnalysisInputKind.SCREENPLAY,),
+                result_contract=AnalysisResultContract.SCREENPLAY_REWRITE,
+            ),
+        )
+        return video if input_kind is AnalysisInputKind.VIDEO else screenplay
 
     def resolve(
         self, skill_id: str, input_kind: AnalysisInputKind
@@ -70,6 +88,7 @@ class FakeSkillCatalog:
 class FakeRepository:
     def __init__(self) -> None:
         self.artifacts: dict[UUID, AnalysisArtifactSnapshot] = {}
+        self.documents: dict[UUID, AnalysisDocumentSnapshot] = {}
         self.jobs: dict[UUID, AnalysisJobSnapshot] = {}
         self.commands: list[AnalysisCreate] = []
         self.published: list[AnalysisPublish] = []
@@ -89,6 +108,11 @@ class FakeRepository:
             ),
             None,
         )
+
+    async def get_document_for_analysis(
+        self, document_id: UUID
+    ) -> AnalysisDocumentSnapshot | None:
+        return self.documents.get(document_id)
 
     async def create_job_and_enqueue(
         self, command: AnalysisCreate, *, now: datetime
@@ -119,6 +143,16 @@ class FakeRepository:
             if job.owner_hash == owner_hash
             and job.artifact_id is not None
             and self.artifacts[job.artifact_id].download_id == download_id
+        ]
+        return max(matches, key=lambda job: job.created_at, default=None)
+
+    async def get_latest_job_for_document(
+        self, document_id: UUID, owner_hash: str
+    ) -> AnalysisJobSnapshot | None:
+        matches = [
+            job
+            for job in self.jobs.values()
+            if job.owner_hash == owner_hash and job.document_id == document_id
         ]
         return max(matches, key=lambda job: job.created_at, default=None)
 

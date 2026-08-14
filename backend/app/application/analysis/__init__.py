@@ -1,5 +1,6 @@
 from app.application.analysis.cancel_analysis import CancelAnalysis
 from app.application.analysis.create_analysis import CreateAnalysis
+from app.application.analysis.create_document_analysis import CreateDocumentAnalysis
 from app.application.analysis.delete_analysis import DeleteAnalysis
 from app.application.analysis.errors import (
     AnalysisApplicationError,
@@ -18,7 +19,10 @@ from app.application.analysis.export_report import (
     ExportAnalysisReport,
 )
 from app.application.analysis.get_analysis import GetAnalysis
-from app.application.analysis.get_latest_analysis import GetLatestDownloadAnalysis
+from app.application.analysis.get_latest_analysis import (
+    GetLatestDocumentAnalysis,
+    GetLatestDownloadAnalysis,
+)
 from app.application.analysis.input_models import AnalysisDocumentSnapshot
 from app.application.analysis.list_skills import ListAnalysisSkills
 from app.application.analysis.models import (
@@ -71,12 +75,14 @@ __all__ = [
     "AnalysisResult",
     "CancelAnalysis",
     "CreateAnalysis",
+    "CreateDocumentAnalysis",
     "DeleteAnalysis",
     "DOCX_MEDIA_TYPE",
     "MARKDOWN_MEDIA_TYPE",
     "ExportAnalysisMarkdown",
     "ExportAnalysisReport",
     "GetAnalysis",
+    "GetLatestDocumentAnalysis",
     "GetLatestDownloadAnalysis",
     "ListAnalysisSkills",
     "PersistenceConflict",

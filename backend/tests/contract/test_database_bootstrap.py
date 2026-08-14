@@ -125,6 +125,7 @@ def test_api_receives_fail_closed_media_import_configuration() -> None:
 
     assert 'MEDIA_IMPORT_ENABLED: "${MEDIA_IMPORT_ENABLED:-false}"' in api
     assert 'DOCUMENT_IMPORT_ENABLED: "${DOCUMENT_IMPORT_ENABLED:-false}"' in api
+    assert 'SCREENPLAY_ANALYSIS_ENABLED: "${SCREENPLAY_ANALYSIS_ENABLED:-false}"' in api
     assert 'MEDIA_IMPORT_MAX_BYTES: "${MEDIA_IMPORT_MAX_BYTES:-2147483648}"' in api
     assert (
         'IMPORT_UPLOAD_PART_SIZE_BYTES: "${IMPORT_UPLOAD_PART_SIZE_BYTES:-33554432}"'

@@ -11,10 +11,12 @@ from app.application.ai_providers import AiProviderService
 from app.application.analysis import (
     CancelAnalysis,
     CreateAnalysis,
+    CreateDocumentAnalysis,
     DeleteAnalysis,
     ExportAnalysisMarkdown,
     ExportAnalysisReport,
     GetAnalysis,
+    GetLatestDocumentAnalysis,
     GetLatestDownloadAnalysis,
     ListAnalysisSkills,
     RetryAnalysis,
@@ -79,9 +81,11 @@ class DownloadUseCases:
 class AnalysisUseCases:
     list_analysis_skills: ListAnalysisSkills
     create_analysis: CreateAnalysis
+    create_document_analysis: CreateDocumentAnalysis
     delete_analysis: DeleteAnalysis
     get_analysis: GetAnalysis
     get_latest_download_analysis: GetLatestDownloadAnalysis
+    get_latest_document_analysis: GetLatestDocumentAnalysis
     cancel_analysis: CancelAnalysis
     retry_analysis: RetryAnalysis
     export_analysis_report: ExportAnalysisReport

@@ -18,10 +18,12 @@ from app.application.ai_providers import AiProviderService
 from app.application.analysis import (
     CancelAnalysis,
     CreateAnalysis,
+    CreateDocumentAnalysis,
     DeleteAnalysis,
     ExportAnalysisMarkdown,
     ExportAnalysisReport,
     GetAnalysis,
+    GetLatestDocumentAnalysis,
     GetLatestDownloadAnalysis,
     ListAnalysisSkills,
     RetryAnalysis,
@@ -364,9 +366,24 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             availability=analysis_availability,
             enabled=settings.analysis_enabled,
         ),
+        create_document_analysis=CreateDocumentAnalysis(
+            repository=analysis_repository,
+            fingerprinter=fingerprinter,
+            now=clock,
+            new_id=uuid4,
+            max_attempts=settings.max_analysis_attempts,
+            skill_catalog=skill_catalog,
+            availability=analysis_availability,
+            enabled=(
+                settings.analysis_enabled and settings.screenplay_analysis_enabled
+            ),
+        ),
         delete_analysis=DeleteAnalysis(analysis_repository, now=clock),
         get_analysis=get_analysis,
         get_latest_download_analysis=GetLatestDownloadAnalysis(
+            analysis_repository, get_analysis
+        ),
+        get_latest_document_analysis=GetLatestDocumentAnalysis(
             analysis_repository, get_analysis
         ),
         cancel_analysis=CancelAnalysis(analysis_repository, now=clock),

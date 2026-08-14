@@ -36,6 +36,7 @@ from fastapi.testclient import TestClient
 
 NOW = datetime(2026, 8, 6, 10, tzinfo=UTC)
 DOWNLOAD_ID = UUID("44444444-4444-4444-8444-444444444444")
+DOCUMENT_ID = UUID("44444444-4444-4444-8444-444444444445")
 ANALYSIS_ID = UUID("55555555-5555-4555-8555-555555555555")
 RESULT = VideoAnalysisResult(
     language="zh-CN",
@@ -150,12 +151,21 @@ def client(tmp_path: Path) -> tuple[TestClient, dict[str, StubUseCase]]:
     queued = analysis_view()
     stubs = {
         "create": StubUseCase(queued),
+        "create_document": StubUseCase(
+            replace(
+                queued,
+                skill_id="screenplay-analysis",
+                input_kind=AnalysisInputKind.SCREENPLAY,
+                result_contract=AnalysisResultContract.SCREENPLAY_ANALYSIS,
+            )
+        ),
         "get": StubUseCase(queued),
         "cancel": StubUseCase(
             replace(queued, status=AnalysisStatus.CANCELLED, finished_at=NOW)
         ),
         "retry": StubUseCase(replace(queued, run_no=2, run_trigger="manual_retry")),
         "delete": StubUseCase(None),
+        "latest_document": StubUseCase(None),
     }
     application.state.analysis_use_cases = AnalysisUseCases(
         list_analysis_skills=lambda input_kind: (
@@ -173,9 +183,11 @@ def client(tmp_path: Path) -> tuple[TestClient, dict[str, StubUseCase]]:
             else ()
         ),
         create_analysis=stubs["create"],
+        create_document_analysis=stubs["create_document"],
         delete_analysis=stubs["delete"],
         get_analysis=stubs["get"],
         get_latest_download_analysis=stubs["get"],
+        get_latest_document_analysis=stubs["latest_document"],
         cancel_analysis=stubs["cancel"],
         retry_analysis=stubs["retry"],
         export_analysis_report=StubUseCase(
@@ -286,6 +298,41 @@ def test_analysis_routes_share_owner_and_never_expose_internal_ids(
         stubs["delete"].calls[0][1],
     )
     assert len(set(owners)) == 1
+
+
+def test_document_analysis_create_and_latest_reuse_analysis_resource(
+    tmp_path: Path,
+) -> None:
+    test_client, stubs = client(tmp_path)
+    with test_client:
+        created = test_client.post(
+            f"/api/documents/{DOCUMENT_ID}/analyses",
+            headers={"Idempotency-Key": "screenplay-1"},
+            json={
+                "skill_id": "screenplay-analysis",
+                "output_language": "en-US",
+                "custom_prompt": "Focus on dialogue.",
+            },
+        )
+        latest = test_client.get(f"/api/documents/{DOCUMENT_ID}/analysis")
+
+    assert created.status_code == 201
+    assert created.headers["location"] == f"/api/analyses/{ANALYSIS_ID}"
+    assert created.json()["input_kind"] == "screenplay"
+    assert created.json()["result_contract"] == "screenplay-analysis"
+    assert latest.status_code == 200
+    assert latest.json() is None
+    assert stubs["create_document"].calls == [
+        (
+            DOCUMENT_ID,
+            TEST_USER.owner_hash,
+            "screenplay-1",
+            "screenplay-analysis",
+            "en-US",
+            "Focus on dialogue.",
+        )
+    ]
+    assert stubs["latest_document"].calls == [(DOCUMENT_ID, TEST_USER.owner_hash)]
 
 
 def test_succeeded_analysis_returns_only_strict_structured_result(
