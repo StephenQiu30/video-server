@@ -88,10 +88,17 @@ export async function retryAnalysis(
   });
 }
 
-/** 列出视频分析 Skill 返回可选 Skill 及用户可编辑的默认提示词。 GET /api/analysis-skills */
-export async function listAnalysisSkills(options?: RequestOptions) {
+/** 列出输入兼容的分析 Skill 按输入类型返回可选 Skill 及用户可编辑的默认提示词。 GET /api/analysis-skills */
+export async function listAnalysisSkills(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.listAnalysisSkillsParams,
+  options?: RequestOptions
+) {
   return request<API.AnalysisSkillResponse[]>("/api/analysis-skills", {
     method: "GET",
+    params: {
+      ...params,
+    },
     ...(options || {}),
   });
 }

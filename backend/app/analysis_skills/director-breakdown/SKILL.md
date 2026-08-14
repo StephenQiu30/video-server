@@ -1,9 +1,13 @@
 ---
 name: director-breakdown
-display_name: 导演拉片
-description: 按 Cut 拆解镜头语言、叙事作用、高光价值与 AI 漫剧制作建议。
-default_prompt: 逐镜头分析画面、景别、运镜、叙事作用和高光价值，并给出可执行的 AI 漫剧制作建议。
-order: 10
+description: 按真实 Cut 拆解镜头语言、叙事作用、高光价值与制作建议。用于完整视频的导演拉片分析。
+license: MIT
+metadata:
+  video-server-display-name: 导演拉片
+  video-server-default-prompt: 逐镜头分析画面、景别、运镜、叙事作用和高光价值，并给出可执行的 AI 漫剧制作建议。
+  video-server-order: "10"
+  video-server-input-kinds: video
+  video-server-output-contract: video-visual-analysis
 ---
 # 导演逐镜头拉片
 

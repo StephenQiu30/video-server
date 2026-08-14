@@ -12,12 +12,14 @@ from app.application.analysis import (
     AnalysisPublish,
     AnalysisResult,
     AnalysisRetry,
+    AnalysisSkillResolution,
     AnalysisSkillView,
     PersistenceActiveRun,
     PersistenceConflict,
     PersistenceIdempotencyConflict,
     PersistenceNotFound,
 )
+from app.domain.analysis import AnalysisInputKind, AnalysisResultContract
 
 
 class FakeFingerprinter:
@@ -26,27 +28,39 @@ class FakeFingerprinter:
 
 
 class FakeSkillCatalog:
-    def list(self) -> tuple[AnalysisSkillView, ...]:
+    def list(self, input_kind: AnalysisInputKind) -> tuple[AnalysisSkillView, ...]:
+        if input_kind is not AnalysisInputKind.VIDEO:
+            return ()
         return (
             AnalysisSkillView(
                 id="director-breakdown",
                 display_name="导演拉片",
                 description="逐镜头分析",
                 default_prompt="逐镜头分析视频。",
+                input_kinds=(AnalysisInputKind.VIDEO,),
+                result_contract=AnalysisResultContract.VIDEO_VISUAL_ANALYSIS,
             ),
             AnalysisSkillView(
                 id="highlights",
                 display_name="高光提炼",
                 description="识别高光",
                 default_prompt="识别高光片段。",
+                input_kinds=(AnalysisInputKind.VIDEO,),
+                result_contract=AnalysisResultContract.VIDEO_VISUAL_ANALYSIS,
             ),
         )
 
-    def resolve(self, skill_id: str) -> tuple[AnalysisSkillView, str] | None:
+    def resolve(
+        self, skill_id: str, input_kind: AnalysisInputKind
+    ) -> AnalysisSkillResolution | None:
         return next(
             (
-                (skill, f"{skill.display_name}完整指令")
-                for skill in self.list()
+                AnalysisSkillResolution(
+                    view=skill,
+                    instructions=f"{skill.display_name}完整指令",
+                    instructions_sha256="f" * 64,
+                )
+                for skill in self.list(input_kind)
                 if skill.id == skill_id
             ),
             None,

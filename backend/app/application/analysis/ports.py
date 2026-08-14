@@ -13,10 +13,11 @@ from app.application.analysis.models import (
     AnalysisPublish,
     AnalysisReportSnapshot,
     AnalysisRetry,
+    AnalysisSkillResolution,
     AnalysisSkillView,
     AnalysisStoredReportFile,
 )
-from app.domain.analysis import AnalysisResult
+from app.domain.analysis import AnalysisInputKind, AnalysisResult
 
 
 class RequestFingerprinter(Protocol):
@@ -80,6 +81,8 @@ class AnalysisReportObjectReader(Protocol):
 
 
 class AnalysisSkillCatalog(Protocol):
-    def list(self) -> tuple[AnalysisSkillView, ...]: ...
+    def list(self, input_kind: AnalysisInputKind) -> tuple[AnalysisSkillView, ...]: ...
 
-    def resolve(self, skill_id: str) -> tuple[AnalysisSkillView, str] | None: ...
+    def resolve(
+        self, skill_id: str, input_kind: AnalysisInputKind
+    ) -> AnalysisSkillResolution | None: ...

@@ -1,0 +1,27 @@
+---
+name: screenplay-structure-review
+description: 审阅剧本节拍、场景推进、转折、连续性和整体节奏。用于诊断场景单独成立但全局推进不足的中文或英文剧本。
+license: MIT
+metadata:
+  video-server-display-name: 剧本结构审阅
+  video-server-default-prompt: 聚焦节拍、场景推进、关键转折、连续性和节奏，给出按影响排序的结构修改建议。
+  video-server-order: "70"
+  video-server-input-kinds: screenplay
+  video-server-output-contract: screenplay-analysis
+  video-server-references: references/structure-rules.md
+---
+
+# 剧本结构审阅
+
+把每个源场景视为因果链中的一环，审阅目标、阻力、结果、反应与下一步选择如何累积成全局结构。所有诊断都必须回指有效源场景 ID。
+
+## 工作规则
+
+1. 识别实际节拍和压力变化，不把场景标题或固定页数当作节拍。
+2. 检查每场是否改变人物处境、信息、关系或选择，并说明与前后场的因果连接。
+3. 判断关键转折是否真正收窄或改变后续选项，检查铺垫与兑现是否闭合。
+4. 检查时间、地点、人物知识、道具、关系状态和行动后果的连续性。
+5. 区分必要的情绪消化与重复停滞，指出过快、过慢或强度单调的具体区段。
+6. 使用 `screenplay-analysis` 结果契约表达结构重点；非结构字段保持简洁但完整，不伪造证据。
+
+详细检查清单见 [structure-rules](references/structure-rules.md)。

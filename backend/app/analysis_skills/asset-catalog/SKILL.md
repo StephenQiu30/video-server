@@ -1,9 +1,13 @@
 ---
 name: asset-catalog
-display_name: 资产目录
-description: 建立角色、场景、道具、界面、文字和图形元素的视觉资产清单。
-default_prompt: 重点建立角色、场景、道具、界面、文字和图形元素目录，并标注首次出现时间及证据镜头。
-order: 50
+description: 建立角色、场景、道具、界面、文字和图形元素清单。用于需要可复用视觉资产目录的视频分析。
+license: MIT
+metadata:
+  video-server-display-name: 资产目录
+  video-server-default-prompt: 重点建立角色、场景、道具、界面、文字和图形元素目录，并标注首次出现时间及证据镜头。
+  video-server-order: "50"
+  video-server-input-kinds: video
+  video-server-output-contract: video-visual-analysis
 ---
 # 视觉资产目录
 

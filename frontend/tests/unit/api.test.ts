@@ -251,6 +251,7 @@ describe('typed API client', () => {
     expect(httpRequests()[0]).toMatchObject({
       url: '/api/analysis-skills',
       method: 'GET',
+      params: { input_kind: 'video' },
     });
   });
 

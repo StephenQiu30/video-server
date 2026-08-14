@@ -1,9 +1,13 @@
 ---
 name: highlights
-display_name: 高光提炼
-description: 识别最有传播力、信息密度或情绪价值的片段并解释依据。
-default_prompt: 重点识别高传播力、高信息密度或高情绪价值的片段，并说明选择依据和适用场景。
-order: 40
+description: 识别最有传播力、信息密度或情绪价值的片段并解释依据。用于提炼视频高光与传播素材。
+license: MIT
+metadata:
+  video-server-display-name: 高光提炼
+  video-server-default-prompt: 重点识别高传播力、高信息密度或高情绪价值的片段，并说明选择依据和适用场景。
+  video-server-order: "40"
+  video-server-input-kinds: video
+  video-server-output-contract: video-visual-analysis
 ---
 # 高光片段提炼
 

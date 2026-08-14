@@ -4,7 +4,7 @@ import { displayError } from '@/lib/request-error';
 import { listAnalysisSkills } from '@/services/analysis';
 import type { AnalysisSkill } from '@/types/video';
 
-export function useAnalysisSkills() {
+export function useAnalysisSkills(inputKind: API.AnalysisInputKind = 'video') {
   const [skills, setSkills] = useState<AnalysisSkill[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -13,7 +13,7 @@ export function useAnalysisSkills() {
     setLoading(true);
     setError(null);
     try {
-      const result = await listAnalysisSkills();
+      const result = await listAnalysisSkills(inputKind);
       if (!Array.isArray(result)) {
         throw new Error('分析 Skill 清单格式无效');
       }
@@ -23,7 +23,7 @@ export function useAnalysisSkills() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [inputKind]);
 
   useEffect(() => {
     void load();

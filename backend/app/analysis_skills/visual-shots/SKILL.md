@@ -1,9 +1,13 @@
 ---
 name: visual-shots
-display_name: 视觉分镜
-description: 重点拆解构图、景别、运镜、转场、色彩与画面节奏。
-default_prompt: 重点分析构图、景别、运镜、转场、色彩和画面节奏，形成细致的视觉分镜说明。
-order: 30
+description: 重点拆解构图、景别、运镜、转场、色彩与画面节奏。用于需要细致视觉分镜的视频分析。
+license: MIT
+metadata:
+  video-server-display-name: 视觉分镜
+  video-server-default-prompt: 重点分析构图、景别、运镜、转场、色彩和画面节奏，形成细致的视觉分镜说明。
+  video-server-order: "30"
+  video-server-input-kinds: video
+  video-server-output-contract: video-visual-analysis
 ---
 # 视觉分镜分析
 

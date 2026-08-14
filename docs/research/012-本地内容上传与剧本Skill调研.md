@@ -33,7 +33,7 @@
 
 ### 3.1 Agent Skills 标准
 
-[agentskills/agentskills](https://github.com/agentskills/agentskills) 定义了 `SKILL.md` 的标准目录结构、`name/description` 必需字段、`license/compatibility/metadata/allowed-tools` 可选字段，以及 `scripts/`、`references/`、`assets/` 的渐进加载方式。其代码为 Apache-2.0，文档为 CC-BY-4.0。
+[agentskills/agentskills](https://github.com/agentskills/agentskills)（固定审查 commit `69ef37e9424c0a7ea9dd2293b559e43ec8176379`）定义了 `SKILL.md` 的标准目录结构、`name/description` 必需字段、`license/compatibility/metadata/allowed-tools` 可选字段，以及 `scripts/`、`references/`、`assets/` 的渐进加载方式。其代码为 Apache-2.0，文档为 CC-BY-4.0。
 
 可采用：
 
@@ -50,7 +50,7 @@
 
 ### 3.2 DirectorSKILL
 
-[wuwangzhang1216/DirectorSKILL](https://github.com/wuwangzhang1216/DirectorSKILL) 使用 MIT 许可证，提供脚本与潜台词拆解、beats、视觉命题、导演阐述、blocking、镜头计划和 QC 流程。
+[wuwangzhang1216/DirectorSKILL](https://github.com/wuwangzhang1216/DirectorSKILL)（固定审查 commit `47db7d9b951a9f27f7b4b727a6ca0e01ab56f7c6`）使用 MIT 许可证，提供脚本与潜台词拆解、beats、视觉命题、导演阐述、blocking、镜头计划和 QC 流程。
 
 适合提炼到本项目的内容：
 
@@ -63,7 +63,7 @@
 
 ### 3.3 jwynia/agent-skills
 
-[jwynia/agent-skills](https://github.com/jwynia/agent-skills) 提供多个适合剧本审阅的 Skill，具体 Skill frontmatter 标记 MIT：
+[jwynia/agent-skills](https://github.com/jwynia/agent-skills)（固定审查 commit `e02ec7e226a6e4f8419fd3b88a1d8e472d421b32`）提供多个适合剧本审阅的 Skill，具体 Skill frontmatter 标记 MIT：
 
 - `story-analysis`：核心冲突、人物、环境、转折、场景功能、情绪结构和主题收束；
 - `scene-sequencing`：Goal → Conflict → Disaster 与 Reaction → Dilemma → Decision；
@@ -74,7 +74,7 @@
 
 ### 3.4 translate-book
 
-[deusyu/translate-book](https://github.com/deusyu/translate-book) 使用 MIT 许可证，支持 PDF/DOCX/EPUB 转换、分块、源文件 SHA-256 指纹、manifest、术语表、相邻上下文、选择性重跑和合并校验。
+[deusyu/translate-book](https://github.com/deusyu/translate-book)（固定审查 commit `5d07e733fa9318ff9c718085191c0c2243f51383`）使用 MIT 许可证，支持 PDF/DOCX/EPUB 转换、分块、源文件 SHA-256 指纹、manifest、术语表、相邻上下文、选择性重跑和合并校验。
 
 可借鉴的可靠性机制：
 

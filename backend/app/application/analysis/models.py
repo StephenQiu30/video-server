@@ -224,3 +224,12 @@ class AnalysisSkillView:
     display_name: str
     description: str
     default_prompt: str
+    input_kinds: tuple[AnalysisInputKind, ...]
+    result_contract: AnalysisResultContract
+
+
+@dataclass(frozen=True, slots=True)
+class AnalysisSkillResolution:
+    view: AnalysisSkillView
+    instructions: str
+    instructions_sha256: str

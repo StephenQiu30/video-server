@@ -27,7 +27,7 @@ from app.application.analysis.validation import (
     validate_sha256,
 )
 from app.application.analysis.views import analysis_job_view
-from app.domain.analysis import AnalysisInputKind, AnalysisResultContract
+from app.domain.analysis import AnalysisInputKind
 
 
 class CreateAnalysis:
@@ -74,10 +74,11 @@ class CreateAnalysis:
         owner_hash = validate_owner_hash(owner_hash)
         idempotency_key = validate_idempotency_key(idempotency_key)
         skill_id = validate_label(skill_id, maximum=128)
-        skill = self._skill_catalog.resolve(skill_id)
+        input_kind = AnalysisInputKind.VIDEO
+        skill = self._skill_catalog.resolve(skill_id, input_kind)
         if skill is None:
             raise AnalysisApplicationError(AnalysisApplicationErrorCode.INVALID_REQUEST)
-        _, skill_instructions = skill
+        skill_instructions = skill.instructions
         output_language = validate_label(output_language, maximum=35)
         custom_prompt = validate_custom_prompt(custom_prompt)
         try:
@@ -97,8 +98,7 @@ class CreateAnalysis:
                 AnalysisApplicationErrorCode.RESOURCE_EXPIRED
             )
         sha256 = validate_sha256(artifact.sha256)
-        input_kind = AnalysisInputKind.VIDEO
-        result_contract = AnalysisResultContract.VIDEO_VISUAL_ANALYSIS
+        result_contract = skill.view.result_contract
         fingerprint = self._fingerprinter.fingerprint(
             "analysis",
             str(artifact.id),

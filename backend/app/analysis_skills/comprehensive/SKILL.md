@@ -1,9 +1,13 @@
 ---
 name: comprehensive
-display_name: 综合分析
-description: 平衡覆盖镜头结构、内容摘要、高光片段、视觉资产与制作建议。
-default_prompt: 全面分析视频的镜头结构、主要内容、高光片段、视觉资产和制作建议。
-order: 20
+description: 平衡覆盖镜头结构、内容摘要、高光片段、视觉资产与制作建议。用于需要完整概览的视频分析。
+license: MIT
+metadata:
+  video-server-display-name: 综合分析
+  video-server-default-prompt: 全面分析视频的镜头结构、主要内容、高光片段、视觉资产和制作建议。
+  video-server-order: "20"
+  video-server-input-kinds: video
+  video-server-output-contract: video-visual-analysis
 ---
 # 综合视频分析
 

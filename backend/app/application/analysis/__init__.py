@@ -32,6 +32,7 @@ from app.application.analysis.models import (
     AnalysisReportFile,
     AnalysisReportSnapshot,
     AnalysisRetry,
+    AnalysisSkillResolution,
     AnalysisSkillView,
     AnalysisStoredReportFile,
 )
@@ -65,6 +66,7 @@ __all__ = [
     "AnalysisReportRenderer",
     "AnalysisReportObjectReader",
     "AnalysisSkillCatalog",
+    "AnalysisSkillResolution",
     "AnalysisSkillView",
     "AnalysisResult",
     "CancelAnalysis",

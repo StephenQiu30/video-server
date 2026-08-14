@@ -14,8 +14,10 @@ import type {
   CreateAnalysisInput,
 } from '@/types/video';
 
-export function listAnalysisSkills(): Promise<AnalysisSkill[]> {
-  return listAnalysisSkillsRequest();
+export function listAnalysisSkills(
+  inputKind: API.AnalysisInputKind = 'video',
+): Promise<AnalysisSkill[]> {
+  return listAnalysisSkillsRequest({ input_kind: inputKind });
 }
 
 export function createAnalysis(

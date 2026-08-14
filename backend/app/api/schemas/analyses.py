@@ -161,3 +161,5 @@ class AnalysisSkillResponse(StrictModel):
     display_name: str
     description: str
     default_prompt: str
+    input_kinds: tuple[AnalysisInputKind, ...]
+    result_contract: AnalysisResultContract

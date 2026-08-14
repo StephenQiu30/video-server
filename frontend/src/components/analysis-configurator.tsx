@@ -25,7 +25,7 @@ export default function AnalysisConfigurator({
   busy: boolean;
   onStart: (input: CreateAnalysisInput) => void;
 }) {
-  const catalog = useAnalysisSkills();
+  const catalog = useAnalysisSkills('video');
   const [skillId, setSkillId] = useState('');
   const [language, setLanguage] = useState<OutputLanguage>('zh-CN');
   const [prompt, setPrompt] = useState('');

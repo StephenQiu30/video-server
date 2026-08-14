@@ -24,6 +24,7 @@ from app.application.analysis import (
     AnalysisApplicationError,
 )
 from app.application.auth import CurrentUser
+from app.domain.analysis import AnalysisInputKind
 
 router = APIRouter(tags=["analyses"])
 User = Annotated[CurrentUser, Depends(get_current_user)]
@@ -34,15 +35,16 @@ UseCases = Annotated[AnalysisUseCases, Depends(get_analysis_use_cases)]
     "/analysis-skills",
     operation_id="listAnalysisSkills",
     response_model=tuple[AnalysisSkillResponse, ...],
-    summary="列出视频分析 Skill",
+    summary="列出输入兼容的分析 Skill",
 )
 async def list_analysis_skills(
     use_cases: UseCases,
+    input_kind: AnalysisInputKind,
 ) -> tuple[AnalysisSkillResponse, ...]:
-    """返回可选 Skill 及用户可编辑的默认提示词。"""
+    """按输入类型返回可选 Skill 及用户可编辑的默认提示词。"""
     return tuple(
         AnalysisSkillResponse.model_validate(skill)
-        for skill in use_cases.list_analysis_skills()
+        for skill in use_cases.list_analysis_skills(input_kind)
     )
 
 

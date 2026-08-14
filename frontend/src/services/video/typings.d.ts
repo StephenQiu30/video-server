@@ -160,6 +160,9 @@ declare namespace API {
     description: string;
     /** Default Prompt */
     default_prompt: string;
+    /** Input Kinds */
+    input_kinds: AnalysisInputKind[];
+    result_contract: AnalysisResultContract;
   };
 
   type AnalysisStage = "preparing" | "analyzing" | "validating" | "publishing";
@@ -770,6 +773,10 @@ declare namespace API {
 
   type issueDownloadUrlParams = {
     job_id: string;
+  };
+
+  type listAnalysisSkillsParams = {
+    input_kind: AnalysisInputKind;
   };
 
   type listDocumentsParams = {

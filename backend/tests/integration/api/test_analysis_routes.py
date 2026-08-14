@@ -21,7 +21,9 @@ from app.application.analysis import (
 from app.application.auth import CurrentUser, UserRole
 from app.core.config import Settings
 from app.domain.analysis import (
+    AnalysisInputKind,
     AnalysisMedia,
+    AnalysisResultContract,
     AnalysisStatus,
     EvidenceSummary,
     ProductionAdvice,
@@ -156,13 +158,19 @@ def client(tmp_path: Path) -> tuple[TestClient, dict[str, StubUseCase]]:
         "delete": StubUseCase(None),
     }
     application.state.analysis_use_cases = AnalysisUseCases(
-        list_analysis_skills=lambda: (
-            AnalysisSkillView(
-                id="director-breakdown",
-                display_name="导演拉片",
-                description="逐镜头分析",
-                default_prompt="逐镜头分析视频。",
-            ),
+        list_analysis_skills=lambda input_kind: (
+            (
+                AnalysisSkillView(
+                    id="director-breakdown",
+                    display_name="导演拉片",
+                    description="逐镜头分析",
+                    default_prompt="逐镜头分析视频。",
+                    input_kinds=(AnalysisInputKind.VIDEO,),
+                    result_contract=AnalysisResultContract.VIDEO_VISUAL_ANALYSIS,
+                ),
+            )
+            if input_kind is AnalysisInputKind.VIDEO
+            else ()
         ),
         create_analysis=stubs["create"],
         delete_analysis=stubs["delete"],
@@ -203,7 +211,7 @@ def test_analysis_service_must_be_wired(tmp_path: Path) -> None:
 def test_analysis_skills_are_listed_without_versioned_ids(tmp_path: Path) -> None:
     test_client, _ = client(tmp_path)
     with test_client:
-        response = test_client.get("/api/analysis-skills")
+        response = test_client.get("/api/analysis-skills?input_kind=video")
 
     assert response.status_code == 200
     assert response.json() == [
@@ -212,8 +220,17 @@ def test_analysis_skills_are_listed_without_versioned_ids(tmp_path: Path) -> Non
             "display_name": "导演拉片",
             "description": "逐镜头分析",
             "default_prompt": "逐镜头分析视频。",
+            "input_kinds": ["video"],
+            "result_contract": "video-visual-analysis",
         }
     ]
+
+    with test_client:
+        screenplay = test_client.get("/api/analysis-skills?input_kind=screenplay")
+        missing = test_client.get("/api/analysis-skills")
+
+    assert screenplay.json() == []
+    assert missing.status_code == 422
 
 
 def test_analysis_routes_share_owner_and_never_expose_internal_ids(
