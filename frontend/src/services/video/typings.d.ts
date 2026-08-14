@@ -131,7 +131,12 @@ declare namespace API {
     updated_at: string;
     /** Finished At */
     finished_at: string | null;
-    result: AnalysisResultResponse | null;
+    /** Result */
+    result:
+      | VideoAnalysisResultResponse
+      | ScreenplayAnalysisResultResponse
+      | ScreenplayRewriteResultResponse
+      | null;
     /** Report Markdown */
     report_markdown: string | null;
     /** Current Report Id */
@@ -145,24 +150,6 @@ declare namespace API {
     | "video-visual-analysis"
     | "screenplay-analysis"
     | "screenplay-rewrite";
-
-  type AnalysisResultResponse = {
-    /** Language */
-    language: string;
-    /** Title */
-    title: string;
-    summary: EvidenceSummaryResponse;
-    media: AnalysisMediaResponse;
-    /** Shot Count */
-    shot_count: number;
-    /** Shots */
-    shots: ShotResponse[];
-    /** Highlights */
-    highlights: HighlightResponse[];
-    /** Assets */
-    assets: VisualAssetResponse[];
-    production_advice: ProductionAdviceResponse;
-  };
 
   type AnalysisSkillResponse = {
     /** Id */
@@ -1000,6 +987,108 @@ declare namespace API {
     job_id: string;
   };
 
+  type ScreenplayAnalysisResultResponse = {
+    /** Kind */
+    kind: "screenplay_analysis";
+    /** Language */
+    language: string;
+    /** Title */
+    title: string;
+    /** Logline */
+    logline: string;
+    /** Synopsis */
+    synopsis: string;
+    structure: ScreenplayStructureResponse;
+    /** Characters */
+    characters: ScreenplayCharacterResponse[];
+    /** Scenes */
+    scenes: ScreenplaySceneResponse[];
+    /** Dialogue Findings */
+    dialogue_findings: ScreenplayEvidenceItemResponse[];
+    /** Strengths */
+    strengths: ScreenplayEvidenceItemResponse[];
+    /** Priority Revisions */
+    priority_revisions: ScreenplayEvidenceItemResponse[];
+  };
+
+  type ScreenplayCharacterResponse = {
+    /** Id */
+    id: string;
+    /** Name */
+    name: string;
+    /** Goal */
+    goal: string;
+    /** Conflict */
+    conflict: string;
+    /** Arc */
+    arc: string;
+    /** Evidence Scene Ids */
+    evidence_scene_ids: string[];
+  };
+
+  type ScreenplayEvidenceItemResponse = {
+    /** Id */
+    id: string;
+    /** Title */
+    title: string;
+    /** Description */
+    description: string;
+    /** Evidence Scene Ids */
+    evidence_scene_ids: string[];
+  };
+
+  type ScreenplayGlossaryTermResponse = {
+    /** Source */
+    source: string;
+    /** Target */
+    target: string;
+    /** Category */
+    category: string;
+  };
+
+  type ScreenplayRewriteResultResponse = {
+    /** Kind */
+    kind: "screenplay_rewrite";
+    /** Source Language */
+    source_language: string;
+    /** Target Language */
+    target_language: string;
+    /** Source Scene Count */
+    source_scene_count: number;
+    /** Output Scene Count */
+    output_scene_count: number;
+    /** Glossary */
+    glossary: ScreenplayGlossaryTermResponse[];
+    /** Change Summary */
+    change_summary: string[];
+  };
+
+  type ScreenplaySceneResponse = {
+    /** Id */
+    id: string;
+    /** Source Scene Id */
+    source_scene_id: string;
+    /** Purpose */
+    purpose: string;
+    /** Conflict */
+    conflict: string;
+    /** Turn */
+    turn: string;
+    /** Pacing */
+    pacing: string;
+    /** Findings */
+    findings: string[];
+  };
+
+  type ScreenplayStructureResponse = {
+    /** Acts */
+    acts: ScreenplayEvidenceItemResponse[];
+    /** Turning Points */
+    turning_points: ScreenplayEvidenceItemResponse[];
+    /** Pacing Summary */
+    pacing_summary: string;
+  };
+
   type SemanticPlanResponse = {
     /** Height */
     height: number;
@@ -1111,6 +1200,26 @@ declare namespace API {
   };
 
   type UserRole = "admin" | "user";
+
+  type VideoAnalysisResultResponse = {
+    /** Kind */
+    kind: "video_visual_analysis";
+    /** Language */
+    language: string;
+    /** Title */
+    title: string;
+    summary: EvidenceSummaryResponse;
+    media: AnalysisMediaResponse;
+    /** Shot Count */
+    shot_count: number;
+    /** Shots */
+    shots: ShotResponse[];
+    /** Highlights */
+    highlights: HighlightResponse[];
+    /** Assets */
+    assets: VisualAssetResponse[];
+    production_advice: ProductionAdviceResponse;
+  };
 
   type VideoCodecFamily = "h264" | "hevc" | "vp9" | "av1" | "other";
 

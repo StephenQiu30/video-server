@@ -6,7 +6,7 @@ import AnalysisReportPreview from '@/components/analysis-report-preview';
 import { Button } from '@/components/ui/button';
 import { Item, ItemGroup } from '@/components/ui/item';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { AnalysisResult } from '@/types/video';
+import type { VideoAnalysisResult } from '@/types/video';
 import { formatMilliseconds } from '@/utils/format';
 
 const assetTypeLabels: Record<string, string> = {
@@ -25,7 +25,7 @@ export default function AnalysisResultView({
 }: {
   onSelectTime?: (milliseconds: number) => void;
   reportMarkdown?: string | null;
-  result: AnalysisResult;
+  result: VideoAnalysisResult;
 }) {
   return (
     <Tabs className="mt-10 gap-0" defaultValue="shots">

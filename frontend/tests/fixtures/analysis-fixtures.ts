@@ -1,4 +1,8 @@
-import type { AnalysisJob, AnalysisResult, AnalysisSkill } from '@/types/video';
+import type {
+  AnalysisJob,
+  AnalysisSkill,
+  VideoAnalysisResult,
+} from '@/types/video';
 
 export const analysisSkills: AnalysisSkill[] = [
   {
@@ -15,7 +19,8 @@ export const analysisSkills: AnalysisSkill[] = [
   },
 ];
 
-export const analysisResult: AnalysisResult = {
+export const analysisResult: VideoAnalysisResult = {
+  kind: 'video_visual_analysis',
   language: 'zh-CN',
   title: '可靠的视频处理流水线',
   summary: {

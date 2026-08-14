@@ -5,6 +5,10 @@ from uuid import UUID
 
 from pydantic import Field, field_validator
 
+from app.api.schemas.analysis_results import (
+    ANALYSIS_RESULT_RESPONSE_ADAPTER,
+    AnalysisResultResponse,
+)
 from app.api.schemas.common import StrictModel
 from app.application.analysis import AnalysisJobView
 from app.domain.analysis import (
@@ -48,71 +52,6 @@ class AnalysisRequest(StrictModel):
             return None
         normalized = value.strip()
         return normalized or None
-
-
-class AnalysisMediaResponse(StrictModel):
-    duration_ms: int
-    container: str
-    size_bytes: int
-
-
-class EvidenceSummaryResponse(StrictModel):
-    text: str
-    evidence_shot_ids: tuple[str, ...]
-
-
-class ShotResponse(StrictModel):
-    id: str
-    index: int
-    start_ms: int
-    end_ms: int
-    representative_frame_ms: int
-    description: str
-    transition_in: str
-    shot_size: str
-    camera_motion: str
-    narrative_function: str
-    highlight_score: int
-    visual_tags: tuple[str, ...]
-    asset_ids: tuple[str, ...]
-
-
-class HighlightResponse(StrictModel):
-    id: str
-    title: str
-    description: str
-    score: int
-    reason: str
-    start_ms: int
-    end_ms: int
-    evidence_shot_ids: tuple[str, ...]
-
-
-class VisualAssetResponse(StrictModel):
-    id: str
-    type: str
-    label: str
-    description: str
-    first_seen_ms: int
-    evidence_shot_ids: tuple[str, ...]
-
-
-class ProductionAdviceResponse(StrictModel):
-    summary: str
-    priority_shot_ids: tuple[str, ...]
-    recommended_extensions: tuple[str, ...]
-
-
-class AnalysisResultResponse(StrictModel):
-    language: str
-    title: str
-    summary: EvidenceSummaryResponse
-    media: AnalysisMediaResponse
-    shot_count: int
-    shots: tuple[ShotResponse, ...]
-    highlights: tuple[HighlightResponse, ...]
-    assets: tuple[VisualAssetResponse, ...]
-    production_advice: ProductionAdviceResponse
 
 
 class AnalysisReportArtifactResponse(StrictModel):
@@ -214,7 +153,7 @@ class AnalysisResponse(StrictModel):
     ) -> AnalysisResultResponse | None:
         if result is None:
             return None
-        return AnalysisResultResponse.model_validate(result)
+        return ANALYSIS_RESULT_RESPONSE_ADAPTER.validate_python(result)
 
 
 class AnalysisSkillResponse(StrictModel):

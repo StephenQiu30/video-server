@@ -5,7 +5,10 @@ export type AnalysisStage = API.AnalysisStage;
 export type AnalysisShot = API.ShotResponse;
 export type AnalysisHighlight = API.HighlightResponse;
 export type VisualAsset = API.VisualAssetResponse;
-export type AnalysisResult = API.AnalysisResultResponse;
+export type AnalysisResult = NonNullable<API.AnalysisResponse['result']>;
+export type VideoAnalysisResult = API.VideoAnalysisResultResponse;
+export type ScreenplayAnalysisResult = API.ScreenplayAnalysisResultResponse;
+export type ScreenplayRewriteResult = API.ScreenplayRewriteResultResponse;
 export type AnalysisJob = API.AnalysisResponse;
 
 export type CreateAnalysisInput = API.AnalysisRequest & {

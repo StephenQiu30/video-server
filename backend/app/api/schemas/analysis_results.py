@@ -1,0 +1,153 @@
+from __future__ import annotations
+
+from typing import Annotated, Literal, TypeAlias
+
+from pydantic import Field, TypeAdapter
+
+from app.api.schemas.common import StrictModel
+
+
+class AnalysisMediaResponse(StrictModel):
+    duration_ms: int
+    container: str
+    size_bytes: int
+
+
+class EvidenceSummaryResponse(StrictModel):
+    text: str
+    evidence_shot_ids: tuple[str, ...]
+
+
+class ShotResponse(StrictModel):
+    id: str
+    index: int
+    start_ms: int
+    end_ms: int
+    representative_frame_ms: int
+    description: str
+    transition_in: str
+    shot_size: str
+    camera_motion: str
+    narrative_function: str
+    highlight_score: int
+    visual_tags: tuple[str, ...]
+    asset_ids: tuple[str, ...]
+
+
+class HighlightResponse(StrictModel):
+    id: str
+    title: str
+    description: str
+    score: int
+    reason: str
+    start_ms: int
+    end_ms: int
+    evidence_shot_ids: tuple[str, ...]
+
+
+class VisualAssetResponse(StrictModel):
+    id: str
+    type: str
+    label: str
+    description: str
+    first_seen_ms: int
+    evidence_shot_ids: tuple[str, ...]
+
+
+class ProductionAdviceResponse(StrictModel):
+    summary: str
+    priority_shot_ids: tuple[str, ...]
+    recommended_extensions: tuple[str, ...]
+
+
+class VideoAnalysisResultResponse(StrictModel):
+    kind: Literal["video_visual_analysis"] = Field(
+        json_schema_extra={"enum": ["video_visual_analysis"]}
+    )
+    language: str
+    title: str
+    summary: EvidenceSummaryResponse
+    media: AnalysisMediaResponse
+    shot_count: int
+    shots: tuple[ShotResponse, ...]
+    highlights: tuple[HighlightResponse, ...]
+    assets: tuple[VisualAssetResponse, ...]
+    production_advice: ProductionAdviceResponse
+
+
+class ScreenplayEvidenceItemResponse(StrictModel):
+    id: str
+    title: str
+    description: str
+    evidence_scene_ids: tuple[str, ...]
+
+
+class ScreenplayStructureResponse(StrictModel):
+    acts: tuple[ScreenplayEvidenceItemResponse, ...]
+    turning_points: tuple[ScreenplayEvidenceItemResponse, ...]
+    pacing_summary: str
+
+
+class ScreenplayCharacterResponse(StrictModel):
+    id: str
+    name: str
+    goal: str
+    conflict: str
+    arc: str
+    evidence_scene_ids: tuple[str, ...]
+
+
+class ScreenplaySceneResponse(StrictModel):
+    id: str
+    source_scene_id: str
+    purpose: str
+    conflict: str
+    turn: str
+    pacing: str
+    findings: tuple[str, ...]
+
+
+class ScreenplayAnalysisResultResponse(StrictModel):
+    kind: Literal["screenplay_analysis"] = Field(
+        json_schema_extra={"enum": ["screenplay_analysis"]}
+    )
+    language: str
+    title: str
+    logline: str
+    synopsis: str
+    structure: ScreenplayStructureResponse
+    characters: tuple[ScreenplayCharacterResponse, ...]
+    scenes: tuple[ScreenplaySceneResponse, ...]
+    dialogue_findings: tuple[ScreenplayEvidenceItemResponse, ...]
+    strengths: tuple[ScreenplayEvidenceItemResponse, ...]
+    priority_revisions: tuple[ScreenplayEvidenceItemResponse, ...]
+
+
+class ScreenplayGlossaryTermResponse(StrictModel):
+    source: str
+    target: str
+    category: str
+
+
+class ScreenplayRewriteResultResponse(StrictModel):
+    kind: Literal["screenplay_rewrite"] = Field(
+        json_schema_extra={"enum": ["screenplay_rewrite"]}
+    )
+    source_language: str
+    target_language: str
+    source_scene_count: int
+    output_scene_count: int
+    glossary: tuple[ScreenplayGlossaryTermResponse, ...]
+    change_summary: tuple[str, ...]
+
+
+AnalysisResultResponse: TypeAlias = Annotated[  # noqa: UP040
+    VideoAnalysisResultResponse
+    | ScreenplayAnalysisResultResponse
+    | ScreenplayRewriteResultResponse,
+    Field(discriminator="kind"),
+]
+
+ANALYSIS_RESULT_RESPONSE_ADAPTER: TypeAdapter[AnalysisResultResponse] = TypeAdapter(
+    AnalysisResultResponse
+)

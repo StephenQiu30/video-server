@@ -37,7 +37,10 @@ export default function AnalysisPanel({
 }) {
   const state = useAnalysisJob(downloadId, pollIntervalMs);
 
-  if (state.job?.status === 'succeeded' && state.job.result) {
+  if (
+    state.job?.status === 'succeeded' &&
+    state.job.result?.kind === 'video_visual_analysis'
+  ) {
     const formats = new Set(
       state.job.report?.status === 'available'
         ? state.job.report.artifacts.map((artifact) => artifact.format)
@@ -240,7 +243,7 @@ function AnalysisJobState({
       <p className="mt-8 text-sm text-muted-foreground">
         分析结果会经过连续时间轴、严格结构与分镜证据校验。
       </p>
-      {job.result ? (
+      {job.result?.kind === 'video_visual_analysis' ? (
         <div className="mt-10 border-t pt-10">
           <div className="flex flex-wrap items-center gap-3">
             <Badge variant="neutral">

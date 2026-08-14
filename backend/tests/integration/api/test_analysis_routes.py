@@ -284,6 +284,7 @@ def test_succeeded_analysis_returns_only_strict_structured_result(
 
     assert response.status_code == 200
     payload = response.json()
+    assert payload["result"]["kind"] == "video_visual_analysis"
     assert payload["result"]["shot_count"] == 1
     assert payload["result"]["assets"][0]["evidence_shot_ids"] == ["shot-1"]
     assert payload["result"]["shots"][0]["narrative_function"] == "建立故事空间。"

@@ -60,7 +60,27 @@ def test_analysis_openapi_is_current_and_excludes_internal_fields(
     assert {"artifact_id", "schema_version", "transcript", "provider"}.isdisjoint(
         fields
     )
-    result_fields = components["AnalysisResultResponse"]["properties"]
+    result_union = next(item for item in fields["result"]["anyOf"] if "oneOf" in item)
+    assert result_union["discriminator"] == {
+        "propertyName": "kind",
+        "mapping": {
+            "screenplay_analysis": (
+                "#/components/schemas/ScreenplayAnalysisResultResponse"
+            ),
+            "screenplay_rewrite": (
+                "#/components/schemas/ScreenplayRewriteResultResponse"
+            ),
+            "video_visual_analysis": (
+                "#/components/schemas/VideoAnalysisResultResponse"
+            ),
+        },
+    }
+    assert {item["$ref"] for item in result_union["oneOf"]} == {
+        "#/components/schemas/VideoAnalysisResultResponse",
+        "#/components/schemas/ScreenplayAnalysisResultResponse",
+        "#/components/schemas/ScreenplayRewriteResultResponse",
+    }
+    result_fields = components["VideoAnalysisResultResponse"]["properties"]
     assert {
         "media",
         "shot_count",
@@ -72,6 +92,8 @@ def test_analysis_openapi_is_current_and_excludes_internal_fields(
     shot_fields = components["ShotResponse"]["properties"]
     assert {"narrative_function", "highlight_score"} <= set(shot_fields)
     assert {"provider", "model", "cli_version"}.isdisjoint(result_fields)
+    rewrite_fields = components["ScreenplayRewriteResultResponse"]["properties"]
+    assert {"chunks", "rewritten_text"}.isdisjoint(rewrite_fields)
     export = paths["/api/analyses/{analysis_id}/report.docx"]["get"]
     assert export["operationId"] == "exportAnalysisReport"
     assert (
