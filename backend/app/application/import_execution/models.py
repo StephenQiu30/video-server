@@ -5,6 +5,7 @@ from datetime import timedelta
 from pathlib import Path
 from uuid import UUID
 
+from app.domain.documents import ScreenplayScene
 from app.domain.imports import ContentKind, ImportSourceFormat
 
 
@@ -28,6 +29,20 @@ class VerifiedImportArtifact:
     container: str
     content_type: str
     media_metadata: dict[str, object]
+
+
+@dataclass(frozen=True, slots=True)
+class VerifiedDocumentImport:
+    original_sha256: str
+    original_size_bytes: int
+    original_content_type: str
+    normalized_path: Path = field(repr=False)
+    normalized_sha256: str = field(repr=False)
+    normalized_size_bytes: int
+    detected_language: str
+    character_count: int
+    scenes: tuple[ScreenplayScene, ...]
+    quality_warnings: tuple[str, ...]
 
 
 @dataclass(frozen=True, slots=True)

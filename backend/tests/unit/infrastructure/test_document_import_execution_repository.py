@@ -1,0 +1,205 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from uuid import UUID
+
+import pytest
+from app.application.import_execution import VerifiedDocumentImport
+from app.application.imports import ImportResourceCreate
+from app.domain.documents import ScreenplayScene
+from app.domain.imports import ContentKind, ImportErrorCode, ImportSourceFormat
+from app.infrastructure.database import (
+    Base,
+    SqlAlchemyDocumentImportExecutionRepository,
+    SqlAlchemyDocumentImportRepository,
+)
+from app.infrastructure.database.models import (
+    DocumentArtifactRow,
+    DocumentImportAttemptRow,
+    DocumentRow,
+    OutboxEventRow,
+)
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+NOW = datetime(2026, 8, 14, 18, 0, tzinfo=UTC)
+DOCUMENT_ID = UUID("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+OWNER = "a" * 64
+
+
+@pytest.fixture
+async def repositories():
+    engine = create_async_engine("sqlite+aiosqlite://")
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    yield (
+        SqlAlchemyDocumentImportRepository(sessions),
+        SqlAlchemyDocumentImportExecutionRepository(sessions),
+        sessions,
+    )
+    await engine.dispose()
+
+
+async def verifying(upload_repository):
+    await upload_repository.create_resource(
+        ImportResourceCreate(
+            id=DOCUMENT_ID,
+            owner_hash=OWNER,
+            idempotency_key="document-execution",
+            request_fingerprint="b" * 64,
+            content_kind=ContentKind.SCREENPLAY,
+            source_format=ImportSourceFormat.FOUNTAIN,
+            display_name="story.fountain",
+            content_type=ImportSourceFormat.FOUNTAIN.content_type,
+            declared_size_bytes=128,
+            declared_sha256="c" * 64,
+            rights_statement_version="content-rights-v1",
+        ),
+        now=NOW,
+    )
+    begun = await upload_repository.begin_upload_attempt(
+        DOCUMENT_ID,
+        OWNER,
+        ContentKind.SCREENPLAY,
+        part_size_bytes=5 * 1024**2,
+        part_count=1,
+        expires_at=NOW + timedelta(minutes=15),
+        now=NOW,
+    )
+    await upload_repository.activate_upload_attempt(
+        DOCUMENT_ID,
+        OWNER,
+        ContentKind.SCREENPLAY,
+        begun.attempt.attempt,
+        upload_id="upload-1",
+        now=NOW,
+    )
+    return await upload_repository.mark_verifying(
+        DOCUMENT_ID,
+        OWNER,
+        ContentKind.SCREENPLAY,
+        begun.attempt.attempt,
+        actual_size_bytes=128,
+        now=NOW,
+    )
+
+
+def verified(path: Path) -> VerifiedDocumentImport:
+    return VerifiedDocumentImport(
+        original_sha256="c" * 64,
+        original_size_bytes=128,
+        original_content_type=ImportSourceFormat.FOUNTAIN.content_type,
+        normalized_path=path,
+        normalized_sha256="d" * 64,
+        normalized_size_bytes=64,
+        detected_language="en-US",
+        character_count=64,
+        scenes=(ScreenplayScene("scene-0001-123456789abc", 0, 64),),
+        quality_warnings=(),
+    )
+
+
+async def test_claim_heartbeat_and_completion_create_two_immutable_artifacts(
+    repositories, tmp_path: Path
+) -> None:
+    upload, execution, sessions = repositories
+    resource = await verifying(upload)
+    claim = await execution.claim_verification(
+        DOCUMENT_ID,
+        ContentKind.SCREENPLAY,
+        1,
+        resource.version,
+        worker_id="worker-a",
+        now=NOW,
+        lease_for=timedelta(seconds=30),
+    )
+    assert claim is not None
+    assert await execution.heartbeat_verification(
+        DOCUMENT_ID,
+        1,
+        worker_id="worker-a",
+        stage="uploading",
+        progress=95,
+        now=NOW + timedelta(seconds=1),
+        lease_for=timedelta(seconds=30),
+    )
+    artifact = verified(tmp_path / "screenplay.md")
+    await execution.complete_verification(
+        claim,
+        artifact,
+        worker_id="worker-a",
+        bucket="video-artifacts",
+        expires_at=NOW + timedelta(days=7),
+        now=NOW + timedelta(seconds=2),
+    )
+    await execution.complete_verification(
+        claim,
+        artifact,
+        worker_id="worker-a",
+        bucket="video-artifacts",
+        expires_at=NOW + timedelta(days=7),
+        now=NOW + timedelta(seconds=3),
+    )
+
+    async with sessions() as session:
+        document = await session.get(DocumentRow, DOCUMENT_ID)
+        attempt = await session.get(DocumentImportAttemptRow, (DOCUMENT_ID, 1))
+        artifacts = tuple(
+            (
+                await session.scalars(
+                    select(DocumentArtifactRow).order_by(DocumentArtifactRow.kind)
+                )
+            ).all()
+        )
+    assert document is not None and document.status == "ready"
+    assert document.text_sha256 == "d" * 64
+    assert document.scene_count == 1 and document.character_count == 64
+    assert attempt is not None and attempt.status == "ready"
+    assert [item.kind for item in artifacts] == ["normalized", "original"]
+    assert artifacts[0].artifact_metadata["scenes"][0]["id"].startswith("scene-")
+
+
+async def test_terminal_failure_and_expired_lease_recovery_are_stable(
+    repositories,
+) -> None:
+    upload, execution, sessions = repositories
+    resource = await verifying(upload)
+    claim = await execution.claim_verification(
+        DOCUMENT_ID,
+        ContentKind.SCREENPLAY,
+        1,
+        resource.version,
+        worker_id="worker-a",
+        now=NOW,
+        lease_for=timedelta(seconds=30),
+    )
+    assert claim is not None
+    recovered = await execution.recover_expired_verifications(
+        NOW + timedelta(seconds=31), limit=10
+    )
+    assert recovered == (DOCUMENT_ID,)
+    reclaimed = await execution.claim_verification(
+        DOCUMENT_ID,
+        ContentKind.SCREENPLAY,
+        1,
+        resource.version,
+        worker_id="worker-b",
+        now=NOW + timedelta(seconds=31),
+        lease_for=timedelta(seconds=30),
+    )
+    assert reclaimed is not None
+    await execution.fail_verification(
+        reclaimed,
+        ImportErrorCode.DOCUMENT_TEXT_UNAVAILABLE,
+        worker_id="worker-b",
+        now=NOW + timedelta(seconds=32),
+    )
+
+    async with sessions() as session:
+        document = await session.get(DocumentRow, DOCUMENT_ID)
+        events = await session.scalar(select(func.count(OutboxEventRow.id)))
+    assert document is not None and document.status == "failed"
+    assert document.error_code == ImportErrorCode.DOCUMENT_TEXT_UNAVAILABLE.value
+    assert events == 2

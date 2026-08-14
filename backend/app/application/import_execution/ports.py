@@ -10,6 +10,7 @@ from app.domain.imports import ContentKind, ImportErrorCode
 from .models import (
     ImportVerificationClaim,
     ImportWorkspace,
+    VerifiedDocumentImport,
     VerifiedImportArtifact,
 )
 
@@ -87,6 +88,16 @@ class ImportExecutionStorage(Protocol):
         content_type: str,
     ) -> object: ...
 
+    async def upload_verified(
+        self,
+        source: Path,
+        destination_key: str,
+        *,
+        expected_size_bytes: int,
+        sha256: str,
+        content_type: str,
+    ) -> object: ...
+
     async def delete(self, object_key: str) -> None: ...
 
     async def list(self, prefix: str) -> tuple[ImportStoredObject, ...]: ...
@@ -106,6 +117,12 @@ class VideoImportVerifier(Protocol):
     async def __call__(
         self, path: Path, claim: ImportVerificationClaim
     ) -> VerifiedImportArtifact: ...
+
+
+class DocumentImportVerifier(Protocol):
+    async def __call__(
+        self, path: Path, claim: ImportVerificationClaim
+    ) -> VerifiedDocumentImport: ...
 
 
 class Clock(Protocol):

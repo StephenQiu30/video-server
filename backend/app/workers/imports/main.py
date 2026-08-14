@@ -3,20 +3,20 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
-import os
-import signal
-import socket
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 
 from app.application.import_execution import (
+    DocumentImportExecution,
+    DocumentImportRecoverySweeper,
     ImportExecution,
     ImportExecutionSettings,
     ImportRecoverySweeper,
+    RoutedImportExecution,
 )
 from app.core.config import Settings, get_settings_for_role
 from app.infrastructure.database import (
+    SqlAlchemyDocumentImportExecutionRepository,
     SqlAlchemyMediaImportRepository,
     create_engine,
     create_session_factory,
@@ -24,6 +24,12 @@ from app.infrastructure.database import (
 from app.infrastructure.messaging import RabbitMqTopology
 from app.infrastructure.object_storage import MinioObjectStorage
 from app.workers.imports.consumer import RabbitMqImportConsumer
+from app.workers.imports.runtime_support import (
+    install_signal_handlers,
+    utc_now,
+    worker_id,
+)
+from app.workers.imports.text import TextScreenplayVerifier, TextVerificationSettings
 from app.workers.imports.video import (
     Mp4ImportVerifier,
     VideoVerificationSettings,
@@ -36,6 +42,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 class ImportWorkerRuntime:
     consumer: RabbitMqImportConsumer
     sweeper: ImportRecoverySweeper
+    document_sweeper: DocumentImportRecoverySweeper
     engine: AsyncEngine
 
     async def close(self) -> None:
@@ -47,10 +54,20 @@ class ImportWorkerRuntime:
 
 def build_runtime(settings: Settings) -> ImportWorkerRuntime:
     engine = create_engine(settings.database_url)
-    repository = SqlAlchemyMediaImportRepository(create_session_factory(engine))
+    sessions = create_session_factory(engine)
+    repository = SqlAlchemyMediaImportRepository(sessions)
+    document_repository = SqlAlchemyDocumentImportExecutionRepository(sessions)
     storage = MinioObjectStorage.for_imports(settings, enable_public_signing=False)
     workspace = PrivateImportWorkspace(settings.import_workspace_root)
-    execution = ImportExecution(
+    execution_settings = ImportExecutionSettings(
+        worker_id=worker_id(),
+        bucket=settings.minio_bucket,
+        workspace_root=settings.import_workspace_root,
+        lease_for=timedelta(seconds=settings.job_lease_seconds),
+        heartbeat_interval=settings.heartbeat_interval_seconds,
+        artifact_ttl=timedelta(seconds=settings.artifact_ttl_seconds),
+    )
+    video_execution = ImportExecution(
         repository=repository,
         storage=storage,
         workspace=workspace,
@@ -67,15 +84,19 @@ def build_runtime(settings: Settings) -> ImportWorkerRuntime:
                 max_streams=settings.import_max_media_streams,
             ),
         ),
-        clock=_utc_now,
-        settings=ImportExecutionSettings(
-            worker_id=_worker_id(),
-            bucket=settings.minio_bucket,
-            workspace_root=settings.import_workspace_root,
-            lease_for=timedelta(seconds=settings.job_lease_seconds),
-            heartbeat_interval=settings.heartbeat_interval_seconds,
-            artifact_ttl=timedelta(seconds=settings.artifact_ttl_seconds),
+        clock=utc_now,
+        settings=execution_settings,
+    )
+    document_execution = DocumentImportExecution(
+        repository=document_repository,
+        storage=storage,
+        workspace=workspace,
+        verifier=TextScreenplayVerifier(
+            settings.import_workspace_root,
+            TextVerificationSettings(max_size_bytes=settings.document_import_max_bytes),
         ),
+        clock=utc_now,
+        settings=execution_settings,
     )
     topology = RabbitMqTopology(
         exchange=settings.rabbitmq_exchange,
@@ -92,7 +113,7 @@ def build_runtime(settings: Settings) -> ImportWorkerRuntime:
         consumer=RabbitMqImportConsumer(
             settings.rabbitmq_url,
             topology,
-            execution,
+            RoutedImportExecution(video_execution, document_execution),
             prefetch=settings.worker_prefetch,
             connection_timeout=settings.rabbitmq_connection_timeout_seconds,
             heartbeat=settings.rabbitmq_heartbeat_seconds,
@@ -102,11 +123,22 @@ def build_runtime(settings: Settings) -> ImportWorkerRuntime:
             repository,
             storage,
             workspace,
-            _utc_now,
+            utc_now,
             interval=settings.import_recovery_interval_seconds,
             batch_size=settings.import_recovery_batch_size,
             workspace_grace=timedelta(seconds=settings.import_workspace_grace_seconds),
             artifact_orphan_grace=timedelta(
+                seconds=settings.import_artifact_orphan_grace_seconds
+            ),
+            delete_timeout=settings.artifact_delete_timeout_seconds,
+        ),
+        document_sweeper=DocumentImportRecoverySweeper(
+            document_repository,
+            storage,
+            utc_now,
+            interval=settings.import_recovery_interval_seconds,
+            batch_size=settings.import_recovery_batch_size,
+            orphan_grace=timedelta(
                 seconds=settings.import_artifact_orphan_grace_seconds
             ),
             delete_timeout=settings.artifact_delete_timeout_seconds,
@@ -118,7 +150,7 @@ def build_runtime(settings: Settings) -> ImportWorkerRuntime:
 async def run() -> None:
     runtime = build_runtime(get_settings_for_role("import-worker"))
     stop = asyncio.Event()
-    _install_signal_handlers(stop)
+    install_signal_handlers(stop)
     try:
         await _serve(runtime, stop)
     finally:
@@ -129,11 +161,13 @@ async def run() -> None:
 async def _serve(runtime: ImportWorkerRuntime, stop: asyncio.Event) -> None:
     consumer = asyncio.create_task(runtime.consumer.run(stop))
     sweeper = asyncio.create_task(runtime.sweeper.run(stop))
+    document_sweeper = asyncio.create_task(runtime.document_sweeper.run(stop))
     stop_wait = asyncio.create_task(stop.wait())
-    tasks = (consumer, sweeper)
+    tasks = (consumer, sweeper, document_sweeper)
     try:
         await asyncio.wait(
-            {consumer, sweeper, stop_wait}, return_when=asyncio.FIRST_COMPLETED
+            {consumer, sweeper, document_sweeper, stop_wait},
+            return_when=asyncio.FIRST_COMPLETED,
         )
         stop.set()
         await runtime.consumer.close()
@@ -147,25 +181,6 @@ async def _serve(runtime: ImportWorkerRuntime, stop: asyncio.Event) -> None:
     finally:
         stop_wait.cancel()
         await asyncio.gather(stop_wait, return_exceptions=True)
-
-
-def _worker_id() -> str:
-    hostname = socket.gethostname()
-    digest = hashlib.sha256(hostname.encode()).hexdigest()[:12]
-    return f"import-{hostname[:64]}-{digest}-{os.getpid()}"
-
-
-def _utc_now() -> datetime:
-    return datetime.now(UTC)
-
-
-def _install_signal_handlers(stop: asyncio.Event) -> None:
-    loop = asyncio.get_running_loop()
-    for requested_signal in (signal.SIGINT, signal.SIGTERM):
-        try:
-            loop.add_signal_handler(requested_signal, stop.set)
-        except NotImplementedError:
-            pass
 
 
 def main() -> None:

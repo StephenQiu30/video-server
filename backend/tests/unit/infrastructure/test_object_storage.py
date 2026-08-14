@@ -332,6 +332,17 @@ class PromotionMinio(FakeMinio):
         self.calls.append(("copy", bucket, source_key, destination_key, kwargs))
 
 
+class VerifiedUploadMinio(PromotionMinio):
+    def fput_object(self, bucket: str, object_key: str, source: str, **kwargs) -> None:
+        metadata = kwargs["metadata"]
+        self.objects[object_key] = SimpleNamespace(
+            size=Path(source).stat().st_size,
+            metadata={"x-amz-meta-sha256": metadata["sha256"]},
+            content_type=kwargs["content_type"],
+        )
+        self.calls.append(("verified-put", bucket, object_key, kwargs))
+
+
 class SimpleStorageError(Exception):
     def __init__(self, code: str) -> None:
         self.code = code
@@ -429,6 +440,35 @@ async def test_storage_promotes_verified_object_idempotently() -> None:
         "video/mp4",
     )
     assert len([call for call in private.calls if call[0] == "copy"]) == 1
+
+
+async def test_storage_uploads_generated_verified_object_idempotently(
+    tmp_path: Path,
+) -> None:
+    private = VerifiedUploadMinio()
+    storage = MinioObjectStorage(settings(), private=private)
+    source = tmp_path / "screenplay.md"
+    source.write_bytes(b"screenplay")
+    destination = "documents/11111111-1111-4111-8111-111111111111/1/screenplay.md"
+    digest = "d" * 64
+
+    first = await storage.upload_verified(
+        source,
+        destination,
+        expected_size_bytes=10,
+        sha256=digest,
+        content_type="text/markdown; charset=utf-8",
+    )
+    second = await storage.upload_verified(
+        source,
+        destination,
+        expected_size_bytes=10,
+        sha256=digest,
+        content_type="text/markdown; charset=utf-8",
+    )
+
+    assert first == second
+    assert len([call for call in private.calls if call[0] == "verified-put"]) == 1
 
 
 def _multipart_part(part_number: int, etag: str) -> MultipartUploadPart:

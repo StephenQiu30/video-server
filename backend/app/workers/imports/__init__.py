@@ -6,6 +6,10 @@ from .message import (
     ImportVerifyRequested,
     parse_import_verify_requested,
 )
+from .text import (
+    TextScreenplayVerifier,
+    TextVerificationSettings,
+)
 from .video import (
     FfprobeVideoProbe,
     Mp4ImportVerifier,
@@ -22,6 +26,8 @@ __all__ = [
     "ImportHandler",
     "ImportVerifyRequested",
     "RabbitMqImportConsumer",
+    "TextScreenplayVerifier",
+    "TextVerificationSettings",
     "FfprobeVideoProbe",
     "Mp4ImportVerifier",
     "VerifiedVideo",

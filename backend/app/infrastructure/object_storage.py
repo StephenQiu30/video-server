@@ -357,6 +357,49 @@ class MinioObjectStorage:
             raise RuntimeError("promoted object failed verification")
         return promoted
 
+    async def upload_verified(
+        self,
+        source: Path,
+        destination_key: str,
+        *,
+        expected_size_bytes: int,
+        sha256: str,
+        content_type: str,
+    ) -> StoredObjectStat:
+        """Idempotently persist a locally generated, already verified artifact."""
+        _validate_key(destination_key)
+        sha256 = _validate_sha256(sha256)
+        _validate_content_type(content_type)
+        if source.stat().st_size != expected_size_bytes or expected_size_bytes <= 0:
+            raise ValueError("verified object size does not match")
+        current = await self.stat(destination_key)
+        if current is not None:
+            if (current.size_bytes, current.sha256, current.content_type) != (
+                expected_size_bytes,
+                sha256,
+                content_type,
+            ):
+                raise RuntimeError("destination object conflicts with upload")
+            return current
+        try:
+            await asyncio.to_thread(
+                self._private.fput_object,
+                self._bucket,
+                destination_key,
+                str(source),
+                content_type=content_type,
+                metadata={"sha256": sha256},
+            )
+        except Exception as error:
+            raise ImportObjectStorageError("verified object upload failed") from error
+        stored = await self.stat(destination_key)
+        if stored is None or (stored.size_bytes, stored.sha256) != (
+            expected_size_bytes,
+            sha256,
+        ):
+            raise RuntimeError("uploaded object failed verification")
+        return stored
+
     async def read(self, object_key: str) -> bytes:
         _validate_key(object_key)
         response = await asyncio.to_thread(

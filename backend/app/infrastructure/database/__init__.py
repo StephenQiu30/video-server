@@ -32,6 +32,9 @@ from .contracts import (
 )
 from .document_catalog_repository import SqlAlchemyDocumentCatalogRepository
 from .document_delete_repository import SqlAlchemyDocumentDeleteRepository
+from .document_import_execution_repository import (
+    SqlAlchemyDocumentImportExecutionRepository,
+)
 from .document_import_repository import SqlAlchemyDocumentImportRepository
 from .errors import (
     IdempotencyConflict,
@@ -122,6 +125,7 @@ __all__ = [
     "ThumbnailSourceSnapshot",
     "SqlAlchemyDownloadRepository",
     "SqlAlchemyDocumentImportRepository",
+    "SqlAlchemyDocumentImportExecutionRepository",
     "SqlAlchemyDocumentCatalogRepository",
     "SqlAlchemyDocumentDeleteRepository",
     "SqlAlchemyMediaImportRepository",
