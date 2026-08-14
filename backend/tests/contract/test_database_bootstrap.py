@@ -46,6 +46,10 @@ def test_current_schema_can_be_applied_repeatedly() -> None:
     assert "ck_analysis_report_versions_result_kind" in schema
     assert "result_json ? 'kind'" in schema
     assert "to_jsonb('video_visual_analysis'::text)" in schema
+    assert "CREATE EXTENSION IF NOT EXISTS pgcrypto" in schema
+    assert "skill_instructions_sha256" in schema
+    assert "digest(skill_instructions, 'sha256')" in schema
+    assert "ck_analysis_jobs_skill_instructions_sha256" in schema
     assert "created_at + INTERVAL '7 days'" in schema
     assert "expires_at <= created_at + INTERVAL '25 hours'" in schema
 

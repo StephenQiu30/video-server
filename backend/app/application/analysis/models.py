@@ -35,6 +35,7 @@ class AnalysisCreate:
     input_sha256: str
     skill_id: str
     skill_instructions: str
+    skill_instructions_sha256: str
     output_language: str
     custom_prompt: str | None
     max_attempts: int
@@ -57,6 +58,7 @@ class AnalysisJobSnapshot:
     input_sha256: str
     skill_id: str
     skill_instructions: str
+    skill_instructions_sha256: str
     output_language: str
     custom_prompt: str | None
     status: str
@@ -93,6 +95,7 @@ class AnalysisJobSnapshot:
             input_sha256=command.input_sha256,
             skill_id=command.skill_id,
             skill_instructions=command.skill_instructions,
+            skill_instructions_sha256=command.skill_instructions_sha256,
             output_language=command.output_language,
             custom_prompt=command.custom_prompt,
             status=AnalysisStatus.QUEUED.value,

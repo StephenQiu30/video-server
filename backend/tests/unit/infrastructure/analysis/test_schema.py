@@ -26,6 +26,7 @@ def test_analysis_schema_has_jobs_runs_results_and_runtime_retention_locks() -> 
         "input_sha256",
         "skill_id",
         "skill_instructions",
+        "skill_instructions_sha256",
         "output_language",
         "attempt",
         "version",
@@ -42,6 +43,7 @@ def test_analysis_schema_has_jobs_runs_results_and_runtime_retention_locks() -> 
     assert "status <> 'succeeded' OR current_report_id IS NOT NULL" in ddl
     assert jobs.c.artifact_id.nullable is True
     assert "ck_analysis_jobs_input_shape" in ddl
+    assert "ck_analysis_jobs_skill_instructions_sha256" in ddl
     assert "video-visual-analysis" in ddl
     assert "screenplay-analysis" in ddl
     assert "screenplay-rewrite" in ddl

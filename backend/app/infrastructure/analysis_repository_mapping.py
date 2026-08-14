@@ -27,6 +27,7 @@ def analysis_job_snapshot(
         input_sha256=row.input_sha256,
         skill_id=row.skill_id,
         skill_instructions=row.skill_instructions,
+        skill_instructions_sha256=row.skill_instructions_sha256,
         output_language=row.output_language,
         custom_prompt=row.custom_prompt,
         status=row.status,

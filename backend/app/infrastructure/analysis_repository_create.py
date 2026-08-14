@@ -105,6 +105,7 @@ class AnalysisCreationRepository(AnalysisRepositoryBase):
             input_sha256=command.input_sha256,
             skill_id=command.skill_id,
             skill_instructions=command.skill_instructions,
+            skill_instructions_sha256=command.skill_instructions_sha256,
             output_language=command.output_language,
             custom_prompt=command.custom_prompt,
             max_attempts=command.max_attempts,

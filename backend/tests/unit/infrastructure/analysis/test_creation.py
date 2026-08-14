@@ -47,6 +47,8 @@ async def test_job_outbox_and_retention_lock_are_created_atomically(
 
     assert created.created is True
     assert created.job.artifact_id == source.artifact_id
+    assert created.job.skill_instructions == command.skill_instructions
+    assert created.job.skill_instructions_sha256 == command.skill_instructions_sha256
     assert await count_rows(analysis_db, OutboxEventRow) == 1
     assert await count_rows(analysis_db, AnalysisArtifactLockRow) == 1
     async with analysis_db.sessions() as session:
@@ -56,6 +58,7 @@ async def test_job_outbox_and_retention_lock_are_created_atomically(
         assert "transcript" not in event.payload
         assert "owner_hash" not in event.payload
         assert "custom_prompt" not in event.payload
+        assert "skill_instructions_sha256" not in event.payload
 
 
 @pytest.mark.asyncio

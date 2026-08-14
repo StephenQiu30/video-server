@@ -51,6 +51,10 @@ class AnalysisJobRow(Base):
             "length(input_sha256) = 64", name="ck_analysis_jobs_sha256_length"
         ),
         CheckConstraint(
+            "length(skill_instructions_sha256) = 64",
+            name="ck_analysis_jobs_skill_instructions_sha256",
+        ),
+        CheckConstraint(
             "input_kind IN ('video','screenplay')",
             name="ck_analysis_jobs_input_kind",
         ),
@@ -94,6 +98,7 @@ class AnalysisJobRow(Base):
     input_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
     skill_id: Mapped[str] = mapped_column(String(128), nullable=False)
     skill_instructions: Mapped[str] = mapped_column(Text, nullable=False)
+    skill_instructions_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
     output_language: Mapped[str] = mapped_column(String(35), nullable=False)
     custom_prompt: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(24), nullable=False, default="queued")

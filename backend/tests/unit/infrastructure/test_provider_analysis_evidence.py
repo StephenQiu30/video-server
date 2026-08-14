@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
@@ -161,6 +162,7 @@ async def _seed_complete_chain(sessions) -> object:
                 input_sha256="b" * 64,
                 skill_id="director-breakdown",
                 skill_instructions="complete video",
+                skill_instructions_sha256=hashlib.sha256(b"complete video").hexdigest(),
                 output_language="zh-CN",
                 status="succeeded",
                 progress=100,

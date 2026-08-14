@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -26,6 +27,9 @@ def running_job() -> AnalysisJobSnapshot:
         input_sha256="c" * 64,
         skill_id="director-breakdown",
         skill_instructions="导演拉片完整指令",
+        skill_instructions_sha256=hashlib.sha256(
+            "导演拉片完整指令".encode()
+        ).hexdigest(),
         output_language="zh-CN",
         custom_prompt=None,
         status="running",

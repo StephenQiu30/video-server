@@ -79,6 +79,7 @@ class CreateAnalysis:
         if skill is None:
             raise AnalysisApplicationError(AnalysisApplicationErrorCode.INVALID_REQUEST)
         skill_instructions = skill.instructions
+        skill_instructions_sha256 = validate_sha256(skill.instructions_sha256)
         output_language = validate_label(output_language, maximum=35)
         custom_prompt = validate_custom_prompt(custom_prompt)
         try:
@@ -106,7 +107,7 @@ class CreateAnalysis:
             input_kind.value,
             result_contract.value,
             skill_id,
-            skill_instructions,
+            skill_instructions_sha256,
             output_language,
             custom_prompt or "",
         )
@@ -120,6 +121,7 @@ class CreateAnalysis:
             input_sha256=sha256,
             skill_id=skill_id,
             skill_instructions=skill_instructions,
+            skill_instructions_sha256=skill_instructions_sha256,
             output_language=output_language,
             custom_prompt=custom_prompt,
             max_attempts=self._max_attempts,

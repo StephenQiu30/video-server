@@ -139,6 +139,9 @@ def analysis_command(
         input_sha256=source.sha256,
         skill_id="director-breakdown",
         skill_instructions="导演拉片完整指令",
+        skill_instructions_sha256=hashlib.sha256(
+            "导演拉片完整指令".encode()
+        ).hexdigest(),
         output_language="zh-CN",
         custom_prompt=None,
         max_attempts=max_attempts,

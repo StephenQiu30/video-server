@@ -6,6 +6,8 @@
 
 BEGIN;
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY,
     username VARCHAR(32) NOT NULL,
@@ -574,6 +576,7 @@ CREATE TABLE IF NOT EXISTS analysis_jobs (
     input_sha256 VARCHAR(64) NOT NULL,
     skill_id VARCHAR(128) NOT NULL,
     skill_instructions TEXT NOT NULL,
+    skill_instructions_sha256 VARCHAR(64) NOT NULL,
     output_language VARCHAR(35) NOT NULL,
     custom_prompt TEXT,
     status VARCHAR(24) NOT NULL DEFAULT 'queued',
@@ -612,6 +615,9 @@ CREATE TABLE IF NOT EXISTS analysis_jobs (
     CONSTRAINT ck_analysis_jobs_run_no CHECK (current_run_no > 0),
     CONSTRAINT ck_analysis_jobs_stage_rank CHECK (stage_rank BETWEEN 0 AND 4),
     CONSTRAINT ck_analysis_jobs_sha256_length CHECK (length(input_sha256) = 64),
+    CONSTRAINT ck_analysis_jobs_skill_instructions_sha256 CHECK (
+        skill_instructions_sha256 ~ '^[0-9a-f]{64}$'
+    ),
     CONSTRAINT ck_analysis_jobs_input_kind CHECK (
         input_kind IN ('video', 'screenplay')
     ),
@@ -656,6 +662,7 @@ ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS current_run_trigger VARCHAR(2
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS current_report_id UUID;
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS skill_id VARCHAR(128);
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS skill_instructions TEXT;
+ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS skill_instructions_sha256 VARCHAR(64);
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS custom_prompt TEXT;
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS retry_available_until TIMESTAMPTZ;
@@ -705,6 +712,14 @@ UPDATE analysis_jobs SET
 WHERE skill_id IS NULL OR skill_instructions IS NULL;
 ALTER TABLE analysis_jobs ALTER COLUMN skill_id SET NOT NULL;
 ALTER TABLE analysis_jobs ALTER COLUMN skill_instructions SET NOT NULL;
+UPDATE analysis_jobs SET skill_instructions_sha256 = encode(
+    digest(skill_instructions, 'sha256'), 'hex'
+) WHERE skill_instructions_sha256 IS NULL;
+ALTER TABLE analysis_jobs ALTER COLUMN skill_instructions_sha256 SET NOT NULL;
+ALTER TABLE analysis_jobs
+    DROP CONSTRAINT IF EXISTS ck_analysis_jobs_skill_instructions_sha256;
+ALTER TABLE analysis_jobs ADD CONSTRAINT ck_analysis_jobs_skill_instructions_sha256
+    CHECK (skill_instructions_sha256 ~ '^[0-9a-f]{64}$');
 ALTER TABLE analysis_jobs DROP COLUMN IF EXISTS profile;
 ALTER TABLE analysis_jobs DROP COLUMN IF EXISTS schema_version;
 ALTER TABLE analysis_jobs DROP CONSTRAINT IF EXISTS ck_analysis_jobs_stage_rank;

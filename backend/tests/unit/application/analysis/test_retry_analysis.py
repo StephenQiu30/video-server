@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from dataclasses import replace
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
@@ -28,6 +29,7 @@ def terminal_job(status: str = "failed") -> AnalysisJobSnapshot:
         input_sha256="c" * 64,
         skill_id="director-breakdown",
         skill_instructions="固定分析指令",
+        skill_instructions_sha256=hashlib.sha256("固定分析指令".encode()).hexdigest(),
         output_language="zh-CN",
         custom_prompt="固定观察重点",
         status=status,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from uuid import UUID, uuid4
@@ -99,6 +100,9 @@ def screenplay_command(
         input_sha256=source.sha256,
         skill_id="screenplay-analysis",
         skill_instructions="受控剧本分析指令",
+        skill_instructions_sha256=hashlib.sha256(
+            "受控剧本分析指令".encode()
+        ).hexdigest(),
         output_language="zh-CN",
         custom_prompt=None,
         max_attempts=3,

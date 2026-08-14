@@ -117,6 +117,7 @@ async def test_create_persists_job_and_replays_the_same_idempotency_key() -> Non
     assert repository.outbox_events == 1
     command = repository.commands[0]
     assert command.input_sha256 == "b" * 64
+    assert command.skill_instructions_sha256 == "f" * 64
     assert command.outbox_event_id == EVENT_ID
     assert command.outbox_event_type == "analysis.requested"
     assert command.input_kind is AnalysisInputKind.VIDEO
@@ -142,6 +143,19 @@ async def test_create_normalizes_and_fingerprints_custom_prompt() -> None:
 
     assert repository.commands[0].skill_id == "highlights"
     assert repository.commands[0].skill_instructions == "高光提炼完整指令"
+    assert repository.commands[0].request_fingerprint == "|".join(
+        (
+            "analysis",
+            str(ARTIFACT_ID),
+            "b" * 64,
+            "video",
+            "video-visual-analysis",
+            "highlights",
+            "f" * 64,
+            "zh-CN",
+            "重点识别产品演示。",
+        )
+    )
     assert repository.commands[0].custom_prompt == "重点识别产品演示。"
 
 
