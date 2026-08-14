@@ -1,11 +1,11 @@
 # 010 Codex 与 Claude CLI 视频分析迁移计划
 
-- 状态：In Progress（Codex 已验收，Claude 真实视觉 E2E 待完成）
+- 状态：In Progress（Codex 已验收，Claude Windows 沙箱与真实视觉 E2E 待完成）
 - 日期：2026-08-10
 - 关联 Design：`docs/design/010-Codex与Claude CLI视频分析设计.md`
 - 关联 PRD：`docs/prd/010-Codex与Claude CLI视频分析需求.md`
 - 当前实现：010 已替换旧 AI 链路并成为运行时事实
-- 验收结果：Codex 通过；Claude 因当前本机实际模型路由无法理解 Read 图片而未通过
+- 验收结果：Codex 通过；Claude 2.1.232 于 2026-08-14 因当前 Windows 会话的沙箱 feature gate 未启用而拒绝启动，尚未进入视觉推理
 
 ## 1. 实施原则
 

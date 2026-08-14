@@ -1,8 +1,8 @@
 # 010 Codex 与 Claude CLI 视频分析验收
 
 - 状态：Partially Passed
-- 日期：2026-08-10
-- 结论：Not Passed（Codex 通过；Claude 当前本机模型路由未通过视觉 E2E）
+- 日期：2026-08-14
+- 结论：Not Passed（Codex 通过；Claude 当前 Windows 沙箱不可用，未进入视觉 E2E）
 - 关联 Design：`docs/design/010-Codex与Claude CLI视频分析设计.md`
 - 关联 PRD：`docs/prd/010-Codex与Claude CLI视频分析需求.md`
 - 关联 Plan：`docs/plans/010-Codex与Claude CLI视频分析迁移计划.md`
@@ -80,3 +80,11 @@
 ## 7. 最终判定
 
 010 已成为代码和文档的当前实现，Codex 路径可以作为本机单用户默认能力；整体双 Provider Acceptance 仍为 `Not Passed`。按运维决策，生产 API 默认开启 `ANALYSIS_ENABLED=true`，生产 Compose 仅向 loopback 发布宿主机 Worker 必需的 PostgreSQL、RabbitMQ 和 MinIO 端口；这不代表 Claude 或完整生产验收通过。Claude 视觉 E2E、完整队列级 E2E和剩余安全 fixture 完成后，才可把本文件改为 Passed。
+
+## 8. 2026-08-14 Claude 复验
+
+- 当前 CLI 为 Claude Code `2.1.232`，本机 OAuth 登录有效。
+- 使用仓库真实 `ClaudeCliVideoAnalyzer` 和本机生成的无敏感 8 秒四色硬切视频重跑；CLI 在约 2 秒内返回：Windows sandbox 未在当前会话启用且 `sandbox.failIfUnavailable` 要求 fail closed。
+- 本次失败发生在模型调用前，不能沿用 2026-08-10 的“视觉模型路由不可用”作为当前唯一根因，也不能据此把 Claude 标记为通过。
+- 错误分类器已补充该新版错误文本，应用现在稳定返回 `analysis_sandbox_unavailable`，避免误报为笼统的 `analysis_cli_failed`。
+- 归档仍需：在启用 Claude Windows 沙箱的会话或受支持的隔离运行环境中重跑同一适配器 E2E，并继续完成队列级持久化、安全 fixture 与孤儿进程验收。

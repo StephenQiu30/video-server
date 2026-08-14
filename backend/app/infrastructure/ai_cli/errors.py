@@ -17,6 +17,7 @@ def classify_cli_failure(output: bytes) -> AnalysisCliError:
         return AnalysisCliError("analysis_cli_not_authenticated")
     sandbox_markers = (
         "sandbox unavailable",
+        "sandbox required but unavailable",
         "sandbox is unavailable",
         "failed to initialize sandbox",
         "failed to start sandbox",

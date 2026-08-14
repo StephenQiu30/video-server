@@ -43,3 +43,11 @@ def test_explicit_sandbox_initialization_failure_is_classified() -> None:
     error = classify_cli_failure(b"failed to initialize sandbox policy")
 
     assert error.code == "analysis_sandbox_unavailable"
+
+
+def test_claude_windows_feature_gate_failure_is_classified() -> None:
+    error = classify_cli_failure(
+        b"sandbox required but unavailable: Windows sandbox feature gate off"
+    )
+
+    assert error.code == "analysis_sandbox_unavailable"

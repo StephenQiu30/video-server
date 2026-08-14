@@ -27,7 +27,7 @@
 | 优先级 | 编号 | 未归档原因 | 达到归档还需要完成 |
 | --- | --- | --- | --- |
 | P0 | 022 | 核心实现和 Windows Codex 已通过，跨 Provider/平台证据不足 | 用真实 API Key Profile 完成脱敏视频分析；在 macOS、Linux 验证 install/restart/status/uninstall；回填安全与运行证据 |
-| P1 | 010 | Codex 已通过，但原需求明确包含 Claude | 在可用 Claude 模型路由上完成同一授权视频的完整视觉 E2E，或通过新的产品决策正式移除 Claude 首期承诺；不能仅改状态绕过 |
+| P1 | 010 | Codex 已通过，但原需求明确包含 Claude；2026-08-14 复验又确认当前 Windows 会话未启用 Claude 沙箱 feature gate，CLI 按策略拒绝启动 | 在启用 Claude Windows 沙箱的会话或其他受支持隔离环境完成同一授权视频的完整视觉 E2E，继续完成队列级持久化、安全 fixture 与孤儿进程验收；或通过新的产品决策正式移除 Claude 首期承诺，不能仅改状态绕过 |
 | P1 | 005 | Phase 1 代码部分完成，生产会话与 canary 证据仍不完整，Phase 2 也在同一范围 | 完成 YouTube 授权 Cookie/POT/固定出口、真实 canary、审计和供应链门禁；对用户 ProviderCredential/多媒体 Phase 2 实施或拆为新编号后重新冻结 005 范围 |
 | P1 | 017 | 代码门禁存在但 `acceptance: pending`，实际完整视频分析证明不足 | 提供授权样本，完成下载→Agent→PostgreSQL→MinIO MD/DOCX→WebSocket→浏览器/CI 证据；所有纳入归档的平台为 verified 后改 marker 并运行专用命令 |
 | P2 | 006 | Public Beta/Stable v1 伞形需求跨越多个已归档子项，仍含真实生产能力缺口 | 在 PRD 中标记已由 012–015、018、020 等交付的需求；完成剩余网络隔离、滥用防护、配额、备份恢复、可观测性、发布治理、音频/字幕/批量，或拆分成独立编号后收敛 006 |

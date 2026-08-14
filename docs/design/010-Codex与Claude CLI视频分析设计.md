@@ -1,9 +1,9 @@
 # 010 Codex 与 Claude CLI 视频分析设计
 
-- 状态：Implemented（Codex 已通过真实视觉 E2E；Claude 受当前本机模型路由限制）
+- 状态：Implemented（Codex 已通过真实视觉 E2E；Claude 受当前 Windows 沙箱 feature gate 限制）
 - 日期：2026-08-10
 - 当前实现：宿主机 CLI 视觉分析；默认 Provider 为 Codex
-- 验收状态：代码与 Codex E2E 已完成，Claude 真实视觉 E2E 未通过，详见 010 Acceptance
+- 验收状态：代码与 Codex E2E 已完成；2026-08-14 复验时 Claude CLI 因 Windows 沙箱 feature gate 未启用而 fail closed，详见 010 Acceptance
 
 ## 1. 当前基线与迁移范围
 
