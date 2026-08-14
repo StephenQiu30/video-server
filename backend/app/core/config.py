@@ -214,6 +214,9 @@ class Settings(BaseSettings):
     analysis_max_stderr_bytes: int = Field(default=128 * 1024, ge=1024)
     analysis_max_workspace_bytes: int = Field(default=4 * 1024**3, ge=1024)
     analysis_max_workspace_files: int = Field(default=512, ge=8, le=4096)
+    analysis_max_screenplay_bytes: int = Field(
+        default=2 * 1024**2, ge=1024, le=50 * 1024**2
+    )
     analysis_max_frames: int = Field(default=256, ge=1, le=1024)
     analysis_max_image_bytes: int = Field(default=20 * 1024**2, ge=1024)
     analysis_workspace_poll_seconds: float = Field(default=0.25, ge=0.05, le=5)

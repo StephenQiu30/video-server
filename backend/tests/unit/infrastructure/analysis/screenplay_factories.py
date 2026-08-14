@@ -73,7 +73,16 @@ async def seed_screenplay(
                     size_bytes=64,
                     sha256=sha256,
                     status=normalized_status,
-                    artifact_metadata={"attempt": 1},
+                    artifact_metadata={
+                        "scenes": [
+                            {
+                                "id": "scene-0001",
+                                "start": 0,
+                                "end": 64,
+                                "elements": [],
+                            }
+                        ]
+                    },
                     expires_at=expiry,
                     created_at=now,
                     updated_at=now,

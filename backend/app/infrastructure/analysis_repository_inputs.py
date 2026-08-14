@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import and_, select
@@ -11,6 +12,10 @@ from sqlalchemy.sql.elements import ColumnElement
 from app.application.analysis import (
     AnalysisArtifactSnapshot,
     AnalysisDocumentSnapshot,
+)
+from app.application.analysis_execution import (
+    AnalysisScreenplaySource,
+    ScreenplaySceneSource,
 )
 from app.infrastructure.analysis_repository_mapping import analysis_artifact_snapshot
 from app.infrastructure.database.base import as_utc
@@ -87,3 +92,78 @@ class AnalysisInputRepository:
                     None if normalized is None else as_utc(normalized.expires_at)
                 ),
             )
+
+    async def get_screenplay_source(
+        self, document_id: UUID, now: datetime
+    ) -> AnalysisScreenplaySource | None:
+        async with self._sessions() as session:
+            result = (
+                await session.execute(
+                    select(DocumentRow, DocumentArtifactRow)
+                    .join(
+                        DocumentArtifactRow,
+                        DocumentArtifactRow.document_id == DocumentRow.id,
+                    )
+                    .where(
+                        DocumentRow.id == document_id,
+                        DocumentRow.status == "ready",
+                        DocumentRow.deleted_at.is_(None),
+                        DocumentRow.expires_at > now,
+                        DocumentArtifactRow.kind == "normalized",
+                        DocumentArtifactRow.status == "ready",
+                        DocumentArtifactRow.deleted_at.is_(None),
+                        DocumentArtifactRow.expires_at > now,
+                    )
+                )
+            ).one_or_none()
+            if result is None:
+                return None
+            document, artifact = result
+            if (
+                document.character_count is None
+                or document.detected_language is None
+                or artifact.content_type != "text/markdown; charset=utf-8"
+            ):
+                raise ValueError("screenplay source metadata is incomplete")
+            return AnalysisScreenplaySource(
+                artifact_id=artifact.id,
+                document_id=document.id,
+                owner_hash=document.owner_hash,
+                bucket=artifact.bucket,
+                object_key=artifact.object_key,
+                sha256=artifact.sha256,
+                size_bytes=artifact.size_bytes,
+                character_count=document.character_count,
+                detected_language=document.detected_language,
+                expires_at=min(
+                    as_utc(document.expires_at), as_utc(artifact.expires_at)
+                ),
+                scenes=_screenplay_scenes(artifact.artifact_metadata),
+            )
+
+
+def _screenplay_scenes(metadata: object) -> tuple[ScreenplaySceneSource, ...]:
+    if not isinstance(metadata, dict) or set(metadata) != {"scenes"}:
+        raise ValueError("screenplay artifact metadata is invalid")
+    values = metadata["scenes"]
+    if not isinstance(values, list):
+        raise ValueError("screenplay scene metadata is invalid")
+    scenes: list[ScreenplaySceneSource] = []
+    for value in values:
+        if not isinstance(value, dict) or set(value) != {
+            "id",
+            "start",
+            "end",
+            "elements",
+        }:
+            raise ValueError("screenplay scene metadata is invalid")
+        if not isinstance(value["elements"], list):
+            raise ValueError("screenplay element metadata is invalid")
+        scenes.append(
+            ScreenplaySceneSource(
+                id=value["id"],
+                start=value["start"],
+                end=value["end"],
+            )
+        )
+    return tuple(scenes)

@@ -49,6 +49,7 @@ def test_local_imports_are_bounded_and_disabled_by_default() -> None:
     assert settings.media_import_enabled is False
     assert settings.document_import_enabled is False
     assert settings.screenplay_analysis_enabled is False
+    assert settings.analysis_max_screenplay_bytes == 2 * 1024**2
     assert settings.media_import_max_bytes == 2 * 1024**3
     assert settings.document_import_max_bytes == 50 * 1024**2
     assert settings.import_upload_session_ttl_seconds == 900

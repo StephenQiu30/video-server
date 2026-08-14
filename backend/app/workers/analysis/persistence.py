@@ -11,7 +11,10 @@ from app.application.analysis import (
     PersistenceConflict,
     PersistenceNotFound,
 )
-from app.application.analysis_execution import AnalysisArtifactSource
+from app.application.analysis_execution import (
+    AnalysisArtifactSource,
+    AnalysisScreenplaySource,
+)
 from app.application.analysis_execution.errors import (
     AnalysisOwnershipLost,
     AnalysisPersistenceUnavailable,
@@ -92,6 +95,29 @@ class AnalysisExecutionPersistence:
                 duration_ms=artifact.duration_ms,
                 container=artifact.container,
             )
+        raise AssertionError("unreachable")
+
+    async def get_screenplay_source(
+        self, job: AnalysisJobSnapshot, now: datetime
+    ) -> AnalysisScreenplaySource:
+        with _translate_errors():
+            if job.document_id is None or job.artifact_id is not None:
+                raise AnalysisSourceUnavailable
+            try:
+                source = await self._analysis.get_screenplay_source(
+                    job.document_id, now
+                )
+            except (TypeError, ValueError) as exc:
+                raise AnalysisSourceUnavailable from exc
+            if (
+                source is None
+                or source.document_id != job.document_id
+                or source.owner_hash != job.owner_hash
+                or source.sha256 != job.input_sha256
+                or source.expires_at <= now
+            ):
+                raise AnalysisSourceUnavailable
+            return source
         raise AssertionError("unreachable")
 
     async def heartbeat(

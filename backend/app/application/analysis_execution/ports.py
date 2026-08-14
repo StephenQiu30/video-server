@@ -9,7 +9,13 @@ from uuid import UUID
 from app.application.analysis import AnalysisJobSnapshot
 from app.domain.analysis import AnalysisResult
 
-from .models import AnalysisArtifactSource, LocalAnalysisArtifact, VideoAnalysisRequest
+from .models import (
+    AnalysisArtifactSource,
+    AnalysisScreenplaySource,
+    LocalAnalysisArtifact,
+    LocalScreenplayArtifact,
+    VideoAnalysisRequest,
+)
 
 
 class AnalysisExecutionRepository(Protocol):
@@ -29,6 +35,10 @@ class AnalysisExecutionRepository(Protocol):
     async def get_artifact_source(
         self, job: AnalysisJobSnapshot, now: datetime
     ) -> AnalysisArtifactSource: ...
+
+    async def get_screenplay_source(
+        self, job: AnalysisJobSnapshot, now: datetime
+    ) -> AnalysisScreenplaySource: ...
 
     async def heartbeat(
         self,
@@ -79,6 +89,18 @@ class ArtifactLoader(Protocol):
     ) -> LocalAnalysisArtifact: ...
 
     async def cleanup(self, local: LocalAnalysisArtifact) -> None: ...
+
+
+class ScreenplayArtifactLoader(Protocol):
+    async def materialize(
+        self,
+        source: AnalysisScreenplaySource,
+        *,
+        job_id: UUID,
+        attempt: int,
+    ) -> LocalScreenplayArtifact: ...
+
+    async def cleanup(self, local: LocalScreenplayArtifact) -> None: ...
 
 
 class VideoAnalyzer(Protocol):

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
 from uuid import UUID
@@ -54,9 +54,67 @@ class AnalysisArtifactSource:
 
 
 @dataclass(frozen=True, slots=True)
+class ScreenplaySceneSource:
+    id: str
+    start: int
+    end: int
+
+    def __post_init__(self) -> None:
+        if (
+            not self.id.startswith("scene-")
+            or len(self.id) > 128
+            or isinstance(self.start, bool)
+            or isinstance(self.end, bool)
+            or not 0 <= self.start < self.end
+        ):
+            raise ValueError("invalid screenplay scene source")
+
+
+@dataclass(frozen=True, slots=True)
+class AnalysisScreenplaySource:
+    artifact_id: UUID
+    document_id: UUID
+    owner_hash: str
+    bucket: str
+    object_key: str
+    sha256: str
+    size_bytes: int
+    character_count: int
+    detected_language: str
+    expires_at: datetime
+    scenes: tuple[ScreenplaySceneSource, ...]
+
+    def __post_init__(self) -> None:
+        if (
+            self.size_bytes <= 0
+            or self.character_count <= 0
+            or not self.bucket.strip()
+            or not self.object_key.strip()
+            or len(self.sha256) != 64
+            or len(self.owner_hash) != 64
+            or self.detected_language not in {"zh-CN", "en-US", "mixed", "unknown"}
+            or self.expires_at.tzinfo is None
+            or self.expires_at.utcoffset() is None
+            or not 1 <= len(self.scenes) <= 5_000
+        ):
+            raise ValueError("invalid screenplay analysis source")
+        previous_end = 0
+        for scene in self.scenes:
+            if scene.start < previous_end or scene.end > self.character_count:
+                raise ValueError("screenplay scene ranges must be ordered and bounded")
+            previous_end = scene.end
+
+
+@dataclass(frozen=True, slots=True)
 class LocalAnalysisArtifact:
     workspace: Path
     artifact: Path
+
+
+@dataclass(frozen=True, slots=True)
+class LocalScreenplayArtifact:
+    workspace: Path
+    screenplay: Path
 
 
 @dataclass(frozen=True, slots=True)

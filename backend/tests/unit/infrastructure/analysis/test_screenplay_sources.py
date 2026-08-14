@@ -11,6 +11,7 @@ from app.application.analysis import (
     PersistenceConflict,
     PersistenceNotFound,
 )
+from app.application.analysis_execution import AnalysisSourceUnavailable
 from app.infrastructure.database.models import (
     AnalysisArtifactLockRow,
     AnalysisDocumentLockRow,
@@ -19,6 +20,7 @@ from app.infrastructure.database.models import (
     DocumentRow,
     OutboxEventRow,
 )
+from app.workers.analysis.persistence import AnalysisExecutionPersistence
 from sqlalchemy import func, select, update
 from tests.unit.infrastructure.analysis.factories import OWNER
 from tests.unit.infrastructure.analysis.screenplay_factories import (
@@ -51,6 +53,17 @@ async def test_screenplay_projection_creation_and_lock_are_owner_scoped(
         projected.normalized_sha256,
     ) == (OWNER, "ready", source.sha256, "ready", source.sha256)
     assert await analysis_db.repository.get_document_for_analysis(uuid4()) is None
+    execution_source = await analysis_db.repository.get_screenplay_source(
+        source.document_id, NOW
+    )
+    assert execution_source is not None
+    assert (
+        execution_source.document_id,
+        execution_source.owner_hash,
+        execution_source.sha256,
+        execution_source.character_count,
+        execution_source.scenes[0].id,
+    ) == (source.document_id, OWNER, source.sha256, 64, "scene-0001")
 
     command = screenplay_command(source)
     saved = await analysis_db.repository.create_job_and_enqueue(command, now=NOW)
@@ -65,6 +78,27 @@ async def test_screenplay_projection_creation_and_lock_are_owner_scoped(
     assert await count_rows(analysis_db, AnalysisArtifactLockRow) == 0
     assert await count_rows(analysis_db, AnalysisDocumentLockRow) == 1
     assert await count_rows(analysis_db, OutboxEventRow) == 1
+
+
+@pytest.mark.asyncio
+async def test_worker_screenplay_projection_revalidates_job_hash(analysis_db) -> None:
+    source = await seed_screenplay(analysis_db.sessions, NOW)
+    saved = await analysis_db.repository.create_job_and_enqueue(
+        screenplay_command(source), now=NOW
+    )
+    persistence = AnalysisExecutionPersistence(
+        analysis_db.repository,
+        downloads=object(),  # type: ignore[arg-type]
+    )
+
+    projected = await persistence.get_screenplay_source(saved.job, NOW)
+
+    assert projected.document_id == source.document_id
+    assert projected.sha256 == source.sha256
+    with pytest.raises(AnalysisSourceUnavailable):
+        await persistence.get_screenplay_source(
+            replace(saved.job, input_sha256="0" * 64), NOW
+        )
 
 
 @pytest.mark.asyncio
