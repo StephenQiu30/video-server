@@ -51,15 +51,20 @@ class CompletedDocumentArchiveTests(unittest.TestCase):
         archived = archive_completed_sets(self.root)
 
         self.assertEqual(archived, ("001",))
-        self.assertTrue((self.docs / "archive/001/001-design.md").is_file())
+        self.assertTrue((self.docs / "design/archive/001-design.md").is_file())
+        self.assertTrue((self.docs / "prd/archive/001-prd.md").is_file())
+        self.assertTrue((self.docs / "plans/archive/001-plan.md").is_file())
+        self.assertTrue(
+            (self.docs / "acceptance/archive/001-acceptance.md").is_file()
+        )
         self.assertFalse((self.docs / "design/001-design.md").exists())
         self.assertIn("001 | Topic（已归档）", self._index_text())
         self.assertEqual(
-            note.read_text(encoding="utf-8"), "`docs/archive/001/001-design.md`\n"
+            note.read_text(encoding="utf-8"), "`docs/design/archive/001-design.md`\n"
         )
         self.assertEqual(
             frontend_readme.read_text(encoding="utf-8"),
-            "`../docs/archive/001/001-design.md`\n",
+            "`../docs/design/archive/001-design.md`\n",
         )
         self.assertEqual(archive_completed_sets(self.root), ())
 
@@ -72,11 +77,31 @@ class CompletedDocumentArchiveTests(unittest.TestCase):
         ):
             discover_ready_sets(self.root)
 
+    def test_centralized_archive_index_is_rejected(self) -> None:
+        self._write_set("001", "Accepted")
+        self._write_index(("001",))
+        index = self._index_text()
+        for folder, name in (
+            ("design", "design"),
+            ("prd", "prd"),
+            ("plans", "plan"),
+            ("acceptance", "acceptance"),
+        ):
+            index = index.replace(
+                f"{folder}/001-{name}.md", f"archive/001/001-{name}.md"
+            )
+        (self.docs / "README.md").write_text(index, encoding="utf-8")
+
+        with self.assertRaisesRegex(
+            DocumentArchiveError, "document_archive_state_invalid:001"
+        ):
+            discover_ready_sets(self.root)
+
     def test_missing_archived_document_is_rejected(self) -> None:
         self._write_set("001", "Accepted")
         self._write_index(("001",))
         archive_completed_sets(self.root)
-        (self.docs / "archive/001/001-design.md").unlink()
+        (self.docs / "design/archive/001-design.md").unlink()
 
         with self.assertRaisesRegex(
             DocumentArchiveError, "document_archive_state_invalid:001"
@@ -106,7 +131,7 @@ class CompletedDocumentArchiveTests(unittest.TestCase):
         for number in numbers:
             design = f"design/{number}-design.md"
             if partial:
-                design = f"archive/{number}/{number}-design.md"
+                design = f"design/archive/{number}-design.md"
             rows.append(
                 f"| {number} | Topic | [Design]({design}) | "
                 f"[PRD](prd/{number}-prd.md) | [Plan](plans/{number}-plan.md) | "

@@ -48,12 +48,12 @@ def discover_ready_sets(repo_root: Path) -> tuple[DocumentSet, ...]:
         if match.group("number") in SPECIAL_ARCHIVE_NUMBERS:
             continue
         links = tuple((folder, match.group(folder)) for folder in REQUIRED_STATUSES)
-        archived = [path.startswith("archive/") for _, path in links]
-        if any(archived):
-            if not all(archived):
-                raise DocumentArchiveError(
-                    f"document_archive_state_invalid:{match.group('number')}"
-                )
+        states = [_link_state(folder, path) for folder, path in links]
+        if "invalid" in states or ("archived" in states and "active" in states):
+            raise DocumentArchiveError(
+                f"document_archive_state_invalid:{match.group('number')}"
+            )
+        if all(state == "archived" for state in states):
             if not _has_required_statuses(docs_root, links):
                 raise DocumentArchiveError(
                     f"document_archive_state_invalid:{match.group('number')}"
@@ -84,18 +84,15 @@ def archive_completed_sets(repo_root: Path) -> tuple[str, ...]:
         archived_links: list[tuple[str, str]] = []
         for folder, relative in document_set.links:
             source = docs_root / relative
-            target = docs_root / "archive" / document_set.number / source.name
+            archived_relative = f"{folder}/archive/{source.name}"
+            target = docs_root / archived_relative
             if not source.is_file() or target.exists():
                 raise DocumentArchiveError(
                     f"document_archive_state_invalid:{document_set.number}"
                 )
             moves[source] = target
-            replacements[f"docs/{relative}"] = (
-                f"docs/archive/{document_set.number}/{source.name}"
-            )
-            archived_links.append(
-                (folder, f"archive/{document_set.number}/{source.name}")
-            )
+            replacements[f"docs/{relative}"] = f"docs/{archived_relative}"
+            archived_links.append((folder, archived_relative))
         index_replacements[document_set.row] = _archived_row(
             document_set, tuple(archived_links)
         )
@@ -126,6 +123,20 @@ def archive_completed_sets(repo_root: Path) -> tuple[str, ...]:
         destination = moves.get(original, original)
         destination.write_text(text, encoding="utf-8", newline="")
     return tuple(document_set.number for document_set in ready)
+
+
+def _link_state(folder: str, relative: str) -> str:
+    prefix = f"{folder}/"
+    if not relative.startswith(prefix):
+        return "invalid"
+    archive_prefix = f"{prefix}archive/"
+    if relative.startswith(archive_prefix):
+        archived_name = relative.removeprefix(archive_prefix)
+        return "archived" if archived_name and "/" not in archived_name else "invalid"
+    if "/archive/" in relative:
+        return "invalid"
+    active_name = relative.removeprefix(prefix)
+    return "active" if active_name and "/" not in active_name else "invalid"
 
 
 def _has_required_statuses(docs_root: Path, links: tuple[tuple[str, str], ...]) -> bool:

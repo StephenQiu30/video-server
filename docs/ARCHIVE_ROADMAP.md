@@ -5,7 +5,7 @@
 
 ## 1. 归档目标
 
-所有编号化交付最终都必须形成 `Design → PRD → Plan → Acceptance` 四件套，四份状态分别达到 `Accepted / Accepted / Complete(d) / Accepted` 后通过受保护命令归档。`research/` 记录仍有效的外部事实，`operations/` 记录当前运行方式；它们需要持续更新，不应为了“目录为空”而归档。
+所有编号化交付最终都必须形成 `Design → PRD → Plan → Acceptance` 四件套，四份状态分别达到 `Accepted / Accepted / Complete(d) / Accepted` 后通过受保护命令按类型归档到 `design/archive/`、`prd/archive/`、`plans/archive/`、`acceptance/archive/`，不使用集中式 `archive/<编号>/`。`research/` 记录仍有效的外部事实，`operations/` 记录当前运行方式；它们需要持续更新，不应为了“目录为空”而归档。
 
 ## 2. 已识别的历史技术债
 

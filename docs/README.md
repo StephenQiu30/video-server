@@ -10,28 +10,28 @@
 
 交付顺序固定为 `Design → PRD → Plan → Acceptance`：
 
-已完成真实验收的文档集先运行 `python scripts/archive_completed_docs.py` 只读检查，再通过 `python scripts/archive_completed_docs.py --apply` 移动到 `archive/<编号>/`；命令只接受 Design/PRD/Acceptance 为 `Accepted`、Plan 为 `Complete` 或 `Completed` 的完整四件套，并同步更新索引和仓库内引用，禁止手工移动形成部分归档状态。017 仍需额外通过 Provider 实测门禁和 `acceptance: accepted` 标记后使用专用 canary 归档命令。
+已完成真实验收的文档集先运行 `python scripts/archive_completed_docs.py` 只读检查，再通过 `python scripts/archive_completed_docs.py --apply` 按类型同时移动到 `design/archive/`、`prd/archive/`、`plans/archive/`、`acceptance/archive/`；归档目录直接保存原文件，不再建立集中式 `archive/<编号>/`。命令只接受 Design/PRD/Acceptance 为 `Accepted`、Plan 为 `Complete` 或 `Completed` 的完整四件套，并同步更新索引、状态码和仓库内引用，禁止手工移动形成部分归档状态。017 仍需额外通过 Provider 实测门禁和 `acceptance: accepted` 标记后使用专用 canary 归档命令。
 
 | 编号 | 主题 | Design | PRD | Plan | Acceptance |
 | --- | --- | --- | --- | --- | --- |
-| 001 | 单仓与运行时架构（已归档） | [Design](archive/001/001-server单仓与运行时架构设计.md) | [PRD](archive/001/001-server单仓与运行时架构需求.md) | [Plan](archive/001/001-server单仓与运行时架构计划.md) | [Acceptance](archive/001/001-server单仓与运行时架构验收.md) |
-| 002 | 安全视频下载闭环（已归档） | [Design](archive/002/002-安全视频下载闭环设计.md) | [PRD](archive/002/002-安全视频下载闭环需求.md) | [Plan](archive/002/002-安全视频下载闭环计划.md) | [Acceptance](archive/002/002-安全视频下载闭环验收.md) |
-| 004 | 下载历史（已归档） | [Design](archive/004/004-下载历史设计.md) | [PRD](archive/004/004-下载历史需求.md) | [Plan](archive/004/004-下载历史计划.md) | [Acceptance](archive/004/004-下载历史验收.md) |
+| 001 | 单仓与运行时架构（已归档） | [Design](design/archive/001-server单仓与运行时架构设计.md) | [PRD](prd/archive/001-server单仓与运行时架构需求.md) | [Plan](plans/archive/001-server单仓与运行时架构计划.md) | [Acceptance](acceptance/archive/001-server单仓与运行时架构验收.md) |
+| 002 | 安全视频下载闭环（已归档） | [Design](design/archive/002-安全视频下载闭环设计.md) | [PRD](prd/archive/002-安全视频下载闭环需求.md) | [Plan](plans/archive/002-安全视频下载闭环计划.md) | [Acceptance](acceptance/archive/002-安全视频下载闭环验收.md) |
+| 004 | 下载历史（已归档） | [Design](design/archive/004-下载历史设计.md) | [PRD](prd/archive/004-下载历史需求.md) | [Plan](plans/archive/004-下载历史计划.md) | [Acceptance](acceptance/archive/004-下载历史验收.md) |
 | 005 | 多平台 Provider 与会话适配 | [Design](design/005-多平台Provider策略设计.md) | [PRD](prd/005-多平台Provider与会话适配需求.md) | [Plan](plans/005-多平台Provider与会话适配计划.md) | [Acceptance](acceptance/005-多平台Provider与会话适配验收.md) |
 | 006 | 上线产品能力补全 | [Design](design/006-上线产品能力补全设计.md) | [PRD](prd/006-上线产品能力补全需求.md) | [Plan](plans/006-上线产品能力补全计划.md) | [Acceptance](acceptance/006-上线产品能力补全验收.md) |
-| 007 | 邮箱账户与 JWT 认证（已归档） | [Design](archive/007/007-邮箱账户与JWT认证设计.md) | [PRD](archive/007/007-邮箱账户与JWT认证需求.md) | [Plan](archive/007/007-邮箱账户与JWT认证计划.md) | [Acceptance](archive/007/007-邮箱账户与JWT认证验收.md) |
-| 008 | 用户资料与角色管理（已归档） | [Design](archive/008/008-用户资料与角色管理设计.md) | [PRD](archive/008/008-用户资料与角色管理需求.md) | [Plan](archive/008/008-用户资料与角色管理计划.md) | [Acceptance](archive/008/008-用户资料与角色管理验收.md) |
-| 009 | Next 前端与页面重设计（已归档） | [Design](archive/009/009-Next前端与蓝白视觉系统设计.md) | [PRD](archive/009/009-前端体验重构需求.md) | [Plan](archive/009/009-前端迁移与页面重设计计划.md) | [Acceptance](archive/009/009-前端迁移与页面重设计验收.md) |
+| 007 | 邮箱账户与 JWT 认证（已归档） | [Design](design/archive/007-邮箱账户与JWT认证设计.md) | [PRD](prd/archive/007-邮箱账户与JWT认证需求.md) | [Plan](plans/archive/007-邮箱账户与JWT认证计划.md) | [Acceptance](acceptance/archive/007-邮箱账户与JWT认证验收.md) |
+| 008 | 用户资料与角色管理（已归档） | [Design](design/archive/008-用户资料与角色管理设计.md) | [PRD](prd/archive/008-用户资料与角色管理需求.md) | [Plan](plans/archive/008-用户资料与角色管理计划.md) | [Acceptance](acceptance/archive/008-用户资料与角色管理验收.md) |
+| 009 | Next 前端与页面重设计（已归档） | [Design](design/archive/009-Next前端与蓝白视觉系统设计.md) | [PRD](prd/archive/009-前端体验重构需求.md) | [Plan](plans/archive/009-前端迁移与页面重设计计划.md) | [Acceptance](acceptance/archive/009-前端迁移与页面重设计验收.md) |
 | 010 | Codex 与 Claude CLI 视频分析 | [Design](design/010-Codex与Claude CLI视频分析设计.md) | [PRD](prd/010-Codex与Claude CLI视频分析需求.md) | [Plan](plans/010-Codex与Claude CLI视频分析迁移计划.md) | [Acceptance](acceptance/010-Codex与Claude CLI视频分析验收.md) |
-| 011 | 管理员下载数据分析（已归档） | [Design](archive/011/011-管理员下载数据分析设计.md) | [PRD](archive/011/011-管理员下载数据分析需求.md) | [Plan](archive/011/011-管理员下载数据分析计划.md) | [Acceptance](archive/011/011-管理员下载数据分析验收.md) |
-| 012 | AI 分析报告与 MinIO 持久化（已归档） | [Design](archive/012/012-AI分析报告与MinIO持久化设计.md) | [PRD](archive/012/012-AI分析报告与MinIO持久化需求.md) | [Plan](archive/012/012-AI分析报告与MinIO持久化计划.md) | [Acceptance](archive/012/012-AI分析报告与MinIO持久化验收.md) |
-| 013 | AI 分析原任务重试（已归档） | [Design](archive/013/013-AI分析原任务重试设计.md) | [PRD](archive/013/013-AI分析原任务重试需求.md) | [Plan](archive/013/013-AI分析原任务重试计划.md) | [Acceptance](archive/013/013-AI分析原任务重试验收.md) |
-| 014 | WebSocket 任务状态同步（已归档） | [Design](archive/014/014-WebSocket任务状态同步设计.md) | [PRD](archive/014/014-WebSocket任务状态同步需求.md) | [Plan](archive/014/014-WebSocket任务状态同步计划.md) | [Acceptance](archive/014/014-WebSocket任务状态同步验收.md) |
-| 015 | RabbitMQ 异步分析与可靠投递（已归档） | [Design](archive/015/015-RabbitMQ异步分析设计.md) | [PRD](archive/015/015-RabbitMQ异步分析需求.md) | [Plan](archive/015/015-RabbitMQ异步分析计划.md) | [Acceptance](archive/015/015-RabbitMQ异步分析验收.md) |
-| 016 | 中国短视频平台支持（已归档） | [Design](archive/016/016-中国短视频平台支持设计.md) | [PRD](archive/016/016-中国短视频平台支持需求.md) | [Plan](archive/016/016-中国短视频平台支持计划.md) | [Acceptance](archive/016/016-中国短视频平台支持验收.md) |
+| 011 | 管理员下载数据分析（已归档） | [Design](design/archive/011-管理员下载数据分析设计.md) | [PRD](prd/archive/011-管理员下载数据分析需求.md) | [Plan](plans/archive/011-管理员下载数据分析计划.md) | [Acceptance](acceptance/archive/011-管理员下载数据分析验收.md) |
+| 012 | AI 分析报告与 MinIO 持久化（已归档） | [Design](design/archive/012-AI分析报告与MinIO持久化设计.md) | [PRD](prd/archive/012-AI分析报告与MinIO持久化需求.md) | [Plan](plans/archive/012-AI分析报告与MinIO持久化计划.md) | [Acceptance](acceptance/archive/012-AI分析报告与MinIO持久化验收.md) |
+| 013 | AI 分析原任务重试（已归档） | [Design](design/archive/013-AI分析原任务重试设计.md) | [PRD](prd/archive/013-AI分析原任务重试需求.md) | [Plan](plans/archive/013-AI分析原任务重试计划.md) | [Acceptance](acceptance/archive/013-AI分析原任务重试验收.md) |
+| 014 | WebSocket 任务状态同步（已归档） | [Design](design/archive/014-WebSocket任务状态同步设计.md) | [PRD](prd/archive/014-WebSocket任务状态同步需求.md) | [Plan](plans/archive/014-WebSocket任务状态同步计划.md) | [Acceptance](acceptance/archive/014-WebSocket任务状态同步验收.md) |
+| 015 | RabbitMQ 异步分析与可靠投递（已归档） | [Design](design/archive/015-RabbitMQ异步分析设计.md) | [PRD](prd/archive/015-RabbitMQ异步分析需求.md) | [Plan](plans/archive/015-RabbitMQ异步分析计划.md) | [Acceptance](acceptance/archive/015-RabbitMQ异步分析验收.md) |
+| 016 | 中国短视频平台支持（已归档） | [Design](design/archive/016-中国短视频平台支持设计.md) | [PRD](prd/archive/016-中国短视频平台支持需求.md) | [Plan](plans/archive/016-中国短视频平台支持计划.md) | [Acceptance](acceptance/archive/016-中国短视频平台支持验收.md) |
 | 017 | 其他短视频平台分阶段接入 | [Design](design/017-其他短视频平台分阶段接入设计.md) | [PRD](prd/017-其他短视频平台分阶段接入需求.md) | [Plan](plans/017-其他短视频平台分阶段接入计划.md) | [Acceptance](acceptance/017-其他短视频平台分阶段接入验收.md) |
-| 018 | RabbitMQ 生产可靠性增强（已归档） | [Design](archive/018/018-RabbitMQ生产可靠性增强设计.md) | [PRD](archive/018/018-RabbitMQ生产可靠性增强需求.md) | [Plan](archive/018/018-RabbitMQ生产可靠性增强计划.md) | [Acceptance](archive/018/018-RabbitMQ生产可靠性增强验收.md) |
+| 018 | RabbitMQ 生产可靠性增强（已归档） | [Design](design/archive/018-RabbitMQ生产可靠性增强设计.md) | [PRD](prd/archive/018-RabbitMQ生产可靠性增强需求.md) | [Plan](plans/archive/018-RabbitMQ生产可靠性增强计划.md) | [Acceptance](acceptance/archive/018-RabbitMQ生产可靠性增强验收.md) |
 | 019 | 用户设备 Edge Agent 与媒体制品导入 | [Design](design/019-用户设备EdgeAgent与媒体制品导入设计.md) | [PRD](prd/019-用户设备EdgeAgent与媒体制品导入需求.md) | [Plan](plans/019-用户设备EdgeAgent与媒体制品导入计划.md) | [Acceptance](acceptance/019-用户设备EdgeAgent与媒体制品导入验收.md) |
-| 020 | 用户制品持久化与保留策略（已归档） | [Design](archive/020/020-用户制品持久化与保留策略设计.md) | [PRD](archive/020/020-用户制品持久化与保留策略需求.md) | [Plan](archive/020/020-用户制品持久化与保留策略计划.md) | [Acceptance](archive/020/020-用户制品持久化与保留策略验收.md) |
-| 021 | 媒体封面持久化（已归档） | [Design](archive/021/021-媒体封面持久化设计.md) | [PRD](archive/021/021-媒体封面持久化需求.md) | [Plan](archive/021/021-媒体封面持久化计划.md) | [Acceptance](archive/021/021-媒体封面持久化验收.md) |
+| 020 | 用户制品持久化与保留策略（已归档） | [Design](design/archive/020-用户制品持久化与保留策略设计.md) | [PRD](prd/archive/020-用户制品持久化与保留策略需求.md) | [Plan](plans/archive/020-用户制品持久化与保留策略计划.md) | [Acceptance](acceptance/archive/020-用户制品持久化与保留策略验收.md) |
+| 021 | 媒体封面持久化（已归档） | [Design](design/archive/021-媒体封面持久化设计.md) | [PRD](prd/archive/021-媒体封面持久化需求.md) | [Plan](plans/archive/021-媒体封面持久化计划.md) | [Acceptance](acceptance/archive/021-媒体封面持久化验收.md) |
 | 022 | 跨平台 AI 分析 Agent 与模型 Provider 配置 | [Design](design/022-跨平台AI分析Agent与模型Provider配置设计.md) | [PRD](prd/022-跨平台AI分析Agent与模型Provider配置需求.md) | [Plan](plans/022-跨平台AI分析Agent与模型Provider配置计划.md) | [Acceptance](acceptance/022-跨平台AI分析Agent与模型Provider配置验收.md) |

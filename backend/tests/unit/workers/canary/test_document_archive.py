@@ -39,6 +39,17 @@ def test_pending_acceptance_cannot_be_archived(tmp_path: Path) -> None:
 
 def test_accepted_documents_are_moved_and_indexed(tmp_path: Path) -> None:
     root = _repository(tmp_path, ACCEPTED_MARKER)
+    note = root / "docs" / "note.md"
+    note.write_text(
+        "`docs/design/017-其他短视频平台分阶段接入设计.md`\n",
+        encoding="utf-8",
+    )
+    frontend_readme = root / "frontend" / "README.md"
+    frontend_readme.parent.mkdir(parents=True)
+    frontend_readme.write_text(
+        "`../docs/design/017-其他短视频平台分阶段接入设计.md`\n",
+        encoding="utf-8",
+    )
 
     ready_paths = validate_017_documents(root)
     result = archive_017_documents(root)
@@ -50,11 +61,18 @@ def test_accepted_documents_are_moved_and_indexed(tmp_path: Path) -> None:
         not (root / "docs" / folder / name).exists() for folder, name in DOCUMENTS
     )
     assert all(
-        (root / "docs" / "archive" / "017" / name).is_file() for _, name in DOCUMENTS
+        (root / "docs" / folder / "archive" / name).is_file()
+        for folder, name in DOCUMENTS
     )
     index = (root / "docs" / "README.md").read_text(encoding="utf-8")
     assert ACTIVE_INDEX_ROW not in index
     assert ARCHIVED_INDEX_ROW in index
+    assert note.read_text(encoding="utf-8") == (
+        "`docs/design/archive/017-其他短视频平台分阶段接入设计.md`\n"
+    )
+    assert frontend_readme.read_text(encoding="utf-8") == (
+        "`../docs/design/archive/017-其他短视频平台分阶段接入设计.md`\n"
+    )
 
 
 def test_archive_is_idempotent_after_success(tmp_path: Path) -> None:
@@ -71,7 +89,7 @@ def test_archive_is_idempotent_after_success(tmp_path: Path) -> None:
 def test_partial_archive_state_is_rejected(tmp_path: Path) -> None:
     root = _repository(tmp_path, ACCEPTED_MARKER)
     folder, name = DOCUMENTS[0]
-    target = root / "docs" / "archive" / "017" / name
+    target = root / "docs" / folder / "archive" / name
     target.parent.mkdir(parents=True)
     (root / "docs" / folder / name).rename(target)
 
