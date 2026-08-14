@@ -46,6 +46,19 @@ services:
       ARTIFACT_GC_BATCH_SIZE: "${ARTIFACT_GC_BATCH_SIZE:?set ARTIFACT_GC_BATCH_SIZE in .env.prod}"
       ARTIFACT_DELETE_TIMEOUT_SECONDS: "${ARTIFACT_DELETE_TIMEOUT_SECONDS:?set ARTIFACT_DELETE_TIMEOUT_SECONDS in .env.prod}"
 
+  worker-import:
+    image: video-server:prod
+    environment:
+      APP_ENV: "${APP_ENV:?set APP_ENV in .env.prod}"
+      DATABASE_URL: "${DATABASE_URL:?set DATABASE_URL in .env.prod}"
+      RABBITMQ_URL: "${RABBITMQ_IMPORT_URL:?set RABBITMQ_IMPORT_URL in .env.prod}"
+      MINIO_ENDPOINT: "${MINIO_ENDPOINT:?set MINIO_ENDPOINT in .env.prod}"
+      MINIO_IMPORT_ACCESS_KEY: "${MINIO_IMPORT_ACCESS_KEY:?set MINIO_IMPORT_ACCESS_KEY in .env.prod}"
+      MINIO_IMPORT_SECRET_KEY: "${MINIO_IMPORT_SECRET_KEY:?set MINIO_IMPORT_SECRET_KEY in .env.prod}"
+      URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:?set URL_ENCRYPTION_KEY in .env.prod}"
+      MEDIA_IMPORT_MAX_BYTES: "${MEDIA_IMPORT_MAX_BYTES:?set MEDIA_IMPORT_MAX_BYTES in .env.prod}"
+      ARTIFACT_TTL_SECONDS: "${ARTIFACT_TTL_SECONDS:?set ARTIFACT_TTL_SECONDS in .env.prod}"
+
   provider-canary:
     image: video-server:prod
     environment:

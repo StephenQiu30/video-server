@@ -89,16 +89,20 @@ def test_compose_passes_artifact_retention_to_the_owning_workers() -> None:
     production = PROD_COMPOSE_PATH.read_text(encoding="utf-8")
 
     download_worker = _service_block(compose, "worker-download")
+    import_worker = _service_block(compose, "worker-import")
     report_worker = _service_block(compose, "worker-report")
     production_download = _service_block(production, "worker-download")
+    production_import = _service_block(production, "worker-import")
     production_report = _service_block(production, "worker-report")
 
     assert 'ARTIFACT_TTL_SECONDS: "${ARTIFACT_TTL_SECONDS:-604800}"' in download_worker
+    assert 'ARTIFACT_TTL_SECONDS: "${ARTIFACT_TTL_SECONDS:-604800}"' in import_worker
     assert (
         'ANALYSIS_REPORT_TTL_SECONDS: "${ANALYSIS_REPORT_TTL_SECONDS:-604800}"'
         in report_worker
     )
     assert "ARTIFACT_TTL_SECONDS:?set ARTIFACT_TTL_SECONDS" in production_download
+    assert "ARTIFACT_TTL_SECONDS:?set ARTIFACT_TTL_SECONDS" in production_import
     assert (
         "ANALYSIS_REPORT_TTL_SECONDS:?set ANALYSIS_REPORT_TTL_SECONDS"
         in production_report
@@ -119,6 +123,24 @@ def test_api_receives_fail_closed_media_import_configuration() -> None:
         "IMPORT_RIGHTS_STATEMENT_VERSION: "
         '"${IMPORT_RIGHTS_STATEMENT_VERSION:-content-rights-v1}"'
     ) in api
+
+
+def test_import_worker_is_private_bounded_and_uses_dedicated_identities() -> None:
+    compose = COMPOSE_PATH.read_text(encoding="utf-8")
+    worker = _service_block(compose, "worker-import")
+
+    assert "SERVICE_ROLE: import-worker" in worker
+    assert "RABBITMQ_IMPORT_URL" in worker
+    assert "MINIO_IMPORT_ACCESS_KEY" in worker
+    assert "MINIO_IMPORT_SECRET_KEY" in worker
+    assert "networks: [db_net, queue_net, storage_net]" in worker
+    assert "public_egress_net" not in worker
+    assert 'command: ["python", "-m", "app.workers.imports.main"]' in worker
+    assert "read_only: true" in worker
+    assert "cap_drop: [ALL]" in worker
+    assert "security_opt: [no-new-privileges:true]" in worker
+    assert "pids_limit: 128" in worker
+    assert "/work:rw,noexec,nosuid,size=3g" in worker
 
 
 def test_compose_pins_shared_runner_workspace_to_the_mounted_container_path() -> None:

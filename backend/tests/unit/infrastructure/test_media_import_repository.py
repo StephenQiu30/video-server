@@ -4,11 +4,13 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import pytest
+from app.application.import_execution import VerifiedImportArtifact
 from app.application.imports import (
     ImportCleanupRef,
     ImportPersistenceConflict,
     ImportPersistenceIdempotencyConflict,
     ImportResourceCreate,
+    ImportResourceSnapshot,
 )
 from app.application.imports.events import CONTENT_IMPORT_VERIFY_REQUESTED
 from app.domain.imports import (
@@ -24,6 +26,7 @@ from app.infrastructure.database import (
     SqlAlchemyMediaImportRepository,
 )
 from app.infrastructure.database.models import (
+    ArtifactRow,
     DownloadJobRow,
     MediaImportAttemptRow,
     MediaImportRow,
@@ -372,3 +375,226 @@ async def test_wrong_content_kind_and_owner_are_fail_closed(
             actual_size_bytes=DECLARED_SIZE,
             now=NOW,
         )
+
+
+async def verifying_resource(
+    repository: SqlAlchemyMediaImportRepository,
+) -> ImportResourceSnapshot:
+    await repository.create_resource(command(), now=NOW)
+    await repository.begin_upload_attempt(
+        RESOURCE_ID,
+        OWNER_HASH,
+        ContentKind.VIDEO,
+        part_size_bytes=FIVE_MIB,
+        part_count=2,
+        expires_at=NOW + timedelta(minutes=15),
+        now=NOW,
+    )
+    await repository.activate_upload_attempt(
+        RESOURCE_ID,
+        OWNER_HASH,
+        ContentKind.VIDEO,
+        1,
+        upload_id="multipart-1",
+        now=NOW,
+    )
+    return await repository.mark_verifying(
+        RESOURCE_ID,
+        OWNER_HASH,
+        ContentKind.VIDEO,
+        1,
+        actual_size_bytes=DECLARED_SIZE,
+        now=NOW + timedelta(seconds=1),
+    )
+
+
+def verified_artifact() -> VerifiedImportArtifact:
+    return VerifiedImportArtifact(
+        sha256="d" * 64,
+        size_bytes=DECLARED_SIZE,
+        duration_ms=12_500,
+        container="mp4",
+        content_type="video/mp4",
+        media_metadata={
+            "video_streams": 1,
+            "audio_streams": 0,
+            "width": 1920,
+            "height": 1080,
+            "codecs": ["h264"],
+        },
+    )
+
+
+async def test_worker_claim_heartbeat_and_completion_are_one_atomic_projection(
+    repositories: tuple[
+        SqlAlchemyMediaImportRepository,
+        SqlAlchemyDownloadRepository,
+        async_sessionmaker,
+    ],
+) -> None:
+    repository, _, sessions = repositories
+    verifying = await verifying_resource(repository)
+    claim = await repository.claim_verification(
+        RESOURCE_ID,
+        ContentKind.VIDEO,
+        1,
+        verifying.version,
+        worker_id="import-worker-a",
+        now=NOW + timedelta(seconds=2),
+        lease_for=timedelta(seconds=30),
+    )
+
+    assert claim is not None
+    assert (
+        await repository.claim_verification(
+            RESOURCE_ID,
+            ContentKind.VIDEO,
+            1,
+            claim.version,
+            worker_id="import-worker-b",
+            now=NOW + timedelta(seconds=3),
+            lease_for=timedelta(seconds=30),
+        )
+        is None
+    )
+    assert await repository.heartbeat_verification(
+        RESOURCE_ID,
+        1,
+        worker_id="import-worker-a",
+        stage="uploading",
+        progress=95,
+        now=NOW + timedelta(seconds=4),
+        lease_for=timedelta(seconds=30),
+    )
+    artifact = verified_artifact()
+    await repository.complete_verification(
+        claim,
+        artifact,
+        worker_id="import-worker-a",
+        bucket="video-artifacts",
+        expires_at=NOW + timedelta(days=7),
+        now=NOW + timedelta(seconds=5),
+    )
+    # A broker redelivery after the commit sees the same deterministic artifact.
+    await repository.complete_verification(
+        claim,
+        artifact,
+        worker_id="import-worker-a",
+        bucket="video-artifacts",
+        expires_at=NOW + timedelta(days=7),
+        now=NOW + timedelta(seconds=6),
+    )
+
+    async with sessions() as session:
+        resource = await session.get(MediaImportRow, RESOURCE_ID)
+        attempt = await session.get(MediaImportAttemptRow, (RESOURCE_ID, 1))
+        job = await session.get(DownloadJobRow, RESOURCE_ID)
+        stored = await session.scalar(
+            select(ArtifactRow).where(ArtifactRow.job_id == RESOURCE_ID)
+        )
+    assert resource is not None and resource.status == ImportStatus.READY.value
+    assert attempt is not None and attempt.status == ImportStatus.READY.value
+    assert attempt.lease_owner is None and attempt.lease_expires_at is None
+    assert job is not None
+    assert (job.status, job.progress, job.attempt) == ("succeeded", 100, 1)
+    assert stored is not None
+    assert stored.object_key == f"downloads/{RESOURCE_ID}/1/video.mp4"
+    assert stored.sha256 == artifact.sha256
+    assert await repository.expected_artifact_object_keys() == frozenset(
+        {stored.object_key}
+    )
+
+
+async def test_worker_validation_failure_is_terminal_and_clears_both_leases(
+    repositories: tuple[
+        SqlAlchemyMediaImportRepository,
+        SqlAlchemyDownloadRepository,
+        async_sessionmaker,
+    ],
+) -> None:
+    repository, _, sessions = repositories
+    verifying = await verifying_resource(repository)
+    claim = await repository.claim_verification(
+        RESOURCE_ID,
+        ContentKind.VIDEO,
+        1,
+        verifying.version,
+        worker_id="import-worker-a",
+        now=NOW + timedelta(seconds=2),
+        lease_for=timedelta(seconds=30),
+    )
+    assert claim is not None
+
+    await repository.fail_verification(
+        claim,
+        ImportErrorCode.SHA256_MISMATCH,
+        worker_id="import-worker-a",
+        now=NOW + timedelta(seconds=3),
+    )
+
+    async with sessions() as session:
+        resource = await session.get(MediaImportRow, RESOURCE_ID)
+        attempt = await session.get(MediaImportAttemptRow, (RESOURCE_ID, 1))
+        job = await session.get(DownloadJobRow, RESOURCE_ID)
+    assert resource is not None
+    assert (resource.status, resource.error_code) == (
+        ImportStatus.FAILED.value,
+        ImportErrorCode.SHA256_MISMATCH.value,
+    )
+    assert attempt is not None and attempt.lease_owner is None
+    assert job is not None
+    assert (job.status, job.error_code, job.lease_owner) == (
+        "failed",
+        "media_validation_failed",
+        None,
+    )
+
+
+async def test_expired_worker_lease_is_requeued_once_and_can_be_reclaimed(
+    repositories: tuple[
+        SqlAlchemyMediaImportRepository,
+        SqlAlchemyDownloadRepository,
+        async_sessionmaker,
+    ],
+) -> None:
+    repository, _, sessions = repositories
+    verifying = await verifying_resource(repository)
+    claim = await repository.claim_verification(
+        RESOURCE_ID,
+        ContentKind.VIDEO,
+        1,
+        verifying.version,
+        worker_id="import-worker-a",
+        now=NOW + timedelta(seconds=2),
+        lease_for=timedelta(seconds=30),
+    )
+    assert claim is not None
+
+    recovered = await repository.recover_expired_verifications(
+        NOW + timedelta(seconds=33), limit=10
+    )
+    duplicate_sweep = await repository.recover_expired_verifications(
+        NOW + timedelta(seconds=34), limit=10
+    )
+    reclaimed = await repository.claim_verification(
+        RESOURCE_ID,
+        ContentKind.VIDEO,
+        1,
+        claim.version,
+        worker_id="import-worker-b",
+        now=NOW + timedelta(seconds=35),
+        lease_for=timedelta(seconds=30),
+    )
+
+    assert recovered == (RESOURCE_ID,)
+    assert duplicate_sweep == ()
+    assert reclaimed is not None
+    async with sessions() as session:
+        events = tuple((await session.scalars(select(OutboxEventRow))).all())
+    assert len(events) == 2
+    assert events[-1].payload == {
+        "resource_id": str(RESOURCE_ID),
+        "content_kind": "video",
+        "attempt": 1,
+        "version": claim.version,
+    }

@@ -188,6 +188,15 @@ async def test_private_storage_cannot_sign_public_downloads() -> None:
         await storage.presigned_download("jobs/one/video.mp4", ttl_seconds=60)
 
 
+async def test_import_worker_can_disable_public_signing_client() -> None:
+    storage = MinioObjectStorage.for_imports(
+        settings(), private=FakeMinio(), enable_public_signing=False
+    )
+
+    with pytest.raises(RuntimeError, match="public download signing is not enabled"):
+        await storage.presigned_download("downloads/job-1/1/video.mp4", ttl_seconds=60)
+
+
 async def test_storage_controls_one_deterministic_multipart_upload() -> None:
     private = FakeMinio()
     public = FakeMinio()

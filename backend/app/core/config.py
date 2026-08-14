@@ -34,6 +34,7 @@ class Settings(BaseSettings):
         "api",
         "outbox",
         "download-worker",
+        "import-worker",
         "analysis-worker",
         "report-worker",
         "provider-canary",
@@ -157,6 +158,19 @@ class Settings(BaseSettings):
         max_length=64,
         pattern=r"^[a-z0-9][a-z0-9._-]{0,63}$",
     )
+    import_workspace_root: Path = Path("./.import-work")
+    import_ffprobe_binary: Path = Path("ffprobe")
+    import_ffprobe_timeout_seconds: float = Field(default=30, ge=1, le=300)
+    import_max_probe_output_bytes: int = Field(
+        default=256 * 1024, ge=1024, le=16 * 1024**2
+    )
+    import_max_video_width: int = Field(default=8192, ge=16, le=32768)
+    import_max_video_height: int = Field(default=8192, ge=16, le=32768)
+    import_max_media_streams: int = Field(default=32, ge=1, le=1024)
+    import_recovery_interval_seconds: float = Field(default=5, ge=1, le=300)
+    import_recovery_batch_size: int = Field(default=50, ge=1, le=200)
+    import_workspace_grace_seconds: int = Field(default=1800, ge=60, le=86400)
+    import_artifact_orphan_grace_seconds: int = Field(default=3600, ge=300, le=604800)
     inspection_ttl_seconds: int = Field(default=900, ge=60, le=86400)
     artifact_ttl_seconds: int = Field(default=604_800, ge=604_800, le=2_592_000)
     artifact_gc_interval_seconds: float = Field(default=300, ge=5, le=86400)
@@ -226,6 +240,11 @@ class Settings(BaseSettings):
     @field_validator("analysis_workspace_root")
     @classmethod
     def absolute_analysis_workspace(cls, value: Path) -> Path:
+        return value.expanduser().absolute()
+
+    @field_validator("import_workspace_root")
+    @classmethod
+    def absolute_import_workspace(cls, value: Path) -> Path:
         return value.expanduser().absolute()
 
     @field_validator("auth_bootstrap_admin_email", mode="before")
@@ -303,6 +322,10 @@ class Settings(BaseSettings):
             raise ValueError(
                 "analysis worker stale window must exceed its heartbeat interval"
             )
+        if self.heartbeat_interval_seconds >= self.job_lease_seconds:
+            raise ValueError("worker heartbeat interval must be shorter than its lease")
+        if self.import_workspace_grace_seconds <= self.job_lease_seconds:
+            raise ValueError("import workspace grace must exceed its lease")
         upload_capacity = (
             self.import_upload_part_size_bytes * self.import_upload_max_parts
         )
@@ -332,6 +355,13 @@ class Settings(BaseSettings):
                     self.runner_hmac_secret.get_secret_value(),
                     self.minio_access_key.get_secret_value(),
                     self.minio_secret_key.get_secret_value(),
+                )
+            )
+        elif self.service_role == "import-worker":
+            secret_values.extend(
+                (
+                    self.minio_import_access_key.get_secret_value(),
+                    self.minio_import_secret_key.get_secret_value(),
                 )
             )
         elif self.service_role == "analysis-worker":
@@ -408,6 +438,7 @@ def get_settings_for_role(
         "api",
         "outbox",
         "download-worker",
+        "import-worker",
         "analysis-worker",
         "report-worker",
         "provider-canary",

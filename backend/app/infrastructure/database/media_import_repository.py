@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+import re
+from datetime import datetime, timedelta
 from typing import cast
 from uuid import UUID, uuid4
 
@@ -10,6 +11,10 @@ from sqlalchemy import Select, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.import_execution import (
+    ImportVerificationClaim,
+    VerifiedImportArtifact,
+)
 from app.application.imports import (
     BeginUploadAttemptResult,
     CancelImportResult,
@@ -36,6 +41,7 @@ from app.domain.imports import (
 
 from .base import as_utc
 from .models import (
+    ArtifactRow,
     DownloadJobRow,
     MediaImportAttemptRow,
     MediaImportRow,
@@ -414,6 +420,304 @@ class SqlAlchemyMediaImportRepository(RepositoryBase):
                 _resource_snapshot(row, None), _cleanup_refs(current)
             )
 
+    async def claim_verification(
+        self,
+        resource_id: UUID,
+        content_kind: ContentKind,
+        attempt: int,
+        expected_version: int,
+        *,
+        worker_id: str,
+        now: datetime,
+        lease_for: timedelta,
+    ) -> ImportVerificationClaim | None:
+        _require_verification_arguments(
+            content_kind, attempt, expected_version, worker_id, lease_for
+        )
+        async with self._sessions() as session, session.begin():
+            row = await session.scalar(
+                select(MediaImportRow)
+                .where(MediaImportRow.id == resource_id)
+                .with_for_update()
+            )
+            if row is None or (
+                row.status != ImportStatus.VERIFYING.value
+                or row.attempt != attempt
+                or row.version != expected_version
+            ):
+                return None
+            current = await _lock_attempt(session, row, attempt)
+            if current.status != ImportStatus.VERIFYING.value:
+                return None
+            if current.lease_expires_at is not None and as_utc(
+                current.lease_expires_at
+            ) > as_utc(now):
+                return None
+            job = await _lock_job(session, row.id)
+            if job.status != "running":
+                return None
+            current.lease_owner = worker_id
+            current.lease_expires_at = now + lease_for
+            current.heartbeat_at = now
+            current.updated_at = now
+            job.attempt = attempt
+            job.lease_owner = worker_id
+            job.lease_expires_at = now + lease_for
+            job.heartbeat_at = now
+            job.stage = "verifying"
+            job.stage_rank = 4
+            job.progress = max(job.progress, 55)
+            job.version += 1
+            job.updated_at = now
+            await session.flush()
+            return _verification_claim(row, current)
+
+    async def heartbeat_verification(
+        self,
+        resource_id: UUID,
+        attempt: int,
+        *,
+        worker_id: str,
+        stage: str,
+        progress: int,
+        now: datetime,
+        lease_for: timedelta,
+    ) -> bool:
+        _require_heartbeat_arguments(attempt, worker_id, stage, progress, lease_for)
+        async with self._sessions() as session, session.begin():
+            row = await session.scalar(
+                select(MediaImportRow)
+                .where(MediaImportRow.id == resource_id)
+                .with_for_update()
+            )
+            if row is None or (
+                row.status != ImportStatus.VERIFYING.value or row.attempt != attempt
+            ):
+                return False
+            current = await _lock_attempt(session, row, attempt)
+            job = await _lock_job(session, row.id)
+            if not _owns_verification(current, job, worker_id, attempt, now):
+                return False
+            current.heartbeat_at = now
+            current.lease_expires_at = now + lease_for
+            current.updated_at = now
+            stage_rank = 4 if stage == "verifying" else 5
+            if job.stage_rank <= stage_rank:
+                job.stage = stage
+                job.stage_rank = stage_rank
+            job.progress = max(job.progress, progress)
+            job.heartbeat_at = now
+            job.lease_expires_at = now + lease_for
+            job.version += 1
+            job.updated_at = now
+            await session.flush()
+            return True
+
+    async def complete_verification(
+        self,
+        claim: ImportVerificationClaim,
+        artifact: VerifiedImportArtifact,
+        *,
+        worker_id: str,
+        bucket: str,
+        expires_at: datetime,
+        now: datetime,
+    ) -> None:
+        _validate_verified_artifact(artifact, bucket, expires_at, now)
+        object_key = _final_object_key(claim)
+        async with self._sessions() as session, session.begin():
+            row = await session.scalar(
+                select(MediaImportRow)
+                .where(MediaImportRow.id == claim.resource_id)
+                .with_for_update()
+            )
+            if row is None:
+                raise ImportPersistenceNotFound("media import does not exist")
+            if row.status == ImportStatus.READY.value:
+                stored = await session.scalar(
+                    select(ArtifactRow).where(ArtifactRow.job_id == row.id)
+                )
+                if stored is None or not _artifact_matches(
+                    stored, claim, artifact, bucket, object_key
+                ):
+                    raise ImportPersistenceConflict(
+                        "completed media import artifact is inconsistent"
+                    )
+                return
+            current = await _lock_attempt(session, row, claim.attempt)
+            job = await _lock_job(session, row.id)
+            if (
+                row.status != ImportStatus.VERIFYING.value
+                or row.attempt != claim.attempt
+                or row.version != claim.version
+                or current.status != ImportStatus.VERIFYING.value
+                or not _owns_verification(current, job, worker_id, claim.attempt, now)
+                or job.stage != "uploading"
+            ):
+                raise ImportPersistenceConflict(
+                    "media import verification lease was lost"
+                )
+            session.add(
+                ArtifactRow(
+                    id=uuid4(),
+                    job_id=row.id,
+                    attempt=claim.attempt,
+                    bucket=bucket,
+                    object_key=object_key,
+                    sha256=artifact.sha256,
+                    size_bytes=artifact.size_bytes,
+                    duration_ms=artifact.duration_ms,
+                    container=artifact.container,
+                    content_type=artifact.content_type,
+                    media_metadata=artifact.media_metadata,
+                    expires_at=expires_at,
+                    created_at=now,
+                )
+            )
+            current.status = ImportStatus.READY.value
+            current.error_code = None
+            current.finished_at = now
+            current.updated_at = now
+            _clear_attempt_lease(current, heartbeat_at=now)
+            row.status = ImportStatus.READY.value
+            row.error_code = None
+            row.finished_at = now
+            row.version += 1
+            row.updated_at = now
+            job.status = "succeeded"
+            job.stage = None
+            job.stage_rank = 0
+            job.progress = 100
+            job.version += 1
+            job.finished_at = now
+            job.retry_at = None
+            job.error_code = None
+            job.error_message = None
+            job.lease_owner = None
+            job.lease_expires_at = None
+            job.heartbeat_at = now
+            job.updated_at = now
+            await session.flush()
+
+    async def fail_verification(
+        self,
+        claim: ImportVerificationClaim,
+        error_code: ImportErrorCode,
+        *,
+        worker_id: str,
+        now: datetime,
+    ) -> None:
+        if error_code not in {
+            ImportErrorCode.SIZE_MISMATCH,
+            ImportErrorCode.SHA256_MISMATCH,
+            ImportErrorCode.VIDEO_INVALID,
+        }:
+            raise ValueError("unsupported terminal video verification error")
+        async with self._sessions() as session, session.begin():
+            row = await session.scalar(
+                select(MediaImportRow)
+                .where(MediaImportRow.id == claim.resource_id)
+                .with_for_update()
+            )
+            if row is None:
+                raise ImportPersistenceNotFound("media import does not exist")
+            if (
+                row.status == ImportStatus.FAILED.value
+                and row.error_code == error_code.value
+            ):
+                return
+            current = await _lock_attempt(session, row, claim.attempt)
+            job = await _lock_job(session, row.id)
+            if (
+                row.status != ImportStatus.VERIFYING.value
+                or row.attempt != claim.attempt
+                or row.version != claim.version
+                or current.status != ImportStatus.VERIFYING.value
+                or not _owns_verification(current, job, worker_id, claim.attempt, now)
+            ):
+                raise ImportPersistenceConflict(
+                    "media import verification lease was lost"
+                )
+            current.status = ImportStatus.FAILED.value
+            current.error_code = error_code.value
+            current.finished_at = now
+            current.updated_at = now
+            _clear_attempt_lease(current, heartbeat_at=now)
+            row.status = ImportStatus.FAILED.value
+            row.error_code = error_code.value
+            row.finished_at = now
+            row.version += 1
+            row.updated_at = now
+            _set_job_failed(job, now, error_code="media_validation_failed")
+            job.attempt = claim.attempt
+            job.heartbeat_at = now
+            job.lease_owner = None
+            job.lease_expires_at = None
+            await session.flush()
+
+    async def recover_expired_verifications(
+        self, now: datetime, *, limit: int
+    ) -> tuple[UUID, ...]:
+        if not 1 <= limit <= 200:
+            raise ValueError("limit must be between 1 and 200")
+        async with self._sessions() as session, session.begin():
+            statement = (
+                select(MediaImportRow, MediaImportAttemptRow)
+                .join(
+                    MediaImportAttemptRow,
+                    (MediaImportAttemptRow.resource_id == MediaImportRow.id)
+                    & (MediaImportAttemptRow.attempt == MediaImportRow.attempt),
+                )
+                .where(
+                    MediaImportRow.status == ImportStatus.VERIFYING.value,
+                    MediaImportAttemptRow.status == ImportStatus.VERIFYING.value,
+                    MediaImportAttemptRow.lease_expires_at.is_not(None),
+                    MediaImportAttemptRow.lease_expires_at <= now,
+                )
+                .order_by(
+                    MediaImportAttemptRow.lease_expires_at,
+                    MediaImportAttemptRow.resource_id,
+                )
+                .limit(limit)
+                .with_for_update(skip_locked=True)
+            )
+            pairs = tuple((await session.execute(statement)).all())
+            recovered: list[UUID] = []
+            for row, current in pairs:
+                job = await _lock_job(session, row.id)
+                _clear_attempt_lease(current, heartbeat_at=current.heartbeat_at)
+                current.updated_at = now
+                job.lease_owner = None
+                job.lease_expires_at = None
+                job.stage = "verifying"
+                job.stage_rank = 4
+                job.progress = max(job.progress, 50)
+                job.version += 1
+                job.updated_at = now
+                session.add(
+                    OutboxEventRow(
+                        id=uuid4(),
+                        aggregate_type="media_import",
+                        aggregate_id=row.id,
+                        event_type=CONTENT_IMPORT_VERIFY_REQUESTED,
+                        payload=import_verify_requested_payload(
+                            row.id, ContentKind.VIDEO, row.attempt, row.version
+                        ),
+                        available_at=now,
+                        created_at=now,
+                    )
+                )
+                recovered.append(row.id)
+            await session.flush()
+            return tuple(recovered)
+
+    async def expected_artifact_object_keys(self) -> frozenset[str]:
+        async with self._sessions() as session:
+            keys = await session.scalars(
+                select(ArtifactRow.object_key).where(ArtifactRow.deleted_at.is_(None))
+            )
+            return frozenset(keys)
+
     @staticmethod
     def _idempotency_query(
         command: ImportResourceCreate,
@@ -620,3 +924,135 @@ def _set_job_failed(row: DownloadJobRow, now: datetime, *, error_code: str) -> N
     row.error_code = error_code
     row.error_message = None
     row.updated_at = now
+
+
+def _require_verification_arguments(
+    content_kind: ContentKind,
+    attempt: int,
+    expected_version: int,
+    worker_id: str,
+    lease_for: timedelta,
+) -> None:
+    if content_kind is not ContentKind.VIDEO:
+        raise ValueError("media verification only accepts video")
+    if (
+        isinstance(attempt, bool)
+        or attempt < 1
+        or isinstance(expected_version, bool)
+        or expected_version < 0
+        or not worker_id.strip()
+        or len(worker_id) > 128
+        or lease_for.total_seconds() <= 0
+    ):
+        raise ValueError("invalid media verification claim")
+
+
+def _require_heartbeat_arguments(
+    attempt: int,
+    worker_id: str,
+    stage: str,
+    progress: int,
+    lease_for: timedelta,
+) -> None:
+    if (
+        isinstance(attempt, bool)
+        or attempt < 1
+        or not worker_id.strip()
+        or len(worker_id) > 128
+        or stage not in {"verifying", "uploading"}
+        or isinstance(progress, bool)
+        or not 0 <= progress <= 100
+        or lease_for.total_seconds() <= 0
+    ):
+        raise ValueError("invalid media verification heartbeat")
+
+
+def _owns_verification(
+    current: MediaImportAttemptRow,
+    job: DownloadJobRow,
+    worker_id: str,
+    attempt: int,
+    now: datetime,
+) -> bool:
+    return bool(
+        current.lease_owner == worker_id
+        and current.lease_expires_at is not None
+        and as_utc(current.lease_expires_at) > as_utc(now)
+        and job.status == "running"
+        and job.source_kind == "browser_import"
+        and job.attempt == attempt
+        and job.lease_owner == worker_id
+        and job.lease_expires_at is not None
+        and as_utc(job.lease_expires_at) > as_utc(now)
+    )
+
+
+def _clear_attempt_lease(
+    row: MediaImportAttemptRow, *, heartbeat_at: datetime | None
+) -> None:
+    row.lease_owner = None
+    row.lease_expires_at = None
+    row.heartbeat_at = heartbeat_at
+
+
+def _verification_claim(
+    row: MediaImportRow, current: MediaImportAttemptRow
+) -> ImportVerificationClaim:
+    return ImportVerificationClaim(
+        resource_id=row.id,
+        content_kind=ContentKind.VIDEO,
+        source_format=ImportSourceFormat(row.source_format),
+        attempt=current.attempt,
+        version=row.version,
+        object_key=current.object_key,
+        declared_size_bytes=row.declared_size_bytes,
+        declared_sha256=row.declared_sha256,
+    )
+
+
+def _final_object_key(claim: ImportVerificationClaim) -> str:
+    if (
+        claim.content_kind is not ContentKind.VIDEO
+        or claim.source_format is not ImportSourceFormat.MP4
+        or claim.attempt < 1
+    ):
+        raise ValueError("invalid media artifact identity")
+    return f"downloads/{claim.resource_id}/{claim.attempt}/video.mp4"
+
+
+def _validate_verified_artifact(
+    artifact: VerifiedImportArtifact,
+    bucket: str,
+    expires_at: datetime,
+    now: datetime,
+) -> None:
+    if (
+        not bucket.strip()
+        or len(bucket) > 128
+        or re.fullmatch(r"[0-9a-f]{64}", artifact.sha256) is None
+        or artifact.size_bytes <= 0
+        or artifact.duration_ms <= 0
+        or artifact.container != "mp4"
+        or artifact.content_type != "video/mp4"
+        or as_utc(expires_at) <= as_utc(now)
+    ):
+        raise ValueError("invalid verified media artifact")
+
+
+def _artifact_matches(
+    row: ArtifactRow,
+    claim: ImportVerificationClaim,
+    artifact: VerifiedImportArtifact,
+    bucket: str,
+    object_key: str,
+) -> bool:
+    return (
+        row.attempt == claim.attempt
+        and row.bucket == bucket
+        and row.object_key == object_key
+        and row.sha256 == artifact.sha256
+        and row.size_bytes == artifact.size_bytes
+        and row.duration_ms == artifact.duration_ms
+        and row.container == artifact.container
+        and row.content_type == artifact.content_type
+    )

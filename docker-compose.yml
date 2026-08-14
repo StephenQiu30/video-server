@@ -115,6 +115,47 @@ services:
       media-runner:
         condition: service_healthy
 
+  worker-import:
+    image: video-server:local
+    restart: unless-stopped
+    stop_grace_period: 30s
+    environment:
+      APP_ENV: "${APP_ENV:-development}"
+      SERVICE_ROLE: import-worker
+      DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
+      RABBITMQ_URL: "${RABBITMQ_IMPORT_URL:-amqp://video-import:video-import-secret@rabbitmq:5672/video}"
+      MINIO_ENDPOINT: "${MINIO_ENDPOINT:-minio:9000}"
+      MINIO_IMPORT_ACCESS_KEY: "${MINIO_IMPORT_ACCESS_KEY:-video-import-access}"
+      MINIO_IMPORT_SECRET_KEY: "${MINIO_IMPORT_SECRET_KEY:-video-import-secret-change-me}"
+      MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
+      MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
+      MEDIA_IMPORT_MAX_BYTES: "${MEDIA_IMPORT_MAX_BYTES:-2147483648}"
+      MAX_VIDEO_DURATION_SECONDS: "${MAX_VIDEO_DURATION_SECONDS:-7200}"
+      IMPORT_WORKSPACE_ROOT: /work
+      IMPORT_FFPROBE_BINARY: "${IMPORT_FFPROBE_BINARY:-ffprobe}"
+      IMPORT_FFPROBE_TIMEOUT_SECONDS: "${IMPORT_FFPROBE_TIMEOUT_SECONDS:-30}"
+      IMPORT_MAX_PROBE_OUTPUT_BYTES: "${IMPORT_MAX_PROBE_OUTPUT_BYTES:-262144}"
+      IMPORT_MAX_VIDEO_WIDTH: "${IMPORT_MAX_VIDEO_WIDTH:-8192}"
+      IMPORT_MAX_VIDEO_HEIGHT: "${IMPORT_MAX_VIDEO_HEIGHT:-8192}"
+      IMPORT_MAX_MEDIA_STREAMS: "${IMPORT_MAX_MEDIA_STREAMS:-32}"
+      IMPORT_RECOVERY_INTERVAL_SECONDS: "${IMPORT_RECOVERY_INTERVAL_SECONDS:-5}"
+      IMPORT_RECOVERY_BATCH_SIZE: "${IMPORT_RECOVERY_BATCH_SIZE:-50}"
+      IMPORT_WORKSPACE_GRACE_SECONDS: "${IMPORT_WORKSPACE_GRACE_SECONDS:-1800}"
+      IMPORT_ARTIFACT_ORPHAN_GRACE_SECONDS: "${IMPORT_ARTIFACT_ORPHAN_GRACE_SECONDS:-3600}"
+      ARTIFACT_TTL_SECONDS: "${ARTIFACT_TTL_SECONDS:-604800}"
+      JOB_LEASE_SECONDS: "${JOB_LEASE_SECONDS:-60}"
+      HEARTBEAT_INTERVAL_SECONDS: "${HEARTBEAT_INTERVAL_SECONDS:-15}"
+      WORKER_PREFETCH: "${WORKER_PREFETCH:-2}"
+    networks: [db_net, queue_net, storage_net]
+    container_name: worker-import
+    command: ["python", "-m", "app.workers.imports.main"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    tmpfs:
+      - /work:rw,noexec,nosuid,size=3g,mode=0700,uid=10001,gid=10001
+
   provider-canary:
     image: video-server:local
     restart: unless-stopped

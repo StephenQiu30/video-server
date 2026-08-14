@@ -56,6 +56,14 @@ def test_local_imports_are_bounded_and_disabled_by_default() -> None:
     assert settings.import_upload_max_concurrency == 4
     assert settings.import_quarantine_retention_days == 1
     assert settings.import_rights_statement_version == "content-rights-v1"
+    assert settings.import_ffprobe_timeout_seconds == 30
+    assert settings.import_max_probe_output_bytes == 256 * 1024
+    assert settings.import_max_video_width == 8192
+    assert settings.import_max_video_height == 8192
+    assert settings.import_max_media_streams == 32
+    assert settings.import_recovery_batch_size == 50
+    assert settings.import_workspace_grace_seconds == 1800
+    assert settings.import_artifact_orphan_grace_seconds == 3600
 
     for field in (
         "media_import_max_bytes",
@@ -65,6 +73,15 @@ def test_local_imports_are_bounded_and_disabled_by_default() -> None:
         "import_upload_max_parts",
         "import_upload_max_concurrency",
         "import_quarantine_retention_days",
+        "import_ffprobe_timeout_seconds",
+        "import_max_probe_output_bytes",
+        "import_max_video_width",
+        "import_max_video_height",
+        "import_max_media_streams",
+        "import_recovery_interval_seconds",
+        "import_recovery_batch_size",
+        "import_workspace_grace_seconds",
+        "import_artifact_orphan_grace_seconds",
     ):
         with pytest.raises(ValidationError):
             Settings(app_env="test", _env_file=None, **{field: 0})
@@ -86,6 +103,38 @@ def test_local_import_limit_must_fit_multipart_budget() -> None:
             import_upload_part_size_bytes=5 * 1024**2,
             import_upload_max_parts=1000,
         )
+
+
+def test_import_worker_runtime_limits_are_relationally_safe() -> None:
+    with pytest.raises(ValidationError, match="heartbeat interval"):
+        Settings(
+            app_env="test",
+            _env_file=None,
+            job_lease_seconds=30,
+            heartbeat_interval_seconds=30,
+        )
+    with pytest.raises(ValidationError, match="workspace grace"):
+        Settings(
+            app_env="test",
+            _env_file=None,
+            job_lease_seconds=60,
+            import_workspace_grace_seconds=60,
+        )
+
+
+def test_production_import_worker_accepts_only_explicit_dedicated_credentials() -> None:
+    settings = Settings(
+        app_env="production",
+        service_role="import-worker",
+        database_url="postgresql+asyncpg://imports:StrongDb@postgres:5432/video",
+        rabbitmq_url="amqp://imports:StrongMq@rabbitmq:5672/video",
+        minio_import_access_key=SecretStr("production-import-access"),
+        minio_import_secret_key=SecretStr("i" * 48),
+        url_encryption_key=SecretStr("MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="),
+        _env_file=None,
+    )
+
+    assert settings.service_role == "import-worker"
 
 
 def test_user_artifacts_default_to_seven_days_and_allow_thirty_days() -> None:
