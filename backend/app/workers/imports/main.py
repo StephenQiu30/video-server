@@ -29,7 +29,7 @@ from app.workers.imports.runtime_support import (
     utc_now,
     worker_id,
 )
-from app.workers.imports.text import TextScreenplayVerifier, TextVerificationSettings
+from app.workers.imports.verifier_factory import build_screenplay_verifier
 from app.workers.imports.video import (
     Mp4ImportVerifier,
     VideoVerificationSettings,
@@ -91,10 +91,7 @@ def build_runtime(settings: Settings) -> ImportWorkerRuntime:
         repository=document_repository,
         storage=storage,
         workspace=workspace,
-        verifier=TextScreenplayVerifier(
-            settings.import_workspace_root,
-            TextVerificationSettings(max_size_bytes=settings.document_import_max_bytes),
-        ),
+        verifier=build_screenplay_verifier(settings),
         clock=utc_now,
         settings=execution_settings,
     )
