@@ -1,6 +1,6 @@
 # 001 Server 单仓与运行时架构验收
 
-- 状态：Executed
+- 状态：Accepted
 - 结论：Passed
 
 ## 验收项

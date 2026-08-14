@@ -43,7 +43,11 @@ export function PageHeader({
           </p>
         ) : null}
       </div>
-      {action ? <div className="shrink-0 sm:pt-0.5">{action}</div> : null}
+      {action ? (
+        <div className="w-full shrink-0 [&>*]:w-full sm:w-auto sm:pt-0.5 sm:[&>*]:w-auto">
+          {action}
+        </div>
+      ) : null}
     </header>
   );
 }

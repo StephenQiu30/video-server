@@ -84,7 +84,7 @@ export function ProviderCatalogList({
             <TableRow className="hairline hover:bg-transparent">
               <TableHead className="w-[25%] px-4">平台</TableHead>
               <TableHead className="w-[22%] px-4">目录键</TableHead>
-              <TableHead className="w-[28%] px-4">能力与可见性</TableHead>
+              <TableHead className="w-[28%] px-4">注册与可见性</TableHead>
               <TableHead className="w-[10%] px-4 text-right">排序</TableHead>
               <TableHead className="w-[15%] px-4 text-right">操作</TableHead>
             </TableRow>
