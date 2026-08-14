@@ -1,7 +1,7 @@
 # 001 Server 单仓与运行时架构需求
 
 - 状态：Accepted
-- 关联 Design：`docs/design/001-server单仓与运行时架构设计.md`
+- 关联 Design：`docs/archive/001/001-server单仓与运行时架构设计.md`
 
 ## 用户结果
 

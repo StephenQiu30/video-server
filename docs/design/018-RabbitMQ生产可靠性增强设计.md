@@ -2,7 +2,7 @@
 
 - 状态：Implemented
 - 日期：2026-08-11
-- 关联设计：`docs/design/015-RabbitMQ异步分析设计.md`
+- 关联设计：`docs/archive/015/015-RabbitMQ异步分析设计.md`
 - 调研：`docs/research/006-RabbitMQ可靠投递GitHub调研.md`
 
 ## 1. 目标与不变量

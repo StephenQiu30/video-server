@@ -2,7 +2,7 @@
 
 - 状态：Accepted
 - 日期：2026-08-10
-- 关联 Design：`docs/design/014-WebSocket任务状态同步设计.md`
+- 关联 Design：`docs/archive/014/014-WebSocket任务状态同步设计.md`
 
 ## 1. 用户价值
 

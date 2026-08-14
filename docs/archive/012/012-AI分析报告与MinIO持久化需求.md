@@ -2,7 +2,7 @@
 
 - 状态：Accepted
 - 日期：2026-08-10
-- 关联 Design：`docs/design/012-AI分析报告与MinIO持久化设计.md`
+- 关联 Design：`docs/archive/012/012-AI分析报告与MinIO持久化设计.md`
 
 ## 1. 用户价值
 

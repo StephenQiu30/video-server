@@ -3,7 +3,7 @@
 - 状态：Accepted
 - 日期：2026-08-10
 - DAC：DAC-015-01 ～ DAC-015-12
-- 关联设计：`docs/design/010-Codex与Claude CLI视频分析设计.md`、`docs/design/012-AI分析报告与MinIO持久化设计.md`、`docs/design/013-AI分析原任务重试设计.md`、`docs/design/014-WebSocket任务状态同步设计.md`
+- 关联设计：`docs/design/010-Codex与Claude CLI视频分析设计.md`、`docs/archive/012/012-AI分析报告与MinIO持久化设计.md`、`docs/archive/013/013-AI分析原任务重试设计.md`、`docs/archive/014/014-WebSocket任务状态同步设计.md`
 
 ## 1. 目标与边界
 

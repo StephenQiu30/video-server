@@ -2,7 +2,7 @@
 
 - 状态：Accepted
 - 日期：2026-08-10
-- 关联 Design：`docs/design/015-RabbitMQ异步分析设计.md`
+- 关联 Design：`docs/archive/015/015-RabbitMQ异步分析设计.md`
 
 ## 1. 用户价值
 

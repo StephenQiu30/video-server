@@ -3,9 +3,9 @@
 - 状态：Accepted
 - 日期：2026-08-10
 - 结论：通过（Design → PRD → Plan → Acceptance 全链验收完成）
-- 关联 Design：`docs/design/015-RabbitMQ异步分析设计.md`
-- 关联 PRD：`docs/prd/015-RabbitMQ异步分析需求.md`
-- 关联 Plan：`docs/plans/015-RabbitMQ异步分析计划.md`
+- 关联 Design：`docs/archive/015/015-RabbitMQ异步分析设计.md`
+- 关联 PRD：`docs/archive/015/015-RabbitMQ异步分析需求.md`
+- 关联 Plan：`docs/archive/015/015-RabbitMQ异步分析计划.md`
 
 ## 1. 冻结前置条件
 

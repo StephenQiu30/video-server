@@ -3,7 +3,7 @@
 - 状态：Accepted
 - 日期：2026-08-10
 - DAC：DAC-012-01 ～ DAC-012-10
-- 关联设计：`docs/design/010-Codex与Claude CLI视频分析设计.md`、`docs/design/013-AI分析原任务重试设计.md`、`docs/design/015-RabbitMQ异步分析设计.md`
+- 关联设计：`docs/design/010-Codex与Claude CLI视频分析设计.md`、`docs/archive/013/013-AI分析原任务重试设计.md`、`docs/archive/015/015-RabbitMQ异步分析设计.md`
 
 ## 1. 目标与边界
 
