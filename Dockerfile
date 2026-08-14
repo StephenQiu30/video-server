@@ -33,10 +33,7 @@ COPY --link backend/pyproject.toml backend/uv.lock backend/README.md ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-install-project
 COPY --link backend/app ./app
-COPY --link backend/config/provider-sbom.json ./provider-sbom.json
-COPY --link backend/config/PROVIDER-NOTICES.md ./PROVIDER-NOTICES.md
-COPY --link backend/config/document-import-sbom.json ./document-import-sbom.json
-COPY --link backend/config/DOCUMENT-IMPORT-NOTICES.md ./DOCUMENT-IMPORT-NOTICES.md
+COPY --link backend/config/provider-sbom.json backend/config/PROVIDER-NOTICES.md backend/config/document-import-sbom.json backend/config/DOCUMENT-IMPORT-NOTICES.md ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 

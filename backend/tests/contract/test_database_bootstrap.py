@@ -95,46 +95,41 @@ def test_production_compose_requires_database_initializer_credentials() -> None:
     )
 
 
-def test_compose_passes_artifact_retention_to_the_owning_workers() -> None:
+def test_compose_uses_typed_application_retention_defaults() -> None:
     compose = COMPOSE_PATH.read_text(encoding="utf-8")
     production = PROD_COMPOSE_PATH.read_text(encoding="utf-8")
 
-    download_worker = _service_block(compose, "worker-download")
-    import_worker = _service_block(compose, "worker-import")
-    report_worker = _service_block(compose, "worker-report")
-    production_download = _service_block(production, "worker-download")
-    production_import = _service_block(production, "worker-import")
-    production_report = _service_block(production, "worker-report")
-
-    assert 'ARTIFACT_TTL_SECONDS: "${ARTIFACT_TTL_SECONDS:-604800}"' in download_worker
-    assert 'ARTIFACT_TTL_SECONDS: "${ARTIFACT_TTL_SECONDS:-604800}"' in import_worker
-    assert (
-        'ANALYSIS_REPORT_TTL_SECONDS: "${ANALYSIS_REPORT_TTL_SECONDS:-604800}"'
-        in report_worker
-    )
-    assert "ARTIFACT_TTL_SECONDS:?set ARTIFACT_TTL_SECONDS" in production_download
-    assert "ARTIFACT_TTL_SECONDS:?set ARTIFACT_TTL_SECONDS" in production_import
-    assert (
-        "ANALYSIS_REPORT_TTL_SECONDS:?set ANALYSIS_REPORT_TTL_SECONDS"
-        in production_report
-    )
+    for variable in (
+        "ARTIFACT_TTL_SECONDS",
+        "ARTIFACT_GC_INTERVAL_SECONDS",
+        "ARTIFACT_GC_BATCH_SIZE",
+        "ARTIFACT_DELETE_TIMEOUT_SECONDS",
+        "ARTIFACT_DOWNLOAD_URL_TTL_SECONDS",
+        "ANALYSIS_REPORT_TTL_SECONDS",
+        "ANALYSIS_REPORT_GC_INTERVAL_SECONDS",
+        "ANALYSIS_REPORT_GC_BATCH_SIZE",
+        "ANALYSIS_REPORT_ORPHAN_GRACE_SECONDS",
+    ):
+        assert variable not in compose
+        assert variable not in production
 
 
-def test_api_receives_fail_closed_media_import_configuration() -> None:
+def test_api_receives_feature_flags_and_uses_typed_import_defaults() -> None:
     api = _service_block(COMPOSE_PATH.read_text(encoding="utf-8"), "api")
 
     assert 'MEDIA_IMPORT_ENABLED: "${MEDIA_IMPORT_ENABLED:-false}"' in api
     assert 'DOCUMENT_IMPORT_ENABLED: "${DOCUMENT_IMPORT_ENABLED:-false}"' in api
     assert 'SCREENPLAY_ANALYSIS_ENABLED: "${SCREENPLAY_ANALYSIS_ENABLED:-false}"' in api
-    assert 'MEDIA_IMPORT_MAX_BYTES: "${MEDIA_IMPORT_MAX_BYTES:-2147483648}"' in api
-    assert (
-        'IMPORT_UPLOAD_PART_SIZE_BYTES: "${IMPORT_UPLOAD_PART_SIZE_BYTES:-33554432}"'
-        in api
-    )
-    assert (
-        "IMPORT_RIGHTS_STATEMENT_VERSION: "
-        '"${IMPORT_RIGHTS_STATEMENT_VERSION:-content-rights-v1}"'
-    ) in api
+    for variable in (
+        "MEDIA_IMPORT_MAX_BYTES",
+        "DOCUMENT_IMPORT_MAX_BYTES",
+        "IMPORT_UPLOAD_SESSION_TTL_SECONDS",
+        "IMPORT_UPLOAD_PART_SIZE_BYTES",
+        "IMPORT_UPLOAD_MAX_PARTS",
+        "IMPORT_UPLOAD_MAX_CONCURRENCY",
+        "IMPORT_RIGHTS_STATEMENT_VERSION",
+    ):
+        assert variable not in api
 
 
 def test_import_worker_is_private_bounded_and_uses_dedicated_identities() -> None:

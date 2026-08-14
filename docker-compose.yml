@@ -1,12 +1,27 @@
 name: video-server
 
+x-app-service: &app-service
+  image: video-server:local
+  restart: unless-stopped
+  stop_grace_period: 30s
+
+x-runner-service: &runner-service
+  <<: *app-service
+  command: ["python", "-m", "uvicorn", "app.runner.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "19100", "--no-access-log"]
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  healthcheck:
+    test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:19100/health/live', timeout=3)"]
+    interval: 10s
+    timeout: 5s
+    retries: 12
+    start_period: 10s
+
 services:
   api:
-    image: video-server:local
-    restart: unless-stopped
-    stop_grace_period: 30s
+    <<: *app-service
     environment:
-      APP_ENV: "${APP_ENV:-development}"
       SERVICE_ROLE: api
       DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
       RABBITMQ_URL: "${RABBITMQ_API_URL:-amqp://video-api:video-api-secret@rabbitmq:5672/video}"
@@ -23,14 +38,6 @@ services:
       MINIO_PUBLIC_SECURE: "${MINIO_PUBLIC_SECURE:-false}"
       MEDIA_IMPORT_ENABLED: "${MEDIA_IMPORT_ENABLED:-false}"
       DOCUMENT_IMPORT_ENABLED: "${DOCUMENT_IMPORT_ENABLED:-false}"
-      MEDIA_IMPORT_MAX_BYTES: "${MEDIA_IMPORT_MAX_BYTES:-2147483648}"
-      DOCUMENT_IMPORT_MAX_BYTES: "${DOCUMENT_IMPORT_MAX_BYTES:-52428800}"
-      IMPORT_UPLOAD_SESSION_TTL_SECONDS: "${IMPORT_UPLOAD_SESSION_TTL_SECONDS:-900}"
-      IMPORT_UPLOAD_PART_SIZE_BYTES: "${IMPORT_UPLOAD_PART_SIZE_BYTES:-33554432}"
-      IMPORT_UPLOAD_MAX_PARTS: "${IMPORT_UPLOAD_MAX_PARTS:-1000}"
-      IMPORT_UPLOAD_MAX_CONCURRENCY: "${IMPORT_UPLOAD_MAX_CONCURRENCY:-4}"
-      IMPORT_RIGHTS_STATEMENT_VERSION: "${IMPORT_RIGHTS_STATEMENT_VERSION:-content-rights-v1}"
-      ARTIFACT_DOWNLOAD_URL_TTL_SECONDS: "${ARTIFACT_DOWNLOAD_URL_TTL_SECONDS:-300}"
       AUTH_JWT_SECRET: "${AUTH_JWT_SECRET:-development-jwt-secret-change-me-32-bytes}"
       AUTH_BOOTSTRAP_ADMIN_EMAIL: "${AUTH_BOOTSTRAP_ADMIN_EMAIL:-}"
       REQUEST_FINGERPRINT_SECRET: "${REQUEST_FINGERPRINT_SECRET:-development-fingerprint-secret-change-me}"
@@ -69,11 +76,8 @@ services:
       start_period: 10s
 
   outbox:
-    image: video-server:local
-    restart: unless-stopped
-    stop_grace_period: 30s
+    <<: *app-service
     environment:
-      APP_ENV: "${APP_ENV:-development}"
       SERVICE_ROLE: outbox
       DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
       RABBITMQ_URL: "${RABBITMQ_OUTBOX_URL:-amqp://video-outbox:video-outbox-secret@rabbitmq:5672/video}"
@@ -82,11 +86,8 @@ services:
     command: ["python", "-m", "app.workers.outbox.main"]
 
   worker-download:
-    image: video-server:local
-    restart: unless-stopped
-    stop_grace_period: 30s
+    <<: *app-service
     environment:
-      APP_ENV: "${APP_ENV:-development}"
       SERVICE_ROLE: download-worker
       DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
       RABBITMQ_URL: "${RABBITMQ_DOWNLOAD_URL:-amqp://video-download:video-download-secret@rabbitmq:5672/video}"
@@ -101,10 +102,6 @@ services:
       RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
       RUNNER_WORKSPACE_ROOT: /work
       RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
-      ARTIFACT_TTL_SECONDS: "${ARTIFACT_TTL_SECONDS:-604800}"
-      ARTIFACT_GC_INTERVAL_SECONDS: "${ARTIFACT_GC_INTERVAL_SECONDS:-300}"
-      ARTIFACT_GC_BATCH_SIZE: "${ARTIFACT_GC_BATCH_SIZE:-50}"
-      ARTIFACT_DELETE_TIMEOUT_SECONDS: "${ARTIFACT_DELETE_TIMEOUT_SECONDS:-30}"
     networks: [db_net, queue_net, storage_net, runner_rpc_net, public_egress_net]
     container_name: worker-download
     command: ["python", "-m", "app.workers.download.main"]
@@ -117,11 +114,8 @@ services:
         condition: service_healthy
 
   worker-import:
-    image: video-server:local
-    restart: unless-stopped
-    stop_grace_period: 30s
+    <<: *app-service
     environment:
-      APP_ENV: "${APP_ENV:-development}"
       SERVICE_ROLE: import-worker
       DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
       RABBITMQ_URL: "${RABBITMQ_IMPORT_URL:-amqp://video-import:video-import-secret@rabbitmq:5672/video}"
@@ -130,24 +124,7 @@ services:
       MINIO_IMPORT_SECRET_KEY: "${MINIO_IMPORT_SECRET_KEY:-video-import-secret-change-me}"
       MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
       MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
-      MEDIA_IMPORT_MAX_BYTES: "${MEDIA_IMPORT_MAX_BYTES:-2147483648}"
-      DOCUMENT_IMPORT_MAX_BYTES: "${DOCUMENT_IMPORT_MAX_BYTES:-52428800}"
-      MAX_VIDEO_DURATION_SECONDS: "${MAX_VIDEO_DURATION_SECONDS:-7200}"
       IMPORT_WORKSPACE_ROOT: /work
-      IMPORT_FFPROBE_BINARY: "${IMPORT_FFPROBE_BINARY:-ffprobe}"
-      IMPORT_FFPROBE_TIMEOUT_SECONDS: "${IMPORT_FFPROBE_TIMEOUT_SECONDS:-30}"
-      IMPORT_MAX_PROBE_OUTPUT_BYTES: "${IMPORT_MAX_PROBE_OUTPUT_BYTES:-262144}"
-      IMPORT_MAX_VIDEO_WIDTH: "${IMPORT_MAX_VIDEO_WIDTH:-8192}"
-      IMPORT_MAX_VIDEO_HEIGHT: "${IMPORT_MAX_VIDEO_HEIGHT:-8192}"
-      IMPORT_MAX_MEDIA_STREAMS: "${IMPORT_MAX_MEDIA_STREAMS:-32}"
-      IMPORT_RECOVERY_INTERVAL_SECONDS: "${IMPORT_RECOVERY_INTERVAL_SECONDS:-5}"
-      IMPORT_RECOVERY_BATCH_SIZE: "${IMPORT_RECOVERY_BATCH_SIZE:-50}"
-      IMPORT_WORKSPACE_GRACE_SECONDS: "${IMPORT_WORKSPACE_GRACE_SECONDS:-1800}"
-      IMPORT_ARTIFACT_ORPHAN_GRACE_SECONDS: "${IMPORT_ARTIFACT_ORPHAN_GRACE_SECONDS:-3600}"
-      ARTIFACT_TTL_SECONDS: "${ARTIFACT_TTL_SECONDS:-604800}"
-      JOB_LEASE_SECONDS: "${JOB_LEASE_SECONDS:-60}"
-      HEARTBEAT_INTERVAL_SECONDS: "${HEARTBEAT_INTERVAL_SECONDS:-15}"
-      WORKER_PREFETCH: "${WORKER_PREFETCH:-2}"
     networks: [db_net, queue_net, storage_net]
     container_name: worker-import
     command: ["python", "-m", "app.workers.imports.main"]
@@ -159,11 +136,8 @@ services:
       - /work:rw,noexec,nosuid,size=3g,mode=0700,uid=10001,gid=10001
 
   provider-canary:
-    image: video-server:local
-    restart: unless-stopped
-    stop_grace_period: 30s
+    <<: *app-service
     environment:
-      APP_ENV: "${APP_ENV:-development}"
       SERVICE_ROLE: provider-canary
       DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
       MINIO_ENDPOINT: "${MINIO_ENDPOINT:-minio:9000}"
@@ -191,11 +165,8 @@ services:
         condition: service_healthy
 
   worker-report:
-    image: video-server:local
-    restart: unless-stopped
-    stop_grace_period: 30s
+    <<: *app-service
     environment:
-      APP_ENV: "${APP_ENV:-development}"
       SERVICE_ROLE: report-worker
       DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
       RABBITMQ_URL: "${RABBITMQ_REPORT_URL:-amqp://video-report:video-report-secret@rabbitmq:5672/video}"
@@ -204,19 +175,12 @@ services:
       MINIO_SECRET_KEY: "${MINIO_REPORT_SECRET_KEY:-video-report-secret-change-me}"
       MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
       MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
-      ANALYSIS_REPORT_TTL_SECONDS: "${ANALYSIS_REPORT_TTL_SECONDS:-604800}"
-      ANALYSIS_REPORT_GC_INTERVAL_SECONDS: "${ANALYSIS_REPORT_GC_INTERVAL_SECONDS:-300}"
-      ANALYSIS_REPORT_GC_BATCH_SIZE: "${ANALYSIS_REPORT_GC_BATCH_SIZE:-50}"
-      ANALYSIS_REPORT_ORPHAN_GRACE_SECONDS: "${ANALYSIS_REPORT_ORPHAN_GRACE_SECONDS:-3600}"
-      ARTIFACT_DELETE_TIMEOUT_SECONDS: "${ARTIFACT_DELETE_TIMEOUT_SECONDS:-30}"
     networks: [db_net, queue_net, storage_net, public_egress_net]
     container_name: worker-report
     command: ["python", "-m", "app.workers.report.main"]
 
   media-runner:
-    image: video-server:local
-    restart: unless-stopped
-    stop_grace_period: 30s
+    <<: *runner-service
     environment:
       RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
       RUNNER_EGRESS_PROXY: "${RUNNER_EGRESS_PROXY:-http://egress-proxy:3128}"
@@ -226,24 +190,8 @@ services:
       PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
     networks: [runner_rpc_net, runner_egress_net]
     container_name: media-runner
-    command:
-      [
-        "python",
-        "-m",
-        "uvicorn",
-        "app.runner.main:create_app",
-        "--factory",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "19100",
-        "--no-access-log",
-      ]
     volumes:
       - runner_work:/work
-    read_only: true
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m
     depends_on:
@@ -251,23 +199,8 @@ services:
         condition: service_completed_successfully
       egress-proxy:
         condition: service_healthy
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:19100/health/live', timeout=3)",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 10s
-
   youtube-operator-runner:
-    image: video-server:local
-    restart: unless-stopped
-    stop_grace_period: 30s
+    <<: *runner-service
     profiles: [youtube-operator]
     environment:
       RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
@@ -286,19 +219,6 @@ services:
       PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
     networks: [runner_rpc_net, runner_egress_net, youtube_pot_net]
     container_name: youtube-operator-runner
-    command:
-      [
-        "python",
-        "-m",
-        "uvicorn",
-        "app.runner.main:create_app",
-        "--factory",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "19100",
-        "--no-access-log",
-      ]
     volumes:
       - runner_work:/work
       - type: bind
@@ -307,9 +227,6 @@ services:
         read_only: true
         bind:
           create_host_path: false
-    read_only: true
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m
       - /run/provider-secrets-tmp:rw,noexec,nosuid,size=16m,mode=0700,uid=10001,gid=10001
@@ -320,23 +237,8 @@ services:
         condition: service_healthy
       youtube-pot-provider:
         condition: service_healthy
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:19100/health/live', timeout=3)",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 10s
-
   provider-operator-runner:
-    image: video-server:local
-    restart: unless-stopped
-    stop_grace_period: 30s
+    <<: *runner-service
     profiles: [provider-operator]
     environment:
       RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
@@ -353,19 +255,6 @@ services:
       PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
     networks: [runner_rpc_net, runner_egress_net]
     container_name: provider-operator-runner
-    command:
-      [
-        "python",
-        "-m",
-        "uvicorn",
-        "app.runner.main:create_app",
-        "--factory",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "19100",
-        "--no-access-log",
-      ]
     volumes:
       - runner_work:/work
       - type: bind
@@ -374,9 +263,6 @@ services:
         read_only: true
         bind:
           create_host_path: false
-    read_only: true
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m
       - /run/provider-secrets-tmp:rw,noexec,nosuid,size=16m,mode=0700,uid=10001,gid=10001
@@ -385,19 +271,6 @@ services:
         condition: service_completed_successfully
       egress-proxy:
         condition: service_healthy
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:19100/health/live', timeout=3)",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 10s
-
   youtube-pot-provider:
     image: brainicism/bgutil-ytdlp-pot-provider:1.3.1@sha256:1aaa43a0ca72dfca6a6d2129a0fb4a23465c25adb1b043f8aff829a20825646b
     profiles: [youtube-operator]
@@ -545,14 +418,6 @@ services:
       RABBITMQ_REPORT_PASS: "${RABBITMQ_REPORT_PASS:-video-report-secret}"
       RABBITMQ_DLQ_USER: "${RABBITMQ_DLQ_USER:-video-dlq}"
       RABBITMQ_DLQ_PASS: "${RABBITMQ_DLQ_PASS:-video-dlq-secret}"
-      RABBITMQ_QUEUE_TYPE: "${RABBITMQ_QUEUE_TYPE:-classic}"
-      RABBITMQ_MESSAGE_TTL_MS: "${RABBITMQ_MESSAGE_TTL_MS:-86400000}"
-      RABBITMQ_MAX_LENGTH: "${RABBITMQ_MAX_LENGTH:-10000}"
-      RABBITMQ_MAX_LENGTH_BYTES: "${RABBITMQ_MAX_LENGTH_BYTES:-268435456}"
-      RABBITMQ_DELIVERY_LIMIT: "${RABBITMQ_DELIVERY_LIMIT:-5}"
-      RABBITMQ_DLQ_MAX_LENGTH: "${RABBITMQ_DLQ_MAX_LENGTH:-10000}"
-      RABBITMQ_DLQ_MAX_LENGTH_BYTES: "${RABBITMQ_DLQ_MAX_LENGTH_BYTES:-268435456}"
-      RABBITMQ_MIGRATE_LEGACY_QUEUE_ARGUMENTS: "${RABBITMQ_MIGRATE_LEGACY_QUEUE_ARGUMENTS:-false}"
     container_name: rabbitmq-init
     networks: [queue_net]
     entrypoint: ["/bin/sh", "/config/init.sh"]

@@ -9,6 +9,8 @@
 
 仓库不维护额外的环境 Compose 文件。运行服务、可选基础设施和各自的初始化命令都在同一服务文件中；本机已有基础设施时不启用 `environment` Profile，需要完整隔离环境时才启用。需要复用本机 OAuth 的 AI Worker 明确排除在 Compose 外。生产文件只覆盖生产差异，不复制整套服务。
 
+Compose 只传递服务角色、连接地址、跨进程 Secret、容器固定路径和能力开关。上传预算、Artifact TTL/GC、租约、批量与解析器上限等安全默认值由 `backend/app/core/config.py` 统一维护；修改 `.env` 中未被 Compose 引用的同名运行参数不会改变容器行为。数据库只支持 PostgreSQL，不提供 SQLite 本地替代或过渡模式。
+
 ## 本地环境
 
 ```bash
@@ -110,6 +112,8 @@ docker compose --env-file .env \
   -f docker-compose.yml \
   ps
 ```
+
+执行后端数据库测试前，确保 `TEST_DATABASE_URL` 指向可清理 schema 的 PostgreSQL 数据库；默认使用 `postgresql+asyncpg://video:video@127.0.0.1:15432/video`。测试只创建并删除随机 `test_*` schema，不应指向权限受限或禁止建 schema 的生产账号。
 
 若下载解析失败，先区分 URL/格式、会话、请求证明、出口信誉、egress ACL、Runner、队列和对象存储。不要在普通解析请求中粘贴 Cookie、开放私网或透传 yt-dlp 参数；受控 Provider 会话的导入、轮换和撤销只按 005 及专用运维 runbook 执行。
 
