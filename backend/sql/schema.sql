@@ -818,7 +818,12 @@ CREATE TABLE IF NOT EXISTS analysis_report_versions (
     CONSTRAINT ck_analysis_report_versions_input_sha CHECK (length(input_sha256) = 64),
     CONSTRAINT ck_analysis_report_versions_content_sha CHECK (length(content_sha256) = 64),
     CONSTRAINT ck_analysis_report_versions_attempt CHECK (attempt >= 0),
-    CONSTRAINT ck_analysis_report_versions_json_object CHECK (jsonb_typeof(result_json) = 'object')
+    CONSTRAINT ck_analysis_report_versions_json_object CHECK (jsonb_typeof(result_json) = 'object'),
+    CONSTRAINT ck_analysis_report_versions_result_kind CHECK (
+        result_json ? 'kind' AND result_json ->> 'kind' IN (
+            'video_visual_analysis', 'screenplay_analysis', 'screenplay_rewrite'
+        )
+    )
 );
 
 CREATE TABLE IF NOT EXISTS analysis_report_artifacts (
@@ -852,6 +857,27 @@ ALTER TABLE analysis_report_versions
         status IN (
             'validated', 'publishing', 'available', 'publish_failed',
             'delete_pending', 'deleted'
+        )
+    );
+
+UPDATE analysis_report_versions AS report
+SET result_json = jsonb_set(
+    report.result_json,
+    '{kind}',
+    to_jsonb('video_visual_analysis'::text),
+    true
+)
+FROM analysis_jobs AS job
+WHERE report.job_id = job.id
+  AND job.result_contract = 'video-visual-analysis'
+  AND NOT report.result_json ? 'kind';
+
+ALTER TABLE analysis_report_versions
+    DROP CONSTRAINT IF EXISTS ck_analysis_report_versions_result_kind;
+ALTER TABLE analysis_report_versions
+    ADD CONSTRAINT ck_analysis_report_versions_result_kind CHECK (
+        result_json ? 'kind' AND result_json ->> 'kind' IN (
+            'video_visual_analysis', 'screenplay_analysis', 'screenplay_rewrite'
         )
     );
 ALTER TABLE analysis_report_artifacts

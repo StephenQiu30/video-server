@@ -22,11 +22,11 @@ from app.application.auth import CurrentUser, UserRole
 from app.core.config import Settings
 from app.domain.analysis import (
     AnalysisMedia,
-    AnalysisResult,
     AnalysisStatus,
     EvidenceSummary,
     ProductionAdvice,
     Shot,
+    VideoAnalysisResult,
     VisualAsset,
 )
 from app.main import create_app
@@ -35,7 +35,7 @@ from fastapi.testclient import TestClient
 NOW = datetime(2026, 8, 6, 10, tzinfo=UTC)
 DOWNLOAD_ID = UUID("44444444-4444-4444-8444-444444444444")
 ANALYSIS_ID = UUID("55555555-5555-4555-8555-555555555555")
-RESULT = AnalysisResult(
+RESULT = VideoAnalysisResult(
     language="zh-CN",
     title="可验证视觉分析",
     summary=EvidenceSummary(text="摘要", evidence_shot_ids=("shot-1",)),
@@ -101,7 +101,7 @@ class StubUseCase:
 def analysis_view(
     status: AnalysisStatus = AnalysisStatus.QUEUED,
     *,
-    result: AnalysisResult | None = None,
+    result: VideoAnalysisResult | None = None,
 ) -> AnalysisJobView:
     report = (
         AnalysisReportSnapshot(

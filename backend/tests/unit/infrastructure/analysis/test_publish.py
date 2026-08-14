@@ -109,7 +109,9 @@ async def test_result_and_success_publish_atomically_without_transcript(
             "highlights",
             "assets",
             "production_advice",
+            "kind",
         }
+        assert row.result_json["kind"] == "video_visual_analysis"
         serialized = json.dumps(row.result_json, ensure_ascii=False).lower()
         assert "transcript" not in serialized
         assert "provider_response" not in serialized

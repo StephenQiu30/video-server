@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from app.domain.analysis.enums import AnalysisValidationCode
+from app.domain.analysis.enums import AnalysisResultKind, AnalysisValidationCode
 from app.domain.analysis.errors import AnalysisValidationError
 from app.domain.analysis.result_items import (
     Highlight,
@@ -92,7 +92,7 @@ class ProductionAdvice:
 
 
 @dataclass(frozen=True, slots=True)
-class AnalysisResult:
+class VideoAnalysisResult:
     language: str
     title: str
     summary: EvidenceSummary
@@ -102,6 +102,9 @@ class AnalysisResult:
     highlights: tuple[Highlight, ...]
     assets: tuple[VisualAsset, ...]
     production_advice: ProductionAdvice
+    kind: AnalysisResultKind = field(
+        init=False, default=AnalysisResultKind.VIDEO_VISUAL_ANALYSIS
+    )
 
     def __post_init__(self) -> None:
         object.__setattr__(

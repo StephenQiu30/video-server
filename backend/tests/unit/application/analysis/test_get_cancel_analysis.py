@@ -11,11 +11,11 @@ from app.application.analysis import (
 )
 from app.domain.analysis import (
     AnalysisMedia,
-    AnalysisResult,
     AnalysisStatus,
     EvidenceSummary,
     ProductionAdvice,
     Shot,
+    VideoAnalysisResult,
 )
 from tests.unit.application.analysis.fakes import FakeRepository
 from tests.unit.application.analysis.test_create_analysis import (
@@ -26,7 +26,7 @@ from tests.unit.application.analysis.test_create_analysis import (
     creator,
 )
 
-RESULT = AnalysisResult(
+RESULT = VideoAnalysisResult(
     language="zh-CN",
     title="可验证视觉分析",
     summary=EvidenceSummary(text="摘要", evidence_shot_ids=("shot-1",)),

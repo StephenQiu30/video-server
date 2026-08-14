@@ -4,7 +4,7 @@ from typing import Protocol
 
 from app.domain.analysis.enums import AnalysisValidationCode
 from app.domain.analysis.errors import AnalysisValidationError
-from app.domain.analysis.result_models import AnalysisLimits, AnalysisResult
+from app.domain.analysis.result_models import AnalysisLimits, VideoAnalysisResult
 
 TRANSITIONS = {"cut", "fade", "dissolve", "wipe", "none", "unknown"}
 SHOT_SIZES = {
@@ -31,7 +31,7 @@ ASSET_TYPES = {"person", "location", "object", "product", "logo", "on_screen_tex
 
 
 def validate_analysis_result(
-    result: AnalysisResult,
+    result: VideoAnalysisResult,
     *,
     limits: AnalysisLimits | None = None,
 ) -> None:

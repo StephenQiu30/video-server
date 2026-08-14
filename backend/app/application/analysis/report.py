@@ -3,12 +3,20 @@ from __future__ import annotations
 import html
 import re
 
-from app.domain.analysis import AnalysisResult
+from app.application.analysis.screenplay_report import render_screenplay_report_markdown
+from app.application.analysis.video_report_labels import video_report_labels as _labels
+from app.domain.analysis import AnalysisResult, VideoAnalysisResult
 
 _MARKDOWN_SPECIAL = re.compile(r"([\\`*_{}\[\]()#+\-.!|])")
 
 
 def render_analysis_report_markdown(result: AnalysisResult) -> str:
+    if not isinstance(result, VideoAnalysisResult):
+        return render_screenplay_report_markdown(result)
+    return _render_video_analysis_report_markdown(result)
+
+
+def _render_video_analysis_report_markdown(result: VideoAnalysisResult) -> str:
     labels = _labels(result.language)
     lines = [
         f"# {_markdown_text(result.title)} · {labels['report_title']}",
@@ -142,101 +150,3 @@ def _format_size(size_bytes: int) -> str:
             return f"{value:.0f} {unit}" if unit == "B" else f"{value:.1f} {unit}"
         value /= 1_024
     raise AssertionError("unreachable")
-
-
-def _labels(language: str) -> dict[str, str]:
-    if language.lower().startswith("zh"):
-        return {
-            "report_title": "逐镜头导演拉片分析报告",
-            "report_intro": (
-                "本报告按照影视导演拉片方式进行整理，采用实际剪辑切点（Cut）进行"
-                "镜头拆解，重点分析镜头时长、画面信息、景别、摄影语言、叙事作用、"
-                "情绪价值及高光镜头。"
-            ),
-            "basic_info": "一、基础信息",
-            "analysis_method": "分析方式",
-            "cut_analysis": "逐镜头（Cut 级）分析",
-            "shot_statistics": "镜头统计",
-            "cut_statistics": "根据画面切换进行拆分，不按照剧情段落合并。",
-            "director_summary": "导演综述",
-            "shot_number": "镜头编号",
-            "timecode": "时间码",
-            "shot_duration": "时长",
-            "picture_content": "画面内容",
-            "camera_language": "景别 / 摄影语言",
-            "narrative": "叙事作用",
-            "highlight_level": "高光等级",
-            "production_advice": "三、AI 制作建议",
-            "priority_shots": "重点还原镜头",
-            "recommended_extensions": "建议扩展",
-            "subtitle": "AI 视频视觉分析报告",
-            "overview": "报告概览",
-            "language": "输出语言",
-            "duration": "视频时长",
-            "format": "文件格式",
-            "size": "文件大小",
-            "shots": "分镜数量",
-            "summary": "视觉摘要",
-            "shot_list": "分镜分析",
-            "shot_size": "景别",
-            "camera": "镜头运动",
-            "transition": "转场",
-            "tags": "视觉标签",
-            "none": "无",
-            "highlights": "二、高光镜头分析",
-            "no_highlights": "未识别出独立视觉高光。",
-            "time": "时间范围",
-            "reason": "入选理由",
-            "assets": "四、视觉资产目录",
-            "no_assets": "未识别出可复用的视觉资产。",
-            "type": "类型",
-            "label": "名称",
-            "first_seen": "首次出现",
-        }
-    return {
-        "report_title": "Shot-by-shot director breakdown",
-        "report_intro": (
-            "This report uses actual editing cuts to examine shot duration, visual "
-            "content, framing, camera language, narrative function, emotional value, "
-            "and highlight shots."
-        ),
-        "basic_info": "1. Basic information",
-        "analysis_method": "Analysis method",
-        "cut_analysis": "Shot-by-shot cut analysis",
-        "shot_statistics": "Shot segmentation",
-        "cut_statistics": "Split on visible cuts rather than merged story beats.",
-        "director_summary": "Director summary",
-        "shot_number": "Shot",
-        "timecode": "Timecode",
-        "shot_duration": "Duration",
-        "picture_content": "Visual content",
-        "camera_language": "Framing / camera language",
-        "narrative": "Narrative function",
-        "highlight_level": "Highlight level",
-        "production_advice": "3. AI production advice",
-        "priority_shots": "Priority shots",
-        "recommended_extensions": "Recommended extensions",
-        "subtitle": "AI visual analysis report",
-        "overview": "Report overview",
-        "language": "Output language",
-        "duration": "Duration",
-        "format": "Format",
-        "size": "File size",
-        "shots": "Shot count",
-        "summary": "Visual summary",
-        "shot_list": "Shot analysis",
-        "shot_size": "Shot size",
-        "camera": "Camera motion",
-        "transition": "Transition",
-        "tags": "Visual tags",
-        "none": "None",
-        "highlights": "2. Highlight shot analysis",
-        "no_highlights": "No distinct visual highlights were identified.",
-        "time": "Time range",
-        "reason": "Selection reason",
-        "assets": "4. Visual asset catalog",
-        "no_assets": "No reusable visual assets were identified.",
-        "type": "Type",
-        "label": "Label",
-        "first_seen": "First seen",
-    }

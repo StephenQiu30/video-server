@@ -9,6 +9,7 @@ from app.application.provider_analysis_canary import (
     AnalysisCanaryEvidence,
     AnalysisCanaryObject,
 )
+from app.domain.analysis import VideoAnalysisResult
 from app.domain.providers import ProviderAccessContextRef
 from app.infrastructure.analysis_repository_serialization import (
     analysis_result_from_document,
@@ -93,7 +94,8 @@ def validated_evidence(
     except (TypeError, ValueError):
         return None
     if (
-        result.media.duration_ms != artifact.duration_ms
+        not isinstance(result, VideoAnalysisResult)
+        or result.media.duration_ms != artifact.duration_ms
         or result.media.size_bytes != artifact.size_bytes
         or result.media.container != artifact.container
     ):

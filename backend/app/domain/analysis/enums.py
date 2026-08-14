@@ -23,6 +23,12 @@ class AnalysisResultContract(StrEnum):
     SCREENPLAY_REWRITE = "screenplay-rewrite"
 
 
+class AnalysisResultKind(StrEnum):
+    VIDEO_VISUAL_ANALYSIS = "video_visual_analysis"
+    SCREENPLAY_ANALYSIS = "screenplay_analysis"
+    SCREENPLAY_REWRITE = "screenplay_rewrite"
+
+
 class AnalysisStage(StrEnum):
     PREPARING = "preparing"
     ANALYZING = "analyzing"

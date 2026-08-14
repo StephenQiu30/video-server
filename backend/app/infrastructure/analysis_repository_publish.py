@@ -14,6 +14,7 @@ from app.application.analysis import (
     PersistenceNotFound,
     render_analysis_report_markdown,
 )
+from app.domain.analysis import analysis_result_contract, analysis_result_language
 from app.infrastructure.analysis_repository_mapping import analysis_job_snapshot
 from app.infrastructure.analysis_repository_recovery import AnalysisRecoveryRepository
 from app.infrastructure.analysis_repository_serialization import (
@@ -55,7 +56,10 @@ class AnalysisPublishRepository(AnalysisRecoveryRepository):
                 or row.version != command.expected_version
             ):
                 raise PersistenceConflict("analysis publish lease or version lost")
-            if row.output_language != command.result.language:
+            if (
+                row.output_language != analysis_result_language(command.result)
+                or row.result_contract != analysis_result_contract(command.result).value
+            ):
                 raise PersistenceConflict("analysis result contract differs from job")
             report_id = uuid4()
             markdown = render_analysis_report_markdown(command.result)
@@ -66,7 +70,7 @@ class AnalysisPublishRepository(AnalysisRecoveryRepository):
                     job_id=row.id,
                     run_id=run.id,
                     input_sha256=row.input_sha256,
-                    language=row.output_language,
+                    language=analysis_result_language(command.result),
                     provider=command.provider,
                     model=command.model,
                     cli_version=command.cli_version,

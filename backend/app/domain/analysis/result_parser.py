@@ -14,8 +14,8 @@ from app.domain.analysis.result_items import Highlight, Shot, VisualAsset
 from app.domain.analysis.result_models import (
     AnalysisLimits,
     AnalysisMedia,
-    AnalysisResult,
     EvidenceSummary,
+    VideoAnalysisResult,
 )
 from app.domain.analysis.result_validation import validate_analysis_result
 
@@ -26,7 +26,7 @@ def parse_analysis_result(
     *,
     expected_language: str,
     limits: AnalysisLimits | None = None,
-) -> AnalysisResult:
+) -> VideoAnalysisResult:
     context = ParseContext(limits or AnalysisLimits())
     root = context.mapping(
         payload,
@@ -111,7 +111,7 @@ def parse_analysis_result(
         )
         for item in highlight_drafts
     )
-    result = AnalysisResult(
+    result = VideoAnalysisResult(
         language=language,
         title=context.text(root["title"], "title"),
         summary=_summary(context, root["summary"]),
