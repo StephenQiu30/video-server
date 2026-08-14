@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from contextlib import suppress
 from functools import partial
 
@@ -8,6 +9,7 @@ from app.application.analysis import AnalysisJobSnapshot
 from app.domain.analysis import (
     AnalysisResultContract,
     AnalysisStage,
+    AnalysisValidationError,
     ScreenplayRewriteChunkOutput,
     ScreenplayRewriteGlossary,
     parse_screenplay_glossary,
@@ -26,6 +28,7 @@ from .ports import (
 )
 from .screenplay_rewrite_models import (
     ScreenplayGlossaryRequest,
+    ScreenplayRewriteChunkRequest,
 )
 from .screenplay_rewrite_plan import (
     ScreenplayRewriteSourceChunk,
@@ -51,6 +54,9 @@ class ScreenplayRewriteExecutor:
         max_chunks: int,
         context_characters: int,
         max_output_characters: int,
+        chunk_call_attempts: int,
+        chunk_retry_delay_seconds: float,
+        sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
     ) -> None:
         limits = (
             max_glossary_characters,
@@ -65,6 +71,12 @@ class ScreenplayRewriteExecutor:
                 for value in limits
             )
             or max_chunks > 512
+            or isinstance(chunk_call_attempts, bool)
+            or not isinstance(chunk_call_attempts, int)
+            or not 1 <= chunk_call_attempts <= 5
+            or isinstance(chunk_retry_delay_seconds, bool)
+            or not isinstance(chunk_retry_delay_seconds, (int, float))
+            or chunk_retry_delay_seconds < 0
         ):
             raise ValueError("screenplay rewrite limits must be positive")
         self._repository = repository
@@ -76,6 +88,9 @@ class ScreenplayRewriteExecutor:
         self._max_chunks = max_chunks
         self._context = context_characters
         self._output_limit = max_output_characters
+        self._chunk_call_attempts = chunk_call_attempts
+        self._chunk_retry_delay = float(chunk_retry_delay_seconds)
+        self._sleep = sleep
 
     async def execute(
         self, job: AnalysisJobSnapshot, monitor: AnalysisLeaseMonitor
@@ -181,20 +196,52 @@ class ScreenplayRewriteExecutor:
             request = build_chunk_request(
                 job, local, text, chunk, glossary, self._context
             )
-            payload = await monitor.run(
-                partial(selection.analyzer.rewrite_screenplay_chunk, request),
+            output = await monitor.run(
+                partial(self._rewrite_chunk_with_recovery, selection, request),
                 stage=AnalysisStage.ANALYZING,
                 progress=20 + ((index + 1) * 60 // len(plan)),
-            )
-            output = parse_screenplay_rewrite_chunk(
-                payload,
-                expected_scene_id=chunk.source_scene_id,
-                expected_part_no=chunk.part_no,
-                expected_source_sha256=chunk.source_sha256,
-                expected_target_language=job.output_language,
             )
             total += len(output.chunk.rewritten_text)
             if total > self._output_limit:
                 raise AnalysisArtifactError("analysis_resource_limit")
             outputs.append(output)
         return tuple(outputs)
+
+    async def _rewrite_chunk_with_recovery(
+        self,
+        selection: ScreenplayRewriteAnalyzerSelection,
+        request: ScreenplayRewriteChunkRequest,
+    ) -> ScreenplayRewriteChunkOutput:
+        for call_attempt in range(1, self._chunk_call_attempts + 1):
+            try:
+                payload = await selection.analyzer.rewrite_screenplay_chunk(request)
+                return parse_screenplay_rewrite_chunk(
+                    payload,
+                    expected_scene_id=request.source_scene_id,
+                    expected_part_no=request.part_no,
+                    expected_source_sha256=request.source_sha256,
+                    expected_target_language=request.target_language,
+                )
+            except Exception as error:
+                if (
+                    call_attempt >= self._chunk_call_attempts
+                    or not _recoverable_chunk_error(error)
+                ):
+                    raise
+                await self._sleep(self._chunk_retry_delay * (2 ** (call_attempt - 1)))
+        raise RuntimeError("unreachable screenplay chunk recovery state")
+
+
+_RECOVERABLE_CHUNK_CODES = {
+    "analysis_provider_rate_limited",
+    "analysis_cli_timeout",
+    "analysis_cli_failed",
+    "invalid_model_output",
+}
+
+
+def _recoverable_chunk_error(error: Exception) -> bool:
+    return (
+        isinstance(error, AnalysisValidationError)
+        or getattr(error, "code", None) in _RECOVERABLE_CHUNK_CODES
+    )

@@ -12,6 +12,7 @@ from app.application.analysis_execution import (
     ScreenplayRewriteChunkRequest,
     ScreenplayRewriteExecutor,
 )
+from app.application.analysis_execution.errors import AnalysisExecutionError
 
 from .fakes import NOW, FakeLoader, settings
 from .screenplay_fakes import (
@@ -29,8 +30,11 @@ class FakeRewriteAnalyzer:
         self.glossary_requests: list[ScreenplayGlossaryRequest] = []
         self.chunk_requests: list[ScreenplayRewriteChunkRequest] = []
         self.invalid_call: int | None = None
+        self.invalid_calls: set[int] = set()
+        self.error_calls: dict[int, str] = {}
         self.omit_glossary_target = False
         self.rewritten_text = "Rewritten scene part.\n"
+        self.retry_delays: list[float] = []
 
     async def build_screenplay_glossary(
         self, request: ScreenplayGlossaryRequest
@@ -49,8 +53,11 @@ class FakeRewriteAnalyzer:
         self, request: ScreenplayRewriteChunkRequest
     ) -> object:
         self.chunk_requests.append(request)
+        call_no = len(self.chunk_requests)
+        if code := self.error_calls.get(call_no):
+            raise AnalysisExecutionError(code)
         scene_id = request.source_scene_id
-        if self.invalid_call == len(self.chunk_requests):
+        if self.invalid_call == call_no or call_no in self.invalid_calls:
             scene_id = "scene-invented"
         prefix = ""
         if not self.omit_glossary_target:
@@ -106,6 +113,10 @@ def build_rewrite_execution(
     repository = ScreenplayRepository(job, source)
     loader = FakeScreenplayLoader(root / "screenplay")
     analyzer = FakeRewriteAnalyzer()
+
+    async def record_retry_delay(delay: float) -> None:
+        analyzer.retry_delays.append(delay)
+
     resolver = FakeRewriteResolver(analyzer)
     rewrite = ScreenplayRewriteExecutor(
         repository=repository,
@@ -117,6 +128,9 @@ def build_rewrite_execution(
         max_chunks=max_chunks,
         context_characters=10,
         max_output_characters=max_output,
+        chunk_call_attempts=2,
+        chunk_retry_delay_seconds=0,
+        sleep=record_retry_delay,
     )
     analysis = ScreenplayAnalysisExecutor(
         repository=repository,

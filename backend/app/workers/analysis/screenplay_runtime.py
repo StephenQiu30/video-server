@@ -70,6 +70,10 @@ def build_screenplay_components(
         max_output_characters=(
             settings.analysis_max_screenplay_rewrite_output_characters
         ),
+        chunk_call_attempts=settings.analysis_screenplay_rewrite_chunk_call_attempts,
+        chunk_retry_delay_seconds=(
+            settings.analysis_screenplay_rewrite_chunk_retry_delay_seconds
+        ),
     )
     return ScreenplayWorkerComponents(
         loader,

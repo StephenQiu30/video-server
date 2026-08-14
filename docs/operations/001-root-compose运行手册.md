@@ -47,7 +47,7 @@ uv run python -m app.workers.analysis.main
 
 Worker preflight 通过后才连接 RabbitMQ；不要同时启动另一个分析消费者。本地 API 默认开启 `ANALYSIS_ENABLED`。
 
-`SCREENPLAY_ANALYSIS_ENABLED` 独立控制剧本分析/改写任务，当前默认关闭。受限执行链只支持 Claude CLI：`screenplay-analysis` 默认单次最多 120,000 字符和 120 个源场景；`screenplay-rewrite` 默认先对最多 120,000 字符生成 glossary，再按 8,000 字符分为最多 128 块，每块携带前后各 1,000 字符上下文，全部改写正文合计最多 400,000 字符。对应配置为 `ANALYSIS_SCREENPLAY_SINGLE_CALL_CHARACTERS`、`ANALYSIS_SCREENPLAY_REWRITE_CHUNK_CHARACTERS`、`ANALYSIS_MAX_SCREENPLAY_REWRITE_CHUNKS`、`ANALYSIS_SCREENPLAY_REWRITE_CONTEXT_CHARACTERS` 和 `ANALYSIS_MAX_SCREENPLAY_REWRITE_OUTPUT_CHARACTERS`。开启后 Worker 会在连接 RabbitMQ 前同时预检分析和改写能力；Codex 或任一能力缺失会 fail closed。只有中文/英文真实 Provider E2E、报告和浏览器流程通过后才可在正式环境设为 `true`；单独开启 `ANALYSIS_ENABLED` 只代表视频分析可创建。
+`SCREENPLAY_ANALYSIS_ENABLED` 独立控制剧本分析/改写任务，当前默认关闭。受限执行链只支持 Claude CLI：`screenplay-analysis` 默认单次最多 120,000 字符和 120 个源场景；`screenplay-rewrite` 默认先对最多 120,000 字符生成 glossary，再按 8,000 字符分为最多 128 块，每块携带前后各 1,000 字符上下文，全部改写正文合计最多 400,000 字符。当前块遇到可恢复失败时默认在同一 run/attempt 内最多调用 2 次、首次等待 1 秒，已验证块不会重复调用，新的 attempt 不复用旧输出。对应配置为 `ANALYSIS_SCREENPLAY_SINGLE_CALL_CHARACTERS`、`ANALYSIS_SCREENPLAY_REWRITE_CHUNK_CHARACTERS`、`ANALYSIS_MAX_SCREENPLAY_REWRITE_CHUNKS`、`ANALYSIS_SCREENPLAY_REWRITE_CONTEXT_CHARACTERS`、`ANALYSIS_MAX_SCREENPLAY_REWRITE_OUTPUT_CHARACTERS`、`ANALYSIS_SCREENPLAY_REWRITE_CHUNK_CALL_ATTEMPTS` 和 `ANALYSIS_SCREENPLAY_REWRITE_CHUNK_RETRY_DELAY_SECONDS`。开启后 Worker 会在连接 RabbitMQ 前同时预检分析和改写能力；Codex 或任一能力缺失会 fail closed。只有中文/英文真实 Provider E2E、报告和浏览器流程通过后才可在正式环境设为 `true`；单独开启 `ANALYSIS_ENABLED` 只代表视频分析可创建。
 
 所有服务都显式声明 `container_name`；公开主服务使用 `video-server`，基础服务使用 `postgres`、`rabbitmq`、`minio` 等简单名称，不会出现 `xxx-1` 副本后缀。环境配置读取被 Git 忽略的 `.env`，首次启动前从 `.env.example` 复制。
 

@@ -230,6 +230,10 @@ class Settings(BaseSettings):
     analysis_max_screenplay_rewrite_output_characters: int = Field(
         default=400_000, ge=8_000, le=2_000_000
     )
+    analysis_screenplay_rewrite_chunk_call_attempts: int = Field(default=2, ge=1, le=5)
+    analysis_screenplay_rewrite_chunk_retry_delay_seconds: float = Field(
+        default=1.0, ge=0.1, le=30
+    )
     analysis_max_frames: int = Field(default=256, ge=1, le=1024)
     analysis_max_image_bytes: int = Field(default=20 * 1024**2, ge=1024)
     analysis_workspace_poll_seconds: float = Field(default=0.25, ge=0.05, le=5)

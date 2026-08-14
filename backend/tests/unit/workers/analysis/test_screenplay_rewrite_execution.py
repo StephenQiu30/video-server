@@ -44,7 +44,7 @@ async def test_rewrite_publishes_complete_ordered_source_bound_result(
 
 
 @pytest.mark.asyncio
-async def test_rewrite_identity_mismatch_retries_without_partial_publish(
+async def test_rewrite_recovers_current_invalid_chunk_without_repeating_verified_chunks(
     tmp_path: Path,
 ) -> None:
     execution, repository, loader, analyzer, _ = build_rewrite_execution(tmp_path)
@@ -53,11 +53,75 @@ async def test_rewrite_identity_mismatch_retries_without_partial_publish(
 
     await execution.execute(job.id, job.run_id, job.run_no, job.version)
 
+    result = repository.published[0]
+    assert isinstance(result, ScreenplayRewriteResult)
+    assert repository.failures == []
+    assert len(analyzer.chunk_requests) == len(result.chunks) + 1
+    assert analyzer.chunk_requests[1] == analyzer.chunk_requests[2]
+    assert analyzer.chunk_requests[0] != analyzer.chunk_requests[1]
+    assert analyzer.retry_delays == [0.0]
+    assert loader.cleaned is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "error_code",
+    [
+        "analysis_provider_rate_limited",
+        "analysis_cli_timeout",
+        "analysis_cli_failed",
+        "invalid_model_output",
+    ],
+)
+async def test_rewrite_recovers_current_transient_chunk_in_same_attempt(
+    tmp_path: Path, error_code: str
+) -> None:
+    execution, repository, _, analyzer, _ = build_rewrite_execution(tmp_path)
+    analyzer.error_calls[2] = error_code
+    job = repository.job
+
+    await execution.execute(job.id, job.run_id, job.run_no, job.version)
+
+    result = repository.published[0]
+    assert isinstance(result, ScreenplayRewriteResult)
+    assert len(analyzer.chunk_requests) == len(result.chunks) + 1
+    assert analyzer.chunk_requests[1] == analyzer.chunk_requests[2]
+    assert analyzer.retry_delays == [0.0]
+
+
+@pytest.mark.asyncio
+async def test_rewrite_exhausts_current_chunk_without_partial_publish(
+    tmp_path: Path,
+) -> None:
+    execution, repository, loader, analyzer, _ = build_rewrite_execution(tmp_path)
+    analyzer.invalid_calls = {2, 3}
+    job = repository.job
+
+    await execution.execute(job.id, job.run_id, job.run_no, job.version)
+
     assert repository.published == []
     assert repository.failures[0]["error_code"] == "invalid_model_output"
     assert repository.failures[0]["retryable"] is True
-    assert len(analyzer.chunk_requests) == 2
+    assert len(analyzer.chunk_requests) == 3
+    assert analyzer.chunk_requests[1] == analyzer.chunk_requests[2]
+    assert analyzer.retry_delays == [0.0]
     assert loader.cleaned is True
+
+
+@pytest.mark.asyncio
+async def test_rewrite_does_not_retry_nonrecoverable_chunk_failure(
+    tmp_path: Path,
+) -> None:
+    execution, repository, _, analyzer, _ = build_rewrite_execution(tmp_path)
+    analyzer.error_calls[1] = "analysis_resource_limit"
+    job = repository.job
+
+    await execution.execute(job.id, job.run_id, job.run_no, job.version)
+
+    assert repository.published == []
+    assert repository.failures[0]["error_code"] == "analysis_resource_limit"
+    assert len(analyzer.chunk_requests) == 1
+    assert analyzer.retry_delays == []
 
 
 @pytest.mark.asyncio
