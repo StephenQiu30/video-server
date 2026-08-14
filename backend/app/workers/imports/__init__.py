@@ -7,6 +7,7 @@ from .message import (
     ImportVerifyRequested,
     parse_import_verify_requested,
 )
+from .pdf import PdfScreenplayVerifier, PdfVerificationSettings
 from .screenplay import ScreenplayImportVerifier
 from .text import (
     TextScreenplayVerifier,
@@ -29,6 +30,8 @@ __all__ = [
     "ImportMessageError",
     "ImportHandler",
     "ImportVerifyRequested",
+    "PdfScreenplayVerifier",
+    "PdfVerificationSettings",
     "RabbitMqImportConsumer",
     "ScreenplayImportVerifier",
     "TextScreenplayVerifier",

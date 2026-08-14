@@ -1,0 +1,41 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "video-server-document-import-runtime",
+      "version": "phase-d"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "python-docx",
+      "version": "1.2.0",
+      "purl": "pkg:pypi/python-docx@1.2.0",
+      "licenses": [{ "license": { "id": "MIT" } }]
+    },
+    {
+      "type": "library",
+      "name": "markdown-it-py",
+      "version": "4.2.0",
+      "purl": "pkg:pypi/markdown-it-py@4.2.0",
+      "licenses": [{ "license": { "id": "MIT" } }]
+    },
+    {
+      "type": "library",
+      "name": "pypdf",
+      "version": "6.16.0",
+      "purl": "pkg:pypi/pypdf@6.16.0",
+      "licenses": [{ "license": { "id": "BSD-3-Clause" } }],
+      "properties": [
+        {
+          "name": "video-server:git-commit",
+          "value": "2b60c99973df8d7f959cd46658604d881be3de3a"
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 from app.core.config import Settings
 
 from .docx import DocxScreenplayVerifier, DocxVerificationSettings
+from .pdf import PdfScreenplayVerifier, PdfVerificationSettings
 from .screenplay import ScreenplayImportVerifier
 from .text import TextScreenplayVerifier, TextVerificationSettings
 
@@ -14,5 +15,9 @@ def build_screenplay_verifier(settings: Settings) -> ScreenplayImportVerifier:
         DocxScreenplayVerifier(
             settings.import_workspace_root,
             DocxVerificationSettings(text=text_settings),
+        ),
+        PdfScreenplayVerifier(
+            settings.import_workspace_root,
+            PdfVerificationSettings(text=text_settings),
         ),
     )

@@ -92,7 +92,7 @@
 | 格式 | 首期方案 | 结论 |
 | --- | --- | --- |
 | DOCX | 复用 `python-docx`，只读取正文段落和允许的表格文本 | 纳入首期 |
-| PDF | 使用 BSD-3-Clause 的 [pypdf](https://github.com/py-pdf/pypdf) 提取文本 | 只接收未加密、可提取文字的 PDF；不做 OCR |
+| PDF | 固定 BSD-3-Clause 的 [pypdf 6.16.0](https://pypi.org/project/pypdf/)，对应上游 commit `2b60c99973df8d7f959cd46658604d881be3de3a` | 只接收未加密、无附件/活动内容且可提取文字的 PDF；不做 OCR；按官方建议在提取前检查解压后的 content stream 大小 |
 | TXT/Markdown | 严格 UTF-8/受控编码检测、统一换行 | 纳入首期 |
 | Fountain | 文本格式，按场景标题、角色、对白和动作行解析 | 纳入首期 |
 | FDX | XML 格式；[screenplay-tools](https://github.com/wildwinter/screenplay-tools) 提供 MIT 参考实现 | 延后到后续阶段，先完成安全 XML 和中英文 fixture 验证 |
