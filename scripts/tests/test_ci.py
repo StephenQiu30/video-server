@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 
-from scripts.ci import unpinned_actions
+from scripts import ci
 
 
 class WorkflowActionPinTests(unittest.TestCase):
@@ -12,7 +13,7 @@ class WorkflowActionPinTests(unittest.TestCase):
         - uses: ./actions/project-check
         - uses: docker://alpine@sha256:fixed
         """
-        self.assertEqual(unpinned_actions(contents), [])
+        self.assertEqual(ci.unpinned_actions(contents), [])
 
     def test_rejects_tags_branches_and_missing_revisions(self) -> None:
         contents = """
@@ -21,8 +22,25 @@ class WorkflowActionPinTests(unittest.TestCase):
         - uses: owner/action
         """
         self.assertEqual(
-            unpinned_actions(contents),
+            ci.unpinned_actions(contents),
             ["actions/checkout@v7", "owner/action@main", "owner/action"],
+        )
+
+
+class RepositoryCommandTests(unittest.TestCase):
+    @patch("scripts.ci.run")
+    def test_script_tests_use_current_python_interpreter(self, run) -> None:
+        ci.repository()
+
+        run.assert_any_call(
+            "提交规范测试",
+            ci.sys.executable,
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "scripts/tests",
+            "-v",
         )
 
 

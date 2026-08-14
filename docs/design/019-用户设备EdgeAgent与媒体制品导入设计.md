@@ -2,7 +2,7 @@
 
 - 状态：设计完成，代码未实施
 - 日期：2026-08-12
-- 前置设计：`docs/design/002-安全视频下载闭环设计.md`、`docs/design/005-多平台Provider策略设计.md`、`docs/design/016-中国短视频平台支持设计.md`
+- 前置设计：`docs/archive/002/002-安全视频下载闭环设计.md`、`docs/design/005-多平台Provider策略设计.md`、`docs/archive/016/016-中国短视频平台支持设计.md`
 - 前置调研：`docs/research/009-红果短剧Provider接入调研.md`、`docs/research/010-微信视频号Provider接入调研.md`
 
 ## 1. 决策摘要

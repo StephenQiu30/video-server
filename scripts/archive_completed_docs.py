@@ -25,6 +25,7 @@ REQUIRED_STATUSES = {
     "plans": {"Complete", "Completed"},
     "acceptance": {"Accepted"},
 }
+SPECIAL_ARCHIVE_NUMBERS = {"017"}
 
 
 class DocumentArchiveError(RuntimeError):
@@ -44,6 +45,8 @@ def discover_ready_sets(repo_root: Path) -> tuple[DocumentSet, ...]:
     index = (docs_root / "README.md").read_text(encoding="utf-8")
     ready: list[DocumentSet] = []
     for match in ROW_PATTERN.finditer(index):
+        if match.group("number") in SPECIAL_ARCHIVE_NUMBERS:
+            continue
         links = tuple((folder, match.group(folder)) for folder in REQUIRED_STATUSES)
         archived = [path.startswith("archive/") for _, path in links]
         if any(archived):

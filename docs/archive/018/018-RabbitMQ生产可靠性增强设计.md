@@ -1,7 +1,10 @@
 # 018 RabbitMQ 生产可靠性增强设计
 
-- 状态：Implemented
+- 状态：Accepted
 - 日期：2026-08-11
+- 关联 PRD：`docs/archive/018/018-RabbitMQ生产可靠性增强需求.md`
+- 关联 Plan：`docs/archive/018/018-RabbitMQ生产可靠性增强计划.md`
+- 关联 Acceptance：`docs/archive/018/018-RabbitMQ生产可靠性增强验收.md`
 - 关联设计：`docs/archive/015/015-RabbitMQ异步分析设计.md`
 - 调研：`docs/research/006-RabbitMQ可靠投递GitHub调研.md`
 

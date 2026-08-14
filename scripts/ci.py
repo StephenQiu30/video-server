@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -48,7 +49,7 @@ def check_workflow_action_pins() -> None:
 def repository() -> None:
     run(
         "提交规范测试",
-        "python3",
+        sys.executable,
         "-m",
         "unittest",
         "discover",

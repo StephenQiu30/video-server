@@ -1,5 +1,7 @@
 # 022 跨平台 AI 分析 Agent 与模型 Provider 配置计划
 
+- 状态：In Progress（核心实现完成，跨 Provider 与跨平台真实验收待完成）
+
 ## 阶段 1：领域与持久化
 
 - [x] 新增 AI Provider 领域模型与管理员服务。

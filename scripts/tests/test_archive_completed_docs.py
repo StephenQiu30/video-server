@@ -29,6 +29,14 @@ class CompletedDocumentArchiveTests(unittest.TestCase):
 
         self.assertEqual([item.number for item in ready], ["001"])
 
+    def test_special_gated_set_is_never_archived_by_generic_command(self) -> None:
+        self._write_set("017", "Accepted")
+        self._write_index(("017",))
+
+        self.assertEqual(discover_ready_sets(self.root), ())
+        self.assertEqual(archive_completed_sets(self.root), ())
+        self.assertTrue((self.docs / "design/017-design.md").is_file())
+
     def test_archive_moves_set_and_updates_references(self) -> None:
         self._write_set("001", "Accepted")
         self._write_index(("001",))

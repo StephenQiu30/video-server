@@ -1,6 +1,6 @@
 # 010 Codex 与 Claude CLI 视频分析迁移计划
 
-- 状态：Completed（实现完成，Claude 视觉验收未通过）
+- 状态：In Progress（Codex 已验收，Claude 真实视觉 E2E 待完成）
 - 日期：2026-08-10
 - 关联 Design：`docs/design/010-Codex与Claude CLI视频分析设计.md`
 - 关联 PRD：`docs/prd/010-Codex与Claude CLI视频分析需求.md`
