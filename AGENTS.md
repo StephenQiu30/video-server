@@ -48,8 +48,8 @@ server/
 - 进程入口放在 `workers/` 或 `runner/`，不要把下载、转码或 AI 长任务放进 HTTP 请求进程。
 - 前端不使用 `features/` 目录。App Router 页面放在 `src/app/`，跨页面业务组件放在 `src/components/`，shadcn/ui 源码放在 `src/components/ui/`。
 - 前端请求统一从 `services/` 暴露，状态流程优先放在 `hooks/`；不要在页面中散落原始请求、轮询或错误映射逻辑。
-- `frontend/src/services/video/` 由 `@umijs/openapi` 的 `npm run openapi` 命令根据 FastAPI Swagger/OpenAPI 契约生成，禁止手工修改。生成代码统一导入 `frontend/src/lib/request.ts` 的 Axios 请求封装；接口变化时先更新并启动 API，再重新生成服务文件。
-- 后端公开操作必须声明稳定且唯一的 `operationId` 和 tag，供 OpenAPI 类型生成和契约测试使用。创建出可查询资源的接口返回 `201 Created` 和 `Location`；异步执行状态放在响应模型中，不用 `202` 损失返回类型。
+- `frontend/src/services/video/` 保留已提交的 OpenAPI 客户端，禁止在页面中绕过稳定入口；生成代码统一导入 `frontend/src/lib/request.ts` 的 Axios 请求封装，接口变化时同步审查契约和客户端。
+- 后端公开操作必须声明稳定且唯一的 `operationId` 和 tag，供已提交的 OpenAPI 客户端和契约测试使用。创建出可查询资源的接口返回 `201 Created` 和 `Location`；异步执行状态放在响应模型中，不用 `202` 损失返回类型。
 - 路由、布局和元数据遵循 Next.js App Router 官方约定；交互组件使用 shadcn/ui 与 Radix UI，样式使用 Tailwind CSS 主题 token，不得重新引入 Umi、Ant Design、Vite 入口或平行路由器。
 - 测试目录应与被测职责对应；通用测试数据和 Fake 可以复用，但不得为了覆盖率复制实现细节。
 
@@ -111,7 +111,7 @@ server/
 - 修改前先阅读相邻代码、对应 README 和测试，优先复用现有模型、端口、组件与工具函数。
 - 删除失效文件、引用、依赖和文档，不保留“以后可能使用”的空目录、转发层或重复实现。
 - 根据改动范围执行最小充分验证；修复缺陷时补充能稳定复现问题的测试。
-- GitHub Actions 统一调用根目录 `scripts/ci.py`；完整代码级门禁为 `python scripts/ci.py all`，Compose 运行边界门禁为 `./scripts/ci-runtime.sh`。下列命令是各模块的等价底层检查。
+- GitHub Actions 工作流直接执行仓库、后端、前端和 Compose 运行边界门禁；下列命令是各模块的本地检查入口。
 - 后端命令从 `backend/` 执行：
 
 ```bash
@@ -140,14 +140,14 @@ npm run build
 - 根 `README.md` 说明仓库入口和运行方式；`backend/README.md`、`frontend/README.md` 说明模块用法；详细事实放在 `docs/`，不要在多个文件复制大段内容。
 - 功能资料按 `Design → PRD → Plan → Acceptance` 维护。架构、目录、命令、配置或验收状态变化时，同步更新对应文档。
 - 未归档文档分别直接维护在 `docs/design/`、`docs/prd/`、`docs/plans/`、`docs/acceptance/`；完成真实验收后，完整四件套必须按类型同时迁入各自的 `archive/` 子目录，即 `docs/design/archive/`、`docs/prd/archive/`、`docs/plans/archive/`、`docs/acceptance/archive/`。
-- 禁止使用集中式 `docs/archive/`、按编号建立归档目录或只归档四件套中的部分文档。归档必须使用受保护脚本，并在同一变更中同步 `docs/README.md`、状态码和仓库内全部引用。
+- 禁止使用集中式 `docs/archive/`、按编号建立归档目录或只归档四件套中的部分文档。归档时必须在同一变更中同步 `docs/README.md`、状态码和仓库内全部引用。
 - 文档只描述当前真实实现；历史方案通过 Git 追溯，不保留已废弃内容作为“兼容说明”。
 
 ## Git 与任务交付
 
 - 开始任务和提交前都执行 `git status --short`，识别并保留用户已有改动；不得覆盖、删除或顺带提交与当前任务无关的文件。
 - 一个“小任务”应是可独立说明、可独立验证、可安全回滚的一组改动。完成并通过相关检查后立即提交，不把多个无关任务积累到同一提交。
-- 提交信息遵循 Conventional Commits，格式为 `<type>(<scope>): <中文描述>`；不需要作用域时使用 `<type>: <中文描述>`，禁止使用空作用域 `feat(): ...`。标题最多 72 个字符，中文描述末尾不加标点，并通过 `scripts/validate_commit_message.py` 校验。
+- 提交信息遵循 Conventional Commits，格式为 `<type>(<scope>): <中文描述>`；不需要作用域时使用 `<type>: <中文描述>`，禁止使用空作用域 `feat(): ...`。标题最多 72 个字符，中文描述末尾不加标点，并由 GitHub Actions 工作流校验。
 - `type` 使用小写英文：新功能 `feat`、缺陷修复 `fix`、重构 `refactor`、文档 `docs`、测试 `test`、性能 `perf`、构建 `build`、持续集成 `ci`、维护 `chore`、纯格式 `style`、回退 `revert`。
 - `scope` 使用稳定且非空的小写英文模块名，例如 `api`、`frontend`、`backend`、`runner`、`worker`、`docs` 或 `deps`；无法准确归属时省略作用域，不得临时发明含糊缩写。
 - 冒号后使用简洁、明确的中文动作描述，不加句号，例如 `feat(api): 增加下载任务取消接口`、`fix(frontend): 修复任务状态轮询泄漏`、`docs: 补充本地开发说明`。

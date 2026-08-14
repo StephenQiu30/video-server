@@ -29,29 +29,76 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
-        with:
-          python-version: "3.12"
       - name: Repository configuration
-        run: python scripts/ci.py repository
-      - name: Validate pull request title
-        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git diff --check
+          python3 - <<'PY'
+          import pathlib
+          import re
+
+          pattern = re.compile(r"^\s*-\s+uses:\s+([^\s#]+)", re.MULTILINE)
+          sha = re.compile(r"^[0-9a-f]{40}$")
+          invalid = []
+          for workflow in sorted(pathlib.Path('.github/workflows').glob('*.y*ml')):
+              for reference in pattern.findall(workflow.read_text(encoding='utf-8')):
+                  if reference.startswith(('./', 'docker://')):
+                      continue
+                  _, separator, revision = reference.rpartition('@')
+                  if not separator or sha.fullmatch(revision) is None:
+                      invalid.append(f'{workflow}: {reference}')
+          if invalid:
+              raise SystemExit('GitHub Actions 必须固定到完整提交 SHA：\n  - ' + '\n  - '.join(invalid))
+          PY
+          temporary=$(mktemp -d)
+          trap 'rm -rf "$temporary"' EXIT
+          cp .env.example "$temporary/.env"
+          cp .env.prod.example "$temporary/.env.prod"
+          docker compose --env-file "$temporary/.env" -f docker-compose.yml config --quiet
+          docker compose --env-file "$temporary/.env" -f docker-compose.full.yml --profile environment config --quiet
+          docker compose --env-file "$temporary/.env.prod" -f docker-compose-prod.yml config --quiet
+      - name: Validate commit messages
         env:
-          PULL_REQUEST_TITLE: ${{ github.event.pull_request.title }}
-        run: python scripts/validate_commit_message.py --message "$PULL_REQUEST_TITLE"
-      - name: Validate pull request commits
-        if: github.event_name == 'pull_request'
-        run: >-
-          python scripts/validate_commit_message.py
-          --range "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+          EVENT_NAME: ${{ github.event_name }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_RANGE: ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
+          PUSH_RANGE: ${{ github.event.before }}..${{ github.sha }}
+        run: |
+          set -euo pipefail
+          validate_subject() {
+            local label="$1"
+            local title="$2"
+            [[ -n "$title" ]] || { printf '提交标题不能为空：%s\n' "$label" >&2; return 1; }
+            (( ${#title} <= 72 )) || { printf '提交标题超过 72 个字符：%s\n' "$label" >&2; return 1; }
+            [[ "$title" =~ ^(feat|fix|refactor|docs|test|perf|build|ci|chore|style|revert)(\([a-z][a-z0-9-]*\))?!?:\ .+$ ]] || {
+              printf '提交标题格式错误：%s\n' "$label" >&2
+              return 1
+            }
+            printf '%s' "$title" | grep -qP '[\x{3400}-\x{4DBF}\x{4E00}-\x{9FFF}]' || {
+              printf '提交标题必须包含中文描述：%s\n' "$label" >&2
+              return 1
+            }
+            [[ ! "$title" =~ [。.!！？?；;]$ ]] || {
+              printf '提交标题末尾不能有标点：%s\n' "$label" >&2
+              return 1
+            }
+          }
+          validate_range() {
+            local revision_range="$1"
+            while IFS= read -r commit; do
+              [[ -n "$commit" ]] || continue
+              validate_subject "$commit" "$(git show -s --format=%s "$commit")"
+            done < <(git rev-list --reverse "$revision_range")
+          }
+          if [[ "$EVENT_NAME" == pull_request ]]; then
+            validate_subject 'Pull Request 标题' "$PR_TITLE"
+            validate_range "$PR_RANGE"
+          elif [[ "$EVENT_NAME" == push && "${PUSH_RANGE%%..*}" != 0000000000000000000000000000000000000000 ]]; then
+            validate_range "$PUSH_RANGE"
+          fi
       - name: Validate pull request diff
         if: github.event_name == 'pull_request'
         run: git diff --check "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
-      - name: Validate pushed commits
-        if: github.event_name == 'push'
-        run: >-
-          python scripts/validate_commit_message.py
-          --range "${{ github.event.before }}..${{ github.sha }}"
       - name: Validate pushed diff
         if: github.event_name == 'push'
         run: git diff --check "${{ github.event.before }}..${{ github.sha }}"
@@ -89,7 +136,13 @@ jobs:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
       - name: Backend quality gates
-        run: python scripts/ci.py backend
+        working-directory: backend
+        run: |
+          uv sync --frozen --dev
+          uv run --frozen ruff check app tests
+          uv run --frozen ruff format --check app tests
+          uv run --frozen mypy --strict app
+          uv run --frozen pytest -q
 
   frontend-quality:
     name: Frontend quality
@@ -107,7 +160,14 @@ jobs:
       - name: Pin npm version
         run: npm install --global npm@11.19.0
       - name: Frontend quality gates
-        run: python scripts/ci.py frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm audit --omit=dev --audit-level=high
+          npm run lint
+          npm run format:check
+          npm test
+          npm run build
 
   runtime-smoke:
     name: Runtime boundary
@@ -118,15 +178,67 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: "24.15.0"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - name: Pin npm version
-        run: npm install --global npm@11.19.0
       - name: Build and verify runtime topology
-        run: ./scripts/ci-runtime.sh
+        run: |
+          set -Eeuo pipefail
+          environment_file=$(mktemp "${TMPDIR:-/tmp}/video-server-ci.XXXXXX")
+          compose=(docker compose --project-name video-server-ci --env-file "$environment_file" -f docker-compose.full.yml --profile environment)
+          started=0
+          cleanup() {
+            status=$?
+            trap - EXIT
+            if ((status != 0 && started == 1)); then
+              "${compose[@]}" ps --all || true
+              "${compose[@]}" logs --no-color --tail=200 || true
+            fi
+            if ((started == 1)); then
+              "${compose[@]}" down --volumes --remove-orphans || true
+            fi
+            rm -f "$environment_file"
+            exit "$status"
+          }
+          trap cleanup EXIT
+          cp .env.example "$environment_file"
+          export ANALYSIS_ENABLED=false
+          conflicts=()
+          while IFS= read -r container_name; do
+            if docker inspect "$container_name" >/dev/null 2>&1; then
+              conflicts+=("$container_name")
+            fi
+          done < <("${compose[@]}" config --format json | python3 -c 'import json,sys; print("\n".join(sorted(service["container_name"] for service in json.load(sys.stdin)["services"].values())))')
+          if ((${#conflicts[@]} > 0)); then
+            printf '运行边界烟测拒绝复用已有同名容器：%s\n' "${conflicts[*]}" >&2
+            exit 2
+          fi
+          docker build --target runtime --tag video-server:local .
+          started=1
+          "${compose[@]}" up --detach database-init rabbitmq-init valkey minio-init
+          initializer_statuses=$(docker wait database-init rabbitmq-init minio-init)
+          for initializer_status in $initializer_statuses; do
+            [[ "$initializer_status" == 0 ]] || exit 1
+          done
+          "${compose[@]}" up --detach --wait --wait-timeout 240 postgres rabbitmq valkey minio
+          "${compose[@]}" up --detach --wait --wait-timeout 240 --no-build api outbox worker-download provider-canary worker-report media-runner
+          python3 - <<'PY'
+          import json
+          import urllib.request
+
+          def request(path: str):
+              with urllib.request.urlopen(f'http://127.0.0.1:8101{path}', timeout=10) as response:
+                  return response.status, response.headers.get_content_type(), response.read()
+
+          status, content_type, body = request('/health/live')
+          assert status == 200 and json.loads(body) == {'status': 'ok'}
+          status, content_type, body = request('/health/ready')
+          assert status == 200 and json.loads(body) == {'status': 'ok', 'service': 'api'}
+          status, content_type, body = request('/openapi.json')
+          schema = json.loads(body)
+          assert status == 200 and content_type == 'application/json' and schema.get('paths')
+          status, content_type, _ = request('/')
+          assert status == 200 and content_type == 'text/html'
+          print(f'运行时烟测通过：{len(schema["paths"])} 个 OpenAPI paths')
+          PY
+          "${compose[@]}" run --rm --no-deps database-init
 
   required-ci:
     name: Required CI

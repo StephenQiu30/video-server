@@ -1,66 +1,39 @@
-name: video-server
-
-x-app-service: &app-service
-  image: video-server:local
-  restart: unless-stopped
-  stop_grace_period: 30s
-
-x-runner-service: &runner-service
-  <<: *app-service
-  command: ["python", "-m", "uvicorn", "app.runner.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "19100", "--no-access-log"]
-  read_only: true
-  cap_drop: [ALL]
-  security_opt: [no-new-privileges:true]
-  healthcheck:
-    test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:19100/health/live', timeout=3)"]
-    interval: 10s
-    timeout: 5s
-    retries: 12
-    start_period: 10s
-
 services:
   api:
-    <<: *app-service
-    environment:
-      SERVICE_ROLE: api
-      DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
-      RABBITMQ_URL: "${RABBITMQ_API_URL:-amqp://video-api:video-api-secret@rabbitmq:5672/video}"
-      VALKEY_URL: "${VALKEY_URL:-redis://valkey:6379/0}"
-      METRICS_ACCESS_KEY: "${METRICS_ACCESS_KEY:-development-metrics-access-key-change-me}"
-      MINIO_ENDPOINT: "${MINIO_ENDPOINT:-minio:9000}"
-      MINIO_PUBLIC_ENDPOINT: "${MINIO_PUBLIC_ENDPOINT:-127.0.0.1:19190}"
-      MINIO_ACCESS_KEY: "${MINIO_API_ACCESS_KEY:-video-api-access}"
-      MINIO_SECRET_KEY: "${MINIO_API_SECRET_KEY:-video-api-secret-change-me}"
-      MINIO_IMPORT_ACCESS_KEY: "${MINIO_IMPORT_ACCESS_KEY:-video-import-access}"
-      MINIO_IMPORT_SECRET_KEY: "${MINIO_IMPORT_SECRET_KEY:-video-import-secret-change-me}"
-      MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
-      MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
-      MINIO_PUBLIC_SECURE: "${MINIO_PUBLIC_SECURE:-false}"
-      MEDIA_IMPORT_ENABLED: "${MEDIA_IMPORT_ENABLED:-false}"
-      DOCUMENT_IMPORT_ENABLED: "${DOCUMENT_IMPORT_ENABLED:-false}"
-      AUTH_JWT_SECRET: "${AUTH_JWT_SECRET:-development-jwt-secret-change-me-32-bytes}"
-      AUTH_BOOTSTRAP_ADMIN_EMAIL: "${AUTH_BOOTSTRAP_ADMIN_EMAIL:-}"
-      REQUEST_FINGERPRINT_SECRET: "${REQUEST_FINGERPRINT_SECRET:-development-fingerprint-secret-change-me}"
-      URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:-ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE=}"
-      ANALYSIS_ENABLED: "${ANALYSIS_ENABLED:-true}"
-      SCREENPLAY_ANALYSIS_ENABLED: "${SCREENPLAY_ANALYSIS_ENABLED:-false}"
-      PROVIDER_VERIFIED_KEYS: "${PROVIDER_VERIFIED_KEYS:-[]}"
-      PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
-      RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
-      RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
-      RUNNER_WORKSPACE_ROOT: /work
-      RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
-    networks: [db_net, queue_net, quota_net, storage_net, runner_rpc_net, public_egress_net]
     build:
       context: .
       dockerfile: Dockerfile
-      target: runtime
-    container_name: video-server
+    image: video-server:local
+    container_name: video-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      SERVICE_ROLE: api
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8101
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-video}:${POSTGRES_PASSWORD:-video}@host.docker.internal:${HOST_POSTGRES_PORT:-5432}/${POSTGRES_DB:-video}"
+      RABBITMQ_URL: "amqp://${RABBITMQ_API_USER:-video-api}:${RABBITMQ_API_PASS:-video-api-secret}@host.docker.internal:${HOST_RABBITMQ_PORT:-5672}/${RABBITMQ_VHOST:-video}"
+      VALKEY_URL: "redis://host.docker.internal:${HOST_VALKEY_PORT:-6379}/0"
+      MINIO_ENDPOINT: "host.docker.internal:${HOST_MINIO_PORT:-19190}"
+      MINIO_PUBLIC_ENDPOINT: "${MINIO_PUBLIC_ENDPOINT:-127.0.0.1:19190}"
+      MINIO_ACCESS_KEY: "${MINIO_API_ACCESS_KEY:-video-api-access}"
+      MINIO_SECRET_KEY: "${MINIO_API_SECRET_KEY:-video-api-secret-change-me}"
+      MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
+      MINIO_INTERNAL_SECURE: "false"
+      RUNNER_BASE_URL: http://media-runner:19100
+      RUNNER_EGRESS_PROXY: http://egress-proxy:3128
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - app_net
+      - runner_rpc_net
     ports:
-      - "127.0.0.1:8101:8101"
-    command: ["python", "-m", "app.main"]
+      - "127.0.0.1:${APP_HOST_PORT:-8101}:8101"
     depends_on:
       media-runner:
+        condition: service_started
+      egress-proxy:
         condition: service_healthy
     healthcheck:
       test:
@@ -68,128 +41,158 @@ services:
           "CMD",
           "python",
           "-c",
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8101/health/ready', timeout=3)",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8101/health/live', timeout=3)",
         ]
       interval: 10s
       timeout: 5s
       retries: 12
-      start_period: 10s
+      start_period: 15s
 
   outbox:
-    <<: *app-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: video-server:local
+    container_name: video-outbox
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
       SERVICE_ROLE: outbox
-      DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
-      RABBITMQ_URL: "${RABBITMQ_OUTBOX_URL:-amqp://video-outbox:video-outbox-secret@rabbitmq:5672/video}"
-    networks: [db_net, queue_net, public_egress_net]
-    container_name: outbox
-    command: ["python", "-m", "app.workers.outbox.main"]
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-video}:${POSTGRES_PASSWORD:-video}@host.docker.internal:${HOST_POSTGRES_PORT:-5432}/${POSTGRES_DB:-video}"
+      RABBITMQ_URL: "amqp://${RABBITMQ_OUTBOX_USER:-video-outbox}:${RABBITMQ_OUTBOX_PASS:-video-outbox-secret}@host.docker.internal:${HOST_RABBITMQ_PORT:-5672}/${RABBITMQ_VHOST:-video}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - app_net
 
   worker-download:
-    <<: *app-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: video-server:local
+    container_name: video-worker-download
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
       SERVICE_ROLE: download-worker
-      DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
-      RABBITMQ_URL: "${RABBITMQ_DOWNLOAD_URL:-amqp://video-download:video-download-secret@rabbitmq:5672/video}"
-      MINIO_ENDPOINT: "${MINIO_ENDPOINT:-minio:9000}"
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-video}:${POSTGRES_PASSWORD:-video}@host.docker.internal:${HOST_POSTGRES_PORT:-5432}/${POSTGRES_DB:-video}"
+      RABBITMQ_URL: "amqp://${RABBITMQ_DOWNLOAD_USER:-video-download}:${RABBITMQ_DOWNLOAD_PASS:-video-download-secret}@host.docker.internal:${HOST_RABBITMQ_PORT:-5672}/${RABBITMQ_VHOST:-video}"
+      VALKEY_URL: "redis://host.docker.internal:${HOST_VALKEY_PORT:-6379}/0"
+      MINIO_ENDPOINT: "host.docker.internal:${HOST_MINIO_PORT:-19190}"
       MINIO_ACCESS_KEY: "${MINIO_DOWNLOAD_ACCESS_KEY:-video-download-access}"
       MINIO_SECRET_KEY: "${MINIO_DOWNLOAD_SECRET_KEY:-video-download-secret-change-me}"
       MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
-      MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
-      URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:-ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE=}"
-      PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
-      RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
-      RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
-      RUNNER_WORKSPACE_ROOT: /work
-      RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
-    networks: [db_net, queue_net, storage_net, runner_rpc_net, public_egress_net]
-    container_name: worker-download
-    command: ["python", "-m", "app.workers.download.main"]
-    volumes:
-      - runner_work:/work
+      MINIO_INTERNAL_SECURE: "false"
+      RUNNER_BASE_URL: http://media-runner:19100
+      RUNNER_EGRESS_PROXY: http://egress-proxy:3128
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - app_net
+      - runner_rpc_net
     depends_on:
-      workspace-init:
-        condition: service_completed_successfully
       media-runner:
+        condition: service_started
+      egress-proxy:
         condition: service_healthy
 
   worker-import:
-    <<: *app-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: video-server:local
+    container_name: video-worker-import
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
       SERVICE_ROLE: import-worker
-      DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
-      RABBITMQ_URL: "${RABBITMQ_IMPORT_URL:-amqp://video-import:video-import-secret@rabbitmq:5672/video}"
-      MINIO_ENDPOINT: "${MINIO_ENDPOINT:-minio:9000}"
-      MINIO_IMPORT_ACCESS_KEY: "${MINIO_IMPORT_ACCESS_KEY:-video-import-access}"
-      MINIO_IMPORT_SECRET_KEY: "${MINIO_IMPORT_SECRET_KEY:-video-import-secret-change-me}"
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-video}:${POSTGRES_PASSWORD:-video}@host.docker.internal:${HOST_POSTGRES_PORT:-5432}/${POSTGRES_DB:-video}"
+      RABBITMQ_URL: "amqp://${RABBITMQ_IMPORT_USER:-video-import}:${RABBITMQ_IMPORT_PASS:-video-import-secret}@host.docker.internal:${HOST_RABBITMQ_PORT:-5672}/${RABBITMQ_VHOST:-video}"
+      MINIO_ENDPOINT: "host.docker.internal:${HOST_MINIO_PORT:-19190}"
+      MINIO_ACCESS_KEY: "${MINIO_IMPORT_ACCESS_KEY:-video-import-access}"
+      MINIO_SECRET_KEY: "${MINIO_IMPORT_SECRET_KEY:-video-import-secret-change-me}"
       MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
-      MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
-      IMPORT_WORKSPACE_ROOT: /work
-    networks: [db_net, queue_net, storage_net]
-    container_name: worker-import
-    command: ["python", "-m", "app.workers.imports.main"]
-    read_only: true
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
-    pids_limit: 128
-    tmpfs:
-      - /work:rw,noexec,nosuid,size=3g,mode=0700,uid=10001,gid=10001
-
-  provider-canary:
-    <<: *app-service
-    environment:
-      SERVICE_ROLE: provider-canary
-      DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
-      MINIO_ENDPOINT: "${MINIO_ENDPOINT:-minio:9000}"
-      MINIO_ACCESS_KEY: "${MINIO_CANARY_ACCESS_KEY:-video-canary-access}"
-      MINIO_SECRET_KEY: "${MINIO_CANARY_SECRET_KEY:-video-canary-secret-change-me}"
-      MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
-      MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
-      URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:-ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE=}"
-      PROVIDER_CANARY_TARGETS: "${PROVIDER_CANARY_TARGETS:-[]}"
-      PROVIDER_VERIFIED_KEYS: "${PROVIDER_VERIFIED_KEYS:-[]}"
-      PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
-      RUNNER_BASE_URL: "${RUNNER_BASE_URL:-http://media-runner:19100}"
-      RUNNER_OPERATOR_BASE_URLS: "${RUNNER_OPERATOR_BASE_URLS:-{}}"
-      RUNNER_WORKSPACE_ROOT: /work
-      RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
-    networks: [db_net, storage_net, runner_rpc_net, public_egress_net]
-    container_name: provider-canary
-    command: ["python", "-m", "app.workers.canary.main"]
-    volumes:
-      - runner_work:/work
-    depends_on:
-      workspace-init:
-        condition: service_completed_successfully
-      media-runner:
-        condition: service_healthy
+      MINIO_INTERNAL_SECURE: "false"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - app_net
 
   worker-report:
-    <<: *app-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: video-server:local
+    container_name: video-worker-report
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
       SERVICE_ROLE: report-worker
-      DATABASE_URL: "${DATABASE_URL:-postgresql+asyncpg://video:video@postgres:5432/video}"
-      RABBITMQ_URL: "${RABBITMQ_REPORT_URL:-amqp://video-report:video-report-secret@rabbitmq:5672/video}"
-      MINIO_ENDPOINT: "${MINIO_ENDPOINT:-minio:9000}"
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-video}:${POSTGRES_PASSWORD:-video}@host.docker.internal:${HOST_POSTGRES_PORT:-5432}/${POSTGRES_DB:-video}"
+      RABBITMQ_URL: "amqp://${RABBITMQ_REPORT_USER:-video-report}:${RABBITMQ_REPORT_PASS:-video-report-secret}@host.docker.internal:${HOST_RABBITMQ_PORT:-5672}/${RABBITMQ_VHOST:-video}"
+      MINIO_ENDPOINT: "host.docker.internal:${HOST_MINIO_PORT:-19190}"
       MINIO_ACCESS_KEY: "${MINIO_REPORT_ACCESS_KEY:-video-report-access}"
       MINIO_SECRET_KEY: "${MINIO_REPORT_SECRET_KEY:-video-report-secret-change-me}"
       MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
-      MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
-    networks: [db_net, queue_net, storage_net, public_egress_net]
-    container_name: worker-report
-    command: ["python", "-m", "app.workers.report.main"]
+      MINIO_INTERNAL_SECURE: "false"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - app_net
+
+  provider-canary:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: video-server:local
+    container_name: video-provider-canary
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      SERVICE_ROLE: provider-canary
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-video}:${POSTGRES_PASSWORD:-video}@host.docker.internal:${HOST_POSTGRES_PORT:-5432}/${POSTGRES_DB:-video}"
+      MINIO_ENDPOINT: "host.docker.internal:${HOST_MINIO_PORT:-19190}"
+      MINIO_ACCESS_KEY: "${MINIO_CANARY_ACCESS_KEY:-video-canary-access}"
+      MINIO_SECRET_KEY: "${MINIO_CANARY_SECRET_KEY:-video-canary-secret-change-me}"
+      MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
+      MINIO_INTERNAL_SECURE: "false"
+      RUNNER_BASE_URL: http://media-runner:19100
+      RUNNER_EGRESS_PROXY: http://egress-proxy:3128
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - app_net
+      - runner_rpc_net
+    depends_on:
+      media-runner:
+        condition: service_started
+      egress-proxy:
+        condition: service_healthy
 
   media-runner:
-    <<: *runner-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: video-server:local
+    container_name: media-runner
+    restart: unless-stopped
     environment:
+      APP_ENV: "${APP_ENV:-development}"
       RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
-      RUNNER_EGRESS_PROXY: "${RUNNER_EGRESS_PROXY:-http://egress-proxy:3128}"
+      RUNNER_EGRESS_PROXY: http://egress-proxy:3128
       RUNNER_PROVIDER_EGRESS_PROXIES: "${RUNNER_PROVIDER_EGRESS_PROXIES:-{}}"
       RUNNER_WORKSPACE_ROOT: /work
       RUNNER_ACCESS_MODE: anonymous
+      RUNNER_MAX_ACTIVE_TASKS: "${RUNNER_MAX_ACTIVE_TASKS:-4}"
       PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
-    networks: [runner_rpc_net, runner_egress_net]
-    container_name: media-runner
+    networks:
+      - runner_rpc_net
+      - runner_egress_net
     volumes:
       - runner_work:/work
     tmpfs:
@@ -199,50 +202,66 @@ services:
         condition: service_completed_successfully
       egress-proxy:
         condition: service_healthy
-  youtube-operator-runner:
-    <<: *runner-service
-    profiles: [youtube-operator]
-    environment:
-      RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
-      RUNNER_EGRESS_PROXY: "${RUNNER_EGRESS_PROXY:-http://egress-proxy:3128}"
-      RUNNER_PROVIDER_EGRESS_PROXIES: "${RUNNER_PROVIDER_EGRESS_PROXIES:-{}}"
-      RUNNER_WORKSPACE_ROOT: /work
-      RUNNER_ACCESS_MODE: operator_managed
-      RUNNER_MAX_ACTIVE_TASKS: "1"
-      RUNNER_OPERATOR_SESSION_VERSIONS: '{"youtube":"${YOUTUBE_COOKIE_VERSION:-disabled}"}'
-      RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS: "${RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS:-{}}"
-      RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${YOUTUBE_OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
-      RUNNER_PROVIDER_SECRET_ROOT: /run/provider-secrets
-      RUNNER_PROVIDER_SECRET_TEMP_ROOT: /run/provider-secrets-tmp
-      RUNNER_YOUTUBE_POT_BASE_URL: http://youtube-pot-provider:4416
-      RUNNER_YOUTUBE_POT_PROVIDER_VERSION: bgutil-http-1.3.1
-      PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
-    networks: [runner_rpc_net, runner_egress_net, youtube_pot_net]
-    container_name: youtube-operator-runner
+    command:
+      [
+        "python",
+        "-m",
+        "uvicorn",
+        "app.runner.main:create_app",
+        "--factory",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "19100",
+        "--no-access-log",
+      ]
+
+  egress-proxy:
+    image: ubuntu/squid:6.6-24.04_edge
+    container_name: egress-proxy
+    restart: unless-stopped
+    stop_grace_period: 35s
+    entrypoint: ["squid"]
+    command: ["-N", "-f", "/etc/squid/squid.conf"]
+    ports:
+      - "127.0.0.1:${EGRESS_PROXY_HOST_PORT:-13128}:3128"
+    volumes:
+      - ./backend/config/egress/squid.conf:/etc/squid/squid.conf:ro
+      - ./backend/config/egress/blocked-destinations-docker-desktop.conf:/etc/squid/blocked-destinations.conf:ro
+    networks:
+      - runner_egress_net
+    healthcheck:
+      test: ["CMD", "squid", "-k", "check", "-f", "/etc/squid/squid.conf"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+  workspace-init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: video-server:local
+    container_name: workspace-init
+    restart: "no"
+    network_mode: none
+    user: "0:0"
+    command: ["sh", "-c", "install -d -o 10001 -g 10001 -m 0700 /work"]
     volumes:
       - runner_work:/work
-      - type: bind
-        source: "${YOUTUBE_COOKIE_SECRET_DIR:-./.provider-secrets/youtube}"
-        target: /run/provider-secrets/youtube
-        read_only: true
-        bind:
-          create_host_path: false
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=64m
-      - /run/provider-secrets-tmp:rw,noexec,nosuid,size=16m,mode=0700,uid=10001,gid=10001
-    depends_on:
-      workspace-init:
-        condition: service_completed_successfully
-      egress-proxy:
-        condition: service_healthy
-      youtube-pot-provider:
-        condition: service_healthy
+
   provider-operator-runner:
-    <<: *runner-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: video-server:local
+    container_name: provider-operator-runner
+    restart: unless-stopped
     profiles: [provider-operator]
     environment:
+      APP_ENV: "${APP_ENV:-development}"
       RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
-      RUNNER_EGRESS_PROXY: "${RUNNER_EGRESS_PROXY:-http://egress-proxy:3128}"
+      RUNNER_EGRESS_PROXY: http://egress-proxy:3128
       RUNNER_PROVIDER_EGRESS_PROXIES: "${RUNNER_PROVIDER_EGRESS_PROXIES:-{}}"
       RUNNER_WORKSPACE_ROOT: /work
       RUNNER_ACCESS_MODE: operator_managed
@@ -253,8 +272,9 @@ services:
       RUNNER_PROVIDER_SECRET_ROOT: /run/provider-secrets
       RUNNER_PROVIDER_SECRET_TEMP_ROOT: /run/provider-secrets-tmp
       PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
-    networks: [runner_rpc_net, runner_egress_net]
-    container_name: provider-operator-runner
+    networks:
+      - runner_rpc_net
+      - runner_egress_net
     volumes:
       - runner_work:/work
       - type: bind
@@ -267,18 +287,90 @@ services:
       - /tmp:rw,noexec,nosuid,size=64m
       - /run/provider-secrets-tmp:rw,noexec,nosuid,size=16m,mode=0700,uid=10001,gid=10001
     depends_on:
-      workspace-init:
-        condition: service_completed_successfully
       egress-proxy:
         condition: service_healthy
-  youtube-pot-provider:
-    image: brainicism/bgutil-ytdlp-pot-provider:1.3.1@sha256:1aaa43a0ca72dfca6a6d2129a0fb4a23465c25adb1b043f8aff829a20825646b
+    command:
+      [
+        "python",
+        "-m",
+        "uvicorn",
+        "app.runner.main:create_app",
+        "--factory",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "19100",
+        "--no-access-log",
+      ]
+
+  youtube-operator-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: video-server:local
+    container_name: youtube-operator-runner
+    restart: unless-stopped
     profiles: [youtube-operator]
+    environment:
+      APP_ENV: "${APP_ENV:-development}"
+      RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
+      RUNNER_EGRESS_PROXY: http://egress-proxy:3128
+      RUNNER_PROVIDER_EGRESS_PROXIES: "${RUNNER_PROVIDER_EGRESS_PROXIES:-{}}"
+      RUNNER_WORKSPACE_ROOT: /work
+      RUNNER_ACCESS_MODE: operator_managed
+      RUNNER_MAX_ACTIVE_TASKS: "1"
+      RUNNER_OPERATOR_SESSION_VERSIONS: '{"youtube":"${YOUTUBE_COOKIE_VERSION:-disabled}"}'
+      RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS: "${RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS:-{}}"
+      RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${YOUTUBE_OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
+      RUNNER_PROVIDER_SECRET_ROOT: /run/provider-secrets
+      RUNNER_PROVIDER_SECRET_TEMP_ROOT: /run/provider-secrets-tmp
+      RUNNER_YOUTUBE_POT_BASE_URL: http://youtube-pot-provider:4416
+      RUNNER_YOUTUBE_POT_PROVIDER_VERSION: bgutil-http-1.3.1
+      PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
+    networks:
+      - runner_rpc_net
+      - runner_egress_net
+    volumes:
+      - runner_work:/work
+      - type: bind
+        source: "${YOUTUBE_COOKIE_SECRET_DIR:-./.provider-secrets/youtube}"
+        target: /run/provider-secrets/youtube
+        read_only: true
+        bind:
+          create_host_path: false
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /run/provider-secrets-tmp:rw,noexec,nosuid,size=16m,mode=0700,uid=10001,gid=10001
+    depends_on:
+      egress-proxy:
+        condition: service_healthy
+      youtube-pot-provider:
+        condition: service_healthy
+    command:
+      [
+        "python",
+        "-m",
+        "uvicorn",
+        "app.runner.main:create_app",
+        "--factory",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "19100",
+        "--no-access-log",
+      ]
+
+  youtube-pot-provider:
+    image: brainicism/bgutil-ytdlp-pot-provider:1.3.1@sha256:1aaa43a0ca72dfca6a6d2129a0fb4a23465c25adb1b043f8aff829a20825646
     container_name: youtube-pot-provider
     restart: unless-stopped
-    networks: [youtube_pot_net, runner_egress_net]
+    profiles: [youtube-operator]
+    networks:
+      - youtube_pot_net
+      - runner_egress_net
     cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test:
         [
@@ -292,226 +384,13 @@ services:
       retries: 12
       start_period: 10s
 
-  egress-proxy:
-    image: ubuntu/squid:6.6-24.04_edge
-    container_name: egress-proxy
-    entrypoint: ["squid"]
-    command: ["-N", "-f", "/etc/squid/squid.conf"]
-    restart: unless-stopped
-    stop_grace_period: 35s
-    networks: [runner_egress_net, public_egress_net]
-    ports:
-      - "127.0.0.1:${EGRESS_PROXY_HOST_PORT:-13128}:3128"
-    volumes:
-      - ./backend/config/egress/squid.conf:/etc/squid/squid.conf:ro
-      - ./backend/config/egress/blocked-destinations-docker-desktop.conf:/etc/squid/blocked-destinations.conf:ro
-    healthcheck:
-      test: ["CMD", "squid", "-k", "check", "-f", "/etc/squid/squid.conf"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 5s
-
-  workspace-init:
-    image: video-server:local
-    container_name: workspace-init
-    network_mode: none
-    user: "0:0"
-    command: ["sh", "-c", "install -d -o 10001 -g 10001 -m 0700 /work"]
-    restart: "no"
-    volumes:
-      - runner_work:/work
-
-  postgres:
-    image: postgres:17.5-alpine
-    profiles: [environment]
-    environment:
-      POSTGRES_DB: "${POSTGRES_DB:-video}"
-      POSTGRES_USER: "${POSTGRES_USER:-video}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-video}"
-    container_name: postgres
-    networks: [db_net, public_egress_net]
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:${POSTGRES_HOST_PORT:-15432}:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -q -h 127.0.0.1 -p 5432 -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\"",
-        ]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-
-  database-init:
-    image: postgres:17.5-alpine
-    profiles: [environment]
-    environment:
-      POSTGRES_DB: "${POSTGRES_DB:-video}"
-      POSTGRES_USER: "${POSTGRES_USER:-video}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-video}"
-    container_name: database-init
-    networks: [db_net]
-    entrypoint: ["/bin/sh", "-ec"]
-    command:
-      - |
-        export PGPASSWORD="$${POSTGRES_PASSWORD}"
-        psql \
-          --host=postgres \
-          --username="$${POSTGRES_USER}" \
-          --dbname="$${POSTGRES_DB}" \
-          --set=ON_ERROR_STOP=1 \
-          --file=/schema/schema.sql
-    restart: "no"
-    volumes:
-      - ./backend/sql/schema.sql:/schema/schema.sql:ro
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  rabbitmq:
-    image: rabbitmq:4.0.9-management
-    profiles: [environment]
-    environment:
-      RABBITMQ_DEFAULT_USER: "${RABBITMQ_ADMIN_USER:-video}"
-      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_ADMIN_PASS:-video}"
-      RABBITMQ_ENABLED_PLUGINS_FILE: /etc/rabbitmq/enabled_plugins
-    container_name: rabbitmq
-    hostname: rabbitmq
-    networks: [queue_net, public_egress_net]
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:${RABBITMQ_HOST_PORT:-5673}:5672"
-      - "127.0.0.1:${RABBITMQ_MANAGEMENT_HOST_PORT:-15673}:15672"
-      - "127.0.0.1:${RABBITMQ_METRICS_HOST_PORT:-15692}:15692"
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-      - ./backend/config/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
-      - ./backend/config/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-
-  rabbitmq-init:
-    image: curlimages/curl:8.12.1
-    profiles: [environment]
-    environment:
-      RABBITMQ_ADMIN_USER: "${RABBITMQ_ADMIN_USER:-video}"
-      RABBITMQ_ADMIN_PASS: "${RABBITMQ_ADMIN_PASS:-video}"
-      RABBITMQ_VHOST: "${RABBITMQ_VHOST:-video}"
-      RABBITMQ_API_USER: "${RABBITMQ_API_USER:-video-api}"
-      RABBITMQ_API_PASS: "${RABBITMQ_API_PASS:-video-api-secret}"
-      RABBITMQ_OUTBOX_USER: "${RABBITMQ_OUTBOX_USER:-video-outbox}"
-      RABBITMQ_OUTBOX_PASS: "${RABBITMQ_OUTBOX_PASS:-video-outbox-secret}"
-      RABBITMQ_DOWNLOAD_USER: "${RABBITMQ_DOWNLOAD_USER:-video-download}"
-      RABBITMQ_DOWNLOAD_PASS: "${RABBITMQ_DOWNLOAD_PASS:-video-download-secret}"
-      RABBITMQ_IMPORT_USER: "${RABBITMQ_IMPORT_USER:-video-import}"
-      RABBITMQ_IMPORT_PASS: "${RABBITMQ_IMPORT_PASS:-video-import-secret}"
-      RABBITMQ_ANALYSIS_USER: "${RABBITMQ_ANALYSIS_USER:-video-analysis}"
-      RABBITMQ_ANALYSIS_PASS: "${RABBITMQ_ANALYSIS_PASS:-video-analysis-secret}"
-      RABBITMQ_REPORT_USER: "${RABBITMQ_REPORT_USER:-video-report}"
-      RABBITMQ_REPORT_PASS: "${RABBITMQ_REPORT_PASS:-video-report-secret}"
-      RABBITMQ_DLQ_USER: "${RABBITMQ_DLQ_USER:-video-dlq}"
-      RABBITMQ_DLQ_PASS: "${RABBITMQ_DLQ_PASS:-video-dlq-secret}"
-    container_name: rabbitmq-init
-    networks: [queue_net]
-    entrypoint: ["/bin/sh", "/config/init.sh"]
-    restart: "no"
-    volumes:
-      - ./backend/config/rabbitmq:/config:ro
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-
-  valkey:
-    image: valkey/valkey:8.1.1-alpine
-    profiles: [environment]
-    container_name: valkey
-    command: ["valkey-server", "--save", "", "--appendonly", "no"]
-    restart: unless-stopped
-    networks: [quota_net]
-    healthcheck:
-      test: ["CMD", "valkey-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-
-  minio:
-    image: minio/minio:RELEASE.2025-02-28T09-55-16Z
-    profiles: [environment]
-    environment:
-      MINIO_ROOT_USER: "${MINIO_ROOT_USER:-video-root}"
-      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-video-root-secret-change-me}"
-      MINIO_API_CORS_ALLOW_ORIGIN: "${MINIO_CORS_ALLOWED_ORIGINS:-http://127.0.0.1:8000,http://localhost:8000,http://127.0.0.1:8101,http://localhost:8101}"
-    container_name: minio
-    networks: [storage_net, public_egress_net]
-    command: ["server", "/data", "--address", ":9000", "--console-address", ":9001"]
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:${MINIO_HOST_PORT:-19190}:9000"
-      - "127.0.0.1:${MINIO_CONSOLE_HOST_PORT:-19191}:9001"
-    volumes:
-      - minio_data:/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-
-  minio-init:
-    image: minio/mc:latest
-    profiles: [environment]
-    environment:
-      MINIO_ROOT_USER: "${MINIO_ROOT_USER:-video-root}"
-      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-video-root-secret-change-me}"
-      MINIO_API_ACCESS_KEY: "${MINIO_API_ACCESS_KEY:-video-api-access}"
-      MINIO_API_SECRET_KEY: "${MINIO_API_SECRET_KEY:-video-api-secret-change-me}"
-      MINIO_IMPORT_ACCESS_KEY: "${MINIO_IMPORT_ACCESS_KEY:-video-import-access}"
-      MINIO_IMPORT_SECRET_KEY: "${MINIO_IMPORT_SECRET_KEY:-video-import-secret-change-me}"
-      MINIO_DOWNLOAD_ACCESS_KEY: "${MINIO_DOWNLOAD_ACCESS_KEY:-video-download-access}"
-      MINIO_DOWNLOAD_SECRET_KEY: "${MINIO_DOWNLOAD_SECRET_KEY:-video-download-secret-change-me}"
-      MINIO_REPORT_ACCESS_KEY: "${MINIO_REPORT_ACCESS_KEY:-video-report-access}"
-      MINIO_REPORT_SECRET_KEY: "${MINIO_REPORT_SECRET_KEY:-video-report-secret-change-me}"
-      MINIO_ANALYSIS_ACCESS_KEY: "${MINIO_ANALYSIS_ACCESS_KEY:-video-analysis-access}"
-      MINIO_ANALYSIS_SECRET_KEY: "${MINIO_ANALYSIS_SECRET_KEY:-video-analysis-secret-change-me}"
-      MINIO_CANARY_ACCESS_KEY: "${MINIO_CANARY_ACCESS_KEY:-video-canary-access}"
-      MINIO_CANARY_SECRET_KEY: "${MINIO_CANARY_SECRET_KEY:-video-canary-secret-change-me}"
-      IMPORT_QUARANTINE_RETENTION_DAYS: "${IMPORT_QUARANTINE_RETENTION_DAYS:-1}"
-      MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
-    container_name: minio-init
-    networks: [storage_net]
-    entrypoint: ["/bin/sh", "/config/init.sh"]
-    restart: "no"
-    volumes:
-      - ./backend/config/minio:/config:ro
-    depends_on:
-      minio:
-        condition: service_healthy
-
 volumes:
   runner_work:
-  postgres_data:
-  rabbitmq_data:
-  minio_data:
 
 networks:
-  db_net:
-    internal: true
-  queue_net:
-    internal: true
-  quota_net:
-    internal: true
-  storage_net:
-    internal: true
+  app_net:
   runner_rpc_net:
     internal: true
   runner_egress_net:
-    internal: true
   youtube_pot_net:
     internal: true
-  public_egress_net:

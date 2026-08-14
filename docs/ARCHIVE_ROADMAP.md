@@ -42,4 +42,3 @@
 4. 收敛 005 与 017 的 Provider 范围；不要让未实施 Phase 2 永久阻断已完成 Phase 1，应通过新编号承接明确延期范围。
 5. 将 006 拆解为可独立验收的生产能力编号；019 在 023 Accepted 且获得设备、授权样本和发行输入后实施。
 
-每关闭一个编号，先执行 `python scripts/archive_completed_docs.py`，确认只出现预期编号，再执行 `--apply`；017 始终使用其 Provider/Acceptance 双门禁专用命令。

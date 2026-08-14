@@ -60,7 +60,14 @@ docker compose --env-file .env -f docker-compose.yml --profile youtube-operator 
 docker compose --env-file .env -f docker-compose.yml --profile youtube-operator ps
 ```
 
-生产命令必须叠加 `docker-compose-prod.yml` 并显式使用 `.env.prod`。`youtube-operator-runner`、`youtube-pot-provider` 和匿名 Runner 没有可发布的宿主机端口；POT sidecar 只在内部 `youtube_pot_net` 对运维 Runner 可见。
+生产使用独立的 `docker-compose-prod.yml`，其服务拓扑、启动命令、网络、挂载、依赖和 profiles 与 `docker-compose.yml` 保持一致；不启用 `environment` Profile。命令必须显式使用 `.env.prod`：
+
+~~~bash
+docker compose --env-file .env.prod -f docker-compose-prod.yml --profile youtube-operator config --quiet
+docker compose --env-file .env.prod -f docker-compose-prod.yml --profile youtube-operator up -d --no-build
+~~~
+
+`youtube-operator-runner`、`youtube-pot-provider` 和匿名 Runner 没有可发布的宿主机端口；POT sidecar 只在内部 `youtube_pot_net` 对运维 Runner 可见。
 
 ## 4. Canary 与发布判定
 

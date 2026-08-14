@@ -12,7 +12,6 @@
 
 交付顺序固定为 `Design → PRD → Plan → Acceptance`：
 
-已完成真实验收的文档集先运行 `python scripts/archive_completed_docs.py` 只读检查，再通过 `python scripts/archive_completed_docs.py --apply` 按类型同时移动到 `design/archive/`、`prd/archive/`、`plans/archive/`、`acceptance/archive/`；归档目录直接保存原文件，不再建立集中式 `archive/<编号>/`。命令只接受 Design/PRD/Acceptance 为 `Accepted`、Plan 为 `Complete` 或 `Completed` 的完整四件套，并同步更新索引、状态码和仓库内引用，禁止手工移动形成部分归档状态。017 仍需额外通过 Provider 实测门禁和 `acceptance: accepted` 标记后使用专用 canary 归档命令。
 
 | 编号 | 主题 | Design | PRD | Plan | Acceptance |
 | --- | --- | --- | --- | --- | --- |

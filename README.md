@@ -163,19 +163,18 @@ npm ci
 npm run dev
 ```
 
-开发页面位于 <http://127.0.0.1:8000>，并将 `/api/*` 与 `/health/*` 代理到 `127.0.0.1:8101`。接口变化后，在 API 运行时执行 `npm run openapi` 重新生成客户端；不要手工修改 `frontend/src/services/video/`。
+开发页面位于 <http://127.0.0.1:8000>，并将 `/api/*` 与 `/health/*` 代理到 `127.0.0.1:8101`。接口变化后同步审查 `/openapi.json` 与已提交的 `frontend/src/services/video/` 客户端；仓库不再保留本地 OpenAPI 生成脚本。
 
 与 CI 一致的质量检查统一从仓库根目录执行：
 
 ```bash
-python scripts/ci.py repository
-python scripts/ci.py backend
-python scripts/ci.py frontend
-python scripts/ci.py all             # 完整代码级门禁
-./scripts/ci-runtime.sh              # 隔离的 Compose 运行边界烟测
+git diff --check
+cd backend && uv sync --frozen --dev && uv run --frozen ruff check app tests && uv run --frozen ruff format --check app tests && uv run --frozen mypy --strict app && uv run --frozen pytest -q
+cd ../frontend && npm ci && npm audit --omit=dev --audit-level=high && npm run lint && npm run format:check && npm test && npm run build
+cd .. && docker compose --env-file .env -f docker-compose.full.yml --profile environment config --quiet
 ```
 
-GitHub 的 `Required CI` 会聚合仓库、后端、前端和运行边界检查，包括统一镜像、完整 Compose 拓扑、健康接口、SQL 幂等与 OpenAPI 客户端漂移。
+GitHub 的 `Required CI` 会聚合仓库、后端、前端和运行边界检查，包括统一镜像、完整 Compose 拓扑、健康接口和 SQL 幂等。
 
 ## 文档
 
