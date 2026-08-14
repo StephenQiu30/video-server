@@ -10,8 +10,8 @@ import * as inspections from "./inspections";
 import * as providers from "./providers";
 import * as downloads from "./downloads";
 import * as documents from "./documents";
-import * as mediaImports from "./mediaImports";
 import * as analyses from "./analyses";
+import * as mediaImports from "./mediaImports";
 export default {
   system,
   auth,
@@ -21,6 +21,6 @@ export default {
   providers,
   downloads,
   documents,
-  mediaImports,
   analyses,
+  mediaImports,
 };
