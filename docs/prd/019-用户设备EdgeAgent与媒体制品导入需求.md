@@ -4,27 +4,29 @@
 - 日期：2026-08-12
 - 对应设计：`docs/design/019-用户设备EdgeAgent与媒体制品导入设计.md`
 
+> 范围调整（2026-08-14）：浏览器本地文件上传和通用 quarantine/Import Worker 由 `023-本地内容上传与剧本分析` 负责。本需求只保留设备配对、`edge_import` 和微信视频号/红果 Adapter；Edge 上传必须复用 023 的受控上传与视频验证能力。
+
 ## 1. 用户目标
 
 用户可以把自己有权使用的本地视频，或在自己设备、自己已授权的平台会话中取得的微信视频号/红果单视频，安全导入当前项目并继续使用完整视频 AI 分析、报告、下载历史和任务状态能力。用户不需要把平台 Cookie、Token、内容密钥或设备签名材料交给服务端。
 
 ## 2. 成功标准
 
-1. 本地 MP4 可以通过浏览器直传并生成与远程下载相同可信度的 Artifact。
+1. `023` 已通过浏览器 MP4 上传、受控隔离区和 Artifact Import 验收，供 Edge 路径复用。
 2. 已配对 Edge Agent 可以上传单个视频号或红果 MP4，服务端从未接收平台会话或内容密钥。
-3. 导入任务继续使用现有 download ID、历史、WebSocket、Artifact TTL 和 Analysis API。
+3. Edge 导入任务继续使用现有 download ID、历史、WebSocket、Artifact TTL 和 Analysis API。
 4. 微信视频号至少一条授权分享链接完成 Edge → MinIO → Agent → 报告 E2E 后才能对外标记支持。
 5. 红果至少一个授权单集在固定 Android/App/Agent 版本上完成同样 E2E 后才能对外标记支持。
 6. 设备撤销、旧版本阻断、上传中断、校验失败、超限与队列重复投递均能稳定收敛且不留下可读孤儿制品。
 
 ## 3. 功能需求
 
-### FR-019-01 原始文件导入
+### FR-019-01 复用本地内容导入基础
 
-1. 已登录用户可以选择单个本地 MP4，查看真实文件名与大小，选择可空的 `origin_provider_key`；空值表示本地文件，首期只允许 `wechat_channels/hongguo` 两个平台来源标签，并接受版本化内容权利声明。
-2. 浏览器通过一次性上传会话直传 quarantine；API 进程不缓存完整文件，浏览器不获得 MinIO 通用凭据。
-3. 服务端重新验证实际大小、SHA-256、MP4 容器、视频/音频轨、时长、codec 和配置上限，通过后才创建 Artifact。
-4. 来源标签必须显示为“原始媒体导入”，不能宣称平台链接已被系统下载。
+1. 本需求不得另建浏览器上传、quarantine、multipart、视频 verifier 或 Artifact 晋升实现，必须复用 023 的应用端口与 Worker。
+2. `edge_import` 在服务端重新验证实际大小、SHA-256、MP4 容器、视频轨、时长、codec 和配置上限，通过后才创建 Artifact。
+3. Edge 来源标签必须显示为“用户设备导入”，不能宣称平台链接已由中心服务下载。
+4. 023 未通过本地 MP4 上传和视频验证验收前，不得对外启用 Edge Adapter。
 
 ### FR-019-02 下载任务兼容
 
@@ -52,7 +54,7 @@
 
 ### FR-019-05 可靠验证与晋升
 
-1. 上传完成与 `artifact.import.verify.requested` 必须通过同一 PostgreSQL 事务和 outbox 连接。
+1. 上传完成与 023 定义的 `content.import.verify.requested` 必须通过同一 PostgreSQL 事务和 outbox 连接。
 2. 独立 Import Worker 使用 lease、heartbeat、幂等唯一键和 deterministic final key 处理至少一次投递。
 3. quarantine 对象在验证通过前不能被下载接口或 Analysis Worker 读取。
 4. 客户端声明的大小、哈希和媒体信息全部由服务端重新计算；任何不一致都 fail closed。

@@ -26,18 +26,20 @@
 
 | 优先级 | 编号 | 未归档原因 | 达到归档还需要完成 |
 | --- | --- | --- | --- |
+| P0 | 023 | 设计、需求、计划和验收已定义，浏览器本地上传、Document 聚合和剧本 Skill 尚未实施 | 完成本地 MP4 → Artifact → 视频拉片、五种剧本文档解析、剧本分析、中英双向改写、Skill 供应链、安全负例和桌面/移动真实 E2E |
 | P0 | 022 | 内部实现、Key 轮换/脱敏、Profile 热切换、stale fail-closed 和三平台命令契约已补证；缺少外部执行环境 | 用真实 API Key Profile 完成脱敏视频分析并审计日志/结果/进程；在 macOS、Linux 实机验证 install/restart/status/uninstall |
 | P1 | 010 | Codex 已通过，但原需求明确包含 Claude；2026-08-14 复验又确认当前 Windows 会话未启用 Claude 沙箱 feature gate，CLI 按策略拒绝启动 | 在启用 Claude Windows 沙箱的会话或其他受支持隔离环境完成同一授权视频的完整视觉 E2E，继续完成队列级持久化、安全 fixture 与孤儿进程验收；或通过新的产品决策正式移除 Claude 首期承诺，不能仅改状态绕过 |
 | P1 | 005 | Phase 1 代码部分完成，生产会话与 canary 证据仍不完整，Phase 2 也在同一范围 | 完成 YouTube 授权 Cookie/POT/固定出口、真实 canary、审计和供应链门禁；对用户 ProviderCredential/多媒体 Phase 2 实施或拆为新编号后重新冻结 005 范围 |
 | P1 | 017 | 代码门禁存在但 `acceptance: pending`，实际完整视频分析证明不足 | 提供授权样本，完成下载→Agent→PostgreSQL→MinIO MD/DOCX→WebSocket→浏览器/CI 证据；所有纳入归档的平台为 verified 后改 marker 并运行专用命令 |
 | P2 | 006 | Public Beta/Stable v1 伞形需求跨越多个已归档子项，仍含真实生产能力缺口 | 在 PRD 中标记已由 012–015、018、020 等交付的需求；完成剩余网络隔离、滥用防护、配额、备份恢复、可观测性、发布治理、音频/字幕/批量，或拆分成独立编号后收敛 006 |
-| P2 | 019 | 需求和设计完成，但代码明确未实施且依赖设备/授权输入 | 依次完成浏览器原始媒体导入、设备配对/签名/撤销、Edge Import、视频号元宝/Windows Adapter、红果 Android Adapter、SBOM/许可证与真实三阶段 canary |
+| P2 | 019 | 已把浏览器上传基础转交 023；设备协议和平台 Adapter 仍未实施且依赖设备/授权输入 | 先等待 023 Accepted，再完成设备配对/签名/撤销、Edge Import、视频号元宝/Windows Adapter、红果 Android Adapter、SBOM/许可证与真实三阶段 canary |
 
 ## 4. 执行顺序
 
 1. 004、008、009、011 已使用同一真实 Compose、独立权限会话、桌面/移动浏览器和 CI 证据关闭并归档。
-2. 完成 022 的 API Key/macOS/Linux 验收，再决定 010 Claude 的可用环境或产品范围。
-3. 收敛 005 与 017 的 Provider 范围；不要让未实施 Phase 2 永久阻断已完成 Phase 1，应通过新编号承接明确延期范围。
-4. 将 006 拆解为可独立验收的生产能力编号；019 在获得设备、授权样本和发行输入后实施。
+2. 实施 023，先独立关闭浏览器 MP4 上传，再完成剧本文档、三个 Skill 和中英双向改写；023 Accepted 后 019 才进入 Edge 协议实施。
+3. 完成 022 的 API Key/macOS/Linux 验收，再决定 010 Claude 的可用环境或产品范围。
+4. 收敛 005 与 017 的 Provider 范围；不要让未实施 Phase 2 永久阻断已完成 Phase 1，应通过新编号承接明确延期范围。
+5. 将 006 拆解为可独立验收的生产能力编号；019 在 023 Accepted 且获得设备、授权样本和发行输入后实施。
 
 每关闭一个编号，先执行 `python scripts/archive_completed_docs.py`，确认只出现预期编号，再执行 `--apply`；017 始终使用其 Provider/Acceptance 双门禁专用命令。

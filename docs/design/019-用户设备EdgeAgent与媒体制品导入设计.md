@@ -5,6 +5,8 @@
 - 前置设计：`docs/design/archive/002-安全视频下载闭环设计.md`、`docs/design/005-多平台Provider策略设计.md`、`docs/design/archive/016-中国短视频平台支持设计.md`
 - 前置调研：`docs/research/009-红果短剧Provider接入调研.md`、`docs/research/010-微信视频号Provider接入调研.md`
 
+> 范围调整（2026-08-14）：浏览器本地 MP4/剧本文档上传、quarantine、通用上传会话和浏览器视频 Artifact 晋升由 `023-本地内容上传与剧本分析` 统一负责。本文只负责用户设备、`edge_import`、微信视频号/红果 Adapter，并复用 023 的上传与验证端口；若本文仍为解释 Edge 协议而出现 `browser_import`，其规范事实以 023 为准。
+
 ## 1. 决策摘要
 
 红果短剧和微信视频号不实现为中心服务中的 yt-dlp extractor，也不把设备登录态、客户端签名、内容密钥、本地代理或根证书带入现有 Media Runner。项目新增一条 `user_device` 执行路径：用户设备上的 Edge Agent 在已授权会话中完成平台访问和本地媒体处理，服务端只接收标准 MP4 与严格白名单元数据，在独立隔离区重新验证后生成现有 `artifacts` 记录。
@@ -16,7 +18,7 @@
 - RabbitMQ `analysis.requested`、完整视频 Agent 与报告 Worker；
 - 下载历史、任务详情、WebSocket 状态恢复和管理员来源统计。
 
-首期实施顺序固定为：用户原始 MP4 导入 → 通用设备配对和制品导入协议 → 视频号元宝分享链接 Adapter → Windows 微信客户端回退 Adapter → Android 红果单集 Adapter。在平台 Adapter 真实验收前，微信视频号和红果继续显示 `unsupported`，原始文件导入成功也不能被计作平台下载验证。
+实施顺序固定为：先完成 023 浏览器本地内容上传基础 → 通用设备配对和 Edge 制品导入协议 → 视频号元宝分享链接 Adapter → Windows 微信客户端回退 Adapter → Android 红果单集 Adapter。在平台 Adapter 真实验收前，微信视频号和红果继续显示 `unsupported`，本地文件上传成功也不能被计作平台下载验证。
 
 ## 2. 当前系统映射
 
@@ -27,7 +29,7 @@
 | `artifacts` | 继续作为可分析完整视频的唯一入口 | 增加可审计来源元数据，不改变一任务一个原始制品约束 |
 | Download Worker / Media Runner | 只处理服务端远程 Provider | 不接收 Edge 任务，不获得设备或平台 Secret |
 | MinIO | 最终制品继续使用现有 bucket/key 和 TTL | 新增短保留期 quarantine 区与仅上传单对象的会话 |
-| RabbitMQ / Outbox | 继续承担可靠异步执行 | 新增 `artifact.import.verify.requested` 与独立队列/DLQ |
+| RabbitMQ / Outbox | 继续承担可靠异步执行 | 复用 023 的 `content.import.verify.requested` 队列/DLQ |
 | Analysis Worker | 无变化 | 仍只读取服务端已验证的 Artifact |
 | Provider canary | 复用三阶段状态模型 | `access_mode` 增加 `user_device`，按 Adapter/客户端版本隔离证据 |
 | Provider 页面 | 继续展示平台能力与验证状态 | 增加 Edge Adapter、所需设备和用户动作，不把 `extractor_exists` 当作唯一执行器 |
@@ -38,12 +40,11 @@
 
 ### 3.1 本设计范围
 
-1. 用户上传其有权使用的完整 MP4，并进入现有完整视频分析链路。
-2. 用户设备注册、配对、撤销、版本和在线状态。
-3. Edge Agent 产生脱敏 manifest、获取单任务上传会话、上传和上报结果。
-4. 服务端隔离接收、重新计算哈希、ffprobe、媒体边界验证、制品晋升和清理。
-5. 微信视频号和红果的窄平台 Adapter、能力状态、错误分类与真实 canary。
-6. 对来源、权利声明、Agent/Adapter 版本和验证结果进行无 Secret 审计。
+1. 用户设备注册、配对、撤销、版本和在线状态。
+2. Edge Agent 产生脱敏 manifest、复用 023 的单任务上传会话、上传和上报结果。
+3. Edge 视频复用 023 的隔离接收、哈希、ffprobe、媒体边界验证、制品晋升和清理。
+4. 微信视频号和红果的窄平台 Adapter、能力状态、错误分类与真实 canary。
+5. 对来源、权利声明、Agent/Adapter 版本和验证结果进行无 Secret 审计。
 
 ### 3.2 非目标
 
@@ -92,7 +93,7 @@ flowchart LR
 | 值 | 语义 |
 | --- | --- |
 | `remote_provider` | 当前 inspection → Download Worker → Media Runner 路径 |
-| `browser_import` | 用户从浏览器直接上传已有完整文件 |
+| `browser_import` | 由 023 定义的浏览器本地文件上传；本文只消费其既有状态和 Artifact |
 | `edge_import` | 已配对 Edge Agent 本地采集并上传 |
 
 `download_jobs.source_kind` 默认为 `remote_provider`，保证当前数据幂等收敛。`inspection_id` 和 `format_id` 对远程来源继续必填，对导入来源必须同时为空，并由 SQL `CHECK` 保证两种形态不能混合。公开 `DownloadResponse` 相应把两字段改为可空，并新增 `source_kind`、可空 `provider_key` 和可显示的 `source_label`；现有远程任务响应不变。
@@ -157,13 +158,13 @@ created → awaiting_upload → uploaded → verifying → promoting → succeed
 | `POST /api/edge-device-pairings` | 已登录用户创建十分钟一次性配对 challenge |
 | `GET /api/edge-devices` | 列出当前用户设备、能力、版本和在线状态 |
 | `DELETE /api/edge-devices/{device_id}` | 撤销设备及未使用上传会话 |
-| `POST /api/media-imports` | 创建浏览器原始文件导入并返回 `201 + Location` |
+| `POST /api/media-imports` | 由 023 定义；本文不重复实现浏览器上传 |
 | `GET /api/media-imports/{import_id}` | 查询导入状态和对应 `download_id` |
 | `POST /api/media-imports/{import_id}/upload-sessions` | 创建/刷新当前 attempt 的受限 multipart 上传会话 |
 | `POST /api/media-imports/{import_id}/complete` | 完成 multipart 并触发服务端验证 outbox |
 | `POST /api/downloads/{download_id}/cancel` | 复用现有取消入口并级联终止导入、上传和验证 |
 
-浏览器原始文件导入必须显式选择可空的 `origin_provider_key` 并接受版本化权利声明：为空表示普通本地文件，只允许 `wechat_channels/hongguo` 表示用户已有的平台原始媒体。选择“红果原始媒体导入”只改变来源显示，不会把红果 Provider 标记为已验证。
+浏览器本地文件类型、权利声明、来源显示和上传契约均由 023 定义。本设计不得通过浏览器来源标签把任何文件计作微信视频号或红果 Adapter 验证；平台支持只能来自本设计的真实 Edge canary。
 
 ### 6.2 设备 API
 
@@ -196,9 +197,9 @@ Edge Agent 不连接 PostgreSQL、RabbitMQ、AI 或 MinIO 通用凭据。上传�
 
 1. API 在同一事务创建 `media_imports`、`download_jobs(source_kind=...)` 和初始任务事件；浏览器导入以 `running/uploading/attempt=1` 开始，设备主动创建的导入以 `running/collecting/attempt=1` 开始。未来 Web handoff 才允许 `queued/awaiting_device`。这些路径都不产生 `download.requested`，因此现有 Download Worker 不会领取导入任务。
 2. API 创建 deterministic quarantine key 和 multipart upload；声明大小必须小于现有 `MAX_FILE_SIZE_BYTES`，声明时长必须小于 `MAX_VIDEO_DURATION_SECONDS`。
-3. Agent/浏览器直传 quarantine。API 完成 multipart 后执行对象 HEAD，并在事务中把 import 标记为 `uploaded`、写入 `artifact.import.verify.requested` outbox。
+3. Edge Agent 直传 quarantine。API 完成 multipart 后执行对象 HEAD，并在事务中把 import 标记为 `uploaded`、写入 023 定义的 `content.import.verify.requested` outbox。
 4. 独立 Artifact Import Worker 以 DB lease 幂等领取任务，从 quarantine 下载到任务独占工作区；该 Worker 没有 Provider 出口、Provider Secret、AI Key 或用户设备凭据。
-5. 验证沙箱重新计算实际字节数和 SHA-256，使用文件内容而非扩展名识别容器，并执行 ffprobe。首期必须为单个 MP4、至少一条视频轨和一条音频轨，时长/尺寸/codec 必须与 manifest 在既有容差内一致；超限、损坏、多文件、playlist、外部引用和活动内容全部 fail closed。
+5. 验证沙箱复用 023 视频 verifier，重新计算实际字节数和 SHA-256，使用文件内容而非扩展名识别容器，并执行 ffprobe。首期必须为单个 MP4、至少一条视频轨，时长/尺寸/codec 必须与 manifest 在既有容差内一致；合法无声视频允许通过，超限、损坏、多文件、playlist、外部引用和活动内容全部 fail closed。
 6. Worker 将通过验证的文件复制到现有最终 Artifact deterministic key，重新 HEAD 核对大小；随后在一个数据库事务中插入现有 `artifacts` 行、把 `download_job` 标记为 succeeded，并记录导入成功。唯一约束保证消息重复不会产生第二个 Artifact。
 7. 数据库提交后删除 quarantine 和本地工作区。若复制成功但事务前崩溃，重试先核对 deterministic 最终对象哈希再完成事务；若事务成功但清理失败，由 Lifecycle Worker 按 import 状态清理孤儿。
 8. 只有第 6 步完成后，现有分析 API 才能读取 Artifact。AI 失败不会改变导入/下载成功状态。
@@ -287,7 +288,7 @@ Provider canary 的 `access_mode` 约束增加 `user_device`。证据按 `(provi
 
 首期平台链接采集从本地 Edge Agent 发起。Web 可以展示配对、设备状态和导入后的同一 download 任务，但不把长时间设备采集塞进当前同步 `POST /api/inspections`。后续若增加 Web → Agent handoff，应使用短时一次性 challenge；原始链接继续按现有 URL 加密方式保存，完成/过期后删除，不进入 RabbitMQ、日志或普通任务事件。
 
-浏览器原始文件上传使用无边框原生 file input/dropzone，展示真实文件名、大小、上传和验证进度。用户必须在上传前接受权利声明。导入来源显示“红果原始媒体导入”“微信视频号原始媒体导入”或“本地文件”，不得写成“平台下载成功”。
+浏览器本地上传界面由 023 负责。本设计只增加设备配对、Edge 任务和 Adapter 状态；Edge 来源必须显示“用户设备导入”及准确 Adapter/设备要求，不得写成“中心服务平台下载成功”。
 
 `DownloadResponse`、历史和详情新增 `source_kind/source_label/provider_key` 后先更新 OpenAPI，再重新生成前端 service；不手改生成类型。移动端 390×844 必须完成配对、上传、取消和错误恢复，不产生横向滚动。
 

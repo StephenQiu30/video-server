@@ -7,24 +7,19 @@
 - 对应设计：`docs/design/019-用户设备EdgeAgent与媒体制品导入设计.md`
 - 对应需求/计划：`docs/prd/019-用户设备EdgeAgent与媒体制品导入需求.md`、`docs/plans/019-用户设备EdgeAgent与媒体制品导入计划.md`
 
+> 范围调整（2026-08-14）：浏览器本地上传和通用 Artifact Import 由 `023` 验收。本验收从设备身份和 Edge 协议开始，并要求 023 Accepted；不重复验收浏览器入口。
+
 ## 1. 验收边界
 
-本验收分为通用 Artifact Import、设备协议、微信视频号两个 Adapter 和红果 Android Adapter 五个独立门禁。某个阶段通过不自动批准后续阶段；浏览器上传通过不代表平台下载通过，视频号元宝路径通过不代表 Windows 回退通过，任何视频号证据也不能批准红果。
+本验收分为 023 前置门禁、设备协议、微信视频号两个 Adapter 和红果 Android Adapter 五个独立门禁。某个阶段通过不自动批准后续阶段；浏览器上传通过不代表平台下载通过，视频号元宝路径通过不代表 Windows 回退通过，任何视频号证据也不能批准红果。
 
 生产分析继续接收完整视频文件。固定抽帧、客户端声明或仅 metadata 成功不能替代服务端 Artifact 校验和完整视频 Agent/报告证明。
 
-## 2. 通用 Artifact Import 验收
+## 2. 023 前置门禁
 
-- [ ] `DownloadSourceKind`、按来源状态机和 SQL CHECK 正确；现有远程下载全量回归无行为变化。
-- [ ] 浏览器单 MP4 直传不经过 API 内存/磁盘中转，且只能写确定 quarantine key。
-- [ ] quarantine 对下载 API、Analysis Worker 和公开网络不可读，短 lifecycle 生效。
-- [ ] 服务端重新计算大小/SHA-256，并验证 MP4、视频/音频轨、时长、codec 和配置上限。
-- [ ] 假扩展名、损坏容器、无音频/无视频、外部引用、哈希不一致、超大小/时长均 fail closed。
-- [ ] `artifact.import.verify.requested` 使用 transactional outbox、quorum queue、publisher confirm、manual ack、DLQ 和有界回灌。
-- [ ] 重复 complete、重复消息、Worker 在复制前/后和 DB 提交前/后崩溃均只产生一个 Artifact。
-- [ ] 成功、失败、取消、过期和中断 multipart 均清理 quarantine、part 与本地工作区；孤儿 reconciliation 有证据。
-- [ ] 导入成功后复用现有 Analysis API，并完成完整视频 Agent、数据库报告、MinIO Markdown/DOCX 和 WebSocket E2E。
-- [ ] 来源文案明确为原始媒体导入，未写入 Provider canary 或宣称平台下载。
+- [ ] `023-本地内容上传与剧本分析` 已达到 Accepted，浏览器 MP4、quarantine、Import Worker、视频 verifier 和 Artifact 晋升有完整证据。
+- [ ] Edge 路径通过 architecture/contract test 复用 023 上传与验证端口，仓库不存在第二套 multipart、quarantine 或 MP4 verifier。
+- [ ] 现有远程下载与本地浏览器上传回归通过；这些证据不计作任何平台 Adapter canary。
 
 ## 3. 设备身份与协议验收
 
