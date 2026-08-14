@@ -55,6 +55,9 @@ def analysis_job_snapshot(
             if row.retry_available_until is None
             else as_utc(row.retry_available_until)
         ),
+        document_id=row.document_id,
+        input_kind=row.input_kind,
+        result_contract=row.result_contract,
     )
 
 

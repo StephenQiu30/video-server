@@ -73,6 +73,11 @@ class DownloadStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+class DownloadSourceKind(StrEnum):
+    REMOTE_PROVIDER = "remote_provider"
+    BROWSER_IMPORT = "browser_import"
+
+
 class DownloadStage(StrEnum):
     REVALIDATING = "revalidating"
     DOWNLOADING = "downloading"

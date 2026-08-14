@@ -7,7 +7,13 @@ from pydantic import Field, field_validator
 
 from app.api.schemas.common import StrictModel
 from app.application.analysis import AnalysisJobView
-from app.domain.analysis import AnalysisErrorCode, AnalysisStage, AnalysisStatus
+from app.domain.analysis import (
+    AnalysisErrorCode,
+    AnalysisInputKind,
+    AnalysisResultContract,
+    AnalysisStage,
+    AnalysisStatus,
+)
 
 
 class AnalysisRequest(StrictModel):
@@ -133,6 +139,8 @@ class AnalysisResponse(StrictModel):
     version: int
     skill_id: str
     output_language: str
+    input_kind: AnalysisInputKind
+    result_contract: AnalysisResultContract
     status: AnalysisStatus
     stage: AnalysisStage | None
     progress: int
@@ -160,6 +168,8 @@ class AnalysisResponse(StrictModel):
             version=view.version,
             skill_id=view.skill_id,
             output_language=view.output_language,
+            input_kind=view.input_kind,
+            result_contract=view.result_contract,
             status=view.status,
             stage=view.stage,
             progress=view.progress,

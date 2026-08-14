@@ -103,6 +103,7 @@ class FakeRepository:
             job
             for job in self.jobs.values()
             if job.owner_hash == owner_hash
+            and job.artifact_id is not None
             and self.artifacts[job.artifact_id].download_id == download_id
         ]
         return max(matches, key=lambda job: job.created_at, default=None)

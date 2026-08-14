@@ -22,6 +22,7 @@ from app.application.downloads.thumbnail import (
 )
 from app.domain.downloads import (
     DownloadErrorCode,
+    DownloadSourceKind,
     DownloadStage,
     DownloadStatus,
 )
@@ -65,6 +66,7 @@ def download_view(
 ) -> DownloadView:
     try:
         status = DownloadStatus(snapshot.status)
+        source_kind = DownloadSourceKind(snapshot.source_kind)
         stage = DownloadStage(snapshot.stage) if snapshot.stage is not None else None
         error = (
             DownloadErrorCode(snapshot.error_code)
@@ -73,10 +75,12 @@ def download_view(
         )
     except ValueError as exc:
         raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
-    try:
-        format_plan = public_plan(plan_from_documents(snapshot.semantic_plan, {}))
-    except (TypeError, ValueError) as exc:
-        raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
+    format_plan = None
+    if source_kind is DownloadSourceKind.REMOTE_PROVIDER:
+        try:
+            format_plan = public_plan(plan_from_documents(snapshot.semantic_plan, {}))
+        except (TypeError, ValueError) as exc:
+            raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
     return DownloadView(
         id=snapshot.id,
         inspection_id=snapshot.inspection_id,
@@ -99,8 +103,18 @@ def download_view(
         ),
         thumbnail_url=(
             thumbnail_resource_url(snapshot.inspection_id)
-            if presentation is not None and presentation.thumbnail_available
+            if presentation is not None
+            and presentation.thumbnail_available
+            and snapshot.inspection_id is not None
             else None
         ),
         format_plan=format_plan,
+        source_kind=source_kind,
+        source_label=(
+            "本地视频上传"
+            if source_kind is DownloadSourceKind.BROWSER_IMPORT
+            else (
+                presentation.extractor_key if presentation is not None else "链接下载"
+            )
+        ),
     )

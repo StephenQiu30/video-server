@@ -8,7 +8,12 @@ from pydantic import Field
 from app.api.schemas.common import StrictModel
 from app.api.schemas.inspections import SemanticPlanResponse
 from app.application.downloads import DownloadUrl, DownloadView
-from app.domain.downloads import DownloadErrorCode, DownloadStage, DownloadStatus
+from app.domain.downloads import (
+    DownloadErrorCode,
+    DownloadSourceKind,
+    DownloadStage,
+    DownloadStatus,
+)
 
 
 class DownloadRequest(StrictModel):
@@ -22,8 +27,10 @@ class DownloadResponse(StrictModel):
     """Current state of a durable asynchronous download resource."""
 
     id: UUID
-    inspection_id: UUID
-    format_id: UUID
+    inspection_id: UUID | None
+    format_id: UUID | None
+    source_kind: DownloadSourceKind
+    source_label: str
     status: DownloadStatus
     stage: DownloadStage | None
     progress: int
@@ -48,6 +55,8 @@ class DownloadResponse(StrictModel):
             id=view.id,
             inspection_id=view.inspection_id,
             format_id=view.format_id,
+            source_kind=view.source_kind,
+            source_label=view.source_label,
             status=view.status,
             stage=view.stage,
             progress=view.progress,

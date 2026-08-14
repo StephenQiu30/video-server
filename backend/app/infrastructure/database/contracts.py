@@ -77,13 +77,14 @@ class RetrySourceSnapshot:
 @dataclass(frozen=True, slots=True)
 class DownloadCreate:
     id: UUID
-    inspection_id: UUID
-    format_id: UUID
+    inspection_id: UUID | None
+    format_id: UUID | None
     owner_hash: str
     idempotency_key: str
     request_fingerprint: str
     semantic_plan: dict[str, Any]
     max_attempts: int = 3
+    source_kind: str = "remote_provider"
 
 
 @dataclass(frozen=True, slots=True)
@@ -116,8 +117,8 @@ class JobSourceSnapshot:
 @dataclass(frozen=True, slots=True)
 class JobSnapshot:
     id: UUID
-    inspection_id: UUID
-    format_id: UUID
+    inspection_id: UUID | None
+    format_id: UUID | None
     owner_hash: str
     request_fingerprint: str
     semantic_plan: dict[str, Any]
@@ -136,6 +137,7 @@ class JobSnapshot:
     error_code: str | None
     created_at: datetime
     updated_at: datetime
+    source_kind: str = "remote_provider"
 
 
 @dataclass(frozen=True, slots=True)
@@ -147,7 +149,7 @@ class JobCreateResult:
 @dataclass(frozen=True, slots=True)
 class DownloadHistoryItemSnapshot:
     id: UUID
-    inspection_id: UUID
+    inspection_id: UUID | None
     title: str
     thumbnail_available: bool
     format_name: str
@@ -159,6 +161,7 @@ class DownloadHistoryItemSnapshot:
     finished_at: datetime | None
     file_available: bool = False
     file_expires_at: datetime | None = None
+    source_kind: str = "remote_provider"
 
 
 @dataclass(frozen=True, slots=True)

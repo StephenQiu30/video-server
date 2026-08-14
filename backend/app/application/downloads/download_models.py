@@ -7,6 +7,7 @@ from uuid import UUID
 from app.domain.downloads import (
     DownloadErrorCode,
     DownloadPlan,
+    DownloadSourceKind,
     DownloadStage,
     DownloadStatus,
 )
@@ -15,20 +16,21 @@ from app.domain.downloads import (
 @dataclass(frozen=True, slots=True)
 class DownloadCreate:
     id: UUID
-    inspection_id: UUID
-    format_id: UUID
+    inspection_id: UUID | None
+    format_id: UUID | None
     owner_hash: str
     idempotency_key: str
     request_fingerprint: str
     semantic_plan: dict[str, object]
     max_attempts: int = 3
+    source_kind: DownloadSourceKind = DownloadSourceKind.REMOTE_PROVIDER
 
 
 @dataclass(frozen=True, slots=True)
 class JobSnapshot:
     id: UUID
-    inspection_id: UUID
-    format_id: UUID
+    inspection_id: UUID | None
+    format_id: UUID | None
     owner_hash: str
     request_fingerprint: str
     semantic_plan: dict[str, object]
@@ -47,6 +49,7 @@ class JobSnapshot:
     error_code: str | None
     created_at: datetime
     updated_at: datetime
+    source_kind: str = DownloadSourceKind.REMOTE_PROVIDER.value
 
     @classmethod
     def queued(cls, command: DownloadCreate, *, now: datetime) -> JobSnapshot:
@@ -72,6 +75,7 @@ class JobSnapshot:
             error_code=None,
             created_at=now,
             updated_at=now,
+            source_kind=command.source_kind.value,
         )
 
 
@@ -108,8 +112,8 @@ class DownloadPresentationSnapshot:
 @dataclass(frozen=True, slots=True)
 class DownloadView:
     id: UUID
-    inspection_id: UUID
-    format_id: UUID
+    inspection_id: UUID | None
+    format_id: UUID | None
     status: DownloadStatus
     stage: DownloadStage | None
     progress: int
@@ -126,6 +130,8 @@ class DownloadView:
     duration_seconds: int | None = None
     thumbnail_url: str | None = None
     format_plan: DownloadPlan | None = None
+    source_kind: DownloadSourceKind = DownloadSourceKind.REMOTE_PROVIDER
+    source_label: str = "链接下载"
 
 
 @dataclass(frozen=True, slots=True)

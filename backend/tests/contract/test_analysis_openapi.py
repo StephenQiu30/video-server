@@ -50,6 +50,13 @@ def test_analysis_openapi_is_current_and_excludes_internal_fields(
     fields = components["AnalysisResponse"]["properties"]
     assert "report_markdown" in fields
     assert {"run_id", "run_no", "run_trigger", "version"} <= set(fields)
+    assert {"input_kind", "result_contract"} <= set(fields)
+    assert components["AnalysisInputKind"]["enum"] == ["video", "screenplay"]
+    assert components["AnalysisResultContract"]["enum"] == [
+        "video-visual-analysis",
+        "screenplay-analysis",
+        "screenplay-rewrite",
+    ]
     assert {"artifact_id", "schema_version", "transcript", "provider"}.isdisjoint(
         fields
     )

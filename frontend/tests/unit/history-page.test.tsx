@@ -286,6 +286,8 @@ function historyItem(
     format_name: '1080p MP4',
     id: 'history-job-1',
     progress: 100,
+    source_kind: 'remote_provider',
+    source_label: '链接下载',
     status: 'succeeded',
     thumbnail_url: null,
     title: '示例视频',

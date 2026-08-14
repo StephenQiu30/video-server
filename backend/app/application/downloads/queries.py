@@ -148,6 +148,8 @@ class IssueDownloadUrl:
     async def _inspection_title(
         self, job: JobSnapshot, owner_hash: str, now: datetime
     ) -> str | None:
+        if job.inspection_id is None:
+            return None
         inspection = await self._repository.get_inspection(
             job.inspection_id, owner_hash, now
         )

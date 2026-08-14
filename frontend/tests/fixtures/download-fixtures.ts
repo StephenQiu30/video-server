@@ -35,6 +35,8 @@ export function job(status: DownloadJob['status'] = 'queued'): DownloadJob {
     id: '33333333-3333-4333-8333-333333333333',
     inspection_id: inspection.id,
     format_id: inspection.formats[0].id,
+    source_kind: 'remote_provider',
+    source_label: inspection.extractor_key,
     status,
     stage: status === 'running' ? 'downloading' : null,
     progress: status === 'succeeded' ? 100 : status === 'running' ? 35 : 0,

@@ -90,6 +90,7 @@ async def test_job_outbox_lease_progress_and_success_are_atomic(repository) -> N
     created = await repository.create_job(command, now=now)
     duplicate = await repository.create_job(command, now=now)
     assert created.created is True
+    assert created.job.source_kind == "remote_provider"
     assert duplicate.created is False
     assert duplicate.job.id == created.job.id
 

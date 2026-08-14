@@ -67,6 +67,8 @@ class AnalysisExecutionPersistence:
         self, job: AnalysisJobSnapshot, now: datetime
     ) -> AnalysisArtifactSource:
         with _translate_errors():
+            if job.artifact_id is None:
+                raise AnalysisSourceUnavailable
             projection = await self._analysis.get_artifact(job.artifact_id)
             if (
                 projection is None

@@ -44,6 +44,13 @@ class DownloadJobRow(Base):
         CheckConstraint(
             "stage_rank BETWEEN 0 AND 5", name="ck_download_jobs_stage_rank"
         ),
+        CheckConstraint(
+            "(source_kind = 'remote_provider' AND inspection_id IS NOT NULL "
+            "AND format_id IS NOT NULL) OR "
+            "(source_kind = 'browser_import' AND inspection_id IS NULL "
+            "AND format_id IS NULL)",
+            name="ck_download_jobs_source_shape",
+        ),
         Index("ix_download_jobs_owner_created", "owner_hash", "created_at"),
         Index("ix_download_jobs_created", "created_at"),
         Index("ix_download_jobs_claim", "status", "retry_at"),
@@ -52,12 +59,13 @@ class DownloadJobRow(Base):
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
-    inspection_id: Mapped[UUID] = mapped_column(
-        Uuid, ForeignKey("media_inspections.id"), nullable=False
+    source_kind: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="remote_provider"
     )
-    format_id: Mapped[UUID] = mapped_column(
-        Uuid, ForeignKey("media_formats.id"), nullable=False
+    inspection_id: Mapped[UUID | None] = mapped_column(
+        Uuid, ForeignKey("media_inspections.id")
     )
+    format_id: Mapped[UUID | None] = mapped_column(Uuid, ForeignKey("media_formats.id"))
     owner_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
     request_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)

@@ -26,7 +26,7 @@ from app.application.downloads.validation import (
     validate_owner_hash,
 )
 from app.application.downloads.views import download_view
-from app.domain.downloads import DownloadStatus
+from app.domain.downloads import DownloadSourceKind, DownloadStatus
 
 
 class RetryDownload:
@@ -63,6 +63,8 @@ class RetryDownload:
         idempotency_key = validate_idempotency_key(idempotency_key)
         now = validate_now(self._now())
         original = await _owned_job(self._repository, job_id, owner_hash)
+        if original.source_kind != DownloadSourceKind.REMOTE_PROVIDER.value:
+            raise ApplicationError(ApplicationErrorCode.INVALID_STATE)
         retryable_statuses = {
             DownloadStatus.FAILED.value,
             DownloadStatus.CANCELLED.value,

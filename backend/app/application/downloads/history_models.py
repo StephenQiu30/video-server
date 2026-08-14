@@ -4,13 +4,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from app.domain.downloads import DownloadErrorCode, DownloadStatus
+from app.domain.downloads import DownloadErrorCode, DownloadSourceKind, DownloadStatus
 
 
 @dataclass(frozen=True, slots=True)
 class DownloadHistoryItemSnapshot:
     id: UUID
-    inspection_id: UUID
+    inspection_id: UUID | None
     title: str
     thumbnail_available: bool
     format_name: str
@@ -22,6 +22,7 @@ class DownloadHistoryItemSnapshot:
     finished_at: datetime | None
     file_available: bool = False
     file_expires_at: datetime | None = None
+    source_kind: str = DownloadSourceKind.REMOTE_PROVIDER.value
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,6 +56,8 @@ class DownloadHistoryItemView:
     finished_at: datetime | None
     file_available: bool = False
     file_expires_at: datetime | None = None
+    source_kind: DownloadSourceKind = DownloadSourceKind.REMOTE_PROVIDER
+    source_label: str = "链接下载"
 
 
 @dataclass(frozen=True, slots=True)

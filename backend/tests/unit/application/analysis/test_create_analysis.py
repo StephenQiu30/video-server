@@ -11,7 +11,11 @@ from app.application.analysis import (
     AnalysisArtifactSnapshot,
     CreateAnalysis,
 )
-from app.domain.analysis import AnalysisStatus
+from app.domain.analysis import (
+    AnalysisInputKind,
+    AnalysisResultContract,
+    AnalysisStatus,
+)
 from tests.unit.application.analysis.fakes import (
     FakeFingerprinter,
     FakeRepository,
@@ -115,6 +119,10 @@ async def test_create_persists_job_and_replays_the_same_idempotency_key() -> Non
     assert command.input_sha256 == "b" * 64
     assert command.outbox_event_id == EVENT_ID
     assert command.outbox_event_type == "analysis.requested"
+    assert command.input_kind is AnalysisInputKind.VIDEO
+    assert command.result_contract is AnalysisResultContract.VIDEO_VISUAL_ANALYSIS
+    assert first.input_kind is AnalysisInputKind.VIDEO
+    assert first.result_contract is AnalysisResultContract.VIDEO_VISUAL_ANALYSIS
 
 
 @pytest.mark.asyncio

@@ -43,6 +43,24 @@ def test_download_limits_are_validated() -> None:
         Settings(app_env="test", download_worker_threads=0)
 
 
+def test_local_imports_are_bounded_and_disabled_by_default() -> None:
+    settings = Settings(app_env="test", _env_file=None)
+
+    assert settings.media_import_enabled is False
+    assert settings.document_import_enabled is False
+    assert settings.media_import_max_bytes == 2 * 1024**3
+    assert settings.document_import_max_bytes == 50 * 1024**2
+    assert settings.import_upload_session_ttl_seconds == 900
+
+    for field in (
+        "media_import_max_bytes",
+        "document_import_max_bytes",
+        "import_upload_session_ttl_seconds",
+    ):
+        with pytest.raises(ValidationError):
+            Settings(app_env="test", _env_file=None, **{field: 0})
+
+
 def test_user_artifacts_default_to_seven_days_and_allow_thirty_days() -> None:
     defaults = Settings(app_env="test", _env_file=None)
     seven_days = 7 * 24 * 60 * 60

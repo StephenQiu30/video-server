@@ -9,7 +9,7 @@ from app.application.downloads import (
     DownloadHistorySummaryView,
     DownloadHistoryView,
 )
-from app.domain.downloads import DownloadErrorCode, DownloadStatus
+from app.domain.downloads import DownloadErrorCode, DownloadSourceKind, DownloadStatus
 
 
 class DownloadHistoryItemResponse(StrictModel):
@@ -25,6 +25,8 @@ class DownloadHistoryItemResponse(StrictModel):
     finished_at: datetime | None
     file_available: bool
     file_expires_at: datetime | None
+    source_kind: DownloadSourceKind
+    source_label: str
 
     @classmethod
     def from_view(cls, view: DownloadHistoryItemView) -> DownloadHistoryItemResponse:

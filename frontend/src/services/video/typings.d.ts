@@ -49,9 +49,13 @@ declare namespace API {
     | "invalid_model_output"
     | "analysis_resource_limit"
     | "input_artifact_unavailable"
+    | "analysis_input_expired"
+    | "screenplay_output_incomplete"
     | "analysis_report_unavailable"
     | "internal_error"
     | "worker_lost";
+
+  type AnalysisInputKind = "video" | "screenplay";
 
   type AnalysisMediaResponse = {
     /** Duration Ms */
@@ -112,6 +116,8 @@ declare namespace API {
     skill_id: string;
     /** Output Language */
     output_language: string;
+    input_kind: AnalysisInputKind;
+    result_contract: AnalysisResultContract;
     status: AnalysisStatus;
     stage: AnalysisStage | null;
     /** Progress */
@@ -134,6 +140,11 @@ declare namespace API {
     retry_available_until: string | null;
     report: AnalysisReportResponse | null;
   };
+
+  type AnalysisResultContract =
+    | "video-visual-analysis"
+    | "screenplay-analysis"
+    | "screenplay-rewrite";
 
   type AnalysisResultResponse = {
     /** Language */
@@ -349,6 +360,9 @@ declare namespace API {
     file_available: boolean;
     /** File Expires At */
     file_expires_at: string | null;
+    source_kind: DownloadSourceKind;
+    /** Source Label */
+    source_label: string;
   };
 
   type DownloadHistoryResponse = {
@@ -385,9 +399,12 @@ declare namespace API {
     /** Id */
     id: string;
     /** Inspection Id */
-    inspection_id: string;
+    inspection_id: string | null;
     /** Format Id */
-    format_id: string;
+    format_id: string | null;
+    source_kind: DownloadSourceKind;
+    /** Source Label */
+    source_label: string;
     status: DownloadStatus;
     stage: DownloadStage | null;
     /** Progress */
@@ -417,6 +434,8 @@ declare namespace API {
     thumbnail_url: string | null;
     format: SemanticPlanResponse | null;
   };
+
+  type DownloadSourceKind = "remote_provider" | "browser_import";
 
   type DownloadStage =
     | "revalidating"

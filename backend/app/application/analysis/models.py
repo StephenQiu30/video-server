@@ -6,7 +6,9 @@ from uuid import UUID
 
 from app.domain.analysis import (
     AnalysisErrorCode,
+    AnalysisInputKind,
     AnalysisResult,
+    AnalysisResultContract,
     AnalysisStage,
     AnalysisStatus,
 )
@@ -26,7 +28,7 @@ class AnalysisArtifactSnapshot:
 class AnalysisCreate:
     id: UUID
     run_id: UUID
-    artifact_id: UUID
+    artifact_id: UUID | None
     owner_hash: str
     idempotency_key: str
     request_fingerprint: str
@@ -39,12 +41,17 @@ class AnalysisCreate:
     outbox_event_id: UUID
     outbox_event_type: str
     retry_available_until: datetime | None = None
+    document_id: UUID | None = None
+    input_kind: AnalysisInputKind = AnalysisInputKind.VIDEO
+    result_contract: AnalysisResultContract = (
+        AnalysisResultContract.VIDEO_VISUAL_ANALYSIS
+    )
 
 
 @dataclass(frozen=True, slots=True)
 class AnalysisJobSnapshot:
     id: UUID
-    artifact_id: UUID
+    artifact_id: UUID | None
     owner_hash: str
     request_fingerprint: str
     input_sha256: str
@@ -72,6 +79,9 @@ class AnalysisJobSnapshot:
     updated_at: datetime
     current_report_id: UUID | None = None
     retry_available_until: datetime | None = None
+    document_id: UUID | None = None
+    input_kind: str = AnalysisInputKind.VIDEO.value
+    result_contract: str = AnalysisResultContract.VIDEO_VISUAL_ANALYSIS.value
 
     @classmethod
     def queued(cls, command: AnalysisCreate, *, now: datetime) -> AnalysisJobSnapshot:
@@ -104,6 +114,9 @@ class AnalysisJobSnapshot:
             created_at=now,
             updated_at=now,
             retry_available_until=command.retry_available_until,
+            document_id=command.document_id,
+            input_kind=command.input_kind.value,
+            result_contract=command.result_contract.value,
         )
 
 
@@ -161,6 +174,10 @@ class AnalysisJobView:
     report: AnalysisReportSnapshot | None = None
     current_report_id: UUID | None = None
     retry_available_until: datetime | None = None
+    input_kind: AnalysisInputKind = AnalysisInputKind.VIDEO
+    result_contract: AnalysisResultContract = (
+        AnalysisResultContract.VIDEO_VISUAL_ANALYSIS
+    )
 
 
 @dataclass(frozen=True, slots=True)

@@ -79,6 +79,7 @@ def job_snapshot(row: DownloadJobRow) -> JobSnapshot:
         error_code=row.error_code,
         created_at=as_utc(row.created_at),
         updated_at=as_utc(row.updated_at),
+        source_kind=row.source_kind,
     )
 
 
@@ -113,6 +114,7 @@ def download_history_item_snapshot(
             and as_utc(artifact.expires_at) > as_utc(now)
         ),
         file_expires_at=(None if artifact is None else as_utc(artifact.expires_at)),
+        source_kind=job.source_kind,
     )
 
 

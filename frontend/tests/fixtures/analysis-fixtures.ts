@@ -96,6 +96,8 @@ export function analysisJob(
     version: status === 'queued' ? 0 : status === 'running' ? 1 : 2,
     skill_id: 'director-breakdown',
     output_language: 'zh-CN',
+    input_kind: 'video',
+    result_contract: 'video-visual-analysis',
     status,
     stage: status === 'running' ? 'analyzing' : null,
     progress: status === 'succeeded' ? 100 : status === 'running' ? 60 : 0,

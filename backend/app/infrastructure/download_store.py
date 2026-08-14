@@ -75,6 +75,7 @@ class SqlAlchemyDownloadStore:
                 request_fingerprint=command.request_fingerprint,
                 semantic_plan=dict(command.semantic_plan),
                 max_attempts=command.max_attempts,
+                source_kind=command.source_kind.value,
             ),
             now=now,
         )
@@ -179,6 +180,7 @@ class SqlAlchemyDownloadStore:
                     finished_at=item.finished_at,
                     file_available=item.file_available,
                     file_expires_at=item.file_expires_at,
+                    source_kind=item.source_kind,
                 )
                 for item in stored.items
             ),

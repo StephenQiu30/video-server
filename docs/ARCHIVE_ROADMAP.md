@@ -26,7 +26,7 @@
 
 | 优先级 | 编号 | 未归档原因 | 达到归档还需要完成 |
 | --- | --- | --- | --- |
-| P0 | 023 | 设计、需求、计划和验收已定义，浏览器本地上传、Document 聚合和剧本 Skill 尚未实施 | 完成本地 MP4 → Artifact → 视频拉片、五种剧本文档解析、剧本分析、中英双向改写、Skill 供应链、安全负例和桌面/移动真实 E2E |
+| P0 | 023 | Phase A 当前态契约、旧数据回填、feature flag 与 OpenAPI 基线已完成；上传基础设施、Document 聚合和剧本 Skill 尚未实施 | 完成 multipart/quarantine/Import Worker、本地 MP4 → Artifact → 视频拉片、五种剧本文档解析、剧本分析、中英双向改写、Skill 供应链、安全负例和桌面/移动真实 E2E |
 | P0 | 022 | 内部实现、Key 轮换/脱敏、Profile 热切换、stale fail-closed 和三平台命令契约已补证；缺少外部执行环境 | 用真实 API Key Profile 完成脱敏视频分析并审计日志/结果/进程；在 macOS、Linux 实机验证 install/restart/status/uninstall |
 | P1 | 010 | Codex 已通过，但原需求明确包含 Claude；2026-08-14 复验又确认当前 Windows 会话未启用 Claude 沙箱 feature gate，CLI 按策略拒绝启动 | 在启用 Claude Windows 沙箱的会话或其他受支持隔离环境完成同一授权视频的完整视觉 E2E，继续完成队列级持久化、安全 fixture 与孤儿进程验收；或通过新的产品决策正式移除 Claude 首期承诺，不能仅改状态绕过 |
 | P1 | 005 | Phase 1 代码部分完成，生产会话与 canary 证据仍不完整，Phase 2 也在同一范围 | 完成 YouTube 授权 Cookie/POT/固定出口、真实 canary、审计和供应链门禁；对用户 ProviderCredential/多媒体 Phase 2 实施或拆为新编号后重新冻结 005 范围 |

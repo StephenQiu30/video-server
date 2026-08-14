@@ -12,6 +12,17 @@ class AnalysisStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+class AnalysisInputKind(StrEnum):
+    VIDEO = "video"
+    SCREENPLAY = "screenplay"
+
+
+class AnalysisResultContract(StrEnum):
+    VIDEO_VISUAL_ANALYSIS = "video-visual-analysis"
+    SCREENPLAY_ANALYSIS = "screenplay-analysis"
+    SCREENPLAY_REWRITE = "screenplay-rewrite"
+
+
 class AnalysisStage(StrEnum):
     PREPARING = "preparing"
     ANALYZING = "analyzing"
@@ -33,6 +44,8 @@ class AnalysisErrorCode(StrEnum):
     INVALID_MODEL_OUTPUT = "invalid_model_output"
     RESOURCE_LIMIT = "analysis_resource_limit"
     INPUT_ARTIFACT_UNAVAILABLE = "input_artifact_unavailable"
+    INPUT_EXPIRED = "analysis_input_expired"
+    SCREENPLAY_OUTPUT_INCOMPLETE = "screenplay_output_incomplete"
     REPORT_UNAVAILABLE = "analysis_report_unavailable"
     INTERNAL_ERROR = "internal_error"
     WORKER_LOST = "worker_lost"
@@ -44,6 +57,7 @@ class AnalysisErrorCode(StrEnum):
             self.CLI_TIMEOUT,
             self.CLI_FAILED,
             self.INVALID_MODEL_OUTPUT,
+            self.SCREENPLAY_OUTPUT_INCOMPLETE,
             self.WORKER_LOST,
         }
 

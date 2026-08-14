@@ -177,8 +177,9 @@ CREATE TABLE IF NOT EXISTS media_thumbnails (
 
 CREATE TABLE IF NOT EXISTS download_jobs (
     id UUID PRIMARY KEY,
-    inspection_id UUID NOT NULL REFERENCES media_inspections (id),
-    format_id UUID NOT NULL REFERENCES media_formats (id),
+    source_kind VARCHAR(32) NOT NULL DEFAULT 'remote_provider',
+    inspection_id UUID REFERENCES media_inspections (id),
+    format_id UUID REFERENCES media_formats (id),
     owner_hash VARCHAR(64) NOT NULL,
     idempotency_key VARCHAR(128) NOT NULL,
     request_fingerprint VARCHAR(64) NOT NULL,
@@ -210,8 +211,47 @@ CREATE TABLE IF NOT EXISTS download_jobs (
     CONSTRAINT ck_download_jobs_attempt CHECK (attempt >= 0),
     CONSTRAINT ck_download_jobs_max_attempts CHECK (max_attempts > 0),
     CONSTRAINT ck_download_jobs_version CHECK (version >= 0),
-    CONSTRAINT ck_download_jobs_stage_rank CHECK (stage_rank BETWEEN 0 AND 5)
+    CONSTRAINT ck_download_jobs_stage_rank CHECK (stage_rank BETWEEN 0 AND 5),
+    CONSTRAINT ck_download_jobs_source_shape CHECK (
+        (
+            source_kind = 'remote_provider'
+            AND inspection_id IS NOT NULL
+            AND format_id IS NOT NULL
+        ) OR (
+            source_kind = 'browser_import'
+            AND inspection_id IS NULL
+            AND format_id IS NULL
+        )
+    )
 );
+
+ALTER TABLE download_jobs
+    ADD COLUMN IF NOT EXISTS source_kind VARCHAR(32);
+UPDATE download_jobs
+SET source_kind = 'remote_provider'
+WHERE source_kind IS NULL;
+ALTER TABLE download_jobs
+    ALTER COLUMN source_kind SET DEFAULT 'remote_provider';
+ALTER TABLE download_jobs
+    ALTER COLUMN source_kind SET NOT NULL;
+ALTER TABLE download_jobs
+    ALTER COLUMN inspection_id DROP NOT NULL;
+ALTER TABLE download_jobs
+    ALTER COLUMN format_id DROP NOT NULL;
+ALTER TABLE download_jobs
+    DROP CONSTRAINT IF EXISTS ck_download_jobs_source_shape;
+ALTER TABLE download_jobs
+    ADD CONSTRAINT ck_download_jobs_source_shape CHECK (
+        (
+            source_kind = 'remote_provider'
+            AND inspection_id IS NOT NULL
+            AND format_id IS NOT NULL
+        ) OR (
+            source_kind = 'browser_import'
+            AND inspection_id IS NULL
+            AND format_id IS NULL
+        )
+    );
 
 CREATE INDEX IF NOT EXISTS ix_download_jobs_owner_created
     ON download_jobs (owner_hash, created_at);
@@ -255,7 +295,10 @@ WHERE deleted_at IS NULL
 
 CREATE TABLE IF NOT EXISTS analysis_jobs (
     id UUID PRIMARY KEY,
-    artifact_id UUID NOT NULL,
+    input_kind VARCHAR(24) NOT NULL DEFAULT 'video',
+    result_contract VARCHAR(32) NOT NULL DEFAULT 'video-visual-analysis',
+    artifact_id UUID,
+    document_id UUID,
     owner_hash VARCHAR(64) NOT NULL,
     idempotency_key VARCHAR(128) NOT NULL,
     request_fingerprint VARCHAR(64) NOT NULL,
@@ -299,7 +342,28 @@ CREATE TABLE IF NOT EXISTS analysis_jobs (
     CONSTRAINT ck_analysis_jobs_version CHECK (version >= 0),
     CONSTRAINT ck_analysis_jobs_run_no CHECK (current_run_no > 0),
     CONSTRAINT ck_analysis_jobs_stage_rank CHECK (stage_rank BETWEEN 0 AND 4),
-    CONSTRAINT ck_analysis_jobs_sha256_length CHECK (length(input_sha256) = 64)
+    CONSTRAINT ck_analysis_jobs_sha256_length CHECK (length(input_sha256) = 64),
+    CONSTRAINT ck_analysis_jobs_input_kind CHECK (
+        input_kind IN ('video', 'screenplay')
+    ),
+    CONSTRAINT ck_analysis_jobs_result_contract CHECK (
+        result_contract IN (
+            'video-visual-analysis', 'screenplay-analysis', 'screenplay-rewrite'
+        )
+    ),
+    CONSTRAINT ck_analysis_jobs_input_shape CHECK (
+        (
+            input_kind = 'video'
+            AND artifact_id IS NOT NULL
+            AND document_id IS NULL
+            AND result_contract = 'video-visual-analysis'
+        ) OR (
+            input_kind = 'screenplay'
+            AND artifact_id IS NULL
+            AND document_id IS NOT NULL
+            AND result_contract IN ('screenplay-analysis', 'screenplay-rewrite')
+        )
+    )
 );
 
 CREATE INDEX IF NOT EXISTS ix_analysis_jobs_owner_created
@@ -310,6 +374,10 @@ CREATE INDEX IF NOT EXISTS ix_analysis_jobs_queued_recovery
     ON analysis_jobs (status, updated_at);
 CREATE INDEX IF NOT EXISTS ix_analysis_jobs_artifact ON analysis_jobs (artifact_id);
 
+ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS input_kind VARCHAR(24);
+ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS result_contract VARCHAR(32);
+ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS document_id UUID;
+CREATE INDEX IF NOT EXISTS ix_analysis_jobs_document ON analysis_jobs (document_id);
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS active_run_id UUID;
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS current_run_no INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS current_run_trigger VARCHAR(24) NOT NULL DEFAULT 'initial';
@@ -319,6 +387,38 @@ ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS skill_instructions TEXT;
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS custom_prompt TEXT;
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS retry_available_until TIMESTAMPTZ;
+UPDATE analysis_jobs SET
+    input_kind = COALESCE(input_kind, 'video'),
+    result_contract = COALESCE(result_contract, 'video-visual-analysis');
+ALTER TABLE analysis_jobs ALTER COLUMN input_kind SET DEFAULT 'video';
+ALTER TABLE analysis_jobs ALTER COLUMN result_contract
+    SET DEFAULT 'video-visual-analysis';
+ALTER TABLE analysis_jobs ALTER COLUMN input_kind SET NOT NULL;
+ALTER TABLE analysis_jobs ALTER COLUMN result_contract SET NOT NULL;
+ALTER TABLE analysis_jobs ALTER COLUMN artifact_id DROP NOT NULL;
+ALTER TABLE analysis_jobs DROP CONSTRAINT IF EXISTS ck_analysis_jobs_input_kind;
+ALTER TABLE analysis_jobs ADD CONSTRAINT ck_analysis_jobs_input_kind
+    CHECK (input_kind IN ('video', 'screenplay'));
+ALTER TABLE analysis_jobs
+    DROP CONSTRAINT IF EXISTS ck_analysis_jobs_result_contract;
+ALTER TABLE analysis_jobs ADD CONSTRAINT ck_analysis_jobs_result_contract
+    CHECK (result_contract IN (
+        'video-visual-analysis', 'screenplay-analysis', 'screenplay-rewrite'
+    ));
+ALTER TABLE analysis_jobs DROP CONSTRAINT IF EXISTS ck_analysis_jobs_input_shape;
+ALTER TABLE analysis_jobs ADD CONSTRAINT ck_analysis_jobs_input_shape CHECK (
+    (
+        input_kind = 'video'
+        AND artifact_id IS NOT NULL
+        AND document_id IS NULL
+        AND result_contract = 'video-visual-analysis'
+    ) OR (
+        input_kind = 'screenplay'
+        AND artifact_id IS NULL
+        AND document_id IS NOT NULL
+        AND result_contract IN ('screenplay-analysis', 'screenplay-rewrite')
+    )
+);
 UPDATE analysis_jobs AS analysis
 SET retry_available_until = artifact.expires_at
 FROM artifacts AS artifact

@@ -52,6 +52,11 @@ def test_download_openapi_exposes_required_routes_and_idempotency(
         "format",
     }
     assert presentation_fields <= download_fields.keys()
+    assert {"source_kind", "source_label"} <= download_fields.keys()
+    assert schema["components"]["schemas"]["DownloadSourceKind"]["enum"] == [
+        "remote_provider",
+        "browser_import",
+    ]
     assert all(
         sensitive not in download_fields
         for sensitive in ("object_key", "provider_hints", "url")
@@ -105,6 +110,8 @@ def test_request_schemas_forbid_unknown_fields_and_plan_has_no_hints(
     plan_properties = components["SemanticPlanResponse"]["properties"]
     assert "hints" not in plan_properties
     assert "provider_hints" not in plan_properties
+    history_fields = components["DownloadHistoryItemResponse"]["properties"]
+    assert {"source_kind", "source_label"} <= history_fields.keys()
 
 
 def test_provider_status_contract_is_coarse_and_non_secret(tmp_path: Path) -> None:

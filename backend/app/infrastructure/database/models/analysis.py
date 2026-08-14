@@ -50,15 +50,39 @@ class AnalysisJobRow(Base):
         CheckConstraint(
             "length(input_sha256) = 64", name="ck_analysis_jobs_sha256_length"
         ),
+        CheckConstraint(
+            "input_kind IN ('video','screenplay')",
+            name="ck_analysis_jobs_input_kind",
+        ),
+        CheckConstraint(
+            "result_contract IN ("
+            "'video-visual-analysis','screenplay-analysis','screenplay-rewrite'"
+            ")",
+            name="ck_analysis_jobs_result_contract",
+        ),
+        CheckConstraint(
+            "(input_kind = 'video' AND artifact_id IS NOT NULL "
+            "AND document_id IS NULL AND result_contract = 'video-visual-analysis') "
+            "OR (input_kind = 'screenplay' AND artifact_id IS NULL "
+            "AND document_id IS NOT NULL AND result_contract IN ("
+            "'screenplay-analysis','screenplay-rewrite'))",
+            name="ck_analysis_jobs_input_shape",
+        ),
         Index("ix_analysis_jobs_owner_created", "owner_hash", "created_at"),
         Index("ix_analysis_jobs_claim", "status", "retry_at"),
         Index("ix_analysis_jobs_stale", "status", "lease_expires_at"),
         Index("ix_analysis_jobs_queued_recovery", "status", "updated_at"),
         Index("ix_analysis_jobs_artifact", "artifact_id"),
+        Index("ix_analysis_jobs_document", "document_id"),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
-    artifact_id: Mapped[UUID] = mapped_column(Uuid, nullable=False)
+    input_kind: Mapped[str] = mapped_column(String(24), nullable=False, default="video")
+    result_contract: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="video-visual-analysis"
+    )
+    artifact_id: Mapped[UUID | None] = mapped_column(Uuid)
+    document_id: Mapped[UUID | None] = mapped_column(Uuid)
     owner_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
     request_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)

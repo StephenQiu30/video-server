@@ -32,8 +32,13 @@ def test_download_schema_contains_required_tables_and_columns() -> None:
         "lease_expires_at",
         "heartbeat_at",
         "semantic_plan",
+        "source_kind",
+        "inspection_id",
+        "format_id",
     } <= set(jobs.columns.keys())
     assert jobs.c.semantic_plan.type.compile(postgresql.dialect()) == "JSONB"
+    assert jobs.c.inspection_id.nullable is True
+    assert jobs.c.format_id.nullable is True
     assert "ix_download_jobs_created" in {index.name for index in jobs.indexes}
     assert {
         "username",
@@ -90,6 +95,9 @@ def test_constraints_cover_idempotency_progress_and_artifact_identity() -> None:
     user_ddl = str(CreateTable(Base.metadata.tables["users"]).compile(dialect=dialect))
     assert "uq_download_jobs_owner_idempotency" in job_ddl
     assert "progress BETWEEN 0 AND 100" in job_ddl
+    assert "ck_download_jobs_source_shape" in job_ddl
+    assert "source_kind = 'remote_provider'" in job_ddl
+    assert "source_kind = 'browser_import'" in job_ddl
     assert "uq_artifacts_job" in artifact_ddl
     assert "uq_artifacts_object" in artifact_ddl
     assert "ck_users_role" in user_ddl

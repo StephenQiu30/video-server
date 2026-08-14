@@ -14,7 +14,7 @@ from app.application.downloads.history_models import (
 from app.application.downloads.ports import DownloadRepository
 from app.application.downloads.thumbnail import thumbnail_resource_url
 from app.application.downloads.validation import validate_now, validate_owner_hash
-from app.domain.downloads import DownloadErrorCode, DownloadStatus
+from app.domain.downloads import DownloadErrorCode, DownloadSourceKind, DownloadStatus
 
 
 class GetDownloadHistory:
@@ -69,12 +69,13 @@ def _history_view(snapshot: DownloadHistoryPageSnapshot) -> DownloadHistoryView:
 
 
 def _item_view(item: DownloadHistoryItemSnapshot) -> DownloadHistoryItemView:
+    source_kind = DownloadSourceKind(item.source_kind)
     return DownloadHistoryItemView(
         id=item.id,
         title=item.title or "未命名视频",
         thumbnail_url=(
             thumbnail_resource_url(item.inspection_id)
-            if item.thumbnail_available
+            if item.thumbnail_available and item.inspection_id is not None
             else None
         ),
         format_name=item.format_name,
@@ -88,4 +89,10 @@ def _item_view(item: DownloadHistoryItemSnapshot) -> DownloadHistoryItemView:
         finished_at=item.finished_at,
         file_available=item.file_available,
         file_expires_at=item.file_expires_at,
+        source_kind=source_kind,
+        source_label=(
+            "本地视频上传"
+            if source_kind is DownloadSourceKind.BROWSER_IMPORT
+            else "链接下载"
+        ),
     )

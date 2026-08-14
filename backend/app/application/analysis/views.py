@@ -11,7 +11,9 @@ from app.application.analysis.models import (
 )
 from app.domain.analysis import (
     AnalysisErrorCode,
+    AnalysisInputKind,
     AnalysisResult,
+    AnalysisResultContract,
     AnalysisStage,
     AnalysisStatus,
 )
@@ -25,6 +27,8 @@ def analysis_job_view(
 ) -> AnalysisJobView:
     try:
         status = AnalysisStatus(snapshot.status)
+        input_kind = AnalysisInputKind(snapshot.input_kind)
+        result_contract = AnalysisResultContract(snapshot.result_contract)
         stage = AnalysisStage(snapshot.stage) if snapshot.stage is not None else None
         error = (
             AnalysisErrorCode(snapshot.error_code)
@@ -55,4 +59,6 @@ def analysis_job_view(
         report=report,
         current_report_id=snapshot.current_report_id,
         retry_available_until=snapshot.retry_available_until,
+        input_kind=input_kind,
+        result_contract=result_contract,
     )

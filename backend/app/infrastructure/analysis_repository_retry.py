@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -70,7 +71,7 @@ class AnalysisRetryRepository(AnalysisCreationRepository):
                     session.add(
                         AnalysisArtifactLockRow(
                             job_id=row.id,
-                            artifact_id=row.artifact_id,
+                            artifact_id=self._video_artifact_id(row),
                             created_at=now,
                         )
                     )
@@ -168,11 +169,12 @@ class AnalysisRetryRepository(AnalysisCreationRepository):
     async def _require_artifact(
         session: AsyncSession, row: AnalysisJobRow, now: datetime
     ) -> None:
+        artifact_id = AnalysisRetryRepository._video_artifact_id(row)
         source = await session.scalar(
             select(ArtifactRow)
             .join(DownloadJobRow, DownloadJobRow.id == ArtifactRow.job_id)
             .where(
-                ArtifactRow.id == row.artifact_id,
+                ArtifactRow.id == artifact_id,
                 ArtifactRow.deleted_at.is_(None),
                 ArtifactRow.expires_at > now,
                 ArtifactRow.sha256 == row.input_sha256,
@@ -183,6 +185,14 @@ class AnalysisRetryRepository(AnalysisCreationRepository):
         )
         if source is None:
             raise PersistenceArtifactUnavailable("analysis artifact is unavailable")
+
+    @staticmethod
+    def _video_artifact_id(row: AnalysisJobRow) -> UUID:
+        if row.input_kind != "video" or row.artifact_id is None:
+            raise PersistenceArtifactUnavailable(
+                "screenplay retry source is not available"
+            )
+        return row.artifact_id
 
     @staticmethod
     def _reset_job(row: AnalysisJobRow, run: AnalysisRunRow, now: datetime) -> None:

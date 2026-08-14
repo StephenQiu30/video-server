@@ -16,6 +16,7 @@ from app.application.analysis import (
     PersistenceIdempotencyConflict,
     PersistenceNotFound,
 )
+from app.domain.analysis import AnalysisInputKind, AnalysisResultContract
 from app.infrastructure.analysis_repository_base import AnalysisRepositoryBase
 from app.infrastructure.analysis_repository_mapping import analysis_job_snapshot
 from app.infrastructure.database.models import (
@@ -55,13 +56,14 @@ class AnalysisCreationRepository(AnalysisRepositoryBase):
                         now=now,
                     )
                     session.add(run)
-                    session.add(
-                        AnalysisArtifactLockRow(
-                            job_id=row.id,
-                            artifact_id=row.artifact_id,
-                            created_at=now,
+                    if row.artifact_id is not None:
+                        session.add(
+                            AnalysisArtifactLockRow(
+                                job_id=row.id,
+                                artifact_id=row.artifact_id,
+                                created_at=now,
+                            )
                         )
-                    )
                     session.add(
                         self.requested_event(
                             row,
@@ -102,6 +104,14 @@ class AnalysisCreationRepository(AnalysisRepositoryBase):
     async def _validate_source(
         session: AsyncSession, command: AnalysisCreate, now: datetime
     ) -> None:
+        if (
+            command.input_kind is not AnalysisInputKind.VIDEO
+            or command.result_contract
+            is not AnalysisResultContract.VIDEO_VISUAL_ANALYSIS
+            or command.artifact_id is None
+            or command.document_id is not None
+        ):
+            raise PersistenceNotFound("screenplay analysis source is not available")
         source = (
             await session.execute(
                 select(ArtifactRow, DownloadJobRow)
@@ -126,7 +136,10 @@ class AnalysisCreationRepository(AnalysisRepositoryBase):
     def _new_row(command: AnalysisCreate, now: datetime) -> AnalysisJobRow:
         return AnalysisJobRow(
             id=command.id,
+            input_kind=command.input_kind.value,
+            result_contract=command.result_contract.value,
             artifact_id=command.artifact_id,
+            document_id=command.document_id,
             owner_hash=command.owner_hash,
             idempotency_key=command.idempotency_key,
             request_fingerprint=command.request_fingerprint,

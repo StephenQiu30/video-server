@@ -1,5 +1,7 @@
 from app.domain.analysis.enums import (
     AnalysisErrorCode,
+    AnalysisInputKind,
+    AnalysisResultContract,
     AnalysisStage,
     AnalysisStatus,
     AnalysisValidationCode,
@@ -22,10 +24,12 @@ from app.domain.analysis.result_validation import validate_analysis_result
 
 __all__ = [
     "AnalysisErrorCode",
+    "AnalysisInputKind",
     "AnalysisJob",
     "AnalysisLimits",
     "AnalysisMedia",
     "AnalysisResult",
+    "AnalysisResultContract",
     "AnalysisStage",
     "AnalysisStatus",
     "AnalysisValidationCode",

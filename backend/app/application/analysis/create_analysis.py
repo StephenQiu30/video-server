@@ -27,6 +27,7 @@ from app.application.analysis.validation import (
     validate_sha256,
 )
 from app.application.analysis.views import analysis_job_view
+from app.domain.analysis import AnalysisInputKind, AnalysisResultContract
 
 
 class CreateAnalysis:
@@ -96,10 +97,14 @@ class CreateAnalysis:
                 AnalysisApplicationErrorCode.RESOURCE_EXPIRED
             )
         sha256 = validate_sha256(artifact.sha256)
+        input_kind = AnalysisInputKind.VIDEO
+        result_contract = AnalysisResultContract.VIDEO_VISUAL_ANALYSIS
         fingerprint = self._fingerprinter.fingerprint(
             "analysis",
             str(artifact.id),
             sha256,
+            input_kind.value,
+            result_contract.value,
             skill_id,
             skill_instructions,
             output_language,
@@ -121,6 +126,8 @@ class CreateAnalysis:
             outbox_event_id=self._new_id(),
             outbox_event_type="analysis.requested",
             retry_available_until=artifact.expires_at,
+            input_kind=input_kind,
+            result_contract=result_contract,
         )
         try:
             saved = await self._repository.create_job_and_enqueue(command, now=now)

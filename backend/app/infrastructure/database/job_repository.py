@@ -38,6 +38,7 @@ class JobRepository(MediaRepository):
                     await self._validate_source(session, command, now)
                     row = DownloadJobRow(
                         id=command.id,
+                        source_kind=command.source_kind,
                         inspection_id=command.inspection_id,
                         format_id=command.format_id,
                         owner_hash=command.owner_hash,
@@ -143,6 +144,10 @@ class JobRepository(MediaRepository):
     async def _validate_source(
         session: AsyncSession, command: DownloadCreate, now: datetime
     ) -> None:
+        if command.source_kind != "remote_provider":
+            raise RepositoryConflict("download source kind is not remotely inspectable")
+        if command.inspection_id is None or command.format_id is None:
+            raise RepositoryConflict("remote download source is incomplete")
         selected = (
             await session.execute(
                 select(MediaInspectionRow, MediaFormatRow)
