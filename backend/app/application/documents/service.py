@@ -18,24 +18,45 @@ from app.application.imports import (
     MultipartUploadNotFound,
     QuarantineObjectStorage,
 )
-from app.domain.imports import ImportErrorCode, ImportSourceFormat, ImportStatus
 
-from .models import DocumentPage, DocumentPageSnapshot, DocumentSnapshot, DocumentView
-from .ports import DocumentDeletionRepository, DocumentReader
+from .models import DocumentPage, DocumentView
+from .ports import DocumentDeletionRepository, DocumentPreviewStorage, DocumentReader
+from .preview import read_document_preview
+from .views import document_page, document_view
 
 _OWNER_HASH = re.compile(r"[0-9a-f]{64}")
 
 
 class GetDocument:
-    def __init__(self, reader: DocumentReader) -> None:
+    def __init__(
+        self,
+        reader: DocumentReader,
+        storage: DocumentPreviewStorage,
+        *,
+        max_preview_bytes: int,
+        max_preview_characters: int,
+    ) -> None:
+        if not 1 <= max_preview_bytes <= 256 * 1024:
+            raise ValueError("document preview byte limit is invalid")
+        if not 1 <= max_preview_characters <= 100_000:
+            raise ValueError("document preview character limit is invalid")
         self._reader = reader
+        self._storage = storage
+        self._max_preview_bytes = max_preview_bytes
+        self._max_preview_characters = max_preview_characters
 
     async def __call__(self, document_id: UUID, owner_hash: str) -> DocumentView:
         owner_hash = _owner_hash(owner_hash)
         snapshot = await self._reader.get_document(document_id, owner_hash)
         if snapshot is None or snapshot.owner_hash != owner_hash:
             raise ImportApplicationError(ImportApplicationErrorCode.NOT_FOUND)
-        return _view(snapshot)
+        preview, truncated = await read_document_preview(
+            snapshot,
+            self._storage,
+            max_bytes=self._max_preview_bytes,
+            max_characters=self._max_preview_characters,
+        )
+        return document_view(snapshot, preview=preview, preview_truncated=truncated)
 
 
 class ListDocuments:
@@ -51,7 +72,7 @@ class ListDocuments:
         snapshot = await self._reader.list_documents(
             owner_hash, page=page, page_size=page_size
         )
-        return _page(snapshot, owner_hash)
+        return document_page(snapshot, owner_hash)
 
 
 class DeleteDocument:
@@ -107,55 +128,6 @@ def _owner_hash(value: str) -> str:
     if _OWNER_HASH.fullmatch(value) is None:
         raise ImportApplicationError(ImportApplicationErrorCode.INVALID_REQUEST)
     return value
-
-
-def _page(snapshot: DocumentPageSnapshot, owner_hash: str) -> DocumentPage:
-    if snapshot.page < 1 or snapshot.page_size < 1 or snapshot.total < 0:
-        raise ImportApplicationError(ImportApplicationErrorCode.INTERNAL_ERROR)
-    if any(item.owner_hash != owner_hash for item in snapshot.items):
-        raise ImportApplicationError(ImportApplicationErrorCode.INTERNAL_ERROR)
-    return DocumentPage(
-        items=tuple(_view(item) for item in snapshot.items),
-        page=snapshot.page,
-        page_size=snapshot.page_size,
-        total=snapshot.total,
-    )
-
-
-def _view(snapshot: DocumentSnapshot) -> DocumentView:
-    try:
-        source_format = ImportSourceFormat(snapshot.source_format)
-        status = ImportStatus(snapshot.status)
-        error_code = (
-            None
-            if snapshot.error_code is None
-            else ImportErrorCode(snapshot.error_code)
-        )
-    except ValueError as error:
-        raise ImportApplicationError(
-            ImportApplicationErrorCode.INTERNAL_ERROR
-        ) from error
-    if source_format.content_kind.value != "screenplay":
-        raise ImportApplicationError(ImportApplicationErrorCode.INTERNAL_ERROR)
-    return DocumentView(
-        id=snapshot.id,
-        title=snapshot.title,
-        original_filename=snapshot.original_filename,
-        source_format=source_format,
-        declared_size_bytes=snapshot.declared_size_bytes,
-        status=status,
-        attempt=snapshot.attempt,
-        error_code=error_code,
-        version=snapshot.version,
-        detected_language=snapshot.detected_language,
-        scene_count=snapshot.scene_count,
-        character_count=snapshot.character_count,
-        quality_warnings=snapshot.quality_warnings,
-        expires_at=snapshot.expires_at,
-        created_at=snapshot.created_at,
-        updated_at=snapshot.updated_at,
-        finished_at=snapshot.finished_at,
-    )
 
 
 def _validate_deletion_key(object_key: str, document_id: UUID, attempt: int) -> None:

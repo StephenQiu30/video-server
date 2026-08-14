@@ -3,9 +3,10 @@ from .models import (
     DocumentPage,
     DocumentPageSnapshot,
     DocumentSnapshot,
+    DocumentTextArtifactSnapshot,
     DocumentView,
 )
-from .ports import DocumentDeletionRepository, DocumentReader
+from .ports import DocumentDeletionRepository, DocumentPreviewStorage, DocumentReader
 from .service import DeleteDocument, GetDocument, ListDocuments
 
 __all__ = [
@@ -15,7 +16,9 @@ __all__ = [
     "DocumentPage",
     "DocumentPageSnapshot",
     "DocumentReader",
+    "DocumentPreviewStorage",
     "DocumentSnapshot",
+    "DocumentTextArtifactSnapshot",
     "DocumentView",
     "GetDocument",
     "ListDocuments",

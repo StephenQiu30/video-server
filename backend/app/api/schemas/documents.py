@@ -126,6 +126,21 @@ class DocumentResponse(StrictModel):
         )
 
 
+class DocumentDetailResponse(DocumentResponse):
+    preview: str | None = Field(max_length=100_000)
+    preview_truncated: bool
+
+    @classmethod
+    def from_view(cls, view: DocumentView) -> DocumentDetailResponse:
+        return cls.model_validate(
+            DocumentResponse.from_view(view).model_dump()
+            | {
+                "preview": view.preview,
+                "preview_truncated": view.preview_truncated,
+            }
+        )
+
+
 class DocumentPageResponse(StrictModel):
     items: tuple[DocumentResponse, ...]
     page: int

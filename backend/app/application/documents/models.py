@@ -11,6 +11,14 @@ from app.domain.imports import ImportErrorCode, ImportSourceFormat, ImportStatus
 
 
 @dataclass(frozen=True, slots=True)
+class DocumentTextArtifactSnapshot:
+    bucket: str
+    object_key: str = field(repr=False)
+    size_bytes: int
+    sha256: str = field(repr=False)
+
+
+@dataclass(frozen=True, slots=True)
 class DocumentSnapshot:
     id: UUID
     owner_hash: str = field(repr=False)
@@ -31,6 +39,7 @@ class DocumentSnapshot:
     created_at: datetime
     updated_at: datetime
     finished_at: datetime | None
+    normalized_artifact: DocumentTextArtifactSnapshot | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,6 +69,8 @@ class DocumentView:
     created_at: datetime
     updated_at: datetime
     finished_at: datetime | None
+    preview: str | None = None
+    preview_truncated: bool = False
 
 
 @dataclass(frozen=True, slots=True)

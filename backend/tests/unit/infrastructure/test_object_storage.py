@@ -19,6 +19,12 @@ from pydantic import SecretStr
 class FakeMinio:
     def __init__(self) -> None:
         self.calls: list[tuple[object, ...]] = []
+        self.content = b"normalized screenplay"
+
+    def get_object(self, *args: object, **kwargs: object) -> FakeResponse:
+        self.calls.append(("read", *args, kwargs))
+        length = int(kwargs.get("length", len(self.content)))
+        return FakeResponse(self.content[:length])
 
     def bucket_exists(self, bucket: str) -> bool:
         self.calls.append(("bucket_exists", bucket))
@@ -81,6 +87,20 @@ class FakeMinio:
         )
 
 
+class FakeResponse:
+    def __init__(self, content: bytes) -> None:
+        self.content = content
+
+    def read(self) -> bytes:
+        return self.content
+
+    def close(self) -> None:
+        pass
+
+    def release_conn(self) -> None:
+        pass
+
+
 def settings() -> Settings:
     return Settings(
         app_env="test",
@@ -116,6 +136,19 @@ async def test_storage_uses_private_and_public_clients(tmp_path: Path) -> None:
         "response-content-disposition": 'attachment; filename="example.mp4"'
     }
     assert url == "https://objects.example/artifact"
+
+
+async def test_storage_range_read_is_bounded() -> None:
+    private = FakeMinio()
+    storage = MinioObjectStorage(settings(), private=private)
+
+    payload = await storage.read_range("documents/one/1/screenplay.md", length=10)
+
+    assert payload == b"normalized"
+    read = next(call for call in private.calls if call[0] == "read")
+    assert read[-1] == {"offset": 0, "length": 10}
+    with pytest.raises(ValueError, match="range length"):
+        await storage.read_range("documents/one/1/screenplay.md", length=0)
 
 
 async def test_storage_uses_video_title_in_content_disposition() -> None:

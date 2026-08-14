@@ -282,6 +282,44 @@ declare namespace API {
     provider_key: string;
   };
 
+  type DocumentDetailResponse = {
+    /** Id */
+    id: string;
+    /** Title */
+    title: string;
+    /** Original Filename */
+    original_filename: string;
+    source_format: DocumentSourceFormat;
+    /** Declared Size Bytes */
+    declared_size_bytes: number;
+    status: ImportStatus;
+    /** Attempt */
+    attempt: number;
+    error_code: ImportErrorCode | null;
+    /** Version */
+    version: number;
+    /** Detected Language */
+    detected_language: string | null;
+    /** Scene Count */
+    scene_count: number | null;
+    /** Character Count */
+    character_count: number | null;
+    /** Quality Warnings */
+    quality_warnings: string[];
+    /** Expires At */
+    expires_at: string | null;
+    /** Created At */
+    created_at: string;
+    /** Updated At */
+    updated_at: string;
+    /** Finished At */
+    finished_at: string | null;
+    /** Preview */
+    preview: string | null;
+    /** Preview Truncated */
+    preview_truncated: boolean;
+  };
+
   type DocumentImportRequest = {
     /** File Name */
     file_name: string;

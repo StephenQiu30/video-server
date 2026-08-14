@@ -411,6 +411,26 @@ class MinioObjectStorage:
             response.close()
             response.release_conn()
 
+    async def read_range(self, object_key: str, *, length: int) -> bytes:
+        _validate_key(object_key)
+        if isinstance(length, bool) or not 1 <= length <= 256 * 1024:
+            raise ValueError("object range length is invalid")
+        try:
+            response = await asyncio.to_thread(
+                self._private.get_object,
+                self._bucket,
+                object_key,
+                offset=0,
+                length=length,
+            )
+            try:
+                return await asyncio.to_thread(response.read)
+            finally:
+                response.close()
+                response.release_conn()
+        except Exception as error:
+            raise ImportObjectStorageError("object range read failed") from error
+
     async def download(self, object_key: str, target: Path) -> None:
         _validate_key(object_key)
         target.parent.mkdir(parents=True, exist_ok=True)

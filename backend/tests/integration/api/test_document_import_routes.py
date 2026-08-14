@@ -88,6 +88,8 @@ def detail_view() -> DocumentView:
         created_at=NOW,
         updated_at=NOW,
         finished_at=None,
+        preview="<script>plain text only</script>",
+        preview_truncated=True,
     )
 
 
@@ -161,10 +163,13 @@ def test_document_routes_delegate_owner_and_hide_storage(tmp_path: Path) -> None
     assert created.headers["location"] == f"/api/documents/{DOCUMENT_ID}"
     assert created.json()["source_format"] == "fountain"
     assert fetched.json()["title"] == "owned"
+    assert fetched.json()["preview"] == "<script>plain text only</script>"
+    assert fetched.json()["preview_truncated"] is True
     assert listed.json()["total"] == 1
     assert completed.json()["status"] == "verifying"
     assert cancelled.json()["status"] == "cancelled"
     assert "object_key" not in session.text and "upload_id" not in session.text
+    assert "object_key" not in fetched.text and "text_sha256" not in fetched.text
     create = stubs["create"].calls[0][1]
     assert create["owner_hash"] == TEST_USER.owner_hash
     assert create["content_kind"] is ContentKind.SCREENPLAY

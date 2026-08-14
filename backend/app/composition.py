@@ -302,7 +302,12 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             import_storage,
             now=clock,
         ),
-        get_document=GetDocument(document_catalog_repository),
+        get_document=GetDocument(
+            document_catalog_repository,
+            import_storage,
+            max_preview_bytes=settings.document_preview_max_bytes,
+            max_preview_characters=settings.document_preview_max_characters,
+        ),
         list_documents=ListDocuments(document_catalog_repository),
         delete_document=DeleteDocument(
             document_delete_repository,

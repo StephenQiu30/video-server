@@ -6,10 +6,14 @@ from uuid import UUID
 
 from sqlalchemy import func, select
 
-from app.application.documents import DocumentPageSnapshot, DocumentSnapshot
+from app.application.documents import (
+    DocumentPageSnapshot,
+    DocumentSnapshot,
+    DocumentTextArtifactSnapshot,
+)
 
 from .base import as_utc
-from .models import DocumentRow
+from .models import DocumentArtifactRow, DocumentRow
 from .repository_base import RepositoryBase
 
 
@@ -25,7 +29,16 @@ class SqlAlchemyDocumentCatalogRepository(RepositoryBase):
                     DocumentRow.deleted_at.is_(None),
                 )
             )
-            return None if row is None else _snapshot(row)
+            if row is None:
+                return None
+            artifact = await session.scalar(
+                select(DocumentArtifactRow).where(
+                    DocumentArtifactRow.document_id == row.id,
+                    DocumentArtifactRow.kind == "normalized",
+                    DocumentArtifactRow.status == "ready",
+                )
+            )
+            return _snapshot(row, artifact)
 
     async def list_documents(
         self, owner_hash: str, *, page: int, page_size: int
@@ -53,7 +66,9 @@ class SqlAlchemyDocumentCatalogRepository(RepositoryBase):
             )
 
 
-def _snapshot(row: DocumentRow) -> DocumentSnapshot:
+def _snapshot(
+    row: DocumentRow, artifact: DocumentArtifactRow | None = None
+) -> DocumentSnapshot:
     return DocumentSnapshot(
         id=row.id,
         owner_hash=row.owner_hash,
@@ -74,4 +89,14 @@ def _snapshot(row: DocumentRow) -> DocumentSnapshot:
         created_at=as_utc(row.created_at),
         updated_at=as_utc(row.updated_at),
         finished_at=None if row.finished_at is None else as_utc(row.finished_at),
+        normalized_artifact=(
+            None
+            if artifact is None
+            else DocumentTextArtifactSnapshot(
+                bucket=artifact.bucket,
+                object_key=artifact.object_key,
+                size_bytes=artifact.size_bytes,
+                sha256=artifact.sha256,
+            )
+        ),
     )

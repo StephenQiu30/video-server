@@ -146,6 +146,8 @@ class Settings(BaseSettings):
     document_import_max_bytes: int = Field(
         default=50 * 1024**2, ge=1024, le=512 * 1024**2
     )
+    document_preview_max_bytes: int = Field(default=32 * 1024, ge=1024, le=256 * 1024)
+    document_preview_max_characters: int = Field(default=12_000, ge=1_000, le=100_000)
     import_upload_session_ttl_seconds: int = Field(default=900, ge=60, le=3600)
     import_upload_part_size_bytes: int = Field(
         default=32 * 1024**2, ge=5 * 1024**2, le=5 * 1024**3

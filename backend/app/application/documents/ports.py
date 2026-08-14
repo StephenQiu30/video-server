@@ -9,6 +9,13 @@ from uuid import UUID
 from .models import DocumentDeletionPlan, DocumentPageSnapshot, DocumentSnapshot
 
 
+class DocumentPreviewStorage(Protocol):
+    @property
+    def bucket(self) -> str: ...
+
+    async def read_range(self, object_key: str, *, length: int) -> bytes: ...
+
+
 class DocumentReader(Protocol):
     async def get_document(
         self, document_id: UUID, owner_hash: str

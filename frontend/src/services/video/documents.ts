@@ -43,7 +43,7 @@ export async function getDocumentImport(
   options?: RequestOptions
 ) {
   const { document_id: param0, ...queryParams } = params;
-  return request<API.DocumentResponse>(`/api/documents/${param0}`, {
+  return request<API.DocumentDetailResponse>(`/api/documents/${param0}`, {
     method: "GET",
     params: { ...queryParams },
     ...(options || {}),

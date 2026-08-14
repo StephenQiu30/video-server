@@ -16,10 +16,10 @@ from app.api.dependencies import (
 from app.api.errors import import_application_error
 from app.api.schemas.documents import (
     CompleteDocumentImportRequest,
+    DocumentDetailResponse,
     DocumentImportRequest,
     DocumentImportResponse,
     DocumentPageResponse,
-    DocumentResponse,
     DocumentUploadSessionResponse,
 )
 from app.application.auth import CurrentUser
@@ -87,7 +87,7 @@ async def list_documents(
 @router.get(
     "/{document_id}",
     operation_id="getDocumentImport",
-    response_model=DocumentResponse,
+    response_model=DocumentDetailResponse,
     summary="查询剧本文档导入",
 )
 async def get_document_import(
@@ -95,13 +95,13 @@ async def get_document_import(
     response: Response,
     user: User,
     use_cases: UseCases,
-) -> DocumentResponse:
+) -> DocumentDetailResponse:
     try:
         view = await use_cases.get_document(document_id, user.owner_hash)
     except ImportApplicationError as error:
         raise import_application_error(error) from error
     response.headers["Cache-Control"] = "no-store"
-    return DocumentResponse.from_view(view)
+    return DocumentDetailResponse.from_view(view)
 
 
 @router.delete(

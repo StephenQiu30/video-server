@@ -5,9 +5,10 @@ from app.main import create_app
 
 
 def test_document_openapi_operations_are_stable(tmp_path: Path) -> None:
-    paths = create_app(
+    schema = create_app(
         Settings(app_env="test", frontend_dist_dir=tmp_path / "none")
-    ).openapi()["paths"]
+    ).openapi()
+    paths = schema["paths"]
     assert paths["/api/documents"]["post"]["operationId"] == "createDocumentImport"
     assert paths["/api/documents"]["get"]["operationId"] == "listDocuments"
     assert paths["/api/documents/{document_id}"]["get"]["operationId"] == (
@@ -28,3 +29,7 @@ def test_document_openapi_operations_are_stable(tmp_path: Path) -> None:
         "cancelDocumentImport"
     )
     assert "object_key" not in str(paths).casefold()
+    response = schema["components"]["schemas"]["DocumentDetailResponse"]
+    preview_shapes = response["properties"]["preview"]["anyOf"]
+    assert any(shape.get("maxLength") == 100_000 for shape in preview_shapes)
+    assert {"preview", "preview_truncated"}.issubset(response["required"])

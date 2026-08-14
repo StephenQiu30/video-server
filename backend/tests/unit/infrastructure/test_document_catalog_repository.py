@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
@@ -16,7 +17,7 @@ from app.infrastructure.database import (
     SqlAlchemyDocumentCatalogRepository,
     SqlAlchemyDocumentImportRepository,
 )
-from app.infrastructure.database.models import DocumentRow
+from app.infrastructure.database.models import DocumentArtifactRow, DocumentRow
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 NOW = datetime(2026, 8, 14, 15, 0, tzinfo=UTC)
@@ -25,6 +26,20 @@ SECOND = UUID("77777777-7777-4777-8777-777777777777")
 THIRD = UUID("88888888-8888-4888-8888-888888888888")
 OWNER = "a" * 64
 OTHER_OWNER = "b" * 64
+
+
+class FakePreviewStorage:
+    def __init__(self, payload: bytes = b"") -> None:
+        self.payload = payload
+        self.calls: list[tuple[str, int]] = []
+
+    @property
+    def bucket(self) -> str:
+        return "video-artifacts"
+
+    async def read_range(self, object_key: str, *, length: int) -> bytes:
+        self.calls.append((object_key, length))
+        return self.payload[:length]
 
 
 def command(resource_id: UUID, owner_hash: str, key: str) -> ImportResourceCreate:
@@ -80,7 +95,10 @@ async def test_catalog_is_owner_scoped_ordered_and_hides_deleted(catalog_data) -
 
 async def test_detail_maps_safe_metadata_and_hides_other_owner(catalog_data) -> None:
     catalog, _ = catalog_data
-    get_document = GetDocument(catalog)
+    storage = FakePreviewStorage()
+    get_document = GetDocument(
+        catalog, storage, max_preview_bytes=1024, max_preview_characters=100
+    )
 
     view = await get_document(FIRST, OWNER)
 
@@ -88,9 +106,104 @@ async def test_detail_maps_safe_metadata_and_hides_other_owner(catalog_data) -> 
     assert view.original_filename == "first.md"
     assert view.source_format is ImportSourceFormat.MARKDOWN
     assert view.detected_language is None
+    assert view.preview is None and storage.calls == []
     with pytest.raises(ImportApplicationError) as raised:
         await get_document(FIRST, OTHER_OWNER)
     assert raised.value.code is ImportApplicationErrorCode.NOT_FOUND
+
+
+async def test_ready_detail_reads_only_bounded_normalized_plain_text(
+    catalog_data,
+) -> None:
+    catalog, sessions = catalog_data
+    text = "<script>alert('text only')</script>\n内景 - 夜\n"
+    payload = text.encode()
+    digest = hashlib.sha256(payload).hexdigest()
+    async with sessions() as session, session.begin():
+        row = await session.get(DocumentRow, FIRST)
+        assert row is not None
+        row.status = "ready"
+        row.attempt = 1
+        row.detected_language = "mixed"
+        row.scene_count = 1
+        row.character_count = len(text)
+        row.text_sha256 = digest
+        row.expires_at = NOW + timedelta(days=7)
+        row.finished_at = NOW
+        session.add(
+            DocumentArtifactRow(
+                document_id=FIRST,
+                kind="normalized",
+                bucket="video-artifacts",
+                object_key=f"documents/{FIRST}/1/screenplay.md",
+                content_type="text/markdown; charset=utf-8",
+                size_bytes=len(payload),
+                sha256=digest,
+                status="ready",
+                artifact_metadata={},
+                expires_at=NOW + timedelta(days=7),
+                created_at=NOW,
+                updated_at=NOW,
+            )
+        )
+    storage = FakePreviewStorage(payload)
+    view = await GetDocument(
+        catalog,
+        storage,
+        max_preview_bytes=len(payload),
+        max_preview_characters=100,
+    )(FIRST, OWNER)
+
+    assert view.preview == text
+    assert view.preview_truncated is False
+    assert storage.calls == [(f"documents/{FIRST}/1/screenplay.md", len(payload))]
+
+
+async def test_preview_truncation_drops_only_an_incomplete_utf8_suffix(
+    catalog_data,
+) -> None:
+    catalog, sessions = catalog_data
+    payload = "INT. ROOM - DAY\n你好\n".encode()
+    digest = hashlib.sha256(payload).hexdigest()
+    async with sessions() as session, session.begin():
+        row = await session.get(DocumentRow, FIRST)
+        assert row is not None
+        row.status = "ready"
+        row.attempt = 1
+        row.detected_language = "mixed"
+        row.scene_count = 1
+        row.character_count = 20
+        row.text_sha256 = digest
+        row.expires_at = NOW + timedelta(days=7)
+        row.finished_at = NOW
+        session.add(
+            DocumentArtifactRow(
+                document_id=FIRST,
+                kind="normalized",
+                bucket="video-artifacts",
+                object_key=f"documents/{FIRST}/1/screenplay.md",
+                content_type="text/markdown; charset=utf-8",
+                size_bytes=len(payload),
+                sha256=digest,
+                status="ready",
+                artifact_metadata={},
+                expires_at=NOW + timedelta(days=7),
+                created_at=NOW,
+                updated_at=NOW,
+            )
+        )
+    storage = FakePreviewStorage(payload)
+    byte_limit = payload.index("你".encode()) + 1
+
+    view = await GetDocument(
+        catalog,
+        storage,
+        max_preview_bytes=byte_limit,
+        max_preview_characters=100,
+    )(FIRST, OWNER)
+
+    assert view.preview == "INT. ROOM - DAY\n"
+    assert view.preview_truncated is True
 
 
 async def test_list_rejects_invalid_pagination(catalog_data) -> None:
