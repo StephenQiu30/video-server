@@ -1,8 +1,10 @@
 import {
   cancelAnalysis as cancelAnalysisRequest,
   createAnalysis as createAnalysisRequest,
+  createDocumentAnalysis as createDocumentAnalysisRequest,
   deleteAnalysis as deleteAnalysisRequest,
   getAnalysis as getAnalysisRequest,
+  getLatestDocumentAnalysis as getLatestDocumentAnalysisRequest,
   getLatestDownloadAnalysis as getLatestDownloadAnalysisRequest,
   listAnalysisSkills as listAnalysisSkillsRequest,
   retryAnalysis as retryAnalysisRequest,
@@ -34,6 +36,18 @@ export function createAnalysis(
   );
 }
 
+export function createDocumentAnalysis(
+  documentId: string,
+  input: CreateAnalysisInput,
+  idempotencyKey: string,
+): Promise<AnalysisJob> {
+  return createDocumentAnalysisRequest(
+    { document_id: encodeURIComponent(documentId) },
+    input,
+    { headers: { 'Idempotency-Key': idempotencyKey } },
+  );
+}
+
 export function getAnalysis(id: string): Promise<AnalysisJob> {
   return getAnalysisRequest({ analysis_id: encodeURIComponent(id) });
 }
@@ -43,6 +57,14 @@ export function getLatestDownloadAnalysis(
 ): Promise<AnalysisJob | null> {
   return getLatestDownloadAnalysisRequest({
     download_id: encodeURIComponent(downloadId),
+  });
+}
+
+export function getLatestDocumentAnalysis(
+  documentId: string,
+): Promise<AnalysisJob | null> {
+  return getLatestDocumentAnalysisRequest({
+    document_id: encodeURIComponent(documentId),
   });
 }
 

@@ -5,8 +5,10 @@ import { type TaskSocketStatus, taskSocket } from '@/lib/task-socket';
 import {
   cancelAnalysis,
   createAnalysis,
+  createDocumentAnalysis,
   deleteAnalysis,
   getAnalysis,
+  getLatestDocumentAnalysis,
   getLatestDownloadAnalysis,
   retryAnalysis,
 } from '@/services/analysis';
@@ -17,15 +19,21 @@ import { createIdempotencyKey } from '@/utils/idempotency';
 type Action = 'start' | 'cancel' | 'retry' | 'delete' | null;
 type StableKey = { payload: string; value: string };
 
-export function useAnalysisJob(downloadId: string, pollIntervalMs: number) {
+export function useAnalysisJob(
+  inputId: string,
+  pollIntervalMs: number,
+  inputKind: API.AnalysisInputKind = 'video',
+) {
   const [job, setJob] = useState<AnalysisJob | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [action, setAction] = useState<Action>(null);
   const [socketStatus, setSocketStatus] =
     useState<TaskSocketStatus>('disconnected');
+  const sourceKey = `${inputKind}:${inputId}`;
   const createKey = useRef<StableKey | null>(null);
   const retryKey = useRef<StableKey | null>(null);
   const hasLocalJob = useRef(false);
+  const sourceKeyRef = useRef(sourceKey);
   const versionRef = useRef(0);
 
   const analysisId = job?.id ?? null;
@@ -33,8 +41,22 @@ export function useAnalysisJob(downloadId: string, pollIntervalMs: number) {
   versionRef.current = job?.version ?? 0;
 
   useEffect(() => {
+    if (sourceKeyRef.current === sourceKey) return;
+    sourceKeyRef.current = sourceKey;
+    hasLocalJob.current = false;
+    createKey.current = null;
+    retryKey.current = null;
+    setJob(null);
+    setError(null);
+  }, [sourceKey]);
+
+  useEffect(() => {
     let disposed = false;
-    void getLatestDownloadAnalysis(downloadId)
+    const loadLatest =
+      inputKind === 'screenplay'
+        ? getLatestDocumentAnalysis
+        : getLatestDownloadAnalysis;
+    void loadLatest(inputId)
       .then((current) => {
         if (disposed || hasLocalJob.current || current === null) return;
         hasLocalJob.current = true;
@@ -46,7 +68,7 @@ export function useAnalysisJob(downloadId: string, pollIntervalMs: number) {
     return () => {
       disposed = true;
     };
-  }, [downloadId]);
+  }, [inputId, inputKind]);
 
   useEffect(() => {
     if (!analysisId || !shouldSync) {
@@ -95,7 +117,7 @@ export function useAnalysisJob(downloadId: string, pollIntervalMs: number) {
   const start = useCallback(
     async (input: CreateAnalysisInput) => {
       hasLocalJob.current = true;
-      const payload = JSON.stringify([downloadId, input]);
+      const payload = JSON.stringify([inputKind, inputId, input]);
       if (createKey.current?.payload !== payload) {
         createKey.current = {
           payload,
@@ -106,16 +128,16 @@ export function useAnalysisJob(downloadId: string, pollIntervalMs: number) {
       setAction('start');
       setError(null);
       try {
-        setJob(
-          await createAnalysis(downloadId, input, createKey.current.value),
-        );
+        const create =
+          inputKind === 'screenplay' ? createDocumentAnalysis : createAnalysis;
+        setJob(await create(inputId, input, createKey.current.value));
       } catch (reason) {
         setError(displayError(reason));
       } finally {
         setAction(null);
       }
     },
-    [downloadId],
+    [inputId, inputKind],
   );
 
   const cancel = useCallback(async () => {

@@ -3,6 +3,7 @@
 import { ArrowClockwise } from '@phosphor-icons/react';
 
 import { BackLink } from '@/components/back-link';
+import ScreenplayAnalysisPanel from '@/components/screenplay-analysis-panel';
 import {
   documentStatusLabels,
   documentStatusVariant,
@@ -79,6 +80,12 @@ export default function ScreenplayDocumentDetailView({
               <ScreenplayDocumentMetadata document={state.document} />
             </div>
           </div>
+          {state.document.status === 'ready' ? (
+            <ScreenplayAnalysisPanel
+              documentId={documentId}
+              pollIntervalMs={pollIntervalMs}
+            />
+          ) : null}
         </>
       ) : null}
     </main>

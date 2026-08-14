@@ -20,12 +20,14 @@ const MAX_PROMPT_LENGTH = 4_000;
 
 export default function AnalysisConfigurator({
   busy,
+  inputKind = 'video',
   onStart,
 }: {
   busy: boolean;
+  inputKind?: API.AnalysisInputKind;
   onStart: (input: CreateAnalysisInput) => void;
 }) {
-  const catalog = useAnalysisSkills('video');
+  const catalog = useAnalysisSkills(inputKind);
   const [skillId, setSkillId] = useState('');
   const [language, setLanguage] = useState<OutputLanguage>('zh-CN');
   const [prompt, setPrompt] = useState('');
@@ -57,13 +59,18 @@ export default function AnalysisConfigurator({
     <div className="mt-10 w-full">
       <div className="grid gap-5 sm:grid-cols-2">
         <Field>
-          <FieldLabel htmlFor="analysis-skill">分析 Skill</FieldLabel>
+          <FieldLabel htmlFor={controlId(inputKind, 'skill')}>
+            {inputKind === 'screenplay' ? '剧本 Skill' : '分析 Skill'}
+          </FieldLabel>
           <Select
             disabled={catalog.loading || catalog.skills.length === 0}
             onValueChange={changeSkill}
             value={skillId}
           >
-            <SelectTrigger className="w-full" id="analysis-skill">
+            <SelectTrigger
+              className="w-full"
+              id={controlId(inputKind, 'skill')}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -93,12 +100,17 @@ export default function AnalysisConfigurator({
           </FieldDescription>
         </Field>
         <Field>
-          <FieldLabel htmlFor="analysis-language">输出语言</FieldLabel>
+          <FieldLabel htmlFor={controlId(inputKind, 'language')}>
+            输出语言
+          </FieldLabel>
           <Select
             onValueChange={(value) => setLanguage(value as OutputLanguage)}
             value={language}
           >
-            <SelectTrigger className="w-full" id="analysis-language">
+            <SelectTrigger
+              className="w-full"
+              id={controlId(inputKind, 'language')}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -107,14 +119,18 @@ export default function AnalysisConfigurator({
             </SelectContent>
           </Select>
           <FieldDescription>
-            分析结构保持一致，仅改变模型输出文字。
+            {inputKind === 'screenplay'
+              ? '与原文语言相同表示润色，不同表示跨语言改写。'
+              : '分析结构保持一致，仅改变模型输出文字。'}
           </FieldDescription>
         </Field>
       </div>
 
       <Field className="mt-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <FieldLabel htmlFor="analysis-prompt">分析提示词</FieldLabel>
+          <FieldLabel htmlFor={controlId(inputKind, 'prompt')}>
+            {inputKind === 'screenplay' ? '分析或改写要求' : '分析提示词'}
+          </FieldLabel>
           <Button
             disabled={!selected || prompt === selected.default_prompt}
             onClick={() => selected && setPrompt(selected.default_prompt)}
@@ -127,7 +143,7 @@ export default function AnalysisConfigurator({
           </Button>
         </div>
         <Textarea
-          id="analysis-prompt"
+          id={controlId(inputKind, 'prompt')}
           maxLength={MAX_PROMPT_LENGTH}
           onChange={(event) => setPrompt(event.target.value)}
           rows={5}
@@ -146,9 +162,18 @@ export default function AnalysisConfigurator({
       <div className="mt-7 flex flex-col-reverse items-start justify-between gap-5 sm:flex-row sm:items-center">
         <p className="flex max-w-2xl items-start gap-2 text-sm leading-6 text-muted-foreground">
           <ShieldCheck className="mt-1 shrink-0 text-success" />
-          完整视频文件会交给本机 Agent；Agent
-          必须覆盖全片时间轴并自主复核分镜边界与高光，不以预先抽取的固定帧集替代分析。Agent
-          实际查看的画面帧、任务指令和必要上下文会发送到所选云端模型处理；应用不会把原始视频容器直接上传给模型服务。
+          {inputKind === 'screenplay' ? (
+            <>
+              规范化剧本文本、任务指令，以及改写时必要的术语表和有界相邻上下文会发送到所选云端模型处理。受限剧本执行器不能使用文件、Shell、网络、浏览器、插件或其他
+              Agent。
+            </>
+          ) : (
+            <>
+              完整视频文件会交给本机 Agent；Agent
+              必须覆盖全片时间轴并自主复核分镜边界与高光，不以预先抽取的固定帧集替代分析。Agent
+              实际查看的画面帧、任务指令和必要上下文会发送到所选云端模型处理；应用不会把原始视频容器直接上传给模型服务。
+            </>
+          )}
         </p>
         <Button
           className="w-full shrink-0 sm:w-auto"
@@ -164,9 +189,17 @@ export default function AnalysisConfigurator({
           size="lg"
         >
           {busy ? <Spinner aria-hidden /> : null}
-          开始 AI 分析
+          {selected?.result_contract === 'screenplay-rewrite'
+            ? '开始剧本改写'
+            : inputKind === 'screenplay'
+              ? '开始剧本分析'
+              : '开始 AI 分析'}
         </Button>
       </div>
     </div>
   );
+}
+
+function controlId(inputKind: API.AnalysisInputKind, field: string) {
+  return `${inputKind === 'video' ? 'analysis' : 'screenplay-analysis'}-${field}`;
 }

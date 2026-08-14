@@ -22,6 +22,12 @@ vi.mock('@/services/documents', () => ({
   listScreenplayDocuments: runtime.listScreenplayDocuments,
 }));
 
+vi.mock('@/components/screenplay-analysis-panel', () => ({
+  default: ({ documentId }: { documentId: string }) => (
+    <section aria-label="剧本分析工作区">{documentId}</section>
+  ),
+}));
+
 describe('screenplay documents', () => {
   beforeEach(() => {
     runtime.getScreenplayDocument.mockReset();
@@ -101,6 +107,9 @@ describe('screenplay documents', () => {
       '未识别到明确场景标题',
     );
     expect(screen.getByText('中英混合')).toBeInTheDocument();
+    expect(screen.getByLabelText('剧本分析工作区')).toHaveTextContent(
+      'document-id',
+    );
     expect(screen.getByRole('link', { name: '返回上一步' })).toHaveAttribute(
       'href',
       '/documents',
