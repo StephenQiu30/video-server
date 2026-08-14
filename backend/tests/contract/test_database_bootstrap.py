@@ -54,7 +54,7 @@ def test_current_schema_can_be_applied_repeatedly() -> None:
     assert "expires_at <= created_at + INTERVAL '25 hours'" in schema
 
 
-def test_optional_environment_services_use_one_profile() -> None:
+def test_compose_does_not_bundle_host_managed_infrastructure() -> None:
     compose = COMPOSE_PATH.read_text(encoding="utf-8")
     for service in (
         "postgres",
@@ -65,34 +65,34 @@ def test_optional_environment_services_use_one_profile() -> None:
         "minio",
         "minio-init",
     ):
-        service_config = _service_block(compose, service)
-        assert "profiles: [environment]" in service_config
-
-
-def test_compose_initializes_database_before_database_consumers_start() -> None:
-    compose = COMPOSE_PATH.read_text(encoding="utf-8")
-    initializer = _service_block(compose, "database-init")
-
-    assert "psql" in initializer
-    assert "/schema/schema.sql" in initializer
-    assert "postgres:\n        condition: service_healthy" in initializer
+        assert not re.search(rf"(?m)^  {re.escape(service)}:$", compose)
+    assert "profiles: [environment]" not in compose
     assert "/docker-entrypoint-initdb.d/" not in compose
 
 
-def test_production_compose_requires_database_initializer_credentials() -> None:
-    initializer = _service_block(
-        PROD_COMPOSE_PATH.read_text(encoding="utf-8"), "database-init"
-    )
+def test_database_consumers_use_the_host_managed_postgres_service() -> None:
+    compose = COMPOSE_PATH.read_text(encoding="utf-8")
 
-    assert 'POSTGRES_DB: "${POSTGRES_DB:?set POSTGRES_DB in .env.prod}"' in initializer
-    assert (
-        'POSTGRES_USER: "${POSTGRES_USER:?set POSTGRES_USER in .env.prod}"'
-        in initializer
-    )
-    assert (
-        'POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}"'
-        in initializer
-    )
+    for service in (
+        "api",
+        "outbox",
+        "worker-download",
+        "worker-import",
+        "worker-report",
+        "provider-canary",
+    ):
+        service_config = _service_block(compose, service)
+        assert "@host.docker.internal:${HOST_POSTGRES_PORT:-5432}/" in service_config
+        assert '"host.docker.internal:host-gateway"' in service_config
+
+
+def test_production_compose_uses_the_production_env_and_host_database() -> None:
+    production = PROD_COMPOSE_PATH.read_text(encoding="utf-8")
+    api = _service_block(production, "api")
+
+    assert "env_file:\n      - .env.prod" in api
+    assert "@host.docker.internal:${HOST_POSTGRES_PORT:-5432}/" in api
+    assert not re.search(r"(?m)^  database-init:$", production)
 
 
 def test_compose_uses_typed_application_retention_defaults() -> None:
@@ -117,10 +117,11 @@ def test_compose_uses_typed_application_retention_defaults() -> None:
 def test_api_receives_feature_flags_and_uses_typed_import_defaults() -> None:
     api = _service_block(COMPOSE_PATH.read_text(encoding="utf-8"), "api")
 
-    assert 'MEDIA_IMPORT_ENABLED: "${MEDIA_IMPORT_ENABLED:-false}"' in api
-    assert 'DOCUMENT_IMPORT_ENABLED: "${DOCUMENT_IMPORT_ENABLED:-false}"' in api
-    assert 'SCREENPLAY_ANALYSIS_ENABLED: "${SCREENPLAY_ANALYSIS_ENABLED:-false}"' in api
+    assert "env_file:\n      - .env" in api
     for variable in (
+        "MEDIA_IMPORT_ENABLED",
+        "DOCUMENT_IMPORT_ENABLED",
+        "SCREENPLAY_ANALYSIS_ENABLED",
         "MEDIA_IMPORT_MAX_BYTES",
         "DOCUMENT_IMPORT_MAX_BYTES",
         "IMPORT_UPLOAD_SESSION_TTL_SECONDS",
@@ -137,26 +138,36 @@ def test_import_worker_is_private_bounded_and_uses_dedicated_identities() -> Non
     worker = _service_block(compose, "worker-import")
 
     assert "SERVICE_ROLE: import-worker" in worker
-    assert "RABBITMQ_IMPORT_URL" in worker
+    assert "RABBITMQ_IMPORT_USER" in worker
+    assert "RABBITMQ_IMPORT_PASS" in worker
     assert "MINIO_IMPORT_ACCESS_KEY" in worker
     assert "MINIO_IMPORT_SECRET_KEY" in worker
-    assert "networks: [db_net, queue_net, storage_net]" in worker
-    assert "public_egress_net" not in worker
+    assert "networks:\n      - app_net" in worker
+    assert "runner_egress_net" not in worker
+    assert "ports:" not in worker
     assert 'command: ["python", "-m", "app.workers.imports.main"]' in worker
-    assert "read_only: true" in worker
-    assert "cap_drop: [ALL]" in worker
-    assert "security_opt: [no-new-privileges:true]" in worker
-    assert "pids_limit: 128" in worker
-    assert "/work:rw,noexec,nosuid,size=3g" in worker
+
+
+def test_compose_assigns_each_application_container_its_process_entrypoint() -> None:
+    compose = COMPOSE_PATH.read_text(encoding="utf-8")
+    commands = {
+        "api": "app.main",
+        "outbox": "app.workers.outbox.main",
+        "worker-download": "app.workers.download.main",
+        "worker-import": "app.workers.imports.main",
+        "worker-report": "app.workers.report.main",
+        "provider-canary": "app.workers.canary.main",
+    }
+
+    for service, module in commands.items():
+        service_config = _service_block(compose, service)
+        assert f'command: ["python", "-m", "{module}"]' in service_config
 
 
 def test_compose_pins_shared_runner_workspace_to_the_mounted_container_path() -> None:
     compose = COMPOSE_PATH.read_text(encoding="utf-8")
 
     for service in (
-        "api",
-        "worker-download",
-        "provider-canary",
         "media-runner",
         "youtube-operator-runner",
         "provider-operator-runner",

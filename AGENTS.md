@@ -19,7 +19,8 @@ server/
 │   │   ├── web/                   Next.js 静态导出、404 与旧路由转发
 │   │   ├── composition.py         运行时依赖装配
 │   │   └── main.py                FastAPI 入口
-│   ├── config/                    Egress、MinIO 等运行配置
+│   ├── egress/                    Squid 出口代理策略
+│   ├── supply-chain/              后端 SBOM 与第三方声明
 │   ├── sql/schema.sql             PostgreSQL 当前态结构
 │   └── tests/                     architecture/contract/integration/unit 测试
 ├── frontend/                      Next.js App Router 前端
@@ -34,8 +35,8 @@ server/
 │   └── tests/                     Vitest 测试
 ├── docs/                          当前设计、需求、计划、验收与运维文档
 ├── Dockerfile                     前后端统一生产镜像
-├── docker-compose.yml             单一服务拓扑（可选 environment Profile）
-└── docker-compose-prod.yml        生产环境覆盖（.env.prod、镜像与端口）
+├── docker-compose.yml             本机业务容器拓扑
+└── docker-compose-prod.yml        生产业务容器拓扑
 ```
 
 仓库只保留 `backend/`、`frontend/`、`docs/` 三个业务模块和根治理文件，不新增 `deploy/`、重复子仓库或平行应用目录。生产环境不运行独立前端容器，静态资源由根镜像构建并通过 FastAPI 同源提供。
@@ -92,7 +93,7 @@ server/
 
 - 后端依赖方向为 `api/workers → application → domain`。`domain` 不得导入 FastAPI、SQLAlchemy、RabbitMQ、MinIO、yt-dlp、FFmpeg 或模型 SDK。
 - API、下载 Worker、媒体 Runner、AI Worker 是独立进程。PostgreSQL 是状态事实来源；跨 PostgreSQL/RabbitMQ 使用 transactional outbox，消费者必须支持幂等和 lease/heartbeat。
-- PostgreSQL 只通过 `backend/sql/schema.sql` 维护当前态结构。Compose 的一次性 `database-init` 服务必须在每次启动时幂等执行该文件，API、Outbox 和数据库 Worker 必须等待初始化成功；项目不维护迁移目录、历史 schema 或旧版本兼容逻辑。结构变化时同步更新可重复执行的当前态 SQL、ORM 和测试，并同时使用空数据卷与已有当前态数据卷验证。
+- PostgreSQL 只通过 `backend/sql/schema.sql` 维护当前态结构。PostgreSQL 由宿主机或外部平台管理，部署者必须在启动业务容器前幂等执行该文件；项目不维护迁移目录、历史 schema、Compose 数据库初始化服务或旧版本兼容逻辑。结构变化时同步更新可重复执行的当前态 SQL、ORM 和测试，并同时使用空数据库与已有当前态数据库验证。
 - OpenAPI 是前后端接口契约的唯一来源，通过 `/openapi.json` 提供，并由 `/docs` 展示 Swagger UI；不维护平行 DTO、手写生成类型或旧 API 适配层。
 - 只实现当前需求，不添加旧目录、旧 API、旧 Provider 或旧数据库的兼容分支。单个源码文件原则上不超过 200 行，超过时按职责拆分。
 
@@ -104,7 +105,7 @@ server/
 - AI 任务独立于下载任务；AI 失败不得改变下载成功状态。模型输出必须通过严格 schema、连续分镜时间轴和 shot evidence 校验，普通日志不得记录完整 Prompt、抽帧或原始模型响应。
 - Secret 只来自类型化配置和环境变量，不得进入前端、API 响应、异常、快照、测试夹具或普通日志。外部操作必须设置大小、时长、并发和超时上限，取消时终止整个子进程组。
 - 复用本机 OAuth 的 AI Worker 是 Compose 完整拓扑的唯一例外：必须由已登录 Codex 或 Claude CLI 的宿主机用户启动，容器不得挂载或复制 CLI 认证目录。
-- Compose 必须保持职责清晰：`docker-compose.yml` 是唯一基础配置，直接定义应用、Worker、Runner、出口代理及必要的跨服务连接；PostgreSQL、RabbitMQ、Valkey、MinIO 和初始化任务统一放在 `environment` Profile 中，本机已有基础设施时不启用该 Profile。`docker-compose-prod.yml` 只覆盖生产 `.env.prod`、生产镜像和对外端口。生产命令必须显式传入 `--env-file .env.prod`，生产覆盖必须使用 `${VAR:?set VAR in .env.prod}` 在 Compose 解析阶段校验关键配置。后端配置模型已有默认值的普通运行参数不得在 Compose 重复声明；Compose 只传递服务角色、连接地址、跨进程密钥和容器专用地址。所有服务必须显式设置稳定的 `container_name`；公开主服务使用 `video-server`，基础服务使用 `postgres`、`database-init`、`rabbitmq`、`minio` 等简单名称。启动前按需复制 `.env.example` 为 `.env`，生产环境复制 `.env.prod.example` 为 `.env.prod` 并替换占位值。不要提交 `.env`、制品、缓存、日志、临时目录、虚拟环境或 `node_modules/`。
+- Compose 必须保持职责清晰：`docker-compose.yml` 与 `docker-compose-prod.yml` 只定义应用、Worker、Runner、出口代理及必要的跨服务连接，不在仓库中内置 PostgreSQL、RabbitMQ、Valkey、MinIO 或其初始化脚本。外部基础设施的账号、权限、队列、bucket、生命周期和 schema 由部署者预置；Compose 只传递服务角色、连接地址、跨进程密钥和容器专用地址，并为每个进程声明正确入口命令。所有服务必须显式设置稳定的 `container_name`。启动前按需复制 `.env.example` 为 `.env`，生产环境复制 `.env.prod.example` 为 `.env.prod` 并替换占位值。不要提交 `.env`、制品、缓存、日志、临时目录、虚拟环境或 `node_modules/`。
 
 ## 实现与验证
 

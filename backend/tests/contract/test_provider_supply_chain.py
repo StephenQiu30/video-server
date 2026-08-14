@@ -4,10 +4,11 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+SUPPLY_CHAIN = ROOT / "supply-chain"
 
 
 def test_provider_sbom_pins_runtime_components_and_licenses() -> None:
-    document = json.loads((ROOT / "config/provider-sbom.json").read_text())
+    document = json.loads((SUPPLY_CHAIN / "provider-sbom.json").read_text())
     components = {item["name"]: item for item in document["components"]}
 
     assert document["bomFormat"] == "CycloneDX"
@@ -26,10 +27,10 @@ def test_pyproject_and_compose_match_provider_sbom() -> None:
     pyproject = (ROOT / "pyproject.toml").read_text()
     compose = (ROOT.parent / "docker-compose.yml").read_text()
     dockerfile = (ROOT.parent / "Dockerfile").read_text()
-    notices = (ROOT / "config/PROVIDER-NOTICES.md").read_text()
+    notices = (SUPPLY_CHAIN / "PROVIDER-NOTICES.md").read_text()
 
     assert '"bgutil-ytdlp-pot-provider==1.3.1"' in pyproject
     assert "bgutil-ytdlp-pot-provider:1.3.1@sha256:1aaa43a0" in compose
-    assert "config/PROVIDER-NOTICES.md" in dockerfile
+    assert "backend/supply-chain/" in dockerfile
     assert "GPL-3.0-only" in notices
     assert "MeTube, cobalt and gallery-dl are research references only" in notices

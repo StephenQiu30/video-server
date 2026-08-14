@@ -4,11 +4,12 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+SUPPLY_CHAIN = ROOT / "supply-chain"
 
 
 def test_document_import_sbom_pins_versions_and_licenses() -> None:
     document = json.loads(
-        (ROOT / "config/document-import-sbom.json").read_text(encoding="utf-8")
+        (SUPPLY_CHAIN / "document-import-sbom.json").read_text(encoding="utf-8")
     )
     components = {item["name"]: item for item in document["components"]}
 
@@ -25,10 +26,9 @@ def test_document_import_sbom_pins_versions_and_licenses() -> None:
 def test_pdf_dependency_and_notices_are_shipped_with_the_runtime() -> None:
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     dockerfile = (ROOT.parent / "Dockerfile").read_text(encoding="utf-8")
-    notices = (ROOT / "config/DOCUMENT-IMPORT-NOTICES.md").read_text(encoding="utf-8")
+    notices = (SUPPLY_CHAIN / "DOCUMENT-IMPORT-NOTICES.md").read_text(encoding="utf-8")
 
     assert '"pypdf==6.16.0"' in pyproject
-    assert "config/document-import-sbom.json" in dockerfile
-    assert "config/DOCUMENT-IMPORT-NOTICES.md" in dockerfile
+    assert "backend/supply-chain/" in dockerfile
     assert "BSD-3-Clause" in notices
     assert "OCR is not included" in notices

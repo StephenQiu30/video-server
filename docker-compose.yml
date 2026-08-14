@@ -47,6 +47,7 @@ services:
       timeout: 5s
       retries: 12
       start_period: 15s
+    command: ["python", "-m", "app.main"]
 
   outbox:
     build:
@@ -65,6 +66,7 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - app_net
+    command: ["python", "-m", "app.workers.outbox.main"]
 
   worker-download:
     build:
@@ -97,6 +99,7 @@ services:
         condition: service_started
       egress-proxy:
         condition: service_healthy
+    command: ["python", "-m", "app.workers.download.main"]
 
   worker-import:
     build:
@@ -120,6 +123,7 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - app_net
+    command: ["python", "-m", "app.workers.imports.main"]
 
   worker-report:
     build:
@@ -143,6 +147,7 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - app_net
+    command: ["python", "-m", "app.workers.report.main"]
 
   provider-canary:
     build:
@@ -173,6 +178,7 @@ services:
         condition: service_started
       egress-proxy:
         condition: service_healthy
+    command: ["python", "-m", "app.workers.canary.main"]
 
   media-runner:
     build:
@@ -226,8 +232,8 @@ services:
     ports:
       - "127.0.0.1:${EGRESS_PROXY_HOST_PORT:-13128}:3128"
     volumes:
-      - ./backend/config/egress/squid.conf:/etc/squid/squid.conf:ro
-      - ./backend/config/egress/blocked-destinations-docker-desktop.conf:/etc/squid/blocked-destinations.conf:ro
+      - ./backend/egress/squid.conf:/etc/squid/squid.conf:ro
+      - ./backend/egress/blocked-destinations-docker-desktop.conf:/etc/squid/blocked-destinations.conf:ro
     networks:
       - runner_egress_net
     healthcheck:

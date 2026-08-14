@@ -1,7 +1,9 @@
 from pathlib import Path
 
-CONFIG = Path(__file__).resolve().parents[3] / "config" / "egress" / "squid.conf"
+BACKEND_ROOT = Path(__file__).resolve().parents[3]
+CONFIG = BACKEND_ROOT / "egress" / "squid.conf"
 CONFIG_ROOT = CONFIG.parent
+REPOSITORY_ROOT = BACKEND_ROOT.parent
 
 
 def test_bilibili_tls_media_port_is_scoped_to_its_cdn() -> None:
@@ -41,3 +43,14 @@ def test_docker_desktop_public_range_is_not_trusted_in_production() -> None:
     assert "acl blocked_destination dst 198.18.0.0/15" in production
     assert "acl docker_desktop_public dst 198.18.0.0/15" in docker_desktop
     assert "acl blocked_destination dst 198.18.0.0/15" not in docker_desktop
+
+
+def test_compose_selects_environment_specific_destination_policy() -> None:
+    development = (REPOSITORY_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    production = (REPOSITORY_ROOT / "docker-compose-prod.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "backend/egress/blocked-destinations-docker-desktop.conf" in development
+    assert "backend/egress/blocked-destinations.conf" in production
+    assert "blocked-destinations-docker-desktop.conf" not in production

@@ -2,7 +2,7 @@
 
 FastAPI API、下载/分析领域逻辑、异步 Worker、当前态数据库 SQL 和 Python 测试位于本模块。
 
-所有 Python 与 `uv` 命令都应从 `backend/` 执行。数据库当前结构定义在可重复执行的 `sql/schema.sql`；Compose 每次启动都先运行一次性 `database-init` 服务，初始化成功后才启动 API、Outbox 和下载 Worker。项目不维护迁移历史或旧 schema 兼容路径。生产镜像由仓库根目录 `Dockerfile` 统一构建。
+所有 Python 与 `uv` 命令都应从 `backend/` 执行。数据库当前结构定义在可重复执行的 `sql/schema.sql`；宿主机或外部平台必须在启动业务容器前幂等加载该文件。项目不维护迁移历史、Compose 数据库初始化服务或旧 schema 兼容路径。生产镜像由仓库根目录 `Dockerfile` 统一构建。
 
 ## 目录约定
 
@@ -34,18 +34,12 @@ Media Runner 通过 `app/runner/plugins/yt_dlp_plugins/` 加载随项目交付�
 
 ## 运行与就绪
 
-完整本地拓扑从仓库根目录通过 `environment` Profile 启动；`database-init`、`rabbitmq-init`、`minio-init` 和 `workspace-init` 是应以 `0` 退出的一次性初始化服务，其余 API、Worker 与基础设施保持运行：
+本机必须先提供 PostgreSQL、RabbitMQ、Valkey/Redis 和 MinIO，并预置数据库 schema、消息拓扑、对象存储身份与 bucket。随后从仓库根目录启动业务容器；Compose 不管理这些外部基础设施：
 
 ```bash
 docker compose --env-file .env -f docker-compose.yml build
-docker compose --env-file .env \
-  -f docker-compose.yml --profile environment \
-  up -d database-init rabbitmq-init valkey minio-init
-docker wait database-init rabbitmq-init minio-init
 docker compose --env-file .env -f docker-compose.yml up -d --force-recreate
-docker compose --env-file .env \
-  -f docker-compose.yml --profile environment \
-  ps --all
+docker compose --env-file .env -f docker-compose.yml ps --all
 ```
 
 宿主机 AI Worker 不属于 Compose。默认启用分析时，从 `backend/` 单独启动且只运行一个实例：
@@ -55,7 +49,7 @@ uv sync --frozen --dev
 uv run python -m app.workers.analysis.main
 ```
 
-API `/health/live` 只证明进程存活；`/health/ready` 还会在有界超时内检查数据库结构、Media Runner、MinIO、RabbitMQ、Valkey，以及启用分析时兼容 AI Worker 的心跳。Compose 重建数据库或消息队列可能使宿主机 Worker 的长连接中断并退出，应在重建后重新启动 Worker，再以 `/health/ready` 返回 `200` 作为交付条件。没有 AI Worker 的部署必须显式设置 `ANALYSIS_ENABLED=false` 并重建 API。
+API `/health/live` 只证明进程存活；`/health/ready` 还会在有界超时内检查数据库结构、Media Runner、MinIO、RabbitMQ、Valkey，以及启用分析时兼容 AI Worker 的心跳。外部数据库或消息队列重启可能使宿主机 Worker 的长连接中断并退出，应在基础设施恢复后重新启动 Worker，再以 `/health/ready` 返回 `200` 作为交付条件。没有 AI Worker 的部署必须显式设置 `ANALYSIS_ENABLED=false` 并重建 API。
 
 ## 测试数据库
 
