@@ -69,6 +69,10 @@ describe('AppShell', () => {
     expect(historyLink).toHaveClass('min-h-11', 'text-[15px]');
     expect(historyLink.className).not.toContain('translate-y-px');
     expect(historyLink).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: /剧本文档/ })).toHaveAttribute(
+      'href',
+      '/documents',
+    );
     expect(screen.getByRole('link', { name: /平台状态/ })).toHaveAttribute(
       'href',
       '/providers',
@@ -104,6 +108,9 @@ describe('AppShell', () => {
     expect(
       within(mobileNavigation).getByRole('link', { name: '下载记录' }),
     ).not.toHaveAttribute('aria-current');
+    expect(
+      within(mobileNavigation).getByRole('link', { name: '剧本文档' }),
+    ).toHaveAttribute('href', '/documents');
     expect(
       within(mobileNavigation).getByRole('link', { name: '平台状态' }),
     ).toHaveAttribute('href', '/providers');

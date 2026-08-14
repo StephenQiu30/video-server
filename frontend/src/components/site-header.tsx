@@ -1,6 +1,10 @@
 'use client';
 
-import { ClockCounterClockwiseIcon, PulseIcon } from '@phosphor-icons/react';
+import {
+  ClockCounterClockwiseIcon,
+  FileTextIcon,
+  PulseIcon,
+} from '@phosphor-icons/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -41,6 +45,7 @@ export function SiteHeader() {
   const pathname = usePathname() ?? '/';
   const router = useRouter();
   const historyActive = pathname.startsWith('/history');
+  const documentsActive = pathname.startsWith('/documents');
   const providersActive = pathname.startsWith('/providers');
   const analyticsActive = pathname.startsWith('/admin/analytics');
   const aiProvidersActive = pathname.startsWith('/admin/ai-providers');
@@ -76,6 +81,22 @@ export function SiteHeader() {
             >
               <ClockCounterClockwiseIcon aria-hidden className="size-5" />
               <span>下载记录</span>
+            </Link>
+          </Button>
+          <Button
+            asChild
+            className={cn(
+              'min-h-11 px-3.5 text-[15px] text-foreground',
+              documentsActive && 'bg-muted',
+            )}
+            variant="ghost"
+          >
+            <Link
+              aria-current={documentsActive ? 'page' : undefined}
+              href="/documents"
+            >
+              <FileTextIcon aria-hidden className="size-5" />
+              <span>剧本文档</span>
             </Link>
           </Button>
           <Button

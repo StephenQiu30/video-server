@@ -30,6 +30,12 @@ export type DownloadUrl = API.DownloadUrlResponse;
 export type DownloadHistoryItem = API.DownloadHistoryItemResponse;
 export type DownloadHistory = API.DownloadHistoryResponse;
 export type DownloadHistoryQuery = API.getDownloadHistoryParams;
+export type ScreenplayDocumentStatus = API.ImportStatus;
+export type ScreenplayDocumentFormat = API.DocumentSourceFormat;
+export type ScreenplayDocumentSummary = API.DocumentResponse;
+export type ScreenplayDocument = API.DocumentDetailResponse;
+export type ScreenplayDocumentPage = API.DocumentPageResponse;
+export type ScreenplayDocumentQuery = API.listDocumentsParams;
 
 export const terminalAnalysisStatuses = new Set<AnalysisStatus>([
   'succeeded',

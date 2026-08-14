@@ -177,3 +177,13 @@ final result: passed
 - 本轮前端 lint/typecheck、183 文件格式检查、33 个测试文件/119 项测试和生产构建全部通过；仓库脚本测试增至 19 项并修复 Windows 下统一 CI 入口无法解析 `npm.cmd` 的历史问题。依赖锁定安装已在干净 Docker 构建中通过；本机另有运行中的 Next dev 进程锁定原生模块，故不以该 EPERM 作为产品失败。
 
 final result: passed
+
+## 2026-08-14 剧本文档列表与纯文本预览
+
+- 新增受保护的 `/documents` 列表和 `/documents/detail?documentId=...` 详情；视觉采用现有 Vercel/Geist 无卡片内容流，列表用于定位提取任务，详情以剧本式等宽文本区作为主校验表面，并在桌面/移动导航增加“剧本文档”。
+- `agent-browser` 在生产构建下覆盖 1280×900 与 390×844 的浅色/深色、长标题和长文件名、列表/详情/缺失 ID、刷新、跳过链接及移动 Sheet。所有页面满足 `scrollWidth = clientWidth`；Sheet 可由 Escape 关闭且焦点返回触发器，浏览器 console/error 为空。
+- 预览中的 HTML-like 内容保持转义文本，DOM 不生成 `script` 节点；ready、verifying、failed、empty、请求失败、预览截断和质量警告均有自动化或浏览器证据。
+- 巡检发现详情侧栏的 warning Alert 把图标、标题和正文作为三个网格项，390px 下标题被逐字挤压；现已将标题与正文组合为单一内容列，桌面与移动端均复验通过。证据位于忽略目录 `.codex-tmp/document-ui-qa/`。
+- 工程门禁：production audit 0；lint/typecheck、format、37 个测试文件/133 项测试和 Next.js production build 通过。
+
+final result: passed

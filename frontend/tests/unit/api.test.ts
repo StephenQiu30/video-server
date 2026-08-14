@@ -15,6 +15,10 @@ import {
   register,
 } from '@/services/auth';
 import {
+  getScreenplayDocument,
+  listScreenplayDocuments,
+} from '@/services/documents';
+import {
   cancelDownload,
   createDownload,
   getDownload,
@@ -36,6 +40,11 @@ import {
   updateUserAccess,
 } from '@/services/users';
 import { analysisJob, analysisSkills } from '../fixtures/analysis-fixtures';
+import {
+  documentId,
+  screenplayDocument,
+  screenplayDocumentPage,
+} from '../fixtures/document-fixtures';
 import { inspection, job } from '../fixtures/download-fixtures';
 import { httpRequests, mockHttpResponses } from '../helpers/http';
 
@@ -154,6 +163,26 @@ describe('typed API client', () => {
       },
       url: '/api/downloads/history',
     });
+  });
+
+  it('uses owner-scoped screenplay document list and detail endpoints', async () => {
+    mockHttpResponses(screenplayDocumentPage(), screenplayDocument());
+
+    await expect(
+      listScreenplayDocuments({ page: 2, page_size: 20 }),
+    ).resolves.toEqual(screenplayDocumentPage());
+    await expect(getScreenplayDocument(documentId)).resolves.toEqual(
+      screenplayDocument(),
+    );
+
+    expect(httpRequests()).toMatchObject([
+      {
+        method: 'GET',
+        params: { page: 2, page_size: 20 },
+        url: '/api/documents',
+      },
+      { method: 'GET', url: `/api/documents/${documentId}` },
+    ]);
   });
 
   it('loads administrator download analytics for the selected period', async () => {

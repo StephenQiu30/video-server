@@ -3,6 +3,7 @@
 import {
   ChartLineUpIcon,
   ClockCounterClockwiseIcon,
+  FileTextIcon,
   LinkSimpleIcon,
   ListIcon,
   PulseIcon,
@@ -12,8 +13,8 @@ import {
   UserCircleIcon,
   UsersThreeIcon,
 } from '@phosphor-icons/react';
-import Link from 'next/link';
 
+import { MobileNavigationLink as MobileLink } from '@/components/mobile-navigation-link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -27,7 +28,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { cn } from '@/lib/utils';
 import type { AuthUser } from '@/services/auth';
 
 type MobileNavigationProps = {
@@ -65,7 +65,7 @@ export function MobileNavigation({
         <SheetHeader>
           <SheetTitle>导航</SheetTitle>
           <SheetDescription>
-            访问视频解析、下载任务与账户设置。
+            访问视频解析、剧本文档、下载任务与账户设置。
           </SheetDescription>
         </SheetHeader>
         {user ? (
@@ -91,6 +91,13 @@ export function MobileNavigation({
           <MobileLink active={pathname.startsWith('/history')} href="/history">
             <ClockCounterClockwiseIcon aria-hidden />
             下载记录
+          </MobileLink>
+          <MobileLink
+            active={pathname.startsWith('/documents')}
+            href="/documents"
+          >
+            <FileTextIcon aria-hidden />
+            剧本文档
           </MobileLink>
           <MobileLink
             active={pathname.startsWith('/providers')}
@@ -168,32 +175,5 @@ export function MobileNavigation({
         ) : null}
       </SheetContent>
     </Sheet>
-  );
-}
-
-function MobileLink({
-  active = false,
-  children,
-  href,
-}: {
-  active?: boolean;
-  children: React.ReactNode;
-  href: string;
-}) {
-  return (
-    <SheetClose asChild>
-      <Button
-        asChild
-        className={cn(
-          'h-11 justify-start',
-          active && 'bg-accent text-accent-foreground',
-        )}
-        variant="ghost"
-      >
-        <Link aria-current={active ? 'page' : undefined} href={href}>
-          {children}
-        </Link>
-      </Button>
-    </SheetClose>
   );
 }
