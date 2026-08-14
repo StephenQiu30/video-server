@@ -15,6 +15,7 @@ from app.infrastructure.analysis_worker_registry import (
 )
 from app.infrastructure.database import create_session_factory
 from app.infrastructure.readiness import build_runtime_readiness
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 
@@ -94,6 +95,20 @@ async def test_runtime_readiness_fails_closed_without_exposing_dependency_error(
     async def respond(request: httpx.Request) -> httpx.Response:
         status = 503 if request.url.host == "runner.test" else 200
         return httpx.Response(status)
+
+    async with runtime_probe(httpx.MockTransport(respond), postgres_engine) as probe:
+        assert await probe.check() is False
+
+
+@pytest.mark.usefixtures("rabbitmq_is_available")
+async def test_runtime_readiness_checks_the_active_postgres_schema(
+    postgres_engine: AsyncEngine,
+) -> None:
+    async with postgres_engine.begin() as connection:
+        await connection.execute(text("DROP TABLE document_artifacts CASCADE"))
+
+    async def respond(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200)
 
     async with runtime_probe(httpx.MockTransport(respond), postgres_engine) as probe:
         assert await probe.check() is False

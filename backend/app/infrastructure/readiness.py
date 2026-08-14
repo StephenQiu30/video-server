@@ -24,7 +24,7 @@ _DATABASE_TABLES_QUERY = text(
     """
     SELECT tablename
     FROM pg_catalog.pg_tables
-    WHERE schemaname = 'public' AND tablename IN :expected_tables
+    WHERE schemaname = current_schema() AND tablename IN :expected_tables
     """
 ).bindparams(bindparam("expected_tables", expanding=True))
 
