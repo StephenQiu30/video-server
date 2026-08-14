@@ -16,6 +16,8 @@ services:
       MINIO_PUBLIC_ENDPOINT: "${MINIO_PUBLIC_ENDPOINT:-127.0.0.1:19190}"
       MINIO_ACCESS_KEY: "${MINIO_API_ACCESS_KEY:-video-api-access}"
       MINIO_SECRET_KEY: "${MINIO_API_SECRET_KEY:-video-api-secret-change-me}"
+      MINIO_IMPORT_ACCESS_KEY: "${MINIO_IMPORT_ACCESS_KEY:-video-import-access}"
+      MINIO_IMPORT_SECRET_KEY: "${MINIO_IMPORT_SECRET_KEY:-video-import-secret-change-me}"
       MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
       MINIO_INTERNAL_SECURE: "${MINIO_INTERNAL_SECURE:-false}"
       MINIO_PUBLIC_SECURE: "${MINIO_PUBLIC_SECURE:-false}"
@@ -549,6 +551,8 @@ services:
       MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-video-root-secret-change-me}"
       MINIO_API_ACCESS_KEY: "${MINIO_API_ACCESS_KEY:-video-api-access}"
       MINIO_API_SECRET_KEY: "${MINIO_API_SECRET_KEY:-video-api-secret-change-me}"
+      MINIO_IMPORT_ACCESS_KEY: "${MINIO_IMPORT_ACCESS_KEY:-video-import-access}"
+      MINIO_IMPORT_SECRET_KEY: "${MINIO_IMPORT_SECRET_KEY:-video-import-secret-change-me}"
       MINIO_DOWNLOAD_ACCESS_KEY: "${MINIO_DOWNLOAD_ACCESS_KEY:-video-download-access}"
       MINIO_DOWNLOAD_SECRET_KEY: "${MINIO_DOWNLOAD_SECRET_KEY:-video-download-secret-change-me}"
       MINIO_REPORT_ACCESS_KEY: "${MINIO_REPORT_ACCESS_KEY:-video-report-access}"
@@ -557,6 +561,7 @@ services:
       MINIO_ANALYSIS_SECRET_KEY: "${MINIO_ANALYSIS_SECRET_KEY:-video-analysis-secret-change-me}"
       MINIO_CANARY_ACCESS_KEY: "${MINIO_CANARY_ACCESS_KEY:-video-canary-access}"
       MINIO_CANARY_SECRET_KEY: "${MINIO_CANARY_SECRET_KEY:-video-canary-secret-change-me}"
+      IMPORT_QUARANTINE_RETENTION_DAYS: "${IMPORT_QUARANTINE_RETENTION_DAYS:-1}"
       MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
     container_name: minio-init
     networks: [storage_net]

@@ -80,6 +80,8 @@ class Settings(BaseSettings):
     minio_public_endpoint: str = "127.0.0.1:19190"
     minio_access_key: SecretStr = SecretStr("video-api-access")
     minio_secret_key: SecretStr = SecretStr("video-api-secret-change-me")
+    minio_import_access_key: SecretStr = SecretStr("video-import-access")
+    minio_import_secret_key: SecretStr = SecretStr("video-import-secret-change-me")
     minio_analysis_access_key: SecretStr = SecretStr("video-analysis-access")
     minio_analysis_secret_key: SecretStr = SecretStr("video-analysis-secret-change-me")
     minio_internal_secure: bool = False
@@ -139,6 +141,12 @@ class Settings(BaseSettings):
         default=50 * 1024**2, ge=1024, le=512 * 1024**2
     )
     import_upload_session_ttl_seconds: int = Field(default=900, ge=60, le=3600)
+    import_upload_part_size_bytes: int = Field(
+        default=32 * 1024**2, ge=5 * 1024**2, le=5 * 1024**3
+    )
+    import_upload_max_parts: int = Field(default=1000, ge=1, le=10_000)
+    import_upload_max_concurrency: int = Field(default=4, ge=1, le=16)
+    import_quarantine_retention_days: int = Field(default=1, ge=1, le=7)
     inspection_ttl_seconds: int = Field(default=900, ge=60, le=86400)
     artifact_ttl_seconds: int = Field(default=604_800, ge=604_800, le=2_592_000)
     artifact_gc_interval_seconds: float = Field(default=300, ge=5, le=86400)
@@ -285,6 +293,13 @@ class Settings(BaseSettings):
             raise ValueError(
                 "analysis worker stale window must exceed its heartbeat interval"
             )
+        upload_capacity = (
+            self.import_upload_part_size_bytes * self.import_upload_max_parts
+        )
+        if max(self.media_import_max_bytes, self.document_import_max_bytes) > (
+            upload_capacity
+        ):
+            raise ValueError("import multipart budget is smaller than an import limit")
         if self.app_env != "production":
             return self
         secret_values: list[str] = []
@@ -297,6 +312,8 @@ class Settings(BaseSettings):
                     self.metrics_access_key.get_secret_value(),
                     self.minio_access_key.get_secret_value(),
                     self.minio_secret_key.get_secret_value(),
+                    self.minio_import_access_key.get_secret_value(),
+                    self.minio_import_secret_key.get_secret_value(),
                 )
             )
         elif self.service_role == "download-worker":

@@ -51,14 +51,33 @@ def test_local_imports_are_bounded_and_disabled_by_default() -> None:
     assert settings.media_import_max_bytes == 2 * 1024**3
     assert settings.document_import_max_bytes == 50 * 1024**2
     assert settings.import_upload_session_ttl_seconds == 900
+    assert settings.import_upload_part_size_bytes == 32 * 1024**2
+    assert settings.import_upload_max_parts == 1000
+    assert settings.import_upload_max_concurrency == 4
+    assert settings.import_quarantine_retention_days == 1
 
     for field in (
         "media_import_max_bytes",
         "document_import_max_bytes",
         "import_upload_session_ttl_seconds",
+        "import_upload_part_size_bytes",
+        "import_upload_max_parts",
+        "import_upload_max_concurrency",
+        "import_quarantine_retention_days",
     ):
         with pytest.raises(ValidationError):
             Settings(app_env="test", _env_file=None, **{field: 0})
+
+
+def test_local_import_limit_must_fit_multipart_budget() -> None:
+    with pytest.raises(ValidationError, match="multipart budget"):
+        Settings(
+            app_env="test",
+            _env_file=None,
+            media_import_max_bytes=20 * 1024**3,
+            import_upload_part_size_bytes=5 * 1024**2,
+            import_upload_max_parts=1000,
+        )
 
 
 def test_user_artifacts_default_to_seven_days_and_allow_thirty_days() -> None:
@@ -167,6 +186,8 @@ def test_production_accepts_explicit_secrets() -> None:
         runner_hmac_secret=SecretStr("r" * 48),
         minio_access_key=SecretStr("production-access"),
         minio_secret_key=SecretStr("m" * 48),
+        minio_import_access_key=SecretStr("production-import-access"),
+        minio_import_secret_key=SecretStr("i" * 48),
         metrics_access_key=SecretStr("k" * 48),
         auth_bootstrap_admin_email="admin@example.com",
         analysis_enabled=True,
