@@ -12,6 +12,7 @@ from sqlalchemy.sql import Select
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.application.downloads.source_catalog import (
+    BROWSER_IMPORT_DOWNLOAD_SOURCE,
     DOWNLOAD_SOURCES,
     OTHER_DOWNLOAD_SOURCE,
 )
@@ -54,7 +55,7 @@ def _base_statement(*columns: Any) -> Select[Any]:
     return (
         select(*columns)
         .select_from(DownloadJobRow)
-        .join(
+        .outerjoin(
             MediaInspectionRow,
             MediaInspectionRow.id == DownloadJobRow.inspection_id,
         )
@@ -87,7 +88,18 @@ def _summary_statement(start: datetime, end: datetime) -> Select[Any]:
             _count_active(),
             func.count(func.distinct(DownloadJobRow.owner_hash)),
             func.coalesce(func.sum(ArtifactRow.size_bytes), 0),
-            func.coalesce(func.sum(MediaInspectionRow.duration_seconds), 0),
+            func.coalesce(
+                func.sum(
+                    case(
+                        (
+                            DownloadJobRow.source_kind == "browser_import",
+                            ArtifactRow.duration_ms,
+                        ),
+                        else_=MediaInspectionRow.duration_seconds * 1000,
+                    )
+                ),
+                0,
+            ),
         ),
         start,
         end,
@@ -140,12 +152,29 @@ def _source_key() -> ColumnElement[str]:
         for source in DOWNLOAD_SOURCES
         for prefix in source.extractor_prefixes
     )
-    return case(*matches, else_=OTHER_DOWNLOAD_SOURCE.key)
+    return case(
+        (
+            DownloadJobRow.source_kind == "browser_import",
+            BROWSER_IMPORT_DOWNLOAD_SOURCE.key,
+        ),
+        *matches,
+        else_=OTHER_DOWNLOAD_SOURCE.key,
+    )
 
 
 def _summary_snapshot(row: Row[Any]) -> DownloadAnalyticsSummarySnapshot:
-    values = tuple(_integer(value) for value in row)
-    return DownloadAnalyticsSummarySnapshot(*values)
+    *counts, duration_milliseconds = row
+    values = tuple(_integer(value) for value in counts)
+    return DownloadAnalyticsSummarySnapshot(
+        total=values[0],
+        succeeded=values[1],
+        failed=values[2],
+        cancelled=values[3],
+        active=values[4],
+        unique_users=values[5],
+        downloaded_bytes=values[6],
+        duration_seconds=_integer(duration_milliseconds) // 1000,
+    )
 
 
 def _daily_snapshot(row: Row[Any]) -> DownloadAnalyticsDailySnapshot:

@@ -36,8 +36,11 @@ DOWNLOAD_SOURCES: tuple[DownloadSource, ...] = (
     DownloadSource("mediatrack", "MediaTrack", ("mediatrack",)),
 )
 OTHER_DOWNLOAD_SOURCE = DownloadSource("other", "其他来源", ())
+BROWSER_IMPORT_DOWNLOAD_SOURCE = DownloadSource("browser_import", "本地视频上传", ())
 
-_SOURCES_BY_KEY = {source.key: source for source in DOWNLOAD_SOURCES}
+_SOURCES_BY_KEY = {
+    source.key: source for source in (*DOWNLOAD_SOURCES, BROWSER_IMPORT_DOWNLOAD_SOURCE)
+}
 
 
 def download_source(key: str) -> DownloadSource:

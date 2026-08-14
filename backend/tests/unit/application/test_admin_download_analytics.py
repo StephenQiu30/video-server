@@ -89,6 +89,16 @@ def analytics_snapshot() -> DownloadAnalyticsSnapshot:
                 unique_users=1,
                 downloaded_bytes=0,
             ),
+            DownloadAnalyticsSourceSnapshot(
+                source_key="browser_import",
+                total=1,
+                succeeded=1,
+                failed=0,
+                cancelled=0,
+                active=0,
+                unique_users=1,
+                downloaded_bytes=1_024,
+            ),
         ),
     )
 
@@ -115,6 +125,7 @@ async def test_download_analytics_builds_safe_visualization_view() -> None:
     assert [(item.source_key, item.source_name) for item in view.sources] == [
         ("youtube", "YouTube"),
         ("other", "其他来源"),
+        ("browser_import", "本地视频上传"),
     ]
     assert view.sources[0].success_rate == 75.0
     assert view.sources[1].success_rate == 0.0

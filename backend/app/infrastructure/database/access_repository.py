@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 
 from .analytics_repository import AnalyticsRepository
 from .base import as_utc, utc_now
@@ -30,6 +30,7 @@ from .models import (
     ArtifactRow,
     DownloadJobRow,
     MediaFormatRow,
+    MediaImportRow,
     MediaInspectionRow,
     MediaThumbnailRow,
 )
@@ -182,13 +183,20 @@ class AccessRepository(AnalyticsRepository):
         if status is not None:
             filters.append(DownloadJobRow.status == status)
         if search:
+            pattern = f"%{_escape_like(search)}%"
             filters.append(
-                MediaInspectionRow.title.ilike(f"%{_escape_like(search)}%", escape="\\")
+                or_(
+                    MediaInspectionRow.title.ilike(pattern, escape="\\"),
+                    MediaImportRow.display_name.ilike(pattern, escape="\\"),
+                )
             )
         summary_filters = [DownloadJobRow.owner_hash == owner_hash]
         if search:
             summary_filters.append(
-                MediaInspectionRow.title.ilike(f"%{_escape_like(search)}%", escape="\\")
+                or_(
+                    MediaInspectionRow.title.ilike(pattern, escape="\\"),
+                    MediaImportRow.display_name.ilike(pattern, escape="\\"),
+                )
             )
         offset = (page - 1) * page_size
         async with self._sessions() as session:
@@ -198,14 +206,18 @@ class AccessRepository(AnalyticsRepository):
                         DownloadJobRow,
                         MediaInspectionRow,
                         MediaFormatRow,
+                        MediaImportRow,
                         ArtifactRow,
                         MediaThumbnailRow,
                     )
-                    .join(
+                    .outerjoin(
                         MediaInspectionRow,
                         MediaInspectionRow.id == DownloadJobRow.inspection_id,
                     )
-                    .join(MediaFormatRow, MediaFormatRow.id == DownloadJobRow.format_id)
+                    .outerjoin(
+                        MediaFormatRow, MediaFormatRow.id == DownloadJobRow.format_id
+                    )
+                    .outerjoin(MediaImportRow, MediaImportRow.id == DownloadJobRow.id)
                     .outerjoin(ArtifactRow, ArtifactRow.job_id == DownloadJobRow.id)
                     .outerjoin(
                         MediaThumbnailRow,
@@ -222,10 +234,11 @@ class AccessRepository(AnalyticsRepository):
             total = int(
                 await session.scalar(
                     select(func.count(DownloadJobRow.id))
-                    .join(
+                    .outerjoin(
                         MediaInspectionRow,
                         MediaInspectionRow.id == DownloadJobRow.inspection_id,
                     )
+                    .outerjoin(MediaImportRow, MediaImportRow.id == DownloadJobRow.id)
                     .where(*filters)
                 )
                 or 0
@@ -233,10 +246,11 @@ class AccessRepository(AnalyticsRepository):
             count_rows = (
                 await session.execute(
                     select(DownloadJobRow.status, func.count(DownloadJobRow.id))
-                    .join(
+                    .outerjoin(
                         MediaInspectionRow,
                         MediaInspectionRow.id == DownloadJobRow.inspection_id,
                     )
+                    .outerjoin(MediaImportRow, MediaImportRow.id == DownloadJobRow.id)
                     .where(*summary_filters)
                     .group_by(DownloadJobRow.status)
                 )
@@ -246,9 +260,22 @@ class AccessRepository(AnalyticsRepository):
             }
         items = tuple(
             download_history_item_snapshot(
-                job, inspection, selected_format, artifact, thumbnail, now
+                job,
+                inspection,
+                selected_format,
+                media_import,
+                artifact,
+                thumbnail,
+                now,
             )
-            for job, inspection, selected_format, artifact, thumbnail in rows
+            for (
+                job,
+                inspection,
+                selected_format,
+                media_import,
+                artifact,
+                thumbnail,
+            ) in rows
         )
         return download_history_page_snapshot(
             items, page=page, page_size=page_size, total=total, counts=counts

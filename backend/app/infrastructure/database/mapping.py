@@ -17,6 +17,7 @@ from .models import (
     ArtifactRow,
     DownloadJobRow,
     MediaFormatRow,
+    MediaImportRow,
     MediaInspectionRow,
     MediaThumbnailRow,
     OutboxEventRow,
@@ -85,22 +86,37 @@ def job_snapshot(row: DownloadJobRow) -> JobSnapshot:
 
 def download_history_item_snapshot(
     job: DownloadJobRow,
-    inspection: MediaInspectionRow,
-    selected_format: MediaFormatRow,
+    inspection: MediaInspectionRow | None,
+    selected_format: MediaFormatRow | None,
+    media_import: MediaImportRow | None,
     artifact: ArtifactRow | None,
     thumbnail: MediaThumbnailRow | None,
     now: datetime,
 ) -> DownloadHistoryItemSnapshot:
-    metadata = dict(inspection.metadata_json)
+    metadata = {} if inspection is None else dict(inspection.metadata_json)
     legacy_thumbnail = metadata.get("thumbnail_url")
+    is_browser_import = job.source_kind == "browser_import"
     return DownloadHistoryItemSnapshot(
         id=job.id,
-        inspection_id=inspection.id,
-        title=inspection.title,
-        thumbnail_available=(
-            thumbnail is not None or isinstance(legacy_thumbnail, str)
+        inspection_id=None if inspection is None else inspection.id,
+        title=(
+            (media_import.display_name if media_import is not None else "本地视频")
+            if is_browser_import
+            else (inspection.title if inspection is not None else "未命名视频")
         ),
-        format_name=selected_format.display_name,
+        thumbnail_available=(
+            not is_browser_import
+            and (thumbnail is not None or isinstance(legacy_thumbnail, str))
+        ),
+        format_name=(
+            "MP4"
+            if is_browser_import
+            else (
+                selected_format.display_name
+                if selected_format is not None
+                else "未知格式"
+            )
+        ),
         status=job.status,
         progress=job.progress,
         error_code=job.error_code,

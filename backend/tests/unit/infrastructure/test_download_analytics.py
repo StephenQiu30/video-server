@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from tests.unit.infrastructure.analytics_helpers import (
     END,
     START,
+    add_browser_import,
     add_job,
 )
 
@@ -150,6 +151,33 @@ async def test_download_analytics_recognizes_kuaishou_plugin(
     source = next(item for item in analytics.sources if item.source_key == "kuaishou")
     assert source.total == 1
     assert source.downloaded_bytes == 2_661_003
+
+
+@pytest.mark.asyncio
+async def test_download_analytics_includes_browser_imports_without_provider_data(
+    analytics_database,
+) -> None:
+    repository, sessions = analytics_database
+    await add_browser_import(
+        sessions,
+        owner="u" * 64,
+        created_at=datetime(2026, 8, 10, 10, tzinfo=UTC),
+        duration_ms=12_345,
+        size_bytes=4_096,
+    )
+
+    analytics = await repository.get_download_analytics(start=START, end=END)
+
+    assert analytics.summary.total == 1
+    assert analytics.summary.succeeded == 1
+    assert analytics.summary.downloaded_bytes == 4_096
+    assert analytics.summary.duration_seconds == 12
+    assert analytics.daily[0].total == 1
+    source = analytics.sources[0]
+    assert source.source_key == "browser_import"
+    assert source.total == 1
+    assert source.unique_users == 1
+    assert source.downloaded_bytes == 4_096
 
 
 @pytest.mark.asyncio

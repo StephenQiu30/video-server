@@ -180,6 +180,96 @@ async def test_download_store_maps_the_complete_application_lifecycle() -> None:
 
 
 @pytest.mark.asyncio
+async def test_history_includes_browser_imports_and_searches_filename() -> None:
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as connection:
+        await connection.run_sync(database.Base.metadata.create_all)
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    repository = database.SqlAlchemyDownloadRepository(sessions)
+    store = SqlAlchemyDownloadStore(repository)
+    job_id = uuid4()
+    owner = "i" * 64
+    expires = NOW + timedelta(hours=1)
+    async with sessions.begin() as session:
+        session.add(
+            database.DownloadJobRow(
+                id=job_id,
+                source_kind="browser_import",
+                inspection_id=None,
+                format_id=None,
+                owner_hash=owner,
+                idempotency_key="local-video-job",
+                request_fingerprint="j" * 64,
+                semantic_plan={"container": "mp4"},
+                status="succeeded",
+                progress=100,
+                attempt=1,
+                finished_at=NOW,
+                created_at=NOW,
+                updated_at=NOW,
+            )
+        )
+        session.add(
+            database.MediaImportRow(
+                id=job_id,
+                owner_hash=owner,
+                idempotency_key="local-video-import",
+                request_fingerprint="k" * 64,
+                source_format="mp4",
+                display_name="我的样片.mp4",
+                content_type="video/mp4",
+                declared_size_bytes=2_048,
+                declared_sha256="2" * 64,
+                rights_statement_version="v1",
+                status="ready",
+                attempt=1,
+                finished_at=NOW,
+                created_at=NOW,
+                updated_at=NOW,
+            )
+        )
+        session.add(
+            database.ArtifactRow(
+                id=uuid4(),
+                job_id=job_id,
+                attempt=1,
+                bucket="video-artifacts",
+                object_key=f"imports/{job_id}/video.mp4",
+                sha256="2" * 64,
+                size_bytes=2_048,
+                duration_ms=8_000,
+                container="mp4",
+                content_type="video/mp4",
+                media_metadata={},
+                expires_at=expires,
+                created_at=NOW,
+            )
+        )
+
+    history = await store.list_download_history(
+        owner,
+        page=1,
+        page_size=20,
+        status="succeeded",
+        search="样片",
+        now=NOW,
+    )
+
+    assert history.total == 1
+    assert history.summary.succeeded == 1
+    item = history.items[0]
+    assert item.id == job_id
+    assert item.inspection_id is None
+    assert item.title == "我的样片.mp4"
+    assert item.format_name == "MP4"
+    assert item.thumbnail_available is False
+    assert item.file_available is True
+    assert item.file_expires_at == expires
+    assert item.source_kind == "browser_import"
+    await engine.dispose()
+
+
+@pytest.mark.asyncio
 async def test_download_store_maps_cancellation() -> None:
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     async with engine.begin() as connection:

@@ -7,6 +7,7 @@ from app.infrastructure.database.models import (
     ArtifactRow,
     DownloadJobRow,
     MediaFormatRow,
+    MediaImportRow,
     MediaInspectionRow,
 )
 
@@ -97,3 +98,70 @@ async def add_job(
                     created_at=created_at,
                 )
             )
+
+
+async def add_browser_import(
+    sessions,
+    *,
+    owner: str,
+    created_at: datetime,
+    duration_ms: int,
+    size_bytes: int,
+) -> None:
+    job_id = uuid4()
+    expires_at = END + timedelta(days=1)
+    async with sessions.begin() as session:
+        session.add(
+            DownloadJobRow(
+                id=job_id,
+                source_kind="browser_import",
+                inspection_id=None,
+                format_id=None,
+                owner_hash=owner,
+                idempotency_key=f"import-job-{job_id}",
+                request_fingerprint="e" * 64,
+                semantic_plan={"container": "mp4"},
+                status="succeeded",
+                progress=100,
+                attempt=1,
+                finished_at=created_at + timedelta(minutes=1),
+                created_at=created_at,
+                updated_at=created_at,
+            )
+        )
+        session.add(
+            MediaImportRow(
+                id=job_id,
+                owner_hash=owner,
+                idempotency_key=f"import-{job_id}",
+                request_fingerprint="f" * 64,
+                source_format="mp4",
+                display_name="Local sample.mp4",
+                content_type="video/mp4",
+                declared_size_bytes=size_bytes,
+                declared_sha256="1" * 64,
+                rights_statement_version="v1",
+                status="ready",
+                attempt=1,
+                finished_at=created_at + timedelta(minutes=1),
+                created_at=created_at,
+                updated_at=created_at,
+            )
+        )
+        session.add(
+            ArtifactRow(
+                id=uuid4(),
+                job_id=job_id,
+                attempt=1,
+                bucket="video-artifacts",
+                object_key=f"imports/{job_id}/video.mp4",
+                sha256="1" * 64,
+                size_bytes=size_bytes,
+                duration_ms=duration_ms,
+                container="mp4",
+                content_type="video/mp4",
+                media_metadata={},
+                expires_at=expires_at,
+                created_at=created_at,
+            )
+        )
