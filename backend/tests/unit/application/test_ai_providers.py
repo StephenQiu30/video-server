@@ -177,6 +177,50 @@ async def test_switching_to_host_login_clears_endpoint_and_encrypted_key() -> No
 
 
 @pytest.mark.asyncio
+async def test_api_key_update_preserves_blank_and_rotates_new_secret() -> None:
+    repository = Repository()
+    providers = service(repository)
+    created = await providers.create_profile(
+        ADMIN,
+        key="custom",
+        display_name="Custom",
+        engine=AiProviderEngine.CODEX,
+        auth_mode=AiProviderAuthMode.API_KEY,
+        base_url="https://api.example.com/v1",
+        model="gpt-custom",
+        api_key="first-secret",
+    )
+
+    preserved = await providers.update_profile(
+        ADMIN,
+        created.key,
+        display_name="Renamed",
+        engine=None,
+        auth_mode=None,
+        base_url=None,
+        base_url_changed=False,
+        model=None,
+        api_key=None,
+    )
+    rotated = await providers.update_profile(
+        ADMIN,
+        created.key,
+        display_name=None,
+        engine=None,
+        auth_mode=None,
+        base_url=None,
+        base_url_changed=False,
+        model=None,
+        api_key="second-secret",
+    )
+
+    assert preserved.display_name == "Renamed"
+    assert preserved.credential_ciphertext == b"custom:first-secret"
+    assert rotated.credential_ciphertext == b"custom:second-secret"
+    assert rotated.credential_key_id == Cipher.key_id
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "base_url",
     (

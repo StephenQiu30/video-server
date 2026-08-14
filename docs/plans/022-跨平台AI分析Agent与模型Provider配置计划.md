@@ -1,6 +1,6 @@
 # 022 跨平台 AI 分析 Agent 与模型 Provider 配置计划
 
-- 状态：In Progress（核心实现完成，跨 Provider 与跨平台真实验收待完成）
+- 状态：In Progress（内部实现与自动化契约完成，仅跨 Provider 与跨平台实机验收待完成）
 
 ## 阶段 1：领域与持久化
 
@@ -40,3 +40,13 @@
 - [x] 本机 Codex Profile 完成一次真实视频分析。
 - [ ] 测试 API Key Profile 完成一次真实视频分析并确认脱敏。
 - [x] 更新 Acceptance 实测证据与状态。
+
+## 剩余外部门禁
+
+截至 2026-08-14，Key 留空/轮换、管理 API 脱敏、活动 Profile 热切换、stale worker fail-closed、子进程参数隔离以及三平台服务命令契约均已有自动化证据。当前工作区没有可用于验收的真实 API Key，也没有 macOS/Linux 实机，因此只剩以下不可由仓库内测试替代的任务：
+
+1. 使用获授权的 API Key Profile 完成一条真实视频分析，审计任务结果、Agent 普通日志和进程快照均不含 Key。
+2. 在 macOS 实机完成 LaunchAgent install、登录启动、异常重启、status 与 uninstall。
+3. 在 Linux 实机完成 systemd user service install、登录启动、异常重启、status 与 uninstall。
+
+完成上述证据前，Design/PRD/Plan/Acceptance 不得改为归档状态，也不得绕过归档器门禁。

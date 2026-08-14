@@ -1,6 +1,6 @@
 # 022 跨平台 AI 分析 Agent 与模型 Provider 配置设计
 
-- 状态：已实现，待真实 Provider 验收
+- 状态：内部实现与自动化契约已完成，待真实 API Key 与 macOS/Linux 实机验收
 - 日期：2026-08-13
 - 前置设计：`010-Codex与Claude CLI视频分析设计`、`015-RabbitMQ异步分析设计`
 - 前置调研：`docs/research/011-AI分析Agent与通用Provider接入调研.md`

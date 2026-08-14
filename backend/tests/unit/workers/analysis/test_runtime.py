@@ -131,7 +131,73 @@ async def test_active_api_provider_is_injected_only_into_selected_cli_adapter(
         "VIDEO_ANALYSIS_PROVIDER_KEY": "secret-value"
     }
     assert any("api.example.com" in value for value in config.provider_arguments)
+    assert all("secret-value" not in value for value in config.provider_arguments)
     assert calls == [False]
+
+
+@pytest.mark.asyncio
+async def test_updated_active_profile_rebuilds_adapter_for_next_task(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    updated_at = datetime(2026, 8, 13, tzinfo=UTC)
+
+    def successful_preflight(*args: object, **kwargs: object) -> CliCapabilities:
+        del args, kwargs
+        calls.append("preflight")
+        return CliCapabilities(
+            provider="codex",
+            binary=Path(sys.executable),
+            version="controlled",
+            ffmpeg=Path(sys.executable),
+            ffprobe=Path(sys.executable),
+        )
+
+    class Repository:
+        model = "model-a"
+        secret = b"cipher-a"
+        changed_at = updated_at
+
+        async def get_active_profile(self) -> AiProviderProfile:
+            return AiProviderProfile(
+                key="custom",
+                display_name="Custom Provider",
+                engine=AiProviderEngine.CODEX,
+                auth_mode=AiProviderAuthMode.API_KEY,
+                base_url="https://api.example.com/v1",
+                model=self.model,
+                credential_ciphertext=self.secret,
+                credential_key_id="fernet-test",
+                is_active=True,
+                created_at=updated_at,
+                updated_at=self.changed_at,
+            )
+
+    class Cipher:
+        def decrypt(self, provider_key: str, ciphertext: bytes, key_id: str) -> str:
+            assert provider_key == "custom" and key_id == "fernet-test"
+            return ciphertext.decode()
+
+    repository = Repository()
+    monkeypatch.setattr(providers, "preflight", successful_preflight)
+    resolver = ConfiguredAnalyzerResolver(
+        Settings(app_env="test"),
+        repository,  # type: ignore[arg-type]
+        Cipher(),  # type: ignore[arg-type]
+    )
+
+    first = await resolver.resolve()
+    repository.model = "model-b"
+    repository.secret = b"cipher-b"
+    repository.changed_at = datetime(2026, 8, 14, tzinfo=UTC)
+    second = await resolver.resolve()
+
+    assert second is not first
+    assert (first.model, second.model) == ("model-a", "model-b")
+    assert dict(second.analyzer._config.extra_environment) == {  # type: ignore[attr-defined]
+        "VIDEO_ANALYSIS_PROVIDER_KEY": "cipher-b"
+    }
+    assert calls == ["preflight", "preflight"]
 
 
 def test_worker_uses_the_declared_shared_rabbitmq_vhost() -> None:

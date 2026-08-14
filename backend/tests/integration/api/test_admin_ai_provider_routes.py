@@ -55,6 +55,9 @@ class Providers:
 
     async def update_profile(self, actor: CurrentUser, key: str, **values: object):
         assert actor == ADMIN
+        self.received_secret = (
+            str(values["api_key"]) if values["api_key"] is not None else None
+        )
         current = self.items[key]
         result = replace(current, display_name=str(values["display_name"]))
         self.items[key] = result
@@ -93,13 +96,20 @@ def test_admin_crud_never_returns_ai_provider_secret(tmp_path: Path) -> None:
             },
         )
         listed = client.get("/api/admin/ai-providers")
+        updated = client.patch(
+            "/api/admin/ai-providers/openai-main",
+            json={"display_name": "OpenAI Rotated", "api_key": "rotated-secret"},
+        )
         activated = client.post("/api/admin/ai-providers/openai-main/activate")
 
     assert created.status_code == 201
     assert created.headers["location"] == "/api/admin/ai-providers/openai-main"
-    assert providers.received_secret == "secret-value"
+    assert providers.received_secret == "rotated-secret"
     assert "api_key" not in created.json()
     assert "ciphertext" not in created.text
+    assert updated.status_code == 200
+    assert "rotated-secret" not in updated.text
+    assert "api_key" not in updated.json()
     assert listed.json()["agent_available"] is True
     assert activated.json()["is_active"] is True
 

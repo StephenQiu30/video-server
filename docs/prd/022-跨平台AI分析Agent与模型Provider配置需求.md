@@ -1,6 +1,6 @@
 # 022 跨平台 AI 分析 Agent 与模型 Provider 配置需求
 
-- 状态：In Progress（本机 Codex 与 Windows 常驻已通过，真实 API Key、macOS、Linux 待验收）
+- 状态：In Progress（内部实现与自动化契约已通过；真实 API Key、macOS、Linux 实机待验收）
 
 - 日期：2026-08-13
 - 目标用户：本地部署用户、管理员、运维人员
