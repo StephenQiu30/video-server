@@ -9,22 +9,21 @@ from uuid import uuid4
 from app.application.auth import AuthService, UserService
 from app.core.config import Settings
 from app.infrastructure.auth_repository import SqlAlchemyAuthRepository
-from app.infrastructure.database import Base, create_engine, create_session_factory
+from app.infrastructure.database import create_session_factory
 from app.infrastructure.jwt_tokens import JwtTokenService
 from app.infrastructure.passwords import Argon2PasswordHasher
 from app.infrastructure.user_repository import SqlAlchemyUserRepository
 from app.main import create_app
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 
 @asynccontextmanager
 async def auth_client(
     tmp_path: Path,
+    engine: AsyncEngine,
     bootstrap_admin_email: str | None = None,
 ) -> AsyncIterator[AsyncClient]:
-    engine = create_engine("sqlite+aiosqlite:///:memory:")
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
     sessions = create_session_factory(engine)
     service = AuthService(
         repository=SqlAlchemyAuthRepository(sessions),
@@ -60,13 +59,13 @@ async def auth_client(
         transport=ASGITransport(app=app), base_url="http://testserver"
     ) as client:
         yield client
-    await engine.dispose()
 
 
 async def test_register_creates_http_only_session_and_logout_revokes_it(
     tmp_path: Path,
+    postgres_engine: AsyncEngine,
 ) -> None:
-    async with auth_client(tmp_path) as client:
+    async with auth_client(tmp_path, postgres_engine) as client:
         registered = await client.post(
             "/api/auth/register",
             json={
@@ -104,13 +103,14 @@ async def test_register_creates_http_only_session_and_logout_revokes_it(
 
 async def test_login_uses_generic_errors_and_duplicate_email_is_rejected(
     tmp_path: Path,
+    postgres_engine: AsyncEngine,
 ) -> None:
     credentials = {
         "username": "video_user",
         "email": "user@example.com",
         "password": "strong-pass-123",
     }
-    async with auth_client(tmp_path) as client:
+    async with auth_client(tmp_path, postgres_engine) as client:
         assert (await client.post("/api/auth/register", json=credentials)).is_success
         duplicate = await client.post(
             "/api/auth/register",
@@ -147,8 +147,9 @@ async def test_login_uses_generic_errors_and_duplicate_email_is_rejected(
 
 async def test_auth_contract_validates_input_and_protects_business_routes(
     tmp_path: Path,
+    postgres_engine: AsyncEngine,
 ) -> None:
-    async with auth_client(tmp_path) as client:
+    async with auth_client(tmp_path, postgres_engine) as client:
         invalid_email = await client.post(
             "/api/auth/register",
             json={
@@ -174,6 +175,7 @@ async def test_auth_contract_validates_input_and_protects_business_routes(
 
 async def test_profile_and_admin_user_management_are_role_protected(
     tmp_path: Path,
+    postgres_engine: AsyncEngine,
 ) -> None:
     admin_credentials = {
         "username": "admin_user",
@@ -185,7 +187,7 @@ async def test_profile_and_admin_user_management_are_role_protected(
         "email": "user@example.com",
         "password": "strong-pass-456",
     }
-    async with auth_client(tmp_path) as client:
+    async with auth_client(tmp_path, postgres_engine) as client:
         admin = await client.post("/api/auth/register", json=admin_credentials)
         await client.post("/api/auth/logout")
         user = await client.post("/api/auth/register", json=user_credentials)
@@ -235,8 +237,11 @@ async def test_profile_and_admin_user_management_are_role_protected(
     assert revoked_session.status_code == 401
 
 
-async def test_configured_bootstrap_email_receives_admin_role(tmp_path: Path) -> None:
-    async with auth_client(tmp_path, "admin@example.com") as client:
+async def test_configured_bootstrap_email_receives_admin_role(
+    tmp_path: Path,
+    postgres_engine: AsyncEngine,
+) -> None:
+    async with auth_client(tmp_path, postgres_engine, "admin@example.com") as client:
         member = await client.post(
             "/api/auth/register",
             json={

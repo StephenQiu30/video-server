@@ -9,11 +9,11 @@ from app.domain.providers import (
     ProviderCanaryResult,
     ProviderCanaryStage,
 )
-from app.infrastructure.database import Base, create_session_factory
+from app.infrastructure.database import create_session_factory
 from app.infrastructure.provider_canary_repository import (
     SqlAlchemyProviderCanaryRepository,
 )
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 NOW = datetime(2026, 8, 11, 6, tzinfo=UTC)
 
@@ -36,11 +36,12 @@ def canary(provider: str, age: int) -> ProviderCanaryResult:
 
 
 @pytest.mark.asyncio
-async def test_persists_sanitized_evidence_and_limits_each_provider() -> None:
-    engine = create_async_engine("sqlite+aiosqlite://")
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-    repository = SqlAlchemyProviderCanaryRepository(create_session_factory(engine))
+async def test_persists_sanitized_evidence_and_limits_each_provider(
+    postgres_engine: AsyncEngine,
+) -> None:
+    repository = SqlAlchemyProviderCanaryRepository(
+        create_session_factory(postgres_engine)
+    )
     for age in range(6):
         await repository.save(canary("vimeo", age))
     for age in range(2):
@@ -55,4 +56,3 @@ async def test_persists_sanitized_evidence_and_limits_each_provider() -> None:
     assert len(recent["youtube"]) == 2
     assert recent["vimeo"][0].checked_at == NOW
     assert latest == NOW
-    await engine.dispose()

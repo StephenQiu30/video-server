@@ -40,9 +40,7 @@ class AnalyticsRepository(RecoveryRepository):
             raise ValueError("analytics start must be before end")
         async with self._sessions() as session:
             summary = await session.execute(_summary_statement(start, end))
-            daily = await session.execute(
-                _daily_statement(start, end, session.get_bind().dialect.name)
-            )
+            daily = await session.execute(_daily_statement(start, end))
             sources = await session.execute(_source_statement(start, end))
         return DownloadAnalyticsSnapshot(
             summary=_summary_snapshot(summary.one()),
@@ -106,8 +104,8 @@ def _summary_statement(start: datetime, end: datetime) -> Select[Any]:
     )
 
 
-def _daily_statement(start: datetime, end: datetime, dialect: str) -> Select[Any]:
-    day = _utc_day(dialect).label("day")
+def _daily_statement(start: datetime, end: datetime) -> Select[Any]:
+    day = _utc_day().label("day")
     statement = _base_statement(
         day,
         func.count(DownloadJobRow.id),
@@ -136,12 +134,8 @@ def _source_statement(start: datetime, end: datetime) -> Select[Any]:
     )
 
 
-def _utc_day(dialect: str) -> ColumnElement[date]:
-    value = (
-        func.timezone("UTC", DownloadJobRow.created_at)
-        if dialect == "postgresql"
-        else DownloadJobRow.created_at
-    )
+def _utc_day() -> ColumnElement[date]:
+    value = func.timezone("UTC", DownloadJobRow.created_at)
     return cast(ColumnElement[date], func.date(value))
 
 

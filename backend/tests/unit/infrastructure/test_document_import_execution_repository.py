@@ -15,7 +15,6 @@ from app.domain.documents import (
 )
 from app.domain.imports import ContentKind, ImportErrorCode, ImportSourceFormat
 from app.infrastructure.database import (
-    Base,
     SqlAlchemyDocumentImportExecutionRepository,
     SqlAlchemyDocumentImportRepository,
 )
@@ -26,7 +25,7 @@ from app.infrastructure.database.models import (
     OutboxEventRow,
 )
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 NOW = datetime(2026, 8, 14, 18, 0, tzinfo=UTC)
 DOCUMENT_ID = UUID("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
@@ -34,17 +33,13 @@ OWNER = "a" * 64
 
 
 @pytest.fixture
-async def repositories():
-    engine = create_async_engine("sqlite+aiosqlite://")
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-    sessions = async_sessionmaker(engine, expire_on_commit=False)
+async def repositories(postgres_engine: AsyncEngine):
+    sessions = async_sessionmaker(postgres_engine, expire_on_commit=False)
     yield (
         SqlAlchemyDocumentImportRepository(sessions),
         SqlAlchemyDocumentImportExecutionRepository(sessions),
         sessions,
     )
-    await engine.dispose()
 
 
 async def verifying(upload_repository):

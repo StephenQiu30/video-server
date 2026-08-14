@@ -8,7 +8,6 @@ from app.application.documents import DeleteDocument
 from app.application.imports import ImportApplicationError, ImportResourceCreate
 from app.domain.imports import ContentKind, ImportSourceFormat, ImportStatus
 from app.infrastructure.database import (
-    Base,
     SqlAlchemyDocumentCatalogRepository,
     SqlAlchemyDocumentDeleteRepository,
     SqlAlchemyDocumentImportRepository,
@@ -18,7 +17,7 @@ from app.infrastructure.database.models import (
     DocumentImportAttemptRow,
     DocumentRow,
 )
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 NOW = datetime(2026, 8, 14, 16, 0, tzinfo=UTC)
 DOCUMENT_ID = UUID("99999999-9999-4999-8999-999999999999")
@@ -56,11 +55,8 @@ def command() -> ImportResourceCreate:
 
 
 @pytest.fixture
-async def deletion_data():
-    engine = create_async_engine("sqlite+aiosqlite://")
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-    sessions = async_sessionmaker(engine, expire_on_commit=False)
+async def deletion_data(postgres_engine: AsyncEngine):
+    sessions = async_sessionmaker(postgres_engine, expire_on_commit=False)
     imports = SqlAlchemyDocumentImportRepository(sessions)
     await imports.create_resource(command(), now=NOW)
     await imports.begin_upload_attempt(
@@ -116,7 +112,6 @@ async def deletion_data():
             )
         )
     yield sessions
-    await engine.dispose()
 
 
 async def test_delete_marks_state_cleans_objects_and_is_retryable(
@@ -146,7 +141,7 @@ async def test_delete_marks_state_cleans_objects_and_is_retryable(
     assert document.status == ImportStatus.CANCELLED.value
     assert attempt is not None and attempt.status == ImportStatus.CANCELLED.value
     assert original is not None and original.status == "deleted"
-    assert original.deleted_at == NOW.replace(tzinfo=None)
+    assert original.deleted_at == NOW
     assert (
         await SqlAlchemyDocumentCatalogRepository(sessions).get_document(
             DOCUMENT_ID, OWNER

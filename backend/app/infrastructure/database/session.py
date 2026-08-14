@@ -1,5 +1,6 @@
 """Async PostgreSQL engine and session factory construction."""
 
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -9,6 +10,8 @@ from sqlalchemy.ext.asyncio import (
 
 
 def create_engine(database_url: str, *, echo: bool = False) -> AsyncEngine:
+    if make_url(database_url).drivername != "postgresql+asyncpg":
+        raise ValueError("DATABASE_URL must use postgresql+asyncpg")
     return create_async_engine(
         database_url,
         echo=echo,

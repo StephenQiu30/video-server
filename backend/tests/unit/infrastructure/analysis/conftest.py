@@ -5,11 +5,10 @@ from dataclasses import dataclass
 
 import pytest
 from app.infrastructure.analysis_repository import SqlAlchemyAnalysisRepository
-from app.infrastructure.database import Base
 from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
     AsyncSession,
     async_sessionmaker,
-    create_async_engine,
 )
 
 
@@ -20,10 +19,6 @@ class AnalysisDatabase:
 
 
 @pytest.fixture
-async def analysis_db() -> AsyncIterator[AnalysisDatabase]:
-    engine = create_async_engine("sqlite+aiosqlite://")
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-    sessions = async_sessionmaker(engine, expire_on_commit=False)
+async def analysis_db(postgres_engine: AsyncEngine) -> AsyncIterator[AnalysisDatabase]:
+    sessions = async_sessionmaker(postgres_engine, expire_on_commit=False)
     yield AnalysisDatabase(sessions, SqlAlchemyAnalysisRepository(sessions))
-    await engine.dispose()

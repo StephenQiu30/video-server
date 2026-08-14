@@ -56,3 +56,12 @@ uv run python -m app.workers.analysis.main
 ```
 
 API `/health/live` 只证明进程存活；`/health/ready` 还会在有界超时内检查数据库结构、Media Runner、MinIO、RabbitMQ、Valkey，以及启用分析时兼容 AI Worker 的心跳。Compose 重建数据库或消息队列可能使宿主机 Worker 的长连接中断并退出，应在重建后重新启动 Worker，再以 `/health/ready` 返回 `200` 作为交付条件。没有 AI Worker 的部署必须显式设置 `ANALYSIS_ENABLED=false` 并重建 API。
+
+## 测试数据库
+
+后端不安装或兼容 SQLite。Repository 与集成测试默认连接 `postgresql+asyncpg://video:video@127.0.0.1:15432/video`，也可通过 `TEST_DATABASE_URL` 指定另一个 PostgreSQL 数据库。测试账号必须有创建和删除 schema 的权限；每个测试使用独立随机 schema，并在结束时级联清理。
+
+```bash
+uv sync --frozen --dev
+uv run pytest
+```

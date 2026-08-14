@@ -7,18 +7,17 @@ import pytest
 from app.application import downloads as application
 from app.infrastructure import database
 from app.infrastructure.download_store import SqlAlchemyDownloadStore
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 NOW = datetime(2026, 8, 6, tzinfo=UTC)
 
 
 @pytest.mark.asyncio
-async def test_download_store_maps_the_complete_application_lifecycle() -> None:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    async with engine.begin() as connection:
-        await connection.run_sync(database.Base.metadata.create_all)
+async def test_download_store_maps_the_complete_application_lifecycle(
+    postgres_engine: AsyncEngine,
+) -> None:
     repository = database.SqlAlchemyDownloadRepository(
-        async_sessionmaker(engine, expire_on_commit=False)
+        async_sessionmaker(postgres_engine, expire_on_commit=False)
     )
     store = SqlAlchemyDownloadStore(repository)
     inspection_id, format_id = uuid4(), uuid4()
@@ -148,7 +147,7 @@ async def test_download_store_maps_the_complete_application_lifecycle() -> None:
 
     assert artifact.object_key.endswith("/video.mp4")
     assert (await store.get_job(job_id)).status == "succeeded"
-    async with async_sessionmaker(engine, expire_on_commit=False)() as session:
+    async with async_sessionmaker(postgres_engine, expire_on_commit=False)() as session:
         inspection = await session.get(database.MediaInspectionRow, inspection_id)
         assert inspection is not None
         inspection.expires_at = NOW - timedelta(minutes=1)
@@ -176,15 +175,13 @@ async def test_download_store_maps_the_complete_application_lifecycle() -> None:
         now=expires,
     )
     assert expired_file_history.items[0].file_available is False
-    await engine.dispose()
 
 
 @pytest.mark.asyncio
-async def test_history_includes_browser_imports_and_searches_filename() -> None:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    async with engine.begin() as connection:
-        await connection.run_sync(database.Base.metadata.create_all)
-    sessions = async_sessionmaker(engine, expire_on_commit=False)
+async def test_history_includes_browser_imports_and_searches_filename(
+    postgres_engine: AsyncEngine,
+) -> None:
+    sessions = async_sessionmaker(postgres_engine, expire_on_commit=False)
     repository = database.SqlAlchemyDownloadRepository(sessions)
     store = SqlAlchemyDownloadStore(repository)
     job_id = uuid4()
@@ -209,6 +206,7 @@ async def test_history_includes_browser_imports_and_searches_filename() -> None:
                 updated_at=NOW,
             )
         )
+        await session.flush()
         session.add(
             database.MediaImportRow(
                 id=job_id,
@@ -266,16 +264,14 @@ async def test_history_includes_browser_imports_and_searches_filename() -> None:
     assert item.file_available is True
     assert item.file_expires_at == expires
     assert item.source_kind == "browser_import"
-    await engine.dispose()
 
 
 @pytest.mark.asyncio
-async def test_download_store_maps_cancellation() -> None:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    async with engine.begin() as connection:
-        await connection.run_sync(database.Base.metadata.create_all)
+async def test_download_store_maps_cancellation(
+    postgres_engine: AsyncEngine,
+) -> None:
     repository = database.SqlAlchemyDownloadRepository(
-        async_sessionmaker(engine, expire_on_commit=False)
+        async_sessionmaker(postgres_engine, expire_on_commit=False)
     )
     store = SqlAlchemyDownloadStore(repository)
     inspection_id, format_id, job_id = uuid4(), uuid4(), uuid4()
@@ -324,16 +320,14 @@ async def test_download_store_maps_cancellation() -> None:
     cancelled = await store.cancel_job(job_id, owner, NOW)
 
     assert cancelled.status == "cancelled"
-    await engine.dispose()
 
 
 @pytest.mark.asyncio
-async def test_get_inspection_filters_expired_formats() -> None:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    async with engine.begin() as connection:
-        await connection.run_sync(database.Base.metadata.create_all)
+async def test_get_inspection_filters_expired_formats(
+    postgres_engine: AsyncEngine,
+) -> None:
     repository = database.SqlAlchemyDownloadRepository(
-        async_sessionmaker(engine, expire_on_commit=False)
+        async_sessionmaker(postgres_engine, expire_on_commit=False)
     )
     store = SqlAlchemyDownloadStore(repository)
     inspection_id, fresh_format_id, stale_format_id = uuid4(), uuid4(), uuid4()
@@ -379,4 +373,3 @@ async def test_get_inspection_filters_expired_formats() -> None:
     loaded = await store.get_inspection(inspection_id, owner, NOW)
 
     assert [f.display_name for f in loaded.formats] == ["720p MP4"]
-    await engine.dispose()

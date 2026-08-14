@@ -4,18 +4,16 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
-from app.infrastructure.database import Base
 from app.infrastructure.database.models import TaskEventRow
 from app.infrastructure.task_event_store import TaskEventStore
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 
 @pytest.mark.asyncio
-async def test_replay_returns_latest_snapshot_when_gap_exceeds_limit() -> None:
-    engine = create_async_engine("sqlite+aiosqlite://")
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-    sessions = async_sessionmaker(engine, expire_on_commit=False)
+async def test_replay_returns_latest_snapshot_when_gap_exceeds_limit(
+    postgres_engine: AsyncEngine,
+) -> None:
+    sessions = async_sessionmaker(postgres_engine, expire_on_commit=False)
     owner_hash = "a" * 64
     task_id = uuid4()
     now = datetime(2026, 8, 11, tzinfo=UTC)
@@ -47,4 +45,3 @@ async def test_replay_returns_latest_snapshot_when_gap_exceeds_limit() -> None:
     assert len(replay) == 1
     assert replay[0]["type"] == "task.snapshot"
     assert replay[0]["version"] == 130
-    await engine.dispose()

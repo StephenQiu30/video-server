@@ -32,6 +32,15 @@ def test_port_bounds_are_validated() -> None:
         Settings(app_env="test", app_port=0)
 
 
+@pytest.mark.parametrize(
+    "field",
+    ("database_url", "analysis_database_url"),
+)
+def test_database_urls_require_async_postgresql(field: str) -> None:
+    with pytest.raises(ValidationError, match=r"postgresql\+asyncpg"):
+        Settings(app_env="test", _env_file=None, **{field: "sqlite:///video.db"})
+
+
 def test_download_limits_are_validated() -> None:
     with pytest.raises(ValidationError):
         Settings(app_env="test", max_file_size_bytes=0)

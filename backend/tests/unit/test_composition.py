@@ -20,7 +20,6 @@ def test_non_test_app_wires_download_use_cases(tmp_path: Path) -> None:
     settings = Settings(
         app_env="development",
         frontend_dist_dir=tmp_path / "missing",
-        database_url="sqlite+aiosqlite:///:memory:",
         runner_base_url="http://runner.test",
     )
     application = create_app(settings)
@@ -36,7 +35,6 @@ def test_non_test_app_wires_runtime_readiness_into_the_route(tmp_path: Path) -> 
     settings = Settings(
         app_env="development",
         frontend_dist_dir=tmp_path / "missing",
-        database_url="sqlite+aiosqlite:///:memory:",
         runner_base_url="http://runner.test",
     )
     application = create_app(settings)

@@ -13,9 +13,9 @@ from app.infrastructure.analysis_worker_registry import (
     ANALYSIS_MESSAGE_SCHEMA_VERSION,
     SqlAlchemyAnalysisWorkerRegistry,
 )
-from app.infrastructure.database import Base, create_session_factory
+from app.infrastructure.database import create_session_factory
 from app.infrastructure.readiness import build_runtime_readiness
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 
 class FakeConnection:
@@ -42,21 +42,19 @@ def rabbitmq_is_available(monkeypatch: pytest.MonkeyPatch) -> None:
 @asynccontextmanager
 async def runtime_probe(
     handler: httpx.AsyncBaseTransport,
+    engine: AsyncEngine,
     *,
     worker_schema_version: int | None = ANALYSIS_MESSAGE_SCHEMA_VERSION,
 ) -> AsyncIterator[Any]:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     client = httpx.AsyncClient(transport=handler)
     settings = Settings(
         app_env="test",
-        database_url="sqlite+aiosqlite:///:memory:",
+        database_url=str(engine.url),
         rabbitmq_url="amqp://user:redacted@rabbit.test:5672/",
         runner_base_url="http://runner.test",
         minio_endpoint="minio.test:9000",
         readiness_timeout_seconds=1,
     )
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
     registry = SqlAlchemyAnalysisWorkerRegistry(
         create_session_factory(engine),
         expected_app_version=settings.app_version,
@@ -75,37 +73,40 @@ async def runtime_probe(
         yield probe
     finally:
         await probe.close()
-        await engine.dispose()
 
 
 @pytest.mark.usefixtures("rabbitmq_is_available")
-async def test_runtime_readiness_checks_database_runner_minio_and_rabbitmq() -> None:
+async def test_runtime_readiness_checks_database_runner_minio_and_rabbitmq(
+    postgres_engine: AsyncEngine,
+) -> None:
     async def respond(request: httpx.Request) -> httpx.Response:
         assert request.url.path in {"/health/live", "/minio/health/live"}
         return httpx.Response(200)
 
-    async with runtime_probe(httpx.MockTransport(respond)) as probe:
+    async with runtime_probe(httpx.MockTransport(respond), postgres_engine) as probe:
         assert await probe.check() is True
 
 
 @pytest.mark.usefixtures("rabbitmq_is_available")
-async def test_runtime_readiness_fails_closed_without_exposing_dependency_error() -> (
-    None
-):
+async def test_runtime_readiness_fails_closed_without_exposing_dependency_error(
+    postgres_engine: AsyncEngine,
+) -> None:
     async def respond(request: httpx.Request) -> httpx.Response:
         status = 503 if request.url.host == "runner.test" else 200
         return httpx.Response(status)
 
-    async with runtime_probe(httpx.MockTransport(respond)) as probe:
+    async with runtime_probe(httpx.MockTransport(respond), postgres_engine) as probe:
         assert await probe.check() is False
 
 
 @pytest.mark.usefixtures("rabbitmq_is_available")
-async def test_runtime_readiness_requires_a_compatible_analysis_worker() -> None:
+async def test_runtime_readiness_requires_a_compatible_analysis_worker(
+    postgres_engine: AsyncEngine,
+) -> None:
     async def respond(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200)
 
     async with runtime_probe(
-        httpx.MockTransport(respond), worker_schema_version=2
+        httpx.MockTransport(respond), postgres_engine, worker_schema_version=2
     ) as probe:
         assert await probe.check() is False

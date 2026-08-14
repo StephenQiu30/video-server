@@ -82,15 +82,14 @@ def build_runtime_readiness(
     async def database_check() -> None:
         async with engine.connect() as connection:
             await connection.execute(text("SELECT 1"))
-            if engine.dialect.name == "postgresql":
-                result = await connection.execute(
-                    _DATABASE_TABLES_QUERY,
-                    {"expected_tables": tuple(sorted(EXPECTED_DATABASE_TABLES))},
-                )
-                found_tables = set(result.scalars())
-                if found_tables != EXPECTED_DATABASE_TABLES:
-                    missing = ", ".join(sorted(EXPECTED_DATABASE_TABLES - found_tables))
-                    raise RuntimeError(f"database schema is incomplete: {missing}")
+            result = await connection.execute(
+                _DATABASE_TABLES_QUERY,
+                {"expected_tables": tuple(sorted(EXPECTED_DATABASE_TABLES))},
+            )
+            found_tables = set(result.scalars())
+            if found_tables != EXPECTED_DATABASE_TABLES:
+                missing = ", ".join(sorted(EXPECTED_DATABASE_TABLES - found_tables))
+                raise RuntimeError(f"database schema is incomplete: {missing}")
 
     async def http_check(url: str) -> None:
         response = await http_client.get(url)

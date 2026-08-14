@@ -5,23 +5,18 @@ from uuid import uuid4
 
 import pytest
 from app.infrastructure.database import (
-    Base,
     DownloadCreate,
     FormatCreate,
     InspectionCreate,
     SqlAlchemyDownloadRepository,
 )
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 
 @pytest.fixture
-async def repository() -> SqlAlchemyDownloadRepository:
-    engine = create_async_engine("sqlite+aiosqlite://")
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-    factory = async_sessionmaker(engine, expire_on_commit=False)
+async def repository(postgres_engine: AsyncEngine) -> SqlAlchemyDownloadRepository:
+    factory = async_sessionmaker(postgres_engine, expire_on_commit=False)
     yield SqlAlchemyDownloadRepository(factory)
-    await engine.dispose()
 
 
 async def _queued_job(repository, *, max_attempts: int = 3):

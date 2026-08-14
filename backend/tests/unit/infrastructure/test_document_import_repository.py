@@ -10,7 +10,7 @@ from app.application.imports import (
 )
 from app.application.imports.events import CONTENT_IMPORT_VERIFY_REQUESTED
 from app.domain.imports import ContentKind, ImportSourceFormat, ImportStatus
-from app.infrastructure.database import Base, SqlAlchemyDocumentImportRepository
+from app.infrastructure.database import SqlAlchemyDocumentImportRepository
 from app.infrastructure.database.models import (
     DocumentImportAttemptRow,
     DocumentRow,
@@ -18,7 +18,7 @@ from app.infrastructure.database.models import (
     OutboxEventRow,
 )
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 NOW = datetime(2026, 8, 14, 12, 0, tzinfo=UTC)
 RESOURCE_ID = UUID("33333333-3333-4333-8333-333333333333")
@@ -28,13 +28,9 @@ DECLARED_SIZE = 5 * 1024**2 + 1
 
 
 @pytest.fixture
-async def repository_data():
-    engine = create_async_engine("sqlite+aiosqlite://")
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-    sessions = async_sessionmaker(engine, expire_on_commit=False)
+async def repository_data(postgres_engine: AsyncEngine):
+    sessions = async_sessionmaker(postgres_engine, expire_on_commit=False)
     yield SqlAlchemyDocumentImportRepository(sessions), sessions
-    await engine.dispose()
 
 
 def command(

@@ -4,9 +4,9 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
-from app.infrastructure.database import Base, SqlAlchemyDownloadRepository
+from app.infrastructure.database import SqlAlchemyDownloadRepository
 from app.infrastructure.database.analytics_repository import _integer
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 from tests.unit.infrastructure.analytics_helpers import (
     END,
     START,
@@ -16,13 +16,9 @@ from tests.unit.infrastructure.analytics_helpers import (
 
 
 @pytest.fixture
-async def analytics_database():
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-    sessions = async_sessionmaker(engine, expire_on_commit=False)
+async def analytics_database(postgres_engine: AsyncEngine):
+    sessions = async_sessionmaker(postgres_engine, expire_on_commit=False)
     yield SqlAlchemyDownloadRepository(sessions), sessions
-    await engine.dispose()
 
 
 @pytest.mark.asyncio

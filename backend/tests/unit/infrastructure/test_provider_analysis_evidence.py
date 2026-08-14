@@ -10,7 +10,7 @@ from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
 from app.infrastructure.analysis_repository_serialization import (
     analysis_result_document,
 )
-from app.infrastructure.database import Base, create_session_factory
+from app.infrastructure.database import create_session_factory
 from app.infrastructure.database.models import (
     AnalysisJobRow,
     AnalysisReportArtifactRow,
@@ -26,18 +26,17 @@ from app.infrastructure.provider_analysis_evidence import (
     SqlAlchemyAnalysisCanaryEvidenceReader,
 )
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 from tests.unit.workers.analysis.fixtures import valid_mapping
 
 NOW = datetime(2026, 8, 11, 6, tzinfo=UTC)
 
 
 @pytest.mark.asyncio
-async def test_reads_only_complete_download_agent_report_and_realtime_chain() -> None:
-    engine = create_async_engine("sqlite+aiosqlite://")
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-    sessions = create_session_factory(engine)
+async def test_reads_only_complete_download_agent_report_and_realtime_chain(
+    postgres_engine: AsyncEngine,
+) -> None:
+    sessions = create_session_factory(postgres_engine)
     job_id = await _seed_complete_chain(sessions)
     reader = SqlAlchemyAnalysisCanaryEvidenceReader(sessions, bucket="video-artifacts")
 
@@ -57,7 +56,6 @@ async def test_reads_only_complete_download_agent_report_and_realtime_chain() ->
         assert docx is not None
         docx.status = "failed"
     assert await reader.get(job_id, now=NOW) is None
-    await engine.dispose()
 
 
 async def _seed_complete_chain(sessions) -> object:

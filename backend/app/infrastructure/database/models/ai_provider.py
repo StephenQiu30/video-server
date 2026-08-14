@@ -38,7 +38,6 @@ class AiProviderProfileRow(Base):
             "is_active",
             unique=True,
             postgresql_where=text("is_active"),
-            sqlite_where=text("is_active = 1"),
         ),
     )
 

@@ -1,18 +1,17 @@
 from datetime import UTC, datetime
 
 import pytest
-from app.infrastructure.database import Base, create_session_factory
+from app.infrastructure.database import create_session_factory
 from app.infrastructure.database.operational_counter import increment_counter
 from app.infrastructure.operational_metrics import OperationalMetrics
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 
 @pytest.mark.asyncio
-async def test_operational_metrics_use_fixed_low_cardinality_labels() -> None:
-    engine = create_async_engine("sqlite+aiosqlite://")
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-    sessions = create_session_factory(engine)
+async def test_operational_metrics_use_fixed_low_cardinality_labels(
+    postgres_engine: AsyncEngine,
+) -> None:
+    sessions = create_session_factory(postgres_engine)
     async with sessions() as session, session.begin():
         await increment_counter(session, "claim_noop", "analysis")
         await increment_counter(session, "claim_noop", "analysis")
@@ -36,4 +35,3 @@ async def test_operational_metrics_use_fixed_low_cardinality_labels() -> None:
         sensitive not in rendered
         for sensitive in ("owner_hash", "job_id", "prompt", "object_key")
     )
-    await engine.dispose()

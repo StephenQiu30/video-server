@@ -249,6 +249,13 @@ class Settings(BaseSettings):
     analysis_minio_access_key: SecretStr | None = None
     analysis_minio_secret_key: SecretStr | None = None
 
+    @field_validator("database_url", "analysis_database_url")
+    @classmethod
+    def require_async_postgresql(cls, value: str) -> str:
+        if not value.startswith("postgresql+asyncpg://"):
+            raise ValueError("database URLs must use postgresql+asyncpg")
+        return value
+
     @field_validator("frontend_dist_dir")
     @classmethod
     def resolve_frontend_dist(cls, value: Path) -> Path:

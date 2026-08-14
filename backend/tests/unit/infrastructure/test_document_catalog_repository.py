@@ -13,12 +13,11 @@ from app.application.imports import (
 )
 from app.domain.imports import ContentKind, ImportSourceFormat
 from app.infrastructure.database import (
-    Base,
     SqlAlchemyDocumentCatalogRepository,
     SqlAlchemyDocumentImportRepository,
 )
 from app.infrastructure.database.models import DocumentArtifactRow, DocumentRow
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 NOW = datetime(2026, 8, 14, 15, 0, tzinfo=UTC)
 FIRST = UUID("66666666-6666-4666-8666-666666666666")
@@ -59,11 +58,8 @@ def command(resource_id: UUID, owner_hash: str, key: str) -> ImportResourceCreat
 
 
 @pytest.fixture
-async def catalog_data():
-    engine = create_async_engine("sqlite+aiosqlite://")
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-    sessions = async_sessionmaker(engine, expire_on_commit=False)
+async def catalog_data(postgres_engine: AsyncEngine):
+    sessions = async_sessionmaker(postgres_engine, expire_on_commit=False)
     imports = SqlAlchemyDocumentImportRepository(sessions)
     await imports.create_resource(command(FIRST, OWNER, "first"), now=NOW)
     await imports.create_resource(
@@ -71,7 +67,6 @@ async def catalog_data():
     )
     await imports.create_resource(command(THIRD, OTHER_OWNER, "third"), now=NOW)
     yield SqlAlchemyDocumentCatalogRepository(sessions), sessions
-    await engine.dispose()
 
 
 async def test_catalog_is_owner_scoped_ordered_and_hides_deleted(catalog_data) -> None:

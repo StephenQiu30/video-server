@@ -21,7 +21,6 @@ from app.domain.imports import (
     quarantine_object_key,
 )
 from app.infrastructure.database import (
-    Base,
     SqlAlchemyDownloadRepository,
     SqlAlchemyMediaImportRepository,
 )
@@ -33,7 +32,7 @@ from app.infrastructure.database.models import (
     OutboxEventRow,
 )
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 NOW = datetime(2026, 8, 14, 10, 0, tzinfo=UTC)
 RESOURCE_ID = UUID("11111111-1111-4111-8111-111111111111")
@@ -44,21 +43,19 @@ DECLARED_SIZE = FIVE_MIB + 1
 
 
 @pytest.fixture
-async def repositories() -> tuple[
+async def repositories(
+    postgres_engine: AsyncEngine,
+) -> tuple[
     SqlAlchemyMediaImportRepository,
     SqlAlchemyDownloadRepository,
     async_sessionmaker,
 ]:
-    engine = create_async_engine("sqlite+aiosqlite://")
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    sessions = async_sessionmaker(postgres_engine, expire_on_commit=False)
     yield (
         SqlAlchemyMediaImportRepository(sessions),
         SqlAlchemyDownloadRepository(sessions),
         sessions,
     )
-    await engine.dispose()
 
 
 def command(
@@ -112,8 +109,8 @@ async def test_create_is_idempotent_and_creates_browser_download_projection(
     assert job.stage == "downloading"
     assert stored is not None
     assert stored.rights_statement_version == "content-rights-v1"
-    # SQLite has no PostgreSQL task-event trigger. More importantly, creation
-    # does not enqueue the remote downloader's download.requested event.
+    # ORM metadata intentionally excludes deployment triggers. Creation must
+    # not enqueue the remote downloader's download.requested event.
     assert outbox_count == 0
 
 

@@ -47,6 +47,7 @@ async def add_job(
                 created_at=created_at,
             )
         )
+        await session.flush()
         session.add(
             MediaFormatRow(
                 id=format_id,
@@ -59,6 +60,7 @@ async def add_job(
                 created_at=created_at,
             )
         )
+        await session.flush()
         session.add(
             DownloadJobRow(
                 id=job_id,
@@ -80,6 +82,7 @@ async def add_job(
                 updated_at=created_at,
             )
         )
+        await session.flush()
         if size_bytes:
             session.add(
                 ArtifactRow(
@@ -129,6 +132,7 @@ async def add_browser_import(
                 updated_at=created_at,
             )
         )
+        await session.flush()
         session.add(
             MediaImportRow(
                 id=job_id,

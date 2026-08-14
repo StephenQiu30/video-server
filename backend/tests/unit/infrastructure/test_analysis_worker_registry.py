@@ -6,16 +6,14 @@ import pytest
 from app.infrastructure.analysis_worker_registry import (
     SqlAlchemyAnalysisWorkerRegistry,
 )
-from app.infrastructure.database import Base
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 
 @pytest.mark.asyncio
-async def test_worker_registry_requires_fresh_matching_capability() -> None:
-    engine = create_async_engine("sqlite+aiosqlite://")
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-    sessions = async_sessionmaker(engine, expire_on_commit=False)
+async def test_worker_registry_requires_fresh_matching_capability(
+    postgres_engine: AsyncEngine,
+) -> None:
+    sessions = async_sessionmaker(postgres_engine, expire_on_commit=False)
     registry = SqlAlchemyAnalysisWorkerRegistry(
         sessions,
         expected_app_version="release-a",
@@ -42,4 +40,3 @@ async def test_worker_registry_requires_fresh_matching_capability() -> None:
     assert not await registry.is_available(now + timedelta(seconds=31))
     await registry.unregister("worker-a")
     assert not await registry.is_available(now)
-    await engine.dispose()

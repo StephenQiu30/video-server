@@ -4,21 +4,22 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from app.application.provider_catalog import DuplicateProviderCatalogKeyError
-from app.infrastructure.database import Base, create_session_factory
+from app.infrastructure.database import create_session_factory
 from app.infrastructure.provider_catalog_repository import (
     SqlAlchemyProviderCatalogRepository,
 )
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 NOW = datetime(2026, 8, 12, tzinfo=UTC)
 
 
 @pytest.mark.asyncio
-async def test_catalog_repository_orders_filters_soft_deletes_and_revives() -> None:
-    engine = create_async_engine("sqlite+aiosqlite://")
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-    repository = SqlAlchemyProviderCatalogRepository(create_session_factory(engine))
+async def test_catalog_repository_orders_filters_soft_deletes_and_revives(
+    postgres_engine: AsyncEngine,
+) -> None:
+    repository = SqlAlchemyProviderCatalogRepository(
+        create_session_factory(postgres_engine)
+    )
 
     await repository.create_entry(
         key="hidden",
@@ -73,4 +74,3 @@ async def test_catalog_repository_orders_filters_soft_deletes_and_revives() -> N
         "visible",
         "hidden",
     ]
-    await engine.dispose()
