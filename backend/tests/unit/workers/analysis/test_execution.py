@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import replace
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 from app.application.analysis_execution import (
@@ -163,3 +165,26 @@ async def test_invalid_model_evidence_retries_with_attempt_limit(
     assert repository.failures[0]["error_code"] == "invalid_model_output"
     assert repository.failures[0]["retryable"] is True
     assert loader.cleaned is True
+
+
+@pytest.mark.asyncio
+async def test_screenplay_never_falls_back_to_video_executor(tmp_path: Path) -> None:
+    job = replace(
+        running_job(),
+        artifact_id=None,
+        document_id=uuid4(),
+        input_kind="screenplay",
+        result_contract="screenplay-analysis",
+    )
+    repository = FakeRepository(job)
+    loader = FakeLoader(tmp_path)
+
+    disposition = await execution(
+        repository, loader, analyzer=FakeAnalyzer(valid_mapping())
+    ).execute(job.id, job.run_id, job.run_no, job.version)
+
+    assert disposition is AnalysisDisposition.ACK
+    assert repository.job.status == "failed"
+    assert repository.failures[0]["error_code"] == "analysis_cli_unsupported"
+    assert repository.heartbeats == []
+    assert loader.cleaned is False

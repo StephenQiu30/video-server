@@ -6,6 +6,8 @@ from enum import StrEnum
 from pathlib import Path
 from uuid import UUID
 
+from app.domain.analysis import AnalysisResult
+
 
 class AnalysisDisposition(StrEnum):
     ACK = "ack"
@@ -84,3 +86,17 @@ class VideoAnalysisRequest:
             not self.custom_prompt.strip() or len(self.custom_prompt) > 4_000
         ):
             raise ValueError("custom prompt must be non-blank and at most 4000 chars")
+
+
+@dataclass(frozen=True, slots=True)
+class AnalysisExecutionOutput:
+    result: AnalysisResult
+    provider: str
+    model: str
+    cli_version: str
+
+    def __post_init__(self) -> None:
+        if any(
+            not value.strip() for value in (self.provider, self.model, self.cli_version)
+        ):
+            raise ValueError("analysis execution provider labels cannot be blank")

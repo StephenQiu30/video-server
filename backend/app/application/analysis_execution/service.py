@@ -1,18 +1,17 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import suppress
 from datetime import datetime
+from typing import Protocol
 from uuid import UUID
 
 from app.application.analysis import AnalysisJobSnapshot
 from app.domain.analysis import (
     AnalysisErrorCode,
-    AnalysisMedia,
+    AnalysisInputKind,
     AnalysisStage,
     AnalysisStatus,
     AnalysisValidationError,
-    parse_analysis_result,
 )
 
 from .errors import (
@@ -24,20 +23,25 @@ from .errors import (
 )
 from .models import (
     AnalysisDisposition,
+    AnalysisExecutionOutput,
     AnalysisExecutionSettings,
-    LocalAnalysisArtifact,
-    VideoAnalysisRequest,
 )
 from .monitor import AnalysisLeaseMonitor
 from .ports import (
     AnalysisExecutionRepository,
     AnalyzerResolver,
-    AnalyzerSelection,
     ArtifactLoader,
     Clock,
     VideoAnalyzer,
 )
 from .transitions import AnalysisTransitions
+from .video_executor import StaticAnalyzerResolver, VideoAnalysisExecutor
+
+
+class ClaimedAnalysisExecutor(Protocol):
+    async def execute(
+        self, job: AnalysisJobSnapshot, monitor: AnalysisLeaseMonitor
+    ) -> AnalysisExecutionOutput: ...
 
 
 class AnalysisExecution:
@@ -48,24 +52,33 @@ class AnalysisExecution:
         loader: ArtifactLoader,
         analyzer: VideoAnalyzer | None = None,
         resolver: AnalyzerResolver | None = None,
+        screenplay_executor: ClaimedAnalysisExecutor | None = None,
         clock: Clock,
         settings: AnalysisExecutionSettings,
     ) -> None:
         self._repository = repository
-        self._loader = loader
         if resolver is None:
             if analyzer is None:
                 raise ValueError("an analyzer or resolver is required")
-            resolver = _StaticAnalyzerResolver(
+            resolver = StaticAnalyzerResolver(
                 analyzer,
                 provider=settings.provider,
                 model=settings.model,
                 cli_version=settings.cli_version,
             )
-        self._resolver = resolver
         self._clock = clock
         self._settings = settings
         self._transitions = AnalysisTransitions(repository, settings, clock)
+        self._executors: dict[AnalysisInputKind, ClaimedAnalysisExecutor] = {
+            AnalysisInputKind.VIDEO: VideoAnalysisExecutor(
+                repository=repository,
+                loader=loader,
+                resolver=resolver,
+                clock=clock,
+            )
+        }
+        if screenplay_executor is not None:
+            self._executors[AnalysisInputKind.SCREENPLAY] = screenplay_executor
 
     async def execute(
         self, job_id: UUID, run_id: UUID, run_no: int, expected_version: int
@@ -90,45 +103,14 @@ class AnalysisExecution:
 
     async def _execute_claimed(self, job: AnalysisJobSnapshot) -> AnalysisDisposition:
         monitor = self._monitor(job.id, job.attempt)
-        local: LocalAnalysisArtifact | None = None
-        stage = AnalysisStage.PREPARING
+        executor = self._executor(job.input_kind)
+        if executor is None:
+            return await self._transitions.fail(
+                job.id, job.attempt, AnalysisErrorCode.CLI_UNSUPPORTED
+            )
         try:
-            source = await self._repository.get_artifact_source(job, self._clock())
-            local = await monitor.run(
-                lambda: self._loader.materialize(
-                    source, job_id=job.id, attempt=job.attempt
-                ),
-                stage=stage,
-                progress=10,
-            )
-            stage = AnalysisStage.ANALYZING
-            request = VideoAnalysisRequest(
-                artifact=local.artifact,
-                workspace=local.workspace,
-                duration_ms=source.duration_ms,
-                size_bytes=source.size_bytes,
-                container=source.container,
-                output_language=job.output_language,
-                skill_id=job.skill_id,
-                skill_instructions=job.skill_instructions,
-                custom_prompt=job.custom_prompt,
-            )
-            selection, payload = await monitor.run(
-                lambda: self._analyze(request),
-                stage=stage,
-                progress=70,
-            )
-            result = parse_analysis_result(
-                payload,
-                AnalysisMedia(
-                    duration_ms=source.duration_ms,
-                    container=source.container,
-                    size_bytes=source.size_bytes,
-                ),
-                expected_language=job.output_language,
-            )
-            stage = AnalysisStage.VALIDATING
-            await monitor.advance(stage, 90)
+            output = await executor.execute(job, monitor)
+            await monitor.advance(AnalysisStage.VALIDATING, 90)
             current = await self._repository.get_job(job.id)
             if current is None or not _owns(
                 current, self._settings.worker_id, job.attempt, self._clock()
@@ -139,10 +121,10 @@ class AnalysisExecution:
                 current.run_id,
                 self._settings.worker_id,
                 current.version,
-                result,
-                selection.provider,
-                selection.model,
-                selection.cli_version,
+                output.result,
+                output.provider,
+                output.model,
+                output.cli_version,
                 self._clock(),
             )
             return AnalysisDisposition.ACK
@@ -164,12 +146,8 @@ class AnalysisExecution:
             return await self._transitions.fail(
                 job.id,
                 job.attempt,
-                classify_analysis_failure(error, stage),
+                classify_analysis_failure(error, AnalysisStage.ANALYZING),
             )
-        finally:
-            if local is not None:
-                with suppress(Exception):
-                    await self._loader.cleanup(local)
 
     def _monitor(self, job_id: UUID, attempt: int) -> AnalysisLeaseMonitor:
         return AnalysisLeaseMonitor(
@@ -182,31 +160,11 @@ class AnalysisExecution:
             interval=self._settings.heartbeat_interval,
         )
 
-    async def _analyze(
-        self, request: VideoAnalysisRequest
-    ) -> tuple[AnalyzerSelection, object]:
-        selection = await self._resolver.resolve()
-        return selection, await selection.analyzer.analyze(request)
-
-
-class _StaticAnalyzerResolver:
-    def __init__(
-        self,
-        analyzer: VideoAnalyzer,
-        *,
-        provider: str,
-        model: str,
-        cli_version: str,
-    ) -> None:
-        self._selection = AnalyzerSelection(
-            analyzer=analyzer,
-            provider=provider,
-            model=model,
-            cli_version=cli_version,
-        )
-
-    async def resolve(self) -> AnalyzerSelection:
-        return self._selection
+    def _executor(self, input_kind: str) -> ClaimedAnalysisExecutor | None:
+        try:
+            return self._executors.get(AnalysisInputKind(input_kind))
+        except ValueError:
+            return None
 
 
 def _owns(
