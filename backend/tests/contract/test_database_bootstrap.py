@@ -33,6 +33,9 @@ def test_current_schema_can_be_applied_repeatedly() -> None:
     assert "ck_analysis_jobs_succeeded_report" in schema
     assert "ix_download_jobs_queued_recovery" in schema
     assert "ck_download_jobs_source_shape" in schema
+    assert "ck_media_imports_terminal_shape" in schema
+    assert "ck_media_import_attempts_verifying_shape" in schema
+    assert "ck_media_import_attempts_terminal_shape" in schema
     assert "ck_analysis_jobs_input_shape" in schema
     assert "SET source_kind = 'remote_provider'" in schema
     assert "result_contract = COALESCE(" in schema

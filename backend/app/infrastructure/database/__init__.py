@@ -37,6 +37,7 @@ from .errors import (
     RepositoryError,
     RepositoryNotFound,
 )
+from .media_import_repository import SqlAlchemyMediaImportRepository
 from .models import (
     AnalysisArtifactLockRow,
     AnalysisJobRow,
@@ -47,6 +48,8 @@ from .models import (
     AuthSessionRow,
     DownloadJobRow,
     MediaFormatRow,
+    MediaImportAttemptRow,
+    MediaImportRow,
     MediaInspectionRow,
     MediaThumbnailRow,
     OutboxEventRow,
@@ -91,6 +94,8 @@ __all__ = [
     "JobSourceSnapshot",
     "LeaseConflict",
     "MediaFormatRow",
+    "MediaImportAttemptRow",
+    "MediaImportRow",
     "MediaInspectionRow",
     "MediaThumbnailRow",
     "OutboxEventRow",
@@ -105,6 +110,7 @@ __all__ = [
     "ThumbnailSnapshot",
     "ThumbnailSourceSnapshot",
     "SqlAlchemyDownloadRepository",
+    "SqlAlchemyMediaImportRepository",
     "UserRow",
     "build_artifact_object_key",
     "create_engine",

@@ -13,6 +13,7 @@ from .auth import AuthSessionRow, UserRow
 from .dlq_replay import DlqReplayRow
 from .download import ArtifactRow, DownloadJobRow
 from .media import MediaFormatRow, MediaInspectionRow, MediaThumbnailRow
+from .media_import import MediaImportAttemptRow, MediaImportRow
 from .operational_metric import OperationalCounterRow
 from .outbox import OutboxEventRow
 from .provider_canary import ProviderCanaryResultRow
@@ -35,6 +36,8 @@ __all__ = [
     "DlqReplayRow",
     "MediaFormatRow",
     "MediaInspectionRow",
+    "MediaImportAttemptRow",
+    "MediaImportRow",
     "MediaThumbnailRow",
     "OutboxEventRow",
     "OperationalCounterRow",

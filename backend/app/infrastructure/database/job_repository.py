@@ -82,6 +82,7 @@ class JobRepository(MediaRepository):
             update(DownloadJobRow)
             .where(
                 DownloadJobRow.id == job_id,
+                DownloadJobRow.source_kind == "remote_provider",
                 DownloadJobRow.status == "queued",
                 DownloadJobRow.attempt < DownloadJobRow.max_attempts,
                 DownloadJobRow.retry_at.is_(None),

@@ -15,6 +15,8 @@ def test_download_schema_contains_required_tables_and_columns() -> None:
         "auth_sessions",
         "download_jobs",
         "media_formats",
+        "media_import_attempts",
+        "media_imports",
         "media_inspections",
         "outbox_events",
         "users",
@@ -72,6 +74,28 @@ def test_download_schema_contains_required_tables_and_columns() -> None:
         "created_at",
         "updated_at",
     } <= set(catalog.columns.keys())
+    media_imports = tables["media_imports"]
+    assert {
+        "owner_hash",
+        "request_fingerprint",
+        "rights_statement_version",
+        "declared_sha256",
+        "status",
+        "attempt",
+        "version",
+    } <= set(media_imports.columns.keys())
+    attempts = tables["media_import_attempts"]
+    assert {
+        "resource_id",
+        "attempt",
+        "object_key",
+        "upload_id",
+        "part_size_bytes",
+        "part_count",
+        "expires_at",
+        "lease_owner",
+        "lease_expires_at",
+    } <= set(attempts.columns.keys())
 
 
 def test_sensitive_url_is_not_a_plaintext_column() -> None:
@@ -93,6 +117,14 @@ def test_constraints_cover_idempotency_progress_and_artifact_identity() -> None:
         CreateTable(Base.metadata.tables["artifacts"]).compile(dialect=dialect)
     )
     user_ddl = str(CreateTable(Base.metadata.tables["users"]).compile(dialect=dialect))
+    media_import_ddl = str(
+        CreateTable(Base.metadata.tables["media_imports"]).compile(dialect=dialect)
+    )
+    import_attempt_ddl = str(
+        CreateTable(Base.metadata.tables["media_import_attempts"]).compile(
+            dialect=dialect
+        )
+    )
     assert "uq_download_jobs_owner_idempotency" in job_ddl
     assert "progress BETWEEN 0 AND 100" in job_ddl
     assert "ck_download_jobs_source_shape" in job_ddl
@@ -101,6 +133,11 @@ def test_constraints_cover_idempotency_progress_and_artifact_identity() -> None:
     assert "uq_artifacts_job" in artifact_ddl
     assert "uq_artifacts_object" in artifact_ddl
     assert "ck_users_role" in user_ddl
+    assert "uq_media_imports_owner_idempotency" in media_import_ddl
+    assert "ck_media_imports_terminal_shape" in media_import_ddl
+    assert "uq_media_import_attempts_object" in import_attempt_ddl
+    assert "ck_media_import_attempts_verifying_shape" in import_attempt_ddl
+    assert "ck_media_import_attempts_terminal_shape" in import_attempt_ddl
 
 
 def test_postgres_claims_use_skip_locked_for_parallel_consumers() -> None:
@@ -113,3 +150,4 @@ def test_postgres_claims_use_skip_locked_for_parallel_consumers() -> None:
     assert "FOR UPDATE SKIP LOCKED" in outbox_sql
     assert "FOR UPDATE SKIP LOCKED" in artifact_sql
     assert "NOT (EXISTS" in artifact_sql
+    assert "download_jobs.source_kind =" in stale_sql

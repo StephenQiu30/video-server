@@ -260,6 +260,118 @@ CREATE INDEX IF NOT EXISTS ix_download_jobs_claim ON download_jobs (status, retr
 CREATE INDEX IF NOT EXISTS ix_download_jobs_stale ON download_jobs (status, lease_expires_at);
 CREATE INDEX IF NOT EXISTS ix_download_jobs_queued_recovery ON download_jobs (status, updated_at);
 
+CREATE TABLE IF NOT EXISTS media_imports (
+    id UUID PRIMARY KEY REFERENCES download_jobs (id) ON DELETE CASCADE,
+    owner_hash VARCHAR(64) NOT NULL,
+    idempotency_key VARCHAR(128) NOT NULL,
+    request_fingerprint VARCHAR(64) NOT NULL,
+    source_format VARCHAR(32) NOT NULL,
+    display_name VARCHAR(128) NOT NULL,
+    content_type VARCHAR(128) NOT NULL,
+    declared_size_bytes BIGINT NOT NULL,
+    declared_sha256 VARCHAR(64) NOT NULL,
+    rights_statement_version VARCHAR(64) NOT NULL,
+    status VARCHAR(24) NOT NULL DEFAULT 'uploading',
+    attempt INTEGER NOT NULL DEFAULT 0,
+    error_code VARCHAR(64),
+    version INTEGER NOT NULL DEFAULT 0,
+    finished_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_media_imports_owner_idempotency
+        UNIQUE (owner_hash, idempotency_key),
+    CONSTRAINT ck_media_imports_format CHECK (source_format = 'mp4'),
+    CONSTRAINT ck_media_imports_content_type CHECK (content_type = 'video/mp4'),
+    CONSTRAINT ck_media_imports_status CHECK (
+        status IN ('uploading','verifying','ready','failed','cancelled','expired')
+    ),
+    CONSTRAINT ck_media_imports_declared_size CHECK (declared_size_bytes > 0),
+    CONSTRAINT ck_media_imports_declared_sha256_length CHECK (
+        length(declared_sha256) = 64
+    ),
+    CONSTRAINT ck_media_imports_attempt CHECK (attempt >= 0),
+    CONSTRAINT ck_media_imports_version CHECK (version >= 0),
+    CONSTRAINT ck_media_imports_terminal_shape CHECK (
+        (status IN ('uploading','verifying') AND finished_at IS NULL) OR
+        (status IN ('ready','failed','cancelled','expired') AND finished_at IS NOT NULL)
+    )
+);
+
+CREATE INDEX IF NOT EXISTS ix_media_imports_owner_created
+    ON media_imports (owner_hash, created_at);
+CREATE INDEX IF NOT EXISTS ix_media_imports_status_updated
+    ON media_imports (status, updated_at);
+
+CREATE TABLE IF NOT EXISTS media_import_attempts (
+    resource_id UUID NOT NULL
+        REFERENCES media_imports (id) ON DELETE CASCADE,
+    attempt INTEGER NOT NULL,
+    status VARCHAR(24) NOT NULL DEFAULT 'uploading',
+    object_key TEXT NOT NULL,
+    upload_id TEXT,
+    content_type VARCHAR(128) NOT NULL,
+    declared_size_bytes BIGINT NOT NULL,
+    actual_size_bytes BIGINT,
+    part_size_bytes BIGINT NOT NULL,
+    part_count INTEGER NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    error_code VARCHAR(64),
+    lease_owner VARCHAR(128),
+    lease_expires_at TIMESTAMPTZ,
+    heartbeat_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    finished_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (resource_id, attempt),
+    CONSTRAINT uq_media_import_attempts_object UNIQUE (object_key),
+    CONSTRAINT ck_media_import_attempts_attempt CHECK (attempt > 0),
+    CONSTRAINT ck_media_import_attempts_status CHECK (
+        status IN ('uploading','verifying','ready','failed','cancelled','expired')
+    ),
+    CONSTRAINT ck_media_import_attempts_content_type CHECK (
+        content_type = 'video/mp4'
+    ),
+    CONSTRAINT ck_media_import_attempts_declared_size CHECK (
+        declared_size_bytes > 0
+    ),
+    CONSTRAINT ck_media_import_attempts_actual_size CHECK (
+        actual_size_bytes IS NULL OR actual_size_bytes > 0
+    ),
+    CONSTRAINT ck_media_import_attempts_part_size CHECK (
+        part_size_bytes BETWEEN 5242880 AND 5368709120
+    ),
+    CONSTRAINT ck_media_import_attempts_part_count CHECK (
+        part_count BETWEEN 1 AND 10000
+    ),
+    CONSTRAINT ck_media_import_attempts_verifying_shape CHECK (
+        status <> 'verifying' OR actual_size_bytes IS NOT NULL
+    ),
+    CONSTRAINT ck_media_import_attempts_terminal_shape CHECK (
+        (status IN ('uploading','verifying') AND finished_at IS NULL) OR
+        (status IN ('ready','failed','cancelled','expired') AND finished_at IS NOT NULL)
+    )
+);
+
+CREATE INDEX IF NOT EXISTS ix_media_import_attempts_status_expires
+    ON media_import_attempts (status, expires_at);
+CREATE INDEX IF NOT EXISTS ix_media_import_attempts_stale
+    ON media_import_attempts (status, lease_expires_at);
+
+ALTER TABLE media_import_attempts
+    DROP CONSTRAINT IF EXISTS ck_media_import_attempts_verifying_shape;
+ALTER TABLE media_import_attempts
+    ADD CONSTRAINT ck_media_import_attempts_verifying_shape CHECK (
+        status <> 'verifying' OR actual_size_bytes IS NOT NULL
+    );
+ALTER TABLE media_import_attempts
+    DROP CONSTRAINT IF EXISTS ck_media_import_attempts_terminal_shape;
+ALTER TABLE media_import_attempts
+    ADD CONSTRAINT ck_media_import_attempts_terminal_shape CHECK (
+        (status IN ('uploading','verifying') AND finished_at IS NULL) OR
+        (status IN ('ready','failed','cancelled','expired') AND finished_at IS NOT NULL)
+    );
+
 CREATE TABLE IF NOT EXISTS artifacts (
     id UUID PRIMARY KEY,
     job_id UUID NOT NULL REFERENCES download_jobs (id) ON DELETE CASCADE,

@@ -15,6 +15,7 @@ def stale_jobs_statement(now: datetime, limit: int) -> Select[tuple[DownloadJobR
     return (
         select(DownloadJobRow)
         .where(
+            DownloadJobRow.source_kind == "remote_provider",
             DownloadJobRow.status == "running",
             DownloadJobRow.lease_expires_at <= now,
         )
@@ -28,6 +29,7 @@ def ready_retries_statement(now: datetime, limit: int) -> Select[tuple[DownloadJ
     return (
         select(DownloadJobRow)
         .where(
+            DownloadJobRow.source_kind == "remote_provider",
             DownloadJobRow.status == "retry_wait",
             DownloadJobRow.retry_at <= now,
         )
@@ -43,6 +45,7 @@ def stale_queued_jobs_statement(
     return (
         select(DownloadJobRow)
         .where(
+            DownloadJobRow.source_kind == "remote_provider",
             DownloadJobRow.status == "queued",
             DownloadJobRow.updated_at <= stale_before,
         )
