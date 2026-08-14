@@ -82,7 +82,12 @@ class AnalysisJobRow(Base):
         String(32), nullable=False, default="video-visual-analysis"
     )
     artifact_id: Mapped[UUID | None] = mapped_column(Uuid)
-    document_id: Mapped[UUID | None] = mapped_column(Uuid)
+    document_id: Mapped[UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey(
+            "documents.id", ondelete="RESTRICT", name="fk_analysis_jobs_document"
+        ),
+    )
     owner_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
     request_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)

@@ -372,6 +372,162 @@ ALTER TABLE media_import_attempts
         (status IN ('ready','failed','cancelled','expired') AND finished_at IS NOT NULL)
     );
 
+CREATE TABLE IF NOT EXISTS documents (
+    id UUID PRIMARY KEY,
+    owner_hash VARCHAR(64) NOT NULL,
+    idempotency_key VARCHAR(128) NOT NULL,
+    request_fingerprint VARCHAR(64) NOT NULL,
+    title VARCHAR(128) NOT NULL,
+    original_filename VARCHAR(128) NOT NULL,
+    source_format VARCHAR(32) NOT NULL,
+    content_type VARCHAR(128) NOT NULL,
+    declared_size_bytes BIGINT NOT NULL,
+    declared_sha256 VARCHAR(64) NOT NULL,
+    rights_statement_version VARCHAR(64) NOT NULL,
+    status VARCHAR(24) NOT NULL DEFAULT 'uploading',
+    attempt INTEGER NOT NULL DEFAULT 0,
+    error_code VARCHAR(64),
+    version INTEGER NOT NULL DEFAULT 0,
+    detected_language VARCHAR(16),
+    scene_count INTEGER,
+    character_count INTEGER,
+    text_sha256 VARCHAR(64),
+    quality_warnings JSONB NOT NULL DEFAULT '[]'::jsonb,
+    expires_at TIMESTAMPTZ,
+    deleted_at TIMESTAMPTZ,
+    finished_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_documents_owner_idempotency
+        UNIQUE (owner_hash, idempotency_key),
+    CONSTRAINT ck_documents_source_format CHECK (
+        source_format IN ('docx','pdf','txt','markdown','fountain')
+    ),
+    CONSTRAINT ck_documents_status CHECK (
+        status IN ('uploading','verifying','ready','failed','cancelled','expired')
+    ),
+    CONSTRAINT ck_documents_declared_size CHECK (declared_size_bytes > 0),
+    CONSTRAINT ck_documents_declared_sha256_length CHECK (
+        length(declared_sha256) = 64
+    ),
+    CONSTRAINT ck_documents_attempt CHECK (attempt >= 0),
+    CONSTRAINT ck_documents_version CHECK (version >= 0),
+    CONSTRAINT ck_documents_detected_language CHECK (
+        detected_language IS NULL OR
+        detected_language IN ('zh-CN','en-US','mixed','unknown')
+    ),
+    CONSTRAINT ck_documents_scene_count CHECK (
+        scene_count IS NULL OR scene_count >= 0
+    ),
+    CONSTRAINT ck_documents_character_count CHECK (
+        character_count IS NULL OR character_count > 0
+    ),
+    CONSTRAINT ck_documents_text_sha256_length CHECK (
+        text_sha256 IS NULL OR length(text_sha256) = 64
+    ),
+    CONSTRAINT ck_documents_terminal_shape CHECK (
+        (status IN ('uploading','verifying') AND finished_at IS NULL) OR
+        (status IN ('ready','failed','cancelled','expired') AND finished_at IS NOT NULL)
+    ),
+    CONSTRAINT ck_documents_ready_shape CHECK (
+        status <> 'ready' OR (
+            detected_language IS NOT NULL AND scene_count IS NOT NULL AND
+            character_count IS NOT NULL AND text_sha256 IS NOT NULL AND
+            expires_at IS NOT NULL
+        )
+    )
+);
+
+CREATE INDEX IF NOT EXISTS ix_documents_owner_created
+    ON documents (owner_hash, created_at);
+CREATE INDEX IF NOT EXISTS ix_documents_status_updated
+    ON documents (status, updated_at);
+CREATE INDEX IF NOT EXISTS ix_documents_expires ON documents (expires_at);
+
+CREATE TABLE IF NOT EXISTS document_import_attempts (
+    resource_id UUID NOT NULL REFERENCES documents (id) ON DELETE CASCADE,
+    attempt INTEGER NOT NULL,
+    status VARCHAR(24) NOT NULL DEFAULT 'uploading',
+    object_key TEXT NOT NULL,
+    upload_id TEXT,
+    content_type VARCHAR(128) NOT NULL,
+    declared_size_bytes BIGINT NOT NULL,
+    actual_size_bytes BIGINT,
+    part_size_bytes BIGINT NOT NULL,
+    part_count INTEGER NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    error_code VARCHAR(64),
+    lease_owner VARCHAR(128),
+    lease_expires_at TIMESTAMPTZ,
+    heartbeat_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    finished_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (resource_id, attempt),
+    CONSTRAINT uq_document_import_attempts_object UNIQUE (object_key),
+    CONSTRAINT ck_document_import_attempts_attempt CHECK (attempt > 0),
+    CONSTRAINT ck_document_import_attempts_status CHECK (
+        status IN ('uploading','verifying','ready','failed','cancelled','expired')
+    ),
+    CONSTRAINT ck_document_import_attempts_declared_size CHECK (
+        declared_size_bytes > 0
+    ),
+    CONSTRAINT ck_document_import_attempts_actual_size CHECK (
+        actual_size_bytes IS NULL OR actual_size_bytes > 0
+    ),
+    CONSTRAINT ck_document_import_attempts_part_size CHECK (
+        part_size_bytes BETWEEN 5242880 AND 5368709120
+    ),
+    CONSTRAINT ck_document_import_attempts_part_count CHECK (
+        part_count BETWEEN 1 AND 10000
+    ),
+    CONSTRAINT ck_document_import_attempts_verifying_shape CHECK (
+        status <> 'verifying' OR actual_size_bytes IS NOT NULL
+    ),
+    CONSTRAINT ck_document_import_attempts_terminal_shape CHECK (
+        (status IN ('uploading','verifying') AND finished_at IS NULL) OR
+        (status IN ('ready','failed','cancelled','expired') AND finished_at IS NOT NULL)
+    )
+);
+
+CREATE INDEX IF NOT EXISTS ix_document_import_attempts_status_expires
+    ON document_import_attempts (status, expires_at);
+CREATE INDEX IF NOT EXISTS ix_document_import_attempts_stale
+    ON document_import_attempts (status, lease_expires_at);
+
+CREATE TABLE IF NOT EXISTS document_artifacts (
+    id UUID PRIMARY KEY,
+    document_id UUID NOT NULL REFERENCES documents (id) ON DELETE CASCADE,
+    kind VARCHAR(24) NOT NULL,
+    bucket VARCHAR(128) NOT NULL,
+    object_key TEXT NOT NULL,
+    content_type VARCHAR(128) NOT NULL,
+    size_bytes BIGINT NOT NULL,
+    sha256 VARCHAR(64) NOT NULL,
+    status VARCHAR(24) NOT NULL DEFAULT 'ready',
+    artifact_metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    expires_at TIMESTAMPTZ NOT NULL,
+    deleted_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_document_artifacts_kind UNIQUE (document_id, kind),
+    CONSTRAINT uq_document_artifacts_object UNIQUE (bucket, object_key),
+    CONSTRAINT ck_document_artifacts_kind CHECK (kind IN ('original','normalized')),
+    CONSTRAINT ck_document_artifacts_status CHECK (
+        status IN ('ready','deleting','deleted')
+    ),
+    CONSTRAINT ck_document_artifacts_size CHECK (size_bytes > 0),
+    CONSTRAINT ck_document_artifacts_sha256_length CHECK (length(sha256) = 64),
+    CONSTRAINT ck_document_artifacts_deleted_shape CHECK (
+        (status = 'deleted' AND deleted_at IS NOT NULL) OR
+        (status <> 'deleted' AND deleted_at IS NULL)
+    )
+);
+
+CREATE INDEX IF NOT EXISTS ix_document_artifacts_expires
+    ON document_artifacts (expires_at);
+
 CREATE TABLE IF NOT EXISTS artifacts (
     id UUID PRIMARY KEY,
     job_id UUID NOT NULL REFERENCES download_jobs (id) ON DELETE CASCADE,
@@ -410,7 +566,8 @@ CREATE TABLE IF NOT EXISTS analysis_jobs (
     input_kind VARCHAR(24) NOT NULL DEFAULT 'video',
     result_contract VARCHAR(32) NOT NULL DEFAULT 'video-visual-analysis',
     artifact_id UUID,
-    document_id UUID,
+    document_id UUID CONSTRAINT fk_analysis_jobs_document
+        REFERENCES documents (id) ON DELETE RESTRICT,
     owner_hash VARCHAR(64) NOT NULL,
     idempotency_key VARCHAR(128) NOT NULL,
     request_fingerprint VARCHAR(64) NOT NULL,
@@ -489,6 +646,9 @@ CREATE INDEX IF NOT EXISTS ix_analysis_jobs_artifact ON analysis_jobs (artifact_
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS input_kind VARCHAR(24);
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS result_contract VARCHAR(32);
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS document_id UUID;
+ALTER TABLE analysis_jobs DROP CONSTRAINT IF EXISTS fk_analysis_jobs_document;
+ALTER TABLE analysis_jobs ADD CONSTRAINT fk_analysis_jobs_document
+    FOREIGN KEY (document_id) REFERENCES documents (id) ON DELETE RESTRICT;
 CREATE INDEX IF NOT EXISTS ix_analysis_jobs_document ON analysis_jobs (document_id);
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS active_run_id UUID;
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS current_run_no INTEGER NOT NULL DEFAULT 1;
@@ -759,6 +919,17 @@ CREATE TABLE IF NOT EXISTS analysis_artifact_locks (
 
 CREATE INDEX IF NOT EXISTS ix_analysis_artifact_locks_artifact
     ON analysis_artifact_locks (artifact_id);
+
+CREATE TABLE IF NOT EXISTS analysis_document_locks (
+    job_id UUID PRIMARY KEY
+        REFERENCES analysis_jobs (id) ON DELETE CASCADE,
+    document_id UUID NOT NULL
+        REFERENCES documents (id) ON DELETE RESTRICT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS ix_analysis_document_locks_document
+    ON analysis_document_locks (document_id);
 
 CREATE TABLE IF NOT EXISTS analysis_worker_heartbeats (
     worker_id VARCHAR(128) PRIMARY KEY,

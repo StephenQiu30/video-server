@@ -30,6 +30,7 @@ from .contracts import (
     ThumbnailSnapshot,
     ThumbnailSourceSnapshot,
 )
+from .document_import_repository import SqlAlchemyDocumentImportRepository
 from .errors import (
     IdempotencyConflict,
     LeaseConflict,
@@ -40,12 +41,16 @@ from .errors import (
 from .media_import_repository import SqlAlchemyMediaImportRepository
 from .models import (
     AnalysisArtifactLockRow,
+    AnalysisDocumentLockRow,
     AnalysisJobRow,
     AnalysisReportArtifactRow,
     AnalysisReportVersionRow,
     AnalysisResultRow,
     ArtifactRow,
     AuthSessionRow,
+    DocumentArtifactRow,
+    DocumentImportAttemptRow,
+    DocumentRow,
     DownloadJobRow,
     MediaFormatRow,
     MediaImportAttemptRow,
@@ -68,6 +73,7 @@ __all__ = [
     "ArtifactSnapshot",
     "AuthSessionRow",
     "AnalysisArtifactLockRow",
+    "AnalysisDocumentLockRow",
     "AnalysisJobRow",
     "AnalysisReportArtifactRow",
     "AnalysisReportVersionRow",
@@ -83,6 +89,9 @@ __all__ = [
     "DownloadHistorySummarySnapshot",
     "DownloadPresentationSnapshot",
     "DownloadJobRow",
+    "DocumentArtifactRow",
+    "DocumentImportAttemptRow",
+    "DocumentRow",
     "FormatCreate",
     "FormatSnapshot",
     "IdempotencyConflict",
@@ -110,6 +119,7 @@ __all__ = [
     "ThumbnailSnapshot",
     "ThumbnailSourceSnapshot",
     "SqlAlchemyDownloadRepository",
+    "SqlAlchemyDocumentImportRepository",
     "SqlAlchemyMediaImportRepository",
     "UserRow",
     "build_artifact_object_key",
