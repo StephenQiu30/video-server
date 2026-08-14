@@ -105,6 +105,22 @@ def test_compose_passes_artifact_retention_to_the_owning_workers() -> None:
     )
 
 
+def test_api_receives_fail_closed_media_import_configuration() -> None:
+    api = _service_block(COMPOSE_PATH.read_text(encoding="utf-8"), "api")
+
+    assert 'MEDIA_IMPORT_ENABLED: "${MEDIA_IMPORT_ENABLED:-false}"' in api
+    assert 'DOCUMENT_IMPORT_ENABLED: "${DOCUMENT_IMPORT_ENABLED:-false}"' in api
+    assert 'MEDIA_IMPORT_MAX_BYTES: "${MEDIA_IMPORT_MAX_BYTES:-2147483648}"' in api
+    assert (
+        'IMPORT_UPLOAD_PART_SIZE_BYTES: "${IMPORT_UPLOAD_PART_SIZE_BYTES:-33554432}"'
+        in api
+    )
+    assert (
+        "IMPORT_RIGHTS_STATEMENT_VERSION: "
+        '"${IMPORT_RIGHTS_STATEMENT_VERSION:-content-rights-v1}"'
+    ) in api
+
+
 def test_compose_pins_shared_runner_workspace_to_the_mounted_container_path() -> None:
     compose = COMPOSE_PATH.read_text(encoding="utf-8")
 

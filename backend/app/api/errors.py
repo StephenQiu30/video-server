@@ -13,6 +13,10 @@ from app.application.analysis import (
 )
 from app.application.auth import AuthError, AuthErrorCode
 from app.application.downloads import ApplicationError, ApplicationErrorCode
+from app.application.imports import (
+    ImportApplicationError,
+    ImportApplicationErrorCode,
+)
 from app.core.errors import AppError
 
 _ERRORS: dict[ApplicationErrorCode, tuple[int, str, str]] = {
@@ -222,6 +226,59 @@ _ANALYSIS_ERRORS: dict[AnalysisApplicationErrorCode, tuple[int, str, str]] = {
     ),
 }
 
+_IMPORT_ERRORS: dict[ImportApplicationErrorCode, tuple[int, str, str]] = {
+    ImportApplicationErrorCode.DISABLED: (
+        503,
+        "Media import unavailable",
+        "Local media import is not enabled for this deployment.",
+    ),
+    ImportApplicationErrorCode.IDEMPOTENCY_CONFLICT: (
+        409,
+        "Idempotency conflict",
+        "The idempotency key was already used for another request.",
+    ),
+    ImportApplicationErrorCode.INTERNAL_ERROR: (
+        500,
+        "Internal error",
+        "The import request could not be completed.",
+    ),
+    ImportApplicationErrorCode.INVALID_REQUEST: (
+        422,
+        "Invalid import request",
+        "The local file declaration is invalid.",
+    ),
+    ImportApplicationErrorCode.INVALID_STATE: (
+        409,
+        "Invalid import state",
+        "The import cannot perform this operation in its current state.",
+    ),
+    ImportApplicationErrorCode.NOT_FOUND: (
+        404,
+        "Import not found",
+        "The requested import resource was not found.",
+    ),
+    ImportApplicationErrorCode.SIZE_MISMATCH: (
+        422,
+        "Import size mismatch",
+        "The uploaded object size differs from the declared file size.",
+    ),
+    ImportApplicationErrorCode.STORAGE_UNAVAILABLE: (
+        503,
+        "Import storage unavailable",
+        "The upload storage is temporarily unavailable.",
+    ),
+    ImportApplicationErrorCode.UPLOAD_INCOMPLETE: (
+        422,
+        "Upload incomplete",
+        "The multipart upload is incomplete or invalid.",
+    ),
+    ImportApplicationErrorCode.UPLOAD_SESSION_EXPIRED: (
+        409,
+        "Upload session expired",
+        "Create a new upload session and retry the upload.",
+    ),
+}
+
 _AUTH_ERRORS: dict[AuthErrorCode, tuple[int, str, str]] = {
     AuthErrorCode.EMAIL_ALREADY_REGISTERED: (
         409,
@@ -278,6 +335,16 @@ def application_error(error: ApplicationError) -> AppError:
 
 def analysis_application_error(error: AnalysisApplicationError) -> AppError:
     status, title, detail = _ANALYSIS_ERRORS[error.code]
+    return AppError(
+        status=status,
+        code=error.code.value,
+        title=title,
+        detail=detail,
+    )
+
+
+def import_application_error(error: ImportApplicationError) -> AppError:
+    status, title, detail = _IMPORT_ERRORS[error.code]
     return AppError(
         status=status,
         code=error.code.value,

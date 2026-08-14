@@ -197,6 +197,22 @@ declare namespace API {
 
   type CompatibilityProfile = "balanced" | "quality" | "smallest";
 
+  type CompletedPartRequest = {
+    /** Part Number */
+    part_number: number;
+    /** Etag */
+    etag: string;
+  };
+
+  type completeMediaImportParams = {
+    resource_id: string;
+  };
+
+  type CompleteMediaImportRequest = {
+    /** Parts */
+    parts: CompletedPartRequest[];
+  };
+
   type ContainerPreference = "mp4" | "webm" | "source";
 
   type CreateAiProviderProfileRequest = {
@@ -216,6 +232,10 @@ declare namespace API {
 
   type createAnalysisParams = {
     download_id: string;
+  };
+
+  type createMediaUploadSessionParams = {
+    resource_id: string;
   };
 
   type CreateProviderCatalogEntryRequest = {
@@ -524,6 +544,10 @@ declare namespace API {
     download_id: string;
   };
 
+  type getMediaImportParams = {
+    resource_id: string;
+  };
+
   type HighlightResponse = {
     /** Id */
     id: string;
@@ -542,6 +566,35 @@ declare namespace API {
     /** Evidence Shot Ids */
     evidence_shot_ids: string[];
   };
+
+  type ImportErrorCode =
+    | "import_storage_unavailable"
+    | "upload_session_expired"
+    | "upload_incomplete"
+    | "import_size_mismatch"
+    | "import_sha256_mismatch"
+    | "video_import_invalid"
+    | "document_format_unsupported"
+    | "document_encrypted"
+    | "document_archive_unsafe"
+    | "document_text_unavailable"
+    | "document_structure_invalid";
+
+  type ImportSourceFormat =
+    | "mp4"
+    | "docx"
+    | "pdf"
+    | "txt"
+    | "markdown"
+    | "fountain";
+
+  type ImportStatus =
+    | "uploading"
+    | "verifying"
+    | "ready"
+    | "failed"
+    | "cancelled"
+    | "expired";
 
   type InspectionRequest = {
     /** Url 用户有权处理的公开、非 DRM HTTP(S) 媒体地址。 */
@@ -609,6 +662,58 @@ declare namespace API {
     created_at: string;
     /** Updated At */
     updated_at: string;
+  };
+
+  type MediaImportRequest = {
+    /** File Name */
+    file_name: string;
+    /** Declared Size Bytes */
+    declared_size_bytes: number;
+    /** Declared Sha256 */
+    declared_sha256: string;
+    /** Rights Accepted */
+    rights_accepted: boolean;
+  };
+
+  type MediaImportResponse = {
+    /** Id */
+    id: string;
+    /** Download Id */
+    download_id: string;
+    source_format: ImportSourceFormat;
+    /** Display Name */
+    display_name: string;
+    /** Declared Size Bytes */
+    declared_size_bytes: number;
+    status: ImportStatus;
+    /** Attempt */
+    attempt: number;
+    error_code: ImportErrorCode | null;
+    /** Version */
+    version: number;
+    /** Created At */
+    created_at: string;
+    /** Updated At */
+    updated_at: string;
+    /** Finished At */
+    finished_at: string | null;
+  };
+
+  type MediaUploadSessionResponse = {
+    /** Resource Id */
+    resource_id: string;
+    /** Attempt */
+    attempt: number;
+    /** Part Size Bytes */
+    part_size_bytes: number;
+    /** Part Count */
+    part_count: number;
+    /** Max Concurrency */
+    max_concurrency: number;
+    /** Expires At */
+    expires_at: string;
+    /** Parts */
+    parts: UploadPartResponse[];
   };
 
   type ProblemDetails = {
@@ -816,6 +921,13 @@ declare namespace API {
     role?: UserRole | null;
     /** Is Active */
     is_active?: boolean | null;
+  };
+
+  type UploadPartResponse = {
+    /** Part Number */
+    part_number: number;
+    /** Url */
+    url: string;
   };
 
   type UserResponse = {

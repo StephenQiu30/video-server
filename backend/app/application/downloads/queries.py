@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime, timedelta
+from typing import Protocol
 from uuid import UUID
 
 from app.application.downloads.download_models import (
@@ -19,7 +20,15 @@ from app.application.downloads.inspection_models import InspectionView
 from app.application.downloads.ports import DownloadRepository, ObjectStorage
 from app.application.downloads.validation import validate_now, validate_owner_hash
 from app.application.downloads.views import download_view, inspection_view
-from app.domain.downloads import DownloadStatus
+from app.application.imports import (
+    ImportApplicationError,
+    ImportApplicationErrorCode,
+)
+from app.domain.downloads import DownloadSourceKind, DownloadStatus
+
+
+class BrowserImportCanceller(Protocol):
+    async def __call__(self, resource_id: UUID, owner_hash: str) -> object: ...
 
 
 async def _owned_job(
@@ -44,9 +53,15 @@ class GetDownload:
 
     async def __call__(self, job_id: UUID, owner_hash: str) -> DownloadView:
         job = await _owned_job(self._repository, job_id, owner_hash)
-        presentation = await self._repository.get_download_presentation(
-            job_id, validate_owner_hash(owner_hash)
-        )
+        try:
+            source_kind = DownloadSourceKind(job.source_kind)
+        except ValueError as exc:
+            raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
+        presentation = None
+        if source_kind is DownloadSourceKind.REMOTE_PROVIDER:
+            presentation = await self._repository.get_download_presentation(
+                job_id, validate_owner_hash(owner_hash)
+            )
         artifact = None
         if job.status == DownloadStatus.SUCCEEDED.value:
             try:
@@ -83,10 +98,15 @@ class GetInspection:
 
 class CancelDownload:
     def __init__(
-        self, repository: DownloadRepository, *, now: Callable[[], datetime]
+        self,
+        repository: DownloadRepository,
+        *,
+        now: Callable[[], datetime],
+        browser_import_canceller: BrowserImportCanceller | None = None,
     ) -> None:
         self._repository = repository
         self._now = now
+        self._browser_import_canceller = browser_import_canceller
 
     async def __call__(self, job_id: UUID, owner_hash: str) -> DownloadView:
         job = await _owned_job(self._repository, job_id, owner_hash)
@@ -96,6 +116,13 @@ class CancelDownload:
             DownloadStatus.RETRY_WAIT.value,
         }:
             raise ApplicationError(ApplicationErrorCode.INVALID_STATE)
+        try:
+            source_kind = DownloadSourceKind(job.source_kind)
+        except ValueError as exc:
+            raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
+        if source_kind is DownloadSourceKind.BROWSER_IMPORT:
+            await self._cancel_browser_import(job_id, owner_hash)
+            return download_view(await _owned_job(self._repository, job_id, owner_hash))
         now = validate_now(self._now())
         try:
             cancelled = await self._repository.cancel_job(job_id, owner_hash, now)
@@ -106,6 +133,20 @@ class CancelDownload:
         if cancelled is None:
             raise ApplicationError(ApplicationErrorCode.NOT_FOUND)
         return download_view(cancelled)
+
+    async def _cancel_browser_import(self, job_id: UUID, owner_hash: str) -> None:
+        if self._browser_import_canceller is None:
+            raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR)
+        try:
+            await self._browser_import_canceller(job_id, owner_hash)
+        except ImportApplicationError as exc:
+            if exc.code is ImportApplicationErrorCode.NOT_FOUND:
+                code = ApplicationErrorCode.NOT_FOUND
+            elif exc.code is ImportApplicationErrorCode.INVALID_STATE:
+                code = ApplicationErrorCode.INVALID_STATE
+            else:
+                code = ApplicationErrorCode.INTERNAL_ERROR
+            raise ApplicationError(code) from exc
 
 
 class IssueDownloadUrl:

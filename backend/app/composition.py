@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from app.api.dependencies import AnalysisUseCases, DownloadUseCases
+from app.api.dependencies import AnalysisUseCases, DownloadUseCases, MediaImportUseCases
 from app.application.ai_providers import AiProviderService
 from app.application.analysis import (
     CancelAnalysis,
@@ -36,6 +36,14 @@ from app.application.downloads import (
     PersistThumbnail,
     RetryDownload,
 )
+from app.application.imports import (
+    CancelImport,
+    CompleteImportUpload,
+    CreateImportResource,
+    CreateUploadSession,
+    GetImport,
+    UploadLimits,
+)
 from app.application.provider_canaries import ProviderStatusService
 from app.application.provider_catalog import ProviderCatalogService
 from app.core.ai_provider_cipher import FernetAiProviderSecretCipher
@@ -51,6 +59,7 @@ from app.infrastructure.analysis_worker_registry import (
 from app.infrastructure.auth_repository import SqlAlchemyAuthRepository
 from app.infrastructure.database import (
     SqlAlchemyDownloadRepository,
+    SqlAlchemyMediaImportRepository,
     create_engine,
     create_session_factory,
 )
@@ -83,6 +92,7 @@ class ApiRuntime:
     user_service: UserService
     use_cases: DownloadUseCases
     analysis_use_cases: AnalysisUseCases
+    media_import_use_cases: MediaImportUseCases
     engine: AsyncEngine
     runner: MediaRunnerRouter
     rate_limiter: ValkeyRateLimiter | None
@@ -116,6 +126,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         max_per_owner=settings.websocket_max_connections_per_owner,
     )
     repository = SqlAlchemyDownloadRepository(sessions)
+    media_import_repository = SqlAlchemyMediaImportRepository(sessions)
     analysis_repository = SqlAlchemyAnalysisRepository(sessions)
     analysis_availability = SqlAlchemyAnalysisWorkerRegistry(
         sessions,
@@ -147,6 +158,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
     }
     runner = MediaRunnerRouter(anonymous_runner, operator_runners)
     storage = MinioObjectStorage(settings, enable_public_signing=True)
+    import_storage = MinioObjectStorage.for_imports(settings)
     thumbnail_storage = MinioThumbnailStorage(storage)
     persist_thumbnail = PersistThumbnail(store, thumbnail_storage)
     rate_limiter = (
@@ -211,6 +223,44 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         max_duration_seconds=settings.max_video_duration_seconds,
         persist_thumbnail=persist_thumbnail,
     )
+    cancel_import = CancelImport(
+        media_import_repository,
+        import_storage,
+        now=clock,
+    )
+    media_import_use_cases = MediaImportUseCases(
+        create_resource=CreateImportResource(
+            repository=media_import_repository,
+            fingerprinter=fingerprinter,
+            now=clock,
+            new_id=uuid4,
+            media_enabled=settings.media_import_enabled,
+            document_enabled=False,
+            media_max_bytes=settings.media_import_max_bytes,
+            document_max_bytes=settings.document_import_max_bytes,
+            rights_statement_version=settings.import_rights_statement_version,
+        ),
+        create_upload_session=CreateUploadSession(
+            media_import_repository,
+            import_storage,
+            now=clock,
+            limits=UploadLimits(
+                part_size_bytes=settings.import_upload_part_size_bytes,
+                max_parts=settings.import_upload_max_parts,
+                max_concurrency=settings.import_upload_max_concurrency,
+                session_ttl=timedelta(
+                    seconds=settings.import_upload_session_ttl_seconds
+                ),
+            ),
+        ),
+        complete_upload=CompleteImportUpload(
+            media_import_repository,
+            import_storage,
+            now=clock,
+        ),
+        get_import=GetImport(media_import_repository),
+        cancel_import=cancel_import,
+    )
     use_cases = DownloadUseCases(
         inspect_media=inspect_media,
         get_inspection=GetInspection(store, now=clock),
@@ -225,7 +275,11 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         get_download=GetDownload(store, now=clock),
         get_download_history=GetDownloadHistory(store, now=clock),
         get_download_analytics=GetDownloadAnalytics(store, now=clock),
-        cancel_download=CancelDownload(store, now=clock),
+        cancel_download=CancelDownload(
+            store,
+            now=clock,
+            browser_import_canceller=cancel_import,
+        ),
         retry_download=RetryDownload(
             repository=store,
             inspect_media=inspect_media,
@@ -282,6 +336,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         user_service=user_service,
         use_cases=use_cases,
         analysis_use_cases=analysis_use_cases,
+        media_import_use_cases=media_import_use_cases,
         engine=engine,
         runner=runner,
         rate_limiter=rate_limiter,

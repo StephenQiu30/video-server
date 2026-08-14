@@ -49,6 +49,26 @@ def test_download_retry_post_is_rate_limited() -> None:
     )
 
 
+def test_media_import_mutations_are_rate_limited() -> None:
+    resource = "2a11fb32-0e3d-4a2b-8a5d-0f2d1a4f9f4e"
+
+    assert (
+        _rate_limit_operation(_request("POST", "/api/media-imports")) == "media_import"
+    )
+    assert (
+        _rate_limit_operation(
+            _request("POST", f"/api/media-imports/{resource}/upload-sessions")
+        )
+        == "media_import_upload"
+    )
+    assert (
+        _rate_limit_operation(
+            _request("POST", f"/api/media-imports/{resource}/complete")
+        )
+        == "media_import_upload"
+    )
+
+
 def test_download_cancel_post_is_not_rate_limited() -> None:
     assert (
         _rate_limit_operation(

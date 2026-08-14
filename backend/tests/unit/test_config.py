@@ -55,6 +55,7 @@ def test_local_imports_are_bounded_and_disabled_by_default() -> None:
     assert settings.import_upload_max_parts == 1000
     assert settings.import_upload_max_concurrency == 4
     assert settings.import_quarantine_retention_days == 1
+    assert settings.import_rights_statement_version == "content-rights-v1"
 
     for field in (
         "media_import_max_bytes",
@@ -67,6 +68,13 @@ def test_local_imports_are_bounded_and_disabled_by_default() -> None:
     ):
         with pytest.raises(ValidationError):
             Settings(app_env="test", _env_file=None, **{field: 0})
+
+    with pytest.raises(ValidationError):
+        Settings(
+            app_env="test",
+            _env_file=None,
+            import_rights_statement_version="Invalid Rights Version",
+        )
 
 
 def test_local_import_limit_must_fit_multipart_budget() -> None:

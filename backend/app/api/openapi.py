@@ -9,6 +9,7 @@ API_DESCRIPTION = """
 
 - 媒体解析、下载和分析均为异步任务，请通过对应查询接口获取进度。
 - 创建媒体解析、下载或分析任务时必须提供 `Idempotency-Key` 请求头。
+- 本地视频通过短期 multipart 会话直传隔离区，服务端只接受 MP4 并重新验证。
 - 业务接口需要先通过邮箱和密码注册或登录，会话由安全 Cookie 维护。
 - 仅允许处理用户有权访问的公开、非 DRM HTTP(S) 媒体。
 """.strip()
@@ -37,6 +38,10 @@ OPENAPI_TAGS: list[dict[str, Any]] = [
     {
         "name": "downloads",
         "description": "创建、查询、取消下载任务并签发制品地址。",
+    },
+    {
+        "name": "media-imports",
+        "description": "创建本地 MP4、签发隔离上传会话并触发可信验证。",
     },
     {
         "name": "providers",

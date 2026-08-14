@@ -9,6 +9,7 @@ import * as admin from "./admin";
 import * as inspections from "./inspections";
 import * as providers from "./providers";
 import * as downloads from "./downloads";
+import * as mediaImports from "./mediaImports";
 import * as analyses from "./analyses";
 export default {
   system,
@@ -18,5 +19,6 @@ export default {
   inspections,
   providers,
   downloads,
+  mediaImports,
   analyses,
 };

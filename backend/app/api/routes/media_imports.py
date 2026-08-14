@@ -1,0 +1,133 @@
+from __future__ import annotations
+
+from typing import Annotated
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Response, status
+
+from app.api.auth_dependencies import get_current_user
+from app.api.dependencies import (
+    IdempotencyKey,
+    MediaImportUseCases,
+    get_media_import_use_cases,
+)
+from app.api.errors import import_application_error
+from app.api.schemas.media_imports import (
+    CompleteMediaImportRequest,
+    MediaImportRequest,
+    MediaImportResponse,
+    MediaUploadSessionResponse,
+)
+from app.application.auth import CurrentUser
+from app.application.imports import CompletedUploadPart, ImportApplicationError
+from app.domain.imports import ContentKind, ImportSourceFormat
+
+router = APIRouter(prefix="/media-imports", tags=["media-imports"])
+User = Annotated[CurrentUser, Depends(get_current_user)]
+UseCases = Annotated[MediaImportUseCases, Depends(get_media_import_use_cases)]
+
+
+@router.post(
+    "",
+    operation_id="createMediaImport",
+    response_model=MediaImportResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="创建本地视频导入",
+)
+async def create_media_import(
+    body: MediaImportRequest,
+    idempotency_key: IdempotencyKey,
+    response: Response,
+    user: User,
+    use_cases: UseCases,
+) -> MediaImportResponse:
+    """创建只接受 MP4 的浏览器上传资源，不接收任意存储参数。"""
+    try:
+        view = await use_cases.create_resource(
+            owner_hash=user.owner_hash,
+            idempotency_key=idempotency_key,
+            content_kind=ContentKind.VIDEO,
+            source_format=ImportSourceFormat.MP4,
+            file_name=body.file_name,
+            declared_size_bytes=body.declared_size_bytes,
+            declared_sha256=body.declared_sha256,
+            rights_accepted=body.rights_accepted,
+        )
+    except ImportApplicationError as error:
+        raise import_application_error(error) from error
+    response.headers["Location"] = f"/api/media-imports/{view.id}"
+    response.headers["Cache-Control"] = "no-store"
+    return MediaImportResponse.from_view(view)
+
+
+@router.get(
+    "/{resource_id}",
+    operation_id="getMediaImport",
+    response_model=MediaImportResponse,
+    summary="查询本地视频导入",
+)
+async def get_media_import(
+    resource_id: UUID,
+    response: Response,
+    user: User,
+    use_cases: UseCases,
+) -> MediaImportResponse:
+    try:
+        view = await use_cases.get_import(
+            resource_id, user.owner_hash, ContentKind.VIDEO
+        )
+    except ImportApplicationError as error:
+        raise import_application_error(error) from error
+    response.headers["Cache-Control"] = "no-store"
+    return MediaImportResponse.from_view(view)
+
+
+@router.post(
+    "/{resource_id}/upload-sessions",
+    operation_id="createMediaUploadSession",
+    response_model=MediaUploadSessionResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="创建或刷新视频上传会话",
+)
+async def create_media_upload_session(
+    resource_id: UUID,
+    response: Response,
+    user: User,
+    use_cases: UseCases,
+) -> MediaUploadSessionResponse:
+    try:
+        view = await use_cases.create_upload_session(
+            resource_id, user.owner_hash, ContentKind.VIDEO
+        )
+    except ImportApplicationError as error:
+        raise import_application_error(error) from error
+    response.headers["Cache-Control"] = "no-store"
+    return MediaUploadSessionResponse.from_view(view)
+
+
+@router.post(
+    "/{resource_id}/complete",
+    operation_id="completeMediaImport",
+    response_model=MediaImportResponse,
+    summary="完成视频上传并触发验证",
+)
+async def complete_media_import(
+    resource_id: UUID,
+    body: CompleteMediaImportRequest,
+    response: Response,
+    user: User,
+    use_cases: UseCases,
+) -> MediaImportResponse:
+    try:
+        view = await use_cases.complete_upload(
+            resource_id,
+            user.owner_hash,
+            ContentKind.VIDEO,
+            tuple(
+                CompletedUploadPart(part.part_number, part.etag) for part in body.parts
+            ),
+        )
+    except ImportApplicationError as error:
+        raise import_application_error(error) from error
+    response.headers["Cache-Control"] = "no-store"
+    return MediaImportResponse.from_view(view)

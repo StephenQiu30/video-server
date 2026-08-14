@@ -151,6 +151,12 @@ class Settings(BaseSettings):
     import_upload_max_parts: int = Field(default=1000, ge=1, le=10_000)
     import_upload_max_concurrency: int = Field(default=4, ge=1, le=16)
     import_quarantine_retention_days: int = Field(default=1, ge=1, le=7)
+    import_rights_statement_version: str = Field(
+        default="content-rights-v1",
+        min_length=1,
+        max_length=64,
+        pattern=r"^[a-z0-9][a-z0-9._-]{0,63}$",
+    )
     inspection_ttl_seconds: int = Field(default=900, ge=60, le=86400)
     artifact_ttl_seconds: int = Field(default=604_800, ge=604_800, le=2_592_000)
     artifact_gc_interval_seconds: float = Field(default=300, ge=5, le=86400)

@@ -16,10 +16,11 @@ from app.application.downloads import (
     HmacRequestFingerprinter,
     InspectionSnapshot,
     IssueDownloadUrl,
+    JobSnapshot,
     RetryDownload,
     plan_to_documents,
 )
-from app.domain.downloads import DownloadStatus
+from app.domain.downloads import DownloadSourceKind, DownloadStage, DownloadStatus
 from tests.unit.application.fakes import FakeRepository, FakeStorage
 from tests.unit.application.test_inspect_media import (
     NOW,
@@ -152,6 +153,67 @@ async def test_get_and_cancel_enforce_owner_and_status() -> None:
     with pytest.raises(ApplicationError) as terminal:
         await CancelDownload(repository, now=lambda: NOW)(created.id, OWNER)
     assert terminal.value.code is ApplicationErrorCode.INVALID_STATE
+
+
+@pytest.mark.asyncio
+async def test_browser_import_details_and_cancel_use_import_aggregate() -> None:
+    repository = FakeRepository()
+    job_id = uuid4()
+    repository.jobs[job_id] = JobSnapshot(
+        id=job_id,
+        inspection_id=None,
+        format_id=None,
+        owner_hash=OWNER,
+        request_fingerprint="a" * 64,
+        semantic_plan={"source_kind": "browser_import", "container": "mp4"},
+        status="running",
+        stage="downloading",
+        progress=0,
+        attempt=0,
+        max_attempts=1,
+        version=0,
+        lease_owner=None,
+        lease_expires_at=None,
+        heartbeat_at=None,
+        started_at=NOW,
+        retry_at=None,
+        finished_at=None,
+        error_code=None,
+        created_at=NOW,
+        updated_at=NOW,
+        source_kind=DownloadSourceKind.BROWSER_IMPORT.value,
+    )
+
+    class Canceller:
+        def __init__(self) -> None:
+            self.calls: list[tuple[UUID, str]] = []
+
+        async def __call__(self, resource_id: UUID, owner_hash: str) -> object:
+            self.calls.append((resource_id, owner_hash))
+            current = repository.jobs[resource_id]
+            repository.jobs[resource_id] = replace(
+                current,
+                status="cancelled",
+                stage=None,
+                finished_at=NOW,
+                error_code="cancelled",
+                version=current.version + 1,
+            )
+            return object()
+
+    canceller = Canceller()
+    details = await GetDownload(repository, now=lambda: NOW)(job_id, OWNER)
+    cancelled = await CancelDownload(
+        repository,
+        now=lambda: NOW,
+        browser_import_canceller=canceller,
+    )(job_id, OWNER)
+
+    assert details.source_kind is DownloadSourceKind.BROWSER_IMPORT
+    assert details.source_label == "本地视频上传"
+    assert details.stage is DownloadStage.DOWNLOADING
+    assert cancelled.status is DownloadStatus.CANCELLED
+    assert canceller.calls == [(job_id, OWNER)]
 
 
 @pytest.mark.asyncio

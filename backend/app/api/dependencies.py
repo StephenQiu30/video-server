@@ -31,6 +31,13 @@ from app.application.downloads import (
     IssueDownloadUrl,
     RetryDownload,
 )
+from app.application.imports import (
+    CancelImport,
+    CompleteImportUpload,
+    CreateImportResource,
+    CreateUploadSession,
+    GetImport,
+)
 from app.application.provider_canaries import ProviderStatusService
 from app.application.provider_catalog import ProviderCatalogService
 from app.application.providers import ProviderStatusView
@@ -80,6 +87,15 @@ class AnalysisUseCases:
     export_analysis_markdown: ExportAnalysisMarkdown
 
 
+@dataclass(frozen=True, slots=True)
+class MediaImportUseCases:
+    create_resource: CreateImportResource
+    create_upload_session: CreateUploadSession
+    complete_upload: CompleteImportUpload
+    get_import: GetImport
+    cancel_import: CancelImport
+
+
 def get_download_use_cases(request: Request) -> DownloadUseCases:
     container = getattr(request.app.state, "download_use_cases", None)
     if container is None:
@@ -102,6 +118,18 @@ def get_analysis_use_cases(request: Request) -> AnalysisUseCases:
             detail="The analysis service is not available.",
         )
     return cast(AnalysisUseCases, container)
+
+
+def get_media_import_use_cases(request: Request) -> MediaImportUseCases:
+    container = getattr(request.app.state, "media_import_use_cases", None)
+    if container is None:
+        raise AppError(
+            status=503,
+            code="service_unavailable",
+            title="Service unavailable",
+            detail="The media import service is not available.",
+        )
+    return cast(MediaImportUseCases, container)
 
 
 def get_provider_catalog_service(request: Request) -> ProviderCatalogService:

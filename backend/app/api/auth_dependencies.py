@@ -181,6 +181,12 @@ def _rate_limit_operation(request: Request) -> str | None:
         return "inspect"
     if path == "/api/downloads":
         return "download"
+    if path == "/api/media-imports":
+        return "media_import"
+    if path.startswith("/api/media-imports/") and path.endswith(
+        ("/upload-sessions", "/complete")
+    ):
+        return "media_import_upload"
     if path.endswith("/analyses") and path.startswith("/api/downloads/"):
         return "analysis"
     if path.startswith("/api/downloads/") and path.endswith("/retry"):

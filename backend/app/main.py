@@ -56,6 +56,9 @@ def create_app(
         application.state.user_service = configured_runtime.user_service
         application.state.download_use_cases = configured_runtime.use_cases
         application.state.analysis_use_cases = configured_runtime.analysis_use_cases
+        application.state.media_import_use_cases = (
+            configured_runtime.media_import_use_cases
+        )
         application.state.rate_limiter = configured_runtime.rate_limiter
         application.state.readiness_probe = configured_runtime.readiness
         application.state.realtime_hub = configured_runtime.realtime_hub

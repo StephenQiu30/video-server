@@ -428,7 +428,10 @@ class GetImport:
         self._repository = repository
 
     async def __call__(
-        self, resource_id: UUID, owner_hash: str, content_kind: ContentKind
+        self,
+        resource_id: UUID,
+        owner_hash: str,
+        content_kind: ContentKind = ContentKind.VIDEO,
     ) -> ImportView:
         return _view(
             await _get_resource(
@@ -453,7 +456,10 @@ class CancelImport:
         self._now = now
 
     async def __call__(
-        self, resource_id: UUID, owner_hash: str, content_kind: ContentKind
+        self,
+        resource_id: UUID,
+        owner_hash: str,
+        content_kind: ContentKind = ContentKind.VIDEO,
     ) -> ImportView:
         owner_hash = _validate_owner_hash(owner_hash)
         now = _validate_now(self._now())
