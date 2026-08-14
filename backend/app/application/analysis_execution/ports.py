@@ -14,6 +14,7 @@ from .models import (
     AnalysisScreenplaySource,
     LocalAnalysisArtifact,
     LocalScreenplayArtifact,
+    ScreenplayAnalysisRequest,
     VideoAnalysisRequest,
 )
 
@@ -107,6 +108,12 @@ class VideoAnalyzer(Protocol):
     async def analyze(self, request: VideoAnalysisRequest) -> object: ...
 
 
+class ScreenplayAnalyzer(Protocol):
+    async def analyze_screenplay(
+        self, request: ScreenplayAnalysisRequest
+    ) -> object: ...
+
+
 @dataclass(frozen=True, slots=True)
 class AnalyzerSelection:
     analyzer: VideoAnalyzer
@@ -117,6 +124,18 @@ class AnalyzerSelection:
 
 class AnalyzerResolver(Protocol):
     async def resolve(self) -> AnalyzerSelection: ...
+
+
+@dataclass(frozen=True, slots=True)
+class ScreenplayAnalyzerSelection:
+    analyzer: ScreenplayAnalyzer
+    provider: str
+    model: str
+    cli_version: str
+
+
+class ScreenplayAnalyzerResolver(Protocol):
+    async def resolve_screenplay(self) -> ScreenplayAnalyzerSelection: ...
 
 
 type Clock = Callable[[], datetime]

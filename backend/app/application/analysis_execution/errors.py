@@ -19,10 +19,14 @@ class AnalysisSourceUnavailable(RuntimeError):
     pass
 
 
-class AnalysisArtifactError(RuntimeError):
+class AnalysisExecutionError(RuntimeError):
     def __init__(self, code: str) -> None:
         self.code = code
         super().__init__(code)
+
+
+class AnalysisArtifactError(AnalysisExecutionError):
+    pass
 
 
 _ERROR_CODES = {

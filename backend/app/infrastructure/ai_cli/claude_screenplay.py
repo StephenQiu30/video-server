@@ -3,22 +3,21 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from app.application.analysis_execution import (
-    ScreenplayAnalysisRequest,
-    VideoAnalysisRequest,
-)
+from app.application.analysis_execution import ScreenplayAnalysisRequest
 from app.runner.process import ProcessSupervisor, ProcessTimeoutError
 
-from .claude_screenplay import ClaudeCliScreenplayAnalyzer
 from .config import CliAdapterConfig
 from .environment import child_environment
 from .errors import AnalysisCliError, classify_cli_failure
-from .prompt import analysis_prompt
-from .schema import analysis_output_schema
-from .workspace import prepare_job_files, run_with_workspace_policy
+from .screenplay_prompt import screenplay_analysis_prompt
+from .screenplay_schema import screenplay_analysis_output_schema
+from .screenplay_workspace import prepare_screenplay_job_files
+from .workspace import run_with_workspace_policy
+
+_MAX_SCHEMA_BYTES = 28_000
 
 
-class ClaudeCliVideoAnalyzer:
+class ClaudeCliScreenplayAnalyzer:
     def __init__(
         self,
         config: CliAdapterConfig,
@@ -31,24 +30,22 @@ class ClaudeCliVideoAnalyzer:
             stderr_limit_bytes=config.max_stderr_bytes,
             terminate_grace_seconds=config.terminate_grace_seconds,
         )
-        self._screenplay = ClaudeCliScreenplayAnalyzer(
-            config, supervisor=self._supervisor
-        )
 
-    async def analyze(self, request: VideoAnalysisRequest) -> object:
-        schema = analysis_output_schema(request.output_language)
-        prompt = analysis_prompt(
-            request,
-            ffmpeg=str(self._config.ffmpeg),
-            ffprobe=str(self._config.ffprobe),
+    async def analyze(self, request: ScreenplayAnalysisRequest) -> object:
+        schema = screenplay_analysis_output_schema(
+            request.output_language, request.source_scene_ids
         )
-        files = prepare_job_files(request, schema, prompt)
+        schema_json = json.dumps(schema, separators=(",", ":"))
+        if len(schema_json.encode()) > _MAX_SCHEMA_BYTES:
+            raise AnalysisCliError("analysis_resource_limit")
+        prompt = screenplay_analysis_prompt(request)
+        files = prepare_screenplay_job_files(request, schema, prompt)
         environment = child_environment(self._config, files.root)
         environment["CLAUDE_CODE_SKIP_PROMPT_HISTORY"] = "1"
         try:
             result = await run_with_workspace_policy(
                 self._supervisor.run(
-                    self._argv(files.root, files.claude_settings, schema),
+                    self._argv(files.claude_settings, schema_json),
                     cwd=files.root,
                     timeout_seconds=self._config.timeout_seconds,
                     env=environment,
@@ -67,19 +64,14 @@ class ClaudeCliVideoAnalyzer:
             raise classify_cli_failure(result.stderr + result.stdout)
         try:
             wrapper = json.loads(result.stdout)
-            structured = wrapper["structured_output"]
+            return wrapper["structured_output"]
         except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError) as exc:
             raise AnalysisCliError("invalid_model_output") from exc
-        return structured
-
-    async def analyze_screenplay(self, request: ScreenplayAnalysisRequest) -> object:
-        return await self._screenplay.analyze(request)
 
     def _argv(
         self,
-        root: Path,
         settings: Path,
-        schema: dict[str, object],
+        schema_json: str,
     ) -> tuple[str, ...]:
         return (
             str(self._config.binary),
@@ -92,23 +84,17 @@ class ClaudeCliVideoAnalyzer:
             "--settings",
             str(settings),
             "--tools",
-            "Bash,Read",
+            "",
+            "--disallowedTools",
+            "Bash,Read,Write,Edit,WebFetch,WebSearch,Agent",
             "--permission-mode",
             "dontAsk",
-            "--allowedTools",
-            f"Read({root / 'input' / 'manifest.json'})",
-            "--allowedTools",
-            f"Read({root / 'work'}/**)",
-            "--allowedTools",
-            f"Bash({self._config.ffprobe} *)",
-            "--allowedTools",
-            f"Bash({self._config.ffmpeg} *)",
             "--model",
             self._config.model,
             "--max-turns",
-            str(self._config.max_turns),
+            "1",
             "--output-format",
             "json",
             "--json-schema",
-            json.dumps(schema, separators=(",", ":")),
+            schema_json,
         )

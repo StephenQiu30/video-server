@@ -27,6 +27,7 @@ from app.domain.analysis.result_types import (
     analysis_result_language,
 )
 from app.domain.analysis.result_validation import validate_analysis_result
+from app.domain.analysis.screenplay_parser import parse_screenplay_analysis_result
 from app.domain.analysis.screenplay_result_items import (
     ScreenplayCharacter,
     ScreenplayEvidenceItem,
@@ -73,6 +74,7 @@ __all__ = [
     "VideoAnalysisResult",
     "VisualAsset",
     "parse_analysis_result",
+    "parse_screenplay_analysis_result",
     "analysis_result_contract",
     "analysis_result_language",
     "validate_analysis_result",

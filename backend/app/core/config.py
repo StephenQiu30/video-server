@@ -217,6 +217,9 @@ class Settings(BaseSettings):
     analysis_max_screenplay_bytes: int = Field(
         default=2 * 1024**2, ge=1024, le=50 * 1024**2
     )
+    analysis_screenplay_single_call_characters: int = Field(
+        default=120_000, ge=1_000, le=500_000
+    )
     analysis_max_frames: int = Field(default=256, ge=1, le=1024)
     analysis_max_image_bytes: int = Field(default=20 * 1024**2, ge=1024)
     analysis_workspace_poll_seconds: float = Field(default=0.25, ge=0.05, le=5)

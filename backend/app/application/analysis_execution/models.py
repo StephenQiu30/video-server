@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
 from uuid import UUID
 
 from app.domain.analysis import AnalysisResult
+
+SCREENPLAY_SINGLE_CALL_SCENE_LIMIT = 120
 
 
 class AnalysisDisposition(StrEnum):
@@ -140,6 +142,36 @@ class VideoAnalysisRequest:
         )
         if any(not value.strip() for value in labels):
             raise ValueError("video analysis labels cannot be blank")
+        if self.custom_prompt is not None and (
+            not self.custom_prompt.strip() or len(self.custom_prompt) > 4_000
+        ):
+            raise ValueError("custom prompt must be non-blank and at most 4000 chars")
+
+
+@dataclass(frozen=True, slots=True)
+class ScreenplayAnalysisRequest:
+    screenplay: Path
+    workspace: Path
+    screenplay_text: str = field(repr=False)
+    source_scene_ids: tuple[str, ...]
+    source_language: str
+    output_language: str
+    skill_id: str
+    skill_instructions: str
+    custom_prompt: str | None = None
+
+    def __post_init__(self) -> None:
+        if (
+            not self.screenplay_text
+            or self.source_language not in {"zh-CN", "en-US", "mixed", "unknown"}
+            or self.output_language not in {"zh-CN", "en-US"}
+            or not self.source_scene_ids
+            or len(self.source_scene_ids) > SCREENPLAY_SINGLE_CALL_SCENE_LIMIT
+            or len(set(self.source_scene_ids)) != len(self.source_scene_ids)
+        ):
+            raise ValueError("screenplay analysis request is invalid")
+        if any(not value.strip() for value in (self.skill_id, self.skill_instructions)):
+            raise ValueError("screenplay analysis labels cannot be blank")
         if self.custom_prompt is not None and (
             not self.custom_prompt.strip() or len(self.custom_prompt) > 4_000
         ):

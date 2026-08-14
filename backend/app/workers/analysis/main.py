@@ -11,6 +11,7 @@ from urllib.parse import quote, urlsplit, urlunsplit
 from app.application.analysis_execution import (
     AnalysisExecution,
     AnalysisExecutionSettings,
+    ScreenplayAnalysisExecutor,
 )
 from app.core.ai_provider_cipher import FernetAiProviderSecretCipher
 from app.core.config import Settings, get_settings_for_role
@@ -33,6 +34,10 @@ from app.workers.analysis.consumer import RabbitMqAnalysisConsumer
 from app.workers.analysis.heartbeat import AnalysisWorkerHeartbeat
 from app.workers.analysis.persistence import AnalysisExecutionPersistence
 from app.workers.analysis.providers import ConfiguredAnalyzerResolver
+from app.workers.analysis.screenplay_artifacts import LocalScreenplayArtifactLoader
+from app.workers.analysis.screenplay_providers import (
+    ConfiguredScreenplayAnalyzerResolver,
+)
 from app.workers.analysis.sweeper import (
     AnalysisRecoverySweeper,
     RecoverySettings,
@@ -50,8 +55,10 @@ class AnalysisWorkerRuntime:
     heartbeat: AnalysisWorkerHeartbeat
     storage: MinioObjectStorage
     loader: LocalAnalysisArtifactLoader
+    screenplay_loader: LocalScreenplayArtifactLoader
     engine: AsyncEngine
     resolver: ConfiguredAnalyzerResolver
+    screenplay_resolver: ConfiguredScreenplayAnalyzerResolver | None
 
     async def close(self) -> None:
         try:
@@ -104,10 +111,35 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
         bucket=settings.minio_bucket,
         max_source_bytes=settings.max_file_size_bytes,
     )
+    screenplay_loader = LocalScreenplayArtifactLoader(
+        storage,
+        workspace_root=settings.analysis_workspace_root,
+        bucket=settings.minio_bucket,
+        max_source_bytes=settings.analysis_max_screenplay_bytes,
+    )
+    screenplay_resolver = (
+        ConfiguredScreenplayAnalyzerResolver(resolver)
+        if settings.screenplay_analysis_enabled
+        else None
+    )
+    screenplay_executor = (
+        ScreenplayAnalysisExecutor(
+            repository=persistence,
+            loader=screenplay_loader,
+            resolver=screenplay_resolver,
+            clock=utc_now,
+            max_single_call_characters=(
+                settings.analysis_screenplay_single_call_characters
+            ),
+        )
+        if screenplay_resolver is not None
+        else None
+    )
     execution = AnalysisExecution(
         repository=persistence,
         loader=loader,
         resolver=resolver,
+        screenplay_executor=screenplay_executor,
         clock=utc_now,
         settings=AnalysisExecutionSettings(
             worker_id=runtime_worker_id,
@@ -157,8 +189,10 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
         ),
         storage=storage,
         loader=loader,
+        screenplay_loader=screenplay_loader,
         engine=engine,
         resolver=resolver,
+        screenplay_resolver=screenplay_resolver,
     )
 
 
@@ -168,7 +202,10 @@ async def run() -> None:
     install_signal_handlers(stop)
     try:
         await runtime.loader.prepare_root()
+        await runtime.screenplay_loader.prepare_root()
         await runtime.resolver.resolve()
+        if runtime.screenplay_resolver is not None:
+            await runtime.screenplay_resolver.resolve_screenplay()
         await _serve(runtime, stop)
     finally:
         stop.set()

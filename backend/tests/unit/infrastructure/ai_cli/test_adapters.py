@@ -1,16 +1,27 @@
 from __future__ import annotations
 
+import json
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 from app.infrastructure.ai_cli import (
+    AnalysisCliError,
     ClaudeCliVideoAnalyzer,
     CliAdapterConfig,
     CodexCliVideoAnalyzer,
 )
-from tests.unit.infrastructure.ai_cli.helpers import FakeSupervisor, request
-from tests.unit.workers.analysis.fixtures import valid_mapping
+from tests.unit.infrastructure.ai_cli.helpers import (
+    FakeSupervisor,
+    request,
+    screenplay_request,
+    screenplay_supervisor,
+)
+from tests.unit.workers.analysis.fixtures import (
+    valid_mapping,
+    valid_screenplay_mapping,
+)
 
 
 def config() -> CliAdapterConfig:
@@ -75,6 +86,49 @@ async def test_claude_returns_structured_output_without_prompt_argv(
     assert b"input/video.bin" in supervisor.input_bytes
     assert all("input/video.bin" not in item for item in supervisor.argv)
     assert _has_no_api_keys(supervisor.environment)
+
+
+@pytest.mark.asyncio
+async def test_claude_screenplay_is_single_turn_and_disables_all_tools(
+    tmp_path: Path,
+) -> None:
+    supervisor = screenplay_supervisor()
+    analyzer = ClaudeCliVideoAnalyzer(config(), supervisor=supervisor)  # type: ignore[arg-type]
+    screenplay = screenplay_request(tmp_path)
+
+    payload = await analyzer.analyze_screenplay(screenplay)
+
+    assert payload == valid_screenplay_mapping()
+    assert supervisor.argv[supervisor.argv.index("--tools") + 1] == ""
+    assert supervisor.argv[supervisor.argv.index("--max-turns") + 1] == "1"
+    assert "--allowedTools" not in supervisor.argv
+    assert "Bash,Read,Write,Edit,WebFetch,WebSearch,Agent" in supervisor.argv
+    assert supervisor.input_bytes is not None
+    encoded = json.dumps(screenplay.screenplay_text, ensure_ascii=False).encode()
+    assert encoded in supervisor.input_bytes
+    assert all(screenplay.screenplay_text not in value for value in supervisor.argv)
+    assert _has_no_api_keys(supervisor.environment)
+
+
+@pytest.mark.asyncio
+async def test_claude_screenplay_rejects_oversized_schema_before_process(
+    tmp_path: Path,
+) -> None:
+    supervisor = screenplay_supervisor()
+    analyzer = ClaudeCliVideoAnalyzer(config(), supervisor=supervisor)  # type: ignore[arg-type]
+    screenplay = screenplay_request(tmp_path)
+    screenplay = replace(
+        screenplay,
+        source_scene_ids=tuple(
+            f"scene-{index:04d}-{'a' * 110}" for index in range(1, 121)
+        ),
+    )
+
+    with pytest.raises(AnalysisCliError) as error:
+        await analyzer.analyze_screenplay(screenplay)
+
+    assert error.value.code == "analysis_resource_limit"
+    assert supervisor.argv == ()
 
 
 def _has_no_api_keys(environment: dict[str, str]) -> bool:

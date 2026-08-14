@@ -99,6 +99,10 @@
 
 PyMuPDF 的 AGPL/商业双许可与当前 MIT 项目分发目标不匹配，本期不选。扫描 PDF 的 OCR 会新增模型、语言包、资源和隐私边界，也不进入首期。
 
+### 4.1 Claude 结构化输出与本机 CLI 边界
+
+[Anthropic Structured outputs 官方文档](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)确认 JSON output 使用原始 JSON Schema 和约束解码，但仍存在 Schema 编译复杂度、拒绝和输出 token 截断边界；Schema 会为编译缓存最多保留 24 小时，因此枚举只放不含正文的稳定 scene ID，正文只进入 Prompt，服务端仍必须执行独立 parser 校验。当前宿主机 Claude CLI 提供 `--tools ""`、`--disallowedTools`、`--safe-mode`、`--strict-mcp-config` 和单轮限制，可形成无工具 screenplay 路径；当前 Codex CLI 没有可验证的全工具关闭参数，所以本期不把 screenplay 路由到 Codex。Windows 进程参数另有长度边界，单次路径将场景数限制为 120，并在启动 CLI 前限制序列化 Schema 为 28,000 字节；超限进入后续可信分块能力，不把限制交给模型自行规避。
+
 ## 5. 方案比较
 
 | 方案 | 优点 | 主要问题 | 结论 |
