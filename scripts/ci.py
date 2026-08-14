@@ -46,6 +46,11 @@ def check_workflow_action_pins() -> None:
         raise RuntimeError(f"GitHub Actions 必须固定到完整提交 SHA：\n  - {details}")
 
 
+def npm_executable() -> str:
+    """Resolve npm explicitly so Windows subprocess calls use npm.cmd."""
+    return shutil.which("npm") or "npm"
+
+
 def repository() -> None:
     run(
         "提交规范测试",
@@ -146,19 +151,20 @@ def backend() -> None:
 
 
 def frontend() -> None:
-    run("前端锁定依赖", "npm", "ci", cwd=ROOT / "frontend")
+    npm = npm_executable()
+    run("前端锁定依赖", npm, "ci", cwd=ROOT / "frontend")
     run(
         "前端生产依赖审计",
-        "npm",
+        npm,
         "audit",
         "--omit=dev",
         "--audit-level=high",
         cwd=ROOT / "frontend",
     )
-    run("前端 lint 与类型", "npm", "run", "lint", cwd=ROOT / "frontend")
-    run("前端格式", "npm", "run", "format:check", cwd=ROOT / "frontend")
-    run("前端测试", "npm", "test", cwd=ROOT / "frontend")
-    run("前端生产构建", "npm", "run", "build", cwd=ROOT / "frontend")
+    run("前端 lint 与类型", npm, "run", "lint", cwd=ROOT / "frontend")
+    run("前端格式", npm, "run", "format:check", cwd=ROOT / "frontend")
+    run("前端测试", npm, "test", cwd=ROOT / "frontend")
+    run("前端生产构建", npm, "run", "build", cwd=ROOT / "frontend")
 
 
 def main() -> int:

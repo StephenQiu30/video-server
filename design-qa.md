@@ -165,3 +165,15 @@ final result: passed
 - 工程门禁：lint/typecheck 通过；format check 173 个文件通过；31 个测试文件、117 项测试通过；Next.js 生产构建与 11 个业务/错误路由静态导出通过。Compose 重建后 API、Media Runner、egress proxy 与基础设施健康，宿主机 AI Worker 已恢复，`/health/ready` 返回 200。
 
 final result: passed
+
+## 2026-08-14 归档前跨路由与权限复验
+
+- 使用独立管理员与普通用户会话复验首页、下载历史、账户、用户管理、下载分析和平台目录；管理员数据页正常加载，普通用户直接访问 `/admin/users` 与 `/admin/analytics` 均被重定向回首页，账户菜单不暴露管理入口。
+- 1440×900 桌面端以及 390×844 移动端完成截图和可访问树检查；历史、账户、用户管理、下载分析均满足 `scrollWidth = clientWidth`，移动导航 Sheet 可正常打开并由 Escape 关闭。
+- 下载分析页从 PostgreSQL 当前事实展示 43 条任务、15 个独立用户、14 个来源和完整日趋势；下载历史新账户空态、管理员列表数据态及权限拒绝态均有真实浏览器证据。
+- 检查范围内浏览器页面错误与产品控制台错误为空；本机证据位于忽略目录 `dogfood-output/archive-qa/`。
+- 当前 `main` 的 GitHub Actions 运行 `31765542909` 全部通过：Repository rules、Frontend quality、Backend quality、Runtime boundary 与 Required CI 均为 success，统一镜像与运行边界已验证。
+- 首次 axe 矩阵在平台状态与平台目录复现 warning Badge 对比度 4.15:1 的 serious 违规；浅色 warning token 调整为 `#854d0e` 并重建统一镜像后，12 条公开/受保护路由在 1440×900 与 390×844 下 serious/critical 均为 0，深色 + reduced-motion 复扫同样通过。
+- 本轮前端 lint/typecheck、183 文件格式检查、33 个测试文件/119 项测试和生产构建全部通过；仓库脚本测试增至 19 项并修复 Windows 下统一 CI 入口无法解析 `npm.cmd` 的历史问题。依赖锁定安装已在干净 Docker 构建中通过；本机另有运行中的 Next dev 进程锁定原生模块，故不以该 EPERM 作为产品失败。
+
+final result: passed

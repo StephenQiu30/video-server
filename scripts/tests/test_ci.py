@@ -43,6 +43,16 @@ class RepositoryCommandTests(unittest.TestCase):
             "-v",
         )
 
+    @patch("scripts.ci.shutil.which", return_value=r"D:\Nodejs\npm.CMD")
+    def test_npm_executable_resolves_windows_command_shim(self, which) -> None:
+        self.assertEqual(ci.npm_executable(), r"D:\Nodejs\npm.CMD")
+        which.assert_called_once_with("npm")
+
+    @patch("scripts.ci.shutil.which", return_value=None)
+    def test_npm_executable_falls_back_to_command_name(self, which) -> None:
+        self.assertEqual(ci.npm_executable(), "npm")
+        which.assert_called_once_with("npm")
+
 
 if __name__ == "__main__":
     unittest.main()

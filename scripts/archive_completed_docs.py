@@ -101,7 +101,12 @@ def archive_completed_sets(repo_root: Path) -> tuple[str, ...]:
         )
 
     updated_files: dict[Path, str] = {}
-    markdown_files = (*docs_root.rglob("*.md"), *root.glob("*.md"))
+    markdown_files = (
+        *docs_root.rglob("*.md"),
+        *root.glob("*.md"),
+        *(root / "frontend").glob("*.md"),
+        *(root / "backend").glob("*.md"),
+    )
     for markdown in markdown_files:
         text = markdown.read_text(encoding="utf-8")
         updated = text

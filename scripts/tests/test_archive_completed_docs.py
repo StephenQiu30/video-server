@@ -42,6 +42,11 @@ class CompletedDocumentArchiveTests(unittest.TestCase):
         self._write_index(("001",))
         note = self.docs / "note.md"
         note.write_text("`docs/design/001-design.md`\n", encoding="utf-8")
+        frontend_readme = self.root / "frontend/README.md"
+        frontend_readme.parent.mkdir(parents=True)
+        frontend_readme.write_text(
+            "`../docs/design/001-design.md`\n", encoding="utf-8"
+        )
 
         archived = archive_completed_sets(self.root)
 
@@ -51,6 +56,10 @@ class CompletedDocumentArchiveTests(unittest.TestCase):
         self.assertIn("001 | Topic（已归档）", self._index_text())
         self.assertEqual(
             note.read_text(encoding="utf-8"), "`docs/archive/001/001-design.md`\n"
+        )
+        self.assertEqual(
+            frontend_readme.read_text(encoding="utf-8"),
+            "`../docs/archive/001/001-design.md`\n",
         )
         self.assertEqual(archive_completed_sets(self.root), ())
 

@@ -55,7 +55,7 @@ server/
 
 ## 前端设计系统规范（强制）
 
-本项目唯一视觉方向是用户确认的“方案 3”：Vercel Home 式无边框界面。Vercel/Geist 判断基准与产品适配规则见根目录 [design.md](design.md)，详细设计决策见 [009 前端视觉系统设计](docs/design/009-Next前端与蓝白视觉系统设计.md)，视觉回归证据见 [设计 QA](design-qa.md)。本节是所有前端变更必须满足的仓库级门禁；`frontend/src/app/globals.css` 是 token 和布局公式的可执行事实来源。四者不一致时视为缺陷，必须在同一变更中同步，不得另建平行规范。
+本项目唯一视觉方向是用户确认的“方案 3”：Vercel Home 式无边框界面。Vercel/Geist 判断基准与产品适配规则见根目录 [design.md](design.md)，详细设计决策见 [009 前端视觉系统设计](docs/archive/009/009-Next前端与蓝白视觉系统设计.md)，视觉回归证据见 [设计 QA](design-qa.md)。本节是所有前端变更必须满足的仓库级门禁；`frontend/src/app/globals.css` 是 token 和布局公式的可执行事实来源。四者不一致时视为缺陷，必须在同一变更中同步，不得另建平行规范。
 
 ### 视觉、token 与网格
 
@@ -85,7 +85,7 @@ server/
 ### 禁止事项与变更门禁
 
 - 禁止恢复侧栏后台壳、卡片堆叠、三步向导、高密度工具栏、渐变炫光、玻璃拟态、重投影或蓝色企业后台视觉；禁止重新引入 Ant Design、Ant Design Pro、Umi、Less、CSS-in-JS 或平行主题系统。
-- 修改颜色、字体、圆角、网格、断点或基础控件时，必须同步更新 `globals.css`、[009 设计文档](docs/design/009-Next前端与蓝白视觉系统设计.md) 和必要测试；修改导航模式或核心页面信息层级时，必须同步更新 009 设计文档与必要测试。视觉基准变化还必须重做 [design-qa.md](design-qa.md) 的桌面/390px 同状态比较。
+- 修改颜色、字体、圆角、网格、断点或基础控件时，必须同步更新 `globals.css`、[009 设计文档](docs/archive/009/009-Next前端与蓝白视觉系统设计.md) 和必要测试；修改导航模式或核心页面信息层级时，必须同步更新 009 设计文档与必要测试。视觉基准变化还必须重做 [design-qa.md](design-qa.md) 的桌面/390px 同状态比较。
 - 交付前至少运行前端 `npm run lint`、`npm run format:check`、`npm test`、`npm run build`，并实际检查键盘返回路径、明暗主题、加载/空/错误状态、Radix 覆盖层和页面级横向溢出。视觉 QA 只有在没有剩余 P0/P1/P2 差异且 `design-qa.md` 写明 `final result: passed` 时才算通过；QA 截图不能替代功能和无障碍验证。
 
 ## 架构与数据边界
