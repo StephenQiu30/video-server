@@ -9,6 +9,7 @@ from app.application.import_execution import (
     ImportVerificationClaim,
     ImportVerificationRejected,
 )
+from app.domain.documents import ScreenplayElementKind
 from app.domain.imports import ContentKind, ImportErrorCode, ImportSourceFormat
 from app.workers.imports import TextScreenplayVerifier, TextVerificationSettings
 
@@ -61,6 +62,10 @@ async def test_text_formats_are_verified_and_written_as_canonical_utf8(
         == hashlib.sha256(verified.normalized_path.read_bytes()).hexdigest()
     )
     assert len(verified.scenes) == 1
+    assert [element.kind for element in verified.scenes[0].elements] == [
+        ScreenplayElementKind.HEADING,
+        ScreenplayElementKind.ACTION,
+    ]
 
 
 @pytest.mark.parametrize(

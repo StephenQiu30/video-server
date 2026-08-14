@@ -98,7 +98,19 @@ async def complete_verification(
                     artifact.normalized_sha256,
                     {
                         "scenes": [
-                            {"id": scene.id, "start": scene.start, "end": scene.end}
+                            {
+                                "id": scene.id,
+                                "start": scene.start,
+                                "end": scene.end,
+                                "elements": [
+                                    {
+                                        "kind": element.kind.value,
+                                        "start": element.start,
+                                        "end": element.end,
+                                    }
+                                    for element in scene.elements
+                                ],
+                            }
                             for scene in artifact.scenes
                         ]
                     },

@@ -10,6 +10,7 @@ from app.application.import_execution import (
     ImportVerificationClaim,
     ImportVerificationRejected,
 )
+from app.domain.documents import ScreenplayElementKind
 from app.domain.imports import ContentKind, ImportErrorCode, ImportSourceFormat
 from app.workers.imports import (
     PdfScreenplayVerifier,
@@ -126,6 +127,11 @@ async def test_pdf_extracts_text_into_shared_screenplay_contract(
     assert "EXT. STREET - NIGHT\nBOB" in normalized
     assert verified.detected_language == "en-US"
     assert len(verified.scenes) == 2
+    assert [element.kind for element in verified.scenes[0].elements] == [
+        ScreenplayElementKind.HEADING,
+        ScreenplayElementKind.CHARACTER,
+        ScreenplayElementKind.DIALOGUE,
+    ]
 
 
 @pytest.mark.parametrize("kind", ["javascript", "attachment", "uri", "external-stream"])

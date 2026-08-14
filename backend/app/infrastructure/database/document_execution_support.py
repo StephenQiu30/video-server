@@ -12,6 +12,7 @@ from app.application.import_execution import (
     VerifiedDocumentImport,
 )
 from app.application.imports import ImportPersistenceConflict, ImportPersistenceNotFound
+from app.domain.documents import ScreenplayElementKind, ScreenplayScene
 from app.domain.imports import ContentKind, ImportSourceFormat
 
 from .base import as_utc
@@ -131,9 +132,7 @@ def validate_artifact(
     now: datetime,
 ) -> None:
     spans_are_valid = bool(artifact.scenes) and all(
-        scene.id.startswith("scene-")
-        and 0 <= scene.start < scene.end <= artifact.character_count
-        for scene in artifact.scenes
+        _valid_scene(scene, artifact.character_count) for scene in artifact.scenes
     )
     if (
         not bucket.strip()
@@ -151,3 +150,22 @@ def validate_artifact(
         or as_utc(expires_at) <= as_utc(now)
     ):
         raise ValueError("invalid verified document artifacts")
+
+
+def _valid_scene(scene: ScreenplayScene, character_count: int) -> bool:
+    if not (
+        scene.id.startswith("scene-")
+        and 0 <= scene.start < scene.end <= character_count
+    ):
+        return False
+    previous_end = scene.start
+    kinds = set(ScreenplayElementKind)
+    for element in scene.elements:
+        if (
+            element.kind not in kinds
+            or not scene.start <= element.start < element.end <= scene.end
+            or element.start < previous_end
+        ):
+            return False
+        previous_end = element.end
+    return True

@@ -1,18 +1,18 @@
 from __future__ import annotations
 
 import hashlib
-import re
 import unicodedata
 from dataclasses import dataclass
 
-_ENGLISH_HEADING = re.compile(
-    r"^(?:INT|EXT|EST|INT/EXT|EXT/INT|I/E)\.?(?:\s|[-.:—])",
-    re.IGNORECASE,
+from .structure import (
+    ScreenplayElement,
+    is_scene_heading,
+    parse_scene_elements,
+    scene_heading_text,
 )
-_CHINESE_HEADING = re.compile(
-    r"^(?:内景|外景|内外景|外内景|内/外|外/内)(?:\s|[.。·、\-—:：]|$)"
-)
-_MARKDOWN_HEADING = re.compile(r"^#{1,6}\s+")
+
+_MAX_SCENES = 5_000
+_MAX_ELEMENTS = 20_000
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,6 +20,7 @@ class ScreenplayScene:
     id: str
     start: int
     end: int
+    elements: tuple[ScreenplayElement, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,7 +45,17 @@ def normalize_screenplay(text: str) -> NormalizedScreenplay:
     warnings: tuple[str, ...] = ()
     if not scenes:
         digest = hashlib.sha256(normalized.encode()).hexdigest()[:12]
-        scenes = (ScreenplayScene(f"scene-0001-{digest}", 0, len(normalized)),)
+        elements = parse_scene_elements(normalized, 0, len(normalized))
+        if len(elements) > _MAX_ELEMENTS:
+            raise ValueError("screenplay structure element limit exceeded")
+        scenes = (
+            ScreenplayScene(
+                f"scene-0001-{digest}",
+                0,
+                len(normalized),
+                elements,
+            ),
+        )
         warnings = ("scene_heading_missing",)
     return NormalizedScreenplay(
         text=normalized,
@@ -58,16 +69,30 @@ def _scenes(text: str) -> tuple[ScreenplayScene, ...]:
     headings: list[tuple[int, str]] = []
     offset = 0
     for line in text.splitlines(keepends=True):
-        candidate = _MARKDOWN_HEADING.sub("", line.strip())
-        if _ENGLISH_HEADING.match(candidate) or _CHINESE_HEADING.match(candidate):
+        candidate = scene_heading_text(line)
+        if is_scene_heading(candidate):
             headings.append((offset, candidate))
+            if len(headings) > _MAX_SCENES:
+                raise ValueError("screenplay scene limit exceeded")
         offset += len(line)
     scenes: list[ScreenplayScene] = []
+    element_count = 0
     for index, (start, heading) in enumerate(headings, start=1):
         end = headings[index][0] if index < len(headings) else len(text)
         identity = f"{index}:{heading.casefold()}".encode()
         digest = hashlib.sha256(identity).hexdigest()[:12]
-        scenes.append(ScreenplayScene(f"scene-{index:04d}-{digest}", start, end))
+        elements = parse_scene_elements(text, start, end)
+        element_count += len(elements)
+        if element_count > _MAX_ELEMENTS:
+            raise ValueError("screenplay structure element limit exceeded")
+        scenes.append(
+            ScreenplayScene(
+                f"scene-{index:04d}-{digest}",
+                start,
+                end,
+                elements,
+            )
+        )
     return tuple(scenes)
 
 

@@ -13,6 +13,7 @@ from app.application.import_execution import (
     ImportVerificationClaim,
     ImportVerificationRejected,
 )
+from app.domain.documents import ScreenplayElementKind
 from app.domain.imports import ContentKind, ImportErrorCode, ImportSourceFormat
 from app.workers.imports import (
     DocxScreenplayVerifier,
@@ -114,6 +115,16 @@ async def test_docx_extracts_only_body_and_table_text_into_shared_contract(
     assert verified.detected_language == "mixed"
     assert len(verified.scenes) == 2
     assert verified.quality_warnings == ()
+    assert [element.kind for element in verified.scenes[0].elements] == [
+        ScreenplayElementKind.HEADING,
+        ScreenplayElementKind.CHARACTER,
+        ScreenplayElementKind.DIALOGUE,
+    ]
+    assert [element.kind for element in verified.scenes[1].elements] == [
+        ScreenplayElementKind.HEADING,
+        ScreenplayElementKind.CHARACTER,
+        ScreenplayElementKind.DIALOGUE,
+    ]
 
 
 def _external(content: bytes) -> bytes:

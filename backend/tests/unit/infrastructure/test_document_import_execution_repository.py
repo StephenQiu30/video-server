@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID
@@ -7,7 +8,11 @@ from uuid import UUID
 import pytest
 from app.application.import_execution import VerifiedDocumentImport
 from app.application.imports import ImportResourceCreate
-from app.domain.documents import ScreenplayScene
+from app.domain.documents import (
+    ScreenplayElement,
+    ScreenplayElementKind,
+    ScreenplayScene,
+)
 from app.domain.imports import ContentKind, ImportErrorCode, ImportSourceFormat
 from app.infrastructure.database import (
     Base,
@@ -96,7 +101,17 @@ def verified(path: Path) -> VerifiedDocumentImport:
         normalized_size_bytes=64,
         detected_language="en-US",
         character_count=64,
-        scenes=(ScreenplayScene("scene-0001-123456789abc", 0, 64),),
+        scenes=(
+            ScreenplayScene(
+                "scene-0001-123456789abc",
+                0,
+                64,
+                (
+                    ScreenplayElement(ScreenplayElementKind.HEADING, 0, 16),
+                    ScreenplayElement(ScreenplayElementKind.ACTION, 17, 64),
+                ),
+            ),
+        ),
         quality_warnings=(),
     )
 
@@ -159,6 +174,51 @@ async def test_claim_heartbeat_and_completion_create_two_immutable_artifacts(
     assert attempt is not None and attempt.status == "ready"
     assert [item.kind for item in artifacts] == ["normalized", "original"]
     assert artifacts[0].artifact_metadata["scenes"][0]["id"].startswith("scene-")
+    assert artifacts[0].artifact_metadata["scenes"][0]["elements"] == [
+        {"kind": "heading", "start": 0, "end": 16},
+        {"kind": "action", "start": 17, "end": 64},
+    ]
+
+
+async def test_completion_rejects_overlapping_structure_offsets(
+    repositories, tmp_path: Path
+) -> None:
+    upload, execution, _ = repositories
+    resource = await verifying(upload)
+    claim = await execution.claim_verification(
+        DOCUMENT_ID,
+        ContentKind.SCREENPLAY,
+        1,
+        resource.version,
+        worker_id="worker-a",
+        now=NOW,
+        lease_for=timedelta(seconds=30),
+    )
+    assert claim is not None
+    invalid = replace(
+        verified(tmp_path / "screenplay.md"),
+        scenes=(
+            ScreenplayScene(
+                "scene-0001-123456789abc",
+                0,
+                64,
+                (
+                    ScreenplayElement(ScreenplayElementKind.HEADING, 0, 16),
+                    ScreenplayElement(ScreenplayElementKind.ACTION, 15, 64),
+                ),
+            ),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="invalid verified document artifacts"):
+        await execution.complete_verification(
+            claim,
+            invalid,
+            worker_id="worker-a",
+            bucket="video-artifacts",
+            expires_at=NOW + timedelta(days=7),
+            now=NOW + timedelta(seconds=1),
+        )
 
 
 async def test_terminal_failure_and_expired_lease_recovery_are_stable(
