@@ -27,6 +27,10 @@ from .ports import (
     VideoAnalyzer,
 )
 from .screenplay_executor import ScreenplayAnalysisExecutor
+from .screenplay_rewrite_plan import (
+    ScreenplayRewriteSourceChunk,
+    plan_screenplay_rewrite,
+)
 from .service import AnalysisExecution
 from .video_executor import VideoAnalysisExecutor
 
@@ -51,9 +55,11 @@ __all__ = [
     "ScreenplayAnalyzer",
     "ScreenplayAnalyzerResolver",
     "ScreenplayAnalyzerSelection",
+    "ScreenplayRewriteSourceChunk",
     "VideoAnalysisRequest",
     "VideoAnalysisExecutor",
     "VideoAnalyzer",
+    "plan_screenplay_rewrite",
     "AnalyzerResolver",
     "AnalyzerSelection",
 ]
