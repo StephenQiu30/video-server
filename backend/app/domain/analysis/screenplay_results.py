@@ -123,6 +123,15 @@ def validate_screenplay_rewrite_result(result: ScreenplayRewriteResult) -> None:
         _invalid("rewrite scene counts must be positive integers")
     if not result.chunks or not result.change_summary:
         _invalid("rewrite chunks and change summary cannot be empty")
+    if (
+        len(result.glossary) > 512
+        or len(result.chunks) > 512
+        or len(result.change_summary) > 512
+    ):
+        raise AnalysisValidationError(
+            AnalysisValidationCode.LIMIT_EXCEEDED,
+            "screenplay rewrite collection exceeds the item limit",
+        )
     scene_ids = tuple(dict.fromkeys(chunk.source_scene_id for chunk in result.chunks))
     if result.source_scene_count != len(scene_ids):
         _invalid("source_scene_count must equal the rewritten source scenes")

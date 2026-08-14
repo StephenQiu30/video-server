@@ -30,6 +30,7 @@ from .ports import (
     VideoAnalyzer,
 )
 from .screenplay_executor import ScreenplayAnalysisExecutor
+from .screenplay_rewrite_executor import ScreenplayRewriteExecutor
 from .screenplay_rewrite_models import (
     ScreenplayGlossaryRequest,
     ScreenplayRewriteChunkRequest,
@@ -38,6 +39,7 @@ from .screenplay_rewrite_plan import (
     ScreenplayRewriteSourceChunk,
     plan_screenplay_rewrite,
 )
+from .screenplay_router import ScreenplayExecutionRouter
 from .service import AnalysisExecution
 from .video_executor import VideoAnalysisExecutor
 
@@ -67,7 +69,9 @@ __all__ = [
     "ScreenplayRewriteAnalyzer",
     "ScreenplayRewriteAnalyzerResolver",
     "ScreenplayRewriteAnalyzerSelection",
+    "ScreenplayRewriteExecutor",
     "ScreenplayRewriteSourceChunk",
+    "ScreenplayExecutionRouter",
     "VideoAnalysisRequest",
     "VideoAnalysisExecutor",
     "VideoAnalyzer",

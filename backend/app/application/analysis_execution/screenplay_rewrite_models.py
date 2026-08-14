@@ -60,7 +60,7 @@ class ScreenplayRewriteChunkRequest:
             or self.source_sha256 != digest
             or self.target_language not in _TARGET_LANGUAGES
             or self.glossary.target_language != self.target_language
-            or any(len(value) > 2_000 for value in self.contexts)
+            or any(len(value) > 4_000 for value in self.contexts)
         ):
             raise ValueError("screenplay rewrite chunk request is invalid")
         _validate_instructions(
