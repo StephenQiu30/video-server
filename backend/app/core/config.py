@@ -66,6 +66,10 @@ class Settings(BaseSettings):
     analysis_report_routing_key: Literal["analysis.report.publish.requested"] = (
         "analysis.report.publish.requested"
     )
+    import_queue: str = "video.import"
+    import_routing_key: Literal["content.import.verify.requested"] = (
+        "content.import.verify.requested"
+    )
     rabbitmq_connection_timeout_seconds: float = Field(default=10, ge=1, le=60)
     rabbitmq_publish_timeout_seconds: float = Field(default=10, ge=1, le=60)
     rabbitmq_heartbeat_seconds: int = Field(default=60, ge=10, le=600)

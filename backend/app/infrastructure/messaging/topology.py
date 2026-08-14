@@ -37,6 +37,8 @@ class RabbitMqTopology:
     report_routing_key: str = "analysis.report.publish.requested"
     message_ttl_ms: int = 86_400_000
     max_length: int = 10_000
+    import_queue: str = "video.import"
+    import_routing_key: str = "content.import.verify.requested"
 
     def __post_init__(self) -> None:
         names = (
@@ -47,6 +49,8 @@ class RabbitMqTopology:
             self.analysis_routing_key,
             self.report_queue,
             self.report_routing_key,
+            self.import_queue,
+            self.import_routing_key,
         )
         if any(not value or value != value.strip() for value in names):
             raise ValueError("RabbitMQ topology names cannot be blank")
@@ -86,6 +90,12 @@ class RabbitMqTopology:
                 self.message_ttl_ms,
                 self.max_length,
             ),
+            DurableQueueTopology(
+                self.import_queue,
+                self.import_routing_key,
+                self.message_ttl_ms,
+                self.max_length,
+            ),
         )
 
     @property
@@ -95,3 +105,7 @@ class RabbitMqTopology:
     @property
     def report(self) -> DurableQueueTopology:
         return self.durable_queues[2]
+
+    @property
+    def imports(self) -> DurableQueueTopology:
+        return self.durable_queues[3]

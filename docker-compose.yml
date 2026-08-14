@@ -485,6 +485,8 @@ services:
       RABBITMQ_OUTBOX_PASS: "${RABBITMQ_OUTBOX_PASS:-video-outbox-secret}"
       RABBITMQ_DOWNLOAD_USER: "${RABBITMQ_DOWNLOAD_USER:-video-download}"
       RABBITMQ_DOWNLOAD_PASS: "${RABBITMQ_DOWNLOAD_PASS:-video-download-secret}"
+      RABBITMQ_IMPORT_USER: "${RABBITMQ_IMPORT_USER:-video-import}"
+      RABBITMQ_IMPORT_PASS: "${RABBITMQ_IMPORT_PASS:-video-import-secret}"
       RABBITMQ_ANALYSIS_USER: "${RABBITMQ_ANALYSIS_USER:-video-analysis}"
       RABBITMQ_ANALYSIS_PASS: "${RABBITMQ_ANALYSIS_PASS:-video-analysis-secret}"
       RABBITMQ_REPORT_USER: "${RABBITMQ_REPORT_USER:-video-report}"

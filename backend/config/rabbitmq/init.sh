@@ -15,6 +15,7 @@ for value in \
   "$RABBITMQ_API_USER" "$RABBITMQ_API_PASS" \
   "$RABBITMQ_OUTBOX_USER" "$RABBITMQ_OUTBOX_PASS" \
   "$RABBITMQ_DOWNLOAD_USER" "$RABBITMQ_DOWNLOAD_PASS" \
+  "$RABBITMQ_IMPORT_USER" "$RABBITMQ_IMPORT_PASS" \
   "$RABBITMQ_ANALYSIS_USER" "$RABBITMQ_ANALYSIS_PASS" \
   "$RABBITMQ_REPORT_USER" "$RABBITMQ_REPORT_PASS" \
   "$RABBITMQ_DLQ_USER" "$RABBITMQ_DLQ_PASS"; do
@@ -60,18 +61,19 @@ put "vhosts/$RABBITMQ_VHOST" '{}'
 create_user "$RABBITMQ_API_USER" "$RABBITMQ_API_PASS" '^amq[._-].*$' '^amq[._-].*$' '^(amq[._-].*|video\\.events)$'
 create_user "$RABBITMQ_OUTBOX_USER" "$RABBITMQ_OUTBOX_PASS" '^$' '^video\\.events$' '^$'
 create_user "$RABBITMQ_DOWNLOAD_USER" "$RABBITMQ_DOWNLOAD_PASS" '^$' '^$' '^video\\.download$'
+create_user "$RABBITMQ_IMPORT_USER" "$RABBITMQ_IMPORT_PASS" '^$' '^$' '^video\\.import$'
 create_user "$RABBITMQ_ANALYSIS_USER" "$RABBITMQ_ANALYSIS_PASS" '^$' '^$' '^video\\.analysis$'
 create_user "$RABBITMQ_REPORT_USER" "$RABBITMQ_REPORT_PASS" '^$' '^$' '^video\\.analysis-report$'
-create_user "$RABBITMQ_DLQ_USER" "$RABBITMQ_DLQ_PASS" '^$' '^video\\.events$' '^video\\.(download|analysis|analysis-report)\\.dead$'
+create_user "$RABBITMQ_DLQ_USER" "$RABBITMQ_DLQ_PASS" '^$' '^video\\.events$' '^video\\.(download|import|analysis|analysis-report)\\.dead$'
 
 # Topic permissions prevent the Gateway's exchange binding permission from
 # becoming publish permission, and bound DLQ replays to command routing keys.
 put "topic-permissions/$RABBITMQ_VHOST/$RABBITMQ_API_USER" \
   '{"exchange":"video.events","write":"^$","read":"^task\\.state\\.changed$"}'
 put "topic-permissions/$RABBITMQ_VHOST/$RABBITMQ_OUTBOX_USER" \
-  '{"exchange":"video.events","write":"^(download\\.requested|analysis\\.requested|analysis\\.report\\.publish\\.requested|task\\.state\\.changed)$","read":"^$"}'
+  '{"exchange":"video.events","write":"^(download\\.requested|content\\.import\\.verify\\.requested|analysis\\.requested|analysis\\.report\\.publish\\.requested|task\\.state\\.changed)$","read":"^$"}'
 put "topic-permissions/$RABBITMQ_VHOST/$RABBITMQ_DLQ_USER" \
-  '{"exchange":"video.events","write":"^(download\\.requested|analysis\\.requested|analysis\\.report\\.publish\\.requested)$","read":"^$"}'
+  '{"exchange":"video.events","write":"^(download\\.requested|content\\.import\\.verify\\.requested|analysis\\.requested|analysis\\.report\\.publish\\.requested)$","read":"^$"}'
 
 put "exchanges/$RABBITMQ_VHOST/video.events" \
   '{"type":"topic","durable":true,"auto_delete":false,"internal":false,"arguments":{}}'
@@ -79,23 +81,24 @@ put "exchanges/$RABBITMQ_VHOST/video.events.dead" \
   '{"type":"direct","durable":true,"auto_delete":false,"internal":false,"arguments":{}}'
 
 source_policy() {
-  policy_name="$1"; policy_pattern="$2"; dead_target="$3"
+  policy_name="$1"; policy_pattern="$2"; dead_target="$3"; queue_type="$4"
   policy_definition="{\"dead-letter-exchange\":\"video.events.dead\",\"dead-letter-routing-key\":\"$dead_target\",\"message-ttl\":$RABBITMQ_MESSAGE_TTL_MS,\"max-length\":$RABBITMQ_MAX_LENGTH,\"max-length-bytes\":$RABBITMQ_MAX_LENGTH_BYTES,\"overflow\":\"reject-publish\"}"
-  if [ "$RABBITMQ_QUEUE_TYPE" = quorum ]; then
+  if [ "$queue_type" = quorum ]; then
     policy_definition="{\"dead-letter-exchange\":\"video.events.dead\",\"dead-letter-routing-key\":\"$dead_target\",\"dead-letter-strategy\":\"at-least-once\",\"delivery-limit\":$RABBITMQ_DELIVERY_LIMIT,\"message-ttl\":$RABBITMQ_MESSAGE_TTL_MS,\"max-length\":$RABBITMQ_MAX_LENGTH,\"max-length-bytes\":$RABBITMQ_MAX_LENGTH_BYTES,\"overflow\":\"reject-publish\"}"
   fi
   put "policies/$RABBITMQ_VHOST/$policy_name" \
     "{\"pattern\":\"$policy_pattern\",\"definition\":$policy_definition,\"priority\":20,\"apply-to\":\"queues\"}"
 }
 
-source_policy video-download-reliability '^video\\.download$' video.download.dead
-source_policy video-analysis-reliability '^video\\.analysis$' video.analysis.dead
-source_policy video-analysis-report-reliability '^video\\.analysis-report$' video.analysis-report.dead
+source_policy video-download-reliability '^video\\.download$' video.download.dead "$RABBITMQ_QUEUE_TYPE"
+source_policy video-import-reliability '^video\\.import$' video.import.dead quorum
+source_policy video-analysis-reliability '^video\\.analysis$' video.analysis.dead "$RABBITMQ_QUEUE_TYPE"
+source_policy video-analysis-report-reliability '^video\\.analysis-report$' video.analysis-report.dead "$RABBITMQ_QUEUE_TYPE"
 put "policies/$RABBITMQ_VHOST/video-dead-letter-retention" \
-  "{\"pattern\":\"^video\\\\.(download|analysis|analysis-report)\\\\.dead$\",\"definition\":{\"max-length\":$RABBITMQ_DLQ_MAX_LENGTH,\"max-length-bytes\":$RABBITMQ_DLQ_MAX_LENGTH_BYTES,\"overflow\":\"drop-head\"},\"priority\":20,\"apply-to\":\"queues\"}"
+  "{\"pattern\":\"^video\\\\.(download|import|analysis|analysis-report)\\\\.dead$\",\"definition\":{\"max-length\":$RABBITMQ_DLQ_MAX_LENGTH,\"max-length-bytes\":$RABBITMQ_DLQ_MAX_LENGTH_BYTES,\"overflow\":\"drop-head\"},\"priority\":20,\"apply-to\":\"queues\"}"
 
 ensure_queue() {
-  candidate_queue="$1"; allow_migrate="$2"
+  candidate_queue="$1"; allow_migrate="$2"; queue_type="$3"
   if exists "queues/$RABBITMQ_VHOST/$candidate_queue"; then
     if [ "$allow_migrate" != true ] || [ "$RABBITMQ_MIGRATE_LEGACY_QUEUE_ARGUMENTS" != true ]; then
       return
@@ -106,20 +109,21 @@ ensure_queue() {
     fi
   fi
   put "queues/$RABBITMQ_VHOST/$candidate_queue" \
-    "{\"durable\":true,\"auto_delete\":false,\"arguments\":{\"x-queue-type\":\"$RABBITMQ_QUEUE_TYPE\"}}"
+    "{\"durable\":true,\"auto_delete\":false,\"arguments\":{\"x-queue-type\":\"$queue_type\"}}"
 }
 
 declare_queue() {
-  main_queue="$1"; main_route="$2"
+  main_queue="$1"; main_route="$2"; queue_type="$3"
   dead_queue="$main_queue.dead"
-  ensure_queue "$dead_queue" false
-  ensure_queue "$main_queue" true
+  ensure_queue "$dead_queue" false "$queue_type"
+  ensure_queue "$main_queue" true "$queue_type"
   post "bindings/$RABBITMQ_VHOST/e/video.events/q/$main_queue" \
     "{\"routing_key\":\"$main_route\",\"arguments\":{}}"
   post "bindings/$RABBITMQ_VHOST/e/video.events.dead/q/$dead_queue" \
     "{\"routing_key\":\"$dead_queue\",\"arguments\":{}}"
 }
 
-declare_queue video.download download.requested
-declare_queue video.analysis analysis.requested
-declare_queue video.analysis-report analysis.report.publish.requested
+declare_queue video.download download.requested "$RABBITMQ_QUEUE_TYPE"
+declare_queue video.import content.import.verify.requested quorum
+declare_queue video.analysis analysis.requested "$RABBITMQ_QUEUE_TYPE"
+declare_queue video.analysis-report analysis.report.publish.requested "$RABBITMQ_QUEUE_TYPE"

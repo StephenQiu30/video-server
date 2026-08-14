@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from enum import StrEnum
 from uuid import UUID
 
 from app.domain.imports import (
@@ -10,6 +11,11 @@ from app.domain.imports import (
     ImportSourceFormat,
     ImportStatus,
 )
+
+
+class ImportDisposition(StrEnum):
+    ACK = "ack"
+    RETRY = "retry"
 
 
 @dataclass(frozen=True, slots=True)

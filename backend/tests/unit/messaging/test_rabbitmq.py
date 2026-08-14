@@ -77,6 +77,15 @@ def event() -> EventEnvelope:
     )
 
 
+def test_topology_includes_bounded_import_queue_and_dlq() -> None:
+    topology = RabbitMqTopology("video.events", "video.download", "download.requested")
+
+    assert topology.imports.queue == "video.import"
+    assert topology.imports.routing_key == "content.import.verify.requested"
+    assert topology.imports.dead_queue == "video.import.dead"
+    assert topology.imports in topology.durable_queues
+
+
 @pytest.mark.asyncio
 async def test_robust_topology_and_confirmed_mandatory_publish(monkeypatch) -> None:
     connection = FakeConnection()
