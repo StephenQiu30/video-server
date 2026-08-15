@@ -24,6 +24,10 @@ from .text import TextVerificationSettings
 
 _REQUIRED = {"[Content_Types].xml", "_rels/.rels", "word/document.xml"}
 _FORBIDDEN_PREFIXES = ("word/activex/", "word/embeddings/")
+_HYPERLINK_RELATIONSHIP_TYPES = {
+    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
+    "http://purl.oclc.org/ooxml/officeDocument/relationships/hyperlink",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -171,7 +175,14 @@ def _validate_xml(payload: bytes, *, relationships: bool) -> None:
         target = element.attrib.get("Target", "")
         mode = element.attrib.get("TargetMode", "")
         parsed = urlsplit(target)
-        if mode.casefold() == "external" or parsed.scheme or parsed.netloc:
+        if mode.casefold() == "external":
+            if element.attrib.get("Type") in _HYPERLINK_RELATIONSHIP_TYPES:
+                # python-docx records external links but does not traverse or fetch
+                # them. The normalized artifact contains text only, so hyperlinks
+                # cannot become an external resource load in this import path.
+                continue
+            _reject("DOCX external resource relationships are forbidden")
+        if parsed.scheme or parsed.netloc:
             _reject("DOCX external relationships are forbidden")
 
 

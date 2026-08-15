@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import stat
+import xml.etree.ElementTree as ET
 from collections.abc import Callable
 from io import BytesIO
 from pathlib import Path
@@ -138,6 +139,30 @@ def _external(content: bytes) -> bytes:
     return _rewrite(content, replacements={"_rels/.rels": relationships})
 
 
+def _external_office_relationship(content: bytes, relationship_type: str) -> bytes:
+    name = "word/_rels/document.xml.rels"
+    with ZipFile(BytesIO(content)) as archive:
+        root = ET.fromstring(archive.read(name))
+    namespace = "http://schemas.openxmlformats.org/package/2006/relationships"
+    ET.SubElement(
+        root,
+        f"{{{namespace}}}Relationship",
+        {
+            "Id": "rIdExternal",
+            "Type": (
+                "http://schemas.openxmlformats.org/officeDocument/2006/relationships/"
+                f"{relationship_type}"
+            ),
+            "Target": "example.invalid",
+            "TargetMode": "External",
+        },
+    )
+    return _rewrite(
+        content,
+        replacements={name: ET.tostring(root, encoding="utf-8", xml_declaration=True)},
+    )
+
+
 def _symlink(content: bytes) -> bytes:
     entry = ZipInfo("word/media/link")
     entry.create_system = 3
@@ -177,6 +202,27 @@ async def test_docx_active_archive_and_external_content_fail_closed(
     tmp_path: Path, mutator: Callable[[bytes], bytes]
 ) -> None:
     content = mutator(_docx())
+
+    with pytest.raises(ImportVerificationRejected) as raised:
+        await _verify(tmp_path, content)
+
+    assert raised.value.code is ImportErrorCode.DOCUMENT_ARCHIVE_UNSAFE
+
+
+async def test_docx_external_hyperlinks_are_ignored_as_non_content(
+    tmp_path: Path,
+) -> None:
+    content = _external_office_relationship(_docx(), "hyperlink")
+
+    verified = await _verify(tmp_path, content)
+
+    assert "INT. ROOM - DAY" in verified.normalized_path.read_text(encoding="utf-8")
+
+
+async def test_docx_external_resource_relationships_still_fail_closed(
+    tmp_path: Path,
+) -> None:
+    content = _external_office_relationship(_docx(), "attachedTemplate")
 
     with pytest.raises(ImportVerificationRejected) as raised:
         await _verify(tmp_path, content)
