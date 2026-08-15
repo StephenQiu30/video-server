@@ -3,6 +3,7 @@
 import {
   ClockCounterClockwiseIcon,
   FileTextIcon,
+  HouseIcon,
   PulseIcon,
 } from '@phosphor-icons/react';
 import Image from 'next/image';
@@ -44,6 +45,7 @@ export function SiteHeader() {
   const [signingOut, setSigningOut] = useState(false);
   const pathname = usePathname() ?? '/';
   const router = useRouter();
+  const homeActive = pathname === '/';
   const historyActive = pathname.startsWith('/history');
   const documentsActive = pathname.startsWith('/documents');
   const providersActive = pathname.startsWith('/providers');
@@ -67,6 +69,19 @@ export function SiteHeader() {
           aria-label="主要导航"
           className="hidden items-center gap-2 lg:flex"
         >
+          <Button
+            asChild
+            className={cn(
+              'min-h-11 px-3.5 text-[15px] text-foreground',
+              homeActive && 'bg-muted',
+            )}
+            variant="ghost"
+          >
+            <Link aria-current={homeActive ? 'page' : undefined} href="/">
+              <HouseIcon aria-hidden className="size-5" />
+              <span>首页</span>
+            </Link>
+          </Button>
           <Button
             asChild
             className={cn(

@@ -27,7 +27,7 @@ describe('DownloadWorkspace', () => {
     renderWorkspace();
 
     expect(
-      screen.getByRole('heading', { name: /把视频，\s*带回本地。/u }),
+      screen.getByRole('heading', { name: /把素材，\s*带回本地。/u }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/^\d{2} \/ /u)).not.toBeInTheDocument();
     expect(screen.queryByText('Public media workflow')).not.toBeInTheDocument();
@@ -40,10 +40,25 @@ describe('DownloadWorkspace', () => {
       'aria-selected',
       'true',
     );
-    expect(screen.getByRole('tab', { name: '本地上传' })).toBeEnabled();
+    expect(screen.getByRole('tab', { name: '本地视频' })).toBeEnabled();
+    expect(screen.getByRole('tab', { name: '剧本文档' })).toBeEnabled();
     expect(
       screen.queryByRole('region', { name: '解析结果' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('offers screenplay import from the same home intake', async () => {
+    renderWorkspace();
+
+    fireEvent.mouseDown(screen.getByRole('tab', { name: '剧本文档' }), {
+      button: 0,
+      ctrlKey: false,
+    });
+    expect(screen.getByLabelText('选择剧本文档文件')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '上传并解析' }));
+    expect(
+      await screen.findByText('请先选择一份剧本文档。'),
+    ).toBeInTheDocument();
   });
 
   it('rejects an invalid address before making an API request', async () => {

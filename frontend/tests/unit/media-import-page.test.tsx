@@ -129,7 +129,7 @@ function renderWorkspace() {
 }
 
 function selectUploadTab() {
-  fireEvent.mouseDown(screen.getByRole('tab', { name: '本地上传' }), {
+  fireEvent.mouseDown(screen.getByRole('tab', { name: '本地视频' }), {
     button: 0,
     ctrlKey: false,
   });

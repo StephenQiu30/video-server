@@ -27,6 +27,7 @@ type ScreenplayUploadFormProps = {
   error: string | null;
   file: File | null;
   fileInvalid: boolean;
+  layout?: 'dialog' | 'workspace';
   onCancel: () => void;
   onFileSelect: (file: File | null) => void;
   onRightsChange: (accepted: boolean) => void;
@@ -43,6 +44,7 @@ export function ScreenplayUploadForm({
   error,
   file,
   fileInvalid,
+  layout = 'dialog',
   onCancel,
   onFileSelect,
   onRightsChange,
@@ -53,46 +55,69 @@ export function ScreenplayUploadForm({
   rightsInvalid,
 }: ScreenplayUploadFormProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const workspace = layout === 'workspace';
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     onStart();
   };
 
   return (
-    <form className="mt-2" onSubmit={submit}>
-      <Button
-        aria-describedby={error ? 'screenplay-upload-error' : undefined}
-        aria-invalid={fileInvalid || undefined}
-        className="h-20 w-full justify-start px-4 text-left font-normal"
-        disabled={busy}
-        onClick={() => inputRef.current?.click()}
-        type="button"
-        variant="secondary"
+    <form className={workspace ? undefined : 'mt-2'} onSubmit={submit}>
+      <div
+        className={
+          workspace
+            ? 'grid gap-2 sm:grid-cols-[minmax(0,1fr)_148px]'
+            : undefined
+        }
       >
-        <FileText aria-hidden className="size-5 text-muted-foreground" />
-        <span className="min-w-0">
-          <span className="block truncate text-[15px] font-medium">
-            {file?.name ?? '选择剧本文档'}
+        <Button
+          aria-describedby={error ? 'screenplay-upload-error' : undefined}
+          aria-invalid={fileInvalid || undefined}
+          className={
+            workspace
+              ? 'h-16 min-w-0 justify-start px-4 text-left font-normal sm:h-[68px]'
+              : 'h-20 w-full justify-start px-4 text-left font-normal'
+          }
+          disabled={busy}
+          onClick={() => inputRef.current?.click()}
+          type="button"
+          variant="secondary"
+        >
+          <FileText aria-hidden className="size-5 text-muted-foreground" />
+          <span className="min-w-0">
+            <span className="block truncate text-[15px] font-medium">
+              {file?.name ?? '选择剧本文档'}
+            </span>
+            <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+              {file
+                ? formatFileSize(file.size)
+                : 'DOCX、PDF、TXT、Markdown 或 Fountain'}
+            </span>
           </span>
-          <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-            {file
-              ? formatFileSize(file.size)
-              : 'DOCX、PDF、TXT、Markdown 或 Fountain'}
-          </span>
-        </span>
-      </Button>
-      <input
-        accept=".docx,.pdf,.txt,.md,.markdown,.fountain"
-        aria-label="选择剧本文档文件"
-        className="sr-only"
-        disabled={busy}
-        onChange={(event) => onFileSelect(event.target.files?.[0] ?? null)}
-        onClick={(event) => {
-          event.currentTarget.value = '';
-        }}
-        ref={inputRef}
-        type="file"
-      />
+        </Button>
+        <input
+          accept=".docx,.pdf,.txt,.md,.markdown,.fountain"
+          aria-label="选择剧本文档文件"
+          className="sr-only"
+          disabled={busy}
+          onChange={(event) => onFileSelect(event.target.files?.[0] ?? null)}
+          onClick={(event) => {
+            event.currentTarget.value = '';
+          }}
+          ref={inputRef}
+          type="file"
+        />
+        {workspace ? (
+          <Button
+            className="h-16 px-6 text-[15px] sm:h-[68px]"
+            disabled={busy}
+            type="submit"
+          >
+            {busy ? <Spinner aria-hidden /> : <UploadSimple aria-hidden />}
+            {busy ? '处理中…' : '上传并解析'}
+          </Button>
+        ) : null}
+      </div>
 
       <div className="mt-4 flex min-h-11 items-start gap-3">
         <Checkbox
@@ -152,10 +177,12 @@ export function ScreenplayUploadForm({
         </div>
       ) : null}
 
-      <Button className="mt-5 h-11 w-full" disabled={busy} type="submit">
-        {busy ? <Spinner aria-hidden /> : <UploadSimple aria-hidden />}
-        {busy ? '处理中…' : '上传并解析'}
-      </Button>
+      {!workspace ? (
+        <Button className="mt-5 h-11 w-full" disabled={busy} type="submit">
+          {busy ? <Spinner aria-hidden /> : <UploadSimple aria-hidden />}
+          {busy ? '处理中…' : '上传并解析'}
+        </Button>
+      ) : null}
     </form>
   );
 }

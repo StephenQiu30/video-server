@@ -78,6 +78,47 @@
 
 final result: passed
 
+## 2026-08-15 首页统一内容入口与导航顺序
+
+### 对照目标与证据
+
+- 用户视觉来源：`/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-20ae7f63-7f60-4d20-ab13-8ac1d3765059.png`，3372×1942 px，用于锁定当前浅色无边框 Header、Geist 层级、中性填充面与留白节奏。
+- 桌面实现捕获：`/Users/stephenqiu/.codex/visualizations/2026/08/14/01a00156-709b-7891-838c-39184921bf40/home-unified-entry-default.png`，1265×720 px；CSS 视口为 1280×720，捕获密度为 1，扣除 15px 稳定滚动条槽。
+- 移动实现捕获：`/Users/stephenqiu/.codex/visualizations/2026/08/14/01a00156-709b-7891-838c-39184921bf40/home-unified-entry-390x844.png`，375×844 px；CSS 视口为 390×844，捕获密度为 1，扣除 15px 稳定滚动条槽。
+- 对照状态：浅色、已登录、首页默认“链接解析”；另完成“剧本文档”激活态、390×844 移动 Sheet 和 1024×800 导航断点检查。
+- 同一比较输入已同时打开用户来源、桌面实现和移动实现。来源是 `/documents` 空态而本轮实现是首页，因此只对共享 Header、token、排版与密度做忠实对照，不对两个不同业务状态做伪精确位置比较。
+
+### 全局与聚焦对照
+
+- 信息架构：首页在同一 Hero 下展示“链接解析 / 本地视频 / 剧本文档”，没有增加卡片、第二层导航或新路由。
+- Header 聚焦对照：保留 80px 无边框 Header、32px 真实 Logo、17px 品牌文字与 15px 导航层级；桌面 DOM 中固定排列为“首页、下载记录、剧本文档、平台状态”，且只有首页带 `aria-current="page"`。
+- 1024px 聚焦测量：Header 为 `x=80 / width=849`，桌面导航为 `x=375 / width=554`，`scrollWidth=clientWidth=1009`，品牌与四个导航项不碰撞。
+- 390px 聚焦测量：`scrollWidth=clientWidth=375`，三个 Tabs 在一行内可读；Sheet 中前四项与桌面顺序完全一致，首页正确带 `aria-current="page"`。
+
+### 五个忠实度表面
+
+- 字体与排版：继续使用自托管 Geist 与中文系统回退；Hero 保留编辑式尺度、0.96 行高和紧凑字距，“把素材，带回本地。”在移动端自然换行。
+- 间距与布局节奏：延续 `.content-shell`、80/32/16px gutter、发丝分隔和无 Card 内容流；剧本文档的选择与主操作在首页与本地视频使用相同的 68px 双列/移动单列几何。
+- 颜色与 token：画布、前景、muted、主操作和 focus ring 全部继续消费现有语义 token，未新增一次性颜色、阴影或圆角。
+- 图像与资产：没有新增装饰图像；品牌仍使用真实 `logo.svg`，导航和内容模式使用现有 Phosphor 图标，没有文本符号或 CSS 伪图标。
+- 文案与内容：Hero 从只指向视频收敛为“素材”，说明文案明确列出公开视频链接、本地视频与剧本文档；安全提示同步覆盖三种来源。
+
+### 交互、可访问性与工程证据
+
+- 三个 Radix Tabs 可由 ArrowRight 按源顺序切换，实测从“链接解析”连续两次到达“剧本文档”。
+- 剧本模式显示文件选择、权利声明和“上传并解析”；空提交返回关联的“请先选择一份剧本文档” Alert。
+- 移动 Sheet 可打开、展示统一顺序并关闭；浏览器 console/error 为空。
+- React/Next.js 检查确认没有新的嵌套组件定义、不必要 effect、数据瀑布或非语义点击区；两个导航表面复用相同路由和当前页语义。
+- 前端门禁：lint/typecheck、format、39 个测试文件/143 项测试和 15 页 Next.js production build 全部通过；Docker 统一镜像重建并且 `/health/ready` 返回 200。
+
+### 发现与比较历史
+
+- 首轮同图对照没有发现可执行的 P0/P1/P2 差异。本轮只改变信息架构和文案，没有在对照后修改颜色、排版、布局 token 或资产，因此无后续 P0/P1/P2 修复迭代。
+- 来源图未提供首页三模式的具体排版；实现以仓库已验收的首页 Tabs、本地视频表单和 Vercel/Geist token 为当前真值，这是有意的产品约束，不属于视觉漂移。
+- 无遗留 P3 打磨项。
+
+final result: passed
+
 ## 2026-08-13 Frontend 与 `design.md` 一致性修复
 
 - 明确以仓库根 `design.md` 约束 Frontend，而不是反向改写规范：保留既有 Geist、语义 token、连续内容画布与 shadcn/ui + Radix 交互原语。

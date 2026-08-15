@@ -64,6 +64,14 @@ describe('AppShell', () => {
     expect(brandLink).toHaveClass('text-[17px]');
     expect(brandLink.querySelector('img')).toHaveAttribute('src', '/logo.svg');
     expect(brandLink.querySelector('img')).toHaveAttribute('width', '32');
+    const desktopNavigation = screen.getByRole('navigation', {
+      name: '主要导航',
+    });
+    const desktopHomeLink = within(desktopNavigation).getByRole('link', {
+      name: '首页',
+    });
+    expect(desktopHomeLink).toHaveAttribute('href', '/');
+    expect(desktopHomeLink).toHaveAttribute('aria-current', 'page');
     const historyLink = screen.getByRole('link', { name: /下载记录/ });
     expect(historyLink).toHaveAttribute('href', '/history');
     expect(historyLink).toHaveClass('min-h-11', 'text-[15px]');
@@ -85,10 +93,13 @@ describe('AppShell', () => {
       'w-[88px]',
       'shrink-0',
     );
-    expect(screen.getByRole('navigation', { name: '主要导航' })).toHaveClass(
-      'hidden',
-      'lg:flex',
-    );
+    expect(desktopNavigation).toHaveClass('hidden', 'lg:flex');
+    expect(
+      within(desktopNavigation)
+        .getAllByRole('link')
+        .slice(0, 4)
+        .map((link) => link.textContent),
+    ).toEqual(['首页', '下载记录', '剧本文档', '平台状态']);
     expect(screen.getByRole('link', { name: '跳到主要内容' })).toHaveAttribute(
       'href',
       '#main-content',
@@ -103,7 +114,7 @@ describe('AppShell', () => {
       name: '移动导航',
     });
     expect(
-      within(mobileNavigation).getByRole('link', { name: '视频解析' }),
+      within(mobileNavigation).getByRole('link', { name: '首页' }),
     ).toHaveAttribute('aria-current', 'page');
     expect(
       within(mobileNavigation).getByRole('link', { name: '下载记录' }),
@@ -160,7 +171,7 @@ describe('AppShell', () => {
       name: '移动导航',
     });
     const mobileParserLink = within(mobileNavigation).getByRole('link', {
-      name: '视频解析',
+      name: '首页',
     });
     expect(mobileParserLink).toHaveAttribute('href', '/');
     expect(mobileParserLink).not.toHaveAttribute('aria-current');

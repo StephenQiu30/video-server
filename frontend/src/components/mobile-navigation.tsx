@@ -4,7 +4,7 @@ import {
   ChartLineUpIcon,
   ClockCounterClockwiseIcon,
   FileTextIcon,
-  LinkSimpleIcon,
+  HouseIcon,
   ListIcon,
   PulseIcon,
   RobotIcon,
@@ -65,7 +65,7 @@ export function MobileNavigation({
         <SheetHeader>
           <SheetTitle>导航</SheetTitle>
           <SheetDescription>
-            访问视频解析、剧本文档、下载任务与账户设置。
+            从首页导入内容，或访问下载记录、剧本文档与平台状态。
           </SheetDescription>
         </SheetHeader>
         {user ? (
@@ -85,8 +85,8 @@ export function MobileNavigation({
         ) : null}
         <nav aria-label="移动导航" className="grid gap-1 px-3">
           <MobileLink active={pathname === '/'} href="/">
-            <LinkSimpleIcon aria-hidden />
-            视频解析
+            <HouseIcon aria-hidden />
+            首页
           </MobileLink>
           <MobileLink active={pathname.startsWith('/history')} href="/history">
             <ClockCounterClockwiseIcon aria-hidden />

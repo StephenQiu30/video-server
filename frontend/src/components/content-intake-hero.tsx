@@ -1,33 +1,35 @@
 'use client';
 
-import { LinkSimple, UploadSimple } from '@phosphor-icons/react';
+import { FileText, FileVideo, LinkSimple } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-export type IntakeMode = 'link' | 'upload';
+export type IntakeMode = 'link' | 'video' | 'screenplay';
 
 export function ContentIntakeHero({
   disabled,
   linkForm,
   mode,
   onModeChange,
-  uploadForm,
+  screenplayForm,
+  videoForm,
 }: {
   disabled: boolean;
   linkForm: ReactNode;
   mode: IntakeMode;
   onModeChange: (mode: IntakeMode) => void;
-  uploadForm: ReactNode;
+  screenplayForm: ReactNode;
+  videoForm: ReactNode;
 }) {
   return (
     <section className="pt-10 sm:pt-12 lg:pt-14">
       <h1 className="editorial-title sm:whitespace-nowrap">
-        把视频，
+        把素材，
         <span className="block sm:ml-[0.85em] sm:inline">带回本地。</span>
       </h1>
       <p className="mt-5 max-w-2xl text-[15px] leading-7 text-muted-foreground">
-        解析公开链接，或上传你有权处理的本地 MP4。完成后都可以继续拉片分析。
+        解析公开视频链接，或上传你有权处理的本地视频与剧本文档。
       </p>
 
       <Tabs
@@ -36,7 +38,7 @@ export function ContentIntakeHero({
         value={mode}
       >
         <TabsList
-          aria-label="选择视频来源"
+          aria-label="选择内容来源"
           className="h-11 gap-6"
           variant="line"
         >
@@ -44,16 +46,23 @@ export function ContentIntakeHero({
             <LinkSimple aria-hidden />
             链接解析
           </TabsTrigger>
-          <TabsTrigger disabled={disabled} value="upload">
-            <UploadSimple aria-hidden />
-            本地上传
+          <TabsTrigger disabled={disabled} value="video">
+            <FileVideo aria-hidden />
+            本地视频
+          </TabsTrigger>
+          <TabsTrigger disabled={disabled} value="screenplay">
+            <FileText aria-hidden />
+            剧本文档
           </TabsTrigger>
         </TabsList>
         <TabsContent className="pt-4" value="link">
           {linkForm}
         </TabsContent>
-        <TabsContent className="pt-4" value="upload">
-          {uploadForm}
+        <TabsContent className="pt-4" value="video">
+          {videoForm}
+        </TabsContent>
+        <TabsContent className="pt-4" value="screenplay">
+          {screenplayForm}
         </TabsContent>
       </Tabs>
     </section>

@@ -17,7 +17,9 @@ import InspectionWorkspace from '@/components/inspection-workspace';
 import { LinkDownloadForm } from '@/components/link-download-form';
 import { MediaUploadForm } from '@/components/media-upload-form';
 import { markNavigationPush } from '@/components/navigation-history';
+import { ScreenplayUploadForm } from '@/components/screenplay-upload-form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useDocumentImport } from '@/hooks/useDocumentImport';
 import { useMediaImport } from '@/hooks/useMediaImport';
 import { demoInspection } from '@/lib/demo-inspection';
 import {
@@ -47,7 +49,13 @@ export default function DownloadWorkspace() {
     markNavigationPush(target);
     window.location.assign(target);
   }, []);
+  const openDocument = useCallback((documentId: string) => {
+    const target = `/documents/detail?documentId=${encodeURIComponent(documentId)}`;
+    markNavigationPush(target);
+    window.location.assign(target);
+  }, []);
   const mediaImport = useMediaImport(openDownload);
+  const documentImport = useDocumentImport(openDocument);
 
   useEffect(() => {
     if (
@@ -108,7 +116,7 @@ export default function DownloadWorkspace() {
   return (
     <main className="content-shell pb-6">
       <ContentIntakeHero
-        disabled={busy !== null || mediaImport.busy}
+        disabled={busy !== null || mediaImport.busy || documentImport.busy}
         linkForm={
           <LinkDownloadForm
             busy={busy === 'inspect'}
@@ -127,7 +135,25 @@ export default function DownloadWorkspace() {
         }
         mode={mode}
         onModeChange={setMode}
-        uploadForm={
+        screenplayForm={
+          <ScreenplayUploadForm
+            busy={documentImport.busy}
+            canCancel={documentImport.canCancel}
+            error={documentImport.error}
+            file={documentImport.file}
+            fileInvalid={documentImport.fileInvalid}
+            layout="workspace"
+            onCancel={() => void documentImport.cancel()}
+            onFileSelect={documentImport.selectFile}
+            onRightsChange={documentImport.setRightsAccepted}
+            onStart={() => void documentImport.start()}
+            phase={documentImport.phase}
+            progress={documentImport.progress}
+            rightsAccepted={documentImport.rightsAccepted}
+            rightsInvalid={documentImport.rightsInvalid}
+          />
+        }
+        videoForm={
           <MediaUploadForm
             busy={mediaImport.busy}
             canCancel={mediaImport.canCancel}
@@ -144,7 +170,13 @@ export default function DownloadWorkspace() {
           />
         }
       />
-      {(mode === 'link' ? error : mediaImport.error) ? (
+      {(
+        mode === 'link'
+          ? error
+          : mode === 'video'
+            ? mediaImport.error
+            : null
+      ) ? (
         <Alert className="mt-8" variant="destructive">
           <AlertTitle>操作未完成</AlertTitle>
           <AlertDescription id="download-workspace-error">
@@ -152,7 +184,7 @@ export default function DownloadWorkspace() {
           </AlertDescription>
         </Alert>
       ) : null}
-      {mode === 'upload' && mediaImport.notice ? (
+      {mode === 'video' && mediaImport.notice ? (
         <Alert className="mt-8">
           <AlertTitle>上传已取消</AlertTitle>
           <AlertDescription>{mediaImport.notice}</AlertDescription>
@@ -170,7 +202,7 @@ export default function DownloadWorkspace() {
       <footer className="mt-10 flex flex-col gap-3 border-t py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <span className="flex items-center gap-2">
           <CheckCircle aria-hidden className="size-4 text-success" />
-          请仅提交你有权处理的公开链接或本地视频
+          请仅提交你有权处理的公开链接、本地视频或剧本文档
         </span>
         <span className="flex items-center gap-1.5">
           <ShieldCheck aria-hidden className="size-4" />
