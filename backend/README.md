@@ -28,7 +28,17 @@ app/
 
 Media Runner 通过 `app/runner/plugins/yt_dlp_plugins/` 加载随项目交付的可信站点提取器。MediaTrack 适配仅处理无需登录的公开审片视频和 API 明确授权的播放转码；抖音适配用数字视频 ID 构造固定公开分享页，快手适配把公开作品规范化到第一方移动分享页并限制短链重定向域。三者都继续经过受控代理、作品身份校验、大小/时长限制、重新 inspect、FFmpeg 和 ffprobe 校验，不使用 YouTube 运维 Cookie，不支持图集截断、账号内容、无水印承诺或原文件权限绕过。
 
-主流视频源通过 `app/runner/provider_registry.py` 与 `app/runner/provider_catalog.py` 采用版本化 Profile + Registry 统一匹配；`provider_urls.py` 只保留兼容入口，未知站点使用无凭据的 yt-dlp Generic extractor。新增平台应先确认 extractor，再补 Profile、能力状态、错误 marker 与 metadata + Range canary。YouTube 运维会话只在独立 Runner 中从只读 Secret 建立操作级 `0600` Cookie jar；匿名与其他 Provider 命令不携带 Cookie。平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 key 指向受控内部代理。
+主流视频源通过 `app/runner/provider_registry.py` 与 `app/runner/provider_catalog.py` 采用版本化 Profile + Registry 统一匹配；`provider_urls.py` 只保留兼容入口，未知站点使用无凭据的 yt-dlp Generic extractor。新增平台应先确认 extractor，再补 Profile、能力状态、错误 marker 与 metadata + Range canary。YouTube 与 TikTok 运维会话只在各自独立的 Docker Runner 中从只读 Secret 建立操作级 `0600` Cookie jar；匿名与其他 Provider 命令不携带 Cookie。平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 key 指向受控内部代理。
+
+macOS 浏览器 Cookie 由 Keychain 加密，Linux 容器不能通过挂载 Chrome Profile 直接复用。请在 `backend/` 使用一次性导出器按 Provider 生成最小 Cookie Secret，再由 Compose 只读挂载；无需 launchd 或宿主机常驻 Runner：
+
+```bash
+uv run python -m app.runner.browser_cookie_export \
+  --provider youtube --browser chrome \
+  --version browser-20260815-01 --output-root ../.provider-secrets
+```
+
+完整的 YouTube/TikTok 配置、TikTok 稳定 device id、启动、轮换与撤销流程见 `docs/operations/006-Docker浏览器会话运行手册.md`。
 
 视觉分析通过宿主机 `codex exec` 或 `claude -p` adapter 运行，统一实现 `VideoAnalyzer` 端口并返回唯一当前态结果契约。分析能力由 `app/analysis_skills/*/SKILL.md` 注册：稳定 Skill ID 不带版本后缀，任务创建时保存完整指令快照，用户可在前端编辑该 Skill 的默认提示词。应用只提供受限 FFmpeg/FFprobe 解码工具，由 AI 自主观察画面并生成连续分镜、逐镜头叙事作用与高光等级、高光、视觉资产和制作建议；不运行 ASR，也不管理模型 API Key。报告以 Markdown 为唯一内容源，可在前端安全预览、下载 `.md`，DOCX 由 `markdown-it-py` 解析同一 Markdown 后生成。当前本机真实视觉 E2E 只通过 Codex；Claude 启用前必须验证实际模型路由具备图片理解。Worker 必须由已经完成 CLI OAuth 登录的本机用户从 `backend/` 启动。
 
@@ -53,7 +63,7 @@ API `/health/live` 只证明进程存活；`/health/ready` 还会在有界超时
 
 ## 测试数据库
 
-后端不安装或兼容 SQLite。Repository 与集成测试默认连接 `postgresql+asyncpg://video:video@127.0.0.1:15432/video`，也可通过 `TEST_DATABASE_URL` 指定另一个 PostgreSQL 数据库。测试账号必须有创建和删除 schema 的权限；每个测试使用独立随机 schema，并在结束时级联清理。
+后端不安装或兼容 SQLite。Repository 与集成测试默认读取根 `.env` 的 `DATABASE_URL` 并连接宿主机现有的 PostgreSQL `5432`，不会为测试启动 Docker PostgreSQL；`TEST_DATABASE_URL` 可显式覆盖。没有根 `.env` 时才使用 `postgresql+asyncpg://video:video@127.0.0.1:5432/video`。测试账号必须有创建和删除 schema 的权限；每个测试使用独立随机 schema，并在结束时级联清理。
 
 ```bash
 uv sync --frozen --dev

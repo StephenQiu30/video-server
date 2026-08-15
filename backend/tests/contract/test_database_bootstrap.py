@@ -170,9 +170,11 @@ def test_compose_pins_shared_runner_workspace_to_the_mounted_container_path() ->
 
     for service in (
         "media-runner",
+        "worker-download",
         "youtube-operator-runner",
         "provider-operator-runner",
     ):
         service_config = _service_block(compose, service)
         assert "RUNNER_WORKSPACE_ROOT: /work" in service_config
         assert "RUNNER_WORKSPACE_ROOT:-" not in service_config
+        assert "runner_work:/work" in service_config

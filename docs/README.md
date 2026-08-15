@@ -8,7 +8,7 @@
 
 宿主机 Analysis Agent、项目内 Provider Profile 与跨平台常驻方案见 [AI 分析 Agent 与通用 Provider 接入调研](research/011-AI分析Agent与通用Provider接入调研.md)；浏览器本地文件上传、剧本文档解析、GitHub Skill 复用与中英文改写边界见 [本地内容上传与剧本 Skill 调研](research/012-本地内容上传与剧本Skill调研.md)。
 
-根目录 Compose 的使用与安全边界见 [运行手册](operations/001-root-compose运行手册.md)；YouTube 运维会话的账号基线、Secret 导入、启动、轮换、撤销和脱敏验收见 [YouTube 受控会话运行手册](operations/002-YouTube受控会话运行手册.md)；TikTok、Instagram、Facebook、X、Reddit 与 Vimeo 的逐 Provider 隔离部署见 [多平台受控会话运行手册](operations/003-多平台受控会话运行手册.md)；本地 CI 命令、GitHub 检查、运行边界和失败恢复见 [CI 与主分支门禁运行手册](operations/004-CI与主分支门禁运行手册.md)。
+根目录 Compose 的使用与安全边界见 [运行手册](operations/001-root-compose运行手册.md)；YouTube 运维会话的账号基线、Secret 导入、启动、轮换、撤销和脱敏验收见 [YouTube 受控会话运行手册](operations/002-YouTube受控会话运行手册.md)；TikTok、Instagram、Facebook、X、Reddit 与 Vimeo 的逐 Provider 隔离部署见 [多平台受控会话运行手册](operations/003-多平台受控会话运行手册.md)；本地 CI 命令、GitHub 检查、运行边界和失败恢复见 [CI 与主分支门禁运行手册](operations/004-CI与主分支门禁运行手册.md)；从已登录浏览器安全导出会话并启动 Docker Operator Runner 见 [Docker 浏览器会话运行手册](operations/006-Docker浏览器会话运行手册.md)。
 
 交付顺序固定为 `Design → PRD → Plan → Acceptance`：
 
@@ -37,3 +37,4 @@
 | 021 | 媒体封面持久化（已归档） | [Design](design/archive/021-媒体封面持久化设计.md) | [PRD](prd/archive/021-媒体封面持久化需求.md) | [Plan](plans/archive/021-媒体封面持久化计划.md) | [Acceptance](acceptance/archive/021-媒体封面持久化验收.md) |
 | 022 | 跨平台 AI 分析 Agent 与模型 Provider 配置 | [Design](design/022-跨平台AI分析Agent与模型Provider配置设计.md) | [PRD](prd/022-跨平台AI分析Agent与模型Provider配置需求.md) | [Plan](plans/022-跨平台AI分析Agent与模型Provider配置计划.md) | [Acceptance](acceptance/022-跨平台AI分析Agent与模型Provider配置验收.md) |
 | 023 | 本地内容上传与剧本分析 | [Design](design/023-本地内容上传与剧本分析设计.md) | [PRD](prd/023-本地内容上传与剧本分析需求.md) | [Plan](plans/023-本地内容上传与剧本分析计划.md) | [Acceptance](acceptance/023-本地内容上传与剧本分析验收.md) |
+| 024 | Docker 浏览器会话桥接（已归档） | [Design](design/archive/024-Docker浏览器会话桥接设计.md) | [PRD](prd/archive/024-Docker浏览器会话桥接需求.md) | [Plan](plans/archive/024-Docker浏览器会话桥接计划.md) | [Acceptance](acceptance/archive/024-Docker浏览器会话桥接验收.md) |

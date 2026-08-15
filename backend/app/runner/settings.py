@@ -41,6 +41,7 @@ class RunnerSettings(BaseSettings):
     runner_ytdlp_commit: str = YTDLP_ENGINE_COMMIT
     runner_youtube_pot_base_url: str | None = None
     runner_youtube_pot_provider_version: str = "bgutil-http-1.3.1"
+    runner_tiktok_device_id: str | None = None
     runner_ffmpeg_bin: str = "ffmpeg"
     runner_ffprobe_bin: str = "ffprobe"
 
@@ -157,6 +158,16 @@ class RunnerSettings(BaseSettings):
         if _REFERENCE.fullmatch(value) is None:
             raise ValueError("runner version reference is invalid")
         return value
+
+    @field_validator("runner_tiktok_device_id")
+    @classmethod
+    def validate_tiktok_device_id(cls, value: str | None) -> str | None:
+        if value is None or not value.strip():
+            return None
+        normalized = value.strip()
+        if re.fullmatch(r"7[0-9]{18}", normalized) is None:
+            raise ValueError("TikTok device id must contain 19 decimal digits")
+        return normalized
 
     @field_validator("runner_youtube_pot_base_url")
     @classmethod

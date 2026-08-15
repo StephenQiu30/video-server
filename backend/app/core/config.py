@@ -51,7 +51,7 @@ class Settings(BaseSettings):
         "development-metrics-access-key-change-me"
     )
 
-    database_url: str = "postgresql+asyncpg://video:video@localhost:15432/video"
+    database_url: str = "postgresql+asyncpg://video:video@localhost:5432/video"
     rabbitmq_url: str = "amqp://video-api:video-api-secret@localhost:5673/video"
     rabbitmq_vhost: str = Field(
         default="video",
@@ -235,9 +235,7 @@ class Settings(BaseSettings):
     analysis_workspace_poll_seconds: float = Field(default=0.25, ge=0.05, le=5)
     analysis_terminate_grace_seconds: float = Field(default=2, ge=0.1, le=30)
     analysis_claude_max_turns: int = Field(default=40, ge=1, le=100)
-    analysis_database_url: str = (
-        "postgresql+asyncpg://video:video@localhost:15432/video"
-    )
+    analysis_database_url: str = "postgresql+asyncpg://video:video@localhost:5432/video"
     analysis_rabbitmq_url: str = (
         "amqp://video-analysis:video-analysis-secret@localhost:5673/video"
     )

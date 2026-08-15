@@ -15,6 +15,7 @@ _RESTRICTED_AVAILABILITY = {
     "subscriber_only": "content_not_entitled",
     "needs_auth": "credential_required",
 }
+_OPERATOR_PROVIDER_POLICIES = frozenset({"youtube", "tiktok"})
 
 
 def enforce_media_rights(
@@ -27,20 +28,26 @@ def enforce_media_rights(
         raise RunnerFailure("drm_protected", status=422)
     if access_mode is not ProviderAccessMode.OPERATOR_MANAGED:
         return
-    if provider_key != "youtube":
+    if provider_key not in _OPERATOR_PROVIDER_POLICIES:
         raise RunnerFailure("provider_session_not_allowed", status=422)
     availability = payload.get("availability")
-    if not isinstance(availability, str):
+    if provider_key == "youtube" and not isinstance(availability, str):
         raise RunnerFailure("content_entitlement_unknown", status=422)
-    normalized = availability.casefold()
-    restricted = _RESTRICTED_AVAILABILITY.get(normalized)
-    if restricted is not None:
-        raise RunnerFailure(restricted, status=403)
-    if normalized not in _ALLOWED_YOUTUBE_AVAILABILITY:
-        raise RunnerFailure("content_entitlement_unknown", status=422)
+    if isinstance(availability, str):
+        normalized = availability.casefold()
+        restricted = _RESTRICTED_AVAILABILITY.get(normalized)
+        if restricted is not None:
+            raise RunnerFailure(restricted, status=403)
+        if (
+            provider_key == "youtube"
+            and normalized not in _ALLOWED_YOUTUBE_AVAILABILITY
+        ):
+            raise RunnerFailure("content_entitlement_unknown", status=422)
+    if payload.get("is_private") is True:
+        raise RunnerFailure("content_private", status=403)
     if any(
         payload.get(field) is True
-        for field in ("is_private", "is_premium", "is_member_only", "has_drm")
+        for field in ("is_premium", "is_member_only", "has_drm")
     ):
         raise RunnerFailure("content_not_entitled", status=403)
 

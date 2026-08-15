@@ -99,3 +99,13 @@ def test_rejects_provider_proxy_credentials(tmp_path: Path) -> None:
             },
             runner_workspace_root=tmp_path,
         )
+
+
+def test_rejects_invalid_tiktok_device_id(tmp_path: Path) -> None:
+    with pytest.raises(ValidationError, match="TikTok device id"):
+        RunnerSettings(
+            runner_hmac_secret=SECRET,
+            runner_egress_proxy="http://egress-proxy:3128",
+            runner_workspace_root=tmp_path,
+            runner_tiktok_device_id="shared-device",
+        )

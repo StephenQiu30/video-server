@@ -300,6 +300,11 @@ class MediaCommands:
         )
         if cookie_jar is not None:
             command += ("--cookies", str(cookie_jar))
+        if profile.key == "tiktok" and self._settings.runner_tiktok_device_id:
+            command += (
+                "--extractor-args",
+                f"tiktok:device_id={self._settings.runner_tiktok_device_id}",
+            )
         if profile.key == "youtube" and self._settings.runner_youtube_pot_base_url:
             command += (
                 "--extractor-args",

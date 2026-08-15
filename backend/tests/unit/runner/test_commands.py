@@ -177,7 +177,10 @@ async def test_tiktok_operator_command_uses_only_issued_cookie_jar(
     tmp_path: Path,
 ) -> None:
     supervisor = RecordingSupervisor()
-    commands = MediaCommands(settings(tmp_path), supervisor)
+    configured = settings(tmp_path).model_copy(
+        update={"runner_tiktok_device_id": "7250000000000000001"}
+    )
+    commands = MediaCommands(configured, supervisor)
     cookie_jar = tmp_path / "operation.cookies.txt"
 
     await commands.inspect(
@@ -187,6 +190,7 @@ async def test_tiktok_operator_command_uses_only_issued_cookie_jar(
     )
 
     assert supervisor.argv[supervisor.argv.index("--cookies") + 1] == str(cookie_jar)
+    assert "tiktok:device_id=7250000000000000001" in supervisor.argv
 
 
 @pytest.mark.asyncio
