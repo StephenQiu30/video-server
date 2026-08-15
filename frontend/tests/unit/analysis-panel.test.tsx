@@ -71,7 +71,8 @@ describe('AnalysisPanel', () => {
 
     render(<AnalysisPanel downloadId={job().id} />);
 
-    expect(await screen.findByText('第 1 次执行已完成')).toBeInTheDocument();
+    expect(await screen.findByText('已完成')).toBeInTheDocument();
+    expect(screen.getByText('第 1 次执行')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '导出 DOCX' })).toHaveAttribute(
       'href',
       `/api/analyses/${analysisJob('succeeded').id}/report.docx`,
@@ -134,7 +135,8 @@ describe('AnalysisPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: '开始 AI 分析' }));
     await screen.findByText('正在分析');
     emitTaskUpdate('analysis', analysisJob('running').id, 2);
-    expect(await screen.findByText('第 1 次执行已完成')).toBeInTheDocument();
+    expect(await screen.findByText('已完成')).toBeInTheDocument();
+    expect(screen.getByText('第 1 次执行')).toBeInTheDocument();
     expect(httpRequests()[2]?.data).toEqual({
       skill_id: 'director-breakdown',
       output_language: 'zh-CN',

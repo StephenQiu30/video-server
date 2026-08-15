@@ -42,6 +42,8 @@ describe('DownloadWorkspace', () => {
     );
     expect(screen.getByRole('tab', { name: '本地视频' })).toBeEnabled();
     expect(screen.getByRole('tab', { name: '剧本文档' })).toBeEnabled();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByText(/请仅提交你有权处理/u)).not.toBeInTheDocument();
     expect(
       screen.queryByRole('region', { name: '解析结果' }),
     ).not.toBeInTheDocument();
@@ -55,7 +57,7 @@ describe('DownloadWorkspace', () => {
       ctrlKey: false,
     });
     expect(screen.getByLabelText('选择剧本文档文件')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '上传并解析' }));
+    fireEvent.click(screen.getByRole('button', { name: '上传剧本' }));
     expect(
       await screen.findByText('请先选择一份剧本文档。'),
     ).toBeInTheDocument();

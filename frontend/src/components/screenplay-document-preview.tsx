@@ -23,7 +23,7 @@ export function ScreenplayDocumentPreview({
       </div>
       {document.status === 'ready' && document.preview ? (
         <>
-          <pre className="mt-4 max-h-[70vh] min-h-80 overflow-auto whitespace-pre-wrap break-words bg-surface px-5 py-6 font-mono text-[13px] leading-7 text-foreground sm:px-8 sm:py-8 sm:text-sm">
+          <pre className="mt-4 max-h-[70vh] min-h-80 overflow-auto whitespace-pre-wrap break-words bg-surface px-5 py-6 font-sans text-[13px] leading-7 text-foreground sm:px-8 sm:py-8 sm:text-sm">
             {document.preview}
           </pre>
           {document.preview_truncated ? (

@@ -53,7 +53,10 @@ export function ScreenplayCompletedAnalysis({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Badge variant="success">第 {job.run_no} 次执行已完成</Badge>
+          <Badge variant="success">已完成</Badge>
+          <span className="text-sm text-muted-foreground tabular-nums">
+            第 {job.run_no} 次执行
+          </span>
           {reportAvailable ? (
             <>
               <Button asChild variant="outline">

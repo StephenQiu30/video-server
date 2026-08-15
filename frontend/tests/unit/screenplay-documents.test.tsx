@@ -100,7 +100,7 @@ describe('screenplay documents', () => {
     expect(
       screen.getByRole('heading', { name: '上传剧本文档' }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '上传并解析' }));
+    fireEvent.click(screen.getByRole('button', { name: '上传剧本' }));
     expect(screen.getByText('请先选择一份剧本文档。')).toBeInTheDocument();
   });
 

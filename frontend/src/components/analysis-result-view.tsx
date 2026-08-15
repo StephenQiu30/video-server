@@ -177,7 +177,7 @@ function TimeButton({
 }) {
   return (
     <Button
-      className="mt-2 h-11 w-fit px-0 font-mono text-xs text-muted-foreground"
+      className="mt-2 h-11 w-fit px-0 text-xs text-muted-foreground tabular-nums"
       disabled={!onSelect}
       onClick={() => onSelect?.(milliseconds)}
       type="button"

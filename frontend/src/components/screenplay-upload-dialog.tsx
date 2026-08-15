@@ -68,12 +68,9 @@ export function ScreenplayUploadDialog() {
           fileInvalid={upload.fileInvalid}
           onCancel={() => void upload.cancel()}
           onFileSelect={upload.selectFile}
-          onRightsChange={upload.setRightsAccepted}
           onStart={() => void upload.start()}
           phase={upload.phase}
           progress={upload.progress}
-          rightsAccepted={upload.rightsAccepted}
-          rightsInvalid={upload.rightsInvalid}
         />
       </DialogContent>
     </Dialog>

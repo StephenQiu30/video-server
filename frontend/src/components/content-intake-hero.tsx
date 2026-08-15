@@ -29,7 +29,7 @@ export function ContentIntakeHero({
         <span className="block sm:ml-[0.85em] sm:inline">带回本地。</span>
       </h1>
       <p className="mt-5 max-w-2xl text-[15px] leading-7 text-muted-foreground">
-        解析公开视频链接，或上传你有权处理的本地视频与剧本文档。
+        解析公开视频链接，或上传本地视频与剧本文档。
       </p>
 
       <Tabs

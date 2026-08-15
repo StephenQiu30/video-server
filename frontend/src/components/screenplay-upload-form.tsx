@@ -5,8 +5,6 @@ import { type FormEvent, useRef } from 'react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
 import type { DocumentImportPhase } from '@/services/document-import';
@@ -30,12 +28,9 @@ type ScreenplayUploadFormProps = {
   layout?: 'dialog' | 'workspace';
   onCancel: () => void;
   onFileSelect: (file: File | null) => void;
-  onRightsChange: (accepted: boolean) => void;
   onStart: () => void;
   phase: DocumentImportPhase;
   progress: number;
-  rightsAccepted: boolean;
-  rightsInvalid: boolean;
 };
 
 export function ScreenplayUploadForm({
@@ -47,12 +42,9 @@ export function ScreenplayUploadForm({
   layout = 'dialog',
   onCancel,
   onFileSelect,
-  onRightsChange,
   onStart,
   phase,
   progress,
-  rightsAccepted,
-  rightsInvalid,
 }: ScreenplayUploadFormProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const workspace = layout === 'workspace';
@@ -114,26 +106,9 @@ export function ScreenplayUploadForm({
             type="submit"
           >
             {busy ? <Spinner aria-hidden /> : <UploadSimple aria-hidden />}
-            {busy ? '处理中…' : '上传并解析'}
+            {busy ? '处理中…' : '上传剧本'}
           </Button>
         ) : null}
-      </div>
-
-      <div className="mt-4 flex min-h-11 items-start gap-3">
-        <Checkbox
-          aria-describedby={error ? 'screenplay-upload-error' : undefined}
-          aria-invalid={rightsInvalid || undefined}
-          checked={rightsAccepted}
-          disabled={busy}
-          id="screenplay-upload-rights"
-          onCheckedChange={(checked) => onRightsChange(checked === true)}
-        />
-        <Label
-          className="-mt-1 min-h-11 cursor-pointer items-start py-1 text-sm leading-6 font-normal text-muted-foreground"
-          htmlFor="screenplay-upload-rights"
-        >
-          我确认有权上传并分析此剧本；系统会重算哈希、提取规范化文本，且不会修改原文件。
-        </Label>
       </div>
 
       {error ? (
@@ -180,7 +155,7 @@ export function ScreenplayUploadForm({
       {!workspace ? (
         <Button className="mt-5 h-11 w-full" disabled={busy} type="submit">
           {busy ? <Spinner aria-hidden /> : <UploadSimple aria-hidden />}
-          {busy ? '处理中…' : '上传并解析'}
+          {busy ? '处理中…' : '上传剧本'}
         </Button>
       ) : null}
     </form>

@@ -4,8 +4,6 @@ import { FileVideo, UploadSimple, X } from '@phosphor-icons/react';
 import { type FormEvent, useRef } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
 import type { MediaImportPhase } from '@/services/media-import';
@@ -27,12 +25,9 @@ export function MediaUploadForm({
   fileInvalid,
   onCancel,
   onFileSelect,
-  onRightsChange,
   onStart,
   phase,
   progress,
-  rightsAccepted,
-  rightsInvalid,
 }: {
   busy: boolean;
   canCancel: boolean;
@@ -40,12 +35,9 @@ export function MediaUploadForm({
   fileInvalid: boolean;
   onCancel: () => void;
   onFileSelect: (file: File | null) => void;
-  onRightsChange: (accepted: boolean) => void;
   onStart: () => void;
   phase: MediaImportPhase;
   progress: number;
-  rightsAccepted: boolean;
-  rightsInvalid: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -72,9 +64,7 @@ export function MediaUploadForm({
               {file?.name ?? '选择本地 MP4 视频'}
             </span>
             <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-              {file
-                ? formatFileSize(file.size)
-                : '文件将直接分片上传到隔离存储'}
+              {file ? formatFileSize(file.size) : 'MP4 · 单个文件'}
             </span>
           </span>
         </Button>
@@ -96,28 +86,8 @@ export function MediaUploadForm({
           type="submit"
         >
           {busy ? <Spinner aria-hidden /> : <UploadSimple aria-hidden />}
-          {busy ? '处理中…' : '上传并验证'}
+          {busy ? '处理中…' : '上传视频'}
         </Button>
-      </div>
-
-      <div className="mt-4 flex min-h-11 items-start gap-3">
-        <Checkbox
-          aria-describedby={
-            rightsInvalid ? 'download-workspace-error' : undefined
-          }
-          aria-invalid={rightsInvalid || undefined}
-          checked={rightsAccepted}
-          disabled={busy}
-          id="media-upload-rights"
-          onCheckedChange={(checked) => onRightsChange(checked === true)}
-        />
-        <Label
-          className="-mt-1 min-h-11 cursor-pointer items-start py-1 text-sm leading-6 font-normal text-muted-foreground"
-          htmlFor="media-upload-rights"
-        >
-          我确认有权上传并分析此视频；系统会重算哈希并验证
-          MP4，原始字节不会被转码或修复。
-        </Label>
       </div>
 
       {busy ? (

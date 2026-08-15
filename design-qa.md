@@ -221,10 +221,24 @@ final result: passed
 
 ## 2026-08-14 剧本文档列表与纯文本预览
 
-- 新增受保护的 `/documents` 列表和 `/documents/detail?documentId=...` 详情；视觉采用现有 Vercel/Geist 无卡片内容流，列表用于定位提取任务，详情以剧本式等宽文本区作为主校验表面，并在桌面/移动导航增加“剧本文档”。
+- 新增受保护的 `/documents` 列表和 `/documents/detail?documentId=...` 详情；视觉采用现有 Vercel/Geist 无卡片内容流，列表用于定位提取任务，详情以可读的纯文本区作为主校验表面，并在桌面/移动导航增加“剧本文档”。
 - `agent-browser` 在生产构建下覆盖 1280×900 与 390×844 的浅色/深色、长标题和长文件名、列表/详情/缺失 ID、刷新、跳过链接及移动 Sheet。所有页面满足 `scrollWidth = clientWidth`；Sheet 可由 Escape 关闭且焦点返回触发器，浏览器 console/error 为空。
 - 预览中的 HTML-like 内容保持转义文本，DOM 不生成 `script` 节点；ready、verifying、failed、empty、请求失败、预览截断和质量警告均有自动化或浏览器证据。
 - 巡检发现详情侧栏的 warning Alert 把图标、标题和正文作为三个网格项，390px 下标题被逐字挤压；现已将标题与正文组合为单一内容列，桌面与移动端均复验通过。证据位于忽略目录 `.codex-tmp/document-ui-qa/`。
 - 工程门禁：production audit 0；lint/typecheck、format、37 个测试文件/133 项测试和 Next.js production build 通过。
+
+final result: passed
+
+## 2026-08-15 直接上传与 design.md 一致性回归
+
+- source visual truth：`/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-2ab5eb65-a4a9-4200-a17e-19bb51b1436b.png`，1222×486 px，用户提供的本地视频入口裁切；同时以根 `design.md` 的“固定参数不做控件、辅助信息只在帮助任务时出现、Badge 只承载状态、正文/时长使用 Geist Sans”作为当前视觉判断基准。
+- implementation evidence：`/Users/stephenqiu/.codex/visualizations/2026/08/14/01a00156-709b-7891-838c-39184921bf40/home-local-upload-after-1280x900.png`，1265×900 px；浏览器 CSS 视口 1280×900、DPR 2，截图输出已按 CSS 像素归一。移动证据为 `home-screenplay-direct-upload-390x844.png`，375×844 px；CSS 视口 390×844、DPR 2。
+- state：已登录首页，本地视频 Tab 选中；移动补充状态为剧本文档 Tab 的空文件校验失败。参考图只覆盖入口局部，因此完整首页用于判断整体层级，入口局部用于同状态比较；没有把浏览器外壳或参考图缺失的 Hero 视为差异。
+- full-view comparison：编辑式 H1、短说明、线型 Tabs、中性文件选择面和近黑主按钮继续使用项目既有无卡片语言。原确认行和底部说明移除后，主任务在首屏直接收敛为“选择文件 → 上传”，未出现新的边框、Card、阴影、胶囊或装饰图标。
+- focused region comparison：参考图中的 P1 冗余权利勾选与长说明已移除；“上传并验证”改为面向用户任务的“上传视频”，文件说明由隔离存储实现细节收敛为“MP4 · 单个文件”。剧本文档入口同步采用“上传剧本”且无确认框，避免两个上传入口形成不同交互规则。
+- comparison history：首轮发现确认控件阻断直接上传、技术实现文案占据次级层级；修复后 DOM 只保留文件选择、隐藏原生 file input 和主上传按钮。1280px 实测 `scrollWidth = clientWidth = 1265`；390×844 实测 `scrollWidth = clientWidth = 375`。移动 Sheet 打开后导航顺序为“首页 → 下载记录 → 剧本文档 → 平台状态”，滚动锁期间 `scrollWidth = clientWidth = 390`。
+- interactions：本地视频与剧本文档 Tab 可切换；两种入口均不存在 checkbox；空文件提交返回对应可访问 Alert；移动 Sheet 可打开/关闭且保持稳定宽度。检查期间浏览器 console/error 列表为空。
+- design.md 同步修复：规范化剧本预览从等宽字体恢复为 Geist Sans；媒体时长从 `font-mono` 改为 `tabular-nums`；分析完成状态 Badge 只显示“已完成”，执行次数回到相邻辅助文字。上述变更未修改颜色、圆角、网格、断点或主题 token，继续继承既有浅色/深色语义色。
+- 工程门禁：lint/typecheck 通过；format check 221 个文件通过（仅既有损坏 symlink warning）；39 个测试文件、143 项测试通过；Next.js production build 与 15 个静态页面通过；Compose 统一镜像重建后 `/health/ready` 返回 200。
 
 final result: passed

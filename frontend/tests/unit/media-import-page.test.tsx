@@ -12,7 +12,7 @@ describe('DownloadWorkspace local video upload', () => {
     window.history.replaceState({}, '', '/');
   });
 
-  it('validates the selected MP4 and rights confirmation before upload', async () => {
+  it('validates the selected MP4 without an extra confirmation step', async () => {
     renderWorkspace();
     selectUploadTab();
     const fileInput = screen.getByLabelText('选择本地 MP4 视频文件');
@@ -31,20 +31,8 @@ describe('DownloadWorkspace local video upload', () => {
       'true',
     );
 
-    fireEvent.change(fileInput, {
-      target: {
-        files: [new File(['video'], 'sample.mp4', { type: 'video/mp4' })],
-      },
-    });
-    fireEvent.click(screen.getByRole('button', { name: '上传并验证' }));
-
-    expect(
-      await screen.findByText('请确认你有权上传并分析这个视频。'),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('checkbox')).toHaveAttribute(
-      'aria-invalid',
-      'true',
-    );
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '上传视频' })).toBeEnabled();
   });
 
   it('uploads a local MP4 and opens the shared download detail route', async () => {
@@ -69,8 +57,7 @@ describe('DownloadWorkspace local video upload', () => {
     fireEvent.change(screen.getByLabelText('选择本地 MP4 视频文件'), {
       target: { files: [file] },
     });
-    fireEvent.click(screen.getByRole('checkbox'));
-    fireEvent.click(screen.getByRole('button', { name: '上传并验证' }));
+    fireEvent.click(screen.getByRole('button', { name: '上传视频' }));
 
     await waitFor(() => expect(importRequest).toHaveBeenCalledOnce());
     expect(importRequest.mock.calls[0][0]).toBe(file);
@@ -105,8 +92,7 @@ describe('DownloadWorkspace local video upload', () => {
         files: [new File(['video'], 'sample.mp4', { type: 'video/mp4' })],
       },
     });
-    fireEvent.click(screen.getByRole('checkbox'));
-    fireEvent.click(screen.getByRole('button', { name: '上传并验证' }));
+    fireEvent.click(screen.getByRole('button', { name: '上传视频' }));
     fireEvent.click(await screen.findByRole('button', { name: '取消上传' }));
 
     await waitFor(() =>

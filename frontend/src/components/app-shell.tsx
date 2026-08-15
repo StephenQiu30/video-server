@@ -64,17 +64,12 @@ export function AuthPageFrame({
         <div className="grid flex-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)]">
           <section
             aria-label="产品介绍"
-            className="hidden flex-col justify-between py-20 pr-16 lg:flex xl:pr-24"
+            className="hidden flex-col justify-center py-20 pr-16 lg:flex xl:pr-24"
           >
-            <div>
-              <p className="max-w-[720px] text-[clamp(3.5rem,6vw,6rem)] font-medium leading-[0.94] tracking-[-0.065em]">
-                把视频，
-                <br />
-                带回本地。
-              </p>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              请仅提交你有权处理的公开链接
+            <p className="max-w-[720px] text-[clamp(3.5rem,6vw,6rem)] font-medium leading-[0.94] tracking-[-0.065em]">
+              把素材，
+              <br />
+              带回本地。
             </p>
           </section>
           <div className="flex items-center justify-center py-12 lg:justify-start lg:border-l lg:py-20 lg:pl-16 xl:pl-24">

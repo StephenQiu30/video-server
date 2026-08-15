@@ -19,19 +19,16 @@ type StableKey = { payload: string; value: string };
 
 export function useDocumentImport(onComplete: (documentId: string) => void) {
   const [file, setFile] = useState<File | null>(null);
-  const [rightsAccepted, setRightsAcceptedState] = useState(false);
   const [phase, setPhase] = useState<DocumentImportPhase>('idle');
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [invalidField, setInvalidField] = useState<'file' | 'rights' | null>(
-    null,
-  );
+  const [fileInvalid, setFileInvalid] = useState(false);
   const activeRef = useRef<ActiveRun | null>(null);
   const keyRef = useRef<StableKey | null>(null);
 
   const selectFile = useCallback((next: File | null) => {
     setFile(next);
-    setInvalidField(null);
+    setFileInvalid(false);
     keyRef.current = null;
     if (!next) {
       setError(null);
@@ -39,34 +36,19 @@ export function useDocumentImport(onComplete: (documentId: string) => void) {
     }
     const validationError = validateScreenplayDocument(next);
     setError(validationError);
-    if (validationError) setInvalidField('file');
-  }, []);
-
-  const setRightsAccepted = useCallback((accepted: boolean) => {
-    setRightsAcceptedState(accepted);
-    if (accepted) {
-      setInvalidField((current) => (current === 'rights' ? null : current));
-      setError((current) =>
-        current === '请确认你有权上传并分析这份剧本。' ? null : current,
-      );
-    }
+    if (validationError) setFileInvalid(true);
   }, []);
 
   const start = useCallback(async () => {
     if (!file) {
-      setInvalidField('file');
+      setFileInvalid(true);
       setError('请先选择一份剧本文档。');
       return;
     }
     const validationError = validateScreenplayDocument(file);
     if (validationError) {
-      setInvalidField('file');
+      setFileInvalid(true);
       setError(validationError);
-      return;
-    }
-    if (!rightsAccepted) {
-      setInvalidField('rights');
-      setError('请确认你有权上传并分析这份剧本。');
       return;
     }
 
@@ -76,7 +58,7 @@ export function useDocumentImport(onComplete: (documentId: string) => void) {
     };
     activeRef.current = run;
     setError(null);
-    setInvalidField(null);
+    setFileInvalid(false);
     try {
       const payload = `${file.name}:${file.size}:${file.lastModified}:${file.type}`;
       if (keyRef.current?.payload !== payload) {
@@ -109,7 +91,7 @@ export function useDocumentImport(onComplete: (documentId: string) => void) {
         setPhase('idle');
       }
     }
-  }, [file, onComplete, rightsAccepted]);
+  }, [file, onComplete]);
 
   const cancel = useCallback(async () => {
     const active = activeRef.current;
@@ -137,13 +119,10 @@ export function useDocumentImport(onComplete: (documentId: string) => void) {
     cancel,
     error,
     file,
-    fileInvalid: invalidField === 'file',
+    fileInvalid,
     phase,
     progress,
-    rightsAccepted,
-    rightsInvalid: invalidField === 'rights',
     selectFile,
-    setRightsAccepted,
     start,
   };
 }

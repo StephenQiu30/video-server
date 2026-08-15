@@ -1,6 +1,5 @@
 'use client';
 
-import { CheckCircle, ShieldCheck } from '@phosphor-icons/react';
 import {
   type RefObject,
   useCallback,
@@ -145,12 +144,9 @@ export default function DownloadWorkspace() {
             layout="workspace"
             onCancel={() => void documentImport.cancel()}
             onFileSelect={documentImport.selectFile}
-            onRightsChange={documentImport.setRightsAccepted}
             onStart={() => void documentImport.start()}
             phase={documentImport.phase}
             progress={documentImport.progress}
-            rightsAccepted={documentImport.rightsAccepted}
-            rightsInvalid={documentImport.rightsInvalid}
           />
         }
         videoForm={
@@ -161,12 +157,9 @@ export default function DownloadWorkspace() {
             fileInvalid={mediaImport.fileInvalid}
             onCancel={() => void mediaImport.cancel()}
             onFileSelect={mediaImport.selectFile}
-            onRightsChange={mediaImport.setRightsAccepted}
             onStart={() => void mediaImport.start()}
             phase={mediaImport.phase}
             progress={mediaImport.progress}
-            rightsAccepted={mediaImport.rightsAccepted}
-            rightsInvalid={mediaImport.rightsInvalid}
           />
         }
       />
@@ -199,16 +192,6 @@ export default function DownloadWorkspace() {
           selectedId={selectedId}
         />
       ) : null}
-      <footer className="mt-10 flex flex-col gap-3 border-t py-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-        <span className="flex items-center gap-2">
-          <CheckCircle aria-hidden className="size-4 text-success" />
-          请仅提交你有权处理的公开链接、本地视频或剧本文档
-        </span>
-        <span className="flex items-center gap-1.5">
-          <ShieldCheck aria-hidden className="size-4" />
-          请勿提交包含账号或访问凭据的链接
-        </span>
-      </footer>
     </main>
   );
 }

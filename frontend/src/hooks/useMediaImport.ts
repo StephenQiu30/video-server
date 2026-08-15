@@ -19,21 +19,18 @@ type StableKey = { payload: string; value: string };
 
 export function useMediaImport(onComplete: (downloadId: string) => void) {
   const [file, setFile] = useState<File | null>(null);
-  const [rightsAccepted, setRightsAcceptedState] = useState(false);
   const [phase, setPhase] = useState<MediaImportPhase>('idle');
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [invalidField, setInvalidField] = useState<'file' | 'rights' | null>(
-    null,
-  );
+  const [fileInvalid, setFileInvalid] = useState(false);
   const activeRef = useRef<ActiveRun | null>(null);
   const keyRef = useRef<StableKey | null>(null);
 
   const selectFile = useCallback((next: File | null) => {
     setFile(next);
     setNotice(null);
-    setInvalidField(null);
+    setFileInvalid(false);
     keyRef.current = null;
     if (!next) {
       setError(null);
@@ -41,34 +38,19 @@ export function useMediaImport(onComplete: (downloadId: string) => void) {
     }
     const validationError = validateLocalVideo(next);
     setError(validationError);
-    if (validationError) setInvalidField('file');
-  }, []);
-
-  const setRightsAccepted = useCallback((accepted: boolean) => {
-    setRightsAcceptedState(accepted);
-    if (accepted) {
-      setInvalidField((current) => (current === 'rights' ? null : current));
-      setError((current) =>
-        current === '请确认你有权上传并分析这个视频。' ? null : current,
-      );
-    }
+    if (validationError) setFileInvalid(true);
   }, []);
 
   const start = useCallback(async () => {
     if (!file) {
-      setInvalidField('file');
+      setFileInvalid(true);
       setError('请先选择一个 MP4 视频。');
       return;
     }
     const validationError = validateLocalVideo(file);
     if (validationError) {
-      setInvalidField('file');
+      setFileInvalid(true);
       setError(validationError);
-      return;
-    }
-    if (!rightsAccepted) {
-      setInvalidField('rights');
-      setError('请确认你有权上传并分析这个视频。');
       return;
     }
 
@@ -79,7 +61,7 @@ export function useMediaImport(onComplete: (downloadId: string) => void) {
     activeRef.current = run;
     setError(null);
     setNotice(null);
-    setInvalidField(null);
+    setFileInvalid(false);
     try {
       const payload = `${file.name}:${file.size}:${file.lastModified}:${file.type}`;
       if (keyRef.current?.payload !== payload) {
@@ -112,7 +94,7 @@ export function useMediaImport(onComplete: (downloadId: string) => void) {
         setPhase('idle');
       }
     }
-  }, [file, onComplete, rightsAccepted]);
+  }, [file, onComplete]);
 
   const cancel = useCallback(async () => {
     const active = activeRef.current;
@@ -139,14 +121,11 @@ export function useMediaImport(onComplete: (downloadId: string) => void) {
     cancel,
     error,
     file,
-    fileInvalid: invalidField === 'file',
+    fileInvalid,
     notice,
     phase,
     progress,
-    rightsAccepted,
-    rightsInvalid: invalidField === 'rights',
     selectFile,
-    setRightsAccepted,
     start,
   };
 }
