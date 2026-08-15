@@ -84,12 +84,8 @@ class Settings(BaseSettings):
 
     minio_endpoint: str = "localhost:19190"
     minio_public_endpoint: str = "127.0.0.1:19190"
-    minio_access_key: SecretStr = SecretStr("video-api-access")
-    minio_secret_key: SecretStr = SecretStr("video-api-secret-change-me")
-    minio_import_access_key: SecretStr = SecretStr("video-import-access")
-    minio_import_secret_key: SecretStr = SecretStr("video-import-secret-change-me")
-    minio_analysis_access_key: SecretStr = SecretStr("video-analysis-access")
-    minio_analysis_secret_key: SecretStr = SecretStr("video-analysis-secret-change-me")
+    minio_access_key: SecretStr = SecretStr("video-access")
+    minio_secret_key: SecretStr = SecretStr("video-secret-change-me")
     minio_internal_secure: bool = False
     minio_public_secure: bool = False
     minio_region: str = "us-east-1"
@@ -246,8 +242,6 @@ class Settings(BaseSettings):
         "amqp://video-analysis:video-analysis-secret@localhost:5673/video"
     )
     analysis_minio_endpoint: str = "localhost:19190"
-    analysis_minio_access_key: SecretStr | None = None
-    analysis_minio_secret_key: SecretStr | None = None
 
     @field_validator("database_url", "analysis_database_url")
     @classmethod
@@ -378,12 +372,6 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def reject_development_secrets_in_production(self) -> Settings:
-        if (self.analysis_minio_access_key is None) != (
-            self.analysis_minio_secret_key is None
-        ):
-            raise ValueError(
-                "analysis MinIO access and secret keys must be configured together"
-            )
         if self.analysis_worker_stale_seconds <= self.analysis_worker_heartbeat_seconds:
             raise ValueError(
                 "analysis worker stale window must exceed its heartbeat interval"
@@ -411,8 +399,6 @@ class Settings(BaseSettings):
                     self.metrics_access_key.get_secret_value(),
                     self.minio_access_key.get_secret_value(),
                     self.minio_secret_key.get_secret_value(),
-                    self.minio_import_access_key.get_secret_value(),
-                    self.minio_import_secret_key.get_secret_value(),
                 )
             )
         elif self.service_role == "download-worker":
@@ -426,22 +412,15 @@ class Settings(BaseSettings):
         elif self.service_role == "import-worker":
             secret_values.extend(
                 (
-                    self.minio_import_access_key.get_secret_value(),
-                    self.minio_import_secret_key.get_secret_value(),
+                    self.minio_access_key.get_secret_value(),
+                    self.minio_secret_key.get_secret_value(),
                 )
             )
         elif self.service_role == "analysis-worker":
-            if (
-                self.analysis_minio_access_key is None
-                or self.analysis_minio_secret_key is None
-            ):
-                raise ValueError(
-                    "production analysis worker requires dedicated MinIO credentials"
-                )
             secret_values.extend(
                 (
-                    self.analysis_minio_access_key.get_secret_value(),
-                    self.analysis_minio_secret_key.get_secret_value(),
+                    self.minio_access_key.get_secret_value(),
+                    self.minio_secret_key.get_secret_value(),
                 )
             )
         elif self.service_role == "report-worker":
@@ -487,11 +466,8 @@ class Settings(BaseSettings):
         return self
 
     def analysis_minio_credentials(self) -> tuple[SecretStr, SecretStr]:
-        """Prefer host overrides, then the Compose analysis-only credentials."""
-        return (
-            self.analysis_minio_access_key or self.minio_analysis_access_key,
-            self.analysis_minio_secret_key or self.minio_analysis_secret_key,
-        )
+        """Return the shared MinIO credentials used by every service."""
+        return self.minio_access_key, self.minio_secret_key
 
     def minio_public_origin(self) -> str:
         """Return the validated browser-visible object storage origin."""

@@ -133,15 +133,16 @@ def test_api_receives_feature_flags_and_uses_typed_import_defaults() -> None:
         assert variable not in api
 
 
-def test_import_worker_is_private_bounded_and_uses_dedicated_identities() -> None:
+def test_import_worker_is_private_bounded_and_uses_env_file_credentials() -> None:
     compose = COMPOSE_PATH.read_text(encoding="utf-8")
     worker = _service_block(compose, "worker-import")
 
     assert "SERVICE_ROLE: import-worker" in worker
     assert "RABBITMQ_IMPORT_USER" in worker
     assert "RABBITMQ_IMPORT_PASS" in worker
-    assert "MINIO_IMPORT_ACCESS_KEY" in worker
-    assert "MINIO_IMPORT_SECRET_KEY" in worker
+    assert "env_file:\n      - .env" in worker
+    assert "MINIO_IMPORT_ACCESS_KEY" not in worker
+    assert "MINIO_IMPORT_SECRET_KEY" not in worker
     assert "networks:\n      - app_net" in worker
     assert "runner_egress_net" not in worker
     assert "ports:" not in worker

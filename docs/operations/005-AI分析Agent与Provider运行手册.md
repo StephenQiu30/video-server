@@ -10,7 +10,7 @@ uv run python -m app.workers.analysis.agent_cli install
 uv run python -m app.workers.analysis.agent_cli status
 ```
 
-macOS/Linux 使用相同的 `uv run python ...` 命令。`doctor` 必须先成功；它会检查数据库中的活动 Provider、Codex/Claude CLI、FFmpeg、FFprobe、本机登录状态，以及分析专用 MinIO 身份对固定就绪探针的读取权限。
+macOS/Linux 使用相同的 `uv run python ...` 命令。`doctor` 必须先成功；它会检查数据库中的活动 Provider、Codex/Claude CLI、FFmpeg、FFprobe、本机登录状态，以及 `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` 对固定就绪探针的读取权限。
 
 默认 Profile 是“本机 Codex”。先在同一系统用户下执行 `codex login`，再运行 doctor。Claude 本机模式同理使用 `claude` 自己的登录命令。
 
@@ -47,7 +47,7 @@ python -m app.workers.analysis.agent_cli doctor
 
 依次确认：活动 Profile 存在、CLI 可执行、登录有效、FFmpeg/FFprobe 可执行、PostgreSQL/RabbitMQ/MinIO 地址对宿主机可达。
 
-若 `doctor` 返回 `analysis MinIO credentials cannot read the readiness probe`，当前 Compose 不会启动 `minio-init`；应由宿主机 MinIO 管理员确认 `video-artifacts` bucket、分析专用账号和 readiness probe 权限已预置。再确认 `.env` 或 `.env.prod` 中 `ANALYSIS_MINIO_ACCESS_KEY/SECRET_KEY` 与 `MINIO_ANALYSIS_ACCESS_KEY/SECRET_KEY` 指向同一组分析专用账号。不要回退到已经停用的旧 `video-app-access`。
+若 `doctor` 返回 `analysis MinIO credentials cannot read the readiness probe`，当前 Compose 不会启动 `minio-init`；应由宿主机 MinIO 管理员确认 `video-artifacts` bucket、统一 AK/SK 和 readiness probe 权限已预置，并检查 `.env` 或 `.env.prod` 中唯一的 `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY`。
 
 ### 本机登录不可用
 

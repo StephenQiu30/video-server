@@ -119,7 +119,9 @@ def agent_paths() -> AgentPaths:
 
 
 def _python_executable() -> Path:
-    executable = Path(sys.executable).resolve()
+    # Keep the virtual-environment entry point. Resolving this symlink selects
+    # uv's base interpreter and drops the project's installed dependencies.
+    executable = Path(sys.executable).absolute()
     if sys.platform == "win32":
         windowless = executable.with_name("pythonw.exe")
         if windowless.is_file():
@@ -139,6 +141,10 @@ def _launch_agent_plist(paths: AgentPaths) -> dict[str, object]:
         "RunAtLoad": True,
         "KeepAlive": True,
         "ThrottleInterval": 5,
+        "EnvironmentVariables": {
+            "HOME": str(Path.home()),
+            "PATH": os.environ.get("PATH", os.defpath),
+        },
         "StandardOutPath": str(paths.stdout),
         "StandardErrorPath": str(paths.stderr),
     }

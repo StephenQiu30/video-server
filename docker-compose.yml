@@ -17,8 +17,6 @@ services:
       VALKEY_URL: "redis://host.docker.internal:${HOST_VALKEY_PORT:-6379}/0"
       MINIO_ENDPOINT: "host.docker.internal:${HOST_MINIO_PORT:-19190}"
       MINIO_PUBLIC_ENDPOINT: "${MINIO_PUBLIC_ENDPOINT:-127.0.0.1:19190}"
-      MINIO_ACCESS_KEY: "${MINIO_API_ACCESS_KEY:-video-api-access}"
-      MINIO_SECRET_KEY: "${MINIO_API_SECRET_KEY:-video-api-secret-change-me}"
       MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
       MINIO_INTERNAL_SECURE: "false"
       RUNNER_BASE_URL: http://media-runner:19100
@@ -83,8 +81,6 @@ services:
       RABBITMQ_URL: "amqp://${RABBITMQ_DOWNLOAD_USER:-video-download}:${RABBITMQ_DOWNLOAD_PASS:-video-download-secret}@host.docker.internal:${HOST_RABBITMQ_PORT:-5672}/${RABBITMQ_VHOST:-video}"
       VALKEY_URL: "redis://host.docker.internal:${HOST_VALKEY_PORT:-6379}/0"
       MINIO_ENDPOINT: "host.docker.internal:${HOST_MINIO_PORT:-19190}"
-      MINIO_ACCESS_KEY: "${MINIO_DOWNLOAD_ACCESS_KEY:-video-download-access}"
-      MINIO_SECRET_KEY: "${MINIO_DOWNLOAD_SECRET_KEY:-video-download-secret-change-me}"
       MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
       MINIO_INTERNAL_SECURE: "false"
       RUNNER_BASE_URL: http://media-runner:19100
@@ -115,8 +111,6 @@ services:
       DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-video}:${POSTGRES_PASSWORD:-video}@host.docker.internal:${HOST_POSTGRES_PORT:-5432}/${POSTGRES_DB:-video}"
       RABBITMQ_URL: "amqp://${RABBITMQ_IMPORT_USER:-video-import}:${RABBITMQ_IMPORT_PASS:-video-import-secret}@host.docker.internal:${HOST_RABBITMQ_PORT:-5672}/${RABBITMQ_VHOST:-video}"
       MINIO_ENDPOINT: "host.docker.internal:${HOST_MINIO_PORT:-19190}"
-      MINIO_ACCESS_KEY: "${MINIO_IMPORT_ACCESS_KEY:-video-import-access}"
-      MINIO_SECRET_KEY: "${MINIO_IMPORT_SECRET_KEY:-video-import-secret-change-me}"
       MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
       MINIO_INTERNAL_SECURE: "false"
     extra_hosts:
@@ -139,8 +133,6 @@ services:
       DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-video}:${POSTGRES_PASSWORD:-video}@host.docker.internal:${HOST_POSTGRES_PORT:-5432}/${POSTGRES_DB:-video}"
       RABBITMQ_URL: "amqp://${RABBITMQ_REPORT_USER:-video-report}:${RABBITMQ_REPORT_PASS:-video-report-secret}@host.docker.internal:${HOST_RABBITMQ_PORT:-5672}/${RABBITMQ_VHOST:-video}"
       MINIO_ENDPOINT: "host.docker.internal:${HOST_MINIO_PORT:-19190}"
-      MINIO_ACCESS_KEY: "${MINIO_REPORT_ACCESS_KEY:-video-report-access}"
-      MINIO_SECRET_KEY: "${MINIO_REPORT_SECRET_KEY:-video-report-secret-change-me}"
       MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
       MINIO_INTERNAL_SECURE: "false"
     extra_hosts:
@@ -162,8 +154,6 @@ services:
       SERVICE_ROLE: provider-canary
       DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-video}:${POSTGRES_PASSWORD:-video}@host.docker.internal:${HOST_POSTGRES_PORT:-5432}/${POSTGRES_DB:-video}"
       MINIO_ENDPOINT: "host.docker.internal:${HOST_MINIO_PORT:-19190}"
-      MINIO_ACCESS_KEY: "${MINIO_CANARY_ACCESS_KEY:-video-canary-access}"
-      MINIO_SECRET_KEY: "${MINIO_CANARY_SECRET_KEY:-video-canary-secret-change-me}"
       MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
       MINIO_INTERNAL_SECURE: "false"
       RUNNER_BASE_URL: http://media-runner:19100

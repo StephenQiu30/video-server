@@ -161,14 +161,14 @@ def test_import_worker_runtime_limits_are_relationally_safe() -> None:
         )
 
 
-def test_production_import_worker_accepts_only_explicit_dedicated_credentials() -> None:
+def test_production_import_worker_accepts_shared_minio_credentials() -> None:
     settings = Settings(
         app_env="production",
         service_role="import-worker",
         database_url="postgresql+asyncpg://imports:StrongDb@postgres:5432/video",
         rabbitmq_url="amqp://imports:StrongMq@rabbitmq:5672/video",
-        minio_import_access_key=SecretStr("production-import-access"),
-        minio_import_secret_key=SecretStr("i" * 48),
+        minio_access_key=SecretStr("production-access"),
+        minio_secret_key=SecretStr("i" * 48),
         url_encryption_key=SecretStr("MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="),
         _env_file=None,
     )
@@ -282,8 +282,6 @@ def test_production_accepts_explicit_secrets() -> None:
         runner_hmac_secret=SecretStr("r" * 48),
         minio_access_key=SecretStr("production-access"),
         minio_secret_key=SecretStr("m" * 48),
-        minio_import_access_key=SecretStr("production-import-access"),
-        minio_import_secret_key=SecretStr("i" * 48),
         metrics_access_key=SecretStr("k" * 48),
         auth_bootstrap_admin_email="admin@example.com",
         analysis_enabled=True,
@@ -361,8 +359,8 @@ def test_production_rejects_default_url_key_for_every_role(role: str) -> None:
         kwargs["minio_secret_key"] = SecretStr("m" * 48)
     elif role == "analysis-worker":
         kwargs["analysis_rabbitmq_url"] = "amqp://app:mq-secret@rabbitmq:5672/"
-        kwargs["analysis_minio_access_key"] = SecretStr("production-access")
-        kwargs["analysis_minio_secret_key"] = SecretStr("m" * 48)
+        kwargs["minio_access_key"] = SecretStr("production-access")
+        kwargs["minio_secret_key"] = SecretStr("m" * 48)
     elif role == "report-worker":
         kwargs["minio_access_key"] = SecretStr("production-access")
         kwargs["minio_secret_key"] = SecretStr("m" * 48)
@@ -387,43 +385,15 @@ def test_analysis_cli_settings_use_host_services_without_api_keys() -> None:
     assert not any("openai" in name for name in type(settings).model_fields)
 
 
-def test_analysis_worker_uses_compose_role_credentials_when_not_overridden() -> None:
-    access = SecretStr("analysis-role-access")
-    secret = SecretStr("analysis-role-secret")
+def test_analysis_worker_uses_shared_minio_credentials() -> None:
+    access = SecretStr("shared-access")
+    secret = SecretStr("shared-secret")
     settings = Settings(
         app_env="test",
         service_role="analysis-worker",
-        minio_access_key=SecretStr("shared-access"),
-        minio_secret_key=SecretStr("shared-secret"),
-        minio_analysis_access_key=access,
-        minio_analysis_secret_key=secret,
+        minio_access_key=access,
+        minio_secret_key=secret,
         _env_file=None,
     )
 
     assert settings.analysis_minio_credentials() == (access, secret)
-
-
-def test_analysis_worker_prefers_dedicated_minio_credentials() -> None:
-    access = SecretStr("analysis-access")
-    secret = SecretStr("analysis-secret")
-    settings = Settings(
-        app_env="test",
-        service_role="analysis-worker",
-        minio_access_key=SecretStr("shared-access"),
-        minio_secret_key=SecretStr("shared-secret"),
-        analysis_minio_access_key=access,
-        analysis_minio_secret_key=secret,
-        _env_file=None,
-    )
-
-    assert settings.analysis_minio_credentials() == (access, secret)
-
-
-def test_analysis_worker_rejects_partial_minio_override() -> None:
-    with pytest.raises(ValidationError, match="must be configured together"):
-        Settings(
-            app_env="test",
-            service_role="analysis-worker",
-            analysis_minio_access_key=SecretStr("analysis-access"),
-            _env_file=None,
-        )

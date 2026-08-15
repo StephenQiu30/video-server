@@ -82,7 +82,7 @@ flowchart LR
 
 ## 6. Worker 生命周期
 
-1. Agent 启动，读取活动 Profile，执行 CLI/FFmpeg/认证预检，并用分析专用 MinIO 身份读取固定就绪探针。
+1. Agent 启动，读取活动 Profile，执行 CLI/FFmpeg/认证预检，并用统一的 `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` 读取固定就绪探针。
 2. 预检成功后才启动队列消费、恢复扫描与心跳。
 3. 每个任务读取活动 Profile；`key + updated_at` 未变化时复用 Adapter。
 4. Profile 变化时解密新凭据并重建 Adapter，下一任务生效。
@@ -115,7 +115,7 @@ python -m app.workers.analysis.agent_cli uninstall
 | 无 Agent 心跳 | 创建分析返回 `analysis_unavailable`；管理页显示 Agent 离线 |
 | 无活动 Profile | Agent 预检失败，由系统服务重启等待修复 |
 | 本机未登录 | `analysis_cli_not_authenticated`，不写心跳 |
-| 分析专用 MinIO 凭据漂移 | `doctor` 在创建任务前失败；不把旧的共享账号误判为可用 |
+| MinIO 统一凭据漂移 | `doctor` 在创建任务前失败，直接检查唯一 AK/SK 对就绪探针的读权限 |
 | API Key/Endpoint 错误 | 任务按既有失败分类收敛；密钥不出现在错误详情 |
 | 活动配置被删除 | API 返回 `ai_provider_active_delete` |
 | 公网 HTTP / 带凭据 URL | API 返回 `invalid_ai_provider_profile` |

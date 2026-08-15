@@ -99,14 +99,12 @@ class MinioObjectStorage:
         public: Minio | None = None,
         enable_public_signing: bool = True,
     ) -> MinioObjectStorage:
-        """Build storage with the quarantine-scoped import identity."""
+        """Build object storage for the import workflow."""
         return cls(
             settings,
             private=private,
             public=public,
             enable_public_signing=enable_public_signing,
-            access_key=settings.minio_import_access_key.get_secret_value(),
-            secret_key=settings.minio_import_secret_key.get_secret_value(),
         )
 
     @property

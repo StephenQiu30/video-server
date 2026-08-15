@@ -9,6 +9,7 @@ from app.workers.analysis.agent_platforms import (
     SERVICE_ID,
     AgentPaths,
     _launch_agent_plist,
+    _python_executable,
     _systemd_unit,
     _windows_task_xml,
 )
@@ -39,6 +40,20 @@ def test_launch_agent_starts_and_keeps_running() -> None:
     assert definition["RunAtLoad"] is True
     assert definition["KeepAlive"] is True
     assert definition["WorkingDirectory"]
+    assert definition["EnvironmentVariables"] == {
+        "HOME": str(Path.home()),
+        "PATH": agent_platforms.os.environ["PATH"],
+    }
+
+
+def test_agent_keeps_virtual_environment_python_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    venv_python = "/workspace/backend/.venv/bin/python3"
+    monkeypatch.setattr(agent_platforms.sys, "executable", venv_python)
+    monkeypatch.setattr(agent_platforms.sys, "platform", "darwin")
+
+    assert _python_executable() == Path(venv_python)
 
 
 def test_systemd_service_starts_and_restarts_after_failure() -> None:
