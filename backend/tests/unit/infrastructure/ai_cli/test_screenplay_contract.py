@@ -17,7 +17,6 @@ def test_screenplay_schema_is_strict_and_whitelists_scene_evidence() -> None:
     assert schema["additionalProperties"] is False
     properties = schema["properties"]
     scenes = properties["scenes"]
-    assert scenes["minItems"] == scenes["maxItems"] == 2
     assert scenes["items"]["properties"]["source_scene_id"]["enum"] == [
         "scene-1",
         "scene-2",
@@ -27,6 +26,16 @@ def test_screenplay_schema_is_strict_and_whitelists_scene_evidence() -> None:
         "scene-1",
         "scene-2",
     ]
+    serialized = json.dumps(schema)
+    for unsupported in (
+        '"uniqueItems"',
+        '"minItems"',
+        '"maxItems"',
+        '"minLength"',
+        '"maxLength"',
+        '"pattern"',
+    ):
+        assert unsupported not in serialized
 
 
 def test_screenplay_schema_stays_within_single_call_command_budget() -> None:

@@ -31,6 +31,14 @@ def test_claude_max_turns_maps_to_resource_limit() -> None:
     assert error.code == "analysis_resource_limit"
 
 
+def test_invalid_provider_json_schema_is_not_reported_as_resource_limit() -> None:
+    error = classify_cli_failure(
+        b'{"code":"invalid_json_schema","message":"unsupported keyword"}'
+    )
+
+    assert error.code == "analysis_cli_unsupported"
+
+
 def test_codex_banner_does_not_hide_transport_failure() -> None:
     error = classify_cli_failure(
         b"sandbox: custom permissions\nerror sending request for url"

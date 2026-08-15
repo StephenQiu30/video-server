@@ -57,6 +57,8 @@ def build_screenplay_components(
         resolver=resolver,
         clock=clock,
         max_single_call_characters=settings.analysis_screenplay_single_call_characters,
+        max_chunks=settings.analysis_max_screenplay_rewrite_chunks,
+        max_synthesis_bytes=settings.analysis_max_stdout_bytes,
     )
     rewrite = ScreenplayRewriteExecutor(
         repository=repository,

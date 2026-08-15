@@ -7,6 +7,7 @@ from pathlib import Path
 
 from app.application.analysis_execution import (
     ScreenplayAnalysisRequest,
+    ScreenplayAnalysisSynthesisRequest,
     ScreenplayGlossaryRequest,
     ScreenplayRewriteChunkRequest,
     VideoAnalysisRequest,
@@ -70,6 +71,24 @@ def screenplay_glossary_request(tmp_path: Path) -> ScreenplayGlossaryRequest:
     )
 
 
+def screenplay_synthesis_request(
+    tmp_path: Path,
+) -> ScreenplayAnalysisSynthesisRequest:
+    source = screenplay_request(tmp_path)
+    return ScreenplayAnalysisSynthesisRequest(
+        screenplay=source.screenplay,
+        workspace=source.workspace,
+        chunk_results_json=json.dumps(
+            {"chunks": [valid_screenplay_mapping()]}, ensure_ascii=False
+        ),
+        source_scene_ids=source.source_scene_ids,
+        source_language=source.source_language,
+        output_language=source.output_language,
+        skill_id=source.skill_id,
+        skill_instructions=source.skill_instructions,
+    )
+
+
 def screenplay_rewrite_chunk_request(tmp_path: Path) -> ScreenplayRewriteChunkRequest:
     source = screenplay_request(tmp_path)
     text = "林舟发现结局素材消失了。\n"
@@ -99,9 +118,20 @@ def screenplay_rewrite_chunk_request(tmp_path: Path) -> ScreenplayRewriteChunkRe
 
 
 class FakeSupervisor:
-    def __init__(self, *, provider: str, payload: object | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        provider: str,
+        payload: object | None = None,
+        returncode: int = 0,
+        stderr: bytes = b"",
+        stderr_truncated: bool = False,
+    ) -> None:
         self.provider = provider
         self.payload = payload if payload is not None else valid_mapping()
+        self.returncode = returncode
+        self.stderr = stderr
+        self.stderr_truncated = stderr_truncated
         self.argv: tuple[str, ...] = ()
         self.environment: dict[str, str] = {}
         self.input_bytes: bytes | None = None
@@ -124,7 +154,13 @@ class FakeSupervisor:
             stdout = b""
         else:
             stdout = json.dumps({"structured_output": self.payload}).encode()
-        return ProcessResult(0, stdout, b"", False, False)
+        return ProcessResult(
+            self.returncode,
+            stdout,
+            self.stderr,
+            False,
+            self.stderr_truncated,
+        )
 
 
 def screenplay_supervisor() -> FakeSupervisor:

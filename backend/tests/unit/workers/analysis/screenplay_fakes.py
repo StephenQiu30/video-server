@@ -13,6 +13,7 @@ from app.application.analysis_execution import (
     LocalScreenplayArtifact,
     ScreenplayAnalysisExecutor,
     ScreenplayAnalysisRequest,
+    ScreenplayAnalysisSynthesisRequest,
     ScreenplayAnalyzerSelection,
     ScreenplaySceneSource,
     VideoAnalysisRequest,
@@ -39,8 +40,9 @@ class ScreenplayRepository(FakeRepository):
 
 
 class FakeScreenplayLoader:
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, text: str = SCREENPLAY_TEXT) -> None:
         self.root = root
+        self.text = text
         self.calls = 0
         self.cleaned = False
 
@@ -51,7 +53,7 @@ class FakeScreenplayLoader:
         self.calls += 1
         screenplay = self.root / "input" / "screenplay.md"
         screenplay.parent.mkdir(parents=True)
-        screenplay.write_text(SCREENPLAY_TEXT, encoding="utf-8")
+        screenplay.write_text(self.text, encoding="utf-8")
         return LocalScreenplayArtifact(self.root, screenplay)
 
     async def cleanup(self, local: LocalScreenplayArtifact) -> None:
@@ -63,10 +65,18 @@ class FakeScreenplayAnalyzer:
     def __init__(self, output: object) -> None:
         self.output = output
         self.requests: list[ScreenplayAnalysisRequest] = []
+        self.synthesis_requests: list[ScreenplayAnalysisSynthesisRequest] = []
 
     async def analyze_screenplay(self, request: ScreenplayAnalysisRequest) -> object:
         self.requests.append(request)
         return self.output
+
+    async def synthesize_screenplay_analysis(
+        self, request: ScreenplayAnalysisSynthesisRequest
+    ) -> object:
+        self.synthesis_requests.append(request)
+        assert isinstance(self.output, dict)
+        return {key: value for key, value in self.output.items() if key != "scenes"}
 
 
 class FakeScreenplayResolver:
@@ -127,6 +137,7 @@ def build_screenplay_execution(
     analyzer: FakeScreenplayAnalyzer,
     *,
     maximum: int = 120_000,
+    max_chunks: int = 128,
 ) -> AnalysisExecution:
     screenplay = ScreenplayAnalysisExecutor(
         repository=repository,
@@ -134,6 +145,7 @@ def build_screenplay_execution(
         resolver=FakeScreenplayResolver(analyzer),
         clock=lambda: NOW,
         max_single_call_characters=maximum,
+        max_chunks=max_chunks,
     )
     return AnalysisExecution(
         repository=repository,

@@ -20,6 +20,10 @@ class CompleteAnalyzer(FakeRewriteAnalyzer):
         del request
         return {}
 
+    async def synthesize_screenplay_analysis(self, request: object) -> object:
+        del request
+        return {}
+
     async def analyze(self, request: object) -> object:
         del request
         return {}

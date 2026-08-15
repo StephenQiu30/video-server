@@ -35,6 +35,10 @@ class NoToolScreenplayAnalyzer(VideoOnlyAnalyzer):
         del request
         return {}
 
+    async def synthesize_screenplay_analysis(self, request: object) -> object:
+        del request
+        return {}
+
     async def build_screenplay_glossary(self, request: object) -> object:
         del request
         return {}

@@ -19,6 +19,7 @@ from tests.unit.infrastructure.ai_cli.helpers import (
     screenplay_request,
     screenplay_rewrite_chunk_request,
     screenplay_supervisor,
+    screenplay_synthesis_request,
 )
 from tests.unit.workers.analysis.fixtures import (
     valid_mapping,
@@ -132,6 +133,72 @@ async def test_codex_screenplay_is_structured_and_has_no_tools(tmp_path: Path) -
     )
     assert all(screenplay.screenplay_text not in value for value in supervisor.argv)
     assert _has_no_api_keys(supervisor.environment)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("provider", ["codex", "claude"])
+async def test_screenplay_synthesis_uses_validated_chunk_results_without_tools(
+    tmp_path: Path, provider: str
+) -> None:
+    payload = valid_screenplay_mapping()
+    payload.pop("scenes")
+    supervisor = FakeSupervisor(provider=provider, payload=payload)
+    analyzer_type = (
+        CodexCliVideoAnalyzer if provider == "codex" else ClaudeCliVideoAnalyzer
+    )
+    analyzer = analyzer_type(config(), supervisor=supervisor)  # type: ignore[arg-type]
+    request_value = screenplay_synthesis_request(tmp_path)
+
+    result = await analyzer.synthesize_screenplay_analysis(request_value)
+
+    assert result == payload
+    assert supervisor.input_bytes is not None
+    assert request_value.chunk_results_json.encode() in supervisor.input_bytes
+    assert all(
+        request_value.chunk_results_json not in value for value in supervisor.argv
+    )
+    assert not any("video_observer" in item for item in supervisor.argv)
+    assert _has_no_api_keys(supervisor.environment)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("provider", ["codex", "claude"])
+async def test_screenplay_accepts_valid_result_when_diagnostic_stderr_is_truncated(
+    tmp_path: Path, provider: str
+) -> None:
+    payload = valid_screenplay_mapping()
+    supervisor = FakeSupervisor(
+        provider=provider,
+        payload=payload,
+        stderr=b"bounded diagnostic prefix",
+        stderr_truncated=True,
+    )
+    analyzer_type = (
+        CodexCliVideoAnalyzer if provider == "codex" else ClaudeCliVideoAnalyzer
+    )
+    analyzer = analyzer_type(config(), supervisor=supervisor)  # type: ignore[arg-type]
+
+    result = await analyzer.analyze_screenplay(screenplay_request(tmp_path))
+
+    assert result == payload
+
+
+@pytest.mark.asyncio
+async def test_codex_classifies_failed_schema_before_stderr_truncation(
+    tmp_path: Path,
+) -> None:
+    supervisor = FakeSupervisor(
+        provider="codex",
+        returncode=1,
+        stderr=b'{"code":"invalid_json_schema"}',
+        stderr_truncated=True,
+    )
+    analyzer = CodexCliVideoAnalyzer(config(), supervisor=supervisor)  # type: ignore[arg-type]
+
+    with pytest.raises(AnalysisCliError) as error:
+        await analyzer.analyze_screenplay(screenplay_request(tmp_path))
+
+    assert error.value.code == "analysis_cli_unsupported"
 
 
 @pytest.mark.asyncio

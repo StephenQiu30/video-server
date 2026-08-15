@@ -1,9 +1,12 @@
+import hashlib
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 from app.application.analysis_execution import (
     AnalysisDisposition,
+    ScreenplayAnalysisRequest,
+    ScreenplayAnalysisSynthesisRequest,
     ScreenplaySceneSource,
 )
 from app.domain.analysis import ScreenplayAnalysisResult
@@ -11,7 +14,6 @@ from app.domain.analysis import ScreenplayAnalysisResult
 from .fakes import FakeLoader
 from .fixtures import valid_screenplay_mapping
 from .screenplay_fakes import (
-    SCREENPLAY_TEXT,
     FakeScreenplayAnalyzer,
     FakeScreenplayLoader,
     ScreenplayRepository,
@@ -35,6 +37,7 @@ async def test_screenplay_analysis_publishes_grounded_result(tmp_path: Path) -> 
     assert isinstance(repository.published[0], ScreenplayAnalysisResult)
     assert [stage for stage, _ in repository.heartbeats] == [
         "preparing",
+        "analyzing",
         "analyzing",
         "validating",
     ]
@@ -62,48 +65,79 @@ async def test_screenplay_rewrite_stays_unsupported_without_model_call(
 
 
 @pytest.mark.asyncio
-async def test_screenplay_over_single_call_limit_fails_before_download(
+async def test_screenplay_over_single_call_limit_uses_chunks_and_synthesis(
     tmp_path: Path,
 ) -> None:
-    job, source = screenplay_job_and_source(character_count=len(SCREENPLAY_TEXT) + 1)
+    text = "INT. A - DAY\n\n" + ("A" * 40) + "\nINT. B - NIGHT\n\n" + ("B" * 40) + "\n"
+    second_start = text.index("INT. B")
+    job, source = screenplay_job_and_source(character_count=len(text))
+    source = replace(
+        source,
+        sha256=hashlib.sha256(text.encode()).hexdigest(),
+        size_bytes=len(text.encode()),
+        scenes=(
+            ScreenplaySceneSource("scene-1", 0, second_start),
+            ScreenplaySceneSource("scene-2", second_start, len(text)),
+        ),
+    )
     repository = ScreenplayRepository(job, source)
-    loader = FakeScreenplayLoader(tmp_path / "screenplay")
+    loader = FakeScreenplayLoader(tmp_path / "screenplay", text)
+    analyzer = ChunkedScreenplayAnalyzer()
 
-    await build_screenplay_execution(
+    disposition = await build_screenplay_execution(
         repository,
         FakeLoader(tmp_path / "video"),
         loader,
-        FakeScreenplayAnalyzer(valid_screenplay_mapping()),
-        maximum=len(SCREENPLAY_TEXT),
+        analyzer,
+        maximum=max(second_start, len(text) - second_start),
     ).execute(job.id, job.run_id, job.run_no, job.version)
 
-    assert repository.failures[0]["error_code"] == "analysis_resource_limit"
-    assert repository.failures[0]["retryable"] is False
-    assert loader.calls == 0
+    assert disposition is AnalysisDisposition.ACK
+    result = repository.published[0]
+    assert isinstance(result, ScreenplayAnalysisResult)
+    assert tuple(item.source_scene_id for item in result.scenes) == (
+        "scene-1",
+        "scene-2",
+    )
+    assert [request.source_scene_ids for request in analyzer.requests] == [
+        ("scene-1",),
+        ("scene-2",),
+    ]
+    assert len(analyzer.synthesis_requests) == 1
+    assert loader.cleaned is True
 
 
 @pytest.mark.asyncio
-async def test_screenplay_scene_limit_fails_before_download(tmp_path: Path) -> None:
-    job, source = screenplay_job_and_source(character_count=121)
+async def test_screenplay_scene_limit_uses_multiple_chunks(tmp_path: Path) -> None:
+    text = ("x" * 121) + "\n"
+    job, source = screenplay_job_and_source(character_count=len(text))
     source = replace(
         source,
+        sha256=hashlib.sha256(text.encode()).hexdigest(),
+        size_bytes=len(text.encode()),
         scenes=tuple(
-            ScreenplaySceneSource(f"scene-{index:04d}-{'a' * 12}", index, index + 1)
+            ScreenplaySceneSource(
+                f"scene-{index + 1}",
+                index,
+                len(text) if index == 120 else index + 1,
+            )
             for index in range(121)
         ),
     )
     repository = ScreenplayRepository(job, source)
-    loader = FakeScreenplayLoader(tmp_path / "screenplay")
+    loader = FakeScreenplayLoader(tmp_path / "screenplay", text)
+    analyzer = ChunkedScreenplayAnalyzer()
 
-    await build_screenplay_execution(
+    disposition = await build_screenplay_execution(
         repository,
         FakeLoader(tmp_path / "video"),
         loader,
-        FakeScreenplayAnalyzer(valid_screenplay_mapping()),
+        analyzer,
     ).execute(job.id, job.run_id, job.run_no, job.version)
 
-    assert repository.failures[0]["error_code"] == "analysis_resource_limit"
-    assert loader.calls == 0
+    assert disposition is AnalysisDisposition.ACK
+    assert [len(request.source_scene_ids) for request in analyzer.requests] == [120, 1]
+    assert len(analyzer.synthesis_requests) == 1
 
 
 @pytest.mark.asyncio
@@ -126,3 +160,50 @@ async def test_screenplay_unknown_evidence_retries_as_invalid_output(
 
     assert repository.failures[0]["error_code"] == "invalid_model_output"
     assert repository.failures[0]["retryable"] is True
+
+
+class ChunkedScreenplayAnalyzer(FakeScreenplayAnalyzer):
+    def __init__(self) -> None:
+        super().__init__({})
+
+    async def analyze_screenplay(self, request: ScreenplayAnalysisRequest) -> object:
+        self.requests.append(request)
+        return _mapping(request.source_scene_ids)
+
+    async def synthesize_screenplay_analysis(
+        self, request: ScreenplayAnalysisSynthesisRequest
+    ) -> object:
+        self.synthesis_requests.append(request)
+        payload = _mapping(request.source_scene_ids)
+        payload.pop("scenes")
+        return payload
+
+
+def _mapping(scene_ids: tuple[str, ...]) -> dict[str, object]:
+    payload = valid_screenplay_mapping()
+    reference = scene_ids[0]
+    for key in ("strengths", "priority_revisions"):
+        items = payload[key]
+        assert isinstance(items, list) and isinstance(items[0], dict)
+        items[0]["evidence_scene_ids"] = [reference]
+    structure = payload["structure"]
+    assert isinstance(structure, dict)
+    acts = structure["acts"]
+    assert isinstance(acts, list) and isinstance(acts[0], dict)
+    acts[0]["evidence_scene_ids"] = [reference]
+    characters = payload["characters"]
+    assert isinstance(characters, list) and isinstance(characters[0], dict)
+    characters[0]["evidence_scene_ids"] = [reference]
+    payload["scenes"] = [
+        {
+            "id": f"analysis-{scene_id}",
+            "source_scene_id": scene_id,
+            "purpose": "推进故事",
+            "conflict": "目标受阻",
+            "turn": "局势变化",
+            "pacing": "紧凑",
+            "findings": ["场景目标明确"],
+        }
+        for scene_id in scene_ids
+    ]
+    return payload

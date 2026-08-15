@@ -4,6 +4,7 @@ from pathlib import Path
 
 from app.application.analysis_execution import (
     ScreenplayAnalysisRequest,
+    ScreenplayAnalysisSynthesisRequest,
     ScreenplayGlossaryRequest,
     ScreenplayRewriteChunkRequest,
     VideoAnalysisRequest,
@@ -69,10 +70,10 @@ class CodexCliVideoAnalyzer:
             raise AnalysisCliError("analysis_cli_timeout") from exc
         except OSError as exc:
             raise AnalysisCliError("analysis_cli_unavailable") from exc
-        if result.stdout_truncated or result.stderr_truncated:
-            raise AnalysisCliError("analysis_resource_limit")
         if result.returncode != 0:
             raise classify_cli_failure(result.stderr)
+        if result.stdout_truncated:
+            raise AnalysisCliError("analysis_resource_limit")
         return read_result(
             files.result,
             root=files.root,
@@ -81,6 +82,11 @@ class CodexCliVideoAnalyzer:
 
     async def analyze_screenplay(self, request: ScreenplayAnalysisRequest) -> object:
         return await self._screenplay.analyze(request)
+
+    async def synthesize_screenplay_analysis(
+        self, request: ScreenplayAnalysisSynthesisRequest
+    ) -> object:
+        return await self._screenplay.synthesize(request)
 
     async def build_screenplay_glossary(
         self, request: ScreenplayGlossaryRequest

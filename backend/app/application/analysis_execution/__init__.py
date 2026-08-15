@@ -15,6 +15,7 @@ from .models import (
     LocalAnalysisArtifact,
     LocalScreenplayArtifact,
     ScreenplayAnalysisRequest,
+    ScreenplayAnalysisSynthesisRequest,
     ScreenplaySceneSource,
     VideoAnalysisRequest,
 )
@@ -28,6 +29,10 @@ from .ports import (
     ScreenplayRewriteAnalyzerResolver,
     ScreenplayRewriteAnalyzerSelection,
     VideoAnalyzer,
+)
+from .screenplay_analysis_plan import (
+    ScreenplayAnalysisSourceChunk,
+    plan_screenplay_analysis,
 )
 from .screenplay_executor import ScreenplayAnalysisExecutor
 from .screenplay_rewrite_executor import ScreenplayRewriteExecutor
@@ -60,6 +65,8 @@ __all__ = [
     "SCREENPLAY_SINGLE_CALL_SCENE_LIMIT",
     "ScreenplaySceneSource",
     "ScreenplayAnalysisRequest",
+    "ScreenplayAnalysisSynthesisRequest",
+    "ScreenplayAnalysisSourceChunk",
     "ScreenplayAnalysisExecutor",
     "ScreenplayAnalyzer",
     "ScreenplayAnalyzerResolver",
@@ -76,6 +83,7 @@ __all__ = [
     "VideoAnalysisExecutor",
     "VideoAnalyzer",
     "plan_screenplay_rewrite",
+    "plan_screenplay_analysis",
     "AnalyzerResolver",
     "AnalyzerSelection",
 ]

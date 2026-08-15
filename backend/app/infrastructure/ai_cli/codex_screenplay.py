@@ -4,6 +4,7 @@ from pathlib import Path
 
 from app.application.analysis_execution import (
     ScreenplayAnalysisRequest,
+    ScreenplayAnalysisSynthesisRequest,
     ScreenplayGlossaryRequest,
     ScreenplayRewriteChunkRequest,
 )
@@ -13,7 +14,10 @@ from .codex_policy import codex_permission_arguments
 from .config import CliAdapterConfig
 from .environment import child_environment
 from .errors import AnalysisCliError, classify_cli_failure
-from .screenplay_prompt import screenplay_analysis_prompt
+from .screenplay_prompt import (
+    screenplay_analysis_prompt,
+    screenplay_analysis_synthesis_prompt,
+)
 from .screenplay_rewrite_prompt import (
     screenplay_glossary_prompt,
     screenplay_rewrite_chunk_prompt,
@@ -22,7 +26,10 @@ from .screenplay_rewrite_schema import (
     screenplay_glossary_output_schema,
     screenplay_rewrite_chunk_output_schema,
 )
-from .screenplay_schema import screenplay_analysis_output_schema
+from .screenplay_schema import (
+    screenplay_analysis_output_schema,
+    screenplay_analysis_summary_output_schema,
+)
 from .screenplay_workspace import (
     prepare_screenplay_call_files,
     prepare_screenplay_job_files,
@@ -50,6 +57,22 @@ class CodexCliScreenplayAnalyzer:
         )
         prompt = screenplay_analysis_prompt(request)
         files = prepare_screenplay_job_files(request, schema, prompt)
+        return await self._invoke(files, prompt)
+
+    async def synthesize(self, request: ScreenplayAnalysisSynthesisRequest) -> object:
+        schema = screenplay_analysis_summary_output_schema(request.output_language)
+        prompt = screenplay_analysis_synthesis_prompt(request)
+        files = prepare_screenplay_call_files(
+            workspace=request.workspace,
+            screenplay=request.screenplay,
+            schema=schema,
+            prompt=prompt,
+            manifest={
+                "call": "screenplay-analysis-synthesis",
+                "source_language": request.source_language,
+                "source_scene_ids": list(request.source_scene_ids),
+            },
+        )
         return await self._invoke(files, prompt)
 
     async def build_glossary(self, request: ScreenplayGlossaryRequest) -> object:
@@ -110,10 +133,10 @@ class CodexCliScreenplayAnalyzer:
             raise AnalysisCliError("analysis_cli_timeout") from exc
         except OSError as exc:
             raise AnalysisCliError("analysis_cli_unavailable") from exc
-        if result.stdout_truncated or result.stderr_truncated:
-            raise AnalysisCliError("analysis_resource_limit")
         if result.returncode != 0:
             raise classify_cli_failure(result.stderr)
+        if result.stdout_truncated:
+            raise AnalysisCliError("analysis_resource_limit")
         return read_result(
             files.result,
             root=files.root,

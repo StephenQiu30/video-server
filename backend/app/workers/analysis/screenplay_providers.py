@@ -21,7 +21,8 @@ class ConfiguredScreenplayAnalyzerResolver:
     async def resolve_screenplay(self) -> ScreenplayAnalyzerSelection:
         selection = await self._resolver.resolve()
         analyze = getattr(selection.analyzer, "analyze_screenplay", None)
-        if not callable(analyze):
+        synthesize = getattr(selection.analyzer, "synthesize_screenplay_analysis", None)
+        if not callable(analyze) or not callable(synthesize):
             raise AnalysisCliError("analysis_cli_unsupported")
         return ScreenplayAnalyzerSelection(
             analyzer=cast(ScreenplayAnalyzer, selection.analyzer),

@@ -9,6 +9,8 @@ class AnalysisCliError(RuntimeError):
 
 def classify_cli_failure(output: bytes) -> AnalysisCliError:
     detail = output.decode("utf-8", errors="ignore").lower()
+    if "invalid_json_schema" in detail:
+        return AnalysisCliError("analysis_cli_unsupported")
     if any(marker in detail for marker in ("429", "rate limit", "too many requests")):
         return AnalysisCliError("analysis_provider_rate_limited")
     if any(marker in detail for marker in ("credit", "usage limit", "quota")):

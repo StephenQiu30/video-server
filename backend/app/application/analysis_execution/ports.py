@@ -15,6 +15,7 @@ from .models import (
     LocalAnalysisArtifact,
     LocalScreenplayArtifact,
     ScreenplayAnalysisRequest,
+    ScreenplayAnalysisSynthesisRequest,
     VideoAnalysisRequest,
 )
 from .screenplay_rewrite_models import (
@@ -115,6 +116,10 @@ class VideoAnalyzer(Protocol):
 class ScreenplayAnalyzer(Protocol):
     async def analyze_screenplay(
         self, request: ScreenplayAnalysisRequest
+    ) -> object: ...
+
+    async def synthesize_screenplay_analysis(
+        self, request: ScreenplayAnalysisSynthesisRequest
     ) -> object: ...
 
 
