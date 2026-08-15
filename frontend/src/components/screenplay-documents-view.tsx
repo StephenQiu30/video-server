@@ -7,6 +7,7 @@ import { BackLink } from '@/components/back-link';
 import { PageHeader } from '@/components/page-header';
 import { PagePagination } from '@/components/page-pagination';
 import { ScreenplayDocumentList } from '@/components/screenplay-document-list';
+import { ScreenplayUploadDialog } from '@/components/screenplay-upload-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useScreenplayDocuments } from '@/hooks/useScreenplayDocuments';
@@ -20,16 +21,19 @@ export default function ScreenplayDocumentsView() {
       <BackLink className="mb-4" fallbackHref="/" />
       <PageHeader
         action={
-          <Button
-            className="h-11 border-0 bg-surface px-4"
-            disabled={state.loading}
-            onClick={state.refresh}
-            type="button"
-            variant="outline"
-          >
-            <ArrowClockwise aria-hidden size={17} />
-            刷新
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <ScreenplayUploadDialog />
+            <Button
+              className="h-11 border-0 bg-surface px-4"
+              disabled={state.loading}
+              onClick={state.refresh}
+              type="button"
+              variant="outline"
+            >
+              <ArrowClockwise aria-hidden size={17} />
+              刷新
+            </Button>
+          </div>
         }
         description="核对导入状态、提取规模和规范化剧本文本。"
         title="剧本文档"

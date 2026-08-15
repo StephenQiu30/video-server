@@ -52,12 +52,12 @@ def test_download_limits_are_validated() -> None:
         Settings(app_env="test", download_worker_threads=0)
 
 
-def test_local_imports_are_bounded_and_disabled_by_default() -> None:
+def test_local_import_defaults_and_bounds() -> None:
     settings = Settings(app_env="test", _env_file=None)
 
     assert settings.media_import_enabled is False
-    assert settings.document_import_enabled is False
-    assert settings.screenplay_analysis_enabled is False
+    assert settings.document_import_enabled is True
+    assert settings.screenplay_analysis_enabled is True
     assert settings.analysis_max_screenplay_bytes == 2 * 1024**2
     assert settings.analysis_screenplay_rewrite_chunk_characters == 8_000
     assert settings.analysis_max_screenplay_rewrite_chunks == 128

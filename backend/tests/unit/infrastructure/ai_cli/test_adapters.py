@@ -113,6 +113,28 @@ async def test_claude_screenplay_is_single_turn_and_disables_all_tools(
 
 
 @pytest.mark.asyncio
+async def test_codex_screenplay_is_structured_and_has_no_tools(tmp_path: Path) -> None:
+    supervisor = FakeSupervisor(provider="codex", payload=valid_screenplay_mapping())
+    analyzer = CodexCliVideoAnalyzer(config(), supervisor=supervisor)  # type: ignore[arg-type]
+    screenplay = screenplay_request(tmp_path)
+
+    payload = await analyzer.analyze_screenplay(screenplay)
+
+    assert payload == valid_screenplay_mapping()
+    assert "--output-schema" in supervisor.argv
+    assert "--output-last-message" in supervisor.argv
+    assert "permissions.video_analysis.network.enabled=false" in supervisor.argv
+    assert not any("video_observer" in item for item in supervisor.argv)
+    assert supervisor.input_bytes is not None
+    assert (
+        json.dumps(screenplay.screenplay_text, ensure_ascii=False).encode()
+        in supervisor.input_bytes
+    )
+    assert all(screenplay.screenplay_text not in value for value in supervisor.argv)
+    assert _has_no_api_keys(supervisor.environment)
+
+
+@pytest.mark.asyncio
 async def test_claude_screenplay_rejects_oversized_schema_before_process(
     tmp_path: Path,
 ) -> None:
@@ -158,6 +180,25 @@ async def test_claude_builds_screenplay_glossary_without_tools(tmp_path: Path) -
 
 
 @pytest.mark.asyncio
+async def test_codex_builds_screenplay_glossary_without_tools(tmp_path: Path) -> None:
+    payload = {
+        "source_language": "mixed",
+        "target_language": "en-US",
+        "terms": [{"source": "林舟", "target": "Lin Zhou", "category": "character"}],
+        "style_rules": ["Use concise screenplay English."],
+    }
+    supervisor = FakeSupervisor(provider="codex", payload=payload)
+    analyzer = CodexCliVideoAnalyzer(config(), supervisor=supervisor)  # type: ignore[arg-type]
+    request_value = screenplay_glossary_request(tmp_path)
+
+    result = await analyzer.build_screenplay_glossary(request_value)
+
+    assert result == payload
+    assert not any("video_observer" in item for item in supervisor.argv)
+    assert supervisor.input_bytes is not None
+
+
+@pytest.mark.asyncio
 async def test_claude_rewrites_one_hash_bound_chunk_without_tools(
     tmp_path: Path,
 ) -> None:
@@ -187,6 +228,29 @@ async def test_claude_rewrites_one_hash_bound_chunk_without_tools(
     )
     assert manifest["source_sha256"] == request_value.source_sha256
     assert "rewritten_text" not in manifest
+
+
+@pytest.mark.asyncio
+async def test_codex_rewrites_one_hash_bound_chunk_without_tools(
+    tmp_path: Path,
+) -> None:
+    request_value = screenplay_rewrite_chunk_request(tmp_path)
+    payload = {
+        "source_scene_id": request_value.source_scene_id,
+        "part_no": request_value.part_no,
+        "source_sha256": request_value.source_sha256,
+        "target_language": request_value.target_language,
+        "rewritten_text": "LIN ZHOU discovers that the ending is missing.\n",
+        "change_summary": ["Localized the character name."],
+    }
+    supervisor = FakeSupervisor(provider="codex", payload=payload)
+    analyzer = CodexCliVideoAnalyzer(config(), supervisor=supervisor)  # type: ignore[arg-type]
+
+    result = await analyzer.rewrite_screenplay_chunk(request_value)
+
+    assert result == payload
+    assert not any("video_observer" in item for item in supervisor.argv)
+    assert supervisor.input_bytes is not None
 
 
 def _has_no_api_keys(environment: dict[str, str]) -> bool:

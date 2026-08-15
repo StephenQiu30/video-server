@@ -35,7 +35,7 @@ export async function hashFileSha256(
 
 export async function uploadMultipartFile(
   file: File,
-  session: API.MediaUploadSessionResponse,
+  session: MultipartUploadSession,
   onProgress: (percentage: number) => void,
   signal: AbortSignal,
 ): Promise<API.CompletedPartRequest[]> {
@@ -96,7 +96,7 @@ export async function uploadMultipartFile(
 
 function validateSession(
   file: File,
-  session: API.MediaUploadSessionResponse,
+  session: MultipartUploadSession,
 ): API.UploadPartResponse[] {
   const expectedCount = Math.ceil(file.size / session.part_size_bytes);
   if (
@@ -133,6 +133,16 @@ function validateSession(
   }
   return parts;
 }
+
+type MultipartUploadSession = Pick<
+  API.MediaUploadSessionResponse,
+  | 'expires_at'
+  | 'max_concurrency'
+  | 'part_count'
+  | 'part_size_bytes'
+  | 'parts'
+  | 'resource_id'
+>;
 
 function uploadPart(
   url: string,

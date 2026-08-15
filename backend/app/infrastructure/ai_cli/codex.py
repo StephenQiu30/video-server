@@ -2,11 +2,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.application.analysis_execution import VideoAnalysisRequest
+from app.application.analysis_execution import (
+    ScreenplayAnalysisRequest,
+    ScreenplayGlossaryRequest,
+    ScreenplayRewriteChunkRequest,
+    VideoAnalysisRequest,
+)
 from app.runner.process import ProcessSupervisor, ProcessTimeoutError
 
 from .codex_mcp import video_observer_arguments
 from .codex_policy import codex_permission_arguments
+from .codex_screenplay import CodexCliScreenplayAnalyzer
 from .config import CliAdapterConfig
 from .environment import child_environment
 from .errors import AnalysisCliError, classify_cli_failure
@@ -27,6 +33,9 @@ class CodexCliVideoAnalyzer:
             stdout_limit_bytes=config.max_stdout_bytes,
             stderr_limit_bytes=config.max_stderr_bytes,
             terminate_grace_seconds=config.terminate_grace_seconds,
+        )
+        self._screenplay = CodexCliScreenplayAnalyzer(
+            config, supervisor=self._supervisor
         )
 
     async def analyze(self, request: VideoAnalysisRequest) -> object:
@@ -69,6 +78,19 @@ class CodexCliVideoAnalyzer:
             root=files.root,
             maximum=self._config.max_stdout_bytes,
         )
+
+    async def analyze_screenplay(self, request: ScreenplayAnalysisRequest) -> object:
+        return await self._screenplay.analyze(request)
+
+    async def build_screenplay_glossary(
+        self, request: ScreenplayGlossaryRequest
+    ) -> object:
+        return await self._screenplay.build_glossary(request)
+
+    async def rewrite_screenplay_chunk(
+        self, request: ScreenplayRewriteChunkRequest
+    ) -> object:
+        return await self._screenplay.rewrite_chunk(request)
 
     def _argv(
         self,

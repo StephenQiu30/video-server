@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { hashFileSha256, uploadMultipartFile } from '@/lib/media-upload';
+import { importScreenplayDocument } from '@/services/document-import';
 import { importLocalVideo } from '@/services/media-import';
 import { httpRequests, mockHttpResponses } from '../helpers/http';
 
@@ -117,6 +118,49 @@ describe('local media import transport', () => {
     ).rejects.toThrow('上传会话与导入任务不匹配');
     expect(FakeXMLHttpRequest.instances).toHaveLength(0);
   });
+
+  it('uploads a screenplay document and submits its source format', async () => {
+    vi.stubGlobal('XMLHttpRequest', FakeXMLHttpRequest);
+    const resource = documentImportResponse('uploading');
+    const completed = documentImportResponse('verifying');
+    mockHttpResponses(resource, documentUploadSession(), completed);
+
+    const result = await importScreenplayDocument(
+      new File(['INT. ROOM - DAY\n\nA story begins.'], 'story.fountain', {
+        type: 'text/plain',
+      }),
+      'stable-document-key',
+      {
+        onPhase: vi.fn(),
+        onProgress: vi.fn(),
+        onResource: vi.fn(),
+      },
+      new AbortController().signal,
+    );
+
+    expect(result).toEqual(completed);
+    expect(httpRequests()).toMatchObject([
+      {
+        data: expect.objectContaining({
+          file_name: 'story.fountain',
+          source_format: 'fountain',
+          rights_accepted: true,
+        }),
+        headers: { 'Idempotency-Key': 'stable-document-key' },
+        method: 'POST',
+        url: '/api/documents',
+      },
+      {
+        method: 'POST',
+        url: `/api/documents/${resource.id}/upload-sessions`,
+      },
+      {
+        data: { parts: [{ part_number: 1, etag: ETAG }] },
+        method: 'POST',
+        url: `/api/documents/${resource.id}/complete`,
+      },
+    ]);
+  });
 });
 
 class FakeXMLHttpRequest {
@@ -191,6 +235,31 @@ function mediaImportResponse(
     version: status === 'uploading' ? 0 : 1,
     created_at: '2026-08-14T00:00:00Z',
     updated_at: '2026-08-14T00:00:01Z',
+    finished_at: null,
+  };
+}
+
+function documentUploadSession(): API.DocumentUploadSessionResponse {
+  return {
+    ...uploadSession(),
+    resource_id: '33333333-3333-4333-8333-333333333333',
+  };
+}
+
+function documentImportResponse(
+  status: API.ImportStatus,
+): API.DocumentImportResponse {
+  return {
+    id: '33333333-3333-4333-8333-333333333333',
+    source_format: 'fountain',
+    original_filename: 'story.fountain',
+    declared_size_bytes: 32,
+    status,
+    attempt: status === 'uploading' ? 0 : 1,
+    error_code: null,
+    version: status === 'uploading' ? 0 : 1,
+    created_at: '2026-08-15T00:00:00Z',
+    updated_at: '2026-08-15T00:00:01Z',
     finished_at: null,
   };
 }

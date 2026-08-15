@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
 import type { MediaImportPhase } from '@/services/media-import';
+import { formatFileSize } from '@/utils/format-file-size';
 
 const phaseLabels: Record<MediaImportPhase, string> = {
   idle: '准备上传',
@@ -145,18 +146,4 @@ export function MediaUploadForm({
       ) : null}
     </form>
   );
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  const units = ['KB', 'MB', 'GB'];
-  let value = bytes / 1024;
-  let unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit += 1;
-  }
-  return `${new Intl.NumberFormat('zh-CN', {
-    maximumFractionDigits: value >= 100 ? 0 : 1,
-  }).format(value)} ${units[unit]}`;
 }

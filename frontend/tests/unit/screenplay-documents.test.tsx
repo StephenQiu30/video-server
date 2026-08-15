@@ -13,6 +13,11 @@ import {
 const runtime = vi.hoisted(() => ({
   getScreenplayDocument: vi.fn(),
   listScreenplayDocuments: vi.fn(),
+  push: vi.fn(),
+}));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: runtime.push }),
 }));
 
 vi.mock('@/services/documents', () => ({
@@ -32,6 +37,7 @@ describe('screenplay documents', () => {
   beforeEach(() => {
     runtime.getScreenplayDocument.mockReset();
     runtime.listScreenplayDocuments.mockReset();
+    runtime.push.mockReset();
   });
 
   it('renders metadata rows, paging and a stable refresh action', async () => {
@@ -81,6 +87,21 @@ describe('screenplay documents', () => {
     render(<ScreenplayDocumentsView />);
     expect(await screen.findByText('文档服务暂时不可用')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '刷新' })).toBeInTheDocument();
+  });
+
+  it('exposes screenplay upload as the primary empty-state entry', async () => {
+    runtime.listScreenplayDocuments.mockResolvedValueOnce(
+      screenplayDocumentPage({ items: [], total: 0 }),
+    );
+    render(<ScreenplayDocumentsView />);
+
+    await screen.findByText('还没有剧本文档');
+    fireEvent.click(screen.getByRole('button', { name: '上传剧本' }));
+    expect(
+      screen.getByRole('heading', { name: '上传剧本文档' }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '上传并解析' }));
+    expect(screen.getByText('请先选择一份剧本文档。')).toBeInTheDocument();
   });
 
   it('renders HTML-like screenplay content only as bounded plain text', async () => {

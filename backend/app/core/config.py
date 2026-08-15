@@ -137,7 +137,7 @@ class Settings(BaseSettings):
     max_file_size_bytes: int = Field(default=2 * 1024**3, ge=1, le=20 * 1024**3)
     max_workspace_size_bytes: int = Field(default=4 * 1024**3, ge=1, le=40 * 1024**3)
     media_import_enabled: bool = False
-    document_import_enabled: bool = False
+    document_import_enabled: bool = True
     media_import_max_bytes: int = Field(default=2 * 1024**3, ge=1024, le=20 * 1024**3)
     document_import_max_bytes: int = Field(
         default=50 * 1024**2, ge=1024, le=512 * 1024**2
@@ -196,7 +196,7 @@ class Settings(BaseSettings):
     websocket_auth_recheck_seconds: float = Field(default=15, ge=1, le=300)
 
     analysis_enabled: bool = True
-    screenplay_analysis_enabled: bool = False
+    screenplay_analysis_enabled: bool = True
     analysis_workspace_root: Path = Path("./.analysis-work")
     analysis_cli_provider: Literal["codex", "claude"] = "codex"
     analysis_codex_binary: Path = Path("codex")
