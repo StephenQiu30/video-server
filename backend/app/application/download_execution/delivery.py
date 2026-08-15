@@ -37,11 +37,13 @@ class ArtifactDelivery:
         job_id: UUID,
         attempt: int,
         artifact: VerifiedArtifact,
+        *,
+        source_key: str | None = None,
     ) -> ExecutionDisposition:
         key = artifact_object_key(job_id, attempt, artifact.container)
         try:
-            uploaded = await monitor.run_fixed(
-                lambda: self._storage.upload(key, artifact.path, artifact.content_type),
+            stored = await monitor.run_fixed(
+                lambda: self._store(key, artifact, source_key),
                 stage=DownloadStage.UPLOADING,
                 progress=99,
                 drain_on_abort=True,
@@ -60,7 +62,7 @@ class ArtifactDelivery:
             return await self._transitions.fail(
                 job_id, attempt, DownloadErrorCode.STORAGE_UNAVAILABLE
             )
-        if uploaded != artifact.size_bytes:
+        if stored != artifact.size_bytes:
             await self._transitions.delete(key)
             return await self._transitions.fail(
                 job_id, attempt, DownloadErrorCode.MEDIA_VALIDATION_FAILED
@@ -79,3 +81,20 @@ class ArtifactDelivery:
             expires_at=self._clock() + self._settings.artifact_ttl,
         )
         return await self._transitions.complete(job_id, attempt, key, details)
+
+    async def _store(
+        self,
+        key: str,
+        artifact: VerifiedArtifact,
+        source_key: str | None,
+    ) -> int:
+        if source_key is None:
+            return await self._storage.upload(key, artifact.path, artifact.content_type)
+        promoted = await self._storage.promote(
+            source_key,
+            key,
+            expected_size_bytes=artifact.size_bytes,
+            sha256=artifact.sha256,
+            content_type=artifact.content_type,
+        )
+        return promoted.size_bytes

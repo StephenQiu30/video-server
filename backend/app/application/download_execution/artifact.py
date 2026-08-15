@@ -51,6 +51,12 @@ def artifact_object_key(job_id: UUID, attempt: int, container: str) -> str:
     return f"downloads/{job_id}/{attempt}/video.{container}"
 
 
+def runner_delivery_object_key(job_id: UUID, attempt: int) -> str:
+    if attempt < 1:
+        raise ArtifactValidationError("invalid artifact delivery identity")
+    return f"runner-deliveries/{job_id}/{attempt}/artifact"
+
+
 def _verify_artifact(
     artifact: RunnerArtifactView,
     task_id: str,
@@ -59,6 +65,8 @@ def _verify_artifact(
 ) -> VerifiedArtifact:
     if artifact.task_id != task_id:
         raise ArtifactValidationError("runner task identity mismatch")
+    if artifact.workspace is None or artifact.artifact is None:
+        raise ArtifactValidationError("artifact was not materialized locally")
     try:
         workspace_stat = artifact.workspace.lstat()
         artifact_stat = artifact.artifact.lstat()

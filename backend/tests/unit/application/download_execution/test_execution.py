@@ -57,6 +57,32 @@ async def test_success_revalidates_identity_uploads_and_completes(tmp_path) -> N
 
 
 @pytest.mark.asyncio
+async def test_native_delivery_is_materialized_verified_and_promoted(tmp_path) -> None:
+    local = artifact(tmp_path)
+    case = fixture(local, presigned_delivery_providers=frozenset({"generic"}))
+    delivery_key = f"runner-deliveries/{case.job_id}/1/artifact"
+    case.storage.remote_payload = local.artifact.read_bytes()
+    case.runner.artifact = replace(
+        local,
+        workspace=None,
+        artifact=None,
+        object_key=delivery_key,
+    )
+
+    result = await case.execution.execute(case.job_id)
+
+    assert result is ExecutionDisposition.ACK
+    delivery = case.runner.download_arguments[3]["delivery"]
+    assert delivery.object_key == delivery_key
+    assert case.storage.uploads == []
+    assert case.storage.promotions == [
+        (delivery_key, f"downloads/{case.job_id}/1/video.mp4")
+    ]
+    assert delivery_key in case.storage.deleted
+    assert case.repository.success.sha256 == local.sha256
+
+
+@pytest.mark.asyncio
 async def test_runner_and_storage_failures_converge_before_ack(tmp_path) -> None:
     runner_case = fixture(artifact(tmp_path / "runner"))
     runner_case.runner.error = MediaRunnerClientError("download_timeout", 504)

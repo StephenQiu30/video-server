@@ -17,14 +17,15 @@ class MediaRunnerClientError(RuntimeError):
 @dataclass(frozen=True, slots=True)
 class RunnerArtifact:
     task_id: str
-    workspace: Path
-    artifact: Path
+    workspace: Path | None
+    artifact: Path | None
     size_bytes: int
     sha256: str
     duration_seconds: float
     container: str
     video_streams: int
     audio_streams: int
+    object_key: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

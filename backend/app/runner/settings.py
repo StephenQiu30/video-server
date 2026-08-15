@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Literal
 from urllib.parse import urlsplit
 
 from pydantic import Field, SecretStr, field_validator, model_validator
@@ -26,8 +27,13 @@ class RunnerSettings(BaseSettings):
     runner_egress_proxy: str
     runner_provider_egress_proxies: dict[str, str] = Field(default_factory=dict)
     runner_workspace_root: Path = Path("/var/lib/video-runner")
+    runner_artifact_transport: Literal["shared_workspace", "presigned_put"] = (
+        "shared_workspace"
+    )
+    runner_artifact_delivery_origins: frozenset[str] = frozenset()
     runner_access_mode: ProviderAccessMode = ProviderAccessMode.ANONYMOUS
     runner_operator_session_versions: dict[str, str] = Field(default_factory=dict)
+    runner_operator_browser_sessions: dict[str, str] = Field(default_factory=dict)
     runner_operator_retained_session_versions: dict[str, list[str]] = Field(
         default_factory=dict
     )
@@ -117,6 +123,11 @@ class RunnerSettings(BaseSettings):
             return f"provider:{provider}"
         return "default"
 
+    @field_validator("runner_artifact_delivery_origins")
+    @classmethod
+    def validate_delivery_origins(cls, value: frozenset[str]) -> frozenset[str]:
+        return frozenset(_validate_origin(origin) for origin in value)
+
     @field_validator(
         "runner_workspace_root",
         "runner_provider_secret_root",
@@ -151,6 +162,28 @@ class RunnerSettings(BaseSettings):
                 raise ValueError("retained session version is invalid")
         return value
 
+    @field_validator("runner_operator_browser_sessions")
+    @classmethod
+    def validate_browser_sessions(cls, value: dict[str, str]) -> dict[str, str]:
+        validated: dict[str, str] = {}
+        for provider, specification in value.items():
+            if _PROVIDER_KEY.fullmatch(provider) is None:
+                raise ValueError("browser session provider is invalid")
+            if (
+                not specification
+                or len(specification) > 256
+                or specification != specification.strip()
+                or any(ord(character) < 32 for character in specification)
+            ):
+                raise ValueError("browser session specification is invalid")
+            browser = specification.split(":", 1)[0].split("+", 1)[0].casefold()
+            if browser not in {"chrome", "chromium", "firefox"}:
+                raise ValueError(
+                    "browser session must use Chrome, Chromium, or Firefox"
+                )
+            validated[provider] = specification
+        return validated
+
     @field_validator("runner_ytdlp_commit", "runner_youtube_pot_provider_version")
     @classmethod
     def validate_version_reference(cls, value: str) -> str:
@@ -181,6 +214,17 @@ class RunnerSettings(BaseSettings):
             provider = next(iter(providers))
             if set(self.runner_operator_retained_session_versions) - providers:
                 raise ValueError("retained sessions must match the operator provider")
+            if set(self.runner_operator_browser_sessions) - providers:
+                raise ValueError("browser sessions must match the operator provider")
+            if (
+                self.runner_operator_browser_sessions
+                and self.runner_operator_retained_session_versions
+            ):
+                raise ValueError("live browser sessions cannot retain old versions")
+            if self.runner_operator_browser_sessions and (
+                self.runner_artifact_transport != "presigned_put"
+            ):
+                raise ValueError("browser sessions require presigned artifact delivery")
             from app.runner.provider_registry import DEFAULT_PROVIDER_REGISTRY
 
             profile = next(
@@ -202,6 +246,8 @@ class RunnerSettings(BaseSettings):
                 raise ValueError("operator runner concurrency must be one")
         elif self.runner_operator_session_versions:
             raise ValueError("anonymous runner cannot configure provider sessions")
+        elif self.runner_operator_browser_sessions:
+            raise ValueError("anonymous runner cannot configure browser sessions")
         elif self.runner_operator_retained_session_versions:
             raise ValueError("anonymous runner cannot retain provider sessions")
         if self.runner_youtube_pot_base_url is not None:
@@ -210,6 +256,11 @@ class RunnerSettings(BaseSettings):
             ) == {"youtube"}
             if not youtube_operator:
                 raise ValueError("POT provider is restricted to the YouTube operator")
+        if self.runner_artifact_transport == "presigned_put":
+            if not self.runner_artifact_delivery_origins:
+                raise ValueError("presigned delivery requires an allowed origin")
+        elif self.runner_artifact_delivery_origins:
+            raise ValueError("delivery origins require presigned artifact transport")
         return self
 
     @field_validator(
@@ -257,3 +308,22 @@ def _validate_service_url(value: str) -> str:
     if parsed.query or parsed.fragment:
         raise ValueError("provider service URL cannot contain query or fragment")
     return value.rstrip("/")
+
+
+def _validate_origin(value: str) -> str:
+    try:
+        parsed = urlsplit(value)
+        _ = parsed.port
+    except ValueError as exc:
+        raise ValueError("artifact delivery origin is invalid") from exc
+    if (
+        parsed.scheme not in {"http", "https"}
+        or parsed.hostname is None
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path not in {"", "/"}
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError("artifact delivery origin must contain authority only")
+    return f"{parsed.scheme}://{parsed.netloc}".rstrip("/")

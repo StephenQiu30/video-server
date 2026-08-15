@@ -9,6 +9,7 @@
 **/.hypothesis/
 **/.analysis-work/
 **/.provider-secrets/
+**/.native-runner/
 **/*.egg-info/
 **/*.tsbuildinfo
 **/build/
@@ -37,5 +38,6 @@ temp/
 .env.*
 !.env.example
 !.env.prod.example
+native-runner.*.env
 
 npm-debug.log*

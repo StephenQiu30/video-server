@@ -12,6 +12,12 @@ class ExecutionDisposition(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
+class ArtifactDeliveryTarget:
+    object_key: str
+    upload_url: str
+
+
+@dataclass(frozen=True, slots=True)
 class DownloadExecutionSettings:
     worker_id: str
     bucket: str
@@ -20,6 +26,8 @@ class DownloadExecutionSettings:
     heartbeat_interval: float
     artifact_ttl: timedelta
     max_file_size_bytes: int
+    artifact_delivery_ttl: timedelta = timedelta(hours=1)
+    presigned_delivery_providers: frozenset[str] = frozenset()
 
     def __post_init__(self) -> None:
         if not self.worker_id.strip() or not self.bucket.strip():
@@ -30,6 +38,8 @@ class DownloadExecutionSettings:
             raise ValueError("heartbeat interval must be shorter than the lease")
         if self.artifact_ttl.total_seconds() <= 0 or self.max_file_size_bytes <= 0:
             raise ValueError("artifact limits must be positive")
+        if self.artifact_delivery_ttl.total_seconds() <= 0:
+            raise ValueError("artifact delivery TTL must be positive")
         object.__setattr__(self, "workspace_root", self.workspace_root.resolve())
 
 

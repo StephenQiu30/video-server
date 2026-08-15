@@ -120,6 +120,8 @@ class FakeStorage:
         self.uploads: list[tuple[str, Path, str]] = []
         self.deleted: list[str] = []
         self.error: Exception | None = None
+        self.remote_payload = b""
+        self.promotions: list[tuple[str, str]] = []
 
     async def upload(self, key: str, source: Path, content_type: str) -> int:
         self.uploads.append((key, source, content_type))
@@ -129,6 +131,17 @@ class FakeStorage:
 
     async def delete(self, key: str) -> None:
         self.deleted.append(key)
+
+    async def presigned_upload(self, key: str, *, ttl_seconds: int) -> str:
+        return f"http://objects.example/{key}?ttl={ttl_seconds}"
+
+    async def download(self, key: str, target: Path) -> None:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(self.remote_payload)
+
+    async def promote(self, source_key: str, destination_key: str, **kwargs):
+        self.promotions.append((source_key, destination_key))
+        return SimpleNamespace(size_bytes=len(self.remote_payload))
 
 
 class FakeCipher:
@@ -154,7 +167,11 @@ class ExecutionFixture:
     execution: DownloadExecution
 
 
-def fixture(artifact: RunnerArtifact) -> ExecutionFixture:
+def fixture(
+    artifact: RunnerArtifact,
+    *,
+    presigned_delivery_providers: frozenset[str] = frozenset(),
+) -> ExecutionFixture:
     job_id = uuid4()
     repository = FakeRepository(job_id)
     runner = FakeRunner(artifact)
@@ -175,6 +192,7 @@ def fixture(artifact: RunnerArtifact) -> ExecutionFixture:
             heartbeat_interval=0.001,
             artifact_ttl=timedelta(days=7),
             max_file_size_bytes=1024 * 1024,
+            presigned_delivery_providers=presigned_delivery_providers,
         ),
     )
     return ExecutionFixture(job_id, repository, runner, storage, cleaner, execution)

@@ -49,6 +49,12 @@ uv sync --frozen --dev
 uv run python -m app.workers.analysis.main
 ```
 
+YouTube/TikTok 需要复用本机专用浏览器 Profile 时，使用 loopback Native Runner；它通过短时预签名对象交付制品，不与 Docker 共享工作目录，也不获得 MinIO 长期凭据。完整配置见 `docs/operations/006-Native-Runner运行手册.md`，启动入口为：
+
+```bash
+uv run --env-file ../native-runner.youtube.env python -m app.runner.native_main
+```
+
 API `/health/live` 只证明进程存活；`/health/ready` 还会在有界超时内检查数据库结构、Media Runner、MinIO、RabbitMQ、Valkey，以及启用分析时兼容 AI Worker 的心跳。外部数据库或消息队列重启可能使宿主机 Worker 的长连接中断并退出，应在基础设施恢复后重新启动 Worker，再以 `/health/ready` 返回 `200` 作为交付条件。没有 AI Worker 的部署必须显式设置 `ANALYSIS_ENABLED=false` 并重建 API。
 
 ## 测试数据库

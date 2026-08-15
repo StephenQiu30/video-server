@@ -10,7 +10,7 @@ import stat
 import tempfile
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
@@ -25,6 +25,16 @@ _NETSCAPE_HEADERS = (
 )
 
 
+@dataclass(frozen=True, slots=True)
+class BrowserCookieSession:
+    """A host-local browser profile reference passed directly to yt-dlp."""
+
+    specification: str
+
+
+type ProviderSessionMaterial = Path | BrowserCookieSession | None
+
+
 class ProviderSessionStore:
     """Validate immutable Cookie sources and issue per-operation writable jars."""
 
@@ -33,6 +43,7 @@ class ProviderSessionStore:
         self._source_root = settings.runner_provider_secret_root
         self._temp_root = settings.runner_provider_secret_temp_root
         self._versions = dict(settings.runner_operator_session_versions)
+        self._browser_sessions = dict(settings.runner_operator_browser_sessions)
         retained = settings.runner_operator_retained_session_versions
         self._accepted_versions = {
             provider: frozenset((*retained.get(provider, ()), version))
@@ -42,6 +53,8 @@ class ProviderSessionStore:
         if settings.runner_access_mode is ProviderAccessMode.OPERATOR_MANAGED:
             self._prepare_temp_root()
             for provider, versions in self._accepted_versions.items():
+                if provider in self._browser_sessions:
+                    continue
                 for version in versions:
                     self._validated_source(provider, version)
 
@@ -95,7 +108,7 @@ class ProviderSessionStore:
     @asynccontextmanager
     async def operation(
         self, context: ProviderAccessContextRef
-    ) -> AsyncIterator[Path | None]:
+    ) -> AsyncIterator[ProviderSessionMaterial]:
         if context.access_mode is ProviderAccessMode.ANONYMOUS:
             yield None
             return
@@ -103,6 +116,10 @@ class ProviderSessionStore:
         if version is None:
             raise RunnerFailure("credential_required", status=422)
         async with self._gate:
+            browser = self._browser_sessions.get(context.provider_key)
+            if browser is not None:
+                yield BrowserCookieSession(browser)
+                return
             source = self._validated_source(context.provider_key, version)
             operation_dir = Path(
                 tempfile.mkdtemp(

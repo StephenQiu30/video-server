@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import tempfile
 from contextlib import suppress
+from dataclasses import dataclass
 from pathlib import Path
 from uuid import UUID
 
@@ -9,7 +11,7 @@ from app.application.downloads import EncryptedUrl, plan_from_documents
 from app.domain.downloads import DownloadErrorCode, DownloadStage
 from app.domain.providers import ProviderAccessContextRef
 
-from .artifact import verify_artifact
+from .artifact import runner_delivery_object_key, verify_artifact
 from .delivery import ArtifactDelivery
 from .errors import (
     ArtifactValidationError,
@@ -20,13 +22,18 @@ from .errors import (
     LeaseLost,
     classify_runner_failure,
 )
-from .models import DownloadExecutionSettings, ExecutionDisposition
+from .models import (
+    ArtifactDeliveryTarget,
+    DownloadExecutionSettings,
+    ExecutionDisposition,
+)
 from .monitor import LeaseMonitor
 from .ports import (
     Clock,
     ExecutionRepository,
     ExecutionRunner,
     ExecutionStorage,
+    RunnerArtifactView,
     UrlDecryptor,
     WorkspaceCleaner,
 )
@@ -76,6 +83,7 @@ class DownloadExecution:
     ) -> ExecutionDisposition:
         task_id = f"download_{job_id.hex}_{attempt}"
         workspace: Path | None = None
+        delivery_key: str | None = None
         monitor = self._monitor(job_id, attempt, task_id)
         try:
             try:
@@ -110,12 +118,26 @@ class DownloadExecution:
                     job_id, attempt, DownloadErrorCode.INTERNAL_ERROR
                 )
             try:
+                delivery = None
+                if (
+                    access_context.provider_key
+                    in self._settings.presigned_delivery_providers
+                ):
+                    delivery_key = runner_delivery_object_key(job_id, attempt)
+                    upload_url = await self._storage.presigned_upload(
+                        delivery_key,
+                        ttl_seconds=round(
+                            self._settings.artifact_delivery_ttl.total_seconds()
+                        ),
+                    )
+                    delivery = ArtifactDeliveryTarget(delivery_key, upload_url)
                 artifact = await monitor.run_download(
                     url,
                     plan,
                     provider_media_id=source.provider_media_id,
                     extractor_key=source.extractor_key,
                     access_context=access_context,
+                    delivery=delivery,
                 )
                 workspace = artifact.workspace
             except (LeaseLost, ExecutionOwnershipLost):
@@ -128,6 +150,29 @@ class DownloadExecution:
                 return await self._transitions.fail(
                     job_id, attempt, classify_runner_failure(exc)
                 )
+            if artifact.object_key is not None:
+                if artifact.object_key != delivery_key:
+                    return await self._transitions.fail(
+                        job_id, attempt, DownloadErrorCode.MEDIA_VALIDATION_FAILED
+                    )
+                try:
+                    workspace = Path(
+                        tempfile.mkdtemp(
+                            prefix=f"{task_id}-delivery-",
+                            dir=self._settings.workspace_root,
+                        )
+                    )
+                    target = workspace / f"artifact.{artifact.container}"
+                    await self._storage.download(artifact.object_key, target)
+                    artifact = _LocalArtifact.from_delivery(
+                        artifact,
+                        workspace=workspace,
+                        path=target,
+                    )
+                except Exception:
+                    return await self._transitions.fail(
+                        job_id, attempt, DownloadErrorCode.STORAGE_UNAVAILABLE
+                    )
             try:
                 verified = await monitor.run_fixed(
                     lambda: verify_artifact(
@@ -148,10 +193,19 @@ class DownloadExecution:
                 return await self._transitions.convergence(job_id)
             except (LeaseInfrastructureError, ExecutionPersistenceUnavailable):
                 return ExecutionDisposition.REQUEUE
-            return await self._delivery.run(monitor, job_id, attempt, verified)
+            return await self._delivery.run(
+                monitor,
+                job_id,
+                attempt,
+                verified,
+                source_key=delivery_key,
+            )
         finally:
             with suppress(Exception):
                 await self._cleaner.cleanup(task_id, workspace)
+            if delivery_key is not None:
+                with suppress(Exception):
+                    await self._storage.delete(delivery_key)
 
     def _monitor(self, job_id: UUID, attempt: int, task_id: str) -> LeaseMonitor:
         return LeaseMonitor(
@@ -164,4 +218,39 @@ class DownloadExecution:
             clock=self._clock,
             lease_for=self._settings.lease_for,
             interval=self._settings.heartbeat_interval,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class _LocalArtifact:
+    task_id: str
+    workspace: Path
+    artifact: Path
+    object_key: None
+    size_bytes: int
+    sha256: str
+    duration_seconds: float
+    container: str
+    video_streams: int
+    audio_streams: int
+
+    @classmethod
+    def from_delivery(
+        cls,
+        source: RunnerArtifactView,
+        *,
+        workspace: Path,
+        path: Path,
+    ) -> _LocalArtifact:
+        return cls(
+            task_id=source.task_id,
+            workspace=workspace,
+            artifact=path,
+            object_key=None,
+            size_bytes=source.size_bytes,
+            sha256=source.sha256,
+            duration_seconds=source.duration_seconds,
+            container=source.container,
+            video_streams=source.video_streams,
+            audio_streams=source.audio_streams,
         )

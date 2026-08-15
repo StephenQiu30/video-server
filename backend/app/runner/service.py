@@ -4,7 +4,6 @@ import asyncio
 import base64
 import math
 from dataclasses import replace
-from pathlib import Path
 from urllib.parse import urljoin
 
 import httpx
@@ -12,6 +11,7 @@ import httpx
 from app.domain.downloads import FormatSelectionError, select_streams
 from app.domain.providers import ProviderAccessContextRef
 from app.runner.active_tasks import ActiveTaskRegistry
+from app.runner.artifact_delivery import upload_presigned_artifact
 from app.runner.command_support import default_supervisor
 from app.runner.commands import MediaCommands, ProcessRunner
 from app.runner.contracts import (
@@ -34,7 +34,7 @@ from app.runner.metadata import (
     normalize_selected_format_metadata,
 )
 from app.runner.presentation import inspect_response
-from app.runner.provider_sessions import ProviderSessionStore
+from app.runner.provider_sessions import ProviderSessionMaterial, ProviderSessionStore
 from app.runner.provider_urls import (
     provider_inspection_attempts,
     provider_inspection_retry_delay,
@@ -126,7 +126,7 @@ class MediaRunnerService:
             raise RunnerFailure("internal_error", status=500)
         self._active.register(request.task_id, task)
         workspace = None
-        succeeded = False
+        retain_workspace = False
         try:
             safe_url = safe_media_url(request.url)
             context = self._sessions.validate_context(
@@ -144,7 +144,7 @@ class MediaRunnerService:
                         cookie_jar=cookie_jar,
                     )
             self._active.complete(request.task_id, task)
-            succeeded = True
+            retain_workspace = request.delivery is None
             return response
         except asyncio.CancelledError as exc:
             raise RunnerFailure("cancelled", status=409) from exc
@@ -154,7 +154,7 @@ class MediaRunnerService:
             raise RunnerFailure("workspace_limit_exceeded", status=413) from exc
         finally:
             self._active.discard(request.task_id, task)
-            if workspace is not None and not succeeded:
+            if workspace is not None and not retain_workspace:
                 workspace.cleanup()
 
     async def cancel(self, task_id: str) -> CancelResponse:
@@ -178,7 +178,7 @@ class MediaRunnerService:
         workspace: TaskWorkspace,
         *,
         context: ProviderAccessContextRef,
-        cookie_jar: Path | None,
+        cookie_jar: ProviderSessionMaterial,
     ) -> DownloadResponse:
         inspection = await self._inspect_source(
             safe_url,
@@ -248,11 +248,27 @@ class MediaRunnerService:
             tolerance_seconds=self._settings.runner_duration_tolerance_seconds,
         )
         digest = await asyncio.to_thread(file_sha256, artifact)
+        relative_path: str | None = artifact.name
+        object_key: str | None = None
+        workspace_path: str | None = str(workspace.path)
+        if request.delivery is not None:
+            if self._settings.runner_artifact_transport != "presigned_put":
+                raise RunnerFailure("artifact_delivery_rejected", status=422)
+            await upload_presigned_artifact(
+                artifact,
+                request.delivery.upload_url,
+                allowed_origins=self._settings.runner_artifact_delivery_origins,
+                timeout_seconds=self._settings.runner_download_timeout_seconds,
+            )
+            relative_path = None
+            object_key = request.delivery.object_key
+            workspace_path = None
         return DownloadResponse(
             task_id=request.task_id,
-            workspace_path=str(workspace.path),
+            workspace_path=workspace_path,
             artifact=ArtifactContract(
-                relative_path=artifact.name,
+                relative_path=relative_path,
+                object_key=object_key,
                 size_bytes=output.size,
                 sha256=digest,
                 duration_seconds=verified.duration_seconds,
@@ -275,7 +291,7 @@ class MediaRunnerService:
         workspace: TaskWorkspace,
         *,
         context: ProviderAccessContextRef,
-        cookie_jar: Path | None,
+        cookie_jar: ProviderSessionMaterial,
     ) -> MediaInspection:
         attempts = provider_inspection_attempts(safe_url)
         retry_delay = provider_inspection_retry_delay(safe_url)
@@ -357,7 +373,7 @@ class MediaRunnerService:
         workspace: TaskWorkspace,
         *,
         referer: str,
-        cookie_jar: Path | None,
+        cookie_jar: ProviderSessionMaterial,
     ) -> dict[str, object]:
         if cookie_jar is not None:
             return payload
@@ -414,7 +430,7 @@ class MediaRunnerService:
         source_url: str,
         workspace: TaskWorkspace,
         *,
-        cookie_jar: Path | None,
+        cookie_jar: ProviderSessionMaterial,
     ) -> dict[str, object]:
         formats = payload.get("formats")
         if not isinstance(formats, list):

@@ -18,10 +18,15 @@ def default_supervisor(settings: RunnerSettings) -> ProcessSupervisor:
     )
 
 
-def child_environment(cwd: Path, proxy: str) -> dict[str, str]:
+def child_environment(
+    cwd: Path,
+    proxy: str,
+    *,
+    browser_home: Path | None = None,
+) -> dict[str, str]:
     return {
         "PATH": os.environ.get("PATH", "/usr/local/bin:/usr/bin:/bin"),
-        "HOME": str(cwd),
+        "HOME": str(browser_home or cwd),
         "TMPDIR": str(cwd),
         "LANG": "C.UTF-8",
         "LC_ALL": "C.UTF-8",

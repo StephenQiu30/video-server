@@ -10,7 +10,7 @@ from app.application.downloads import EncryptedUrl
 from app.domain.downloads import DownloadPlan, DownloadStage
 from app.domain.providers import ProviderAccessContextRef
 
-from .models import ArtifactDetails
+from .models import ArtifactDeliveryTarget, ArtifactDetails
 
 
 class JobState(Protocol):
@@ -58,10 +58,13 @@ class RunnerArtifactView(Protocol):
     def task_id(self) -> str: ...
 
     @property
-    def workspace(self) -> Path: ...
+    def workspace(self) -> Path | None: ...
 
     @property
-    def artifact(self) -> Path: ...
+    def artifact(self) -> Path | None: ...
+
+    @property
+    def object_key(self) -> str | None: ...
 
     @property
     def size_bytes(self) -> int: ...
@@ -88,6 +91,11 @@ class RunnerProgressView(Protocol):
 
     @property
     def progress(self) -> int: ...
+
+
+class StoredObjectView(Protocol):
+    @property
+    def size_bytes(self) -> int: ...
 
 
 class ExecutionRepository(Protocol):
@@ -148,6 +156,7 @@ class ExecutionRunner(Protocol):
         expected_provider_media_id: str,
         expected_extractor_key: str,
         access_context: ProviderAccessContextRef,
+        delivery: ArtifactDeliveryTarget | None = None,
     ) -> RunnerArtifactView: ...
 
     async def status(self, task_id: str) -> RunnerProgressView: ...
@@ -159,6 +168,20 @@ class ExecutionStorage(Protocol):
     async def upload(self, object_key: str, source: Path, content_type: str) -> int: ...
 
     async def delete(self, object_key: str) -> None: ...
+
+    async def presigned_upload(self, object_key: str, *, ttl_seconds: int) -> str: ...
+
+    async def download(self, object_key: str, target: Path) -> None: ...
+
+    async def promote(
+        self,
+        source_key: str,
+        destination_key: str,
+        *,
+        expected_size_bytes: int,
+        sha256: str,
+        content_type: str,
+    ) -> StoredObjectView: ...
 
 
 class UrlDecryptor(Protocol):

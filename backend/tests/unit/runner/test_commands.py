@@ -7,6 +7,7 @@ import pytest
 from app.runner.commands import MediaCommands
 from app.runner.errors import RunnerFailure
 from app.runner.process import ProcessResult
+from app.runner.provider_sessions import BrowserCookieSession
 from helpers import settings
 
 
@@ -187,6 +188,30 @@ async def test_tiktok_operator_command_uses_only_issued_cookie_jar(
     )
 
     assert supervisor.argv[supervisor.argv.index("--cookies") + 1] == str(cookie_jar)
+
+
+@pytest.mark.asyncio
+async def test_native_operator_reads_the_configured_browser_profile(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    browser_home = tmp_path / "browser-home"
+    browser_home.mkdir()
+    monkeypatch.setenv("HOME", str(browser_home))
+    supervisor = RecordingSupervisor()
+    commands = MediaCommands(settings(tmp_path), supervisor)
+
+    await commands.inspect(
+        "https://www.tiktok.com/@creator/video/123",
+        tmp_path,
+        cookie_jar=BrowserCookieSession("chrome:Profile 2"),
+    )
+
+    index = supervisor.argv.index("--cookies-from-browser")
+    assert supervisor.argv[index + 1] == "chrome:Profile 2"
+    assert "--cookies" not in supervisor.argv
+    assert supervisor.env["HOME"] == str(browser_home)
+    assert supervisor.env["TMPDIR"] == str(tmp_path)
 
 
 @pytest.mark.asyncio
