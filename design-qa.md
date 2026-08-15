@@ -287,3 +287,19 @@ final result: passed
 - 工程门禁：lint/typecheck 通过；format check 221 个文件通过（仅既有损坏 symlink warning）；39 个测试文件、143 项测试通过；Next.js production build 与 15 个静态页面通过；Compose 统一镜像重建后 `/health/ready` 返回 200。
 
 final result: passed
+
+## 2026-08-15 下拉框视觉统一回归
+
+- 验证目标：统一项目内所有基于共享 `Select` 组件的下拉框，使触发器、浮层、选中项和交互反馈符合 `design.md` 的克制、扁平、轻边界设计语言，同时保留 Radix Select 的可访问性与键盘行为。
+- source visual truth：用户问题截图 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-4fba1066-b70e-404d-b1d0-d85e4e2a5c4b.png`；改动前同页面捕获 `/tmp/video-select-audit/01-current-select-open.png`。
+- implementation evidence：桌面端 `/tmp/video-select-audit/02-revised-select-open.png`；390×844 移动端 `/tmp/video-select-audit/03-revised-select-mobile-open.png`；完整对照 `/tmp/video-select-audit/04-select-full-comparison.png`；重点区域对照 `/tmp/video-select-audit/05-select-focus-comparison.png`。
+- state：桌面端改前与改后均为 1280×720、浅色主题、下载历史页“状态筛选”展开状态；移动端为 390×844 的相同展开状态。
+- full-view comparison：浮层从贴合并覆盖触发器的卡片式展开，调整为触发器下方 4px 间距的稳定 Popper 布局；宽度严格跟随触发器，页面信息层级和对齐关系保持不变。缩放/滑入动画与偏重阴影被移除，改用轻边框、`shadow-sm` 和既有圆角 token。
+- focused region comparison：选项最小高度统一为 36px，横向留白与勾选图标位置稳定；当前选中项使用轻量背景与中等字重，触发器打开态沿用现有 `accent` 语义，键盘焦点继续保留清晰 focus ring。
+- mobile comparison：390px 视口下浮层保持在视觉中心列内，宽度与触发器一致，没有水平溢出或脱离布局中心；选项触控高度、文字间距和选中标记均保持可读。
+- comparison history：初始浮层圆角、阴影、密度、对齐和展开动效与项目视觉语言不一致；统一修复仅修改共享 `frontend/src/components/ui/select.tsx`，所有消费者同步生效，没有页面级补丁或新依赖。
+- interactions：鼠标点击可展开并选择；键盘 `Space`、`ArrowDown`、`Enter` 可完成展开、移动和选择，选择后触发器值正确更新。浏览器控制台无 error 或 warning。
+- 工程门禁：lint/typecheck 通过；format check 通过；39 个测试文件、143 项测试通过；Next.js production build 与 15 个静态页面通过。
+- 复核结果：桌面端、移动端和键盘交互均无剩余 P0、P1 或 P2 问题。
+
+final result: passed
