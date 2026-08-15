@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.domain.downloads import (
     AudioCodecFamily,
@@ -146,14 +146,6 @@ class InspectResponse(ContractModel):
     access_context: ProviderAccessContextContract
 
 
-class ArtifactDeliveryTargetContract(ContractModel):
-    object_key: str = Field(
-        pattern=r"^runner-deliveries/[0-9a-f-]{36}/[1-9][0-9]*/artifact$",
-        max_length=256,
-    )
-    upload_url: str = Field(min_length=1, max_length=8192)
-
-
 class DownloadRequest(ContractModel):
     task_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
     url: str = Field(min_length=1, max_length=4096)
@@ -161,7 +153,6 @@ class DownloadRequest(ContractModel):
     expected_extractor_key: str = Field(min_length=1, max_length=128)
     plan: DownloadPlanContract
     access_context: ProviderAccessContextContract
-    delivery: ArtifactDeliveryTargetContract | None = None
 
     @field_validator("expected_provider_media_id", "expected_extractor_key")
     @classmethod
@@ -175,20 +166,13 @@ class DownloadRequest(ContractModel):
 
 
 class ArtifactContract(ContractModel):
-    relative_path: str | None = Field(default=None, max_length=255)
-    object_key: str | None = Field(default=None, max_length=256)
+    relative_path: str
     size_bytes: int = Field(gt=0)
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     duration_seconds: float = Field(gt=0)
     container: Container
     video_streams: int = Field(ge=1)
     audio_streams: int = Field(ge=1)
-
-    @model_validator(mode="after")
-    def validate_location(self) -> ArtifactContract:
-        if (self.relative_path is None) == (self.object_key is None):
-            raise ValueError("artifact must have exactly one location")
-        return self
 
 
 class SelectedStreamsContract(ContractModel):
@@ -199,7 +183,7 @@ class SelectedStreamsContract(ContractModel):
 
 class DownloadResponse(ContractModel):
     task_id: str
-    workspace_path: str | None = None
+    workspace_path: str
     artifact: ArtifactContract
     selection: SelectedStreamsContract | None = None
 

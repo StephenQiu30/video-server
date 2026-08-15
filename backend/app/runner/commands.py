@@ -11,7 +11,6 @@ from app.runner.errors import RunnerFailure
 from app.runner.process import ProcessResult, ProcessTimeoutError
 from app.runner.provider_errors import classify_provider_failure
 from app.runner.provider_registry import provider_profile
-from app.runner.provider_sessions import BrowserCookieSession, ProviderSessionMaterial
 from app.runner.provider_urls import provider_command_args, provider_request_url
 from app.runner.settings import RunnerSettings
 from app.runner.workspace_monitor import (
@@ -44,7 +43,7 @@ class MediaCommands:
         self._supervisor = supervisor
 
     async def inspect(
-        self, url: str, cwd: Path, *, cookie_jar: ProviderSessionMaterial = None
+        self, url: str, cwd: Path, *, cookie_jar: Path | None = None
     ) -> dict[str, Any]:
         egress_proxy = self._egress_proxy(url)
         command: tuple[str, ...] = (
@@ -62,7 +61,6 @@ class MediaCommands:
             timeout_code="inspection_timeout",
             failure_code="inspection_failed",
             egress_proxy=egress_proxy,
-            browser_home=_browser_home(cookie_jar),
         )
         return json_object(result.stdout, "invalid_inspection_response")
 
@@ -107,7 +105,7 @@ class MediaCommands:
         output: Path,
         cwd: Path,
         *,
-        cookie_jar: ProviderSessionMaterial = None,
+        cookie_jar: Path | None = None,
     ) -> None:
         egress_proxy = self._egress_proxy(url)
         command = (
@@ -130,7 +128,6 @@ class MediaCommands:
             failure_code="download_failed",
             monitor_workspace=True,
             egress_proxy=egress_proxy,
-            browser_home=_browser_home(cookie_jar),
         )
         if not output.is_file() or output.is_symlink():
             raise RunnerFailure("download_failed", status=502)
@@ -142,7 +139,7 @@ class MediaCommands:
         output: Path,
         cwd: Path,
         *,
-        cookie_jar: ProviderSessionMaterial = None,
+        cookie_jar: Path | None = None,
     ) -> None:
         egress_proxy = self._egress_proxy(url)
         command = (
@@ -165,7 +162,6 @@ class MediaCommands:
             failure_code="inspection_failed",
             monitor_workspace=True,
             egress_proxy=egress_proxy,
-            browser_home=_browser_home(cookie_jar),
         )
         if not output.is_file() or output.is_symlink():
             raise RunnerFailure("inspection_failed", status=502)
@@ -234,7 +230,6 @@ class MediaCommands:
         failure_code: str,
         monitor_workspace: bool = False,
         egress_proxy: str | None = None,
-        browser_home: Path | None = None,
     ) -> ProcessResult:
         selected_proxy = egress_proxy or self._settings.runner_egress_proxy
         try:
@@ -242,11 +237,7 @@ class MediaCommands:
                 command,
                 cwd=cwd,
                 timeout_seconds=timeout,
-                env=child_environment(
-                    cwd,
-                    selected_proxy,
-                    browser_home=browser_home,
-                ),
+                env=child_environment(cwd, selected_proxy),
             )
             if monitor_workspace:
                 result = await run_with_workspace_limit(
@@ -280,7 +271,7 @@ class MediaCommands:
         self,
         egress_proxy: str,
         url: str,
-        cookie_jar: ProviderSessionMaterial,
+        cookie_jar: Path | None,
     ) -> tuple[str, ...]:
         profile = provider_profile(url)
         if (
@@ -307,10 +298,8 @@ class MediaCommands:
             "--proxy",
             egress_proxy,
         )
-        if isinstance(cookie_jar, Path):
+        if cookie_jar is not None:
             command += ("--cookies", str(cookie_jar))
-        elif isinstance(cookie_jar, BrowserCookieSession):
-            command += ("--cookies-from-browser", cookie_jar.specification)
         if profile.key == "youtube" and self._settings.runner_youtube_pot_base_url:
             command += (
                 "--extractor-args",
@@ -320,9 +309,3 @@ class MediaCommands:
                 f"{self._settings.runner_youtube_pot_base_url}",
             )
         return command
-
-
-def _browser_home(cookie_jar: ProviderSessionMaterial) -> Path | None:
-    if not isinstance(cookie_jar, BrowserCookieSession):
-        return None
-    return Path.home().resolve()

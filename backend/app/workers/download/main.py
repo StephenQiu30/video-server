@@ -82,7 +82,7 @@ def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
         for provider, base_url in settings.runner_operator_base_urls.items()
     }
     runner = MediaRunnerRouter(anonymous_runner, operator_runners)
-    storage = MinioObjectStorage(settings, enable_public_signing=True)
+    storage = MinioObjectStorage(settings)
     execution = DownloadExecution(
         repository=repository,
         runner=runner,
@@ -101,10 +101,6 @@ def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
             heartbeat_interval=settings.heartbeat_interval_seconds,
             artifact_ttl=timedelta(seconds=settings.artifact_ttl_seconds),
             max_file_size_bytes=settings.max_file_size_bytes,
-            artifact_delivery_ttl=timedelta(
-                seconds=settings.runner_artifact_delivery_ttl_seconds
-            ),
-            presigned_delivery_providers=settings.runner_presigned_delivery_providers,
         ),
     )
     topology = RabbitMqTopology(

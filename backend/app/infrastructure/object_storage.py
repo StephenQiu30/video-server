@@ -227,23 +227,6 @@ class MinioObjectStorage:
         except Exception as error:
             raise ImportObjectStorageError("upload part signing failed") from error
 
-    async def presigned_upload(self, object_key: str, *, ttl_seconds: int) -> str:
-        """Sign one bounded object key for a Native Runner PUT operation."""
-        _validate_key(object_key)
-        if self._public is None:
-            raise RuntimeError("public upload signing is not enabled")
-        if isinstance(ttl_seconds, bool) or not 1 <= ttl_seconds <= 604_800:
-            raise ValueError("upload signing TTL must be between 1 and 604800")
-        try:
-            return await asyncio.to_thread(
-                self._public.presigned_put_object,
-                self._bucket,
-                object_key,
-                expires=timedelta(seconds=ttl_seconds),
-            )
-        except Exception as error:
-            raise ImportObjectStorageError("object upload signing failed") from error
-
     async def complete_multipart_upload(
         self,
         object_key: str,

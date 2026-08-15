@@ -118,7 +118,6 @@ class Settings(BaseSettings):
 
     runner_base_url: str = "http://localhost:19100"
     runner_operator_base_urls: dict[str, str] = Field(default_factory=dict)
-    runner_presigned_delivery_providers: frozenset[str] = frozenset()
     runner_workspace_root: Path = Path("/work")
     runner_hmac_secret: SecretStr = SecretStr("development-runner-secret-change-me")
     provider_canary_targets: SecretStr = SecretStr("[]")
@@ -134,7 +133,6 @@ class Settings(BaseSettings):
     runner_signature_ttl_seconds: int = Field(default=30, ge=5, le=300)
     inspect_timeout_seconds: int = Field(default=30, ge=1, le=300)
     download_timeout_seconds: int = Field(default=1800, ge=1, le=7200)
-    runner_artifact_delivery_ttl_seconds: int = Field(default=3600, ge=60, le=10_800)
     max_video_duration_seconds: int = Field(default=7200, ge=1, le=86400)
     max_file_size_bytes: int = Field(default=2 * 1024**3, ge=1, le=20 * 1024**3)
     max_workspace_size_bytes: int = Field(default=4 * 1024**3, ge=1, le=40 * 1024**3)
@@ -356,15 +354,6 @@ class Settings(BaseSettings):
             raise ValueError("PROVIDER_VERIFIED_KEYS contains an invalid key")
         return value
 
-    @field_validator("runner_presigned_delivery_providers")
-    @classmethod
-    def validate_delivery_providers(cls, value: frozenset[str]) -> frozenset[str]:
-        if any(re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", key) is None for key in value):
-            raise ValueError(
-                "RUNNER_PRESIGNED_DELIVERY_PROVIDERS contains an invalid key"
-            )
-        return value
-
     @field_validator("peertube_allowed_instances")
     @classmethod
     def validate_peertube_instances(cls, value: frozenset[str]) -> frozenset[str]:
@@ -389,8 +378,6 @@ class Settings(BaseSettings):
             )
         if self.heartbeat_interval_seconds >= self.job_lease_seconds:
             raise ValueError("worker heartbeat interval must be shorter than its lease")
-        if self.runner_artifact_delivery_ttl_seconds <= self.download_timeout_seconds:
-            raise ValueError("artifact delivery TTL must exceed download timeout")
         if self.import_workspace_grace_seconds <= self.job_lease_seconds:
             raise ValueError("import workspace grace must exceed its lease")
         upload_capacity = (

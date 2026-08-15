@@ -46,10 +46,6 @@ class FakeMinio:
         self.calls.append(("presign", *args, kwargs))
         return "https://objects.example/artifact"
 
-    def presigned_put_object(self, *args: object, **kwargs: object) -> str:
-        self.calls.append(("presign_put", *args, kwargs))
-        return "https://objects.example/native-delivery"
-
     def _create_multipart_upload(
         self, bucket: str, object_key: str, headers: dict[str, str]
     ) -> str:
@@ -140,23 +136,6 @@ async def test_storage_uses_private_and_public_clients(tmp_path: Path) -> None:
         "response-content-disposition": 'attachment; filename="example.mp4"'
     }
     assert url == "https://objects.example/artifact"
-
-
-async def test_storage_signs_one_native_runner_delivery_key() -> None:
-    public = FakeMinio()
-    storage = MinioObjectStorage(settings(), private=FakeMinio(), public=public)
-
-    url = await storage.presigned_upload(
-        "runner-deliveries/86dfb749-5232-43ea-9b6f-469c76df31e3/1/artifact",
-        ttl_seconds=3600,
-    )
-
-    assert url == "https://objects.example/native-delivery"
-    call = next(item for item in public.calls if item[0] == "presign_put")
-    assert call[1:3] == (
-        "video-artifacts",
-        "runner-deliveries/86dfb749-5232-43ea-9b6f-469c76df31e3/1/artifact",
-    )
 
 
 async def test_storage_range_read_is_bounded() -> None:

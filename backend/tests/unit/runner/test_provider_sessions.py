@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from app.domain.providers import ProviderAccessMode
 from app.runner.errors import RunnerFailure
-from app.runner.provider_sessions import BrowserCookieSession, ProviderSessionStore
+from app.runner.provider_sessions import ProviderSessionStore
 from app.runner.settings import RunnerSettings
 from pydantic import ValidationError
 
@@ -129,23 +129,6 @@ async def test_operation_uses_unique_0600_copy_and_preserves_source(
     assert list(settings.runner_provider_secret_temp_root.iterdir()) == []
     assert source.read_bytes() == COOKIE
     assert source.stat().st_mtime_ns == original_stat.st_mtime_ns
-
-
-async def test_native_browser_session_never_reads_a_cookie_file(tmp_path: Path) -> None:
-    settings = operator_settings(tmp_path).model_copy(
-        update={
-            "runner_operator_browser_sessions": {"youtube": "chrome:Profile 2"},
-            "runner_artifact_transport": "presigned_put",
-            "runner_artifact_delivery_origins": frozenset({"http://127.0.0.1:19190"}),
-        }
-    )
-    store = ProviderSessionStore(settings)
-    context = store.context_for("https://www.youtube.com/watch?v=owned")
-
-    async with store.operation(context) as session:
-        assert session == BrowserCookieSession("chrome:Profile 2")
-
-    assert not settings.runner_provider_secret_root.exists()
 
 
 async def test_failure_and_concurrent_operations_cleanup_and_isolate(

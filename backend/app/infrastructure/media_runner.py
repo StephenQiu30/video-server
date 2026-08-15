@@ -13,7 +13,6 @@ from typing import TypeVar
 import httpx
 from pydantic import BaseModel, ValidationError
 
-from app.application.download_execution.models import ArtifactDeliveryTarget
 from app.application.downloads import (
     MediaInspectionFailure,
     RunnerFormat,
@@ -43,7 +42,6 @@ from app.infrastructure.media_runner_models import (
     download_stage,
 )
 from app.runner.contracts import (
-    ArtifactDeliveryTargetContract,
     CancelCommand,
     CancelResponse,
     DownloadPlanContract,
@@ -162,7 +160,6 @@ class MediaRunnerHttpClient:
         expected_provider_media_id: str,
         expected_extractor_key: str,
         access_context: ProviderAccessContextRef,
-        delivery: ArtifactDeliveryTarget | None = None,
     ) -> RunnerArtifact:
         self._validate_task_id(task_id)
         body = (
@@ -174,14 +171,6 @@ class MediaRunnerHttpClient:
                 plan=DownloadPlanContract.from_domain(plan),
                 access_context=ProviderAccessContextContract.from_domain(
                     access_context
-                ),
-                delivery=(
-                    ArtifactDeliveryTargetContract(
-                        object_key=delivery.object_key,
-                        upload_url=delivery.upload_url,
-                    )
-                    if delivery is not None
-                    else None
                 ),
             )
             .model_dump_json()
@@ -195,29 +184,16 @@ class MediaRunnerHttpClient:
             self._download_timeout,
             timeout_code="download_timeout",
         )
-        workspace: Path | None = None
-        artifact: Path | None = None
-        object_key = response.artifact.object_key
-        if response.artifact.relative_path is not None:
-            if response.workspace_path is None or delivery is not None:
-                raise MediaRunnerClientError("invalid_artifact_path", 502)
-            workspace = Path(response.workspace_path).resolve()
-            artifact = (workspace / response.artifact.relative_path).resolve()
-            outside_root = not workspace.is_relative_to(self._workspace_root)
-            outside_workspace = not artifact.is_relative_to(workspace)
-            if outside_root or outside_workspace:
-                raise MediaRunnerClientError("invalid_artifact_path", 502)
-        elif (
-            delivery is None
-            or object_key != delivery.object_key
-            or response.workspace_path is not None
-        ):
-            raise MediaRunnerClientError("invalid_artifact_delivery", 502)
+        workspace = Path(response.workspace_path).resolve()
+        artifact = (workspace / response.artifact.relative_path).resolve()
+        outside_root = not workspace.is_relative_to(self._workspace_root)
+        outside_workspace = not artifact.is_relative_to(workspace)
+        if outside_root or outside_workspace:
+            raise MediaRunnerClientError("invalid_artifact_path", 502)
         return RunnerArtifact(
             task_id=response.task_id,
             workspace=workspace,
             artifact=artifact,
-            object_key=object_key,
             size_bytes=response.artifact.size_bytes,
             sha256=response.artifact.sha256,
             duration_seconds=response.artifact.duration_seconds,
@@ -331,7 +307,6 @@ class MediaRunnerRouter:
         expected_provider_media_id: str,
         expected_extractor_key: str,
         access_context: ProviderAccessContextRef,
-        delivery: ArtifactDeliveryTarget | None = None,
     ) -> RunnerArtifact:
         client = self._client_for(access_context)
         self._active[task_id] = client
@@ -343,7 +318,6 @@ class MediaRunnerRouter:
                 expected_provider_media_id=expected_provider_media_id,
                 expected_extractor_key=expected_extractor_key,
                 access_context=access_context,
-                delivery=delivery,
             )
         finally:
             self._active.pop(task_id, None)
