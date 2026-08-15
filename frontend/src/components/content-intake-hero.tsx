@@ -39,18 +39,30 @@ export function ContentIntakeHero({
       >
         <TabsList
           aria-label="选择内容来源"
-          className="h-11 gap-6"
+          className="grid h-11 w-full grid-cols-3 gap-0 p-0 sm:inline-flex sm:w-fit sm:gap-6 sm:p-[3px]"
           variant="line"
         >
-          <TabsTrigger disabled={disabled} value="link">
+          <TabsTrigger
+            className="min-w-0 px-1 sm:px-2"
+            disabled={disabled}
+            value="link"
+          >
             <LinkSimple aria-hidden />
             链接解析
           </TabsTrigger>
-          <TabsTrigger disabled={disabled} value="video">
+          <TabsTrigger
+            className="min-w-0 px-1 sm:px-2"
+            disabled={disabled}
+            value="video"
+          >
             <FileVideo aria-hidden />
             本地视频
           </TabsTrigger>
-          <TabsTrigger disabled={disabled} value="screenplay">
+          <TabsTrigger
+            className="min-w-0 px-1 sm:px-2"
+            disabled={disabled}
+            value="screenplay"
+          >
             <FileText aria-hidden />
             剧本文档
           </TabsTrigger>

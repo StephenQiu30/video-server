@@ -78,6 +78,51 @@
 
 final result: passed
 
+## 2026-08-15 移动端首页视觉中心校准
+
+### 对照目标与证据
+
+- source visual truth：根目录 `design.md` 的共享移动网格、明确光学中心与 390×844 响应式规则，以及 `docs/design/archive/009-Next前端与蓝白视觉系统设计.md` 的首页三入口规范。
+- 缺陷基线：`/Users/stephenqiu/.codex/visualizations/2026/08/14/01a00156-709b-7891-838c-39184921bf40/home-mobile-before-css390x844.png`，390×844 px；修复前三入口组宽 342px、中心 `x=187px`，比 390px 内容视口中心左偏 8px。
+- implementation screenshot：`/Users/stephenqiu/.codex/visualizations/2026/08/14/01a00156-709b-7891-838c-39184921bf40/home-mobile-centered-css390x844.png`，390×844 px；CSS 内容视口 390×844、DPR 1、浅色、已登录、首页“链接解析”初始态。
+- desktop regression：`/Users/stephenqiu/.codex/visualizations/2026/08/14/01a00156-709b-7891-838c-39184921bf40/home-mobile-centering-desktop-1280x900.png`，1280×900 px；CSS 内容视口 1280×900、DPR 1。
+- same comparison input：`/Users/stephenqiu/.codex/visualizations/2026/08/14/01a00156-709b-7891-838c-39184921bf40/home-mobile-centering-before-after.png`，左侧为修复前基线、右侧为修复后同视口同状态实现，两个 390×844 单元均未缩放或裁切。
+
+### 全局与聚焦对照
+
+- full-view comparison：Hero、说明、输入和主按钮保持既有左对齐编辑式层级，入口组改为占满同一 `.content-shell`；修复没有改变 80px Header、40px Hero 顶部节奏、字体、颜色、表面、圆角或下方留白。
+- focused region comparison：390px 下 Header、main、H1、入口组和主按钮的中心均为 `x=195px`；三个入口宽度均为约 119px，并以 `x=16 / 135 / 255px` 连续等分到 `x=374px`，不再存在组级左偏。
+- 320px 窄屏复验：修复前 `clientWidth=320 / scrollWidth=358`，入口组仍宽 342px；修复后 `clientWidth=scrollWidth=320`，入口组宽 288px、中心 `x=160px`，三个入口各 96px、44px 高。
+- focused regions 已覆盖入口组、Header/main 共轴、主操作和 320px 极窄重排；页面没有图像内容或小尺寸复杂图形，因此不需要额外资产局部对比。
+
+### 五个忠实度表面
+
+- fonts and typography：继续使用 Geist Sans 与中文系统回退，字号、字重、行高、字距和 Hero 换行均未改变；移动标签保持 14px，不通过缩小文字解决适配。
+- spacing and layout rhythm：唯一布局变化是移动端三等分入口组；`sm` 及以上恢复原有 342px 内容宽度线型 Tabs，1280px 桌面端实测 Header/main `x=80 / width=1120px` 且无横向溢出。
+- colors and visual tokens：没有修改颜色、主题 token、边界、阴影或状态色；浅色捕获保持现有层级，深色继续消费未改动的同一语义 token 与结构类。
+- image quality and asset fidelity：没有新增或替换图像；品牌继续使用真实 `logo.svg`，入口图标继续使用既有 Phosphor 资产。
+- copy and content：标题、说明、三个入口名、输入占位和主操作文案均保持不变，没有为了布局截断、缩写或删除任务信息。
+
+### 交互与比较历史
+
+1. 首轮测量记录 P2 响应式偏差：390px 入口组中心左偏 8px，320px 产生 38px 横向溢出。
+2. 将移动端 Tabs 改为三列满宽网格，并把每个 Trigger 的移动内边距收敛到可容纳 320px 的尺寸；`sm` 以上保留原有内容宽度与 24px 间距。
+3. 后验同图比较确认 P2 已消除：390px 所有主要区域共用 `x=195px` 中心，320px `scrollWidth=clientWidth`；本地视频与剧本文档状态同样无溢出且没有 checkbox。
+4. 移动 Sheet 打开时宽 304px、`clientWidth=scrollWidth=405px`；关闭后恢复 `390/390px`，焦点返回“打开导航菜单”。导航顺序仍为“首页 → 下载记录 → 剧本文档 → 平台状态”，浏览器 error/warn 日志为空。
+
+### Findings
+
+- 没有剩余可执行的 P0/P1/P2 差异。
+- 没有遗留 P3 视觉打磨项；本轮不改变桌面信息层级或页面纵向构图。
+
+### 工程证据
+
+- lint/typecheck 与 format check 通过，仅保留既有 `.agents/skills` 损坏 symlink warning。
+- 39 个测试文件、143 项测试全部通过；Next.js 生产构建生成 15 个静态页面。
+- Compose 统一镜像重建完成，`/health/ready` 返回 200。
+
+final result: passed
+
 ## 2026-08-15 首页统一内容入口与导航顺序
 
 ### 对照目标与证据
