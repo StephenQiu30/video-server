@@ -3,7 +3,7 @@ import { Empty, EmptyDescription, EmptyHeader } from '@/components/ui/empty';
 
 export default function MissingDownload() {
   return (
-    <main className="content-shell inner-page">
+    <div className="inner-page">
       <BackLink className="mb-4" fallbackHref="/history" />
       <Empty className="min-h-80 items-start justify-start border-0 p-0 pt-6 text-left sm:pt-8">
         <EmptyHeader className="items-start">
@@ -15,6 +15,6 @@ export default function MissingDownload() {
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
-    </main>
+    </div>
   );
 }

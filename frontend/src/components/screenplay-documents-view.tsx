@@ -17,7 +17,7 @@ export default function ScreenplayDocumentsView() {
   const state = useScreenplayDocuments({ page, page_size: 20 });
 
   return (
-    <main className="content-shell inner-page">
+    <div className="inner-page">
       <BackLink className="mb-4" fallbackHref="/" />
       <PageHeader
         action={
@@ -54,6 +54,6 @@ export default function ScreenplayDocumentsView() {
           pages={Math.ceil(state.data.total / state.data.page_size)}
         />
       ) : null}
-    </main>
+    </div>
   );
 }

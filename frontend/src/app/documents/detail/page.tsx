@@ -19,7 +19,7 @@ export default function DocumentDetailPage() {
 
 function RouteFallback() {
   return (
-    <main className="content-shell inner-page" role="status">
+    <div className="inner-page" role="status">
       <span className="sr-only">正在读取剧本文档</span>
       <BackLink fallbackHref="/documents" />
       <Skeleton className="mt-8 h-7 w-24" />
@@ -29,6 +29,6 @@ function RouteFallback() {
         <Skeleton className="h-[28rem] rounded-none lg:mr-12" />
         <Skeleton className="h-80 rounded-none lg:ml-12" />
       </div>
-    </main>
+    </div>
   );
 }

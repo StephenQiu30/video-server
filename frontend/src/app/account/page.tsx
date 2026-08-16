@@ -6,9 +6,9 @@ export const metadata = { title: '账户' };
 export default function AccountPage() {
   return (
     <ProtectedRoute>
-      <main className="content-shell inner-page">
+      <div className="inner-page">
         <AccountView />
-      </main>
+      </div>
     </ProtectedRoute>
   );
 }

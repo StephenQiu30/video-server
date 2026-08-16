@@ -30,7 +30,7 @@ export default function ScreenplayDocumentDetailView({
   }
 
   return (
-    <main className="content-shell inner-page">
+    <div className="inner-page">
       <BackLink fallbackHref="/documents" />
       {state.error ? (
         <Alert className="mt-8" variant="destructive">
@@ -88,13 +88,13 @@ export default function ScreenplayDocumentDetailView({
           ) : null}
         </>
       ) : null}
-    </main>
+    </div>
   );
 }
 
 function DocumentDetailSkeleton() {
   return (
-    <main aria-busy className="content-shell inner-page">
+    <div aria-busy className="inner-page">
       <span className="sr-only" role="status">
         正在读取剧本文档
       </span>
@@ -114,7 +114,7 @@ function DocumentDetailSkeleton() {
           <Skeleton className="mt-4 h-80 w-full rounded-none" />
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 
@@ -126,7 +126,7 @@ function DocumentDetailError({
   onRetry: () => void;
 }) {
   return (
-    <main className="content-shell inner-page">
+    <div className="inner-page">
       <BackLink fallbackHref="/documents" />
       <div className="mt-7 max-w-2xl">
         <h1 className="text-[36px] font-medium leading-[1.02] tracking-[-0.05em] sm:text-[52px]">
@@ -137,6 +137,6 @@ function DocumentDetailError({
           重试
         </Button>
       </div>
-    </main>
+    </div>
   );
 }

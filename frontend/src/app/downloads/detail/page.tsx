@@ -19,7 +19,7 @@ export default function DownloadDetailPage() {
 
 function DetailSkeleton() {
   return (
-    <main className="content-shell inner-page">
+    <div className="inner-page">
       <BackLink fallbackHref="/history" />
       <Skeleton className="mt-7 h-10 w-40" />
       <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)] lg:gap-0">
@@ -35,6 +35,6 @@ function DetailSkeleton() {
           <Skeleton className="mt-8 h-11 w-full" />
         </div>
       </div>
-    </main>
+    </div>
   );
 }

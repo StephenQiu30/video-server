@@ -38,7 +38,7 @@ export default function DownloadJobView({
   if (state.loading && !state.job) return <DownloadJobSkeleton />;
 
   return (
-    <main className="content-shell inner-page">
+    <div className="inner-page">
       <BackLink fallbackHref="/history" />
       {state.error ? (
         <Alert className="mt-8" variant="destructive">
@@ -98,13 +98,13 @@ export default function DownloadJobView({
           )}
         </>
       ) : null}
-    </main>
+    </div>
   );
 }
 
 function DownloadJobSkeleton() {
   return (
-    <main className="content-shell inner-page">
+    <div className="inner-page">
       <BackLink fallbackHref="/history" />
       <div className="mt-9 grid gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.85fr)] lg:gap-0">
         <div className="lg:pr-12">
@@ -116,7 +116,7 @@ function DownloadJobSkeleton() {
           <Skeleton className="h-80" />
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 

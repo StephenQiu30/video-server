@@ -85,7 +85,7 @@ export default function DownloadHistoryView() {
   }
 
   return (
-    <main className="content-shell inner-page">
+    <div className="inner-page">
       <BackLink className="mb-4" fallbackHref="/" />
       <PageHeader
         action={
@@ -199,6 +199,6 @@ export default function DownloadHistoryView() {
           pages={Math.ceil(state.data.total / state.data.page_size)}
         />
       ) : null}
-    </main>
+    </div>
   );
 }

@@ -3,10 +3,10 @@
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 
+import BasicLayout from '@/components/basic-layout';
 import { NavigationHistoryProvider } from '@/components/navigation-history';
 import { PageHeader } from '@/components/page-header';
-import SiteHeader, { BrandLink } from '@/components/site-header';
-import { Button } from '@/components/ui/button';
+import { BrandLink } from '@/components/site-header';
 import {
   Field,
   FieldDescription,
@@ -22,22 +22,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <NavigationHistoryProvider currentPath={pathname ?? '/'}>
-      {isAuthRoute ? (
-        children
-      ) : (
-        <div className="min-h-screen bg-background text-foreground">
-          <Button
-            asChild
-            className="fixed left-4 top-3 z-[60] h-11 -translate-y-[calc(100%+1rem)] focus-visible:translate-y-0"
-          >
-            <a href="#main-content">跳到主要内容</a>
-          </Button>
-          <SiteHeader />
-          <div id="main-content" tabIndex={-1}>
-            {children}
-          </div>
-        </div>
-      )}
+      {isAuthRoute ? children : <BasicLayout>{children}</BasicLayout>}
     </NavigationHistoryProvider>
   );
 }

@@ -6,9 +6,9 @@ export const metadata = { title: 'AI 服务' };
 export default function AdminAiProvidersPage() {
   return (
     <ProtectedRoute requireAdmin>
-      <main className="content-shell inner-page">
+      <div className="inner-page">
         <AdminAiProvidersView />
-      </main>
+      </div>
     </ProtectedRoute>
   );
 }

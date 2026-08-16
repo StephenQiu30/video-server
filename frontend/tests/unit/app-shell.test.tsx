@@ -50,7 +50,7 @@ describe('AppShell', () => {
   it('renders the accessible Next.js product navigation on application routes', () => {
     render(
       <AppShell>
-        <main>页面内容</main>
+        <div>页面内容</div>
       </AppShell>,
     );
 
@@ -104,6 +104,8 @@ describe('AppShell', () => {
       'href',
       '#main-content',
     );
+    expect(screen.getByRole('main')).toHaveClass('content-shell', 'flex-1');
+    expect(screen.getByRole('contentinfo')).toHaveTextContent('帧取');
 
     const mobileMenuTrigger = screen.getByRole('button', {
       name: '打开导航菜单',
@@ -131,7 +133,7 @@ describe('AppShell', () => {
     runtime.loading = true;
     const { container } = render(
       <AppShell>
-        <main>正在加载</main>
+        <div>正在加载</div>
       </AppShell>,
     );
 
@@ -151,7 +153,7 @@ describe('AppShell', () => {
     runtime.pathname = '/history';
     render(
       <AppShell>
-        <main>历史页面</main>
+        <div>历史页面</div>
       </AppShell>,
     );
 
@@ -196,7 +198,7 @@ describe('AppShell', () => {
     };
     render(
       <AppShell>
-        <main>下载分析页面</main>
+        <div>下载分析页面</div>
       </AppShell>,
     );
 

@@ -113,7 +113,7 @@ export default function DownloadWorkspace() {
   }
 
   return (
-    <main className="content-shell pb-6">
+    <div className="pb-6">
       <ContentIntakeHero
         disabled={busy !== null || mediaImport.busy || documentImport.busy}
         linkForm={
@@ -192,7 +192,7 @@ export default function DownloadWorkspace() {
           selectedId={selectedId}
         />
       ) : null}
-    </main>
+    </div>
   );
 }
 

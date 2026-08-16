@@ -5,6 +5,22 @@ import { describe, expect, it } from 'vitest';
 const globalsPath = resolve(process.cwd(), 'src/app/globals.css');
 
 describe('global layout stability', () => {
+  it('keeps the application shell on one shared content axis', () => {
+    const basicLayout = readFileSync(
+      resolve(process.cwd(), 'src/components/basic-layout.tsx'),
+      'utf8',
+    );
+    const siteFooter = readFileSync(
+      resolve(process.cwd(), 'src/components/site-footer.tsx'),
+      'utf8',
+    );
+
+    expect(basicLayout).toContain('content-shell flex flex-1 flex-col');
+    expect(basicLayout).toContain('<SiteHeader />');
+    expect(basicLayout).toContain('<SiteFooter />');
+    expect(siteFooter).toContain('content-shell');
+  });
+
   it('leaves scrollbar locking and compensation to the overlay primitives', () => {
     const styles = readFileSync(globalsPath, 'utf8');
 
@@ -37,7 +53,7 @@ describe('global layout stability', () => {
       'src/components/download-job-view.tsx',
     ]) {
       expect(readFileSync(resolve(process.cwd(), path), 'utf8')).toContain(
-        'content-shell inner-page',
+        'inner-page',
       );
     }
   });

@@ -25,10 +25,7 @@ describe('empty route states', () => {
 
     expect(heading).toBeInTheDocument();
     expect(backLink).toHaveAttribute('href', '/history');
-    expect(container.querySelector('main')).toHaveClass(
-      'content-shell',
-      'inner-page',
-    );
+    expect(container.querySelector('.inner-page')).toHaveClass('inner-page');
     expect(container.querySelector('[data-slot="empty-icon"]')).toBeNull();
     expect(screen.queryByText('任务不可用')).not.toBeInTheDocument();
     expect(backLink.compareDocumentPosition(heading)).toBe(

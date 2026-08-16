@@ -78,6 +78,18 @@
 
 final result: passed
 
+## 2026-08-16 BasicLayout 统一应用壳回归
+
+- 缺陷基线：应用页原先由路由和业务 View 分别创建 `main`、`.content-shell` 与 `.inner-page`，全局没有 SiteFooter；Header 与页面主体的对齐责任分散，新增页面容易复制出不同的外层宽度。
+- 实现：新增 `frontend/src/components/basic-layout.tsx` 和 `site-footer.tsx`。已认证应用页现在由同一壳提供 80px Header、唯一 `main#main-content`、`flex-1` 中间内容槽和 64px Footer；Header/main/Footer 三者直接复用 `.content-shell`。
+- 桌面运行态：浏览器 CSS viewport 为 1265×720（保留常驻滚动条槽），Header/main/Footer 左边界均为 `x=80px`、宽度均为 `1105px`；高度分别为 80px、576px、64px，`main` 数量为 1、全局 Footer 数量为 1。
+- 移动运行态：390×844 视口的 CSS 内容宽度为 375px，Header/main/Footer 均为 `x=16px`、宽度 `343px`，Footer 高 64px，`scrollWidth=375px`，没有页面级横向溢出。
+- 认证例外：登录页仍使用 `.page-shell` 双栏结构，运行态确认存在 1 个 main、0 个全局 Footer，不显示受保护应用导航壳。
+- 证据截图：`/tmp/framegrab-layout-audit/01-login.png`、`/tmp/framegrab-layout-audit/02-basic-layout-404-desktop.png`、`/tmp/framegrab-layout-audit/03-basic-layout-404-mobile.png`、`/tmp/framegrab-layout-audit/04-login-after-layout.png`。
+- 工程验证：39 个前端测试文件、144 项测试通过；`npm run format:check`、`npm run lint` 和 `npm run typecheck` 通过。Biome 仅报告仓库既有 `.agents/skills` 损坏符号链接警告。
+
+final result: passed
+
 ## 2026-08-15 移动端首页视觉中心校准
 
 ### 对照目标与证据

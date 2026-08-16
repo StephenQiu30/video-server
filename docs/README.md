@@ -12,6 +12,8 @@
 
 交付顺序固定为 `Design → PRD → Plan → Acceptance`：
 
+当前增量设计：前端统一 BasicLayout 与共享内容网格见 [025 前端统一 BasicLayout 布局设计](design/025-前端统一BasicLayout布局设计.md)。该文档只覆盖现有前端的布局治理，不新增业务能力。
+
 
 | 编号 | 主题 | Design | PRD | Plan | Acceptance |
 | --- | --- | --- | --- | --- | --- |

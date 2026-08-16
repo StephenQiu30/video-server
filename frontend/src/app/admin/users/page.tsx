@@ -6,9 +6,9 @@ export const metadata = { title: '用户管理' };
 export default function AdminUsersPage() {
   return (
     <ProtectedRoute requireAdmin>
-      <main className="content-shell inner-page">
+      <div className="inner-page">
         <AdminUsersView />
-      </main>
+      </div>
     </ProtectedRoute>
   );
 }

@@ -27,6 +27,6 @@ describe('administrator analytics route', () => {
       'data-require-admin',
       'true',
     );
-    expect(container.querySelector('main')).toHaveClass('content-shell');
+    expect(container.querySelector('.inner-page')).toHaveClass('inner-page');
   });
 });

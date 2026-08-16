@@ -3,7 +3,7 @@ import { Empty, EmptyDescription, EmptyHeader } from '@/components/ui/empty';
 
 export function MissingScreenplayDocument() {
   return (
-    <main className="content-shell inner-page">
+    <div className="inner-page">
       <BackLink fallbackHref="/documents" />
       <Empty className="min-h-80 items-start justify-start rounded-none border-0 p-0 pt-6 text-left sm:pt-8">
         <EmptyHeader className="items-start">
@@ -15,6 +15,6 @@ export function MissingScreenplayDocument() {
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
-    </main>
+    </div>
   );
 }

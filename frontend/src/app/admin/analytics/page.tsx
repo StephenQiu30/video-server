@@ -6,9 +6,9 @@ export const metadata = { title: '下载分析' };
 export default function AdminAnalyticsPage() {
   return (
     <ProtectedRoute requireAdmin>
-      <main className="content-shell inner-page">
+      <div className="inner-page">
         <AdminAnalyticsView />
-      </main>
+      </div>
     </ProtectedRoute>
   );
 }

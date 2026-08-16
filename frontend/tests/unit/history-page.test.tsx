@@ -119,10 +119,7 @@ describe('download history', () => {
     const { container } = render(<DownloadHistoryView />);
 
     expect(await screen.findByText('示例视频')).toBeInTheDocument();
-    expect(container.querySelector('main')).toHaveClass(
-      'content-shell',
-      'inner-page',
-    );
+    expect(container.querySelector('.inner-page')).toHaveClass('inner-page');
     expect(
       screen.getByRole('heading', { level: 1, name: '下载历史' }),
     ).toBeInTheDocument();
