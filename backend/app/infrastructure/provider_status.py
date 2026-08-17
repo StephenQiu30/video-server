@@ -26,7 +26,7 @@ def configured_provider_statuses() -> tuple[ProviderStatusView, ...]:
                 if profile.support_status is ProviderSupportStatus.VERIFIED
                 else None
             ),
-            user_action=_user_action(profile.support_status),
+            user_action=_user_action(profile.support_status, profile.key),
         )
         for profile in current_provider_registry().profiles
     )
@@ -49,7 +49,14 @@ def configured_provider_statuses() -> tuple[ProviderStatusView, ...]:
 current_provider_statuses = configured_provider_statuses
 
 
-def _user_action(status: ProviderSupportStatus) -> str | None:
+def _user_action(
+    status: ProviderSupportStatus, provider_key: str | None = None
+) -> str | None:
+    if provider_key == "hongguo_web" and status is ProviderSupportStatus.UNKNOWN:
+        return (
+            "已接入红果官方分享链接当前单集；"
+            "不支持 App 受保护媒体、全集抓取或批量下载。"
+        )
     if status is ProviderSupportStatus.ACCESS_REQUIRED:
         return "该平台需要部署已批准的受控会话；未启用时请稍后重试。"
     if status in {

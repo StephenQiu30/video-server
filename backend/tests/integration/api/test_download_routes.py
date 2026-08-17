@@ -178,7 +178,12 @@ def test_provider_status_distinguishes_registered_verified_and_unsupported(
 
     assert response.status_code == 200
     items = {item["key"]: item for item in response.json()["items"]}
-    assert len(items) == 22
+    assert len(items) == 23
+    assert items["hongguo_web"]["status"] == "unknown"
+    assert (
+        items["hongguo_web"]["user_action"]
+        == "已接入红果官方分享链接当前单集；不支持 App 受保护媒体、全集抓取或批量下载。"
+    )
     assert items["youtube"]["registered"] is True
     assert items["youtube"]["status"] == "access_required"
     assert items["bilibili"]["status"] == "verified"

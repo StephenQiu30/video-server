@@ -16,7 +16,10 @@ _XHS_SHORT_LINK = re.compile(
     r"(?:a|m)/[A-Za-z0-9]+(?:[/?#][^\s]*)?)",
     re.IGNORECASE,
 )
-_HTTP_URL = re.compile(r"https?://[^\s]+", re.IGNORECASE)
+_HTTP_URL = re.compile(
+    r"https?://[^\s，。；：！？、）》）】]+",
+    re.IGNORECASE,
+)
 _SHARE_TRAILING_PUNCTUATION = ".,;:!?，。；：！？)]}）】》"
 
 

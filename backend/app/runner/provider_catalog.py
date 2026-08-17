@@ -482,4 +482,13 @@ DEFAULT_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         client_profile_id="chrome-136-macos-15",
         canary_suite="tumblr-public-single-video-post",
     ),
+    ProviderProfile(
+        key="hongguo_web",
+        display_name="红果短剧官方分享",
+        hosts=frozenset({"novelquickapp.com", "hongguoduanju.com"}),
+        version="hongguo-official-share-v1",
+        capabilities=frozenset({ProviderCapability.SINGLE_VIDEO}),
+        support_status=ProviderSupportStatus.UNKNOWN,
+        canary_suite="hongguo-official-share-single-video",
+    ),
 )

@@ -349,7 +349,7 @@ unknown | verified | degraded | access_required | rate_limited | blocked | disab
 - 只使用项目自有或明确授权样本，不使用用户 URL/Cookie。
 - 记录 Provider、capability、access mode、Profile/engine/POT 版本、egress affinity 引用、阶段、耗时和稳定错误；不记录完整 URL 或 Secret。
 
-最近 5 次至少 4 次成功、最近 2 次连续成功、metadata 成功不超过 6 小时且 media 成功不超过 26 小时，已批准基线才可恢复 `verified`；至少 2 次失败进入 `degraded`；连续 3 次同类永久失败进入 `blocked`。会话失效立即进入 `access_required`。API 已实现该聚合器，但新平台的 `unknown/access_required` 基线不能被下载探针自动提升，必须先完成完整视频 Agent E2E 并显式批准。当前基线：Bilibili、抖音、小红书为已有回归，快手为 2026-08-11 的公开分享页 metadata/media 回归，YouTube 为 `access_required`，其他无证据平台保持 `unknown`，视频号为 `unsupported`；AcFun、Rutube、VK Clips、Dailymotion 和 NicoNico 不登记。
+最近 5 次至少 4 次成功、最近 2 次连续成功、metadata 成功不超过 6 小时且 media 成功不超过 26 小时，已批准基线才可恢复 `verified`；至少 2 次失败进入 `degraded`；连续 3 次同类永久失败进入 `blocked`。会话失效立即进入 `access_required`。API 已实现该聚合器，但新平台的 `unknown/access_required` 基线不能被下载探针自动提升，必须先完成完整视频 Agent E2E 并显式批准。当前基线：Bilibili、抖音、小红书和快手保持既有公开链路；Facebook、Twitch、Pinterest、微博、优酷、腾讯视频、Snapchat、LinkedIn、Telegram、Kick、Tumblr 已纳入严格单视频/Clip Profile；YouTube 与 Reddit 为 `access_required`，TikTok 为 `degraded`；红果官方分享 `hongguo_web` 已接入“官方分享当前单集”窄链路但仍保持 `unknown`，App 受保护媒体、全集抓取和批量下载不在范围内；视频号为 `unsupported`；AcFun、Rutube、VK Clips、Dailymotion 和 NicoNico 不登记。
 
 ## 14. 可观测性与审计
 

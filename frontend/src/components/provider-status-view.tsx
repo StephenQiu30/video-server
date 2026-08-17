@@ -50,7 +50,7 @@ export function ProviderStatusView() {
             刷新状态
           </Button>
         }
-        description="登记域名或存在提取器不代表实时可用。这里只展示当前版本的能力、访问模式与最近验证状态，不展示账号、Cookie、出口或探针地址。"
+        description="平台状态同时区分已接入、已验证和受控会话要求。已接入不代表所有内容类型都可用；这里只展示当前版本的能力、访问模式与最近验证状态，不展示账号、Cookie、出口或探针地址。"
         title="平台状态"
         titleId="provider-status-title"
       />
@@ -96,11 +96,14 @@ function ProviderRow({ provider }: { provider: ProviderStatus }) {
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-medium">{provider.display_name}</h2>
             <Badge variant={statusVariant(provider.status)}>
-              {STATUS_LABELS[provider.status]}
+              {statusLabel(provider)}
             </Badge>
           </div>
           <p className="mt-1 font-mono text-xs text-muted-foreground">
             {provider.key}
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {integrationDescription(provider)}
           </p>
         </div>
         <div>
@@ -126,6 +129,23 @@ function ProviderRow({ provider }: { provider: ProviderStatus }) {
       </li>
     </Item>
   );
+}
+
+function statusLabel(provider: ProviderStatus): string {
+  if (
+    provider.status === 'unknown' &&
+    provider.registered &&
+    provider.extractor_exists
+  ) {
+    return '已接入，待验证';
+  }
+  return STATUS_LABELS[provider.status];
+}
+
+function integrationDescription(provider: ProviderStatus): string {
+  if (!provider.registered) return '接入：未登记';
+  if (!provider.extractor_exists) return '接入：已登记，暂无解析器';
+  return '接入：解析器已部署';
 }
 
 function accessDescription(provider: ProviderStatus): string {

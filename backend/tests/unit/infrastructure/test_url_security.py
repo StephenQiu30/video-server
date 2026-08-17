@@ -73,6 +73,16 @@ def test_media_url_validator_extracts_douyin_url_from_share_message() -> None:
     assert validator.validate(message) == "https://v.douyin.com/Tq0eYJRMYRk/"
 
 
+def test_media_url_validator_extracts_hongguo_share_message() -> None:
+    validator = MediaUrlValidator()
+    message = (
+        "漫剧《佳偶错成》免费看全集："
+        "https://novelquickapp.com/s/YMc-jWnOo1U/，点击链接追剧~"
+    )
+
+    assert validator.validate(message) == "https://novelquickapp.com/s/YMc-jWnOo1U/"
+
+
 def test_media_url_validator_rejects_share_message_with_multiple_urls() -> None:
     validator = MediaUrlValidator()
 

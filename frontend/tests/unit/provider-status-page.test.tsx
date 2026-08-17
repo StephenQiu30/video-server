@@ -51,6 +51,14 @@ describe('provider status page', () => {
     expect(bilibili).toHaveTextContent('已验证');
     expect(bilibili).toHaveTextContent('仅匿名公开内容');
     expect(bilibili).toHaveTextContent('2026年8月10日');
+
+    const hongguo = within(list)
+      .getByRole('heading', { name: '红果短剧官方分享' })
+      .closest('li');
+    expect(hongguo).not.toBeNull();
+    expect(hongguo).toHaveTextContent('已接入，待验证');
+    expect(hongguo).toHaveTextContent('解析器已部署');
+    expect(hongguo).toHaveTextContent('官方分享链接当前单集');
   });
 
   it('supports loading, safe error and retry states', async () => {
@@ -107,6 +115,18 @@ function statuses(): ProviderStatusList {
         status: 'verified',
         last_verified_at: '2026-08-10T00:00:00Z',
         user_action: null,
+      },
+      {
+        key: 'hongguo_web',
+        display_name: '红果短剧官方分享',
+        registered: true,
+        extractor_exists: true,
+        capabilities: ['single_video'],
+        access_modes: ['anonymous'],
+        status: 'unknown',
+        last_verified_at: null,
+        user_action:
+          '已接入红果官方分享链接当前单集；不支持 App 受保护媒体、全集抓取或批量下载。',
       },
     ],
   };

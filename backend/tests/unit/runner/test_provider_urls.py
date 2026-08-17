@@ -44,6 +44,15 @@ def test_verified_provider_status(url: str) -> None:
     assert provider_profile(url).support_status is ProviderSupportStatus.VERIFIED
 
 
+def test_hongguo_official_share_is_a_single_video_profile() -> None:
+    profile = provider_profile("https://novelquickapp.com/s/YMc-jWnOo1U/")
+
+    assert profile.key == "hongguo_web"
+    assert profile.version == "hongguo-official-share-v1"
+    assert profile.support_status is ProviderSupportStatus.UNKNOWN
+    assert profile.capabilities == frozenset({ProviderCapability.SINGLE_VIDEO})
+
+
 def test_preserves_unlisted_and_non_vimeo_urls() -> None:
     assert (
         provider_request_url("https://vimeo.com/76979871/private-hash")

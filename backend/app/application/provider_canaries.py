@@ -129,7 +129,7 @@ def _merge_status(
         access_modes=baseline.access_modes,
         status=status,
         last_verified_at=verified_at or baseline.last_verified_at,
-        user_action=_user_action(status),
+        user_action=_user_action(status, baseline.key),
     )
 
 
@@ -191,7 +191,14 @@ def _latest_analysis_success(
     )
 
 
-def _user_action(status: ProviderSupportStatus) -> str | None:
+def _user_action(
+    status: ProviderSupportStatus, provider_key: str | None = None
+) -> str | None:
+    if provider_key == "hongguo_web" and status is ProviderSupportStatus.UNKNOWN:
+        return (
+            "已接入红果官方分享链接当前单集；"
+            "不支持 App 受保护媒体、全集抓取或批量下载。"
+        )
     if status is ProviderSupportStatus.ACCESS_REQUIRED:
         return "该平台需要部署已批准的受控会话；未启用时请稍后重试。"
     if status in {

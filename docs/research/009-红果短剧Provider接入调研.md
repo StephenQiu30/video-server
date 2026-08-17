@@ -2,7 +2,22 @@
 
 - 日期：2026-08-12
 - 调研范围：GitHub 仓库检索、源码链路核验、许可证/来源审查、离线自测与构建可复现性
-- 总结论：**技术上可实现，产品化为有条件可行**。不适合实现为纯服务端、无状态、匿名公网 extractor；推荐 Android/模拟器 Edge Agent 在本地完成签名、取链与媒体转换，只向服务端交付标准 MP4 制品。当前代码尚未实现，Provider 保持 `unsupported`
+- 总结结论：**需要区分官方网页分享单集与红果 App 受保护媒体**。本次已落地一个窄范围的 `hongguo_web` Provider：只处理红果官方分享页当前指向的一集，通过官方网页播放器取得当前集的签名 MP4；不使用分享页约 30 秒预览流，不遍历全集，也不处理 App 私有签名或 DRM。该 Provider 已在平台状态中标记为“已接入，待验证”，并明确展示当前单集范围；它暂保持 `unknown`，表示已能运行但尚未完成稳定性 canary。红果 App/受保护媒体仍推荐 Android/模拟器 Edge Agent，只向服务端交付标准 MP4 制品。
+
+## 0.1 官方分享单集路径（2026-08-17 新增）
+
+用户提供的官方分享页会将当前集信息写入 H5 的 SSR `window._ROUTER_DATA`，其中包含剧集 ID、当前 `vid` 和章节顺序。分享页自身的 `series_data.play_url` 是带 `start=0&end=30` 的预览地址，不能作为完整单集来源。
+
+`hongguo_web` 的处理边界如下：
+
+1. 只接受 `novelquickapp.com` 官方分享短链/H5 路由和 `hongguoduanju.com` 官方播放器 URL。
+2. 校验分享页的 `series_id`、当前 `vid` 与 `chapter_ids[chapter_order - 1]` 一致。
+3. 使用同一组 ID 打开官方播放器页面，校验播放器返回的 `series_id` 与 `vid`。
+4. 只接受第一方播放器状态里的 `v3-*.qznovelvod.com` HTTPS MP4 地址，并保留官方播放器 Referer；短时签名 URL 不持久化。
+5. 输出单个 `source-mp4` format，后续继续经过现有 Runner 的 ffprobe、下载、Hash、Artifact 和分析链。
+6. 不返回 `chapter_ids` 作为 playlist，不遍历其他集，不把分享页的预览地址升级为完整视频。
+
+对用户提供的《佳偶错成》分享页，实际验证到第 1 集：197.6 秒、1280×720、MP4；远程 ffprobe 返回相同的 197.6 秒。该证据只证明“官方分享当前集”路径，不证明红果 App 全集或任意红果链接可用。
 
 ## 0. 可实现性判定
 
