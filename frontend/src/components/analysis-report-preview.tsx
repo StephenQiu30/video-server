@@ -32,7 +32,7 @@ export default function AnalysisReportPreview({
   return (
     <article
       aria-label="Markdown 分析报告预览"
-      className="max-w-4xl text-[15px] leading-7"
+      className="w-full text-[15px] leading-7"
     >
       <ReactMarkdown
         allowedElements={allowedElements}

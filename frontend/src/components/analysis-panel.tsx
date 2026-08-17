@@ -52,9 +52,9 @@ export default function AnalysisPanel({
         aria-label="AI 智能分析"
         className="mt-14 border-t py-12 sm:mt-16 sm:py-16"
       >
-        <div className="flex flex-wrap items-start justify-between gap-6">
-          <div className="max-w-4xl">
-            <h2 className="text-[32px] font-medium leading-[1.05] tracking-[-0.045em] sm:text-[44px]">
+        <div className="flex flex-col gap-6">
+          <div className="min-w-0 w-full">
+            <h2 className="w-full text-[32px] font-medium leading-[1.05] tracking-[-0.045em] sm:text-[44px]">
               {state.job.result.title}
             </h2>
           </div>

@@ -38,10 +38,10 @@ export function ScreenplayCompletedAnalysis({
       : '剧本改写已完成';
   return (
     <>
-      <div className="flex flex-wrap items-start justify-between gap-6">
-        <div className="max-w-4xl">
+      <div className="flex flex-col gap-6">
+        <div className="min-w-0 w-full">
           <h2
-            className="text-[32px] font-medium leading-[1.05] tracking-[-0.045em] sm:text-[44px]"
+            className="w-full text-[32px] font-medium leading-[1.05] tracking-[-0.045em] sm:text-[44px]"
             id="screenplay-analysis-title"
           >
             {title}

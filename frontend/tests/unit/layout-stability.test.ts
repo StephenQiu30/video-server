@@ -57,4 +57,55 @@ describe('global layout stability', () => {
       );
     }
   });
+
+  it('keeps completed analysis content on the shared page axis', () => {
+    const analysisPanel = readFileSync(
+      resolve(process.cwd(), 'src/components/analysis-panel.tsx'),
+      'utf8',
+    );
+
+    expect(analysisPanel).toContain('className="min-w-0 w-full"');
+    expect(analysisPanel).toContain('className="w-full text-[32px]');
+    expect(analysisPanel).not.toContain('className="max-w-4xl"');
+
+    expect(
+      readFileSync(
+        resolve(process.cwd(), 'src/components/analysis-result-view.tsx'),
+        'utf8',
+      ),
+    ).toContain('className="mt-8 w-full"');
+    expect(
+      readFileSync(
+        resolve(process.cwd(), 'src/components/analysis-report-preview.tsx'),
+        'utf8',
+      ),
+    ).toContain('className="w-full text-[15px]');
+  });
+
+  it('lets overlay content shrink inside its official primitives', () => {
+    for (const path of [
+      'src/components/ui/dialog.tsx',
+      'src/components/ui/alert-dialog.tsx',
+      'src/components/ui/sheet.tsx',
+    ]) {
+      expect(readFileSync(resolve(process.cwd(), path), 'utf8')).toContain(
+        'min-w-0',
+      );
+      expect(readFileSync(resolve(process.cwd(), path), 'utf8')).toContain(
+        '[&>*]:min-w-0',
+      );
+    }
+
+    const screenplayUploadForm = readFileSync(
+      resolve(process.cwd(), 'src/components/screenplay-upload-form.tsx'),
+      'utf8',
+    );
+    const mediaUploadForm = readFileSync(
+      resolve(process.cwd(), 'src/components/media-upload-form.tsx'),
+      'utf8',
+    );
+
+    expect(screenplayUploadForm).toContain('line-clamp-2 break-words');
+    expect(mediaUploadForm).toContain('line-clamp-2 break-words');
+  });
 });

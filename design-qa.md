@@ -78,6 +78,46 @@
 
 final result: passed
 
+## 2026-08-17 弹层与长内容显示回归
+
+### 对照目标与实现
+
+- 用户来源截图：`/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-a421a301-f2e3-4a1f-987a-9c3271342da1.png`；截图中 `/documents` 的“上传剧本文档”弹窗出现内容向右溢出，长文件名被裁切。
+- 实现截图：`/tmp/fanqv-upload-dialog-fixed.jpg`；截图为修复后的 `/documents` 弹窗页面视口。源图包含浏览器 Chrome 外壳且处于已选长文件状态，实施截图为页面视口且处于未选文件状态，因此本次只对弹窗内容区域做聚焦对照，不作整张截图的像素级比较。
+- 源图为 2696×1740、按 2× 视网膜密度约合 1348 CSS px；实施截图为 1512×693 CSS px。
+
+### Findings 与修复
+
+- 修复前实测：Dialog `clientWidth=512`、`scrollWidth=566`；直接子节点宽度为 534，超过弹窗内容区 22px，导致长文件名和表单内容显示不全。
+- 复用并加固官方 shadcn/Radix `Dialog`、`AlertDialog`、`Sheet` 基座：加入 `min-w-0` 和直接子节点收缩约束，避免网格/弹性子项把内容撑出弹层。
+- 剧本与媒体上传表单的文件名改为最多两行换行显示，并保留完整文件名 `title`；不再依赖单行截断承载关键内容。
+- 剧本分析完成态与视频分析完成态统一为全宽标题、独立操作行，避免长标题与操作按钮互相挤压。
+
+### 浏览器实测
+
+- 修复后弹窗：`clientWidth=512`、`scrollWidth=512`；Header 与表单宽度均为 480，未发现可见的横向内容溢出。
+- 桌面端复核 `/`、`/history`、`/documents`、`/documents/detail`、`/providers`、`/account`：页面级 `body/document.scrollWidth` 与 viewport 一致；文档长预览保留局部滚动，不把页面整体撑宽。
+- 本轮真实浏览器重点覆盖已登录桌面视口与弹层状态；未将本次结果扩展为完整移动端或 WCAG 合规声明。移动端布局仍由共享 `.content-shell`、`min-w-0` 与响应式 reflow 规则约束。
+
+### design.md 对齐
+
+- 保持共享 `.content-shell` 的连续画布和 Header/main/Footer 内容轴，没有新增 PageShell/Card 等平行视觉层。
+- 继续使用项目已有的 shadcn/ui、Radix、Button、Dialog、Sheet、Item 等官方组件；本次修改集中在共享 primitive 和现有表单，不新增自定义弹窗组件。
+- 长内容遵循“不裁切、必要时局部滚动、网格/弹性子项允许收缩”的规范；状态与交互仍使用现有语义组件和设计 token。
+
+### 工程验证
+
+- 前端完整测试：39 个测试文件、146 项测试通过。
+- `npm run lint`：通过；Biome 仅报告仓库既有 `.agents/skills` 断开符号链接 warning，TypeScript 通过。
+- `git diff --check`：通过。
+- Docker production build：通过；`video-api` 重建后 `/health/live` 返回 `{"status":"ok"}`。
+
+### Findings
+
+- 在本次覆盖的桌面路由和弹层状态中，没有剩余 P0、P1 或 P2 显示问题。
+
+final result: passed
+
 ## 2026-08-16 BasicLayout 统一应用壳回归
 
 - 缺陷基线：应用页原先由路由和业务 View 分别创建 `main`、`.content-shell` 与 `.inner-page`，全局没有 SiteFooter；Header 与页面主体的对齐责任分散，新增页面容易复制出不同的外层宽度。
@@ -313,5 +353,33 @@ final result: passed
 - interactions：鼠标点击可展开并选择；键盘 `Space`、`ArrowDown`、`Enter` 可完成展开、移动和选择，选择后触发器值正确更新。浏览器控制台无 error 或 warning。
 - 工程门禁：lint/typecheck 通过；format check 通过；39 个测试文件、143 项测试通过；Next.js production build 与 15 个静态页面通过。
 - 复核结果：桌面端、移动端和键盘交互均无剩余 P0、P1 或 P2 问题。
+
+final result: passed
+
+## 2026-08-17 下载详情页内容宽度回归
+
+### 对照目标与实现
+
+- 用户来源截图：`/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-b03822a8-eeb2-4059-9f57-7448c1862925.png`，用于确认下载详情页的内容区应与顶部导航、页面上下壳体共用同一水平宽度。
+- 修复范围：已完成的《佳偶错成》第 1 集详情页；分析标题、操作区、视觉摘要和报告预览不再使用独立的 `max-w-4xl` 阅读宽度。
+- 实现策略：继续复用现有 `.content-shell`，只移除详情内容内部的额外宽度约束；标题与操作按钮改为纵向分组，移动端保持自然换行。
+
+### 浏览器实测
+
+- 生产 Docker 前端重建后，1348×749 桌面视口中 Header、AI 分析区和底栏均为 `x=80 / width=1188 / right=1268`。
+- AI 分析标题和视觉摘要均为 `x=80 / width=1188 / right=1268`，与共享内容轴完全重合。
+- 390×844 移动视口中，分析区、标题和视觉摘要均为 `x=16 / width=358 / right=374`；`body.scrollWidth=390`、`document.scrollWidth=390`，无横向溢出。
+
+### 工程验证
+
+- 前端完整测试：145 项通过。
+- `npm run lint`：通过；Biome 仅报告仓库既有 `.agents/skills` 断开符号链接 warning，TypeScript 通过。
+- `git diff --check`：通过。
+- Docker production build：通过；`video-api` 已重建并运行。
+
+### Findings
+
+- 没有发现新的 P0/P1/P2 视觉问题。
+- 现有设计 token、字体、颜色、图片和图标均未改变。
 
 final result: passed

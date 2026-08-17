@@ -73,6 +73,9 @@ describe('AnalysisPanel', () => {
 
     expect(await screen.findByText('已完成')).toBeInTheDocument();
     expect(screen.getByText('第 1 次执行')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: analysisResult.title }),
+    ).toHaveClass('w-full');
     expect(screen.getByRole('link', { name: '导出 DOCX' })).toHaveAttribute(
       'href',
       `/api/analyses/${analysisJob('succeeded').id}/report.docx`,

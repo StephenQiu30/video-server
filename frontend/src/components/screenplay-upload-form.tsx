@@ -77,7 +77,10 @@ export function ScreenplayUploadForm({
         >
           <FileText aria-hidden className="size-5 text-muted-foreground" />
           <span className="min-w-0">
-            <span className="block truncate text-[15px] font-medium">
+            <span
+              className="block line-clamp-2 break-words text-[15px] leading-5 font-medium"
+              title={file?.name}
+            >
               {file?.name ?? '选择剧本文档'}
             </span>
             <span className="mt-0.5 block truncate text-xs text-muted-foreground">

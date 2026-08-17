@@ -37,7 +37,7 @@ export default function AnalysisResultView({
         />
         <Metric label="视觉资产" value={`${result.assets.length}`} />
       </div>
-      <section className="mt-8 max-w-4xl">
+      <section className="mt-8 w-full">
         <h3 className="text-xl font-medium tracking-[-0.02em]">视觉摘要</h3>
         <p className="mt-3 text-base leading-8 text-muted-foreground">
           {result.summary.text}
