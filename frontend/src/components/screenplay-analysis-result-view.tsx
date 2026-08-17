@@ -27,7 +27,7 @@ export default function ScreenplayAnalysisResultView({
         <Metric label="主要人物" value={`${result.characters.length}`} />
         <Metric label="输出语言" value={languageLabel(result.language)} />
       </div>
-      <div className="mt-9 max-w-4xl">
+      <div className="mt-9 max-w-none">
         <p className="text-lg leading-8">{result.logline}</p>
         <p className="mt-4 leading-7 text-muted-foreground">
           {result.synopsis}
@@ -35,7 +35,7 @@ export default function ScreenplayAnalysisResultView({
       </div>
       <ResultTabs reportMarkdown={reportMarkdown} />
       <TabsContent className="pt-7" value="overview">
-        <section className="max-w-4xl">
+        <section className="max-w-none">
           <h3 className="text-xl font-medium tracking-[-0.02em]">结构与节奏</h3>
           <p className="mt-3 leading-7 text-muted-foreground">
             {result.structure.pacing_summary}
