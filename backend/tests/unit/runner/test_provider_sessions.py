@@ -66,10 +66,6 @@ def write_cookie(settings: RunnerSettings, payload: bytes = COOKIE) -> Path:
             "operator runner concurrency must be one",
         ),
         (
-            {"runner_youtube_pot_base_url": "http://youtube-pot-provider:4416"},
-            "POT provider is restricted to the YouTube operator",
-        ),
-        (
             {
                 "runner_access_mode": ProviderAccessMode.OPERATOR_MANAGED,
                 "runner_operator_session_versions": {"bilibili": "version-1"},

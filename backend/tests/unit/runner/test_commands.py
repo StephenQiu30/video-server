@@ -83,6 +83,20 @@ async def test_inspection_classifies_youtube_bot_confirmation_requirement(
 
 
 @pytest.mark.asyncio
+async def test_inspection_classifies_unavailable_youtube_video(tmp_path: Path) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(b"ERROR: [youtube] pqyXR30AoOs: Video unavailable"),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect("https://youtu.be/pqyXR30AoOs", tmp_path)
+
+    assert caught.value.code == "provider_link_unavailable"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
 async def test_inspection_classifies_vimeo_login_requirement(tmp_path: Path) -> None:
     commands = MediaCommands(
         settings(tmp_path),
@@ -169,6 +183,26 @@ async def test_youtube_uses_operator_managed_provider_egress(tmp_path: Path) -> 
         "http://youtube-egress:3128"
     )
     assert supervisor.env["HTTPS_PROXY"] == "http://youtube-egress:3128"
+    assert "--cookies" not in supervisor.argv
+
+
+@pytest.mark.asyncio
+async def test_youtube_uses_service_managed_pot_without_cookies(tmp_path: Path) -> None:
+    supervisor = RecordingSupervisor()
+    configured = settings(tmp_path).model_copy(
+        update={
+            "runner_youtube_pot_base_url": "http://youtube-pot-provider:4416",
+        }
+    )
+    commands = MediaCommands(configured, supervisor)
+
+    await commands.inspect("https://www.youtube.com/watch?v=owned", tmp_path)
+
+    assert "youtube:player_client=default,mweb" in supervisor.argv
+    assert (
+        "youtubepot-bgutilhttp:base_url=http://youtube-pot-provider:4416"
+        in supervisor.argv
+    )
     assert "--cookies" not in supervisor.argv
 
 

@@ -99,9 +99,9 @@ class FakeVideoAnalyzer:
 
 
 def screenplay_job_and_source(
-    *, character_count: int | None = None
+    *, text: str = SCREENPLAY_TEXT, character_count: int | None = None
 ) -> tuple[AnalysisJobSnapshot, AnalysisScreenplaySource]:
-    digest = hashlib.sha256(SCREENPLAY_TEXT.encode()).hexdigest()
+    digest = hashlib.sha256(text.encode()).hexdigest()
     document_id = uuid4()
     job = replace(
         running_job(),
@@ -113,7 +113,7 @@ def screenplay_job_and_source(
         skill_id="screenplay-analysis",
         skill_instructions="分析结构、人物、场景和对白，并引用原文场景。",
     )
-    count = character_count if character_count is not None else len(SCREENPLAY_TEXT)
+    count = character_count if character_count is not None else len(text)
     source = AnalysisScreenplaySource(
         artifact_id=uuid4(),
         document_id=document_id,
@@ -121,11 +121,11 @@ def screenplay_job_and_source(
         bucket="video-artifacts",
         object_key=f"documents/{document_id}/1/screenplay.md",
         sha256=digest,
-        size_bytes=len(SCREENPLAY_TEXT.encode()),
+        size_bytes=len(text.encode()),
         character_count=count,
         detected_language="mixed",
         expires_at=NOW + timedelta(hours=1),
-        scenes=(ScreenplaySceneSource("scene-1", 0, min(len(SCREENPLAY_TEXT), count)),),
+        scenes=(ScreenplaySceneSource("scene-1", 0, len(text)),),
     )
     return job, source
 

@@ -44,6 +44,41 @@ async def test_rewrite_publishes_complete_ordered_source_bound_result(
 
 
 @pytest.mark.asyncio
+async def test_rewrite_scales_glossary_extraction_for_long_screenplay(
+    tmp_path: Path,
+) -> None:
+    text = "林舟 sees a change.\n" * 8_000
+    execution, repository, _, analyzer, _ = build_rewrite_execution(
+        tmp_path,
+        maximum=8_000,
+        max_chunks=128,
+        max_glossary=20_000,
+        max_output=100_000,
+        text=text,
+    )
+
+    disposition = await execution.execute(
+        repository.job.id,
+        repository.job.run_id,
+        repository.job.run_no,
+        repository.job.version,
+    )
+
+    assert disposition is AnalysisDisposition.ACK
+    assert len(analyzer.glossary_requests) > 1
+    assert all(
+        len(request.screenplay_text) <= 20_000 for request in analyzer.glossary_requests
+    )
+    assert (
+        "".join(request.screenplay_text for request in analyzer.glossary_requests)
+        == text
+    )
+    result = repository.published[0]
+    assert isinstance(result, ScreenplayRewriteResult)
+    assert len(result.chunks) > 1
+
+
+@pytest.mark.asyncio
 async def test_rewrite_recovers_current_invalid_chunk_without_repeating_verified_chunks(
     tmp_path: Path,
 ) -> None:

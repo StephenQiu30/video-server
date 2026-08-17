@@ -51,6 +51,19 @@ def test_loads_credential_free_provider_proxy_overrides(
     assert settings.egress_proxy_for("bilibili") == "http://egress-proxy:3128"
 
 
+def test_anonymous_runner_can_use_service_managed_youtube_pot(
+    tmp_path: Path,
+) -> None:
+    settings = RunnerSettings(
+        runner_hmac_secret=SECRET,
+        runner_egress_proxy="http://egress-proxy:3128",
+        runner_workspace_root=tmp_path,
+        runner_youtube_pot_base_url="http://youtube-pot-provider:4416",
+    )
+
+    assert settings.runner_youtube_pot_base_url.endswith(":4416")
+
+
 def test_runner_uses_the_same_exact_peertube_instance_allowlist(
     tmp_path: Path,
 ) -> None:

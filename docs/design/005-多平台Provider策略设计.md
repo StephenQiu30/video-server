@@ -3,7 +3,9 @@
 - 状态：Partially Implemented；production verification pending
 - 日期：2026-08-10
 - 前置调研：`docs/research/003-多平台下载会话与GitHub适配调研.md`
-- 实现状态：Phase 1 已落地版本化 Profile、非 Secret 访问上下文、匿名/YouTube 运维 Runner 路由、操作级 Cookie jar、权益防火墙、可选 POT sidecar、稳定错误、Provider 探针结果表/定时执行器/动态状态聚合、`GET /api/providers` 与前端状态页。授权目标的真实 Cookie/POT canary、完整视频 Agent E2E、账号权益漂移自动停用和统一重试预算仍是生产发布门禁；Phase 2 的用户 Credential Broker/Vault 与 gallery-dl 尚未实现。
+- 实现状态：Phase 1 已落地版本化 Profile、非 Secret 访问上下文、匿名/YouTube 运维 Runner 路由、操作级 Cookie jar、权益防火墙、服务端托管 POT sidecar、稳定错误、Provider 探针结果表/定时执行器/动态状态聚合、`GET /api/providers` 与前端状态页。授权目标的真实 Cookie/POT canary、完整视频 Agent E2E、账号权益漂移自动停用和统一重试预算仍是生产发布门禁；Phase 2 的用户 Credential Broker/Vault 与 gallery-dl 尚未实现。
+
+> 当前实现增量（2026-08-17）：Compose 默认启动受版本固定的 YouTube POT sidecar，并通过仅内部可达的 `youtube_pot_net` 同时服务匿名 YouTube Runner 与可选的 YouTube Operator Runner。公开 YouTube 链接由服务端自动使用 `default,mweb` client 和 POT 解析，不要求用户提供 Cookie、PO Token 或额外参数；Operator Runner 仍只用于确实需要服务侧授权状态的内容。POT token 仍为任务期数据，不写入业务数据、日志或用户响应。
 
 ## 1. 目标
 

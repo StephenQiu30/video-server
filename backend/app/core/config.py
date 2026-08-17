@@ -216,6 +216,9 @@ class Settings(BaseSettings):
     analysis_screenplay_single_call_characters: int = Field(
         default=120_000, ge=1_000, le=500_000
     )
+    analysis_screenplay_rewrite_glossary_chunk_characters: int = Field(
+        default=20_000, ge=1_000, le=50_000
+    )
     analysis_screenplay_rewrite_chunk_characters: int = Field(
         default=8_000, ge=1_000, le=50_000
     )

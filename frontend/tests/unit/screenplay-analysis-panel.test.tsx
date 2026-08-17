@@ -110,7 +110,7 @@ describe('ScreenplayAnalysisPanel', () => {
 
     expect(
       await screen.findByText(
-        '剧本文本、分块或改写结果超出资源限制，请缩短内容后重试。',
+        '剧本任务达到当前执行器资源上限，未发布部分结果；请稍后重试，持续出现时联系管理员调整分析配置。',
       ),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '重试任务' })).toBeEnabled();

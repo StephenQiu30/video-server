@@ -17,6 +17,8 @@ def classify_provider_failure(
         return "provider_unsupported", 422
     if _unsupported_media(command_text, text):
         return "provider_media_unsupported", 422
+    if _unavailable_youtube_video(command_text, text):
+        return "provider_link_unavailable", 422
     if _unavailable_share_link(command_text, text):
         return "provider_link_unavailable", 422
     if _any(
@@ -114,6 +116,17 @@ def _unavailable_share_link(command: str, stderr: bytes) -> bool:
             "chenzhongtech.com",
             "gifshow.com",
         )
+    )
+
+
+def _unavailable_youtube_video(command: str, stderr: bytes) -> bool:
+    if not any(host in command for host in ("youtube.com", "youtu.be")):
+        return False
+    return _any(
+        stderr,
+        b"video unavailable",
+        b"this video is unavailable",
+        b"video is no longer available",
     )
 
 

@@ -65,7 +65,9 @@ def build_screenplay_components(
         loader=loader,
         resolver=resolver,
         clock=clock,
-        max_glossary_characters=settings.analysis_screenplay_single_call_characters,
+        max_glossary_characters=(
+            settings.analysis_screenplay_rewrite_glossary_chunk_characters
+        ),
         max_chunk_characters=(settings.analysis_screenplay_rewrite_chunk_characters),
         max_chunks=settings.analysis_max_screenplay_rewrite_chunks,
         context_characters=(settings.analysis_screenplay_rewrite_context_characters),

@@ -60,6 +60,7 @@ def test_local_import_defaults_and_bounds() -> None:
     assert settings.screenplay_analysis_enabled is True
     assert settings.analysis_max_screenplay_bytes == 2 * 1024**2
     assert settings.analysis_screenplay_rewrite_chunk_characters == 8_000
+    assert settings.analysis_screenplay_rewrite_glossary_chunk_characters == 20_000
     assert settings.analysis_max_screenplay_rewrite_chunks == 128
     assert settings.analysis_screenplay_rewrite_context_characters == 1_000
     assert settings.analysis_max_screenplay_rewrite_output_characters == 400_000

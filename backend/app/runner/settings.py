@@ -219,7 +219,10 @@ class RunnerSettings(BaseSettings):
             youtube_operator = operator and set(
                 self.runner_operator_session_versions
             ) == {"youtube"}
-            if not youtube_operator:
+            if (
+                not youtube_operator
+                and self.runner_access_mode is not ProviderAccessMode.ANONYMOUS
+            ):
                 raise ValueError("POT provider is restricted to the YouTube operator")
         return self
 

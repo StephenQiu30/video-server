@@ -69,6 +69,17 @@ async def test_youtube_access_failure_falls_back_to_operator_pool() -> None:
     assert len(anonymous.inspected) == len(operator.inspected) == 1
 
 
+async def test_operator_failure_preserves_anonymous_diagnosis() -> None:
+    anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
+    anonymous.inspect_error = MediaInspectionAuthRequired()
+    operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED))
+    operator.inspect_error = MediaInspectionTemporarilyUnavailable()
+    router = MediaRunnerRouter(anonymous, {"youtube": operator})  # type: ignore[arg-type]
+
+    with pytest.raises(MediaInspectionAuthRequired):
+        await router.inspect("https://www.youtube.com/watch?v=owned")
+
+
 async def test_unconfigured_provider_does_not_receive_operator_session() -> None:
     anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
     anonymous.inspect_error = MediaInspectionAuthRequired()

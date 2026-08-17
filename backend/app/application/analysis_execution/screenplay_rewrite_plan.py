@@ -77,6 +77,35 @@ def plan_screenplay_rewrite(
     return tuple(chunks)
 
 
+def plan_screenplay_glossary_chunks(
+    text: str, *, max_chunk_characters: int
+) -> tuple[str, ...]:
+    """Split glossary input into bounded, boundary-aware segments.
+
+    Glossary extraction is a separate model call from chunk rewriting.  Keeping
+    these segments independent from the rewrite plan lets a large screenplay
+    use a small number of glossary calls without changing the source-bound
+    rewrite coverage.
+    """
+    if (
+        isinstance(max_chunk_characters, bool)
+        or not isinstance(max_chunk_characters, int)
+        or max_chunk_characters <= 0
+    ):
+        raise ValueError("glossary planning limit must be positive")
+    if not text or "\r" in text or "\x00" in text:
+        raise AnalysisArtifactError("artifact_integrity_failed")
+    chunks: list[str] = []
+    cursor = 0
+    while cursor < len(text):
+        boundary = _chunk_boundary(text, cursor, len(text), max_chunk_characters)
+        chunks.append(text[cursor:boundary])
+        cursor = boundary
+    if "".join(chunks) != text:
+        raise AnalysisArtifactError("artifact_integrity_failed")
+    return tuple(chunks)
+
+
 def _validate_source(text: str, scenes: tuple[ScreenplaySceneSource, ...]) -> None:
     if (
         not text

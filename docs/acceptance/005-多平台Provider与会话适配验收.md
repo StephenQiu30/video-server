@@ -66,7 +66,7 @@
 
 ## 6. E. POT、出口与重试
 
-- [x] E1：POT sidecar 仅向 YouTube credentialed Runner 暴露，版本和许可证进入 SBOM/NOTICE。
+- [x] E1：POT sidecar 仅向内部的匿名 YouTube Runner 与 YouTube credentialed Runner 暴露，不发布宿主机端口；版本和许可证进入 SBOM/NOTICE。
 - [ ] E2：GVS token 按允许的 client/video/session 自动生成，不在 DB/队列/日志长期持久化。
 - [ ] E3：POT mint 与 inspect/download 使用同一 proxy/source/session binding。
 - [ ] E4：sidecar unavailable、timeout、POT required、POT rejected、刷新一次成功/失败有不同稳定码。

@@ -6,6 +6,7 @@ from app.application.analysis import AnalysisJobSnapshot
 from app.domain.analysis import (
     AnalysisValidationCode,
     AnalysisValidationError,
+    ScreenplayGlossaryTerm,
     ScreenplayRewriteChunkOutput,
     ScreenplayRewriteGlossary,
     ScreenplayRewriteResult,
@@ -15,6 +16,49 @@ from .errors import AnalysisArtifactError
 from .models import LocalScreenplayArtifact
 from .screenplay_rewrite_models import ScreenplayRewriteChunkRequest
 from .screenplay_rewrite_plan import ScreenplayRewriteSourceChunk
+
+
+def merge_screenplay_glossaries(
+    glossaries: tuple[ScreenplayRewriteGlossary, ...],
+) -> ScreenplayRewriteGlossary:
+    """Merge segment glossaries into one deterministic rewrite contract."""
+    if not glossaries:
+        raise AnalysisArtifactError("analysis_resource_limit")
+    first = glossaries[0]
+    terms: list[ScreenplayGlossaryTerm] = []
+    term_sources: set[str] = set()
+    style_rules: list[str] = []
+    style_rule_set: set[str] = set()
+    for glossary in glossaries:
+        if (
+            glossary.source_language != first.source_language
+            or glossary.target_language != first.target_language
+        ):
+            raise AnalysisValidationError(
+                AnalysisValidationCode.INVALID_SCHEMA,
+                "screenplay glossary language changed between segments",
+            )
+        for term in glossary.terms:
+            key = term.source.casefold()
+            if key in term_sources:
+                continue
+            if len(terms) >= 512:
+                raise AnalysisArtifactError("analysis_resource_limit")
+            term_sources.add(key)
+            terms.append(term)
+        for rule in glossary.style_rules:
+            if rule in style_rule_set:
+                continue
+            if len(style_rules) >= 64:
+                raise AnalysisArtifactError("analysis_resource_limit")
+            style_rule_set.add(rule)
+            style_rules.append(rule)
+    return ScreenplayRewriteGlossary(
+        source_language=first.source_language,
+        target_language=first.target_language,
+        terms=tuple(terms),
+        style_rules=tuple(style_rules),
+    )
 
 
 def build_chunk_request(

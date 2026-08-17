@@ -16,6 +16,7 @@ from app.application.analysis_execution.errors import AnalysisExecutionError
 
 from .fakes import NOW, FakeLoader, settings
 from .screenplay_fakes import (
+    SCREENPLAY_TEXT,
     FakeScreenplayAnalyzer,
     FakeScreenplayLoader,
     FakeScreenplayResolver,
@@ -95,6 +96,8 @@ def build_rewrite_execution(
     maximum: int = 20,
     max_chunks: int = 20,
     max_output: int = 10_000,
+    max_glossary: int = 120_000,
+    text: str | None = None,
 ) -> tuple[
     AnalysisExecution,
     ScreenplayRepository,
@@ -102,7 +105,8 @@ def build_rewrite_execution(
     FakeRewriteAnalyzer,
     FakeRewriteResolver,
 ]:
-    job, source = screenplay_job_and_source()
+    screenplay_text = text if text is not None else SCREENPLAY_TEXT
+    job, source = screenplay_job_and_source(text=screenplay_text)
     job = replace(
         job,
         result_contract="screenplay-rewrite",
@@ -111,7 +115,7 @@ def build_rewrite_execution(
         skill_instructions="Rewrite the screenplay in natural English.",
     )
     repository = ScreenplayRepository(job, source)
-    loader = FakeScreenplayLoader(root / "screenplay")
+    loader = FakeScreenplayLoader(root / "screenplay", text=screenplay_text)
     analyzer = FakeRewriteAnalyzer()
 
     async def record_retry_delay(delay: float) -> None:
@@ -123,7 +127,7 @@ def build_rewrite_execution(
         loader=loader,
         resolver=resolver,
         clock=lambda: NOW,
-        max_glossary_characters=120_000,
+        max_glossary_characters=max_glossary,
         max_chunk_characters=maximum,
         max_chunks=max_chunks,
         context_characters=10,

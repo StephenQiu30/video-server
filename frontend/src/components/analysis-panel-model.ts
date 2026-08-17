@@ -20,7 +20,7 @@ export function screenplayAnalysisErrorMessage(
   code: string | null | undefined,
 ): string | undefined {
   if (code === 'analysis_resource_limit') {
-    return '剧本文本、分块或改写结果超出资源限制，请缩短内容后重试。';
+    return '剧本任务达到当前执行器资源上限，未发布部分结果；请稍后重试，持续出现时联系管理员调整分析配置。';
   }
   if (code === 'screenplay_output_incomplete') {
     return '剧本改写结果不完整，任务未发布任何部分正文，请重试。';

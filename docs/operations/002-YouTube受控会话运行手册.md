@@ -67,7 +67,7 @@ docker compose --env-file .env.prod -f docker-compose-prod.yml --profile youtube
 docker compose --env-file .env.prod -f docker-compose-prod.yml --profile youtube-operator up -d --no-build
 ~~~
 
-`youtube-operator-runner`、`youtube-pot-provider` 和匿名 Runner 没有可发布的宿主机端口；POT sidecar 只在内部 `youtube_pot_net` 对运维 Runner 可见。
+`youtube-operator-runner`、`youtube-pot-provider` 和匿名 Runner 没有可发布的宿主机端口；POT sidecar 只在内部 `youtube_pot_net` 对匿名 YouTube Runner 与运维 Runner 可见。匿名公开链接由服务端自动处理，用户不需要提交 Cookie、PO Token 或额外 yt-dlp 参数。
 
 ## 4. Canary 与发布判定
 

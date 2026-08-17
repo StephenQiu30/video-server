@@ -32,11 +32,13 @@ from .screenplay_rewrite_models import (
 )
 from .screenplay_rewrite_plan import (
     ScreenplayRewriteSourceChunk,
+    plan_screenplay_glossary_chunks,
     plan_screenplay_rewrite,
 )
 from .screenplay_rewrite_result import (
     build_chunk_request,
     build_rewrite_result,
+    merge_screenplay_glossaries,
     read_screenplay_text,
 )
 
@@ -98,8 +100,6 @@ class ScreenplayRewriteExecutor:
         if job.result_contract != AnalysisResultContract.SCREENPLAY_REWRITE.value:
             raise AnalysisExecutionError("analysis_cli_unsupported")
         source = await self._repository.get_screenplay_source(job, self._clock())
-        if source.character_count > self._glossary_limit:
-            raise AnalysisArtifactError("analysis_resource_limit")
         local: LocalScreenplayArtifact | None = None
         try:
             local = await monitor.run(
@@ -159,26 +159,34 @@ class ScreenplayRewriteExecutor:
         selection: ScreenplayRewriteAnalyzerSelection,
         monitor: AnalysisLeaseMonitor,
     ) -> ScreenplayRewriteGlossary:
-        request = ScreenplayGlossaryRequest(
-            screenplay=local.screenplay,
-            workspace=local.workspace,
-            screenplay_text=text,
-            source_language=source_language,
-            target_language=job.output_language,
-            skill_id=job.skill_id,
-            skill_instructions=job.skill_instructions,
-            custom_prompt=job.custom_prompt,
+        segments = plan_screenplay_glossary_chunks(
+            text, max_chunk_characters=self._glossary_limit
         )
-        payload = await monitor.run(
-            lambda: selection.analyzer.build_screenplay_glossary(request),
-            stage=AnalysisStage.ANALYZING,
-            progress=20,
-        )
-        return parse_screenplay_glossary(
-            payload,
-            expected_source_language=request.source_language,
-            expected_target_language=request.target_language,
-        )
+        glossaries: list[ScreenplayRewriteGlossary] = []
+        for index, segment in enumerate(segments):
+            request = ScreenplayGlossaryRequest(
+                screenplay=local.screenplay,
+                workspace=local.workspace,
+                screenplay_text=segment,
+                source_language=source_language,
+                target_language=job.output_language,
+                skill_id=job.skill_id,
+                skill_instructions=job.skill_instructions,
+                custom_prompt=job.custom_prompt,
+            )
+            payload = await monitor.run(
+                partial(selection.analyzer.build_screenplay_glossary, request),
+                stage=AnalysisStage.ANALYZING,
+                progress=20 + ((index + 1) * 5 // len(segments)),
+            )
+            glossaries.append(
+                parse_screenplay_glossary(
+                    payload,
+                    expected_source_language=request.source_language,
+                    expected_target_language=request.target_language,
+                )
+            )
+        return merge_screenplay_glossaries(tuple(glossaries))
 
     async def _rewrite_chunks(
         self,

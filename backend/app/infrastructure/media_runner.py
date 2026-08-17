@@ -292,11 +292,17 @@ class MediaRunnerRouter:
             MediaInspectionAuthRequired,
             MediaInspectionTemporarilyUnavailable,
             MediaInspectionVerificationFailed,
-        ):
+        ) as anonymous_error:
             operator = self._operators.get(provider_profile(url).key)
             if operator is None:
                 raise
-            return await operator.inspect(url)
+            try:
+                return await operator.inspect(url)
+            except MediaInspectionFailure as operator_error:
+                # Operator runners are optional. If one is unavailable or has
+                # no service-owned session, preserve the original anonymous
+                # diagnosis instead of exposing a generic runner failure.
+                raise anonymous_error from operator_error
 
     async def download(
         self,
