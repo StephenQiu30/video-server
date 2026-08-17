@@ -20,6 +20,13 @@ _TRANSITION = re.compile(
     r"切至[:：]?|转场[:：]?)$",
     re.IGNORECASE,
 )
+_SHOT = re.compile(
+    r"^(?:ANGLE ON|CLOSE ON|CLOSE UP|EXTREME CLOSE UP|INSERT|PAN TO|"
+    r"POV|TWO SHOT|WIDE SHOT|特写|近景|全景|远景|镜头)(?:\s|[:：]|$)",
+    re.IGNORECASE,
+)
+_SECTION = re.compile(r"^#{1,6}\s+.+")
+_SYNOPSIS = re.compile(r"^=\s*.+")
 
 
 class ScreenplayElementKind(StrEnum):
@@ -28,6 +35,10 @@ class ScreenplayElementKind(StrEnum):
     CHARACTER = "character"
     PARENTHETICAL = "parenthetical"
     DIALOGUE = "dialogue"
+    TRANSITION = "transition"
+    SHOT = "shot"
+    SECTION = "section"
+    SYNOPSIS = "synopsis"
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,8 +87,17 @@ def parse_scene_elements(
         if is_scene_heading(value):
             kind = ScreenplayElementKind.HEADING
             in_dialogue = False
+        elif _SYNOPSIS.match(value):
+            kind = ScreenplayElementKind.SYNOPSIS
+            in_dialogue = False
+        elif _SECTION.match(value) and not is_scene_heading(value):
+            kind = ScreenplayElementKind.SECTION
+            in_dialogue = False
         elif _TRANSITION.match(value):
-            kind = ScreenplayElementKind.ACTION
+            kind = ScreenplayElementKind.TRANSITION
+            in_dialogue = False
+        elif _SHOT.match(value):
+            kind = ScreenplayElementKind.SHOT
             in_dialogue = False
         elif in_dialogue and _is_parenthetical(value):
             kind = ScreenplayElementKind.PARENTHETICAL

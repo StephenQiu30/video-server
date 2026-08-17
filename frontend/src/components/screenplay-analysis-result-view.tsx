@@ -23,15 +23,22 @@ export default function ScreenplayAnalysisResultView({
   return (
     <Tabs className="mt-10 gap-0" defaultValue="overview">
       <div className="grid gap-5 border-y py-6 sm:grid-cols-3">
-        <Metric label="源场景" value={`${result.scenes.length}`} />
+        <Metric label="逐场景覆盖" value={`${result.scenes.length}`} />
         <Metric label="主要人物" value={`${result.characters.length}`} />
         <Metric label="输出语言" value={languageLabel(result.language)} />
       </div>
       <div className="mt-9 max-w-none">
-        <p className="text-lg leading-8">{result.logline}</p>
-        <p className="mt-4 leading-7 text-muted-foreground">
-          {result.synopsis}
-        </p>
+        <h2 className="text-xl font-medium tracking-[-0.02em]">故事概览</h2>
+        <dl className="mt-5 grid gap-5">
+          <Detail label="一句话梗概">
+            <span className="text-lg leading-8">{result.logline}</span>
+          </Detail>
+          <Detail label="故事梗概">
+            <span className="leading-7 text-muted-foreground">
+              {result.synopsis}
+            </span>
+          </Detail>
+        </dl>
       </div>
       <ResultTabs reportMarkdown={reportMarkdown} />
       <TabsContent className="pt-7" value="overview">

@@ -85,6 +85,31 @@ def test_tabular_docx_dialogue_is_split_without_changing_source_text() -> None:
     assert normalized.text == "外景 - 夜\n  小明\t  你好。\n"
 
 
+def test_fountain_and_screenplay_control_lines_keep_their_typed_kinds() -> None:
+    normalized = normalize_screenplay(
+        "INT. ROOM - NIGHT\n"
+        "# Act One\n"
+        "= The story begins.\n"
+        "CLOSE ON the key.\n"
+        "CUT TO:\n"
+        "The door opens.\n"
+    )
+
+    actual = [
+        (element.kind, normalized.text[element.start : element.end])
+        for element in normalized.scenes[0].elements
+    ]
+
+    assert actual == [
+        (ScreenplayElementKind.HEADING, "INT. ROOM - NIGHT"),
+        (ScreenplayElementKind.SECTION, "# Act One"),
+        (ScreenplayElementKind.SYNOPSIS, "= The story begins."),
+        (ScreenplayElementKind.SHOT, "CLOSE ON the key."),
+        (ScreenplayElementKind.TRANSITION, "CUT TO:"),
+        (ScreenplayElementKind.ACTION, "The door opens."),
+    ]
+
+
 def test_structure_element_budget_rejects_metadata_amplification() -> None:
     source = "INT. ROOM - DAY\n" + "one action line\n" * 20_000
 

@@ -77,9 +77,36 @@ def test_builtin_resolution_compiles_allowlisted_reference_and_sha256() -> None:
 
     assert resolved is not None
     assert "# Reference: references/evidence-rules.md" in resolved.instructions
+    assert "# Reference: references/output-contract.md" in resolved.instructions
+    assert "完整场景调用必须返回以下字段" in resolved.instructions
+    assert "汇总调用" in resolved.instructions
+    assert "source_scene_id" in resolved.instructions
     assert len(resolved.instructions_sha256) == 64
     assert catalog.resolve("screenplay-analysis", AnalysisInputKind.VIDEO) is None
     assert BUILTIN_ANALYSIS_SKILLS.get("missing", AnalysisInputKind.VIDEO) is None
+
+
+def test_builtin_skills_expose_the_current_production_boundary() -> None:
+    expected_phrases = {
+        "director-breakdown": ("高光候选", "production_advice"),
+        "comprehensive": ("候选与决策", "video-visual-analysis"),
+        "visual-shots": ("视觉镜头候选", "video-visual-analysis"),
+        "highlights": ("高光在当前项目中是可比较", "主选"),
+        "asset-catalog": ("AssetState", "资产身份候选"),
+        "screenplay-analysis": ("汇总调用", "source_scene_id"),
+        "screenplay-structure-review": ("连续性", "priority_revisions"),
+        "screenplay-rewrite": ("不可变文本版本候选", "source_sha256"),
+    }
+
+    for skill_id, phrases in expected_phrases.items():
+        skill = BUILTIN_ANALYSIS_SKILLS.get(
+            skill_id,
+            AnalysisInputKind.SCREENPLAY
+            if skill_id.startswith("screenplay-")
+            else AnalysisInputKind.VIDEO,
+        )
+        assert skill is not None
+        assert all(phrase in skill.instructions for phrase in phrases), skill_id
 
 
 @pytest.mark.parametrize(

@@ -49,6 +49,8 @@ def analysis_prompt(
         "匿名可见描述，不推断真实身份或敏感属性。",
         "- 高光与资产只引用真实 shot id；不要返回 media、shot_count、高光时间、"
         "资产首次出现时间、confidence 或 Shot→Asset 索引，这些由服务端派生。",
+        "- 当前项目把 shots、highlights、assets 和 production_advice 视为可复核的"
+        "观察/候选信息，不是已创建资产、镜头主选、审核结论或已提交生成任务。",
         "- 每个分镜必须填写 narrative_function，并用 1 至 5 的 highlight_score "
         "表达其视觉、情绪或叙事价值；production_advice 必须引用真实 shot id。",
         "- 最终只返回符合给定 JSON Schema 的对象，不要附加 Markdown 或解释。",

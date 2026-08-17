@@ -9,12 +9,14 @@ from app.application.analysis import (
     render_analysis_report_markdown,
 )
 from app.application.analysis.export_report import _read_verified
+from app.application.analysis.screenplay_report import render_screenplay_report_markdown
 from app.domain.analysis import (
     AnalysisMedia,
     Highlight,
     VisualAsset,
     parse_analysis_result,
 )
+from tests.unit.domain.analysis.screenplay_factories import screenplay_analysis_result
 from tests.unit.workers.analysis.fixtures import valid_mapping
 
 
@@ -69,6 +71,27 @@ def test_markdown_report_is_complete_and_escapes_model_text() -> None:
     assert "## 四、视觉资产目录" in markdown
     assert "&lt;script&gt;alert\\(1\\)&lt;/script&gt;" in markdown
     assert "\\*\\*重点\\*\\*" in markdown
+    assert markdown.endswith("\n")
+
+
+def test_screenplay_report_uses_coverage_sections_and_explains_evidence() -> None:
+    result = replace(
+        screenplay_analysis_result(),
+        title="剧本 [分析] <草稿>",
+        synopsis="开端\n\n升级与选择。",
+    )
+
+    markdown = render_screenplay_report_markdown(result)
+
+    assert markdown.startswith("# 剧本 \\[分析\\] &lt;草稿&gt;")
+    assert "## 一、阅读摘要" in markdown
+    assert "- 逐场景分析：1 个源场景，已按原文顺序覆盖" in markdown
+    assert "## 五、逐场景分析" in markdown
+    assert "### 场景 1：scene-1" in markdown
+    assert "## 八、优先修改建议" in markdown
+    assert "> 本项没有独立发现。" in markdown
+    assert "## 九、证据说明" in markdown
+    assert "逐场景分析已经由服务端校验为完整、唯一且保持原文顺序" in markdown
     assert markdown.endswith("\n")
 
 
