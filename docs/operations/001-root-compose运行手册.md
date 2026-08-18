@@ -6,8 +6,8 @@
 
 | 文件 | 用途 | 是否启动 PostgreSQL、RabbitMQ、Valkey、MinIO |
 | --- | --- | --- |
+| docker-compose-env.yml | 本项目专用基础环境 | 是，仅启动 PostgreSQL、RabbitMQ、Valkey、MinIO |
 | docker-compose.yml | 本机/共享环境运行，只启动业务容器 | 否，复用宿主机已有服务 |
-| docker-compose.full.yml | CI 或完全隔离的本地环境 | 是 |
 | docker-compose-prod.yml | 独立的生产业务容器运行配置，与默认拓扑保持一致 | 否，复用生产宿主机服务 |
 
 默认业务拓扑包含 API、Outbox、下载 Worker、导入 Worker、报告 Worker、Provider Canary、Media Runner 和受控出口代理。YouTube Operator 与其他 Provider Operator 只通过对应 profile 显式启用。
@@ -16,7 +16,7 @@ Compose 文件不再通过 YAML Anchor 隐式继承服务配置；每个服务�
 
 ## 宿主机基础设施
 
-使用 docker-compose.yml 或 docker-compose-prod.yml 前，宿主机必须已经提供：
+不启动 docker-compose-env.yml 时，使用 docker-compose.yml 或 docker-compose-prod.yml 前，宿主机必须已经提供：
 
 - PostgreSQL
 - RabbitMQ
@@ -29,7 +29,9 @@ Compose 文件不再通过 YAML Anchor 隐式继承服务配置；每个服务�
 
 ~~~bash
 cp .env.example .env
+docker compose --env-file .env -f docker-compose-env.yml config --quiet
 docker compose --env-file .env -f docker-compose.yml config --quiet
+docker compose --env-file .env -f docker-compose-env.yml up -d
 docker compose --env-file .env -f docker-compose.yml up -d --build
 ~~~
 
@@ -47,17 +49,15 @@ docker compose --env-file .env -f docker-compose.yml up -d egress-proxy
 
 ## 完整隔离环境
 
-完整隔离环境只用于 CI、运行边界烟测或没有宿主机基础设施的临时环境：
+项目专用基础环境可独立启动，随后由业务 Compose 复用：
 
 ~~~bash
 cp .env.example .env
-docker compose --env-file .env -f docker-compose.full.yml --profile environment config --quiet
-docker compose --env-file .env -f docker-compose.full.yml --profile environment up -d database-init rabbitmq-init valkey minio-init
-docker wait database-init rabbitmq-init minio-init
-docker compose --env-file .env -f docker-compose.full.yml --profile environment up -d --build
+docker compose --env-file .env -f docker-compose-env.yml up -d
+docker compose --env-file .env -f docker-compose.yml up -d --build
 ~~~
 
-完整拓扑与宿主机已有服务不要同时运行，避免端口、数据卷和同名容器冲突。
+项目专用环境与本机已有同端口服务不要同时运行，避免端口冲突；业务 Compose 不会自动启动基础环境。
 
 ## 生产环境
 

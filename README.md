@@ -168,7 +168,7 @@ npm run dev
 git diff --check
 cd backend && uv sync --frozen --dev && uv run --frozen ruff check app tests && uv run --frozen ruff format --check app tests && uv run --frozen mypy --strict app && uv run --frozen pytest -q
 cd ../frontend && npm ci && npm audit --omit=dev --audit-level=high && npm run lint && npm run format:check && npm test && npm run build
-cd .. && docker compose --env-file .env -f docker-compose.full.yml --profile environment config --quiet
+cd .. && docker compose --env-file .env -f docker-compose-env.yml config --quiet && docker compose --env-file .env -f docker-compose.yml config --quiet
 ```
 
 GitHub 的 `Required CI` 会聚合仓库、后端、前端和运行边界检查，包括统一镜像、完整 Compose 拓扑、健康接口和 SQL 幂等。

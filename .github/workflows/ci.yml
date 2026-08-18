@@ -51,12 +51,12 @@ jobs:
               raise SystemExit('GitHub Actions 必须固定到完整提交 SHA：\n  - ' + '\n  - '.join(invalid))
           PY
           temporary=$(mktemp -d)
-          trap 'rm -rf "$temporary"' EXIT
-          cp .env.example "$temporary/.env"
-          cp .env.prod.example "$temporary/.env.prod"
-          docker compose --env-file "$temporary/.env" -f docker-compose.yml config --quiet
-          docker compose --env-file "$temporary/.env" -f docker-compose.full.yml --profile environment config --quiet
-          docker compose --env-file "$temporary/.env.prod" -f docker-compose-prod.yml config --quiet
+          trap 'rm -rf "$temporary"; rm -f .env .env.prod' EXIT
+          cp .env.example .env
+          cp .env.prod.example .env.prod
+          docker compose -f docker-compose-env.yml config --quiet
+          docker compose -f docker-compose.yml config --quiet
+          docker compose -f docker-compose-prod.yml config --quiet
       - name: Validate commit messages
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -181,8 +181,7 @@ jobs:
       - name: Build and verify runtime topology
         run: |
           set -Eeuo pipefail
-          environment_file=$(mktemp "${TMPDIR:-/tmp}/video-server-ci.XXXXXX")
-          compose=(docker compose --project-name video-server-ci --env-file "$environment_file" -f docker-compose.full.yml --profile environment)
+          compose=(docker compose --project-name video-server-ci -f docker-compose-env.yml -f docker-compose.yml)
           started=0
           cleanup() {
             status=$?
@@ -194,12 +193,12 @@ jobs:
             if ((started == 1)); then
               "${compose[@]}" down --volumes --remove-orphans || true
             fi
-            rm -f "$environment_file"
+            rm -f .env
             exit "$status"
           }
           trap cleanup EXIT
-          cp .env.example "$environment_file"
-          export ANALYSIS_ENABLED=false
+          cp .env.example .env
+          sed -i 's/^ANALYSIS_ENABLED=.*/ANALYSIS_ENABLED=false/' .env
           conflicts=()
           while IFS= read -r container_name; do
             if docker inspect "$container_name" >/dev/null 2>&1; then
@@ -212,12 +211,10 @@ jobs:
           fi
           docker build --target runtime --tag video-server:local .
           started=1
-          "${compose[@]}" up --detach database-init rabbitmq-init valkey minio-init
-          initializer_statuses=$(docker wait database-init rabbitmq-init minio-init)
-          for initializer_status in $initializer_statuses; do
-            [[ "$initializer_status" == 0 ]] || exit 1
-          done
           "${compose[@]}" up --detach --wait --wait-timeout 240 postgres rabbitmq valkey minio
+          "${compose[@]}" run --rm --no-deps database-init
+          "${compose[@]}" run --rm --no-deps rabbitmq-init
+          "${compose[@]}" run --rm --no-deps minio-init
           "${compose[@]}" up --detach --wait --wait-timeout 240 --no-build api outbox worker-download provider-canary worker-report media-runner
           python3 - <<'PY'
           import json
