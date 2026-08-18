@@ -1,5 +1,5 @@
-import { ProtectedRoute } from '@/components/protected-route';
-import ScreenplayDocumentsView from '@/components/screenplay-documents-view';
+import { ProtectedRoute } from '@/components/auth/protected-route';
+import ScreenplayDocumentsView from '@/components/screenplay/screenplay-documents-view';
 
 export const metadata = { title: '剧本文档' };
 

@@ -1,5 +1,5 @@
-import { AdminAiProvidersView } from '@/components/admin-ai-providers-view';
-import { ProtectedRoute } from '@/components/protected-route';
+import { AdminAiProvidersView } from '@/components/admin/admin-ai-providers-view';
+import { ProtectedRoute } from '@/components/auth/protected-route';
 
 export const metadata = { title: 'AI 服务' };
 

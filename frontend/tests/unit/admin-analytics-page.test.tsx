@@ -8,7 +8,7 @@ import {
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AdminAnalyticsView } from '@/components/admin-analytics-view';
+import { AdminAnalyticsView } from '@/components/admin/admin-analytics-view';
 import type { AdminDownloadAnalytics } from '@/services/analytics';
 
 const runtime = vi.hoisted(() => ({

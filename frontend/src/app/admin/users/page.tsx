@@ -1,5 +1,5 @@
-import { AdminUsersView } from '@/components/admin-users-view';
-import { ProtectedRoute } from '@/components/protected-route';
+import { AdminUsersView } from '@/components/admin/admin-users-view';
+import { ProtectedRoute } from '@/components/auth/protected-route';
 
 export const metadata = { title: '用户管理' };
 

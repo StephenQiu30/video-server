@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ProviderStatusView } from '@/components/provider-status-view';
+import { ProviderStatusView } from '@/components/providers/provider-status-view';
 import type { ProviderStatusList } from '@/services/providers';
 
 const runtime = vi.hoisted(() => ({

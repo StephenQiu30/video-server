@@ -7,8 +7,8 @@ import {
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ProviderCatalogScreen } from '@/components/admin-provider-catalog/provider-catalog-screen';
-import { AdminProviderCatalogView } from '@/components/admin-provider-catalog-view';
+import { ProviderCatalogScreen } from '@/components/admin/admin-provider-catalog/provider-catalog-screen';
+import { AdminProviderCatalogView } from '@/components/admin/admin-provider-catalog-view';
 
 const runtime = vi.hoisted(() => ({
   create: vi.fn(),

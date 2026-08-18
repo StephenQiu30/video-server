@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import MediaCover from '@/components/media-cover';
+import MediaCover from '@/components/intake/media-cover';
 import { loadPrivateThumbnail } from '@/services/media-assets';
 
 vi.mock('@/services/media-assets', async (importOriginal) => {

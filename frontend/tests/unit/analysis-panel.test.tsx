@@ -8,9 +8,9 @@ import {
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import AnalysisPanel from '@/components/analysis-panel';
-import AnalysisReportPreview from '@/components/analysis-report-preview';
-import AnalysisResultView from '@/components/analysis-result-view';
+import AnalysisPanel from '@/components/analysis/analysis-panel';
+import AnalysisReportPreview from '@/components/analysis/analysis-report-preview';
+import AnalysisResultView from '@/components/analysis/analysis-result-view';
 import { httpClient } from '@/lib/request';
 import { ApiError } from '@/lib/request-error';
 import type { AnalysisJob } from '@/types/video';

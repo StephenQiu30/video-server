@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ProtectedRoute } from '@/components/protected-route';
+import { ProtectedRoute } from '@/components/auth/protected-route';
 
 const runtime = vi.hoisted(() => ({
   auth: {
@@ -12,7 +12,7 @@ const runtime = vi.hoisted(() => ({
   replace: vi.fn(),
 }));
 
-vi.mock('@/components/auth-provider', () => ({
+vi.mock('@/components/auth/auth-provider', () => ({
   useAuth: () => runtime.auth,
 }));
 

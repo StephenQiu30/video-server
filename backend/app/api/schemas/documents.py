@@ -127,7 +127,7 @@ class DocumentResponse(StrictModel):
 
 
 class DocumentDetailResponse(DocumentResponse):
-    preview: str | None = Field(max_length=100_000)
+    preview: str | None = Field(max_length=1_000_000)
     preview_truncated: bool
 
     @classmethod

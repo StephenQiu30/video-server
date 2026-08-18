@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import NotFound from '@/app/not-found';
-import MissingDownload from '@/components/missing-download';
+import MissingDownload from '@/components/downloads/missing-download';
 
 describe('empty route states', () => {
   it('gives the not-found page a semantic page title', () => {

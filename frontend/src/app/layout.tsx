@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import type { ReactNode } from 'react';
 
-import { AppShell } from '@/components/app-shell';
-import { AuthProvider } from '@/components/auth-provider';
-import { ThemeProvider } from '@/components/theme-provider';
+import { AppShell } from '@/components/layout/app-shell';
+import { AuthProvider } from '@/components/auth/auth-provider';
+import { ThemeProvider } from '@/components/layout/theme-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 import './globals.css';

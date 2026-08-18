@@ -1,5 +1,5 @@
-import { AdminProviderCatalogView } from '@/components/admin-provider-catalog-view';
-import { ProtectedRoute } from '@/components/protected-route';
+import { AdminProviderCatalogView } from '@/components/admin/admin-provider-catalog-view';
+import { ProtectedRoute } from '@/components/auth/protected-route';
 
 export const metadata = { title: '平台目录' };
 

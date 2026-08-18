@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import DownloadWorkspace from '@/components/download-workspace';
+import DownloadWorkspace from '@/components/intake/download-workspace';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ApiError } from '@/services/download';
 import { URL_MESSAGE } from '@/utils/validation';

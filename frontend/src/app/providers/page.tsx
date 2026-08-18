@@ -1,5 +1,5 @@
-import { ProtectedRoute } from '@/components/protected-route';
-import { ProviderStatusView } from '@/components/provider-status-view';
+import { ProtectedRoute } from '@/components/auth/protected-route';
+import { ProviderStatusView } from '@/components/providers/provider-status-view';
 
 export const metadata = { title: '平台状态' };
 

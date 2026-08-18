@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { PageHeader } from '@/components/page-header';
+import { PageHeader } from '@/components/layout/page-header';
 
 describe('PageHeader', () => {
   it('keeps the page title, description, and optional action semantic', () => {

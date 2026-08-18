@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { validateRegistration } from '@/components/register-form-model';
+import { validateRegistration } from '@/components/auth/register-form-model';
 
 const validValues = {
   confirmPassword: 'strong-password',

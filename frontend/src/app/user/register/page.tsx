@@ -1,4 +1,4 @@
-import { RegisterView } from '@/components/register-view';
+import { RegisterView } from '@/components/auth/register-view';
 
 export const metadata = { title: '注册' };
 

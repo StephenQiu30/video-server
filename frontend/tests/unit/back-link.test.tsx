@@ -7,11 +7,11 @@ import {
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { BackLink } from '@/components/back-link';
+import { BackLink } from '@/components/layout/back-link';
 import {
   markNavigationPush,
   NavigationHistoryProvider,
-} from '@/components/navigation-history';
+} from '@/components/layout/navigation-history';
 
 const STORAGE_KEY = 'video-server:navigation-history:v1';
 const HISTORY_ENTRY_KEY = '__videoServerNavigationEntryId';

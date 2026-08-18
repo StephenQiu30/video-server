@@ -1,5 +1,5 @@
-import { AdminAnalyticsView } from '@/components/admin-analytics-view';
-import { ProtectedRoute } from '@/components/protected-route';
+import { AdminAnalyticsView } from '@/components/admin/admin-analytics-view';
+import { ProtectedRoute } from '@/components/auth/protected-route';
 
 export const metadata = { title: '下载分析' };
 

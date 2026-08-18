@@ -44,7 +44,16 @@ frontend/
 ├── postcss.config.mjs         Tailwind CSS PostCSS 配置
 ├── src/
 │   ├── app/                   App Router 页面、布局、元数据与全局主题
-│   ├── components/            跨页面业务组件
+│   ├── components/            按业务 feature 归类的跨页面组件
+│   │   ├── account/           账户与个人信息
+│   │   ├── admin/             管理后台
+│   │   ├── analysis/          通用分析
+│   │   ├── auth/              登录、注册与访问保护
+│   │   ├── downloads/         下载历史与详情
+│   │   ├── intake/            链接、视频和文件导入
+│   │   ├── layout/            页面框架、导航与通用布局
+│   │   ├── providers/         Provider 状态
+│   │   ├── screenplay/        剧本文档、剧本分析与改写
 │   │   └── ui/                shadcn/ui 源码与 Radix UI 组合组件
 │   ├── hooks/                 下载、分析、认证等状态流程
 │   ├── lib/                   Axios 请求基础设施与通用组件工具
@@ -55,7 +64,7 @@ frontend/
 └── tests/                     Vitest 与 Testing Library 测试
 ```
 
-路由页面只放在 `src/app/`。跨页面组件放在 `src/components/`，Radix/shadcn 基础组件放在 `src/components/ui/`；不要新增 Umi `pages/`、Vite 入口、平行路由器或 `features/` 目录。
+路由页面只放在 `src/app/`。业务组件必须放在 `src/components/` 下对应的 feature 目录，跨 feature 的页面框架组件放在 `layout/`，Radix/shadcn 基础组件放在 `src/components/ui/`；不要新增 Umi `pages/`、Vite 入口、平行路由器或独立的 `src/features/` 目录。
 
 ## OpenAPI 客户端
 

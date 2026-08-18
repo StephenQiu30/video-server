@@ -4,11 +4,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import AdminAnalyticsPage from '@/app/admin/analytics/page';
 
-vi.mock('@/components/admin-analytics-view', () => ({
+vi.mock('@/components/admin/admin-analytics-view', () => ({
   AdminAnalyticsView: () => <p>分析内容</p>,
 }));
 
-vi.mock('@/components/protected-route', () => ({
+vi.mock('@/components/auth/protected-route', () => ({
   ProtectedRoute: ({
     children,
     requireAdmin,

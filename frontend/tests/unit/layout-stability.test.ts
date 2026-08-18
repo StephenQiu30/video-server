@@ -7,11 +7,11 @@ const globalsPath = resolve(process.cwd(), 'src/app/globals.css');
 describe('global layout stability', () => {
   it('keeps the application shell on one shared content axis', () => {
     const basicLayout = readFileSync(
-      resolve(process.cwd(), 'src/components/basic-layout.tsx'),
+      resolve(process.cwd(), 'src/components/layout/basic-layout.tsx'),
       'utf8',
     );
     const siteFooter = readFileSync(
-      resolve(process.cwd(), 'src/components/site-footer.tsx'),
+      resolve(process.cwd(), 'src/components/layout/site-footer.tsx'),
       'utf8',
     );
 
@@ -49,8 +49,8 @@ describe('global layout stability', () => {
       'src/app/admin/users/page.tsx',
       'src/app/admin/providers/page.tsx',
       'src/app/admin/analytics/page.tsx',
-      'src/components/download-history-view.tsx',
-      'src/components/download-job-view.tsx',
+      'src/components/downloads/download-history-view.tsx',
+      'src/components/downloads/download-job-view.tsx',
     ]) {
       expect(readFileSync(resolve(process.cwd(), path), 'utf8')).toContain(
         'inner-page',
@@ -60,7 +60,7 @@ describe('global layout stability', () => {
 
   it('keeps completed analysis content on the shared page axis', () => {
     const analysisPanel = readFileSync(
-      resolve(process.cwd(), 'src/components/analysis-panel.tsx'),
+      resolve(process.cwd(), 'src/components/analysis/analysis-panel.tsx'),
       'utf8',
     );
 
@@ -70,13 +70,13 @@ describe('global layout stability', () => {
 
     expect(
       readFileSync(
-        resolve(process.cwd(), 'src/components/analysis-result-view.tsx'),
+        resolve(process.cwd(), 'src/components/analysis/analysis-result-view.tsx'),
         'utf8',
       ),
     ).toContain('className="mt-8 w-full"');
     expect(
       readFileSync(
-        resolve(process.cwd(), 'src/components/analysis-report-preview.tsx'),
+        resolve(process.cwd(), 'src/components/analysis/analysis-report-preview.tsx'),
         'utf8',
       ),
     ).toContain('className="w-full text-[15px]');
@@ -97,11 +97,11 @@ describe('global layout stability', () => {
     }
 
     const screenplayUploadForm = readFileSync(
-      resolve(process.cwd(), 'src/components/screenplay-upload-form.tsx'),
+      resolve(process.cwd(), 'src/components/screenplay/screenplay-upload-form.tsx'),
       'utf8',
     );
     const mediaUploadForm = readFileSync(
-      resolve(process.cwd(), 'src/components/media-upload-form.tsx'),
+      resolve(process.cwd(), 'src/components/intake/media-upload-form.tsx'),
       'utf8',
     );
 

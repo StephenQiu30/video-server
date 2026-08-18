@@ -8,7 +8,7 @@ import {
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AdminUsersView } from '@/components/admin-users-view';
+import { AdminUsersView } from '@/components/admin/admin-users-view';
 
 const runtime = vi.hoisted(() => ({
   listUsers: vi.fn(),
@@ -23,7 +23,7 @@ const runtime = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('@/components/auth-provider', () => ({
+vi.mock('@/components/auth/auth-provider', () => ({
   useAuth: () => ({ loading: false, user: runtime.user }),
 }));
 

@@ -1,4 +1,4 @@
-import { LoginView } from '@/components/login-view';
+import { LoginView } from '@/components/auth/login-view';
 
 export const metadata = { title: '登录' };
 

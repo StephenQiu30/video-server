@@ -1,5 +1,5 @@
-import DownloadHistoryView from '@/components/download-history-view';
-import { ProtectedRoute } from '@/components/protected-route';
+import DownloadHistoryView from '@/components/downloads/download-history-view';
+import { ProtectedRoute } from '@/components/auth/protected-route';
 
 export const metadata = { title: '下载历史' };
 

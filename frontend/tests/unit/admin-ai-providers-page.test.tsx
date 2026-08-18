@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { AiProviderScreen } from '@/components/admin-ai-providers/ai-provider-screen';
+import { AiProviderScreen } from '@/components/admin/admin-ai-providers/ai-provider-screen';
 
 describe('administrator AI Provider screen', () => {
   it('separates agent availability from the active execution route', () => {

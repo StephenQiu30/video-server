@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import FormatPicker from '@/components/format-picker';
+import FormatPicker from '@/components/intake/format-picker';
 import { inspection } from '../fixtures/download-fixtures';
 
 describe('FormatPicker', () => {

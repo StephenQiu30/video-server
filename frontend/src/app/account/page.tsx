@@ -1,5 +1,5 @@
-import { AccountView } from '@/components/account-view';
-import { ProtectedRoute } from '@/components/protected-route';
+import { AccountView } from '@/components/account/account-view';
+import { ProtectedRoute } from '@/components/auth/protected-route';
 
 export const metadata = { title: '账户' };
 

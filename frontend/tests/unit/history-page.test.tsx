@@ -9,7 +9,7 @@ import {
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import DownloadHistoryView from '@/components/download-history-view';
+import DownloadHistoryView from '@/components/downloads/download-history-view';
 import { useDownloadHistory } from '@/hooks/useDownloadHistory';
 import type {
   DownloadHistory,

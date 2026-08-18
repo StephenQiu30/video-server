@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import DownloadJobView from '@/components/download-job-view';
+import DownloadJobView from '@/components/downloads/download-job-view';
 import { ApiError } from '@/lib/request-error';
 import { analysisSkills } from '../fixtures/analysis-fixtures';
 import { inspection, job } from '../fixtures/download-fixtures';

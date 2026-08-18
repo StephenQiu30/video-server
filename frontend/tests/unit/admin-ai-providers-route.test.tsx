@@ -4,11 +4,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import AdminAiProvidersPage from '@/app/admin/ai-providers/page';
 
-vi.mock('@/components/admin-ai-providers-view', () => ({
+vi.mock('@/components/admin/admin-ai-providers-view', () => ({
   AdminAiProvidersView: () => <p>AI Provider 管理内容</p>,
 }));
 
-vi.mock('@/components/protected-route', () => ({
+vi.mock('@/components/auth/protected-route', () => ({
   ProtectedRoute: ({
     children,
     requireAdmin,

@@ -1,5 +1,5 @@
-import DownloadWorkspace from '@/components/download-workspace';
-import { ProtectedRoute } from '@/components/protected-route';
+import DownloadWorkspace from '@/components/intake/download-workspace';
+import { ProtectedRoute } from '@/components/auth/protected-route';
 
 export default function HomePage() {
   return (

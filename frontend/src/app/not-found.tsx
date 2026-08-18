@@ -1,4 +1,4 @@
-import { BackLink } from '@/components/back-link';
+import { BackLink } from '@/components/layout/back-link';
 import {
   Empty,
   EmptyContent,

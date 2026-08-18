@@ -1,8 +1,8 @@
 import { Suspense } from 'react';
 
-import { BackLink } from '@/components/back-link';
-import { ProtectedRoute } from '@/components/protected-route';
-import ScreenplayDocumentRoute from '@/components/screenplay-document-route';
+import { BackLink } from '@/components/layout/back-link';
+import { ProtectedRoute } from '@/components/auth/protected-route';
+import ScreenplayDocumentRoute from '@/components/screenplay/screenplay-document-route';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export const metadata = { title: '剧本文档详情' };

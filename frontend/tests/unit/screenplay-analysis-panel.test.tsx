@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import ScreenplayAnalysisPanel from '@/components/screenplay-analysis-panel';
+import ScreenplayAnalysisPanel from '@/components/screenplay/screenplay-analysis-panel';
 import { httpClient } from '@/lib/request';
 import {
   screenplayAnalysisJob,

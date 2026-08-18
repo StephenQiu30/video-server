@@ -36,9 +36,9 @@ class GetDocument:
         max_preview_bytes: int,
         max_preview_characters: int,
     ) -> None:
-        if not 1 <= max_preview_bytes <= 256 * 1024:
+        if not 1 <= max_preview_bytes <= 1 * 1024**2:
             raise ValueError("document preview byte limit is invalid")
-        if not 1 <= max_preview_characters <= 100_000:
+        if not 1 <= max_preview_characters <= 1_000_000:
             raise ValueError("document preview character limit is invalid")
         self._reader = reader
         self._storage = storage

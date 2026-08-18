@@ -1,9 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { MissingScreenplayDocument } from '@/components/missing-screenplay-document';
-import ScreenplayDocumentDetailView from '@/components/screenplay-document-detail-view';
-import ScreenplayDocumentsView from '@/components/screenplay-documents-view';
+import { MissingScreenplayDocument } from '@/components/screenplay/missing-screenplay-document';
+import ScreenplayDocumentDetailView from '@/components/screenplay/screenplay-document-detail-view';
+import ScreenplayDocumentsView from '@/components/screenplay/screenplay-documents-view';
 import {
   screenplayDocument,
   screenplayDocumentPage,
@@ -27,7 +27,7 @@ vi.mock('@/services/documents', () => ({
   listScreenplayDocuments: runtime.listScreenplayDocuments,
 }));
 
-vi.mock('@/components/screenplay-analysis-panel', () => ({
+vi.mock('@/components/screenplay/screenplay-analysis-panel', () => ({
   default: ({ documentId }: { documentId: string }) => (
     <section aria-label="剧本分析工作区">{documentId}</section>
   ),
@@ -104,9 +104,13 @@ describe('screenplay documents', () => {
     expect(screen.getByText('请先选择一份剧本文档。')).toBeInTheDocument();
   });
 
-  it('renders HTML-like screenplay content only as bounded plain text', async () => {
+  it('renders screenplay Markdown safely with a fixed reader and table of contents', async () => {
     runtime.getScreenplayDocument.mockResolvedValue(
-      screenplayDocument({ id: 'document-id' }),
+      screenplayDocument({
+        id: 'document-id',
+        preview:
+          '# 午夜来客\n\n## INT. LOBBY - NIGHT\n\n<script>只作为台词文本</script>\n\nA visitor waits in the lobby.',
+      }),
     );
     const { container } = render(
       <ScreenplayDocumentDetailView documentId="document-id" />,
@@ -116,12 +120,41 @@ describe('screenplay documents', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: '午夜来客' }),
     ).toBeInTheDocument();
-    const preview = container.querySelector('pre');
-    expect(preview).toHaveTextContent('<script>只作为台词文本</script>');
+    expect(
+      screen.getByRole('heading', { level: 2, name: '午夜来客' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 3, name: 'INT. LOBBY - NIGHT' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('article', { name: '规范化剧本 Markdown 预览' }),
+    ).toHaveTextContent('<script>只作为台词文本</script>');
     expect(container.querySelector('script')).toBeNull();
+    expect(container.querySelector('pre')).toBeNull();
+    expect(screen.getByTestId('screenplay-markdown-reader')).toHaveClass(
+      'h-[min(72vh,56rem)]',
+      'lg:flex-1',
+    );
+    expect(screen.getByTestId('screenplay-document-workspace')).toHaveClass(
+      'lg:h-[min(72vh,56rem)]',
+    );
+    expect(screen.getByRole('navigation', { name: '目录' })).toHaveClass(
+      'lg:h-full',
+      'lg:overflow-hidden',
+    );
+    expect(screen.getByRole('link', { name: '午夜来客' })).toHaveAttribute(
+      'href',
+      '#screenplay-heading-0',
+    );
+    expect(
+      screen.getByRole('link', { name: 'INT. LOBBY - NIGHT' }),
+    ).toHaveAttribute('href', '#screenplay-heading-1');
+    expect(
+      screen.getByRole('heading', { name: '文档信息' }).closest('section'),
+    ).toHaveTextContent('导入摘要');
     const truncationTitle = screen.getByText('预览已截断');
     expect(truncationTitle.parentElement).toHaveTextContent(
-      '这里只显示文件开头的一段',
+      '当前内容仍受接口读取上限约束',
     );
     const warningTitle = screen.getByText('需要人工核对');
     expect(warningTitle.parentElement).toHaveTextContent(

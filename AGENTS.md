@@ -26,7 +26,7 @@ server/
 ├── frontend/                      Next.js App Router 前端
 │   ├── src/app/                   页面、布局与全局 Tailwind 主题
 │   ├── src/
-│   │   ├── components/            业务组件与 shadcn/ui 源码
+│   │   ├── components/            按 feature 归类的业务组件与 shadcn/ui 源码
 │   │   ├── hooks/                 可复用状态和流程 Hooks
 │   │   ├── lib/                   Axios、请求错误与通用基础设施
 │   │   ├── services/              业务请求入口与 OpenAPI 生成代码
@@ -48,7 +48,7 @@ server/
 - 请求与响应模型放在 `api/schemas/`，不得直接暴露 ORM 模型或基础设施对象。
 - 用例编排和外部能力接口放在 `application/`；纯业务规则放在 `domain/`；具体 SDK、数据库、消息和存储实现放在 `infrastructure/`。
 - 进程入口放在 `workers/` 或 `runner/`，不要把下载、转码或 AI 长任务放进 HTTP 请求进程。
-- 前端不使用 `features/` 目录。App Router 页面放在 `src/app/`，跨页面业务组件放在 `src/components/`，shadcn/ui 源码放在 `src/components/ui/`。
+- 前端不使用独立的 `src/features/` 目录。App Router 页面放在 `src/app/`，业务组件按 feature 放在 `src/components/{account,admin,analysis,auth,downloads,intake,layout,providers,screenplay}/`，shadcn/ui 源码放在 `src/components/ui/`。
 - 前端请求统一从 `services/` 暴露，状态流程优先放在 `hooks/`；不要在页面中散落原始请求、轮询或错误映射逻辑。
 - `frontend/src/services/video/` 保留已提交的 OpenAPI 客户端，禁止在页面中绕过稳定入口；生成代码统一导入 `frontend/src/lib/request.ts` 的 Axios 请求封装，接口变化时同步审查契约和客户端。
 - 后端公开操作必须声明稳定且唯一的 `operationId` 和 tag，供已提交的 OpenAPI 客户端和契约测试使用。创建出可查询资源的接口返回 `201 Created` 和 `Location`；异步执行状态放在响应模型中，不用 `202` 损失返回类型。
