@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Coroutine
 from contextlib import suppress
+from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, TypeVar
 from uuid import UUID
@@ -27,6 +28,7 @@ _STAGE_RANKS = {
     DownloadStage.VERIFYING: 4,
     DownloadStage.UPLOADING: 5,
 }
+_MAX_RUNNER_STATUS_WAIT_SECONDS = 5.0
 
 
 class LeaseMonitor:
@@ -72,15 +74,22 @@ class LeaseMonitor:
                 access_context=access_context,
             )
         )
+        progress = _ProgressState()
+        heartbeat = asyncio.create_task(self._heartbeat_loop(progress))
+        status = asyncio.create_task(self._status_loop(progress))
         try:
-            while True:
-                if await _completed(task, self._interval):
-                    return await task
-                progress = await self._runner_progress()
-                await self._heartbeat(progress.stage, progress.progress)
+            done, _ = await asyncio.wait(
+                {task, heartbeat}, return_when=asyncio.FIRST_COMPLETED
+            )
+            if task in done:
+                return await task
+            await heartbeat
+            raise LeaseInfrastructureError
         except (LeaseLost, LeaseInfrastructureError, asyncio.CancelledError):
             await self._abort(task, drain=False)
             raise
+        finally:
+            await _stop_tasks(heartbeat, status)
 
     async def run_fixed(
         self,
@@ -96,18 +105,50 @@ class LeaseMonitor:
             await self._cancel_runner()
             raise
         task: asyncio.Task[ResultT] = asyncio.create_task(operation())
+        heartbeat_task = asyncio.create_task(
+            self._heartbeat_loop(
+                _ProgressState(stage=stage, progress=progress), delay_first=True
+            )
+        )
         try:
-            while True:
-                if await _completed(task, self._interval):
-                    return await task
-                await self._heartbeat(stage, progress)
+            done, _ = await asyncio.wait(
+                {task, heartbeat_task}, return_when=asyncio.FIRST_COMPLETED
+            )
+            if task in done:
+                return await task
+            await heartbeat_task
+            raise LeaseInfrastructureError
         except (LeaseLost, LeaseInfrastructureError, asyncio.CancelledError):
             await self._abort(task, drain=drain_on_abort)
             raise
+        finally:
+            await _stop_tasks(heartbeat_task)
+
+    async def _heartbeat_loop(
+        self, progress: _ProgressState, *, delay_first: bool = False
+    ) -> None:
+        if delay_first:
+            await asyncio.sleep(self._interval)
+        while True:
+            await self._heartbeat(progress.stage, progress.progress)
+            await asyncio.sleep(self._interval)
+
+    async def _status_loop(self, progress: _ProgressState) -> None:
+        while True:
+            current = await self._runner_progress()
+            progress.stage = current.stage
+            progress.progress = current.progress
+            await asyncio.sleep(self._interval)
 
     async def _runner_progress(self) -> RunnerProgressView:
         try:
-            return await self._runner.status(self._task_id)
+            status_timeout = min(
+                self._interval / 2,
+                self._lease_for.total_seconds() / 4,
+                _MAX_RUNNER_STATUS_WAIT_SECONDS,
+            )
+            async with asyncio.timeout(max(status_timeout, 0.001)):
+                return await self._runner.status(self._task_id)
         except Exception:
             return _FallbackProgress()
 
@@ -143,13 +184,20 @@ class LeaseMonitor:
             await self._runner.cancel(self._task_id)
 
 
+@dataclass(slots=True)
+class _ProgressState:
+    stage: DownloadStage = DownloadStage.REVALIDATING
+    progress: int = 0
+
+
 class _FallbackProgress:
     stage = DownloadStage.REVALIDATING
     progress = 0
 
 
-async def _completed[TaskResult](
-    task: asyncio.Task[TaskResult], interval: float
-) -> bool:
-    done, _ = await asyncio.wait({task}, timeout=interval)
-    return bool(done)
+async def _stop_tasks(*tasks: asyncio.Task[object]) -> None:
+    for task in tasks:
+        if not task.done():
+            task.cancel()
+    if tasks:
+        await asyncio.gather(*tasks, return_exceptions=True)

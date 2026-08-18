@@ -255,6 +255,64 @@ async def test_download_reinspects_selects_semantics_and_verifies_artifact(
     assert status.progress == 100
 
 
+async def test_download_reselects_current_streams_instead_of_stale_hints(
+    tmp_path: Path,
+) -> None:
+    info = split_media_info()
+    info["formats"] = [
+        {
+            "format_id": "video-low",
+            "ext": "mp4",
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "tbr": 900,
+            "vcodec": "avc1.640028",
+            "acodec": "none",
+        },
+        {
+            "format_id": "video-high",
+            "ext": "mp4",
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "tbr": 1800,
+            "vcodec": "avc1.640028",
+            "acodec": "none",
+        },
+        {
+            "format_id": "audio-low",
+            "ext": "m4a",
+            "abr": 32,
+            "vcodec": "none",
+            "acodec": "mp4a.40.2",
+            "language": "zh-CN",
+        },
+        {
+            "format_id": "audio-high",
+            "ext": "m4a",
+            "abr": 130,
+            "vcodec": "none",
+            "acodec": "mp4a.40.2",
+            "language": "zh-CN",
+        },
+    ]
+    supervisor = FixtureSupervisor(info)
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    await service.download(download_request())
+
+    ytdlp = [
+        command
+        for command, _ in supervisor.calls
+        if command[0] == "yt-dlp" and "--format" in command
+    ]
+    assert [command[command.index("--format") + 1] for command in ytdlp] == [
+        "video-high",
+        "audio-high",
+    ]
+
+
 async def test_operator_session_is_rebuilt_then_reused_for_download_operation(
     tmp_path: Path,
 ) -> None:

@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from uuid import UUID
 
 import pytest
+from app.api.routes.task_socket import _same_origin
 from app.core.config import Settings
 from app.infrastructure.realtime import RealtimeHub
 from app.main import create_app
@@ -77,6 +78,18 @@ def test_socket_auth_replay_and_subscription(tmp_path) -> None:
         )
         assert socket.receive_json()["version"] == 4
         assert socket.receive_json()["type"] == "subscribed"
+
+
+def test_socket_accepts_forwarded_frontend_origin(tmp_path) -> None:
+    websocket = SimpleNamespace(
+        headers={
+            "origin": "https://frontend.example",
+            "host": "api.internal:8101",
+            "x-forwarded-host": "frontend.example",
+        }
+    )
+
+    assert _same_origin(websocket, production=True)
 
 
 def test_socket_rejects_missing_cookie(tmp_path) -> None:

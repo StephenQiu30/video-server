@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 from dataclasses import replace
 from datetime import timedelta
@@ -57,6 +58,21 @@ async def test_success_revalidates_identity_uploads_and_completes(tmp_path) -> N
 
 
 @pytest.mark.asyncio
+async def test_slow_runner_status_does_not_block_download_lease_heartbeat(
+    tmp_path,
+) -> None:
+    case = fixture(artifact(tmp_path), heartbeat_interval=0.01)
+    case.runner.delay = 0.03
+    case.runner.status_delay = 0.2
+
+    result = await asyncio.wait_for(case.execution.execute(case.job_id), timeout=0.12)
+
+    assert result is ExecutionDisposition.ACK
+    assert case.repository.success is not None
+    assert case.repository.heartbeats
+
+
+@pytest.mark.asyncio
 async def test_runner_and_storage_failures_converge_before_ack(tmp_path) -> None:
     runner_case = fixture(artifact(tmp_path / "runner"))
     runner_case.runner.error = MediaRunnerClientError("download_timeout", 504)
@@ -101,6 +117,11 @@ async def test_runner_and_storage_failures_converge_before_ack(tmp_path) -> None
         ("drm_protected", DownloadErrorCode.PROVIDER_DRM_PROTECTED, False),
         (
             "provider_new_failure",
+            DownloadErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE,
+            True,
+        ),
+        (
+            "download_failed",
             DownloadErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE,
             True,
         ),

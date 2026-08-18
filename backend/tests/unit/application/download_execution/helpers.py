@@ -93,6 +93,7 @@ class FakeRunner:
         self.artifact = artifact
         self.error: Exception | None = None
         self.delay = 0.0
+        self.status_delay = 0.0
         self.block = False
         self.cancelled = 0
         self.download_arguments = None
@@ -109,6 +110,8 @@ class FakeRunner:
         return self.artifact
 
     async def status(self, task_id: str) -> RunnerProgress:
+        if self.status_delay:
+            await asyncio.sleep(self.status_delay)
         return RunnerProgress(DownloadStage.DOWNLOADING, 45)
 
     async def cancel(self, task_id: str) -> None:
@@ -154,7 +157,11 @@ class ExecutionFixture:
     execution: DownloadExecution
 
 
-def fixture(artifact: RunnerArtifact) -> ExecutionFixture:
+def fixture(
+    artifact: RunnerArtifact,
+    *,
+    heartbeat_interval: float = 0.001,
+) -> ExecutionFixture:
     job_id = uuid4()
     repository = FakeRepository(job_id)
     runner = FakeRunner(artifact)
@@ -172,7 +179,7 @@ def fixture(artifact: RunnerArtifact) -> ExecutionFixture:
             bucket="video-artifacts",
             workspace_root=artifact.workspace.parent,
             lease_for=timedelta(seconds=60),
-            heartbeat_interval=0.001,
+            heartbeat_interval=heartbeat_interval,
             artifact_ttl=timedelta(days=7),
             max_file_size_bytes=1024 * 1024,
         ),

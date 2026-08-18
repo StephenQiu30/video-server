@@ -9,7 +9,7 @@ from urllib.parse import urljoin
 
 import httpx
 
-from app.domain.downloads import FormatSelectionError, select_streams
+from app.domain.downloads import FormatSelectionError, ProviderHints, select_streams
 from app.domain.providers import ProviderAccessContextRef
 from app.runner.active_tasks import ActiveTaskRegistry
 from app.runner.command_support import default_supervisor
@@ -193,7 +193,12 @@ class MediaRunnerService:
         )
         plan = request.plan.to_domain()
         try:
-            selection = select_streams(plan, inspection.streams)
+            # Provider format ids are only short-lived hints. Re-inspection is
+            # the source of truth because YouTube can reject one rendition
+            # while another stream with the same semantic plan remains valid.
+            selection = select_streams(
+                replace(plan, hints=ProviderHints()), inspection.streams
+            )
         except FormatSelectionError as exc:
             raise RunnerFailure(exc.code.value, status=409) from exc
 
