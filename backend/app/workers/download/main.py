@@ -26,10 +26,6 @@ from app.infrastructure.messaging import RabbitMqTopology
 from app.infrastructure.object_storage import MinioObjectStorage
 from app.infrastructure.url_security import FernetUrlEnvelope
 from app.runner.provider_registry import configure_provider_instances
-from app.workers.download.artifacts import (
-    ArtifactCleanupSettings,
-    ArtifactGarbageCollector,
-)
 from app.workers.download.consumer import RabbitMqDownloadConsumer
 from app.workers.download.persistence import DownloadExecutionRepository
 from app.workers.download.sweeper import (
@@ -44,7 +40,6 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 class DownloadWorkerRuntime:
     consumer: RabbitMqDownloadConsumer
     sweeper: DownloadRecoverySweeper
-    artifact_gc: ArtifactGarbageCollector
     storage: MinioObjectStorage
     runner: MediaRunnerRouter
     engine: AsyncEngine
@@ -99,7 +94,6 @@ def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
             workspace_root=settings.runner_workspace_root,
             lease_for=timedelta(seconds=settings.job_lease_seconds),
             heartbeat_interval=settings.heartbeat_interval_seconds,
-            artifact_ttl=timedelta(seconds=settings.artifact_ttl_seconds),
             max_file_size_bytes=settings.max_file_size_bytes,
         ),
     )
@@ -130,16 +124,6 @@ def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
                 ),
             ),
         ),
-        artifact_gc=ArtifactGarbageCollector(
-            raw_repository,
-            storage.delete,
-            _utc_now,
-            ArtifactCleanupSettings(
-                interval=settings.artifact_gc_interval_seconds,
-                batch_size=settings.artifact_gc_batch_size,
-                delete_timeout=settings.artifact_delete_timeout_seconds,
-            ),
-        ),
         storage=storage,
         runner=runner,
         engine=engine,
@@ -160,12 +144,11 @@ async def run() -> None:
 async def _serve(runtime: DownloadWorkerRuntime, stop: asyncio.Event) -> None:
     consumer = asyncio.create_task(runtime.consumer.run(stop))
     sweeper = asyncio.create_task(runtime.sweeper.run(stop))
-    artifact_gc = asyncio.create_task(runtime.artifact_gc.run(stop))
     stop_wait = asyncio.create_task(stop.wait())
-    tasks = (consumer, sweeper, artifact_gc)
+    tasks = (consumer, sweeper)
     try:
         await asyncio.wait(
-            {consumer, sweeper, artifact_gc, stop_wait},
+            {consumer, sweeper, stop_wait},
             return_when=asyncio.FIRST_COMPLETED,
         )
         stop.set()

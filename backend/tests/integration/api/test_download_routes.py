@@ -150,7 +150,6 @@ def test_download_history_route_supports_filters_and_returns_public_fields(
         "updated_at": "2026-08-06T10:00:00Z",
         "finished_at": "2026-08-06T10:00:00Z",
         "file_available": False,
-        "file_expires_at": None,
         "source_kind": "remote_provider",
         "source_label": "链接下载",
     }

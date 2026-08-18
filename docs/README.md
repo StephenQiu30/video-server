@@ -8,7 +8,7 @@
 
 宿主机 Analysis Agent、项目内 Provider Profile 与跨平台常驻方案见 [AI 分析 Agent 与通用 Provider 接入调研](research/011-AI分析Agent与通用Provider接入调研.md)；浏览器本地文件上传、剧本文档解析、GitHub Skill 复用与中英文改写边界见 [本地内容上传与剧本 Skill 调研](research/012-本地内容上传与剧本Skill调研.md)。
 
-根目录 Compose 的使用与安全边界见 [运行手册](operations/001-root-compose运行手册.md)；YouTube 运维会话的账号基线、Secret 导入、启动、轮换、撤销和脱敏验收见 [YouTube 受控会话运行手册](operations/002-YouTube受控会话运行手册.md)；TikTok、Instagram、Facebook、X、Reddit 与 Vimeo 的逐 Provider 隔离部署见 [多平台受控会话运行手册](operations/003-多平台受控会话运行手册.md)；本地 CI 命令、GitHub 检查、运行边界和失败恢复见 [CI 与主分支门禁运行手册](operations/004-CI与主分支门禁运行手册.md)；从已登录浏览器安全导出会话并启动 Docker Operator Runner 见 [Docker 浏览器会话运行手册](operations/006-Docker浏览器会话运行手册.md)；22 个注册平台的固定 metadata/media 诊断与证据判读见 [固定 Provider 探针运行手册](operations/007-固定Provider探针运行手册.md)。
+根目录 Compose 的使用与安全边界见 [运行手册](operations/001-root-compose运行手册.md)；YouTube 运维会话的账号基线、Secret 导入、启动、轮换、撤销和脱敏验收见 [YouTube 受控会话运行手册](operations/002-YouTube受控会话运行手册.md)；TikTok、Instagram、Facebook、X、Reddit 与 Vimeo 的逐 Provider 隔离部署见 [多平台受控会话运行手册](operations/003-多平台受控会话运行手册.md)；本地 CI 命令、GitHub 检查、运行边界和失败恢复见 [CI 与主分支门禁运行手册](operations/004-CI与主分支门禁运行手册.md)；从已登录浏览器安全导出会话并启动 Docker Operator Runner 见 [Docker 浏览器会话运行手册](operations/006-Docker浏览器会话运行手册.md)；22 个注册平台的固定 metadata/media 诊断与证据判读见 [固定 Provider 探针运行手册](operations/007-固定Provider探针运行手册.md)；最终制品的永久保存、管理员分页列表和默认 30 天手动清理见 [持久文件与管理员清理运行手册](operations/008-持久文件与管理员清理运行手册.md)。
 
 交付顺序固定为 `Design → PRD → Plan → Acceptance`：
 

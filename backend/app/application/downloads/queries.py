@@ -173,13 +173,10 @@ class IssueDownloadUrl:
         try:
             artifact = await self._repository.get_artifact(job_id, owner_hash, now)
         except PersistenceNotFound as exc:
-            raise ApplicationError(ApplicationErrorCode.RESOURCE_EXPIRED) from exc
+            raise ApplicationError(ApplicationErrorCode.NOT_FOUND) from exc
         if artifact is None or artifact.job_id != job_id:
-            raise ApplicationError(ApplicationErrorCode.RESOURCE_EXPIRED)
-        remaining = int((artifact.expires_at - now).total_seconds())
-        if remaining <= 0:
-            raise ApplicationError(ApplicationErrorCode.RESOURCE_EXPIRED)
-        ttl_seconds = min(int(self._url_ttl.total_seconds()), remaining)
+            raise ApplicationError(ApplicationErrorCode.NOT_FOUND)
+        ttl_seconds = int(self._url_ttl.total_seconds())
         title = await self._inspection_title(job, owner_hash, now)
         url = await self._storage.presigned_download(
             artifact.object_key, title=title, ttl_seconds=ttl_seconds

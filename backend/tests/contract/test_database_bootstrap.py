@@ -50,8 +50,17 @@ def test_current_schema_can_be_applied_repeatedly() -> None:
     assert "skill_instructions_sha256" in schema
     assert "digest(skill_instructions, 'sha256')" in schema
     assert "ck_analysis_jobs_skill_instructions_sha256" in schema
-    assert "created_at + INTERVAL '7 days'" in schema
-    assert "expires_at <= created_at + INTERVAL '25 hours'" in schema
+    assert "ALTER TABLE artifacts DROP COLUMN IF EXISTS expires_at" in schema
+    assert "ALTER TABLE documents DROP COLUMN IF EXISTS expires_at" in schema
+    assert "ALTER TABLE document_artifacts DROP COLUMN IF EXISTS expires_at" in schema
+    assert (
+        "ALTER TABLE analysis_report_artifacts DROP COLUMN IF EXISTS expires_at"
+        in schema
+    )
+    assert (
+        "ALTER TABLE analysis_jobs DROP COLUMN IF EXISTS retry_available_until"
+        in schema
+    )
     assert "('hongguo_web', '红果短剧官方分享', 230, TRUE, FALSE)" in schema
 
 

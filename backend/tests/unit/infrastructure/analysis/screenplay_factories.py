@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from uuid import UUID, uuid4
 
 from app.application.analysis import AnalysisCreate
@@ -17,7 +17,6 @@ class ScreenplaySeed:
     document_id: UUID
     owner_hash: str
     sha256: str
-    expires_at: datetime
 
 
 async def seed_screenplay(
@@ -27,11 +26,9 @@ async def seed_screenplay(
     owner_hash: str = OWNER,
     status: str = "ready",
     sha256: str = "d" * 64,
-    expires_at: datetime | None = None,
     normalized_status: str | None = "ready",
 ) -> ScreenplaySeed:
     document_id = uuid4()
-    expiry = expires_at or now + timedelta(hours=1)
     async with sessions() as session, session.begin():
         session.add(
             DocumentRow(
@@ -54,7 +51,6 @@ async def seed_screenplay(
                 character_count=64,
                 text_sha256=sha256,
                 quality_warnings=[],
-                expires_at=expiry,
                 finished_at=now,
                 created_at=now,
                 updated_at=now,
@@ -83,12 +79,11 @@ async def seed_screenplay(
                             }
                         ]
                     },
-                    expires_at=expiry,
                     created_at=now,
                     updated_at=now,
                 )
             )
-    return ScreenplaySeed(document_id, owner_hash, sha256, expiry)
+    return ScreenplaySeed(document_id, owner_hash, sha256)
 
 
 def screenplay_command(
@@ -117,7 +112,6 @@ def screenplay_command(
         max_attempts=3,
         outbox_event_id=uuid4(),
         outbox_event_type="analysis.requested",
-        retry_available_until=source.expires_at,
         input_kind=AnalysisInputKind.SCREENPLAY,
         result_contract=result_contract,
     )

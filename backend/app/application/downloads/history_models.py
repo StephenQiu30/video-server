@@ -21,7 +21,6 @@ class DownloadHistoryItemSnapshot:
     updated_at: datetime
     finished_at: datetime | None
     file_available: bool = False
-    file_expires_at: datetime | None = None
     source_kind: str = DownloadSourceKind.REMOTE_PROVIDER.value
 
 
@@ -55,7 +54,6 @@ class DownloadHistoryItemView:
     updated_at: datetime
     finished_at: datetime | None
     file_available: bool = False
-    file_expires_at: datetime | None = None
     source_kind: DownloadSourceKind = DownloadSourceKind.REMOTE_PROVIDER
     source_label: str = "链接下载"
 

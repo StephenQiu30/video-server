@@ -214,11 +214,6 @@ _ANALYSIS_ERRORS: dict[AnalysisApplicationErrorCode, tuple[int, str, str]] = {
         "Analysis retry limited",
         "The analysis retry limit was reached. Try again later.",
     ),
-    AnalysisApplicationErrorCode.RESOURCE_EXPIRED: (
-        404,
-        "Not found",
-        "The requested resource was not found.",
-    ),
     AnalysisApplicationErrorCode.SERVICE_UNAVAILABLE: (
         503,
         "Analysis unavailable",

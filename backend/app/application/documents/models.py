@@ -35,7 +35,6 @@ class DocumentSnapshot:
     character_count: int | None
     text_sha256: str | None = field(repr=False)
     quality_warnings: tuple[str, ...]
-    expires_at: datetime | None
     created_at: datetime
     updated_at: datetime
     finished_at: datetime | None
@@ -65,7 +64,6 @@ class DocumentView:
     scene_count: int | None
     character_count: int | None
     quality_warnings: tuple[str, ...]
-    expires_at: datetime | None
     created_at: datetime
     updated_at: datetime
     finished_at: datetime | None

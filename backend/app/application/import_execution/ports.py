@@ -55,7 +55,6 @@ class ImportExecutionRepository(Protocol):
         *,
         worker_id: str,
         bucket: str,
-        expires_at: datetime,
         now: datetime,
     ) -> None: ...
 

@@ -139,7 +139,6 @@ async def test_download_store_maps_the_complete_application_lifecycle(
             container="mp4",
             content_type="video/mp4",
             media_metadata={},
-            expires_at=expires,
         ),
         now=NOW + timedelta(seconds=2),
     )
@@ -162,7 +161,6 @@ async def test_download_store_maps_the_complete_application_lifecycle(
     )
     assert expired_source_history.items[0].title == "Controlled sample"
     assert expired_source_history.items[0].file_available is True
-    assert expired_source_history.items[0].file_expires_at == expires
     retry_source = await store.get_retry_source(job_id, owner)
     assert retry_source.encrypted_url.ciphertext == b"encrypted"
 
@@ -174,7 +172,7 @@ async def test_download_store_maps_the_complete_application_lifecycle(
         search="Controlled",
         now=expires,
     )
-    assert expired_file_history.items[0].file_available is False
+    assert expired_file_history.items[0].file_available is True
 
 
 @pytest.mark.asyncio
@@ -186,7 +184,6 @@ async def test_history_includes_browser_imports_and_searches_filename(
     store = SqlAlchemyDownloadStore(repository)
     job_id = uuid4()
     owner = "i" * 64
-    expires = NOW + timedelta(hours=1)
     async with sessions.begin() as session:
         session.add(
             database.DownloadJobRow(
@@ -239,7 +236,6 @@ async def test_history_includes_browser_imports_and_searches_filename(
                 container="mp4",
                 content_type="video/mp4",
                 media_metadata={},
-                expires_at=expires,
                 created_at=NOW,
             )
         )
@@ -262,7 +258,6 @@ async def test_history_includes_browser_imports_and_searches_filename(
     assert item.format_name == "MP4"
     assert item.thumbnail_available is False
     assert item.file_available is True
-    assert item.file_expires_at == expires
     assert item.source_kind == "browser_import"
 
 

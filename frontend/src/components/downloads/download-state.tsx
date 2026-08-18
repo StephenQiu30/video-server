@@ -95,12 +95,8 @@ export default function DownloadState({
         />
         {complete ? (
           <Meta
-            label="文件保留"
-            value={
-              job.file_available
-                ? formatFileExpiry(job.file_expires_at)
-                : '已过期'
-            }
+            label="文件存储"
+            value={job.file_available ? '持久保存' : '已清理'}
           />
         ) : (
           <Meta label="当前阶段" value={displayStage(job)} />
@@ -139,9 +135,9 @@ export default function DownloadState({
 
       {complete && !job.file_available ? (
         <Alert className="mt-6" variant="warning">
-          <AlertTitle>视频文件已过期</AlertTitle>
+          <AlertTitle>视频文件已清理</AlertTitle>
           <AlertDescription>
-            下载记录仍会保留。你可以重新解析原视频并创建新的下载任务。
+            下载记录仍会保留。管理员清理文件后，你可以重新创建下载任务。
           </AlertDescription>
         </Alert>
       ) : null}
@@ -230,13 +226,3 @@ function displayStage(job: DownloadJob): string {
   if (job.status === 'cancelled') return '已取消';
   return job.stage ? stageLabels[job.stage] : '等待调度';
 }
-
-function formatFileExpiry(value: string | null): string {
-  if (!value) return '可下载';
-  return `保留至 ${fileDateFormatter.format(new Date(value))}`;
-}
-
-const fileDateFormatter = new Intl.DateTimeFormat('zh-CN', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-});

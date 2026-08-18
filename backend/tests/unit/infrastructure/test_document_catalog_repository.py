@@ -123,7 +123,6 @@ async def test_ready_detail_reads_only_bounded_normalized_plain_text(
         row.scene_count = 1
         row.character_count = len(text)
         row.text_sha256 = digest
-        row.expires_at = NOW + timedelta(days=7)
         row.finished_at = NOW
         session.add(
             DocumentArtifactRow(
@@ -136,7 +135,6 @@ async def test_ready_detail_reads_only_bounded_normalized_plain_text(
                 sha256=digest,
                 status="ready",
                 artifact_metadata={},
-                expires_at=NOW + timedelta(days=7),
                 created_at=NOW,
                 updated_at=NOW,
             )
@@ -169,7 +167,6 @@ async def test_preview_truncation_drops_only_an_incomplete_utf8_suffix(
         row.scene_count = 1
         row.character_count = 20
         row.text_sha256 = digest
-        row.expires_at = NOW + timedelta(days=7)
         row.finished_at = NOW
         session.add(
             DocumentArtifactRow(
@@ -182,7 +179,6 @@ async def test_preview_truncation_drops_only_an_incomplete_utf8_suffix(
                 sha256=digest,
                 status="ready",
                 artifact_metadata={},
-                expires_at=NOW + timedelta(days=7),
                 created_at=NOW,
                 updated_at=NOW,
             )

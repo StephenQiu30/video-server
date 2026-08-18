@@ -88,7 +88,6 @@ def _item_view(item: DownloadHistoryItemSnapshot) -> DownloadHistoryItemView:
         updated_at=item.updated_at,
         finished_at=item.finished_at,
         file_available=item.file_available,
-        file_expires_at=item.file_expires_at,
         source_kind=source_kind,
         source_label=(
             "本地视频上传"

@@ -112,7 +112,6 @@ class AnalysisCreationRepository(AnalysisRepositoryBase):
             active_run_id=command.run_id,
             current_run_no=1,
             current_run_trigger="initial",
-            retry_available_until=command.retry_available_until,
             created_at=now,
             updated_at=now,
         )

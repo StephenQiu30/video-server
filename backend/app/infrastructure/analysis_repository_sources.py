@@ -133,7 +133,6 @@ async def _video_source(
             .where(
                 ArtifactRow.id == artifact_id,
                 ArtifactRow.deleted_at.is_(None),
-                ArtifactRow.expires_at > now,
                 DownloadJobRow.owner_hash == owner_hash,
                 DownloadJobRow.status == "succeeded",
             )
@@ -157,11 +156,9 @@ async def _screenplay_source(
                 DocumentRow.owner_hash == owner_hash,
                 DocumentRow.status == "ready",
                 DocumentRow.deleted_at.is_(None),
-                DocumentRow.expires_at > now,
                 DocumentArtifactRow.kind == "normalized",
                 DocumentArtifactRow.status == "ready",
                 DocumentArtifactRow.deleted_at.is_(None),
-                DocumentArtifactRow.expires_at > now,
             )
             .with_for_update()
         )

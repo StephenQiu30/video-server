@@ -105,7 +105,6 @@ def artifact_snapshot(value: StoredArtifact) -> ArtifactSnapshot:
         container=value.container,
         content_type=value.content_type,
         media_metadata=dict(value.media_metadata),
-        expires_at=value.expires_at,
     )
 
 

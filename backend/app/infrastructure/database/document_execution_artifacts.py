@@ -17,7 +17,6 @@ def artifact_row(
     size_bytes: int,
     sha256: str,
     metadata: dict[str, object],
-    expires_at: datetime,
     now: datetime,
 ) -> DocumentArtifactRow:
     return DocumentArtifactRow(
@@ -31,7 +30,6 @@ def artifact_row(
         sha256=sha256,
         status="ready",
         artifact_metadata=metadata,
-        expires_at=expires_at,
         created_at=now,
         updated_at=now,
     )

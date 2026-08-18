@@ -84,7 +84,6 @@ def detail_view() -> DocumentView:
         scene_count=None,
         character_count=None,
         quality_warnings=(),
-        expires_at=None,
         created_at=NOW,
         updated_at=NOW,
         finished_at=None,

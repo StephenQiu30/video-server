@@ -29,7 +29,6 @@ class ArtifactSeed:
     download_id: UUID
     owner_hash: str
     sha256: str
-    expires_at: datetime
 
 
 async def seed_artifact(
@@ -110,11 +109,10 @@ async def seed_artifact(
                 container="mp4",
                 content_type="video/mp4",
                 media_metadata={},
-                expires_at=expiry,
                 created_at=now,
             )
         )
-    return ArtifactSeed(artifact_id, download_id, owner_hash, sha256, expiry)
+    return ArtifactSeed(artifact_id, download_id, owner_hash, sha256)
 
 
 def analysis_command(

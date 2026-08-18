@@ -4,6 +4,7 @@ import {
   ChartLineUpIcon,
   ClockCounterClockwiseIcon,
   FileTextIcon,
+  HardDrivesIcon,
   HouseIcon,
   ListIcon,
   PulseIcon,
@@ -130,6 +131,13 @@ export function MobileNavigation({
                   >
                     <ChartLineUpIcon aria-hidden />
                     下载分析
+                  </MobileLink>
+                  <MobileLink
+                    active={pathname.startsWith('/admin/files')}
+                    href="/admin/files"
+                  >
+                    <HardDrivesIcon aria-hidden />
+                    文件管理
                   </MobileLink>
                   <MobileLink
                     active={pathname.startsWith('/admin/providers')}

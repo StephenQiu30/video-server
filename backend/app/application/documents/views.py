@@ -53,7 +53,6 @@ def document_view(
         scene_count=snapshot.scene_count,
         character_count=snapshot.character_count,
         quality_warnings=snapshot.quality_warnings,
-        expires_at=snapshot.expires_at,
         created_at=snapshot.created_at,
         updated_at=snapshot.updated_at,
         finished_at=snapshot.finished_at,

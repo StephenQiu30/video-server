@@ -21,7 +21,6 @@ class AnalysisArtifactSnapshot:
     owner_hash: str
     download_status: str
     sha256: str
-    expires_at: datetime
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,7 +40,6 @@ class AnalysisCreate:
     max_attempts: int
     outbox_event_id: UUID
     outbox_event_type: str
-    retry_available_until: datetime | None = None
     document_id: UUID | None = None
     input_kind: AnalysisInputKind = AnalysisInputKind.VIDEO
     result_contract: AnalysisResultContract = (
@@ -80,7 +78,6 @@ class AnalysisJobSnapshot:
     created_at: datetime
     updated_at: datetime
     current_report_id: UUID | None = None
-    retry_available_until: datetime | None = None
     document_id: UUID | None = None
     input_kind: str = AnalysisInputKind.VIDEO.value
     result_contract: str = AnalysisResultContract.VIDEO_VISUAL_ANALYSIS.value
@@ -116,7 +113,6 @@ class AnalysisJobSnapshot:
             error_code=None,
             created_at=now,
             updated_at=now,
-            retry_available_until=command.retry_available_until,
             document_id=command.document_id,
             input_kind=command.input_kind.value,
             result_contract=command.result_contract.value,
@@ -176,7 +172,6 @@ class AnalysisJobView:
     result: AnalysisResult | None
     report: AnalysisReportSnapshot | None = None
     current_report_id: UUID | None = None
-    retry_available_until: datetime | None = None
     input_kind: AnalysisInputKind = AnalysisInputKind.VIDEO
     result_contract: AnalysisResultContract = (
         AnalysisResultContract.VIDEO_VISUAL_ANALYSIS

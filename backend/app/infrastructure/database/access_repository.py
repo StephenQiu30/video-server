@@ -373,13 +373,12 @@ class AccessRepository(AnalyticsRepository):
                 .where(
                     ArtifactRow.job_id == job_id,
                     ArtifactRow.deleted_at.is_(None),
-                    ArtifactRow.expires_at > now,
                     DownloadJobRow.owner_hash == owner_hash,
                     DownloadJobRow.status == "succeeded",
                 )
             )
             if row is None:
-                raise RepositoryNotFound("artifact does not exist or expired")
+                raise RepositoryNotFound("artifact does not exist")
             return artifact_snapshot(row)
 
 

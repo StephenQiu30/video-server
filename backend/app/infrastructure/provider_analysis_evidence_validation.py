@@ -45,7 +45,6 @@ def validated_evidence(
         for item in report_files
         if item.status == "available"
         and item.deleted_at is None
-        and as_utc(item.expires_at) > as_utc(now)
         and item.bucket == bucket
         and item.size_bytes > 0
     }
@@ -63,7 +62,6 @@ def validated_evidence(
         and job.input_sha256 == report.input_sha256 == artifact.sha256
         and artifact.bucket == bucket
         and artifact.deleted_at is None
-        and as_utc(artifact.expires_at) > as_utc(now)
         and artifact.size_bytes > 0
         and artifact.duration_ms > 0
         and _has_stream(artifact.media_metadata, "video_streams")

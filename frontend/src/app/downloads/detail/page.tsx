@@ -1,8 +1,7 @@
 import { Suspense } from 'react';
-
-import { BackLink } from '@/components/layout/back-link';
-import DownloadRoute from '@/components/downloads/download-route';
 import { ProtectedRoute } from '@/components/auth/protected-route';
+import DownloadRoute from '@/components/downloads/download-route';
+import { BackLink } from '@/components/layout/back-link';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export const metadata = { title: '下载任务' };

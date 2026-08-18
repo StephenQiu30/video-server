@@ -7,7 +7,11 @@ import {
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AppShell, AuthField, AuthPageFrame } from '@/components/layout/app-shell';
+import {
+  AppShell,
+  AuthField,
+  AuthPageFrame,
+} from '@/components/layout/app-shell';
 import { InputGroupInput } from '@/components/ui/input-group';
 
 const runtime = vi.hoisted(() => ({

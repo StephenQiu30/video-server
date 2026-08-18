@@ -80,7 +80,7 @@ describe('AnalysisPanel', () => {
       'href',
       `/api/analyses/${analysisJob('succeeded').id}/report.docx`,
     );
-    expect(screen.getByText(/原视频可重试至/)).toBeInTheDocument();
+    expect(screen.getByText(/原始文件持久保存/)).toBeInTheDocument();
   });
 
   it('shows an explicit unavailable state instead of stale report links', async () => {
@@ -96,13 +96,13 @@ describe('AnalysisPanel', () => {
     render(<AnalysisPanel downloadId={job().id} />);
 
     expect(
-      await screen.findByText('报告已过期或暂时不可用'),
+      await screen.findByText('报告已清理或暂时不可用'),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: '导出 DOCX' }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByText(/分析结果仍可查看，但下载文件已经失效/),
+      screen.getByText(/分析结果仍可查看，但报告文件已被清理或暂时不可读取/),
     ).toBeInTheDocument();
   });
 

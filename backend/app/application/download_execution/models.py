@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import timedelta
 from enum import StrEnum
 from pathlib import Path
 
@@ -18,7 +18,6 @@ class DownloadExecutionSettings:
     workspace_root: Path
     lease_for: timedelta
     heartbeat_interval: float
-    artifact_ttl: timedelta
     max_file_size_bytes: int
 
     def __post_init__(self) -> None:
@@ -28,8 +27,8 @@ class DownloadExecutionSettings:
             raise ValueError("lease and heartbeat interval must be positive")
         if self.heartbeat_interval >= self.lease_for.total_seconds():
             raise ValueError("heartbeat interval must be shorter than the lease")
-        if self.artifact_ttl.total_seconds() <= 0 or self.max_file_size_bytes <= 0:
-            raise ValueError("artifact limits must be positive")
+        if self.max_file_size_bytes <= 0:
+            raise ValueError("artifact size limit must be positive")
         object.__setattr__(self, "workspace_root", self.workspace_root.resolve())
 
 
@@ -42,4 +41,3 @@ class ArtifactDetails:
     container: str
     content_type: str
     media_metadata: dict[str, object]
-    expires_at: datetime

@@ -10,7 +10,6 @@ from app.infrastructure.analysis_report_repository import (
     ReportObject,
     SqlAlchemyAnalysisReportRepository,
 )
-from app.infrastructure.database.base import as_utc
 from app.infrastructure.database.models import (
     AnalysisArtifactLockRow,
     AnalysisReportArtifactRow,
@@ -228,9 +227,7 @@ async def test_report_finalization_atomically_switches_current_report(
                 )
             ).all()
         )
-    assert {as_utc(item.expires_at) for item in report_artifacts} == {
-        NOW + timedelta(days=7, seconds=5)
-    }
+    assert {item.status for item in report_artifacts} == {"available"}
 
     assert await analysis_db.repository.delete_job(
         command.id, command.owner_hash, NOW + timedelta(seconds=6)

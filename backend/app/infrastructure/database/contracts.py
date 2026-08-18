@@ -96,7 +96,6 @@ class ArtifactCreate:
     container: str
     content_type: str
     media_metadata: dict[str, Any]
-    expires_at: datetime
 
 
 @dataclass(frozen=True, slots=True)
@@ -160,7 +159,6 @@ class DownloadHistoryItemSnapshot:
     updated_at: datetime
     finished_at: datetime | None
     file_available: bool = False
-    file_expires_at: datetime | None = None
     source_kind: str = "remote_provider"
 
 
@@ -219,13 +217,6 @@ class ArtifactSnapshot:
     container: str
     content_type: str
     media_metadata: dict[str, Any]
-    expires_at: datetime
-
-
-@dataclass(frozen=True, slots=True)
-class ArtifactPurgeResult:
-    deleted: int
-    failed: int
 
 
 @dataclass(frozen=True, slots=True)

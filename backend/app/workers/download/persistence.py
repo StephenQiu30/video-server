@@ -94,7 +94,6 @@ class DownloadExecutionRepository:
                     container=artifact.container,
                     content_type=artifact.content_type,
                     media_metadata=artifact.media_metadata,
-                    expires_at=artifact.expires_at,
                 ),
                 now=now,
             )

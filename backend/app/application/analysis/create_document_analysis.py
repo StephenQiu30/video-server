@@ -91,14 +91,6 @@ class CreateDocumentAnalysis:
             raise AnalysisApplicationError(
                 AnalysisApplicationErrorCode.ARTIFACT_NOT_READY
             )
-        if source.expires_at is None or source.normalized_expires_at is None:
-            raise AnalysisApplicationError(
-                AnalysisApplicationErrorCode.ARTIFACT_NOT_READY
-            )
-        if now >= min(source.expires_at, source.normalized_expires_at):
-            raise AnalysisApplicationError(
-                AnalysisApplicationErrorCode.RESOURCE_EXPIRED
-            )
         sha256 = validate_sha256(source.text_sha256 or "")
         if source.normalized_sha256 != sha256:
             raise AnalysisApplicationError(
@@ -134,7 +126,6 @@ class CreateDocumentAnalysis:
             max_attempts=self._max_attempts,
             outbox_event_id=self._new_id(),
             outbox_event_type="analysis.requested",
-            retry_available_until=min(source.expires_at, source.normalized_expires_at),
             input_kind=input_kind,
             result_contract=contract,
         )

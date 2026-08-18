@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import replace
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -124,7 +124,6 @@ def screenplay_job_and_source(
         size_bytes=len(text.encode()),
         character_count=count,
         detected_language="mixed",
-        expires_at=NOW + timedelta(hours=1),
         scenes=(ScreenplaySceneSource("scene-1", 0, len(text)),),
     )
     return job, source

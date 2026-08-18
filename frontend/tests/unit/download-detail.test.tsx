@@ -40,7 +40,7 @@ describe('DownloadJobView', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('Download status')).not.toBeInTheDocument();
     expect(screen.queryByText('AI analysis')).not.toBeInTheDocument();
-    expect(screen.getByText(/保留至/)).toBeInTheDocument();
+    expect(screen.getByText('持久保存')).toBeInTheDocument();
     expect(screen.queryByText('100%')).not.toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'AI 智能分析' }),
@@ -134,9 +134,9 @@ describe('DownloadJobView', () => {
     await waitFor(() => expect(click).toHaveBeenCalledOnce());
   });
 
-  it('offers a new download when a completed file has expired', async () => {
+  it('offers a new download when a completed file has been cleaned', async () => {
     mockHttpResponses(
-      { ...job('succeeded'), file_available: false, file_expires_at: null },
+      { ...job('succeeded'), file_available: false },
       analysisSkills,
       null,
     );
@@ -145,7 +145,7 @@ describe('DownloadJobView', () => {
     expect(
       await screen.findByRole('button', { name: '重新下载' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('视频文件已过期')).toBeInTheDocument();
+    expect(screen.getByText('视频文件已清理')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: '获取视频文件' }),
     ).not.toBeInTheDocument();

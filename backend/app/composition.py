@@ -54,6 +54,7 @@ from app.application.imports import (
 )
 from app.application.provider_canaries import ProviderStatusService
 from app.application.provider_catalog import ProviderCatalogService
+from app.application.storage_files import StorageFileService
 from app.core.ai_provider_cipher import FernetAiProviderSecretCipher
 from app.core.config import Settings
 from app.core.url_cipher import URLCipher
@@ -90,6 +91,7 @@ from app.infrastructure.provider_status import configured_provider_statuses
 from app.infrastructure.rate_limiter import ValkeyRateLimiter
 from app.infrastructure.readiness import RuntimeReadiness, build_runtime_readiness
 from app.infrastructure.realtime import RabbitMqRealtimeConsumer, RealtimeHub
+from app.infrastructure.storage_file_repository import SqlAlchemyStorageFileRepository
 from app.infrastructure.task_event_store import TaskEventStore
 from app.infrastructure.thumbnail_storage import MinioThumbnailStorage
 from app.infrastructure.url_security import FernetUrlEnvelope, MediaUrlValidator
@@ -116,6 +118,7 @@ class ApiRuntime:
     provider_status_service: ProviderStatusService
     provider_catalog_service: ProviderCatalogService
     ai_provider_service: AiProviderService
+    storage_file_service: StorageFileService
 
     async def start(self) -> None:
         await self.realtime_consumer.start()
@@ -218,6 +221,11 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         ),
         now=clock,
         availability=analysis_availability,
+    )
+    storage_file_service = StorageFileService(
+        SqlAlchemyStorageFileRepository(sessions),
+        storage.delete,
+        now=clock,
     )
     fingerprinter = HmacRequestFingerprinter(
         settings.request_fingerprint_secret.get_secret_value().encode()
@@ -437,6 +445,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         ),
         provider_catalog_service=provider_catalog_service,
         ai_provider_service=ai_provider_service,
+        storage_file_service=storage_file_service,
     )
 
 

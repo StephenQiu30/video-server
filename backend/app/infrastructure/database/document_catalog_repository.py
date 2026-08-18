@@ -85,7 +85,6 @@ def _snapshot(
         character_count=row.character_count,
         text_sha256=row.text_sha256,
         quality_warnings=tuple(row.quality_warnings),
-        expires_at=None if row.expires_at is None else as_utc(row.expires_at),
         created_at=as_utc(row.created_at),
         updated_at=as_utc(row.updated_at),
         finished_at=None if row.finished_at is None else as_utc(row.finished_at),

@@ -25,7 +25,7 @@ OPENAPI_TAGS: list[dict[str, Any]] = [
     },
     {
         "name": "admin",
-        "description": "管理员用户管理与全局下载分析。",
+        "description": "管理员用户管理、全局下载分析与持久文件清理。",
     },
     {
         "name": "system",
@@ -63,7 +63,10 @@ SWAGGER_UI_PARAMETERS: dict[str, Any] = {
 ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     401: {"model": ProblemDetails, "description": "未登录或会话已经失效"},
     403: {"model": ProblemDetails, "description": "当前用户没有操作权限"},
-    404: {"model": ProblemDetails, "description": "资源不存在或已经过期"},
+    404: {
+        "model": ProblemDetails,
+        "description": "资源不存在、已清理或临时解析状态已过期",
+    },
     409: {"model": ProblemDetails, "description": "资源状态或幂等键冲突"},
     429: {"model": ProblemDetails, "description": "请求频率超过限制"},
     422: {"model": ProblemDetails, "description": "请求参数或业务输入无效"},

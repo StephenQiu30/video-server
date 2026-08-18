@@ -179,7 +179,6 @@ class SqlAlchemyDownloadStore:
                     updated_at=item.updated_at,
                     finished_at=item.finished_at,
                     file_available=item.file_available,
-                    file_expires_at=item.file_expires_at,
                     source_kind=item.source_kind,
                 )
                 for item in stored.items

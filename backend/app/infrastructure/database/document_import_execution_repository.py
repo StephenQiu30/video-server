@@ -66,7 +66,6 @@ class SqlAlchemyDocumentImportExecutionRepository(RepositoryBase):
         *,
         worker_id: str,
         bucket: str,
-        expires_at: datetime,
         now: datetime,
     ) -> None:
         await state.complete_verification(
@@ -75,7 +74,6 @@ class SqlAlchemyDocumentImportExecutionRepository(RepositoryBase):
             artifact,
             worker_id=worker_id,
             bucket=bucket,
-            expires_at=expires_at,
             now=now,
         )
 

@@ -6,7 +6,7 @@ import {
   stageLabels,
   statusLabels,
 } from '@/components/analysis/analysis-panel-model';
-import AnalysisRetryWindow from '@/components/analysis/analysis-retry-window';
+import AnalysisStorageNotice from '@/components/analysis/analysis-storage-notice';
 import { ScreenplayResultView } from '@/components/screenplay/screenplay-result-view';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
@@ -56,7 +56,7 @@ export function ScreenplayAnalysisJobState({
           : '尚未开始技术尝试'}
       </p>
       <div className="mt-2">
-        <AnalysisRetryWindow job={job} />
+        <AnalysisStorageNotice />
       </div>
       {job.status === 'failed' ? (
         <Alert className="mt-6" variant="destructive">

@@ -25,10 +25,7 @@ export function ScreenplayDocumentMetadata({
     ['文件大小', formatDocumentSize(document.declared_size_bytes)],
     ['导入状态', documentStatusLabels[document.status]],
     ['创建时间', formatDocumentDate(document.created_at)],
-    [
-      '保留至',
-      document.expires_at ? formatDocumentDate(document.expires_at) : '未确定',
-    ],
+    ['存储策略', '持久保存'],
   ];
   const error = documentErrorLabel(document);
 

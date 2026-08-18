@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 import pytest
@@ -38,7 +38,6 @@ def artifact(**changes: object) -> AnalysisArtifactSnapshot:
         owner_hash=OWNER,
         download_status="succeeded",
         sha256="b" * 64,
-        expires_at=NOW + timedelta(hours=1),
     )
     return replace(value, **changes)
 
@@ -179,7 +178,7 @@ async def test_create_rejects_oversized_custom_prompt() -> None:
 
 
 @pytest.mark.asyncio
-async def test_create_requires_owned_succeeded_unexpired_artifact() -> None:
+async def test_create_requires_owned_succeeded_artifact() -> None:
     repository = FakeRepository()
     create = creator(repository)
 
@@ -188,10 +187,6 @@ async def test_create_requires_owned_succeeded_unexpired_artifact() -> None:
         (
             artifact(download_status="failed"),
             AnalysisApplicationErrorCode.ARTIFACT_NOT_READY,
-        ),
-        (
-            artifact(expires_at=NOW),
-            AnalysisApplicationErrorCode.RESOURCE_EXPIRED,
         ),
     ):
         repository.artifacts[ARTIFACT_ID] = value

@@ -98,6 +98,40 @@ export async function getDownloadAnalytics(
   );
 }
 
+/** 分页查询持久文件 GET /api/admin/files */
+export async function listStoredFiles(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.listStoredFilesParams,
+  options?: RequestOptions
+) {
+  return request<API.StoredFileListResponse>("/api/admin/files", {
+    method: "GET",
+    params: {
+      // page has a default value: 1
+      page: "1",
+      // page_size has a default value: 20
+      page_size: "20",
+      ...params,
+    },
+    ...(options || {}),
+  });
+}
+
+/** 手动清理指定天数前的文件 POST /api/admin/files/cleanup */
+export async function cleanupStoredFiles(
+  body: API.StorageCleanupRequest,
+  options?: RequestOptions
+) {
+  return request<API.StorageCleanupResponse>("/api/admin/files/cleanup", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
 /** 查询平台目录 GET /api/admin/providers */
 export async function listProviderCatalogEntries(options?: RequestOptions) {
   return request<API.ProviderCatalogListResponse>("/api/admin/providers", {

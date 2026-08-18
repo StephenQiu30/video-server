@@ -80,7 +80,6 @@ class CompletionRepository(ProgressRepository):
                 container=artifact.container.lower(),
                 content_type=artifact.content_type,
                 media_metadata=artifact.media_metadata,
-                expires_at=artifact.expires_at,
                 created_at=now,
             )
             session.add(stored)

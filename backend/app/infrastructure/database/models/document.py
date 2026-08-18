@@ -71,12 +71,11 @@ class DocumentRow(Base):
         CheckConstraint(
             "status <> 'ready' OR (detected_language IS NOT NULL "
             "AND scene_count IS NOT NULL AND character_count IS NOT NULL "
-            "AND text_sha256 IS NOT NULL AND expires_at IS NOT NULL)",
+            "AND text_sha256 IS NOT NULL)",
             name="ck_documents_ready_shape",
         ),
         Index("ix_documents_owner_created", "owner_hash", "created_at"),
         Index("ix_documents_status_updated", "status", "updated_at"),
-        Index("ix_documents_expires", "expires_at"),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
@@ -101,7 +100,6 @@ class DocumentRow(Base):
     quality_warnings: Mapped[list[str]] = mapped_column(
         JSON_DOCUMENT, nullable=False, default=list
     )
-    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
@@ -133,7 +131,6 @@ class DocumentArtifactRow(Base):
             "(status <> 'deleted' AND deleted_at IS NULL)",
             name="ck_document_artifacts_deleted_shape",
         ),
-        Index("ix_document_artifacts_expires", "expires_at"),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
@@ -149,9 +146,6 @@ class DocumentArtifactRow(Base):
     status: Mapped[str] = mapped_column(String(24), nullable=False, default="ready")
     artifact_metadata: Mapped[dict[str, Any]] = mapped_column(
         JSON_DOCUMENT, nullable=False, default=dict
-    )
-    expires_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(

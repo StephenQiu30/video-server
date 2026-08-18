@@ -14,7 +14,7 @@
 导入成功必须表现为现有 `download_job` 的一种来源，而不是新建平行的媒体任务体系。由此可以原样复用：
 
 - `POST /api/downloads/{download_id}/analyses` 与原分析任务；
-- PostgreSQL `artifacts`、MinIO 原始视频和保留期；
+- PostgreSQL `artifacts`、MinIO 原始视频和持久存储策略；
 - RabbitMQ `analysis.requested`、完整视频 Agent 与报告 Worker；
 - 下载历史、任务详情、WebSocket 状态恢复和管理员来源统计。
 
@@ -28,7 +28,7 @@
 | `download_jobs` | 作为远程下载与导入的统一用户任务 | 新增 `source_kind` 和来源专用状态转换 |
 | `artifacts` | 继续作为可分析完整视频的唯一入口 | 增加可审计来源元数据，不改变一任务一个原始制品约束 |
 | Download Worker / Media Runner | 只处理服务端远程 Provider | 不接收 Edge 任务，不获得设备或平台 Secret |
-| MinIO | 最终制品继续使用现有 bucket/key 和 TTL | 新增短保留期 quarantine 区与仅上传单对象的会话 |
+| MinIO | 最终制品继续使用现有 bucket/key 并持久保存 | 新增短保留期 quarantine 区与仅上传单对象的会话 |
 | RabbitMQ / Outbox | 继续承担可靠异步执行 | 复用 023 的 `content.import.verify.requested` 队列/DLQ |
 | Analysis Worker | 无变化 | 仍只读取服务端已验证的 Artifact |
 | Provider canary | 复用三阶段状态模型 | `access_mode` 增加 `user_device`，按 Adapter/客户端版本隔离证据 |
@@ -204,7 +204,7 @@ Edge Agent 不连接 PostgreSQL、RabbitMQ、AI 或 MinIO 通用凭据。上传�
 7. 数据库提交后删除 quarantine 和本地工作区。若复制成功但事务前崩溃，重试先核对 deterministic 最终对象哈希再完成事务；若事务成功但清理失败，由 Lifecycle Worker 按 import 状态清理孤儿。
 8. 只有第 6 步完成后，现有分析 API 才能读取 Artifact。AI 失败不会改变导入/下载成功状态。
 
-quarantine 默认保留不超过两小时，最终 Artifact 继续使用当前 `ARTIFACT_TTL_SECONDS`。上传中止、设备撤销、任务取消、验证失败和过期都必须 abort multipart 并清理已上传 part。
+quarantine 默认保留不超过两小时；最终 Artifact 持久保存，不设置自动过期时间。上传中止、设备撤销、任务取消、验证失败和上传会话过期都必须 abort multipart 并清理已上传 part；最终 Artifact 仅由管理员通过文件管理入口按明确天数手动清理，默认清理阈值为 30 天，并跳过仍被分析任务锁定的输入。
 
 ## 8. 设备信任、版本与撤销
 

@@ -128,8 +128,6 @@ def validate_artifact(
     claim: ImportVerificationClaim,
     artifact: VerifiedDocumentImport,
     bucket: str,
-    expires_at: datetime,
-    now: datetime,
 ) -> None:
     spans_are_valid = bool(artifact.scenes) and all(
         _valid_scene(scene, artifact.character_count) for scene in artifact.scenes
@@ -147,7 +145,6 @@ def validate_artifact(
         or artifact.detected_language not in _LANGUAGES
         or not set(artifact.quality_warnings) <= _WARNINGS
         or not spans_are_valid
-        or as_utc(expires_at) <= as_utc(now)
     ):
         raise ValueError("invalid verified document artifacts")
 

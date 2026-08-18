@@ -41,7 +41,6 @@ class DocumentImportExecutionRepository(Protocol):
         *,
         worker_id: str,
         bucket: str,
-        expires_at: datetime,
         now: datetime,
     ) -> None: ...
 

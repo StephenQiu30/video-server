@@ -12,7 +12,7 @@ NOW = datetime(2026, 8, 10, 13, tzinfo=UTC)
 
 class Repository:
     async def purge_report_artifacts(self, now, delete, *, limit):
-        await delete("analyses/expired/report.md")
+        await delete("analyses/retired/report.md")
         return ReportPurgeResult(1, 0)
 
     async def expected_report_object_keys(self):
@@ -36,7 +36,7 @@ class Storage:
 
 
 @pytest.mark.asyncio
-async def test_lifecycle_deletes_expired_and_quarantined_orphans() -> None:
+async def test_lifecycle_deletes_retired_artifacts_and_quarantined_orphans() -> None:
     storage = Storage()
     worker = ReportLifecycleWorker(
         Repository(),
@@ -53,6 +53,6 @@ async def test_lifecycle_deletes_expired_and_quarantined_orphans() -> None:
     assert result.artifacts == ReportPurgeResult(1, 0)
     assert result.orphans_deleted == 1
     assert storage.deleted == [
-        "analyses/expired/report.md",
+        "analyses/retired/report.md",
         "analyses/orphan/report.docx",
     ]

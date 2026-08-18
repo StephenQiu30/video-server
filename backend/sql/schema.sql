@@ -396,7 +396,6 @@ CREATE TABLE IF NOT EXISTS documents (
     character_count INTEGER,
     text_sha256 VARCHAR(64),
     quality_warnings JSONB NOT NULL DEFAULT '[]'::jsonb,
-    expires_at TIMESTAMPTZ,
     deleted_at TIMESTAMPTZ,
     finished_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -435,8 +434,7 @@ CREATE TABLE IF NOT EXISTS documents (
     CONSTRAINT ck_documents_ready_shape CHECK (
         status <> 'ready' OR (
             detected_language IS NOT NULL AND scene_count IS NOT NULL AND
-            character_count IS NOT NULL AND text_sha256 IS NOT NULL AND
-            expires_at IS NOT NULL
+            character_count IS NOT NULL AND text_sha256 IS NOT NULL
         )
     )
 );
@@ -445,8 +443,15 @@ CREATE INDEX IF NOT EXISTS ix_documents_owner_created
     ON documents (owner_hash, created_at);
 CREATE INDEX IF NOT EXISTS ix_documents_status_updated
     ON documents (status, updated_at);
-CREATE INDEX IF NOT EXISTS ix_documents_expires ON documents (expires_at);
-
+DROP INDEX IF EXISTS ix_documents_expires;
+ALTER TABLE documents DROP COLUMN IF EXISTS expires_at;
+ALTER TABLE documents DROP CONSTRAINT IF EXISTS ck_documents_ready_shape;
+ALTER TABLE documents ADD CONSTRAINT ck_documents_ready_shape CHECK (
+    status <> 'ready' OR (
+        detected_language IS NOT NULL AND scene_count IS NOT NULL AND
+        character_count IS NOT NULL AND text_sha256 IS NOT NULL
+    )
+);
 CREATE TABLE IF NOT EXISTS document_import_attempts (
     resource_id UUID NOT NULL REFERENCES documents (id) ON DELETE CASCADE,
     attempt INTEGER NOT NULL,
@@ -510,7 +515,6 @@ CREATE TABLE IF NOT EXISTS document_artifacts (
     sha256 VARCHAR(64) NOT NULL,
     status VARCHAR(24) NOT NULL DEFAULT 'ready',
     artifact_metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-    expires_at TIMESTAMPTZ NOT NULL,
     deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -528,8 +532,8 @@ CREATE TABLE IF NOT EXISTS document_artifacts (
     )
 );
 
-CREATE INDEX IF NOT EXISTS ix_document_artifacts_expires
-    ON document_artifacts (expires_at);
+DROP INDEX IF EXISTS ix_document_artifacts_expires;
+ALTER TABLE document_artifacts DROP COLUMN IF EXISTS expires_at;
 
 CREATE TABLE IF NOT EXISTS artifacts (
     id UUID PRIMARY KEY,
@@ -543,7 +547,6 @@ CREATE TABLE IF NOT EXISTS artifacts (
     container VARCHAR(16) NOT NULL,
     content_type VARCHAR(128) NOT NULL,
     media_metadata JSONB NOT NULL,
-    expires_at TIMESTAMPTZ NOT NULL,
     deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_artifacts_job UNIQUE (job_id),
@@ -554,15 +557,8 @@ CREATE TABLE IF NOT EXISTS artifacts (
     CONSTRAINT ck_artifacts_sha256_length CHECK (length(sha256) = 64)
 );
 
-CREATE INDEX IF NOT EXISTS ix_artifacts_expires ON artifacts (expires_at);
-
--- Upgrade still-present artifacts created under the former one-day default.
--- The 25-hour bound makes this idempotent and does not override deployments
--- that had already chosen a longer retention period.
-UPDATE artifacts
-SET expires_at = created_at + INTERVAL '7 days'
-WHERE deleted_at IS NULL
-  AND expires_at <= created_at + INTERVAL '25 hours';
+DROP INDEX IF EXISTS ix_artifacts_expires;
+ALTER TABLE artifacts DROP COLUMN IF EXISTS expires_at;
 
 CREATE TABLE IF NOT EXISTS analysis_jobs (
     id UUID PRIMARY KEY,
@@ -601,7 +597,6 @@ CREATE TABLE IF NOT EXISTS analysis_jobs (
     error_code VARCHAR(64),
     error_message VARCHAR(512),
     deleted_at TIMESTAMPTZ,
-    retry_available_until TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_analysis_jobs_owner_idempotency
@@ -666,7 +661,7 @@ ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS skill_instructions TEXT;
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS skill_instructions_sha256 VARCHAR(64);
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS custom_prompt TEXT;
 ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-ALTER TABLE analysis_jobs ADD COLUMN IF NOT EXISTS retry_available_until TIMESTAMPTZ;
+ALTER TABLE analysis_jobs DROP COLUMN IF EXISTS retry_available_until;
 UPDATE analysis_jobs SET
     input_kind = COALESCE(input_kind, 'video'),
     result_contract = COALESCE(result_contract, 'video-visual-analysis');
@@ -699,11 +694,6 @@ ALTER TABLE analysis_jobs ADD CONSTRAINT ck_analysis_jobs_input_shape CHECK (
         AND result_contract IN ('screenplay-analysis', 'screenplay-rewrite')
     )
 );
-UPDATE analysis_jobs AS analysis
-SET retry_available_until = artifact.expires_at
-FROM artifacts AS artifact
-WHERE artifact.id = analysis.artifact_id
-  AND analysis.retry_available_until IS NULL;
 UPDATE analysis_jobs SET
     skill_id = COALESCE(skill_id, 'director-breakdown'),
     skill_instructions = COALESCE(
@@ -854,7 +844,6 @@ CREATE TABLE IF NOT EXISTS analysis_report_artifacts (
     status VARCHAR(24) NOT NULL DEFAULT 'available',
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     available_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMPTZ NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL '7 days'),
     deleted_at TIMESTAMPTZ,
     CONSTRAINT uq_analysis_report_artifacts_format UNIQUE (report_id, format),
     CONSTRAINT uq_analysis_report_artifacts_object UNIQUE (bucket, object_key),
@@ -896,19 +885,7 @@ ALTER TABLE analysis_report_versions
             'video_visual_analysis', 'screenplay_analysis', 'screenplay_rewrite'
         )
     );
-ALTER TABLE analysis_report_artifacts
-    ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
-UPDATE analysis_report_artifacts
-SET expires_at = created_at + INTERVAL '7 days'
-WHERE expires_at IS NULL;
-ALTER TABLE analysis_report_artifacts ALTER COLUMN expires_at SET NOT NULL;
-
--- Keep existing reports that still use the legacy one-day policy aligned with
--- their source artifacts. Explicitly longer policies remain untouched.
-UPDATE analysis_report_artifacts
-SET expires_at = created_at + INTERVAL '7 days'
-WHERE deleted_at IS NULL
-  AND expires_at <= created_at + INTERVAL '25 hours';
+ALTER TABLE analysis_report_artifacts DROP COLUMN IF EXISTS expires_at;
 
 -- Legacy releases could mark a job succeeded before the durable Markdown and
 -- DOCX report existed. Fail those inconsistent projections closed so clients

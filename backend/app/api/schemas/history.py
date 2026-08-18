@@ -24,7 +24,6 @@ class DownloadHistoryItemResponse(StrictModel):
     updated_at: datetime
     finished_at: datetime | None
     file_available: bool
-    file_expires_at: datetime | None
     source_kind: DownloadSourceKind
     source_label: str
 

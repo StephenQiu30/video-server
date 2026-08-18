@@ -97,7 +97,6 @@ async def add_job(
                     container="mp4",
                     content_type="video/mp4",
                     media_metadata={},
-                    expires_at=expires_at,
                     created_at=created_at,
                 )
             )
@@ -112,7 +111,6 @@ async def add_browser_import(
     size_bytes: int,
 ) -> None:
     job_id = uuid4()
-    expires_at = END + timedelta(days=1)
     async with sessions.begin() as session:
         session.add(
             DownloadJobRow(
@@ -165,7 +163,6 @@ async def add_browser_import(
                 container="mp4",
                 content_type="video/mp4",
                 media_metadata={},
-                expires_at=expires_at,
                 created_at=created_at,
             )
         )

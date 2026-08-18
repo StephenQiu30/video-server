@@ -41,10 +41,9 @@ async def complete_verification(
     *,
     worker_id: str,
     bucket: str,
-    expires_at: datetime,
     now: datetime,
 ) -> None:
-    validate_artifact(claim, artifact, bucket, expires_at, now)
+    validate_artifact(claim, artifact, bucket)
     original_key, normalized_key = artifact_keys(claim)
     async with sessions() as session, session.begin():
         row = await lock_document(session, claim.resource_id)
@@ -85,7 +84,6 @@ async def complete_verification(
                     artifact.original_size_bytes,
                     artifact.original_sha256,
                     {"source_format": claim.source_format.value},
-                    expires_at,
                     now,
                 ),
                 artifact_row(
@@ -114,7 +112,6 @@ async def complete_verification(
                             for scene in artifact.scenes
                         ]
                     },
-                    expires_at,
                     now,
                 ),
             ]
@@ -131,7 +128,6 @@ async def complete_verification(
         row.character_count = artifact.character_count
         row.text_sha256 = artifact.normalized_sha256
         row.quality_warnings = list(artifact.quality_warnings)
-        row.expires_at = expires_at
         row.finished_at = now
         row.version += 1
         row.updated_at = now

@@ -52,7 +52,6 @@ class ImportExecutionSettings:
     workspace_root: Path
     lease_for: timedelta
     heartbeat_interval: float
-    artifact_ttl: timedelta
 
     def __post_init__(self) -> None:
         if not self.worker_id.strip() or not self.bucket.strip():
@@ -61,8 +60,6 @@ class ImportExecutionSettings:
             raise ValueError("lease and heartbeat interval must be positive")
         if self.heartbeat_interval >= self.lease_for.total_seconds():
             raise ValueError("heartbeat interval must be shorter than the lease")
-        if self.artifact_ttl.total_seconds() <= 0:
-            raise ValueError("artifact TTL must be positive")
         object.__setattr__(self, "workspace_root", self.workspace_root.resolve())
 
 

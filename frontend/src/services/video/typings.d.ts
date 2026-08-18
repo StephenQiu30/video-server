@@ -141,8 +141,6 @@ declare namespace API {
     report_markdown: string | null;
     /** Current Report Id */
     current_report_id: string | null;
-    /** Retry Available Until */
-    retry_available_until: string | null;
     report: AnalysisReportResponse | null;
   };
 
@@ -300,8 +298,6 @@ declare namespace API {
     character_count: number | null;
     /** Quality Warnings */
     quality_warnings: string[];
-    /** Expires At */
-    expires_at: string | null;
     /** Created At */
     created_at: string;
     /** Updated At */
@@ -383,8 +379,6 @@ declare namespace API {
     character_count: number | null;
     /** Quality Warnings */
     quality_warnings: string[];
-    /** Expires At */
-    expires_at: string | null;
     /** Created At */
     created_at: string;
     /** Updated At */
@@ -529,8 +523,6 @@ declare namespace API {
     finished_at: string | null;
     /** File Available */
     file_available: boolean;
-    /** File Expires At */
-    file_expires_at: string | null;
     source_kind: DownloadSourceKind;
     /** Source Label */
     source_label: string;
@@ -593,8 +585,6 @@ declare namespace API {
     finished_at: string | null;
     /** File Available */
     file_available: boolean;
-    /** File Expires At */
-    file_expires_at: string | null;
     /** Title */
     title: string | null;
     /** Extractor Key */
@@ -788,6 +778,11 @@ declare namespace API {
   };
 
   type listDocumentsParams = {
+    page?: number;
+    page_size?: number;
+  };
+
+  type listStoredFilesParams = {
     page?: number;
     page_size?: number;
   };
@@ -1148,6 +1143,51 @@ declare namespace API {
     visual_tags: string[];
     /** Asset Ids */
     asset_ids: string[];
+  };
+
+  type StorageCleanupRequest = {
+    /** Older Than Days */
+    older_than_days?: number;
+  };
+
+  type StorageCleanupResponse = {
+    /** Older Than Days */
+    older_than_days: number;
+    /** Removed Resources */
+    removed_resources: number;
+    /** Removed Objects */
+    removed_objects: number;
+    /** Freed Bytes */
+    freed_bytes: number;
+    /** Failed Resources */
+    failed_resources: number;
+  };
+
+  type StoredFileCategory = "video" | "screenplay" | "analysis_report";
+
+  type StoredFileListResponse = {
+    /** Items */
+    items: StoredFileResponse[];
+    /** Page */
+    page: number;
+    /** Page Size */
+    page_size: number;
+    /** Total */
+    total: number;
+  };
+
+  type StoredFileResponse = {
+    /** Id */
+    id: string;
+    category: StoredFileCategory;
+    /** Name */
+    name: string;
+    /** Object Count */
+    object_count: number;
+    /** Size Bytes */
+    size_bytes: number;
+    /** Created At */
+    created_at: string;
   };
 
   type updateAiProviderProfileParams = {

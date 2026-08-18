@@ -10,7 +10,6 @@ from .base import Base
 from .completion_repository import build_artifact_object_key
 from .contracts import (
     ArtifactCreate,
-    ArtifactPurgeResult,
     ArtifactSnapshot,
     DownloadCreate,
     DownloadHistoryItemSnapshot,
@@ -73,7 +72,6 @@ from .session import create_engine, create_session_factory
 
 __all__ = [
     "ArtifactCreate",
-    "ArtifactPurgeResult",
     "ArtifactRow",
     "ArtifactSnapshot",
     "AuthSessionRow",

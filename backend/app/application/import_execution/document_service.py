@@ -117,7 +117,6 @@ class DocumentImportExecution:
                     artifact,
                     worker_id=self._settings.worker_id,
                     bucket=self._settings.bucket,
-                    expires_at=now + self._settings.artifact_ttl,
                     now=now,
                 )
             except asyncio.CancelledError:

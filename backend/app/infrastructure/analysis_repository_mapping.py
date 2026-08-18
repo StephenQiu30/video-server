@@ -51,11 +51,6 @@ def analysis_job_snapshot(
         error_code=row.error_code,
         created_at=as_utc(row.created_at),
         updated_at=as_utc(row.updated_at),
-        retry_available_until=(
-            None
-            if row.retry_available_until is None
-            else as_utc(row.retry_available_until)
-        ),
         document_id=row.document_id,
         input_kind=row.input_kind,
         result_contract=row.result_contract,
@@ -71,5 +66,4 @@ def analysis_artifact_snapshot(
         owner_hash=download.owner_hash,
         download_status=download.status,
         sha256=artifact.sha256,
-        expires_at=as_utc(artifact.expires_at),
     )

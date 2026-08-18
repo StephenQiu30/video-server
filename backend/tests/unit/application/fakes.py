@@ -230,11 +230,6 @@ class FakeRepository:
     ) -> ArtifactSnapshot | None:
         job = self.jobs.get(job_id)
         artifact = self.artifacts.get(job_id)
-        if (
-            job is None
-            or job.owner_hash != owner_hash
-            or artifact is None
-            or artifact.expires_at <= now
-        ):
+        if job is None or job.owner_hash != owner_hash or artifact is None:
             return None
         return artifact

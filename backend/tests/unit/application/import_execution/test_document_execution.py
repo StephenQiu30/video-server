@@ -141,7 +141,6 @@ def execution(tmp_path: Path):
             workspace_root=tmp_path,
             lease_for=timedelta(seconds=30),
             heartbeat_interval=5,
-            artifact_ttl=timedelta(days=7),
         ),
     )
     return service, repository, storage, workspace, verifier

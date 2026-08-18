@@ -145,7 +145,6 @@ async def _seed_complete_chain(sessions) -> object:
                 container="mp4",
                 content_type="video/mp4",
                 media_metadata={"video_streams": 1, "audio_streams": 1},
-                expires_at=expiry,
                 created_at=NOW,
             )
         )
@@ -229,7 +228,6 @@ async def _seed_complete_chain(sessions) -> object:
                     status="available",
                     created_at=NOW,
                     available_at=NOW,
-                    expires_at=expiry,
                 )
             )
         session.add(

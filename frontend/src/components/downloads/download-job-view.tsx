@@ -2,9 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import AnalysisPanel from '@/components/analysis/analysis-panel';
-import { BackLink } from '@/components/layout/back-link';
 import DownloadState from '@/components/downloads/download-state';
 import MediaCover from '@/components/intake/media-cover';
+import { BackLink } from '@/components/layout/back-link';
 import { markNavigationPush } from '@/components/layout/navigation-history';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';

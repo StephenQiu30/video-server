@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 
 from sqlalchemy import exists, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.infrastructure.analysis_report_lifecycle import (
     AnalysisReportLifecycleRepository,
@@ -45,15 +44,6 @@ class ReportObject:
 
 
 class SqlAlchemyAnalysisReportRepository(AnalysisReportLifecycleRepository):
-    def __init__(
-        self,
-        sessions: async_sessionmaker[AsyncSession],
-        *,
-        retention: timedelta = timedelta(days=7),
-    ) -> None:
-        super().__init__(sessions)
-        self._retention = retention
-
     async def claim(
         self,
         *,
@@ -156,7 +146,6 @@ class SqlAlchemyAnalysisReportRepository(AnalysisReportLifecycleRepository):
                             status="available",
                             created_at=now,
                             available_at=now,
-                            expires_at=now + self._retention,
                         )
                     )
                 elif (row.object_key, row.size_bytes, row.sha256) != (

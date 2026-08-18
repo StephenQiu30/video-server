@@ -1,7 +1,6 @@
 from datetime import UTC, datetime
 
 from app.infrastructure.database import Base
-from app.infrastructure.database.artifact_repository import expired_artifact_statement
 from app.infrastructure.database.outbox_repository import outbox_claim_statement
 from app.infrastructure.database.recovery_repository import stale_jobs_statement
 from sqlalchemy.dialects import postgresql
@@ -132,6 +131,14 @@ def test_constraints_cover_idempotency_progress_and_artifact_identity() -> None:
     assert "source_kind = 'browser_import'" in job_ddl
     assert "uq_artifacts_job" in artifact_ddl
     assert "uq_artifacts_object" in artifact_ddl
+    assert "expires_at" not in Base.metadata.tables["artifacts"].columns
+    assert "expires_at" not in Base.metadata.tables["documents"].columns
+    assert "expires_at" not in Base.metadata.tables["document_artifacts"].columns
+    assert "expires_at" not in Base.metadata.tables["analysis_report_artifacts"].columns
+    assert "retry_available_until" not in Base.metadata.tables["analysis_jobs"].columns
+    assert "ix_artifacts_expires" not in {
+        index.name for index in Base.metadata.tables["artifacts"].indexes
+    }
     assert "ck_users_role" in user_ddl
     assert "uq_media_imports_owner_idempotency" in media_import_ddl
     assert "ck_media_imports_terminal_shape" in media_import_ddl
@@ -145,9 +152,6 @@ def test_postgres_claims_use_skip_locked_for_parallel_consumers() -> None:
     dialect = postgresql.dialect()
     stale_sql = str(stale_jobs_statement(now, 10).compile(dialect=dialect))
     outbox_sql = str(outbox_claim_statement(now, 10).compile(dialect=dialect))
-    artifact_sql = str(expired_artifact_statement(now, 10).compile(dialect=dialect))
     assert "FOR UPDATE SKIP LOCKED" in stale_sql
     assert "FOR UPDATE SKIP LOCKED" in outbox_sql
-    assert "FOR UPDATE SKIP LOCKED" in artifact_sql
-    assert "NOT (EXISTS" in artifact_sql
     assert "download_jobs.source_kind =" in stale_sql

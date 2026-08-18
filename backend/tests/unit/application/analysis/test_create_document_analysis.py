@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 import pytest
@@ -36,10 +36,8 @@ def document(**changes: object) -> AnalysisDocumentSnapshot:
         owner_hash=OWNER,
         status="ready",
         text_sha256="b" * 64,
-        expires_at=NOW + timedelta(hours=2),
         normalized_status="ready",
         normalized_sha256="b" * 64,
-        normalized_expires_at=NOW + timedelta(hours=1),
     )
     return replace(value, **changes)
 
@@ -101,7 +99,6 @@ async def test_create_document_analysis_snapshots_source_and_skill(
     assert command.artifact_id is None
     assert command.document_id == DOCUMENT_ID
     assert command.input_sha256 == "b" * 64
-    assert command.retry_available_until == NOW + timedelta(hours=1)
     assert command.skill_instructions_sha256 == "f" * 64
     assert repository.outbox_events == 1
 
@@ -137,11 +134,6 @@ async def test_create_document_analysis_validates_owner_state_hash_and_language(
             document(status="failed"),
             "zh-CN",
             AnalysisApplicationErrorCode.ARTIFACT_NOT_READY,
-        ),
-        (
-            document(expires_at=NOW),
-            "zh-CN",
-            AnalysisApplicationErrorCode.RESOURCE_EXPIRED,
         ),
         (
             document(normalized_sha256="c" * 64),

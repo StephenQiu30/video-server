@@ -17,7 +17,6 @@ class AnalysisApplicationErrorCode(StrEnum):
     REPORT_NOT_READY = "analysis_report_not_ready"
     REPORT_UNAVAILABLE = "analysis_report_unavailable"
     RETRY_LIMITED = "analysis_retry_limited"
-    RESOURCE_EXPIRED = "resource_expired"
     SERVICE_UNAVAILABLE = "analysis_unavailable"
 
 

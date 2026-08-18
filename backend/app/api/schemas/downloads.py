@@ -41,7 +41,6 @@ class DownloadResponse(StrictModel):
     updated_at: datetime
     finished_at: datetime | None
     file_available: bool
-    file_expires_at: datetime | None
     title: str | None
     extractor_key: str | None
     duration_seconds: int | None
@@ -67,7 +66,6 @@ class DownloadResponse(StrictModel):
             updated_at=view.updated_at,
             finished_at=view.finished_at,
             file_available=view.file_available,
-            file_expires_at=view.file_expires_at,
             title=view.title,
             extractor_key=view.extractor_key,
             duration_seconds=view.duration_seconds,

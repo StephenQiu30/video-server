@@ -23,7 +23,6 @@ export function screenplayDocumentSummary(
     scene_count: 2,
     character_count: 1280,
     quality_warnings: [],
-    expires_at: '2026-08-21T10:00:00Z',
     created_at: '2026-08-14T10:00:00Z',
     updated_at: '2026-08-14T10:02:00Z',
     finished_at: '2026-08-14T10:02:00Z',

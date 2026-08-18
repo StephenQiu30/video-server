@@ -180,7 +180,6 @@ def fixture(
             workspace_root=artifact.workspace.parent,
             lease_for=timedelta(seconds=60),
             heartbeat_interval=heartbeat_interval,
-            artifact_ttl=timedelta(days=7),
             max_file_size_bytes=1024 * 1024,
         ),
     )

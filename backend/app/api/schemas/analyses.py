@@ -91,7 +91,6 @@ class AnalysisResponse(StrictModel):
     result: AnalysisResultResponse | None
     report_markdown: str | None
     current_report_id: UUID | None
-    retry_available_until: datetime | None
     report: AnalysisReportResponse | None
 
     @classmethod
@@ -124,7 +123,6 @@ class AnalysisResponse(StrictModel):
                 else None
             ),
             current_report_id=view.current_report_id,
-            retry_available_until=view.retry_available_until,
             report=(
                 None
                 if view.report is None

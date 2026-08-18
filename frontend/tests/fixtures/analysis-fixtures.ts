@@ -118,7 +118,6 @@ export function analysisJob(
       status === 'succeeded' || status === 'failed' || status === 'cancelled'
         ? '2026-08-06T10:02:00Z'
         : null,
-    retry_available_until: '2026-08-07T10:01:00Z',
     result: status === 'succeeded' ? analysisResult : null,
     report_markdown:
       status === 'succeeded'

@@ -48,7 +48,7 @@
 | --- | --- | --- | --- | --- |
 | P0-01 | Runner 的网络与 Secret 边界只停留在代码约定 | Compose 为 `media-runner` 注入整份 `.env`/`.env.prod`，所有服务共用默认网络；Runner 容器可见数据库、消息、MinIO、AI 等环境变量，也存在默认外网路径 | Runner 或媒体依赖被利用后可读取业务 Secret、横向访问内部依赖或绕过 Squid 直连 | 服务专属 env、内部/出口网络分段、Runner 仅持有 HMAC 与无凭据代理地址，网络测试证明无法直连公网和业务依赖 |
 | P0-02 | 公网入口没有系统级滥用防护 | API 仅有匿名会话，没有 IP/会话/API key 限流、并发配额、每日字节/AI 成本配额、bot challenge 或可信代理策略 | 免费算力/带宽被刷、队列堆积、出口 IP 被封、AI 账单失控 | 多维限流、原子配额、`429 + Retry-After`、全局 backpressure、可选 Turnstile/API key |
-| P0-03 | artifact TTL 没有物理删除执行器 | schema 有 `expires_at/deleted_at`，对象存储有 delete 方法，但没有扫描过期 artifact 并删除 MinIO 对象与元数据的生命周期 Worker | 隐私与存储成本持续累积，配置的 TTL 形成错误安全感 | 幂等 GC、analysis lock 保护、对象删除重试、孤儿对账、MinIO 生命周期兜底 |
+| P0-03 | 持久文件缺少显式治理入口 | 最终制品应持久保存，但仍需管理员按明确天数手动清理，并保护正在分析的源文件 | 无治理入口会让存储成本不可控 | 管理员分页、手动阈值清理、analysis lock 保护、对象删除失败统计与孤儿对账 |
 | P0-04 | 数据库只支持空卷初始化 | 仓库明确禁止 migrations，只保留 `schema.sql` | 生产升级只能丢数据或人工改表，无法回滚和审计 | 引入 Alembic，从基线 revision 开始做前向迁移；schema 快照仅用于新环境 |
 | P0-05 | 缺少备份、恢复与灾难演练 | Compose 有持久卷，但没有 PostgreSQL/MinIO/RabbitMQ 备份策略、恢复脚本或 RPO/RTO 验收 | 节点/磁盘故障后不可恢复 | 定义 RPO/RTO，完成加密备份、恢复演练和证据记录 |
 | P0-06 | 缺少生产可观测性 | 无结构化日志、请求 ID、中间件指标、Provider 聚合指标、Tracing 或告警规则；Runner 关闭 access log | 无法定位错误、容量、出口或平台回归 | 脱敏 JSON 日志、Prometheus 指标、队列/Worker/Provider/存储仪表盘、告警与 runbook |

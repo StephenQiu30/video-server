@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -123,16 +123,12 @@ async def test_owner_key_is_idempotent_and_rejects_different_input(
 
 
 @pytest.mark.asyncio
-async def test_creation_revalidates_status_owner_expiry_and_sha(analysis_db) -> None:
+async def test_creation_revalidates_status_owner_and_sha(analysis_db) -> None:
     failed = await seed_artifact(analysis_db.sessions, NOW, status="failed")
-    expired = await seed_artifact(
-        analysis_db.sessions, NOW, expires_at=NOW - timedelta(seconds=1)
-    )
     foreign = await seed_artifact(analysis_db.sessions, NOW, owner_hash="b" * 64)
 
     for command in (
         analysis_command(failed),
-        analysis_command(expired),
         replace(analysis_command(foreign), owner_hash=OWNER),
     ):
         with pytest.raises(PersistenceNotFound):

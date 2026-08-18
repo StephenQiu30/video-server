@@ -1,7 +1,7 @@
 import { ArrowClockwise, DownloadSimple } from '@phosphor-icons/react';
 
 import AnalysisDeleteDialog from '@/components/analysis/analysis-delete-dialog';
-import AnalysisRetryWindow from '@/components/analysis/analysis-retry-window';
+import AnalysisStorageNotice from '@/components/analysis/analysis-storage-notice';
 import { ScreenplayResultView } from '@/components/screenplay/screenplay-result-view';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -95,14 +95,14 @@ export function ScreenplayCompletedAnalysis({
       </div>
       {!reportAvailable ? (
         <Alert className="mt-8" variant="destructive">
-          <AlertTitle>报告已过期或暂时不可用</AlertTitle>
+          <AlertTitle>报告已清理或暂时不可用</AlertTitle>
           <AlertDescription>
             结构化结果仍可查看；重新执行后会生成新的 Markdown 和 DOCX。
           </AlertDescription>
         </Alert>
       ) : null}
       <div className="mt-5">
-        <AnalysisRetryWindow job={job} />
+        <AnalysisStorageNotice />
       </div>
       <ScreenplayResultView
         reportMarkdown={job.report_markdown}

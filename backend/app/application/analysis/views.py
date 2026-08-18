@@ -58,7 +58,6 @@ def analysis_job_view(
         result=result,
         report=report,
         current_report_id=snapshot.current_report_id,
-        retry_available_until=snapshot.retry_available_until,
         input_kind=input_kind,
         result_contract=result_contract,
     )

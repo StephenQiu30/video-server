@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import timedelta
 from enum import StrEnum
 from pathlib import Path
 from uuid import UUID
@@ -84,7 +84,6 @@ class AnalysisScreenplaySource:
     size_bytes: int
     character_count: int
     detected_language: str
-    expires_at: datetime
     scenes: tuple[ScreenplaySceneSource, ...]
 
     def __post_init__(self) -> None:
@@ -96,8 +95,6 @@ class AnalysisScreenplaySource:
             or len(self.sha256) != 64
             or len(self.owner_hash) != 64
             or self.detected_language not in {"zh-CN", "en-US", "mixed", "unknown"}
-            or self.expires_at.tzinfo is None
-            or self.expires_at.utcoffset() is None
             or not 1 <= len(self.scenes) <= 5_000
         ):
             raise ValueError("invalid screenplay analysis source")

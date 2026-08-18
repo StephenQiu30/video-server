@@ -1,7 +1,6 @@
 import { Suspense } from 'react';
-
-import { BackLink } from '@/components/layout/back-link';
 import { ProtectedRoute } from '@/components/auth/protected-route';
+import { BackLink } from '@/components/layout/back-link';
 import ScreenplayDocumentRoute from '@/components/screenplay/screenplay-document-route';
 import { Skeleton } from '@/components/ui/skeleton';
 

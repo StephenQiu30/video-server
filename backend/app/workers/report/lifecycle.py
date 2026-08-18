@@ -1,4 +1,4 @@
-"""Delete expired report artifacts and quarantined orphan objects."""
+"""Delete explicitly retired report artifacts and quarantined orphan objects."""
 
 from __future__ import annotations
 

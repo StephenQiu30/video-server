@@ -171,7 +171,6 @@ describe('download history', () => {
         items: [
           historyItem({
             file_available: false,
-            file_expires_at: '2026-08-08T10:00:00Z',
             status: 'succeeded',
           }),
         ],
@@ -279,7 +278,6 @@ function historyItem(
     error_code: null,
     finished_at: '2026-08-09T10:02:00Z',
     file_available: true,
-    file_expires_at: '2026-08-16T10:02:00Z',
     format_name: '1080p MP4',
     id: 'history-job-1',
     progress: 100,

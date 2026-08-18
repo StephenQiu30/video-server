@@ -144,7 +144,6 @@ export function screenplayAnalysisJob(
         : null,
     current_report_id:
       status === 'succeeded' ? '99999999-9999-4999-8999-999999999999' : null,
-    retry_available_until: '2026-08-15T12:00:00Z',
     report:
       status === 'succeeded'
         ? {

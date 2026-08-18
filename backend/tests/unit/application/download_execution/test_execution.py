@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import hashlib
 from dataclasses import replace
-from datetime import timedelta
 
 import pytest
 from app.application.download_execution import ExecutionDisposition
@@ -12,7 +11,7 @@ from app.infrastructure.media_runner_models import (
     MediaRunnerClientError,
     RunnerArtifact,
 )
-from tests.unit.application.download_execution.helpers import NOW, fixture
+from tests.unit.application.download_execution.helpers import fixture
 
 
 def artifact(tmp_path, data: bytes = b"controlled-video") -> RunnerArtifact:
@@ -47,7 +46,6 @@ async def test_success_revalidates_identity_uploads_and_completes(tmp_path) -> N
     assert download_kwargs["access_context"].provider_key == "generic"
     assert case.storage.uploads[0][0] == (f"downloads/{case.job_id}/1/video.mp4")
     assert case.repository.success.sha256 == case.runner.artifact.sha256
-    assert case.repository.success.expires_at == NOW + timedelta(days=7)
     stages = [item[0] for item in case.repository.heartbeats]
     assert "downloading" in stages
     assert stages[-2:] == ["verifying", "uploading"]

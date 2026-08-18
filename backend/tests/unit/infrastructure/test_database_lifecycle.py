@@ -153,7 +153,6 @@ async def test_job_outbox_lease_progress_and_success_are_atomic(repository) -> N
             container="mp4",
             content_type="video/mp4",
             media_metadata={"video_streams": 1, "audio_streams": 1},
-            expires_at=now + timedelta(days=1),
         ),
         now=now + timedelta(seconds=10),
     )

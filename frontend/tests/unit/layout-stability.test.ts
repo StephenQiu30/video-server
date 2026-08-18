@@ -70,13 +70,19 @@ describe('global layout stability', () => {
 
     expect(
       readFileSync(
-        resolve(process.cwd(), 'src/components/analysis/analysis-result-view.tsx'),
+        resolve(
+          process.cwd(),
+          'src/components/analysis/analysis-result-view.tsx',
+        ),
         'utf8',
       ),
     ).toContain('className="mt-8 w-full"');
     expect(
       readFileSync(
-        resolve(process.cwd(), 'src/components/analysis/analysis-report-preview.tsx'),
+        resolve(
+          process.cwd(),
+          'src/components/analysis/analysis-report-preview.tsx',
+        ),
         'utf8',
       ),
     ).toContain('className="w-full text-[15px]');
@@ -97,7 +103,10 @@ describe('global layout stability', () => {
     }
 
     const screenplayUploadForm = readFileSync(
-      resolve(process.cwd(), 'src/components/screenplay/screenplay-upload-form.tsx'),
+      resolve(
+        process.cwd(),
+        'src/components/screenplay/screenplay-upload-form.tsx',
+      ),
       'utf8',
     );
     const mediaUploadForm = readFileSync(

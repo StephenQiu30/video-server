@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import os
-from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -43,7 +42,6 @@ def source(
         size_bytes=len(content),
         character_count=len(text),
         detected_language="mixed",
-        expires_at=datetime.now(UTC),
         scenes=(
             ScreenplaySceneSource("scene-0001", 0, boundary),
             ScreenplaySceneSource("scene-0002", boundary, len(text)),

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.analysis_repository_base import AnalysisRepositoryBase
@@ -42,13 +42,10 @@ class AnalysisReportLifecycleRepository(AnalysisRepositoryBase):
                     select(AnalysisReportArtifactRow)
                     .where(
                         AnalysisReportArtifactRow.deleted_at.is_(None),
-                        or_(
-                            AnalysisReportArtifactRow.status == "delete_pending",
-                            AnalysisReportArtifactRow.expires_at <= now,
-                        ),
+                        AnalysisReportArtifactRow.status == "delete_pending",
                     )
                     .order_by(
-                        AnalysisReportArtifactRow.expires_at,
+                        AnalysisReportArtifactRow.created_at,
                         AnalysisReportArtifactRow.id,
                     )
                     .limit(1)

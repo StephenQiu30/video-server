@@ -34,10 +34,7 @@ async def run() -> None:
         settings.analysis_report_queue,
         settings.analysis_report_routing_key,
     )
-    repository = SqlAlchemyAnalysisReportRepository(
-        create_session_factory(engine),
-        retention=timedelta(seconds=settings.analysis_report_ttl_seconds),
-    )
+    repository = SqlAlchemyAnalysisReportRepository(create_session_factory(engine))
     publisher = ReportPublisher(
         repository,
         storage,

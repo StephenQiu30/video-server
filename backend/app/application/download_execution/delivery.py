@@ -76,6 +76,5 @@ class ArtifactDelivery:
                 "video_streams": artifact.video_streams,
                 "audio_streams": artifact.audio_streams,
             },
-            expires_at=self._clock() + self._settings.artifact_ttl,
         )
         return await self._transitions.complete(job_id, attempt, key, details)

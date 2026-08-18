@@ -94,10 +94,6 @@ class CreateAnalysis:
             raise AnalysisApplicationError(
                 AnalysisApplicationErrorCode.ARTIFACT_NOT_READY
             )
-        if now >= artifact.expires_at:
-            raise AnalysisApplicationError(
-                AnalysisApplicationErrorCode.RESOURCE_EXPIRED
-            )
         sha256 = validate_sha256(artifact.sha256)
         result_contract = skill.view.result_contract
         fingerprint = self._fingerprinter.fingerprint(
@@ -127,7 +123,6 @@ class CreateAnalysis:
             max_attempts=self._max_attempts,
             outbox_event_id=self._new_id(),
             outbox_event_type="analysis.requested",
-            retry_available_until=artifact.expires_at,
             input_kind=input_kind,
             result_contract=result_contract,
         )

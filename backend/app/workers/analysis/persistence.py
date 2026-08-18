@@ -78,7 +78,6 @@ class AnalysisExecutionPersistence:
                 or projection.owner_hash != job.owner_hash
                 or projection.download_status != "succeeded"
                 or projection.sha256 != job.input_sha256
-                or projection.expires_at <= now
             ):
                 raise AnalysisSourceUnavailable
             artifact = await self._downloads.get_artifact(
@@ -114,7 +113,6 @@ class AnalysisExecutionPersistence:
                 or source.document_id != job.document_id
                 or source.owner_hash != job.owner_hash
                 or source.sha256 != job.input_sha256
-                or source.expires_at <= now
             ):
                 raise AnalysisSourceUnavailable
             return source

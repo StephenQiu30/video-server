@@ -7,7 +7,6 @@ from uuid import uuid4
 import pytest
 from app.application.analysis import (
     AnalysisRetry,
-    PersistenceArtifactUnavailable,
     PersistenceConflict,
     PersistenceNotFound,
 )
@@ -15,13 +14,10 @@ from app.application.analysis_execution import AnalysisSourceUnavailable
 from app.infrastructure.database.models import (
     AnalysisArtifactLockRow,
     AnalysisDocumentLockRow,
-    AnalysisRunRow,
-    DocumentArtifactRow,
-    DocumentRow,
     OutboxEventRow,
 )
 from app.workers.analysis.persistence import AnalysisExecutionPersistence
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select
 from tests.unit.infrastructure.analysis.factories import OWNER
 from tests.unit.infrastructure.analysis.screenplay_factories import (
     screenplay_command,
@@ -139,13 +135,10 @@ async def test_latest_screenplay_analysis_is_owner_and_document_scoped(
 
 
 @pytest.mark.asyncio
-async def test_screenplay_creation_revalidates_state_owner_expiry_and_sha(
+async def test_screenplay_creation_revalidates_state_owner_and_sha(
     analysis_db,
 ) -> None:
     failed = await seed_screenplay(analysis_db.sessions, NOW, status="failed")
-    expired = await seed_screenplay(
-        analysis_db.sessions, NOW, expires_at=NOW - timedelta(seconds=1)
-    )
     foreign = await seed_screenplay(analysis_db.sessions, NOW, owner_hash="b" * 64)
     missing_text = await seed_screenplay(
         analysis_db.sessions, NOW, normalized_status=None
@@ -156,7 +149,6 @@ async def test_screenplay_creation_revalidates_state_owner_expiry_and_sha(
 
     for command in (
         screenplay_command(failed),
-        screenplay_command(expired),
         replace(screenplay_command(foreign), owner_hash=OWNER),
         screenplay_command(missing_text),
         screenplay_command(deleting_text),
@@ -217,39 +209,4 @@ async def test_screenplay_retry_recreates_and_terminal_paths_release_lock(
         command.id, command.owner_hash, NOW + timedelta(seconds=3)
     )
     assert cancelled.status == "cancelled"
-    assert await count_rows(analysis_db, AnalysisDocumentLockRow) == 0
-
-
-@pytest.mark.asyncio
-async def test_screenplay_retry_fails_closed_after_input_expiry(analysis_db) -> None:
-    source = await seed_screenplay(analysis_db.sessions, NOW)
-    command = screenplay_command(source)
-    await analysis_db.repository.create_job_and_enqueue(command, now=NOW)
-    await analysis_db.repository.cancel_job(command.id, command.owner_hash, NOW)
-    async with analysis_db.sessions() as session, session.begin():
-        await session.execute(
-            update(DocumentRow)
-            .where(DocumentRow.id == source.document_id)
-            .values(expires_at=NOW - timedelta(seconds=1))
-        )
-        await session.execute(
-            update(DocumentArtifactRow)
-            .where(DocumentArtifactRow.document_id == source.document_id)
-            .values(expires_at=NOW - timedelta(seconds=1))
-        )
-
-    with pytest.raises(PersistenceArtifactUnavailable):
-        await analysis_db.repository.retry_job_and_enqueue(
-            AnalysisRetry(
-                job_id=command.id,
-                run_id=uuid4(),
-                owner_hash=command.owner_hash,
-                idempotency_key="expired-retry",
-                trigger="manual_retry",
-                outbox_event_id=uuid4(),
-                max_attempts=3,
-            ),
-            now=NOW + timedelta(seconds=1),
-        )
-    assert await count_rows(analysis_db, AnalysisRunRow) == 1
     assert await count_rows(analysis_db, AnalysisDocumentLockRow) == 0

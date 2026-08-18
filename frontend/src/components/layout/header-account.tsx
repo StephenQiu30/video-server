@@ -3,6 +3,7 @@
 import {
   CaretDownIcon,
   ChartLineUpIcon,
+  HardDrivesIcon,
   RobotIcon,
   SignOutIcon,
   StackIcon,
@@ -28,6 +29,7 @@ type HeaderAccountProps = {
   analyticsActive: boolean;
   aiProvidersActive: boolean;
   catalogActive: boolean;
+  filesActive: boolean;
   loading: boolean;
   onSignOut: () => void;
   pathname: string;
@@ -40,6 +42,7 @@ export function HeaderAccount({
   analyticsActive,
   aiProvidersActive,
   catalogActive,
+  filesActive,
   loading,
   onSignOut,
   pathname,
@@ -88,6 +91,15 @@ export function HeaderAccount({
             </DropdownMenuItem>
             {user.role === 'admin' ? (
               <>
+                <DropdownMenuItem asChild>
+                  <Link
+                    aria-current={filesActive ? 'page' : undefined}
+                    href="/admin/files"
+                  >
+                    <HardDrivesIcon aria-hidden className="size-4" />
+                    文件管理
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link
                     aria-current={aiProvidersActive ? 'page' : undefined}

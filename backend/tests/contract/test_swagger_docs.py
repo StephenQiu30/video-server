@@ -49,6 +49,8 @@ def test_swagger_ui_and_openapi_contract_are_available(tmp_path: Path) -> None:
         "listUsers",
         "updateUserAccess",
         "getDownloadAnalytics",
+        "listStoredFiles",
+        "cleanupStoredFiles",
         "listAiProviderProfiles",
         "createAiProviderProfile",
         "updateAiProviderProfile",

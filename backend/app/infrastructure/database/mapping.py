@@ -127,9 +127,7 @@ def download_history_item_snapshot(
             job.status == "succeeded"
             and artifact is not None
             and artifact.deleted_at is None
-            and as_utc(artifact.expires_at) > as_utc(now)
         ),
-        file_expires_at=(None if artifact is None else as_utc(artifact.expires_at)),
         source_kind=job.source_kind,
     )
 
@@ -171,7 +169,6 @@ def artifact_snapshot(row: ArtifactRow) -> ArtifactSnapshot:
         container=row.container,
         content_type=row.content_type,
         media_metadata=dict(row.media_metadata),
-        expires_at=as_utc(row.expires_at),
     )
 
 

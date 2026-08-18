@@ -105,7 +105,6 @@ class ArtifactRow(Base):
         CheckConstraint("size_bytes > 0", name="ck_artifacts_size"),
         CheckConstraint("duration_ms > 0", name="ck_artifacts_duration"),
         CheckConstraint("length(sha256) = 64", name="ck_artifacts_sha256_length"),
-        Index("ix_artifacts_expires", "expires_at"),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
@@ -122,9 +121,6 @@ class ArtifactRow(Base):
     content_type: Mapped[str] = mapped_column(String(128), nullable=False)
     media_metadata: Mapped[dict[str, Any]] = mapped_column(
         JSON_DOCUMENT, nullable=False
-    )
-    expires_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(

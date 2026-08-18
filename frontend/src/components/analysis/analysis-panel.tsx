@@ -3,9 +3,12 @@
 import { ArrowClockwise, DownloadSimple, Robot } from '@phosphor-icons/react';
 import AnalysisConfigurator from '@/components/analysis/analysis-configurator';
 import AnalysisDeleteDialog from '@/components/analysis/analysis-delete-dialog';
-import { stageLabels, statusLabels } from '@/components/analysis/analysis-panel-model';
+import {
+  stageLabels,
+  statusLabels,
+} from '@/components/analysis/analysis-panel-model';
 import AnalysisResultView from '@/components/analysis/analysis-result-view';
-import AnalysisRetryWindow from '@/components/analysis/analysis-retry-window';
+import AnalysisStorageNotice from '@/components/analysis/analysis-storage-notice';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -101,14 +104,14 @@ export default function AnalysisPanel({
         </div>
         {!reportAvailable ? (
           <Alert className="mt-8" variant="destructive">
-            <AlertTitle>报告已过期或暂时不可用</AlertTitle>
+            <AlertTitle>报告已清理或暂时不可用</AlertTitle>
             <AlertDescription>
-              分析结果仍可查看，但下载文件已经失效。你可以重新分析以生成新报告。
+              分析结果仍可查看，但报告文件已被清理或暂时不可读取。你可以重新分析以生成新报告。
             </AlertDescription>
           </Alert>
         ) : null}
         <div className="mt-5">
-          <AnalysisRetryWindow job={state.job} />
+          <AnalysisStorageNotice />
         </div>
         <AnalysisResultView
           reportMarkdown={state.job.report_markdown}
@@ -183,7 +186,7 @@ function AnalysisJobState({
           : '尚未开始技术尝试'}
       </p>
       <div className="mt-2">
-        <AnalysisRetryWindow job={job} />
+        <AnalysisStorageNotice />
       </div>
       {job.status === 'failed' ? (
         <Alert className="mt-6" variant="destructive">

@@ -65,7 +65,6 @@ def build_runtime(settings: Settings) -> ImportWorkerRuntime:
         workspace_root=settings.import_workspace_root,
         lease_for=timedelta(seconds=settings.job_lease_seconds),
         heartbeat_interval=settings.heartbeat_interval_seconds,
-        artifact_ttl=timedelta(seconds=settings.artifact_ttl_seconds),
     )
     video_execution = ImportExecution(
         repository=repository,

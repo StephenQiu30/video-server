@@ -280,7 +280,6 @@ async def test_retry_rejects_active_successful_with_file_and_foreign_jobs() -> N
         container="mp4",
         content_type="video/mp4",
         media_metadata={},
-        expires_at=NOW + timedelta(minutes=5),
     )
     with pytest.raises(ApplicationError) as available:
         await retry(original.id, OWNER, "retry-succeeded-available")
@@ -368,27 +367,14 @@ async def test_retry_does_not_adapt_to_an_unrelated_aspect_ratio() -> None:
 
 
 @pytest.mark.asyncio
-async def test_retry_allows_a_succeeded_job_after_its_file_expires() -> None:
+async def test_retry_allows_a_succeeded_job_after_its_file_is_cleaned() -> None:
     repository = FakeRepository()
     inspection_id, format_id = seed_inspection(repository)
     original = await creator(repository)(inspection_id, format_id, OWNER, "original")
     repository.jobs[original.id] = replace(
         repository.jobs[original.id], status="succeeded", progress=100
     )
-    repository.artifacts[original.id] = ArtifactSnapshot(
-        id=uuid4(),
-        job_id=original.id,
-        attempt=1,
-        bucket="video-artifacts",
-        object_key=f"downloads/{original.id}/1/video.mp4",
-        sha256="d" * 64,
-        size_bytes=1_024,
-        duration_ms=30_000,
-        container="mp4",
-        content_type="video/mp4",
-        media_metadata={},
-        expires_at=NOW,
-    )
+    repository.artifacts.pop(original.id, None)
 
     retried = await retrier(repository)(original.id, OWNER, "retry-expired-file")
 
@@ -396,7 +382,7 @@ async def test_retry_allows_a_succeeded_job_after_its_file_expires() -> None:
 
 
 @pytest.mark.asyncio
-async def test_download_url_requires_success_and_unexpired_artifact() -> None:
+async def test_download_url_requires_success_and_available_artifact() -> None:
     repository, storage = FakeRepository(), FakeStorage()
     inspection_id, format_id = seed_inspection(repository)
     created = await creator(repository)(inspection_id, format_id, OWNER, "download-1")
@@ -423,11 +409,9 @@ async def test_download_url_requires_success_and_unexpired_artifact() -> None:
         container="mp4",
         content_type="video/mp4",
         media_metadata={},
-        expires_at=NOW + timedelta(seconds=90),
     )
     details = await GetDownload(repository, now=lambda: NOW)(created.id, OWNER)
     assert details.file_available is True
-    assert details.file_expires_at == NOW + timedelta(seconds=90)
     assert details.title == "Owned video"
     assert details.thumbnail_url == f"/api/inspections/{inspection_id}/thumbnail"
     assert details.format_plan is not None
@@ -435,17 +419,16 @@ async def test_download_url_requires_success_and_unexpired_artifact() -> None:
     result = await issue(created.id, OWNER)
 
     assert result.url == "https://objects.example/download-token"
-    assert result.expires_at == NOW + timedelta(seconds=90)
-    assert storage.calls == [(f"downloads/{created.id}/1/video.mp4", 90, "Owned video")]
+    assert result.expires_at == NOW + timedelta(minutes=5)
+    assert storage.calls == [
+        (f"downloads/{created.id}/1/video.mp4", 300, "Owned video")
+    ]
 
-    repository.artifacts[created.id] = replace(
-        repository.artifacts[created.id], expires_at=NOW
+    persistent_details = await GetDownload(repository, now=lambda: NOW)(
+        created.id, OWNER
     )
-    expired_details = await GetDownload(repository, now=lambda: NOW)(created.id, OWNER)
-    assert expired_details.file_available is False
-    with pytest.raises(ApplicationError) as expired:
-        await issue(created.id, OWNER)
-    assert expired.value.code is ApplicationErrorCode.RESOURCE_EXPIRED
+    assert persistent_details.file_available is True
+    await issue(created.id, OWNER)
 
 
 @pytest.mark.asyncio
@@ -468,7 +451,6 @@ async def test_download_url_passes_inspection_title_to_storage() -> None:
         container="mp4",
         content_type="video/mp4",
         media_metadata={},
-        expires_at=NOW + timedelta(seconds=90),
     )
     issue = IssueDownloadUrl(
         repository, storage, now=lambda: NOW, url_ttl=timedelta(minutes=5)
@@ -478,7 +460,7 @@ async def test_download_url_passes_inspection_title_to_storage() -> None:
 
     assert storage.calls[-1] == (
         f"downloads/{created.id}/1/video.mp4",
-        90,
+        300,
         "Owned video",
     )
 
@@ -503,7 +485,6 @@ async def test_download_url_omits_missing_inspection_title() -> None:
         container="mp4",
         content_type="video/mp4",
         media_metadata={},
-        expires_at=NOW + timedelta(seconds=90),
     )
     issue = IssueDownloadUrl(
         repository, storage, now=lambda: NOW, url_ttl=timedelta(minutes=5)
@@ -514,6 +495,6 @@ async def test_download_url_omits_missing_inspection_title() -> None:
 
     assert storage.calls[-1] == (
         f"downloads/{created.id}/1/video.mp4",
-        90,
+        300,
         None,
     )

@@ -98,7 +98,6 @@ class ArtifactSnapshot:
     container: str
     content_type: str
     media_metadata: dict[str, object]
-    expires_at: datetime
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,7 +122,6 @@ class DownloadView:
     updated_at: datetime
     finished_at: datetime | None
     file_available: bool = False
-    file_expires_at: datetime | None = None
     version: int = 0
     title: str | None = None
     extractor_key: str | None = None

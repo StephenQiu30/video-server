@@ -141,7 +141,6 @@ async def test_claim_heartbeat_and_completion_create_two_immutable_artifacts(
         artifact,
         worker_id="worker-a",
         bucket="video-artifacts",
-        expires_at=NOW + timedelta(days=7),
         now=NOW + timedelta(seconds=2),
     )
     await execution.complete_verification(
@@ -149,7 +148,6 @@ async def test_claim_heartbeat_and_completion_create_two_immutable_artifacts(
         artifact,
         worker_id="worker-a",
         bucket="video-artifacts",
-        expires_at=NOW + timedelta(days=7),
         now=NOW + timedelta(seconds=3),
     )
 
@@ -211,7 +209,6 @@ async def test_completion_rejects_overlapping_structure_offsets(
             invalid,
             worker_id="worker-a",
             bucket="video-artifacts",
-            expires_at=NOW + timedelta(days=7),
             now=NOW + timedelta(seconds=1),
         )
 

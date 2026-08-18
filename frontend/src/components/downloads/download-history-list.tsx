@@ -201,10 +201,7 @@ function formatDate(value: string) {
 }
 
 function fileAvailabilityLabel(item: DownloadHistoryItem) {
-  if (!item.file_available) return '文件已过期';
-  return item.file_expires_at
-    ? `文件保留至 ${formatDate(item.file_expires_at)}`
-    : '文件可下载';
+  return item.file_available ? '文件持久保存' : '文件已清理';
 }
 
 function statusVariant(

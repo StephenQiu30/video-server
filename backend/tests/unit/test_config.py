@@ -177,25 +177,12 @@ def test_production_import_worker_accepts_shared_minio_credentials() -> None:
     assert settings.service_role == "import-worker"
 
 
-def test_user_artifacts_default_to_seven_days_and_allow_thirty_days() -> None:
+def test_persistent_artifacts_have_no_retention_ttl_setting() -> None:
     defaults = Settings(app_env="test", _env_file=None)
-    seven_days = 7 * 24 * 60 * 60
-    thirty_days = 30 * 24 * 60 * 60
-    configured = Settings(
-        app_env="test",
-        artifact_ttl_seconds=thirty_days,
-        analysis_report_ttl_seconds=thirty_days,
-        _env_file=None,
-    )
 
-    assert defaults.artifact_ttl_seconds == seven_days
-    assert defaults.analysis_report_ttl_seconds == seven_days
-    assert configured.artifact_ttl_seconds == thirty_days
-    assert configured.analysis_report_ttl_seconds == thirty_days
-    with pytest.raises(ValidationError):
-        Settings(app_env="test", artifact_ttl_seconds=86_400, _env_file=None)
-    with pytest.raises(ValidationError):
-        Settings(app_env="test", analysis_report_ttl_seconds=86_400, _env_file=None)
+    assert "artifact_ttl_seconds" not in Settings.model_fields
+    assert "analysis_report_ttl_seconds" not in Settings.model_fields
+    assert defaults.artifact_download_url_ttl_seconds == 300
 
 
 def test_signing_secrets_require_adequate_entropy_capacity() -> None:

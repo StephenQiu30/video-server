@@ -469,7 +469,6 @@ async def test_worker_claim_heartbeat_and_completion_are_one_atomic_projection(
         artifact,
         worker_id="import-worker-a",
         bucket="video-artifacts",
-        expires_at=NOW + timedelta(days=7),
         now=NOW + timedelta(seconds=5),
     )
     # A broker redelivery after the commit sees the same deterministic artifact.
@@ -478,7 +477,6 @@ async def test_worker_claim_heartbeat_and_completion_are_one_atomic_projection(
         artifact,
         worker_id="import-worker-a",
         bucket="video-artifacts",
-        expires_at=NOW + timedelta(days=7),
         now=NOW + timedelta(seconds=6),
     )
 

@@ -44,6 +44,7 @@ from app.application.imports import (
 from app.application.provider_canaries import ProviderStatusService
 from app.application.provider_catalog import ProviderCatalogService
 from app.application.providers import ProviderStatusView
+from app.application.storage_files import StorageFileService
 from app.core.config import Settings
 from app.core.errors import AppError
 
@@ -183,6 +184,18 @@ def get_ai_provider_service(request: Request) -> AiProviderService:
             detail="The AI Provider service is not available.",
         )
     return cast(AiProviderService, service)
+
+
+def get_storage_file_service(request: Request) -> StorageFileService:
+    service = getattr(request.app.state, "storage_file_service", None)
+    if service is None:
+        raise AppError(
+            status=503,
+            code="service_unavailable",
+            title="Service unavailable",
+            detail="The storage file service is not available.",
+        )
+    return cast(StorageFileService, service)
 
 
 async def get_provider_statuses(request: Request) -> tuple[ProviderStatusView, ...]:

@@ -18,7 +18,6 @@ from app.application.analysis_execution import (
     ScreenplaySceneSource,
 )
 from app.infrastructure.analysis_repository_mapping import analysis_artifact_snapshot
-from app.infrastructure.database.base import as_utc
 from app.infrastructure.database.models import (
     ArtifactRow,
     DocumentArtifactRow,
@@ -83,14 +82,8 @@ class AnalysisInputRepository:
                 owner_hash=document.owner_hash,
                 status=document.status,
                 text_sha256=document.text_sha256,
-                expires_at=(
-                    None if document.expires_at is None else as_utc(document.expires_at)
-                ),
                 normalized_status=None if normalized is None else normalized.status,
                 normalized_sha256=None if normalized is None else normalized.sha256,
-                normalized_expires_at=(
-                    None if normalized is None else as_utc(normalized.expires_at)
-                ),
             )
 
     async def get_screenplay_source(
@@ -108,11 +101,9 @@ class AnalysisInputRepository:
                         DocumentRow.id == document_id,
                         DocumentRow.status == "ready",
                         DocumentRow.deleted_at.is_(None),
-                        DocumentRow.expires_at > now,
                         DocumentArtifactRow.kind == "normalized",
                         DocumentArtifactRow.status == "ready",
                         DocumentArtifactRow.deleted_at.is_(None),
-                        DocumentArtifactRow.expires_at > now,
                     )
                 )
             ).one_or_none()
@@ -135,9 +126,6 @@ class AnalysisInputRepository:
                 size_bytes=artifact.size_bytes,
                 character_count=document.character_count,
                 detected_language=document.detected_language,
-                expires_at=min(
-                    as_utc(document.expires_at), as_utc(artifact.expires_at)
-                ),
                 scenes=_screenplay_scenes(artifact.artifact_metadata),
             )
 

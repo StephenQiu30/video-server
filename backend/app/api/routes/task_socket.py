@@ -187,13 +187,8 @@ def _same_origin(websocket: WebSocket, production: bool) -> bool:
     if origin is None or host is None:
         return not production
     forwarded_host = websocket.headers.get("x-forwarded-host")
-    expected_host = (
-        forwarded_host.split(",", 1)[0].strip()
-        if forwarded_host
-        else host
-    )
+    expected_host = forwarded_host.split(",", 1)[0].strip() if forwarded_host else host
     parsed = urlsplit(origin)
-    return (
-        parsed.netloc.casefold() == expected_host.casefold()
-        and (not production or parsed.scheme == "https")
+    return parsed.netloc.casefold() == expected_host.casefold() and (
+        not production or parsed.scheme == "https"
     )

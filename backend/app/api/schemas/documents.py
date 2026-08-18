@@ -98,7 +98,6 @@ class DocumentResponse(StrictModel):
     scene_count: int | None
     character_count: int | None
     quality_warnings: tuple[str, ...]
-    expires_at: datetime | None
     created_at: datetime
     updated_at: datetime
     finished_at: datetime | None
@@ -119,7 +118,6 @@ class DocumentResponse(StrictModel):
             scene_count=view.scene_count,
             character_count=view.character_count,
             quality_warnings=view.quality_warnings,
-            expires_at=view.expires_at,
             created_at=view.created_at,
             updated_at=view.updated_at,
             finished_at=view.finished_at,

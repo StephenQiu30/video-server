@@ -14,7 +14,7 @@
 
 1. `023` 已通过浏览器 MP4 上传、受控隔离区和 Artifact Import 验收，供 Edge 路径复用。
 2. 已配对 Edge Agent 可以上传单个视频号或红果 MP4，服务端从未接收平台会话或内容密钥。
-3. Edge 导入任务继续使用现有 download ID、历史、WebSocket、Artifact TTL 和 Analysis API。
+3. Edge 导入任务继续使用现有 download ID、历史、WebSocket、Artifact 持久存储和 Analysis API。
 4. 微信视频号至少一条授权分享链接完成 Edge → MinIO → Agent → 报告 E2E 后才能对外标记支持。
 5. 红果至少一个授权单集在固定 Android/App/Agent 版本上完成同样 E2E 后才能对外标记支持。
 6. 设备撤销、旧版本阻断、上传中断、校验失败、超限与队列重复投递均能稳定收敛且不留下可读孤儿制品。
@@ -98,7 +98,7 @@
 
 - 单文件大小、视频时长、工作区、并发、请求体、上传会话和任务 lease 使用类型化配置并有安全上限。
 - 文件验证进程无公网访问、非 root、固定 ffprobe/FFmpeg 版本并限制 CPU、内存、pids 和执行时间。
-- quarantine 独立权限、服务端加密、短 lifecycle；最终 Artifact 延用现有 MinIO 最小权限与 TTL。
+- quarantine 独立权限、服务端加密、短 lifecycle；最终 Artifact 延用现有 MinIO 最小权限并持久保存，只允许管理员按明确天数手动清理。
 - 新 RabbitMQ 队列使用 quorum、publisher confirm、manual ack、DLQ、有界回灌和幂等 consumer。
 - 指标只使用低基数 Provider/Adapter/平台/状态标签，不包含用户、设备、作品、标题或 URL。
 - API 变化遵循稳定 operationId、`201 + Location`、严格 OpenAPI schema，并重新生成前端客户端。

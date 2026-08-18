@@ -520,10 +520,9 @@ class SqlAlchemyMediaImportRepository(RepositoryBase):
         *,
         worker_id: str,
         bucket: str,
-        expires_at: datetime,
         now: datetime,
     ) -> None:
-        _validate_verified_artifact(artifact, bucket, expires_at, now)
+        _validate_verified_artifact(artifact, bucket)
         object_key = _final_object_key(claim)
         async with self._sessions() as session, session.begin():
             row = await session.scalar(
@@ -570,7 +569,6 @@ class SqlAlchemyMediaImportRepository(RepositoryBase):
                     container=artifact.container,
                     content_type=artifact.content_type,
                     media_metadata=artifact.media_metadata,
-                    expires_at=expires_at,
                     created_at=now,
                 )
             )
@@ -1023,8 +1021,6 @@ def _final_object_key(claim: ImportVerificationClaim) -> str:
 def _validate_verified_artifact(
     artifact: VerifiedImportArtifact,
     bucket: str,
-    expires_at: datetime,
-    now: datetime,
 ) -> None:
     if (
         not bucket.strip()
@@ -1034,7 +1030,6 @@ def _validate_verified_artifact(
         or artifact.duration_ms <= 0
         or artifact.container != "mp4"
         or artifact.content_type != "video/mp4"
-        or as_utc(expires_at) <= as_utc(now)
     ):
         raise ValueError("invalid verified media artifact")
 

@@ -94,7 +94,6 @@ def download_view(
         updated_at=snapshot.updated_at,
         finished_at=snapshot.finished_at,
         file_available=artifact is not None,
-        file_expires_at=None if artifact is None else artifact.expires_at,
         version=snapshot.version,
         title=None if presentation is None else presentation.title,
         extractor_key=None if presentation is None else presentation.extractor_key,
