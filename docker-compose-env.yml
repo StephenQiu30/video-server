@@ -1,0 +1,194 @@
+name: video-server-env
+
+# Dedicated local infrastructure for this project.
+# Start this file before docker-compose.yml. The ports are intentionally
+# separate from other existing Docker environments on this machine.
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: video-env-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-video}"
+      POSTGRES_USER: "${POSTGRES_USER:-video}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-video}"
+    ports:
+      - "127.0.0.1:${HOST_POSTGRES_PORT:-15432}:5432"
+    volumes:
+      - video_env_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  database-init:
+    image: postgres:18
+    container_name: video-env-database-init
+    restart: "no"
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-video}"
+      POSTGRES_USER: "${POSTGRES_USER:-video}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-video}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/sql/schema.sql:/schema.sql:ro
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - >-
+        PGPASSWORD="$$POSTGRES_PASSWORD" psql -h postgres -U "$$POSTGRES_USER"
+        -d "$$POSTGRES_DB" -v ON_ERROR_STOP=1 -f /schema.sql
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: video-env-rabbitmq
+    hostname: rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: "${RABBITMQ_DEFAULT_USER:-video}"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_DEFAULT_PASS:-video}"
+      RABBITMQ_DEFAULT_VHOST: "/"
+    ports:
+      - "127.0.0.1:${HOST_RABBITMQ_PORT:-5673}:5672"
+      - "127.0.0.1:${HOST_RABBITMQ_MANAGEMENT_PORT:-15673}:15672"
+    volumes:
+      - video_env_rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rabbitmq-init:
+    image: rabbitmq:3.13-management-alpine
+    container_name: video-env-rabbitmq-init
+    restart: "no"
+    environment:
+      RABBITMQ_DEFAULT_USER: "${RABBITMQ_DEFAULT_USER:-video}"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_DEFAULT_PASS:-video}"
+      RABBITMQ_VHOST: "${RABBITMQ_VHOST:-video}"
+      RABBITMQ_API_USER: "${RABBITMQ_API_USER:-video-api}"
+      RABBITMQ_API_PASS: "${RABBITMQ_API_PASS:-video-api-secret}"
+      RABBITMQ_OUTBOX_USER: "${RABBITMQ_OUTBOX_USER:-video-outbox}"
+      RABBITMQ_OUTBOX_PASS: "${RABBITMQ_OUTBOX_PASS:-video-outbox-secret}"
+      RABBITMQ_DOWNLOAD_USER: "${RABBITMQ_DOWNLOAD_USER:-video-download}"
+      RABBITMQ_DOWNLOAD_PASS: "${RABBITMQ_DOWNLOAD_PASS:-video-download-secret}"
+      RABBITMQ_IMPORT_USER: "${RABBITMQ_IMPORT_USER:-video-import}"
+      RABBITMQ_IMPORT_PASS: "${RABBITMQ_IMPORT_PASS:-video-import-secret}"
+      RABBITMQ_ANALYSIS_USER: "${RABBITMQ_ANALYSIS_USER:-video-analysis}"
+      RABBITMQ_ANALYSIS_PASS: "${RABBITMQ_ANALYSIS_PASS:-video-analysis-secret}"
+      RABBITMQ_REPORT_USER: "${RABBITMQ_REPORT_USER:-video-report}"
+      RABBITMQ_REPORT_PASS: "${RABBITMQ_REPORT_PASS:-video-report-secret}"
+      RABBITMQ_DLQ_USER: "${RABBITMQ_DLQ_USER:-video-dlq}"
+      RABBITMQ_DLQ_PASS: "${RABBITMQ_DLQ_PASS:-video-dlq-secret}"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        admin="rabbitmqadmin --host rabbitmq --port 15672 --username $${RABBITMQ_DEFAULT_USER} --password $${RABBITMQ_DEFAULT_PASS}"
+        until $$admin --vhost=/ list vhosts >/dev/null 2>&1; do sleep 2; done
+        $$admin --vhost=/ declare vhost name="$${RABBITMQ_VHOST}"
+        declare_user() {
+          $$admin --vhost=/ declare user name="$$1" password="$$2" tags=none
+          $$admin --vhost=/ declare permission vhost="$${RABBITMQ_VHOST}" user="$$1" configure='.*' write='.*' read='.*'
+        }
+        declare_user "$${RABBITMQ_API_USER}" "$${RABBITMQ_API_PASS}"
+        declare_user "$${RABBITMQ_OUTBOX_USER}" "$${RABBITMQ_OUTBOX_PASS}"
+        declare_user "$${RABBITMQ_DOWNLOAD_USER}" "$${RABBITMQ_DOWNLOAD_PASS}"
+        declare_user "$${RABBITMQ_IMPORT_USER}" "$${RABBITMQ_IMPORT_PASS}"
+        declare_user "$${RABBITMQ_ANALYSIS_USER}" "$${RABBITMQ_ANALYSIS_PASS}"
+        declare_user "$${RABBITMQ_REPORT_USER}" "$${RABBITMQ_REPORT_PASS}"
+        declare_user "$${RABBITMQ_DLQ_USER}" "$${RABBITMQ_DLQ_PASS}"
+        declare_exchange() {
+          $$admin --vhost="$${RABBITMQ_VHOST}" declare exchange name="$$1" type=topic durable=true
+        }
+        declare_queue() {
+          $$admin --vhost="$${RABBITMQ_VHOST}" declare queue name="$$1" durable=true arguments='{"x-message-ttl":86400000,"x-max-length":10000,"x-dead-letter-exchange":"video.events.dead","x-dead-letter-routing-key":"'"$$1"'.dead"}'
+        }
+        declare_dead_queue() {
+          $$admin --vhost="$${RABBITMQ_VHOST}" declare queue name="$$1" durable=true arguments='{"x-max-length":10000}'
+        }
+        declare_binding() {
+          $$admin --vhost="$${RABBITMQ_VHOST}" declare binding source="$$1" destination="$$2" destination_type=queue routing_key="$$3"
+        }
+        declare_exchange video.events
+        declare_exchange video.events.dead
+        declare_queue video.download
+        declare_queue video.analysis
+        declare_queue video.analysis-report
+        declare_queue video.import
+        declare_dead_queue video.download.dead
+        declare_dead_queue video.analysis.dead
+        declare_dead_queue video.analysis-report.dead
+        declare_dead_queue video.import.dead
+        declare_binding video.events video.download download.requested
+        declare_binding video.events video.analysis analysis.requested
+        declare_binding video.events video.analysis-report analysis.report.publish.requested
+        declare_binding video.events video.import content.import.verify.requested
+        declare_binding video.events.dead video.download.dead video.download.dead
+        declare_binding video.events.dead video.analysis.dead video.analysis.dead
+        declare_binding video.events.dead video.analysis-report.dead video.analysis-report.dead
+        declare_binding video.events.dead video.import.dead video.import.dead
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: video-env-valkey
+    restart: unless-stopped
+    command: ["valkey-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${HOST_VALKEY_PORT:-16380}:6379"
+    volumes:
+      - video_env_valkey_data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    container_name: video-env-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ACCESS_KEY:-minio}"
+      MINIO_ROOT_PASSWORD: "${MINIO_SECRET_KEY:-minio123}"
+    command: ["server", "/data", "--address", ":9000", "--console-address", ":9001"]
+    ports:
+      - "127.0.0.1:${HOST_MINIO_PORT:-19190}:9000"
+      - "127.0.0.1:${HOST_MINIO_CONSOLE_PORT:-19191}:9001"
+    volumes:
+      - video_env_minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: video-env-minio-init
+    restart: "no"
+    environment:
+      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:-minio}"
+      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:-minio123}"
+      MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - >-
+        mc alias set local http://minio:9000 "$${MINIO_ACCESS_KEY}"
+        "$${MINIO_SECRET_KEY}" >/dev/null &&
+        mc mb --ignore-existing "local/$${MINIO_BUCKET}"
+
+volumes:
+  video_env_postgres_data:
+  video_env_rabbitmq_data:
+  video_env_valkey_data:
+  video_env_minio_data:

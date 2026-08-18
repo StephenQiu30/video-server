@@ -66,16 +66,13 @@
 
 ### Docker Compose
 
-需要 Docker Engine 与 Docker Compose。复制本地环境模板后启动完整拓扑：
+需要 Docker Engine 与 Docker Compose。复制本地环境模板后，先启动项目专用的基础环境，再启动业务服务：
 
 ```bash
 git clone https://github.com/StephenQiu30/video-server.git
 cd video-server
 cp .env.example .env
-docker compose --env-file .env \
-  -f docker-compose.yml --profile environment \
-  up -d database-init rabbitmq-init valkey minio-init
-docker wait database-init rabbitmq-init minio-init
+docker compose --env-file .env -f docker-compose-env.yml up -d
 docker compose --env-file .env -f docker-compose.yml up -d --build
 ```
 
@@ -147,7 +144,7 @@ flowchart LR
 
 ## 本地开发
 
-前端要求 Node.js 24 与 npm 11.19，后端要求 Python 3.12 与 [uv](https://docs.astral.sh/uv/)。本机已有 PostgreSQL、RabbitMQ、Redis/Valkey、MinIO 时不要启用 Compose 的 `environment` Profile；前后端和 Worker 可直接复用现有环境。
+前端要求 Node.js 24 与 npm 11.19，后端要求 Python 3.12 与 [uv](https://docs.astral.sh/uv/)。`docker-compose-env.yml` 只负责本项目专用的 PostgreSQL、RabbitMQ、Valkey 和 MinIO 等基础环境；`docker-compose.yml` 只负责业务服务。若本机已有这些基础服务，可不启动环境 Compose，并在 `.env` 中填写现有服务的地址和端口。
 
 需要为本机 Runner 提供受控出口时，只启动代理，不会连带启动环境服务：
 
