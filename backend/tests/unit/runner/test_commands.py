@@ -83,6 +83,29 @@ async def test_inspection_classifies_youtube_bot_confirmation_requirement(
 
 
 @pytest.mark.asyncio
+async def test_authenticated_youtube_bot_confirmation_is_expired_session(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(
+            b"ERROR: Sign in to confirm you're not a bot. "
+            b"Use --cookies for authentication"
+        ),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect(
+            "https://www.youtube.com/watch?v=owned",
+            tmp_path,
+            cookie_jar=tmp_path / "cookies.txt",
+        )
+
+    assert caught.value.code == "credential_expired"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
 async def test_inspection_classifies_unavailable_youtube_video(tmp_path: Path) -> None:
     commands = MediaCommands(
         settings(tmp_path),
@@ -134,7 +157,7 @@ async def test_download_classifies_selected_drm_format(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_inspection_classifies_tiktok_webpage_regression(tmp_path: Path) -> None:
+async def test_inspection_classifies_tiktok_webpage_challenge(tmp_path: Path) -> None:
     commands = MediaCommands(
         settings(tmp_path),
         FailingSupervisor(b"ERROR: Unexpected response from webpage request"),
@@ -146,8 +169,8 @@ async def test_inspection_classifies_tiktok_webpage_regression(tmp_path: Path) -
             tmp_path,
         )
 
-    assert caught.value.code == "extractor_regression"
-    assert caught.value.status == 502
+    assert caught.value.code == "egress_challenged"
+    assert caught.value.status == 422
 
 
 @pytest.mark.asyncio
@@ -287,6 +310,25 @@ async def test_xhs_share_link_without_token_is_classified_as_unavailable(
 
     assert caught.value.code == "provider_link_unavailable"
     assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
+async def test_xhs_missing_video_formats_is_classified_as_extractor_regression(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(b"ERROR: [xiaohongshu] 6411: No video formats found!"),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect(
+            "https://www.xiaohongshu.com/explore/6411f5d60000000013031939",
+            tmp_path,
+        )
+
+    assert caught.value.code == "extractor_regression"
+    assert caught.value.status == 502
 
 
 @pytest.mark.asyncio

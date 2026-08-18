@@ -19,6 +19,15 @@
 
 推荐导出流程遵循 yt-dlp 官方 YouTube Cookie 指南：在新的私密窗口登录，在唯一标签打开 `https://www.youtube.com/robots.txt`，只导出 YouTube 域 Cookie，随后关闭并不再使用该私密会话。不要自动化密码、2FA 或浏览器 profile。
 
+受信任的 macOS 本地开发机可以选择连续桥接当前 Chrome 登录态，以跟随 YouTube 对打开标签的 Cookie 轮换：
+
+```bash
+./scripts/youtube-cookie-bridge.sh start
+./scripts/youtube-cookie-bridge.sh status
+```
+
+桥接运行在宿主机，只输出 Provider、数量、版本和稳定错误类型；不会把完整 Profile、Keychain、Cookie 值或其他网站 Cookie 暴露给 Docker。该模式仅用于本地开发，不替代生产环境的独立私密会话和不可变版本轮换。
+
 ## 2. 导入不可变 Secret
 
 版本 ID 只使用字母、数字、点、下划线或连字符，例如 `yt-20260810-01`。本地开发目录默认为被 Git 忽略的 `.provider-secrets/youtube/`；生产目录由 Secret 管理器挂载，不能放在仓库、共享 `/work` 或容器环境变量中。

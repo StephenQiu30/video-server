@@ -46,6 +46,7 @@ async def runtime_probe(
     engine: AsyncEngine,
     *,
     worker_schema_version: int | None = ANALYSIS_MESSAGE_SCHEMA_VERSION,
+    operator_runners: dict[str, str] | None = None,
 ) -> AsyncIterator[Any]:
     client = httpx.AsyncClient(transport=handler)
     settings = Settings(
@@ -53,6 +54,7 @@ async def runtime_probe(
         database_url=str(engine.url),
         rabbitmq_url="amqp://user:redacted@rabbit.test:5672/",
         runner_base_url="http://runner.test",
+        runner_operator_base_urls=operator_runners or {},
         minio_endpoint="minio.test:9000",
         readiness_timeout_seconds=1,
     )
@@ -98,6 +100,27 @@ async def test_runtime_readiness_fails_closed_without_exposing_dependency_error(
 
     async with runtime_probe(httpx.MockTransport(respond), postgres_engine) as probe:
         assert await probe.check() is False
+
+
+@pytest.mark.usefixtures("rabbitmq_is_available")
+async def test_runtime_readiness_requires_every_configured_operator_runner(
+    postgres_engine: AsyncEngine,
+) -> None:
+    seen: set[str] = set()
+
+    async def respond(request: httpx.Request) -> httpx.Response:
+        seen.add(request.url.host or "")
+        status = 503 if request.url.host == "tiktok-runner.test" else 200
+        return httpx.Response(status)
+
+    async with runtime_probe(
+        httpx.MockTransport(respond),
+        postgres_engine,
+        operator_runners={"tiktok": "http://tiktok-runner.test"},
+    ) as probe:
+        assert await probe.check() is False
+
+    assert {"runner.test", "tiktok-runner.test", "minio.test"} <= seen
 
 
 @pytest.mark.usefixtures("rabbitmq_is_available")

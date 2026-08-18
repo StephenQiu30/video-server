@@ -21,5 +21,6 @@ class ProviderStatusView:
     capabilities: tuple[ProviderCapability, ...]
     access_modes: tuple[ProviderAccessMode, ...]
     status: ProviderSupportStatus
+    last_media_verified_at: datetime | None
     last_verified_at: datetime | None
     user_action: str | None

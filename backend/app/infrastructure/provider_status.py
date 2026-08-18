@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
 from app.application.providers import ProviderStatusView
 from app.domain.providers import ProviderSupportStatus
 from app.runner.provider_registry import current_provider_registry
-
-_LAST_BASELINE = datetime(2026, 8, 11, tzinfo=UTC)
 
 
 def configured_provider_statuses() -> tuple[ProviderStatusView, ...]:
@@ -21,11 +17,8 @@ def configured_provider_statuses() -> tuple[ProviderStatusView, ...]:
             capabilities=tuple(sorted(profile.capabilities, key=str)),
             access_modes=profile.access_modes,
             status=profile.support_status,
-            last_verified_at=(
-                _LAST_BASELINE
-                if profile.support_status is ProviderSupportStatus.VERIFIED
-                else None
-            ),
+            last_media_verified_at=None,
+            last_verified_at=None,
             user_action=_user_action(profile.support_status, profile.key),
         )
         for profile in current_provider_registry().profiles
@@ -39,6 +32,7 @@ def configured_provider_statuses() -> tuple[ProviderStatusView, ...]:
             capabilities=(),
             access_modes=(),
             status=ProviderSupportStatus.UNSUPPORTED,
+            last_media_verified_at=None,
             last_verified_at=None,
             user_action="当前安全执行器不支持该平台。",
         ),

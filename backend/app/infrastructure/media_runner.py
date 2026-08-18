@@ -8,7 +8,7 @@ import secrets
 import time
 from collections.abc import Callable, Mapping
 from pathlib import Path
-from typing import TypeVar
+from typing import Protocol, TypeVar
 
 import httpx
 from pydantic import BaseModel, ValidationError
@@ -35,6 +35,7 @@ from app.application.downloads.errors import (
 )
 from app.domain.downloads import DownloadPlan
 from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
+from app.infrastructure.media_inspection_pipeline import MediaInspectionPipeline
 from app.infrastructure.media_runner_models import (
     MediaRunnerClientError,
     RunnerArtifact,
@@ -52,11 +53,33 @@ from app.runner.contracts import (
     ProviderAccessContextContract,
     TaskStatusResponse,
 )
-from app.runner.provider_registry import provider_profile
 from app.runner.signing import sign_request
 
 _TASK_ID = re.compile(r"[A-Za-z0-9_-]{1,64}")
 ResponseModel = TypeVar("ResponseModel", bound=BaseModel)
+
+
+class MediaRunnerClient(Protocol):
+    """Runner strategy used by the routing facade."""
+
+    async def inspect(self, url: str) -> RunnerInspection: ...
+
+    async def download(
+        self,
+        task_id: str,
+        url: str,
+        plan: DownloadPlan,
+        *,
+        expected_provider_media_id: str,
+        expected_extractor_key: str,
+        access_context: ProviderAccessContextRef,
+    ) -> RunnerArtifact: ...
+
+    async def status(self, task_id: str) -> RunnerProgress: ...
+
+    async def cancel(self, task_id: str) -> None: ...
+
+    async def close(self) -> None: ...
 
 
 class MediaRunnerHttpClient:
@@ -278,31 +301,19 @@ class MediaRunnerRouter:
 
     def __init__(
         self,
-        anonymous: MediaRunnerHttpClient,
-        operators: Mapping[str, MediaRunnerHttpClient] | None = None,
+        anonymous: MediaRunnerClient,
+        operators: Mapping[str, MediaRunnerClient] | None = None,
     ) -> None:
         self._anonymous = anonymous
         self._operators = dict(operators or {})
-        self._active: dict[str, MediaRunnerHttpClient] = {}
+        self._inspection_pipeline = MediaInspectionPipeline(
+            anonymous,
+            self._operators,
+        )
+        self._active: dict[str, MediaRunnerClient] = {}
 
     async def inspect(self, url: str) -> RunnerInspection:
-        try:
-            return await self._anonymous.inspect(url)
-        except (
-            MediaInspectionAuthRequired,
-            MediaInspectionTemporarilyUnavailable,
-            MediaInspectionVerificationFailed,
-        ) as anonymous_error:
-            operator = self._operators.get(provider_profile(url).key)
-            if operator is None:
-                raise
-            try:
-                return await operator.inspect(url)
-            except MediaInspectionFailure as operator_error:
-                # Operator runners are optional. If one is unavailable or has
-                # no service-owned session, preserve the original anonymous
-                # diagnosis instead of exposing a generic runner failure.
-                raise anonymous_error from operator_error
+        return await self._inspection_pipeline.inspect(url)
 
     async def download(
         self,
@@ -339,7 +350,7 @@ class MediaRunnerRouter:
         for operator in self._operators.values():
             await operator.close()
 
-    def _client_for(self, context: ProviderAccessContextRef) -> MediaRunnerHttpClient:
+    def _client_for(self, context: ProviderAccessContextRef) -> MediaRunnerClient:
         if context.access_mode is ProviderAccessMode.ANONYMOUS:
             return self._anonymous
         if context.access_mode is ProviderAccessMode.OPERATOR_MANAGED:

@@ -81,6 +81,7 @@ class ProviderStatusService:
                 capabilities=(),
                 access_modes=(),
                 status=ProviderSupportStatus.UNSUPPORTED,
+                last_media_verified_at=None,
                 last_verified_at=None,
                 user_action="当前安全执行器不支持该平台。",
             )
@@ -95,8 +96,17 @@ def _merge_status(
     *,
     explicitly_approved: bool,
 ) -> ProviderStatusView:
-    if not results or baseline.status is ProviderSupportStatus.UNSUPPORTED:
+    if baseline.status is ProviderSupportStatus.UNSUPPORTED:
         return baseline
+    if not results:
+        if baseline.status is not ProviderSupportStatus.VERIFIED:
+            return baseline
+        return replace(
+            baseline,
+            status=ProviderSupportStatus.UNKNOWN,
+            last_verified_at=None,
+            user_action=_user_action(ProviderSupportStatus.UNKNOWN, baseline.key),
+        )
     ordered = tuple(sorted(results, key=lambda item: item.checked_at, reverse=True))
     latest = ordered[0]
     failures = tuple(
@@ -128,6 +138,10 @@ def _merge_status(
         capabilities=baseline.capabilities,
         access_modes=baseline.access_modes,
         status=status,
+        last_media_verified_at=(
+            _latest_success(ordered, ProviderCanaryStage.MEDIA)
+            or baseline.last_media_verified_at
+        ),
         last_verified_at=verified_at or baseline.last_verified_at,
         user_action=_user_action(status, baseline.key),
     )
@@ -180,12 +194,17 @@ def _verified(results: tuple[ProviderCanaryResult, ...], now: datetime) -> bool:
 def _latest_analysis_success(
     results: tuple[ProviderCanaryResult, ...],
 ) -> datetime | None:
+    return _latest_success(results, ProviderCanaryStage.ANALYSIS)
+
+
+def _latest_success(
+    results: tuple[ProviderCanaryResult, ...], stage: ProviderCanaryStage
+) -> datetime | None:
     return next(
         (
             item.checked_at
             for item in results
-            if item.stage is ProviderCanaryStage.ANALYSIS
-            and item.outcome is ProviderCanaryOutcome.SUCCEEDED
+            if item.stage is stage and item.outcome is ProviderCanaryOutcome.SUCCEEDED
         ),
         None,
     )

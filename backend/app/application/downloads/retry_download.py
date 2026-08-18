@@ -20,6 +20,7 @@ from app.application.downloads.ports import (
     UrlCipher,
 )
 from app.application.downloads.queries import _owned_job
+from app.application.downloads.retry_format_recovery import RetryFormatRecoveryPolicy
 from app.application.downloads.validation import (
     validate_idempotency_key,
     validate_now,
@@ -42,6 +43,7 @@ class RetryDownload:
         now: Callable[[], datetime],
         new_id: Callable[[], UUID],
         max_attempts: int,
+        format_recovery: RetryFormatRecoveryPolicy | None = None,
     ) -> None:
         if max_attempts <= 0:
             raise ValueError("max attempts must be positive")
@@ -52,6 +54,7 @@ class RetryDownload:
         self._now = now
         self._new_id = new_id
         self._max_attempts = max_attempts
+        self._format_recovery = format_recovery or RetryFormatRecoveryPolicy()
 
     async def __call__(
         self,
@@ -95,16 +98,14 @@ class RetryDownload:
             idempotency_key,
         )
         inspection = await self._inspect_media(url, owner_hash, inspection_key)
-        selected = next(
-            (
-                item
-                for item in inspection.formats
-                if plan_to_documents(item.plan)[0] == original.semantic_plan
-            ),
-            None,
+        resolution = self._format_recovery.resolve(
+            original.semantic_plan,
+            inspection.formats,
         )
-        if selected is None:
+        if resolution is None:
             raise ApplicationError(ApplicationErrorCode.FORMAT_UNAVAILABLE)
+        selected = resolution.selected
+        selected_semantic, _ = plan_to_documents(selected.plan)
 
         command = DownloadCreate(
             id=self._new_id(),
@@ -117,7 +118,7 @@ class RetryDownload:
                 str(original.id),
                 original.request_fingerprint,
             ),
-            semantic_plan=original.semantic_plan,
+            semantic_plan=selected_semantic,
             max_attempts=self._max_attempts,
         )
         try:

@@ -24,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 @dataclass(slots=True)
 class ProviderCanaryRuntime:
     scheduler: ProviderCanaryScheduler
+    service: ProviderCanaryService
     runner: MediaRunnerRouter
     engine: AsyncEngine
 
@@ -76,6 +77,7 @@ def build_runtime(settings: Settings) -> ProviderCanaryRuntime:
             poll_seconds=settings.provider_canary_poll_seconds,
             now=_utc_now,
         ),
+        service=service,
         runner=runner,
         engine=engine,
     )

@@ -962,6 +962,8 @@ declare namespace API {
     /** Access Modes */
     access_modes: ProviderAccessMode[];
     status: ProviderSupportStatus;
+    /** Last Media Verified At */
+    last_media_verified_at: string | null;
     /** Last Verified At */
     last_verified_at: string | null;
     /** User Action */

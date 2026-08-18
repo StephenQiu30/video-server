@@ -6,7 +6,10 @@ from http.cookiejar import Cookie, CookieJar
 from pathlib import Path
 
 import pytest
-from app.runner.browser_cookie_export import export_browser_cookies
+from app.runner.browser_cookie_export import (
+    export_browser_cookies,
+    watch_browser_cookies,
+)
 
 
 def _cookie(domain: str, name: str, value: str) -> Cookie:
@@ -80,6 +83,38 @@ def test_export_requires_a_provider_login_cookie(tmp_path: Path) -> None:
         )
 
 
+@pytest.mark.parametrize(
+    ("provider", "domain", "cookie_name"),
+    (
+        ("douyin", ".douyin.com", "ttwid"),
+        ("xiaohongshu", ".xiaohongshu.com", "web_session"),
+        ("reddit", ".reddit.com", "reddit_session"),
+        ("x", ".x.com", "auth_token"),
+        ("instagram", ".instagram.com", "sessionid"),
+        ("facebook", ".facebook.com", "c_user"),
+    ),
+)
+def test_export_supports_each_allowlisted_browser_session(
+    tmp_path: Path,
+    provider: str,
+    domain: str,
+    cookie_name: str,
+) -> None:
+    target, count = export_browser_cookies(
+        provider=provider,
+        browser="chrome",
+        profile=None,
+        version="browser-v1",
+        output_root=tmp_path / "secrets",
+        cookie_loader=lambda _browser, _profile: _jar(
+            _cookie(domain, cookie_name, "provider-secret")
+        ),
+    )
+
+    assert count == 1
+    assert "provider-secret" in target.read_text()
+
+
 def test_export_rejects_symlinked_output_root(tmp_path: Path) -> None:
     actual = tmp_path / "actual"
     actual.mkdir()
@@ -95,3 +130,71 @@ def test_export_rejects_symlinked_output_root(tmp_path: Path) -> None:
             output_root=link,
             cookie_loader=lambda _browser, _profile: _jar(),
         )
+
+
+def test_watch_refreshes_active_secret_when_browser_cookie_rotates(
+    tmp_path: Path,
+) -> None:
+    sources = iter(
+        (
+            _jar(_cookie(".youtube.com", "SID", "session-one")),
+            _jar(_cookie(".youtube.com", "SID", "session-two")),
+        )
+    )
+    reports: list[str] = []
+
+    watch_browser_cookies(
+        provider="youtube",
+        browser="chrome",
+        profile=None,
+        version="browser-live",
+        output_root=tmp_path / "secrets",
+        interval_seconds=5,
+        cookie_loader=lambda _browser, _profile: next(sources),
+        reporter=reports.append,
+        sleeper=lambda _seconds: None,
+        max_cycles=2,
+    )
+
+    payload = (
+        tmp_path / "secrets" / "youtube" / "browser-live.cookies.txt"
+    ).read_text()
+    assert "session-two" in payload
+    assert "session-one" not in payload
+    assert reports == [
+        "refreshed provider=youtube cookies=1 version=browser-live",
+        "refreshed provider=youtube cookies=1 version=browser-live",
+    ]
+
+
+def test_watch_retains_last_good_secret_after_transient_browser_failure(
+    tmp_path: Path,
+) -> None:
+    calls = 0
+
+    def loader(_browser: str, _profile: str | None) -> CookieJar:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise ValueError("browser temporarily unavailable")
+        return _jar(_cookie(".youtube.com", "SID", "session-one"))
+
+    reports: list[str] = []
+    watch_browser_cookies(
+        provider="youtube",
+        browser="chrome",
+        profile=None,
+        version="browser-live",
+        output_root=tmp_path / "secrets",
+        interval_seconds=5,
+        cookie_loader=loader,
+        reporter=reports.append,
+        sleeper=lambda _seconds: None,
+        max_cycles=2,
+    )
+
+    payload = (
+        tmp_path / "secrets" / "youtube" / "browser-live.cookies.txt"
+    ).read_text()
+    assert "session-one" in payload
+    assert reports[-1] == "refresh_failed provider=youtube reason=ValueError"

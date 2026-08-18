@@ -52,6 +52,7 @@ def test_current_schema_can_be_applied_repeatedly() -> None:
     assert "ck_analysis_jobs_skill_instructions_sha256" in schema
     assert "created_at + INTERVAL '7 days'" in schema
     assert "expires_at <= created_at + INTERVAL '25 hours'" in schema
+    assert "('hongguo_web', '红果短剧官方分享', 230, TRUE, FALSE)" in schema
 
 
 def test_compose_does_not_bundle_host_managed_infrastructure() -> None:
@@ -178,3 +179,25 @@ def test_compose_pins_shared_runner_workspace_to_the_mounted_container_path() ->
         assert "RUNNER_WORKSPACE_ROOT: /work" in service_config
         assert "RUNNER_WORKSPACE_ROOT:-" not in service_config
         assert "runner_work:/work" in service_config
+
+
+def test_provider_session_runners_are_physically_isolated_by_provider() -> None:
+    expected = {
+        "douyin-operator-runner": ("douyin", "douyin-operator"),
+        "xiaohongshu-operator-runner": ("xiaohongshu", "xiaohongshu-operator"),
+        "reddit-operator-runner": ("reddit", "reddit-operator"),
+    }
+
+    for path in (COMPOSE_PATH, PROD_COMPOSE_PATH):
+        compose = path.read_text(encoding="utf-8")
+        for service, (provider, profile) in expected.items():
+            service_config = _service_block(compose, service)
+            assert f"profiles: [{profile}]" in service_config
+            assert "<<: *provider-session-runner" in service_config
+            assert "<<: *provider-session-environment" in service_config
+            assert "runner_work:/work" in service_config
+            assert f"target: /run/provider-secrets/{provider}" in service_config
+            assert service_config.count("target: /run/provider-secrets/") == 1
+            assert f'RUNNER_OPERATOR_SESSION_VERSIONS: \'{{"{provider}":' in (
+                service_config
+            )

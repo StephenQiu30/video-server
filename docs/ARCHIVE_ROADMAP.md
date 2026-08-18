@@ -31,6 +31,7 @@
 | P1 | 010 | Codex 已通过，但原需求明确包含 Claude；2026-08-14 复验又确认当前 Windows 会话未启用 Claude 沙箱 feature gate，CLI 按策略拒绝启动 | 在启用 Claude Windows 沙箱的会话或其他受支持隔离环境完成同一授权视频的完整视觉 E2E，继续完成队列级持久化、安全 fixture 与孤儿进程验收；或通过新的产品决策正式移除 Claude 首期承诺，不能仅改状态绕过 |
 | P1 | 005 | Phase 1 代码部分完成，生产会话与 canary 证据仍不完整，Phase 2 也在同一范围 | 完成 YouTube 授权 Cookie/POT/固定出口、真实 canary、审计和供应链门禁；对用户 ProviderCredential/多媒体 Phase 2 实施或拆为新编号后重新冻结 005 范围 |
 | P1 | 017 | 代码门禁存在但 `acceptance: pending`，实际完整视频分析证明不足 | 提供授权样本，完成下载→Agent→PostgreSQL→MinIO MD/DOCX→WebSocket→浏览器/CI 证据；所有纳入归档的平台为 verified 后改 marker 并运行专用命令 |
+| P1 | 026 | 封面、规格恢复、会话桥接和固定探针实现已完成，但第三方平台当前证据为 mixed | 恢复抖音/小红书/Vimeo/Facebook/Reddit/Tumblr/TikTok 当前授权 canary，并为纳入 verified 的平台补完整视频 Analysis attestation；不得用静态日期关闭 |
 | P2 | 006 | Public Beta/Stable v1 伞形需求跨越多个已归档子项，仍含真实生产能力缺口 | 在 PRD 中标记已由 012–015、018、020 等交付的需求；完成剩余网络隔离、滥用防护、配额、备份恢复、可观测性、发布治理、音频/字幕/批量，或拆分成独立编号后收敛 006 |
 | P2 | 019 | 已把浏览器上传基础转交 023；设备协议和平台 Adapter 仍未实施且依赖设备/授权输入 | 先等待 023 Accepted，再完成设备配对/签名/撤销、Edge Import、视频号元宝/Windows Adapter、红果 Android Adapter、SBOM/许可证与真实三阶段 canary |
 
@@ -41,4 +42,3 @@
 3. 完成 022 的 API Key/macOS/Linux 验收，再决定 010 Claude 的可用环境或产品范围。
 4. 收敛 005 与 017 的 Provider 范围；不要让未实施 Phase 2 永久阻断已完成 Phase 1，应通过新编号承接明确延期范围。
 5. 将 006 拆解为可独立验收的生产能力编号；019 在 023 Accepted 且获得设备、授权样本和发行输入后实施。
-

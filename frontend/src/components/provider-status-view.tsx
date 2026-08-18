@@ -50,7 +50,7 @@ export function ProviderStatusView() {
             刷新状态
           </Button>
         }
-        description="平台状态同时区分已接入、已验证和受控会话要求。已接入不代表所有内容类型都可用；这里只展示当前版本的能力、访问模式与最近验证状态，不展示账号、Cookie、出口或探针地址。"
+        description="平台状态同时区分已接入、真实下载证据、完整链路验证和受控会话要求。已接入不代表所有内容类型都可用；这里只展示当前版本的能力与验证状态，不展示账号、Cookie、出口或探针地址。"
         title="平台状态"
         titleId="provider-status-title"
       />
@@ -121,7 +121,8 @@ function ProviderRow({ provider }: { provider: ProviderStatus }) {
         </div>
         <div className="text-sm leading-6 text-muted-foreground">
           <p>{accessDescription(provider)}</p>
-          <p className="mt-1">{verificationDescription(provider)}</p>
+          <p className="mt-1">{mediaVerificationDescription(provider)}</p>
+          <p>{analysisVerificationDescription(provider)}</p>
           {provider.user_action ? (
             <p className="mt-2">{provider.user_action}</p>
           ) : null}
@@ -157,11 +158,20 @@ function accessDescription(provider: ProviderStatus): string {
   return '访问：当前未开放';
 }
 
-function verificationDescription(provider: ProviderStatus): string {
-  if (!provider.last_verified_at) return '最近验证：暂无当前版本证据';
-  return `最近验证：${new Intl.DateTimeFormat('zh-CN', {
+function mediaVerificationDescription(provider: ProviderStatus): string {
+  if (!provider.last_media_verified_at) return '最近真实下载：暂无当前版本证据';
+  return `最近真实下载：${formatVerificationDate(provider.last_media_verified_at)}`;
+}
+
+function analysisVerificationDescription(provider: ProviderStatus): string {
+  if (!provider.last_verified_at) return '最近完整分析：暂无当前版本证据';
+  return `最近完整分析：${formatVerificationDate(provider.last_verified_at)}`;
+}
+
+function formatVerificationDate(value: string): string {
+  return new Intl.DateTimeFormat('zh-CN', {
     dateStyle: 'medium',
-  }).format(new Date(provider.last_verified_at))}`;
+  }).format(new Date(value));
 }
 
 function statusVariant(

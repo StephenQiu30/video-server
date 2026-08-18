@@ -288,7 +288,11 @@ class MediaRunnerService:
                 )
                 break
             except RunnerFailure as exc:
-                if exc.code != "inspection_failed" or attempt == attempts - 1:
+                retryable = exc.code in {
+                    "inspection_failed",
+                    "provider_rate_limited",
+                }
+                if not retryable or attempt == attempts - 1:
                     raise
                 await asyncio.sleep(retry_delay)
         enforce_media_rights(

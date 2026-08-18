@@ -104,6 +104,7 @@ def service(repository: Repository) -> ProviderCatalogService:
         capabilities=(),
         access_modes=(),
         status=ProviderSupportStatus.UNKNOWN,
+        last_media_verified_at=None,
         last_verified_at=None,
         user_action=None,
     )

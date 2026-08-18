@@ -125,6 +125,8 @@ def _standard(
     command_args: tuple[str, ...] = (),
     client_profile_id: str = "yt-dlp-default",
     canary_suite: str = "anonymous-metadata-range",
+    inspection_attempts: int = 2,
+    inspection_retry_delay: float = 1,
 ) -> ProviderProfile:
     return ProviderProfile(
         key,
@@ -152,6 +154,8 @@ def _standard(
         credential_concurrency=1 if operator_cookie_domains else 0,
         canary_suite=canary_suite,
         command_args=command_args,
+        inspection_attempts=inspection_attempts,
+        inspection_retry_delay=inspection_retry_delay,
         normalize_url=normalize_url,
     )
 
@@ -167,6 +171,8 @@ def _challenged(
     operator_cookie_domains: frozenset[str] = frozenset(),
     client_profile_id: str = "chrome-136-macos-15",
     canary_suite: str = "anonymous-metadata-range",
+    inspection_attempts: int = 8,
+    inspection_retry_delay: float = 0.5,
 ) -> ProviderProfile:
     return ProviderProfile(
         key,
@@ -194,8 +200,8 @@ def _challenged(
         credential_concurrency=1 if operator_cookie_domains else 0,
         canary_suite=canary_suite,
         command_args=_CHROME_IMPERSONATION,
-        inspection_attempts=8,
-        inspection_retry_delay=0.5,
+        inspection_attempts=inspection_attempts,
+        inspection_retry_delay=inspection_retry_delay,
         normalize_url=normalize_url,
     )
 
@@ -254,6 +260,8 @@ DEFAULT_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         ),
         normalize_url=_douyin_url,
         status=ProviderSupportStatus.VERIFIED,
+        operator_cookie_domains=frozenset({"douyin.com", "iesdouyin.com"}),
+        canary_suite="douyin-anonymous-operator-video",
     ),
     _challenged(
         "tiktok",
@@ -282,6 +290,8 @@ DEFAULT_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             "www.xhslink.com",
         ),
         status=ProviderSupportStatus.VERIFIED,
+        operator_cookie_domains=frozenset({"xiaohongshu.com"}),
+        canary_suite="xiaohongshu-anonymous-operator-video",
     ),
     ProviderProfile(
         key="kuaishou",
@@ -481,6 +491,8 @@ DEFAULT_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         command_args=_CHROME_IMPERSONATION,
         client_profile_id="chrome-136-macos-15",
         canary_suite="tumblr-public-single-video-post",
+        inspection_attempts=4,
+        inspection_retry_delay=4,
     ),
     ProviderProfile(
         key="hongguo_web",

@@ -67,7 +67,15 @@ def build_runtime_readiness(
         timeout=settings.readiness_timeout_seconds,
         follow_redirects=False,
     )
-    runner_url = f"{settings.runner_base_url.rstrip('/')}/health/live"
+    runner_urls = tuple(
+        dict.fromkeys(
+            f"{base_url.rstrip('/')}/health/live"
+            for base_url in (
+                settings.runner_base_url,
+                *settings.runner_operator_base_urls.values(),
+            )
+        )
+    )
     minio_scheme = "https" if settings.minio_internal_secure else "http"
     minio_url = (
         f"{minio_scheme}://{settings.minio_endpoint.rstrip('/')}/minio/health/live"
@@ -109,7 +117,7 @@ def build_runtime_readiness(
 
     checks: list[AsyncCheck] = [
         database_check,
-        lambda: http_check(runner_url),
+        *(lambda url=url: http_check(url) for url in runner_urls),
         lambda: http_check(minio_url),
         rabbitmq_check,
     ]

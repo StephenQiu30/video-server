@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import re
 import stat
 import tempfile
+import time
 from collections.abc import Callable, Iterable
 from http.cookiejar import Cookie, CookieJar, MozillaCookieJar
 from pathlib import Path
@@ -31,8 +33,20 @@ _AUTH_COOKIE_NAMES = {
         }
     ),
     "tiktok": frozenset({"sessionid", "sessionid_ss", "sid_tt", "sid_guard", "uid_tt"}),
+    "douyin": frozenset({"sessionid", "sessionid_ss", "sid_tt", "ttwid"}),
+    "xiaohongshu": frozenset({"a1", "webId", "web_session"}),
+    "reddit": frozenset({"loid", "reddit_session"}),
+    "x": frozenset({"auth_token", "ct0"}),
+    "instagram": frozenset({"sessionid"}),
+    "facebook": frozenset({"c_user", "xs"}),
 }
 type CookieLoader = Callable[[str, str | None], CookieJar]
+type Reporter = Callable[[str], None]
+type Sleeper = Callable[[float], None]
+
+
+def _print_report(message: str) -> None:
+    print(message, flush=True)
 
 
 def export_browser_cookies(
@@ -64,6 +78,57 @@ def export_browser_cookies(
     target = provider_dir / f"{version}.cookies.txt"
     _write_cookie_jar(target, cookies)
     return target, len(cookies)
+
+
+def watch_browser_cookies(
+    *,
+    provider: str,
+    browser: str,
+    profile: str | None,
+    version: str,
+    output_root: Path,
+    interval_seconds: float,
+    cookie_loader: CookieLoader | None = None,
+    reporter: Reporter = _print_report,
+    sleeper: Sleeper = time.sleep,
+    max_cycles: int | None = None,
+) -> None:
+    """Keep a provider-scoped Docker secret aligned with a host browser session."""
+
+    if interval_seconds < 5:
+        raise ValueError("watch interval must be at least 5 seconds")
+    if max_cycles is not None and max_cycles < 1:
+        raise ValueError("max cycles must be positive")
+    target = output_root.expanduser() / provider / f"{version}.cookies.txt"
+    previous_digest = _file_digest(target)
+    cycles = 0
+    while True:
+        try:
+            refreshed, count = export_browser_cookies(
+                provider=provider,
+                browser=browser,
+                profile=profile,
+                version=version,
+                output_root=output_root,
+                cookie_loader=cookie_loader,
+            )
+            current_digest = _file_digest(refreshed)
+            if current_digest != previous_digest:
+                reporter(
+                    f"refreshed provider={provider} cookies={count} version={version}"
+                )
+            previous_digest = current_digest
+        except (OSError, ValueError) as exc:
+            # Keep the last known-good file in place. Never include browser
+            # paths, cookie values, or the underlying exception message in the
+            # long-running bridge log.
+            reporter(f"refresh_failed provider={provider} reason={type(exc).__name__}")
+            if previous_digest is None:
+                raise
+        cycles += 1
+        if max_cycles is not None and cycles >= max_cycles:
+            return
+        sleeper(interval_seconds)
 
 
 def _load_browser_cookies(browser: str, profile: str | None) -> CookieJar:
@@ -125,18 +190,47 @@ def _write_cookie_jar(target: Path, cookies: Iterable[Cookie]) -> None:
         temporary.unlink(missing_ok=True)
 
 
+def _file_digest(path: Path) -> bytes | None:
+    try:
+        return hashlib.sha256(path.read_bytes()).digest()
+    except FileNotFoundError:
+        return None
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Export provider-scoped browser cookies for Docker Runner",
     )
-    parser.add_argument("--provider", required=True, choices=("youtube", "tiktok"))
+    parser.add_argument(
+        "--provider",
+        required=True,
+        choices=tuple(sorted(_AUTH_COOKIE_NAMES)),
+    )
     parser.add_argument(
         "--browser", default="chrome", choices=("chrome", "chromium", "firefox")
     )
     parser.add_argument("--profile")
     parser.add_argument("--version", required=True)
     parser.add_argument("--output-root", required=True, type=Path)
+    parser.add_argument(
+        "--watch-interval-seconds",
+        type=float,
+        help=(
+            "Continuously refresh the provider-scoped secret from the current "
+            "browser login. Intended for a trusted local development host."
+        ),
+    )
     arguments = parser.parse_args()
+    if arguments.watch_interval_seconds is not None:
+        watch_browser_cookies(
+            provider=arguments.provider,
+            browser=arguments.browser,
+            profile=arguments.profile,
+            version=arguments.version,
+            output_root=arguments.output_root,
+            interval_seconds=arguments.watch_interval_seconds,
+        )
+        return
     target, count = export_browser_cookies(
         provider=arguments.provider,
         browser=arguments.browser,

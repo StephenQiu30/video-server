@@ -57,13 +57,33 @@ _INSPECTION_ERRORS: tuple[tuple[type[Exception], str], ...] = (
 _RUNNER_ERRORS = {
     "download_timeout",
     "client_context_mismatch",
-    "egress_challenged",
     "extractor_regression",
     "format_unavailable",
     "provider_rate_limited",
     "provider_link_unavailable",
     "runner_unavailable",
 }
+_RUNNER_ERROR_ALIASES = {
+    "egress_challenged": "provider_verification_failed",
+    "pot_required": "provider_verification_failed",
+    "pot_rejected": "provider_verification_failed",
+    "drm_protected": "provider_drm_protected",
+    "content_private": "provider_content_restricted",
+    "content_not_entitled": "provider_content_restricted",
+    "content_entitlement_unknown": "provider_content_restricted",
+    "credential_required": "provider_auth_required",
+    "provider_session_not_allowed": "provider_auth_required",
+    "credential_expired": "provider_session_expired",
+    "credential_rejected": "provider_session_expired",
+    "credential_revoked": "provider_session_expired",
+    "provider_geo_restricted": "provider_geo_restricted",
+    "provider_media_unsupported": "provider_media_unsupported",
+    "provider_unsupported": "provider_unsupported",
+    "invalid_artifact_path": "media_validation_failed",
+    "media_validation_failed": "media_validation_failed",
+    "workspace_limit_exceeded": "output_limit_exceeded",
+}
+_FORMAT_DRIFT_ATTEMPTS = 3
 
 
 class CanaryRepository(Protocol):
@@ -125,20 +145,12 @@ class ProviderCanaryService:
             ):
                 raise MediaRunnerClientError("client_context_mismatch", 502)
             if target.stage is ProviderCanaryStage.MEDIA:
-                if not inspection.formats:
-                    raise MediaRunnerClientError("format_unavailable", 409)
-                canary_format = min(
-                    inspection.formats,
-                    key=lambda item: (item.plan.height, item.plan.width),
-                )
-                artifact = await self._runner.download(
+                artifact, inspection = await self._download_media(
+                    target,
                     task_id,
-                    target.safe_url(),
-                    canary_format.plan,
-                    expected_provider_media_id=inspection.provider_media_id,
-                    expected_extractor_key=inspection.extractor_key,
-                    access_context=context,
+                    inspection,
                 )
+                context = inspection.access_context
                 workspace = artifact.workspace
         except Exception as exc:
             error = _stable_error(exc)
@@ -172,10 +184,54 @@ class ProviderCanaryService:
         await self._repository.save(result)
         return result
 
+    async def _download_media(
+        self,
+        target: ProviderCanaryTarget,
+        task_id: str,
+        inspection: RunnerInspection,
+    ) -> tuple[RunnerArtifact, RunnerInspection]:
+        """Retry only a rendition rotation, never a platform/access failure."""
+        for attempt in range(_FORMAT_DRIFT_ATTEMPTS):
+            if not inspection.formats:
+                raise MediaRunnerClientError("format_unavailable", 409)
+            canary_format = min(
+                inspection.formats,
+                key=lambda item: (item.plan.height, item.plan.width),
+            )
+            try:
+                artifact = await self._runner.download(
+                    task_id,
+                    target.safe_url(),
+                    canary_format.plan,
+                    expected_provider_media_id=inspection.provider_media_id,
+                    expected_extractor_key=inspection.extractor_key,
+                    access_context=inspection.access_context,
+                )
+                return artifact, inspection
+            except MediaRunnerClientError as exc:
+                if (
+                    exc.code != "format_unavailable"
+                    or attempt == _FORMAT_DRIFT_ATTEMPTS - 1
+                ):
+                    raise
+                inspection = await self._runner.inspect(target.safe_url())
+                context = inspection.access_context
+                profile = provider_profile(target.safe_url())
+                if (
+                    context.provider_key != target.provider_key
+                    or context.profile_version != profile.version
+                ):
+                    raise MediaRunnerClientError(
+                        "client_context_mismatch", 502
+                    ) from exc
+        raise AssertionError("unreachable")
+
 
 def _stable_error(exc: Exception) -> str:
     if isinstance(exc, MediaRunnerClientError):
-        return exc.code if exc.code in _RUNNER_ERRORS else "runner_failed"
+        if exc.code in _RUNNER_ERRORS:
+            return exc.code
+        return _RUNNER_ERROR_ALIASES.get(exc.code, "runner_failed")
     return next(
         (
             code

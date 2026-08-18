@@ -5,6 +5,7 @@ import { type FormEvent, useRef } from 'react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
 import type { DocumentImportPhase } from '@/services/document-import';
@@ -90,7 +91,7 @@ export function ScreenplayUploadForm({
             </span>
           </span>
         </Button>
-        <input
+        <Input
           accept=".docx,.pdf,.txt,.md,.markdown,.fountain"
           aria-label="选择剧本文档文件"
           className="sr-only"

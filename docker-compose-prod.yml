@@ -1,3 +1,45 @@
+x-provider-session-runner: &provider-session-runner
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: video-server:prod
+  restart: unless-stopped
+  networks:
+    - runner_rpc_net
+    - runner_egress_net
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=64m
+    - /run/provider-secrets-tmp:rw,noexec,nosuid,size=16m,mode=0700,uid=10001,gid=10001
+  depends_on:
+    egress-proxy:
+      condition: service_healthy
+  command:
+    [
+      "python",
+      "-m",
+      "uvicorn",
+      "app.runner.main:create_app",
+      "--factory",
+      "--host",
+      "0.0.0.0",
+      "--port",
+      "19100",
+      "--no-access-log",
+    ]
+
+x-provider-session-environment: &provider-session-environment
+  APP_ENV: "${APP_ENV:-production}"
+  RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
+  RUNNER_EGRESS_PROXY: http://egress-proxy:3128
+  RUNNER_PROVIDER_EGRESS_PROXIES: "${RUNNER_PROVIDER_EGRESS_PROXIES:-{}}"
+  RUNNER_WORKSPACE_ROOT: /work
+  RUNNER_ACCESS_MODE: operator_managed
+  RUNNER_MAX_ACTIVE_TASKS: "1"
+  RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "true"
+  RUNNER_PROVIDER_SECRET_ROOT: /run/provider-secrets
+  RUNNER_PROVIDER_SECRET_TEMP_ROOT: /run/provider-secrets-tmp
+  PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
+
 services:
   api:
     build:
@@ -160,12 +202,15 @@ services:
       MINIO_BUCKET: "${MINIO_BUCKET:-video-artifacts}"
       MINIO_INTERNAL_SECURE: "false"
       RUNNER_BASE_URL: http://media-runner:19100
+      RUNNER_WORKSPACE_ROOT: /work
       RUNNER_EGRESS_PROXY: http://egress-proxy:3128
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
       - app_net
       - runner_rpc_net
+    volumes:
+      - runner_work:/work
     depends_on:
       media-runner:
         condition: service_started
@@ -307,6 +352,60 @@ services:
         "19100",
         "--no-access-log",
       ]
+
+  douyin-operator-runner:
+    <<: *provider-session-runner
+    container_name: douyin-operator-runner
+    profiles: [douyin-operator]
+    environment:
+      <<: *provider-session-environment
+      RUNNER_OPERATOR_SESSION_VERSIONS: '{"douyin":"${DOUYIN_COOKIE_VERSION:-disabled}"}'
+      RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS: "${DOUYIN_RETAINED_SESSION_VERSIONS:-{}}"
+      RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${DOUYIN_OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
+    volumes:
+      - runner_work:/work
+      - type: bind
+        source: "${DOUYIN_COOKIE_SECRET_DIR:-./.provider-secrets/douyin}"
+        target: /run/provider-secrets/douyin
+        read_only: true
+        bind:
+          create_host_path: false
+
+  xiaohongshu-operator-runner:
+    <<: *provider-session-runner
+    container_name: xiaohongshu-operator-runner
+    profiles: [xiaohongshu-operator]
+    environment:
+      <<: *provider-session-environment
+      RUNNER_OPERATOR_SESSION_VERSIONS: '{"xiaohongshu":"${XIAOHONGSHU_COOKIE_VERSION:-disabled}"}'
+      RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS: "${XIAOHONGSHU_RETAINED_SESSION_VERSIONS:-{}}"
+      RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${XIAOHONGSHU_OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
+    volumes:
+      - runner_work:/work
+      - type: bind
+        source: "${XIAOHONGSHU_COOKIE_SECRET_DIR:-./.provider-secrets/xiaohongshu}"
+        target: /run/provider-secrets/xiaohongshu
+        read_only: true
+        bind:
+          create_host_path: false
+
+  reddit-operator-runner:
+    <<: *provider-session-runner
+    container_name: reddit-operator-runner
+    profiles: [reddit-operator]
+    environment:
+      <<: *provider-session-environment
+      RUNNER_OPERATOR_SESSION_VERSIONS: '{"reddit":"${REDDIT_COOKIE_VERSION:-disabled}"}'
+      RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS: "${REDDIT_RETAINED_SESSION_VERSIONS:-{}}"
+      RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${REDDIT_OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
+    volumes:
+      - runner_work:/work
+      - type: bind
+        source: "${REDDIT_COOKIE_SECRET_DIR:-./.provider-secrets/reddit}"
+        target: /run/provider-secrets/reddit
+        read_only: true
+        bind:
+          create_host_path: false
 
   youtube-operator-runner:
     build:

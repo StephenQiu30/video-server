@@ -25,6 +25,7 @@ def test_request_guard_rejects_large_bodies_and_adds_security_headers(
     assert response.headers["x-content-type-options"] == "nosniff"
     csp = response.headers["content-security-policy"]
     assert "frame-ancestors 'none'" in csp
+    assert "img-src 'self' data: blob: https:" in csp
     assert "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net" in csp
 
 

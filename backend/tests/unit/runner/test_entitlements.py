@@ -6,10 +6,22 @@ from app.runner.entitlements import enforce_media_rights
 from app.runner.errors import RunnerFailure
 
 
-def test_tiktok_operator_allows_unrestricted_web_metadata() -> None:
+@pytest.mark.parametrize(
+    "provider",
+    (
+        "tiktok",
+        "douyin",
+        "xiaohongshu",
+        "reddit",
+        "x",
+        "instagram",
+        "facebook",
+    ),
+)
+def test_operator_allows_unrestricted_public_web_metadata(provider: str) -> None:
     enforce_media_rights(
         {"id": "123", "formats": [{"has_drm": None}]},
-        provider_key="tiktok",
+        provider_key=provider,
         access_mode=ProviderAccessMode.OPERATOR_MANAGED,
     )
 

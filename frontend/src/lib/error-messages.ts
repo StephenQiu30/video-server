@@ -22,7 +22,8 @@ const localizedErrorMessages: Record<string, string> = {
   duration_limit_exceeded: '视频时长超过限制，请选择更短的视频。',
   email_already_registered: '该邮箱已注册，请直接登录或使用其他邮箱。',
   forbidden: '当前账号没有执行此操作的权限。',
-  format_unavailable: '原下载规格目前不可用，请重新解析视频并选择其他格式。',
+  format_unavailable:
+    '平台已更换可用规格，请点击重新下载；系统会自动选择最接近的当前规格。',
   idempotency_conflict: '请求内容已经发生变化，请重新操作。',
   input_artifact_unavailable: '原视频文件已失效，请重新下载后再分析。',
   import_sha256_mismatch: '上传文件的校验值不一致，请重新选择原文件上传。',

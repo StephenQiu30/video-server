@@ -4,6 +4,7 @@ import { FileVideo, UploadSimple, X } from '@phosphor-icons/react';
 import { type FormEvent, useRef } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
 import type { MediaImportPhase } from '@/services/media-import';
@@ -71,7 +72,7 @@ export function MediaUploadForm({
             </span>
           </span>
         </Button>
-        <input
+        <Input
           accept="video/mp4,.mp4"
           aria-label="选择本地 MP4 视频文件"
           className="sr-only"

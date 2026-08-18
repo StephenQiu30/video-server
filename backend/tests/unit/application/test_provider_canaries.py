@@ -65,6 +65,7 @@ def baseline(
         capabilities=(ProviderCapability.SINGLE_VIDEO,),
         access_modes=(ProviderAccessMode.ANONYMOUS,),
         status=status,
+        last_media_verified_at=None,
         last_verified_at=None,
         user_action="待验证",
     )
@@ -111,6 +112,7 @@ async def test_unapproved_profile_stays_unknown_after_media_evidence() -> None:
     view = (await service.list())[0]
 
     assert view.status is ProviderSupportStatus.UNKNOWN
+    assert view.last_media_verified_at == NOW - timedelta(minutes=60)
     assert view.last_verified_at == NOW - timedelta(minutes=15)
     assert view.user_action == "该平台尚未完成当前版本的真实下载验证。"
 
@@ -132,6 +134,21 @@ async def test_approved_profile_recovers_after_fresh_canary_evidence() -> None:
     )
 
     assert (await service.list())[0].status is ProviderSupportStatus.VERIFIED
+
+
+@pytest.mark.asyncio
+async def test_approved_without_current_canary_is_not_reported_verified() -> None:
+    service = ProviderStatusService(
+        Reader(()),
+        (baseline(ProviderSupportStatus.VERIFIED),),
+        now=lambda: NOW,
+    )
+
+    view = (await service.list())[0]
+
+    assert view.status is ProviderSupportStatus.UNKNOWN
+    assert view.last_verified_at is None
+    assert view.user_action == "该平台尚未完成当前版本的真实下载验证。"
 
 
 @pytest.mark.asyncio

@@ -15,7 +15,18 @@ _RESTRICTED_AVAILABILITY = {
     "subscriber_only": "content_not_entitled",
     "needs_auth": "credential_required",
 }
-_OPERATOR_PROVIDER_POLICIES = frozenset({"youtube", "tiktok"})
+_OPERATOR_PROVIDER_POLICIES = frozenset(
+    {
+        "youtube",
+        "tiktok",
+        "douyin",
+        "xiaohongshu",
+        "reddit",
+        "x",
+        "instagram",
+        "facebook",
+    }
+)
 
 
 def enforce_media_rights(

@@ -149,9 +149,7 @@ class HongguoOfficialShareIE(InfoExtractor):  # type: ignore[misc]
             "live_status": "not_live",
         }
 
-    def _resolve_share(
-        self, url: str, display_id: str
-    ) -> tuple[str, str, str | None]:
+    def _resolve_share(self, url: str, display_id: str) -> tuple[str, str, str | None]:
         webpage, response = self._download_webpage_handle(
             url,
             display_id,
@@ -271,6 +269,5 @@ def _is_h5_share_url(url: str) -> bool:
     parsed = urlsplit(url)
     return (
         _is_first_party_host(url, _SHARE_HOSTS)
-        and parsed.path.rstrip("/")
-        == "/hongguo/ug/pages/video-animation-share"
+        and parsed.path.rstrip("/") == "/hongguo/ug/pages/video-animation-share"
     )

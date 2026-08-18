@@ -18,6 +18,8 @@ from app.application.downloads import (
     IssueDownloadUrl,
     JobSnapshot,
     RetryDownload,
+    RunnerFormat,
+    RunnerInspection,
     plan_to_documents,
 )
 from app.domain.downloads import DownloadSourceKind, DownloadStage, DownloadStatus
@@ -73,8 +75,14 @@ def creator(repository: FakeRepository) -> CreateDownload:
     )
 
 
-def retrier(repository: FakeRepository) -> RetryDownload:
-    inspect_media, _, cipher = use_case(repository, runner_result())
+def retrier(
+    repository: FakeRepository,
+    fresh_result: RunnerInspection | None = None,
+) -> RetryDownload:
+    inspect_media, _, cipher = use_case(
+        repository,
+        fresh_result or runner_result(),
+    )
     return RetryDownload(
         repository=repository,
         inspect_media=inspect_media,
@@ -304,6 +312,59 @@ async def test_retry_reinspects_an_expired_source_and_preserves_semantic_plan() 
     command = repository.download_commands[-1]
     assert command.inspection_id != inspection_id
     assert command.semantic_plan == repository.jobs[original.id].semantic_plan
+
+
+@pytest.mark.asyncio
+async def test_retry_automatically_rebases_a_disappeared_provider_rendition() -> None:
+    repository = FakeRepository()
+    inspection_id, format_id = seed_inspection(repository)
+    original = await creator(repository)(inspection_id, format_id, OWNER, "original")
+    repository.jobs[original.id] = replace(
+        repository.jobs[original.id],
+        status="failed",
+        finished_at=NOW,
+        error_code="format_unavailable",
+    )
+    fresh_result = replace(
+        runner_result(),
+        formats=(RunnerFormat("720p MP4", plan(720)),),
+    )
+
+    retried = await retrier(repository, fresh_result)(
+        original.id,
+        OWNER,
+        "retry-adapted",
+    )
+
+    command = repository.download_commands[-1]
+    assert retried.status is DownloadStatus.QUEUED
+    assert command.semantic_plan["height"] == 720
+    assert command.semantic_plan["width"] == 1280
+    assert command.semantic_plan != repository.jobs[original.id].semantic_plan
+
+
+@pytest.mark.asyncio
+async def test_retry_does_not_adapt_to_an_unrelated_aspect_ratio() -> None:
+    repository = FakeRepository()
+    inspection_id, format_id = seed_inspection(repository)
+    original = await creator(repository)(inspection_id, format_id, OWNER, "original")
+    repository.jobs[original.id] = replace(
+        repository.jobs[original.id], status="failed", finished_at=NOW
+    )
+    square = replace(plan(720), width=720)
+    fresh_result = replace(
+        runner_result(),
+        formats=(RunnerFormat("Square MP4", square),),
+    )
+
+    with pytest.raises(ApplicationError) as caught:
+        await retrier(repository, fresh_result)(
+            original.id,
+            OWNER,
+            "retry-unrelated",
+        )
+
+    assert caught.value.code is ApplicationErrorCode.FORMAT_UNAVAILABLE
 
 
 @pytest.mark.asyncio

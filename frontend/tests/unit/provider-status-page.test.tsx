@@ -41,7 +41,8 @@ describe('provider status page', () => {
     );
     expect(capabilities).not.toHaveAttribute('data-slot', 'badge');
     expect(youtube).toHaveTextContent('匿名优先');
-    expect(youtube).toHaveTextContent('暂无当前版本证据');
+    expect(youtube).toHaveTextContent('最近真实下载：暂无当前版本证据');
+    expect(youtube).toHaveTextContent('最近完整分析：暂无当前版本证据');
     expect(youtube).not.toHaveTextContent('Cookie 版本');
 
     const bilibili = within(list)
@@ -50,6 +51,7 @@ describe('provider status page', () => {
     expect(bilibili).not.toBeNull();
     expect(bilibili).toHaveTextContent('已验证');
     expect(bilibili).toHaveTextContent('仅匿名公开内容');
+    expect(bilibili).toHaveTextContent('最近真实下载：2026年8月9日');
     expect(bilibili).toHaveTextContent('2026年8月10日');
 
     const hongguo = within(list)
@@ -102,6 +104,7 @@ function statuses(): ProviderStatusList {
         capabilities: ['single_video', 'audio_video_split'],
         access_modes: ['anonymous', 'operator_managed'],
         status: 'access_required',
+        last_media_verified_at: null,
         last_verified_at: null,
         user_action: '该平台需要部署已批准的受控会话。',
       },
@@ -113,6 +116,7 @@ function statuses(): ProviderStatusList {
         capabilities: ['single_video'],
         access_modes: ['anonymous'],
         status: 'verified',
+        last_media_verified_at: '2026-08-09T00:00:00Z',
         last_verified_at: '2026-08-10T00:00:00Z',
         user_action: null,
       },
@@ -124,6 +128,7 @@ function statuses(): ProviderStatusList {
         capabilities: ['single_video'],
         access_modes: ['anonymous'],
         status: 'unknown',
+        last_media_verified_at: null,
         last_verified_at: null,
         user_action:
           '已接入红果官方分享链接当前单集；不支持 App 受保护媒体、全集抓取或批量下载。',

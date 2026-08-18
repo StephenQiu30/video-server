@@ -228,6 +228,7 @@ def test_peertube_allowlist_accepts_only_exact_domain_names() -> None:
 def test_operator_runner_endpoints_are_provider_keyed_internal_urls() -> None:
     settings = Settings(
         app_env="test",
+        _env_file=None,
         runner_operator_base_urls={
             "youtube": "http://youtube-operator-runner:19100/",
             "tiktok": "http://provider-operator-runner:19100",
@@ -244,7 +245,11 @@ def test_operator_runner_endpoints_are_provider_keyed_internal_urls() -> None:
         {"tiktok": "http://user:pass@provider-operator-runner:19100"},
     ):
         with pytest.raises(ValidationError, match="runner operator"):
-            Settings(app_env="test", runner_operator_base_urls=invalid)
+            Settings(
+                app_env="test",
+                _env_file=None,
+                runner_operator_base_urls=invalid,
+            )
 
 
 @pytest.mark.parametrize("value", ["", "   "])

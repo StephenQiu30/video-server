@@ -188,6 +188,9 @@ def test_targets_douyin_request_impersonation_and_retries() -> None:
     )
     assert provider_inspection_attempts(url) == 8
     assert provider_inspection_retry_delay(url) == 0.5
+    assert provider_profile(url).cookie_domain_allowlist == frozenset(
+        {"douyin.com", "iesdouyin.com"}
+    )
 
     short_url = "https://v.douyin.com/example/"
     assert provider_command_args(short_url) == (
@@ -208,6 +211,19 @@ def test_targets_xiaohongshu_short_links_with_browser_impersonation() -> None:
         )
         assert provider_inspection_attempts(url) == 8
         assert provider_inspection_retry_delay(url) == 0.5
+        assert provider_profile(url).cookie_domain_allowlist == frozenset(
+            {"xiaohongshu.com"}
+        )
+
+
+def test_tumblr_uses_bounded_rate_limit_backoff() -> None:
+    url = (
+        "https://www.tumblr.com/maskofthedragon/"
+        "626907179849564160/mona-talking-in-english"
+    )
+
+    assert provider_inspection_attempts(url) == 4
+    assert provider_inspection_retry_delay(url) == 4
 
 
 def test_normalizes_kuaishou_public_videos_and_uses_android_impersonation() -> None:

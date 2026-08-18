@@ -7,6 +7,7 @@ from typing import Any
 
 import pytest
 from app.runner.plugins.yt_dlp_plugins.extractor.douyin_share import (
+    _correct_download_addr_dimensions,
     _DouyinSharePageIE,
     _router_item,
 )
@@ -77,6 +78,34 @@ def test_prefers_matching_public_share_page_item(
     assert requests[0][0] == f"https://www.iesdouyin.com/share/video/{VIDEO_ID}/"
     assert requests[0][1] == VIDEO_ID
     assert requests[0][2]["fatal"] is False
+
+
+def test_corrects_download_format_dimensions_from_video_source() -> None:
+    info = _correct_download_addr_dimensions(
+        {
+            "formats": [
+                {"format_id": "download_addr-0", "width": 720, "height": 405},
+                {"format_id": "h264_540p-0", "width": 1024, "height": 576},
+            ]
+        },
+        {"video": {"width": 3840, "height": 2160}},
+    )
+
+    assert info["formats"] == [
+        {"format_id": "download_addr-0", "width": 1280, "height": 720},
+        {"format_id": "h264_540p-0", "width": 1024, "height": 576},
+    ]
+
+
+def test_keeps_upstream_download_dimensions_for_portrait_video() -> None:
+    info = _correct_download_addr_dimensions(
+        {"formats": [{"format_id": "download_addr-0", "width": 720, "height": 1280}]},
+        {"video": {"width": 2160, "height": 3840}},
+    )
+
+    assert info["formats"] == [
+        {"format_id": "download_addr-0", "width": 720, "height": 1280}
+    ]
 
 
 def test_falls_back_to_upstream_extractor_without_share_data(

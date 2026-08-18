@@ -87,7 +87,9 @@ npm run openapi
 
 ## 组件、主题与可访问性
 
-- 页面优先组合已有 Radix/shadcn 组件，不重新实现对话框、菜单、选择器、标签页、提示或表单控件。
+- 业务页面只组合已有 shadcn/ui 组件，Radix primitive 和原生交互/表单控件只能
+  出现在 `src/components/ui/`；不重新实现对话框、菜单、选择器、标签页、提示或
+  表单控件。`tests/unit/component-boundaries.test.ts` 必须阻止边界回退。
 - 当前视觉基准是用户选定的 Product Design 方案 3 无边框修订稿：`/Users/stephenqiu/.codex/generated_images/019fe657-3556-7102-a4d8-f0f95698076b/exec-6ad65a6b-a139-48c1-a789-730a53116807.png`。风格贴近 Vercel Home：`#FAFAFA` 偏白画布、Geist、`#0A0A0A` 前景、`#111111` 近黑主操作、大尺寸编辑式首页 Hero 和克制的中性表面。
 - Header 高 80px 且无下边线/外框/阴影。Header、main 与 footer 统一使用 `.content-shell = min(calc(100% - 160px), 1376px)`，使导航与主体对齐；认证双栏可在内部使用更宽的 `.page-shell = min(calc(100% - 80px), 1456px)`。641–1023px 时常规内容 gutter 各 32px；不超过 640px 时两种网格 gutter 均为 16px。这些是对齐约束，不能显示成页面外壳。
 - 已认证应用页统一由 `src/components/basic-layout.tsx` 提供 Header、唯一 main、Footer 和跳过链接；业务页面只返回内容区，不重复创建页面级 `main` 或 `.content-shell`。main 使用 `flex-1`，Footer 在短页面贴近视口底部，长页面随内容自然出现；认证页继续使用 `AuthPageFrame` 的双栏例外。

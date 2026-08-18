@@ -127,6 +127,7 @@ def test_provider_status_contract_is_coarse_and_non_secret(tmp_path: Path) -> No
             "capabilities",
             "access_modes",
             "status",
+            "last_media_verified_at",
             "last_verified_at",
         )
     )

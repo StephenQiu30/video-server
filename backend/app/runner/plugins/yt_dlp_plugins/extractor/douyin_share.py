@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, cast
 
 from yt_dlp.extractor.tiktok import DouyinIE  # type: ignore[import-untyped]
+from yt_dlp.utils import int_or_none  # type: ignore[import-untyped]
 
 _SHARE_PAGE = "https://www.iesdouyin.com/share/video/{video_id}/"
 _MOBILE_HEADERS = {
@@ -16,8 +17,53 @@ _MOBILE_HEADERS = {
 }
 
 
+def _correct_download_addr_dimensions(
+    info: dict[str, Any], aweme_detail: dict[str, Any]
+) -> dict[str, Any]:
+    """Align Douyin's download address metadata with the source video dimensions."""
+
+    video = aweme_detail.get("video")
+    if not isinstance(video, dict):
+        return info
+    source_width = int_or_none(video.get("width"))
+    source_height = int_or_none(video.get("height"))
+    if (
+        source_width is None
+        or source_height is None
+        or source_width <= 0
+        or source_height <= 0
+        or source_width <= source_height
+    ):
+        # Upstream already maps Douyin's short-edge resolution correctly for
+        # portrait videos. Its width/height assignment is only reversed for
+        # landscape download_addr variants.
+        return info
+    formats = info.get("formats")
+    if not isinstance(formats, list):
+        return info
+    for media_format in formats:
+        if not isinstance(media_format, dict):
+            continue
+        format_id = media_format.get("format_id")
+        if isinstance(format_id, str) and format_id.startswith("download_addr"):
+            short_edge = int_or_none(media_format.get("width"))
+            if short_edge is None or short_edge <= 0:
+                continue
+            media_format["width"] = round(short_edge * source_width / source_height)
+            media_format["height"] = short_edge
+    return info
+
+
 class _DouyinSharePageIE(DouyinIE, plugin_name="share_page"):  # type: ignore[misc, call-arg]
     """Prefer Douyin's public share-page data when the web API needs cookies."""
+
+    def _parse_aweme_video_app(self, aweme_detail: dict[str, Any]) -> dict[str, Any]:
+        """Correct download_addr dimensions that Douyin currently under-reports."""
+
+        return _correct_download_addr_dimensions(
+            cast(dict[str, Any], super()._parse_aweme_video_app(aweme_detail)),
+            aweme_detail,
+        )
 
     def _real_extract(self, url: str) -> dict[str, Any]:
         video_id = self._match_id(url)
@@ -39,7 +85,7 @@ class _DouyinSharePageIE(DouyinIE, plugin_name="share_page"):  # type: ignore[mi
             item = _router_item(router_data, video_id)
             if item is not None:
                 try:
-                    info = cast(dict[str, Any], self._parse_aweme_video_app(item))
+                    info = self._parse_aweme_video_app(item)
                 except (AttributeError, KeyError, TypeError, ValueError):
                     info = {}
                 formats = info.get("formats")

@@ -16,7 +16,10 @@ from app.domain.providers import (
     ProviderCanaryResult,
     ProviderCanaryStage,
 )
-from app.infrastructure.media_runner_models import RunnerArtifact
+from app.infrastructure.media_runner_models import (
+    MediaRunnerClientError,
+    RunnerArtifact,
+)
 from app.workers.canary.service import ProviderCanaryService
 from app.workers.canary.targets import ProviderCanaryTarget
 from tests.unit.runner.helpers import download_request
@@ -47,13 +50,23 @@ class Cleaner:
 
 
 class Runner:
-    def __init__(self, workspace: Path, *, fail: bool = False) -> None:
+    def __init__(
+        self,
+        workspace: Path,
+        *,
+        fail: bool = False,
+        format_drifts: int = 0,
+    ) -> None:
         self.workspace = workspace
         self.fail = fail
+        self.format_drifts = format_drifts
         self.downloaded = False
+        self.inspections = 0
+        self.download_calls = 0
 
     async def inspect(self, url: str) -> RunnerInspection:
         assert url == URL
+        self.inspections += 1
         if self.fail:
             raise MediaInspectionAuthRequired
         request = download_request()
@@ -76,6 +89,9 @@ class Runner:
         )
 
     async def download(self, *args: object, **kwargs: object) -> RunnerArtifact:
+        self.download_calls += 1
+        if self.download_calls <= self.format_drifts:
+            raise MediaRunnerClientError("format_unavailable", 409)
         self.downloaded = True
         return RunnerArtifact(
             task_id=str(args[0]),
@@ -114,6 +130,66 @@ async def test_full_canary_downloads_and_cleans_verified_media(tmp_path: Path) -
     assert runner.downloaded is True
     assert repository.results == [result]
     assert cleaner.calls[0][1] == tmp_path
+
+
+@pytest.mark.asyncio
+async def test_media_canary_reinspects_bounded_format_drift(tmp_path: Path) -> None:
+    repository, cleaner = Repository(), Cleaner()
+    runner = Runner(tmp_path, format_drifts=2)
+    ticks = iter((1.0, 1.5))
+    service = ProviderCanaryService(
+        repository, runner, cleaner, now=lambda: NOW, timer=lambda: next(ticks)
+    )
+
+    result = await service.execute(target(ProviderCanaryStage.MEDIA))
+
+    assert result.outcome is ProviderCanaryOutcome.SUCCEEDED
+    assert runner.inspections == 3
+    assert runner.download_calls == 3
+
+
+@pytest.mark.asyncio
+async def test_media_canary_translates_runner_drm_failure(tmp_path: Path) -> None:
+    class DrmRunner(Runner):
+        async def download(self, *args: object, **kwargs: object) -> RunnerArtifact:
+            raise MediaRunnerClientError("drm_protected", 422)
+
+    repository, cleaner = Repository(), Cleaner()
+    ticks = iter((1.0, 1.1))
+    service = ProviderCanaryService(
+        repository,
+        DrmRunner(tmp_path),
+        cleaner,
+        now=lambda: NOW,
+        timer=lambda: next(ticks),
+    )
+
+    result = await service.execute(target(ProviderCanaryStage.MEDIA))
+
+    assert result.outcome is ProviderCanaryOutcome.FAILED
+    assert result.stable_error_code == "provider_drm_protected"
+
+
+@pytest.mark.asyncio
+async def test_media_canary_translates_runner_challenge_failure(tmp_path: Path) -> None:
+    class ChallengeRunner(Runner):
+        async def download(self, *args: object, **kwargs: object) -> RunnerArtifact:
+            raise MediaRunnerClientError("egress_challenged", 422)
+
+    repository, cleaner = Repository(), Cleaner()
+    ticks = iter((1.0, 1.1))
+    service = ProviderCanaryService(
+        repository,
+        ChallengeRunner(tmp_path),
+        cleaner,
+        now=lambda: NOW,
+        timer=lambda: next(ticks),
+    )
+
+    result = await service.execute(target(ProviderCanaryStage.MEDIA))
+
+    assert result.outcome is ProviderCanaryOutcome.FAILED
+    assert result.stable_error_code == "provider_verification_failed"
 
 
 @pytest.mark.asyncio

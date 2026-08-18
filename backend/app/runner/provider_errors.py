@@ -47,6 +47,13 @@ def classify_provider_failure(
     ):
         return "credential_expired", 422
     if _all(text, b"sign in to confirm", b"not a bot"):
+        # The same YouTube message has two materially different meanings. An
+        # anonymous request is an exit reputation challenge, while a request
+        # that already supplied an operator cookie jar means that session no
+        # longer authenticates. Keep those diagnoses distinct so operations
+        # can rotate the session instead of repeatedly retrying the egress.
+        if "--cookies" in command:
+            return "credential_expired", 422
         return "egress_challenged", 422
     if _any(text, b"http error 429", b"too many requests", b"rate limit exceeded"):
         return "provider_rate_limited", 429
@@ -74,11 +81,34 @@ def classify_provider_failure(
     )
     if requires_fresh_cookies or requires_vimeo_login or requires_account:
         return "credential_required", 422
+    if "tiktok.com" in command_text and _any(
+        text,
+        b"unexpected response from webpage request",
+        b"unable to extract challenge data",
+        b"unable to extract universal data for rehydration",
+    ):
+        # These responses are TikTok's short-lived JavaScript/WAF challenge,
+        # not a malformed media response. Surface the recovery boundary so
+        # operations can refresh the browser session instead of retrying the
+        # extractor indefinitely.
+        return "egress_challenged", 422
     if "facebook.com" in command_text and _any(
         text,
         b"cannot parse data",
         b"facebook post media structure could not be identified",
     ):
+        return "extractor_regression", 502
+    is_xiaohongshu = any(
+        host in command_text for host in ("xiaohongshu.com", "xhslink.com")
+    )
+    if is_xiaohongshu and _any(
+        text,
+        b"no video formats found",
+        b"xiaohongshu note media structure could not be identified",
+    ):
+        # The public page may still exist while the extractor's expected
+        # noteDetailMap payload has disappeared. This is an integration
+        # regression, not an invalid link or something an end user can fix.
         return "extractor_regression", 502
     if _any(
         text,

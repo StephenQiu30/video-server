@@ -118,6 +118,39 @@ class ProbeSampleSupervisor(FixtureSupervisor):
         )
 
 
+class RateLimitedThenSuccessSupervisor(FixtureSupervisor):
+    def __init__(self, info: dict[str, object]) -> None:
+        super().__init__(info)
+        self.inspection_attempts = 0
+
+    async def run(
+        self,
+        argv: Sequence[str],
+        *,
+        cwd: Path,
+        timeout_seconds: float,
+        env: Mapping[str, str] | None = None,
+    ) -> ProcessResult:
+        command = tuple(argv)
+        if "--dump-single-json" in command:
+            self.inspection_attempts += 1
+            if self.inspection_attempts == 1:
+                self.calls.append((command, env))
+                return ProcessResult(
+                    1,
+                    b"",
+                    b"ERROR: HTTP Error 429: Too Many Requests",
+                    False,
+                    False,
+                )
+        return await super().run(
+            argv,
+            cwd=cwd,
+            timeout_seconds=timeout_seconds,
+            env=env,
+        )
+
+
 class TransientFailureSupervisor(FixtureSupervisor):
     async def run(
         self,
@@ -465,6 +498,29 @@ async def test_inspect_retries_and_uses_bounded_local_probe_sample(
     )
     assert sample[sample.index("--max-filesize") + 1] == str(8 * 1024**2)
     assert not (tmp_path / "format-probe.input").exists()
+
+
+async def test_inspect_retries_tumblr_rate_limit_with_provider_backoff(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    supervisor = RateLimitedThenSuccessSupervisor(split_media_info())
+    delays: list[float] = []
+
+    async def record_sleep(delay: float) -> None:
+        delays.append(delay)
+
+    monkeypatch.setattr("app.runner.service.asyncio.sleep", record_sleep)
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    response = await service.inspect(
+        "https://www.tumblr.com/maskofthedragon/"
+        "626907179849564160/mona-talking-in-english"
+    )
+
+    assert supervisor.inspection_attempts == 2
+    assert delays == [4]
+    assert response.media.duration_seconds == 30
 
 
 async def test_inspect_fetches_a_bounded_thumbnail_through_the_proxy(

@@ -114,7 +114,9 @@ def _csp(*, connect_origins: tuple[str, ...]) -> str:
         "default-src 'self'; script-src 'self' 'unsafe-inline' "
         "https://cdn.jsdelivr.net; "
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-        "img-src 'self' data: https:; "
+        # Private thumbnails are fetched with the authenticated HTTP client
+        # and rendered from an in-memory object URL after integrity checks.
+        "img-src 'self' data: blob: https:; "
         f"connect-src {connect_sources}; frame-ancestors 'none'; base-uri 'self'; "
         "form-action 'self'"
     )

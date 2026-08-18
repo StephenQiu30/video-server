@@ -2,10 +2,14 @@
 
 import { ImageBrokenIcon } from '@phosphor-icons/react';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { cn } from '@/lib/utils';
+import {
+  isPrivateThumbnailPath,
+  loadPrivateThumbnail,
+} from '@/services/media-assets';
 
 type MediaCoverProps = {
   alt: string;
@@ -20,8 +24,45 @@ export default function MediaCover({
   priority = false,
   src,
 }: MediaCoverProps) {
+  const privateSource = isPrivateThumbnailPath(src);
+  const [loadedPrivateSource, setLoadedPrivateSource] = useState<{
+    objectUrl: string;
+    source: string;
+  } | null>(null);
   const [failedSource, setFailedSource] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!privateSource || !src) return;
+    const controller = new AbortController();
+    let objectUrl: string | null = null;
+    setFailedSource(null);
+    setLoadedPrivateSource(null);
+
+    void loadPrivateThumbnail(src, controller.signal)
+      .then((image) => {
+        if (controller.signal.aborted) return;
+        objectUrl = URL.createObjectURL(image);
+        setLoadedPrivateSource({ objectUrl, source: src });
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setFailedSource(src);
+      });
+
+    return () => {
+      controller.abort();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [privateSource, src]);
+
+  const resolvedSource = privateSource
+    ? loadedPrivateSource?.source === src
+      ? loadedPrivateSource.objectUrl
+      : null
+    : src;
   const unavailable = !src || failedSource === src;
+  const loading = Boolean(
+    privateSource && src && !resolvedSource && !unavailable,
+  );
   return (
     <AspectRatio
       className={cn(
@@ -30,7 +71,13 @@ export default function MediaCover({
       )}
       ratio={1.86}
     >
-      {unavailable ? (
+      {loading ? (
+        <div
+          aria-label={`${alt}（封面加载中）`}
+          className="absolute inset-0 animate-pulse bg-muted"
+          role="img"
+        />
+      ) : unavailable || !resolvedSource ? (
         <div
           aria-label={`${alt}（封面不可用）`}
           className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground"
@@ -47,8 +94,8 @@ export default function MediaCover({
           onError={() => setFailedSource(src)}
           priority={priority}
           sizes="(min-width: 1024px) 50vw, 100vw"
-          src={src}
-          unoptimized={src.startsWith('http')}
+          src={resolvedSource}
+          unoptimized
         />
       )}
     </AspectRatio>
