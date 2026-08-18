@@ -144,7 +144,7 @@ flowchart LR
 
 ## 本地开发
 
-前端要求 Node.js 24 与 npm 11.19，后端要求 Python 3.12 与 [uv](https://docs.astral.sh/uv/)。`docker-compose-env.yml` 只负责本项目专用的 PostgreSQL、RabbitMQ、Valkey 和 MinIO 等基础环境；`docker-compose.yml` 只负责业务服务。若本机已有这些基础服务，可不启动环境 Compose，并在 `.env` 中填写现有服务的地址和端口。
+前端要求 Node.js 24 与 npm 11.19，后端要求 Python 3.12 与 [uv](https://docs.astral.sh/uv/)。`docker-compose-env.yml` 只负责本项目专用的 PostgreSQL、RabbitMQ、Valkey 和 MinIO 等基础环境；`docker-compose.yml` 只负责业务服务。两份文件通过 `.env` 中的 `*_HOST`/`*_PORT` 连接约定协作：启动环境 Compose 时使用服务名和容器端口；复用已有基础服务时改为现有服务地址和端口。完整规范见 [根目录 Compose 运行手册](docs/operations/001-root-compose运行手册.md)。
 
 需要为本机 Runner 提供受控出口时，只启动代理，不会连带启动环境服务：
 

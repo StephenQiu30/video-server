@@ -14,6 +14,14 @@
 
 Compose 文件不再通过 YAML Anchor 隐式继承服务配置；每个服务直接声明自己的角色、连接地址、挂载、网络和启动命令。
 
+## Docker 文件使用规范
+
+- `docker-compose-env.yml` 只部署本项目专用的 PostgreSQL、RabbitMQ、Valkey 和 MinIO，并负责一次性初始化；`docker-compose.yml` 只部署业务容器；`docker-compose-prod.yml` 只提供生产业务容器差异。
+- 业务 Compose 通过 `POSTGRES_HOST/PORT`、`RABBITMQ_HOST/PORT`、`VALKEY_HOST/PORT` 和 `MINIO_HOST/PORT` 连接基础服务。启动 `docker-compose-env.yml` 时使用服务名和容器端口；复用已有基础服务时改为宿主机可达地址和已发布端口。
+- `HOST_*_PORT` 仅用于环境 Compose 向宿主机发布端口，不是业务容器的连接端口。不要把两类端口混用。
+- MinIO 只配置一组 `MINIO_ACCESS_KEY` 与 `MINIO_SECRET_KEY`，所有业务进程共用；不要按 API、导入、下载、报告或分析进程复制密钥变量。
+- CI、开发和本机验收必须复用上述正式 Compose 文件，不新增仅供某个环境的覆盖文件。
+
 ## 宿主机基础设施
 
 不启动 docker-compose-env.yml 时，使用 docker-compose.yml 或 docker-compose-prod.yml 前，宿主机必须已经提供：
@@ -23,7 +31,7 @@ Compose 文件不再通过 YAML Anchor 隐式继承服务配置；每个服务�
 - Valkey/Redis
 - MinIO
 
-容器通过 host.docker.internal 访问这些服务。生产环境的连接地址和凭据只放在本地 .env.prod，不能提交到 Git。
+容器通过 `.env` 中的连接地址访问这些服务。生产环境的连接地址和凭据只放在本地 .env.prod，不能提交到 Git。
 
 ## 本机业务拓扑
 

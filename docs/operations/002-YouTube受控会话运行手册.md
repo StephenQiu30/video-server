@@ -69,7 +69,7 @@ docker compose --env-file .env -f docker-compose.yml --profile youtube-operator 
 docker compose --env-file .env -f docker-compose.yml --profile youtube-operator ps
 ```
 
-生产使用独立的 `docker-compose-prod.yml`，其服务拓扑、启动命令、网络、挂载、依赖和 profiles 与 `docker-compose.yml` 保持一致；不启用 `environment` Profile。命令必须显式使用 `.env.prod`：
+生产使用独立的 `docker-compose-prod.yml`，其服务拓扑、启动命令、网络、挂载和依赖与 `docker-compose.yml` 保持一致。命令必须显式使用 `.env.prod`：
 
 ~~~bash
 docker compose --env-file .env.prod -f docker-compose-prod.yml --profile youtube-operator config --quiet

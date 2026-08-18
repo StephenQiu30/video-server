@@ -71,8 +71,11 @@ def test_compose_does_not_bundle_host_managed_infrastructure() -> None:
     assert "/docker-entrypoint-initdb.d/" not in compose
 
 
-def test_database_consumers_use_the_host_managed_postgres_service() -> None:
+def test_database_consumers_use_the_configured_postgres_service() -> None:
     compose = COMPOSE_PATH.read_text(encoding="utf-8")
+    expected_endpoint = (
+        "@${POSTGRES_HOST:-host.docker.internal}:${POSTGRES_PORT:-5432}/"
+    )
 
     for service in (
         "api",
@@ -83,7 +86,7 @@ def test_database_consumers_use_the_host_managed_postgres_service() -> None:
         "provider-canary",
     ):
         service_config = _service_block(compose, service)
-        assert "@host.docker.internal:${HOST_POSTGRES_PORT:-5432}/" in service_config
+        assert expected_endpoint in service_config
         assert '"host.docker.internal:host-gateway"' in service_config
 
 
@@ -92,7 +95,7 @@ def test_production_compose_uses_the_production_env_and_host_database() -> None:
     api = _service_block(production, "api")
 
     assert "env_file:\n      - .env.prod" in api
-    assert "@host.docker.internal:${HOST_POSTGRES_PORT:-5432}/" in api
+    assert "@${POSTGRES_HOST:-host.docker.internal}:${POSTGRES_PORT:-5432}/" in api
     assert not re.search(r"(?m)^  database-init:$", production)
 
 

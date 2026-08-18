@@ -15,6 +15,9 @@ services:
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-video}"
     ports:
       - "127.0.0.1:${HOST_POSTGRES_PORT:-15432}:5432"
+    networks:
+      - default
+      - app_net
     volumes:
       - video_env_postgres_data:/var/lib/postgresql
     healthcheck:
@@ -54,6 +57,9 @@ services:
     ports:
       - "127.0.0.1:${HOST_RABBITMQ_PORT:-5673}:5672"
       - "127.0.0.1:${HOST_RABBITMQ_MANAGEMENT_PORT:-15673}:15672"
+    networks:
+      - default
+      - app_net
     volumes:
       - video_env_rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -142,6 +148,9 @@ services:
     command: ["valkey-server", "--appendonly", "yes"]
     ports:
       - "127.0.0.1:${HOST_VALKEY_PORT:-16380}:6379"
+    networks:
+      - default
+      - app_net
     volumes:
       - video_env_valkey_data:/data
     healthcheck:
@@ -161,6 +170,9 @@ services:
     ports:
       - "127.0.0.1:${HOST_MINIO_PORT:-19190}:9000"
       - "127.0.0.1:${HOST_MINIO_CONSOLE_PORT:-19191}:9001"
+    networks:
+      - default
+      - app_net
     volumes:
       - video_env_minio_data:/data
     healthcheck:
@@ -192,3 +204,6 @@ volumes:
   video_env_rabbitmq_data:
   video_env_valkey_data:
   video_env_minio_data:
+
+networks:
+  app_net:

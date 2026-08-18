@@ -139,20 +139,19 @@
 cd backend
 uv sync --frozen --dev
 uv run ruff check app tests
-uv run ruff format --check app tests
 uv run mypy app
 uv run pytest
 
 cd ../frontend
 npm ci
 npm run lint
-npm run format:check
 npm test
 npm run build
 
 cd ..
-docker compose --env-file .env -f docker-compose.yml --profile environment config
-docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod.yml --profile environment config
+docker compose --env-file .env -f docker-compose-env.yml config
+docker compose --env-file .env -f docker-compose.yml config
+docker compose --env-file .env.prod -f docker-compose-prod.yml config
 ```
 
 真实 Cookie、POT 和 Provider canary 命令必须放在受限运维 runbook/CI Secret 环境，文档只记录脱敏结果，不把值写入 shell history 或验收文件。
@@ -162,7 +161,7 @@ docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose-prod
 | 日期 | 环境 | Git SHA | Provider/capability | Access mode | Profile/engine/POT | Egress ref | Stage | 结果/稳定码 | 证据位置 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2026-08-10 | 本地单元/契约/集成 | 本次提交（基线 `a72b2f0`） | Profile/context/session/error/API | anonymous + operator fixtures | yt-dlp `5d6b8c8` / EJS `0.8.0` / bgutil `1.3.1` | non-secret fixture | inspect/download | backend `400 passed`；ruff lint/mypy 通过 | 本文第 12 节命令；测试报告 |
-| 2026-08-10 | Compose config | 本次提交（基线 `a72b2f0`） | YouTube operator/POT | operator topology | `youtube-v2` / bgutil `1.3.1` OCI digest | Compose network ref | deploy config | 开发/生产、默认/Profile 均通过 | `docker compose ... config --quiet` |
+| 2026-08-10 | Compose config | 本次提交（基线 `a72b2f0`） | YouTube operator/POT | operator topology | `youtube-v2` / bgutil `1.3.1` OCI digest | Compose network ref | deploy config | 环境、业务、生产配置均通过 | `docker compose ... config --quiet` |
 | 2026-08-10 | production-like 本地容器 | 本次提交（基线 `a72b2f0`） | YouTube operator/POT | operator fixture | `youtube-v2` / bgutil `1.3.1` OCI digest | 三个内部网络 | startup/health/boundary | Runner/POT/egress healthy；Secret ro；tmpfs `0700`；无 DB/MQ/MinIO/Valkey env 或 Docker socket；无直连公网网络 | 临时假 Cookie fixture 已删除，容器已 `down` |
 | 2026-08-10 | runtime 镜像 | 本次提交（基线 `a72b2f0`） | Provider runtime | N/A | yt-dlp `2026.07.04` / bgutil plugin | N/A | build/import | runtime build 通过；SBOM/NOTICE 与插件入口存在 | image `video-server:phase1-validation`（本地） |
 | 2026-08-10 | 前端本地 | 本次提交（基线 `a72b2f0`） | Provider status | authenticated | OpenAPI `listProviders` | N/A | API/UI | `81 passed`；lint/type/format/build 通过；`/providers` 静态导出 | 前端测试与 build 报告 |

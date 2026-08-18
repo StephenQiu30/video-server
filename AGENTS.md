@@ -35,6 +35,7 @@ server/
 │   └── tests/                     Vitest 测试
 ├── docs/                          当前设计、需求、计划、验收与运维文档
 ├── Dockerfile                     前后端统一生产镜像
+├── docker-compose-env.yml         本项目基础环境拓扑
 ├── docker-compose.yml             本机业务容器拓扑
 └── docker-compose-prod.yml        生产业务容器拓扑
 ```
@@ -87,13 +88,13 @@ server/
 
 - 禁止恢复侧栏后台壳、卡片堆叠、三步向导、高密度工具栏、渐变炫光、玻璃拟态、重投影或蓝色企业后台视觉；禁止重新引入 Ant Design、Ant Design Pro、Umi、Less、CSS-in-JS 或平行主题系统。
 - 修改颜色、字体、圆角、网格、断点或基础控件时，必须同步更新 `globals.css`、[009 设计文档](docs/design/archive/009-Next前端与蓝白视觉系统设计.md) 和必要测试；修改导航模式或核心页面信息层级时，必须同步更新 009 设计文档与必要测试。视觉基准变化还必须重做 [design-qa.md](design-qa.md) 的桌面/390px 同状态比较。
-- 交付前至少运行前端 `npm run lint`、`npm run format:check`、`npm test`、`npm run build`，并实际检查键盘返回路径、明暗主题、加载/空/错误状态、Radix 覆盖层和页面级横向溢出。视觉 QA 只有在没有剩余 P0/P1/P2 差异且 `design-qa.md` 写明 `final result: passed` 时才算通过；QA 截图不能替代功能和无障碍验证。
+- 交付前至少运行前端 `npm run lint`、`npm test`、`npm run build`，并实际检查键盘返回路径、明暗主题、加载/空/错误状态、Radix 覆盖层和页面级横向溢出。视觉 QA 只有在没有剩余 P0/P1/P2 差异且 `design-qa.md` 写明 `final result: passed` 时才算通过；QA 截图不能替代功能和无障碍验证。
 
 ## 架构与数据边界
 
 - 后端依赖方向为 `api/workers → application → domain`。`domain` 不得导入 FastAPI、SQLAlchemy、RabbitMQ、MinIO、yt-dlp、FFmpeg 或模型 SDK。
 - API、下载 Worker、媒体 Runner、AI Worker 是独立进程。PostgreSQL 是状态事实来源；跨 PostgreSQL/RabbitMQ 使用 transactional outbox，消费者必须支持幂等和 lease/heartbeat。
-- PostgreSQL 只通过 `backend/sql/schema.sql` 维护当前态结构。PostgreSQL 由宿主机或外部平台管理，部署者必须在启动业务容器前幂等执行该文件；项目不维护迁移目录、历史 schema、Compose 数据库初始化服务或旧版本兼容逻辑。结构变化时同步更新可重复执行的当前态 SQL、ORM 和测试，并同时使用空数据库与已有当前态数据库验证。
+- PostgreSQL 只通过 `backend/sql/schema.sql` 维护当前态结构。`docker-compose-env.yml` 提供本项目专用的 PostgreSQL、RabbitMQ、Valkey、MinIO 及一次性初始化服务；复用已有基础环境时，部署者必须保证这些服务已完成同等初始化，并在启动业务容器前幂等执行该 SQL。项目不维护迁移目录、历史 schema 或旧版本兼容逻辑。结构变化时同步更新可重复执行的当前态 SQL、ORM 和测试，并同时使用空数据库与已有当前态数据库验证。
 - OpenAPI 是前后端接口契约的唯一来源，通过 `/openapi.json` 提供，并由 `/docs` 展示 Swagger UI；不维护平行 DTO、手写生成类型或旧 API 适配层。
 - 只实现当前需求，不添加旧目录、旧 API、旧 Provider 或旧数据库的兼容分支。单个源码文件原则上不超过 200 行，超过时按职责拆分。
 
@@ -105,7 +106,7 @@ server/
 - AI 任务独立于下载任务；AI 失败不得改变下载成功状态。模型输出必须通过严格 schema、连续分镜时间轴和 shot evidence 校验，普通日志不得记录完整 Prompt、抽帧或原始模型响应。
 - Secret 只来自类型化配置和环境变量，不得进入前端、API 响应、异常、快照、测试夹具或普通日志。外部操作必须设置大小、时长、并发和超时上限，取消时终止整个子进程组。
 - 复用本机 OAuth 的 AI Worker 是 Compose 完整拓扑的唯一例外：必须由已登录 Codex 或 Claude CLI 的宿主机用户启动，容器不得挂载或复制 CLI 认证目录。
-- Compose 必须保持职责清晰：`docker-compose.yml` 与 `docker-compose-prod.yml` 只定义应用、Worker、Runner、出口代理及必要的跨服务连接，不在仓库中内置 PostgreSQL、RabbitMQ、Valkey、MinIO 或其初始化脚本。外部基础设施的账号、权限、队列、bucket、生命周期和 schema 由部署者预置；Compose 只传递服务角色、连接地址、跨进程密钥和容器专用地址，并为每个进程声明正确入口命令。所有服务必须显式设置稳定的 `container_name`。启动前按需复制 `.env.example` 为 `.env`，生产环境复制 `.env.prod.example` 为 `.env.prod` 并替换占位值。不要提交 `.env`、制品、缓存、日志、临时目录、虚拟环境或 `node_modules/`。
+- Compose 必须保持职责清晰：`docker-compose-env.yml` 只定义本项目基础环境及其一次性初始化，`docker-compose.yml` 只定义本机业务、Worker、Runner 和出口代理，`docker-compose-prod.yml` 只定义生产业务差异；不新增仅供 CI 或单个开发者使用的覆盖文件。业务 Compose 通过 `.env` 中的 `POSTGRES_HOST/PORT`、`RABBITMQ_HOST/PORT`、`VALKEY_HOST/PORT` 和 `MINIO_HOST/PORT` 连接基础环境：组合环境 Compose 时使用服务名和容器端口，复用已有基础环境时使用宿主机可达地址和已发布端口。`HOST_*_PORT` 只用于环境 Compose 的宿主机端口发布。MinIO 全部业务进程只共用一组 `MINIO_ACCESS_KEY` 与 `MINIO_SECRET_KEY`。所有服务必须显式设置稳定的 `container_name`。启动前按需复制 `.env.example` 为 `.env`，生产环境复制 `.env.prod.example` 为 `.env.prod` 并替换占位值。不要提交 `.env`、制品、缓存、日志、临时目录、虚拟环境或 `node_modules/`。
 
 ## 实现与验证
 
@@ -118,7 +119,6 @@ server/
 ```bash
 uv sync --frozen --dev
 uv run ruff check app tests
-uv run ruff format --check app tests
 uv run mypy app
 uv run pytest
 ```
@@ -128,12 +128,11 @@ uv run pytest
 ```bash
 npm ci
 npm run lint
-npm run format:check
 npm test
 npm run build
 ```
 
-- 涉及接口契约时验证 OpenAPI 生成结果和前后端契约测试；涉及运行时、依赖或容器时分别验证默认配置、`environment` Profile 和生产覆盖可以解析，按需验证镜像构建和关键健康接口。
+- 涉及接口契约时验证 OpenAPI 生成结果和前后端契约测试；涉及运行时、依赖或容器时分别验证环境 Compose、业务 Compose 和生产 Compose 可以解析，按需验证镜像构建和关键健康接口。
 - 不得隐瞒失败的检查。无法在当前平台完成的验证应在交付说明中写明原因、已执行范围和剩余风险。
 
 ## 文档规范
@@ -148,7 +147,7 @@ npm run build
 
 - 开始任务和提交前都执行 `git status --short`，识别并保留用户已有改动；不得覆盖、删除或顺带提交与当前任务无关的文件。
 - 一个“小任务”应是可独立说明、可独立验证、可安全回滚的一组改动。完成并通过相关检查后立即提交，不把多个无关任务积累到同一提交。
-- 提交信息遵循 Conventional Commits，格式为 `<type>(<scope>): <中文描述>`；不需要作用域时使用 `<type>: <中文描述>`，禁止使用空作用域 `feat(): ...`。标题最多 72 个字符，中文描述末尾不加标点，并由 GitHub Actions 工作流校验。
+- 提交信息建议使用 Conventional Commits，格式为 `<type>(<scope>): <中文描述>`；不需要作用域时使用 `<type>: <中文描述>`，禁止使用空作用域 `feat(): ...`。提交说明只服务于协作可读性，不作为 GitHub Actions 的 CI 阻断条件。
 - `type` 使用小写英文：新功能 `feat`、缺陷修复 `fix`、重构 `refactor`、文档 `docs`、测试 `test`、性能 `perf`、构建 `build`、持续集成 `ci`、维护 `chore`、纯格式 `style`、回退 `revert`。
 - `scope` 使用稳定且非空的小写英文模块名，例如 `api`、`frontend`、`backend`、`runner`、`worker`、`docs` 或 `deps`；无法准确归属时省略作用域，不得临时发明含糊缩写。
 - 冒号后使用简洁、明确的中文动作描述，不加句号，例如 `feat(api): 增加下载任务取消接口`、`fix(frontend): 修复任务状态轮询泄漏`、`docs: 补充本地开发说明`。

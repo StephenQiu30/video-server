@@ -49,8 +49,7 @@ jobs:
           if invalid:
               raise SystemExit('GitHub Actions 必须固定到完整提交 SHA：\n  - ' + '\n  - '.join(invalid))
           PY
-          temporary=$(mktemp -d)
-          trap 'rm -rf "$temporary"; rm -f .env .env.prod' EXIT
+          trap 'rm -f .env .env.prod' EXIT
           cp .env.example .env
           cp .env.prod.example .env.prod
           docker compose -f docker-compose-env.yml config --quiet
@@ -133,7 +132,7 @@ jobs:
       - name: Build and verify runtime topology
         run: |
           set -Eeuo pipefail
-          compose=(docker compose --project-name video-server-ci -f docker-compose-env.yml -f docker-compose.yml -f docker-compose-ci.yml)
+          compose=(docker compose --project-name video-server-ci -f docker-compose-env.yml -f docker-compose.yml)
           started=0
           cleanup() {
             status=$?

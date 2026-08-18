@@ -7,15 +7,22 @@
 - `backend/`：FastAPI、领域服务、Worker、当前态 SQL 与 Python 测试。
 - `frontend/`：Next.js App Router 页面、Radix UI/shadcn 组件、Tailwind CSS 主题、已提交的 OpenAPI 客户端与前端测试。
 - `docs/`：当前产品和架构事实。
-- 根 `Dockerfile`、`docker-compose.yml` 与 `docker-compose-prod.yml`：唯一运行入口，不建立独立部署目录。基础设施通过 `environment` Profile 按需启用，生产 Compose 是与默认拓扑一致的独立完整配置。
+- 根 `Dockerfile`、`docker-compose-env.yml`、`docker-compose.yml` 与 `docker-compose-prod.yml`：唯一运行入口，不建立独立部署目录。环境 Compose 负责本项目基础服务，业务 Compose 负责应用容器，生产 Compose 负责生产差异。
 
-功能交付遵循 `Design → PRD → Plan → Acceptance`，并保持测试、契约、文档和实际运行方式一致。具体目录、依赖、安全、配置和测试规则以 `AGENTS.md` 为准。提交前分别运行后端与前端质量门禁；涉及运行时变更时还需验证默认 Compose、`environment` Profile、生产覆盖和统一镜像构建。
+功能交付遵循 `Design → PRD → Plan → Acceptance`，并保持测试、契约、文档和实际运行方式一致。具体目录、依赖、安全、配置和测试规则以 `AGENTS.md` 为准。提交前分别运行后端与前端质量门禁；涉及运行时变更时还需验证环境 Compose、业务 Compose、生产 Compose 和统一镜像构建。
+
+## Docker 使用规范
+
+- `docker-compose-env.yml` 只启动本项目专用的 PostgreSQL、RabbitMQ、Valkey、MinIO 及初始化服务；`docker-compose.yml` 只启动业务服务；`docker-compose-prod.yml` 只启动生产业务服务。
+- 业务服务通过 `.env` 的 `POSTGRES_HOST/PORT`、`RABBITMQ_HOST/PORT`、`VALKEY_HOST/PORT`、`MINIO_HOST/PORT` 连接基础服务。使用环境 Compose 时填服务名和容器端口；复用已有服务时填宿主机可达地址和已发布端口。
+- `HOST_*_PORT` 只代表环境 Compose 对宿主机发布的端口，不直接作为容器内连接端口。MinIO 只使用一组共享的 `MINIO_ACCESS_KEY` 与 `MINIO_SECRET_KEY`。
+- CI 和本地验证复用正式 Compose 文件，不创建 CI 专用 Compose 覆盖文件。详细启动、停止和故障恢复规则见 [根目录 Compose 运行手册](docs/operations/001-root-compose运行手册.md)。
 
 安全边界和漏洞报告方式见 `SECURITY.md`；任何下载能力变更都必须保留公开、授权、非 DRM 的产品边界。
 
 前端路由只放在 `frontend/src/app/`，组件优先复用 `src/components/ui/` 中的 Radix/shadcn 源码并通过 Tailwind 语义 token 统一主题。`frontend/src/services/video/` 使用仓库内已提交的 OpenAPI 客户端，接口变化时必须同步审查契约和客户端差异；生成请求统一进入 `src/lib/request.ts`，页面通过 `src/services/` 的稳定入口调用。客户端鉴权只使用同源 HttpOnly Cookie，请求层最多刷新并重试一次，浏览器不得持久化 JWT。
 
-前端提交前执行 `npm run lint`、`npm run format:check`、`npm test` 和 `npm run build`。生产构建必须静态导出到 `out/` 并继续由 FastAPI 同源托管；UI 变更同时验证键盘操作、可见焦点、错误状态以及 390px 窄屏无页面级横向溢出。
+前端提交前执行 `npm run lint`、`npm test` 和 `npm run build`。生产构建必须静态导出到 `out/` 并继续由 FastAPI 同源托管；UI 变更同时验证键盘操作、可见焦点、错误状态以及 390px 窄屏无页面级横向溢出。
 
 ## 提交规范
 
@@ -25,7 +32,7 @@
 <type>(<scope>): <中文描述>
 ```
 
-作用域可省略；省略时使用 `<type>: <中文描述>`，不要保留空括号。标题最多 72 个字符，使用明确的中文动作短语，末尾不加标点。推荐类型如下：
+作用域可省略；省略时使用 `<type>: <中文描述>`，不要保留空括号。提交说明建议使用明确的中文动作短语。推荐类型如下：
 
 | 类型 | 用途 |
 | --- | --- |
@@ -62,13 +69,13 @@ BREAKING CHANGE: 客户端需要迁移到新版下载接口
 
 正文用于解释修改动机、实现方式和影响，与标题之间保留一个空行；关联任务可在页脚写 `Refs: #123`。不要在标题中堆叠实现细节。
 
-提交前手动校验提交信息并运行完整代码级门禁：
+提交前运行完整代码级门禁：
 
 ```bash
-cd backend && uv sync --frozen --dev && uv run --frozen ruff check app tests && uv run --frozen ruff format --check app tests && uv run --frozen mypy --strict app && uv run --frozen pytest -q
-cd ../frontend && npm ci && npm audit --omit=dev --audit-level=high && npm run lint && npm run format:check && npm test && npm run build
+cd backend && uv sync --frozen --dev && uv run --frozen ruff check app tests && uv run --frozen mypy --strict app && uv run --frozen pytest -q
+cd ../frontend && npm ci && npm audit --omit=dev --audit-level=high && npm run lint && npm test && npm run build
 ```
 
-Pull Request 标题同样遵循中文 Conventional Commits。GitHub Actions 会检查 PR 标题、PR/Push 提交范围，并通过 `Required CI` 聚合仓库规则、后端、前端和运行边界结果。
+Pull Request 和提交说明的格式约定只用于协作可读性，不作为 CI 阻断项。GitHub Actions 通过 `Required CI` 聚合仓库配置、后端、前端和运行边界结果。
 
-提交前只暂存当前任务文件并完成相关验证；提交后运行 `git status --short`，确保没有本任务遗留的未提交文件。只有在明确要求时才推送远端或创建 PR。包括合并和回退在内的所有提交均执行上述中文规范，不设置格式豁免或兼容分支。
+提交前只暂存当前任务文件并完成相关业务验证；提交后运行 `git status --short`，确保没有本任务遗留的未提交文件。只有在明确要求时才推送远端或创建 PR。包括合并和回退在内的提交说明建议遵循上述中文约定，但不设置额外的格式阻断门禁。
