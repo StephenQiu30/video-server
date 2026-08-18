@@ -132,14 +132,24 @@ describe('screenplay documents', () => {
     expect(container.querySelector('script')).toBeNull();
     expect(container.querySelector('pre')).toBeNull();
     expect(screen.getByTestId('screenplay-markdown-reader')).toHaveClass(
-      'h-[min(72vh,56rem)]',
-      'lg:flex-1',
+      'h-[clamp(28rem,72vh,56rem)]',
+      'lg:h-auto',
+      'lg:min-h-0',
     );
-    expect(screen.getByTestId('screenplay-document-workspace')).toHaveClass(
-      'lg:h-[min(72vh,56rem)]',
+    const workspace = screen.getByTestId('screenplay-document-workspace');
+    expect(workspace).toHaveClass(
+      'lg:h-[clamp(34rem,72vh,56rem)]',
+      'lg:grid-rows-[minmax(0,1fr)]',
+      'lg:overflow-hidden',
+    );
+    expect(screen.getByTestId('screenplay-preview-column')).toHaveClass(
+      'lg:grid-rows-[auto_minmax(0,1fr)_auto]',
+      'lg:min-h-0',
     );
     expect(screen.getByRole('navigation', { name: '目录' })).toHaveClass(
+      'lg:grid',
       'lg:h-full',
+      'lg:grid-rows-[auto_minmax(0,1fr)]',
       'lg:overflow-hidden',
     );
     expect(screen.getByRole('link', { name: '午夜来客' })).toHaveAttribute(
@@ -161,9 +171,9 @@ describe('screenplay documents', () => {
       '未识别到明确场景标题',
     );
     expect(screen.getByText('中英混合')).toBeInTheDocument();
-    expect(screen.getByLabelText('剧本分析工作区')).toHaveTextContent(
-      'document-id',
-    );
+    const analysis = screen.getByLabelText('剧本分析工作区');
+    expect(analysis).toHaveTextContent('document-id');
+    expect(workspace.nextElementSibling).toBe(analysis);
     expect(screen.getByRole('link', { name: '返回上一步' })).toHaveAttribute(
       'href',
       '/documents',

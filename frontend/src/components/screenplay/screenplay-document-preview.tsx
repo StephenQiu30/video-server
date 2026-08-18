@@ -38,7 +38,8 @@ export function ScreenplayDocumentPreview({
   return (
     <section
       aria-labelledby="screenplay-preview-title"
-      className="min-w-0 lg:flex lg:h-full lg:min-h-0 lg:flex-col"
+      className="min-w-0 lg:grid lg:h-full lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)_auto]"
+      data-testid="screenplay-preview-column"
     >
       <div className="flex items-baseline justify-between gap-4">
         <h2
@@ -55,7 +56,7 @@ export function ScreenplayDocumentPreview({
         <>
           <article
             aria-label="规范化剧本 Markdown 预览"
-            className="mt-4 h-[min(72vh,56rem)] min-h-[28rem] overflow-y-auto overscroll-contain bg-surface px-5 py-6 text-[15px] leading-7 text-foreground scrollbar-thin sm:min-h-[34rem] sm:px-8 sm:py-8 lg:h-auto lg:min-h-0 lg:flex-1"
+            className="mt-4 h-[clamp(28rem,72vh,56rem)] overflow-y-auto overscroll-contain bg-surface px-5 py-6 text-[15px] leading-7 text-foreground scrollbar-thin sm:px-8 sm:py-8 lg:h-auto lg:min-h-0"
             data-testid="screenplay-markdown-reader"
           >
             <ReactMarkdown

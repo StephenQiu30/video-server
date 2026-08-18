@@ -59,7 +59,7 @@ export function ScreenplayDocumentToc({
   return (
     <nav
       aria-labelledby="screenplay-toc-title"
-      className="lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden"
+      className="lg:grid lg:h-full lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)] lg:overflow-hidden"
     >
       <div className="flex items-center justify-between gap-4 border-b border-border/70 pb-3">
         <div className="flex items-center gap-2">
@@ -80,7 +80,7 @@ export function ScreenplayDocumentToc({
       </div>
 
       {headings.length ? (
-        <ol className="mt-3 space-y-0.5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:scrollbar-thin">
+        <ol className="mt-3 space-y-0.5 lg:h-auto lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:scrollbar-thin">
           {headings.map((heading) => (
             <li key={heading.id}>
               <a

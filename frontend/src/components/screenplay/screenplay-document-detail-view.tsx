@@ -41,6 +41,12 @@ const tocSkeletonKeys = [
   'toc-6',
 ] as const;
 
+const workspaceClassName =
+  'mt-10 grid min-w-0 gap-10 lg:mt-12 lg:h-[clamp(34rem,72vh,56rem)] lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_280px] lg:grid-rows-[minmax(0,1fr)] lg:gap-0 lg:overflow-hidden';
+const previewColumnClassName = 'min-w-0 lg:min-h-0 lg:overflow-hidden lg:pr-10';
+const tocColumnClassName =
+  'order-first min-w-0 lg:order-none lg:min-h-0 lg:overflow-hidden lg:border-l lg:pl-10';
+
 export default function ScreenplayDocumentDetailView({
   documentId,
   pollIntervalMs,
@@ -103,16 +109,16 @@ export default function ScreenplayDocumentDetailView({
           </header>
           <ScreenplayDocumentMetadata document={state.document} />
           <div
-            className="mt-10 grid min-w-0 gap-10 lg:mt-12 lg:h-[min(72vh,56rem)] lg:min-h-[34rem] lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-0"
+            className={workspaceClassName}
             data-testid="screenplay-document-workspace"
           >
-            <div className="min-w-0 lg:h-full lg:pr-10">
+            <div className={previewColumnClassName}>
               <ScreenplayDocumentPreview
                 document={state.document}
                 headings={headings}
               />
             </div>
-            <div className="order-first min-w-0 lg:order-none lg:h-full lg:border-l lg:pl-10">
+            <div className={tocColumnClassName}>
               <ScreenplayDocumentToc headings={headings} />
             </div>
           </div>
@@ -151,15 +157,17 @@ function DocumentDetailSkeleton() {
           ))}
         </div>
       </div>
-      <div className="mt-10 grid gap-10 lg:h-[min(72vh,56rem)] lg:min-h-[34rem] lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-0">
-        <div className="flex min-w-0 flex-col space-y-4 lg:h-full lg:pr-10">
+      <div className={workspaceClassName}>
+        <div
+          className={`${previewColumnClassName} flex flex-col space-y-4 lg:h-full`}
+        >
           <div className="flex items-baseline justify-between gap-4">
             <Skeleton className="h-6 w-28" />
             <Skeleton className="h-4 w-20" />
           </div>
           <Skeleton className="min-h-0 w-full flex-1 rounded-none" />
         </div>
-        <div className="order-first min-w-0 space-y-4 lg:order-none lg:h-full lg:border-l lg:pl-10">
+        <div className={`${tocColumnClassName} space-y-4`}>
           <Skeleton className="h-5 w-16" />
           <div className="space-y-3 pt-1">
             {tocSkeletonKeys.map((key) => (
