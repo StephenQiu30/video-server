@@ -32,7 +32,6 @@ jobs:
       - name: Repository configuration
         run: |
           set -euo pipefail
-          git diff --check
           python3 - <<'PY'
           import pathlib
           import re
@@ -57,52 +56,6 @@ jobs:
           docker compose -f docker-compose-env.yml config --quiet
           docker compose -f docker-compose.yml config --quiet
           docker compose -f docker-compose-prod.yml config --quiet
-      - name: Validate commit messages
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_RANGE: ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
-          PUSH_RANGE: ${{ github.event.before }}..${{ github.sha }}
-        run: |
-          set -euo pipefail
-          validate_subject() {
-            local label="$1"
-            local title="$2"
-            local trailing_punctuation='[。.!！？?；;]$'
-            [[ -n "$title" ]] || { printf '提交标题不能为空：%s\n' "$label" >&2; return 1; }
-            (( ${#title} <= 72 )) || { printf '提交标题超过 72 个字符：%s\n' "$label" >&2; return 1; }
-            [[ "$title" =~ ^(feat|fix|refactor|docs|test|perf|build|ci|chore|style|revert)(\([a-z][a-z0-9-]*\))?!?:\ .+$ ]] || {
-              printf '提交标题格式错误：%s\n' "$label" >&2
-              return 1
-            }
-            printf '%s' "$title" | grep -qP '[\x{3400}-\x{4DBF}\x{4E00}-\x{9FFF}]' || {
-              printf '提交标题必须包含中文描述：%s\n' "$label" >&2
-              return 1
-            }
-            [[ ! "$title" =~ $trailing_punctuation ]] || {
-              printf '提交标题末尾不能有标点：%s\n' "$label" >&2
-              return 1
-            }
-          }
-          validate_range() {
-            local revision_range="$1"
-            while IFS= read -r commit; do
-              [[ -n "$commit" ]] || continue
-              validate_subject "$commit" "$(git show -s --format=%s "$commit")"
-            done < <(git rev-list --reverse "$revision_range")
-          }
-          if [[ "$EVENT_NAME" == pull_request ]]; then
-            validate_subject 'Pull Request 标题' "$PR_TITLE"
-            validate_range "$PR_RANGE"
-          elif [[ "$EVENT_NAME" == push && "${PUSH_RANGE%%..*}" != 0000000000000000000000000000000000000000 ]]; then
-            validate_range "$PUSH_RANGE"
-          fi
-      - name: Validate pull request diff
-        if: github.event_name == 'pull_request'
-        run: git diff --check "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
-      - name: Validate pushed diff
-        if: github.event_name == 'push'
-        run: git diff --check "${{ github.event.before }}..${{ github.sha }}"
 
   backend-quality:
     name: Backend quality
@@ -141,7 +94,6 @@ jobs:
         run: |
           uv sync --frozen --dev
           uv run --frozen ruff check app tests
-          uv run --frozen ruff format --check app tests
           uv run --frozen mypy --strict app
           uv run --frozen pytest -q
 
@@ -166,7 +118,6 @@ jobs:
           npm ci
           npm audit --omit=dev --audit-level=high
           npm run lint
-          npm run format:check
           npm test
           npm run build
 

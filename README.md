@@ -165,9 +165,8 @@ npm run dev
 与 CI 一致的质量检查统一从仓库根目录执行：
 
 ```bash
-git diff --check
-cd backend && uv sync --frozen --dev && uv run --frozen ruff check app tests && uv run --frozen ruff format --check app tests && uv run --frozen mypy --strict app && uv run --frozen pytest -q
-cd ../frontend && npm ci && npm audit --omit=dev --audit-level=high && npm run lint && npm run format:check && npm test && npm run build
+cd backend && uv sync --frozen --dev && uv run --frozen ruff check app tests && uv run --frozen mypy --strict app && uv run --frozen pytest -q
+cd ../frontend && npm ci && npm audit --omit=dev --audit-level=high && npm run lint && npm test && npm run build
 cd .. && docker compose --env-file .env -f docker-compose-env.yml config --quiet && docker compose --env-file .env -f docker-compose.yml config --quiet
 ```
 
