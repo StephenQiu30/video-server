@@ -182,7 +182,7 @@ jobs:
       - name: Build and verify runtime topology
         run: |
           set -Eeuo pipefail
-          compose=(docker compose --project-name video-server-ci -f docker-compose-env.yml -f docker-compose.yml)
+          compose=(docker compose --project-name video-server-ci -f docker-compose-env.yml -f docker-compose.yml -f docker-compose-ci.yml)
           started=0
           cleanup() {
             status=$?
