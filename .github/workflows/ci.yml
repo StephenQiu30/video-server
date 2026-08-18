@@ -68,6 +68,7 @@ jobs:
           validate_subject() {
             local label="$1"
             local title="$2"
+            local trailing_punctuation='[。.!！？?；;]$'
             [[ -n "$title" ]] || { printf '提交标题不能为空：%s\n' "$label" >&2; return 1; }
             (( ${#title} <= 72 )) || { printf '提交标题超过 72 个字符：%s\n' "$label" >&2; return 1; }
             [[ "$title" =~ ^(feat|fix|refactor|docs|test|perf|build|ci|chore|style|revert)(\([a-z][a-z0-9-]*\))?!?:\ .+$ ]] || {
@@ -78,7 +79,7 @@ jobs:
               printf '提交标题必须包含中文描述：%s\n' "$label" >&2
               return 1
             }
-            [[ ! "$title" =~ [。.!！？?；;]$ ]] || {
+            [[ ! "$title" =~ $trailing_punctuation ]] || {
               printf '提交标题末尾不能有标点：%s\n' "$label" >&2
               return 1
             }
