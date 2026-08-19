@@ -22,6 +22,7 @@ from app.application.downloads.errors import (
     MediaInspectionAuthRequired,
     MediaInspectionContentRestricted,
     MediaInspectionDrmProtected,
+    MediaInspectionDurationLimitExceeded,
     MediaInspectionFormatUnavailable,
     MediaInspectionGeoRestricted,
     MediaInspectionLinkUnavailable,
@@ -117,6 +118,8 @@ class MediaRunnerHttpClient:
                 timeout_code="inspection_timeout",
             )
         except MediaRunnerClientError as exc:
+            if exc.code == "duration_limit_exceeded":
+                raise MediaInspectionDurationLimitExceeded from exc
             if exc.code in {"credential_required", "provider_session_not_allowed"}:
                 raise MediaInspectionAuthRequired from exc
             if exc.code in {

@@ -31,6 +31,11 @@ def test_loads_minimal_runner_environment(
     assert settings.runner_egress_proxy == "http://egress-proxy:3128"
     assert settings.runner_provider_egress_proxies == {}
     assert settings.runner_workspace_root == tmp_path.resolve()
+    assert settings.runner_inspect_timeout_seconds == 120
+    assert settings.runner_download_timeout_seconds == 7_200
+    assert settings.runner_max_duration_seconds == 86_400
+    assert settings.runner_max_output_bytes == 20 * 1024**3
+    assert settings.runner_max_workspace_bytes == 40 * 1024**3
 
 
 def test_loads_credential_free_provider_proxy_overrides(

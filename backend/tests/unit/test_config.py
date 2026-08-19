@@ -42,6 +42,15 @@ def test_database_urls_require_async_postgresql(field: str) -> None:
 
 
 def test_download_limits_are_validated() -> None:
+    defaults = Settings(app_env="test", _env_file=None)
+
+    assert defaults.request_timeout_seconds == 180
+    assert defaults.inspect_timeout_seconds == 150
+    assert defaults.download_timeout_seconds == 7_200
+    assert defaults.max_video_duration_seconds == 86_400
+    assert defaults.max_file_size_bytes == 20 * 1024**3
+    assert defaults.max_workspace_size_bytes == 40 * 1024**3
+
     with pytest.raises(ValidationError):
         Settings(app_env="test", max_file_size_bytes=0)
 

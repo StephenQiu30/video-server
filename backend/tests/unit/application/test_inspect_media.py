@@ -16,6 +16,7 @@ from app.application.downloads import (
 )
 from app.application.downloads.errors import (
     MediaInspectionAuthRequired,
+    MediaInspectionDurationLimitExceeded,
     MediaInspectionLinkUnavailable,
     MediaInspectionUnsupported,
 )
@@ -166,6 +167,30 @@ async def test_duration_limit_and_empty_formats_are_rejected() -> None:
         await no_formats(URL, OWNER, "formats")
     assert format_error.value.code is ApplicationErrorCode.FORMAT_UNAVAILABLE
     assert repository.inspection_commands == []
+
+
+@pytest.mark.asyncio
+async def test_runner_duration_boundary_keeps_provider_support_distinct() -> None:
+    class DurationRejectedRunner:
+        async def inspect(self, _url: str) -> RunnerInspection:
+            raise MediaInspectionDurationLimitExceeded
+
+    inspect = InspectMedia(
+        repository=FakeRepository(),
+        runner=DurationRejectedRunner(),
+        url_validator=FakeValidator(),
+        url_cipher=FakeCipher(),
+        fingerprinter=HmacRequestFingerprinter(b"k" * 32),
+        now=lambda: NOW,
+        new_id=uuid4,
+        inspection_ttl=timedelta(minutes=15),
+        max_duration_seconds=86_400,
+    )
+
+    with pytest.raises(ApplicationError) as caught:
+        await inspect(URL, OWNER, "duration-from-runner")
+
+    assert caught.value.code is ApplicationErrorCode.DURATION_LIMIT_EXCEEDED
 
 
 @pytest.mark.asyncio

@@ -52,6 +52,10 @@ class MediaInspectionFailure(RuntimeError):
     """The runner could not return a valid inspection."""
 
 
+class MediaInspectionDurationLimitExceeded(MediaInspectionFailure):
+    """The media exceeds the configured duration safety boundary."""
+
+
 class MediaInspectionAuthRequired(MediaInspectionFailure):
     """The provider requires an approved session."""
 

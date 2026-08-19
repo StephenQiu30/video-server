@@ -29,6 +29,7 @@ export function inspectMedia(url: string, key: string): Promise<Inspection> {
     { url },
     {
       headers: { 'Idempotency-Key': key },
+      timeout: 180_000,
     },
   );
 }

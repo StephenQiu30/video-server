@@ -51,15 +51,15 @@ class RunnerSettings(BaseSettings):
     runner_nonce_max_entries: int = Field(default=100_000, ge=100, le=1_000_000)
     runner_max_request_bytes: int = Field(default=64 * 1024, ge=1024, le=1024**2)
 
-    runner_inspect_timeout_seconds: float = Field(default=30, gt=0, le=120)
-    runner_download_timeout_seconds: float = Field(default=1800, gt=0, le=7200)
+    runner_inspect_timeout_seconds: float = Field(default=120, gt=0, le=120)
+    runner_download_timeout_seconds: float = Field(default=7200, gt=0, le=7200)
     runner_terminate_grace_seconds: float = Field(default=3, gt=0, le=30)
     runner_output_capture_bytes: int = Field(default=1024**2, ge=4096, le=8 * 1024**2)
 
-    runner_max_duration_seconds: float = Field(default=7200, gt=0, le=86_400)
+    runner_max_duration_seconds: float = Field(default=86_400, gt=0, le=86_400)
     runner_max_output_files: int = Field(default=3, ge=1, le=10)
-    runner_max_output_bytes: int = Field(default=2 * 1024**3, ge=1024)
-    runner_max_workspace_bytes: int = Field(default=4 * 1024**3, ge=1024)
+    runner_max_output_bytes: int = Field(default=20 * 1024**3, ge=1024)
+    runner_max_workspace_bytes: int = Field(default=40 * 1024**3, ge=1024)
     runner_max_candidate_streams: int = Field(default=200, ge=1, le=1000)
     runner_max_options: int = Field(default=50, ge=1, le=200)
     runner_max_thumbnail_bytes: int = Field(

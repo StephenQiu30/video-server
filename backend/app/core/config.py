@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     frontend_dist_dir: Path = REPOSITORY_ROOT / "frontend" / "out"
     readiness_timeout_seconds: float = Field(default=2.0, ge=0.1, le=10)
     request_max_bytes: int = Field(default=256 * 1024, ge=1024, le=4 * 1024 * 1024)
-    request_timeout_seconds: float = Field(default=30, ge=1, le=300)
+    request_timeout_seconds: float = Field(default=180, ge=1, le=300)
     metrics_access_key: SecretStr = SecretStr(
         "development-metrics-access-key-change-me"
     )
@@ -131,11 +131,13 @@ class Settings(BaseSettings):
     )
     provider_canary_poll_seconds: float = Field(default=60, ge=5, le=3600)
     runner_signature_ttl_seconds: int = Field(default=30, ge=5, le=300)
-    inspect_timeout_seconds: int = Field(default=30, ge=1, le=300)
-    download_timeout_seconds: int = Field(default=1800, ge=1, le=7200)
-    max_video_duration_seconds: int = Field(default=7200, ge=1, le=86400)
-    max_file_size_bytes: int = Field(default=2 * 1024**3, ge=1, le=20 * 1024**3)
-    max_workspace_size_bytes: int = Field(default=4 * 1024**3, ge=1, le=40 * 1024**3)
+    inspect_timeout_seconds: int = Field(default=150, ge=1, le=300)
+    download_timeout_seconds: int = Field(default=7200, ge=1, le=7200)
+    max_video_duration_seconds: int = Field(default=86400, ge=1, le=86400)
+    max_file_size_bytes: int = Field(default=20 * 1024**3, ge=1, le=20 * 1024**3)
+    max_workspace_size_bytes: int = Field(
+        default=40 * 1024**3, ge=1, le=40 * 1024**3
+    )
     media_import_enabled: bool = False
     document_import_enabled: bool = True
     media_import_max_bytes: int = Field(default=2 * 1024**3, ge=1024, le=20 * 1024**3)
