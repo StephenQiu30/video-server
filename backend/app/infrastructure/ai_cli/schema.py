@@ -2,12 +2,22 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.domain.analysis import AnalysisResultContract
 
-def analysis_output_schema(language: str) -> dict[str, Any]:
+
+def analysis_output_schema(
+    language: str,
+    result_contract: AnalysisResultContract = (
+        AnalysisResultContract.VIDEO_VISUAL_ANALYSIS
+    ),
+) -> dict[str, Any]:
+    if result_contract is AnalysisResultContract.VIDEO_ARTICLE:
+        return video_article_output_schema(language)
     reference_array = {
         "type": "array",
         "items": {"type": "string"},
     }
+
     return {
         "type": "object",
         "additionalProperties": False,
@@ -40,6 +50,44 @@ def analysis_output_schema(language: str) -> dict[str, Any]:
                 "items": _asset(reference_array),
             },
             "production_advice": _production_advice(reference_array),
+        },
+    }
+
+
+def video_article_output_schema(language: str) -> dict[str, Any]:
+    evidence = _object(
+        ["start_ms", "end_ms", "note"],
+        {"start_ms": _integer(), "end_ms": _integer(), "note": _text()},
+    )
+    section = _object(
+        ["id", "title", "body", "evidence"],
+        {
+            "id": _identifier(),
+            "title": _text(),
+            "body": _text(),
+            "evidence": {"type": "array", "minItems": 1, "items": evidence},
+        },
+    )
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "language",
+            "title",
+            "lead",
+            "sections",
+            "key_points",
+            "closing",
+            "limitations",
+        ],
+        "properties": {
+            "language": {"type": "string", "enum": [language]},
+            "title": _text(),
+            "lead": _text(),
+            "sections": {"type": "array", "minItems": 1, "items": section},
+            "key_points": {"type": "array", "minItems": 1, "items": _text()},
+            "closing": _text(),
+            "limitations": {"type": "array", "items": _text()},
         },
     }
 

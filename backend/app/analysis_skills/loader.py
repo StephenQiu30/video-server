@@ -105,6 +105,7 @@ def _validate_contract(
 ) -> None:
     allowed = {
         AnalysisResultContract.VIDEO_VISUAL_ANALYSIS: {AnalysisInputKind.VIDEO},
+        AnalysisResultContract.VIDEO_ARTICLE: {AnalysisInputKind.VIDEO},
         AnalysisResultContract.SCREENPLAY_ANALYSIS: {AnalysisInputKind.SCREENPLAY},
         AnalysisResultContract.SCREENPLAY_REWRITE: {AnalysisInputKind.SCREENPLAY},
     }

@@ -1,6 +1,7 @@
 from dataclasses import replace
 from pathlib import Path
 
+from app.domain.analysis import AnalysisResultContract
 from app.infrastructure.ai_cli.prompt import analysis_prompt
 from tests.unit.infrastructure.ai_cli.helpers import request
 
@@ -40,3 +41,22 @@ def test_video_observer_requires_agent_directed_full_video_analysis(
     assert "自主缩小区间" in prompt
     assert "不得运行 shell" in prompt
     assert "你可以使用 ffprobe" not in prompt
+
+
+def test_video_article_prompt_requires_topic_rewrite_and_limitations(
+    tmp_path: Path,
+) -> None:
+    value = replace(
+        request(tmp_path),
+        result_contract=AnalysisResultContract.VIDEO_ARTICLE,
+        skill_id="video-to-article",
+        skill_instructions="按主题逻辑重组视频内容。",
+    )
+
+    prompt = analysis_prompt(value, ffmpeg="ffmpeg", ffprobe="ffprobe")
+
+    assert "把视频整理成一篇可以独立阅读的文章" in prompt
+    assert "按主题重组" in prompt
+    assert "写入 limitations" in prompt
+    assert "sections 建议 3 至 7 个" in prompt
+    assert "shot_count" not in prompt

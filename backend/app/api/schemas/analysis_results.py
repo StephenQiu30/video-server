@@ -75,6 +75,33 @@ class VideoAnalysisResultResponse(StrictModel):
     production_advice: ProductionAdviceResponse
 
 
+class VideoArticleEvidenceResponse(StrictModel):
+    start_ms: int
+    end_ms: int
+    note: str
+
+
+class VideoArticleSectionResponse(StrictModel):
+    id: str
+    title: str
+    body: str
+    evidence: tuple[VideoArticleEvidenceResponse, ...]
+
+
+class VideoArticleResultResponse(StrictModel):
+    kind: Literal["video_article"] = Field(
+        json_schema_extra={"enum": ["video_article"]}
+    )
+    language: str
+    title: str
+    lead: str
+    sections: tuple[VideoArticleSectionResponse, ...]
+    key_points: tuple[str, ...]
+    closing: str
+    limitations: tuple[str, ...]
+    media: AnalysisMediaResponse
+
+
 class ScreenplayEvidenceItemResponse(StrictModel):
     id: str
     title: str
@@ -143,6 +170,7 @@ class ScreenplayRewriteResultResponse(StrictModel):
 
 AnalysisResultResponse: TypeAlias = Annotated[  # noqa: UP040
     VideoAnalysisResultResponse
+    | VideoArticleResultResponse
     | ScreenplayAnalysisResultResponse
     | ScreenplayRewriteResultResponse,
     Field(discriminator="kind"),

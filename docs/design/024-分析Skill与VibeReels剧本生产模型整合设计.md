@@ -7,7 +7,7 @@
 
 本设计把 Lanverse 中已经落地的剧本生产语义吸收到 Video Server 的分析 Skill，但不复制 Lanverse 的数据库、API 或媒体生产实现。
 
-Video Server 当前仍然只有两类输入：视频和规范化剧本文档；当前分析结果也只有 `video-visual-analysis`、`screenplay-analysis` 和 `screenplay-rewrite` 三类契约。因此 Skill 可以改进观察、证据、候选和建议的质量，但不能输出当前 Schema 没有承载能力的 Asset、ShotSelection、CoverageDecision、Version 或 ExportManifest 对象。
+Video Server 当前仍然只有两类输入：视频和规范化剧本文档；当前分析结果包含 `video-visual-analysis`、`video-article`、`screenplay-analysis` 和 `screenplay-rewrite` 四类契约。因此 Skill 可以改进观察、文章化、证据、候选和建议的质量，但不能输出当前 Schema 没有承载能力的 Asset、ShotSelection、CoverageDecision、Version 或 ExportManifest 对象。
 
 ## 2. 从 VibeReels/Lanverse 吸收的核心语义
 
@@ -56,6 +56,7 @@ Lanverse 的抽取候选、人工决策和 coverage 报告是不同层次。Vide
 | --- | --- | --- |
 | `director-breakdown` | 全片真实 Cut、视觉事实、镜头价值、资产线索、制作建议 | 音频事实、资产创建、主选、生成任务 |
 | `comprehensive` | 视频全局摘要、完整时间线、高光/资产/建议的平衡汇总 | 把建议写成已完成的生产状态 |
+| `video-to-article` | 按主题重组视频内容，生成带时间证据的中文文章、核心观点和局限说明 | 逐句字幕导出、未经证实的对白/作者/日期/外部背景、文章发布 |
 | `visual-shots` | 构图、景别、运镜、转场、光色和视觉节奏 | 剧本事实、对白事实、镜头持久化 |
 | `highlights` | 可比较的高光候选和证据 | 自动选择、传播效果承诺、营销结论 |
 | `asset-catalog` | 视觉资产身份、首次出现、跨镜合并和状态线索 | Asset/Version/Reference 的落库和审核 |
@@ -75,7 +76,9 @@ Lanverse 的抽取候选、人工决策和 coverage 报告是不同层次。Vide
 
 ## 5. 本期落地
 
-- 全部 8 个内置 Skill 已写入上述项目生产边界；
+- 全部 9 个内置 Skill 已写入上述项目生产边界；
+- 新增 `video-to-article` 视频输入 Skill，复用现有视频制品、异步任务、报告持久化和 Markdown/DOCX 导出；
+- 文章章节必须携带权威视频时间证据；当前受限视频执行器以视觉观察为主，没有可靠音频转写时必须在 `limitations` 中说明，不得编造对白或作者信息；
 - `screenplay-analysis` 增加当前 JSON 契约、分块/汇总模式和字段映射说明；
 - `screenplay-rewrite` 增加不可变版本、glossary 和下游生产对象隔离规则；
 - Video Server 的 Prompt 继续负责安全边界、Schema 和输入信任边界，Skill 负责领域判断；

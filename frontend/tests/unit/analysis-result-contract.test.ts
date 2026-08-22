@@ -6,6 +6,8 @@ function resultMetric(result: PublicResult): number {
   switch (result.kind) {
     case 'video_visual_analysis':
       return result.shot_count;
+    case 'video_article':
+      return result.sections.length;
     case 'screenplay_analysis':
       return result.scenes.length;
     case 'screenplay_rewrite':

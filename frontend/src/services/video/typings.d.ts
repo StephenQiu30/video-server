@@ -134,6 +134,7 @@ declare namespace API {
     /** Result */
     result:
       | VideoAnalysisResultResponse
+      | VideoArticleResultResponse
       | ScreenplayAnalysisResultResponse
       | ScreenplayRewriteResultResponse
       | null;
@@ -146,6 +147,7 @@ declare namespace API {
 
   type AnalysisResultContract =
     | "video-visual-analysis"
+    | "video-article"
     | "screenplay-analysis"
     | "screenplay-rewrite";
 
@@ -1276,6 +1278,34 @@ declare namespace API {
     /** Assets */
     assets: VisualAssetResponse[];
     production_advice: ProductionAdviceResponse;
+  };
+
+  type VideoArticleEvidenceResponse = {
+    /** Start Ms */
+    start_ms: number;
+    /** End Ms */
+    end_ms: number;
+    note: string;
+  };
+
+  type VideoArticleSectionResponse = {
+    id: string;
+    title: string;
+    body: string;
+    evidence: VideoArticleEvidenceResponse[];
+  };
+
+  type VideoArticleResultResponse = {
+    /** Kind */
+    kind: "video_article";
+    language: string;
+    title: string;
+    lead: string;
+    sections: VideoArticleSectionResponse[];
+    key_points: string[];
+    closing: string;
+    limitations: string[];
+    media: AnalysisMediaResponse;
   };
 
   type VideoCodecFamily = "h264" | "hevc" | "vp9" | "av1" | "other";

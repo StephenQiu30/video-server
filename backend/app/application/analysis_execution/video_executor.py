@@ -3,7 +3,12 @@ from __future__ import annotations
 from contextlib import suppress
 
 from app.application.analysis import AnalysisJobSnapshot
-from app.domain.analysis import AnalysisMedia, AnalysisStage, parse_analysis_result
+from app.domain.analysis import (
+    AnalysisMedia,
+    AnalysisResultContract,
+    AnalysisStage,
+    parse_analysis_result,
+)
 
 from .models import AnalysisExecutionOutput, LocalAnalysisArtifact, VideoAnalysisRequest
 from .monitor import AnalysisLeaseMonitor
@@ -53,6 +58,7 @@ class VideoAnalysisExecutor:
                 output_language=job.output_language,
                 skill_id=job.skill_id,
                 skill_instructions=job.skill_instructions,
+                result_contract=AnalysisResultContract(job.result_contract),
                 custom_prompt=job.custom_prompt,
             )
             selection, payload = await monitor.run(
@@ -68,6 +74,7 @@ class VideoAnalysisExecutor:
                     size_bytes=source.size_bytes,
                 ),
                 expected_language=job.output_language,
+                result_contract=job.result_contract,
             )
             return AnalysisExecutionOutput(
                 result=result,

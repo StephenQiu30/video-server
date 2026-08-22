@@ -619,7 +619,7 @@ CREATE TABLE IF NOT EXISTS analysis_jobs (
     ),
     CONSTRAINT ck_analysis_jobs_result_contract CHECK (
         result_contract IN (
-            'video-visual-analysis', 'screenplay-analysis', 'screenplay-rewrite'
+            'video-visual-analysis', 'video-article', 'screenplay-analysis', 'screenplay-rewrite'
         )
     ),
     CONSTRAINT ck_analysis_jobs_input_shape CHECK (
@@ -627,7 +627,7 @@ CREATE TABLE IF NOT EXISTS analysis_jobs (
             input_kind = 'video'
             AND artifact_id IS NOT NULL
             AND document_id IS NULL
-            AND result_contract = 'video-visual-analysis'
+            AND result_contract IN ('video-visual-analysis', 'video-article')
         ) OR (
             input_kind = 'screenplay'
             AND artifact_id IS NULL
@@ -678,7 +678,7 @@ ALTER TABLE analysis_jobs
     DROP CONSTRAINT IF EXISTS ck_analysis_jobs_result_contract;
 ALTER TABLE analysis_jobs ADD CONSTRAINT ck_analysis_jobs_result_contract
     CHECK (result_contract IN (
-        'video-visual-analysis', 'screenplay-analysis', 'screenplay-rewrite'
+        'video-visual-analysis', 'video-article', 'screenplay-analysis', 'screenplay-rewrite'
     ));
 ALTER TABLE analysis_jobs DROP CONSTRAINT IF EXISTS ck_analysis_jobs_input_shape;
 ALTER TABLE analysis_jobs ADD CONSTRAINT ck_analysis_jobs_input_shape CHECK (
@@ -686,7 +686,7 @@ ALTER TABLE analysis_jobs ADD CONSTRAINT ck_analysis_jobs_input_shape CHECK (
         input_kind = 'video'
         AND artifact_id IS NOT NULL
         AND document_id IS NULL
-        AND result_contract = 'video-visual-analysis'
+        AND result_contract IN ('video-visual-analysis', 'video-article')
     ) OR (
         input_kind = 'screenplay'
         AND artifact_id IS NULL

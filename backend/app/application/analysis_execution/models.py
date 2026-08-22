@@ -6,7 +6,7 @@ from enum import StrEnum
 from pathlib import Path
 from uuid import UUID
 
-from app.domain.analysis import AnalysisResult
+from app.domain.analysis import AnalysisResult, AnalysisResultContract
 
 SCREENPLAY_SINGLE_CALL_SCENE_LIMIT = 120
 SCREENPLAY_SYNTHESIS_SCENE_LIMIT = 5_000
@@ -127,6 +127,9 @@ class VideoAnalysisRequest:
     output_language: str
     skill_id: str
     skill_instructions: str
+    result_contract: AnalysisResultContract = (
+        AnalysisResultContract.VIDEO_VISUAL_ANALYSIS
+    )
     custom_prompt: str | None = None
 
     def __post_init__(self) -> None:

@@ -15,6 +15,7 @@ from app.domain.analysis import (
     Highlight,
     VisualAsset,
     parse_analysis_result,
+    parse_video_article_result,
 )
 from tests.unit.domain.analysis.screenplay_factories import screenplay_analysis_result
 from tests.unit.workers.analysis.fixtures import valid_mapping
@@ -93,6 +94,40 @@ def test_screenplay_report_uses_coverage_sections_and_explains_evidence() -> Non
     assert "## 九、证据说明" in markdown
     assert "逐场景分析已经由服务端校验为完整、唯一且保持原文顺序" in markdown
     assert markdown.endswith("\n")
+
+
+def test_video_article_report_keeps_topic_structure_and_evidence() -> None:
+    result = parse_video_article_result(
+        {
+            "language": "zh-CN",
+            "title": "问题如何变成方法",
+            "lead": "视频用一个具体问题引出一套可复用的方法。",
+            "sections": [
+                {
+                    "id": "section-1",
+                    "title": "从问题开始",
+                    "body": "先把问题说清楚，再决定下一步。",
+                    "evidence": [
+                        {"start_ms": 0, "end_ms": 2_000, "note": "开场问题场景。"}
+                    ],
+                }
+            ],
+            "key_points": ["先定义问题，再选择方法。"],
+            "closing": "方法的价值在于可以被复用。",
+            "limitations": [],
+        },
+        AnalysisMedia(duration_ms=2_000, container="mp4", size_bytes=1_024),
+        expected_language="zh-CN",
+    )
+
+    markdown = render_analysis_report_markdown(result)
+
+    assert markdown.startswith("# 问题如何变成方法 · 视频整理文章")
+    assert "## 导读" in markdown
+    assert "### 1. 从问题开始" in markdown
+    assert "00:00.000–00:02.000" in markdown
+    assert "## 核心观点" in markdown
+    assert "## 结语" in markdown
 
 
 class ObjectReader:

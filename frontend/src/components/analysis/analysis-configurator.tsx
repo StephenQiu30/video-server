@@ -189,11 +189,13 @@ export default function AnalysisConfigurator({
           size="lg"
         >
           {busy ? <Spinner aria-hidden /> : null}
-          {selected?.result_contract === 'screenplay-rewrite'
-            ? '开始剧本改写'
-            : inputKind === 'screenplay'
-              ? '开始剧本分析'
-              : '开始 AI 分析'}
+          {selected?.result_contract === 'video-article'
+            ? '整理成文章'
+            : selected?.result_contract === 'screenplay-rewrite'
+              ? '开始剧本改写'
+              : inputKind === 'screenplay'
+                ? '开始剧本分析'
+                : '开始 AI 分析'}
         </Button>
       </div>
     </div>

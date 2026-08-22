@@ -16,8 +16,10 @@ from app.domain.analysis.result_models import (
     AnalysisMedia,
     EvidenceSummary,
     VideoAnalysisResult,
+    VideoArticleResult,
 )
 from app.domain.analysis.result_validation import validate_analysis_result
+from app.domain.analysis.video_article_parser import parse_video_article_result
 
 
 def parse_analysis_result(
@@ -25,8 +27,16 @@ def parse_analysis_result(
     media: AnalysisMedia,
     *,
     expected_language: str,
+    result_contract: str = "video-visual-analysis",
     limits: AnalysisLimits | None = None,
-) -> VideoAnalysisResult:
+) -> VideoAnalysisResult | VideoArticleResult:
+    if result_contract == "video-article":
+        return parse_video_article_result(
+            payload,
+            media,
+            expected_language=expected_language,
+            limits=limits,
+        )
     context = ParseContext(limits or AnalysisLimits())
     root = context.mapping(
         payload,

@@ -116,3 +116,107 @@ class VideoAnalysisResult:
                 AnalysisValidationCode.INVALID_SCHEMA,
                 "shot_count must equal a non-empty shots collection",
             )
+
+
+@dataclass(frozen=True, slots=True)
+class VideoArticleEvidence:
+    start_ms: int
+    end_ms: int
+    note: str
+
+    def __post_init__(self) -> None:
+        start = non_negative_integer(self.start_ms, "article evidence start_ms")
+        end = non_negative_integer(self.end_ms, "article evidence end_ms")
+        if start >= end:
+            raise AnalysisValidationError(
+                AnalysisValidationCode.INVALID_TIME_RANGE,
+                "article evidence must have a positive time range",
+            )
+        object.__setattr__(self, "start_ms", start)
+        object.__setattr__(self, "end_ms", end)
+        object.__setattr__(
+            self, "note", required_text(self.note, "article evidence note")
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class VideoArticleSection:
+    id: str
+    title: str
+    body: str
+    evidence: tuple[VideoArticleEvidence, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self, "id", required_text(self.id, "article section id", maximum=128)
+        )
+        object.__setattr__(
+            self, "title", required_text(self.title, "article section title")
+        )
+        object.__setattr__(
+            self, "body", required_text(self.body, "article section body")
+        )
+        if not self.evidence:
+            raise AnalysisValidationError(
+                AnalysisValidationCode.INVALID_EVIDENCE,
+                "article sections must include evidence",
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class VideoArticleResult:
+    language: str
+    title: str
+    lead: str
+    sections: tuple[VideoArticleSection, ...]
+    key_points: tuple[str, ...]
+    closing: str
+    limitations: tuple[str, ...]
+    media: AnalysisMedia
+    kind: AnalysisResultKind = field(
+        init=False, default=AnalysisResultKind.VIDEO_ARTICLE
+    )
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self, "language", required_text(self.language, "language", maximum=35)
+        )
+        object.__setattr__(self, "title", required_text(self.title, "title"))
+        object.__setattr__(self, "lead", required_text(self.lead, "article lead"))
+        object.__setattr__(
+            self, "closing", required_text(self.closing, "article closing")
+        )
+        if not self.sections or len(self.sections) > 12:
+            raise AnalysisValidationError(
+                AnalysisValidationCode.INVALID_SCHEMA,
+                "article must contain 1 to 12 sections",
+            )
+        ids = tuple(section.id for section in self.sections)
+        if len(set(ids)) != len(ids):
+            raise AnalysisValidationError(
+                AnalysisValidationCode.DUPLICATE_IDENTIFIER,
+                "article section ids must be unique",
+            )
+        if not self.key_points or len(self.key_points) > 24:
+            raise AnalysisValidationError(
+                AnalysisValidationCode.INVALID_SCHEMA,
+                "article must contain 1 to 24 key points",
+            )
+        if len(self.limitations) > 12:
+            raise AnalysisValidationError(
+                AnalysisValidationCode.LIMIT_EXCEEDED,
+                "article limitations exceed the item limit",
+            )
+        object.__setattr__(
+            self, "key_points", _strings(self.key_points, "article key point")
+        )
+        object.__setattr__(
+            self, "limitations", _strings(self.limitations, "article limitation")
+        )
+        for section in self.sections:
+            for evidence in section.evidence:
+                if evidence.end_ms > self.media.duration_ms:
+                    raise AnalysisValidationError(
+                        AnalysisValidationCode.INVALID_TIME_RANGE,
+                        "article evidence exceeds the authoritative media duration",
+                    )

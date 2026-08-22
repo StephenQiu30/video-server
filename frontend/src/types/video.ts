@@ -7,6 +7,7 @@ export type AnalysisHighlight = API.HighlightResponse;
 export type VisualAsset = API.VisualAssetResponse;
 export type AnalysisResult = NonNullable<API.AnalysisResponse['result']>;
 export type VideoAnalysisResult = API.VideoAnalysisResultResponse;
+export type VideoArticleResult = API.VideoArticleResultResponse;
 export type ScreenplayAnalysisResult = API.ScreenplayAnalysisResultResponse;
 export type ScreenplayRewriteResult = API.ScreenplayRewriteResultResponse;
 export type AnalysisJob = API.AnalysisResponse;

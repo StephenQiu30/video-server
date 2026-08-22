@@ -39,7 +39,9 @@ class ClaudeCliVideoAnalyzer:
         )
 
     async def analyze(self, request: VideoAnalysisRequest) -> object:
-        schema = analysis_output_schema(request.output_language)
+        schema = analysis_output_schema(
+            request.output_language, request.result_contract
+        )
         prompt = analysis_prompt(
             request,
             ffmpeg=str(self._config.ffmpeg),

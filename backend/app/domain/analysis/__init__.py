@@ -19,6 +19,9 @@ from app.domain.analysis.result_models import (
     EvidenceSummary,
     ProductionAdvice,
     VideoAnalysisResult,
+    VideoArticleEvidence,
+    VideoArticleResult,
+    VideoArticleSection,
 )
 from app.domain.analysis.result_parser import parse_analysis_result
 from app.domain.analysis.result_types import (
@@ -50,6 +53,7 @@ from app.domain.analysis.screenplay_rewrite_parser import (
     parse_screenplay_glossary,
     parse_screenplay_rewrite_chunk,
 )
+from app.domain.analysis.video_article_parser import parse_video_article_result
 
 __all__ = [
     "AnalysisErrorCode",
@@ -80,8 +84,12 @@ __all__ = [
     "ScreenplayScene",
     "ScreenplayStructure",
     "VideoAnalysisResult",
+    "VideoArticleEvidence",
+    "VideoArticleResult",
+    "VideoArticleSection",
     "VisualAsset",
     "parse_analysis_result",
+    "parse_video_article_result",
     "parse_screenplay_analysis_result",
     "parse_screenplay_glossary",
     "parse_screenplay_rewrite_chunk",

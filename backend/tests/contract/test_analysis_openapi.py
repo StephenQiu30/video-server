@@ -64,6 +64,7 @@ def test_analysis_openapi_is_current_and_excludes_internal_fields(
     assert components["AnalysisInputKind"]["enum"] == ["video", "screenplay"]
     assert components["AnalysisResultContract"]["enum"] == [
         "video-visual-analysis",
+        "video-article",
         "screenplay-analysis",
         "screenplay-rewrite",
     ]
@@ -74,9 +75,10 @@ def test_analysis_openapi_is_current_and_excludes_internal_fields(
     assert result_union["discriminator"] == {
         "propertyName": "kind",
         "mapping": {
-            "screenplay_analysis": (
+        "screenplay_analysis": (
                 "#/components/schemas/ScreenplayAnalysisResultResponse"
             ),
+            "video_article": "#/components/schemas/VideoArticleResultResponse",
             "screenplay_rewrite": (
                 "#/components/schemas/ScreenplayRewriteResultResponse"
             ),
@@ -87,6 +89,7 @@ def test_analysis_openapi_is_current_and_excludes_internal_fields(
     }
     assert {item["$ref"] for item in result_union["oneOf"]} == {
         "#/components/schemas/VideoAnalysisResultResponse",
+        "#/components/schemas/VideoArticleResultResponse",
         "#/components/schemas/ScreenplayAnalysisResultResponse",
         "#/components/schemas/ScreenplayRewriteResultResponse",
     }

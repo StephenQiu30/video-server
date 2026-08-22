@@ -19,12 +19,14 @@ class AnalysisInputKind(StrEnum):
 
 class AnalysisResultContract(StrEnum):
     VIDEO_VISUAL_ANALYSIS = "video-visual-analysis"
+    VIDEO_ARTICLE = "video-article"
     SCREENPLAY_ANALYSIS = "screenplay-analysis"
     SCREENPLAY_REWRITE = "screenplay-rewrite"
 
 
 class AnalysisResultKind(StrEnum):
     VIDEO_VISUAL_ANALYSIS = "video_visual_analysis"
+    VIDEO_ARTICLE = "video_article"
     SCREENPLAY_ANALYSIS = "screenplay_analysis"
     SCREENPLAY_REWRITE = "screenplay_rewrite"
 

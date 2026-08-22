@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowClockwise, DownloadSimple, Robot } from '@phosphor-icons/react';
+import AnalysisArticleResultView from '@/components/analysis/analysis-article-result-view';
 import AnalysisConfigurator from '@/components/analysis/analysis-configurator';
 import AnalysisDeleteDialog from '@/components/analysis/analysis-delete-dialog';
 import {
@@ -42,7 +43,8 @@ export default function AnalysisPanel({
 
   if (
     state.job?.status === 'succeeded' &&
-    state.job.result?.kind === 'video_visual_analysis'
+    (state.job.result?.kind === 'video_visual_analysis' ||
+      state.job.result?.kind === 'video_article')
   ) {
     const formats = new Set(
       state.job.report?.status === 'available'
@@ -113,10 +115,17 @@ export default function AnalysisPanel({
         <div className="mt-5">
           <AnalysisStorageNotice />
         </div>
-        <AnalysisResultView
-          reportMarkdown={state.job.report_markdown}
-          result={state.job.result}
-        />
+        {state.job.result.kind === 'video_article' ? (
+          <AnalysisArticleResultView
+            reportMarkdown={state.job.report_markdown}
+            result={state.job.result}
+          />
+        ) : (
+          <AnalysisResultView
+            reportMarkdown={state.job.report_markdown}
+            result={state.job.result}
+          />
+        )}
       </section>
     );
   }
@@ -135,7 +144,7 @@ export default function AnalysisPanel({
             AI 智能分析
           </h2>
           <p className="mt-4 max-w-2xl leading-7 text-muted-foreground">
-            由 AI 观察视频画面，生成连续分镜、视觉高光和资产目录。
+            由 AI 观察视频画面，生成连续分镜、视觉高光、资产目录，或将视频整理成文章。
           </p>
         </div>
       </div>
@@ -249,7 +258,8 @@ function AnalysisJobState({
       <p className="mt-8 text-sm text-muted-foreground">
         分析结果会经过连续时间轴、严格结构与分镜证据校验。
       </p>
-      {job.result?.kind === 'video_visual_analysis' ? (
+      {job.result?.kind === 'video_visual_analysis' ||
+      job.result?.kind === 'video_article' ? (
         <div className="mt-10 border-t pt-10">
           <div className="flex flex-wrap items-center gap-3">
             <Badge variant="neutral">
@@ -270,10 +280,17 @@ function AnalysisJobState({
               </>
             ) : null}
           </div>
-          <AnalysisResultView
-            reportMarkdown={job.report_markdown}
-            result={job.result}
-          />
+          {job.result.kind === 'video_article' ? (
+            <AnalysisArticleResultView
+              reportMarkdown={job.report_markdown}
+              result={job.result}
+            />
+          ) : (
+            <AnalysisResultView
+              reportMarkdown={job.report_markdown}
+              result={job.result}
+            />
+          )}
         </div>
       ) : null}
     </div>

@@ -51,6 +51,7 @@ def test_builtin_skills_are_filtered_ordered_and_contract_bound() -> None:
     assert [skill.id for skill in video] == [
         "director-breakdown",
         "comprehensive",
+        "video-to-article",
         "visual-shots",
         "highlights",
         "asset-catalog",
@@ -61,7 +62,8 @@ def test_builtin_skills_are_filtered_ordered_and_contract_bound() -> None:
         "screenplay-rewrite",
     ]
     assert {skill.result_contract for skill in video} == {
-        AnalysisResultContract.VIDEO_VISUAL_ANALYSIS
+        AnalysisResultContract.VIDEO_VISUAL_ANALYSIS,
+        AnalysisResultContract.VIDEO_ARTICLE,
     }
     assert [skill.result_contract for skill in screenplay] == [
         AnalysisResultContract.SCREENPLAY_ANALYSIS,
@@ -93,6 +95,7 @@ def test_builtin_skills_expose_the_current_production_boundary() -> None:
         "visual-shots": ("视觉镜头候选", "video-visual-analysis"),
         "highlights": ("高光在当前项目中是可比较", "主选"),
         "asset-catalog": ("AssetState", "资产身份候选"),
+        "video-to-article": ("按主题逻辑重组", "limitations"),
         "screenplay-analysis": ("汇总调用", "source_scene_id"),
         "screenplay-structure-review": ("连续性", "priority_revisions"),
         "screenplay-rewrite": ("不可变文本版本候选", "source_sha256"),

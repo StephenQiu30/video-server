@@ -30,6 +30,10 @@ _SCREENPLAY_CONTRACTS = {
     AnalysisResultContract.SCREENPLAY_ANALYSIS,
     AnalysisResultContract.SCREENPLAY_REWRITE,
 }
+_VIDEO_CONTRACTS = {
+    AnalysisResultContract.VIDEO_VISUAL_ANALYSIS,
+    AnalysisResultContract.VIDEO_ARTICLE,
+}
 
 
 async def validate_create_source(
@@ -37,7 +41,7 @@ async def validate_create_source(
 ) -> None:
     if (
         command.input_kind is AnalysisInputKind.VIDEO
-        and command.result_contract is AnalysisResultContract.VIDEO_VISUAL_ANALYSIS
+        and command.result_contract in _VIDEO_CONTRACTS
         and command.artifact_id is not None
         and command.document_id is None
     ):
@@ -75,7 +79,7 @@ async def require_retry_source(
 ) -> None:
     if (
         row.input_kind == AnalysisInputKind.VIDEO.value
-        and row.result_contract == AnalysisResultContract.VIDEO_VISUAL_ANALYSIS.value
+        and row.result_contract in {contract.value for contract in _VIDEO_CONTRACTS}
         and row.artifact_id is not None
         and row.document_id is None
     ):
