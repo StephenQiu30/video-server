@@ -46,6 +46,10 @@ describe('request errors', () => {
   it.each([
     ['invalid_credentials', '邮箱或密码错误，请重新输入。'],
     ['provider_rate_limited', '平台请求过于频繁，请稍后重试。'],
+    [
+      'duration_limit_exceeded',
+      '该平台支持下载，但当前内容超出单次处理的安全边界。',
+    ],
     ['analysis_cli_not_authenticated', 'AI 分析服务未登录，请完成登录后重试。'],
   ])('localizes the stable %s error', (code, expected) => {
     expect(

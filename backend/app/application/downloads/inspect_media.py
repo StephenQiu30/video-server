@@ -10,6 +10,7 @@ from app.application.downloads.errors import (
     MediaInspectionAuthRequired,
     MediaInspectionContentRestricted,
     MediaInspectionDrmProtected,
+    MediaInspectionDurationLimitExceeded,
     MediaInspectionFailure,
     MediaInspectionFormatUnavailable,
     MediaInspectionGeoRestricted,
@@ -87,6 +88,10 @@ class InspectMedia:
             raise ApplicationError(ApplicationErrorCode.INVALID_URL) from exc
         try:
             result = await self._runner.inspect(validated_url)
+        except MediaInspectionDurationLimitExceeded as exc:
+            raise ApplicationError(
+                ApplicationErrorCode.DURATION_LIMIT_EXCEEDED
+            ) from exc
         except MediaInspectionAuthRequired as exc:
             raise ApplicationError(ApplicationErrorCode.PROVIDER_AUTH_REQUIRED) from exc
         except MediaInspectionSessionExpired as exc:

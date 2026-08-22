@@ -253,7 +253,7 @@ def _validate_source(payload: dict[str, Any], max_duration: float) -> None:
     if duration is None:
         raise RunnerFailure("unsupported_source")
     if duration > max_duration:
-        raise RunnerFailure("duration_limit_exceeded")
+        raise RunnerFailure("duration_limit_exceeded", status=422)
 
 
 def _normalize_stream(

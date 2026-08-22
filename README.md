@@ -1,19 +1,19 @@
 <div align="center">
   <img src="frontend/public/logo.png" alt="帧取 Logo" width="88" />
-  <h1>帧取</h1>
-  <p><strong>可自托管的多平台公开视频下载与 AI 视觉分析工作流</strong></p>
-  <p>解析真实媒体格式，异步下载并追踪任务，再把视频转化为可检索、可导出的结构化分析报告。</p>
+  <h1>帧取 · FrameFetch</h1>
+  <p><strong>面向创作者和开发者的可自托管媒体工作流</strong></p>
+  <p>从公开媒体链接或本地剧本文档开始，完成解析、异步处理、持久化存储、实时状态同步和 AI 分析。</p>
   <p>
-    <a href="https://github.com/StephenQiu30/video-server/actions/workflows/ci.yml"><img src="https://github.com/StephenQiu30/video-server/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+    <a href="https://github.com/StephenQiu30/video-server/actions/workflows/ci.yml"><img src="https://github.com/StephenQiu30/video-server/actions/workflows/ci.yml/badge.svg" alt="Required CI" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-111111.svg" alt="MIT License" /></a>
     <img src="https://img.shields.io/badge/Python-3.12-3776AB.svg" alt="Python 3.12" />
     <img src="https://img.shields.io/badge/Node.js-24-339933.svg" alt="Node.js 24" />
   </p>
   <p>
     <a href="#快速开始">快速开始</a> ·
-    <a href="#界面预览">界面预览</a> ·
-    <a href="#工作流与架构">工作流与架构</a> ·
-    <a href="#文档">文档</a>
+    <a href="#核心能力">核心能力</a> ·
+    <a href="#架构与设计取舍">架构</a> ·
+    <a href="#参与贡献">参与贡献</a>
   </p>
 </div>
 
@@ -21,16 +21,42 @@
 
 > 截图使用仓库内置视觉回归媒体资产，不包含真实用户数据或第三方图片热链。
 
-## 为什么使用帧取
+## 帧取是什么
 
-- **真实格式解析**：从公开链接或只包含单个链接的分享文案中读取媒体信息，直接呈现后端返回的可用格式。
-- **可靠异步下载**：RabbitMQ、Transactional Outbox 与独立 Worker 共同驱动任务，WebSocket 实时同步状态。
-- **完整任务闭环**：支持下载历史、进度查看、取消、重试以及 MinIO 预签名文件获取。
-- **结构化 AI 分析**：通过宿主机 Codex CLI 或 Claude CLI 适配器生成连续分镜、高光、视觉资产与制作建议，并导出 Markdown / DOCX；当前真实视觉闭环以 Codex 为验收基线。
-- **账户与管理能力**：提供 HttpOnly Cookie 会话、用户资料、角色管理、Provider 状态和下载数据分析。
-- **默认安全边界**：入口 URL 校验、私网阻断、受控出口、Runner HMAC 与 Secret 隔离贯穿下载链路。
+帧取是一个开源、可自托管的媒体处理平台。它把“拿到一个链接”之后容易失控的工作拆成可观察、可恢复的步骤：解析真实格式，创建异步任务，校验并保存最终制品，再按需进行视频或剧本分析。
 
-项目只面向你有权下载和分析的内容。匿名下载默认处理**公开、非 DRM** 内容；平台保护媒体可通过官方授权 Provider，或用户自有设备上的受控 Edge Agent 进入分析链路。Edge Agent 只向服务端上传已校验视频与脱敏元数据，不上传平台登录态、根证书私钥、签名材料或内容密钥。系统不扩张用户账号已有权益，也不承诺私密、会员、付费或受地域限制的内容可用。
+它适合个人创作者、内容研究、素材整理、短视频平台适配实验，以及希望研究可靠异步任务系统的工程团队。下载和导入能力可以独立运行，AI Worker 是可选扩展。
+
+### 为什么值得参与
+
+- **不是一次性脚本**：PostgreSQL 保存任务事实，Transactional Outbox 与 RabbitMQ 驱动异步 Worker，失败、重试和恢复都有明确边界。
+- **可以真正部署**：Docker Compose 已区分基础环境、业务服务和生产差异，MinIO、RabbitMQ、Valkey、PostgreSQL 都有可重复启动方式。
+- **扩展点清晰**：Provider、Media Runner、应用用例、OpenAPI 客户端和按 feature 分类的前端组件彼此分离，适合独立贡献。
+- **安全边界明确**：默认只处理公开、非 DRM 且用户有权处理的内容；不会通过技术手段绕过会员、私密、地域或平台访问控制。
+
+## 核心能力
+
+| 能力 | 当前实现 |
+| --- | --- |
+| 媒体解析 | 从公开链接或单链接分享文案中识别媒体、平台和真实可用格式 |
+| 异步下载 | API → Outbox → RabbitMQ → Download Worker → 隔离 Runner 的可恢复任务链 |
+| 可靠交付 | 重新解析、格式语义校验、FFmpeg/ffprobe、大小、时长和 SHA-256 校验后才写入制品库 |
+| 持久化文件 | 视频、导入文档、规范化文本和 Markdown/DOCX 报告写入 MinIO 持久卷，不设置业务自动过期 |
+| 状态同步 | WebSocket 增量事件、版本检查、断线重连和 resync；连接降级不会阻塞下载任务本身 |
+| 剧本文档 | 上传并解析 Markdown、Fountain、TXT、PDF、DOCX，提供 Markdown 阅读器、目录、分页和分析入口 |
+| AI 分析 | 通过宿主机已登录的 Codex CLI 或 Claude CLI 生成分镜、高光、视觉资产和制作建议，报告可导出 Markdown/DOCX |
+| 管理能力 | 用户与角色、Provider 状态、下载分析、持久文件分页，以及按“多少天前”手动清理文件（默认 30 天） |
+| 平台适配 | Provider Registry、能力状态、受控会话 Runner 和无凭据 Generic extractor 的分层扩展模型 |
+
+### 文件生命周期
+
+最终制品不会因为预签名下载地址失效而消失。预签名地址只是短时访问凭证；只要管理员没有清理，用户仍可以从历史记录重新获取文件。管理员可在 `/admin/files` 分页查看视频、剧本文档和分析报告，并按创建时间手动清理历史文件，默认阈值为 30 天。
+
+上传会话、任务 lease、Worker heartbeat 和临时工作目录仍然会过期或清理；它们与最终制品的持久化策略是两件事。
+
+### 内容与权限边界
+
+请只处理你拥有相应权利的内容。匿名 Provider 默认只处理公开、非 DRM 媒体；平台保护内容只能通过官方授权 Provider 或用户自有设备上的受控 Edge Agent 处理。系统不会保存普通 Web 用户的原始 Cookie，不会复制浏览器 Profile，也不承诺私密、会员、付费或受地域限制的内容可用。
 
 ## 界面预览
 
@@ -45,35 +71,43 @@
   </tr>
 </table>
 
-主要页面均采用响应式、可键盘操作的 Next.js App Router 界面：
+主要页面采用响应式、可键盘操作的 Next.js App Router 界面：
 
 | 路由 | 作用 |
 | --- | --- |
 | `/` | 解析媒体、选择真实格式并创建下载任务 |
-| `/history` | 搜索和分页查看自己的下载历史 |
-| `/downloads/detail?jobId=...` | 查看下载进度、获取文件并发起或阅读 AI 分析 |
-| `/providers` | 查看平台能力、访问模式与最近验证状态 |
-| `/account` | 管理公开用户名并查看账户信息 |
-| `/admin/ai-providers` | 管理本机登录与 API Key AI 路由，并查看宿主 Agent 在线状态（仅管理员） |
-| `/admin/analytics` | 通过无边框 KPI、可切换趋势系列与来源进度查看全局下载表现（仅管理员） |
-| `/admin/providers` | 维护平台状态页名称、排序与可见性（仅管理员） |
-| `/admin/users` | 搜索用户并管理角色与启用状态 |
-| `/user/login`、`/user/register` | 登录、注册与受保护页面回跳 |
-
-除登录和注册外，业务页面需要有效会话；管理员页面还会由后端独立校验角色。
+| `/history` | 搜索、筛选和分页查看当前账户的下载历史 |
+| `/downloads/detail?jobId=...` | 查看进度、获取文件、取消/重试任务并阅读分析 |
+| `/documents` | 分页查看和上传剧本文档 |
+| `/documents/detail?documentId=...` | 阅读 Markdown 剧本、浏览目录并发起分析/改写 |
+| `/providers` | 查看平台能力、访问模式和最近验证状态 |
+| `/account` | 管理公开用户名和账户信息 |
+| `/admin/files` | 分页查看持久文件并手动清理历史制品（管理员） |
+| `/admin/analytics` | 查看周期下载趋势、成功率和来源表现（管理员） |
+| `/admin/ai-providers` | 管理本机 AI 路由并查看 Agent 心跳（管理员） |
+| `/admin/providers` | 维护平台状态页名称、排序和可见性（管理员） |
+| `/admin/users` | 搜索用户、管理角色和启用状态（管理员） |
 
 ## 快速开始
 
-### Docker Compose
+### 使用 Docker Compose
 
-需要 Docker Engine 与 Docker Compose。复制本地环境模板后，先启动项目专用的基础环境，再启动业务服务：
+需要 Docker Engine 与 Docker Compose。项目将基础环境与业务服务拆成两个 Compose 文件：`docker-compose-env.yml` 只负责 PostgreSQL、RabbitMQ、Valkey、MinIO 及初始化；`docker-compose.yml` 只负责 API、Worker、Runner 和出口代理。
 
 ```bash
 git clone https://github.com/StephenQiu30/video-server.git
 cd video-server
 cp .env.example .env
+
+# 只体验下载和剧本文档导入时，可在 .env 中设置 ANALYSIS_ENABLED=false
 docker compose --env-file .env -f docker-compose-env.yml up -d
 docker compose --env-file .env -f docker-compose.yml up -d --build
+```
+
+PowerShell 用户可以使用：
+
+```powershell
+Copy-Item .env.example .env
 ```
 
 启动完成后访问：
@@ -82,16 +116,7 @@ docker compose --env-file .env -f docker-compose.yml up -d --build
 - Swagger UI：<http://localhost:8101/docs>
 - OpenAPI 契约：<http://localhost:8101/openapi.json>
 
-首次对外暴露服务前，请检查并替换 `.env` 中的示例配置。完整的启动、健康检查、停止与故障恢复步骤见[运行手册](docs/operations/001-root-compose运行手册.md)。
-
-已有本地部署需要载入最新前后端代码时，先构建镜像，再强制重建服务。命令不会删除 PostgreSQL、RabbitMQ、MinIO 等命名卷：
-
-```bash
-docker compose --env-file .env -f docker-compose.yml build
-docker compose --env-file .env -f docker-compose.yml up -d --force-recreate
-```
-
-重建完成后检查存活、依赖就绪和 Web 页面：
+检查服务状态：
 
 ```bash
 curl --fail http://127.0.0.1:8101/health/live
@@ -99,90 +124,134 @@ curl --fail http://127.0.0.1:8101/health/ready
 curl --fail --head http://127.0.0.1:8101/
 ```
 
+`.env.example` 只用于本地开发示例。首次对外暴露服务前，请替换数据库、RabbitMQ、MinIO、认证密钥和公开访问地址。MinIO 业务进程共用一组 `MINIO_ACCESS_KEY` 与 `MINIO_SECRET_KEY`，不按 Worker 复制密钥。
+
+完整启动、停止、复用已有基础环境和故障恢复步骤见[根目录 Compose 运行手册](docs/operations/001-root-compose运行手册.md)。
+
 ### 启用 AI 分析
 
-AI Worker 复用宿主机已经完成 OAuth 登录的 Codex CLI 或 Claude CLI，不把 CLI 认证目录挂载进容器。完成对应 CLI 登录后，从 `backend/` 启动：
+AI Worker 不在业务 Compose 中运行，它复用宿主机已经登录的 Codex CLI 或 Claude CLI。这样可以避免把宿主机 OAuth 认证目录复制进容器：
 
 ```bash
+# 先完成对应 CLI 的官方登录
 cd backend
 uv sync --frozen --dev
 uv run python -m app.workers.analysis.main
 ```
 
-AI Worker 直接连接宿主机回环地址发布的 PostgreSQL、RabbitMQ 和 MinIO。Compose 强制重建这些依赖时，正在运行的宿主机 Worker 可能因连接中断而退出，因此每次完整重建后都应确认只存在一个 Worker 进程并重新启动它。本地默认 `ANALYSIS_ENABLED=true`；在这种配置下，API 只有收到兼容 Worker 的持续心跳后才会让 `/health/ready` 返回 `200`。如果部署明确不提供 AI 分析，应设置 `ANALYSIS_ENABLED=false` 后重建 API，而不是长期忽略就绪失败。
+启用分析时，API 会通过 Worker heartbeat 判断分析能力是否就绪；没有 AI Worker 的部署应明确设置 `ANALYSIS_ENABLED=false` 后重建 API。下载、文件获取和历史记录不依赖 AI Worker。AI Worker 通过受限的 FFmpeg/ffprobe 工具观察完整视频，请先确认内容授权、模型服务条款和组织数据策略。
 
-下载能力本身不依赖 AI Worker。启用分析时，选定的抽帧会交给所选云端模型观察；视频容器不会直接上传，但这些帧可能离开本机。请先确认内容授权、模型服务条款和组织的数据策略。
+当前真实视觉闭环以 Codex 为验收基线；启用 Claude 前，请先用真实视频 canary 验证模型路由和图片理解能力。
 
-当前默认验收 Provider 为 Codex；启用 Claude 前，请先用真实视频 canary 验证模型路由与图片理解能力。
-
-## 工作流与架构
-
-`解析链接 → 选择格式 → 创建任务 → 异步下载 → 获取文件 → AI 分析与报告导出`
+## 架构与设计取舍
 
 ```mermaid
 flowchart LR
-  Browser["浏览器"] --> API["FastAPI + 静态前端"]
-  API --> DB["PostgreSQL"]
-  DB --> Outbox["Outbox Worker"]
-  Outbox --> MQ["RabbitMQ"]
-  MQ --> Download["下载 Worker"]
-  Download --> Runner["隔离 Media Runner"]
-  Runner --> Proxy["受控 Egress Proxy"]
-  Download --> Storage["MinIO"]
-  MQ --> AI["宿主机 AI Worker"]
-  AI <--> Storage
-  API -. "WebSocket 状态" .-> Browser
+  Browser[浏览器] --> API[FastAPI + 静态前端]
+  API --> DB[(PostgreSQL)]
+  DB --> Outbox[Transactional Outbox]
+  Outbox --> MQ[RabbitMQ]
+  MQ --> Download[Download Worker]
+  Download --> Runner[隔离 Media Runner]
+  Runner --> Proxy[受控 Egress Proxy]
+  Download --> Storage[(MinIO)]
+  MQ --> Report[Report Worker]
+  Report --> Storage
+  HostAI[宿主机 AI Worker] --> MQ
+  HostAI --> Storage
+  API -. WebSocket 增量状态 .-> Browser
 ```
 
-前端使用 Next.js 16、React 19、TypeScript、Tailwind CSS 与 Radix UI；后端使用 Python 3.12、FastAPI、PostgreSQL、RabbitMQ、Valkey 和 MinIO。生产镜像先静态导出前端，再由 FastAPI 同源交付页面、`/api/*` 与 WebSocket，不运行独立的前端生产容器。管理端下载分析延续统一的无边框视觉系统：周期与趋势系列使用 Radix Toggle Group，成功率和来源占比使用 Radix Progress，精确数值继续提供等价表格/移动摘要。
+技术栈：
 
-## 平台与能力状态
+- **Frontend**：Next.js 16、React 19、TypeScript、Tailwind CSS、Radix UI、Vitest。
+- **Backend**：Python 3.12、FastAPI、SQLAlchemy、PostgreSQL、RabbitMQ、Valkey、MinIO。
+- **Media**：FFmpeg、ffprobe、yt-dlp 适配层、隔离 Media Runner 和受控 Squid 出口。
+- **Delivery**：统一根镜像构建前端静态资源，由 FastAPI 同源托管页面、`/api/*` 和 WebSocket。
 
-内置目录覆盖 YouTube、哔哩哔哩、抖音、快手、小红书、TikTok、Vimeo、X / Twitter、Instagram、Facebook、Twitch、Reddit 等公开媒体来源，并可继续交给无凭据的 yt-dlp Generic extractor 尝试解析。
+几个重要的不变量：
 
-**目录登记不代表当前版本实时可用。** 平台可能处于“已验证”“需要会话”或“待验证”状态；请以应用内 `/providers` 或 `GET /api/providers` 的结果为准。需要受控会话的平台必须遵循对应的隔离部署与验收门禁。
+1. HTTP 请求只创建或查询任务，不在请求进程中执行下载、FFmpeg 或 AI 长任务。
+2. PostgreSQL 是任务状态事实源；RabbitMQ 只负责可靠投递，Outbox 保证数据库事实和消息意图一致。
+3. WebSocket 只负责及时同步；断线、丢事件或慢消费者会触发重连/resync，不能把实时连接当成下载任务的唯一生命线。
+4. Provider 凭据只进入对应的受控 Runner；匿名 Runner 不携带 Provider 凭据，普通 Web 请求不接收原始 Cookie。
+5. OpenAPI 是前后端接口契约的唯一来源，前端请求通过已提交的 `frontend/src/services/video/` 客户端进入统一请求层。
 
 ## 本地开发
 
-前端要求 Node.js 24 与 npm 11.19，后端要求 Python 3.12 与 [uv](https://docs.astral.sh/uv/)。`docker-compose-env.yml` 只负责本项目专用的 PostgreSQL、RabbitMQ、Valkey 和 MinIO 等基础环境；`docker-compose.yml` 只负责业务服务。两份文件通过 `.env` 中的 `*_HOST`/`*_PORT` 连接约定协作：启动环境 Compose 时使用服务名和容器端口；复用已有基础服务时改为现有服务地址和端口。完整规范见 [根目录 Compose 运行手册](docs/operations/001-root-compose运行手册.md)。
-
-需要为本机 Runner 提供受控出口时，只启动代理，不会连带启动环境服务：
+前端需要 Node.js 24 与 npm 11.19，后端需要 Python 3.12 与 [uv](https://docs.astral.sh/uv/)。推荐先用环境 Compose 提供依赖，再按需启动前端热更新：
 
 ```bash
-docker compose --env-file .env \
-  -f docker-compose.yml \
-  up -d egress-proxy
-```
+docker compose --env-file .env -f docker-compose-env.yml up -d
 
-```bash
 cd frontend
 npm ci
 npm run dev
 ```
 
-开发页面位于 <http://127.0.0.1:8000>，并将 `/api/*` 与 `/health/*` 代理到 `127.0.0.1:8101`。接口变化后同步审查 `/openapi.json` 与已提交的 `frontend/src/services/video/` 客户端；仓库不再保留本地 OpenAPI 生成脚本。
+开发页面位于 <http://127.0.0.1:8000>，前端会将 `/api/*` 与 `/health/*` 代理到 `127.0.0.1:8101`。如果使用容器 API，先启动业务 Compose；如果直接从宿主机启动 API，请从 `backend/` 按模块说明加载依赖和 `.env`。
 
-与 CI 一致的质量检查统一从仓库根目录执行：
+与 CI 一致的主要质量门禁：
 
 ```bash
-cd backend && uv sync --frozen --dev && uv run --frozen ruff check app tests && uv run --frozen mypy --strict app && uv run --frozen pytest -q
-cd ../frontend && npm ci && npm audit --omit=dev --audit-level=high && npm run lint && npm test && npm run build
-cd .. && docker compose --env-file .env -f docker-compose-env.yml config --quiet && docker compose --env-file .env -f docker-compose.yml config --quiet
+cd backend
+uv sync --frozen --dev
+uv run --frozen ruff check app tests
+uv run --frozen mypy --strict app
+uv run --frozen pytest -q
+
+cd ../frontend
+npm ci
+npm run lint
+npm test
+npm run build
 ```
 
-GitHub 的 `Required CI` 会聚合仓库、后端、前端和运行边界检查，包括统一镜像、完整 Compose 拓扑、健康接口和 SQL 幂等。
+涉及 Compose、数据库或运行时的改动，还要验证：
 
-## 文档
+```bash
+cd ..
+docker compose --env-file .env -f docker-compose-env.yml config --quiet
+docker compose --env-file .env -f docker-compose.yml config --quiet
+```
 
-- [文档索引](docs/README.md)：Design、PRD、Plan、Acceptance、研究与运维资料
-- [后端说明](backend/README.md) / [前端说明](frontend/README.md)：模块边界与开发方式
-- [运行手册](docs/operations/001-root-compose运行手册.md)：Compose 拓扑、健康检查与恢复
-- [CI 运行手册](docs/operations/004-CI与主分支门禁运行手册.md)：本地命令、远端检查与故障定位
-- [贡献指南](CONTRIBUTING.md)：开发流程、质量门禁与提交规范
-- [安全策略](SECURITY.md)：安全边界与漏洞报告方式
+## 仓库结构
 
-## 贡献与许可
+```text
+backend/                 FastAPI、领域逻辑、Worker、Runner 和当前态 SQL
+frontend/                Next.js 页面、按 feature 分类的组件、Hooks 和测试
+docs/                    Design、PRD、Plan、Acceptance、研究和运维事实
+Dockerfile               前后端统一生产镜像
+docker-compose-env.yml   PostgreSQL、RabbitMQ、Valkey、MinIO 基础环境
+docker-compose.yml       API、Worker、Runner 和出口代理
+docker-compose-prod.yml  生产部署差异
+```
 
-欢迎提交 Issue 与 Pull Request。开始前请阅读[贡献指南](CONTRIBUTING.md)，并保持 `Design → PRD → Plan → Acceptance` 的交付链、OpenAPI 契约和测试证据同步。
+前端业务组件放在 `frontend/src/components/{account,admin,analysis,auth,downloads,intake,layout,providers,screenplay}/`，不新增平行的 `src/features/` 目录。后端依赖方向保持为 `api/workers → application → domain`。
 
-项目基于 [MIT License](LICENSE) 开源。下载、保存或分析媒体前，请确认你拥有相应权利，并遵守内容来源、所在地和部署环境适用的规则。
+## 参与贡献
+
+欢迎通过 Issue 或 Pull Request 参与。特别欢迎以下类型的贡献：
+
+- **Provider 适配**：补充公开样本的 metadata、媒体下载、ffprobe、完整性和 canary 证据。
+- **可靠性工程**：改进任务恢复、Outbox、RabbitMQ、WebSocket resync、MinIO 和健康检查。
+- **前端体验**：完善剧本文档、下载历史、管理员文件管理、可访问性和 390px 窄屏体验。
+- **AI 与报告**：改进分析 Skill、Markdown 报告质量、DOCX 导出和本地 CLI Worker 体验。
+- **文档与测试**：补充运行手册、架构决策、契约测试、真实浏览器验收和故障复现样本。
+
+开始前请阅读：
+
+- [贡献指南](CONTRIBUTING.md)：模块边界、Docker 规范、提交格式和本地门禁
+- [AGENTS.md](AGENTS.md)：仓库级架构、安全、设计和验证要求
+- [文档索引](docs/README.md)：产品、设计、研究、计划、验收和运行手册
+- [安全策略](SECURITY.md)：漏洞报告和安全边界
+
+提交一个变更时，请保持实现、OpenAPI 契约、测试、运行手册和验收证据一致。提交前至少运行对应模块的 lint、测试和构建；涉及运行时的改动还需要验证 Compose 配置和健康接口。
+
+## 社区路线
+
+帧取仍在持续演进中，当前优先方向包括更多公开平台的可验证适配、Provider canary 自动化、可观测性、跨平台宿主 Agent、剧本文档体验和更完整的真实浏览器验收。欢迎先从 Issue 讨论约束和验收标准，再提交小而完整的改动。
+
+## 许可
+
+项目基于 [MIT License](LICENSE) 开源。下载、保存或分析媒体前，请确认你拥有相应权利，并遵守内容来源、所在地和部署环境适用的法律与平台规则。

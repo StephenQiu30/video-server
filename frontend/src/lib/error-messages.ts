@@ -19,7 +19,7 @@ const localizedErrorMessages: Record<string, string> = {
   cancelled: '任务已取消。',
   download_not_ready: '文件仍在处理中，请等待任务完成后再下载。',
   download_timeout: '视频下载超时，请稍后重试。',
-  duration_limit_exceeded: '视频时长超过限制，请选择更短的视频。',
+  duration_limit_exceeded: '该平台支持下载，但当前内容超出单次处理的安全边界。',
   email_already_registered: '该邮箱已注册，请直接登录或使用其他邮箱。',
   forbidden: '当前账号没有执行此操作的权限。',
   format_unavailable:

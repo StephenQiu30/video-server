@@ -93,6 +93,7 @@ describe('typed API client', () => {
         url: '/api/inspections',
         method: 'POST',
         headers: expect.objectContaining({ 'Idempotency-Key': 'inspect-key' }),
+        timeout: 180_000,
       },
       {
         url: '/api/downloads',
