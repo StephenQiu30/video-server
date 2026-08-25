@@ -157,7 +157,7 @@ final result: passed
 
 ### 对照目标与证据
 
-- source visual truth：根目录 `design.md` 的共享移动网格、明确光学中心与 390×844 响应式规则，以及 `docs/design/archive/009-Next前端与蓝白视觉系统设计.md` 的首页三入口规范。
+- source visual truth：根目录 `design.md` 的共享移动网格、明确光学中心与 390×844 响应式规则，以及 `docs/design/frontend-visual-system.md` 的首页三入口规范。
 - 缺陷基线：`/Users/stephenqiu/.codex/visualizations/2026/08/14/01a00156-709b-7891-838c-39184921bf40/home-mobile-before-css390x844.png`，390×844 px；修复前三入口组宽 342px、中心 `x=187px`，比 390px 内容视口中心左偏 8px。
 - implementation screenshot：`/Users/stephenqiu/.codex/visualizations/2026/08/14/01a00156-709b-7891-838c-39184921bf40/home-mobile-centered-css390x844.png`，390×844 px；CSS 内容视口 390×844、DPR 1、浅色、已登录、首页“链接解析”初始态。
 - desktop regression：`/Users/stephenqiu/.codex/visualizations/2026/08/14/01a00156-709b-7891-838c-39184921bf40/home-mobile-centering-desktop-1280x900.png`，1280×900 px；CSS 内容视口 1280×900、DPR 1。

@@ -2,7 +2,7 @@
 
 - 状态：设计完成，代码未实施
 - 日期：2026-08-12
-- 前置设计：`docs/design/archive/002-安全视频下载闭环设计.md`、`docs/design/005-多平台Provider策略设计.md`、`docs/design/archive/016-中国短视频平台支持设计.md`
+- 前置事实：安全视频下载闭环、中国短视频平台支持与 `docs/design/005-多平台Provider策略设计.md`；已完成设计的原始过程通过 Git 历史追溯。
 - 前置调研：`docs/research/009-红果短剧Provider接入调研.md`、`docs/research/010-微信视频号Provider接入调研.md`
 
 > 范围调整（2026-08-14）：浏览器本地 MP4/剧本文档上传、quarantine、通用上传会话和浏览器视频 Artifact 晋升由 `023-本地内容上传与剧本分析` 统一负责。本文只负责用户设备、`edge_import`、微信视频号/红果 Adapter，并复用 023 的上传与验证端口；若本文仍为解释 Edge 协议而出现 `browser_import`，其规范事实以 023 为准。

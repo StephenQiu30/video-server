@@ -1,8 +1,7 @@
-# 009 Next 前端与 Vercel 式无边框视觉系统设计
+# 前端 Vercel 式无边框视觉系统
 
-- 状态：Accepted
-- 日期：2026-08-09
-- 视觉基准：用户选定的 Product Design 方案 3 无边框修订稿（`/Users/stephenqiu/.codex/generated_images/019fe657-3556-7102-a4d8-f0f95698076b/exec-6ad65a6b-a139-48c1-a789-730a53116807.png`，1487×1058）
+- 状态：当前设计事实
+- 视觉基准：用户选定的 Product Design 方案 3 无边框修订稿
 - 风格参考：[Vercel 首页](https://vercel.com/home)、[Geist 设计系统](https://vercel.com/geist)、[Geist 排版](https://vercel.com/geist/typography)
 
 ## 目标与边界

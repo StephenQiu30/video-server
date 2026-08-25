@@ -122,7 +122,7 @@ npm run openapi
 - 图表显隐不移除等价精确数据，颜色不是区分成功、失败和取消的唯一手段。
 - 初始加载、请求失败、空数据、刷新以及真实数据状态都保留清晰恢复路径。
 
-对应测试位于 `tests/unit/admin-analytics-page.test.tsx`。视觉系统决策与最近一次浏览器回归证据分别记录在 `../docs/design/archive/009-Next前端与蓝白视觉系统设计.md` 和 `../design-qa.md`。
+对应测试位于 `tests/unit/admin-analytics-page.test.tsx`。视觉系统决策与最近一次浏览器回归证据分别记录在 `../docs/design/frontend-visual-system.md` 和 `../design-qa.md`。
 
 ## 常用命令
 
