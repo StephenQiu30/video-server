@@ -46,6 +46,48 @@ class ThumbnailClient:
         return ThumbnailStream()
 
 
+class ScriptedThumbnailStream:
+    def __init__(
+        self,
+        status_code: int,
+        *,
+        content: bytes = b"cover",
+        content_type: str = "image/jpeg",
+    ) -> None:
+        self.status_code = status_code
+        self.headers = {
+            "content-type": content_type,
+            "content-length": str(len(content)),
+        }
+        self.is_redirect = False
+        self._content = content
+
+    async def __aenter__(self) -> ScriptedThumbnailStream:
+        return self
+
+    async def __aexit__(self, *_: object) -> None:
+        return None
+
+    async def aiter_bytes(self):
+        yield self._content
+
+
+class ScriptedThumbnailClient(ThumbnailClient):
+    def __init__(
+        self,
+        responses: list[ScriptedThumbnailStream],
+        **kwargs: object,
+    ) -> None:
+        super().__init__(**kwargs)
+        self._responses = responses
+
+    def stream(
+        self, method: str, url: str, **_: object
+    ) -> ScriptedThumbnailStream:
+        self.requests.append((method, url))
+        return self._responses.pop(0)
+
+
 class FixtureSupervisor:
     def __init__(self, info: dict[str, object]) -> None:
         self.info = info
@@ -603,3 +645,68 @@ async def test_inspect_fetches_a_bounded_thumbnail_through_the_proxy(
     assert response.media.thumbnail_data_url == "data:image/avif;base64,Y292ZXI="
     assert clients[0].options["proxy"] == "http://egress-proxy:3128"
     assert clients[0].requests == [("GET", "https://images.example.com/cover.jpg")]
+
+
+async def test_inspect_uses_the_next_thumbnail_candidate_when_the_first_is_invalid(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    info = split_media_info()
+    info["thumbnail"] = "https://images.example.com/unavailable.jpg"
+    info["thumbnails"] = [
+        {"url": "https://images.example.com/fallback.jpg"},
+    ]
+    client = ScriptedThumbnailClient(
+        [
+            ScriptedThumbnailStream(403),
+            ScriptedThumbnailStream(200, content=b"fallback"),
+        ],
+        proxy="unused",
+    )
+    monkeypatch.setattr(
+        "app.runner.service.httpx.AsyncClient",
+        lambda **_: client,
+    )
+    service = MediaRunnerService(settings(tmp_path), supervisor=FixtureSupervisor(info))
+
+    response = await service.inspect("https://media.example.com/video")
+
+    assert response.media.thumbnail_data_url == (
+        "data:image/jpeg;base64,ZmFsbGJhY2s="
+    )
+    assert client.requests == [
+        ("GET", "https://images.example.com/unavailable.jpg"),
+        ("GET", "https://images.example.com/fallback.jpg"),
+    ]
+
+
+async def test_inspect_retries_a_transient_thumbnail_response_once(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    info = split_media_info()
+    info["thumbnail"] = "https://images.example.com/cover.jpg"
+    client = ScriptedThumbnailClient(
+        [ScriptedThumbnailStream(503), ScriptedThumbnailStream(200)],
+        proxy="unused",
+    )
+    delays: list[float] = []
+
+    async def record_sleep(delay: float) -> None:
+        delays.append(delay)
+
+    monkeypatch.setattr(
+        "app.runner.service.httpx.AsyncClient",
+        lambda **_: client,
+    )
+    monkeypatch.setattr("app.runner.service.asyncio.sleep", record_sleep)
+    service = MediaRunnerService(settings(tmp_path), supervisor=FixtureSupervisor(info))
+
+    response = await service.inspect("https://media.example.com/video")
+
+    assert response.media.thumbnail_data_url == "data:image/jpeg;base64,Y292ZXI="
+    assert client.requests == [
+        ("GET", "https://images.example.com/cover.jpg"),
+        ("GET", "https://images.example.com/cover.jpg"),
+    ]
+    assert delays == [0.25]

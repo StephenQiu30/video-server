@@ -56,6 +56,46 @@ async def test_success_revalidates_identity_uploads_and_completes(tmp_path) -> N
 
 
 @pytest.mark.asyncio
+async def test_success_recovers_thumbnail_before_upload(tmp_path) -> None:
+    case = fixture(artifact(tmp_path), recover_thumbnail=True)
+
+    result = await case.execution.execute(case.job_id)
+
+    assert result is ExecutionDisposition.ACK
+    assert case.thumbnail_recovery.calls == [
+        (
+            case.repository.source.inspection_id,
+            case.repository.source.owner_hash,
+            case.runner.artifact.artifact.resolve(),
+        )
+    ]
+    stages = [item[0] for item in case.repository.heartbeats]
+    assert stages[-3:] == ["verifying", "verifying", "uploading"]
+
+
+@pytest.mark.asyncio
+async def test_thumbnail_recovery_failure_does_not_fail_download(tmp_path) -> None:
+    case = fixture(artifact(tmp_path), recover_thumbnail=True)
+    case.thumbnail_recovery.error = OSError("ffmpeg unavailable")
+
+    result = await case.execution.execute(case.job_id)
+
+    assert result is ExecutionDisposition.ACK
+    assert case.repository.success is not None
+
+
+@pytest.mark.asyncio
+async def test_existing_thumbnail_skips_artifact_recovery(tmp_path) -> None:
+    case = fixture(artifact(tmp_path), recover_thumbnail=True)
+    case.repository.source.thumbnail_available = True
+
+    result = await case.execution.execute(case.job_id)
+
+    assert result is ExecutionDisposition.ACK
+    assert case.thumbnail_recovery.calls == []
+
+
+@pytest.mark.asyncio
 async def test_slow_runner_status_does_not_block_download_lease_heartbeat(
     tmp_path,
 ) -> None:

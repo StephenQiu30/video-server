@@ -138,6 +138,11 @@ class Settings(BaseSettings):
     max_workspace_size_bytes: int = Field(
         default=40 * 1024**3, ge=1, le=40 * 1024**3
     )
+    download_thumbnail_ffmpeg_binary: Path = Path("ffmpeg")
+    download_thumbnail_timeout_seconds: float = Field(default=15, ge=1, le=60)
+    download_thumbnail_max_bytes: int = Field(
+        default=2_000_000, ge=1024, le=10 * 1024**2
+    )
     media_import_enabled: bool = False
     document_import_enabled: bool = True
     media_import_max_bytes: int = Field(default=2 * 1024**3, ge=1024, le=20 * 1024**3)

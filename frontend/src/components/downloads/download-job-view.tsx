@@ -53,6 +53,11 @@ export default function DownloadJobView({
               <MediaCover
                 alt={`${title}封面`}
                 className="rounded-none ring-0"
+                pending={
+                  !['succeeded', 'failed', 'cancelled'].includes(
+                    state.job.status,
+                  )
+                }
                 priority
                 src={thumbnail}
               />

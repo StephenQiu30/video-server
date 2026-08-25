@@ -29,6 +29,15 @@ class JobState(Protocol):
 
 class JobSource(Protocol):
     @property
+    def inspection_id(self) -> UUID: ...
+
+    @property
+    def owner_hash(self) -> str: ...
+
+    @property
+    def thumbnail_available(self) -> bool: ...
+
+    @property
     def semantic_plan(self) -> dict[str, object]: ...
 
     @property
@@ -167,6 +176,15 @@ class UrlDecryptor(Protocol):
 
 class WorkspaceCleaner(Protocol):
     async def cleanup(self, task_id: str, workspace: Path | None) -> None: ...
+
+
+class ThumbnailRecovery(Protocol):
+    async def recover(
+        self,
+        inspection_id: UUID,
+        owner_hash: str,
+        artifact: Path,
+    ) -> bool: ...
 
 
 type Clock = Callable[[], datetime]

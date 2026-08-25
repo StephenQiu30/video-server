@@ -102,6 +102,8 @@ class ArtifactCreate:
 class JobSourceSnapshot:
     job_id: UUID
     inspection_id: UUID
+    owner_hash: str
+    thumbnail_available: bool
     semantic_plan: dict[str, Any]
     provider_hints: dict[str, Any]
     extractor_key: str

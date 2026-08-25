@@ -103,7 +103,7 @@ class MediaRunnerService:
                         if not plans:
                             raise RunnerFailure("format_unavailable", status=409)
                         thumbnail_data_url = await self._thumbnail_data_url(
-                            inspection.thumbnail_url,
+                            inspection.thumbnail_urls,
                             referer=safe_url,
                             egress_proxy=self._settings.egress_proxy_for(
                                 context.provider_key
@@ -465,12 +465,12 @@ class MediaRunnerService:
 
     async def _thumbnail_data_url(
         self,
-        thumbnail_url: str | None,
+        thumbnail_urls: tuple[str, ...],
         *,
         referer: str,
         egress_proxy: str,
     ) -> str | None:
-        if thumbnail_url is None:
+        if not thumbnail_urls:
             return None
         headers = {
             "Accept": "image/avif,image/webp,image/png,image/jpeg;q=0.9,*/*;q=0.5",
@@ -485,50 +485,78 @@ class MediaRunnerService:
                 timeout=timeout,
                 trust_env=False,
             ) as client:
-                current_url = thumbnail_url
-                for _ in range(4):
-                    safe_media_url(current_url)
-                    async with client.stream(
-                        "GET",
-                        current_url,
-                        headers=headers,
-                    ) as response:
-                        if response.is_redirect:
-                            location = response.headers.get("location")
-                            if not location:
-                                return None
-                            current_url = urljoin(current_url, location)
-                            continue
-                        if response.status_code != 200:
-                            return None
-                        content_type = response.headers.get("content-type", "")
-                        media_type = content_type.split(";", 1)[0].strip().lower()
-                        if media_type not in {
-                            "image/avif",
-                            "image/jpeg",
-                            "image/png",
-                            "image/webp",
-                        }:
-                            return None
-                        content_length = response.headers.get("content-length")
-                        if (
-                            content_length is not None
-                            and int(content_length)
-                            > self._settings.runner_max_thumbnail_bytes
-                        ):
-                            return None
-                        content = bytearray()
-                        async for chunk in response.aiter_bytes():
-                            content.extend(chunk)
-                            if len(content) > self._settings.runner_max_thumbnail_bytes:
-                                return None
-                        if not content:
-                            return None
-                        encoded = base64.b64encode(content).decode("ascii")
-                        return f"data:{media_type};base64,{encoded}"
+                for thumbnail_url in thumbnail_urls:
+                    for attempt in range(2):
+                        try:
+                            result, retryable = await self._fetch_thumbnail_candidate(
+                                client,
+                                thumbnail_url,
+                                headers=headers,
+                            )
+                        except (httpx.HTTPError, RunnerFailure, ValueError):
+                            result, retryable = None, True
+                        if result is not None:
+                            return result
+                        if not retryable or attempt == 1:
+                            break
+                        await asyncio.sleep(0.25)
         except (httpx.HTTPError, RunnerFailure, ValueError):
             return None
         return None
+
+    async def _fetch_thumbnail_candidate(
+        self,
+        client: httpx.AsyncClient,
+        thumbnail_url: str,
+        *,
+        headers: dict[str, str],
+    ) -> tuple[str | None, bool]:
+        current_url = thumbnail_url
+        for _ in range(4):
+            safe_media_url(current_url)
+            async with client.stream("GET", current_url, headers=headers) as response:
+                if response.is_redirect:
+                    location = response.headers.get("location")
+                    if not location:
+                        return None, False
+                    current_url = urljoin(current_url, location)
+                    continue
+                if response.status_code != 200:
+                    return None, response.status_code in {
+                        408,
+                        425,
+                        429,
+                        500,
+                        502,
+                        503,
+                        504,
+                    }
+                content_type = response.headers.get("content-type", "")
+                media_type = content_type.split(";", 1)[0].strip().lower()
+                if media_type not in {
+                    "image/avif",
+                    "image/jpeg",
+                    "image/png",
+                    "image/webp",
+                }:
+                    return None, False
+                content_length = response.headers.get("content-length")
+                if (
+                    content_length is not None
+                    and int(content_length)
+                    > self._settings.runner_max_thumbnail_bytes
+                ):
+                    return None, False
+                content = bytearray()
+                async for chunk in response.aiter_bytes():
+                    content.extend(chunk)
+                    if len(content) > self._settings.runner_max_thumbnail_bytes:
+                        return None, False
+                if not content:
+                    return None, False
+                encoded = base64.b64encode(content).decode("ascii")
+                return f"data:{media_type};base64,{encoded}", False
+        return None, False
 
 
 def _probe_duration(probe: dict[str, object]) -> float | None:

@@ -62,6 +62,15 @@ describe('MediaCover', () => {
     );
   });
 
+  it('shows generating while a task can still produce a cover', () => {
+    render(<MediaCover alt="测试视频" pending src={null} />);
+
+    expect(
+      screen.getByRole('img', { name: '测试视频（封面生成中）' }),
+    ).toBeVisible();
+    expect(screen.queryByText('封面不可用')).not.toBeInTheDocument();
+  });
+
   it('keeps public and bundled images on the direct browser path', () => {
     render(<MediaCover alt="演示视频" src="/images/demo.webp" />);
 

@@ -34,7 +34,11 @@ class MediaInspection:
     duration_seconds: float
     extractor_key: str
     streams: tuple[CandidateStream, ...]
-    thumbnail_url: str | None = None
+    thumbnail_urls: tuple[str, ...] = ()
+
+    @property
+    def thumbnail_url(self) -> str | None:
+        return self.thumbnail_urls[0] if self.thumbnail_urls else None
 
 
 def normalize_selected_format_metadata(payload: dict[str, Any]) -> dict[str, Any]:
@@ -216,11 +220,11 @@ def normalize_metadata(
         duration_seconds=float(payload["duration"]),
         extractor_key=extractor,
         streams=tuple(streams),
-        thumbnail_url=_thumbnail_url(payload),
+        thumbnail_urls=_thumbnail_urls(payload),
     )
 
 
-def _thumbnail_url(payload: dict[str, Any]) -> str | None:
+def _thumbnail_urls(payload: dict[str, Any]) -> tuple[str, ...]:
     candidates: list[object] = [payload.get("thumbnail")]
     thumbnails = payload.get("thumbnails")
     if isinstance(thumbnails, list):
@@ -229,14 +233,17 @@ def _thumbnail_url(payload: dict[str, Any]) -> str | None:
             for value in reversed(thumbnails)
             if isinstance(value, dict)
         )
+    safe_urls: list[str] = []
     for value in candidates:
         if not isinstance(value, str):
             continue
         try:
-            return validate_media_url(value).value
+            safe_url = validate_media_url(value).value
         except UrlPolicyError:
             continue
-    return None
+        if safe_url not in safe_urls:
+            safe_urls.append(safe_url)
+    return tuple(safe_urls)
 
 
 def _validate_source(payload: dict[str, Any], max_duration: float) -> None:

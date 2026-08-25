@@ -1,6 +1,6 @@
 'use client';
 
-import { ImageBrokenIcon } from '@phosphor-icons/react';
+import { ImageBrokenIcon, ImageIcon } from '@phosphor-icons/react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
@@ -15,12 +15,14 @@ type MediaCoverProps = {
   alt: string;
   className?: string;
   priority?: boolean;
+  pending?: boolean;
   src?: string | null;
 };
 
 export default function MediaCover({
   alt,
   className,
+  pending = false,
   priority = false,
   src,
 }: MediaCoverProps) {
@@ -63,6 +65,7 @@ export default function MediaCover({
   const loading = Boolean(
     privateSource && src && !resolvedSource && !unavailable,
   );
+  const generating = pending && !src;
   return (
     <AspectRatio
       className={cn(
@@ -77,6 +80,15 @@ export default function MediaCover({
           className="absolute inset-0 animate-pulse bg-muted"
           role="img"
         />
+      ) : generating ? (
+        <div
+          aria-label={`${alt}（封面生成中）`}
+          className="absolute inset-0 flex animate-pulse flex-col items-center justify-center gap-3 text-muted-foreground"
+          role="img"
+        >
+          <ImageIcon aria-hidden className="size-7" />
+          <span className="text-xs">封面生成中</span>
+        </div>
       ) : unavailable || !resolvedSource ? (
         <div
           aria-label={`${alt}（封面不可用）`}

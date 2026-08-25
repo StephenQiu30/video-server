@@ -316,9 +316,15 @@ class AccessRepository(AnalyticsRepository):
             access_context = inspection.metadata_json.get("provider_access_context")
             if not isinstance(access_context, dict):
                 raise RepositoryNotFound("provider access context is unavailable")
+            thumbnail = await session.get(MediaThumbnailRow, inspection.id)
             return JobSourceSnapshot(
                 job_id=job.id,
                 inspection_id=inspection.id,
+                owner_hash=job.owner_hash,
+                thumbnail_available=(
+                    thumbnail is not None
+                    or isinstance(inspection.metadata_json.get("thumbnail_url"), str)
+                ),
                 semantic_plan=dict(job.semantic_plan),
                 provider_hints=dict(selected_format.provider_hints),
                 extractor_key=inspection.extractor_key,

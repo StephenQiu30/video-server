@@ -27,6 +27,7 @@ from .ports import (
     ExecutionRepository,
     ExecutionRunner,
     ExecutionStorage,
+    ThumbnailRecovery,
     UrlDecryptor,
     WorkspaceCleaner,
 )
@@ -44,6 +45,7 @@ class DownloadExecution:
         workspace_cleaner: WorkspaceCleaner,
         clock: Clock,
         settings: DownloadExecutionSettings,
+        thumbnail_recovery: ThumbnailRecovery | None = None,
     ) -> None:
         self._repository = repository
         self._runner = runner
@@ -52,6 +54,7 @@ class DownloadExecution:
         self._cleaner = workspace_cleaner
         self._clock = clock
         self._settings = settings
+        self._thumbnail_recovery = thumbnail_recovery
         self._transitions = ExecutionTransitions(repository, storage, settings, clock)
         self._delivery = ArtifactDelivery(storage, settings, clock, self._transitions)
 
@@ -148,6 +151,27 @@ class DownloadExecution:
                 return await self._transitions.convergence(job_id)
             except (LeaseInfrastructureError, ExecutionPersistenceUnavailable):
                 return ExecutionDisposition.REQUEUE
+            thumbnail_recovery = self._thumbnail_recovery
+            if thumbnail_recovery is not None and not source.thumbnail_available:
+                try:
+                    await monitor.run_fixed(
+                        lambda: thumbnail_recovery.recover(
+                            source.inspection_id,
+                            source.owner_hash,
+                            verified.path,
+                        ),
+                        stage=DownloadStage.VERIFYING,
+                        progress=94,
+                        drain_on_abort=True,
+                    )
+                except (LeaseLost, ExecutionOwnershipLost):
+                    return await self._transitions.convergence(job_id)
+                except (LeaseInfrastructureError, ExecutionPersistenceUnavailable):
+                    return ExecutionDisposition.REQUEUE
+                except Exception:
+                    # Thumbnail recovery is best-effort and must never turn a
+                    # verified media download into a failed job.
+                    pass
             return await self._delivery.run(monitor, job_id, attempt, verified)
         finally:
             with suppress(Exception):

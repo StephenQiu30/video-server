@@ -14,6 +14,7 @@ from app.application.download_execution import (
     DownloadExecution,
     DownloadExecutionSettings,
 )
+from app.application.downloads import PersistThumbnail
 from app.core.config import Settings, get_settings_for_role
 from app.core.url_cipher import URLCipher
 from app.infrastructure.database import (
@@ -21,9 +22,11 @@ from app.infrastructure.database import (
     create_engine,
     create_session_factory,
 )
+from app.infrastructure.download_store import SqlAlchemyDownloadStore
 from app.infrastructure.media_runner import MediaRunnerHttpClient, MediaRunnerRouter
 from app.infrastructure.messaging import RabbitMqTopology
 from app.infrastructure.object_storage import MinioObjectStorage
+from app.infrastructure.thumbnail_storage import MinioThumbnailStorage
 from app.infrastructure.url_security import FernetUrlEnvelope
 from app.runner.provider_registry import configure_provider_instances
 from app.workers.download.consumer import RabbitMqDownloadConsumer
@@ -32,6 +35,7 @@ from app.workers.download.sweeper import (
     DownloadRecoverySweeper,
     RecoverySettings,
 )
+from app.workers.download.thumbnail import ArtifactThumbnailRecovery
 from app.workers.download.workspace import SharedWorkspaceCleaner
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -78,6 +82,18 @@ def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
     }
     runner = MediaRunnerRouter(anonymous_runner, operator_runners)
     storage = MinioObjectStorage(settings)
+    thumbnail_recovery = ArtifactThumbnailRecovery(
+        PersistThumbnail(
+            SqlAlchemyDownloadStore(raw_repository),
+            MinioThumbnailStorage(
+                storage,
+                max_bytes=settings.download_thumbnail_max_bytes,
+            ),
+        ),
+        ffmpeg_binary=settings.download_thumbnail_ffmpeg_binary,
+        timeout_seconds=settings.download_thumbnail_timeout_seconds,
+        max_bytes=settings.download_thumbnail_max_bytes,
+    )
     execution = DownloadExecution(
         repository=repository,
         runner=runner,
@@ -96,6 +112,7 @@ def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
             heartbeat_interval=settings.heartbeat_interval_seconds,
             max_file_size_bytes=settings.max_file_size_bytes,
         ),
+        thumbnail_recovery=thumbnail_recovery,
     )
     topology = RabbitMqTopology(
         settings.rabbitmq_exchange,

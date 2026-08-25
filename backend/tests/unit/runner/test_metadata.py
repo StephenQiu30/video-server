@@ -75,6 +75,9 @@ def test_normalizes_ytdlp_formats_into_domain_streams_and_options() -> None:
     assert inspection.extractor_key == "Controlled"
     assert inspection.duration_seconds == 60.5
     assert inspection.thumbnail_url == "https://images.example.com/cover.webp"
+    assert inspection.thumbnail_urls == (
+        "https://images.example.com/cover.webp",
+    )
     assert len(inspection.streams) == 3
     muxed, video, audio = inspection.streams
     assert muxed.kind is StreamKind.MUXED
@@ -161,6 +164,29 @@ def test_ignores_unsafe_thumbnail_urls() -> None:
     )
 
     assert inspection.thumbnail_url is None
+
+
+def test_keeps_safe_thumbnail_fallbacks_in_priority_order() -> None:
+    payload = media_info()
+    payload["thumbnail"] = "https://images.example.com/preferred.webp"
+    payload["thumbnails"] = [
+        {"url": "http://127.0.0.1/private-cover"},
+        {"url": "https://images.example.com/fallback-small.jpg"},
+        {"url": "https://images.example.com/fallback-large.jpg"},
+        {"url": "https://images.example.com/preferred.webp"},
+    ]
+
+    inspection = normalize_metadata(
+        payload,
+        max_duration_seconds=7200,
+        max_candidate_streams=200,
+    )
+
+    assert inspection.thumbnail_urls == (
+        "https://images.example.com/preferred.webp",
+        "https://images.example.com/fallback-large.jpg",
+        "https://images.example.com/fallback-small.jpg",
+    )
 
 
 def test_enriches_sparse_direct_media_with_ffprobe_metadata() -> None:

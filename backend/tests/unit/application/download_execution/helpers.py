@@ -39,6 +39,9 @@ class FakeRepository:
         self.success = None
         semantic, hints = plan_to_documents(download_plan())
         self.source = SimpleNamespace(
+            inspection_id=uuid4(),
+            owner_hash="a" * 64,
+            thumbnail_available=False,
             semantic_plan=semantic,
             provider_hints=hints,
             extractor_key="Controlled",
@@ -147,6 +150,20 @@ class FakeCleaner:
         self.calls.append((task_id, workspace))
 
 
+class FakeThumbnailRecovery:
+    def __init__(self) -> None:
+        self.calls: list[tuple[UUID, str, Path]] = []
+        self.error: Exception | None = None
+
+    async def recover(
+        self, inspection_id: UUID, owner_hash: str, artifact: Path
+    ) -> bool:
+        self.calls.append((inspection_id, owner_hash, artifact))
+        if self.error is not None:
+            raise self.error
+        return True
+
+
 @dataclass
 class ExecutionFixture:
     job_id: UUID
@@ -154,6 +171,7 @@ class ExecutionFixture:
     runner: FakeRunner
     storage: FakeStorage
     cleaner: FakeCleaner
+    thumbnail_recovery: FakeThumbnailRecovery
     execution: DownloadExecution
 
 
@@ -161,12 +179,14 @@ def fixture(
     artifact: RunnerArtifact,
     *,
     heartbeat_interval: float = 0.001,
+    recover_thumbnail: bool = False,
 ) -> ExecutionFixture:
     job_id = uuid4()
     repository = FakeRepository(job_id)
     runner = FakeRunner(artifact)
     storage = FakeStorage()
     cleaner = FakeCleaner()
+    thumbnail_recovery = FakeThumbnailRecovery()
     execution = DownloadExecution(
         repository=repository,
         runner=runner,
@@ -182,8 +202,17 @@ def fixture(
             heartbeat_interval=heartbeat_interval,
             max_file_size_bytes=1024 * 1024,
         ),
+        thumbnail_recovery=thumbnail_recovery if recover_thumbnail else None,
     )
-    return ExecutionFixture(job_id, repository, runner, storage, cleaner, execution)
+    return ExecutionFixture(
+        job_id,
+        repository,
+        runner,
+        storage,
+        cleaner,
+        thumbnail_recovery,
+        execution,
+    )
 
 
 def download_plan() -> DownloadPlan:
