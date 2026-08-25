@@ -56,7 +56,9 @@ describe('DownloadWorkspace', () => {
       button: 0,
       ctrlKey: false,
     });
-    expect(screen.getByLabelText('选择剧本文档文件')).toBeInTheDocument();
+    const fileInput = screen.getByLabelText('选择剧本文档文件');
+    expect(fileInput).toHaveClass('sr-only');
+    expect(fileInput).not.toHaveClass('w-full');
     fireEvent.click(screen.getByRole('button', { name: '上传剧本' }));
     expect(
       await screen.findByText('请先选择一份剧本文档。'),

@@ -101,6 +101,22 @@ final result: passed
 
 final result: passed
 
+## 2026-08-25 剧本文档上传横向溢出补充回归
+
+### 对照目标与证据
+
+- 用户来源截图：`C:/Users/ADMINI~1/AppData/Local/Temp/codex-clipboard-59032ef3-702b-4fc5-820e-2cdc578b3062.png`；首页“剧本文档”状态出现大面积右侧空白和页面级横向滚动。
+- `agent-browser` 修复前证据：`C:/Users/ADMINI~1/AppData/Local/Temp/screenplay-layout-before.png`；1920px 视口下 `documentWidth=2191`，横向溢出 271px。唯一越界元素为“选择剧本文档文件”的隐藏输入，其边界为 `left=271 / right=2191 / width=1920`。
+- 修复后证据：`C:/Users/ADMINI~1/AppData/Local/Temp/screenplay-layout-after-desktop.png` 与 `C:/Users/ADMINI~1/AppData/Local/Temp/screenplay-layout-after-mobile.png`。
+
+### 修复与验证
+
+- 剧本文档文件输入与本地视频文件输入统一为 1px 的屏幕阅读器控件，并显式移除边框与内边距，避免共享 `Input` 的 `w-full` 把不可见控件扩展到整屏。
+- 1920px 桌面视口实测 `documentWidth=clientWidth=1920`，390×844 移动视口实测 `documentWidth=clientWidth=390`；两个视口下文件输入宽度均为 1px，没有剩余越界元素或产品运行错误。
+- 单元测试新增隐藏输入不保留 `w-full` 的回归断言；`npm run lint`、43 个测试文件/155 项测试、目标文件 Biome 检查与 Next.js production build（16 个静态页面）全部通过。
+
+final result: passed
+
 ## 2026-08-17 弹层与长内容显示回归
 
 ### 对照目标与实现

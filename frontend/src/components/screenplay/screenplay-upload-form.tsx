@@ -94,7 +94,7 @@ export function ScreenplayUploadForm({
         <Input
           accept=".docx,.pdf,.txt,.md,.markdown,.fountain"
           aria-label="选择剧本文档文件"
-          className="sr-only"
+          className="sr-only h-px w-px border-0 p-0"
           disabled={busy}
           onChange={(event) => onFileSelect(event.target.files?.[0] ?? null)}
           onClick={(event) => {
