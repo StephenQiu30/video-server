@@ -195,9 +195,10 @@ services:
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - >-
-        mc alias set local http://minio:9000 "$${MINIO_ACCESS_KEY}"
-        "$${MINIO_SECRET_KEY}" >/dev/null &&
-        mc mb --ignore-existing "local/$${MINIO_BUCKET}"
+          mc alias set local http://minio:9000 "$${MINIO_ACCESS_KEY}" "$${MINIO_SECRET_KEY}" >/dev/null &&
+          mc mb --ignore-existing "local/$${MINIO_BUCKET}" &&
+          printf 'ready\n' |
+          mc pipe "local/$${MINIO_BUCKET}/system/analysis-readiness-v1" >/dev/null
 
 volumes:
   video_env_postgres_data:

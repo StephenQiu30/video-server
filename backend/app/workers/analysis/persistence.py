@@ -17,6 +17,7 @@ from app.application.analysis_execution import (
 )
 from app.application.analysis_execution.errors import (
     AnalysisOwnershipLost,
+    AnalysisPersistenceRejected,
     AnalysisPersistenceUnavailable,
     AnalysisSourceUnavailable,
 )
@@ -28,6 +29,7 @@ from app.infrastructure.database import (
     RepositoryNotFound,
     SqlAlchemyDownloadRepository,
 )
+from sqlalchemy.exc import IntegrityError
 
 
 class AnalysisExecutionPersistence:
@@ -200,6 +202,7 @@ def _translate_errors() -> Iterator[None]:
         yield
     except (
         AnalysisOwnershipLost,
+        AnalysisPersistenceRejected,
         AnalysisPersistenceUnavailable,
         AnalysisSourceUnavailable,
     ):
@@ -208,5 +211,7 @@ def _translate_errors() -> Iterator[None]:
         raise AnalysisSourceUnavailable from exc
     except (PersistenceConflict, LeaseConflict, RepositoryConflict) as exc:
         raise AnalysisOwnershipLost from exc
+    except IntegrityError as exc:
+        raise AnalysisPersistenceRejected from exc
     except Exception as exc:
         raise AnalysisPersistenceUnavailable from exc

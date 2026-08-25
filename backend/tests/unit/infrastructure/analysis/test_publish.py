@@ -6,6 +6,11 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from app.application.analysis import AnalysisPublish, PersistenceConflict
+from app.domain.analysis import (
+    AnalysisMedia,
+    AnalysisResultContract,
+    parse_video_article_result,
+)
 from app.infrastructure.analysis_report_repository import (
     ReportObject,
     SqlAlchemyAnalysisReportRepository,
@@ -17,6 +22,7 @@ from app.infrastructure.database.models import (
     OutboxEventRow,
 )
 from sqlalchemy import func, select, update
+from tests.unit.domain.analysis.test_video_article import article_payload
 from tests.unit.infrastructure.analysis.factories import (
     analysis_command,
     analysis_result,
@@ -26,9 +32,15 @@ from tests.unit.infrastructure.analysis.factories import (
 NOW = datetime(2026, 8, 6, 8, tzinfo=UTC)
 
 
-async def validating_job(analysis_db):
+async def validating_job(
+    analysis_db,
+    *,
+    result_contract: AnalysisResultContract = (
+        AnalysisResultContract.VIDEO_VISUAL_ANALYSIS
+    ),
+):
     source = await seed_artifact(analysis_db.sessions, NOW)
-    command = analysis_command(source)
+    command = replace(analysis_command(source), result_contract=result_contract)
     await analysis_db.repository.create_job_and_enqueue(command, now=NOW)
     current = await analysis_db.repository.claim_job(
         command.id,
@@ -125,6 +137,40 @@ async def test_result_and_success_publish_atomically_without_transcript(
     changed = replace(analysis_result(), title="不同输出")
     with pytest.raises(PersistenceConflict):
         await analysis_db.repository.publish_result(replace(publish, result=changed))
+
+
+@pytest.mark.asyncio
+async def test_video_article_result_can_be_published(analysis_db) -> None:
+    command, job = await validating_job(
+        analysis_db, result_contract=AnalysisResultContract.VIDEO_ARTICLE
+    )
+    article = parse_video_article_result(
+        article_payload(),
+        AnalysisMedia(duration_ms=3_000, container="mp4", size_bytes=1_024),
+        expected_language="zh-CN",
+    )
+
+    publishing = await analysis_db.repository.publish_result(
+        AnalysisPublish(
+            job_id=command.id,
+            run_id=command.run_id,
+            result=article,
+            lease_owner="worker-a",
+            expected_version=job.version,
+            provider="codex",
+            model="controlled-model",
+            cli_version="codex-cli controlled",
+            now=NOW + timedelta(seconds=3),
+        )
+    )
+
+    assert (publishing.status, publishing.stage, publishing.progress) == (
+        "running",
+        "publishing",
+        95,
+    )
+    stored = await analysis_db.repository.get_result(command.id)
+    assert stored == article
 
 
 @pytest.mark.asyncio

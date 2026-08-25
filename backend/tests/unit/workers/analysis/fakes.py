@@ -60,6 +60,7 @@ class FakeRepository:
         self.failures: list[dict[str, object]] = []
         self.published: list[AnalysisResult] = []
         self.source_error: Exception | None = None
+        self.publish_error: Exception | None = None
         self.heartbeat_failure_stage: str | None = None
         self._stage_counts: dict[str, int] = {}
 
@@ -146,6 +147,8 @@ class FakeRepository:
         cli_version: str,
         now: datetime,
     ) -> None:
+        if self.publish_error is not None:
+            raise self.publish_error
         assert run_id == self.job.run_id
         assert expected_version == self.job.version
         assert (provider, model, cli_version) == (

@@ -17,6 +17,7 @@ from app.domain.analysis import (
 from .errors import (
     AnalysisLeaseLost,
     AnalysisOwnershipLost,
+    AnalysisPersistenceRejected,
     AnalysisPersistenceUnavailable,
     AnalysisSourceUnavailable,
     classify_analysis_failure,
@@ -132,6 +133,10 @@ class AnalysisExecution:
             return await self._transitions.converge(job.id)
         except AnalysisPersistenceUnavailable:
             return AnalysisDisposition.REQUEUE
+        except AnalysisPersistenceRejected:
+            return await self._transitions.fail(
+                job.id, job.attempt, AnalysisErrorCode.INTERNAL_ERROR
+            )
         except AnalysisSourceUnavailable:
             return await self._transitions.fail(
                 job.id, job.attempt, AnalysisErrorCode.INPUT_ARTIFACT_UNAVAILABLE

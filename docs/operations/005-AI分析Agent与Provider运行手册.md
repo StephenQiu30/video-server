@@ -47,7 +47,7 @@ python -m app.workers.analysis.agent_cli doctor
 
 依次确认：活动 Profile 存在、CLI 可执行、登录有效、FFmpeg/FFprobe 可执行、PostgreSQL/RabbitMQ/MinIO 地址对宿主机可达。
 
-若 `doctor` 返回 `analysis MinIO credentials cannot read the readiness probe`，当前 Compose 不会启动 `minio-init`；应由宿主机 MinIO 管理员确认 `video-artifacts` bucket、统一 AK/SK 和 readiness probe 权限已预置，并检查 `.env` 或 `.env.prod` 中唯一的 `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY`。
+若 `doctor` 返回 MinIO readiness probe 缺失，先执行 `docker compose -f docker-compose-env.yml run --rm minio-init`，由环境初始化任务幂等创建 `video-artifacts` bucket 与 `system/analysis-readiness-v1` 探针。若返回凭据无法读取，再由宿主机 MinIO 管理员确认统一 AK/SK 的 bucket 读取权限，并检查 `.env` 或 `.env.prod` 中唯一的 `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY`。
 
 ### 本机登录不可用
 

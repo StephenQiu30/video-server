@@ -9,6 +9,7 @@ import pytest
 from app.application.analysis_execution import (
     AnalysisDisposition,
     AnalysisExecution,
+    AnalysisPersistenceRejected,
     VideoAnalysisRequest,
 )
 
@@ -45,6 +46,15 @@ class BlockingAnalyzer:
             self.cancelled = True
             raise
         raise AssertionError("unreachable")
+
+
+class SlowAnalyzer:
+    def __init__(self, output: object) -> None:
+        self.output = output
+
+    async def analyze(self, request: VideoAnalysisRequest) -> object:
+        await asyncio.sleep(0.035)
+        return self.output
 
 
 class ProviderFailure(RuntimeError):
@@ -91,6 +101,52 @@ async def test_success_runs_linear_stages_publishes_and_cleans(tmp_path: Path) -
     assert repository.job.status == "succeeded"
     assert len(repository.published) == 1
     assert loader.cleaned is True
+
+
+@pytest.mark.asyncio
+async def test_healthy_long_analysis_renews_lease_until_completion(
+    tmp_path: Path,
+) -> None:
+    repository = FakeRepository(running_job())
+    loader = FakeLoader(tmp_path)
+
+    disposition = await execution(
+        repository, loader, analyzer=SlowAnalyzer(valid_mapping())
+    ).execute(
+        repository.job.id,
+        repository.job.run_id,
+        repository.job.run_no,
+        repository.job.version,
+    )
+
+    analyzing_heartbeats = [
+        progress for stage, progress in repository.heartbeats if stage == "analyzing"
+    ]
+    assert disposition is AnalysisDisposition.ACK
+    assert len(analyzing_heartbeats) >= 3
+    assert repository.job.status == "succeeded"
+
+
+@pytest.mark.asyncio
+async def test_rejected_result_persistence_fails_without_waiting_for_lease_expiry(
+    tmp_path: Path,
+) -> None:
+    repository = FakeRepository(running_job())
+    repository.publish_error = AnalysisPersistenceRejected("invalid result constraint")
+    loader = FakeLoader(tmp_path)
+
+    disposition = await execution(
+        repository, loader, analyzer=FakeAnalyzer(valid_mapping())
+    ).execute(
+        repository.job.id,
+        repository.job.run_id,
+        repository.job.run_no,
+        repository.job.version,
+    )
+
+    assert disposition is AnalysisDisposition.ACK
+    assert repository.job.status == "failed"
+    assert repository.failures[0]["error_code"] == "internal_error"
 
 
 @pytest.mark.asyncio

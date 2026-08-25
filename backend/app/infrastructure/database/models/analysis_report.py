@@ -42,6 +42,12 @@ class AnalysisReportVersionRow(Base):
             "jsonb_typeof(result_json) = 'object'",
             name="ck_analysis_report_versions_json_object",
         ).ddl_if(dialect="postgresql"),
+        CheckConstraint(
+            "result_json ? 'kind' AND result_json ->> 'kind' IN ("
+            "'video_visual_analysis','video_article',"
+            "'screenplay_analysis','screenplay_rewrite')",
+            name="ck_analysis_report_versions_result_kind",
+        ).ddl_if(dialect="postgresql"),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)

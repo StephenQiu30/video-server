@@ -45,6 +45,7 @@ def test_current_schema_can_be_applied_repeatedly() -> None:
     assert "result_contract = COALESCE(" in schema
     assert "ck_analysis_report_versions_result_kind" in schema
     assert "result_json ? 'kind'" in schema
+    assert schema.count("'video_article'") >= 2
     assert "to_jsonb('video_visual_analysis'::text)" in schema
     assert "CREATE EXTENSION IF NOT EXISTS pgcrypto" in schema
     assert "skill_instructions_sha256" in schema
@@ -78,6 +79,15 @@ def test_compose_does_not_bundle_host_managed_infrastructure() -> None:
         assert not re.search(rf"(?m)^  {re.escape(service)}:$", compose)
     assert "profiles: [environment]" not in compose
     assert "/docker-entrypoint-initdb.d/" not in compose
+
+
+def test_environment_bootstrap_provisions_analysis_storage_probe() -> None:
+    compose = (ROOT.parent / "docker-compose-env.yml").read_text(encoding="utf-8")
+    minio_init = _service_block(compose, "minio-init")
+
+    assert "mc mb --ignore-existing" in minio_init
+    assert "system/analysis-readiness-v1" in minio_init
+    assert "mc pipe" in minio_init
 
 
 def test_database_consumers_use_the_configured_postgres_service() -> None:

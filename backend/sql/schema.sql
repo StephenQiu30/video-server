@@ -827,7 +827,8 @@ CREATE TABLE IF NOT EXISTS analysis_report_versions (
     CONSTRAINT ck_analysis_report_versions_json_object CHECK (jsonb_typeof(result_json) = 'object'),
     CONSTRAINT ck_analysis_report_versions_result_kind CHECK (
         result_json ? 'kind' AND result_json ->> 'kind' IN (
-            'video_visual_analysis', 'screenplay_analysis', 'screenplay_rewrite'
+            'video_visual_analysis', 'video_article',
+            'screenplay_analysis', 'screenplay_rewrite'
         )
     )
 );
@@ -882,7 +883,8 @@ ALTER TABLE analysis_report_versions
 ALTER TABLE analysis_report_versions
     ADD CONSTRAINT ck_analysis_report_versions_result_kind CHECK (
         result_json ? 'kind' AND result_json ->> 'kind' IN (
-            'video_visual_analysis', 'screenplay_analysis', 'screenplay_rewrite'
+            'video_visual_analysis', 'video_article',
+            'screenplay_analysis', 'screenplay_rewrite'
         )
     );
 ALTER TABLE analysis_report_artifacts DROP COLUMN IF EXISTS expires_at;

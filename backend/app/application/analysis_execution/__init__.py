@@ -2,6 +2,7 @@ from .errors import (
     AnalysisArtifactError,
     AnalysisLeaseLost,
     AnalysisOwnershipLost,
+    AnalysisPersistenceRejected,
     AnalysisPersistenceUnavailable,
     AnalysisSourceUnavailable,
 )
@@ -58,6 +59,7 @@ __all__ = [
     "AnalysisScreenplaySource",
     "AnalysisLeaseLost",
     "AnalysisOwnershipLost",
+    "AnalysisPersistenceRejected",
     "AnalysisPersistenceUnavailable",
     "AnalysisSourceUnavailable",
     "LocalAnalysisArtifact",

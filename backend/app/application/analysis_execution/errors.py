@@ -15,6 +15,10 @@ class AnalysisPersistenceUnavailable(RuntimeError):
     pass
 
 
+class AnalysisPersistenceRejected(RuntimeError):
+    """Persistence rejected otherwise valid output due to a schema invariant."""
+
+
 class AnalysisSourceUnavailable(RuntimeError):
     pass
 
