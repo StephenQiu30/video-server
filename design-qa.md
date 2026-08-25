@@ -78,6 +78,29 @@
 
 final result: passed
 
+## 2026-08-25 平台描述分割线与首页横向溢出回归
+
+### 对照目标与证据
+
+- 用户来源截图：`C:/Users/ADMINI~1/AppData/Local/Temp/codex-clipboard-9ecf0cac-265a-4a8f-9967-bf2841b76d5d.png`（平台状态行间分割线）与 `C:/Users/ADMINI~1/AppData/Local/Temp/codex-clipboard-041e8129-1f4a-40ce-8139-450db0bd1f6e.png`（首页本地视频状态的大面积留白及横向滚动）。
+- `agent-browser` 修复前证据：`C:/Users/ADMINI~1/AppData/Local/Temp/video-layout-qa-20260825/screenshots/before-local-video-dev.png`；1920px 视口下 `documentWidth=2191`，页面横向溢出 271px，唯一越界元素为本地视频的隐藏文件输入，边界为 `left=271 / right=2191 / width=1920`。
+- 修复后证据：`C:/Users/ADMINI~1/AppData/Local/Temp/video-layout-qa-20260825/screenshots/after-local-video-dev.png`、`after-home-mobile-light.png`、`after-home-mobile-dark.png`、`after-providers-dev.png`、`after-providers-mobile-light.png` 与 `after-providers-mobile-dark.png`。
+
+### 修复与浏览器实测
+
+- 本地视频文件输入继续复用共享 `Input` 组件和可访问标签，但显式收敛为 1px 的屏幕阅读器控件，并移除其可见输入框边界与内边距；1920px 和 390×844 下均得到 `documentWidth=viewportWidth`、横向溢出 0px，文件输入实测宽度为 1px。
+- 平台状态列表移除外沿 `border-y` 与逐行 `border-b`，改由每行 24px 上下留白组织连续信息流。1920px 与 390×844 下，列表外沿及四条平台描述的上下边框计算值全部为 `0px`，页面横向溢出为 0px。
+- 浅色画布实测为 `rgb(250, 250, 250)`，深色画布为 `rgb(10, 10, 10)`；两个主题与 reduced-motion 下均无产品控制台 error。平台状态的“返回上一步”可由可访问树定位并激活，直接访问时正确回到 `/`。
+- `?design=inspection` 仅使用仓库定义的开发预览用户；平台列表数据通过 `agent-browser` 对本地开发服务器的 `/api/providers` 提供受控响应，不读取或复制用户浏览器 Cookie。
+
+### 工程验证与 Findings
+
+- `npm run lint`、43 个测试文件/155 项测试、Next.js production build 与 16 个静态页面全部通过；本次四个修改代码/测试文件的 Biome 格式检查和 `git diff --check` 通过。
+- 全仓 `npm run format:check` 仍报告与本次改动无关的既有 `analysis-article-result-view.tsx`、`analysis-panel.tsx` 两处格式差异；本轮未顺带改动这两个文件。
+- 没有剩余 P0、P1 或 P2 的分割线、留白或页面级横向溢出问题。
+
+final result: passed
+
 ## 2026-08-17 弹层与长内容显示回归
 
 ### 对照目标与实现

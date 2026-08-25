@@ -75,7 +75,7 @@ export function MediaUploadForm({
         <Input
           accept="video/mp4,.mp4"
           aria-label="选择本地 MP4 视频文件"
-          className="sr-only"
+          className="sr-only h-px w-px border-0 p-0"
           disabled={busy}
           onChange={(event) => onFileSelect(event.target.files?.[0] ?? null)}
           onClick={(event) => {

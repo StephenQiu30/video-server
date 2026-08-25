@@ -23,6 +23,8 @@ describe('DownloadWorkspace local video upload', () => {
     );
     selectUploadTab();
     const fileInput = screen.getByLabelText('选择本地 MP4 视频文件');
+    expect(fileInput).toHaveClass('sr-only');
+    expect(fileInput).not.toHaveClass('w-full');
 
     fireEvent.change(fileInput, {
       target: {

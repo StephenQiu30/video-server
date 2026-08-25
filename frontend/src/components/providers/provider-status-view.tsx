@@ -68,11 +68,7 @@ export function ProviderStatusView() {
           </div>
         ) : null}
         {state.data ? (
-          <ItemGroup
-            aria-label="平台能力状态"
-            asChild
-            className="hairline gap-0 border-y"
-          >
+          <ItemGroup aria-label="平台能力状态" asChild className="gap-0">
             <ul>
               {state.data.items.map((provider) => (
                 <ProviderRow key={provider.key} provider={provider} />
@@ -89,7 +85,7 @@ function ProviderRow({ provider }: { provider: ProviderStatus }) {
   return (
     <Item
       asChild
-      className="hairline grid gap-4 rounded-none border-0 border-b px-0 py-6 last:border-b-0 md:grid-cols-[minmax(10rem,0.8fr)_minmax(18rem,1.4fr)_minmax(12rem,1fr)] md:items-start"
+      className="grid gap-4 rounded-none border-0 px-0 py-6 md:grid-cols-[minmax(10rem,0.8fr)_minmax(18rem,1.4fr)_minmax(12rem,1fr)] md:items-start"
     >
       <li>
         <div>

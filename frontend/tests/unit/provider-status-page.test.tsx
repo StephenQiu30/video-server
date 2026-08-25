@@ -31,10 +31,12 @@ describe('provider status page', () => {
       'page-header',
     );
     const list = screen.getByRole('list', { name: '平台能力状态' });
+    expect(list).not.toHaveClass('border-y', 'hairline');
     const youtube = within(list)
       .getByRole('heading', { name: 'YouTube' })
       .closest('li');
     expect(youtube).not.toBeNull();
+    expect(youtube).not.toHaveClass('border-b', 'hairline');
     expect(youtube).toHaveTextContent('需受控会话');
     const capabilities = within(youtube as HTMLElement).getByText(
       '单视频 · 音视频分离',
