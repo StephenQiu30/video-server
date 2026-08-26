@@ -143,6 +143,12 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         ),
     ),
     FailureRule(
+        "provider_geo_restricted",
+        422,
+        any_stderr=(b"your ip address is blocked from accessing this post",),
+        providers=frozenset({"tiktok"}),
+    ),
+    FailureRule(
         "pot_provider_unavailable",
         503,
         any_stderr=(b"provider unavailable", b"provider failed", b"timed out"),

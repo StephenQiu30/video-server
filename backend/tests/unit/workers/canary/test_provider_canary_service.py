@@ -9,6 +9,7 @@ from app.application.downloads import (
     RunnerFormat,
     RunnerInspection,
 )
+from app.domain.downloads import DownloadPlan
 from app.domain.providers import (
     ProviderAccessContextRef,
     ProviderAccessMode,
@@ -63,19 +64,24 @@ class Runner:
         self.downloaded = False
         self.inspections = 0
         self.download_calls = 0
+        self.download_plans: list[DownloadPlan] = []
 
     async def inspect(self, url: str) -> RunnerInspection:
         assert url == URL
         self.inspections += 1
         if self.fail:
             raise MediaInspectionAuthRequired
-        request = download_request()
+        default_request = download_request()
+        fallback_request = download_request(height=240, width=320)
         return RunnerInspection(
             extractor_key="Vimeo",
             provider_media_id="76979871",
             title="Authorized canary",
             duration_seconds=30,
-            formats=(RunnerFormat("1080p", request.plan.to_domain()),),
+            formats=(
+                RunnerFormat("1080p", default_request.plan.to_domain()),
+                RunnerFormat("240p", fallback_request.plan.to_domain()),
+            ),
             access_context=ProviderAccessContextRef(
                 provider_key="vimeo",
                 profile_version="1",
@@ -90,6 +96,8 @@ class Runner:
 
     async def download(self, *args: object, **kwargs: object) -> RunnerArtifact:
         self.download_calls += 1
+        assert isinstance(args[2], DownloadPlan)
+        self.download_plans.append(args[2])
         if self.download_calls <= self.format_drifts:
             raise MediaRunnerClientError("format_unavailable", 409)
         self.downloaded = True
@@ -128,6 +136,8 @@ async def test_full_canary_downloads_and_cleans_verified_media(tmp_path: Path) -
     assert result.outcome is ProviderCanaryOutcome.SUCCEEDED
     assert result.duration_ms == 250
     assert runner.downloaded is True
+    assert runner.download_plans[0].height == 1080
+    assert runner.download_plans[0].width == 1920
     assert repository.results == [result]
     assert cleaner.calls[0][1] == tmp_path
 

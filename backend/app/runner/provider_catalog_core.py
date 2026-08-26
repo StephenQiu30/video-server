@@ -21,7 +21,7 @@ def _youtube_runtime_args(settings: ProviderRuntimeSettings) -> tuple[str, ...]:
         return ()
     return (
         "--extractor-args",
-        "youtube:player_client=default,mweb",
+        "youtube:player_client=mweb,default",
         "--extractor-args",
         "youtubepot-bgutilhttp:base_url="
         f"{settings.runner_youtube_pot_base_url}",
@@ -52,7 +52,7 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
                 "www.youtube-nocookie.com",
             }
         ),
-        version="youtube-v2",
+        version="youtube-v3",
         capabilities=frozenset(
             {
                 ProviderCapability.SINGLE_VIDEO,

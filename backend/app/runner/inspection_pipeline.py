@@ -96,6 +96,7 @@ class RunnerInspectionPipeline:
                 )
             except RunnerFailure as exc:
                 retryable = exc.code in {
+                    "egress_challenged",
                     "inspection_failed",
                     "provider_rate_limited",
                 }

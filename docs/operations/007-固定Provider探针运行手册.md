@@ -33,6 +33,14 @@ curl --fail http://127.0.0.1:8101/health/ready
 必须恰好有同一 target/version 的 metadata 与 media 两条记录；URL 不会出现在命令
 输出或数据库 canary 行中。
 
+media 阶段必须下载解析结果中的第一项格式，与 Web 界面默认选项保持一致；不得改成
+最低清晰度来缩短探针时间，否则会漏掉真实用户默认格式的签名或客户端兼容问题。
+
+浏览器、API 和重启验收必须从该版本化矩阵取样，不得使用 yt-dlp README、
+extractor 单元测试或其他项目的历史链接代替服务验收样本。上游历史样本下架、
+转私密或对当前出口限制时，只能作为内容级负例，不能用于判定 Provider
+整体不可用。
+
 ```bash
 docker exec video-provider-canary \
   python -m app.workers.canary.fixed_matrix --stage metadata
@@ -70,6 +78,15 @@ metadata 成功不等于可下载；media 成功也不等于 AI 分析完整。�
 小红书固定样本必须使用官方分享/Feed 生成且携带 `xsec_token` 的完整 URL；不得把
 缺少 token 的旧裸 URL 当作当前有效样本。Tumblr 由项目可信插件读取当前 `www`
 公开页，避免 yt-dlp 旧 blog 子域路径的 429。
+
+2026-08-26 重启后复测 YouTube/TikTok/X：metadata 3/3、media 3/3 通过。
+`BaW_jenozKc` 已被 YouTube 下架；TikTok `7206382937372134662` 对当前出口返回
+帖子级 IP 限制，两者都不再作为服务可用性样本。
+
+同日浏览器默认格式端到端复测 3/3 均首次成功，签名下载接口与对象存储文件请求均
+返回 200。最终 Docker 重建后的固定矩阵再次 6/6 通过，其中 YouTube 使用
+`youtube-v3`。挑战型平台的临时 `egress_challenged` 允许按 Provider 配置做有界
+重试；下架、地区/IP 明确限制、认证失败等确定性错误不重试。
 
 ## 4. 更新固定样本
 

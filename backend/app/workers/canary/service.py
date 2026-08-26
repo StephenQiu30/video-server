@@ -194,10 +194,10 @@ class ProviderCanaryService:
         for attempt in range(_FORMAT_DRIFT_ATTEMPTS):
             if not inspection.formats:
                 raise MediaRunnerClientError("format_unavailable", 409)
-            canary_format = min(
-                inspection.formats,
-                key=lambda item: (item.plan.height, item.plan.width),
-            )
+            # The browser selects the first advertised format by default. Keep
+            # the media canary on the same path so it detects regressions in
+            # the format most users actually download.
+            canary_format = inspection.formats[0]
             try:
                 artifact = await self._runner.download(
                     task_id,

@@ -174,6 +174,25 @@ async def test_inspection_classifies_tiktok_webpage_challenge(tmp_path: Path) ->
 
 
 @pytest.mark.asyncio
+async def test_inspection_classifies_tiktok_post_ip_restriction(tmp_path: Path) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(
+            b"ERROR: Your IP address is blocked from accessing this post"
+        ),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect(
+            "https://www.tiktok.com/@creator/video/123",
+            tmp_path,
+        )
+
+    assert caught.value.code == "provider_geo_restricted"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
 async def test_inspection_classifies_reddit_account_requirement(tmp_path: Path) -> None:
     commands = MediaCommands(
         settings(tmp_path),
@@ -221,7 +240,7 @@ async def test_youtube_uses_service_managed_pot_without_cookies(tmp_path: Path) 
 
     await commands.inspect("https://www.youtube.com/watch?v=owned", tmp_path)
 
-    assert "youtube:player_client=default,mweb" in supervisor.argv
+    assert "youtube:player_client=mweb,default" in supervisor.argv
     assert (
         "youtubepot-bgutilhttp:base_url=http://youtube-pot-provider:4416"
         in supervisor.argv
