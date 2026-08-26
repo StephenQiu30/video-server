@@ -28,7 +28,7 @@ app/
 
 Media Runner 通过 `app/runner/plugins/yt_dlp_plugins/` 加载随项目交付的可信站点提取器。MediaTrack 适配仅处理无需登录的公开审片视频和 API 明确授权的播放转码；抖音适配用数字视频 ID 构造固定公开分享页并修正 landscape 下载规格的短边尺寸语义，快手适配把公开作品规范化到第一方移动分享页并限制短链重定向域，Tumblr 适配优先读取当前 `www.tumblr.com` 公开页而不强制改写到旧 blog 子域。所有适配都继续经过受控代理、作品身份校验、大小/时长限制、重新 inspect、FFmpeg 和 ffprobe 校验，不跨平台复用运维 Cookie，不支持图集截断、账号内容、无水印承诺或原文件权限绕过。
 
-主流视频源通过 `app/runner/provider_registry.py` 与 `app/runner/provider_catalog.py` 采用版本化 Profile + Registry 统一匹配；`provider_urls.py` 只保留兼容入口，未知站点使用无凭据的 yt-dlp Generic extractor。新增平台应先确认 extractor，再补 Profile、能力状态、错误 marker 与 metadata + media canary。YouTube、TikTok、抖音、小红书与 Reddit 运维会话分别在物理隔离的 Docker Runner 中从各自只读 Secret 建立操作级 `0600` Cookie jar；匿名与其他 Provider 命令不携带 Cookie。平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 key 指向受控内部代理。
+主流视频源使用声明式 Provider Profile 接入：`provider_catalog_*.py` 按策略族登记能力和运行参数，`ProviderRegistry.prepare()` 一次解析得到贯穿 inspect/download 的不可变 `ProviderRequest`，`YtDlpCommandBuilder` 只消费该请求生成固定参数，错误由有序 `FailureRule` 归一化。已有 yt-dlp extractor 的公开单视频平台通常只需增加一个 Profile、契约测试和 metadata/media canary；需要自定义解析时再按 yt-dlp 官方插件目录增加可信 extractor，不修改通用命令执行器。未知站点使用无凭据 Generic extractor。YouTube、TikTok、抖音、小红书与 Reddit 运维会话分别在物理隔离的 Docker Runner 中从各自只读 Secret 建立操作级 `0600` Cookie jar；匿名与其他 Provider 命令不携带 Cookie。平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 key 指向受控内部代理。
 
 macOS 浏览器 Cookie 由 Keychain 加密，Linux 容器不能通过挂载 Chrome Profile 直接复用。请在 `backend/` 使用一次性导出器按 Provider 生成最小 Cookie Secret，再由 Compose 只读挂载；无需 launchd 或宿主机常驻 Runner：
 

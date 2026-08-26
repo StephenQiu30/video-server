@@ -1,13 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-import base64
-import math
 from dataclasses import replace
 from pathlib import Path
-from urllib.parse import urljoin
-
-import httpx
 
 from app.domain.downloads import FormatSelectionError, ProviderHints, select_streams
 from app.domain.providers import ProviderAccessContextRef
@@ -24,25 +19,18 @@ from app.runner.contracts import (
     SelectedStreamsContract,
     TaskStatusResponse,
 )
-from app.runner.entitlements import enforce_media_rights
 from app.runner.errors import RunnerFailure
+from app.runner.inspection_pipeline import RunnerInspectionPipeline
 from app.runner.metadata import (
-    MediaInspection,
     build_download_options,
-    enrich_direct_metadata,
-    enrich_format_metadata,
-    normalize_selected_format_metadata,
 )
 from app.runner.presentation import inspect_response
+from app.runner.provider_registry import ProviderRequest, provider_request
 from app.runner.provider_sessions import ProviderSessionStore
-from app.runner.provider_urls import (
-    provider_inspection_attempts,
-    provider_inspection_retry_delay,
-)
 from app.runner.settings import RunnerSettings
+from app.runner.thumbnails import ThumbnailFetcher
 from app.runner.utilities import (
     file_sha256,
-    normalize_for_settings,
     require_source_identity,
     safe_media_url,
 )
@@ -53,8 +41,6 @@ from app.runner.workspace import (
     WorkspaceManager,
     WorkspaceViolation,
 )
-
-_MAX_PROBE_SAMPLE_ATTEMPTS = 8
 
 
 class MediaRunnerService:
@@ -69,6 +55,8 @@ class MediaRunnerService:
             settings,
             supervisor or default_supervisor(settings),
         )
+        self._inspection = RunnerInspectionPipeline(settings, self._commands)
+        self._thumbnails = ThumbnailFetcher(settings)
         self._workspaces = WorkspaceManager(
             settings.runner_workspace_root,
             WorkspaceLimits(
@@ -82,7 +70,8 @@ class MediaRunnerService:
 
     async def inspect(self, url: str) -> InspectResponse:
         safe_url = safe_media_url(url)
-        context = self._sessions.context_for(safe_url)
+        source = provider_request(safe_url)
+        context = self._sessions.context_for(source.profile)
         workspace = self._workspaces.create("inspect")
         try:
             try:
@@ -90,8 +79,8 @@ class MediaRunnerService:
                     self._settings.runner_inspect_timeout_seconds
                 ):
                     async with self._sessions.operation(context) as cookie_jar:
-                        inspection = await self._inspect_source(
-                            safe_url,
+                        inspection = await self._inspection.inspect(
+                            source,
                             workspace,
                             context=context,
                             cookie_jar=cookie_jar,
@@ -102,9 +91,9 @@ class MediaRunnerService:
                         )
                         if not plans:
                             raise RunnerFailure("format_unavailable", status=409)
-                        thumbnail_data_url = await self._thumbnail_data_url(
+                        thumbnail_data_url = await self._thumbnails.fetch(
                             inspection.thumbnail_urls,
-                            referer=safe_url,
+                            referer=source.source_url,
                             egress_proxy=self._settings.egress_proxy_for(
                                 context.provider_key
                             ),
@@ -129,8 +118,9 @@ class MediaRunnerService:
         succeeded = False
         try:
             safe_url = safe_media_url(request.url)
+            source = provider_request(safe_url)
             context = self._sessions.validate_context(
-                safe_url,
+                source.profile,
                 request.access_context.to_domain(),
             )
             workspace = self._workspaces.create(request.task_id)
@@ -138,7 +128,7 @@ class MediaRunnerService:
                 async with self._sessions.operation(context) as cookie_jar:
                     response = await self._download_in_workspace(
                         request,
-                        safe_url,
+                        source,
                         workspace,
                         context=context,
                         cookie_jar=cookie_jar,
@@ -174,14 +164,14 @@ class MediaRunnerService:
     async def _download_in_workspace(
         self,
         request: DownloadRequest,
-        safe_url: str,
+        source: ProviderRequest,
         workspace: TaskWorkspace,
         *,
         context: ProviderAccessContextRef,
         cookie_jar: Path | None,
     ) -> DownloadResponse:
-        inspection = await self._inspect_source(
-            safe_url,
+        inspection = await self._inspection.inspect(
+            source,
             workspace,
             context=context,
             cookie_jar=cookie_jar,
@@ -206,7 +196,7 @@ class MediaRunnerService:
         total_streams = 1 if selection.audio is None else 2
         self._active.update(request.task_id, RunnerTaskStage.DOWNLOADING, 10)
         await self._commands.download_stream(
-            safe_url,
+            source,
             selection.video.provider_id,
             inputs[0],
             workspace.path,
@@ -218,7 +208,7 @@ class MediaRunnerService:
         if selection.audio is not None:
             inputs.append(workspace.path / "audio.input")
             await self._commands.download_stream(
-                safe_url,
+                source,
                 selection.audio.provider_id,
                 inputs[1],
                 workspace.path,
@@ -273,298 +263,3 @@ class MediaRunnerService:
                 output_container=selection.output_container,
             ),
         )
-
-    async def _inspect_source(
-        self,
-        safe_url: str,
-        workspace: TaskWorkspace,
-        *,
-        context: ProviderAccessContextRef,
-        cookie_jar: Path | None,
-    ) -> MediaInspection:
-        attempts = provider_inspection_attempts(safe_url)
-        retry_delay = provider_inspection_retry_delay(safe_url)
-        for attempt in range(attempts):
-            try:
-                payload = await self._commands.inspect(
-                    safe_url,
-                    workspace.path,
-                    cookie_jar=cookie_jar,
-                )
-                break
-            except RunnerFailure as exc:
-                retryable = exc.code in {
-                    "inspection_failed",
-                    "provider_rate_limited",
-                }
-                if not retryable or attempt == attempts - 1:
-                    raise
-                await asyncio.sleep(retry_delay)
-        enforce_media_rights(
-            payload,
-            provider_key=context.provider_key,
-            access_mode=context.access_mode,
-        )
-        payload = normalize_selected_format_metadata(payload)
-        if payload.get("direct") is True and cookie_jar is None:
-            probe = await self._commands.probe_remote(
-                safe_url,
-                workspace.path,
-                referer=safe_url,
-            )
-            payload = enrich_direct_metadata(payload, probe)
-        # Some extractors (for example Tencent Video) return only signed media
-        # URLs during the initial pass. Probe those URLs before validating the
-        # top-level metadata so duration and codec fields can be recovered.
-        duration = payload.get("duration")
-        if not isinstance(duration, (int, float)) or duration <= 0:
-            payload = await self._enrich_sparse_formats(
-                payload,
-                workspace,
-                referer=safe_url,
-                cookie_jar=cookie_jar,
-            )
-        try:
-            inspection = normalize_for_settings(payload, self._settings)
-        except RunnerFailure as exc:
-            if exc.code != "format_unavailable":
-                raise
-            inspection = None
-        if inspection is not None and build_download_options(
-            inspection.streams,
-            max_options=1,
-        ):
-            return inspection
-        enriched = await self._enrich_sparse_formats(
-            payload,
-            workspace,
-            referer=safe_url,
-            cookie_jar=cookie_jar,
-        )
-        try:
-            inspection = normalize_for_settings(enriched, self._settings)
-        except RunnerFailure as exc:
-            if exc.code != "format_unavailable":
-                raise
-            inspection = None
-        if inspection is not None and build_download_options(
-            inspection.streams,
-            max_options=1,
-        ):
-            return inspection
-        sampled = await self._enrich_from_probe_sample(
-            enriched,
-            safe_url,
-            workspace,
-            cookie_jar=cookie_jar,
-        )
-        return normalize_for_settings(sampled, self._settings)
-
-    async def _enrich_sparse_formats(
-        self,
-        payload: dict[str, object],
-        workspace: TaskWorkspace,
-        *,
-        referer: str,
-        cookie_jar: Path | None,
-    ) -> dict[str, object]:
-        if cookie_jar is not None:
-            return payload
-        formats = payload.get("formats")
-        if not isinstance(formats, list):
-            return payload
-
-        candidates: list[tuple[int, dict[str, object], str]] = []
-        for index, value in enumerate(formats):
-            if not isinstance(value, dict):
-                continue
-            url = value.get("url")
-            if isinstance(url, str):
-                candidates.append((index, value, url))
-            if len(candidates) == 12:
-                break
-        semaphore = asyncio.Semaphore(4)
-
-        async def enrich(
-            index: int,
-            raw: dict[str, object],
-            url: str,
-        ) -> tuple[int, dict[str, object], float | None]:
-            try:
-                media_url = safe_media_url(url)
-                async with semaphore:
-                    probe = await self._commands.probe_remote(
-                        media_url,
-                        workspace.path,
-                        referer=referer,
-                    )
-                return index, enrich_format_metadata(raw, probe), _probe_duration(probe)
-            except (RunnerFailure, ValueError):
-                return index, raw, None
-
-        results = await asyncio.gather(
-            *(enrich(index, raw, url) for index, raw, url in candidates)
-        )
-        enriched_formats = list(formats)
-        probed_duration: float | None = None
-        for index, enriched, duration in results:
-            enriched_formats[index] = enriched
-            if probed_duration is None and duration is not None:
-                probed_duration = duration
-        enriched_payload = dict(payload)
-        enriched_payload["formats"] = enriched_formats
-        if probed_duration is not None:
-            enriched_payload["duration"] = probed_duration
-        return enriched_payload
-
-    async def _enrich_from_probe_sample(
-        self,
-        payload: dict[str, object],
-        source_url: str,
-        workspace: TaskWorkspace,
-        *,
-        cookie_jar: Path | None,
-    ) -> dict[str, object]:
-        formats = payload.get("formats")
-        if not isinstance(formats, list):
-            return payload
-        candidates: list[tuple[int, dict[str, object], int]] = []
-        for index, value in enumerate(formats):
-            if not isinstance(value, dict):
-                continue
-            provider_id = value.get("format_id")
-            size = value.get("filesize") or value.get("filesize_approx")
-            if not isinstance(provider_id, str) or not isinstance(size, (int, float)):
-                continue
-            size_bytes = int(size)
-            if 0 < size_bytes <= self._settings.runner_max_probe_sample_bytes:
-                candidates.append((index, value, size_bytes))
-        candidates.sort(key=lambda item: item[2])
-
-        output = workspace.path / "format-probe.input"
-        for index, raw, _ in candidates[:_MAX_PROBE_SAMPLE_ATTEMPTS]:
-            try:
-                await self._commands.download_probe_sample(
-                    source_url,
-                    str(raw["format_id"]),
-                    output,
-                    workspace.path,
-                    cookie_jar=cookie_jar,
-                )
-                probe = await self._commands.probe(output, workspace.path)
-                enriched_formats = list(formats)
-                enriched_formats[index] = enrich_format_metadata(raw, probe)
-                enriched_payload = dict(payload)
-                enriched_payload["formats"] = enriched_formats
-                return enriched_payload
-            except (RunnerFailure, OSError):
-                continue
-            finally:
-                output.unlink(missing_ok=True)
-        return payload
-
-    async def _thumbnail_data_url(
-        self,
-        thumbnail_urls: tuple[str, ...],
-        *,
-        referer: str,
-        egress_proxy: str,
-    ) -> str | None:
-        if not thumbnail_urls:
-            return None
-        headers = {
-            "Accept": "image/avif,image/webp,image/png,image/jpeg;q=0.9,*/*;q=0.5",
-            "Referer": referer,
-            "User-Agent": "Mozilla/5.0 (compatible; VideoDownloader/1.0)",
-        }
-        timeout = min(self._settings.runner_inspect_timeout_seconds, 15)
-        try:
-            async with httpx.AsyncClient(
-                proxy=egress_proxy,
-                follow_redirects=False,
-                timeout=timeout,
-                trust_env=False,
-            ) as client:
-                for thumbnail_url in thumbnail_urls:
-                    for attempt in range(2):
-                        try:
-                            result, retryable = await self._fetch_thumbnail_candidate(
-                                client,
-                                thumbnail_url,
-                                headers=headers,
-                            )
-                        except (httpx.HTTPError, RunnerFailure, ValueError):
-                            result, retryable = None, True
-                        if result is not None:
-                            return result
-                        if not retryable or attempt == 1:
-                            break
-                        await asyncio.sleep(0.25)
-        except (httpx.HTTPError, RunnerFailure, ValueError):
-            return None
-        return None
-
-    async def _fetch_thumbnail_candidate(
-        self,
-        client: httpx.AsyncClient,
-        thumbnail_url: str,
-        *,
-        headers: dict[str, str],
-    ) -> tuple[str | None, bool]:
-        current_url = thumbnail_url
-        for _ in range(4):
-            safe_media_url(current_url)
-            async with client.stream("GET", current_url, headers=headers) as response:
-                if response.is_redirect:
-                    location = response.headers.get("location")
-                    if not location:
-                        return None, False
-                    current_url = urljoin(current_url, location)
-                    continue
-                if response.status_code != 200:
-                    return None, response.status_code in {
-                        408,
-                        425,
-                        429,
-                        500,
-                        502,
-                        503,
-                        504,
-                    }
-                content_type = response.headers.get("content-type", "")
-                media_type = content_type.split(";", 1)[0].strip().lower()
-                if media_type not in {
-                    "image/avif",
-                    "image/jpeg",
-                    "image/png",
-                    "image/webp",
-                }:
-                    return None, False
-                content_length = response.headers.get("content-length")
-                if (
-                    content_length is not None
-                    and int(content_length)
-                    > self._settings.runner_max_thumbnail_bytes
-                ):
-                    return None, False
-                content = bytearray()
-                async for chunk in response.aiter_bytes():
-                    content.extend(chunk)
-                    if len(content) > self._settings.runner_max_thumbnail_bytes:
-                        return None, False
-                if not content:
-                    return None, False
-                encoded = base64.b64encode(content).decode("ascii")
-                return f"data:{media_type};base64,{encoded}", False
-        return None, False
-
-
-def _probe_duration(probe: dict[str, object]) -> float | None:
-    format_info = probe.get("format")
-    if not isinstance(format_info, dict):
-        return None
-    try:
-        duration = float(format_info.get("duration"))  # type: ignore[arg-type]
-    except (TypeError, ValueError):
-        return None
-    return duration if math.isfinite(duration) and duration > 0 else None

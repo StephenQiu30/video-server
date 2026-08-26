@@ -5,18 +5,20 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from app.domain.downloads import Container
-from app.domain.providers import ProviderAccessMode
 from app.runner.command_support import child_environment, json_object
 from app.runner.errors import RunnerFailure
 from app.runner.process import ProcessResult, ProcessTimeoutError
-from app.runner.provider_errors import classify_provider_failure
-from app.runner.provider_registry import provider_profile
-from app.runner.provider_urls import provider_command_args, provider_request_url
+from app.runner.provider_errors import (
+    ProviderFailureContext,
+    classify_provider_failure,
+)
+from app.runner.provider_registry import ProviderRequest, provider_request
 from app.runner.settings import RunnerSettings
 from app.runner.workspace_monitor import (
     WorkspaceLimitExceeded,
     run_with_workspace_limit,
 )
+from app.runner.yt_dlp_commands import YtDlpCommandBuilder
 
 _YTDLP_PLUGIN_ROOT = Path(__file__).resolve().parent
 _REMOTE_PROBE_USER_AGENT = (
@@ -41,26 +43,24 @@ class MediaCommands:
     def __init__(self, settings: RunnerSettings, supervisor: ProcessRunner) -> None:
         self._settings = settings
         self._supervisor = supervisor
+        self._ytdlp = YtDlpCommandBuilder(settings, _YTDLP_PLUGIN_ROOT)
 
     async def inspect(
-        self, url: str, cwd: Path, *, cookie_jar: Path | None = None
+        self,
+        source: str | ProviderRequest,
+        cwd: Path,
+        *,
+        cookie_jar: Path | None = None,
     ) -> dict[str, Any]:
-        egress_proxy = self._egress_proxy(url)
-        command: tuple[str, ...] = (
-            *self._ytdlp_base(egress_proxy, url, cookie_jar),
-            "--dump-single-json",
-            "--skip-download",
-            *provider_command_args(url),
-            "--",
-            provider_request_url(url),
-        )
+        command = self._ytdlp.inspect(source, cookie_jar=cookie_jar)
         result = await self._run(
-            command,
+            command.argv,
             cwd,
             self._settings.runner_inspect_timeout_seconds,
             timeout_code="inspection_timeout",
             failure_code="inspection_failed",
-            egress_proxy=egress_proxy,
+            egress_proxy=command.egress_proxy,
+            failure_context=command.failure_context,
         )
         return json_object(result.stdout, "invalid_inspection_response")
 
@@ -100,68 +100,58 @@ class MediaCommands:
 
     async def download_stream(
         self,
-        url: str,
+        source: str | ProviderRequest,
         provider_id: str,
         output: Path,
         cwd: Path,
         *,
         cookie_jar: Path | None = None,
     ) -> None:
-        egress_proxy = self._egress_proxy(url)
-        command = (
-            *self._ytdlp_base(egress_proxy, url, cookie_jar),
-            "--format",
+        command = self._ytdlp.download(
+            source,
             provider_id,
-            "--max-filesize",
-            str(self._settings.runner_max_output_bytes),
-            "--output",
-            str(output),
-            *provider_command_args(url),
-            "--",
-            provider_request_url(url),
+            output,
+            max_bytes=self._settings.runner_max_output_bytes,
+            cookie_jar=cookie_jar,
         )
         await self._run(
-            command,
+            command.argv,
             cwd,
             self._settings.runner_download_timeout_seconds,
             timeout_code="download_timeout",
             failure_code="download_failed",
             monitor_workspace=True,
-            egress_proxy=egress_proxy,
+            egress_proxy=command.egress_proxy,
+            failure_context=command.failure_context,
         )
         if not output.is_file() or output.is_symlink():
             raise RunnerFailure("download_failed", status=502)
 
     async def download_probe_sample(
         self,
-        url: str,
+        source: str | ProviderRequest,
         provider_id: str,
         output: Path,
         cwd: Path,
         *,
         cookie_jar: Path | None = None,
     ) -> None:
-        egress_proxy = self._egress_proxy(url)
-        command = (
-            *self._ytdlp_base(egress_proxy, url, cookie_jar),
-            "--format",
+        command = self._ytdlp.download(
+            source,
             provider_id,
-            "--max-filesize",
-            str(self._settings.runner_max_probe_sample_bytes),
-            "--output",
-            str(output),
-            *provider_command_args(url),
-            "--",
-            provider_request_url(url),
+            output,
+            max_bytes=self._settings.runner_max_probe_sample_bytes,
+            cookie_jar=cookie_jar,
         )
         await self._run(
-            command,
+            command.argv,
             cwd,
             self._settings.runner_inspect_timeout_seconds,
             timeout_code="inspection_timeout",
             failure_code="inspection_failed",
             monitor_workspace=True,
-            egress_proxy=egress_proxy,
+            egress_proxy=command.egress_proxy,
+            failure_context=command.failure_context,
         )
         if not output.is_file() or output.is_symlink():
             raise RunnerFailure("inspection_failed", status=502)
@@ -230,6 +220,7 @@ class MediaCommands:
         failure_code: str,
         monitor_workspace: bool = False,
         egress_proxy: str | None = None,
+        failure_context: ProviderFailureContext | None = None,
     ) -> ProcessResult:
         selected_proxy = egress_proxy or self._settings.runner_egress_proxy
         try:
@@ -257,7 +248,11 @@ class MediaCommands:
         except OSError as exc:
             raise RunnerFailure("runner_dependency_unavailable", status=503) from exc
         if result.returncode != 0:
-            provider_failure = classify_provider_failure(command, result.stderr)
+            provider_failure = (
+                classify_provider_failure(failure_context, result.stderr)
+                if failure_context is not None
+                else None
+            )
             if provider_failure is not None:
                 code, status = provider_failure
                 raise RunnerFailure(code, status=status)
@@ -265,52 +260,4 @@ class MediaCommands:
         return result
 
     def _egress_proxy(self, url: str) -> str:
-        return self._settings.egress_proxy_for(provider_profile(url).key)
-
-    def _ytdlp_base(
-        self,
-        egress_proxy: str,
-        url: str,
-        cookie_jar: Path | None,
-    ) -> tuple[str, ...]:
-        profile = provider_profile(url)
-        if (
-            cookie_jar is not None
-            and ProviderAccessMode.OPERATOR_MANAGED not in profile.access_modes
-        ):
-            raise RunnerFailure("provider_session_not_allowed", status=422)
-        command: tuple[str, ...] = (
-            self._settings.runner_ytdlp_bin,
-            "--ignore-config",
-            "--plugin-dirs",
-            str(_YTDLP_PLUGIN_ROOT),
-            "--no-playlist",
-            "--no-warnings",
-            "--no-progress",
-            "--retries",
-            "3",
-            "--fragment-retries",
-            "3",
-            "--extractor-retries",
-            "3",
-            "--js-runtimes",
-            self._settings.runner_ytdlp_js_runtime,
-            "--proxy",
-            egress_proxy,
-        )
-        if cookie_jar is not None:
-            command += ("--cookies", str(cookie_jar))
-        if profile.key == "tiktok" and self._settings.runner_tiktok_device_id:
-            command += (
-                "--extractor-args",
-                f"tiktok:device_id={self._settings.runner_tiktok_device_id}",
-            )
-        if profile.key == "youtube" and self._settings.runner_youtube_pot_base_url:
-            command += (
-                "--extractor-args",
-                "youtube:player_client=default,mweb",
-                "--extractor-args",
-                "youtubepot-bgutilhttp:base_url="
-                f"{self._settings.runner_youtube_pot_base_url}",
-            )
-        return command
+        return self._settings.egress_proxy_for(provider_request(url).profile.key)

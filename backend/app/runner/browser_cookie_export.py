@@ -17,7 +17,7 @@ from typing import cast
 from yt_dlp import YoutubeDL  # type: ignore[import-untyped]
 
 from app.domain.providers import ProviderAccessMode
-from app.runner.provider_registry import DEFAULT_PROVIDER_REGISTRY, ProviderProfile
+from app.runner.provider_registry import ProviderProfile, default_provider_registry
 
 _VERSION = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
 _AUTH_COOKIE_NAMES = {
@@ -144,7 +144,7 @@ def _load_browser_cookies(browser: str, profile: str | None) -> CookieJar:
 
 
 def _operator_profile(provider: str) -> ProviderProfile:
-    for profile in DEFAULT_PROVIDER_REGISTRY.profiles:
+    for profile in default_provider_registry().profiles:
         if profile.key == provider:
             if ProviderAccessMode.OPERATOR_MANAGED not in profile.access_modes:
                 break

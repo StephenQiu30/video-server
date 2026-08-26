@@ -119,6 +119,35 @@ flowchart LR
 
 现有 Profile 扩展为版本化、静态审计的描述，不从用户请求构造命令参数。
 
+### 6.0 当前代码结构与扩展模式
+
+平台执行面采用组合而非平台子类继承：
+
+1. **Strategy**：`ProviderProfile` 组合 URL normalizer、固定参数、运行时参数、重试和能力策略。
+2. **Registry / Factory**：`ProviderRegistry.prepare()` 校验唯一 key/host，并把一次 URL 解析冻结为 `ProviderRequest`；同一操作不再反复按 URL 猜平台。
+3. **Builder**：`YtDlpCommandBuilder` 统一生成 inspect、正式下载和 probe sample 命令，通用执行器不包含 YouTube/TikTok 平台分支。
+4. **Chain of Responsibility**：有序 `FailureRule` 先匹配通用安全错误，再匹配 Provider marker，输出稳定错误码。
+5. **Template Pipeline**：`RunnerInspectionPipeline` 固定执行重试、权益校验、稀疏 metadata 补全和格式归一化；`MediaRunnerService` 只编排工作区、会话、下载、remux 和验证。
+
+```mermaid
+flowchart LR
+    U["安全 URL"] --> R["ProviderRegistry.prepare"]
+    R --> Q["ProviderRequest"]
+    Q --> S["Session / Access Context"]
+    Q --> I["RunnerInspectionPipeline"]
+    I --> B["YtDlpCommandBuilder"]
+    B --> P["受限子进程"]
+    P --> F["FailureRule chain"]
+    I --> O["语义格式选项"]
+    O --> D["重解析 / 下载 / remux / ffprobe"]
+```
+
+新增接入分三类：
+
+- yt-dlp 已有 extractor 的公开单视频：新增一个 Profile、URL/错误契约测试和匿名 metadata/media canary，不修改命令执行器。
+- 需要 URL 规范化或固定 extractor args：在 Profile 组合纯 normalizer/runtime-args 策略，用户输入仍不能产生任意参数。
+- yt-dlp 无 extractor：按官方 `yt_dlp_plugins.extractor` 机制增加仓库可信插件及独立 fixture 测试，再登记 Profile；多条目、直播、DRM 或新权益边界必须先扩展领域模型，不能伪装成单视频平台。
+
 ```text
 key / version / display_name / hosts / engine
 url_normalizer / redirect_policy

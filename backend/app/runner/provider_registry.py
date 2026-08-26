@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from typing import Protocol
 from urllib.parse import SplitResult, urlsplit
 
 from app.domain.providers import (
@@ -30,8 +31,22 @@ UNSUPPORTED_PROVIDER_DOMAINS = frozenset(
 UrlNormalizer = Callable[[str, SplitResult], str]
 
 
-def _identity(url: str, _parsed: SplitResult) -> str:
+class ProviderRuntimeSettings(Protocol):
+    runner_tiktok_device_id: str | None
+    runner_youtube_pot_base_url: str | None
+
+
+RuntimeCommandArgs = Callable[[ProviderRuntimeSettings], tuple[str, ...]]
+
+
+def identity_url(url: str, _parsed: SplitResult) -> str:
     return url
+
+
+def default_runtime_command_args(
+    _settings: ProviderRuntimeSettings,
+) -> tuple[str, ...]:
+    return ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,12 +68,27 @@ class ProviderProfile:
     canary_suite: str = "anonymous-metadata-range"
     error_policy_id: str = "yt-dlp-stable-v2"
     command_args: tuple[str, ...] = ()
+    runtime_command_args: RuntimeCommandArgs = default_runtime_command_args
     inspection_attempts: int = 2
     inspection_retry_delay: float = 1.0
-    normalize_url: UrlNormalizer = _identity
+    normalize_url: UrlNormalizer = identity_url
 
     def request_url(self, url: str, parsed: SplitResult) -> str:
         return self.normalize_url(url, parsed)
+
+    def command_args_for(
+        self, settings: ProviderRuntimeSettings
+    ) -> tuple[str, ...]:
+        return (*self.command_args, *self.runtime_command_args(settings))
+
+
+@dataclass(frozen=True, slots=True)
+class ProviderRequest:
+    """One resolved provider strategy reused throughout an operation."""
+
+    source_url: str
+    request_url: str
+    profile: ProviderProfile
 
 
 class ProviderRegistry:
@@ -72,7 +102,11 @@ class ProviderRegistry:
     ) -> None:
         configured = tuple(profiles)
         by_host: dict[str, ProviderProfile] = {}
+        keys: set[str] = set()
         for profile in configured:
+            if profile.key in keys:
+                raise ValueError(f"provider key is registered twice: {profile.key}")
+            keys.add(profile.key)
             if not profile.hosts:
                 raise ValueError(f"provider {profile.key} must declare hosts")
             if profile.inspection_attempts < 1 or profile.inspection_retry_delay < 0:
@@ -123,29 +157,50 @@ class ProviderRegistry:
             else self._by_host.get(hostname, self._fallback)
         )
 
+    def prepare(self, url: str) -> ProviderRequest:
+        profile = self.resolve(url)
+        return ProviderRequest(
+            source_url=url,
+            request_url=profile.request_url(url, urlsplit(url)),
+            profile=profile,
+        )
 
-from app.runner.provider_catalog import DEFAULT_PROVIDER_PROFILES  # noqa: E402
 
-DEFAULT_PROVIDER_REGISTRY = ProviderRegistry(DEFAULT_PROVIDER_PROFILES)
-_ACTIVE_PROVIDER_REGISTRY = DEFAULT_PROVIDER_REGISTRY
+_DEFAULT_PROVIDER_REGISTRY: ProviderRegistry | None = None
+_ACTIVE_PROVIDER_REGISTRY: ProviderRegistry | None = None
+
+
+def default_provider_registry() -> ProviderRegistry:
+    global _DEFAULT_PROVIDER_REGISTRY
+    if _DEFAULT_PROVIDER_REGISTRY is None:
+        from app.runner.provider_catalog import DEFAULT_PROVIDER_PROFILES
+
+        _DEFAULT_PROVIDER_REGISTRY = ProviderRegistry(DEFAULT_PROVIDER_PROFILES)
+    return _DEFAULT_PROVIDER_REGISTRY
 
 
 def configure_provider_instances(peertube_hosts: frozenset[str]) -> None:
     """Replace the process-local registry during startup only."""
     global _ACTIVE_PROVIDER_REGISTRY
     if not peertube_hosts:
-        _ACTIVE_PROVIDER_REGISTRY = DEFAULT_PROVIDER_REGISTRY
+        _ACTIVE_PROVIDER_REGISTRY = None
         return
     from app.runner.provider_catalog_incremental import peertube_profile
     from app.runner.provider_instances import validated_instance_hosts
 
     profile = peertube_profile(validated_instance_hosts(peertube_hosts))
-    _ACTIVE_PROVIDER_REGISTRY = ProviderRegistry((*DEFAULT_PROVIDER_PROFILES, profile))
+    _ACTIVE_PROVIDER_REGISTRY = ProviderRegistry(
+        (*default_provider_registry().profiles, profile)
+    )
 
 
 def current_provider_registry() -> ProviderRegistry:
-    return _ACTIVE_PROVIDER_REGISTRY
+    return _ACTIVE_PROVIDER_REGISTRY or default_provider_registry()
 
 
 def provider_profile(url: str) -> ProviderProfile:
-    return _ACTIVE_PROVIDER_REGISTRY.resolve(url)
+    return current_provider_registry().resolve(url)
+
+
+def provider_request(url: str) -> ProviderRequest:
+    return current_provider_registry().prepare(url)

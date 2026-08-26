@@ -41,6 +41,8 @@
 ### 交付
 
 - 扩展 `ProviderProfile`：capability、access mode、Cookie 域、client、attestation、出口、并发、重试、错误映射和 canary。
+- 将平台目录拆为按策略族组织的声明式 Profile；URL normalizer、平台运行参数和错误 marker 不再散落在通用命令执行器。
+- 以 `ProviderRequest`、`YtDlpCommandBuilder`、有序 `FailureRule` 和 `RunnerInspectionPipeline` 固化 Registry → inspect → download 流水线。
 - 新增不可变 `ProviderAccessContextRef`，贯穿 inspection、持久化计划和 Runner download 请求。
 - 拆分 credential、POT、egress challenge、rate limit、geo、private/entitlement、DRM、extractor regression 和 media URL expiry。
 - 修复 download execution mapping，未知 `provider_*` 不再降为 `worker_lost`。

@@ -637,7 +637,7 @@ async def test_inspect_fetches_a_bounded_thumbnail_through_the_proxy(
         clients.append(client)
         return client
 
-    monkeypatch.setattr("app.runner.service.httpx.AsyncClient", client_factory)
+    monkeypatch.setattr("app.runner.thumbnails.httpx.AsyncClient", client_factory)
     service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
 
     response = await service.inspect("https://media.example.com/video")
@@ -664,7 +664,7 @@ async def test_inspect_uses_the_next_thumbnail_candidate_when_the_first_is_inval
         proxy="unused",
     )
     monkeypatch.setattr(
-        "app.runner.service.httpx.AsyncClient",
+        "app.runner.thumbnails.httpx.AsyncClient",
         lambda **_: client,
     )
     service = MediaRunnerService(settings(tmp_path), supervisor=FixtureSupervisor(info))
@@ -696,10 +696,10 @@ async def test_inspect_retries_a_transient_thumbnail_response_once(
         delays.append(delay)
 
     monkeypatch.setattr(
-        "app.runner.service.httpx.AsyncClient",
+        "app.runner.thumbnails.httpx.AsyncClient",
         lambda **_: client,
     )
-    monkeypatch.setattr("app.runner.service.asyncio.sleep", record_sleep)
+    monkeypatch.setattr("app.runner.thumbnails.asyncio.sleep", record_sleep)
     service = MediaRunnerService(settings(tmp_path), supervisor=FixtureSupervisor(info))
 
     response = await service.inspect("https://media.example.com/video")

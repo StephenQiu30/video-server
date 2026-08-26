@@ -6,6 +6,7 @@
 
 - [前端视觉系统](design/frontend-visual-system.md)：Next.js、Vercel/Geist 无边框视觉、响应式和可访问性规范。
 - [媒体解析策略](design/media-source-strategy.md)：解析责任链、错误优先级、封面认证交付与浏览器会话桥接。
+- [Provider 接入架构重构调研](research/008-Provider接入架构重构调研.md)：yt-dlp 官方扩展边界、现有耦合和声明式接入结论。
 - [`design/`](design/)：尚未完成或仍需持续维护的设计事实。
 - [`prd/`](prd/)：当前需求与产品边界。
 - [`plans/`](plans/)：仍在执行的交付计划。

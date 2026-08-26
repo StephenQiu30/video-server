@@ -182,6 +182,8 @@ Phase 2 不因本文存在而自动获得上线授权；必须完成对应验收
 - OpenAPI 是前后端唯一契约；用户不能控制引擎命令。
 - yt-dlp、EJS、POT Provider、gallery-dl 和可信插件全部固定 commit/version，并记录许可证与 SBOM。
 - Profile 和错误 marker 有单元/契约测试；真实平台 canary 与普通 CI 解耦。
+- 已有 yt-dlp extractor 的公开单视频 Provider 接入不得要求修改通用命令执行器；平台差异必须组合在版本化 Profile、URL policy 和错误规则中。
+- 同一 inspect/download 操作只允许解析一次 Provider，并以不可变请求对象贯穿会话、重试、命令构建和媒体下载，避免上下文漂移。
 
 ### 7.5 合法使用
 

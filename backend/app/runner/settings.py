@@ -192,12 +192,12 @@ class RunnerSettings(BaseSettings):
             provider = next(iter(providers))
             if set(self.runner_operator_retained_session_versions) - providers:
                 raise ValueError("retained sessions must match the operator provider")
-            from app.runner.provider_registry import DEFAULT_PROVIDER_REGISTRY
+            from app.runner.provider_registry import default_provider_registry
 
             profile = next(
                 (
                     item
-                    for item in DEFAULT_PROVIDER_REGISTRY.profiles
+                    for item in default_provider_registry().profiles
                     if item.key == provider
                 ),
                 None,

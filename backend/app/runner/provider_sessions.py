@@ -45,8 +45,10 @@ class ProviderSessionStore:
                 for version in versions:
                     self._validated_source(provider, version)
 
-    def context_for(self, url: str) -> ProviderAccessContextRef:
-        profile = provider_profile(url)
+    def context_for(
+        self, source: str | ProviderProfile
+    ) -> ProviderAccessContextRef:
+        profile = provider_profile(source) if isinstance(source, str) else source
         mode = self._settings.runner_access_mode
         if mode not in profile.access_modes:
             raise RunnerFailure("provider_session_not_allowed", status=422)
@@ -74,9 +76,11 @@ class ProviderSessionStore:
         )
 
     def validate_context(
-        self, url: str, expected: ProviderAccessContextRef
+        self,
+        source: str | ProviderProfile,
+        expected: ProviderAccessContextRef,
     ) -> ProviderAccessContextRef:
-        current = self.context_for(url)
+        current = self.context_for(source)
         if current.access_mode is ProviderAccessMode.ANONYMOUS:
             if current != expected:
                 raise RunnerFailure("client_context_mismatch", status=409)
@@ -154,9 +158,9 @@ class ProviderSessionStore:
 
 
 def _profile_for_key(key: str) -> ProviderProfile:
-    from app.runner.provider_registry import DEFAULT_PROVIDER_REGISTRY
+    from app.runner.provider_registry import default_provider_registry
 
-    for profile in DEFAULT_PROVIDER_REGISTRY.profiles:
+    for profile in default_provider_registry().profiles:
         if profile.key == key:
             return profile
     raise RunnerFailure("provider_session_not_allowed", status=422)

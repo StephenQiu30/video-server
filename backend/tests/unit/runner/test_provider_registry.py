@@ -1,13 +1,27 @@
 import pytest
 from app.domain.providers import ProviderCapability, ProviderSupportStatus
 from app.runner.errors import RunnerFailure
-from app.runner.provider_registry import configure_provider_instances, provider_profile
-from app.runner.provider_urls import (
-    provider_command_args,
-    provider_inspection_attempts,
-    provider_inspection_retry_delay,
-    provider_request_url,
+from app.runner.provider_registry import (
+    configure_provider_instances,
+    provider_profile,
+    provider_request,
 )
+
+
+def provider_request_url(url: str) -> str:
+    return provider_request(url).request_url
+
+
+def provider_command_args(url: str) -> tuple[str, ...]:
+    return provider_request(url).profile.command_args
+
+
+def provider_inspection_attempts(url: str) -> int:
+    return provider_request(url).profile.inspection_attempts
+
+
+def provider_inspection_retry_delay(url: str) -> float:
+    return provider_request(url).profile.inspection_retry_delay
 
 
 def test_uses_public_vimeo_player_endpoint_for_canonical_video() -> None:

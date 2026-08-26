@@ -5,8 +5,7 @@ from urllib.parse import urlsplit
 
 from app.domain.providers import ProviderCanaryStage
 from app.runner.errors import RunnerFailure
-from app.runner.provider_registry import provider_profile
-from app.runner.provider_urls import provider_request_url
+from app.runner.provider_registry import provider_request
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError
 
 
@@ -53,15 +52,17 @@ def _validate_targets(targets: tuple[ProviderCanaryTarget, ...]) -> None:
         identities.add(identity)
         url = target.safe_url()
         parsed = urlsplit(url)
+        resolved = provider_request(url)
         if (
             parsed.scheme != "https"
             or parsed.hostname is None
             or parsed.username is not None
             or parsed.password is not None
-            or provider_profile(url).key != target.provider_key
+            or resolved.profile.key != target.provider_key
         ):
             raise ValueError
-        provider_request_url(url)
+        if not resolved.request_url:
+            raise ValueError
 
     grouped: dict[str, tuple[str, str]] = {}
     for target in targets:
