@@ -15,8 +15,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@phosphor-icons/react": "^2.1.10",
     "@noble/hashes": "2.2.0",
+    "@phosphor-icons/react": "^2.1.10",
+    "@vidstack/react": "1.15.6",
     "axios": "^1.19.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

@@ -13,15 +13,35 @@ import {
 import { emitTaskUpdate } from '../helpers/websocket';
 
 const runtime = vi.hoisted(() => ({
+  preview: {
+    error: null as string | null,
+    loading: false,
+    reload: vi.fn(),
+    reportPlaybackError: vi.fn(),
+    source: 'data:video/mp4;base64,AAAA' as string | null,
+  },
   push: vi.fn(),
 }));
+
+const signedVideoUrl = {
+  url: 'https://objects.example/token',
+  expires_at: '2026-08-06T10:05:00Z',
+};
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: runtime.push }),
 }));
 
+vi.mock('@/hooks/useVideoPreviewSource', () => ({
+  useVideoPreviewSource: () => runtime.preview,
+}));
+
 describe('DownloadJobView', () => {
   beforeEach(() => {
+    runtime.preview.error = null;
+    runtime.preview.loading = false;
+    runtime.preview.reload.mockReset();
+    runtime.preview.source = 'data:video/mp4;base64,AAAA';
     runtime.push.mockReset();
     window.history.replaceState({}, '', '/downloads/detail/');
   });
@@ -42,6 +62,11 @@ describe('DownloadJobView', () => {
     expect(screen.queryByText('AI analysis')).not.toBeInTheDocument();
     expect(screen.getByText('持久保存')).toBeInTheDocument();
     expect(screen.queryByText('100%')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('region', {
+        name: `${inspection.title}视频预览`,
+      }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'AI 智能分析' }),
     ).toBeInTheDocument();
@@ -119,10 +144,7 @@ describe('DownloadJobView', () => {
   });
 
   it('issues a short-lived URL for completed downloads', async () => {
-    mockHttpResponses(job('succeeded'), analysisSkills, null, {
-      url: 'https://objects.example/token',
-      expires_at: '2026-08-06T10:05:00Z',
-    });
+    mockHttpResponses(job('succeeded'), analysisSkills, null, signedVideoUrl);
     const click = vi
       .spyOn(HTMLAnchorElement.prototype, 'click')
       .mockImplementation(() => {});
@@ -151,9 +173,19 @@ describe('DownloadJobView', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('offers to reload an unavailable preview', async () => {
+    runtime.preview.error = '预览地址已失效。';
+    runtime.preview.source = null;
+    mockHttpResponses(job('succeeded'), analysisSkills, null);
+    render(<DownloadJobView jobId={job().id} />);
+
+    expect(await screen.findByText('暂时无法预览视频')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '重新加载预览' }));
+    expect(runtime.preview.reload).toHaveBeenCalledOnce();
+  });
+
   it('keeps a completed task usable after inspection metadata expires', async () => {
-    mockHttpResponses(job('succeeded'));
-    mockHttpResponses(analysisSkills, null);
+    mockHttpResponses(job('succeeded'), analysisSkills, null);
     render(<DownloadJobView jobId={job().id} />);
 
     await screen.findByRole('heading', { level: 1, name: inspection.title });
@@ -166,8 +198,10 @@ describe('DownloadJobView', () => {
       screen.getByRole('heading', { name: '下载已完成' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('img', { name: `${inspection.title}封面` }),
-    ).toHaveAttribute('src', inspection.thumbnail_url);
+      screen.getByRole('region', {
+        name: `${inspection.title}视频预览`,
+      }),
+    ).toBeInTheDocument();
     expect(screen.getByText('1920×1080')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'AI 智能分析' }),

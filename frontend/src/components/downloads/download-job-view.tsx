@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import AnalysisPanel from '@/components/analysis/analysis-panel';
 import DownloadState from '@/components/downloads/download-state';
+import DownloadVideoPreview from '@/components/downloads/download-video-preview';
 import MediaCover from '@/components/intake/media-cover';
 import { BackLink } from '@/components/layout/back-link';
 import { markNavigationPush } from '@/components/layout/navigation-history';
@@ -50,17 +51,31 @@ export default function DownloadJobView({
         <>
           <section className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.85fr)] lg:gap-0">
             <div className="min-w-0 lg:pr-12">
-              <MediaCover
-                alt={`${title}封面`}
-                className="rounded-none ring-0"
-                pending={
-                  !['succeeded', 'failed', 'cancelled'].includes(
-                    state.job.status,
-                  )
-                }
-                priority
-                src={thumbnail}
-              />
+              {state.job.status === 'succeeded' && state.job.file_available ? (
+                <DownloadVideoPreview
+                  container={
+                    format?.container_preference === 'mp4' ||
+                    format?.container_preference === 'webm'
+                      ? format.container_preference
+                      : undefined
+                  }
+                  downloadId={state.job.id}
+                  poster={thumbnail}
+                  title={title}
+                />
+              ) : (
+                <MediaCover
+                  alt={`${title}封面`}
+                  className="rounded-none ring-0"
+                  pending={
+                    !['succeeded', 'failed', 'cancelled'].includes(
+                      state.job.status,
+                    )
+                  }
+                  priority
+                  src={thumbnail}
+                />
+              )}
               <h1 className="mt-5 max-w-4xl text-[28px] font-medium leading-[1.12] tracking-[-0.035em] sm:text-[34px]">
                 {title}
               </h1>
