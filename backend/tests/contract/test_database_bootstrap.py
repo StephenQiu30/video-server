@@ -9,7 +9,9 @@ ROOT = Path(__file__).resolve().parents[2]
 COMPOSE_PATH = ROOT.parent / "docker-compose.yml"
 PROD_COMPOSE_PATH = ROOT.parent / "docker-compose-prod.yml"
 SCHEMA_PATH = ROOT / "sql/schema.sql"
-RESTART_SCRIPT_PATH = ROOT.parent / "scripts/restart-project.ps1"
+ROOT_README_PATH = ROOT.parent / "README.md"
+FRONTEND_README_PATH = ROOT.parent / "frontend/README.md"
+STARTUP_SCRIPT_PATH = ROOT.parent / "scripts/restart-project.ps1"
 DOCKERFILE_PATH = ROOT.parent / "Dockerfile"
 
 
@@ -201,16 +203,20 @@ def test_compose_waits_for_runner_and_api_dependency_readiness() -> None:
         assert "127.0.0.1:19100/health/ready" in runner
 
 
-def test_restart_entrypoint_recreates_and_verifies_anonymous_providers() -> None:
-    script = RESTART_SCRIPT_PATH.read_text(encoding="utf-8")
+def test_project_uses_runtime_entrypoints_without_a_startup_wrapper() -> None:
+    root_readme = ROOT_README_PATH.read_text(encoding="utf-8")
+    frontend_readme = FRONTEND_README_PATH.read_text(encoding="utf-8")
+    compose_entrypoint = (
+        "docker compose --env-file .env -f docker-compose.yml up -d --build "
+        "--force-recreate --remove-orphans --wait --wait-timeout 300"
+    )
 
-    assert '"up", "-d", "--force-recreate"' in script
-    assert '"--wait", "--wait-timeout", "300"' in script
-    assert '"app.workers.canary.fixed_matrix"' in script
-    for provider in ("youtube", "tiktok", "x"):
-        assert f'"--provider", "{provider}"' in script
-    assert "--profile" not in script
-    assert "RUNNER_OPERATOR_BASE_URLS" not in script
+    assert not STARTUP_SCRIPT_PATH.exists()
+    assert compose_entrypoint in root_readme
+    assert "uv run python -m app.main" in root_readme
+    assert "npm run dev" in root_readme
+    assert "uv run python -m app.main" in frontend_readme
+    assert "restart-project.ps1" not in root_readme
 
 
 def test_runtime_dependency_install_is_cached_and_retried() -> None:

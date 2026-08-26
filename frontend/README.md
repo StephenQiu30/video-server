@@ -21,7 +21,7 @@
 ```bash
 cd ../backend
 uv sync --frozen --dev
-uv run python -m uvicorn app.main:app --host 127.0.0.1 --port 8101 --reload
+uv run python -m app.main
 ```
 
 再启动前端：
@@ -32,7 +32,10 @@ npm ci
 npm run dev
 ```
 
-开发服务器将 `/api/*` 和 `/health/*` 代理到 `http://127.0.0.1:8101`。浏览器请求始终使用同源相对路径，不配置浏览器可见的后端地址或服务端密钥。
+`app.main` 与 `npm run dev` 分别是后端和前端的模块开发入口；完整项目仍只通过
+仓库根目录的业务 Compose 启动。开发服务器将 `/api/*` 和 `/health/*` 代理到
+`http://127.0.0.1:8101`。浏览器请求始终使用同源相对路径，不配置浏览器可见的
+后端地址或服务端密钥。
 
 ## 目录约定
 

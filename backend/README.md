@@ -62,18 +62,25 @@ uv run python -m app.runner.browser_cookie_export \
 
 ## 运行与就绪
 
-本机必须先提供 PostgreSQL、RabbitMQ、Valkey/Redis 和 MinIO，并预置数据库 schema、消息拓扑、对象存储身份与 bucket。随后从仓库根目录启动业务容器；Compose 不管理这些外部基础设施：
+本机必须先提供 PostgreSQL、RabbitMQ、Valkey/Redis 和 MinIO，并预置数据库 schema、消息拓扑、对象存储身份与 bucket。完整项目统一从仓库根目录使用业务 Compose 启动；Compose 不管理这些外部基础设施：
 
 ```bash
-docker compose --env-file .env -f docker-compose.yml build
-docker compose --env-file .env -f docker-compose.yml up -d --force-recreate
+docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
 docker compose --env-file .env -f docker-compose.yml ps --all
 ```
 
-Windows 本地更新与重启统一从仓库根目录执行
-`./scripts/restart-project.ps1 -Sync`。它使用 `up --build --force-recreate --wait`
-应用当前代码，并在返回成功前完成依赖 readiness 与 YouTube、TikTok、X 匿名媒体
-探针；`docker compose restart` 不会应用代码、镜像或环境配置变化。
+这是完整项目唯一的运行入口。更新代码时先独立执行 `git pull --ff-only`，再重复
+该 Compose 命令；不要使用不会应用代码、镜像或配置变化的
+`docker compose restart`。固定 Provider 探针是独立验收步骤，不参与服务启动。
+
+只调试后端 API 时，从 `backend/` 使用 Python 模块入口：
+
+```bash
+uv sync --frozen --dev
+uv run python -m app.main
+```
+
+该命令是后端模块开发入口，不替代完整业务拓扑中的 Worker、Runner 与前端构建。
 
 当 `.env` 的 `RUNNER_OPERATOR_BASE_URLS` 声明 Provider Operator 时，启动
 命令必须同时包含对应 Profile；`/health/ready` 会检查所有已声明 Runner，缺少任一

@@ -2,7 +2,8 @@
 
 ## 运行模型
 
-仓库提供三种明确的 Compose 拓扑：
+完整项目只有一个运行入口：根目录 `docker-compose.yml`。其余 Compose 文件负责
+基础依赖或生产差异，不是本机项目的平行启动入口：
 
 | 文件 | 用途 | 是否启动 PostgreSQL、RabbitMQ、Valkey、MinIO |
 | --- | --- | --- |
@@ -39,9 +40,14 @@ Compose 文件不再通过 YAML Anchor 隐式继承服务配置；每个服务�
 cp .env.example .env
 docker compose --env-file .env -f docker-compose-env.yml config --quiet
 docker compose --env-file .env -f docker-compose.yml config --quiet
+# 首次使用或基础依赖尚未运行时执行一次
 docker compose --env-file .env -f docker-compose-env.yml up -d
-docker compose --env-file .env -f docker-compose.yml up -d --build
+docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
 ~~~
+
+最后一条命令是本机完整项目唯一的启动与重启入口。它统一构建前端与后端镜像，
+重新创建业务服务并等待健康检查；不要使用不会应用代码、镜像或配置变化的
+`docker compose restart`。
 
 访问地址：
 
@@ -57,24 +63,24 @@ docker compose --env-file .env -f docker-compose.yml up -d egress-proxy
 
 ## 完整隔离环境
 
-项目专用基础环境可独立启动，随后由业务 Compose 复用：
+项目专用基础环境只需在首次使用或依赖未运行时准备一次，随后由唯一业务 Compose
+入口复用：
 
 ~~~bash
 cp .env.example .env
 docker compose --env-file .env -f docker-compose-env.yml up -d
-docker compose --env-file .env -f docker-compose.yml up -d --build
+docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
 ~~~
 
-Windows 本地环境的标准更新/重启入口为：
+代码同步与服务启动保持解耦；需要更新时先执行：
 
-~~~powershell
-./scripts/restart-project.ps1 -Sync
+~~~bash
+git pull --ff-only
 ~~~
 
-它只使用匿名 Runner，不启用受控会话 Profile；代码同步必须为 fast-forward 且工作区
-干净。业务容器会重新构建并强制创建，API 只在数据库、消息、对象存储、媒体 Runner
-和 AI Worker 真正就绪后变为 healthy，最后运行 YouTube、TikTok、X 完整媒体探针。
-任一步失败都以非零状态结束，不能再把“进程已启动”误报成“项目重启成功”。
+随后执行上面的唯一业务 Compose 命令。YouTube、TikTok、X 完整媒体 Canary 属于
+启动后的验收步骤，不与项目生命周期耦合；命令见
+`docs/operations/007-固定Provider探针运行手册.md`。
 
 项目专用环境与本机已有同端口服务不要同时运行，避免端口冲突；业务 Compose 不会自动启动基础环境。
 

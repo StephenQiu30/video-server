@@ -92,7 +92,10 @@
 
 ### 使用 Docker Compose
 
-需要 Docker Engine 与 Docker Compose。项目将基础环境与业务服务拆成两个 Compose 文件：`docker-compose-env.yml` 只负责 PostgreSQL、RabbitMQ、Valkey、MinIO 及初始化；`docker-compose.yml` 只负责 API、Worker、Runner 和出口代理。
+需要 Docker Engine 与 Docker Compose。完整项目只有一个运行入口：根目录的
+`docker-compose.yml`。它构建前端静态资源和后端统一镜像，并启动 API、Worker、
+Media Runner 与出口代理；生产环境不再额外启动前端进程。`docker-compose-env.yml`
+只负责一次性准备 PostgreSQL、RabbitMQ、Valkey、MinIO 等基础依赖，不是项目入口。
 
 ```bash
 git clone https://github.com/StephenQiu30/video-server.git
@@ -100,21 +103,23 @@ cd video-server
 cp .env.example .env
 
 # 只体验下载和剧本文档导入时，可在 .env 中设置 ANALYSIS_ENABLED=false
+# 首次使用或基础依赖尚未运行时执行一次
 docker compose --env-file .env -f docker-compose-env.yml up -d
-docker compose --env-file .env -f docker-compose.yml up -d --build
+docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
 ```
 
-PowerShell 用户可以使用：
+PowerShell 只需使用相同的 Compose 入口：
 
 ```powershell
 Copy-Item .env.example .env
-./scripts/restart-project.ps1
+docker compose --env-file .env -f docker-compose-env.yml up -d
+docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
 ```
 
-后续更新并重启使用 `./scripts/restart-project.ps1 -Sync`。该入口会快进同步代码、
-重新构建并创建服务，等待真实依赖就绪，再完成 YouTube、TikTok、X 匿名媒体下载
-探针；不会启用任何受控会话 Runner。不要用不会应用镜像和配置变化的
-`docker compose restart` 代替它。
+更新代码时先独立执行 `git pull --ff-only`，再重复上述唯一业务 Compose 命令。
+不要用 `docker compose restart`，因为它不会应用新的代码、镜像或环境配置。
+YouTube、TikTok、X 的固定媒体 Canary 是启动后的验收命令，不属于启动入口，详见
+`docs/operations/007-固定Provider探针运行手册.md`。
 
 启动完成后访问：
 
@@ -185,17 +190,33 @@ flowchart LR
 
 ## 本地开发
 
-前端需要 Node.js 24 与 npm 11.19，后端需要 Python 3.12 与 [uv](https://docs.astral.sh/uv/)。推荐先用环境 Compose 提供依赖，再按需启动前端热更新：
+前端需要 Node.js 24 与 npm 11.19，后端需要 Python 3.12 与 [uv](https://docs.astral.sh/uv/)。
+宿主机开发只使用模块自身的标准入口：后端从 `backend/` 执行
+`uv run python -m app.main`，前端从 `frontend/` 执行 `npm run dev`。它们用于单模块
+调试，不是第二套完整项目部署入口。基础依赖仍可由环境 Compose 提供：
 
 ```bash
 docker compose --env-file .env -f docker-compose-env.yml up -d
+```
 
+在第一个终端启动后端：
+
+```bash
+cd backend
+uv sync --frozen --dev
+uv run python -m app.main
+```
+
+在第二个终端启动前端：
+
+```bash
 cd frontend
 npm ci
 npm run dev
 ```
 
-开发页面位于 <http://127.0.0.1:8000>，前端会将 `/api/*` 与 `/health/*` 代理到 `127.0.0.1:8101`。如果使用容器 API，先启动业务 Compose；如果直接从宿主机启动 API，请从 `backend/` 按模块说明加载依赖和 `.env`。
+开发页面位于 <http://127.0.0.1:8000>，前端会将 `/api/*` 与 `/health/*` 代理到
+`127.0.0.1:8101`。
 
 与 CI 一致的主要质量门禁：
 
