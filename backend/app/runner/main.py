@@ -19,6 +19,7 @@ from app.runner.contracts import (
 )
 from app.runner.errors import RunnerFailure
 from app.runner.provider_registry import configure_provider_instances
+from app.runner.readiness import RunnerReadiness
 from app.runner.service import MediaRunnerService
 from app.runner.settings import RunnerSettings
 from app.runner.signing import (
@@ -43,14 +44,20 @@ class RunnerService(Protocol):
     async def status(self, task_id: str) -> TaskStatusResponse: ...
 
 
+class ReadinessProbe(Protocol):
+    async def check(self) -> bool: ...
+
+
 def create_app(
     settings: RunnerSettings | None = None,
     *,
     service: RunnerService | None = None,
+    readiness: ReadinessProbe | None = None,
 ) -> FastAPI:
     configured = settings or RunnerSettings()
     configure_provider_instances(configured.peertube_allowed_instances)
     runner = service or MediaRunnerService(configured)
+    readiness_probe = readiness or RunnerReadiness(configured)
     authenticator = HmacRequestAuthenticator(
         configured.hmac_secret_bytes,
         nonce_guard=InMemoryNonceGuard(
@@ -79,6 +86,17 @@ def create_app(
     @app.get("/health/live")
     async def live() -> dict[str, str]:
         return {"service": "media-runner", "status": "live"}
+
+    @app.get("/health/ready")
+    async def ready() -> JSONResponse:
+        if not await readiness_probe.check():
+            return JSONResponse(
+                status_code=503,
+                content={"service": "media-runner", "status": "unavailable"},
+            )
+        return JSONResponse(
+            content={"service": "media-runner", "status": "ready"}
+        )
 
     @app.post("/internal/v1/inspect", response_model=InspectResponse)
     async def inspect(request: Request) -> InspectResponse:

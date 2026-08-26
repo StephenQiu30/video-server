@@ -69,7 +69,7 @@ def build_runtime_readiness(
     )
     runner_urls = tuple(
         dict.fromkeys(
-            f"{base_url.rstrip('/')}/health/live"
+            f"{base_url.rstrip('/')}/health/ready"
             for base_url in (
                 settings.runner_base_url,
                 *settings.runner_operator_base_urls.values(),

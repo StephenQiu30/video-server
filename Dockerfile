@@ -45,9 +45,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     FRONTEND_DIST_DIR=/app/frontend/out
 WORKDIR /app/backend
 
-RUN apt-get update \
-    && apt-get install --no-install-recommends -y ca-certificates ffmpeg libstdc++6 \
-    && rm -rf /var/lib/apt/lists/* \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get -o Acquire::Retries=5 update \
+    && apt-get -o Acquire::Retries=5 install --no-install-recommends -y \
+        ca-certificates ffmpeg libstdc++6 \
     && useradd --create-home --uid 10001 appuser \
     && chown -R appuser:appuser /app
 

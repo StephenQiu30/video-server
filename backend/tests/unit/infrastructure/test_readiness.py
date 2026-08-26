@@ -83,7 +83,7 @@ async def test_runtime_readiness_checks_database_runner_minio_and_rabbitmq(
     postgres_engine: AsyncEngine,
 ) -> None:
     async def respond(request: httpx.Request) -> httpx.Response:
-        assert request.url.path in {"/health/live", "/minio/health/live"}
+        assert request.url.path in {"/health/ready", "/minio/health/live"}
         return httpx.Response(200)
 
     async with runtime_probe(httpx.MockTransport(respond), postgres_engine) as probe:

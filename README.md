@@ -108,7 +108,13 @@ PowerShell 用户可以使用：
 
 ```powershell
 Copy-Item .env.example .env
+./scripts/restart-project.ps1
 ```
+
+后续更新并重启使用 `./scripts/restart-project.ps1 -Sync`。该入口会快进同步代码、
+重新构建并创建服务，等待真实依赖就绪，再完成 YouTube、TikTok、X 匿名媒体下载
+探针；不会启用任何受控会话 Runner。不要用不会应用镜像和配置变化的
+`docker compose restart` 代替它。
 
 启动完成后访问：
 

@@ -65,6 +65,17 @@ docker compose --env-file .env -f docker-compose-env.yml up -d
 docker compose --env-file .env -f docker-compose.yml up -d --build
 ~~~
 
+Windows 本地环境的标准更新/重启入口为：
+
+~~~powershell
+./scripts/restart-project.ps1 -Sync
+~~~
+
+它只使用匿名 Runner，不启用受控会话 Profile；代码同步必须为 fast-forward 且工作区
+干净。业务容器会重新构建并强制创建，API 只在数据库、消息、对象存储、媒体 Runner
+和 AI Worker 真正就绪后变为 healthy，最后运行 YouTube、TikTok、X 完整媒体探针。
+任一步失败都以非零状态结束，不能再把“进程已启动”误报成“项目重启成功”。
+
 项目专用环境与本机已有同端口服务不要同时运行，避免端口冲突；业务 Compose 不会自动启动基础环境。
 
 ## 生产环境

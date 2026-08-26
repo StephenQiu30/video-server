@@ -70,6 +70,11 @@ docker compose --env-file .env -f docker-compose.yml up -d --force-recreate
 docker compose --env-file .env -f docker-compose.yml ps --all
 ```
 
+Windows 本地更新与重启统一从仓库根目录执行
+`./scripts/restart-project.ps1 -Sync`。它使用 `up --build --force-recreate --wait`
+应用当前代码，并在返回成功前完成依赖 readiness 与 YouTube、TikTok、X 匿名媒体
+探针；`docker compose restart` 不会应用代码、镜像或环境配置变化。
+
 当 `.env` 的 `RUNNER_OPERATOR_BASE_URLS` 声明 Provider Operator 时，启动
 命令必须同时包含对应 Profile；`/health/ready` 会检查所有已声明 Runner，缺少任一
 容器都不会再静默回退为“就绪”：

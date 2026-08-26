@@ -8,6 +8,14 @@ from app.runner.main import create_app
 from fastapi.testclient import TestClient
 
 
+class Readiness:
+    def __init__(self, available: bool) -> None:
+        self.available = available
+
+    async def check(self) -> bool:
+        return self.available
+
+
 def test_health_is_public_and_inspect_requires_valid_raw_body_signature(
     tmp_path: Path,
 ) -> None:
@@ -31,6 +39,32 @@ def test_health_is_public_and_inspect_requires_valid_raw_body_signature(
     replay = client.post(path, content=body, headers=headers)
     assert replay.status_code == 401
     assert replay.json()["error"]["code"] == "request_replayed"
+
+
+def test_readiness_fails_closed_until_runner_dependencies_are_ready(
+    tmp_path: Path,
+) -> None:
+    unavailable = TestClient(
+        create_app(
+            settings(tmp_path),
+            service=FakeService(),
+            readiness=Readiness(False),
+        )
+    )
+    available = TestClient(
+        create_app(
+            settings(tmp_path),
+            service=FakeService(),
+            readiness=Readiness(True),
+        )
+    )
+
+    assert unavailable.get("/health/ready").status_code == 503
+    assert unavailable.get("/health/live").status_code == 200
+    assert available.get("/health/ready").json() == {
+        "service": "media-runner",
+        "status": "ready",
+    }
 
 
 def test_tampered_or_unsigned_request_has_stable_error(tmp_path: Path) -> None:

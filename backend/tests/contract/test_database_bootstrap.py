@@ -9,6 +9,8 @@ ROOT = Path(__file__).resolve().parents[2]
 COMPOSE_PATH = ROOT.parent / "docker-compose.yml"
 PROD_COMPOSE_PATH = ROOT.parent / "docker-compose-prod.yml"
 SCHEMA_PATH = ROOT / "sql/schema.sql"
+RESTART_SCRIPT_PATH = ROOT.parent / "scripts/restart-project.ps1"
+DOCKERFILE_PATH = ROOT.parent / "Dockerfile"
 
 
 def _service_block(document: str, service: str) -> str:
@@ -186,6 +188,38 @@ def test_compose_assigns_each_application_container_its_process_entrypoint() -> 
     for service, module in commands.items():
         service_config = _service_block(compose, service)
         assert f'command: ["python", "-m", "{module}"]' in service_config
+
+
+def test_compose_waits_for_runner_and_api_dependency_readiness() -> None:
+    for path in (COMPOSE_PATH, PROD_COMPOSE_PATH):
+        compose = path.read_text(encoding="utf-8")
+        api = _service_block(compose, "api")
+        runner = _service_block(compose, "media-runner")
+
+        assert "media-runner:\n        condition: service_healthy" in api
+        assert "127.0.0.1:8101/health/ready" in api
+        assert "127.0.0.1:19100/health/ready" in runner
+
+
+def test_restart_entrypoint_recreates_and_verifies_anonymous_providers() -> None:
+    script = RESTART_SCRIPT_PATH.read_text(encoding="utf-8")
+
+    assert '"up", "-d", "--force-recreate"' in script
+    assert '"--wait", "--wait-timeout", "300"' in script
+    assert '"app.workers.canary.fixed_matrix"' in script
+    for provider in ("youtube", "tiktok", "x"):
+        assert f'"--provider", "{provider}"' in script
+    assert "--profile" not in script
+    assert "RUNNER_OPERATOR_BASE_URLS" not in script
+
+
+def test_runtime_dependency_install_is_cached_and_retried() -> None:
+    dockerfile = DOCKERFILE_PATH.read_text(encoding="utf-8")
+
+    assert "target=/var/cache/apt,sharing=locked" in dockerfile
+    assert "target=/var/lib/apt/lists,sharing=locked" in dockerfile
+    assert "apt-get -o Acquire::Retries=5 update" in dockerfile
+    assert "apt-get -o Acquire::Retries=5 install" in dockerfile
 
 
 def test_compose_pins_shared_runner_workspace_to_the_mounted_container_path() -> None:
