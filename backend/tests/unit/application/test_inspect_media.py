@@ -151,11 +151,6 @@ async def test_invalid_url_never_reaches_runner() -> None:
     ("url", "decision", "reason"),
     (
         (
-            "https://weixin.qq.com/sph/AbCdEf12",
-            "export_required",
-            "wechat_channels_export_required",
-        ),
-        (
             "https://v.qq.com/x/page/q326831cny0.html",
             "playback_only",
             "tencent_consumer_download_disabled",
@@ -184,6 +179,19 @@ async def test_restricted_platform_returns_persisted_inspection_without_runner(
     assert view.access_decision.value == decision
     assert view.restriction_reason == reason
     assert repository.inspection_commands[0].formats == ()
+
+
+@pytest.mark.asyncio
+async def test_wechat_channels_public_share_reaches_provider_runner() -> None:
+    repository = FakeRepository()
+    inspect, runner, cipher = use_case(repository, runner_result())
+    url = "https://weixin.qq.com/sph/AbCdEf12"
+
+    view = await inspect(url, OWNER, "wechat-channels-public")
+
+    assert runner.seen == cipher.seen == [url]
+    assert view.access_decision.value == "downloadable"
+    assert len(view.formats) == 1
 
 
 @pytest.mark.asyncio

@@ -36,18 +36,6 @@ def configured_provider_statuses() -> tuple[ProviderStatusView, ...]:
             last_verified_at=None,
             user_action="支持公开文章视频发现与显式选择；原生视频下载尚未通过发布验收。",
         ),
-        ProviderStatusView(
-            key="wechat_channels",
-            display_name="微信视频号",
-            registered=False,
-            extractor_exists=False,
-            capabilities=(),
-            access_modes=(),
-            status=ProviderSupportStatus.UNSUPPORTED,
-            last_media_verified_at=None,
-            last_verified_at=None,
-            user_action="分享链接下载未启用；请导入自己合法取得的明文 MP4。",
-        ),
     )
     return configured + non_runner
 
@@ -62,6 +50,14 @@ def _user_action(
         return (
             "已接入红果官方分享链接当前单集；"
             "不支持 App 受保护媒体、全集抓取或批量下载。"
+        )
+    if (
+        provider_key == "wechat_channels"
+        and status is ProviderSupportStatus.ACCESS_REQUIRED
+    ):
+        return (
+            "公开分享链接需要部署已批准的隔离元宝会话；"
+            "不支持私密、加密、直播或付费内容。"
         )
     if status is ProviderSupportStatus.ACCESS_REQUIRED:
         return "该平台需要部署已批准的受控会话；未启用时请稍后重试。"

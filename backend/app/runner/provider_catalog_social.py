@@ -2,10 +2,25 @@
 
 from app.domain.providers import ProviderCapability, ProviderSupportStatus
 from app.runner.provider_factories import CHROME_IMPERSONATION, standard_provider
-from app.runner.provider_normalizers import vimeo_url
+from app.runner.provider_normalizers import vimeo_url, wechat_channels_url
 from app.runner.provider_registry import ProviderProfile
 
 SOCIAL_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
+    standard_provider(
+        "wechat_channels",
+        "微信视频号",
+        ("weixin.qq.com",),
+        version="wechat-channels-public-v1",
+        normalize_url=wechat_channels_url,
+        capabilities=frozenset(
+            {ProviderCapability.SINGLE_VIDEO, ProviderCapability.SHORT_VIDEO}
+        ),
+        status=ProviderSupportStatus.ACCESS_REQUIRED,
+        operator_cookie_domains=frozenset({"yuanbao.tencent.com"}),
+        command_args=CHROME_IMPERSONATION,
+        client_profile_id="chrome-136-macos-15",
+        canary_suite="wechat-channels-public-single-video",
+    ),
     standard_provider(
         "vimeo",
         "Vimeo",

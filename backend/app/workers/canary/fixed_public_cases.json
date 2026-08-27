@@ -11,6 +11,8 @@
   {"target_id":"xiaohongshu-public-single-v2","provider_key":"xiaohongshu","stage":"media","url":"https://www.xiaohongshu.com/explore/6a82c08c0000000029032447?xsec_token=ABNXo5usmrkoygbLkBaoya8lbARvi_l8erZMXT-rjVNko%3D&xsec_source=pc_feed"},
   {"target_id":"kuaishou-public-single-v1","provider_key":"kuaishou","stage":"metadata","url":"https://www.kuaishou.com/short-video/3x888mrikrur4g2"},
   {"target_id":"kuaishou-public-single-v1","provider_key":"kuaishou","stage":"media","url":"https://www.kuaishou.com/short-video/3x888mrikrur4g2"},
+  {"target_id":"wechat-channels-public-single-v1","provider_key":"wechat_channels","stage":"metadata","url":"https://weixin.qq.com/sph/A9znfitafp"},
+  {"target_id":"wechat-channels-public-single-v1","provider_key":"wechat_channels","stage":"media","url":"https://weixin.qq.com/sph/A9znfitafp"},
   {"target_id":"vimeo-staff-pick-v2","provider_key":"vimeo","stage":"metadata","url":"https://vimeo.com/1208412630"},
   {"target_id":"vimeo-staff-pick-v2","provider_key":"vimeo","stage":"media","url":"https://vimeo.com/1208412630"},
   {"target_id":"x-public-single-v1","provider_key":"x","stage":"metadata","url":"https://x.com/canghe/status/2087368911625052411"},

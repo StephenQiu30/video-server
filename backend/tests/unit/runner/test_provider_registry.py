@@ -89,6 +89,7 @@ def test_remaining_provider_profiles_record_verified_access_boundaries() -> None
     tiktok = provider_profile(
         "https://www.tiktok.com/@creator/video/6742501081818877190"
     )
+    wechat = provider_profile("https://weixin.qq.com/sph/AFWYoXF5Bw")
 
     assert facebook.version == "facebook-public-reel-v1"
     assert facebook.client_profile_id == "chrome-136-macos-15"
@@ -104,6 +105,24 @@ def test_remaining_provider_profiles_record_verified_access_boundaries() -> None
     assert reddit.version == "reddit-public-video-v1"
     assert tiktok.support_status is ProviderSupportStatus.DEGRADED
     assert tiktok.version == "tiktok-web-v1"
+    assert wechat.version == "wechat-channels-public-v1"
+    assert wechat.support_status is ProviderSupportStatus.ACCESS_REQUIRED
+    assert wechat.cookie_domain_allowlist == frozenset({"yuanbao.tencent.com"})
+    assert ProviderCapability.SHORT_VIDEO in wechat.capabilities
+
+
+@pytest.mark.parametrize(
+    "url",
+    (
+        "https://weixin.qq.com/example",
+        "https://weixin.qq.com/sph/AFWYoXF5Bw?scene=1",
+        "https://weixin.qq.com/sph/AFWYoXF5Bw#fragment",
+    ),
+)
+def test_wechat_channels_rejects_non_public_single_video_paths(url: str) -> None:
+    with pytest.raises(RunnerFailure) as captured:
+        provider_request_url(url)
+    assert captured.value.code == "provider_unsupported"
 
 
 def test_new_social_profiles_have_versioned_single_media_boundaries() -> None:
@@ -307,6 +326,7 @@ def test_registry_classifies_mainstream_platform_hosts() -> None:
         "m.weibo.cn": "weibo",
         "v.youku.com": "youku",
         "v.qq.com": "qqvideo",
+        "weixin.qq.com": "wechat_channels",
         "www.snapchat.com": "snapchat",
         "www.linkedin.com": "linkedin",
         "t.me": "telegram",

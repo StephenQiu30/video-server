@@ -2,6 +2,17 @@
 
 本手册只适用于独立运维账号中、用户有权处理的公开非 DRM 视频。Cookie 等同账号凭据，不得提交 Git、粘贴到日志或交给普通 API。
 
+微信视频号使用已登录 `yuanbao.tencent.com` 的 Chrome 会话，导出命令为：
+
+```bash
+cd backend
+uv run python -m app.runner.browser_cookie_export \
+  --provider wechat_channels --browser chrome \
+  --version browser-live --output-root ../.provider-secrets
+```
+
+导出器要求 `hy_user` 与 `hy_token` 同时存在，并只写入元宝域 Cookie。普通用户无需也不能上传 Cookie。
+
 ## 1. 导出浏览器会话
 
 在浏览器确认目标 Provider 已登录，然后从 `backend/` 分别执行。每次轮换使用新版本名；支持 `youtube`、`tiktok`、`douyin`、`xiaohongshu`、`reddit`、`x`、`instagram` 与 `facebook`：

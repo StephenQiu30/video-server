@@ -89,26 +89,22 @@ def classify_restricted_source(url: str) -> RestrictedSourceAdmission | None:
     if host == "weixin.qq.com":
         valid = parsed.port in (None, 443) and bool(
             _CHANNELS_PATH.fullmatch(parsed.path)
-        )
+        ) and not parsed.query and not parsed.fragment
+        if valid:
+            return None
         return RestrictedSourceAdmission(
             provider_key="wechat_channels",
             provider_media_id=_opaque_source_id(url),
             title="微信视频号内容",
             source_origin=SourceOrigin.PUBLIC_URL,
             execution_mode=ExecutionMode.VERIFIED_IMPORT,
-            access_decision=(
-                AccessDecision.EXPORT_REQUIRED if valid else AccessDecision.UNSUPPORTED
-            ),
+            access_decision=AccessDecision.UNSUPPORTED,
             entitlement_state=EntitlementState.UNKNOWN,
-            identity_state=(IdentityState.VERIFIED if valid else IdentityState.UNKNOWN),
+            identity_state=IdentityState.UNKNOWN,
             protection_state=ProtectionState.UNKNOWN,
             rights_basis=None,
-            restriction_reason=(
-                "wechat_channels_export_required"
-                if valid
-                else "unsupported_wechat_channels_url"
-            ),
-            user_action="请在微信中合法导出自有明文 MP4 后通过本地导入上传。",
+            restriction_reason="unsupported_wechat_channels_url",
+            user_action="仅支持公开的微信视频号 /sph/ 单视频分享链接。",
         )
     if host == "v.qq.com":
         media_id = _qqvideo_media_id(parsed.path)

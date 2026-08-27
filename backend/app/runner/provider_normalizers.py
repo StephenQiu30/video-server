@@ -24,6 +24,7 @@ _KICK_CLIP = re.compile(
     re.IGNORECASE,
 )
 _TUMBLR_POST = re.compile(r"/[A-Za-z0-9_-]+/(?P<id>[0-9]+)(?:/[^/?#]+)?/?$")
+_WECHAT_CHANNELS_SHARE = re.compile(r"/sph/(?P<id>[A-Za-z0-9_-]{4,256})/?$")
 _DIGITS = re.compile(r"[0-9]+$")
 
 
@@ -92,6 +93,20 @@ def kick_url(url: str, parsed: SplitResult) -> str:
 
 def tumblr_url(url: str, parsed: SplitResult) -> str:
     return _require_path(url, parsed, _TUMBLR_POST)
+
+
+def wechat_channels_url(_url: str, parsed: SplitResult) -> str:
+    if (
+        parsed.hostname != "weixin.qq.com"
+        or parsed.port not in (None, 443)
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise RunnerFailure("provider_unsupported", status=422)
+    match = _WECHAT_CHANNELS_SHARE.fullmatch(parsed.path)
+    if match is None:
+        raise RunnerFailure("provider_unsupported", status=422)
+    return f"https://weixin.qq.com/sph/{match.group('id')}"
 
 
 def _require_path(

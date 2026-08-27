@@ -29,6 +29,7 @@ _OPERATOR_PROVIDER_POLICIES = frozenset(
         "x",
         "instagram",
         "facebook",
+        "wechat_channels",
     }
 )
 

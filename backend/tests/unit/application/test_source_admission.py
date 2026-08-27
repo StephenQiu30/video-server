@@ -1,14 +1,9 @@
 from app.application.downloads.source_admission import classify_restricted_source
-from app.domain.downloads import AccessDecision, IdentityState
+from app.domain.downloads import AccessDecision
 
 
-def test_wechat_channels_requires_user_export() -> None:
-    result = classify_restricted_source("https://weixin.qq.com/sph/AbCdEf12")
-
-    assert result is not None
-    assert result.provider_key == "wechat_channels"
-    assert result.access_decision is AccessDecision.EXPORT_REQUIRED
-    assert result.identity_state is IdentityState.VERIFIED
+def test_wechat_channels_public_share_continues_to_provider_runner() -> None:
+    assert classify_restricted_source("https://weixin.qq.com/sph/AbCdEf12") is None
 
 
 def test_qqvideo_single_video_is_playback_only() -> None:

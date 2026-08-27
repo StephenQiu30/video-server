@@ -39,6 +39,7 @@ _AUTH_COOKIE_NAMES = {
     "x": frozenset({"auth_token", "ct0"}),
     "instagram": frozenset({"sessionid"}),
     "facebook": frozenset({"c_user", "xs"}),
+    "wechat_channels": frozenset({"hy_user", "hy_token"}),
 }
 type CookieLoader = Callable[[str, str | None], CookieJar]
 type Reporter = Callable[[str], None]
@@ -73,7 +74,13 @@ def export_browser_cookies(
         and _domain_allowed(cookie.domain, provider_profile.cookie_domain_allowlist)
     )
     required_names = _AUTH_COOKIE_NAMES.get(provider, frozenset())
-    if not cookies or not any(cookie.name in required_names for cookie in cookies):
+    cookie_names = {cookie.name for cookie in cookies}
+    has_required_cookie = (
+        required_names <= cookie_names
+        if provider == "wechat_channels"
+        else bool(required_names & cookie_names)
+    )
+    if not cookies or not has_required_cookie:
         raise ValueError(f"{provider} browser login cookie was not found")
     target = provider_dir / f"{version}.cookies.txt"
     _write_cookie_jar(target, cookies)

@@ -115,6 +115,43 @@ def test_export_supports_each_allowlisted_browser_session(
     assert "provider-secret" in target.read_text()
 
 
+def test_export_requires_complete_wechat_channels_yuanbao_session(
+    tmp_path: Path,
+) -> None:
+    source = _jar(
+        _cookie(".yuanbao.tencent.com", "hy_user", "operator-id"),
+        _cookie(".yuanbao.tencent.com", "hy_token", "operator-token"),
+        _cookie(".weixin.qq.com", "hy_token", "wrong-domain"),
+    )
+
+    target, count = export_browser_cookies(
+        provider="wechat_channels",
+        browser="chrome",
+        profile=None,
+        version="browser-v1",
+        output_root=tmp_path / "secrets",
+        cookie_loader=lambda _browser, _profile: source,
+    )
+
+    payload = target.read_text()
+    assert count == 2
+    assert "operator-id" in payload
+    assert "operator-token" in payload
+    assert "wrong-domain" not in payload
+
+    with pytest.raises(ValueError, match="login cookie was not found"):
+        export_browser_cookies(
+            provider="wechat_channels",
+            browser="chrome",
+            profile=None,
+            version="incomplete",
+            output_root=tmp_path / "secrets",
+            cookie_loader=lambda _browser, _profile: _jar(
+                _cookie(".yuanbao.tencent.com", "hy_user", "operator-id")
+            ),
+        )
+
+
 def test_export_rejects_symlinked_output_root(tmp_path: Path) -> None:
     actual = tmp_path / "actual"
     actual.mkdir()

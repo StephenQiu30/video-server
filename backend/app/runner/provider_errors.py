@@ -44,7 +44,7 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         "provider_unsupported",
         422,
         any_stderr=(b"unsupported url:",),
-        any_url=("channels.weixin.qq.com", "weixin.qq.com/sph/"),
+        any_url=("channels.weixin.qq.com",),
     ),
     FailureRule(
         "provider_unsupported",
@@ -81,6 +81,12 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
             b"kuaishou public link unavailable",
         ),
         providers=frozenset({"douyin", "xiaohongshu", "kuaishou"}),
+    ),
+    FailureRule(
+        "provider_link_unavailable",
+        422,
+        any_stderr=(b"wechat channels public link unavailable",),
+        providers=frozenset({"wechat_channels"}),
     ),
     FailureRule(
         "drm_protected",

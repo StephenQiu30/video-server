@@ -44,7 +44,7 @@ const localizedErrorMessages: Record<string, string> = {
   not_found: '任务或相关资源不存在，请返回下载记录确认。',
   output_limit_exceeded: '下载文件超过大小限制，请选择更小的规格。',
   provider_auth_required:
-    '该视频需要服务端授权状态，当前服务暂时无法自动处理。',
+    '该公开链接需要平台隔离解析会话，当前服务尚未配置或会话不可用。',
   provider_catalog_conflict: '相同标识的平台配置已经存在。',
   provider_catalog_not_found: '平台配置不存在或已被删除。',
   provider_content_restricted: '该视频需要额外的平台权限，当前服务无法处理。',

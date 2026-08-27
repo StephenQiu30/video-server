@@ -365,18 +365,21 @@ async def test_generic_unsupported_url_keeps_inspection_failure(tmp_path: Path) 
 
 
 @pytest.mark.asyncio
-async def test_wechat_channels_url_is_classified_as_unsupported(tmp_path: Path) -> None:
+async def test_wechat_channels_without_session_requires_credentials(
+    tmp_path: Path,
+) -> None:
     commands = MediaCommands(
         settings(tmp_path),
         FailingSupervisor(
-            b"ERROR: Unsupported URL: https://channels.weixin.qq.com/finder-preview"
+            b"ERROR: Fresh cookies are needed to resolve this public "
+            b"WeChat Channels video"
         ),
     )
 
     with pytest.raises(RunnerFailure) as caught:
         await commands.inspect("https://weixin.qq.com/sph/AFWYoXF5Bw", tmp_path)
 
-    assert caught.value.code == "provider_unsupported"
+    assert caught.value.code == "credential_required"
     assert caught.value.status == 422
 
 
