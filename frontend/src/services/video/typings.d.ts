@@ -721,6 +721,10 @@ declare namespace API {
     job_id: string;
   };
 
+  type getDownloadThumbnailParams = {
+    job_id: string;
+  };
+
   type getInspectionParams = {
     inspection_id: string;
   };

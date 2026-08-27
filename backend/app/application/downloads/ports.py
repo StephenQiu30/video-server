@@ -21,7 +21,11 @@ from app.application.downloads.inspection_models import (
     RetrySourceSnapshot,
     RunnerInspection,
 )
-from app.application.downloads.thumbnail import ThumbnailObject, ThumbnailSource
+from app.application.downloads.thumbnail import (
+    DownloadThumbnailSource,
+    ThumbnailObject,
+    ThumbnailSource,
+)
 
 
 class UrlValidator(Protocol):
@@ -68,6 +72,17 @@ class DownloadRepository(Protocol):
     async def save_thumbnail(
         self,
         inspection_id: UUID,
+        owner_hash: str,
+        thumbnail: ThumbnailObject,
+    ) -> None: ...
+
+    async def get_download_thumbnail_source(
+        self, job_id: UUID, owner_hash: str
+    ) -> DownloadThumbnailSource | None: ...
+
+    async def save_download_thumbnail(
+        self,
+        job_id: UUID,
         owner_hash: str,
         thumbnail: ThumbnailObject,
     ) -> None: ...

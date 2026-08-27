@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class ThumbnailPersister(Protocol):
     async def __call__(
-        self, inspection_id: UUID, owner_hash: str, data_url: str | None
+        self, resource_id: UUID, owner_hash: str, data_url: str | None, /
     ) -> bool: ...
 
 
@@ -54,8 +54,6 @@ class ArtifactThumbnailRecovery:
             "-nostdin",
             "-protocol_whitelist",
             "file,crypto,data",
-            "-ss",
-            "1",
             "-i",
             str(artifact),
             "-frames:v",

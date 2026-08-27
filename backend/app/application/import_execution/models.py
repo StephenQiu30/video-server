@@ -19,6 +19,7 @@ class ImportVerificationClaim:
     object_key: str = field(repr=False)
     declared_size_bytes: int
     declared_sha256: str = field(repr=False)
+    owner_hash: str = field(default="", repr=False)
 
 
 @dataclass(frozen=True, slots=True)

@@ -41,6 +41,7 @@ def claim() -> ImportVerificationClaim:
         object_key=f"quarantine/video/{RESOURCE_ID}/2/source.mp4",
         declared_size_bytes=128,
         declared_sha256="a" * 64,
+        owner_hash="o" * 64,
     )
 
 
@@ -142,11 +143,23 @@ class FakeVerifier:
         return artifact()
 
 
+class FakeThumbnailRecovery:
+    def __init__(self) -> None:
+        self.calls: list[tuple[UUID, str, Path]] = []
+
+    async def recover(
+        self, resource_id: UUID, owner_hash: str, artifact_path: Path
+    ) -> bool:
+        self.calls.append((resource_id, owner_hash, artifact_path))
+        return True
+
+
 def execution(tmp_path: Path):
     repository = FakeRepository()
     storage = FakeStorage()
     workspace = FakeWorkspace(tmp_path)
     verifier = FakeVerifier()
+    thumbnail_recovery = FakeThumbnailRecovery()
     service = ImportExecution(
         repository=repository,
         storage=storage,
@@ -160,14 +173,17 @@ def execution(tmp_path: Path):
             lease_for=timedelta(seconds=30),
             heartbeat_interval=5,
         ),
+        thumbnail_recovery=thumbnail_recovery,
     )
-    return service, repository, storage, workspace, verifier
+    return service, repository, storage, workspace, verifier, thumbnail_recovery
 
 
 async def test_success_promotes_to_deterministic_artifact_then_commits_and_cleans(
     tmp_path: Path,
 ) -> None:
-    service, repository, storage, workspace, verifier = execution(tmp_path)
+    service, repository, storage, workspace, verifier, thumbnail_recovery = execution(
+        tmp_path
+    )
 
     disposition = await service.execute(RESOURCE_ID, ContentKind.VIDEO, 2, 4)
 
@@ -184,6 +200,7 @@ async def test_success_promotes_to_deterministic_artifact_then_commits_and_clean
         )
     ]
     assert len(repository.completed) == 1
+    assert thumbnail_recovery.calls[0][:2] == (RESOURCE_ID, "o" * 64)
     assert storage.deletes == [claim().object_key]
     assert len(verifier.paths) == len(workspace.cleaned) == 1
 
@@ -191,7 +208,7 @@ async def test_success_promotes_to_deterministic_artifact_then_commits_and_clean
 async def test_validation_rejection_is_terminal_and_cleans_quarantine(
     tmp_path: Path,
 ) -> None:
-    service, repository, storage, _, verifier = execution(tmp_path)
+    service, repository, storage, _, verifier, _ = execution(tmp_path)
     verifier.error = ImportVerificationRejected(
         ImportErrorCode.SHA256_MISMATCH, "mismatch"
     )
@@ -208,7 +225,7 @@ async def test_validation_rejection_is_terminal_and_cleans_quarantine(
 async def test_database_failure_after_promotion_retries_without_deleting_recovery_copy(
     tmp_path: Path,
 ) -> None:
-    service, repository, storage, workspace, _ = execution(tmp_path)
+    service, repository, storage, workspace, _, _ = execution(tmp_path)
     repository.complete_error = RuntimeError("database unavailable")
 
     disposition = await service.execute(RESOURCE_ID, ContentKind.VIDEO, 2, 4)
@@ -220,7 +237,7 @@ async def test_database_failure_after_promotion_retries_without_deleting_recover
 
 
 async def test_lost_lease_converges_without_touching_storage(tmp_path: Path) -> None:
-    service, repository, storage, _, _ = execution(tmp_path)
+    service, repository, storage, _, _, _ = execution(tmp_path)
     repository.owned = False
 
     disposition = await service.execute(RESOURCE_ID, ContentKind.VIDEO, 2, 4)
@@ -234,7 +251,7 @@ async def test_lost_lease_converges_without_touching_storage(tmp_path: Path) -> 
 async def test_stale_message_acks_and_unimplemented_document_routes_to_dlq(
     tmp_path: Path,
 ) -> None:
-    service, repository, storage, _, _ = execution(tmp_path)
+    service, repository, storage, _, _, _ = execution(tmp_path)
     repository.claimed = None
 
     stale = await service.execute(RESOURCE_ID, ContentKind.VIDEO, 2, 3)
@@ -248,7 +265,7 @@ async def test_stale_message_acks_and_unimplemented_document_routes_to_dlq(
 async def test_recovery_sweeper_requeues_leases_and_only_deletes_safe_old_orphans(
     tmp_path: Path,
 ) -> None:
-    _, repository, storage, workspace, _ = execution(tmp_path)
+    _, repository, storage, workspace, _, _ = execution(tmp_path)
     repository.recovered = (RESOURCE_ID,)
     expected = f"downloads/{RESOURCE_ID}/2/video.mp4"
     repository.expected_keys = frozenset({expected})

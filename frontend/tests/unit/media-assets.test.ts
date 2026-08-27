@@ -10,10 +10,13 @@ vi.mock('@/lib/request', () => ({ request: vi.fn() }));
 
 const THUMBNAIL =
   '/api/inspections/8cba925d-9196-4f48-89ee-76566a705446/thumbnail';
+const DOWNLOAD_THUMBNAIL =
+  '/api/downloads/8cba925d-9196-4f48-89ee-76566a705446/thumbnail';
 
 describe('media assets', () => {
-  it('recognizes only inspection thumbnail API paths', () => {
+  it('recognizes private inspection and download thumbnail API paths', () => {
     expect(isPrivateThumbnailPath(THUMBNAIL)).toBe(true);
+    expect(isPrivateThumbnailPath(DOWNLOAD_THUMBNAIL)).toBe(true);
     expect(isPrivateThumbnailPath('https://example.com/cover.jpg')).toBe(false);
     expect(isPrivateThumbnailPath('/api/admin/users')).toBe(false);
   });
@@ -31,7 +34,7 @@ describe('media assets', () => {
 
   it('rejects arbitrary paths and invalid responses', async () => {
     await expect(loadPrivateThumbnail('/api/admin/users')).rejects.toThrow(
-      'Only private inspection thumbnail paths are allowed.',
+      'Only private media thumbnail paths are allowed.',
     );
 
     vi.mocked(request).mockResolvedValue(

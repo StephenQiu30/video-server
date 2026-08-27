@@ -163,6 +163,7 @@ class DownloadHistoryItemSnapshot:
     file_available: bool = False
     source_kind: str = "remote_provider"
     declared_origin: str | None = None
+    job_thumbnail_available: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -188,6 +189,20 @@ class ThumbnailSourceSnapshot:
     owner_hash: str
     object: ThumbnailSnapshot | None
     legacy_data_url: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class DownloadThumbnailSourceSnapshot:
+    job_id: UUID
+    owner_hash: str
+    object: ThumbnailSnapshot | None
+
+
+@dataclass(frozen=True, slots=True)
+class DownloadThumbnailCandidateSnapshot:
+    job_id: UUID
+    owner_hash: str
+    object_key: str
 
 
 @dataclass(frozen=True, slots=True)

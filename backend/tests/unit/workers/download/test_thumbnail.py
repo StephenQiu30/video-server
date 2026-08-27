@@ -51,6 +51,7 @@ async def test_extracts_and_persists_a_bounded_jpeg(tmp_path: Path) -> None:
     assert commands[0][commands[0].index("-protocol_whitelist") + 1] == (
         "file,crypto,data"
     )
+    assert "-ss" not in commands[0]
     assert list(tmp_path.glob(".thumbnail-*.jpg")) == []
 
 

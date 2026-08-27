@@ -1008,6 +1008,7 @@ def _verification_claim(
         object_key=current.object_key,
         declared_size_bytes=row.declared_size_bytes,
         declared_sha256=row.declared_sha256,
+        owner_hash=row.owner_hash,
     )
 
 

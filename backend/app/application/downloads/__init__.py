@@ -85,12 +85,18 @@ from app.application.downloads.queries import (
 )
 from app.application.downloads.retry_download import RetryDownload
 from app.application.downloads.thumbnail import (
+    DownloadThumbnailSource,
     ThumbnailContent,
     ThumbnailObject,
     ThumbnailSource,
     ThumbnailStorageError,
 )
-from app.application.downloads.thumbnail_use_cases import GetThumbnail, PersistThumbnail
+from app.application.downloads.thumbnail_use_cases import (
+    GetDownloadThumbnail,
+    GetThumbnail,
+    PersistDownloadThumbnail,
+    PersistThumbnail,
+)
 
 __all__ = [
     "ApplicationError",
@@ -118,6 +124,7 @@ __all__ = [
     "GetDownload",
     "GetDownloadAnalytics",
     "GetDownloadHistory",
+    "GetDownloadThumbnail",
     "GetInspection",
     "GetThumbnail",
     "HmacRequestFingerprinter",
@@ -136,6 +143,7 @@ __all__ = [
     "IssueDownloadUrl",
     "RetryDownload",
     "PersistThumbnail",
+    "PersistDownloadThumbnail",
     "JobSaveResult",
     "JobSnapshot",
     "MediaInspectionFailure",
@@ -161,6 +169,7 @@ __all__ = [
     "RunnerFormat",
     "RunnerInspection",
     "ThumbnailContent",
+    "DownloadThumbnailSource",
     "ThumbnailObject",
     "ThumbnailSource",
     "ThumbnailStorageError",

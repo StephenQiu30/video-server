@@ -16,6 +16,7 @@ from .contracts import (
 from .models import (
     ArtifactRow,
     DownloadJobRow,
+    DownloadThumbnailRow,
     MediaFormatRow,
     MediaImportRow,
     MediaInspectionRow,
@@ -91,6 +92,7 @@ def download_history_item_snapshot(
     media_import: MediaImportRow | None,
     artifact: ArtifactRow | None,
     thumbnail: MediaThumbnailRow | None,
+    job_thumbnail: DownloadThumbnailRow | None,
     now: datetime,
 ) -> DownloadHistoryItemSnapshot:
     metadata = {} if inspection is None else dict(inspection.metadata_json)
@@ -105,9 +107,13 @@ def download_history_item_snapshot(
             else (inspection.title if inspection is not None else "未命名视频")
         ),
         thumbnail_available=(
-            not is_browser_import
-            and (thumbnail is not None or isinstance(legacy_thumbnail, str))
+            job_thumbnail is not None
+            or (
+                not is_browser_import
+                and (thumbnail is not None or isinstance(legacy_thumbnail, str))
+            )
         ),
+        job_thumbnail_available=job_thumbnail is not None,
         format_name=(
             "MP4"
             if is_browser_import

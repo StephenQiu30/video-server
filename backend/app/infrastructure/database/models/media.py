@@ -119,3 +119,35 @@ class MediaThumbnailRow(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now
     )
+
+
+class DownloadThumbnailRow(Base):
+    __tablename__ = "download_thumbnails"
+    __table_args__ = (
+        UniqueConstraint("bucket", "object_key", name="uq_download_thumbnails_object"),
+        CheckConstraint("size_bytes > 0", name="ck_download_thumbnails_size"),
+        CheckConstraint(
+            "length(sha256) = 64", name="ck_download_thumbnails_sha256_length"
+        ),
+        CheckConstraint(
+            "content_type IN ('image/avif','image/jpeg','image/png','image/webp')",
+            name="ck_download_thumbnails_content_type",
+        ),
+    )
+
+    job_id: Mapped[UUID] = mapped_column(
+        Uuid,
+        ForeignKey("download_jobs.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    bucket: Mapped[str] = mapped_column(String(128), nullable=False)
+    object_key: Mapped[str] = mapped_column(Text, nullable=False)
+    content_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )

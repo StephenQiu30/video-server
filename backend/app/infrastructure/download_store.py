@@ -134,6 +134,44 @@ class SqlAlchemyDownloadStore:
             ),
         )
 
+    async def get_download_thumbnail_source(
+        self, job_id: UUID, owner_hash: str
+    ) -> application.DownloadThumbnailSource:
+        stored = await self.repository.get_download_thumbnail_source(job_id, owner_hash)
+        return application.DownloadThumbnailSource(
+            job_id=stored.job_id,
+            owner_hash=stored.owner_hash,
+            object=(
+                None
+                if stored.object is None
+                else application.ThumbnailObject(
+                    bucket=stored.object.bucket,
+                    object_key=stored.object.object_key,
+                    content_type=stored.object.content_type,
+                    sha256=stored.object.sha256,
+                    size_bytes=stored.object.size_bytes,
+                )
+            ),
+        )
+
+    async def save_download_thumbnail(
+        self,
+        job_id: UUID,
+        owner_hash: str,
+        thumbnail: application.ThumbnailObject,
+    ) -> None:
+        await self.repository.save_download_thumbnail(
+            job_id,
+            owner_hash,
+            database.ThumbnailSnapshot(
+                bucket=thumbnail.bucket,
+                object_key=thumbnail.object_key,
+                content_type=thumbnail.content_type,
+                sha256=thumbnail.sha256,
+                size_bytes=thumbnail.size_bytes,
+            ),
+        )
+
     async def get_retry_source(
         self, job_id: UUID, owner_hash: str
     ) -> application.RetrySourceSnapshot:
@@ -171,6 +209,7 @@ class SqlAlchemyDownloadStore:
                     inspection_id=item.inspection_id,
                     title=item.title,
                     thumbnail_available=item.thumbnail_available,
+                    job_thumbnail_available=item.job_thumbnail_available,
                     format_name=item.format_name,
                     status=item.status,
                     progress=item.progress,

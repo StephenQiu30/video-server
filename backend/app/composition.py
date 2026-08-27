@@ -37,6 +37,7 @@ from app.application.downloads import (
     GetDownload,
     GetDownloadAnalytics,
     GetDownloadHistory,
+    GetDownloadThumbnail,
     GetInspection,
     GetThumbnail,
     HmacRequestFingerprinter,
@@ -367,6 +368,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         inspect_discovered_item=inspect_discovered_item,
         get_inspection=GetInspection(store, now=clock),
         get_thumbnail=GetThumbnail(store, thumbnail_storage, persist_thumbnail),
+        get_download_thumbnail=GetDownloadThumbnail(store, thumbnail_storage),
         create_download=CreateDownload(
             repository=store,
             fingerprinter=fingerprinter,

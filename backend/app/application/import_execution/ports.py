@@ -118,6 +118,12 @@ class VideoImportVerifier(Protocol):
     ) -> VerifiedImportArtifact: ...
 
 
+class ImportThumbnailRecovery(Protocol):
+    async def recover(
+        self, resource_id: UUID, owner_hash: str, artifact: Path
+    ) -> bool: ...
+
+
 class DocumentImportVerifier(Protocol):
     async def __call__(
         self, path: Path, claim: ImportVerificationClaim

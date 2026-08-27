@@ -383,6 +383,23 @@ ALTER TABLE media_imports ADD CONSTRAINT ck_media_imports_declared_origin CHECK 
     declared_origin IN ('user_file','wechat_channels')
 );
 
+CREATE TABLE IF NOT EXISTS download_thumbnails (
+    job_id UUID PRIMARY KEY REFERENCES download_jobs(id) ON DELETE CASCADE,
+    bucket VARCHAR(128) NOT NULL,
+    object_key TEXT NOT NULL,
+    content_type VARCHAR(64) NOT NULL,
+    sha256 VARCHAR(64) NOT NULL,
+    size_bytes INTEGER NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_download_thumbnails_object UNIQUE (bucket, object_key),
+    CONSTRAINT ck_download_thumbnails_size CHECK (size_bytes > 0),
+    CONSTRAINT ck_download_thumbnails_sha256_length CHECK (length(sha256) = 64),
+    CONSTRAINT ck_download_thumbnails_content_type CHECK (
+        content_type IN ('image/avif','image/jpeg','image/png','image/webp')
+    )
+);
+
 CREATE TABLE IF NOT EXISTS media_import_attempts (
     resource_id UUID NOT NULL
         REFERENCES media_imports (id) ON DELETE CASCADE,

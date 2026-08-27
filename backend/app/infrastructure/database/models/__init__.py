@@ -14,7 +14,12 @@ from .dlq_replay import DlqReplayRow
 from .document import AnalysisDocumentLockRow, DocumentArtifactRow, DocumentRow
 from .document_import import DocumentImportAttemptRow
 from .download import ArtifactRow, DownloadJobRow
-from .media import MediaFormatRow, MediaInspectionRow, MediaThumbnailRow
+from .media import (
+    DownloadThumbnailRow,
+    MediaFormatRow,
+    MediaInspectionRow,
+    MediaThumbnailRow,
+)
 from .media_import import MediaImportAttemptRow, MediaImportRow
 from .operational_metric import OperationalCounterRow
 from .outbox import OutboxEventRow
@@ -37,6 +42,7 @@ __all__ = [
     "AnalysisRetryOperationRow",
     "AnalysisRunRow",
     "DownloadJobRow",
+    "DownloadThumbnailRow",
     "DocumentArtifactRow",
     "DocumentImportAttemptRow",
     "DocumentRow",

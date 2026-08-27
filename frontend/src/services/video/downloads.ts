@@ -76,6 +76,20 @@ export async function retryDownload(
   });
 }
 
+/** 读取下载任务封面 读取当前用户本地导入视频生成的私有首帧封面。 GET /api/downloads/${param0}/thumbnail */
+export async function getDownloadThumbnail(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getDownloadThumbnailParams,
+  options?: RequestOptions
+) {
+  const { job_id: param0, ...queryParams } = params;
+  return request<{ id?: number }>(`/api/downloads/${param0}/thumbnail`, {
+    method: "GET",
+    params: { ...queryParams },
+    ...(options || {}),
+  });
+}
+
 /** 查询下载历史 查询当前登录用户的下载历史。 GET /api/downloads/history */
 export async function getDownloadHistory(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)

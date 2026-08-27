@@ -33,6 +33,26 @@ class PersistThumbnail:
         return True
 
 
+class PersistDownloadThumbnail:
+    def __init__(
+        self, repository: DownloadRepository, storage: ThumbnailObjectStorage
+    ) -> None:
+        self._repository = repository
+        self._storage = storage
+
+    async def __call__(
+        self, job_id: UUID, owner_hash: str, data_url: str | None
+    ) -> bool:
+        safe_data_url = safe_thumbnail_data_url(data_url)
+        if safe_data_url is None:
+            return False
+        stored = await self._storage.store(job_id, safe_data_url)
+        await self._repository.save_download_thumbnail(
+            job_id, validate_owner_hash(owner_hash), stored
+        )
+        return True
+
+
 class GetThumbnail:
     def __init__(
         self,
@@ -72,3 +92,27 @@ class GetThumbnail:
         if source is None:
             raise ApplicationError(ApplicationErrorCode.NOT_FOUND)
         return source
+
+
+class GetDownloadThumbnail:
+    def __init__(
+        self, repository: DownloadRepository, storage: ThumbnailObjectStorage
+    ) -> None:
+        self._repository = repository
+        self._storage = storage
+
+    async def __call__(self, job_id: UUID, owner_hash: str) -> ThumbnailContent:
+        source = await self._repository.get_download_thumbnail_source(
+            job_id, validate_owner_hash(owner_hash)
+        )
+        if source is None or source.object is None:
+            raise ApplicationError(ApplicationErrorCode.NOT_FOUND)
+        try:
+            content = await self._storage.read(source.object)
+        except ThumbnailStorageError as exc:
+            raise ApplicationError(ApplicationErrorCode.STORAGE_UNAVAILABLE) from exc
+        return ThumbnailContent(
+            content=content,
+            content_type=source.object.content_type,
+            sha256=source.object.sha256,
+        )

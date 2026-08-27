@@ -6,6 +6,7 @@ import asyncio
 from dataclasses import dataclass
 from datetime import timedelta
 
+from app.application.downloads import PersistDownloadThumbnail
 from app.application.import_execution import (
     DocumentImportExecution,
     DocumentImportRecoverySweeper,
@@ -17,18 +18,23 @@ from app.application.import_execution import (
 from app.core.config import Settings, get_settings_for_role
 from app.infrastructure.database import (
     SqlAlchemyDocumentImportExecutionRepository,
+    SqlAlchemyDownloadRepository,
     SqlAlchemyMediaImportRepository,
     create_engine,
     create_session_factory,
 )
+from app.infrastructure.download_store import SqlAlchemyDownloadStore
 from app.infrastructure.messaging import RabbitMqTopology
 from app.infrastructure.object_storage import MinioObjectStorage
+from app.infrastructure.thumbnail_storage import MinioThumbnailStorage
+from app.workers.download.thumbnail import ArtifactThumbnailRecovery
 from app.workers.imports.consumer import RabbitMqImportConsumer
 from app.workers.imports.runtime_support import (
     install_signal_handlers,
     utc_now,
     worker_id,
 )
+from app.workers.imports.thumbnail_backfill import DownloadThumbnailBackfill
 from app.workers.imports.verifier_factory import build_screenplay_verifier
 from app.workers.imports.video import (
     Mp4ImportVerifier,
@@ -43,6 +49,7 @@ class ImportWorkerRuntime:
     consumer: RabbitMqImportConsumer
     sweeper: ImportRecoverySweeper
     document_sweeper: DocumentImportRecoverySweeper
+    thumbnail_backfill: DownloadThumbnailBackfill
     engine: AsyncEngine
 
     async def close(self) -> None:
@@ -56,9 +63,22 @@ def build_runtime(settings: Settings) -> ImportWorkerRuntime:
     engine = create_engine(settings.database_url)
     sessions = create_session_factory(engine)
     repository = SqlAlchemyMediaImportRepository(sessions)
+    download_repository = SqlAlchemyDownloadRepository(sessions)
     document_repository = SqlAlchemyDocumentImportExecutionRepository(sessions)
     storage = MinioObjectStorage.for_imports(settings, enable_public_signing=False)
     workspace = PrivateImportWorkspace(settings.import_workspace_root)
+    thumbnail_recovery = ArtifactThumbnailRecovery(
+        PersistDownloadThumbnail(
+            SqlAlchemyDownloadStore(download_repository),
+            MinioThumbnailStorage(
+                storage,
+                max_bytes=settings.download_thumbnail_max_bytes,
+            ),
+        ),
+        ffmpeg_binary=settings.download_thumbnail_ffmpeg_binary,
+        timeout_seconds=settings.download_thumbnail_timeout_seconds,
+        max_bytes=settings.download_thumbnail_max_bytes,
+    )
     execution_settings = ImportExecutionSettings(
         worker_id=worker_id(),
         bucket=settings.minio_bucket,
@@ -85,6 +105,7 @@ def build_runtime(settings: Settings) -> ImportWorkerRuntime:
         ),
         clock=utc_now,
         settings=execution_settings,
+        thumbnail_recovery=thumbnail_recovery,
     )
     document_execution = DocumentImportExecution(
         repository=document_repository,
@@ -139,6 +160,14 @@ def build_runtime(settings: Settings) -> ImportWorkerRuntime:
             ),
             delete_timeout=settings.artifact_delete_timeout_seconds,
         ),
+        thumbnail_backfill=DownloadThumbnailBackfill(
+            download_repository,
+            storage,
+            workspace,
+            thumbnail_recovery,
+            interval=settings.import_recovery_interval_seconds,
+            batch_size=settings.import_recovery_batch_size,
+        ),
         engine=engine,
     )
 
@@ -158,11 +187,12 @@ async def _serve(runtime: ImportWorkerRuntime, stop: asyncio.Event) -> None:
     consumer = asyncio.create_task(runtime.consumer.run(stop))
     sweeper = asyncio.create_task(runtime.sweeper.run(stop))
     document_sweeper = asyncio.create_task(runtime.document_sweeper.run(stop))
+    thumbnail_backfill = asyncio.create_task(runtime.thumbnail_backfill.run(stop))
     stop_wait = asyncio.create_task(stop.wait())
-    tasks = (consumer, sweeper, document_sweeper)
+    tasks = (consumer, sweeper, document_sweeper, thumbnail_backfill)
     try:
         await asyncio.wait(
-            {consumer, sweeper, document_sweeper, stop_wait},
+            {consumer, sweeper, document_sweeper, thumbnail_backfill, stop_wait},
             return_when=asyncio.FIRST_COMPLETED,
         )
         stop.set()

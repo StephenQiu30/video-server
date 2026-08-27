@@ -239,6 +239,18 @@ async def test_history_includes_browser_imports_and_searches_filename(
                 created_at=NOW,
             )
         )
+        session.add(
+            database.DownloadThumbnailRow(
+                job_id=job_id,
+                bucket="video-artifacts",
+                object_key=f"thumbnails/{job_id}/first-frame.jpg",
+                content_type="image/jpeg",
+                sha256="3" * 64,
+                size_bytes=512,
+                created_at=NOW,
+                updated_at=NOW,
+            )
+        )
 
     history = await store.list_download_history(
         owner,
@@ -256,9 +268,13 @@ async def test_history_includes_browser_imports_and_searches_filename(
     assert item.inspection_id is None
     assert item.title == "我的样片.mp4"
     assert item.format_name == "MP4"
-    assert item.thumbnail_available is False
+    assert item.thumbnail_available is True
+    assert item.job_thumbnail_available is True
     assert item.file_available is True
     assert item.source_kind == "browser_import"
+
+    view = await application.GetDownloadHistory(store, now=lambda: NOW)(owner)
+    assert view.items[0].thumbnail_url == f"/api/downloads/{job_id}/thumbnail"
 
 
 @pytest.mark.asyncio

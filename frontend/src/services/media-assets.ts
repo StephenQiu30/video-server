@@ -1,7 +1,7 @@
 import { request } from '@/lib/request';
 
 const PRIVATE_THUMBNAIL_PATH =
-  /^\/api\/inspections\/[0-9a-f-]{36}\/thumbnail$/i;
+  /^\/api\/(?:inspections|downloads)\/[0-9a-f-]{36}\/thumbnail$/i;
 const SUPPORTED_IMAGE_TYPES = new Set([
   'image/avif',
   'image/jpeg',
@@ -20,7 +20,7 @@ export async function loadPrivateThumbnail(
   signal?: AbortSignal,
 ): Promise<Blob> {
   if (!isPrivateThumbnailPath(path)) {
-    throw new TypeError('Only private inspection thumbnail paths are allowed.');
+    throw new TypeError('Only private media thumbnail paths are allowed.');
   }
 
   const image = await request<Blob>(path, {

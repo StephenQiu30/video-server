@@ -22,6 +22,10 @@ def thumbnail_resource_url(inspection_id: UUID) -> str:
     return f"/api/inspections/{inspection_id}/thumbnail"
 
 
+def download_thumbnail_resource_url(job_id: UUID) -> str:
+    return f"/api/downloads/{job_id}/thumbnail"
+
+
 @dataclass(frozen=True, slots=True)
 class ThumbnailObject:
     bucket: str
@@ -37,6 +41,13 @@ class ThumbnailSource:
     owner_hash: str
     object: ThumbnailObject | None
     legacy_data_url: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class DownloadThumbnailSource:
+    job_id: UUID
+    owner_hash: str
+    object: ThumbnailObject | None
 
 
 @dataclass(frozen=True, slots=True)

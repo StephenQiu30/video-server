@@ -23,6 +23,7 @@ class DownloadHistoryItemSnapshot:
     file_available: bool = False
     source_kind: str = DownloadSourceKind.REMOTE_PROVIDER.value
     declared_origin: str | None = None
+    job_thumbnail_available: bool = False
 
 
 @dataclass(frozen=True, slots=True)

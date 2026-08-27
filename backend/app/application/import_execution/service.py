@@ -22,6 +22,7 @@ from .ports import (
     Clock,
     ImportExecutionRepository,
     ImportExecutionStorage,
+    ImportThumbnailRecovery,
     ImportWorkspaceManager,
     VideoImportVerifier,
 )
@@ -43,6 +44,7 @@ class ImportExecution:
         video_verifier: VideoImportVerifier,
         clock: Clock,
         settings: ImportExecutionSettings,
+        thumbnail_recovery: ImportThumbnailRecovery | None = None,
     ) -> None:
         self._repository = repository
         self._storage = storage
@@ -50,6 +52,7 @@ class ImportExecution:
         self._video_verifier = video_verifier
         self._clock = clock
         self._settings = settings
+        self._thumbnail_recovery = thumbnail_recovery
 
     async def execute(
         self,
@@ -99,6 +102,12 @@ class ImportExecution:
                     stage="verifying",
                     progress=75,
                 )
+                if self._thumbnail_recovery is not None and claim.owner_hash:
+                    await self._thumbnail_recovery.recover(
+                        claim.resource_id,
+                        claim.owner_hash,
+                        workspace.input_path,
+                    )
                 final_key = _artifact_object_key(claim)
                 await self._monitored(
                     claim,

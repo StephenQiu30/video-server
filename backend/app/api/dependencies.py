@@ -28,6 +28,7 @@ from app.application.downloads import (
     GetDownload,
     GetDownloadAnalytics,
     GetDownloadHistory,
+    GetDownloadThumbnail,
     GetInspection,
     GetThumbnail,
     InspectMedia,
@@ -75,6 +76,7 @@ class DownloadUseCases:
     inspect_discovered_item: InspectDiscoveredItem
     get_inspection: GetInspection
     get_thumbnail: GetThumbnail
+    get_download_thumbnail: GetDownloadThumbnail
     create_download: CreateDownload
     get_download: GetDownload
     get_download_history: GetDownloadHistory

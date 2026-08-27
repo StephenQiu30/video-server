@@ -132,6 +132,20 @@ def test_thumbnail_route_returns_private_image_with_integrity_headers(
     assert len(str(stubs["get_thumbnail"].calls[0][0][1])) == 64
 
 
+def test_download_thumbnail_route_returns_generated_first_frame(
+    tmp_path: Path,
+) -> None:
+    test_client, stubs = client(tmp_path)
+    with test_client:
+        response = test_client.get(f"/api/downloads/{JOB_ID}/thumbnail")
+
+    assert response.status_code == 200
+    assert response.content == b"first-frame"
+    assert response.headers["content-type"] == "image/jpeg"
+    assert response.headers["etag"] == f'"{"b" * 64}"'
+    assert stubs["get_download_thumbnail"].calls[0][0][0] == JOB_ID
+
+
 def test_download_routes_delegate_with_session_owner(tmp_path: Path) -> None:
     test_client, stubs = client(tmp_path)
     body = {"inspection_id": str(INSPECTION_ID), "format_id": str(FORMAT_ID)}

@@ -84,6 +84,44 @@ async def get_download_history(
 
 
 @router.get(
+    "/{job_id}/thumbnail",
+    operation_id="getDownloadThumbnail",
+    response_class=Response,
+    responses={
+        200: {
+            "description": "Private persisted download thumbnail",
+            "content": {
+                "image/avif": {},
+                "image/jpeg": {},
+                "image/png": {},
+                "image/webp": {},
+            },
+        }
+    },
+    summary="读取下载任务封面",
+)
+async def get_download_thumbnail(
+    job_id: UUID,
+    user: User,
+    use_cases: UseCases,
+) -> Response:
+    """读取当前用户本地导入视频生成的私有首帧封面。"""
+    try:
+        thumbnail = await use_cases.get_download_thumbnail(job_id, user.owner_hash)
+    except ApplicationError as exc:
+        raise application_error(exc) from exc
+    return Response(
+        content=thumbnail.content,
+        media_type=thumbnail.content_type,
+        headers={
+            "Cache-Control": "private, max-age=3600",
+            "ETag": f'"{thumbnail.sha256}"',
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+@router.get(
     "/{job_id}",
     operation_id="getDownload",
     response_model=DownloadResponse,

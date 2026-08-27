@@ -13,6 +13,8 @@ from .contracts import (
     ArtifactSnapshot,
     DownloadHistoryPageSnapshot,
     DownloadPresentationSnapshot,
+    DownloadThumbnailCandidateSnapshot,
+    DownloadThumbnailSourceSnapshot,
     JobSnapshot,
     JobSourceSnapshot,
     RetrySourceSnapshot,
@@ -29,6 +31,7 @@ from .mapping import (
 from .models import (
     ArtifactRow,
     DownloadJobRow,
+    DownloadThumbnailRow,
     MediaFormatRow,
     MediaImportRow,
     MediaInspectionRow,
@@ -37,6 +40,39 @@ from .models import (
 
 
 class AccessRepository(AnalyticsRepository):
+    async def list_missing_download_thumbnails(
+        self, *, limit: int
+    ) -> tuple[DownloadThumbnailCandidateSnapshot, ...]:
+        if not 1 <= limit <= 200:
+            raise ValueError("thumbnail backfill limit is invalid")
+        async with self._sessions() as session:
+            rows = (
+                await session.execute(
+                    select(DownloadJobRow, ArtifactRow)
+                    .join(ArtifactRow, ArtifactRow.job_id == DownloadJobRow.id)
+                    .outerjoin(
+                        DownloadThumbnailRow,
+                        DownloadThumbnailRow.job_id == DownloadJobRow.id,
+                    )
+                    .where(
+                        DownloadJobRow.source_kind == "browser_import",
+                        DownloadJobRow.status == "succeeded",
+                        ArtifactRow.deleted_at.is_(None),
+                        DownloadThumbnailRow.job_id.is_(None),
+                    )
+                    .order_by(DownloadJobRow.created_at, DownloadJobRow.id)
+                    .limit(limit)
+                )
+            ).all()
+        return tuple(
+            DownloadThumbnailCandidateSnapshot(
+                job_id=job.id,
+                owner_hash=job.owner_hash,
+                object_key=artifact.object_key,
+            )
+            for job, artifact in rows
+        )
+
     async def get_download_presentation(
         self, job_id: UUID, owner_hash: str
     ) -> DownloadPresentationSnapshot:
@@ -143,6 +179,71 @@ class AccessRepository(AnalyticsRepository):
             inspection.metadata_json = metadata
             await session.flush()
 
+    async def get_download_thumbnail_source(
+        self, job_id: UUID, owner_hash: str
+    ) -> DownloadThumbnailSourceSnapshot:
+        async with self._sessions() as session:
+            result = (
+                await session.execute(
+                    select(DownloadJobRow, DownloadThumbnailRow)
+                    .outerjoin(
+                        DownloadThumbnailRow,
+                        DownloadThumbnailRow.job_id == DownloadJobRow.id,
+                    )
+                    .where(
+                        DownloadJobRow.id == job_id,
+                        DownloadJobRow.owner_hash == owner_hash,
+                    )
+                )
+            ).one_or_none()
+            if result is None:
+                raise RepositoryNotFound("download thumbnail does not exist")
+            job, thumbnail = result
+            return DownloadThumbnailSourceSnapshot(
+                job_id=job.id,
+                owner_hash=job.owner_hash,
+                object=(
+                    None
+                    if thumbnail is None
+                    else ThumbnailSnapshot(
+                        bucket=thumbnail.bucket,
+                        object_key=thumbnail.object_key,
+                        content_type=thumbnail.content_type,
+                        sha256=thumbnail.sha256,
+                        size_bytes=thumbnail.size_bytes,
+                    )
+                ),
+            )
+
+    async def save_download_thumbnail(
+        self,
+        job_id: UUID,
+        owner_hash: str,
+        thumbnail: ThumbnailSnapshot,
+    ) -> None:
+        async with self._sessions() as session, session.begin():
+            job = await session.scalar(
+                select(DownloadJobRow)
+                .where(
+                    DownloadJobRow.id == job_id,
+                    DownloadJobRow.owner_hash == owner_hash,
+                )
+                .with_for_update()
+            )
+            if job is None:
+                raise RepositoryNotFound("download job does not exist")
+            row = await session.get(DownloadThumbnailRow, job_id)
+            if row is None:
+                row = DownloadThumbnailRow(job_id=job_id)
+                session.add(row)
+            row.bucket = thumbnail.bucket
+            row.object_key = thumbnail.object_key
+            row.content_type = thumbnail.content_type
+            row.sha256 = thumbnail.sha256
+            row.size_bytes = thumbnail.size_bytes
+            row.updated_at = utc_now()
+            await session.flush()
+
     async def get_retry_source(
         self, job_id: UUID, owner_hash: str
     ) -> RetrySourceSnapshot:
@@ -209,6 +310,7 @@ class AccessRepository(AnalyticsRepository):
                         MediaImportRow,
                         ArtifactRow,
                         MediaThumbnailRow,
+                        DownloadThumbnailRow,
                     )
                     .outerjoin(
                         MediaInspectionRow,
@@ -222,6 +324,10 @@ class AccessRepository(AnalyticsRepository):
                     .outerjoin(
                         MediaThumbnailRow,
                         MediaThumbnailRow.inspection_id == MediaInspectionRow.id,
+                    )
+                    .outerjoin(
+                        DownloadThumbnailRow,
+                        DownloadThumbnailRow.job_id == DownloadJobRow.id,
                     )
                     .where(*filters)
                     .order_by(
@@ -266,6 +372,7 @@ class AccessRepository(AnalyticsRepository):
                 media_import,
                 artifact,
                 thumbnail,
+                job_thumbnail,
                 now,
             )
             for (
@@ -275,6 +382,7 @@ class AccessRepository(AnalyticsRepository):
                 media_import,
                 artifact,
                 thumbnail,
+                job_thumbnail,
             ) in rows
         )
         return download_history_page_snapshot(
