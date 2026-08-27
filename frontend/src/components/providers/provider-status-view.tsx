@@ -56,7 +56,7 @@ export function ProviderStatusView() {
             {state.loading ? '刷新中…' : '刷新状态'}
           </Button>
         }
-        description="平台状态同时区分已接入、真实下载证据、完整链路验证和受控会话要求。已接入不代表所有内容类型都可用；这里只展示当前版本的能力与验证状态，不展示账号、Cookie、出口或探针地址。"
+        description="徽标优先说明平台是否已支持下载；右侧分别展示当前探针、公开样本下载、完整分析与受控会话要求。已支持不代表所有内容类型都可用，也不展示账号、Cookie、出口或探针地址。"
         title="平台状态"
         titleId="provider-status-title"
       />
@@ -97,7 +97,7 @@ function ProviderRow({ provider }: { provider: ProviderStatus }) {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-medium">{provider.display_name}</h2>
-            <Badge variant={statusVariant(provider.status)}>
+            <Badge variant={statusVariant(provider)}>
               {statusLabel(provider)}
             </Badge>
           </div>
@@ -136,8 +136,14 @@ function ProviderRow({ provider }: { provider: ProviderStatus }) {
 }
 
 function statusLabel(provider: ProviderStatus): string {
-  if (provider.status === 'unknown' && provider.download_available) {
-    return '下载可用，待完整验证';
+  if (provider.download_supported) {
+    if (provider.download_available) return '已支持下载';
+    if (provider.status === 'access_required') return '支持下载 · 需会话';
+    if (provider.status === 'degraded') return '支持下载 · 当前降级';
+    if (provider.status === 'rate_limited') return '支持下载 · 当前限流';
+    if (provider.status === 'blocked') return '支持下载 · 当前受限';
+    if (provider.status === 'unknown') return '支持下载 · 待复验';
+    return '已支持下载';
   }
   if (
     provider.status === 'unknown' &&
@@ -152,7 +158,9 @@ function statusLabel(provider: ProviderStatus): string {
 function integrationDescription(provider: ProviderStatus): string {
   if (!provider.registered) return '接入：未登记';
   if (!provider.extractor_exists) return '接入：已登记，暂无解析器';
-  return '接入：解析器已部署';
+  return provider.download_supported
+    ? '接入：下载解析器已部署'
+    : '接入：解析器已部署';
 }
 
 function accessDescription(provider: ProviderStatus): string {
@@ -199,8 +207,10 @@ function formatCheckDate(value: string): string {
 }
 
 function statusVariant(
-  status: API.ProviderSupportStatus,
+  provider: ProviderStatus,
 ): 'destructive' | 'neutral' | 'success' | 'warning' {
+  if (provider.download_available) return 'success';
+  const status = provider.status;
   if (status === 'verified') return 'success';
   if (status === 'unsupported' || status === 'blocked') return 'destructive';
   if (

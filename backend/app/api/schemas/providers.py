@@ -21,6 +21,7 @@ class ProviderStatusResponse(StrictModel):
     status: ProviderSupportStatus
     last_checked_at: datetime | None
     last_check_succeeded: bool | None
+    download_supported: bool
     download_available: bool
     last_media_verified_at: datetime | None
     last_verified_at: datetime | None
@@ -38,6 +39,7 @@ class ProviderStatusResponse(StrictModel):
             status=value.status,
             last_checked_at=value.last_checked_at,
             last_check_succeeded=value.last_check_succeeded,
+            download_supported=value.download_supported,
             download_available=value.download_available,
             last_media_verified_at=value.last_media_verified_at,
             last_verified_at=value.last_verified_at,

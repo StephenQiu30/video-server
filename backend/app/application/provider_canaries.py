@@ -251,6 +251,8 @@ def _user_action(
     *,
     download_available: bool = False,
 ) -> str | None:
+    if status is ProviderSupportStatus.ACCESS_REQUIRED and download_available:
+        return "公开样本已完成真实下载；遇到平台挑战时才需要已批准的受控会话。"
     if (
         provider_key == "wechat_channels"
         and status is ProviderSupportStatus.ACCESS_REQUIRED

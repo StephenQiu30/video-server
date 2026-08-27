@@ -37,7 +37,7 @@ describe('provider status page', () => {
       .closest('li');
     expect(youtube).not.toBeNull();
     expect(youtube).not.toHaveClass('border-b', 'hairline');
-    expect(youtube).toHaveTextContent('需受控会话');
+    expect(youtube).toHaveTextContent('支持下载 · 需会话');
     const capabilities = within(youtube as HTMLElement).getByText(
       '单视频 · 音视频分离',
     );
@@ -52,7 +52,7 @@ describe('provider status page', () => {
       .getByRole('heading', { name: '哔哩哔哩' })
       .closest('li');
     expect(bilibili).not.toBeNull();
-    expect(bilibili).toHaveTextContent('已验证');
+    expect(bilibili).toHaveTextContent('已支持下载');
     expect(bilibili).toHaveTextContent('仅匿名公开内容');
     expect(bilibili).toHaveTextContent('最近状态检查：2026年8月11日');
     expect(bilibili).toHaveTextContent('· 通过');
@@ -63,8 +63,8 @@ describe('provider status page', () => {
       .getByRole('heading', { name: '红果短剧官方分享' })
       .closest('li');
     expect(hongguo).not.toBeNull();
-    expect(hongguo).toHaveTextContent('下载可用，待完整验证');
-    expect(hongguo).toHaveTextContent('解析器已部署');
+    expect(hongguo).toHaveTextContent('已支持下载');
+    expect(hongguo).toHaveTextContent('下载解析器已部署');
     expect(hongguo).toHaveTextContent('官方分享链接当前单集');
   });
 
@@ -116,6 +116,7 @@ function statuses(): ProviderStatusList {
         status: 'access_required',
         last_checked_at: null,
         last_check_succeeded: null,
+        download_supported: true,
         download_available: false,
         last_media_verified_at: null,
         last_verified_at: null,
@@ -131,6 +132,7 @@ function statuses(): ProviderStatusList {
         status: 'verified',
         last_checked_at: '2026-08-11T03:30:00Z',
         last_check_succeeded: true,
+        download_supported: true,
         download_available: true,
         last_media_verified_at: '2026-08-09T00:00:00Z',
         last_verified_at: '2026-08-10T00:00:00Z',
@@ -146,6 +148,7 @@ function statuses(): ProviderStatusList {
         status: 'unknown',
         last_checked_at: '2026-08-11T03:30:00Z',
         last_check_succeeded: true,
+        download_supported: true,
         download_available: true,
         last_media_verified_at: '2026-08-11T03:30:00Z',
         last_verified_at: null,

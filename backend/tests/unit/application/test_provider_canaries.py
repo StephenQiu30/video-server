@@ -150,6 +150,28 @@ async def test_approved_profile_recovers_after_fresh_canary_evidence() -> None:
 
 
 @pytest.mark.asyncio
+async def test_supported_download_is_explicit_with_conditional_session() -> None:
+    results = (
+        result(0),
+        result(30, stage=ProviderCanaryStage.MEDIA),
+    )
+    service = ProviderStatusService(
+        Reader(results),
+        (baseline(ProviderSupportStatus.ACCESS_REQUIRED),),
+        now=lambda: NOW,
+    )
+
+    view = (await service.list())[0]
+
+    assert view.download_supported is True
+    assert view.download_available is True
+    assert view.status is ProviderSupportStatus.ACCESS_REQUIRED
+    assert view.user_action == (
+        "公开样本已完成真实下载；遇到平台挑战时才需要已批准的受控会话。"
+    )
+
+
+@pytest.mark.asyncio
 async def test_approved_without_current_canary_is_not_reported_verified() -> None:
     service = ProviderStatusService(
         Reader(()),

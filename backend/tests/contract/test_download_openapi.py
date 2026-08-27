@@ -130,6 +130,7 @@ def test_provider_status_contract_is_coarse_and_non_secret(tmp_path: Path) -> No
             "last_checked_at",
             "last_check_succeeded",
             "download_available",
+            "download_supported",
             "last_media_verified_at",
             "last_verified_at",
         )

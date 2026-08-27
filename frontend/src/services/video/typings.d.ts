@@ -1030,6 +1030,8 @@ declare namespace API {
     last_checked_at: string | null;
     /** Last Check Succeeded */
     last_check_succeeded: boolean | null;
+    /** Download Supported */
+    download_supported: boolean;
     /** Download Available */
     download_available: boolean;
     /** Last Media Verified At */

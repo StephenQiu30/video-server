@@ -28,3 +28,21 @@ class ProviderStatusView:
     last_media_verified_at: datetime | None
     last_verified_at: datetime | None
     user_action: str | None
+
+    @property
+    def download_supported(self) -> bool:
+        downloadable = {
+            ProviderCapability.SINGLE_VIDEO,
+            ProviderCapability.SHORT_VIDEO,
+            ProviderCapability.CLIP_OR_VOD,
+        }
+        return (
+            self.registered
+            and self.extractor_exists
+            and self.status
+            not in {
+                ProviderSupportStatus.DISABLED,
+                ProviderSupportStatus.UNSUPPORTED,
+            }
+            and bool(downloadable.intersection(self.capabilities))
+        )
