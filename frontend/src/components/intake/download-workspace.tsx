@@ -15,6 +15,7 @@ import {
 import InspectionWorkspace from '@/components/intake/inspection-workspace';
 import { LinkDownloadForm } from '@/components/intake/link-download-form';
 import { MediaUploadForm } from '@/components/intake/media-upload-form';
+import { SourceDiscoveryWorkspace } from '@/components/intake/source-discovery-workspace';
 import { markNavigationPush } from '@/components/layout/navigation-history';
 import { ScreenplayUploadForm } from '@/components/screenplay/screenplay-upload-form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -24,19 +25,27 @@ import { demoInspection } from '@/lib/demo-inspection';
 import {
   createDownload,
   createIdempotencyKey,
+  createSourceDiscovery,
   displayError,
+  inspectDiscoveredItem,
   inspectMedia,
 } from '@/services/download';
-import type { Inspection } from '@/types/video';
+import type {
+  Inspection,
+  SourceDiscovery,
+  SourceDiscoveryItem,
+} from '@/types/video';
 import { normalizeMediaUrl, URL_MESSAGE } from '@/utils/validation';
 
-type BusyAction = 'inspect' | 'create' | null;
+type BusyAction = 'inspect' | 'select' | 'create' | null;
 type StableKey = { payload: string; value: string };
 
 export default function DownloadWorkspace() {
   const [mode, setMode] = useState<IntakeMode>('link');
   const [url, setUrl] = useState('');
   const [inspection, setInspection] = useState<Inspection | null>(null);
+  const [discovery, setDiscovery] = useState<SourceDiscovery | null>(null);
+  const [busyItemRef, setBusyItemRef] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState('');
   const [busy, setBusy] = useState<BusyAction>(null);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +53,7 @@ export default function DownloadWorkspace() {
   const [mediaDeclaredOrigin, setMediaDeclaredOrigin] =
     useState<API.DeclaredOrigin>('user_file');
   const inspectionKey = useRef<StableKey | null>(null);
+  const discoveryKey = useRef<StableKey | null>(null);
   const downloadKey = useRef<StableKey | null>(null);
   const openDownload = useCallback((downloadId: string) => {
     const target = `/downloads/detail?jobId=${encodeURIComponent(downloadId)}`;
@@ -80,11 +90,42 @@ export default function DownloadWorkspace() {
     setBusy('inspect');
     setError(null);
     setInspection(null);
+    setDiscovery(null);
     setSelectedId('');
     try {
-      const result = await inspectMedia(
-        normalized,
-        stableKey(inspectionKey, normalized),
+      if (isWeChatArticleUrl(normalized)) {
+        const result = await createSourceDiscovery(
+          normalized,
+          stableKey(discoveryKey, normalized),
+        );
+        setDiscovery(result);
+      } else {
+        const result = await inspectMedia(
+          normalized,
+          stableKey(inspectionKey, normalized),
+        );
+        setInspection(result);
+        setSelectedId(result.formats[0]?.id ?? '');
+      }
+    } catch (reason) {
+      setError(displayError(reason));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function selectDiscoveredItem(item: SourceDiscoveryItem) {
+    if (!discovery) return;
+    setBusy('select');
+    setBusyItemRef(item.item_ref);
+    setError(null);
+    setInspection(null);
+    setSelectedId('');
+    try {
+      const result = await inspectDiscoveredItem(
+        discovery.id,
+        item.item_ref,
+        stableKey(inspectionKey, `${discovery.id}:${item.item_ref}`),
       );
       setInspection(result);
       setSelectedId(result.formats[0]?.id ?? '');
@@ -92,6 +133,7 @@ export default function DownloadWorkspace() {
       setError(displayError(reason));
     } finally {
       setBusy(null);
+      setBusyItemRef(null);
     }
   }
 
@@ -121,7 +163,7 @@ export default function DownloadWorkspace() {
         linkForm={
           <LinkDownloadForm
             busy={busy === 'inspect'}
-            inspection={inspection}
+            hasResult={inspection !== null || discovery !== null}
             invalid={urlInvalid}
             onInspect={() => void inspect()}
             onUrlChange={(value) => {
@@ -189,6 +231,13 @@ export default function DownloadWorkspace() {
           <AlertDescription>{mediaImport.notice}</AlertDescription>
         </Alert>
       ) : null}
+      {mode === 'link' && discovery ? (
+        <SourceDiscoveryWorkspace
+          busyItemRef={busyItemRef}
+          discovery={discovery}
+          onSelect={(item) => void selectDiscoveredItem(item)}
+        />
+      ) : null}
       {mode === 'link' && inspection ? (
         <InspectionWorkspace
           busy={busy === 'create'}
@@ -204,6 +253,17 @@ export default function DownloadWorkspace() {
       ) : null}
     </div>
   );
+}
+
+function isWeChatArticleUrl(value: string) {
+  try {
+    const parsed = new URL(value);
+    return (
+      parsed.protocol === 'https:' && parsed.hostname === 'mp.weixin.qq.com'
+    );
+  } catch {
+    return false;
+  }
 }
 
 function stableKey(ref: RefObject<StableKey | null>, payload: string) {

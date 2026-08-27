@@ -179,7 +179,7 @@ def _rate_limit_operation(request: Request) -> str | None:
         return "document_import"
     if request.method != "POST":
         return None
-    if path == "/api/inspections":
+    if path in {"/api/inspections", "/api/source-discoveries"}:
         return "inspect"
     if path == "/api/downloads":
         return "download"

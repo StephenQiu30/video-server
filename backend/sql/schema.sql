@@ -111,6 +111,7 @@ INSERT INTO provider_catalog_entries (
     ('weibo', '微博', 140, TRUE, FALSE),
     ('youku', '优酷', 150, TRUE, FALSE),
     ('qqvideo', '腾讯视频', 160, TRUE, FALSE),
+    ('wechat_official_account_article', '微信公众号文章', 165, TRUE, FALSE),
     ('wechat_channels', '微信视频号', 170, TRUE, FALSE),
     ('snapchat', 'Snapchat Spotlight', 180, TRUE, FALSE),
     ('linkedin', 'LinkedIn', 190, TRUE, FALSE),
@@ -146,6 +147,65 @@ ALTER TABLE media_inspections ADD CONSTRAINT ck_inspection_duration
 
 CREATE INDEX IF NOT EXISTS ix_media_inspections_owner_expires
     ON media_inspections (owner_hash, expires_at);
+
+CREATE TABLE IF NOT EXISTS source_discoveries (
+    id UUID PRIMARY KEY,
+    owner_hash VARCHAR(64) NOT NULL,
+    idempotency_key VARCHAR(128) NOT NULL,
+    request_fingerprint VARCHAR(64) NOT NULL,
+    provider_key VARCHAR(64) NOT NULL,
+    url_ciphertext BYTEA NOT NULL,
+    url_nonce BYTEA NOT NULL,
+    url_key_id VARCHAR(64) NOT NULL,
+    source_fingerprint VARCHAR(64) NOT NULL,
+    title TEXT NOT NULL,
+    adapter_version VARCHAR(128) NOT NULL,
+    status VARCHAR(24) NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_source_discoveries_owner_idempotency
+        UNIQUE (owner_hash, idempotency_key),
+    CONSTRAINT ck_source_discoveries_status CHECK (status IN ('ready', 'empty'))
+);
+
+CREATE INDEX IF NOT EXISTS ix_source_discoveries_owner_expires
+    ON source_discoveries (owner_hash, expires_at);
+
+CREATE TABLE IF NOT EXISTS source_discovery_items (
+    id UUID PRIMARY KEY,
+    discovery_id UUID NOT NULL
+        REFERENCES source_discoveries (id) ON DELETE CASCADE,
+    item_ref UUID NOT NULL,
+    position INTEGER NOT NULL,
+    kind VARCHAR(32) NOT NULL,
+    child_provider VARCHAR(64),
+    title TEXT NOT NULL,
+    duration_ms INTEGER,
+    identity_evidence_hash VARCHAR(64) NOT NULL,
+    decision_hint VARCHAR(24) NOT NULL,
+    status VARCHAR(24) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_source_discovery_items_ref UNIQUE (discovery_id, item_ref),
+    CONSTRAINT uq_source_discovery_items_identity
+        UNIQUE (discovery_id, identity_evidence_hash),
+    CONSTRAINT uq_source_discovery_items_position UNIQUE (discovery_id, position),
+    CONSTRAINT ck_source_discovery_items_position CHECK (position >= 0),
+    CONSTRAINT ck_source_discovery_items_kind CHECK (
+        kind IN (
+            'official_account_native', 'tencent_video',
+            'wechat_channels', 'unknown'
+        )
+    ),
+    CONSTRAINT ck_source_discovery_items_decision CHECK (
+        decision_hint IN ('candidate', 'export_required', 'unsupported')
+    ),
+    CONSTRAINT ck_source_discovery_items_status CHECK (
+        status IN ('ready', 'identity_unverified')
+    )
+);
+
+CREATE INDEX IF NOT EXISTS ix_source_discovery_items_discovery
+    ON source_discovery_items (discovery_id);
 
 CREATE TABLE IF NOT EXISTS media_formats (
     id UUID PRIMARY KEY,

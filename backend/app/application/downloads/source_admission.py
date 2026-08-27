@@ -18,9 +18,7 @@ from app.domain.downloads import (
 )
 
 _ARTICLE_PATH = re.compile(r"/s/[A-Za-z0-9_-]{6,256}")
-_ARTICLE_QUERY_KEYS = frozenset(
-    {"__biz", "mid", "idx", "sn", "chksm", "scene"}
-)
+_ARTICLE_QUERY_KEYS = frozenset({"__biz", "mid", "idx", "sn", "chksm", "scene"})
 _CHANNELS_PATH = re.compile(r"/sph/[A-Za-z0-9_-]{4,256}/?")
 _QQVIDEO_PAGE = re.compile(r"/x/page/([A-Za-z0-9_-]{4,64})\.html")
 _QQVIDEO_COVER = re.compile(
@@ -63,7 +61,9 @@ def classify_restricted_source(url: str) -> RestrictedSourceAdmission | None:
     parsed = urlsplit(url)
     host = (parsed.hostname or "").casefold()
     if host == "mp.weixin.qq.com":
-        valid = _valid_article_url(parsed.path, parsed.query, parsed.port)
+        valid = _valid_article_url(
+            parsed.path, parsed.query, parsed.port, parsed.fragment
+        )
         return RestrictedSourceAdmission(
             provider_key="wechat_official_account_article",
             provider_media_id=_opaque_source_id(url),
@@ -78,9 +78,7 @@ def classify_restricted_source(url: str) -> RestrictedSourceAdmission | None:
             protection_state=ProtectionState.UNKNOWN,
             rights_basis=None,
             restriction_reason=(
-                "article_discovery_required"
-                if valid
-                else "unsupported_article_url"
+                "article_discovery_required" if valid else "unsupported_article_url"
             ),
             user_action=(
                 "请先发现并选择文章中的具体视频。"
@@ -99,9 +97,7 @@ def classify_restricted_source(url: str) -> RestrictedSourceAdmission | None:
             source_origin=SourceOrigin.PUBLIC_URL,
             execution_mode=ExecutionMode.VERIFIED_IMPORT,
             access_decision=(
-                AccessDecision.EXPORT_REQUIRED
-                if valid
-                else AccessDecision.UNSUPPORTED
+                AccessDecision.EXPORT_REQUIRED if valid else AccessDecision.UNSUPPORTED
             ),
             entitlement_state=EntitlementState.UNKNOWN,
             identity_state=(IdentityState.VERIFIED if valid else IdentityState.UNKNOWN),
@@ -145,8 +141,8 @@ def classify_restricted_source(url: str) -> RestrictedSourceAdmission | None:
     return None
 
 
-def _valid_article_url(path: str, query: str, port: int | None) -> bool:
-    if port not in (None, 443):
+def _valid_article_url(path: str, query: str, port: int | None, fragment: str) -> bool:
+    if port not in (None, 443) or fragment:
         return False
     if _ARTICLE_PATH.fullmatch(path):
         return not query
@@ -156,7 +152,13 @@ def _valid_article_url(path: str, query: str, port: int | None) -> bool:
         parsed_query = parse_qs(query, keep_blank_values=True, strict_parsing=True)
     except ValueError:
         return False
-    return bool(parsed_query) and set(parsed_query) <= _ARTICLE_QUERY_KEYS
+    return (
+        {"__biz", "mid", "idx", "sn"} <= set(parsed_query)
+        and set(parsed_query) <= _ARTICLE_QUERY_KEYS
+        and all(
+            len(values) == 1 and values[0].strip() for values in parsed_query.values()
+        )
+    )
 
 
 def _qqvideo_media_id(path: str) -> str | None:

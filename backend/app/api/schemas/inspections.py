@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import Field
@@ -24,15 +25,29 @@ from app.domain.downloads import (
 )
 
 
-class InspectionRequest(StrictModel):
-    """Public media URL submitted for safe metadata inspection."""
-
+class PublicUrlInspectionSource(StrictModel):
+    kind: Literal["public_url"]
     url: str = Field(
         description="用户有权处理的公开、非 DRM HTTP(S) 媒体地址。",
         examples=["https://media.example/video"],
         min_length=8,
         max_length=4096,
     )
+
+
+class DiscoveredItemInspectionSource(StrictModel):
+    kind: Literal["discovered_item"]
+    discovery_id: UUID
+    item_ref: UUID
+
+
+class InspectionRequest(StrictModel):
+    """One explicitly selected, owner-authorized inspection source."""
+
+    source: Annotated[
+        PublicUrlInspectionSource | DiscoveredItemInspectionSource,
+        Field(discriminator="kind"),
+    ]
 
 
 class SemanticPlanResponse(StrictModel):

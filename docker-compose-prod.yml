@@ -68,11 +68,13 @@ services:
       MINIO_INTERNAL_SECURE: "false"
       RUNNER_BASE_URL: http://media-runner:19100
       RUNNER_EGRESS_PROXY: http://egress-proxy:3128
+      ARTICLE_DISCOVERY_PROXY_URL: http://egress-proxy:3128
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
       - app_net
       - runner_rpc_net
+      - runner_egress_net
     ports:
       - "127.0.0.1:${APP_HOST_PORT:-8101}:8101"
     depends_on:

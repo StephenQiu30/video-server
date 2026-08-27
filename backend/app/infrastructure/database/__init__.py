@@ -69,6 +69,7 @@ from .models import (
 )
 from .outbox_repository import SqlAlchemyDownloadRepository
 from .session import create_engine, create_session_factory
+from .source_discovery_repository import SqlAlchemySourceDiscoveryRepository
 
 __all__ = [
     "ArtifactCreate",
@@ -127,6 +128,7 @@ __all__ = [
     "SqlAlchemyDocumentCatalogRepository",
     "SqlAlchemyDocumentDeleteRepository",
     "SqlAlchemyMediaImportRepository",
+    "SqlAlchemySourceDiscoveryRepository",
     "UserRow",
     "build_artifact_object_key",
     "create_engine",

@@ -10,12 +10,17 @@ import {
   getInspection as getInspectionRequest,
   inspectMedia as inspectMediaRequest,
 } from '@/services/video/inspections';
+import {
+  createSourceDiscovery as createSourceDiscoveryRequest,
+  getSourceDiscovery as getSourceDiscoveryRequest,
+} from '@/services/video/sourceDiscoveries';
 import type {
   DownloadHistory,
   DownloadHistoryQuery,
   DownloadJob,
   DownloadUrl,
   Inspection,
+  SourceDiscovery,
 } from '@/types/video';
 
 export {
@@ -26,12 +31,49 @@ export { createIdempotencyKey } from '@/utils/idempotency';
 
 export function inspectMedia(url: string, key: string): Promise<Inspection> {
   return inspectMediaRequest(
-    { url },
+    { source: { kind: 'public_url', url } },
     {
       headers: { 'Idempotency-Key': key },
       timeout: 180_000,
     },
   );
+}
+
+export function inspectDiscoveredItem(
+  discoveryId: string,
+  itemRef: string,
+  key: string,
+): Promise<Inspection> {
+  return inspectMediaRequest(
+    {
+      source: {
+        kind: 'discovered_item',
+        discovery_id: discoveryId,
+        item_ref: itemRef,
+      },
+    },
+    {
+      headers: { 'Idempotency-Key': key },
+      timeout: 30_000,
+    },
+  );
+}
+
+export function createSourceDiscovery(
+  url: string,
+  key: string,
+): Promise<SourceDiscovery> {
+  return createSourceDiscoveryRequest(
+    { kind: 'wechat_official_account_article', url },
+    {
+      headers: { 'Idempotency-Key': key },
+      timeout: 30_000,
+    },
+  );
+}
+
+export function getSourceDiscovery(id: string): Promise<SourceDiscovery> {
+  return getSourceDiscoveryRequest({ discovery_id: encodeURIComponent(id) });
 }
 
 export function getInspection(id: string): Promise<Inspection> {

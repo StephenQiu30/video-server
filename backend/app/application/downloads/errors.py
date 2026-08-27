@@ -4,6 +4,8 @@ from enum import StrEnum
 
 
 class ApplicationErrorCode(StrEnum):
+    ARTICLE_ACCESS_RESTRICTED = "article_access_restricted"
+    ARTICLE_DISCOVERY_FAILED = "article_discovery_failed"
     DOWNLOAD_NOT_READY = "download_not_ready"
     DURATION_LIMIT_EXCEEDED = "duration_limit_exceeded"
     FORMAT_UNAVAILABLE = "format_unavailable"

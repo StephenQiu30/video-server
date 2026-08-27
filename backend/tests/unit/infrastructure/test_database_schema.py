@@ -21,6 +21,8 @@ def test_download_schema_contains_required_tables_and_columns() -> None:
         "users",
         "provider_canary_results",
         "provider_catalog_entries",
+        "source_discoveries",
+        "source_discovery_items",
     } <= set(tables)
     jobs = tables["download_jobs"]
     assert {
@@ -105,6 +107,13 @@ def test_sensitive_url_is_not_a_plaintext_column() -> None:
     )
     ddl = str(CreateTable(inspection).compile(dialect=postgresql.dialect()))
     assert "BYTEA" in ddl
+    discovery = Base.metadata.tables["source_discoveries"]
+    assert "url" not in discovery.columns
+    assert {"url_ciphertext", "url_nonce", "url_key_id"} <= set(
+        discovery.columns.keys()
+    )
+    items = Base.metadata.tables["source_discovery_items"]
+    assert not {"url", "iframe_url", "cdn_url", "raw_html"} & set(items.columns.keys())
 
 
 def test_constraints_cover_idempotency_progress_and_artifact_identity() -> None:

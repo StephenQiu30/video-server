@@ -44,6 +44,11 @@ from app.application.imports import (
 from app.application.provider_canaries import ProviderStatusService
 from app.application.provider_catalog import ProviderCatalogService
 from app.application.providers import ProviderStatusView
+from app.application.source_discoveries import (
+    CreateSourceDiscovery,
+    GetSourceDiscovery,
+    InspectDiscoveredItem,
+)
 from app.application.storage_files import StorageFileService
 from app.core.config import Settings
 from app.core.errors import AppError
@@ -67,6 +72,7 @@ def get_runtime_settings(request: Request) -> Settings:
 @dataclass(frozen=True, slots=True)
 class DownloadUseCases:
     inspect_media: InspectMedia
+    inspect_discovered_item: InspectDiscoveredItem
     get_inspection: GetInspection
     get_thumbnail: GetThumbnail
     create_download: CreateDownload
@@ -76,6 +82,12 @@ class DownloadUseCases:
     cancel_download: CancelDownload
     retry_download: RetryDownload
     issue_download_url: IssueDownloadUrl
+
+
+@dataclass(frozen=True, slots=True)
+class SourceDiscoveryUseCases:
+    create: CreateSourceDiscovery
+    get: GetSourceDiscovery
 
 
 @dataclass(frozen=True, slots=True)
@@ -124,6 +136,18 @@ def get_download_use_cases(request: Request) -> DownloadUseCases:
             detail="The download service is not available.",
         )
     return cast(DownloadUseCases, container)
+
+
+def get_source_discovery_use_cases(request: Request) -> SourceDiscoveryUseCases:
+    container = getattr(request.app.state, "source_discovery_use_cases", None)
+    if container is None:
+        raise AppError(
+            status=503,
+            code="service_unavailable",
+            title="Service unavailable",
+            detail="The source discovery service is not available.",
+        )
+    return cast(SourceDiscoveryUseCases, container)
 
 
 def get_analysis_use_cases(request: Request) -> AnalysisUseCases:

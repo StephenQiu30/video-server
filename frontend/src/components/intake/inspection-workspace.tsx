@@ -124,7 +124,7 @@ export default function InspectionWorkspace({
 function decisionTitle(decision: Inspection['access_decision']) {
   if (decision === 'playback_only') return '仅支持官方播放';
   if (decision === 'export_required') return '需要导入自有文件';
-  if (decision === 'blocked') return '需要进一步选择';
+  if (decision === 'blocked') return '当前不可下载';
   return '当前来源不可下载';
 }
 

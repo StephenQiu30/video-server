@@ -62,6 +62,9 @@ def create_app(
         application.state.document_import_use_cases = (
             configured_runtime.document_import_use_cases
         )
+        application.state.source_discovery_use_cases = (
+            configured_runtime.source_discovery_use_cases
+        )
         application.state.rate_limiter = configured_runtime.rate_limiter
         application.state.readiness_probe = configured_runtime.readiness
         application.state.realtime_hub = configured_runtime.realtime_hub

@@ -20,6 +20,17 @@ from app.application.imports import (
 from app.core.errors import AppError
 
 _ERRORS: dict[ApplicationErrorCode, tuple[int, str, str]] = {
+    ApplicationErrorCode.ARTICLE_ACCESS_RESTRICTED: (
+        403,
+        "Article access restricted",
+        "The article requires a challenge, authentication, follow, or payment "
+        "and cannot be discovered safely.",
+    ),
+    ApplicationErrorCode.ARTICLE_DISCOVERY_FAILED: (
+        502,
+        "Article discovery failed",
+        "The public article could not be parsed within the safe discovery limits.",
+    ),
     ApplicationErrorCode.DOWNLOAD_NOT_READY: (
         409,
         "Download not ready",

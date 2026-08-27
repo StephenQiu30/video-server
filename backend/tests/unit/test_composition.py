@@ -58,7 +58,12 @@ def test_test_app_leaves_download_use_cases_injectable(tmp_path: Path) -> None:
         response = client.post(
             "/api/inspections",
             headers={"Idempotency-Key": "inspect-1"},
-            json={"url": "https://media.example/video"},
+            json={
+                "source": {
+                    "kind": "public_url",
+                    "url": "https://media.example/video",
+                }
+            },
         )
 
     assert response.status_code == 503

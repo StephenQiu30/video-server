@@ -285,6 +285,27 @@ declare namespace API {
     provider_key: string;
   };
 
+  type DiscoveredItemInspectionSource = {
+    /** Kind */
+    kind: string;
+    /** Discovery Id */
+    discovery_id: string;
+    /** Item Ref */
+    item_ref: string;
+  };
+
+  type DiscoveryDecisionHint = "candidate" | "export_required" | "unsupported";
+
+  type DiscoveryItemKind =
+    | "official_account_native"
+    | "tencent_video"
+    | "wechat_channels"
+    | "unknown";
+
+  type DiscoveryItemStatus = "ready" | "identity_unverified";
+
+  type DiscoveryStatus = "ready" | "empty";
+
   type DocumentDetailResponse = {
     /** Id */
     id: string;
@@ -720,6 +741,10 @@ declare namespace API {
     resource_id: string;
   };
 
+  type getSourceDiscoveryParams = {
+    discovery_id: string;
+  };
+
   type HighlightResponse = {
     /** Id */
     id: string;
@@ -771,8 +796,8 @@ declare namespace API {
     | "expired";
 
   type InspectionRequest = {
-    /** Url 用户有权处理的公开、非 DRM HTTP(S) 媒体地址。 */
-    url: string;
+    /** Source */
+    source: PublicUrlInspectionSource | DiscoveredItemInspectionSource;
   };
 
   type InspectionResponse = {
@@ -1015,6 +1040,13 @@ declare namespace API {
     | "disabled"
     | "unsupported";
 
+  type PublicUrlInspectionSource = {
+    /** Kind */
+    kind: string;
+    /** Url 用户有权处理的公开、非 DRM HTTP(S) 媒体地址。 */
+    url: string;
+  };
+
   type ReadinessResponse = {
     /** Status */
     status: "ok" | "unavailable";
@@ -1189,6 +1221,39 @@ declare namespace API {
     visual_tags: string[];
     /** Asset Ids */
     asset_ids: string[];
+  };
+
+  type SourceDiscoveryItemResponse = {
+    /** Item Ref */
+    item_ref: string;
+    kind: DiscoveryItemKind;
+    /** Title */
+    title: string;
+    /** Duration Ms */
+    duration_ms: number | null;
+    decision_hint: DiscoveryDecisionHint;
+    status: DiscoveryItemStatus;
+  };
+
+  type SourceDiscoveryRequest = {
+    /** Kind */
+    kind: string;
+    /** Url */
+    url: string;
+  };
+
+  type SourceDiscoveryResponse = {
+    /** Id */
+    id: string;
+    /** Provider Key */
+    provider_key: string;
+    /** Title */
+    title: string;
+    status: DiscoveryStatus;
+    /** Expires At */
+    expires_at: string;
+    /** Items */
+    items: SourceDiscoveryItemResponse[];
   };
 
   type SourceOrigin =

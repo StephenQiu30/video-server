@@ -18,6 +18,7 @@ from app.api.routes.downloads import router as downloads_router
 from app.api.routes.inspections import router as inspections_router
 from app.api.routes.media_imports import router as media_imports_router
 from app.api.routes.providers import router as providers_router
+from app.api.routes.source_discoveries import router as source_discoveries_router
 from app.api.routes.task_socket import router as task_socket_router
 from app.api.routes.users import router as users_router
 
@@ -34,6 +35,7 @@ api_router.include_router(admin_files_router)
 api_router.include_router(admin_ai_providers_router)
 api_router.include_router(admin_providers_router)
 api_router.include_router(inspections_router)
+api_router.include_router(source_discoveries_router)
 api_router.include_router(providers_router)
 api_router.include_router(downloads_router)
 api_router.include_router(documents_router)

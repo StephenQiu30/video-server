@@ -20,6 +20,7 @@ from .operational_metric import OperationalCounterRow
 from .outbox import OutboxEventRow
 from .provider_canary import ProviderCanaryResultRow
 from .provider_catalog import ProviderCatalogEntryRow
+from .source_discovery import SourceDiscoveryItemRow, SourceDiscoveryRow
 from .task_event import TaskEventRow
 
 __all__ = [
@@ -49,6 +50,8 @@ __all__ = [
     "OperationalCounterRow",
     "ProviderCanaryResultRow",
     "ProviderCatalogEntryRow",
+    "SourceDiscoveryItemRow",
+    "SourceDiscoveryRow",
     "TaskEventRow",
     "UserRow",
 ]

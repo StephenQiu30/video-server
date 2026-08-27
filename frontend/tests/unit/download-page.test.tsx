@@ -9,6 +9,7 @@ import {
   inspection,
   job,
   reportedDouyinShareMessage,
+  sourceDiscovery,
 } from '../fixtures/download-fixtures';
 import {
   httpRequests,
@@ -95,7 +96,12 @@ describe('DownloadWorkspace', () => {
 
     expect(await screen.findByText(inspection.title)).toBeInTheDocument();
     expect(httpRequests()[0]).toMatchObject({
-      data: { url: 'https://v.douyin.com/Tq0eYJRMYRk/' },
+      data: {
+        source: {
+          kind: 'public_url',
+          url: 'https://v.douyin.com/Tq0eYJRMYRk/',
+        },
+      },
       method: 'POST',
       url: '/api/inspections',
     });
@@ -167,7 +173,12 @@ describe('DownloadWorkspace', () => {
     );
     expect(httpRequests()).toMatchObject([
       {
-        data: { url: 'https://media.example/owned' },
+        data: {
+          source: {
+            kind: 'public_url',
+            url: 'https://media.example/owned',
+          },
+        },
         headers: { 'Idempotency-Key': expect.any(String) },
         method: 'POST',
         url: '/api/inspections',
@@ -224,6 +235,61 @@ describe('DownloadWorkspace', () => {
     );
   });
 
+  it('discovers article embeds and requires an explicit item selection', async () => {
+    mockHttpResponses(sourceDiscovery, {
+      ...inspection,
+      extractor_key: 'wechat_channels',
+      title: '视频号片段',
+      duration_seconds: 0,
+      formats: [],
+      execution_mode: 'verified_import',
+      access_decision: 'export_required',
+      entitlement_state: 'unknown',
+      protection_state: 'unknown',
+      rights_basis: null,
+      restriction_reason: 'wechat_channels_export_required',
+      user_action: '请在微信中合法导出自有明文 MP4 后通过本地导入上传。',
+    });
+    renderWorkspace();
+
+    fireEvent.change(screen.getByLabelText('公开视频地址'), {
+      target: { value: 'https://mp.weixin.qq.com/s/article_123' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
+
+    expect(
+      await screen.findByRole('heading', { name: sourceDiscovery.title }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('不会自动选择第一项')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: '选择并查看' })).toHaveLength(
+      2,
+    );
+    expect(httpRequests()).toHaveLength(1);
+    expect(httpRequests()[0]).toMatchObject({
+      data: {
+        kind: 'wechat_official_account_article',
+        url: 'https://mp.weixin.qq.com/s/article_123',
+      },
+      method: 'POST',
+      url: '/api/source-discoveries',
+    });
+
+    fireEvent.click(screen.getAllByRole('button', { name: '选择并查看' })[0]);
+
+    expect(await screen.findByText('需要导入自有文件')).toBeInTheDocument();
+    expect(httpRequests()[1]).toMatchObject({
+      data: {
+        source: {
+          kind: 'discovered_item',
+          discovery_id: sourceDiscovery.id,
+          item_ref: sourceDiscovery.items[0].item_ref,
+        },
+      },
+      method: 'POST',
+      url: '/api/inspections',
+    });
+  });
+
   it('does not offer a download for Tencent consumer playback content', async () => {
     mockHttpResponses({
       ...inspection,
@@ -252,6 +318,27 @@ describe('DownloadWorkspace', () => {
     expect(
       screen.queryByText('tencent_consumer_download_disabled'),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '创建下载任务' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('labels a blocked inspection as currently unavailable', async () => {
+    mockHttpResponses({
+      ...inspection,
+      formats: [],
+      access_decision: 'blocked',
+      restriction_reason: 'article_native_download_not_enabled',
+      user_action: '安全下载执行器完成授权验收前暂不提供下载。',
+    });
+    renderWorkspace();
+
+    fireEvent.change(screen.getByLabelText('公开视频地址'), {
+      target: { value: 'https://media.example/blocked-video' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
+
+    expect(await screen.findByText('当前不可下载')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: '创建下载任务' }),
     ).not.toBeInTheDocument();

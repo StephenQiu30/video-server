@@ -16,18 +16,16 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import type { Inspection } from '@/types/video';
-
 export function LinkDownloadForm({
   busy,
-  inspection,
+  hasResult,
   invalid,
   onInspect,
   onUrlChange,
   url,
 }: {
   busy: boolean;
-  inspection: Inspection | null;
+  hasResult: boolean;
   invalid: boolean;
   onInspect: () => void;
   onUrlChange: (value: string) => void;
@@ -82,7 +80,7 @@ export function LinkDownloadForm({
         type="submit"
       >
         {busy ? <Spinner aria-hidden /> : <DownloadSimple aria-hidden />}
-        {busy ? '解析中…' : inspection ? '重新解析' : '解析媒体'}
+        {busy ? '解析中…' : hasResult ? '重新解析' : '解析媒体'}
       </Button>
     </form>
   );

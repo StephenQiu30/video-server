@@ -21,6 +21,9 @@ def _request(method: str, path: str) -> object:
 
 def test_inspection_post_is_rate_limited() -> None:
     assert _rate_limit_operation(_request("POST", "/api/inspections")) == "inspect"
+    assert (
+        _rate_limit_operation(_request("POST", "/api/source-discoveries")) == "inspect"
+    )
 
 
 def test_download_post_is_rate_limited() -> None:

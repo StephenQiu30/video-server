@@ -21,9 +21,11 @@ import {
 import {
   cancelDownload,
   createDownload,
+  createSourceDiscovery,
   getDownload,
   getDownloadHistory,
   getInspection,
+  inspectDiscoveredItem,
   inspectMedia,
   issueDownloadUrl,
 } from '@/services/download';
@@ -45,7 +47,11 @@ import {
   screenplayDocument,
   screenplayDocumentPage,
 } from '../fixtures/document-fixtures';
-import { inspection, job } from '../fixtures/download-fixtures';
+import {
+  inspection,
+  job,
+  sourceDiscovery,
+} from '../fixtures/download-fixtures';
 import { httpRequests, mockHttpResponses } from '../helpers/http';
 
 describe('typed API client', () => {
@@ -105,6 +111,36 @@ describe('typed API client', () => {
       inspection_id: inspection.id,
       format_id: inspection.formats[0].id,
     });
+    expect(httpRequests()[0]?.data).toEqual({
+      source: { kind: 'public_url', url: 'https://media.example/owned' },
+    });
+  });
+
+  it('uses owner-scoped article discovery and item inspection contracts', async () => {
+    mockHttpResponses(sourceDiscovery, inspection);
+
+    await createSourceDiscovery(
+      'https://mp.weixin.qq.com/s/article_123',
+      'discover-key',
+    );
+    await inspectDiscoveredItem(
+      sourceDiscovery.id,
+      sourceDiscovery.items[0].item_ref,
+      'inspect-item-key',
+    );
+
+    expect(httpRequests()).toMatchObject([
+      {
+        url: '/api/source-discoveries',
+        method: 'POST',
+        headers: { 'Idempotency-Key': 'discover-key' },
+      },
+      {
+        url: '/api/inspections',
+        method: 'POST',
+        headers: { 'Idempotency-Key': 'inspect-item-key' },
+      },
+    ]);
   });
 
   it('covers inspection, download, cancel, file and health endpoints', async () => {

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, timedelta
 from uuid import UUID
 
-from app.api.dependencies import DownloadUseCases
+from app.api.dependencies import DownloadUseCases, SourceDiscoveryUseCases
 from app.application.downloads import (
     ApplicationError,
     DownloadAnalyticsDailyView,
@@ -19,6 +19,10 @@ from app.application.downloads import (
     InspectionView,
     ThumbnailContent,
 )
+from app.application.source_discoveries import (
+    SourceDiscoveryItemView,
+    SourceDiscoveryView,
+)
 from app.domain.downloads import (
     AudioCodecFamily,
     CompatibilityProfile,
@@ -30,11 +34,19 @@ from app.domain.downloads import (
     ProviderHints,
     VideoCodecFamily,
 )
+from app.domain.source_discovery import (
+    DiscoveryDecisionHint,
+    DiscoveryItemKind,
+    DiscoveryItemStatus,
+    DiscoveryStatus,
+)
 
 NOW = datetime(2026, 8, 6, 10, tzinfo=UTC)
 INSPECTION_ID = UUID("11111111-1111-4111-8111-111111111111")
 FORMAT_ID = UUID("22222222-2222-4222-8222-222222222222")
 JOB_ID = UUID("33333333-3333-4333-8333-333333333333")
+DISCOVERY_ID = UUID("44444444-4444-4444-8444-444444444444")
+ITEM_REF = UUID("55555555-5555-4555-8555-555555555555")
 
 
 class StubUseCase:
@@ -162,9 +174,46 @@ def analytics_view() -> DownloadAnalyticsView:
     )
 
 
+def source_discovery_view() -> SourceDiscoveryView:
+    return SourceDiscoveryView(
+        id=DISCOVERY_ID,
+        provider_key="wechat_official_account_article",
+        title="Article",
+        status=DiscoveryStatus.READY,
+        expires_at=NOW + timedelta(minutes=15),
+        items=(
+            SourceDiscoveryItemView(
+                item_ref=ITEM_REF,
+                kind=DiscoveryItemKind.WECHAT_CHANNELS,
+                title="Channels item",
+                duration_ms=None,
+                decision_hint=DiscoveryDecisionHint.EXPORT_REQUIRED,
+                status=DiscoveryItemStatus.READY,
+            ),
+        ),
+    )
+
+
+def source_discovery_use_cases() -> tuple[
+    SourceDiscoveryUseCases, dict[str, StubUseCase]
+]:
+    stubs = {
+        "create_discovery": StubUseCase(source_discovery_view()),
+        "get_discovery": StubUseCase(source_discovery_view()),
+    }
+    return (
+        SourceDiscoveryUseCases(
+            create=stubs["create_discovery"],
+            get=stubs["get_discovery"],
+        ),
+        stubs,
+    )
+
+
 def use_cases() -> tuple[DownloadUseCases, dict[str, StubUseCase]]:
     stubs = {
         "inspect": StubUseCase(inspection_view()),
+        "inspect_discovered": StubUseCase(inspection_view()),
         "get_inspection": StubUseCase(inspection_view()),
         "get_thumbnail": StubUseCase(
             ThumbnailContent(b"image", "image/jpeg", "a" * 64)
@@ -184,6 +233,7 @@ def use_cases() -> tuple[DownloadUseCases, dict[str, StubUseCase]]:
     }
     container = DownloadUseCases(
         inspect_media=stubs["inspect"],
+        inspect_discovered_item=stubs["inspect_discovered"],
         get_inspection=stubs["get_inspection"],
         get_thumbnail=stubs["get_thumbnail"],
         create_download=stubs["create"],

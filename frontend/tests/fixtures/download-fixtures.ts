@@ -1,4 +1,4 @@
-import type { DownloadJob, Inspection } from '@/types/video';
+import type { DownloadJob, Inspection, SourceDiscovery } from '@/types/video';
 
 export const reportedDouyinShareMessage =
   '9.25 04/21 :1pm F@U.yt Bgb:/ ୨୧⊹ ࣪ 幸福是一步步变成小蛋糕( 𓏼˙ ᴥ ˙𓏼 )🍰 # lolilta# 小甜裙# 变装( yc@7仔 )# lolilta # 奶芙泡泡原创Lolita  https://v.douyin.com/Tq0eYJRMYRk/ 复制此链接，打开Dou音搜索，直接观看视频！';
@@ -35,6 +35,32 @@ export const inspection: Inspection = {
         container_preference: 'mp4',
         compatibility_profile: 'smallest',
       },
+    },
+  ],
+};
+
+export const sourceDiscovery: SourceDiscovery = {
+  id: '44444444-4444-4444-8444-444444444444',
+  provider_key: 'wechat_official_account_article',
+  title: '含多个视频的公众号文章',
+  status: 'ready',
+  expires_at: '2026-08-06T11:00:00Z',
+  items: [
+    {
+      item_ref: '55555555-5555-4555-8555-555555555555',
+      kind: 'wechat_channels',
+      title: '视频号片段',
+      duration_ms: null,
+      decision_hint: 'export_required',
+      status: 'ready',
+    },
+    {
+      item_ref: '66666666-6666-4666-8666-666666666666',
+      kind: 'tencent_video',
+      title: '腾讯视频片段',
+      duration_ms: null,
+      decision_hint: 'unsupported',
+      status: 'ready',
     },
   ],
 };

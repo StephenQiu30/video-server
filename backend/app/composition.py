@@ -13,6 +13,7 @@ from app.api.dependencies import (
     DocumentImportUseCases,
     DownloadUseCases,
     MediaImportUseCases,
+    SourceDiscoveryUseCases,
 )
 from app.application.ai_providers import AiProviderService
 from app.application.analysis import (
@@ -54,6 +55,11 @@ from app.application.imports import (
 )
 from app.application.provider_canaries import ProviderStatusService
 from app.application.provider_catalog import ProviderCatalogService
+from app.application.source_discoveries import (
+    CreateSourceDiscovery,
+    GetSourceDiscovery,
+    InspectDiscoveredItem,
+)
 from app.application.storage_files import StorageFileService
 from app.core.ai_provider_cipher import FernetAiProviderSecretCipher
 from app.core.config import Settings
@@ -65,6 +71,7 @@ from app.infrastructure.analysis_worker_registry import (
     ANALYSIS_MESSAGE_SCHEMA_VERSION,
     SqlAlchemyAnalysisWorkerRegistry,
 )
+from app.infrastructure.article_discovery import WeChatArticleDiscoveryAdapter
 from app.infrastructure.auth_repository import SqlAlchemyAuthRepository
 from app.infrastructure.database import (
     SqlAlchemyDocumentCatalogRepository,
@@ -72,6 +79,7 @@ from app.infrastructure.database import (
     SqlAlchemyDocumentImportRepository,
     SqlAlchemyDownloadRepository,
     SqlAlchemyMediaImportRepository,
+    SqlAlchemySourceDiscoveryRepository,
     create_engine,
     create_session_factory,
 )
@@ -107,6 +115,7 @@ class ApiRuntime:
     analysis_use_cases: AnalysisUseCases
     media_import_use_cases: MediaImportUseCases
     document_import_use_cases: DocumentImportUseCases
+    source_discovery_use_cases: SourceDiscoveryUseCases
     engine: AsyncEngine
     runner: MediaRunnerRouter
     rate_limiter: ValkeyRateLimiter | None
@@ -141,6 +150,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         max_per_owner=settings.websocket_max_connections_per_owner,
     )
     repository = SqlAlchemyDownloadRepository(sessions)
+    source_discovery_repository = SqlAlchemySourceDiscoveryRepository(sessions)
     media_import_repository = SqlAlchemyMediaImportRepository(sessions)
     document_import_repository = SqlAlchemyDocumentImportRepository(sessions)
     document_catalog_repository = SqlAlchemyDocumentCatalogRepository(sessions)
@@ -246,6 +256,33 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         max_duration_seconds=settings.max_video_duration_seconds,
         persist_thumbnail=persist_thumbnail,
     )
+    inspect_discovered_item = InspectDiscoveredItem(
+        source_discovery_repository,
+        store,
+        fingerprinter,
+        now=clock,
+        new_id=uuid4,
+        inspection_ttl=timedelta(seconds=settings.inspection_ttl_seconds),
+    )
+    source_discovery_use_cases = SourceDiscoveryUseCases(
+        create=CreateSourceDiscovery(
+            source_discovery_repository,
+            WeChatArticleDiscoveryAdapter(
+                timeout_seconds=settings.article_discovery_timeout_seconds,
+                max_response_bytes=settings.article_discovery_max_response_bytes,
+                max_items=settings.article_discovery_max_items,
+                min_interval_seconds=(settings.article_discovery_min_interval_seconds),
+                proxy_url=settings.article_discovery_proxy_url,
+            ),
+            envelope,
+            fingerprinter,
+            now=clock,
+            new_id=uuid4,
+            ttl=timedelta(seconds=settings.article_discovery_ttl_seconds),
+            max_items=settings.article_discovery_max_items,
+        ),
+        get=GetSourceDiscovery(source_discovery_repository, now=clock),
+    )
     upload_limits = UploadLimits(
         part_size_bytes=settings.import_upload_part_size_bytes,
         max_parts=settings.import_upload_max_parts,
@@ -327,6 +364,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
     )
     use_cases = DownloadUseCases(
         inspect_media=inspect_media,
+        inspect_discovered_item=inspect_discovered_item,
         get_inspection=GetInspection(store, now=clock),
         get_thumbnail=GetThumbnail(store, thumbnail_storage, persist_thumbnail),
         create_download=CreateDownload(
@@ -417,6 +455,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         analysis_use_cases=analysis_use_cases,
         media_import_use_cases=media_import_use_cases,
         document_import_use_cases=document_import_use_cases,
+        source_discovery_use_cases=source_discovery_use_cases,
         engine=engine,
         runner=runner,
         rate_limiter=rate_limiter,

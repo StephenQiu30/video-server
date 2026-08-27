@@ -23,7 +23,19 @@ def configured_provider_statuses() -> tuple[ProviderStatusView, ...]:
         )
         for profile in current_provider_registry().profiles
     )
-    unsupported = (
+    non_runner = (
+        ProviderStatusView(
+            key="wechat_official_account_article",
+            display_name="微信公众号文章",
+            registered=True,
+            extractor_exists=False,
+            capabilities=(),
+            access_modes=(),
+            status=ProviderSupportStatus.UNKNOWN,
+            last_media_verified_at=None,
+            last_verified_at=None,
+            user_action="支持公开文章视频发现与显式选择；原生视频下载尚未通过发布验收。",
+        ),
         ProviderStatusView(
             key="wechat_channels",
             display_name="微信视频号",
@@ -34,10 +46,10 @@ def configured_provider_statuses() -> tuple[ProviderStatusView, ...]:
             status=ProviderSupportStatus.UNSUPPORTED,
             last_media_verified_at=None,
             last_verified_at=None,
-            user_action="当前安全执行器不支持该平台。",
+            user_action="分享链接下载未启用；请导入自己合法取得的明文 MP4。",
         ),
     )
-    return configured + unsupported
+    return configured + non_runner
 
 
 current_provider_statuses = configured_provider_statuses

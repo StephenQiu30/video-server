@@ -12,7 +12,11 @@ from app.api.dependencies import (
     get_download_use_cases,
 )
 from app.api.errors import application_error
-from app.api.schemas.inspections import InspectionRequest, InspectionResponse
+from app.api.schemas.inspections import (
+    InspectionRequest,
+    InspectionResponse,
+    PublicUrlInspectionSource,
+)
 from app.application.auth import CurrentUser
 from app.application.downloads import ApplicationError
 
@@ -37,7 +41,17 @@ async def inspect_media(
 ) -> InspectionResponse:
     """校验公开媒体地址并返回可供选择的语义下载格式。"""
     try:
-        view = await use_cases.inspect_media(body.url, user.owner_hash, idempotency_key)
+        if isinstance(body.source, PublicUrlInspectionSource):
+            view = await use_cases.inspect_media(
+                body.source.url, user.owner_hash, idempotency_key
+            )
+        else:
+            view = await use_cases.inspect_discovered_item(
+                body.source.discovery_id,
+                body.source.item_ref,
+                user.owner_hash,
+                idempotency_key,
+            )
     except ApplicationError as exc:
         raise application_error(exc) from exc
     response.headers["Location"] = f"/api/inspections/{view.id}"

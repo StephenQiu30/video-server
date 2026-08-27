@@ -248,6 +248,27 @@ def test_operator_runner_endpoints_are_provider_keyed_internal_urls() -> None:
             )
 
 
+def test_article_discovery_proxy_is_an_http_authority() -> None:
+    settings = Settings(
+        app_env="test",
+        _env_file=None,
+        article_discovery_proxy_url="http://egress-proxy:3128/",
+    )
+
+    assert settings.article_discovery_proxy_url == "http://egress-proxy:3128"
+    for invalid in (
+        "https://egress-proxy:3128",
+        "http://user:secret@egress-proxy:3128",
+        "http://egress-proxy:3128/path",
+    ):
+        with pytest.raises(ValidationError, match="ARTICLE_DISCOVERY_PROXY_URL"):
+            Settings(
+                app_env="test",
+                _env_file=None,
+                article_discovery_proxy_url=invalid,
+            )
+
+
 @pytest.mark.parametrize("value", ["", "   "])
 def test_empty_bootstrap_admin_email_is_normalized_to_none(
     monkeypatch: pytest.MonkeyPatch, value: str

@@ -135,9 +135,7 @@ class Settings(BaseSettings):
     download_timeout_seconds: int = Field(default=7200, ge=1, le=7200)
     max_video_duration_seconds: int = Field(default=86400, ge=1, le=86400)
     max_file_size_bytes: int = Field(default=20 * 1024**3, ge=1, le=20 * 1024**3)
-    max_workspace_size_bytes: int = Field(
-        default=40 * 1024**3, ge=1, le=40 * 1024**3
-    )
+    max_workspace_size_bytes: int = Field(default=40 * 1024**3, ge=1, le=40 * 1024**3)
     download_thumbnail_ffmpeg_binary: Path = Path("ffmpeg")
     download_thumbnail_timeout_seconds: float = Field(default=15, ge=1, le=60)
     download_thumbnail_max_bytes: int = Field(
@@ -182,6 +180,14 @@ class Settings(BaseSettings):
     import_workspace_grace_seconds: int = Field(default=1800, ge=60, le=86400)
     import_artifact_orphan_grace_seconds: int = Field(default=3600, ge=300, le=604800)
     inspection_ttl_seconds: int = Field(default=900, ge=60, le=86400)
+    article_discovery_ttl_seconds: int = Field(default=900, ge=60, le=3600)
+    article_discovery_timeout_seconds: float = Field(default=12, ge=1, le=30)
+    article_discovery_max_response_bytes: int = Field(
+        default=4 * 1024**2, ge=64 * 1024, le=4 * 1024**2
+    )
+    article_discovery_max_items: int = Field(default=24, ge=1, le=100)
+    article_discovery_min_interval_seconds: float = Field(default=1, ge=0.5, le=10)
+    article_discovery_proxy_url: str | None = None
     artifact_delete_timeout_seconds: float = Field(default=30, ge=1, le=300)
     artifact_download_url_ttl_seconds: int = Field(default=300, ge=60, le=3600)
     job_lease_seconds: int = Field(default=60, ge=15, le=600)
@@ -345,6 +351,28 @@ class Settings(BaseSettings):
                 raise ValueError("runner operator URL must be an internal HTTP URL")
             validated[provider] = endpoint.rstrip("/")
         return validated
+
+    @field_validator("article_discovery_proxy_url")
+    @classmethod
+    def validate_article_discovery_proxy(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        try:
+            parsed = urlsplit(value)
+            _ = parsed.port
+        except ValueError as exc:
+            raise ValueError("ARTICLE_DISCOVERY_PROXY_URL is invalid") from exc
+        if (
+            parsed.scheme != "http"
+            or parsed.hostname is None
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.path not in {"", "/"}
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ValueError("ARTICLE_DISCOVERY_PROXY_URL must be an HTTP authority")
+        return value.rstrip("/")
 
     @field_validator("url_encryption_key")
     @classmethod

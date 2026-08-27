@@ -12,10 +12,13 @@ from app.domain.downloads import DownloadStatus
 from app.main import create_app
 from fastapi.testclient import TestClient
 from tests.integration.api.fakes import (
+    DISCOVERY_ID,
     FORMAT_ID,
     INSPECTION_ID,
+    ITEM_REF,
     JOB_ID,
     StubUseCase,
+    source_discovery_use_cases,
     use_cases,
 )
 
@@ -32,7 +35,10 @@ TEST_USER = CurrentUser(
 def client(tmp_path: Path) -> tuple[TestClient, dict[str, StubUseCase]]:
     app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
     container, stubs = use_cases()
+    discovery_container, discovery_stubs = source_discovery_use_cases()
     app.state.download_use_cases = container
+    app.state.source_discovery_use_cases = discovery_container
+    stubs.update(discovery_stubs)
     app.dependency_overrides[get_current_user] = lambda: TEST_USER
     return TestClient(app), stubs
 
@@ -43,7 +49,9 @@ def test_download_use_cases_are_resolved_from_app_state(tmp_path: Path) -> None:
         response = test_client.post(
             "/api/inspections",
             headers={"Idempotency-Key": "inspect-1"},
-            json={"url": "https://media.example/owned"},
+            json={
+                "source": {"kind": "public_url", "url": "https://media.example/owned"}
+            },
         )
 
     assert response.status_code == 503
@@ -56,7 +64,9 @@ def test_inspection_routes_use_stable_session_and_hide_hints(tmp_path: Path) -> 
         created = test_client.post(
             "/api/inspections",
             headers={"Idempotency-Key": "inspect-1"},
-            json={"url": "https://media.example/owned"},
+            json={
+                "source": {"kind": "public_url", "url": "https://media.example/owned"}
+            },
         )
         fetched = test_client.get(f"/api/inspections/{INSPECTION_ID}")
 
@@ -70,6 +80,40 @@ def test_inspection_routes_use_stable_session_and_hide_hints(tmp_path: Path) -> 
     get_owner = stubs["get_inspection"].calls[0][0][1]
     assert create_owner == get_owner
     assert len(str(create_owner)) == 64
+
+
+def test_source_discovery_requires_explicit_item_selection(tmp_path: Path) -> None:
+    test_client, stubs = client(tmp_path)
+    with test_client:
+        created = test_client.post(
+            "/api/source-discoveries",
+            headers={"Idempotency-Key": "discover-1"},
+            json={
+                "kind": "wechat_official_account_article",
+                "url": "https://mp.weixin.qq.com/s/article_123",
+            },
+        )
+        fetched = test_client.get(f"/api/source-discoveries/{DISCOVERY_ID}")
+        selected = test_client.post(
+            "/api/inspections",
+            headers={"Idempotency-Key": "inspect-item-1"},
+            json={
+                "source": {
+                    "kind": "discovered_item",
+                    "discovery_id": str(DISCOVERY_ID),
+                    "item_ref": str(ITEM_REF),
+                }
+            },
+        )
+
+    assert created.status_code == selected.status_code == 201
+    assert fetched.status_code == 200
+    assert created.headers["location"] == f"/api/source-discoveries/{DISCOVERY_ID}"
+    assert created.json()["items"][0]["item_ref"] == str(ITEM_REF)
+    assert stubs["inspect"].calls == []
+    selected_args = stubs["inspect_discovered"].calls[0][0]
+    assert selected_args[:2] == (DISCOVERY_ID, ITEM_REF)
+    assert len(str(selected_args[2])) == 64
 
 
 def test_thumbnail_route_returns_private_image_with_integrity_headers(
@@ -177,7 +221,7 @@ def test_provider_status_distinguishes_registered_verified_and_unsupported(
 
     assert response.status_code == 200
     items = {item["key"]: item for item in response.json()["items"]}
-    assert len(items) == 23
+    assert len(items) == 24
     assert items["hongguo_web"]["status"] == "unknown"
     assert (
         items["hongguo_web"]["user_action"]
@@ -199,6 +243,8 @@ def test_provider_status_distinguishes_registered_verified_and_unsupported(
     } == {"verified"}
     assert items["wechat_channels"]["status"] == "unsupported"
     assert items["wechat_channels"]["registered"] is False
+    assert items["wechat_official_account_article"]["registered"] is True
+    assert items["wechat_official_account_article"]["status"] == "unknown"
     assert items["kuaishou"]["registered"] is True
     assert items["kuaishou"]["extractor_exists"] is True
     assert items["kuaishou"]["status"] == "verified"
@@ -216,17 +262,28 @@ def test_creation_contract_rejects_missing_headers_and_invalid_bodies(
     test_client, stubs = client(tmp_path)
     with test_client:
         missing = test_client.post(
-            "/api/inspections", json={"url": "https://media.example/video"}
+            "/api/inspections",
+            json={
+                "source": {"kind": "public_url", "url": "https://media.example/video"}
+            },
         )
         extra = test_client.post(
             "/api/inspections",
             headers={"Idempotency-Key": "key"},
-            json={"url": "https://media.example/video", "cookie": "secret"},
+            json={
+                "source": {"kind": "public_url", "url": "https://media.example/video"},
+                "cookie": "secret",
+            },
         )
         too_long = test_client.post(
             "/api/inspections",
             headers={"Idempotency-Key": "key"},
-            json={"url": "https://example.com/" + "a" * 4_100},
+            json={
+                "source": {
+                    "kind": "public_url",
+                    "url": "https://example.com/" + "a" * 4_100,
+                }
+            },
         )
         invalid_uuid = test_client.post(
             "/api/downloads",
@@ -279,7 +336,9 @@ def test_inspection_errors_have_stable_http_mapping(
         response = test_client.post(
             "/api/inspections",
             headers={"Idempotency-Key": "inspect-1"},
-            json={"url": "https://media.example/owned"},
+            json={
+                "source": {"kind": "public_url", "url": "https://media.example/owned"}
+            },
         )
 
     assert response.status_code == status
