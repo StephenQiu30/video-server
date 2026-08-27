@@ -36,6 +36,7 @@ class Workspace:
         self.cleaned: list[Path | None] = []
 
     async def create(self, task_id: str) -> ImportWorkspace:
+        assert task_id == f"import_{JOB_ID.hex}_1"
         path = self.root / task_id
         path.mkdir()
         return ImportWorkspace(path=path, input_path=path / "video.mp4")

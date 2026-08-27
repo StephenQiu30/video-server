@@ -51,7 +51,7 @@ class DownloadThumbnailBackfill:
             limit=self._batch_size
         )
         for candidate in candidates:
-            task_id = f"thumbnail_backfill_{candidate.job_id.hex}"
+            task_id = f"import_{candidate.job_id.hex}_1"
             workspace_path: Path | None = None
             try:
                 workspace = await self._workspace.create(task_id)
