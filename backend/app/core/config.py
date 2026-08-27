@@ -41,7 +41,7 @@ class Settings(BaseSettings):
         "provider-canary",
     ] = "api"
     app_host: str = "0.0.0.0"
-    app_port: int = Field(default=8101, ge=1, le=65535)
+    app_port: int = Field(default=8111, ge=1, le=65535)
     app_version: str = "0.1.0"
     frontend_dist_dir: Path = REPOSITORY_ROOT / "frontend" / "out"
     readiness_timeout_seconds: float = Field(default=2.0, ge=0.1, le=10)

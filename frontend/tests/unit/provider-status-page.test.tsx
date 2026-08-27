@@ -80,6 +80,11 @@ describe('provider status page', () => {
     expect(
       screen.getByRole('status', { name: '正在加载平台状态' }),
     ).toBeInTheDocument();
+    const initialRefresh = screen.getByRole('button', {
+      name: '正在刷新平台状态',
+    });
+    expect(initialRefresh).toBeDisabled();
+    expect(initialRefresh).toHaveClass('disabled:opacity-100');
     await act(async () => first.resolve(statuses()));
     expect(await screen.findByText('YouTube')).toBeInTheDocument();
 

@@ -153,6 +153,28 @@ describe('AppShell', () => {
     expect(screen.getByRole('button', { name: '打开导航菜单' })).toBeDisabled();
   });
 
+  it('focuses the mobile navigation title instead of the sign-out action', async () => {
+    runtime.user = {
+      created_at: '2026-08-09T10:00:00Z',
+      email: 'viewer@example.com',
+      id: 'viewer-id',
+      role: 'user',
+      updated_at: '2026-08-09T10:00:00Z',
+      username: 'viewer',
+    };
+    render(
+      <AppShell>
+        <div>页面内容</div>
+      </AppShell>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '打开导航菜单' }));
+
+    const title = await screen.findByRole('heading', { name: '导航' });
+    await waitFor(() => expect(title).toHaveFocus());
+    expect(screen.getByRole('button', { name: '退出登录' })).not.toHaveFocus();
+  });
+
   it('keeps explicit desktop and mobile routes from history back to parsing', async () => {
     runtime.pathname = '/history';
     render(

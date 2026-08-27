@@ -42,12 +42,18 @@ export function ProviderStatusView() {
       <PageHeader
         action={
           <Button
+            aria-label={state.loading ? '正在刷新平台状态' : '刷新状态'}
+            className="disabled:opacity-100"
             disabled={state.loading}
             onClick={state.retry}
             variant="secondary"
           >
-            <ArrowClockwiseIcon aria-hidden />
-            刷新状态
+            {state.loading ? (
+              <Spinner aria-hidden />
+            ) : (
+              <ArrowClockwiseIcon aria-hidden />
+            )}
+            {state.loading ? '刷新中…' : '刷新状态'}
           </Button>
         }
         description="平台状态同时区分已接入、真实下载证据、完整链路验证和受控会话要求。已接入不代表所有内容类型都可用；这里只展示当前版本的能力与验证状态，不展示账号、Cookie、出口或探针地址。"

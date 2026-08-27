@@ -7,7 +7,7 @@
   "description": "Next.js frontend for 帧取",
   "scripts": {
     "build": "next build",
-    "dev": "next dev --hostname 127.0.0.1 --port 8000",
+    "dev": "next dev --hostname 127.0.0.1 --port 8101",
     "lint": "npm run biome:lint && npm run typecheck",
     "biome:lint": "biome lint .",
     "format:check": "biome check . --linter-enabled=false",

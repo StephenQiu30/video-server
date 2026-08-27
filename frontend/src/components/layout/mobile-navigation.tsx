@@ -14,6 +14,7 @@ import {
   UserCircleIcon,
   UsersThreeIcon,
 } from '@phosphor-icons/react';
+import { useRef } from 'react';
 
 import { MobileNavigationLink as MobileLink } from '@/components/layout/mobile-navigation-link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -46,6 +47,8 @@ export function MobileNavigation({
   signingOut,
   user,
 }: MobileNavigationProps) {
+  const navigationTitleRef = useRef<HTMLHeadingElement>(null);
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -61,10 +64,16 @@ export function MobileNavigation({
       </SheetTrigger>
       <SheetContent
         className="w-[min(88vw,360px)] overflow-y-auto overscroll-contain"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          navigationTitleRef.current?.focus();
+        }}
         side="right"
       >
         <SheetHeader>
-          <SheetTitle>导航</SheetTitle>
+          <SheetTitle ref={navigationTitleRef} tabIndex={-1}>
+            导航
+          </SheetTitle>
           <SheetDescription>
             从首页导入内容，或访问下载记录、剧本文档与平台状态。
           </SheetDescription>

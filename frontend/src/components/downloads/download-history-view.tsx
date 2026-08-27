@@ -96,7 +96,7 @@ export default function DownloadHistoryView() {
           </Button>
         }
         description="继续查看、获取或分析已创建的任务。"
-        title="下载历史"
+        title="下载记录"
       />
 
       <div className="mt-12 grid gap-2 sm:grid-cols-[minmax(0,1fr)_11rem_auto] sm:items-end lg:mt-16">
@@ -110,7 +110,7 @@ export default function DownloadHistoryView() {
         >
           <Field>
             <FieldLabel className="sr-only" htmlFor="history-search">
-              搜索下载历史
+              搜索下载记录
             </FieldLabel>
             <InputGroup className="h-11 border-0 bg-surface">
               <InputGroupInput
@@ -122,7 +122,7 @@ export default function DownloadHistoryView() {
               />
               <InputGroupAddon align="inline-end">
                 <InputGroupButton
-                  aria-label="搜索下载历史"
+                  aria-label="搜索下载记录"
                   className="size-11"
                   size="icon-sm"
                   type="submit"
@@ -191,7 +191,7 @@ export default function DownloadHistoryView() {
 
       {state.data && state.data.total > state.data.page_size ? (
         <PagePagination
-          ariaLabel="下载历史分页"
+          ariaLabel="下载记录分页"
           className="mt-10 justify-end"
           onPageChange={setPage}
           page={page}

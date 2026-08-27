@@ -11,7 +11,7 @@ export default function MissingDownload() {
             下载任务不存在
           </h1>
           <EmptyDescription className="mt-2 text-left">
-            请从下载历史重新打开任务，或返回首页创建新的下载。
+            请从下载记录重新打开任务，或返回首页创建新的下载。
           </EmptyDescription>
         </EmptyHeader>
       </Empty>

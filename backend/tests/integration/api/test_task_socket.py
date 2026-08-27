@@ -84,7 +84,7 @@ def test_socket_accepts_forwarded_frontend_origin(tmp_path) -> None:
     websocket = SimpleNamespace(
         headers={
             "origin": "https://frontend.example",
-            "host": "api.internal:8101",
+            "host": "api.internal:8111",
             "x-forwarded-host": "frontend.example",
         }
     )

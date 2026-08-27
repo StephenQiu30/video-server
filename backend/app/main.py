@@ -16,7 +16,6 @@ from app.composition import ApiRuntime, build_api_runtime
 from app.core.config import Settings, get_settings
 from app.core.errors import AppError
 from app.infrastructure.provider_status import current_provider_statuses
-from app.web.spa import mount_frontend
 
 
 def create_app(
@@ -100,7 +99,6 @@ def create_app(
     )
     application.add_exception_handler(AppError, app_error_handler)
     application.add_exception_handler(RequestValidationError, validation_error_handler)
-    mount_frontend(application, effective.frontend_dist_dir)
     return application
 
 

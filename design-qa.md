@@ -78,6 +78,17 @@
 
 final result: passed
 
+## 2026-08-27 App 页面同步问题修复回归
+
+- 修复首页解析结果与输入地址脱节的问题：URL 一旦变化即清除旧 inspection、发现结果、格式选择与创建任务入口；无效提交只保留可访问校验错误。
+- 移动导航 Sheet 显式将打开后的初始焦点放到“导航”标题；390×844 实测活动元素为 `H2 / 导航 / tabindex=-1`，不再首先聚焦破坏性的退出操作。
+- `/history` 的页面 metadata、H1、搜索控件、分页语义和辅助文案统一使用“下载记录”，与桌面导航、移动导航和 Flutter App 一致。
+- 平台状态首次加载时的刷新按钮保留禁用语义，但不再用透明度降低文字对比度；加载文案明确为“刷新中…”。首页、下载记录和平台状态经 axe 4.12.1 复扫均为 0 violation。
+- agent-browser 覆盖 1440×1000 与 390×844；移动页面 `body.scrollWidth = document.scrollWidth = innerWidth = 390`。修复证据位于 App 仓库 `qa-output/agent-browser-server-sync-20260827/screenshots/fix-*.png`。
+- 工程门禁：lint/typecheck、format check、44 个测试文件共 167 项测试和 Next.js 生产构建全部通过。Biome 仅保留既有 `.agents/skills` 失效软链接 warning。
+
+final result: passed
+
 ## 2026-08-25 平台描述分割线与首页横向溢出回归
 
 ### 对照目标与证据

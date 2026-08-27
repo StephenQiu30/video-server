@@ -92,10 +92,7 @@
 
 ### 使用 Docker Compose
 
-需要 Docker Engine 与 Docker Compose。完整项目只有一个运行入口：根目录的
-`docker-compose.yml`。它构建前端静态资源和后端统一镜像，并启动 API、Worker、
-Media Runner 与出口代理；生产环境不再额外启动前端进程。`docker-compose-env.yml`
-只负责一次性准备 PostgreSQL、RabbitMQ、Valkey、MinIO 等基础依赖，不是项目入口。
+需要 Docker Engine 与 Docker Compose。项目将基础环境与业务服务拆成两个 Compose 文件：`docker-compose-env.yml` 只负责 PostgreSQL、RabbitMQ、Valkey、MinIO 及初始化；`docker-compose.yml` 负责前端、API、Worker、Runner 和出口代理。
 
 ```bash
 git clone https://github.com/StephenQiu30/video-server.git
@@ -124,14 +121,14 @@ YouTube、TikTok、X 的固定媒体 Canary 是启动后的验收命令，不属
 启动完成后访问：
 
 - Web 应用：<http://localhost:8101>
-- Swagger UI：<http://localhost:8101/docs>
-- OpenAPI 契约：<http://localhost:8101/openapi.json>
+- Swagger UI：<http://localhost:8111/docs>
+- OpenAPI 契约：<http://localhost:8111/openapi.json>
 
 检查服务状态：
 
 ```bash
-curl --fail http://127.0.0.1:8101/health/live
-curl --fail http://127.0.0.1:8101/health/ready
+curl --fail http://127.0.0.1:8111/health/live
+curl --fail http://127.0.0.1:8111/health/ready
 curl --fail --head http://127.0.0.1:8101/
 ```
 
@@ -158,7 +155,8 @@ uv run python -m app.workers.analysis.main
 
 ```mermaid
 flowchart LR
-  Browser[浏览器] --> API[FastAPI + 静态前端]
+  Browser[浏览器] --> Frontend[Next.js :8101]
+  Frontend --> API[FastAPI :8111]
   API --> DB[(PostgreSQL)]
   DB --> Outbox[Transactional Outbox]
   Outbox --> MQ[RabbitMQ]
@@ -178,7 +176,7 @@ flowchart LR
 - **Frontend**：Next.js 16、React 19、TypeScript、Tailwind CSS、Radix UI、Vitest。
 - **Backend**：Python 3.12、FastAPI、SQLAlchemy、PostgreSQL、RabbitMQ、Valkey、MinIO。
 - **Media**：FFmpeg、ffprobe、yt-dlp 适配层、隔离 Media Runner 和受控 Squid 出口。
-- **Delivery**：统一根镜像构建前端静态资源，由 FastAPI 同源托管页面、`/api/*` 和 WebSocket。
+- **Delivery**：Next.js 前端固定监听 `8101`，通过 rewrite 访问 `8111` 的 FastAPI；FastAPI 只提供 API、健康检查和 OpenAPI，不再托管 `frontend/out`。
 
 几个重要的不变量：
 
@@ -190,10 +188,7 @@ flowchart LR
 
 ## 本地开发
 
-前端需要 Node.js 24 与 npm 11.19，后端需要 Python 3.12 与 [uv](https://docs.astral.sh/uv/)。
-宿主机开发只使用模块自身的标准入口：后端从 `backend/` 执行
-`uv run python -m app.main`，前端从 `frontend/` 执行 `npm run dev`。它们用于单模块
-调试，不是第二套完整项目部署入口。基础依赖仍可由环境 Compose 提供：
+前端需要 Node.js 24 与 npm 11.19，后端需要 Python 3.12 与 [uv](https://docs.astral.sh/uv/)。推荐先用环境 Compose 提供依赖，再分别启动后端 API 和前端热更新：
 
 ```bash
 docker compose --env-file .env -f docker-compose-env.yml up -d
@@ -215,8 +210,7 @@ npm ci
 npm run dev
 ```
 
-开发页面位于 <http://127.0.0.1:8000>，前端会将 `/api/*` 与 `/health/*` 代理到
-`127.0.0.1:8101`。
+开发页面位于 <http://127.0.0.1:8101>，前端会将 `/api/*` 与 `/health/*` 代理到 `127.0.0.1:8111`。后端 API 入口为 <http://127.0.0.1:8111>；如果使用容器 API，先启动业务 Compose。
 
 与 CI 一致的主要质量门禁：
 
@@ -250,7 +244,7 @@ frontend/                Next.js 页面、按 feature 分类的组件、Hooks �
 docs/                    Design、PRD、Plan、Acceptance、研究和运维事实
 Dockerfile               前后端统一生产镜像
 docker-compose-env.yml   PostgreSQL、RabbitMQ、Valkey、MinIO 基础环境
-docker-compose.yml       API、Worker、Runner 和出口代理
+docker-compose.yml       前端、API、Worker、Runner 和出口代理
 docker-compose-prod.yml  生产部署差异
 ```
 

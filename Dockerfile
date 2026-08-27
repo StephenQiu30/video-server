@@ -6,6 +6,9 @@ ARG NPM_VERSION=11.19.0
 ENV SOURCE_DATE_EPOCH=0
 WORKDIR /workspace/frontend
 
+ARG BACKEND_ORIGIN=http://api:8111
+ENV BACKEND_ORIGIN=${BACKEND_ORIGIN}
+
 RUN --mount=type=cache,target=/root/.npm \
     npm install --global "npm@${NPM_VERSION}"
 COPY --link frontend/package.json frontend/package-lock.json ./
@@ -41,8 +44,7 @@ FROM python:3.12-slim-bookworm AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PATH="/app/backend/.venv/bin:${PATH}" \
-    FRONTEND_DIST_DIR=/app/frontend/out
+    PATH="/app/backend/.venv/bin:${PATH}"
 WORKDIR /app/backend
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -55,9 +57,11 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     && chown -R appuser:appuser /app
 
 COPY --link --from=backend-builder --chown=10001:10001 /app/backend /app/backend
-COPY --link --from=frontend-builder --chown=10001:10001 /workspace/frontend/out /app/frontend/out
+COPY --link --from=frontend-builder --chown=10001:10001 /workspace/frontend/.next/standalone /app/frontend/.next/standalone
+COPY --link --from=frontend-builder --chown=10001:10001 /workspace/frontend/.next/static /app/frontend/.next/standalone/.next/static
+COPY --link --from=frontend-builder --chown=10001:10001 /workspace/frontend/public /app/frontend/.next/standalone/public
 COPY --link --from=node-runtime /usr/local/bin/node /usr/local/bin/node
 
 USER appuser
-EXPOSE 8101
+EXPOSE 8101 8111
 CMD ["python", "-m", "app.main"]

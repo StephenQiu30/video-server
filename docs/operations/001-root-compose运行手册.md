@@ -51,9 +51,9 @@ docker compose --env-file .env -f docker-compose.yml up -d --build --force-recre
 
 访问地址：
 
-- Web/API：http://localhost:8101
-- Swagger UI：http://localhost:8101/docs
-- OpenAPI：http://localhost:8101/openapi.json
+- Web：http://localhost:8101
+- API/Swagger UI：http://localhost:8111/docs
+- OpenAPI：http://localhost:8111/openapi.json
 
 如果只需要容器内的受控出口代理：
 
@@ -100,8 +100,8 @@ docker compose --env-file .env.prod -f docker-compose-prod.yml up -d --no-build
 生产健康检查：
 
 ~~~bash
-curl --fail http://127.0.0.1:8101/health/live
-curl --fail http://127.0.0.1:8101/health/ready
+curl --fail http://127.0.0.1:8111/health/live
+curl --fail http://127.0.0.1:8111/health/ready
 ~~~
 
 ## AI Worker

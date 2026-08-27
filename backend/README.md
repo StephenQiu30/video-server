@@ -62,7 +62,7 @@ uv run python -m app.runner.browser_cookie_export \
 
 ## 运行与就绪
 
-本机必须先提供 PostgreSQL、RabbitMQ、Valkey/Redis 和 MinIO，并预置数据库 schema、消息拓扑、对象存储身份与 bucket。完整项目统一从仓库根目录使用业务 Compose 启动；Compose 不管理这些外部基础设施：
+本机必须先提供 PostgreSQL、RabbitMQ、Valkey/Redis 和 MinIO，并预置数据库 schema、消息拓扑、对象存储身份与 bucket。随后从仓库根目录启动前端、API 和业务 Worker；Compose 不管理这些外部基础设施：
 
 ```bash
 docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
@@ -103,7 +103,7 @@ uv sync --frozen --dev
 uv run python -m app.workers.analysis.main
 ```
 
-API `/health/live` 只证明进程存活；`/health/ready` 还会在有界超时内检查数据库结构、Media Runner、MinIO、RabbitMQ、Valkey，以及启用分析时兼容 AI Worker 的心跳。外部数据库或消息队列重启可能使宿主机 Worker 的长连接中断并退出，应在基础设施恢复后重新启动 Worker，再以 `/health/ready` 返回 `200` 作为交付条件。没有 AI Worker 的部署必须显式设置 `ANALYSIS_ENABLED=false` 并重建 API。
+API 固定监听 `8111`，前端固定监听 `8101`。API `/health/live` 只证明进程存活；`/health/ready` 还会在有界超时内检查数据库结构、Media Runner、MinIO、RabbitMQ、Valkey，以及启用分析时兼容 AI Worker 的心跳。外部数据库或消息队列重启可能使宿主机 Worker 的长连接中断并退出，应在基础设施恢复后重新启动 Worker，再以 `/health/ready` 返回 `200` 作为交付条件。没有 AI Worker 的部署必须显式设置 `ANALYSIS_ENABLED=false` 并重建 API。
 
 ## 测试数据库
 

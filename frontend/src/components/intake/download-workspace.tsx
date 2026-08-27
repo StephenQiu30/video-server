@@ -68,6 +68,12 @@ export default function DownloadWorkspace() {
   const mediaImport = useMediaImport(openDownload, mediaDeclaredOrigin);
   const documentImport = useDocumentImport(openDocument);
 
+  function clearLinkResult() {
+    setInspection(null);
+    setDiscovery(null);
+    setSelectedId('');
+  }
+
   useEffect(() => {
     if (
       process.env.NODE_ENV !== 'production' &&
@@ -81,6 +87,7 @@ export default function DownloadWorkspace() {
 
   async function inspect() {
     const normalized = normalizeMediaUrl(url);
+    clearLinkResult();
     if (!normalized) {
       setUrlInvalid(true);
       setError(URL_MESSAGE);
@@ -89,9 +96,6 @@ export default function DownloadWorkspace() {
     setUrlInvalid(false);
     setBusy('inspect');
     setError(null);
-    setInspection(null);
-    setDiscovery(null);
-    setSelectedId('');
     try {
       if (isWeChatArticleUrl(normalized)) {
         const result = await createSourceDiscovery(
@@ -168,10 +172,9 @@ export default function DownloadWorkspace() {
             onInspect={() => void inspect()}
             onUrlChange={(value) => {
               setUrl(value);
-              if (urlInvalid) {
-                setUrlInvalid(false);
-                setError(null);
-              }
+              clearLinkResult();
+              setUrlInvalid(false);
+              setError(null);
             }}
             url={url}
           />

@@ -58,7 +58,7 @@ services:
     environment:
       SERVICE_ROLE: api
       APP_HOST: 0.0.0.0
-      APP_PORT: 8101
+      APP_PORT: 8111
       DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-video}:${POSTGRES_PASSWORD:-video}@${POSTGRES_HOST:-host.docker.internal}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-video}"
       RABBITMQ_URL: "amqp://${RABBITMQ_API_USER:-video-api}:${RABBITMQ_API_PASS:-video-api-secret}@${RABBITMQ_HOST:-host.docker.internal}:${RABBITMQ_PORT:-5672}/${RABBITMQ_VHOST:-video}"
       VALKEY_URL: "redis://${VALKEY_HOST:-host.docker.internal}:${VALKEY_PORT:-6379}/0"
@@ -76,7 +76,7 @@ services:
       - runner_rpc_net
       - runner_egress_net
     ports:
-      - "127.0.0.1:${APP_HOST_PORT:-8101}:8101"
+      - "127.0.0.1:${APP_HOST_PORT:-8111}:8111"
     depends_on:
       media-runner:
         condition: service_healthy
@@ -88,13 +88,49 @@ services:
           "CMD",
           "python",
           "-c",
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8101/health/ready', timeout=3)",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8111/health/ready', timeout=3)",
         ]
       interval: 10s
       timeout: 5s
       retries: 12
       start_period: 15s
     command: ["python", "-m", "app.main"]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: video-server:local
+    container_name: video-frontend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      BACKEND_ORIGIN: http://api:8111
+      HOSTNAME: 0.0.0.0
+      NODE_ENV: production
+      PORT: 8101
+    networks:
+      - app_net
+    ports:
+      - "127.0.0.1:${FRONTEND_HOST_PORT:-8101}:8101"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8101/', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    working_dir: /app/frontend/.next/standalone
+    command: ["node", "server.js"]
 
   outbox:
     build:

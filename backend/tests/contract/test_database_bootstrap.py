@@ -196,10 +196,13 @@ def test_compose_waits_for_runner_and_api_dependency_readiness() -> None:
     for path in (COMPOSE_PATH, PROD_COMPOSE_PATH):
         compose = path.read_text(encoding="utf-8")
         api = _service_block(compose, "api")
+        frontend = _service_block(compose, "frontend")
         runner = _service_block(compose, "media-runner")
 
         assert "media-runner:\n        condition: service_healthy" in api
-        assert "127.0.0.1:8101/health/ready" in api
+        assert "127.0.0.1:8111/health/ready" in api
+        assert "api:\n        condition: service_healthy" in frontend
+        assert "127.0.0.1:8101/" in frontend
         assert "127.0.0.1:19100/health/ready" in runner
 
 
@@ -215,7 +218,10 @@ def test_project_uses_runtime_entrypoints_without_a_startup_wrapper() -> None:
     assert compose_entrypoint in root_readme
     assert "uv run python -m app.main" in root_readme
     assert "npm run dev" in root_readme
-    assert "uv run python -m app.main" in frontend_readme
+    assert (
+        "uv run python -m uvicorn app.main:app --host 127.0.0.1 --port 8111 --reload"
+        in frontend_readme
+    )
     assert "restart-project.ps1" not in root_readme
 
 

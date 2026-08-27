@@ -21,7 +21,7 @@ docker compose --env-file .env -f docker-compose.yml \
   --profile douyin-operator --profile xiaohongshu-operator \
   --profile reddit-operator up -d --build
 
-curl --fail http://127.0.0.1:8101/health/ready
+curl --fail http://127.0.0.1:8111/health/ready
 ```
 
 就绪检查会探测匿名 Runner 和所有配置的 Operator Runner。`provider-canary` 必须

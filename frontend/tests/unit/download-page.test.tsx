@@ -85,6 +85,30 @@ describe('DownloadWorkspace', () => {
     expect(httpRequests()).toHaveLength(0);
   });
 
+  it('clears a stale inspection when the URL changes', async () => {
+    mockHttpResponses(inspection);
+    renderWorkspace();
+
+    const input = screen.getByLabelText('公开视频地址');
+    fireEvent.change(input, {
+      target: { value: 'https://media.example/owned' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
+    expect(await screen.findByText(inspection.title)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '创建下载任务' }),
+    ).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: 'not-a-url' } });
+
+    expect(screen.queryByText(inspection.title)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '创建下载任务' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
+    expect(await screen.findByText(URL_MESSAGE)).toBeInTheDocument();
+  });
+
   it('normalizes the reported Douyin share message before inspection', async () => {
     mockHttpResponses(inspection);
     renderWorkspace();

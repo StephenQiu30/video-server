@@ -121,7 +121,7 @@ describe('download history', () => {
     expect(await screen.findByText('示例视频')).toBeInTheDocument();
     expect(container.querySelector('.inner-page')).toHaveClass('inner-page');
     expect(
-      screen.getByRole('heading', { level: 1, name: '下载历史' }),
+      screen.getByRole('heading', { level: 1, name: '下载记录' }),
     ).toBeInTheDocument();
     expect(screen.queryByText('02 / 下载记录')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: '返回上一步' })).toHaveAttribute(
@@ -206,7 +206,7 @@ describe('download history', () => {
     render(<DownloadHistoryView />);
 
     const pagination = await screen.findByRole('navigation', {
-      name: '下载历史分页',
+      name: '下载记录分页',
     });
     expect(within(pagination).getByText('1 / 2')).toHaveAttribute(
       'aria-current',
@@ -237,7 +237,7 @@ describe('download history', () => {
     render(<DownloadHistoryView />);
     await screen.findByText('示例视频');
 
-    const input = screen.getByRole('textbox', { name: '搜索下载历史' });
+    const input = screen.getByRole('textbox', { name: '搜索下载记录' });
     fireEvent.change(input, { target: { value: '  示例视频  ' } });
     fireEvent.submit(input.closest('form') as HTMLFormElement);
 
@@ -256,9 +256,9 @@ describe('download history', () => {
     render(<DownloadHistoryView />);
     await screen.findByText('示例视频');
 
-    const input = screen.getByRole('textbox', { name: '搜索下载历史' });
+    const input = screen.getByRole('textbox', { name: '搜索下载记录' });
     fireEvent.change(input, { target: { value: ' 夹克  ' } });
-    fireEvent.click(screen.getByRole('button', { name: '搜索下载历史' }));
+    fireEvent.click(screen.getByRole('button', { name: '搜索下载记录' }));
 
     await waitFor(() =>
       expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith({

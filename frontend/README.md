@@ -1,6 +1,6 @@
 # Frontend
 
-本目录是“帧取”视频下载器的 Next.js App Router 前端。界面使用 Radix UI primitives 与 shadcn/ui 源码组件，样式由 Tailwind CSS 主题 token 管理；接口客户端由独立的 `@umijs/openapi` 根据 FastAPI 契约生成。生产构建静态导出到 `out/`，再由根 Dockerfile 复制到统一运行镜像的 `/app/frontend/out`，通过 FastAPI 与 `/api/*` 同源交付。
+本目录是“帧取”视频下载器的 Next.js App Router 前端。界面使用 Radix UI primitives 与 shadcn/ui 源码组件，样式由 Tailwind CSS 主题 token 管理；接口客户端由独立的 `@umijs/openapi` 根据 FastAPI 契约生成。前端固定运行在 `8101`，通过 Next.js rewrite 将 `/api/*` 和 `/health/*` 转发到 `8111` 的 FastAPI。
 
 ## 技术栈
 
@@ -10,18 +10,18 @@
 - **请求**：`src/lib/request.ts` 中的同源 Axios 实例；页面通过 `src/services/` 的稳定业务入口访问 API。
 - **接口生成**：独立的 `@umijs/openapi`，配置位于 `openapi2ts.config.ts`。
 - **测试与检查**：Biome、TypeScript、Vitest 和 Testing Library。
-- **交付**：Next.js static export；生产环境不运行独立前端容器。
+- **交付**：Next.js standalone server；生产环境由独立前端服务监听 `8101`，FastAPI 只监听 `8111`。
 
 本地和镜像构建统一使用 Node.js 24 LTS 与 npm 11.19，具体范围以 `package.json` 的 `engines` 和 `packageManager` 为准，并使用仓库中的 `package-lock.json`。
 
 ## 本地开发
 
-先启动后端 API：
+先启动后端 API（`8111`）：
 
 ```bash
 cd ../backend
 uv sync --frozen --dev
-uv run python -m app.main
+uv run python -m uvicorn app.main:app --host 127.0.0.1 --port 8111 --reload
 ```
 
 再启动前端：
@@ -32,16 +32,13 @@ npm ci
 npm run dev
 ```
 
-`app.main` 与 `npm run dev` 分别是后端和前端的模块开发入口；完整项目仍只通过
-仓库根目录的业务 Compose 启动。开发服务器将 `/api/*` 和 `/health/*` 代理到
-`http://127.0.0.1:8101`。浏览器请求始终使用同源相对路径，不配置浏览器可见的
-后端地址或服务端密钥。
+开发服务器监听 `http://127.0.0.1:8101`，将 `/api/*` 和 `/health/*` 代理到 `http://127.0.0.1:8111`。浏览器请求始终使用同源相对路径，不配置浏览器可见的后端地址或服务端密钥。
 
 ## 目录约定
 
 ```text
 frontend/
-├── next.config.ts             Next.js 静态导出与开发代理
+├── next.config.ts             Next.js standalone 与开发代理
 ├── openapi2ts.config.ts       @umijs/openapi 生成配置
 ├── components.json            shadcn/ui 组件与别名配置
 ├── postcss.config.mjs         Tailwind CSS PostCSS 配置
@@ -52,7 +49,7 @@ frontend/
 │   │   ├── admin/             管理后台
 │   │   ├── analysis/          通用分析
 │   │   ├── auth/              登录、注册与访问保护
-│   │   ├── downloads/         下载历史与详情
+│   │   ├── downloads/         下载记录与详情
 │   │   ├── intake/            链接、视频和文件导入
 │   │   ├── layout/            页面框架、导航与通用布局
 │   │   ├── providers/         Provider 状态
@@ -91,11 +88,11 @@ npm run openapi
 
 全局 `body` 使用始终可见的纵向滚动容器来稳定长短页面切换，滚动条锁定与宽度补偿统一由 Radix 覆盖层原语负责。根节点不得再通过 `scrollbar-gutter` 预留第二份槽位，也不得覆盖 `data-scroll-locked` 的运行时样式；Dropdown、Dialog、Select 和 Sheet 共用同一套滚动锁编排，避免重复补偿引发整页横向抖动。
 
-## 静态导出与同源交付
+## 前后端服务边界
 
-`npm run build` 使用 Next.js static export 生成 `out/`。根 Dockerfile 将该目录复制到 `/app/frontend/out`，FastAPI 在 API 与健康检查路由之后挂载静态页面。已知路由可直接刷新，未知页面返回导出的 `404.html`；未知 `/api/*` 必须继续返回 JSON 404。
+`npm run build` 使用 Next.js standalone 输出生成独立 Node.js 服务。前端服务监听 `8101`，FastAPI API 服务监听 `8111`；Next.js 只代理 `/api/*` 和 `/health/*`，FastAPI 不挂载 `frontend/out`，也不会把页面 HTML 返回给根路径或未知 UI 路由。
 
-生产环境不启动 Next.js Server、独立前端容器或额外反向代理。需要服务端运行时能力的功能必须先确认不破坏静态导出和同源交付约束。
+生产环境启动独立 Next.js Server 和 FastAPI 服务。需要服务端运行时能力的功能应继续保持前端 `8101`、API `8111` 的边界。
 
 ## 组件、主题与可访问性
 
