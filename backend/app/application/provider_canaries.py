@@ -76,11 +76,15 @@ class ProviderStatusService:
             else ProviderStatusView(
                 key=entry.key,
                 display_name=entry.display_name,
+                profile_version=None,
                 registered=False,
                 extractor_exists=False,
                 capabilities=(),
                 access_modes=(),
                 status=ProviderSupportStatus.UNSUPPORTED,
+                last_checked_at=None,
+                last_check_succeeded=None,
+                download_available=False,
                 last_media_verified_at=None,
                 last_verified_at=None,
                 user_action="当前安全执行器不支持该平台。",
@@ -98,6 +102,12 @@ def _merge_status(
 ) -> ProviderStatusView:
     if baseline.status is ProviderSupportStatus.UNSUPPORTED:
         return baseline
+    results = tuple(
+        item
+        for item in results
+        if baseline.profile_version is None
+        or item.profile_version == baseline.profile_version
+    )
     if not results:
         if baseline.status is not ProviderSupportStatus.VERIFIED:
             return baseline
@@ -127,23 +137,34 @@ def _merge_status(
         baseline.status is ProviderSupportStatus.VERIFIED or explicitly_approved
     ) and _verified(ordered, now):
         status = ProviderSupportStatus.VERIFIED
+    elif baseline.status is ProviderSupportStatus.VERIFIED:
+        status = ProviderSupportStatus.UNKNOWN
     else:
         status = baseline.status
     verified_at = _latest_analysis_success(ordered)
+    download_available = _download_available(ordered, now)
     return ProviderStatusView(
         key=baseline.key,
         display_name=baseline.display_name,
+        profile_version=baseline.profile_version,
         registered=baseline.registered,
         extractor_exists=baseline.extractor_exists,
         capabilities=baseline.capabilities,
         access_modes=baseline.access_modes,
         status=status,
+        last_checked_at=latest.checked_at,
+        last_check_succeeded=(latest.outcome is ProviderCanaryOutcome.SUCCEEDED),
+        download_available=download_available,
         last_media_verified_at=(
             _latest_success(ordered, ProviderCanaryStage.MEDIA)
             or baseline.last_media_verified_at
         ),
         last_verified_at=verified_at or baseline.last_verified_at,
-        user_action=_user_action(status, baseline.key),
+        user_action=_user_action(
+            status,
+            baseline.key,
+            download_available=download_available,
+        ),
     )
 
 
@@ -191,6 +212,20 @@ def _verified(results: tuple[ProviderCanaryResult, ...], now: datetime) -> bool:
     return metadata_ok and media_ok and analysis_ok
 
 
+def _download_available(
+    results: tuple[ProviderCanaryResult, ...], now: datetime
+) -> bool:
+    latest_media = next(
+        (item for item in results if item.stage is ProviderCanaryStage.MEDIA),
+        None,
+    )
+    return bool(
+        latest_media is not None
+        and latest_media.outcome is ProviderCanaryOutcome.SUCCEEDED
+        and latest_media.checked_at >= now - timedelta(hours=26)
+    )
+
+
 def _latest_analysis_success(
     results: tuple[ProviderCanaryResult, ...],
 ) -> datetime | None:
@@ -211,8 +246,19 @@ def _latest_success(
 
 
 def _user_action(
-    status: ProviderSupportStatus, provider_key: str | None = None
+    status: ProviderSupportStatus,
+    provider_key: str | None = None,
+    *,
+    download_available: bool = False,
 ) -> str | None:
+    if (
+        provider_key == "wechat_channels"
+        and status is ProviderSupportStatus.ACCESS_REQUIRED
+    ):
+        return (
+            "公开分享链接需要部署已批准的隔离元宝会话；"
+            "不支持私密、加密、直播或付费内容。"
+        )
     if provider_key == "hongguo_web" and status is ProviderSupportStatus.UNKNOWN:
         return (
             "已接入红果官方分享链接当前单集；"
@@ -227,6 +273,8 @@ def _user_action(
     }:
         return "平台当前不稳定，请稍后重试。"
     if status is ProviderSupportStatus.UNKNOWN:
+        if download_available:
+            return "公开样本已完成真实下载验证；完整视频分析链路仍待验证。"
         return "该平台尚未完成当前版本的真实下载验证。"
     if status is ProviderSupportStatus.DISABLED:
         return "该平台能力已由运维关闭。"

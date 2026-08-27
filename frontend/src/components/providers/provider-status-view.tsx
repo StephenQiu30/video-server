@@ -116,6 +116,7 @@ function ProviderRow({ provider }: { provider: ProviderStatus }) {
           )}
         </div>
         <div className="text-sm leading-6 text-muted-foreground">
+          <p>{latestCheckDescription(provider)}</p>
           <p>{accessDescription(provider)}</p>
           <p className="mt-1">{mediaVerificationDescription(provider)}</p>
           <p>{analysisVerificationDescription(provider)}</p>
@@ -129,6 +130,9 @@ function ProviderRow({ provider }: { provider: ProviderStatus }) {
 }
 
 function statusLabel(provider: ProviderStatus): string {
+  if (provider.status === 'unknown' && provider.download_available) {
+    return '下载可用，待完整验证';
+  }
   if (
     provider.status === 'unknown' &&
     provider.registered &&
@@ -154,8 +158,19 @@ function accessDescription(provider: ProviderStatus): string {
   return '访问：当前未开放';
 }
 
+function latestCheckDescription(provider: ProviderStatus): string {
+  if (!provider.last_checked_at || provider.last_check_succeeded === null) {
+    return '最近状态检查：暂无当前版本记录';
+  }
+  const outcome = provider.last_check_succeeded ? '通过' : '未通过';
+  return `最近状态检查：${formatCheckDate(provider.last_checked_at)} · ${outcome}`;
+}
+
 function mediaVerificationDescription(provider: ProviderStatus): string {
   if (!provider.last_media_verified_at) return '最近真实下载：暂无当前版本证据';
+  if (provider.download_available) {
+    return `当前公开样本下载：可用 · ${formatVerificationDate(provider.last_media_verified_at)}`;
+  }
   return `最近真实下载：${formatVerificationDate(provider.last_media_verified_at)}`;
 }
 
@@ -167,6 +182,13 @@ function analysisVerificationDescription(provider: ProviderStatus): string {
 function formatVerificationDate(value: string): string {
   return new Intl.DateTimeFormat('zh-CN', {
     dateStyle: 'medium',
+  }).format(new Date(value));
+}
+
+function formatCheckDate(value: string): string {
+  return new Intl.DateTimeFormat('zh-CN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
   }).format(new Date(value));
 }
 

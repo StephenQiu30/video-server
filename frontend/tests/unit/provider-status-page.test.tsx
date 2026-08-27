@@ -43,6 +43,7 @@ describe('provider status page', () => {
     );
     expect(capabilities).not.toHaveAttribute('data-slot', 'badge');
     expect(youtube).toHaveTextContent('匿名优先');
+    expect(youtube).toHaveTextContent('最近状态检查：暂无当前版本记录');
     expect(youtube).toHaveTextContent('最近真实下载：暂无当前版本证据');
     expect(youtube).toHaveTextContent('最近完整分析：暂无当前版本证据');
     expect(youtube).not.toHaveTextContent('Cookie 版本');
@@ -53,14 +54,16 @@ describe('provider status page', () => {
     expect(bilibili).not.toBeNull();
     expect(bilibili).toHaveTextContent('已验证');
     expect(bilibili).toHaveTextContent('仅匿名公开内容');
-    expect(bilibili).toHaveTextContent('最近真实下载：2026年8月9日');
+    expect(bilibili).toHaveTextContent('最近状态检查：2026年8月11日');
+    expect(bilibili).toHaveTextContent('· 通过');
+    expect(bilibili).toHaveTextContent('当前公开样本下载：可用 · 2026年8月9日');
     expect(bilibili).toHaveTextContent('2026年8月10日');
 
     const hongguo = within(list)
       .getByRole('heading', { name: '红果短剧官方分享' })
       .closest('li');
     expect(hongguo).not.toBeNull();
-    expect(hongguo).toHaveTextContent('已接入，待验证');
+    expect(hongguo).toHaveTextContent('下载可用，待完整验证');
     expect(hongguo).toHaveTextContent('解析器已部署');
     expect(hongguo).toHaveTextContent('官方分享链接当前单集');
   });
@@ -106,6 +109,9 @@ function statuses(): ProviderStatusList {
         capabilities: ['single_video', 'audio_video_split'],
         access_modes: ['anonymous', 'operator_managed'],
         status: 'access_required',
+        last_checked_at: null,
+        last_check_succeeded: null,
+        download_available: false,
         last_media_verified_at: null,
         last_verified_at: null,
         user_action: '该平台需要部署已批准的受控会话。',
@@ -118,6 +124,9 @@ function statuses(): ProviderStatusList {
         capabilities: ['single_video'],
         access_modes: ['anonymous'],
         status: 'verified',
+        last_checked_at: '2026-08-11T03:30:00Z',
+        last_check_succeeded: true,
+        download_available: true,
         last_media_verified_at: '2026-08-09T00:00:00Z',
         last_verified_at: '2026-08-10T00:00:00Z',
         user_action: null,
@@ -130,7 +139,10 @@ function statuses(): ProviderStatusList {
         capabilities: ['single_video'],
         access_modes: ['anonymous'],
         status: 'unknown',
-        last_media_verified_at: null,
+        last_checked_at: '2026-08-11T03:30:00Z',
+        last_check_succeeded: true,
+        download_available: true,
+        last_media_verified_at: '2026-08-11T03:30:00Z',
         last_verified_at: null,
         user_action:
           '已接入红果官方分享链接当前单集；不支持 App 受保护媒体、全集抓取或批量下载。',

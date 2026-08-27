@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -19,14 +20,20 @@ NOW = datetime(2026, 8, 11, 6, tzinfo=UTC)
 
 
 class Reader:
-    def __init__(self, results: tuple[ProviderCanaryResult, ...]) -> None:
+    def __init__(
+        self,
+        results: tuple[ProviderCanaryResult, ...],
+        *,
+        key: str = "vimeo",
+    ) -> None:
         self.results = results
+        self.key = key
 
     async def list_recent(
         self, *, limit_per_provider: int
     ) -> dict[str, tuple[ProviderCanaryResult, ...]]:
         assert limit_per_provider == 32
-        return {"vimeo": self.results}
+        return {self.key: self.results}
 
 
 class Catalog:
@@ -60,11 +67,15 @@ def baseline(
     return ProviderStatusView(
         key="vimeo",
         display_name="Vimeo",
+        profile_version="1",
         registered=True,
         extractor_exists=True,
         capabilities=(ProviderCapability.SINGLE_VIDEO,),
         access_modes=(ProviderAccessMode.ANONYMOUS,),
         status=status,
+        last_checked_at=None,
+        last_check_succeeded=None,
+        download_available=False,
         last_media_verified_at=None,
         last_verified_at=None,
         user_action="待验证",
@@ -114,7 +125,9 @@ async def test_unapproved_profile_stays_unknown_after_media_evidence() -> None:
     assert view.status is ProviderSupportStatus.UNKNOWN
     assert view.last_media_verified_at == NOW - timedelta(minutes=60)
     assert view.last_verified_at == NOW - timedelta(minutes=15)
-    assert view.user_action == "该平台尚未完成当前版本的真实下载验证。"
+    assert view.user_action == (
+        "公开样本已完成真实下载验证；完整视频分析链路仍待验证。"
+    )
 
 
 @pytest.mark.asyncio
@@ -149,6 +162,58 @@ async def test_approved_without_current_canary_is_not_reported_verified() -> Non
     assert view.status is ProviderSupportStatus.UNKNOWN
     assert view.last_verified_at is None
     assert view.user_action == "该平台尚未完成当前版本的真实下载验证。"
+
+
+@pytest.mark.asyncio
+async def test_verified_baseline_requires_current_full_chain_evidence() -> None:
+    service = ProviderStatusService(
+        Reader((result(0), result(30, stage=ProviderCanaryStage.MEDIA))),
+        (baseline(ProviderSupportStatus.VERIFIED),),
+        now=lambda: NOW,
+    )
+
+    view = (await service.list())[0]
+
+    assert view.status is ProviderSupportStatus.UNKNOWN
+    assert view.last_checked_at == NOW
+    assert view.last_check_succeeded is True
+    assert view.download_available is True
+
+
+@pytest.mark.asyncio
+async def test_evidence_from_an_old_profile_version_is_ignored() -> None:
+    old = replace(result(0), profile_version="old")
+    service = ProviderStatusService(
+        Reader((old,)),
+        (baseline(ProviderSupportStatus.VERIFIED),),
+        now=lambda: NOW,
+    )
+
+    view = (await service.list())[0]
+
+    assert view.status is ProviderSupportStatus.UNKNOWN
+    assert view.last_checked_at is None
+    assert view.last_check_succeeded is None
+    assert view.download_available is False
+
+
+@pytest.mark.asyncio
+async def test_latest_media_failure_revokes_download_availability() -> None:
+    results = (
+        result(0, stage=ProviderCanaryStage.MEDIA, error="download_timeout"),
+        result(60, stage=ProviderCanaryStage.MEDIA),
+    )
+    service = ProviderStatusService(
+        Reader(results),
+        (baseline(),),
+        now=lambda: NOW,
+    )
+
+    view = (await service.list())[0]
+
+    assert view.last_check_succeeded is False
+    assert view.download_available is False
+    assert view.last_media_verified_at == NOW - timedelta(minutes=60)
 
 
 @pytest.mark.asyncio
@@ -219,6 +284,30 @@ async def test_access_and_repeated_permanent_failures_override_baseline() -> Non
 
     assert (await access.list())[0].status is ProviderSupportStatus.ACCESS_REQUIRED
     assert (await blocked.list())[0].status is ProviderSupportStatus.BLOCKED
+
+
+@pytest.mark.asyncio
+async def test_wechat_channels_access_message_preserves_public_scope() -> None:
+    wechat = replace(baseline(), key="wechat_channels")
+    service = ProviderStatusService(
+        Reader(
+            (
+                replace(
+                    result(0, error="provider_auth_required"),
+                    provider_key="wechat_channels",
+                ),
+            ),
+            key="wechat_channels",
+        ),
+        (wechat,),
+        now=lambda: NOW,
+    )
+
+    view = (await service.list())[0]
+
+    assert view.user_action == (
+        "公开分享链接需要部署已批准的隔离元宝会话；不支持私密、加密、直播或付费内容。"
+    )
 
 
 @pytest.mark.asyncio

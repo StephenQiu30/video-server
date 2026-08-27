@@ -88,6 +88,17 @@ metadata 成功不等于可下载；media 成功也不等于 AI 分析完整。�
 `youtube-v3`。挑战型平台的临时 `egress_challenged` 允许按 Provider 配置做有界
 重试；下架、地区/IP 明确限制、认证失败等确定性错误不重试。
 
+2026-08-27 当前版本与出口的逐平台最终复测结果为 metadata 19/22、media
+18/22。抖音和视频号在未部署受控会话时稳定返回 `provider_auth_required`；TikTok
+的 metadata 通过，但 media 受到当前出口验证挑战；Facebook metadata/media 均在
+当前固定 yt-dlp 版本返回解析失败，且同版本上游已有多条 Reel `Cannot parse data`
+报告（[#17340](https://github.com/yt-dlp/yt-dlp/issues/17340)、
+[#17411](https://github.com/yt-dlp/yt-dlp/issues/17411)），因此保留降级状态而不把
+单条样本静默替换为另一条历史链接。Telegram 首次 media 返回瞬时 Runner 失败，
+有界复测完成真实下载；其余最终 media 目标均通过。该轮没有生成或伪造 analysis
+证明，也没有新增 `PROVIDER_VERIFIED_KEYS`，所以下载可用证据与完整链路 verified
+状态仍严格分开展示。
+
 ## 4. 更新固定样本
 
 只在原内容删除、链接写错或不再属于预期能力边界时升级 target 版本。更新前先用

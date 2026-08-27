@@ -1022,6 +1022,12 @@ declare namespace API {
     /** Access Modes */
     access_modes: ProviderAccessMode[];
     status: ProviderSupportStatus;
+    /** Last Checked At */
+    last_checked_at: string | null;
+    /** Last Check Succeeded */
+    last_check_succeeded: boolean | null;
+    /** Download Available */
+    download_available: boolean;
     /** Last Media Verified At */
     last_media_verified_at: string | null;
     /** Last Verified At */

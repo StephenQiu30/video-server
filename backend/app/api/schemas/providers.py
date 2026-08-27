@@ -19,6 +19,9 @@ class ProviderStatusResponse(StrictModel):
     capabilities: tuple[ProviderCapability, ...]
     access_modes: tuple[ProviderAccessMode, ...]
     status: ProviderSupportStatus
+    last_checked_at: datetime | None
+    last_check_succeeded: bool | None
+    download_available: bool
     last_media_verified_at: datetime | None
     last_verified_at: datetime | None
     user_action: str | None
@@ -33,6 +36,9 @@ class ProviderStatusResponse(StrictModel):
             capabilities=value.capabilities,
             access_modes=value.access_modes,
             status=value.status,
+            last_checked_at=value.last_checked_at,
+            last_check_succeeded=value.last_check_succeeded,
+            download_available=value.download_available,
             last_media_verified_at=value.last_media_verified_at,
             last_verified_at=value.last_verified_at,
             user_action=value.user_action,
