@@ -147,6 +147,46 @@ async def test_invalid_url_never_reaches_runner() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("url", "decision", "reason"),
+    (
+        (
+            "https://weixin.qq.com/sph/AbCdEf12",
+            "export_required",
+            "wechat_channels_export_required",
+        ),
+        (
+            "https://v.qq.com/x/page/q326831cny0.html",
+            "playback_only",
+            "tencent_consumer_download_disabled",
+        ),
+        (
+            "https://mp.weixin.qq.com/s/AbCdEf123",
+            "blocked",
+            "article_discovery_required",
+        ),
+    ),
+)
+async def test_restricted_platform_returns_persisted_inspection_without_runner(
+    url: str,
+    decision: str,
+    reason: str,
+) -> None:
+    repository = FakeRepository()
+    inspect, runner, cipher = use_case(repository, runner_result())
+
+    view = await inspect(url, OWNER, "restricted-source")
+
+    assert runner.seen == []
+    assert cipher.seen == [url]
+    assert view.duration_seconds == 0
+    assert view.formats == ()
+    assert view.access_decision.value == decision
+    assert view.restriction_reason == reason
+    assert repository.inspection_commands[0].formats == ()
+
+
+@pytest.mark.asyncio
 async def test_duration_limit_and_empty_formats_are_rejected() -> None:
     repository = FakeRepository()
     too_long, _, _ = use_case(repository, runner_result(duration=7_201))

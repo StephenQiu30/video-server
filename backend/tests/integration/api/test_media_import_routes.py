@@ -157,6 +157,7 @@ def test_media_import_routes_delegate_owner_and_hide_storage_identity(
     assert create_kwargs["source_format"] is ImportSourceFormat.MP4
     assert create_kwargs["content_kind"] is ContentKind.VIDEO
     assert create_kwargs["idempotency_key"] == "import-1"
+    assert create_kwargs["declared_origin"].value == "user_file"
     complete_args = stubs["complete"].calls[0][0]
     assert complete_args[:3] == (
         RESOURCE_ID,
@@ -254,9 +255,33 @@ def test_media_import_openapi_is_strict_and_has_unique_operations(
         "file_name",
         "declared_size_bytes",
         "declared_sha256",
+        "declared_origin",
         "rights_accepted",
     }
     serialized = str(paths).casefold()
     assert "minio_import" not in serialized
     assert "upload_id" not in serialized
     assert "object_key" not in serialized
+
+
+def test_media_import_accepts_only_controlled_wechat_channels_origin(
+    tmp_path: Path,
+) -> None:
+    test_client, stubs = client(tmp_path)
+    with test_client:
+        accepted = test_client.post(
+            "/api/media-imports",
+            headers={"Idempotency-Key": "wechat-import"},
+            json=request_body() | {"declared_origin": "wechat_channels"},
+        )
+        rejected = test_client.post(
+            "/api/media-imports",
+            headers={"Idempotency-Key": "unknown-import"},
+            json=request_body() | {"declared_origin": "arbitrary_platform"},
+        )
+
+    assert accepted.status_code == 201
+    assert rejected.status_code == 422
+    assert stubs["create"].calls[0][1]["declared_origin"].value == (
+        "wechat_channels"
+    )

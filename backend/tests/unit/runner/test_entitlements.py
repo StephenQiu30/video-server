@@ -57,3 +57,28 @@ def test_unapproved_operator_provider_remains_blocked() -> None:
         )
 
     assert caught.value.code == "provider_session_not_allowed"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    (
+        {"is_private": True},
+        {"is_premium": True},
+        {"is_member_only": True},
+        {"is_preview": True},
+        {"requires_purchase": True},
+        {"availability": "vip_only"},
+        {"availability": "purchase_required"},
+    ),
+)
+def test_anonymous_access_rejects_restricted_metadata(
+    payload: dict[str, object],
+) -> None:
+    with pytest.raises(RunnerFailure) as caught:
+        enforce_media_rights(
+            payload,
+            provider_key="qqvideo",
+            access_mode=ProviderAccessMode.ANONYMOUS,
+        )
+
+    assert caught.value.code in {"content_private", "content_not_entitled"}

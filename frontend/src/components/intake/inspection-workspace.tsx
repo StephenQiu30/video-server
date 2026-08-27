@@ -1,6 +1,6 @@
 'use client';
 
-import { DownloadSimple } from '@phosphor-icons/react';
+import { DownloadSimple, UploadSimple } from '@phosphor-icons/react';
 
 import FormatPicker from '@/components/intake/format-picker';
 import MediaCover from '@/components/intake/media-cover';
@@ -13,6 +13,7 @@ type InspectionWorkspaceProps = {
   inspection: Inspection;
   onChange: (id: string) => void;
   onCreate: () => void;
+  onUseUpload: () => void;
   selectedId: string;
 };
 
@@ -21,9 +22,11 @@ export default function InspectionWorkspace({
   inspection,
   onChange,
   onCreate,
+  onUseUpload,
   selectedId,
 }: InspectionWorkspaceProps) {
   const selected = inspection.formats.find((item) => item.id === selectedId);
+  const downloadable = inspection.access_decision === 'downloadable';
 
   return (
     <section
@@ -41,10 +44,12 @@ export default function InspectionWorkspace({
         </h2>
         <dl className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground tabular-nums">
           <Meta label="平台" mono value={inspection.extractor_key} />
-          <Meta
-            label="时长"
-            value={formatDuration(inspection.duration_seconds)}
-          />
+          {inspection.duration_seconds > 0 ? (
+            <Meta
+              label="时长"
+              value={formatDuration(inspection.duration_seconds)}
+            />
+          ) : null}
           {selected ? (
             <Meta
               label="当前清晰度"
@@ -55,12 +60,29 @@ export default function InspectionWorkspace({
       </div>
 
       <div className="hairline min-w-0 lg:border-l lg:pl-10">
-        <h2 className="text-base font-medium">画质预设</h2>
-        <FormatPicker
-          formats={inspection.formats}
-          onChange={onChange}
-          selectedId={selectedId}
-        />
+        <h2 className="text-base font-medium">
+          {downloadable
+            ? '画质预设'
+            : decisionTitle(inspection.access_decision)}
+        </h2>
+        {downloadable ? (
+          <FormatPicker
+            formats={inspection.formats}
+            onChange={onChange}
+            selectedId={selectedId}
+          />
+        ) : (
+          <div aria-live="polite" className="border-y py-6">
+            <p className="text-sm leading-6 text-muted-foreground">
+              {inspection.user_action ?? '当前来源不能创建下载任务。'}
+            </p>
+            {inspection.restriction_reason ? (
+              <p className="mt-3 font-mono text-xs text-muted-foreground">
+                {inspection.restriction_reason}
+              </p>
+            ) : null}
+          </div>
+        )}
         {selected ? (
           <dl className="mt-7 grid grid-cols-2 gap-x-5 gap-y-4 border-t pt-5 text-sm">
             <SelectionMeta
@@ -81,17 +103,34 @@ export default function InspectionWorkspace({
             />
           </dl>
         ) : null}
-        <Button
-          className="mt-7 h-13 w-full text-[15px]"
-          disabled={!selectedId || busy}
-          onClick={onCreate}
-        >
-          <DownloadSimple size={19} />
-          {busy ? '正在创建任务…' : '创建下载任务'}
-        </Button>
+        {inspection.access_decision === 'export_required' ? (
+          <Button
+            className="mt-7 h-13 w-full text-[15px]"
+            onClick={onUseUpload}
+          >
+            <UploadSimple size={19} />
+            上传自有 MP4
+          </Button>
+        ) : downloadable ? (
+          <Button
+            className="mt-7 h-13 w-full text-[15px]"
+            disabled={!selectedId || busy}
+            onClick={onCreate}
+          >
+            <DownloadSimple size={19} />
+            {busy ? '正在创建任务…' : '创建下载任务'}
+          </Button>
+        ) : null}
       </div>
     </section>
   );
+}
+
+function decisionTitle(decision: Inspection['access_decision']) {
+  if (decision === 'playback_only') return '仅支持官方播放';
+  if (decision === 'export_required') return '需要导入自有文件';
+  if (decision === 'blocked') return '需要进一步选择';
+  return '当前来源不可下载';
 }
 
 function Meta({

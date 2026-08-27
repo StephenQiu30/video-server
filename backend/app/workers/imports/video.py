@@ -63,6 +63,7 @@ _CONTAINER_BOXES = frozenset(
         b"udta",
     }
 )
+_PROTECTED_BOXES = frozenset({b"pssh", b"encv", b"enca", b"sinf", b"schm", b"tenc"})
 _CODEC = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,63}$")
 _READ_CHUNK = 1024 * 1024
 
@@ -504,6 +505,11 @@ def _boxes(
             )
         size = int.from_bytes(header[:4], "big")
         box_type = header[4:]
+        if box_type in _PROTECTED_BOXES:
+            raise VideoVerificationError(
+                ImportErrorCode.VIDEO_INVALID,
+                "protected BMFF structure is forbidden",
+            )
         header_size = 8
         if size == 1:
             extended = source.read(8)

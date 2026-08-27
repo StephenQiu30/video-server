@@ -29,8 +29,6 @@
   {"target_id":"weibo-public-single-v1","provider_key":"weibo","stage":"media","url":"https://weibo.com/7827771738/N4xlMvjhI"},
   {"target_id":"youku-public-single-v1","provider_key":"youku","stage":"metadata","url":"https://v.youku.com/v_show/id_XOTUxMzg4NDMy.html"},
   {"target_id":"youku-public-single-v1","provider_key":"youku","stage":"media","url":"https://v.youku.com/v_show/id_XOTUxMzg4NDMy.html"},
-  {"target_id":"qqvideo-public-single-v1","provider_key":"qqvideo","stage":"metadata","url":"https://v.qq.com/x/page/q326831cny0.html"},
-  {"target_id":"qqvideo-public-single-v1","provider_key":"qqvideo","stage":"media","url":"https://v.qq.com/x/page/q326831cny0.html"},
   {"target_id":"snapchat-public-spotlight-v1","provider_key":"snapchat","stage":"metadata","url":"https://www.snapchat.com/spotlight/W7_EDlXWTBiXAEEniNoMPwAAYYWtidGhudGZpAX1TKn0JAX1TKnXJAAAAAA"},
   {"target_id":"snapchat-public-spotlight-v1","provider_key":"snapchat","stage":"media","url":"https://www.snapchat.com/spotlight/W7_EDlXWTBiXAEEniNoMPwAAYYWtidGhudGZpAX1TKn0JAX1TKnXJAAAAAA"},
   {"target_id":"linkedin-public-post-v1","provider_key":"linkedin","stage":"metadata","url":"https://www.linkedin.com/posts/the-mathworks_2_what-is-mathworks-cloud-center-activity-7151241570371948544-4Gu7"},

@@ -47,7 +47,7 @@ PUBLIC_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         ("v.qq.com",),
         version="qqvideo-public-video-v1",
         capabilities=SINGLE_VIDEO,
-        status=ProviderSupportStatus.VERIFIED,
+        status=ProviderSupportStatus.DISABLED,
         canary_suite="qqvideo-public-single-video",
     ),
     standard_provider(

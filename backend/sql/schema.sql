@@ -137,8 +137,12 @@ CREATE TABLE IF NOT EXISTS media_inspections (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_media_inspections_owner_idempotency
         UNIQUE (owner_hash, idempotency_key),
-    CONSTRAINT ck_inspection_duration CHECK (duration_seconds > 0)
+    CONSTRAINT ck_inspection_duration CHECK (duration_seconds >= 0)
 );
+
+ALTER TABLE media_inspections DROP CONSTRAINT IF EXISTS ck_inspection_duration;
+ALTER TABLE media_inspections ADD CONSTRAINT ck_inspection_duration
+    CHECK (duration_seconds >= 0);
 
 CREATE INDEX IF NOT EXISTS ix_media_inspections_owner_expires
     ON media_inspections (owner_hash, expires_at);
@@ -274,6 +278,7 @@ CREATE TABLE IF NOT EXISTS media_imports (
     declared_size_bytes BIGINT NOT NULL,
     declared_sha256 VARCHAR(64) NOT NULL,
     rights_statement_version VARCHAR(64) NOT NULL,
+    declared_origin VARCHAR(32) NOT NULL DEFAULT 'user_file',
     status VARCHAR(24) NOT NULL DEFAULT 'uploading',
     attempt INTEGER NOT NULL DEFAULT 0,
     error_code VARCHAR(64),
@@ -294,6 +299,9 @@ CREATE TABLE IF NOT EXISTS media_imports (
     ),
     CONSTRAINT ck_media_imports_attempt CHECK (attempt >= 0),
     CONSTRAINT ck_media_imports_version CHECK (version >= 0),
+    CONSTRAINT ck_media_imports_declared_origin CHECK (
+        declared_origin IN ('user_file','wechat_channels')
+    ),
     CONSTRAINT ck_media_imports_terminal_shape CHECK (
         (status IN ('uploading','verifying') AND finished_at IS NULL) OR
         (status IN ('ready','failed','cancelled','expired') AND finished_at IS NOT NULL)
@@ -304,6 +312,16 @@ CREATE INDEX IF NOT EXISTS ix_media_imports_owner_created
     ON media_imports (owner_hash, created_at);
 CREATE INDEX IF NOT EXISTS ix_media_imports_status_updated
     ON media_imports (status, updated_at);
+
+ALTER TABLE media_imports ADD COLUMN IF NOT EXISTS declared_origin VARCHAR(32);
+UPDATE media_imports SET declared_origin = 'user_file'
+    WHERE declared_origin IS NULL;
+ALTER TABLE media_imports ALTER COLUMN declared_origin SET DEFAULT 'user_file';
+ALTER TABLE media_imports ALTER COLUMN declared_origin SET NOT NULL;
+ALTER TABLE media_imports DROP CONSTRAINT IF EXISTS ck_media_imports_declared_origin;
+ALTER TABLE media_imports ADD CONSTRAINT ck_media_imports_declared_origin CHECK (
+    declared_origin IN ('user_file','wechat_channels')
+);
 
 CREATE TABLE IF NOT EXISTS media_import_attempts (
     resource_id UUID NOT NULL

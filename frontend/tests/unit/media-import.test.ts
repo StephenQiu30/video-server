@@ -47,6 +47,7 @@ describe('local media import transport', () => {
         onResource: vi.fn(),
       },
       new AbortController().signal,
+      'wechat_channels',
     );
 
     expect(result).toEqual(completed);
@@ -65,6 +66,7 @@ describe('local media import transport', () => {
           declared_sha256:
             'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
           rights_accepted: true,
+          declared_origin: 'wechat_channels',
         },
         headers: { 'Idempotency-Key': 'stable-import-key' },
         method: 'POST',
@@ -236,6 +238,7 @@ function mediaImportResponse(
     created_at: '2026-08-14T00:00:00Z',
     updated_at: '2026-08-14T00:00:01Z',
     finished_at: null,
+    declared_origin: 'user_file',
   };
 }
 

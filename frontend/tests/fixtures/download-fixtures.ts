@@ -11,6 +11,15 @@ export const inspection: Inspection = {
   duration_seconds: 30,
   thumbnail_url: 'data:image/jpeg;base64,Y292ZXI=',
   expires_at: '2026-08-06T11:00:00Z',
+  source_origin: 'public_url',
+  execution_mode: 'provider_runner',
+  access_decision: 'downloadable',
+  entitlement_state: 'public_free',
+  identity_state: 'verified',
+  protection_state: 'clear',
+  rights_basis: 'public_access',
+  restriction_reason: null,
+  user_action: null,
   formats: [
     {
       id: '22222222-2222-4222-8222-222222222222',

@@ -183,6 +183,73 @@ describe('DownloadWorkspace', () => {
       },
     ]);
   });
+
+  it('routes a recognized WeChat Channels source to owned-file upload', async () => {
+    mockHttpResponses({
+      ...inspection,
+      extractor_key: 'wechat_channels',
+      title: '微信视频号内容',
+      duration_seconds: 0,
+      formats: [],
+      execution_mode: 'verified_import',
+      access_decision: 'export_required',
+      entitlement_state: 'unknown',
+      protection_state: 'unknown',
+      rights_basis: null,
+      restriction_reason: 'wechat_channels_export_required',
+      user_action: '请在微信中合法导出自有明文 MP4 后通过本地导入上传。',
+    });
+    renderWorkspace();
+
+    fireEvent.change(screen.getByLabelText('公开视频地址'), {
+      target: { value: 'https://weixin.qq.com/sph/AbCdEf12' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
+
+    expect(await screen.findByText('需要导入自有文件')).toBeInTheDocument();
+    expect(
+      screen.getByText('请在微信中合法导出自有明文 MP4 后通过本地导入上传。'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '创建下载任务' }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '上传自有 MP4' }));
+    expect(screen.getByRole('tab', { name: '本地视频' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
+
+  it('does not offer a download for Tencent consumer playback content', async () => {
+    mockHttpResponses({
+      ...inspection,
+      extractor_key: 'qqvideo',
+      title: '腾讯视频内容',
+      duration_seconds: 0,
+      formats: [],
+      access_decision: 'playback_only',
+      entitlement_state: 'unknown',
+      protection_state: 'unknown',
+      rights_basis: null,
+      restriction_reason: 'tencent_consumer_download_disabled',
+      user_action: '请在腾讯视频官方客户端播放；VIP/付费内容不提供下载。',
+    });
+    renderWorkspace();
+
+    fireEvent.change(screen.getByLabelText('公开视频地址'), {
+      target: { value: 'https://v.qq.com/x/page/q326831cny0.html' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
+
+    expect(await screen.findByText('仅支持官方播放')).toBeInTheDocument();
+    expect(
+      screen.getByText('请在腾讯视频官方客户端播放；VIP/付费内容不提供下载。'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '创建下载任务' }),
+    ).not.toBeInTheDocument();
+  });
 });
 
 function renderWorkspace() {

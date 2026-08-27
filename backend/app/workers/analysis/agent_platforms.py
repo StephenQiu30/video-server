@@ -121,7 +121,7 @@ def agent_paths() -> AgentPaths:
 def _python_executable() -> Path:
     # Keep the virtual-environment entry point. Resolving this symlink selects
     # uv's base interpreter and drops the project's installed dependencies.
-    executable = Path(sys.executable).absolute()
+    executable = Path(sys.executable)
     if sys.platform == "win32":
         windowless = executable.with_name("pythonw.exe")
         if windowless.is_file():

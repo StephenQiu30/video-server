@@ -180,6 +180,7 @@ class SqlAlchemyDownloadStore:
                     finished_at=item.finished_at,
                     file_available=item.file_available,
                     source_kind=item.source_kind,
+                    declared_origin=item.declared_origin,
                 )
                 for item in stored.items
             ),

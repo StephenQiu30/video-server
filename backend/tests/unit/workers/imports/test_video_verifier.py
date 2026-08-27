@@ -185,6 +185,21 @@ async def test_rejects_external_bmff_data_reference_before_ffprobe(
 
 
 @pytest.mark.parametrize(
+    "protected_box", (b"pssh", b"encv", b"enca", b"sinf", b"schm", b"tenc")
+)
+async def test_rejects_protected_bmff_boxes_before_ffprobe(
+    tmp_path: Path, protected_box: bytes
+) -> None:
+    ftyp = box(b"ftyp", b"isom" + b"\x00\x00\x02\x00" + b"isommp42")
+    payload = ftyp + box(b"moov", box(protected_box)) + box(b"mdat", b"video")
+
+    with pytest.raises(VideoVerificationError) as caught:
+        await verified(tmp_path, content=payload)
+
+    assert caught.value.code is ImportErrorCode.VIDEO_INVALID
+
+
+@pytest.mark.parametrize(
     "probe_result",
     (
         VideoProbeResult(

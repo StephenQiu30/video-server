@@ -46,7 +46,6 @@ def test_uses_public_vimeo_player_endpoint_for_canonical_video() -> None:
         "https://www.pinterest.com/pin/664281013778109217/",
         "https://weibo.com/7827771738/N4xlMvjhI",
         "https://v.youku.com/v_show/id_XOTUxMzg4NDMy.html",
-        "https://v.qq.com/x/page/q326831cny0.html",
         "https://www.snapchat.com/spotlight/W7_EDlXWTBiXAEEniNoMPwAAYYWtidGhudGZpAX1TKn0JAX1TKnXJAAAAAA",
         "https://www.linkedin.com/posts/the-mathworks_2_what-is-mathworks-cloud-center-activity-7151241570371948544-4Gu7",
         "https://t.me/europa_press/613",
@@ -65,6 +64,15 @@ def test_hongguo_official_share_is_a_single_video_profile() -> None:
     assert profile.version == "hongguo-official-share-v1"
     assert profile.support_status is ProviderSupportStatus.UNKNOWN
     assert profile.capabilities == frozenset({ProviderCapability.SINGLE_VIDEO})
+
+
+def test_qqvideo_is_recognized_but_disabled_at_runtime() -> None:
+    url = "https://v.qq.com/x/page/q326831cny0.html"
+
+    assert provider_profile(url).support_status is ProviderSupportStatus.DISABLED
+    with pytest.raises(RunnerFailure) as captured:
+        provider_request_url(url)
+    assert captured.value.code == "provider_unsupported"
 
 
 def test_preserves_unlisted_and_non_vimeo_urls() -> None:

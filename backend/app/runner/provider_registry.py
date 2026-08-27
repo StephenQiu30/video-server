@@ -159,6 +159,8 @@ class ProviderRegistry:
 
     def prepare(self, url: str) -> ProviderRequest:
         profile = self.resolve(url)
+        if profile.support_status is ProviderSupportStatus.DISABLED:
+            raise RunnerFailure("provider_unsupported", status=422)
         return ProviderRequest(
             source_url=url,
             request_url=profile.request_url(url, urlsplit(url)),

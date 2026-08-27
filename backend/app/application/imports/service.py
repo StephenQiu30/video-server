@@ -10,6 +10,7 @@ from uuid import UUID
 
 from app.domain.imports import (
     ContentKind,
+    DeclaredOrigin,
     ImportErrorCode,
     ImportSourceFormat,
     ImportStatus,
@@ -103,12 +104,18 @@ class CreateImportResource:
         declared_size_bytes: int,
         declared_sha256: str,
         rights_accepted: bool,
+        declared_origin: DeclaredOrigin = DeclaredOrigin.USER_FILE,
     ) -> ImportView:
         owner_hash = _validate_owner_hash(owner_hash)
         idempotency_key = _validate_idempotency_key(idempotency_key)
         if not self._enabled[content_kind]:
             raise ImportApplicationError(ImportApplicationErrorCode.DISABLED)
         if source_format.content_kind != content_kind:
+            _invalid_request()
+        if (
+            content_kind is not ContentKind.VIDEO
+            and declared_origin is not DeclaredOrigin.USER_FILE
+        ):
             _invalid_request()
         if rights_accepted is not True:
             _invalid_request()
@@ -132,6 +139,7 @@ class CreateImportResource:
                 str(declared_size_bytes),
                 declared_sha256,
                 self._rights_statement_version,
+                declared_origin.value,
             ),
             content_kind=content_kind,
             source_format=source_format,
@@ -140,6 +148,7 @@ class CreateImportResource:
             declared_size_bytes=declared_size_bytes,
             declared_sha256=declared_sha256,
             rights_statement_version=self._rights_statement_version,
+            declared_origin=declared_origin,
         )
         try:
             result = await self._repository.create_resource(command, now=now)
@@ -652,6 +661,7 @@ def _validate_saved_resource(
         and resource.source_format == command.source_format.value
         and resource.declared_size_bytes == command.declared_size_bytes
         and resource.declared_sha256 == command.declared_sha256
+        and resource.declared_origin == command.declared_origin.value
     )
     if not valid:
         raise ImportApplicationError(ImportApplicationErrorCode.INTERNAL_ERROR)
@@ -676,6 +686,7 @@ def _view(resource: ImportResourceSnapshot) -> ImportView:
             created_at=resource.created_at,
             updated_at=resource.updated_at,
             finished_at=resource.finished_at,
+            declared_origin=DeclaredOrigin(resource.declared_origin),
         )
     except ValueError as error:
         raise ImportApplicationError(

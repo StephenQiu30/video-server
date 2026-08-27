@@ -129,6 +129,9 @@ def download_history_item_snapshot(
             and artifact.deleted_at is None
         ),
         source_kind=job.source_kind,
+        declared_origin=(
+            None if media_import is None else media_import.declared_origin
+        ),
     )
 
 

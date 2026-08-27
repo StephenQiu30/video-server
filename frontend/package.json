@@ -11,6 +11,8 @@
     "lint": "npm run biome:lint && npm run typecheck",
     "biome:lint": "biome lint .",
     "format:check": "biome check . --linter-enabled=false",
+    "openapi": "node scripts/generate-openapi.mjs",
+    "openapi:check": "npm run openapi && git diff --exit-code -- src/services/video",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -40,6 +42,7 @@
     "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "@umijs/openapi": "1.14.1",
     "@vitejs/plugin-react": "^5.2.0",
     "happy-dom": "^20.11.1",
     "tailwindcss": "^4.3.3",

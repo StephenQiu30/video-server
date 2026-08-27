@@ -74,6 +74,7 @@ class SqlAlchemyMediaImportRepository(RepositoryBase):
                         semantic_plan={
                             "source_kind": "browser_import",
                             "container": "mp4",
+                            "declared_origin": command.declared_origin.value,
                         },
                         status="running",
                         stage="downloading",
@@ -97,6 +98,7 @@ class SqlAlchemyMediaImportRepository(RepositoryBase):
                         declared_size_bytes=command.declared_size_bytes,
                         declared_sha256=command.declared_sha256,
                         rights_statement_version=command.rights_statement_version,
+                        declared_origin=command.declared_origin.value,
                         status=ImportStatus.UPLOADING.value,
                         attempt=0,
                         version=0,
@@ -869,6 +871,7 @@ def _resource_snapshot(
         created_at=as_utc(row.created_at),
         updated_at=as_utc(row.updated_at),
         finished_at=(None if row.finished_at is None else as_utc(row.finished_at)),
+        declared_origin=row.declared_origin,
         active_attempt=None if attempt is None else _attempt_snapshot(attempt),
     )
 

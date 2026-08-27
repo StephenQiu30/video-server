@@ -7,7 +7,12 @@ from pydantic import Field, StrictBool, StrictInt
 
 from app.api.schemas.common import StrictModel
 from app.application.imports import ImportView, UploadSessionView
-from app.domain.imports import ImportErrorCode, ImportSourceFormat, ImportStatus
+from app.domain.imports import (
+    DeclaredOrigin,
+    ImportErrorCode,
+    ImportSourceFormat,
+    ImportStatus,
+)
 
 
 class MediaImportRequest(StrictModel):
@@ -17,6 +22,7 @@ class MediaImportRequest(StrictModel):
     declared_size_bytes: StrictInt = Field(gt=0)
     declared_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     rights_accepted: StrictBool
+    declared_origin: DeclaredOrigin = DeclaredOrigin.USER_FILE
 
 
 class MediaImportResponse(StrictModel):
@@ -34,6 +40,7 @@ class MediaImportResponse(StrictModel):
     created_at: datetime
     updated_at: datetime
     finished_at: datetime | None
+    declared_origin: DeclaredOrigin
 
     @classmethod
     def from_view(cls, view: ImportView) -> MediaImportResponse:
@@ -50,6 +57,7 @@ class MediaImportResponse(StrictModel):
             created_at=view.created_at,
             updated_at=view.updated_at,
             finished_at=view.finished_at,
+            declared_origin=view.declared_origin,
         )
 
 

@@ -29,6 +29,7 @@ export function MediaUploadForm({
   onStart,
   phase,
   progress,
+  declaredOrigin,
 }: {
   busy: boolean;
   canCancel: boolean;
@@ -39,6 +40,7 @@ export function MediaUploadForm({
   onStart: () => void;
   phase: MediaImportPhase;
   progress: number;
+  declaredOrigin: API.DeclaredOrigin;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -48,6 +50,11 @@ export function MediaUploadForm({
 
   return (
     <form onSubmit={submit}>
+      {declaredOrigin === 'wechat_channels' ? (
+        <p className="mb-3 text-sm leading-6 text-muted-foreground">
+          当前文件将记录为“用户提供的视频号来源”，系统不会接收视频号链接、会话或令牌。
+        </p>
+      ) : null}
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_148px]">
         <Button
           aria-describedby={

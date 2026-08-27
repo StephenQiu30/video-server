@@ -144,5 +144,6 @@ function mediaImportResponse(): API.MediaImportResponse {
     created_at: '2026-08-14T00:00:00Z',
     updated_at: '2026-08-14T00:00:01Z',
     finished_at: null,
+    declared_origin: 'user_file',
   };
 }

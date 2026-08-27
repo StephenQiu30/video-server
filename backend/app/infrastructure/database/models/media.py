@@ -31,7 +31,7 @@ class MediaInspectionRow(Base):
             "idempotency_key",
             name="uq_media_inspections_owner_idempotency",
         ),
-        CheckConstraint("duration_seconds > 0", name="ck_inspection_duration"),
+        CheckConstraint("duration_seconds >= 0", name="ck_inspection_duration"),
         Index("ix_media_inspections_owner_expires", "owner_hash", "expires_at"),
     )
 

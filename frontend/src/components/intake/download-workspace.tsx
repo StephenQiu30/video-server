@@ -41,6 +41,8 @@ export default function DownloadWorkspace() {
   const [busy, setBusy] = useState<BusyAction>(null);
   const [error, setError] = useState<string | null>(null);
   const [urlInvalid, setUrlInvalid] = useState(false);
+  const [mediaDeclaredOrigin, setMediaDeclaredOrigin] =
+    useState<API.DeclaredOrigin>('user_file');
   const inspectionKey = useRef<StableKey | null>(null);
   const downloadKey = useRef<StableKey | null>(null);
   const openDownload = useCallback((downloadId: string) => {
@@ -53,7 +55,7 @@ export default function DownloadWorkspace() {
     markNavigationPush(target);
     window.location.assign(target);
   }, []);
-  const mediaImport = useMediaImport(openDownload);
+  const mediaImport = useMediaImport(openDownload, mediaDeclaredOrigin);
   const documentImport = useDocumentImport(openDocument);
 
   useEffect(() => {
@@ -133,7 +135,10 @@ export default function DownloadWorkspace() {
           />
         }
         mode={mode}
-        onModeChange={setMode}
+        onModeChange={(nextMode) => {
+          setMode(nextMode);
+          if (nextMode === 'video') setMediaDeclaredOrigin('user_file');
+        }}
         screenplayForm={
           <ScreenplayUploadForm
             busy={documentImport.busy}
@@ -160,6 +165,7 @@ export default function DownloadWorkspace() {
             onStart={() => void mediaImport.start()}
             phase={mediaImport.phase}
             progress={mediaImport.progress}
+            declaredOrigin={mediaDeclaredOrigin}
           />
         }
       />
@@ -189,6 +195,10 @@ export default function DownloadWorkspace() {
           inspection={inspection}
           onChange={setSelectedId}
           onCreate={() => void create()}
+          onUseUpload={() => {
+            setMediaDeclaredOrigin('wechat_channels');
+            setMode('video');
+          }}
           selectedId={selectedId}
         />
       ) : null}

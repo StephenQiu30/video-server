@@ -41,6 +41,7 @@ export async function importLocalVideo(
   idempotencyKey: string,
   observer: MediaImportObserver,
   signal: AbortSignal,
+  declaredOrigin: API.DeclaredOrigin = 'user_file',
 ): Promise<API.MediaImportResponse> {
   observer.onPhase('hashing');
   observer.onProgress(0);
@@ -57,6 +58,7 @@ export async function importLocalVideo(
       declared_size_bytes: file.size,
       declared_sha256: declaredSha256,
       rights_accepted: true,
+      declared_origin: declaredOrigin,
     },
     { headers: { 'Idempotency-Key': idempotencyKey } },
   );

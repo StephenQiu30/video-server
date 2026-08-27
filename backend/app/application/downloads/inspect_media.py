@@ -39,6 +39,10 @@ from app.application.downloads.ports import (
     UrlCipher,
     UrlValidator,
 )
+from app.application.downloads.source_admission import (
+    RestrictedSourceAdmission,
+    classify_restricted_source,
+)
 from app.application.downloads.thumbnail import ThumbnailStorageError
 from app.application.downloads.thumbnail_use_cases import PersistThumbnail
 from app.application.downloads.validation import (
@@ -86,6 +90,14 @@ class InspectMedia:
             validated_url = self._url_validator.validate(url)
         except ValueError as exc:
             raise ApplicationError(ApplicationErrorCode.INVALID_URL) from exc
+        restricted = classify_restricted_source(validated_url)
+        if restricted is not None:
+            return await self._save_restricted(
+                validated_url,
+                owner_hash,
+                idempotency_key,
+                restricted,
+            )
         try:
             result = await self._runner.inspect(validated_url)
         except MediaInspectionDurationLimitExceeded as exc:
@@ -179,6 +191,39 @@ class InspectMedia:
                 # The inline value remains in inspection metadata so the authenticated
                 # thumbnail endpoint can retry the idempotent object migration later.
                 pass
+        return inspection_view(saved.inspection)
+
+    async def _save_restricted(
+        self,
+        validated_url: str,
+        owner_hash: str,
+        idempotency_key: str,
+        restricted: RestrictedSourceAdmission,
+    ) -> InspectionView:
+        now = validate_now(self._now())
+        envelope = self._url_cipher.encrypt(validated_url)
+        command = InspectionCreate(
+            id=self._new_id(),
+            owner_hash=owner_hash,
+            idempotency_key=idempotency_key,
+            request_fingerprint=self._fingerprinter.fingerprint(
+                "inspection", validated_url
+            ),
+            url_ciphertext=envelope.ciphertext,
+            url_nonce=envelope.nonce,
+            url_key_id=envelope.key_id,
+            extractor_key=restricted.provider_key,
+            provider_media_id=restricted.provider_media_id,
+            title=restricted.title,
+            duration_seconds=0,
+            metadata=restricted.metadata(),
+            expires_at=now + self._ttl,
+            formats=(),
+        )
+        try:
+            saved = await self._repository.save_inspection(command)
+        except PersistenceIdempotencyConflict as exc:
+            raise ApplicationError(ApplicationErrorCode.IDEMPOTENCY_CONFLICT) from exc
         return inspection_view(saved.inspection)
 
     def _formats(

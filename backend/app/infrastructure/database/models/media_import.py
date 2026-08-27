@@ -75,6 +75,9 @@ class MediaImportRow(Base):
     declared_size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
     declared_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
     rights_statement_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    declared_origin: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="user_file"
+    )
     status: Mapped[str] = mapped_column(String(24), nullable=False, default="uploading")
     attempt: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     error_code: Mapped[str | None] = mapped_column(String(64))

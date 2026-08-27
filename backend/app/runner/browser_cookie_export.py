@@ -185,7 +185,13 @@ def _write_cookie_jar(target: Path, cookies: Iterable[Cookie]) -> None:
             jar.set_cookie(cookie)
         jar.save(ignore_discard=True, ignore_expires=True)
         os.chmod(temporary, stat.S_IRUSR)
-        os.replace(temporary, target)
+        if target.exists():
+            os.chmod(target, stat.S_IRUSR | stat.S_IWUSR)
+        try:
+            os.replace(temporary, target)
+        finally:
+            if target.exists():
+                os.chmod(target, stat.S_IRUSR)
     finally:
         temporary.unlink(missing_ok=True)
 

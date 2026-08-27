@@ -4,7 +4,16 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from app.domain.downloads import DownloadPlan
+from app.domain.downloads import (
+    AccessDecision,
+    DownloadPlan,
+    EntitlementState,
+    ExecutionMode,
+    IdentityState,
+    ProtectionState,
+    RightsBasis,
+    SourceOrigin,
+)
 from app.domain.providers import ProviderAccessContextRef
 
 
@@ -117,3 +126,12 @@ class InspectionView:
     expires_at: datetime
     formats: tuple[FormatView, ...]
     thumbnail_url: str | None = None
+    source_origin: SourceOrigin = SourceOrigin.PUBLIC_URL
+    execution_mode: ExecutionMode = ExecutionMode.PROVIDER_RUNNER
+    access_decision: AccessDecision = AccessDecision.DOWNLOADABLE
+    entitlement_state: EntitlementState = EntitlementState.PUBLIC_FREE
+    identity_state: IdentityState = IdentityState.VERIFIED
+    protection_state: ProtectionState = ProtectionState.CLEAR
+    rights_basis: RightsBasis | None = RightsBasis.PUBLIC_ACCESS
+    restriction_reason: str | None = None
+    user_action: str | None = None

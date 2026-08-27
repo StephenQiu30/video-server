@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from enum import StrEnum
+
 from app.application.downloads.download_models import (
     ArtifactSnapshot,
     DownloadPresentationSnapshot,
@@ -21,10 +23,17 @@ from app.application.downloads.thumbnail import (
     thumbnail_resource_url,
 )
 from app.domain.downloads import (
+    AccessDecision,
     DownloadErrorCode,
     DownloadSourceKind,
     DownloadStage,
     DownloadStatus,
+    EntitlementState,
+    ExecutionMode,
+    IdentityState,
+    ProtectionState,
+    RightsBasis,
+    SourceOrigin,
 )
 
 
@@ -56,7 +65,88 @@ def inspection_view(snapshot: InspectionSnapshot) -> InspectionView:
         thumbnail_url=(
             thumbnail_resource_url(snapshot.id) if thumbnail_available else None
         ),
+        source_origin=_enum_metadata(
+            snapshot.metadata, "source_origin", SourceOrigin, SourceOrigin.PUBLIC_URL
+        ),
+        execution_mode=_enum_metadata(
+            snapshot.metadata,
+            "execution_mode",
+            ExecutionMode,
+            ExecutionMode.PROVIDER_RUNNER,
+        ),
+        access_decision=_enum_metadata(
+            snapshot.metadata,
+            "access_decision",
+            AccessDecision,
+            AccessDecision.DOWNLOADABLE,
+        ),
+        entitlement_state=_enum_metadata(
+            snapshot.metadata,
+            "entitlement_state",
+            EntitlementState,
+            EntitlementState.PUBLIC_FREE,
+        ),
+        identity_state=_enum_metadata(
+            snapshot.metadata,
+            "identity_state",
+            IdentityState,
+            IdentityState.VERIFIED,
+        ),
+        protection_state=_enum_metadata(
+            snapshot.metadata,
+            "protection_state",
+            ProtectionState,
+            ProtectionState.CLEAR,
+        ),
+        rights_basis=_optional_enum_metadata(
+            snapshot.metadata, "rights_basis", RightsBasis, RightsBasis.PUBLIC_ACCESS
+        ),
+        restriction_reason=_optional_text(snapshot.metadata, "restriction_reason"),
+        user_action=_optional_text(snapshot.metadata, "user_action"),
     )
+
+
+def _enum_metadata[EnumT: StrEnum](
+    metadata: dict[str, object],
+    key: str,
+    enum_type: type[EnumT],
+    default: EnumT,
+) -> EnumT:
+    value = metadata.get(key)
+    if value is not None and not isinstance(value, str):
+        raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR)
+    try:
+        return default if value is None else enum_type(value)
+    except (TypeError, ValueError) as exc:
+        raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
+
+
+def _optional_enum_metadata[EnumT: StrEnum](
+    metadata: dict[str, object],
+    key: str,
+    enum_type: type[EnumT],
+    default: EnumT,
+) -> EnumT | None:
+    if key not in metadata:
+        return default
+    value = metadata.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR)
+    try:
+        return enum_type(value)
+    except (TypeError, ValueError) as exc:
+        raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
+
+
+def _optional_text(metadata: dict[str, object], key: str) -> str | None:
+    value = metadata.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR)
+    return value
 
 
 def download_view(
@@ -110,7 +200,12 @@ def download_view(
         format_plan=format_plan,
         source_kind=source_kind,
         source_label=(
-            "本地视频上传"
+            (
+                "用户提供的视频号来源文件"
+                if snapshot.semantic_plan.get("declared_origin")
+                == "wechat_channels"
+                else "本地视频上传"
+            )
             if source_kind is DownloadSourceKind.BROWSER_IMPORT
             else (
                 presentation.extractor_key if presentation is not None else "链接下载"

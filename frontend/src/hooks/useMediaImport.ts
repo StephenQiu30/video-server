@@ -17,7 +17,10 @@ type ActiveRun = {
 
 type StableKey = { payload: string; value: string };
 
-export function useMediaImport(onComplete: (downloadId: string) => void) {
+export function useMediaImport(
+  onComplete: (downloadId: string) => void,
+  declaredOrigin: API.DeclaredOrigin = 'user_file',
+) {
   const [file, setFile] = useState<File | null>(null);
   const [phase, setPhase] = useState<MediaImportPhase>('idle');
   const [progress, setProgress] = useState(0);
@@ -82,6 +85,7 @@ export function useMediaImport(onComplete: (downloadId: string) => void) {
           },
         },
         run.controller.signal,
+        declaredOrigin,
       );
       if (activeRef.current === run) onComplete(result.download_id);
     } catch (reason) {
@@ -94,7 +98,7 @@ export function useMediaImport(onComplete: (downloadId: string) => void) {
         setPhase('idle');
       }
     }
-  }, [file, onComplete]);
+  }, [declaredOrigin, file, onComplete]);
 
   const cancel = useCallback(async () => {
     const active = activeRef.current;

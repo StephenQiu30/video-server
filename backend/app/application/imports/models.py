@@ -7,6 +7,7 @@ from uuid import UUID
 
 from app.domain.imports import (
     ContentKind,
+    DeclaredOrigin,
     ImportErrorCode,
     ImportSourceFormat,
     ImportStatus,
@@ -63,6 +64,7 @@ class ImportResourceCreate:
     declared_size_bytes: int
     declared_sha256: str = field(repr=False)
     rights_statement_version: str
+    declared_origin: DeclaredOrigin = DeclaredOrigin.USER_FILE
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,6 +112,7 @@ class ImportResourceSnapshot:
     created_at: datetime
     updated_at: datetime
     finished_at: datetime | None
+    declared_origin: str = DeclaredOrigin.USER_FILE.value
     active_attempt: ImportAttemptSnapshot | None = None
 
 
@@ -162,3 +165,4 @@ class ImportView:
     created_at: datetime
     updated_at: datetime
     finished_at: datetime | None
+    declared_origin: DeclaredOrigin = DeclaredOrigin.USER_FILE

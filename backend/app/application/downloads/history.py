@@ -90,7 +90,11 @@ def _item_view(item: DownloadHistoryItemSnapshot) -> DownloadHistoryItemView:
         file_available=item.file_available,
         source_kind=source_kind,
         source_label=(
-            "本地视频上传"
+            (
+                "用户提供的视频号来源文件"
+                if item.declared_origin == "wechat_channels"
+                else "本地视频上传"
+            )
             if source_kind is DownloadSourceKind.BROWSER_IMPORT
             else "链接下载"
         ),

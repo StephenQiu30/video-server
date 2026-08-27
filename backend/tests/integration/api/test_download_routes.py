@@ -190,8 +190,9 @@ def test_provider_status_distinguishes_registered_verified_and_unsupported(
     assert items["reddit"]["status"] == "access_required"
     assert {
         items[key]["status"]
-        for key in ("facebook", "twitch", "pinterest", "weibo", "youku", "qqvideo")
+        for key in ("facebook", "twitch", "pinterest", "weibo", "youku")
     } == {"verified"}
+    assert items["qqvideo"]["status"] == "disabled"
     assert {
         items[key]["status"]
         for key in ("snapchat", "linkedin", "telegram", "kick", "tumblr")

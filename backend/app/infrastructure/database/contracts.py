@@ -162,6 +162,7 @@ class DownloadHistoryItemSnapshot:
     finished_at: datetime | None
     file_available: bool = False
     source_kind: str = "remote_provider"
+    declared_origin: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

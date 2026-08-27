@@ -8,6 +8,11 @@ class ContentKind(StrEnum):
     SCREENPLAY = "screenplay"
 
 
+class DeclaredOrigin(StrEnum):
+    USER_FILE = "user_file"
+    WECHAT_CHANNELS = "wechat_channels"
+
+
 class ImportSourceFormat(StrEnum):
     MP4 = "mp4"
     DOCX = "docx"

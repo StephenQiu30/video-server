@@ -1,4 +1,11 @@
 declare namespace API {
+  type AccessDecision =
+    | "downloadable"
+    | "playback_only"
+    | "export_required"
+    | "blocked"
+    | "unsupported";
+
   type activateAiProviderProfileParams = {
     provider_key: string;
   };
@@ -259,6 +266,8 @@ declare namespace API {
     /** Is Visible */
     is_visible?: boolean;
   };
+
+  type DeclaredOrigin = "user_file" | "wechat_channels";
 
   type deleteAiProviderProfileParams = {
     provider_key: string;
@@ -631,12 +640,24 @@ declare namespace API {
     password: string;
   };
 
+  type EntitlementState =
+    | "public_free"
+    | "official_download_grant"
+    | "restricted"
+    | "unknown";
+
   type EvidenceSummaryResponse = {
     /** Text */
     text: string;
     /** Evidence Shot Ids */
     evidence_shot_ids: string[];
   };
+
+  type ExecutionMode =
+    | "provider_runner"
+    | "article_native"
+    | "official_connector"
+    | "verified_import";
 
   type exportAnalysisMarkdownParams = {
     analysis_id: string;
@@ -718,6 +739,8 @@ declare namespace API {
     evidence_shot_ids: string[];
   };
 
+  type IdentityState = "verified" | "ambiguous" | "unknown";
+
   type ImportErrorCode =
     | "import_storage_unavailable"
     | "upload_session_expired"
@@ -769,6 +792,17 @@ declare namespace API {
     expires_at: string;
     /** Formats */
     formats: FormatResponse[];
+    source_origin: SourceOrigin;
+    execution_mode: ExecutionMode;
+    access_decision: AccessDecision;
+    entitlement_state: EntitlementState;
+    identity_state: IdentityState;
+    protection_state: ProtectionState;
+    rights_basis: RightsBasis | null;
+    /** Restriction Reason */
+    restriction_reason: string | null;
+    /** User Action */
+    user_action: string | null;
   };
 
   type issueDownloadUrlParams = {
@@ -838,6 +872,7 @@ declare namespace API {
     declared_sha256: string;
     /** Rights Accepted */
     rights_accepted: boolean;
+    declared_origin?: DeclaredOrigin;
   };
 
   type MediaImportResponse = {
@@ -862,6 +897,7 @@ declare namespace API {
     updated_at: string;
     /** Finished At */
     finished_at: string | null;
+    declared_origin: DeclaredOrigin;
   };
 
   type MediaUploadSessionResponse = {
@@ -904,6 +940,8 @@ declare namespace API {
     /** Recommended Extensions */
     recommended_extensions: string[];
   };
+
+  type ProtectionState = "clear" | "encrypted" | "drm" | "unknown";
 
   type ProviderAccessMode = "anonymous" | "operator_managed";
 
@@ -1000,6 +1038,12 @@ declare namespace API {
   type retryDownloadParams = {
     job_id: string;
   };
+
+  type RightsBasis =
+    | "public_access"
+    | "owner_authorized_export"
+    | "official_asset_grant"
+    | "user_provided";
 
   type ScreenplayAnalysisResultResponse = {
     /** Kind */
@@ -1147,6 +1191,12 @@ declare namespace API {
     asset_ids: string[];
   };
 
+  type SourceOrigin =
+    | "public_url"
+    | "discovered_item"
+    | "official_asset"
+    | "verified_import";
+
   type StorageCleanupRequest = {
     /** Older Than Days */
     older_than_days?: number;
@@ -1285,27 +1335,39 @@ declare namespace API {
     start_ms: number;
     /** End Ms */
     end_ms: number;
+    /** Note */
     note: string;
-  };
-
-  type VideoArticleSectionResponse = {
-    id: string;
-    title: string;
-    body: string;
-    evidence: VideoArticleEvidenceResponse[];
   };
 
   type VideoArticleResultResponse = {
     /** Kind */
     kind: "video_article";
+    /** Language */
     language: string;
+    /** Title */
     title: string;
+    /** Lead */
     lead: string;
+    /** Sections */
     sections: VideoArticleSectionResponse[];
+    /** Key Points */
     key_points: string[];
+    /** Closing */
     closing: string;
+    /** Limitations */
     limitations: string[];
     media: AnalysisMediaResponse;
+  };
+
+  type VideoArticleSectionResponse = {
+    /** Id */
+    id: string;
+    /** Title */
+    title: string;
+    /** Body */
+    body: string;
+    /** Evidence */
+    evidence: VideoArticleEvidenceResponse[];
   };
 
   type VideoCodecFamily = "h264" | "hevc" | "vp9" | "av1" | "other";
