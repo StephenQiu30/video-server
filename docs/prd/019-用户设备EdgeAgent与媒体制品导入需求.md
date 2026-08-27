@@ -4,19 +4,21 @@
 - 日期：2026-08-12
 - 对应设计：`docs/design/019-用户设备EdgeAgent与媒体制品导入设计.md`
 
-> 范围调整（2026-08-14）：浏览器本地文件上传和通用 quarantine/Import Worker 由 `023-本地内容上传与剧本分析` 负责。本需求只保留设备配对、`edge_import` 和微信视频号/红果 Adapter；Edge 上传必须复用 023 的受控上传与视频验证能力。
+> 范围调整（2026-08-27）：浏览器本地文件上传和通用 quarantine/Import Worker 由 `023-本地内容上传与剧本分析` 负责。本需求只保留设备配对和 `edge_import` 明文文件传输；不包含平台会话、网络采集、签名生成、受保护媒体处理或平台 Adapter。Edge 上传必须复用 023 的受控上传与视频验证能力。
+
+> 视频号范围调整（2026-08-26）：`024-微信视频号与腾讯视频授权媒体接入` 取代视频号网络采集需求。Edge Agent 对视频号只传输用户已经合法取得并显式选择的明文文件，不读取微信/元宝会话，不调用私有接口，不安装 CA/代理、不注入、不拦截、不解密。
 
 ## 1. 用户目标
 
-用户可以把自己有权使用的本地视频，或在自己设备、自己已授权的平台会话中取得的微信视频号/红果单视频，安全导入当前项目并继续使用完整视频 AI 分析、报告、下载历史和任务状态能力。用户不需要把平台 Cookie、Token、内容密钥或设备签名材料交给服务端。
+用户可以把自己有权使用并已经合法取得的明文视频，通过已配对 Edge Agent 安全导入当前项目并继续使用完整视频 AI 分析、报告、下载历史和任务状态能力。设备上传是制品传输通道，不是平台权益或保护绕过器；平台 Cookie、Token、内容密钥、网络拦截材料和设备签名材料均不进入服务端。
 
 ## 2. 成功标准
 
 1. `023` 已通过浏览器 MP4 上传、受控隔离区和 Artifact Import 验收，供 Edge 路径复用。
-2. 已配对 Edge Agent 可以上传单个视频号或红果 MP4，服务端从未接收平台会话或内容密钥。
+2. 已配对 Edge Agent 可以上传用户显式选择的单个明文 MP4，服务端从未接收平台会话、网络流量或内容密钥。
 3. Edge 导入任务继续使用现有 download ID、历史、WebSocket、Artifact 持久存储和 Analysis API。
-4. 微信视频号至少一条授权分享链接完成 Edge → MinIO → Agent → 报告 E2E 后才能对外标记支持。
-5. 红果至少一个授权单集在固定 Android/App/Agent 版本上完成同样 E2E 后才能对外标记支持。
+4. 视频号来源文件完成 Edge → MinIO → Agent → 报告 E2E 后只证明“用户设备文件导入”，不能把视频号链接下载标记为支持。
+5. 红果或其他来源标签的合法明文文件完成 E2E 只证明设备文件导入；不得据此对外标记相应平台链接下载支持。
 6. 设备撤销、旧版本阻断、上传中断、校验失败、超限与队列重复投递均能稳定收敛且不留下可读孤儿制品。
 
 ## 3. 功能需求
@@ -26,7 +28,7 @@
 1. 本需求不得另建浏览器上传、quarantine、multipart、视频 verifier 或 Artifact 晋升实现，必须复用 023 的应用端口与 Worker。
 2. `edge_import` 在服务端重新验证实际大小、SHA-256、MP4 容器、视频轨、时长、codec 和配置上限，通过后才创建 Artifact。
 3. Edge 来源标签必须显示为“用户设备导入”，不能宣称平台链接已由中心服务下载。
-4. 023 未通过本地 MP4 上传和视频验证验收前，不得对外启用 Edge Adapter。
+4. 023 未通过本地 MP4 上传和视频验证验收前，不得对外启用 Edge Import Profile。
 
 ### FR-019-02 下载任务兼容
 
@@ -47,7 +49,7 @@
 ### FR-019-04 Edge 导入协议
 
 1. Agent 本地选择并检查媒体后，提交严格、版本化、拒绝额外字段的脱敏 manifest。
-2. manifest 只能包含 Provider/Adapter/Agent 版本、显示元数据、来源指纹、媒体规格、大小、哈希和权利声明。
+2. manifest 只能包含 Import Profile/Agent 版本、用户声明显示元数据、受控 `declared_origin`、文件指纹、媒体规格、大小、哈希和权利声明；不得包含 `provider_key` 或平台身份断言。
 3. manifest、API、数据库、日志、trace、RabbitMQ 与 WebSocket 都不得包含 Cookie、Token、内容/转换密钥、证书私钥、签名媒体 URL、平台响应或本地路径。
 4. 每个上传会话只能写一个确定 quarantine object；过期后必须创建新 attempt，不能扩大原 URL 权限。
 5. Agent 只获得 Edge API 和单对象上传能力，不获得 DB、RabbitMQ、AI 或对象存储通用凭据。
@@ -61,37 +63,36 @@
 5. Artifact 行、download succeeded 和任务事件在数据库中一致收敛；崩溃重试不得产生第二个 Artifact。
 6. 取消、过期、失败和成功后都必须有界清理 multipart、quarantine 和本地工作区。
 
-### FR-019-06 微信视频号 Adapter
+### FR-019-06 微信视频号明文文件导入
 
-1. 首个 Adapter 只接受 `weixin.qq.com/sph/<id>` 单视频分享链接并使用用户本地元宝会话。
-2. 元宝 Cookie、媒体 token 和转换参数只保存在本地；链接解析、下载前重解析、域名 allowlist、超时和重定向上限必须固定在签名 Adapter 中。
-3. 媒体可以直接通过 MP4 验证时不得执行额外转换；确需转换时只处理当前任务，任务结束销毁参数和工作区。
-4. 本地会话缺失/过期必须返回准确错误并引导用户本地登录，不能调用公共 Worker 或共享运维账号。
-5. Windows 微信客户端采集是用户显式选择的回退路径；安装动态 CA 前必须说明影响，异常退出必须恢复代理并支持卸载 CA。
-6. 首期一次只处理用户明确选择的一个视频，不支持后台持续监听、作者批量和评论采集。
+1. Edge Agent 不接受视频号分享链接作为采集任务；视频号 URL 由 024 识别并返回 `export_required`。
+2. 用户必须通过系统文件选择器显式选择其自有原文件或合法取得的标准 MP4；Agent 不读取微信/元宝进程、浏览器 profile、缓存目录或网络流量。
+3. Agent 只执行大小、SHA-256、容器/轨道和保护标记预检，再复用签名上传会话；服务端仍独立复验。
+4. manifest 只包含脱敏来源声明、权利声明版本、Agent/协议版本和不可逆文件指纹，不包含平台 URL、作品 id、Cookie、token、媒体 URL、密钥或响应原文。
+5. 导入结果必须显示为“用户提供的视频号来源文件”，不能显示为平台下载，也不能写视频号 Provider canary。
+6. 元宝会话、私有接口、公共 Worker、CA、代理、注入、拦截、`decodeKey` 和受保护媒体转换均无实现或回退入口。
 
-### FR-019-07 红果 Adapter
+### FR-019-07 红果及其他来源的明文文件
 
-1. 首期只支持用户控制的 Android/模拟器、固定验收 App/Agent 版本和单集任务。
-2. App 会话、设备参数、客户端签名、短时媒体信息和受保护媒体处理全部留在本地。
-3. 服务端只接收标准 MP4、单集显示元数据和脱敏来源指纹。
-4. App/Agent 版本不匹配、签名入口变化、作品身份不一致和无内容权利时必须 fail closed。
-5. 禁止复制、打包或分发无 LICENSE、许可冲突、来源不明的红果项目源码和二进制。
-6. 创作者/推广中心或未来官方 API 使用独立授权 Provider，不与 Android Edge Adapter 混用。
+1. 用户只能通过系统文件选择器提交已经合法取得的 clear MP4；`declared_origin=hongguo` 只是审计标签，不是平台身份或下载证明。
+2. Edge Agent 不读取 App 会话、设备参数、客户端签名、短时媒体信息、保护信息、缓存或内容密钥，不下载或转换受保护媒体。
+3. 服务端只接收标准 MP4、用户声明显示元数据、不可逆文件指纹和权利声明。
+4. 文件不 clear、权利声明缺失、媒体身份/哈希不一致或 Import Profile/Agent 版本不匹配时必须 fail closed。
+5. 红果创作者/推广中心或未来官方 API 只有取得正式下载/导出接口、合同授权和未加密输出后才能另立 Official Connector，不与 Edge Import 混用。
 
 ### FR-019-08 Provider 状态
 
-1. `ProviderAccessMode` 增加 `user_device`；`GET /api/providers` 能区分服务端 extractor 和 Edge Adapter。
-2. Provider 状态页明确显示所需设备、支持的 Adapter 与用户动作，不把 `user_device` 描述为运维会话。
-3. 微信视频号和红果在真实授权 canary 前保持 `unsupported`；仅注册目录、导入本地文件或开源项目测试通过均不能提升状态。
-4. canary 必须按 Provider、Adapter/Profile、access mode、Agent 和客户端版本隔离；只使用项目自有或明确授权测试设备。
+1. `ProviderAccessMode` 保持 Runner 专用的 anonymous/operator 语义；Edge 使用独立 `verified_import` execution mode 和 `edge_import` source kind。
+2. `GET /api/providers` 能区分服务端 extractor、verified import 和 official connector；状态页明确显示所需设备与用户动作，不把设备导入描述为运维会话或平台下载。
+3. 微信视频号链接下载保持 `unsupported`；用户文件导入只展示为独立能力。红果或其他来源标签的导入同样不能创建或提升 Provider 状态。
+4. Import canary 必须按 Import Profile、execution mode、Agent 和客户端版本隔离；只使用项目自有测试设备与自有 clear 文件，不写 Provider canary。
 5. 三阶段证据、许可证/SBOM、Secret 流量验收、负例和显式发布批准缺一不可。
 
 ### FR-019-09 错误、取消与恢复
 
-1. 设备离线、需升级、会话失效、Adapter 回归、上传过期、哈希不一致、媒体损坏、超限、存储失败和取消均有稳定错误码。
-2. 存储和验证瞬时失败只能在统一预算内重试；权益不足、哈希不一致、媒体不合规和版本阻断不得自动重试。
-3. 服务端不保存可重新执行平台采集的会话上下文；Edge 采集失败需要用户在设备端重新发起。
+1. 设备离线、需升级、文件不可读、上传过期、哈希不一致、媒体损坏、受保护、超限、存储失败和取消均有稳定错误码。
+2. 存储和验证瞬时失败只能在统一预算内重试；权利声明缺失、哈希不一致、媒体不合规和版本阻断不得自动重试。
+3. 服务端不存在平台采集上下文；Edge 文件选择、读取或预检失败需要用户在设备端重新选择文件或重试上传。
 4. 取消必须撤销上传会话、通知仍在线设备终止完整子进程组，并由 TTL 处理永久离线设备。
 
 ## 4. 非功能需求
@@ -100,14 +101,14 @@
 - 文件验证进程无公网访问、非 root、固定 ffprobe/FFmpeg 版本并限制 CPU、内存、pids 和执行时间。
 - quarantine 独立权限、服务端加密、短 lifecycle；最终 Artifact 延用现有 MinIO 最小权限并持久保存，只允许管理员按明确天数手动清理。
 - 新 RabbitMQ 队列使用 quorum、publisher confirm、manual ack、DLQ、有界回灌和幂等 consumer。
-- 指标只使用低基数 Provider/Adapter/平台/状态标签，不包含用户、设备、作品、标题或 URL。
+- 指标只使用低基数 Import Profile/execution mode/状态标签，不包含 Provider、来源标签、用户、设备、作品、标题或 URL。
 - API 变化遵循稳定 operationId、`201 + Location`、严格 OpenAPI schema，并重新生成前端客户端。
 - 前端满足既有视觉系统、键盘路径、WCAG 2.2 AA 和 390×844 无横向溢出要求。
 - SQL 只修改当前态 `backend/sql/schema.sql`，空数据卷和已有当前态数据卷都必须幂等通过。
 
 ## 5. 不在本期
 
-- 视频号/红果批量作者或整剧下载、后台持续监听和定时同步。
+- 任何视频号/红果平台链接采集、批量作者或整剧下载、后台持续监听和定时同步。
 - 评论、弹幕、账号关系、榜单、直播和多资产帖子。
 - 由服务端保存用户 Provider Cookie、自动登录、自动 2FA 或代表用户取得额外权益。
 - 公共解析服务、地域绕过、运维共享平台账号和第三方付费解析 API。

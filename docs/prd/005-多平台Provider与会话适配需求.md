@@ -188,7 +188,7 @@ Phase 2 不因本文存在而自动获得上线授权；必须完成对应验收
 ### 7.5 合法使用
 
 - Cookie 只证明会话，不证明下载授权。
-- 本需求中的 `anonymous/operator_managed/user_managed` 服务端 access mode 仍只处理用户有权访问的非 DRM 内容；平台保护媒体只能走官方授权 Provider 或 019 的 `user_device` 独立路径。
+- 本需求中的 `anonymous/operator_managed/user_managed` 服务端 access mode 仍只处理用户有权访问且可正向证明可下载的非 DRM 内容；平台保护媒体只有在官方授权 Provider/Connector 明确返回资产级下载/导出授权且输出未加密时才可生成 Artifact。019 Edge 只传输用户已经合法取得的 clear 文件，不是平台保护媒体处理路径。
 - 共享运维账号实行最小权益；发现 private、会员、购买、权益不足、未知 availability 或 DRM 时，在媒体下载/交付前终止，不尝试换账号规避。
 
 ## 8. 成功指标

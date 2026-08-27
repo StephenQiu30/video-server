@@ -27,7 +27,7 @@
 - 中心服务和 Provider Runner 不通过高频代理轮换、伪造平台签名或安装 MITM 根证书规避访问控制。用户设备 Edge Agent 按 019 的独立产品路径实施，不纳入本编号的 Cookie Runner。
 - 不在本编号中开放直播录制、无限播放列表、频道归档或多媒体帖子下载。
 
-Cookie 的一刀切禁令被调整为“默认关闭、Provider allowlist、生命周期受控”的会话能力；本设计中的 Cookie 会话仍只处理用户有权使用的公开、非 DRM 内容。平台保护内容必须通过官方授权 Provider，或按 `docs/design/019-用户设备EdgeAgent与媒体制品导入设计.md` 的用户设备 Edge Agent 处理；两者都不能复用 Cookie 会话扩大权益。
+Cookie 的一刀切禁令被调整为“默认关闭、Provider allowlist、生命周期受控”的会话能力；本设计中的 Cookie 会话仍只处理用户有权使用且可正向证明为公开、非 DRM 的内容。平台保护内容只有在官方授权 Provider/Connector 按资产明确返回下载/导出授权且输出未加密时才可生成 Artifact；019 Edge Agent 只传输用户已经合法取得并显式选择的 clear 文件，不能访问平台会话或处理受保护媒体。两条路径都不能复用 Cookie 会话扩大权益。
 
 ## 3. 当前基线与根因
 
@@ -380,7 +380,7 @@ unknown | verified | degraded | access_required | rate_limited | blocked | disab
 - 只使用项目自有或明确授权样本，不使用用户 URL/Cookie。
 - 记录 Provider、capability、access mode、Profile/engine/POT 版本、egress affinity 引用、阶段、耗时和稳定错误；不记录完整 URL 或 Secret。
 
-最近 5 次至少 4 次成功、最近 2 次连续成功、metadata 成功不超过 6 小时且 media 成功不超过 26 小时，已批准基线才可恢复 `verified`；至少 2 次失败进入 `degraded`；连续 3 次同类永久失败进入 `blocked`。会话失效立即进入 `access_required`。API 已实现该聚合器，但新平台的 `unknown/access_required` 基线不能被下载探针自动提升，必须先完成完整视频 Agent E2E 并显式批准。当前基线：Bilibili、抖音、小红书和快手保持既有公开链路；Facebook、Twitch、Pinterest、微博、优酷、腾讯视频、Snapchat、LinkedIn、Telegram、Kick、Tumblr 已纳入严格单视频/Clip Profile；YouTube 与 Reddit 为 `access_required`，TikTok 为 `degraded`；红果官方分享 `hongguo_web` 已接入“官方分享当前单集”窄链路但仍保持 `unknown`，App 受保护媒体、全集抓取和批量下载不在范围内；视频号为 `unsupported`；AcFun、Rutube、VK Clips、Dailymotion 和 NicoNico 不登记。
+最近 5 次至少 4 次成功、最近 2 次连续成功、metadata 成功不超过 6 小时且 media 成功不超过 26 小时，已批准基线才可恢复 `verified`；至少 2 次失败进入 `degraded`；连续 3 次同类永久失败进入 `blocked`。会话失效立即进入 `access_required`。API 已实现该聚合器，但新平台的 `unknown/access_required` 基线不能被下载探针自动提升，必须先完成完整视频 Agent E2E 并显式批准。当前基线：Bilibili、抖音、小红书和快手保持既有公开链路；Facebook、Twitch、Pinterest、微博、优酷、Snapchat、LinkedIn、Telegram、Kick、Tumblr 已纳入严格单视频/Clip Profile；腾讯视频旧 Profile 在当前代码中仍错误地静态标为 `verified` 并保留固定 canary，因未公开 `cKey` 机制和缺少公开免费正向权益证据，必须先完成 024 Phase 0 将其降为 `unknown/disabled`，该项是发布阻断；YouTube 与 Reddit 为 `access_required`，TikTok 为 `degraded`；红果官方分享 `hongguo_web` 已接入“官方分享当前单集”窄链路但仍保持 `unknown`，App 受保护媒体、全集抓取和批量下载不在范围内；视频号链接为 `unsupported`，仅支持用户明文文件导入；AcFun、Rutube、VK Clips、Dailymotion 和 NicoNico 不登记。
 
 ## 14. 可观测性与审计
 

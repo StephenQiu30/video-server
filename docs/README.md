@@ -7,6 +7,7 @@
 - [前端视觉系统](design/frontend-visual-system.md)：Next.js、Vercel/Geist 无边框视觉、响应式和可访问性规范。
 - [媒体解析策略](design/media-source-strategy.md)：解析责任链、错误优先级、封面认证交付与浏览器会话桥接。
 - [Provider 接入架构重构调研](research/008-Provider接入架构重构调研.md)：yt-dlp 官方扩展边界、现有耦合和声明式接入结论。
+- [微信与腾讯授权媒体调研](research/014-微信视频号与腾讯视频授权媒体下载调研.md)：公众号文章原生视频、视频号 GitHub 方案、腾讯消费站权益与腾讯云 VOD 官方边界。
 - [`design/`](design/)：尚未完成或仍需持续维护的设计事实。
 - [`prd/`](prd/)：当前需求与产品边界。
 - [`plans/`](plans/)：仍在执行的交付计划。
@@ -26,3 +27,4 @@
 | 019 | 用户设备 Edge Agent 与媒体制品导入 | [Design](design/019-用户设备EdgeAgent与媒体制品导入设计.md) | [PRD](prd/019-用户设备EdgeAgent与媒体制品导入需求.md) | [Plan](plans/019-用户设备EdgeAgent与媒体制品导入计划.md) | [Acceptance](acceptance/019-用户设备EdgeAgent与媒体制品导入验收.md) |
 | 022 | 跨平台 AI 分析 Agent 与模型 Provider 配置 | [Design](design/022-跨平台AI分析Agent与模型Provider配置设计.md) | [PRD](prd/022-跨平台AI分析Agent与模型Provider配置需求.md) | [Plan](plans/022-跨平台AI分析Agent与模型Provider配置计划.md) | [Acceptance](acceptance/022-跨平台AI分析Agent与模型Provider配置验收.md) |
 | 023 | 本地内容上传与剧本分析 | [Design](design/023-本地内容上传与剧本分析设计.md) | [PRD](prd/023-本地内容上传与剧本分析需求.md) | [Plan](plans/023-本地内容上传与剧本分析计划.md) | [Acceptance](acceptance/023-本地内容上传与剧本分析验收.md) |
+| 024 | 微信公众号文章、视频号与腾讯授权媒体接入 | [Design](design/024-微信视频号与腾讯视频授权媒体接入设计.md) | [PRD](prd/024-微信视频号与腾讯视频授权媒体接入需求.md) | [Plan](plans/024-微信视频号与腾讯视频授权媒体接入计划.md) | [Acceptance](acceptance/024-微信视频号与腾讯视频授权媒体接入验收.md) |

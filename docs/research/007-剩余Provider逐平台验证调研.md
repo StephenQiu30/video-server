@@ -26,7 +26,7 @@
 | Pinterest | 通过 | 约 58 秒，音视频轨道通过 | `verified` | 公开单视频 Pin；图片 Pin、相册不在本 Profile 能力内 |
 | 微博 | 通过 | 约 918 秒，720p MP4 音视频轨道通过 | `verified` | 公开单视频；`scrubber_hd` JPEG 预览格式被格式选择器排除 |
 | 优酷 | 通过 | 约 702 秒，音视频轨道通过 | `verified` | 公开单视频；会员、付费、地域限制不在已验证范围 |
-| 腾讯视频 | 通过 | 约 216 秒，音视频轨道通过 | `verified` | 公开单视频；缺失顶层时长时由选中流探测补全 |
+| 腾讯视频 | 历史媒体探针通过；024 重新判定不满足权益/接口门禁 | 约 216 秒，音视频轨道通过 | 运行时仍为 `verified`；要求 `unknown/disabled` | 历史样本只能证明当时取得媒体；未公开 `cKey` 机制和缺少 `public_free` 正向证据，不能作为当前生产批准；024 Phase 0 降级未实施，属于发布阻断 |
 
 Facebook、Twitch、Pinterest、微博、优酷和腾讯视频的 metadata 与 media 结果已通过 `ProviderCanaryService` 写入本地 `provider_canary_results`。结果表只记录 target id、Provider/Profile、阶段、耗时、结果和固定引擎引用，不保存完整目标 URL。
 
@@ -49,4 +49,4 @@ YouTube 的结果也符合 yt-dlp [已知问题 #3766](https://github.com/yt-dlp
 
 ## 5. 结论
 
-本轮新增六个严格限定的匿名公开单视频/Clip Profile 为 `verified`；YouTube 与 Reddit 保持 `access_required`，TikTok 标记为 `degraded`。这不是对平台全部内容类型的承诺，也不改变 DRM、付费、会员、私密、地域限制和多资产内容的拒绝策略。
+本轮在 2026-08-12 历史上新增六个严格限定的匿名公开单视频/Clip Profile；024 复核后只有 Facebook、Twitch、Pinterest、微博和优酷的这批证据继续有效。腾讯视频当前代码仍错误地保留 `verified`，必须先降为 `unknown/disabled`；YouTube 与 Reddit 保持 `access_required`，TikTok 标记为 `degraded`。这不是对平台全部内容类型的承诺，也不改变 DRM、付费、会员、私密、地域限制和多资产内容的拒绝策略。
