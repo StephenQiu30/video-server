@@ -50,4 +50,3 @@ class RightsBasis(StrEnum):
     OWNER_AUTHORIZED_EXPORT = "owner_authorized_export"
     OFFICIAL_ASSET_GRANT = "official_asset_grant"
     USER_PROVIDED = "user_provided"
-

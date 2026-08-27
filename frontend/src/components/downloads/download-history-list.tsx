@@ -112,6 +112,8 @@ function HistoryRow({
           </Button>
         </ItemTitle>
         <ItemDescription className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+          <span>{item.source_label}</span>
+          <span aria-hidden>·</span>
           <span>{item.format_name}</span>
           <span aria-hidden>·</span>
           <time dateTime={item.created_at}>{formatDate(item.created_at)}</time>

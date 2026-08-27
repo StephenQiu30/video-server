@@ -211,6 +211,9 @@ describe('DownloadWorkspace', () => {
       screen.getByText('请在微信中合法导出自有明文 MP4 后通过本地导入上传。'),
     ).toBeInTheDocument();
     expect(
+      screen.queryByText('wechat_channels_export_required'),
+    ).not.toBeInTheDocument();
+    expect(
       screen.queryByRole('button', { name: '创建下载任务' }),
     ).not.toBeInTheDocument();
 
@@ -246,6 +249,9 @@ describe('DownloadWorkspace', () => {
     expect(
       screen.getByText('请在腾讯视频官方客户端播放；VIP/付费内容不提供下载。'),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText('tencent_consumer_download_disabled'),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: '创建下载任务' }),
     ).not.toBeInTheDocument();

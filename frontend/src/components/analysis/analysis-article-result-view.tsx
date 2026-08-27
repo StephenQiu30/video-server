@@ -30,7 +30,10 @@ export default function AnalysisArticleResultView({
         </p>
       </section>
       <div className="mt-10 overflow-x-auto">
-        <TabsList className="h-auto w-max gap-7 rounded-none p-0" variant="line">
+        <TabsList
+          className="h-auto w-max gap-7 rounded-none p-0"
+          variant="line"
+        >
           <Tab value="article">文章正文</Tab>
           <Tab value="points">核心观点</Tab>
           {reportMarkdown ? <Tab value="report">报告预览</Tab> : null}
@@ -46,14 +49,18 @@ export default function AnalysisArticleResultView({
                 key={section.id}
               >
                 <li>
-                  <p className="text-xs text-muted-foreground">章节 {index + 1}</p>
+                  <p className="text-xs text-muted-foreground">
+                    章节 {index + 1}
+                  </p>
                   <h4 className="mt-2 text-xl font-medium">{section.title}</h4>
                   <p className="mt-4 whitespace-pre-line leading-8 text-muted-foreground">
                     {section.body}
                   </p>
                   <div className="mt-5 space-y-1 text-sm text-muted-foreground">
                     {section.evidence.map((evidence) => (
-                      <p key={`${evidence.start_ms}-${evidence.end_ms}-${evidence.note}`}>
+                      <p
+                        key={`${evidence.start_ms}-${evidence.end_ms}-${evidence.note}`}
+                      >
                         <span className="text-xs tabular-nums">
                           {formatMilliseconds(evidence.start_ms)}–
                           {formatMilliseconds(evidence.end_ms)}

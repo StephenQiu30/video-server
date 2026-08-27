@@ -144,7 +144,8 @@ export default function AnalysisPanel({
             AI 智能分析
           </h2>
           <p className="mt-4 max-w-2xl leading-7 text-muted-foreground">
-            由 AI 观察视频画面，生成连续分镜、视觉高光、资产目录，或将视频整理成文章。
+            由 AI
+            观察视频画面，生成连续分镜、视觉高光、资产目录，或将视频整理成文章。
           </p>
         </div>
       </div>

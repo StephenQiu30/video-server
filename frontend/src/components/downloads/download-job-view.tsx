@@ -23,9 +23,10 @@ export default function DownloadJobView({
   const router = useRouter();
   const state = useDownloadJob(jobId, pollIntervalMs);
   const format = state.job?.format ?? undefined;
-  const title = state.job?.title ?? '视频下载任务';
+  const title = state.job?.title ?? state.job?.source_label ?? '视频下载任务';
   const thumbnail = state.job?.thumbnail_url ?? null;
   const extractor = state.job?.extractor_key ?? null;
+  const sourceLabel = state.job?.source_label ?? null;
   const duration = state.job?.duration_seconds ?? undefined;
 
   async function retry() {
@@ -80,7 +81,10 @@ export default function DownloadJobView({
                 {title}
               </h1>
               <p className="mt-3 text-sm text-muted-foreground">
-                {extractor ? `${extractor} · ` : ''}
+                {sourceLabel ? `${sourceLabel} · ` : ''}
+                {extractor && extractor !== sourceLabel
+                  ? `${extractor} · `
+                  : ''}
                 {formatLabel(format, duration)}
               </p>
             </div>

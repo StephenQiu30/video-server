@@ -44,4 +44,3 @@ def test_public_article_requires_discovery() -> None:
 
 def test_unrelated_source_continues_to_provider_runner() -> None:
     assert classify_restricted_source("https://media.example/video/1") is None
-

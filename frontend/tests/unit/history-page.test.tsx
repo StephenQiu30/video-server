@@ -136,6 +136,7 @@ describe('download history', () => {
       'href',
       '/downloads/detail?jobId=history-job-1',
     );
+    expect(screen.getByText('链接下载')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '获取文件' }));
     await waitFor(() =>

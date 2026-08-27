@@ -76,11 +76,6 @@ export default function InspectionWorkspace({
             <p className="text-sm leading-6 text-muted-foreground">
               {inspection.user_action ?? '当前来源不能创建下载任务。'}
             </p>
-            {inspection.restriction_reason ? (
-              <p className="mt-3 font-mono text-xs text-muted-foreground">
-                {inspection.restriction_reason}
-              </p>
-            ) : null}
           </div>
         )}
         {selected ? (

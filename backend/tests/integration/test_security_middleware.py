@@ -48,7 +48,9 @@ def test_media_import_csp_allows_only_configured_storage_origin(
 
     csp = response.headers["content-security-policy"]
     assert "connect-src 'self' https://storage.example.com:9443" in csp
+    assert "media-src 'self' https://storage.example.com:9443" in csp
     assert "connect-src *" not in csp
+    assert "media-src *" not in csp
 
 
 def test_document_import_enables_bounded_storage_origin(tmp_path: Path) -> None:
@@ -67,6 +69,8 @@ def test_document_import_enables_bounded_storage_origin(tmp_path: Path) -> None:
         csp = client.get("/health/live").headers["content-security-policy"]
 
     assert "connect-src 'self' https://documents.example.com:9443" in csp
+    assert "media-src 'self';" in csp
+    assert "media-src 'self' https://documents.example.com:9443" not in csp
 
 
 def test_rate_limit_returns_problem_details_and_retry_after(tmp_path: Path) -> None:

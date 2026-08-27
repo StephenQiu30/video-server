@@ -184,6 +184,33 @@ describe('DownloadJobView', () => {
     expect(runtime.preview.reload).toHaveBeenCalledOnce();
   });
 
+  it('shows the declared source for an owned WeChat Channels import', async () => {
+    runtime.preview.error = '预览不可用';
+    runtime.preview.source = null;
+    const imported = {
+      ...job('succeeded'),
+      duration_seconds: null,
+      extractor_key: null,
+      format: null,
+      inspection_id: null,
+      source_kind: 'browser_import' as const,
+      source_label: '用户提供的视频号来源文件',
+      title: null,
+    };
+    mockHttpResponses(imported, analysisSkills, null);
+    render(<DownloadJobView jobId={imported.id} />);
+
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: '用户提供的视频号来源文件',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('用户提供的视频号来源文件 · 正在读取媒体信息'),
+    ).toBeInTheDocument();
+  });
+
   it('keeps a completed task usable after inspection metadata expires', async () => {
     mockHttpResponses(job('succeeded'), analysisSkills, null);
     render(<DownloadJobView jobId={job().id} />);

@@ -88,6 +88,11 @@ def create_app(
                 if effective.media_import_enabled or effective.document_import_enabled
                 else ()
             ),
+            media_origins=(
+                (effective.minio_public_origin(),)
+                if effective.media_import_enabled
+                else ()
+            ),
         )
     )
     application.add_exception_handler(AppError, app_error_handler)

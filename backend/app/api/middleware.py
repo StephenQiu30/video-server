@@ -17,6 +17,7 @@ async def request_guard(
     timeout_seconds: float,
     production: bool,
     connect_origins: tuple[str, ...] = (),
+    media_origins: tuple[str, ...] = (),
 ) -> Response:
     content_length = request.headers.get("content-length")
     if content_length is not None:
@@ -29,6 +30,7 @@ async def request_guard(
                     "Request body is too large.",
                     production=production,
                     connect_origins=connect_origins,
+                    media_origins=media_origins,
                 )
         except ValueError:
             return _problem(
@@ -38,6 +40,7 @@ async def request_guard(
                 "The request is invalid.",
                 production=production,
                 connect_origins=connect_origins,
+                media_origins=media_origins,
             )
     try:
         async with asyncio.timeout(timeout_seconds):
@@ -50,11 +53,13 @@ async def request_guard(
             "The request exceeded its deadline.",
             production=production,
             connect_origins=connect_origins,
+            media_origins=media_origins,
         )
     _security_headers(
         response,
         production=production,
         connect_origins=connect_origins,
+        media_origins=media_origins,
     )
     return response
 
@@ -67,6 +72,7 @@ def _problem(
     *,
     production: bool,
     connect_origins: tuple[str, ...],
+    media_origins: tuple[str, ...],
 ) -> JSONResponse:
     response = JSONResponse(
         status_code=status,
@@ -84,6 +90,7 @@ def _problem(
         response,
         production=production,
         connect_origins=connect_origins,
+        media_origins=media_origins,
     )
     return response
 
@@ -93,6 +100,7 @@ def _security_headers(
     *,
     production: bool,
     connect_origins: tuple[str, ...],
+    media_origins: tuple[str, ...],
 ) -> None:
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
@@ -100,7 +108,8 @@ def _security_headers(
         "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
     )
     response.headers.setdefault(
-        "Content-Security-Policy", _csp(connect_origins=connect_origins)
+        "Content-Security-Policy",
+        _csp(connect_origins=connect_origins, media_origins=media_origins),
     )
     if production:
         response.headers.setdefault(
@@ -108,8 +117,9 @@ def _security_headers(
         )
 
 
-def _csp(*, connect_origins: tuple[str, ...]) -> str:
+def _csp(*, connect_origins: tuple[str, ...], media_origins: tuple[str, ...]) -> str:
     connect_sources = " ".join(("'self'", *connect_origins))
+    media_sources = " ".join(("'self'", *media_origins))
     return (
         "default-src 'self'; script-src 'self' 'unsafe-inline' "
         "https://cdn.jsdelivr.net; "
@@ -117,6 +127,7 @@ def _csp(*, connect_origins: tuple[str, ...]) -> str:
         # Private thumbnails are fetched with the authenticated HTTP client
         # and rendered from an in-memory object URL after integrity checks.
         "img-src 'self' data: blob: https:; "
-        f"connect-src {connect_sources}; frame-ancestors 'none'; base-uri 'self'; "
+        f"connect-src {connect_sources}; media-src {media_sources}; "
+        "frame-ancestors 'none'; base-uri 'self'; "
         "form-action 'self'"
     )
