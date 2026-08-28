@@ -88,7 +88,8 @@ uv run python -m app.main
 
 ```bash
 docker compose --env-file .env -f docker-compose.yml \
-  --profile youtube-operator --profile provider-operator \
+  --profile youtube-operator --profile wechat-channels-operator \
+  --profile provider-operator \
   --profile douyin-operator --profile xiaohongshu-operator \
   --profile reddit-operator up -d --build
 ```

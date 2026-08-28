@@ -11,13 +11,15 @@ Profile：
 
 ```bash
 ./scripts/provider-cookie-bridge.sh youtube start
+./scripts/provider-cookie-bridge.sh wechat_channels start
 ./scripts/provider-cookie-bridge.sh tiktok start
 ./scripts/provider-cookie-bridge.sh douyin start
 ./scripts/provider-cookie-bridge.sh xiaohongshu start
 ./scripts/provider-cookie-bridge.sh reddit start
 
 docker compose --env-file .env -f docker-compose.yml \
-  --profile youtube-operator --profile provider-operator \
+  --profile youtube-operator --profile wechat-channels-operator \
+  --profile provider-operator \
   --profile douyin-operator --profile xiaohongshu-operator \
   --profile reddit-operator up -d --build
 

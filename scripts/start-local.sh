@@ -18,12 +18,19 @@ env_value() {
 operator_urls=$(env_value RUNNER_OPERATOR_BASE_URLS)
 youtube_version=$(env_value YOUTUBE_COOKIE_VERSION)
 youtube_attested=$(env_value YOUTUBE_OPERATOR_ACCOUNT_BASELINE_ATTESTED)
+wechat_version=$(env_value WECHAT_CHANNELS_COOKIE_VERSION)
+wechat_attested=$(env_value WECHAT_CHANNELS_OPERATOR_ACCOUNT_BASELINE_ATTESTED)
 
 set -- docker compose --env-file "$env_file" -f "$compose_file"
 
 case "$operator_urls" in
   *'"youtube"'*) youtube_configured=true ;;
   *) youtube_configured=false ;;
+esac
+
+case "$operator_urls" in
+  *'"wechat_channels"'*) wechat_configured=true ;;
+  *) wechat_configured=false ;;
 esac
 
 if [ "$youtube_configured" = true ] && \
@@ -34,6 +41,16 @@ if [ "$youtube_configured" = true ] && \
   esac
   set -- "$@" --profile youtube-operator
   echo "YouTube browser-session fallback enabled."
+fi
+
+if [ "$wechat_configured" = true ] && \
+  [ -n "$wechat_version" ] && \
+  [ "$wechat_attested" = true ]; then
+  case "$wechat_version" in
+    browser-*) "$script_dir/provider-cookie-bridge.sh" wechat_channels start ;;
+  esac
+  set -- "$@" --profile wechat-channels-operator
+  echo "WeChat Channels public-link resolver enabled."
 fi
 
 exec "$@" up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300

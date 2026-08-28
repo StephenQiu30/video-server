@@ -15,7 +15,7 @@ uv run python -m app.runner.browser_cookie_export \
 
 ## 1. 导出浏览器会话
 
-在浏览器确认目标 Provider 已登录，然后从 `backend/` 分别执行。每次轮换使用新版本名；支持 `youtube`、`tiktok`、`douyin`、`xiaohongshu`、`reddit`、`x`、`instagram` 与 `facebook`：
+在浏览器确认目标 Provider 已登录，然后从 `backend/` 分别执行。每次轮换使用新版本名；支持 `youtube`、`wechat_channels`、`tiktok`、`douyin`、`xiaohongshu`、`reddit`、`x`、`instagram` 与 `facebook`：
 
 ```bash
 uv run python -m app.runner.browser_cookie_export \
@@ -34,6 +34,7 @@ macOS 可能显示一次 Keychain 授权提示。导出器不会启动后台进�
 
 ```bash
 ./scripts/provider-cookie-bridge.sh youtube start
+./scripts/provider-cookie-bridge.sh wechat_channels start
 ./scripts/provider-cookie-bridge.sh tiktok start
 ./scripts/provider-cookie-bridge.sh douyin start
 ./scripts/provider-cookie-bridge.sh xiaohongshu start
@@ -52,10 +53,14 @@ macOS 可能显示一次 Keychain 授权提示。导出器不会启动后台进�
 `.env` 至少配置：
 
 ```dotenv
-RUNNER_OPERATOR_BASE_URLS={"youtube":"http://youtube-operator-runner:19100","tiktok":"http://provider-operator-runner:19100","douyin":"http://douyin-operator-runner:19100","xiaohongshu":"http://xiaohongshu-operator-runner:19100","reddit":"http://reddit-operator-runner:19100"}
+RUNNER_OPERATOR_BASE_URLS={"youtube":"http://youtube-operator-runner:19100","wechat_channels":"http://wechat-channels-operator-runner:19100","tiktok":"http://provider-operator-runner:19100","douyin":"http://douyin-operator-runner:19100","xiaohongshu":"http://xiaohongshu-operator-runner:19100","reddit":"http://reddit-operator-runner:19100"}
 YOUTUBE_COOKIE_SECRET_DIR=./.provider-secrets/youtube
 YOUTUBE_COOKIE_VERSION=browser-20260815-01
 YOUTUBE_OPERATOR_ACCOUNT_BASELINE_ATTESTED=true
+WECHAT_CHANNELS_COOKIE_SECRET_DIR=./.provider-secrets/wechat_channels
+WECHAT_CHANNELS_COOKIE_VERSION=browser-live
+WECHAT_CHANNELS_RETAINED_SESSION_VERSIONS={}
+WECHAT_CHANNELS_OPERATOR_ACCOUNT_BASELINE_ATTESTED=true
 OPERATOR_PROVIDER_KEY=tiktok
 OPERATOR_COOKIE_SECRET_DIR=./.provider-secrets/tiktok
 OPERATOR_COOKIE_VERSION=browser-20260815-01
@@ -82,21 +87,25 @@ uv run python -c 'import secrets; print("7" + "".join(str(secrets.randbelow(10))
 
 ```bash
 docker compose --env-file .env -f docker-compose.yml \
-  --profile youtube-operator --profile provider-operator \
+  --profile youtube-operator --profile wechat-channels-operator \
+  --profile provider-operator \
   --profile douyin-operator --profile xiaohongshu-operator \
   --profile reddit-operator config --quiet
 
 docker compose --env-file .env -f docker-compose.yml \
-  --profile youtube-operator --profile provider-operator \
+  --profile youtube-operator --profile wechat-channels-operator \
+  --profile provider-operator \
   --profile douyin-operator --profile xiaohongshu-operator \
   --profile reddit-operator \
   up -d --build --force-recreate \
   api media-runner worker-download provider-canary \
-  youtube-operator-runner provider-operator-runner douyin-operator-runner \
+  youtube-operator-runner wechat-channels-operator-runner \
+  provider-operator-runner douyin-operator-runner \
   xiaohongshu-operator-runner reddit-operator-runner youtube-pot-provider
 
 docker compose --env-file .env -f docker-compose.yml \
-  --profile youtube-operator --profile provider-operator \
+  --profile youtube-operator --profile wechat-channels-operator \
+  --profile provider-operator \
   --profile douyin-operator --profile xiaohongshu-operator \
   --profile reddit-operator ps
 ```

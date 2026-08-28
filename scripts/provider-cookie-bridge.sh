@@ -5,9 +5,9 @@ umask 077
 provider=${1:-}
 action=${2:-status}
 case "$provider" in
-  youtube|tiktok|douyin|xiaohongshu|reddit|x|instagram|facebook) ;;
+  youtube|wechat_channels|tiktok|douyin|xiaohongshu|reddit|x|instagram|facebook) ;;
   *)
-    echo "Usage: $0 {youtube|tiktok|douyin|xiaohongshu|reddit|x|instagram|facebook} {start|stop|restart|status}" >&2
+    echo "Usage: $0 {youtube|wechat_channels|tiktok|douyin|xiaohongshu|reddit|x|instagram|facebook} {start|stop|restart|status}" >&2
     exit 2
     ;;
 esac
@@ -22,6 +22,10 @@ case "$provider" in
   youtube)
     version_variable=YOUTUBE_COOKIE_VERSION
     interval_variable=YOUTUBE_COOKIE_BRIDGE_INTERVAL_SECONDS
+    ;;
+  wechat_channels)
+    version_variable=WECHAT_CHANNELS_COOKIE_VERSION
+    interval_variable=WECHAT_CHANNELS_COOKIE_BRIDGE_INTERVAL_SECONDS
     ;;
   tiktok)
     version_variable=OPERATOR_COOKIE_VERSION
@@ -208,7 +212,7 @@ case "$action" in
     fi
     ;;
   *)
-    echo "Usage: $0 {youtube|tiktok|douyin|xiaohongshu|reddit|x|instagram|facebook} {start|stop|restart|status}" >&2
+    echo "Usage: $0 {youtube|wechat_channels|tiktok|douyin|xiaohongshu|reddit|x|instagram|facebook} {start|stop|restart|status}" >&2
     exit 2
     ;;
 esac

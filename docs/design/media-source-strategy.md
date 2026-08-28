@@ -57,7 +57,7 @@ Operator Cookie 已过期，管线返回会话过期，而不是保留匿名 bot
 Docker 不能安全解密宿主机 Chrome Profile，因此桥接进程只在本地可信 macOS
 宿主机运行：
 
-1. `provider-cookie-bridge.sh {youtube|tiktok|douyin|xiaohongshu|reddit}` 由当前用户的 `launchd` 会话监督；
+1. `provider-cookie-bridge.sh {youtube|wechat_channels|tiktok|douyin|xiaohongshu|reddit}` 由当前用户的 `launchd` 会话监督；
    YouTube 旧脚本只是兼容包装。
 2. 每 15 秒使用 yt-dlp 的浏览器 Cookie loader 读取当前 Chrome 登录态。
 3. 只保留目标 Provider allowlist 域、未过期且包含认证标记的 Cookie。

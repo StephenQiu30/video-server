@@ -12,6 +12,8 @@ SCHEMA_PATH = ROOT / "sql/schema.sql"
 ROOT_README_PATH = ROOT.parent / "README.md"
 FRONTEND_README_PATH = ROOT.parent / "frontend/README.md"
 STARTUP_SCRIPT_PATH = ROOT.parent / "scripts/restart-project.ps1"
+START_LOCAL_SCRIPT_PATH = ROOT.parent / "scripts/start-local.sh"
+COOKIE_BRIDGE_SCRIPT_PATH = ROOT.parent / "scripts/provider-cookie-bridge.sh"
 DOCKERFILE_PATH = ROOT.parent / "Dockerfile"
 
 
@@ -251,6 +253,10 @@ def test_compose_pins_shared_runner_workspace_to_the_mounted_container_path() ->
 
 def test_provider_session_runners_are_physically_isolated_by_provider() -> None:
     expected = {
+        "wechat-channels-operator-runner": (
+            "wechat_channels",
+            "wechat-channels-operator",
+        ),
         "douyin-operator-runner": ("douyin", "douyin-operator"),
         "xiaohongshu-operator-runner": ("xiaohongshu", "xiaohongshu-operator"),
         "reddit-operator-runner": ("reddit", "reddit-operator"),
@@ -269,3 +275,19 @@ def test_provider_session_runners_are_physically_isolated_by_provider() -> None:
             assert f'RUNNER_OPERATOR_SESSION_VERSIONS: \'{{"{provider}":' in (
                 service_config
             )
+
+
+def test_wechat_channels_session_bridge_and_local_start_are_wired() -> None:
+    bridge = COOKIE_BRIDGE_SCRIPT_PATH.read_text(encoding="utf-8")
+    startup = START_LOCAL_SCRIPT_PATH.read_text(encoding="utf-8")
+
+    assert "youtube|wechat_channels|tiktok" in bridge
+    assert "version_variable=WECHAT_CHANNELS_COOKIE_VERSION" in bridge
+    assert "interval_variable=WECHAT_CHANNELS_COOKIE_BRIDGE_INTERVAL_SECONDS" in bridge
+    assert "wechat_version=$(env_value WECHAT_CHANNELS_COOKIE_VERSION)" in startup
+    assert (
+        "wechat_attested=$(env_value "
+        "WECHAT_CHANNELS_OPERATOR_ACCOUNT_BASELINE_ATTESTED)" in startup
+    )
+    assert 'provider-cookie-bridge.sh" wechat_channels start' in startup
+    assert 'set -- "$@" --profile wechat-channels-operator' in startup

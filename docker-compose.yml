@@ -418,6 +418,24 @@ services:
         "--no-access-log",
       ]
 
+  wechat-channels-operator-runner:
+    <<: *provider-session-runner
+    container_name: wechat-channels-operator-runner
+    profiles: [wechat-channels-operator]
+    environment:
+      <<: *provider-session-environment
+      RUNNER_OPERATOR_SESSION_VERSIONS: '{"wechat_channels":"${WECHAT_CHANNELS_COOKIE_VERSION:-disabled}"}'
+      RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS: "${WECHAT_CHANNELS_RETAINED_SESSION_VERSIONS:-{}}"
+      RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${WECHAT_CHANNELS_OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
+    volumes:
+      - runner_work:/work
+      - type: bind
+        source: "${WECHAT_CHANNELS_COOKIE_SECRET_DIR:-./.provider-secrets/wechat_channels}"
+        target: /run/provider-secrets/wechat_channels
+        read_only: true
+        bind:
+          create_host_path: false
+
   douyin-operator-runner:
     <<: *provider-session-runner
     container_name: douyin-operator-runner
