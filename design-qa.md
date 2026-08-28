@@ -78,6 +78,19 @@
 
 final result: passed
 
+## 2026-08-29 下载分析信息层级与图表比例重构
+
+- source visual truth：用户来源截图 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-ffac27f0-195d-4f35-aac6-1fc6148895dd.png`，原始 3840×1942 px；截图显示指标缺少清晰标题层级，趋势图随宽内容区等比放大并占据大部分首屏，来源洞察被推到首屏之外。
+- implementation evidence：桌面同尺寸状态 `/Users/stephenqiu/.codex/visualizations/2026/08/28/01a0496c-b15e-7901-ad8c-177830e7aeb5/download-analytics-redesign-1920x971.png`，1280×900 完整页面 `/Users/stephenqiu/.codex/visualizations/2026/08/28/01a0496c-b15e-7901-ad8c-177830e7aeb5/download-analytics-redesign-1280x900.png`，移动端 `/Users/stephenqiu/.codex/visualizations/2026/08/28/01a0496c-b15e-7901-ad8c-177830e7aeb5/download-analytics-redesign-390x844.png`。源图与 1920 桌面实现图已在同一视觉比较输入中检查；源图包含 Chrome 外壳且使用单条真实任务，实现图使用 30 天密集验收数据，因此对照聚焦页面信息层级、图表比例、控件几何和内容密度，不比较折线坐标本身。
+- hierarchy：统计范围、周期和刷新收敛到 PageHeader 右侧；四项 KPI 进入有标题的连续概览区，通过横向发丝线和列分隔建立读取顺序。趋势与来源分布在桌面组成 2:1 双栏，来源前六项直接进入首屏，其余来源明确下沉到完整明细；没有新增 Card、阴影、渐变或侧栏后台壳。
+- chart：桌面画布从 800×280 调整为 960×360，平板为 720×320，移动为 360×280；在 1920、1440、1280 和 390px 检查时均保持自然比例，原截图中的超高空图区域不再出现。系列图例可用按钮独立显隐，精确数值仍保留在语义化等价表格中。
+- responsive and themes：390×844 下周期选择等分可用宽度，刷新保留 48px 触控区域，KPI 重排为两列，趋势、来源分布和 Item 明细依次单列；实测 `scrollWidth = clientWidth`。1280×900 深色模式首屏已检查，背景、前景、选中态、成功/失败线型和进度对比均继续消费既有语义 token。
+- interactions and accessibility：PageHeader 保持唯一 H1；“周期概览”“下载趋势”“来源分布”“来源明细”使用顺序 H2；刷新按钮有明确可访问名称，根内容在后台刷新时暴露 `aria-busy`。Radix 周期单选和趋势多选的 checked/pressed 状态可读，趋势显隐交互完成浏览器复验，干净复验标签页的 console error/warning 为空。
+- engineering gates：`npm run lint` 通过（仅仓库既有 `.agents/skills` 断开符号链接 warning）；44 个测试文件、168 项测试全部通过；Next.js 生产构建与 16 个静态页面生成通过；`/admin/analytics` 保持静态导出。
+- findings：对照后没有剩余 P0、P1 或 P2 视觉差异；未改变颜色、字体、圆角、全局网格、接口契约或数据库结构。
+
+final result: passed
+
 ## 2026-08-27 App 页面同步问题修复回归
 
 - 修复首页解析结果与输入地址脱节的问题：URL 一旦变化即清除旧 inspection、发现结果、格式选择与创建任务入口；无效提交只保留可访问校验错误。

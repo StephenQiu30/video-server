@@ -10,19 +10,22 @@ export function AnalyticsLoading() {
   return (
     <div aria-label="正在加载下载分析" className="space-y-12" role="status">
       <span className="sr-only">正在加载下载分析</span>
-      <div className="hairline grid gap-8 border-y py-7 sm:grid-cols-2 xl:grid-cols-4">
+      <div>
+        <Skeleton className="h-5 w-20" />
+        <Skeleton className="mt-2 h-4 w-48" />
+      </div>
+      <div className="hairline grid grid-cols-2 border-y lg:grid-cols-4">
         {['total', 'rate', 'users', 'bytes'].map((key) => (
-          <div className="space-y-3" key={key}>
+          <div className="space-y-3 px-4 py-7 sm:px-7" key={key}>
             <Skeleton className="h-3 w-20" />
             <Skeleton className="h-12 w-32" />
-            <Skeleton className="h-3 w-40" />
+            <Skeleton className="h-3 w-full max-w-40" />
           </div>
         ))}
       </div>
-      <Skeleton className="h-72 w-full rounded-none" />
-      <div className="grid gap-8 lg:grid-cols-2">
-        <Skeleton className="h-64 rounded-none" />
-        <Skeleton className="h-64 rounded-none" />
+      <div className="grid gap-10 xl:grid-cols-[minmax(0,2fr)_minmax(17rem,1fr)]">
+        <Skeleton className="h-80 rounded-md" />
+        <Skeleton className="h-80 rounded-none" />
       </div>
     </div>
   );

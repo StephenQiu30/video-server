@@ -38,34 +38,53 @@ export function AnalyticsKpis({
   ];
 
   return (
-    <dl className="grid gap-x-10 gap-y-9 sm:grid-cols-2 xl:grid-cols-4 xl:gap-x-0">
-      {metrics.map((metric, index) => {
-        return (
-          <div
-            className={
-              index === 0 ? 'min-w-0' : 'hairline min-w-0 xl:border-l xl:pl-8'
-            }
-            key={metric.label}
-          >
-            <dt className="text-xs text-muted-foreground">{metric.label}</dt>
-            <dd className="mt-3 text-[clamp(2rem,4vw,3rem)] font-medium leading-none tracking-[-0.055em] tabular-nums">
-              {metric.value}
-            </dd>
-            <dd className="mt-3 text-xs text-muted-foreground">
-              {metric.detail}
-            </dd>
-            {metric.progress === undefined ? null : (
-              <dd className="mt-4">
-                <Progress
-                  aria-label={`下载成功率 ${formatPercent(metric.progress)}`}
-                  className="h-1 bg-muted"
-                  value={metric.progress}
-                />
+    <section aria-labelledby="analytics-overview-title">
+      <div className="flex items-end justify-between gap-6">
+        <div>
+          <h2 className="text-lg font-medium" id="analytics-overview-title">
+            周期概览
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            当前统计周期的核心下载指标。
+          </p>
+        </div>
+        <p className="hidden text-xs text-muted-foreground sm:block">
+          数据自动汇总
+        </p>
+      </div>
+      <dl className="hairline mt-6 grid grid-cols-2 border-y lg:grid-cols-4">
+        {metrics.map((metric, index) => {
+          return (
+            <div
+              className={`min-w-0 py-6 sm:py-7 ${
+                index % 2 === 1
+                  ? 'hairline border-l pl-4 sm:pl-7'
+                  : 'pr-4 sm:pr-7'
+              } ${index >= 2 ? 'hairline border-t lg:border-t-0' : ''} ${
+                index === 2 ? 'lg:border-l lg:pl-7' : ''
+              }`}
+              key={metric.label}
+            >
+              <dt className="text-xs text-muted-foreground">{metric.label}</dt>
+              <dd className="mt-3 text-[clamp(1.9rem,4vw,3rem)] font-medium leading-none tracking-[-0.055em] tabular-nums">
+                {metric.value}
               </dd>
-            )}
-          </div>
-        );
-      })}
-    </dl>
+              <dd className="mt-3 min-h-9 text-xs leading-5 text-muted-foreground sm:min-h-0">
+                {metric.detail}
+              </dd>
+              {metric.progress === undefined ? null : (
+                <dd className="mt-4">
+                  <Progress
+                    aria-label={`下载成功率 ${formatPercent(metric.progress)}`}
+                    className="h-1 bg-muted"
+                    value={metric.progress}
+                  />
+                </dd>
+              )}
+            </div>
+          );
+        })}
+      </dl>
+    </section>
   );
 }

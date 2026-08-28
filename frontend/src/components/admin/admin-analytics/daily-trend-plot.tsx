@@ -44,20 +44,20 @@ type ChartFrame = {
 
 export const mobileFrame: ChartFrame = {
   width: 360,
-  height: 260,
+  height: 280,
   padding: { top: 18, right: 12, bottom: 36, left: 42 },
 };
 
 export const desktopFrame: ChartFrame = {
-  width: 800,
-  height: 280,
-  padding: { top: 18, right: 18, bottom: 38, left: 46 },
+  width: 960,
+  height: 360,
+  padding: { top: 22, right: 20, bottom: 42, left: 50 },
 };
 
 export const tabletFrame: ChartFrame = {
-  width: 640,
-  height: 270,
-  padding: { top: 18, right: 16, bottom: 38, left: 44 },
+  width: 720,
+  height: 320,
+  padding: { top: 20, right: 18, bottom: 40, left: 48 },
 };
 
 export function DailyTrendPlot({

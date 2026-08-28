@@ -60,13 +60,16 @@ describe('administrator download analytics', () => {
     expect(responsiveCharts).toHaveLength(3);
     expect(
       responsiveCharts.map((chart) => chart.getAttribute('viewBox')),
-    ).toEqual(['0 0 360 260', '0 0 640 270', '0 0 800 280']);
+    ).toEqual(['0 0 360 280', '0 0 720 320', '0 0 960 360']);
     const exactData = screen.getByRole('table', {
       name: '每日下载趋势精确数据',
     });
     expect(
       within(exactData).getByRole('row', { name: /2026-08-09 20 16 2 1/ }),
     ).toBeInTheDocument();
+    expect(screen.getByText('周期概览')).toBeInTheDocument();
+    expect(screen.getByText('来源分布')).toBeInTheDocument();
+    expect(screen.getByText('来源明细')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '隐藏失败趋势' }));
     expect(
       screen.getByRole('button', { name: '显示失败趋势' }),
@@ -129,9 +132,11 @@ describe('administrator download analytics', () => {
 
     await act(async () => periodRefresh.resolve(analytics()));
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: '刷新' })).toBeEnabled(),
+      expect(
+        screen.getByRole('button', { name: '刷新下载分析' }),
+      ).toBeEnabled(),
     );
-    fireEvent.click(screen.getByRole('button', { name: '刷新' }));
+    fireEvent.click(screen.getByRole('button', { name: '刷新下载分析' }));
     await waitFor(() =>
       expect(runtime.getAdminDownloadAnalytics).toHaveBeenCalledTimes(3),
     );

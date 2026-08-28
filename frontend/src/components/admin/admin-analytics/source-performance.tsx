@@ -30,13 +30,20 @@ export function SourcePerformance({ sources }: { sources: Source[] }) {
   if (sorted.length === 0) return null;
 
   return (
-    <section aria-labelledby="source-performance-title" className="pt-2">
-      <h2 className="text-xl font-medium" id="source-performance-title">
-        来源表现
-      </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        对比各视频源的成功率、覆盖用户与下载数据量。
-      </p>
+    <section aria-labelledby="source-performance-title">
+      <div className="flex items-end justify-between gap-6">
+        <div>
+          <h2 className="text-lg font-medium" id="source-performance-title">
+            来源明细
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            对比各视频源的成功率、覆盖用户与下载数据量。
+          </p>
+        </div>
+        <p className="hidden shrink-0 text-xs text-muted-foreground tabular-nums sm:block">
+          共 {formatInteger(sorted.length)} 个来源
+        </p>
+      </div>
 
       <div className="hairline mt-7 hidden border-y md:block">
         <Table className="table-fixed">
