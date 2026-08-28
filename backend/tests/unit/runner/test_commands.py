@@ -106,6 +106,28 @@ async def test_authenticated_youtube_bot_confirmation_is_expired_session(
 
 
 @pytest.mark.asyncio
+async def test_wechat_resolver_schema_drift_is_not_reported_as_expired_session(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(
+            b"ERROR: WeChat Channels resolver returned an unsupported URL"
+        ),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect(
+            "https://weixin.qq.com/sph/AFWYoXF5Bw",
+            tmp_path,
+            cookie_jar=tmp_path / "cookies.txt",
+        )
+
+    assert caught.value.code == "extractor_regression"
+    assert caught.value.status == 502
+
+
+@pytest.mark.asyncio
 async def test_inspection_classifies_unavailable_youtube_video(tmp_path: Path) -> None:
     commands = MediaCommands(
         settings(tmp_path),

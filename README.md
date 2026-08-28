@@ -105,7 +105,7 @@ cp .env.example .env
 # 如果使用项目专用 Docker 基础依赖，首次执行一次；已有本机服务时跳过
 docker compose --env-file .env -f docker-compose-env.yml up -d
 
-# 本机统一启动入口；已配置 browser-* YouTube 会话时会自动启动桥接和受控 Runner
+# 本机统一启动入口；已配置 browser-* 会话时会自动启动 Session Broker 和受控 Runner
 ./scripts/start-local.sh
 ```
 

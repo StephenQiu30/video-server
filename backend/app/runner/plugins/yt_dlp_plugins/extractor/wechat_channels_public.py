@@ -4,6 +4,11 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
+from app.runner.managed_session_cookies import (
+    SESSION_HEADER_COOKIE,
+    SESSION_HEADER_URL,
+    decode_session_headers,
+)
 from app.runner.wechat_channels_policy import (
     author_info,
     feed_info,
@@ -68,6 +73,12 @@ class WechatChannelsPublicIE(InfoExtractor):  # type: ignore[misc]
                     expected=True,
                 )
             account_id = str(cookies["hy_user"].value)
+            auth_token = str(cookies["hy_token"].value)
+            session_headers = self._get_cookies(SESSION_HEADER_URL)
+            encoded_headers = session_headers.get(SESSION_HEADER_COOKIE)
+            browser_headers = decode_session_headers(
+                str(encoded_headers.value) if encoded_headers is not None else ""
+            )
             parse_payload = self._download_json(
                 _YUANBAO_API,
                 video_id,
@@ -75,14 +86,15 @@ class WechatChannelsPublicIE(InfoExtractor):  # type: ignore[misc]
                 data=_json_bytes(
                     {"type": "video_channel_url", "url": canonical_url, "scene": 1}
                 ),
-                headers=_yuanbao_headers(account_id),
+                headers=_yuanbao_headers(account_id, auth_token, browser_headers),
             )
             _reject_protected(parse_payload)
             parse_data = successful_data(parse_payload)
             playable_url = playable_parameters(parse_data)
             if playable_url is None:
                 raise ExtractorError(
-                    "Account cookies are no longer valid", expected=True
+                    "WeChat Channels resolver returned an unsupported URL",
+                    expected=True,
                 )
             token, export_id = playable_url
             feed_payload = self._download_json(
@@ -142,20 +154,28 @@ def _api_headers(referer: str) -> dict[str, str]:
     }
 
 
-def _yuanbao_headers(account_id: str) -> dict[str, str]:
-    return {
-        "Accept": "application/json, text/plain, */*",
-        "Content-Type": "application/json",
-        "Origin": "https://yuanbao.tencent.com",
-        "Referer": "https://yuanbao.tencent.com/",
-        "T-Userid": account_id,
-        "User-Agent": _USER_AGENT,
-        "X-Id": account_id,
-        "X-Language": "zh-CN",
-        "X-Platform": "web",
-        "X-Requested-With": "XMLHttpRequest",
-        "X-Source": "web",
-    }
+def _yuanbao_headers(
+    account_id: str,
+    auth_token: str,
+    browser_headers: Mapping[str, str],
+) -> dict[str, str]:
+    return (
+        {
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+            "Content-Type": "application/json",
+            "Origin": "https://yuanbao.tencent.com",
+            "Referer": "https://yuanbao.tencent.com/",
+            "User-Agent": _USER_AGENT,
+            "X-Requested-With": "XMLHttpRequest",
+        }
+        | dict(browser_headers)
+        | {
+            "T-Userid": account_id,
+            "X-Token": auth_token,
+            "X-Id": account_id,
+        }
+    )
 
 
 def _with_media_headers(

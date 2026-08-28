@@ -44,8 +44,7 @@ def playable_parameters(data: Mapping[str, Any]) -> tuple[str, str] | None:
         or parsed.hostname != "channels.weixin.qq.com"
         or parsed.port not in (None, 443)
         or parsed.path != "/finder-preview/pages/feed"
-        or set(query) != {"token", "eid"}
-        or any(len(query[key]) != 1 for key in query)
+        or any(len(query.get(key, ())) != 1 for key in ("token", "eid"))
     ):
         return None
     token, export_id = query["token"][0], query["eid"][0]

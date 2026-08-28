@@ -1043,6 +1043,7 @@ dependencies = [
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "uvicorn", extra = ["standard"] },
     { name = "valkey" },
+    { name = "websockets" },
     { name = "yt-dlp", extra = ["curl-cffi", "default"] },
 ]
 
@@ -1075,6 +1076,7 @@ requires-dist = [
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0,<3" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34,<1" },
     { name = "valkey", specifier = ">=6.1,<7" },
+    { name = "websockets", specifier = ">=16.1,<17" },
     { name = "yt-dlp", extras = ["default", "curl-cffi"], url = "https://github.com/yt-dlp/yt-dlp/archive/5d6b8c8cd19785c3086ae3a9ec618c45e25eb3bc.tar.gz" },
 ]
 

@@ -1,4 +1,4 @@
-# 媒体解析策略责任链与浏览器会话桥接
+# 媒体解析策略责任链与 Provider Session Broker
 
 - 状态：当前设计事实；外部 Provider 真实可用性由 canary 持续判定
 - 关联设计：`005-多平台Provider策略设计.md`
@@ -52,40 +52,40 @@ flowchart LR
 Operator Cookie 已过期，管线返回会话过期，而不是保留匿名 bot challenge；
 其他 Operator 基础设施故障仍保留匿名路径的原始诊断。
 
-## 3. 当前 Chrome 登录态桥接
+## 3. Provider Session Broker
 
-Docker 不能安全解密宿主机 Chrome Profile，因此桥接进程只在本地可信 macOS
+Docker 不能安全解密宿主机 Chrome Profile，因此 Broker 只在本地可信 macOS
 宿主机运行：
 
-1. `provider-cookie-bridge.sh {youtube|wechat_channels|tiktok|douyin|xiaohongshu|reddit}` 由当前用户的 `launchd` 会话监督；
-   YouTube 旧脚本只是兼容包装。
+1. `provider-session-broker.sh {youtube|wechat_channels|tiktok|douyin|xiaohongshu|reddit}` 由当前用户的 `launchd` 会话监督并在异常退出后重启。
 2. 每 15 秒使用 yt-dlp 的浏览器 Cookie loader 读取当前 Chrome 登录态。
 3. 只保留目标 Provider allowlist 域、未过期且包含认证标记的 Cookie。
 4. 以同目录临时文件、`0400` 权限和原子替换刷新版本化 Netscape 文件。
 5. Docker Operator Runner 继续只读挂载该文件；Cookie 原文不进入 API、DB、
    RabbitMQ、日志或业务响应。
-6. 单次刷新失败保留最后一个有效快照；进程状态和快照新鲜度共同组成健康检查。
+6. 单次刷新失败保留最后一个有效快照；状态文件明确区分 `ready`、
+   `login_required` 与 `degraded`，不再用 Secret 文件时间戳冒充会话健康。
 
-桥接不会自动输入密码、处理验证码、2FA 或扩大内容权益。当前 Chrome 登出或
+Broker 不会自动输入密码、处理验证码、2FA 或扩大内容权益。当前 Chrome 登出或
 平台撤销会话后，系统应明确报告会话过期。
 
 ## 4. 环境策略
 
 | 环境 | 会话来源 | 生命周期 | 用途 |
 | --- | --- | --- | --- |
-| 本地可信开发 | 当前 Chrome 登录态桥接 | 周期刷新、原子替换 | 避免日常浏览导致静态 Cookie 被轮换 |
+| 本地可信开发 | 当前 Chrome Session Broker | 周期刷新、原子替换 | 避免日常浏览导致静态 Cookie 被轮换 |
 | CI | 无真实账号或短期测试 Secret | 测试期 | 单元测试和授权 canary |
 | 生产 | 新私密窗口 `robots.txt` 导出的专用账号版本 | 不可变、canary 后激活 | 可审计、可回滚的 Operator Runner |
 
 生产不直接连接个人 Chrome Profile。若未来需要长期托管生产凭据，应实现
 005 中定义的 Credential Broker/Vault、版本租约、撤销和 canary，而不是把
-本地桥接扩展为服务器自动登录。
+本地 Broker 扩展为服务器自动登录。
 
 ## 5. 验收条件
 
 - 同一公开 YouTube 链接可由匿名失败后自动选择 YouTube Operator。
 - 带 Cookie 的 bot challenge 分类为 `credential_expired`，页面给出可操作错误。
-- Cookie 桥接进程真实处于 running，且快照更新时间不超过两分钟。
+- Session Broker 真实处于 running，且状态为 `ready`、更新时间不超过两分钟。
 - 解析成功后下载仍使用 inspection 冻结的 Operator access context。
 - 限流等非白名单错误不触发 Operator，失败链保持有界。
 - 目标链接完成解析、选格式、下载、制品校验和 AI 分析入口验证。

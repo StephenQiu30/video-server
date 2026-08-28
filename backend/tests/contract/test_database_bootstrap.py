@@ -13,7 +13,7 @@ ROOT_README_PATH = ROOT.parent / "README.md"
 FRONTEND_README_PATH = ROOT.parent / "frontend/README.md"
 STARTUP_SCRIPT_PATH = ROOT.parent / "scripts/restart-project.ps1"
 START_LOCAL_SCRIPT_PATH = ROOT.parent / "scripts/start-local.sh"
-COOKIE_BRIDGE_SCRIPT_PATH = ROOT.parent / "scripts/provider-cookie-bridge.sh"
+SESSION_BROKER_SCRIPT_PATH = ROOT.parent / "scripts/provider-session-broker.sh"
 DOCKERFILE_PATH = ROOT.parent / "Dockerfile"
 
 
@@ -277,21 +277,28 @@ def test_provider_session_runners_are_physically_isolated_by_provider() -> None:
             )
 
 
-def test_wechat_channels_session_bridge_and_local_start_are_wired() -> None:
-    bridge = COOKIE_BRIDGE_SCRIPT_PATH.read_text(encoding="utf-8")
+def test_wechat_channels_session_broker_and_local_start_are_wired() -> None:
+    broker = SESSION_BROKER_SCRIPT_PATH.read_text(encoding="utf-8")
     startup = START_LOCAL_SCRIPT_PATH.read_text(encoding="utf-8")
 
-    assert "youtube|wechat_channels|tiktok" in bridge
-    assert "version_variable=WECHAT_CHANNELS_COOKIE_VERSION" in bridge
-    assert "interval_variable=WECHAT_CHANNELS_COOKIE_BRIDGE_INTERVAL_SECONDS" in bridge
-    assert 'open -a "Google Chrome" "https://yuanbao.tencent.com/"' in bridge
-    assert "login_wait_attempts=240" in bridge
+    assert "youtube|wechat_channels|tiktok" in broker
+    assert "version_variable=WECHAT_CHANNELS_COOKIE_VERSION" in broker
+    assert "interval_variable=WECHAT_CHANNELS_SESSION_BROKER_INTERVAL_SECONDS" in broker
+    assert "app.runner.provider_session_broker" in broker
+    assert "app.runner.provider_session_launchd" in broker
+    assert "wait_for_broker_status" in broker
+    assert "broker_is_ready" in broker
+    assert "launchctl bootstrap" in broker
     assert "wechat_version=$(env_value WECHAT_CHANNELS_COOKIE_VERSION)" in startup
     assert (
         "wechat_attested=$(env_value "
         "WECHAT_CHANNELS_OPERATOR_ACCOUNT_BASELINE_ATTESTED)" in startup
     )
-    assert 'provider-cookie-bridge.sh" wechat_channels start' in startup
+    assert 'provider-session-broker.sh" wechat_channels start' in startup
+    assert (
+        "WECHAT_CHANNELS_COOKIE_VERSION:-browser-live"
+        in COMPOSE_PATH.read_text(encoding="utf-8")
+    )
     assert "wechat_version=${wechat_version:-browser-live}" in startup
     assert 'export WECHAT_CHANNELS_COOKIE_VERSION="$wechat_version"' in startup
     assert 'set -- "$@" --profile wechat-channels-operator' in startup

@@ -20,6 +20,7 @@ SOCIAL_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         command_args=CHROME_IMPERSONATION,
         client_profile_id="chrome-136-macos-15",
         canary_suite="wechat-channels-public-single-video",
+        probe_authenticated_media=True,
     ),
     standard_provider(
         "vimeo",

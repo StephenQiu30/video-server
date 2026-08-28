@@ -41,9 +41,6 @@ class ProviderSessionStore:
         self._gate = asyncio.Semaphore(1)
         if settings.runner_access_mode is ProviderAccessMode.OPERATOR_MANAGED:
             self._prepare_temp_root()
-            for provider, versions in self._accepted_versions.items():
-                for version in versions:
-                    self._validated_source(provider, version)
 
     def context_for(
         self, source: str | ProviderProfile

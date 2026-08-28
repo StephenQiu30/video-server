@@ -2,7 +2,7 @@
 
 - 状态：Implemented（Codex 已通过真实视觉 E2E；Claude 受当前 Windows 沙箱 feature gate 限制）
 - 日期：2026-08-10
-- 当前实现：宿主机 CLI 视觉分析；默认 Provider 为 Codex
+- 当前实现：宿主机 Codex App Server / Claude CLI 视觉分析；默认 Provider 为 Codex
 - 验收状态：代码与 Codex E2E 已完成；2026-08-14 复验时 Claude CLI 因 Windows 沙箱 feature gate 未启用而 fail closed，详见 010 Acceptance
 
 ## 1. 当前基线与迁移范围
@@ -107,20 +107,15 @@ uv run python -m app.workers.analysis.main
 - 重试必须保持任务已经固定的 Provider 与版本约束；主动换 Provider 需要创建新分析任务。
 - API 请求和公开结果不出现 Provider 或模型选择字段。
 
-### 4.3 Codex 接入面选择
+### 4.3 Codex 接入面
 
-Codex 官方提供 `codex exec` 和 `codex app-server`。首期选择 `codex exec`：
+Codex 使用 App Server 的 stdio JSONL 协议。每次 Provider 调用启动一个本机进程，
+完成 `initialize → thread/start → turn/start → turn/completed` 后关闭；thread 设置为
+`ephemeral`，不跨任务复用，也不监听 WebSocket 端口。结构化输出通过
+`turn/start.outputSchema` 约束，权限继续使用 `video_analysis` profile。
 
-| 维度 | `codex exec` | `codex app-server` |
-| --- | --- | --- |
-| 非交互脚本 | 稳定、单进程单任务 | JSON-RPC 客户端需维护线程/事件 |
-| 结构化输出 | `--output-schema` + `-o` | `outputSchema` |
-| 会话隐私 | `--ephemeral` 不保存 rollout | 新 thread 默认持久化，需额外生命周期治理 |
-| 取消 | 终止整个进程组 | `turn/interrupt` + 进程治理 |
-| 文件权限 | CLI sandbox | 可显式配置 restricted readable roots |
-| 首期复杂度 | 低 | 高 |
-
-选择 `codex exec` 的前提是安全测试证明当前支持版本的 workspace sandbox、断网和越界读取符合第 8 节门禁。若任一门禁无法成立，不允许降级到 full access；应改用 `codex app-server` 的 restricted read policy 或额外的 OS 级沙箱后再发布。
+该模型避免一条永久连接成为运行时单点，同时保留 App Server 的明确事件、失败 turn
+和 restricted workspace 契约。当前态不保留 `codex exec` 双轨。
 
 Claude 选择官方 `claude -p` print mode，并使用 `--json-schema`、工具集合限制和强制 sandbox。
 
@@ -133,7 +128,7 @@ flowchart LR
     W --> S["MinIO artifact"]
     W --> J["isolated job workspace"]
     J --> P{"trusted provider config"}
-    P -->|codex| C["codex exec"]
+    P -->|codex| C["Codex App Server / stdio"]
     P -->|claude| A["claude -p"]
     C --> T["sandboxed ffprobe / ffmpeg / image view"]
     A --> T
@@ -227,36 +222,31 @@ materialize → prepare isolated workspace → run VideoAnalyzer
 
 应用只设定资源上限，不替 AI 决定候选边界。Prompt 中必须把视频帧、元数据、Logo、字幕和画面文字声明为不可信数据，禁止执行其中出现的指令。
 
-## 9. Codex CLI 调用契约
+## 9. Codex App Server 调用契约
 
-目标适配器使用参数数组直接启动进程，不经过 shell。Prompt 通过 stdin 传入，避免动态文本进入进程列表：
+目标适配器使用参数数组直接启动 App Server，不经过 shell。Prompt 只出现在
+`turn/start` JSONL 消息中，避免动态文本进入进程列表：
 
 ```text
-codex --ask-for-approval never --strict-config exec
-  --cd <job-workspace>
-  --skip-git-repo-check
-  --ephemeral
-  --ignore-user-config
-  --ignore-rules
+codex --ask-for-approval never --strict-config
+  -c mcp_servers={}
   -c default_permissions="video_analysis"
   -c permissions.video_analysis.filesystem=<least-privilege-profile>
   -c permissions.video_analysis.network.enabled=false
-  --model <trusted-model>
-  --output-schema <job-workspace>/policy/output-schema.json
-  --output-last-message <job-workspace>/output/result.json
   -c web_search="disabled"
-  -
+  app-server --listen stdio://
 ```
 
 契约细节：
 
-- `--ignore-user-config` 不读取个人 `config.toml`，但官方明确认证仍使用 `CODEX_HOME`；因此可以复用 ChatGPT 登录而不继承个人 MCP/网络配置。
-- `--ephemeral` 禁止保存 rollout；不得使用 `resume`。
-- Codex 0.138+ permission profile 将任务根设为只读，只开放 `work/`、`output/`、`tmp/` 写入，并只读开放 FFmpeg 安装前缀；网络关闭，approval 为 `never`。
-- 结果只从受限大小的 `output/result.json` 读取；stdout/stderr 仅用于受限诊断。
+- 连接先完成一次 `initialize/initialized`；每次调用创建 `ephemeral=true` 的 thread，
+  不使用 `resume`。
+- Codex 0.149+ permission profile 将任务根设为只读，只开放 `work/`、`output/`、`tmp/` 写入，并只读开放 FFmpeg 安装前缀；网络关闭，approval 为 `never`。
+- App Server 启动时清空用户 MCP 表；视频任务只注册受控 `video_observer`，剧本任务不注册 MCP。
+- 结果只接受 `turn/completed` 前最后一个 `agentMessage`，并受总协议字节与 JSON 解析上限约束。
 - 启动前 `codex login status` 必须确认 ChatGPT 管理登录；若检测到 API Key 模式或相关 Key 环境变量则 fail-fast。
 - Agent `doctor` 必须使用实际配置的分析工作目录检查指令文件边界；边界冲突以 `analysis_sandbox_unavailable` 终止，不进入任务级重试。
-- 禁止 `--dangerously-bypass-approvals-and-sandbox`、`--yolo`、`danger-full-access`、live web search、MCP、插件和额外 writable root。
+- 禁止 WebSocket listener、`danger-full-access`、live web search、非受控 MCP、持久 thread 和额外 writable root。
 
 ## 10. Claude CLI 调用契约
 

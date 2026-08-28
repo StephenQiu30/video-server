@@ -1,22 +1,22 @@
-"""Export a browser session into a provider-scoped Docker secret."""
+"""Read and minimize one browser session into a provider-scoped secret."""
 
 from __future__ import annotations
 
-import argparse
-import hashlib
 import os
 import re
 import stat
 import tempfile
-import time
 from collections.abc import Callable, Iterable
 from http.cookiejar import Cookie, CookieJar, MozillaCookieJar
 from pathlib import Path
-from typing import cast
-
-from yt_dlp import YoutubeDL  # type: ignore[import-untyped]
 
 from app.domain.providers import ProviderAccessMode
+from app.runner.browser_cookie_source import (
+    browser_profile_candidates as _browser_profile_candidates,
+)
+from app.runner.browser_cookie_source import (
+    load_browser_cookies as _load_browser_cookies,
+)
 from app.runner.provider_registry import ProviderProfile, default_provider_registry
 
 _VERSION = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
@@ -42,12 +42,10 @@ _AUTH_COOKIE_NAMES = {
     "wechat_channels": frozenset({"hy_user", "hy_token"}),
 }
 type CookieLoader = Callable[[str, str | None], CookieJar]
-type Reporter = Callable[[str], None]
-type Sleeper = Callable[[float], None]
 
 
-def _print_report(message: str) -> None:
-    print(message, flush=True)
+class BrowserLoginRequiredError(ValueError):
+    pass
 
 
 def export_browser_cookies(
@@ -66,7 +64,11 @@ def export_browser_cookies(
         raise ValueError("browser must be Chrome, Chromium, or Firefox")
     root = _secure_directory(output_root.expanduser())
     provider_dir = _secure_directory(root / provider)
-    jar = (cookie_loader or _load_browser_cookies)(browser, profile)
+    jar = (
+        cookie_loader(browser, profile)
+        if cookie_loader is not None
+        else _load_provider_browser_cookies(provider, browser, profile)
+    )
     cookies = tuple(
         cookie
         for cookie in jar
@@ -81,73 +83,58 @@ def export_browser_cookies(
         else bool(required_names & cookie_names)
     )
     if not cookies or not has_required_cookie:
-        raise ValueError(f"{provider} browser login cookie was not found")
+        raise BrowserLoginRequiredError(
+            f"{provider} browser login cookie was not found"
+        )
     target = provider_dir / f"{version}.cookies.txt"
     _write_cookie_jar(target, cookies)
     return target, len(cookies)
 
 
-def watch_browser_cookies(
-    *,
+def supported_browser_session_providers() -> tuple[str, ...]:
+    return tuple(sorted(_AUTH_COOKIE_NAMES))
+
+
+def _load_provider_browser_cookies(
     provider: str,
     browser: str,
     profile: str | None,
-    version: str,
-    output_root: Path,
-    interval_seconds: float,
-    cookie_loader: CookieLoader | None = None,
-    reporter: Reporter = _print_report,
-    sleeper: Sleeper = time.sleep,
-    max_cycles: int | None = None,
-) -> None:
-    """Keep a provider-scoped Docker secret aligned with a host browser session."""
-
-    if interval_seconds < 5:
-        raise ValueError("watch interval must be at least 5 seconds")
-    if max_cycles is not None and max_cycles < 1:
-        raise ValueError("max cycles must be positive")
-    target = output_root.expanduser() / provider / f"{version}.cookies.txt"
-    previous_digest = _file_digest(target)
-    cycles = 0
-    while True:
+) -> CookieJar:
+    if profile is not None:
+        return _load_browser_cookies(browser, profile)
+    candidates = _browser_profile_candidates(browser)
+    if not candidates:
+        return _load_browser_cookies(browser, None)
+    fallback: CookieJar | None = None
+    last_error: OSError | None = None
+    for candidate in candidates:
         try:
-            refreshed, count = export_browser_cookies(
-                provider=provider,
-                browser=browser,
-                profile=profile,
-                version=version,
-                output_root=output_root,
-                cookie_loader=cookie_loader,
-            )
-            current_digest = _file_digest(refreshed)
-            if current_digest != previous_digest:
-                reporter(
-                    f"refreshed provider={provider} cookies={count} version={version}"
-                )
-            previous_digest = current_digest
-        except (OSError, ValueError) as exc:
-            # Keep the last known-good file in place. Never include browser
-            # paths, cookie values, or the underlying exception message in the
-            # long-running bridge log. An initial login may still be pending,
-            # so the bridge remains alive and retries instead of requiring a
-            # separate export command.
-            reporter(f"refresh_failed provider={provider} reason={type(exc).__name__}")
-        cycles += 1
-        if max_cycles is not None and cycles >= max_cycles:
-            return
-        sleeper(interval_seconds)
+            jar = _load_browser_cookies(browser, str(candidate))
+        except OSError as exc:
+            last_error = exc
+            continue
+        fallback = jar
+        if _has_provider_login_cookie(provider, jar):
+            return jar
+    if fallback is not None:
+        return fallback
+    if last_error is not None:
+        raise last_error
+    return _load_browser_cookies(browser, None)
 
 
-def _load_browser_cookies(browser: str, profile: str | None) -> CookieJar:
-    specification = (browser, profile, None, None)
-    with YoutubeDL(
-        {
-            "cookiesfrombrowser": specification,
-            "quiet": True,
-            "no_warnings": True,
-        }
-    ) as ydl:
-        return cast(CookieJar, ydl.cookiejar)
+def _has_provider_login_cookie(provider: str, jar: CookieJar) -> bool:
+    required = _AUTH_COOKIE_NAMES.get(provider, frozenset())
+    profile = _operator_profile(provider)
+    names = {
+        cookie.name
+        for cookie in jar
+        if not cookie.is_expired()
+        and _domain_allowed(cookie.domain, profile.cookie_domain_allowlist)
+    }
+    return (
+        required <= names if provider == "wechat_channels" else bool(required & names)
+    )
 
 
 def _operator_profile(provider: str) -> ProviderProfile:
@@ -201,58 +188,3 @@ def _write_cookie_jar(target: Path, cookies: Iterable[Cookie]) -> None:
                 os.chmod(target, stat.S_IRUSR)
     finally:
         temporary.unlink(missing_ok=True)
-
-
-def _file_digest(path: Path) -> bytes | None:
-    try:
-        return hashlib.sha256(path.read_bytes()).digest()
-    except FileNotFoundError:
-        return None
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Export provider-scoped browser cookies for Docker Runner",
-    )
-    parser.add_argument(
-        "--provider",
-        required=True,
-        choices=tuple(sorted(_AUTH_COOKIE_NAMES)),
-    )
-    parser.add_argument(
-        "--browser", default="chrome", choices=("chrome", "chromium", "firefox")
-    )
-    parser.add_argument("--profile")
-    parser.add_argument("--version", required=True)
-    parser.add_argument("--output-root", required=True, type=Path)
-    parser.add_argument(
-        "--watch-interval-seconds",
-        type=float,
-        help=(
-            "Continuously refresh the provider-scoped secret from the current "
-            "browser login. Intended for a trusted local development host."
-        ),
-    )
-    arguments = parser.parse_args()
-    if arguments.watch_interval_seconds is not None:
-        watch_browser_cookies(
-            provider=arguments.provider,
-            browser=arguments.browser,
-            profile=arguments.profile,
-            version=arguments.version,
-            output_root=arguments.output_root,
-            interval_seconds=arguments.watch_interval_seconds,
-        )
-        return
-    target, count = export_browser_cookies(
-        provider=arguments.provider,
-        browser=arguments.browser,
-        profile=arguments.profile,
-        version=arguments.version,
-        output_root=arguments.output_root,
-    )
-    print(f"exported provider={arguments.provider} cookies={count} target={target}")
-
-
-if __name__ == "__main__":
-    main()

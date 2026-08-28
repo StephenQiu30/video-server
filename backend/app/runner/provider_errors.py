@@ -206,6 +206,12 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
     FailureRule(
         "extractor_regression",
         502,
+        any_stderr=(b"wechat channels resolver returned an unsupported url",),
+        providers=frozenset({"wechat_channels"}),
+    ),
+    FailureRule(
+        "extractor_regression",
+        502,
         any_stderr=(
             b"cannot parse data",
             b"facebook post media structure could not be identified",

@@ -10,9 +10,10 @@ from app.infrastructure.ai_cli import (
     AnalysisCliError,
     ClaudeCliVideoAnalyzer,
     CliAdapterConfig,
-    CodexCliVideoAnalyzer,
+    CodexAppServerVideoAnalyzer,
 )
 from tests.unit.infrastructure.ai_cli.helpers import (
+    FakeCodexAppServer,
     FakeSupervisor,
     request,
     screenplay_glossary_request,
@@ -37,39 +38,20 @@ def config() -> CliAdapterConfig:
 
 
 @pytest.mark.asyncio
-async def test_codex_uses_stdin_and_global_approval_flag(tmp_path: Path) -> None:
-    supervisor = FakeSupervisor(provider="codex")
-    analyzer = CodexCliVideoAnalyzer(config(), supervisor=supervisor)  # type: ignore[arg-type]
+async def test_codex_uses_app_server_with_structured_ephemeral_call(
+    tmp_path: Path,
+) -> None:
+    client = FakeCodexAppServer()
+    analyzer = CodexAppServerVideoAnalyzer(config(), client=client)
 
     payload = await analyzer.analyze(request(tmp_path))
 
     assert payload == valid_mapping()
-    assert supervisor.argv[:4] == (
-        sys.executable,
-        "--ask-for-approval",
-        "never",
-        "--strict-config",
-    )
-    assert "exec" in supervisor.argv
-    assert supervisor.argv.index("--ignore-user-config") < supervisor.argv.index(
-        'default_permissions="video_analysis"'
-    )
-    assert "--sandbox" not in supervisor.argv
-    assert 'default_permissions="video_analysis"' in supervisor.argv
-    assert not any("danger-full-access" in item for item in supervisor.argv)
-    assert any(":workspace_roots" in item for item in supervisor.argv)
-    assert "permissions.video_analysis.network.enabled=false" in supervisor.argv
-    assert "mcp_servers.video_observer.required=true" in supervisor.argv
-    assert any(
-        item.startswith("mcp_servers.video_observer.enabled_tools=[")
-        for item in supervisor.argv
-    )
-    assert supervisor.argv[-1] == "-"
-    assert supervisor.input_bytes is not None
-    assert b"input/video.bin" in supervisor.input_bytes
-    assert "完整视频已通过 video_observer 工具交给你".encode() in supervisor.input_bytes
-    assert all("input/video.bin" not in item for item in supervisor.argv)
-    assert _has_no_api_keys(supervisor.environment)
+    assert client.root == tmp_path / "job"
+    assert client.duration_ms == 2_000
+    assert "input/video.bin" in client.prompt
+    assert "完整视频已通过 video_observer 工具交给你" in client.prompt
+    assert isinstance(client.schema, dict)
 
 
 @pytest.mark.asyncio
@@ -115,24 +97,16 @@ async def test_claude_screenplay_is_single_turn_and_disables_all_tools(
 
 @pytest.mark.asyncio
 async def test_codex_screenplay_is_structured_and_has_no_tools(tmp_path: Path) -> None:
-    supervisor = FakeSupervisor(provider="codex", payload=valid_screenplay_mapping())
-    analyzer = CodexCliVideoAnalyzer(config(), supervisor=supervisor)  # type: ignore[arg-type]
+    client = FakeCodexAppServer(valid_screenplay_mapping())
+    analyzer = CodexAppServerVideoAnalyzer(config(), client=client)
     screenplay = screenplay_request(tmp_path)
 
     payload = await analyzer.analyze_screenplay(screenplay)
 
     assert payload == valid_screenplay_mapping()
-    assert "--output-schema" in supervisor.argv
-    assert "--output-last-message" in supervisor.argv
-    assert "permissions.video_analysis.network.enabled=false" in supervisor.argv
-    assert not any("video_observer" in item for item in supervisor.argv)
-    assert supervisor.input_bytes is not None
-    assert (
-        json.dumps(screenplay.screenplay_text, ensure_ascii=False).encode()
-        in supervisor.input_bytes
-    )
-    assert all(screenplay.screenplay_text not in value for value in supervisor.argv)
-    assert _has_no_api_keys(supervisor.environment)
+    assert client.duration_ms is None
+    assert json.dumps(screenplay.screenplay_text, ensure_ascii=False) in client.prompt
+    assert isinstance(client.schema, dict)
 
 
 @pytest.mark.asyncio
@@ -142,23 +116,29 @@ async def test_screenplay_synthesis_uses_validated_chunk_results_without_tools(
 ) -> None:
     payload = valid_screenplay_mapping()
     payload.pop("scenes")
-    supervisor = FakeSupervisor(provider=provider, payload=payload)
-    analyzer_type = (
-        CodexCliVideoAnalyzer if provider == "codex" else ClaudeCliVideoAnalyzer
+    supervisor = FakeSupervisor(provider="claude", payload=payload)
+    client = FakeCodexAppServer(payload)
+    analyzer = (
+        CodexAppServerVideoAnalyzer(config(), client=client)
+        if provider == "codex"
+        else ClaudeCliVideoAnalyzer(config(), supervisor=supervisor)  # type: ignore[arg-type]
     )
-    analyzer = analyzer_type(config(), supervisor=supervisor)  # type: ignore[arg-type]
     request_value = screenplay_synthesis_request(tmp_path)
 
     result = await analyzer.synthesize_screenplay_analysis(request_value)
 
     assert result == payload
-    assert supervisor.input_bytes is not None
-    assert request_value.chunk_results_json.encode() in supervisor.input_bytes
-    assert all(
-        request_value.chunk_results_json not in value for value in supervisor.argv
-    )
-    assert not any("video_observer" in item for item in supervisor.argv)
-    assert _has_no_api_keys(supervisor.environment)
+    if provider == "codex":
+        assert request_value.chunk_results_json in client.prompt
+        assert client.duration_ms is None
+    else:
+        assert supervisor.input_bytes is not None
+        assert request_value.chunk_results_json.encode() in supervisor.input_bytes
+        assert all(
+            request_value.chunk_results_json not in value for value in supervisor.argv
+        )
+        assert not any("video_observer" in item for item in supervisor.argv)
+        assert _has_no_api_keys(supervisor.environment)
 
 
 @pytest.mark.asyncio
@@ -168,15 +148,16 @@ async def test_screenplay_accepts_valid_result_when_diagnostic_stderr_is_truncat
 ) -> None:
     payload = valid_screenplay_mapping()
     supervisor = FakeSupervisor(
-        provider=provider,
+        provider="claude",
         payload=payload,
         stderr=b"bounded diagnostic prefix",
         stderr_truncated=True,
     )
-    analyzer_type = (
-        CodexCliVideoAnalyzer if provider == "codex" else ClaudeCliVideoAnalyzer
+    analyzer = (
+        CodexAppServerVideoAnalyzer(config(), client=FakeCodexAppServer(payload))
+        if provider == "codex"
+        else ClaudeCliVideoAnalyzer(config(), supervisor=supervisor)  # type: ignore[arg-type]
     )
-    analyzer = analyzer_type(config(), supervisor=supervisor)  # type: ignore[arg-type]
 
     result = await analyzer.analyze_screenplay(screenplay_request(tmp_path))
 
@@ -187,13 +168,8 @@ async def test_screenplay_accepts_valid_result_when_diagnostic_stderr_is_truncat
 async def test_codex_classifies_failed_schema_before_stderr_truncation(
     tmp_path: Path,
 ) -> None:
-    supervisor = FakeSupervisor(
-        provider="codex",
-        returncode=1,
-        stderr=b'{"code":"invalid_json_schema"}',
-        stderr_truncated=True,
-    )
-    analyzer = CodexCliVideoAnalyzer(config(), supervisor=supervisor)  # type: ignore[arg-type]
+    client = FakeCodexAppServer(error=AnalysisCliError("analysis_cli_unsupported"))
+    analyzer = CodexAppServerVideoAnalyzer(config(), client=client)
 
     with pytest.raises(AnalysisCliError) as error:
         await analyzer.analyze_screenplay(screenplay_request(tmp_path))
@@ -254,15 +230,17 @@ async def test_codex_builds_screenplay_glossary_without_tools(tmp_path: Path) ->
         "terms": [{"source": "林舟", "target": "Lin Zhou", "category": "character"}],
         "style_rules": ["Use concise screenplay English."],
     }
-    supervisor = FakeSupervisor(provider="codex", payload=payload)
-    analyzer = CodexCliVideoAnalyzer(config(), supervisor=supervisor)  # type: ignore[arg-type]
+    client = FakeCodexAppServer(payload)
+    analyzer = CodexAppServerVideoAnalyzer(config(), client=client)
     request_value = screenplay_glossary_request(tmp_path)
 
     result = await analyzer.build_screenplay_glossary(request_value)
 
     assert result == payload
-    assert not any("video_observer" in item for item in supervisor.argv)
-    assert supervisor.input_bytes is not None
+    assert client.duration_ms is None
+    assert (
+        json.dumps(request_value.screenplay_text, ensure_ascii=False) in client.prompt
+    )
 
 
 @pytest.mark.asyncio
@@ -310,14 +288,14 @@ async def test_codex_rewrites_one_hash_bound_chunk_without_tools(
         "rewritten_text": "LIN ZHOU discovers that the ending is missing.\n",
         "change_summary": ["Localized the character name."],
     }
-    supervisor = FakeSupervisor(provider="codex", payload=payload)
-    analyzer = CodexCliVideoAnalyzer(config(), supervisor=supervisor)  # type: ignore[arg-type]
+    client = FakeCodexAppServer(payload)
+    analyzer = CodexAppServerVideoAnalyzer(config(), client=client)
 
     result = await analyzer.rewrite_screenplay_chunk(request_value)
 
     assert result == payload
-    assert not any("video_observer" in item for item in supervisor.argv)
-    assert supervisor.input_bytes is not None
+    assert client.duration_ms is None
+    assert json.dumps(request_value.source_text, ensure_ascii=False) in client.prompt
 
 
 def _has_no_api_keys(environment: dict[str, str]) -> bool:

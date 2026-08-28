@@ -37,7 +37,7 @@ if [ "$youtube_configured" = true ] && \
   [ -n "$youtube_version" ] && \
   [ "$youtube_attested" = true ]; then
   case "$youtube_version" in
-    browser-*) "$script_dir/youtube-cookie-bridge.sh" start ;;
+    browser-*) "$script_dir/provider-session-broker.sh" youtube start ;;
   esac
   set -- "$@" --profile youtube-operator
   echo "YouTube browser-session fallback enabled."
@@ -48,7 +48,7 @@ if [ "$wechat_configured" = true ] && \
   wechat_version=${wechat_version:-browser-live}
   export WECHAT_CHANNELS_COOKIE_VERSION="$wechat_version"
   case "$wechat_version" in
-    browser-*) "$script_dir/provider-cookie-bridge.sh" wechat_channels start ;;
+    browser-*) "$script_dir/provider-session-broker.sh" wechat_channels start ;;
   esac
   set -- "$@" --profile wechat-channels-operator
   echo "WeChat Channels public-link resolver enabled."

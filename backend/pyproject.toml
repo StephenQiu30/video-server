@@ -20,6 +20,7 @@ dependencies = [
   "valkey>=6.1,<7",
   "sqlalchemy[asyncio]>=2.0,<3",
   "uvicorn[standard]>=0.34,<1",
+  "websockets>=16.1,<17",
   "yt-dlp[default,curl-cffi] @ https://github.com/yt-dlp/yt-dlp/archive/5d6b8c8cd19785c3086ae3a9ec618c45e25eb3bc.tar.gz",
   "python-docx>=1.2,<2",
   "markdown-it-py>=4,<5",

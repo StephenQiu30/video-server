@@ -17,16 +17,15 @@
 - 已确认固定出口和账号风险；当前出口若仍处于 bot challenge，不把真实账号会话投入高并发重试。
 - 已记录 yt-dlp commit、EJS、POT Provider、Profile version 和脱敏 egress affinity，不记录账号、Cookie、完整 URL 或出口地址。
 
-推荐导出流程遵循 yt-dlp 官方 YouTube Cookie 指南：在新的私密窗口登录，在唯一标签打开 `https://www.youtube.com/robots.txt`，只导出 YouTube 域 Cookie，随后关闭并不再使用该私密会话。不要自动化密码、2FA 或浏览器 profile。
-
-受信任的 macOS 本地开发机可以选择连续桥接当前 Chrome 登录态，以跟随 YouTube 对打开标签的 Cookie 轮换：
+受信任的 macOS 本地开发机由 Provider Session Broker 自动读取并最小化当前 Chrome
+登录态，以跟随 YouTube Cookie 轮换。用户不运行导出命令，也不复制 Cookie：
 
 ```bash
-./scripts/youtube-cookie-bridge.sh start
-./scripts/youtube-cookie-bridge.sh status
+./scripts/provider-session-broker.sh youtube start
+./scripts/provider-session-broker.sh youtube status
 ```
 
-桥接运行在宿主机，只输出 Provider、数量、版本和稳定错误类型；不会把完整 Profile、Keychain、Cookie 值或其他网站 Cookie 暴露给 Docker。该模式仅用于本地开发，不替代生产环境的独立私密会话和不可变版本轮换。
+Broker 运行在宿主机，只输出 Provider、数量、版本和稳定状态；不会把完整 Profile、Keychain、Cookie 值或其他网站 Cookie 暴露给 Docker。该模式仅用于本地开发，不替代生产环境的独立私密会话和不可变版本轮换。
 
 ## 2. 导入不可变 Secret
 

@@ -18,7 +18,7 @@ from app.infrastructure.ai_cli import (
     AnalysisCliError,
     ClaudeCliVideoAnalyzer,
     CliAdapterConfig,
-    CodexCliVideoAnalyzer,
+    CodexAppServerVideoAnalyzer,
     preflight,
 )
 from app.infrastructure.ai_cli.environment import minimum_host_environment
@@ -26,7 +26,7 @@ from app.infrastructure.ai_cli.environment import minimum_host_environment
 
 @dataclass(frozen=True, slots=True)
 class AnalyzerRuntime:
-    analyzer: CodexCliVideoAnalyzer | ClaudeCliVideoAnalyzer
+    analyzer: CodexAppServerVideoAnalyzer | ClaudeCliVideoAnalyzer
     provider: str
     model: str
     cli_version: str
@@ -99,9 +99,9 @@ def build_video_analyzer(
         terminate_grace_seconds=settings.analysis_terminate_grace_seconds,
         max_turns=settings.analysis_claude_max_turns,
     )
-    analyzer: CodexCliVideoAnalyzer | ClaudeCliVideoAnalyzer
+    analyzer: CodexAppServerVideoAnalyzer | ClaudeCliVideoAnalyzer
     if provider == "codex":
-        analyzer = CodexCliVideoAnalyzer(config)
+        analyzer = CodexAppServerVideoAnalyzer(config)
     else:
         analyzer = ClaudeCliVideoAnalyzer(config)
     return AnalyzerRuntime(analyzer, provider, model, capabilities.version)
@@ -158,9 +158,9 @@ def _build_profile_analyzer(
         extra_environment=extra_environment,
         provider_arguments=provider_arguments,
     )
-    analyzer: CodexCliVideoAnalyzer | ClaudeCliVideoAnalyzer
+    analyzer: CodexAppServerVideoAnalyzer | ClaudeCliVideoAnalyzer
     if profile.engine is AiProviderEngine.CODEX:
-        analyzer = CodexCliVideoAnalyzer(config)
+        analyzer = CodexAppServerVideoAnalyzer(config)
     else:
         analyzer = ClaudeCliVideoAnalyzer(config)
     return AnalyzerRuntime(analyzer, profile.key, profile.model, capabilities.version)

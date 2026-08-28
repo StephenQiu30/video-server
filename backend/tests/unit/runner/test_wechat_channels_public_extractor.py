@@ -141,7 +141,7 @@ def test_rejects_invalid_resolver_output_and_protected_media(
         monkeypatch,
         [feed_payload(), {"code": 0, "data": {"playable_url": "https://evil.test/"}}],
     )
-    with pytest.raises(ExtractorError, match="cookies are no longer valid"):
+    with pytest.raises(ExtractorError, match="resolver returned an unsupported URL"):
         invalid._real_extract(SHARE_URL)
 
     protected, _ = configured_extractor(
@@ -174,7 +174,7 @@ def test_parser_helpers_fail_closed() -> None:
         {
             "playable_url": (
                 "https://channels.weixin.qq.com/finder-preview/pages/feed"
-                "?token=t&eid=e"
+                "?token=t&eid=e&appid=wx123&entry_scene=resolver"
             )
         }
     ) == ("t", "e")
@@ -182,6 +182,14 @@ def test_parser_helpers_fail_closed() -> None:
         {
             "playable_url": (
                 "https://channels.weixin.qq.com/finder-preview/pages/feed?token=t"
+            )
+        }
+    ) is None
+    assert playable_parameters(
+        {
+            "playable_url": (
+                "https://channels.weixin.qq.com/finder-preview/pages/feed"
+                "?token=first&token=second&eid=e"
             )
         }
     ) is None

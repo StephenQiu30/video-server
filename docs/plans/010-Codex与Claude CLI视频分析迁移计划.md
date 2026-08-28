@@ -112,7 +112,7 @@ backend/app/infrastructure/ai_cli/
 
 ### 工作项
 
-1. 实现 `CodexCliVideoAnalyzer(VideoAnalyzer)`，通过 `ProcessSupervisor` 调用参数数组，不使用 shell。
+1. 实现 `CodexAppServerVideoAnalyzer(VideoAnalyzer)`，通过有界 stdio JSONL 客户端调用 App Server，不使用 shell。
 2. 生成固定调用：
 
 ```text
@@ -135,12 +135,12 @@ codex --ask-for-approval never exec
 3. Prompt 通过 stdin；结果只从任务目录的受限 regular file 读取并 JSON decode。
 4. 解析 CLI 非零退出、认证、限流、用量、sandbox、超时和 output-schema 失败，映射公共错误。
 5. `--ignore-user-config` 后仍复用 `CODEX_HOME` 认证，但禁止传入 `OPENAI_API_KEY`、`CODEX_API_KEY` 或用户 MCP/插件配置。
-6. 添加安全 capability fixture，证明模型命令无网络、无工作区外写入且不能读取被保护目录。若当前 `codex exec` 无法满足读取隔离，停止发布并切换到 `codex app-server` restricted read policy 或外层 OS sandbox；不得改用 full access。
+6. 添加安全 capability fixture，证明 App Server permission profile 无网络、无工作区外写入且不能读取被保护目录；不得改用 full access。
 
 ### 验证
 
 - fake Codex 精确断言 argv 顺序、stdin、cwd、环境和结果文件。
-- `codex exec --ask-for-approval never ...` 这种错误 flag 顺序必须有回归测试；全局 flag 必须位于 `exec` 前。
+- App Server 必须回归测试 `initialize`、ephemeral thread、结构化 turn 和完成事件顺序。
 - session rollout 不落盘，任务取消后无 Codex/FFmpeg 进程。
 - 输出合法但 shot evidence 非法时仍由领域层拒绝。
 

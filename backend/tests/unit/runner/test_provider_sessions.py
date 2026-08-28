@@ -163,26 +163,32 @@ async def test_failure_and_concurrent_operations_cleanup_and_isolate(
         b"# Netscape HTTP Cookie File\n",
     ],
 )
-def test_rejects_invalid_cookie_sources(tmp_path: Path, payload: bytes) -> None:
+async def test_rejects_invalid_cookie_sources(tmp_path: Path, payload: bytes) -> None:
     settings = operator_settings(tmp_path)
     write_cookie(settings, payload)
+    store = ProviderSessionStore(settings)
+    context = store.context_for("https://youtu.be/owned")
 
     with pytest.raises(RunnerFailure) as caught:
-        ProviderSessionStore(settings)
+        async with store.operation(context):
+            pass
 
     assert caught.value.code == "credential_rejected"
 
 
-def test_rejects_symlink_cookie_source(tmp_path: Path) -> None:
+async def test_rejects_symlink_cookie_source(tmp_path: Path) -> None:
     settings = operator_settings(tmp_path)
     target = tmp_path / "target.cookies.txt"
     target.write_bytes(COOKIE)
     source = settings.runner_provider_secret_root / "youtube" / "version-1.cookies.txt"
     source.parent.mkdir(parents=True)
     source.symlink_to(target)
+    store = ProviderSessionStore(settings)
+    context = store.context_for("https://youtu.be/owned")
 
     with pytest.raises(RunnerFailure) as caught:
-        ProviderSessionStore(settings)
+        async with store.operation(context):
+            pass
 
     assert caught.value.code == "credential_rejected"
 
@@ -198,7 +204,9 @@ def test_operator_context_cannot_cross_provider(tmp_path: Path) -> None:
     assert caught.value.code == "provider_session_not_allowed"
 
 
-def test_tiktok_operator_accepts_only_tiktok_cookie_domains(tmp_path: Path) -> None:
+async def test_tiktok_operator_accepts_only_tiktok_cookie_domains(
+    tmp_path: Path,
+) -> None:
     values = dict(
         runner_hmac_secret=SECRET,
         runner_egress_proxy="http://egress-proxy:3128",
@@ -228,8 +236,21 @@ def test_tiktok_operator_accepts_only_tiktok_cookie_domains(tmp_path: Path) -> N
             b"# Netscape HTTP Cookie File\n"
             b".example.com\tTRUE\t/\tTRUE\t0\tSID\twrong-domain\n"
         )
-        ProviderSessionStore(settings)
+        async with store.operation(context):
+            pass
     assert caught.value.code == "credential_rejected"
+
+
+async def test_missing_cookie_does_not_prevent_runner_startup(tmp_path: Path) -> None:
+    settings = operator_settings(tmp_path)
+    store = ProviderSessionStore(settings)
+    context = store.context_for("https://youtu.be/owned")
+
+    with pytest.raises(RunnerFailure) as caught:
+        async with store.operation(context):
+            pass
+
+    assert caught.value.code == "credential_required"
 
 
 async def test_retained_version_can_finish_but_unlisted_version_is_revoked(

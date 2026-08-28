@@ -16,6 +16,7 @@ from app.domain.analysis import (
     ScreenplayGlossaryTerm,
     ScreenplayRewriteGlossary,
 )
+from app.infrastructure.ai_cli.errors import AnalysisCliError
 from app.runner.process import ProcessResult
 from tests.unit.workers.analysis.fixtures import (
     valid_mapping,
@@ -165,3 +166,34 @@ class FakeSupervisor:
 
 def screenplay_supervisor() -> FakeSupervisor:
     return FakeSupervisor(provider="claude", payload=valid_screenplay_mapping())
+
+
+class FakeCodexAppServer:
+    def __init__(
+        self,
+        payload: object | None = None,
+        *,
+        error: AnalysisCliError | None = None,
+    ) -> None:
+        self.payload = payload if payload is not None else valid_mapping()
+        self.error = error
+        self.root: Path | None = None
+        self.prompt = ""
+        self.schema: object = None
+        self.duration_ms: int | None = None
+
+    async def invoke(
+        self,
+        *,
+        root: Path,
+        prompt: str,
+        schema: object,
+        duration_ms: int | None,
+    ) -> object:
+        self.root = root
+        self.prompt = prompt
+        self.schema = schema
+        self.duration_ms = duration_ms
+        if self.error is not None:
+            raise self.error
+        return self.payload

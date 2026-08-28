@@ -47,7 +47,7 @@ docker compose --env-file .env -f docker-compose-env.yml up -d
 
 最后一条命令是本机完整项目的启动与重启入口。它统一构建前端与后端镜像、
 重新创建业务服务并等待健康检查；当 `.env` 已配置 `browser-*` YouTube 会话、
-受控 Runner 地址和安全基线确认时，还会先启动宿主机 Cookie 桥接并自动启用
+受控 Runner 地址和安全基线确认时，还会先启动宿主机 Session Broker 并自动启用
 `youtube-operator` Profile。不要使用不会应用代码、镜像或配置变化的
 `docker compose restart`。
 

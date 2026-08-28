@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from app.application.analysis_execution import (
     ScreenplayAnalysisRequest,
     ScreenplayAnalysisSynthesisRequest,
@@ -9,35 +7,26 @@ from app.application.analysis_execution import (
     ScreenplayRewriteChunkRequest,
     VideoAnalysisRequest,
 )
-from app.runner.process import ProcessSupervisor, ProcessTimeoutError
 
-from .codex_mcp import video_observer_arguments
-from .codex_policy import codex_permission_arguments
-from .codex_screenplay import CodexCliScreenplayAnalyzer
+from .codex_app_server_client import CodexAppServerClient
+from .codex_app_server_protocol import CodexAppServerInvoker
+from .codex_screenplay import CodexAppServerScreenplayAnalyzer
 from .config import CliAdapterConfig
-from .environment import child_environment
-from .errors import AnalysisCliError, classify_cli_failure
 from .prompt import analysis_prompt
 from .schema import analysis_output_schema
-from .workspace import prepare_job_files, read_result, run_with_workspace_policy
+from .workspace import prepare_job_files, run_with_workspace_policy
 
 
-class CodexCliVideoAnalyzer:
+class CodexAppServerVideoAnalyzer:
     def __init__(
         self,
         config: CliAdapterConfig,
         *,
-        supervisor: ProcessSupervisor | None = None,
+        client: CodexAppServerInvoker | None = None,
     ) -> None:
         self._config = config
-        self._supervisor = supervisor or ProcessSupervisor(
-            stdout_limit_bytes=config.max_stdout_bytes,
-            stderr_limit_bytes=config.max_stderr_bytes,
-            terminate_grace_seconds=config.terminate_grace_seconds,
-        )
-        self._screenplay = CodexCliScreenplayAnalyzer(
-            config, supervisor=self._supervisor
-        )
+        self._client = client or CodexAppServerClient(config)
+        self._screenplay = CodexAppServerScreenplayAnalyzer(config, client=self._client)
 
     async def analyze(self, request: VideoAnalysisRequest) -> object:
         schema = analysis_output_schema(
@@ -50,36 +39,15 @@ class CodexCliVideoAnalyzer:
             video_observer=True,
         )
         files = prepare_job_files(request, schema, prompt)
-        argv = self._argv(
-            files.root,
-            files.schema,
-            files.result,
-            request.duration_ms,
-        )
-        try:
-            result = await run_with_workspace_policy(
-                self._supervisor.run(
-                    argv,
-                    cwd=files.root,
-                    timeout_seconds=self._config.timeout_seconds,
-                    env=child_environment(self._config, files.root),
-                    input_bytes=prompt.encode(),
-                ),
+        return await run_with_workspace_policy(
+            self._client.invoke(
                 root=files.root,
-                config=self._config,
-            )
-        except ProcessTimeoutError as exc:
-            raise AnalysisCliError("analysis_cli_timeout") from exc
-        except OSError as exc:
-            raise AnalysisCliError("analysis_cli_unavailable") from exc
-        if result.returncode != 0:
-            raise classify_cli_failure(result.stderr)
-        if result.stdout_truncated:
-            raise AnalysisCliError("analysis_resource_limit")
-        return read_result(
-            files.result,
+                prompt=prompt,
+                schema=schema,
+                duration_ms=request.duration_ms,
+            ),
             root=files.root,
-            maximum=self._config.max_stdout_bytes,
+            config=self._config,
         )
 
     async def analyze_screenplay(self, request: ScreenplayAnalysisRequest) -> object:
@@ -99,40 +67,3 @@ class CodexCliVideoAnalyzer:
         self, request: ScreenplayRewriteChunkRequest
     ) -> object:
         return await self._screenplay.rewrite_chunk(request)
-
-    def _argv(
-        self,
-        root: Path,
-        schema: Path,
-        result: Path,
-        duration_ms: int,
-    ) -> tuple[str, ...]:
-        return (
-            str(self._config.binary),
-            "--ask-for-approval",
-            "never",
-            "--strict-config",
-            "exec",
-            "--cd",
-            str(root),
-            "--skip-git-repo-check",
-            "--ephemeral",
-            "--ignore-user-config",
-            "--ignore-rules",
-            *self._config.provider_arguments,
-            *video_observer_arguments(
-                self._config,
-                root=root,
-                duration_ms=duration_ms,
-            ),
-            *codex_permission_arguments(),
-            "--model",
-            self._config.model,
-            "--output-schema",
-            str(schema),
-            "--output-last-message",
-            str(result),
-            "-c",
-            'web_search="disabled"',
-            "-",
-        )

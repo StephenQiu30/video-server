@@ -71,6 +71,7 @@ class ProviderProfile:
     runtime_command_args: RuntimeCommandArgs = default_runtime_command_args
     inspection_attempts: int = 2
     inspection_retry_delay: float = 1.0
+    probe_authenticated_media: bool = False
     normalize_url: UrlNormalizer = identity_url
 
     def request_url(self, url: str, parsed: SplitResult) -> str:
@@ -126,6 +127,10 @@ class ProviderRegistry:
                 raise ValueError(f"provider {profile.key} has invalid session policy")
             if supports_operator != (profile.credential_concurrency > 0):
                 raise ValueError(f"provider {profile.key} has invalid session limit")
+            if profile.probe_authenticated_media and not supports_operator:
+                raise ValueError(
+                    f"provider {profile.key} cannot probe authenticated media"
+                )
             for host in profile.hosts:
                 if host in by_host:
                     raise ValueError(f"provider host is registered twice: {host}")

@@ -16,7 +16,7 @@ from app.core.config import Settings
 from app.infrastructure.ai_cli import (
     ClaudeCliVideoAnalyzer,
     CliCapabilities,
-    CodexCliVideoAnalyzer,
+    CodexAppServerVideoAnalyzer,
 )
 from app.workers.analysis import providers
 from app.workers.analysis.main import _rabbitmq_worker_url
@@ -30,7 +30,7 @@ from app.workers.analysis.sweeper import AnalysisRecoverySweeper
 
 @pytest.mark.parametrize(
     ("provider", "expected"),
-    [("codex", CodexCliVideoAnalyzer), ("claude", ClaudeCliVideoAnalyzer)],
+    [("codex", CodexAppServerVideoAnalyzer), ("claude", ClaudeCliVideoAnalyzer)],
 )
 def test_worker_builds_selected_oauth_cli_adapter(
     monkeypatch: pytest.MonkeyPatch,

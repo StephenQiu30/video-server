@@ -78,10 +78,10 @@ def _verify_codex(
 ) -> None:
     version = _successful(execute, (str(binary), "--version"), environment)
     match = re.search(r"(\d+)\.(\d+)\.(\d+)", version)
-    if match is None or tuple(map(int, match.groups())) < (0, 138, 0):
+    if match is None or tuple(map(int, match.groups())) < (0, 149, 0):
         raise AnalysisCliError("analysis_cli_unsupported")
-    help_text = _successful(execute, (str(binary), "exec", "--help"), environment)
-    required = ("--ephemeral", "--output-schema", "--output-last-message")
+    help_text = _successful(execute, (str(binary), "app-server", "--help"), environment)
+    required = ("--listen", "generate-json-schema")
     if any(option not in help_text for option in required):
         raise AnalysisCliError("analysis_cli_unsupported")
     if not verify_authentication:

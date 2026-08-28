@@ -15,7 +15,7 @@
 
 - Codex 官方支持 ChatGPT 登录与 API Key 两类认证；本机账号模式可以继续复用 `codex login`，无需项目保存 Key。[Authentication](https://learn.chatgpt.com/docs/auth)
 - Codex 自定义 Provider 支持 `model_provider`、`base_url`、`env_key` 与 `wire_api`；当前自定义 Provider 的协议值只有 `responses`。官方明确不建议把 bearer token 直接写进配置，优先使用环境变量引用。[Configuration Reference](https://learn.chatgpt.com/docs/config-file/config-reference)
-- App Server 提供账户、模型和运行能力，但本项目已经有成熟的受限 `codex exec` 适配器；本期不引入第二套会话协议。[Codex App Server](https://learn.chatgpt.com/docs/app-server)
+- App Server 提供账户、模型、结构化输出和事件能力；当前实现已用临时 stdio thread 取代 `codex exec`，不保留第二套 Codex 协议。[Codex App Server](https://learn.chatgpt.com/docs/app-server)
 
 ### 2.2 Claude Code
 

@@ -424,7 +424,7 @@ services:
     profiles: [wechat-channels-operator]
     environment:
       <<: *provider-session-environment
-      RUNNER_OPERATOR_SESSION_VERSIONS: '{"wechat_channels":"${WECHAT_CHANNELS_COOKIE_VERSION:-disabled}"}'
+      RUNNER_OPERATOR_SESSION_VERSIONS: '{"wechat_channels":"${WECHAT_CHANNELS_COOKIE_VERSION:-browser-live}"}'
       RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS: "${WECHAT_CHANNELS_RETAINED_SESSION_VERSIONS:-{}}"
       RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${WECHAT_CHANNELS_OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
     volumes:

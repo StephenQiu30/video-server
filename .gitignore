@@ -9,6 +9,7 @@
 **/.hypothesis/
 **/.analysis-work/
 **/.provider-secrets/
+**/.provider-sessions/
 **/*.egg-info/
 **/*.tsbuildinfo
 **/build/

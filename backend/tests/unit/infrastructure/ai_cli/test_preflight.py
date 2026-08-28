@@ -22,9 +22,9 @@ def runner(
     del environment
     command = tuple(argv[1:])
     if command == ("--version",):
-        stdout = "codex-cli 0.147.0"
-    elif command == ("exec", "--help"):
-        stdout = "--ephemeral --output-schema --output-last-message"
+        stdout = "codex-cli 0.149.0"
+    elif command == ("app-server", "--help"):
+        stdout = "--listen generate-json-schema"
     elif command == ("login", "status"):
         stdout = "Logged in using ChatGPT"
     elif command == ("--help",):
@@ -62,7 +62,7 @@ def test_preflight_accepts_only_supported_oauth_cli(
     )
 
     assert capabilities.provider == provider
-    assert capabilities.version == "codex-cli 0.147.0"
+    assert capabilities.version == "codex-cli 0.149.0"
 
 
 def test_preflight_rejects_non_oauth_claude(tmp_path: Path) -> None:

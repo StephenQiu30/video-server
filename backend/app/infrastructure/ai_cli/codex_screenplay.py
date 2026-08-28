@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pathlib import Path
+import json
 
 from app.application.analysis_execution import (
     ScreenplayAnalysisRequest,
@@ -8,12 +8,10 @@ from app.application.analysis_execution import (
     ScreenplayGlossaryRequest,
     ScreenplayRewriteChunkRequest,
 )
-from app.runner.process import ProcessSupervisor, ProcessTimeoutError
 
-from .codex_policy import codex_permission_arguments
+from .codex_app_server_client import CodexAppServerClient
+from .codex_app_server_protocol import CodexAppServerInvoker
 from .config import CliAdapterConfig
-from .environment import child_environment
-from .errors import AnalysisCliError, classify_cli_failure
 from .screenplay_prompt import (
     screenplay_analysis_prompt,
     screenplay_analysis_synthesis_prompt,
@@ -34,22 +32,18 @@ from .screenplay_workspace import (
     prepare_screenplay_call_files,
     prepare_screenplay_job_files,
 )
-from .workspace import JobFiles, read_result, run_with_workspace_policy
+from .workspace import JobFiles, run_with_workspace_policy
 
 
-class CodexCliScreenplayAnalyzer:
+class CodexAppServerScreenplayAnalyzer:
     def __init__(
         self,
         config: CliAdapterConfig,
         *,
-        supervisor: ProcessSupervisor | None = None,
+        client: CodexAppServerInvoker | None = None,
     ) -> None:
         self._config = config
-        self._supervisor = supervisor or ProcessSupervisor(
-            stdout_limit_bytes=config.max_stdout_bytes,
-            stderr_limit_bytes=config.max_stderr_bytes,
-            terminate_grace_seconds=config.terminate_grace_seconds,
-        )
+        self._client = client or CodexAppServerClient(config)
 
     async def analyze(self, request: ScreenplayAnalysisRequest) -> object:
         schema = screenplay_analysis_output_schema(
@@ -117,54 +111,14 @@ class CodexCliScreenplayAnalyzer:
         return await self._invoke(files, prompt)
 
     async def _invoke(self, files: JobFiles, prompt: str) -> object:
-        try:
-            result = await run_with_workspace_policy(
-                self._supervisor.run(
-                    self._argv(files.root, files.schema, files.result),
-                    cwd=files.root,
-                    timeout_seconds=self._config.timeout_seconds,
-                    env=child_environment(self._config, files.root),
-                    input_bytes=prompt.encode(),
-                ),
+        schema = json.loads(files.schema.read_text(encoding="utf-8"))
+        return await run_with_workspace_policy(
+            self._client.invoke(
                 root=files.root,
-                config=self._config,
-            )
-        except ProcessTimeoutError as exc:
-            raise AnalysisCliError("analysis_cli_timeout") from exc
-        except OSError as exc:
-            raise AnalysisCliError("analysis_cli_unavailable") from exc
-        if result.returncode != 0:
-            raise classify_cli_failure(result.stderr)
-        if result.stdout_truncated:
-            raise AnalysisCliError("analysis_resource_limit")
-        return read_result(
-            files.result,
+                prompt=prompt,
+                schema=schema,
+                duration_ms=None,
+            ),
             root=files.root,
-            maximum=self._config.max_stdout_bytes,
-        )
-
-    def _argv(self, root: Path, schema: Path, result: Path) -> tuple[str, ...]:
-        return (
-            str(self._config.binary),
-            "--ask-for-approval",
-            "never",
-            "--strict-config",
-            "exec",
-            "--cd",
-            str(root),
-            "--skip-git-repo-check",
-            "--ephemeral",
-            "--ignore-user-config",
-            "--ignore-rules",
-            *self._config.provider_arguments,
-            *codex_permission_arguments(),
-            "--model",
-            self._config.model,
-            "--output-schema",
-            str(schema),
-            "--output-last-message",
-            str(result),
-            "-c",
-            'web_search="disabled"',
-            "-",
+            config=self._config,
         )

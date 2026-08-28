@@ -54,6 +54,7 @@ def standard_provider(
     canary_suite: str = "anonymous-metadata-range",
     inspection_attempts: int = 2,
     inspection_retry_delay: float = 1,
+    probe_authenticated_media: bool = False,
 ) -> ProviderProfile:
     access_modes: tuple[ProviderAccessMode, ...] = (ProviderAccessMode.ANONYMOUS,)
     if operator_cookie_domains:
@@ -74,6 +75,7 @@ def standard_provider(
         runtime_command_args=runtime_command_args,
         inspection_attempts=inspection_attempts,
         inspection_retry_delay=inspection_retry_delay,
+        probe_authenticated_media=probe_authenticated_media,
         normalize_url=normalize_url,
     )
 

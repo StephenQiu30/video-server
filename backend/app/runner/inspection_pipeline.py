@@ -59,6 +59,7 @@ class RunnerInspectionPipeline:
                 workspace,
                 referer=source.source_url,
                 cookie_jar=cookie_jar,
+                probe_authenticated_media=source.profile.probe_authenticated_media,
             )
         inspection = self._usable_inspection(payload)
         if inspection is not None:
@@ -68,6 +69,7 @@ class RunnerInspectionPipeline:
             workspace,
             referer=source.source_url,
             cookie_jar=cookie_jar,
+            probe_authenticated_media=source.profile.probe_authenticated_media,
         )
         inspection = self._usable_inspection(enriched)
         if inspection is not None:
@@ -127,8 +129,9 @@ class RunnerInspectionPipeline:
         *,
         referer: str,
         cookie_jar: Path | None,
+        probe_authenticated_media: bool,
     ) -> dict[str, object]:
-        if cookie_jar is not None:
+        if cookie_jar is not None and not probe_authenticated_media:
             return payload
         formats = payload.get("formats")
         if not isinstance(formats, list):

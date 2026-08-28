@@ -2,8 +2,8 @@
 
 本手册只适用于独立运维账号中、用户有权处理的公开非 DRM 视频。Cookie 等同账号凭据，不得提交 Git、粘贴到日志或交给普通 API。
 
-微信视频号本地开发使用已登录 `yuanbao.tencent.com` 的 Chrome 会话。Cookie 的
-读取、域名过滤、原子落盘和持续轮换均由 `start-local.sh` 自动完成；本地启动前不
+微信视频号本地开发使用 Session Broker 自管的隔离 `yuanbao.tencent.com` Chrome
+Profile。认证读取、域名过滤、原子落盘和持续轮换均由 `start-local.sh` 自动完成；本地启动前不
 需要运行导出命令，也不需要复制 Cookie。`.env` 启用视频号路由并确认运维授权后，
 直接执行：
 
@@ -11,47 +11,35 @@
 ./scripts/start-local.sh
 ```
 
-启动脚本默认使用 `browser-live` 版本并启动受当前用户 `launchd` 监督的桥接。桥接
-要求 `hy_user` 与 `hy_token` 同时存在，只写入元宝域 Cookie；当前 Chrome 尚未
-登录时，启动器会自动打开元宝官方页面并等待登录完成，随后自行生成 Secret。普通
+启动脚本默认使用 `browser-live` 版本并启动受当前用户 `launchd` 监督的 Session Broker。
+Broker 只写入元宝域最小会话；隔离 Chrome 尚未登录时，Broker 自动打开元宝官方
+页面并等待登录完成，随后自行生成 Secret。普通
 用户无需也不能上传 Cookie，系统也不代填密码、验证码、2FA 或扫码确认。
 
 ## 1. 会话获取与轮换
 
-本地开发优先使用自动桥接。下面的一次性导出命令只用于生产不可变 Secret 或故障
-诊断，每次轮换使用新版本名；支持 `youtube`、`wechat_channels`、`tiktok`、
-`douyin`、`xiaohongshu`、`reddit`、`x`、`instagram` 与 `facebook`：
+本地 Session 获取只通过自动 Session Broker。生产不可变 Secret 由部署环境的受控
+Secret 管理流程提供，不在应用中保留人工导出入口。视频号 Broker 使用仓库外的专属
+Profile 和回环 CDP，不读取默认 Chrome Profile，也不把 Profile 挂载到容器。
+
+通常由 `start-local.sh` 自动启动所需 Broker。以下命令只用于单独诊断状态：
 
 ```bash
-uv run python -m app.runner.browser_cookie_export \
-  --provider youtube --browser chrome \
-  --version browser-20260815-01 --output-root ../.provider-secrets
-
-uv run python -m app.runner.browser_cookie_export \
-  --provider tiktok --browser chrome \
-  --version browser-20260815-01 --output-root ../.provider-secrets
+./scripts/provider-session-broker.sh youtube start
+./scripts/provider-session-broker.sh wechat_channels start
+./scripts/provider-session-broker.sh tiktok start
+./scripts/provider-session-broker.sh douyin start
+./scripts/provider-session-broker.sh xiaohongshu start
+./scripts/provider-session-broker.sh reddit start
+./scripts/provider-session-broker.sh youtube status
 ```
 
-macOS 可能显示一次 Keychain 授权提示。导出器不会启动后台进程，也不会复制完整 Profile。
-
-通常由 `start-local.sh` 自动启动所需桥接。以下命令只用于单独诊断桥接状态：
-
-```bash
-./scripts/provider-cookie-bridge.sh youtube start
-./scripts/provider-cookie-bridge.sh wechat_channels start
-./scripts/provider-cookie-bridge.sh tiktok start
-./scripts/provider-cookie-bridge.sh douyin start
-./scripts/provider-cookie-bridge.sh xiaohongshu start
-./scripts/provider-cookie-bridge.sh reddit start
-./scripts/provider-cookie-bridge.sh youtube status
-```
-
-桥接每 15 秒读取一次当前浏览器状态，只导出目标 Provider 域、未过期且满足认证
-标记的 Cookie，并原子替换固定版本文件。刷新失败会保留最后一个有效快照，日志
+Broker 每 15 秒读取一次当前浏览器状态，只发布目标 Provider 域、未过期且满足认证
+标记的最小会话，并原子替换固定版本文件。刷新失败会保留最后一个有效快照，日志
 不包含 Cookie 值、浏览器 Profile 路径或异常原文。它解决日常浏览导致的 Cookie
 轮换，但不能阻止平台撤销会话、账号登出、风控挑战或权益变化；这些情况必须通过
-稳定错误和 canary 显式暴露。首次登录尚未完成时桥接保持运行而非退出；macOS
-启动流程最多等待两分钟取得首个快照。
+稳定错误和 canary 显式暴露。首次登录尚未完成时 Broker 保持运行并发布
+`login_required`，本机其他服务仍可启动。
 
 ## 2. 配置
 
