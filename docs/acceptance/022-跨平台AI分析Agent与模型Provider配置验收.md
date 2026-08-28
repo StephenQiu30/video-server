@@ -27,8 +27,8 @@
 - [x] 本机 Codex 登录无需 Key，完成一条真实分析。
 - [ ] API Key Profile 完成一条真实分析，结果记录正确的 Provider key 与模型。
 - [x] 活动 Profile 切换后无需重启 API/Agent，下一个任务使用新线路。
-- [x] Agent 停止超过 stale window 后管理页显示离线，创建分析返回不可用。
-- [x] Agent 恢复后心跳自动恢复，创建分析重新可用。
+- [x] Agent 停止超过 stale window 后管理页显示状态未确认，分析任务仍可持久化为排队状态。
+- [x] Agent 恢复后可继续消费 Outbox/RabbitMQ 中的排队任务；心跳仅作为诊断状态自动恢复。
 
 ## 4. 跨平台常驻
 

@@ -13,7 +13,7 @@ AI 分析继续运行在宿主机 Agent，不进入 Compose。新增管理员可
 - `api_key`：支持 Codex Responses Provider 与 Claude/Anthropic Messages Endpoint，Key 加密保存且只注入当前任务子进程；
 - 当前线路热切换：Worker 每个任务解析一次活动 Profile，配置更新时间变化时重建受限 CLI Adapter；
 - 跨平台常驻：Windows 计划任务、macOS LaunchAgent、Linux systemd user service；
-- 在线可见：管理页使用现有 `analysis_worker_heartbeats` 显示 Agent 是否在线。
+- 在线可见：管理页使用现有 `analysis_worker_heartbeats` 提供 Agent 状态诊断；该状态不阻断 API 或任务创建。
 
 ## 2. 架构
 
@@ -112,7 +112,7 @@ python -m app.workers.analysis.agent_cli uninstall
 
 | 场景 | 对外结果 |
 | --- | --- |
-| 无 Agent 心跳 | 创建分析返回 `analysis_unavailable`；管理页显示 Agent 离线 |
+| 无 Agent 心跳 | 管理页显示 Agent 状态未确认；分析任务仍先持久化为 `queued`，由 Outbox/RabbitMQ 在 Agent 恢复后继续投递 |
 | 无活动 Profile | Agent 预检失败，由系统服务重启等待修复 |
 | 本机未登录 | `analysis_cli_not_authenticated`，不写心跳 |
 | MinIO 统一凭据漂移 | `doctor` 在创建任务前失败，直接检查唯一 AK/SK 对就绪探针的读权限 |

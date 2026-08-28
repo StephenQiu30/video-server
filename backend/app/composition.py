@@ -411,7 +411,6 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             new_id=uuid4,
             max_attempts=settings.max_analysis_attempts,
             skill_catalog=skill_catalog,
-            availability=analysis_availability,
             enabled=settings.analysis_enabled,
         ),
         create_document_analysis=CreateDocumentAnalysis(
@@ -421,7 +420,6 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             new_id=uuid4,
             max_attempts=settings.max_analysis_attempts,
             skill_catalog=skill_catalog,
-            availability=analysis_availability,
             enabled=(
                 settings.analysis_enabled and settings.screenplay_analysis_enabled
             ),

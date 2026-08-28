@@ -54,12 +54,6 @@ def creator(repository: FakeRepository) -> CreateAnalysis:
     )
 
 
-class UnavailableWorker:
-    async def is_available(self, now: datetime) -> bool:
-        assert now == NOW
-        return False
-
-
 @pytest.mark.asyncio
 async def test_create_fails_before_persistence_when_analysis_is_disabled() -> None:
     repository = FakeRepository()
@@ -81,23 +75,15 @@ async def test_create_fails_before_persistence_when_analysis_is_disabled() -> No
 
 
 @pytest.mark.asyncio
-async def test_create_fails_closed_without_a_compatible_worker() -> None:
+async def test_create_queues_without_a_compatible_worker() -> None:
     repository = FakeRepository()
-    create = CreateAnalysis(
-        repository=repository,
-        fingerprinter=FakeFingerprinter(),
-        now=lambda: NOW,
-        new_id=uuid4,
-        max_attempts=3,
-        skill_catalog=FakeSkillCatalog(),
-        availability=UnavailableWorker(),
-    )
+    repository.artifacts[ARTIFACT_ID] = artifact()
+    create = creator(repository)
 
-    with pytest.raises(AnalysisApplicationError) as caught:
-        await create(DOWNLOAD_ID, OWNER, "request-1", "director-breakdown", "zh-CN")
+    view = await create(DOWNLOAD_ID, OWNER, "request-1", "director-breakdown", "zh-CN")
 
-    assert caught.value.code is AnalysisApplicationErrorCode.SERVICE_UNAVAILABLE
-    assert repository.commands == []
+    assert view.status is AnalysisStatus.QUEUED
+    assert repository.outbox_events == 1
 
 
 @pytest.mark.asyncio

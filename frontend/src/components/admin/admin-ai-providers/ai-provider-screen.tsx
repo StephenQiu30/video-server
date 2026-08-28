@@ -124,8 +124,9 @@ export function AiProviderScreen({
         </div>
         {!agentAvailable ? (
           <p className="mt-3 text-sm leading-6 text-warning">
-            配置已保留，但分析 Agent 没有有效心跳。请运行 Agent 安装命令或
-            doctor 检查本机登录、数据库与消息队列。
+            当前未观察到分析 Agent 状态；配置仍然有效，新的分析任务会先进入可靠队列，
+            待 Agent 恢复后继续处理。请运行 Agent 安装命令或 doctor 检查本机登录、
+            数据库与消息队列。
           </p>
         ) : null}
       </section>

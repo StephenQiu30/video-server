@@ -13,7 +13,6 @@ from app.application.analysis.errors import (
 )
 from app.application.analysis.models import AnalysisCreate, AnalysisJobView
 from app.application.analysis.ports import (
-    AnalysisAvailability,
     AnalysisRepository,
     AnalysisSkillCatalog,
     RequestFingerprinter,
@@ -40,7 +39,6 @@ class CreateAnalysis:
         new_id: Callable[[], UUID],
         max_attempts: int,
         skill_catalog: AnalysisSkillCatalog,
-        availability: AnalysisAvailability | None = None,
         enabled: bool = True,
     ) -> None:
         if max_attempts <= 0:
@@ -51,7 +49,6 @@ class CreateAnalysis:
         self._new_id = new_id
         self._max_attempts = max_attempts
         self._skill_catalog = skill_catalog
-        self._availability = availability
         self._enabled = enabled
 
     async def __call__(
@@ -64,10 +61,10 @@ class CreateAnalysis:
         custom_prompt: str | None = None,
     ) -> AnalysisJobView:
         now = validate_now(self._now())
-        if not self._enabled or (
-            self._availability is not None
-            and not await self._availability.is_available(now)
-        ):
+        # Admission is durable: a temporarily unavailable consumer must not
+        # turn a valid request into a lost request. Outbox/RabbitMQ and the
+        # worker recovery loop own eventual delivery.
+        if not self._enabled:
             raise AnalysisApplicationError(
                 AnalysisApplicationErrorCode.SERVICE_UNAVAILABLE
             )

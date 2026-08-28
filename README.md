@@ -147,7 +147,7 @@ uv sync --frozen --dev
 uv run python -m app.workers.analysis.main
 ```
 
-启用分析时，API 会通过 Worker heartbeat 判断分析能力是否就绪；没有 AI Worker 的部署应明确设置 `ANALYSIS_ENABLED=false` 后重建 API。下载、文件获取和历史记录不依赖 AI Worker。AI Worker 通过受限的 FFmpeg/ffprobe 工具观察完整视频，请先确认内容授权、模型服务条款和组织数据策略。
+启用分析时，API 会先将任务事实和消息意图可靠写入 PostgreSQL Outbox，再由 RabbitMQ 投递给 AI Worker；Agent 状态只用于运维诊断，不作为 API 全局 readiness 或任务创建的硬前置。没有 AI Worker 的部署仍应明确设置 `ANALYSIS_ENABLED=false`；若 Agent 暂时不可用，任务保持 `queued`，恢复后由 Worker 继续消费。下载、文件获取和历史记录不依赖 AI Worker。AI Worker 通过受限的 FFmpeg/ffprobe 工具观察完整视频，请先确认内容授权、模型服务条款和组织数据策略。
 
 当前真实视觉闭环以 Codex 为验收基线；启用 Claude 前，请先用真实视频 canary 验证模型路由和图片理解能力。
 

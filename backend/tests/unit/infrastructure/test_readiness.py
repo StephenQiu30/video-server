@@ -2,18 +2,12 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import aio_pika
 import httpx
 import pytest
 from app.core.config import Settings
-from app.infrastructure.analysis_worker_registry import (
-    ANALYSIS_MESSAGE_SCHEMA_VERSION,
-    SqlAlchemyAnalysisWorkerRegistry,
-)
-from app.infrastructure.database import create_session_factory
 from app.infrastructure.readiness import build_runtime_readiness
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -45,7 +39,6 @@ async def runtime_probe(
     handler: httpx.AsyncBaseTransport,
     engine: AsyncEngine,
     *,
-    worker_schema_version: int | None = ANALYSIS_MESSAGE_SCHEMA_VERSION,
     operator_runners: dict[str, str] | None = None,
 ) -> AsyncIterator[Any]:
     client = httpx.AsyncClient(transport=handler)
@@ -58,19 +51,6 @@ async def runtime_probe(
         minio_endpoint="minio.test:9000",
         readiness_timeout_seconds=1,
     )
-    registry = SqlAlchemyAnalysisWorkerRegistry(
-        create_session_factory(engine),
-        expected_app_version=settings.app_version,
-        expected_message_schema_version=ANALYSIS_MESSAGE_SCHEMA_VERSION,
-        stale_after=timedelta(seconds=settings.analysis_worker_stale_seconds),
-    )
-    if worker_schema_version is not None:
-        await registry.heartbeat(
-            "analysis-worker-test",
-            app_version=settings.app_version,
-            message_schema_version=worker_schema_version,
-            now=datetime.now(UTC),
-        )
     probe = build_runtime_readiness(settings, engine, client=client)
     try:
         yield probe
@@ -138,13 +118,11 @@ async def test_runtime_readiness_checks_the_active_postgres_schema(
 
 
 @pytest.mark.usefixtures("rabbitmq_is_available")
-async def test_runtime_readiness_requires_a_compatible_analysis_worker(
+async def test_runtime_readiness_does_not_depend_on_analysis_worker(
     postgres_engine: AsyncEngine,
 ) -> None:
     async def respond(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200)
 
-    async with runtime_probe(
-        httpx.MockTransport(respond), postgres_engine, worker_schema_version=2
-    ) as probe:
-        assert await probe.check() is False
+    async with runtime_probe(httpx.MockTransport(respond), postgres_engine) as probe:
+        assert await probe.check() is True

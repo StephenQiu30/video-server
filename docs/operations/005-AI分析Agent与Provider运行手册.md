@@ -2,7 +2,7 @@
 
 ## 1. 首次使用
 
-在 `backend` 目录执行：
+在 `backend` 目录执行。Windows、macOS 和 Linux 共用以下 Agent 管理命令；只有宿主机的服务注册方式由平台适配层处理，分析任务、队列和恢复语义保持一致：
 
 ```powershell
 uv run python -m app.workers.analysis.agent_cli doctor
@@ -38,14 +38,14 @@ Linux 如果要求注销后仍运行，需要由运维显式执行 `loginctl ena
 
 ## 4. 常见故障
 
-### Agent 离线
+### Agent 状态未确认
 
 ```text
 python -m app.workers.analysis.agent_cli status
 python -m app.workers.analysis.agent_cli doctor
 ```
 
-依次确认：活动 Profile 存在、CLI 可执行、登录有效、FFmpeg/FFprobe 可执行、PostgreSQL/RabbitMQ/MinIO 地址对宿主机可达。
+依次确认：活动 Profile 存在、CLI 可执行、登录有效、FFmpeg/FFprobe 可执行、PostgreSQL/RabbitMQ/MinIO 地址对宿主机可达。Agent 状态未确认不会阻止 API 接收任务；任务会保持 `queued`，直到 Agent 恢复并消费消息。
 
 若 `doctor` 返回 MinIO readiness probe 缺失，先执行 `docker compose -f docker-compose-env.yml run --rm minio-init`，由环境初始化任务幂等创建 `video-artifacts` bucket 与 `system/analysis-readiness-v1` 探针。若返回凭据无法读取，再由宿主机 MinIO 管理员确认统一 AK/SK 的 bucket 读取权限，并检查 `.env` 或 `.env.prod` 中唯一的 `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY`。
 
