@@ -26,6 +26,7 @@ def analysis_output_schema(
             "title",
             "summary",
             "shots",
+            "scenes",
             "highlights",
             "assets",
             "production_advice",
@@ -40,6 +41,10 @@ def analysis_output_schema(
             "shots": {
                 "type": "array",
                 "items": _shot(),
+            },
+            "scenes": {
+                "type": "array",
+                "items": _scene(reference_array),
             },
             "highlights": {
                 "type": "array",
@@ -163,6 +168,34 @@ def _highlight(references: dict[str, Any]) -> dict[str, Any]:
             "description": _text(),
             "score": {"type": "integer"},
             "reason": _text(),
+            "evidence_shot_ids": references,
+        },
+    )
+
+
+def _scene(references: dict[str, Any]) -> dict[str, Any]:
+    fields = [
+        "id",
+        "index",
+        "title",
+        "location",
+        "description",
+        "narrative_function",
+        "visual_rules",
+        "continuity_risks",
+        "evidence_shot_ids",
+    ]
+    return _object(
+        fields,
+        {
+            "id": _identifier(),
+            "index": _integer(),
+            "title": _text(),
+            "location": _text(),
+            "description": _text(),
+            "narrative_function": _text(),
+            "visual_rules": {"type": "array", "items": _text()},
+            "continuity_risks": {"type": "array", "items": _text()},
             "evidence_shot_ids": references,
         },
     )

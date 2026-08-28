@@ -8,6 +8,7 @@ from app.domain.analysis.result_drafts import (
     parse_asset,
     parse_highlight,
     parse_production_advice,
+    parse_scene,
     parse_shot,
 )
 from app.domain.analysis.result_items import Highlight, Shot, VisualAsset
@@ -20,6 +21,7 @@ from app.domain.analysis.result_models import (
 )
 from app.domain.analysis.result_validation import validate_analysis_result
 from app.domain.analysis.video_article_parser import parse_video_article_result
+from app.domain.analysis.video_scene import VideoScene
 
 
 def parse_analysis_result(
@@ -46,6 +48,7 @@ def parse_analysis_result(
             "title",
             "summary",
             "shots",
+            "scenes",
             "highlights",
             "assets",
             "production_advice",
@@ -68,6 +71,12 @@ def parse_analysis_result(
         parse_highlight(context, value, index)
         for index, value in enumerate(
             context.array(root["highlights"], "highlights", allow_empty=True)
+        )
+    )
+    scene_drafts = tuple(
+        parse_scene(context, value, index)
+        for index, value in enumerate(
+            context.array(root["scenes"], "scenes", allow_empty=False)
         )
     )
     asset_drafts = tuple(
@@ -121,6 +130,22 @@ def parse_analysis_result(
         )
         for item in highlight_drafts
     )
+    scenes = tuple(
+        VideoScene(
+            id=item.id,
+            index=item.index,
+            title=item.title,
+            start_ms=_first_seen(item.evidence_shot_ids, shot_by_id),
+            end_ms=_last_seen(item.evidence_shot_ids, shot_by_id),
+            location=item.location,
+            description=item.description,
+            narrative_function=item.narrative_function,
+            visual_rules=item.visual_rules,
+            continuity_risks=item.continuity_risks,
+            evidence_shot_ids=item.evidence_shot_ids,
+        )
+        for item in scene_drafts
+    )
     result = VideoAnalysisResult(
         language=language,
         title=context.text(root["title"], "title"),
@@ -128,6 +153,7 @@ def parse_analysis_result(
         media=media,
         shot_count=len(shots),
         shots=shots,
+        scenes=scenes,
         highlights=highlights,
         assets=assets,
         production_advice=parse_production_advice(context, root["production_advice"]),

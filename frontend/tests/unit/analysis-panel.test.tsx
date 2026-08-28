@@ -150,6 +150,7 @@ describe('AnalysisPanel', () => {
       screen.getByRole('heading', { name: '视觉摘要' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '分镜' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '场景' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '高光' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '资产' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '报告预览' })).toBeInTheDocument();

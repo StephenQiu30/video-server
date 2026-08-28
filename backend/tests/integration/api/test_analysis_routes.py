@@ -29,6 +29,7 @@ from app.domain.analysis import (
     ProductionAdvice,
     Shot,
     VideoAnalysisResult,
+    VideoScene,
     VisualAsset,
 )
 from app.main import create_app
@@ -59,6 +60,21 @@ RESULT = VideoAnalysisResult(
             highlight_score=3,
             visual_tags=("开场",),
             asset_ids=("asset-1",),
+        ),
+    ),
+    scenes=(
+        VideoScene(
+            id="scene-1",
+            index=1,
+            title="开场建立",
+            start_ms=0,
+            end_ms=1_000,
+            location="室内空间",
+            description="单镜头建立开场空间。",
+            narrative_function="建立故事空间。",
+            visual_rules=("固定广角构图",),
+            continuity_risks=(),
+            evidence_shot_ids=("shot-1",),
         ),
     ),
     highlights=(),
@@ -350,6 +366,7 @@ def test_succeeded_analysis_returns_only_strict_structured_result(
     payload = response.json()
     assert payload["result"]["kind"] == "video_visual_analysis"
     assert payload["result"]["shot_count"] == 1
+    assert payload["result"]["scenes"][0]["evidence_shot_ids"] == ["shot-1"]
     assert payload["result"]["assets"][0]["evidence_shot_ids"] == ["shot-1"]
     assert payload["result"]["shots"][0]["narrative_function"] == "建立故事空间。"
     assert payload["result"]["production_advice"]["priority_shot_ids"] == ["shot-1"]

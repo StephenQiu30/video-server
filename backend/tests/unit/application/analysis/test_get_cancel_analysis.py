@@ -16,6 +16,7 @@ from app.domain.analysis import (
     ProductionAdvice,
     Shot,
     VideoAnalysisResult,
+    VideoScene,
 )
 from tests.unit.application.analysis.fakes import FakeRepository
 from tests.unit.application.analysis.test_create_analysis import (
@@ -47,6 +48,21 @@ RESULT = VideoAnalysisResult(
             highlight_score=3,
             visual_tags=("开场",),
             asset_ids=(),
+        ),
+    ),
+    scenes=(
+        VideoScene(
+            id="scene-1",
+            index=1,
+            title="开场建立",
+            start_ms=0,
+            end_ms=1_000,
+            location="室内空间",
+            description="单镜头建立开场空间。",
+            narrative_function="建立故事空间。",
+            visual_rules=("固定广角构图",),
+            continuity_risks=(),
+            evidence_shot_ids=("shot-1",),
         ),
     ),
     highlights=(),

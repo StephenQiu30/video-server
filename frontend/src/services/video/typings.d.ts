@@ -1400,6 +1400,8 @@ declare namespace API {
     shot_count: number;
     /** Shots */
     shots: ShotResponse[];
+    /** Scenes */
+    scenes: VideoSceneResponse[];
     /** Highlights */
     highlights: HighlightResponse[];
     /** Assets */
@@ -1448,6 +1450,31 @@ declare namespace API {
   };
 
   type VideoCodecFamily = "h264" | "hevc" | "vp9" | "av1" | "other";
+
+  type VideoSceneResponse = {
+    /** Id */
+    id: string;
+    /** Index */
+    index: number;
+    /** Title */
+    title: string;
+    /** Start Ms */
+    start_ms: number;
+    /** End Ms */
+    end_ms: number;
+    /** Location */
+    location: string;
+    /** Description */
+    description: string;
+    /** Narrative Function */
+    narrative_function: string;
+    /** Visual Rules */
+    visual_rules: string[];
+    /** Continuity Risks */
+    continuity_risks: string[];
+    /** Evidence Shot Ids */
+    evidence_shot_ids: string[];
+  };
 
   type VisualAssetResponse = {
     /** Id */

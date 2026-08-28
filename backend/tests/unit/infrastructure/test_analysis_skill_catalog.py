@@ -53,6 +53,7 @@ def test_builtin_skills_are_filtered_ordered_and_contract_bound() -> None:
         "comprehensive",
         "video-to-article",
         "visual-shots",
+        "scene-extraction",
         "highlights",
         "asset-catalog",
     ]
@@ -95,6 +96,7 @@ def test_builtin_resolution_compiles_allowlisted_reference_and_sha256() -> None:
         ("comprehensive", "# 综合分析证据规范"),
         ("video-to-article", "# 微信公众号文章编辑规范"),
         ("visual-shots", "# 分镜表字段规范"),
+        ("scene-extraction", "# 场景边界与提炼规范"),
         ("highlights", "# 高光候选量表"),
         ("asset-catalog", "# 资产身份与状态规范"),
     ),
@@ -113,6 +115,7 @@ def test_builtin_skills_expose_the_current_production_boundary() -> None:
         "director-breakdown": ("镜头动机", "production_advice"),
         "comprehensive": ("观察、解释、建议", "video-visual-analysis"),
         "visual-shots": ("反向分镜表", "video-visual-analysis"),
+        "scene-extraction": ("场景段落", "全部镜头"),
         "highlights": ("同一量表", "主选"),
         "asset-catalog": ("AssetVersion", "资产身份候选"),
         "video-to-article": ("中心命题", "limitations"),

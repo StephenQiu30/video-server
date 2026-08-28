@@ -34,7 +34,7 @@ def analysis_prompt(
         )
     lines = (
         "你是视频视觉分析代理。请自主观察任务目录内的 input/video.bin，"
-        "输出完整的视觉分镜、高光和资产目录。",
+        "输出完整的视觉分镜、场景段落、高光和资产目录。",
         "",
         "硬性边界：",
         f"- 视频权威时长为 {request.duration_ms} ms；"
@@ -53,12 +53,15 @@ def analysis_prompt(
         "禁止远程协议、pipe、device、concat 和任务外路径。",
         f"- 分镜采用左闭右开区间，必须从 0 连续覆盖到 {request.duration_ms}，"
         "无间隙、无重叠。第一镜 transition_in 必须为 none。",
+        "- scenes 位于 shots 之上：按稳定空间、连续事件或明确视觉任务归并相邻"
+        "镜头；必须按时间顺序覆盖全部 shot，不能跳镜、重叠或重复引用。",
         "- 只根据可见画面判断，不得声称理解对白、音乐、掌声或音效。人物只做"
         "匿名可见描述，不推断真实身份或敏感属性。",
-        "- 高光与资产只引用真实 shot id；不要返回 media、shot_count、高光时间、"
-        "资产首次出现时间、confidence 或 Shot→Asset 索引，这些由服务端派生。",
-        "- 当前项目把 shots、highlights、assets 和 production_advice 视为可复核的"
-        "观察/候选信息，不是已创建资产、镜头主选、审核结论或已提交生成任务。",
+        "- 场景、高光与资产只引用真实 shot id；不要返回 media、shot_count、场景/"
+        "高光时间、资产首次出现时间、confidence 或 Shot→Asset 索引，这些由服务端派生。",
+        "- 当前项目把 shots、scenes、highlights、assets 和 production_advice "
+        "视为可复核的观察/候选信息，不是已创建资产、镜头主选、审核结论或"
+        "已提交生成任务。",
         "- 每个分镜必须填写 narrative_function，并用 1 至 5 的 highlight_score "
         "表达其视觉、情绪或叙事价值；production_advice 必须引用真实 shot id。",
         "- 最终只返回符合给定 JSON Schema 的对象，不要附加 Markdown 或解释。",

@@ -100,6 +100,32 @@ def _render_video_analysis_report_markdown(result: VideoAnalysisResult) -> str:
             f"{'★' * shot.highlight_score} |"
         )
 
+    lines.extend(("", f"## {labels['scenes']}", ""))
+    for scene in result.scenes:
+        lines.extend(
+            (
+                f"### {labels['scene']} {scene.index}: {_markdown_text(scene.title)}",
+                "",
+                f"- {labels['time']}: {_format_range(scene.start_ms, scene.end_ms)}",
+                f"- {labels['location']}: {_markdown_text(scene.location)}",
+                f"- {labels['narrative']}: {_markdown_text(scene.narrative_function)}",
+                "",
+                _markdown_block(scene.description),
+                "",
+                f"**{labels['visual_rules']}**",
+                "",
+            )
+        )
+        lines.extend(f"- {_markdown_text(item)}" for item in scene.visual_rules)
+        lines.extend(("", f"**{labels['continuity_risks']}**", ""))
+        if scene.continuity_risks:
+            lines.extend(
+                f"- {_markdown_text(item)}" for item in scene.continuity_risks
+            )
+        else:
+            lines.append(labels["no_continuity_risks"])
+        lines.append("")
+
     lines.extend(("", f"## {labels['highlights']}", ""))
     if not result.highlights:
         lines.extend((labels["no_highlights"], ""))

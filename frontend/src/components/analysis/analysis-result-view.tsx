@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 
 import AnalysisReportPreview from '@/components/analysis/analysis-report-preview';
+import AnalysisSceneList from '@/components/analysis/analysis-scene-list';
 import { Button } from '@/components/ui/button';
 import { Item, ItemGroup } from '@/components/ui/item';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,18 +20,21 @@ const assetTypeLabels: Record<string, string> = {
 };
 
 export default function AnalysisResultView({
+  defaultView = 'shots',
   onSelectTime,
   reportMarkdown,
   result,
 }: {
+  defaultView?: 'scenes' | 'shots';
   onSelectTime?: (milliseconds: number) => void;
   reportMarkdown?: string | null;
   result: VideoAnalysisResult;
 }) {
   return (
-    <Tabs className="mt-10 gap-0" defaultValue="shots">
-      <div className="grid gap-5 border-y py-6 sm:grid-cols-3">
+    <Tabs className="mt-10 gap-0" defaultValue={defaultView}>
+      <div className="grid gap-5 border-y py-6 sm:grid-cols-4">
         <Metric label="分镜数量" value={`${result.shot_count}`} />
+        <Metric label="场景数量" value={`${result.scenes.length}`} />
         <Metric
           label="视频时长"
           value={formatMilliseconds(result.media.duration_ms)}
@@ -48,6 +52,7 @@ export default function AnalysisResultView({
           className="h-auto w-max gap-7 rounded-none p-0"
           variant="line"
         >
+          <ResultTab value="scenes">场景</ResultTab>
           <ResultTab value="shots">分镜</ResultTab>
           <ResultTab value="highlights">高光</ResultTab>
           <ResultTab value="assets">资产</ResultTab>
@@ -56,6 +61,12 @@ export default function AnalysisResultView({
           ) : null}
         </TabsList>
       </div>
+      <TabsContent className="pt-7" value="scenes">
+        <AnalysisSceneList
+          onSelectTime={onSelectTime}
+          scenes={result.scenes}
+        />
+      </TabsContent>
       <TabsContent className="pt-7" value="shots">
         <ItemGroup asChild className="hairline gap-0 border-y">
           <ol>

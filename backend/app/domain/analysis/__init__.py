@@ -54,6 +54,7 @@ from app.domain.analysis.screenplay_rewrite_parser import (
     parse_screenplay_rewrite_chunk,
 )
 from app.domain.analysis.video_article_parser import parse_video_article_result
+from app.domain.analysis.video_scene import VideoScene
 
 __all__ = [
     "AnalysisErrorCode",
@@ -87,6 +88,7 @@ __all__ = [
     "VideoArticleEvidence",
     "VideoArticleResult",
     "VideoArticleSection",
+    "VideoScene",
     "VisualAsset",
     "parse_analysis_result",
     "parse_video_article_result",

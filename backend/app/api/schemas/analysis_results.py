@@ -45,6 +45,20 @@ class HighlightResponse(StrictModel):
     evidence_shot_ids: tuple[str, ...]
 
 
+class VideoSceneResponse(StrictModel):
+    id: str
+    index: int
+    title: str
+    start_ms: int
+    end_ms: int
+    location: str
+    description: str
+    narrative_function: str
+    visual_rules: tuple[str, ...]
+    continuity_risks: tuple[str, ...]
+    evidence_shot_ids: tuple[str, ...]
+
+
 class VisualAssetResponse(StrictModel):
     id: str
     type: str
@@ -70,6 +84,7 @@ class VideoAnalysisResultResponse(StrictModel):
     media: AnalysisMediaResponse
     shot_count: int
     shots: tuple[ShotResponse, ...]
+    scenes: tuple[VideoSceneResponse, ...]
     highlights: tuple[HighlightResponse, ...]
     assets: tuple[VisualAssetResponse, ...]
     production_advice: ProductionAdviceResponse

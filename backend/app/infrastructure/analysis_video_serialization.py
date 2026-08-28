@@ -16,6 +16,7 @@ from app.infrastructure.analysis_video_serialization_items import (
     stored_asset,
     stored_highlight,
     stored_production_advice,
+    stored_scene,
     stored_shot,
 )
 
@@ -27,6 +28,7 @@ _FIELDS = {
     "media",
     "shot_count",
     "shots",
+    "scenes",
     "highlights",
     "assets",
     "production_advice",
@@ -55,6 +57,9 @@ def video_result_from_document(document: object) -> VideoAnalysisResult:
         ),
         shot_count=integer(root["shot_count"], "shot_count"),
         shots=tuple(stored_shot(value) for value in array(root["shots"], "shots")),
+        scenes=tuple(
+            stored_scene(value) for value in array(root["scenes"], "scenes")
+        ),
         highlights=tuple(
             stored_highlight(value) for value in array(root["highlights"], "highlights")
         ),

@@ -3,6 +3,7 @@ from __future__ import annotations
 from app.domain.analysis.parse_helpers import ParseContext
 from app.domain.analysis.result_items import Highlight, Shot, VisualAsset
 from app.domain.analysis.result_models import ProductionAdvice
+from app.domain.analysis.video_scene import VideoScene
 
 
 def parse_shot(context: ParseContext, value: object, index: int) -> Shot:
@@ -68,6 +69,46 @@ def parse_highlight(context: ParseContext, value: object, index: int) -> Highlig
         reason=context.text(source["reason"], f"{path}.reason"),
         start_ms=0,
         end_ms=1,
+        evidence_shot_ids=evidence_ids(
+            context, source["evidence_shot_ids"], f"{path}.evidence_shot_ids"
+        ),
+    )
+
+
+def parse_scene(context: ParseContext, value: object, index: int) -> VideoScene:
+    path = f"scenes[{index}]"
+    source = context.mapping(
+        value,
+        path,
+        {
+            "id",
+            "index",
+            "title",
+            "location",
+            "description",
+            "narrative_function",
+            "visual_rules",
+            "continuity_risks",
+            "evidence_shot_ids",
+        },
+    )
+    return VideoScene(
+        id=context.text(source["id"], f"{path}.id", maximum=128),
+        index=context.integer(source["index"], f"{path}.index"),
+        title=context.text(source["title"], f"{path}.title"),
+        start_ms=0,
+        end_ms=1,
+        location=context.text(source["location"], f"{path}.location"),
+        description=context.text(source["description"], f"{path}.description"),
+        narrative_function=context.text(
+            source["narrative_function"], f"{path}.narrative_function"
+        ),
+        visual_rules=_strings(
+            context, source["visual_rules"], f"{path}.visual_rules"
+        ),
+        continuity_risks=_strings(
+            context, source["continuity_risks"], f"{path}.continuity_risks"
+        ),
         evidence_shot_ids=evidence_ids(
             context, source["evidence_shot_ids"], f"{path}.evidence_shot_ids"
         ),

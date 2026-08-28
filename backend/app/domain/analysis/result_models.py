@@ -12,6 +12,7 @@ from app.domain.analysis.result_items import (
     _strings,
 )
 from app.domain.analysis.text import non_negative_integer, required_text
+from app.domain.analysis.video_scene import VideoScene
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,6 +100,7 @@ class VideoAnalysisResult:
     media: AnalysisMedia
     shot_count: int
     shots: tuple[Shot, ...]
+    scenes: tuple[VideoScene, ...]
     highlights: tuple[Highlight, ...]
     assets: tuple[VisualAsset, ...]
     production_advice: ProductionAdvice
@@ -115,6 +117,11 @@ class VideoAnalysisResult:
             raise AnalysisValidationError(
                 AnalysisValidationCode.INVALID_SCHEMA,
                 "shot_count must equal a non-empty shots collection",
+            )
+        if not self.scenes:
+            raise AnalysisValidationError(
+                AnalysisValidationCode.INVALID_SCHEMA,
+                "video analysis must contain at least one scene",
             )
 
 

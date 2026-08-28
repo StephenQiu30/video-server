@@ -98,12 +98,21 @@ def test_analysis_openapi_is_current_and_excludes_internal_fields(
         "media",
         "shot_count",
         "shots",
+        "scenes",
         "highlights",
         "assets",
         "production_advice",
     } <= set(result_fields)
     shot_fields = components["ShotResponse"]["properties"]
     assert {"narrative_function", "highlight_score"} <= set(shot_fields)
+    scene_fields = components["VideoSceneResponse"]["properties"]
+    assert {
+        "location",
+        "narrative_function",
+        "visual_rules",
+        "continuity_risks",
+        "evidence_shot_ids",
+    } <= set(scene_fields)
     assert {"provider", "model", "cli_version"}.isdisjoint(result_fields)
     rewrite_fields = components["ScreenplayRewriteResultResponse"]["properties"]
     assert {"chunks", "rewritten_text"}.isdisjoint(rewrite_fields)

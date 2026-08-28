@@ -1,4 +1,10 @@
-from app.domain.analysis import Highlight, ProductionAdvice, Shot, VisualAsset
+from app.domain.analysis import (
+    Highlight,
+    ProductionAdvice,
+    Shot,
+    VideoScene,
+    VisualAsset,
+)
 from app.infrastructure.analysis_storage_fields import integer, mapping, string, strings
 
 
@@ -68,6 +74,45 @@ def stored_highlight(value: object) -> Highlight:
         end_ms=integer(source["end_ms"], "highlight.end_ms"),
         evidence_shot_ids=strings(
             source["evidence_shot_ids"], "highlight.evidence_shot_ids"
+        ),
+    )
+
+
+def stored_scene(value: object) -> VideoScene:
+    source = mapping(
+        value,
+        {
+            "id",
+            "index",
+            "title",
+            "start_ms",
+            "end_ms",
+            "location",
+            "description",
+            "narrative_function",
+            "visual_rules",
+            "continuity_risks",
+            "evidence_shot_ids",
+        },
+        "scene",
+    )
+    return VideoScene(
+        id=string(source["id"], "scene.id"),
+        index=integer(source["index"], "scene.index"),
+        title=string(source["title"], "scene.title"),
+        start_ms=integer(source["start_ms"], "scene.start_ms"),
+        end_ms=integer(source["end_ms"], "scene.end_ms"),
+        location=string(source["location"], "scene.location"),
+        description=string(source["description"], "scene.description"),
+        narrative_function=string(
+            source["narrative_function"], "scene.narrative_function"
+        ),
+        visual_rules=strings(source["visual_rules"], "scene.visual_rules"),
+        continuity_risks=strings(
+            source["continuity_risks"], "scene.continuity_risks"
+        ),
+        evidence_shot_ids=strings(
+            source["evidence_shot_ids"], "scene.evidence_shot_ids"
         ),
     )
 

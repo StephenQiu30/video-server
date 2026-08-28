@@ -67,9 +67,11 @@ def test_markdown_report_is_complete_and_escapes_model_text() -> None:
     assert "## 一、基础信息" in markdown
     assert "| 镜头编号 | 时间码 | 时长 | 画面内容 |" in markdown
     assert "| Shot 001 | 00:00.000–00:02.000 | 2.0s |" in markdown
-    assert "## 二、高光镜头分析" in markdown
-    assert "## 三、AI 制作建议" in markdown
-    assert "## 四、视觉资产目录" in markdown
+    assert "## 二、场景提炼" in markdown
+    assert "### 场景 1: 开场建立" in markdown
+    assert "## 三、高光镜头分析" in markdown
+    assert "## 四、AI 制作建议" in markdown
+    assert "## 五、视觉资产目录" in markdown
     assert "&lt;script&gt;alert\\(1\\)&lt;/script&gt;" in markdown
     assert "\\*\\*重点\\*\\*" in markdown
     assert markdown.endswith("\n")

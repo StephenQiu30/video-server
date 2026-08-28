@@ -68,6 +68,30 @@ def document() -> dict[str, object]:
                 "visual_tags": ["标识"],
             },
         ],
+        "scenes": [
+            {
+                "id": "scene-1",
+                "index": 1,
+                "title": "人物进入",
+                "location": "室内空间",
+                "description": "人物进入并建立空间。",
+                "narrative_function": "建立开场空间。",
+                "visual_rules": ["固定广角"],
+                "continuity_risks": [],
+                "evidence_shot_ids": ["shot-1"],
+            },
+            {
+                "id": "scene-2",
+                "index": 2,
+                "title": "产品与品牌展示",
+                "location": "产品展示区",
+                "description": "产品特写转入品牌标识收尾。",
+                "narrative_function": "完成产品信息展示与品牌收束。",
+                "visual_rules": ["产品居中", "特写转中景"],
+                "continuity_risks": ["产品外观需跨镜保持一致"],
+                "evidence_shot_ids": ["shot-2", "shot-3"],
+            },
+        ],
         "highlights": [
             {
                 "id": "highlight-1",
@@ -116,6 +140,8 @@ def test_valid_result_derives_counts_times_and_reverse_asset_index() -> None:
 
     assert result.shot_count == 3
     assert result.media.duration_ms == 3_000
+    assert result.scenes[0].start_ms == 0
+    assert result.scenes[1].end_ms == 3_000
     assert result.highlights[0].start_ms == 1_000
     assert result.highlights[0].end_ms == 3_000
     assert result.assets[1].first_seen_ms == 1_000
@@ -134,6 +160,8 @@ def test_valid_result_derives_counts_times_and_reverse_asset_index() -> None:
         (("highlights", 0, "score", 101), AnalysisValidationCode.INVALID_SCHEMA),
         (("shots", 0, "highlight_score", 0), AnalysisValidationCode.INVALID_SCHEMA),
         (("assets", 0, "type", "identity"), AnalysisValidationCode.INVALID_SCHEMA),
+        (("scenes", 1, "index", 3), AnalysisValidationCode.INVALID_SCHEMA),
+        (("scenes", 0, "visual_rules", []), AnalysisValidationCode.INVALID_SCHEMA),
     ],
 )
 def test_time_enum_and_score_contracts_are_strict(
@@ -161,6 +189,24 @@ def test_unknown_empty_duplicate_and_orphan_evidence_are_rejected() -> None:
     for payload in (extra, empty, duplicate, orphan):
         with pytest.raises(AnalysisValidationError):
             parse(payload)
+
+
+def test_scenes_must_partition_all_shots_once_in_timeline_order() -> None:
+    missing = document()
+    missing["scenes"][1]["evidence_shot_ids"] = ["shot-3"]
+    overlapping = document()
+    overlapping["scenes"][1]["evidence_shot_ids"] = [
+        "shot-1",
+        "shot-2",
+        "shot-3",
+    ]
+    non_contiguous = document()
+    non_contiguous["scenes"][0]["evidence_shot_ids"] = ["shot-1", "shot-3"]
+
+    for payload in (missing, overlapping, non_contiguous):
+        with pytest.raises(AnalysisValidationError) as caught:
+            parse(payload)
+        assert caught.value.code is AnalysisValidationCode.INVALID_EVIDENCE
 
 
 def test_result_without_observable_shot_evidence_is_rejected() -> None:

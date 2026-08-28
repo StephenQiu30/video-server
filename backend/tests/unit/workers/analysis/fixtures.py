@@ -22,6 +22,19 @@ def valid_mapping() -> dict[str, object]:
                 "visual_tags": ["opening"],
             }
         ],
+        "scenes": [
+            {
+                "id": "scene-a",
+                "index": 1,
+                "title": "开场建立",
+                "location": "室内空间",
+                "description": "以单个建立镜头完成开场空间交代。",
+                "narrative_function": "建立空间与叙事基调。",
+                "visual_rules": ["固定广角构图", "中性光线"],
+                "continuity_risks": [],
+                "evidence_shot_ids": ["shot-a"],
+            }
+        ],
         "highlights": [],
         "assets": [],
         "production_advice": {

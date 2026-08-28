@@ -122,6 +122,9 @@ export default function AnalysisPanel({
           />
         ) : (
           <AnalysisResultView
+            defaultView={
+              state.job.skill_id === 'scene-extraction' ? 'scenes' : 'shots'
+            }
             reportMarkdown={state.job.report_markdown}
             result={state.job.result}
           />
@@ -288,6 +291,9 @@ function AnalysisJobState({
             />
           ) : (
             <AnalysisResultView
+              defaultView={
+                job.skill_id === 'scene-extraction' ? 'scenes' : 'shots'
+              }
               reportMarkdown={job.report_markdown}
               result={job.result}
             />

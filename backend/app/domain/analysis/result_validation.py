@@ -36,7 +36,7 @@ def validate_analysis_result(
     limits: AnalysisLimits | None = None,
 ) -> None:
     limits = limits or AnalysisLimits()
-    collections = (result.shots, result.highlights, result.assets)
+    collections = (result.shots, result.scenes, result.highlights, result.assets)
     if any(len(collection) > limits.max_collection_items for collection in collections):
         raise AnalysisValidationError(
             AnalysisValidationCode.LIMIT_EXCEEDED,
@@ -44,6 +44,7 @@ def validate_analysis_result(
         )
 
     shot_by_id = _unique(result.shots, "shot")
+    _unique(result.scenes, "scene")
     _unique(result.highlights, "highlight")
     asset_by_id = _unique(result.assets, "asset")
 
@@ -74,6 +75,23 @@ def validate_analysis_result(
 
     _shot_refs(result.summary.evidence_shot_ids, shot_by_id)
     _shot_refs(result.production_advice.priority_shot_ids, shot_by_id)
+    scene_shot_ids: list[str] = []
+    for expected_index, scene in enumerate(result.scenes, start=1):
+        if scene.index != expected_index:
+            _invalid_schema("scene indexes must be continuous and ordered")
+        evidence = _shot_refs(scene.evidence_shot_ids, shot_by_id)
+        if (
+            scene.start_ms != evidence[0].start_ms
+            or scene.end_ms != evidence[-1].end_ms
+        ):
+            _invalid_time("scene range must match its ordered evidence shots")
+        if tuple(shot.index for shot in evidence) != tuple(
+            range(evidence[0].index, evidence[-1].index + 1)
+        ):
+            _invalid_evidence("scene evidence shots must be contiguous and ordered")
+        scene_shot_ids.extend(scene.evidence_shot_ids)
+    if tuple(scene_shot_ids) != tuple(shot.id for shot in result.shots):
+        _invalid_evidence("scenes must partition all shots exactly once")
     for highlight in result.highlights:
         evidence = _shot_refs(highlight.evidence_shot_ids, shot_by_id)
         if highlight.start_ms != min(item.start_ms for item in evidence):
