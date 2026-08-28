@@ -42,11 +42,13 @@ docker compose --env-file .env -f docker-compose-env.yml config --quiet
 docker compose --env-file .env -f docker-compose.yml config --quiet
 # 首次使用或基础依赖尚未运行时执行一次
 docker compose --env-file .env -f docker-compose-env.yml up -d
-docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
+./scripts/start-local.sh
 ~~~
 
-最后一条命令是本机完整项目唯一的启动与重启入口。它统一构建前端与后端镜像，
-重新创建业务服务并等待健康检查；不要使用不会应用代码、镜像或配置变化的
+最后一条命令是本机完整项目的启动与重启入口。它统一构建前端与后端镜像、
+重新创建业务服务并等待健康检查；当 `.env` 已配置 `browser-*` YouTube 会话、
+受控 Runner 地址和安全基线确认时，还会先启动宿主机 Cookie 桥接并自动启用
+`youtube-operator` Profile。不要使用不会应用代码、镜像或配置变化的
 `docker compose restart`。
 
 访问地址：
@@ -69,7 +71,7 @@ docker compose --env-file .env -f docker-compose.yml up -d egress-proxy
 ~~~bash
 cp .env.example .env
 docker compose --env-file .env -f docker-compose-env.yml up -d
-docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
+./scripts/start-local.sh
 ~~~
 
 代码同步与服务启动保持解耦；需要更新时先执行：

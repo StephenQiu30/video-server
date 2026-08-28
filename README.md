@@ -102,9 +102,11 @@ cd video-server
 cp .env.example .env
 
 # 只体验下载和剧本文档导入时，可在 .env 中设置 ANALYSIS_ENABLED=false
-# 首次使用或基础依赖尚未运行时执行一次
+# 如果使用项目专用 Docker 基础依赖，首次执行一次；已有本机服务时跳过
 docker compose --env-file .env -f docker-compose-env.yml up -d
-docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
+
+# 本机统一启动入口；已配置 browser-* YouTube 会话时会自动启动桥接和受控 Runner
+./scripts/start-local.sh
 ```
 
 PowerShell 只需使用相同的 Compose 入口：
@@ -115,7 +117,7 @@ docker compose --env-file .env -f docker-compose-env.yml up -d
 docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
 ```
 
-更新代码时先独立执行 `git pull --ff-only`，再重复上述唯一业务 Compose 命令。
+更新代码时先独立执行 `git pull --ff-only`，再执行 `./scripts/start-local.sh`。
 不要用 `docker compose restart`，因为它不会应用新的代码、镜像或环境配置。
 YouTube、TikTok、X 的固定媒体 Canary 是启动后的验收命令，不属于启动入口，详见
 `docs/operations/007-固定Provider探针运行手册.md`。

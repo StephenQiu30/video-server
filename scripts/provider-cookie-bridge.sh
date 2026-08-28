@@ -103,6 +103,18 @@ bridge_secret_is_fresh() {
     [ -n "$(find "$cookie_file" -mmin -2 -print -quit 2>/dev/null)" ]
 }
 
+wait_for_fresh_snapshot() {
+  attempts=0
+  while [ "$attempts" -lt 20 ]; do
+    if bridge_status && bridge_secret_is_fresh; then
+      return 0
+    fi
+    attempts=$((attempts + 1))
+    sleep 0.5
+  done
+  return 1
+}
+
 stop_bridge() {
   if [ "$(uname -s)" = "Darwin" ]; then
     if launchctl print "gui/$(id -u)/$launchd_label" >/dev/null 2>&1; then
@@ -152,9 +164,8 @@ start_bridge() {
       'exec "$1" -m app.runner.browser_cookie_export --provider "$2" --browser chrome --version "$3" --output-root "$4" --watch-interval-seconds "$5"' \
       provider-cookie-bridge "$python_bin" "$provider" "$cookie_version" \
       "$project_dir/.provider-secrets" "$interval_seconds"
-    sleep 1
-    if ! bridge_status; then
-      echo "$provider Cookie bridge failed to start; inspect its scoped log."
+    if ! wait_for_fresh_snapshot; then
+      echo "$provider Cookie bridge failed to produce a fresh snapshot; inspect its scoped log."
       exit 1
     fi
     echo "$provider Cookie bridge started."
@@ -171,9 +182,8 @@ start_bridge() {
   bridge_pid=$!
   printf '%s\n' "$bridge_pid" >"$pid_file"
   chmod 600 "$pid_file" "$log_file"
-  sleep 1
-  if ! bridge_status; then
-    echo "$provider Cookie bridge failed to start; inspect its scoped log."
+  if ! wait_for_fresh_snapshot; then
+    echo "$provider Cookie bridge failed to produce a fresh snapshot; inspect its scoped log."
     exit 1
   fi
   echo "$provider Cookie bridge started."
