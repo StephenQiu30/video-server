@@ -17,7 +17,6 @@ from .contracts import (
     DownloadThumbnailSourceSnapshot,
     JobSnapshot,
     JobSourceSnapshot,
-    RetrySourceSnapshot,
     ThumbnailSnapshot,
     ThumbnailSourceSnapshot,
 )
@@ -244,32 +243,6 @@ class AccessRepository(AnalyticsRepository):
             row.updated_at = utc_now()
             await session.flush()
 
-    async def get_retry_source(
-        self, job_id: UUID, owner_hash: str
-    ) -> RetrySourceSnapshot:
-        async with self._sessions() as session:
-            row = (
-                await session.execute(
-                    select(MediaInspectionRow)
-                    .join(
-                        DownloadJobRow,
-                        DownloadJobRow.inspection_id == MediaInspectionRow.id,
-                    )
-                    .where(
-                        DownloadJobRow.id == job_id,
-                        DownloadJobRow.owner_hash == owner_hash,
-                        MediaInspectionRow.owner_hash == owner_hash,
-                    )
-                )
-            ).scalar_one_or_none()
-            if row is None:
-                raise RepositoryNotFound("download retry source does not exist")
-            return RetrySourceSnapshot(
-                url_ciphertext=row.url_ciphertext,
-                url_nonce=row.url_nonce,
-                url_key_id=row.url_key_id,
-            )
-
     async def list_download_history(
         self,
         owner_hash: str,
@@ -419,8 +392,8 @@ class AccessRepository(AnalyticsRepository):
                 or as_utc(job.lease_expires_at) <= as_utc(now)
             ):
                 raise LeaseConflict("worker no longer owns this job attempt")
-            if as_utc(inspection.expires_at) <= as_utc(now):
-                raise RepositoryNotFound("download source expired")
+            # Inspection TTL controls new admissions. A queued retry may be
+            # older than that TTL, but the Worker re-inspects before download.
             access_context = inspection.metadata_json.get("provider_access_context")
             if not isinstance(access_context, dict):
                 raise RepositoryNotFound("provider access context is unavailable")

@@ -27,7 +27,6 @@ from .contracts import (
     JobSnapshot,
     JobSourceSnapshot,
     OutboxSnapshot,
-    RetrySourceSnapshot,
     ThumbnailSnapshot,
     ThumbnailSourceSnapshot,
 )
@@ -125,7 +124,6 @@ __all__ = [
     "RepositoryConflict",
     "RepositoryError",
     "RepositoryNotFound",
-    "RetrySourceSnapshot",
     "ThumbnailSnapshot",
     "ThumbnailSourceSnapshot",
     "SqlAlchemyDownloadRepository",

@@ -29,11 +29,6 @@ class EncryptedUrl:
 
 
 @dataclass(frozen=True, slots=True)
-class RetrySourceSnapshot:
-    encrypted_url: EncryptedUrl
-
-
-@dataclass(frozen=True, slots=True)
 class RunnerFormat:
     display_name: str
     plan: DownloadPlan

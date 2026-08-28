@@ -24,6 +24,10 @@ class DownloadCreate:
     semantic_plan: dict[str, object]
     max_attempts: int = 3
     source_kind: DownloadSourceKind = DownloadSourceKind.REMOTE_PROVIDER
+    # A retry may outlive the short-lived inspection record. The worker still
+    # re-inspects the provider source before selecting streams or writing an
+    # artifact, so this only changes admission-time expiry handling.
+    allow_expired_source: bool = False
 
 
 @dataclass(frozen=True, slots=True)

@@ -18,7 +18,6 @@ from app.application.downloads.inspection_models import (
     InspectionCreate,
     InspectionSaveResult,
     InspectionSnapshot,
-    RetrySourceSnapshot,
     RunnerInspection,
 )
 from app.application.downloads.thumbnail import (
@@ -86,10 +85,6 @@ class DownloadRepository(Protocol):
         owner_hash: str,
         thumbnail: ThumbnailObject,
     ) -> None: ...
-
-    async def get_retry_source(
-        self, job_id: UUID, owner_hash: str
-    ) -> RetrySourceSnapshot | None: ...
 
     async def list_download_history(
         self,

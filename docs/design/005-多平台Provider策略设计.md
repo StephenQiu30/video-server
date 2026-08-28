@@ -257,6 +257,7 @@ pending → canary → active → retired
 - credentialed inspect 在生成格式前必须校验标准化 `availability` 和 Provider 权益字段；YouTube 第一阶段只允许 `public` 或不依赖账号权益的 `unlisted`。
 - `private`、`premium_only`、`subscriber_only`、`needs_auth`、付费/会员标记、`has_drm=true` 和未知 `availability` 都 fail closed。
 - download re-inspect 必须重复权益校验，任何媒体字节下载和对象交付都发生在校验通过之后。
+- 下载重试请求只创建新的持久化队列任务，不同步依赖 Provider 校验；Worker 执行前必须重新 inspect，来源身份、权益、格式和最终制品完整性校验仍不可绕过。
 - Profile 后续启用其他 Provider 会话时必须定义等价的 entitlement classifier；没有可靠证据就不得使用共享运维会话。
 - Canary 检测到账号新增权益或 classifier 变为 unknown 时立即 disable 该 credential version。
 

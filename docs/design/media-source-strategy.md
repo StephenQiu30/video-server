@@ -18,8 +18,8 @@
    Provider Cookie 快照；生产环境继续使用私密窗口导出的不可变版本。
 4. 私有封面通过认证 HTTP client 获取并在内存中显示，不让原生图片请求绕过
    Access/Refresh Cookie 恢复。
-5. 下载规格漂移时用 Strategy Policy 自动选择当前兼容的最接近规格，避免要求
-   用户重新手工选格式，同时让新任务记录真实新规格。
+5. 下载任务由 Worker 在执行前重新解析并校验规格；终态重试只负责入队，避免
+   Provider 的短时不稳定直接阻断 HTTP 操作。
 6. 为 Registry 中每个平台维护固定 metadata/media 诊断样本，并把真实结果写入
    canary 表；没有当前证据时不再显示静态“已验证”日期。
 
@@ -113,19 +113,18 @@ Docker 不能安全解密宿主机 Chrome Profile，因此桥接进程只在本�
 - `component-boundaries.test.ts` 扫描业务 TSX，阻止新增原生交互控件或越层
   导入 Radix。
 
-## 7. 下载规格恢复 Strategy
+## 7. 下载规格与重试边界
 
-平台可能在两次请求间轮换 CDN rendition。`RetryFormatRecoveryPolicy` 先寻找完全
-一致的语义格式；找不到时，只在以下边界内选择最接近的当前格式：
+平台可能在两次请求间轮换 CDN rendition。创建任务时只校验用户刚刚选择的
+inspection/format 仍属于当前账户；终态重试不会在 HTTP 请求中再次调用 Provider，
+而是复用已保存的来源引用和语义计划创建新的持久化队列任务。解析记录过期不影响
+这个入队动作。
 
-- 容器家族、帧率桶、动态范围、音频编码和显式音轨语言一致；
-- 画幅差不超过 3%；MP4 仅 H264/HEVC 互换，WebM 仅 VP9/AV1 互换；
-- 优先保持原视频编码，再按像素面积对数距离排序；
-- SOURCE 容器不跨视频编码；
-- 只用于用户对终态任务发起重试，新任务保存新的 semantic plan，不改写历史任务。
-
-固定媒体 canary 对相邻请求发生的 `format_unavailable` 最多执行三次“重新检查 →
-选择当前最低规格 → 下载”，其他鉴权、DRM、限流和提取失败不重试、不换账号。
+Download Worker 在真正下载前必须使用原访问上下文重新 inspect，检查来源身份、权益
+和当前可用流，再由 Runner 依据语义计划选择流。Provider format id 只是短期 hint，
+不能作为恢复依据；若当前规格不可用，任务返回 `format_unavailable`，用户重新解析
+链接后选择新的真实规格。媒体字节、封装和最终制品完整性校验仍不能绕过，也不改写
+原任务历史。
 
 ## 8. 固定诊断矩阵与状态真实性
 

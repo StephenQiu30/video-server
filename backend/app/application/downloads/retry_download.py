@@ -12,15 +12,11 @@ from app.application.downloads.errors import (
     PersistenceIdempotencyConflict,
     PersistenceNotFound,
 )
-from app.application.downloads.inspect_media import InspectMedia
-from app.application.downloads.plans import plan_to_documents
 from app.application.downloads.ports import (
     DownloadRepository,
     RequestFingerprinter,
-    UrlCipher,
 )
 from app.application.downloads.queries import _owned_job
-from app.application.downloads.retry_format_recovery import RetryFormatRecoveryPolicy
 from app.application.downloads.validation import (
     validate_idempotency_key,
     validate_now,
@@ -37,24 +33,18 @@ class RetryDownload:
         self,
         *,
         repository: DownloadRepository,
-        inspect_media: InspectMedia,
-        url_cipher: UrlCipher,
         fingerprinter: RequestFingerprinter,
         now: Callable[[], datetime],
         new_id: Callable[[], UUID],
         max_attempts: int,
-        format_recovery: RetryFormatRecoveryPolicy | None = None,
     ) -> None:
         if max_attempts <= 0:
             raise ValueError("max attempts must be positive")
         self._repository = repository
-        self._inspect_media = inspect_media
-        self._url_cipher = url_cipher
         self._fingerprinter = fingerprinter
         self._now = now
         self._new_id = new_id
         self._max_attempts = max_attempts
-        self._format_recovery = format_recovery or RetryFormatRecoveryPolicy()
 
     async def __call__(
         self,
@@ -81,36 +71,13 @@ class RetryDownload:
                 raise ApplicationError(ApplicationErrorCode.INVALID_STATE)
         elif original.status not in retryable_statuses:
             raise ApplicationError(ApplicationErrorCode.INVALID_STATE)
-        try:
-            source = await self._repository.get_retry_source(job_id, owner_hash)
-        except PersistenceNotFound as exc:
-            raise ApplicationError(ApplicationErrorCode.NOT_FOUND) from exc
-        if source is None:
+        if original.inspection_id is None or original.format_id is None:
             raise ApplicationError(ApplicationErrorCode.NOT_FOUND)
-        try:
-            url = self._url_cipher.decrypt(source.encrypted_url)
-        except (TypeError, ValueError) as exc:
-            raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
-
-        inspection_key = self._fingerprinter.fingerprint(
-            "download-retry-inspection",
-            str(original.id),
-            idempotency_key,
-        )
-        inspection = await self._inspect_media(url, owner_hash, inspection_key)
-        resolution = self._format_recovery.resolve(
-            original.semantic_plan,
-            inspection.formats,
-        )
-        if resolution is None:
-            raise ApplicationError(ApplicationErrorCode.FORMAT_UNAVAILABLE)
-        selected = resolution.selected
-        selected_semantic, _ = plan_to_documents(selected.plan)
 
         command = DownloadCreate(
             id=self._new_id(),
-            inspection_id=inspection.id,
-            format_id=selected.id,
+            inspection_id=original.inspection_id,
+            format_id=original.format_id,
             owner_hash=owner_hash,
             idempotency_key=idempotency_key,
             request_fingerprint=self._fingerprinter.fingerprint(
@@ -118,8 +85,9 @@ class RetryDownload:
                 str(original.id),
                 original.request_fingerprint,
             ),
-            semantic_plan=selected_semantic,
+            semantic_plan=dict(original.semantic_plan),
             max_attempts=self._max_attempts,
+            allow_expired_source=True,
         )
         try:
             saved = await self._repository.create_job(

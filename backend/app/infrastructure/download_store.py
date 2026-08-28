@@ -76,6 +76,7 @@ class SqlAlchemyDownloadStore:
                 semantic_plan=dict(command.semantic_plan),
                 max_attempts=command.max_attempts,
                 source_kind=command.source_kind.value,
+                allow_expired_source=command.allow_expired_source,
             ),
             now=now,
         )
@@ -170,18 +171,6 @@ class SqlAlchemyDownloadStore:
                 sha256=thumbnail.sha256,
                 size_bytes=thumbnail.size_bytes,
             ),
-        )
-
-    async def get_retry_source(
-        self, job_id: UUID, owner_hash: str
-    ) -> application.RetrySourceSnapshot:
-        stored = await self.repository.get_retry_source(job_id, owner_hash)
-        return application.RetrySourceSnapshot(
-            encrypted_url=application.EncryptedUrl(
-                ciphertext=stored.url_ciphertext,
-                nonce=stored.url_nonce,
-                key_id=stored.url_key_id,
-            )
         )
 
     async def list_download_history(

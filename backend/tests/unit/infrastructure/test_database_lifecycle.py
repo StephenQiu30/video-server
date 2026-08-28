@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
@@ -90,7 +91,7 @@ async def test_job_outbox_lease_progress_and_success_are_atomic(repository) -> N
     assert duplicate.job.id == created.job.id
 
     claimed = await repository.claim_job(
-        command.id, "worker-1", now, timedelta(seconds=60)
+        command.id, "worker-1", now, timedelta(minutes=30)
     )
     assert claimed is not None
     assert (claimed.status, claimed.stage, claimed.attempt) == (
@@ -105,6 +106,10 @@ async def test_job_outbox_lease_progress_and_success_are_atomic(repository) -> N
     assert source.semantic_plan["height"] == 1080
     assert source.provider_hints["video"] == "137"
     assert source.access_context["provider_key"] == "youtube"
+    late_source = await repository.get_job_source(
+        command.id, "worker-1", 1, now + timedelta(minutes=16)
+    )
+    assert late_source.inspection_id == inspection_id
     with pytest.raises(RepositoryNotFound):
         await repository.get_job_source(uuid4(), "worker-1", 1, now)
 
@@ -162,6 +167,36 @@ async def test_job_outbox_lease_progress_and_success_are_atomic(repository) -> N
         command.id, "a" * 64, now + timedelta(seconds=11)
     )
     assert fetched.sha256 == "d" * 64
+
+
+@pytest.mark.asyncio
+async def test_retry_can_enqueue_after_inspection_expiry(repository) -> None:
+    inspection_id, format_id, now = await _inspection(repository)
+    original = DownloadCreate(
+        id=uuid4(),
+        inspection_id=inspection_id,
+        format_id=format_id,
+        owner_hash="a" * 64,
+        idempotency_key="download-original",
+        request_fingerprint="1" * 64,
+        semantic_plan={"height": 1080, "container_preference": "mp4"},
+    )
+    await repository.create_job(original, now=now)
+    retry = replace(
+        original,
+        id=uuid4(),
+        idempotency_key="download-retry",
+        request_fingerprint="2" * 64,
+        allow_expired_source=True,
+    )
+
+    created = await repository.create_job(
+        retry,
+        now=now + timedelta(minutes=16),
+    )
+
+    assert created.created is True
+    assert created.job.id == retry.id
 
 
 @pytest.mark.asyncio

@@ -149,6 +149,20 @@ class JobRepository(MediaRepository):
             raise RepositoryConflict("download source kind is not remotely inspectable")
         if command.inspection_id is None or command.format_id is None:
             raise RepositoryConflict("remote download source is incomplete")
+        source_filters = [
+            MediaInspectionRow.id == command.inspection_id,
+            MediaInspectionRow.owner_hash == command.owner_hash,
+            MediaFormatRow.id == command.format_id,
+        ]
+        if not command.allow_expired_source:
+            # Explicit retries may reuse an expired snapshot reference. The
+            # worker re-inspects the provider before it downloads any bytes.
+            source_filters.extend(
+                (
+                    MediaInspectionRow.expires_at > now,
+                    MediaFormatRow.expires_at > now,
+                )
+            )
         selected = (
             await session.execute(
                 select(MediaInspectionRow, MediaFormatRow)
@@ -156,13 +170,7 @@ class JobRepository(MediaRepository):
                     MediaFormatRow,
                     MediaFormatRow.inspection_id == MediaInspectionRow.id,
                 )
-                .where(
-                    MediaInspectionRow.id == command.inspection_id,
-                    MediaInspectionRow.owner_hash == command.owner_hash,
-                    MediaInspectionRow.expires_at > now,
-                    MediaFormatRow.id == command.format_id,
-                    MediaFormatRow.expires_at > now,
-                )
+                .where(*source_filters)
             )
         ).one_or_none()
         if selected is None:

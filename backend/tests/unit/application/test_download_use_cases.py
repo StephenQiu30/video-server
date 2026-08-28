@@ -18,8 +18,6 @@ from app.application.downloads import (
     IssueDownloadUrl,
     JobSnapshot,
     RetryDownload,
-    RunnerFormat,
-    RunnerInspection,
     plan_to_documents,
 )
 from app.domain.downloads import DownloadSourceKind, DownloadStage, DownloadStatus
@@ -28,8 +26,6 @@ from tests.unit.application.test_inspect_media import (
     NOW,
     OWNER,
     plan,
-    runner_result,
-    use_case,
 )
 
 
@@ -75,18 +71,9 @@ def creator(repository: FakeRepository) -> CreateDownload:
     )
 
 
-def retrier(
-    repository: FakeRepository,
-    fresh_result: RunnerInspection | None = None,
-) -> RetryDownload:
-    inspect_media, _, cipher = use_case(
-        repository,
-        fresh_result or runner_result(),
-    )
+def retrier(repository: FakeRepository) -> RetryDownload:
     return RetryDownload(
         repository=repository,
-        inspect_media=inspect_media,
-        url_cipher=cipher,
         fingerprinter=HmacRequestFingerprinter(b"k" * 32),
         now=lambda: NOW,
         new_id=uuid4,
@@ -294,7 +281,7 @@ async def test_retry_rejects_active_successful_with_file_and_foreign_jobs() -> N
 
 
 @pytest.mark.asyncio
-async def test_retry_reinspects_an_expired_source_and_preserves_semantic_plan() -> None:
+async def test_retry_queues_an_expired_source_and_preserves_semantic_plan() -> None:
     repository = FakeRepository()
     inspection_id, format_id = seed_inspection(repository)
     original = await creator(repository)(inspection_id, format_id, OWNER, "original")
@@ -309,61 +296,25 @@ async def test_retry_reinspects_an_expired_source_and_preserves_semantic_plan() 
 
     assert retried.id != original.id
     command = repository.download_commands[-1]
-    assert command.inspection_id != inspection_id
+    assert command.inspection_id == inspection_id
+    assert command.format_id == format_id
+    assert command.allow_expired_source is True
     assert command.semantic_plan == repository.jobs[original.id].semantic_plan
 
 
 @pytest.mark.asyncio
-async def test_retry_automatically_rebases_a_disappeared_provider_rendition() -> None:
-    repository = FakeRepository()
-    inspection_id, format_id = seed_inspection(repository)
-    original = await creator(repository)(inspection_id, format_id, OWNER, "original")
-    repository.jobs[original.id] = replace(
-        repository.jobs[original.id],
-        status="failed",
-        finished_at=NOW,
-        error_code="format_unavailable",
-    )
-    fresh_result = replace(
-        runner_result(),
-        formats=(RunnerFormat("720p MP4", plan(720)),),
-    )
-
-    retried = await retrier(repository, fresh_result)(
-        original.id,
-        OWNER,
-        "retry-adapted",
-    )
-
-    command = repository.download_commands[-1]
-    assert retried.status is DownloadStatus.QUEUED
-    assert command.semantic_plan["height"] == 720
-    assert command.semantic_plan["width"] == 1280
-    assert command.semantic_plan != repository.jobs[original.id].semantic_plan
-
-
-@pytest.mark.asyncio
-async def test_retry_does_not_adapt_to_an_unrelated_aspect_ratio() -> None:
+async def test_retry_does_not_require_provider_validation_before_enqueue() -> None:
     repository = FakeRepository()
     inspection_id, format_id = seed_inspection(repository)
     original = await creator(repository)(inspection_id, format_id, OWNER, "original")
     repository.jobs[original.id] = replace(
         repository.jobs[original.id], status="failed", finished_at=NOW
     )
-    square = replace(plan(720), width=720)
-    fresh_result = replace(
-        runner_result(),
-        formats=(RunnerFormat("Square MP4", square),),
-    )
 
-    with pytest.raises(ApplicationError) as caught:
-        await retrier(repository, fresh_result)(
-            original.id,
-            OWNER,
-            "retry-unrelated",
-        )
+    retried = await retrier(repository)(original.id, OWNER, "retry-provider-down")
 
-    assert caught.value.code is ApplicationErrorCode.FORMAT_UNAVAILABLE
+    assert retried.status is DownloadStatus.QUEUED
+    assert len(repository.download_commands) == 2
 
 
 @pytest.mark.asyncio

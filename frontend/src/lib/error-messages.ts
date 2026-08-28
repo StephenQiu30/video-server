@@ -22,8 +22,7 @@ const localizedErrorMessages: Record<string, string> = {
   duration_limit_exceeded: '该平台支持下载，但当前内容超出单次处理的安全边界。',
   email_already_registered: '该邮箱已注册，请直接登录或使用其他邮箱。',
   forbidden: '当前账号没有执行此操作的权限。',
-  format_unavailable:
-    '平台已更换可用规格，请点击重新下载；系统会自动选择最接近的当前规格。',
+  format_unavailable: '平台当前没有提供所选规格，请重新解析链接后选择可用规格。',
   idempotency_conflict: '请求内容已经发生变化，请重新操作。',
   input_artifact_unavailable: '原视频文件已失效，请重新下载后再分析。',
   import_sha256_mismatch: '上传文件的校验值不一致，请重新选择原文件上传。',
@@ -57,7 +56,8 @@ const localizedErrorMessages: Record<string, string> = {
   provider_session_expired: '平台服务端解析会话暂时失效，请稍后重试。',
   provider_temporarily_unavailable: '平台服务暂时不可用，请稍后重试。',
   provider_unsupported: '当前暂不支持该视频平台。',
-  provider_verification_failed: '平台自动验证暂时未通过，请稍后重试。',
+  provider_verification_failed:
+    '平台暂时未接受这次请求，可稍后点击“重新下载”再次尝试。',
   rate_limited: '操作过于频繁，请稍后再试。',
   rate_limiter_unavailable: '请求限制服务暂时不可用，请稍后重试。',
   request_timeout: '请求处理超时，请稍后重试。',

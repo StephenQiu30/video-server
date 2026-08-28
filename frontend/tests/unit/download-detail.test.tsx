@@ -143,6 +143,24 @@ describe('DownloadJobView', () => {
     expect(screen.queryByText('download_timeout')).not.toBeInTheDocument();
   });
 
+  it('does not present a retry failure as a task read failure', async () => {
+    mockHttpResponses(job('failed'));
+    mockHttpError(
+      new ApiError(
+        503,
+        'provider_verification_failed',
+        'Unavailable',
+        '暂时不可用',
+      ),
+    );
+    render(<DownloadJobView jobId={job().id} pollIntervalMs={60_000} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '重新下载' }));
+
+    expect(await screen.findByText('操作未完成')).toBeInTheDocument();
+    expect(screen.queryByText('无法读取下载任务')).not.toBeInTheDocument();
+  });
+
   it('issues a short-lived URL for completed downloads', async () => {
     mockHttpResponses(job('succeeded'), analysisSkills, null, signedVideoUrl);
     const click = vi

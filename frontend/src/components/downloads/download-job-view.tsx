@@ -44,7 +44,7 @@ export default function DownloadJobView({
       <BackLink fallbackHref="/history" />
       {state.error ? (
         <Alert className="mt-8" variant="destructive">
-          <AlertTitle>无法读取下载任务</AlertTitle>
+          <AlertTitle>{errorTitle(state.errorKind)}</AlertTitle>
           <AlertDescription>{state.error}</AlertDescription>
         </Alert>
       ) : null}
@@ -124,6 +124,13 @@ export default function DownloadJobView({
       ) : null}
     </div>
   );
+}
+
+function errorTitle(kind: 'load' | 'sync' | 'action' | null) {
+  if (kind === 'load') return '无法读取下载任务';
+  if (kind === 'sync') return '状态同步暂时中断';
+  if (kind === 'action') return '操作未完成';
+  return '请求未完成';
 }
 
 function DownloadJobSkeleton() {

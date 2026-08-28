@@ -161,9 +161,6 @@ async def test_download_store_maps_the_complete_application_lifecycle(
     )
     assert expired_source_history.items[0].title == "Controlled sample"
     assert expired_source_history.items[0].file_available is True
-    retry_source = await store.get_retry_source(job_id, owner)
-    assert retry_source.encrypted_url.ciphertext == b"encrypted"
-
     expired_file_history = await store.list_download_history(
         owner,
         page=1,
@@ -183,7 +180,7 @@ async def test_history_includes_browser_imports_and_searches_filename(
     repository = database.SqlAlchemyDownloadRepository(sessions)
     store = SqlAlchemyDownloadStore(repository)
     job_id = uuid4()
-    owner = "i" * 64
+    owner = "b" * 64
     async with sessions.begin() as session:
         session.add(
             database.DownloadJobRow(

@@ -16,7 +16,6 @@ from app.application.downloads import (
     JobSaveResult,
     JobSnapshot,
     PersistenceIdempotencyConflict,
-    RetrySourceSnapshot,
     RunnerInspection,
     ThumbnailObject,
     ThumbnailSource,
@@ -80,7 +79,6 @@ class FakeRepository:
         self._download_keys: dict[tuple[str, str], UUID] = {}
         self._download_fingerprints: dict[UUID, str] = {}
         self.outbox_events = 0
-        self.retry_sources: dict[UUID, EncryptedUrl] = {}
         self.thumbnails: dict[UUID, ThumbnailObject] = {}
 
     async def save_inspection(self, command: InspectionCreate) -> InspectionSaveResult:
@@ -196,17 +194,6 @@ class FakeRepository:
         self.inspections[inspection_id] = replace(
             inspection, metadata=metadata, thumbnail_available=True
         )
-
-    async def get_retry_source(
-        self, job_id: UUID, owner_hash: str
-    ) -> RetrySourceSnapshot | None:
-        job = self.jobs.get(job_id)
-        if job is None or job.owner_hash != owner_hash:
-            return None
-        source = self.retry_sources.get(
-            job_id, EncryptedUrl(b"opaque-ciphertext", b"nonce", "primary")
-        )
-        return RetrySourceSnapshot(encrypted_url=source)
 
     async def cancel_job(
         self, job_id: UUID, owner_hash: str, now: datetime

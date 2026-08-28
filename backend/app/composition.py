@@ -386,8 +386,6 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         ),
         retry_download=RetryDownload(
             repository=store,
-            inspect_media=inspect_media,
-            url_cipher=envelope,
             fingerprinter=fingerprinter,
             now=clock,
             new_id=uuid4,

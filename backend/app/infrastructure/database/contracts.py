@@ -68,13 +68,6 @@ class InspectionCreateResult:
 
 
 @dataclass(frozen=True, slots=True)
-class RetrySourceSnapshot:
-    url_ciphertext: bytes
-    url_nonce: bytes
-    url_key_id: str
-
-
-@dataclass(frozen=True, slots=True)
 class DownloadCreate:
     id: UUID
     inspection_id: UUID | None
@@ -85,6 +78,7 @@ class DownloadCreate:
     semantic_plan: dict[str, Any]
     max_attempts: int = 3
     source_kind: str = "remote_provider"
+    allow_expired_source: bool = False
 
 
 @dataclass(frozen=True, slots=True)

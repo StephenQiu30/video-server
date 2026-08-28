@@ -14,10 +14,12 @@ import type { DownloadJob } from '@/types/video';
 import { terminalDownloadStatuses } from '@/types/video';
 
 type Action = 'cancel' | 'download' | 'retry' | null;
+type ErrorKind = 'load' | 'sync' | 'action' | null;
 
 export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   const [job, setJob] = useState<DownloadJob | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorKind, setErrorKind] = useState<ErrorKind>(null);
   const [loading, setLoading] = useState(true);
   const [action, setAction] = useState<Action>(null);
   const [cycle, setCycle] = useState(0);
@@ -33,6 +35,7 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     let disposed = false;
     setLoading(true);
     setError(null);
+    setErrorKind(null);
 
     async function load() {
       try {
@@ -41,10 +44,12 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
           return;
         }
         setJob(current);
+        setErrorKind(null);
         setLoading(false);
       } catch (reason) {
         if (!disposed) {
           setError(displayError(reason));
+          setErrorKind('load');
           setLoading(false);
         }
       }
@@ -66,8 +71,10 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
         try {
           setJob(await getDownload(jobId));
           setError(null);
+          setErrorKind(null);
         } catch (reason) {
           setError(displayError(reason));
+          setErrorKind('sync');
         }
       },
       setSocketStatus,
@@ -86,8 +93,10 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
         try {
           setJob(await getDownload(jobId));
           setError(null);
+          setErrorKind(null);
         } catch (reason) {
           setError(displayError(reason));
+          setErrorKind('sync');
         }
       },
       Math.max(15_000, pollIntervalMs * 10),
@@ -102,15 +111,18 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   const retry = useCallback(async (): Promise<DownloadJob | null> => {
     setAction('retry');
     setError(null);
+    setErrorKind(null);
     if (retryRequest.current?.jobId !== jobId) {
       retryRequest.current = { jobId, key: createIdempotencyKey() };
     }
     try {
       const retried = await retryDownload(jobId, retryRequest.current.key);
       setJob(retried);
+      setErrorKind(null);
       return retried;
     } catch (reason) {
       setError(displayError(reason));
+      setErrorKind('action');
       return null;
     } finally {
       setAction(null);
@@ -120,11 +132,14 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   const cancel = useCallback(async () => {
     setAction('cancel');
     setError(null);
+    setErrorKind(null);
     try {
       const cancelled = await cancelDownload(jobId);
       setJob((current) => mergePresentation(current, cancelled));
+      setErrorKind(null);
     } catch (reason) {
       setError(displayError(reason));
+      setErrorKind('action');
     } finally {
       setAction(null);
     }
@@ -133,11 +148,14 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   const download = useCallback(async () => {
     setAction('download');
     setError(null);
+    setErrorKind(null);
     try {
       const result = await issueDownloadUrl(jobId);
       triggerBrowserDownload(result.url);
+      setErrorKind(null);
     } catch (reason) {
       setError(displayError(reason));
+      setErrorKind('action');
     } finally {
       setAction(null);
     }
@@ -148,6 +166,7 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     cancel,
     download,
     error,
+    errorKind,
     job,
     loading,
     refresh,
