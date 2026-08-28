@@ -72,9 +72,13 @@ esac
 
 cookie_file="$state_dir/$cookie_version.cookies.txt"
 launchd_label="com.stephenqiu.video.$provider-cookie-bridge"
+login_wait_attempts=20
 if [ "$(uname -s)" = "Darwin" ]; then
   user_runtime_dir=$(getconf DARWIN_USER_TEMP_DIR)
   log_file="${user_runtime_dir%/}/video-server-$provider-cookie-bridge.log"
+  if [ "$provider" = wechat_channels ]; then
+    login_wait_attempts=240
+  fi
 else
   log_file="$state_dir/browser-cookie-bridge.log"
 fi
@@ -109,7 +113,7 @@ bridge_secret_is_fresh() {
 
 wait_for_fresh_snapshot() {
   attempts=0
-  while [ "$attempts" -lt 20 ]; do
+  while [ "$attempts" -lt "$login_wait_attempts" ]; do
     if bridge_status && bridge_secret_is_fresh; then
       return 0
     fi
@@ -117,6 +121,15 @@ wait_for_fresh_snapshot() {
     sleep 0.5
   done
   return 1
+}
+
+open_provider_login_if_needed() {
+  if [ "$(uname -s)" = "Darwin" ] && \
+    [ "$provider" = wechat_channels ] && \
+    ! bridge_secret_is_fresh; then
+    echo "Waiting for the official Yuanbao login in Chrome."
+    open -a "Google Chrome" "https://yuanbao.tencent.com/" >/dev/null 2>&1 || true
+  fi
 }
 
 stop_bridge() {
@@ -168,6 +181,7 @@ start_bridge() {
       'exec "$1" -m app.runner.browser_cookie_export --provider "$2" --browser chrome --version "$3" --output-root "$4" --watch-interval-seconds "$5"' \
       provider-cookie-bridge "$python_bin" "$provider" "$cookie_version" \
       "$project_dir/.provider-secrets" "$interval_seconds"
+    open_provider_login_if_needed
     if ! wait_for_fresh_snapshot; then
       echo "$provider Cookie bridge failed to produce a fresh snapshot; inspect its scoped log."
       exit 1

@@ -30,7 +30,9 @@ Media Runner 通过 `app/runner/plugins/yt_dlp_plugins/` 加载随项目交付�
 
 主流视频源使用声明式 Provider Profile 接入：`provider_catalog_*.py` 按策略族登记能力和运行参数，`ProviderRegistry.prepare()` 一次解析得到贯穿 inspect/download 的不可变 `ProviderRequest`，`YtDlpCommandBuilder` 只消费该请求生成固定参数，错误由有序 `FailureRule` 归一化。已有 yt-dlp extractor 的公开单视频平台通常只需增加一个 Profile、契约测试和 metadata/media canary；需要自定义解析时再按 yt-dlp 官方插件目录增加可信 extractor，不修改通用命令执行器。未知站点使用无凭据 Generic extractor。YouTube、TikTok、抖音、小红书、Reddit 与微信视频号运维会话分别在物理隔离的 Docker Runner 中从各自只读 Secret 建立操作级 `0600` Cookie jar；视频号 Secret 只允许 `yuanbao.tencent.com` 域并要求同时包含 `hy_user` 与 `hy_token`，匿名与其他 Provider 命令不携带 Cookie。平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 key 指向受控内部代理。
 
-macOS 浏览器 Cookie 由 Keychain 加密，Linux 容器不能通过挂载 Chrome Profile 直接复用。请在 `backend/` 使用一次性导出器按 Provider 生成最小 Cookie Secret，再由 Compose 只读挂载；无需 launchd 或宿主机常驻 Runner：
+macOS 浏览器 Cookie 由 Keychain 加密，Linux 容器不能通过挂载 Chrome Profile
+直接复用。生产使用一次性导出器生成不可变的最小 Cookie Secret，再由 Compose
+只读挂载：
 
 ```bash
 uv run python -m app.runner.browser_cookie_export \
@@ -38,10 +40,15 @@ uv run python -m app.runner.browser_cookie_export \
   --version browser-20260815-01 --output-root ../.provider-secrets
 ```
 
-本地开发如果明确要复用当前 Chrome 登录态，可从仓库根目录启动宿主机桥接。桥接按 Provider allowlist 原子更新当前版本 Secret，Docker 仍无法读取完整 Chrome Profile 或 Keychain；普通 Web 用户不需要提交 Cookie：
+本地视频号路由启用且完成运维授权确认后，`start-local.sh` 会自动选择
+`browser-live`、启动宿主机桥接并持续刷新 Secret，不需要执行导出命令或复制
+Cookie。桥接按 Provider allowlist 原子更新当前版本 Secret，Docker 仍无法读取
+完整 Chrome Profile 或 Keychain；普通 Web 用户不需要提交 Cookie。以下命令只
+用于独立诊断其他桥接：
 
 ```bash
 ./scripts/provider-cookie-bridge.sh youtube start
+./scripts/provider-cookie-bridge.sh wechat_channels start
 ./scripts/provider-cookie-bridge.sh tiktok start
 ./scripts/provider-cookie-bridge.sh douyin start
 ./scripts/provider-cookie-bridge.sh xiaohongshu start

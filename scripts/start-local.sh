@@ -44,8 +44,9 @@ if [ "$youtube_configured" = true ] && \
 fi
 
 if [ "$wechat_configured" = true ] && \
-  [ -n "$wechat_version" ] && \
   [ "$wechat_attested" = true ]; then
+  wechat_version=${wechat_version:-browser-live}
+  export WECHAT_CHANNELS_COOKIE_VERSION="$wechat_version"
   case "$wechat_version" in
     browser-*) "$script_dir/provider-cookie-bridge.sh" wechat_channels start ;;
   esac

@@ -284,10 +284,14 @@ def test_wechat_channels_session_bridge_and_local_start_are_wired() -> None:
     assert "youtube|wechat_channels|tiktok" in bridge
     assert "version_variable=WECHAT_CHANNELS_COOKIE_VERSION" in bridge
     assert "interval_variable=WECHAT_CHANNELS_COOKIE_BRIDGE_INTERVAL_SECONDS" in bridge
+    assert 'open -a "Google Chrome" "https://yuanbao.tencent.com/"' in bridge
+    assert "login_wait_attempts=240" in bridge
     assert "wechat_version=$(env_value WECHAT_CHANNELS_COOKIE_VERSION)" in startup
     assert (
         "wechat_attested=$(env_value "
         "WECHAT_CHANNELS_OPERATOR_ACCOUNT_BASELINE_ATTESTED)" in startup
     )
     assert 'provider-cookie-bridge.sh" wechat_channels start' in startup
+    assert "wechat_version=${wechat_version:-browser-live}" in startup
+    assert 'export WECHAT_CHANNELS_COOKIE_VERSION="$wechat_version"' in startup
     assert 'set -- "$@" --profile wechat-channels-operator' in startup

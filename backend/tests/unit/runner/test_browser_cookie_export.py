@@ -235,3 +235,39 @@ def test_watch_retains_last_good_secret_after_transient_browser_failure(
     ).read_text()
     assert "session-one" in payload
     assert reports[-1] == "refresh_failed provider=youtube reason=ValueError"
+
+
+def test_watch_waits_for_initial_wechat_login(tmp_path: Path) -> None:
+    sources = iter(
+        (
+            _jar(_cookie(".yuanbao.tencent.com", "hy_user", "operator-id")),
+            _jar(
+                _cookie(".yuanbao.tencent.com", "hy_user", "operator-id"),
+                _cookie(".yuanbao.tencent.com", "hy_token", "operator-token"),
+            ),
+        )
+    )
+    reports: list[str] = []
+
+    watch_browser_cookies(
+        provider="wechat_channels",
+        browser="chrome",
+        profile=None,
+        version="browser-live",
+        output_root=tmp_path / "secrets",
+        interval_seconds=5,
+        cookie_loader=lambda _browser, _profile: next(sources),
+        reporter=reports.append,
+        sleeper=lambda _seconds: None,
+        max_cycles=2,
+    )
+
+    payload = (
+        tmp_path / "secrets" / "wechat_channels" / "browser-live.cookies.txt"
+    ).read_text()
+    assert "operator-id" in payload
+    assert "operator-token" in payload
+    assert reports == [
+        "refresh_failed provider=wechat_channels reason=ValueError",
+        "refreshed provider=wechat_channels cookies=2 version=browser-live",
+    ]

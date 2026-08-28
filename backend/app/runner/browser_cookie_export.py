@@ -128,10 +128,10 @@ def watch_browser_cookies(
         except (OSError, ValueError) as exc:
             # Keep the last known-good file in place. Never include browser
             # paths, cookie values, or the underlying exception message in the
-            # long-running bridge log.
+            # long-running bridge log. An initial login may still be pending,
+            # so the bridge remains alive and retries instead of requiring a
+            # separate export command.
             reporter(f"refresh_failed provider={provider} reason={type(exc).__name__}")
-            if previous_digest is None:
-                raise
         cycles += 1
         if max_cycles is not None and cycles >= max_cycles:
             return
