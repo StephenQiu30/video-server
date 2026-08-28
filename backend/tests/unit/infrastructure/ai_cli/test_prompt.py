@@ -55,8 +55,9 @@ def test_video_article_prompt_requires_topic_rewrite_and_limitations(
 
     prompt = analysis_prompt(value, ffmpeg="ffmpeg", ffprobe="ffprobe")
 
-    assert "把视频整理成一篇可以独立阅读的文章" in prompt
+    assert "适合移动端编辑的公众号文章初稿" in prompt
     assert "按主题重组" in prompt
     assert "写入 limitations" in prompt
     assert "sections 建议 3 至 7 个" in prompt
+    assert "集中渲染为编辑附录" in prompt
     assert "shot_count" not in prompt

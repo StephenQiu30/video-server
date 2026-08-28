@@ -14,7 +14,42 @@ The built-in screenplay skills are original, project-specific rewrites. They do 
 - Source: https://github.com/wuwangzhang1216/DirectorSKILL
 - Reviewed commit: `47db7d9b951a9f27f7b4b727a6ca0e01ab56f7c6`
 - License: MIT; copyright 2026 wangzhang-wu.
-- Local use: the screenplay analysis rules independently express evidence-based scene function, subtext, blocking/action observability, and actionable production thinking. Director-style overlays, concrete film expression, tool adapters, assets, and the upstream production pipeline were excluded.
+- Local use: the screenplay and director-breakdown rules independently express evidence-based scene function, observable blocking, shot purpose, edit relationships, continuity anchors, and actionable production thinking. Upstream examples, exact templates, tool adapters, assets, generation workflows, risk formulas, and pipeline orchestration were excluded.
+
+## SeaArt storyboard-prompt-assistant
+
+- Source: https://github.com/seaartpublic/skills/tree/main/storyboard-prompt-assistant
+- Reviewed commit: `a3edc17605d525b54b2a5f61a4800f2dd8dd8b30`
+- License: MIT; copyright 2026 Seaart AI.
+- Local use: the local storyboard reference independently adopts explicit shot purpose, concrete camera language, start/end states, and continuity checks. Product-specific prompt templates, negative prompts, generation modes, platform routing, and execution workflows were excluded.
+
+## cutmap
+
+- Source: https://github.com/xykong36/cutmap
+- Reviewed commit: `4743a1ece5234e4bd733dd334e7fe34f04e73d3b`
+- License: MIT; copyright 2026 Xiangyu Kong.
+- Local use: the video skills independently account for low-contrast transitions and meaningful within-shot visual evolution rather than relying on one fixed scene threshold. No Python code, CLI behavior, algorithms, default thresholds, output pages, examples, or media assets were copied or executed.
+
+## doocs/md
+
+- Source: https://github.com/doocs/md
+- Reviewed commit: `1c2c2f41396225892b3b3f0b5765b7d2f5d1b435`
+- License: WTFPL v2; copyright 2025 Doocs.
+- Local use: the article report is emitted as clean Markdown with mobile-friendly headings and a removable editor appendix so it can enter a WeChat Markdown formatting workflow. No editor code, styles, themes, assets, image-hosting logic, or deployment configuration were copied.
+
+## wechat-article-writer
+
+- Source: https://github.com/sammyteng/wechat-article-writer
+- Reviewed commit: `ebea28e40daa8c470339d657c585e16557f91ff0`
+- License: MIT; copyright 2026 sammyteng.
+- Local use: the local article skill independently adopts a thesis-first outline, mobile-readable short paragraphs, editorial evidence, and a pre-publication checklist. Categorical moderation claims, hard-coded credentials and paths, browser injection, external research, account-specific style, publishing commands, and automatic calls to other skills were explicitly excluded.
+
+## Scene Scribe (review only; no adoption)
+
+- Source: https://github.com/seki2020/scene-scribe
+- Reviewed commit: `e84d871387979918793537579412683039a1b11d`
+- License: no repository license was present at the reviewed commit.
+- Local use: none. The repository was reviewed only to compare storyboard deliverables; no code, text, templates, examples, or assets were copied or adapted.
 
 ## jwynia/agent-skills
 

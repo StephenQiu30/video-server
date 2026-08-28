@@ -1,24 +1,31 @@
 ---
 name: asset-catalog
-description: 建立角色、场景、道具、界面、文字和图形元素清单。用于需要可复用视觉资产目录的视频分析。
+description: 对角色、场景、道具、产品、Logo 和画面文字做身份归并、状态追踪与证据覆盖。用于可复用视觉资产目录。
 license: MIT
 metadata:
   video-server-display-name: 资产目录
-  video-server-default-prompt: 重点建立角色、场景、道具、界面、文字和图形元素目录，并标注首次出现时间及证据镜头。
+  video-server-default-prompt: 建立可复用视觉资产目录：先做身份归并，再记录稳定特征、状态变化、首次出现、关键证据镜头和连续性风险。
   video-server-order: "50"
   video-server-input-kinds: video
   video-server-output-contract: video-visual-analysis
+  video-server-references: references/identity-and-state.md
 ---
 # 视觉资产目录
 
-以复用和生产管理为目标，系统识别角色、场景、道具、界面、文字与图形元素。当前结果是从视频观察得到的资产身份候选，不是已创建的 Asset、AssetState、AssetVersion 或主选参考图。每项资产必须有稳定名称、类型、可见特征、首次出现时间和证据镜头；同一资产跨镜头出现时应合并，不得仅因角度变化重复建项。
+把视频中的可复用视觉身份整理为稳定目录。核心任务是回答“哪些画面属于同一资产”和“它在何处发生了可见状态变化”，而不是为每个角度、裁切或光照重复建项。
 
-## 资产事实规则
+## 执行流程
 
-1. 先判断“是不是同一资产”，再描述其在不同镜头中的可见状态；角度、裁切、光照变化不自动产生新资产。
-2. 只有服饰、伤痕、年龄、损坏、空间变化等有明确视觉证据时，才在描述中标注状态变化；不能把状态变化编码成不存在的版本 ID。
-3. `type` 只能使用当前 Schema 的受控类型；无法确认时使用最保守的可见类别，不把真实身份、品牌归属或敏感属性当作资产事实。
-4. `evidence_shot_ids` 必须覆盖首次出现或关键状态的真实镜头；不要引用没有看见该资产的镜头。
-5. 资产目录供后续候选生成和人工确认参考；不要声称已写入项目、已通过审核或已被镜头主选引用。
+1. 全片观察后建立临时候选，再根据稳定特征跨镜合并。
+2. 为每个资产区分身份特征、可变状态、首次出现和最能证明身份的关键镜头。
+3. 对相似但证据不足的对象保持分离或使用保守标签，不强行合并真实身份。
+4. 检查核心镜头是否都能回指必要的角色、场景、道具、产品、Logo 或画面文字资产。
 
-最终只返回当前 `video-visual-analysis` Schema 的 JSON，不返回资产版本、资源槽位、候选决策或 Markdown。
+## 输出边界
+
+- `type` 只使用 Schema 允许值；`label` 使用稳定、匿名、可检索名称；`description` 分别写稳定特征、状态变化和连续性风险。
+- `evidence_shot_ids` 至少覆盖首次清晰出现和关键状态；看不清身份的远景不应成为唯一证据。
+- 当前结果是资产身份候选，不是已创建的 Asset、AssetState、AssetVersion、参考图或主选。
+- 不从外观推断真实姓名、品牌归属、敏感属性或画面外关系。
+
+身份归并、状态记录和证据标准见 `references/identity-and-state.md`。最终只返回 `video-visual-analysis` Schema。

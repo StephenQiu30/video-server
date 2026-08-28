@@ -88,14 +88,34 @@ def test_builtin_resolution_compiles_allowlisted_reference_and_sha256() -> None:
     assert BUILTIN_ANALYSIS_SKILLS.get("missing", AnalysisInputKind.VIDEO) is None
 
 
+@pytest.mark.parametrize(
+    ("skill_id", "reference_heading"),
+    (
+        ("director-breakdown", "# 导演拉片方法"),
+        ("comprehensive", "# 综合分析证据规范"),
+        ("video-to-article", "# 微信公众号文章编辑规范"),
+        ("visual-shots", "# 分镜表字段规范"),
+        ("highlights", "# 高光候选量表"),
+        ("asset-catalog", "# 资产身份与状态规范"),
+    ),
+)
+def test_video_skills_compile_professional_reference_methods(
+    skill_id: str, reference_heading: str
+) -> None:
+    skill = BUILTIN_ANALYSIS_SKILLS.get(skill_id, AnalysisInputKind.VIDEO)
+
+    assert skill is not None
+    assert reference_heading in skill.instructions
+
+
 def test_builtin_skills_expose_the_current_production_boundary() -> None:
     expected_phrases = {
-        "director-breakdown": ("高光候选", "production_advice"),
-        "comprehensive": ("候选与决策", "video-visual-analysis"),
-        "visual-shots": ("视觉镜头候选", "video-visual-analysis"),
-        "highlights": ("高光在当前项目中是可比较", "主选"),
-        "asset-catalog": ("AssetState", "资产身份候选"),
-        "video-to-article": ("按主题逻辑重组", "limitations"),
+        "director-breakdown": ("镜头动机", "production_advice"),
+        "comprehensive": ("观察、解释、建议", "video-visual-analysis"),
+        "visual-shots": ("反向分镜表", "video-visual-analysis"),
+        "highlights": ("同一量表", "主选"),
+        "asset-catalog": ("AssetVersion", "资产身份候选"),
+        "video-to-article": ("中心命题", "limitations"),
         "screenplay-analysis": ("汇总调用", "source_scene_id"),
         "screenplay-structure-review": ("连续性", "priority_revisions"),
         "screenplay-rewrite": ("不可变文本版本候选", "source_sha256"),

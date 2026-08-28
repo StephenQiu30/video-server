@@ -20,28 +20,34 @@ def render_analysis_report_markdown(result: AnalysisResult) -> str:
 
 def _render_video_article_report_markdown(result: VideoArticleResult) -> str:
     lines = [
-        f"# {_markdown_text(result.title)} · 视频整理文章",
-        "",
-        "> 本文由视频分析整理生成；时间证据用于回看原视频，不代表独立的外部事实核验。",
-        "",
-        "## 导读",
+        f"# {_markdown_text(result.title)}",
         "",
         _markdown_block(result.lead),
-        "",
-        "## 正文",
         "",
     ]
     for index, section in enumerate(result.sections, start=1):
         lines.extend(
             (
-                f"### {index}. {_markdown_text(section.title)}",
+                f"## {index}. {_markdown_text(section.title)}",
                 "",
                 _markdown_block(section.body),
                 "",
-                "**视频证据**",
-                "",
             )
         )
+    lines.extend((_markdown_block(result.closing), "", "---", ""))
+    lines.extend(("## 编辑摘要（发布前可选）", ""))
+    lines.extend(f"- {_markdown_text(item)}" for item in result.key_points)
+    lines.extend(
+        (
+            "",
+            "## 编辑附录：视频证据（发布前可删除）",
+            "",
+            "> 以下时间码仅用于编辑回看原视频，不代表独立的外部事实核验。",
+            "",
+        )
+    )
+    for index, section in enumerate(result.sections, start=1):
+        lines.extend((f"### {index}. {_markdown_text(section.title)}", ""))
         lines.extend(
             (
                 f"- {_format_range(item.start_ms, item.end_ms)}："
@@ -50,11 +56,8 @@ def _render_video_article_report_markdown(result: VideoArticleResult) -> str:
             for item in section.evidence
         )
         lines.append("")
-    lines.extend(("## 核心观点", ""))
-    lines.extend(f"- {_markdown_text(item)}" for item in result.key_points)
-    lines.extend(("", "## 结语", "", _markdown_block(result.closing), ""))
     if result.limitations:
-        lines.extend(("## 说明与局限", ""))
+        lines.extend(("### 事实边界与待核验项", ""))
         lines.extend(f"- {_markdown_text(item)}" for item in result.limitations)
     return "\n".join(lines).rstrip() + "\n"
 

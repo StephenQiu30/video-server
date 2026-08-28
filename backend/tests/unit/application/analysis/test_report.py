@@ -122,12 +122,14 @@ def test_video_article_report_keeps_topic_structure_and_evidence() -> None:
 
     markdown = render_analysis_report_markdown(result)
 
-    assert markdown.startswith("# 问题如何变成方法 · 视频整理文章")
-    assert "## 导读" in markdown
-    assert "### 1. 从问题开始" in markdown
+    assert markdown.startswith("# 问题如何变成方法\n\n视频用一个具体问题")
+    assert "## 1. 从问题开始" in markdown
     assert "00:00.000–00:02.000" in markdown
-    assert "## 核心观点" in markdown
-    assert "## 结语" in markdown
+    assert "## 编辑摘要（发布前可选）" in markdown
+    assert "## 编辑附录：视频证据（发布前可删除）" in markdown
+    assert markdown.index("方法的价值在于可以被复用。") < markdown.index(
+        "00:00.000–00:02.000"
+    )
 
 
 class ObjectReader:
