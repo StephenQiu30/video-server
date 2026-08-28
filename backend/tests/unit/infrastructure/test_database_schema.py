@@ -43,6 +43,13 @@ def test_download_schema_contains_required_tables_and_columns() -> None:
     assert jobs.c.inspection_id.nullable is True
     assert jobs.c.format_id.nullable is True
     assert "ix_download_jobs_created" in {index.name for index in jobs.indexes}
+    active_request = next(
+        index
+        for index in jobs.indexes
+        if index.name == "uq_download_jobs_owner_active_request"
+    )
+    assert active_request.unique is True
+    assert "retry_wait" in str(active_request.dialect_options["postgresql"]["where"])
     assert {
         "username",
         "normalized_username",

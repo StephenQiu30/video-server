@@ -30,7 +30,7 @@ def test_windows_task_starts_at_login_and_restarts_after_failure() -> None:
     assert "<LogonTrigger>" in definition
     assert "<RestartOnFailure>" in definition
     assert "<ExecutionTimeLimit>PT0S</ExecutionTimeLimit>" in definition
-    assert "app.workers.analysis.main" in definition
+    assert "app.workers.analysis.agent_cli run" in definition
 
 
 def test_launch_agent_starts_and_keeps_running() -> None:
@@ -44,6 +44,10 @@ def test_launch_agent_starts_and_keeps_running() -> None:
         "HOME": str(Path.home()),
         "PATH": agent_platforms.os.environ["PATH"],
     }
+    assert definition["ProgramArguments"][-2:] == [
+        "app.workers.analysis.agent_cli",
+        "run",
+    ]
 
 
 def test_agent_keeps_virtual_environment_python_path(
@@ -62,7 +66,7 @@ def test_systemd_service_starts_and_restarts_after_failure() -> None:
     assert "WantedBy=default.target" in definition
     assert "Restart=always" in definition
     assert "RestartSec=5" in definition
-    assert "app.workers.analysis.main" in definition
+    assert "app.workers.analysis.agent_cli run" in definition
 
 
 @pytest.mark.parametrize(

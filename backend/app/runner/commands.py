@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, Protocol
@@ -26,6 +27,7 @@ _REMOTE_PROBE_USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/136.0.0.0 Safari/537.36"
 )
+_LOGGER = logging.getLogger(__name__)
 
 
 class ProcessRunner(Protocol):
@@ -255,9 +257,50 @@ class MediaCommands:
             )
             if provider_failure is not None:
                 code, status = provider_failure
+                _log_command_failure(
+                    operation=failure_code,
+                    provider=(
+                        failure_context.provider_key
+                        if failure_context is not None
+                        else None
+                    ),
+                    code=code,
+                    returncode=result.returncode,
+                    stderr_truncated=result.stderr_truncated,
+                )
                 raise RunnerFailure(code, status=status)
+            _log_command_failure(
+                operation=failure_code,
+                provider=(
+                    failure_context.provider_key
+                    if failure_context is not None
+                    else None
+                ),
+                code=failure_code,
+                returncode=result.returncode,
+                stderr_truncated=result.stderr_truncated,
+            )
             raise RunnerFailure(failure_code, status=502)
         return result
 
     def _egress_proxy(self, url: str) -> str:
         return self._settings.egress_proxy_for(provider_request(url).profile.key)
+
+
+def _log_command_failure(
+    *,
+    operation: str,
+    provider: str | None,
+    code: str,
+    returncode: int,
+    stderr_truncated: bool,
+) -> None:
+    _LOGGER.warning(
+        "runner command failed operation=%s provider=%s code=%s "
+        "returncode=%s stderr_truncated=%s",
+        operation,
+        provider or "internal",
+        code,
+        returncode,
+        stderr_truncated,
+    )

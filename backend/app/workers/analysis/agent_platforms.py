@@ -135,7 +135,8 @@ def _launch_agent_plist(paths: AgentPaths) -> dict[str, object]:
         "ProgramArguments": [
             str(_python_executable()),
             "-m",
-            "app.workers.analysis.main",
+            "app.workers.analysis.agent_cli",
+            "run",
         ],
         "WorkingDirectory": str(BACKEND_ROOT),
         "RunAtLoad": True,
@@ -160,7 +161,7 @@ def _systemd_unit(paths: AgentPaths) -> str:
             "[Service]",
             "Type=simple",
             f"WorkingDirectory={BACKEND_ROOT}",
-            f'ExecStart="{_python_executable()}" -m app.workers.analysis.main',
+            f'ExecStart="{_python_executable()}" -m app.workers.analysis.agent_cli run',
             "Restart=always",
             "RestartSec=5",
             f"StandardOutput=append:{paths.stdout}",
@@ -199,7 +200,7 @@ def _windows_task_xml() -> str:
   <Actions Context="Author">
     <Exec>
       <Command>{command}</Command>
-      <Arguments>-m app.workers.analysis.main</Arguments>
+      <Arguments>-m app.workers.analysis.agent_cli run</Arguments>
       <WorkingDirectory>{working}</WorkingDirectory>
     </Exec>
   </Actions>

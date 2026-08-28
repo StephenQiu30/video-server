@@ -174,6 +174,50 @@ async def test_inspection_classifies_tiktok_webpage_challenge(tmp_path: Path) ->
 
 
 @pytest.mark.asyncio
+async def test_anonymous_youtube_media_403_is_an_egress_challenge(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(
+            b"ERROR: unable to download video data: HTTP Error 403: Forbidden"
+        ),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.download_stream(
+            "https://www.youtube.com/watch?v=owned",
+            "401",
+            tmp_path / "video.input",
+            tmp_path,
+        )
+
+    assert caught.value.code == "egress_challenged"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
+async def test_explicit_youtube_pot_rejection_keeps_specific_diagnosis(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(b"ERROR: PO Token rejected: HTTP Error 403: Forbidden"),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.download_stream(
+            "https://www.youtube.com/watch?v=owned",
+            "401",
+            tmp_path / "video.input",
+            tmp_path,
+        )
+
+    assert caught.value.code == "pot_rejected"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
 async def test_inspection_classifies_tiktok_post_ip_restriction(tmp_path: Path) -> None:
     commands = MediaCommands(
         settings(tmp_path),

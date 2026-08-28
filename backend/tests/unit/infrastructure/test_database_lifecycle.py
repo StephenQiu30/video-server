@@ -85,10 +85,20 @@ async def test_job_outbox_lease_progress_and_success_are_atomic(repository) -> N
 
     created = await repository.create_job(command, now=now)
     duplicate = await repository.create_job(command, now=now)
+    equivalent = await repository.create_job(
+        replace(
+            command,
+            id=uuid4(),
+            idempotency_key="download-equivalent",
+        ),
+        now=now,
+    )
     assert created.created is True
     assert created.job.source_kind == "remote_provider"
     assert duplicate.created is False
     assert duplicate.job.id == created.job.id
+    assert equivalent.created is False
+    assert equivalent.job.id == created.job.id
 
     claimed = await repository.claim_job(
         command.id, "worker-1", now, timedelta(minutes=30)

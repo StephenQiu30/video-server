@@ -49,17 +49,13 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
     FailureRule(
         "provider_unsupported",
         422,
-        any_stderr=(
-            b"kuaishou image posts are not supported by the video runner",
-        ),
+        any_stderr=(b"kuaishou image posts are not supported by the video runner",),
         providers=frozenset({"kuaishou"}),
     ),
     FailureRule(
         "provider_media_unsupported",
         422,
-        any_stderr=(
-            b"facebook image and multi-asset posts are not supported",
-        ),
+        any_stderr=(b"facebook image and multi-asset posts are not supported",),
         providers=frozenset({"facebook"}),
     ),
     FailureRule(
@@ -171,6 +167,16 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         422,
         any_stderr=(b"required", b"was not provided", b"missing"),
         all_stderr=(b"po token",),
+    ),
+    FailureRule(
+        "egress_challenged",
+        422,
+        any_stderr=(
+            b"unable to download video data: http error 403",
+            b"http error 403: forbidden",
+        ),
+        providers=frozenset({"youtube"}),
+        authenticated=False,
     ),
     FailureRule(
         "credential_required",

@@ -8,11 +8,15 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import traceback
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Protocol
 
 from app.core.config import get_settings_for_role
 from app.infrastructure.object_storage import StoredObjectStat
 from app.workers.analysis.agent_platforms import (
+    agent_paths,
     agent_status,
     install_agent,
     uninstall_agent,
@@ -35,7 +39,11 @@ def main() -> None:
     if args.command == "run":
         from app.workers.analysis.main import main as run_worker
 
-        run_worker()
+        try:
+            run_worker()
+        except Exception as exc:
+            _record_agent_failure(exc, agent_paths().stderr)
+            raise
         return
     if args.command == "doctor":
         asyncio.run(_doctor())
@@ -71,6 +79,18 @@ async def _verify_storage(storage: StorageProbe) -> None:
         ) from None
     if probe is None or probe.size_bytes <= 0:
         raise SystemExit("not ready: analysis MinIO readiness probe is missing")
+
+
+def _record_agent_failure(error: Exception, target: Path) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    frames = traceback.extract_tb(error.__traceback__)
+    with target.open("a", encoding="utf-8") as stream:
+        stream.write(
+            f"{datetime.now(UTC).isoformat()} analysis agent exited: "
+            f"{type(error).__name__}\n"
+        )
+        for frame in frames:
+            stream.write(f"  {frame.filename}:{frame.lineno} in {frame.name}\n")
 
 
 if __name__ == "__main__":

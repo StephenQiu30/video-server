@@ -24,6 +24,8 @@ from .models import (
     OutboxEventRow,
 )
 
+_ACTIVE_JOB_STATUSES = ("queued", "running", "retry_wait")
+
 
 class JobRepository(MediaRepository):
     async def create_job(
@@ -35,6 +37,9 @@ class JobRepository(MediaRepository):
                     existing = await session.scalar(self._idempotency_query(command))
                     if existing is not None:
                         return self._idempotent_result(existing, command)
+                    active = await session.scalar(self._active_request_query(command))
+                    if active is not None:
+                        return JobCreateResult(job_snapshot(active), created=False)
                     await self._validate_source(session, command, now)
                     row = DownloadJobRow(
                         id=command.id,
@@ -57,12 +62,31 @@ class JobRepository(MediaRepository):
             except IntegrityError as exc:
                 await session.rollback()
                 existing = await session.scalar(self._idempotency_query(command))
-                if existing is None:
-                    raise
-                try:
-                    return self._idempotent_result(existing, command)
-                except IdempotencyConflict as conflict:
-                    raise conflict from exc
+                if existing is not None:
+                    try:
+                        return self._idempotent_result(existing, command)
+                    except IdempotencyConflict as conflict:
+                        raise conflict from exc
+                active = await session.scalar(self._active_request_query(command))
+                if active is not None:
+                    return JobCreateResult(job_snapshot(active), created=False)
+                raise
+
+    @staticmethod
+    def _active_request_query(
+        command: DownloadCreate,
+    ) -> Select[tuple[DownloadJobRow]]:
+        return (
+            select(DownloadJobRow)
+            .where(
+                DownloadJobRow.source_kind == "remote_provider",
+                DownloadJobRow.owner_hash == command.owner_hash,
+                DownloadJobRow.request_fingerprint == command.request_fingerprint,
+                DownloadJobRow.status.in_(_ACTIVE_JOB_STATUSES),
+            )
+            .order_by(DownloadJobRow.created_at.desc())
+            .limit(1)
+        )
 
     async def get_job(self, job_id: UUID) -> JobSnapshot:
         async with self._sessions() as session:

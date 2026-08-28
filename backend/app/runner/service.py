@@ -4,7 +4,12 @@ import asyncio
 from dataclasses import replace
 from pathlib import Path
 
-from app.domain.downloads import FormatSelectionError, ProviderHints, select_streams
+from app.domain.downloads import (
+    CandidateStream,
+    FormatSelectionError,
+    ProviderHints,
+    select_streams,
+)
 from app.domain.providers import ProviderAccessContextRef
 from app.runner.active_tasks import ActiveTaskRegistry
 from app.runner.command_support import default_supervisor
@@ -195,11 +200,15 @@ class MediaRunnerService:
         inputs = [workspace.path / "video.input"]
         total_streams = 1 if selection.audio is None else 2
         self._active.update(request.task_id, RunnerTaskStage.DOWNLOADING, 10)
-        await self._commands.download_stream(
+        await self._download_stream_with_progress(
+            request.task_id,
             source,
-            selection.video.provider_id,
+            selection.video,
             inputs[0],
-            workspace.path,
+            workspace,
+            start_progress=10,
+            end_progress=10 + 60 // total_streams,
+            duration_seconds=inspection.duration_seconds,
             cookie_jar=cookie_jar,
         )
         completed_streams = 1
@@ -207,11 +216,15 @@ class MediaRunnerService:
         self._active.update(request.task_id, RunnerTaskStage.DOWNLOADING, progress)
         if selection.audio is not None:
             inputs.append(workspace.path / "audio.input")
-            await self._commands.download_stream(
+            await self._download_stream_with_progress(
+                request.task_id,
                 source,
-                selection.audio.provider_id,
+                selection.audio,
                 inputs[1],
-                workspace.path,
+                workspace,
+                start_progress=progress,
+                end_progress=70,
+                duration_seconds=inspection.duration_seconds,
                 cookie_jar=cookie_jar,
             )
             completed_streams += 1
@@ -263,3 +276,95 @@ class MediaRunnerService:
                 output_container=selection.output_container,
             ),
         )
+
+    async def _download_stream_with_progress(
+        self,
+        task_id: str,
+        source: ProviderRequest,
+        stream: CandidateStream,
+        output: Path,
+        workspace: TaskWorkspace,
+        *,
+        start_progress: int,
+        end_progress: int,
+        duration_seconds: float,
+        cookie_jar: Path | None,
+    ) -> None:
+        operation = asyncio.create_task(
+            self._commands.download_stream(
+                source,
+                stream.provider_id,
+                output,
+                workspace.path,
+                cookie_jar=cookie_jar,
+            )
+        )
+        expected_bytes = _estimated_stream_bytes(stream, duration_seconds)
+        last_progress = start_progress
+        try:
+            while not operation.done():
+                done, _ = await asyncio.wait(
+                    {operation},
+                    timeout=self._settings.runner_workspace_poll_interval_seconds,
+                )
+                if operation in done:
+                    break
+                observed_bytes = await asyncio.to_thread(
+                    _partial_download_bytes,
+                    output,
+                )
+                current = _stream_progress(
+                    observed_bytes,
+                    expected_bytes,
+                    start=start_progress,
+                    end=end_progress,
+                )
+                if current > last_progress:
+                    self._active.update(
+                        task_id,
+                        RunnerTaskStage.DOWNLOADING,
+                        current,
+                    )
+                    last_progress = current
+            await operation
+        except BaseException:
+            if not operation.done():
+                operation.cancel()
+            await asyncio.gather(operation, return_exceptions=True)
+            raise
+
+
+def _estimated_stream_bytes(
+    stream: CandidateStream,
+    duration_seconds: float,
+) -> int | None:
+    if stream.size_bytes is not None:
+        return stream.size_bytes
+    if stream.bitrate_kbps is None or duration_seconds <= 0:
+        return None
+    return max(1, int(stream.bitrate_kbps * 1_000 * duration_seconds / 8))
+
+
+def _partial_download_bytes(output: Path) -> int:
+    largest = 0
+    try:
+        candidates = output.parent.glob(f"{output.name}*")
+        for candidate in candidates:
+            if candidate.is_file() and not candidate.is_symlink():
+                largest = max(largest, candidate.stat().st_size)
+    except OSError:
+        return largest
+    return largest
+
+
+def _stream_progress(
+    observed_bytes: int,
+    expected_bytes: int | None,
+    *,
+    start: int,
+    end: int,
+) -> int:
+    if observed_bytes <= 0 or expected_bytes is None or expected_bytes <= 0:
+        return start
+    completed = min(observed_bytes / expected_bytes, 0.99)
+    return min(end - 1, start + int((end - start) * completed))

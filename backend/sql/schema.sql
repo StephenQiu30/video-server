@@ -326,6 +326,10 @@ CREATE INDEX IF NOT EXISTS ix_download_jobs_created ON download_jobs (created_at
 CREATE INDEX IF NOT EXISTS ix_download_jobs_claim ON download_jobs (status, retry_at);
 CREATE INDEX IF NOT EXISTS ix_download_jobs_stale ON download_jobs (status, lease_expires_at);
 CREATE INDEX IF NOT EXISTS ix_download_jobs_queued_recovery ON download_jobs (status, updated_at);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_download_jobs_owner_active_request
+    ON download_jobs (owner_hash, request_fingerprint)
+    WHERE source_kind = 'remote_provider'
+      AND status IN ('queued','running','retry_wait');
 
 CREATE TABLE IF NOT EXISTS media_imports (
     id UUID PRIMARY KEY REFERENCES download_jobs (id) ON DELETE CASCADE,

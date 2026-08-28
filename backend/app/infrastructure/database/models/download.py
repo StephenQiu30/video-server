@@ -17,6 +17,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     Uuid,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -56,6 +57,16 @@ class DownloadJobRow(Base):
         Index("ix_download_jobs_claim", "status", "retry_at"),
         Index("ix_download_jobs_stale", "status", "lease_expires_at"),
         Index("ix_download_jobs_queued_recovery", "status", "updated_at"),
+        Index(
+            "uq_download_jobs_owner_active_request",
+            "owner_hash",
+            "request_fingerprint",
+            unique=True,
+            postgresql_where=text(
+                "source_kind = 'remote_provider' AND "
+                "status IN ('queued','running','retry_wait')"
+            ),
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import os
@@ -81,9 +82,7 @@ class ScriptedThumbnailClient(ThumbnailClient):
         super().__init__(**kwargs)
         self._responses = responses
 
-    def stream(
-        self, method: str, url: str, **_: object
-    ) -> ScriptedThumbnailStream:
+    def stream(self, method: str, url: str, **_: object) -> ScriptedThumbnailStream:
         self.requests.append((method, url))
         return self._responses.pop(0)
 
@@ -128,6 +127,39 @@ class FixtureSupervisor:
             }
             return result(json.dumps(probe).encode())
         raise AssertionError(command)
+
+
+class ProgressSupervisor(FixtureSupervisor):
+    def __init__(self, info: dict[str, object]) -> None:
+        super().__init__(info)
+        self.partial_written = asyncio.Event()
+
+    async def run(
+        self,
+        argv: Sequence[str],
+        *,
+        cwd: Path,
+        timeout_seconds: float,
+        env: Mapping[str, str] | None = None,
+    ) -> ProcessResult:
+        command = tuple(argv)
+        if (
+            command[0] == "yt-dlp"
+            and "--dump-single-json" not in command
+            and command[command.index("--format") + 1] == "video"
+        ):
+            output = Path(command[command.index("--output") + 1])
+            partial = output.with_name(f"{output.name}.part")
+            partial.write_bytes(b"x" * 50)
+            self.partial_written.set()
+            await asyncio.sleep(0.08)
+            partial.unlink()
+        return await super().run(
+            argv,
+            cwd=cwd,
+            timeout_seconds=timeout_seconds,
+            env=env,
+        )
 
 
 class ProbeSampleSupervisor(FixtureSupervisor):
@@ -328,6 +360,31 @@ async def test_download_reinspects_selects_semantics_and_verifies_artifact(
     status = await service.status("job_123")
     assert status.stage.value == "ready"
     assert status.progress == 100
+
+
+async def test_download_reports_byte_progress_while_stream_is_running(
+    tmp_path: Path,
+) -> None:
+    info = split_media_info()
+    formats = info["formats"]
+    assert isinstance(formats, list)
+    formats[0]["filesize"] = 100
+    formats[1]["filesize"] = 100
+    supervisor = ProgressSupervisor(info)
+    configured = settings(tmp_path).model_copy(
+        update={"runner_workspace_poll_interval_seconds": 0.01}
+    )
+    service = MediaRunnerService(configured, supervisor=supervisor)
+
+    operation = asyncio.create_task(service.download(download_request()))
+    await asyncio.wait_for(supervisor.partial_written.wait(), timeout=1)
+    await asyncio.sleep(0.03)
+
+    status = await service.status("job_123")
+    assert status.stage.value == "downloading"
+    assert 10 < status.progress < 40
+
+    await operation
 
 
 async def test_download_reselects_current_streams_instead_of_stale_hints(
@@ -666,9 +723,7 @@ async def test_inspect_retries_transient_tiktok_web_challenge(
     async def record_sleep(delay: float) -> None:
         delays.append(delay)
 
-    monkeypatch.setattr(
-        "app.runner.inspection_pipeline.asyncio.sleep", record_sleep
-    )
+    monkeypatch.setattr("app.runner.inspection_pipeline.asyncio.sleep", record_sleep)
     service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
 
     response = await service.inspect(
@@ -728,9 +783,7 @@ async def test_inspect_uses_the_next_thumbnail_candidate_when_the_first_is_inval
 
     response = await service.inspect("https://media.example.com/video")
 
-    assert response.media.thumbnail_data_url == (
-        "data:image/jpeg;base64,ZmFsbGJhY2s="
-    )
+    assert response.media.thumbnail_data_url == ("data:image/jpeg;base64,ZmFsbGJhY2s=")
     assert client.requests == [
         ("GET", "https://images.example.com/unavailable.jpg"),
         ("GET", "https://images.example.com/fallback.jpg"),
