@@ -53,6 +53,15 @@ def test_explicit_sandbox_initialization_failure_is_classified() -> None:
     assert error.code == "analysis_sandbox_unavailable"
 
 
+def test_codex_instruction_permission_failure_is_classified() -> None:
+    error = classify_cli_failure(
+        b"failed to load AGENTS.md instructions for environment `local`: "
+        b"Operation not permitted (os error 1)"
+    )
+
+    assert error.code == "analysis_sandbox_unavailable"
+
+
 def test_claude_windows_feature_gate_failure_is_classified() -> None:
     error = classify_cli_failure(
         b"sandbox required but unavailable: Windows sandbox feature gate off"

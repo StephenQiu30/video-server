@@ -81,6 +81,7 @@ class LocalAnalysisArtifactLoader:
         await asyncio.to_thread(self._cleanup, local.workspace)
 
     def _prepare_root(self) -> None:
+        _reject_instruction_ancestor(self._root)
         self._root.mkdir(parents=True, exist_ok=True, mode=0o700)
         if self._root.is_symlink() or not self._root.is_dir():
             raise AnalysisArtifactError("invalid_analysis_workspace")
@@ -128,6 +129,15 @@ def _validate_source(
         or source.size_bytes > max_source_bytes
     ):
         raise AnalysisArtifactError("input_artifact_unavailable")
+
+
+def _reject_instruction_ancestor(root: Path) -> None:
+    resolved = root.expanduser().resolve(strict=False)
+    if any(
+        (parent / "AGENTS.md").is_file()
+        for parent in (resolved, *resolved.parents)
+    ):
+        raise AnalysisArtifactError("analysis_sandbox_unavailable")
 
 
 def _verify_artifact(

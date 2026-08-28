@@ -59,3 +59,68 @@ async def test_loader_verifies_source_and_removes_success_or_failure_workspaces(
             source(content, sha256="0" * 64), job_id=uuid4(), attempt=1
         )
     assert list((tmp_path / "analysis-work").iterdir()) == []
+
+
+@pytest.mark.asyncio
+async def test_loader_rejects_workspace_below_agent_instructions(
+    tmp_path: Path,
+) -> None:
+    governed = tmp_path / "repository"
+    governed.mkdir()
+    (governed / "AGENTS.md").write_text("# controlled instructions\n")
+    loader = LocalAnalysisArtifactLoader(
+        FakeStorage(b"controlled-media"),
+        workspace_root=governed / "tmp" / "analysis-work",
+        bucket="video-artifacts",
+        max_source_bytes=1024,
+    )
+
+    with pytest.raises(AnalysisArtifactError) as raised:
+        await loader.prepare_root()
+
+    assert raised.value.code == "analysis_sandbox_unavailable"
+    assert not (governed / "tmp").exists()
+
+
+@pytest.mark.asyncio
+async def test_loader_rejects_agent_instructions_in_workspace_root(
+    tmp_path: Path,
+) -> None:
+    workspace_root = tmp_path / "analysis-work"
+    workspace_root.mkdir()
+    (workspace_root / "AGENTS.md").write_text("# controlled instructions\n")
+    loader = LocalAnalysisArtifactLoader(
+        FakeStorage(b"controlled-media"),
+        workspace_root=workspace_root,
+        bucket="video-artifacts",
+        max_source_bytes=1024,
+    )
+
+    with pytest.raises(AnalysisArtifactError) as raised:
+        await loader.prepare_root()
+
+    assert raised.value.code == "analysis_sandbox_unavailable"
+
+
+@pytest.mark.asyncio
+async def test_loader_resolves_symlinked_workspace_ancestors(tmp_path: Path) -> None:
+    governed = tmp_path / "repository"
+    governed.mkdir()
+    (governed / "AGENTS.md").write_text("# controlled instructions\n")
+    alias = tmp_path / "workspace-alias"
+    try:
+        alias.symlink_to(governed, target_is_directory=True)
+    except OSError:
+        pytest.skip("directory symlinks are unavailable")
+    loader = LocalAnalysisArtifactLoader(
+        FakeStorage(b"controlled-media"),
+        workspace_root=alias / "analysis-work",
+        bucket="video-artifacts",
+        max_source_bytes=1024,
+    )
+
+    with pytest.raises(AnalysisArtifactError) as raised:
+        await loader.prepare_root()
+
+    assert raised.value.code == "analysis_sandbox_unavailable"
+    assert not (governed / "analysis-work").exists()

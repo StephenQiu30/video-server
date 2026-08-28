@@ -204,6 +204,7 @@ materialize → prepare isolated workspace → run VideoAnalyzer
 
 约束如下：
 
+- `<analysis-work>` 默认位于操作系统临时目录，且不得放在 Git 仓库或任一上级含有 `AGENTS.md` 的目录中。Worker 启动与每次创建任务目录时都执行该边界检查，避免 CLI 在任务沙箱之外发现并读取项目指令文件。
 - `video.bin` 的内容、大小和 SHA-256 必须与锁定 artifact 一致；CLI 只看到当前 attempt 目录。
 - 视频输入设为只读，输出仅允许写入 `work/`、`output/` 和 `tmp/`。
 - 系统 Prompt、Schema 和 policy 由应用从版本化资源复制，任务输入不能修改；用户分析偏好单独存储并作为不可信文本包裹。
@@ -254,6 +255,7 @@ codex --ask-for-approval never --strict-config exec
 - Codex 0.138+ permission profile 将任务根设为只读，只开放 `work/`、`output/`、`tmp/` 写入，并只读开放 FFmpeg 安装前缀；网络关闭，approval 为 `never`。
 - 结果只从受限大小的 `output/result.json` 读取；stdout/stderr 仅用于受限诊断。
 - 启动前 `codex login status` 必须确认 ChatGPT 管理登录；若检测到 API Key 模式或相关 Key 环境变量则 fail-fast。
+- Agent `doctor` 必须使用实际配置的分析工作目录检查指令文件边界；边界冲突以 `analysis_sandbox_unavailable` 终止，不进入任务级重试。
 - 禁止 `--dangerously-bypass-approvals-and-sandbox`、`--yolo`、`danger-full-access`、live web search、MCP、插件和额外 writable root。
 
 ## 10. Claude CLI 调用契约

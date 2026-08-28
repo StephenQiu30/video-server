@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
 
+from app.application.analysis_execution import AnalysisArtifactError
 from app.core.config import get_settings_for_role
 from app.infrastructure.object_storage import StoredObjectStat
 from app.workers.analysis.agent_platforms import (
@@ -61,6 +62,15 @@ async def _doctor() -> None:
     runtime = build_runtime(get_settings_for_role("analysis-worker"))
     try:
         selection = await runtime.resolver.resolve()
+        try:
+            await runtime.loader.prepare_root()
+        except AnalysisArtifactError as exc:
+            if exc.code == "analysis_sandbox_unavailable":
+                raise SystemExit(
+                    "not ready: analysis workspace must be outside directories "
+                    "governed by AGENTS.md"
+                ) from None
+            raise
         await _verify_storage(runtime.storage)
         print(
             f"ready: provider={selection.provider} model={selection.model} "

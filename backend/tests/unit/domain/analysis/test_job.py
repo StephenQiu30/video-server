@@ -131,6 +131,10 @@ def test_ai_failure_is_terminal_only_for_the_analysis_job() -> None:
     assert value.error_code is AnalysisErrorCode.INVALID_MODEL_OUTPUT
 
 
+def test_sandbox_configuration_failure_is_not_retryable() -> None:
+    assert AnalysisErrorCode.SANDBOX_UNAVAILABLE.retryable is False
+
+
 def test_cancel_rejects_terminal_jobs() -> None:
     value = job()
     value.cancel(NOW)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import tempfile
 from functools import lru_cache
 from ipaddress import ip_address
 from pathlib import Path
@@ -17,6 +18,10 @@ from app.runner.provider_instances import validated_instance_hosts
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_URL_ENCRYPTION_KEY = "ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE="
+
+
+def _default_analysis_workspace_root() -> Path:
+    return Path(tempfile.gettempdir()) / "framefetch-analysis"
 
 
 class Settings(BaseSettings):
@@ -210,7 +215,9 @@ class Settings(BaseSettings):
 
     analysis_enabled: bool = True
     screenplay_analysis_enabled: bool = True
-    analysis_workspace_root: Path = Path("./.analysis-work")
+    analysis_workspace_root: Path = Field(
+        default_factory=_default_analysis_workspace_root
+    )
     analysis_cli_provider: Literal["codex", "claude"] = "codex"
     analysis_codex_binary: Path = Path("codex")
     analysis_codex_model: str = Field(default="gpt-5.6-sol", min_length=1)

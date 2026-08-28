@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -406,6 +407,17 @@ def test_analysis_cli_settings_use_host_services_without_api_keys() -> None:
     assert "analysis_prompt_version" not in type(settings).model_fields
     assert "localhost:5432" in settings.analysis_database_url
     assert not any("openai" in name for name in type(settings).model_fields)
+
+
+def test_analysis_workspace_defaults_outside_repository() -> None:
+    settings = Settings(app_env="test", _env_file=None)
+
+    assert settings.analysis_workspace_root == (
+        Path(tempfile.gettempdir()) / "framefetch-analysis"
+    ).absolute()
+    assert not settings.analysis_workspace_root.is_relative_to(
+        Path(__file__).resolve().parents[3]
+    )
 
 
 def test_analysis_worker_uses_shared_minio_credentials() -> None:
