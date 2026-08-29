@@ -12,7 +12,7 @@ from app.runner.provider_factories import (
     challenged_provider,
     standard_provider,
 )
-from app.runner.provider_normalizers import douyin_url, kuaishou_url
+from app.runner.provider_normalizers import douyin_url, kuaishou_url, tiktok_url
 from app.runner.provider_registry import ProviderProfile, ProviderRuntimeSettings
 
 
@@ -23,17 +23,7 @@ def _youtube_runtime_args(settings: ProviderRuntimeSettings) -> tuple[str, ...]:
         "--extractor-args",
         "youtube:player_client=mweb,default",
         "--extractor-args",
-        "youtubepot-bgutilhttp:base_url="
-        f"{settings.runner_youtube_pot_base_url}",
-    )
-
-
-def _tiktok_runtime_args(settings: ProviderRuntimeSettings) -> tuple[str, ...]:
-    if not settings.runner_tiktok_device_id:
-        return ()
-    return (
-        "--extractor-args",
-        f"tiktok:device_id={settings.runner_tiktok_device_id}",
+        f"youtubepot-bgutilhttp:base_url={settings.runner_youtube_pot_base_url}",
     )
 
 
@@ -65,9 +55,7 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             ProviderAccessMode.ANONYMOUS,
             ProviderAccessMode.OPERATOR_MANAGED,
         ),
-        cookie_domain_allowlist=frozenset(
-            {"youtube.com", "youtube-nocookie.com"}
-        ),
+        cookie_domain_allowlist=frozenset({"youtube.com", "youtube-nocookie.com"}),
         attestation_policy="bgutil-mweb-gvs-optional",
         egress_pool="youtube-sticky",
         credential_concurrency=1,
@@ -92,12 +80,13 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             "iesdouyin.com",
             "www.iesdouyin.com",
         ),
+        version="douyin-public-v2",
         normalize_url=douyin_url,
-        status=ProviderSupportStatus.VERIFIED,
+        status=ProviderSupportStatus.ACCESS_REQUIRED,
         operator_cookie_domains=frozenset({"douyin.com", "iesdouyin.com"}),
         canary_suite="douyin-anonymous-operator-video",
     ),
-    challenged_provider(
+    standard_provider(
         "tiktok",
         "TikTok",
         (
@@ -107,14 +96,18 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             "vm.tiktok.com",
             "vt.tiktok.com",
         ),
-        version="tiktok-web-v1",
-        status=ProviderSupportStatus.VERIFIED,
-        anonymous_access=False,
-        operator_cookie_domains=frozenset(
-            {"tiktok.com", "tiktokv.com", "byteoversea.com"}
+        version="tiktok-public-player-v3",
+        normalize_url=tiktok_url,
+        capabilities=frozenset(
+            {
+                ProviderCapability.SINGLE_VIDEO,
+                ProviderCapability.SHORT_VIDEO,
+                ProviderCapability.AUDIO_VIDEO_SPLIT,
+            }
         ),
-        canary_suite="tiktok-anonymous-operator-video",
-        runtime_command_args=_tiktok_runtime_args,
+        status=ProviderSupportStatus.VERIFIED,
+        client_profile_id="yt-dlp-default",
+        canary_suite="tiktok-public-player-video",
     ),
     challenged_provider(
         "xiaohongshu",

@@ -111,9 +111,7 @@ async def test_wechat_missing_public_media_is_reported_as_restricted_content(
 ) -> None:
     commands = MediaCommands(
         settings(tmp_path),
-        FailingSupervisor(
-            b"ERROR: WeChat Channels public media is not downloadable"
-        ),
+        FailingSupervisor(b"ERROR: WeChat Channels public media is not downloadable"),
     )
 
     with pytest.raises(RunnerFailure) as caught:
@@ -191,10 +189,33 @@ async def test_download_classifies_selected_drm_format(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_inspection_classifies_tiktok_webpage_challenge(tmp_path: Path) -> None:
+async def test_inspection_classifies_unavailable_tiktok_player(
+    tmp_path: Path,
+) -> None:
     commands = MediaCommands(
         settings(tmp_path),
-        FailingSupervisor(b"ERROR: Unexpected response from webpage request"),
+        FailingSupervisor(
+            b"ERROR: TikTok video not available from the official player"
+        ),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect(
+            "https://www.tiktok.com/@creator/video/123",
+            tmp_path,
+        )
+
+    assert caught.value.code == "provider_link_unavailable"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
+async def test_inspection_classifies_tiktok_player_api_outage(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(b"ERROR: TikTok official player API temporarily unavailable"),
     )
 
     with pytest.raises(RunnerFailure) as caught:
@@ -205,6 +226,25 @@ async def test_inspection_classifies_tiktok_webpage_challenge(tmp_path: Path) ->
 
     assert caught.value.code == "provider_temporarily_unavailable"
     assert caught.value.status == 503
+
+
+@pytest.mark.asyncio
+async def test_inspection_classifies_tiktok_player_schema_regression(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(b"ERROR: TikTok official player response structure changed"),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect(
+            "https://www.tiktok.com/@creator/video/123",
+            tmp_path,
+        )
+
+    assert caught.value.code == "extractor_regression"
+    assert caught.value.status == 502
 
 
 @pytest.mark.asyncio
@@ -360,24 +400,37 @@ async def test_youtube_uses_service_managed_pot_without_cookies(tmp_path: Path) 
 
 
 @pytest.mark.asyncio
-async def test_tiktok_operator_command_uses_only_issued_cookie_jar(
+async def test_tiktok_public_player_command_has_no_browser_or_session_args(
     tmp_path: Path,
 ) -> None:
     supervisor = RecordingSupervisor()
-    configured = settings(tmp_path).model_copy(
-        update={"runner_tiktok_device_id": "7250000000000000001"}
-    )
-    commands = MediaCommands(configured, supervisor)
-    cookie_jar = tmp_path / "operation.cookies.txt"
+    commands = MediaCommands(settings(tmp_path), supervisor)
 
     await commands.inspect(
         "https://www.tiktok.com/@creator/video/123",
         tmp_path,
-        cookie_jar=cookie_jar,
     )
 
-    assert supervisor.argv[supervisor.argv.index("--cookies") + 1] == str(cookie_jar)
-    assert "tiktok:device_id=7250000000000000001" in supervisor.argv
+    assert "--cookies" not in supervisor.argv
+    assert "--impersonate" not in supervisor.argv
+    assert "--extractor-args" not in supervisor.argv
+    assert supervisor.argv[-1] == "https://www.tiktok.com/@creator/video/123"
+
+
+@pytest.mark.asyncio
+async def test_tiktok_public_player_rejects_cookie_jar(tmp_path: Path) -> None:
+    supervisor = RecordingSupervisor()
+    commands = MediaCommands(settings(tmp_path), supervisor)
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect(
+            "https://www.tiktok.com/@creator/video/123",
+            tmp_path,
+            cookie_jar=tmp_path / "operation.cookies.txt",
+        )
+
+    assert caught.value.code == "provider_session_not_allowed"
+    assert supervisor.argv == ()
 
 
 @pytest.mark.asyncio
@@ -467,9 +520,7 @@ async def test_xhs_first_party_ip_risk_is_a_verification_failure(
 ) -> None:
     commands = MediaCommands(
         settings(tmp_path),
-        FailingSupervisor(
-            b"ERROR: Xiaohongshu request verification required"
-        ),
+        FailingSupervisor(b"ERROR: Xiaohongshu request verification required"),
     )
 
     with pytest.raises(RunnerFailure) as caught:
@@ -521,9 +572,7 @@ async def test_wechat_channels_without_public_media_is_restricted(
 ) -> None:
     commands = MediaCommands(
         settings(tmp_path),
-        FailingSupervisor(
-            b"ERROR: WeChat Channels public media is not downloadable"
-        ),
+        FailingSupervisor(b"ERROR: WeChat Channels public media is not downloadable"),
     )
 
     with pytest.raises(RunnerFailure) as caught:

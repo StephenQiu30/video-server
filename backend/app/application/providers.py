@@ -46,3 +46,50 @@ class ProviderStatusView:
             }
             and bool(downloadable.intersection(self.capabilities))
         )
+
+
+def provider_user_action(
+    status: ProviderSupportStatus,
+    provider_key: str | None = None,
+    *,
+    download_available: bool = False,
+    access_mode: ProviderAccessMode = ProviderAccessMode.ANONYMOUS,
+) -> str | None:
+    """Return the single public recovery message for one Provider state."""
+    sample = (
+        "公开样本" if access_mode is ProviderAccessMode.ANONYMOUS else "受控线路样本"
+    )
+    if status is ProviderSupportStatus.ACCESS_REQUIRED and download_available:
+        return f"{sample}已完成真实下载；当前链接仍可能因平台授权或验证要求失败。"
+    if provider_key == "wechat_channels":
+        return (
+            "仅支持分享页直接公开非加密媒体的单视频；"
+            "平台未公开媒体时请上传自己拥有或已获授权的文件。"
+        )
+    if provider_key == "hongguo_web":
+        return (
+            "已接入红果官方分享链接当前单集；"
+            "不支持 App 受保护媒体、全集抓取或批量下载。"
+        )
+    if provider_key == "xiaohongshu" and status is ProviderSupportStatus.DEGRADED:
+        return (
+            "当前出口受到小红书官方风控；失效笔记会单独提示，"
+            "请使用新的公开分享链接后稍后重试。"
+        )
+    if status is ProviderSupportStatus.ACCESS_REQUIRED:
+        return (
+            "该平台当前要求额外授权或验证；请稍后重试，或上传你拥有或已获授权的文件。"
+        )
+    if status in {
+        ProviderSupportStatus.DEGRADED,
+        ProviderSupportStatus.RATE_LIMITED,
+        ProviderSupportStatus.BLOCKED,
+    }:
+        return "平台当前不稳定，请稍后重试。"
+    if status is ProviderSupportStatus.UNKNOWN:
+        if download_available:
+            return f"{sample}已完成真实下载验证；完整视频分析链路仍待验证。"
+        return "该平台尚未完成当前版本的真实下载验证。"
+    if status is ProviderSupportStatus.DISABLED:
+        return "当前未开放此平台下载。"
+    return None

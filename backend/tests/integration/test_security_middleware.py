@@ -58,6 +58,7 @@ def test_document_import_enables_bounded_storage_origin(tmp_path: Path) -> None:
         Settings(
             app_env="test",
             frontend_dist_dir=tmp_path / "missing",
+            media_import_enabled=False,
             document_import_enabled=True,
             minio_public_endpoint="documents.example.com:9443",
             minio_public_secure=True,

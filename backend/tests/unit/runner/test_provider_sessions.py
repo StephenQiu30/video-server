@@ -74,6 +74,15 @@ def write_cookie(settings: RunnerSettings, payload: bytes = COOKIE) -> Path:
             },
             "operator provider is not allowlisted",
         ),
+        (
+            {
+                "runner_access_mode": ProviderAccessMode.OPERATOR_MANAGED,
+                "runner_operator_session_versions": {"tiktok": "version-1"},
+                "runner_operator_account_baseline_attested": True,
+                "runner_max_active_tasks": 1,
+            },
+            "operator provider is not allowlisted",
+        ),
     ],
 )
 def test_settings_fail_closed_for_invalid_session_boundaries(
@@ -91,6 +100,21 @@ def test_settings_fail_closed_for_invalid_session_boundaries(
 
     with pytest.raises(ValidationError, match=message):
         RunnerSettings(**values)
+
+
+def test_generic_x_operator_example_is_allowlisted(tmp_path: Path) -> None:
+    settings = RunnerSettings(
+        runner_hmac_secret=SECRET,
+        runner_egress_proxy="http://egress-proxy:3128",
+        runner_workspace_root=tmp_path / "work",
+        runner_access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+        runner_operator_session_versions={"x": "version-1"},
+        runner_operator_account_baseline_attested=True,
+        runner_provider_secret_temp_root=tmp_path / "session-tmp",
+        runner_max_active_tasks=1,
+    )
+
+    assert settings.runner_operator_session_versions == {"x": "version-1"}
 
 
 def test_settings_reject_session_temp_inside_shared_workspace(tmp_path: Path) -> None:
@@ -202,43 +226,6 @@ def test_operator_context_cannot_cross_provider(tmp_path: Path) -> None:
         store.context_for("https://www.bilibili.com/video/BV1xx")
 
     assert caught.value.code == "provider_session_not_allowed"
-
-
-async def test_tiktok_operator_accepts_only_tiktok_cookie_domains(
-    tmp_path: Path,
-) -> None:
-    values = dict(
-        runner_hmac_secret=SECRET,
-        runner_egress_proxy="http://egress-proxy:3128",
-        runner_workspace_root=tmp_path / "work",
-        runner_access_mode=ProviderAccessMode.OPERATOR_MANAGED,
-        runner_operator_session_versions={"tiktok": "version-1"},
-        runner_operator_account_baseline_attested=True,
-        runner_provider_secret_root=tmp_path / "secrets",
-        runner_provider_secret_temp_root=tmp_path / "session-tmp",
-        runner_max_active_tasks=1,
-    )
-    settings = RunnerSettings(**values)
-    source = settings.runner_provider_secret_root / "tiktok/version-1.cookies.txt"
-    source.parent.mkdir(parents=True)
-    source.write_bytes(
-        b"# Netscape HTTP Cookie File\n"
-        b".tiktok.com\tTRUE\t/\tTRUE\t2147483647\tsid_tt\tfixture-secret\n"
-    )
-
-    store = ProviderSessionStore(settings)
-    context = store.context_for("https://www.tiktok.com/@creator/video/123")
-
-    assert context.provider_key == "tiktok"
-    assert context.access_mode is ProviderAccessMode.OPERATOR_MANAGED
-    with pytest.raises(RunnerFailure) as caught:
-        source.write_bytes(
-            b"# Netscape HTTP Cookie File\n"
-            b".example.com\tTRUE\t/\tTRUE\t0\tSID\twrong-domain\n"
-        )
-        async with store.operation(context):
-            pass
-    assert caught.value.code == "credential_rejected"
 
 
 async def test_missing_cookie_does_not_prevent_runner_startup(tmp_path: Path) -> None:

@@ -46,11 +46,20 @@ describe('request errors', () => {
   it.each([
     ['invalid_credentials', '邮箱或密码错误，请重新输入。'],
     ['provider_rate_limited', '平台请求过于频繁，请稍后重试。'],
+    ['import_disabled', '当前部署未开放本地视频上传。'],
+    [
+      'provider_verification_failed',
+      '平台要求额外验证，当前下载线路不可用；服务状态已降级，请稍后重试或更换公开链接。',
+    ],
     [
       'duration_limit_exceeded',
       '该平台支持下载，但当前内容超出单次处理的安全边界。',
     ],
     ['analysis_cli_not_authenticated', 'AI 分析服务未登录，请完成登录后重试。'],
+    [
+      'reserved_ai_provider_mutation',
+      '本机 Codex 是系统兜底线路，只能修改显示名称和模型。',
+    ],
   ])('localizes the stable %s error', (code, expected) => {
     expect(
       displayError(apiError(400, code, 'English title', 'English detail')),

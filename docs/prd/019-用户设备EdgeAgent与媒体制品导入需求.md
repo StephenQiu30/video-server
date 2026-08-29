@@ -84,7 +84,7 @@
 
 1. `ProviderAccessMode` 保持 Runner 专用的 anonymous/operator 语义；Edge 使用独立 `verified_import` execution mode 和 `edge_import` source kind。
 2. `GET /api/providers` 能区分服务端 extractor、verified import 和 official connector；状态页明确显示所需设备与用户动作，不把设备导入描述为运维会话或平台下载。
-3. 微信视频号链接下载保持 `unsupported`；用户文件导入只展示为独立能力。红果或其他来源标签的导入同样不能创建或提升 Provider 状态。
+3. 微信视频号公开分享链接能力由 025 独立维护，当前为 `wechat-channels-public-v2` / `degraded` / anonymous-only；用户文件导入只展示为独立能力，不能创建、提升或降低视频号及其他 Provider 状态。
 4. Import canary 必须按 Import Profile、execution mode、Agent 和客户端版本隔离；只使用项目自有测试设备与自有 clear 文件，不写 Provider canary。
 5. 三阶段证据、许可证/SBOM、Secret 流量验收、负例和显式发布批准缺一不可。
 

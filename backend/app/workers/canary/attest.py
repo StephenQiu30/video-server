@@ -53,6 +53,7 @@ def _select_target(
         first.target_id,
         first.provider_key,
         profile.version,
+        first.access_mode,
         profile.egress_pool,
         profile.client_profile_id,
         first.safe_url(),

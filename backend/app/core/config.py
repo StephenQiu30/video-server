@@ -146,7 +146,7 @@ class Settings(BaseSettings):
     download_thumbnail_max_bytes: int = Field(
         default=2_000_000, ge=1024, le=10 * 1024**2
     )
-    media_import_enabled: bool = False
+    media_import_enabled: bool = True
     document_import_enabled: bool = True
     media_import_max_bytes: int = Field(default=2 * 1024**3, ge=1024, le=20 * 1024**3)
     document_import_max_bytes: int = Field(
@@ -218,11 +218,8 @@ class Settings(BaseSettings):
     analysis_workspace_root: Path = Field(
         default_factory=_default_analysis_workspace_root
     )
-    analysis_cli_provider: Literal["codex", "claude"] = "codex"
     analysis_codex_binary: Path = Path("codex")
-    analysis_codex_model: str = Field(default="gpt-5.6-sol", min_length=1)
     analysis_claude_binary: Path = Path("claude")
-    analysis_claude_model: str = Field(default="sonnet", min_length=1)
     analysis_ffmpeg_binary: Path = Path("ffmpeg")
     analysis_ffprobe_binary: Path = Path("ffprobe")
     analysis_timeout_seconds: float = Field(default=900, ge=1, le=3600)

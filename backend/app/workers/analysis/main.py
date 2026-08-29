@@ -1,4 +1,4 @@
-"""Run with: python -m app.workers.analysis.main."""
+"""Internal worker process launched by the canonical analysis Agent CLI."""
 
 from __future__ import annotations
 
@@ -28,6 +28,10 @@ from app.infrastructure.database import (
 )
 from app.infrastructure.messaging import RabbitMqTopology
 from app.infrastructure.object_storage import MinioObjectStorage
+from app.workers.analysis.agent_lock import (
+    AnalysisAgentAlreadyRunning,
+    analysis_agent_process_lock,
+)
 from app.workers.analysis.artifacts import LocalAnalysisArtifactLoader
 from app.workers.analysis.consumer import RabbitMqAnalysisConsumer
 from app.workers.analysis.heartbeat import AnalysisWorkerHeartbeat
@@ -237,7 +241,11 @@ async def _run_resilient(
 
 
 def main() -> None:
-    asyncio.run(run())
+    try:
+        with analysis_agent_process_lock():
+            asyncio.run(run())
+    except AnalysisAgentAlreadyRunning as exc:
+        raise SystemExit(str(exc)) from None
 
 
 def _rabbitmq_worker_url(url: str, vhost: str) -> str:

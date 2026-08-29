@@ -21,6 +21,7 @@ Compose 文件不再通过 YAML Anchor 隐式继承服务配置；每个服务�
 - 业务 Compose 通过 `POSTGRES_HOST/PORT`、`RABBITMQ_HOST/PORT`、`VALKEY_HOST/PORT` 和 `MINIO_HOST/PORT` 连接基础服务。启动 `docker-compose-env.yml` 时使用服务名和容器端口；复用已有基础服务时改为宿主机可达地址和已发布端口。
 - `HOST_*_PORT` 仅用于环境 Compose 向宿主机发布端口，不是业务容器的连接端口。不要把两类端口混用。
 - MinIO 只配置一组 `MINIO_ACCESS_KEY` 与 `MINIO_SECRET_KEY`，所有业务进程共用；不要按 API、导入、下载、报告或分析进程复制密钥变量。
+- 仓库环境 Compose 将 `MINIO_CORS_ALLOWED_ORIGINS` 直接映射为 MinIO 实例级 `MINIO_API_CORS_ALLOW_ORIGIN`。固定 digest 的一次性 `minio-config-check` 会先拒绝空值、通配符、路径、userinfo、非法主机、越界端口和非 HTTP(S) 值；只有校验成功后，保留官方 entrypoint 的 MinIO 才会启动。列表中的每一项必须是完整的 `scheme://host[:port]` exact origin；修改后重新执行环境 Compose 的 `up -d` 以重建 MinIO 容器，不能使用 `restart`。
 - CI、开发和本机验收必须复用上述正式 Compose 文件，不新增仅供某个环境的覆盖文件。
 
 ## 宿主机基础设施
@@ -33,6 +34,8 @@ Compose 文件不再通过 YAML Anchor 隐式继承服务配置；每个服务�
 - MinIO
 
 容器通过 `.env` 中的连接地址访问这些服务。生产环境的连接地址和凭据只放在本地 .env.prod，不能提交到 Git。
+
+复用外部 MinIO 时，部署者必须在该实例的启动环境中设置与 `.env` 相同的 `MINIO_API_CORS_ALLOW_ORIGIN` exact-origin 列表并重建实例；不能依赖手工 bucket CORS、`*` 或遗留实例状态。社区版 MinIO 的浏览器上传策略是实例级 API 配置，仓库不会尝试调用不受支持的 bucket CORS API。无法控制外部实例启动配置时，应关闭 `MEDIA_IMPORT_ENABLED` 与 `DOCUMENT_IMPORT_ENABLED`，而不是放宽 CORS。
 
 ## 本机业务拓扑
 
@@ -109,11 +112,13 @@ curl --fail http://127.0.0.1:8111/health/ready
 
 ## AI Worker
 
-AI Worker 继续运行在宿主机，不由 Compose 启动：
+AI Worker 继续运行在宿主机，不由 Compose 启动。确保根目录 `.env` 是该宿主机 Agent 可达的连接配置后，使用唯一的跨平台管理入口：
 
 ~~~bash
 cd backend
-uv run --env-file ../.env.prod python -m app.workers.analysis.main
+uv run python -m app.workers.analysis.agent_cli doctor
+uv run python -m app.workers.analysis.agent_cli install
+uv run python -m app.workers.analysis.agent_cli status
 ~~~
 
 AI Worker 心跳是功能级状态，不是 API 全局 readiness。Worker 短暂重启时分析任务

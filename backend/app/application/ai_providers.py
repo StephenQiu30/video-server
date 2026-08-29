@@ -8,6 +8,9 @@ from datetime import datetime
 from app.application.auth import CurrentUser
 
 from .ai_provider_models import (
+    LOCAL_CODEX_PROVIDER_KEY as LOCAL_CODEX_PROVIDER_KEY,
+)
+from .ai_provider_models import (
     AiProviderAuthMode as AiProviderAuthMode,
 )
 from .ai_provider_models import (
@@ -93,6 +96,8 @@ class AiProviderService:
         api_key: str | None,
     ) -> AiProviderProfile:
         _require_admin(actor)
+        if _validated_key(key) == LOCAL_CODEX_PROVIDER_KEY:
+            raise AiProviderError(AiProviderErrorCode.RESERVED_MUTATION)
         normalized = _validated_profile(
             key=key,
             display_name=display_name,
@@ -137,6 +142,15 @@ class AiProviderService:
         current = await self._repository.get_profile(normalized_key)
         if current is None:
             raise AiProviderError(AiProviderErrorCode.NOT_FOUND)
+        if normalized_key == LOCAL_CODEX_PROVIDER_KEY:
+            _require_local_codex_shape(
+                current,
+                engine=engine,
+                auth_mode=auth_mode,
+                base_url=base_url,
+                base_url_changed=base_url_changed,
+                api_key=api_key,
+            )
         effective_engine = engine or current.engine
         effective_auth = auth_mode or current.auth_mode
         effective_base_url = (
@@ -217,6 +231,8 @@ class AiProviderService:
     async def delete_profile(self, actor: CurrentUser, key: str) -> None:
         _require_admin(actor)
         normalized_key = _validated_key(key)
+        if normalized_key == LOCAL_CODEX_PROVIDER_KEY:
+            raise AiProviderError(AiProviderErrorCode.RESERVED_MUTATION)
         current = await self._repository.get_profile(normalized_key)
         if current is None:
             raise AiProviderError(AiProviderErrorCode.NOT_FOUND)
@@ -234,3 +250,26 @@ class AiProviderService:
         if auth_mode is AiProviderAuthMode.HOST_LOGIN or api_key is None:
             return None
         return self._cipher.encrypt(provider_key, api_key.strip())
+
+
+def _require_local_codex_shape(
+    current: AiProviderProfile,
+    *,
+    engine: AiProviderEngine | None,
+    auth_mode: AiProviderAuthMode | None,
+    base_url: str | None,
+    base_url_changed: bool,
+    api_key: str | None,
+) -> None:
+    effective_engine = engine or current.engine
+    effective_auth = auth_mode or current.auth_mode
+    changes_endpoint = base_url_changed and bool(base_url and base_url.strip())
+    if (
+        effective_engine is not AiProviderEngine.CODEX
+        or effective_auth is not AiProviderAuthMode.HOST_LOGIN
+        or current.base_url is not None
+        or current.credential_configured
+        or changes_endpoint
+        or api_key is not None
+    ):
+        raise AiProviderError(AiProviderErrorCode.RESERVED_MUTATION)

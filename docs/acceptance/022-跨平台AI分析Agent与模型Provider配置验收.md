@@ -16,11 +16,13 @@
 - [x] 管理员可查看默认 `local-codex`，非管理员返回 403。
 - [x] 可新增 Codex API Key Profile，GET 响应只有 `credential_configured=true`。
 - [x] 可新增 Claude API Key Profile。
-- [x] 可从 Web 新增 DeepSeek API Profile；只接受 API Key 和 `deepseek-v4-flash-vision-exp`，不读取第三方 AI `.env`。
+- [x] 可从 Web 新增 DeepSeek API Profile；创建和编辑时模型字段固定为 `deepseek-v4-flash-vision-exp`，服务端也只接受该模型和 API Key，不读取第三方 AI `.env`。
 - [x] 公网 HTTP、带用户名密码/query/fragment 的 URL 被拒绝。
 - [x] 编辑 Key 留空保留原密文，填写新 Key 后密文变化。
 - [x] 启用新 Profile 后旧 Profile 原子失活，始终最多一个活动项。
 - [x] 活动 Profile 不可删除；非活动 Profile 删除后密文一并移除。
+- [x] `local-codex` 无论是否活动都不可删除，且服务端与管理页同时锁定引擎、认证、Endpoint 和凭据结构。
+- [x] `.env` 不再提供 Provider/模型选择项；Worker 只按数据库活动 Profile 解析运行时。
 
 ## 3. Agent 与执行
 
@@ -65,7 +67,7 @@
 | Key 更新语义 | `test_api_key_update_preserves_blank_and_rotates_new_secret` 验证留空时密文不变、填写新 Key 后密文轮换且可正确解密。 |
 | API 脱敏 | 管理接口 CRUD 集成测试验证创建、查询和更新响应均不包含 `api_key` 或原始 Secret。 |
 | Profile 热切换 | `test_updated_active_profile_rebuilds_adapter_for_next_task` 验证同一 Agent 进程按 `updated_at` 失效缓存，下一任务使用更新后的模型、Endpoint 与 Key。 |
-| stale fail-closed | Worker Registry 测试验证心跳超时后不可用；创建分析测试验证没有兼容 Worker 时在持久化前返回不可用。 |
+| stale 诊断与持久入队 | Worker Registry 测试验证心跳超时后管理页显示状态未确认；创建分析测试验证没有兼容 Worker 时仍会持久化为 `queued`，只有部署显式关闭 `ANALYSIS_ENABLED` 才在持久化前返回不可用。 |
 | 进程参数隔离 | Runtime 测试验证 API Key 仅进入受控子进程环境，不进入命令参数。 |
 | 服务命令契约 | Windows、macOS、Linux 的 `status` 命令均有自动化覆盖；Windows install/uninstall 验证只操作本项目任务和定义文件。macOS/Linux 实机生命周期仍是外部门禁。 |
 | DeepSeek 结构化调用 | 单元测试验证 LangChain `json_mode`、顺序时间戳、base64 JPEG、无工具 Prompt、视频分析与剧本分析/汇总/术语/分块改写共用同一活动 Profile。 |

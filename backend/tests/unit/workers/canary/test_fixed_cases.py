@@ -1,6 +1,10 @@
 from collections import defaultdict
 
-from app.domain.providers import ProviderCanaryStage, ProviderSupportStatus
+from app.domain.providers import (
+    ProviderAccessMode,
+    ProviderCanaryStage,
+    ProviderSupportStatus,
+)
 from app.runner.provider_registry import current_provider_registry
 from app.workers.canary.fixed_cases import fixed_public_diagnostic_targets
 
@@ -22,6 +26,9 @@ def test_fixed_public_matrix_covers_every_registered_provider_and_stage() -> Non
         if profile.support_status is not ProviderSupportStatus.DISABLED
     }
     for provider_targets in grouped.values():
+        assert {target.access_mode for target in provider_targets} == {
+            ProviderAccessMode.ANONYMOUS
+        }
         assert {target.stage for target in provider_targets} == {
             ProviderCanaryStage.METADATA,
             ProviderCanaryStage.MEDIA,
@@ -31,12 +38,8 @@ def test_fixed_public_matrix_covers_every_registered_provider_and_stage() -> Non
 
 
 def test_fixed_public_matrix_does_not_reuse_known_invalid_upstream_fixtures() -> None:
-    urls = tuple(
-        target.safe_url() for target in fixed_public_diagnostic_targets()
-    )
+    urls = tuple(target.safe_url() for target in fixed_public_diagnostic_targets())
 
     assert all(
-        marker not in url
-        for marker in _KNOWN_INVALID_UPSTREAM_FIXTURES
-        for url in urls
+        marker not in url for marker in _KNOWN_INVALID_UPSTREAM_FIXTURES for url in urls
     )

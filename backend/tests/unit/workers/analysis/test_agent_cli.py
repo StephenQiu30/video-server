@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 
 import pytest
@@ -8,6 +9,21 @@ from app.workers.analysis.agent_cli import (
     _record_agent_failure,
     _verify_storage,
 )
+
+
+def test_run_command_delegates_to_the_locked_worker_entry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.workers.analysis import agent_cli
+    from app.workers.analysis import main as worker_main
+
+    called: list[bool] = []
+    monkeypatch.setattr(worker_main, "main", lambda: called.append(True))
+    monkeypatch.setattr(sys, "argv", ["agent_cli", "run"])
+
+    agent_cli.main()
+
+    assert called == [True]
 
 
 @dataclass(frozen=True, slots=True)

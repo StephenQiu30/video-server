@@ -131,7 +131,7 @@
 - 匿名/运维 metadata 每 6 小时、小文件 download/remux/probe/SHA 每日执行。
 - 首批矩阵：YouTube anonymous/operator/POT；Bilibili、抖音、小红书 anonymous；Generic direct/HLS/DRM fixture。
 - 第二批矩阵：TikTok、Vimeo、X、Instagram、Facebook、Twitch、Reddit metadata + Range。
-- 第三批：Pinterest、微博、优酷、腾讯视频；无证据前保持 unknown。
+- 第三批：Pinterest、微博、优酷保留版本化匿名公开单视频 Profile；腾讯视频保留识别用 Profile 但状态固定为 `disabled`，重新开放须先满足 024 的官方授权与权益边界。
 - 排除清单：AcFun、Rutube、VK Clips、Dailymotion、NicoNico；不登记且相关域名 fail closed。
 - 新增 `GET /api/providers` 和前端 Provider 状态/最近验证时间；错误页使用真实状态。
 
@@ -140,19 +140,21 @@
 - 状态机阈值、恢复迟滞、kill switch 和单 Provider 降级有确定性测试。
 - API 不泄露 canary URL、账号、credential version、POT 或出口地址。
 - Canary 失败不改变整体 readiness，不影响无关 Provider。
-- 视频号/快手稳定显示 unsupported，不被 Generic 清单提升。
+- 视频号以 `wechat-channels-public-v2` / `degraded` / anonymous-only 显示，且仅接受 `/sph/` 直接公开 clear 媒体；快手以 `kuaishou-public-v1` 公开链显示，两者的无效或受保护输入都不得回退 Generic。
 
 ## 8. Phase 6：其他平台专用 Profile
 
-实施状态：16 个可下载 Profile 与逐平台上游策略已登记。Bilibili/抖音/小红书沿用 2026-08-07 历史回归，快手沿用 2026-08-11 真实回归；其余平台的当前版本 metadata + media + 完整视频 Agent E2E 尚未执行。AcFun、Rutube、VK Clips、Dailymotion 和 NicoNico 已从注册表移除并显式拒绝。
+实施状态：16 个可下载 Profile 与逐平台上游策略已登记。Bilibili/抖音/小红书沿用 2026-08-07 历史回归，快手沿用 2026-08-11 真实回归；视频号已登记 `wechat-channels-public-v2` 匿名降级链路但真实 clear 媒体门禁仍待完成，腾讯视频保持 `disabled`。其余平台的当前版本 metadata + media + 完整视频 Agent E2E 尚未执行。AcFun、Rutube、VK Clips、Dailymotion 和 NicoNico 已从注册表移除并显式拒绝。
 
 按真实 canary 证据逐个平台交付，不一次性启用所有 Cookie：
 
-1. TikTok：web challenge、impersonation、可选 `sid_tt` 和 IP block 分类。
+1. TikTok：历史 web challenge/`sid_tt` 方案已废弃；当前 v3 仅调用第一方 Player，并分类内容失效、临时 API 失败与 schema 回归。
 2. Vimeo：impersonation、Referer、password 与 login 分开建模。
 3. X/Instagram/Facebook：公开单视频优先；登录墙、NSFW/private、频控和 schema 回归分离。
 4. Twitch/Reddit：公开 clip/VOD/post；subscriber/quarantine/processing 分离。
 5. Bilibili/抖音/小红书：保持公开链，只有新需求和安全评审后才增加会话。
+6. 视频号：只执行第一方匿名 `/sph/` clear 媒体链路；保护材料、未公开媒体与无效链接 fail closed，不增加 Cookie 或浏览器回退。
+7. 腾讯视频：仅保留识别与稳定禁用状态；没有 024 批准的官方授权/API 前不进入 Runner。
 
 每个平台必须先交付：Profile、域名/Cookie allowlist、固定参数、错误 marker、anonymous canary、会话 canary、限流和 kill switch。缺一项则保持 anonymous/disabled。
 

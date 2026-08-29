@@ -103,6 +103,7 @@ class MediaInspectionPipeline:
             try:
                 return await attempt.client.inspect(url)
             except MediaInspectionFailure as error:
+                error.attributed_to(attempt.access_mode)
                 failures.append((attempt, error))
                 if self._failure_policy.should_continue(
                     attempt,

@@ -91,12 +91,21 @@ class CanaryRepository(Protocol):
     async def save(self, result: ProviderCanaryResult) -> None: ...
 
     async def latest_checked_at(
-        self, target_id: str, stage: ProviderCanaryStage
+        self,
+        target_id: str,
+        profile_version: str,
+        stage: ProviderCanaryStage,
+        access_mode: ProviderAccessMode,
     ) -> datetime | None: ...
 
 
 class CanaryRunner(Protocol):
-    async def inspect(self, url: str) -> RunnerInspection: ...
+    async def inspect(
+        self,
+        url: str,
+        *,
+        access_mode: ProviderAccessMode,
+    ) -> RunnerInspection: ...
 
     async def download(
         self,
@@ -138,13 +147,18 @@ class ProviderCanaryService:
         context = None
         error: str | None = None
         try:
-            inspection = await self._runner.inspect(target.safe_url())
-            context = inspection.access_context
+            inspection = await self._runner.inspect(
+                target.safe_url(),
+                access_mode=target.access_mode,
+            )
+            inspected_context = inspection.access_context
             if (
-                context.provider_key != target.provider_key
-                or context.profile_version != profile.version
+                inspected_context.provider_key != target.provider_key
+                or inspected_context.profile_version != profile.version
+                or inspected_context.access_mode is not target.access_mode
             ):
                 raise MediaRunnerClientError("client_context_mismatch", 502)
+            context = inspected_context
             if target.stage is ProviderCanaryStage.MEDIA:
                 artifact, inspection = await self._download_media(
                     target,
@@ -163,9 +177,7 @@ class ProviderCanaryService:
             provider_key=target.provider_key,
             profile_version=context.profile_version if context else profile.version,
             stage=target.stage,
-            access_mode=(
-                context.access_mode if context else ProviderAccessMode.ANONYMOUS
-            ),
+            access_mode=target.access_mode,
             outcome=(
                 ProviderCanaryOutcome.SUCCEEDED
                 if error is None
@@ -215,12 +227,16 @@ class ProviderCanaryService:
                     or attempt == _FORMAT_DRIFT_ATTEMPTS - 1
                 ):
                     raise
-                inspection = await self._runner.inspect(target.safe_url())
+                inspection = await self._runner.inspect(
+                    target.safe_url(),
+                    access_mode=target.access_mode,
+                )
                 context = inspection.access_context
                 profile = provider_profile(target.safe_url())
                 if (
                     context.provider_key != target.provider_key
                     or context.profile_version != profile.version
+                    or context.access_mode is not target.access_mode
                 ):
                     raise MediaRunnerClientError(
                         "client_context_mismatch", 502

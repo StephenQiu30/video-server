@@ -10,7 +10,7 @@ import {
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { providerEngineLabel } from './model';
+import { isLocalCodexProvider, providerEngineLabel } from './model';
 
 export function ExecutionRoute({
   active,
@@ -53,19 +53,23 @@ export function ProviderRow({
   onDelete: () => void;
   onEdit: () => void;
 }) {
+  const localCodex = isLocalCodexProvider(item.key);
   return (
     <div className="grid gap-4 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="font-medium">{item.display_name}</h3>
           {item.is_active ? <Badge variant="success">当前线路</Badge> : null}
+          {localCodex ? <Badge variant="neutral">系统兜底</Badge> : null}
           <Badge variant="neutral">{providerEngineLabel(item.engine)}</Badge>
         </div>
         <p className="mt-1 truncate text-sm text-muted-foreground">
           {item.model} ·{' '}
           {item.auth_mode === 'host_login'
             ? '本机账号登录'
-            : `${item.base_url} · ${item.credential_configured ? '凭据已配置' : '缺少凭据'}`}
+            : `${item.base_url} · ${
+                item.credential_configured ? '凭据已配置' : '缺少凭据'
+              }`}
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -84,9 +88,10 @@ export function ProviderRow({
         </Button>
         <Button
           aria-label={`删除 ${item.display_name}`}
-          disabled={item.is_active}
+          disabled={item.is_active || localCodex}
           onClick={onDelete}
           size="icon-sm"
+          title={localCodex ? '系统兜底线路不可删除' : undefined}
           variant="ghost"
         >
           <Trash aria-hidden />

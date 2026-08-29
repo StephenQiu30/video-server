@@ -41,7 +41,7 @@
 4. manifest 只允许 rights statement、脱敏 declared origin、Agent/protocol version 和不可逆 source fingerprint。
 5. 增加非文件选择器来源、损坏/加密 MP4、哈希错误、超限、设备撤销、上传过期和敏感字段负例。
 6. 使用项目自有或明确授权文件完成 select → import → Artifact → Analysis → MD/DOCX → WebSocket E2E。
-7. Provider UI 只显示“可从用户设备导入文件”；视频号 URL 下载和 canary 保持 `unsupported`。
+7. Provider UI 只显示“可从用户设备导入文件”；设备导入不得写视频号 canary，也不得改变由 025 维护的 `wechat-channels-public-v2` / `degraded` 链接状态。
 
 ## 5. Phase C：受控来源声明
 

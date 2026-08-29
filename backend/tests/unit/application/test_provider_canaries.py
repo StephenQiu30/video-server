@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from app.application.provider_canaries import ProviderStatusService
+from app.application.provider_canaries import (
+    ProviderEvidenceScope,
+    ProviderStatusService,
+)
 from app.application.provider_catalog import ProviderCatalogEntry
 from app.application.providers import ProviderStatusView
 from app.domain.providers import (
@@ -30,9 +34,12 @@ class Reader:
         self.key = key
 
     async def list_recent(
-        self, *, limit_per_provider: int
+        self,
+        *,
+        limit_per_provider_stage: int,
+        scopes: Mapping[str, ProviderEvidenceScope],
     ) -> dict[str, tuple[ProviderCanaryResult, ...]]:
-        assert limit_per_provider == 32
+        assert limit_per_provider_stage == 32
         return {self.key: self.results}
 
 
@@ -78,9 +85,7 @@ def baseline(
         download_available=False,
         last_media_verified_at=None,
         last_verified_at=None,
-        user_action=(
-            None if status is ProviderSupportStatus.VERIFIED else "待验证"
-        ),
+        user_action=(None if status is ProviderSupportStatus.VERIFIED else "待验证"),
     )
 
 
@@ -169,7 +174,7 @@ async def test_supported_download_is_explicit_with_conditional_session() -> None
     assert view.download_available is True
     assert view.status is ProviderSupportStatus.ACCESS_REQUIRED
     assert view.user_action == (
-        "公开样本已完成真实下载；遇到平台挑战时才需要已批准的受控会话。"
+        "公开样本已完成真实下载；当前链接仍可能因平台授权或验证要求失败。"
     )
 
 
@@ -222,6 +227,106 @@ async def test_evidence_from_an_old_profile_version_is_ignored() -> None:
 
 
 @pytest.mark.asyncio
+async def test_evidence_from_a_runtime_disabled_access_mode_is_ignored() -> None:
+    operator_results = (
+        replace(
+            result(0, error="provider_auth_required"),
+            access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+        ),
+        replace(
+            result(30, stage=ProviderCanaryStage.MEDIA),
+            access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+        ),
+    )
+    service = ProviderStatusService(
+        Reader(operator_results),
+        (baseline(ProviderSupportStatus.VERIFIED),),
+        now=lambda: NOW,
+    )
+
+    view = (await service.list())[0]
+
+    assert view.status is ProviderSupportStatus.VERIFIED
+    assert view.last_checked_at is None
+    assert view.last_check_succeeded is None
+    assert view.download_available is False
+    assert view.last_media_verified_at is None
+
+
+@pytest.mark.asyncio
+async def test_operator_evidence_does_not_override_anonymous_public_status() -> None:
+    operator_media = replace(
+        result(0, stage=ProviderCanaryStage.MEDIA),
+        access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+    )
+    operator_baseline = replace(
+        baseline(),
+        access_modes=(
+            ProviderAccessMode.ANONYMOUS,
+            ProviderAccessMode.OPERATOR_MANAGED,
+        ),
+    )
+    service = ProviderStatusService(
+        Reader((operator_media,)),
+        (operator_baseline,),
+        now=lambda: NOW,
+    )
+
+    view = (await service.list())[0]
+
+    assert view.last_checked_at is None
+    assert view.last_check_succeeded is None
+    assert view.download_available is False
+    assert view.last_media_verified_at is None
+
+
+@pytest.mark.asyncio
+async def test_operator_only_status_uses_attributed_operator_evidence() -> None:
+    operator_media = replace(
+        result(0, stage=ProviderCanaryStage.MEDIA),
+        access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+    )
+    operator_baseline = replace(
+        baseline(),
+        access_modes=(ProviderAccessMode.OPERATOR_MANAGED,),
+    )
+    service = ProviderStatusService(
+        Reader((operator_media,)),
+        (operator_baseline,),
+        now=lambda: NOW,
+    )
+
+    view = (await service.list())[0]
+
+    assert view.last_checked_at == NOW
+    assert view.download_available is True
+    assert view.last_media_verified_at == NOW
+    assert view.user_action == (
+        "受控线路样本已完成真实下载验证；完整视频分析链路仍待验证。"
+    )
+
+
+@pytest.mark.asyncio
+async def test_disabled_status_is_immutable_under_runtime_evidence() -> None:
+    disabled = replace(
+        baseline(ProviderSupportStatus.DISABLED),
+        access_modes=(),
+    )
+    service = ProviderStatusService(
+        Reader((result(0, error="provider_auth_required"),)),
+        (disabled,),
+        now=lambda: NOW,
+    )
+
+    view = (await service.list())[0]
+
+    assert view.status is ProviderSupportStatus.DISABLED
+    assert view.download_supported is False
+    assert view.last_checked_at is None
+    assert view.download_available is False
+
+
+@pytest.mark.asyncio
 async def test_latest_media_failure_revokes_download_availability() -> None:
     results = (
         result(0, stage=ProviderCanaryStage.MEDIA, error="download_timeout"),
@@ -258,6 +363,35 @@ async def test_explicitly_approved_profile_promotes_only_with_full_chain() -> No
     )
 
     assert (await service.list())[0].status is ProviderSupportStatus.VERIFIED
+
+
+@pytest.mark.asyncio
+async def test_real_media_traffic_cannot_displace_fresh_metadata_verification() -> None:
+    downloads = tuple(
+        replace(
+            result(minute, stage=ProviderCanaryStage.MEDIA),
+            target_id=f"download:{minute}",
+        )
+        for minute in range(5)
+    )
+    evidence = (
+        *downloads,
+        result(5, stage=ProviderCanaryStage.METADATA),
+        result(6, stage=ProviderCanaryStage.MEDIA),
+        result(7, stage=ProviderCanaryStage.ANALYSIS),
+    )
+    service = ProviderStatusService(
+        Reader(evidence),
+        (baseline(),),
+        now=lambda: NOW,
+        approved_keys=frozenset({"vimeo"}),
+    )
+
+    view = (await service.list())[0]
+
+    assert view.status is ProviderSupportStatus.VERIFIED
+    assert view.last_verified_at == NOW - timedelta(minutes=7)
+    assert view.last_media_verified_at == NOW
 
 
 @pytest.mark.asyncio

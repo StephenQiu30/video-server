@@ -41,7 +41,7 @@
 - [ ] 损坏、加密、哈希不一致、超限、设备撤销、上传过期和取消负例通过，无可读孤儿。
 - [ ] 项目自有或明确授权 MP4 完成文件选择、上传、服务端复验、Artifact、Analysis、报告与 WebSocket E2E。
 - [ ] 详情显示 `acquired_by=customer/用户设备导入`，不显示平台下载成功。
-- [ ] 视频号文件导入不写 Provider canary；`wechat_channels` 链接下载继续为 `unsupported`。
+- [ ] 视频号文件导入不写 Provider canary，也不改变由 025 维护的 `wechat-channels-public-v2` / `degraded` / anonymous-only 链接状态。
 
 ## 5. 受控来源声明验收
 

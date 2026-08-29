@@ -98,9 +98,9 @@
 - [x] G6：Bilibili 公开 UGC 回归成功，命令不含 Cookie/POT。
 - [x] G7：抖音公开分享页回归成功；动态签名/schema 故障不伪报 Cookie 缺失。
 - [x] G8：小红书有效公开分享链回归成功；短链失效、图文笔记、原画缺失分别分类。
-- [ ] G9：Facebook、Twitch 已完成当前 Profile 的 metadata + media canary；TikTok 保持 degraded，Reddit 保持 access_required，因此本组合项仍未全部通过。
-- [x] G10（历史媒体证据）：Pinterest 视频 Pin、微博/优酷/腾讯视频公开单视频曾完成固定引擎 metadata + media；图片/相册/多资产继续 fail closed；AcFun、Rutube、VK Clips、Dailymotion、NicoNico 不登记且相关域名 fail closed。腾讯证据只证明当次取到媒体，不证明公开免费权益或接口获批，当前代码仍错误标为 `verified`，024 Phase 0 降级完成前不得作为发布批准。
-- [x] G11：视频号稳定为 unsupported，Generic 不会把它提升为 supported。
+- [ ] G9：Facebook、Twitch 已完成当前 Profile 的 metadata + media canary；TikTok anonymous-only Player v3 的 metadata + media canary 已在 2026-08-29 通过；Reddit 保持 access_required，因此本组合项仍未全部通过。
+- [x] G10（历史媒体证据）：Pinterest 视频 Pin、微博/优酷/腾讯视频公开单视频曾完成固定引擎 metadata + media；图片/相册/多资产继续 fail closed；AcFun、Rutube、VK Clips、Dailymotion、NicoNico 不登记且相关域名 fail closed。腾讯证据只证明当次取到媒体，不证明公开免费权益或接口获批；024 Phase 0 已将当前 Profile 关闭，历史证据不得用于恢复 `verified`。
+- [x] G11：视频号已登记 `wechat-channels-public-v2` / `degraded` / anonymous-only；只接受 `/sph/` 直接公开 clear 媒体，无效、受保护或未公开媒体 fail closed 且不回退 Generic。真实 clear 媒体发布门禁仍按 025 第 3 节保持未通过。
 - [x] G11a：快手由可信 `KuaishouPublicIE` 处理第一方公开单视频；图集和非第一方重定向 fail closed。
 - [ ] G12：本地带 ContentProtection 的 fixture 稳定返回 `drm_protected`。
 
@@ -178,6 +178,6 @@ docker compose --env-file .env.prod -f docker-compose-prod.yml config
 
 ## 14. 当前结论
 
-截至 2026-08-12，Phase 1 已提供可配置的 YouTube 运维 Cookie/POT 路径，以及持久化 Provider 探针、定时执行器、阈值/恢复迟滞和动态 API 聚合。Facebook、Twitch、Pinterest 视频 Pin、微博和优酷的匿名公开单视频/Clip Profile 已完成 metadata 与真实媒体证据；024 的权益/接口复核要求把腾讯视频降为 `unknown/disabled`，但当前代码仍错误地静态标为 `verified` 并保留固定 canary，因此 Phase 0 降级是发布阻断。YouTube、Reddit 保持 `access_required`，TikTok 保持 `degraded`。验收结论仍为 **production conditional fail**：A2a、B3/B7、C6/C8、YouTube 真实 D1–D3/D5/D7–D9/D11、POT/出口 E2–E6/E8、授权 canary G1–G4/G9/G12、低基数指标/供应链 H2–H5 与完整视频 Agent E2E gate 均缺完整证据或尚未实现。不得把 YouTube 或腾讯视频标记为 `verified`，也不得启用生产运维会话。
+截至当前代码，Phase 1 已提供可配置的 YouTube 运维 Cookie/POT 路径，以及持久化 Provider 探针、定时执行器、阈值/恢复迟滞和动态 API 聚合。Facebook、Twitch、Pinterest 视频 Pin、微博和优酷的匿名公开单视频/Clip Profile 已完成 metadata 与真实媒体证据；腾讯视频 Phase 0 已降为 `disabled`。YouTube、Reddit 保持 `access_required`；TikTok 已使用 anonymous-only Player v3 取代网页挑战方案。本历史验收的结论仍为 **production conditional fail**：A2a、B3/B7、C6/C8、YouTube 真实 D1–D3/D5/D7–D9/D11、POT/出口 E2–E6/E8、授权 canary G1–G4/G9/G12、低基数指标/供应链 H2–H5 与完整视频 Agent E2E gate 均缺完整证据或尚未实现。不得使用历史证据把 YouTube 或腾讯视频提升为 `verified`。
 
 Phase 2 的 I–J 全部保持 Pending；本轮没有实现用户 Cookie 上传/Vault/Broker 或 gallery-dl。下一验收批次必须使用无额外权益的专用账号与授权样本，按 runbook 完成真实 Worker/Runner/MinIO E2E、全系统泄漏扫描、sidecar/出口绑定、轮换/撤销、账号权益漂移和故障注入。

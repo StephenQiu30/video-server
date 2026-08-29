@@ -24,11 +24,19 @@ curl --fail http://127.0.0.1:8111/health/ready
 或 AI 配置。`provider-canary` 必须显示 `runner_work:/work` 挂载，且容器内
 `RUNNER_WORKSPACE_ROOT=/work`。
 
+`PROVIDER_CANARY_TARGETS` 的每条目标必须显式声明 `access_mode`。公开路由写
+`anonymous`，会话路由写 `operator_managed`；同一样本的两种路由必须使用
+不同 `target_id` 分别配置 metadata/media 目标。Canary 只执行声明的单一
+Runner，不经过业务下载的 anonymous→operator fallback；因此公开失败与
+会话成功会分别持久化，不会相互遮蔽。未配置对应 Operator Runner 的
+`operator_managed` 目标会如实记录为访问失败。
+
 ## 2. 固定矩阵
 
 样本位于 `backend/app/workers/canary/fixed_public_cases.json`。每个 Registry key
 必须恰好有同一 target/version 的 metadata 与 media 两条记录；URL 不会出现在命令
-输出或数据库 canary 行中。
+输出或数据库 canary 行中。该固定公开矩阵的每条记录都固定为
+`access_mode=anonymous`，不会消费任何 Operator 会话。
 
 media 阶段必须下载解析结果中的第一项格式，与 Web 界面默认选项保持一致；不得改成
 最低清晰度来缩短探针时间，否则会漏掉真实用户默认格式的签名或客户端兼容问题。
@@ -77,12 +85,16 @@ metadata、media、完整视频 Analysis attestation 和显式批准才能提升
 公开任务、用户、账号、Cookie 或出口标识。固定探针用于无人使用时的主动监测，真实
 任务用于及时反映用户实际链路，两者不需要维护平行的手工状态。
 
-2026-08-29 当前版本的真实浏览器回归中，22 个已启用 Provider 有 21 个完成媒体
-下载与制品校验。TikTok 已通过第一方播放器 API 和自动化 Operator 会话首次执行
-成功；微信视频号、X、优酷也在统一重建后完成。小红书由第一方页面返回 `300012`
-出口 IP 风控，保持 degraded；失效笔记的 `300031` 单独映射为链接失效。QQ 视频
-保持 disabled，不进入已启用矩阵。所有成功任务由状态服务自动显示为最近真实下载，
-无需修改数据库或手工更新页面状态。
+2026-08-29 当前版本对 22 个已启用 Provider 执行了 44 个固定探针（metadata/media
+各 22 个）。其中 16 个 Provider 在全矩阵中两阶段均成功，哔哩哔哩的 media
+阶段成功；TikTok 已以 `tiktok-public-player-v3` Profile 单独复测，anonymous
+metadata 与完整媒体探针分别在 2678ms、4771ms 成功。该版本删除了遗留的浏览器、会话与
+device-id 参数，只使用第一方公开播放器 API，不依赖 Cookie、本地浏览器或 Operator
+会话。YouTube、抖音、Reddit 和微信视频号的
+固定公开样本仍被平台授权、验证或公开媒体边界拒绝；这些结果必须如实投影为
+`access_required` 或 `degraded`，不得通过为绕过失败而更换样本、手工改数据库或恢复个人
+浏览器会话伪造可用。对应的 C 端降级入口是上传用户拥有或已获授权的文件。
+所有成功任务由状态服务自动显示为最近真实下载，无需手工更新页面状态。
 
 ## 4. 更新固定样本
 

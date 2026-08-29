@@ -287,16 +287,17 @@ pending → canary → active → retired
 | --- | --- | --- | --- |
 | Bilibili | yt-dlp 公开 UGC | anonymous；`SESSDATA` 默认关闭 | 保持已验证公开链；会员/课程/DRM 终止 |
 | 抖音 | URL 规范化 + 可信 share-page plugin | anonymous 优先；动态签名 adapter 另审 | 保留公开 fallback；不伪造“Cookie 必然可修复” |
-| TikTok | yt-dlp + curl-cffi/web challenge | allowlist Cookie 后续启用 | 先建真实 canary，区分 WAF、IP、private |
+| TikTok | 第一方嵌入 Player item API | anonymous only；无 Cookie/浏览器/device id | canonical video/embed；短链目标重校验；无格式稳定失败 |
 | 小红书 | 保留完整 `xsec_token`/短链 + yt-dlp | anonymous；会话后续评审 | 不生成 token；图文笔记不静默当视频 |
 | X / Instagram / Facebook | 单视频用 yt-dlp | user-managed 优先于共享运维账号 | 登录墙、NSFW/private、频控和 schema 分开报错 |
 | Vimeo | player URL + impersonation | Cookie、password、Referer 分开建模 | private/password 内容不因 Cookie 开放而自动允许 |
 | Twitch / Reddit | yt-dlp 公开 clip/VOD/post | 权益 Cookie 后续评审 | live/私有/quarantine 不在首期 |
-| Pinterest / 微博 / 优酷 / QQVideo | yt-dlp | 默认 anonymous | `unknown` 直至真实 canary；付费/DRM fail closed |
+| Pinterest / 微博 / 优酷 | yt-dlp 公开单视频 | anonymous | 保留当前版本化公开 Profile；受保护或多资产内容 fail closed |
+| QQVideo | 仅保留识别用 `qqvideo-public-video-v1` Profile | 无可用访问模式 | `disabled`；历史媒体证据不能恢复下载，重新开放须先满足 024 的官方授权与权益边界 |
 | AcFun / Rutube / VK Clips / Dailymotion / NicoNico | 无 | 无 | 不在产品范围；主域及子域 fail closed，不进入 Generic |
 | Generic | 公开 direct/HLS/DASH/embed | 永不携带 Provider Secret | redirect 后重新归类 |
 | 快手 | 仓库可信 `KuaishouPublicIE` + 第一方移动分享页 | anonymous | `kuaishou-public-v1` 已完成真实 metadata/media 回归 |
-| 视频号 | 无安全、稳定的匿名 extractor/Profile | 无 | `unsupported` |
+| 视频号 | 第一方预览页 + `get_feed_info` 的仓库内可审计 extractor | anonymous only；无 Cookie/浏览器/第三方中转 | `wechat-channels-public-v2` 为 `degraded`；仅处理 `/sph/` 直接公开 clear 媒体，受保护或未公开媒体 fail closed |
 
 图片、carousel、gallery 和用户时间线若进入产品范围，使用独立 gallery-dl engine adapter，返回受限 manifest；在领域模型支持多条目之前不静默只取第一项。gallery-dl 为 GPL-2.0，必须以独立进程/镜像评估分发义务，不直接导入当前核心源码。
 
@@ -378,6 +379,10 @@ unknown | verified | degraded | access_required | rate_limited | blocked | disab
 - 匿名 metadata canary：每 6 小时。
 - 运维会话 metadata canary：每 6 小时。
 - 小文件 Range/完整下载 + remux + ffprobe + SHA canary：每天。
+- 每个目标显式声明唯一 `access_mode`；公开矩阵只执行 anonymous，operator
+  目标使用独立 `target_id` 单独配置和持久化。
+- Canary Runner 不使用业务的 anonymous→operator fallback，失败新鲜度和
+  成功证据始终归属实际执行的单一路由。
 - 只使用项目自有或明确授权样本，不使用用户 URL/Cookie。
 - 记录 Provider、capability、access mode、Profile/engine/POT 版本、egress affinity 引用、阶段、耗时和稳定错误；不记录完整 URL 或 Secret。
 

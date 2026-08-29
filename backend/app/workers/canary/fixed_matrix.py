@@ -29,6 +29,7 @@ async def _run(providers: frozenset[str], stage: str) -> int:
                     "provider_key": result.provider_key,
                     "profile_version": result.profile_version,
                     "stage": result.stage.value,
+                    "access_mode": result.access_mode.value,
                     "outcome": result.outcome.value,
                     "stable_error_code": result.stable_error_code,
                     "duration_ms": result.duration_ms,

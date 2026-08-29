@@ -25,6 +25,7 @@ class AnalysisCanaryTarget:
     target_id: str
     provider_key: str
     profile_version: str
+    access_mode: ProviderAccessMode
     egress_affinity_id: str
     client_profile_id: str
     url: str = field(repr=False)
@@ -101,16 +102,18 @@ class ProviderAnalysisCanaryService:
             evidence = await self._reader.get(analysis_job_id, now=checked_at)
             if evidence is None:
                 raise ValueError("analysis evidence is incomplete")
-            context = evidence.access_context
+            candidate_context = evidence.access_context
             source_url = self._decryptor.decrypt(evidence.source_url)
             if not (
-                target.provider_key == context.provider_key
-                and target.profile_version == context.profile_version
-                and target.egress_affinity_id == context.egress_affinity_id
-                and target.client_profile_id == context.client_profile_id
+                target.provider_key == candidate_context.provider_key
+                and target.profile_version == candidate_context.profile_version
+                and target.access_mode is candidate_context.access_mode
+                and target.egress_affinity_id == candidate_context.egress_affinity_id
+                and target.client_profile_id == candidate_context.client_profile_id
                 and hmac.compare_digest(source_url, target.url)
             ):
                 raise ValueError("analysis evidence does not match target")
+            context = candidate_context
             for expected in evidence.objects:
                 stored = await self._storage.stat(expected.object_key)
                 if stored is None or stored.size_bytes != expected.size_bytes:
@@ -128,9 +131,7 @@ class ProviderAnalysisCanaryService:
                 context.profile_version if context else target.profile_version
             ),
             stage=ProviderCanaryStage.ANALYSIS,
-            access_mode=(
-                context.access_mode if context else ProviderAccessMode.ANONYMOUS
-            ),
+            access_mode=target.access_mode,
             outcome=(
                 ProviderCanaryOutcome.SUCCEEDED
                 if error is None

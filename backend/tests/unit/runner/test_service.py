@@ -225,39 +225,6 @@ class RateLimitedThenSuccessSupervisor(FixtureSupervisor):
         )
 
 
-class ChallengedThenSuccessSupervisor(FixtureSupervisor):
-    def __init__(self, info: dict[str, object]) -> None:
-        super().__init__(info)
-        self.inspection_attempts = 0
-
-    async def run(
-        self,
-        argv: Sequence[str],
-        *,
-        cwd: Path,
-        timeout_seconds: float,
-        env: Mapping[str, str] | None = None,
-    ) -> ProcessResult:
-        command = tuple(argv)
-        if "--dump-single-json" in command:
-            self.inspection_attempts += 1
-            if self.inspection_attempts == 1:
-                self.calls.append((command, env))
-                return ProcessResult(
-                    1,
-                    b"",
-                    b"ERROR: Unexpected response from webpage request",
-                    False,
-                    False,
-                )
-        return await super().run(
-            argv,
-            cwd=cwd,
-            timeout_seconds=timeout_seconds,
-            env=env,
-        )
-
-
 class TransientFailureSupervisor(FixtureSupervisor):
     async def run(
         self,
@@ -324,28 +291,6 @@ def operator_settings(tmp_path: Path) -> tuple[RunnerSettings, Path]:
         runner_max_active_tasks=1,
     )
     return configured, source
-
-
-def tiktok_operator_settings(tmp_path: Path) -> RunnerSettings:
-    cookie = (
-        b"# Netscape HTTP Cookie File\n"
-        b".tiktok.com\tTRUE\t/\tTRUE\t2147483647\tsessionid\tfixture\n"
-    )
-    source = tmp_path / "secrets/tiktok/browser-live.cookies.txt"
-    source.parent.mkdir(parents=True)
-    source.write_bytes(cookie)
-    os.chmod(source, 0o400)
-    return RunnerSettings(
-        runner_hmac_secret="runner-shared-secret-material-at-least-32-bytes",
-        runner_egress_proxy="http://tiktok-egress:3128",
-        runner_workspace_root=tmp_path / "work",
-        runner_access_mode=ProviderAccessMode.OPERATOR_MANAGED,
-        runner_operator_session_versions={"tiktok": "browser-live"},
-        runner_operator_account_baseline_attested=True,
-        runner_provider_secret_root=tmp_path / "secrets",
-        runner_provider_secret_temp_root=tmp_path / "session-tmp",
-        runner_max_active_tasks=1,
-    )
 
 
 async def test_download_reinspects_selects_semantics_and_verifies_artifact(
@@ -769,31 +714,6 @@ async def test_inspect_retries_tumblr_rate_limit_with_provider_backoff(
 
     assert supervisor.inspection_attempts == 2
     assert delays == [4]
-    assert response.media.duration_seconds == 30
-
-
-async def test_inspect_retries_transient_tiktok_web_challenge(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    supervisor = ChallengedThenSuccessSupervisor(split_media_info())
-    delays: list[float] = []
-
-    async def record_sleep(delay: float) -> None:
-        delays.append(delay)
-
-    monkeypatch.setattr("app.runner.inspection_pipeline.asyncio.sleep", record_sleep)
-    service = MediaRunnerService(
-        tiktok_operator_settings(tmp_path),
-        supervisor=supervisor,
-    )
-
-    response = await service.inspect(
-        "https://www.tiktok.com/@creator/video/7670674983328222486"
-    )
-
-    assert supervisor.inspection_attempts == 2
-    assert delays == [0.5]
     assert response.media.duration_seconds == 30
 
 

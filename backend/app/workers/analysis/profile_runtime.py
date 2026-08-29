@@ -36,42 +36,6 @@ class AnalyzerRuntime:
     cli_version: str
 
 
-def build_default_runtime(
-    settings: Settings, *, environment: Mapping[str, str]
-) -> AnalyzerRuntime:
-    provider = settings.analysis_cli_provider
-    binary = (
-        settings.analysis_codex_binary
-        if provider == "codex"
-        else settings.analysis_claude_binary
-    )
-    model = (
-        settings.analysis_codex_model
-        if provider == "codex"
-        else settings.analysis_claude_model
-    )
-    capabilities = preflight(
-        provider,
-        cli_binary=binary,
-        ffmpeg_binary=settings.analysis_ffmpeg_binary,
-        ffprobe_binary=settings.analysis_ffprobe_binary,
-        environment=environment,
-    )
-    config = _cli_config(
-        settings,
-        capabilities.binary,
-        model,
-        capabilities.ffmpeg,
-        capabilities.ffprobe,
-    )
-    analyzer: VideoAnalyzer = (
-        CodexAppServerVideoAnalyzer(config)
-        if provider == "codex"
-        else ClaudeCliVideoAnalyzer(config)
-    )
-    return AnalyzerRuntime(analyzer, provider, model, capabilities.version)
-
-
 def build_profile_runtime(
     settings: Settings,
     profile: AiProviderProfile,

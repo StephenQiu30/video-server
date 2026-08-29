@@ -15,7 +15,7 @@ const STATUS_LABELS: Record<API.ProviderSupportStatus, string> = {
   unknown: '待验证',
   verified: '已验证',
   degraded: '服务降级',
-  access_required: '需受控会话',
+  access_required: '需要平台授权',
   rate_limited: '平台限流',
   blocked: '出口受限',
   disabled: '已停用',
@@ -138,7 +138,7 @@ function ProviderRow({ provider }: { provider: ProviderStatus }) {
 function statusLabel(provider: ProviderStatus): string {
   if (provider.download_supported) {
     if (provider.download_available) return '已支持下载';
-    if (provider.status === 'access_required') return '支持下载 · 需会话';
+    if (provider.status === 'access_required') return '已接入 · 当前不可用';
     if (provider.status === 'degraded') return '支持下载 · 当前降级';
     if (provider.status === 'rate_limited') return '支持下载 · 当前限流';
     if (provider.status === 'blocked') return '支持下载 · 当前受限';
@@ -167,10 +167,10 @@ function accessDescription(provider: ProviderStatus): string {
   const anonymous = provider.access_modes.includes('anonymous');
   const operatorManaged = provider.access_modes.includes('operator_managed');
   if (operatorManaged && !anonymous) {
-    return '访问：仅使用已批准的自动化会话';
+    return '访问：服务端受控线路已配置';
   }
   if (operatorManaged) {
-    return '访问：匿名优先，必要时使用已批准的运维会话';
+    return '访问：匿名公开内容 + 服务端受控线路';
   }
   if (anonymous) return '访问：仅匿名公开内容';
   return '访问：当前未开放';
@@ -181,15 +181,26 @@ function latestCheckDescription(provider: ProviderStatus): string {
     return '最近状态检查：暂无当前版本记录';
   }
   const outcome = provider.last_check_succeeded ? '通过' : '未通过';
-  return `最近状态检查：${formatCheckDate(provider.last_checked_at)} · ${outcome}`;
+  return `最近状态检查：${formatCheckDate(
+    provider.last_checked_at,
+  )} · ${outcome}`;
 }
 
 function mediaVerificationDescription(provider: ProviderStatus): string {
   if (!provider.last_media_verified_at) return '最近真实下载：暂无当前版本证据';
   if (provider.download_available) {
-    return `当前公开样本下载：可用 · ${formatVerificationDate(provider.last_media_verified_at)}`;
+    const sample = provider.access_modes.includes('anonymous')
+      ? '公开样本'
+      : provider.access_modes.includes('operator_managed')
+        ? '受控线路样本'
+        : '样本';
+    return `当前${sample}下载：可用 · ${formatVerificationDate(
+      provider.last_media_verified_at,
+    )}`;
   }
-  return `最近真实下载：${formatVerificationDate(provider.last_media_verified_at)}`;
+  return `最近真实下载：${formatVerificationDate(
+    provider.last_media_verified_at,
+  )}`;
 }
 
 function analysisVerificationDescription(provider: ProviderStatus): string {

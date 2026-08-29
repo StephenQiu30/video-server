@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  isLocalCodexProvider,
   providerEngineDefaults,
   providerEngineLabel,
 } from '@/components/admin/admin-ai-providers/model';
 
 describe('AI Provider editor model', () => {
   it('keeps local Codex as the default route', () => {
+    expect(isLocalCodexProvider('local-codex')).toBe(true);
+    expect(isLocalCodexProvider('custom-codex')).toBe(false);
     expect(providerEngineDefaults('codex')).toEqual({
       authMode: 'host_login',
       baseUrl: '',

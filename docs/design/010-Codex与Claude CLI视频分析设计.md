@@ -88,20 +88,22 @@ Codex 与 Claude 的本地代理能够理解文本和图片，但 CLI 没有把 
 
 ### 4.1 宿主机 Worker，而不是容器内 CLI
 
-`worker-analysis` 必须作为与本机登录用户相同的宿主机进程启动：
+Analysis Agent 必须由与本机登录用户相同的宿主机账户管理：
 
 ```bash
 cd backend
-uv run python -m app.workers.analysis.main
+uv run python -m app.workers.analysis.agent_cli doctor
+uv run python -m app.workers.analysis.agent_cli install
+uv run python -m app.workers.analysis.agent_cli status
 ```
 
 该进程通过本地配置连接 PostgreSQL、RabbitMQ 和 MinIO，并直接启动 `codex` 或 `claude` 子进程。不得把 `~/.codex`、`~/.claude`、Keychain 数据或 OAuth Token 挂载/复制进 Docker。其他进程是否继续使用 Compose 不属于本设计；实现时必须同步更新 Compose 与运行手册，使其不再误导用户启动一个无法复用宿主登录的容器化 AI Worker。
 
-这是本地单用户能力，不直接延伸到当前生产 Compose。生产环境在没有另行设计宿主机 Worker、商业认证和凭据治理前必须关闭分析创建入口，不能让任务进入永远没有消费者的队列。宿主机与容器分析 Worker 也不得同时启动，否则会成为竞争消费者。
+该能力不进入业务 Compose，而是按 022 由受监督的宿主机 Agent 承担。生产环境只有在已部署该 Agent、完成商业认证与凭据治理并验证其可消费队列后才能开放分析创建入口；没有受支持 Agent 的组合必须关闭入口，不能让任务进入永远没有消费者的队列。仓库不再提供容器分析 Worker，部署也不得自行增加第二个竞争消费者。
 
 ### 4.2 单任务单 Provider
 
-- `ANALYSIS_CLI_PROVIDER=codex|claude` 仅由可信 Worker 配置决定。
+- Worker 每个任务只解析数据库中当前启用的 Web Profile；未启用第三方线路时始终使用内置 `local-codex`。
 - Provider、模型和 CLI 版本在首次 claim 时固定为内部执行元数据；分析语义由任务保存的 Skill 指令快照固定。
 - 同一 attempt 只允许一次 Provider 调用；不得在 Codex 失败后静默改用 Claude，反之亦然。
 - 重试必须保持任务已经固定的 Provider 与版本约束；主动换 Provider 需要创建新分析任务。
@@ -388,12 +390,9 @@ VisualAsset
 目标配置只保留非 Secret 的可信运行参数：
 
 ```text
-ANALYSIS_CLI_PROVIDER=codex|claude
 ANALYSIS_CODEX_BINARY=codex
-ANALYSIS_CODEX_MODEL=<required model id>
 ANALYSIS_CLAUDE_BINARY=claude
-ANALYSIS_CLAUDE_MODEL=<required model id>
-ANALYSIS_CLI_TIMEOUT_SECONDS=<bounded positive number>
+ANALYSIS_TIMEOUT_SECONDS=<bounded positive number>
 ANALYSIS_CLAUDE_MAX_TURNS=<bounded positive number>
 ANALYSIS_MAX_STDOUT_BYTES=<bounded positive number>
 ANALYSIS_MAX_STDERR_BYTES=<bounded positive number>
@@ -402,15 +401,14 @@ ANALYSIS_MAX_FRAMES=<bounded positive number>
 ANALYSIS_ENABLED=true|false
 ```
 
-模型 ID 显式配置，避免用户个人 CLI 默认值改变任务语义。首期并发固定为 1，防止两套订阅 CLI、磁盘和图片上下文相互争用。
+线路与模型 ID 只在数据库 Web Profile 中管理，避免 `.env` 与管理页出现两个互相冲突的事实源。首期并发固定为 1，防止两套订阅 CLI、磁盘和图片上下文相互争用。
 
-Worker 启动顺序：
+Agent 启动顺序：
 
-1. 解析并 realpath CLI、FFmpeg 和 FFprobe，检查可执行权限。
-2. 检查 CLI 版本与所需参数能力。
-3. 检查选中 Provider 的本机认证方式，拒绝 API Key 模式。
-4. 运行不触发模型推理的配置检查，只验证沙箱依赖存在、策略可解析且不会降级；Home、仓库、网络和其他任务的真实越界阻断由部署前安全 E2E 验证。
-5. 准备 workspace root 后才连接队列；任一步失败均 fail-fast，不消费任务。
+1. 从 PostgreSQL 解析当前活动 Profile；未启用第三方线路时为 `local-codex`。
+2. 仅对选中适配器做预检：Codex/Claude 检查对应 CLI 与认证，DeepSeek 只检查 FFmpeg/FFprobe 与 Web Profile 凭据结构。
+3. `doctor` 检查分析工作目录和 MinIO 固定就绪探针，不触发模型推理。
+4. 预检通过后才由 `agent_cli install` 生成当前系统的用户级受监督服务；Windows、macOS 和 Linux 不再存在平行启动脚本。
 
 不得再声明 `OPENAI_API_KEY`、`OPENAI_BASE_URL`、`OPENAI_TRANSCRIPTION_MODEL`、`DEEPSEEK_*`、`OLLAMA_*` 或 `ANALYSIS_PROVIDER`。
 

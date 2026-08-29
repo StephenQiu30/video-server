@@ -168,6 +168,11 @@ def _provider_error(error: AiProviderError) -> AppError:
             "Active AI Provider cannot be deleted",
             "Activate another AI Provider before deleting this profile.",
         ),
+        AiProviderErrorCode.RESERVED_MUTATION: (
+            409,
+            "Built-in AI Provider is protected",
+            "The local Codex fallback only allows display name and model changes.",
+        ),
     }
     status_code, title, detail = mapping[error.code]
     return AppError(

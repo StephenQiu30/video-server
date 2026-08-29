@@ -92,8 +92,10 @@ async def test_operator_failure_preserves_anonymous_diagnosis() -> None:
     operator.inspect_error = MediaInspectionTemporarilyUnavailable()
     router = MediaRunnerRouter(anonymous, {"youtube": operator})  # type: ignore[arg-type]
 
-    with pytest.raises(MediaInspectionAuthRequired):
+    with pytest.raises(MediaInspectionAuthRequired) as captured:
         await router.inspect("https://www.youtube.com/watch?v=owned")
+
+    assert captured.value.access_mode is ProviderAccessMode.ANONYMOUS
 
 
 async def test_operator_session_expiry_replaces_anonymous_diagnosis() -> None:
@@ -103,8 +105,10 @@ async def test_operator_session_expiry_replaces_anonymous_diagnosis() -> None:
     operator.inspect_error = MediaInspectionSessionExpired()
     router = MediaRunnerRouter(anonymous, {"youtube": operator})  # type: ignore[arg-type]
 
-    with pytest.raises(MediaInspectionSessionExpired):
+    with pytest.raises(MediaInspectionSessionExpired) as captured:
         await router.inspect("https://www.youtube.com/watch?v=owned")
+
+    assert captured.value.access_mode is ProviderAccessMode.OPERATOR_MANAGED
 
 
 async def test_operator_link_unavailable_replaces_anonymous_degradation() -> None:
@@ -117,10 +121,12 @@ async def test_operator_link_unavailable_replaces_anonymous_degradation() -> Non
         {"xiaohongshu": operator},
     )
 
-    with pytest.raises(MediaInspectionLinkUnavailable):
+    with pytest.raises(MediaInspectionLinkUnavailable) as captured:
         await router.inspect(
             "https://www.xiaohongshu.com/explore/6411cf99000000001300b6d9"
         )
+
+    assert captured.value.access_mode is ProviderAccessMode.OPERATOR_MANAGED
 
 
 async def test_non_fallback_failure_does_not_consume_operator_session() -> None:
@@ -129,9 +135,10 @@ async def test_non_fallback_failure_does_not_consume_operator_session() -> None:
     operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED))
     router = MediaRunnerRouter(anonymous, {"youtube": operator})  # type: ignore[arg-type]
 
-    with pytest.raises(MediaInspectionRateLimited):
+    with pytest.raises(MediaInspectionRateLimited) as captured:
         await router.inspect("https://www.youtube.com/watch?v=owned")
 
+    assert captured.value.access_mode is ProviderAccessMode.ANONYMOUS
     assert operator.inspected == []
 
 
@@ -141,22 +148,23 @@ async def test_unconfigured_provider_does_not_receive_operator_session() -> None
     operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED))
     router = MediaRunnerRouter(anonymous, {"youtube": operator})  # type: ignore[arg-type]
 
-    with pytest.raises(MediaInspectionAuthRequired):
+    with pytest.raises(MediaInspectionAuthRequired) as captured:
         await router.inspect("https://www.bilibili.com/video/BV1xx")
 
+    assert captured.value.access_mode is ProviderAccessMode.ANONYMOUS
     assert operator.inspected == []
 
 
-async def test_tiktok_access_failure_uses_its_isolated_operator() -> None:
+async def test_tiktok_access_failure_never_uses_configured_operator() -> None:
     anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
     anonymous.inspect_error = MediaInspectionTemporarilyUnavailable()
     operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED, "tiktok"))
     router = MediaRunnerRouter(anonymous, {"tiktok": operator})  # type: ignore[arg-type]
 
-    result = await router.inspect("https://www.tiktok.com/@creator/video/123")
+    with pytest.raises(MediaInspectionTemporarilyUnavailable):
+        await router.inspect("https://www.tiktok.com/@creator/video/123")
 
-    assert result.access_context.provider_key == "tiktok"
-    assert operator.inspected == ["https://www.tiktok.com/@creator/video/123"]
+    assert operator.inspected == []
 
 
 async def test_instagram_video_only_metadata_falls_back_to_operator_pool() -> None:

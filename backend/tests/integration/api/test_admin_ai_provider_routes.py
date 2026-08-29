@@ -7,6 +7,8 @@ from uuid import UUID
 
 from app.api.auth_dependencies import get_current_admin, get_current_user
 from app.application.ai_providers import (
+    AiProviderError,
+    AiProviderErrorCode,
     AiProviderProfile,
 )
 from app.application.auth import CurrentUser, UserRole
@@ -125,3 +127,20 @@ def test_ai_provider_routes_reject_non_admin(tmp_path: Path) -> None:
 
     assert response.status_code == 403
     assert response.json()["code"] == "forbidden"
+
+
+def test_reserved_local_codex_mutation_has_a_stable_conflict(tmp_path: Path) -> None:
+    class ReservedProviders(Providers):
+        async def delete_profile(self, actor: CurrentUser, key: str) -> None:
+            assert actor == ADMIN and key == "local-codex"
+            raise AiProviderError(AiProviderErrorCode.RESERVED_MUTATION)
+
+    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app.state.ai_provider_service = ReservedProviders()
+    app.dependency_overrides[get_current_admin] = lambda: ADMIN
+
+    with TestClient(app) as client:
+        response = client.delete("/api/admin/ai-providers/local-codex")
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "reserved_ai_provider_mutation"

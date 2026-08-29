@@ -22,14 +22,13 @@ _RESTRICTED_AVAILABILITY = {
 _OPERATOR_PROVIDER_POLICIES = frozenset(
     {
         "youtube",
-        "tiktok",
+        "vimeo",
         "douyin",
         "xiaohongshu",
         "reddit",
         "x",
         "instagram",
         "facebook",
-        "wechat_channels",
     }
 )
 

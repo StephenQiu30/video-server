@@ -10,8 +10,6 @@ from app.infrastructure.ai_cli import AnalysisCliError
 from app.infrastructure.ai_cli.environment import minimum_host_environment
 
 from .profile_runtime import (
-    AnalyzerRuntime,
-    build_default_runtime,
     build_profile_runtime,
 )
 
@@ -55,17 +53,6 @@ class ConfiguredAnalyzerResolver:
         self._cached_stamp = stamp
         self._cached = selection
         return selection
-
-
-def build_video_analyzer(
-    settings: Settings,
-) -> AnalyzerRuntime:
-    if not settings.analysis_enabled:
-        raise AnalysisCliError("analysis_cli_unavailable")
-    return build_default_runtime(
-        settings,
-        environment=authentication_environment(),
-    )
 
 
 def authentication_environment() -> dict[str, str]:

@@ -63,7 +63,7 @@ flowchart LR
 | `is_active` | 当前线路；部分唯一索引保证最多一条 |
 | `created_at/updated_at` | 审计与 Worker 缓存失效依据 |
 
-当前状态 schema 默认插入 `local-codex`，使用 `host_login + gpt-5.6-sol`，并保持幂等。创建新 Profile 不自动启用，避免未确认的 Endpoint 抢占线上线路。当前活动 Profile 不允许删除。
+当前状态 schema 默认插入 `local-codex`，使用 `codex + host_login + gpt-5.6-sol`，并在重复初始化时修复其引擎、认证、Endpoint 与凭据结构。该保留 Profile 始终存在，管理员只能修改显示名称和模型，不能删除或改为第三方线路。创建新 Profile 不自动启用，避免未确认的 Endpoint 抢占线上线路。
 
 ## 4. API
 
@@ -73,7 +73,7 @@ flowchart LR
 | `POST` | `/api/admin/ai-providers` | 新增 Profile，返回 `201 + Location` |
 | `PATCH` | `/api/admin/ai-providers/{key}` | 更新；Key 留空时保留旧凭据 |
 | `POST` | `/api/admin/ai-providers/{key}/activate` | 原子关闭旧线路并启用目标线路 |
-| `DELETE` | `/api/admin/ai-providers/{key}` | 删除非活动 Profile 与密文 |
+| `DELETE` | `/api/admin/ai-providers/{key}` | 删除非活动、非保留 Profile 与密文 |
 
 所有接口只允许管理员。响应永远没有 `api_key` 或密文，只返回 `credential_configured: boolean`。
 
@@ -113,7 +113,7 @@ python -m app.workers.analysis.agent_cli uninstall
 1. 页首解释“本机登录 / API Key 路由”与生效时机。
 2. “当前执行链路”用 `Agent → CLI/LangChain → 登录/Endpoint` 表达真实依赖，右侧显示模型。
 3. Agent 在线状态与 Provider 配置状态分开，避免“配置存在”被误解为“服务可用”。
-4. Profile 使用分隔线列表，活动项不可删除；编辑在响应式 Dialog 中完成。
+4. Profile 使用分隔线列表，活动项不可删除；`local-codex` 无论是否活动均不可删除，其引擎、认证、Endpoint 和凭据字段在编辑 Dialog 中锁定。
 5. API Key 输入仅写入，编辑时用“已配置；留空不修改”反馈，不伪造掩码值。
 
 ## 8. 失败语义
@@ -127,6 +127,7 @@ python -m app.workers.analysis.agent_cli uninstall
 | API Key/Endpoint 错误 | 任务按既有失败分类收敛；密钥不出现在错误详情 |
 | DeepSeek 限流/余额不足 | 分别收敛为限流与用量错误；下载和已生成制品不受影响 |
 | 活动配置被删除 | API 返回 `ai_provider_active_delete` |
+| 删除或改造 `local-codex` 结构 | API 返回 `reserved_ai_provider_mutation` |
 | 公网 HTTP / 带凭据 URL | API 返回 `invalid_ai_provider_profile` |
 
 ## 9. 非目标

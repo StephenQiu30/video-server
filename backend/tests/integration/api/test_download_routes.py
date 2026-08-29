@@ -243,8 +243,13 @@ def test_provider_status_distinguishes_registered_verified_and_unsupported(
     )
     assert items["youtube"]["registered"] is True
     assert items["youtube"]["status"] == "access_required"
+    assert items["youtube"]["access_modes"] == ["anonymous"]
     assert items["bilibili"]["status"] == "verified"
     assert items["tiktok"]["status"] == "verified"
+    assert items["tiktok"]["access_modes"] == ["anonymous"]
+    assert all(
+        "operator_managed" not in item["access_modes"] for item in items.values()
+    )
     assert items["xiaohongshu"]["status"] == "degraded"
     assert items["reddit"]["status"] == "access_required"
     assert {
@@ -252,6 +257,9 @@ def test_provider_status_distinguishes_registered_verified_and_unsupported(
         for key in ("facebook", "twitch", "pinterest", "weibo", "youku")
     } == {"verified"}
     assert items["qqvideo"]["status"] == "disabled"
+    assert items["qqvideo"]["access_modes"] == []
+    assert items["qqvideo"]["download_supported"] is False
+    assert items["qqvideo"]["user_action"] == "当前未开放此平台下载。"
     assert {
         items[key]["status"]
         for key in ("snapchat", "linkedin", "telegram", "kick", "tumblr")

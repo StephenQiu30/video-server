@@ -9,7 +9,7 @@ from app.runner.errors import RunnerFailure
 @pytest.mark.parametrize(
     "provider",
     (
-        "tiktok",
+        "vimeo",
         "douyin",
         "xiaohongshu",
         "reddit",
@@ -26,26 +26,16 @@ def test_operator_allows_unrestricted_public_web_metadata(provider: str) -> None
     )
 
 
-@pytest.mark.parametrize(
-    ("payload", "code"),
-    [
-        ({"is_private": True}, "content_private"),
-        ({"availability": "needs_auth"}, "credential_required"),
-        ({"is_member_only": True}, "content_not_entitled"),
-    ],
-)
-def test_tiktok_operator_rejects_restricted_metadata(
-    payload: dict[str, object],
-    code: str,
-) -> None:
+@pytest.mark.parametrize("provider", ("tiktok", "wechat_channels"))
+def test_anonymous_only_provider_is_not_operator_allowlisted(provider: str) -> None:
     with pytest.raises(RunnerFailure) as caught:
         enforce_media_rights(
-            payload,
-            provider_key="tiktok",
+            {},
+            provider_key=provider,
             access_mode=ProviderAccessMode.OPERATOR_MANAGED,
         )
 
-    assert caught.value.code == code
+    assert caught.value.code == "provider_session_not_allowed"
 
 
 def test_unapproved_operator_provider_remains_blocked() -> None:

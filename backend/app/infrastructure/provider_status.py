@@ -2,29 +2,18 @@
 
 from __future__ import annotations
 
-from app.application.providers import ProviderStatusView
-from app.domain.providers import ProviderSupportStatus
-from app.runner.provider_registry import current_provider_registry
+from collections.abc import Set
+
+from app.application.providers import ProviderStatusView, provider_user_action
+from app.domain.providers import ProviderAccessMode, ProviderSupportStatus
+from app.runner.provider_registry import ProviderProfile, current_provider_registry
 
 
-def configured_provider_statuses() -> tuple[ProviderStatusView, ...]:
+def configured_provider_statuses(
+    enabled_operator_keys: Set[str] = frozenset(),
+) -> tuple[ProviderStatusView, ...]:
     configured = tuple(
-        ProviderStatusView(
-            key=profile.key,
-            display_name=profile.display_name,
-            profile_version=profile.version,
-            registered=True,
-            extractor_exists=True,
-            capabilities=tuple(sorted(profile.capabilities, key=str)),
-            access_modes=profile.access_modes,
-            status=profile.support_status,
-            last_checked_at=None,
-            last_check_succeeded=None,
-            download_available=False,
-            last_media_verified_at=None,
-            last_verified_at=None,
-            user_action=_user_action(profile.support_status, profile.key),
-        )
+        _configured_status(profile, enabled_operator_keys)
         for profile in current_provider_registry().profiles
     )
     non_runner = (
@@ -51,37 +40,47 @@ def configured_provider_statuses() -> tuple[ProviderStatusView, ...]:
 current_provider_statuses = configured_provider_statuses
 
 
-def _user_action(
-    status: ProviderSupportStatus, provider_key: str | None = None
-) -> str | None:
-    if provider_key == "hongguo_web":
-        return (
-            "已接入红果官方分享链接当前单集；"
-            "不支持 App 受保护媒体、全集抓取或批量下载。"
+def _configured_status(
+    profile: ProviderProfile,
+    enabled_operator_keys: Set[str],
+) -> ProviderStatusView:
+    access_modes = (
+        ()
+        if profile.support_status is ProviderSupportStatus.DISABLED
+        else _effective_access_modes(
+            profile.key, profile.access_modes, enabled_operator_keys
         )
-    if (
-        provider_key == "xiaohongshu"
-        and status is ProviderSupportStatus.DEGRADED
-    ):
-        return (
-            "当前出口受到小红书官方风控；失效笔记会单独提示，"
-            "请使用新的公开分享链接后稍后重试。"
-        )
-    if provider_key == "wechat_channels":
-        return (
-            "仅支持分享页直接公开非加密媒体的单视频；"
-            "平台未公开媒体时请上传自己拥有或已获授权的文件。"
-        )
-    if status is ProviderSupportStatus.ACCESS_REQUIRED:
-        return "该平台需要部署已批准的受控会话；未启用时请稍后重试。"
-    if status in {
-        ProviderSupportStatus.DEGRADED,
-        ProviderSupportStatus.RATE_LIMITED,
-        ProviderSupportStatus.BLOCKED,
-    }:
-        return "平台当前不稳定，请稍后重试。"
-    if status is ProviderSupportStatus.UNKNOWN:
-        return "该平台尚未完成当前版本的真实下载验证。"
-    if status is ProviderSupportStatus.DISABLED:
-        return "该平台能力已由运维关闭。"
-    return None
+    )
+    status = (
+        profile.support_status
+        if access_modes or profile.support_status is ProviderSupportStatus.DISABLED
+        else ProviderSupportStatus.ACCESS_REQUIRED
+    )
+    return ProviderStatusView(
+        key=profile.key,
+        display_name=profile.display_name,
+        profile_version=profile.version,
+        registered=True,
+        extractor_exists=True,
+        capabilities=tuple(sorted(profile.capabilities, key=str)),
+        access_modes=access_modes,
+        status=status,
+        last_checked_at=None,
+        last_check_succeeded=None,
+        download_available=False,
+        last_media_verified_at=None,
+        last_verified_at=None,
+        user_action=provider_user_action(status, profile.key),
+    )
+
+
+def _effective_access_modes(
+    provider_key: str,
+    declared: tuple[ProviderAccessMode, ...],
+    enabled_operator_keys: Set[str],
+) -> tuple[ProviderAccessMode, ...]:
+    return tuple(
+        mode
+        for mode in declared
+        if mode is ProviderAccessMode.ANONYMOUS or provider_key in enabled_operator_keys
+    )

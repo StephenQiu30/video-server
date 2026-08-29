@@ -65,7 +65,7 @@ def test_download_limits_are_validated() -> None:
 def test_local_import_defaults_and_bounds() -> None:
     settings = Settings(app_env="test", _env_file=None)
 
-    assert settings.media_import_enabled is False
+    assert settings.media_import_enabled is True
     assert settings.document_import_enabled is True
     assert settings.screenplay_analysis_enabled is True
     assert settings.analysis_max_screenplay_bytes == 2 * 1024**2
@@ -228,18 +228,18 @@ def test_operator_runner_endpoints_are_provider_keyed_internal_urls() -> None:
         _env_file=None,
         runner_operator_base_urls={
             "youtube": "http://youtube-operator-runner:19100/",
-            "tiktok": "http://provider-operator-runner:19100",
+            "x": "http://provider-operator-runner:19100",
         },
     )
 
     assert settings.runner_operator_base_urls == {
         "youtube": "http://youtube-operator-runner:19100",
-        "tiktok": "http://provider-operator-runner:19100",
+        "x": "http://provider-operator-runner:19100",
     }
     for invalid in (
-        {"TikTok": "http://provider-operator-runner:19100"},
-        {"tiktok": "https://public.example/runner"},
-        {"tiktok": "http://user:pass@provider-operator-runner:19100"},
+        {"X": "http://provider-operator-runner:19100"},
+        {"x": "https://public.example/runner"},
+        {"x": "http://user:pass@provider-operator-runner:19100"},
     ):
         with pytest.raises(ValidationError, match="runner operator"):
             Settings(
@@ -399,10 +399,14 @@ def test_production_rejects_default_url_key_for_every_role(role: str) -> None:
         Settings(**kwargs, url_encryption_key=SecretStr(DEFAULT_URL_ENCRYPTION_KEY))
 
 
-def test_analysis_cli_settings_use_host_services_without_api_keys() -> None:
+def test_analysis_settings_only_configure_host_binary_paths() -> None:
     settings = Settings(app_env="test", _env_file=None)
 
-    assert settings.analysis_cli_provider == "codex"
+    assert settings.analysis_codex_binary == Path("codex")
+    assert settings.analysis_claude_binary == Path("claude")
+    assert "analysis_cli_provider" not in type(settings).model_fields
+    assert "analysis_codex_model" not in type(settings).model_fields
+    assert "analysis_claude_model" not in type(settings).model_fields
     assert "analysis_schema_version" not in type(settings).model_fields
     assert "analysis_prompt_version" not in type(settings).model_fields
     assert "localhost:5432" in settings.analysis_database_url
@@ -412,9 +416,10 @@ def test_analysis_cli_settings_use_host_services_without_api_keys() -> None:
 def test_analysis_workspace_defaults_outside_repository() -> None:
     settings = Settings(app_env="test", _env_file=None)
 
-    assert settings.analysis_workspace_root == (
-        Path(tempfile.gettempdir()) / "framefetch-analysis"
-    ).absolute()
+    assert (
+        settings.analysis_workspace_root
+        == (Path(tempfile.gettempdir()) / "framefetch-analysis").absolute()
+    )
     assert not settings.analysis_workspace_root.is_relative_to(
         Path(__file__).resolve().parents[3]
     )

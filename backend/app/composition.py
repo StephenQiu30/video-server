@@ -222,7 +222,9 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         ),
     )
     user_service = UserService(repository=user_repository, now=clock)
-    provider_baselines = configured_provider_statuses()
+    provider_baselines = configured_provider_statuses(
+        frozenset(settings.runner_operator_base_urls)
+    )
     provider_catalog_service = ProviderCatalogService(
         provider_catalog_repository,
         provider_baselines,

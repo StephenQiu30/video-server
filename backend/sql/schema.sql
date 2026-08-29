@@ -65,6 +65,15 @@ CREATE TABLE IF NOT EXISTS ai_provider_profiles (
             AND credential_ciphertext IS NOT NULL
             AND credential_key_id IS NOT NULL
         )
+    ),
+    CONSTRAINT ck_ai_provider_local_codex_shape CHECK (
+        key <> 'local-codex' OR (
+            engine = 'codex'
+            AND auth_mode = 'host_login'
+            AND base_url IS NULL
+            AND credential_ciphertext IS NULL
+            AND credential_key_id IS NULL
+        )
     )
 );
 
@@ -90,9 +99,37 @@ INSERT INTO ai_provider_profiles (
     credential_ciphertext, credential_key_id, is_active
 ) VALUES (
     'local-codex', '本机 Codex', 'codex', 'host_login', NULL,
-    'gpt-5.6-sol', NULL, NULL, TRUE
+    'gpt-5.6-sol', NULL, NULL,
+    NOT EXISTS (SELECT 1 FROM ai_provider_profiles WHERE is_active)
 )
-ON CONFLICT (key) DO NOTHING;
+ON CONFLICT (key) DO UPDATE SET
+    engine = 'codex',
+    auth_mode = 'host_login',
+    base_url = NULL,
+    credential_ciphertext = NULL,
+    credential_key_id = NULL,
+    is_active = ai_provider_profiles.is_active
+        OR NOT EXISTS (SELECT 1 FROM ai_provider_profiles WHERE is_active),
+    updated_at = CURRENT_TIMESTAMP
+WHERE ai_provider_profiles.engine IS DISTINCT FROM 'codex'
+    OR ai_provider_profiles.auth_mode IS DISTINCT FROM 'host_login'
+    OR ai_provider_profiles.base_url IS NOT NULL
+    OR ai_provider_profiles.credential_ciphertext IS NOT NULL
+    OR ai_provider_profiles.credential_key_id IS NOT NULL
+    OR NOT EXISTS (SELECT 1 FROM ai_provider_profiles WHERE is_active);
+
+ALTER TABLE ai_provider_profiles
+    DROP CONSTRAINT IF EXISTS ck_ai_provider_local_codex_shape;
+ALTER TABLE ai_provider_profiles
+    ADD CONSTRAINT ck_ai_provider_local_codex_shape CHECK (
+        key <> 'local-codex' OR (
+            engine = 'codex'
+            AND auth_mode = 'host_login'
+            AND base_url IS NULL
+            AND credential_ciphertext IS NULL
+            AND credential_key_id IS NULL
+        )
+    );
 
 CREATE TABLE IF NOT EXISTS provider_catalog_entries (
     key VARCHAR(32) PRIMARY KEY,
@@ -1174,8 +1211,12 @@ ALTER TABLE provider_canary_results
 
 CREATE INDEX IF NOT EXISTS ix_provider_canary_provider_checked
     ON provider_canary_results (provider_key, checked_at);
-CREATE INDEX IF NOT EXISTS ix_provider_canary_target_checked
-    ON provider_canary_results (target_id, stage, checked_at);
+DROP INDEX IF EXISTS ix_provider_canary_target_checked;
+DROP INDEX IF EXISTS ix_provider_canary_target_route_checked;
+CREATE INDEX IF NOT EXISTS ix_provider_canary_target_profile_route_checked
+    ON provider_canary_results (
+        target_id, profile_version, stage, access_mode, checked_at
+    );
 
 CREATE TABLE IF NOT EXISTS task_events (
     id UUID PRIMARY KEY,

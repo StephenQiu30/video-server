@@ -18,6 +18,7 @@ import {
 
 import {
   type AiProviderEditorState,
+  isLocalCodexProvider,
   providerEngineDefaults,
   providerEngineLabel,
 } from './model';
@@ -30,8 +31,18 @@ export function AiProviderFields({
   onChange: (values: Partial<AiProviderEditorState>) => void;
 }) {
   const creating = editor.mode === 'create';
+  const localCodex = editor.mode === 'edit' && isLocalCodexProvider(editor.key);
+  const fixedDeepSeekModel = editor.engine === 'deepseek';
   return (
     <FieldGroup className="gap-6">
+      {localCodex ? (
+        <Alert className="border-0 bg-surface">
+          <AlertDescription>
+            这是服务端始终保留的本机 Codex
+            兜底线路。只能修改显示名称和模型，执行引擎、认证方式、服务地址与凭据不可修改。
+          </AlertDescription>
+        </Alert>
+      ) : null}
       <div className="grid gap-6 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="ai-provider-key">配置标识</FieldLabel>
@@ -66,7 +77,7 @@ export function AiProviderFields({
         <Field>
           <FieldLabel htmlFor="ai-provider-engine">执行引擎</FieldLabel>
           <Select
-            disabled={editor.saving}
+            disabled={editor.saving || localCodex}
             onValueChange={(engine: API.AiProviderEngine) =>
               onChange({
                 engine,
@@ -91,7 +102,7 @@ export function AiProviderFields({
         <Field>
           <FieldLabel htmlFor="ai-provider-auth">认证方式</FieldLabel>
           <Select
-            disabled={editor.saving}
+            disabled={editor.saving || localCodex}
             onValueChange={(authMode: API.AiProviderAuthMode) =>
               onChange({ authMode, baseUrl: '', apiKey: '' })
             }
@@ -116,7 +127,7 @@ export function AiProviderFields({
       <Field>
         <FieldLabel htmlFor="ai-provider-model">模型</FieldLabel>
         <Input
-          disabled={editor.saving}
+          disabled={editor.saving || fixedDeepSeekModel}
           id="ai-provider-model"
           maxLength={128}
           onChange={(event) => onChange({ model: event.target.value })}
@@ -124,6 +135,11 @@ export function AiProviderFields({
           required
           value={editor.model}
         />
+        {fixedDeepSeekModel ? (
+          <FieldDescription>
+            当前 LangChain 视觉适配器固定使用此模型。
+          </FieldDescription>
+        ) : null}
       </Field>
 
       {editor.authMode === 'api_key' ? (

@@ -25,6 +25,7 @@ TARGET = AnalysisCanaryTarget(
     "vimeo-owned-1",
     "vimeo",
     "1",
+    ProviderAccessMode.ANONYMOUS,
     "default",
     "yt-dlp-default",
     URL,
@@ -66,14 +67,17 @@ class Storage:
         return type("Stat", (), {"size_bytes": 1_024, "sha256": "b" * 64})()
 
 
-def evidence() -> AnalysisCanaryEvidence:
+def evidence(
+    access_mode: ProviderAccessMode = ProviderAccessMode.ANONYMOUS,
+) -> AnalysisCanaryEvidence:
+    operator = access_mode is ProviderAccessMode.OPERATOR_MANAGED
     return AnalysisCanaryEvidence(
         EncryptedUrl(b"ciphertext", b"nonce", "fernet-v1"),
         ProviderAccessContextRef(
             provider_key="vimeo",
             profile_version="1",
-            access_mode=ProviderAccessMode.ANONYMOUS,
-            credential_version_id=None,
+            access_mode=access_mode,
+            credential_version_id="version-1" if operator else None,
             egress_affinity_id="default",
             client_profile_id="yt-dlp-default",
             attestation_provider_version=None,
@@ -121,3 +125,22 @@ async def test_source_mismatch_persists_only_a_stable_failure_code() -> None:
     assert result.outcome is ProviderCanaryOutcome.FAILED
     assert result.stable_error_code == "analysis_evidence_invalid"
     assert URL not in repr(result)
+
+
+@pytest.mark.asyncio
+async def test_operator_analysis_cannot_satisfy_public_target() -> None:
+    writer = Writer()
+    service = ProviderAnalysisCanaryService(
+        Reader(evidence(ProviderAccessMode.OPERATOR_MANAGED)),
+        writer,
+        Decryptor(URL),
+        Storage(),
+        now=lambda: NOW,
+        timer=lambda: 1.0,
+    )
+
+    result = await service.attest(TARGET, uuid4())
+
+    assert result.outcome is ProviderCanaryOutcome.FAILED
+    assert result.stable_error_code == "analysis_evidence_invalid"
+    assert result.access_mode is ProviderAccessMode.ANONYMOUS

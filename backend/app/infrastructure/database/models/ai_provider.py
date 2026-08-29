@@ -21,7 +21,10 @@ from ..base import Base, utc_now
 class AiProviderProfileRow(Base):
     __tablename__ = "ai_provider_profiles"
     __table_args__ = (
-        CheckConstraint("engine IN ('codex', 'claude')", name="ck_ai_provider_engine"),
+        CheckConstraint(
+            "engine IN ('codex', 'claude', 'deepseek')",
+            name="ck_ai_provider_engine",
+        ),
         CheckConstraint(
             "auth_mode IN ('host_login', 'api_key')",
             name="ck_ai_provider_auth_mode",
@@ -32,6 +35,16 @@ class AiProviderProfileRow(Base):
             "(auth_mode = 'api_key' AND base_url IS NOT NULL "
             "AND credential_ciphertext IS NOT NULL AND credential_key_id IS NOT NULL)",
             name="ck_ai_provider_auth_shape",
+        ),
+        CheckConstraint(
+            "key <> 'local-codex' OR (engine = 'codex' "
+            "AND auth_mode = 'host_login' AND base_url IS NULL "
+            "AND credential_ciphertext IS NULL AND credential_key_id IS NULL)",
+            name="ck_ai_provider_local_codex_shape",
+        ),
+        CheckConstraint(
+            "engine <> 'deepseek' OR auth_mode = 'api_key'",
+            name="ck_ai_provider_deepseek_auth",
         ),
         Index(
             "uq_ai_provider_active",

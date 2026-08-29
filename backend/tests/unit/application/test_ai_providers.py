@@ -119,6 +119,22 @@ def service(repository: Repository) -> AiProviderService:
     )
 
 
+def local_codex_profile(*, active: bool = False) -> AiProviderProfile:
+    return AiProviderProfile(
+        key="local-codex",
+        display_name="本机 Codex",
+        engine=AiProviderEngine.CODEX,
+        auth_mode=AiProviderAuthMode.HOST_LOGIN,
+        base_url=None,
+        model="gpt-5.6-sol",
+        credential_ciphertext=None,
+        credential_key_id=None,
+        is_active=active,
+        created_at=NOW,
+        updated_at=NOW,
+    )
+
+
 @pytest.mark.asyncio
 async def test_api_key_profile_is_encrypted_and_activated() -> None:
     repository = Repository()
@@ -292,8 +308,8 @@ async def test_forbids_non_admin_and_active_delete() -> None:
 
     created = await providers.create_profile(
         ADMIN,
-        key="local-codex",
-        display_name="Local Codex",
+        key="active-custom",
+        display_name="Active Custom",
         engine=AiProviderEngine.CODEX,
         auth_mode=AiProviderAuthMode.HOST_LOGIN,
         base_url=None,
@@ -304,3 +320,91 @@ async def test_forbids_non_admin_and_active_delete() -> None:
     with pytest.raises(AiProviderError) as active_delete:
         await providers.delete_profile(ADMIN, created.key)
     assert active_delete.value.code is AiProviderErrorCode.ACTIVE_DELETE
+
+
+@pytest.mark.asyncio
+async def test_local_codex_reserved_key_cannot_be_created_or_deleted() -> None:
+    repository = Repository()
+    providers = service(repository)
+
+    with pytest.raises(AiProviderError) as create_error:
+        await providers.create_profile(
+            ADMIN,
+            key=" LOCAL-CODEX ",
+            display_name="Fake",
+            engine=AiProviderEngine.DEEPSEEK,
+            auth_mode=AiProviderAuthMode.API_KEY,
+            base_url="https://api.deepseek.com",
+            model="deepseek-v4-flash-vision-exp",
+            api_key="secret",
+        )
+    assert create_error.value.code is AiProviderErrorCode.RESERVED_MUTATION
+
+    repository.items["local-codex"] = local_codex_profile(active=False)
+    with pytest.raises(AiProviderError) as delete_error:
+        await providers.delete_profile(ADMIN, "local-codex")
+    assert delete_error.value.code is AiProviderErrorCode.RESERVED_MUTATION
+    assert repository.items["local-codex"].is_active is False
+
+
+@pytest.mark.asyncio
+async def test_local_codex_only_allows_display_name_and_model_updates() -> None:
+    repository = Repository()
+    repository.items["local-codex"] = local_codex_profile(active=True)
+    providers = service(repository)
+
+    updated = await providers.update_profile(
+        ADMIN,
+        "local-codex",
+        display_name="本机 Codex App Server",
+        engine=None,
+        auth_mode=None,
+        base_url=None,
+        base_url_changed=False,
+        model="gpt-next",
+        api_key=None,
+    )
+
+    assert updated.display_name == "本机 Codex App Server"
+    assert updated.model == "gpt-next"
+    assert updated.engine is AiProviderEngine.CODEX
+    assert updated.auth_mode is AiProviderAuthMode.HOST_LOGIN
+    assert updated.base_url is None
+    assert updated.credential_configured is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "changes",
+    (
+        {"engine": AiProviderEngine.CLAUDE},
+        {"auth_mode": AiProviderAuthMode.API_KEY},
+        {"base_url": "https://api.example.com", "base_url_changed": True},
+        {"api_key": "secret"},
+    ),
+)
+async def test_local_codex_rejects_structural_updates(
+    changes: dict[str, object],
+) -> None:
+    repository = Repository()
+    repository.items["local-codex"] = local_codex_profile(active=True)
+    values: dict[str, object] = {
+        "display_name": None,
+        "engine": None,
+        "auth_mode": None,
+        "base_url": None,
+        "base_url_changed": False,
+        "model": None,
+        "api_key": None,
+        **changes,
+    }
+
+    with pytest.raises(AiProviderError) as error:
+        await service(repository).update_profile(
+            ADMIN,
+            "local-codex",
+            **values,  # type: ignore[arg-type]
+        )
+
+    assert error.value.code is AiProviderErrorCode.RESERVED_MUTATION
+    assert repository.items["local-codex"] == local_codex_profile(active=True)

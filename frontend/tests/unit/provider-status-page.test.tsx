@@ -19,7 +19,7 @@ describe('provider status page', () => {
     runtime.listProviders.mockReset();
   });
 
-  it('distinguishes registration, verification and controlled access', async () => {
+  it('distinguishes registration, verification and availability', async () => {
     runtime.listProviders.mockResolvedValue(statuses());
     render(<ProviderStatusView />);
 
@@ -37,12 +37,12 @@ describe('provider status page', () => {
       .closest('li');
     expect(youtube).not.toBeNull();
     expect(youtube).not.toHaveClass('border-b', 'hairline');
-    expect(youtube).toHaveTextContent('支持下载 · 需会话');
+    expect(youtube).toHaveTextContent('已接入 · 当前不可用');
     const capabilities = within(youtube as HTMLElement).getByText(
       '单视频 · 音视频分离',
     );
     expect(capabilities).not.toHaveAttribute('data-slot', 'badge');
-    expect(youtube).toHaveTextContent('匿名优先');
+    expect(youtube).toHaveTextContent('仅匿名公开内容');
     expect(youtube).toHaveTextContent('最近状态检查：暂无当前版本记录');
     expect(youtube).toHaveTextContent('最近真实下载：暂无当前版本证据');
     expect(youtube).toHaveTextContent('最近完整分析：暂无当前版本证据');
@@ -53,8 +53,8 @@ describe('provider status page', () => {
       .closest('li');
     expect(tiktok).not.toBeNull();
     expect(tiktok).toHaveTextContent('已支持下载');
-    expect(tiktok).toHaveTextContent('仅使用已批准的自动化会话');
-    expect(tiktok).not.toHaveTextContent('匿名优先');
+    expect(tiktok).toHaveTextContent('仅匿名公开内容');
+    expect(tiktok).toHaveTextContent('当前公开样本下载：可用 · 2026年8月29日');
 
     const bilibili = within(list)
       .getByRole('heading', { name: '哔哩哔哩' })
@@ -74,6 +74,15 @@ describe('provider status page', () => {
     expect(hongguo).toHaveTextContent('已支持下载');
     expect(hongguo).toHaveTextContent('下载解析器已部署');
     expect(hongguo).toHaveTextContent('官方分享链接当前单集');
+
+    const qqvideo = within(list)
+      .getByRole('heading', { name: '腾讯视频' })
+      .closest('li');
+    expect(qqvideo).not.toBeNull();
+    expect(qqvideo).toHaveTextContent('已停用');
+    expect(qqvideo).toHaveTextContent('访问：当前未开放');
+    expect(qqvideo).toHaveTextContent('当前未开放此平台下载。');
+    expect(qqvideo).not.toHaveTextContent('运维');
   });
 
   it('supports loading, safe error and retry states', async () => {
@@ -109,6 +118,28 @@ describe('provider status page', () => {
     expect(await screen.findByText('哔哩哔哩')).toBeInTheDocument();
     expect(runtime.listProviders).toHaveBeenCalledTimes(3);
   });
+
+  it('labels operator-only evidence without calling it a public sample', async () => {
+    const operatorOnly = statuses().items[1];
+    runtime.listProviders.mockResolvedValue({
+      items: [
+        {
+          ...operatorOnly,
+          key: 'operator-only',
+          display_name: '受控线路示例',
+          access_modes: ['operator_managed'],
+        },
+      ],
+    });
+    render(<ProviderStatusView />);
+
+    const provider = (
+      await screen.findByRole('heading', { name: '受控线路示例' })
+    ).closest('li');
+    expect(provider).not.toBeNull();
+    expect(provider).toHaveTextContent('当前受控线路样本下载：可用');
+    expect(provider).not.toHaveTextContent('当前公开样本下载');
+  });
 });
 
 function statuses(): ProviderStatusList {
@@ -120,7 +151,7 @@ function statuses(): ProviderStatusList {
         registered: true,
         extractor_exists: true,
         capabilities: ['single_video', 'audio_video_split'],
-        access_modes: ['anonymous', 'operator_managed'],
+        access_modes: ['anonymous'],
         status: 'access_required',
         last_checked_at: null,
         last_check_succeeded: null,
@@ -128,7 +159,8 @@ function statuses(): ProviderStatusList {
         download_available: false,
         last_media_verified_at: null,
         last_verified_at: null,
-        user_action: '该平台需要部署已批准的受控会话。',
+        user_action:
+          '该平台当前要求额外授权或验证；请稍后重试，或上传你拥有或已获授权的文件。',
       },
       {
         key: 'tiktok',
@@ -136,7 +168,7 @@ function statuses(): ProviderStatusList {
         registered: true,
         extractor_exists: true,
         capabilities: ['single_video', 'short_video'],
-        access_modes: ['operator_managed'],
+        access_modes: ['anonymous'],
         status: 'verified',
         last_checked_at: '2026-08-29T03:33:50Z',
         last_check_succeeded: true,
@@ -178,6 +210,22 @@ function statuses(): ProviderStatusList {
         last_verified_at: null,
         user_action:
           '已接入红果官方分享链接当前单集；不支持 App 受保护媒体、全集抓取或批量下载。',
+      },
+      {
+        key: 'qqvideo',
+        display_name: '腾讯视频',
+        registered: true,
+        extractor_exists: true,
+        capabilities: ['single_video'],
+        access_modes: [],
+        status: 'disabled',
+        last_checked_at: null,
+        last_check_succeeded: null,
+        download_supported: false,
+        download_available: false,
+        last_media_verified_at: null,
+        last_verified_at: null,
+        user_action: '当前未开放此平台下载。',
       },
     ],
   };

@@ -148,7 +148,9 @@ canary。Registry 的基线表示当前版本已经完成的发布验收，不�
 只读取 Provider/Profile/访问模式和完成时间，不解密、不返回来源 URL，也不记录用户
 身份。状态 API 因而能立即反映真实用户链路的最近下载时间，26 小时后仅把“当前可用”
 标记转为历史时间，不撤销已经发布的支持能力。完整 Analysis 仍使用严格 attestation，
-不能由普通下载推导。Compose readiness 只检查匿名 Media Runner 和业务核心依赖；
+不能由普通下载推导。证据读取按 Provider/Profile/访问模式和 stage 分别保留窗口，media
+流量不能挤掉 metadata 或 analysis；探针调度也把当前 Profile 版本纳入 due identity，版本
+升级后立即生成新证据，不依赖 target id 的命名约定。Compose readiness 只检查匿名 Media Runner 和业务核心依赖；
 可选 Operator Runner 与平台 canary 的故障只降级对应平台，不让整个 API、上传、
 匿名下载或 AI 配置不可用。
 
@@ -156,6 +158,8 @@ canary。Registry 的基线表示当前版本已经完成的发布验收，不�
 下载和制品校验；QQ 视频保持明确禁用。小红书当前公开入口由平台返回 `300012`
 IP 风险限制，两个旧测试笔记由第一方页面返回 `300031` 已失效；系统分别保留平台
 验证边界，并把确定失效的笔记归类为 `provider_link_unavailable`，不再伪报服务故障。
-TikTok 解析使用其嵌入播放器实际调用的第一方 `player/api/v1/items`，网页挑战只作为
-上游回退；真实任务以 H.264/AAC 在首次执行完成。Tumblr 公开页由项目插件直接读取
+TikTok 解析只使用其嵌入播放器实际调用的第一方 `player/api/v1/items` 和 yt-dlp 默认
+客户端；明确无 item/HTTPS 格式、API 临时故障与响应结构漂移分别归类为链接不可用、
+临时不可用和提取器回归，不回退上游网页挑战。短链重定向也必须重新校验为 canonical
+video/embed 后才能进入 Player extractor。Tumblr 公开页由项目插件直接读取
 当前 `www` 页的 OG 视频与封面，避免上游旧 blog 子域改写触发 429。

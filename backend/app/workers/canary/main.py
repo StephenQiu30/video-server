@@ -9,11 +9,12 @@ from datetime import UTC, datetime, timedelta
 
 from app.core.config import Settings, get_settings_for_role
 from app.infrastructure.database import create_engine, create_session_factory
-from app.infrastructure.media_runner import MediaRunnerHttpClient, MediaRunnerRouter
+from app.infrastructure.media_runner import MediaRunnerHttpClient
 from app.infrastructure.provider_canary_repository import (
     SqlAlchemyProviderCanaryRepository,
 )
 from app.runner.provider_registry import configure_provider_instances
+from app.workers.canary.runner import ProviderCanaryRunner
 from app.workers.canary.scheduler import ProviderCanaryScheduler
 from app.workers.canary.service import ProviderCanaryService
 from app.workers.canary.targets import parse_canary_targets
@@ -25,7 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 class ProviderCanaryRuntime:
     scheduler: ProviderCanaryScheduler
     service: ProviderCanaryService
-    runner: MediaRunnerRouter
+    runner: ProviderCanaryRunner
     engine: AsyncEngine
 
     async def close(self) -> None:
@@ -56,7 +57,7 @@ def build_runtime(settings: Settings) -> ProviderCanaryRuntime:
         )
         for provider, base_url in settings.runner_operator_base_urls.items()
     }
-    runner = MediaRunnerRouter(anonymous, operators)
+    runner = ProviderCanaryRunner(anonymous, operators)
     service = ProviderCanaryService(
         repository,
         runner,

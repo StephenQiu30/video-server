@@ -32,7 +32,7 @@ export function AiProviderDelete({
           <AlertDialogTitle>删除 Provider 配置？</AlertDialogTitle>
           <AlertDialogDescription>
             “{target?.display_name}
-            ”的加密凭据也会一并删除。当前启用的配置不能删除。
+            ”的加密凭据也会一并删除。系统兜底线路和当前启用的配置不能删除。
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -91,6 +91,7 @@ def test_remaining_provider_profiles_record_verified_access_boundaries() -> None
     facebook = provider_profile("https://www.facebook.com/reel/1195289147628387")
     twitch = provider_profile("https://clips.twitch.tv/FaintLightGullWholeWheat")
     reddit = provider_profile("https://www.reddit.com/comments/124pp33")
+    douyin = provider_profile("https://www.douyin.com/video/7647907920252949425")
     tiktok = provider_profile(
         "https://www.tiktok.com/@creator/video/6742501081818877190"
     )
@@ -108,8 +109,14 @@ def test_remaining_provider_profiles_record_verified_access_boundaries() -> None
     )
     assert reddit.support_status is ProviderSupportStatus.ACCESS_REQUIRED
     assert reddit.version == "reddit-public-video-v1"
+    assert douyin.version == "douyin-public-v2"
+    assert douyin.support_status is ProviderSupportStatus.ACCESS_REQUIRED
+    assert douyin.access_modes == (
+        ProviderAccessMode.ANONYMOUS,
+        ProviderAccessMode.OPERATOR_MANAGED,
+    )
     assert tiktok.support_status is ProviderSupportStatus.VERIFIED
-    assert tiktok.version == "tiktok-web-v1"
+    assert tiktok.version == "tiktok-public-player-v3"
     assert wechat.version == "wechat-channels-public-v2"
     assert wechat.support_status is ProviderSupportStatus.DEGRADED
     assert wechat.access_modes == (ProviderAccessMode.ANONYMOUS,)
@@ -212,22 +219,65 @@ def test_normalizes_douyin_shared_video_urls() -> None:
     )
 
 
-def test_targets_tiktok_request_impersonation_and_retries() -> None:
+def test_tiktok_uses_anonymous_first_party_player_profile() -> None:
     url = "https://www.tiktok.com/@creator/video/123"
+    profile = provider_profile(url)
 
-    assert provider_command_args(url) == (
-        "--impersonate",
-        "Chrome-136:Macos-15",
-    )
-    assert provider_inspection_attempts(url) == 8
-    assert provider_inspection_retry_delay(url) == 0.5
-    assert provider_profile(url).access_modes == (
-        ProviderAccessMode.OPERATOR_MANAGED,
-    )
-    assert provider_profile(url).client_profile_id == "chrome-136-macos-15"
+    assert provider_command_args(url) == ()
+    assert provider_inspection_attempts(url) == 2
+    assert provider_inspection_retry_delay(url) == 1
+    assert profile.access_modes == (ProviderAccessMode.ANONYMOUS,)
+    assert profile.cookie_domain_allowlist == frozenset()
+    assert profile.credential_concurrency == 0
+    assert profile.client_profile_id == "yt-dlp-default"
+    assert profile.canary_suite == "tiktok-public-player-video"
     assert provider_command_args("https://vimeo.com/123") == ("--check-formats",)
     assert provider_inspection_attempts("https://vimeo.com/123") == 2
     assert provider_inspection_retry_delay("https://vimeo.com/123") == 1
+
+
+@pytest.mark.parametrize(
+    ("url", "expected"),
+    (
+        (
+            "https://m.tiktok.com/@creator/video/123?is_from_webapp=1#share",
+            "https://www.tiktok.com/@creator/video/123",
+        ),
+        (
+            "https://www.tiktok.com/embed/123?lang=en",
+            "https://www.tiktok.com/embed/123",
+        ),
+        ("https://vm.tiktok.com/ZTR45GpSF/?share=1", "https://vm.tiktok.com/ZTR45GpSF"),
+        (
+            "https://tiktok.com/t/ZTRC5xgJp?source=share",
+            "https://www.tiktok.com/t/ZTRC5xgJp",
+        ),
+    ),
+)
+def test_tiktok_normalizes_only_supported_public_video_urls(
+    url: str,
+    expected: str,
+) -> None:
+    assert provider_request_url(url) == expected
+
+
+@pytest.mark.parametrize(
+    "url",
+    (
+        "https://www.tiktok.com/about",
+        "https://www.tiktok.com/@creator",
+        "https://www.tiktok.com/@creator/photo/123",
+        "https://www.tiktok.com/player/v1/123",
+        "https://m.tiktok.com/share/live/123",
+    ),
+)
+def test_tiktok_rejects_urls_that_could_fall_through_to_generic_webpage(
+    url: str,
+) -> None:
+    with pytest.raises(RunnerFailure) as captured:
+        provider_request_url(url)
+
+    assert captured.value.code == "provider_unsupported"
 
 
 def test_targets_douyin_request_impersonation_and_retries() -> None:
@@ -306,9 +356,7 @@ def test_hongguo_player_requires_a_single_episode_identity() -> None:
     ).endswith("/7543112466771741721/7614027168942672958")
 
     with pytest.raises(RunnerFailure) as captured:
-        provider_request_url(
-            "https://hongguoduanju.com/player/7543112466771741721"
-        )
+        provider_request_url("https://hongguoduanju.com/player/7543112466771741721")
     assert captured.value.code == "provider_unsupported"
 
 

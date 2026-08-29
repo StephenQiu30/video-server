@@ -4,9 +4,10 @@ from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.application.provider_canaries import ProviderEvidenceScope
 from app.domain.providers import (
     ProviderAccessMode,
     ProviderCanaryOutcome,
@@ -41,26 +42,59 @@ class SqlAlchemyProviderCanaryRepository:
             )
 
     async def list_recent(
-        self, *, limit_per_provider: int
+        self,
+        *,
+        limit_per_provider_stage: int,
+        scopes: Mapping[str, ProviderEvidenceScope],
     ) -> Mapping[str, tuple[ProviderCanaryResult, ...]]:
-        if limit_per_provider < 1:
-            raise ValueError("canary result limit must be positive")
+        if limit_per_provider_stage < 1:
+            raise ValueError("canary result stage limit must be positive")
+        if not scopes:
+            return {}
         rank = (
             func.row_number()
             .over(
-                partition_by=ProviderCanaryResultRow.provider_key,
-                order_by=ProviderCanaryResultRow.checked_at.desc(),
+                partition_by=(
+                    ProviderCanaryResultRow.provider_key,
+                    ProviderCanaryResultRow.stage,
+                ),
+                order_by=(
+                    ProviderCanaryResultRow.checked_at.desc(),
+                    ProviderCanaryResultRow.id.desc(),
+                ),
             )
-            .label("provider_rank")
+            .label("provider_stage_rank")
         )
-        ranked = select(ProviderCanaryResultRow.id.label("id"), rank).subquery()
+        scope_filter = or_(
+            *(
+                and_(
+                    ProviderCanaryResultRow.provider_key == provider_key,
+                    ProviderCanaryResultRow.access_mode == scope.access_mode.value,
+                    *(
+                        (
+                            ProviderCanaryResultRow.profile_version
+                            == scope.profile_version,
+                        )
+                        if scope.profile_version is not None
+                        else ()
+                    ),
+                )
+                for provider_key, scope in scopes.items()
+            )
+        )
+        ranked = (
+            select(ProviderCanaryResultRow.id.label("id"), rank)
+            .where(scope_filter)
+            .subquery()
+        )
         statement = (
             select(ProviderCanaryResultRow)
             .join(ranked, ProviderCanaryResultRow.id == ranked.c.id)
-            .where(ranked.c.provider_rank <= limit_per_provider)
+            .where(ranked.c.provider_stage_rank <= limit_per_provider_stage)
             .order_by(
                 ProviderCanaryResultRow.provider_key,
                 ProviderCanaryResultRow.checked_at.desc(),
+                ProviderCanaryResultRow.id.desc(),
             )
         )
         async with self._sessions() as session:
@@ -71,11 +105,17 @@ class SqlAlchemyProviderCanaryRepository:
         return {key: tuple(values) for key, values in grouped.items()}
 
     async def latest_checked_at(
-        self, target_id: str, stage: ProviderCanaryStage
+        self,
+        target_id: str,
+        profile_version: str,
+        stage: ProviderCanaryStage,
+        access_mode: ProviderAccessMode,
     ) -> datetime | None:
         statement = select(func.max(ProviderCanaryResultRow.checked_at)).where(
             ProviderCanaryResultRow.target_id == target_id,
+            ProviderCanaryResultRow.profile_version == profile_version,
             ProviderCanaryResultRow.stage == stage.value,
+            ProviderCanaryResultRow.access_mode == access_mode.value,
         )
         async with self._sessions() as session:
             value = await session.scalar(statement)

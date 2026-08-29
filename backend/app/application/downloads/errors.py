@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Self
+
+from app.domain.providers import ProviderAccessMode
 
 
 class ApplicationErrorCode(StrEnum):
@@ -52,6 +55,19 @@ class PersistenceConflict(RuntimeError):
 
 class MediaInspectionFailure(RuntimeError):
     """The runner could not return a valid inspection."""
+
+    def __init__(
+        self,
+        *args: object,
+        access_mode: ProviderAccessMode | None = None,
+    ) -> None:
+        self.access_mode = access_mode
+        super().__init__(*args)
+
+    def attributed_to(self, access_mode: ProviderAccessMode) -> Self:
+        """Attach the concrete attempt without changing the public error type."""
+        self.access_mode = access_mode
+        return self
 
 
 class MediaInspectionDurationLimitExceeded(MediaInspectionFailure):

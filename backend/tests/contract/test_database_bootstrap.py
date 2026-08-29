@@ -1,13 +1,21 @@
 from __future__ import annotations
 
+import os
 import re
+import subprocess
 from pathlib import Path
+from urllib.parse import urlsplit
 
+import pytest
 from app.infrastructure.readiness import EXPECTED_DATABASE_TABLES
 
 ROOT = Path(__file__).resolve().parents[2]
+ENV_COMPOSE_PATH = ROOT.parent / "docker-compose-env.yml"
 COMPOSE_PATH = ROOT.parent / "docker-compose.yml"
 PROD_COMPOSE_PATH = ROOT.parent / "docker-compose-prod.yml"
+ENV_EXAMPLE_PATH = ROOT.parent / ".env.example"
+PROD_ENV_EXAMPLE_PATH = ROOT.parent / ".env.prod.example"
+CORS_VALIDATOR_PATH = ROOT.parent / "scripts/validate-minio-cors.sh"
 SCHEMA_PATH = ROOT / "sql/schema.sql"
 ROOT_README_PATH = ROOT.parent / "README.md"
 FRONTEND_README_PATH = ROOT.parent / "frontend/README.md"
@@ -22,6 +30,31 @@ def _service_block(document: str, service: str) -> str:
     )
     assert match is not None
     return match.group(1)
+
+
+def _env_value(path: Path, name: str) -> str:
+    match = re.search(
+        rf"(?m)^{re.escape(name)}=(.+)$", path.read_text(encoding="utf-8")
+    )
+    assert match is not None
+    return match.group(1)
+
+
+def _assert_exact_http_origins(value: str) -> None:
+    assert value
+    assert "*" not in value
+    assert "?" not in value
+    for origin in value.split(","):
+        parsed = urlsplit(origin)
+        assert parsed.scheme in {"http", "https"}
+        assert parsed.hostname is not None
+        assert parsed.username is None
+        assert parsed.password is None
+        assert parsed.path == ""
+        assert parsed.query == ""
+        assert parsed.fragment == ""
+        assert origin == f"{parsed.scheme}://{parsed.netloc}"
+        _ = parsed.port
 
 
 def test_current_schema_can_be_applied_repeatedly() -> None:
@@ -70,6 +103,16 @@ def test_current_schema_can_be_applied_repeatedly() -> None:
     assert "engine IN ('codex', 'claude', 'deepseek')" in schema
     assert "engine <> 'deepseek' OR auth_mode = 'api_key'" in schema
     assert "'local-codex', '本机 Codex', 'codex', 'host_login'" in schema
+    assert "ck_ai_provider_local_codex_shape" in schema
+    assert "ON CONFLICT (key) DO UPDATE SET" in schema
+
+
+def test_ai_provider_selection_is_not_configured_by_environment() -> None:
+    for path in (ENV_EXAMPLE_PATH, PROD_ENV_EXAMPLE_PATH):
+        document = path.read_text(encoding="utf-8")
+        assert "ANALYSIS_CLI_PROVIDER=" not in document
+        assert "ANALYSIS_CODEX_MODEL=" not in document
+        assert "ANALYSIS_CLAUDE_MODEL=" not in document
 
 
 def test_compose_does_not_bundle_host_managed_infrastructure() -> None:
@@ -89,12 +132,93 @@ def test_compose_does_not_bundle_host_managed_infrastructure() -> None:
 
 
 def test_environment_bootstrap_provisions_analysis_storage_probe() -> None:
-    compose = (ROOT.parent / "docker-compose-env.yml").read_text(encoding="utf-8")
+    compose = ENV_COMPOSE_PATH.read_text(encoding="utf-8")
     minio_init = _service_block(compose, "minio-init")
 
+    assert (
+        "image: minio/mc@sha256:"
+        "a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727"
+    ) in minio_init
     assert "mc mb --ignore-existing" in minio_init
     assert "system/analysis-readiness-v1" in minio_init
     assert "mc pipe" in minio_init
+
+
+def test_environment_minio_applies_exact_browser_cors_origins() -> None:
+    compose = ENV_COMPOSE_PATH.read_text(encoding="utf-8")
+    cors_check = _service_block(compose, "minio-config-check")
+    minio = _service_block(compose, "minio")
+
+    assert (
+        "image: minio/minio@sha256:"
+        "14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e"
+    ) in minio
+    expected_setting = (
+        'MINIO_API_CORS_ALLOW_ORIGIN: "${MINIO_CORS_ALLOWED_ORIGINS-'
+        'http://127.0.0.1:8101,http://localhost:8101}"'
+    )
+    assert expected_setting in cors_check
+    assert expected_setting in minio
+    assert "${MINIO_CORS_ALLOWED_ORIGINS:-" not in cors_check
+    assert (
+        'entrypoint: ["/bin/sh", "/opt/video-server/validate-minio-cors.sh"]'
+        in cors_check
+    )
+    assert (
+        "./scripts/validate-minio-cors.sh:/opt/video-server/validate-minio-cors.sh:ro"
+    ) in cors_check
+    assert "entrypoint:" not in minio
+    assert "condition: service_completed_successfully" in minio
+    assert 'command: ["minio", "server", "/data"' in minio
+    assert "/bin/sh" not in minio
+    assert "/usr/bin/docker-entrypoint.sh" not in minio
+
+    for path in (ENV_EXAMPLE_PATH, PROD_ENV_EXAMPLE_PATH):
+        _assert_exact_http_origins(_env_value(path, "MINIO_CORS_ALLOWED_ORIGINS"))
+
+
+@pytest.mark.parametrize(
+    "origins",
+    (
+        "",
+        "*",
+        "https://app.example.com/path",
+        "https://user@app.example.com",
+        "https://:443",
+        "https://app.example.com:0",
+        "https://app.example.com:70000",
+        "https://bad_host.example.com",
+    ),
+)
+@pytest.mark.skipif(os.name == "nt", reason="MinIO image validator is POSIX-only")
+def test_minio_cors_validator_rejects_non_exact_origins(origins: str) -> None:
+    result = subprocess.run(
+        ["/bin/sh", str(CORS_VALIDATOR_PATH)],
+        env={**os.environ, "MINIO_API_CORS_ALLOW_ORIGIN": origins},
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 64
+
+
+@pytest.mark.skipif(os.name == "nt", reason="MinIO image validator is POSIX-only")
+def test_minio_cors_validator_accepts_exact_origin_list() -> None:
+    result = subprocess.run(
+        ["/bin/sh", str(CORS_VALIDATOR_PATH)],
+        env={
+            **os.environ,
+            "MINIO_API_CORS_ALLOW_ORIGIN": (
+                "https://app.example.com,http://127.0.0.1:8101"
+            ),
+        },
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
 
 
 def test_database_consumers_use_the_configured_postgres_service() -> None:
@@ -219,6 +343,8 @@ def test_project_uses_runtime_entrypoints_without_a_startup_wrapper() -> None:
 
     assert not STARTUP_SCRIPT_PATH.exists()
     assert not (ROOT.parent / "scripts/start-local.sh").exists()
+    assert not (ROOT.parent / "scripts/analysis-worker.sh").exists()
+    assert not (ROOT / "app/workers/analysis/launchd.py").exists()
     assert compose_entrypoint in root_readme
     assert "uv run python -m app.main" in root_readme
     assert "npm run dev" in root_readme
@@ -227,6 +353,10 @@ def test_project_uses_runtime_entrypoints_without_a_startup_wrapper() -> None:
         in frontend_readme
     )
     assert "restart-project.ps1" not in root_readme
+    for action in ("doctor", "install", "status"):
+        assert (
+            f"uv run python -m app.workers.analysis.agent_cli {action}" in root_readme
+        )
 
 
 def test_runtime_dependency_install_is_cached_and_retried() -> None:

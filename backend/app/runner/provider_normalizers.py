@@ -10,6 +10,10 @@ from app.runner.errors import RunnerFailure
 _VIMEO_ID = re.compile(r"/([0-9]+)/?$")
 _DOUYIN_VIDEO = re.compile(r"/video/(?P<id>[0-9]+)/?$")
 _DOUYIN_SHARE = re.compile(r"/share/video/(?P<id>[0-9]+)/?$")
+_TIKTOK_VIDEO = re.compile(r"/@(?P<user>[A-Za-z0-9_.-]+)/video/(?P<id>[0-9]+)/?$")
+_TIKTOK_EMBED = re.compile(r"/embed/(?P<id>[0-9]+)/?$")
+_TIKTOK_SHORT = re.compile(r"/(?P<token>[A-Za-z0-9_]+)/?$")
+_TIKTOK_WEB_SHORT = re.compile(r"/t/(?P<token>[A-Za-z0-9_]+)/?$")
 _KUAISHOU_VIDEO = re.compile(r"/short-video/(?P<id>[A-Za-z0-9]+)/?$")
 _SNAPCHAT_SPOTLIGHT = re.compile(r"/spotlight/(?P<id>[A-Za-z0-9_-]+)/?$")
 _LINKEDIN_POST = re.compile(
@@ -28,9 +32,7 @@ _TUMBLR_CURRENT_POST = re.compile(
 )
 _TUMBLR_LEGACY_POST = re.compile(r"/post/(?P<id>[0-9]+)(?:/[^/?#]+)?/?$")
 _HONGGUO_SHARE = re.compile(r"/s/[A-Za-z0-9_-]+/?$")
-_HONGGUO_H5_SHARE = re.compile(
-    r"/hongguo/ug/pages/video-animation-share/?$"
-)
+_HONGGUO_H5_SHARE = re.compile(r"/hongguo/ug/pages/video-animation-share/?$")
 _HONGGUO_PLAYER = re.compile(r"/player/[0-9]+/[0-9]+/?$")
 _WECHAT_CHANNELS_SHARE = re.compile(r"/sph/(?P<id>[A-Za-z0-9_-]{4,256})/?$")
 _DIGITS = re.compile(r"[0-9]+$")
@@ -49,6 +51,29 @@ def douyin_url(url: str, parsed: SplitResult) -> str:
     if len(modal_id) == 1 and _DIGITS.fullmatch(modal_id[0]):
         return f"https://www.douyin.com/video/{modal_id[0]}"
     return url
+
+
+def tiktok_url(_url: str, parsed: SplitResult) -> str:
+    hostname = (parsed.hostname or "").casefold()
+    video = _TIKTOK_VIDEO.fullmatch(parsed.path)
+    if video is not None and hostname in {
+        "tiktok.com",
+        "www.tiktok.com",
+        "m.tiktok.com",
+    }:
+        return (
+            f"https://www.tiktok.com/@{video.group('user')}/video/{video.group('id')}"
+        )
+    embed = _TIKTOK_EMBED.fullmatch(parsed.path)
+    if embed is not None and hostname in {"tiktok.com", "www.tiktok.com"}:
+        return f"https://www.tiktok.com/embed/{embed.group('id')}"
+    short = _TIKTOK_SHORT.fullmatch(parsed.path)
+    if short is not None and hostname in {"vm.tiktok.com", "vt.tiktok.com"}:
+        return f"https://{hostname}/{short.group('token')}"
+    web_short = _TIKTOK_WEB_SHORT.fullmatch(parsed.path)
+    if web_short is not None and hostname in {"tiktok.com", "www.tiktok.com"}:
+        return f"https://www.tiktok.com/t/{web_short.group('token')}"
+    raise RunnerFailure("provider_unsupported", status=422)
 
 
 def kuaishou_url(url: str, parsed: SplitResult) -> str:
@@ -111,9 +136,7 @@ def tumblr_url(url: str, parsed: SplitResult) -> str:
         if match is not None and re.fullmatch(r"[A-Za-z0-9_-]+", blog):
             slug = parsed.path.rstrip("/").split("/")[3:]
             suffix = f"/{slug[0]}" if slug else ""
-            return (
-                f"https://www.tumblr.com/{blog}/{match.group('id')}{suffix}"
-            )
+            return f"https://www.tumblr.com/{blog}/{match.group('id')}{suffix}"
     raise RunnerFailure("provider_unsupported", status=422)
 
 

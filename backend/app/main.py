@@ -49,7 +49,9 @@ def create_app(
         lifespan=lifespan,
     )
     application.state.settings = effective
-    application.state.provider_statuses = current_provider_statuses()
+    application.state.provider_statuses = current_provider_statuses(
+        frozenset(effective.runner_operator_base_urls)
+    )
     if configured_runtime is not None:
         application.state.auth_service = configured_runtime.auth_service
         application.state.user_service = configured_runtime.user_service

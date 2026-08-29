@@ -14,7 +14,6 @@ from app.application.ai_providers import (
 )
 from app.core.config import Settings
 from app.infrastructure.ai_cli import (
-    ClaudeCliVideoAnalyzer,
     CliCapabilities,
     CodexAppServerVideoAnalyzer,
 )
@@ -24,38 +23,8 @@ from app.workers.analysis.main import _rabbitmq_worker_url
 from app.workers.analysis.providers import (
     ConfiguredAnalyzerResolver,
     authentication_environment,
-    build_video_analyzer,
 )
 from app.workers.analysis.sweeper import AnalysisRecoverySweeper
-
-
-@pytest.mark.parametrize(
-    ("provider", "expected"),
-    [("codex", CodexAppServerVideoAnalyzer), ("claude", ClaudeCliVideoAnalyzer)],
-)
-def test_worker_builds_selected_oauth_cli_adapter(
-    monkeypatch: pytest.MonkeyPatch,
-    provider: str,
-    expected: type[object],
-) -> None:
-    def successful_preflight(*args: object, **kwargs: object) -> CliCapabilities:
-        del args, kwargs
-        return CliCapabilities(
-            provider=provider,
-            binary=Path(sys.executable),
-            version="controlled",
-            ffmpeg=Path(sys.executable),
-            ffprobe=Path(sys.executable),
-        )
-
-    monkeypatch.setattr(profile_runtime, "preflight", successful_preflight)
-    settings = Settings(app_env="test", analysis_cli_provider=provider)
-
-    runtime = build_video_analyzer(settings)
-
-    assert isinstance(runtime.analyzer, expected)
-    assert runtime.provider == provider
-    assert runtime.cli_version == "controlled"
 
 
 def test_worker_discards_api_key_environment(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -71,6 +40,59 @@ def test_worker_discards_api_key_environment(monkeypatch: pytest.MonkeyPatch) ->
         assert environment["SYSTEMROOT"] == os.environ["SYSTEMROOT"]
         if "WINDIR" in os.environ:
             assert environment["WINDIR"] == os.environ["WINDIR"]
+
+
+@pytest.mark.asyncio
+async def test_local_codex_runtime_is_selected_from_the_database_profile(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    now = datetime(2026, 8, 29, tzinfo=UTC)
+    calls: list[tuple[str, bool]] = []
+
+    def successful_preflight(
+        provider: str, *args: object, **kwargs: object
+    ) -> CliCapabilities:
+        del args
+        calls.append((provider, bool(kwargs["verify_authentication"])))
+        return CliCapabilities(
+            provider=provider,
+            binary=Path(sys.executable),
+            version="controlled",
+            ffmpeg=Path(sys.executable),
+            ffprobe=Path(sys.executable),
+        )
+
+    class Repository:
+        async def get_active_profile(self) -> AiProviderProfile:
+            return AiProviderProfile(
+                key="local-codex",
+                display_name="本机 Codex",
+                engine=AiProviderEngine.CODEX,
+                auth_mode=AiProviderAuthMode.HOST_LOGIN,
+                base_url=None,
+                model="gpt-database-model",
+                credential_ciphertext=None,
+                credential_key_id=None,
+                is_active=True,
+                created_at=now,
+                updated_at=now,
+            )
+
+    monkeypatch.setattr(profile_runtime, "preflight", successful_preflight)
+    resolver = ConfiguredAnalyzerResolver(
+        Settings(app_env="test", _env_file=None),
+        Repository(),  # type: ignore[arg-type]
+        object(),  # type: ignore[arg-type]
+    )
+
+    selection = await resolver.resolve()
+
+    assert isinstance(selection.analyzer, CodexAppServerVideoAnalyzer)
+    assert (selection.provider, selection.model) == (
+        "local-codex",
+        "gpt-database-model",
+    )
+    assert calls == [("codex", True)]
 
 
 @pytest.mark.asyncio
@@ -239,6 +261,13 @@ async def test_deepseek_profile_uses_web_secret_and_media_tools_without_cli_logi
         return Path(sys.executable), Path(sys.executable)
 
     monkeypatch.setattr(profile_runtime, "media_preflight", media_preflight)
+    monkeypatch.setattr(
+        profile_runtime,
+        "preflight",
+        lambda *args, **kwargs: pytest.fail(
+            f"DeepSeek must not preflight a host CLI: {args!r} {kwargs!r}"
+        ),
+    )
     resolver = ConfiguredAnalyzerResolver(
         Settings(app_env="test"),
         Repository(),  # type: ignore[arg-type]

@@ -20,7 +20,7 @@
 - RabbitMQ `analysis.requested`、完整视频 Agent 与报告 Worker；
 - 下载历史、任务详情、WebSocket 状态恢复和管理员来源统计。
 
-实施顺序固定为：先完成 023 浏览器本地内容上传基础 → 通用设备配对和 Edge 制品导入协议 → 已授权明文文件的签名设备导入。任何平台网络 Adapter 都必须另立设计并获得正式下载/导出接口与合同授权，不能在 019 内增补。微信视频号链接下载继续显示 `unsupported`；本地文件上传成功只能计作 Artifact Import 验证，不能被计作平台下载验证。
+实施顺序固定为：先完成 023 浏览器本地内容上传基础 → 通用设备配对和 Edge 制品导入协议 → 已授权明文文件的签名设备导入。任何平台网络 Adapter 都必须另立设计并获得正式下载/导出接口与合同授权，不能在 019 内增补。微信视频号公开分享链接由 025 的 `wechat-channels-public-v2` 独立维护；本地文件上传成功只能计作 Artifact Import 验证，不能被计作平台下载验证。
 
 ## 2. 当前系统映射
 
@@ -254,7 +254,7 @@ Profile 只用于文件 admission、客户端兼容性和状态展示，不向 A
 
 ## 10. Provider 状态与发布门禁
 
-`GET /api/providers` 保留 `extractor_exists`，并分开展示 `verified_import_supported` 与 `required_device_profiles`；Runner 的 `access_modes` 不增加设备值。前端显示“可从用户设备导入文件”，不能显示为“需运维会话”或“支持平台下载”。微信视频号链接执行器仍为 `unsupported`；红果文件导入也不创建或提升红果 Provider 目录状态。
+`GET /api/providers` 保留 `extractor_exists`，并分开展示 `verified_import_supported` 与 `required_device_profiles`；Runner 的 `access_modes` 不增加设备值。前端显示“可从用户设备导入文件”，不能显示为“需运维会话”或“支持平台下载”。设备导入不改变 025 维护的视频号 `degraded` 公开链接状态；红果文件导入也不创建或提升红果 Provider 目录状态。
 
 Import canary 的证据按 `(import_profile_version, execution_mode, access_partition, client_profile_id)` 隔离；非 Runner 的 `access_partition=not_applicable`。任何来源标签的本地文件导入都不产生 Provider canary；未来官方连接器使用独立执行器和正式授权测试资产。Edge import canary 只在项目自有测试设备和自有 clear 样本上运行，不调度普通用户设备。
 

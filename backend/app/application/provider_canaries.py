@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import Protocol
 
 from app.application.provider_catalog import ProviderCatalogRepository
-from app.application.providers import ProviderStatusView
+from app.application.providers import ProviderStatusView, provider_user_action
 from app.domain.providers import (
+    ProviderAccessMode,
     ProviderCanaryOutcome,
     ProviderCanaryResult,
     ProviderCanaryStage,
@@ -28,8 +29,19 @@ _PERMANENT_ERRORS = {
 
 class ProviderCanaryReader(Protocol):
     async def list_recent(
-        self, *, limit_per_provider: int
+        self,
+        *,
+        limit_per_provider_stage: int,
+        scopes: Mapping[str, ProviderEvidenceScope],
     ) -> Mapping[str, tuple[ProviderCanaryResult, ...]]: ...
+
+
+@dataclass(frozen=True, slots=True)
+class ProviderEvidenceScope:
+    """One profile and access route allowed to affect public Provider status."""
+
+    profile_version: str | None
+    access_mode: ProviderAccessMode
 
 
 class ProviderStatusService:
@@ -45,7 +57,12 @@ class ProviderStatusService:
         registered = {
             item.key
             for item in baselines
-            if item.registered and item.status is not ProviderSupportStatus.UNSUPPORTED
+            if item.registered
+            and item.status
+            not in {
+                ProviderSupportStatus.DISABLED,
+                ProviderSupportStatus.UNSUPPORTED,
+            }
         }
         if not approved_keys <= registered:
             raise ValueError("approved Provider key is not registered")
@@ -56,7 +73,10 @@ class ProviderStatusService:
         self._catalog = catalog
 
     async def list(self) -> tuple[ProviderStatusView, ...]:
-        recent = await self._reader.list_recent(limit_per_provider=32)
+        recent = await self._reader.list_recent(
+            limit_per_provider_stage=32,
+            scopes=_evidence_scopes(self._baselines),
+        )
         now = self._now()
         merged = tuple(
             _merge_status(
@@ -101,17 +121,32 @@ def _merge_status(
     *,
     explicitly_approved: bool,
 ) -> ProviderStatusView:
-    if baseline.status is ProviderSupportStatus.UNSUPPORTED:
+    if baseline.status in {
+        ProviderSupportStatus.DISABLED,
+        ProviderSupportStatus.UNSUPPORTED,
+    }:
+        return baseline
+    access_mode = _status_access_mode(baseline.access_modes)
+    if access_mode is None:
         return baseline
     results = tuple(
         item
         for item in results
-        if baseline.profile_version is None
-        or item.profile_version == baseline.profile_version
+        if item.access_mode is access_mode
+        and (
+            baseline.profile_version is None
+            or item.profile_version == baseline.profile_version
+        )
     )
     if not results:
         return baseline
-    ordered = tuple(sorted(results, key=lambda item: item.checked_at, reverse=True))
+    ordered = tuple(
+        sorted(
+            results,
+            key=lambda item: (item.checked_at, item.target_id),
+            reverse=True,
+        )
+    )
     decision_results = tuple(
         item
         for item in ordered
@@ -160,12 +195,40 @@ def _merge_status(
             or baseline.last_media_verified_at
         ),
         last_verified_at=verified_at or baseline.last_verified_at,
-        user_action=_user_action(
+        user_action=provider_user_action(
             status,
             baseline.key,
             download_available=download_available,
+            access_mode=access_mode,
         ),
     )
+
+
+def _evidence_scopes(
+    baselines: tuple[ProviderStatusView, ...],
+) -> Mapping[str, ProviderEvidenceScope]:
+    scopes: dict[str, ProviderEvidenceScope] = {}
+    for baseline in baselines:
+        if baseline.status in {
+            ProviderSupportStatus.DISABLED,
+            ProviderSupportStatus.UNSUPPORTED,
+        }:
+            continue
+        access_mode = _status_access_mode(baseline.access_modes)
+        if access_mode is not None:
+            scopes[baseline.key] = ProviderEvidenceScope(
+                profile_version=baseline.profile_version,
+                access_mode=access_mode,
+            )
+    return scopes
+
+
+def _status_access_mode(
+    access_modes: tuple[ProviderAccessMode, ...],
+) -> ProviderAccessMode | None:
+    if ProviderAccessMode.ANONYMOUS in access_modes:
+        return ProviderAccessMode.ANONYMOUS
+    return access_modes[0] if access_modes else None
 
 
 def _blocked(results: tuple[ProviderCanaryResult, ...]) -> bool:
@@ -176,9 +239,22 @@ def _blocked(results: tuple[ProviderCanaryResult, ...]) -> bool:
 
 
 def _verified(results: tuple[ProviderCanaryResult, ...], now: datetime) -> bool:
-    operational = tuple(
-        item for item in results if item.stage is not ProviderCanaryStage.ANALYSIS
-    )[:5]
+    metadata = tuple(
+        item for item in results if item.stage is ProviderCanaryStage.METADATA
+    )
+    media = tuple(item for item in results if item.stage is ProviderCanaryStage.MEDIA)
+    if not metadata or not media:
+        return False
+    remaining = tuple(
+        sorted(
+            (*metadata[1:], *media[1:]),
+            key=lambda item: (item.checked_at, item.target_id),
+            reverse=True,
+        )
+    )
+    # Always reserve one slot for each operational stage. Real download evidence
+    # is MEDIA-only and must not crowd a fresh METADATA probe out of this window.
+    operational = (metadata[0], media[0], *remaining[:3])
     if len(operational) < 5 or any(
         item.outcome is ProviderCanaryOutcome.FAILED for item in operational[:2]
     ):
@@ -190,18 +266,8 @@ def _verified(results: tuple[ProviderCanaryResult, ...], now: datetime) -> bool:
         return False
     metadata_cutoff = now - timedelta(hours=6)
     media_cutoff = now - timedelta(hours=26)
-    metadata_ok = any(
-        item.outcome is ProviderCanaryOutcome.SUCCEEDED
-        and item.stage is ProviderCanaryStage.METADATA
-        and item.checked_at >= metadata_cutoff
-        for item in operational
-    )
-    media_ok = any(
-        item.outcome is ProviderCanaryOutcome.SUCCEEDED
-        and item.stage is ProviderCanaryStage.MEDIA
-        and item.checked_at >= media_cutoff
-        for item in operational
-    )
+    metadata_ok = metadata[0].checked_at >= metadata_cutoff
+    media_ok = media[0].checked_at >= media_cutoff
     analysis_cutoff = now - timedelta(days=7)
     analysis_ok = any(
         item.outcome is ProviderCanaryOutcome.SUCCEEDED
@@ -243,46 +309,3 @@ def _latest_success(
         ),
         None,
     )
-
-
-def _user_action(
-    status: ProviderSupportStatus,
-    provider_key: str | None = None,
-    *,
-    download_available: bool = False,
-) -> str | None:
-    if status is ProviderSupportStatus.ACCESS_REQUIRED and download_available:
-        return "公开样本已完成真实下载；遇到平台挑战时才需要已批准的受控会话。"
-    if provider_key == "wechat_channels":
-        return (
-            "仅支持分享页直接公开非加密媒体的单视频；"
-            "平台未公开媒体时请上传自己拥有或已获授权的文件。"
-        )
-    if provider_key == "hongguo_web":
-        return (
-            "已接入红果官方分享链接当前单集；"
-            "不支持 App 受保护媒体、全集抓取或批量下载。"
-        )
-    if (
-        provider_key == "xiaohongshu"
-        and status is ProviderSupportStatus.DEGRADED
-    ):
-        return (
-            "当前出口受到小红书官方风控；失效笔记会单独提示，"
-            "请使用新的公开分享链接后稍后重试。"
-        )
-    if status is ProviderSupportStatus.ACCESS_REQUIRED:
-        return "该平台需要部署已批准的受控会话；未启用时请稍后重试。"
-    if status in {
-        ProviderSupportStatus.DEGRADED,
-        ProviderSupportStatus.RATE_LIMITED,
-        ProviderSupportStatus.BLOCKED,
-    }:
-        return "平台当前不稳定，请稍后重试。"
-    if status is ProviderSupportStatus.UNKNOWN:
-        if download_available:
-            return "公开样本已完成真实下载验证；完整视频分析链路仍待验证。"
-        return "该平台尚未完成当前版本的真实下载验证。"
-    if status is ProviderSupportStatus.DISABLED:
-        return "该平台能力已由运维关闭。"
-    return None

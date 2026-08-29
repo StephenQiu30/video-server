@@ -5,6 +5,7 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 
 from app.domain.providers import ProviderCanaryStage
+from app.runner.provider_registry import provider_profile
 from app.workers.canary.service import CanaryRepository, ProviderCanaryService
 from app.workers.canary.targets import ProviderCanaryTarget
 
@@ -31,8 +32,12 @@ class ProviderCanaryScheduler:
 
     async def run_due(self) -> None:
         for target in self._targets:
+            profile_version = provider_profile(target.safe_url()).version
             latest = await self._repository.latest_checked_at(
-                target.target_id, target.stage
+                target.target_id,
+                profile_version,
+                target.stage,
+                target.access_mode,
             )
             interval = (
                 self._metadata_interval

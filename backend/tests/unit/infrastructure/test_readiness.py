@@ -95,13 +95,13 @@ async def test_runtime_readiness_does_not_depend_on_optional_operator_runner(
     async with runtime_probe(
         httpx.MockTransport(respond),
         postgres_engine,
-        operator_runners={"tiktok": "http://tiktok-runner.test"},
+        operator_runners={"x": "http://x-runner.test"},
     ) as probe:
         assert await probe.check() is True
 
     assert "runner.test" in seen
     assert "minio.test" in seen
-    assert "tiktok-runner.test" not in seen
+    assert "x-runner.test" not in seen
 
 
 @pytest.mark.usefixtures("rabbitmq_is_available")

@@ -1,132 +1,282 @@
 from __future__ import annotations
 
+import signal
+import subprocess
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 from app.workers.analysis import agent_platforms
-from app.workers.analysis.agent_platforms import (
-    SERVICE_ID,
-    AgentPaths,
-    _launch_agent_plist,
-    _python_executable,
-    _systemd_unit,
-    _windows_task_xml,
-)
+from app.workers.analysis.agent_platforms import AgentPaths
 
 
-def _paths() -> AgentPaths:
+def _paths(tmp_path: Path) -> AgentPaths:
     return AgentPaths(
-        definition=Path("agent-definition"),
-        stdout=Path("analysis-agent.log"),
-        stderr=Path("analysis-agent.error.log"),
+        tmp_path / "service" / "definition",
+        tmp_path / "state" / "agent.log",
+        tmp_path / "state" / "agent.error.log",
     )
 
 
-def test_windows_task_starts_at_login_and_restarts_after_failure() -> None:
-    definition = _windows_task_xml()
-
-    assert definition.startswith('<?xml version="1.0" encoding="UTF-16"?>')
-    assert "<LogonTrigger>" in definition
-    assert "<RestartOnFailure>" in definition
-    assert "<ExecutionTimeLimit>PT0S</ExecutionTimeLimit>" in definition
-    assert "app.workers.analysis.agent_cli run" in definition
+def _result(code: int, output: str = "") -> subprocess.CompletedProcess[str]:
+    return subprocess.CompletedProcess((), code, output, "")
 
 
-def test_launch_agent_starts_and_keeps_running() -> None:
-    definition = _launch_agent_plist(_paths())
+def test_service_definitions_are_supervised_and_single_instance() -> None:
+    paths = AgentPaths(Path("definition"), Path("stdout"), Path("stderr"))
 
-    assert definition["Label"] == SERVICE_ID
-    assert definition["RunAtLoad"] is True
-    assert definition["KeepAlive"] is True
-    assert definition["WorkingDirectory"]
-    assert definition["EnvironmentVariables"] == {
-        "HOME": str(Path.home()),
-        "PATH": agent_platforms.os.environ["PATH"],
-    }
-    assert definition["ProgramArguments"][-2:] == [
-        "app.workers.analysis.agent_cli",
-        "run",
-    ]
+    windows = agent_platforms._windows_task_xml()
+    macos = agent_platforms._launch_agent_plist(paths)
+    linux = agent_platforms._systemd_unit(paths)
 
-
-def test_agent_keeps_virtual_environment_python_path(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    venv_python = "/workspace/backend/.venv/bin/python3"
-    monkeypatch.setattr(agent_platforms.sys, "executable", venv_python)
-    monkeypatch.setattr(agent_platforms.sys, "platform", "darwin")
-
-    assert _python_executable() == Path(venv_python)
-
-
-def test_systemd_service_starts_and_restarts_after_failure() -> None:
-    definition = _systemd_unit(_paths())
-
-    assert "WantedBy=default.target" in definition
-    assert "Restart=always" in definition
-    assert "RestartSec=5" in definition
-    assert "app.workers.analysis.agent_cli run" in definition
+    assert "<MultipleInstancesPolicy>StopExisting</MultipleInstancesPolicy>" in windows
+    assert "<RestartOnFailure>" in windows
+    assert macos["KeepAlive"] is True
+    assert macos["ProgramArguments"][-1] == "run"  # type: ignore[index]
+    assert "Restart=always" in linux
+    assert "app.workers.analysis.agent_cli run" in linux
 
 
 @pytest.mark.parametrize(
-    ("platform", "expected"),
+    ("output", "expected"),
     (
-        ("win32", ("schtasks", "/Query")),
-        ("darwin", ("launchctl", "print")),
-        ("linux", ("systemctl", "--user")),
+        ("state = running\npid = 42\n", 0),
+        ("state = exited\nlast exit code = 1\n", 3),
+        ("state = running\n", 3),
     ),
 )
-def test_status_uses_platform_service_manager(
-    monkeypatch: pytest.MonkeyPatch,
-    platform: str,
-    expected: tuple[str, str],
-) -> None:
-    commands: list[tuple[str, ...]] = []
-
-    def run(command: tuple[str, ...], **kwargs: object) -> SimpleNamespace:
-        del kwargs
-        commands.append(command)
-        return SimpleNamespace(returncode=7)
-
-    monkeypatch.setattr(agent_platforms.sys, "platform", platform)
-    if platform == "darwin":
-        monkeypatch.setattr(agent_platforms.os, "getuid", lambda: 501, raising=False)
-    monkeypatch.setattr(agent_platforms.subprocess, "run", run)
-
-    assert agent_platforms.agent_status() == 7
-    assert commands[0][:2] == expected
+def test_macos_status_requires_a_live_process(output: str, expected: int) -> None:
+    assert agent_platforms._macos_result_state(_result(0, output)) == expected
 
 
-def test_windows_install_and_uninstall_manage_only_project_definition(
+def test_windows_status_distinguishes_missing_and_running() -> None:
+    script = agent_platforms._windows_status_command()[-1]
+    assert "Get-ScheduledTask -TaskPath '\\'" in script
+    assert "tasks.Count -eq 0) { exit 4" in script
+    assert "State -eq 'Running'" in script
+
+
+def test_windows_install_stops_then_verifies_running(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    paths = AgentPaths(
-        definition=tmp_path / "FrameFetch" / "analysis-agent.xml",
-        stdout=tmp_path / "FrameFetch" / "analysis-agent.log",
-        stderr=tmp_path / "FrameFetch" / "analysis-agent.error.log",
-    )
-    checked: list[tuple[str, ...]] = []
-    unchecked: list[tuple[str, ...]] = []
-
+    paths = _paths(tmp_path)
+    actions: list[object] = []
     monkeypatch.setattr(agent_platforms.sys, "platform", "win32")
     monkeypatch.setattr(agent_platforms, "agent_paths", lambda: paths)
-    monkeypatch.setattr(agent_platforms, "_run", checked.append)
     monkeypatch.setattr(
-        agent_platforms.subprocess,
-        "run",
-        lambda command, **kwargs: unchecked.append(command),
+        agent_platforms, "_stop_windows_task", lambda: actions.append("stop")
     )
+    monkeypatch.setattr(agent_platforms, "_windows_state", lambda: 0)
+    monkeypatch.setattr(agent_platforms, "_run", actions.append)
 
     agent_platforms.install_agent()
 
-    assert paths.definition.is_file()
-    assert checked[0][:4] == ("schtasks", "/Create", "/TN", "FrameFetchAnalysisAgent")
-    assert checked[1] == ("schtasks", "/Run", "/TN", "FrameFetchAnalysisAgent")
+    assert actions[0] == "stop"
+    assert actions[1][0:2] == ("schtasks", "/Create")  # type: ignore[index]
+    assert actions[2] == ("schtasks", "/Run", "/TN", "FrameFetchAnalysisAgent")
+
+
+def test_windows_install_preserves_definition_when_stop_fails(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    paths = _paths(tmp_path)
+    monkeypatch.setattr(agent_platforms.sys, "platform", "win32")
+    monkeypatch.setattr(agent_platforms, "agent_paths", lambda: paths)
+
+    def fail() -> bool:
+        raise SystemExit("stop failed")
+
+    monkeypatch.setattr(agent_platforms, "_stop_windows_task", fail)
+    with pytest.raises(SystemExit, match="stop failed"):
+        agent_platforms.install_agent()
+    assert not paths.definition.exists()
+
+
+def test_windows_uninstall_stops_before_delete(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    paths = _paths(tmp_path)
+    paths.definition.parent.mkdir(parents=True)
+    paths.definition.write_text("definition")
+    actions: list[tuple[str, ...]] = []
+    monkeypatch.setattr(agent_platforms.sys, "platform", "win32")
+    monkeypatch.setattr(agent_platforms, "agent_paths", lambda: paths)
+    monkeypatch.setattr(agent_platforms, "_stop_windows_task", lambda: True)
+    monkeypatch.setattr(agent_platforms, "_windows_state", lambda: 4)
+    monkeypatch.setattr(agent_platforms, "_run", actions.append)
 
     agent_platforms.uninstall_agent()
 
+    assert actions == [("schtasks", "/Delete", "/TN", "FrameFetchAnalysisAgent", "/F")]
     assert not paths.definition.exists()
-    assert unchecked == [
-        ("schtasks", "/Delete", "/TN", "FrameFetchAnalysisAgent", "/F")
-    ]
+
+
+def test_windows_uninstall_preserves_definition_when_stop_fails(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    paths = _paths(tmp_path)
+    paths.definition.parent.mkdir(parents=True)
+    paths.definition.write_text("definition")
+    monkeypatch.setattr(agent_platforms.sys, "platform", "win32")
+    monkeypatch.setattr(agent_platforms, "agent_paths", lambda: paths)
+
+    def fail() -> bool:
+        raise SystemExit("stop failed")
+
+    monkeypatch.setattr(agent_platforms, "_stop_windows_task", fail)
+    with pytest.raises(SystemExit, match="stop failed"):
+        agent_platforms.uninstall_agent()
+    assert paths.definition.is_file()
+
+
+def test_macos_install_migrates_legacy_and_verifies_running(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    paths = _paths(tmp_path)
+    actions: list[object] = []
+    monkeypatch.setattr(agent_platforms.sys, "platform", "darwin")
+    monkeypatch.setattr(agent_platforms.os, "getuid", lambda: 501, raising=False)
+    monkeypatch.setattr(agent_platforms, "agent_paths", lambda: paths)
+    monkeypatch.setattr(
+        agent_platforms,
+        "_migrate_legacy_macos_agent",
+        lambda: actions.append("migrate"),
+    )
+    monkeypatch.setattr(
+        agent_platforms,
+        "_stop_macos_service",
+        lambda label: actions.append(("stop", label)),
+    )
+    monkeypatch.setattr(agent_platforms, "_macos_state", lambda: 0)
+    monkeypatch.setattr(agent_platforms, "_run", actions.append)
+
+    agent_platforms.install_agent()
+
+    assert actions[:2] == ["migrate", ("stop", agent_platforms.SERVICE_ID)]
+    assert ("launchctl", "bootstrap", "gui/501", str(paths.definition)) in actions
+
+
+def test_macos_legacy_migration_refuses_unrelated_label(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        agent_platforms,
+        "_launchctl_print",
+        lambda label: _result(
+            0, "program = /tmp/unrelated\nstate = running\npid = 4\n"
+        ),
+    )
+    monkeypatch.setattr(
+        agent_platforms,
+        "_run",
+        lambda command: pytest.fail(f"must not stop: {command}"),
+    )
+    with pytest.raises(SystemExit, match="unrelated legacy macOS"):
+        agent_platforms._migrate_legacy_macos_agent()
+
+
+def test_macos_uninstall_migrates_legacy_before_canonical_stop(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    paths = _paths(tmp_path)
+    paths.definition.parent.mkdir(parents=True)
+    paths.definition.write_text("definition")
+    actions: list[object] = []
+    monkeypatch.setattr(agent_platforms.sys, "platform", "darwin")
+    monkeypatch.setattr(agent_platforms, "agent_paths", lambda: paths)
+    monkeypatch.setattr(
+        agent_platforms,
+        "_migrate_legacy_macos_agent",
+        lambda: actions.append("migrate"),
+    )
+    monkeypatch.setattr(
+        agent_platforms,
+        "_stop_macos_service",
+        lambda label: actions.append(("stop", label)),
+    )
+    monkeypatch.setattr(agent_platforms, "_macos_state", lambda: 4)
+
+    agent_platforms.uninstall_agent()
+
+    assert actions == ["migrate", ("stop", agent_platforms.SERVICE_ID)]
+    assert not paths.definition.exists()
+
+
+def test_linux_install_restarts_and_verifies_active(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    paths = _paths(tmp_path)
+    actions: list[tuple[str, ...]] = []
+    monkeypatch.setattr(agent_platforms.sys, "platform", "linux")
+    monkeypatch.setattr(agent_platforms, "agent_paths", lambda: paths)
+    monkeypatch.setattr(agent_platforms, "_migrate_legacy_linux_worker", lambda: None)
+    monkeypatch.setattr(agent_platforms, "_linux_active_state", lambda: 0)
+    monkeypatch.setattr(agent_platforms, "_run", actions.append)
+
+    agent_platforms.install_agent()
+
+    assert actions[-1] == (
+        "systemctl",
+        "--user",
+        "restart",
+        agent_platforms.SYSTEMD_SERVICE,
+    )
+
+
+def test_linux_uninstall_stops_before_removing_definition(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    paths = _paths(tmp_path)
+    paths.definition.parent.mkdir(parents=True)
+    paths.definition.write_text("definition")
+    load_states = iter((3, 4))
+    actions: list[tuple[str, ...]] = []
+    monkeypatch.setattr(agent_platforms.sys, "platform", "linux")
+    monkeypatch.setattr(agent_platforms, "agent_paths", lambda: paths)
+    migrated: list[bool] = []
+    monkeypatch.setattr(
+        agent_platforms,
+        "_migrate_legacy_linux_worker",
+        lambda: migrated.append(True),
+    )
+    monkeypatch.setattr(agent_platforms, "_linux_load_state", lambda: next(load_states))
+    monkeypatch.setattr(agent_platforms, "_linux_active_state", lambda: 3)
+    monkeypatch.setattr(agent_platforms, "_run", actions.append)
+
+    agent_platforms.uninstall_agent()
+
+    assert actions[0][2:4] == ("disable", "--now")
+    assert migrated == [True]
+    assert not paths.definition.exists()
+
+
+def test_linux_legacy_migration_requires_exact_process(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    state = tmp_path / "legacy"
+    pid_path = state / "worker.pid"
+    state.mkdir()
+    pid_path.write_text("42")
+    expected = (
+        (
+            str(agent_platforms.BACKEND_ROOT / ".venv" / "bin" / "python"),
+            "-m",
+            agent_platforms.LEGACY_MODULE,
+        ),
+        agent_platforms.BACKEND_ROOT,
+    )
+    snapshots = iter((expected, expected, None))
+    killed: list[tuple[int, signal.Signals]] = []
+    monkeypatch.setattr(agent_platforms, "LEGACY_STATE_DIR", state)
+    monkeypatch.setattr(agent_platforms, "LEGACY_PID_PATH", pid_path)
+    monkeypatch.setattr(agent_platforms, "LEGACY_PLIST_PATH", state / "plist")
+    monkeypatch.setattr(
+        agent_platforms, "_legacy_linux_process", lambda pid: next(snapshots)
+    )
+    monkeypatch.setattr(
+        agent_platforms.os, "kill", lambda pid, sig: killed.append((pid, sig))
+    )
+
+    agent_platforms._migrate_legacy_linux_worker()
+
+    assert killed == [(42, signal.SIGTERM)]
+    assert not pid_path.exists()

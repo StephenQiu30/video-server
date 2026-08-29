@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from app.application.downloads import (
     MediaInspectionAuthRequired,
+    MediaInspectionSessionExpired,
     RunnerFormat,
     RunnerInspection,
 )
@@ -37,7 +38,11 @@ class Repository:
         self.results.append(result)
 
     async def latest_checked_at(
-        self, target_id: str, stage: ProviderCanaryStage
+        self,
+        target_id: str,
+        profile_version: str,
+        stage: ProviderCanaryStage,
+        access_mode: ProviderAccessMode,
     ) -> datetime | None:
         return None
 
@@ -66,11 +71,17 @@ class Runner:
         self.download_calls = 0
         self.download_plans: list[DownloadPlan] = []
 
-    async def inspect(self, url: str) -> RunnerInspection:
+    async def inspect(
+        self,
+        url: str,
+        *,
+        access_mode: ProviderAccessMode,
+    ) -> RunnerInspection:
         assert url == URL
         self.inspections += 1
         if self.fail:
-            raise MediaInspectionAuthRequired
+            raise MediaInspectionAuthRequired(access_mode=access_mode)
+        operator = access_mode is ProviderAccessMode.OPERATOR_MANAGED
         default_request = download_request()
         fallback_request = download_request(height=240, width=320)
         return RunnerInspection(
@@ -85,8 +96,8 @@ class Runner:
             access_context=ProviderAccessContextRef(
                 provider_key="vimeo",
                 profile_version="1",
-                access_mode=ProviderAccessMode.ANONYMOUS,
-                credential_version_id=None,
+                access_mode=access_mode,
+                credential_version_id="version-1" if operator else None,
                 egress_affinity_id="default",
                 client_profile_id="yt-dlp-default",
                 attestation_provider_version=None,
@@ -114,11 +125,19 @@ class Runner:
         )
 
 
-def target(stage: ProviderCanaryStage) -> ProviderCanaryTarget:
+def target(
+    stage: ProviderCanaryStage,
+    access_mode: ProviderAccessMode = ProviderAccessMode.ANONYMOUS,
+) -> ProviderCanaryTarget:
     return ProviderCanaryTarget(
-        target_id="vimeo-owned-1",
+        target_id=(
+            "vimeo-operator-1"
+            if access_mode is ProviderAccessMode.OPERATOR_MANAGED
+            else "vimeo-owned-1"
+        ),
         provider_key="vimeo",
         stage=stage,
+        access_mode=access_mode,
         url=URL,
     )
 
@@ -244,4 +263,150 @@ async def test_metadata_failure_is_persisted_as_stable_access_error(
 
     assert result.outcome is ProviderCanaryOutcome.FAILED
     assert result.stable_error_code == "provider_auth_required"
+    assert result.access_mode is ProviderAccessMode.ANONYMOUS
     assert cleaner.calls == []
+
+
+@pytest.mark.asyncio
+async def test_metadata_failure_preserves_operator_attempt_attribution(
+    tmp_path: Path,
+) -> None:
+    class OperatorFailureRunner(Runner):
+        async def inspect(
+            self,
+            url: str,
+            *,
+            access_mode: ProviderAccessMode,
+        ) -> RunnerInspection:
+            assert url == URL
+            assert access_mode is ProviderAccessMode.OPERATOR_MANAGED
+            raise MediaInspectionSessionExpired(
+                access_mode=ProviderAccessMode.OPERATOR_MANAGED
+            )
+
+    repository, cleaner = Repository(), Cleaner()
+    ticks = iter((1.0, 1.1))
+    service = ProviderCanaryService(
+        repository,
+        OperatorFailureRunner(tmp_path),
+        cleaner,
+        now=lambda: NOW,
+        timer=lambda: next(ticks),
+    )
+
+    result = await service.execute(
+        target(
+            ProviderCanaryStage.METADATA,
+            ProviderAccessMode.OPERATOR_MANAGED,
+        )
+    )
+
+    assert result.outcome is ProviderCanaryOutcome.FAILED
+    assert result.stable_error_code == "provider_session_expired"
+    assert result.access_mode is ProviderAccessMode.OPERATOR_MANAGED
+
+
+@pytest.mark.asyncio
+async def test_anonymous_failure_and_operator_success_are_both_persisted(
+    tmp_path: Path,
+) -> None:
+    class RouteRunner(Runner):
+        async def inspect(
+            self,
+            url: str,
+            *,
+            access_mode: ProviderAccessMode,
+        ) -> RunnerInspection:
+            if access_mode is ProviderAccessMode.ANONYMOUS:
+                raise MediaInspectionAuthRequired()
+            return await super().inspect(url, access_mode=access_mode)
+
+    repository, cleaner = Repository(), Cleaner()
+    ticks = iter((1.0, 1.1, 2.0, 2.1))
+    service = ProviderCanaryService(
+        repository,
+        RouteRunner(tmp_path),
+        cleaner,
+        now=lambda: NOW,
+        timer=lambda: next(ticks),
+    )
+
+    public_result = await service.execute(target(ProviderCanaryStage.METADATA))
+    operator_result = await service.execute(
+        target(
+            ProviderCanaryStage.METADATA,
+            ProviderAccessMode.OPERATOR_MANAGED,
+        )
+    )
+
+    assert repository.results == [public_result, operator_result]
+    assert public_result.outcome is ProviderCanaryOutcome.FAILED
+    assert public_result.access_mode is ProviderAccessMode.ANONYMOUS
+    assert operator_result.outcome is ProviderCanaryOutcome.SUCCEEDED
+    assert operator_result.access_mode is ProviderAccessMode.OPERATOR_MANAGED
+
+
+@pytest.mark.asyncio
+async def test_failure_is_persisted_for_the_explicit_public_route(
+    tmp_path: Path,
+) -> None:
+    class UnattributedFailureRunner(Runner):
+        async def inspect(
+            self,
+            url: str,
+            *,
+            access_mode: ProviderAccessMode,
+        ) -> RunnerInspection:
+            assert url == URL
+            assert access_mode is ProviderAccessMode.ANONYMOUS
+            raise MediaInspectionAuthRequired()
+
+    repository, cleaner = Repository(), Cleaner()
+    ticks = iter((1.0, 1.1))
+    service = ProviderCanaryService(
+        repository,
+        UnattributedFailureRunner(tmp_path),
+        cleaner,
+        now=lambda: NOW,
+        timer=lambda: next(ticks),
+    )
+
+    result = await service.execute(target(ProviderCanaryStage.METADATA))
+
+    assert result.outcome is ProviderCanaryOutcome.FAILED
+    assert result.access_mode is ProviderAccessMode.ANONYMOUS
+
+
+@pytest.mark.asyncio
+async def test_runner_cannot_return_a_different_route_as_public_success(
+    tmp_path: Path,
+) -> None:
+    class MismatchedRunner(Runner):
+        async def inspect(
+            self,
+            url: str,
+            *,
+            access_mode: ProviderAccessMode,
+        ) -> RunnerInspection:
+            assert access_mode is ProviderAccessMode.ANONYMOUS
+            return await super().inspect(
+                url,
+                access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+            )
+
+    repository, cleaner = Repository(), Cleaner()
+    ticks = iter((1.0, 1.1))
+    service = ProviderCanaryService(
+        repository,
+        MismatchedRunner(tmp_path),
+        cleaner,
+        now=lambda: NOW,
+        timer=lambda: next(ticks),
+    )
+
+    result = await service.execute(target(ProviderCanaryStage.METADATA))
+
+    assert result.outcome is ProviderCanaryOutcome.FAILED
+    assert result.stable_error_code == "client_context_mismatch"
+    assert result.access_mode is ProviderAccessMode.ANONYMOUS
+    assert result.profile_version == "1"

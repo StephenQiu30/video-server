@@ -136,21 +136,20 @@ curl --fail http://127.0.0.1:8111/health/ready
 curl --fail --head http://127.0.0.1:8101/
 ```
 
-`.env.example` 只用于本地开发示例。首次对外暴露服务前，请替换数据库、RabbitMQ、MinIO、认证密钥和公开访问地址。MinIO 业务进程共用一组 `MINIO_ACCESS_KEY` 与 `MINIO_SECRET_KEY`，不按 Worker 复制密钥。
+`.env.example` 只用于本地开发示例。首次对外暴露服务前，请替换数据库、RabbitMQ、MinIO、认证密钥和公开访问地址。MinIO 业务进程共用一组 `MINIO_ACCESS_KEY` 与 `MINIO_SECRET_KEY`，不按 Worker 复制密钥。环境 Compose 使用固定 digest 的官方 MinIO 镜像，并先由一次性 `minio-config-check` 校验 `MINIO_CORS_ALLOWED_ORIGINS`，再保留官方 entrypoint 启动 MinIO。这里只允许逗号分隔的 `scheme://host[:port]` exact origin，不允许空值、通配符、路径、非法主机或越界端口。修改该值后重新执行环境 Compose 的 `up -d`，不要用不会应用环境变化的 `restart`。
 
 完整启动、停止、复用已有基础环境和故障恢复步骤见[根目录 Compose 运行手册](docs/operations/001-root-compose运行手册.md)。
 
 ### 启用 AI 分析
 
-AI Worker 不在业务 Compose 中运行。默认活动线路是数据库内置的 `local-codex`，复用宿主机已登录的 Codex App Server，避免把 OAuth 认证目录复制进容器。管理员可在 `/admin/ai-providers` 新增并启用 DeepSeek、Codex 或 Claude API Profile；第三方 Endpoint、模型和 Key 都由 Web 管理，Key 加密存入 PostgreSQL，不写入 `.env`。以下命令只用于独立诊断：
+AI Worker 不在业务 Compose 中运行。默认活动线路是数据库内置且不可删除的 `local-codex`，复用宿主机已登录的 Codex App Server，避免把 OAuth 认证目录复制进容器。管理员可在 `/admin/ai-providers` 新增并启用 DeepSeek、Codex 或 Claude API Profile；第三方 Endpoint、模型和 Key 都由 Web 管理，Key 加密存入 PostgreSQL，不写入 `.env`。`.env` 只保留 CLI 二进制路径，不再参与 Provider 或模型选择。宿主机 Agent 只通过以下统一管理入口运行：
 
 ```bash
-# 先完成对应 CLI 的官方登录
 cd backend
 uv sync --frozen --dev
-uv run python -m app.workers.analysis.main
-# 或检查受监督实例
-cd .. && ./scripts/analysis-worker.sh status
+uv run python -m app.workers.analysis.agent_cli doctor
+uv run python -m app.workers.analysis.agent_cli install
+uv run python -m app.workers.analysis.agent_cli status
 ```
 
 启用分析时，API 会先将任务事实和消息意图可靠写入 PostgreSQL Outbox，再由 RabbitMQ 投递给 AI Worker；Agent 状态只用于运维诊断，不作为 API 全局 readiness 或任务创建的硬前置。没有 AI Worker 的部署仍应明确设置 `ANALYSIS_ENABLED=false`；若 Agent 暂时不可用，任务保持 `queued`，恢复后由 Worker 继续消费。下载、文件获取和历史记录不依赖 AI Worker。AI Worker 通过受限的 FFmpeg/ffprobe 工具观察完整视频，请先确认内容授权、模型服务条款和组织数据策略。

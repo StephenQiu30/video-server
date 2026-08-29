@@ -22,6 +22,7 @@
 ### P0
 
 - 默认提供本机 Codex 登录 Profile。
+- `local-codex` 作为系统兜底不可删除，也不可改为第三方引擎、认证、Endpoint 或凭据结构。
 - 支持本机 Codex、Claude 登录与自定义 API Key Profile。
 - 支持管理员在 Web 中配置 DeepSeek 视觉 API；不得要求 C 端用户或部署者在 `.env` 填写第三方 AI Key。
 - DeepSeek 视频分析由服务端自动截图，用户不需要预处理、上传截图或安装浏览器扩展。

@@ -7,6 +7,7 @@ import { AiProviderScreen } from '@/components/admin/admin-ai-providers/ai-provi
 import {
   type AiProviderEditorState,
   EMPTY_AI_PROVIDER_EDITOR,
+  isLocalCodexProvider,
 } from '@/components/admin/admin-ai-providers/model';
 import {
   activateAiProviderProfile,
@@ -111,14 +112,19 @@ export function AdminAiProvidersView() {
         });
         setNotice(`已新增 AI Provider“${displayName}”。`);
       } else {
-        await updateAiProviderProfile(key, {
-          display_name: displayName,
-          engine: editor.engine,
-          auth_mode: editor.authMode,
-          base_url: editor.authMode === 'api_key' ? baseUrl : null,
-          model,
-          ...(apiKey ? { api_key: apiKey } : {}),
-        });
+        await updateAiProviderProfile(
+          key,
+          isLocalCodexProvider(key)
+            ? { display_name: displayName, model }
+            : {
+                display_name: displayName,
+                engine: editor.engine,
+                auth_mode: editor.authMode,
+                base_url: editor.authMode === 'api_key' ? baseUrl : null,
+                model,
+                ...(apiKey ? { api_key: apiKey } : {}),
+              },
+        );
         setNotice(`已更新 AI Provider“${displayName}”。`);
       }
       setEditor(EMPTY_AI_PROVIDER_EDITOR);

@@ -35,7 +35,14 @@ class ProviderCanaryResultRow(Base):
             "provider_key",
             "checked_at",
         ),
-        Index("ix_provider_canary_target_checked", "target_id", "stage", "checked_at"),
+        Index(
+            "ix_provider_canary_target_profile_route_checked",
+            "target_id",
+            "profile_version",
+            "stage",
+            "access_mode",
+            "checked_at",
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)

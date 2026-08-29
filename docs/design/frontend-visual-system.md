@@ -102,7 +102,7 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 
 `frontend/openapi2ts.config.ts` 直接配置 `@umijs/openapi`：
 
-- schema 默认读取已启动 FastAPI 的 `http://127.0.0.1:8101/openapi.json`，CI 可通过环境变量指向由同一 FastAPI 应用临时导出的 JSON；该临时文件不作为第二份契约提交。
+- schema 默认读取根 Compose 暴露的 FastAPI `http://127.0.0.1:8111/openapi.json`，CI 可通过环境变量指向由同一 FastAPI 应用临时导出的 JSON；该临时文件不作为第二份契约提交。
 - 生成目录固定为 `src/services/video/`，namespace 固定为 `API`，请求导入固定指向 `src/lib/request.ts`。
 - `npm run openapi` 是唯一生成入口；生成目录禁止手工修改。
 - 页面通过生成函数或薄业务适配层调用接口，不手写重复 DTO、旧接口兼容器或另一套 schema。

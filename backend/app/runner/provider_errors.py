@@ -82,7 +82,22 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
     FailureRule(
         "provider_link_unavailable",
         422,
-        any_stderr=(b"unsupported url:",),
+        any_stderr=(
+            b"unsupported url:",
+            b"tiktok video not available from the official player",
+        ),
+        providers=frozenset({"tiktok"}),
+    ),
+    FailureRule(
+        "provider_temporarily_unavailable",
+        503,
+        any_stderr=(b"tiktok official player api temporarily unavailable",),
+        providers=frozenset({"tiktok"}),
+    ),
+    FailureRule(
+        "extractor_regression",
+        502,
+        any_stderr=(b"tiktok official player response structure changed",),
         providers=frozenset({"tiktok"}),
     ),
     FailureRule(
@@ -217,16 +232,6 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
             b"rate-limit reached or login required",
             b"login required. use --cookies",
         ),
-    ),
-    FailureRule(
-        "provider_temporarily_unavailable",
-        503,
-        any_stderr=(
-            b"unexpected response from webpage request",
-            b"unable to extract challenge data",
-            b"unable to extract universal data for rehydration",
-        ),
-        providers=frozenset({"tiktok"}),
     ),
     FailureRule(
         "extractor_regression",

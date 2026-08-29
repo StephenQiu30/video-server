@@ -118,9 +118,11 @@ Phase 2 不因本文存在而自动获得上线授权；必须完成对应验收
 
 - Bilibili、抖音和小红书现有公开链路必须保持回归，不因 YouTube 会话引入 Cookie。
 - TikTok、Vimeo、X、Instagram、Facebook、Twitch 和 Reddit 在冻结支持前必须有 metadata + Range canary 和平台专用错误。
-- Pinterest、微博、优酷、腾讯视频保持 `unknown`，直至真实验证。
+- Pinterest、微博、优酷保留当前版本化匿名公开单视频 Profile；受保护或多资产内容继续 fail closed。
+- 腾讯视频在官方授权/API 与媒体权益边界获批前保持 `disabled`，不得用历史媒体成功恢复下载能力或暴露访问模式。
 - AcFun、Rutube、VK Clips、Dailymotion、NicoNico 不在产品范围，相关域名必须返回 `provider_unsupported`。
-- 视频号、快手保持 `unsupported`；不得通过公共中转、MITM 或未审计插件冒充支持。
+- 视频号仅以 `wechat-channels-public-v2` / `degraded` / anonymous-only 处理 `/sph/` 直接公开 clear 媒体；第一方未公开媒体或存在保护材料时 fail closed，且不得回退 Cookie、浏览器或第三方解析站。
+- 快手保留 `kuaishou-public-v1` 匿名公开单视频能力；图集和非第一方重定向 fail closed。
 
 ### FR-005-09 用户 ProviderCredential
 

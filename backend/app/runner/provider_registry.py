@@ -32,7 +32,6 @@ UrlNormalizer = Callable[[str, SplitResult], str]
 
 
 class ProviderRuntimeSettings(Protocol):
-    runner_tiktok_device_id: str | None
     runner_youtube_pot_base_url: str | None
 
 
@@ -78,9 +77,7 @@ class ProviderProfile:
     def request_url(self, url: str, parsed: SplitResult) -> str:
         return self.normalize_url(url, parsed)
 
-    def command_args_for(
-        self, settings: ProviderRuntimeSettings
-    ) -> tuple[str, ...]:
+    def command_args_for(self, settings: ProviderRuntimeSettings) -> tuple[str, ...]:
         return (*self.command_args, *self.runtime_command_args(settings))
 
 

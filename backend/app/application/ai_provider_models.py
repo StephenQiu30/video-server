@@ -7,6 +7,8 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Protocol
 
+LOCAL_CODEX_PROVIDER_KEY = "local-codex"
+
 
 class AiProviderEngine(StrEnum):
     CODEX = "codex"
@@ -44,6 +46,7 @@ class AiProviderErrorCode(StrEnum):
     CONFLICT = "ai_provider_conflict"
     NOT_FOUND = "ai_provider_not_found"
     ACTIVE_DELETE = "active_ai_provider_delete"
+    RESERVED_MUTATION = "reserved_ai_provider_mutation"
 
 
 class AiProviderError(RuntimeError):

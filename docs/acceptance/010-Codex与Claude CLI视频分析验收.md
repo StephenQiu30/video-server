@@ -6,7 +6,8 @@
 - 关联 Design：`docs/design/010-Codex与Claude CLI视频分析设计.md`
 - 关联 PRD：`docs/prd/010-Codex与Claude CLI视频分析需求.md`
 - 关联 Plan：`docs/plans/010-Codex与Claude CLI视频分析迁移计划.md`
-- 当前运行时：默认 `ANALYSIS_CLI_PROVIDER=codex`
+- 当前运行时：数据库内置 `local-codex` Profile，不从 `.env` 选择 Provider 或模型
+- 当前服务管理：只使用 `app.workers.analysis.agent_cli` 生成的 `com.framefetch.analysis-agent`/`FrameFetchAnalysisAgent`/systemd user service
 
 ## 1. 验收范围
 
