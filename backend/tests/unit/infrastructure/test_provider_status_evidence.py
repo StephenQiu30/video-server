@@ -6,7 +6,9 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
-from app.application.provider_canaries import ProviderEvidenceScope
+from app.application.provider_canaries import (
+    ProviderEvidenceScope as _ProviderEvidenceScope,
+)
 from app.domain.providers import (
     ProviderAccessContextRef,
     ProviderAccessMode,
@@ -31,6 +33,53 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 NOW = datetime(2026, 8, 29, 4, tzinfo=UTC)
 
 
+def runtime_context(
+    *,
+    profile_version: str,
+    access_mode: ProviderAccessMode,
+    engine_commit: str = "engine",
+    client_profile_id: str | None = None,
+    credential_version_id: str | None = None,
+    attestation_provider_version: str | None = None,
+) -> ProviderAccessContextRef:
+    operator = access_mode is ProviderAccessMode.OPERATOR_MANAGED
+    if operator and credential_version_id is None:
+        credential_version_id = "operator-v1"
+    return ProviderAccessContextRef(
+        provider_key="tiktok",
+        profile_version=profile_version,
+        access_mode=access_mode,
+        credential_version_id=credential_version_id,
+        egress_affinity_id="default",
+        client_profile_id=(
+            client_profile_id
+            or (
+                "chrome"
+                if profile_version == "tiktok-public-player-v2"
+                else "yt-dlp-default"
+            )
+        ),
+        attestation_provider_version=attestation_provider_version,
+        engine_commit=engine_commit,
+    )
+
+
+def ProviderEvidenceScope(  # noqa: N802
+    *,
+    profile_version: str,
+    access_mode: ProviderAccessMode,
+    engine_commit: str = "engine",
+) -> _ProviderEvidenceScope:
+    return _ProviderEvidenceScope(
+        profile_version=profile_version,
+        access_context=runtime_context(
+            profile_version=profile_version,
+            access_mode=access_mode,
+            engine_commit=engine_commit,
+        ),
+    )
+
+
 class Reader:
     def __init__(self, *results: ProviderCanaryResult) -> None:
         self._results = results
@@ -45,19 +94,30 @@ class Reader:
         return {"tiktok": self._results} if self._results else {}
 
 
-def evidence(minutes: int) -> ProviderCanaryResult:
+def evidence(
+    minutes: int,
+    *,
+    access_mode: ProviderAccessMode = ProviderAccessMode.OPERATOR_MANAGED,
+    engine_commit: str = "engine",
+) -> ProviderCanaryResult:
+    context = runtime_context(
+        profile_version="tiktok-public-player-v2",
+        access_mode=access_mode,
+        engine_commit=engine_commit,
+    )
     return ProviderCanaryResult(
         target_id=f"target:{minutes}",
         provider_key="tiktok",
         profile_version="tiktok-public-player-v2",
         stage=ProviderCanaryStage.MEDIA,
-        access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+        access_mode=access_mode,
         outcome=ProviderCanaryOutcome.SUCCEEDED,
         checked_at=NOW - timedelta(minutes=minutes),
         duration_ms=100,
-        engine_commit="engine",
+        engine_commit=engine_commit,
         egress_affinity_id="default",
         client_profile_id="chrome",
+        context_generation_id=context.generation_id,
     )
 
 
@@ -88,8 +148,8 @@ async def test_merges_orders_and_limits_evidence_sources() -> None:
 @pytest.mark.asyncio
 async def test_filters_scope_before_merged_reader_limit() -> None:
     disabled_operator = tuple(evidence(index) for index in range(32))
-    anonymous = replace(
-        evidence(33),
+    anonymous = evidence(
+        33,
         access_mode=ProviderAccessMode.ANONYMOUS,
     )
     reader = MergedProviderStatusEvidenceReader(
@@ -182,6 +242,40 @@ async def test_download_reader_filters_scope_before_per_provider_limit(
 
 
 @pytest.mark.asyncio
+async def test_download_reader_filters_engine_before_provider_limit(
+    postgres_engine: AsyncEngine,
+) -> None:
+    sessions = create_session_factory(postgres_engine)
+    for age in range(32):
+        await _seed_download(
+            sessions,
+            age=age,
+            access_mode=ProviderAccessMode.ANONYMOUS,
+            engine_commit="previous-engine",
+        )
+    expected = await _seed_download(
+        sessions,
+        age=33,
+        access_mode=ProviderAccessMode.ANONYMOUS,
+        engine_commit="current-engine",
+    )
+    reader = SqlAlchemyDownloadEvidenceReader(sessions)
+
+    results = await reader.list_recent(
+        limit_per_provider_stage=1,
+        scopes={
+            "tiktok": ProviderEvidenceScope(
+                profile_version="tiktok-public-player-v3",
+                access_mode=ProviderAccessMode.ANONYMOUS,
+                engine_commit="current-engine",
+            )
+        },
+    )
+
+    assert results == {"tiktok": (expected,)}
+
+
+@pytest.mark.asyncio
 async def test_download_reader_breaks_equal_timestamp_ties_by_job_id(
     postgres_engine: AsyncEngine,
 ) -> None:
@@ -251,6 +345,7 @@ async def _seed_download(
     age: int,
     access_mode: ProviderAccessMode,
     job_id: UUID | None = None,
+    engine_commit: str = "engine",
 ) -> ProviderCanaryResult:
     inspection_id, format_id = uuid4(), uuid4()
     job_id = job_id or uuid4()
@@ -264,7 +359,7 @@ async def _seed_download(
         egress_affinity_id="default",
         client_profile_id="yt-dlp-default",
         attestation_provider_version=None,
-        engine_commit="engine",
+        engine_commit=engine_commit,
     )
     async with sessions() as session, session.begin():
         session.add(

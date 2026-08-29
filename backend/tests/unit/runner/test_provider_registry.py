@@ -39,6 +39,14 @@ def test_uses_public_vimeo_player_endpoint_for_canonical_video() -> None:
     )
 
 
+def test_youtube_v4_uses_the_managed_mweb_pot_route() -> None:
+    profile = provider_profile("https://www.youtube.com/watch?v=owned")
+
+    assert profile.version == "youtube-v4"
+    assert profile.client_profile_id == "youtube-mweb"
+    assert profile.attestation_policy == "bgutil-mweb-player-gvs"
+
+
 @pytest.mark.parametrize(
     "url",
     (

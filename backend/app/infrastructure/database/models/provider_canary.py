@@ -36,11 +36,12 @@ class ProviderCanaryResultRow(Base):
             "checked_at",
         ),
         Index(
-            "ix_provider_canary_target_profile_route_checked",
+            "ix_provider_canary_target_generation_checked",
             "target_id",
             "profile_version",
             "stage",
             "access_mode",
+            "context_generation_id",
             "checked_at",
         ),
     )
@@ -60,3 +61,4 @@ class ProviderCanaryResultRow(Base):
     engine_commit: Mapped[str] = mapped_column(String(128), nullable=False)
     egress_affinity_id: Mapped[str] = mapped_column(String(128), nullable=False)
     client_profile_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    context_generation_id: Mapped[str] = mapped_column(String(64), nullable=False)

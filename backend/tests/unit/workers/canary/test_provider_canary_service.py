@@ -43,6 +43,10 @@ class Repository:
         profile_version: str,
         stage: ProviderCanaryStage,
         access_mode: ProviderAccessMode,
+        engine_commit: str,
+        egress_affinity_id: str,
+        client_profile_id: str,
+        context_generation_id: str,
     ) -> datetime | None:
         return None
 
@@ -67,9 +71,20 @@ class Runner:
         self.fail = fail
         self.format_drifts = format_drifts
         self.downloaded = False
+        self.context_calls = 0
         self.inspections = 0
         self.download_calls = 0
         self.download_plans: list[DownloadPlan] = []
+
+    async def context(
+        self,
+        url: str,
+        *,
+        access_mode: ProviderAccessMode,
+    ) -> ProviderAccessContextRef:
+        assert url == URL
+        self.context_calls += 1
+        return _context(access_mode)
 
     async def inspect(
         self,
@@ -81,7 +96,6 @@ class Runner:
         self.inspections += 1
         if self.fail:
             raise MediaInspectionAuthRequired(access_mode=access_mode)
-        operator = access_mode is ProviderAccessMode.OPERATOR_MANAGED
         default_request = download_request()
         fallback_request = download_request(height=240, width=320)
         return RunnerInspection(
@@ -93,16 +107,7 @@ class Runner:
                 RunnerFormat("1080p", default_request.plan.to_domain()),
                 RunnerFormat("240p", fallback_request.plan.to_domain()),
             ),
-            access_context=ProviderAccessContextRef(
-                provider_key="vimeo",
-                profile_version="1",
-                access_mode=access_mode,
-                credential_version_id="version-1" if operator else None,
-                egress_affinity_id="default",
-                client_profile_id="yt-dlp-default",
-                attestation_provider_version=None,
-                engine_commit="5d6b8c8cd19785c3086ae3a9ec618c45e25eb3bc",
-            ),
+            access_context=_context(access_mode),
         )
 
     async def download(self, *args: object, **kwargs: object) -> RunnerArtifact:
@@ -246,6 +251,35 @@ async def test_media_canary_preserves_transient_provider_failure(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "runner_error",
+    ("pot_provider_unavailable", "provider_session_unavailable"),
+)
+async def test_media_canary_normalizes_provider_dependency_outages(
+    tmp_path: Path,
+    runner_error: str,
+) -> None:
+    class DependencyFailureRunner(Runner):
+        async def download(self, *args: object, **kwargs: object) -> RunnerArtifact:
+            raise MediaRunnerClientError(runner_error, 503)
+
+    repository, cleaner = Repository(), Cleaner()
+    ticks = iter((1.0, 1.1))
+    service = ProviderCanaryService(
+        repository,
+        DependencyFailureRunner(tmp_path),
+        cleaner,
+        now=lambda: NOW,
+        timer=lambda: next(ticks),
+    )
+
+    result = await service.execute(target(ProviderCanaryStage.MEDIA))
+
+    assert result.outcome is ProviderCanaryOutcome.FAILED
+    assert result.stable_error_code == "provider_temporarily_unavailable"
+
+
+@pytest.mark.asyncio
 async def test_metadata_failure_is_persisted_as_stable_access_error(
     tmp_path: Path,
 ) -> None:
@@ -264,7 +298,70 @@ async def test_metadata_failure_is_persisted_as_stable_access_error(
     assert result.outcome is ProviderCanaryOutcome.FAILED
     assert result.stable_error_code == "provider_auth_required"
     assert result.access_mode is ProviderAccessMode.ANONYMOUS
+    assert result.egress_affinity_id == "default"
     assert cleaner.calls == []
+
+
+@pytest.mark.asyncio
+async def test_context_failure_is_not_guessed_as_the_current_runtime(
+    tmp_path: Path,
+) -> None:
+    class ContextFailureRunner(Runner):
+        async def context(
+            self,
+            url: str,
+            *,
+            access_mode: ProviderAccessMode,
+        ) -> ProviderAccessContextRef:
+            raise MediaRunnerClientError("runner_unavailable", 503)
+
+    repository, cleaner = Repository(), Cleaner()
+    ticks = iter((1.0, 1.1))
+    service = ProviderCanaryService(
+        repository,
+        ContextFailureRunner(tmp_path),
+        cleaner,
+        now=lambda: NOW,
+        timer=lambda: next(ticks),
+    )
+
+    result = await service.execute(target(ProviderCanaryStage.METADATA))
+
+    assert result.outcome is ProviderCanaryOutcome.FAILED
+    assert result.engine_commit == "unresolved"
+    assert result.egress_affinity_id == "unresolved"
+    assert result.client_profile_id == "unresolved"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("error_code", "status"),
+    (("runner_unavailable", 503), ("inspection_timeout", 504)),
+)
+async def test_preflight_context_failure_is_not_retried_or_guessed(
+    tmp_path: Path,
+    error_code: str,
+    status: int,
+) -> None:
+    repository, cleaner, runner = Repository(), Cleaner(), Runner(tmp_path)
+    ticks = iter((1.0, 1.1))
+    service = ProviderCanaryService(
+        repository,
+        runner,
+        cleaner,
+        now=lambda: NOW,
+        timer=lambda: next(ticks),
+    )
+
+    result = await service.execute(
+        target(ProviderCanaryStage.METADATA),
+        context_error=MediaRunnerClientError(error_code, status),
+    )
+
+    assert runner.context_calls == 0
+    assert runner.inspections == 0
+    assert result.stable_error_code == error_code
+    assert result.engine_commit == "unresolved"
 
 
 @pytest.mark.asyncio
@@ -410,3 +507,17 @@ async def test_runner_cannot_return_a_different_route_as_public_success(
     assert result.stable_error_code == "client_context_mismatch"
     assert result.access_mode is ProviderAccessMode.ANONYMOUS
     assert result.profile_version == "1"
+
+
+def _context(access_mode: ProviderAccessMode) -> ProviderAccessContextRef:
+    operator = access_mode is ProviderAccessMode.OPERATOR_MANAGED
+    return ProviderAccessContextRef(
+        provider_key="vimeo",
+        profile_version="1",
+        access_mode=access_mode,
+        credential_version_id="version-1" if operator else None,
+        egress_affinity_id="default",
+        client_profile_id="yt-dlp-default",
+        attestation_provider_version=None,
+        engine_commit="5d6b8c8cd19785c3086ae3a9ec618c45e25eb3bc",
+    )

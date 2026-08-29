@@ -30,6 +30,18 @@ class ProviderCanaryRunner:
         self._anonymous = anonymous
         self._operators = dict(operators or {})
 
+    async def context(
+        self,
+        url: str,
+        *,
+        access_mode: ProviderAccessMode,
+    ) -> ProviderAccessContextRef:
+        profile = provider_profile(url)
+        if access_mode not in profile.access_modes:
+            raise MediaInspectionAuthRequired(access_mode=access_mode)
+        client = self._inspection_client(profile.key, access_mode)
+        return await client.context(url)
+
     async def inspect(
         self,
         url: str,

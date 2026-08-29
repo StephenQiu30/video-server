@@ -14,7 +14,10 @@ from app.application.downloads import (
 from app.application.downloads.errors import MediaInspectionFormatUnavailable
 from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
 from app.infrastructure.media_runner import MediaRunnerRouter
-from app.infrastructure.media_runner_models import RunnerArtifact
+from app.infrastructure.media_runner_models import (
+    MediaRunnerClientError,
+    RunnerArtifact,
+)
 
 
 class FakeClient:
@@ -23,6 +26,17 @@ class FakeClient:
         self.inspect_error: Exception | None = None
         self.inspected: list[str] = []
         self.downloaded: list[str] = []
+        self.context_requests: list[tuple[str, ...]] = []
+
+    async def context_for_provider(self, provider_key: str) -> ProviderAccessContextRef:
+        self.context_requests.append((provider_key,))
+        return self.context
+
+    async def contexts_for_providers(
+        self, provider_keys: tuple[str, ...]
+    ) -> tuple[ProviderAccessContextRef, ...]:
+        self.context_requests.append(provider_keys)
+        return (self.context,)
 
     async def inspect(self, url: str) -> RunnerInspection:
         self.inspected.append(url)
@@ -195,6 +209,45 @@ async def test_download_routes_frozen_context_to_matching_pool() -> None:
 
     assert anonymous.downloaded == []
     assert operator.downloaded == ["task-1"]
+
+
+async def test_context_batch_resolves_anonymous_and_operator_routes_once() -> None:
+    anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
+    operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED))
+    router = MediaRunnerRouter(anonymous, {"youtube": operator})  # type: ignore[arg-type]
+
+    resolved = await router.contexts_for_providers(
+        {
+            "generic": ProviderAccessMode.ANONYMOUS,
+            "youtube": ProviderAccessMode.OPERATOR_MANAGED,
+        }
+    )
+
+    assert resolved == {"generic": anonymous.context, "youtube": operator.context}
+    assert anonymous.context_requests == [("generic",)]
+    assert operator.context_requests == [("youtube",)]
+
+
+async def test_context_batch_isolates_one_unavailable_operator_runner() -> None:
+    class UnavailableClient(FakeClient):
+        async def contexts_for_providers(
+            self, provider_keys: tuple[str, ...]
+        ) -> tuple[ProviderAccessContextRef, ...]:
+            self.context_requests.append(provider_keys)
+            raise MediaRunnerClientError("runner_unavailable", 503)
+
+    anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
+    operator = UnavailableClient(context(ProviderAccessMode.OPERATOR_MANAGED))
+    router = MediaRunnerRouter(anonymous, {"youtube": operator})  # type: ignore[arg-type]
+
+    resolved = await router.contexts_for_providers(
+        {
+            "generic": ProviderAccessMode.ANONYMOUS,
+            "youtube": ProviderAccessMode.OPERATOR_MANAGED,
+        }
+    )
+
+    assert resolved == {"generic": anonymous.context}
 
 
 def context(

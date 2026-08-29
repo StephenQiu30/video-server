@@ -38,6 +38,7 @@ class SqlAlchemyProviderCanaryRepository:
                     engine_commit=result.engine_commit,
                     egress_affinity_id=result.egress_affinity_id,
                     client_profile_id=result.client_profile_id,
+                    context_generation_id=result.context_generation_id,
                 )
             )
 
@@ -70,6 +71,9 @@ class SqlAlchemyProviderCanaryRepository:
                 and_(
                     ProviderCanaryResultRow.provider_key == provider_key,
                     ProviderCanaryResultRow.access_mode == scope.access_mode.value,
+                    ProviderCanaryResultRow.engine_commit == scope.engine_commit,
+                    ProviderCanaryResultRow.context_generation_id
+                    == scope.context_generation_id,
                     *(
                         (
                             ProviderCanaryResultRow.profile_version
@@ -110,12 +114,20 @@ class SqlAlchemyProviderCanaryRepository:
         profile_version: str,
         stage: ProviderCanaryStage,
         access_mode: ProviderAccessMode,
+        engine_commit: str,
+        egress_affinity_id: str,
+        client_profile_id: str,
+        context_generation_id: str,
     ) -> datetime | None:
         statement = select(func.max(ProviderCanaryResultRow.checked_at)).where(
             ProviderCanaryResultRow.target_id == target_id,
             ProviderCanaryResultRow.profile_version == profile_version,
             ProviderCanaryResultRow.stage == stage.value,
             ProviderCanaryResultRow.access_mode == access_mode.value,
+            ProviderCanaryResultRow.engine_commit == engine_commit,
+            ProviderCanaryResultRow.egress_affinity_id == egress_affinity_id,
+            ProviderCanaryResultRow.client_profile_id == client_profile_id,
+            ProviderCanaryResultRow.context_generation_id == context_generation_id,
         )
         async with self._sessions() as session:
             value = await session.scalar(statement)
@@ -136,4 +148,5 @@ def _to_domain(row: ProviderCanaryResultRow) -> ProviderCanaryResult:
         engine_commit=row.engine_commit,
         egress_affinity_id=row.egress_affinity_id,
         client_profile_id=row.client_profile_id,
+        context_generation_id=row.context_generation_id,
     )

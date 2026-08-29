@@ -41,6 +41,18 @@ class FailureRule:
 
 PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
     FailureRule(
+        "pot_provider_unavailable",
+        503,
+        all_stderr=(b"error reaching get ", b"/ping", b"server is reachable"),
+        providers=frozenset({"youtube"}),
+    ),
+    FailureRule(
+        "pot_provider_unavailable",
+        503,
+        all_stderr=(b"po token provider", b"server is not available"),
+        providers=frozenset({"youtube"}),
+    ),
+    FailureRule(
         "provider_unsupported",
         422,
         any_stderr=(b"unsupported url:",),

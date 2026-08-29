@@ -1187,6 +1187,7 @@ CREATE TABLE IF NOT EXISTS provider_canary_results (
     engine_commit VARCHAR(128) NOT NULL,
     egress_affinity_id VARCHAR(128) NOT NULL,
     client_profile_id VARCHAR(128) NOT NULL,
+    context_generation_id VARCHAR(64) NOT NULL,
     CONSTRAINT ck_provider_canary_stage CHECK (
         stage IN ('metadata', 'media', 'analysis')
     ),
@@ -1209,13 +1210,23 @@ ALTER TABLE provider_canary_results
         stage IN ('metadata', 'media', 'analysis')
     );
 
+ALTER TABLE provider_canary_results
+    ADD COLUMN IF NOT EXISTS context_generation_id VARCHAR(64);
+UPDATE provider_canary_results
+SET context_generation_id = 'legacy'
+WHERE context_generation_id IS NULL;
+ALTER TABLE provider_canary_results
+    ALTER COLUMN context_generation_id SET NOT NULL;
+
 CREATE INDEX IF NOT EXISTS ix_provider_canary_provider_checked
     ON provider_canary_results (provider_key, checked_at);
 DROP INDEX IF EXISTS ix_provider_canary_target_checked;
 DROP INDEX IF EXISTS ix_provider_canary_target_route_checked;
-CREATE INDEX IF NOT EXISTS ix_provider_canary_target_profile_route_checked
+DROP INDEX IF EXISTS ix_provider_canary_target_profile_route_checked;
+CREATE INDEX IF NOT EXISTS ix_provider_canary_target_generation_checked
     ON provider_canary_results (
-        target_id, profile_version, stage, access_mode, checked_at
+        target_id, profile_version, stage, access_mode,
+        context_generation_id, checked_at
     );
 
 CREATE TABLE IF NOT EXISTS task_events (

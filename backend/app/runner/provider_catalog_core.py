@@ -17,11 +17,14 @@ from app.runner.provider_registry import ProviderProfile, ProviderRuntimeSetting
 
 
 def _youtube_runtime_args(settings: ProviderRuntimeSettings) -> tuple[str, ...]:
-    if settings.runner_youtube_pot_base_url is None:
-        return ()
-    return (
+    client_args = (
         "--extractor-args",
-        "youtube:player_client=mweb,default",
+        "youtube:player_client=mweb",
+    )
+    if settings.runner_youtube_pot_base_url is None:
+        return client_args
+    return (
+        *client_args,
         "--extractor-args",
         f"youtubepot-bgutilhttp:base_url={settings.runner_youtube_pot_base_url}",
     )
@@ -42,7 +45,7 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
                 "www.youtube-nocookie.com",
             }
         ),
-        version="youtube-v3",
+        version="youtube-v4",
         capabilities=frozenset(
             {
                 ProviderCapability.SINGLE_VIDEO,
@@ -56,7 +59,8 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             ProviderAccessMode.OPERATOR_MANAGED,
         ),
         cookie_domain_allowlist=frozenset({"youtube.com", "youtube-nocookie.com"}),
-        attestation_policy="bgutil-mweb-gvs-optional",
+        client_profile_id="youtube-mweb",
+        attestation_policy="bgutil-mweb-player-gvs",
         egress_pool="youtube-sticky",
         credential_concurrency=1,
         support_status=ProviderSupportStatus.ACCESS_REQUIRED,

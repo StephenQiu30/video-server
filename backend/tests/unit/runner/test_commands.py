@@ -3,7 +3,9 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
+import httpx
 import pytest
+from app.runner import commands as commands_module
 from app.runner.commands import MediaCommands
 from app.runner.errors import RunnerFailure
 from app.runner.process import ProcessResult
@@ -292,6 +294,33 @@ async def test_explicit_youtube_pot_rejection_keeps_specific_diagnosis(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "stderr",
+    (
+        b"WARNING: Error reaching GET http://youtube-pot-provider:4416/ping "
+        b"(caused by TransportError). Please make sure that the server is reachable\n"
+        b"ERROR: Sign in to confirm you're not a bot",
+        b'PO Token Provider "bgutil:http" rejected this request; '
+        b"bgutil:http server is not available",
+    ),
+)
+async def test_bgutil_unreachable_stderr_keeps_specific_diagnosis(
+    tmp_path: Path,
+    stderr: bytes,
+) -> None:
+    commands = MediaCommands(settings(tmp_path), FailingSupervisor(stderr))
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect(
+            "https://www.youtube.com/watch?v=owned",
+            tmp_path,
+        )
+
+    assert caught.value.code == "pot_provider_unavailable"
+    assert caught.value.status == 503
+
+
+@pytest.mark.asyncio
 async def test_inspection_classifies_tiktok_post_ip_restriction(tmp_path: Path) -> None:
     commands = MediaCommands(
         settings(tmp_path),
@@ -382,21 +411,208 @@ async def test_youtube_uses_operator_managed_provider_egress(tmp_path: Path) -> 
 @pytest.mark.asyncio
 async def test_youtube_uses_service_managed_pot_without_cookies(tmp_path: Path) -> None:
     supervisor = RecordingSupervisor()
+    probe_calls: list[tuple[str, str]] = []
+
+    async def healthy_probe(base_url: str, expected_version: str) -> bool:
+        probe_calls.append((base_url, expected_version))
+        return True
+
     configured = settings(tmp_path).model_copy(
         update={
             "runner_youtube_pot_base_url": "http://youtube-pot-provider:4416",
+            "runner_youtube_pot_provider_version": "bgutil-http-9.8.7",
         }
     )
-    commands = MediaCommands(configured, supervisor)
+    commands = MediaCommands(
+        configured,
+        supervisor,
+        pot_provider_probe=healthy_probe,
+    )
 
     await commands.inspect("https://www.youtube.com/watch?v=owned", tmp_path)
 
-    assert "youtube:player_client=mweb,default" in supervisor.argv
+    assert probe_calls == [("http://youtube-pot-provider:4416", "9.8.7")]
+    assert "youtube:player_client=mweb" in supervisor.argv
+    assert all("mweb,default" not in item for item in supervisor.argv)
     assert (
         "youtubepot-bgutilhttp:base_url=http://youtube-pot-provider:4416"
         in supervisor.argv
     )
     assert "--cookies" not in supervisor.argv
+
+
+@pytest.mark.asyncio
+async def test_youtube_pot_preflight_fails_before_process_spawn(tmp_path: Path) -> None:
+    supervisor = RecordingSupervisor()
+
+    async def unavailable_probe(_base_url: str, _expected_version: str) -> bool:
+        return False
+
+    configured = settings(tmp_path).model_copy(
+        update={
+            "runner_youtube_pot_base_url": "http://youtube-pot-provider:4416",
+        }
+    )
+    commands = MediaCommands(
+        configured,
+        supervisor,
+        pot_provider_probe=unavailable_probe,
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect("https://www.youtube.com/watch?v=owned", tmp_path)
+
+    assert caught.value.code == "pot_provider_unavailable"
+    assert caught.value.status == 503
+    assert supervisor.argv == ()
+
+
+@pytest.mark.asyncio
+async def test_youtube_failure_rechecks_pot_after_process_spawn(tmp_path: Path) -> None:
+    supervisor = FailingSupervisor(b"ERROR: Sign in to confirm you're not a bot")
+    outcomes = iter((True, False))
+
+    async def lifecycle_probe(_base_url: str, _expected_version: str) -> bool:
+        return next(outcomes)
+
+    configured = settings(tmp_path).model_copy(
+        update={
+            "runner_youtube_pot_base_url": "http://youtube-pot-provider:4416",
+        }
+    )
+    commands = MediaCommands(
+        configured,
+        supervisor,
+        pot_provider_probe=lifecycle_probe,
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect("https://www.youtube.com/watch?v=owned", tmp_path)
+
+    assert caught.value.code == "pot_provider_unavailable"
+    assert caught.value.status == 503
+
+
+@pytest.mark.asyncio
+async def test_non_youtube_command_does_not_probe_pot_provider(tmp_path: Path) -> None:
+    supervisor = RecordingSupervisor()
+
+    async def unexpected_probe(_base_url: str, _expected_version: str) -> bool:
+        raise AssertionError("non-YouTube commands cannot probe the POT provider")
+
+    configured = settings(tmp_path).model_copy(
+        update={
+            "runner_youtube_pot_base_url": "http://youtube-pot-provider:4416",
+        }
+    )
+    commands = MediaCommands(
+        configured,
+        supervisor,
+        pot_provider_probe=unexpected_probe,
+    )
+
+    await commands.inspect("https://vimeo.com/123", tmp_path)
+
+    assert supervisor.argv
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "outcome",
+    (
+        "timeout",
+        "deadline",
+        "invalid_json",
+        "non_object_json",
+        "wrong_version",
+        "redirect",
+    ),
+)
+async def test_pot_semantic_probe_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+    outcome: str,
+) -> None:
+    options: dict[str, object] = {}
+
+    class Client:
+        def __init__(self, **kwargs: object) -> None:
+            options.update(kwargs)
+
+        async def __aenter__(self) -> Client:
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+        async def get(self, url: str) -> httpx.Response:
+            assert url == "http://youtube-pot-provider:4416/ping"
+            if outcome == "timeout":
+                raise httpx.ReadTimeout(
+                    "timed out",
+                    request=httpx.Request("GET", url),
+                )
+            if outcome == "deadline":
+                raise TimeoutError
+            if outcome == "invalid_json":
+                return httpx.Response(200, content=b"not-json")
+            if outcome == "non_object_json":
+                return httpx.Response(200, json=[{"version": "1.3.2"}])
+            if outcome == "wrong_version":
+                return httpx.Response(200, json={"version": "1.3.1"})
+            return httpx.Response(302, json={"version": "1.3.2"})
+
+    monkeypatch.setattr(commands_module.httpx, "AsyncClient", Client)
+
+    assert (
+        await commands_module._pot_provider_ready(
+            "http://youtube-pot-provider:4416",
+            "1.3.2",
+        )
+        is False
+    )
+    assert options == {
+        "timeout": 2.0,
+        "trust_env": False,
+        "follow_redirects": False,
+    }
+
+
+@pytest.mark.asyncio
+async def test_pot_semantic_probe_accepts_only_exact_version(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Client:
+        def __init__(self, **_kwargs: object) -> None:
+            pass
+
+        async def __aenter__(self) -> Client:
+            return self
+
+        async def __aexit__(self, *_args: object) -> None:
+            return None
+
+        async def get(self, _url: str) -> httpx.Response:
+            return httpx.Response(200, json={"version": "1.3.2"})
+
+    monkeypatch.setattr(commands_module.httpx, "AsyncClient", Client)
+
+    assert await commands_module._pot_provider_ready(
+        "http://youtube-pot-provider:4416",
+        "1.3.2",
+    )
+
+
+@pytest.mark.asyncio
+async def test_youtube_client_profile_does_not_depend_on_sidecar_url(
+    tmp_path: Path,
+) -> None:
+    supervisor = RecordingSupervisor()
+    commands = MediaCommands(settings(tmp_path), supervisor)
+
+    await commands.inspect("https://www.youtube.com/watch?v=owned", tmp_path)
+
+    assert "youtube:player_client=mweb" in supervisor.argv
+    assert all("youtubepot-bgutilhttp" not in item for item in supervisor.argv)
 
 
 @pytest.mark.asyncio

@@ -1,6 +1,6 @@
 # GitHub 开源方案调研
 
-- 调研日期：2026-08-06，最近复核：2026-08-09
+- 调研日期：2026-08-06，最近复核：2026-08-30
 - 结论：采用“成熟底层工具 + 自有安全编排与产品领域层”，不直接 fork 一体化下载站。
 
 > 2026-08-10 复核：本文关于“不接 Cookie”的一刀切结论已由 `research/003` 和 005 细化为“当前匿名 Runner 基线 + allowlist 下的受控 Provider 会话”。普通媒体请求、业务消息和 Generic 仍不得携带 Cookie；运维/用户会话必须经过独立 Secret 生命周期和验收。
@@ -102,3 +102,17 @@ GitHub 调研后的取舍：
 3. 新增 `RUNNER_PROVIDER_EGRESS_PROXIES`。YouTube/抖音这类依赖出口信誉的平台可以由运维路由到独立的内部代理池；Runner 配置仍拒绝代理 URL 凭据，未配置时回退到统一 egress proxy。
 4. 不引入公开解析 API、公共 Worker、未受管的全浏览器 Cookie、元宝 Cookie 或 MITM 根证书。市场工具能完成个人桌面下载，不代表其凭据模型、许可证和网络边界适合多用户服务端；受控 Provider Cookie 另按 005 实施。
 5. 抖音公开分享页由可信插件提取，远程格式先带固定浏览器请求头执行 ffprobe，并以实际可下载流时长覆盖陈旧页面时长；inspection 重试受单一总 deadline 约束，Runner 与调用方超时保持稳定 `inspection_timeout` 分类。
+
+## 2026-08-30 YouTube 运行时复核与当前决策
+
+2026-08-07 表格中 bgutil `1.3.1` 与“不加入默认拓扑”是当时故障复现证据，不是当前运行时。经过上游重新复核，现行实现为：
+
+- yt-dlp 固定 package `2026.8.19`（CLI 输出 [`2026.08.19`](https://github.com/yt-dlp/yt-dlp/releases/tag/2026.08.19)）/ commit [`3a08beaf031ab68f966401ead017ac81fe8486cf`](https://github.com/yt-dlp/yt-dlp/commit/3a08beaf031ab68f966401ead017ac81fe8486cf)；Runner readiness 同时校验安装包版本和锁定源 commit。
+- [bgutil-ytdlp-pot-provider `1.3.2`](https://github.com/Brainicism/bgutil-ytdlp-pot-provider/releases/tag/1.3.2) 已作为默认内部 POT 拓扑；Python 插件固定 `1.3.2`，sidecar 锁定 `brainicism/bgutil-ytdlp-pot-provider:1.3.2@sha256:9a96e6385ce1928da87dea07b1cab0413d2cf8c07a3b8a8bd419f53df2c3843c`。Sidecar 不参与 API/公共 Runner readiness 或 Compose health wait gate；版本库托管的 PID1 supervisor 以精确版本 `/ping` 连续 3 次失败为阈值重启上游子进程，并以 `stdio: "ignore"` 完全隔离上游 stdout/stderr，防止 token/绑定标识进入持久日志。
+- `youtube-v4` 只使用 `mweb` + EJS + 自动 POT。C 端用户不提交 Cookie、PO Token 或 yt-dlp 参数，服务端不启动宿主 Chrome，也不读取开发者/用户个人浏览器 Profile。
+
+Sidecar 只加入 internal `youtube_pot_net`，Runner 的 `runner_egress_net` 同样为 internal；默认拓扑只有 Squid 加入非 internal `proxy_uplink_net`，因此 Runner/POT 无法靠忽略代理环境变量直连。Runner 和 sidecar supervisor 以同一份 `RUNNER_PROVIDER_EGRESS_PROXIES` 解析 YouTube 路由，supervisor 对 JSON/无凭据 HTTP(S) URL 失败关闭、不记录代理地址；固定版本 bgutil 还会把 yt-dlp 的 `request_proxy` 放入 `/get_pot` 请求体并优先使用，因此两者使用同一实际 proxy。专用出口由部署方以受管双网卡 gateway 加入 `youtube_pot_net`，映射只指向其内部服务地址。
+
+POT 修复的是 Player/GVS 请求证明，不是 IP 信誉。yt-dlp 官方 [PO Token Guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide) 和 bgutil 项目均不承诺用 POT 绕过 bot check；对已经返回 `LOGIN_REQUIRED` / `Sign in to confirm you're not a bot` 的出口，继续更换 client、Cookie 或重启浏览器不是根治。
+
+面向 C 端的可持续方案是为 `RUNNER_PROVIDER_EGRESS_PROXIES.youtube` 配置部署方自身运维、稳定、合规、可审计的专用出口，并在同一实际 affinity 上通过授权 metadata/media canary。Affinity 由实际代理 URL 的 SHA-256 前 12 位指纹和 scope 组成。平台状态不再推断“最新 cohort”，而是从 HMAC 保护的 Runner 批量接口读取实时 context，并精确匹配包含 provider/profile/access/credential/affinity/client/attestation/engine 的完整 SHA-256 generation；任一输入变化或晚到的旧任务都不能污染当前状态，取不到实时 context 的 group 直接 `degraded`。未配置专用出口时实际回退到共享 `default` egress，平台状态不得伪报已使用专用出口或已 `verified`。不接入公共/免费代理、WARP/Tor、公共 cobalt/Invidious 或个人 Cookie 作为可用性降级，这些路径不满足多用户服务的稳定性、隐私和审计边界。

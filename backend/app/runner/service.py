@@ -30,7 +30,11 @@ from app.runner.metadata import (
     build_download_options,
 )
 from app.runner.presentation import inspect_response
-from app.runner.provider_registry import ProviderRequest, provider_request
+from app.runner.provider_registry import (
+    ProviderRequest,
+    provider_profile_for_key,
+    provider_request,
+)
 from app.runner.provider_sessions import ProviderSessionStore
 from app.runner.resolved_info import write_resolved_info
 from app.runner.settings import RunnerSettings
@@ -74,6 +78,22 @@ class MediaRunnerService:
         )
         self._active = ActiveTaskRegistry(settings.runner_max_active_tasks)
         self._sessions = session_store or ProviderSessionStore(settings)
+
+    async def context(self, url: str) -> ProviderAccessContextRef:
+        safe_url = safe_media_url(url)
+        source = provider_request(safe_url)
+        return self._sessions.context_for(source.profile)
+
+    async def context_for_provider(self, provider_key: str) -> ProviderAccessContextRef:
+        return self._sessions.context_for(provider_profile_for_key(provider_key))
+
+    async def contexts_for_providers(
+        self, provider_keys: tuple[str, ...]
+    ) -> tuple[ProviderAccessContextRef, ...]:
+        return tuple(
+            self._sessions.context_for(provider_profile_for_key(provider_key))
+            for provider_key in provider_keys
+        )
 
     async def inspect(self, url: str) -> InspectResponse:
         safe_url = safe_media_url(url)

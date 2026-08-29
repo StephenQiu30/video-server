@@ -16,7 +16,96 @@ from app.application.downloads.errors import (
 )
 from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
 from app.infrastructure.media_runner import MediaRunnerHttpClient
+from app.infrastructure.media_runner_models import MediaRunnerClientError
 from app.runner.contracts import DownloadPlanContract
+
+
+@pytest.mark.asyncio
+async def test_context_reads_the_runner_runtime_generation() -> None:
+    expected = _access_context()
+
+    async def respond(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/internal/v1/context"
+        assert json.loads(request.content) == {"provider_key": "generic"}
+        return httpx.Response(200, json=expected.to_document())
+
+    http = httpx.AsyncClient(
+        base_url="http://runner",
+        transport=httpx.MockTransport(respond),
+    )
+    client = MediaRunnerHttpClient(
+        base_url="http://runner",
+        secret=b"s" * 32,
+        workspace_root=Path("."),
+        inspect_timeout_seconds=1,
+        download_timeout_seconds=1,
+        client=http,
+    )
+
+    context = await client.context("https://media.example/video")
+
+    assert context == expected
+    await http.aclose()
+
+
+@pytest.mark.asyncio
+async def test_context_batch_uses_one_short_lived_runner_request() -> None:
+    expected = _access_context()
+
+    async def respond(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/internal/v1/contexts"
+        assert json.loads(request.content) == {"provider_keys": ["generic"]}
+        assert request.extensions["timeout"]["read"] == 2.0
+        return httpx.Response(200, json={"contexts": [expected.to_document()]})
+
+    http = httpx.AsyncClient(
+        base_url="http://runner",
+        transport=httpx.MockTransport(respond),
+    )
+    client = MediaRunnerHttpClient(
+        base_url="http://runner",
+        secret=b"s" * 32,
+        workspace_root=Path("."),
+        inspect_timeout_seconds=30,
+        download_timeout_seconds=30,
+        client=http,
+    )
+
+    contexts = await client.contexts_for_providers(("generic",))
+
+    assert contexts == (expected,)
+    await http.aclose()
+
+
+@pytest.mark.asyncio
+async def test_context_batch_rejects_a_semantically_invalid_runner_context() -> None:
+    invalid = {
+        **_access_context().to_document(),
+        "access_mode": "operator_managed",
+        "credential_version_id": None,
+    }
+
+    async def respond(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"contexts": [invalid]})
+
+    http = httpx.AsyncClient(
+        base_url="http://runner",
+        transport=httpx.MockTransport(respond),
+    )
+    client = MediaRunnerHttpClient(
+        base_url="http://runner",
+        secret=b"s" * 32,
+        workspace_root=Path("."),
+        inspect_timeout_seconds=30,
+        download_timeout_seconds=30,
+        client=http,
+    )
+
+    with pytest.raises(MediaRunnerClientError) as captured:
+        await client.contexts_for_providers(("generic",))
+
+    assert captured.value.code == "invalid_runner_response"
+    await http.aclose()
 
 
 @pytest.mark.asyncio

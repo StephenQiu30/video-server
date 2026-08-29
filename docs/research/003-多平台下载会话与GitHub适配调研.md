@@ -9,6 +9,8 @@
 
 > 2026-08-29 状态说明：第 6 节平台矩阵是调研时快照，不是当前支持清单。视频号现行匿名公开链路与 `degraded` 边界以 015 调研、025 设计/验收为准；腾讯视频当前为 `disabled`，快手当前为 `kuaishou-public-v1`。
 
+> 2026-08-30 YouTube 复核：第 1–5 节中 yt-dlp `2026.07.04` / `5d6b8c8` 和 bgutil `1.3.1` 是调研与故障复现基线，不再是当前运行时。现行锁定版本、PID1 恢复/日志隔离、sidecar 网络、验证结果和部署结论见第 10 节；上述历史表格保留当时证据，不用它们判定当前平台状态。
+
 ## 1. 执行摘要
 
 当前 YouTube 失败不是“项目不支持 Shorts”，也不是 yt-dlp 版本过旧或 JavaScript challenge runtime 缺失。仓库固定 commit `5d6b8c8` 的包报告版本为 `2026.07.04`，镜像同时包含 Node 24 和 `yt-dlp-ejs 0.8.0`；用户样本和另一个公开样本都在当前统一出口上返回 `LOGIN_REQUIRED / Sign in to confirm you're not a bot`。这说明当前主要故障是出口信誉或平台访问验证，Cookie 可以成为解决方案的一部分，但不能替代 PO Token、正确 client/EJS 或稳定出口。
@@ -192,3 +194,41 @@ PO Token 与 Cookie 不是同一个凭据。当前官方 TL;DR 是通过 Provide
 - [gallery-dl GPL-2.0 License](https://github.com/mikf/gallery-dl/blob/master/LICENSE)
 
 外部平台和反滥用机制会持续变化；该研究应在 yt-dlp 提交、POT Provider、平台 Cookie 语义或产品授权范围变化时复核。
+
+## 10. 2026-08-30 YouTube 上游复核与落地结论
+
+### 10.1 固定运行时
+
+| 组件 | 现行固定事实 | 运行门禁 |
+| --- | --- | --- |
+| [yt-dlp 2026.08.19](https://github.com/yt-dlp/yt-dlp/releases/tag/2026.08.19) | CLI 版本 `2026.08.19`，package metadata `2026.8.19`，commit [`3a08beaf031ab68f966401ead017ac81fe8486cf`](https://github.com/yt-dlp/yt-dlp/commit/3a08beaf031ab68f966401ead017ac81fe8486cf) | readiness 同时比对 package metadata 版本和 `direct_url.json` 的锁定源，避免同版本名的未审计来源漂移 |
+| [bgutil-ytdlp-pot-provider 1.3.2](https://github.com/Brainicism/bgutil-ytdlp-pot-provider/releases/tag/1.3.2) | Python 插件 `1.3.2`；sidecar `brainicism/bgutil-ytdlp-pot-provider:1.3.2@sha256:9a96e6385ce1928da87dea07b1cab0413d2cf8c07a3b8a8bd419f53df2c3843c` | Runner readiness 只比对插件版本；sidecar 不参与 API/公共 Runner readiness 或 Compose health wait gate，由版本库托管的 PID1 supervisor 在 `/ping` 连续 3 次失败后重启上游子进程 |
+| EJS / JavaScript runtime | `yt-dlp-ejs 0.8.0` + Node 24 | 继续处理 n/signature challenge，不用浏览器页面代替受控 Runner |
+| YouTube Profile | `youtube-v4`，`youtube:player_client=mweb`，attestation `bgutil-mweb-player-gvs` | 公开链路在服务端自动 mint 任务期 POT，不接收用户 Cookie/PO Token/任意 yt-dlp 参数 |
+
+版本选择不是只追随最新 tag：bgutil `1.3.2` 包含 [YouTube A/B 变体修复](https://github.com/Brainicism/bgutil-ytdlp-pot-provider/commit/495a47f)；yt-dlp 上游则已因持续 403 [移除 `android_vr` 无 POT 降级](https://github.com/yt-dlp/yt-dlp/commit/dae52d8386557f4c19ab58a9ae56062b8d52b3af)。因此当前 Profile 不恢复 Android/VR/TV 等旧 client 教程，也不使用 `player_client=all`。
+
+Supervisor 以 `stdio: "ignore"` 完全丢弃上游子进程 stdout/stderr，因为上游会输出 minted token 及其绑定标识；持久容器日志只留 supervisor 的固定、无密故障事件。Sidecar 只加入 internal `youtube_pot_net`，Runner 的 `runner_egress_net` 同样为 internal；默认拓扑只有 Squid 加入非 internal `proxy_uplink_net`。Runner 与 sidecar supervisor 从同一 `RUNNER_EGRESS_PROXY` / `RUNNER_PROVIDER_EGRESS_PROXIES` 配置解析实际路由；非法 JSON/URL 失败关闭且不输出代理地址，bgutil `/get_pot` 请求体内的 yt-dlp `request_proxy` 优先于环境回退，保证 token mint 与媒体下载使用同一实际代理。专用出口必须是加入 `youtube_pot_net` 的受管双网卡 gateway，映射使用其内部服务地址，不能指向任意公网 proxy hostname。
+
+### 10.2 POT 与 IP challenge 的边界
+
+yt-dlp 官方 [PO Token Guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide) 将 PO Token 定位为 Player/GVS/Subs 请求证明；[bgutil 项目](https://github.com/Brainicism/bgutil-ytdlp-pot-provider) 也不承诺绕过 403 或 bot check。因此：
+
+- 能生成有效 POT 只证明请求证明组件正常，不证明当前出口 IP 被 YouTube 信任。
+- 已返回 `LOGIN_REQUIRED` / `Sign in to confirm you're not a bot` 的 IP 不能由 POT 修复；这类失败应归类为 `egress_challenged`，而不是 `pot_required`。
+- 本轮在固定新运行时后，某些公开视频可完成 metadata，但多个可用于安全验收的公开授权样本在当前共享出口仍被 bot challenge。单个 metadata 成功不能替代授权样本的完整 media E2E，平台状态不得因此恢复 `verified`。
+
+### 10.3 面向 C 端的长期方案
+
+`RUNNER_PROVIDER_EGRESS_PROXIES={}` 时，YouTube 实际仍通过共享 `default` egress；Profile 的 `egress_pool` 是期望路由，不是已经获得专用 IP 的证据。Runner 使用实际代理 URL 的 SHA-256 前 12 位指纹生成非 Secret `egress_affinity_id`，带 `default` 或 `provider:youtube` scope；URL 变更即创建新 context。本轮将缺失 Runner context 的 canary 出口记为 `unresolved`，防止平台状态伪报已使用 `youtube-sticky`。
+
+平台状态通过 HMAC/replay 防护的批量 Runner 接口读取实时 context，并只聚合精确相同的 SHA-256 generation；generation 覆盖 provider、profile、access mode、credential version、实际 egress affinity、client profile、attestation/POT version 和 engine commit。旧 generation 保留审计但即使晚完成也不能影响当前状态；scheduler 同样按该 generation 查询最近执行时间。某个 runner group 取不到或返回畸形 context 时，只将该组平台标为 `degraded`，不会用历史 cohort 猜测当前运行时。
+
+面向多用户的长期可用性要求部署方为 `youtube` 配置自身运维、稳定、合规且可审计的专用出口，在同一实际 affinity 上完成 metadata + media canary，并以低并发、`Retry-After` 和冷却控制请求。这是部署能力门禁，不是需要再增加解析器补丁。
+
+不采用下列降级：
+
+- 不启动或操控宿主 Chrome，不读取开发者/用户个人 Cookie 或浏览器 Profile。
+- 不接入免费/公共代理列表、WARP/Tor 或高频 IP 轮换；它们不能提供可审计、可持续的 C 端服务质量。
+- 不把用户 URL 交给公共 cobalt/Invidious/其他解析 Worker，不用它们绕过当前 Runner 的出网、隐私和权益边界。
+- 不将 [yt-dlp-getpot-wpc](https://github.com/coletdjnz/yt-dlp-getpot-wpc) 这类启动真实浏览器的实验性 POT 方案并入服务端默认链路；它不解决 IP 信誉，且与无后台 Chrome 的隐私要求冲突。

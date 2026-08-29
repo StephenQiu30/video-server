@@ -1,17 +1,21 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 import pytest
 from app.application.provider_canaries import (
     ProviderEvidenceScope,
-    ProviderStatusService,
+    ProviderRuntimeContextReader,
+)
+from app.application.provider_canaries import (
+    ProviderStatusService as _ProviderStatusService,
 )
 from app.application.provider_catalog import ProviderCatalogEntry
 from app.application.providers import ProviderStatusView
 from app.domain.providers import (
+    ProviderAccessContextRef,
     ProviderAccessMode,
     ProviderCanaryOutcome,
     ProviderCanaryResult,
@@ -19,8 +23,76 @@ from app.domain.providers import (
     ProviderCapability,
     ProviderSupportStatus,
 )
+from app.runner.version import YTDLP_ENGINE_COMMIT
 
 NOW = datetime(2026, 8, 11, 6, tzinfo=UTC)
+
+
+def access_context(
+    *,
+    provider_key: str = "vimeo",
+    profile_version: str = "1",
+    access_mode: ProviderAccessMode = ProviderAccessMode.ANONYMOUS,
+    credential_version_id: str | None = None,
+    egress_affinity_id: str = "default",
+    client_profile_id: str = "yt-dlp-default",
+    attestation_provider_version: str | None = None,
+    engine_commit: str = YTDLP_ENGINE_COMMIT,
+) -> ProviderAccessContextRef:
+    if (
+        access_mode is ProviderAccessMode.OPERATOR_MANAGED
+        and credential_version_id is None
+    ):
+        credential_version_id = "credential-v1"
+    return ProviderAccessContextRef(
+        provider_key=provider_key,
+        profile_version=profile_version,
+        access_mode=access_mode,
+        credential_version_id=credential_version_id,
+        egress_affinity_id=egress_affinity_id,
+        client_profile_id=client_profile_id,
+        attestation_provider_version=attestation_provider_version,
+        engine_commit=engine_commit,
+    )
+
+
+class ContextReader:
+    def __init__(
+        self,
+        contexts: tuple[ProviderAccessContextRef, ...] = (access_context(),),
+    ) -> None:
+        self.contexts = contexts
+        self.requests: list[Mapping[str, ProviderAccessMode]] = []
+
+    async def contexts_for_providers(
+        self,
+        requested: Mapping[str, ProviderAccessMode],
+    ) -> Mapping[str, ProviderAccessContextRef]:
+        self.requests.append(requested)
+        return {
+            context.provider_key: context
+            for context in self.contexts
+            if requested.get(context.provider_key) is context.access_mode
+        }
+
+
+def ProviderStatusService(  # noqa: N802
+    reader: Reader,
+    baselines: tuple[ProviderStatusView, ...],
+    *,
+    now: Callable[[], datetime],
+    context_reader: ProviderRuntimeContextReader | None = None,
+    approved_keys: frozenset[str] = frozenset(),
+    catalog: Catalog | None = None,
+) -> _ProviderStatusService:
+    return _ProviderStatusService(
+        reader,
+        baselines,
+        now=now,
+        context_reader=context_reader or ContextReader(),
+        approved_keys=approved_keys,
+        catalog=catalog,  # type: ignore[arg-type]
+    )
 
 
 class Reader:
@@ -109,9 +181,10 @@ def result(
         stable_error_code=error,
         checked_at=NOW - timedelta(minutes=minutes),
         duration_ms=100,
-        engine_commit="5d6b8c8cd19785c3086ae3a9ec618c45e25eb3bc",
+        engine_commit=YTDLP_ENGINE_COMMIT,
         egress_affinity_id="default",
         client_profile_id="yt-dlp-default",
+        context_generation_id=access_context().generation_id,
     )
 
 
@@ -194,6 +267,32 @@ async def test_release_verification_survives_without_current_canary() -> None:
 
 
 @pytest.mark.asyncio
+async def test_runtime_context_failure_fails_closed_without_using_stale_evidence() -> (
+    None
+):
+    class UnavailableContextReader:
+        async def contexts_for_providers(
+            self,
+            requested: Mapping[str, ProviderAccessMode],
+        ) -> Mapping[str, ProviderAccessContextRef]:
+            assert requested == {"vimeo": ProviderAccessMode.ANONYMOUS}
+            raise TimeoutError
+
+    service = ProviderStatusService(
+        Reader((result(0, stage=ProviderCanaryStage.MEDIA),)),
+        (baseline(ProviderSupportStatus.VERIFIED),),
+        now=lambda: NOW,
+        context_reader=UnavailableContextReader(),
+    )
+
+    view = (await service.list())[0]
+
+    assert view.status is ProviderSupportStatus.DEGRADED
+    assert view.last_checked_at is None
+    assert view.download_available is False
+
+
+@pytest.mark.asyncio
 async def test_partial_runtime_evidence_does_not_revoke_release_verification() -> None:
     service = ProviderStatusService(
         Reader((result(0), result(30, stage=ProviderCanaryStage.MEDIA))),
@@ -211,7 +310,12 @@ async def test_partial_runtime_evidence_does_not_revoke_release_verification() -
 
 @pytest.mark.asyncio
 async def test_evidence_from_an_old_profile_version_is_ignored() -> None:
-    old = replace(result(0), profile_version="old")
+    old_context = access_context(profile_version="old")
+    old = replace(
+        result(0),
+        profile_version="old",
+        context_generation_id=old_context.generation_id,
+    )
     service = ProviderStatusService(
         Reader((old,)),
         (baseline(ProviderSupportStatus.VERIFIED),),
@@ -227,15 +331,41 @@ async def test_evidence_from_an_old_profile_version_is_ignored() -> None:
 
 
 @pytest.mark.asyncio
+async def test_evidence_from_an_old_engine_is_ignored() -> None:
+    old_context = access_context(engine_commit="previous-engine")
+    old = replace(
+        result(0),
+        engine_commit="previous-engine",
+        context_generation_id=old_context.generation_id,
+    )
+    service = ProviderStatusService(
+        Reader((old,)),
+        (baseline(ProviderSupportStatus.VERIFIED),),
+        now=lambda: NOW,
+    )
+
+    view = (await service.list())[0]
+
+    assert view.status is ProviderSupportStatus.VERIFIED
+    assert view.last_checked_at is None
+    assert view.download_available is False
+
+
+@pytest.mark.asyncio
 async def test_evidence_from_a_runtime_disabled_access_mode_is_ignored() -> None:
+    operator_context = access_context(
+        access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+    )
     operator_results = (
         replace(
             result(0, error="provider_auth_required"),
             access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+            context_generation_id=operator_context.generation_id,
         ),
         replace(
             result(30, stage=ProviderCanaryStage.MEDIA),
             access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+            context_generation_id=operator_context.generation_id,
         ),
     )
     service = ProviderStatusService(
@@ -254,10 +384,98 @@ async def test_evidence_from_a_runtime_disabled_access_mode_is_ignored() -> None
 
 
 @pytest.mark.asyncio
+async def test_old_runtime_route_cannot_keep_download_status_available() -> None:
+    current_context = access_context(
+        engine_commit="current-engine",
+        egress_affinity_id="provider:vimeo",
+        client_profile_id="current-client",
+    )
+    current_failure = replace(
+        result(1, error="provider_verification_failed"),
+        engine_commit=current_context.engine_commit,
+        egress_affinity_id=current_context.egress_affinity_id,
+        client_profile_id=current_context.client_profile_id,
+        context_generation_id=current_context.generation_id,
+    )
+    # A late result from the old route is newer, but can never reactivate it.
+    old_media_success = result(0, stage=ProviderCanaryStage.MEDIA)
+    service = ProviderStatusService(
+        Reader((current_failure, old_media_success)),
+        (baseline(ProviderSupportStatus.ACCESS_REQUIRED),),
+        now=lambda: NOW,
+        context_reader=ContextReader((current_context,)),
+    )
+
+    view = (await service.list())[0]
+
+    assert view.last_checked_at == NOW - timedelta(minutes=1)
+    assert view.last_check_succeeded is False
+    assert view.download_available is False
+    assert view.last_media_verified_at is None
+
+
+@pytest.mark.parametrize(
+    ("old_context", "current_context"),
+    (
+        (
+            access_context(
+                access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+                credential_version_id="credential-v1",
+            ),
+            access_context(
+                access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+                credential_version_id="credential-v2",
+            ),
+        ),
+        (
+            access_context(attestation_provider_version="bgutil-v1"),
+            access_context(attestation_provider_version="bgutil-v2"),
+        ),
+    ),
+)
+async def test_credential_or_attestation_rotation_invalidates_old_evidence(
+    old_context: ProviderAccessContextRef,
+    current_context: ProviderAccessContextRef,
+) -> None:
+    access_modes = (current_context.access_mode,)
+    stale_success = replace(
+        result(0, stage=ProviderCanaryStage.MEDIA),
+        access_mode=old_context.access_mode,
+        context_generation_id=old_context.generation_id,
+    )
+    current_failure = replace(
+        result(1, stage=ProviderCanaryStage.MEDIA, error="download_timeout"),
+        access_mode=current_context.access_mode,
+        context_generation_id=current_context.generation_id,
+    )
+    current_baseline = replace(
+        baseline(ProviderSupportStatus.ACCESS_REQUIRED),
+        access_modes=access_modes,
+    )
+    service = ProviderStatusService(
+        Reader((stale_success, current_failure)),
+        (current_baseline,),
+        now=lambda: NOW,
+        context_reader=ContextReader((current_context,)),
+    )
+
+    view = (await service.list())[0]
+
+    assert old_context.generation_id != current_context.generation_id
+    assert view.last_checked_at == NOW - timedelta(minutes=1)
+    assert view.last_check_succeeded is False
+    assert view.download_available is False
+
+
+@pytest.mark.asyncio
 async def test_operator_evidence_does_not_override_anonymous_public_status() -> None:
+    operator_context = access_context(
+        access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+    )
     operator_media = replace(
         result(0, stage=ProviderCanaryStage.MEDIA),
         access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+        context_generation_id=operator_context.generation_id,
     )
     operator_baseline = replace(
         baseline(),
@@ -282,9 +500,13 @@ async def test_operator_evidence_does_not_override_anonymous_public_status() -> 
 
 @pytest.mark.asyncio
 async def test_operator_only_status_uses_attributed_operator_evidence() -> None:
+    operator_context = access_context(
+        access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+    )
     operator_media = replace(
         result(0, stage=ProviderCanaryStage.MEDIA),
         access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+        context_generation_id=operator_context.generation_id,
     )
     operator_baseline = replace(
         baseline(),
@@ -294,6 +516,7 @@ async def test_operator_only_status_uses_attributed_operator_evidence() -> None:
         Reader((operator_media,)),
         (operator_baseline,),
         now=lambda: NOW,
+        context_reader=ContextReader((operator_context,)),
     )
 
     view = (await service.list())[0]
@@ -447,18 +670,21 @@ async def test_access_and_repeated_permanent_failures_override_baseline() -> Non
 @pytest.mark.asyncio
 async def test_wechat_channels_message_explains_anonymous_public_scope() -> None:
     wechat = replace(baseline(), key="wechat_channels")
+    wechat_context = access_context(provider_key="wechat_channels")
     service = ProviderStatusService(
         Reader(
             (
                 replace(
                     result(0, error="provider_auth_required"),
                     provider_key="wechat_channels",
+                    context_generation_id=wechat_context.generation_id,
                 ),
             ),
             key="wechat_channels",
         ),
         (wechat,),
         now=lambda: NOW,
+        context_reader=ContextReader((wechat_context,)),
     )
 
     view = (await service.list())[0]

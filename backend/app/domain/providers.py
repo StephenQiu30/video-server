@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
+from hashlib import sha256
 from typing import Self
 
 _REFERENCE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")
@@ -62,6 +63,7 @@ class ProviderCanaryResult:
     engine_commit: str
     egress_affinity_id: str
     client_profile_id: str
+    context_generation_id: str
     stable_error_code: str | None = None
 
     def __post_init__(self) -> None:
@@ -72,6 +74,7 @@ class ProviderCanaryResult:
             self.engine_commit,
             self.egress_affinity_id,
             self.client_profile_id,
+            self.context_generation_id,
         )
         if any(_REFERENCE.fullmatch(value) is None for value in references):
             raise ValueError("provider canary contains an invalid reference")
@@ -130,6 +133,21 @@ class ProviderAccessContextRef:
             "attestation_provider_version": self.attestation_provider_version,
             "engine_commit": self.engine_commit,
         }
+
+    @property
+    def generation_id(self) -> str:
+        """Stable identity for every non-secret input that defines a route."""
+        values = (
+            self.provider_key,
+            self.profile_version,
+            self.access_mode.value,
+            self.credential_version_id or "",
+            self.egress_affinity_id,
+            self.client_profile_id,
+            self.attestation_provider_version or "",
+            self.engine_commit,
+        )
+        return sha256("\x1f".join(values).encode()).hexdigest()
 
     @classmethod
     def from_document(cls, value: object) -> Self:

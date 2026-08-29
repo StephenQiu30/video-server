@@ -147,6 +147,9 @@ class ProviderAnalysisCanaryService:
             client_profile_id=(
                 context.client_profile_id if context else target.client_profile_id
             ),
+            context_generation_id=(
+                context.generation_id if context else "evidence-unavailable"
+            ),
         )
         await self._writer.save(result)
         return result

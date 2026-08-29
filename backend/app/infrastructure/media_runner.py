@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import math
 import re
 import secrets
@@ -52,16 +53,31 @@ from app.runner.contracts import (
     InspectRequest,
     InspectResponse,
     ProviderAccessContextContract,
+    ProviderContextRequest,
+    ProviderContextsRequest,
+    ProviderContextsResponse,
     TaskStatusResponse,
 )
+from app.runner.provider_registry import provider_profile
 from app.runner.signing import sign_request
 
 _TASK_ID = re.compile(r"[A-Za-z0-9_-]{1,64}")
+_CONTEXT_TIMEOUT_SECONDS = 2.0
 ResponseModel = TypeVar("ResponseModel", bound=BaseModel)
 
 
 class MediaRunnerClient(Protocol):
     """Runner strategy used by the routing facade."""
+
+    async def context(self, url: str) -> ProviderAccessContextRef: ...
+
+    async def context_for_provider(
+        self, provider_key: str
+    ) -> ProviderAccessContextRef: ...
+
+    async def contexts_for_providers(
+        self, provider_keys: tuple[str, ...]
+    ) -> tuple[ProviderAccessContextRef, ...]: ...
 
     async def inspect(self, url: str) -> RunnerInspection: ...
 
@@ -106,6 +122,37 @@ class MediaRunnerHttpClient:
         self._nonce = nonce or (lambda: secrets.token_urlsafe(24))
         self._owns_client = client is None
         self._client = client or httpx.AsyncClient(base_url=base_url)
+
+    async def context(self, url: str) -> ProviderAccessContextRef:
+        return await self.context_for_provider(provider_profile(url).key)
+
+    async def context_for_provider(self, provider_key: str) -> ProviderAccessContextRef:
+        response = await self._request(
+            "POST",
+            "/internal/v1/context",
+            ProviderContextRequest(provider_key=provider_key)
+            .model_dump_json()
+            .encode(),
+            ProviderAccessContextContract,
+            min(self._inspect_timeout, _CONTEXT_TIMEOUT_SECONDS),
+            timeout_code="inspection_timeout",
+        )
+        return _context_to_domain(response)
+
+    async def contexts_for_providers(
+        self, provider_keys: tuple[str, ...]
+    ) -> tuple[ProviderAccessContextRef, ...]:
+        response = await self._request(
+            "POST",
+            "/internal/v1/contexts",
+            ProviderContextsRequest(provider_keys=list(provider_keys))
+            .model_dump_json()
+            .encode(),
+            ProviderContextsResponse,
+            min(self._inspect_timeout, _CONTEXT_TIMEOUT_SECONDS),
+            timeout_code="inspection_timeout",
+        )
+        return tuple(_context_to_domain(context) for context in response.contexts)
 
     async def inspect(self, url: str) -> RunnerInspection:
         try:
@@ -319,6 +366,62 @@ class MediaRunnerRouter:
     async def inspect(self, url: str) -> RunnerInspection:
         return await self._inspection_pipeline.inspect(url)
 
+    async def context_for_provider(
+        self,
+        provider_key: str,
+        access_mode: ProviderAccessMode,
+    ) -> ProviderAccessContextRef:
+        client = (
+            self._anonymous
+            if access_mode is ProviderAccessMode.ANONYMOUS
+            else self._operators.get(provider_key)
+        )
+        if client is None:
+            raise MediaRunnerClientError("credential_required", 422)
+        context = await client.context_for_provider(provider_key)
+        if context.access_mode is not access_mode:
+            raise MediaRunnerClientError("client_context_mismatch", 502)
+        return context
+
+    async def contexts_for_providers(
+        self,
+        requested: Mapping[str, ProviderAccessMode],
+    ) -> Mapping[str, ProviderAccessContextRef]:
+        anonymous_keys = tuple(
+            key
+            for key, mode in requested.items()
+            if mode is ProviderAccessMode.ANONYMOUS
+        )
+        groups: list[tuple[MediaRunnerClient, tuple[str, ...]]] = []
+        if anonymous_keys:
+            groups.append((self._anonymous, anonymous_keys))
+        groups.extend(
+            (client, (key,))
+            for key, mode in requested.items()
+            if mode is ProviderAccessMode.OPERATOR_MANAGED
+            and (client := self._operators.get(key)) is not None
+        )
+
+        async def resolve(
+            client: MediaRunnerClient,
+            keys: tuple[str, ...],
+        ) -> tuple[ProviderAccessContextRef, ...]:
+            try:
+                return await client.contexts_for_providers(keys)
+            except MediaRunnerClientError:
+                return ()
+
+        batches = await asyncio.gather(
+            *(resolve(client, keys) for client, keys in groups)
+        )
+        contexts = {
+            context.provider_key: context
+            for batch in batches
+            for context in batch
+            if requested.get(context.provider_key) is context.access_mode
+        }
+        return contexts
+
     async def download(
         self,
         task_id: str,
@@ -370,3 +473,12 @@ def _error_code(response: httpx.Response) -> str:
     except (KeyError, TypeError, ValueError):
         return "runner_failed"
     return value if isinstance(value, str) and value else "runner_failed"
+
+
+def _context_to_domain(
+    contract: ProviderAccessContextContract,
+) -> ProviderAccessContextRef:
+    try:
+        return contract.to_domain()
+    except ValueError as exc:
+        raise MediaRunnerClientError("invalid_runner_response", 502) from exc

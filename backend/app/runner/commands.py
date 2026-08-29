@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, Protocol
+
+import httpx
 
 from app.domain.downloads import Container
 from app.runner.command_support import child_environment, json_object
@@ -27,7 +30,10 @@ _REMOTE_PROBE_USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/136.0.0.0 Safari/537.36"
 )
+_POT_PROBE_TIMEOUT_SECONDS = 2.0
+_POT_ATTESTATION_PREFIX = "bgutil-http-"
 _LOGGER = logging.getLogger(__name__)
+PotProviderProbe = Callable[[str, str], Awaitable[bool]]
 
 
 class ProcessRunner(Protocol):
@@ -42,9 +48,16 @@ class ProcessRunner(Protocol):
 
 
 class MediaCommands:
-    def __init__(self, settings: RunnerSettings, supervisor: ProcessRunner) -> None:
+    def __init__(
+        self,
+        settings: RunnerSettings,
+        supervisor: ProcessRunner,
+        *,
+        pot_provider_probe: PotProviderProbe | None = None,
+    ) -> None:
         self._settings = settings
         self._supervisor = supervisor
+        self._pot_provider_probe = pot_provider_probe or _pot_provider_ready
         self._ytdlp = YtDlpCommandBuilder(settings, _YTDLP_PLUGIN_ROOT)
 
     async def inspect(
@@ -227,6 +240,7 @@ class MediaCommands:
         failure_context: ProviderFailureContext | None = None,
     ) -> ProcessResult:
         selected_proxy = egress_proxy or self._settings.runner_egress_proxy
+        await self._ensure_youtube_pot_provider(failure_context)
         try:
             operation = self._supervisor.run(
                 command,
@@ -252,6 +266,9 @@ class MediaCommands:
         except OSError as exc:
             raise RunnerFailure("runner_dependency_unavailable", status=503) from exc
         if result.returncode != 0:
+            # Close the small race where the sidecar dies after the preflight
+            # but before yt-dlp asks it for a token.
+            await self._ensure_youtube_pot_provider(failure_context)
             provider_failure = (
                 classify_provider_failure(failure_context, result.stderr)
                 if failure_context is not None
@@ -285,8 +302,52 @@ class MediaCommands:
             raise RunnerFailure(failure_code, status=502)
         return result
 
+    async def _ensure_youtube_pot_provider(
+        self,
+        context: ProviderFailureContext | None,
+    ) -> None:
+        base_url = self._settings.runner_youtube_pot_base_url
+        if context is None or context.provider_key != "youtube" or base_url is None:
+            return
+        expected_version = _pot_release(
+            self._settings.runner_youtube_pot_provider_version
+        )
+        try:
+            ready = bool(
+                expected_version
+                and await self._pot_provider_probe(base_url, expected_version)
+            )
+        except Exception:
+            ready = False
+        if not ready:
+            raise RunnerFailure("pot_provider_unavailable", status=503)
+
     def _egress_proxy(self, url: str) -> str:
         return self._settings.egress_proxy_for(provider_request(url).profile.key)
+
+
+async def _pot_provider_ready(base_url: str, expected_version: str) -> bool:
+    try:
+        async with asyncio.timeout(_POT_PROBE_TIMEOUT_SECONDS):
+            async with httpx.AsyncClient(
+                timeout=_POT_PROBE_TIMEOUT_SECONDS,
+                trust_env=False,
+                follow_redirects=False,
+            ) as client:
+                response = await client.get(f"{base_url}/ping")
+        if response.status_code != 200:
+            return False
+        payload = response.json()
+    except (httpx.HTTPError, TimeoutError, ValueError):
+        return False
+    return isinstance(payload, dict) and payload.get("version") == expected_version
+
+
+def _pot_release(attestation_version: str) -> str | None:
+    if not attestation_version.startswith(_POT_ATTESTATION_PREFIX):
+        return None
+    release = attestation_version.removeprefix(_POT_ATTESTATION_PREFIX)
+    return release or None
 
 
 def _log_command_failure(

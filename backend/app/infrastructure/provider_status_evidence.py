@@ -121,11 +121,37 @@ def _statement(  # type: ignore[no-untyped-def]
     access_mode = MediaInspectionRow.metadata_json["provider_access_context"][
         "access_mode"
     ].as_string()
+    engine_commit = MediaInspectionRow.metadata_json["provider_access_context"][
+        "engine_commit"
+    ].as_string()
+    credential_version_id = MediaInspectionRow.metadata_json["provider_access_context"][
+        "credential_version_id"
+    ].as_string()
+    egress_affinity_id = MediaInspectionRow.metadata_json["provider_access_context"][
+        "egress_affinity_id"
+    ].as_string()
+    client_profile_id = MediaInspectionRow.metadata_json["provider_access_context"][
+        "client_profile_id"
+    ].as_string()
+    attestation_provider_version = MediaInspectionRow.metadata_json[
+        "provider_access_context"
+    ]["attestation_provider_version"].as_string()
     scope_filter = or_(
         *(
             and_(
                 provider_key == key,
                 access_mode == scope.access_mode.value,
+                engine_commit == scope.engine_commit,
+                egress_affinity_id == scope.access_context.egress_affinity_id,
+                client_profile_id == scope.access_context.client_profile_id,
+                _nullable_match(
+                    credential_version_id,
+                    scope.access_context.credential_version_id,
+                ),
+                _nullable_match(
+                    attestation_provider_version,
+                    scope.access_context.attestation_provider_version,
+                ),
                 *(
                     (profile_version == scope.profile_version,)
                     if scope.profile_version
@@ -169,8 +195,14 @@ def _in_scope(
     result: ProviderCanaryResult,
     scope: ProviderEvidenceScope,
 ) -> bool:
-    return result.access_mode is scope.access_mode and (
-        scope.profile_version is None or result.profile_version == scope.profile_version
+    return (
+        result.access_mode is scope.access_mode
+        and result.engine_commit == scope.engine_commit
+        and result.context_generation_id == scope.context_generation_id
+        and (
+            scope.profile_version is None
+            or result.profile_version == scope.profile_version
+        )
     )
 
 
@@ -199,4 +231,9 @@ def _download_result(
         engine_commit=context.engine_commit,
         egress_affinity_id=context.egress_affinity_id,
         client_profile_id=context.client_profile_id,
+        context_generation_id=context.generation_id,
     )
+
+
+def _nullable_match(column, value: str | None):  # type: ignore[no-untyped-def]
+    return column.is_(None) if value is None else column == value

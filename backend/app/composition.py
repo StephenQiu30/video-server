@@ -486,6 +486,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             ),
             provider_baselines,
             now=clock,
+            context_reader=runner,
             approved_keys=settings.provider_verified_keys,
             catalog=provider_catalog_repository,
         ),

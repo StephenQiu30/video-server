@@ -8,6 +8,7 @@ from typing import Protocol
 from app.application.provider_catalog import ProviderCatalogRepository
 from app.application.providers import ProviderStatusView, provider_user_action
 from app.domain.providers import (
+    ProviderAccessContextRef,
     ProviderAccessMode,
     ProviderCanaryOutcome,
     ProviderCanaryResult,
@@ -36,12 +37,38 @@ class ProviderCanaryReader(Protocol):
     ) -> Mapping[str, tuple[ProviderCanaryResult, ...]]: ...
 
 
+class ProviderRuntimeContextReader(Protocol):
+    async def contexts_for_providers(
+        self,
+        requested: Mapping[str, ProviderAccessMode],
+    ) -> Mapping[str, ProviderAccessContextRef]: ...
+
+
 @dataclass(frozen=True, slots=True)
 class ProviderEvidenceScope:
-    """One profile and access route allowed to affect public Provider status."""
+    """The one live runtime context allowed to affect public Provider status."""
 
     profile_version: str | None
-    access_mode: ProviderAccessMode
+    access_context: ProviderAccessContextRef
+
+    def __post_init__(self) -> None:
+        if (
+            self.profile_version is not None
+            and self.profile_version != self.access_context.profile_version
+        ):
+            raise ValueError("Provider evidence profile does not match live context")
+
+    @property
+    def access_mode(self) -> ProviderAccessMode:
+        return self.access_context.access_mode
+
+    @property
+    def engine_commit(self) -> str:
+        return self.access_context.engine_commit
+
+    @property
+    def context_generation_id(self) -> str:
+        return self.access_context.generation_id
 
 
 class ProviderStatusService:
@@ -51,6 +78,7 @@ class ProviderStatusService:
         baselines: tuple[ProviderStatusView, ...],
         *,
         now: Callable[[], datetime],
+        context_reader: ProviderRuntimeContextReader,
         approved_keys: frozenset[str] = frozenset(),
         catalog: ProviderCatalogRepository | None = None,
     ) -> None:
@@ -71,11 +99,16 @@ class ProviderStatusService:
         self._now = now
         self._approved_keys = approved_keys
         self._catalog = catalog
+        self._context_reader = context_reader
 
     async def list(self) -> tuple[ProviderStatusView, ...]:
+        contexts = await _runtime_contexts(self._baselines, self._context_reader)
         recent = await self._reader.list_recent(
             limit_per_provider_stage=32,
-            scopes=_evidence_scopes(self._baselines),
+            scopes=_evidence_scopes(
+                self._baselines,
+                contexts=contexts,
+            ),
         )
         now = self._now()
         merged = tuple(
@@ -84,6 +117,9 @@ class ProviderStatusService:
                 recent.get(view.key, ()),
                 now,
                 explicitly_approved=view.key in self._approved_keys,
+                context_generation_id=(
+                    contexts[view.key].generation_id if view.key in contexts else None
+                ),
             )
             for view in self._baselines
         )
@@ -120,6 +156,7 @@ def _merge_status(
     now: datetime,
     *,
     explicitly_approved: bool,
+    context_generation_id: str | None,
 ) -> ProviderStatusView:
     if baseline.status in {
         ProviderSupportStatus.DISABLED,
@@ -129,10 +166,23 @@ def _merge_status(
     access_mode = _status_access_mode(baseline.access_modes)
     if access_mode is None:
         return baseline
+    if context_generation_id is None:
+        return replace(
+            baseline,
+            status=ProviderSupportStatus.DEGRADED,
+            download_available=False,
+            user_action=provider_user_action(
+                ProviderSupportStatus.DEGRADED,
+                baseline.key,
+                download_available=False,
+                access_mode=access_mode,
+            ),
+        )
     results = tuple(
         item
         for item in results
         if item.access_mode is access_mode
+        and item.context_generation_id == context_generation_id
         and (
             baseline.profile_version is None
             or item.profile_version == baseline.profile_version
@@ -206,6 +256,8 @@ def _merge_status(
 
 def _evidence_scopes(
     baselines: tuple[ProviderStatusView, ...],
+    *,
+    contexts: Mapping[str, ProviderAccessContextRef],
 ) -> Mapping[str, ProviderEvidenceScope]:
     scopes: dict[str, ProviderEvidenceScope] = {}
     for baseline in baselines:
@@ -216,11 +268,45 @@ def _evidence_scopes(
             continue
         access_mode = _status_access_mode(baseline.access_modes)
         if access_mode is not None:
+            context = contexts.get(baseline.key)
+            if context is None:
+                continue
             scopes[baseline.key] = ProviderEvidenceScope(
                 profile_version=baseline.profile_version,
-                access_mode=access_mode,
+                access_context=context,
             )
     return scopes
+
+
+async def _runtime_contexts(
+    baselines: tuple[ProviderStatusView, ...],
+    reader: ProviderRuntimeContextReader,
+) -> Mapping[str, ProviderAccessContextRef]:
+    requested = {
+        baseline.key: access_mode
+        for baseline in baselines
+        if (access_mode := _status_access_mode(baseline.access_modes)) is not None
+    }
+    try:
+        resolved = await reader.contexts_for_providers(requested)
+    except Exception:
+        # Public status must never reuse stale evidence when the live runner
+        # generation cannot be established.
+        return {}
+    profile_versions = {
+        baseline.key: baseline.profile_version for baseline in baselines
+    }
+    return {
+        key: context
+        for key, context in resolved.items()
+        if key in requested
+        and context.provider_key == key
+        and context.access_mode is requested[key]
+        and (
+            profile_versions[key] is None
+            or context.profile_version == profile_versions[key]
+        )
+    }
 
 
 def _status_access_mode(

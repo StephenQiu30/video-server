@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
+from app.domain.providers import ProviderAccessContextRef
 from app.runner.contracts import (
     CancelResponse,
     DownloadRequest,
@@ -13,8 +14,9 @@ from app.runner.contracts import (
     RunnerTaskStage,
     TaskStatusResponse,
 )
-from app.runner.settings import RunnerSettings
+from app.runner.settings import RunnerSettings, egress_affinity_id
 from app.runner.signing import HmacRequestAuthenticator, InMemoryNonceGuard
+from app.runner.version import YTDLP_ENGINE_COMMIT
 
 SECRET = "runner-shared-secret-material-at-least-32-bytes"
 
@@ -22,9 +24,23 @@ SECRET = "runner-shared-secret-material-at-least-32-bytes"
 class FakeService:
     def __init__(self) -> None:
         self.inspected_url: str | None = None
+        self.context_requests: list[str] = []
         self.download_request: DownloadRequest | None = None
         self.cancelled: list[str] = []
         self.status_requests: list[str] = []
+
+    async def context_for_provider(self, provider_key: str) -> ProviderAccessContextRef:
+        self.context_requests.append(provider_key)
+        return ProviderAccessContextRef.from_document(anonymous_access_context())
+
+    async def contexts_for_providers(
+        self, provider_keys: tuple[str, ...]
+    ) -> tuple[ProviderAccessContextRef, ...]:
+        self.context_requests.extend(provider_keys)
+        return tuple(
+            ProviderAccessContextRef.from_document(anonymous_access_context())
+            for _ in provider_keys
+        )
 
     async def inspect(self, url: str) -> InspectResponse:
         self.inspected_url = url
@@ -87,10 +103,10 @@ def anonymous_access_context() -> dict[str, object]:
         "profile_version": "1",
         "access_mode": "anonymous",
         "credential_version_id": None,
-        "egress_affinity_id": "default",
+        "egress_affinity_id": egress_affinity_id("default", "http://egress-proxy:3128"),
         "client_profile_id": "yt-dlp-default",
         "attestation_provider_version": None,
-        "engine_commit": "5d6b8c8cd19785c3086ae3a9ec618c45e25eb3bc",
+        "engine_commit": YTDLP_ENGINE_COMMIT,
     }
 
 

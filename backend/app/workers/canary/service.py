@@ -36,7 +36,6 @@ from app.infrastructure.media_runner_models import (
     RunnerArtifact,
 )
 from app.runner.provider_registry import provider_profile
-from app.runner.version import YTDLP_ENGINE_COMMIT
 from app.workers.canary.targets import ProviderCanaryTarget
 
 _INSPECTION_ERRORS: tuple[tuple[type[Exception], str], ...] = (
@@ -59,6 +58,7 @@ _RUNNER_ERRORS = {
     "client_context_mismatch",
     "extractor_regression",
     "format_unavailable",
+    "inspection_timeout",
     "provider_rate_limited",
     "provider_link_unavailable",
     "provider_temporarily_unavailable",
@@ -77,6 +77,8 @@ _RUNNER_ERROR_ALIASES = {
     "credential_expired": "provider_session_expired",
     "credential_rejected": "provider_session_expired",
     "credential_revoked": "provider_session_expired",
+    "pot_provider_unavailable": "provider_temporarily_unavailable",
+    "provider_session_unavailable": "provider_temporarily_unavailable",
     "provider_geo_restricted": "provider_geo_restricted",
     "provider_media_unsupported": "provider_media_unsupported",
     "provider_unsupported": "provider_unsupported",
@@ -96,10 +98,21 @@ class CanaryRepository(Protocol):
         profile_version: str,
         stage: ProviderCanaryStage,
         access_mode: ProviderAccessMode,
+        engine_commit: str,
+        egress_affinity_id: str,
+        client_profile_id: str,
+        context_generation_id: str,
     ) -> datetime | None: ...
 
 
 class CanaryRunner(Protocol):
+    async def context(
+        self,
+        url: str,
+        *,
+        access_mode: ProviderAccessMode,
+    ) -> ProviderAccessContextRef: ...
+
     async def inspect(
         self,
         url: str,
@@ -139,24 +152,47 @@ class ProviderCanaryService:
         self._now = now
         self._timer = timer
 
-    async def execute(self, target: ProviderCanaryTarget) -> ProviderCanaryResult:
+    async def context_for(
+        self,
+        target: ProviderCanaryTarget,
+    ) -> ProviderAccessContextRef:
+        profile = provider_profile(target.safe_url())
+        context = await self._runner.context(
+            target.safe_url(),
+            access_mode=target.access_mode,
+        )
+        if (
+            context.provider_key != target.provider_key
+            or context.profile_version != profile.version
+            or context.access_mode is not target.access_mode
+        ):
+            raise MediaRunnerClientError("client_context_mismatch", 502)
+        return context
+
+    async def execute(
+        self,
+        target: ProviderCanaryTarget,
+        *,
+        expected_context: ProviderAccessContextRef | None = None,
+        context_error: Exception | None = None,
+    ) -> ProviderCanaryResult:
         started = self._timer()
         task_id = f"canary_{uuid4().hex}"
         workspace = None
         profile = provider_profile(target.safe_url())
-        context = None
+        context = expected_context
         error: str | None = None
         try:
+            if context_error is not None:
+                raise context_error
+            if context is None:
+                context = await self.context_for(target)
             inspection = await self._runner.inspect(
                 target.safe_url(),
                 access_mode=target.access_mode,
             )
             inspected_context = inspection.access_context
-            if (
-                inspected_context.provider_key != target.provider_key
-                or inspected_context.profile_version != profile.version
-                or inspected_context.access_mode is not target.access_mode
-            ):
+            if inspected_context != context:
                 raise MediaRunnerClientError("client_context_mismatch", 502)
             context = inspected_context
             if target.stage is ProviderCanaryStage.MEDIA:
@@ -186,13 +222,12 @@ class ProviderCanaryService:
             stable_error_code=error,
             checked_at=self._now(),
             duration_ms=max(0, round((self._timer() - started) * 1000)),
-            engine_commit=context.engine_commit if context else YTDLP_ENGINE_COMMIT,
+            engine_commit=context.engine_commit if context else "unresolved",
             egress_affinity_id=(
-                context.egress_affinity_id if context else profile.egress_pool
+                context.egress_affinity_id if context else "unresolved"
             ),
-            client_profile_id=(
-                context.client_profile_id if context else profile.client_profile_id
-            ),
+            client_profile_id=(context.client_profile_id if context else "unresolved"),
+            context_generation_id=(context.generation_id if context else "unresolved"),
         )
         await self._repository.save(result)
         return result
@@ -204,6 +239,7 @@ class ProviderCanaryService:
         inspection: RunnerInspection,
     ) -> tuple[RunnerArtifact, RunnerInspection]:
         """Retry only a rendition rotation, never a platform/access failure."""
+        expected_context = inspection.access_context
         for attempt in range(_FORMAT_DRIFT_ATTEMPTS):
             if not inspection.formats:
                 raise MediaRunnerClientError("format_unavailable", 409)
@@ -232,12 +268,7 @@ class ProviderCanaryService:
                     access_mode=target.access_mode,
                 )
                 context = inspection.access_context
-                profile = provider_profile(target.safe_url())
-                if (
-                    context.provider_key != target.provider_key
-                    or context.profile_version != profile.version
-                    or context.access_mode is not target.access_mode
-                ):
+                if context != expected_context:
                     raise MediaRunnerClientError(
                         "client_context_mismatch", 502
                     ) from exc

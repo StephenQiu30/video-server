@@ -4,7 +4,8 @@ from pathlib import Path
 
 from app.runner.contracts import DownloadRequest
 from app.runner.process import ProcessResult
-from app.runner.settings import RunnerSettings
+from app.runner.settings import RunnerSettings, egress_affinity_id
+from app.runner.version import YTDLP_ENGINE_COMMIT
 
 SECRET = "runner-shared-secret-material-at-least-32-bytes"
 
@@ -64,10 +65,12 @@ def download_request(height: int = 1080, width: int = 1920) -> DownloadRequest:
                 "profile_version": "1",
                 "access_mode": "anonymous",
                 "credential_version_id": None,
-                "egress_affinity_id": "default",
+                "egress_affinity_id": egress_affinity_id(
+                    "default", "http://egress-proxy:3128"
+                ),
                 "client_profile_id": "yt-dlp-default",
                 "attestation_provider_version": None,
-                "engine_commit": "5d6b8c8cd19785c3086ae3a9ec618c45e25eb3bc",
+                "engine_commit": YTDLP_ENGINE_COMMIT,
             },
             "plan": {
                 "height": height,

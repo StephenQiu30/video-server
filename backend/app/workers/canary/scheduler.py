@@ -33,19 +33,47 @@ class ProviderCanaryScheduler:
     async def run_due(self) -> None:
         for target in self._targets:
             profile_version = provider_profile(target.safe_url()).version
-            latest = await self._repository.latest_checked_at(
-                target.target_id,
-                profile_version,
-                target.stage,
-                target.access_mode,
-            )
+            context = None
+            context_error = None
+            try:
+                context = await self._service.context_for(target)
+            except Exception as exc:
+                context_error = exc
+                # Persisted unresolved failures are throttled independently.
+                # A recovered runner exposes its concrete generation and is
+                # therefore due immediately without waiting for this cohort.
+                latest = await self._repository.latest_checked_at(
+                    target.target_id,
+                    profile_version,
+                    target.stage,
+                    target.access_mode,
+                    "unresolved",
+                    "unresolved",
+                    "unresolved",
+                    "unresolved",
+                )
+            else:
+                latest = await self._repository.latest_checked_at(
+                    target.target_id,
+                    profile_version,
+                    target.stage,
+                    target.access_mode,
+                    context.engine_commit,
+                    context.egress_affinity_id,
+                    context.client_profile_id,
+                    context.generation_id,
+                )
             interval = (
                 self._metadata_interval
                 if target.stage is ProviderCanaryStage.METADATA
                 else self._media_interval
             )
             if latest is None or self._now() - latest >= interval:
-                await self._service.execute(target)
+                await self._service.execute(
+                    target,
+                    expected_context=context,
+                    context_error=context_error,
+                )
 
     async def run(self, stop: asyncio.Event) -> None:
         while not stop.is_set():

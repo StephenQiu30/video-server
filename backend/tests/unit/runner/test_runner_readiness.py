@@ -9,7 +9,7 @@ from app.runner.readiness import RunnerReadiness
 
 
 @pytest.mark.asyncio
-async def test_runner_readiness_checks_binaries_workspace_proxy_and_pot(
+async def test_runner_readiness_checks_binaries_workspace_and_proxy(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     configured = settings(tmp_path).model_copy(
@@ -24,19 +24,19 @@ async def test_runner_readiness_checks_binaries_workspace_proxy_and_pot(
         return True
 
     monkeypatch.setattr(readiness, "_tcp_ready", tcp_ready)
+    monkeypatch.setattr(readiness, "_runtime_packages_ready", lambda _settings: True)
     probe = RunnerReadiness(configured, binary_exists=lambda binary: binary)
 
     assert await probe.check() is True
-    assert endpoints == [
-        configured.runner_egress_proxy,
-        "http://youtube-pot-provider:4416",
-    ]
+    assert endpoints == [configured.runner_egress_proxy]
 
 
 @pytest.mark.asyncio
 async def test_runner_readiness_fails_when_a_dependency_is_missing(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(readiness, "_runtime_packages_ready", lambda _settings: True)
     missing_binary = RunnerReadiness(
         settings(tmp_path),
         binary_exists=lambda binary: None if binary == "yt-dlp" else binary,
@@ -54,3 +54,49 @@ async def test_runner_readiness_fails_when_a_dependency_is_missing(
     assert await missing_binary.check() is False
     assert await missing_workspace.check() is False
     assert await missing_session.check() is False
+
+
+@pytest.mark.asyncio
+async def test_runner_readiness_rejects_runtime_version_drift(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configured = settings(tmp_path).model_copy(
+        update={
+            "runner_youtube_pot_base_url": "http://youtube-pot-provider:4416",
+        }
+    )
+    monkeypatch.setattr(readiness, "_tcp_ready", _always_ready)
+    monkeypatch.setattr(readiness, "_runtime_packages_ready", lambda _settings: False)
+    probe = RunnerReadiness(configured, binary_exists=lambda binary: binary)
+
+    assert await probe.check() is False
+
+
+def test_runtime_package_probe_requires_exact_source_commit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configured = settings(tmp_path)
+    packages = {
+        "yt-dlp": (
+            "2026.8.19",
+            "https://github.com/yt-dlp/yt-dlp/archive/incorrect.tar.gz",
+        ),
+        "bgutil-ytdlp-pot-provider": ("1.3.2", None),
+    }
+    monkeypatch.setattr(readiness, "_package_record", packages.get)
+
+    assert readiness._runtime_packages_ready(configured) is False
+
+    packages["yt-dlp"] = (
+        "2026.8.19",
+        "https://github.com/yt-dlp/yt-dlp/archive/"
+        f"{configured.runner_ytdlp_commit}.tar.gz",
+    )
+
+    assert readiness._runtime_packages_ready(configured) is True
+
+
+async def _always_ready(_url: str) -> bool:
+    return True

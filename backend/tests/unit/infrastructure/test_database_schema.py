@@ -72,17 +72,19 @@ def test_download_schema_contains_required_tables_and_columns() -> None:
         "outcome",
         "stable_error_code",
         "checked_at",
+        "context_generation_id",
     } <= set(canaries.columns.keys())
     route_index = next(
         index
         for index in canaries.indexes
-        if index.name == "ix_provider_canary_target_profile_route_checked"
+        if index.name == "ix_provider_canary_target_generation_checked"
     )
     assert tuple(column.name for column in route_index.columns) == (
         "target_id",
         "profile_version",
         "stage",
         "access_mode",
+        "context_generation_id",
         "checked_at",
     )
     catalog = tables["provider_catalog_entries"]

@@ -5,8 +5,11 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import pytest
-from app.application.provider_canaries import ProviderEvidenceScope
+from app.application.provider_canaries import (
+    ProviderEvidenceScope as _ProviderEvidenceScope,
+)
 from app.domain.providers import (
+    ProviderAccessContextRef,
     ProviderAccessMode,
     ProviderCanaryOutcome,
     ProviderCanaryResult,
@@ -17,9 +20,54 @@ from app.infrastructure.database.models import ProviderCanaryResultRow
 from app.infrastructure.provider_canary_repository import (
     SqlAlchemyProviderCanaryRepository,
 )
+from app.runner.version import YTDLP_ENGINE_COMMIT
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 NOW = datetime(2026, 8, 11, 6, tzinfo=UTC)
+
+
+def runtime_context(
+    provider: str,
+    *,
+    profile_version: str,
+    access_mode: ProviderAccessMode,
+    engine_commit: str = YTDLP_ENGINE_COMMIT,
+    egress_affinity_id: str = "default",
+    client_profile_id: str = "yt-dlp-default",
+) -> ProviderAccessContextRef:
+    operator = access_mode is ProviderAccessMode.OPERATOR_MANAGED
+    return ProviderAccessContextRef(
+        provider_key=provider,
+        profile_version=profile_version,
+        access_mode=access_mode,
+        credential_version_id="operator-v1" if operator else None,
+        egress_affinity_id=egress_affinity_id,
+        client_profile_id=client_profile_id,
+        attestation_provider_version=None,
+        engine_commit=engine_commit,
+    )
+
+
+def ProviderEvidenceScope(  # noqa: N802
+    *,
+    profile_version: str,
+    access_mode: ProviderAccessMode,
+    engine_commit: str = YTDLP_ENGINE_COMMIT,
+    egress_affinity_id: str = "default",
+    client_profile_id: str = "yt-dlp-default",
+) -> _ProviderEvidenceScope:
+    provider = profile_version.partition("-public-")[0]
+    return _ProviderEvidenceScope(
+        profile_version=profile_version,
+        access_context=runtime_context(
+            provider,
+            profile_version=profile_version,
+            access_mode=access_mode,
+            engine_commit=engine_commit,
+            egress_affinity_id=egress_affinity_id,
+            client_profile_id=client_profile_id,
+        ),
+    )
 
 
 def canary(
@@ -29,20 +77,33 @@ def canary(
     access_mode: ProviderAccessMode = ProviderAccessMode.ANONYMOUS,
     stage: ProviderCanaryStage = ProviderCanaryStage.METADATA,
     profile_version: str | None = None,
+    engine_commit: str = YTDLP_ENGINE_COMMIT,
+    egress_affinity_id: str = "default",
+    client_profile_id: str = "yt-dlp-default",
 ) -> ProviderCanaryResult:
+    profile_version = profile_version or f"{provider}-public-v1"
+    context = runtime_context(
+        provider,
+        profile_version=profile_version,
+        access_mode=access_mode,
+        engine_commit=engine_commit,
+        egress_affinity_id=egress_affinity_id,
+        client_profile_id=client_profile_id,
+    )
     return ProviderCanaryResult(
         target_id=f"{provider}-owned-1",
         provider_key=provider,
-        profile_version=profile_version or f"{provider}-public-v1",
+        profile_version=profile_version,
         stage=stage,
         access_mode=access_mode,
         outcome=ProviderCanaryOutcome.SUCCEEDED,
         stable_error_code=None,
         checked_at=NOW - timedelta(minutes=age),
         duration_ms=100,
-        engine_commit="5d6b8c8cd19785c3086ae3a9ec618c45e25eb3bc",
-        egress_affinity_id="default",
-        client_profile_id="yt-dlp-default",
+        engine_commit=engine_commit,
+        egress_affinity_id=egress_affinity_id,
+        client_profile_id=client_profile_id,
+        context_generation_id=context.generation_id,
     )
 
 
@@ -73,6 +134,10 @@ async def test_persists_sanitized_evidence_and_limits_each_provider(
         "vimeo-public-v1",
         ProviderCanaryStage.METADATA,
         ProviderAccessMode.ANONYMOUS,
+        canary("vimeo", 0).engine_commit,
+        canary("vimeo", 0).egress_affinity_id,
+        canary("vimeo", 0).client_profile_id,
+        canary("vimeo", 0).context_generation_id,
     )
 
     assert len(recent["vimeo"]) == 5
@@ -94,6 +159,62 @@ async def test_filters_access_mode_before_per_provider_limit(
                 "vimeo",
                 age,
                 access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+            )
+        )
+    expected = canary("vimeo", 33)
+    await repository.save(expected)
+
+    recent = await repository.list_recent(
+        limit_per_provider_stage=1,
+        scopes={
+            "vimeo": ProviderEvidenceScope(
+                profile_version="vimeo-public-v1",
+                access_mode=ProviderAccessMode.ANONYMOUS,
+            )
+        },
+    )
+
+    assert recent == {"vimeo": (expected,)}
+
+
+@pytest.mark.asyncio
+async def test_filters_engine_before_per_provider_limit(
+    postgres_engine: AsyncEngine,
+) -> None:
+    repository = SqlAlchemyProviderCanaryRepository(
+        create_session_factory(postgres_engine)
+    )
+    for age in range(32):
+        await repository.save(canary("vimeo", age, engine_commit="previous-engine"))
+    expected = canary("vimeo", 33)
+    await repository.save(expected)
+
+    recent = await repository.list_recent(
+        limit_per_provider_stage=1,
+        scopes={
+            "vimeo": ProviderEvidenceScope(
+                profile_version="vimeo-public-v1",
+                access_mode=ProviderAccessMode.ANONYMOUS,
+                engine_commit=YTDLP_ENGINE_COMMIT,
+            )
+        },
+    )
+
+    assert recent == {"vimeo": (expected,)}
+
+
+@pytest.mark.asyncio
+async def test_filters_context_generation_before_per_provider_limit(
+    postgres_engine: AsyncEngine,
+) -> None:
+    repository = SqlAlchemyProviderCanaryRepository(
+        create_session_factory(postgres_engine)
+    )
+    for age in range(32):
+        await repository.save(
+            replace(
+                canary("vimeo", age),
+                context_generation_id="stale-generation",
             )
         )
     expected = canary("vimeo", 33)
@@ -203,6 +324,10 @@ async def test_latest_target_check_is_scoped_to_access_route(
         expected.profile_version,
         expected.stage,
         ProviderAccessMode.ANONYMOUS,
+        expected.engine_commit,
+        expected.egress_affinity_id,
+        expected.client_profile_id,
+        expected.context_generation_id,
     )
 
     assert latest == expected.checked_at
@@ -223,6 +348,53 @@ async def test_latest_target_check_is_scoped_to_profile_version(
         "vimeo-public-v2",
         old.stage,
         old.access_mode,
+        old.engine_commit,
+        old.egress_affinity_id,
+        old.client_profile_id,
+        old.context_generation_id,
+    )
+
+    assert latest is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("engine_commit", "egress_affinity_id", "client_profile_id"),
+    (
+        ("next-engine", "default", "yt-dlp-default"),
+        (
+            YTDLP_ENGINE_COMMIT,
+            "provider:vimeo:0123456789ab",
+            "yt-dlp-default",
+        ),
+        (
+            YTDLP_ENGINE_COMMIT,
+            "default",
+            "vimeo-web-v2",
+        ),
+    ),
+)
+async def test_latest_target_check_is_scoped_to_runtime_generation(
+    postgres_engine: AsyncEngine,
+    engine_commit: str,
+    egress_affinity_id: str,
+    client_profile_id: str,
+) -> None:
+    repository = SqlAlchemyProviderCanaryRepository(
+        create_session_factory(postgres_engine)
+    )
+    previous = canary("vimeo", 0)
+    await repository.save(previous)
+
+    latest = await repository.latest_checked_at(
+        previous.target_id,
+        previous.profile_version,
+        previous.stage,
+        previous.access_mode,
+        engine_commit,
+        egress_affinity_id,
+        client_profile_id,
+        previous.context_generation_id,
     )
 
     assert latest is None
@@ -250,6 +422,12 @@ async def test_equal_timestamps_use_persisted_id_as_stable_tiebreaker(
                     engine_commit="engine",
                     egress_affinity_id="default",
                     client_profile_id="yt-dlp-default",
+                    context_generation_id=runtime_context(
+                        "vimeo",
+                        profile_version="vimeo-public-v1",
+                        access_mode=ProviderAccessMode.ANONYMOUS,
+                        engine_commit="engine",
+                    ).generation_id,
                 )
             )
     repository = SqlAlchemyProviderCanaryRepository(sessions)
@@ -260,6 +438,7 @@ async def test_equal_timestamps_use_persisted_id_as_stable_tiebreaker(
             "vimeo": ProviderEvidenceScope(
                 profile_version="vimeo-public-v1",
                 access_mode=ProviderAccessMode.ANONYMOUS,
+                engine_commit="engine",
             )
         },
     )

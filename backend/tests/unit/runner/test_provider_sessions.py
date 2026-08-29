@@ -228,6 +228,24 @@ def test_operator_context_cannot_cross_provider(tmp_path: Path) -> None:
     assert caught.value.code == "provider_session_not_allowed"
 
 
+def test_anonymous_youtube_context_attests_runtime_versions(tmp_path: Path) -> None:
+    settings = RunnerSettings(
+        runner_hmac_secret=SECRET,
+        runner_egress_proxy="http://egress-proxy:3128",
+        runner_workspace_root=tmp_path / "work",
+        runner_youtube_pot_base_url="http://youtube-pot-provider:4416",
+    )
+
+    context = ProviderSessionStore(settings).context_for(
+        "https://www.youtube.com/watch?v=owned"
+    )
+
+    assert context.profile_version == "youtube-v4"
+    assert context.client_profile_id == "youtube-mweb"
+    assert context.attestation_provider_version == "bgutil-http-1.3.2"
+    assert context.engine_commit == "3a08beaf031ab68f966401ead017ac81fe8486cf"
+
+
 async def test_missing_cookie_does_not_prevent_runner_startup(tmp_path: Path) -> None:
     settings = operator_settings(tmp_path)
     store = ProviderSessionStore(settings)

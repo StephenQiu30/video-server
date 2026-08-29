@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from enum import StrEnum
 from typing import Self
 
@@ -137,6 +138,27 @@ class DownloadOption(ContractModel):
 
 class InspectRequest(ContractModel):
     url: str = Field(min_length=1, max_length=4096)
+
+
+class ProviderContextRequest(ContractModel):
+    provider_key: str = Field(pattern=r"^[a-z][a-z0-9_-]{0,31}$")
+
+
+class ProviderContextsRequest(ContractModel):
+    provider_keys: list[str] = Field(min_length=1, max_length=64)
+
+    @field_validator("provider_keys")
+    @classmethod
+    def validate_provider_keys(cls, value: list[str]) -> list[str]:
+        if len(set(value)) != len(value) or any(
+            re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", key) is None for key in value
+        ):
+            raise ValueError("provider keys are invalid")
+        return value
+
+
+class ProviderContextsResponse(ContractModel):
+    contexts: list[ProviderAccessContextContract]
 
 
 class InspectResponse(ContractModel):

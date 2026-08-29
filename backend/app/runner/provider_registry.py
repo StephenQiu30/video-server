@@ -141,6 +141,7 @@ class ProviderRegistry:
                     )
                 by_host_suffix[suffix] = profile
         self._profiles = configured
+        self._by_key = {profile.key: profile for profile in configured}
         self._by_host = by_host
         self._by_host_suffix = by_host_suffix
         self._fallback = fallback or ProviderProfile(
@@ -177,6 +178,12 @@ class ProviderRegistry:
             key=lambda item: len(item[0]),
             default=("", self._fallback),
         )[1]
+
+    def profile_for_key(self, provider_key: str) -> ProviderProfile:
+        profile = self._by_key.get(provider_key)
+        if profile is None or profile.support_status is ProviderSupportStatus.DISABLED:
+            raise RunnerFailure("provider_unsupported", status=422)
+        return profile
 
     def prepare(self, url: str) -> ProviderRequest:
         profile = self.resolve(url)
@@ -223,6 +230,10 @@ def current_provider_registry() -> ProviderRegistry:
 
 def provider_profile(url: str) -> ProviderProfile:
     return current_provider_registry().resolve(url)
+
+
+def provider_profile_for_key(provider_key: str) -> ProviderProfile:
+    return current_provider_registry().profile_for_key(provider_key)
 
 
 def provider_request(url: str) -> ProviderRequest:

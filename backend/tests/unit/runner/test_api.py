@@ -41,6 +41,54 @@ def test_health_is_public_and_inspect_requires_valid_raw_body_signature(
     assert replay.json()["error"]["code"] == "request_replayed"
 
 
+def test_context_endpoint_returns_only_signed_non_secret_runtime_refs(
+    tmp_path: Path,
+) -> None:
+    service = FakeService()
+    client = TestClient(create_app(settings(tmp_path), service=service))
+    body = json.dumps({"provider_key": "generic"}).encode()
+    path = "/internal/v1/context"
+
+    response = client.post(
+        path,
+        content=body,
+        headers=signed_headers(path, body, "context_nonce_123456"),
+    )
+
+    assert response.status_code == 200
+    assert response.json() == anonymous_access_context()
+    assert set(response.json()) == {
+        "provider_key",
+        "profile_version",
+        "access_mode",
+        "credential_version_id",
+        "egress_affinity_id",
+        "client_profile_id",
+        "attestation_provider_version",
+        "engine_commit",
+    }
+    assert service.context_requests == ["generic"]
+
+
+def test_contexts_endpoint_resolves_a_signed_batch_without_network_input(
+    tmp_path: Path,
+) -> None:
+    service = FakeService()
+    client = TestClient(create_app(settings(tmp_path), service=service))
+    body = json.dumps({"provider_keys": ["generic"]}).encode()
+    path = "/internal/v1/contexts"
+
+    response = client.post(
+        path,
+        content=body,
+        headers=signed_headers(path, body, "contexts_nonce_12345"),
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"contexts": [anonymous_access_context()]}
+    assert service.context_requests == ["generic"]
+
+
 def test_readiness_fails_closed_until_runner_dependencies_are_ready(
     tmp_path: Path,
 ) -> None:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from app.runner.settings import RunnerSettings
+from app.runner.settings import RunnerSettings, egress_affinity_id
 from pydantic import ValidationError
 
 SECRET = "runner-shared-secret-material-at-least-32-bytes"
@@ -30,6 +30,7 @@ def test_loads_minimal_runner_environment(
     assert settings.hmac_secret_bytes == SECRET.encode()
     assert settings.runner_egress_proxy == "http://egress-proxy:3128"
     assert settings.runner_provider_egress_proxies == {}
+    assert settings.runner_youtube_pot_provider_version == "bgutil-http-1.3.2"
     assert settings.runner_workspace_root == tmp_path.resolve()
     assert settings.runner_inspect_timeout_seconds == 120
     assert settings.runner_download_timeout_seconds == 7_200
@@ -54,6 +55,21 @@ def test_loads_credential_free_provider_proxy_overrides(
 
     assert settings.egress_proxy_for("youtube") == "http://youtube-egress:3128"
     assert settings.egress_proxy_for("bilibili") == "http://egress-proxy:3128"
+    assert settings.egress_affinity_for("youtube") == egress_affinity_id(
+        "provider:youtube", "http://youtube-egress:3128"
+    )
+    assert settings.egress_affinity_for("bilibili") == egress_affinity_id(
+        "default", "http://egress-proxy:3128"
+    )
+
+
+def test_egress_affinity_changes_with_the_route_without_exposing_it() -> None:
+    first = egress_affinity_id("provider:youtube", "http://egress-a:3128")
+    second = egress_affinity_id("provider:youtube", "http://egress-b:3128")
+
+    assert first != second
+    assert first.startswith("provider:youtube:")
+    assert "egress-a" not in first
 
 
 def test_anonymous_runner_can_use_service_managed_youtube_pot(
@@ -115,5 +131,17 @@ def test_rejects_provider_proxy_credentials(tmp_path: Path) -> None:
             runner_provider_egress_proxies={
                 "youtube": "http://user:secret@youtube-egress:3128"
             },
+            runner_workspace_root=tmp_path,
+        )
+
+
+def test_rejects_provider_proxy_with_surrounding_whitespace(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(ValidationError):
+        RunnerSettings(
+            runner_hmac_secret=SECRET,
+            runner_egress_proxy="http://egress-proxy:3128",
+            runner_provider_egress_proxies={"youtube": " http://youtube-egress:3128"},
             runner_workspace_root=tmp_path,
         )

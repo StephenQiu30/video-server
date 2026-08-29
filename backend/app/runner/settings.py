@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from hashlib import sha256
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -9,7 +10,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.domain.providers import ProviderAccessMode
 from app.runner.provider_instances import validated_instance_hosts
-from app.runner.version import YTDLP_ENGINE_COMMIT
+from app.runner.version import (
+    YOUTUBE_POT_PROVIDER_ATTESTATION,
+    YTDLP_ENGINE_COMMIT,
+)
 
 _PROVIDER_KEY = re.compile(r"[a-z][a-z0-9_-]{0,31}")
 _REFERENCE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
@@ -45,7 +49,7 @@ class RunnerSettings(BaseSettings):
     runner_ytdlp_js_runtime: str = "node"
     runner_ytdlp_commit: str = YTDLP_ENGINE_COMMIT
     runner_youtube_pot_base_url: str | None = None
-    runner_youtube_pot_provider_version: str = "bgutil-http-1.3.1"
+    runner_youtube_pot_provider_version: str = YOUTUBE_POT_PROVIDER_ATTESTATION
     runner_ffmpeg_bin: str = "ffmpeg"
     runner_ffprobe_bin: str = "ffprobe"
 
@@ -119,8 +123,11 @@ class RunnerSettings(BaseSettings):
 
     def egress_affinity_for(self, provider: str) -> str:
         if provider in self.runner_provider_egress_proxies:
-            return f"provider:{provider}"
-        return "default"
+            return egress_affinity_id(
+                f"provider:{provider}",
+                self.runner_provider_egress_proxies[provider],
+            )
+        return egress_affinity_id("default", self.runner_egress_proxy)
 
     @field_validator(
         "runner_workspace_root",
@@ -238,6 +245,8 @@ class RunnerSettings(BaseSettings):
 
 
 def _validate_proxy(value: str) -> str:
+    if value != value.strip():
+        raise ValueError("runner egress proxy is invalid")
     try:
         parsed = urlsplit(value)
         _ = parsed.port
@@ -265,3 +274,9 @@ def _validate_service_url(value: str) -> str:
     if parsed.query or parsed.fragment:
         raise ValueError("provider service URL cannot contain query or fragment")
     return value.rstrip("/")
+
+
+def egress_affinity_id(scope: str, proxy_url: str) -> str:
+    """Return a non-secret identity that changes whenever an egress route changes."""
+    fingerprint = sha256(proxy_url.encode()).hexdigest()[:12]
+    return f"{scope}:{fingerprint}"

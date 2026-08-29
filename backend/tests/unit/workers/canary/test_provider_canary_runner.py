@@ -13,7 +13,7 @@ URL = "https://www.youtube.com/watch?v=owned"
 
 class FakeClient:
     def __init__(self, access_mode: ProviderAccessMode) -> None:
-        self.context = context(access_mode)
+        self.access_context = context(access_mode)
         self.error: Exception | None = None
         self.inspected: list[str] = []
         self.closed = False
@@ -28,8 +28,11 @@ class FakeClient:
             title="Owned",
             duration_seconds=30,
             formats=(),
-            access_context=self.context,
+            access_context=self.access_context,
         )
+
+    async def context(self, _url: str) -> ProviderAccessContextRef:
+        return self.access_context
 
     async def download(self, task_id: str, *_args, **_kwargs) -> RunnerArtifact:
         return RunnerArtifact(
@@ -93,10 +96,10 @@ def context(access_mode: ProviderAccessMode) -> ProviderAccessContextRef:
     operator = access_mode is ProviderAccessMode.OPERATOR_MANAGED
     return ProviderAccessContextRef(
         provider_key="youtube",
-        profile_version="youtube-v3",
+        profile_version="youtube-v4",
         access_mode=access_mode,
         credential_version_id="version-1" if operator else None,
-        egress_affinity_id="youtube-sticky",
+        egress_affinity_id="default",
         client_profile_id="yt-dlp-default",
         attestation_provider_version=None,
         engine_commit="5d6b8c8",

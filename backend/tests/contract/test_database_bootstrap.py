@@ -105,6 +105,12 @@ def test_current_schema_can_be_applied_repeatedly() -> None:
     assert "'local-codex', '本机 Codex', 'codex', 'host_login'" in schema
     assert "ck_ai_provider_local_codex_shape" in schema
     assert "ON CONFLICT (key) DO UPDATE SET" in schema
+    assert "ADD COLUMN IF NOT EXISTS context_generation_id VARCHAR(64)" in schema
+    assert "ALTER COLUMN context_generation_id SET NOT NULL" in schema
+    assert "ix_provider_canary_target_generation_checked" in schema
+    assert (
+        "DROP INDEX IF EXISTS ix_provider_canary_target_profile_route_checked" in schema
+    )
 
 
 def test_ai_provider_selection_is_not_configured_by_environment() -> None:

@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError
 
+from app.domain.providers import ProviderAccessContextRef
 from app.runner.contracts import (
     CancelCommand,
     CancelResponse,
@@ -15,6 +16,10 @@ from app.runner.contracts import (
     DownloadResponse,
     InspectRequest,
     InspectResponse,
+    ProviderAccessContextContract,
+    ProviderContextRequest,
+    ProviderContextsRequest,
+    ProviderContextsResponse,
     TaskStatusResponse,
 )
 from app.runner.errors import RunnerFailure
@@ -36,6 +41,14 @@ _TASK_ID = re.compile(r"[A-Za-z0-9_-]{1,64}")
 
 
 class RunnerService(Protocol):
+    async def context_for_provider(
+        self, provider_key: str
+    ) -> ProviderAccessContextRef: ...
+
+    async def contexts_for_providers(
+        self, provider_keys: tuple[str, ...]
+    ) -> tuple[ProviderAccessContextRef, ...]: ...
+
     async def inspect(self, url: str) -> InspectResponse: ...
 
     async def download(self, request: DownloadRequest) -> DownloadResponse: ...
@@ -99,9 +112,7 @@ def create_app(
                 status_code=503,
                 content={"service": "media-runner", "status": "unavailable"},
             )
-        return JSONResponse(
-            content={"service": "media-runner", "status": "ready"}
-        )
+        return JSONResponse(content={"service": "media-runner", "status": "ready"})
 
     @app.post("/internal/v1/inspect", response_model=InspectResponse)
     async def inspect(request: Request) -> InspectResponse:
@@ -112,6 +123,40 @@ def create_app(
         )
         payload = _parse(InspectRequest, body)
         return await runner.inspect(payload.url)
+
+    @app.post(
+        "/internal/v1/context",
+        response_model=ProviderAccessContextContract,
+    )
+    async def context(request: Request) -> ProviderAccessContextContract:
+        body = await _authenticated_body(
+            request,
+            configured,
+            authenticator,
+        )
+        payload = _parse(ProviderContextRequest, body)
+        return ProviderAccessContextContract.from_domain(
+            await runner.context_for_provider(payload.provider_key)
+        )
+
+    @app.post(
+        "/internal/v1/contexts",
+        response_model=ProviderContextsResponse,
+    )
+    async def contexts(request: Request) -> ProviderContextsResponse:
+        body = await _authenticated_body(
+            request,
+            configured,
+            authenticator,
+        )
+        payload = _parse(ProviderContextsRequest, body)
+        resolved = await runner.contexts_for_providers(tuple(payload.provider_keys))
+        return ProviderContextsResponse(
+            contexts=[
+                ProviderAccessContextContract.from_domain(context)
+                for context in resolved
+            ]
+        )
 
     @app.post("/internal/v1/download", response_model=DownloadResponse)
     async def download(request: Request) -> DownloadResponse:
