@@ -17,15 +17,16 @@
 - 已确认固定出口和账号风险；当前出口若仍处于 bot challenge，不把真实账号会话投入高并发重试。
 - 已记录 yt-dlp commit、EJS、POT Provider、Profile version 和脱敏 egress affinity，不记录账号、Cookie、完整 URL 或出口地址。
 
-受信任的 macOS 本地开发机由 Provider Session Broker 自动读取并最小化当前 Chrome
-登录态，以跟随 YouTube Cookie 轮换。用户不运行导出命令，也不复制 Cookie：
+受信任的 macOS 本地开发机通过显式的一次性授权命令读取并最小化当前 Chrome
+登录态。用户不运行导出命令，也不复制 Cookie：
 
 ```bash
-./scripts/provider-session-broker.sh youtube start
-./scripts/provider-session-broker.sh youtube status
+./scripts/authorize-provider-session.sh youtube
 ```
 
-Broker 运行在宿主机，只输出 Provider、数量、版本和稳定状态；不会把完整 Profile、Keychain、Cookie 值或其他网站 Cookie 暴露给 Docker。该模式仅用于本地开发，不替代生产环境的独立私密会话和不可变版本轮换。
+授权命令执行一次后退出，只输出 Provider 与版本；不会把完整 Profile、Keychain、
+Cookie 值或其他网站 Cookie 暴露给 Docker。项目不会安装 LaunchAgent 或持续监控
+Chrome。该模式仅用于本地开发，不替代生产环境的独立私密会话和不可变版本轮换。
 
 ## 2. 导入不可变 Secret
 

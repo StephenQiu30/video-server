@@ -2,47 +2,39 @@
 
 本手册只适用于独立运维账号中、用户有权处理的公开非 DRM 视频。Cookie 等同账号凭据，不得提交 Git、粘贴到日志或交给普通 API。
 
-微信视频号本地开发使用 Session Broker 自管的隔离 `yuanbao.tencent.com` Chrome
-Profile。认证读取、域名过滤、原子落盘和持续轮换均由 `start-local.sh` 自动完成；本地启动前不
-需要运行导出命令，也不需要复制 Cookie。`.env` 启用视频号路由并确认运维授权后，
-直接执行：
+项目不运行常驻浏览器或 Session Broker。首次授权或第一方明确撤销会话后，执行一次
+对应 Provider 的授权命令；认证读取、域名过滤和原子落盘自动完成，用户不复制 Cookie：
 
 ```bash
-./scripts/start-local.sh
+./scripts/authorize-provider-session.sh wechat_channels
+docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
 ```
 
-启动脚本默认使用 `browser-live` 版本并启动受当前用户 `launchd` 监督的 Session Broker。
-Broker 只写入元宝域最小会话；隔离 Chrome 尚未登录时，Broker 自动打开元宝官方
-页面并等待登录完成，随后自行生成 Secret。普通
-用户无需也不能上传 Cookie，系统也不代填密码、验证码、2FA 或扫码确认。
+授权命令只在执行期间打开隔离的元宝官方窗口，检测到有效认证并生成最小 Secret 后
+立即关闭。业务 Compose 只挂载 Secret，不启动、保持、监控或读取 Chrome。
+系统不代填密码、验证码、2FA 或扫码确认，普通用户不能通过 API 上传 Cookie。
 
 ## 1. 会话获取与轮换
 
-本地 Session 获取只通过自动 Session Broker。生产不可变 Secret 由部署环境的受控
-Secret 管理流程提供，不在应用中保留人工导出入口。视频号 Broker 使用仓库外的专属
-Profile 和回环 CDP，不读取默认 Chrome Profile，也不把 Profile 挂载到容器。
-
-通常由 `start-local.sh` 自动启动所需 Broker。以下命令只用于单独诊断状态：
+所有本地 Session 只通过一次性授权命令获取；生产不可变 Secret 由部署环境的受控
+Secret 管理流程提供，不保留人工导出入口。视频号授权使用仓库外的专属 Profile 和
+回环 CDP，不读取默认 Chrome Profile；其他平台只在显式命令执行期间读取一次当前
+浏览器并按 Provider 域最小化。授权结束后没有浏览器监控、CDP 或 Broker 进程运行：
 
 ```bash
-./scripts/provider-session-broker.sh youtube start
-./scripts/provider-session-broker.sh wechat_channels start
-./scripts/provider-session-broker.sh tiktok start
-./scripts/provider-session-broker.sh douyin start
-./scripts/provider-session-broker.sh xiaohongshu start
-./scripts/provider-session-broker.sh reddit start
-./scripts/provider-session-broker.sh x start
-./scripts/provider-session-broker.sh instagram start
-./scripts/provider-session-broker.sh youtube status
+./scripts/authorize-provider-session.sh youtube
+./scripts/authorize-provider-session.sh wechat_channels
+./scripts/authorize-provider-session.sh tiktok
+./scripts/authorize-provider-session.sh douyin
+./scripts/authorize-provider-session.sh xiaohongshu
+./scripts/authorize-provider-session.sh reddit
+./scripts/authorize-provider-session.sh x
+./scripts/authorize-provider-session.sh instagram
 ```
 
-Broker 每 15 秒读取一次当前浏览器状态，只发布目标 Provider 域、未过期且满足认证
-标记的最小会话，并原子替换固定版本文件。刷新失败会保留最后一个有效快照，日志
-不包含 Cookie 值、浏览器 Profile 路径或异常原文。它解决日常浏览导致的 Cookie
-轮换，但不能阻止平台撤销会话、账号登出、风控挑战或权益变化；这些情况必须通过
-稳定错误和 canary 显式暴露。首次登录尚未完成时 Broker 保持运行并发布
-`login_required`。已声明该 Operator 路由时，其 Runner 和 API 保持未就绪，避免把
-“进程存活”误报成平台可下载；完成网页登录后 Broker 会自动发布并恢复就绪。
+Runner 只读挂载一次性生成的最小会话，并在第一方请求中验证真实有效性；平台撤销
+会话、账号登出、风控挑战或权益变化通过稳定错误和 canary 暴露，不通过后台浏览器
+轮询。重新授权会原子替换同一版本文件，随后只重建对应 Runner。
 
 ## 2. 配置
 
@@ -75,11 +67,12 @@ X_COOKIE_VERSION=browser-live
 X_OPERATOR_ACCOUNT_BASELINE_ATTESTED=true
 INSTAGRAM_COOKIE_VERSION=browser-live
 INSTAGRAM_OPERATOR_ACCOUNT_BASELINE_ATTESTED=true
-RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS=120
+RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS=0
 ```
 
-本地 `WECHAT_CHANNELS_COOKIE_VERSION` 留空时，`start-local.sh` 自动注入
-`browser-live`；生产环境必须显式选择已审计的不可变版本。
+本地 `WECHAT_CHANNELS_COOKIE_VERSION` 留空时，Compose 自动使用
+`browser-live`；该名称只标识当前登记版本，不代表存在浏览器进程。生产环境必须显式
+选择已审计的不可变版本。
 
 可用下面的命令生成 device id，并在该部署中持续复用：
 

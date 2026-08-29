@@ -42,13 +42,13 @@ docker compose --env-file .env -f docker-compose-env.yml config --quiet
 docker compose --env-file .env -f docker-compose.yml config --quiet
 # 首次使用或基础依赖尚未运行时执行一次
 docker compose --env-file .env -f docker-compose-env.yml up -d
-./scripts/start-local.sh
+docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
 ~~~
 
-最后一条命令是本机完整项目的启动与重启入口。它统一构建前端与后端镜像、
-重新创建业务服务并等待健康检查；当 `.env` 已配置 `browser-*` YouTube 会话、
-受控 Runner 地址和安全基线确认时，还会先启动宿主机 Session Broker 并自动启用
-`youtube-operator` Profile。不要使用不会应用代码、镜像或配置变化的
+最后一条 Docker Compose 命令是本机完整项目的启动与重启入口。它统一构建前端与
+后端镜像、重新创建业务服务并等待健康检查。需要 Operator Runner 时，在 `.env` 的
+`COMPOSE_PROFILES` 中声明与 `RUNNER_OPERATOR_BASE_URLS` 一致的 profile。项目启动
+不会启动宿主机浏览器或 Session Broker。不要使用不会应用代码、镜像或配置变化的
 `docker compose restart`。
 
 访问地址：
@@ -71,7 +71,7 @@ docker compose --env-file .env -f docker-compose.yml up -d egress-proxy
 ~~~bash
 cp .env.example .env
 docker compose --env-file .env -f docker-compose-env.yml up -d
-./scripts/start-local.sh
+docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
 ~~~
 
 代码同步与服务启动保持解耦；需要更新时先执行：

@@ -6,17 +6,10 @@ Extractor、访问和下载链路问题；生产发布仍必须使用项目自�
 
 ## 1. 前置检查
 
-当 `.env` 配置 Provider Operator 时，先启动对应 Session Broker 与 Compose
-Profile：
+当 `.env` 配置 Provider Operator 时，先确认一次性登记的 Secret，再启动 Compose
+Profile。项目不启动 Session Broker：
 
 ```bash
-./scripts/provider-session-broker.sh youtube start
-./scripts/provider-session-broker.sh wechat_channels start
-./scripts/provider-session-broker.sh tiktok start
-./scripts/provider-session-broker.sh douyin start
-./scripts/provider-session-broker.sh xiaohongshu start
-./scripts/provider-session-broker.sh reddit start
-
 docker compose --env-file .env -f docker-compose.yml \
   --profile youtube-operator --profile wechat-channels-operator \
   --profile provider-operator \
@@ -65,7 +58,7 @@ docker exec video-provider-canary \
 
 | 稳定错误 | 判定 |
 | --- | --- |
-| `provider_auth_required` / `provider_session_expired` | 会话缺失或失效；先检查 Session Broker 与 Operator，不轮换账号放大请求 |
+| `provider_auth_required` / `provider_session_expired` | 会话缺失或失效；重新执行一次对应 Provider 授权并重建 Operator，不轮换账号放大请求 |
 | `provider_verification_failed` | 平台人机验证/挑战未通过；保留最后有效登录态并降级平台，不自动规避 CAPTCHA |
 | `format_unavailable` | 相邻 rendition 漂移或原规格消失；探针有界重检三次，用户重试自动选择当前兼容规格 |
 | `provider_drm_protected` / `provider_content_restricted` | 内容能力边界，不重试、不绕过 |

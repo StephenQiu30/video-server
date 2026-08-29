@@ -105,8 +105,8 @@ cp .env.example .env
 # 如果使用项目专用 Docker 基础依赖，首次执行一次；已有本机服务时跳过
 docker compose --env-file .env -f docker-compose-env.yml up -d
 
-# 本机统一启动入口；自动启动受控会话、业务容器和宿主机 AI Worker
-./scripts/start-local.sh
+# 唯一业务启动入口；需要 Operator 时在 .env 的 COMPOSE_PROFILES 中启用对应 profile
+docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
 ```
 
 PowerShell 只需使用相同的 Compose 入口：
@@ -117,7 +117,7 @@ docker compose --env-file .env -f docker-compose-env.yml up -d
 docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
 ```
 
-更新代码时先独立执行 `git pull --ff-only`，再执行 `./scripts/start-local.sh`。
+更新代码时先独立执行 `git pull --ff-only`，再重复执行业务 Compose 命令。
 不要用 `docker compose restart`，因为它不会应用新的代码、镜像或环境配置。
 YouTube、TikTok、X 的固定媒体 Canary 是启动后的验收命令，不属于启动入口，详见
 `docs/operations/007-固定Provider探针运行手册.md`。
@@ -142,7 +142,7 @@ curl --fail --head http://127.0.0.1:8101/
 
 ### 启用 AI 分析
 
-AI Worker 不在业务 Compose 中运行，它复用宿主机已经登录的 Codex CLI 或 Claude CLI。这样可以避免把宿主机 OAuth 认证目录复制进容器。`ANALYSIS_ENABLED=true` 时，`start-local.sh` 会把 Worker 安装到当前用户的系统服务并持续监督；进程异常退出或依赖短暂中断后会自动恢复。以下命令只用于独立诊断：
+AI Worker 不在业务 Compose 中运行，它复用宿主机已经登录的 Codex CLI 或 Claude CLI。这样可以避免把宿主机 OAuth 认证目录复制进容器。它作为预先配置的本机 Codex App Server Worker 独立受监督，不属于项目启动入口；以下命令只用于独立诊断：
 
 ```bash
 # 先完成对应 CLI 的官方登录

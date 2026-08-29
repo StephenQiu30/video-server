@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import stat
 from http.cookiejar import Cookie, CookieJar
@@ -11,7 +10,7 @@ import pytest
 from app.runner.browser_cookie_export import (
     export_browser_cookies,
 )
-from app.runner.provider_session_broker import run_session_broker
+from app.runner.provider_session_authorize import authorize_provider
 
 
 def _cookie(domain: str, name: str, value: str) -> Cookie:
@@ -205,85 +204,9 @@ def test_export_rejects_symlinked_output_root(tmp_path: Path) -> None:
         )
 
 
-def test_watch_refreshes_active_secret_when_browser_cookie_rotates(
+def test_one_time_authorization_waits_for_initial_wechat_login(
     tmp_path: Path,
 ) -> None:
-    sources = iter(
-        (
-            _jar(_cookie(".youtube.com", "SID", "session-one")),
-            _jar(_cookie(".youtube.com", "SID", "session-two")),
-        )
-    )
-    reports: list[str] = []
-
-    status = tmp_path / "sessions" / "youtube.json"
-    run_session_broker(
-        provider="youtube",
-        browser="chrome",
-        profile=None,
-        version="browser-live",
-        output_root=tmp_path / "secrets",
-        status_path=status,
-        interval_seconds=5,
-        cookie_loader=lambda _browser, _profile: next(sources),
-        reporter=reports.append,
-        sleeper=lambda _seconds: None,
-        max_cycles=2,
-    )
-
-    payload = (
-        tmp_path / "secrets" / "youtube" / "browser-live.cookies.txt"
-    ).read_text()
-    assert "session-two" in payload
-    assert "session-one" not in payload
-    assert reports == [
-        "refreshed provider=youtube cookies=1 version=browser-live",
-        "refreshed provider=youtube cookies=1 version=browser-live",
-    ]
-    assert json.loads(status.read_text())["state"] == "ready"
-
-
-def test_watch_retains_last_good_secret_after_transient_browser_failure(
-    tmp_path: Path,
-) -> None:
-    calls = 0
-
-    def loader(_browser: str, _profile: str | None) -> CookieJar:
-        nonlocal calls
-        calls += 1
-        if calls == 2:
-            raise ValueError("browser temporarily unavailable")
-        return _jar(_cookie(".youtube.com", "SID", "session-one"))
-
-    reports: list[str] = []
-    status = tmp_path / "sessions" / "youtube.json"
-    run_session_broker(
-        provider="youtube",
-        browser="chrome",
-        profile=None,
-        version="browser-live",
-        output_root=tmp_path / "secrets",
-        status_path=status,
-        interval_seconds=5,
-        cookie_loader=loader,
-        reporter=reports.append,
-        sleeper=lambda _seconds: None,
-        max_cycles=2,
-    )
-
-    payload = (
-        tmp_path / "secrets" / "youtube" / "browser-live.cookies.txt"
-    ).read_text()
-    assert "session-one" in payload
-    assert reports[-1] == "refresh_failed provider=youtube reason=ValueError"
-    state = json.loads(status.read_text())
-    assert state["provider"] == "youtube"
-    assert state["state"] == "degraded"
-    assert state["secret_ready"] is True
-    assert state["updated_at"].endswith("+00:00")
-
-
-def test_watch_waits_for_initial_wechat_login(tmp_path: Path) -> None:
     sources = iter(
         (
             _jar(_cookie(".yuanbao.tencent.com", "hy_user", "operator-id")),
@@ -295,28 +218,20 @@ def test_watch_waits_for_initial_wechat_login(tmp_path: Path) -> None:
     )
     reports: list[str] = []
 
-    status = tmp_path / "sessions" / "wechat_channels.json"
-    run_session_broker(
+    target = authorize_provider(
         provider="wechat_channels",
-        browser="chrome",
-        profile=None,
         version="browser-live",
         output_root=tmp_path / "secrets",
-        status_path=status,
-        interval_seconds=5,
         cookie_loader=lambda _browser, _profile: next(sources),
+        wait_for_login=True,
         reporter=reports.append,
         sleeper=lambda _seconds: None,
-        max_cycles=2,
     )
 
-    payload = (
-        tmp_path / "secrets" / "wechat_channels" / "browser-live.cookies.txt"
-    ).read_text()
+    payload = target.read_text()
     assert "operator-id" in payload
     assert "operator-token" in payload
     assert reports == [
-        "login_required provider=wechat_channels",
-        "refreshed provider=wechat_channels cookies=2 version=browser-live",
+        "waiting_for_login provider=wechat_channels",
+        "authorized provider=wechat_channels version=browser-live",
     ]
-    assert json.loads(status.read_text())["state"] == "ready"

@@ -1,8 +1,15 @@
+from pathlib import Path
+
+import app.runner.managed_chrome_cdp as managed_chrome_cdp
+import pytest
+from app.runner.managed_chrome_cdp import ChromeDevTools
+from app.runner.managed_chrome_session import _chrome_arguments
 from app.runner.managed_session_cookies import (
     SESSION_HEADER_COOKIE,
     decode_session_headers,
     session_cookie_jar,
 )
+from websockets.exceptions import ConnectionClosedError
 
 
 def test_managed_chrome_session_minimizes_cookie_and_local_auth() -> None:
@@ -42,3 +49,61 @@ def test_managed_chrome_session_minimizes_cookie_and_local_auth() -> None:
         "X-WebVersion": "2.83.1",
         "User-Agent": "Chrome/152",
     }
+
+
+def test_authorization_chrome_is_never_started_headless() -> None:
+    arguments = _chrome_arguments(Path("/Applications/Chrome"), Path("/profile"))
+
+    assert "--headless" not in " ".join(arguments)
+    assert arguments[-1] == "https://yuanbao.tencent.com/"
+
+
+def test_cdp_connection_close_is_a_recoverable_os_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def closed_connection(*_args: object, **_kwargs: object) -> object:
+        raise ConnectionClosedError(None, None)
+
+    monkeypatch.setattr(managed_chrome_cdp, "connect", closed_connection)
+
+    with pytest.raises(OSError, match="managed Chrome is unavailable"):
+        ChromeDevTools().command("ws://127.0.0.1/target", "Network.getAllCookies")
+
+
+def test_cdp_reuses_the_single_managed_page(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    devtools = ChromeDevTools()
+    requests: list[str] = []
+    commands: list[tuple[str, str, dict[str, object] | None]] = []
+
+    def response(request: object) -> object:
+        requests.append(str(request))
+        return [
+            {
+                "type": "page",
+                "url": "https://ui.ptlogin2.qq.com/",
+                "webSocketDebuggerUrl": "ws://127.0.0.1/page",
+            }
+        ]
+
+    monkeypatch.setattr(devtools, "_json", response)
+    monkeypatch.setattr(
+        devtools,
+        "command",
+        lambda target, method, params=None: commands.append((target, method, params))
+        or {},
+    )
+
+    first = devtools.page(9222, "https://yuanbao.tencent.com/")
+    second = devtools.page(9222, "https://yuanbao.tencent.com/")
+
+    assert first == second == "ws://127.0.0.1/page"
+    assert len(requests) == 1
+    assert commands == [
+        (
+            "ws://127.0.0.1/page",
+            "Page.navigate",
+            {"url": "https://yuanbao.tencent.com/"},
+        )
+    ]

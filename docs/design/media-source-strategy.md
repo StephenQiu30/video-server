@@ -1,4 +1,4 @@
-# 媒体解析策略责任链与 Provider Session Broker
+# 媒体解析策略责任链与 Provider Session 生命周期
 
 - 状态：当前设计事实；外部 Provider 真实可用性由 canary 持续判定
 - 关联设计：`005-多平台Provider策略设计.md`
@@ -14,8 +14,8 @@
 
 1. 用可测试的策略责任链统一匿名与 Provider Operator 解析路径。
 2. 以错误策略对象约束降级范围，并优先暴露已配置会话过期。
-3. 本地可信环境直接复用当前 Chrome 登录态，持续生成 Runner 可读取的最小
-   Provider Cookie 快照；生产环境继续使用私密窗口导出的不可变版本。
+3. 本地可信环境只在显式授权时读取一次登录态并生成 Runner 可读取的最小
+   Provider Cookie 快照；运行期不监控浏览器，生产环境使用不可变版本。
 4. 私有封面通过认证 HTTP client 获取并在内存中显示，不让原生图片请求绕过
    Access/Refresh Cookie 恢复。
 5. 下载任务由 Worker 在执行前重新解析并校验规格；终态重试只负责入队，避免
@@ -53,41 +53,37 @@ Operator Cookie 已过期，管线返回会话过期，而不是保留匿名 bot
 Operator 已确认链接失效时也优先返回这个确定结论，避免匿名提取器回归把失效内容
 误报成平台临时故障。其他 Operator 基础设施故障仍保留匿名路径的原始诊断。
 
-## 3. Provider Session Broker
+## 3. Provider Session 生命周期
 
-Docker 不能安全解密宿主机 Chrome Profile，因此 Broker 只在本地可信 macOS
-宿主机运行：
+Docker 不能安全解密宿主机 Chrome Profile，因此所有 Provider 都使用一次性授权：
 
-1. `provider-session-broker.sh {youtube|wechat_channels|tiktok|douyin|xiaohongshu|reddit|x|instagram}` 由当前用户的 `launchd` 会话监督并在异常退出后重启。
-2. 每 15 秒使用 yt-dlp 的浏览器 Cookie loader 读取当前 Chrome 登录态。
-3. 只保留目标 Provider allowlist 域、未过期且包含认证标记的 Cookie。
-4. 以同目录临时文件、`0400` 权限和原子替换刷新版本化 Netscape 文件。
-5. Docker Operator Runner 继续只读挂载该文件；Cookie 原文不进入 API、DB、
+1. `authorize-provider-session.sh <provider>` 只在运维显式执行时读取登录态。
+2. 只保留目标 Provider allowlist 域、未过期且包含认证标记的 Cookie。
+3. 以同目录临时文件、`0400` 权限和原子替换生成版本化 Netscape 文件。
+4. Docker Operator Runner 继续只读挂载该文件；Cookie 原文不进入 API、DB、
    RabbitMQ、日志或业务响应。
-6. 单次刷新失败保留最后一个有效快照；状态文件明确区分 `ready`、
-   `login_required` 与 `degraded`。本地 Runner 还验证 120 秒 Secret 新鲜度，
-   Broker 长时间失联时主动退出 readiness，生产不可变版本关闭此本地门禁。
+5. Runner 在第一方请求中验证会话；平台撤销后明确报告过期，再由运维显式授权。
 
-Broker 不会自动输入密码、处理验证码、2FA 或扩大内容权益。当前 Chrome 登出或
-平台撤销会话后，系统应明确报告会话过期。
+微信视频号授权完成即关闭隔离 Chrome；其他 Provider 的授权命令读取一次当前浏览器
+后退出。日常启动、下载和 canary 不存在浏览器或 Broker 进程。
 
 ## 4. 环境策略
 
 | 环境 | 会话来源 | 生命周期 | 用途 |
 | --- | --- | --- | --- |
-| 本地可信开发 | 当前 Chrome Session Broker | 周期刷新、原子替换 | 避免日常浏览导致静态 Cookie 被轮换 |
+| 本地可信开发 | 显式一次性授权 | 版本化 Secret | 运行期不访问浏览器上下文 |
 | CI | 无真实账号或短期测试 Secret | 测试期 | 单元测试和授权 canary |
 | 生产 | 新私密窗口 `robots.txt` 导出的专用账号版本 | 不可变、canary 后激活 | 可审计、可回滚的 Operator Runner |
 
 生产不直接连接个人 Chrome Profile。若未来需要长期托管生产凭据，应实现
 005 中定义的 Credential Broker/Vault、版本租约、撤销和 canary，而不是把
-本地 Broker 扩展为服务器自动登录。
+本地授权工具扩展为服务器自动登录。
 
 ## 5. 验收条件
 
 - 同一公开 YouTube 链接可由匿名失败后自动选择 YouTube Operator。
 - 带 Cookie 的 bot challenge 分类为 `credential_expired`，页面给出可操作错误。
-- Session Broker 真实处于 running，且状态为 `ready`、更新时间不超过两分钟。
+- 一次性授权生成的最小 Secret 可由 Operator Runner 只读加载，运行期没有浏览器进程。
 - 解析成功后下载仍使用 inspection 冻结的 Operator access context。
 - 限流等非白名单错误不触发 Operator，失败链保持有界。
 - 目标链接完成解析、选格式、下载、制品校验和 AI 分析入口验证。

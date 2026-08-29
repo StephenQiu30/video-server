@@ -28,32 +28,22 @@ app/
 
 Media Runner 通过 `app/runner/plugins/yt_dlp_plugins/` 加载随项目交付的可信站点提取器。MediaTrack 适配仅处理无需登录的公开审片视频和 API 明确授权的播放转码；抖音适配用数字视频 ID 构造固定公开分享页并修正 landscape 下载规格的短边尺寸语义，TikTok 适配优先使用其第一方嵌入播放器 item API 而不依赖随机网页挑战，快手适配把公开作品规范化到第一方移动分享页并限制短链重定向域，Tumblr 适配优先读取当前 `www.tumblr.com` 公开页而不强制改写到旧 blog 子域。小红书适配识别第一方 `300031` 笔记失效和 `300012` 平台验证边界，避免把失效内容误报成提取器故障。视频号适配只接受公开 `weixin.qq.com/sph/...` 单视频，先匿名确认公开元数据，再由隔离的元宝运维会话解析；任何 `decodeKey`、DRM/加密标记、非批准腾讯媒体域或 ffprobe 失败都会拒绝。所有适配都继续经过受控代理、作品身份校验、大小/时长限制、重新 inspect、FFmpeg 和 ffprobe 校验，不跨平台复用运维 Cookie，不支持图集截断、账号内容、无水印承诺或原文件权限绕过。
 
-主流视频源使用声明式 Provider Profile 接入：`provider_catalog_*.py` 按策略族登记能力和运行参数，`ProviderRegistry.prepare()` 一次解析得到贯穿 inspect/download 的不可变 `ProviderRequest`，`YtDlpCommandBuilder` 只消费该请求生成固定参数，错误由有序 `FailureRule` 归一化。已有 yt-dlp extractor 的公开单视频平台通常只需增加一个 Profile、契约测试和 metadata/media canary；需要自定义解析时再按 yt-dlp 官方插件目录增加可信 extractor，不修改通用命令执行器。未知站点使用无凭据 Generic extractor。YouTube、TikTok、抖音、小红书、Reddit、X、Instagram 与微信视频号运维会话分别在物理隔离的 Docker Runner 中从各自只读 Secret 建立操作级 `0600` Cookie jar；视频号 Secret 只允许 `yuanbao.tencent.com` 域，由宿主机 Broker 从隔离元宝 Profile 的当前 Web 认证状态生成，匿名与其他 Provider 命令不携带 Cookie。平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 key 指向受控内部代理。
+主流视频源使用声明式 Provider Profile 接入：`provider_catalog_*.py` 按策略族登记能力和运行参数，`ProviderRegistry.prepare()` 一次解析得到贯穿 inspect/download 的不可变 `ProviderRequest`，`YtDlpCommandBuilder` 只消费该请求生成固定参数，错误由有序 `FailureRule` 归一化。已有 yt-dlp extractor 的公开单视频平台通常只需增加一个 Profile、契约测试和 metadata/media canary；需要自定义解析时再按 yt-dlp 官方插件目录增加可信 extractor，不修改通用命令执行器。未知站点使用无凭据 Generic extractor。YouTube、TikTok、抖音、小红书、Reddit、X、Instagram 与微信视频号运维会话分别在物理隔离的 Docker Runner 中从各自只读 Secret 建立操作级 `0600` Cookie jar；视频号 Secret 只允许 `yuanbao.tencent.com` 域，由一次性隔离授权流程自动生成，运行期不启动、监控或读取任何浏览器 Profile。平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 key 指向受控内部代理。
 
 macOS 浏览器 Cookie 由 Keychain 加密，Linux 容器不能通过挂载 Chrome Profile
-直接复用。本地视频号路由启用且完成运维授权确认后，`start-local.sh` 会自动选择
-`browser-live` 并启动受 `launchd` 监督的 Provider Session Broker。视频号 Broker
-自管仓库外的隔离 Chrome Profile，通过回环 CDP 读取当前 Web 认证状态并原子轮换
-只读 Secret；用户不执行导出命令，也不复制或粘贴 Cookie。以下命令只用于独立诊断：
+直接复用。所有 Provider 会话只通过显式的一次性授权流程生成最小只读 Secret；
+微信视频号授权完成后会自动关闭隔离 Chrome，其他平台只在命令执行期间读取一次已
+登录浏览器。业务 Docker Compose 只挂载 Secret，不启动、保持或监控浏览器：
 
 ```bash
-./scripts/provider-session-broker.sh youtube start
-./scripts/provider-session-broker.sh wechat_channels start
-./scripts/provider-session-broker.sh tiktok start
-./scripts/provider-session-broker.sh douyin start
-./scripts/provider-session-broker.sh xiaohongshu start
-./scripts/provider-session-broker.sh reddit start
-./scripts/provider-session-broker.sh x start
-./scripts/provider-session-broker.sh instagram start
-./scripts/provider-session-broker.sh youtube status
+./scripts/authorize-provider-session.sh youtube
+./scripts/authorize-provider-session.sh wechat_channels
+./scripts/authorize-provider-session.sh tiktok
 ```
 
-Broker 每 15 秒刷新最小域会话，并以 `ready`、`login_required` 或 `degraded`
-报告当前状态；刷新失败保留最后一个有效快照。本地 Runner 同时要求 Secret 在
-120 秒内持续刷新，Broker 失联后会转为未就绪，不再接受依赖陈旧会话的新任务。
-平台主动撤销、账号退出或验证挑战仍会被明确报告，不能承诺绕过平台要求的重新登录。
-
-这只是受信任 macOS 开发机的连续同步模式。生产环境仍使用独立私密浏览器会话生成的不可变版本 Secret，并按运行手册执行轮换；不要在生产主机挂接日常浏览器 Profile。
+Runner 直接验证一次性登记的版本化 Secret；平台主动撤销、账号退出或验证挑战会
+返回稳定会话错误，此时重新执行对应授权命令。项目不安装 LaunchAgent，也不会在
+后台自动打开或读取浏览器。生产环境同样只挂载不可变 Secret。
 
 完整的 Provider 配置、TikTok 稳定 device id、启动、轮换与撤销流程见 `docs/operations/006-Docker浏览器会话运行手册.md`。
 
@@ -102,7 +92,7 @@ docker compose --env-file .env -f docker-compose.yml \
 自动降级对应平台。真实任务投影只使用非敏感 Provider 上下文与完成时间，不读取或
 公开来源 URL、账号和 Cookie。
 
-宿主机 AI Worker 不属于 Compose。默认启用分析时由 `start-local.sh` 安装为当前用户的受监督服务；以下前台入口只用于调试：
+宿主机 AI Worker 不属于 Compose，作为预先配置的本机 Codex App Server Worker 独立受监督；以下前台入口只用于调试：
 
 ```bash
 uv sync --frozen --dev

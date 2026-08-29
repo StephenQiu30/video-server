@@ -5,7 +5,7 @@
 ## 当前事实
 
 - [前端视觉系统](design/frontend-visual-system.md)：Next.js、Vercel/Geist 无边框视觉、响应式和可访问性规范。
-- [媒体解析策略](design/media-source-strategy.md)：解析责任链、错误优先级、封面认证交付与 Provider Session Broker。
+- [媒体解析策略](design/media-source-strategy.md)：解析责任链、错误优先级、封面认证交付与一次性 Provider Session 生命周期。
 - [Provider 接入架构重构调研](research/008-Provider接入架构重构调研.md)：yt-dlp 官方扩展边界、现有耦合和声明式接入结论。
 - [微信与腾讯授权媒体调研](research/014-微信视频号与腾讯视频授权媒体下载调研.md)：公众号文章原生视频、视频号 GitHub 方案、腾讯消费站权益与腾讯云 VOD 官方边界。
 - [微信视频号公开分享链接服务端解析调研](research/015-微信视频号公开分享链接服务端解析调研.md)：匿名公开性预检、隔离元宝会话、媒体白名单与保护拒绝。

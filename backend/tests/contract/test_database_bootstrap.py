@@ -12,8 +12,7 @@ SCHEMA_PATH = ROOT / "sql/schema.sql"
 ROOT_README_PATH = ROOT.parent / "README.md"
 FRONTEND_README_PATH = ROOT.parent / "frontend/README.md"
 STARTUP_SCRIPT_PATH = ROOT.parent / "scripts/restart-project.ps1"
-START_LOCAL_SCRIPT_PATH = ROOT.parent / "scripts/start-local.sh"
-SESSION_BROKER_SCRIPT_PATH = ROOT.parent / "scripts/provider-session-broker.sh"
+SESSION_AUTHORIZE_SCRIPT_PATH = ROOT.parent / "scripts/authorize-provider-session.sh"
 DOCKERFILE_PATH = ROOT.parent / "Dockerfile"
 
 
@@ -217,6 +216,7 @@ def test_project_uses_runtime_entrypoints_without_a_startup_wrapper() -> None:
     )
 
     assert not STARTUP_SCRIPT_PATH.exists()
+    assert not (ROOT.parent / "scripts/start-local.sh").exists()
     assert compose_entrypoint in root_readme
     assert "uv run python -m app.main" in root_readme
     assert "npm run dev" in root_readme
@@ -279,39 +279,21 @@ def test_provider_session_runners_are_physically_isolated_by_provider() -> None:
             )
 
 
-def test_wechat_channels_session_broker_and_local_start_are_wired() -> None:
-    broker = SESSION_BROKER_SCRIPT_PATH.read_text(encoding="utf-8")
-    startup = START_LOCAL_SCRIPT_PATH.read_text(encoding="utf-8")
+def test_provider_sessions_use_one_time_authorization_without_a_broker() -> None:
+    authorize = SESSION_AUTHORIZE_SCRIPT_PATH.read_text(encoding="utf-8")
+    compose = COMPOSE_PATH.read_text(encoding="utf-8")
 
-    assert "youtube|wechat_channels|tiktok" in broker
-    assert "version_variable=WECHAT_CHANNELS_COOKIE_VERSION" in broker
-    assert "interval_variable=WECHAT_CHANNELS_SESSION_BROKER_INTERVAL_SECONDS" in broker
-    assert "app.runner.provider_session_broker" in broker
-    assert "app.runner.provider_session_launchd" in broker
-    assert "wait_for_broker_status" in broker
-    assert "broker_is_ready" in broker
-    assert "launchctl bootstrap" in broker
-    assert "wechat_version=$(env_value WECHAT_CHANNELS_COOKIE_VERSION)" in startup
-    assert (
-        "wechat_attested=$(env_value "
-        "WECHAT_CHANNELS_OPERATOR_ACCOUNT_BASELINE_ATTESTED)" in startup
-    )
-    assert 'provider-session-broker.sh" wechat_channels start' in startup
+    assert not (ROOT.parent / "scripts/provider-session-broker.sh").exists()
+    assert not (ROOT / "app/runner/provider_session_broker.py").exists()
+    assert not (ROOT / "app/runner/provider_session_launchd.py").exists()
+    assert "app.runner.provider_session_authorize" in authorize
+    assert "youtube|wechat_channels|tiktok" in authorize
     assert (
         "WECHAT_CHANNELS_COOKIE_VERSION:-browser-live"
-        in COMPOSE_PATH.read_text(encoding="utf-8")
+        in compose
     )
-    assert "wechat_version=${wechat_version:-browser-live}" in startup
-    assert 'export WECHAT_CHANNELS_COOKIE_VERSION="$wechat_version"' in startup
-    assert 'set -- "$@" --profile wechat-channels-operator' in startup
-    for provider, profile in (
-        ("tiktok", "provider-operator"),
-        ("douyin", "douyin-operator"),
-        ("xiaohongshu", "xiaohongshu-operator"),
-        ("reddit", "reddit-operator"),
-        ("x", "x-operator"),
-        ("instagram", "instagram-operator"),
-    ):
-        assert f'provider-session-broker.sh" {provider} start' in startup
-        assert f'set -- "$@" --profile {profile}' in startup
-    assert 'analysis-worker.sh" start' in startup
+    assert (
+        'RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS: '
+        '"${RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS:-0}"'
+        in compose
+    )
