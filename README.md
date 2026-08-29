@@ -44,9 +44,9 @@
 | 持久化文件 | 视频、导入文档、规范化文本和 Markdown/DOCX 报告写入 MinIO 持久卷，不设置业务自动过期 |
 | 状态同步 | WebSocket 增量事件、版本检查、断线重连和 resync；连接降级不会阻塞下载任务本身 |
 | 剧本文档 | 上传并解析 Markdown、Fountain、TXT、PDF、DOCX，提供 Markdown 阅读器、目录、分页和分析入口 |
-| AI 分析 | 通过宿主机已登录的 Codex CLI 或 Claude CLI 生成分镜、高光、视觉资产和制作建议，报告可导出 Markdown/DOCX |
+| AI 分析 | 默认使用宿主机 Codex App Server；管理员也可在 Web 中启用 DeepSeek/LangChain 视觉 API 或 Claude/Codex API，报告可导出 Markdown/DOCX |
 | 管理能力 | 用户与角色、Provider 状态、下载分析、持久文件分页，以及按“多少天前”手动清理文件（默认 30 天） |
-| 平台适配 | Provider Registry、能力状态、受控会话 Runner 和无凭据 Generic extractor 的分层扩展模型；视频号支持公开 `/sph/` 单视频的匿名预检与隔离元宝会话解析 |
+| 平台适配 | Provider Registry、能力状态、受控会话 Runner 和无凭据 Generic extractor 的分层扩展模型；视频号仅处理公开 `/sph/` 分享页直接提供的非加密媒体 |
 
 ### 文件生命周期
 
@@ -58,7 +58,7 @@
 
 ### 内容与权限边界
 
-请只处理你拥有相应权利的内容。匿名 Provider 默认只处理能够正向证明为公开、免费、非 DRM 的媒体；Edge Agent 只能传输用户已经合法取得并显式选择的明文文件，不能读取平台会话、拦截流量或转换受保护内容。受控 Provider 会话只用于已经匿名证明公开、但第一方匿名接口未返回 clear 媒体地址的单视频，并按平台独立 Runner/Secret 隔离；视频号当前只允许公开 `/sph/` 链接。官方资产连接器仍需明确下载/导出授权且输出未加密。会员、购买、私密、地域或 DRM 播放权益不等于第三方明文导出权。
+请只处理你拥有相应权利的内容。匿名 Provider 默认只处理能够正向证明为公开、免费、非 DRM 的媒体；Edge Agent 只能传输用户已经合法取得并显式选择的明文文件，不能读取平台会话、拦截流量或转换受保护内容。受控 Provider 会话是部署方按平台隔离提供的可选能力，不依赖任一用户或开发者电脑。视频号没有会话回退：分享页未直接公开媒体时，用户应上传自己拥有或已获授权的文件。官方资产连接器仍需明确下载/导出授权且输出未加密。会员、购买、私密、地域或 DRM 播放权益不等于第三方明文导出权。
 
 ## 界面预览
 
@@ -142,7 +142,7 @@ curl --fail --head http://127.0.0.1:8101/
 
 ### 启用 AI 分析
 
-AI Worker 不在业务 Compose 中运行，它复用宿主机已经登录的 Codex CLI 或 Claude CLI。这样可以避免把宿主机 OAuth 认证目录复制进容器。它作为预先配置的本机 Codex App Server Worker 独立受监督，不属于项目启动入口；以下命令只用于独立诊断：
+AI Worker 不在业务 Compose 中运行。默认活动线路是数据库内置的 `local-codex`，复用宿主机已登录的 Codex App Server，避免把 OAuth 认证目录复制进容器。管理员可在 `/admin/ai-providers` 新增并启用 DeepSeek、Codex 或 Claude API Profile；第三方 Endpoint、模型和 Key 都由 Web 管理，Key 加密存入 PostgreSQL，不写入 `.env`。以下命令只用于独立诊断：
 
 ```bash
 # 先完成对应 CLI 的官方登录
@@ -155,7 +155,7 @@ cd .. && ./scripts/analysis-worker.sh status
 
 启用分析时，API 会先将任务事实和消息意图可靠写入 PostgreSQL Outbox，再由 RabbitMQ 投递给 AI Worker；Agent 状态只用于运维诊断，不作为 API 全局 readiness 或任务创建的硬前置。没有 AI Worker 的部署仍应明确设置 `ANALYSIS_ENABLED=false`；若 Agent 暂时不可用，任务保持 `queued`，恢复后由 Worker 继续消费。下载、文件获取和历史记录不依赖 AI Worker。AI Worker 通过受限的 FFmpeg/ffprobe 工具观察完整视频，请先确认内容授权、模型服务条款和组织数据策略。
 
-当前真实视觉闭环以 Codex 为验收基线；启用 Claude 前，请先用真实视频 canary 验证模型路由和图片理解能力。
+当前真实视觉闭环以 Codex 为验收基线。DeepSeek 线路由服务端按完整时长生成有界的顺序 JPEG 截图并通过 LangChain 发送给 `deepseek-v4-flash-vision-exp`；模型没有原生视频或音频输入，分析结论必须保留采样局限。启用任何第三方线路前，仍应使用获授权样本完成真实 canary。
 
 ## 架构与设计取舍
 

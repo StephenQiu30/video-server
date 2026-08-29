@@ -16,7 +16,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-import type { AiProviderEditorState } from './model';
+import {
+  type AiProviderEditorState,
+  providerEngineDefaults,
+  providerEngineLabel,
+} from './model';
 
 export function AiProviderFields({
   editor,
@@ -66,7 +70,8 @@ export function AiProviderFields({
             onValueChange={(engine: API.AiProviderEngine) =>
               onChange({
                 engine,
-                model: engine === 'codex' ? 'gpt-5.6-sol' : 'sonnet',
+                ...providerEngineDefaults(engine),
+                apiKey: '',
               })
             }
             value={editor.engine}
@@ -77,6 +82,9 @@ export function AiProviderFields({
             <SelectContent>
               <SelectItem value="codex">Codex CLI · Responses</SelectItem>
               <SelectItem value="claude">Claude CLI · Messages</SelectItem>
+              <SelectItem value="deepseek">
+                DeepSeek API · LangChain 视觉
+              </SelectItem>
             </SelectContent>
           </Select>
         </Field>
@@ -93,7 +101,12 @@ export function AiProviderFields({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="host_login">本机账号登录 · 免 Key</SelectItem>
+              <SelectItem
+                disabled={editor.engine === 'deepseek'}
+                value="host_login"
+              >
+                本机账号登录 · 免 Key
+              </SelectItem>
               <SelectItem value="api_key">API Key</SelectItem>
             </SelectContent>
           </Select>
@@ -107,7 +120,7 @@ export function AiProviderFields({
           id="ai-provider-model"
           maxLength={128}
           onChange={(event) => onChange({ model: event.target.value })}
-          placeholder={editor.engine === 'codex' ? 'gpt-5.6-sol' : 'sonnet'}
+          placeholder={providerEngineDefaults(editor.engine).model}
           required
           value={editor.model}
         />
@@ -118,8 +131,7 @@ export function AiProviderFields({
       ) : (
         <Alert className="border-0 bg-surface">
           <AlertDescription>
-            Agent 将读取当前系统用户的{' '}
-            {editor.engine === 'codex' ? 'Codex / ChatGPT' : 'Claude'}{' '}
+            Agent 将读取当前系统用户的 {providerEngineLabel(editor.engine)}{' '}
             登录状态；无需在项目中保存 Key。
           </AlertDescription>
         </Alert>
@@ -158,7 +170,9 @@ function ApiKeyFields({
           placeholder={
             editor.engine === 'codex'
               ? 'https://api.openai.com/v1'
-              : 'https://api.anthropic.com'
+              : editor.engine === 'claude'
+                ? 'https://api.anthropic.com'
+                : 'https://api.deepseek.com'
           }
           required
           type="url"

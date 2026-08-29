@@ -1,7 +1,7 @@
 # 022 跨平台 AI 分析 Agent 与模型 Provider 配置验收
 
-- 状态：内部实现与自动化契约已通过；真实 API Key、macOS、Linux 实机待验
-- 日期：2026-08-14
+- 状态：默认 Codex 与 DeepSeek/LangChain 自动化契约已通过；第三方真实 API Key、macOS、Linux 实机待验
+- 日期：2026-08-29
 
 ## 1. 自动化门禁
 
@@ -16,6 +16,7 @@
 - [x] 管理员可查看默认 `local-codex`，非管理员返回 403。
 - [x] 可新增 Codex API Key Profile，GET 响应只有 `credential_configured=true`。
 - [x] 可新增 Claude API Key Profile。
+- [x] 可从 Web 新增 DeepSeek API Profile；只接受 API Key 和 `deepseek-v4-flash-vision-exp`，不读取第三方 AI `.env`。
 - [x] 公网 HTTP、带用户名密码/query/fragment 的 URL 被拒绝。
 - [x] 编辑 Key 留空保留原密文，填写新 Key 后密文变化。
 - [x] 启用新 Profile 后旧 Profile 原子失活，始终最多一个活动项。
@@ -26,6 +27,7 @@
 - [x] `doctor` 输出当前 Provider、模型、CLI 版本与存储就绪状态且不输出 Key。
 - [x] 本机 Codex 登录无需 Key，完成一条真实分析。
 - [ ] API Key Profile 完成一条真实分析，结果记录正确的 Provider key 与模型。
+- [x] DeepSeek 适配器自动生成有界顺序截图并完成结构化视频/剧本调用的确定性测试。
 - [x] 活动 Profile 切换后无需重启 API/Agent，下一个任务使用新线路。
 - [x] Agent 停止超过 stale window 后管理页显示状态未确认，分析任务仍可持久化为排队状态。
 - [x] Agent 恢复后可继续消费 Outbox/RabbitMQ 中的排队任务；心跳仅作为诊断状态自动恢复。
@@ -66,5 +68,19 @@
 | stale fail-closed | Worker Registry 测试验证心跳超时后不可用；创建分析测试验证没有兼容 Worker 时在持久化前返回不可用。 |
 | 进程参数隔离 | Runtime 测试验证 API Key 仅进入受控子进程环境，不进入命令参数。 |
 | 服务命令契约 | Windows、macOS、Linux 的 `status` 命令均有自动化覆盖；Windows install/uninstall 验证只操作本项目任务和定义文件。macOS/Linux 实机生命周期仍是外部门禁。 |
+| DeepSeek 结构化调用 | 单元测试验证 LangChain `json_mode`、顺序时间戳、base64 JPEG、无工具 Prompt、视频分析与剧本分析/汇总/术语/分块改写共用同一活动 Profile。 |
+| DeepSeek 资源边界 | 单次最多 64 帧、单图 4 MiB、总原始证据 24 MiB；FFmpeg 禁用音频和字幕，截图只存在于当前任务工作区。 |
 
 本轮定向门禁为 Ruff 通过、`23 passed`。安全条目仍保持未勾选，因为真实 API Key 执行的 Agent 普通日志、任务结果与进程快照还没有可审计样本；跨平台常驻条目也必须由对应操作系统实机证明，不能用命令生成测试替代。
+
+## 8. 2026-08-29 本轮补证
+
+| 验收项 | 证据 |
+| --- | --- |
+| 默认路由 | Docker 实际页面显示活动线路为“本机 Codex / 当前用户登录 / 免 Key”，宿主机 Analysis Worker 为 running。 |
+| DeepSeek Web 配置 | `agent-browser` 验证新增时自动切换为 API Key、`https://api.deepseek.com`与 `deepseek-v4-flash-vision-exp`，未写入任何 Profile。 |
+| 响应式界面 | 1280×900 功能验收通过；390×844 时 `scrollWidth=390`，无水平溢出。 |
+| 服务隔离 | 可选 Operator Runner 全部返回 500 时，修正后 API `/health/ready` 仍为 200；故障只降级对应平台。 |
+| 自动化 | 后端 Ruff、Mypy 通过，`1095 passed`；前端 lint、format、`173 passed`与 Next 生产构建通过。 |
+
+本轮仍不伪造第三方 Key 真实调用证据；该外部门禁保持未勾选。测试使用的临时 QA 账号与隔离浏览器会话已删除，无后台 Chrome 残留。

@@ -10,6 +10,7 @@ import {
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { providerEngineLabel } from './model';
 
 export function ExecutionRoute({
   active,
@@ -22,7 +23,11 @@ export function ExecutionRoute({
       <ArrowRight aria-hidden className="size-4 text-muted-foreground" />
       <RouteNode
         icon={<TerminalWindow />}
-        label={active.engine === 'codex' ? 'Codex CLI' : 'Claude CLI'}
+        label={
+          active.engine === 'deepseek'
+            ? 'LangChain · DeepSeek'
+            : `${providerEngineLabel(active.engine)} CLI`
+        }
       />
       <ArrowRight aria-hidden className="size-4 text-muted-foreground" />
       <RouteNode
@@ -54,9 +59,7 @@ export function ProviderRow({
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="font-medium">{item.display_name}</h3>
           {item.is_active ? <Badge variant="success">当前线路</Badge> : null}
-          <Badge variant="neutral">
-            {item.engine === 'codex' ? 'Codex' : 'Claude'}
-          </Badge>
+          <Badge variant="neutral">{providerEngineLabel(item.engine)}</Badge>
         </div>
         <p className="mt-1 truncate text-sm text-muted-foreground">
           {item.model} ·{' '}

@@ -62,19 +62,12 @@ def build_runtime_readiness(
         timeout=settings.readiness_timeout_seconds,
         follow_redirects=False,
     )
-    runner_urls = tuple(
-        dict.fromkeys(
-            f"{base_url.rstrip('/')}/health/ready"
-            for base_url in (
-                settings.runner_base_url,
-                *settings.runner_operator_base_urls.values(),
-            )
-        )
-    )
+    runner_url = f"{settings.runner_base_url.rstrip('/')}/health/ready"
     minio_scheme = "https" if settings.minio_internal_secure else "http"
     minio_url = (
         f"{minio_scheme}://{settings.minio_endpoint.rstrip('/')}/minio/health/live"
     )
+
     async def database_check() -> None:
         async with engine.connect() as connection:
             await connection.execute(text("SELECT 1"))
@@ -101,10 +94,13 @@ def build_runtime_readiness(
 
     checks: list[AsyncCheck] = [
         database_check,
-        *(lambda url=url: http_check(url) for url in runner_urls),
+        lambda: http_check(runner_url),
         lambda: http_check(minio_url),
         rabbitmq_check,
     ]
+    # Operator runners are optional, provider-scoped capacity. Their health is
+    # surfaced by provider status/canaries and must never take the API, uploads,
+    # anonymous downloads, or AI configuration offline.
     # Analysis worker liveness is feature-level information. The API remains
     # ready so durable analysis requests can be queued while the host agent
     # is being restarted by its platform service manager.

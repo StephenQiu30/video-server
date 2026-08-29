@@ -10,7 +10,7 @@ uv run python -m app.workers.analysis.agent_cli install
 uv run python -m app.workers.analysis.agent_cli status
 ```
 
-macOS/Linux 使用相同的 `uv run python ...` 命令。`doctor` 必须先成功；它会检查数据库中的活动 Provider、Codex/Claude CLI、FFmpeg、FFprobe、本机登录状态，以及 `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` 对固定就绪探针的读取权限。
+macOS/Linux 使用相同的 `uv run python ...` 命令。`doctor` 必须先成功；它会按活动 Provider 检查 Codex/Claude CLI 或 DeepSeek 适配器、FFmpeg、FFprobe，以及 `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` 对固定就绪探针的读取权限。
 
 默认 Profile 是“本机 Codex”。先在同一系统用户下执行 `codex login`，再运行 doctor。Claude 本机模式同理使用 `claude` 自己的登录命令。
 
@@ -19,10 +19,12 @@ macOS/Linux 使用相同的 `uv run python ...` 命令。`doctor` 必须先成�
 管理员登录后打开 `/admin/ai-providers`：
 
 1. 新增 Provider。
-2. 选择 Codex CLI（服务必须兼容 Responses）或 Claude CLI（服务必须兼容 Anthropic Messages）。
+2. 选择 Codex CLI、Claude CLI 或 DeepSeek API。DeepSeek 会固定使用官方视觉模型并自动填写官方 Base URL。
 3. 选择 API Key，填写 HTTPS Base URL、模型和 Key。
 4. 保存后点击“启用”。
 5. 下一条新分析任务自动使用新线路。
+
+第三方 Key 不放入 `.env`，也不要求 C 端用户配置。未新增或未启用第三方 Profile 时，当前态 schema 提供的 `local-codex` 始终是默认线路。
 
 Key 保存后不会回显。编辑时留空表示保留旧 Key；如需删除密钥，删除对应的非活动 Profile。
 
@@ -55,7 +57,7 @@ python -m app.workers.analysis.agent_cli doctor
 
 ### API Key Provider 失败
 
-确认协议与引擎匹配：Codex 只支持 Responses；Claude 要求 Anthropic Messages 语义。Base URL 通常是服务根或 `/v1` 根，不要填写完整的单次请求路径。Key 不会显示在日志中；必要时在管理页覆盖写入新 Key。
+确认协议与引擎匹配：Codex 只支持 Responses；Claude 要求 Anthropic Messages；DeepSeek 使用 `deepseek-v4-flash-vision-exp` 和官方 OpenAI 兼容接口。Base URL 通常是服务根或 `/v1` 根，不要填写完整的单次请求路径。Key 不会显示在日志中；必要时在管理页覆盖写入新 Key。
 
 ### 卸载
 

@@ -11,6 +11,7 @@ from typing import Protocol
 class AiProviderEngine(StrEnum):
     CODEX = "codex"
     CLAUDE = "claude"
+    DEEPSEEK = "deepseek"
 
 
 class AiProviderAuthMode(StrEnum):

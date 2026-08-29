@@ -1,6 +1,6 @@
 # 022 跨平台 AI 分析 Agent 与模型 Provider 配置需求
 
-- 状态：In Progress（内部实现与自动化契约已通过；真实 API Key、macOS、Linux 实机待验收）
+- 状态：In Progress（默认 Codex 与 DeepSeek/LangChain 已实现；第三方真实 API Key、macOS、Linux 实机待验收）
 
 - 日期：2026-08-13
 - 目标用户：本地部署用户、管理员、运维人员
@@ -23,6 +23,8 @@
 
 - 默认提供本机 Codex 登录 Profile。
 - 支持本机 Codex、Claude 登录与自定义 API Key Profile。
+- 支持管理员在 Web 中配置 DeepSeek 视觉 API；不得要求 C 端用户或部署者在 `.env` 填写第三方 AI Key。
+- DeepSeek 视频分析由服务端自动截图，用户不需要预处理、上传截图或安装浏览器扩展。
 - Profile 可新增、编辑、启用和删除；只允许一个活动项。
 - Key 加密保存，API 只返回是否已配置。
 - Worker 下一任务自动使用最新活动 Profile。
@@ -56,4 +58,5 @@
 - 活动 Profile 切换后，下一个新任务使用新 `provider/model` 记录。
 - 任何管理 API 响应与正常日志均无法检索到测试 Key。
 - 本机 Codex 登录路径不要求新增 Key。
+- 没有显式启用第三方 Profile 时，默认线路始终是 `local-codex`，不因第三方配置缺失而影响下载、文件与历史服务。
 - 三个平台的生成服务定义具备自动启动与失败重启配置。

@@ -381,7 +381,7 @@ unknown | verified | degraded | access_required | rate_limited | blocked | disab
 - 只使用项目自有或明确授权样本，不使用用户 URL/Cookie。
 - 记录 Provider、capability、access mode、Profile/engine/POT 版本、egress affinity 引用、阶段、耗时和稳定错误；不记录完整 URL 或 Secret。
 
-最近 5 次至少 4 次成功、最近 2 次连续成功、metadata 成功不超过 6 小时且 media 成功不超过 26 小时，已批准基线才可恢复 `verified`；至少 2 次失败进入 `degraded`；连续 3 次同类永久失败进入 `blocked`。会话失效立即进入 `access_required`。API 已实现该聚合器，但新平台的 `unknown/access_required` 基线不能被下载探针自动提升，必须先完成完整视频 Agent E2E 并显式批准。当前基线：Bilibili、抖音、小红书和快手保持既有公开链路；Facebook、Twitch、Pinterest、微博、优酷、Snapchat、LinkedIn、Telegram、Kick、Tumblr 已纳入严格单视频/Clip Profile；腾讯视频旧 Profile 在当前代码中仍错误地静态标为 `verified` 并保留固定 canary，因未公开 `cKey` 机制和缺少公开免费正向权益证据，必须先完成 024 Phase 0 将其降为 `unknown/disabled`，该项是发布阻断；YouTube 与 Reddit 为 `access_required`，TikTok 为 `degraded`；红果官方分享 `hongguo_web` 已接入“官方分享当前单集”窄链路但仍保持 `unknown`，App 受保护媒体、全集抓取和批量下载不在范围内；视频号链接为 `unsupported`，仅支持用户明文文件导入；AcFun、Rutube、VK Clips、Dailymotion 和 NicoNico 不登记。
+最近 5 次至少 4 次成功、最近 2 次连续成功、metadata 成功不超过 6 小时且 media 成功不超过 26 小时，已批准基线才可恢复 `verified`；至少 2 次失败进入 `degraded`；连续 3 次同类永久失败进入 `blocked`。会话失效立即进入 `access_required`。API 已实现该聚合器，但新平台的 `unknown/access_required` 基线不能被下载探针自动提升，必须先完成完整视频 Agent E2E 并显式批准。当前逐平台状态只由 Registry、状态 API 与对应验收文档维护，不在本通用策略中复制易过期快照；微信视频号当前边界见 025，腾讯视频授权媒体边界见 024。
 
 ## 14. 可观测性与审计
 

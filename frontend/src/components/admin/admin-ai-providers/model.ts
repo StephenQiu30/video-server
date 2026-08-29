@@ -25,3 +25,26 @@ export const EMPTY_AI_PROVIDER_EDITOR: AiProviderEditorState = {
   error: '',
   saving: false,
 };
+
+export function providerEngineDefaults(
+  engine: API.AiProviderEngine,
+): Pick<AiProviderEditorState, 'authMode' | 'baseUrl' | 'model'> {
+  if (engine === 'deepseek') {
+    return {
+      authMode: 'api_key',
+      baseUrl: 'https://api.deepseek.com',
+      model: 'deepseek-v4-flash-vision-exp',
+    };
+  }
+  return {
+    authMode: 'host_login',
+    baseUrl: '',
+    model: engine === 'codex' ? 'gpt-5.6-sol' : 'sonnet',
+  };
+}
+
+export function providerEngineLabel(engine: API.AiProviderEngine): string {
+  if (engine === 'codex') return 'Codex';
+  if (engine === 'claude') return 'Claude';
+  return 'DeepSeek';
+}

@@ -253,13 +253,10 @@ def _user_action(
 ) -> str | None:
     if status is ProviderSupportStatus.ACCESS_REQUIRED and download_available:
         return "公开样本已完成真实下载；遇到平台挑战时才需要已批准的受控会话。"
-    if (
-        provider_key == "wechat_channels"
-        and status is ProviderSupportStatus.ACCESS_REQUIRED
-    ):
+    if provider_key == "wechat_channels":
         return (
-            "公开分享链接需要部署已批准的隔离元宝会话；"
-            "不支持私密、加密、直播或付费内容。"
+            "仅支持分享页直接公开非加密媒体的单视频；"
+            "平台未公开媒体时请上传自己拥有或已获授权的文件。"
         )
     if provider_key == "hongguo_web":
         return (

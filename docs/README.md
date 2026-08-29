@@ -5,10 +5,11 @@
 ## 当前事实
 
 - [前端视觉系统](design/frontend-visual-system.md)：Next.js、Vercel/Geist 无边框视觉、响应式和可访问性规范。
-- [媒体解析策略](design/media-source-strategy.md)：解析责任链、错误优先级、封面认证交付与一次性 Provider Session 生命周期。
+- [媒体解析策略](design/media-source-strategy.md)：解析责任链、错误优先级、封面认证交付与部署方 Provider Secret 生命周期。
 - [Provider 接入架构重构调研](research/008-Provider接入架构重构调研.md)：yt-dlp 官方扩展边界、现有耦合和声明式接入结论。
 - [微信与腾讯授权媒体调研](research/014-微信视频号与腾讯视频授权媒体下载调研.md)：公众号文章原生视频、视频号 GitHub 方案、腾讯消费站权益与腾讯云 VOD 官方边界。
-- [微信视频号公开分享链接服务端解析调研](research/015-微信视频号公开分享链接服务端解析调研.md)：匿名公开性预检、隔离元宝会话、媒体白名单与保护拒绝。
+- [微信视频号公开分享链接服务端解析调研](research/015-微信视频号公开分享链接服务端解析调研.md)：匿名公开媒体边界、消费端私有会话方案的否决结论与官方能力缺口。
+- [LangChain 与 DeepSeek 视觉分析服务调研](research/016-LangChain与DeepSeek视觉分析服务调研.md)：默认 Codex、Web 可选 DeepSeek、服务端顺序截图和依赖安全边界。
 - [`design/`](design/)：尚未完成或仍需持续维护的设计事实。
 - [`prd/`](prd/)：当前需求与产品边界。
 - [`plans/`](plans/)：仍在执行的交付计划。

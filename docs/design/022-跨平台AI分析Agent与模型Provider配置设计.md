@@ -1,9 +1,9 @@
 # 022 跨平台 AI 分析 Agent 与模型 Provider 配置设计
 
-- 状态：内部实现与自动化契约已完成，待真实 API Key 与 macOS/Linux 实机验收
-- 日期：2026-08-13
+- 状态：默认 Codex 与 DeepSeek/LangChain 通用 Provider 已实现，待第三方真实 Key 与 macOS/Linux 实机验收
+- 日期：2026-08-29
 - 前置设计：`010-Codex与Claude CLI视频分析设计`、`015-RabbitMQ异步分析设计`
-- 前置调研：`docs/research/011-AI分析Agent与通用Provider接入调研.md`
+- 前置调研：`docs/research/011-AI分析Agent与通用Provider接入调研.md`、`docs/research/016-LangChain与DeepSeek视觉分析服务调研.md`
 
 ## 1. 决策摘要
 
@@ -11,6 +11,7 @@ AI 分析继续运行在宿主机 Agent，不进入 Compose。新增管理员可
 
 - `host_login`：复用当前系统用户已经完成的 Codex/ChatGPT 或 Claude 登录，不保存 API Key；
 - `api_key`：支持 Codex Responses Provider 与 Claude/Anthropic Messages Endpoint，Key 加密保存且只注入当前任务子进程；
+- `deepseek`：只允许 API Key，Worker 使用 LangChain 调用官方视觉模型；视频先在服务端转为有界、按时间排序的 JPEG 证据；
 - 当前线路热切换：Worker 每个任务解析一次活动 Profile，配置更新时间变化时重建受限 CLI Adapter；
 - 跨平台常驻：Windows 计划任务、macOS LaunchAgent、Linux systemd user service；
 - 在线可见：管理页使用现有 `analysis_worker_heartbeats` 提供 Agent 状态诊断；该状态不阻断 API 或任务创建。
@@ -30,7 +31,11 @@ flowchart LR
     RESOLVER --> SECRET["Fernet 解密 API Key"]
     HOST --> CLI["受限 Codex / Claude 子进程"]
     SECRET --> CLI
+    SECRET --> DS["LangChain · DeepSeek"]
+    JOB --> FRAME["FFmpeg 顺序截图"]
+    FRAME --> DS
     CLI --> RESULT["结构化分析结果"]
+    DS --> RESULT
 ```
 
 信任边界：
@@ -49,7 +54,7 @@ flowchart LR
 | --- | --- |
 | `key` | 稳定标识，创建后不可变 |
 | `display_name` | 管理页名称 |
-| `engine` | `codex` / `claude` |
+| `engine` | `codex` / `claude` / `deepseek` |
 | `auth_mode` | `host_login` / `api_key` |
 | `base_url` | API 模式必填；本机登录必须为空 |
 | `model` | 传给 CLI 的模型标识 |
@@ -76,6 +81,9 @@ flowchart LR
 
 - Codex API 模式固定 `wire_api=responses`，通过 CLI `-c model_providers.video_analysis.*` 临时注入，不写用户配置文件。
 - Claude API 模式注入 `ANTHROPIC_API_KEY` 与 `ANTHROPIC_BASE_URL`。
+- DeepSeek 固定 `deepseek-v4-flash-vision-exp`，通过 `langchain-deepseek` 的 OpenAI 兼容 Chat Completions 适配器调用；Key 不进入子进程环境。
+- DeepSeek 视频证据最多 64 张 JPEG，单图不超过 4 MiB、总原始图片不超过 24 MiB；只发送 base64 内联图片，不创建外部可访问截图 URL。
+- DeepSeek 只获得采样画面，不获得音频；Prompt 禁止声称听到对白或把未采样事件当作已确认事实。
 - 公网 Endpoint 只允许 HTTPS；`localhost/127.0.0.1/::1` 可使用 HTTP。
 - 禁止 URL 用户名、密码、query 与 fragment。
 - 本期不做 Chat Completions 到 Responses、OpenAI 到 Anthropic 的协议转换；服务必须原生兼容所选引擎。
@@ -103,7 +111,7 @@ python -m app.workers.analysis.agent_cli uninstall
 页面路径 `/admin/ai-providers`。视觉沿用 009 的蓝白、Geist、无卡片分区：
 
 1. 页首解释“本机登录 / API Key 路由”与生效时机。
-2. “当前执行链路”用 `Agent → CLI → 登录/Endpoint` 表达真实依赖，右侧显示模型。
+2. “当前执行链路”用 `Agent → CLI/LangChain → 登录/Endpoint` 表达真实依赖，右侧显示模型。
 3. Agent 在线状态与 Provider 配置状态分开，避免“配置存在”被误解为“服务可用”。
 4. Profile 使用分隔线列表，活动项不可删除；编辑在响应式 Dialog 中完成。
 5. API Key 输入仅写入，编辑时用“已配置；留空不修改”反馈，不伪造掩码值。
@@ -117,6 +125,7 @@ python -m app.workers.analysis.agent_cli uninstall
 | 本机未登录 | `analysis_cli_not_authenticated`，不写心跳 |
 | MinIO 统一凭据漂移 | `doctor` 在创建任务前失败，直接检查唯一 AK/SK 对就绪探针的读权限 |
 | API Key/Endpoint 错误 | 任务按既有失败分类收敛；密钥不出现在错误详情 |
+| DeepSeek 限流/余额不足 | 分别收敛为限流与用量错误；下载和已生成制品不受影响 |
 | 活动配置被删除 | API 返回 `ai_provider_active_delete` |
 | 公网 HTTP / 带凭据 URL | API 返回 `invalid_ai_provider_profile` |
 

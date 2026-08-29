@@ -83,24 +83,25 @@ async def test_runtime_readiness_fails_closed_without_exposing_dependency_error(
 
 
 @pytest.mark.usefixtures("rabbitmq_is_available")
-async def test_runtime_readiness_requires_every_configured_operator_runner(
+async def test_runtime_readiness_does_not_depend_on_optional_operator_runner(
     postgres_engine: AsyncEngine,
 ) -> None:
     seen: set[str] = set()
 
     async def respond(request: httpx.Request) -> httpx.Response:
         seen.add(request.url.host or "")
-        status = 503 if request.url.host == "tiktok-runner.test" else 200
-        return httpx.Response(status)
+        return httpx.Response(200)
 
     async with runtime_probe(
         httpx.MockTransport(respond),
         postgres_engine,
         operator_runners={"tiktok": "http://tiktok-runner.test"},
     ) as probe:
-        assert await probe.check() is False
+        assert await probe.check() is True
 
-    assert {"runner.test", "tiktok-runner.test", "minio.test"} <= seen
+    assert "runner.test" in seen
+    assert "minio.test" in seen
+    assert "tiktok-runner.test" not in seen
 
 
 @pytest.mark.usefixtures("rabbitmq_is_available")

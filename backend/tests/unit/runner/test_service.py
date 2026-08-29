@@ -326,28 +326,6 @@ def operator_settings(tmp_path: Path) -> tuple[RunnerSettings, Path]:
     return configured, source
 
 
-def wechat_operator_settings(tmp_path: Path) -> RunnerSettings:
-    cookie = (
-        b"# Netscape HTTP Cookie File\n"
-        b".yuanbao.tencent.com\tTRUE\t/\tTRUE\t2147483647\thy_token\tfixture\n"
-    )
-    source = tmp_path / "secrets/wechat_channels/browser-live.cookies.txt"
-    source.parent.mkdir(parents=True)
-    source.write_bytes(cookie)
-    os.chmod(source, 0o400)
-    return RunnerSettings(
-        runner_hmac_secret="runner-shared-secret-material-at-least-32-bytes",
-        runner_egress_proxy="http://wechat-egress:3128",
-        runner_workspace_root=tmp_path / "work",
-        runner_access_mode=ProviderAccessMode.OPERATOR_MANAGED,
-        runner_operator_session_versions={"wechat_channels": "browser-live"},
-        runner_operator_account_baseline_attested=True,
-        runner_provider_secret_root=tmp_path / "secrets",
-        runner_provider_secret_temp_root=tmp_path / "session-tmp",
-        runner_max_active_tasks=1,
-    )
-
-
 def tiktok_operator_settings(tmp_path: Path) -> RunnerSettings:
     cookie = (
         b"# Netscape HTTP Cookie File\n"
@@ -688,7 +666,7 @@ async def test_inspect_recovers_missing_duration_from_sparse_probe(
     assert response.streams[0].video_codec_family.value == "h264"
 
 
-async def test_wechat_operator_recovers_public_media_duration_without_cookie_probe(
+async def test_wechat_anonymous_media_recovers_duration_without_cookie_probe(
     tmp_path: Path,
 ) -> None:
     info = split_media_info()
@@ -703,10 +681,7 @@ async def test_wechat_operator_recovers_public_media_duration_without_cookie_pro
         }
     ]
     supervisor = FixtureSupervisor(info)
-    service = MediaRunnerService(
-        wechat_operator_settings(tmp_path),
-        supervisor=supervisor,
-    )
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
 
     response = await service.inspect("https://weixin.qq.com/sph/AFWYoXF5Bw")
 

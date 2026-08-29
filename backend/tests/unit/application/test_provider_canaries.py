@@ -311,7 +311,7 @@ async def test_access_and_repeated_permanent_failures_override_baseline() -> Non
 
 
 @pytest.mark.asyncio
-async def test_wechat_channels_access_message_preserves_public_scope() -> None:
+async def test_wechat_channels_message_explains_anonymous_public_scope() -> None:
     wechat = replace(baseline(), key="wechat_channels")
     service = ProviderStatusService(
         Reader(
@@ -330,7 +330,8 @@ async def test_wechat_channels_access_message_preserves_public_scope() -> None:
     view = (await service.list())[0]
 
     assert view.user_action == (
-        "公开分享链接需要部署已批准的隔离元宝会话；不支持私密、加密、直播或付费内容。"
+        "仅支持分享页直接公开非加密媒体的单视频；"
+        "平台未公开媒体时请上传自己拥有或已获授权的文件。"
     )
 
 

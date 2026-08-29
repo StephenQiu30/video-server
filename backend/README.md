@@ -26,28 +26,13 @@ app/
 
 业务接口要求邮箱账户登录，注册时同时设置唯一用户名。密码使用 Argon2 哈希；短期 Access JWT 与可轮换、可撤销的 Refresh JWT 通过 `HttpOnly` Cookie 维护。JWT 密钥、签发方、受众、Cookie 名、有效期和初始管理员邮箱从根目录 `.env` 的 `AUTH_*` 配置读取，原始 Refresh JWT 不写入数据库。角色和启用状态以 PostgreSQL 为准，管理员可通过 `/api/admin/users` 管理账号，并通过 `/api/admin/providers` 维护平台状态目录的名称、排序与可见性。平台目录不控制域名匹配、Extractor、Runner 参数或会话能力。
 
-Media Runner 通过 `app/runner/plugins/yt_dlp_plugins/` 加载随项目交付的可信站点提取器。MediaTrack 适配仅处理无需登录的公开审片视频和 API 明确授权的播放转码；抖音适配用数字视频 ID 构造固定公开分享页并修正 landscape 下载规格的短边尺寸语义，TikTok 适配优先使用其第一方嵌入播放器 item API 而不依赖随机网页挑战，快手适配把公开作品规范化到第一方移动分享页并限制短链重定向域，Tumblr 适配优先读取当前 `www.tumblr.com` 公开页而不强制改写到旧 blog 子域。小红书适配识别第一方 `300031` 笔记失效和 `300012` 平台验证边界，避免把失效内容误报成提取器故障。视频号适配只接受公开 `weixin.qq.com/sph/...` 单视频，先匿名确认公开元数据，再由隔离的元宝运维会话解析；任何 `decodeKey`、DRM/加密标记、非批准腾讯媒体域或 ffprobe 失败都会拒绝。所有适配都继续经过受控代理、作品身份校验、大小/时长限制、重新 inspect、FFmpeg 和 ffprobe 校验，不跨平台复用运维 Cookie，不支持图集截断、账号内容、无水印承诺或原文件权限绕过。
+Media Runner 通过 `app/runner/plugins/yt_dlp_plugins/` 加载随项目交付的可信站点提取器。MediaTrack 适配仅处理无需登录的公开审片视频和 API 明确授权的播放转码；抖音适配用数字视频 ID 构造固定公开分享页并修正 landscape 下载规格的短边尺寸语义，TikTok 适配优先使用其第一方嵌入播放器 item API 而不依赖随机网页挑战，快手适配把公开作品规范化到第一方移动分享页并限制短链重定向域，Tumblr 适配优先读取当前 `www.tumblr.com` 公开页而不强制改写到旧 blog 子域。小红书适配识别第一方 `300031` 笔记失效和 `300012` 平台验证边界，避免把失效内容误报成提取器故障。视频号适配只接受公开 `weixin.qq.com/sph/...` 单视频，并且只在匿名第一方响应直接提供批准腾讯媒体域上的非加密媒体时返回格式；没有公开媒体时明确拒绝并引导用户上传自己拥有或已获授权的文件。所有适配都继续经过受控代理、作品身份校验、大小/时长限制、重新 inspect、FFmpeg 和 ffprobe 校验，不支持图集截断、账号内容、无水印承诺或原文件权限绕过。
 
-主流视频源使用声明式 Provider Profile 接入：`provider_catalog_*.py` 按策略族登记能力和运行参数，`ProviderRegistry.prepare()` 一次解析得到贯穿 inspect/download 的不可变 `ProviderRequest`，`YtDlpCommandBuilder` 只消费该请求生成固定参数，错误由有序 `FailureRule` 归一化。已有 yt-dlp extractor 的公开单视频平台通常只需增加一个 Profile、契约测试和 metadata/media canary；需要自定义解析时再按 yt-dlp 官方插件目录增加可信 extractor，不修改通用命令执行器。未知站点使用无凭据 Generic extractor。YouTube、TikTok、抖音、小红书、Reddit、X、Instagram 与微信视频号运维会话分别在物理隔离的 Docker Runner 中从各自只读 Secret 建立操作级 `0600` Cookie jar；视频号 Secret 只允许 `yuanbao.tencent.com` 域，由一次性隔离授权流程自动生成，运行期不启动、监控或读取任何浏览器 Profile。平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 key 指向受控内部代理。
+主流视频源使用声明式 Provider Profile 接入：`provider_catalog_*.py` 按策略族登记能力和运行参数，`ProviderRegistry.prepare()` 一次解析得到贯穿 inspect/download 的不可变 `ProviderRequest`，`YtDlpCommandBuilder` 只消费该请求生成固定参数，错误由有序 `FailureRule` 归一化。已有 yt-dlp extractor 的公开单视频平台通常只需增加一个 Profile、契约测试和 metadata/media canary；需要自定义解析时再按 yt-dlp 官方插件目录增加可信 extractor，不修改通用命令执行器。未知站点使用无凭据 Generic extractor。可选的 YouTube、TikTok、抖音、小红书、Reddit、X 与 Instagram 运维会话由部署环境以版本化只读 Secret 提供，并分别在物理隔离的 Docker Runner 中建立操作级 `0600` Cookie jar；服务不读取个人浏览器、不启动 Chrome，也不把 Codex/AI Worker 当作 Cookie 获取通道。视频号始终走匿名 Runner。平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 key 指向受控内部代理。
 
-macOS 浏览器 Cookie 由 Keychain 加密，Linux 容器不能通过挂载 Chrome Profile
-直接复用。所有 Provider 会话只通过显式的一次性授权流程生成最小只读 Secret；
-微信视频号授权完成后会自动关闭隔离 Chrome，其他平台只在命令执行期间读取一次已
-登录浏览器。业务 Docker Compose 只挂载 Secret，不启动、保持或监控浏览器：
+完整的 Provider 配置、TikTok 稳定 device id、Secret 轮换与撤销流程见 `docs/operations/003-多平台受控会话运行手册.md`。
 
-```bash
-./scripts/authorize-provider-session.sh youtube
-./scripts/authorize-provider-session.sh wechat_channels
-./scripts/authorize-provider-session.sh tiktok
-```
-
-Runner 直接验证一次性登记的版本化 Secret；平台主动撤销、账号退出或验证挑战会
-返回稳定会话错误，此时重新执行对应授权命令。项目不安装 LaunchAgent，也不会在
-后台自动打开或读取浏览器。生产环境同样只挂载不可变 Secret。
-
-完整的 Provider 配置、TikTok 稳定 device id、启动、轮换与撤销流程见 `docs/operations/006-Docker浏览器会话运行手册.md`。
-
-视觉分析通过宿主机 Codex App Server stdio 协议或 `claude -p` adapter 运行，统一实现 `VideoAnalyzer` 端口并返回唯一当前态结果契约。每个 Codex 调用创建独立 ephemeral thread，完成后关闭进程，不依赖长期连接。分析能力由 `app/analysis_skills/*/SKILL.md` 注册：稳定 Skill ID 不带版本后缀，任务创建时保存完整指令快照，用户可在前端编辑该 Skill 的默认提示词。应用只提供受限 FFmpeg/FFprobe 解码工具，由 AI 自主观察画面并生成连续分镜、逐镜头叙事作用与高光等级、高光、视觉资产和制作建议；不运行 ASR，也不管理模型 API Key。报告以 Markdown 为唯一内容源，可在前端安全预览、下载 `.md`，DOCX 由 `markdown-it-py` 解析同一 Markdown 后生成。当前本机真实视觉 E2E 只通过 Codex；Claude 启用前必须验证实际模型路由具备图片理解。Worker 必须由已经完成 CLI OAuth 登录的本机用户从 `backend/` 启动。
+视觉分析默认通过宿主机 Codex App Server stdio 协议运行，也支持 `claude -p` adapter 和 Web 管理的 DeepSeek/LangChain 视觉 API，三者统一实现 `VideoAnalyzer` 端口并返回唯一当前态结果契约。每个 Codex 调用创建独立 ephemeral thread，完成后关闭进程，不依赖长期连接。DeepSeek 由 Worker 使用 FFmpeg 均匀生成最多 64 张、总原始证据不超过 24 MiB 的顺序 JPEG，以 base64 内联图片调用视觉模型，不暴露对象地址或客户端文件路径。分析能力由 `app/analysis_skills/*/SKILL.md` 注册；不运行 ASR。第三方 Endpoint、模型与 Key 只通过管理员 Web Profile 配置，Key 使用 Fernet 加密后存入 PostgreSQL 并仅在 Worker 内存中解密，不使用第三方 AI `.env`。报告以 Markdown 为唯一内容源，可安全预览和导出 Markdown/DOCX。Worker 必须在可访问 FFmpeg、队列和对象存储的宿主机运行；默认 Codex 路径还要求同一系统用户已完成官方登录。
 
 ## 运行与就绪
 
@@ -71,18 +56,21 @@ uv run python -m app.main
 
 该命令是后端模块开发入口，不替代完整业务拓扑中的 Worker、Runner 与前端构建。
 
-当 `.env` 的 `RUNNER_OPERATOR_BASE_URLS` 声明 Provider Operator 时，启动
-命令必须同时包含对应 Profile；`/health/ready` 会检查所有已声明 Runner，缺少任一
-容器都不会再静默回退为“就绪”：
+当 `.env` 的 `RUNNER_OPERATOR_BASE_URLS` 声明 Provider Operator 时，需要使用受控
+会话的平台还必须启动对应 Profile：
 
 ```bash
 docker compose --env-file .env -f docker-compose.yml \
-  --profile youtube-operator --profile wechat-channels-operator \
+  --profile youtube-operator \
   --profile provider-operator \
   --profile douyin-operator --profile xiaohongshu-operator \
   --profile reddit-operator --profile x-operator \
   --profile instagram-operator up -d --build
 ```
+
+Operator 是可选的平台级容量，不属于 API 全局就绪依赖。它不可用时由平台状态和
+canary 只降级对应 Provider；API、文件上传、匿名下载和 AI 配置仍保持可用。
+`/health/ready` 只检查数据库结构、匿名 Media Runner、MinIO、RabbitMQ 与 Valkey。
 
 固定 Provider 诊断矩阵和真实媒体探针命令见
 `docs/operations/007-固定Provider探针运行手册.md`。
@@ -92,7 +80,7 @@ docker compose --env-file .env -f docker-compose.yml \
 自动降级对应平台。真实任务投影只使用非敏感 Provider 上下文与完成时间，不读取或
 公开来源 URL、账号和 Cookie。
 
-宿主机 AI Worker 不属于 Compose，作为预先配置的本机 Codex App Server Worker 独立受监督；以下前台入口只用于调试：
+宿主机 AI Worker 不属于 Compose，默认作为本机 Codex App Server Worker 独立受监督；第三方 Provider 从 Web 管理页选择，不通过额外启动脚本或 `.env` 切换。以下前台入口只用于调试：
 
 ```bash
 uv sync --frozen --dev

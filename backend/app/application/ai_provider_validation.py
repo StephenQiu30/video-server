@@ -33,7 +33,11 @@ def validated_profile(
     api_key: str | None,
     require_api_key: bool,
 ) -> tuple[str, str, str | None, str]:
-    del engine
+    if (
+        engine is AiProviderEngine.DEEPSEEK
+        and auth_mode is not AiProviderAuthMode.API_KEY
+    ):
+        raise AiProviderError(AiProviderErrorCode.INVALID_PROFILE)
     if auth_mode is AiProviderAuthMode.API_KEY and require_api_key:
         if api_key is None or not api_key.strip():
             raise AiProviderError(AiProviderErrorCode.INVALID_PROFILE)
@@ -43,7 +47,7 @@ def validated_profile(
         validated_key(key),
         validated_name(display_name),
         validated_base_url(base_url, auth_mode),
-        validated_model(model),
+        validated_model(model, engine=engine),
     )
 
 
@@ -61,9 +65,16 @@ def validated_name(value: str) -> str:
     return normalized
 
 
-def validated_model(value: str) -> str:
+def validated_model(
+    value: str, *, engine: AiProviderEngine | None = None
+) -> str:
     normalized = value.strip()
     if not 1 <= len(normalized) <= 128 or any(ord(char) < 32 for char in normalized):
+        raise AiProviderError(AiProviderErrorCode.INVALID_PROFILE)
+    if (
+        engine is AiProviderEngine.DEEPSEEK
+        and normalized != "deepseek-v4-flash-vision-exp"
+    ):
         raise AiProviderError(AiProviderErrorCode.INVALID_PROFILE)
     return normalized
 

@@ -18,7 +18,8 @@ from app.infrastructure.ai_cli import (
     CliCapabilities,
     CodexAppServerVideoAnalyzer,
 )
-from app.workers.analysis import providers
+from app.infrastructure.ai_deepseek import LangChainDeepSeekAnalyzer
+from app.workers.analysis import profile_runtime
 from app.workers.analysis.main import _rabbitmq_worker_url
 from app.workers.analysis.providers import (
     ConfiguredAnalyzerResolver,
@@ -47,7 +48,7 @@ def test_worker_builds_selected_oauth_cli_adapter(
             ffprobe=Path(sys.executable),
         )
 
-    monkeypatch.setattr(providers, "preflight", successful_preflight)
+    monkeypatch.setattr(profile_runtime, "preflight", successful_preflight)
     settings = Settings(app_env="test", analysis_cli_provider=provider)
 
     runtime = build_video_analyzer(settings)
@@ -114,7 +115,7 @@ async def test_active_api_provider_is_injected_only_into_selected_cli_adapter(
             )
             return "secret-value"
 
-    monkeypatch.setattr(providers, "preflight", successful_preflight)
+    monkeypatch.setattr(profile_runtime, "preflight", successful_preflight)
     resolver = ConfiguredAnalyzerResolver(
         Settings(app_env="test"),
         Repository(),  # type: ignore[arg-type]
@@ -179,7 +180,7 @@ async def test_updated_active_profile_rebuilds_adapter_for_next_task(
             return ciphertext.decode()
 
     repository = Repository()
-    monkeypatch.setattr(providers, "preflight", successful_preflight)
+    monkeypatch.setattr(profile_runtime, "preflight", successful_preflight)
     resolver = ConfiguredAnalyzerResolver(
         Settings(app_env="test"),
         repository,  # type: ignore[arg-type]
@@ -198,6 +199,60 @@ async def test_updated_active_profile_rebuilds_adapter_for_next_task(
         "VIDEO_ANALYSIS_PROVIDER_KEY": "cipher-b"
     }
     assert calls == ["preflight", "preflight"]
+
+
+@pytest.mark.asyncio
+async def test_deepseek_profile_uses_web_secret_and_media_tools_without_cli_login(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    now = datetime(2026, 8, 29, tzinfo=UTC)
+
+    class Repository:
+        async def get_active_profile(self) -> AiProviderProfile:
+            return AiProviderProfile(
+                key="deepseek-main",
+                display_name="DeepSeek 主线路",
+                engine=AiProviderEngine.DEEPSEEK,
+                auth_mode=AiProviderAuthMode.API_KEY,
+                base_url="https://api.deepseek.com",
+                model="deepseek-v4-flash-vision-exp",
+                credential_ciphertext=b"ciphertext",
+                credential_key_id="fernet-test",
+                is_active=True,
+                created_at=now,
+                updated_at=now,
+            )
+
+    class Cipher:
+        def decrypt(self, provider_key: str, ciphertext: bytes, key_id: str) -> str:
+            assert (provider_key, ciphertext, key_id) == (
+                "deepseek-main",
+                b"ciphertext",
+                "fernet-test",
+            )
+            return "web-managed-secret"
+
+    media_calls: list[dict[str, object]] = []
+
+    def media_preflight(**kwargs: object) -> tuple[Path, Path]:
+        media_calls.append(kwargs)
+        return Path(sys.executable), Path(sys.executable)
+
+    monkeypatch.setattr(profile_runtime, "media_preflight", media_preflight)
+    resolver = ConfiguredAnalyzerResolver(
+        Settings(app_env="test"),
+        Repository(),  # type: ignore[arg-type]
+        Cipher(),  # type: ignore[arg-type]
+    )
+
+    selection = await resolver.resolve()
+
+    assert isinstance(selection.analyzer, LangChainDeepSeekAnalyzer)
+    assert selection.provider == "deepseek-main"
+    assert selection.model == "deepseek-v4-flash-vision-exp"
+    assert selection.cli_version.startswith("langchain-deepseek/")
+    assert len(media_calls) == 1
+    assert "web-managed-secret" not in repr(selection.analyzer._model)  # type: ignore[attr-defined]
 
 
 def test_worker_uses_the_declared_shared_rabbitmq_vhost() -> None:

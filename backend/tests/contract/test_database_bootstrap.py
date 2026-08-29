@@ -12,7 +12,6 @@ SCHEMA_PATH = ROOT / "sql/schema.sql"
 ROOT_README_PATH = ROOT.parent / "README.md"
 FRONTEND_README_PATH = ROOT.parent / "frontend/README.md"
 STARTUP_SCRIPT_PATH = ROOT.parent / "scripts/restart-project.ps1"
-SESSION_AUTHORIZE_SCRIPT_PATH = ROOT.parent / "scripts/authorize-provider-session.sh"
 DOCKERFILE_PATH = ROOT.parent / "Dockerfile"
 
 
@@ -68,6 +67,9 @@ def test_current_schema_can_be_applied_repeatedly() -> None:
         in schema
     )
     assert "('hongguo_web', '红果短剧官方分享', 230, TRUE, FALSE)" in schema
+    assert "engine IN ('codex', 'claude', 'deepseek')" in schema
+    assert "engine <> 'deepseek' OR auth_mode = 'api_key'" in schema
+    assert "'local-codex', '本机 Codex', 'codex', 'host_login'" in schema
 
 
 def test_compose_does_not_bundle_host_managed_infrastructure() -> None:
@@ -253,10 +255,6 @@ def test_compose_pins_shared_runner_workspace_to_the_mounted_container_path() ->
 
 def test_provider_session_runners_are_physically_isolated_by_provider() -> None:
     expected = {
-        "wechat-channels-operator-runner": (
-            "wechat_channels",
-            "wechat-channels-operator",
-        ),
         "douyin-operator-runner": ("douyin", "douyin-operator"),
         "xiaohongshu-operator-runner": ("xiaohongshu", "xiaohongshu-operator"),
         "reddit-operator-runner": ("reddit", "reddit-operator"),
@@ -279,21 +277,24 @@ def test_provider_session_runners_are_physically_isolated_by_provider() -> None:
             )
 
 
-def test_provider_sessions_use_one_time_authorization_without_a_broker() -> None:
-    authorize = SESSION_AUTHORIZE_SCRIPT_PATH.read_text(encoding="utf-8")
-    compose = COMPOSE_PATH.read_text(encoding="utf-8")
+def test_wechat_channels_is_anonymous_only_without_browser_session_runtime() -> None:
+    compose_documents = (
+        COMPOSE_PATH.read_text(encoding="utf-8"),
+        PROD_COMPOSE_PATH.read_text(encoding="utf-8"),
+    )
 
+    assert not (ROOT.parent / "scripts/authorize-provider-session.sh").exists()
     assert not (ROOT.parent / "scripts/provider-session-broker.sh").exists()
     assert not (ROOT / "app/runner/provider_session_broker.py").exists()
     assert not (ROOT / "app/runner/provider_session_launchd.py").exists()
-    assert "app.runner.provider_session_authorize" in authorize
-    assert "youtube|wechat_channels|tiktok" in authorize
-    assert (
-        "WECHAT_CHANNELS_COOKIE_VERSION:-browser-live"
-        in compose
-    )
-    assert (
-        'RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS: '
-        '"${RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS:-0}"'
-        in compose
-    )
+    assert not (ROOT / "app/runner/provider_session_authorize.py").exists()
+    assert not (ROOT / "app/runner/managed_chrome_session.py").exists()
+    assert not (ROOT / "app/runner/managed_chrome_cdp.py").exists()
+    assert not (ROOT / "app/runner/managed_session_cookies.py").exists()
+    assert not (ROOT / "app/runner/browser_cookie_export.py").exists()
+    assert not (ROOT / "app/runner/browser_cookie_source.py").exists()
+    for compose in compose_documents:
+        assert "wechat-channels-operator-runner" not in compose
+        assert "wechat-channels-operator" not in compose
+        assert "WECHAT_CHANNELS_COOKIE_" not in compose
+        assert "RUNNER_PROVIDER_SESSION_ACQUISITION" not in compose

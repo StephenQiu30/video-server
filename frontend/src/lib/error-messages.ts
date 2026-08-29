@@ -23,7 +23,8 @@ const localizedErrorMessages: Record<string, string> = {
   duration_limit_exceeded: '该平台支持下载，但当前内容超出单次处理的安全边界。',
   email_already_registered: '该邮箱已注册，请直接登录或使用其他邮箱。',
   forbidden: '当前账号没有执行此操作的权限。',
-  format_unavailable: '平台当前没有提供所选规格，请重新解析链接后选择可用规格。',
+  format_unavailable:
+    '平台当前没有提供所选规格，请重新解析链接后选择可用规格。',
   idempotency_conflict: '请求内容已经发生变化，请重新操作。',
   input_artifact_unavailable: '原视频文件已失效，请重新下载后再分析。',
   import_sha256_mismatch: '上传文件的校验值不一致，请重新选择原文件上传。',
@@ -44,10 +45,11 @@ const localizedErrorMessages: Record<string, string> = {
   not_found: '任务或相关资源不存在，请返回下载记录确认。',
   output_limit_exceeded: '下载文件超过大小限制，请选择更小的规格。',
   provider_auth_required:
-    '该公开链接需要平台隔离解析会话，当前服务尚未配置或会话不可用。',
+    '该链接需要平台登录或官方授权，当前服务无法代表用户获取。',
   provider_catalog_conflict: '相同标识的平台配置已经存在。',
   provider_catalog_not_found: '平台配置不存在或已被删除。',
-  provider_content_restricted: '该视频需要额外的平台权限，当前服务无法处理。',
+  provider_content_restricted:
+    '平台未提供可直接下载的公开媒体，或内容需要额外权限；请上传你拥有或已获授权的文件。',
   provider_drm_protected: '该视频受 DRM 保护，当前无法下载。',
   provider_failure: 'AI 服务未能完成分析，请稍后重试。',
   provider_geo_restricted: '该视频在当前服务区域不可用。',

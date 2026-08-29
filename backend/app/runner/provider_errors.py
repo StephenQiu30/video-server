@@ -98,6 +98,12 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         providers=frozenset({"wechat_channels"}),
     ),
     FailureRule(
+        "content_entitlement_unknown",
+        422,
+        any_stderr=(b"wechat channels public media is not downloadable",),
+        providers=frozenset({"wechat_channels"}),
+    ),
+    FailureRule(
         "drm_protected",
         422,
         any_stderr=(
@@ -221,12 +227,6 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
             b"unable to extract universal data for rehydration",
         ),
         providers=frozenset({"tiktok"}),
-    ),
-    FailureRule(
-        "extractor_regression",
-        502,
-        any_stderr=(b"wechat channels resolver returned an unsupported url",),
-        providers=frozenset({"wechat_channels"}),
     ),
     FailureRule(
         "extractor_regression",

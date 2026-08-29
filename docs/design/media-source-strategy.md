@@ -14,8 +14,8 @@
 
 1. 用可测试的策略责任链统一匿名与 Provider Operator 解析路径。
 2. 以错误策略对象约束降级范围，并优先暴露已配置会话过期。
-3. 本地可信环境只在显式授权时读取一次登录态并生成 Runner 可读取的最小
-   Provider Cookie 快照；运行期不监控浏览器，生产环境使用不可变版本。
+3. Operator 会话只来自部署环境提供的版本化只读 Secret；运行时不读取个人浏览器，
+   不依赖开发者电脑或 AI Worker，也不提供普通用户 Cookie 上传入口。
 4. 私有封面通过认证 HTTP client 获取并在内存中显示，不让原生图片请求绕过
    Access/Refresh Cookie 恢复。
 5. 下载任务由 Worker 在执行前重新解析并校验规格；终态重试只负责入队，避免
@@ -55,35 +55,40 @@ Operator 已确认链接失效时也优先返回这个确定结论，避免匿�
 
 ## 3. Provider Session 生命周期
 
-Docker 不能安全解密宿主机 Chrome Profile，因此所有 Provider 都使用一次性授权：
+C 端服务不能把任何个人电脑上的 Chrome Profile、Keychain、Codex Worker 或登录窗口
+作为可用性前提。Provider Operator 因此是部署方可选能力，并遵循同一生命周期：
 
-1. `authorize-provider-session.sh <provider>` 只在运维显式执行时读取登录态。
-2. 只保留目标 Provider allowlist 域、未过期且包含认证标记的 Cookie。
-3. 以同目录临时文件、`0400` 权限和原子替换生成版本化 Netscape 文件。
-4. Docker Operator Runner 继续只读挂载该文件；Cookie 原文不进入 API、DB、
-   RabbitMQ、日志或业务响应。
-5. Runner 在第一方请求中验证会话；平台撤销后明确报告过期，再由运维显式授权。
+1. 部署方在仓库外完成账号授权，把最小 Netscape Cookie 文件写入 Secret 管理系统；
+   应用不包含浏览器读取、登录自动化或 Cookie 导出代码。
+2. 每个 Secret 只允许一个 Provider 的批准域，使用不可变版本名并以只读方式挂载到
+   对应的物理隔离 Runner。
+3. Runner 在单次操作内创建 `0600` 临时副本；Cookie 原文不进入 API、数据库、
+   RabbitMQ、日志、业务响应或 AI Worker。
+4. 新版本必须通过自有或明确授权样本的 canary 后才能激活；撤销时从路由移除对应
+   Provider，停止 Runner 并删除 active/retained 版本。
 
-微信视频号授权完成即关闭隔离 Chrome；其他 Provider 的授权命令读取一次当前浏览器
-后退出。日常启动、下载和 canary 不存在浏览器或 Broker 进程。
+微信视频号是明确例外：当前没有采用可供本服务代表任意用户授权和下载分享作品的官方
+接口，因此 Profile 只有匿名模式，不配置 Operator Secret。匿名第一方响应未直接公开
+clear 媒体时立即失败，并引导用户上传自己拥有或已获授权的文件。
 
 ## 4. 环境策略
 
 | 环境 | 会话来源 | 生命周期 | 用途 |
 | --- | --- | --- | --- |
-| 本地可信开发 | 显式一次性授权 | 版本化 Secret | 运行期不访问浏览器上下文 |
+| 本地开发 | 无真实账号或测试专用 Secret | 测试期 | 单元测试和隔离 Runner 契约 |
 | CI | 无真实账号或短期测试 Secret | 测试期 | 单元测试和授权 canary |
-| 生产 | 新私密窗口 `robots.txt` 导出的专用账号版本 | 不可变、canary 后激活 | 可审计、可回滚的 Operator Runner |
+| 生产 | 受控 Secret 管理系统提供的专用账号版本 | 不可变、canary 后激活 | 可审计、可回滚的 Operator Runner |
 
-生产不直接连接个人 Chrome Profile。若未来需要长期托管生产凭据，应实现
-005 中定义的 Credential Broker/Vault、版本租约、撤销和 canary，而不是把
-本地授权工具扩展为服务器自动登录。
+若未来平台提供官方 OAuth 或资产导出 API，应新增官方 Connector，以用户授权范围和
+资产级导出权替代 Cookie。不得把本地授权工具、消费端私有接口或浏览器自动化扩展为
+服务器登录方案。
 
 ## 5. 验收条件
 
 - 同一公开 YouTube 链接可由匿名失败后自动选择 YouTube Operator。
 - 带 Cookie 的 bot challenge 分类为 `credential_expired`，页面给出可操作错误。
-- 一次性授权生成的最小 Secret 可由 Operator Runner 只读加载，运行期没有浏览器进程。
+- 版本化最小 Secret 可由 Operator Runner 只读加载，仓库运行时没有浏览器获取代码。
+- 视频号 Profile 只有匿名模式，匿名响应没有 clear 媒体时不进入任何会话回退。
 - 解析成功后下载仍使用 inspection 冻结的 Operator access context。
 - 限流等非白名单错误不触发 Operator，失败链保持有界。
 - 目标链接完成解析、选格式、下载、制品校验和 AI 分析入口验证。
@@ -143,8 +148,9 @@ canary。Registry 的基线表示当前版本已经完成的发布验收，不�
 只读取 Provider/Profile/访问模式和完成时间，不解密、不返回来源 URL，也不记录用户
 身份。状态 API 因而能立即反映真实用户链路的最近下载时间，26 小时后仅把“当前可用”
 标记转为历史时间，不撤销已经发布的支持能力。完整 Analysis 仍使用严格 attestation，
-不能由普通下载推导。Compose readiness 同时检查配置声明的每个 Runner，但平台
-canary 失败只降级对应平台，不让整个 API 不可用。
+不能由普通下载推导。Compose readiness 只检查匿名 Media Runner 和业务核心依赖；
+可选 Operator Runner 与平台 canary 的故障只降级对应平台，不让整个 API、上传、
+匿名下载或 AI 配置不可用。
 
 2026-08-29 的真实浏览器回归覆盖 22 个可启用 Provider：除小红书外均完成真实媒体
 下载和制品校验；QQ 视频保持明确禁用。小红书当前公开入口由平台返回 `300012`

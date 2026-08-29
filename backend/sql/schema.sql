@@ -47,7 +47,9 @@ CREATE TABLE IF NOT EXISTS ai_provider_profiles (
     is_active BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT ck_ai_provider_engine CHECK (engine IN ('codex', 'claude')),
+    CONSTRAINT ck_ai_provider_engine CHECK (
+        engine IN ('codex', 'claude', 'deepseek')
+    ),
     CONSTRAINT ck_ai_provider_auth_mode CHECK (
         auth_mode IN ('host_login', 'api_key')
     ),
@@ -65,6 +67,19 @@ CREATE TABLE IF NOT EXISTS ai_provider_profiles (
         )
     )
 );
+
+ALTER TABLE ai_provider_profiles
+    DROP CONSTRAINT IF EXISTS ck_ai_provider_engine;
+ALTER TABLE ai_provider_profiles
+    ADD CONSTRAINT ck_ai_provider_engine CHECK (
+        engine IN ('codex', 'claude', 'deepseek')
+    );
+ALTER TABLE ai_provider_profiles
+    DROP CONSTRAINT IF EXISTS ck_ai_provider_deepseek_auth;
+ALTER TABLE ai_provider_profiles
+    ADD CONSTRAINT ck_ai_provider_deepseek_auth CHECK (
+        engine <> 'deepseek' OR auth_mode = 'api_key'
+    );
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_ai_provider_active
     ON ai_provider_profiles (is_active)

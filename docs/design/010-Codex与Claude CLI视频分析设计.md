@@ -2,21 +2,21 @@
 
 - 状态：Implemented（Codex 已通过真实视觉 E2E；Claude 受当前 Windows 沙箱 feature gate 限制）
 - 日期：2026-08-10
-- 当前实现：宿主机 Codex App Server / Claude CLI 视觉分析；默认 Provider 为 Codex
+- 当前实现：宿主机 Codex App Server / Claude CLI 视觉分析；默认 Provider 为 Codex；Web 可选 DeepSeek 见 022
 - 验收状态：代码与 Codex E2E 已完成；2026-08-14 复验时 Claude CLI 因 Windows 沙箱 feature gate 未启用而 fail closed，详见 010 Acceptance
 
 ## 1. 当前基线与迁移范围
 
-当前 `AnalysisExecution` 链路是“下载制品物化 → 宿主机 CLI 自主抽帧与视觉观察 → 唯一当前态契约校验 → shot evidence 持久化”。旧 OpenAI ASR、DeepSeek/Ollama 文本分析和容器化 Analysis Worker 已从运行时删除。
+当前 `AnalysisExecution` 链路是“下载制品物化 → 所选 Provider 视觉观察 → 唯一当前态契约校验 → shot evidence 持久化”。旧 OpenAI ASR、DeepSeek/Ollama 文本分析和容器化 Analysis Worker 已从运行时删除；022 后续增加的是独立的 DeepSeek 视觉适配器，不恢复旧文本链路。
 
 1. 用户需要的是视频画面的分镜数量、分镜内容、视觉高光和资产目录，不是对白转录后的文本总结。
-2. 本机已经登录 Codex CLI 与 Claude Code CLI，不需要项目再管理 OpenAI、DeepSeek 或 Ollama 的 API Key 和模型服务。
+2. 默认本机已经登录 Codex CLI，不需要第三方 Key；管理员可按 022 在 Web 中选择性配置第三方视觉 API，C 端用户和 `.env` 均不持有 Key。
 3. 容器不能自然复用宿主机 CLI、Keychain 和用户登录状态，强行挂载认证目录会扩大 Secret 面。
 4. transcript segment 不能证明画面中的镜头、人物、地点、物体、Logo 或文字；目标证据必须切换为分镜和时间范围。
 
 本次迁移已按破坏性替换实施，不保留旧 Provider 双轨：
 
-- 删除 OpenAI ASR、DeepSeek、Ollama、LangChain 相关配置、依赖、适配器和音频分块链路。
+- 删除旧 OpenAI ASR、DeepSeek/Ollama 文本适配器和音频分块链路；可选 DeepSeek 视觉能力由 022 的独立 LangChain 适配器承接。
 - 用一个公共 `VideoAnalyzer` 端口承接 Codex CLI 与 Claude CLI 两个宿主机适配器。
 - 将旧 transcript evidence 结果替换为唯一当前态的 shot evidence 结果，不保留公共 Schema 版本字段。
 - `worker-analysis` 改为可信宿主机进程，直接调用本机 CLI；不在容器中复制或挂载登录凭据。
@@ -38,7 +38,7 @@
 - 不恢复本地 ASR，不分析对白、音乐、掌声、音效或说话人。
 - 不引入 PySceneDetect、OpenCV 场景检测、FFmpeg `scene` 阈值等应用侧分镜算法。
 - 不把 Codex/Claude 登录状态包装为面向多用户 SaaS 的共享凭据。
-- 不允许浏览器选择 Provider、模型、系统安全 Prompt、CLI 参数或本机路径。
+- 普通用户不能选择 Provider、模型、系统安全 Prompt、CLI 参数或本机路径；管理员只通过受控 Web Profile 管理允许的线路。
 - 不支持 DRM 视频、远程 URL 直传 CLI、用户 Cookie、任意 shell 参数；用户只可编辑被系统 Prompt 约束的分析偏好。
 - 首期不承诺逐帧编辑级 EDL 精度，也不做人物真实身份识别。
 

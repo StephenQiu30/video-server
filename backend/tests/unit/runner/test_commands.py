@@ -106,13 +106,13 @@ async def test_authenticated_youtube_bot_confirmation_is_expired_session(
 
 
 @pytest.mark.asyncio
-async def test_wechat_resolver_schema_drift_is_not_reported_as_expired_session(
+async def test_wechat_missing_public_media_is_reported_as_restricted_content(
     tmp_path: Path,
 ) -> None:
     commands = MediaCommands(
         settings(tmp_path),
         FailingSupervisor(
-            b"ERROR: WeChat Channels resolver returned an unsupported URL"
+            b"ERROR: WeChat Channels public media is not downloadable"
         ),
     )
 
@@ -120,11 +120,10 @@ async def test_wechat_resolver_schema_drift_is_not_reported_as_expired_session(
         await commands.inspect(
             "https://weixin.qq.com/sph/AFWYoXF5Bw",
             tmp_path,
-            cookie_jar=tmp_path / "cookies.txt",
         )
 
-    assert caught.value.code == "extractor_regression"
-    assert caught.value.status == 502
+    assert caught.value.code == "content_entitlement_unknown"
+    assert caught.value.status == 422
 
 
 @pytest.mark.asyncio
@@ -517,21 +516,20 @@ async def test_generic_unsupported_url_keeps_inspection_failure(tmp_path: Path) 
 
 
 @pytest.mark.asyncio
-async def test_wechat_channels_without_session_requires_credentials(
+async def test_wechat_channels_without_public_media_is_restricted(
     tmp_path: Path,
 ) -> None:
     commands = MediaCommands(
         settings(tmp_path),
         FailingSupervisor(
-            b"ERROR: Fresh cookies are needed to resolve this public "
-            b"WeChat Channels video"
+            b"ERROR: WeChat Channels public media is not downloadable"
         ),
     )
 
     with pytest.raises(RunnerFailure) as caught:
         await commands.inspect("https://weixin.qq.com/sph/AFWYoXF5Bw", tmp_path)
 
-    assert caught.value.code == "credential_required"
+    assert caught.value.code == "content_entitlement_unknown"
     assert caught.value.status == 422
 
 

@@ -1,11 +1,11 @@
 # 011 AI 分析 Agent 与通用 Provider 接入调研
 
-- 日期：2026-08-13
-- 结论：采用“宿主机 CLI Agent + 项目内 Provider Profile”，不修改用户全局 CLI 配置，不把宿主机登录态复制到容器。
+- 日期：2026-08-29
+- 结论：采用“宿主机分析 Worker + 项目内 Web Provider Profile”，默认复用本机 Codex，不修改用户全局 CLI 配置，不把宿主机登录态复制到容器；DeepSeek 视觉扩展见 016。
 
 ## 1. 问题定位
 
-现有 AI 分析不是 API 容器内的一段同步逻辑，而是宿主机上的 `analysis-worker`：它消费 RabbitMQ、下载完整视频制品，再调用 Codex CLI 或 Claude CLI。API 只有在数据库中读到兼容且未过期的 Agent 心跳时才允许创建分析任务。
+现有 AI 分析不是 API 容器内的一段同步逻辑，而是宿主机上的 `analysis-worker`：它消费 RabbitMQ、下载完整视频制品，再调用当前活动 Provider。Agent 心跳只用于诊断；短暂离线时任务仍可靠入队，恢复后继续消费，下载与文件服务不受影响。
 
 本次故障的直接原因是 Agent 进程退出后没有被系统服务托管，心跳过期，因而页面得到 `analysis_unavailable`。同时，旧实现启动时固定选择 CLI，主动清除继承环境中的 API Key，只支持本机 OAuth 登录，无法安全接入自定义模型服务。
 
@@ -55,7 +55,7 @@ CC Switch 的 Provider 预设、名称/Endpoint/Key/模型字段、当前线路�
 
 本期采用宿主机常驻 Agent：Windows 使用当前用户的计划任务，macOS 使用 LaunchAgent，Linux 使用 systemd user service。Agent 启动后先校验当前 Profile、CLI、FFmpeg、数据库与消息队列，再写入心跳。
 
-Provider Profile 存于 PostgreSQL，最多一个 `is_active=true`。API Key 使用项目现有 Fernet 主密钥加密，并用 `ai-provider:<profile-key>:` 前缀做领域和记录绑定。Worker 只在领取任务时解密当前 Profile，把唯一需要的 Key 注入子进程环境；子进程结束后环境随进程销毁。
+Provider Profile 存于 PostgreSQL，最多一个 `is_active=true`。API Key 使用项目现有 Fernet 主密钥加密，并用 `ai-provider:<profile-key>:` 前缀做领域和记录绑定。Worker 在任务边界解密当前 Profile：Codex/Claude API Key 只注入对应受控子进程，DeepSeek Key 只存在于 LangChain 客户端内存；两者都不进入命令参数、日志或 API 响应。
 
 ## 5. 后续演进
 

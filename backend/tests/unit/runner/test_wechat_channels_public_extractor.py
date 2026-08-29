@@ -3,7 +3,6 @@ from __future__ import annotations
 import subprocess
 import sys
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -13,7 +12,6 @@ from app.runner.plugins.yt_dlp_plugins.extractor.wechat_channels_public import (
 from app.runner.wechat_channels_policy import (
     allowed_media_url,
     has_protection_material,
-    playable_parameters,
 )
 from yt_dlp.utils import ExtractorError
 
@@ -48,8 +46,6 @@ def feed_payload(
 def configured_extractor(
     monkeypatch: pytest.MonkeyPatch,
     responses: list[object],
-    *,
-    authenticated: bool = True,
 ) -> tuple[WechatChannelsPublicIE, list[str]]:
     extractor = WechatChannelsPublicIE()
     requests: list[str] = []
@@ -60,43 +56,20 @@ def configured_extractor(
         return responses.pop(0)
 
     monkeypatch.setattr(extractor, "_download_json", download_json)
-    cookies = (
-        {
-            "hy_user": SimpleNamespace(value="operator-id"),
-            "hy_token": SimpleNamespace(value="operator-token"),
-        }
-        if authenticated
-        else {}
-    )
-    monkeypatch.setattr(extractor, "_get_cookies", lambda _url: cookies)
     return extractor, requests
 
 
-def test_public_precheck_then_operator_session_extracts_clear_media(
+def test_public_share_extracts_directly_exposed_clear_media(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     extractor, requests = configured_extractor(
         monkeypatch,
-        [
-            feed_payload(),
-            {
-                "code": 0,
-                "data": {
-                    "playable_url": (
-                        "https://channels.weixin.qq.com/finder-preview/pages/feed"
-                        "?token=public-token&eid=export-id"
-                    )
-                },
-            },
-            feed_payload(video_url=MEDIA_URL),
-        ],
+        [feed_payload(video_url=MEDIA_URL)],
     )
 
     info = extractor._real_extract(SHARE_URL)
 
     assert requests == [
-        "https://channels.weixin.qq.com/finder-preview/api/feed/get_feed_info",
-        "https://yuanbao.tencent.com/api/weixin/get_parse_result",
         "https://channels.weixin.qq.com/finder-preview/api/feed/get_feed_info",
     ]
     assert info["id"] == VIDEO_ID
@@ -106,14 +79,12 @@ def test_public_precheck_then_operator_session_extracts_clear_media(
     assert info["formats"][0]["vcodec"] == "h264"
 
 
-def test_anonymous_public_share_requests_isolated_session(
+def test_public_share_without_direct_media_fails_without_session_fallback(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    extractor, requests = configured_extractor(
-        monkeypatch, [feed_payload()], authenticated=False
-    )
+    extractor, requests = configured_extractor(monkeypatch, [feed_payload()])
 
-    with pytest.raises(ExtractorError, match="Fresh cookies are needed"):
+    with pytest.raises(ExtractorError, match="public media is not downloadable"):
         extractor._real_extract(SHARE_URL)
 
     assert requests == [
@@ -134,31 +105,12 @@ def test_unavailable_public_share_never_uses_operator_session(
     assert len(requests) == 1
 
 
-def test_rejects_invalid_resolver_output_and_protected_media(
+def test_rejects_protected_public_media(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    invalid, _ = configured_extractor(
-        monkeypatch,
-        [feed_payload(), {"code": 0, "data": {"playable_url": "https://evil.test/"}}],
-    )
-    with pytest.raises(ExtractorError, match="resolver returned an unsupported URL"):
-        invalid._real_extract(SHARE_URL)
-
     protected, _ = configured_extractor(
         monkeypatch,
-        [
-            feed_payload(),
-            {
-                "code": 0,
-                "data": {
-                    "playable_url": (
-                        "https://channels.weixin.qq.com/finder-preview/pages/feed"
-                        "?token=t&eid=e"
-                    )
-                },
-            },
-            feed_payload(video_url=MEDIA_URL, decode_key="secret"),
-        ],
+        [feed_payload(video_url=MEDIA_URL, decode_key="secret")],
     )
     with pytest.raises(ExtractorError, match="DRM protected"):
         protected._real_extract(SHARE_URL)
@@ -170,29 +122,6 @@ def test_parser_helpers_fail_closed() -> None:
         "https://finder.video.qq.com.evil.test/251/1/stodownload"
     )
     assert not allowed_media_url("http://finder.video.qq.com/251/1/stodownload")
-    assert playable_parameters(
-        {
-            "playable_url": (
-                "https://channels.weixin.qq.com/finder-preview/pages/feed"
-                "?token=t&eid=e&appid=wx123&entry_scene=resolver"
-            )
-        }
-    ) == ("t", "e")
-    assert playable_parameters(
-        {
-            "playable_url": (
-                "https://channels.weixin.qq.com/finder-preview/pages/feed?token=t"
-            )
-        }
-    ) is None
-    assert playable_parameters(
-        {
-            "playable_url": (
-                "https://channels.weixin.qq.com/finder-preview/pages/feed"
-                "?token=first&token=second&eid=e"
-            )
-        }
-    ) is None
     assert has_protection_material({"data": {"decodeKey": "secret"}})
     assert not has_protection_material({"data": {"decodeKey": ""}})
 

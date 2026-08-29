@@ -11,7 +11,7 @@ Profile。项目不启动 Session Broker：
 
 ```bash
 docker compose --env-file .env -f docker-compose.yml \
-  --profile youtube-operator --profile wechat-channels-operator \
+  --profile youtube-operator \
   --profile provider-operator \
   --profile douyin-operator --profile xiaohongshu-operator \
   --profile reddit-operator up -d --build
@@ -19,8 +19,10 @@ docker compose --env-file .env -f docker-compose.yml \
 curl --fail http://127.0.0.1:8111/health/ready
 ```
 
-就绪检查会探测匿名 Runner 和所有配置的 Operator Runner。`provider-canary` 必须
-显示 `runner_work:/work` 挂载，且容器内 `RUNNER_WORKSPACE_ROOT=/work`。
+全局就绪检查只探测匿名 Runner 和业务核心依赖。Operator Runner 是可选的平台级
+容量，其故障由平台状态和 canary 降级对应 Provider，不得拖垮 API、上传、匿名下载
+或 AI 配置。`provider-canary` 必须显示 `runner_work:/work` 挂载，且容器内
+`RUNNER_WORKSPACE_ROOT=/work`。
 
 ## 2. 固定矩阵
 

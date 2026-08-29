@@ -17,16 +17,9 @@
 - 已确认固定出口和账号风险；当前出口若仍处于 bot challenge，不把真实账号会话投入高并发重试。
 - 已记录 yt-dlp commit、EJS、POT Provider、Profile version 和脱敏 egress affinity，不记录账号、Cookie、完整 URL 或出口地址。
 
-受信任的 macOS 本地开发机通过显式的一次性授权命令读取并最小化当前 Chrome
-登录态。用户不运行导出命令，也不复制 Cookie：
-
-```bash
-./scripts/authorize-provider-session.sh youtube
-```
-
-授权命令执行一次后退出，只输出 Provider 与版本；不会把完整 Profile、Keychain、
-Cookie 值或其他网站 Cookie 暴露给 Docker。项目不会安装 LaunchAgent 或持续监控
-Chrome。该模式仅用于本地开发，不替代生产环境的独立私密会话和不可变版本轮换。
+项目运行时不会读取开发者或用户的 Chrome Profile，也不会借助 Codex/AI Worker 获取
+YouTube Cookie。匿名公开视频不需要会话；确需 Operator 的部署由运维在仓库外通过
+受控 Secret 管理流程提供专用账号的最小、不可变版本，不把个人登录态作为服务依赖。
 
 ## 2. 导入不可变 Secret
 
@@ -106,7 +99,7 @@ docker compose --env-file .env.prod -f docker-compose-prod.yml --profile youtube
 
 | 稳定类别 | 含义 | 处理 |
 | --- | --- | --- |
-| `provider_auth_required` / `provider_session_expired` | 会话缺失、过期或撤销 | 停止重试；导出新 version 后重新 canary |
+| `provider_auth_required` / `provider_session_expired` | 会话缺失、过期或撤销 | 停止重试；部署方导入新 version 后重新 canary |
 | `provider_verification_failed` | POT、EJS、签名或出口验证 | 区分 sidecar、EJS 与 IP；不反复更换 Cookie |
 | `provider_rate_limited` | Provider/会话/出口限流 | 等待并降低并发；当前实现尚未完成统一 `Retry-After` 预算 |
 | `provider_content_restricted` | private 或账号无权益 | 终止，不通过换账号扩大权益 |

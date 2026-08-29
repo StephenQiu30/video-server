@@ -51,7 +51,7 @@ export function AiProviderScreen({
               新增 Provider
             </Button>
           }
-          description="统一管理 AI 分析的本机登录与 API Key 路由。切换配置后，下一次分析任务自动生效。"
+          description="默认使用服务端本机 Codex；可在这里新增并启用第三方 API。切换后从下一次分析任务生效，无需修改环境文件。"
           title="AI 服务"
         />
       </div>
@@ -124,9 +124,10 @@ export function AiProviderScreen({
         </div>
         {!agentAvailable ? (
           <p className="mt-3 text-sm leading-6 text-warning">
-            当前未观察到分析 Agent 状态；配置仍然有效，新的分析任务会先进入可靠队列，
-            待 Agent 恢复后继续处理。请运行 Agent 安装命令或 doctor 检查本机登录、
-            数据库与消息队列。
+            当前未观察到分析 Agent
+            状态；配置仍然有效，新的分析任务会先进入可靠队列， 待 Agent
+            恢复后继续处理。请检查宿主机分析 Worker、Codex 登录、数据库与
+            消息队列。
           </p>
         ) : null}
       </section>

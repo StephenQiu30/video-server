@@ -104,7 +104,7 @@ server/
 - 匿名媒体流量只能由无 Provider 凭据的 Runner 发起；凭据 Runner 只能获得单 Provider、版本化的只读会话 Secret，不得获得数据库、队列、对象存储或 AI 凭据。两类 Runner 均须经过阻断私网的 egress proxy；入口 URL 校验不能替代网络隔离。
 - Worker 开工前重新解析语义下载计划；Provider format id 不能作为唯一恢复依据。
 - AI 任务独立于下载任务；AI 失败不得改变下载成功状态。模型输出必须通过严格 schema、连续分镜时间轴和 shot evidence 校验，普通日志不得记录完整 Prompt、抽帧或原始模型响应。
-- Secret 只来自类型化配置和环境变量，不得进入前端、API 响应、异常、快照、测试夹具或普通日志。外部操作必须设置大小、时长、并发和超时上限，取消时终止整个子进程组。
+- 基础设施 Secret 只来自类型化配置和环境变量；管理员在 Web 中维护的 AI Provider Key 只允许进入记录绑定的加密数据库字段，并仅在 Analysis Worker 内存中解密。任何 Secret 都不得进入前端、API 响应、异常、快照、测试夹具或普通日志。外部操作必须设置大小、时长、并发和超时上限，取消时终止整个子进程组。
 - 复用本机 OAuth 的 AI Worker 是 Compose 完整拓扑的唯一例外：必须由已登录 Codex 或 Claude CLI 的宿主机用户启动，容器不得挂载或复制 CLI 认证目录。
 - Compose 必须保持职责清晰：`docker-compose-env.yml` 只定义本项目基础环境及其一次性初始化，`docker-compose.yml` 只定义本机业务、Worker、Runner 和出口代理，`docker-compose-prod.yml` 只定义生产业务差异；不新增仅供 CI 或单个开发者使用的覆盖文件。业务 Compose 通过 `.env` 中的 `POSTGRES_HOST/PORT`、`RABBITMQ_HOST/PORT`、`VALKEY_HOST/PORT` 和 `MINIO_HOST/PORT` 连接基础环境：组合环境 Compose 时使用服务名和容器端口，复用已有基础环境时使用宿主机可达地址和已发布端口。`HOST_*_PORT` 只用于环境 Compose 的宿主机端口发布。MinIO 全部业务进程只共用一组 `MINIO_ACCESS_KEY` 与 `MINIO_SECRET_KEY`。所有服务必须显式设置稳定的 `container_name`。启动前按需复制 `.env.example` 为 `.env`，生产环境复制 `.env.prod.example` 为 `.env.prod` 并替换占位值。不要提交 `.env`、制品、缓存、日志、临时目录、虚拟环境或 `node_modules/`。
 

@@ -67,13 +67,10 @@ def _user_action(
             "当前出口受到小红书官方风控；失效笔记会单独提示，"
             "请使用新的公开分享链接后稍后重试。"
         )
-    if (
-        provider_key == "wechat_channels"
-        and status is ProviderSupportStatus.ACCESS_REQUIRED
-    ):
+    if provider_key == "wechat_channels":
         return (
-            "公开分享链接需要部署已批准的隔离元宝会话；"
-            "不支持私密、加密、直播或付费内容。"
+            "仅支持分享页直接公开非加密媒体的单视频；"
+            "平台未公开媒体时请上传自己拥有或已获授权的文件。"
         )
     if status is ProviderSupportStatus.ACCESS_REQUIRED:
         return "该平台需要部署已批准的受控会话；未启用时请稍后重试。"

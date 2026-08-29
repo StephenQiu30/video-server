@@ -14,6 +14,8 @@
 - [x] 新增 `ConfiguredAnalyzerResolver`，按任务读取活动 Profile。
 - [x] Codex 通过 `env_key + responses` 注入自定义 Provider。
 - [x] Claude 通过 `ANTHROPIC_API_KEY/BASE_URL` 注入。
+- [x] DeepSeek 通过 Web Profile 加密保存 Key，并由 LangChain 在 Worker 内直接调用。
+- [x] DeepSeek 视频输入由 FFmpeg 自动生成有界顺序 JPEG，不依赖客户端截图或浏览器会话。
 - [x] 保留本机 OAuth 预检与最小环境隔离。
 - [x] 队列、心跳和恢复组件使用指数退避自恢复。
 
@@ -31,6 +33,7 @@
 - [x] 当前执行链路与 Agent 在线状态分离展示。
 - [x] 新增响应式新增/编辑 Dialog、启用与删除动作。
 - [x] OpenAPI 生成客户端，不手写协议类型。
+- [x] DeepSeek 引擎选择自动切换到 API Key、官方 Base URL 和视觉模型。
 - [x] 完成 390×844 与桌面真实浏览器视觉验收。
 
 ## 阶段 5：验证
@@ -39,6 +42,7 @@
 - [x] 前端 lint、typecheck、测试与 build 通过。
 - [x] 本机 Codex Profile 完成一次真实视频分析。
 - [ ] 测试 API Key Profile 完成一次真实视频分析并确认脱敏。
+- [x] DeepSeek LangChain、顺序截图、四类剧本调用与错误边界通过自动化测试。
 - [x] 更新 Acceptance 实测证据与状态。
 
 ## 剩余外部门禁

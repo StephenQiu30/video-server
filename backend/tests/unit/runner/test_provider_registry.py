@@ -110,9 +110,10 @@ def test_remaining_provider_profiles_record_verified_access_boundaries() -> None
     assert reddit.version == "reddit-public-video-v1"
     assert tiktok.support_status is ProviderSupportStatus.VERIFIED
     assert tiktok.version == "tiktok-web-v1"
-    assert wechat.version == "wechat-channels-public-v1"
-    assert wechat.support_status is ProviderSupportStatus.ACCESS_REQUIRED
-    assert wechat.cookie_domain_allowlist == frozenset({"yuanbao.tencent.com"})
+    assert wechat.version == "wechat-channels-public-v2"
+    assert wechat.support_status is ProviderSupportStatus.DEGRADED
+    assert wechat.access_modes == (ProviderAccessMode.ANONYMOUS,)
+    assert wechat.cookie_domain_allowlist == frozenset()
     assert ProviderCapability.SHORT_VIDEO in wechat.capabilities
 
 

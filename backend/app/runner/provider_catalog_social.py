@@ -10,17 +10,15 @@ SOCIAL_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         "wechat_channels",
         "微信视频号",
         ("weixin.qq.com",),
-        version="wechat-channels-public-v1",
+        version="wechat-channels-public-v2",
         normalize_url=wechat_channels_url,
         capabilities=frozenset(
             {ProviderCapability.SINGLE_VIDEO, ProviderCapability.SHORT_VIDEO}
         ),
-        status=ProviderSupportStatus.ACCESS_REQUIRED,
-        operator_cookie_domains=frozenset({"yuanbao.tencent.com"}),
+        status=ProviderSupportStatus.DEGRADED,
         command_args=CHROME_IMPERSONATION,
         client_profile_id="chrome-136-macos-15",
         canary_suite="wechat-channels-public-single-video",
-        probe_authenticated_media=True,
     ),
     standard_provider(
         "vimeo",

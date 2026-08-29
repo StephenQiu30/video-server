@@ -12,6 +12,8 @@ dependencies = [
   "cryptography>=45,<47",
   "fastapi>=0.115,<1",
   "httpx>=0.28,<1",
+  "langchain-deepseek==1.1.0",
+  "langchain-openai>=1.1.9,<2",
   "minio>=7.2,<8",
   "pydantic-settings>=2.7,<3",
   "email-validator>=2.2,<3",

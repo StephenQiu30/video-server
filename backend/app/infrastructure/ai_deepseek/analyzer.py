@@ -1,0 +1,148 @@
+from __future__ import annotations
+
+from typing import Any
+
+from app.application.analysis_execution import (
+    ScreenplayAnalysisRequest,
+    ScreenplayAnalysisSynthesisRequest,
+    ScreenplayGlossaryRequest,
+    ScreenplayRewriteChunkRequest,
+    VideoAnalysisRequest,
+)
+from app.infrastructure.ai_cli.prompt import analysis_prompt
+from app.infrastructure.ai_cli.schema import analysis_output_schema
+from app.infrastructure.ai_cli.screenplay_prompt import (
+    screenplay_analysis_prompt,
+    screenplay_analysis_synthesis_prompt,
+)
+from app.infrastructure.ai_cli.screenplay_rewrite_prompt import (
+    screenplay_glossary_prompt,
+    screenplay_rewrite_chunk_prompt,
+)
+from app.infrastructure.ai_cli.screenplay_rewrite_schema import (
+    screenplay_glossary_output_schema,
+    screenplay_rewrite_chunk_output_schema,
+)
+from app.infrastructure.ai_cli.screenplay_schema import (
+    screenplay_analysis_output_schema,
+    screenplay_analysis_summary_output_schema,
+)
+from app.infrastructure.ai_cli.workspace import (
+    prepare_job_files,
+    run_with_workspace_policy,
+)
+
+from .client import StructuredModel, build_model, invoke_structured
+from .config import DeepSeekAdapterConfig
+from .frames import DeepSeekFrameExtractor, FrameEvidence
+
+
+class LangChainDeepSeekAnalyzer:
+    def __init__(
+        self,
+        config: DeepSeekAdapterConfig,
+        *,
+        api_key: str | None = None,
+        model: StructuredModel | None = None,
+        frames: DeepSeekFrameExtractor | None = None,
+    ) -> None:
+        if model is None and not api_key:
+            raise ValueError("DeepSeek API key is required")
+        self._config = config
+        self._model = model or build_model(config, api_key or "")
+        self._frames = frames or DeepSeekFrameExtractor(config)
+
+    async def analyze(self, request: VideoAnalysisRequest) -> object:
+        schema = analysis_output_schema(
+            request.output_language, request.result_contract
+        )
+        prompt = analysis_prompt(
+            request,
+            ffmpeg=str(self._config.ffmpeg),
+            ffprobe=str(self._config.ffprobe),
+            provided_frames=True,
+        )
+        files = prepare_job_files(request, schema, prompt)
+
+        async def operation() -> dict[str, Any]:
+            evidence = await self._frames.extract(
+                request.artifact,
+                workspace=files.root,
+                duration_ms=request.duration_ms,
+            )
+            return await self._invoke(prompt, schema, _frame_content(prompt, evidence))
+
+        return await run_with_workspace_policy(
+            operation(), root=files.root, config=self._config
+        )
+
+    async def analyze_screenplay(self, request: ScreenplayAnalysisRequest) -> object:
+        return await self._invoke(
+            screenplay_analysis_prompt(request),
+            screenplay_analysis_output_schema(
+                request.output_language, request.source_scene_ids
+            ),
+        )
+
+    async def synthesize_screenplay_analysis(
+        self, request: ScreenplayAnalysisSynthesisRequest
+    ) -> object:
+        return await self._invoke(
+            screenplay_analysis_synthesis_prompt(request),
+            screenplay_analysis_summary_output_schema(request.output_language),
+        )
+
+    async def build_screenplay_glossary(
+        self, request: ScreenplayGlossaryRequest
+    ) -> object:
+        return await self._invoke(
+            screenplay_glossary_prompt(request),
+            screenplay_glossary_output_schema(
+                request.source_language, request.target_language
+            ),
+        )
+
+    async def rewrite_screenplay_chunk(
+        self, request: ScreenplayRewriteChunkRequest
+    ) -> object:
+        return await self._invoke(
+            screenplay_rewrite_chunk_prompt(request),
+            screenplay_rewrite_chunk_output_schema(
+                source_scene_id=request.source_scene_id,
+                part_no=request.part_no,
+                source_sha256=request.source_sha256,
+                target_language=request.target_language,
+            ),
+        )
+
+    async def _invoke(
+        self,
+        prompt: str,
+        schema: dict[str, Any],
+        content: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        return await invoke_structured(
+            self._model,
+            prompt=prompt,
+            schema=schema,
+            content=content,
+            timeout_seconds=self._config.timeout_seconds,
+            maximum_result_bytes=self._config.max_stdout_bytes,
+        )
+
+
+def _frame_content(
+    prompt: str, evidence: tuple[FrameEvidence, ...]
+) -> list[dict[str, Any]]:
+    content: list[dict[str, Any]] = [{"type": "text", "text": prompt}]
+    for index, frame in enumerate(evidence, start=1):
+        content.extend(
+            (
+                {
+                    "type": "text",
+                    "text": f"截图 {index} · {frame.timestamp_ms} ms（按时间顺序）",
+                },
+                {"type": "image_url", "image_url": {"url": frame.data_url}},
+            )
+        )
+    return content

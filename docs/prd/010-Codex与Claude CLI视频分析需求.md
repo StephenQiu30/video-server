@@ -3,14 +3,14 @@
 - 状态：Implemented（Claude Provider 当前环境未通过视觉验收）
 - 日期：2026-08-10
 - 关联 Design：`docs/design/010-Codex与Claude CLI视频分析设计.md`
-- 当前实现：唯一当前态结果契约、宿主机 Analysis Worker、Codex 默认 Provider
+- 当前实现：唯一当前态结果契约、宿主机 Analysis Worker、Codex 默认 Provider；Web 可选 DeepSeek 见 022
 - 验收状态：Codex 真实 E2E 通过；Claude 当前本机模型路由不具备可用视觉理解
 
 ## 1. 背景与用户问题
 
 当前 AI 功能先转录音频，再从文字生成摘要、章节和思维导图。用户真正需要的是理解视频画面本身：视频有多少分镜、每个分镜展示什么、哪些画面是高光、有哪些可以复用或检索的视觉资产。
 
-本机已经安装并登录 Codex CLI 和 Claude Code CLI。继续维护 OpenAI ASR Key、DeepSeek Key 或 Ollama 模型既没有解决视觉证据问题，也让启动和部署变复杂。产品需要改为宿主机本地 CLI 编排、云端模型推理、受限本地画面解码的单用户分析模式。
+本机已经安装并登录 Codex CLI 和 Claude Code CLI。旧 OpenAI ASR、DeepSeek 文本摘要或 Ollama 模型没有解决视觉证据问题，因此本需求以宿主机 CLI 视觉分析替换旧链路；022 在相同视觉契约下补充了 Web 管理的 DeepSeek 视觉 API，不恢复 ASR 或文本优先方案。
 
 ## 2. 用户与核心任务
 
@@ -27,7 +27,7 @@
 ## 3. 产品目标
 
 - 用 AI 视觉能力替换 transcript-first 分析，使结论直接引用分镜。
-- 项目不保存或分发 OpenAI、Anthropic、DeepSeek、Ollama API Key。
+- 项目不向 C 端分发 AI Key，也不从 `.env` 读取第三方 AI Key；管理员可按 022 把可选 Provider Key 加密保存到数据库。
 - 两个 CLI Provider 使用同一业务结果，不在前端形成两套产品体验。
 - AI 分析失败、额度耗尽或未登录时，下载制品仍可正常使用。
 - 对进程、目录、网络、输出和资源建立可自动验证的安全边界。
@@ -164,7 +164,7 @@
 
 ## 7. 验收标准
 
-- `AC-010-01`：仓库中不再存在运行时 OpenAI ASR、DeepSeek、Ollama、LangChain 配置、依赖或实现；`.env` 不需要 AI Key。
+- `AC-010-01`：仓库中不再存在运行时 OpenAI ASR、旧 DeepSeek/Ollama 文本链路；`.env` 不需要第三方 AI Key。022 的 DeepSeek 视觉适配器必须保持独立且只消费 Web Profile。
 - `AC-010-02`：可信配置可分别启动 Codex 和 Claude Worker；两者都复用允许的本机登录，未登录时 fail-fast。
 - `AC-010-03`：同一个受控短视频通过 Codex 和 Claude 各生成一个通过唯一当前态契约校验的结果。
 - `AC-010-04`：受控视频的服务端派生 `shot_count` 与分镜数组一致，分镜从 0 到权威时长形成无间隙、无重叠的连续分区，人工核对能覆盖预设硬切镜头。

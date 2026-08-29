@@ -256,7 +256,7 @@ def test_provider_status_distinguishes_registered_verified_and_unsupported(
         items[key]["status"]
         for key in ("snapchat", "linkedin", "telegram", "kick", "tumblr")
     } == {"verified"}
-    assert items["wechat_channels"]["status"] == "access_required"
+    assert items["wechat_channels"]["status"] == "degraded"
     assert items["wechat_channels"]["registered"] is True
     assert items["wechat_channels"]["extractor_exists"] is True
     assert items["wechat_official_account_article"]["registered"] is True

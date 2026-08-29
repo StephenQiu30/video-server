@@ -12,7 +12,7 @@ declare namespace API {
 
   type AiProviderAuthMode = "host_login" | "api_key";
 
-  type AiProviderEngine = "codex" | "claude";
+  type AiProviderEngine = "codex" | "claude" | "deepseek";
 
   type AiProviderProfileListResponse = {
     /** Items */

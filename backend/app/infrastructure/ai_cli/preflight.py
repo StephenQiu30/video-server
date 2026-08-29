@@ -24,6 +24,21 @@ class CliCapabilities:
     ffprobe: Path
 
 
+def media_preflight(
+    *,
+    ffmpeg_binary: str | Path,
+    ffprobe_binary: str | Path,
+    environment: Mapping[str, str],
+    runner: CommandRunner | None = None,
+) -> tuple[Path, Path]:
+    execute = runner or _run
+    ffmpeg = _resolve(ffmpeg_binary)
+    ffprobe = _resolve(ffprobe_binary)
+    _successful(execute, (str(ffmpeg), "-version"), environment)
+    _successful(execute, (str(ffprobe), "-version"), environment)
+    return ffmpeg, ffprobe
+
+
 def preflight(
     provider: str,
     *,

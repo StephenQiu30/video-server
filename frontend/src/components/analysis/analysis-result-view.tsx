@@ -62,10 +62,7 @@ export default function AnalysisResultView({
         </TabsList>
       </div>
       <TabsContent className="pt-7" value="scenes">
-        <AnalysisSceneList
-          onSelectTime={onSelectTime}
-          scenes={result.scenes}
-        />
+        <AnalysisSceneList onSelectTime={onSelectTime} scenes={result.scenes} />
       </TabsContent>
       <TabsContent className="pt-7" value="shots">
         <ItemGroup asChild className="hairline gap-0 border-y">

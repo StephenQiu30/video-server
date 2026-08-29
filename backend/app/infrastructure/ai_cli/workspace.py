@@ -7,14 +7,30 @@ import stat
 from collections.abc import Coroutine
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 from app.application.analysis_execution import VideoAnalysisRequest
 
-from .config import CliAdapterConfig
 from .errors import AnalysisCliError
 
 _IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
+
+
+class WorkspacePolicyConfig(Protocol):
+    @property
+    def max_workspace_bytes(self) -> int: ...
+
+    @property
+    def max_workspace_files(self) -> int: ...
+
+    @property
+    def max_frames(self) -> int: ...
+
+    @property
+    def max_image_bytes(self) -> int: ...
+
+    @property
+    def workspace_poll_seconds(self) -> float: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,7 +83,7 @@ async def run_with_workspace_policy[ResultT](
     operation: Coroutine[Any, Any, ResultT],
     *,
     root: Path,
-    config: CliAdapterConfig,
+    config: WorkspacePolicyConfig,
 ) -> ResultT:
     process_task = asyncio.create_task(operation)
     monitor_task = asyncio.create_task(_monitor(root, config))
@@ -115,13 +131,13 @@ def read_result(path: Path, *, root: Path, maximum: int) -> object:
         raise AnalysisCliError("invalid_model_output") from exc
 
 
-async def _monitor(root: Path, config: CliAdapterConfig) -> None:
+async def _monitor(root: Path, config: WorkspacePolicyConfig) -> None:
     while True:
         await asyncio.to_thread(_validate_workspace, root, config)
         await asyncio.sleep(config.workspace_poll_seconds)
 
 
-def _validate_workspace(root: Path, config: CliAdapterConfig) -> None:
+def _validate_workspace(root: Path, config: WorkspacePolicyConfig) -> None:
     files = 0
     frames = 0
     total = 0

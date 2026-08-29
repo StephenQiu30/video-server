@@ -9,7 +9,7 @@
 
 ## 1. 实施原则
 
-- 这是旧 AI 链路的替换，不是新增第三、第四个 Provider；切换后删除 OpenAI ASR、DeepSeek、Ollama 和 LangChain。
+- 010 只负责用两种 CLI 视觉适配器替换旧 AI 链路；022 后续新增的 DeepSeek/LangChain 视觉适配器复用同一端口和结果契约，不恢复旧文本链路。
 - 先固定业务 Schema 和安全边界，再写 Provider argv；不让 CLI wrapper 反向污染领域模型。
 - 应用不实现镜头检测算法，FFmpeg 只做受限解码，由 AI 决定取样细化和语义结论。
 - 两个 Provider 独立实现、共享端口与验收；不得复制整套任务编排。
@@ -267,7 +267,7 @@ Prompt 与 Codex 一样由父进程写入 stdin，不作为 argv 暴露在进程
 3. 从代码、Compose、`.env.example`、`.env.prod.example`、测试和 README 删除所有 `OPENAI_*`、`DEEPSEEK_*`、`OLLAMA_*` 和旧 `ANALYSIS_PROVIDER`。
 4. 删除 transcript/mind-map 旧测试和 fixture，以 shot evidence 测试替代；不留下“legacy”目录或 adapter。
 5. 010 改为当前事实；移除或重写 003 的旧 Provider、ASR 和 transcript evidence 内容，并更新 `docs/README.md`、operations、AGENTS 与所有交叉引用，使仓库只保留一个当前方案。
-6. 全库 `rg` 验证旧 Provider/Key/ASR 只允许出现在 Git 历史，不出现在当前运行文档和源码。
+6. 全库 `rg` 验证旧 ASR、Ollama 和文本优先 Provider 不在当前运行源码；022 的 Web Profile 与 DeepSeek 视觉适配器是允许的当前实现。
 
 ## 11. Phase 9：两套真实 CLI 受控视频 E2E
 
@@ -345,7 +345,7 @@ Prompt 与 Codex 一样由父进程写入 stdin，不作为 argv 暴露在进程
 - `AC-010-01` 至 `AC-010-12` 全部通过并附证据。
 - Codex 和 Claude 对同一受控视频各完成一次真实端到端分析。
 - 全量后端、前端、OpenAPI、SQL、Compose/本机运行说明门禁通过。
-- 旧 ASR、DeepSeek、Ollama、LangChain、transcript evidence 和旧 UI 已删除，无兼容双轨。
+- 旧 ASR、Ollama、DeepSeek 文本分析、transcript evidence 和旧 UI 已删除；022 的 DeepSeek 视觉适配器不形成旧结果双轨。
 - 进程、目录、网络、工具、环境变量和日志安全测试全部 fail closed。
 - 文档准确说明云端推理、本机 OAuth 单用户边界和视觉-only 限制。
 - 工作区只剩任务开始前已经存在的用户改动，相关提交均可独立回滚。

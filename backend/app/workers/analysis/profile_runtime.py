@@ -1,0 +1,214 @@
+from __future__ import annotations
+
+import json
+from collections.abc import Mapping
+from dataclasses import dataclass, replace
+from importlib.metadata import version
+from pathlib import Path
+
+from app.application.ai_providers import (
+    AiProviderAuthMode,
+    AiProviderEngine,
+    AiProviderProfile,
+)
+from app.application.analysis_execution import VideoAnalyzer
+from app.core.ai_provider_cipher import FernetAiProviderSecretCipher
+from app.core.config import Settings
+from app.infrastructure.ai_cli import (
+    AnalysisCliError,
+    ClaudeCliVideoAnalyzer,
+    CliAdapterConfig,
+    CodexAppServerVideoAnalyzer,
+    media_preflight,
+    preflight,
+)
+from app.infrastructure.ai_deepseek import (
+    DeepSeekAdapterConfig,
+    LangChainDeepSeekAnalyzer,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class AnalyzerRuntime:
+    analyzer: VideoAnalyzer
+    provider: str
+    model: str
+    cli_version: str
+
+
+def build_default_runtime(
+    settings: Settings, *, environment: Mapping[str, str]
+) -> AnalyzerRuntime:
+    provider = settings.analysis_cli_provider
+    binary = (
+        settings.analysis_codex_binary
+        if provider == "codex"
+        else settings.analysis_claude_binary
+    )
+    model = (
+        settings.analysis_codex_model
+        if provider == "codex"
+        else settings.analysis_claude_model
+    )
+    capabilities = preflight(
+        provider,
+        cli_binary=binary,
+        ffmpeg_binary=settings.analysis_ffmpeg_binary,
+        ffprobe_binary=settings.analysis_ffprobe_binary,
+        environment=environment,
+    )
+    config = _cli_config(
+        settings,
+        capabilities.binary,
+        model,
+        capabilities.ffmpeg,
+        capabilities.ffprobe,
+    )
+    analyzer: VideoAnalyzer = (
+        CodexAppServerVideoAnalyzer(config)
+        if provider == "codex"
+        else ClaudeCliVideoAnalyzer(config)
+    )
+    return AnalyzerRuntime(analyzer, provider, model, capabilities.version)
+
+
+def build_profile_runtime(
+    settings: Settings,
+    profile: AiProviderProfile,
+    cipher: FernetAiProviderSecretCipher,
+    *,
+    environment: Mapping[str, str],
+) -> AnalyzerRuntime:
+    if profile.engine is AiProviderEngine.DEEPSEEK:
+        return _deepseek_runtime(settings, profile, cipher, environment)
+    binary = (
+        settings.analysis_codex_binary
+        if profile.engine is AiProviderEngine.CODEX
+        else settings.analysis_claude_binary
+    )
+    extra_environment: tuple[tuple[str, str], ...] = ()
+    provider_arguments: tuple[str, ...] = ()
+    if profile.auth_mode is AiProviderAuthMode.API_KEY:
+        secret = _profile_secret(profile, cipher)
+        if profile.engine is AiProviderEngine.CODEX:
+            extra_environment = (("VIDEO_ANALYSIS_PROVIDER_KEY", secret),)
+            provider_arguments = _codex_provider_arguments(profile)
+        else:
+            assert profile.base_url is not None
+            extra_environment = (
+                ("ANTHROPIC_API_KEY", secret),
+                ("ANTHROPIC_BASE_URL", profile.base_url),
+            )
+    capabilities = preflight(
+        profile.engine.value,
+        cli_binary=binary,
+        ffmpeg_binary=settings.analysis_ffmpeg_binary,
+        ffprobe_binary=settings.analysis_ffprobe_binary,
+        environment=environment,
+        verify_authentication=profile.auth_mode is AiProviderAuthMode.HOST_LOGIN,
+    )
+    config = replace(
+        _cli_config(
+            settings,
+            capabilities.binary,
+            profile.model,
+            capabilities.ffmpeg,
+            capabilities.ffprobe,
+        ),
+        extra_environment=extra_environment,
+        provider_arguments=provider_arguments,
+    )
+    analyzer: VideoAnalyzer = (
+        CodexAppServerVideoAnalyzer(config)
+        if profile.engine is AiProviderEngine.CODEX
+        else ClaudeCliVideoAnalyzer(config)
+    )
+    return AnalyzerRuntime(analyzer, profile.key, profile.model, capabilities.version)
+
+
+def _deepseek_runtime(
+    settings: Settings,
+    profile: AiProviderProfile,
+    cipher: FernetAiProviderSecretCipher,
+    environment: Mapping[str, str],
+) -> AnalyzerRuntime:
+    if profile.base_url is None:
+        raise AnalysisCliError("analysis_cli_not_authenticated")
+    ffmpeg, ffprobe = media_preflight(
+        ffmpeg_binary=settings.analysis_ffmpeg_binary,
+        ffprobe_binary=settings.analysis_ffprobe_binary,
+        environment=environment,
+    )
+    config = DeepSeekAdapterConfig(
+        model=profile.model,
+        base_url=profile.base_url,
+        ffmpeg=ffmpeg,
+        ffprobe=ffprobe,
+        timeout_seconds=settings.analysis_timeout_seconds,
+        max_stdout_bytes=settings.analysis_max_stdout_bytes,
+        max_stderr_bytes=settings.analysis_max_stderr_bytes,
+        max_workspace_bytes=settings.analysis_max_workspace_bytes,
+        max_workspace_files=settings.analysis_max_workspace_files,
+        max_frames=settings.analysis_max_frames,
+        max_image_bytes=settings.analysis_max_image_bytes,
+        workspace_poll_seconds=settings.analysis_workspace_poll_seconds,
+        terminate_grace_seconds=settings.analysis_terminate_grace_seconds,
+    )
+    analyzer = LangChainDeepSeekAnalyzer(
+        config, api_key=_profile_secret(profile, cipher)
+    )
+    label = f"langchain-deepseek/{version('langchain-deepseek')}"
+    return AnalyzerRuntime(analyzer, profile.key, profile.model, label)
+
+
+def _profile_secret(
+    profile: AiProviderProfile, cipher: FernetAiProviderSecretCipher
+) -> str:
+    if (
+        profile.credential_ciphertext is None
+        or profile.credential_key_id is None
+        or profile.base_url is None
+    ):
+        raise AnalysisCliError("analysis_cli_not_authenticated")
+    return cipher.decrypt(
+        profile.key, profile.credential_ciphertext, profile.credential_key_id
+    )
+
+
+def _codex_provider_arguments(profile: AiProviderProfile) -> tuple[str, ...]:
+    assert profile.base_url is not None
+    values: tuple[tuple[str, object], ...] = (
+        ("model_provider", "video_analysis"),
+        ("model_providers.video_analysis.name", profile.display_name),
+        ("model_providers.video_analysis.base_url", profile.base_url),
+        ("model_providers.video_analysis.env_key", "VIDEO_ANALYSIS_PROVIDER_KEY"),
+        ("model_providers.video_analysis.wire_api", "responses"),
+    )
+    return tuple(
+        item for key, value in values for item in ("-c", f"{key}={json.dumps(value)}")
+    )
+
+
+def _cli_config(
+    settings: Settings,
+    binary: Path,
+    model: str,
+    ffmpeg: Path,
+    ffprobe: Path,
+) -> CliAdapterConfig:
+    return CliAdapterConfig(
+        binary=binary,
+        model=model,
+        ffmpeg=ffmpeg,
+        ffprobe=ffprobe,
+        timeout_seconds=settings.analysis_timeout_seconds,
+        max_stdout_bytes=settings.analysis_max_stdout_bytes,
+        max_stderr_bytes=settings.analysis_max_stderr_bytes,
+        max_workspace_bytes=settings.analysis_max_workspace_bytes,
+        max_workspace_files=settings.analysis_max_workspace_files,
+        max_frames=settings.analysis_max_frames,
+        max_image_bytes=settings.analysis_max_image_bytes,
+        workspace_poll_seconds=settings.analysis_workspace_poll_seconds,
+        terminate_grace_seconds=settings.analysis_terminate_grace_seconds,
+        max_turns=settings.analysis_claude_max_turns,
+    )

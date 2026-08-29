@@ -145,6 +145,44 @@ async def test_api_key_profile_is_encrypted_and_activated() -> None:
 
 
 @pytest.mark.asyncio
+async def test_deepseek_profile_requires_api_key_and_supported_vision_model() -> None:
+    providers = service(Repository())
+
+    created = await providers.create_profile(
+        ADMIN,
+        key="deepseek-main",
+        display_name="DeepSeek 主线路",
+        engine=AiProviderEngine.DEEPSEEK,
+        auth_mode=AiProviderAuthMode.API_KEY,
+        base_url="https://api.deepseek.com",
+        model="deepseek-v4-flash-vision-exp",
+        api_key="secret-value",
+    )
+
+    assert created.credential_ciphertext == b"deepseek-main:secret-value"
+    for auth_mode, model in (
+        (AiProviderAuthMode.HOST_LOGIN, "deepseek-v4-flash-vision-exp"),
+        (AiProviderAuthMode.API_KEY, "deepseek-chat"),
+    ):
+        with pytest.raises(AiProviderError) as error:
+            await providers.create_profile(
+                ADMIN,
+                key=f"invalid-{auth_mode.value}",
+                display_name="Invalid",
+                engine=AiProviderEngine.DEEPSEEK,
+                auth_mode=auth_mode,
+                base_url=(
+                    None
+                    if auth_mode is AiProviderAuthMode.HOST_LOGIN
+                    else "https://api.deepseek.com"
+                ),
+                model=model,
+                api_key="secret-value",
+            )
+        assert error.value.code is AiProviderErrorCode.INVALID_PROFILE
+
+
+@pytest.mark.asyncio
 async def test_switching_to_host_login_clears_endpoint_and_encrypted_key() -> None:
     repository = Repository()
     providers = service(repository)

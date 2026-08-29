@@ -180,7 +180,11 @@ class AiProviderService:
                 effective_auth is AiProviderAuthMode.HOST_LOGIN
                 and current.base_url is not None
             ),
-            model=_validated_model(model) if model is not None else None,
+            model=(
+                _validated_model(model, engine=effective_engine)
+                if model is not None
+                else None
+            ),
             credential_ciphertext=encrypted,
             credential_key_id=self._cipher.key_id if encrypted else None,
             credential_changed=(

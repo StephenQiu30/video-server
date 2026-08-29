@@ -38,7 +38,7 @@ export function AiProviderEditor({ editor, onChange, onClose, onSave }: Props) {
           </DialogTitle>
           <DialogDescription className="max-w-lg leading-6">
             本机登录模式复用当前用户的 Codex 或 Claude 登录；API Key
-            模式只会把该凭据注入本次分析子进程。
+            会加密保存，仅在分析任务运行时交给所选适配器，不写入环境文件。
           </DialogDescription>
         </DialogHeader>
         <form

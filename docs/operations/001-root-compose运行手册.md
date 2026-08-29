@@ -48,8 +48,9 @@ docker compose --env-file .env -f docker-compose.yml up -d --build --force-recre
 最后一条 Docker Compose 命令是本机完整项目的启动与重启入口。它统一构建前端与
 后端镜像、重新创建业务服务并等待健康检查。需要 Operator Runner 时，在 `.env` 的
 `COMPOSE_PROFILES` 中声明与 `RUNNER_OPERATOR_BASE_URLS` 一致的 profile。项目启动
-不会启动宿主机浏览器或 Session Broker。不要使用不会应用代码、镜像或配置变化的
-`docker compose restart`。
+不会在项目启动或解析时启动宿主机浏览器、读取个人浏览器 Profile 或调用 AI Worker
+获取平台会话。需要受控 Provider 时，其版本化只读 Secret 必须由部署环境在仓库外
+提供。不要使用不会应用代码、镜像或配置变化的 `docker compose restart`。
 
 访问地址：
 
@@ -115,7 +116,9 @@ cd backend
 uv run --env-file ../.env.prod python -m app.workers.analysis.main
 ~~~
 
-启用 ANALYSIS_ENABLED=true 时，API 只有在兼容 Worker 心跳有效后才会就绪。没有宿主机 AI Worker 时，设置 ANALYSIS_ENABLED=false 后重建 API。
+AI Worker 心跳是功能级状态，不是 API 全局 readiness。Worker 短暂重启时分析任务
+保持 `queued`，下载、上传和历史查询继续可用；不提供分析能力的部署仍应显式设置
+`ANALYSIS_ENABLED=false` 后重建 API。
 
 ## Operator Profile
 
