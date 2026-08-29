@@ -8,10 +8,7 @@ import { formatInteger } from './analytics-format';
 import { DailyTrendDataTable } from './daily-trend-data-table';
 import {
   DailyTrendPlot,
-  desktopFrame,
-  mobileFrame,
   type SeriesKey,
-  tabletFrame,
   trendSeries,
 } from './daily-trend-plot';
 
@@ -80,19 +77,14 @@ export function DailyTrendChart({ daily }: { daily: DailyPoint[] }) {
               key={item.key}
               value={item.key}
             >
-              <svg aria-hidden className="h-2 w-5" viewBox="0 0 20 8">
-                <title>{item.label}线型</title>
-                <line
-                  className={item.stroke}
-                  strokeDasharray={item.dashArray}
-                  strokeLinecap="round"
-                  strokeWidth={item.width}
-                  x1="1"
-                  x2="19"
-                  y1="4"
-                  y2="4"
-                />
-              </svg>
+              <span
+                aria-hidden
+                className="w-5 border-t-2"
+                style={{
+                  borderColor: item.color,
+                  borderTopStyle: item.dashArray ? 'dashed' : 'solid',
+                }}
+              />
               {item.label}
             </ToggleGroupItem>
           ))}
@@ -102,29 +94,15 @@ export function DailyTrendChart({ daily }: { daily: DailyPoint[] }) {
       <figure className="mt-3 overflow-hidden rounded-md bg-surface/70 px-2 pb-1 pt-3 sm:px-4 sm:pt-4">
         <p className="sr-only" id="daily-trend-description">
           折线图纵轴从 0 到 {maximum}
-          。四条曲线使用不同线型区分，精确数值见图表后的数据表。
+          。四条曲线使用不同线型区分，可悬浮或使用键盘读取单日数据，精确数值见图表后的数据表。
         </p>
-        <DailyTrendPlot
-          className="h-auto w-full overflow-visible sm:hidden"
-          frame={mobileFrame}
-          maximum={maximum}
-          points={points}
-          visibleSeries={visibleSeries}
-        />
-        <DailyTrendPlot
-          className="hidden h-auto w-full overflow-visible sm:block lg:hidden"
-          frame={tabletFrame}
-          maximum={maximum}
-          points={points}
-          visibleSeries={visibleSeries}
-        />
-        <DailyTrendPlot
-          className="hidden h-auto w-full overflow-visible lg:block"
-          frame={desktopFrame}
-          maximum={maximum}
-          points={points}
-          visibleSeries={visibleSeries}
-        />
+        <div className="h-64 w-full sm:h-72 xl:h-80">
+          <DailyTrendPlot
+            maximum={maximum}
+            points={points}
+            visibleSeries={visibleSeries}
+          />
+        </div>
         <DailyTrendDataTable points={points} />
       </figure>
     </section>

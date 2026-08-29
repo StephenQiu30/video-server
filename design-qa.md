@@ -446,3 +446,15 @@ final result: passed
 - 现有设计 token、字体、颜色、图片和图标均未改变。
 
 final result: passed
+
+## 2026-08-29 shadcn/ui 官方图表组件与数据视图扩展
+
+- source visual truth：用户共享的 [shadcn/ui Area Charts](https://ui.shadcn.com/charts/area) 官方页面与用户原始下载分析截图 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-ffac27f0-195d-4f35-aac6-1fc6148895dd.png`。通过用户共享的 Chrome 标签页确认官方示例使用 `ChartContainer`、`ChartTooltip` 与 Recharts，并实测默认蓝色图表 token 为 `#90c5ff / #3080ff / #155dfc / #1447e6 / #193cb8`。
+- implementation evidence：桌面 1920×971 为 `/Users/stephenqiu/.codex/visualizations/2026/08/28/01a0496c-b15e-7901-ad8c-177830e7aeb5/download-analytics-shadcn-charts-1920x971.png`；移动 390×844 为 `/Users/stephenqiu/.codex/visualizations/2026/08/28/01a0496c-b15e-7901-ad8c-177830e7aeb5/download-analytics-shadcn-charts-390x844.png`。原始截图与桌面实现已在同一视觉比较输入中检查，原页面的大面积空趋势画布被紧凑的趋势、状态和来源贡献三种视图替代。
+- component system：通过 shadcn CLI 引入官方 `src/components/ui/chart.tsx` 源码，业务图表统一消费 `ChartConfig`、`ChartContainer` 与 `ChartTooltipContent`；Recharts 仅作为官方组件要求的绘图引擎，不再手写 SVG 坐标、路径或 Tooltip 基础设施。
+- hierarchy and visuals：首行保留下载趋势并增加任务状态环图，第二行以全宽横向条形图展示前六个来源，精确来源明细继续置于下方。官方蓝色 token 同步用于趋势、状态环、来源条形、周期选中态和成功率进度，移除用户指出的黑色选中块与黑色图表视觉；没有新增渐变、重阴影或页面级 Card 壳。
+- responsive and themes：1920px 下三个图表分别为 859×320、288×224、1376×288；390px 下分别为 327×256、288×224、343×288。两个视口均满足 `scrollWidth = clientWidth`；1280×900 深色模式保持 `rgb(10,10,10)` 背景与相同官方蓝色色板，图表、分隔、坐标轴和文本对比清晰。
+- interactions and accessibility：趋势多选图例继续支持系列显隐；真实浏览器悬浮 `8月22日` 时 Tooltip 正确显示全部 54、成功 49、失败 3、取消 2。三个 `ChartContainer` 分别提供准确的可访问名称，趋势保留完整精确数据表，来源贡献保留等价 meter 与下方明细，环图同时提供四项状态数值与百分比。
+- engineering gates：`npm run lint` 通过（仅仓库既有 `.agents/skills` 断开符号链接 warning）；44 个测试文件、168 项测试全部通过；Next.js production build 与 16 个静态页面生成通过。全仓 `format:check` 仍只报告三个与本轮无关的既有文件：`admin-ai-providers/ai-provider-screen.tsx`、`analysis-result-view.tsx` 与 `lib/error-messages.ts`；本轮修改文件格式检查通过。
+
+final result: passed

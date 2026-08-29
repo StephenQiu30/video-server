@@ -8,6 +8,7 @@ import {
 import { DailyTrendChart } from '@/components/admin/admin-analytics/daily-trend-chart';
 import { SourceBreakdown } from '@/components/admin/admin-analytics/source-breakdown';
 import { SourcePerformance } from '@/components/admin/admin-analytics/source-performance';
+import { StatusDistributionChart } from '@/components/admin/admin-analytics/status-distribution-chart';
 import { BackLink } from '@/components/layout/back-link';
 import { PageHeader } from '@/components/layout/page-header';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -64,7 +65,7 @@ export function AdminAnalyticsScreen({
                 >
                   {periods.map((period) => (
                     <ToggleGroupItem
-                      className="h-10 min-w-0 flex-1 px-3 opacity-100 data-[state=on]:bg-foreground data-[state=on]:text-background sm:min-w-14 sm:flex-none"
+                      className="h-10 min-w-0 flex-1 px-3 opacity-100 data-[state=on]:bg-chart-4 data-[state=on]:text-chart-foreground sm:min-w-14 sm:flex-none"
                       key={period}
                       value={String(period)}
                     >
@@ -113,11 +114,9 @@ export function AdminAnalyticsScreen({
           <AnalyticsKpis summary={data.summary} />
           <div className="grid items-start gap-12 xl:grid-cols-[minmax(0,2fr)_minmax(17rem,1fr)] xl:gap-10">
             <DailyTrendChart daily={data.daily} />
-            <SourceBreakdown
-              sources={data.sources}
-              total={data.summary.total}
-            />
+            <StatusDistributionChart summary={data.summary} />
           </div>
+          <SourceBreakdown sources={data.sources} total={data.summary.total} />
           <SourcePerformance sources={data.sources} />
         </div>
       ) : null}

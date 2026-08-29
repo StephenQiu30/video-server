@@ -27,6 +27,7 @@ export function AnalyticsLoading() {
         <Skeleton className="h-80 rounded-md" />
         <Skeleton className="h-80 rounded-none" />
       </div>
+      <Skeleton className="h-72 rounded-none" />
     </div>
   );
 }

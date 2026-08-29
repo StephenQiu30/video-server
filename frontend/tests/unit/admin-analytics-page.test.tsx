@@ -54,13 +54,15 @@ describe('administrator download analytics', () => {
       screen.getByRole('progressbar', { name: '下载成功率 75%' }),
     ).toHaveAttribute('aria-valuenow', '75');
 
-    const responsiveCharts = screen.getAllByRole('img', {
-      name: '每日下载任务折线趋势',
-    });
-    expect(responsiveCharts).toHaveLength(3);
     expect(
-      responsiveCharts.map((chart) => chart.getAttribute('viewBox')),
-    ).toEqual(['0 0 360 280', '0 0 720 320', '0 0 960 360']);
+      screen.getByRole('img', { name: '每日下载任务交互趋势图' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: '下载任务状态环形图' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: '视频来源任务贡献横向条形图' }),
+    ).toBeInTheDocument();
     const exactData = screen.getByRole('table', {
       name: '每日下载趋势精确数据',
     });
@@ -68,7 +70,8 @@ describe('administrator download analytics', () => {
       within(exactData).getByRole('row', { name: /2026-08-09 20 16 2 1/ }),
     ).toBeInTheDocument();
     expect(screen.getByText('周期概览')).toBeInTheDocument();
-    expect(screen.getByText('来源分布')).toBeInTheDocument();
+    expect(screen.getByText('任务状态')).toBeInTheDocument();
+    expect(screen.getByText('来源贡献')).toBeInTheDocument();
     expect(screen.getByText('来源明细')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '隐藏失败趋势' }));
     expect(
