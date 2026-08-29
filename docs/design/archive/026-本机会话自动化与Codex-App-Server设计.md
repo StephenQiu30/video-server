@@ -2,7 +2,7 @@
 
 - 状态：Implemented
 - 日期：2026-08-29
-- 对应需求：`docs/prd/026-本机会话自动化与Codex-App-Server需求.md`
+- 对应需求：`docs/prd/archive/026-本机会话自动化与Codex-App-Server需求.md`
 
 ## 1. 结论
 

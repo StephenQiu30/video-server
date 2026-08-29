@@ -2,7 +2,7 @@
 
 - 状态：Implemented
 - 日期：2026-08-29
-- 对应设计：`docs/design/026-本机会话自动化与Codex-App-Server设计.md`
+- 对应设计：`docs/design/archive/026-本机会话自动化与Codex-App-Server设计.md`
 
 ## 1. 用户价值
 
