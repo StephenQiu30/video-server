@@ -259,7 +259,15 @@ def test_provider_status_distinguishes_registered_verified_and_unsupported(
     assert items["qqvideo"]["status"] == "disabled"
     assert items["qqvideo"]["access_modes"] == []
     assert items["qqvideo"]["download_supported"] is False
-    assert items["qqvideo"]["user_action"] == "当前未开放此平台下载。"
+    assert items["qqvideo"]["user_action"] == (
+        "支持识别腾讯视频单视频链接并引导官方播放；"
+        "消费端私有接口、VIP、付费及 DRM 内容不提供下载。"
+        "自有媒资请通过腾讯云 VOD 官方导出或上传明文文件。"
+    )
+    assert items["youku"]["user_action"] == (
+        "仅支持无需登录即可访问的公开、非 DRM 单视频；"
+        "VIP、付费或试看内容请在优酷官方客户端播放。"
+    )
     assert {
         items[key]["status"]
         for key in ("snapchat", "linkedin", "telegram", "kick", "tumblr")

@@ -15,6 +15,11 @@ def test_qqvideo_single_video_is_playback_only() -> None:
     assert result.provider_media_id == "q326831cny0"
     assert result.access_decision is AccessDecision.PLAYBACK_ONLY
     assert result.restriction_reason == "tencent_consumer_download_disabled"
+    assert result.user_action == (
+        "支持识别腾讯视频单视频链接并引导官方播放；"
+        "消费端私有接口、VIP、付费及 DRM 内容不提供下载。"
+        "自有媒资请通过腾讯云 VOD 官方导出或上传明文文件。"
+    )
 
 
 def test_known_platform_host_never_falls_back_to_generic() -> None:

@@ -158,6 +158,9 @@ function statusLabel(provider: ProviderStatus): string {
 function integrationDescription(provider: ProviderStatus): string {
   if (!provider.registered) return '接入：未登记';
   if (!provider.extractor_exists) return '接入：已登记，暂无解析器';
+  if (provider.status === 'disabled') {
+    return '接入：仅识别链接，未开放安全下载通道';
+  }
   return provider.download_supported
     ? '接入：下载解析器已部署'
     : '接入：解析器已部署';

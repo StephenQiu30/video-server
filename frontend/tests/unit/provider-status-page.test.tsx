@@ -81,7 +81,9 @@ describe('provider status page', () => {
     expect(qqvideo).not.toBeNull();
     expect(qqvideo).toHaveTextContent('已停用');
     expect(qqvideo).toHaveTextContent('访问：当前未开放');
-    expect(qqvideo).toHaveTextContent('当前未开放此平台下载。');
+    expect(qqvideo).toHaveTextContent('仅识别链接，未开放安全下载通道');
+    expect(qqvideo).toHaveTextContent('支持识别腾讯视频单视频链接');
+    expect(qqvideo).toHaveTextContent('VIP、付费及 DRM 内容不提供下载');
     expect(qqvideo).not.toHaveTextContent('运维');
   });
 
@@ -225,7 +227,8 @@ function statuses(): ProviderStatusList {
         download_available: false,
         last_media_verified_at: null,
         last_verified_at: null,
-        user_action: '当前未开放此平台下载。',
+        user_action:
+          '支持识别腾讯视频单视频链接并引导官方播放；消费端私有接口、VIP、付费及 DRM 内容不提供下载。自有媒资请通过腾讯云 VOD 官方导出或上传明文文件。',
       },
     ],
   };

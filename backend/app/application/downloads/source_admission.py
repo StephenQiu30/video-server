@@ -7,6 +7,7 @@ import re
 from dataclasses import dataclass
 from urllib.parse import parse_qs, urlsplit
 
+from app.application.providers import QQVIDEO_PLAYBACK_ONLY_ACTION
 from app.domain.downloads import (
     AccessDecision,
     EntitlementState,
@@ -132,7 +133,7 @@ def classify_restricted_source(url: str) -> RestrictedSourceAdmission | None:
                 if media_id is not None
                 else "unsupported_qqvideo_url"
             ),
-            user_action="请在腾讯视频官方客户端播放；VIP/付费内容不提供下载。",
+            user_action=QQVIDEO_PLAYBACK_ONLY_ACTION,
         )
     return None
 
