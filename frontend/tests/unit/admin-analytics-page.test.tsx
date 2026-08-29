@@ -61,7 +61,10 @@ describe('administrator download analytics', () => {
       screen.getByRole('img', { name: '下载任务状态环形图' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('img', { name: '视频来源任务贡献横向条形图' }),
+      screen.getByRole('img', { name: '每日下载成功率面积图' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: '视频来源任务贡献条形图' }),
     ).toBeInTheDocument();
     const exactData = screen.getByRole('table', {
       name: '每日下载趋势精确数据',
@@ -70,18 +73,29 @@ describe('administrator download analytics', () => {
       within(exactData).getByRole('row', { name: /2026-08-09 20 16 2 1/ }),
     ).toBeInTheDocument();
     expect(screen.getByText('周期概览')).toBeInTheDocument();
+    expect(screen.getByText('每日下载趋势')).toBeInTheDocument();
     expect(screen.getByText('任务状态')).toBeInTheDocument();
+    expect(screen.getByText('完成率走势')).toBeInTheDocument();
     expect(screen.getByText('来源贡献')).toBeInTheDocument();
     expect(screen.getByText('来源明细')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '隐藏失败趋势' }));
     expect(
-      screen.getByRole('button', { name: '显示失败趋势' }),
-    ).toHaveAttribute('data-state', 'off');
+      screen.getByRole('table', { name: '每日下载成功率精确数据' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('最近一天 71.4%')).toBeInTheDocument();
 
     expect(screen.getAllByRole('meter')).toHaveLength(2);
     expect(
       screen.getByRole('meter', { name: '抖音占全部下载的62.5%' }),
     ).toHaveAttribute('value', '62.5');
+    expect(
+      screen.queryByRole('table', { name: '各视频源下载表现' }),
+    ).not.toBeInTheDocument();
+    const detailsTrigger = screen.getByRole('button', {
+      name: '查看 2 个来源',
+    });
+    expect(detailsTrigger).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(detailsTrigger);
+    expect(detailsTrigger).toHaveAttribute('aria-expanded', 'true');
     const sourceTable = screen.getByRole('table', {
       name: '各视频源下载表现',
     });

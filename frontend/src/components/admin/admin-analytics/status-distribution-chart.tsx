@@ -1,5 +1,6 @@
 'use client';
 
+import { CheckCircleIcon } from '@phosphor-icons/react';
 import { Label, Pie, PieChart } from 'recharts';
 
 import {
@@ -52,21 +53,20 @@ export function StatusDistributionChart({
   ];
 
   return (
-    <section
-      aria-labelledby="status-distribution-title"
-      className="hairline xl:border-l xl:pl-10"
-    >
-      <div>
-        <h2 className="text-lg font-medium" id="status-distribution-title">
-          任务状态
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          当前周期的完成结构与异常占比。
-        </p>
-      </div>
+    <section aria-labelledby="status-distribution-title">
+      <h2
+        className="flex items-center gap-2 text-base font-medium"
+        id="status-distribution-title"
+      >
+        <CheckCircleIcon aria-hidden className="size-4 text-muted-foreground" />
+        任务状态
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        当前周期的完成结构与异常占比。
+      </p>
       <ChartContainer
         aria-label="下载任务状态环形图"
-        className="mx-auto mt-3 h-56 w-full max-w-72 aspect-square"
+        className="mx-auto mt-3 h-52 w-full max-w-64 aspect-square"
         config={statusConfig}
         role="img"
       >
@@ -79,8 +79,9 @@ export function StatusDistributionChart({
             data={data}
             dataKey="value"
             innerRadius={62}
+            isAnimationActive={false}
             nameKey="status"
-            outerRadius={88}
+            outerRadius={84}
             stroke="var(--background)"
             strokeWidth={3}
           >

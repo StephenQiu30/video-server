@@ -78,6 +78,21 @@
 
 final result: passed
 
+## 2026-08-29 下载分析图表主导式重设计
+
+- source visual truth：用户指定的 shadcn/ui Area Charts 截图 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-50e54eef-cdc9-4fb1-b9a4-fd8deb194e17.png`（3840×1942，Chrome 2× 截图），以及同日读取的 [Area Charts](https://ui.shadcn.com/charts/area)、[Chart](https://ui.shadcn.com/docs/components/chart) 与 [Theming](https://ui.shadcn.com/docs/theming) 官方实现。官方交互面积图、Legend、Tooltip、`accessibilityLayer`、固定 `ChartContainer` 高度和 CSS 图表变量共同构成本轮设计事实。
+- implementation evidence：蓝白桌面主视图 `/Users/stephenqiu/.codex/visualizations/2026/08/28/01a0496c-b15e-7901-ad8c-177830e7aeb5/download-analytics-blue-white-1920x971.jpg`（1905×963）、桌面补充图表 `/Users/stephenqiu/.codex/visualizations/2026/08/28/01a0496c-b15e-7901-ad8c-177830e7aeb5/download-analytics-blue-white-insights.jpg`（1905×963）、390×844 主视图 `/Users/stephenqiu/.codex/visualizations/2026/08/28/01a0496c-b15e-7901-ad8c-177830e7aeb5/download-analytics-blue-white-390x844.jpg`（375×812）和移动端收起明细 `/Users/stephenqiu/.codex/visualizations/2026/08/28/01a0496c-b15e-7901-ad8c-177830e7aeb5/download-analytics-blue-white-mobile-details.jpg`（375×812）均来自应用内浏览器真实渲染。
+- viewport and normalization：桌面 CSS 视口 1920×971，浏览器常驻滚动条后 `clientWidth = scrollWidth = 1905`；移动 CSS 视口 390×844，`clientWidth = scrollWidth = 375`。来源图移除顶部 242px 的 2× Chrome 外壳后缩放至 1904×850，实现图裁为同尺寸并纵向合并；同输入全视图证据为 `/Users/stephenqiu/.codex/visualizations/2026/08/28/01a0496c-b15e-7901-ad8c-177830e7aeb5/download-analytics-blue-white-comparison.jpg`（1904×1700）。
+- state：30 天、浅色、892 条真实形态验收数据；桌面补充证据覆盖 KPI 与三列图表，移动补充证据为来源明细默认收起状态。来源图是组件目录而实现是业务分析页，因此比较聚焦主面积图比例、图例位置、三列图表节奏、蓝白层次、轻边界与信息密度，不把官网导航、示例文案和 Card 外壳当成业务差异。
+- full-view comparison：实现将全宽双序列 AreaChart 提升为首个数据区，图例居中置于坐标轴下方，视觉比例和官方宽幅示例一致；项目既有 PageHeader、返回路径和周期 Toggle Group 继续占据业务所需标题层级。下方 KPI 与三列图表保持 Vercel/Geist 的无 Card 连续内容流，使用发丝分隔代替官网示例卡片墙。
+- focused region comparison：补充图表证据确认状态环、完成率 AreaChart 和来源 BarChart 在一个连续三列网格内对齐；390px 下按任务状态、完成率、来源贡献顺序堆叠，坐标文字无裁切。来源精确表默认不挂载，通过官方 shadcn/ui Collapsible 的“查看 6 个来源”按需展开；桌面实测 `aria-expanded` 从 `false` 变为 `true` 且表格可见，移动默认 `aria-expanded=false` 且表格数量为 0。
+- required fidelity surfaces：字体继续使用 Geist Sans 与中文系统回退；标题、轴标签和数字层级清晰，无错误换行。间距采用项目既有 content shell、6px 圆角和发丝分隔，无阴影、渐变、玻璃或卡片堆叠。图表只消费与 shadcn/ui Area Chart 官方示例一致的蓝色 `--chart-1` … `--chart-5` 序列；页面背景、按钮、筛选、进度和结构边界继续使用 Vercel 式黑白中性色，没有硬编码业务色。无位图、插画或伪造图形资产，全部可视化由官方 Chart 源码与 Recharts SVG 输出。文案只保留任务规模、完成质量、来源贡献和按需精确明细。
+- accessibility and interactions：四个 ChartContainer 均提供独立可访问名称并启用 Recharts `accessibilityLayer`；主趋势与完成率保留屏幕阅读器精确数据表，来源贡献保留 meter，状态环提供四项图外数值。Collapsible 的桌面展开状态从 `false` 变为 `true` 且表格可见；移动默认 `aria-expanded=false` 且表格数量为 0；浏览器检查期间控制台没有 error。
+- comparison history：第一轮主趋势仍位于 KPI 后方，1920×971 首屏只能看到图表上半部，属于 P2 视觉层级漂移；调整为“PageHeader → 主面积图 → KPI → 三列补充图表”后，主图完整进入首屏并与来源目标对齐。第二轮三列完成率图的 Y 轴被负 margin 裁切，属于 P2 可读性问题；移除负 margin、固定 40px Y 轴后，0/50/100% 均完整显示。用户随后要求降低 HTML/信息密度，本轮移除日均/峰值重复摘要与补充说明，并引入官方 Collapsible 收起完整来源表；最终桌面内容高度由约 2334px 收敛至约 2187px，未产生新的 P0/P1/P2 问题。
+- engineering gates：新增官方 radix-nova Collapsible 源码并保持业务组件文件不超过 200 行；`npm run lint` 通过（仅既有 `.agents/skills` 断开符号链接 warning）；45 个测试文件、170 项测试全部通过；Next.js production build 与 16 个静态页面通过。全仓 `format:check` 仍只报告三个与本轮无关的既有文件：`admin-ai-providers/ai-provider-screen.tsx`、`analysis-result-view.tsx` 和 `lib/error-messages.ts`；本轮修改文件的 Biome 格式检查通过。
+
+final result: passed
+
 ## 2026-08-29 下载分析信息层级与图表比例重构
 
 - source visual truth：用户来源截图 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-ffac27f0-195d-4f35-aac6-1fc6148895dd.png`，原始 3840×1942 px；截图显示指标缺少清晰标题层级，趋势图随宽内容区等比放大并占据大部分首屏，来源洞察被推到首屏之外。

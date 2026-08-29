@@ -38,18 +38,15 @@ describe('design color boundaries', () => {
     expect(findings).toEqual([]);
   });
 
-  it('uses the official shadcn neutral chart palette in both themes', () => {
+  it('uses the official blue chart palette in both themes', () => {
     const globals = readFileSync('src/app/globals.css', 'utf8');
     const officialTokens = [
-      'oklch(0.646 0.222 41.116)',
-      'oklch(0.6 0.118 184.704)',
-      'oklch(0.398 0.07 227.392)',
-      'oklch(0.828 0.189 84.429)',
-      'oklch(0.769 0.188 70.08)',
+      'oklch(0.546 0.245 262.881)',
+      'oklch(0.707 0.165 254.624)',
       'oklch(0.488 0.243 264.376)',
-      'oklch(0.696 0.17 162.48)',
-      'oklch(0.627 0.265 303.9)',
-      'oklch(0.645 0.246 16.439)',
+      'oklch(0.809 0.105 251.813)',
+      'oklch(0.623 0.214 259.815)',
+      'oklch(0.882 0.059 254.128)',
     ];
 
     for (const token of officialTokens) expect(globals).toContain(token);

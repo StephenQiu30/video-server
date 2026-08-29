@@ -23,11 +23,20 @@ export function AnalyticsLoading() {
           </div>
         ))}
       </div>
-      <div className="grid gap-10 xl:grid-cols-[minmax(0,2fr)_minmax(17rem,1fr)]">
-        <Skeleton className="h-80 rounded-md" />
-        <Skeleton className="h-80 rounded-none" />
+      <Skeleton className="h-96 rounded-none" />
+      <div className="hairline grid border-y lg:grid-cols-3">
+        {['status', 'completion', 'sources'].map((key, index) => (
+          <div
+            className={`py-8 ${index > 0 ? 'hairline border-t lg:border-l lg:border-t-0 lg:pl-8' : 'lg:pr-8'}`}
+            key={key}
+          >
+            <Skeleton className="h-5 w-24" />
+            <Skeleton className="mt-2 h-4 w-48 max-w-full" />
+            <Skeleton className="mt-6 h-52 rounded-none" />
+          </div>
+        ))}
       </div>
-      <Skeleton className="h-72 rounded-none" />
+      <Skeleton className="h-80 rounded-none" />
     </div>
   );
 }

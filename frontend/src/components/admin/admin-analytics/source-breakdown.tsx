@@ -1,13 +1,7 @@
 'use client';
 
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  LabelList,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { ChartBarIcon } from '@phosphor-icons/react';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 
 import {
   type ChartConfig,
@@ -22,7 +16,7 @@ import { formatInteger, formatPercent } from './analytics-format';
 type Source = AdminDownloadAnalytics['sources'][number];
 
 const sourceConfig = {
-  total: { color: 'var(--chart-1)', label: '任务数' },
+  total: { color: 'var(--chart-3)', label: '任务数' },
 } satisfies ChartConfig;
 
 export function SourceBreakdown({
@@ -33,11 +27,10 @@ export function SourceBreakdown({
   total: number;
 }) {
   const sorted = [...sources].sort((left, right) => right.total - left.total);
-  const visible = sorted.slice(0, 6).map((source) => {
+  const visible = sorted.slice(0, 5).map((source) => {
     const share = total > 0 ? (source.total / total) * 100 : 0;
     return {
       ...source,
-      displayValue: `${formatInteger(source.total)} · ${formatPercent(share)}`,
       name: source.source_name || source.source_key,
       share,
     };
@@ -45,55 +38,48 @@ export function SourceBreakdown({
   const hiddenCount = Math.max(0, sorted.length - visible.length);
 
   return (
-    <section
-      aria-labelledby="source-breakdown-title"
-      className="hairline border-y py-8"
-    >
-      <div className="flex items-end justify-between gap-6">
-        <div>
-          <h2 className="text-lg font-medium" id="source-breakdown-title">
-            来源贡献
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            直观看出各平台贡献的任务量与占比。
-          </p>
-        </div>
-        <p className="shrink-0 text-xs text-muted-foreground tabular-nums">
-          {formatInteger(sorted.length)} 个来源
-        </p>
-      </div>
+    <section aria-labelledby="source-breakdown-title">
+      <h2
+        className="flex items-center gap-2 text-base font-medium"
+        id="source-breakdown-title"
+      >
+        <ChartBarIcon aria-hidden className="size-4 text-muted-foreground" />
+        来源贡献
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        对比主要视频源的任务量与占比。
+      </p>
       {sorted.length === 0 ? (
         <p className="py-12 text-sm text-muted-foreground">暂无来源数据。</p>
       ) : (
         <>
           <ChartContainer
             aria-describedby="source-breakdown-description"
-            aria-label="视频来源任务贡献横向条形图"
-            className="mt-6 h-72 w-full aspect-auto"
+            aria-label="视频来源任务贡献条形图"
+            className="mt-5 h-52 w-full aspect-auto"
             config={sourceConfig}
             role="img"
           >
             <BarChart
               accessibilityLayer
               data={visible}
-              layout="vertical"
-              margin={{ left: 0, right: 92 }}
+              margin={{ left: 0, right: 4, top: 8 }}
             >
-              <CartesianGrid horizontal={false} stroke="var(--border)" />
+              <CartesianGrid stroke="var(--border)" vertical={false} />
               <XAxis
-                axisLine={false}
-                domain={[0, 'dataMax']}
-                hide
-                tickLine={false}
-                type="number"
-              />
-              <YAxis
                 axisLine={false}
                 dataKey="name"
                 tickLine={false}
-                tickMargin={10}
-                type="category"
-                width={76}
+                tickFormatter={(value) => {
+                  const label = String(value);
+                  return label.length > 5 ? `${label.slice(0, 4)}…` : label;
+                }}
+              />
+              <YAxis
+                axisLine={false}
+                allowDecimals={false}
+                tickLine={false}
+                width={32}
               />
               <ChartTooltip
                 content={
@@ -122,19 +108,13 @@ export function SourceBreakdown({
               <Bar
                 dataKey="total"
                 fill="var(--color-total)"
-                radius={[0, 3, 3, 0]}
-              >
-                <LabelList
-                  className="fill-muted-foreground text-[11px]"
-                  dataKey="displayValue"
-                  offset={8}
-                  position="right"
-                />
-              </Bar>
+                isAnimationActive={false}
+                radius={[3, 3, 0, 0]}
+              />
             </BarChart>
           </ChartContainer>
           <p className="sr-only" id="source-breakdown-description">
-            横向条形图按任务数从高到低展示最多六个视频来源，精确数据见下方来源明细。
+            条形图按任务数从高到低展示最多五个视频来源，精确数据见下方来源明细。
           </p>
           <ol className="sr-only">
             {visible.map((source) => (
@@ -152,11 +132,12 @@ export function SourceBreakdown({
           </ol>
         </>
       )}
-      {hiddenCount > 0 ? (
-        <p className="hairline mt-6 border-t pt-4 text-xs text-muted-foreground">
-          其余 {formatInteger(hiddenCount)} 个来源可在下方明细中查看
-        </p>
-      ) : null}
+      <p className="mt-4 text-sm font-medium tabular-nums">
+        {formatInteger(sorted.length)} 个来源
+        {hiddenCount > 0
+          ? ` · 其余 ${formatInteger(hiddenCount)} 个可在明细中查看`
+          : ' · 已全部展示'}
+      </p>
     </section>
   );
 }

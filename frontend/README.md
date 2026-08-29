@@ -106,7 +106,7 @@ npm run openapi
 - 首页 Hero 与内页标题使用 Geist 响应式标题阶梯，不强制旧的固定页标尺寸。只有真实流程序号可使用中性 mono eyebrow，不使用彩色装饰性分类标签或与标题重复的说明。
 - 页面根、标题区、筛选区、列表区和表单区不使用可见 PageShell/Card 外壳、装饰 ring、阴影或大边框。输入、选择器和按钮优先使用无边框实心填充面；内容层级只使用必要的 1px 发丝 Separator。错误边界、可见键盘焦点轮廓与 Radix 覆盖层的表面/遮罩必须保留。
 - 首页格式选择必须使用 Radix RadioGroup 直接渲染 API 返回的真实 `MediaFormat`。不使用旧三步 UI、伪画质预设、伪字幕/容器选择器或静态封面上的伪播放按钮。群山湖泊演示/回归资产位于 `public/images/media-preview-mountain.webp`（约 221 KiB），真实封面仍优先。
-- 管理员下载分析页保持连续的无边框内容流，不使用指标 Card 或图表外壳。7/30/90 天周期使用单选 Radix Toggle Group；全部、成功、失败和取消趋势使用多选 Toggle Group，并以线型、文字和状态共同表达；成功率与来源占比使用 Radix Progress。趋势图可使用无描边中性表面、低对比总量面积层和末端数据点，但必须保留完整的屏幕阅读器数据表与移动摘要。
+- 管理员下载分析页保持连续的无边框内容流，不使用指标 Card 或图表外壳。7/30/90 天周期使用单选 Radix Toggle Group；首屏通过官方 shadcn/ui `ChartContainer`、`ChartLegend` 和双序列 Recharts AreaChart 对比全部任务与成功任务，颜色只消费与官方 Area Chart 示例一致的蓝色 `--chart-*` 主题变量。周期概览使用 Phosphor 语义图标与发丝分隔，后续三列/移动端单列依次呈现任务状态、完成率走势和来源贡献；完整来源表默认折叠，通过官方 Collapsible 按需展开。图表继续保留屏幕阅读器数据表、meter 和必要图外数值。
 - 功能图标继续使用已有 `@phosphor-icons/react`，品牌标识通过 Next.js `Image` 复用 `public/logo.svg`，浏览器与 Apple 图标复用同组品牌资源；不用 emoji、手绘 SVG、CSS 图形或文本符号代替标准图标。
 - 业务颜色和尺寸使用语义 token 与 Tailwind utility，不在页面散落近似色值、任意阴影或一次性 CSS。
 - Client Component 只用于交互和浏览器 API；其余页面、布局和元数据保持 Server Component。

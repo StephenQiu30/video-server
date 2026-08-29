@@ -1,3 +1,10 @@
+import {
+  CheckCircleIcon,
+  DownloadSimpleIcon,
+  HardDrivesIcon,
+  UsersThreeIcon,
+} from '@phosphor-icons/react';
+
 import { Progress } from '@/components/ui/progress';
 import type { AdminDownloadAnalytics } from '@/services/analytics';
 
@@ -15,22 +22,26 @@ export function AnalyticsKpis({
 }) {
   const metrics = [
     {
+      icon: DownloadSimpleIcon,
       label: '下载总数',
       value: formatInteger(summary.total),
       detail: `成功 ${formatInteger(summary.succeeded)} · 进行中 ${formatInteger(summary.active)}`,
     },
     {
+      icon: CheckCircleIcon,
       label: '成功率',
       value: formatPercent(summary.success_rate),
       detail: `失败 ${formatInteger(summary.failed)} · 取消 ${formatInteger(summary.cancelled)}`,
       progress: summary.success_rate,
     },
     {
+      icon: UsersThreeIcon,
       label: '独立用户',
       value: formatInteger(summary.unique_users),
       detail: '周期内创建下载的用户',
     },
     {
+      icon: HardDrivesIcon,
       label: '下载数据量',
       value: formatBytes(summary.downloaded_bytes),
       detail: `平均视频时长 ${formatDuration(summary.average_duration_seconds)}`,
@@ -65,7 +76,10 @@ export function AnalyticsKpis({
               }`}
               key={metric.label}
             >
-              <dt className="text-xs text-muted-foreground">{metric.label}</dt>
+              <dt className="flex items-center gap-2 text-xs text-muted-foreground">
+                <metric.icon aria-hidden className="size-4" />
+                {metric.label}
+              </dt>
               <dd className="mt-3 text-[clamp(1.9rem,4vw,3rem)] font-medium leading-none tracking-[-0.055em] tabular-nums">
                 {metric.value}
               </dd>

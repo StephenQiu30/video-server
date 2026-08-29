@@ -5,6 +5,7 @@ import {
   AnalyticsEmpty,
   AnalyticsLoading,
 } from '@/components/admin/admin-analytics/analytics-states';
+import { CompletionRateChart } from '@/components/admin/admin-analytics/completion-rate-chart';
 import { DailyTrendChart } from '@/components/admin/admin-analytics/daily-trend-chart';
 import { SourceBreakdown } from '@/components/admin/admin-analytics/source-breakdown';
 import { SourcePerformance } from '@/components/admin/admin-analytics/source-performance';
@@ -111,12 +112,22 @@ export function AdminAnalyticsScreen({
       ) : null}
       {data && data.summary.total > 0 ? (
         <div className="space-y-12 sm:space-y-14">
+          <DailyTrendChart daily={data.daily} />
           <AnalyticsKpis summary={data.summary} />
-          <div className="grid items-start gap-12 xl:grid-cols-[minmax(0,2fr)_minmax(17rem,1fr)] xl:gap-10">
-            <DailyTrendChart daily={data.daily} />
-            <StatusDistributionChart summary={data.summary} />
+          <div className="hairline grid border-y lg:grid-cols-3">
+            <div className="py-8 lg:pr-8">
+              <StatusDistributionChart summary={data.summary} />
+            </div>
+            <div className="hairline border-t py-8 lg:border-l lg:border-t-0 lg:px-8">
+              <CompletionRateChart daily={data.daily} />
+            </div>
+            <div className="hairline border-t py-8 lg:border-l lg:border-t-0 lg:pl-8">
+              <SourceBreakdown
+                sources={data.sources}
+                total={data.summary.total}
+              />
+            </div>
           </div>
-          <SourceBreakdown sources={data.sources} total={data.summary.total} />
           <SourcePerformance sources={data.sources} />
         </div>
       ) : null}

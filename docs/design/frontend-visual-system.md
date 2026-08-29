@@ -128,7 +128,7 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 | `--success` | `#16824D` | 成功状态 |
 | `--warning` | `#854D0E` | 等待与重试状态；与 10% warning 填充组合满足普通文字 AA 对比度 |
 | `--destructive` | `#DC2626` | 错误与破坏性操作 |
-| `--chart-1` … `--chart-5` | shadcn/ui 默认 neutral 图表色板 | 只供官方 Chart 组合消费；业务组件使用 token，不写自定义十六进制色值，也不扩散到筛选、按钮或进度等普通控件 |
+| `--chart-1` … `--chart-5` | shadcn/ui Area Chart 官方示例的蓝色序列 | 只供官方 Chart 组合消费；业务组件使用 token，不写自定义十六进制色值，也不扩散到筛选、按钮或进度等普通控件 |
 
 颜色必须通过语义 token 使用。主按钮使用近黑填充与白字，链接、焦点和选中态也优先使用中性色和形状/文字变化。状态不能只靠颜色表达，必须同时包含文字或图标。
 
@@ -154,7 +154,7 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 | --- | --- | --- |
 | 页内内容分组 | 语义化 section + [Separator](https://ui.shadcn.com/docs/components/radix/separator) | 不呈现 Card 外壳；通过排版、留白和必要的 1px 发丝线分组 |
 | 桌面数据 | [Table](https://ui.shadcn.com/docs/components/radix/table) | 用于管理员用户列表和下载分析的精确数值；保留 `caption`、列头和行语义，数值表头/单元格共同右对齐并使用 `tabular-nums`，390px 下切换为 Item/摘要列表 |
-| 数据可视化 | [Chart](https://ui.shadcn.com/docs/components/chart) + Recharts | 复用官方 `ChartContainer`、Tooltip 与默认 `--chart-1` … `--chart-5` 主题 token；图表有可读标题和等价表格/列表，数值不只靠颜色或 Tooltip 传达，不增加 Card 外壳 |
+| 数据可视化 | [Chart](https://ui.shadcn.com/docs/components/chart) + Recharts | 复用官方 `ChartContainer`、Tooltip 与蓝色 `--chart-1` … `--chart-5` 主题 token；图表有可读标题和等价表格/列表，数值不只靠颜色或 Tooltip 传达，不增加 Card 外壳 |
 | 移动导航/补充内容 | [Sheet](https://ui.shadcn.com/docs/components/radix/sheet) | 从右侧进入，标题与描述可读，关闭后焦点返回触发器 |
 | 图标辅助说明 | [Tooltip](https://ui.shadcn.com/docs/components/radix/tooltip) | 只补充说明，不承载唯一必要信息；支持 hover 与键盘 focus |
 | 用户身份 | [Avatar](https://ui.shadcn.com/docs/components/radix/avatar) | 必须有稳定 fallback，同时保留可读用户名 |
@@ -212,7 +212,7 @@ PageHeader 直接显示“下载记录”及一句用途说明、可选的“新
 
 用户搜索、分页、平台目录写入后的回读、平台状态刷新和下载分析周期切换均采用保留旧内容的后台刷新：只有首次进入且没有任何可展示数据时才使用骨架或加载占位。已有 Table、ItemGroup、指标或图表不得在请求开始时卸载，也不得用行数更少的骨架临时替换；请求完成后直接提交新结果，并以 `aria-busy` 或控件禁用态表达进行中状态，避免文档高度先塌陷再恢复。
 
-下载分析 PageHeader 直接显示“下载分析”，统计范围、7/30/90 天单选 Radix Toggle Group 与刷新操作收敛在标题区右侧，390px 下重排为满宽周期选择和独立图标操作。摘要以 Geist Sans 表格数字、留白和横向发丝 Separator 组织成四列周期概览，不使用指标 Card；窄屏切换为两列并保留稳定高度。桌面首屏把每日趋势与任务状态组织成 2:1 连续双栏，趋势图使用适配宽内容区的宽幅画布，避免随页面宽度被等比拉高；随后以全宽横向条形图展示前六个来源的任务贡献，其余来源进入下方完整明细。每日趋势、任务状态环图和来源贡献统一使用项目内的 shadcn/ui Chart 容器与 Tooltip，绘图引擎遵循官方实现使用 Recharts；趋势以低对比面积层和状态折线构成连续的“下载脉冲”，图例使用多选 Radix Toggle Group 支持键盘显隐系列。来源表现中的任务、成功率、用户和数据量表头/单元格共同右对齐。图表仍提供完整的等价表格/列表数值。AI 结果中的分镜、高光和资产同样使用 Tabs + Item/ItemGroup + Separator 的连续内容流，普通属性与评分不使用 Badge，不使用页面级原生按钮或逐项可见边框卡片。页面不解密或显示来源 URL，不显示用户或单任务明细。
+下载分析 PageHeader 直接显示“下载分析”，统计范围、7/30/90 天单选 Radix Toggle Group 与刷新操作收敛在标题区右侧，390px 下重排为满宽周期选择和独立图标操作。首个数据区使用全宽双序列面积图承担主要视觉层级，通过官方 `ChartLegend` 对比全部任务与成功任务，并以 `ChartTooltipContent` 提供按日交互读数；面积使用与 shadcn/ui Area Chart 官方示例一致的蓝色 `--chart-*` 主题变量和轻透明填充，不增加渐变或业务硬编码色，也不重复展示日均/峰值摘要。蓝色只属于图表数据层，页面背景、筛选、按钮、进度与结构边界继续使用 Vercel 式黑白中性色。摘要随后以 Geist Sans 表格数字、留白、Phosphor 语义图标和横向发丝 Separator 组织成四列周期概览，不使用指标 Card；窄屏切换为两列并保留稳定高度。桌面补充分析区为连续三列：任务状态环图、每日完成率面积图和前五来源柱状图，390px 下顺序堆叠；完整来源表通过官方 shadcn/ui Collapsible 按需展开，默认页面只保留入口，降低信息密度。全部图表统一组合项目内 shadcn/ui `ChartContainer`、Tooltip、Legend 与 Recharts，并保留等价表格、meter、图外数值和文字说明，不让颜色或 Tooltip 成为唯一信息来源。来源表现中的任务、成功率、用户和数据量表头/单元格共同右对齐。AI 结果中的分镜、高光和资产同样使用 Tabs + Item/ItemGroup + Separator 的连续内容流，普通属性与评分不使用 Badge，不使用页面级原生按钮或逐项可见边框卡片。页面不解密或显示来源 URL，不显示用户或单任务明细。
 
 390px 下用户管理和下载分析的精确数值转为 Item/摘要列表，图表不超出可用宽度；用户详情和编辑进入适配视口的 Sheet/Dialog，禁止依赖横向滚动查看核心数据或操作。
 
