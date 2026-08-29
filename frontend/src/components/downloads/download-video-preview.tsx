@@ -7,6 +7,7 @@ import {
 } from '@vidstack/react/player/layouts/default';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useVideoPreviewSource } from '@/hooks/useVideoPreviewSource';
@@ -37,7 +38,10 @@ export default function DownloadVideoPreview({
 
   if (preview.error || !preview.source) {
     return (
-      <div className="flex aspect-video items-center bg-muted p-5 sm:p-8">
+      <AspectRatio
+        className="flex items-center bg-muted p-5 sm:p-8"
+        ratio={16 / 9}
+      >
         <Alert variant="warning">
           <AlertTitle>暂时无法预览视频</AlertTitle>
           <AlertDescription>
@@ -47,13 +51,14 @@ export default function DownloadVideoPreview({
             重新加载预览
           </Button>
         </Alert>
-      </div>
+      </AspectRatio>
     );
   }
 
   return (
     <MediaPlayer
       ariaLabel={`${title}视频预览`}
+      className="overflow-hidden rounded-none bg-black"
       key={preview.source}
       onError={preview.reportPlaybackError}
       playsInline

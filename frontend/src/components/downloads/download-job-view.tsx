@@ -8,6 +8,7 @@ import MediaCover from '@/components/intake/media-cover';
 import { BackLink } from '@/components/layout/back-link';
 import { markNavigationPush } from '@/components/layout/navigation-history';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDownloadJob } from '@/hooks/useDownloadJob';
 import type { SemanticPlan } from '@/types/video';
@@ -50,8 +51,18 @@ export default function DownloadJobView({
       ) : null}
       {state.job ? (
         <>
-          <section className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.85fr)] lg:gap-0">
-            <div className="min-w-0 lg:pr-12">
+          <header className="mt-8 max-w-5xl">
+            <h1 className="text-[34px] font-medium leading-[1.06] tracking-[-0.045em] sm:text-[42px] lg:text-[48px]">
+              {title}
+            </h1>
+            <p className="mt-4 text-sm text-muted-foreground">
+              {sourceLabel ? `${sourceLabel} · ` : ''}
+              {extractor && extractor !== sourceLabel ? `${extractor} · ` : ''}
+              {formatLabel(format, duration)}
+            </p>
+          </header>
+          <section className="mt-8 grid items-start gap-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.65fr)] lg:gap-16 xl:gap-24">
+            <div className="min-w-0">
               {state.job.status === 'succeeded' && state.job.file_available ? (
                 <DownloadVideoPreview
                   container={
@@ -77,21 +88,10 @@ export default function DownloadJobView({
                   src={thumbnail}
                 />
               )}
-              <h1 className="mt-5 max-w-4xl text-[28px] font-medium leading-[1.12] tracking-[-0.035em] sm:text-[34px]">
-                {title}
-              </h1>
-              <p className="mt-3 text-sm text-muted-foreground">
-                {sourceLabel ? `${sourceLabel} · ` : ''}
-                {extractor && extractor !== sourceLabel
-                  ? `${extractor} · `
-                  : ''}
-                {formatLabel(format, duration)}
-              </p>
             </div>
-            <div className="min-w-0 lg:border-l lg:pl-12">
+            <div className="min-w-0 lg:pt-1">
               <DownloadState
                 action={state.action}
-                format={format}
                 job={state.job}
                 onCancel={state.cancel}
                 onDownload={state.download}
@@ -114,11 +114,17 @@ export default function DownloadJobView({
             </div>
           </section>
           {state.job.status === 'succeeded' ? (
-            <AnalysisPanel downloadId={state.job.id} />
+            <>
+              <Separator className="mt-14 sm:mt-20" />
+              <AnalysisPanel downloadId={state.job.id} />
+            </>
           ) : (
-            <p className="mt-14 border-t py-8 text-sm text-muted-foreground sm:mt-16">
-              下载并验证完成后，可继续生成视觉分镜、高光与资产目录。
-            </p>
+            <>
+              <Separator className="mt-14 sm:mt-20" />
+              <p className="py-8 text-sm text-muted-foreground">
+                下载并验证完成后，可继续生成视觉分镜、高光与资产目录。
+              </p>
+            </>
           )}
         </>
       ) : null}
@@ -137,14 +143,20 @@ function DownloadJobSkeleton() {
   return (
     <div className="inner-page">
       <BackLink fallbackHref="/history" />
-      <div className="mt-9 grid gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.85fr)] lg:gap-0">
-        <div className="lg:pr-12">
+      <div className="mt-9 max-w-5xl">
+        <Skeleton className="h-11 w-3/4" />
+        <Skeleton className="mt-4 h-4 w-1/2" />
+      </div>
+      <div className="mt-8 grid items-start gap-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.65fr)] lg:gap-16 xl:gap-24">
+        <div>
           <Skeleton className="aspect-video rounded-none" />
-          <Skeleton className="mt-6 h-9 w-3/4" />
-          <Skeleton className="mt-3 h-4 w-1/2" />
         </div>
-        <div className="lg:border-l lg:pl-12">
-          <Skeleton className="h-80" />
+        <div className="lg:pt-1">
+          <Skeleton className="h-5 w-20" />
+          <Skeleton className="mt-5 h-9 w-4/5" />
+          <Skeleton className="mt-4 h-5 w-full" />
+          <Skeleton className="mt-8 h-11 w-full" />
+          <Skeleton className="mt-7 h-11 w-3/4" />
         </div>
       </div>
     </div>

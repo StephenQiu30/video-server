@@ -1,9 +1,14 @@
 'use client';
 
-import { ArrowCounterClockwise, ShieldCheck } from '@phosphor-icons/react';
+import { ArrowCounterClockwise } from '@phosphor-icons/react';
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from '@/components/ui/field';
 import {
   Select,
   SelectContent,
@@ -11,10 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { useAnalysisSkills } from '@/hooks/useAnalysisSkills';
 import type { CreateAnalysisInput, OutputLanguage } from '@/types/video';
+import { AnalysisExecutionNotice } from './analysis-execution-notice';
 
 const MAX_PROMPT_LENGTH = 4_000;
 
@@ -55,9 +60,18 @@ export default function AnalysisConfigurator({
     setSkillId(next.id);
   }
 
+  function startAnalysis() {
+    if (!selected) return;
+    onStart({
+      skill_id: selected.id,
+      output_language: language,
+      custom_prompt: prompt.trim() || null,
+    });
+  }
+
   return (
-    <div className="mt-10 w-full">
-      <div className="grid gap-5 sm:grid-cols-2">
+    <FieldGroup className="mt-10 gap-6">
+      <FieldGroup className="grid gap-5 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor={controlId(inputKind, 'skill')}>
             {inputKind === 'screenplay' ? '剧本 Skill' : '分析 Skill'}
@@ -124,9 +138,9 @@ export default function AnalysisConfigurator({
               : '分析结构保持一致，仅改变模型输出文字。'}
           </FieldDescription>
         </Field>
-      </div>
+      </FieldGroup>
 
-      <Field className="mt-6">
+      <Field>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <FieldLabel htmlFor={controlId(inputKind, 'prompt')}>
             {inputKind === 'screenplay' ? '分析或改写要求' : '分析提示词'}
@@ -159,46 +173,13 @@ export default function AnalysisConfigurator({
         </div>
       </Field>
 
-      <div className="mt-7 flex flex-col-reverse items-start justify-between gap-5 sm:flex-row sm:items-center">
-        <p className="flex max-w-2xl items-start gap-2 text-sm leading-6 text-muted-foreground">
-          <ShieldCheck className="mt-1 shrink-0 text-success" />
-          {inputKind === 'screenplay' ? (
-            <>
-              规范化剧本文本、任务指令，以及改写时必要的术语表和有界相邻上下文会发送到所选云端模型处理。受限剧本执行器不能使用文件、Shell、网络、浏览器、插件或其他
-              Agent。
-            </>
-          ) : (
-            <>
-              完整视频文件会交给本机 Agent；Agent
-              必须覆盖全片时间轴并自主复核分镜边界与高光，不以预先抽取的固定帧集替代分析。Agent
-              实际查看的画面帧、任务指令和必要上下文会发送到所选云端模型处理；应用不会把原始视频容器直接上传给模型服务。
-            </>
-          )}
-        </p>
-        <Button
-          className="w-full shrink-0 sm:w-auto"
-          disabled={busy || !selected}
-          onClick={() => {
-            if (!selected) return;
-            onStart({
-              skill_id: selected.id,
-              output_language: language,
-              custom_prompt: prompt.trim() || null,
-            });
-          }}
-          size="lg"
-        >
-          {busy ? <Spinner aria-hidden /> : null}
-          {selected?.result_contract === 'video-article'
-            ? '整理成文章'
-            : selected?.result_contract === 'screenplay-rewrite'
-              ? '开始剧本改写'
-              : inputKind === 'screenplay'
-                ? '开始剧本分析'
-                : '开始 AI 分析'}
-        </Button>
-      </div>
-    </div>
+      <AnalysisExecutionNotice
+        busy={busy}
+        inputKind={inputKind}
+        onStart={startAnalysis}
+        resultContract={selected?.result_contract}
+      />
+    </FieldGroup>
   );
 }
 

@@ -78,6 +78,20 @@
 
 final result: passed
 
+## 2026-08-29 下载详情页无边框信息层级重构
+
+- source visual truth：用户来源截图 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-8c82fd38-7762-40f2-b104-e0cfc4b0fcb8.png`（3840×1942，Chrome 2× 截图）与根目录 `design.md`。来源状态是已完成任务，首屏包含播放器、右侧状态/元数据/取件操作和下方 AI 分析入口。
+- implementation evidence：桌面浅色首屏 `/Users/stephenqiu/.codex/visualizations/2026/08/29/download-detail-borderless/desktop-light-viewport-1920x971.png`，桌面深色首屏 `/Users/stephenqiu/.codex/visualizations/2026/08/29/download-detail-borderless/desktop-dark-1920x971.png`，390×844 浅色首屏 `/Users/stephenqiu/.codex/visualizations/2026/08/29/download-detail-borderless/mobile-light-top-390x844.png`，390×844 深色首屏 `/Users/stephenqiu/.codex/visualizations/2026/08/29/download-detail-borderless/mobile-dark-top-390x844.png`。来源与实现已在同一比较输入 `/Users/stephenqiu/.codex/visualizations/2026/08/29/download-detail-borderless/source-vs-implementation.png` 中检查；左侧为来源页面，右侧为实现。
+- viewport and normalization：来源图移除顶部 242px 的 2× Chrome 外壳后得到 3840×1700 页面区域，并缩放为 1920×850；实现使用 1920×851 CSS 视口捕获并补齐到同一 1920×850 单元。移动验收的浏览器外层为 390×844，页面 `clientWidth = scrollWidth = 375`；桌面常驻滚动条后 `clientWidth = scrollWidth = 1905`。
+- information hierarchy：媒体标题与 `平台 · 来源 · 分辨率 · 编码 · 时长` 前置为唯一摘要，播放器与状态操作在桌面构成 1.55:0.65 双栏。来源页的垂直分隔线、播放器下重复标题、格式/分辨率/文件存储/执行尝试 `dl` 已移除；右栏只保留 Badge 状态、面向下一步的标题和说明、主操作与一个 Item 完整性摘要。AI 分析通过单一 Radix Separator 与首屏内容分章，不使用 Card、独立背景、阴影或装饰边框。
+- official component use：媒体及失败态复用 AspectRatio，状态使用 Badge/Progress，主动作使用 Button，取消确认保留 AlertDialog，执行可信说明使用 Item；AI 配置使用 FieldGroup、Select、Textarea、Item 与 Button。原生标签只承担 `header`、`section`、标题、正文与媒体等必要语义，没有可点击 `div` 或页面级手写交互。
+- responsive and themes：390px 下顺序实测为标题摘要 `→` 播放器 `→` 状态与操作，播放器顶部为 `356.1px`、状态区顶部为 `593.6px`，没有横向溢出。浅色画布为 `rgb(250, 250, 250)`，深色画布为 `rgb(10, 10, 10)`；深色前景为 `rgb(245, 245, 245)`，按钮、Badge、播放器和辅助文字继续消费既有语义 token，没有新增硬编码主题色。
+- interactions and accessibility：页面保持唯一 H1、状态和 AI 分析两个顺序 H2，以及可读的播放器 region 和状态 region。Radix Select 实测可展开 listbox 并以 Escape 关闭；移动 Sheet 打开后焦点进入“导航”，Escape 关闭后 Trigger 回到 `data-state=closed`。桌面、移动与深色复验 console error 均为空。
+- comparison history：来源基线存在一个 P2 信息层级问题：同一媒体标题和格式在播放器上下重复，且右栏用竖线与四项重复元数据形成类似卡片的独立面板。实现将标题提升到媒体/状态共同上方、删除重复元数据并以网格间距代替竖线；同输入复核后播放器、状态和操作形成连续读取路径，没有剩余 P0、P1 或 P2 视觉问题。
+- engineering gates：`npm run lint` 通过，`npm run format:check` 通过，47 个测试文件、181 项测试全部通过；Biome 仅保留仓库既有 `.agents/skills` 断开符号链接 warning。Docker Compose 重新构建前端 production 镜像成功，Next.js 16 个静态页面生成通过，`video-frontend` 为 healthy，`/health/ready` 返回 200。
+
+final result: passed
+
 ## 2026-08-29 下载分析图表主导式重设计
 
 - source visual truth：用户指定的 shadcn/ui Area Charts 截图 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-50e54eef-cdc9-4fb1-b9a4-fd8deb194e17.png`（3840×1942，Chrome 2× 截图），以及同日读取的 [Area Charts](https://ui.shadcn.com/charts/area)、[Chart](https://ui.shadcn.com/docs/components/chart) 与 [Theming](https://ui.shadcn.com/docs/theming) 官方实现。官方交互面积图、Legend、Tooltip、`accessibilityLayer`、固定 `ChartContainer` 高度和 CSS 图表变量共同构成本轮设计事实。

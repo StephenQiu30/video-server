@@ -240,14 +240,14 @@ describe('DownloadJobView', () => {
       ),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: '下载已完成' }),
+      screen.getByRole('heading', { name: '视频文件已就绪' }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('region', {
         name: `${inspection.title}视频预览`,
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText('1920×1080')).toBeInTheDocument();
+    expect(screen.getByText(/1920×1080/)).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'AI 智能分析' }),
     ).toBeInTheDocument();

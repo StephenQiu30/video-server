@@ -26,6 +26,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
 import { useAnalysisJob } from '@/hooks/useAnalysisJob';
 import { localizedErrorMessage } from '@/lib/error-messages';
@@ -53,10 +54,7 @@ export default function AnalysisPanel({
     );
     const reportAvailable = formats.has('markdown') && formats.has('docx');
     return (
-      <section
-        aria-label="AI 智能分析"
-        className="mt-14 border-t py-12 sm:mt-16 sm:py-16"
-      >
+      <section aria-label="AI 智能分析" className="py-12 sm:py-16">
         <div className="flex flex-col gap-6">
           <div className="min-w-0 w-full">
             <h2 className="w-full text-[32px] font-medium leading-[1.05] tracking-[-0.045em] sm:text-[44px]">
@@ -134,10 +132,7 @@ export default function AnalysisPanel({
   }
 
   return (
-    <section
-      aria-labelledby="analysis-title"
-      className="mt-14 border-t py-12 sm:mt-16 sm:py-16"
-    >
+    <section aria-labelledby="analysis-title" className="py-12 sm:py-16">
       <div className="flex items-start justify-between gap-6">
         <div className="max-w-3xl">
           <h2
@@ -264,7 +259,8 @@ function AnalysisJobState({
       </p>
       {job.result?.kind === 'video_visual_analysis' ||
       job.result?.kind === 'video_article' ? (
-        <div className="mt-10 border-t pt-10">
+        <div className="mt-10">
+          <Separator className="mb-10" />
           <div className="flex flex-wrap items-center gap-3">
             <Badge variant="neutral">
               {job.report?.status === 'publishing'
