@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -8,6 +9,13 @@ from .config import CliAdapterConfig
 
 _SERVER = "video_observer"
 _TOOLS = ["probe_video", "inspect_video_overview", "inspect_video_frame"]
+
+
+def observation_image_limit(*, duration_ms: int, maximum: int) -> int:
+    if duration_ms <= 10_000:
+        return min(maximum, 4)
+    duration_seconds = math.ceil(duration_ms / 1_000)
+    return min(maximum, 8 + math.ceil(duration_seconds / 2))
 
 
 def video_observer_arguments(
@@ -29,7 +37,12 @@ def video_observer_arguments(
         "--duration-ms",
         str(duration_ms),
         "--maximum-images",
-        str(config.max_frames),
+        str(
+            observation_image_limit(
+                duration_ms=duration_ms,
+                maximum=config.max_frames,
+            )
+        ),
         "--maximum-image-bytes",
         str(config.max_image_bytes),
     ]

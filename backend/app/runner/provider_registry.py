@@ -54,6 +54,7 @@ class ProviderProfile:
     key: str
     display_name: str
     hosts: frozenset[str]
+    host_suffixes: frozenset[str] = frozenset()
     version: str = "1"
     capabilities: frozenset[ProviderCapability] = frozenset(
         {ProviderCapability.SINGLE_VIDEO}
@@ -103,6 +104,7 @@ class ProviderRegistry:
     ) -> None:
         configured = tuple(profiles)
         by_host: dict[str, ProviderProfile] = {}
+        by_host_suffix: dict[str, ProviderProfile] = {}
         keys: set[str] = set()
         for profile in configured:
             if profile.key in keys:
@@ -135,8 +137,15 @@ class ProviderRegistry:
                 if host in by_host:
                     raise ValueError(f"provider host is registered twice: {host}")
                 by_host[host] = profile
+            for suffix in profile.host_suffixes:
+                if suffix in by_host_suffix:
+                    raise ValueError(
+                        f"provider host suffix is registered twice: {suffix}"
+                    )
+                by_host_suffix[suffix] = profile
         self._profiles = configured
         self._by_host = by_host
+        self._by_host_suffix = by_host_suffix
         self._fallback = fallback or ProviderProfile(
             "generic",
             "Generic media source",
@@ -156,11 +165,21 @@ class ProviderRegistry:
             for domain in UNSUPPORTED_PROVIDER_DOMAINS
         ):
             raise RunnerFailure("provider_unsupported", status=422)
-        return (
-            self._fallback
-            if hostname is None
-            else self._by_host.get(hostname, self._fallback)
+        if hostname is None:
+            return self._fallback
+        exact = self._by_host.get(hostname)
+        if exact is not None:
+            return exact
+        suffix_matches = (
+            (suffix, profile)
+            for suffix, profile in self._by_host_suffix.items()
+            if hostname.endswith(f".{suffix}")
         )
+        return max(
+            suffix_matches,
+            key=lambda item: len(item[0]),
+            default=("", self._fallback),
+        )[1]
 
     def prepare(self, url: str) -> ProviderRequest:
         profile = self.resolve(url)

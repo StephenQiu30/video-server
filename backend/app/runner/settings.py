@@ -34,6 +34,11 @@ class RunnerSettings(BaseSettings):
     runner_operator_account_baseline_attested: bool = False
     runner_provider_secret_root: Path = Path("/run/provider-secrets")
     runner_provider_secret_temp_root: Path = Path("/run/provider-secrets-tmp")
+    runner_provider_session_max_age_seconds: float = Field(
+        default=0,
+        ge=0,
+        le=3600,
+    )
     peertube_allowed_instances: frozenset[str] = frozenset()
 
     runner_ytdlp_bin: str = "yt-dlp"

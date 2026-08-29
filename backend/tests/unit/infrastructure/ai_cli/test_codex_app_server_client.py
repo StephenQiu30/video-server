@@ -11,25 +11,39 @@ from app.infrastructure.ai_cli.config import CliAdapterConfig
 from app.infrastructure.ai_cli.errors import AnalysisCliError
 
 
-def config(binary: Path) -> CliAdapterConfig:
+def config(
+    binary: Path,
+    *,
+    max_stdout_bytes: int = 2 * 1024 * 1024,
+    max_image_bytes: int = 20 * 1024**2,
+) -> CliAdapterConfig:
     return CliAdapterConfig(
         binary=binary,
         model="controlled-model",
         ffmpeg=Path(sys.executable),
         ffprobe=Path(sys.executable),
         timeout_seconds=5,
+        max_stdout_bytes=max_stdout_bytes,
+        max_image_bytes=max_image_bytes,
     )
 
 
-def fake_server(tmp_path: Path, *, failure: str | None = None) -> Path:
+def fake_server(
+    tmp_path: Path,
+    *,
+    failure: str | None = None,
+    protocol_payload_bytes: int = 0,
+) -> Path:
     script = tmp_path / "fake-codex"
     failure_literal = repr(failure)
+    payload_bytes_literal = repr(protocol_payload_bytes)
     script.write_text(
         f"""#!{sys.executable}
 import json
 import sys
 
 failure = {failure_literal}
+protocol_payload_bytes = {payload_bytes_literal}
 for line in sys.stdin:
     message = json.loads(line)
     method = message.get("method")
@@ -53,6 +67,8 @@ for line in sys.stdin:
         assert params["threadId"] == "thread-1"
         assert params["outputSchema"]["type"] == "object"
         print(json.dumps({{"id": 3, "result": {{"turn": {{"id": "turn-1"}}}}}}), flush=True)
+        if protocol_payload_bytes:
+            print(json.dumps({{"method": "item/completed", "params": {{"item": {{"type": "toolCall", "payload": "x" * protocol_payload_bytes}}}}}}), flush=True)
         if failure == "rate":
             turn = {{"id": "turn-1", "status": "failed", "items": [], "error": {{"message": "429 rate limit"}}}}
         else:
@@ -87,9 +103,46 @@ async def test_client_runs_ephemeral_structured_app_server_turn(
     assert "app-server" in command
     assert "stdio://" in command
     assert "exec" not in command
+    assert command.count("--disable") == 1
+    assert "plugins" in command
+    assert "code_mode_host" not in command
     assert "mcp_servers={}" in command
     assert 'default_permissions="video_analysis"' in command
     assert not any("video_observer" in item for item in command)
+
+
+@pytest.mark.asyncio
+async def test_protocol_events_do_not_consume_the_final_result_budget(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "job"
+    (root / "tmp").mkdir(parents=True)
+    binary = fake_server(tmp_path, protocol_payload_bytes=4_096)
+    client = CodexAppServerClient(
+        config(binary, max_stdout_bytes=256, max_image_bytes=4_096)
+    )
+
+    result = await client.invoke(
+        root=root,
+        prompt="analyze",
+        schema={"type": "object"},
+        duration_ms=None,
+    )
+
+    assert result == {"answer": "ok"}
+
+
+def test_protocol_limit_covers_one_base64_encoded_observation_image(
+    tmp_path: Path,
+) -> None:
+    adapter = config(
+        fake_server(tmp_path),
+        max_stdout_bytes=256,
+        max_image_bytes=3 * 1024 * 1024,
+    )
+
+    assert adapter.max_protocol_message_bytes >= 4 * 1024 * 1024
+    assert adapter.max_protocol_message_bytes > adapter.max_stdout_bytes
 
 
 def test_video_turn_enables_only_the_scoped_observer(tmp_path: Path) -> None:

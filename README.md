@@ -105,7 +105,7 @@ cp .env.example .env
 # 如果使用项目专用 Docker 基础依赖，首次执行一次；已有本机服务时跳过
 docker compose --env-file .env -f docker-compose-env.yml up -d
 
-# 本机统一启动入口；已配置 browser-* 会话时会自动启动 Session Broker 和受控 Runner
+# 本机统一启动入口；自动启动受控会话、业务容器和宿主机 AI Worker
 ./scripts/start-local.sh
 ```
 
@@ -142,13 +142,15 @@ curl --fail --head http://127.0.0.1:8101/
 
 ### 启用 AI 分析
 
-AI Worker 不在业务 Compose 中运行，它复用宿主机已经登录的 Codex CLI 或 Claude CLI。这样可以避免把宿主机 OAuth 认证目录复制进容器：
+AI Worker 不在业务 Compose 中运行，它复用宿主机已经登录的 Codex CLI 或 Claude CLI。这样可以避免把宿主机 OAuth 认证目录复制进容器。`ANALYSIS_ENABLED=true` 时，`start-local.sh` 会把 Worker 安装到当前用户的系统服务并持续监督；进程异常退出或依赖短暂中断后会自动恢复。以下命令只用于独立诊断：
 
 ```bash
 # 先完成对应 CLI 的官方登录
 cd backend
 uv sync --frozen --dev
 uv run python -m app.workers.analysis.main
+# 或检查受监督实例
+cd .. && ./scripts/analysis-worker.sh status
 ```
 
 启用分析时，API 会先将任务事实和消息意图可靠写入 PostgreSQL Outbox，再由 RabbitMQ 投递给 AI Worker；Agent 状态只用于运维诊断，不作为 API 全局 readiness 或任务创建的硬前置。没有 AI Worker 的部署仍应明确设置 `ANALYSIS_ENABLED=false`；若 Agent 暂时不可用，任务保持 `queued`，恢复后由 Worker 继续消费。下载、文件获取和历史记录不依赖 AI Worker。AI Worker 通过受限的 FFmpeg/ffprobe 工具观察完整视频，请先确认内容授权、模型服务条款和组织数据策略。

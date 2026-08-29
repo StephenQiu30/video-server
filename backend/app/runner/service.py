@@ -32,6 +32,7 @@ from app.runner.metadata import (
 from app.runner.presentation import inspect_response
 from app.runner.provider_registry import ProviderRequest, provider_request
 from app.runner.provider_sessions import ProviderSessionStore
+from app.runner.resolved_info import write_resolved_info
 from app.runner.settings import RunnerSettings
 from app.runner.thumbnails import ThumbnailFetcher
 from app.runner.utilities import (
@@ -54,6 +55,7 @@ class MediaRunnerService:
         settings: RunnerSettings,
         *,
         supervisor: ProcessRunner | None = None,
+        session_store: ProviderSessionStore | None = None,
     ) -> None:
         self._settings = settings
         self._commands = MediaCommands(
@@ -71,7 +73,7 @@ class MediaRunnerService:
             ),
         )
         self._active = ActiveTaskRegistry(settings.runner_max_active_tasks)
-        self._sessions = ProviderSessionStore(settings)
+        self._sessions = session_store or ProviderSessionStore(settings)
 
     async def inspect(self, url: str) -> InspectResponse:
         safe_url = safe_media_url(url)
@@ -197,6 +199,13 @@ class MediaRunnerService:
         except FormatSelectionError as exc:
             raise RunnerFailure(exc.code.value, status=409) from exc
 
+        info_json = workspace.path / "resolved.info.json"
+        await asyncio.to_thread(
+            write_resolved_info,
+            info_json,
+            inspection.download_info,
+        )
+
         inputs = [workspace.path / "video.input"]
         total_streams = 1 if selection.audio is None else 2
         self._active.update(request.task_id, RunnerTaskStage.DOWNLOADING, 10)
@@ -210,6 +219,7 @@ class MediaRunnerService:
             end_progress=10 + 60 // total_streams,
             duration_seconds=inspection.duration_seconds,
             cookie_jar=cookie_jar,
+            info_json=info_json,
         )
         completed_streams = 1
         progress = 10 + 60 * completed_streams // total_streams
@@ -226,6 +236,7 @@ class MediaRunnerService:
                 end_progress=70,
                 duration_seconds=inspection.duration_seconds,
                 cookie_jar=cookie_jar,
+                info_json=info_json,
             )
             completed_streams += 1
             progress = 10 + 60 * completed_streams // total_streams
@@ -289,6 +300,7 @@ class MediaRunnerService:
         end_progress: int,
         duration_seconds: float,
         cookie_jar: Path | None,
+        info_json: Path,
     ) -> None:
         operation = asyncio.create_task(
             self._commands.download_stream(
@@ -297,6 +309,7 @@ class MediaRunnerService:
                 output,
                 workspace.path,
                 cookie_jar=cookie_jar,
+                info_json=info_json,
             )
         )
         expected_bytes = _estimated_stream_bytes(stream, duration_seconds)

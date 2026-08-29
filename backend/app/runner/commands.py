@@ -108,6 +108,7 @@ class MediaCommands:
         cwd: Path,
         *,
         cookie_jar: Path | None = None,
+        info_json: Path | None = None,
     ) -> None:
         command = self._ytdlp.download(
             source,
@@ -115,6 +116,7 @@ class MediaCommands:
             output,
             max_bytes=self._settings.runner_max_output_bytes,
             cookie_jar=cookie_jar,
+            info_json=info_json,
         )
         await self._run(
             command.argv,

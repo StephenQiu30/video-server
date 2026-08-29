@@ -54,19 +54,24 @@ class YtDlpCommandBuilder:
         *,
         max_bytes: int,
         cookie_jar: Path | None,
+        info_json: Path | None = None,
     ) -> BuiltYtDlpCommand:
         request = self._resolve(source)
+        operation_args: tuple[str, ...] = (
+            "--format",
+            provider_id,
+            "--max-filesize",
+            str(max_bytes),
+            "--output",
+            str(output),
+        )
+        if info_json is not None:
+            operation_args += ("--load-info-json", str(info_json))
         return self._build(
             request,
-            (
-                "--format",
-                provider_id,
-                "--max-filesize",
-                str(max_bytes),
-                "--output",
-                str(output),
-            ),
+            operation_args,
             cookie_jar=cookie_jar,
+            include_source=info_json is None,
         )
 
     def _build(
@@ -75,6 +80,7 @@ class YtDlpCommandBuilder:
         operation_args: tuple[str, ...],
         *,
         cookie_jar: Path | None,
+        include_source: bool = True,
     ) -> BuiltYtDlpCommand:
         profile = request.profile
         if (
@@ -104,12 +110,9 @@ class YtDlpCommandBuilder:
         )
         if cookie_jar is not None:
             command += ("--cookies", str(cookie_jar))
-        command += (
-            *operation_args,
-            *profile.command_args_for(self._settings),
-            "--",
-            request.request_url,
-        )
+        command += (*operation_args, *profile.command_args_for(self._settings))
+        if include_source:
+            command += ("--", request.request_url)
         return BuiltYtDlpCommand(
             argv=command,
             request=request,

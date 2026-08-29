@@ -348,6 +348,28 @@ def wechat_operator_settings(tmp_path: Path) -> RunnerSettings:
     )
 
 
+def tiktok_operator_settings(tmp_path: Path) -> RunnerSettings:
+    cookie = (
+        b"# Netscape HTTP Cookie File\n"
+        b".tiktok.com\tTRUE\t/\tTRUE\t2147483647\tsessionid\tfixture\n"
+    )
+    source = tmp_path / "secrets/tiktok/browser-live.cookies.txt"
+    source.parent.mkdir(parents=True)
+    source.write_bytes(cookie)
+    os.chmod(source, 0o400)
+    return RunnerSettings(
+        runner_hmac_secret="runner-shared-secret-material-at-least-32-bytes",
+        runner_egress_proxy="http://tiktok-egress:3128",
+        runner_workspace_root=tmp_path / "work",
+        runner_access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+        runner_operator_session_versions={"tiktok": "browser-live"},
+        runner_operator_account_baseline_attested=True,
+        runner_provider_secret_root=tmp_path / "secrets",
+        runner_provider_secret_temp_root=tmp_path / "session-tmp",
+        runner_max_active_tasks=1,
+    )
+
+
 async def test_download_reinspects_selects_semantics_and_verifies_artifact(
     tmp_path: Path,
 ) -> None:
@@ -364,6 +386,14 @@ async def test_download_reinspects_selects_semantics_and_verifies_artifact(
     assert all("http://egress-proxy:3128" in command for command in ytdlp)
     assert all("--plugin-dirs" in command for command in ytdlp)
     assert all("--cookies" not in command for command in ytdlp)
+    downloads = [command for command in ytdlp if "--format" in command]
+    assert all("--load-info-json" in command for command in downloads)
+    assert all(
+        "https://media.example.com/video" not in command for command in downloads
+    )
+    info_path = Path(downloads[0][downloads[0].index("--load-info-json") + 1])
+    assert info_path.stat().st_mode & 0o777 == 0o600
+    assert json.loads(info_path.read_text())["id"] == "controlled"
     assert all(
         command[command.index("--js-runtimes") + 1] == "node" for command in ytdlp
     )
@@ -778,7 +808,10 @@ async def test_inspect_retries_transient_tiktok_web_challenge(
         delays.append(delay)
 
     monkeypatch.setattr("app.runner.inspection_pipeline.asyncio.sleep", record_sleep)
-    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+    service = MediaRunnerService(
+        tiktok_operator_settings(tmp_path),
+        supervisor=supervisor,
+    )
 
     response = await service.inspect(
         "https://www.tiktok.com/@creator/video/7670674983328222486"

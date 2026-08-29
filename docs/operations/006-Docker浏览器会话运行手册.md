@@ -31,6 +31,8 @@ Profile 和回环 CDP，不读取默认 Chrome Profile，也不把 Profile 挂�
 ./scripts/provider-session-broker.sh douyin start
 ./scripts/provider-session-broker.sh xiaohongshu start
 ./scripts/provider-session-broker.sh reddit start
+./scripts/provider-session-broker.sh x start
+./scripts/provider-session-broker.sh instagram start
 ./scripts/provider-session-broker.sh youtube status
 ```
 
@@ -39,14 +41,15 @@ Broker 每 15 秒读取一次当前浏览器状态，只发布目标 Provider �
 不包含 Cookie 值、浏览器 Profile 路径或异常原文。它解决日常浏览导致的 Cookie
 轮换，但不能阻止平台撤销会话、账号登出、风控挑战或权益变化；这些情况必须通过
 稳定错误和 canary 显式暴露。首次登录尚未完成时 Broker 保持运行并发布
-`login_required`，本机其他服务仍可启动。
+`login_required`。已声明该 Operator 路由时，其 Runner 和 API 保持未就绪，避免把
+“进程存活”误报成平台可下载；完成网页登录后 Broker 会自动发布并恢复就绪。
 
 ## 2. 配置
 
 `.env` 至少配置：
 
 ```dotenv
-RUNNER_OPERATOR_BASE_URLS={"youtube":"http://youtube-operator-runner:19100","wechat_channels":"http://wechat-channels-operator-runner:19100","tiktok":"http://provider-operator-runner:19100","douyin":"http://douyin-operator-runner:19100","xiaohongshu":"http://xiaohongshu-operator-runner:19100","reddit":"http://reddit-operator-runner:19100"}
+RUNNER_OPERATOR_BASE_URLS={"youtube":"http://youtube-operator-runner:19100","wechat_channels":"http://wechat-channels-operator-runner:19100","tiktok":"http://provider-operator-runner:19100","douyin":"http://douyin-operator-runner:19100","xiaohongshu":"http://xiaohongshu-operator-runner:19100","reddit":"http://reddit-operator-runner:19100","x":"http://x-operator-runner:19100","instagram":"http://instagram-operator-runner:19100"}
 YOUTUBE_COOKIE_SECRET_DIR=./.provider-secrets/youtube
 YOUTUBE_COOKIE_VERSION=browser-20260815-01
 YOUTUBE_OPERATOR_ACCOUNT_BASELINE_ATTESTED=true
@@ -68,6 +71,11 @@ XIAOHONGSHU_OPERATOR_ACCOUNT_BASELINE_ATTESTED=true
 REDDIT_COOKIE_SECRET_DIR=./.provider-secrets/reddit
 REDDIT_COOKIE_VERSION=browser-20260818-01
 REDDIT_OPERATOR_ACCOUNT_BASELINE_ATTESTED=true
+X_COOKIE_VERSION=browser-live
+X_OPERATOR_ACCOUNT_BASELINE_ATTESTED=true
+INSTAGRAM_COOKIE_VERSION=browser-live
+INSTAGRAM_OPERATOR_ACCOUNT_BASELINE_ATTESTED=true
+RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS=120
 ```
 
 本地 `WECHAT_CHANNELS_COOKIE_VERSION` 留空时，`start-local.sh` 自动注入
@@ -86,24 +94,28 @@ docker compose --env-file .env -f docker-compose.yml \
   --profile youtube-operator --profile wechat-channels-operator \
   --profile provider-operator \
   --profile douyin-operator --profile xiaohongshu-operator \
-  --profile reddit-operator config --quiet
+  --profile reddit-operator --profile x-operator \
+  --profile instagram-operator config --quiet
 
 docker compose --env-file .env -f docker-compose.yml \
   --profile youtube-operator --profile wechat-channels-operator \
   --profile provider-operator \
   --profile douyin-operator --profile xiaohongshu-operator \
-  --profile reddit-operator \
+  --profile reddit-operator --profile x-operator \
+  --profile instagram-operator \
   up -d --build --force-recreate \
   api media-runner worker-download provider-canary \
   youtube-operator-runner wechat-channels-operator-runner \
   provider-operator-runner douyin-operator-runner \
-  xiaohongshu-operator-runner reddit-operator-runner youtube-pot-provider
+  xiaohongshu-operator-runner reddit-operator-runner \
+  x-operator-runner instagram-operator-runner youtube-pot-provider
 
 docker compose --env-file .env -f docker-compose.yml \
   --profile youtube-operator --profile wechat-channels-operator \
   --profile provider-operator \
   --profile douyin-operator --profile xiaohongshu-operator \
-  --profile reddit-operator ps
+  --profile reddit-operator --profile x-operator \
+  --profile instagram-operator ps
 ```
 
 Operator Runner 不映射宿主机端口。启动成功后使用授权 canary 检查解析、最小格式下载、共享 `/work`、SHA-256 与 ffprobe；不要在命令输出中打印 Cookie 文件。

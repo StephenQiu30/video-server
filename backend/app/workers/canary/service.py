@@ -61,6 +61,7 @@ _RUNNER_ERRORS = {
     "format_unavailable",
     "provider_rate_limited",
     "provider_link_unavailable",
+    "provider_temporarily_unavailable",
     "runner_unavailable",
 }
 _RUNNER_ERROR_ALIASES = {

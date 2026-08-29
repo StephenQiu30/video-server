@@ -158,6 +158,19 @@ async def test_inspection_classifies_vimeo_login_requirement(tmp_path: Path) -> 
 
 
 @pytest.mark.asyncio
+async def test_vimeo_inspection_checks_real_format_downloadability(
+    tmp_path: Path,
+) -> None:
+    supervisor = RecordingSupervisor()
+    commands = MediaCommands(settings(tmp_path), supervisor)
+
+    await commands.inspect("https://vimeo.com/76979871", tmp_path)
+
+    assert "--check-formats" in supervisor.argv
+    assert supervisor.argv[-1] == "https://player.vimeo.com/video/76979871"
+
+
+@pytest.mark.asyncio
 async def test_download_classifies_selected_drm_format(tmp_path: Path) -> None:
     commands = MediaCommands(
         settings(tmp_path),
@@ -191,8 +204,8 @@ async def test_inspection_classifies_tiktok_webpage_challenge(tmp_path: Path) ->
             tmp_path,
         )
 
-    assert caught.value.code == "egress_challenged"
-    assert caught.value.status == 422
+    assert caught.value.code == "provider_temporarily_unavailable"
+    assert caught.value.status == 503
 
 
 @pytest.mark.asyncio
@@ -255,6 +268,39 @@ async def test_inspection_classifies_tiktok_post_ip_restriction(tmp_path: Path) 
         )
 
     assert caught.value.code == "provider_geo_restricted"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
+async def test_expired_tiktok_short_link_is_reported_as_unavailable(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(b"ERROR: Unsupported URL: https://www.tiktok.com/?_r=1"),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect("https://www.tiktok.com/t/expired", tmp_path)
+
+    assert caught.value.code == "provider_link_unavailable"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
+async def test_dead_x_card_domain_is_reported_as_unavailable(tmp_path: Path) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(b"ERROR: HTTP Error 500: Domain Not Found"),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect(
+            "https://twitter.com/example/status/123",
+            tmp_path,
+        )
+
+    assert caught.value.code == "provider_link_unavailable"
     assert caught.value.status == 422
 
 
@@ -394,6 +440,46 @@ async def test_xhs_share_link_without_token_is_classified_as_unavailable(
         await commands.inspect("https://xhslink.com/m/expired", tmp_path)
 
     assert caught.value.code == "provider_link_unavailable"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
+async def test_xhs_first_party_unavailable_note_is_not_an_extractor_regression(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(b"ERROR: Xiaohongshu note unavailable"),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect(
+            "https://www.xiaohongshu.com/explore/6411f5d60000000013031939",
+            tmp_path,
+        )
+
+    assert caught.value.code == "provider_link_unavailable"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
+async def test_xhs_first_party_ip_risk_is_a_verification_failure(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(
+            b"ERROR: Xiaohongshu request verification required"
+        ),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect(
+            "https://www.xiaohongshu.com/explore/6411f5d60000000013031939",
+            tmp_path,
+        )
+
+    assert caught.value.code == "egress_challenged"
     assert caught.value.status == 422
 
 

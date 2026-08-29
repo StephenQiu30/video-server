@@ -47,7 +47,9 @@ def standard_provider(
     normalize_url: UrlNormalizer = identity_url,
     capabilities: frozenset[ProviderCapability] = STANDARD_CAPABILITIES,
     status: ProviderSupportStatus = ProviderSupportStatus.UNKNOWN,
+    host_suffixes: frozenset[str] = frozenset(),
     operator_cookie_domains: frozenset[str] = frozenset(),
+    anonymous_access: bool = True,
     command_args: tuple[str, ...] = (),
     runtime_command_args: RuntimeCommandArgs = default_runtime_command_args,
     client_profile_id: str = "yt-dlp-default",
@@ -56,13 +58,18 @@ def standard_provider(
     inspection_retry_delay: float = 1,
     probe_authenticated_media: bool = False,
 ) -> ProviderProfile:
-    access_modes: tuple[ProviderAccessMode, ...] = (ProviderAccessMode.ANONYMOUS,)
+    access_modes: tuple[ProviderAccessMode, ...] = (
+        (ProviderAccessMode.ANONYMOUS,) if anonymous_access else ()
+    )
     if operator_cookie_domains:
         access_modes += (ProviderAccessMode.OPERATOR_MANAGED,)
+    if not access_modes:
+        raise ValueError("provider must allow at least one access mode")
     return ProviderProfile(
         key=key,
         display_name=display_name,
         hosts=frozenset(hosts),
+        host_suffixes=host_suffixes,
         version=version,
         capabilities=capabilities,
         support_status=status,
@@ -89,6 +96,9 @@ def challenged_provider(
     normalize_url: UrlNormalizer = identity_url,
     status: ProviderSupportStatus = ProviderSupportStatus.UNKNOWN,
     operator_cookie_domains: frozenset[str] = frozenset(),
+    anonymous_access: bool = True,
+    command_args: tuple[str, ...] = CHROME_IMPERSONATION,
+    client_profile_id: str = "chrome-136-macos-15",
     runtime_command_args: RuntimeCommandArgs = default_runtime_command_args,
     canary_suite: str = "anonymous-metadata-range",
 ) -> ProviderProfile:
@@ -101,9 +111,10 @@ def challenged_provider(
         capabilities=CHALLENGED_CAPABILITIES,
         status=status,
         operator_cookie_domains=operator_cookie_domains,
-        command_args=CHROME_IMPERSONATION,
+        anonymous_access=anonymous_access,
+        command_args=command_args,
         runtime_command_args=runtime_command_args,
-        client_profile_id="chrome-136-macos-15",
+        client_profile_id=client_profile_id,
         canary_suite=canary_suite,
         inspection_attempts=8,
         inspection_retry_delay=0.5,

@@ -8,7 +8,8 @@ import re
 import shutil
 import stat
 import tempfile
-from collections.abc import AsyncIterator
+import time
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from dataclasses import replace
 from pathlib import Path
@@ -28,7 +29,12 @@ _NETSCAPE_HEADERS = (
 class ProviderSessionStore:
     """Validate immutable Cookie sources and issue per-operation writable jars."""
 
-    def __init__(self, settings: RunnerSettings) -> None:
+    def __init__(
+        self,
+        settings: RunnerSettings,
+        *,
+        clock: Callable[[], float] = time.time,
+    ) -> None:
         self._settings = settings
         self._source_root = settings.runner_provider_secret_root
         self._temp_root = settings.runner_provider_secret_temp_root
@@ -38,9 +44,20 @@ class ProviderSessionStore:
             provider: frozenset((*retained.get(provider, ()), version))
             for provider, version in self._versions.items()
         }
+        self._clock = clock
         self._gate = asyncio.Semaphore(1)
         if settings.runner_access_mode is ProviderAccessMode.OPERATOR_MANAGED:
             self._prepare_temp_root()
+
+    def is_ready(self) -> bool:
+        if self._settings.runner_access_mode is ProviderAccessMode.ANONYMOUS:
+            return True
+        try:
+            for provider, version in self._versions.items():
+                self._validated_source(provider, version)
+        except RunnerFailure:
+            return False
+        return True
 
     def context_for(
         self, source: str | ProviderProfile
@@ -142,9 +159,21 @@ class ProviderSessionStore:
         source = candidate.resolve()
         if not source.is_relative_to(self._source_root):
             raise RunnerFailure("credential_rejected", status=422)
+        self._validate_freshness(source)
         payload = _read_regular_file(source)
         _validate_netscape_cookie(payload, profile.cookie_domain_allowlist)
         return source
+
+    def _validate_freshness(self, source: Path) -> None:
+        max_age = self._settings.runner_provider_session_max_age_seconds
+        if max_age <= 0:
+            return
+        try:
+            age = self._clock() - source.stat().st_mtime
+        except OSError as exc:
+            raise RunnerFailure("credential_required", status=422) from exc
+        if age < 0 or age > max_age:
+            raise RunnerFailure("provider_session_unavailable", status=503)
 
     def _prepare_temp_root(self) -> None:
         self._temp_root.mkdir(mode=0o700, parents=True, exist_ok=True)

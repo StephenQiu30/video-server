@@ -159,7 +159,17 @@ async def test_runner_and_storage_failures_converge_before_ack(tmp_path) -> None
             True,
         ),
         (
+            "provider_temporarily_unavailable",
+            DownloadErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE,
+            True,
+        ),
+        (
             "download_failed",
+            DownloadErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE,
+            True,
+        ),
+        (
+            "inspection_failed",
             DownloadErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE,
             True,
         ),

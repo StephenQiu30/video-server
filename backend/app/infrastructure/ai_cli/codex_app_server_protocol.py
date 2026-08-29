@@ -33,15 +33,12 @@ async def completed_result(
     process: asyncio.subprocess.Process,
     thread_id: str,
     turn_id: str,
-    maximum: int,
+    result_maximum: int,
+    protocol_maximum: int,
 ) -> object:
     final_text: str | None = None
-    consumed = 0
     while True:
-        message, size = await read_message(process, maximum)
-        consumed += size
-        if consumed > maximum:
-            raise AnalysisCliError("analysis_resource_limit")
+        message = await read_message(process, protocol_maximum)
         method = message.get("method")
         params = message.get("params")
         if not isinstance(params, Mapping):
@@ -64,14 +61,14 @@ async def completed_result(
             candidate = agent_text(item)
             if candidate is not None:
                 final_text = candidate
-        return parse_result(final_text, maximum)
+        return parse_result(final_text, result_maximum)
 
 
 async def response(
     process: asyncio.subprocess.Process, request_id: int, maximum: int
 ) -> Mapping[str, object]:
     while True:
-        message, _ = await read_message(process, maximum)
+        message = await read_message(process, maximum)
         if message.get("id") != request_id:
             continue
         error = message.get("error")
@@ -87,7 +84,7 @@ async def response(
 
 async def read_message(
     process: asyncio.subprocess.Process, maximum: int
-) -> tuple[Mapping[str, object], int]:
+) -> Mapping[str, object]:
     if process.stdout is None:
         raise AppServerProtocolFailure(
             b"app server stdout unavailable", unavailable=True
@@ -108,7 +105,7 @@ async def read_message(
         ) from exc
     if not isinstance(value, Mapping):
         raise AppServerProtocolFailure(b"invalid app server message", unavailable=True)
-    return value, len(line)
+    return value
 
 
 def nested_string(value: Mapping[str, object], *path: str) -> str | None:

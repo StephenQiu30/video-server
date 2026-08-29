@@ -10,6 +10,7 @@
 **/.analysis-work/
 **/.provider-secrets/
 **/.provider-sessions/
+**/.local-runtime/
 **/*.egg-info/
 **/*.tsbuildinfo
 **/build/

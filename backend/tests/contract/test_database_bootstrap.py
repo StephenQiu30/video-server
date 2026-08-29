@@ -260,6 +260,8 @@ def test_provider_session_runners_are_physically_isolated_by_provider() -> None:
         "douyin-operator-runner": ("douyin", "douyin-operator"),
         "xiaohongshu-operator-runner": ("xiaohongshu", "xiaohongshu-operator"),
         "reddit-operator-runner": ("reddit", "reddit-operator"),
+        "x-operator-runner": ("x", "x-operator"),
+        "instagram-operator-runner": ("instagram", "instagram-operator"),
     }
 
     for path in (COMPOSE_PATH, PROD_COMPOSE_PATH):
@@ -302,3 +304,14 @@ def test_wechat_channels_session_broker_and_local_start_are_wired() -> None:
     assert "wechat_version=${wechat_version:-browser-live}" in startup
     assert 'export WECHAT_CHANNELS_COOKIE_VERSION="$wechat_version"' in startup
     assert 'set -- "$@" --profile wechat-channels-operator' in startup
+    for provider, profile in (
+        ("tiktok", "provider-operator"),
+        ("douyin", "douyin-operator"),
+        ("xiaohongshu", "xiaohongshu-operator"),
+        ("reddit", "reddit-operator"),
+        ("x", "x-operator"),
+        ("instagram", "instagram-operator"),
+    ):
+        assert f'provider-session-broker.sh" {provider} start' in startup
+        assert f'set -- "$@" --profile {profile}' in startup
+    assert 'analysis-worker.sh" start' in startup

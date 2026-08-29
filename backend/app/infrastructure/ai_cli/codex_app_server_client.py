@@ -80,7 +80,7 @@ class CodexAppServerClient:
             "stdin": asyncio.subprocess.PIPE,
             "stdout": asyncio.subprocess.PIPE,
             "stderr": asyncio.subprocess.PIPE,
-            "limit": self._config.max_stdout_bytes + 256 * 1024,
+            "limit": self._config.max_protocol_message_bytes,
         }
         if os.name == "nt":
             options["creationflags"] = int(
@@ -96,6 +96,8 @@ class CodexAppServerClient:
             "--ask-for-approval",
             "never",
             "--strict-config",
+            "--disable",
+            "plugins",
             *self._config.provider_arguments,
             "-c",
             "mcp_servers={}",
@@ -132,7 +134,7 @@ class CodexAppServerClient:
                 "capabilities": {"experimentalApi": True},
             },
         )
-        await response(process, 1, self._config.max_stdout_bytes)
+        await response(process, 1, self._config.max_protocol_message_bytes)
         await _notify(process, "initialized", {})
         await _send(
             process,
@@ -147,7 +149,7 @@ class CodexAppServerClient:
                 "runtimeWorkspaceRoots": [str(root)],
             },
         )
-        started = await response(process, 2, self._config.max_stdout_bytes)
+        started = await response(process, 2, self._config.max_protocol_message_bytes)
         thread_id = nested_string(started, "thread", "id")
         if thread_id is None:
             raise AppServerProtocolFailure(
@@ -163,14 +165,18 @@ class CodexAppServerClient:
                 "outputSchema": schema,
             },
         )
-        turn = await response(process, 3, self._config.max_stdout_bytes)
+        turn = await response(process, 3, self._config.max_protocol_message_bytes)
         turn_id = nested_string(turn, "turn", "id")
         if turn_id is None:
             raise AppServerProtocolFailure(
                 b"invalid turn/start response", unavailable=True
             )
         return await completed_result(
-            process, thread_id, turn_id, self._config.max_stdout_bytes
+            process,
+            thread_id,
+            turn_id,
+            self._config.max_stdout_bytes,
+            self._config.max_protocol_message_bytes,
         )
 
 

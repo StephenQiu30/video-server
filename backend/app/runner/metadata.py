@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from app.domain.downloads import CandidateStream, DynamicRange, StreamKind
@@ -35,6 +35,11 @@ class MediaInspection:
     extractor_key: str
     streams: tuple[CandidateStream, ...]
     thumbnail_urls: tuple[str, ...] = ()
+    download_info: dict[str, Any] = field(
+        default_factory=dict,
+        repr=False,
+        compare=False,
+    )
 
     @property
     def thumbnail_url(self) -> str | None:
@@ -221,6 +226,7 @@ def normalize_metadata(
         extractor_key=extractor,
         streams=tuple(streams),
         thumbnail_urls=_thumbnail_urls(payload),
+        download_info=payload,
     )
 
 

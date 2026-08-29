@@ -75,8 +75,21 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
             b"unsupported url:",
             b"unable to extract initial state",
             b"kuaishou public link unavailable",
+            b"xiaohongshu note unavailable",
         ),
         providers=frozenset({"douyin", "xiaohongshu", "kuaishou"}),
+    ),
+    FailureRule(
+        "provider_link_unavailable",
+        422,
+        any_stderr=(b"unsupported url:",),
+        providers=frozenset({"tiktok"}),
+    ),
+    FailureRule(
+        "provider_link_unavailable",
+        422,
+        any_stderr=(b"domain not found",),
+        providers=frozenset({"x"}),
     ),
     FailureRule(
         "provider_link_unavailable",
@@ -151,6 +164,12 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         providers=frozenset({"tiktok"}),
     ),
     FailureRule(
+        "egress_challenged",
+        422,
+        any_stderr=(b"xiaohongshu request verification required",),
+        providers=frozenset({"xiaohongshu"}),
+    ),
+    FailureRule(
         "pot_provider_unavailable",
         503,
         any_stderr=(b"provider unavailable", b"provider failed", b"timed out"),
@@ -194,8 +213,8 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         ),
     ),
     FailureRule(
-        "egress_challenged",
-        422,
+        "provider_temporarily_unavailable",
+        503,
         any_stderr=(
             b"unexpected response from webpage request",
             b"unable to extract challenge data",

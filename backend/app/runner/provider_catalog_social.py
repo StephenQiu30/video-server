@@ -29,6 +29,7 @@ SOCIAL_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         normalize_url=vimeo_url,
         status=ProviderSupportStatus.VERIFIED,
         operator_cookie_domains=frozenset({"vimeo.com"}),
+        command_args=("--check-formats",),
     ),
     standard_provider(
         "x",

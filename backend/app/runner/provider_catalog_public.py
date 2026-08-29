@@ -3,6 +3,7 @@
 from app.domain.providers import ProviderCapability, ProviderSupportStatus
 from app.runner.provider_factories import CHROME_IMPERSONATION, standard_provider
 from app.runner.provider_normalizers import (
+    hongguo_url,
     kick_url,
     linkedin_url,
     snapchat_url,
@@ -100,6 +101,7 @@ PUBLIC_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         ("tumblr.com", "www.tumblr.com"),
         version="tumblr-public-video-post-v1",
         normalize_url=tumblr_url,
+        host_suffixes=frozenset({"tumblr.com"}),
         capabilities=SINGLE_VIDEO,
         status=ProviderSupportStatus.VERIFIED,
         command_args=CHROME_IMPERSONATION,
@@ -113,6 +115,7 @@ PUBLIC_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         display_name="红果短剧官方分享",
         hosts=frozenset({"novelquickapp.com", "hongguoduanju.com"}),
         version="hongguo-official-share-v1",
+        normalize_url=hongguo_url,
         capabilities=SINGLE_VIDEO,
         support_status=ProviderSupportStatus.UNKNOWN,
         canary_suite="hongguo-official-share-single-video",

@@ -16,9 +16,11 @@ class RunnerReadiness:
         settings: RunnerSettings,
         *,
         binary_exists: Callable[[str], str | None] = shutil.which,
+        session_ready: Callable[[], bool] = lambda: True,
     ) -> None:
         self._settings = settings
         self._binary_exists = binary_exists
+        self._session_ready = session_ready
 
     async def check(self) -> bool:
         binaries = (
@@ -28,6 +30,8 @@ class RunnerReadiness:
             self._settings.runner_ffprobe_bin,
         )
         if any(self._binary_exists(binary) is None for binary in binaries):
+            return False
+        if not self._session_ready():
             return False
         workspace = self._settings.runner_workspace_root
         if not _writable_directory(workspace):

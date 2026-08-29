@@ -50,21 +50,23 @@ flowchart LR
 
 限流、地域、DRM、内容权益、格式不支持等错误不会消耗 Operator 会话。若
 Operator Cookie 已过期，管线返回会话过期，而不是保留匿名 bot challenge；
-其他 Operator 基础设施故障仍保留匿名路径的原始诊断。
+Operator 已确认链接失效时也优先返回这个确定结论，避免匿名提取器回归把失效内容
+误报成平台临时故障。其他 Operator 基础设施故障仍保留匿名路径的原始诊断。
 
 ## 3. Provider Session Broker
 
 Docker 不能安全解密宿主机 Chrome Profile，因此 Broker 只在本地可信 macOS
 宿主机运行：
 
-1. `provider-session-broker.sh {youtube|wechat_channels|tiktok|douyin|xiaohongshu|reddit}` 由当前用户的 `launchd` 会话监督并在异常退出后重启。
+1. `provider-session-broker.sh {youtube|wechat_channels|tiktok|douyin|xiaohongshu|reddit|x|instagram}` 由当前用户的 `launchd` 会话监督并在异常退出后重启。
 2. 每 15 秒使用 yt-dlp 的浏览器 Cookie loader 读取当前 Chrome 登录态。
 3. 只保留目标 Provider allowlist 域、未过期且包含认证标记的 Cookie。
 4. 以同目录临时文件、`0400` 权限和原子替换刷新版本化 Netscape 文件。
 5. Docker Operator Runner 继续只读挂载该文件；Cookie 原文不进入 API、DB、
    RabbitMQ、日志或业务响应。
 6. 单次刷新失败保留最后一个有效快照；状态文件明确区分 `ready`、
-   `login_required` 与 `degraded`，不再用 Secret 文件时间戳冒充会话健康。
+   `login_required` 与 `degraded`。本地 Runner 还验证 120 秒 Secret 新鲜度，
+   Broker 长时间失联时主动退出 readiness，生产不可变版本关闭此本地门禁。
 
 Broker 不会自动输入密码、处理验证码、2FA 或扩大内容权益。当前 Chrome 登出或
 平台撤销会话后，系统应明确报告会话过期。
@@ -123,7 +125,10 @@ inspection/format 仍属于当前账户；终态重试不会在 HTTP 请求中�
 Download Worker 在真正下载前必须使用原访问上下文重新 inspect，检查来源身份、权益
 和当前可用流，再由 Runner 依据语义计划选择流。Provider format id 只是短期 hint，
 不能作为恢复依据；若当前规格不可用，任务返回 `format_unavailable`，用户重新解析
-链接后选择新的真实规格。媒体字节、封装和最终制品完整性校验仍不能绕过，也不改写
+链接后选择新的真实规格。重新 inspect 成功后，Runner 把本次解析结果以 `0600`
+临时 JSON 保存在当前任务工作区，并用 `--load-info-json` 下载刚刚选中的流；任务结束
+后随工作区清理。这样既不把会过期的 CDN URL 持久化到 PostgreSQL，也不会为了下载
+再次触发平台网页挑战。媒体字节、封装和最终制品完整性校验仍不能绕过，也不改写
 原任务历史。
 
 ## 8. 固定诊断矩阵与状态真实性
@@ -139,8 +144,10 @@ unknown。状态 API 分别公开最近真实媒体下载时间和最近完整 A
 页面不会再把已有媒体证据误显示为“暂无验证”。Compose readiness 同时检查配置
 声明的每个 Runner，但平台 canary 失败只降级对应平台，不让整个 API 不可用。
 
-2026-08-18 的本地固定矩阵结果为 metadata 22/22、media 22/22。小红书当前网页
-契约要求官方分享/Feed URL 携带 `xsec_token`；缺失 token 的旧裸 URL 返回空
-`noteDetailMap`，应归类为 extractor regression，而不是要求用户手工输入 Cookie。
-Tumblr 公开页由项目插件直接读取当前 `www` 页的 OG 视频与封面，避免上游旧 blog
-子域改写触发 429。
+2026-08-29 的真实浏览器回归覆盖 22 个可启用 Provider：除小红书外均完成真实媒体
+下载和制品校验；QQ 视频保持明确禁用。小红书当前公开入口由平台返回 `300012`
+IP 风险限制，两个旧测试笔记由第一方页面返回 `300031` 已失效；系统分别保留平台
+验证边界，并把确定失效的笔记归类为 `provider_link_unavailable`，不再伪报服务故障。
+TikTok 解析使用其嵌入播放器实际调用的第一方 `player/api/v1/items`，网页挑战只作为
+上游回退；真实任务以 H.264/AAC 在首次执行完成。Tumblr 公开页由项目插件直接读取
+当前 `www` 页的 OG 视频与封面，避免上游旧 blog 子域改写触发 429。

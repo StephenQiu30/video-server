@@ -24,6 +24,16 @@ class CliAdapterConfig:
     extra_environment: tuple[tuple[str, str], ...] = ()
     provider_arguments: tuple[str, ...] = ()
 
+    @property
+    def max_protocol_message_bytes(self) -> int:
+        """Bound one App Server message without conflating it with result size."""
+        encoded_image_bytes = ((self.max_image_bytes + 2) // 3) * 4
+        message_envelope_bytes = 256 * 1024
+        return max(
+            self.max_stdout_bytes,
+            encoded_image_bytes + message_envelope_bytes,
+        )
+
     def __post_init__(self) -> None:
         paths = (self.binary, self.ffmpeg, self.ffprobe)
         if any(not path.is_absolute() for path in paths) or not self.model.strip():

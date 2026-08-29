@@ -203,6 +203,30 @@ async def test_media_canary_translates_runner_challenge_failure(tmp_path: Path) 
 
 
 @pytest.mark.asyncio
+async def test_media_canary_preserves_transient_provider_failure(
+    tmp_path: Path,
+) -> None:
+    class ChallengeRunner(Runner):
+        async def download(self, *args: object, **kwargs: object) -> RunnerArtifact:
+            raise MediaRunnerClientError("provider_temporarily_unavailable", 503)
+
+    repository, cleaner = Repository(), Cleaner()
+    ticks = iter((1.0, 1.1))
+    service = ProviderCanaryService(
+        repository,
+        ChallengeRunner(tmp_path),
+        cleaner,
+        now=lambda: NOW,
+        timer=lambda: next(ticks),
+    )
+
+    result = await service.execute(target(ProviderCanaryStage.MEDIA))
+
+    assert result.outcome is ProviderCanaryOutcome.FAILED
+    assert result.stable_error_code == "provider_temporarily_unavailable"
+
+
+@pytest.mark.asyncio
 async def test_metadata_failure_is_persisted_as_stable_access_error(
     tmp_path: Path,
 ) -> None:

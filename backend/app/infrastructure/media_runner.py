@@ -150,6 +150,7 @@ class MediaRunnerHttpClient:
             if exc.code in {
                 "pot_provider_unavailable",
                 "extractor_regression",
+                "provider_temporarily_unavailable",
                 "provider_session_unavailable",
             }:
                 raise MediaInspectionTemporarilyUnavailable from exc

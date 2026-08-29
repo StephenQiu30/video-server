@@ -30,6 +30,7 @@ class ArtifactValidationError(RuntimeError):
 _RUNNER_CODES = {
     "download_timeout": DownloadErrorCode.DOWNLOAD_TIMEOUT,
     "inspection_timeout": DownloadErrorCode.INSPECTION_TIMEOUT,
+    "inspection_failed": DownloadErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE,
     "format_unavailable": DownloadErrorCode.FORMAT_UNAVAILABLE,
     "transcode_required": DownloadErrorCode.TRANSCODE_REQUIRED,
     "media_validation_failed": DownloadErrorCode.MEDIA_VALIDATION_FAILED,

@@ -109,6 +109,7 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         ),
         version="tiktok-web-v1",
         status=ProviderSupportStatus.DEGRADED,
+        anonymous_access=False,
         operator_cookie_domains=frozenset(
             {"tiktok.com", "tiktokv.com", "byteoversea.com"}
         ),
@@ -124,7 +125,7 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             "xhslink.com",
             "www.xhslink.com",
         ),
-        status=ProviderSupportStatus.VERIFIED,
+        status=ProviderSupportStatus.DEGRADED,
         operator_cookie_domains=frozenset({"xiaohongshu.com"}),
         canary_suite="xiaohongshu-anonymous-operator-video",
     ),

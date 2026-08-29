@@ -9,6 +9,7 @@ from typing import Protocol
 from app.application.downloads import MediaInspectionFailure, RunnerInspection
 from app.application.downloads.errors import (
     MediaInspectionAuthRequired,
+    MediaInspectionFormatUnavailable,
     MediaInspectionLinkUnavailable,
     MediaInspectionSessionExpired,
     MediaInspectionTemporarilyUnavailable,
@@ -37,9 +38,14 @@ class InspectionFailurePolicy:
 
     _ANONYMOUS_FALLBACK_ERRORS = (
         MediaInspectionAuthRequired,
+        MediaInspectionFormatUnavailable,
         MediaInspectionLinkUnavailable,
         MediaInspectionTemporarilyUnavailable,
         MediaInspectionVerificationFailed,
+    )
+    _AUTHORITATIVE_OPERATOR_ERRORS = (
+        MediaInspectionLinkUnavailable,
+        MediaInspectionSessionExpired,
     )
 
     def should_continue(
@@ -64,10 +70,10 @@ class InspectionFailurePolicy:
         final_attempt, final_error = failures[-1]
         if (
             final_attempt.access_mode is ProviderAccessMode.OPERATOR_MANAGED
-            and isinstance(final_error, MediaInspectionSessionExpired)
+            and isinstance(final_error, self._AUTHORITATIVE_OPERATOR_ERRORS)
         ):
-            # A stale configured session is more actionable than the anonymous
-            # challenge that selected it.
+            # A provider-scoped session has enough context to make definitive
+            # session and content-availability decisions.
             return final_error
         # Operator runners are optional. Preserve the first public-path
         # diagnosis when a fallback fails for any other infrastructure reason.
@@ -90,6 +96,8 @@ class MediaInspectionPipeline:
 
     async def inspect(self, url: str) -> RunnerInspection:
         attempts = self._attempts_for(url)
+        if not attempts:
+            raise MediaInspectionAuthRequired
         failures: list[tuple[InspectionAttempt, MediaInspectionFailure]] = []
         for index, attempt in enumerate(attempts):
             try:
@@ -111,11 +119,17 @@ class MediaInspectionPipeline:
         raise selected from final_error
 
     def _attempts_for(self, url: str) -> tuple[InspectionAttempt, ...]:
-        attempts = [
-            InspectionAttempt(ProviderAccessMode.ANONYMOUS, self._anonymous),
-        ]
-        operator = self._operators.get(provider_profile(url).key)
-        if operator is not None:
+        profile = provider_profile(url)
+        attempts: list[InspectionAttempt] = []
+        if ProviderAccessMode.ANONYMOUS in profile.access_modes:
+            attempts.append(
+                InspectionAttempt(ProviderAccessMode.ANONYMOUS, self._anonymous)
+            )
+        operator = self._operators.get(profile.key)
+        if (
+            ProviderAccessMode.OPERATOR_MANAGED in profile.access_modes
+            and operator is not None
+        ):
             attempts.append(
                 InspectionAttempt(ProviderAccessMode.OPERATOR_MANAGED, operator)
             )

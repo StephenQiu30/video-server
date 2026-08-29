@@ -253,6 +253,24 @@ async def test_missing_cookie_does_not_prevent_runner_startup(tmp_path: Path) ->
     assert caught.value.code == "credential_required"
 
 
+async def test_local_live_session_must_remain_fresh(tmp_path: Path) -> None:
+    settings = operator_settings(tmp_path).model_copy(
+        update={"runner_provider_session_max_age_seconds": 30}
+    )
+    source = write_cookie(settings)
+    store = ProviderSessionStore(
+        settings,
+        clock=lambda: source.stat().st_mtime + 31,
+    )
+    context = store.context_for("https://youtu.be/owned")
+
+    assert store.is_ready() is False
+    with pytest.raises(RunnerFailure) as caught:
+        async with store.operation(context):
+            pass
+    assert caught.value.code == "provider_session_unavailable"
+
+
 async def test_retained_version_can_finish_but_unlisted_version_is_revoked(
     tmp_path: Path,
 ) -> None:

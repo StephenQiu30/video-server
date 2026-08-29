@@ -11,6 +11,7 @@ from app.application.downloads import (
     MediaInspectionTemporarilyUnavailable,
     RunnerInspection,
 )
+from app.application.downloads.errors import MediaInspectionFormatUnavailable
 from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
 from app.infrastructure.media_runner import MediaRunnerRouter
 from app.infrastructure.media_runner_models import RunnerArtifact
@@ -106,6 +107,22 @@ async def test_operator_session_expiry_replaces_anonymous_diagnosis() -> None:
         await router.inspect("https://www.youtube.com/watch?v=owned")
 
 
+async def test_operator_link_unavailable_replaces_anonymous_degradation() -> None:
+    anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
+    anonymous.inspect_error = MediaInspectionTemporarilyUnavailable()
+    operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED, "xiaohongshu"))
+    operator.inspect_error = MediaInspectionLinkUnavailable()
+    router = MediaRunnerRouter(  # type: ignore[arg-type]
+        anonymous,
+        {"xiaohongshu": operator},
+    )
+
+    with pytest.raises(MediaInspectionLinkUnavailable):
+        await router.inspect(
+            "https://www.xiaohongshu.com/explore/6411cf99000000001300b6d9"
+        )
+
+
 async def test_non_fallback_failure_does_not_consume_operator_session() -> None:
     anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
     anonymous.inspect_error = MediaInspectionRateLimited()
@@ -140,6 +157,18 @@ async def test_tiktok_access_failure_uses_its_isolated_operator() -> None:
 
     assert result.access_context.provider_key == "tiktok"
     assert operator.inspected == ["https://www.tiktok.com/@creator/video/123"]
+
+
+async def test_instagram_video_only_metadata_falls_back_to_operator_pool() -> None:
+    anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
+    anonymous.inspect_error = MediaInspectionFormatUnavailable()
+    operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED, "instagram"))
+    router = MediaRunnerRouter(anonymous, {"instagram": operator})  # type: ignore[arg-type]
+
+    result = await router.inspect("https://www.instagram.com/reel/owned/")
+
+    assert result.access_context.provider_key == "instagram"
+    assert operator.inspected == ["https://www.instagram.com/reel/owned/"]
 
 
 async def test_download_routes_frozen_context_to_matching_pool() -> None:

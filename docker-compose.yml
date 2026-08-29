@@ -43,6 +43,7 @@ x-provider-session-environment: &provider-session-environment
   RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "true"
   RUNNER_PROVIDER_SECRET_ROOT: /run/provider-secrets
   RUNNER_PROVIDER_SECRET_TEMP_ROOT: /run/provider-secrets-tmp
+  RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS: "${RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS:-120}"
   PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
 
 services:
@@ -385,6 +386,7 @@ services:
       RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
       RUNNER_PROVIDER_SECRET_ROOT: /run/provider-secrets
       RUNNER_PROVIDER_SECRET_TEMP_ROOT: /run/provider-secrets-tmp
+      RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS: "${RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS:-120}"
       RUNNER_TIKTOK_DEVICE_ID: "${TIKTOK_DEVICE_ID:-}"
       PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
     networks:
@@ -490,6 +492,42 @@ services:
         bind:
           create_host_path: false
 
+  x-operator-runner:
+    <<: *provider-session-runner
+    container_name: x-operator-runner
+    profiles: [x-operator]
+    environment:
+      <<: *provider-session-environment
+      RUNNER_OPERATOR_SESSION_VERSIONS: '{"x":"${X_COOKIE_VERSION:-disabled}"}'
+      RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS: "${X_RETAINED_SESSION_VERSIONS:-{}}"
+      RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${X_OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
+    volumes:
+      - runner_work:/work
+      - type: bind
+        source: "${X_COOKIE_SECRET_DIR:-./.provider-secrets/x}"
+        target: /run/provider-secrets/x
+        read_only: true
+        bind:
+          create_host_path: false
+
+  instagram-operator-runner:
+    <<: *provider-session-runner
+    container_name: instagram-operator-runner
+    profiles: [instagram-operator]
+    environment:
+      <<: *provider-session-environment
+      RUNNER_OPERATOR_SESSION_VERSIONS: '{"instagram":"${INSTAGRAM_COOKIE_VERSION:-disabled}"}'
+      RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS: "${INSTAGRAM_RETAINED_SESSION_VERSIONS:-{}}"
+      RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${INSTAGRAM_OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
+    volumes:
+      - runner_work:/work
+      - type: bind
+        source: "${INSTAGRAM_COOKIE_SECRET_DIR:-./.provider-secrets/instagram}"
+        target: /run/provider-secrets/instagram
+        read_only: true
+        bind:
+          create_host_path: false
+
   youtube-operator-runner:
     build:
       context: .
@@ -516,6 +554,7 @@ services:
       RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${YOUTUBE_OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
       RUNNER_PROVIDER_SECRET_ROOT: /run/provider-secrets
       RUNNER_PROVIDER_SECRET_TEMP_ROOT: /run/provider-secrets-tmp
+      RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS: "${RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS:-120}"
       RUNNER_YOUTUBE_POT_BASE_URL: http://youtube-pot-provider:4416
       RUNNER_YOUTUBE_POT_PROVIDER_VERSION: bgutil-http-1.3.1
       PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"

@@ -120,7 +120,10 @@ class VideoObserver:
 
     def _next_path(self, directory: str) -> Path:
         if self.generated >= self.maximum_images:
-            raise ValueError("image limit reached")
+            raise ValueError(
+                "observation budget reached; use the collected evidence and return "
+                "the final structured result now"
+            )
         self.generated += 1
         target = self.root / "work" / directory
         target.mkdir(parents=True, exist_ok=True)
@@ -130,6 +133,11 @@ class VideoObserver:
         data = path.read_bytes()
         if not data or len(data) > self.maximum_image_bytes:
             raise ValueError("invalid observation image")
+        if self.generated == self.maximum_images:
+            text += (
+                ". Observation budget is now exhausted; return the final structured "
+                "result without calling another observation tool"
+            )
         return {
             "content": [
                 {"type": "text", "text": text},

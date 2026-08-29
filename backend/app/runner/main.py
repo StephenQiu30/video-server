@@ -19,6 +19,7 @@ from app.runner.contracts import (
 )
 from app.runner.errors import RunnerFailure
 from app.runner.provider_registry import configure_provider_instances
+from app.runner.provider_sessions import ProviderSessionStore
 from app.runner.readiness import RunnerReadiness
 from app.runner.service import MediaRunnerService
 from app.runner.settings import RunnerSettings
@@ -56,8 +57,12 @@ def create_app(
 ) -> FastAPI:
     configured = settings or RunnerSettings()
     configure_provider_instances(configured.peertube_allowed_instances)
-    runner = service or MediaRunnerService(configured)
-    readiness_probe = readiness or RunnerReadiness(configured)
+    sessions = ProviderSessionStore(configured)
+    runner = service or MediaRunnerService(configured, session_store=sessions)
+    readiness_probe = readiness or RunnerReadiness(
+        configured,
+        session_ready=sessions.is_ready,
+    )
     authenticator = HmacRequestAuthenticator(
         configured.hmac_secret_bytes,
         nonce_guard=InMemoryNonceGuard(

@@ -1,5 +1,9 @@
 import pytest
-from app.domain.providers import ProviderCapability, ProviderSupportStatus
+from app.domain.providers import (
+    ProviderAccessMode,
+    ProviderCapability,
+    ProviderSupportStatus,
+)
 from app.runner.errors import RunnerFailure
 from app.runner.provider_registry import (
     configure_provider_instances,
@@ -215,7 +219,11 @@ def test_targets_tiktok_request_impersonation_and_retries() -> None:
     )
     assert provider_inspection_attempts(url) == 8
     assert provider_inspection_retry_delay(url) == 0.5
-    assert provider_command_args("https://vimeo.com/123") == ()
+    assert provider_profile(url).access_modes == (
+        ProviderAccessMode.OPERATOR_MANAGED,
+    )
+    assert provider_profile(url).client_profile_id == "chrome-136-macos-15"
+    assert provider_command_args("https://vimeo.com/123") == ("--check-formats",)
     assert provider_inspection_attempts("https://vimeo.com/123") == 2
     assert provider_inspection_retry_delay("https://vimeo.com/123") == 1
 
@@ -252,6 +260,7 @@ def test_targets_xiaohongshu_short_links_with_browser_impersonation() -> None:
         )
         assert provider_inspection_attempts(url) == 8
         assert provider_inspection_retry_delay(url) == 0.5
+        assert provider_profile(url).support_status is ProviderSupportStatus.DEGRADED
         assert provider_profile(url).cookie_domain_allowlist == frozenset(
             {"xiaohongshu.com"}
         )
@@ -265,6 +274,40 @@ def test_tumblr_uses_bounded_rate_limit_backoff() -> None:
 
     assert provider_inspection_attempts(url) == 4
     assert provider_inspection_retry_delay(url) == 4
+
+
+def test_normalizes_legacy_tumblr_blog_posts_to_the_current_public_page() -> None:
+    url = (
+        "https://maskofthedragon.tumblr.com/post/"
+        "626907179849564160/mona-talking-in-english"
+    )
+
+    assert provider_profile(url).key == "tumblr"
+    assert provider_request_url(url) == (
+        "https://www.tumblr.com/maskofthedragon/"
+        "626907179849564160/mona-talking-in-english"
+    )
+
+
+def test_hongguo_series_page_requires_an_explicit_episode() -> None:
+    url = "https://hongguoduanju.com/detail?series_id=7543112466771741721"
+
+    assert provider_profile(url).key == "hongguo_web"
+    with pytest.raises(RunnerFailure) as captured:
+        provider_request_url(url)
+    assert captured.value.code == "provider_media_unsupported"
+
+
+def test_hongguo_player_requires_a_single_episode_identity() -> None:
+    assert provider_request_url(
+        "https://hongguoduanju.com/player/7543112466771741721/7614027168942672958"
+    ).endswith("/7543112466771741721/7614027168942672958")
+
+    with pytest.raises(RunnerFailure) as captured:
+        provider_request_url(
+            "https://hongguoduanju.com/player/7543112466771741721"
+        )
+    assert captured.value.code == "provider_unsupported"
 
 
 def test_normalizes_kuaishou_public_videos_and_uses_android_impersonation() -> None:
