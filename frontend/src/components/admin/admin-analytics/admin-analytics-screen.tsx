@@ -65,7 +65,7 @@ export function AdminAnalyticsScreen({
                 >
                   {periods.map((period) => (
                     <ToggleGroupItem
-                      className="h-10 min-w-0 flex-1 px-3 opacity-100 data-[state=on]:bg-chart-4 data-[state=on]:text-chart-foreground sm:min-w-14 sm:flex-none"
+                      className="h-10 min-w-0 flex-1 px-3 opacity-100 data-[state=on]:bg-foreground data-[state=on]:text-background sm:min-w-14 sm:flex-none"
                       key={period}
                       value={String(period)}
                     >

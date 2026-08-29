@@ -36,7 +36,6 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --color-chart-foreground: var(--chart-foreground);
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 2px);
@@ -66,12 +65,11 @@
   --success: #0f7040;
   --warning: #854d0e;
   --destructive: #b91c1c;
-  --chart-1: #90c5ff;
-  --chart-2: #3080ff;
-  --chart-3: #155dfc;
-  --chart-4: #1447e6;
-  --chart-5: #193cb8;
-  --chart-foreground: #eff6ff;
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
   --radius: 6px;
 }
 
@@ -98,12 +96,11 @@
   --success: #54c58b;
   --warning: #fbbf24;
   --destructive: #f87171;
-  --chart-1: #90c5ff;
-  --chart-2: #3080ff;
-  --chart-3: #155dfc;
-  --chart-4: #1447e6;
-  --chart-5: #193cb8;
-  --chart-foreground: #eff6ff;
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
 }
 
 @layer base {

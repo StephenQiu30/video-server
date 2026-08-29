@@ -447,14 +447,16 @@ final result: passed
 
 final result: passed
 
-## 2026-08-29 shadcn/ui 官方图表组件与数据视图扩展
+## 2026-08-29 shadcn/ui 官方图表组件与默认主题
 
-- source visual truth：用户共享的 [shadcn/ui Area Charts](https://ui.shadcn.com/charts/area) 官方页面与用户原始下载分析截图 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-ffac27f0-195d-4f35-aac6-1fc6148895dd.png`。通过用户共享的 Chrome 标签页确认官方示例使用 `ChartContainer`、`ChartTooltip` 与 Recharts，并实测默认蓝色图表 token 为 `#90c5ff / #3080ff / #155dfc / #1447e6 / #193cb8`。
-- implementation evidence：桌面 1920×971 为 `/Users/stephenqiu/.codex/visualizations/2026/08/28/01a0496c-b15e-7901-ad8c-177830e7aeb5/download-analytics-shadcn-charts-1920x971.png`；移动 390×844 为 `/Users/stephenqiu/.codex/visualizations/2026/08/28/01a0496c-b15e-7901-ad8c-177830e7aeb5/download-analytics-shadcn-charts-390x844.png`。原始截图与桌面实现已在同一视觉比较输入中检查，原页面的大面积空趋势画布被紧凑的趋势、状态和来源贡献三种视图替代。
-- component system：通过 shadcn CLI 引入官方 `src/components/ui/chart.tsx` 源码，业务图表统一消费 `ChartConfig`、`ChartContainer` 与 `ChartTooltipContent`；Recharts 仅作为官方组件要求的绘图引擎，不再手写 SVG 坐标、路径或 Tooltip 基础设施。
-- hierarchy and visuals：首行保留下载趋势并增加任务状态环图，第二行以全宽横向条形图展示前六个来源，精确来源明细继续置于下方。官方蓝色 token 同步用于趋势、状态环、来源条形、周期选中态和成功率进度，移除用户指出的黑色选中块与黑色图表视觉；没有新增渐变、重阴影或页面级 Card 壳。
-- responsive and themes：1920px 下三个图表分别为 859×320、288×224、1376×288；390px 下分别为 327×256、288×224、343×288。两个视口均满足 `scrollWidth = clientWidth`；1280×900 深色模式保持 `rgb(10,10,10)` 背景与相同官方蓝色色板，图表、分隔、坐标轴和文本对比清晰。
-- interactions and accessibility：趋势多选图例继续支持系列显隐；真实浏览器悬浮 `8月22日` 时 Tooltip 正确显示全部 54、成功 49、失败 3、取消 2。三个 `ChartContainer` 分别提供准确的可访问名称，趋势保留完整精确数据表，来源贡献保留等价 meter 与下方明细，环图同时提供四项状态数值与百分比。
-- engineering gates：`npm run lint` 通过（仅仓库既有 `.agents/skills` 断开符号链接 warning）；44 个测试文件、168 项测试全部通过；Next.js production build 与 16 个静态页面生成通过。全仓 `format:check` 仍只报告三个与本轮无关的既有文件：`admin-ai-providers/ai-provider-screen.tsx`、`analysis-result-view.tsx` 与 `lib/error-messages.ts`；本轮修改文件格式检查通过。
+- source visual truth：用户最新下载分析截图 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-5a68fde8-fe99-43b5-8144-7efe8ecedff8.png`、[shadcn/ui Area Charts](https://ui.shadcn.com/charts/area)、[Chart 文档](https://ui.shadcn.com/docs/components/chart) 与 [Theming 默认 neutral 主题](https://ui.shadcn.com/docs/theming)。官方文档明确以 `ChartContainer`、`ChartTooltipContent` 和 Recharts 组合图表，并推荐通过 `var(--chart-1)` … `var(--chart-5)` 使用默认主题色板。
+- implementation evidence：浅色桌面截图 `/Users/stephenqiu/.codex/visualizations/2026/08/28/01a0496c-b15e-7901-ad8c-177830e7aeb5/download-analytics-default-theme-1920x971.png`（1905×963）、390×844 移动截图 `/Users/stephenqiu/.codex/visualizations/2026/08/28/01a0496c-b15e-7901-ad8c-177830e7aeb5/download-analytics-default-theme-390x844.png`（375×812）和 1280×900 深色截图 `/Users/stephenqiu/.codex/visualizations/2026/08/28/01a0496c-b15e-7901-ad8c-177830e7aeb5/download-analytics-default-theme-dark-1280x900.png`（1265×889）均来自应用内浏览器真实渲染。浏览器预留 15px 常驻滚动条，三个视口均满足 `scrollWidth = clientWidth`，无页面级横向溢出。
+- density normalization：来源图为 3840×1942、对应 1920×971 CSS 视口的 2× Chrome 截图；比较时移除顶部 360px 浏览器 chrome，将内容区降采样并与 Browser API 输出的 CSS 像素截图统一为 1904×784。全视图同输入证据为 `/Users/stephenqiu/.codex/visualizations/2026/08/28/01a0496c-b15e-7901-ad8c-177830e7aeb5/download-analytics-default-theme-comparison.png`，图表/KPI 聚焦同输入证据为 `/Users/stephenqiu/.codex/visualizations/2026/08/28/01a0496c-b15e-7901-ad8c-177830e7aeb5/download-analytics-default-theme-chart-comparison.png`。
+- component system：官方 `src/components/ui/chart.tsx` 源码保持不变；业务图表只通过 `ChartConfig`、`ChartContainer`、`ChartTooltipContent` 和 `var(--chart-*)` 组合趋势、状态环与来源条形图。普通页面与控件不消费图表色，周期 Toggle Group 和成功率 Progress 均恢复 shadcn/ui 的中性默认样式。
+- required fidelity surfaces：Geist 字体、标题层级、内容轴、KPI 网格、间距、圆角、文案与原截图一致；无新增位图或装饰资产。浅色图表呈现官方默认橙/青/蓝色板，深色图表自动切换官方蓝/绿/黄/紫/红色板；来源和实现的周期选中态、成功率进度保持中性高对比。全视图已检查页面层级，聚焦图已检查 KPI、进度、图例与状态环颜色，无剩余 P0/P1/P2 差异。
+- interactions and accessibility：趋势图例点击后“失败”系列切换为 `data-state="off"`，再次点击可恢复；三个 `ChartContainer` 均有独立可访问名称。趋势保留完整精确数据表，来源贡献保留 meter 与来源明细，状态环同时列出四项数值和百分比；浏览器控制台无 error。
+- all-page color boundary：扫描 `src/app` 与除官方 `src/components/ui` 外的全部业务组件，未发现硬编码 Hex/RGB/HSL/OKLCH、Tailwind 一次性调色板类或将 `chart-*` 色扩散到普通控件；新增测试持续守住该边界。成功、警告、错误继续使用既有语义 token，避免丢失状态含义。
+- comparison history：此前实现将用户选取的蓝色色板扩散到了周期选中态与成功率进度，属于 P2 视觉范围漂移。本轮改为官方 neutral 默认 `--chart-1` … `--chart-5`，并恢复两个普通控件的默认中性色；修复后的全视图和聚焦比较均未发现新的 P0/P1/P2 差异。
+- engineering gates：目标文件 Biome 格式检查通过；`npm run lint` 通过（仅仓库既有 `.agents/skills` 断开符号链接 warning）；45 个测试文件、170 项测试全部通过；Next.js production build 与 16 个静态页面生成通过。全仓 `format:check` 仍只报告三个与本轮无关的既有文件：`admin-ai-providers/ai-provider-screen.tsx`、`analysis-result-view.tsx` 与 `lib/error-messages.ts`；本轮修改文件格式检查通过。
 
 final result: passed

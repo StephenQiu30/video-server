@@ -128,6 +128,7 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 | `--success` | `#16824D` | 成功状态 |
 | `--warning` | `#854D0E` | 等待与重试状态；与 10% warning 填充组合满足普通文字 AA 对比度 |
 | `--destructive` | `#DC2626` | 错误与破坏性操作 |
+| `--chart-1` … `--chart-5` | shadcn/ui 默认 neutral 图表色板 | 只供官方 Chart 组合消费；业务组件使用 token，不写自定义十六进制色值，也不扩散到筛选、按钮或进度等普通控件 |
 
 颜色必须通过语义 token 使用。主按钮使用近黑填充与白字，链接、焦点和选中态也优先使用中性色和形状/文字变化。状态不能只靠颜色表达，必须同时包含文字或图标。
 
@@ -153,7 +154,7 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 | --- | --- | --- |
 | 页内内容分组 | 语义化 section + [Separator](https://ui.shadcn.com/docs/components/radix/separator) | 不呈现 Card 外壳；通过排版、留白和必要的 1px 发丝线分组 |
 | 桌面数据 | [Table](https://ui.shadcn.com/docs/components/radix/table) | 用于管理员用户列表和下载分析的精确数值；保留 `caption`、列头和行语义，数值表头/单元格共同右对齐并使用 `tabular-nums`，390px 下切换为 Item/摘要列表 |
-| 数据可视化 | 语义化 `figure` + 响应式图表 | 图表有可读标题和等价表格/列表；数值不只靠颜色或 Tooltip 传达，不增加 Card 外壳 |
+| 数据可视化 | [Chart](https://ui.shadcn.com/docs/components/chart) + Recharts | 复用官方 `ChartContainer`、Tooltip 与默认 `--chart-1` … `--chart-5` 主题 token；图表有可读标题和等价表格/列表，数值不只靠颜色或 Tooltip 传达，不增加 Card 外壳 |
 | 移动导航/补充内容 | [Sheet](https://ui.shadcn.com/docs/components/radix/sheet) | 从右侧进入，标题与描述可读，关闭后焦点返回触发器 |
 | 图标辅助说明 | [Tooltip](https://ui.shadcn.com/docs/components/radix/tooltip) | 只补充说明，不承载唯一必要信息；支持 hover 与键盘 focus |
 | 用户身份 | [Avatar](https://ui.shadcn.com/docs/components/radix/avatar) | 必须有稳定 fallback，同时保留可读用户名 |

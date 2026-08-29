@@ -23,13 +23,13 @@ export const trendSeries: Array<{
   width: number;
 }> = [
   {
-    color: 'var(--chart-2)',
+    color: 'var(--chart-1)',
     key: 'total',
     label: '全部',
     width: 2.5,
   },
   {
-    color: 'var(--chart-1)',
+    color: 'var(--chart-2)',
     dashArray: '7 4',
     key: 'succeeded',
     label: '成功',
@@ -52,8 +52,8 @@ export const trendSeries: Array<{
 ];
 
 const trendConfig = {
-  total: { color: 'var(--chart-2)', label: '全部' },
-  succeeded: { color: 'var(--chart-1)', label: '成功' },
+  total: { color: 'var(--chart-1)', label: '全部' },
+  succeeded: { color: 'var(--chart-2)', label: '成功' },
   failed: { color: 'var(--chart-5)', label: '失败' },
   cancelled: { color: 'var(--chart-3)', label: '取消' },
 } satisfies ChartConfig;

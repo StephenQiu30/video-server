@@ -22,7 +22,7 @@ import { formatInteger, formatPercent } from './analytics-format';
 type Source = AdminDownloadAnalytics['sources'][number];
 
 const sourceConfig = {
-  total: { color: 'var(--chart-2)', label: '任务数' },
+  total: { color: 'var(--chart-1)', label: '任务数' },
 } satisfies ChartConfig;
 
 export function SourceBreakdown({

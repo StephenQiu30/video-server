@@ -76,7 +76,7 @@ export function AnalyticsKpis({
                 <dd className="mt-4">
                   <Progress
                     aria-label={`下载成功率 ${formatPercent(metric.progress)}`}
-                    className="h-1 bg-muted [&_[data-slot=progress-indicator]]:bg-chart-2"
+                    className="h-1 bg-muted"
                     value={metric.progress}
                   />
                 </dd>
