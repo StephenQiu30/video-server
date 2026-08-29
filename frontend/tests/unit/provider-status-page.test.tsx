@@ -48,6 +48,14 @@ describe('provider status page', () => {
     expect(youtube).toHaveTextContent('最近完整分析：暂无当前版本证据');
     expect(youtube).not.toHaveTextContent('Cookie 版本');
 
+    const tiktok = within(list)
+      .getByRole('heading', { name: 'TikTok' })
+      .closest('li');
+    expect(tiktok).not.toBeNull();
+    expect(tiktok).toHaveTextContent('已支持下载');
+    expect(tiktok).toHaveTextContent('仅使用已批准的自动化会话');
+    expect(tiktok).not.toHaveTextContent('匿名优先');
+
     const bilibili = within(list)
       .getByRole('heading', { name: '哔哩哔哩' })
       .closest('li');
@@ -121,6 +129,22 @@ function statuses(): ProviderStatusList {
         last_media_verified_at: null,
         last_verified_at: null,
         user_action: '该平台需要部署已批准的受控会话。',
+      },
+      {
+        key: 'tiktok',
+        display_name: 'TikTok',
+        registered: true,
+        extractor_exists: true,
+        capabilities: ['single_video', 'short_video'],
+        access_modes: ['operator_managed'],
+        status: 'verified',
+        last_checked_at: '2026-08-29T03:33:50Z',
+        last_check_succeeded: true,
+        download_supported: true,
+        download_available: true,
+        last_media_verified_at: '2026-08-29T03:33:50Z',
+        last_verified_at: null,
+        user_action: null,
       },
       {
         key: 'bilibili',

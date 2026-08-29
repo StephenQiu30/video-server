@@ -117,7 +117,7 @@ PUBLIC_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         version="hongguo-official-share-v1",
         normalize_url=hongguo_url,
         capabilities=SINGLE_VIDEO,
-        support_status=ProviderSupportStatus.UNKNOWN,
+        support_status=ProviderSupportStatus.VERIFIED,
         canary_suite="hongguo-official-share-single-video",
     ),
 )

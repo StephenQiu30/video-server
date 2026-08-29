@@ -73,33 +73,21 @@ docker exec video-provider-canary \
 | `provider_rate_limited` | 当前会话/出口限流，停止高频复测并等待 |
 | `media_validation_failed` | 下载文件、共享路径或 ffprobe 契约异常，属于本项目公共链路故障 |
 
-metadata 成功不等于可下载；media 成功也不等于 AI 分析完整。平台恢复为 verified
-仍需要近期 metadata、media、完整视频 Analysis attestation 和状态恢复迟滞。
+metadata 成功不等于可下载；media 成功也不等于 AI 分析完整。Registry 中已经完成
+发布验收的基线长期保留，近期重复失败才临时降级；尚未验收的 Profile 仍需要近期
+metadata、media、完整视频 Analysis attestation 和显式批准才能提升。
 
-2026-08-18 在当前固定引擎、出口和会话下，metadata 22/22、media 22/22 均通过。
-小红书固定样本必须使用官方分享/Feed 生成且携带 `xsec_token` 的完整 URL；不得把
-缺少 token 的旧裸 URL 当作当前有效样本。Tumblr 由项目可信插件读取当前 `www`
-公开页，避免 yt-dlp 旧 blog 子域路径的 429。
+平台状态同时合并固定探针与真实业务下载。只有状态为 succeeded、制品仍保留且含有
+有效 Provider 访问上下文的远程任务才会成为 media 证据；不会解密来源 URL，也不会
+公开任务、用户、账号、Cookie 或出口标识。固定探针用于无人使用时的主动监测，真实
+任务用于及时反映用户实际链路，两者不需要维护平行的手工状态。
 
-2026-08-26 重启后复测 YouTube/TikTok/X：metadata 3/3、media 3/3 通过。
-`BaW_jenozKc` 已被 YouTube 下架；TikTok `7206382937372134662` 对当前出口返回
-帖子级 IP 限制，两者都不再作为服务可用性样本。
-
-同日浏览器默认格式端到端复测 3/3 均首次成功，签名下载接口与对象存储文件请求均
-返回 200。最终 Docker 重建后的固定矩阵再次 6/6 通过，其中 YouTube 使用
-`youtube-v3`。挑战型平台的临时 `egress_challenged` 允许按 Provider 配置做有界
-重试；下架、地区/IP 明确限制、认证失败等确定性错误不重试。
-
-2026-08-27 当前版本与出口的逐平台最终复测结果为 metadata 19/22、media
-18/22。抖音和视频号在未部署受控会话时稳定返回 `provider_auth_required`；TikTok
-的 metadata 通过，但 media 受到当前出口验证挑战；Facebook metadata/media 均在
-当前固定 yt-dlp 版本返回解析失败，且同版本上游已有多条 Reel `Cannot parse data`
-报告（[#17340](https://github.com/yt-dlp/yt-dlp/issues/17340)、
-[#17411](https://github.com/yt-dlp/yt-dlp/issues/17411)），因此保留降级状态而不把
-单条样本静默替换为另一条历史链接。Telegram 首次 media 返回瞬时 Runner 失败，
-有界复测完成真实下载；其余最终 media 目标均通过。该轮没有生成或伪造 analysis
-证明，也没有新增 `PROVIDER_VERIFIED_KEYS`，所以下载可用证据与完整链路 verified
-状态仍严格分开展示。
+2026-08-29 当前版本的真实浏览器回归中，22 个已启用 Provider 有 21 个完成媒体
+下载与制品校验。TikTok 已通过第一方播放器 API 和自动化 Operator 会话首次执行
+成功；微信视频号、X、优酷也在统一重建后完成。小红书由第一方页面返回 `300012`
+出口 IP 风控，保持 degraded；失效笔记的 `300031` 单独映射为链接失效。QQ 视频
+保持 disabled，不进入已启用矩阵。所有成功任务由状态服务自动显示为最近真实下载，
+无需修改数据库或手工更新页面状态。
 
 ## 4. 更新固定样本
 

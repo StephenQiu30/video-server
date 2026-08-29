@@ -108,7 +108,7 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             "vt.tiktok.com",
         ),
         version="tiktok-web-v1",
-        status=ProviderSupportStatus.DEGRADED,
+        status=ProviderSupportStatus.VERIFIED,
         anonymous_access=False,
         operator_cookie_domains=frozenset(
             {"tiktok.com", "tiktokv.com", "byteoversea.com"}

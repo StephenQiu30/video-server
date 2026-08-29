@@ -236,7 +236,7 @@ def test_provider_status_distinguishes_registered_verified_and_unsupported(
     assert response.status_code == 200
     items = {item["key"]: item for item in response.json()["items"]}
     assert len(items) == 24
-    assert items["hongguo_web"]["status"] == "unknown"
+    assert items["hongguo_web"]["status"] == "verified"
     assert (
         items["hongguo_web"]["user_action"]
         == "已接入红果官方分享链接当前单集；不支持 App 受保护媒体、全集抓取或批量下载。"
@@ -244,7 +244,8 @@ def test_provider_status_distinguishes_registered_verified_and_unsupported(
     assert items["youtube"]["registered"] is True
     assert items["youtube"]["status"] == "access_required"
     assert items["bilibili"]["status"] == "verified"
-    assert items["tiktok"]["status"] == "degraded"
+    assert items["tiktok"]["status"] == "verified"
+    assert items["xiaohongshu"]["status"] == "degraded"
     assert items["reddit"]["status"] == "access_required"
     assert {
         items[key]["status"]

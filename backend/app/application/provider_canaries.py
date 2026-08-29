@@ -16,6 +16,7 @@ from app.domain.providers import (
 
 _ACCESS_ERRORS = {"provider_auth_required", "provider_session_expired"}
 _RATE_ERRORS = {"provider_rate_limited"}
+_OPERATIONAL_DECISION_WINDOW = timedelta(hours=26)
 _PERMANENT_ERRORS = {
     "provider_content_restricted",
     "provider_drm_protected",
@@ -109,25 +110,26 @@ def _merge_status(
         or item.profile_version == baseline.profile_version
     )
     if not results:
-        if baseline.status is not ProviderSupportStatus.VERIFIED:
-            return baseline
-        return replace(
-            baseline,
-            status=ProviderSupportStatus.UNKNOWN,
-            last_verified_at=None,
-            user_action=_user_action(ProviderSupportStatus.UNKNOWN, baseline.key),
-        )
+        return baseline
     ordered = tuple(sorted(results, key=lambda item: item.checked_at, reverse=True))
-    latest = ordered[0]
-    failures = tuple(
-        item for item in ordered[:5] if item.outcome is ProviderCanaryOutcome.FAILED
+    decision_results = tuple(
+        item
+        for item in ordered
+        if item.checked_at >= now - _OPERATIONAL_DECISION_WINDOW
     )
-    error = latest.stable_error_code
+    latest = ordered[0]
+    latest_decision = decision_results[0] if decision_results else None
+    failures = tuple(
+        item
+        for item in decision_results[:5]
+        if item.outcome is ProviderCanaryOutcome.FAILED
+    )
+    error = None if latest_decision is None else latest_decision.stable_error_code
     if error in _ACCESS_ERRORS:
         status = ProviderSupportStatus.ACCESS_REQUIRED
     elif error in _RATE_ERRORS:
         status = ProviderSupportStatus.RATE_LIMITED
-    elif _blocked(ordered):
+    elif _blocked(decision_results):
         status = ProviderSupportStatus.BLOCKED
     elif len(failures) >= 2:
         status = ProviderSupportStatus.DEGRADED
@@ -137,8 +139,6 @@ def _merge_status(
         baseline.status is ProviderSupportStatus.VERIFIED or explicitly_approved
     ) and _verified(ordered, now):
         status = ProviderSupportStatus.VERIFIED
-    elif baseline.status is ProviderSupportStatus.VERIFIED:
-        status = ProviderSupportStatus.UNKNOWN
     else:
         status = baseline.status
     verified_at = _latest_analysis_success(ordered)
@@ -261,10 +261,18 @@ def _user_action(
             "公开分享链接需要部署已批准的隔离元宝会话；"
             "不支持私密、加密、直播或付费内容。"
         )
-    if provider_key == "hongguo_web" and status is ProviderSupportStatus.UNKNOWN:
+    if provider_key == "hongguo_web":
         return (
             "已接入红果官方分享链接当前单集；"
             "不支持 App 受保护媒体、全集抓取或批量下载。"
+        )
+    if (
+        provider_key == "xiaohongshu"
+        and status is ProviderSupportStatus.DEGRADED
+    ):
+        return (
+            "当前出口受到小红书官方风控；失效笔记会单独提示，"
+            "请使用新的公开分享链接后稍后重试。"
         )
     if status is ProviderSupportStatus.ACCESS_REQUIRED:
         return "该平台需要部署已批准的受控会话；未启用时请稍后重试。"

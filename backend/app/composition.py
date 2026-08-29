@@ -97,6 +97,10 @@ from app.infrastructure.provider_catalog_repository import (
     SqlAlchemyProviderCatalogRepository,
 )
 from app.infrastructure.provider_status import configured_provider_statuses
+from app.infrastructure.provider_status_evidence import (
+    MergedProviderStatusEvidenceReader,
+    SqlAlchemyDownloadEvidenceReader,
+)
 from app.infrastructure.rate_limiter import ValkeyRateLimiter
 from app.infrastructure.readiness import RuntimeReadiness, build_runtime_readiness
 from app.infrastructure.realtime import RabbitMqRealtimeConsumer, RealtimeHub
@@ -474,7 +478,10 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         ),
         operational_metrics=OperationalMetrics(sessions),
         provider_status_service=ProviderStatusService(
-            SqlAlchemyProviderCanaryRepository(sessions),
+            MergedProviderStatusEvidenceReader(
+                SqlAlchemyProviderCanaryRepository(sessions),
+                SqlAlchemyDownloadEvidenceReader(sessions),
+            ),
             provider_baselines,
             now=clock,
             approved_keys=settings.provider_verified_keys,

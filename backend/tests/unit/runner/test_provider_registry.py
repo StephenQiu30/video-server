@@ -43,6 +43,7 @@ def test_uses_public_vimeo_player_endpoint_for_canonical_video() -> None:
     "url",
     (
         "https://vimeo.com/76979871",
+        "https://www.tiktok.com/@nba/video/7492902606063275294",
         "https://x.com/canghe/status/2087368911625052411",
         "https://www.instagram.com/reel/DbKfjdhTMAY/",
         "https://www.facebook.com/reel/1195289147628387",
@@ -66,7 +67,7 @@ def test_hongguo_official_share_is_a_single_video_profile() -> None:
 
     assert profile.key == "hongguo_web"
     assert profile.version == "hongguo-official-share-v1"
-    assert profile.support_status is ProviderSupportStatus.UNKNOWN
+    assert profile.support_status is ProviderSupportStatus.VERIFIED
     assert profile.capabilities == frozenset({ProviderCapability.SINGLE_VIDEO})
 
 
@@ -107,7 +108,7 @@ def test_remaining_provider_profiles_record_verified_access_boundaries() -> None
     )
     assert reddit.support_status is ProviderSupportStatus.ACCESS_REQUIRED
     assert reddit.version == "reddit-public-video-v1"
-    assert tiktok.support_status is ProviderSupportStatus.DEGRADED
+    assert tiktok.support_status is ProviderSupportStatus.VERIFIED
     assert tiktok.version == "tiktok-web-v1"
     assert wechat.version == "wechat-channels-public-v1"
     assert wechat.support_status is ProviderSupportStatus.ACCESS_REQUIRED

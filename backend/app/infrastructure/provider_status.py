@@ -54,10 +54,18 @@ current_provider_statuses = configured_provider_statuses
 def _user_action(
     status: ProviderSupportStatus, provider_key: str | None = None
 ) -> str | None:
-    if provider_key == "hongguo_web" and status is ProviderSupportStatus.UNKNOWN:
+    if provider_key == "hongguo_web":
         return (
             "已接入红果官方分享链接当前单集；"
             "不支持 App 受保护媒体、全集抓取或批量下载。"
+        )
+    if (
+        provider_key == "xiaohongshu"
+        and status is ProviderSupportStatus.DEGRADED
+    ):
+        return (
+            "当前出口受到小红书官方风控；失效笔记会单独提示，"
+            "请使用新的公开分享链接后稍后重试。"
         )
     if (
         provider_key == "wechat_channels"

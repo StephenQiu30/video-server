@@ -97,6 +97,11 @@ docker compose --env-file .env -f docker-compose.yml \
 固定 Provider 诊断矩阵和真实媒体探针命令见
 `docs/operations/007-固定Provider探针运行手册.md`。
 
+`GET /api/providers` 将 Registry 发布验收基线、近期固定探针和已经生成完整制品的
+真实下载合并展示。长期无人使用或未配置探针不会撤销已验收能力；近期重复失败仍会
+自动降级对应平台。真实任务投影只使用非敏感 Provider 上下文与完成时间，不读取或
+公开来源 URL、账号和 Cookie。
+
 宿主机 AI Worker 不属于 Compose。默认启用分析时由 `start-local.sh` 安装为当前用户的受监督服务；以下前台入口只用于调试：
 
 ```bash

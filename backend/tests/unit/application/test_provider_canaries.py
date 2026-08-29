@@ -78,7 +78,9 @@ def baseline(
         download_available=False,
         last_media_verified_at=None,
         last_verified_at=None,
-        user_action="待验证",
+        user_action=(
+            None if status is ProviderSupportStatus.VERIFIED else "待验证"
+        ),
     )
 
 
@@ -172,7 +174,7 @@ async def test_supported_download_is_explicit_with_conditional_session() -> None
 
 
 @pytest.mark.asyncio
-async def test_approved_without_current_canary_is_not_reported_verified() -> None:
+async def test_release_verification_survives_without_current_canary() -> None:
     service = ProviderStatusService(
         Reader(()),
         (baseline(ProviderSupportStatus.VERIFIED),),
@@ -181,13 +183,13 @@ async def test_approved_without_current_canary_is_not_reported_verified() -> Non
 
     view = (await service.list())[0]
 
-    assert view.status is ProviderSupportStatus.UNKNOWN
+    assert view.status is ProviderSupportStatus.VERIFIED
     assert view.last_verified_at is None
-    assert view.user_action == "该平台尚未完成当前版本的真实下载验证。"
+    assert view.user_action is None
 
 
 @pytest.mark.asyncio
-async def test_verified_baseline_requires_current_full_chain_evidence() -> None:
+async def test_partial_runtime_evidence_does_not_revoke_release_verification() -> None:
     service = ProviderStatusService(
         Reader((result(0), result(30, stage=ProviderCanaryStage.MEDIA))),
         (baseline(ProviderSupportStatus.VERIFIED),),
@@ -196,7 +198,7 @@ async def test_verified_baseline_requires_current_full_chain_evidence() -> None:
 
     view = (await service.list())[0]
 
-    assert view.status is ProviderSupportStatus.UNKNOWN
+    assert view.status is ProviderSupportStatus.VERIFIED
     assert view.last_checked_at == NOW
     assert view.last_check_succeeded is True
     assert view.download_available is True
@@ -213,7 +215,7 @@ async def test_evidence_from_an_old_profile_version_is_ignored() -> None:
 
     view = (await service.list())[0]
 
-    assert view.status is ProviderSupportStatus.UNKNOWN
+    assert view.status is ProviderSupportStatus.VERIFIED
     assert view.last_checked_at is None
     assert view.last_check_succeeded is None
     assert view.download_available is False
@@ -366,6 +368,25 @@ async def test_two_transient_failures_degrade_without_leaking_details() -> None:
 
     assert view.status is ProviderSupportStatus.DEGRADED
     assert view.user_action == "平台当前不稳定，请稍后重试。"
+
+
+@pytest.mark.asyncio
+async def test_stale_failures_do_not_override_release_verification() -> None:
+    service = ProviderStatusService(
+        Reader(
+            (
+                result(27 * 60, error="inspection_timeout"),
+                result(28 * 60, error="extractor_regression"),
+            )
+        ),
+        (baseline(ProviderSupportStatus.VERIFIED),),
+        now=lambda: NOW,
+    )
+
+    view = (await service.list())[0]
+
+    assert view.status is ProviderSupportStatus.VERIFIED
+    assert view.download_available is False
 
 
 @pytest.mark.asyncio

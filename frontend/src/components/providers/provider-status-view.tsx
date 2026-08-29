@@ -56,7 +56,7 @@ export function ProviderStatusView() {
             {state.loading ? '刷新中…' : '刷新状态'}
           </Button>
         }
-        description="徽标优先说明平台是否已支持下载；右侧分别展示当前探针、公开样本下载、完整分析与受控会话要求。已支持不代表所有内容类型都可用，也不展示账号、Cookie、出口或探针地址。"
+        description="徽标说明当前版本是否支持下载；发布验收状态不会因长期未使用而失效，近期探针与真实任务只负责反映临时可用性。已支持不代表所有内容类型都可用，也不展示账号、Cookie、出口或探针地址。"
         title="平台状态"
         titleId="provider-status-title"
       />
@@ -164,11 +164,15 @@ function integrationDescription(provider: ProviderStatus): string {
 }
 
 function accessDescription(provider: ProviderStatus): string {
-  if (provider.access_modes.includes('operator_managed')) {
+  const anonymous = provider.access_modes.includes('anonymous');
+  const operatorManaged = provider.access_modes.includes('operator_managed');
+  if (operatorManaged && !anonymous) {
+    return '访问：仅使用已批准的自动化会话';
+  }
+  if (operatorManaged) {
     return '访问：匿名优先，必要时使用已批准的运维会话';
   }
-  if (provider.access_modes.includes('anonymous'))
-    return '访问：仅匿名公开内容';
+  if (anonymous) return '访问：仅匿名公开内容';
   return '访问：当前未开放';
 }
 

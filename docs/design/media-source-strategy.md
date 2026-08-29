@@ -138,11 +138,17 @@ media 诊断样本；单元测试要求它和 Registry 精确双向覆盖。诊�
 Provider、Profile、阶段、结果、稳定错误码和耗时，不输出 URL 或 Cookie。
 
 固定公开矩阵用于定位上游回归，不替代生产环境 Secret 配置的项目自有/授权
-canary，也不能单凭一次成功把平台恢复为 verified。状态仍要求 metadata、media、
-完整视频 Analysis 证据和恢复迟滞；没有当前 canary 行的静态 verified 基线显示为
-unknown。状态 API 分别公开最近真实媒体下载时间和最近完整 Analysis 验证时间，
-页面不会再把已有媒体证据误显示为“暂无验证”。Compose readiness 同时检查配置
-声明的每个 Runner，但平台 canary 失败只降级对应平台，不让整个 API 不可用。
+canary。Registry 的基线表示当前版本已经完成的发布验收，不会因为长期无人下载或
+没有配置固定探针而退回 unknown；只有近期重复失败、平台限流、认证失败或出口受限
+才临时覆盖该基线。尚未发布验收的 unknown Profile 仍必须同时具备 metadata、media、
+完整视频 Analysis 证据和显式批准，才能提升为 verified。
+
+所有成功并保留完整制品的真实远程下载都会自动投影为非敏感 media 运行证据；投影
+只读取 Provider/Profile/访问模式和完成时间，不解密、不返回来源 URL，也不记录用户
+身份。状态 API 因而能立即反映真实用户链路的最近下载时间，26 小时后仅把“当前可用”
+标记转为历史时间，不撤销已经发布的支持能力。完整 Analysis 仍使用严格 attestation，
+不能由普通下载推导。Compose readiness 同时检查配置声明的每个 Runner，但平台
+canary 失败只降级对应平台，不让整个 API 不可用。
 
 2026-08-29 的真实浏览器回归覆盖 22 个可启用 Provider：除小红书外均完成真实媒体
 下载和制品校验；QQ 视频保持明确禁用。小红书当前公开入口由平台返回 `300012`
