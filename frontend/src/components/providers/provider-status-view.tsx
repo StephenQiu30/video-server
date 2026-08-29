@@ -1,40 +1,46 @@
 'use client';
 
-import { ArrowClockwiseIcon } from '@phosphor-icons/react';
+import { ArrowClockwiseIcon, WarningCircleIcon } from '@phosphor-icons/react';
+import { useMemo, useState } from 'react';
 
 import { BackLink } from '@/components/layout/back-link';
 import { PageHeader } from '@/components/layout/page-header';
-import { Badge } from '@/components/ui/badge';
+import { PagePagination } from '@/components/layout/page-pagination';
+import { ProviderStatusItem } from '@/components/providers/provider-status-item';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Item, ItemGroup } from '@/components/ui/item';
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from '@/components/ui/empty';
+import { ItemGroup } from '@/components/ui/item';
 import { Spinner } from '@/components/ui/spinner';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useProviderStatuses } from '@/hooks/useProviderStatuses';
 import type { ProviderStatus } from '@/services/providers';
 
-const STATUS_LABELS: Record<API.ProviderSupportStatus, string> = {
-  unknown: '待验证',
-  verified: '已验证',
-  degraded: '服务降级',
-  access_required: '需要平台授权',
-  rate_limited: '平台限流',
-  blocked: '出口受限',
-  disabled: '已停用',
-  unsupported: '不支持',
-};
-
-const CAPABILITY_LABELS: Record<API.ProviderCapability, string> = {
-  single_video: '单视频',
-  short_video: '短视频',
-  clip_or_vod: '片段/VOD',
-  audio_video_split: '音视频分离',
-  subtitles: '字幕',
-  image_or_carousel: '图文/轮播',
-  live: '直播',
-  playlist: '播放列表',
-};
+type StatusFilter = 'all' | 'available' | 'attention';
+const STATUS_PAGE_SIZE = 8;
+const EMPTY_PROVIDERS: ProviderStatus[] = [];
 
 export function ProviderStatusView() {
   const state = useProviderStatuses();
+  const [filter, setFilter] = useState<StatusFilter>('all');
+  const [page, setPage] = useState(1);
+  const providers = state.data?.items ?? EMPTY_PROVIDERS;
+  const available = providers.filter((item) => item.download_available).length;
+  const filtered = useMemo(
+    () => providers.filter((item) => matchesFilter(item, filter)),
+    [filter, providers],
+  );
+  const pages = Math.max(1, Math.ceil(filtered.length / STATUS_PAGE_SIZE));
+  const currentPage = Math.min(page, pages);
+  const visibleProviders = filtered.slice(
+    (currentPage - 1) * STATUS_PAGE_SIZE,
+    currentPage * STATUS_PAGE_SIZE,
+  );
 
   return (
     <section aria-labelledby="provider-status-title">
@@ -56,205 +62,107 @@ export function ProviderStatusView() {
             {state.loading ? '刷新中…' : '刷新状态'}
           </Button>
         }
-        description="徽标说明当前版本是否支持下载；发布验收状态不会因长期未使用而失效，近期探针与真实任务只负责反映临时可用性。已支持不代表所有内容类型都可用，也不展示账号、Cookie、出口或探针地址。"
+        description="先查看当前下载支持；需要时再展开单个平台，核对探针与真实任务证据。"
         title="平台状态"
         titleId="provider-status-title"
       />
 
-      <div className="mt-10 sm:mt-12">
+      <div className="mt-10 space-y-6 sm:mt-12">
         {state.loading && !state.data ? (
-          <StatusMessage label="正在加载平台状态" loading />
+          <StatusMessage label="正在加载平台状态" />
         ) : null}
         {state.error ? (
-          <div className="py-14" role="alert">
-            <p className="font-medium text-destructive">{state.error}</p>
-            <Button className="mt-4" onClick={state.retry} variant="secondary">
-              重试
-            </Button>
-          </div>
+          <Alert variant="destructive">
+            <WarningCircleIcon aria-hidden />
+            <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+              {state.error}
+              <Button onClick={state.retry} size="sm" variant="outline">
+                <ArrowClockwiseIcon aria-hidden />
+                重试
+              </Button>
+            </AlertDescription>
+          </Alert>
         ) : null}
         {state.data ? (
-          <ItemGroup aria-label="平台能力状态" asChild className="gap-0">
-            <ul>
-              {state.data.items.map((provider) => (
-                <ProviderRow key={provider.key} provider={provider} />
-              ))}
-            </ul>
-          </ItemGroup>
+          <>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                共{' '}
+                <strong className="text-foreground">{providers.length}</strong>{' '}
+                个平台 · {available} 个当前可用 · {providers.length - available}{' '}
+                个需关注
+              </p>
+              <ToggleGroup
+                aria-label="筛选平台状态"
+                onValueChange={(value) => {
+                  if (value) {
+                    setFilter(value as StatusFilter);
+                    setPage(1);
+                  }
+                }}
+                type="single"
+                value={filter}
+              >
+                <ToggleGroupItem value="all">全部</ToggleGroupItem>
+                <ToggleGroupItem value="available">当前可用</ToggleGroupItem>
+                <ToggleGroupItem value="attention">需关注</ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+            {visibleProviders.length > 0 ? (
+              <div className="space-y-5">
+                <ItemGroup aria-label="平台能力状态" className="gap-0">
+                  {visibleProviders.map((provider) => (
+                    <ProviderStatusItem
+                      key={provider.key}
+                      provider={provider}
+                    />
+                  ))}
+                </ItemGroup>
+                <footer className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
+                  <span>
+                    显示 {visibleProviders.length} 项，共 {filtered.length} 项
+                  </span>
+                  <PagePagination
+                    ariaLabel="平台状态分页"
+                    className="w-auto justify-end"
+                    compact
+                    onPageChange={setPage}
+                    page={currentPage}
+                    pages={pages}
+                  />
+                </footer>
+              </div>
+            ) : (
+              <Empty className="min-h-48 items-start px-0 text-left">
+                <EmptyHeader className="items-start">
+                  <EmptyTitle>没有匹配的平台</EmptyTitle>
+                  <EmptyDescription className="text-left">
+                    切换状态筛选，查看其他平台。
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            )}
+          </>
         ) : null}
       </div>
     </section>
   );
 }
 
-function ProviderRow({ provider }: { provider: ProviderStatus }) {
-  return (
-    <Item
-      asChild
-      className="grid gap-4 rounded-none border-0 px-0 py-6 md:grid-cols-[minmax(10rem,0.8fr)_minmax(18rem,1.4fr)_minmax(12rem,1fr)] md:items-start"
-    >
-      <li>
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-medium">{provider.display_name}</h2>
-            <Badge variant={statusVariant(provider)}>
-              {statusLabel(provider)}
-            </Badge>
-          </div>
-          <p className="mt-1 font-mono text-xs text-muted-foreground">
-            {provider.key}
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {integrationDescription(provider)}
-          </p>
-        </div>
-        <div>
-          {provider.capabilities.length > 0 ? (
-            <p className="text-sm leading-6 text-muted-foreground">
-              {provider.capabilities
-                .map((capability) => CAPABILITY_LABELS[capability])
-                .join(' · ')}
-            </p>
-          ) : (
-            <span className="text-sm text-muted-foreground">
-              暂无已登记能力
-            </span>
-          )}
-        </div>
-        <div className="text-sm leading-6 text-muted-foreground">
-          <p>{latestCheckDescription(provider)}</p>
-          <p>{accessDescription(provider)}</p>
-          <p className="mt-1">{mediaVerificationDescription(provider)}</p>
-          <p>{analysisVerificationDescription(provider)}</p>
-          {provider.user_action ? (
-            <p className="mt-2">{provider.user_action}</p>
-          ) : null}
-        </div>
-      </li>
-    </Item>
-  );
+function matchesFilter(provider: ProviderStatus, filter: StatusFilter) {
+  if (filter === 'available') return provider.download_available;
+  if (filter === 'attention') return !provider.download_available;
+  return true;
 }
 
-function statusLabel(provider: ProviderStatus): string {
-  if (provider.download_supported) {
-    if (provider.download_available) return '已支持下载';
-    if (provider.status === 'access_required') return '已接入 · 当前不可用';
-    if (provider.status === 'degraded') return '支持下载 · 当前降级';
-    if (provider.status === 'rate_limited') return '支持下载 · 当前限流';
-    if (provider.status === 'blocked') return '支持下载 · 当前受限';
-    if (provider.status === 'unknown') return '支持下载 · 待复验';
-    return '已支持下载';
-  }
-  if (
-    provider.status === 'unknown' &&
-    provider.registered &&
-    provider.extractor_exists
-  ) {
-    return '已接入，待验证';
-  }
-  return STATUS_LABELS[provider.status];
-}
-
-function integrationDescription(provider: ProviderStatus): string {
-  if (!provider.registered) return '接入：未登记';
-  if (!provider.extractor_exists) return '接入：已登记，暂无解析器';
-  if (provider.status === 'disabled') {
-    return '接入：仅识别链接，未开放安全下载通道';
-  }
-  return provider.download_supported
-    ? '接入：下载解析器已部署'
-    : '接入：解析器已部署';
-}
-
-function accessDescription(provider: ProviderStatus): string {
-  const anonymous = provider.access_modes.includes('anonymous');
-  const operatorManaged = provider.access_modes.includes('operator_managed');
-  if (operatorManaged && !anonymous) {
-    return '访问：服务端受控线路已配置';
-  }
-  if (operatorManaged) {
-    return '访问：匿名公开内容 + 服务端受控线路';
-  }
-  if (anonymous) return '访问：仅匿名公开内容';
-  return '访问：当前未开放';
-}
-
-function latestCheckDescription(provider: ProviderStatus): string {
-  if (!provider.last_checked_at || provider.last_check_succeeded === null) {
-    return '最近状态检查：暂无当前版本记录';
-  }
-  const outcome = provider.last_check_succeeded ? '通过' : '未通过';
-  return `最近状态检查：${formatCheckDate(
-    provider.last_checked_at,
-  )} · ${outcome}`;
-}
-
-function mediaVerificationDescription(provider: ProviderStatus): string {
-  if (!provider.last_media_verified_at) return '最近真实下载：暂无当前版本证据';
-  if (provider.download_available) {
-    const sample = provider.access_modes.includes('anonymous')
-      ? '公开样本'
-      : provider.access_modes.includes('operator_managed')
-        ? '受控线路样本'
-        : '样本';
-    return `当前${sample}下载：可用 · ${formatVerificationDate(
-      provider.last_media_verified_at,
-    )}`;
-  }
-  return `最近真实下载：${formatVerificationDate(
-    provider.last_media_verified_at,
-  )}`;
-}
-
-function analysisVerificationDescription(provider: ProviderStatus): string {
-  if (!provider.last_verified_at) return '最近完整分析：暂无当前版本证据';
-  return `最近完整分析：${formatVerificationDate(provider.last_verified_at)}`;
-}
-
-function formatVerificationDate(value: string): string {
-  return new Intl.DateTimeFormat('zh-CN', {
-    dateStyle: 'medium',
-  }).format(new Date(value));
-}
-
-function formatCheckDate(value: string): string {
-  return new Intl.DateTimeFormat('zh-CN', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value));
-}
-
-function statusVariant(
-  provider: ProviderStatus,
-): 'destructive' | 'neutral' | 'success' | 'warning' {
-  if (provider.download_available) return 'success';
-  const status = provider.status;
-  if (status === 'verified') return 'success';
-  if (status === 'unsupported' || status === 'blocked') return 'destructive';
-  if (
-    status === 'access_required' ||
-    status === 'degraded' ||
-    status === 'rate_limited'
-  ) {
-    return 'warning';
-  }
-  return 'neutral';
-}
-
-function StatusMessage({
-  label,
-  loading = false,
-}: {
-  label: string;
-  loading?: boolean;
-}) {
+function StatusMessage({ label }: { label: string }) {
   return (
     <div
       aria-label={label}
       className="flex min-h-40 items-center gap-2 text-sm text-muted-foreground"
       role="status"
     >
-      {loading ? <Spinner aria-hidden className="size-5" /> : null}
+      <Spinner aria-hidden className="size-5" />
       <span>{label}</span>
     </div>
   );

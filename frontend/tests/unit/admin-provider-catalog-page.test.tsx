@@ -142,6 +142,45 @@ describe('administrator provider catalog management', () => {
       screen.getByRole('heading', { name: '平台目录' }).closest('section'),
     ).toHaveAttribute('aria-busy', 'true');
   });
+
+  it('filters and paginates a large catalog with official controls', () => {
+    const items = Array.from({ length: 12 }, (_, index) =>
+      custom({
+        display_name: `平台 ${index + 1}`,
+        key: `provider_${index + 1}`,
+        sort_order: index + 1,
+      }),
+    );
+    const actions = {
+      onCreate: vi.fn(),
+      onDelete: vi.fn(),
+      onEdit: vi.fn(),
+      onRetry: vi.fn(),
+    };
+    render(
+      <ProviderCatalogScreen
+        {...actions}
+        notice=""
+        result={{ error: '', items, loading: false }}
+      />,
+    );
+
+    expect(
+      screen.getByRole('navigation', { name: '平台目录分页' }),
+    ).toHaveTextContent('1 / 2');
+    fireEvent.click(screen.getByRole('button', { name: '下一页' }));
+    expect(
+      screen.getByRole('navigation', { name: '平台目录分页' }),
+    ).toHaveTextContent('2 / 2');
+    expect(screen.getAllByText('平台 12')).toHaveLength(2);
+
+    fireEvent.change(screen.getByLabelText('搜索平台'), {
+      target: { value: 'provider_3' },
+    });
+    expect(screen.getAllByText('平台 3')).toHaveLength(2);
+    expect(screen.queryByText('平台 12')).not.toBeInTheDocument();
+    expect(screen.getByText('显示 1 项，共 1 项')).toBeInTheDocument();
+  });
 });
 
 function youtube(): API.ProviderCatalogEntryResponse {

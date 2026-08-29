@@ -55,7 +55,11 @@ describe('administrator storage management', () => {
     });
     render(<AdminStorageView />);
 
-    expect(await screen.findByText('视频 1')).toBeInTheDocument();
+    expect(await screen.findByText('视频 1')).toHaveClass(
+      'w-full',
+      'min-w-0',
+      'truncate',
+    );
     expect(runtime.listStoredFiles).toHaveBeenLastCalledWith({
       page: 1,
       page_size: 20,

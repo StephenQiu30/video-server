@@ -4,9 +4,11 @@ import {
   Plus,
   WarningCircle,
 } from '@phosphor-icons/react';
+import { useMemo, useState } from 'react';
 
 import { BackLink } from '@/components/layout/back-link';
 import { PageHeader } from '@/components/layout/page-header';
+import { PagePagination } from '@/components/layout/page-pagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,7 +20,13 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 
 import type { CatalogResultState } from './model';
+import {
+  type CatalogVisibility,
+  ProviderCatalogFilters,
+} from './provider-catalog-filters';
 import { ProviderCatalogList } from './provider-catalog-list';
+
+const CATALOG_PAGE_SIZE = 10;
 
 type ProviderCatalogScreenProps = {
   result: CatalogResultState;
@@ -37,6 +45,20 @@ export function ProviderCatalogScreen({
   onEdit,
   onRetry,
 }: ProviderCatalogScreenProps) {
+  const [query, setQuery] = useState('');
+  const [visibility, setVisibility] = useState<CatalogVisibility>('all');
+  const [page, setPage] = useState(1);
+  const filtered = useMemo(
+    () => filterCatalog(result.items, query, visibility),
+    [query, result.items, visibility],
+  );
+  const pages = Math.max(1, Math.ceil(filtered.length / CATALOG_PAGE_SIZE));
+  const currentPage = Math.min(page, pages);
+  const visibleItems = filtered.slice(
+    (currentPage - 1) * CATALOG_PAGE_SIZE,
+    currentPage * CATALOG_PAGE_SIZE,
+  );
+
   return (
     <section aria-busy={result.loading} className="space-y-10">
       <div>
@@ -67,9 +89,7 @@ export function ProviderCatalogScreen({
           <AlertDescription>{notice}</AlertDescription>
         </Alert>
       ) : null}
-      {result.loading && result.items.length === 0 ? (
-        <CatalogSkeleton />
-      ) : result.error ? (
+      {result.error ? (
         <Alert variant="destructive">
           <WarningCircle aria-hidden />
           <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
@@ -80,6 +100,9 @@ export function ProviderCatalogScreen({
             </Button>
           </AlertDescription>
         </Alert>
+      ) : null}
+      {result.loading && result.items.length === 0 ? (
+        <CatalogSkeleton />
       ) : result.items.length === 0 ? (
         <Empty className="hairline min-h-64 items-start rounded-none border-y py-14 text-left">
           <EmptyHeader className="items-start">
@@ -89,15 +112,71 @@ export function ProviderCatalogScreen({
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
-      ) : (
-        <ProviderCatalogList
-          items={result.items}
-          onDelete={onDelete}
-          onEdit={onEdit}
-        />
-      )}
+      ) : result.items.length > 0 ? (
+        <div className="space-y-6">
+          <ProviderCatalogFilters
+            onQueryChange={(value) => {
+              setQuery(value);
+              setPage(1);
+            }}
+            onVisibilityChange={(value) => {
+              setVisibility(value);
+              setPage(1);
+            }}
+            query={query}
+            visibility={visibility}
+          />
+          {visibleItems.length > 0 ? (
+            <ProviderCatalogList
+              items={visibleItems}
+              onDelete={onDelete}
+              onEdit={onEdit}
+            />
+          ) : (
+            <Empty className="min-h-48 items-start rounded-none px-0 text-left">
+              <EmptyHeader className="items-start">
+                <EmptyTitle>没有匹配的平台</EmptyTitle>
+                <EmptyDescription className="text-left">
+                  调整搜索词或公开状态后重试。
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          )}
+          <footer className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
+            <span>
+              显示 {visibleItems.length} 项，共 {filtered.length} 项
+            </span>
+            <PagePagination
+              ariaLabel="平台目录分页"
+              className="w-auto justify-end"
+              compact
+              onPageChange={setPage}
+              page={currentPage}
+              pages={pages}
+            />
+          </footer>
+        </div>
+      ) : null}
     </section>
   );
+}
+
+function filterCatalog(
+  items: API.ProviderCatalogEntryResponse[],
+  query: string,
+  visibility: CatalogVisibility,
+) {
+  const normalized = query.trim().toLocaleLowerCase();
+  return items.filter((item) => {
+    const matchesQuery =
+      !normalized ||
+      item.display_name.toLocaleLowerCase().includes(normalized) ||
+      item.key.toLocaleLowerCase().includes(normalized);
+    const matchesVisibility =
+      visibility === 'all' ||
+      (visibility === 'visible' ? item.is_visible : !item.is_visible);
+    return matchesQuery && matchesVisibility;
+  });
 }
 
 function CatalogSkeleton() {

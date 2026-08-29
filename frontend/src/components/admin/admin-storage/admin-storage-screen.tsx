@@ -5,6 +5,12 @@ import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { STORAGE_PAGE_SIZE } from './model';
@@ -91,9 +97,14 @@ export function AdminStorageScreen({
           </AlertDescription>
         </Alert>
       ) : items.length === 0 ? (
-        <div className="border-y py-14 text-center text-sm text-muted-foreground">
-          暂无可管理的持久文件。
-        </div>
+        <Empty className="hairline min-h-64 items-start rounded-none border-y py-14 text-left">
+          <EmptyHeader className="items-start">
+            <EmptyTitle>暂无持久文件</EmptyTitle>
+            <EmptyDescription className="text-left">
+              完成下载、剧本解析或报告生成后，文件会显示在这里。
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <StorageFileList items={items} />
       )}

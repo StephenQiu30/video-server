@@ -15,7 +15,7 @@ type StoredFileCategory = Literal["video", "screenplay", "analysis_report"]
 class StoredFileResponse(StrictModel):
     id: UUID
     category: StoredFileCategory
-    name: str = Field(min_length=1, max_length=128)
+    name: str = Field(min_length=1, max_length=512)
     object_count: int = Field(ge=1)
     size_bytes: int = Field(gt=0)
     created_at: datetime

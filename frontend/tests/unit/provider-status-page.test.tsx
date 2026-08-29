@@ -34,7 +34,7 @@ describe('provider status page', () => {
     expect(list).not.toHaveClass('border-y', 'hairline');
     const youtube = within(list)
       .getByRole('heading', { name: 'YouTube' })
-      .closest('li');
+      .closest('[role="listitem"]');
     expect(youtube).not.toBeNull();
     expect(youtube).not.toHaveClass('border-b', 'hairline');
     expect(youtube).toHaveTextContent('已接入 · 当前不可用');
@@ -42,46 +42,72 @@ describe('provider status page', () => {
       '单视频 · 音视频分离',
     );
     expect(capabilities).not.toHaveAttribute('data-slot', 'badge');
+    expect(youtube).not.toHaveTextContent('状态检查：暂无当前版本记录');
+    fireEvent.click(
+      within(youtube as HTMLElement).getByRole('button', {
+        name: '验证详情',
+      }),
+    );
     expect(youtube).toHaveTextContent('仅匿名公开内容');
-    expect(youtube).toHaveTextContent('最近状态检查：暂无当前版本记录');
-    expect(youtube).toHaveTextContent('最近真实下载：暂无当前版本证据');
-    expect(youtube).toHaveTextContent('最近完整分析：暂无当前版本证据');
+    expect(youtube).toHaveTextContent('状态检查：暂无当前版本记录');
+    expect(youtube).toHaveTextContent('真实下载：暂无当前版本证据');
+    expect(youtube).toHaveTextContent('完整分析：暂无当前版本证据');
     expect(youtube).not.toHaveTextContent('Cookie 版本');
 
     const tiktok = within(list)
       .getByRole('heading', { name: 'TikTok' })
-      .closest('li');
+      .closest('[role="listitem"]');
     expect(tiktok).not.toBeNull();
     expect(tiktok).toHaveTextContent('已支持下载');
+    fireEvent.click(
+      within(tiktok as HTMLElement).getByRole('button', {
+        name: '验证详情',
+      }),
+    );
     expect(tiktok).toHaveTextContent('仅匿名公开内容');
-    expect(tiktok).toHaveTextContent('当前公开样本下载：可用 · 2026年8月29日');
+    expect(tiktok).toHaveTextContent('公开样本下载：可用 · 2026年8月29日');
 
     const bilibili = within(list)
       .getByRole('heading', { name: '哔哩哔哩' })
-      .closest('li');
+      .closest('[role="listitem"]');
     expect(bilibili).not.toBeNull();
     expect(bilibili).toHaveTextContent('已支持下载');
+    fireEvent.click(
+      within(bilibili as HTMLElement).getByRole('button', {
+        name: '验证详情',
+      }),
+    );
     expect(bilibili).toHaveTextContent('仅匿名公开内容');
-    expect(bilibili).toHaveTextContent('最近状态检查：2026年8月11日');
+    expect(bilibili).toHaveTextContent('状态检查：2026年8月11日');
     expect(bilibili).toHaveTextContent('· 通过');
-    expect(bilibili).toHaveTextContent('当前公开样本下载：可用 · 2026年8月9日');
+    expect(bilibili).toHaveTextContent('公开样本下载：可用 · 2026年8月9日');
     expect(bilibili).toHaveTextContent('2026年8月10日');
 
     const hongguo = within(list)
       .getByRole('heading', { name: '红果短剧官方分享' })
-      .closest('li');
+      .closest('[role="listitem"]');
     expect(hongguo).not.toBeNull();
     expect(hongguo).toHaveTextContent('已支持下载');
     expect(hongguo).toHaveTextContent('下载解析器已部署');
+    fireEvent.click(
+      within(hongguo as HTMLElement).getByRole('button', {
+        name: '验证详情',
+      }),
+    );
     expect(hongguo).toHaveTextContent('官方分享链接当前单集');
 
     const qqvideo = within(list)
       .getByRole('heading', { name: '腾讯视频' })
-      .closest('li');
+      .closest('[role="listitem"]');
     expect(qqvideo).not.toBeNull();
     expect(qqvideo).toHaveTextContent('已停用');
-    expect(qqvideo).toHaveTextContent('访问：当前未开放');
-    expect(qqvideo).toHaveTextContent('仅识别链接，未开放安全下载通道');
+    expect(qqvideo).toHaveTextContent('仅识别链接，未开放下载');
+    fireEvent.click(
+      within(qqvideo as HTMLElement).getByRole('button', {
+        name: '验证详情',
+      }),
+    );
+    expect(qqvideo).toHaveTextContent('当前未开放');
     expect(qqvideo).toHaveTextContent('支持识别腾讯视频单视频链接');
     expect(qqvideo).toHaveTextContent('VIP、付费及 DRM 内容不提供下载');
     expect(qqvideo).not.toHaveTextContent('运维');
@@ -137,10 +163,53 @@ describe('provider status page', () => {
 
     const provider = (
       await screen.findByRole('heading', { name: '受控线路示例' })
-    ).closest('li');
+    ).closest('[role="listitem"]');
     expect(provider).not.toBeNull();
-    expect(provider).toHaveTextContent('当前受控线路样本下载：可用');
-    expect(provider).not.toHaveTextContent('当前公开样本下载');
+    fireEvent.click(
+      within(provider as HTMLElement).getByRole('button', {
+        name: '验证详情',
+      }),
+    );
+    expect(provider).toHaveTextContent('受控线路样本下载：可用');
+    expect(provider).not.toHaveTextContent('公开样本下载');
+  });
+
+  it('filters the status list without duplicating diagnostic details', async () => {
+    runtime.listProviders.mockResolvedValue(statuses());
+    render(<ProviderStatusView />);
+
+    await screen.findByRole('heading', { name: 'YouTube' });
+    fireEvent.click(screen.getByRole('radio', { name: '当前可用' }));
+
+    expect(
+      screen.queryByRole('heading', { name: 'YouTube' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'TikTok' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: '哔哩哔哩' }),
+    ).toBeInTheDocument();
+  });
+
+  it('paginates long status lists instead of rendering every diagnostic row', async () => {
+    const template = statuses().items[1];
+    runtime.listProviders.mockResolvedValue({
+      items: Array.from({ length: 9 }, (_, index) => ({
+        ...template,
+        display_name: `平台 ${index + 1}`,
+        key: `provider_${index + 1}`,
+      })),
+    });
+    render(<ProviderStatusView />);
+
+    await screen.findByRole('heading', { name: '平台 1' });
+    expect(
+      screen.queryByRole('heading', { name: '平台 9' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '下一页' }));
+    expect(screen.getByRole('heading', { name: '平台 9' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('navigation', { name: '平台状态分页' }),
+    ).toHaveTextContent('2 / 2');
   });
 });
 

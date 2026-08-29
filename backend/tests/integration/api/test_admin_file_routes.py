@@ -14,6 +14,7 @@ from app.main import create_app
 from fastapi.testclient import TestClient
 
 NOW = datetime(2026, 8, 18, 12, tzinfo=UTC)
+LONG_FILE_NAME = "超长视频标题" * 30
 ADMIN = CurrentUser(
     id=UUID("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"),
     username="admin_user",
@@ -44,7 +45,7 @@ class StorageFilesStub:
                 StoredFileView(
                     id=UUID("11111111-1111-4111-8111-111111111111"),
                     category="video",
-                    name="示例视频",
+                    name=LONG_FILE_NAME,
                     object_count=1,
                     size_bytes=1024,
                     created_at=NOW,
@@ -79,7 +80,7 @@ def test_admin_files_are_paginated_and_cleanup_defaults_to_thirty_days(
 
     assert listing.status_code == 200
     assert listing.json()["total"] == 21
-    assert listing.json()["items"][0]["name"] == "示例视频"
+    assert listing.json()["items"][0]["name"] == LONG_FILE_NAME
     assert "object_key" not in listing.text
     assert stub.list_calls == [(2, 10)]
     assert cleanup.status_code == 200

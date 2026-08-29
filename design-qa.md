@@ -78,6 +78,21 @@
 
 final result: passed
 
+## 2026-08-30 全路由无边框与信息密度回归
+
+- source visual truth：用户提供的无边框管理员页面截图 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-1ebe3672-f6ed-4dbe-8da7-0bfdd399c757.png`，以及整改前同环境的 `/providers`、`/admin/providers` 与 `/admin/files` 截图。视觉判断继续服从根 `design.md` 和 `docs/design/frontend-visual-system.md`：无 Card 外壳、内容与留白分层、Radix/shadcn 官方组件、默认语义色和低信息密度。
+- implementation evidence：同状态对照输入 `/Users/stephenqiu/.codex/visualizations/2026/08/30/all-pages-borderless-audit/comparison-before-after.png` 将平台状态和平台目录的整改前/最终 1920×971 截图并排放置。最终证据包含 `screenshots/52-final-providers-desktop.png`、`screenshots/43-after-admin-providers-desktop.png`、`screenshots/45-after-admin-files-desktop.png`、`46-after-admin-files-mobile.png`、`48-dark-home-mobile.png`、`49-dark-admin-files-mobile.png`、`50-dark-providers-desktop.png` 和 `51-dark-analytics-desktop.png`。
+- route audit：`agent-browser` 覆盖首页、历史、剧本文档、平台状态、账户、文件管理、AI 服务、下载分析、平台目录、用户管理、两个缺失 ID 详情态、404、登录和注册共 15 个页面。1440×900 与 390×844 的全部页面均满足 `scrollWidth = viewport width`，浏览器页面错误为空。
+- platform status：24 个平台由同权重长诊断列表改为“总数 / 当前可用 / 需关注”摘要、Radix Toggle Group 筛选、每页 8 项 Pagination 和默认收起的 Collapsible 验证详情；390px 页面高度由 7567px 降至 1815px。状态 Badge 继续使用项目默认语义 token，普通能力只使用辅助文字。
+- provider catalog：使用 Field + InputGroup 搜索、Radix Select 公开状态筛选和每页 10 项 Pagination；桌面页面高度由 2580px 降至 1511px，390px 由 3812px 降至 2130px，保留 Table/Item 的无边框精确管理语义。
+- persistent files：标准 Compose 下的列表错误根因为旧长标题超过响应模型 128 字符上限；上限与当前数据事实同步为 512 并补充集成测试。前端列表改用 ItemGroup/Item/Empty/Pagination，移除资产类型 Badge 与图标底座；超长标题在移动端截断但保留完整 `title`，修复前 `scrollWidth = 1441`，最终为 `390`。
+- states and interaction：390px 移动 Sheet、桌面用户编辑 Dialog、平台诊断 Collapsible、目录搜索、Radix Select、分页、空态和错误态均完成真实交互检查。移动登录页重新捕获后与注册页均显示相同品牌入口，初始差异确认为截屏时序误报。
+- themes and accessibility：浅色与深色覆盖首页、平台状态、下载分析和文件管理。axe WCAG 2 A/AA 在平台状态、文件管理、平台目录、下载分析和用户管理均为 0 violations；共享 Toggle Group 移除未选项低透明度后，浅色与深色均保持默认中性色和 AA 对比度。
+- engineering gates：前端 `format:check`、lint/typecheck、47 个测试文件/184 项测试、Next.js production build 与 16 个静态页面、OpenAPI 漂移检查全部通过；后端 Ruff、Mypy 与 1228 项测试全部通过。完整 `docker compose up -d --build` 成功，前端、API、Media Runner 与出口代理健康，`/health/ready` 返回 200。Biome 只保留仓库既有 `.agents/skills` 断开符号链接 warning。
+- findings：审查中的 2 个 High、1 个 Medium 已解决，1 个 Low 关闭为不可复现；没有剩余 P0/P1/P2 视觉或功能差异。完整记录位于 `/Users/stephenqiu/.codex/visualizations/2026/08/30/all-pages-borderless-audit/report.md`。
+
+final result: passed
+
 ## 2026-08-29 下载详情页无边框信息层级重构
 
 - source visual truth：用户来源截图 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-8c82fd38-7762-40f2-b104-e0cfc4b0fcb8.png`（3840×1942，Chrome 2× 截图）与根目录 `design.md`。来源状态是已完成任务，首屏包含播放器、右侧状态/元数据/取件操作和下方 AI 分析入口。
