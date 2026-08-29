@@ -139,8 +139,8 @@ npm run build
 
 - 根 `README.md` 说明仓库入口和运行方式；`backend/README.md`、`frontend/README.md` 说明模块用法；详细事实放在 `docs/`，不要在多个文件复制大段内容。
 - 功能资料按 `Design → PRD → Plan → Acceptance` 维护。架构、目录、命令、配置或验收状态变化时，同步更新对应文档。
-- 未归档文档分别直接维护在 `docs/design/`、`docs/prd/`、`docs/plans/`、`docs/acceptance/`；完成真实验收后，完整四件套必须按类型同时迁入各自的 `archive/` 子目录，即 `docs/design/archive/`、`docs/prd/archive/`、`docs/plans/archive/`、`docs/acceptance/archive/`。
-- 禁止使用集中式 `docs/archive/`、按编号建立归档目录或只归档四件套中的部分文档。归档时必须在同一变更中同步 `docs/README.md`、状态码和仓库内全部引用。
+- 未完成文档分别直接维护在 `docs/design/`、`docs/prd/`、`docs/plans/`、`docs/acceptance/`。完成真实验收后先判断是否仍包含需要在仓库中持续维护的决策或验收事实：纯实施过程且当前事实已合并到长期文档的，直接删除完整四件套并通过 Git 历史追溯；仍有长期查阅价值的，才按类型同时迁入 `docs/design/archive/`、`docs/prd/archive/`、`docs/plans/archive/`、`docs/acceptance/archive/`。
+- 禁止使用集中式 `docs/archive/`、按编号建立归档目录、只处理四件套中的部分文档，或为纯过程文件建立归档。删除或归档时必须在同一变更中同步 `docs/README.md`、状态码和仓库内全部引用。
 - 文档只描述当前真实实现；历史方案通过 Git 追溯，不保留已废弃内容作为“兼容说明”。
 
 ## Git 与任务交付
