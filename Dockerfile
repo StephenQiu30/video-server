@@ -60,6 +60,7 @@ COPY --link --from=backend-builder --chown=10001:10001 /app/backend /app/backend
 COPY --link --from=frontend-builder --chown=10001:10001 /workspace/frontend/.next/standalone /app/frontend/.next/standalone
 COPY --link --from=frontend-builder --chown=10001:10001 /workspace/frontend/.next/static /app/frontend/.next/standalone/.next/static
 COPY --link --from=frontend-builder --chown=10001:10001 /workspace/frontend/public /app/frontend/.next/standalone/public
+COPY --link --from=frontend-builder --chown=10001:10001 /workspace/frontend/THIRD-PARTY-NOTICES.md /app/frontend/THIRD-PARTY-NOTICES.md
 COPY --link --from=node-runtime /usr/local/bin/node /usr/local/bin/node
 
 USER appuser

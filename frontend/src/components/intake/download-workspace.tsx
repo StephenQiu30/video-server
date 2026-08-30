@@ -15,6 +15,7 @@ import {
 import InspectionWorkspace from '@/components/intake/inspection-workspace';
 import { LinkDownloadForm } from '@/components/intake/link-download-form';
 import { MediaUploadForm } from '@/components/intake/media-upload-form';
+import { MotionReveal } from '@/components/intake/motion-reveal';
 import { SourceDiscoveryWorkspace } from '@/components/intake/source-discovery-workspace';
 import { markNavigationPush } from '@/components/layout/navigation-history';
 import { ScreenplayUploadForm } from '@/components/screenplay/screenplay-upload-form';
@@ -214,6 +215,20 @@ export default function DownloadWorkspace() {
           />
         }
       />
+      <div
+        aria-atomic="true"
+        aria-live="polite"
+        className="sr-only"
+        role="status"
+      >
+        {mode === 'link'
+          ? inspection
+            ? '媒体解析完成，结果已显示。'
+            : discovery
+              ? `来源发现完成，找到 ${discovery.items.length} 个候选视频。`
+              : null
+          : null}
+      </div>
       {(
         mode === 'link'
           ? error
@@ -235,24 +250,28 @@ export default function DownloadWorkspace() {
         </Alert>
       ) : null}
       {mode === 'link' && discovery ? (
-        <SourceDiscoveryWorkspace
-          busyItemRef={busyItemRef}
-          discovery={discovery}
-          onSelect={(item) => void selectDiscoveredItem(item)}
-        />
+        <MotionReveal key={`discovery:${discovery.id}`}>
+          <SourceDiscoveryWorkspace
+            busyItemRef={busyItemRef}
+            discovery={discovery}
+            onSelect={(item) => void selectDiscoveredItem(item)}
+          />
+        </MotionReveal>
       ) : null}
       {mode === 'link' && inspection ? (
-        <InspectionWorkspace
-          busy={busy === 'create'}
-          inspection={inspection}
-          onChange={setSelectedId}
-          onCreate={() => void create()}
-          onUseUpload={() => {
-            setMediaDeclaredOrigin('wechat_channels');
-            setMode('video');
-          }}
-          selectedId={selectedId}
-        />
+        <MotionReveal key={`inspection:${inspection.id}`}>
+          <InspectionWorkspace
+            busy={busy === 'create'}
+            inspection={inspection}
+            onChange={setSelectedId}
+            onCreate={() => void create()}
+            onUseUpload={() => {
+              setMediaDeclaredOrigin('wechat_channels');
+              setMode('video');
+            }}
+            selectedId={selectedId}
+          />
+        </MotionReveal>
       ) : null}
     </div>
   );

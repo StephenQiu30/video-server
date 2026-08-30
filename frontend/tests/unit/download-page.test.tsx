@@ -251,12 +251,15 @@ describe('DownloadWorkspace', () => {
     expect(
       screen.queryByRole('button', { name: '创建下载任务' }),
     ).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      '媒体解析完成，结果已显示。',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: '上传自有 MP4' }));
-    expect(screen.getByRole('tab', { name: '本地视频' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
+    const videoTab = screen.getByRole('tab', { name: '本地视频' });
+    expect(videoTab).toHaveAttribute('aria-selected', 'true');
+    expect(videoTab).toHaveFocus();
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
 
   it('discovers article embeds and requires an explicit item selection', async () => {

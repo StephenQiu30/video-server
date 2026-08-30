@@ -1,9 +1,15 @@
 'use client';
 
+import { useGSAP } from '@gsap/react';
 import { FileText, FileVideo, LinkSimple } from '@phosphor-icons/react';
-import type { ReactNode } from 'react';
+import gsap from 'gsap';
+import { type ReactNode, useRef } from 'react';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+gsap.registerPlugin(useGSAP);
+
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 export type IntakeMode = 'link' | 'video' | 'screenplay';
 
@@ -22,8 +28,59 @@ export function ContentIntakeHero({
   screenplayForm: ReactNode;
   videoForm: ReactNode;
 }) {
+  const rootRef = useRef<HTMLElement>(null);
+  const previousModeRef = useRef(mode);
+
+  useGSAP(
+    () => {
+      const previousMode = previousModeRef.current;
+      previousModeRef.current = mode;
+      if (previousMode === mode) return;
+
+      rootRef.current
+        ?.querySelector<HTMLElement>(
+          '[data-slot="tabs-trigger"][data-state="active"]',
+        )
+        ?.focus();
+
+      const activePanel = rootRef.current?.querySelector<HTMLElement>(
+        '[data-slot="tabs-content"][data-state="active"]',
+      );
+      if (!activePanel) return;
+
+      const reducedMotion = window.matchMedia(REDUCED_MOTION_QUERY);
+      if (reducedMotion.matches) return;
+
+      const tween = gsap.fromTo(
+        activePanel,
+        { opacity: 0, y: 6, willChange: 'transform, opacity' },
+        {
+          clearProps: 'transform,opacity,willChange',
+          duration: 0.16,
+          ease: 'power2.out',
+          opacity: 1,
+          y: 0,
+        },
+      );
+      const finishImmediately = (event: MediaQueryListEvent) => {
+        if (!event.matches) return;
+        tween.kill();
+        gsap.set(activePanel, {
+          clearProps: 'transform,opacity,willChange',
+        });
+      };
+      reducedMotion.addEventListener('change', finishImmediately);
+
+      return () => {
+        reducedMotion.removeEventListener('change', finishImmediately);
+        tween.kill();
+      };
+    },
+    { dependencies: [mode], revertOnUpdate: true, scope: rootRef },
+  );
+
   return (
-    <section className="pt-10 sm:pt-12 lg:pt-14">
+    <section className="pt-10 sm:pt-12 lg:pt-14" ref={rootRef}>
       <h1 className="editorial-title sm:whitespace-nowrap">
         把素材，
         <span className="block sm:ml-[0.85em] sm:inline">带回本地。</span>
