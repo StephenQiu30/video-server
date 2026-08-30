@@ -80,7 +80,7 @@ async def test_local_codex_runtime_is_selected_from_the_database_profile(
 
     monkeypatch.setattr(profile_runtime, "preflight", successful_preflight)
     resolver = ConfiguredAnalyzerResolver(
-        Settings(app_env="test", _env_file=None),
+        Settings(app_env="test", analysis_enabled=True, _env_file=None),
         Repository(),  # type: ignore[arg-type]
         object(),  # type: ignore[arg-type]
     )
@@ -139,7 +139,7 @@ async def test_active_api_provider_is_injected_only_into_selected_cli_adapter(
 
     monkeypatch.setattr(profile_runtime, "preflight", successful_preflight)
     resolver = ConfiguredAnalyzerResolver(
-        Settings(app_env="test"),
+        Settings(app_env="test", analysis_enabled=True, _env_file=None),
         Repository(),  # type: ignore[arg-type]
         Cipher(),  # type: ignore[arg-type]
     )
@@ -204,7 +204,7 @@ async def test_updated_active_profile_rebuilds_adapter_for_next_task(
     repository = Repository()
     monkeypatch.setattr(profile_runtime, "preflight", successful_preflight)
     resolver = ConfiguredAnalyzerResolver(
-        Settings(app_env="test"),
+        Settings(app_env="test", analysis_enabled=True, _env_file=None),
         repository,  # type: ignore[arg-type]
         Cipher(),  # type: ignore[arg-type]
     )
@@ -269,7 +269,7 @@ async def test_deepseek_profile_uses_web_secret_and_media_tools_without_cli_logi
         ),
     )
     resolver = ConfiguredAnalyzerResolver(
-        Settings(app_env="test"),
+        Settings(app_env="test", analysis_enabled=True, _env_file=None),
         Repository(),  # type: ignore[arg-type]
         Cipher(),  # type: ignore[arg-type]
     )

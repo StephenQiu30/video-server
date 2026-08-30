@@ -27,12 +27,15 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     useState<TaskSocketStatus>('disconnected');
   const retryRequest = useRef<{ jobId: string; key: string } | null>(null);
   const versionRef = useRef(0);
-  versionRef.current = job?.version ?? 0;
-  const jobStatus = job?.status ?? null;
+  const visibleJob = job?.id === jobId ? job : null;
+  const changingJob = job !== null && visibleJob === null;
+  versionRef.current = visibleJob?.version ?? 0;
+  const jobStatus = visibleJob?.status ?? null;
 
   useEffect(() => {
     void cycle;
     let disposed = false;
+    setJob(null);
     setLoading(true);
     setError(null);
     setErrorKind(null);
@@ -167,8 +170,8 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     download,
     error,
     errorKind,
-    job,
-    loading,
+    job: visibleJob,
+    loading: loading || changingJob,
     refresh,
     retry,
     socketStatus,

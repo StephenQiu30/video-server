@@ -286,6 +286,11 @@ _IMPORT_ERRORS: dict[ImportApplicationErrorCode, tuple[int, str, str]] = {
 }
 
 _AUTH_ERRORS: dict[AuthErrorCode, tuple[int, str, str]] = {
+    AuthErrorCode.ADMIN_BOOTSTRAP_REQUIRED: (
+        403,
+        "Administrator bootstrap required",
+        "This reserved administrator account requires bootstrap authorization.",
+    ),
     AuthErrorCode.EMAIL_ALREADY_REGISTERED: (
         409,
         "Email already registered",

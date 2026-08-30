@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   cancelScreenplayDocumentImport,
@@ -25,6 +25,15 @@ export function useDocumentImport(onComplete: (documentId: string) => void) {
   const [fileInvalid, setFileInvalid] = useState(false);
   const activeRef = useRef<ActiveRun | null>(null);
   const keyRef = useRef<StableKey | null>(null);
+
+  useEffect(
+    () => () => {
+      const active = activeRef.current;
+      activeRef.current = null;
+      active?.controller.abort();
+    },
+    [],
+  );
 
   const selectFile = useCallback((next: File | null) => {
     setFile(next);

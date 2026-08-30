@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, Depends, Header, Request, Response, status
 
 from app.api.auth_dependencies import (
     clear_auth_cookies,
@@ -13,7 +13,7 @@ from app.api.auth_dependencies import (
     set_auth_cookies,
 )
 from app.api.dependencies import get_runtime_settings
-from app.api.errors import auth_application_error
+from app.api.errors import app_error_handler, auth_application_error
 from app.api.schemas.auth import EmailPasswordRequest, RegisterRequest, UserResponse
 from app.application.auth import AuthError, AuthErrorCode, AuthService, CurrentUser
 from app.core.config import Settings
@@ -37,10 +37,20 @@ async def register_user(
     response: Response,
     auth: Auth,
     settings: SettingsDependency,
+    bootstrap_secret: Annotated[
+        str | None, Header(alias="X-Admin-Bootstrap-Secret")
+    ] = None,
 ) -> UserResponse:
-    await enforce_rate_limit(request, "register", _email_hash(str(body.email)))
+    await enforce_rate_limit(
+        request, "register", _email_hash(str(body.email)), settings
+    )
     try:
-        grant = await auth.register(body.username, str(body.email), body.password)
+        grant = await auth.register(
+            body.username,
+            str(body.email),
+            body.password,
+            bootstrap_secret=bootstrap_secret,
+        )
     except AuthError as exc:
         raise auth_application_error(exc) from exc
     set_auth_cookies(response, settings, grant)
@@ -61,7 +71,7 @@ async def login_user(
     auth: Auth,
     settings: SettingsDependency,
 ) -> UserResponse:
-    await enforce_rate_limit(request, "login", _email_hash(str(body.email)))
+    await enforce_rate_limit(request, "login", _email_hash(str(body.email)), settings)
     try:
         grant = await auth.login(str(body.email), body.password)
     except AuthError as exc:
@@ -91,15 +101,16 @@ async def refresh_user_session(
     response: Response,
     auth: Auth,
     settings: SettingsDependency,
-) -> UserResponse:
+) -> UserResponse | Response:
     refresh_token = request.cookies.get(settings.auth_refresh_cookie_name)
     if not refresh_token:
-        raise auth_application_error(AuthError(AuthErrorCode.UNAUTHENTICATED))
+        return await _cleared_auth_error_response(
+            request, settings, AuthError(AuthErrorCode.UNAUTHENTICATED)
+        )
     try:
         grant = await auth.refresh(refresh_token)
     except AuthError as exc:
-        clear_auth_cookies(response, settings)
-        raise auth_application_error(exc) from exc
+        return await _cleared_auth_error_response(request, settings, exc)
     set_auth_cookies(response, settings, grant)
     return UserResponse.from_user(grant.user)
 
@@ -132,3 +143,11 @@ async def logout_user(
 
 def _email_hash(email: str) -> str:
     return hashlib.sha256(email.strip().casefold().encode()).hexdigest()
+
+
+async def _cleared_auth_error_response(
+    request: Request, settings: Settings, error: AuthError
+) -> Response:
+    response = await app_error_handler(request, auth_application_error(error))
+    clear_auth_cookies(response, settings)
+    return response

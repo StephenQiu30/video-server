@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import DownloadWorkspace from '@/components/intake/download-workspace';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { httpClient } from '@/lib/request';
 import { ApiError } from '@/services/download';
 import { URL_MESSAGE } from '@/utils/validation';
 import {
@@ -107,6 +108,35 @@ describe('DownloadWorkspace', () => {
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
     expect(await screen.findByText(URL_MESSAGE)).toBeInTheDocument();
+  });
+
+  it('locks the submitted URL until its inspection response is applied', async () => {
+    let resolveInspection:
+      | ((value: { data: typeof inspection }) => void)
+      | undefined;
+    vi.mocked(httpClient.request).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveInspection = resolve;
+        }) as never,
+    );
+    renderWorkspace();
+
+    const input = screen.getByLabelText('公开视频地址');
+    fireEvent.change(input, {
+      target: { value: 'https://media.example/submitted' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
+
+    expect(
+      await screen.findByRole('button', { name: '解析中…' }),
+    ).toBeDisabled();
+    expect(input).toBeDisabled();
+    expect(screen.getByRole('button', { name: '清空链接' })).toBeDisabled();
+
+    resolveInspection?.({ data: inspection });
+    expect(await screen.findByText(inspection.title)).toBeInTheDocument();
+    expect(input).toBeEnabled();
   });
 
   it('normalizes the reported Douyin share message before inspection', async () => {

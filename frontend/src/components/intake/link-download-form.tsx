@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/tooltip';
 export function LinkDownloadForm({
   busy,
+  disabled,
   hasResult,
   invalid,
   onInspect,
@@ -25,6 +26,7 @@ export function LinkDownloadForm({
   url,
 }: {
   busy: boolean;
+  disabled: boolean;
   hasResult: boolean;
   invalid: boolean;
   onInspect: () => void;
@@ -48,6 +50,7 @@ export function LinkDownloadForm({
           aria-label="公开视频地址"
           autoComplete="url"
           className="h-full px-2 text-[15px]"
+          disabled={disabled}
           maxLength={4096}
           onChange={(event) => onUrlChange(event.target.value)}
           placeholder="粘贴公开的视频链接"
@@ -63,6 +66,7 @@ export function LinkDownloadForm({
                 <InputGroupButton
                   aria-label="清空链接"
                   className="size-11"
+                  disabled={disabled}
                   onClick={() => onUrlChange('')}
                   size="icon-sm"
                 >
@@ -76,7 +80,7 @@ export function LinkDownloadForm({
       </InputGroup>
       <Button
         className="h-16 px-6 text-[15px] sm:h-[68px]"
-        disabled={busy}
+        disabled={disabled}
         type="submit"
       >
         {busy ? <Spinner aria-hidden /> : <DownloadSimple aria-hidden />}

@@ -220,6 +220,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             if settings.auth_bootstrap_admin_email is not None
             else None
         ),
+        bootstrap_admin_secret=settings.auth_bootstrap_admin_secret.get_secret_value(),
     )
     user_service = UserService(repository=user_repository, now=clock)
     provider_baselines = configured_provider_statuses(

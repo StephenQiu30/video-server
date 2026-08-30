@@ -29,6 +29,33 @@ def test_request_guard_rejects_large_bodies_and_adds_security_headers(
     assert "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net" in csp
 
 
+def test_request_guard_counts_streamed_bodies_without_content_length(
+    tmp_path: Path,
+) -> None:
+    app = create_app(
+        Settings(
+            app_env="test",
+            frontend_dist_dir=tmp_path / "missing",
+            request_max_bytes=1024,
+        )
+    )
+
+    def chunks():
+        yield b'{"email":"user@example.com","password":"'
+        yield b"x" * 1024
+        yield b'"}'
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/auth/login",
+            content=chunks(),
+            headers={"Content-Type": "application/json"},
+        )
+
+    assert response.status_code == 413
+    assert response.json()["code"] == "request_too_large"
+
+
 def test_media_import_csp_allows_only_configured_storage_origin(
     tmp_path: Path,
 ) -> None:

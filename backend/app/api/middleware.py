@@ -9,6 +9,10 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
 
+class RequestBodyTooLarge(Exception):
+    """Raised while streaming a request that exceeds the admission budget."""
+
+
 async def request_guard(
     request: Request,
     call_next: Callable[[Request], Awaitable[Response]],
@@ -22,7 +26,10 @@ async def request_guard(
     content_length = request.headers.get("content-length")
     if content_length is not None:
         try:
-            if int(content_length) > max_body_bytes:
+            declared_length = int(content_length)
+            if declared_length < 0:
+                raise ValueError
+            if declared_length > max_body_bytes:
                 return _problem(
                     request,
                     413,
@@ -44,7 +51,23 @@ async def request_guard(
             )
     try:
         async with asyncio.timeout(timeout_seconds):
+            body = bytearray()
+            async for chunk in request.stream():
+                body.extend(chunk)
+                if len(body) > max_body_bytes:
+                    raise RequestBodyTooLarge
+            request._body = bytes(body)
             response = await call_next(request)
+    except RequestBodyTooLarge:
+        return _problem(
+            request,
+            413,
+            "request_too_large",
+            "Request body is too large.",
+            production=production,
+            connect_origins=connect_origins,
+            media_origins=media_origins,
+        )
     except TimeoutError:
         return _problem(
             request,

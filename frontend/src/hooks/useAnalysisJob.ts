@@ -194,6 +194,7 @@ export function useAnalysisJob(
     try {
       await deleteAnalysis(analysisId);
       hasLocalJob.current = false;
+      createKey.current = null;
       retryKey.current = null;
       setJob(null);
     } catch (reason) {

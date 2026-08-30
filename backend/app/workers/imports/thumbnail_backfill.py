@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import suppress
+import logging
 from pathlib import Path
 from typing import Protocol
 from uuid import UUID
@@ -11,6 +11,8 @@ from uuid import UUID
 from app.application.import_execution import ImportWorkspaceManager
 from app.application.import_execution.ports import ImportExecutionStorage
 from app.infrastructure.database.contracts import DownloadThumbnailCandidateSnapshot
+
+_log = logging.getLogger(__name__)
 
 
 class ThumbnailCandidateRepository(Protocol):
@@ -68,16 +70,26 @@ class DownloadThumbnailBackfill:
             except asyncio.CancelledError:
                 raise
             except Exception:
+                _log.exception(
+                    "thumbnail backfill failed for download %s", candidate.job_id
+                )
                 continue
             finally:
-                with suppress(Exception):
+                try:
                     await self._workspace.cleanup(task_id, workspace_path)
+                except Exception:
+                    _log.exception(
+                        "thumbnail backfill workspace cleanup failed for download %s",
+                        candidate.job_id,
+                    )
         return recovered
 
     async def run(self, stop: asyncio.Event) -> None:
         while not stop.is_set():
-            with suppress(Exception):
+            try:
                 await self.tick()
+            except Exception:
+                _log.exception("thumbnail backfill sweep failed")
             try:
                 await asyncio.wait_for(stop.wait(), timeout=self._interval)
             except TimeoutError:

@@ -4,6 +4,7 @@ const backendOrigin = process.env.BACKEND_ORIGIN ?? 'http://127.0.0.1:8111';
 
 const nextConfig: NextConfig = {
   agentRules: false,
+  poweredByHeader: false,
   skipTrailingSlashRedirect: true,
   trailingSlash: true,
   output: 'standalone',

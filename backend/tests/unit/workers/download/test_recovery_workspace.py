@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
-from app.workers.download.sweeper import DownloadRecoverySweeper
+from app.workers.download.sweeper import (
+    DownloadRecoverySweeper,
+    RecoverySettings,
+)
 from app.workers.download.workspace import SharedWorkspaceCleaner
 
 
@@ -41,6 +46,30 @@ async def test_recovery_republishes_queued_reclaims_stale_and_releases_retry() -
         repository.ready,
     )
     assert repository.calls == ["queued", "stale", "ready"]
+
+
+@pytest.mark.asyncio
+async def test_recovery_loop_logs_tick_failures(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    stop = asyncio.Event()
+
+    class FailingRepository(FakeRecoveryRepository):
+        async def recover_stale_queued(self, now, stale_before, *, limit=100):
+            stop.set()
+            raise RuntimeError("database unavailable")
+
+    sweeper = DownloadRecoverySweeper(
+        FailingRepository(),
+        lambda: datetime(2026, 8, 6, tzinfo=UTC),
+        RecoverySettings(interval=0.01),
+    )
+
+    with caplog.at_level(logging.ERROR):
+        await sweeper.run(stop)
+
+    assert "download recovery sweep failed" in caplog.text
+    assert "database unavailable" in caplog.text
 
 
 @pytest.mark.asyncio

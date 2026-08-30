@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import re
 from collections.abc import Callable, Coroutine
 from contextlib import suppress
@@ -28,6 +29,7 @@ from .ports import (
 )
 
 ResultT = TypeVar("ResultT")
+_log = logging.getLogger(__name__)
 _ARTIFACT_KEY = re.compile(
     r"downloads/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-"
     r"[89ab][0-9a-f]{3}-[0-9a-f]{12}/[1-9][0-9]*/video\.(?:mp4|webm)"
@@ -266,7 +268,7 @@ class ImportRecoverySweeper:
             try:
                 await self.tick()
             except Exception:
-                pass
+                _log.exception("media import recovery sweep failed")
             try:
                 await asyncio.wait_for(stop.wait(), timeout=self._interval)
             except TimeoutError:

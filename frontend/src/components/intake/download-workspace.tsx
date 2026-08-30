@@ -87,6 +87,7 @@ export default function DownloadWorkspace() {
   }, []);
 
   async function inspect() {
+    if (busy !== null) return;
     const normalized = normalizeMediaUrl(url);
     clearLinkResult();
     if (!normalized) {
@@ -120,7 +121,7 @@ export default function DownloadWorkspace() {
   }
 
   async function selectDiscoveredItem(item: SourceDiscoveryItem) {
-    if (!discovery) return;
+    if (!discovery || busy !== null) return;
     setBusy('select');
     setBusyItemRef(item.item_ref);
     setError(null);
@@ -143,7 +144,7 @@ export default function DownloadWorkspace() {
   }
 
   async function create() {
-    if (!inspection || !selectedId) return;
+    if (!inspection || !selectedId || busy !== null) return;
     setUrlInvalid(false);
     setBusy('create');
     setError(null);
@@ -168,6 +169,7 @@ export default function DownloadWorkspace() {
         linkForm={
           <LinkDownloadForm
             busy={busy === 'inspect'}
+            disabled={busy !== null}
             hasResult={inspection !== null || discovery !== null}
             invalid={urlInvalid}
             onInspect={() => void inspect()}

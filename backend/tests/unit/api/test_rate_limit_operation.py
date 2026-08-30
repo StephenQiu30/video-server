@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from app.api.auth_dependencies import _rate_limit_operation
+from app.api.auth_dependencies import _client_host, _rate_limit_operation
 from app.infrastructure.rate_limiter import _POLICIES
+from starlette.requests import Request
 
 
 class _Request:
@@ -17,6 +18,47 @@ class _URL:
 
 def _request(method: str, path: str) -> object:
     return _Request(method, path)
+
+
+def _network_request(peer: str, forwarded_for: str | None = None) -> Request:
+    headers = []
+    if forwarded_for is not None:
+        headers.append((b"x-forwarded-for", forwarded_for.encode()))
+    return Request(
+        {
+            "type": "http",
+            "http_version": "1.1",
+            "method": "GET",
+            "scheme": "http",
+            "path": "/",
+            "raw_path": b"/",
+            "query_string": b"",
+            "headers": headers,
+            "client": (peer, 12345),
+            "server": ("testserver", 80),
+        }
+    )
+
+
+def test_client_host_uses_the_nearest_untrusted_forwarded_address() -> None:
+    trusted = ("127.0.0.0/8", "172.30.99.10/32")
+    request = _network_request(
+        "172.30.99.10", "203.0.113.200, 198.51.100.24, 172.30.99.10"
+    )
+
+    assert _client_host(request, trusted) == "198.51.100.24"
+
+
+def test_client_host_ignores_forwarding_headers_from_untrusted_peers() -> None:
+    request = _network_request("198.51.100.24", "203.0.113.200")
+
+    assert _client_host(request, ("127.0.0.0/8",)) == "198.51.100.24"
+
+
+def test_client_host_fails_closed_for_a_malformed_forwarding_chain() -> None:
+    request = _network_request("127.0.0.1", "203.0.113.200, invalid")
+
+    assert _client_host(request, ("127.0.0.0/8",)) == "127.0.0.1"
 
 
 def test_inspection_post_is_rate_limited() -> None:

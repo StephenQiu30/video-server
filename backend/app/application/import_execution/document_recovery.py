@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import re
 from datetime import timedelta
 from uuid import UUID
 
 from .document_ports import DocumentImportExecutionRepository
 from .ports import Clock, ImportExecutionStorage
+
+_log = logging.getLogger(__name__)
 
 _DOCUMENT_ARTIFACT_KEY = re.compile(
     r"documents/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-"
@@ -70,7 +73,7 @@ class DocumentImportRecoverySweeper:
             try:
                 await self.tick()
             except Exception:
-                pass
+                _log.exception("document import recovery sweep failed")
             try:
                 await asyncio.wait_for(stop.wait(), timeout=self._interval)
             except TimeoutError:

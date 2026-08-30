@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import pytest
+import yaml
 from app.infrastructure.readiness import EXPECTED_DATABASE_TABLES
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -55,6 +56,40 @@ def _assert_exact_http_origins(value: str) -> None:
         assert parsed.fragment == ""
         assert origin == f"{parsed.scheme}://{parsed.netloc}"
         _ = parsed.port
+
+
+def test_environment_templates_do_not_override_duplicate_assignments() -> None:
+    for path in (ENV_EXAMPLE_PATH, PROD_ENV_EXAMPLE_PATH):
+        assignments = re.findall(
+            r"(?m)^([A-Z][A-Z0-9_]*)=", path.read_text(encoding="utf-8")
+        )
+        assert len(assignments) == len(set(assignments))
+        assert _env_value(path, "REQUEST_TIMEOUT_SECONDS") == "180"
+
+
+def test_frontend_compose_receives_only_public_runtime_configuration() -> None:
+    expected = {
+        "BACKEND_ORIGIN",
+        "HOSTNAME",
+        "MINIO_PUBLIC_ENDPOINT",
+        "MINIO_PUBLIC_SECURE",
+        "NODE_ENV",
+        "PORT",
+    }
+    for path in (COMPOSE_PATH, PROD_COMPOSE_PATH):
+        document = yaml.safe_load(path.read_text(encoding="utf-8"))
+        frontend = document["services"]["frontend"]
+        api = document["services"]["api"]
+
+        assert "env_file" not in frontend
+        assert set(frontend["environment"]) == expected
+        assert frontend["networks"]["app_net"]["ipv4_address"] == "172.30.99.10"
+        assert "172.30.99.10/32" in api["environment"]["TRUSTED_PROXY_CIDRS"]
+
+
+def test_production_analysis_is_opt_in() -> None:
+    assert _env_value(PROD_ENV_EXAMPLE_PATH, "ANALYSIS_ENABLED") == "false"
+    assert _env_value(PROD_ENV_EXAMPLE_PATH, "SCREENPLAY_ANALYSIS_ENABLED") == "false"
 
 
 def test_current_schema_can_be_applied_repeatedly() -> None:

@@ -2,6 +2,7 @@ from enum import StrEnum
 
 
 class AuthErrorCode(StrEnum):
+    ADMIN_BOOTSTRAP_REQUIRED = "admin_bootstrap_required"
     EMAIL_ALREADY_REGISTERED = "email_already_registered"
     USERNAME_ALREADY_REGISTERED = "username_already_registered"
     INVALID_CREDENTIALS = "invalid_credentials"

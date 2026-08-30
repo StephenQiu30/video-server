@@ -23,6 +23,7 @@ async def auth_client(
     tmp_path: Path,
     engine: AsyncEngine,
     bootstrap_admin_email: str | None = None,
+    bootstrap_admin_secret: str | None = None,
 ) -> AsyncIterator[AsyncClient]:
     sessions = create_session_factory(engine)
     service = AuthService(
@@ -38,6 +39,7 @@ async def auth_client(
         now=lambda: datetime.now(UTC),
         new_id=uuid4,
         bootstrap_admin_email=bootstrap_admin_email,
+        bootstrap_admin_secret=bootstrap_admin_secret,
     )
     user_service = UserService(
         repository=SqlAlchemyUserRepository(sessions),
@@ -76,7 +78,9 @@ async def test_register_creates_http_only_session_and_logout_revokes_it(
         )
         current = await client.get("/api/auth/me")
         client.cookies.delete("test_access")
-        silently_restored = await client.get("/api/auth/me")
+        without_access = await client.get("/api/auth/me")
+        refreshed = await client.post("/api/auth/refresh")
+        restored = await client.get("/api/auth/me")
         logged_out = await client.post("/api/auth/logout")
         after_logout = await client.get("/api/auth/me")
 
@@ -84,7 +88,7 @@ async def test_register_creates_http_only_session_and_logout_revokes_it(
     assert registered.headers["location"] == "/api/auth/me"
     assert registered.json()["email"] == "user@example.com"
     assert registered.json()["username"] == "VideoUser"
-    assert registered.json()["role"] == "admin"
+    assert registered.json()["role"] == "user"
     cookie = registered.headers["set-cookie"].lower()
     assert "httponly" in cookie
     assert "samesite=lax" in cookie
@@ -92,9 +96,13 @@ async def test_register_creates_http_only_session_and_logout_revokes_it(
     assert "test_refresh=" in cookie
     assert current.status_code == 200
     assert current.json() == registered.json()
-    assert silently_restored.status_code == 200
-    assert silently_restored.json() == registered.json()
-    assert "test_access=" in silently_restored.headers["set-cookie"].lower()
+    assert without_access.status_code == 401
+    assert "set-cookie" not in without_access.headers
+    assert refreshed.status_code == 200
+    assert refreshed.json() == registered.json()
+    assert "test_access=" in refreshed.headers["set-cookie"].lower()
+    assert restored.status_code == 200
+    assert restored.json() == registered.json()
     assert logged_out.status_code == 204
     assert logged_out.headers["set-cookie"].lower().count("max-age=0") == 2
     assert after_logout.status_code == 401
@@ -187,8 +195,18 @@ async def test_profile_and_admin_user_management_are_role_protected(
         "email": "user@example.com",
         "password": "strong-pass-456",
     }
-    async with auth_client(tmp_path, postgres_engine) as client:
-        admin = await client.post("/api/auth/register", json=admin_credentials)
+    bootstrap_secret = "test-admin-bootstrap-secret-32-bytes"
+    async with auth_client(
+        tmp_path,
+        postgres_engine,
+        admin_credentials["email"],
+        bootstrap_secret,
+    ) as client:
+        admin = await client.post(
+            "/api/auth/register",
+            json=admin_credentials,
+            headers={"X-Admin-Bootstrap-Secret": bootstrap_secret},
+        )
         await client.post("/api/auth/logout")
         user = await client.post("/api/auth/register", json=user_credentials)
         updated_profile = await client.patch(
@@ -219,7 +237,7 @@ async def test_profile_and_admin_user_management_are_role_protected(
         )
         client.cookies.clear()
         client.cookies.set("test_refresh", user_refresh)
-        revoked_session = await client.get("/api/auth/me")
+        revoked_session = await client.post("/api/auth/refresh")
 
     assert admin.json()["role"] == "admin"
     assert user.json()["role"] == "user"
@@ -235,13 +253,17 @@ async def test_profile_and_admin_user_management_are_role_protected(
     assert self_demote.status_code == 409
     assert self_demote.json()["code"] == "self_admin_change"
     assert revoked_session.status_code == 401
+    assert revoked_session.headers["set-cookie"].lower().count("max-age=0") == 2
 
 
-async def test_configured_bootstrap_email_receives_admin_role(
+async def test_configured_bootstrap_email_requires_the_bootstrap_secret(
     tmp_path: Path,
     postgres_engine: AsyncEngine,
 ) -> None:
-    async with auth_client(tmp_path, postgres_engine, "admin@example.com") as client:
+    bootstrap_secret = "test-admin-bootstrap-secret-32-bytes"
+    async with auth_client(
+        tmp_path, postgres_engine, "admin@example.com", bootstrap_secret
+    ) as client:
         member = await client.post(
             "/api/auth/register",
             json={
@@ -251,7 +273,7 @@ async def test_configured_bootstrap_email_receives_admin_role(
             },
         )
         await client.post("/api/auth/logout")
-        admin = await client.post(
+        missing_secret = await client.post(
             "/api/auth/register",
             json={
                 "username": "configured_admin",
@@ -259,6 +281,27 @@ async def test_configured_bootstrap_email_receives_admin_role(
                 "password": "strong-pass-456",
             },
         )
+        wrong_secret = await client.post(
+            "/api/auth/register",
+            json={
+                "username": "configured_admin",
+                "email": "Admin@Example.com",
+                "password": "strong-pass-456",
+            },
+            headers={"X-Admin-Bootstrap-Secret": "incorrect-secret"},
+        )
+        admin = await client.post(
+            "/api/auth/register",
+            json={
+                "username": "configured_admin",
+                "email": "Admin@Example.com",
+                "password": "strong-pass-456",
+            },
+            headers={"X-Admin-Bootstrap-Secret": bootstrap_secret},
+        )
 
     assert member.json()["role"] == "user"
+    assert missing_secret.status_code == 403
+    assert missing_secret.json()["code"] == "admin_bootstrap_required"
+    assert wrong_secret.status_code == 403
     assert admin.json()["role"] == "admin"

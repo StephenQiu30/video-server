@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Protocol
 from uuid import UUID
+
+_log = logging.getLogger(__name__)
 
 
 class RecoveryRepository(Protocol):
@@ -68,7 +71,7 @@ class AnalysisRecoverySweeper:
             try:
                 await self.tick()
             except Exception:
-                pass
+                _log.exception("analysis recovery sweep failed")
             try:
                 await asyncio.wait_for(stop.wait(), self._settings.interval)
             except TimeoutError:

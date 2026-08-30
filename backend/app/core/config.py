@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 import tempfile
 from functools import lru_cache
-from ipaddress import ip_address
+from ipaddress import ip_address, ip_network
 from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     readiness_timeout_seconds: float = Field(default=2.0, ge=0.1, le=10)
     request_max_bytes: int = Field(default=256 * 1024, ge=1024, le=4 * 1024 * 1024)
     request_timeout_seconds: float = Field(default=180, ge=1, le=300)
+    trusted_proxy_cidrs: tuple[str, ...] = ("127.0.0.0/8", "::1/128")
     metrics_access_key: SecretStr = SecretStr(
         "development-metrics-access-key-change-me"
     )
@@ -110,6 +111,9 @@ class Settings(BaseSettings):
         default=2_592_000, ge=3600, le=31_536_000
     )
     auth_bootstrap_admin_email: EmailStr | None = None
+    auth_bootstrap_admin_secret: SecretStr = SecretStr(
+        "development-admin-bootstrap-secret-change-me"
+    )
     request_fingerprint_secret: SecretStr = SecretStr(
         "development-fingerprint-secret-change-me"
     )
@@ -213,8 +217,8 @@ class Settings(BaseSettings):
     websocket_max_connections_per_owner: int = Field(default=4, ge=1, le=100)
     websocket_auth_recheck_seconds: float = Field(default=15, ge=1, le=300)
 
-    analysis_enabled: bool = True
-    screenplay_analysis_enabled: bool = True
+    analysis_enabled: bool = False
+    screenplay_analysis_enabled: bool = False
     analysis_workspace_root: Path = Field(
         default_factory=_default_analysis_workspace_root
     )
@@ -296,6 +300,14 @@ class Settings(BaseSettings):
         if isinstance(value, str) and not value.strip():
             return None
         return value
+
+    @field_validator("trusted_proxy_cidrs")
+    @classmethod
+    def validate_trusted_proxy_cidrs(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        try:
+            return tuple(str(ip_network(cidr, strict=False)) for cidr in value)
+        except ValueError as exc:
+            raise ValueError("TRUSTED_PROXY_CIDRS contains an invalid network") from exc
 
     @field_validator("minio_public_endpoint")
     @classmethod
@@ -403,6 +415,7 @@ class Settings(BaseSettings):
 
     @field_validator(
         "auth_jwt_secret",
+        "auth_bootstrap_admin_secret",
         "request_fingerprint_secret",
         "runner_hmac_secret",
     )
@@ -436,6 +449,7 @@ class Settings(BaseSettings):
             secret_values.extend(
                 (
                     self.auth_jwt_secret.get_secret_value(),
+                    self.auth_bootstrap_admin_secret.get_secret_value(),
                     self.request_fingerprint_secret.get_secret_value(),
                     self.runner_hmac_secret.get_secret_value(),
                     self.metrics_access_key.get_secret_value(),

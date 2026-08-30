@@ -49,6 +49,7 @@
     "@umijs/openapi": "1.14.1",
     "@vitejs/plugin-react": "^5.2.0",
     "happy-dom": "^20.11.1",
+    "mockjs": "file:vendor/mockjs-safe",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
     "vite": "^8.1.4",

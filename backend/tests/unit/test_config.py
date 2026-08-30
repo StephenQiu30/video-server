@@ -67,7 +67,8 @@ def test_local_import_defaults_and_bounds() -> None:
 
     assert settings.media_import_enabled is True
     assert settings.document_import_enabled is True
-    assert settings.screenplay_analysis_enabled is True
+    assert settings.analysis_enabled is False
+    assert settings.screenplay_analysis_enabled is False
     assert settings.analysis_max_screenplay_bytes == 2 * 1024**2
     assert settings.analysis_screenplay_rewrite_chunk_characters == 8_000
     assert settings.analysis_screenplay_rewrite_glossary_chunk_characters == 20_000
@@ -300,6 +301,25 @@ def test_bootstrap_admin_email_retains_email_validation() -> None:
         Settings(app_env="test", auth_bootstrap_admin_email="not-an-email")
 
 
+def test_proxy_networks_and_bootstrap_secret_are_validated() -> None:
+    settings = Settings(
+        app_env="test",
+        trusted_proxy_cidrs=("127.0.0.1", "2001:db8::/32"),
+        auth_bootstrap_admin_secret=SecretStr("s" * 32),
+        _env_file=None,
+    )
+
+    assert settings.trusted_proxy_cidrs == ("127.0.0.1/32", "2001:db8::/32")
+    with pytest.raises(ValidationError, match="TRUSTED_PROXY_CIDRS"):
+        Settings(app_env="test", trusted_proxy_cidrs=("not-a-network",))
+    with pytest.raises(ValidationError, match="signing secrets"):
+        Settings(
+            app_env="test",
+            auth_bootstrap_admin_secret=SecretStr("too-short"),
+            _env_file=None,
+        )
+
+
 def test_production_rejects_development_secrets() -> None:
     with pytest.raises(ValidationError, match="production secrets"):
         Settings(app_env="production")
@@ -319,6 +339,7 @@ def test_production_accepts_explicit_secrets() -> None:
         minio_secret_key=SecretStr("m" * 48),
         metrics_access_key=SecretStr("k" * 48),
         auth_bootstrap_admin_email="admin@example.com",
+        auth_bootstrap_admin_secret=SecretStr("b" * 48),
         analysis_enabled=True,
     )
 

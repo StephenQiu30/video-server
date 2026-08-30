@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hmac
 from collections.abc import Callable
 from datetime import datetime
 from uuid import UUID
@@ -25,6 +26,7 @@ class AuthService:
         now: Callable[[], datetime],
         new_id: Callable[[], UUID],
         bootstrap_admin_email: str | None = None,
+        bootstrap_admin_secret: str | None = None,
     ) -> None:
         self._repository = repository
         self._passwords = passwords
@@ -36,8 +38,18 @@ class AuthService:
             if bootstrap_admin_email is not None
             else None
         )
+        self._bootstrap_admin_secret = (
+            bootstrap_admin_secret.encode() if bootstrap_admin_secret else None
+        )
 
-    async def register(self, username: str, email: str, password: str) -> SessionGrant:
+    async def register(
+        self,
+        username: str,
+        email: str,
+        password: str,
+        *,
+        bootstrap_secret: str | None = None,
+    ) -> SessionGrant:
         normalized = _normalize_email(email)
         try:
             display_username, normalized_username = normalize_username(username)
@@ -46,7 +58,7 @@ class AuthService:
         _validate_password(password)
         password_hash = await self._passwords.hash(password)
         now = self._now()
-        role = await self._registration_role(normalized)
+        role = self._registration_role(normalized, bootstrap_secret)
         try:
             account = await self._repository.create_account(
                 account_id=self._new_id(),
@@ -63,16 +75,17 @@ class AuthService:
             raise AuthError(AuthErrorCode.USERNAME_ALREADY_REGISTERED) from exc
         return await self._grant(account.public_view(), now)
 
-    async def _registration_role(self, email: str) -> UserRole:
-        if self._bootstrap_admin_email is not None:
-            return (
-                UserRole.ADMIN
-                if email == self._bootstrap_admin_email
-                else UserRole.USER
-            )
-        return (
-            UserRole.USER if await self._repository.has_accounts() else UserRole.ADMIN
-        )
+    def _registration_role(
+        self, email: str, bootstrap_secret: str | None
+    ) -> UserRole:
+        if email != self._bootstrap_admin_email:
+            return UserRole.USER
+        supplied = (bootstrap_secret or "").encode()
+        if self._bootstrap_admin_secret is None or not hmac.compare_digest(
+            supplied, self._bootstrap_admin_secret
+        ):
+            raise AuthError(AuthErrorCode.ADMIN_BOOTSTRAP_REQUIRED)
+        return UserRole.ADMIN
 
     async def login(self, email: str, password: str) -> SessionGrant:
         account = await self._repository.find_account_by_email(_normalize_email(email))

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -12,6 +13,8 @@ from app.infrastructure.analysis_report_lifecycle import (
     ReportPurgeResult,
 )
 from app.infrastructure.object_storage import MinioObjectStorage
+
+_log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,7 +70,7 @@ class ReportLifecycleWorker:
             try:
                 await self.tick()
             except Exception:
-                pass
+                _log.exception("analysis report lifecycle sweep failed")
             try:
                 await asyncio.wait_for(stop.wait(), self._interval)
             except TimeoutError:
