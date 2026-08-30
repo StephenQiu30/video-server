@@ -55,6 +55,7 @@ def test_builtin_skills_are_filtered_ordered_and_contract_bound() -> None:
         "visual-shots",
         "scene-extraction",
         "highlights",
+        "opening-hook-review",
         "asset-catalog",
     ]
     assert [skill.id for skill in screenplay] == [
@@ -98,6 +99,7 @@ def test_builtin_resolution_compiles_allowlisted_reference_and_sha256() -> None:
         ("visual-shots", "# 分镜表字段规范"),
         ("scene-extraction", "# 场景边界与提炼规范"),
         ("highlights", "# 高光候选量表"),
+        ("opening-hook-review", "# 开场钩子审查量表"),
         ("asset-catalog", "# 资产身份与状态规范"),
     ),
 )
@@ -117,6 +119,7 @@ def test_builtin_skills_expose_the_current_production_boundary() -> None:
         "visual-shots": ("反向分镜表", "video-visual-analysis"),
         "scene-extraction": ("场景段落", "全部镜头"),
         "highlights": ("同一量表", "主选"),
+        "opening-hook-review": ("0–3 秒", "不预测平台留存率"),
         "asset-catalog": ("AssetVersion", "资产身份候选"),
         "video-to-article": ("中心命题", "limitations"),
         "screenplay-analysis": ("汇总调用", "source_scene_id"),
@@ -133,6 +136,20 @@ def test_builtin_skills_expose_the_current_production_boundary() -> None:
         )
         assert skill is not None
         assert all(phrase in skill.instructions for phrase in phrases), skill_id
+
+
+def test_opening_hook_review_preserves_visual_evidence_boundaries() -> None:
+    skill = BUILTIN_ANALYSIS_SKILLS.get("opening-hook-review", AnalysisInputKind.VIDEO)
+
+    assert skill is not None
+    assert skill.result_contract is AnalysisResultContract.VIDEO_VISUAL_ANALYSIS
+    assert "覆盖完整时间轴" in skill.instructions
+    assert "0–3s" in skill.instructions
+    assert "0–5s" in skill.instructions
+    assert "0–15s" in skill.instructions
+    assert "不评价开场台词、语速、音乐卡点" in skill.instructions
+    assert "不表示停留、完播、点击、转化" in skill.instructions
+    assert "真实 `shot.id`" in skill.instructions
 
 
 @pytest.mark.parametrize(

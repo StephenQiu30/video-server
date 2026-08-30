@@ -65,4 +65,25 @@ The built-in screenplay skills are original, project-specific rewrites. They do 
 - License: MIT; copyright 2025 Rainman.
 - Local use: the rewrite rules independently adopt source fingerprints, glossary consistency, adjacent context, ordered chunks, coverage validation, and deterministic merge principles. Conversion tools, Calibre/Pandoc integration, scripts, arbitrary file writes, network access, and parallel sub-agents were excluded.
 
+## watch-skill
+
+- Source: https://github.com/oxbshw/watch-skill
+- Reviewed commit: `994ee7514c64a9ec4980eeabef789b5e10ea28be`
+- License: MIT; copyright 2026 oxbshw.
+- Local use: the opening-hook review independently adopts bounded opening windows, visible change and on-screen-text review, evidence-backed creator feedback, and an explicit distinction between observation and verified outcomes. The upstream runtime, scoring formulas, CLI, MCP, REST API, capture/index stores, OCR, ASR, model integrations, scripts, examples, tests, and assets were excluded.
+
+## drama-skills
+
+- Source: https://github.com/zenstory-ai/drama-skills
+- Reviewed commit: `3ab6b8550bbccef71001d2187e2b2ac9a74ab917`
+- License: MIT; copyright 2026 drama-skills contributors.
+- Local use: the opening-hook review independently separates bounded evidence, viewer or production impact, and the required revision outcome. Upstream review wording, templates, rubrics, scripts, examples, production adapters, assets, generation workflow, and cross-Skill orchestration were excluded.
+
+## video-shotcraft
+
+- Source: https://github.com/Vincentwei1021/video-shotcraft
+- Reviewed commit: `b0cb89173c9278042db78c3fb9c339814966f874`
+- License: Apache-2.0; copyright 2026 Wei Yihao.
+- Local use: the opening-hook review independently emphasizes reviewing rendered evidence before delivery, legible on-screen text, a clear initial subject, purposeful visual progression, and shot-specific handoff checks. Upstream wording, shot cards, recipes, demos, media, Remotion templates, source code, gallery, generation workflow, sound library, examples, and assets were excluded.
+
 Updating any reviewed commit requires a fresh license and prompt-injection review, static fixtures, and real-provider E2E before release.
