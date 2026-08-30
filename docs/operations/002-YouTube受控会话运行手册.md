@@ -6,7 +6,7 @@
 - 关联 Design：`docs/design/005-多平台Provider策略设计.md`
 - 关联 Acceptance：`docs/acceptance/005-多平台Provider与会话适配验收.md`
 
-本文只用于项目所有者有权处理的公开、非 DRM 内容。默认 C 端链路是服务端匿名解析：固定 yt-dlp package `2026.8.19`（`yt-dlp --version` 输出 `2026.08.19`）/ commit `3a08beaf031ab68f966401ead017ac81fe8486cf`，使用 `youtube-v4` 的 `mweb` + EJS + bgutil POT Provider `1.3.2`，不读取宿主 Chrome/个人浏览器 Profile，不要求用户手工提供 Cookie 或 PO Token。
+本文只用于项目所有者有权处理的公开、非 DRM 内容。默认 C 端链路是服务端匿名解析：固定 yt-dlp package `2026.8.19`（`yt-dlp --version` 输出 `2026.08.19`）/ commit `3a08beaf031ab68f966401ead017ac81fe8486cf`，使用 `youtube-v5` 的 `mweb` + EJS + bgutil POT Provider `1.3.2`，不读取宿主 Chrome/个人浏览器 Profile，不要求用户手工提供 Cookie 或 PO Token。
 
 Cookie 等同账号会话密码，可能被平台轮换，也可能导致账号限制。下文 Operator Secret 流程只适用于部署方明确批准的会话场景，不是公开 YouTube 的默认依赖，更不是 IP bot challenge 的修复手段。不得使用主 Google 账号或开发者/用户个人 Cookie，不得把 Cookie 粘贴到普通 API、Issue、日志、命令参数或验收文档。
 

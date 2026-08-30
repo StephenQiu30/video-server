@@ -240,7 +240,7 @@ def test_anonymous_youtube_context_attests_runtime_versions(tmp_path: Path) -> N
         "https://www.youtube.com/watch?v=owned"
     )
 
-    assert context.profile_version == "youtube-v4"
+    assert context.profile_version == "youtube-v5"
     assert context.client_profile_id == "youtube-mweb"
     assert context.attestation_provider_version == "bgutil-http-1.3.2"
     assert context.engine_commit == "3a08beaf031ab68f966401ead017ac81fe8486cf"

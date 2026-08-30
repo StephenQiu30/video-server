@@ -4,9 +4,9 @@
 - 日期：2026-08-10
 - 最近更新：2026-08-30
 - 前置调研：`docs/research/003-多平台下载会话与GitHub适配调研.md`
-- 实现状态：Phase 1 已落地版本化 Profile、非 Secret 访问上下文、匿名/YouTube 运维 Runner 路由、操作级 Cookie jar、权益防火墙、服务端托管 POT sidecar、稳定错误、Provider 探针结果表/定时执行器/动态状态聚合、`GET /api/providers` 与前端状态页。授权目标的真实 Cookie/POT canary、完整视频 Agent E2E、账号权益漂移自动停用和统一重试预算仍是生产发布门禁；Phase 2 的用户 Credential Broker/Vault 与 gallery-dl 尚未实现。
+- 实现状态：Phase 1 已落地版本化 Profile、非 Secret 访问上下文、匿名/YouTube 运维 Runner 路由、操作级 Cookie jar、权益防火墙、服务端托管 POT sidecar、稳定错误、Provider 探针结果表/定时执行器/动态状态聚合、`GET /api/providers` 与前端状态页。YouTube 已停止 yt-dlp 与 Runner 的同出口立即重试放大；授权目标的真实 Cookie/POT canary、完整视频 Agent E2E、账号权益漂移自动停用，以及遵守 `Retry-After` 的跨层总预算/cooldown 仍是生产发布门禁；Phase 2 的用户 Credential Broker/Vault 与 gallery-dl 尚未实现。
 
-> 当前实现增量（2026-08-30）：Runner 固定 yt-dlp package `2026.8.19`（CLI 输出 `2026.08.19`）/ commit `3a08beaf031ab68f966401ead017ac81fe8486cf`，YouTube Profile 为 `youtube-v4`，匿名公开链路由服务端自动使用 `mweb` + EJS + bgutil POT Provider `1.3.2`。Sidecar 锁定为 `brainicism/bgutil-ytdlp-pot-provider:1.3.2@sha256:9a96e6385ce1928da87dea07b1cab0413d2cf8c07a3b8a8bd419f53df2c3843c`；Runner 与 sidecar 只接 internal 网络，只有 Squid 接入非 internal 的 `proxy_uplink_net`。默认 HTTP(S) proxy 是 Squid；配置 YouTube 专用代理时，部署方必须把受管双网卡网关加入 internal `youtube_pot_net`，映射只能指向它的内部服务地址，bgutil 与 yt-dlp 使用同一实际 proxy。用户无需提供 Cookie、PO Token 或 yt-dlp 参数；服务也不读取宿主 Chrome/个人浏览器会话。POT 只解决 Player/GVS 请求证明，不能修复已被 `LOGIN_REQUIRED` / bot challenge 的出口 IP；YouTube 在面向 C 端的生产环境恢复 `verified` 前，部署方必须配置可持续、合规、由自身运维的 YouTube 专用出口并通过授权样本 media canary，不使用公共代理、WARP/Tor、公共解析服务或个人 Cookie 作为可用性基础。
+> 当前实现增量（2026-08-30）：Runner 固定 yt-dlp package `2026.8.19`（CLI 输出 `2026.08.19`）/ commit `3a08beaf031ab68f966401ead017ac81fe8486cf`，YouTube Profile 为 `youtube-v5`，匿名公开链路由服务端自动使用 `mweb` + EJS + bgutil POT Provider `1.3.2`。Sidecar 锁定为 `brainicism/bgutil-ytdlp-pot-provider:1.3.2@sha256:9a96e6385ce1928da87dea07b1cab0413d2cf8c07a3b8a8bd419f53df2c3843c`；Runner 与 sidecar 只接 internal 网络，只有 Squid 接入非 internal 的 `proxy_uplink_net`。默认 HTTP(S) proxy 是 Squid；配置 YouTube 专用代理时，部署方必须把受管双网卡网关加入 internal `youtube_pot_net`，映射只能指向它的内部服务地址，bgutil 与 yt-dlp 使用同一实际 proxy。用户无需提供 Cookie、PO Token 或 yt-dlp 参数；服务也不读取宿主 Chrome/个人浏览器会话。YouTube Profile 只执行一次 inspection，三个 yt-dlp retry scope 均为 `0`；429 和出口 challenge 不在 Runner 内立即重试，warning 保留用于稳定分类。POT 只解决 Player/GVS 请求证明，不能修复已被 `LOGIN_REQUIRED` / bot challenge 的出口 IP；YouTube 在面向 C 端的生产环境恢复 `verified` 前，部署方必须配置可持续、合规、由自身运维的 YouTube 专用出口并通过授权样本 media canary，不使用公共代理、WARP/Tor、公共解析服务或个人 Cookie 作为可用性基础。
 
 ## 1. 目标
 
@@ -46,6 +46,7 @@ Cookie 的一刀切禁令被调整为“默认关闭、Provider allowlist、生�
 - Profile v2 已增加 capability、access mode、Cookie 域、client、attestation、egress、并发、状态和 canary suite；稳定错误仍由共享 classifier 管理。
 - YouTube 运维 Runner 的 inspect、download stream 和 probe sample 统一使用操作级 `--cookies`，匿名、Generic 与非 YouTube 路径不携带 Cookie。
 - YouTube bot challenge、credential、POT、rate、geo、private/entitlement、DRM 与 extractor regression 已分层；download re-inspect 的 Provider 错误不再降为 `worker_lost`。
+- Provider Profile 直接声明 yt-dlp retry 次数；YouTube 的 yt-dlp/inspection 都只尝试一次，429 与出口 challenge 交给上层冷却，不在相同 context 内立即重打。yt-dlp warning 不再被隐藏，复合 `429 + unavailable` 优先归为限流。
 - Cookie 源按不可变版本只读挂载，临时 jar 位于 Runner 独占 `/run/provider-secrets-tmp`，不位于共享 `/work`。
 - inspection 冻结 `ProviderAccessContextRef` 并随下载快照传递；匿名与运维 Runner 物理分离，YouTube 可选择固定 Provider 出口和内部 POT sidecar。
 - Runner readiness 已校验 yt-dlp 包版本与锁定源 commit、bgutil 插件版本。Sidecar 不参与 API/公共 Runner readiness，也不作为 Compose `service_healthy` wait gate；版本库内脚本以只读方式挂载为容器 PID1 supervisor，独立检查 `/ping`，连续 3 次失败才终止并重启上游子进程。上游子进程 stdout/stderr 全部丢弃，防止它输出的 PO Token 或绑定标识进入持久容器日志；supervisor 只记录不含异常原文和证明数据的固定故障事件。YouTube 命令在 spawn 前和失败后执行 2 秒、禁用环境代理/重定向、精确版本的语义预检，因此 sidecar 运行中断裂不会被误归因为出口 challenge；非 YouTube 命令不执行该探测。
@@ -58,7 +59,7 @@ Cookie 的一刀切禁令被调整为“默认关闭、Provider allowlist、生�
 - `GET /api/providers` 已合并配置/历史基线与最近 5 条持久化探针结果；定时 metadata/media 执行、连续失败阈值、恢复迟滞和动态降级已实现。真实授权目标默认未配置，能力/Agent E2E gate、指标和自动 kill switch 仍待补齐。
 - 账号最小权益使用启动 attestation 和媒体 metadata fail-closed；自动检测账号权益漂移并 disable version 尚未实现。
 - 凭据并发当前由单运维 Runner 的 `RUNNER_MAX_ACTIVE_TASKS=1` 和本地 semaphore 约束；跨副本分布式租约尚未实现。
-- 429 `Retry-After`、Worker/Runner/yt-dlp 统一预算、POT 刷新一次和出口 cooldown 尚未实现。
+- 429 `Retry-After`、跨 Worker/Runner/yt-dlp 的持久化总预算、POT 刷新一次和出口 cooldown 尚未实现；Runner 内的 429/challenge 与 YouTube yt-dlp 立即重试放大已停止。
 - Generic 仍依赖 yt-dlp 内部重定向；“跨 Provider redirect 后重新 admission/context”尚未完成独立控制面实现。
 
 因此 YouTube 修复不是一个布尔值 `cookies_enabled`，而是访问上下文、Secret 生命周期、权益防火墙、请求证明和出口策略的组合；当前实现提供了受控路径，但生产状态必须由真实 canary 决定。

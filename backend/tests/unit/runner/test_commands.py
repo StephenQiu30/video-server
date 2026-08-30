@@ -9,6 +9,7 @@ from app.runner import commands as commands_module
 from app.runner.commands import MediaCommands
 from app.runner.errors import RunnerFailure
 from app.runner.process import ProcessResult
+from app.runner.yt_dlp_commands import YtDlpCommandBuilder
 from helpers import settings
 
 
@@ -47,6 +48,37 @@ class RecordingSupervisor:
         return ProcessResult(0, b"{}", b"", False, False)
 
 
+def test_provider_retry_budget_applies_to_inspect_and_download(tmp_path: Path) -> None:
+    builder = YtDlpCommandBuilder(settings(tmp_path), tmp_path)
+    commands = (
+        builder.inspect(
+            "https://www.youtube.com/watch?v=owned",
+            cookie_jar=None,
+        ).argv,
+        builder.download(
+            "https://www.youtube.com/watch?v=owned",
+            "18",
+            tmp_path / "youtube.mp4",
+            max_bytes=1024,
+            cookie_jar=None,
+        ).argv,
+        builder.inspect("https://vimeo.com/76979871", cookie_jar=None).argv,
+        builder.download(
+            "https://vimeo.com/76979871",
+            "http-540p",
+            tmp_path / "vimeo.mp4",
+            max_bytes=1024,
+            cookie_jar=None,
+        ).argv,
+    )
+
+    for command, expected in zip(commands, ("0", "0", "3", "3"), strict=True):
+        assert "--no-warnings" not in command
+        for option in ("--retries", "--fragment-retries", "--extractor-retries"):
+            assert command.count(option) == 1
+            assert command[command.index(option) + 1] == expected
+
+
 @pytest.mark.asyncio
 async def test_inspection_classifies_douyin_fresh_cookie_requirement(
     tmp_path: Path,
@@ -72,6 +104,7 @@ async def test_inspection_classifies_youtube_bot_confirmation_requirement(
     commands = MediaCommands(
         settings(tmp_path),
         FailingSupervisor(
+            b"WARNING: HTTP Error 429: Too Many Requests\n"
             b"ERROR: Sign in to confirm you're not a bot. "
             b"Use --cookies for authentication"
         ),
@@ -138,6 +171,84 @@ async def test_inspection_classifies_unavailable_youtube_video(tmp_path: Path) -
 
     assert caught.value.code == "provider_link_unavailable"
     assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
+async def test_youtube_rate_limit_precedes_unavailable_fallback(tmp_path: Path) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(
+            b"WARNING: HTTP Error 429: Too Many Requests\n"
+            b"ERROR: [youtube] owned: This video is unavailable"
+        ),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect("https://www.youtube.com/watch?v=owned", tmp_path)
+
+    assert caught.value.code == "provider_rate_limited"
+    assert caught.value.status == 429
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("terminal_error", "expected_code", "expected_status"),
+    (
+        (b"ERROR: This video is DRM protected", "drm_protected", 422),
+        (b"ERROR: This video is private", "content_private", 403),
+        (
+            b"ERROR: This video is not available in your country",
+            "provider_geo_restricted",
+            422,
+        ),
+        (
+            b"ERROR: Account cookies are no longer valid",
+            "credential_expired",
+            422,
+        ),
+        (b"ERROR: Fresh cookies are needed", "credential_required", 422),
+    ),
+)
+async def test_youtube_terminal_failure_precedes_rate_limit_warning(
+    tmp_path: Path,
+    terminal_error: bytes,
+    expected_code: str,
+    expected_status: int,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(
+            b"WARNING: HTTP Error 429: Too Many Requests\n" + terminal_error
+        ),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect("https://www.youtube.com/watch?v=owned", tmp_path)
+
+    assert caught.value.code == expected_code
+    assert caught.value.status == expected_status
+
+
+@pytest.mark.asyncio
+async def test_tiktok_rate_limit_precedes_temporary_api_failure(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(
+            b"WARNING: HTTP Error 429: Too Many Requests\n"
+            b"ERROR: TikTok official player API temporarily unavailable"
+        ),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect(
+            "https://www.tiktok.com/@creator/video/6742501081818877190",
+            tmp_path,
+        )
+
+    assert caught.value.code == "provider_rate_limited"
+    assert caught.value.status == 429
 
 
 @pytest.mark.asyncio
@@ -406,6 +517,9 @@ async def test_youtube_uses_operator_managed_provider_egress(tmp_path: Path) -> 
     )
     assert supervisor.env["HTTPS_PROXY"] == "http://youtube-egress:3128"
     assert "--cookies" not in supervisor.argv
+    assert "--no-warnings" not in supervisor.argv
+    for option in ("--retries", "--fragment-retries", "--extractor-retries"):
+        assert supervisor.argv[supervisor.argv.index(option) + 1] == "0"
 
 
 @pytest.mark.asyncio

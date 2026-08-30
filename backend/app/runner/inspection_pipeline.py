@@ -98,9 +98,7 @@ class RunnerInspectionPipeline:
                 )
             except RunnerFailure as exc:
                 retryable = exc.code in {
-                    "egress_challenged",
                     "inspection_failed",
-                    "provider_rate_limited",
                     "provider_temporarily_unavailable",
                 }
                 if not retryable or attempt == profile.inspection_attempts - 1:

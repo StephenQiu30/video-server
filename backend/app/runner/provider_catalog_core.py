@@ -45,7 +45,7 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
                 "www.youtube-nocookie.com",
             }
         ),
-        version="youtube-v4",
+        version="youtube-v5",
         capabilities=frozenset(
             {
                 ProviderCapability.SINGLE_VIDEO,
@@ -66,6 +66,8 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         support_status=ProviderSupportStatus.ACCESS_REQUIRED,
         canary_suite="youtube-anonymous-operator-pot",
         runtime_command_args=_youtube_runtime_args,
+        yt_dlp_retry_count=0,
+        inspection_attempts=1,
     ),
     standard_provider(
         "bilibili",

@@ -74,16 +74,6 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         "provider_link_unavailable",
         422,
         any_stderr=(
-            b"video unavailable",
-            b"this video is unavailable",
-            b"video is no longer available",
-        ),
-        providers=frozenset({"youtube"}),
-    ),
-    FailureRule(
-        "provider_link_unavailable",
-        422,
-        any_stderr=(
             b"unsupported url:",
             b"unable to extract initial state",
             b"kuaishou public link unavailable",
@@ -98,12 +88,6 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
             b"unsupported url:",
             b"tiktok video not available from the official player",
         ),
-        providers=frozenset({"tiktok"}),
-    ),
-    FailureRule(
-        "provider_temporarily_unavailable",
-        503,
-        any_stderr=(b"tiktok official player api temporarily unavailable",),
         providers=frozenset({"tiktok"}),
     ),
     FailureRule(
@@ -177,11 +161,6 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         authenticated=False,
     ),
     FailureRule(
-        "provider_rate_limited",
-        429,
-        any_stderr=(b"http error 429", b"too many requests", b"rate limit exceeded"),
-    ),
-    FailureRule(
         "provider_geo_restricted",
         422,
         any_stderr=(
@@ -244,6 +223,27 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
             b"rate-limit reached or login required",
             b"login required. use --cookies",
         ),
+    ),
+    FailureRule(
+        "provider_rate_limited",
+        429,
+        any_stderr=(b"http error 429", b"too many requests", b"rate limit exceeded"),
+    ),
+    FailureRule(
+        "provider_temporarily_unavailable",
+        503,
+        any_stderr=(b"tiktok official player api temporarily unavailable",),
+        providers=frozenset({"tiktok"}),
+    ),
+    FailureRule(
+        "provider_link_unavailable",
+        422,
+        any_stderr=(
+            b"video unavailable",
+            b"this video is unavailable",
+            b"video is no longer available",
+        ),
+        providers=frozenset({"youtube"}),
     ),
     FailureRule(
         "extractor_regression",

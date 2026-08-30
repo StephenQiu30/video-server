@@ -204,7 +204,7 @@ PO Token 与 Cookie 不是同一个凭据。当前官方 TL;DR 是通过 Provide
 | [yt-dlp 2026.08.19](https://github.com/yt-dlp/yt-dlp/releases/tag/2026.08.19) | CLI 版本 `2026.08.19`，package metadata `2026.8.19`，commit [`3a08beaf031ab68f966401ead017ac81fe8486cf`](https://github.com/yt-dlp/yt-dlp/commit/3a08beaf031ab68f966401ead017ac81fe8486cf) | readiness 同时比对 package metadata 版本和 `direct_url.json` 的锁定源，避免同版本名的未审计来源漂移 |
 | [bgutil-ytdlp-pot-provider 1.3.2](https://github.com/Brainicism/bgutil-ytdlp-pot-provider/releases/tag/1.3.2) | Python 插件 `1.3.2`；sidecar `brainicism/bgutil-ytdlp-pot-provider:1.3.2@sha256:9a96e6385ce1928da87dea07b1cab0413d2cf8c07a3b8a8bd419f53df2c3843c` | Runner readiness 只比对插件版本；sidecar 不参与 API/公共 Runner readiness 或 Compose health wait gate，由版本库托管的 PID1 supervisor 在 `/ping` 连续 3 次失败后重启上游子进程 |
 | EJS / JavaScript runtime | `yt-dlp-ejs 0.8.0` + Node 24 | 继续处理 n/signature challenge，不用浏览器页面代替受控 Runner |
-| YouTube Profile | `youtube-v4`，`youtube:player_client=mweb`，attestation `bgutil-mweb-player-gvs` | 公开链路在服务端自动 mint 任务期 POT，不接收用户 Cookie/PO Token/任意 yt-dlp 参数 |
+| YouTube Profile | `youtube-v5`，`youtube:player_client=mweb`，attestation `bgutil-mweb-player-gvs` | 公开链路在服务端自动 mint 任务期 POT，不接收用户 Cookie/PO Token/任意 yt-dlp 参数；yt-dlp/inspection 均为单次 |
 
 版本选择不是只追随最新 tag：bgutil `1.3.2` 包含 [YouTube A/B 变体修复](https://github.com/Brainicism/bgutil-ytdlp-pot-provider/commit/495a47f)；yt-dlp 上游则已因持续 403 [移除 `android_vr` 无 POT 降级](https://github.com/yt-dlp/yt-dlp/commit/dae52d8386557f4c19ab58a9ae56062b8d52b3af)。因此当前 Profile 不恢复 Android/VR/TV 等旧 client 教程，也不使用 `player_client=all`。
 
@@ -225,6 +225,8 @@ yt-dlp 官方 [PO Token Guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Gu
 平台状态通过 HMAC/replay 防护的批量 Runner 接口读取实时 context，并只聚合精确相同的 SHA-256 generation；generation 覆盖 provider、profile、access mode、credential version、实际 egress affinity、client profile、attestation/POT version 和 engine commit。旧 generation 保留审计但即使晚完成也不能影响当前状态；scheduler 同样按该 generation 查询最近执行时间。某个 runner group 取不到或返回畸形 context 时，只将该组平台标为 `degraded`，不会用历史 cohort 猜测当前运行时。
 
 面向多用户的长期可用性要求部署方为 `youtube` 配置自身运维、稳定、合规且可审计的专用出口，在同一实际 affinity 上完成 metadata + media canary，并以低并发、`Retry-After` 和冷却控制请求。这是部署能力门禁，不是需要再增加解析器补丁。
+
+当前 Runner 已把 yt-dlp retry 作为 Profile 策略；YouTube 的三个 yt-dlp retry scope 均为 `0` 且 inspection 只执行一次。429 与 `egress_challenged` 不在相同 context 中立即重试，yt-dlp warning 保留并优先识别复合 429。该收敛只停止本地请求放大，不等同于健康出口；`Retry-After`、跨层持久化总预算和按 context generation 的 cooldown 仍须在生产门禁中完成。
 
 不采用下列降级：
 

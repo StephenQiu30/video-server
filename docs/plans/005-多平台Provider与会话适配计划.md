@@ -103,7 +103,7 @@
 
 ## 6. Phase 4：PO Token、固定出口与统一重试预算
 
-实施状态：固定版本插件/sidecar、内部网络、YouTube mweb 参数、非 Secret context 引用和初步错误分类已完成；真实 token/session/proxy binding、刷新一次、`Retry-After` 与统一重试/cooldown 尚未完成。
+实施状态：固定版本插件/sidecar、内部网络、YouTube mweb 参数、非 Secret context 引用和初步错误分类已完成；YouTube yt-dlp/inspection 已收敛为单次，429 与出口 challenge 不再在 Runner 内立即重试。真实 token/session/proxy binding、刷新一次、`Retry-After` 与跨 Worker/Runner/yt-dlp 的持久化总预算/cooldown 尚未完成。
 
 ### 交付
 

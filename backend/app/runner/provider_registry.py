@@ -69,6 +69,7 @@ class ProviderProfile:
     error_policy_id: str = "yt-dlp-stable-v2"
     command_args: tuple[str, ...] = ()
     runtime_command_args: RuntimeCommandArgs = default_runtime_command_args
+    yt_dlp_retry_count: int = 3
     inspection_attempts: int = 2
     inspection_retry_delay: float = 1.0
     probe_authenticated_media: bool = False
@@ -109,7 +110,11 @@ class ProviderRegistry:
             keys.add(profile.key)
             if not profile.hosts:
                 raise ValueError(f"provider {profile.key} must declare hosts")
-            if profile.inspection_attempts < 1 or profile.inspection_retry_delay < 0:
+            if (
+                profile.yt_dlp_retry_count < 0
+                or profile.inspection_attempts < 1
+                or profile.inspection_retry_delay < 0
+            ):
                 raise ValueError(f"provider {profile.key} has invalid retry policy")
             if (
                 not profile.version

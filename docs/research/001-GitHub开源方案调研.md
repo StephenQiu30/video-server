@@ -109,7 +109,7 @@ GitHub 调研后的取舍：
 
 - yt-dlp 固定 package `2026.8.19`（CLI 输出 [`2026.08.19`](https://github.com/yt-dlp/yt-dlp/releases/tag/2026.08.19)）/ commit [`3a08beaf031ab68f966401ead017ac81fe8486cf`](https://github.com/yt-dlp/yt-dlp/commit/3a08beaf031ab68f966401ead017ac81fe8486cf)；Runner readiness 同时校验安装包版本和锁定源 commit。
 - [bgutil-ytdlp-pot-provider `1.3.2`](https://github.com/Brainicism/bgutil-ytdlp-pot-provider/releases/tag/1.3.2) 已作为默认内部 POT 拓扑；Python 插件固定 `1.3.2`，sidecar 锁定 `brainicism/bgutil-ytdlp-pot-provider:1.3.2@sha256:9a96e6385ce1928da87dea07b1cab0413d2cf8c07a3b8a8bd419f53df2c3843c`。Sidecar 不参与 API/公共 Runner readiness 或 Compose health wait gate；版本库托管的 PID1 supervisor 以精确版本 `/ping` 连续 3 次失败为阈值重启上游子进程，并以 `stdio: "ignore"` 完全隔离上游 stdout/stderr，防止 token/绑定标识进入持久日志。
-- `youtube-v4` 只使用 `mweb` + EJS + 自动 POT。C 端用户不提交 Cookie、PO Token 或 yt-dlp 参数，服务端不启动宿主 Chrome，也不读取开发者/用户个人浏览器 Profile。
+- `youtube-v5` 只使用 `mweb` + EJS + 自动 POT，并把 yt-dlp/inspection 收敛为单次。C 端用户不提交 Cookie、PO Token 或 yt-dlp 参数，服务端不启动宿主 Chrome，也不读取开发者/用户个人浏览器 Profile。
 
 Sidecar 只加入 internal `youtube_pot_net`，Runner 的 `runner_egress_net` 同样为 internal；默认拓扑只有 Squid 加入非 internal `proxy_uplink_net`，因此 Runner/POT 无法靠忽略代理环境变量直连。Runner 和 sidecar supervisor 以同一份 `RUNNER_PROVIDER_EGRESS_PROXIES` 解析 YouTube 路由，supervisor 对 JSON/无凭据 HTTP(S) URL 失败关闭、不记录代理地址；固定版本 bgutil 还会把 yt-dlp 的 `request_proxy` 放入 `/get_pot` 请求体并优先使用，因此两者使用同一实际 proxy。专用出口由部署方以受管双网卡 gateway 加入 `youtube_pot_net`，映射只指向其内部服务地址。
 

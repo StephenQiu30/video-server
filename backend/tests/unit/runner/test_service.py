@@ -192,9 +192,10 @@ class ProbeSampleSupervisor(FixtureSupervisor):
         )
 
 
-class RateLimitedThenSuccessSupervisor(FixtureSupervisor):
-    def __init__(self, info: dict[str, object]) -> None:
+class ClassifiedFailureThenSuccessSupervisor(FixtureSupervisor):
+    def __init__(self, info: dict[str, object], stderr: bytes) -> None:
         super().__init__(info)
+        self.stderr = stderr
         self.inspection_attempts = 0
 
     async def run(
@@ -213,7 +214,7 @@ class RateLimitedThenSuccessSupervisor(FixtureSupervisor):
                 return ProcessResult(
                     1,
                     b"",
-                    b"ERROR: HTTP Error 429: Too Many Requests",
+                    self.stderr,
                     False,
                     False,
                 )
@@ -694,27 +695,123 @@ async def test_inspect_retries_and_uses_bounded_local_probe_sample(
     assert not (tmp_path / "format-probe.input").exists()
 
 
-async def test_inspect_retries_tumblr_rate_limit_with_provider_backoff(
+async def test_inspect_does_not_immediately_retry_tumblr_rate_limit(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    supervisor = RateLimitedThenSuccessSupervisor(split_media_info())
+    supervisor = ClassifiedFailureThenSuccessSupervisor(
+        split_media_info(),
+        b"ERROR: HTTP Error 429: Too Many Requests",
+    )
     delays: list[float] = []
 
     async def record_sleep(delay: float) -> None:
         delays.append(delay)
 
-    monkeypatch.setattr("app.runner.service.asyncio.sleep", record_sleep)
+    monkeypatch.setattr("app.runner.inspection_pipeline.asyncio.sleep", record_sleep)
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    with pytest.raises(RunnerFailure) as caught:
+        await service.inspect(
+            "https://www.tumblr.com/maskofthedragon/"
+            "626907179849564160/mona-talking-in-english"
+        )
+
+    assert caught.value.code == "provider_rate_limited"
+    assert supervisor.inspection_attempts == 1
+    assert delays == []
+
+
+async def test_inspect_does_not_retry_xiaohongshu_egress_challenge(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    supervisor = ClassifiedFailureThenSuccessSupervisor(
+        split_media_info(),
+        b"ERROR: Xiaohongshu request verification required",
+    )
+    delays: list[float] = []
+
+    async def record_sleep(delay: float) -> None:
+        delays.append(delay)
+
+    monkeypatch.setattr("app.runner.inspection_pipeline.asyncio.sleep", record_sleep)
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    with pytest.raises(RunnerFailure) as caught:
+        await service.inspect(
+            "https://www.xiaohongshu.com/explore/64a6b35f000000001f01465c",
+        )
+
+    assert caught.value.code == "egress_challenged"
+    assert supervisor.inspection_attempts == 1
+    assert delays == []
+
+
+async def test_inspect_retries_tiktok_temporary_api_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    supervisor = ClassifiedFailureThenSuccessSupervisor(
+        split_media_info(),
+        b"ERROR: TikTok official player API temporarily unavailable",
+    )
+    delays: list[float] = []
+
+    async def record_sleep(delay: float) -> None:
+        delays.append(delay)
+
+    monkeypatch.setattr("app.runner.inspection_pipeline.asyncio.sleep", record_sleep)
     service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
 
     response = await service.inspect(
-        "https://www.tumblr.com/maskofthedragon/"
-        "626907179849564160/mona-talking-in-english"
+        "https://www.tiktok.com/@creator/video/6742501081818877190",
     )
 
-    assert supervisor.inspection_attempts == 2
-    assert delays == [4]
     assert response.media.duration_seconds == 30
+    assert supervisor.inspection_attempts == 2
+    assert delays == [1]
+
+
+async def test_inspect_does_not_retry_tiktok_rate_limited_temporary_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    supervisor = ClassifiedFailureThenSuccessSupervisor(
+        split_media_info(),
+        b"WARNING: HTTP Error 429: Too Many Requests\n"
+        b"ERROR: TikTok official player API temporarily unavailable",
+    )
+    delays: list[float] = []
+
+    async def record_sleep(delay: float) -> None:
+        delays.append(delay)
+
+    monkeypatch.setattr("app.runner.inspection_pipeline.asyncio.sleep", record_sleep)
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    with pytest.raises(RunnerFailure) as caught:
+        await service.inspect(
+            "https://www.tiktok.com/@creator/video/6742501081818877190",
+        )
+
+    assert caught.value.code == "provider_rate_limited"
+    assert supervisor.inspection_attempts == 1
+    assert delays == []
+
+
+async def test_youtube_inspection_failure_uses_one_attempt(tmp_path: Path) -> None:
+    supervisor = TransientFailureSupervisor(split_media_info())
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    with pytest.raises(RunnerFailure) as caught:
+        await service.inspect(
+            "https://www.youtube.com/watch?v=owned",
+        )
+
+    assert caught.value.code == "inspection_failed"
+    ytdlp = [command for command, _ in supervisor.calls if command[0] == "yt-dlp"]
+    assert len(ytdlp) == 1
 
 
 async def test_inspect_fetches_a_bounded_thumbnail_through_the_proxy(
