@@ -38,6 +38,7 @@ class RunnerSettings(BaseSettings):
     runner_operator_account_baseline_attested: bool = False
     runner_provider_secret_root: Path = Path("/run/provider-secrets")
     runner_provider_secret_temp_root: Path = Path("/run/provider-secrets-tmp")
+    runner_youtube_cookie_sync_root: Path | None = None
     runner_provider_session_max_age_seconds: float = Field(
         default=0,
         ge=0,
@@ -138,6 +139,13 @@ class RunnerSettings(BaseSettings):
     def resolve_workspace(cls, value: Path) -> Path:
         return value.expanduser().resolve()
 
+    @field_validator("runner_youtube_cookie_sync_root")
+    @classmethod
+    def normalize_cookie_sync_root(cls, value: Path | None) -> Path | None:
+        if value is None:
+            return None
+        return value.expanduser().resolve()
+
     @field_validator("runner_operator_session_versions")
     @classmethod
     def validate_operator_versions(cls, value: dict[str, str]) -> dict[str, str]:
@@ -184,6 +192,18 @@ class RunnerSettings(BaseSettings):
         ):
             raise ValueError("provider session temp root cannot be in the workspace")
         operator = self.runner_access_mode is ProviderAccessMode.OPERATOR_MANAGED
+        if self.runner_youtube_cookie_sync_root is not None:
+            youtube_operator = operator and set(
+                self.runner_operator_session_versions
+            ) == {"youtube"}
+            if not youtube_operator:
+                raise ValueError(
+                    "YouTube cookie sync is restricted to the YouTube operator"
+                )
+            if self.runner_youtube_cookie_sync_root.is_relative_to(
+                self.runner_workspace_root
+            ):
+                raise ValueError("cookie sync root cannot be in the workspace")
         if operator:
             providers = set(self.runner_operator_session_versions)
             if len(providers) != 1:

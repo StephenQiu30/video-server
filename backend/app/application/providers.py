@@ -74,7 +74,7 @@ def provider_user_action(
     if provider_key == "qqvideo":
         return QQVIDEO_PLAYBACK_ONLY_ACTION
     if status is ProviderSupportStatus.ACCESS_REQUIRED and download_available:
-        return f"{sample}已完成真实下载；当前链接仍可能因平台授权或验证要求失败。"
+        return "真实下载已完成验证；当前链接仍可能因平台授权或验证要求失败。"
     if provider_key == "wechat_channels":
         return (
             "仅支持分享页直接公开非加密媒体的单视频；"

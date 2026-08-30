@@ -247,7 +247,7 @@ async def test_supported_download_is_explicit_with_conditional_session() -> None
     assert view.download_available is True
     assert view.status is ProviderSupportStatus.ACCESS_REQUIRED
     assert view.user_action == (
-        "公开样本已完成真实下载；当前链接仍可能因平台授权或验证要求失败。"
+        "真实下载已完成验证；当前链接仍可能因平台授权或验证要求失败。"
     )
 
 
@@ -468,7 +468,9 @@ async def test_credential_or_attestation_rotation_invalidates_old_evidence(
 
 
 @pytest.mark.asyncio
-async def test_operator_evidence_does_not_override_anonymous_public_status() -> None:
+async def test_operator_evidence_does_not_override_mixed_unknown_public_status() -> (
+    None
+):
     operator_context = access_context(
         access_mode=ProviderAccessMode.OPERATOR_MANAGED,
     )
@@ -494,6 +496,80 @@ async def test_operator_evidence_does_not_override_anonymous_public_status() -> 
 
     assert view.last_checked_at is None
     assert view.last_check_succeeded is None
+    assert view.download_available is False
+    assert view.last_media_verified_at is None
+
+
+@pytest.mark.asyncio
+async def test_mixed_access_required_status_uses_operator_download_evidence() -> None:
+    operator_context = access_context(
+        access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+    )
+    operator_download = replace(
+        result(0, stage=ProviderCanaryStage.MEDIA),
+        target_id="download:00000000-0000-4000-8000-000000000001",
+        access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+        context_generation_id=operator_context.generation_id,
+    )
+    mixed_baseline = replace(
+        baseline(ProviderSupportStatus.ACCESS_REQUIRED),
+        access_modes=(
+            ProviderAccessMode.ANONYMOUS,
+            ProviderAccessMode.OPERATOR_MANAGED,
+        ),
+    )
+    contexts = ContextReader((operator_context,))
+    service = ProviderStatusService(
+        Reader((operator_download,)),
+        (mixed_baseline,),
+        now=lambda: NOW,
+        context_reader=contexts,
+    )
+
+    view = (await service.list())[0]
+
+    assert contexts.requests == [{"vimeo": ProviderAccessMode.OPERATOR_MANAGED}]
+    assert view.status is ProviderSupportStatus.ACCESS_REQUIRED
+    assert view.last_checked_at == NOW
+    assert view.last_check_succeeded is True
+    assert view.download_available is True
+    assert view.last_media_verified_at == NOW
+    assert view.last_verified_at is None
+    assert view.user_action == (
+        "真实下载已完成验证；当前链接仍可能因平台授权或验证要求失败。"
+    )
+
+
+@pytest.mark.asyncio
+async def test_mixed_verified_status_keeps_anonymous_evidence_scope() -> None:
+    operator_context = access_context(
+        access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+    )
+    operator_media = replace(
+        result(0, stage=ProviderCanaryStage.MEDIA),
+        access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+        context_generation_id=operator_context.generation_id,
+    )
+    mixed_baseline = replace(
+        baseline(ProviderSupportStatus.VERIFIED),
+        access_modes=(
+            ProviderAccessMode.ANONYMOUS,
+            ProviderAccessMode.OPERATOR_MANAGED,
+        ),
+    )
+    contexts = ContextReader()
+    service = ProviderStatusService(
+        Reader((operator_media,)),
+        (mixed_baseline,),
+        now=lambda: NOW,
+        context_reader=contexts,
+    )
+
+    view = (await service.list())[0]
+
+    assert contexts.requests == [{"vimeo": ProviderAccessMode.ANONYMOUS}]
+    assert view.status is ProviderSupportStatus.VERIFIED
+    assert view.last_checked_at is None
     assert view.download_available is False
     assert view.last_media_verified_at is None
 

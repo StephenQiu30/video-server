@@ -163,7 +163,7 @@ def _merge_status(
         ProviderSupportStatus.UNSUPPORTED,
     }:
         return baseline
-    access_mode = _status_access_mode(baseline.access_modes)
+    access_mode = _status_access_mode(baseline)
     if access_mode is None:
         return baseline
     if context_generation_id is None:
@@ -266,7 +266,7 @@ def _evidence_scopes(
             ProviderSupportStatus.UNSUPPORTED,
         }:
             continue
-        access_mode = _status_access_mode(baseline.access_modes)
+        access_mode = _status_access_mode(baseline)
         if access_mode is not None:
             context = contexts.get(baseline.key)
             if context is None:
@@ -285,7 +285,7 @@ async def _runtime_contexts(
     requested = {
         baseline.key: access_mode
         for baseline in baselines
-        if (access_mode := _status_access_mode(baseline.access_modes)) is not None
+        if (access_mode := _status_access_mode(baseline)) is not None
     }
     try:
         resolved = await reader.contexts_for_providers(requested)
@@ -310,8 +310,14 @@ async def _runtime_contexts(
 
 
 def _status_access_mode(
-    access_modes: tuple[ProviderAccessMode, ...],
+    baseline: ProviderStatusView,
 ) -> ProviderAccessMode | None:
+    access_modes = baseline.access_modes
+    if (
+        baseline.status is ProviderSupportStatus.ACCESS_REQUIRED
+        and ProviderAccessMode.OPERATOR_MANAGED in access_modes
+    ):
+        return ProviderAccessMode.OPERATOR_MANAGED
     if ProviderAccessMode.ANONYMOUS in access_modes:
         return ProviderAccessMode.ANONYMOUS
     return access_modes[0] if access_modes else None

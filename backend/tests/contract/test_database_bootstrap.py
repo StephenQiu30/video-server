@@ -413,6 +413,34 @@ def test_provider_session_runners_are_physically_isolated_by_provider() -> None:
             )
 
 
+def test_local_youtube_operator_owns_the_host_cookie_sync_mount() -> None:
+    compose = COMPOSE_PATH.read_text(encoding="utf-8")
+    production = PROD_COMPOSE_PATH.read_text(encoding="utf-8")
+    youtube_operator = _service_block(compose, "youtube-operator-runner")
+
+    assert "RUNNER_YOUTUBE_COOKIE_SYNC_ROOT: /run/youtube-cookie-sync" in (
+        youtube_operator
+    )
+    assert (
+        'source: "${YOUTUBE_COOKIE_SYNC_DIR:-${HOME}/Library/Caches/'
+        'FrameFetch/youtube-cookie-sync}"'
+        in youtube_operator
+    )
+    assert "target: /run/youtube-cookie-sync" in youtube_operator
+    assert "read_only: false" in youtube_operator
+    assert "create_host_path: false" in youtube_operator
+    assert compose.count("RUNNER_YOUTUBE_COOKIE_SYNC_ROOT") == 1
+    assert compose.count("target: /run/youtube-cookie-sync") == 1
+    assert "RUNNER_YOUTUBE_COOKIE_SYNC_ROOT" not in production
+    assert "YOUTUBE_COOKIE_SYNC_DIR" not in production
+    assert "YOUTUBE_COOKIE_SYNC_DIR=\n" in ENV_EXAMPLE_PATH.read_text(
+        encoding="utf-8"
+    )
+    assert _env_value(ENV_EXAMPLE_PATH, "YOUTUBE_COOKIE_VERSION") == (
+        "chrome-default-v1"
+    )
+
+
 def test_wechat_channels_is_anonymous_only_without_browser_session_runtime() -> None:
     compose_documents = (
         COMPOSE_PATH.read_text(encoding="utf-8"),

@@ -6,7 +6,7 @@
 - 前置调研：`docs/research/003-多平台下载会话与GitHub适配调研.md`
 - 实现状态：Phase 1 已落地版本化 Profile、非 Secret 访问上下文、匿名/YouTube 运维 Runner 路由、操作级 Cookie jar、权益防火墙、服务端托管 POT sidecar、稳定错误、Provider 探针结果表/定时执行器/动态状态聚合、`GET /api/providers` 与前端状态页。YouTube 已停止 yt-dlp 与 Runner 的同出口立即重试放大；授权目标的真实 Cookie/POT canary、完整视频 Agent E2E、账号权益漂移自动停用，以及遵守 `Retry-After` 的跨层总预算/cooldown 仍是生产发布门禁；Phase 2 的用户 Credential Broker/Vault 与 gallery-dl 尚未实现。
 
-> 当前实现增量（2026-08-30）：Runner 固定 yt-dlp package `2026.8.19`（CLI 输出 `2026.08.19`）/ commit `3a08beaf031ab68f966401ead017ac81fe8486cf`，YouTube Profile 为 `youtube-v5`，匿名公开链路由服务端自动使用 `mweb` + EJS + bgutil POT Provider `1.3.2`。Sidecar 锁定为 `brainicism/bgutil-ytdlp-pot-provider:1.3.2@sha256:9a96e6385ce1928da87dea07b1cab0413d2cf8c07a3b8a8bd419f53df2c3843c`；Runner 与 sidecar 只接 internal 网络，只有 Squid 接入非 internal 的 `proxy_uplink_net`。默认 HTTP(S) proxy 是 Squid；配置 YouTube 专用代理时，部署方必须把受管双网卡网关加入 internal `youtube_pot_net`，映射只能指向它的内部服务地址，bgutil 与 yt-dlp 使用同一实际 proxy。用户无需提供 Cookie、PO Token 或 yt-dlp 参数；服务也不读取宿主 Chrome/个人浏览器会话。YouTube Profile 只执行一次 inspection，三个 yt-dlp retry scope 均为 `0`；429 和出口 challenge 不在 Runner 内立即重试，warning 保留用于稳定分类。POT 只解决 Player/GVS 请求证明，不能修复已被 `LOGIN_REQUIRED` / bot challenge 的出口 IP；YouTube 在面向 C 端的生产环境恢复 `verified` 前，部署方必须配置可持续、合规、由自身运维的 YouTube 专用出口并通过授权样本 media canary，不使用公共代理、WARP/Tor、公共解析服务或个人 Cookie 作为可用性基础。
+> 当前实现增量（2026-08-30）：Runner 固定 yt-dlp package `2026.8.19`（CLI 输出 `2026.08.19`）/ commit `3a08beaf031ab68f966401ead017ac81fe8486cf`，YouTube Profile 为 `youtube-v5`，匿名公开链路由服务端自动使用 `mweb` + EJS + bgutil POT Provider `1.3.2`。Sidecar 锁定为 `brainicism/bgutil-ytdlp-pot-provider:1.3.2@sha256:9a96e6385ce1928da87dea07b1cab0413d2cf8c07a3b8a8bd419f53df2c3843c`；Runner 与 sidecar 只接 internal 网络，只有 Squid 接入非 internal 的 `proxy_uplink_net`。默认 HTTP(S) proxy 是 Squid；配置 YouTube 专用代理时，部署方必须把受管双网卡网关加入 internal `youtube_pot_net`，映射只能指向它的内部服务地址，bgutil 与 yt-dlp 使用同一实际 proxy。用户无需上传 Cookie、PO Token 或 yt-dlp 参数；生产 Compose 不读取个人浏览器会话。macOS 单机模式可显式安装 `launchd QueueDirectories` 按需助手：Chrome Cookies 数据库的 SQL 查询只选择 YouTube 域，单次读取使用 15 秒硬超时的独立进程组，超时或取消时整组回收；它只在 YouTube Operator 操作开始时运行，排空后退出且不启动 Chrome。该助手不是平行应用入口，项目仍仅通过根 Docker Compose 运行。YouTube Profile 只执行一次 inspection，三个 yt-dlp retry scope 均为 `0`；429 和出口 challenge 不在 Runner 内立即重试，warning 保留用于稳定分类。POT 只解决 Player/GVS 请求证明，不能修复已被 `LOGIN_REQUIRED` / bot challenge 的出口 IP；YouTube 在面向 C 端的生产环境恢复 `verified` 前，部署方必须配置可持续、合规、由自身运维的 YouTube 专用出口并通过授权样本 media canary，不使用公共代理、WARP/Tor 或公共解析服务作为可用性基础。
 
 ## 1. 目标
 
@@ -25,7 +25,7 @@
 - 不在 inspection/download JSON 中直接上传 Cookie、Authorization、PO Token 或原始浏览器 profile。
 - 不开放任意 yt-dlp/gallery-dl 参数、输出模板、插件、外部 downloader、shell 或文件路径。
 - 不把用户 URL 或凭据发送到公共解析 API、公共 Worker 或公共 cobalt 实例。
-- 不启动宿主 Chrome 或读取开发者/用户个人浏览器 Profile，不把公共代理、WARP/Tor 或个人 Cookie 当作多用户服务的稳定出口。
+- 不启动或操控宿主 Chrome，不自动化登录，不读取非 YouTube 域 Cookie，也不把公共代理、WARP/Tor 或个人 Cookie 当作多用户生产服务的稳定出口；本机按需助手是用户显式安装的单机边界。
 - 中心服务和 Provider Runner 不通过高频代理轮换、伪造平台签名或安装 MITM 根证书规避访问控制。用户设备 Edge Agent 按 019 的独立产品路径实施，不纳入本编号的 Cookie Runner。
 - 不在本编号中开放直播录制、无限播放列表、频道归档或多媒体帖子下载。
 
@@ -214,9 +214,9 @@ engine_commit
 规则：
 
 1. 下载任务保存上述引用，不保存 Cookie、visitor data 或 token 原文。
-2. “同一 context”表示同一个不可变 credential snapshot version、client 和出口身份，不要求把初次 inspection 中收到的临时 `Set-Cookie` 持久化到业务数据面。
+2. 生产静态凭据的“同一 context”表示同一个不可变 credential snapshot version、client 和出口身份，不要求把初次 inspection 中收到的临时 `Set-Cookie` 持久化到业务数据面。`chrome-default-v1` 是本机动态来源协议标识，不是 Cookie 内容快照 ID；inspect 和 download 各自在操作开始时从同一本机来源刷新。
 3. 初次 inspection 与异步 download 各创建一个操作级可写 jar；download 必须先用原 snapshot version 重新 inspect，再让 video/audio stream、probe sample 和需要远程访问的 ffprobe 串行复用该 jar。
-4. Download Worker 重解析时必须获得原 snapshot version；它至少保留到 inspection TTL 和最大排队窗口结束。不可用时返回稳定错误，不用当前 active 版本、其他账号或匿名模式替代。
+4. Download Worker 重解析时必须获得原来源引用；生产静态 snapshot 至少保留到 inspection TTL 和最大排队窗口结束，本机 `chrome-default-v1` 则重新触发同一来源协议。对应来源不可用时返回稳定错误，不用其他账号或匿名模式替代。
 5. POT 由同一 client/session/出口上的 Provider 按视频生成；不把 video-bound token 长期持久化。
 6. `egress_affinity_id` 不使用 Profile pool 名或代理明文；它由实际代理 URL 的 SHA-256 前 12 位和 `default` / `provider:{key}` scope 组成。URL 变更即视为不同出口，必须新建 context 且旧 canary 不得继续作为当前证据。
 7. redirect 到另一 Provider 时销毁 context，重新执行 URL 安全校验和 admission；原凭据不得随 redirect 发送。
@@ -246,7 +246,15 @@ pending → canary → active → retired
 
 新版本只有 canary 通过后才能激活；旧版本至少保留到引用它的 inspection TTL 和最大排队窗口结束，并可在短时窗口回滚。会话出现明确 rotated/expired 信号时标记 `needs_refresh`，不依据猜测 TTL 自动登录或自动化 2FA。
 
-### 8.2 第二阶段：用户 ProviderCredential
+### 8.2 macOS 单机按需来源
+
+- 只有当前登录的 macOS 用户显式安装助手并启用 YouTube Operator 后，解析/下载操作才可触发 Chrome Default 来源；生产多用户服务不使用该来源。
+- Chrome Cookies 数据库的 SQL 查询在选择阶段就限制为 `youtube.com` / `youtube-nocookie.com`，只返回并解密中选行；非 YouTube 域 Cookie 不进入 helper 的查询结果、输出文件或日志。
+- 单次读取在独立进程组中执行，持有 15 秒硬超时；成功后立即退出，超时、取消或异常时终止并回收整个进程组。helper 不启动、操作或持有 Chrome，不使用定时轮询或常驻端口。
+- `chrome-default-v1` 表示动态本机来源协议，不是 Cookie 原文哈希或内容 cohort。其平台状态历史只能证明该来源在相同非敏感上下文近期完成过制品，不证明当前 Cookie 未轮换或仍可用，不能单独将 `access_required` 提升为 `verified`。
+- 应用服务的启动与重启仍只使用根 Docker Compose；按需 helper 是凭据适配器，不是宿主机平行应用或新的启动脚本。
+
+### 8.3 第二阶段：用户 ProviderCredential
 
 用户凭据只能通过独立、认证、CSRF 防护的 multipart API 创建：
 
@@ -259,7 +267,7 @@ pending → canary → active → retired
 
 `POST /api/inspections` 继续拒绝 `{cookie: ...}`；Phase 2 只增加可选 `credential_id`。这条约束防止 Secret 混入普通 JSON、访问日志、错误快照和幂等存储，并不等同于禁止 Cookie 功能。
 
-### 8.3 内容权益防火墙
+### 8.4 内容权益防火墙
 
 共享运维会话只能解除公开视频的反机器人访问验证，不能把账号自身权益借给用户：
 
@@ -404,7 +412,7 @@ unknown | verified | degraded | access_required | rate_limited | blocked | disab
 
 最近 5 次至少 4 次成功、最近 2 次连续成功、metadata 成功不超过 6 小时且 media 成功不超过 26 小时，已批准基线才可恢复 `verified`；至少 2 次失败进入 `degraded`；连续 3 次同类永久失败进入 `blocked`。会话失效立即进入 `access_required`。API 已实现该聚合器，但新平台的 `unknown/access_required` 基线不能被下载探针自动提升，必须先完成完整视频 Agent E2E 并显式批准。当前逐平台状态只由 Registry、状态 API 与对应验收文档维护，不在本通用策略中复制易过期快照；微信视频号当前边界见 025，腾讯视频授权媒体边界见 024。
 
-API 通过 HMAC/replay 防护的批量 Runner context 接口读取当前运行时，2 秒内一次解析全部匿名平台，各 operator group 并行且故障隔离。状态和 scheduler 使用完整 context 的 SHA-256 generation：`provider_key + profile_version + access_mode + credential_version_id + egress_affinity_id + client_profile_id + attestation_provider_version + engine_commit`。任一字段变化都会创建新 generation；查询必须在 SQL 排序/限额前按当前 generation 过滤，历史任务即使晚完成也不能污染当前状态或推迟新一轮 canary。无法取得或无法通过语义校验的 group 只将对应平台标为 `degraded`，绝不从历史记录推断“当前 cohort”。
+API 通过 HMAC/replay 防护的批量 Runner context 接口读取当前运行时，2 秒内一次解析全部匿名平台，各 operator group 并行且故障隔离。状态和 scheduler 使用完整 context 的 SHA-256 generation：`provider_key + profile_version + access_mode + credential_version_id + egress_affinity_id + client_profile_id + attestation_provider_version + engine_commit`。任一字段变化都会创建新 generation；查询必须在 SQL 排序/限额前按当前 generation 过滤，历史任务即使晚完成也不能污染当前状态或推迟新一轮 canary。无法取得或无法通过语义校验的 group 只将对应平台标为 `degraded`，绝不从历史记录推断“当前 cohort”。动态本机来源 `chrome-default-v1` 不将 Cookie 原文或哈希加入 generation，因此其关联的真实下载只是“这个来源近期成功”的历史证据，不是当前 Cookie 内容 cohort 的验证结果；它不能单独把 `access_required` 提升为 `verified`。
 
 ## 14. 可观测性与审计
 

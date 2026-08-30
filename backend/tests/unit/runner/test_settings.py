@@ -145,3 +145,82 @@ def test_rejects_provider_proxy_with_surrounding_whitespace(
             runner_provider_egress_proxies={"youtube": " http://youtube-egress:3128"},
             runner_workspace_root=tmp_path,
         )
+
+
+def test_youtube_operator_can_enable_cookie_sync(tmp_path: Path) -> None:
+    bridge = tmp_path / "bridge"
+
+    settings = RunnerSettings(
+        runner_hmac_secret=SECRET,
+        runner_egress_proxy="http://egress-proxy:3128",
+        runner_workspace_root=tmp_path / "work",
+        runner_access_mode="operator_managed",
+        runner_operator_session_versions={"youtube": "browser-v1"},
+        runner_operator_account_baseline_attested=True,
+        runner_provider_secret_temp_root=tmp_path / "sessions",
+        runner_youtube_cookie_sync_root=bridge,
+        runner_max_active_tasks=1,
+    )
+
+    assert settings.runner_youtube_cookie_sync_root == bridge.resolve()
+
+
+def test_anonymous_mode_cannot_enable_cookie_sync(tmp_path: Path) -> None:
+    with pytest.raises(ValidationError, match="restricted to the YouTube operator"):
+        RunnerSettings(
+            runner_hmac_secret=SECRET,
+            runner_egress_proxy="http://egress-proxy:3128",
+            runner_workspace_root=tmp_path / "work",
+            runner_access_mode="anonymous",
+            runner_provider_secret_temp_root=tmp_path / "sessions",
+            runner_youtube_cookie_sync_root=tmp_path / "bridge",
+        )
+
+
+def test_other_operator_provider_cannot_enable_youtube_cookie_sync(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(ValidationError, match="restricted to the YouTube operator"):
+        RunnerSettings(
+            runner_hmac_secret=SECRET,
+            runner_egress_proxy="http://egress-proxy:3128",
+            runner_workspace_root=tmp_path / "work",
+            runner_access_mode="operator_managed",
+            runner_operator_session_versions={"x": "version-1"},
+            runner_operator_account_baseline_attested=True,
+            runner_provider_secret_temp_root=tmp_path / "sessions",
+            runner_youtube_cookie_sync_root=tmp_path / "bridge",
+            runner_max_active_tasks=1,
+        )
+
+
+def test_cookie_sync_root_cannot_be_inside_runner_workspace(tmp_path: Path) -> None:
+    with pytest.raises(ValidationError, match="cannot be in the workspace"):
+        RunnerSettings(
+            runner_hmac_secret=SECRET,
+            runner_egress_proxy="http://egress-proxy:3128",
+            runner_workspace_root=tmp_path / "work",
+            runner_access_mode="operator_managed",
+            runner_operator_session_versions={"youtube": "browser-v1"},
+            runner_operator_account_baseline_attested=True,
+            runner_provider_secret_temp_root=tmp_path / "sessions",
+            runner_youtube_cookie_sync_root=tmp_path / "work/bridge",
+            runner_max_active_tasks=1,
+        )
+
+
+def test_cookie_sync_root_cannot_traverse_into_runner_workspace(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(ValidationError, match="cannot be in the workspace"):
+        RunnerSettings(
+            runner_hmac_secret=SECRET,
+            runner_egress_proxy="http://egress-proxy:3128",
+            runner_workspace_root=tmp_path / "work",
+            runner_access_mode="operator_managed",
+            runner_operator_session_versions={"youtube": "browser-v1"},
+            runner_operator_account_baseline_attested=True,
+            runner_provider_secret_temp_root=tmp_path / "sessions",
+            runner_youtube_cookie_sync_root=tmp_path / "outside/../work/bridge",
+            runner_max_active_tasks=1,
+        )

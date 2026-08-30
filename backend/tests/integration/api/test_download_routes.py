@@ -33,7 +33,14 @@ TEST_USER = CurrentUser(
 
 
 def client(tmp_path: Path) -> tuple[TestClient, dict[str, StubUseCase]]:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(
+        Settings(
+            app_env="test",
+            _env_file=None,
+            frontend_dist_dir=tmp_path / "none",
+            runner_operator_base_urls={},
+        )
+    )
     container, stubs = use_cases()
     discovery_container, discovery_stubs = source_discovery_use_cases()
     app.state.download_use_cases = container

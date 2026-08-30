@@ -535,6 +535,7 @@ services:
       RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${YOUTUBE_OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
       RUNNER_PROVIDER_SECRET_ROOT: /run/provider-secrets
       RUNNER_PROVIDER_SECRET_TEMP_ROOT: /run/provider-secrets-tmp
+      RUNNER_YOUTUBE_COOKIE_SYNC_ROOT: /run/youtube-cookie-sync
       RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS: "${RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS:-0}"
       RUNNER_YOUTUBE_POT_BASE_URL: http://youtube-pot-provider:4416
       RUNNER_YOUTUBE_POT_PROVIDER_VERSION: bgutil-http-1.3.2
@@ -549,6 +550,12 @@ services:
         source: "${YOUTUBE_COOKIE_SECRET_DIR:-./.provider-secrets/youtube}"
         target: /run/provider-secrets/youtube
         read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: "${YOUTUBE_COOKIE_SYNC_DIR:-${HOME}/Library/Caches/FrameFetch/youtube-cookie-sync}"
+        target: /run/youtube-cookie-sync
+        read_only: false
         bind:
           create_host_path: false
     tmpfs:

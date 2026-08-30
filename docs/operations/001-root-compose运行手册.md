@@ -51,9 +51,15 @@ docker compose --env-file .env -f docker-compose.yml up -d --build --force-recre
 最后一条 Docker Compose 命令是本机完整项目的启动与重启入口。它统一构建前端与
 后端镜像、重新创建业务服务并等待健康检查。需要 Operator Runner 时，在 `.env` 的
 `COMPOSE_PROFILES` 中声明与 `RUNNER_OPERATOR_BASE_URLS` 一致的 profile。项目启动
-不会在项目启动或解析时启动宿主机浏览器、读取个人浏览器 Profile 或调用 AI Worker
-获取平台会话。需要受控 Provider 时，其版本化只读 Secret 必须由部署环境在仓库外
-提供。不要使用不会应用代码、镜像或配置变化的 `docker compose restart`。
+不会在项目启动或解析时启动宿主机浏览器，也不会调用 AI Worker 获取平台会话。
+生产受控 Provider 的版本化只读 Secret 由部署环境在仓库外提供。macOS 单机部署若
+显式安装 YouTube 按需助手，则只有 YouTube Operator 操作会自动读取 Chrome Default
+的 Cookies 数据库，SQL 查询本身只选择 YouTube 域，不把其他域行返回到查询结果后再过滤。单次读取
+有 15 秒硬超时，超时或取消会回收整个进程组；请求排空后 helper 退出，不会
+打开或留下 Chrome 后台进程。该 helper 只是按需的本机凭据适配器，不是平行应用启动
+方式；项目仍只通过上述 Docker Compose 命令运行。生产多用户部署不安装该 helper，也不
+依赖任何个人 Chrome。不要使用不会应用代码、镜像或配置变化的
+`docker compose restart`。
 
 访问地址：
 

@@ -14,8 +14,9 @@
 
 1. 用可测试的策略责任链统一匿名与 Provider Operator 解析路径。
 2. 以错误策略对象约束降级范围，并优先暴露已配置会话过期。
-3. Operator 会话只来自部署环境提供的版本化只读 Secret；运行时不读取个人浏览器，
-   不依赖开发者电脑或 AI Worker，也不提供普通用户 Cookie 上传入口。
+3. Operator 会话来自部署环境提供的版本化只读 Secret；macOS 单机 YouTube 可显式
+   启用按需 Chrome 同步，但生产不依赖开发者电脑或 AI Worker，也不提供普通用户
+   Cookie 上传入口。
 4. 私有封面通过认证 HTTP client 获取并在内存中显示，不让原生图片请求绕过
    Access/Refresh Cookie 恢复。
 5. 下载任务由 Worker 在执行前重新解析并校验规格；终态重试只负责入队，避免
@@ -55,11 +56,13 @@ Operator 已确认链接失效时也优先返回这个确定结论，避免匿�
 
 ## 3. Provider Session 生命周期
 
-C 端服务不能把任何个人电脑上的 Chrome Profile、Keychain、Codex Worker 或登录窗口
-作为可用性前提。Provider Operator 因此是部署方可选能力，并遵循同一生命周期：
+C 端生产服务不能把任何个人电脑上的 Chrome Profile、Keychain、Codex Worker 或登录
+窗口作为可用性前提。Provider Operator 因此是部署方可选能力，并遵循同一生命周期；
+macOS 单机 YouTube 助手是显式安装的本地例外：
 
-1. 部署方在仓库外完成账号授权，把最小 Netscape Cookie 文件写入 Secret 管理系统；
-   应用不包含浏览器读取、登录自动化或 Cookie 导出代码。
+1. 生产部署方在仓库外完成账号授权，把最小 Netscape Cookie 文件写入 Secret 管理
+   系统；本机助手不自动登录或启动 Chrome，只在操作触发时同步已登录 Default Profile
+   中的 YouTube 域 Cookie。
 2. 每个 Secret 只允许一个 Provider 的批准域，使用不可变版本名并以只读方式挂载到
    对应的物理隔离 Runner。
 3. Runner 在单次操作内创建 `0600` 临时副本；Cookie 原文不进入 API、数据库、

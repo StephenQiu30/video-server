@@ -116,7 +116,7 @@ MeTube 的任意 yt-dlp override 和 cobalt 的公共实例都不能直接复制
 5. 对格式缺失或 GVS 403，使用 `mweb` + 自动 GVS PO Token Provider；不保存手工静态 token。
 6. 若仍是 IP challenge，停止放大请求，进入出口冷却/治理；不要把真实账号 Cookie 投到已被 block 的高并发出口。
 
-yt-dlp 官方说明 YouTube 会轮换账号 Cookie，使用账号还有临时或永久封禁风险。运维应使用无个人资产的专用账号、低请求率，并按官方流程从独立私密会话导出：登录后在唯一 tab 打开 `youtube.com/robots.txt`，只导出 YouTube 域 Cookie，随后关闭且不再打开该私密会话。[YouTube Cookie 指南](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies)
+yt-dlp 官方说明 YouTube 会轮换账号 Cookie，使用账号还有临时或永久封禁风险。生产运维 Secret 应使用无个人资产的专用账号、低请求率，并按官方流程从独立私密会话导出：登录后在唯一 tab 打开 `youtube.com/robots.txt`，只导出 YouTube 域 Cookie，随后关闭且不再打开该私密会话。[YouTube Cookie 指南](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies)。这是生产多用户路径；macOS 单机按需来源不要求手工导出，也不应被扩展成生产对个人 Chrome 的依赖。
 
 PO Token 与 Cookie 不是同一个凭据。当前官方 TL;DR 是通过 Provider plugin 为 `mweb` 的 GVS 请求自动提供 token；大量 token 会与视频 ID 或 session 绑定，手工长期缓存已经不推荐。[PO Token Guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide)
 
@@ -222,15 +222,17 @@ yt-dlp 官方 [PO Token Guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Gu
 
 `RUNNER_PROVIDER_EGRESS_PROXIES={}` 时，YouTube 实际仍通过共享 `default` egress；Profile 的 `egress_pool` 是期望路由，不是已经获得专用 IP 的证据。Runner 使用实际代理 URL 的 SHA-256 前 12 位指纹生成非 Secret `egress_affinity_id`，带 `default` 或 `provider:youtube` scope；URL 变更即创建新 context。本轮将缺失 Runner context 的 canary 出口记为 `unresolved`，防止平台状态伪报已使用 `youtube-sticky`。
 
-平台状态通过 HMAC/replay 防护的批量 Runner 接口读取实时 context，并只聚合精确相同的 SHA-256 generation；generation 覆盖 provider、profile、access mode、credential version、实际 egress affinity、client profile、attestation/POT version 和 engine commit。旧 generation 保留审计但即使晚完成也不能影响当前状态；scheduler 同样按该 generation 查询最近执行时间。某个 runner group 取不到或返回畸形 context 时，只将该组平台标为 `degraded`，不会用历史 cohort 猜测当前运行时。
+平台状态通过 HMAC/replay 防护的批量 Runner 接口读取实时 context，并只聚合精确相同的 SHA-256 generation；generation 覆盖 provider、profile、access mode、credential version、实际 egress affinity、client profile、attestation/POT version 和 engine commit。旧 generation 保留审计但即使晚完成也不能影响当前状态；scheduler 同样按该 generation 查询最近执行时间。某个 runner group 取不到或返回畸形 context 时，只将该组平台标为 `degraded`，不会用历史 cohort 猜测当前运行时。`chrome-default-v1` 是动态本机来源标识，不是 Cookie 内容哈希；与它关联的近期真实下载成功只证明该来源在相同非敏感上下文完成过制品，不是“当前 Cookie cohort 已验证”，也不能单独将 `access_required` 提升为 `verified`。
 
 面向多用户的长期可用性要求部署方为 `youtube` 配置自身运维、稳定、合规且可审计的专用出口，在同一实际 affinity 上完成 metadata + media canary，并以低并发、`Retry-After` 和冷却控制请求。这是部署能力门禁，不是需要再增加解析器补丁。
 
 当前 Runner 已把 yt-dlp retry 作为 Profile 策略；YouTube 的三个 yt-dlp retry scope 均为 `0` 且 inspection 只执行一次。429 与 `egress_challenged` 不在相同 context 中立即重试，yt-dlp warning 保留并优先识别复合 429。该收敛只停止本地请求放大，不等同于健康出口；`Retry-After`、跨层持久化总预算和按 context generation 的 cooldown 仍须在生产门禁中完成。
 
+macOS 单机按需助手在 Chrome Cookies 数据库的 SQL 查询阶段就只选择 `youtube.com` / `youtube-nocookie.com` 域，仅解密并输出该查询的行。每次读取在独立进程组中执行，有 15 秒硬超时；超时、取消或异常都终止并回收整个进程组。它不启动或操作 Chrome，不是常驻后台服务，也不是宿主机平行应用入口；项目启动仍只使用根 Docker Compose。生产多用户服务不安装该助手，不依赖个人 Chrome。
+
 不采用下列降级：
 
-- 不启动或操控宿主 Chrome，不读取开发者/用户个人 Cookie 或浏览器 Profile。
+- 不启动或操控宿主 Chrome，不查询、解密或输出非 YouTube 域 Cookie。macOS 单机模式仅在用户显式安装按需助手后，按 YouTube Operator 操作同步 Chrome Default；生产多用户服务不依赖个人浏览器。
 - 不接入免费/公共代理列表、WARP/Tor 或高频 IP 轮换；它们不能提供可审计、可持续的 C 端服务质量。
 - 不把用户 URL 交给公共 cobalt/Invidious/其他解析 Worker，不用它们绕过当前 Runner 的出网、隐私和权益边界。
 - 不将 [yt-dlp-getpot-wpc](https://github.com/coletdjnz/yt-dlp-getpot-wpc) 这类启动真实浏览器的实验性 POT 方案并入服务端默认链路；它不解决 IP 信誉，且与无后台 Chrome 的隐私要求冲突。

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import os
 import stat
+from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
 
@@ -18,6 +19,21 @@ COOKIE = (
     b"# Netscape HTTP Cookie File\n"
     b".youtube.com\tTRUE\t/\tTRUE\t2147483647\tSID\tfixture-secret\n"
 )
+
+
+class FakeCookieSync:
+    def __init__(self, *, ready: bool = True) -> None:
+        self.ready = ready
+        self.calls = 0
+        self.on_sync: Callable[[], None] | None = None
+
+    def is_ready(self) -> bool:
+        return self.ready
+
+    async def sync(self) -> None:
+        self.calls += 1
+        if self.on_sync is not None:
+            self.on_sync()
 
 
 def operator_settings(tmp_path: Path) -> RunnerSettings:
@@ -298,3 +314,70 @@ async def test_retained_version_can_finish_but_unlisted_version_is_revoked(
     with pytest.raises(RunnerFailure) as caught:
         store.validate_context("https://youtu.be/owned", revoked)
     assert caught.value.code == "credential_revoked"
+
+
+async def test_live_youtube_session_syncs_before_source_validation(
+    tmp_path: Path,
+) -> None:
+    settings = operator_settings(tmp_path).model_copy(
+        update={"runner_youtube_cookie_sync_root": tmp_path / "bridge"}
+    )
+    cookie_sync = FakeCookieSync()
+    cookie_sync.on_sync = lambda: write_cookie(settings)
+    store = ProviderSessionStore(settings, cookie_sync=cookie_sync)
+    context = store.context_for("https://youtu.be/owned")
+
+    assert store.is_ready() is True
+    assert cookie_sync.calls == 0
+    async with store.operation(context) as jar:
+        assert jar is not None
+        assert jar.read_bytes() == COOKIE
+
+    assert cookie_sync.calls == 1
+
+
+async def test_retained_youtube_session_does_not_trigger_live_sync(
+    tmp_path: Path,
+) -> None:
+    settings = operator_settings(tmp_path).model_copy(
+        update={
+            "runner_youtube_cookie_sync_root": tmp_path / "bridge",
+            "runner_operator_retained_session_versions": {"youtube": ["version-0"]},
+        }
+    )
+    retained = settings.runner_provider_secret_root / "youtube/version-0.cookies.txt"
+    retained.parent.mkdir(parents=True)
+    retained.write_bytes(COOKIE)
+    cookie_sync = FakeCookieSync()
+    store = ProviderSessionStore(settings, cookie_sync=cookie_sync)
+    current = store.context_for("https://youtu.be/owned")
+    context = replace(current, credential_version_id="version-0")
+
+    async with store.operation(context) as jar:
+        assert jar is not None
+    assert cookie_sync.calls == 0
+
+
+def test_live_sync_readiness_does_not_require_initial_cookie(tmp_path: Path) -> None:
+    settings = operator_settings(tmp_path).model_copy(
+        update={"runner_youtube_cookie_sync_root": tmp_path / "bridge"}
+    )
+    cookie_sync = FakeCookieSync()
+
+    store = ProviderSessionStore(settings, cookie_sync=cookie_sync)
+
+    assert store.is_ready() is True
+    assert cookie_sync.calls == 0
+
+
+def test_live_sync_readiness_fails_with_unavailable_bridge(tmp_path: Path) -> None:
+    settings = operator_settings(tmp_path).model_copy(
+        update={"runner_youtube_cookie_sync_root": tmp_path / "bridge"}
+    )
+
+    store = ProviderSessionStore(
+        settings,
+        cookie_sync=FakeCookieSync(ready=False),
+    )
+
+    assert store.is_ready() is False

@@ -28,7 +28,9 @@ app/
 
 Media Runner 通过 `app/runner/plugins/yt_dlp_plugins/` 加载随项目交付的可信站点提取器。MediaTrack 适配仅处理无需登录的公开审片视频和 API 明确授权的播放转码；抖音适配用数字视频 ID 构造固定公开分享页并修正 landscape 下载规格的短边尺寸语义，TikTok 适配只使用其第一方嵌入播放器 item API 和 yt-dlp 默认客户端，明确无 item/HTTPS 格式、API 临时故障与响应结构漂移分别返回链接不可用、临时不可用和提取器回归，不回退网页挑战；快手适配把公开作品规范化到第一方移动分享页并限制短链重定向域，Tumblr 适配优先读取当前 `www.tumblr.com` 公开页而不强制改写到旧 blog 子域。小红书适配识别第一方 `300031` 笔记失效和 `300012` 平台验证边界，避免把失效内容误报成提取器故障。视频号适配只接受公开 `weixin.qq.com/sph/...` 单视频，并且只在匿名第一方响应直接提供批准腾讯媒体域上的非加密媒体时返回格式；没有公开媒体时明确拒绝并引导用户上传自己拥有或已获授权的文件。所有适配都继续经过受控代理、作品身份校验、大小/时长限制、重新 inspect、FFmpeg 和 ffprobe 校验，不支持图集截断、账号内容、无水印承诺或原文件权限绕过。
 
-主流视频源使用声明式 Provider Profile 接入：`provider_catalog_*.py` 按策略族登记能力和运行参数，`ProviderRegistry.prepare()` 一次解析得到贯穿 inspect/download 的不可变 `ProviderRequest`，`YtDlpCommandBuilder` 只消费该请求生成固定参数，错误由有序 `FailureRule` 归一化。已有 yt-dlp extractor 的公开单视频平台通常只需增加一个 Profile、契约测试和 metadata/media canary；需要自定义解析时再按 yt-dlp 官方插件目录增加可信 extractor，不修改通用命令执行器。未知站点使用无凭据 Generic extractor。可选的 YouTube、Vimeo、抖音、小红书、Reddit、X、Instagram 与 Facebook 运维会话由部署环境以版本化只读 Secret 提供，并分别在物理隔离的 Docker Runner 中建立操作级 `0600` Cookie jar；TikTok 和视频号始终走匿名 Runner。服务不读取个人浏览器、不启动 Chrome，也不把 Codex/AI Worker 当作 Cookie 获取通道。平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 key 指向受控内部代理。
+主流视频源使用声明式 Provider Profile 接入：`provider_catalog_*.py` 按策略族登记能力和运行参数，`ProviderRegistry.prepare()` 一次解析得到贯穿 inspect/download 的不可变 `ProviderRequest`，`YtDlpCommandBuilder` 只消费该请求生成固定参数，错误由有序 `FailureRule` 归一化。已有 yt-dlp extractor 的公开单视频平台通常只需增加一个 Profile、契约测试和 metadata/media canary；需要自定义解析时再按 yt-dlp 官方插件目录增加可信 extractor，不修改通用命令执行器。未知站点使用无凭据 Generic extractor。可选的 YouTube、Vimeo、抖音、小红书、Reddit、X、Instagram 与 Facebook 运维会话由部署环境以版本化只读 Secret 提供，并分别在物理隔离的 Docker Runner 中建立操作级 `0600` Cookie jar；TikTok 和视频号始终走匿名 Runner。
+
+生产多用户部署不读取或依赖个人浏览器。macOS 单机部署可显式安装 YouTube 按需助手，在解析进入受控线路时从 Chrome Default 自动同步 Cookie；Chrome Cookies 数据库的 SQL 查询本身只选择 YouTube 域，不把其他域行返回到查询结果后再过滤。单次读取在独立进程组中执行，且有 15 秒硬超时；超时、取消或异常回收整个进程组。助手空闲时无进程、不启动 Chrome，也不把 Codex/AI Worker 当作 Cookie 获取通道。它只是按需凭据适配器，不是平行应用入口；项目仍只通过根 Docker Compose 运行。平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 key 指向受控内部代理。
 
 完整的 Provider 会话配置、Secret 轮换与撤销流程见 `docs/operations/003-多平台受控会话运行手册.md`。
 
@@ -80,7 +82,9 @@ canary 只降级对应 Provider；API、文件上传、匿名下载和 AI 配置
 `GET /api/providers` 将 Registry 发布验收基线、近期固定探针和已经生成完整制品的
 真实下载合并展示。长期无人使用或未配置探针不会撤销已验收能力；近期重复失败仍会
 自动降级对应平台。真实任务投影只使用非敏感 Provider 上下文与完成时间，不读取或
-公开来源 URL、账号和 Cookie。
+公开来源 URL、账号和 Cookie。`chrome-default-v1` 只是本机动态来源标识；关联的近期成功
+表示该来源曾在相同非敏感上下文生成完整制品，不是当前 Cookie 内容 cohort，也不能单独证明
+当前会话可用或将 `access_required` 提升为 `verified`。
 
 宿主机 AI Worker 不属于 Compose，默认作为本机 Codex App Server Worker 独立受监督；第三方 Provider 从 Web 管理页选择，不通过额外启动脚本或 `.env` 切换。只使用跨平台 Agent 管理入口：
 
