@@ -166,23 +166,25 @@ jobs:
           "${compose[@]}" run --rm --no-deps database-init
           "${compose[@]}" run --rm --no-deps rabbitmq-init
           "${compose[@]}" run --rm --no-deps minio-init
-          "${compose[@]}" up --detach --wait --wait-timeout 240 --no-build api outbox worker-download provider-canary worker-report media-runner
+          "${compose[@]}" up --detach --wait --wait-timeout 240 --no-build api frontend outbox worker-download provider-canary worker-report media-runner
           python3 - <<'PY'
           import json
           import urllib.request
 
-          def request(path: str):
-              with urllib.request.urlopen(f'http://127.0.0.1:8101{path}', timeout=10) as response:
+          def request(origin: str, path: str):
+              with urllib.request.urlopen(f'{origin}{path}', timeout=10) as response:
                   return response.status, response.headers.get_content_type(), response.read()
 
-          status, content_type, body = request('/health/live')
+          api_origin = 'http://127.0.0.1:8111'
+          frontend_origin = 'http://127.0.0.1:8101'
+          status, content_type, body = request(api_origin, '/health/live')
           assert status == 200 and json.loads(body) == {'status': 'ok'}
-          status, content_type, body = request('/health/ready')
+          status, content_type, body = request(api_origin, '/health/ready')
           assert status == 200 and json.loads(body) == {'status': 'ok', 'service': 'api'}
-          status, content_type, body = request('/openapi.json')
+          status, content_type, body = request(api_origin, '/openapi.json')
           schema = json.loads(body)
           assert status == 200 and content_type == 'application/json' and schema.get('paths')
-          status, content_type, _ = request('/')
+          status, content_type, _ = request(frontend_origin, '/')
           assert status == 200 and content_type == 'text/html'
           print(f'运行时烟测通过：{len(schema["paths"])} 个 OpenAPI paths')
           PY
