@@ -1,5 +1,4 @@
 import { PencilSimple, Trash } from '@phosphor-icons/react';
-import { Fragment } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,6 @@ import {
   ItemDescription,
   ItemFooter,
   ItemGroup,
-  ItemSeparator,
   ItemTitle,
 } from '@/components/ui/item';
 import {
@@ -77,11 +75,11 @@ export function ProviderCatalogList({
 
   return (
     <>
-      <div className="hairline hidden border-y md:block">
+      <div className="hidden overflow-hidden rounded-md md:block">
         <Table className="table-fixed">
           <TableCaption className="sr-only">平台目录列表</TableCaption>
           <TableHeader className="bg-muted/35">
-            <TableRow className="hairline hover:bg-transparent">
+            <TableRow className="hover:bg-transparent">
               <TableHead className="w-[25%] px-4">平台</TableHead>
               <TableHead className="w-[22%] px-4">目录键</TableHead>
               <TableHead className="w-[28%] px-4">注册与可见性</TableHead>
@@ -91,7 +89,7 @@ export function ProviderCatalogList({
           </TableHeader>
           <TableBody>
             {items.map((item) => (
-              <TableRow className="hairline" key={item.key}>
+              <TableRow key={item.key}>
                 <TableCell className="px-4 py-5 font-medium">
                   {item.display_name}
                 </TableCell>
@@ -110,24 +108,23 @@ export function ProviderCatalogList({
           </TableBody>
         </Table>
       </div>
-      <ItemGroup className="hairline gap-0 border-y md:hidden">
-        {items.map((item, index) => (
-          <Fragment key={item.key}>
-            <Item className="rounded-none border-0 px-0 py-5" role="listitem">
-              <ItemContent className="min-w-0">
-                <ItemTitle>{item.display_name}</ItemTitle>
-                <ItemDescription>
-                  <span className="font-mono">{item.key}</span> · 排序{' '}
-                  <span className="tabular-nums">{item.sort_order}</span>
-                </ItemDescription>
-              </ItemContent>
-              <ItemActions>{actions(item)}</ItemActions>
-              <ItemFooter>{badges(item)}</ItemFooter>
-            </Item>
-            {index < items.length - 1 ? (
-              <ItemSeparator className="hairline my-0" />
-            ) : null}
-          </Fragment>
+      <ItemGroup className="gap-2 md:hidden">
+        {items.map((item) => (
+          <Item
+            className="rounded-md border-0 px-3 py-5 hover:bg-muted/50"
+            key={item.key}
+            role="listitem"
+          >
+            <ItemContent className="min-w-0">
+              <ItemTitle>{item.display_name}</ItemTitle>
+              <ItemDescription>
+                <span className="font-mono">{item.key}</span> · 排序{' '}
+                <span className="tabular-nums">{item.sort_order}</span>
+              </ItemDescription>
+            </ItemContent>
+            <ItemActions>{actions(item)}</ItemActions>
+            <ItemFooter>{badges(item)}</ItemFooter>
+          </Item>
         ))}
       </ItemGroup>
     </>

@@ -22,7 +22,7 @@ export default function ScreenplayAnalysisPanel({
   return (
     <section
       aria-labelledby="screenplay-analysis-title"
-      className="mt-14 border-t py-12 sm:mt-16 sm:py-16"
+      className="mt-14 py-12 sm:mt-16 sm:py-16"
     >
       {succeeded && state.job ? (
         <>

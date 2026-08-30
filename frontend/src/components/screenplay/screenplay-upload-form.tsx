@@ -127,7 +127,7 @@ export function ScreenplayUploadForm({
       ) : null}
 
       {busy ? (
-        <div className="mt-4 border-y py-4">
+        <div className="mt-4 py-4">
           <div className="mb-3 flex min-h-11 items-center justify-between gap-4">
             <p aria-live="polite" className="text-sm" role="status">
               {phaseLabels[phase]}

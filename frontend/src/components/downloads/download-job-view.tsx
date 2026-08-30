@@ -8,7 +8,6 @@ import MediaCover from '@/components/intake/media-cover';
 import { BackLink } from '@/components/layout/back-link';
 import { markNavigationPush } from '@/components/layout/navigation-history';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDownloadJob } from '@/hooks/useDownloadJob';
 import type { SemanticPlan } from '@/types/video';
@@ -114,17 +113,13 @@ export default function DownloadJobView({
             </div>
           </section>
           {state.job.status === 'succeeded' ? (
-            <>
-              <Separator className="mt-14 sm:mt-20" />
+            <div className="mt-14 sm:mt-20">
               <AnalysisPanel downloadId={state.job.id} />
-            </>
+            </div>
           ) : (
-            <>
-              <Separator className="mt-14 sm:mt-20" />
-              <p className="py-8 text-sm text-muted-foreground">
-                下载并验证完成后，可继续生成视觉分镜、高光与资产目录。
-              </p>
-            </>
+            <p className="mt-14 py-8 text-sm text-muted-foreground sm:mt-20">
+              下载并验证完成后，可继续生成视觉分镜、高光与资产目录。
+            </p>
           )}
         </>
       ) : null}

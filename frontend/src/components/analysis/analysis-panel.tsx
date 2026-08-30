@@ -26,7 +26,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
 import { useAnalysisJob } from '@/hooks/useAnalysisJob';
 import { localizedErrorMessage } from '@/lib/error-messages';
@@ -260,7 +259,6 @@ function AnalysisJobState({
       {job.result?.kind === 'video_visual_analysis' ||
       job.result?.kind === 'video_article' ? (
         <div className="mt-10">
-          <Separator className="mb-10" />
           <div className="flex flex-wrap items-center gap-3">
             <Badge variant="neutral">
               {job.report?.status === 'publishing'

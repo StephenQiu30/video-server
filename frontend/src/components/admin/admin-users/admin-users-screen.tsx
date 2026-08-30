@@ -70,7 +70,7 @@ export function AdminUsersScreen({
         />
       </div>
 
-      <div className="hairline border-t pt-7">
+      <div>
         <UserFilters
           query={query}
           onDraftSearch={actions.onDraftSearch}

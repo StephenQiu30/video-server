@@ -88,7 +88,7 @@ export function ScreenplayDocumentPreview({
               ]}
               components={{
                 blockquote: ({ children }) => (
-                  <blockquote className="my-5 border-l-2 border-border pl-4 text-muted-foreground">
+                  <blockquote className="my-5 rounded-md bg-muted/60 px-4 py-2 text-muted-foreground">
                     {children}
                   </blockquote>
                 ),
@@ -136,7 +136,7 @@ export function ScreenplayDocumentPreview({
                     {children}
                   </p>
                 ),
-                hr: () => <hr className="my-8 border-border/70" />,
+                hr: () => <hr className="my-8 border-0" />,
                 li: ({ children }) => <li className="pl-1">{children}</li>,
                 ol: ({ children }) => (
                   <ol className="my-4 list-decimal space-y-1 pl-6">
@@ -147,7 +147,7 @@ export function ScreenplayDocumentPreview({
                   <p className="my-4 whitespace-pre-wrap">{children}</p>
                 ),
                 pre: ({ children }) => (
-                  <pre className="my-5 overflow-x-auto border border-border/70 bg-background px-4 py-3 font-mono text-xs leading-6">
+                  <pre className="my-5 overflow-x-auto rounded-md bg-muted/60 px-4 py-3 font-mono text-xs leading-6">
                     {children}
                   </pre>
                 ),
@@ -162,15 +162,11 @@ export function ScreenplayDocumentPreview({
                   </div>
                 ),
                 th: ({ children }) => (
-                  <th className="border-b border-border px-3 py-2 font-medium">
+                  <th className="bg-muted/50 px-3 py-2 font-medium">
                     {children}
                   </th>
                 ),
-                td: ({ children }) => (
-                  <td className="border-b border-border/70 px-3 py-2">
-                    {children}
-                  </td>
-                ),
+                td: ({ children }) => <td className="px-3 py-2">{children}</td>,
                 ul: ({ children }) => (
                   <ul className="my-4 list-disc space-y-1 pl-6">{children}</ul>
                 ),
@@ -196,7 +192,7 @@ export function ScreenplayDocumentPreview({
           ) : null}
         </>
       ) : (
-        <div className="mt-4 border-y border-border/70 py-16 text-sm text-muted-foreground">
+        <div className="mt-4 py-16 text-sm text-muted-foreground">
           {previewStatusMessage(document.status)}
         </div>
       )}

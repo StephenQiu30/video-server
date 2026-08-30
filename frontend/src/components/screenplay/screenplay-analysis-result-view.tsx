@@ -22,7 +22,7 @@ export default function ScreenplayAnalysisResultView({
 }) {
   return (
     <Tabs className="mt-10 gap-0" defaultValue="overview">
-      <div className="grid gap-5 border-y py-6 sm:grid-cols-3">
+      <div className="grid gap-5 py-4 sm:grid-cols-3">
         <Metric label="逐场景覆盖" value={`${result.scenes.length}`} />
         <Metric label="主要人物" value={`${result.characters.length}`} />
         <Metric label="输出语言" value={languageLabel(result.language)} />
@@ -61,12 +61,12 @@ export default function ScreenplayAnalysisResultView({
       </TabsContent>
       <TabsContent className="pt-7" value="characters">
         {result.characters.length ? (
-          <ItemGroup asChild className="hairline gap-0 border-y">
+          <ItemGroup asChild className="gap-2">
             <ul>
               {result.characters.map((character) => (
                 <Item
                   asChild
-                  className="hairline block rounded-none border-0 border-b px-0 py-6 last:border-b-0"
+                  className="block rounded-md border-0 px-0 py-6"
                   key={character.id}
                 >
                   <li>
@@ -83,18 +83,18 @@ export default function ScreenplayAnalysisResultView({
             </ul>
           </ItemGroup>
         ) : (
-          <p className="border-y py-7 text-muted-foreground">
+          <p className="py-7 text-muted-foreground">
             本次结果没有独立人物条目。
           </p>
         )}
       </TabsContent>
       <TabsContent className="pt-7" value="scenes">
-        <ItemGroup asChild className="hairline gap-0 border-y">
+        <ItemGroup asChild className="gap-2">
           <ol>
             {result.scenes.map((scene, index) => (
               <Item
                 asChild
-                className="hairline grid gap-4 rounded-none border-0 border-b px-0 py-6 last:border-b-0 sm:grid-cols-[88px_minmax(0,1fr)]"
+                className="grid gap-4 rounded-md border-0 px-0 py-6 sm:grid-cols-[88px_minmax(0,1fr)]"
                 key={scene.id}
               >
                 <li>

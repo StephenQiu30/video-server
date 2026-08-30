@@ -55,7 +55,7 @@ export function ProviderRow({
 }) {
   const localCodex = isLocalCodexProvider(item.key);
   return (
-    <div className="grid gap-4 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+    <div className="-mx-3 grid gap-4 rounded-md px-3 py-5 transition-colors hover:bg-muted/50 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="font-medium">{item.display_name}</h3>

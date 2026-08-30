@@ -504,3 +504,17 @@ final result: passed
 - engineering gates：目标文件 Biome 格式检查通过；`npm run lint` 通过（仅仓库既有 `.agents/skills` 断开符号链接 warning）；45 个测试文件、170 项测试全部通过；Next.js production build 与 16 个静态页面生成通过。全仓 `format:check` 仍只报告三个与本轮无关的既有文件：`admin-ai-providers/ai-provider-screen.tsx`、`analysis-result-view.tsx` 与 `lib/error-messages.ts`；本轮修改文件格式检查通过。
 
 final result: passed
+
+## 2026-08-30 严格无边框与 Radix UI 组件层回归
+
+- source visual truth：用户本轮明确要求将“无边框”落实到页面内容层，并使用 @Vercel 规范下的 Radix UI 实现。整改前基线为 `/Users/stephenqiu/.codex/visualizations/2026/08/30/borderless-implementation-pass-2/screenshots/` 中 15 个 1440×900 当前运行态截图；同状态整改后截图位于相邻 `screenshots-after/`。
+- component architecture：`frontend/components.json` 保持官方 `radix-nova` 源码风格，前端只依赖统一 `radix-ui` 包；Dialog、AlertDialog、Select、Tabs、RadioGroup、Progress、ToggleGroup、Collapsible、Sheet、DropdownMenu、Avatar 与 Slot 均由项目源码封装直接导入 Radix 原语。Radix 不提供的 Table、Button、Input 等继续使用项目内薄源码组件，没有新增平行 UI 库或业务页手写可点击 `div`。
+- borderless implementation：共享 Table 移除表头线、页脚线和逐行边界；历史、文档、文件、Provider、用户、分析结果和剧本结果列表移除外沿与 ItemSeparator；账户、认证、解析结果和剧本文档工作区移除双栏竖线；下载详情、AI 结果、进度与元数据区移除页面 Separator。层级统一由 24/32/48px 间距、字重、字号、Radix 状态组件和必要的中性填充面表达。
+- functional boundaries：保留键盘 focus ring、字段错误、Radix 弹层表面、Alert 语义、Radio/Switch 状态以及图表坐标网格；这些边界承担交互或数据读取，不作为页面装饰。业务页面 computed-style 扫描只命中 Button/InputGroup 的透明几何边界，没有剩余结构性可见边框。
+- visual comparison：同视口对照 `/Users/stephenqiu/.codex/visualizations/2026/08/30/borderless-implementation-pass-2/comparison-before-left-after-right.png` 左侧为整改前、右侧为整改后，依次覆盖个人资料、下载分析和用户管理。整改后不再出现资料页十字线、图表/KPI 外沿、筛选区横线、表格外框或行线；蓝白 Area Chart 继续使用官方 `--chart-*` token。
+- route audit：`agent-browser` 在 Docker 生产构建上覆盖首页、下载记录、剧本文档、平台状态、个人资料、文件管理、AI 服务、下载分析、平台目录、用户管理、两个缺失详情态、404、登录和注册共 15 个页面。全部 1440×900 截图已逐张检查；390×844 进一步覆盖首页、历史、账户、下载分析、用户管理和登录，均满足 `scrollWidth = innerWidth = 390`。
+- themes and accessibility：下载分析桌面深色与用户管理移动深色均完成视觉复核；首页、历史、账户、下载分析和用户管理的 axe WCAG 2 A/AA 扫描均为 0 violations；全路由导航后的浏览器 page errors 为空。
+- engineering gates：`npm run lint`、47 个测试文件/184 项测试、Next.js 16 个静态页面 production build、OpenAPI 漂移检查和格式检查通过；Biome 仅保留仓库既有 `.agents/skills` 断开符号链接 warning。`docker compose up -d --build` 成功，API、Frontend、Media Runner 与出口代理健康，`/health/ready` 返回 200。
+- findings：整改前识别的页面分区线、表格线、列表分隔和双栏竖线已全部关闭；同输入视觉复核没有剩余 P0、P1 或 P2 无边框偏差。
+
+final result: passed

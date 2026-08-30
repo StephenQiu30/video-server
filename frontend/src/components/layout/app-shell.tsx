@@ -46,7 +46,7 @@ export function AuthPageFrame({
         <div className="flex h-20 items-center">
           <BrandLink />
         </div>
-        <div className="grid flex-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)]">
+        <div className="grid flex-1 gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)] lg:gap-20">
           <section
             aria-label="产品介绍"
             className="hidden flex-col justify-center py-20 pr-16 lg:flex xl:pr-24"
@@ -57,7 +57,7 @@ export function AuthPageFrame({
               带回本地。
             </p>
           </section>
-          <div className="flex items-center justify-center py-12 lg:justify-start lg:border-l lg:py-20 lg:pl-16 xl:pl-24">
+          <div className="flex items-center justify-center py-12 lg:justify-start lg:py-20">
             <section aria-labelledby={titleId} className="w-full max-w-[440px]">
               <PageHeader
                 description={description}

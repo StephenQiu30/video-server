@@ -29,7 +29,7 @@ export function DailyTrendChart({ daily }: { daily: DailyPoint[] }) {
       <p className="mt-1 text-sm text-muted-foreground">
         使用面积对比每日创建任务与成功完成任务。
       </p>
-      <figure className="hairline mt-6 border-y py-5 sm:py-7">
+      <figure className="mt-6 py-2 sm:py-4">
         <p className="sr-only" id="daily-trend-description">
           面积图纵轴从 0 到 {maximum}
           。两层面积分别表示全部任务与成功任务，可悬浮或使用键盘读取单日数据，失败与取消的精确数值见图表后的数据表。

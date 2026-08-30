@@ -114,14 +114,14 @@ export function AdminAnalyticsScreen({
         <div className="space-y-12 sm:space-y-14">
           <DailyTrendChart daily={data.daily} />
           <AnalyticsKpis summary={data.summary} />
-          <div className="hairline grid border-y lg:grid-cols-3">
-            <div className="py-8 lg:pr-8">
+          <div className="grid gap-10 lg:grid-cols-3 lg:gap-12">
+            <div>
               <StatusDistributionChart summary={data.summary} />
             </div>
-            <div className="hairline border-t py-8 lg:border-l lg:border-t-0 lg:px-8">
+            <div>
               <CompletionRateChart daily={data.daily} />
             </div>
-            <div className="hairline border-t py-8 lg:border-l lg:border-t-0 lg:pl-8">
+            <div>
               <SourceBreakdown
                 sources={data.sources}
                 total={data.summary.total}

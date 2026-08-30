@@ -92,7 +92,7 @@ export function AiProviderScreen({
             {agentAvailable ? 'Agent 在线' : 'Agent 离线'}
           </Badge>
         </div>
-        <div className="hairline border-y py-6 sm:py-8">
+        <div className="py-4 sm:py-6">
           {loading && !active ? (
             <Skeleton className="h-20 w-full" />
           ) : active ? (
@@ -142,7 +142,7 @@ export function AiProviderScreen({
           </h2>
           <p className="text-sm text-muted-foreground">共 {items.length} 条</p>
         </div>
-        <div className="hairline divide-y border-y">
+        <div className="space-y-1">
           {loading && items.length === 0
             ? ['one', 'two', 'three'].map((key) => (
                 <div className="py-5" key={key}>

@@ -1,5 +1,4 @@
 import { PencilSimple } from '@phosphor-icons/react';
-import { Fragment } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,6 @@ import {
   ItemDescription,
   ItemFooter,
   ItemGroup,
-  ItemSeparator,
   ItemTitle,
 } from '@/components/ui/item';
 import {
@@ -64,11 +62,11 @@ export function UserList({ items, currentUserId, onEdit }: UserListProps) {
 
   return (
     <>
-      <div className="hairline hidden border-y md:block">
+      <div className="hidden overflow-hidden rounded-md md:block">
         <Table className="table-fixed">
           <TableCaption className="sr-only">用户账户列表</TableCaption>
           <TableHeader className="bg-muted/35">
-            <TableRow className="hairline hover:bg-transparent">
+            <TableRow className="hover:bg-transparent">
               <TableHead className="w-[24%] px-4 text-xs font-normal text-muted-foreground">
                 用户名
               </TableHead>
@@ -88,7 +86,7 @@ export function UserList({ items, currentUserId, onEdit }: UserListProps) {
           </TableHeader>
           <TableBody>
             {items.map((item) => (
-              <TableRow className="hairline" key={item.id}>
+              <TableRow key={item.id}>
                 <TableCell className="max-w-0 truncate px-4 py-5 font-medium">
                   {item.username}
                 </TableCell>
@@ -107,31 +105,30 @@ export function UserList({ items, currentUserId, onEdit }: UserListProps) {
           </TableBody>
         </Table>
       </div>
-      <ItemGroup className="hairline gap-0 border-y md:hidden">
-        {items.map((item, index) => (
-          <Fragment key={item.id}>
-            <Item className="rounded-none border-0 px-0 py-5" role="listitem">
-              <ItemContent className="min-w-0">
-                <ItemTitle className="truncate">{item.username}</ItemTitle>
-                <ItemDescription className="truncate">
-                  {item.email}
-                </ItemDescription>
-              </ItemContent>
-              <ItemActions>{action(item)}</ItemActions>
-              <ItemFooter>
-                {badges(item)}
-                <time
-                  className="text-xs text-muted-foreground"
-                  dateTime={item.created_at}
-                >
-                  {item.created_at.slice(0, 10)}
-                </time>
-              </ItemFooter>
-            </Item>
-            {index < items.length - 1 ? (
-              <ItemSeparator className="hairline my-0" />
-            ) : null}
-          </Fragment>
+      <ItemGroup className="gap-2 md:hidden">
+        {items.map((item) => (
+          <Item
+            className="rounded-md border-0 px-3 py-5 hover:bg-muted/50"
+            key={item.id}
+            role="listitem"
+          >
+            <ItemContent className="min-w-0">
+              <ItemTitle className="truncate">{item.username}</ItemTitle>
+              <ItemDescription className="truncate">
+                {item.email}
+              </ItemDescription>
+            </ItemContent>
+            <ItemActions>{action(item)}</ItemActions>
+            <ItemFooter>
+              {badges(item)}
+              <time
+                className="text-xs text-muted-foreground"
+                dateTime={item.created_at}
+              >
+                {item.created_at.slice(0, 10)}
+              </time>
+            </ItemFooter>
+          </Item>
         ))}
       </ItemGroup>
     </>

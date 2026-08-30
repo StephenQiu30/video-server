@@ -39,11 +39,11 @@ export function ScreenplayDocumentList({
     <section
       aria-busy={loading}
       aria-label="剧本文档"
-      className="mt-10 border-t border-border/70 sm:mt-12"
+      className="mt-10 sm:mt-12"
     >
       {loading && !data ? <LoadingRows /> : null}
       {data?.items.length ? (
-        <ItemGroup className="gap-0 divide-y divide-border/70">
+        <ItemGroup className="gap-2">
           {data.items.map((document) => (
             <DocumentRow document={document} key={document.id} />
           ))}
@@ -114,7 +114,7 @@ function LoadingRows() {
       <span className="sr-only" role="status">
         正在加载剧本文档
       </span>
-      <div aria-hidden className="divide-y divide-border/70">
+      <div aria-hidden className="space-y-2">
         {['first', 'second', 'third'].map((key) => (
           <div
             className="grid grid-cols-[minmax(0,1fr)_5rem] gap-5 py-6"

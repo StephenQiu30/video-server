@@ -11,12 +11,12 @@ export default function AnalysisSceneList({
   scenes: VideoAnalysisResult['scenes'];
 }) {
   return (
-    <ItemGroup asChild className="hairline gap-0 border-y">
+    <ItemGroup asChild className="gap-2">
       <ol>
         {scenes.map((scene) => (
           <Item
             asChild
-            className="hairline grid gap-4 rounded-none border-0 border-b px-0 py-6 last:border-b-0 sm:grid-cols-[72px_minmax(0,1fr)]"
+            className="grid gap-4 rounded-md border-0 px-0 py-6 sm:grid-cols-[72px_minmax(0,1fr)]"
             key={scene.id}
           >
             <li>

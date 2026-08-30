@@ -27,7 +27,7 @@ export default function ScreenplayRewriteResultView({
 }) {
   return (
     <Tabs className="mt-10 gap-0" defaultValue="summary">
-      <div className="grid gap-5 border-y py-6 sm:grid-cols-3">
+      <div className="grid gap-5 py-4 sm:grid-cols-3">
         <Metric label="源场景" value={`${result.source_scene_count}`} />
         <Metric label="输出场景" value={`${result.output_scene_count}`} />
         <Metric
@@ -55,7 +55,7 @@ export default function ScreenplayRewriteResultView({
             统一术语
           </h3>
           {result.glossary.length ? (
-            <div className="mt-4 overflow-x-auto border-y">
+            <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[560px] border-collapse text-left text-sm">
                 <caption className="sr-only">剧本改写统一术语表</caption>
                 <thead>
@@ -67,10 +67,7 @@ export default function ScreenplayRewriteResultView({
                 </thead>
                 <tbody>
                   {result.glossary.map((term) => (
-                    <tr
-                      className="border-t"
-                      key={`${term.category}:${term.source}`}
-                    >
+                    <tr key={`${term.category}:${term.source}`}>
                       <td className="py-4 pr-5 font-medium">{term.source}</td>
                       <td className="py-4 pr-5">{term.target}</td>
                       <td className="py-4 text-muted-foreground">
@@ -82,7 +79,7 @@ export default function ScreenplayRewriteResultView({
               </table>
             </div>
           ) : (
-            <p className="mt-4 border-y py-7 text-muted-foreground">
+            <p className="mt-4 py-7 text-muted-foreground">
               本次改写没有需要单独统一的术语。
             </p>
           )}

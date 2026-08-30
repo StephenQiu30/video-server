@@ -17,7 +17,7 @@ export function SourceDiscoveryWorkspace({
 }) {
   return (
     <section aria-labelledby="source-discovery-title" className="pt-10">
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b pb-5">
+      <div className="flex flex-wrap items-end justify-between gap-3 pb-5">
         <div>
           <h2
             className="text-xl font-medium tracking-[-0.025em]"
@@ -35,12 +35,12 @@ export function SourceDiscoveryWorkspace({
       </div>
 
       {discovery.items.length > 0 ? (
-        <ul className="divide-y" aria-label="文章视频候选项">
+        <ul className="space-y-1" aria-label="文章视频候选项">
           {discovery.items.map((item, index) => {
             const busy = busyItemRef === item.item_ref;
             return (
               <li
-                className="grid gap-4 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+                className="-mx-3 grid gap-4 rounded-md px-3 py-5 transition-colors hover:bg-muted/50 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
                 key={item.item_ref}
               >
                 <div className="flex min-w-0 items-start gap-4">
@@ -72,10 +72,7 @@ export function SourceDiscoveryWorkspace({
           })}
         </ul>
       ) : (
-        <p
-          className="border-b py-8 text-sm text-muted-foreground"
-          role="status"
-        >
+        <p className="py-8 text-sm text-muted-foreground" role="status">
           请检查文章是否仍公开，或改用自有明文 MP4 导入。
         </p>
       )}

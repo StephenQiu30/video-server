@@ -61,7 +61,7 @@ export function ScreenplayDocumentToc({
       aria-labelledby="screenplay-toc-title"
       className="lg:grid lg:h-full lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)] lg:overflow-hidden"
     >
-      <div className="flex items-center justify-between gap-4 border-b border-border/70 pb-3">
+      <div className="flex items-center justify-between gap-4 pb-3">
         <div className="flex items-center gap-2">
           <List
             aria-hidden
@@ -84,12 +84,12 @@ export function ScreenplayDocumentToc({
           {headings.map((heading) => (
             <li key={heading.id}>
               <a
-                className={`block border-l-2 py-1.5 text-sm leading-5 text-muted-foreground transition-colors hover:border-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                className={`block rounded-md py-1.5 text-sm leading-5 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   heading.level === 1
-                    ? 'border-transparent pl-3'
+                    ? 'px-3'
                     : heading.level === 2
-                      ? 'border-transparent pl-6 text-[13px]'
-                      : 'border-transparent pl-9 text-xs'
+                      ? 'pr-3 pl-6 text-[13px]'
+                      : 'pr-3 pl-9 text-xs'
                 }`}
                 href={`#${heading.id}`}
               >

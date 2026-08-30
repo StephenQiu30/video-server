@@ -32,7 +32,7 @@ export default function AnalysisResultView({
 }) {
   return (
     <Tabs className="mt-10 gap-0" defaultValue={defaultView}>
-      <div className="grid gap-5 border-y py-6 sm:grid-cols-4">
+      <div className="grid gap-5 py-4 sm:grid-cols-4">
         <Metric label="分镜数量" value={`${result.shot_count}`} />
         <Metric label="场景数量" value={`${result.scenes.length}`} />
         <Metric
@@ -65,12 +65,12 @@ export default function AnalysisResultView({
         <AnalysisSceneList onSelectTime={onSelectTime} scenes={result.scenes} />
       </TabsContent>
       <TabsContent className="pt-7" value="shots">
-        <ItemGroup asChild className="hairline gap-0 border-y">
+        <ItemGroup asChild className="gap-2">
           <ol>
             {result.shots.map((shot) => (
               <Item
                 asChild
-                className="hairline grid gap-4 rounded-none border-0 border-b px-0 py-6 last:border-b-0 sm:grid-cols-[72px_minmax(0,1fr)]"
+                className="grid gap-4 rounded-md border-0 px-0 py-6 sm:grid-cols-[72px_minmax(0,1fr)]"
                 key={shot.id}
               >
                 <li>
@@ -102,12 +102,12 @@ export default function AnalysisResultView({
       </TabsContent>
       <TabsContent className="pt-7" value="highlights">
         {result.highlights.length ? (
-          <ItemGroup asChild className="hairline gap-0 border-y">
+          <ItemGroup asChild className="gap-2">
             <ul>
               {result.highlights.map((highlight) => (
                 <Item
                   asChild
-                  className="hairline block rounded-none border-0 border-b px-0 py-6 last:border-b-0"
+                  className="block rounded-md border-0 px-0 py-6"
                   key={highlight.id}
                 >
                   <li>
@@ -136,12 +136,12 @@ export default function AnalysisResultView({
       </TabsContent>
       <TabsContent className="pt-7" value="assets">
         {result.assets.length ? (
-          <ItemGroup asChild className="hairline gap-0 border-y">
+          <ItemGroup asChild className="gap-2">
             <ul>
               {result.assets.map((asset) => (
                 <Item
                   asChild
-                  className="hairline block rounded-none border-0 border-b px-0 py-6 last:border-b-0"
+                  className="block rounded-md border-0 px-0 py-6"
                   key={asset.id}
                 >
                   <li>
@@ -214,7 +214,7 @@ function ResultTab({
 }) {
   return (
     <TabsTrigger
-      className="rounded-none border-x-0 border-t-0 border-b border-transparent px-0 pt-0 pb-3 data-[state=active]:border-foreground"
+      className="rounded-md border-0 px-3 py-2 data-[state=active]:bg-muted"
       value={value}
     >
       {children}
@@ -223,5 +223,5 @@ function ResultTab({
 }
 
 function EmptyState({ children }: { children: ReactNode }) {
-  return <p className="border-y py-8 text-muted-foreground">{children}</p>;
+  return <p className="py-8 text-muted-foreground">{children}</p>;
 }

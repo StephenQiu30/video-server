@@ -15,7 +15,7 @@ export default function AnalysisArticleResultView({
 }) {
   return (
     <Tabs className="mt-10 gap-0" defaultValue="article">
-      <div className="grid gap-5 border-y py-6 sm:grid-cols-3">
+      <div className="grid gap-5 py-4 sm:grid-cols-3">
         <Metric label="文章章节" value={`${result.sections.length}`} />
         <Metric
           label="视频时长"
@@ -40,12 +40,12 @@ export default function AnalysisArticleResultView({
         </TabsList>
       </div>
       <TabsContent className="pt-7" value="article">
-        <ItemGroup asChild className="hairline gap-0 border-y">
+        <ItemGroup asChild className="gap-2">
           <ol>
             {result.sections.map((section, index) => (
               <Item
                 asChild
-                className="hairline block rounded-none border-0 border-b px-0 py-7 last:border-b-0"
+                className="block rounded-md border-0 px-0 py-7"
                 key={section.id}
               >
                 <li>
@@ -76,13 +76,13 @@ export default function AnalysisArticleResultView({
         </ItemGroup>
       </TabsContent>
       <TabsContent className="pt-7" value="points">
-        <ul className="list-disc space-y-3 border-y py-6 pl-5 leading-7 text-muted-foreground">
+        <ul className="list-disc space-y-3 py-4 pl-5 leading-7 text-muted-foreground">
           {result.key_points.map((point) => (
             <li key={point}>{point}</li>
           ))}
         </ul>
         {result.limitations.length ? (
-          <div className="mt-8 border-y py-6">
+          <div className="mt-8 py-6">
             <h4 className="font-medium">说明与局限</h4>
             <ul className="mt-3 list-disc space-y-2 pl-5 leading-7 text-muted-foreground">
               {result.limitations.map((limitation) => (
@@ -105,7 +105,7 @@ export default function AnalysisArticleResultView({
 function Tab({ children, value }: { children: string; value: string }) {
   return (
     <TabsTrigger
-      className="rounded-none border-x-0 border-t-0 border-b border-transparent px-0 pt-0 pb-3 data-[state=active]:border-foreground"
+      className="rounded-md border-0 px-3 py-2 data-[state=active]:bg-muted"
       value={value}
     >
       {children}

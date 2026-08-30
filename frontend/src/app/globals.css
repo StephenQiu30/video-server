@@ -168,10 +168,6 @@
     text-wrap: balance;
   }
 
-  .hairline {
-    border-color: color-mix(in srgb, var(--foreground) 10%, transparent);
-  }
-
   .focus-ring {
     outline: none;
   }

@@ -38,7 +38,7 @@ export default function AnalysisReportPreview({
         allowedElements={allowedElements}
         components={{
           blockquote: ({ children }) => (
-            <blockquote className="my-5 border-l-2 pl-4 text-muted-foreground">
+            <blockquote className="my-5 rounded-md bg-muted/60 px-4 py-2 text-muted-foreground">
               {children}
             </blockquote>
           ),
@@ -48,7 +48,7 @@ export default function AnalysisReportPreview({
             </h3>
           ),
           h2: ({ children }) => (
-            <h4 className="mt-10 border-b pb-3 text-lg font-medium tracking-[-0.02em]">
+            <h4 className="mt-10 pb-3 text-lg font-medium tracking-[-0.02em]">
               {children}
             </h4>
           ),
@@ -63,14 +63,14 @@ export default function AnalysisReportPreview({
             <p className="my-3 text-muted-foreground">{children}</p>
           ),
           table: ({ children }) => (
-            <div className="my-6 overflow-x-auto border-y">
+            <div className="my-6 overflow-x-auto">
               <table className="w-full border-collapse text-left text-sm">
                 {children}
               </table>
             </div>
           ),
           td: ({ children }) => (
-            <td className="border-t px-3 py-2 align-top">{children}</td>
+            <td className="px-3 py-2 align-top">{children}</td>
           ),
           th: ({ children }) => (
             <th className="bg-muted px-3 py-2 font-medium">{children}</th>

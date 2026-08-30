@@ -1,5 +1,3 @@
-import { Fragment } from 'react';
-
 import {
   Item,
   ItemActions,
@@ -7,7 +5,6 @@ import {
   ItemDescription,
   ItemFooter,
   ItemGroup,
-  ItemSeparator,
   ItemTitle,
 } from '@/components/ui/item';
 import {
@@ -28,11 +25,11 @@ type Source = AdminDownloadAnalytics['sources'][number];
 export function SourcePerformanceDetails({ sources }: { sources: Source[] }) {
   return (
     <>
-      <div className="hairline mt-7 hidden border-y md:block">
+      <div className="mt-7 hidden overflow-hidden rounded-md md:block">
         <Table className="table-fixed">
           <TableCaption className="sr-only">各视频源下载表现</TableCaption>
           <TableHeader className="bg-muted/35">
-            <TableRow className="hairline hover:bg-transparent">
+            <TableRow className="hover:bg-transparent">
               <SourceHead className="w-[20%]">视频源</SourceHead>
               <SourceHead className="w-[10%]" numeric>
                 任务
@@ -51,7 +48,7 @@ export function SourcePerformanceDetails({ sources }: { sources: Source[] }) {
           </TableHeader>
           <TableBody>
             {sources.map((source) => (
-              <TableRow className="hairline" key={source.source_key}>
+              <TableRow key={source.source_key}>
                 <th
                   className="px-4 py-5 text-left align-middle whitespace-normal"
                   scope="row"
@@ -74,34 +71,31 @@ export function SourcePerformanceDetails({ sources }: { sources: Source[] }) {
         </Table>
       </div>
 
-      <ItemGroup className="hairline mt-7 gap-0 border-y md:hidden">
-        {sources.map((source, index) => (
-          <Fragment key={source.source_key}>
-            <Item className="rounded-none border-0 px-0 py-5" role="listitem">
-              <ItemContent className="min-w-0">
-                <ItemTitle className="truncate">
-                  {sourceLabel(source)}
-                </ItemTitle>
-                <ItemDescription className="truncate font-mono text-[11px]">
-                  {source.source_key}
-                </ItemDescription>
-              </ItemContent>
-              <ItemActions className="text-sm tabular-nums">
-                {formatPercent(source.success_rate)}
-              </ItemActions>
-              <ItemFooter className="grid w-full gap-3">
-                <p className="text-xs text-muted-foreground">
-                  {formatInteger(source.total)} 个任务 ·{' '}
-                  {formatInteger(source.unique_users)} 位用户 ·{' '}
-                  {formatBytes(source.downloaded_bytes)}
-                </p>
-                <StatusSummary source={source} />
-              </ItemFooter>
-            </Item>
-            {index < sources.length - 1 ? (
-              <ItemSeparator className="hairline my-0" />
-            ) : null}
-          </Fragment>
+      <ItemGroup className="mt-7 gap-2 md:hidden">
+        {sources.map((source) => (
+          <Item
+            className="rounded-md border-0 px-3 py-5 hover:bg-muted/50"
+            key={source.source_key}
+            role="listitem"
+          >
+            <ItemContent className="min-w-0">
+              <ItemTitle className="truncate">{sourceLabel(source)}</ItemTitle>
+              <ItemDescription className="truncate font-mono text-[11px]">
+                {source.source_key}
+              </ItemDescription>
+            </ItemContent>
+            <ItemActions className="text-sm tabular-nums">
+              {formatPercent(source.success_rate)}
+            </ItemActions>
+            <ItemFooter className="grid w-full gap-3">
+              <p className="text-xs text-muted-foreground">
+                {formatInteger(source.total)} 个任务 ·{' '}
+                {formatInteger(source.unique_users)} 位用户 ·{' '}
+                {formatBytes(source.downloaded_bytes)}
+              </p>
+              <StatusSummary source={source} />
+            </ItemFooter>
+          </Item>
         ))}
       </ItemGroup>
     </>

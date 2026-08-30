@@ -81,7 +81,7 @@ export function AdminStorageScreen({
       ) : null}
 
       {loading && items.length === 0 ? (
-        <div className="space-y-4 border-y py-5">
+        <div className="space-y-4 py-5">
           {['one', 'two', 'three', 'four', 'five'].map((key) => (
             <Skeleton className="h-14 w-full" key={key} />
           ))}
@@ -97,7 +97,7 @@ export function AdminStorageScreen({
           </AlertDescription>
         </Alert>
       ) : items.length === 0 ? (
-        <Empty className="hairline min-h-64 items-start rounded-none border-y py-14 text-left">
+        <Empty className="min-h-64 items-start rounded-none border-0 py-14 text-left">
           <EmptyHeader className="items-start">
             <EmptyTitle>暂无持久文件</EmptyTitle>
             <EmptyDescription className="text-left">

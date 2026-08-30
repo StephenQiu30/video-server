@@ -31,9 +31,9 @@ export default function InspectionWorkspace({
   return (
     <section
       aria-label="解析结果"
-      className="grid gap-10 pt-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(360px,1fr)] lg:gap-0"
+      className="grid gap-10 pt-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(360px,1fr)] lg:gap-14"
     >
-      <div className="min-w-0 lg:pr-10">
+      <div className="min-w-0">
         <MediaCover
           alt={`${inspection.title} 视频封面`}
           priority
@@ -59,7 +59,7 @@ export default function InspectionWorkspace({
         </dl>
       </div>
 
-      <div className="hairline min-w-0 lg:border-l lg:pl-10">
+      <div className="min-w-0">
         <h2 className="text-base font-medium">
           {downloadable
             ? '画质预设'
@@ -72,14 +72,14 @@ export default function InspectionWorkspace({
             selectedId={selectedId}
           />
         ) : (
-          <div aria-live="polite" className="border-y py-6">
+          <div aria-live="polite" className="py-6">
             <p className="text-sm leading-6 text-muted-foreground">
               {inspection.user_action ?? '当前来源不能创建下载任务。'}
             </p>
           </div>
         )}
         {selected ? (
-          <dl className="mt-7 grid grid-cols-2 gap-x-5 gap-y-4 border-t pt-5 text-sm">
+          <dl className="mt-7 grid grid-cols-2 gap-x-5 gap-y-4 pt-5 text-sm">
             <SelectionMeta
               label="容器"
               value={selected.plan.container_preference.toUpperCase()}

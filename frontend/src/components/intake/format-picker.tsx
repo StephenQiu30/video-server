@@ -8,7 +8,6 @@ import {
 } from '@/components/ui/empty';
 import { FieldLabel } from '@/components/ui/field';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type { MediaFormat } from '@/types/video';
 
@@ -29,7 +28,7 @@ export default function FormatPicker({
 }) {
   if (!formats.length) {
     return (
-      <Empty className="min-h-48 border-y">
+      <Empty className="min-h-48 border-0">
         <EmptyHeader>
           <EmptyTitle>没有可用格式</EmptyTitle>
           <EmptyDescription>当前视频没有可用的下载版本。</EmptyDescription>
@@ -41,19 +40,18 @@ export default function FormatPicker({
   return (
     <RadioGroup
       aria-label="选择下载版本"
-      className="scrollbar-thin max-h-[360px] gap-0 overflow-y-auto"
+      className="scrollbar-thin max-h-[360px] gap-1 overflow-y-auto"
       onValueChange={onChange}
       value={selectedId}
     >
-      {formats.map((format, index) => {
+      {formats.map((format) => {
         const selected = format.id === selectedId;
         const plan = format.plan;
         return (
           <div key={format.id}>
-            {index > 0 ? <Separator className="opacity-80" /> : null}
             <FieldLabel
               className={cn(
-                'min-h-[62px] cursor-pointer flex-row rounded-none border-0 px-0 py-3 transition-colors has-data-[state=checked]:bg-transparent hover:text-foreground',
+                'min-h-[62px] cursor-pointer flex-row rounded-md border-0 px-2 py-3 transition-colors has-data-[state=checked]:bg-muted/70 hover:bg-muted/50 hover:text-foreground',
                 selected ? 'text-foreground' : 'text-muted-foreground',
               )}
               htmlFor={format.id}

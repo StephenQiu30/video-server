@@ -16,7 +16,6 @@ import {
   FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { displayError, updateCurrentUser } from '@/services/users';
@@ -57,9 +56,9 @@ export function AccountView() {
       <section aria-label="正在加载个人资料" className="space-y-8">
         <Skeleton className="h-3 w-32" />
         <Skeleton className="h-24 w-full max-w-2xl" />
-        <div className="hairline grid gap-10 border-t pt-10 lg:grid-cols-[minmax(220px,0.7fr)_minmax(0,1.3fr)]">
+        <div className="grid gap-12 pt-4 lg:grid-cols-[minmax(220px,0.7fr)_minmax(0,1.3fr)] lg:gap-20">
           <Skeleton className="h-32 w-full max-w-xs" />
-          <div className="hairline space-y-6 lg:border-l lg:pl-12">
+          <div className="space-y-6">
             <Skeleton className="h-20 w-full" />
             <Skeleton className="h-20 w-full" />
           </div>
@@ -99,10 +98,10 @@ export function AccountView() {
       />
 
       <form
-        className="hairline mt-14 grid gap-10 border-t pt-10 sm:mt-16 sm:pt-12 lg:grid-cols-[minmax(220px,0.7fr)_minmax(0,1.3fr)] lg:gap-0"
+        className="mt-14 grid gap-12 sm:mt-16 lg:grid-cols-[minmax(220px,0.7fr)_minmax(0,1.3fr)] lg:gap-20"
         onSubmit={submit}
       >
-        <aside className="lg:pr-12">
+        <aside>
           <h2 className="text-sm font-medium">当前身份</h2>
           <div className="mt-5 flex items-center gap-4">
             <Avatar aria-hidden className="size-14">
@@ -122,7 +121,7 @@ export function AccountView() {
           </p>
         </aside>
 
-        <div className="hairline border-t pt-10 lg:border-t-0 lg:border-l lg:pl-12 lg:pt-0">
+        <div>
           <h2 className="mb-6 text-sm font-medium">资料字段</h2>
           <FieldGroup className="gap-8">
             <Field>
@@ -148,7 +147,6 @@ export function AccountView() {
                 2–32 个字符，将显示在导航和任务记录中。
               </FieldDescription>
             </Field>
-            <Separator className="hairline" />
             <div className="grid gap-6 sm:grid-cols-2">
               <ReadOnlyField
                 description="用于登录账户，暂不支持在此修改。"

@@ -19,7 +19,6 @@ import { useRef } from 'react';
 import { MobileNavigationLink as MobileLink } from '@/components/layout/mobile-navigation-link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import {
   Sheet,
   SheetClose,
@@ -176,7 +175,6 @@ export function MobileNavigation({
         </nav>
         {user ? (
           <SheetFooter>
-            <Separator />
             <SheetClose asChild>
               <Button
                 className="w-full justify-start text-destructive hover:text-destructive"

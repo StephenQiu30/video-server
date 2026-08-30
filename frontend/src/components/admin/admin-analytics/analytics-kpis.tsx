@@ -63,19 +63,10 @@ export function AnalyticsKpis({
           数据自动汇总
         </p>
       </div>
-      <dl className="hairline mt-6 grid grid-cols-2 border-y lg:grid-cols-4">
-        {metrics.map((metric, index) => {
+      <dl className="mt-7 grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-4 lg:gap-10">
+        {metrics.map((metric) => {
           return (
-            <div
-              className={`min-w-0 py-6 sm:py-7 ${
-                index % 2 === 1
-                  ? 'hairline border-l pl-4 sm:pl-7'
-                  : 'pr-4 sm:pr-7'
-              } ${index >= 2 ? 'hairline border-t lg:border-t-0' : ''} ${
-                index === 2 ? 'lg:border-l lg:pl-7' : ''
-              }`}
-              key={metric.label}
-            >
+            <div className="min-w-0" key={metric.label}>
               <dt className="flex items-center gap-2 text-xs text-muted-foreground">
                 <metric.icon aria-hidden className="size-4" />
                 {metric.label}

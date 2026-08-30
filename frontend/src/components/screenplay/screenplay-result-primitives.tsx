@@ -19,12 +19,12 @@ export function EvidenceList({
     <section className={className}>
       <h3 className="mb-4 text-lg font-medium tracking-[-0.02em]">{heading}</h3>
       {items.length ? (
-        <ItemGroup asChild className="hairline gap-0 border-y">
+        <ItemGroup asChild className="gap-2">
           <ul>
             {items.map((item) => (
               <Item
                 asChild
-                className="hairline block rounded-none border-0 border-b px-0 py-5 last:border-b-0"
+                className="block rounded-md border-0 px-0 py-5"
                 key={item.id}
               >
                 <li>
@@ -39,9 +39,7 @@ export function EvidenceList({
           </ul>
         </ItemGroup>
       ) : (
-        <p className="border-y py-7 text-muted-foreground">
-          本项没有独立发现。
-        </p>
+        <p className="py-7 text-muted-foreground">本项没有独立发现。</p>
       )}
     </section>
   );
@@ -88,7 +86,7 @@ export function ResultTab({
 }) {
   return (
     <TabsTrigger
-      className="rounded-none border-x-0 border-t-0 border-b border-transparent px-0 pt-0 pb-3 data-[state=active]:border-foreground"
+      className="rounded-md border-0 px-3 py-2 data-[state=active]:bg-muted"
       value={value}
     >
       {children}

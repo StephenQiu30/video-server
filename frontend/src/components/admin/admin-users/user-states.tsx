@@ -20,9 +20,9 @@ export function AdminSkeleton({ rowsOnly = false }: { rowsOnly?: boolean }) {
           <Skeleton className="h-16 w-full" />
         </>
       )}
-      <div className="hairline divide-y border-y">
+      <div className="space-y-2">
         {['first', 'second', 'third', 'fourth', 'fifth'].map((row) => (
-          <div className="hairline py-3" key={row}>
+          <div className="py-3" key={row}>
             <Skeleton className="h-12 w-full" />
           </div>
         ))}
@@ -54,7 +54,7 @@ export function UsersLoadError({
 
 export function EmptyUsers() {
   return (
-    <Empty className="hairline min-h-64 items-start rounded-none border-y py-14 text-left">
+    <Empty className="min-h-64 items-start rounded-none border-0 py-14 text-left">
       <EmptyHeader className="items-start">
         <EmptyTitle>没有匹配的用户</EmptyTitle>
         <EmptyDescription className="text-left">

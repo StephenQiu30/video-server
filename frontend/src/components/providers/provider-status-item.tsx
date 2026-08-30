@@ -16,7 +16,6 @@ import {
   ItemDescription,
   ItemTitle,
 } from '@/components/ui/item';
-import { Separator } from '@/components/ui/separator';
 import type { ProviderStatus } from '@/services/providers';
 
 const STATUS_LABELS: Record<API.ProviderSupportStatus, string> = {
@@ -85,8 +84,7 @@ export function ProviderStatusItem({ provider }: { provider: ProviderStatus }) {
           </CollapsibleTrigger>
         </ItemActions>
         <CollapsibleContent className="col-span-2 sm:col-span-3">
-          <Separator className="mb-4" />
-          <div className="grid gap-5 text-sm leading-6 text-muted-foreground sm:grid-cols-2">
+          <div className="mt-3 grid gap-5 text-sm leading-6 text-muted-foreground sm:grid-cols-2">
             <div>
               <p className="font-medium text-foreground">验证记录</p>
               <p className="mt-1">{latestCheckDescription(provider)}</p>

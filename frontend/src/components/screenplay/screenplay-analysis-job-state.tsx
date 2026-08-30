@@ -92,7 +92,7 @@ export function ScreenplayAnalysisJobState({
         />
       </div>
       {job.result && job.result.kind !== 'video_visual_analysis' ? (
-        <div className="mt-10 border-t pt-10">
+        <div className="mt-10 pt-10">
           <Badge variant="neutral">上一版本结果</Badge>
           <ScreenplayResultView
             reportMarkdown={job.report_markdown}

@@ -104,7 +104,7 @@ export function ProviderCatalogScreen({
       {result.loading && result.items.length === 0 ? (
         <CatalogSkeleton />
       ) : result.items.length === 0 ? (
-        <Empty className="hairline min-h-64 items-start rounded-none border-y py-14 text-left">
+        <Empty className="min-h-64 items-start rounded-none border-0 py-14 text-left">
           <EmptyHeader className="items-start">
             <EmptyTitle>平台目录为空</EmptyTitle>
             <EmptyDescription className="text-left">
@@ -181,11 +181,7 @@ function filterCatalog(
 
 function CatalogSkeleton() {
   return (
-    <div
-      aria-label="正在加载平台目录"
-      className="hairline divide-y border-y"
-      role="status"
-    >
+    <div aria-label="正在加载平台目录" className="space-y-2" role="status">
       {['first', 'second', 'third', 'fourth'].map((row) => (
         <div className="py-4" key={row}>
           <Skeleton className="h-12 w-full" />

@@ -32,7 +32,7 @@ export function ScreenplayDocumentMetadata({
   return (
     <section
       aria-labelledby="document-metadata-title"
-      className="mt-8 border-y border-border/70 py-5 sm:mt-10 sm:py-6"
+      className="mt-8 py-5 sm:mt-10 sm:py-6"
     >
       <div className="flex items-baseline justify-between gap-4">
         <h2

@@ -42,10 +42,10 @@ const tocSkeletonKeys = [
 ] as const;
 
 const workspaceClassName =
-  'mt-10 grid min-w-0 gap-10 lg:mt-12 lg:h-[clamp(34rem,72vh,56rem)] lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_280px] lg:grid-rows-[minmax(0,1fr)] lg:gap-0 lg:overflow-hidden';
-const previewColumnClassName = 'min-w-0 lg:min-h-0 lg:overflow-hidden lg:pr-10';
+  'mt-10 grid min-w-0 gap-10 lg:mt-12 lg:h-[clamp(34rem,72vh,56rem)] lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_280px] lg:grid-rows-[minmax(0,1fr)] lg:gap-14 lg:overflow-hidden';
+const previewColumnClassName = 'min-w-0 lg:min-h-0 lg:overflow-hidden';
 const tocColumnClassName =
-  'order-first min-w-0 lg:order-none lg:min-h-0 lg:overflow-hidden lg:border-l lg:pl-10';
+  'order-first min-w-0 lg:order-none lg:min-h-0 lg:overflow-hidden';
 
 export default function ScreenplayDocumentDetailView({
   documentId,
@@ -146,7 +146,7 @@ function DocumentDetailSkeleton() {
         <Skeleton className="mt-4 h-12 w-2/5" />
         <Skeleton className="mt-3 h-4 w-1/3" />
       </div>
-      <div className="mt-10 border-y border-border/70 py-5 sm:py-6">
+      <div className="mt-10 py-5 sm:py-6">
         <Skeleton className="h-6 w-24" />
         <div className="mt-5 grid grid-cols-2 gap-5 sm:grid-cols-4 lg:grid-cols-8">
           {metadataSkeletonKeys.map((key) => (

@@ -14,9 +14,9 @@ export function AnalyticsLoading() {
         <Skeleton className="h-5 w-20" />
         <Skeleton className="mt-2 h-4 w-48" />
       </div>
-      <div className="hairline grid grid-cols-2 border-y lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
         {['total', 'rate', 'users', 'bytes'].map((key) => (
-          <div className="space-y-3 px-4 py-7 sm:px-7" key={key}>
+          <div className="space-y-3" key={key}>
             <Skeleton className="h-3 w-20" />
             <Skeleton className="h-12 w-32" />
             <Skeleton className="h-3 w-full max-w-40" />
@@ -24,12 +24,9 @@ export function AnalyticsLoading() {
         ))}
       </div>
       <Skeleton className="h-96 rounded-none" />
-      <div className="hairline grid border-y lg:grid-cols-3">
-        {['status', 'completion', 'sources'].map((key, index) => (
-          <div
-            className={`py-8 ${index > 0 ? 'hairline border-t lg:border-l lg:border-t-0 lg:pl-8' : 'lg:pr-8'}`}
-            key={key}
-          >
+      <div className="grid gap-10 lg:grid-cols-3 lg:gap-12">
+        {['status', 'completion', 'sources'].map((key) => (
+          <div key={key}>
             <Skeleton className="h-5 w-24" />
             <Skeleton className="mt-2 h-4 w-48 max-w-full" />
             <Skeleton className="mt-6 h-52 rounded-none" />

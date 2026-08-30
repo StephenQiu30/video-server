@@ -6,11 +6,11 @@
 
 ## 目标与边界
 
-前端整体迁移为 Next.js App Router，并以 shadcn/ui `radix-nova`、Radix UI、Tailwind CSS 和 `@umijs/openapi` 组成唯一前端技术栈。最终代码不再保留 Umi Max、Ant Design、Ant Design Pro、Less 或平行路由器。迁移覆盖当前全部用户能力，不改动下载、AI 分析、认证和用户管理的业务语义。
+前端整体迁移为 Next.js App Router，并以统一 `radix-ui` 交互原语、项目内 `radix-nova` 源码封装、Tailwind CSS 和 `@umijs/openapi` 组成唯一前端技术栈。最终代码不再保留 Umi Max、Ant Design、Ant Design Pro、Less 或平行路由器。迁移覆盖当前全部用户能力，不改动下载、AI 分析、认证和用户管理的业务语义。
 
-视觉以方案 3 为布局、文案与信息层级的第一依据：`#FAFAFA` 偏白画布、大尺寸编辑式 Hero、大留白、无侧栏、近黑前景与主操作，内容本身而不是卡片框架构成页面结构。Vercel/Geist 提供 80px 无边框导航、Header/内容统一隐形网格、克制的中性色与密度稳定的排版节奏。控件使用无边框填充面，只在内容分组确有需要时使用 1px 发丝分隔。
+视觉以方案 3 为布局、文案与信息层级的第一依据：`#FAFAFA` 偏白画布、大尺寸编辑式 Hero、大留白、无侧栏、近黑前景与主操作，内容本身而不是卡片框架构成页面结构。Vercel/Geist 提供 80px 无边框导航、Header/内容统一隐形网格、克制的中性色与密度稳定的排版节奏。页面内容组、列表、表格和双栏全部通过间距、排版与轻量填充面建立层级，不绘制结构性分割线。
 
-交互和内容容器优先使用 [shadcn/ui 组件](https://ui.shadcn.com/docs/components)的 `radix-nova` 源码组合，并保留 [Radix 无障碍行为](https://www.radix-ui.com/primitives/docs/overview/accessibility)。shadcn 是项目内可审计的组件源码而不是平行运行时 UI 框架，页面不得另建第二套基础组件。
+交互组件优先直接使用统一 `radix-ui` 包提供的 Primitive，并通过 [shadcn/ui `radix-nova` 源码](https://ui.shadcn.com/docs/components)形成项目内薄封装，完整保留 [Radix 无障碍行为](https://www.radix-ui.com/primitives/docs/overview/accessibility)。`radix-nova` 只是一份可审计源码，不是平行运行时 UI 框架；Radix 未提供的 Table、Button、Input 等语义由同一源码层补齐，页面不得另建第二套基础组件或手写可点击容器。
 
 不在本次范围内新增视频平台、支付、社交登录或后端业务接口。明暗主题跟随系统偏好并只消费现有语义 token；页面不提供可见主题切换器，也不改变业务语义。生产环境仍不运行 Next.js Node 服务，FastAPI 继续同源提供静态页面与 `/api/*`。
 
@@ -28,7 +28,7 @@
 | 层级 | 唯一选型 | 约束 |
 | --- | --- | --- |
 | 路由与构建 | Next.js App Router | 使用 `src/app/`、静态导出和路由组；不使用 Pages Router、Umi 路由或 Next 运行时服务 |
-| UI 原语 | shadcn/ui `radix-nova` + Radix UI | 使用官方 registry 源码和语义 token；Dialog、Dropdown Menu、Select、Tabs、Progress、Sheet、Tooltip、AlertDialog 等交互保留 Radix 语义与焦点行为 |
+| UI 原语 | 统一 `radix-ui` + 项目内 `radix-nova` 源码 | Dialog、Dropdown Menu、Select、Tabs、Progress、Sheet、Tooltip、AlertDialog 等交互直接以 Radix Primitive 为底层；源码层只补充样式、语义 token 和 Radix 未提供的基础元素 |
 | 样式 | Tailwind CSS | 全局 token 由 CSS 变量定义，组件只消费语义类；不新增 Less、CSS-in-JS 或另一套主题系统 |
 | 图标与品牌 | `@phosphor-icons/react` + `public/logo.svg` | 功能图标继续使用 Phosphor 的同一线性/填充家族；Header 品牌标识与页面 metadata 通过 Next.js `Image`/icons 使用已经设计好的 Logo；禁止用 emoji、文本符号、手绘 SVG、CSS 图形代替功能图标 |
 | API 生成 | `@umijs/openapi` | 直接作为开发依赖，通过 `openapi2ts` 读取 FastAPI `/openapi.json`；不依赖 Umi Max 插件 |
@@ -126,7 +126,7 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 | `--primary-hover` | `#2B2B2B` | 主操作悬停 |
 | `--ring` | `#111111` | 键盘焦点轮廓，不用作装饰 ring |
 | `--surface` | `#F5F5F5` | 无边框次级控件与静默区域的填充面 |
-| `--border` | `#E6E6E6` | 仅用于内容节奏所需的 1px 发丝分隔与功能边界 |
+| `--border` | `#E6E6E6` | 仅供弹层、无障碍状态和图表网格等功能边界消费，不用于页面结构分组 |
 | `--success` | `#16824D` | 成功状态 |
 | `--warning` | `#854D0E` | 等待与重试状态；与 10% warning 填充组合满足普通文字 AA 对比度 |
 | `--destructive` | `#DC2626` | 错误与破坏性操作 |
@@ -142,11 +142,11 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 - 间距采用 4px 基准，控件内部使用 8/12/16px，内容组使用 24/32px，主要段落使用 48/64/96px。标题、描述和主操作之间必须保留明显层级，不通过额外卡片填满空白。除首页、认证双栏和垂直居中的 404 外，常规内页与任务缺失状态统一复用 `.inner-page`：移动端上下各 24px、641px 及以上各 32px；页面不得再自行叠加 `py-20`/`py-24`，避免 80px Header 后出现第二段近似 Header 高度的空档。`BackLink` 与 PageHeader 之间固定使用 16px 紧凑节奏，标题区之后再按内容语义使用 40/48/64px 分组间距。首页编辑式 Hero 作为唯一内容页例外，导航后使用移动 40px、平板 48px、桌面 56px 的渐进留白。
 - 内页标题保持短、直接并与首页共用 Geist 层级；默认不使用编号 eyebrow、装饰性彩色分类标签或与 H1 重复的说明。真实流程顺序由任务状态和内容结构表达，不在标题前附加装饰编号。
 - Header 视觉高度为 80px，与 main/footer 共用 `.content-shell` 的桌面 80px gutter 和 1376px 最大宽度。品牌标识为 32px，品牌文字为 17px，桌面导航文字为 15px，导航控件高度为 44px，以明确的品牌层级与宽屏主体保持稳定的视觉比例。Header 本身不使用下边线、外框、ring 或阴影。
-- 页面根、标题区、筛选区、列表区和表单区不使用可见 Card 外壳、装饰 ring、阴影或装饰性大边框。输入、选择器和按钮优先用实心中性填充面与颜色对比建立边界；内容分组只使用必要的 1px 发丝 Separator。Dialog、Sheet、Popover 等 Radix 覆盖层仍保留可辨识表面、遮罩、焦点圈定和 Escape/焦点恢复。键盘焦点轮廓是功能性边界，不属于装饰 ring。
+- 页面根、标题区、筛选区、列表区、表格、双栏和表单区不使用可见 Card 外壳、Separator、装饰 ring、阴影或结构性边框。输入、选择器和按钮优先用实心中性填充面与颜色对比建立边界；相邻内容只通过 24/32/48px 间距、字号和字重分组。Dialog、Sheet、Popover 等 Radix 覆盖层仍保留可辨识表面、遮罩、焦点圈定和 Escape/焦点恢复。键盘焦点轮廓、错误状态和图表坐标网格是功能性边界，不属于装饰边框。
 - Button、Link 与 Radix Trigger 的 hover、active、loading、展开和选中反馈只改变颜色、透明度或不参与文档流的覆盖层，不得通过 `top`、`left`、margin、尺寸或 translate 改变控件几何；异步状态切换必须保留稳定外框与必要的图标、账户占位槽。
 - 动效以 120–200ms 的透明度或位移过渡为主，并遵循 `prefers-reduced-motion`。
 
-“无边框”指移除应用壳、卡片、控件轮廓和区域的装饰性边框；不影响 Separator、错误表达和可见键盘焦点等功能性边界。
+“无边框”指应用内容层不显示应用壳、卡片、表格行线、列表分隔、双栏竖线、区域 Separator 或控件装饰轮廓；错误表达、可见键盘焦点、Radix 弹层边界和图表坐标网格继续保留。
 
 ### 官方组件映射
 
@@ -154,8 +154,8 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 
 | 信息/交互语义 | 官方组件 | 项目使用规则 |
 | --- | --- | --- |
-| 页内内容分组 | 语义化 section + [Separator](https://ui.shadcn.com/docs/components/radix/separator) | 不呈现 Card 外壳；通过排版、留白和必要的 1px 发丝线分组 |
-| 桌面数据 | [Table](https://ui.shadcn.com/docs/components/radix/table) | 用于管理员用户列表和下载分析的精确数值；保留 `caption`、列头和行语义，数值表头/单元格共同右对齐并使用 `tabular-nums`，390px 下切换为 Item/摘要列表 |
+| 页内内容分组 | 语义化 section + Tailwind 布局 | 不呈现 Card 外壳或 Separator；通过排版、留白和必要的中性填充面分组 |
+| 桌面数据 | [Table](https://ui.shadcn.com/docs/components/radix/table) | 用于管理员用户列表和下载分析的精确数值；保留 `caption`、列头和行语义，默认无外框、表头线和行线，数值表头/单元格共同右对齐并使用 `tabular-nums`，390px 下切换为 Item/摘要列表 |
 | 数据可视化 | [Chart](https://ui.shadcn.com/docs/components/chart) + Recharts | 复用官方 `ChartContainer`、Tooltip 与蓝色 `--chart-1` … `--chart-5` 主题 token；图表有可读标题和等价表格/列表，数值不只靠颜色或 Tooltip 传达，不增加 Card 外壳 |
 | 移动导航/补充内容 | [Sheet](https://ui.shadcn.com/docs/components/radix/sheet) | 从右侧进入，标题与描述可读，关闭后焦点返回触发器 |
 | 图标辅助说明 | [Tooltip](https://ui.shadcn.com/docs/components/radix/tooltip) | 只补充说明，不承载唯一必要信息；支持 hover 与键盘 focus |
@@ -167,7 +167,7 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 | 破坏性确认 | [Alert Dialog](https://ui.shadcn.com/docs/components/radix/alert-dialog) | 仅用于取消下载和取消分析；取消为安全默认，明确后果，管理员编辑仍在普通 Dialog 中完成 |
 | 媒体尺寸 | [Aspect Ratio](https://ui.shadcn.com/docs/components/radix/aspect-ratio) | 缩略图和预览固定 1.86:1，加载失败也不造成布局塌陷 |
 
-布局所需的 Separator、Badge、Button、Select、Dropdown Menu、Dialog、Tabs、Progress、Skeleton、Spinner 同样复用 registry 实现。Badge 与胶囊只表示状态、身份、选择或交互；平台能力、镜头属性、资产类型、评分、尝试次数等普通元数据使用辅助文字和 `·` 分隔。页面可以用 Tailwind 排列组件，但不得绕过它们另造不具备语义和焦点行为的可点击 `div`。
+Badge、Button、Select、Dropdown Menu、Dialog、Tabs、Progress、Skeleton、Spinner 同样复用 registry 实现。Separator 只允许存在于菜单或表单等组件自身的语义分组，不用于页面内容布局。Badge 与胶囊只表示状态、身份、选择或交互；平台能力、镜头属性、资产类型、评分、尝试次数等普通元数据使用辅助文字和 `·` 分隔。页面可以用 Tailwind 排列组件，但不得绕过它们另造不具备语义和焦点行为的可点击 `div`。
 
 ## 页面设计
 
@@ -187,20 +187,20 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 2. 主输入以 Field + InputGroup + Button 组合，InputGroup 使用浅中性实心填充，解析按钮使用近黑填充；两者都不使用装饰性边框。输入有真实 label、Phosphor 链接图标、清除动作、提交中状态和内联错误。
 3. 旧的“链接 → 格式 → 下载”三步导航/进度 UI 不再出现；页面用留白、操作状态和结果内容的自然顺序表达流程。
 4. 解析成功后展示媒体画面与真实格式选择双栏：媒体区使用真实封面、标题、平台和时长；选择区必须用 Radix `RadioGroup` 直接渲染 API 返回的每一个 `MediaFormat`，并展示其分辨率、容器、编码与帧率。不得伪造“最佳画质/兼容优先/仅音频”预设，不增加未由契约支持的字幕或容器选择器，也不在静态封面上放置伪播放控件。
-5. 页面内不放置结果 Card 外壳；双栏只用留白和必要的发丝 Separator 组织。方案 3 中的群山湖泊媒体示例使用 `frontend/public/images/media-preview-mountain.webp`（约 221 KiB），用于稳定演示/视觉回归；生产解析成功态仍优先显示真实媒体封面。
+5. 页面内不放置结果 Card 外壳；双栏只用留白和列间距组织，不显示竖线。方案 3 中的群山湖泊媒体示例使用 `frontend/public/images/media-preview-mountain.webp`（约 221 KiB），用于稳定演示/视觉回归；生产解析成功态仍优先显示真实媒体封面。
 6. 首页统一提供“链接解析 / 本地视频 / 剧本文档”三个 Tabs。移动端三个入口必须等分 `.content-shell` 的可用宽度并共享视觉中心，避免内在内容宽度让整组偏向一侧或在 320px 窄屏溢出；`sm` 及以上恢复紧凑的内容宽度线型布局。上传动作直接由文件选择和主按钮完成，不增加固定前提确认框、重复合法性说明、实现细节说明或页面底部提示；格式、大小、错误和进度只在帮助用户完成当前任务时出现。
 
 首页必须覆盖初始、URL 校验失败、解析中、解析失败、无可用格式、已解析、创建任务中七种状态。提交不得重复创建任务，幂等键语义与旧实现一致。创建成功直接进入 canonical 详情地址。
 
 ### 下载记录 `/history`
 
-PageHeader 直接显示“下载记录”及一句用途说明、可选的“新建下载”主操作，不在 H1 上方显示“任务记录”等重复眉题。页面顶部复用 `.inner-page` 的移动 24px、其余视口 32px 节奏，避免 80px Header 后出现第二段过长空档；搜索、状态筛选和刷新紧随标题区。桌面端与移动端均使用 Item/ItemGroup，行间只有 ItemSeparator；视频标题和封面构成第一信息层级。桌面端展开为宽行并保留更完整元数据，390px 下重排为单列，每项展示标题、格式、状态、时间和唯一主操作，不通过横向滚动隐藏内容。Pagination 在桌面端可展示页码，390px 下精简为上/下页和当前页说明。
+PageHeader 直接显示“下载记录”及一句用途说明、可选的“新建下载”主操作，不在 H1 上方显示“任务记录”等重复眉题。页面顶部复用 `.inner-page` 的移动 24px、其余视口 32px 节奏，避免 80px Header 后出现第二段过长空档；搜索、状态筛选和刷新紧随标题区。桌面端与移动端均使用 Item/ItemGroup，以行间距代替 ItemSeparator；视频标题和封面构成第一信息层级。桌面端展开为宽行并保留更完整元数据，390px 下重排为单列，每项展示标题、格式、状态、时间和唯一主操作，不通过横向滚动隐藏内容。Pagination 在桌面端可展示页码，390px 下精简为上/下页和当前页说明。
 
 空状态、筛选无结果、加载、刷新失败和分页均有明确文案；无数据使用左对齐的 Empty 组合，不用空 Card、装饰性插图或圆角图标底座占位。成功任务提供“获取文件”，其他任务提供“查看任务”。初始加载骨架必须为最终统计摘要保留相同的 18px 高度和上下间距，数据到达时不得把列表区域向下推移。无论列表处于加载、空、错误或正常状态，Header 中的品牌首页链接都保持可用，使用户无需依赖浏览器后退即可开始新的解析。
 
 ### 下载详情 `/downloads/detail`
 
-页面读取并校验 `jobId` 查询参数。缺失、格式非法、无权限或不存在时使用 Empty/Alert 给出不同但不泄露敏感信息的恢复路径。统一返回入口优先回到实际上一条站内记录，直接访问时回落到 `/history`。正常态使用连续内容区：AspectRatio 封面、任务状态、操作和分析内容按阅读顺序排列，区段间使用 Separator，不包在一张 Card 中。媒体标题与平台、格式、分辨率、编码和时长组成唯一的媒体摘要，并在播放器之前建立首屏标题层级；桌面下方再将播放器与状态操作按宽窄双栏排列，但只通过网格间距建立关系，不使用垂直边线、独立背景或卡片外壳。右侧状态区只承担 Badge 状态、面向下一步的标题与说明、Progress、Button/AlertDialog 操作，以及一个 Item 可信摘要，不再次复制媒体格式或完成结果；390px 下按“标题摘要 → 播放器 → 状态与操作”单列重排。
+页面读取并校验 `jobId` 查询参数。缺失、格式非法、无权限或不存在时使用 Empty/Alert 给出不同但不泄露敏感信息的恢复路径。统一返回入口优先回到实际上一条站内记录，直接访问时回落到 `/history`。正常态使用连续内容区：AspectRatio 封面、任务状态、操作和分析内容按阅读顺序排列，区段间只使用主要段落间距，不包在一张 Card 中。媒体标题与平台、格式、分辨率、编码和时长组成唯一的媒体摘要，并在播放器之前建立首屏标题层级；桌面下方再将播放器与状态操作按宽窄双栏排列，但只通过网格间距建立关系，不使用垂直边线、独立背景或卡片外壳。右侧状态区只承担 Badge 状态、面向下一步的标题与说明、Progress、Button/AlertDialog 操作，以及一个 Item 可信摘要，不再次复制媒体格式或完成结果；390px 下按“标题摘要 → 播放器 → 状态与操作”单列重排。
 
 任务详情 API 必须随持久任务返回标题、封面、时长、平台与所选语义格式；短期解析资源过期后仍由这些任务展示字段维持完整首屏，不以“封面不可用”、通用标题或格式破折号降级。完成态只在状态标题、文件保留信息与完整性说明中各表达一次结果，不重复渲染 100% 进度和“已完成”阶段。任务阶段决定取消、获取文件、开始分析、取消分析或重新分析动作；取消下载或分析使用 AlertDialog，不使用浏览器原生 `confirm`。AI 配置继续使用 FieldGroup、Select、Textarea、Item 与 Button 组合，原生标签只保留 `section`、标题、正文和媒体等必要语义，不用可点击 `div` 模拟组件行为。
 
@@ -208,7 +208,7 @@ PageHeader 直接显示“下载记录”及一句用途说明、可选的“新
 
 ### 登录与注册
 
-认证页使用 `.page-shell` 的无外框双栏版式：桌面左栏承载简短产品主张与合法使用提示，右栏用发丝分隔后放置不超过 440px 的表单；不足 `lg` 时隐藏介绍栏，并在可用内容区域内水平居中表单，手机宽度下再自然占满可用宽度。登录突出邮箱、密码和单一近黑主按钮；注册增加用户名与密码确认。标题使用“登录，继续下载。”或“创建账户，保存进度。”等直接动作句，不增加编号流程眉题。字段统一由 Field + InputGroup 组合 label、描述、密码可见性与错误，错误出现在对应字段附近并在提交失败时聚焦摘要。登录态用户访问认证页时返回校验后的安全站内目标；登录和注册通过明确的交叉链接互相切换，不显示可能回到过期受保护页面的通用历史返回。
+认证页使用 `.page-shell` 的无外框双栏版式：桌面左栏承载简短产品主张与合法使用提示，右栏通过宽列间距放置不超过 440px 的表单，不使用竖向分隔；不足 `lg` 时隐藏介绍栏，并在可用内容区域内水平居中表单，手机宽度下再自然占满可用宽度。登录突出邮箱、密码和单一近黑主按钮；注册增加用户名与密码确认。标题使用“登录，继续下载。”或“创建账户，保存进度。”等直接动作句，不增加编号流程眉题。字段统一由 Field + InputGroup 组合 label、描述、密码可见性与错误，错误出现在对应字段附近并在提交失败时聚焦摘要。登录态用户访问认证页时返回校验后的安全站内目标；登录和注册通过明确的交叉链接互相切换，不显示可能回到过期受保护页面的通用历史返回。
 
 ### 个人资料与管理员页面
 
@@ -216,11 +216,11 @@ PageHeader 直接显示“下载记录”及一句用途说明、可选的“新
 
 平台目录采用同一桌面 Table/移动 Item 语言，以 Field + InputGroup 搜索名称或目录键、以 Radix Select 筛选公开状态，并通过 Pagination 每页展示 10 项；编辑使用 Dialog、删除使用 AlertDialog，并以“系统已注册/仅目录”徽标明确展示安全执行能力是否存在，排序列右对齐并使用表格数字。平台状态先展示平台总数、当前可用与需关注三项摘要，使用单选 Toggle Group 筛选并通过 Pagination 每页展示 8 项；Badge 只表达稳定支持能力与运行条件，普通能力使用辅助文字分隔，探针、真实下载、完整分析和访问方式进入每个平台的 Radix Collapsible，默认收起以保留扫描节奏。筛选控件的未选项仍使用可读的 `muted-foreground`，不通过低透明度牺牲 WCAG AA 对比度。
 
-文件管理使用 ItemGroup、Item、ItemSeparator、Empty 与 Pagination 组织连续的持久资产清单，不为资产类型增加 Badge、图标底座或 Card。类型、对象数和创建时间合并为一行辅助元数据，文件大小使用表格数字；超长标题在可用宽度内截断并通过 `title` 保留完整名称，API 名称上限为 512 字符，390px 下不得造成横向滚动。
+文件管理使用 ItemGroup、Item、Empty 与 Pagination 组织连续的持久资产清单，以行间距和 hover 填充代替 ItemSeparator，不为资产类型增加 Badge、图标底座或 Card。类型、对象数和创建时间合并为一行辅助元数据，文件大小使用表格数字；超长标题在可用宽度内截断并通过 `title` 保留完整名称，API 名称上限为 512 字符，390px 下不得造成横向滚动。
 
 用户搜索、分页、平台目录写入后的回读、平台状态刷新和下载分析周期切换均采用保留旧内容的后台刷新：只有首次进入且没有任何可展示数据时才使用骨架或加载占位。已有 Table、ItemGroup、指标或图表不得在请求开始时卸载，也不得用行数更少的骨架临时替换；请求完成后直接提交新结果，并以 `aria-busy` 或控件禁用态表达进行中状态，避免文档高度先塌陷再恢复。
 
-下载分析 PageHeader 直接显示“下载分析”，统计范围、7/30/90 天单选 Radix Toggle Group 与刷新操作收敛在标题区右侧，390px 下重排为满宽周期选择和独立图标操作。首个数据区使用全宽双序列面积图承担主要视觉层级，通过官方 `ChartLegend` 对比全部任务与成功任务，并以 `ChartTooltipContent` 提供按日交互读数；面积使用与 shadcn/ui Area Chart 官方示例一致的蓝色 `--chart-*` 主题变量和轻透明填充，不增加渐变或业务硬编码色，也不重复展示日均/峰值摘要。蓝色只属于图表数据层，页面背景、筛选、按钮、进度与结构边界继续使用 Vercel 式黑白中性色。摘要随后以 Geist Sans 表格数字、留白、Phosphor 语义图标和横向发丝 Separator 组织成四列周期概览，不使用指标 Card；窄屏切换为两列并保留稳定高度。桌面补充分析区为连续三列：任务状态环图、每日完成率面积图和前五来源柱状图，390px 下顺序堆叠；完整来源表通过官方 shadcn/ui Collapsible 按需展开，默认页面只保留入口，降低信息密度。全部图表统一组合项目内 shadcn/ui `ChartContainer`、Tooltip、Legend 与 Recharts，并保留等价表格、meter、图外数值和文字说明，不让颜色或 Tooltip 成为唯一信息来源。来源表现中的任务、成功率、用户和数据量表头/单元格共同右对齐。AI 结果中的分镜、高光和资产同样使用 Tabs + Item/ItemGroup + Separator 的连续内容流，普通属性与评分不使用 Badge，不使用页面级原生按钮或逐项可见边框卡片。页面不解密或显示来源 URL，不显示用户或单任务明细。
+下载分析 PageHeader 直接显示“下载分析”，统计范围、7/30/90 天单选 Radix Toggle Group 与刷新操作收敛在标题区右侧，390px 下重排为满宽周期选择和独立图标操作。首个数据区使用全宽双序列面积图承担主要视觉层级，通过官方 `ChartLegend` 对比全部任务与成功任务，并以 `ChartTooltipContent` 提供按日交互读数；面积使用与 shadcn/ui Area Chart 官方示例一致的蓝色 `--chart-*` 主题变量和轻透明填充，不增加渐变或业务硬编码色，也不重复展示日均/峰值摘要。蓝色只属于图表数据层，页面背景、筛选、按钮、进度与结构边界继续使用 Vercel 式黑白中性色。摘要随后以 Geist Sans 表格数字、留白与 Phosphor 语义图标组织成四列周期概览，不使用指标 Card、外框或列分隔；窄屏切换为两列并保留稳定高度。桌面补充分析区为连续三列：任务状态环图、每日完成率面积图和前五来源柱状图，390px 下顺序堆叠；完整来源表通过官方 Radix Collapsible 封装按需展开，默认页面只保留入口，降低信息密度。全部图表统一组合项目内 ChartContainer、Tooltip、Legend 与 Recharts，并保留等价表格、meter、图外数值和文字说明，不让颜色或 Tooltip 成为唯一信息来源。来源表现中的任务、成功率、用户和数据量表头/单元格共同右对齐。AI 结果中的分镜、高光和资产同样使用 Radix Tabs + Item/ItemGroup 的连续内容流，以间距代替 Separator，普通属性与评分不使用 Badge，不使用页面级原生按钮或逐项可见边框卡片。页面不解密或显示来源 URL，不显示用户或单任务明细。
 
 390px 下用户管理和下载分析的精确数值转为 Item/摘要列表，图表不超出可用宽度；用户详情和编辑进入适配视口的 Sheet/Dialog，禁止依赖横向滚动查看核心数据或操作。
 
@@ -258,7 +258,7 @@ PageHeader 直接显示“下载记录”及一句用途说明、可选的“新
 
 ## 设计 QA 门禁
 
-首页在 1487×1058 视口、解析成功状态下与方案 3 无边框修订稿进行同状态对比；必须把参考图和实现截图放入同一比较输入，而不是分别凭记忆判断。重点核对 80px 无边框 Header、Header/main/footer 共用的 `.content-shell` 与断点 gutter、编辑式 Hero、输入/按钮填充面、媒体/格式双栏、群山湖泊封面裁切、真实 RadioGroup 格式行、Geist 排版、发丝 Separator 和留白。
+首页在 1487×1058 视口、解析成功状态下与方案 3 无边框修订稿进行同状态对比；必须把参考图和实现截图放入同一比较输入，而不是分别凭记忆判断。重点核对 80px 无边框 Header、Header/main/footer 共用的 `.content-shell` 与断点 gutter、编辑式 Hero、输入/按钮填充面、媒体/格式双栏、群山湖泊封面裁切、真实 Radix RadioGroup 格式行、Geist 排版和由留白建立的无边框层级。
 
 全部路由还需在 1280px/方案 3 原始桌面视口和 390×844 下检查真实数据、加载、空、错误、打开菜单/Sheet/AlertDialog 等关键状态。P0/P1/P2 差异修复后重新截图比较，根目录 `design-qa.md` 只有在写明 `final result: passed` 后才可交付；剩余 P3 只能作为后续微调记录。
 
