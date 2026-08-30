@@ -33,12 +33,17 @@ async def wait_until_missing(pid: int) -> None:
     pytest.fail(f"process {pid} was not terminated")
 
 
-async def wait_for_file(path: Path) -> None:
+async def wait_for_pid(path: Path) -> int:
     for _ in range(100):
-        if path.exists():
-            return
+        try:
+            value = path.read_text()
+        except FileNotFoundError:
+            pass
+        else:
+            if value.isdecimal():
+                return int(value)
         await asyncio.sleep(0.01)
-    pytest.fail(f"{path} was not created")
+    pytest.fail(f"{path} did not contain a process id")
 
 
 async def test_executes_argv_without_a_shell(tmp_path: Path) -> None:
@@ -161,8 +166,7 @@ async def test_cancellation_terminates_process(tmp_path: Path) -> None:
     task = asyncio.create_task(
         supervisor.run(command, cwd=tmp_path, timeout_seconds=20)
     )
-    await wait_for_file(pid_path)
-    pid = int(pid_path.read_text())
+    pid = await wait_for_pid(pid_path)
 
     task.cancel()
     with pytest.raises(asyncio.CancelledError):

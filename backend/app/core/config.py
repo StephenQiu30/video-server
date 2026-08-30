@@ -356,11 +356,13 @@ class Settings(BaseSettings):
             validated[provider] = endpoint.rstrip("/")
         return validated
 
-    @field_validator("article_discovery_proxy_url")
+    @field_validator("article_discovery_proxy_url", mode="before")
     @classmethod
-    def validate_article_discovery_proxy(cls, value: str | None) -> str | None:
-        if value is None:
+    def validate_article_discovery_proxy(cls, value: object) -> object | None:
+        if value is None or (isinstance(value, str) and not value.strip()):
             return None
+        if not isinstance(value, str):
+            return value
         try:
             parsed = urlsplit(value)
             _ = parsed.port

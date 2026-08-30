@@ -271,6 +271,17 @@ def test_article_discovery_proxy_is_an_http_authority() -> None:
 
 
 @pytest.mark.parametrize("value", ["", "   "])
+def test_empty_article_discovery_proxy_is_normalized_to_none(value: str) -> None:
+    settings = Settings(
+        app_env="test",
+        _env_file=None,
+        article_discovery_proxy_url=value,
+    )
+
+    assert settings.article_discovery_proxy_url is None
+
+
+@pytest.mark.parametrize("value", ["", "   "])
 def test_empty_bootstrap_admin_email_is_normalized_to_none(
     monkeypatch: pytest.MonkeyPatch, value: str
 ) -> None:
