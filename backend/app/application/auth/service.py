@@ -161,6 +161,7 @@ class AuthService:
             user,
             issued.access_token,
             issued.refresh_token,
+            issued.access_expires_at,
             issued.refresh_expires_at,
         )
 

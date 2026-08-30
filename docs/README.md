@@ -31,4 +31,5 @@
 | 023 | 本地内容上传与剧本分析 | [Design](design/023-本地内容上传与剧本分析设计.md) | [PRD](prd/023-本地内容上传与剧本分析需求.md) | [Plan](plans/023-本地内容上传与剧本分析计划.md) | [Acceptance](acceptance/023-本地内容上传与剧本分析验收.md) |
 | 024 | 微信公众号文章、视频号与腾讯授权媒体接入 | [Design](design/024-微信视频号与腾讯视频授权媒体接入设计.md) | [PRD](prd/024-微信视频号与腾讯视频授权媒体接入需求.md) | [Plan](plans/024-微信视频号与腾讯视频授权媒体接入计划.md) | [Acceptance](acceptance/024-微信视频号与腾讯视频授权媒体接入验收.md) |
 | 025 | 微信视频号公开分享链接下载 | [Design](design/025-微信视频号公开分享链接下载设计.md) | [PRD](prd/025-微信视频号公开分享链接下载需求.md) | [Plan](plans/025-微信视频号公开分享链接下载计划.md) | [Acceptance](acceptance/025-微信视频号公开分享链接下载验收.md) |
+| 026 | Flutter 原生认证契约 | [Design](design/026-Flutter原生认证契约设计.md) | [PRD](prd/026-Flutter原生认证契约需求.md) | [Plan](plans/026-Flutter原生认证契约计划.md) | [Acceptance](acceptance/026-Flutter原生认证契约验收.md) |
 | 027 | 开场钩子审查 Skill | [Design](design/archive/027-开场钩子审查Skill设计.md) | [PRD](prd/archive/027-开场钩子审查Skill需求.md) | [Plan](plans/archive/027-开场钩子审查Skill计划.md) | [Acceptance](acceptance/archive/027-开场钩子审查Skill验收.md) |

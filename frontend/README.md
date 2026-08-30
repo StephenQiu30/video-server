@@ -16,23 +16,14 @@
 
 ## 本地开发
 
-本地依赖使用 Homebrew 的 PostgreSQL、RabbitMQ、Redis 和 MinIO，不使用 Docker 服务。先确认 `brew services list` 中四项均为 `started`，再启动完整的本地后端拓扑；异步下载和分析不能只运行 API：
+本地基础依赖使用 Homebrew 的 PostgreSQL、RabbitMQ、Redis 和 MinIO，业务进程只通过根 Compose 启动。先确认 `brew services list` 中四项均为 `started`，再从根目录启动完整拓扑；异步下载和分析不能只运行 API：
 
 ```bash
-cd ../backend
-uv sync --frozen --dev
-uv run python ../scripts/run-local-backend.py
+docker compose --env-file .env -f docker-compose.yml \
+  up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
 ```
 
-再启动前端：
-
-```bash
-cd ../frontend
-npm ci
-npm run dev
-```
-
-开发服务器监听 `http://127.0.0.1:8101`，将 `/api/*` 和 `/health/*` 代理到 `http://127.0.0.1:8111`。浏览器请求始终使用同源相对路径，不配置浏览器可见的后端地址或服务端密钥。
+前端服务监听 `http://127.0.0.1:8101`，将 `/api/*` 和 `/health/*` 代理到 `http://127.0.0.1:8111`。浏览器请求始终使用同源相对路径，不配置浏览器可见的后端地址或服务端密钥。
 
 ## 目录约定
 

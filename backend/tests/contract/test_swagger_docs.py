@@ -41,6 +41,11 @@ def test_swagger_ui_and_openapi_contract_are_available(tmp_path: Path) -> None:
     assert set(operations) == {
         "getLiveness",
         "getReadiness",
+        "registerNativeUser",
+        "loginNativeUser",
+        "getNativeCurrentUser",
+        "refreshNativeSession",
+        "logoutNativeSession",
         "registerUser",
         "loginUser",
         "getCurrentUser",

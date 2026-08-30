@@ -6,6 +6,7 @@ from ipaddress import ip_address, ip_network
 from typing import Annotated, cast
 
 from fastapi import Depends, Request, Response
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.application.auth import (
     AuthError,
@@ -24,6 +25,8 @@ from app.infrastructure.rate_limiter import (
 )
 
 from .dependencies import get_runtime_settings
+
+native_bearer = HTTPBearer(auto_error=False, scheme_name="NativeBearerAuth")
 
 
 def get_auth_service(request: Request) -> AuthService:
@@ -54,8 +57,18 @@ async def get_current_user(
     request: Request,
     settings: Annotated[Settings, Depends(get_runtime_settings)],
     auth: Annotated[AuthService, Depends(get_auth_service)],
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None, Depends(native_bearer)
+    ],
 ) -> CurrentUser:
-    access_token = request.cookies.get(settings.auth_access_cookie_name)
+    authorization = request.headers.get("authorization")
+    access_token: str | None
+    if authorization is not None:
+        if credentials is None or credentials.scheme.casefold() != "bearer":
+            raise _unauthenticated()
+        access_token = credentials.credentials
+    else:
+        access_token = request.cookies.get(settings.auth_access_cookie_name)
     if access_token:
         try:
             user = await auth.current_user(access_token)

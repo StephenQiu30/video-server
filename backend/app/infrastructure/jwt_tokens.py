@@ -39,6 +39,7 @@ class JwtTokenService:
             access_token=access,
             refresh_token=refresh,
             refresh_token_hash=self.digest(refresh),
+            access_expires_at=now + self._access_ttl,
             refresh_expires_at=now + self._refresh_ttl,
         )
 

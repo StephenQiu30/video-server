@@ -3,6 +3,7 @@
 // API 更新时间：
 // API 唯一标识：
 import * as system from "./system";
+import * as appAuth from "./appAuth";
 import * as auth from "./auth";
 import * as users from "./users";
 import * as admin from "./admin";
@@ -15,6 +16,7 @@ import * as analyses from "./analyses";
 import * as mediaImports from "./mediaImports";
 export default {
   system,
+  appAuth,
   auth,
   users,
   admin,

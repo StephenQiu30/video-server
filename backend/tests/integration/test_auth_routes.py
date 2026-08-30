@@ -305,3 +305,80 @@ async def test_configured_bootstrap_email_requires_the_bootstrap_secret(
     assert missing_secret.json()["code"] == "admin_bootstrap_required"
     assert wrong_secret.status_code == 403
     assert admin.json()["role"] == "admin"
+
+
+async def test_native_session_rotates_refresh_and_logout_revokes_it(
+    tmp_path: Path,
+    postgres_engine: AsyncEngine,
+) -> None:
+    credentials = {
+        "username": "native_member",
+        "email": "native@example.com",
+        "password": "strong-pass-123",
+    }
+    async with auth_client(tmp_path, postgres_engine) as client:
+        registered = await client.post(
+            "/api/app/v1/auth/register", json=credentials
+        )
+        first_session = registered.json()
+        current = await client.get(
+            "/api/app/v1/auth/me",
+            headers={
+                "Authorization": f"Bearer {first_session['access_token']}"
+            },
+        )
+        refreshed = await client.post(
+            "/api/app/v1/auth/refresh",
+            json={"refresh_token": first_session["refresh_token"]},
+        )
+        second_session = refreshed.json()
+        replay = await client.post(
+            "/api/app/v1/auth/refresh",
+            json={"refresh_token": first_session["refresh_token"]},
+        )
+        logged_out = await client.post(
+            "/api/app/v1/auth/logout",
+            json={"refresh_token": second_session["refresh_token"]},
+        )
+        after_logout = await client.post(
+            "/api/app/v1/auth/refresh",
+            json={"refresh_token": second_session["refresh_token"]},
+        )
+
+    assert registered.status_code == 201
+    assert "set-cookie" not in registered.headers
+    assert registered.headers["location"] == "/api/app/v1/auth/me"
+    assert first_session["token_type"] == "Bearer"
+    assert first_session["user"]["email"] == credentials["email"]
+    assert first_session["access_expires_at"]
+    assert first_session["refresh_expires_at"]
+    assert current.status_code == 200
+    assert current.json()["email"] == credentials["email"]
+    assert refreshed.status_code == 200
+    assert second_session["access_token"] != first_session["access_token"]
+    assert second_session["refresh_token"] != first_session["refresh_token"]
+    assert replay.status_code == 401
+    assert logged_out.status_code == 204
+    assert after_logout.status_code == 401
+
+
+async def test_invalid_bearer_does_not_fall_back_to_browser_cookie(
+    tmp_path: Path,
+    postgres_engine: AsyncEngine,
+) -> None:
+    async with auth_client(tmp_path, postgres_engine) as client:
+        registered = await client.post(
+            "/api/auth/register",
+            json={
+                "username": "browser_member",
+                "email": "browser@example.com",
+                "password": "strong-pass-123",
+            },
+        )
+        current = await client.get(
+            "/api/auth/me",
+            headers={"Authorization": "Bearer invalid-access-token"},
+        )
+
+    assert registered.status_code == 201
+    assert current.status_code == 401

@@ -89,6 +89,7 @@ class SessionGrant:
     user: CurrentUser
     access_token: str
     refresh_token: str
+    access_expires_at: datetime
     refresh_expires_at: datetime
 
 
@@ -104,4 +105,5 @@ class IssuedTokens:
     access_token: str
     refresh_token: str
     refresh_token_hash: str
+    access_expires_at: datetime
     refresh_expires_at: datetime

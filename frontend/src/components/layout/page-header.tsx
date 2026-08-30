@@ -30,7 +30,7 @@ export function PageHeader({
       <div className="min-w-0 max-w-4xl">
         <h1
           className={cn(
-            'text-[clamp(2.25rem,4vw,3.75rem)] font-medium leading-[0.98] tracking-[-0.055em]',
+            'text-balance text-[clamp(2.25rem,4vw,3.75rem)] font-medium leading-[0.98] tracking-[-0.055em]',
             titleClassName,
           )}
           id={titleId}

@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from app.api.native_openapi import build_native_openapi
 from app.core.config import Settings
 from app.main import create_app
 
@@ -16,6 +17,11 @@ def test_auth_openapi_exposes_email_session_contract(tmp_path: Path) -> None:
         "/api/auth/me",
         "/api/auth/refresh",
         "/api/auth/logout",
+        "/api/app/v1/auth/register",
+        "/api/app/v1/auth/login",
+        "/api/app/v1/auth/me",
+        "/api/app/v1/auth/refresh",
+        "/api/app/v1/auth/logout",
         "/api/users/me",
         "/api/admin/users",
         "/api/admin/users/{user_id}",
@@ -41,3 +47,39 @@ def test_auth_openapi_exposes_email_session_contract(tmp_path: Path) -> None:
         "Location"
     ]
     assert paths["/api/users/me"]["patch"]["operationId"] == "updateCurrentUser"
+    assert paths["/api/app/v1/auth/register"]["post"]["operationId"] == (
+        "registerNativeUser"
+    )
+    assert paths["/api/app/v1/auth/login"]["post"]["operationId"] == (
+        "loginNativeUser"
+    )
+    assert paths["/api/app/v1/auth/refresh"]["post"]["operationId"] == (
+        "refreshNativeSession"
+    )
+    assert paths["/api/app/v1/auth/logout"]["post"]["operationId"] == (
+        "logoutNativeSession"
+    )
+    native_response_schema = paths["/api/app/v1/auth/login"]["post"]["responses"][
+        "200"
+    ]["content"]["application/json"]["schema"]
+    assert native_response_schema == {
+        "$ref": "#/components/schemas/NativeSessionResponse"
+    }
+    assert schema["components"]["securitySchemes"]["NativeBearerAuth"] == {
+        "type": "http",
+        "scheme": "bearer",
+    }
+
+
+def test_native_openapi_excludes_browser_and_admin_contracts() -> None:
+    schema = build_native_openapi()
+
+    assert set(schema["paths"]) == {
+        "/api/app/v1/auth/register",
+        "/api/app/v1/auth/login",
+        "/api/app/v1/auth/me",
+        "/api/app/v1/auth/refresh",
+        "/api/app/v1/auth/logout",
+    }
+    assert "NativeBearerAuth" in schema["components"]["securitySchemes"]
+    assert "ManagedUserPageResponse" not in schema["components"]["schemas"]
