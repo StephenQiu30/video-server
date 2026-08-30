@@ -117,8 +117,14 @@ export function retryDownload(id: string, key: string): Promise<DownloadJob> {
   );
 }
 
-export function issueDownloadUrl(id: string): Promise<DownloadUrl> {
-  return issueDownloadUrlRequest({ job_id: encodeURIComponent(id) });
+export function issueDownloadUrl(
+  id: string,
+  preview = false,
+): Promise<DownloadUrl> {
+  return issueDownloadUrlRequest({
+    job_id: encodeURIComponent(id),
+    preview,
+  });
 }
 
 export function triggerBrowserDownload(url: string): void {

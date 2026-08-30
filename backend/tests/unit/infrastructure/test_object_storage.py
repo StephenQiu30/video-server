@@ -162,6 +162,20 @@ async def test_storage_uses_video_title_in_content_disposition() -> None:
     assert _signed_disposition(public) == 'attachment; filename="Q4 Showreel.mp4"'
 
 
+async def test_storage_uses_inline_disposition_for_video_preview() -> None:
+    public = FakeMinio()
+    storage = MinioObjectStorage(settings(), private=FakeMinio(), public=public)
+
+    await storage.presigned_download(
+        "downloads/job-1/1/video.mp4",
+        title="Q4 Showreel",
+        ttl_seconds=60,
+        inline=True,
+    )
+
+    assert _signed_disposition(public) == "inline"
+
+
 async def test_storage_encodes_cjk_title_with_rfc5987() -> None:
     public = FakeMinio()
     storage = MinioObjectStorage(settings(), private=FakeMinio(), public=public)

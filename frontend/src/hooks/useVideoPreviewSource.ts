@@ -14,7 +14,7 @@ export function useVideoPreviewSource(downloadId: string) {
     setLoading(true);
     setError(null);
 
-    void issueDownloadUrl(downloadId)
+    void issueDownloadUrl(downloadId, true)
       .then((result) => {
         if (!disposed) setSource(result.url);
       })

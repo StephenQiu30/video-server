@@ -49,7 +49,7 @@ export function browserSecurityHeaders({
 }
 
 export function resolveStorageOrigin(
-  endpoint = '127.0.0.1:19190',
+  endpoint = '127.0.0.1:9000',
   secure = false,
 ): string {
   const value = endpoint.trim();

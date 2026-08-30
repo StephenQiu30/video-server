@@ -21,6 +21,7 @@ SCHEMA_PATH = ROOT / "sql/schema.sql"
 ROOT_README_PATH = ROOT.parent / "README.md"
 FRONTEND_README_PATH = ROOT.parent / "frontend/README.md"
 STARTUP_SCRIPT_PATH = ROOT.parent / "scripts/restart-project.ps1"
+LOCAL_BACKEND_SCRIPT_PATH = ROOT.parent / "scripts/run-local-backend.py"
 DOCKERFILE_PATH = ROOT.parent / "Dockerfile"
 
 
@@ -374,25 +375,32 @@ def test_compose_waits_for_runner_and_api_dependency_readiness() -> None:
         assert "127.0.0.1:19100/health/ready" in runner
 
 
-def test_project_uses_runtime_entrypoints_without_a_startup_wrapper() -> None:
+def test_project_documents_container_and_complete_local_entrypoints() -> None:
     root_readme = ROOT_README_PATH.read_text(encoding="utf-8")
     frontend_readme = FRONTEND_README_PATH.read_text(encoding="utf-8")
+    local_backend_script = LOCAL_BACKEND_SCRIPT_PATH.read_text(encoding="utf-8")
     compose_entrypoint = (
         "docker compose --env-file .env -f docker-compose.yml up -d --build "
         "--force-recreate --remove-orphans --wait --wait-timeout 300"
     )
 
     assert not STARTUP_SCRIPT_PATH.exists()
+    assert LOCAL_BACKEND_SCRIPT_PATH.is_file()
     assert not (ROOT.parent / "scripts/start-local.sh").exists()
     assert not (ROOT.parent / "scripts/analysis-worker.sh").exists()
     assert not (ROOT / "app/workers/analysis/launchd.py").exists()
     assert compose_entrypoint in root_readme
-    assert "uv run python -m app.main" in root_readme
+    assert "uv run python ../scripts/run-local-backend.py" in root_readme
     assert "npm run dev" in root_readme
-    assert (
-        "uv run python -m uvicorn app.main:app --host 127.0.0.1 --port 8111 --reload"
-        in frontend_readme
-    )
+    assert "uv run python ../scripts/run-local-backend.py" in frontend_readme
+    for module in (
+        "app.main",
+        "app.workers.outbox.main",
+        "app.workers.download.main",
+        "app.workers.imports.main",
+        "app.workers.report.main",
+    ):
+        assert module in local_backend_script
     assert "restart-project.ps1" not in root_readme
     for action in ("doctor", "install", "status"):
         assert (

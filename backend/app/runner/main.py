@@ -27,7 +27,7 @@ from app.runner.provider_registry import configure_provider_instances
 from app.runner.provider_sessions import ProviderSessionStore
 from app.runner.readiness import RunnerReadiness
 from app.runner.service import MediaRunnerService
-from app.runner.settings import RunnerSettings
+from app.runner.settings import RunnerSettings, get_runner_settings
 from app.runner.signing import (
     ExpiredSignatureError,
     HmacRequestAuthenticator,
@@ -68,7 +68,7 @@ def create_app(
     service: RunnerService | None = None,
     readiness: ReadinessProbe | None = None,
 ) -> FastAPI:
-    configured = settings or RunnerSettings()
+    configured = settings or get_runner_settings()
     configure_provider_instances(configured.peertube_allowed_instances)
     sessions = ProviderSessionStore(configured)
     runner = service or MediaRunnerService(configured, session_store=sessions)

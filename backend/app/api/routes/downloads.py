@@ -196,10 +196,13 @@ async def issue_download_url(
     job_id: UUID,
     user: User,
     use_cases: UseCases,
+    preview: bool = False,
 ) -> DownloadUrlResponse:
     """为已完成的下载任务签发短时制品地址。"""
     try:
-        view = await use_cases.issue_download_url(job_id, user.owner_hash)
+        view = await use_cases.issue_download_url(
+            job_id, user.owner_hash, preview=preview
+        )
     except ApplicationError as exc:
         raise application_error(exc) from exc
     return DownloadUrlResponse.from_view(view)

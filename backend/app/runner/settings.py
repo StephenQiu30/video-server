@@ -17,6 +17,7 @@ from app.runner.version import (
 
 _PROVIDER_KEY = re.compile(r"[a-z][a-z0-9_-]{0,31}")
 _REFERENCE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 
 
 class RunnerSettings(BaseSettings):
@@ -262,6 +263,14 @@ class RunnerSettings(BaseSettings):
     @property
     def hmac_secret_bytes(self) -> bytes:
         return self.runner_hmac_secret.get_secret_value().encode()
+
+
+def get_runner_settings() -> RunnerSettings:
+    """Load the same root environment used by local API and worker processes."""
+    return RunnerSettings(
+        _env_file=REPOSITORY_ROOT / ".env",
+        _env_file_encoding="utf-8",
+    )
 
 
 def _validate_proxy(value: str) -> str:

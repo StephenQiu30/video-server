@@ -165,7 +165,9 @@ class IssueDownloadUrl:
         self._now = now
         self._url_ttl = url_ttl
 
-    async def __call__(self, job_id: UUID, owner_hash: str) -> DownloadUrl:
+    async def __call__(
+        self, job_id: UUID, owner_hash: str, *, preview: bool = False
+    ) -> DownloadUrl:
         job = await _owned_job(self._repository, job_id, owner_hash)
         if job.status != DownloadStatus.SUCCEEDED.value:
             raise ApplicationError(ApplicationErrorCode.DOWNLOAD_NOT_READY)
@@ -179,7 +181,10 @@ class IssueDownloadUrl:
         ttl_seconds = int(self._url_ttl.total_seconds())
         title = await self._inspection_title(job, owner_hash, now)
         url = await self._storage.presigned_download(
-            artifact.object_key, title=title, ttl_seconds=ttl_seconds
+            artifact.object_key,
+            title=title,
+            ttl_seconds=ttl_seconds,
+            inline=preview,
         )
         return DownloadUrl(url=url, expires_at=now + timedelta(seconds=ttl_seconds))
 

@@ -6,6 +6,14 @@ import {
 } from '@/lib/security-headers';
 
 describe('browser security headers', () => {
+  it('allows the Homebrew MinIO origin by default in local development', () => {
+    const headers = new Map(browserSecurityHeaders({ production: false }));
+
+    expect(headers.get('Content-Security-Policy')).toContain(
+      "media-src 'self' http://127.0.0.1:9000",
+    );
+  });
+
   it('allows only the configured browser storage origin in production', () => {
     const headers = new Map(
       browserSecurityHeaders({

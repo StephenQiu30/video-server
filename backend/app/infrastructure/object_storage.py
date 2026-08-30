@@ -440,7 +440,12 @@ class MinioObjectStorage:
         )
 
     async def presigned_download(
-        self, object_key: str, *, title: str | None = None, ttl_seconds: int
+        self,
+        object_key: str,
+        *,
+        title: str | None = None,
+        ttl_seconds: int,
+        inline: bool = False,
     ) -> str:
         _validate_key(object_key)
         if self._public is None:
@@ -451,7 +456,9 @@ class MinioObjectStorage:
             object_key,
             expires=timedelta(seconds=ttl_seconds),
             response_headers={
-                "response-content-disposition": _download_disposition(object_key, title)
+                "response-content-disposition": (
+                    "inline" if inline else _download_disposition(object_key, title)
+                )
             },
         )
 

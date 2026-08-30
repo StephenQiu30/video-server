@@ -55,7 +55,7 @@ async def test_context_batch_uses_one_short_lived_runner_request() -> None:
     async def respond(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/internal/v1/contexts"
         assert json.loads(request.content) == {"provider_keys": ["generic"]}
-        assert request.extensions["timeout"]["read"] == 2.0
+        assert request.extensions["timeout"]["read"] == 0.25
         return httpx.Response(200, json={"contexts": [expected.to_document()]})
 
     http = httpx.AsyncClient(

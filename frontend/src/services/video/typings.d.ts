@@ -836,6 +836,7 @@ declare namespace API {
 
   type issueDownloadUrlParams = {
     job_id: string;
+    preview?: boolean;
   };
 
   type listAnalysisSkillsParams = {

@@ -193,18 +193,22 @@ flowchart LR
 
 ## 本地开发
 
-前端需要 Node.js 24 与 npm 11.19，后端需要 Python 3.12 与 [uv](https://docs.astral.sh/uv/)。推荐先用环境 Compose 提供依赖，再分别启动后端 API 和前端热更新：
+前端需要 Node.js 24 与 npm 11.19，后端需要 Python 3.12 与 [uv](https://docs.astral.sh/uv/)。本地开发不使用 Docker 服务；`.env.example` 默认连接 Homebrew 安装的 PostgreSQL `5432`、RabbitMQ `5672`、Redis `6379` 和 MinIO `9000`。先确认这些服务已经启动：
 
 ```bash
-docker compose --env-file .env -f docker-compose-env.yml up -d
+brew services start postgresql@18
+brew services start rabbitmq
+brew services start redis
+brew services start minio
+brew services list
 ```
 
-在第一个终端启动后端：
+在第一个终端启动完整的本地后端拓扑。该入口同时监督 API、Media Runner、Outbox、下载/导入/报告 Worker 和 Provider Canary；只启动 API 会导致异步任务永久停在等待调度：
 
 ```bash
 cd backend
 uv sync --frozen --dev
-uv run python -m app.main
+uv run python ../scripts/run-local-backend.py
 ```
 
 在第二个终端启动前端：
@@ -215,7 +219,7 @@ npm ci
 npm run dev
 ```
 
-开发页面位于 <http://127.0.0.1:8101>，前端会将 `/api/*` 与 `/health/*` 代理到 `127.0.0.1:8111`。后端 API 入口为 <http://127.0.0.1:8111>；如果使用容器 API，先启动业务 Compose。
+开发页面位于 <http://127.0.0.1:8101>，前端会将 `/api/*` 与 `/health/*` 代理到 `127.0.0.1:8111`。后端 API 入口为 <http://127.0.0.1:8111>，Media Runner 为 `127.0.0.1:19100`。本地服务日志位于系统临时目录的 `framefetch-local-services/`，`Ctrl+C` 会按反向顺序停止所有子进程。AI Agent 仍使用上文独立的 `agent_cli doctor/install/status` 管理入口。
 
 与 CI 一致的主要质量门禁：
 

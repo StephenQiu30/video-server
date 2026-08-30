@@ -51,14 +51,23 @@ docker compose --env-file .env -f docker-compose.yml ps --all
 该 Compose 命令；不要使用不会应用代码、镜像或配置变化的
 `docker compose restart`。固定 Provider 探针是独立验收步骤，不参与服务启动。
 
-只调试后端 API 时，从 `backend/` 使用 Python 模块入口：
+本地开发使用 Homebrew 的 PostgreSQL、RabbitMQ、Redis 和 MinIO，不启动任何 Docker 服务。根目录 `.env` 应分别使用标准端口 `5432`、`5672`、`6379` 和 `9000`。确认 `brew services list` 中四项均为 `started` 后，从 `backend/` 启动宿主机进程监督入口：
+
+```bash
+uv sync --frozen --dev
+uv run python ../scripts/run-local-backend.py
+```
+
+该入口启动 API、Media Runner、Outbox、下载/导入/报告 Worker 和 Provider Canary；所有进程读取根目录 `.env` 的宿主机地址。只启动 API 时，HTTP 查询仍可用，但 Outbox 不会发布、异步任务不会被消费，平台状态也无法取得 Runner 上下文。
+
+只调试无异步依赖的 API 路由时，才使用 Python 模块入口：
 
 ```bash
 uv sync --frozen --dev
 uv run python -m app.main
 ```
 
-该命令是后端模块开发入口，不替代完整业务拓扑中的 Worker、Runner 与前端构建。
+该命令是后端模块调试入口，不替代完整本地拓扑中的 Worker、Runner 与前端构建。
 
 当 `.env` 的 `RUNNER_OPERATOR_BASE_URLS` 声明 Provider Operator 时，需要使用受控
 会话的平台还必须启动对应 Profile：

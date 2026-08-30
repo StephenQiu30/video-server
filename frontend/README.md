@@ -16,12 +16,12 @@
 
 ## 本地开发
 
-先启动后端 API（`8111`）：
+本地依赖使用 Homebrew 的 PostgreSQL、RabbitMQ、Redis 和 MinIO，不使用 Docker 服务。先确认 `brew services list` 中四项均为 `started`，再启动完整的本地后端拓扑；异步下载和分析不能只运行 API：
 
 ```bash
 cd ../backend
 uv sync --frozen --dev
-uv run python -m uvicorn app.main:app --host 127.0.0.1 --port 8111 --reload
+uv run python ../scripts/run-local-backend.py
 ```
 
 再启动前端：

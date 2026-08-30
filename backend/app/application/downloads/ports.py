@@ -115,7 +115,12 @@ class DownloadRepository(Protocol):
 
 class ObjectStorage(Protocol):
     async def presigned_download(
-        self, object_key: str, *, title: str | None = None, ttl_seconds: int
+        self,
+        object_key: str,
+        *,
+        title: str | None = None,
+        ttl_seconds: int,
+        inline: bool = False,
     ) -> str: ...
 
 

@@ -372,7 +372,7 @@ async def test_download_url_requires_success_and_available_artifact() -> None:
     assert result.url == "https://objects.example/download-token"
     assert result.expires_at == NOW + timedelta(minutes=5)
     assert storage.calls == [
-        (f"downloads/{created.id}/1/video.mp4", 300, "Owned video")
+        (f"downloads/{created.id}/1/video.mp4", 300, "Owned video", False)
     ]
 
     persistent_details = await GetDownload(repository, now=lambda: NOW)(
@@ -413,6 +413,16 @@ async def test_download_url_passes_inspection_title_to_storage() -> None:
         f"downloads/{created.id}/1/video.mp4",
         300,
         "Owned video",
+        False,
+    )
+
+    await issue(created.id, OWNER, preview=True)
+
+    assert storage.calls[-1] == (
+        f"downloads/{created.id}/1/video.mp4",
+        300,
+        "Owned video",
+        True,
     )
 
 
@@ -448,4 +458,5 @@ async def test_download_url_omits_missing_inspection_title() -> None:
         f"downloads/{created.id}/1/video.mp4",
         300,
         None,
+        False,
     )

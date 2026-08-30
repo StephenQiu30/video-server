@@ -63,6 +63,7 @@ from app.runner.signing import sign_request
 
 _TASK_ID = re.compile(r"[A-Za-z0-9_-]{1,64}")
 _CONTEXT_TIMEOUT_SECONDS = 2.0
+_STATUS_CONTEXT_TIMEOUT_SECONDS = 0.25
 ResponseModel = TypeVar("ResponseModel", bound=BaseModel)
 
 
@@ -149,7 +150,7 @@ class MediaRunnerHttpClient:
             .model_dump_json()
             .encode(),
             ProviderContextsResponse,
-            min(self._inspect_timeout, _CONTEXT_TIMEOUT_SECONDS),
+            min(self._inspect_timeout, _STATUS_CONTEXT_TIMEOUT_SECONDS),
             timeout_code="inspection_timeout",
         )
         return tuple(_context_to_domain(context) for context in response.contexts)

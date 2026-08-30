@@ -56,7 +56,9 @@ export async function issueDownloadUrl(
     `/api/downloads/${param0}/download-url`,
     {
       method: "POST",
-      params: { ...queryParams },
+      params: {
+        ...queryParams,
+      },
       ...(options || {}),
     }
   );

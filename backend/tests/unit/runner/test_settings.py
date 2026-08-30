@@ -3,7 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from app.runner.settings import RunnerSettings, egress_affinity_id
+from app.runner import settings as runner_settings
+from app.runner.settings import (
+    RunnerSettings,
+    egress_affinity_id,
+    get_runner_settings,
+)
 from pydantic import ValidationError
 
 SECRET = "runner-shared-secret-material-at-least-32-bytes"
@@ -37,6 +42,25 @@ def test_loads_minimal_runner_environment(
     assert settings.runner_max_duration_seconds == 86_400
     assert settings.runner_max_output_bytes == 20 * 1024**3
     assert settings.runner_max_workspace_bytes == 40 * 1024**3
+
+
+def test_local_runner_loads_the_repository_environment(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    environment = tmp_path / ".env"
+    environment.write_text(
+        "RUNNER_HMAC_SECRET=" + SECRET + "\n"
+        "RUNNER_EGRESS_PROXY=http://127.0.0.1:13128\n"
+        "RUNNER_WORKSPACE_ROOT=" + str(tmp_path / "work") + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(runner_settings, "REPOSITORY_ROOT", tmp_path)
+
+    settings = get_runner_settings()
+
+    assert settings.runner_egress_proxy == "http://127.0.0.1:13128"
+    assert settings.runner_workspace_root == (tmp_path / "work").resolve()
 
 
 def test_loads_credential_free_provider_proxy_overrides(

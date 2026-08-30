@@ -39,6 +39,13 @@ def test_download_openapi_exposes_required_routes_and_idempotency(
         paths["/api/downloads/{job_id}/retry"]["post"]["operationId"] == "retryDownload"
     )
     assert paths["/api/providers"]["get"]["operationId"] == "listProviders"
+    download_url = paths["/api/downloads/{job_id}/download-url"]["post"]
+    preview = next(
+        item for item in download_url["parameters"] if item["name"] == "preview"
+    )
+    assert preview["in"] == "query"
+    assert preview["required"] is False
+    assert preview["schema"]["default"] is False
     create_response = paths["/api/downloads"]["post"]["responses"]["201"]
     assert create_response["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/DownloadResponse"

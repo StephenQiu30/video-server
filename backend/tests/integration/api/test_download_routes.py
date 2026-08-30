@@ -168,7 +168,9 @@ def test_download_routes_delegate_with_session_owner(tmp_path: Path) -> None:
             f"/api/downloads/{JOB_ID}/retry",
             headers={"Idempotency-Key": "retry-1"},
         )
-        issued = test_client.post(f"/api/downloads/{JOB_ID}/download-url")
+        issued = test_client.post(
+            f"/api/downloads/{JOB_ID}/download-url", params={"preview": True}
+        )
 
     assert created.status_code == 201
     assert created.headers["location"] == f"/api/downloads/{JOB_ID}"
@@ -178,6 +180,7 @@ def test_download_routes_delegate_with_session_owner(tmp_path: Path) -> None:
     assert created.json()["status"] == "queued"
     assert cancelled.json()["status"] == "cancelled"
     assert issued.json()["url"] == "https://objects.example/token"
+    assert stubs["issue_url"].calls[0][1] == {"preview": True}
     owners = [
         stubs["create"].calls[0][0][-2],
         *(stubs[name].calls[0][0][-1] for name in ("get", "cancel", "issue_url")),

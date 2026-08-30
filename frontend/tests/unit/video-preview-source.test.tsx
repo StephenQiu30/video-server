@@ -25,6 +25,7 @@ describe('useVideoPreviewSource', () => {
     expect(result.current.loading).toBe(false);
     expect(httpRequests()[0]).toMatchObject({
       method: 'POST',
+      params: { preview: true },
       url: `/api/downloads/${downloadId}/download-url`,
     });
   });

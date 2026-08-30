@@ -2,8 +2,10 @@
 
 ## 运行模型
 
-完整项目只有一个运行入口：根目录 `docker-compose.yml`。其余 Compose 文件负责
-基础依赖或生产差异，不是本机项目的平行启动入口：
+容器化业务拓扑只有一个运行入口：根目录 `docker-compose.yml`。本地开发不使用
+Docker 服务：PostgreSQL、RabbitMQ、Redis 和 MinIO 由 Homebrew 管理，业务进程由
+`scripts/run-local-backend.py` 在宿主机启动。下列 Compose 文件只用于明确选择了
+容器化部署的环境，不是本地开发入口：
 
 | 文件 | 用途 | 是否启动 PostgreSQL、RabbitMQ、Valkey、MinIO |
 | --- | --- | --- |
