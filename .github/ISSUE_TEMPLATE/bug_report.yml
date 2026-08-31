@@ -1,0 +1,89 @@
+name: 缺陷报告 / Bug report
+description: 报告可复现的 FrameFetch 功能、部署或文档问题
+title: "[Bug]: "
+labels: []
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢报告问题。请只使用你有权处理的公开或自有测试内容，并在粘贴日志、URL 或截图前删除凭据、Cookie、用户数据和完整查询参数。
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交前检查
+      options:
+        - label: 我已搜索现有 Issue，确认没有同一问题。
+          required: true
+        - label: 我已删除日志、URL 和截图中的密钥、Cookie、用户内容及其他敏感信息。
+          required: true
+        - label: 复现内容是公开、非 DRM 且我有权处理的内容，或完全由我创建的测试数据。
+          required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 影响范围
+      options:
+        - Web 前端
+        - API / OpenAPI
+        - 下载或媒体 Runner
+        - 剧本文档导入或报告
+        - AI Agent / Provider
+        - Docker Compose / 部署
+        - 文档
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: 问题摘要
+      description: 用一两句话说明发生了什么，以及造成的影响。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 最小复现步骤
+      description: 提供从干净环境或已知状态开始的编号步骤。
+      placeholder: |
+        1. 使用 ... 启动
+        2. 打开 ...
+        3. 执行 ...
+        4. 观察到 ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境信息
+      description: 包括操作系统、Docker/Compose、浏览器或客户端、提交 SHA；不要粘贴 `.env`。
+      placeholder: |
+        - OS:
+        - Docker / Compose:
+        - Browser / client:
+        - Commit SHA:
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 已脱敏的日志或截图
+      description: 仅粘贴定位问题所需的最小片段；安全漏洞请按 SECURITY.md 私下报告。
+  - type: textarea
+    id: extra
+    attributes:
+      label: 其他上下文
+      description: 可补充回归范围、临时解决办法或相关 Issue/PR。

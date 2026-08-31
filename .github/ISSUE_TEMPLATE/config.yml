@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 安全漏洞报告 / Security report
+    url: https://github.com/StephenQiu30/video-server/blob/main/SECURITY.md
+    about: 请先阅读安全策略，不要在公开 Issue 中披露漏洞细节、密钥或用户内容。
+  - name: 文档索引 / Documentation
+    url: https://github.com/StephenQiu30/video-server/blob/main/docs/README.md
+    about: 在提问前查看架构、产品、验收和运维文档。
+  - name: 社区行为问题 / Community conduct
+    url: https://support.github.com/contact/report-abuse
+    about: 无法安全地私下联系维护者时，请使用 GitHub 官方渠道，不要公开事件细节。
