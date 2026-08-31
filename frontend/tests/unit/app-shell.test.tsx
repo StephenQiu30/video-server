@@ -156,7 +156,7 @@ describe('AppShell', () => {
       '/user/login',
     );
     expect(
-      screen.getByRole('button', { name: /切换主题/ }),
+      screen.getByRole('button', { name: /切换到.+主题/ }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: '打开导航菜单' }),
@@ -312,7 +312,7 @@ describe('AppShell', () => {
       screen.queryByRole('navigation', { name: '主要导航' }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /切换主题/ }),
+      screen.getByRole('button', { name: /切换到.+主题/ }),
     ).toBeInTheDocument();
   });
 

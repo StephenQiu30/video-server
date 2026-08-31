@@ -75,10 +75,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="light"
           disableTransitionOnChange
-          enableSystem
+          enableSystem={false}
           storageKey="framegrab-theme"
+          themes={['light', 'dark']}
         >
           <AuthProvider>
             <TooltipProvider delayDuration={300}>

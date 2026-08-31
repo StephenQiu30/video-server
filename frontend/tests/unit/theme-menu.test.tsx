@@ -1,11 +1,11 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ThemeMenu } from '@/components/layout/theme-menu';
 
 const themeRuntime = vi.hoisted(() => ({
   setTheme: vi.fn(),
-  theme: 'system',
+  theme: 'light',
 }));
 
 vi.mock('next-themes', () => ({
@@ -15,31 +15,18 @@ vi.mock('next-themes', () => ({
 describe('ThemeMenu', () => {
   beforeEach(() => {
     themeRuntime.setTheme.mockReset();
-    themeRuntime.theme = 'system';
+    themeRuntime.theme = 'light';
   });
 
-  it('offers light, dark, and system themes through an accessible menu', async () => {
+  it('switches from light to dark with one click', async () => {
     render(<ThemeMenu />);
 
     const trigger = await screen.findByRole('button', {
-      name: '切换主题，当前：跟随系统',
+      name: '切换到深色主题',
     });
     expect(trigger).toHaveClass('size-11');
 
-    fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false });
-
-    const systemOption = await screen.findByRole('menuitemradio', {
-      name: '跟随系统',
-    });
-    expect(systemOption).toHaveAttribute('aria-checked', 'true');
-    expect(
-      screen.getByRole('menuitemradio', { name: '浅色' }),
-    ).toBeInTheDocument();
-    const darkOption = screen.getByRole('menuitemradio', { name: '深色' });
-
-    fireEvent.click(darkOption);
-    await waitFor(() =>
-      expect(themeRuntime.setTheme).toHaveBeenCalledWith('dark'),
-    );
+    fireEvent.click(trigger);
+    expect(themeRuntime.setTheme).toHaveBeenCalledWith('dark');
   });
 });
