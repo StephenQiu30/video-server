@@ -32,4 +32,15 @@ def test_document_openapi_operations_are_stable(tmp_path: Path) -> None:
     response = schema["components"]["schemas"]["DocumentDetailResponse"]
     preview_shapes = response["properties"]["preview"]["anyOf"]
     assert any(shape.get("maxLength") == 1_000_000 for shape in preview_shapes)
-    assert {"preview", "preview_truncated"}.issubset(response["required"])
+    assert {"preview", "preview_truncated", "parse_summary"}.issubset(
+        response["required"]
+    )
+    summary = schema["components"]["schemas"]["DocumentParseSummaryResponse"]
+    assert {
+        "page_count",
+        "paragraph_count",
+        "heading_count",
+        "list_item_count",
+        "table_count",
+        "dialogue_block_count",
+    } <= set(summary["properties"])

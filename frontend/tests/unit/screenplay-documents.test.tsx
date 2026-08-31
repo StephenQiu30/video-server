@@ -173,6 +173,11 @@ describe('screenplay documents', () => {
       '未识别到明确场景标题',
     );
     expect(screen.getByText('中英混合')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: '基础解析' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('24 段')).toBeInTheDocument();
+    expect(screen.getByText('8 个')).toBeInTheDocument();
     const analysis = screen.getByLabelText('剧本分析工作区');
     expect(analysis).toHaveTextContent('document-id');
     expect(workspace.nextElementSibling).toBe(analysis);

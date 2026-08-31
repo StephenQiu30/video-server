@@ -14,6 +14,7 @@ from app.application.imports import (
     UploadSessionView,
 )
 from app.core.config import Settings
+from app.domain.documents import DocumentParseSummary
 from app.domain.imports import ContentKind, ImportSourceFormat, ImportStatus
 from app.main import create_app
 from fastapi.testclient import TestClient
@@ -84,6 +85,7 @@ def detail_view() -> DocumentView:
         scene_count=None,
         character_count=None,
         quality_warnings=(),
+        parse_summary=DocumentParseSummary(2, 8, 2, 1, 0, 2),
         created_at=NOW,
         updated_at=NOW,
         finished_at=None,
@@ -164,6 +166,14 @@ def test_document_routes_delegate_owner_and_hide_storage(tmp_path: Path) -> None
     assert fetched.json()["title"] == "owned"
     assert fetched.json()["preview"] == "<script>plain text only</script>"
     assert fetched.json()["preview_truncated"] is True
+    assert fetched.json()["parse_summary"] == {
+        "page_count": 2,
+        "paragraph_count": 8,
+        "heading_count": 2,
+        "list_item_count": 1,
+        "table_count": 0,
+        "dialogue_block_count": 2,
+    }
     assert listed.json()["total"] == 1
     assert completed.json()["status"] == "verifying"
     assert cancelled.json()["status"] == "cancelled"

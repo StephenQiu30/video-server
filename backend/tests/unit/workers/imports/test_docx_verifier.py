@@ -116,6 +116,11 @@ async def test_docx_extracts_only_body_and_table_text_into_shared_contract(
     assert verified.detected_language == "mixed"
     assert len(verified.scenes) == 2
     assert verified.quality_warnings == ()
+    assert verified.parse_summary.page_count is None
+    assert verified.parse_summary.paragraph_count == 5
+    assert verified.parse_summary.heading_count == 2
+    assert verified.parse_summary.table_count == 1
+    assert verified.parse_summary.dialogue_block_count == 2
     assert [element.kind for element in verified.scenes[0].elements] == [
         ScreenplayElementKind.HEADING,
         ScreenplayElementKind.CHARACTER,
@@ -126,6 +131,27 @@ async def test_docx_extracts_only_body_and_table_text_into_shared_contract(
         ScreenplayElementKind.CHARACTER,
         ScreenplayElementKind.DIALOGUE,
     ]
+
+
+async def test_docx_preserves_heading_and_list_styles_as_safe_markdown(
+    tmp_path: Path,
+) -> None:
+    document = Document()
+    document.add_paragraph("INT. ROOM - DAY", style="Heading 1")
+    document.add_paragraph("Beat overview", style="Heading 2")
+    document.add_paragraph("Visible checklist item", style="List Bullet")
+    output = BytesIO()
+    document.save(output)
+
+    verified = await _verify(tmp_path, output.getvalue())
+    normalized = verified.normalized_path.read_text(encoding="utf-8")
+
+    assert normalized == (
+        "# INT. ROOM - DAY\n## Beat overview\n- Visible checklist item\n"
+    )
+    assert verified.parse_summary.paragraph_count == 3
+    assert verified.parse_summary.heading_count == 2
+    assert verified.parse_summary.list_item_count == 1
 
 
 def _external(content: bytes) -> bytes:

@@ -124,9 +124,19 @@ class DocumentResponse(StrictModel):
         )
 
 
+class DocumentParseSummaryResponse(StrictModel):
+    page_count: StrictInt | None = Field(gt=0)
+    paragraph_count: StrictInt = Field(gt=0)
+    heading_count: StrictInt = Field(ge=0)
+    list_item_count: StrictInt = Field(ge=0)
+    table_count: StrictInt = Field(ge=0)
+    dialogue_block_count: StrictInt = Field(ge=0)
+
+
 class DocumentDetailResponse(DocumentResponse):
     preview: str | None = Field(max_length=1_000_000)
     preview_truncated: bool
+    parse_summary: DocumentParseSummaryResponse | None
 
     @classmethod
     def from_view(cls, view: DocumentView) -> DocumentDetailResponse:
@@ -135,6 +145,22 @@ class DocumentDetailResponse(DocumentResponse):
             | {
                 "preview": view.preview,
                 "preview_truncated": view.preview_truncated,
+                "parse_summary": (
+                    None
+                    if view.parse_summary is None
+                    else DocumentParseSummaryResponse.model_validate(
+                        {
+                            "page_count": view.parse_summary.page_count,
+                            "paragraph_count": view.parse_summary.paragraph_count,
+                            "heading_count": view.parse_summary.heading_count,
+                            "list_item_count": view.parse_summary.list_item_count,
+                            "table_count": view.parse_summary.table_count,
+                            "dialogue_block_count": (
+                                view.parse_summary.dialogue_block_count
+                            ),
+                        }
+                    )
+                ),
             }
         )
 

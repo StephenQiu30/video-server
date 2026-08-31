@@ -340,6 +340,7 @@ declare namespace API {
     preview: string | null;
     /** Preview Truncated */
     preview_truncated: boolean;
+    parse_summary: DocumentParseSummaryResponse | null;
   };
 
   type DocumentImportRequest = {
@@ -385,6 +386,21 @@ declare namespace API {
     page_size: number;
     /** Total */
     total: number;
+  };
+
+  type DocumentParseSummaryResponse = {
+    /** Page Count */
+    page_count: number | null;
+    /** Paragraph Count */
+    paragraph_count: number;
+    /** Heading Count */
+    heading_count: number;
+    /** List Item Count */
+    list_item_count: number;
+    /** Table Count */
+    table_count: number;
+    /** Dialogue Block Count */
+    dialogue_block_count: number;
   };
 
   type DocumentResponse = {

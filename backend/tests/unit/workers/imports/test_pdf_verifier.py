@@ -127,6 +127,10 @@ async def test_pdf_extracts_text_into_shared_screenplay_contract(
     assert "EXT. STREET - NIGHT\nBOB" in normalized
     assert verified.detected_language == "en-US"
     assert len(verified.scenes) == 2
+    assert verified.parse_summary.page_count == 2
+    assert verified.parse_summary.paragraph_count == 6
+    assert verified.parse_summary.heading_count == 2
+    assert verified.parse_summary.dialogue_block_count == 2
     assert [element.kind for element in verified.scenes[0].elements] == [
         ScreenplayElementKind.HEADING,
         ScreenplayElementKind.CHARACTER,

@@ -9,7 +9,7 @@ from app.application.import_execution import (
     ImportVerificationRejected,
     VerifiedDocumentImport,
 )
-from app.domain.documents import normalize_screenplay
+from app.domain.documents import normalize_screenplay, summarize_document
 from app.domain.imports import ImportErrorCode
 
 
@@ -29,6 +29,8 @@ def normalized_document(
     original_size_bytes: int,
     extracted_text: str,
     limits: TextLimits,
+    page_count: int | None = None,
+    table_count: int = 0,
 ) -> VerifiedDocumentImport:
     _validate_text(extracted_text, limits)
     try:
@@ -59,6 +61,12 @@ def normalized_document(
         character_count=screenplay.character_count,
         scenes=screenplay.scenes,
         quality_warnings=screenplay.quality_warnings,
+        parse_summary=summarize_document(
+            screenplay.text,
+            screenplay.scenes,
+            page_count=page_count,
+            table_count=table_count,
+        ),
     )
 
 

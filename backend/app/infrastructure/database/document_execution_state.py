@@ -95,6 +95,16 @@ async def complete_verification(
                     artifact.normalized_size_bytes,
                     artifact.normalized_sha256,
                     {
+                        "parse_summary": {
+                            "page_count": artifact.parse_summary.page_count,
+                            "paragraph_count": artifact.parse_summary.paragraph_count,
+                            "heading_count": artifact.parse_summary.heading_count,
+                            "list_item_count": artifact.parse_summary.list_item_count,
+                            "table_count": artifact.parse_summary.table_count,
+                            "dialogue_block_count": (
+                                artifact.parse_summary.dialogue_block_count
+                            ),
+                        },
                         "scenes": [
                             {
                                 "id": scene.id,
@@ -110,7 +120,7 @@ async def complete_verification(
                                 ],
                             }
                             for scene in artifact.scenes
-                        ]
+                        ],
                     },
                     now,
                 ),

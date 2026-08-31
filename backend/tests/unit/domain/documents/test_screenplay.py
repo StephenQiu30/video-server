@@ -1,7 +1,11 @@
 import hashlib
 
 import pytest
-from app.domain.documents import ScreenplayElementKind, normalize_screenplay
+from app.domain.documents import (
+    ScreenplayElementKind,
+    normalize_screenplay,
+    summarize_document,
+)
 
 
 def test_normalization_is_stable_and_finds_multilingual_scene_headings() -> None:
@@ -115,3 +119,20 @@ def test_structure_element_budget_rejects_metadata_amplification() -> None:
 
     with pytest.raises(ValueError, match="structure element limit"):
         normalize_screenplay(source)
+
+
+def test_parse_summary_counts_supported_structure_without_copying_body_text() -> None:
+    normalized = normalize_screenplay(
+        "# INT. ROOM - DAY\n## Setup\n- visible item\nALICE\nHello.\n"
+    )
+
+    summary = summarize_document(
+        normalized.text, normalized.scenes, page_count=2, table_count=1
+    )
+
+    assert summary.page_count == 2
+    assert summary.paragraph_count == 5
+    assert summary.heading_count == 2
+    assert summary.list_item_count == 1
+    assert summary.table_count == 1
+    assert summary.dialogue_block_count == 1

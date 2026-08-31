@@ -13,7 +13,7 @@ from app.application.import_execution import (
     VerifiedDocumentImport,
 )
 from app.application.imports import ImportDisposition
-from app.domain.documents import ScreenplayScene
+from app.domain.documents import DocumentParseSummary, ScreenplayScene
 from app.domain.imports import ContentKind, ImportErrorCode, ImportSourceFormat
 
 NOW = datetime(2026, 8, 14, 19, 0, tzinfo=UTC)
@@ -121,6 +121,7 @@ class FakeVerifier:
             character_count=21,
             scenes=(ScreenplayScene("scene-0001-123456789abc", 0, 21),),
             quality_warnings=(),
+            parse_summary=DocumentParseSummary(None, 2, 1, 0, 0, 0),
         )
 
 

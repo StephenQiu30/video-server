@@ -134,7 +134,16 @@ async def test_ready_detail_reads_only_bounded_normalized_plain_text(
                 size_bytes=len(payload),
                 sha256=digest,
                 status="ready",
-                artifact_metadata={},
+                artifact_metadata={
+                    "parse_summary": {
+                        "page_count": 2,
+                        "paragraph_count": 3,
+                        "heading_count": 1,
+                        "list_item_count": 0,
+                        "table_count": 0,
+                        "dialogue_block_count": 0,
+                    }
+                },
                 created_at=NOW,
                 updated_at=NOW,
             )
@@ -149,6 +158,9 @@ async def test_ready_detail_reads_only_bounded_normalized_plain_text(
 
     assert view.preview == text
     assert view.preview_truncated is False
+    assert view.parse_summary is not None
+    assert view.parse_summary.page_count == 2
+    assert view.parse_summary.paragraph_count == 3
     assert storage.calls == [(f"documents/{FIRST}/1/screenplay.md", len(payload))]
 
 

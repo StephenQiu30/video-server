@@ -7,6 +7,7 @@ from datetime import datetime
 from uuid import UUID
 
 from app.application.imports import ImportCleanupRef
+from app.domain.documents import DocumentParseSummary
 from app.domain.imports import ImportErrorCode, ImportSourceFormat, ImportStatus
 
 
@@ -35,6 +36,7 @@ class DocumentSnapshot:
     character_count: int | None
     text_sha256: str | None = field(repr=False)
     quality_warnings: tuple[str, ...]
+    parse_summary: DocumentParseSummary | None
     created_at: datetime
     updated_at: datetime
     finished_at: datetime | None
@@ -64,6 +66,7 @@ class DocumentView:
     scene_count: int | None
     character_count: int | None
     quality_warnings: tuple[str, ...]
+    parse_summary: DocumentParseSummary | None
     created_at: datetime
     updated_at: datetime
     finished_at: datetime | None

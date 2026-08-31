@@ -5,7 +5,7 @@ from datetime import timedelta
 from pathlib import Path
 from uuid import UUID
 
-from app.domain.documents import ScreenplayScene
+from app.domain.documents import DocumentParseSummary, ScreenplayScene
 from app.domain.imports import ContentKind, ImportSourceFormat
 
 
@@ -44,6 +44,7 @@ class VerifiedDocumentImport:
     character_count: int
     scenes: tuple[ScreenplayScene, ...]
     quality_warnings: tuple[str, ...]
+    parse_summary: DocumentParseSummary
 
 
 @dataclass(frozen=True, slots=True)

@@ -132,6 +132,7 @@ def validate_artifact(
     spans_are_valid = bool(artifact.scenes) and all(
         _valid_scene(scene, artifact.character_count) for scene in artifact.scenes
     )
+    summary = artifact.parse_summary
     if (
         not bucket.strip()
         or len(bucket) > 128
@@ -144,6 +145,12 @@ def validate_artifact(
         or artifact.character_count <= 0
         or artifact.detected_language not in _LANGUAGES
         or not set(artifact.quality_warnings) <= _WARNINGS
+        or summary.paragraph_count <= 0
+        or summary.heading_count < 0
+        or summary.list_item_count < 0
+        or summary.table_count < 0
+        or summary.dialogue_block_count < 0
+        or (summary.page_count is not None and summary.page_count <= 0)
         or not spans_are_valid
     ):
         raise ValueError("invalid verified document artifacts")

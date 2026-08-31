@@ -1,0 +1,32 @@
+---
+name: continuity-quality-review
+description: 对已渲染成片执行可见连续性与交付质量审查，覆盖主体状态、空间方向、动作衔接、画面文字、图形一致性和明显技术瑕疵。
+license: MIT
+metadata:
+  video-server-display-name: 连续性与成片 QA
+  video-server-default-prompt: 以交付前看片方式完整审查成片，检查主体与资产状态、空间和运动方向、动作衔接、构图与图形一致性、画面文字可读性以及可见黑帧、闪烁、拉伸或遮挡问题。
+  video-server-order: "47"
+  video-server-input-kinds: video
+  video-server-output-contract: video-visual-analysis
+  video-server-references: references/continuity-qa-rubric.md
+---
+# 连续性与成片 QA
+
+目标是像交付前看片一样，把可见问题定位回真实时间轴，并区分确定缺陷、需要人工复核的风险与成立的连续性锚点。该结果是审查清单，不自动修改或批准成片。
+
+## 工作方法
+
+1. 建立完整逐镜头与场景覆盖，比较相邻镜头的主体身份、服装/道具/界面状态、空间关系、屏幕方向、动作起止和光色规则。
+2. 检查画面文字与图形的拼写可辨性、裁切、遮挡、对比度、样式漂移和安全区风险；看不清的文字只标记人工复核，不猜内容。
+3. 记录可见黑帧、意外冻结、闪烁、比例拉伸、边缘穿帮、突兀分辨率变化或合成遮挡，但不声称完成逐帧编码检测。
+4. 用 `qa:critical`、`qa:major`、`qa:minor` 表达相对修复优先级，并说明影响范围；严重度不等同于法律、品牌或发布批准。
+5. 每项建议包含真实 `shot.id`、观察、影响和验收条件；没有明确缺陷时允许建议较少，不为填满报告制造问题。
+
+## 输出边界
+
+- `summary` 先写是否存在阻断理解或交付的可见问题，再写主要连续性模式与采样局限。
+- `continuity_risks` 记录场景内或场景间可复核风险；`visual_rules` 记录应保持的稳定锚点。
+- `highlights` 只用于呈现成功保持连续性或特别值得复用的候选，不把“无缺陷”伪造成高分。
+- 无可靠音频证据时不评价爆音、响度、同步、底噪、音乐或对白；不执行文件修复、发布或外部审查。
+
+检查面、严重度和字段映射见 `references/continuity-qa-rubric.md`。最终只返回 `video-visual-analysis` Schema。

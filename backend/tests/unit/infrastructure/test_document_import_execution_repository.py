@@ -9,6 +9,7 @@ import pytest
 from app.application.import_execution import VerifiedDocumentImport
 from app.application.imports import ImportResourceCreate
 from app.domain.documents import (
+    DocumentParseSummary,
     ScreenplayElement,
     ScreenplayElementKind,
     ScreenplayScene,
@@ -108,6 +109,7 @@ def verified(path: Path) -> VerifiedDocumentImport:
             ),
         ),
         quality_warnings=(),
+        parse_summary=DocumentParseSummary(None, 2, 1, 0, 0, 0),
     )
 
 
@@ -171,6 +173,14 @@ async def test_claim_heartbeat_and_completion_create_two_immutable_artifacts(
         {"kind": "heading", "start": 0, "end": 16},
         {"kind": "action", "start": 17, "end": 64},
     ]
+    assert artifacts[0].artifact_metadata["parse_summary"] == {
+        "page_count": None,
+        "paragraph_count": 2,
+        "heading_count": 1,
+        "list_item_count": 0,
+        "table_count": 0,
+        "dialogue_block_count": 0,
+    }
 
 
 async def test_completion_rejects_overlapping_structure_offsets(

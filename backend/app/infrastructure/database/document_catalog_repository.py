@@ -11,6 +11,7 @@ from app.application.documents import (
     DocumentSnapshot,
     DocumentTextArtifactSnapshot,
 )
+from app.domain.documents import DocumentParseSummary
 
 from .base import as_utc
 from .models import DocumentArtifactRow, DocumentRow
@@ -85,6 +86,7 @@ def _snapshot(
         character_count=row.character_count,
         text_sha256=row.text_sha256,
         quality_warnings=tuple(row.quality_warnings),
+        parse_summary=_parse_summary(artifact),
         created_at=as_utc(row.created_at),
         updated_at=as_utc(row.updated_at),
         finished_at=None if row.finished_at is None else as_utc(row.finished_at),
@@ -99,3 +101,39 @@ def _snapshot(
             )
         ),
     )
+
+
+def _parse_summary(
+    artifact: DocumentArtifactRow | None,
+) -> DocumentParseSummary | None:
+    if artifact is None:
+        return None
+    raw = artifact.artifact_metadata.get("parse_summary")
+    fields = {
+        "page_count",
+        "paragraph_count",
+        "heading_count",
+        "list_item_count",
+        "table_count",
+        "dialogue_block_count",
+    }
+    if not isinstance(raw, dict) or set(raw) != fields:
+        return None
+    page_count = raw["page_count"]
+    counts = tuple(raw[field] for field in fields - {"page_count"})
+    if (page_count is not None and not _integer(page_count)) or any(
+        not _integer(value) for value in counts
+    ):
+        raise ValueError("document parse summary metadata is invalid")
+    return DocumentParseSummary(
+        page_count=page_count,
+        paragraph_count=raw["paragraph_count"],
+        heading_count=raw["heading_count"],
+        list_item_count=raw["list_item_count"],
+        table_count=raw["table_count"],
+        dialogue_block_count=raw["dialogue_block_count"],
+    )
+
+
+def _integer(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)

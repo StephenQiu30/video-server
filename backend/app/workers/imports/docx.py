@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import stat
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -28,6 +29,13 @@ _HYPERLINK_RELATIONSHIP_TYPES = {
     "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
     "http://purl.oclc.org/ooxml/officeDocument/relationships/hyperlink",
 }
+_HEADING_STYLE = re.compile(r"heading\s*([1-6])", re.IGNORECASE)
+
+
+@dataclass(frozen=True, slots=True)
+class _ExtractedDocxText:
+    text: str
+    table_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,13 +85,15 @@ class DocxScreenplayVerifier:
             unsafe_code=ImportErrorCode.DOCUMENT_ARCHIVE_UNSAFE,
         )
         _validate_package(content, self._settings)
+        extracted = _extract_text(content)
         return normalized_document(
             resolved,
             claim,
             original_sha256=digest,
             original_size_bytes=len(content),
-            extracted_text=_extract_text(content),
+            extracted_text=extracted.text,
             limits=self._settings.text,
+            table_count=extracted.table_count,
         )
 
 
@@ -186,22 +196,40 @@ def _validate_xml(payload: bytes, *, relationships: bool) -> None:
             _reject("DOCX external relationships are forbidden")
 
 
-def _extract_text(content: bytes) -> str:
+def _extract_text(content: bytes) -> _ExtractedDocxText:
     try:
         document = Document(BytesIO(content))
         lines: list[str] = []
+        table_count = 0
         for block in document.iter_inner_content():
             if isinstance(block, Paragraph):
-                lines.append(block.text)
+                lines.append(_paragraph_markdown(block))
             elif isinstance(block, Table):
+                table_count += 1
                 for row in block.rows:
                     lines.append("\t".join(cell.text for cell in row.cells))
-        return "\n".join(lines)
+        return _ExtractedDocxText("\n".join(lines), table_count)
     except Exception as exc:
         raise ImportVerificationRejected(
             ImportErrorCode.DOCUMENT_ARCHIVE_UNSAFE,
             "DOCX body could not be read safely",
         ) from exc
+
+
+def _paragraph_markdown(paragraph: Paragraph) -> str:
+    text = paragraph.text
+    if not text.strip():
+        return text
+    style = paragraph.style
+    identity = " " if style is None else f"{style.style_id} {style.name}"
+    if match := _HEADING_STYLE.search(identity):
+        return f"{'#' * int(match.group(1))} {text.lstrip()}"
+    lowered = identity.casefold()
+    if "list bullet" in lowered:
+        return f"- {text.lstrip()}"
+    if "list number" in lowered:
+        return f"1. {text.lstrip()}"
+    return text
 
 
 def _reject(message: str) -> None:

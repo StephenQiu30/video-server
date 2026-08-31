@@ -37,6 +37,14 @@ export function screenplayDocument(
     ...screenplayDocumentSummary(),
     preview: '<script>只作为台词文本</script>\n\nINT. LOBBY - NIGHT\n',
     preview_truncated: true,
+    parse_summary: {
+      page_count: null,
+      paragraph_count: 24,
+      heading_count: 3,
+      list_item_count: 1,
+      table_count: 0,
+      dialogue_block_count: 8,
+    },
     quality_warnings: ['scene_heading_missing'],
     ...overrides,
   };

@@ -28,6 +28,19 @@ export function ScreenplayDocumentMetadata({
     ['存储策略', '持久保存'],
   ];
   const error = documentErrorLabel(document);
+  const parseFields = document.parse_summary
+    ? [
+        ['页数', optionalCountLabel(document.parse_summary.page_count)],
+        ['文本段', countLabel(document.parse_summary.paragraph_count, '段')],
+        ['标题', countLabel(document.parse_summary.heading_count, '个')],
+        ['列表项', countLabel(document.parse_summary.list_item_count, '项')],
+        ['表格', countLabel(document.parse_summary.table_count, '个')],
+        [
+          '对白块',
+          countLabel(document.parse_summary.dialogue_block_count, '个'),
+        ],
+      ]
+    : [];
 
   return (
     <section
@@ -53,6 +66,21 @@ export function ScreenplayDocumentMetadata({
           </div>
         ))}
       </dl>
+      {parseFields.length ? (
+        <div className="mt-7">
+          <h3 className="text-sm font-medium">基础解析</h3>
+          <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-5 text-sm sm:grid-cols-3 lg:grid-cols-6">
+            {parseFields.map(([label, value]) => (
+              <div className="min-w-0" key={label}>
+                <dt className="text-xs text-muted-foreground">{label}</dt>
+                <dd className="mt-1 truncate tabular-nums" title={value}>
+                  {value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      ) : null}
       {error ? (
         <Alert className="mt-6" variant="destructive">
           <AlertTitle>解析未完成</AlertTitle>
@@ -82,4 +110,8 @@ function countLabel(value: number | null, suffix: string) {
   return value === null
     ? '等待解析'
     : `${value.toLocaleString('zh-CN')} ${suffix}`;
+}
+
+function optionalCountLabel(value: number | null | undefined) {
+  return value == null ? '源格式不提供' : `${value.toLocaleString('zh-CN')} 页`;
 }

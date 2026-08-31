@@ -10,6 +10,7 @@
 - [微信与腾讯授权媒体调研](research/014-微信视频号与腾讯视频授权媒体下载调研.md)：公众号文章原生视频、视频号 GitHub 方案、腾讯消费站权益与腾讯云 VOD 官方边界。
 - [微信视频号公开分享链接服务端解析调研](research/015-微信视频号公开分享链接服务端解析调研.md)：匿名公开媒体边界、消费端私有会话方案的否决结论与官方能力缺口。
 - [LangChain 与 DeepSeek 视觉分析服务调研](research/016-LangChain与DeepSeek视觉分析服务调研.md)：默认 Codex、Web 可选 DeepSeek、服务端顺序截图和依赖安全边界。
+- [Agent 视频 Skill 与成片分析能力调研](research/017-Agent视频Skill与成片分析能力调研.md)：55 项 AI 成片产线信号、专项分析 Skill 取舍与文档基础解析结论。
 - [`design/`](design/)：尚未完成或仍需持续维护的设计事实。
 - [`prd/`](prd/)：当前需求与产品边界。
 - [`plans/`](plans/)：仍在执行的交付计划。
@@ -33,3 +34,4 @@
 | 025 | 微信视频号公开分享链接下载 | [Design](design/025-微信视频号公开分享链接下载设计.md) | [PRD](prd/025-微信视频号公开分享链接下载需求.md) | [Plan](plans/025-微信视频号公开分享链接下载计划.md) | [Acceptance](acceptance/025-微信视频号公开分享链接下载验收.md) |
 | 026 | Flutter 原生认证契约 | [Design](design/026-Flutter原生认证契约设计.md) | [PRD](prd/026-Flutter原生认证契约需求.md) | [Plan](plans/026-Flutter原生认证契约计划.md) | [Acceptance](acceptance/026-Flutter原生认证契约验收.md) |
 | 027 | 开场钩子审查 Skill | [Design](design/archive/027-开场钩子审查Skill设计.md) | [PRD](prd/archive/027-开场钩子审查Skill需求.md) | [Plan](plans/archive/027-开场钩子审查Skill计划.md) | [Acceptance](acceptance/archive/027-开场钩子审查Skill验收.md) |
+| 028 | AI 分析 Skill 与文档基础解析增强 | [Design](design/028-AI分析Skill与文档基础解析增强设计.md) | [PRD](prd/028-AI分析Skill与文档基础解析增强需求.md) | [Plan](plans/028-AI分析Skill与文档基础解析增强计划.md) | [Acceptance](acceptance/028-AI分析Skill与文档基础解析增强验收.md) |

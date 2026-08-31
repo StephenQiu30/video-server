@@ -62,6 +62,9 @@ async def test_text_formats_are_verified_and_written_as_canonical_utf8(
         == hashlib.sha256(verified.normalized_path.read_bytes()).hexdigest()
     )
     assert len(verified.scenes) == 1
+    assert verified.parse_summary.page_count is None
+    assert verified.parse_summary.paragraph_count == 2
+    assert verified.parse_summary.heading_count == 1
     assert [element.kind for element in verified.scenes[0].elements] == [
         ScreenplayElementKind.HEADING,
         ScreenplayElementKind.ACTION,

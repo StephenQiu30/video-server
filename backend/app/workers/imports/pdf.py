@@ -69,7 +69,7 @@ class PdfScreenplayVerifier:
             max_size_bytes=self._settings.text.max_size_bytes,
             unsafe_code=ImportErrorCode.DOCUMENT_STRUCTURE_INVALID,
         )
-        extracted_text = _extract_pdf_text(content, self._settings)
+        extracted_text, page_count = _extract_pdf_text(content, self._settings)
         return normalized_document(
             resolved,
             claim,
@@ -77,10 +77,13 @@ class PdfScreenplayVerifier:
             original_size_bytes=len(content),
             extracted_text=extracted_text,
             limits=self._settings.text,
+            page_count=page_count,
         )
 
 
-def _extract_pdf_text(content: bytes, settings: PdfVerificationSettings) -> str:
+def _extract_pdf_text(
+    content: bytes, settings: PdfVerificationSettings
+) -> tuple[str, int]:
     if not content.startswith(b"%PDF-"):
         _reject_structure("PDF header is invalid")
     reader: PdfReader | None = None
@@ -98,7 +101,7 @@ def _extract_pdf_text(content: bytes, settings: PdfVerificationSettings) -> str:
         page_count = len(reader.pages)
         if not 1 <= page_count <= settings.max_pages:
             _reject_structure("PDF page count exceeded its budget")
-        return _extract_pages(reader, page_count, settings)
+        return _extract_pages(reader, page_count, settings), page_count
     except ImportVerificationRejected:
         raise
     except Exception as exc:

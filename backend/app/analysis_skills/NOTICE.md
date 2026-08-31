@@ -1,6 +1,6 @@
 # Analysis Skill third-party notices
 
-The built-in screenplay skills are original, project-specific rewrites. They do not vendor or execute upstream scripts, prompts, examples, assets, MCP definitions, plugins, network calls, or sub-agent workflows.
+The built-in analysis skills are original, project-specific rewrites. They do not vendor or execute upstream scripts, prompts, examples, assets, MCP definitions, plugins, network calls, or sub-agent workflows.
 
 ## Agent Skills specification
 
@@ -21,7 +21,7 @@ The built-in screenplay skills are original, project-specific rewrites. They do 
 - Source: https://github.com/seaartpublic/skills/tree/main/storyboard-prompt-assistant
 - Reviewed commit: `a3edc17605d525b54b2a5f61a4800f2dd8dd8b30`
 - License: MIT; copyright 2026 Seaart AI.
-- Local use: the local storyboard reference independently adopts explicit shot purpose, concrete camera language, start/end states, and continuity checks. Product-specific prompt templates, negative prompts, generation modes, platform routing, and execution workflows were excluded.
+- Local use: the local storyboard, editing-rhythm and continuity references independently adopt explicit shot purpose, concrete camera language, start/end states, motivated changes and continuity checks. Product-specific prompt templates, negative prompts, generation modes, platform routing, and execution workflows were excluded.
 
 ## cutmap
 
@@ -70,7 +70,7 @@ The built-in screenplay skills are original, project-specific rewrites. They do 
 - Source: https://github.com/oxbshw/watch-skill
 - Reviewed commit: `994ee7514c64a9ec4980eeabef789b5e10ea28be`
 - License: MIT; copyright 2026 oxbshw.
-- Local use: the opening-hook review independently adopts bounded opening windows, visible change and on-screen-text review, evidence-backed creator feedback, and an explicit distinction between observation and verified outcomes. The upstream runtime, scoring formulas, CLI, MCP, REST API, capture/index stores, OCR, ASR, model integrations, scripts, examples, tests, and assets were excluded.
+- Local use: the opening-hook and continuity-quality reviews independently adopt bounded observation, visible change and on-screen-text review, evidence-backed creator feedback, and an explicit distinction between observation, risk and verified outcomes. The upstream runtime, scoring formulas, CLI, MCP, REST API, capture/index stores, OCR, ASR, model integrations, scripts, examples, tests, and assets were excluded.
 
 ## drama-skills
 
