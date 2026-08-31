@@ -2,7 +2,7 @@ export const URL_MESSAGE = '请输入有效的公开 HTTP(S) 视频地址。';
 
 const HTTP_URL_PATTERN = /https?:\/\/[^\s]+/giu;
 const TRAILING_URL_CHARACTERS =
-  /[.,!?;:，。！？；：、）】》〉」』〕］｝\]}>'"”’]+$/u;
+  /[.,!?;:，。！？；：、)）】》〉」』〕］｝\]}>'"”’]+$/u;
 
 function parsePublicUrl(value: string): string | null {
   const candidate = value.replace(TRAILING_URL_CHARACTERS, '');

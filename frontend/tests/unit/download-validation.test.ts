@@ -35,6 +35,22 @@ describe('validateMediaUrl', () => {
     expect(validateMediaUrl(reportedDouyinShareMessage)).toBeNull();
   });
 
+  it('extracts the URL from the reported Chinese Douyin share message', () => {
+    const shareMessage =
+      '0.53 复制打开抖音，看看【喵了个喵-的图文作品】你笑面如花 真想与你情定香格里拉.# 我与天坛 ' +
+      'https://v.douyin.com/Z8wTCSQ-1_g/ M@j.cn EHv:/ 04/10 :3pm';
+
+    expect(normalizeMediaUrl(shareMessage)).toBe(
+      'https://v.douyin.com/Z8wTCSQ-1_g/',
+    );
+  });
+
+  it('removes an ASCII closing parenthesis around a share URL', () => {
+    expect(normalizeMediaUrl('(https://v.douyin.com/Z8wTCSQ-1_g/)')).toBe(
+      'https://v.douyin.com/Z8wTCSQ-1_g/',
+    );
+  });
+
   it('rejects share text containing more than one URL', () => {
     expect(
       normalizeMediaUrl('请看 https://example.com/a 和 https://example.com/b'),
