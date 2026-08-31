@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 const SOURCE_ROOT = path.join(process.cwd(), 'src');
 const UI_ROOT = path.join(SOURCE_ROOT, 'components', 'ui');
-const RAW_PRIMITIVE = /<(?:button|img|input|select|textarea)(?:\s|>)/;
+const RAW_PRIMITIVE = /<(?:button|img|input|nav|select|textarea)(?:\s|>)/;
 const DIRECT_RADIX_IMPORT = /from\s+['"](?:@radix-ui\/[^'"]+|radix-ui)['"]/;
 
 describe('component boundaries', () => {

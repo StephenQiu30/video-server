@@ -1,4 +1,10 @@
 import Link from 'next/link';
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+} from '@/components/ui/navigation-menu';
 import { siteConfig } from '@/lib/site';
 import { cn } from '@/lib/utils';
 
@@ -12,28 +18,34 @@ export function SiteFooter({ className }: { className?: string }) {
           </Link>
           <span>MIT 开源 · 请仅处理已获授权内容</span>
         </div>
-        <nav aria-label="项目链接" className="flex items-center gap-4">
-          <a
-            className="focus-ring hover:text-foreground"
-            href={siteConfig.repositoryUrl}
-          >
-            GitHub
-          </a>
-          <a
-            className="focus-ring hover:text-foreground"
-            href={`${siteConfig.repositoryUrl}/tree/main/docs`}
-          >
-            文档
-          </a>
-          <a
-            className="focus-ring hover:text-foreground"
-            href={siteConfig.licenseUrl}
-          >
-            MIT License
-          </a>
-        </nav>
+        <NavigationMenu
+          aria-label="项目链接"
+          className="max-w-none flex-none"
+          viewport={false}
+        >
+          <NavigationMenuList className="gap-4">
+            <FooterLink href={siteConfig.repositoryUrl}>GitHub</FooterLink>
+            <FooterLink href={`${siteConfig.repositoryUrl}/tree/main/docs`}>
+              文档
+            </FooterLink>
+            <FooterLink href={siteConfig.licenseUrl}>MIT License</FooterLink>
+          </NavigationMenuList>
+        </NavigationMenu>
       </div>
     </footer>
+  );
+}
+
+function FooterLink({ children, href }: { children: string; href: string }) {
+  return (
+    <NavigationMenuItem>
+      <NavigationMenuLink
+        asChild
+        className="focus-ring rounded-md p-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground focus:bg-transparent"
+      >
+        <Link href={href}>{children}</Link>
+      </NavigationMenuLink>
+    </NavigationMenuItem>
   );
 }
 

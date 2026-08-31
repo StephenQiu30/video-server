@@ -7,7 +7,7 @@ import BasicLayout from '@/components/layout/basic-layout';
 import { NavigationHistoryProvider } from '@/components/layout/navigation-history';
 import { PageHeader } from '@/components/layout/page-header';
 import { BrandLink } from '@/components/layout/site-header';
-import { ThemeMenu } from '@/components/layout/theme-menu';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
 import {
   Field,
   FieldDescription,
@@ -46,7 +46,7 @@ export function AuthPageFrame({
       <div className="page-shell flex min-h-screen flex-col">
         <div className="flex h-20 items-center justify-between">
           <BrandLink />
-          <ThemeMenu />
+          <ThemeToggle />
         </div>
         <div className="grid flex-1 gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.9fr)] lg:gap-20">
           <section

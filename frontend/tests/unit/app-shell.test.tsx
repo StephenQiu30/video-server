@@ -72,6 +72,7 @@ describe('AppShell', () => {
     const desktopNavigation = screen.getByRole('navigation', {
       name: '主要导航',
     });
+    expect(desktopNavigation).toHaveAttribute('data-slot', 'navigation-menu');
     const desktopHomeLink = within(desktopNavigation).getByRole('link', {
       name: '首页',
     });
@@ -120,6 +121,7 @@ describe('AppShell', () => {
     const mobileNavigation = screen.getByRole('navigation', {
       name: '移动导航',
     });
+    expect(mobileNavigation).toHaveAttribute('data-slot', 'navigation-menu');
     expect(
       within(mobileNavigation).getByRole('link', { name: '首页' }),
     ).not.toHaveAttribute('aria-current');
@@ -158,6 +160,7 @@ describe('AppShell', () => {
     expect(
       screen.getByRole('button', { name: /切换到.+主题/ }),
     ).toBeInTheDocument();
+    expect(screen.queryAllByRole('menuitemradio')).toHaveLength(0);
     expect(
       screen.queryByRole('button', { name: '打开导航菜单' }),
     ).not.toBeInTheDocument();

@@ -9,7 +9,13 @@ import {
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { Button } from '@/components/ui/button';
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  navigationMenuTriggerStyle,
+} from '@/components/ui/navigation-menu';
 import { cn } from '@/lib/utils';
 
 type DesktopNavigationProps = {
@@ -28,38 +34,44 @@ export function DesktopNavigation({
   publicView,
 }: DesktopNavigationProps) {
   return (
-    <nav aria-label="主要导航" className="hidden items-center gap-2 lg:flex">
-      {publicView ? (
-        <>
-          <NavigationLink href="/#capabilities">产品能力</NavigationLink>
-          <NavigationLink href="/#architecture">自托管架构</NavigationLink>
-          <NavigationLink href="https://github.com/StephenQiu30/video-server">
-            <GithubLogoIcon aria-hidden className="size-5" />
-            GitHub
-            <ArrowUpRightIcon aria-hidden className="size-4" />
-          </NavigationLink>
-        </>
-      ) : (
-        <>
-          <NavigationLink active={homeActive} href="/">
-            <HouseIcon aria-hidden className="size-5" />
-            首页
-          </NavigationLink>
-          <NavigationLink active={historyActive} href="/history">
-            <ClockCounterClockwiseIcon aria-hidden className="size-5" />
-            下载记录
-          </NavigationLink>
-          <NavigationLink active={documentsActive} href="/documents">
-            <FileTextIcon aria-hidden className="size-5" />
-            剧本文档
-          </NavigationLink>
-          <NavigationLink active={providersActive} href="/providers">
-            <PulseIcon aria-hidden className="size-5" />
-            平台状态
-          </NavigationLink>
-        </>
-      )}
-    </nav>
+    <NavigationMenu
+      aria-label="主要导航"
+      className="hidden max-w-none flex-none lg:flex"
+      viewport={false}
+    >
+      <NavigationMenuList className="gap-2">
+        {publicView ? (
+          <>
+            <NavigationLink href="/#capabilities">产品能力</NavigationLink>
+            <NavigationLink href="/#architecture">自托管架构</NavigationLink>
+            <NavigationLink href="https://github.com/StephenQiu30/video-server">
+              <GithubLogoIcon aria-hidden className="size-5" />
+              GitHub
+              <ArrowUpRightIcon aria-hidden className="size-4" />
+            </NavigationLink>
+          </>
+        ) : (
+          <>
+            <NavigationLink active={homeActive} href="/">
+              <HouseIcon aria-hidden className="size-5" />
+              首页
+            </NavigationLink>
+            <NavigationLink active={historyActive} href="/history">
+              <ClockCounterClockwiseIcon aria-hidden className="size-5" />
+              下载记录
+            </NavigationLink>
+            <NavigationLink active={documentsActive} href="/documents">
+              <FileTextIcon aria-hidden className="size-5" />
+              剧本文档
+            </NavigationLink>
+            <NavigationLink active={providersActive} href="/providers">
+              <PulseIcon aria-hidden className="size-5" />
+              平台状态
+            </NavigationLink>
+          </>
+        )}
+      </NavigationMenuList>
+    </NavigationMenu>
   );
 }
 
@@ -75,22 +87,25 @@ function NavigationLink({
   const external = href.startsWith('https://');
 
   return (
-    <Button
-      asChild
-      className={cn(
-        'min-h-11 px-3.5 text-[15px] text-foreground',
-        active && 'bg-muted',
-      )}
-      variant="ghost"
-    >
-      <Link
-        aria-current={active ? 'page' : undefined}
-        href={href}
-        rel={external ? 'noreferrer' : undefined}
-        target={external ? '_blank' : undefined}
+    <NavigationMenuItem>
+      <NavigationMenuLink
+        active={active}
+        asChild
+        className={cn(
+          navigationMenuTriggerStyle(),
+          'h-11 min-h-11 rounded-md px-3.5 text-[15px] text-foreground',
+          active && 'bg-muted',
+        )}
       >
-        {children}
-      </Link>
-    </Button>
+        <Link
+          aria-current={active ? 'page' : undefined}
+          href={href}
+          rel={external ? 'noreferrer' : undefined}
+          target={external ? '_blank' : undefined}
+        >
+          {children}
+        </Link>
+      </NavigationMenuLink>
+    </NavigationMenuItem>
   );
 }

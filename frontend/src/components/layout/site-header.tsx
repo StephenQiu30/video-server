@@ -10,7 +10,7 @@ import { useAuth } from '@/components/auth/auth-provider';
 import { DesktopNavigation } from '@/components/layout/desktop-navigation';
 import { HeaderAccount } from '@/components/layout/header-account';
 import { MobileNavigation } from '@/components/layout/mobile-navigation';
-import { ThemeMenu } from '@/components/layout/theme-menu';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -89,7 +89,7 @@ export function SiteHeader() {
               </a>
             </Button>
           ) : null}
-          <ThemeMenu />
+          <ThemeToggle />
           {publicView ? (
             <Button asChild className="min-h-11 px-4 text-[15px]">
               <Link href="/user/login">登录</Link>

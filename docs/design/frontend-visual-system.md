@@ -12,7 +12,7 @@
 
 交互组件优先直接使用统一 `radix-ui` 包提供的 Primitive，并通过 [shadcn/ui `radix-nova` 源码](https://ui.shadcn.com/docs/components)形成项目内薄封装，完整保留 [Radix 无障碍行为](https://www.radix-ui.com/primitives/docs/overview/accessibility)。`radix-nova` 只是一份可审计源码，不是平行运行时 UI 框架；Radix 未提供的 Table、Button、Input 等语义由同一源码层补齐，页面不得另建第二套基础组件或手写可点击容器。
 
-不在本次范围内新增视频平台、支付、社交登录或后端业务接口。明暗主题跟随系统偏好并只消费现有语义 token；页面不提供可见主题切换器，也不改变业务语义。生产环境仍不运行 Next.js Node 服务，FastAPI 继续同源提供静态页面与 `/api/*`。
+不在本次范围内新增视频平台、支付、社交登录或后端业务接口。明暗主题只提供浅色与深色两种显式偏好，默认浅色并持久化到 `framegrab-theme`；页面提供单击切换按钮，不提供主题菜单或“跟随系统”选项。两种主题只消费现有语义 token，不改变业务语义。生产环境仍不运行 Next.js Node 服务，FastAPI 继续同源提供静态页面与 `/api/*`。
 
 ## 设计依据与冲突优先级
 
@@ -155,9 +155,10 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 | 信息/交互语义 | 官方组件 | 项目使用规则 |
 | --- | --- | --- |
 | 页内内容分组 | 语义化 section + Tailwind 布局 | 不呈现 Card 外壳或 Separator；通过排版、留白和必要的中性填充面分组 |
+| 全局、页脚与目录导航 | [Navigation Menu](https://ui.shadcn.com/docs/components/radix/navigation-menu) | 业务组件组合 `NavigationMenu`、`NavigationMenuList`、`NavigationMenuItem` 和 `NavigationMenuLink`，不手写原生 `nav`；Radix 负责最终语义 DOM、当前页状态与键盘行为 |
 | 桌面数据 | [Table](https://ui.shadcn.com/docs/components/radix/table) | 用于管理员用户列表和下载分析的精确数值；保留 `caption`、列头和行语义，默认无外框、表头线和行线，数值表头/单元格共同右对齐并使用 `tabular-nums`，390px 下切换为 Item/摘要列表 |
 | 数据可视化 | [Chart](https://ui.shadcn.com/docs/components/chart) + Recharts | 复用官方 `ChartContainer`、Tooltip 与蓝色 `--chart-1` … `--chart-5` 主题 token；图表有可读标题和等价表格/列表，数值不只靠颜色或 Tooltip 传达，不增加 Card 外壳 |
-| 移动导航/补充内容 | [Sheet](https://ui.shadcn.com/docs/components/radix/sheet) | 从右侧进入，标题与描述可读，关闭后焦点返回触发器 |
+| 移动导航/补充内容 | [Sheet](https://ui.shadcn.com/docs/components/radix/sheet) + Navigation Menu | 从右侧进入，Sheet 负责覆盖层与焦点圈定，内部纵向 Navigation Menu 负责链接语义；标题与描述可读，关闭后焦点返回触发器 |
 | 图标辅助说明 | [Tooltip](https://ui.shadcn.com/docs/components/radix/tooltip) | 只补充说明，不承载唯一必要信息；支持 hover 与键盘 focus |
 | 用户身份 | [Avatar](https://ui.shadcn.com/docs/components/radix/avatar) | 必须有稳定 fallback，同时保留可读用户名 |
 | 表单字段 | [Field](https://ui.shadcn.com/docs/components/radix/field) + [Input Group](https://ui.shadcn.com/docs/components/radix/input-group) | 统一 label、description、error 关联；前后图标或清除动作放入 InputGroup |
@@ -173,9 +174,9 @@ Badge、Button、Select、Dropdown Menu、Dialog、Tabs、Progress、Skeleton、
 
 ### 全局导航
 
-桌面端为 80px 单行轻量 Header：左侧使用 Next.js `Image` 渲染 32px 的 `public/logo.svg`，与 17px 文字“帧取”共同构成指向 `/` 的品牌链接；右侧导航保持 15px 尺寸，桌面导航控件高度为 44px，使品牌在功能导航之上建立清晰层级。右侧依次提供“首页”“下载记录”（`href="/history"`）、“剧本文档”（`href="/documents"`）、“平台状态”和 Avatar 账户菜单；账户菜单只向管理员显示“用户管理”“平台目录”与“下载分析”入口。明暗主题跟随系统偏好，不在 Header 或菜单里增加可见切换器。Header 与 main 共用 `.content-shell` 的 1376px 上限和桌面 80px gutter，保持导航与主体严格对齐；没有底线、侧栏、面包屑容器、外框或浮起阴影。当前路由链接使用 `aria-current="page"`，并通过中性填充面和文本色同步表达当前页。
+桌面端为 80px 单行轻量 Header：左侧使用 Next.js `Image` 渲染 32px 的 `public/logo.svg`，与 17px 文字“帧取”共同构成指向 `/` 的品牌链接；右侧导航保持 15px 尺寸，桌面导航控件高度为 44px，使品牌在功能导航之上建立清晰层级。右侧依次提供“首页”“下载记录”（`href="/history"`）、“剧本文档”（`href="/documents"`）、“平台状态”和 Avatar 账户菜单；账户菜单只向管理员显示“用户管理”“平台目录”与“下载分析”入口。主导航、页脚项目链接与剧本文档目录统一组合官方 shadcn/ui Navigation Menu，业务组件不手写原生 `nav`，最终可访问的语义标签由 Radix Primitive 输出。Header 提供一个 44px 明暗主题按钮，每次点击只在浅色与深色之间切换，不打开菜单，也不提供“跟随系统”。Header 与 main 共用 `.content-shell` 的 1376px 上限和桌面 80px gutter，保持导航与主体严格对齐；没有底线、侧栏、面包屑容器、外框或浮起阴影。当前路由链接使用 `aria-current="page"`，并通过中性填充面和文本色同步表达当前页。
 
-不足 `lg` 的窄屏与平板宽度保留品牌和一个明确的导航触发器，下载记录、剧本文档、平台状态与账户操作进入 Sheet；不把完整桌面导航强行压缩到同一行。Sheet 打开后焦点进入其可操作内容，过长时在 Sheet 内部滚动，链接均可通过 Tab 到达并以键盘激活；关闭而未导航时，焦点返回触发器。品牌链接始终提供返回 `/` 的明确可读名称。图标按钮有可见或屏幕阅读器标签，Tooltip 仅作辅助，触控区域至少 44×44px。
+不足 `lg` 的窄屏与平板宽度保留品牌、单击主题按钮和一个明确的导航触发器，下载记录、剧本文档、平台状态与账户操作进入 Sheet；不把完整桌面导航强行压缩到同一行。Sheet 内部使用纵向 Navigation Menu，打开后焦点进入其可操作内容，过长时在 Sheet 内部滚动，链接均可通过 Tab 到达并以键盘激活；关闭而未导航时，焦点返回触发器。品牌链接始终提供返回 `/` 的明确可读名称。图标按钮有可见或屏幕阅读器标签，Tooltip 仅作辅助，触控区域至少 44×44px。
 
 所有已认证的非首页页面在内容标题前提供统一 `BackLink`，文字为“返回上一步”，触控高度至少 44px。应用在当前标签页内记录最小站内导航栈：存在上一条站内记录时调用浏览器历史返回，直接打开页面或历史不可用时使用明确的层级 fallback（下载记录→首页、账户→首页、用户管理/下载分析→账户、下载详情/任务缺失→下载记录、404→首页）。记录使用完整的站内 pathname + search，并为浏览器历史条目分配不含业务数据的临时标记，保证 query-only 详情切换、前进/后退和重复路径都能精确定位；`sessionStorage` 仅保存这些站内路由、标记和当前索引，不包含账户、任务内容或凭据。登录与注册不显示通用历史返回，只保留彼此之间的明确交叉链接和校验后的安全 `redirect`；认证守卫继续使用 replace，避免过期受保护页面参与回退并形成登录循环。
 

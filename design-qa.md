@@ -518,3 +518,15 @@ final result: passed
 - findings：整改前识别的页面分区线、表格线、列表分隔和双栏竖线已全部关闭；同输入视觉复核没有剩余 P0、P1 或 P2 无边框偏差。
 
 final result: passed
+
+## 2026-08-31 shadcn/ui Navigation Menu 与单击主题切换
+
+- component architecture：通过 shadcn CLI 4.19.1 按项目既有 `radix-nova`、Radix base 和 neutral preset 安装官方 `navigation-menu` 源码。桌面主导航、移动 Sheet 内导航、页脚项目链接与剧本文档目录统一组合 `NavigationMenu`、`NavigationMenuList`、`NavigationMenuItem` 和 `NavigationMenuLink`；业务源码不再手写原生 `nav`，最终可访问语义由 Radix Primitive 输出。官方 shadcn `Pagination` 内部语义标签保持不变。
+- boundary regression：`component-boundaries.test.ts` 将原生 `nav` 纳入业务组件禁用清单，同时继续允许 `src/components/ui/` 中可审计的官方源码。桌面、移动与目录测试均断言导航根节点的 `data-slot="navigation-menu"`，当前页仍保留 `aria-current="page"`，移动链接激活后仍由 Sheet 关闭。
+- theme interaction：原 `ThemeMenu` 收敛为 `ThemeToggle`，使用 shadcn/ui `Button` 与 `next-themes`。主题集合固定为 `light`/`dark`、默认浅色、`enableSystem=false`，单次点击直接切换并持久化到 `framegrab-theme`；页面不渲染主题菜单、单选项或“跟随系统”。
+- development runtime：停止 `video-frontend` 的 production standalone 容器后，使用 `next dev --hostname 127.0.0.1 --port 8101` 启动 Web；后端继续使用默认开发 Compose 的 `8111` 服务。本轮浏览器证据来自开发服务器，不使用 prod 运行态。
+- browser evidence：agent-browser 在公开首页实测明→暗和暗→明均为一次点击；切换后 `html` class 与 `localStorage.framegrab-theme` 分别为 `dark`/`dark` 和 `light`/`light`，`role=menu` 与 `role=menuitemradio` 数量始终为 0。页面同时存在主要导航与页脚项目链接两个 `data-slot=navigation-menu` 根节点。390×844 视口为 `clientWidth=scrollWidth=390`，无横向溢出；axe WCAG 2 A/AA 为 0 violations、0 incomplete，浏览器页面错误为空。
+- visual evidence：浅色桌面、深色桌面与 390px 浅色移动截图分别为 `/Users/stephenqiu/.codex/visualizations/2026/08/31/01a05720-dafb-7083-943f-d78cc54dde96/shadcn-navigation-theme/public-home-light.png`、`public-home-dark.png` 和 `public-home-mobile-light.png`。目视复核确认 80px Header、导航密度、主题按钮、Hero、内容轴与页脚没有 P0/P1/P2 视觉回归。
+- engineering gates：`npm run format:check`、`npm run lint`、55 个测试文件/207 项测试和 Next.js 20 个静态页面 production build 全部通过；业务源码扫描只剩官方 `src/components/ui/pagination.tsx` 内的原生 `nav`。
+
+final result: passed

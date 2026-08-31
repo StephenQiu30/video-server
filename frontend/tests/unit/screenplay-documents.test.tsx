@@ -146,7 +146,9 @@ describe('screenplay documents', () => {
       'lg:grid-rows-[auto_minmax(0,1fr)_auto]',
       'lg:min-h-0',
     );
-    expect(screen.getByRole('navigation', { name: '目录' })).toHaveClass(
+    const tableOfContents = screen.getByRole('navigation', { name: '目录' });
+    expect(tableOfContents).toHaveAttribute('data-slot', 'navigation-menu');
+    expect(tableOfContents).toHaveClass(
       'lg:grid',
       'lg:h-full',
       'lg:grid-rows-[auto_minmax(0,1fr)]',
