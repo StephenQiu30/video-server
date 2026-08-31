@@ -151,9 +151,13 @@ describe('AppShell', () => {
     expect(
       within(navigation).getByRole('link', { name: 'GitHub' }),
     ).toHaveAttribute('href', 'https://github.com/StephenQiu30/video-server');
+    expect(screen.getByRole('link', { name: '登录' })).toHaveAttribute(
+      'href',
+      '/user/login',
+    );
     expect(
-      within(navigation).getByRole('link', { name: '登录' }),
-    ).toHaveAttribute('href', '/user/login');
+      screen.getByRole('button', { name: /切换主题/ }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: '打开导航菜单' }),
     ).not.toBeInTheDocument();
@@ -292,13 +296,24 @@ describe('AppShell', () => {
     runtime.pathname = '/user/login';
     render(
       <AppShell>
-        <main>登录页面</main>
+        <AuthPageFrame
+          description="登录后继续使用。"
+          title="登录帧取"
+          titleId="login-title"
+        >
+          <div>登录页面</div>
+        </AuthPageFrame>
       </AppShell>,
     );
 
     expect(screen.getByText('登录页面')).toBeInTheDocument();
-    expect(screen.queryByRole('banner')).not.toBeInTheDocument();
-    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    expect(document.querySelector('header.sticky')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('navigation', { name: '主要导航' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /切换主题/ }),
+    ).toBeInTheDocument();
   });
 
   it('keeps the authentication heading and field semantics accessible', () => {
