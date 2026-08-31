@@ -5,6 +5,7 @@ import { FileText, FileVideo, LinkSimple } from '@phosphor-icons/react';
 import gsap from 'gsap';
 import { type ReactNode, useRef } from 'react';
 
+import { EditorialIntro } from '@/components/layout/editorial-intro';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 gsap.registerPlugin(useGSAP);
@@ -81,13 +82,16 @@ export function ContentIntakeHero({
 
   return (
     <section className="pt-10 sm:pt-12 lg:pt-14" ref={rootRef}>
-      <h1 className="editorial-title sm:whitespace-nowrap">
-        把素材，
-        <span className="block sm:ml-[0.85em] sm:inline">带回本地。</span>
-      </h1>
-      <p className="mt-5 max-w-2xl text-[15px] leading-7 text-muted-foreground">
-        解析公开视频链接，或上传本地视频与剧本文档。
-      </p>
+      <EditorialIntro
+        description="解析公开视频链接，或上传本地视频与剧本文档。"
+        title={
+          <>
+            把素材，
+            <span className="block sm:ml-[0.85em] sm:inline">带回本地。</span>
+          </>
+        }
+        titleClassName="sm:whitespace-nowrap"
+      />
 
       <Tabs
         className="mt-7 gap-0"

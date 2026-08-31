@@ -1,5 +1,20 @@
 # 方案 3 无边框重设计 QA
 
+## 2026-08-31 公开首页连续画布与样式复用
+
+- source visual truth：用户提供的公开首页截图已保存为 `qa-output/017-public-home-borderless/source-browser.png`（3372×1942 px，2× Chrome 窗口），并结合仓库 `docs/design/frontend-visual-system.md` 的匿名/已登录首页共享网格与无结构边界规则判断。
+- implementation evidence：桌面浅色首屏 `qa-output/017-public-home-borderless/implementation-after-1686x850.png`（1671×842 px）、移动浅色首屏 `qa-output/017-public-home-borderless/implementation-after-390x844.png`（375×812 px）和移动深色首屏 `qa-output/017-public-home-borderless/implementation-after-dark-390x844.png`（375×812 px）。
+- viewport and normalization：来源图移除顶部 242px 浏览器外壳与右侧 30px 滚动条后，由 3342×1684 按 2× 密度归一化为 1671×842；实现使用 1686×850 CSS 视口，常驻滚动条后 `clientWidth = scrollWidth = 1671`，浏览器页面截图为 1671×842。移动使用 390×844 CSS 视口，常驻滚动条后 `clientWidth = scrollWidth = 375`。
+- state：未登录、浅色、页面位于 `/` 顶部；补充检查移动深色状态和桌面“产品能力”锚点激活状态。
+- full-view comparison evidence：`qa-output/017-public-home-borderless/comparison-desktop.png`（3342×842）把来源与修复后实现横向放在同一输入中。实现保留 Header、品牌、公开导航、双栏首屏、流程、注册与源码入口，同时将独立营销页式超大标题和所有结构线收敛到应用既有连续画布。
+- focused region comparison：全视图原始对照中的标题、按钮、流程文字与边界均可在 1:1 高度清晰判断；桌面后验图另保留原始 1671×842 像素，因此不需要重复裁切局部图。
+- findings and required fidelity surfaces：字体继续使用自托管 Geist 与中文系统回退；匿名与已登录首页现在共同复用 `EditorialIntro` 和 `.editorial-title`，H1 从来源约 208px 高的独立 7.4rem 尺度收敛为约 65px 高的应用编辑式层级。Header、main、footer 继续共享 `.content-shell`；首屏与后续区段只通过 48/80/112px 网格和留白建立节奏。四个内容区计算边框的上、右、下、左均为 `0px`，能力列和双栏也没有 Separator、Card、阴影或独立背景。浅色继续使用 `#FAFAFA/#0A0A0A`，深色实测画布为 `rgb(10, 10, 10)`；按钮只消费已有 primary/secondary 表面。页面唯一图片资产继续复用现有 `logo.svg`，功能图标继续使用 Phosphor，没有新增近似资产。公开能力、自托管、安全边界、注册、源码和部署文案均保留，SEO 的唯一 H1 与顺序 H2/H3 结构未回退。
+- accessibility and interactions：桌面导航“产品能力”点击后 URL 为 `/#capabilities`、目标顶部为 96px 且焦点保留在触发链接；主题按钮完成浅色→深色→浅色切换。注册、源码与部署说明链接保留真实地址；桌面与移动浏览器控制台均无 error/warning，820px 平板和 390px 移动端均没有越界元素。
+- comparison history：第一轮来源存在两个可执行问题：P1 为匿名首页另建远大于应用首页的标题尺度和主张，形成明显产品风格断裂；P2 为首屏双栏竖线、区段横线和能力列分隔线违背当前“连续画布”规范。修复后匿名与已登录首页共享 `EditorialIntro`，统一“把素材，带回本地。”，并移除所有结构边界；同视口后验截图未发现新的 P0/P1/P2。无剩余 P3 视觉项。
+- engineering gates：新增 2 项公开首页回归测试；`npm run lint`、`npm run format:check`、56 个测试文件共 209 项测试和 Next.js production build（20 个静态页面）全部通过。
+
+final result: passed
+
 ## 对照目标与证据
 
 - 视觉来源：Vercel Home（2026-08-09 捕获）与用户确认的方案 3 无边框稿。
