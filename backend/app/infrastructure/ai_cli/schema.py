@@ -122,7 +122,15 @@ def _shot() -> dict[str, Any]:
             "representative_frame_ms": _integer(),
             "description": _text(),
             "transition_in": {
-                "enum": ["cut", "fade", "dissolve", "wipe", "none", "unknown"]
+                "enum": [
+                    "cut",
+                    "fade",
+                    "dissolve",
+                    "wipe",
+                    "continuous",
+                    "none",
+                    "unknown",
+                ]
             },
             "shot_size": {
                 "enum": [

@@ -16,6 +16,10 @@ def media() -> AnalysisMedia:
     return AnalysisMedia(duration_ms=3_000, container="mp4", size_bytes=4_096)
 
 
+def long_media() -> AnalysisMedia:
+    return AnalysisMedia(duration_ms=12_000, container="mp4", size_bytes=4_096)
+
+
 def document() -> dict[str, object]:
     return {
         "language": "zh-CN",
@@ -135,6 +139,14 @@ def parse(payload: object, *, limits: AnalysisLimits | None = None) -> object:
     )
 
 
+def parse_long(payload: object) -> object:
+    return parse_analysis_result(
+        payload,
+        long_media(),
+        expected_language="zh-CN",
+    )
+
+
 def test_valid_result_derives_counts_times_and_reverse_asset_index() -> None:
     result = parse(document())
 
@@ -174,6 +186,47 @@ def test_time_enum_and_score_contracts_are_strict(
     with pytest.raises(AnalysisValidationError) as caught:
         parse(payload)
     assert caught.value.code is code
+
+
+def test_continuous_visual_beat_is_a_supported_non_edit_boundary() -> None:
+    payload = document()
+    payload["shots"][1]["transition_in"] = "continuous"
+
+    result = parse(payload)
+
+    assert result.shots[1].transition_in == "continuous"
+
+
+def test_only_first_analysis_segment_may_use_none_boundary() -> None:
+    payload = document()
+    payload["shots"][1]["transition_in"] = "none"
+
+    with pytest.raises(AnalysisValidationError) as caught:
+        parse(payload)
+
+    assert caught.value.code is AnalysisValidationCode.INVALID_SCHEMA
+
+
+def test_long_single_segment_requires_explicit_full_timeline_verification() -> None:
+    payload = document()
+    shot = payload["shots"][0]
+    shot["end_ms"] = 12_000
+    shot["representative_frame_ms"] = 6_000
+    payload["shots"] = [shot]
+    payload["summary"]["evidence_shot_ids"] = ["shot-1"]
+    payload["scenes"] = [payload["scenes"][0]]
+    payload["highlights"] = []
+    payload["assets"] = [payload["assets"][0]]
+    payload["production_advice"]["priority_shot_ids"] = ["shot-1"]
+
+    with pytest.raises(AnalysisValidationError) as caught:
+        parse_long(payload)
+    assert caught.value.code is AnalysisValidationCode.INVALID_EVIDENCE
+
+    shot["visual_tags"].append("segmentation:single-unit-verified")
+    result = parse_long(payload)
+
+    assert result.shot_count == 1
 
 
 def test_unknown_empty_duplicate_and_orphan_evidence_are_rejected() -> None:

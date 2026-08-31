@@ -18,9 +18,9 @@ def test_docx_report_is_valid_and_uses_business_brief_geometry() -> None:
     assert round(section.page_width.inches, 2) == 8.5
     assert round(section.page_height.inches, 2) == 11
     assert round(section.left_margin.inches, 2) == 1
-    assert document.core_properties.title.endswith("逐镜头导演拉片分析报告")
+    assert document.core_properties.title.endswith("逐分镜导演拉片分析报告")
     assert len(document.tables) == 1
-    assert "逐镜头导演拉片分析报告" in "\n".join(
+    assert "逐分镜导演拉片分析报告" in "\n".join(
         paragraph.text for paragraph in document.paragraphs
     )
 

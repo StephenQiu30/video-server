@@ -44,6 +44,8 @@
 }
 ```
 
+这里的 `scenes` 是 editorial coverage 对源文本场景的逐项审阅，不是视频分析中的 `shots`，也不是未来生产分镜。不得在字段中填入模型自造的镜头数量、Cut 编号或固定时长拆分。
+
 ## 证据条目
 
 `acts`、`turning_points`、`dialogue_findings`、`strengths` 和 `priority_revisions` 使用相同形状：

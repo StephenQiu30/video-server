@@ -23,6 +23,23 @@ def test_schema_uses_codex_and_claude_supported_subset() -> None:
     assert schema["additionalProperties"] is False
 
 
+def test_schema_exposes_continuous_visual_beat_boundary() -> None:
+    schema = analysis_output_schema("zh-CN")
+    transition = schema["properties"]["shots"]["items"]["properties"][
+        "transition_in"
+    ]
+
+    assert transition["enum"] == [
+        "cut",
+        "fade",
+        "dissolve",
+        "wipe",
+        "continuous",
+        "none",
+        "unknown",
+    ]
+
+
 def test_claude_max_turns_maps_to_resource_limit() -> None:
     error = classify_cli_failure(
         b'{"subtype":"error_max_turns","terminal_reason":"max_turns"}'

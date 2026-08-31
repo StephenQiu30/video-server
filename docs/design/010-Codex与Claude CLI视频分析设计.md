@@ -323,7 +323,7 @@ Shot
   end_ms: integer
   representative_frame_ms: integer
   description: string
-  transition_in: cut | fade | dissolve | wipe | none | unknown
+  transition_in: cut | fade | dissolve | wipe | continuous | none | unknown
   shot_size: extreme_wide | wide | medium | close_up | extreme_close_up | mixed | unknown
   camera_motion: static | pan | tilt | zoom | dolly | tracking | handheld | mixed | unknown
   visual_tags[]: string
@@ -354,6 +354,8 @@ VisualAsset
 
 - 服务端派生 `shot_count = len(shots)`；`index` 从 1 连续递增，`id` 唯一。
 - 分镜采用左闭右开时间区间，必须严格构成 `[0, artifact.duration_ms)` 的连续分区：第一镜从 0 开始、相邻镜头 `previous.end_ms == next.start_ms`、最后一镜结束于权威时长，不允许未解释间隙或重叠。
+- `shots` 是分析分镜而不只等于物理 Cut：真实编辑边界使用对应转场类型；连续长镜头内主体任务、空间区域、动作阶段、信息状态或构图任务完成并重置时建立新分镜并使用 `continuous`；边界成立但转场类型证据不足时使用 `unknown`。禁止固定时长切片。
+- 只有第一项可使用 `transition_in=none`。超过 10 秒仍只有一个分析分镜时，必须在完整时间线复核后添加 `segmentation:single-unit-verified`；稀疏采样或没有观察到 Cut 不能作为单项证据。
 - `representative_frame_ms` 位于对应分镜范围内。
 - 每个 Highlight 至少引用一个存在的 `evidence_shot_id`；服务端以引用分镜的最早开始和最晚结束派生高光时间。
 - 每个资产至少引用一个存在的 `evidence_shot_id`；服务端从引用分镜派生首次出现时间和 Shot→Asset 反向索引。

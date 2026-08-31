@@ -43,6 +43,23 @@ def test_video_observer_requires_agent_directed_full_video_analysis(
     assert "你可以使用 ffprobe" not in prompt
 
 
+def test_visual_prompt_distinguishes_edits_from_continuous_beats(
+    tmp_path: Path,
+) -> None:
+    prompt = analysis_prompt(
+        request(tmp_path),
+        ffmpeg="ffmpeg",
+        ffprobe="ffprobe",
+        provided_frames=True,
+    )
+
+    assert "shots 是可复核的分析分镜单元，不等同于物理 Cut" in prompt
+    assert "transition_in 设为 continuous" in prompt
+    assert "禁止按固定秒数机械切片" in prompt
+    assert "segmentation:single-unit-verified" in prompt
+    assert "不能把全部差异合并进一个超长分镜" in prompt
+
+
 def test_video_article_prompt_requires_topic_rewrite_and_limitations(
     tmp_path: Path,
 ) -> None:

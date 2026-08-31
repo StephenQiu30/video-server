@@ -65,6 +65,8 @@ def test_markdown_report_is_complete_and_escapes_model_text() -> None:
 
     assert markdown.startswith("# 产品 \\[演示\\]\\(https://invalid\\.example\\)")
     assert "## 一、基础信息" in markdown
+    assert "逐分镜（Cut + 连续节拍）分析" in markdown
+    assert "不按固定秒数切片" in markdown
     assert "| 镜头编号 | 时间码 | 时长 | 画面内容 |" in markdown
     assert "| Shot 001 | 00:00.000–00:02.000 | 2.0s |" in markdown
     assert "## 二、场景提炼" in markdown

@@ -2,7 +2,7 @@
 
 ## 一、证据单位
 
-- `shot` 是可见事实与局部节拍单位；每镜记录开始状态、变化和结束状态。
+- `shot` 是可见事实与局部节拍单位，不等同于物理 Cut；每项记录开始状态、变化和结束状态。连续长镜头进入新的主体任务、空间阶段、动作阶段、信息状态或构图任务时，以 `transition_in=continuous` 建立新项。
 - `scene` 是连续结构段落；全部场景按时间顺序覆盖全部镜头一次。
 - 结构角色只能由画面顺序支持，可使用 `beat:establish`、`beat:advance`、`beat:escalate`、`beat:turn`、`beat:payoff`、`beat:resolve`。
 - 推进状态可使用 `progress:new-information`、`progress:state-change`、`progress:repeat`、`progress:gap`。
@@ -25,3 +25,4 @@
 - 摘要、转折、兑现、高光和建议都能回指真实分镜。
 - 结构结论来自可见顺序，不依赖未提供的脚本、音频或平台数据。
 - 没有证据时明确局限，不为了填满章节编造结构角色。
+- 没有用固定时长制造结构，也没有把“未观察到 Cut”误写为“全片只有一个叙事节拍”；超过 10 秒的真实单项结果带有 `segmentation:single-unit-verified`。

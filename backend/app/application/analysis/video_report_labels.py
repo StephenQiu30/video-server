@@ -1,23 +1,25 @@
 def video_report_labels(language: str) -> dict[str, str]:
     if language.lower().startswith("zh"):
         return {
-            "report_title": "逐镜头导演拉片分析报告",
+            "report_title": "逐分镜导演拉片分析报告",
             "report_intro": (
-                "本报告按照影视导演拉片方式进行整理，采用实际剪辑切点（Cut）进行"
-                "镜头拆解，重点分析镜头时长、画面信息、景别、摄影语言、叙事作用、"
-                "情绪价值及高光镜头。"
+                "本报告按照影视导演拉片方式进行整理，以可复核分析分镜为单位，"
+                "区分实际剪辑边界与连续长镜头内的视觉节拍，重点分析时长、画面"
+                "信息、景别、摄影语言、叙事作用、情绪价值及高光候选。"
             ),
             "basic_info": "一、基础信息",
             "analysis_method": "分析方式",
-            "cut_analysis": "逐镜头（Cut 级）分析",
-            "shot_statistics": "镜头统计",
-            "cut_statistics": "根据画面切换进行拆分，不按照剧情段落合并。",
+            "cut_analysis": "逐分镜（Cut + 连续节拍）分析",
+            "shot_statistics": "分析分镜统计",
+            "cut_statistics": (
+                "按真实编辑边界或连续镜头内有证据的视觉节拍拆分，不按固定秒数切片。"
+            ),
             "director_summary": "导演综述",
             "shot_number": "镜头编号",
             "timecode": "时间码",
             "shot_duration": "时长",
             "picture_content": "画面内容",
-            "camera_language": "景别 / 摄影语言",
+            "camera_language": "景别 / 运镜 / 边界",
             "narrative": "叙事作用",
             "highlight_level": "高光等级",
             "production_advice": "四、AI 制作建议",
@@ -54,23 +56,27 @@ def video_report_labels(language: str) -> dict[str, str]:
             "first_seen": "首次出现",
         }
     return {
-        "report_title": "Shot-by-shot director breakdown",
+        "report_title": "Visual-segment director breakdown",
         "report_intro": (
-            "This report uses actual editing cuts to examine shot duration, visual "
-            "content, framing, camera language, narrative function, emotional value, "
-            "and highlight shots."
+            "This report uses reviewable visual segments, distinguishing physical "
+            "edits from meaningful beats inside continuous takes, to examine duration, "
+            "visual content, framing, camera language, narrative function, and "
+            "highlights."
         ),
         "basic_info": "1. Basic information",
         "analysis_method": "Analysis method",
-        "cut_analysis": "Shot-by-shot cut analysis",
-        "shot_statistics": "Shot segmentation",
-        "cut_statistics": "Split on visible cuts rather than merged story beats.",
+        "cut_analysis": "Visual segments (cuts + continuous beats)",
+        "shot_statistics": "Analysis segment count",
+        "cut_statistics": (
+            "Split on verified edits or meaningful beats inside continuous takes, "
+            "never by a fixed time grid."
+        ),
         "director_summary": "Director summary",
         "shot_number": "Shot",
         "timecode": "Timecode",
         "shot_duration": "Duration",
         "picture_content": "Visual content",
-        "camera_language": "Framing / camera language",
+        "camera_language": "Framing / motion / boundary",
         "narrative": "Narrative function",
         "highlight_level": "Highlight level",
         "production_advice": "4. AI production advice",

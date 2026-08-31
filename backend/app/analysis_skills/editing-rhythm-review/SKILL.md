@@ -1,10 +1,10 @@
 ---
 name: editing-rhythm-review
-description: 审阅成片的视觉剪辑节奏、镜头停留、信息密度、切点动机和动作衔接。用于发现拖沓、无目的快切、信息过载与节奏断裂。
+description: 审阅成片的物理剪辑与连续镜头内部节奏、停留、信息密度、边界动机和动作衔接。用于发现拖沓、无目的快切、信息过载与节奏断裂。
 license: MIT
 metadata:
   video-server-display-name: 剪辑节奏审阅
-  video-server-default-prompt: 完整观察时间线，审阅镜头停留、视觉信息密度、切点动机、动作与构图衔接、段落内节奏变化，区分必要停留、拖沓、无目的快切和信息过载。
+  video-server-default-prompt: 完整观察时间线，区分真实编辑切点与连续视觉节拍，审阅停留、信息密度、边界动机、动作和构图衔接，区分必要停留、拖沓、无目的快切和信息过载。
   video-server-order: "42"
   video-server-input-kinds: video
   video-server-output-contract: video-visual-analysis
@@ -16,7 +16,7 @@ metadata:
 
 ## 工作方法
 
-1. 完整覆盖真实 Cut 级时间线，比较每镜的视觉信息量、主体动作、构图变化与停留时长。
+1. 完整覆盖真实编辑边界与连续视觉节拍组成的时间线，比较每个分析分镜的信息量、主体动作、构图变化与停留时长；不得把连续长镜头的多个任务阶段合成一个平均值。
 2. 判断切点是否由动作完成、视线/主体变化、信息揭示、空间转换或段落转折支持。
 3. 区分有目的停留、无变化拖延、重复信息、无目的快切和同一时刻的信息过载；镜头长短本身不直接代表好坏。
 4. 纵向检查段落节奏是否形成可辨认的建立、加速、释放或收束，而不是只统计平均镜头时长。
@@ -28,5 +28,6 @@ metadata:
 - 分镜 `narrative_function` 说明停留或切换的用途；`visual_tags` 使用参考量表中的节奏与切点前缀。
 - `production_advice` 必须给出分镜证据和期望结果，不给出脱离素材的固定秒数公式。
 - 当前没有可靠音频证据时，不评价音乐卡点、语速、停顿、音效或声音桥。
+- 真实 Cut/转场按类型记录；无编辑但节拍已经重置时使用 `transition_in=continuous`，边界类型不明时使用 `unknown`。连续节拍不计作物理剪辑频率，也不得按固定秒数切片。
 
 具体量表、标签和特殊情况见 `references/editing-rhythm-rubric.md`。最终只返回 `video-visual-analysis` Schema。

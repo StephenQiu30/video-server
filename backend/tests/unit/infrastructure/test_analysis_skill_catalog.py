@@ -147,6 +147,53 @@ def test_builtin_skills_expose_the_current_production_boundary() -> None:
         assert all(phrase in skill.instructions for phrase in phrases), skill_id
 
 
+@pytest.mark.parametrize(
+    "skill_id",
+    (
+        "director-breakdown",
+        "comprehensive",
+        "visual-shots",
+        "scene-extraction",
+        "narrative-structure-review",
+        "highlights",
+        "editing-rhythm-review",
+        "opening-hook-review",
+        "continuity-quality-review",
+        "asset-catalog",
+    ),
+)
+def test_visual_skills_prevent_long_take_single_segment_collapse(
+    skill_id: str,
+) -> None:
+    skill = BUILTIN_ANALYSIS_SKILLS.get(skill_id, AnalysisInputKind.VIDEO)
+
+    assert skill is not None
+    assert "transition_in=continuous" in skill.instructions
+    assert "固定秒数" in skill.instructions or "固定时长" in skill.instructions
+
+
+def test_article_and_screenplay_skills_preserve_stage_boundaries() -> None:
+    article = BUILTIN_ANALYSIS_SKILLS.get(
+        "video-to-article", AnalysisInputKind.VIDEO
+    )
+    screenplay = BUILTIN_ANALYSIS_SKILLS.get(
+        "screenplay-analysis", AnalysisInputKind.SCREENPLAY
+    )
+    structure = BUILTIN_ANALYSIS_SKILLS.get(
+        "screenplay-structure-review", AnalysisInputKind.SCREENPLAY
+    )
+    rewrite = BUILTIN_ANALYSIS_SKILLS.get(
+        "screenplay-rewrite", AnalysisInputKind.SCREENPLAY
+    )
+
+    assert article is not None
+    assert "连续长镜头" in article.instructions
+    assert "固定秒数" in article.instructions
+    assert screenplay is not None and "镜头数量" in screenplay.instructions
+    assert structure is not None and "镜头数量" in structure.instructions
+    assert rewrite is not None and "新增场景或镜头" in rewrite.instructions
+
+
 def test_opening_hook_review_preserves_visual_evidence_boundaries() -> None:
     skill = BUILTIN_ANALYSIS_SKILLS.get("opening-hook-review", AnalysisInputKind.VIDEO)
 

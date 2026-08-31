@@ -24,5 +24,6 @@ metadata:
 5. 所有源场景必须且只能覆盖一次，块按场景和 part 顺序返回；禁止返回另一份独立全文。
 6. glossary 只记录跨场景需要稳定复用的角色、地点、称谓、组织、道具和意象；不把它当作资产创建清单，也不新增原文不存在的实体。
 7. 严格生成 `screenplay-rewrite` 结果契约要求的 glossary、chunks 和 change summary，不输出工具调用、外部链接、Markdown 报告或生产状态。
+8. 分段调用只是传输边界，不是新增场景或镜头；不得把段落、对白块或 chunk 改写成新的 `source_scene_id`，也不得在 change summary 声称已经拆镜或完成 coverage。
 
 详细语言与完整性规则见 [rewrite-rules](references/rewrite-rules.md)。

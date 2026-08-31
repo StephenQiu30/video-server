@@ -10,6 +10,8 @@
 | --- | --- | --- |
 | 三项 Skill 可加载、按顺序列出并绑定视频结果契约 | 通过 | `test_analysis_skill_catalog.py` |
 | Skill 入口与 reference 通过标准校验 | 通过 | skill-creator `quick_validate.py` |
+| 全部 14 个 Skill 已校准分镜/场景层次 | 通过 | 视频 Skill 的连续节拍门禁与剧本 Skill 的文本场景边界测试 |
+| 长镜头不会因“无 Cut”静默退化为单项 | 通过 | Prompt 要求、`continuous` Schema、单项复核标签与领域校验测试 |
 | DOCX 标题/列表 Markdown 与表格统计 | 通过 | `test_docx_verifier.py` |
 | PDF 页数与基础结构统计 | 通过 | `test_pdf_verifier.py` |
 | 文本格式基础结构统计 | 通过 | `test_text_verifier.py` |
@@ -17,13 +19,15 @@
 | 前端“基础解析”展示与类型契约 | 通过 | `screenplay-documents.test.tsx`、TypeScript |
 | 前端全量门禁 | 通过 | lint、format、55 files / 207 tests、Next.js production build |
 
-后端 Ruff、MyPy 和本需求定向测试通过。全量 Pytest 为 1,348 passed、1 skipped、1 failed；失败项是并行工作区给前端 Compose 增加 `SITE_URL` 后，`test_frontend_compose_receives_only_public_runtime_configuration` 仍使用旧白名单，不涉及本需求代码。
+后端 Ruff、MyPy、168 项分析链路定向测试和 14 个 Skill 标准校验通过。当前全量 Pytest 为 1,364 passed、1 skipped、1 failed；失败项是并行工作区给前端 Compose 增加 `SITE_URL` 后，`test_frontend_compose_receives_only_public_runtime_configuration` 仍使用旧白名单，不涉及本需求代码。
 
 ## 2. 待完成真实验收
 
 - [ ] `narrative-structure-review` 对受控成片返回完整时间线、可见结构与真实分镜建议。
 - [ ] `editing-rhythm-review` 能区分必要停留、拖沓、无目的快切和信息过载，且不依赖音频。
 - [ ] `continuity-quality-review` 能定位确定问题并保留采样不确定性，不虚构逐帧检测结论。
+- [ ] 使用无物理 Cut、但至少包含三个可见空间/动作/信息阶段的长镜头运行真实 Provider canary；结果应产生多个 `continuous` 分镜，且不得按固定秒数切片。
+- [ ] 使用视觉状态全程稳定的超过 10 秒素材运行真实 Provider canary；只有完整复核成立时才允许单项并带 `segmentation:single-unit-verified`。
 - [ ] 桌面与 390×844 文档详情人工检查 parse summary、长数字、空页数与截断预览。
 
 在上述 Provider canary 与人工检查完成前，本功能只能声明“已实现并通过自动化”，不能声明真实模型视觉质量已经验收。

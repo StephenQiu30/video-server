@@ -22,7 +22,7 @@
 | 旧 AI 链路移除 | Passed | OpenAI ASR、DeepSeek/Ollama/LangChain 适配器、音频分块、旧结果和旧 UI 已删除；运行配置无 AI Key |
 | 公共视觉契约 | Passed | 唯一当前态契约且不含版本字段；服务端派生 media、shot count、高光时间、资产首次出现时间和反向索引，并包含逐镜头叙事作用、高光等级与制作建议 |
 | 报告单一来源 | Passed | Markdown 是预览、`.md` 下载和 DOCX 转换的唯一内容源；DOCX 表格几何与 Word 页面渲染已验收 |
-| 分镜领域校验 | Passed | 严格拒绝未知字段、非法类型、重复 ID、空/悬空证据、间隙、重叠、越界和非法枚举 |
+| 分镜领域校验 | Passed | 严格拒绝未知字段、非法类型、重复 ID、空/悬空证据、间隙、重叠、越界和非法枚举；当前契约另区分物理编辑与连续视觉节拍，并要求长视频单项结果显式复核 |
 | 进程监管 | Passed | stdin Prompt、独立 stdout/stderr 上限、wall timeout、取消和进程组 TERM→KILL 有自动化覆盖 |
 | 工作区策略 | Passed | 固定只读输入、regular file/realpath、符号链接/硬链接、文件/字节/图片配额；CLI 临时 FIFO/socket 只允许在 `tmp/` |
 | Codex 权限 | Passed | 0.147.0 permission profile：任务根只读，`work/output/tmp` 可写，Home 不可读，模型命令断网，FFmpeg 可执行 |
@@ -76,6 +76,7 @@
 - Claude 必须在真实支持视觉的模型路由上生成一个无需手工修改、通过领域 validator 的结果。
 - 需要通过 API/RabbitMQ/MinIO/数据库执行一次完整持久化任务，而不只是隔离适配器 E2E。
 - 需要补充包含人物、产品、Logo、画面文字和画面 Prompt Injection 的人工 fixture；本次简单 fixture 只验证硬切、视觉高光和物体资产。
+- 需要增加一个无物理 Cut、但包含多个空间/动作/信息阶段的长镜头 fixture，验证输出使用 `transition_in=continuous` 而不是退化为整片单一分镜。
 - 需要在真实任务中验证取消/lease 丢失后的 CLI→shell→FFmpeg 孤儿进程清理；当前证据来自自动化进程树测试。
 
 ## 7. 最终判定

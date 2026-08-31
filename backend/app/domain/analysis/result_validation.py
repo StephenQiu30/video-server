@@ -6,7 +6,17 @@ from app.domain.analysis.enums import AnalysisValidationCode
 from app.domain.analysis.errors import AnalysisValidationError
 from app.domain.analysis.result_models import AnalysisLimits, VideoAnalysisResult
 
-TRANSITIONS = {"cut", "fade", "dissolve", "wipe", "none", "unknown"}
+TRANSITIONS = {
+    "cut",
+    "fade",
+    "dissolve",
+    "wipe",
+    "continuous",
+    "none",
+    "unknown",
+}
+_SINGLE_SEGMENT_REVIEW_THRESHOLD_MS = 10_000
+_SINGLE_SEGMENT_VERIFICATION_TAG = "segmentation:single-unit-verified"
 SHOT_SIZES = {
     "extreme_wide",
     "wide",
@@ -34,6 +44,7 @@ def validate_analysis_result(
     result: VideoAnalysisResult,
     *,
     limits: AnalysisLimits | None = None,
+    enforce_segmentation_review: bool = False,
 ) -> None:
     limits = limits or AnalysisLimits()
     collections = (result.shots, result.scenes, result.highlights, result.assets)
@@ -54,6 +65,8 @@ def validate_analysis_result(
             _invalid_time("shots must be a continuous ordered partition")
         if shot.transition_in not in TRANSITIONS:
             _invalid_schema("shot transition is unsupported")
+        if expected_index > 1 and shot.transition_in == "none":
+            _invalid_schema("only the first shot transition_in may be none")
         if shot.shot_size not in SHOT_SIZES:
             _invalid_schema("shot size is unsupported")
         if shot.camera_motion not in CAMERA_MOTIONS:
@@ -70,6 +83,15 @@ def validate_analysis_result(
         _invalid_evidence("analysis output contains placeholder observation markers")
     if result.shots[0].transition_in != "none":
         _invalid_schema("the first shot transition_in must be none")
+    if (
+        enforce_segmentation_review
+        and len(result.shots) == 1
+        and result.media.duration_ms > _SINGLE_SEGMENT_REVIEW_THRESHOLD_MS
+        and _SINGLE_SEGMENT_VERIFICATION_TAG not in result.shots[0].visual_tags
+    ):
+        _invalid_evidence(
+            "long single-shot analysis requires explicit segmentation verification"
+        )
     if previous_end != result.media.duration_ms:
         _invalid_time("shots must end at the authoritative media duration")
 

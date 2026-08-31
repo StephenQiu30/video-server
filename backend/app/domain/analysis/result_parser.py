@@ -158,7 +158,11 @@ def parse_analysis_result(
         assets=assets,
         production_advice=parse_production_advice(context, root["production_advice"]),
     )
-    validate_analysis_result(result, limits=context.limits)
+    validate_analysis_result(
+        result,
+        limits=context.limits,
+        enforce_segmentation_review=True,
+    )
     return result
 
 

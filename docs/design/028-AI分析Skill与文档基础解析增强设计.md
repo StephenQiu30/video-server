@@ -6,7 +6,7 @@
 
 ## 1. 分析能力设计
 
-三个 Skill 复用 `AnalysisSkillRegistry → BuiltinAnalysisSkillCatalog → Analysis Worker` 当前链路。前端只消费动态目录，不新增 skill ID 条件分支。
+全部内置分析 Skill 复用 `AnalysisSkillRegistry → BuiltinAnalysisSkillCatalog → Analysis Worker` 当前链路。前端只消费动态目录，不新增 skill ID 条件分支。2026-08-31 的长镜头退化修订统一打磨了 11 个视频 Skill 与 3 个剧本 Skill：视频能力共享分析分镜语义，剧本能力继续保持文本场景与未来镜头的层次隔离。
 
 | Skill | 主要诊断问题 | 结果映射 |
 | --- | --- | --- |
@@ -14,7 +14,11 @@
 | `editing-rhythm-review` | 停留、信息密度、切点动机、视觉节奏变化 | `shots.visual_tags`、`scenes`、`production_advice` |
 | `continuity-quality-review` | 主体/资产状态、空间动作、图形文字和可见技术瑕疵 | `scenes.visual_rules/continuity_risks`、`production_advice` |
 
-三项都先生成完整 Cut 级时间线，再做专项判断；Skill 只改变分析重点，不改变视频输入权限、模型工具、结果 Schema 或发布路径。
+视频视觉 Skill 先生成完整分析分镜时间线，再做专项判断。分析分镜包含两类边界：真实 Cut/转场，以及连续长镜头内主体任务、空间区域、动作阶段、信息状态或构图任务已完成并重置的连续节拍。后一类使用 `transition_in=continuous`；证据只支持存在边界但无法确认编辑类型时使用 `unknown`。不得按固定秒数切片，也不得因没有检测到 Cut 就把整片合并成一项。
+
+超过 10 秒仍只有一个分析分镜时，模型必须完成全时间线复核、添加 `segmentation:single-unit-verified`，并在摘要说明主体任务、空间、动作阶段和信息状态为何始终稳定。Provider 新结果入口拒绝缺少该标记的长视频单项结果，且只允许第一项使用 `transition_in=none`；已持久化的历史报告仍按原始结果读取，避免质量门禁让旧报告不可访问。报告继续展示同一 `shots` 数据，但分析方式明确为“Cut + 连续节拍”。
+
+三个剧本 Skill 不生成视频 `shots`：`source_scene_id` 始终是规范化文本场景，不得按页数、段落、对白行或 chunk 推断镜头数量。`video-to-article` 使用完整可见阶段选择 evidence，但不虚构 Cut 类型。
 
 ## 2. 文档解析模型
 
