@@ -10,10 +10,14 @@ const API_TIMEOUT_MS = 30_000;
 
 export type RequestOptions = AxiosRequestConfig & {
   getResponse?: boolean;
+  skipAuthRedirect?: boolean;
   skipErrorHandler?: boolean;
 };
 
-type RetriableRequestConfig = AxiosRequestConfig & { authRetried?: boolean };
+type RetriableRequestConfig = AxiosRequestConfig & {
+  authRetried?: boolean;
+  skipAuthRedirect?: boolean;
+};
 
 let refreshRequest: Promise<void> | null = null;
 
@@ -35,7 +39,7 @@ httpClient.interceptors.response.use(
         await refreshAccessToken();
         return await httpClient.request(config);
       } catch (refreshError) {
-        redirectToLogin();
+        if (!config.skipAuthRedirect) redirectToLogin();
         return Promise.reject(refreshError);
       }
     }

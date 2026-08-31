@@ -19,7 +19,7 @@ export function register(credentials: RegisterCredentials): Promise<AuthUser> {
 }
 
 export function getCurrentUser(): Promise<AuthUser> {
-  return getCurrentUserRequest();
+  return getCurrentUserRequest({ skipAuthRedirect: true });
 }
 
 export function refreshSession(): Promise<AuthUser> {

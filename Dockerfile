@@ -7,7 +7,9 @@ ENV SOURCE_DATE_EPOCH=0
 WORKDIR /workspace/frontend
 
 ARG BACKEND_ORIGIN=http://api:8111
-ENV BACKEND_ORIGIN=${BACKEND_ORIGIN}
+ARG SITE_URL=http://127.0.0.1:8101
+ENV BACKEND_ORIGIN=${BACKEND_ORIGIN} \
+    SITE_URL=${SITE_URL}
 
 RUN --mount=type=cache,target=/root/.npm \
     npm install --global "npm@${NPM_VERSION}"

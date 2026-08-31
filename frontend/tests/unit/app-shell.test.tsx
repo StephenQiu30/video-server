@@ -52,6 +52,7 @@ describe('AppShell', () => {
   });
 
   it('renders the accessible Next.js product navigation on application routes', () => {
+    runtime.pathname = '/providers';
     render(
       <AppShell>
         <div>页面内容</div>
@@ -75,7 +76,7 @@ describe('AppShell', () => {
       name: '首页',
     });
     expect(desktopHomeLink).toHaveAttribute('href', '/');
-    expect(desktopHomeLink).toHaveAttribute('aria-current', 'page');
+    expect(desktopHomeLink).not.toHaveAttribute('aria-current');
     const historyLink = screen.getByRole('link', { name: /下载记录/ });
     expect(historyLink).toHaveAttribute('href', '/history');
     expect(historyLink).toHaveClass('min-h-11', 'text-[15px]');
@@ -91,7 +92,7 @@ describe('AppShell', () => {
     );
     expect(screen.getByRole('link', { name: /账户/ })).toHaveAttribute(
       'href',
-      '/user/login?redirect=%2F',
+      '/user/login?redirect=%2Fproviders',
     );
     expect(document.querySelector('[data-slot="header-account"]')).toHaveClass(
       'w-[88px]',
@@ -121,7 +122,7 @@ describe('AppShell', () => {
     });
     expect(
       within(mobileNavigation).getByRole('link', { name: '首页' }),
-    ).toHaveAttribute('aria-current', 'page');
+    ).not.toHaveAttribute('aria-current');
     expect(
       within(mobileNavigation).getByRole('link', { name: '下载记录' }),
     ).not.toHaveAttribute('aria-current');
@@ -130,7 +131,32 @@ describe('AppShell', () => {
     ).toHaveAttribute('href', '/documents');
     expect(
       within(mobileNavigation).getByRole('link', { name: '平台状态' }),
-    ).toHaveAttribute('href', '/providers');
+    ).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('renders discoverable public navigation for anonymous root visitors', () => {
+    render(
+      <AppShell>
+        <div>公开首页</div>
+      </AppShell>,
+    );
+
+    const navigation = screen.getByRole('navigation', { name: '主要导航' });
+    expect(
+      within(navigation).getByRole('link', { name: '产品能力' }),
+    ).toHaveAttribute('href', '/#capabilities');
+    expect(
+      within(navigation).getByRole('link', { name: '自托管架构' }),
+    ).toHaveAttribute('href', '/#architecture');
+    expect(
+      within(navigation).getByRole('link', { name: 'GitHub' }),
+    ).toHaveAttribute('href', 'https://github.com/StephenQiu30/video-server');
+    expect(
+      within(navigation).getByRole('link', { name: '登录' }),
+    ).toHaveAttribute('href', '/user/login');
+    expect(
+      screen.queryByRole('button', { name: '打开导航菜单' }),
+    ).not.toBeInTheDocument();
   });
 
   it('reserves the desktop account slot while authentication is loading', () => {

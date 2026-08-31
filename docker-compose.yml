@@ -1,7 +1,11 @@
+x-app-build: &app-build
+  context: .
+  dockerfile: Dockerfile
+  args:
+    SITE_URL: "${SITE_URL:-http://127.0.0.1:8101}"
+
 x-provider-session-runner: &provider-session-runner
-  build:
-    context: .
-    dockerfile: Dockerfile
+  build: *app-build
   image: video-server:local
   restart: unless-stopped
   networks:
@@ -48,9 +52,7 @@ x-provider-session-environment: &provider-session-environment
 
 services:
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: *app-build
     image: video-server:local
     container_name: video-api
     restart: unless-stopped
@@ -99,9 +101,7 @@ services:
     command: ["python", "-m", "app.main"]
 
   frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: *app-build
     image: video-server:local
     container_name: video-frontend
     restart: unless-stopped
@@ -112,6 +112,7 @@ services:
       MINIO_PUBLIC_SECURE: "${MINIO_PUBLIC_SECURE:-false}"
       NODE_ENV: production
       PORT: 8101
+      SITE_URL: "${SITE_URL:-http://127.0.0.1:8101}"
     networks:
       app_net:
         ipv4_address: 10.251.0.10
@@ -136,9 +137,7 @@ services:
     command: ["node", "server.js"]
 
   outbox:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: *app-build
     image: video-server:local
     container_name: video-outbox
     restart: unless-stopped
@@ -155,9 +154,7 @@ services:
     command: ["python", "-m", "app.workers.outbox.main"]
 
   worker-download:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: *app-build
     image: video-server:local
     container_name: video-worker-download
     restart: unless-stopped
@@ -189,9 +186,7 @@ services:
     command: ["python", "-m", "app.workers.download.main"]
 
   worker-import:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: *app-build
     image: video-server:local
     container_name: video-worker-import
     restart: unless-stopped
@@ -211,9 +206,7 @@ services:
     command: ["python", "-m", "app.workers.imports.main"]
 
   worker-report:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: *app-build
     image: video-server:local
     container_name: video-worker-report
     restart: unless-stopped
@@ -233,9 +226,7 @@ services:
     command: ["python", "-m", "app.workers.report.main"]
 
   provider-canary:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: *app-build
     image: video-server:local
     container_name: video-provider-canary
     restart: unless-stopped
@@ -265,9 +256,7 @@ services:
     command: ["python", "-m", "app.workers.canary.main"]
 
   media-runner:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: *app-build
     image: video-server:local
     container_name: media-runner
     restart: unless-stopped
@@ -350,9 +339,7 @@ services:
       start_period: 5s
 
   workspace-init:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: *app-build
     image: video-server:local
     container_name: workspace-init
     restart: "no"
@@ -363,9 +350,7 @@ services:
       - runner_work:/work
 
   provider-operator-runner:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: *app-build
     image: video-server:local
     container_name: provider-operator-runner
     restart: unless-stopped
@@ -512,9 +497,7 @@ services:
           create_host_path: false
 
   youtube-operator-runner:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: *app-build
     image: video-server:local
     container_name: youtube-operator-runner
     restart: unless-stopped

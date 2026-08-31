@@ -1,8 +1,10 @@
 'use client';
 
 import {
+  ArrowUpRightIcon,
   ClockCounterClockwiseIcon,
   FileTextIcon,
+  GithubLogoIcon,
   HouseIcon,
   PulseIcon,
 } from '@phosphor-icons/react';
@@ -54,6 +56,7 @@ export function SiteHeader() {
   const aiProvidersActive = pathname.startsWith('/admin/ai-providers');
   const catalogActive = pathname.startsWith('/admin/providers');
   const usersActive = pathname.startsWith('/admin/users');
+  const publicView = pathname === '/' && !loading && !user;
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -70,87 +73,144 @@ export function SiteHeader() {
           aria-label="主要导航"
           className="hidden items-center gap-2 lg:flex"
         >
-          <Button
-            asChild
-            className={cn(
-              'min-h-11 px-3.5 text-[15px] text-foreground',
-              homeActive && 'bg-muted',
-            )}
-            variant="ghost"
-          >
-            <Link aria-current={homeActive ? 'page' : undefined} href="/">
-              <HouseIcon aria-hidden className="size-5" />
-              <span>首页</span>
-            </Link>
-          </Button>
-          <Button
-            asChild
-            className={cn(
-              'min-h-11 px-3.5 text-[15px] text-foreground',
-              historyActive && 'bg-muted',
-            )}
-            variant="ghost"
-          >
-            <Link
-              aria-current={historyActive ? 'page' : undefined}
-              href="/history"
-            >
-              <ClockCounterClockwiseIcon aria-hidden className="size-5" />
-              <span>下载记录</span>
-            </Link>
-          </Button>
-          <Button
-            asChild
-            className={cn(
-              'min-h-11 px-3.5 text-[15px] text-foreground',
-              documentsActive && 'bg-muted',
-            )}
-            variant="ghost"
-          >
-            <Link
-              aria-current={documentsActive ? 'page' : undefined}
-              href="/documents"
-            >
-              <FileTextIcon aria-hidden className="size-5" />
-              <span>剧本文档</span>
-            </Link>
-          </Button>
-          <Button
-            asChild
-            className={cn(
-              'min-h-11 px-3.5 text-[15px] text-foreground',
-              providersActive && 'bg-muted',
-            )}
-            variant="ghost"
-          >
-            <Link
-              aria-current={providersActive ? 'page' : undefined}
-              href="/providers"
-            >
-              <PulseIcon aria-hidden className="size-5" />
-              <span>平台状态</span>
-            </Link>
-          </Button>
-          <HeaderAccount
-            analyticsActive={analyticsActive}
-            aiProvidersActive={aiProvidersActive}
-            catalogActive={catalogActive}
-            filesActive={filesActive}
+          {publicView ? (
+            <>
+              <Button
+                asChild
+                className="min-h-11 px-3.5 text-[15px] text-foreground"
+                variant="ghost"
+              >
+                <Link href="/#capabilities">产品能力</Link>
+              </Button>
+              <Button
+                asChild
+                className="min-h-11 px-3.5 text-[15px] text-foreground"
+                variant="ghost"
+              >
+                <Link href="/#architecture">自托管架构</Link>
+              </Button>
+              <Button
+                asChild
+                className="min-h-11 px-3.5 text-[15px] text-foreground"
+                variant="ghost"
+              >
+                <a
+                  href="https://github.com/StephenQiu30/video-server"
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  <GithubLogoIcon aria-hidden className="size-5" />
+                  GitHub
+                  <ArrowUpRightIcon aria-hidden className="size-4" />
+                </a>
+              </Button>
+              <Button asChild className="min-h-11 px-4 text-[15px]">
+                <Link href="/user/login">登录</Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                asChild
+                className={cn(
+                  'min-h-11 px-3.5 text-[15px] text-foreground',
+                  homeActive && 'bg-muted',
+                )}
+                variant="ghost"
+              >
+                <Link aria-current={homeActive ? 'page' : undefined} href="/">
+                  <HouseIcon aria-hidden className="size-5" />
+                  <span>首页</span>
+                </Link>
+              </Button>
+              <Button
+                asChild
+                className={cn(
+                  'min-h-11 px-3.5 text-[15px] text-foreground',
+                  historyActive && 'bg-muted',
+                )}
+                variant="ghost"
+              >
+                <Link
+                  aria-current={historyActive ? 'page' : undefined}
+                  href="/history"
+                >
+                  <ClockCounterClockwiseIcon aria-hidden className="size-5" />
+                  <span>下载记录</span>
+                </Link>
+              </Button>
+              <Button
+                asChild
+                className={cn(
+                  'min-h-11 px-3.5 text-[15px] text-foreground',
+                  documentsActive && 'bg-muted',
+                )}
+                variant="ghost"
+              >
+                <Link
+                  aria-current={documentsActive ? 'page' : undefined}
+                  href="/documents"
+                >
+                  <FileTextIcon aria-hidden className="size-5" />
+                  <span>剧本文档</span>
+                </Link>
+              </Button>
+              <Button
+                asChild
+                className={cn(
+                  'min-h-11 px-3.5 text-[15px] text-foreground',
+                  providersActive && 'bg-muted',
+                )}
+                variant="ghost"
+              >
+                <Link
+                  aria-current={providersActive ? 'page' : undefined}
+                  href="/providers"
+                >
+                  <PulseIcon aria-hidden className="size-5" />
+                  <span>平台状态</span>
+                </Link>
+              </Button>
+              <HeaderAccount
+                analyticsActive={analyticsActive}
+                aiProvidersActive={aiProvidersActive}
+                catalogActive={catalogActive}
+                filesActive={filesActive}
+                loading={loading}
+                onSignOut={() => void handleSignOut()}
+                pathname={pathname}
+                signingOut={signingOut}
+                user={user}
+                usersActive={usersActive}
+              />
+            </>
+          )}
+        </nav>
+        {publicView ? (
+          <div className="flex items-center gap-2 lg:hidden">
+            <Button asChild size="sm" variant="ghost">
+              <a
+                aria-label="在 GitHub 查看 FrameFetch 源代码"
+                href="https://github.com/StephenQiu30/video-server"
+                rel="noreferrer"
+                target="_blank"
+              >
+                <GithubLogoIcon aria-hidden className="size-5" />
+              </a>
+            </Button>
+            <Button asChild size="sm">
+              <Link href="/user/login">登录</Link>
+            </Button>
+          </div>
+        ) : (
+          <MobileNavigation
             loading={loading}
-            onSignOut={() => void handleSignOut()}
+            onSignOut={handleSignOut}
             pathname={pathname}
             signingOut={signingOut}
             user={user}
-            usersActive={usersActive}
           />
-        </nav>
-        <MobileNavigation
-          loading={loading}
-          onSignOut={handleSignOut}
-          pathname={pathname}
-          signingOut={signingOut}
-          user={user}
-        />
+        )}
       </div>
     </header>
   );
