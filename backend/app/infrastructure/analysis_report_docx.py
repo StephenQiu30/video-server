@@ -81,7 +81,7 @@ def _configure_document(document: DocumentObject, title: str) -> None:
         style.paragraph_format.line_spacing = 1.167
 
     document.core_properties.title = title
-    document.core_properties.subject = "AI visual analysis report"
+    document.core_properties.subject = "Editorial video analysis"
     document.core_properties.author = "Video Server"
     _configure_header(section)
     _configure_footer(section)
@@ -95,7 +95,7 @@ def _configure_header(section: Section) -> None:
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
     table.autofit = False
     _remove_table_borders(table)
-    values = ("VIDEO ANALYSIS REPORT", "SHOT-BY-SHOT ANALYSIS")
+    values = ("VIDEO ANALYSIS", "EDITORIAL BREAKDOWN")
     for index, (cell, value) in enumerate(
         zip(table.rows[0].cells, values, strict=True)
     ):
@@ -112,7 +112,7 @@ def _configure_header(section: Section) -> None:
 def _configure_footer(section: Section) -> None:
     paragraph = section.footer.paragraphs[0]
     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = paragraph.add_run("Generated analysis report · Page ")
+    run = paragraph.add_run("Video Server · Evidence-based report · Page ")
     _set_run_font(run, 8, _MUTED)
     field = OxmlElement("w:fldSimple")
     field.set(qn("w:instr"), "PAGE")

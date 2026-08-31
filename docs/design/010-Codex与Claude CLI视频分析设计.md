@@ -419,7 +419,7 @@ Agent 启动顺序：
 - `POST /api/downloads/{download_id}/analyses` 和查询/取消资源路径保持不变。
 - `GET /api/analysis-skills` 动态返回 Skill 清单和可编辑默认提示词；创建请求使用稳定且无版本后缀的 `skill_id`，`output_language` 保留。
 - `custom_prompt` 最大 4000 字符，参与幂等指纹并持久化到分析任务，但不进入 outbox、普通日志或公开响应。
-- 结构化结果只生成一次规范 Markdown；`report_markdown` 前端预览、`report.md` 下载和 `report.docx` 转换必须消费同一 Markdown。DOCX 使用 `markdown-it-py` 的 CommonMark token 流并显式启用表格，禁止维护第二套领域对象到 Word 的内容映射。
+- 结构化结果只生成一次规范 Markdown；`report_markdown` 前端预览、`report.md` 下载和 `report.docx` 转换必须消费同一 Markdown。视觉报告按“结论导语 → 内容推进 → 逐分镜证据 → 高光 → 优先建议 → 视觉资产 → 分析口径”组织为可连续阅读的编辑式文章，同时保留时间码和结构化证据。DOCX 使用 `markdown-it-py` 的 CommonMark token 流并显式启用表格，禁止维护第二套领域对象到 Word 的内容映射。
 - 公开结果替换为第 11 节契约；Provider、模型、CLI 路径、登录用户和原始 CLI metadata 不公开。
 - `analysis_jobs` 保存 `skill_id` 和完整 Skill 指令快照；`analysis_results` 保存 Provider/model/CLI 审计信息，`result_json` 保存已验证并补齐服务端派生字段的 Provider 无关结果，不保存 Schema 或 Prompt 版本。
 - `backend/sql/schema.sql`、ORM、repository、OpenAPI 和前端生成类型同步更新，不维护旧 JSON 兼容解析。

@@ -12,6 +12,9 @@
 | Skill 入口与 reference 通过标准校验 | 通过 | skill-creator `quick_validate.py` |
 | 全部 14 个 Skill 已校准分镜/场景层次 | 通过 | 视频 Skill 的连续节拍门禁与剧本 Skill 的文本场景边界测试 |
 | 长镜头不会因“无 Cut”静默退化为单项 | 通过 | Prompt 要求、`continuous` Schema、单项复核标签与领域校验测试 |
+| 视觉报告按公众号式文章顺序组织，空状态不注水 | 通过 | `test_report.py` 的中英文结构、自然空状态与本地化断言 |
+| 报告文案先结论后证据，避免通用 AI 套话 | 通过 | `test_prompt.py` 的视觉分析写作规范断言 |
+| 网页 Markdown 与 DOCX 共用文章内容和安全转义 | 通过 | `test_report.py`、`test_analysis_report_docx.py` |
 | DOCX 标题/列表 Markdown 与表格统计 | 通过 | `test_docx_verifier.py` |
 | PDF 页数与基础结构统计 | 通过 | `test_pdf_verifier.py` |
 | 文本格式基础结构统计 | 通过 | `test_text_verifier.py` |
@@ -19,7 +22,7 @@
 | 前端“基础解析”展示与类型契约 | 通过 | `screenplay-documents.test.tsx`、TypeScript |
 | 前端全量门禁 | 通过 | lint、format、55 files / 207 tests、Next.js production build |
 
-后端 Ruff、MyPy、168 项分析链路定向测试和 14 个 Skill 标准校验通过。当前全量 Pytest 为 1,364 passed、1 skipped、1 failed；失败项是并行工作区给前端 Compose 增加 `SITE_URL` 后，`test_frontend_compose_receives_only_public_runtime_configuration` 仍使用旧白名单，不涉及本需求代码。
+后端 Ruff、MyPy、170 项分析链路定向测试和 14 个 Skill 标准校验通过。当前全量 Pytest 为 1,366 passed、1 skipped、1 failed；失败项是并行工作区给前端 Compose 增加 `SITE_URL` 后，`test_frontend_compose_receives_only_public_runtime_configuration` 仍使用旧白名单，不涉及本需求代码。
 
 ## 2. 待完成真实验收
 

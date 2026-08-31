@@ -64,19 +64,52 @@ def test_markdown_report_is_complete_and_escapes_model_text() -> None:
     markdown = render_analysis_report_markdown(report_result())
 
     assert markdown.startswith("# 产品 \\[演示\\]\\(https://invalid\\.example\\)")
-    assert "## 一、基础信息" in markdown
-    assert "逐分镜（Cut + 连续节拍）分析" in markdown
-    assert "不按固定秒数切片" in markdown
-    assert "| 镜头编号 | 时间码 | 时长 | 画面内容 |" in markdown
-    assert "| Shot 001 | 00:00.000–00:02.000 | 2.0s |" in markdown
-    assert "## 二、场景提炼" in markdown
-    assert "### 场景 1: 开场建立" in markdown
-    assert "## 三、高光镜头分析" in markdown
-    assert "## 四、AI 制作建议" in markdown
-    assert "## 五、视觉资产目录" in markdown
+    headings = (
+        "## 先说结论：这支片子最值得看什么",
+        "## 内容是怎样一步步展开的",
+        "## 把关键变化拆到每一个分镜",
+        "## 哪些瞬间值得再看一遍",
+        "## 如果继续打磨，先做这几件事",
+        "## 后续制作需要锁住的视觉资产",
+        "## 这份分析采用什么口径",
+    )
+    assert all(heading in markdown for heading in headings)
+    assert tuple(markdown.index(heading) for heading in headings) == tuple(
+        sorted(markdown.index(heading) for heading in headings)
+    )
+    assert "**片长**：00:02.000 · **分析分镜**：1" in markdown
+    assert "| 分镜 | 时间码 | 时长 | 画面发生了什么 |" in markdown
+    assert "| 分镜 001 | 00:00.000–00:02.000 | 2.0s |" in markdown
+    assert "全景 / 固定 / 起始" in markdown
+    assert "### 01｜开场建立" in markdown
+    assert "**为什么值得保留**：信息密度高。" in markdown
+    assert "**类别**：产品 · **首次出现**：00:00.000" in markdown
+    assert "## 一、基础信息" not in markdown
+    assert "AI 制作建议" not in markdown
     assert "&lt;script&gt;alert\\(1\\)&lt;/script&gt;" in markdown
     assert "\\*\\*重点\\*\\*" in markdown
     assert markdown.endswith("\n")
+
+
+def test_visual_report_uses_editorial_empty_states_without_padding() -> None:
+    result = replace(report_result(), highlights=(), assets=())
+
+    markdown = render_analysis_report_markdown(result)
+
+    assert "报告不为了凑数放大普通片段" in markdown
+    assert "暂不建立空泛目录" in markdown
+    assert "未识别出独立视觉高光" not in markdown
+
+
+def test_visual_report_keeps_the_editorial_structure_in_english() -> None:
+    result = replace(report_result(), language="en-US")
+
+    markdown = render_analysis_report_markdown(result)
+
+    assert "## The takeaway: what matters most in this video" in markdown
+    assert "## How the video develops" in markdown
+    assert "wide / static / none" in markdown
+    assert "## How to read this analysis" in markdown
 
 
 def test_screenplay_report_uses_coverage_sections_and_explains_evidence() -> None:

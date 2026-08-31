@@ -95,6 +95,15 @@ def analysis_prompt(
         "- 当前项目把 shots、scenes、highlights、assets 和 production_advice "
         "视为可复核的观察/候选信息，不是已创建资产、镜头主选、审核结论或"
         "已提交生成任务。",
+        "- 服务端会把这些字段编排为面向创作者阅读的文章式报告。所有人类可读"
+        "文案应像成熟公众号分析文章：先给明确结论，再用画面证据推进，句子自然、"
+        "具体、有节奏；不要写成字段释义、检查清单或模型自述。",
+        "- summary 是报告导语，使用 2 至 4 句串起全片主线、最强之处和首要风险；"
+        "scene description 应写成可连续阅读的小段落；narrative_function 说明"
+        "这一分镜如何承上启下；production_advice 使用直接、可执行的表达。",
+        "- 避免“本报告将”“综上所述”“该镜头很有冲击力”“推进剧情”“营造氛围”"
+        "等空泛套话，也不要在字段中重复写 Shot 编号、字段名、Markdown 标题或"
+        "“AI 建议”。专业术语只在能帮助创作判断时使用。",
         "- 每个分镜必须填写 narrative_function，并用 1 至 5 的 highlight_score "
         "表达其视觉、情绪或叙事价值；production_advice 必须引用真实 shot id。",
         "- 最终只返回符合给定 JSON Schema 的对象，不要附加 Markdown 或解释。",
