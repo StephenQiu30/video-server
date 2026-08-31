@@ -99,6 +99,10 @@ describe('AppShell', () => {
       'w-[88px]',
       'shrink-0',
     );
+    expect(document.querySelector('[data-slot="header-actions"]')).toHaveClass(
+      'w-[192px]',
+      'lg:w-[606px]',
+    );
     expect(desktopNavigation).toHaveClass('hidden', 'lg:flex');
     expect(
       within(desktopNavigation)
@@ -157,6 +161,11 @@ describe('AppShell', () => {
       'href',
       '/user/login',
     );
+    expect(screen.getByRole('link', { name: '登录' })).toHaveClass('w-[74px]');
+    expect(document.querySelector('[data-slot="header-actions"]')).toHaveClass(
+      'w-[192px]',
+      'lg:w-[606px]',
+    );
     expect(
       screen.getByRole('button', { name: /切换到.+主题/ }),
     ).toBeInTheDocument();
@@ -166,7 +175,7 @@ describe('AppShell', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('reserves the desktop account slot while authentication is loading', () => {
+  it('renders a neutral fixed-width header while root authentication is loading', () => {
     runtime.loading = true;
     const { container } = render(
       <AppShell>
@@ -174,16 +183,30 @@ describe('AppShell', () => {
       </AppShell>,
     );
 
-    const accountSlot = container.querySelector('[data-slot="header-account"]');
-    expect(accountSlot).toHaveClass('w-[88px]', 'shrink-0');
-    expect(accountSlot?.querySelector('[data-slot="skeleton"]')).toHaveClass(
-      'h-11',
-      'w-[74px]',
-    );
+    const actions = container.querySelector('[data-slot="header-actions"]');
+    expect(actions).toHaveClass('w-[192px]', 'shrink-0', 'lg:w-[606px]');
+    expect(actions).toHaveAttribute('aria-busy', 'true');
+    expect(
+      container.querySelector('[data-slot="header-auth-pending"]'),
+    ).toHaveClass('h-11', 'w-full');
+    expect(
+      container.querySelector('[data-slot="header-account"]'),
+    ).not.toBeInTheDocument();
+    expect(
+      container.querySelector('[data-slot="skeleton"]'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('navigation', { name: '主要导航' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /切换到.+主题/ }),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: /账户/ }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '打开导航菜单' })).toBeDisabled();
+    expect(
+      screen.queryByRole('button', { name: '打开导航菜单' }),
+    ).not.toBeInTheDocument();
   });
 
   it('focuses the mobile navigation title instead of the sign-out action', async () => {

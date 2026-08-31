@@ -1,5 +1,18 @@
 # 方案 3 无边框重设计 QA
 
+## 2026-09-01 根路由认证恢复与 Header 宽度稳定性
+
+- source visual truth：用户提供的刷新瞬间截图已保存为 `qa-output/018-header-auth-stability/source-refresh-chrome.png`（3372×1942 px，2× Chrome 窗口）。来源图明确显示公开首页内容已经出现，但 Header 暂时渲染了“首页 / 下载记录 / 剧本文档 / 平台状态”和灰色账户骨架，属于认证恢复状态泄漏而不是最终导航设计。
+- comparison evidence：`qa-output/018-header-auth-stability/comparison-refresh-header.png` 将来源刷新态、修复后的中性认证等待态和认证完成后的公开导航纵向放在同一张 1280×540 输入中检查。修复后等待态只保留品牌与固定几何槽，不再显示错误导航、账户骨架或可误操作的主题/登录控件；完成态仍复用既有 shadcn/Radix 导航、按钮和主题组件。
+- desktop geometry：1280×720 CSS 视口（常驻滚动条后页面截图 1265×712）中，认证等待、未登录完成和已登录完成三种状态的 `header-actions` 均为 `x = 579px / width = 606px / height = 44px`。公开导航位于同一个 458px 导航槽内并右对齐，登录按钮固定为 74×44px；已登录导航宽 458px，账户槽固定为 88×44px。三种状态的右边界均为 1185px，没有横向跳动。
+- loading contract：根路由首个浏览器帧实测 `aria-busy="true"`、操作轨道宽 606px、主要导航不存在、Skeleton 不存在；认证完成后 `aria-busy` 移除并显示正确状态。直接读取开发服务器首屏 HTML 也只包含 `header-actions` 与 `header-auth-pending`，不包含 `header-account`、主要导航或 Skeleton，覆盖 SSR/hydration 前的真实刷新链路。
+- mobile resilience：390×844 覆盖下（页面内容宽 375px），认证等待、公开完成和已登录完成三种状态的操作轨道均为 `x = 167px / width = 192px`，品牌右边界 93.3px，与操作轨道之间无重叠。公开态 GitHub、主题按钮均为 44×44px，登录为 74×44px；登录态主题与菜单均为 44×44px。`scrollWidth = bodyWidth = 375px`，没有横向溢出或小屏裁切。
+- visual and accessibility review：Header 继续使用 80px 高度、`.content-shell`、Geist/中文系统回退、现有 `logo.svg`、Phosphor 图标和语义色；没有新增边框、阴影、卡片、近似图标或自定义绘图。中性等待态不暴露错误链接给键盘或辅助技术，固定轨道用 `aria-busy` 表达短暂状态；完成态的导航、主题、登录、账户和移动 Sheet 语义保持不变，所有可见 Header 控件仍满足 44px 触控高度。
+- findings：来源中的 P1 认证恢复导航闪现和 P2 账户骨架/控件宽度跳动均已解决。桌面浅色公开态、桌面演示登录态、390px 公开态与 390px 登录态复核没有发现新的 P0/P1/P2；页面文案、标题层级、颜色、图片和主体布局均未改动。
+- engineering gates：`npm run lint`、`npm run format:check`、56 个测试文件共 209 项测试、针对性 AppShell 测试和 Next.js production build（20 个静态页面）全部通过；随后已按要求重新以开发模式启动 8101 端口并完成冷刷新复验。
+
+final result: passed
+
 ## 2026-08-31 公开首页连续画布与样式复用
 
 - source visual truth：用户提供的公开首页截图已保存为 `qa-output/017-public-home-borderless/source-browser.png`（3372×1942 px，2× Chrome 窗口），并结合仓库 `docs/design/frontend-visual-system.md` 的匿名/已登录首页共享网格与无结构边界规则判断。
