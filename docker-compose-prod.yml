@@ -592,6 +592,7 @@ networks:
     ipam:
       config:
         - subnet: 10.251.0.0/24
+          ip_range: 10.251.0.128/25
   runner_rpc_net:
     internal: true
   runner_egress_net:
