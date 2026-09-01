@@ -222,6 +222,7 @@ def use_cases() -> tuple[DownloadUseCases, dict[str, StubUseCase]]:
             ThumbnailContent(b"first-frame", "image/jpeg", "b" * 64)
         ),
         "create": StubUseCase(download_view()),
+        "delete": StubUseCase(None),
         "get": StubUseCase(download_view()),
         "cancel": StubUseCase(download_view(DownloadStatus.CANCELLED)),
         "retry": StubUseCase(download_view()),
@@ -241,6 +242,7 @@ def use_cases() -> tuple[DownloadUseCases, dict[str, StubUseCase]]:
         get_thumbnail=stubs["get_thumbnail"],
         get_download_thumbnail=stubs["get_download_thumbnail"],
         create_download=stubs["create"],
+        delete_download=stubs["delete"],
         get_download=stubs["get"],
         cancel_download=stubs["cancel"],
         retry_download=stubs["retry"],

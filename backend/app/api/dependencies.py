@@ -25,6 +25,7 @@ from app.application.documents import DeleteDocument, GetDocument, ListDocuments
 from app.application.downloads import (
     CancelDownload,
     CreateDownload,
+    DeleteDownload,
     GetDownload,
     GetDownloadAnalytics,
     GetDownloadHistory,
@@ -78,6 +79,7 @@ class DownloadUseCases:
     get_thumbnail: GetThumbnail
     get_download_thumbnail: GetDownloadThumbnail
     create_download: CreateDownload
+    delete_download: DeleteDownload
     get_download: GetDownload
     get_download_history: GetDownloadHistory
     get_download_analytics: GetDownloadAnalytics

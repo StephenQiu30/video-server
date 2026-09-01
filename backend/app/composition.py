@@ -34,6 +34,7 @@ from app.application.documents import DeleteDocument, GetDocument, ListDocuments
 from app.application.downloads import (
     CancelDownload,
     CreateDownload,
+    DeleteDownload,
     GetDownload,
     GetDownloadAnalytics,
     GetDownloadHistory,
@@ -378,6 +379,11 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             now=clock,
         ),
     )
+    cancel_download = CancelDownload(
+        store,
+        now=clock,
+        browser_import_canceller=cancel_import,
+    )
     use_cases = DownloadUseCases(
         inspect_media=inspect_media,
         inspect_discovered_item=inspect_discovered_item,
@@ -391,14 +397,16 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             new_id=uuid4,
             max_attempts=settings.max_download_attempts,
         ),
+        delete_download=DeleteDownload(
+            store,
+            storage,
+            cancel_download,
+            now=clock,
+        ),
         get_download=GetDownload(store, now=clock),
         get_download_history=GetDownloadHistory(store, now=clock),
         get_download_analytics=GetDownloadAnalytics(store, now=clock),
-        cancel_download=CancelDownload(
-            store,
-            now=clock,
-            browser_import_canceller=cancel_import,
-        ),
+        cancel_download=cancel_download,
         retry_download=RetryDownload(
             repository=store,
             fingerprinter=fingerprinter,

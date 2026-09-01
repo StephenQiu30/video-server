@@ -21,6 +21,7 @@ const runtime = vi.hoisted(() => ({
     source: 'data:video/mp4;base64,AAAA' as string | null,
   },
   push: vi.fn(),
+  replace: vi.fn(),
 }));
 
 const signedVideoUrl = {
@@ -29,7 +30,7 @@ const signedVideoUrl = {
 };
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: runtime.push }),
+  useRouter: () => ({ push: runtime.push, replace: runtime.replace }),
 }));
 
 vi.mock('@/hooks/useVideoPreviewSource', () => ({
@@ -43,6 +44,7 @@ describe('DownloadJobView', () => {
     runtime.preview.reload.mockReset();
     runtime.preview.source = 'data:video/mp4;base64,AAAA';
     runtime.push.mockReset();
+    runtime.replace.mockReset();
     window.history.replaceState({}, '', '/downloads/detail/');
   });
 
@@ -106,6 +108,22 @@ describe('DownloadJobView', () => {
       0,
     );
     expect(httpRequests()[1]?.url).toBe(`/api/downloads/${job().id}/cancel`);
+  });
+
+  it('deletes the task and returns to download history', async () => {
+    mockHttpResponses(job('succeeded'), analysisSkills, null, null);
+    render(<DownloadJobView jobId={job().id} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '删除任务' }));
+    fireEvent.click(await screen.findByRole('button', { name: '确认删除' }));
+
+    await waitFor(() =>
+      expect(runtime.replace).toHaveBeenCalledWith('/history'),
+    );
+    expect(httpRequests().at(-1)).toMatchObject({
+      method: 'DELETE',
+      url: `/api/downloads/${job().id}`,
+    });
   });
 
   it.each(['failed', 'cancelled'] as const)(

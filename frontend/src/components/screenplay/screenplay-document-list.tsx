@@ -1,5 +1,5 @@
 import Link from 'next/link';
-
+import { ScreenplayDocumentDeleteDialog } from '@/components/screenplay/screenplay-document-delete-dialog';
 import {
   documentFormatLabels,
   documentStatusLabels,
@@ -31,9 +31,13 @@ import type {
 export function ScreenplayDocumentList({
   data,
   loading,
+  onDelete,
+  pendingDeleteId,
 }: {
   data: ScreenplayDocumentPage | null;
   loading: boolean;
+  onDelete: (document: ScreenplayDocumentSummary) => Promise<void>;
+  pendingDeleteId: string | null;
 }) {
   return (
     <section
@@ -45,7 +49,12 @@ export function ScreenplayDocumentList({
       {data?.items.length ? (
         <ItemGroup className="gap-2">
           {data.items.map((document) => (
-            <DocumentRow document={document} key={document.id} />
+            <DocumentRow
+              document={document}
+              key={document.id}
+              onDelete={onDelete}
+              pending={pendingDeleteId === document.id}
+            />
           ))}
         </ItemGroup>
       ) : null}
@@ -63,7 +72,15 @@ export function ScreenplayDocumentList({
   );
 }
 
-function DocumentRow({ document }: { document: ScreenplayDocumentSummary }) {
+function DocumentRow({
+  document,
+  onDelete,
+  pending,
+}: {
+  document: ScreenplayDocumentSummary;
+  onDelete: (document: ScreenplayDocumentSummary) => Promise<void>;
+  pending: boolean;
+}) {
   const detailHref = `/documents/detail?documentId=${encodeURIComponent(document.id)}`;
   return (
     <Item
@@ -96,13 +113,18 @@ function DocumentRow({ document }: { document: ScreenplayDocumentSummary }) {
           {languageLabel(document.detected_language)}
         </p>
       </ItemContent>
-      <ItemActions className="self-start sm:self-center">
+      <ItemActions className="self-start gap-1 sm:self-center">
         <Badge
           className="rounded-md px-2 py-1 font-normal"
           variant={documentStatusVariant(document.status)}
         >
           {documentStatusLabels[document.status]}
         </Badge>
+        <ScreenplayDocumentDeleteDialog
+          busy={pending}
+          compact
+          onDelete={() => onDelete(document)}
+        />
       </ItemActions>
     </Item>
   );

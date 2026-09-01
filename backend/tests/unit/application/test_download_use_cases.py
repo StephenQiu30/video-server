@@ -11,6 +11,8 @@ from app.application.downloads import (
     ArtifactSnapshot,
     CancelDownload,
     CreateDownload,
+    DeleteDownload,
+    DownloadCleanupRef,
     FormatSnapshot,
     GetDownload,
     HmacRequestFingerprinter,
@@ -148,6 +150,59 @@ async def test_get_and_cancel_enforce_owner_and_status() -> None:
     with pytest.raises(ApplicationError) as terminal:
         await CancelDownload(repository, now=lambda: NOW)(created.id, OWNER)
     assert terminal.value.code is ApplicationErrorCode.INVALID_STATE
+
+
+@pytest.mark.asyncio
+async def test_delete_cancels_active_job_and_removes_owned_objects() -> None:
+    repository, storage = FakeRepository(), FakeStorage()
+    inspection_id, format_id = seed_inspection(repository)
+    created = await creator(repository)(inspection_id, format_id, OWNER, "delete-1")
+    source_key = f"quarantine/video/{created.id}/1/source"
+    artifact_key = f"downloads/{created.id}/1/video.mp4"
+    thumbnail_key = f"thumbnails/{created.id}/{'c' * 64}.jpg"
+    repository.deletion_cleanup[created.id] = (
+        DownloadCleanupRef(source_key, "upload-1"),
+        DownloadCleanupRef(artifact_key),
+        DownloadCleanupRef(thumbnail_key),
+    )
+    repository.jobs[created.id] = replace(
+        repository.jobs[created.id], status="running", attempt=1
+    )
+
+    cancel = CancelDownload(repository, now=lambda: NOW)
+    await DeleteDownload(repository, storage, cancel, now=lambda: NOW)(
+        created.id, OWNER
+    )
+
+    assert created.id not in repository.jobs
+    assert storage.aborted == [(source_key, "upload-1")]
+    assert storage.deleted == [source_key, artifact_key, thumbnail_key]
+
+
+@pytest.mark.asyncio
+async def test_delete_hides_foreign_jobs_and_preserves_analysis_locked_job() -> None:
+    repository, storage = FakeRepository(), FakeStorage()
+    inspection_id, format_id = seed_inspection(repository)
+    created = await creator(repository)(inspection_id, format_id, OWNER, "delete-2")
+    repository.jobs[created.id] = replace(
+        repository.jobs[created.id], status="succeeded", attempt=1
+    )
+    delete = DeleteDownload(
+        repository,
+        storage,
+        CancelDownload(repository, now=lambda: NOW),
+        now=lambda: NOW,
+    )
+
+    with pytest.raises(ApplicationError) as foreign:
+        await delete(created.id, "b" * 64)
+    assert foreign.value.code is ApplicationErrorCode.NOT_FOUND
+
+    repository.deletion_conflict = True
+    with pytest.raises(ApplicationError) as locked:
+        await delete(created.id, OWNER)
+    assert locked.value.code is ApplicationErrorCode.INVALID_STATE
+    assert created.id in repository.jobs
 
 
 @pytest.mark.asyncio

@@ -8,6 +8,7 @@ from app.infrastructure import database
 from app.infrastructure.download_mappers import (
     artifact_snapshot,
     download_analytics_snapshot,
+    download_deletion_plan,
     inspection_result,
     inspection_snapshot,
     job_result,
@@ -243,3 +244,16 @@ class SqlAlchemyDownloadStore:
     ) -> application.ArtifactSnapshot:
         stored = await self.repository.get_artifact(job_id, owner_hash, now)
         return artifact_snapshot(stored)
+
+    async def prepare_download_deletion(
+        self, job_id: UUID, owner_hash: str, *, now: datetime
+    ) -> application.DownloadDeletionPlan:
+        stored = await self.repository.prepare_download_deletion(
+            job_id, owner_hash, now=now
+        )
+        return download_deletion_plan(stored)
+
+    async def finish_download_deletion(
+        self, job_id: UUID, owner_hash: str
+    ) -> None:
+        await self.repository.finish_download_deletion(job_id, owner_hash)

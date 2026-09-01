@@ -8,6 +8,7 @@ from app.application.downloads.analytics_models import DownloadAnalyticsSnapshot
 from app.application.downloads.download_models import (
     ArtifactSnapshot,
     DownloadCreate,
+    DownloadDeletionPlan,
     DownloadPresentationSnapshot,
     JobSaveResult,
     JobSnapshot,
@@ -112,6 +113,14 @@ class DownloadRepository(Protocol):
         self, job_id: UUID, owner_hash: str, now: datetime
     ) -> ArtifactSnapshot | None: ...
 
+    async def prepare_download_deletion(
+        self, job_id: UUID, owner_hash: str, *, now: datetime
+    ) -> DownloadDeletionPlan: ...
+
+    async def finish_download_deletion(
+        self, job_id: UUID, owner_hash: str
+    ) -> None: ...
+
 
 class ObjectStorage(Protocol):
     async def presigned_download(
@@ -122,6 +131,12 @@ class ObjectStorage(Protocol):
         ttl_seconds: int,
         inline: bool = False,
     ) -> str: ...
+
+
+class DownloadDeletionStorage(Protocol):
+    async def abort_multipart_upload(self, object_key: str, upload_id: str) -> None: ...
+
+    async def delete(self, object_key: str) -> None: ...
 
 
 class ThumbnailObjectStorage(Protocol):

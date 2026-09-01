@@ -1,6 +1,7 @@
 import { ArrowClockwise, DownloadSimple } from '@phosphor-icons/react';
 import Link from 'next/link';
 
+import { DownloadDeleteDialog } from '@/components/downloads/download-delete-dialog';
 import MediaCover from '@/components/intake/media-cover';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,14 +32,16 @@ export default function DownloadHistoryList({
   data,
   loading,
   onDownload,
+  onDelete,
   onRetry,
   pendingAction,
 }: {
   data: DownloadHistory | null;
   loading: boolean;
   onDownload: (item: DownloadHistoryItem) => void;
+  onDelete: (item: DownloadHistoryItem) => Promise<void>;
   onRetry: (item: DownloadHistoryItem) => void;
-  pendingAction: { id: string; type: 'download' | 'retry' } | null;
+  pendingAction: { id: string; type: 'delete' | 'download' | 'retry' } | null;
 }) {
   return (
     <section aria-label="下载任务" className="mt-4">
@@ -50,6 +53,7 @@ export default function DownloadHistoryList({
               item={item}
               key={item.id}
               onDownload={onDownload}
+              onDelete={onDelete}
               onRetry={onRetry}
               pendingAction={pendingAction}
             />
@@ -73,13 +77,15 @@ export default function DownloadHistoryList({
 function HistoryRow({
   item,
   onDownload,
+  onDelete,
   onRetry,
   pendingAction,
 }: {
   item: DownloadHistoryItem;
   onDownload: (item: DownloadHistoryItem) => void;
+  onDelete: (item: DownloadHistoryItem) => Promise<void>;
   onRetry: (item: DownloadHistoryItem) => void;
-  pendingAction: { id: string; type: 'download' | 'retry' } | null;
+  pendingAction: { id: string; type: 'delete' | 'download' | 'retry' } | null;
 }) {
   const detailHref = `/downloads/detail?jobId=${encodeURIComponent(item.id)}`;
   const canDownload = item.status === 'succeeded' && item.file_available;
@@ -125,7 +131,7 @@ function HistoryRow({
           ) : null}
         </ItemDescription>
       </ItemContent>
-      <ItemActions className="col-span-2 w-full justify-between sm:col-auto sm:w-auto sm:justify-end">
+      <ItemActions className="col-span-2 w-full justify-between gap-1 sm:col-auto sm:w-auto sm:justify-end">
         <Badge
           className="rounded-md px-2 py-1 font-normal"
           variant={statusVariant(item.status)}
@@ -133,41 +139,47 @@ function HistoryRow({
           {downloadStatusLabels[item.status]}
           {activeStatuses.has(item.status) ? ` · ${item.progress}%` : ''}
         </Badge>
-        {canDownload ? (
-          <Button
-            className="-mr-2"
-            disabled={busy}
-            onClick={() => onDownload(item)}
-            size="sm"
-            variant="ghost"
-          >
-            {busy && pendingAction?.type === 'download' ? (
-              <Spinner aria-hidden />
-            ) : (
-              <DownloadSimple size={16} />
-            )}
-            获取文件
-          </Button>
-        ) : canRetry ? (
-          <Button
-            className="-mr-2"
-            disabled={busy}
-            onClick={() => onRetry(item)}
-            size="sm"
-            variant="ghost"
-          >
-            {busy && pendingAction?.type === 'retry' ? (
-              <Spinner aria-hidden />
-            ) : (
-              <ArrowClockwise size={16} />
-            )}
-            重新下载
-          </Button>
-        ) : (
-          <Button asChild className="-mr-2" size="sm" variant="ghost">
-            <Link href={detailHref}>查看任务</Link>
-          </Button>
-        )}
+        <div className="flex items-center gap-1">
+          {canDownload ? (
+            <Button
+              disabled={busy}
+              onClick={() => onDownload(item)}
+              size="sm"
+              variant="ghost"
+            >
+              {busy && pendingAction?.type === 'download' ? (
+                <Spinner aria-hidden />
+              ) : (
+                <DownloadSimple size={16} />
+              )}
+              获取文件
+            </Button>
+          ) : canRetry ? (
+            <Button
+              disabled={busy}
+              onClick={() => onRetry(item)}
+              size="sm"
+              variant="ghost"
+            >
+              {busy && pendingAction?.type === 'retry' ? (
+                <Spinner aria-hidden />
+              ) : (
+                <ArrowClockwise size={16} />
+              )}
+              重新下载
+            </Button>
+          ) : (
+            <Button asChild size="sm" variant="ghost">
+              <Link href={detailHref}>查看任务</Link>
+            </Button>
+          )}
+          <DownloadDeleteDialog
+            active={activeStatuses.has(item.status)}
+            busy={busy}
+            compact
+            onDelete={() => onDelete(item)}
+          />
+        </div>
       </ItemActions>
     </Item>
   );

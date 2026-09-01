@@ -10,9 +10,12 @@ from app.application.downloads.analytics_models import (
     DownloadAnalyticsView,
 )
 from app.application.downloads.create_download import CreateDownload
+from app.application.downloads.delete_download import DeleteDownload
 from app.application.downloads.download_models import (
     ArtifactSnapshot,
+    DownloadCleanupRef,
     DownloadCreate,
+    DownloadDeletionPlan,
     DownloadPresentationSnapshot,
     DownloadUrl,
     DownloadView,
@@ -69,6 +72,7 @@ from app.application.downloads.plans import (
     plan_to_documents,
 )
 from app.application.downloads.ports import (
+    DownloadDeletionStorage,
     DownloadRepository,
     MediaRunner,
     ObjectStorage,
@@ -103,7 +107,11 @@ __all__ = [
     "ArtifactSnapshot",
     "CancelDownload",
     "CreateDownload",
+    "DeleteDownload",
+    "DownloadCleanupRef",
     "DownloadCreate",
+    "DownloadDeletionPlan",
+    "DownloadDeletionStorage",
     "DownloadPresentationSnapshot",
     "DownloadAnalyticsDailySnapshot",
     "DownloadAnalyticsDailyView",

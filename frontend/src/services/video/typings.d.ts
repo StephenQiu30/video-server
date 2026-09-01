@@ -281,6 +281,10 @@ declare namespace API {
     document_id: string;
   };
 
+  type deleteDownloadParams = {
+    job_id: string;
+  };
+
   type deleteProviderCatalogEntryParams = {
     provider_key: string;
   };

@@ -31,6 +31,20 @@ export async function getDownload(
   });
 }
 
+/** 删除下载任务及其私有文件 删除当前用户的任务、下载制品、本地上传源文件与私有封面。 DELETE /api/downloads/${param0} */
+export async function deleteDownload(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.deleteDownloadParams,
+  options?: RequestOptions
+) {
+  const { job_id: param0, ...queryParams } = params;
+  return request<any>(`/api/downloads/${param0}`, {
+    method: "DELETE",
+    params: { ...queryParams },
+    ...(options || {}),
+  });
+}
+
 /** 取消下载任务 请求取消尚未结束的下载任务。 POST /api/downloads/${param0}/cancel */
 export async function cancelDownload(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)

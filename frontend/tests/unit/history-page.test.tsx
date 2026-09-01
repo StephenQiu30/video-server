@@ -18,6 +18,7 @@ import type {
 } from '@/types/video';
 
 const runtime = vi.hoisted(() => ({
+  deleteDownload: vi.fn(),
   getDownloadHistory: vi.fn(),
   issueDownloadUrl: vi.fn(),
   retryDownload: vi.fn(),
@@ -30,6 +31,7 @@ vi.mock('@/services/download', () => ({
   displayError: (reason: unknown) =>
     reason instanceof Error ? reason.message : '请求失败',
   getDownloadHistory: runtime.getDownloadHistory,
+  deleteDownload: runtime.deleteDownload,
   issueDownloadUrl: runtime.issueDownloadUrl,
   createIdempotencyKey: () => 'history-retry-key',
   retryDownload: runtime.retryDownload,
@@ -38,6 +40,7 @@ vi.mock('@/services/download', () => ({
 
 describe('download history', () => {
   beforeEach(() => {
+    runtime.deleteDownload.mockReset();
     runtime.getDownloadHistory.mockReset();
     runtime.issueDownloadUrl.mockReset();
     runtime.retryDownload.mockReset();
@@ -163,6 +166,29 @@ describe('download history', () => {
     expect(screen.getByRole('link', { name: '查看任务' })).toHaveAttribute(
       'href',
       detailHref,
+    );
+  });
+
+  it('confirms deletion and refreshes the download history', async () => {
+    runtime.getDownloadHistory.mockResolvedValue(history());
+    runtime.deleteDownload.mockResolvedValue(undefined);
+    render(<DownloadHistoryView />);
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: '删除下载记录' }),
+    );
+    expect(
+      await screen.findByRole('alertdialog', { name: '删除任务与文件？' }),
+    ).toHaveTextContent(
+      '下载记录、视频文件、本地上传源文件和私有封面将永久删除',
+    );
+    fireEvent.click(screen.getByRole('button', { name: '确认删除' }));
+
+    await waitFor(() =>
+      expect(runtime.deleteDownload).toHaveBeenCalledWith('history-job-1'),
+    );
+    await waitFor(() =>
+      expect(runtime.getDownloadHistory).toHaveBeenCalledTimes(2),
     );
   });
 

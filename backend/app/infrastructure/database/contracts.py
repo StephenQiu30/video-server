@@ -232,6 +232,20 @@ class ArtifactSnapshot:
 
 
 @dataclass(frozen=True, slots=True)
+class DownloadCleanupRef:
+    object_key: str
+    upload_id: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class DownloadDeletionPlan:
+    job_id: UUID
+    owner_hash: str
+    attempt: int
+    cleanup: tuple[DownloadCleanupRef, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
 class OutboxSnapshot:
     id: UUID
     aggregate_type: str

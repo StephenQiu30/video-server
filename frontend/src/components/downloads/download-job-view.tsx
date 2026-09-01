@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import AnalysisPanel from '@/components/analysis/analysis-panel';
+import { DownloadDeleteDialog } from '@/components/downloads/download-delete-dialog';
 import DownloadState from '@/components/downloads/download-state';
 import DownloadVideoPreview from '@/components/downloads/download-video-preview';
 import MediaCover from '@/components/intake/media-cover';
@@ -37,11 +38,27 @@ export default function DownloadJobView({
     router.push(target);
   }
 
+  async function remove() {
+    if (!(await state.remove())) return;
+    router.replace('/history');
+  }
+
   if (state.loading && !state.job) return <DownloadJobSkeleton />;
 
   return (
     <div className="inner-page">
-      <BackLink fallbackHref="/history" />
+      <div className="flex items-center justify-between gap-4">
+        <BackLink fallbackHref="/history" />
+        {state.job ? (
+          <DownloadDeleteDialog
+            active={
+              !['succeeded', 'failed', 'cancelled'].includes(state.job.status)
+            }
+            busy={state.action !== null}
+            onDelete={remove}
+          />
+        ) : null}
+      </div>
       {state.error ? (
         <Alert className="mt-8" variant="destructive">
           <AlertTitle>{errorTitle(state.errorKind)}</AlertTitle>

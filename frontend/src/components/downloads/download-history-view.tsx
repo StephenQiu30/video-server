@@ -30,6 +30,7 @@ import {
 import { useDownloadHistory } from '@/hooks/useDownloadHistory';
 import {
   createIdempotencyKey,
+  deleteDownload,
   displayError,
   issueDownloadUrl,
   retryDownload,
@@ -45,7 +46,7 @@ export default function DownloadHistoryView() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<{
     id: string;
-    type: 'download' | 'retry';
+    type: 'delete' | 'download' | 'retry';
   } | null>(null);
   const retryKeys = useRef(new Map<string, string>());
   const state = useDownloadHistory({
@@ -79,6 +80,19 @@ export default function DownloadHistoryView() {
       window.location.assign(target);
     } catch (reason) {
       setActionError(displayError(reason));
+      setPendingAction(null);
+    }
+  }
+
+  async function remove(item: DownloadHistoryItem) {
+    setActionError(null);
+    setPendingAction({ id: item.id, type: 'delete' });
+    try {
+      await deleteDownload(item.id);
+      state.retry();
+    } catch (reason) {
+      setActionError(displayError(reason));
+    } finally {
       setPendingAction(null);
     }
   }
@@ -185,6 +199,7 @@ export default function DownloadHistoryView() {
         data={state.data}
         loading={state.loading}
         onDownload={(item) => void download(item)}
+        onDelete={remove}
         onRetry={(item) => void retry(item)}
         pendingAction={pendingAction}
       />

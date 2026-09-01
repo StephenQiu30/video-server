@@ -1,6 +1,7 @@
 import {
   cancelDownload as cancelDownloadRequest,
   createDownload as createDownloadRequest,
+  deleteDownload as deleteDownloadRequest,
   getDownloadHistory as getDownloadHistoryRequest,
   getDownload as getDownloadRequest,
   issueDownloadUrl as issueDownloadUrlRequest,
@@ -98,6 +99,10 @@ export function createDownload(
 
 export function getDownload(id: string): Promise<DownloadJob> {
   return getDownloadRequest({ job_id: encodeURIComponent(id) });
+}
+
+export function deleteDownload(id: string): Promise<void> {
+  return deleteDownloadRequest({ job_id: encodeURIComponent(id) });
 }
 
 export function getDownloadHistory(

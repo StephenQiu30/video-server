@@ -7,6 +7,7 @@ import pytest
 from app.application import downloads as application
 from app.infrastructure import database
 from app.infrastructure.download_store import SqlAlchemyDownloadStore
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 NOW = datetime(2026, 8, 6, tzinfo=UTC)
@@ -272,6 +273,123 @@ async def test_history_includes_browser_imports_and_searches_filename(
 
     view = await application.GetDownloadHistory(store, now=lambda: NOW)(owner)
     assert view.items[0].thumbnail_url == f"/api/downloads/{job_id}/thumbnail"
+
+
+@pytest.mark.asyncio
+async def test_download_store_prepares_and_finishes_owned_file_deletion(
+    postgres_engine: AsyncEngine,
+) -> None:
+    sessions = async_sessionmaker(postgres_engine, expire_on_commit=False)
+    repository = database.SqlAlchemyDownloadRepository(sessions)
+    store = SqlAlchemyDownloadStore(repository)
+    job_id = uuid4()
+    owner = "d" * 64
+    source_key = f"quarantine/video/{job_id}/1/source"
+    artifact_key = f"downloads/{job_id}/1/video.mp4"
+    thumbnail_key = f"thumbnails/{job_id}/{'e' * 64}.jpg"
+    async with sessions.begin() as session:
+        session.add(
+            database.DownloadJobRow(
+                id=job_id,
+                source_kind="browser_import",
+                owner_hash=owner,
+                idempotency_key="delete-job",
+                request_fingerprint="a" * 64,
+                semantic_plan={"container": "mp4"},
+                status="succeeded",
+                progress=100,
+                attempt=1,
+                max_attempts=1,
+                finished_at=NOW,
+                created_at=NOW,
+                updated_at=NOW,
+            )
+        )
+        await session.flush()
+        session.add_all(
+            (
+                database.MediaImportRow(
+                    id=job_id,
+                    owner_hash=owner,
+                    idempotency_key="delete-import",
+                    request_fingerprint="b" * 64,
+                    source_format="mp4",
+                    display_name="待删除.mp4",
+                    content_type="video/mp4",
+                    declared_size_bytes=1_024,
+                    declared_sha256="c" * 64,
+                    rights_statement_version="v1",
+                    status="ready",
+                    attempt=1,
+                    finished_at=NOW,
+                    created_at=NOW,
+                    updated_at=NOW,
+                ),
+                database.ArtifactRow(
+                    id=uuid4(),
+                    job_id=job_id,
+                    attempt=1,
+                    bucket="video-artifacts",
+                    object_key=artifact_key,
+                    sha256="c" * 64,
+                    size_bytes=1_024,
+                    duration_ms=1_000,
+                    container="mp4",
+                    content_type="video/mp4",
+                    media_metadata={},
+                    created_at=NOW,
+                ),
+                database.DownloadThumbnailRow(
+                    job_id=job_id,
+                    bucket="video-artifacts",
+                    object_key=thumbnail_key,
+                    content_type="image/jpeg",
+                    sha256="e" * 64,
+                    size_bytes=128,
+                    created_at=NOW,
+                    updated_at=NOW,
+                ),
+            )
+        )
+        await session.flush()
+        session.add(
+            database.MediaImportAttemptRow(
+                resource_id=job_id,
+                attempt=1,
+                status="ready",
+                object_key=source_key,
+                upload_id="upload-1",
+                content_type="video/mp4",
+                declared_size_bytes=1_024,
+                actual_size_bytes=1_024,
+                part_size_bytes=5 * 1024**2,
+                part_count=1,
+                expires_at=NOW + timedelta(hours=1),
+                completed_at=NOW,
+                finished_at=NOW,
+                created_at=NOW,
+                updated_at=NOW,
+            )
+        )
+
+    plan = await store.prepare_download_deletion(job_id, owner, now=NOW)
+
+    assert {(item.object_key, item.upload_id) for item in plan.cleanup} == {
+        (source_key, "upload-1"),
+        (artifact_key, None),
+        (thumbnail_key, None),
+    }
+    async with sessions() as session:
+        artifact = await session.scalar(
+            select(database.ArtifactRow).where(database.ArtifactRow.job_id == job_id)
+        )
+        assert artifact is not None
+        assert artifact.deleted_at == NOW
+
+    await store.finish_download_deletion(job_id, owner)
+
+    async with sessions() as session:
+        assert await session.get(database.DownloadJobRow, job_id) is None
 
 
 @pytest.mark.asyncio

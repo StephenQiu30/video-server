@@ -11,19 +11,22 @@ import {
 } from '../fixtures/document-fixtures';
 
 const runtime = vi.hoisted(() => ({
+  deleteScreenplayDocument: vi.fn(),
   getScreenplayDocument: vi.fn(),
   listScreenplayDocuments: vi.fn(),
   push: vi.fn(),
+  replace: vi.fn(),
 }));
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: runtime.push }),
+  useRouter: () => ({ push: runtime.push, replace: runtime.replace }),
 }));
 
 vi.mock('@/services/documents', () => ({
   displayError: (reason: unknown) =>
     reason instanceof Error ? reason.message : '请求失败',
   getScreenplayDocument: runtime.getScreenplayDocument,
+  deleteScreenplayDocument: runtime.deleteScreenplayDocument,
   listScreenplayDocuments: runtime.listScreenplayDocuments,
 }));
 
@@ -35,9 +38,11 @@ vi.mock('@/components/screenplay/screenplay-analysis-panel', () => ({
 
 describe('screenplay documents', () => {
   beforeEach(() => {
+    runtime.deleteScreenplayDocument.mockReset();
     runtime.getScreenplayDocument.mockReset();
     runtime.listScreenplayDocuments.mockReset();
     runtime.push.mockReset();
+    runtime.replace.mockReset();
   });
 
   it('renders metadata rows, paging and a stable refresh action', async () => {
@@ -102,6 +107,44 @@ describe('screenplay documents', () => {
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '上传剧本' }));
     expect(screen.getByText('请先选择一份剧本文档。')).toBeInTheDocument();
+  });
+
+  it('deletes an owned screenplay from the document list', async () => {
+    runtime.listScreenplayDocuments.mockResolvedValue(screenplayDocumentPage());
+    runtime.deleteScreenplayDocument.mockResolvedValue(undefined);
+    render(<ScreenplayDocumentsView />);
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: '删除剧本文档' }),
+    );
+    fireEvent.click(await screen.findByRole('button', { name: '确认删除' }));
+
+    await waitFor(() =>
+      expect(runtime.deleteScreenplayDocument).toHaveBeenCalledWith(
+        '99999999-9999-4999-8999-999999999999',
+      ),
+    );
+    await waitFor(() =>
+      expect(runtime.listScreenplayDocuments).toHaveBeenCalledTimes(2),
+    );
+  });
+
+  it('deletes a screenplay from detail and returns to the document list', async () => {
+    runtime.getScreenplayDocument.mockResolvedValue(
+      screenplayDocument({ id: 'document-id' }),
+    );
+    runtime.deleteScreenplayDocument.mockResolvedValue(undefined);
+    render(<ScreenplayDocumentDetailView documentId="document-id" />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '删除文档' }));
+    fireEvent.click(await screen.findByRole('button', { name: '确认删除' }));
+
+    await waitFor(() =>
+      expect(runtime.deleteScreenplayDocument).toHaveBeenCalledWith(
+        'document-id',
+      ),
+    );
+    expect(runtime.replace).toHaveBeenCalledWith('/documents');
   });
 
   it('renders screenplay Markdown safely with a fixed reader and table of contents', async () => {

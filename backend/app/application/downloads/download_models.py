@@ -140,3 +140,17 @@ class DownloadView:
 class DownloadUrl:
     url: str
     expires_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class DownloadCleanupRef:
+    object_key: str
+    upload_id: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class DownloadDeletionPlan:
+    job_id: UUID
+    owner_hash: str
+    attempt: int
+    cleanup: tuple[DownloadCleanupRef, ...] = ()

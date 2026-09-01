@@ -11,7 +11,9 @@ from .completion_repository import build_artifact_object_key
 from .contracts import (
     ArtifactCreate,
     ArtifactSnapshot,
+    DownloadCleanupRef,
     DownloadCreate,
+    DownloadDeletionPlan,
     DownloadHistoryItemSnapshot,
     DownloadHistoryPageSnapshot,
     DownloadHistorySummarySnapshot,
@@ -86,6 +88,8 @@ __all__ = [
     "AnalysisResultRow",
     "Base",
     "DownloadCreate",
+    "DownloadCleanupRef",
+    "DownloadDeletionPlan",
     "DownloadAnalyticsDailySnapshot",
     "DownloadAnalyticsSnapshot",
     "DownloadAnalyticsSourceSnapshot",

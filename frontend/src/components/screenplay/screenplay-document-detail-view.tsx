@@ -1,10 +1,12 @@
 'use client';
 
 import { ArrowClockwise } from '@phosphor-icons/react';
-import { useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { useMemo, useState } from 'react';
 
 import { BackLink } from '@/components/layout/back-link';
 import ScreenplayAnalysisPanel from '@/components/screenplay/screenplay-analysis-panel';
+import { ScreenplayDocumentDeleteDialog } from '@/components/screenplay/screenplay-document-delete-dialog';
 import {
   documentStatusLabels,
   documentStatusVariant,
@@ -21,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useScreenplayDocument } from '@/hooks/useScreenplayDocument';
+import { deleteScreenplayDocument, displayError } from '@/services/documents';
 
 const metadataSkeletonKeys = [
   'format',
@@ -55,11 +58,25 @@ export default function ScreenplayDocumentDetailView({
   documentId: string;
   pollIntervalMs?: number;
 }) {
+  const router = useRouter();
+  const [deleting, setDeleting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const state = useScreenplayDocument(documentId, pollIntervalMs);
   const headings = useMemo(
     () => extractMarkdownHeadings(state.document?.preview ?? ''),
     [state.document?.preview],
   );
+  async function remove() {
+    setDeleting(true);
+    setActionError(null);
+    try {
+      await deleteScreenplayDocument(documentId);
+      router.replace('/documents');
+    } catch (reason) {
+      setActionError(displayError(reason));
+      setDeleting(false);
+    }
+  }
   if (state.loading && !state.document) return <DocumentDetailSkeleton />;
   if (state.error && !state.document) {
     return <DocumentDetailError error={state.error} onRetry={state.refresh} />;
@@ -68,14 +85,18 @@ export default function ScreenplayDocumentDetailView({
   return (
     <div className="inner-page">
       <BackLink fallbackHref="/documents" />
-      {state.error ? (
+      {state.error || actionError ? (
         <Alert className="mt-8" variant="destructive">
-          <AlertTitle>无法读取剧本文档</AlertTitle>
+          <AlertTitle>
+            {state.error ? '无法读取剧本文档' : '操作未完成'}
+          </AlertTitle>
           <AlertDescription className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span>{state.error}</span>
-            <Button onClick={state.refresh} size="sm" variant="outline">
-              重试
-            </Button>
+            <span>{state.error ?? actionError}</span>
+            {state.error ? (
+              <Button onClick={state.refresh} size="sm" variant="outline">
+                重试
+              </Button>
+            ) : null}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -112,6 +133,10 @@ export default function ScreenplayDocumentDetailView({
                 <ArrowClockwise aria-hidden size={17} />
                 刷新
               </Button>
+              <ScreenplayDocumentDeleteDialog
+                busy={deleting}
+                onDelete={remove}
+              />
             </div>
           </header>
           <ScreenplayDocumentMetadata document={state.document} />

@@ -216,7 +216,7 @@ PageHeader 直接显示“下载记录”及一句用途说明、可选的“新
 
 个人资料以 Avatar 身份摘要和单列 Field 表单展示可编辑用户名，以及只读邮箱和角色；PageHeader 直接显示“个人资料”，不增加“账户设置”等眉题，保存后导航名称同步更新。用户管理 PageHeader 直接显示“用户管理”，不增加“系统管理”等眉题；桌面端为 Table 与筛选条，编辑角色和状态使用普通 Dialog，不使用 AlertDialog。管理员不能修改自己的角色或启用状态，禁用原因必须可感知。
 
-平台目录采用同一桌面 Table/移动 Item 语言，以 Field + InputGroup 搜索名称或目录键、以 Radix Select 筛选公开状态，并通过 Pagination 每页展示 10 项；编辑使用 Dialog、删除使用 AlertDialog，并以“系统已注册/仅目录”徽标明确展示安全执行能力是否存在，排序列右对齐并使用表格数字。平台状态先展示平台总数、当前可用与需关注三项摘要，使用单选 Toggle Group 筛选并通过 Pagination 每页展示 8 项；Badge 只表达稳定支持能力与运行条件，普通能力使用辅助文字分隔，探针、真实下载、完整分析和访问方式进入每个平台的 Radix Collapsible，默认收起以保留扫描节奏。筛选控件的未选项仍使用可读的 `muted-foreground`，不通过低透明度牺牲 WCAG AA 对比度。
+平台目录采用同一桌面 Table/移动 Item 语言，以 Field + InputGroup 搜索名称或目录键、以 Radix Select 筛选公开状态，并通过 Pagination 每页展示 10 项；编辑使用 Dialog、删除使用 AlertDialog，并以“系统已注册/仅目录”徽标明确展示安全执行能力是否存在，排序列右对齐并使用表格数字。下载记录、下载详情、剧本文档列表和详情同样使用 AlertDialog 承载 owner 内容删除确认；列表为紧凑图标入口、详情为文字入口，均明确永久删除范围且只在服务端成功后刷新或离开。平台状态先展示平台总数、当前可用与需关注三项摘要，使用单选 Toggle Group 筛选并通过 Pagination 每页展示 8 项；Badge 只表达稳定支持能力与运行条件，普通能力使用辅助文字分隔，探针、真实下载、完整分析和访问方式进入每个平台的 Radix Collapsible，默认收起以保留扫描节奏。筛选控件的未选项仍使用可读的 `muted-foreground`，不通过低透明度牺牲 WCAG AA 对比度。
 
 文件管理使用 ItemGroup、Item、Empty 与 Pagination 组织连续的持久资产清单，以行间距和 hover 填充代替 ItemSeparator，不为资产类型增加 Badge、图标底座或 Card。类型、对象数和创建时间合并为一行辅助元数据，文件大小使用表格数字；超长标题在可用宽度内截断并通过 `title` 保留完整名称，API 名称上限为 512 字符，390px 下不得造成横向滚动。
 

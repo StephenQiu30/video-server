@@ -163,6 +163,7 @@ def test_download_routes_delegate_with_session_owner(tmp_path: Path) -> None:
             json=body,
         )
         fetched = test_client.get(f"/api/downloads/{JOB_ID}")
+        deleted = test_client.delete(f"/api/downloads/{JOB_ID}")
         cancelled = test_client.post(f"/api/downloads/{JOB_ID}/cancel")
         retried = test_client.post(
             f"/api/downloads/{JOB_ID}/retry",
@@ -173,6 +174,7 @@ def test_download_routes_delegate_with_session_owner(tmp_path: Path) -> None:
         )
 
     assert created.status_code == 201
+    assert deleted.status_code == 204
     assert created.headers["location"] == f"/api/downloads/{JOB_ID}"
     assert fetched.status_code == cancelled.status_code == issued.status_code == 200
     assert retried.status_code == 201
@@ -183,7 +185,10 @@ def test_download_routes_delegate_with_session_owner(tmp_path: Path) -> None:
     assert stubs["issue_url"].calls[0][1] == {"preview": True}
     owners = [
         stubs["create"].calls[0][0][-2],
-        *(stubs[name].calls[0][0][-1] for name in ("get", "cancel", "issue_url")),
+        *(
+            stubs[name].calls[0][0][-1]
+            for name in ("get", "delete", "cancel", "issue_url")
+        ),
         stubs["retry"].calls[0][0][-2],
     ]
     assert len(set(owners)) == 1

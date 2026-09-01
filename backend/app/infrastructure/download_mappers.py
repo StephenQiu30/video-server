@@ -6,6 +6,8 @@ from app.application.downloads import (
     DownloadAnalyticsSnapshot,
     DownloadAnalyticsSourceSnapshot,
     DownloadAnalyticsSummarySnapshot,
+    DownloadCleanupRef,
+    DownloadDeletionPlan,
     FormatSnapshot,
     InspectionSaveResult,
     InspectionSnapshot,
@@ -18,6 +20,7 @@ from app.infrastructure.database import (
 from app.infrastructure.database import (
     DownloadAnalyticsSnapshot as StoredDownloadAnalytics,
 )
+from app.infrastructure.database import DownloadDeletionPlan as StoredDeletionPlan
 from app.infrastructure.database import (
     InspectionCreateResult as StoredInspectionResult,
 )
@@ -105,6 +108,18 @@ def artifact_snapshot(value: StoredArtifact) -> ArtifactSnapshot:
         container=value.container,
         content_type=value.content_type,
         media_metadata=dict(value.media_metadata),
+    )
+
+
+def download_deletion_plan(value: StoredDeletionPlan) -> DownloadDeletionPlan:
+    return DownloadDeletionPlan(
+        job_id=value.job_id,
+        owner_hash=value.owner_hash,
+        attempt=value.attempt,
+        cleanup=tuple(
+            DownloadCleanupRef(item.object_key, item.upload_id)
+            for item in value.cleanup
+        ),
     )
 
 

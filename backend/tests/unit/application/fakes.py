@@ -6,7 +6,9 @@ from uuid import UUID
 
 from app.application.downloads import (
     ArtifactSnapshot,
+    DownloadCleanupRef,
     DownloadCreate,
+    DownloadDeletionPlan,
     DownloadPresentationSnapshot,
     EncryptedUrl,
     FormatSnapshot,
@@ -60,6 +62,8 @@ class FakeRunner:
 class FakeStorage:
     def __init__(self) -> None:
         self.calls: list[tuple[str, int, str | None]] = []
+        self.deleted: list[str] = []
+        self.aborted: list[tuple[str, str]] = []
 
     async def presigned_download(
         self,
@@ -71,6 +75,12 @@ class FakeStorage:
     ) -> str:
         self.calls.append((object_key, ttl_seconds, title, inline))
         return "https://objects.example/download-token"
+
+    async def abort_multipart_upload(self, object_key: str, upload_id: str) -> None:
+        self.aborted.append((object_key, upload_id))
+
+    async def delete(self, object_key: str) -> None:
+        self.deleted.append(object_key)
 
 
 class FakeRepository:
@@ -85,6 +95,8 @@ class FakeRepository:
         self._download_fingerprints: dict[UUID, str] = {}
         self.outbox_events = 0
         self.thumbnails: dict[UUID, ThumbnailObject] = {}
+        self.deletion_cleanup: dict[UUID, tuple[DownloadCleanupRef, ...]] = {}
+        self.deletion_conflict = False
 
     async def save_inspection(self, command: InspectionCreate) -> InspectionSaveResult:
         self.inspection_commands.append(command)
@@ -225,3 +237,31 @@ class FakeRepository:
         if job is None or job.owner_hash != owner_hash or artifact is None:
             return None
         return artifact
+
+    async def prepare_download_deletion(
+        self, job_id: UUID, owner_hash: str, *, now: datetime
+    ) -> DownloadDeletionPlan:
+        del now
+        job = self.jobs.get(job_id)
+        if job is None or job.owner_hash != owner_hash:
+            from app.application.downloads import PersistenceNotFound
+
+            raise PersistenceNotFound
+        if self.deletion_conflict:
+            from app.application.downloads import PersistenceConflict
+
+            raise PersistenceConflict
+        return DownloadDeletionPlan(
+            job_id=job_id,
+            owner_hash=owner_hash,
+            attempt=job.attempt,
+            cleanup=self.deletion_cleanup.get(job_id, ()),
+        )
+
+    async def finish_download_deletion(
+        self, job_id: UUID, owner_hash: str
+    ) -> None:
+        if self.jobs[job_id].owner_hash != owner_hash:
+            return
+        self.jobs.pop(job_id)
+        self.artifacts.pop(job_id, None)

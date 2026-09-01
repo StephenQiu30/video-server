@@ -7,7 +7,6 @@ from uuid import UUID
 
 from sqlalchemy import func, or_, select
 
-from .analytics_repository import AnalyticsRepository
 from .base import as_utc, utc_now
 from .contracts import (
     ArtifactSnapshot,
@@ -20,6 +19,7 @@ from .contracts import (
     ThumbnailSnapshot,
     ThumbnailSourceSnapshot,
 )
+from .download_delete_repository import DownloadDeleteRepository
 from .errors import LeaseConflict, RepositoryConflict, RepositoryNotFound
 from .mapping import (
     artifact_snapshot,
@@ -38,7 +38,7 @@ from .models import (
 )
 
 
-class AccessRepository(AnalyticsRepository):
+class AccessRepository(DownloadDeleteRepository):
     async def list_missing_download_thumbnails(
         self, *, limit: int
     ) -> tuple[DownloadThumbnailCandidateSnapshot, ...]:

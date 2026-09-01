@@ -55,6 +55,25 @@ async def create_download(
     return DownloadResponse.from_view(view)
 
 
+@router.delete(
+    "/{job_id}",
+    operation_id="deleteDownload",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="删除下载任务及其私有文件",
+)
+async def delete_download(
+    job_id: UUID,
+    user: User,
+    use_cases: UseCases,
+) -> Response:
+    """删除当前用户的任务、下载制品、本地上传源文件与私有封面。"""
+    try:
+        await use_cases.delete_download(job_id, user.owner_hash)
+    except ApplicationError as exc:
+        raise application_error(exc) from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @router.get(
     "/history",
     operation_id="getDownloadHistory",

@@ -31,7 +31,7 @@ import {
 } from './download-state-model';
 
 type Props = {
-  action: 'cancel' | 'download' | 'retry' | null;
+  action: 'cancel' | 'delete' | 'download' | 'retry' | null;
   job: DownloadJob;
   onCancel: () => void;
   onDownload: () => void;
@@ -107,7 +107,7 @@ export default function DownloadState({
         {complete && job.file_available ? (
           <Button
             className="w-full"
-            disabled={action === 'download'}
+            disabled={action !== null}
             onClick={onDownload}
             size="lg"
           >
@@ -122,7 +122,7 @@ export default function DownloadState({
         {retryable ? (
           <Button
             className="w-full"
-            disabled={action === 'retry'}
+            disabled={action !== null}
             onClick={onRetry}
             size="lg"
           >
@@ -135,7 +135,7 @@ export default function DownloadState({
             <AlertDialogTrigger asChild>
               <Button
                 className="w-full"
-                disabled={action === 'cancel'}
+                disabled={action !== null}
                 size="lg"
                 variant="outline"
               >

@@ -4,6 +4,7 @@ import { type TaskSocketStatus, taskSocket } from '@/lib/task-socket';
 import {
   cancelDownload,
   createIdempotencyKey,
+  deleteDownload,
   displayError,
   getDownload,
   issueDownloadUrl,
@@ -13,7 +14,7 @@ import {
 import type { DownloadJob } from '@/types/video';
 import { terminalDownloadStatuses } from '@/types/video';
 
-type Action = 'cancel' | 'download' | 'retry' | null;
+type Action = 'cancel' | 'delete' | 'download' | 'retry' | null;
 type ErrorKind = 'load' | 'sync' | 'action' | null;
 
 export function useDownloadJob(jobId: string, pollIntervalMs: number) {
@@ -164,6 +165,22 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     }
   }, [jobId]);
 
+  const remove = useCallback(async (): Promise<boolean> => {
+    setAction('delete');
+    setError(null);
+    setErrorKind(null);
+    try {
+      await deleteDownload(jobId);
+      return true;
+    } catch (reason) {
+      setError(displayError(reason));
+      setErrorKind('action');
+      return false;
+    } finally {
+      setAction(null);
+    }
+  }, [jobId]);
+
   return {
     action,
     cancel,
@@ -172,6 +189,7 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     errorKind,
     job: visibleJob,
     loading: loading || changingJob,
+    remove,
     refresh,
     retry,
     socketStatus,
