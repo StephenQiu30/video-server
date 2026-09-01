@@ -180,8 +180,8 @@ def build_runtime(settings: Settings) -> AnalysisWorkerRuntime:
     )
 
 
-async def run() -> None:
-    runtime = build_runtime(get_settings_for_role("analysis-worker"))
+async def run(settings: Settings | None = None) -> None:
+    runtime = build_runtime(settings or get_settings_for_role("analysis-worker"))
     stop = asyncio.Event()
     install_signal_handlers(stop)
     try:
@@ -240,10 +240,10 @@ async def _run_resilient(
             delay = min(delay * 2, 30.0)
 
 
-def main() -> None:
+def main(settings: Settings | None = None) -> None:
     try:
         with analysis_agent_process_lock():
-            asyncio.run(run())
+            asyncio.run(run(settings))
     except AnalysisAgentAlreadyRunning as exc:
         raise SystemExit(str(exc)) from None
 

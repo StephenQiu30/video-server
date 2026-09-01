@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Protocol
 
 from app.application.analysis_execution import AnalysisArtifactError
-from app.core.config import get_settings_for_role
+from app.core.config import REPOSITORY_ROOT, Settings
 from app.infrastructure.object_storage import StoredObjectStat
 from app.workers.analysis.agent_platforms import (
     agent_paths,
@@ -36,21 +36,26 @@ def main() -> None:
     parser.add_argument(
         "command", choices=("run", "install", "uninstall", "status", "doctor")
     )
+    parser.add_argument(
+        "--env-file",
+        type=Path,
+        help="Agent 使用的环境文件；默认读取仓库根目录 .env",
+    )
     args = parser.parse_args()
     if args.command == "run":
         from app.workers.analysis.main import main as run_worker
 
         try:
-            run_worker()
+            run_worker(_settings(_env_file(args.env_file)))
         except Exception as exc:
             _record_agent_failure(exc, agent_paths().stderr)
             raise
         return
     if args.command == "doctor":
-        asyncio.run(_doctor())
+        asyncio.run(_doctor(_settings(_env_file(args.env_file))))
         return
     if args.command == "install":
-        install_agent()
+        install_agent(_env_file(args.env_file))
         return
     if args.command == "uninstall":
         uninstall_agent()
@@ -58,8 +63,25 @@ def main() -> None:
     raise SystemExit(agent_status())
 
 
-async def _doctor() -> None:
-    runtime = build_runtime(get_settings_for_role("analysis-worker"))
+def _env_file(value: Path | None) -> Path:
+    candidate = value or REPOSITORY_ROOT / ".env"
+    if not candidate.is_absolute():
+        candidate = Path.cwd() / candidate
+    resolved = candidate.expanduser().resolve()
+    if not resolved.is_file():
+        raise SystemExit(f"environment file is unavailable: {resolved}")
+    return resolved
+
+
+def _settings(env_file: Path) -> Settings:
+    return Settings(  # type: ignore[call-arg]
+        _env_file=env_file,
+        service_role="analysis-worker",
+    )
+
+
+async def _doctor(settings: Settings) -> None:
+    runtime = build_runtime(settings)
     try:
         selection = await runtime.resolver.resolve()
         try:

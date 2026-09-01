@@ -39,7 +39,8 @@ def test_direct_worker_main_uses_the_process_lock(
         yield
         events.append("released")
 
-    async def run() -> None:
+    async def run(settings: object | None = None) -> None:
+        assert settings is None
         events.append("run")
 
     monkeypatch.setattr(worker_main, "analysis_agent_process_lock", locked)

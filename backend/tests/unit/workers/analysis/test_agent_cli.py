@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 import pytest
 from app.workers.analysis.agent_cli import (
@@ -17,13 +18,27 @@ def test_run_command_delegates_to_the_locked_worker_entry(
     from app.workers.analysis import agent_cli
     from app.workers.analysis import main as worker_main
 
-    called: list[bool] = []
-    monkeypatch.setattr(worker_main, "main", lambda: called.append(True))
-    monkeypatch.setattr(sys, "argv", ["agent_cli", "run"])
+    called: list[object] = []
+    settings = object()
+    monkeypatch.setattr(worker_main, "main", called.append)
+    monkeypatch.setattr(agent_cli, "_env_file", lambda _: Path("/tmp/.env.prod"))
+    monkeypatch.setattr(agent_cli, "_settings", lambda _: settings)
+    monkeypatch.setattr(sys, "argv", ["agent_cli", "run", "--env-file", "../.env"])
 
     agent_cli.main()
 
-    assert called == [True]
+    assert called == [settings]
+
+
+def test_env_file_is_resolved_and_must_exist(tmp_path: Path) -> None:
+    from app.workers.analysis.agent_cli import _env_file
+
+    existing = tmp_path / ".env.prod"
+    existing.write_text("APP_ENV=test\n")
+
+    assert _env_file(existing) == existing.resolve()
+    with pytest.raises(SystemExit, match="environment file is unavailable"):
+        _env_file(tmp_path / "missing.env")
 
 
 @dataclass(frozen=True, slots=True)

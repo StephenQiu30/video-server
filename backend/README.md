@@ -104,6 +104,14 @@ uv run python -m app.workers.analysis.agent_cli install
 uv run python -m app.workers.analysis.agent_cli status
 ```
 
+上述命令默认读取仓库根目录 `.env`。当业务容器通过 `.env.prod` 运行时，宿主机
+Agent 必须显式使用同一环境文件，避免 API、队列和对象存储落到不同环境：
+
+```bash
+uv run python -m app.workers.analysis.agent_cli doctor --env-file ../.env.prod
+uv run python -m app.workers.analysis.agent_cli install --env-file ../.env.prod
+```
+
 API 固定监听 `8111`，前端固定监听 `8101`。API `/health/live` 只证明进程存活；`/health/ready` 还会在有界超时内检查数据库结构、Media Runner、MinIO、RabbitMQ 与 Valkey。宿主机 AI Worker 内部重连消费者并由系统服务监督进程；短暂故障期间任务保持 queued，恢复后继续消费。没有 AI Worker 的部署必须显式设置 `ANALYSIS_ENABLED=false` 并重建 API。
 
 ## 测试数据库

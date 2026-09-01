@@ -23,17 +23,23 @@ def _result(code: int, output: str = "") -> subprocess.CompletedProcess[str]:
 
 def test_service_definitions_are_supervised_and_single_instance() -> None:
     paths = AgentPaths(Path("definition"), Path("stdout"), Path("stderr"))
+    env_file = Path("/srv/framefetch/.env.prod")
 
-    windows = agent_platforms._windows_task_xml()
-    macos = agent_platforms._launch_agent_plist(paths)
-    linux = agent_platforms._systemd_unit(paths)
+    windows = agent_platforms._windows_task_xml(env_file)
+    macos = agent_platforms._launch_agent_plist(paths, env_file)
+    linux = agent_platforms._systemd_unit(paths, env_file)
 
     assert "<MultipleInstancesPolicy>StopExisting</MultipleInstancesPolicy>" in windows
     assert "<RestartOnFailure>" in windows
     assert macos["KeepAlive"] is True
-    assert macos["ProgramArguments"][-1] == "run"  # type: ignore[index]
+    assert macos["ProgramArguments"][-2:] == [  # type: ignore[index]
+        "--env-file",
+        str(env_file),
+    ]
     assert "Restart=always" in linux
     assert "app.workers.analysis.agent_cli run" in linux
+    assert str(env_file) in windows
+    assert str(env_file) in linux
 
 
 @pytest.mark.parametrize(

@@ -28,6 +28,7 @@ LEGACY_MODULE = "app.workers.analysis.main"
 STATE_RUNNING = 0
 STATE_STOPPED = 3
 STATE_MISSING = 4
+DEFAULT_ENV_FILE = PROJECT_ROOT / ".env"
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,13 +38,13 @@ class AgentPaths:
     stderr: Path
 
 
-def install_agent() -> None:
+def install_agent(env_file: Path = DEFAULT_ENV_FILE) -> None:
     paths = agent_paths()
     paths.definition.parent.mkdir(parents=True, exist_ok=True)
     paths.stdout.parent.mkdir(parents=True, exist_ok=True)
     if sys.platform == "win32":
         _stop_windows_task()
-        paths.definition.write_text(_windows_task_xml(), encoding="utf-16")
+        paths.definition.write_text(_windows_task_xml(env_file), encoding="utf-16")
         _run(
             (
                 "schtasks",
@@ -60,7 +61,9 @@ def install_agent() -> None:
     elif sys.platform == "darwin":
         _migrate_legacy_macos_agent()
         _stop_macos_service(SERVICE_ID)
-        paths.definition.write_bytes(plistlib.dumps(_launch_agent_plist(paths)))
+        paths.definition.write_bytes(
+            plistlib.dumps(_launch_agent_plist(paths, env_file))
+        )
         domain = f"gui/{os.getuid()}"
         _run(("launchctl", "enable", f"{domain}/{SERVICE_ID}"))
         _run(("launchctl", "bootstrap", domain, str(paths.definition)))
@@ -68,7 +71,7 @@ def install_agent() -> None:
         _wait_for_state(_macos_state, {STATE_RUNNING}, "macOS Agent", stable=2)
     else:
         _migrate_legacy_linux_worker()
-        paths.definition.write_text(_systemd_unit(paths), encoding="utf-8")
+        paths.definition.write_text(_systemd_unit(paths, env_file), encoding="utf-8")
         _run(("systemctl", "--user", "daemon-reload"))
         _run(("systemctl", "--user", "enable", SYSTEMD_SERVICE))
         _run(("systemctl", "--user", "restart", SYSTEMD_SERVICE))
@@ -347,7 +350,9 @@ def _python_executable() -> Path:
     return executable
 
 
-def _launch_agent_plist(paths: AgentPaths) -> dict[str, object]:
+def _launch_agent_plist(
+    paths: AgentPaths, env_file: Path = DEFAULT_ENV_FILE
+) -> dict[str, object]:
     return {
         "Label": SERVICE_ID,
         "ProgramArguments": [
@@ -355,6 +360,8 @@ def _launch_agent_plist(paths: AgentPaths) -> dict[str, object]:
             "-m",
             "app.workers.analysis.agent_cli",
             "run",
+            "--env-file",
+            str(env_file),
         ],
         "WorkingDirectory": str(BACKEND_ROOT),
         "RunAtLoad": True,
@@ -369,7 +376,7 @@ def _launch_agent_plist(paths: AgentPaths) -> dict[str, object]:
     }
 
 
-def _systemd_unit(paths: AgentPaths) -> str:
+def _systemd_unit(paths: AgentPaths, env_file: Path = DEFAULT_ENV_FILE) -> str:
     return "\n".join(
         (
             "[Unit]",
@@ -379,7 +386,8 @@ def _systemd_unit(paths: AgentPaths) -> str:
             "[Service]",
             "Type=simple",
             f"WorkingDirectory={BACKEND_ROOT}",
-            f'ExecStart="{_python_executable()}" -m app.workers.analysis.agent_cli run',
+            f'ExecStart="{_python_executable()}" -m app.workers.analysis.agent_cli '
+            f'run --env-file "{env_file}"',
             "Restart=always",
             "RestartSec=5",
             f"StandardOutput=append:{paths.stdout}",
@@ -392,9 +400,13 @@ def _systemd_unit(paths: AgentPaths) -> str:
     )
 
 
-def _windows_task_xml() -> str:
+def _windows_task_xml(env_file: Path = DEFAULT_ENV_FILE) -> str:
     command = escape(str(_python_executable()))
     working = escape(str(BACKEND_ROOT))
+    environment = escape(str(env_file), {'"': "&quot;"})
+    arguments = (
+        f"-m app.workers.analysis.agent_cli run --env-file &quot;{environment}&quot;"
+    )
     return f"""<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <RegistrationInfo>
@@ -414,7 +426,7 @@ def _windows_task_xml() -> str:
   <Actions Context="Author">
     <Exec>
       <Command>{command}</Command>
-      <Arguments>-m app.workers.analysis.agent_cli run</Arguments>
+      <Arguments>{arguments}</Arguments>
       <WorkingDirectory>{working}</WorkingDirectory>
     </Exec>
   </Actions>

@@ -12,6 +12,16 @@ uv run python -m app.workers.analysis.agent_cli status
 
 macOS/Linux 使用相同的 `uv run python ...` 命令。`doctor` 必须先成功；它会按活动 Provider 检查 Codex/Claude CLI 或 DeepSeek 适配器、FFmpeg、FFprobe，以及 `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` 对固定就绪探针的读取权限。
 
+命令默认读取仓库根目录 `.env`。若业务服务使用 `.env.prod`，必须让宿主机 Agent
+读取同一文件，不能把开发 Agent 接到生产 API：
+
+```powershell
+uv run python -m app.workers.analysis.agent_cli doctor --env-file ../.env.prod
+uv run python -m app.workers.analysis.agent_cli install --env-file ../.env.prod
+```
+
+`install` 会把环境文件的绝对路径写入系统服务参数，重启和登录后仍保持同一环境。
+
 `install` 是幂等更新命令：它会先确认当前项目 Agent 已停止，再写入并启动最新服务定义，最后验证服务确实处于运行状态。三个平台共用同一把当前用户进程锁；即使误执行第二个 `agent_cli run` 或直接启动 Worker，后启动的进程也会立即退出，不会形成两个队列消费者。服务管理器停止、启动或状态确认失败时命令直接失败，不会继续覆盖定义或伪报成功。
 
 从旧版本首次升级时，`install` 和 `uninstall` 会一次性处理已删除的旧启动入口：macOS 只停止标签、Python、工作目录和模块都与本项目严格匹配的旧 LaunchAgent；Linux 只停止 PID 文件、进程参数和工作目录都严格匹配的旧 Worker。任一身份校验失败都会拒绝发送信号并要求人工核对，不会按模糊进程名结束其他程序。

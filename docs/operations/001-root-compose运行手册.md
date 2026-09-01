@@ -121,12 +121,18 @@ curl --fail http://127.0.0.1:8111/health/ready
 
 ## AI Worker
 
-AI Worker 继续运行在宿主机，不由 Compose 启动。确保根目录 `.env` 是该宿主机 Agent 可达的连接配置后，使用唯一的跨平台管理入口：
+AI Worker 继续运行在宿主机，不由 Compose 启动。Agent 必须读取与业务 Compose 相同的环境文件；本地组合使用默认 `.env`，生产组合显式传入 `.env.prod`：
 
 ~~~bash
 cd backend
 uv run python -m app.workers.analysis.agent_cli doctor
 uv run python -m app.workers.analysis.agent_cli install
+uv run python -m app.workers.analysis.agent_cli status
+~~~
+
+~~~bash
+uv run python -m app.workers.analysis.agent_cli doctor --env-file ../.env.prod
+uv run python -m app.workers.analysis.agent_cli install --env-file ../.env.prod
 uv run python -m app.workers.analysis.agent_cli status
 ~~~
 

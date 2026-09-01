@@ -130,6 +130,13 @@ uv run python -m app.workers.analysis.agent_cli install
 uv run python -m app.workers.analysis.agent_cli status
 ```
 
+生产业务使用 `.env.prod` 时，宿主机 Agent 必须读取同一环境文件：
+
+```bash
+uv run python -m app.workers.analysis.agent_cli doctor --env-file ../.env.prod
+uv run python -m app.workers.analysis.agent_cli install --env-file ../.env.prod
+```
+
 不要把 Codex/Claude OAuth 目录复制或挂载进容器。启用第三方模型前，请使用已获授权样本完成 canary，并确认模型服务条款和组织数据策略。
 
 ## 架构
