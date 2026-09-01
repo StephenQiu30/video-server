@@ -6,6 +6,7 @@ from pathlib import Path
 
 from app.domain.downloads import (
     CandidateStream,
+    Container,
     FormatSelectionError,
     ProviderHints,
     select_streams,
@@ -25,6 +26,7 @@ from app.runner.contracts import (
     TaskStatusResponse,
 )
 from app.runner.errors import RunnerFailure
+from app.runner.gallery import download_gallery_zip
 from app.runner.inspection_pipeline import RunnerInspectionPipeline
 from app.runner.metadata import (
     build_download_options,
@@ -112,11 +114,15 @@ class MediaRunnerService:
                             context=context,
                             cookie_jar=cookie_jar,
                         )
-                        plans = build_download_options(
-                            inspection.streams,
-                            max_options=self._settings.runner_max_options,
+                        plans = (
+                            build_download_options(
+                                inspection.streams,
+                                max_options=self._settings.runner_max_options,
+                            )
+                            if inspection.media_kind.value == "video"
+                            else ()
                         )
-                        if not plans:
+                        if inspection.media_kind.value == "video" and not plans:
                             raise RunnerFailure("format_unavailable", status=409)
                         thumbnail_data_url = await self._thumbnails.fetch(
                             inspection.thumbnail_urls,
@@ -208,6 +214,43 @@ class MediaRunnerService:
             provider_media_id=request.expected_provider_media_id,
             extractor_key=request.expected_extractor_key,
         )
+        if inspection.media_kind.value == "image_gallery":
+            if request.media_kind.value != "image_gallery":
+                raise RunnerFailure("source_changed", status=409)
+            artifact = workspace.path / "artifact.zip"
+            self._active.update(request.task_id, RunnerTaskStage.DOWNLOADING, 10)
+            count = await download_gallery_zip(
+                inspection.gallery_assets,
+                artifact,
+                workspace,
+                title=inspection.title,
+                referer=source.source_url,
+                commands=self._commands,
+                max_asset_bytes=self._settings.runner_max_gallery_asset_bytes,
+                max_assets=self._settings.runner_max_gallery_assets,
+            )
+            workspace.validate_usage()
+            output = workspace.validate_outputs([artifact.name])[0]
+            self._active.update(request.task_id, RunnerTaskStage.VERIFYING, 90)
+            digest = await asyncio.to_thread(file_sha256, artifact)
+            return DownloadResponse(
+                task_id=request.task_id,
+                workspace_path=str(workspace.path),
+                artifact=ArtifactContract(
+                    relative_path=artifact.name,
+                    size_bytes=output.size,
+                    sha256=digest,
+                    duration_seconds=0,
+                    container=Container.ZIP,
+                    video_streams=0,
+                    audio_streams=0,
+                    media_kind=request.media_kind,
+                    asset_count=count,
+                ),
+                selection=None,
+            )
+        if request.plan is None or request.media_kind.value != "video":
+            raise RunnerFailure("source_changed", status=409)
         plan = request.plan.to_domain()
         try:
             # Provider format ids are only short-lived hints. Re-inspection is

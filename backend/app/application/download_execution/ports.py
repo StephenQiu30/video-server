@@ -7,7 +7,7 @@ from typing import Protocol
 from uuid import UUID
 
 from app.application.downloads import EncryptedUrl
-from app.domain.downloads import DownloadPlan, DownloadStage
+from app.domain.downloads import DownloadPlan, DownloadStage, MediaKind
 from app.domain.providers import ProviderAccessContextRef
 
 from .models import ArtifactDetails
@@ -90,6 +90,12 @@ class RunnerArtifactView(Protocol):
     @property
     def audio_streams(self) -> int: ...
 
+    @property
+    def media_kind(self) -> MediaKind: ...
+
+    @property
+    def asset_count(self) -> int: ...
+
 
 class RunnerProgressView(Protocol):
     @property
@@ -152,11 +158,12 @@ class ExecutionRunner(Protocol):
         self,
         task_id: str,
         url: str,
-        plan: DownloadPlan,
+        plan: DownloadPlan | None,
         *,
         expected_provider_media_id: str,
         expected_extractor_key: str,
         access_context: ProviderAccessContextRef,
+        media_kind: MediaKind = MediaKind.VIDEO,
     ) -> RunnerArtifactView: ...
 
     async def status(self, task_id: str) -> RunnerProgressView: ...

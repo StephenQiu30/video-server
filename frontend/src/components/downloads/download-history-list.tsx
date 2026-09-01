@@ -101,7 +101,7 @@ function HistoryRow({
     >
       <ItemMedia className="self-center">
         <MediaCover
-          alt={`${item.title} 视频封面`}
+          alt={`${item.title} 媒体封面`}
           className="w-24 rounded-md ring-0 sm:w-32"
           src={item.thumbnail_url}
         />

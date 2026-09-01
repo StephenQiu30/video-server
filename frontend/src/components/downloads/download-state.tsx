@@ -116,7 +116,7 @@ export default function DownloadState({
             ) : (
               <DownloadSimple />
             )}
-            获取视频文件
+            {job.media_kind === 'image_gallery' ? '获取图集 ZIP' : '获取视频文件'}
           </Button>
         ) : null}
         {retryable ? (

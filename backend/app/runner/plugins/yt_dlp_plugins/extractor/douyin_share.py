@@ -11,6 +11,8 @@ from yt_dlp.networking.exceptions import (  # type: ignore[import-untyped]
 )
 from yt_dlp.utils import ExtractorError, int_or_none  # type: ignore[import-untyped]
 
+from .douyin_note import DouyinNoteIE
+
 _SHARE_PAGE = "https://www.iesdouyin.com/share/video/{video_id}/"
 _DOUYIN_SHORT_URL = r"https?://v\.douyin\.com/(?P<id>[A-Za-z0-9_-]+)/?(?:[?#]|$)"
 _ALLOWED_SHARE_HOSTS = frozenset(
@@ -24,7 +26,6 @@ _ALLOWED_SHARE_HOSTS = frozenset(
     }
 )
 _LINK_UNAVAILABLE = "Douyin official share link unavailable"
-_NOTE_UNSUPPORTED = "Douyin official note is not a supported single video"
 _LINK_TEMPORARY = "Douyin official share link temporarily unavailable"
 _LINK_SCHEMA_CHANGED = "Douyin official share link response structure changed"
 _LINK_VERIFICATION_REQUIRED = "Douyin official share link verification required"
@@ -63,12 +64,22 @@ class DouyinOfficialShortIE(InfoExtractor):  # type: ignore[misc]
         if not _allowed_share_url(redirected):
             raise ExtractorError(_LINK_UNAVAILABLE, video_id=share_id, expected=True)
         if _is_official_note_url(redirected):
-            raise ExtractorError(_NOTE_UNSUPPORTED, video_id=share_id, expected=True)
+            normalized = _canonical_note_url(redirected)
+            if normalized is None:
+                raise ExtractorError(
+                    _LINK_UNAVAILABLE, video_id=share_id, expected=True
+                )
+            return cast(
+                dict[str, Any], self.url_result(normalized, ie=DouyinNoteIE.ie_key())
+            )
 
         normalized = _canonical_video_url(redirected)
         if normalized is None or not _DouyinSharePageIE.suitable(normalized):
             raise ExtractorError(_LINK_UNAVAILABLE, video_id=share_id, expected=True)
-        return self.url_result(normalized, ie=_DouyinSharePageIE.ie_key())
+        return cast(
+            dict[str, Any],
+            self.url_result(normalized, ie=_DouyinSharePageIE.ie_key()),
+        )
 
 
 def _correct_download_addr_dimensions(
@@ -214,6 +225,17 @@ def _canonical_video_url(url: str) -> str | None:
         modal_ids = [value[9:] for value in query if value.startswith("modal_id=")]
         if len(modal_ids) == 1 and modal_ids[0].isdigit():
             return f"https://www.douyin.com/video/{modal_ids[0]}"
+    return None
+
+
+def _canonical_note_url(url: str) -> str | None:
+    parsed = urlsplit(url)
+    path = parsed.path.rstrip("/")
+    for prefix in ("/note/", "/share/note/"):
+        note_id = path.removeprefix(prefix)
+        if note_id != path and note_id.isdigit():
+            query = f"?{parsed.query}" if parsed.query else ""
+            return f"https://www.iesdouyin.com/share/note/{note_id}/{query}"
     return None
 
 

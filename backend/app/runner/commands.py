@@ -18,6 +18,7 @@ from app.runner.provider_errors import (
 )
 from app.runner.provider_registry import ProviderRequest, provider_request
 from app.runner.settings import RunnerSettings
+from app.runner.utilities import safe_media_url
 from app.runner.workspace_monitor import (
     WorkspaceLimitExceeded,
     run_with_workspace_limit,
@@ -143,6 +144,59 @@ class MediaCommands:
         )
         if not output.is_file() or output.is_symlink():
             raise RunnerFailure("download_failed", status=502)
+
+    async def download_public_asset(
+        self,
+        url: str,
+        output: Path,
+        cwd: Path,
+        *,
+        referer: str,
+        max_bytes: int,
+    ) -> str:
+        """Fetch one already-authorized public image through the provider egress."""
+        del cwd
+        safe_url = safe_media_url(url)
+        try:
+            selected_proxy = self._egress_proxy(referer)
+            async with httpx.AsyncClient(
+                proxy=selected_proxy,
+                trust_env=False,
+                follow_redirects=True,
+                timeout=self._settings.runner_download_timeout_seconds,
+            ) as client:
+                async with client.stream(
+                    "GET",
+                    safe_url,
+                    headers={
+                        "Referer": referer,
+                        "User-Agent": _REMOTE_PROBE_USER_AGENT,
+                    },
+                ) as response:
+                    safe_media_url(str(response.url))
+                    if response.status_code != 200:
+                        raise RunnerFailure("download_failed", status=502)
+                    content_length = response.headers.get("content-length")
+                    if content_length is not None:
+                        try:
+                            if int(content_length) > max_bytes:
+                                raise RunnerFailure(
+                                    "workspace_limit_exceeded", status=413
+                                )
+                        except ValueError:
+                            pass
+                    total = 0
+                    with output.open("wb") as handle:
+                        async for chunk in response.aiter_bytes():
+                            total += len(chunk)
+                            if total > max_bytes:
+                                raise RunnerFailure(
+                                    "workspace_limit_exceeded", status=413
+                                )
+                            handle.write(chunk)
+                    return str(response.headers.get("content-type", ""))
+        except httpx.HTTPError as exc:
+            raise RunnerFailure("download_failed", status=502) from exc
 
     async def download_probe_sample(
         self,

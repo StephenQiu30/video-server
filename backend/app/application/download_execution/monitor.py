@@ -8,7 +8,7 @@ from datetime import timedelta
 from typing import Any, TypeVar
 from uuid import UUID
 
-from app.domain.downloads import DownloadPlan, DownloadStage
+from app.domain.downloads import DownloadPlan, DownloadStage, MediaKind
 from app.domain.providers import ProviderAccessContextRef
 
 from .errors import LeaseInfrastructureError, LeaseLost
@@ -58,11 +58,12 @@ class LeaseMonitor:
     async def run_download(
         self,
         url: str,
-        plan: DownloadPlan,
+        plan: DownloadPlan | None,
         *,
         provider_media_id: str,
         extractor_key: str,
         access_context: ProviderAccessContextRef,
+        media_kind: MediaKind = MediaKind.VIDEO,
     ) -> RunnerArtifactView:
         task = asyncio.create_task(
             self._runner.download(
@@ -72,6 +73,7 @@ class LeaseMonitor:
                 expected_provider_media_id=provider_media_id,
                 expected_extractor_key=extractor_key,
                 access_context=access_context,
+                media_kind=media_kind,
             )
         )
         progress = _ProgressState()

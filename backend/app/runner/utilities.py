@@ -32,6 +32,7 @@ def normalize_for_settings(
         payload,
         max_duration_seconds=settings.runner_max_duration_seconds,
         max_candidate_streams=settings.runner_max_candidate_streams,
+        max_gallery_assets=settings.runner_max_gallery_assets,
     )
 
 

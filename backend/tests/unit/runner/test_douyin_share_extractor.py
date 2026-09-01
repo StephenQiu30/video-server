@@ -8,8 +8,10 @@ from typing import Any
 
 import pytest
 from app.runner.plugins.yt_dlp_plugins.extractor.douyin_share import (
+    DouyinNoteIE,
     DouyinOfficialShortIE,
     _allowed_share_url,
+    _canonical_note_url,
     _canonical_video_url,
     _correct_download_addr_dimensions,
     _DouyinSharePageIE,
@@ -152,11 +154,192 @@ def test_official_short_link_identifies_graphic_note_redirect(
         ),
     )
 
-    with pytest.raises(
-        ExtractorError,
-        match="official note is not a supported single video",
-    ):
-        extractor._real_extract(SHORT_URL)
+    result = extractor._real_extract(SHORT_URL)
+
+    assert result["url"] == (
+        "https://www.iesdouyin.com/share/note/7680102712177097642/"
+    )
+    assert result["ie_key"] == DouyinNoteIE.ie_key()
+
+
+def test_official_note_redirect_keeps_share_context_for_resolution() -> None:
+    assert _canonical_note_url(
+        "https://www.iesdouyin.com/share/note/123/?share_sign=opaque&ts=1"
+    ) == (
+        "https://www.iesdouyin.com/share/note/123/?share_sign=opaque&ts=1"
+    )
+
+
+def test_douyin_note_extracts_official_slides_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    extractor = DouyinNoteIE()
+    requests: list[tuple[str, str, dict[str, object]]] = []
+
+    def download_json(
+        url: str,
+        note_id: str,
+        **kwargs: object,
+    ) -> dict[str, object]:
+        requests.append((url, note_id, kwargs))
+        return {
+            "aweme_details": [
+                {
+                    "aweme_id": note_id,
+                    "desc": "官方图文\n作品",
+                    "images": [
+                        {
+                            "url_list": [
+                                "https://cdn.test/preview.jpg",
+                                "https://cdn.test/original.jpg",
+                            ],
+                            "width": 1080,
+                            "height": 1440,
+                        },
+                        {
+                            "url_list": ["https://cdn.test/original.png"],
+                            "mime_type": "image/png",
+                        },
+                    ],
+                }
+            ]
+        }
+
+    monkeypatch.setattr(extractor, "_download_json", download_json)
+
+    info = extractor._real_extract(
+        "https://www.iesdouyin.com/share/note/7680102712177097642/"
+    )
+
+    assert info["title"] == "官方图文 作品"
+    assert info["media_kind"] == "image_gallery"
+    assert info["thumbnail"] == "https://cdn.test/original.jpg"
+    assert info["assets"] == [
+        {
+            "url": "https://cdn.test/original.jpg",
+            "extension": "jpg",
+            "width": 1080,
+            "height": 1440,
+        },
+        {
+            "url": "https://cdn.test/original.png",
+            "extension": "png",
+            "width": None,
+            "height": None,
+        },
+    ]
+    assert requests[0][0].endswith("/aweme/slidesinfo/")
+    assert requests[0][2]["query"] == {
+        "aweme_ids": "7680102712177097642",
+        "aweme_type": "68",
+        "aid": "1128",
+        "request_source": "note",
+    }
+
+
+def test_douyin_note_forwards_official_share_context(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    extractor = DouyinNoteIE()
+    calls: list[dict[str, object]] = []
+
+    def download_json(
+        _url: str,
+        _note_id: str,
+        **kwargs: object,
+    ) -> dict[str, object]:
+        calls.append(kwargs)
+        return {
+            "aweme_details": [
+                {
+                    "aweme_id": "123",
+                    "images": [{"url_list": ["https://cdn.test/original.jpg"]}],
+                }
+            ]
+        }
+
+    monkeypatch.setattr(extractor, "_download_json", download_json)
+
+    extractor._real_extract(
+        "https://www.iesdouyin.com/share/note/123/?share_sign=opaque&ts=1"
+    )
+
+    assert calls[0]["query"] == {
+        "share_sign": "opaque",
+        "ts": "1",
+        "aweme_ids": "123",
+        "aweme_type": "68",
+        "aid": "1128",
+        "request_source": "note",
+    }
+
+
+def test_douyin_note_uses_iteminfo_when_slides_api_is_empty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    extractor = DouyinNoteIE()
+    calls: list[str] = []
+
+    def download_json(url: str, *_args: object, **_kwargs: object) -> object:
+        calls.append(url)
+        if url.endswith("/slidesinfo/"):
+            return {"aweme_details": None}
+        return {
+            "item_list": [
+                {
+                    "aweme_id": "123",
+                    "note_info": {
+                        "images": [
+                            {"url_list": ["https://cdn.test/iteminfo.webp"]}
+                        ]
+                    },
+                }
+            ]
+        }
+
+    monkeypatch.setattr(extractor, "_download_json", download_json)
+
+    info = extractor._real_extract("https://www.douyin.com/note/123")
+
+    assert info["media_kind"] == "image_gallery"
+    assert info["assets"][0]["extension"] == "webp"
+    assert calls == [
+        "https://www.iesdouyin.com/web/api/v2/aweme/slidesinfo/",
+        "https://www.iesdouyin.com/web/api/v2/aweme/iteminfo/",
+    ]
+
+
+def test_douyin_note_accepts_video_media_from_note_route(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    extractor = DouyinNoteIE()
+    monkeypatch.setattr(
+        extractor,
+        "_download_json",
+        lambda *_args, **_kwargs: {
+            "aweme_details": [
+                {
+                    "aweme_id": "123",
+                    "desc": "官方视频笔记",
+                    "video": {"play_addr": {"url_list": ["https://cdn.test/video"]}},
+                }
+            ]
+        },
+    )
+    monkeypatch.setattr(
+        extractor,
+        "_parse_aweme_video_app",
+        lambda _item: {
+            "formats": [{"format_id": "muxed", "url": "https://cdn.test/video"}]
+        },
+    )
+
+    info = extractor._real_extract("https://www.douyin.com/note/123")
+
+    assert info["id"] == "123"
+    assert info["title"] == "官方视频笔记"
+    assert info.get("media_kind") is None
+    assert info["formats"][0]["url"] == "https://cdn.test/video"
 
 
 def test_official_short_link_transport_failure_is_temporary(

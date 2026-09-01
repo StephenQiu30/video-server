@@ -70,6 +70,10 @@ class RunnerSettings(BaseSettings):
     runner_max_output_files: int = Field(default=3, ge=1, le=10)
     runner_max_output_bytes: int = Field(default=20 * 1024**3, ge=1024)
     runner_max_workspace_bytes: int = Field(default=40 * 1024**3, ge=1024)
+    runner_max_gallery_assets: int = Field(default=100, ge=1, le=1000)
+    runner_max_gallery_asset_bytes: int = Field(
+        default=25 * 1024**2, ge=64 * 1024, le=512 * 1024**2
+    )
     runner_max_candidate_streams: int = Field(default=200, ge=1, le=1000)
     runner_max_options: int = Field(default=50, ge=1, le=200)
     runner_max_thumbnail_bytes: int = Field(

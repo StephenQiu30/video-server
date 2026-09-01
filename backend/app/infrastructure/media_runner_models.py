@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from app.domain.downloads import DownloadStage
+from app.domain.downloads import DownloadStage, MediaKind
 from app.runner.contracts import RunnerTaskStage
 
 
@@ -25,6 +25,8 @@ class RunnerArtifact:
     container: str
     video_streams: int
     audio_streams: int
+    media_kind: MediaKind = MediaKind.VIDEO
+    asset_count: int = 0
 
 
 @dataclass(frozen=True, slots=True)

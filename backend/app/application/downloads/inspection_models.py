@@ -10,6 +10,7 @@ from app.domain.downloads import (
     EntitlementState,
     ExecutionMode,
     IdentityState,
+    MediaKind,
     ProtectionState,
     RightsBasis,
     SourceOrigin,
@@ -31,7 +32,9 @@ class EncryptedUrl:
 @dataclass(frozen=True, slots=True)
 class RunnerFormat:
     display_name: str
-    plan: DownloadPlan
+    plan: DownloadPlan | None
+    media_kind: MediaKind = MediaKind.VIDEO
+    asset_count: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,6 +46,8 @@ class RunnerInspection:
     formats: tuple[RunnerFormat, ...]
     access_context: ProviderAccessContextRef
     thumbnail_data_url: str | None = None
+    media_kind: MediaKind = MediaKind.VIDEO
+    asset_count: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -108,7 +113,7 @@ class InspectionSaveResult:
 class FormatView:
     id: UUID
     display_name: str
-    plan: DownloadPlan
+    plan: DownloadPlan | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -130,3 +135,5 @@ class InspectionView:
     rights_basis: RightsBasis | None = RightsBasis.PUBLIC_ACCESS
     restriction_reason: str | None = None
     user_action: str | None = None
+    media_kind: MediaKind = MediaKind.VIDEO
+    asset_count: int = 0

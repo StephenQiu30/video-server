@@ -23,7 +23,7 @@ from app.application.downloads import (
     MediaInspectionVerificationFailed,
     RunnerInspection,
 )
-from app.domain.downloads import DownloadPlan
+from app.domain.downloads import DownloadPlan, MediaKind
 from app.domain.providers import (
     ProviderAccessContextRef,
     ProviderAccessMode,
@@ -124,11 +124,12 @@ class CanaryRunner(Protocol):
         self,
         task_id: str,
         url: str,
-        plan: DownloadPlan,
+        plan: DownloadPlan | None,
         *,
         expected_provider_media_id: str,
         expected_extractor_key: str,
         access_context: ProviderAccessContextRef,
+        media_kind: MediaKind = MediaKind.VIDEO,
     ) -> RunnerArtifact: ...
 
 
@@ -247,6 +248,8 @@ class ProviderCanaryService:
             # the media canary on the same path so it detects regressions in
             # the format most users actually download.
             canary_format = inspection.formats[0]
+            if canary_format.plan is None:
+                raise MediaRunnerClientError("format_unavailable", 409)
             try:
                 artifact = await self._runner.download(
                     task_id,

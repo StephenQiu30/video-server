@@ -9,7 +9,7 @@ from app.application.downloads import (
     MediaInspectionFailure,
     RunnerInspection,
 )
-from app.domain.downloads import DownloadPlan
+from app.domain.downloads import DownloadPlan, MediaKind
 from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
 from app.infrastructure.media_runner import MediaRunnerClient
 from app.infrastructure.media_runner_models import (
@@ -62,11 +62,12 @@ class ProviderCanaryRunner:
         self,
         task_id: str,
         url: str,
-        plan: DownloadPlan,
+        plan: DownloadPlan | None,
         *,
         expected_provider_media_id: str,
         expected_extractor_key: str,
         access_context: ProviderAccessContextRef,
+        media_kind: MediaKind = MediaKind.VIDEO,
     ) -> RunnerArtifact:
         client = self._client_for_context(access_context)
         return await client.download(
@@ -76,6 +77,7 @@ class ProviderCanaryRunner:
             expected_provider_media_id=expected_provider_media_id,
             expected_extractor_key=expected_extractor_key,
             access_context=access_context,
+            media_kind=media_kind,
         )
 
     async def close(self) -> None:

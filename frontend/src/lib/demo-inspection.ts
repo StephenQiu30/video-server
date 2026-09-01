@@ -6,6 +6,8 @@ export const demoInspection: Inspection = {
   provider_media_id: 'alpine-lake-demo',
   title: '群山与湖泊的早晨',
   duration_seconds: 337,
+  media_kind: 'video',
+  asset_count: 0,
   thumbnail_url: '/images/media-preview-mountain.webp',
   expires_at: '2026-08-09T11:30:00+08:00',
   source_origin: 'public_url',

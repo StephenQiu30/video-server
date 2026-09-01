@@ -11,7 +11,7 @@ import { markNavigationPush } from '@/components/layout/navigation-history';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDownloadJob } from '@/hooks/useDownloadJob';
-import type { SemanticPlan } from '@/types/video';
+import type { MediaKind, SemanticPlan } from '@/types/video';
 import { formatDuration } from '@/utils/format';
 
 export default function DownloadJobView({
@@ -24,7 +24,8 @@ export default function DownloadJobView({
   const router = useRouter();
   const state = useDownloadJob(jobId, pollIntervalMs);
   const format = state.job?.format ?? undefined;
-  const title = state.job?.title ?? state.job?.source_label ?? '视频下载任务';
+  const gallery = state.job?.media_kind === 'image_gallery';
+  const title = state.job?.title ?? state.job?.source_label ?? '媒体下载任务';
   const thumbnail = state.job?.thumbnail_url ?? null;
   const extractor = state.job?.extractor_key ?? null;
   const sourceLabel = state.job?.source_label ?? null;
@@ -74,12 +75,19 @@ export default function DownloadJobView({
             <p className="mt-4 text-sm text-muted-foreground">
               {sourceLabel ? `${sourceLabel} · ` : ''}
               {extractor && extractor !== sourceLabel ? `${extractor} · ` : ''}
-              {formatLabel(format, duration)}
+              {formatLabel(
+                format,
+                duration,
+                state.job?.media_kind,
+                state.job?.asset_count,
+              )}
             </p>
           </header>
           <section className="mt-8 grid items-start gap-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.65fr)] lg:gap-16 xl:gap-24">
             <div className="min-w-0">
-              {state.job.status === 'succeeded' && state.job.file_available ? (
+              {state.job.status === 'succeeded' &&
+              state.job.file_available &&
+              !gallery ? (
                 <DownloadVideoPreview
                   container={
                     format?.container_preference === 'mp4' ||
@@ -93,7 +101,7 @@ export default function DownloadJobView({
                 />
               ) : (
                 <MediaCover
-                  alt={`${title}封面`}
+                  alt={`${title}媒体封面`}
                   className="rounded-none ring-0"
                   pending={
                     !['succeeded', 'failed', 'cancelled'].includes(
@@ -175,7 +183,15 @@ function DownloadJobSkeleton() {
   );
 }
 
-function formatLabel(format?: SemanticPlan, duration?: number) {
+function formatLabel(
+  format: SemanticPlan | null | undefined,
+  duration: number | undefined,
+  mediaKind: MediaKind | undefined,
+  assetCount: number | undefined,
+) {
+  if (mediaKind === 'image_gallery') {
+    return `${assetCount ?? 0} 张原图 · ZIP`;
+  }
   if (!format) return duration ? formatDuration(duration) : '正在读取媒体信息';
   return `${format.width}×${format.height} · ${format.video_codec_family.toUpperCase()} + ${format.audio_codec_family.toUpperCase()}${duration ? ` · ${formatDuration(duration)}` : ''}`;
 }

@@ -58,20 +58,35 @@ export default function FormatPicker({
             >
               <RadioGroupItem id={format.id} value={format.id} />
               <span className="min-w-0">
-                <span className="flex items-baseline gap-2">
-                  <strong className="text-[15px] tracking-[-0.02em]">
-                    {plan.height}P
-                  </strong>
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {plan.container_preference.toUpperCase()}
-                  </span>
-                </span>
-                <span className="mt-1 block truncate text-xs text-muted-foreground">
-                  {plan.width}×{plan.height} ·{' '}
-                  {plan.video_codec_family.toUpperCase()} ·{' '}
-                  {plan.audio_codec_family.toUpperCase()} ·{' '}
-                  {fpsLabels[plan.fps_bucket]}
-                </span>
+                {plan ? (
+                  <>
+                    <span className="flex items-baseline gap-2">
+                      <strong className="text-[15px] tracking-[-0.02em]">
+                        {plan.height}P
+                      </strong>
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {plan.container_preference.toUpperCase()}
+                      </span>
+                    </span>
+                    <span className="mt-1 block truncate text-xs text-muted-foreground">
+                      {plan.width}×{plan.height} ·{' '}
+                      {plan.video_codec_family.toUpperCase()} ·{' '}
+                      {plan.audio_codec_family.toUpperCase()} ·{' '}
+                      {fpsLabels[plan.fps_bucket]}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex items-baseline gap-2">
+                      <strong className="text-[15px] tracking-[-0.02em]">
+                        {format.display_name}
+                      </strong>
+                    </span>
+                    <span className="mt-1 block truncate text-xs text-muted-foreground">
+                      官方图文 · 原图 ZIP
+                    </span>
+                  </>
+                )}
               </span>
             </FieldLabel>
           </div>

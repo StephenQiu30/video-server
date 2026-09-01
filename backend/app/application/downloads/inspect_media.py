@@ -51,6 +51,7 @@ from app.application.downloads.validation import (
     validate_owner_hash,
 )
 from app.application.downloads.views import inspection_view
+from app.domain.downloads import MediaKind
 
 
 class InspectMedia:
@@ -146,14 +147,24 @@ class InspectMedia:
             raise ApplicationError(ApplicationErrorCode.INSPECTION_TIMEOUT) from exc
         except MediaInspectionFailure as exc:
             raise ApplicationError(ApplicationErrorCode.INSPECTION_FAILED) from exc
-        if result.duration_seconds <= 0:
+        if result.media_kind is MediaKind.VIDEO and result.duration_seconds <= 0:
             raise ApplicationError(ApplicationErrorCode.INSPECTION_FAILED)
-        if result.duration_seconds > self._max_duration:
+        if result.media_kind is MediaKind.IMAGE_GALLERY and result.asset_count <= 0:
+            raise ApplicationError(ApplicationErrorCode.INSPECTION_FAILED)
+        if (
+            result.media_kind is MediaKind.VIDEO
+            and result.duration_seconds > self._max_duration
+        ):
             raise ApplicationError(ApplicationErrorCode.DURATION_LIMIT_EXCEEDED)
 
         now = validate_now(self._now())
         expires_at = now + self._ttl
-        formats = self._formats(result.formats, expires_at)
+        formats = self._formats(
+            result.formats,
+            expires_at,
+            media_kind=result.media_kind,
+            asset_count=result.asset_count,
+        )
         if not formats:
             raise ApplicationError(ApplicationErrorCode.FORMAT_UNAVAILABLE)
         envelope = self._url_cipher.encrypt(validated_url)
@@ -227,10 +238,32 @@ class InspectMedia:
         return inspection_view(saved.inspection)
 
     def _formats(
-        self, formats: tuple[RunnerFormat, ...], expires_at: datetime
+        self,
+        formats: tuple[RunnerFormat, ...],
+        expires_at: datetime,
+        *,
+        media_kind: MediaKind,
+        asset_count: int,
     ) -> tuple[FormatCreate, ...]:
+        if media_kind is MediaKind.IMAGE_GALLERY:
+            semantic = {
+                "media_kind": media_kind.value,
+                "asset_count": asset_count,
+            }
+            return (
+                FormatCreate(
+                    id=self._new_id(),
+                    display_name=f"{asset_count} 张原图（ZIP）",
+                    plan_fingerprint=plan_fingerprint(semantic),
+                    semantic_plan=semantic,
+                    provider_hints={},
+                    expires_at=expires_at,
+                ),
+            )
         unique: dict[str, FormatCreate] = {}
         for item in formats:
+            if item.plan is None:
+                continue
             semantic, hints = plan_to_documents(item.plan)
             fingerprint = plan_fingerprint(semantic)
             unique.setdefault(
@@ -258,6 +291,9 @@ def _inspection_metadata(result: RunnerInspection) -> dict[str, object]:
     metadata: dict[str, object] = {
         "provider_access_context": result.access_context.to_document()
     }
+    if result.media_kind is MediaKind.IMAGE_GALLERY:
+        metadata["media_kind"] = result.media_kind.value
+        metadata["asset_count"] = result.asset_count
     if result.thumbnail_data_url is not None:
         metadata["thumbnail_url"] = result.thumbnail_data_url
     return metadata

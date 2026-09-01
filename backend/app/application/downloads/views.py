@@ -31,6 +31,7 @@ from app.domain.downloads import (
     EntitlementState,
     ExecutionMode,
     IdentityState,
+    MediaKind,
     ProtectionState,
     RightsBasis,
     SourceOrigin,
@@ -38,13 +39,18 @@ from app.domain.downloads import (
 
 
 def inspection_view(snapshot: InspectionSnapshot) -> InspectionView:
+    media_kind = _media_kind(snapshot.metadata)
     try:
         formats = tuple(
             FormatView(
                 id=item.id,
                 display_name=item.display_name,
-                plan=public_plan(
-                    plan_from_documents(item.semantic_plan, item.provider_hints)
+                plan=(
+                    None
+                    if media_kind is MediaKind.IMAGE_GALLERY
+                    else public_plan(
+                        plan_from_documents(item.semantic_plan, item.provider_hints)
+                    )
                 ),
             )
             for item in snapshot.formats
@@ -103,6 +109,8 @@ def inspection_view(snapshot: InspectionSnapshot) -> InspectionView:
         ),
         restriction_reason=_optional_text(snapshot.metadata, "restriction_reason"),
         user_action=_optional_text(snapshot.metadata, "user_action"),
+        media_kind=media_kind,
+        asset_count=_asset_count(snapshot.metadata),
     )
 
 
@@ -166,7 +174,11 @@ def download_view(
     except ValueError as exc:
         raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
     format_plan = None
-    if source_kind is DownloadSourceKind.REMOTE_PROVIDER:
+    media_kind = _media_kind(snapshot.semantic_plan)
+    if (
+        source_kind is DownloadSourceKind.REMOTE_PROVIDER
+        and media_kind is MediaKind.VIDEO
+    ):
         try:
             format_plan = public_plan(plan_from_documents(snapshot.semantic_plan, {}))
         except (TypeError, ValueError) as exc:
@@ -210,4 +222,23 @@ def download_view(
                 presentation.extractor_key if presentation is not None else "链接下载"
             )
         ),
+        media_kind=media_kind,
+        asset_count=_asset_count(snapshot.semantic_plan),
     )
+
+
+def _media_kind(metadata: dict[str, object]) -> MediaKind:
+    value = metadata.get("media_kind", MediaKind.VIDEO.value)
+    if not isinstance(value, str):
+        raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR)
+    try:
+        return MediaKind(value)
+    except (TypeError, ValueError) as exc:
+        raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
+
+
+def _asset_count(metadata: dict[str, object]) -> int:
+    value = metadata.get("asset_count", 0)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR)
+    return value

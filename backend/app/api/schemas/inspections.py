@@ -18,6 +18,7 @@ from app.domain.downloads import (
     ExecutionMode,
     FpsBucket,
     IdentityState,
+    MediaKind,
     ProtectionState,
     RightsBasis,
     SourceOrigin,
@@ -65,7 +66,7 @@ class SemanticPlanResponse(StrictModel):
 class FormatResponse(StrictModel):
     id: UUID
     display_name: str
-    plan: SemanticPlanResponse
+    plan: SemanticPlanResponse | None
 
 
 class InspectionResponse(StrictModel):
@@ -76,6 +77,8 @@ class InspectionResponse(StrictModel):
     provider_media_id: str
     title: str
     duration_seconds: int
+    media_kind: MediaKind
+    asset_count: int
     thumbnail_url: str | None
     expires_at: datetime
     formats: tuple[FormatResponse, ...]
@@ -97,22 +100,28 @@ class InspectionResponse(StrictModel):
             provider_media_id=view.provider_media_id,
             title=view.title,
             duration_seconds=view.duration_seconds,
+            media_kind=view.media_kind,
+            asset_count=view.asset_count,
             thumbnail_url=view.thumbnail_url,
             expires_at=view.expires_at,
             formats=tuple(
                 FormatResponse(
                     id=item.id,
                     display_name=item.display_name,
-                    plan=SemanticPlanResponse(
-                        height=item.plan.height,
-                        width=item.plan.width,
-                        fps_bucket=item.plan.fps_bucket,
-                        dynamic_range=item.plan.dynamic_range,
-                        video_codec_family=item.plan.video_codec_family,
-                        audio_codec_family=item.plan.audio_codec_family,
-                        audio_language=item.plan.audio_language,
-                        container_preference=item.plan.container_preference,
-                        compatibility_profile=item.plan.compatibility_profile,
+                    plan=(
+                        None
+                        if item.plan is None
+                        else SemanticPlanResponse(
+                            height=item.plan.height,
+                            width=item.plan.width,
+                            fps_bucket=item.plan.fps_bucket,
+                            dynamic_range=item.plan.dynamic_range,
+                            video_codec_family=item.plan.video_codec_family,
+                            audio_codec_family=item.plan.audio_codec_family,
+                            audio_language=item.plan.audio_language,
+                            container_preference=item.plan.container_preference,
+                            compatibility_profile=item.plan.compatibility_profile,
+                        )
                     ),
                 )
                 for item in view.formats

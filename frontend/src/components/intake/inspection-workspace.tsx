@@ -27,6 +27,7 @@ export default function InspectionWorkspace({
 }: InspectionWorkspaceProps) {
   const selected = inspection.formats.find((item) => item.id === selectedId);
   const downloadable = inspection.access_decision === 'downloadable';
+  const gallery = inspection.media_kind === 'image_gallery';
 
   return (
     <section
@@ -35,7 +36,7 @@ export default function InspectionWorkspace({
     >
       <div className="min-w-0">
         <MediaCover
-          alt={`${inspection.title} 视频封面`}
+          alt={`${inspection.title} 媒体封面`}
           priority
           src={inspection.thumbnail_url}
         />
@@ -50,7 +51,12 @@ export default function InspectionWorkspace({
               value={formatDuration(inspection.duration_seconds)}
             />
           ) : null}
-          {selected ? (
+          {gallery ? (
+            <Meta
+              label="媒体"
+              value={`图文作品 · ${inspection.asset_count} 张原图`}
+            />
+          ) : selected?.plan ? (
             <Meta
               label="当前清晰度"
               value={`${selected.plan.width}×${selected.plan.height}`}
@@ -62,7 +68,9 @@ export default function InspectionWorkspace({
       <div className="min-w-0">
         <h2 className="text-base font-medium">
           {downloadable
-            ? '画质预设'
+            ? gallery
+              ? '下载内容'
+              : '画质预设'
             : decisionTitle(inspection.access_decision)}
         </h2>
         {downloadable ? (
@@ -78,7 +86,7 @@ export default function InspectionWorkspace({
             </p>
           </div>
         )}
-        {selected ? (
+        {selected?.plan ? (
           <dl className="mt-7 grid grid-cols-2 gap-x-5 gap-y-4 pt-5 text-sm">
             <SelectionMeta
               label="容器"
@@ -96,6 +104,16 @@ export default function InspectionWorkspace({
               label="音频编码"
               value={selected.plan.audio_codec_family.toUpperCase()}
             />
+          </dl>
+        ) : gallery && selected ? (
+          <dl className="mt-7 grid grid-cols-2 gap-x-5 gap-y-4 pt-5 text-sm">
+            <SelectionMeta label="媒体类型" value="官方图文" />
+            <SelectionMeta
+              label="内容数量"
+              value={`${inspection.asset_count} 张原图`}
+            />
+            <SelectionMeta label="导出格式" value="ZIP" />
+            <SelectionMeta label="下载方式" value="原图打包" />
           </dl>
         ) : null}
         {inspection.access_decision === 'export_required' ? (

@@ -75,6 +75,8 @@ class ArtifactDelivery:
             media_metadata={
                 "video_streams": artifact.video_streams,
                 "audio_streams": artifact.audio_streams,
+                "media_kind": artifact.media_kind.value,
+                "asset_count": artifact.asset_count,
             },
         )
         return await self._transitions.complete(job_id, attempt, key, details)

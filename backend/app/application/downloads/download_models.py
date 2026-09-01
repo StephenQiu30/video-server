@@ -10,6 +10,7 @@ from app.domain.downloads import (
     DownloadSourceKind,
     DownloadStage,
     DownloadStatus,
+    MediaKind,
 )
 
 
@@ -134,6 +135,8 @@ class DownloadView:
     format_plan: DownloadPlan | None = None
     source_kind: DownloadSourceKind = DownloadSourceKind.REMOTE_PROVIDER
     source_label: str = "链接下载"
+    media_kind: MediaKind = MediaKind.VIDEO
+    asset_count: int = 0
 
 
 @dataclass(frozen=True, slots=True)

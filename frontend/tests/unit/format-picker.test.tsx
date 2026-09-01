@@ -36,4 +36,21 @@ describe('FormatPicker', () => {
     fireEvent.click(screen.getAllByRole('radio')[1]);
     expect(onChange).toHaveBeenCalledWith('format-1');
   });
+
+  it('renders an image gallery as a ZIP option without a video plan', () => {
+    const onChange = vi.fn();
+    const format = {
+      id: 'image-gallery-zip',
+      display_name: '下载 3 张原图（ZIP）',
+      plan: null,
+    };
+
+    render(
+      <FormatPicker formats={[format]} onChange={onChange} selectedId={format.id} />,
+    );
+
+    expect(screen.getByText('下载 3 张原图（ZIP）')).toBeInTheDocument();
+    expect(screen.getByText('官方图文 · 原图 ZIP')).toBeInTheDocument();
+    expect(screen.getByRole('radio')).toBeChecked();
+  });
 });

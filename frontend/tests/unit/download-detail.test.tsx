@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DownloadJobView from '@/components/downloads/download-job-view';
 import { ApiError } from '@/lib/request-error';
 import { analysisSkills } from '../fixtures/analysis-fixtures';
-import { inspection, job } from '../fixtures/download-fixtures';
+import { galleryJob, inspection, job } from '../fixtures/download-fixtures';
 import {
   httpRequests,
   mockHttpError,
@@ -190,6 +190,19 @@ describe('DownloadJobView', () => {
       await screen.findByRole('button', { name: '获取视频文件' }),
     );
     await waitFor(() => expect(click).toHaveBeenCalledOnce());
+  });
+
+  it('presents a completed image note as a ZIP instead of a video preview', async () => {
+    mockHttpResponses(galleryJob('succeeded'), analysisSkills, null, signedVideoUrl);
+    render(<DownloadJobView jobId={galleryJob().id} />);
+
+    expect(
+      await screen.findByRole('heading', { name: '图集文件已就绪' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '获取图集 ZIP' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('region', { name: `${galleryJob().title}视频预览` }),
+    ).not.toBeInTheDocument();
   });
 
   it('offers a new download when a completed file has been cleaned', async () => {

@@ -10,9 +10,15 @@ class StreamKind(StrEnum):
     AUDIO = "audio"
 
 
+class MediaKind(StrEnum):
+    VIDEO = "video"
+    IMAGE_GALLERY = "image_gallery"
+
+
 class Container(StrEnum):
     MP4 = "mp4"
     WEBM = "webm"
+    ZIP = "zip"
     OTHER = "other"
 
 

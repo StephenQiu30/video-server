@@ -5,7 +5,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from app.domain.downloads import CandidateStream, DynamicRange, StreamKind
+from app.domain.downloads import CandidateStream, DynamicRange, MediaKind, StreamKind
 from app.runner.codecs import (
     audio_codec_family,
     container_family,
@@ -17,6 +17,7 @@ from app.runner.url_policy import UrlPolicyError, validate_media_url
 
 __all__ = [
     "MediaInspection",
+    "GalleryAsset",
     "build_download_options",
     "enrich_direct_metadata",
     "enrich_format_metadata",
@@ -34,6 +35,9 @@ class MediaInspection:
     duration_seconds: float
     extractor_key: str
     streams: tuple[CandidateStream, ...]
+    media_kind: MediaKind = MediaKind.VIDEO
+    asset_count: int = 0
+    gallery_assets: tuple[GalleryAsset, ...] = ()
     thumbnail_urls: tuple[str, ...] = ()
     download_info: dict[str, Any] = field(
         default_factory=dict,
@@ -44,6 +48,14 @@ class MediaInspection:
     @property
     def thumbnail_url(self) -> str | None:
         return self.thumbnail_urls[0] if self.thumbnail_urls else None
+
+
+@dataclass(frozen=True, slots=True)
+class GalleryAsset:
+    url: str
+    extension: str
+    width: int | None = None
+    height: int | None = None
 
 
 def normalize_selected_format_metadata(payload: dict[str, Any]) -> dict[str, Any]:
@@ -188,7 +200,13 @@ def normalize_metadata(
     *,
     max_duration_seconds: float,
     max_candidate_streams: int,
+    max_gallery_assets: int = 1000,
 ) -> MediaInspection:
+    if payload.get("media_kind") == MediaKind.IMAGE_GALLERY.value:
+        return normalize_gallery_metadata(
+            payload,
+            max_assets=max_gallery_assets,
+        )
     _validate_source(payload, max_duration_seconds)
     raw_formats = payload.get("formats")
     if not isinstance(raw_formats, list):
@@ -226,6 +244,64 @@ def normalize_metadata(
         extractor_key=extractor,
         streams=tuple(streams),
         thumbnail_urls=_thumbnail_urls(payload),
+        download_info=payload,
+    )
+
+
+def normalize_gallery_metadata(
+    payload: dict[str, Any],
+    *,
+    max_assets: int,
+) -> MediaInspection:
+    raw_assets = payload.get("assets")
+    if not isinstance(raw_assets, list) or not raw_assets:
+        raise RunnerFailure("format_unavailable", status=409)
+    if len(raw_assets) > max_assets:
+        raise RunnerFailure("format_limit_exceeded", status=413)
+
+    assets: list[GalleryAsset] = []
+    for raw in raw_assets:
+        if not isinstance(raw, dict) or not isinstance(raw.get("url"), str):
+            raise RunnerFailure("invalid_inspection_response", status=502)
+        try:
+            url = validate_media_url(raw["url"]).value
+        except UrlPolicyError as exc:
+            raise RunnerFailure("invalid_inspection_response", status=502) from exc
+        extension = str(raw.get("extension") or "jpg").casefold().lstrip(".")
+        if extension not in {"jpg", "jpeg", "png", "webp"}:
+            raise RunnerFailure("invalid_inspection_response", status=502)
+        assets.append(
+            GalleryAsset(
+                url=url,
+                extension="jpg" if extension == "jpeg" else extension,
+                width=_positive_int(raw.get("width")),
+                height=_positive_int(raw.get("height")),
+            )
+        )
+
+    raw_title = str(payload.get("title") or "")
+    title = raw_title.strip()
+    if not title or len(title) > 4096 or any(
+        ord(character) < 32 or ord(character) == 127 for character in raw_title
+    ):
+        raise RunnerFailure("invalid_inspection_response", status=502)
+    extractor = _identity(
+        payload.get("extractor_key") or payload.get("extractor"),
+        max_length=128,
+    )
+    provider_media_id = _identity(payload.get("id"), max_length=256)
+    return MediaInspection(
+        provider_media_id=provider_media_id,
+        title=title,
+        duration_seconds=0,
+        extractor_key=extractor,
+        streams=(),
+        media_kind=MediaKind.IMAGE_GALLERY,
+        asset_count=len(assets),
+        gallery_assets=tuple(assets),
+        thumbnail_urls=_thumbnail_urls(
+            {"thumbnail": payload.get("thumbnail") or assets[0].url}
+        ),
         download_info=payload,
     )
 

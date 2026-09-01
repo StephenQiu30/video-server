@@ -25,11 +25,12 @@ export function statusVariant(status: DownloadStatus) {
 }
 
 export function statusHeading(job: DownloadJob) {
+  const media = job.media_kind === 'image_gallery' ? '图集' : '视频';
   if (job.status === 'queued') return '下载即将开始';
-  if (job.status === 'running') return '正在准备视频文件';
+  if (job.status === 'running') return `正在准备${media}文件`;
   if (job.status === 'retry_wait') return '等待再次尝试';
   if (job.status === 'succeeded') {
-    return job.file_available ? '视频文件已就绪' : '视频文件已清理';
+    return job.file_available ? `${media}文件已就绪` : `${media}文件已清理`;
   }
   if (job.status === 'failed') return '下载没有完成';
   return '下载已取消';
@@ -42,7 +43,9 @@ export function statusDescription(job: DownloadJob) {
   if (job.status === 'retry_wait')
     return '系统会在等待结束后自动继续当前任务。';
   if (job.status === 'succeeded' && job.file_available) {
-    return '视频已经完成校验，可以直接保存到你的设备。';
+    return job.media_kind === 'image_gallery'
+      ? '图集已经完成校验，可以直接保存 ZIP 文件。'
+      : '视频已经完成校验，可以直接保存到你的设备。';
   }
   if (job.status === 'succeeded') return '下载记录仍然保留，可以重新创建任务。';
   if (job.status === 'failed') return '查看失败原因后，可以重新创建下载任务。';

@@ -19,6 +19,7 @@ from app.application.downloads.validation import (
     validate_owner_hash,
 )
 from app.application.downloads.views import download_view
+from app.domain.downloads import MediaKind
 
 
 class CreateDownload:
@@ -66,11 +67,20 @@ class CreateDownload:
             raise ApplicationError(ApplicationErrorCode.NOT_FOUND)
         if now >= selected.expires_at:
             raise ApplicationError(ApplicationErrorCode.RESOURCE_EXPIRED)
-        try:
-            plan = plan_from_documents(selected.semantic_plan, selected.provider_hints)
-        except (TypeError, ValueError) as exc:
-            raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
-        semantic, _ = plan_to_documents(plan)
+        media_kind = _media_kind(inspection.metadata)
+        if media_kind is MediaKind.IMAGE_GALLERY:
+            semantic = {
+                "media_kind": media_kind.value,
+                "asset_count": _asset_count(inspection.metadata),
+            }
+        else:
+            try:
+                plan = plan_from_documents(
+                    selected.semantic_plan, selected.provider_hints
+                )
+            except (TypeError, ValueError) as exc:
+                raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
+            semantic, _ = plan_to_documents(plan)
         command = DownloadCreate(
             id=self._new_id(),
             inspection_id=inspection_id,
@@ -95,3 +105,20 @@ class CreateDownload:
             # the atomic source re-validation inside create_job (TOCTOU window).
             raise ApplicationError(ApplicationErrorCode.NOT_FOUND) from exc
         return download_view(saved.job)
+
+
+def _media_kind(metadata: dict[str, object]) -> MediaKind:
+    value = metadata.get("media_kind", MediaKind.VIDEO.value)
+    if not isinstance(value, str):
+        raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR)
+    try:
+        return MediaKind(value)
+    except (TypeError, ValueError) as exc:
+        raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
+
+
+def _asset_count(metadata: dict[str, object]) -> int:
+    value = metadata.get("asset_count", 0)
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR)
+    return value

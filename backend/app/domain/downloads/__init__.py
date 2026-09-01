@@ -9,6 +9,7 @@ from app.domain.downloads.enums import (
     DownloadStatus,
     DynamicRange,
     FpsBucket,
+    MediaKind,
     StreamKind,
     VideoCodecFamily,
 )
@@ -55,6 +56,7 @@ __all__ = [
     "FormatSelectionError",
     "FpsBucket",
     "InvalidJobTransition",
+    "MediaKind",
     "IdentityState",
     "ProviderHints",
     "ProtectionState",

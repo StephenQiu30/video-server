@@ -6,6 +6,7 @@ import pytest
 from app.domain.downloads import (
     AudioCodecFamily,
     Container,
+    MediaKind,
     StreamKind,
     VideoCodecFamily,
 )
@@ -59,6 +60,77 @@ def media_info() -> dict[str, object]:
             },
         ],
     }
+
+
+def gallery_info() -> dict[str, object]:
+    return {
+        "id": "controlled-note",
+        "title": "官方图文作品",
+        "extractor_key": "DouyinNote",
+        "media_kind": "image_gallery",
+        "assets": [
+            {
+                "url": "https://images.example.com/one.jpeg",
+                "extension": "jpeg",
+                "width": 1080,
+                "height": 1440,
+            },
+            {
+                "url": "https://images.example.com/two.webp",
+                "extension": "webp",
+            },
+        ],
+    }
+
+
+def test_normalizes_public_image_gallery_assets() -> None:
+    inspection = normalize_metadata(
+        gallery_info(),
+        max_duration_seconds=7200,
+        max_candidate_streams=200,
+        max_gallery_assets=10,
+    )
+
+    assert inspection.media_kind is MediaKind.IMAGE_GALLERY
+    assert inspection.duration_seconds == 0
+    assert inspection.streams == ()
+    assert inspection.asset_count == 2
+    assert inspection.thumbnail_url == "https://images.example.com/one.jpeg"
+    assert inspection.gallery_assets[0].extension == "jpg"
+    assert inspection.gallery_assets[0].width == 1080
+
+
+def test_rejects_gallery_assets_over_configured_limit() -> None:
+    payload = gallery_info()
+    assets = payload["assets"]
+    assert isinstance(assets, list)
+    assets.extend(assets)
+
+    with pytest.raises(RunnerFailure) as caught:
+        normalize_metadata(
+            payload,
+            max_duration_seconds=7200,
+            max_candidate_streams=200,
+            max_gallery_assets=2,
+        )
+
+    assert caught.value.code == "format_limit_exceeded"
+
+
+def test_rejects_gallery_asset_with_private_url() -> None:
+    payload = gallery_info()
+    assets = payload["assets"]
+    assert isinstance(assets, list)
+    assets[0] = {"url": "http://127.0.0.1/private", "extension": "jpg"}
+
+    with pytest.raises(RunnerFailure) as caught:
+        normalize_metadata(
+            payload,
+            max_duration_seconds=7200,
+            max_candidate_streams=200,
+        )
+
+    assert caught.value.code == "invalid_inspection_response"
 
 
 def test_normalizes_ytdlp_formats_into_domain_streams_and_options() -> None:

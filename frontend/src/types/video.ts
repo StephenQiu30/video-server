@@ -24,6 +24,7 @@ export type VideoCodec = API.VideoCodecFamily;
 export type AudioCodec = API.AudioCodecFamily;
 export type ContainerPreference = API.ContainerPreference;
 export type CompatibilityProfile = API.CompatibilityProfile;
+export type MediaKind = API.MediaKind;
 export type SemanticPlan = API.SemanticPlanResponse;
 export type MediaFormat = API.FormatResponse;
 export type Inspection = API.InspectionResponse;

@@ -643,6 +643,9 @@ declare namespace API {
     extractor_key: string | null;
     /** Duration Seconds */
     duration_seconds: number | null;
+    media_kind: MediaKind;
+    /** Asset Count */
+    asset_count: number;
     /** Thumbnail Url */
     thumbnail_url: string | null;
     format: SemanticPlanResponse | null;
@@ -713,7 +716,7 @@ declare namespace API {
     id: string;
     /** Display Name */
     display_name: string;
-    plan: SemanticPlanResponse;
+    plan: SemanticPlanResponse | null;
   };
 
   type FpsBucket = "fps_30" | "fps_60" | "above_60";
@@ -835,6 +838,9 @@ declare namespace API {
     title: string;
     /** Duration Seconds */
     duration_seconds: number;
+    media_kind: MediaKind;
+    /** Asset Count */
+    asset_count: number;
     /** Thumbnail Url */
     thumbnail_url: string | null;
     /** Expires At */
@@ -949,6 +955,8 @@ declare namespace API {
     finished_at: string | null;
     declared_origin: DeclaredOrigin;
   };
+
+  type MediaKind = "video" | "image_gallery";
 
   type MediaUploadSessionResponse = {
     /** Resource Id */

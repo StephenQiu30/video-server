@@ -8,6 +8,8 @@ import { ApiError } from '@/services/download';
 import { URL_MESSAGE } from '@/utils/validation';
 import {
   inspection,
+  galleryInspection,
+  galleryJob,
   job,
   reportedDouyinShareMessage,
   sourceDiscovery,
@@ -247,6 +249,22 @@ describe('DownloadWorkspace', () => {
         url: '/api/downloads',
       },
     ]);
+  });
+
+  it('shows an official image note as a ZIP download option', async () => {
+    mockHttpResponses(galleryInspection, galleryJob());
+    renderWorkspace();
+
+    fireEvent.change(screen.getByLabelText('公开视频地址'), {
+      target: { value: 'https://v.douyin.com/qao3WztsXns/' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
+
+    expect(await screen.findByText('官方图文作品')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '下载内容' })).toBeInTheDocument();
+    expect(screen.getByText('下载 3 张原图（ZIP）')).toBeInTheDocument();
+    expect(screen.getByText('图文作品 · 3 张原图')).toBeInTheDocument();
+    expect(screen.getByText('原图打包')).toBeInTheDocument();
   });
 
   it('routes a recognized WeChat Channels source to owned-file upload', async () => {

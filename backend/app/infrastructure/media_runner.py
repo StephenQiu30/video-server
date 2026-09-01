@@ -35,7 +35,7 @@ from app.application.downloads.errors import (
     MediaInspectionUnsupported,
     MediaInspectionVerificationFailed,
 )
-from app.domain.downloads import DownloadPlan
+from app.domain.downloads import DownloadPlan, MediaKind
 from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
 from app.infrastructure.media_inspection_pipeline import MediaInspectionPipeline
 from app.infrastructure.media_runner_models import (
@@ -86,11 +86,12 @@ class MediaRunnerClient(Protocol):
         self,
         task_id: str,
         url: str,
-        plan: DownloadPlan,
+        plan: DownloadPlan | None,
         *,
         expected_provider_media_id: str,
         expected_extractor_key: str,
         access_context: ProviderAccessContextRef,
+        media_kind: MediaKind = MediaKind.VIDEO,
     ) -> RunnerArtifact: ...
 
     async def status(self, task_id: str) -> RunnerProgress: ...
@@ -219,22 +220,30 @@ class MediaRunnerHttpClient:
             title=response.media.title,
             duration_seconds=math.ceil(response.media.duration_seconds),
             formats=tuple(
-                RunnerFormat(item.label, item.plan.to_domain())
+                RunnerFormat(
+                    item.label,
+                    None if item.plan is None else item.plan.to_domain(),
+                    item.media_kind,
+                    item.asset_count,
+                )
                 for item in response.options
             ),
             access_context=response.access_context.to_domain(),
             thumbnail_data_url=response.media.thumbnail_data_url,
+            media_kind=response.media.media_kind,
+            asset_count=response.media.asset_count,
         )
 
     async def download(
         self,
         task_id: str,
         url: str,
-        plan: DownloadPlan,
+        plan: DownloadPlan | None,
         *,
         expected_provider_media_id: str,
         expected_extractor_key: str,
         access_context: ProviderAccessContextRef,
+        media_kind: MediaKind = MediaKind.VIDEO,
     ) -> RunnerArtifact:
         self._validate_task_id(task_id)
         body = (
@@ -243,7 +252,8 @@ class MediaRunnerHttpClient:
                 url=url,
                 expected_provider_media_id=expected_provider_media_id,
                 expected_extractor_key=expected_extractor_key,
-                plan=DownloadPlanContract.from_domain(plan),
+                plan=(None if plan is None else DownloadPlanContract.from_domain(plan)),
+                media_kind=media_kind,
                 access_context=ProviderAccessContextContract.from_domain(
                     access_context
                 ),
@@ -275,6 +285,8 @@ class MediaRunnerHttpClient:
             container=response.artifact.container.value,
             video_streams=response.artifact.video_streams,
             audio_streams=response.artifact.audio_streams,
+            media_kind=response.artifact.media_kind,
+            asset_count=response.artifact.asset_count,
         )
 
     async def status(self, task_id: str) -> RunnerProgress:
@@ -427,11 +439,12 @@ class MediaRunnerRouter:
         self,
         task_id: str,
         url: str,
-        plan: DownloadPlan,
+        plan: DownloadPlan | None,
         *,
         expected_provider_media_id: str,
         expected_extractor_key: str,
         access_context: ProviderAccessContextRef,
+        media_kind: MediaKind = MediaKind.VIDEO,
     ) -> RunnerArtifact:
         client = self._client_for(access_context)
         self._active[task_id] = client
@@ -443,6 +456,7 @@ class MediaRunnerRouter:
                 expected_provider_media_id=expected_provider_media_id,
                 expected_extractor_key=expected_extractor_key,
                 access_context=access_context,
+                media_kind=media_kind,
             )
         finally:
             self._active.pop(task_id, None)

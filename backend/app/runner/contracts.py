@@ -4,7 +4,7 @@ import re
 from enum import StrEnum
 from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.domain.downloads import (
     AudioCodecFamily,
@@ -15,6 +15,7 @@ from app.domain.downloads import (
     DownloadPlan,
     DynamicRange,
     FpsBucket,
+    MediaKind,
     ProviderHints,
     StreamKind,
     VideoCodecFamily,
@@ -125,15 +126,19 @@ class CandidateStreamContract(ContractModel):
 class MediaSummary(ContractModel):
     provider_media_id: str = Field(min_length=1, max_length=256)
     title: str = Field(min_length=1, max_length=4096)
-    duration_seconds: float = Field(gt=0)
+    duration_seconds: float = Field(ge=0)
     extractor_key: str = Field(min_length=1, max_length=128)
     thumbnail_data_url: str | None = Field(default=None, max_length=2_100_000)
+    media_kind: MediaKind = MediaKind.VIDEO
+    asset_count: int = Field(default=0, ge=0, le=1000)
 
 
 class DownloadOption(ContractModel):
     option_id: str
     label: str
-    plan: DownloadPlanContract
+    plan: DownloadPlanContract | None = None
+    media_kind: MediaKind = MediaKind.VIDEO
+    asset_count: int = Field(default=0, ge=0, le=1000)
 
 
 class InspectRequest(ContractModel):
@@ -173,8 +178,17 @@ class DownloadRequest(ContractModel):
     url: str = Field(min_length=1, max_length=4096)
     expected_provider_media_id: str = Field(min_length=1, max_length=256)
     expected_extractor_key: str = Field(min_length=1, max_length=128)
-    plan: DownloadPlanContract
+    plan: DownloadPlanContract | None = None
+    media_kind: MediaKind = MediaKind.VIDEO
     access_context: ProviderAccessContextContract
+
+    @model_validator(mode="after")
+    def validate_media_plan(self) -> DownloadRequest:
+        if self.media_kind is MediaKind.VIDEO and self.plan is None:
+            raise ValueError("video downloads require a plan")
+        if self.media_kind is MediaKind.IMAGE_GALLERY and self.plan is not None:
+            raise ValueError("image galleries do not accept a video plan")
+        return self
 
     @field_validator("expected_provider_media_id", "expected_extractor_key")
     @classmethod
@@ -191,10 +205,12 @@ class ArtifactContract(ContractModel):
     relative_path: str
     size_bytes: int = Field(gt=0)
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
-    duration_seconds: float = Field(gt=0)
+    duration_seconds: float = Field(ge=0)
     container: Container
-    video_streams: int = Field(ge=1)
-    audio_streams: int = Field(ge=1)
+    video_streams: int = Field(ge=0)
+    audio_streams: int = Field(ge=0)
+    media_kind: MediaKind = MediaKind.VIDEO
+    asset_count: int = Field(default=0, ge=0, le=1000)
 
 
 class SelectedStreamsContract(ContractModel):

@@ -9,6 +9,8 @@ export const inspection: Inspection = {
   provider_media_id: 'video-1',
   title: 'Owned video',
   duration_seconds: 30,
+  media_kind: 'video',
+  asset_count: 0,
   thumbnail_url: 'data:image/jpeg;base64,Y292ZXI=',
   expires_at: '2026-08-06T11:00:00Z',
   source_origin: 'public_url',
@@ -35,6 +37,22 @@ export const inspection: Inspection = {
         container_preference: 'mp4',
         compatibility_profile: 'smallest',
       },
+    },
+  ],
+};
+
+export const galleryInspection: Inspection = {
+  ...inspection,
+  provider_media_id: 'note-1',
+  title: '官方图文作品',
+  duration_seconds: 0,
+  media_kind: 'image_gallery',
+  asset_count: 3,
+  formats: [
+    {
+      id: 'image-gallery-zip',
+      display_name: '下载 3 张原图（ZIP）',
+      plan: null,
     },
   ],
 };
@@ -85,7 +103,22 @@ export function job(status: DownloadJob['status'] = 'queued'): DownloadJob {
     title: inspection.title,
     extractor_key: inspection.extractor_key,
     duration_seconds: inspection.duration_seconds,
+    media_kind: inspection.media_kind,
+    asset_count: inspection.asset_count,
     thumbnail_url: inspection.thumbnail_url,
     format: inspection.formats[0].plan,
+  };
+}
+
+export function galleryJob(
+  status: DownloadJob['status'] = 'queued',
+): DownloadJob {
+  return {
+    ...job(status),
+    title: galleryInspection.title,
+    duration_seconds: 0,
+    media_kind: 'image_gallery',
+    asset_count: galleryInspection.asset_count,
+    format: null,
   };
 }

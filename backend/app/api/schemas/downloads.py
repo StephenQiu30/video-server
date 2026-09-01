@@ -13,6 +13,7 @@ from app.domain.downloads import (
     DownloadSourceKind,
     DownloadStage,
     DownloadStatus,
+    MediaKind,
 )
 
 
@@ -44,6 +45,8 @@ class DownloadResponse(StrictModel):
     title: str | None
     extractor_key: str | None
     duration_seconds: int | None
+    media_kind: MediaKind
+    asset_count: int
     thumbnail_url: str | None
     format: SemanticPlanResponse | None
 
@@ -69,6 +72,8 @@ class DownloadResponse(StrictModel):
             title=view.title,
             extractor_key=view.extractor_key,
             duration_seconds=view.duration_seconds,
+            media_kind=view.media_kind,
+            asset_count=view.asset_count,
             thumbnail_url=view.thumbnail_url,
             format=(
                 None

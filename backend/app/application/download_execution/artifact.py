@@ -10,11 +10,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from uuid import UUID
 
+from app.domain.downloads import MediaKind
+
 from .errors import ArtifactValidationError
 from .ports import RunnerArtifactView
 
 _SHA256 = re.compile(r"[0-9a-f]{64}")
-_CONTAINER_TYPES = {"mp4": "video/mp4", "webm": "video/webm"}
+_CONTAINER_TYPES = {
+    "mp4": "video/mp4",
+    "webm": "video/webm",
+    "zip": "application/zip",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,6 +33,8 @@ class VerifiedArtifact:
     content_type: str
     video_streams: int
     audio_streams: int
+    media_kind: MediaKind = MediaKind.VIDEO
+    asset_count: int = 0
 
 
 async def verify_artifact(
@@ -48,7 +56,8 @@ async def verify_artifact(
 def artifact_object_key(job_id: UUID, attempt: int, container: str) -> str:
     if attempt < 1 or container not in _CONTAINER_TYPES:
         raise ArtifactValidationError("invalid artifact identity")
-    return f"downloads/{job_id}/{attempt}/video.{container}"
+    name = "images" if container == "zip" else "video"
+    return f"downloads/{job_id}/{attempt}/{name}.{container}"
 
 
 def _verify_artifact(
@@ -88,11 +97,20 @@ def _verify_artifact(
     digest = _file_sha256(path)
     if not hmac.compare_digest(digest, artifact.sha256):
         raise ArtifactValidationError("artifact digest does not match")
-    if (
+    if artifact.media_kind is MediaKind.IMAGE_GALLERY:
+        if (
+            artifact.container != "zip"
+            or artifact.video_streams != 0
+            or artifact.audio_streams != 0
+            or artifact.asset_count < 1
+        ):
+            raise ArtifactValidationError("gallery artifact metadata is invalid")
+    elif (
         not math.isfinite(artifact.duration_seconds)
         or artifact.duration_seconds <= 0
         or artifact.video_streams < 1
         or artifact.audio_streams < 1
+        or artifact.container not in {"mp4", "webm"}
     ):
         raise ArtifactValidationError("artifact media metadata is invalid")
     content_type = _CONTAINER_TYPES.get(artifact.container)
@@ -107,6 +125,8 @@ def _verify_artifact(
         content_type=content_type,
         video_streams=artifact.video_streams,
         audio_streams=artifact.audio_streams,
+        media_kind=artifact.media_kind,
+        asset_count=artifact.asset_count,
     )
 
 

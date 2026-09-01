@@ -6,7 +6,7 @@ from pathlib import Path
 from uuid import UUID
 
 from app.application.downloads import EncryptedUrl, plan_from_documents
-from app.domain.downloads import DownloadErrorCode, DownloadStage
+from app.domain.downloads import DownloadErrorCode, DownloadStage, MediaKind
 from app.domain.providers import ProviderAccessContextRef
 
 from .artifact import verify_artifact
@@ -104,7 +104,14 @@ class DownloadExecution:
                         source.url_key_id,
                     )
                 )
-                plan = plan_from_documents(source.semantic_plan, source.provider_hints)
+                media_kind = _media_kind(source.semantic_plan)
+                plan = (
+                    None
+                    if media_kind is MediaKind.IMAGE_GALLERY
+                    else plan_from_documents(
+                        source.semantic_plan, source.provider_hints
+                    )
+                )
                 access_context = ProviderAccessContextRef.from_document(
                     source.access_context
                 )
@@ -119,6 +126,7 @@ class DownloadExecution:
                     provider_media_id=source.provider_media_id,
                     extractor_key=source.extractor_key,
                     access_context=access_context,
+                    media_kind=media_kind,
                 )
                 workspace = artifact.workspace
             except (LeaseLost, ExecutionOwnershipLost):
@@ -189,3 +197,13 @@ class DownloadExecution:
             lease_for=self._settings.lease_for,
             interval=self._settings.heartbeat_interval,
         )
+
+
+def _media_kind(document: dict[str, object]) -> MediaKind:
+    value = document.get("media_kind", MediaKind.VIDEO.value)
+    if not isinstance(value, str):
+        raise ValueError("unknown media kind")
+    try:
+        return MediaKind(value)
+    except ValueError as exc:
+        raise ValueError("unknown media kind") from exc
