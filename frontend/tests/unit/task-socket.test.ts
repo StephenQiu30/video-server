@@ -67,9 +67,7 @@ describe('taskSocket snapshots', () => {
       expect(statusListener).toHaveBeenLastCalledWith('connecting');
       await vi.advanceTimersByTimeAsync(8_001);
       expect(statusListener).toHaveBeenLastCalledWith('degraded');
-      expect(MockWebSocket.instances[0]?.readyState).toBe(
-        MockWebSocket.CLOSED,
-      );
+      expect(MockWebSocket.instances[0]?.readyState).toBe(MockWebSocket.CLOSED);
     } finally {
       unsubscribe();
       MockWebSocket.autoOpen = true;

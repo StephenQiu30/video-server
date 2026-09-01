@@ -27,9 +27,8 @@ export function resolveTaskSocketUrl({
     environment === 'development'
       ? localApiOrigin(location.origin)
       : new URL(location.origin);
-  origin.protocol = origin.protocol === 'https:' || origin.protocol === 'wss:'
-    ? 'wss:'
-    : 'ws:';
+  origin.protocol =
+    origin.protocol === 'https:' || origin.protocol === 'wss:' ? 'wss:' : 'ws:';
   origin.pathname = '/api/ws/tasks';
   origin.search = '';
   origin.hash = '';
