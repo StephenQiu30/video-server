@@ -42,7 +42,11 @@ class YtDlpCommandBuilder:
         request = self._resolve(source)
         return self._build(
             request,
-            ("--dump-single-json", "--skip-download"),
+            (
+                "--dump-single-json",
+                "--skip-download",
+                "--ignore-no-formats-error",
+            ),
             cookie_jar=cookie_jar,
         )
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -306,6 +307,72 @@ def test_douyin_note_uses_iteminfo_when_slides_api_is_empty(
     assert calls == [
         "https://www.iesdouyin.com/web/api/v2/aweme/slidesinfo/",
         "https://www.iesdouyin.com/web/api/v2/aweme/iteminfo/",
+    ]
+
+
+def test_douyin_note_reads_current_web_flight_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    extractor = DouyinNoteIE()
+    flight = "7:" + json.dumps(
+        [
+            "$",
+            "$L9",
+            None,
+            {
+                "awemeId": "123",
+                "aweme": {
+                    "detail": {
+                        "awemeId": "123",
+                        "awemeType": 68,
+                        "desc": "页面内嵌图文",
+                        "images": [
+                            {
+                                "width": 1280,
+                                "height": 720,
+                                "urlList": ["https://cdn.test/preview.webp"],
+                                "downloadUrlList": [
+                                    "https://cdn.test/original.webp"
+                                ],
+                            }
+                        ],
+                    }
+                },
+            },
+        ],
+        ensure_ascii=False,
+    )
+    webpage = f"self.__pace_f.push([1,{json.dumps(flight)}])"
+    pages: list[str] = []
+
+    monkeypatch.setattr(
+        extractor,
+        "_download_json",
+        lambda *_args, **_kwargs: {"aweme_details": None},
+    )
+
+    def download_webpage(url: str, *_args: object, **_kwargs: object) -> str:
+        pages.append(url)
+        return webpage if "www.douyin.com/note/123/" in url else ""
+
+    monkeypatch.setattr(extractor, "_download_webpage", download_webpage)
+    monkeypatch.setattr(extractor, "_search_json", lambda *_args, **_kwargs: {})
+
+    info = extractor._real_extract("https://www.iesdouyin.com/share/note/123/")
+
+    assert info["media_kind"] == "image_gallery"
+    assert info["title"] == "页面内嵌图文"
+    assert info["assets"] == [
+        {
+            "url": "https://cdn.test/original.webp",
+            "extension": "webp",
+            "width": 1280,
+            "height": 720,
+        }
+    ]
+    assert pages == [
+        "https://www.iesdouyin.com/share/note/123/",
+        "https://www.douyin.com/note/123/",
     ]
 
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import re
 from typing import Any
 from urllib.parse import parse_qsl, urlsplit
 
@@ -12,7 +14,11 @@ _NOTE_URL = r"https?://(?:www\.)?(?:douyin|iesdouyin)\.com/(?:share/)?note/(?P<i
 _SLIDES_INFO = "https://www.iesdouyin.com/web/api/v2/aweme/slidesinfo/"
 _ITEM_INFO = "https://www.iesdouyin.com/web/api/v2/aweme/iteminfo/"
 _SHARE_PAGE = "https://www.iesdouyin.com/share/note/{note_id}/"
+_NOTE_PAGE = "https://www.douyin.com/note/{note_id}/"
 _NOTE_UNAVAILABLE = "Douyin official note content unavailable"
+_PACE_FLIGHT = re.compile(
+    r'self\.__pace_f\.push\(\[1,(?P<data>"(?:\\.|[^"\\])*")\]\)'
+)
 _HEADERS = {
     "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
     "Referer": "https://www.douyin.com/",
@@ -110,31 +116,33 @@ class DouyinNoteIE(DouyinIE):  # type: ignore[misc]
         return _find_item(payload, note_id)
 
     def _share_page_item(self, note_id: str, query: str) -> dict[str, Any] | None:
-        share_url = _SHARE_PAGE.format(note_id=note_id)
-        if query:
-            share_url = f"{share_url}?{query}"
-        webpage = self._download_webpage(
-            share_url,
-            note_id,
-            note="Downloading Douyin image note share page",
-            fatal=False,
-            headers=_HEADERS,
-        )
-        if not webpage:
-            return None
-        router_data = self._search_json(
-            r"window\._ROUTER_DATA\s*=\s*",
-            webpage,
-            "Douyin router data",
-            note_id,
-            fatal=False,
-        )
-        if not isinstance(router_data, dict):
-            return None
-        loader_data = router_data.get("loaderData")
-        if not isinstance(loader_data, dict):
-            return None
-        return _find_item(loader_data, note_id)
+        for page_template in (_SHARE_PAGE, _NOTE_PAGE):
+            share_url = page_template.format(note_id=note_id)
+            if query:
+                share_url = f"{share_url}?{query}"
+            webpage = self._download_webpage(
+                share_url,
+                note_id,
+                note="Downloading Douyin official note page",
+                fatal=False,
+                headers=_HEADERS,
+            )
+            if not webpage:
+                continue
+            router_data = self._search_json(
+                r"window\._ROUTER_DATA\s*=\s*",
+                webpage,
+                "Douyin router data",
+                note_id,
+                fatal=False,
+            )
+            item = _find_item(router_data, note_id)
+            if item is not None:
+                return item
+            item = _pace_item(webpage, note_id)
+            if item is not None:
+                return item
+        return None
 
 
 def _find_item(payload: object, expected_id: str) -> dict[str, Any] | None:
@@ -144,6 +152,12 @@ def _find_item(payload: object, expected_id: str) -> dict[str, Any] | None:
             _image_assets(payload) or _has_video(payload)
         ):
             return payload
+        loader_data = payload.get("loaderData")
+        if isinstance(loader_data, dict):
+            for nested in loader_data.values():
+                item = _find_item(nested, expected_id)
+                if item is not None:
+                    return item
         for key in (
             "aweme_details",
             "item_list",
@@ -184,7 +198,14 @@ def _has_video(item: dict[str, Any]) -> bool:
 
 def _image_assets(item: dict[str, Any]) -> list[dict[str, Any]]:
     raw_images: object = None
-    for key in ("images", "image_list", "image_infos", "imageInfo", "image_info"):
+    for key in (
+        "images",
+        "image_list",
+        "image_infos",
+        "imageInfo",
+        "image_info",
+        "imageInfos",
+    ):
         candidate = item.get(key)
         if isinstance(candidate, (list, dict)) and candidate:
             raw_images = candidate
@@ -214,12 +235,16 @@ def _image_assets(item: dict[str, Any]) -> list[dict[str, Any]]:
 
 def _best_url(image: dict[str, Any]) -> str | None:
     for key in (
-        "url_list",
         "download_url_list",
         "origin_url_list",
+        "downloadUrlList",
+        "originUrlList",
+        "url_list",
+        "urlList",
         "display_image",
         "origin_url",
         "url",
+        "src",
     ):
         value = image.get(key)
         if isinstance(value, list):
@@ -239,3 +264,71 @@ def _extension(image: dict[str, Any], url: str) -> str:
         return "webp"
     suffix = urlsplit(url).path.rsplit("/", 1)[-1].split(".")[-1].casefold()
     return suffix if suffix in {"jpg", "jpeg", "png", "webp"} else "jpg"
+
+
+def _pace_item(webpage: str, expected_id: str) -> dict[str, Any] | None:
+    """Read the current Douyin web page's embedded React Flight record."""
+    decoder = json.JSONDecoder()
+    for match in _PACE_FLIGHT.finditer(webpage):
+        try:
+            flight = json.loads(match.group("data"))
+            record_text = flight.split(":", 1)[1]
+            record, _ = decoder.raw_decode(record_text.lstrip())
+        except (AttributeError, IndexError, json.JSONDecodeError):
+            continue
+        item = _pace_record_item(record, expected_id)
+        if item is not None:
+            return item
+    return None
+
+
+def _pace_record_item(record: object, expected_id: str) -> dict[str, Any] | None:
+    if not isinstance(record, list) or len(record) < 4:
+        return None
+    wrapper = record[3]
+    if not isinstance(wrapper, dict):
+        return None
+    aweme = wrapper.get("aweme")
+    if not isinstance(aweme, dict):
+        return None
+    detail = aweme.get("detail")
+    if not isinstance(detail, dict):
+        return None
+    raw_id = detail.get("awemeId") or detail.get("aweme_id")
+    if str(raw_id) != expected_id:
+        return None
+    item = dict(detail)
+    item["aweme_id"] = expected_id
+    if not isinstance(item.get("desc"), str):
+        item["desc"] = str(item.get("itemTitle") or expected_id)
+    video = item.get("video")
+    if isinstance(video, dict):
+        item["video"] = _normalize_web_video(video)
+    return item
+
+
+def _normalize_web_video(video: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(video)
+    for source_key, target_key in (
+        ("playAddr", "play_addr"),
+        ("downloadAddr", "download_addr"),
+        ("playAddrH264", "play_addr_h264"),
+    ):
+        urls = _web_video_urls(video.get(source_key))
+        if urls:
+            normalized[target_key] = {"url_list": urls}
+    return normalized
+
+
+def _web_video_urls(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    urls: list[str] = []
+    for item in value:
+        if isinstance(item, str) and item:
+            urls.append(item)
+        elif isinstance(item, dict):
+            source = item.get("src") or item.get("url")
+            if isinstance(source, str) and source:
+                urls.append(source)
+    return urls

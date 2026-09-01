@@ -111,6 +111,11 @@ def test_provider_retry_budget_applies_to_inspect_and_download(tmp_path: Path) -
             assert command.count(option) == 1
             assert command[command.index(option) + 1] == expected
 
+    assert "--ignore-no-formats-error" in commands[0]
+    assert "--ignore-no-formats-error" in commands[2]
+    assert "--ignore-no-formats-error" not in commands[1]
+    assert "--ignore-no-formats-error" not in commands[3]
+
 
 @pytest.mark.asyncio
 async def test_inspection_classifies_douyin_fresh_cookie_requirement(
