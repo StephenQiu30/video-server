@@ -73,6 +73,7 @@ describe('local media import transport', () => {
         url: '/api/media-imports',
       },
       {
+        headers: { 'X-FrameFetch-Upload-Client': 'local-web' },
         method: 'POST',
         url: `/api/media-imports/${resource.id}/upload-sessions`,
       },
@@ -153,6 +154,7 @@ describe('local media import transport', () => {
         url: '/api/documents',
       },
       {
+        headers: { 'X-FrameFetch-Upload-Client': 'local-web' },
         method: 'POST',
         url: `/api/documents/${resource.id}/upload-sessions`,
       },

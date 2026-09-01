@@ -9,6 +9,8 @@ export function proxy(_request: NextRequest) {
     production: process.env.NODE_ENV === 'production',
     storageEndpoint: process.env.MINIO_PUBLIC_ENDPOINT,
     storageSecure: process.env.MINIO_PUBLIC_SECURE === 'true',
+    localStorageEndpoint: process.env.MINIO_LOCAL_BROWSER_ENDPOINT,
+    localStorageSecure: process.env.MINIO_LOCAL_BROWSER_SECURE === 'true',
   })) {
     response.headers.set(name, value);
   }

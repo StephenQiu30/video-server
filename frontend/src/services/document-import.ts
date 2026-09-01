@@ -83,9 +83,14 @@ export async function importScreenplayDocument(
     throw new MediaTransferError('当前剧本文档不能继续上传，请重新选择文件。');
   }
 
-  const session = await createDocumentUploadSession({
-    document_id: encodeURIComponent(resource.id),
-  });
+  const session = await createDocumentUploadSession(
+    {
+      document_id: encodeURIComponent(resource.id),
+    },
+    {
+      headers: { 'X-FrameFetch-Upload-Client': 'local-web' },
+    },
+  );
   if (session.resource_id !== resource.id) {
     throw new MediaTransferError('上传会话与剧本文档不匹配，请重新开始。');
   }

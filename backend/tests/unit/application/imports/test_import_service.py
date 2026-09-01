@@ -250,6 +250,7 @@ class FakeStorage:
     def __init__(self) -> None:
         self.created: list[tuple[str, str, str | None]] = []
         self.signed: list[int] = []
+        self.local_browser_signing: list[bool] = []
         self.completed: list[tuple[CompletedUploadPart, ...]] = []
         self.aborted: list[tuple[str, str]] = []
         self.deleted: list[str] = []
@@ -278,11 +279,13 @@ class FakeStorage:
         part_number: int,
         *,
         ttl_seconds: int,
+        use_local_browser_endpoint: bool = False,
     ) -> str:
         assert object_key.startswith("quarantine/")
         assert upload_id == "upload-1"
         assert 0 < ttl_seconds <= 900
         self.signed.append(part_number)
+        self.local_browser_signing.append(use_local_browser_endpoint)
         return f"https://objects.example/part/{part_number}"
 
     async def complete_multipart_upload(
@@ -524,6 +527,20 @@ async def test_upload_session_uses_deterministic_key_and_bounded_parts() -> None
     assert "https://objects.example" not in repr(session)
     assert DECLARED_SHA256 not in repr(repository.resource)
     assert "example.mp4" not in repr(repository.resource)
+
+
+async def test_upload_session_can_sign_for_the_local_web_endpoint() -> None:
+    repository = FakeRepository(resource())
+    storage = FakeStorage()
+
+    await CreateUploadSession(repository, storage, now=lambda: NOW, limits=limits())(
+        RESOURCE_ID,
+        OWNER_HASH,
+        ContentKind.VIDEO,
+        use_local_browser_endpoint=True,
+    )
+
+    assert storage.local_browser_signing == [True, True]
 
 
 async def test_upload_session_cleans_superseded_attempt() -> None:

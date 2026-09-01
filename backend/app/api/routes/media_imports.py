@@ -3,13 +3,14 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Request, Response, status
 
 from app.api.auth_dependencies import get_current_user
 from app.api.dependencies import (
     IdempotencyKey,
     MediaImportUseCases,
     get_media_import_use_cases,
+    get_runtime_settings,
 )
 from app.api.errors import import_application_error
 from app.api.schemas.media_imports import (
@@ -18,6 +19,7 @@ from app.api.schemas.media_imports import (
     MediaImportResponse,
     MediaUploadSessionResponse,
 )
+from app.api.upload_signing import use_local_browser_upload_endpoint
 from app.application.auth import CurrentUser
 from app.application.imports import CompletedUploadPart, ImportApplicationError
 from app.domain.imports import ContentKind, ImportSourceFormat
@@ -92,13 +94,19 @@ async def get_media_import(
 )
 async def create_media_upload_session(
     resource_id: UUID,
+    request: Request,
     response: Response,
     user: User,
     use_cases: UseCases,
 ) -> MediaUploadSessionResponse:
     try:
         view = await use_cases.create_upload_session(
-            resource_id, user.owner_hash, ContentKind.VIDEO
+            resource_id,
+            user.owner_hash,
+            ContentKind.VIDEO,
+            use_local_browser_endpoint=use_local_browser_upload_endpoint(
+                request, get_runtime_settings(request)
+            ),
         )
     except ImportApplicationError as error:
         raise import_application_error(error) from error

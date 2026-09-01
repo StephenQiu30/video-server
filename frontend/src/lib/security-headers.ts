@@ -2,16 +2,26 @@ type SecurityHeaderOptions = {
   production: boolean;
   storageEndpoint?: string;
   storageSecure?: boolean;
+  localStorageEndpoint?: string;
+  localStorageSecure?: boolean;
 };
 
 export function browserSecurityHeaders({
   production,
   storageEndpoint,
   storageSecure = false,
+  localStorageEndpoint,
+  localStorageSecure = false,
 }: SecurityHeaderOptions): ReadonlyArray<readonly [string, string]> {
   const storageOrigin = resolveStorageOrigin(storageEndpoint, storageSecure);
-  const connectSources = ["'self'", storageOrigin];
-  const mediaSources = ["'self'", storageOrigin];
+  const localStorageOrigin = localStorageEndpoint
+    ? resolveStorageOrigin(localStorageEndpoint, localStorageSecure)
+    : '';
+  const storageOrigins = [
+    ...new Set([storageOrigin, localStorageOrigin]),
+  ].filter(Boolean);
+  const connectSources = ["'self'", ...storageOrigins];
+  const mediaSources = ["'self'", ...storageOrigins];
   if (!production) connectSources.push('ws:', 'wss:');
   const scriptSources = ["'self'", "'unsafe-inline'"];
   if (!production) scriptSources.push("'unsafe-eval'");

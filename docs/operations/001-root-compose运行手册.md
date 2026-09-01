@@ -38,6 +38,8 @@ Compose 文件不再通过 YAML Anchor 隐式继承服务配置；每个服务�
 
 复用外部 MinIO 时，部署者必须在该实例的启动环境中设置与 `.env` 相同的 `MINIO_API_CORS_ALLOW_ORIGIN` exact-origin 列表并重建实例；不能依赖手工 bucket CORS、`*` 或遗留实例状态。社区版 MinIO 的浏览器上传策略是实例级 API 配置，仓库不会尝试调用不受支持的 bucket CORS API。无法控制外部实例启动配置时，应关闭 `MEDIA_IMPORT_ENABLED` 与 `DOCUMENT_IMPORT_ENABLED`，而不是放宽 CORS。
 
+本机开发同时需要从浏览器和真机 App 上传时，`MINIO_PUBLIC_ENDPOINT` 应配置为真机可访问的 HTTPS 地址，`MINIO_LOCAL_BROWSER_ENDPOINT` 配置为 `127.0.0.1:<port>`。只有来自回环页面、显式标记为本地 Web 的开发请求会使用回环签名地址；Flutter 和远程 Web 始终使用公共地址。该分流由项目配置完成，不依赖或修改操作系统代理规则。生产环境应省略 `MINIO_LOCAL_BROWSER_ENDPOINT`。
+
 ## 本机业务拓扑
 
 ~~~bash

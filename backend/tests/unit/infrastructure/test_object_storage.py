@@ -308,6 +308,28 @@ async def test_storage_controls_one_deterministic_multipart_upload() -> None:
     ) in private.calls
 
 
+async def test_storage_can_sign_upload_parts_for_local_web_clients() -> None:
+    public = FakeMinio()
+    local_browser = FakeMinio()
+    storage = MinioObjectStorage(
+        settings(),
+        private=FakeMinio(),
+        public=public,
+        local_browser=local_browser,
+    )
+
+    await storage.presign_upload_part(
+        "quarantine/video/resource/1/source",
+        "upload-id",
+        1,
+        ttl_seconds=900,
+        use_local_browser_endpoint=True,
+    )
+
+    assert not public.calls
+    assert next(call for call in local_browser.calls if call[0] == "presign_part")
+
+
 async def test_storage_lists_bounded_incomplete_uploads_for_reconciliation() -> None:
     private = FakeMinio()
     storage = MinioObjectStorage(settings(), private=private)

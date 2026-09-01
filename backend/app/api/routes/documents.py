@@ -5,13 +5,14 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 
 from app.api.auth_dependencies import get_current_user
 from app.api.dependencies import (
     DocumentImportUseCases,
     IdempotencyKey,
     get_document_import_use_cases,
+    get_runtime_settings,
 )
 from app.api.errors import import_application_error
 from app.api.schemas.documents import (
@@ -22,6 +23,7 @@ from app.api.schemas.documents import (
     DocumentPageResponse,
     DocumentUploadSessionResponse,
 )
+from app.api.upload_signing import use_local_browser_upload_endpoint
 from app.application.auth import CurrentUser
 from app.application.imports import CompletedUploadPart, ImportApplicationError
 from app.domain.imports import ContentKind, ImportSourceFormat
@@ -134,13 +136,19 @@ async def delete_document(
 )
 async def create_document_upload_session(
     document_id: UUID,
+    request: Request,
     response: Response,
     user: User,
     use_cases: UseCases,
 ) -> DocumentUploadSessionResponse:
     try:
         view = await use_cases.create_upload_session(
-            document_id, user.owner_hash, ContentKind.SCREENPLAY
+            document_id,
+            user.owner_hash,
+            ContentKind.SCREENPLAY,
+            use_local_browser_endpoint=use_local_browser_upload_endpoint(
+                request, get_runtime_settings(request)
+            ),
         )
     except ImportApplicationError as error:
         raise import_application_error(error) from error

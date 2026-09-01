@@ -148,12 +148,43 @@ def test_minio_public_endpoint_is_safe_for_browser_policy() -> None:
         "storage.example.com/path",
         "storage.example.com;script-src",
     ):
-        with pytest.raises(ValidationError, match="MINIO_PUBLIC_ENDPOINT"):
+        with pytest.raises(ValidationError, match="MinIO browser endpoint"):
             Settings(
                 app_env="test",
                 minio_public_endpoint=endpoint,
                 _env_file=None,
             )
+
+
+def test_local_browser_minio_endpoint_is_optional_and_validated() -> None:
+    settings = Settings(
+        app_env="test",
+        minio_local_browser_endpoint="127.0.0.1:9000",
+        _env_file=None,
+    )
+
+    assert settings.minio_local_browser_origin() == "http://127.0.0.1:9000"
+    assert Settings(app_env="test", _env_file=None).minio_local_browser_origin() is None
+    assert (
+        Settings(
+            app_env="test",
+            minio_local_browser_endpoint="",
+            _env_file=None,
+        ).minio_local_browser_origin()
+        is None
+    )
+    with pytest.raises(ValidationError, match="MinIO browser endpoint"):
+        Settings(
+            app_env="test",
+            minio_local_browser_endpoint="http://127.0.0.1:9000/path",
+            _env_file=None,
+        )
+    with pytest.raises(ValidationError, match="must use localhost or a loopback IP"):
+        Settings(
+            app_env="test",
+            minio_local_browser_endpoint="storage.example.com:9000",
+            _env_file=None,
+        )
 
 
 def test_import_worker_runtime_limits_are_relationally_safe() -> None:

@@ -35,6 +35,21 @@ describe('browser security headers', () => {
     expect(headers.get('X-Frame-Options')).toBe('DENY');
   });
 
+  it('allows the dedicated local Web upload origin when configured', () => {
+    const headers = new Map(
+      browserSecurityHeaders({
+        production: false,
+        storageEndpoint: 'storage.example.com:9443',
+        storageSecure: true,
+        localStorageEndpoint: '127.0.0.1:9000',
+      }),
+    );
+
+    expect(headers.get('Content-Security-Policy')).toContain(
+      "connect-src 'self' https://storage.example.com:9443 http://127.0.0.1:9000",
+    );
+  });
+
   it('fails closed for malformed storage endpoints', () => {
     expect(resolveStorageOrigin('https://attacker.example/path', true)).toBe(
       '',

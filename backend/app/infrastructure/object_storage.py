@@ -64,6 +64,7 @@ class MinioObjectStorage:
         *,
         private: Minio | None = None,
         public: Minio | None = None,
+        local_browser: Minio | None = None,
         enable_public_signing: bool = False,
         access_key: str | None = None,
         secret_key: str | None = None,
@@ -81,12 +82,25 @@ class MinioObjectStorage:
             region=settings.minio_region,
         )
         self._public = public
+        self._local_browser = local_browser
         if self._public is None and enable_public_signing:
             self._public = Minio(
                 settings.minio_public_endpoint,
                 access_key=access_key,
                 secret_key=secret_key,
                 secure=settings.minio_public_secure,
+                region=settings.minio_region,
+            )
+        if (
+            self._local_browser is None
+            and enable_public_signing
+            and settings.minio_local_browser_endpoint is not None
+        ):
+            self._local_browser = Minio(
+                settings.minio_local_browser_endpoint,
+                access_key=access_key,
+                secret_key=secret_key,
+                secure=settings.minio_local_browser_secure,
                 region=settings.minio_region,
             )
 
@@ -97,6 +111,7 @@ class MinioObjectStorage:
         *,
         private: Minio | None = None,
         public: Minio | None = None,
+        local_browser: Minio | None = None,
         enable_public_signing: bool = True,
     ) -> MinioObjectStorage:
         """Build object storage for the import workflow."""
@@ -104,6 +119,7 @@ class MinioObjectStorage:
             settings,
             private=private,
             public=public,
+            local_browser=local_browser,
             enable_public_signing=enable_public_signing,
         )
 
@@ -203,10 +219,12 @@ class MinioObjectStorage:
         part_number: int,
         *,
         ttl_seconds: int,
+        use_local_browser_endpoint: bool = False,
     ) -> str:
         _validate_key(object_key)
         upload_id = _validate_upload_id(upload_id)
-        if self._public is None:
+        signer = self._local_browser if use_local_browser_endpoint else self._public
+        if signer is None:
             raise RuntimeError("public upload signing is not enabled")
         if isinstance(part_number, bool) or not 1 <= part_number <= 10_000:
             raise ValueError("part number must be between 1 and 10000")
@@ -214,7 +232,7 @@ class MinioObjectStorage:
             raise ValueError("upload signing TTL must be between 1 and 604800")
         try:
             return await asyncio.to_thread(
-                self._public.get_presigned_url,
+                signer.get_presigned_url,
                 "PUT",
                 self._bucket,
                 object_key,

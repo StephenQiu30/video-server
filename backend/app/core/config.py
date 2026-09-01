@@ -90,10 +90,12 @@ class Settings(BaseSettings):
 
     minio_endpoint: str = "localhost:19190"
     minio_public_endpoint: str = "127.0.0.1:19190"
+    minio_local_browser_endpoint: str | None = None
     minio_access_key: SecretStr = SecretStr("video-access")
     minio_secret_key: SecretStr = SecretStr("video-secret-change-me")
     minio_internal_secure: bool = False
     minio_public_secure: bool = False
+    minio_local_browser_secure: bool = False
     minio_region: str = "us-east-1"
     minio_bucket: str = "video-artifacts"
 
@@ -309,17 +311,26 @@ class Settings(BaseSettings):
         except ValueError as exc:
             raise ValueError("TRUSTED_PROXY_CIDRS contains an invalid network") from exc
 
-    @field_validator("minio_public_endpoint")
+    @field_validator("minio_local_browser_endpoint", mode="before")
     @classmethod
-    def validate_minio_public_endpoint(cls, value: str) -> str:
+    def empty_local_browser_endpoint_to_none(cls, value: object) -> object | None:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @field_validator("minio_public_endpoint", "minio_local_browser_endpoint")
+    @classmethod
+    def validate_minio_browser_endpoint(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
         if not value or value != value.strip():
-            raise ValueError("MINIO_PUBLIC_ENDPOINT must be a host with optional port")
+            raise ValueError("MinIO browser endpoint must be a host with optional port")
         try:
             parsed = urlsplit(f"//{value}")
             _ = parsed.port
         except ValueError as exc:
             raise ValueError(
-                "MINIO_PUBLIC_ENDPOINT must be a host with optional port"
+                "MinIO browser endpoint must be a host with optional port"
             ) from exc
         if (
             parsed.hostname is None
@@ -329,7 +340,7 @@ class Settings(BaseSettings):
             or parsed.query
             or parsed.fragment
         ):
-            raise ValueError("MINIO_PUBLIC_ENDPOINT must be a host with optional port")
+            raise ValueError("MinIO browser endpoint must be a host with optional port")
         host = parsed.hostname
         try:
             ip_address(host)
@@ -340,9 +351,26 @@ class Settings(BaseSettings):
                 for label in labels
             ):
                 raise ValueError(
-                    "MINIO_PUBLIC_ENDPOINT must be a host with optional port"
+                    "MinIO browser endpoint must be a host with optional port"
                 ) from None
         return value
+
+    @field_validator("minio_local_browser_endpoint")
+    @classmethod
+    def require_loopback_local_browser_endpoint(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        host = urlsplit(f"//{value}").hostname
+        if host == "localhost":
+            return value
+        try:
+            if host is not None and ip_address(host).is_loopback:
+                return value
+        except ValueError:
+            pass
+        raise ValueError(
+            "MINIO_LOCAL_BROWSER_ENDPOINT must use localhost or a loopback IP"
+        )
 
     @field_validator("runner_operator_base_urls")
     @classmethod
@@ -529,6 +557,13 @@ class Settings(BaseSettings):
         """Return the validated browser-visible object storage origin."""
         scheme = "https" if self.minio_public_secure else "http"
         return f"{scheme}://{self.minio_public_endpoint}"
+
+    def minio_local_browser_origin(self) -> str | None:
+        """Return the optional loopback storage origin used by local Web clients."""
+        if self.minio_local_browser_endpoint is None:
+            return None
+        scheme = "https" if self.minio_local_browser_secure else "http"
+        return f"{scheme}://{self.minio_local_browser_endpoint}"
 
 
 @lru_cache(maxsize=1)

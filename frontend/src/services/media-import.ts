@@ -64,9 +64,14 @@ export async function importLocalVideo(
   );
   observer.onResource(resource.id);
 
-  const session = await createMediaUploadSessionRequest({
-    resource_id: encodeURIComponent(resource.id),
-  });
+  const session = await createMediaUploadSessionRequest(
+    {
+      resource_id: encodeURIComponent(resource.id),
+    },
+    {
+      headers: { 'X-FrameFetch-Upload-Client': 'local-web' },
+    },
+  );
   if (session.resource_id !== resource.id) {
     throw new MediaTransferError('上传会话与导入任务不匹配，请重新开始上传。');
   }

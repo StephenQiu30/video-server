@@ -173,7 +173,12 @@ class CreateUploadSession:
         self._limits = limits
 
     async def __call__(
-        self, resource_id: UUID, owner_hash: str, content_kind: ContentKind
+        self,
+        resource_id: UUID,
+        owner_hash: str,
+        content_kind: ContentKind,
+        *,
+        use_local_browser_endpoint: bool = False,
     ) -> UploadSessionView:
         owner_hash = _validate_owner_hash(owner_hash)
         now = _validate_now(self._now())
@@ -240,6 +245,7 @@ class CreateUploadSession:
                         upload_id,
                         part_number,
                         ttl_seconds=ttl_seconds,
+                        use_local_browser_endpoint=use_local_browser_endpoint,
                     )
                     for part_number in range(1, active.part_count + 1)
                 )
