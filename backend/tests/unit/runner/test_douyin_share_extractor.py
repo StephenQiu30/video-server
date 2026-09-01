@@ -3,18 +3,25 @@ from __future__ import annotations
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
 from app.runner.plugins.yt_dlp_plugins.extractor.douyin_share import (
+    DouyinOfficialShortIE,
+    _allowed_share_url,
+    _canonical_video_url,
     _correct_download_addr_dimensions,
     _DouyinSharePageIE,
     _router_item,
 )
 from yt_dlp.extractor.tiktok import DouyinIE
+from yt_dlp.networking.exceptions import TransportError  # type: ignore[import-untyped]
+from yt_dlp.utils import ExtractorError  # type: ignore[import-untyped]
 
 VIDEO_ID = "7662711608636889201"
 URL = f"https://www.douyin.com/video/{VIDEO_ID}"
+SHORT_URL = "https://v.douyin.com/Tq0eYJRMYRk/"
 
 
 def router_payload(video_id: str = VIDEO_ID) -> dict[str, Any]:
@@ -78,6 +85,124 @@ def test_prefers_matching_public_share_page_item(
     assert requests[0][0] == f"https://www.iesdouyin.com/share/video/{VIDEO_ID}/"
     assert requests[0][1] == VIDEO_ID
     assert requests[0][2]["fatal"] is False
+
+
+def test_official_short_link_resolves_to_canonical_video(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    extractor = DouyinOfficialShortIE()
+    response = SimpleNamespace(
+        url=f"https://www.douyin.com/share/video/{VIDEO_ID}?from=copy"
+    )
+    requests: list[dict[str, object]] = []
+
+    def request_webpage(*args: object, **kwargs: object) -> object:
+        requests.append({"args": args, **kwargs})
+        return response
+
+    monkeypatch.setattr(extractor, "_request_webpage", request_webpage)
+
+    result = extractor._real_extract(SHORT_URL)
+
+    assert result["url"] == URL
+    assert result["ie_key"] == _DouyinSharePageIE.ie_key()
+    assert requests[0]["note"] == "Resolving Douyin official share link"
+
+
+def test_official_short_link_rejects_non_video_redirect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    extractor = DouyinOfficialShortIE()
+    monkeypatch.setattr(
+        extractor,
+        "_request_webpage",
+        lambda *_args, **_kwargs: SimpleNamespace(url="https://www.douyin.com/"),
+    )
+
+    with pytest.raises(ExtractorError, match="official share link unavailable"):
+        extractor._real_extract(SHORT_URL)
+
+
+def test_official_short_link_rejects_cross_domain_redirect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    extractor = DouyinOfficialShortIE()
+    monkeypatch.setattr(
+        extractor,
+        "_request_webpage",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            url=f"https://example.com/video/{VIDEO_ID}"
+        ),
+    )
+
+    with pytest.raises(ExtractorError, match="official share link unavailable"):
+        extractor._real_extract(SHORT_URL)
+
+
+def test_official_short_link_transport_failure_is_temporary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    extractor = DouyinOfficialShortIE()
+
+    def fail_transport(*_args: object, **_kwargs: object) -> object:
+        raise ExtractorError(
+            "Unable to download webpage",
+            cause=TransportError("connection reset"),
+        )
+
+    monkeypatch.setattr(extractor, "_request_webpage", fail_transport)
+
+    with pytest.raises(
+        ExtractorError,
+        match="official share link temporarily unavailable",
+    ):
+        extractor._real_extract(SHORT_URL)
+
+
+def test_official_short_link_without_redirect_url_is_schema_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    extractor = DouyinOfficialShortIE()
+    monkeypatch.setattr(
+        extractor,
+        "_request_webpage",
+        lambda *_args, **_kwargs: object(),
+    )
+
+    with pytest.raises(
+        ExtractorError,
+        match="official share link response structure changed",
+    ):
+        extractor._real_extract(SHORT_URL)
+
+
+@pytest.mark.parametrize(
+    ("url", "expected"),
+    (
+        (
+            f"https://www.douyin.com/video/{VIDEO_ID}/?share=copy",
+            URL,
+        ),
+        (
+            f"https://www.douyin.com/share/video/{VIDEO_ID}?share=copy",
+            URL,
+        ),
+        (
+            f"https://www.douyin.com/jingxuan?modal_id={VIDEO_ID}",
+            URL,
+        ),
+    ),
+)
+def test_canonicalizes_official_redirect_video_urls(url: str, expected: str) -> None:
+    assert _canonical_video_url(url) == expected
+
+
+def test_official_redirect_must_use_approved_https_host() -> None:
+    assert _allowed_share_url("https://www.douyin.com/video/123")
+    assert _allowed_share_url("https://www.iesdouyin.com/share/video/123")
+    assert not _allowed_share_url("http://www.douyin.com/video/123")
+    assert not _allowed_share_url("https://douyin.com.example/video/123")
+    assert not _allowed_share_url("https://example.com/video/123")
 
 
 def test_corrects_download_format_dimensions_from_video_source() -> None:
@@ -185,5 +310,6 @@ def test_plugin_registers_as_the_builtin_douyin_override() -> None:
         text=True,
     )
 
+    assert "DouyinOfficialShort" in result.stderr
     assert "share_page (DouyinIE)" in result.stderr
     assert str(backend_root / "app/runner/plugins/yt_dlp_plugins") in result.stderr

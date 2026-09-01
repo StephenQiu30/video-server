@@ -1,11 +1,32 @@
 from __future__ import annotations
 
 from typing import Any, cast
+from urllib.parse import urlsplit
 
+from yt_dlp.extractor.common import InfoExtractor  # type: ignore[import-untyped]
 from yt_dlp.extractor.tiktok import DouyinIE  # type: ignore[import-untyped]
-from yt_dlp.utils import int_or_none  # type: ignore[import-untyped]
+from yt_dlp.networking.exceptions import (  # type: ignore[import-untyped]
+    HTTPError,
+    RequestError,
+)
+from yt_dlp.utils import ExtractorError, int_or_none  # type: ignore[import-untyped]
 
 _SHARE_PAGE = "https://www.iesdouyin.com/share/video/{video_id}/"
+_DOUYIN_SHORT_URL = r"https?://v\.douyin\.com/(?P<id>[A-Za-z0-9_-]+)/?(?:[?#]|$)"
+_ALLOWED_SHARE_HOSTS = frozenset(
+    {
+        "douyin.com",
+        "www.douyin.com",
+        "m.douyin.com",
+        "v.douyin.com",
+        "iesdouyin.com",
+        "www.iesdouyin.com",
+    }
+)
+_LINK_UNAVAILABLE = "Douyin official share link unavailable"
+_LINK_TEMPORARY = "Douyin official share link temporarily unavailable"
+_LINK_SCHEMA_CHANGED = "Douyin official share link response structure changed"
+_LINK_VERIFICATION_REQUIRED = "Douyin official share link verification required"
 _MOBILE_HEADERS = {
     "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
     "Referer": "https://www.douyin.com/",
@@ -15,6 +36,36 @@ _MOBILE_HEADERS = {
         "Mobile/15E148 Safari/604.1"
     ),
 }
+
+
+class DouyinOfficialShortIE(InfoExtractor):  # type: ignore[misc]
+    """Resolve an official Douyin short link to one canonical public video."""
+
+    IE_NAME = "DouyinOfficialShort"
+    _VALID_URL = _DOUYIN_SHORT_URL
+
+    def _real_extract(self, url: str) -> dict[str, Any]:
+        share_id = self._match_id(url)
+        try:
+            response = self._request_webpage(
+                url,
+                share_id,
+                note="Resolving Douyin official share link",
+                headers=_MOBILE_HEADERS,
+            )
+        except ExtractorError as exc:
+            raise _short_link_error(exc, share_id) from exc
+
+        redirected = getattr(response, "url", None)
+        if not isinstance(redirected, str):
+            raise ExtractorError(_LINK_SCHEMA_CHANGED, video_id=share_id, expected=True)
+        if not _allowed_share_url(redirected):
+            raise ExtractorError(_LINK_UNAVAILABLE, video_id=share_id, expected=True)
+
+        normalized = _canonical_video_url(redirected)
+        if normalized is None or not _DouyinSharePageIE.suitable(normalized):
+            raise ExtractorError(_LINK_UNAVAILABLE, video_id=share_id, expected=True)
+        return self.url_result(normalized, ie=_DouyinSharePageIE.ie_key())
 
 
 def _correct_download_addr_dimensions(
@@ -100,6 +151,58 @@ class _DouyinSharePageIE(DouyinIE, plugin_name="share_page"):  # type: ignore[mi
                     return info
 
         return cast(dict[str, Any], super()._real_extract(url))
+
+
+def _short_link_error(error: ExtractorError, video_id: str) -> ExtractorError:
+    cause = error.cause
+    if isinstance(cause, HTTPError):
+        if cause.status in {404, 410}:
+            message = _LINK_UNAVAILABLE
+        elif cause.status in {401, 403}:
+            message = _LINK_VERIFICATION_REQUIRED
+        elif cause.status == 429:
+            message = "Douyin official share link rate limited"
+        else:
+            message = _LINK_TEMPORARY
+    elif isinstance(cause, RequestError):
+        message = _LINK_TEMPORARY
+    else:
+        message = _LINK_SCHEMA_CHANGED
+    return ExtractorError(message, video_id=video_id, expected=True)
+
+
+def _allowed_share_url(url: str) -> bool:
+    parsed = urlsplit(url)
+    try:
+        port = parsed.port
+    except ValueError:
+        return False
+    return (
+        parsed.scheme == "https"
+        and port in (None, 443)
+        and parsed.username is None
+        and parsed.password is None
+        and not parsed.fragment
+        and (parsed.hostname or "").casefold() in _ALLOWED_SHARE_HOSTS
+    )
+
+
+def _canonical_video_url(url: str) -> str | None:
+    parsed = urlsplit(url)
+    if parsed.hostname is None:
+        return None
+    path = parsed.path.rstrip("/")
+    for prefix in ("/video/", "/share/video/"):
+        if path.startswith(prefix):
+            video_id = path.removeprefix(prefix)
+            if video_id.isdigit():
+                return f"https://www.douyin.com/video/{video_id}"
+    if path == "/jingxuan":
+        query = parsed.query.split("&")
+        modal_ids = [value[9:] for value in query if value.startswith("modal_id=")]
+        if len(modal_ids) == 1 and modal_ids[0].isdigit():
+            return f"https://www.douyin.com/video/{modal_ids[0]}"
+    return None
 
 
 def _router_item(payload: object, expected_id: str) -> dict[str, Any] | None:

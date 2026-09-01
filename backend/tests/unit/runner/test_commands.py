@@ -843,6 +843,47 @@ async def test_douyin_short_link_that_redirects_to_home_is_classified_as_unavail
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("stderr", "expected_code", "expected_status"),
+    (
+        (
+            b"ERROR: Douyin official share link temporarily unavailable",
+            "provider_temporarily_unavailable",
+            503,
+        ),
+        (
+            b"ERROR: Douyin official share link response structure changed",
+            "extractor_regression",
+            502,
+        ),
+        (
+            b"ERROR: Douyin official share link verification required",
+            "egress_challenged",
+            422,
+        ),
+        (
+            b"ERROR: Douyin official share link rate limited",
+            "provider_rate_limited",
+            429,
+        ),
+    ),
+)
+async def test_douyin_official_share_failures_keep_distinct_classifications(
+    tmp_path: Path,
+    stderr: bytes,
+    expected_code: str,
+    expected_status: int,
+) -> None:
+    commands = MediaCommands(settings(tmp_path), FailingSupervisor(stderr))
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect("https://v.douyin.com/Tq0eYJRMYRk/", tmp_path)
+
+    assert caught.value.code == expected_code
+    assert caught.value.status == expected_status
+
+
+@pytest.mark.asyncio
 async def test_xhs_share_link_without_token_is_classified_as_unavailable(
     tmp_path: Path,
 ) -> None:

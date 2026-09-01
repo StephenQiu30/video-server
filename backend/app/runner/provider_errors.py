@@ -75,11 +75,46 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         422,
         any_stderr=(
             b"unsupported url:",
-            b"unable to extract initial state",
             b"kuaishou public link unavailable",
             b"xiaohongshu note unavailable",
         ),
         providers=frozenset({"douyin", "xiaohongshu", "kuaishou"}),
+    ),
+    FailureRule(
+        "provider_link_unavailable",
+        422,
+        any_stderr=(b"douyin official share link unavailable",),
+        providers=frozenset({"douyin"}),
+    ),
+    FailureRule(
+        "provider_temporarily_unavailable",
+        503,
+        any_stderr=(b"douyin official share link temporarily unavailable",),
+        providers=frozenset({"douyin"}),
+    ),
+    FailureRule(
+        "extractor_regression",
+        502,
+        any_stderr=(b"douyin official share link response structure changed",),
+        providers=frozenset({"douyin"}),
+    ),
+    FailureRule(
+        "egress_challenged",
+        422,
+        any_stderr=(b"douyin official share link verification required",),
+        providers=frozenset({"douyin"}),
+    ),
+    FailureRule(
+        "provider_rate_limited",
+        429,
+        any_stderr=(b"douyin official share link rate limited",),
+        providers=frozenset({"douyin"}),
+    ),
+    FailureRule(
+        "provider_link_unavailable",
+        422,
+        any_stderr=(b"unable to extract initial state",),
+        providers=frozenset({"xiaohongshu", "kuaishou"}),
     ),
     FailureRule(
         "provider_link_unavailable",
