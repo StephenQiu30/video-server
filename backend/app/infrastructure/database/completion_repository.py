@@ -8,21 +8,14 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import select
 
+from app.domain.downloads import build_artifact_object_key
+
 from .base import as_utc
 from .contracts import ArtifactCreate, ArtifactSnapshot, JobSnapshot
 from .errors import LeaseConflict, RepositoryConflict, RepositoryNotFound
 from .mapping import artifact_snapshot, job_snapshot
 from .models import ArtifactRow, DownloadJobRow
 from .progress_repository import ProgressRepository
-
-_CONTAINER = re.compile(r"^[a-z0-9]{1,16}$")
-
-
-def build_artifact_object_key(job_id: UUID, attempt: int, container: str) -> str:
-    normalized = container.lower()
-    if attempt < 1 or _CONTAINER.fullmatch(normalized) is None:
-        raise ValueError("invalid artifact attempt or container")
-    return f"downloads/{job_id}/{attempt}/video.{normalized}"
 
 
 def _validate_artifact(artifact: ArtifactCreate) -> None:

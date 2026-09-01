@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from uuid import UUID
 
-from app.domain.downloads import MediaKind
+from app.domain.downloads import MediaKind, build_artifact_object_key
 
 from .errors import ArtifactValidationError
 from .ports import RunnerArtifactView
@@ -54,10 +54,10 @@ async def verify_artifact(
 
 
 def artifact_object_key(job_id: UUID, attempt: int, container: str) -> str:
-    if attempt < 1 or container not in _CONTAINER_TYPES:
-        raise ArtifactValidationError("invalid artifact identity")
-    name = "images" if container == "zip" else "video"
-    return f"downloads/{job_id}/{attempt}/{name}.{container}"
+    try:
+        return build_artifact_object_key(job_id, attempt, container)
+    except ValueError as exc:
+        raise ArtifactValidationError("invalid artifact identity") from exc
 
 
 def _verify_artifact(

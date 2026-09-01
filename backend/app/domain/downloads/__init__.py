@@ -1,3 +1,4 @@
+from app.domain.downloads.artifact_keys import build_artifact_object_key
 from app.domain.downloads.enums import (
     AudioCodecFamily,
     CompatibilityProfile,
@@ -68,5 +69,6 @@ __all__ = [
     "VideoCodecFamily",
     "classify_dash_manifest",
     "classify_hls_manifest",
+    "build_artifact_object_key",
     "select_streams",
 ]

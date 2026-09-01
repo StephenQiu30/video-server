@@ -1,5 +1,7 @@
 """PostgreSQL persistence adapter for inspections, jobs and the outbox."""
 
+from app.domain.downloads import build_artifact_object_key
+
 from .analytics_contracts import (
     DownloadAnalyticsDailySnapshot,
     DownloadAnalyticsSnapshot,
@@ -7,7 +9,6 @@ from .analytics_contracts import (
     DownloadAnalyticsSummarySnapshot,
 )
 from .base import Base
-from .completion_repository import build_artifact_object_key
 from .contracts import (
     ArtifactCreate,
     ArtifactSnapshot,
