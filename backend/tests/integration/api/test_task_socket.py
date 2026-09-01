@@ -92,6 +92,28 @@ def test_socket_accepts_forwarded_frontend_origin(tmp_path) -> None:
     assert _same_origin(websocket, production=True)
 
 
+def test_socket_accepts_same_host_development_origin_on_frontend_port() -> None:
+    websocket = SimpleNamespace(
+        headers={
+            "origin": "http://127.0.0.1:8101",
+            "host": "127.0.0.1:8111",
+        }
+    )
+
+    assert _same_origin(websocket, production=False)
+
+
+def test_socket_rejects_different_development_origin_host() -> None:
+    websocket = SimpleNamespace(
+        headers={
+            "origin": "http://attacker.example:8101",
+            "host": "127.0.0.1:8111",
+        }
+    )
+
+    assert not _same_origin(websocket, production=False)
+
+
 def test_socket_rejects_missing_cookie(tmp_path) -> None:
     app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
     app.state.auth_service = FakeAuth()

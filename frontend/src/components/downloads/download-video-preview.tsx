@@ -60,6 +60,7 @@ export default function DownloadVideoPreview({
       ariaLabel={`${title}视频预览`}
       className="overflow-hidden rounded-none bg-black"
       key={preview.source}
+      load="play"
       onError={preview.reportPlaybackError}
       playsInline
       poster={poster ?? undefined}

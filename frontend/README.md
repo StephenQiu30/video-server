@@ -23,7 +23,7 @@ docker compose --env-file .env -f docker-compose.yml \
   up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
 ```
 
-前端服务监听 `http://127.0.0.1:8101`，将 `/api/*` 和 `/health/*` 代理到 `http://127.0.0.1:8111`。浏览器请求始终使用同源相对路径，不配置浏览器可见的后端地址或服务端密钥。
+前端服务监听 `http://127.0.0.1:8101`，将普通 `/api/*` 和 `/health/*` 请求代理到 `http://127.0.0.1:8111`。Next.js 开发代理不会转发 WebSocket Upgrade，因此开发环境的任务状态连接会使用当前页面主机名直连 `8111`；FastAPI 只允许同主机的开发来源。部署环境必须在同源入口上把 `/api/ws/tasks` 的 Upgrade 请求直接转发到 FastAPI，以继续使用浏览器的 HttpOnly 登录 Cookie。
 
 ## 目录约定
 
@@ -81,7 +81,7 @@ npm run openapi
 
 ## 前后端服务边界
 
-`npm run build` 使用 Next.js standalone 输出生成独立 Node.js 服务。前端服务监听 `8101`，FastAPI API 服务监听 `8111`；Next.js 只代理 `/api/*` 和 `/health/*`，FastAPI 不挂载 `frontend/out`，也不会把页面 HTML 返回给根路径或未知 UI 路由。
+`npm run build` 使用 Next.js standalone 输出生成独立 Node.js 服务。前端服务监听 `8101`，FastAPI API 服务监听 `8111`；Next.js 只代理普通 `/api/*` 和 `/health/*` HTTP 请求，WebSocket Upgrade 由部署入口直接转发给 FastAPI。FastAPI 不挂载 `frontend/out`，也不会把页面 HTML 返回给根路径或未知 UI 路由。
 
 生产环境启动独立 Next.js Server 和 FastAPI 服务。需要服务端运行时能力的功能应继续保持前端 `8101`、API `8111` 的边界。
 

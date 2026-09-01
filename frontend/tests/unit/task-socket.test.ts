@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { taskSocket } from '@/lib/task-socket';
+import { resolveTaskSocketUrl, taskSocket } from '@/lib/task-socket';
 import {
   emitTaskSnapshot,
   emitTaskUpdate,
@@ -28,5 +28,52 @@ describe('taskSocket snapshots', () => {
     expect(sent.filter((message) => message.includes('"resync"'))).toHaveLength(
       0,
     );
+  });
+
+  it('connects directly to the API port in local development', () => {
+    expect(
+      resolveTaskSocketUrl({
+        environment: 'development',
+        location: {
+          origin: 'http://localhost:8101',
+        },
+      }),
+    ).toBe('ws://localhost:8111/api/ws/tasks');
+  });
+
+  it('uses the secure same-origin task path in production', () => {
+    expect(
+      resolveTaskSocketUrl({
+        environment: 'production',
+        location: {
+          origin: 'https://frontend.example.com',
+        },
+      }),
+    ).toBe('wss://frontend.example.com/api/ws/tasks');
+  });
+
+  it('leaves connecting state and schedules recovery after a stalled handshake', async () => {
+    vi.useFakeTimers();
+    MockWebSocket.autoOpen = false;
+    const statusListener = vi.fn();
+    const unsubscribe = taskSocket.subscribe(
+      'download',
+      '55555555-5555-4555-8555-555555555555',
+      0,
+      vi.fn(),
+      statusListener,
+    );
+    try {
+      expect(statusListener).toHaveBeenLastCalledWith('connecting');
+      await vi.advanceTimersByTimeAsync(8_001);
+      expect(statusListener).toHaveBeenLastCalledWith('degraded');
+      expect(MockWebSocket.instances[0]?.readyState).toBe(
+        MockWebSocket.CLOSED,
+      );
+    } finally {
+      unsubscribe();
+      MockWebSocket.autoOpen = true;
+      vi.useRealTimers();
+    }
   });
 });

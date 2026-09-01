@@ -5,6 +5,7 @@ from pathlib import Path
 
 import httpx
 import pytest
+from app.domain.downloads import Container
 from app.runner import commands as commands_module
 from app.runner.commands import MediaCommands
 from app.runner.errors import RunnerFailure
@@ -46,6 +47,38 @@ class RecordingSupervisor:
         self.argv = argv
         self.env = env or {}
         return ProcessResult(0, b"{}", b"", False, False)
+
+
+@pytest.mark.asyncio
+async def test_mp4_remux_moves_metadata_before_media_for_streaming(
+    tmp_path: Path,
+) -> None:
+    supervisor = RecordingSupervisor()
+    commands = MediaCommands(settings(tmp_path), supervisor)
+
+    await commands.remux(
+        (tmp_path / "video.input", tmp_path / "audio.input"),
+        tmp_path / "artifact.mp4",
+        Container.MP4,
+        tmp_path,
+    )
+
+    assert supervisor.argv[supervisor.argv.index("-movflags") + 1] == "+faststart"
+
+
+@pytest.mark.asyncio
+async def test_webm_remux_does_not_use_mp4_faststart_flag(tmp_path: Path) -> None:
+    supervisor = RecordingSupervisor()
+    commands = MediaCommands(settings(tmp_path), supervisor)
+
+    await commands.remux(
+        (tmp_path / "video.input", tmp_path / "audio.input"),
+        tmp_path / "artifact.webm",
+        Container.WEBM,
+        tmp_path,
+    )
+
+    assert "-movflags" not in supervisor.argv
 
 
 def test_provider_retry_budget_applies_to_inspect_and_download(tmp_path: Path) -> None:

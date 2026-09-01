@@ -1,4 +1,4 @@
-"""Authenticated same-origin task status WebSocket."""
+"""Authenticated browser-origin task status WebSocket."""
 
 from __future__ import annotations
 
@@ -189,6 +189,14 @@ def _same_origin(websocket: WebSocket, production: bool) -> bool:
     forwarded_host = websocket.headers.get("x-forwarded-host")
     expected_host = forwarded_host.split(",", 1)[0].strip() if forwarded_host else host
     parsed = urlsplit(origin)
-    return parsed.netloc.casefold() == expected_host.casefold() and (
-        not production or parsed.scheme == "https"
+    if parsed.scheme not in {"http", "https"} or parsed.hostname is None:
+        return False
+    if production:
+        return parsed.scheme == "https" and (
+            parsed.netloc.casefold() == expected_host.casefold()
+        )
+    expected = urlsplit(f"//{expected_host}")
+    return (
+        expected.hostname is not None
+        and parsed.hostname.casefold() == expected.hostname.casefold()
     )

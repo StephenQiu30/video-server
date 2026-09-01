@@ -6,6 +6,7 @@ export class MockWebSocket {
   static readonly CLOSING = 2;
   static readonly CLOSED = 3;
   static instances: MockWebSocket[] = [];
+  static autoOpen = true;
 
   readonly url: string;
   readyState = MockWebSocket.CONNECTING;
@@ -19,6 +20,7 @@ export class MockWebSocket {
     this.url = String(url);
     MockWebSocket.instances.push(this);
     queueMicrotask(() => {
+      if (!MockWebSocket.autoOpen) return;
       this.readyState = MockWebSocket.OPEN;
       this.onopen?.(new Event('open'));
     });

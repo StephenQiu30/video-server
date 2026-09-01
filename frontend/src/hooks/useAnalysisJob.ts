@@ -99,19 +99,32 @@ export function useAnalysisJob(
   }, [analysisId, shouldSync]);
 
   useEffect(() => {
-    if (!analysisId || !shouldSync || socketStatus !== 'degraded') return;
-    const timer = window.setInterval(
-      async () => {
-        try {
-          setJob(await getAnalysis(analysisId));
-          setError(null);
-        } catch (reason) {
-          setError(displayError(reason));
-        }
-      },
-      Math.max(15_000, pollIntervalMs * 10),
-    );
-    return () => window.clearInterval(timer);
+    if (!analysisId || !shouldSync) return;
+    let disposed = false;
+    let refreshing = false;
+    const refreshState = async () => {
+      if (disposed || refreshing) return;
+      refreshing = true;
+      try {
+        const current = await getAnalysis(analysisId);
+        if (disposed) return;
+        setJob(current);
+        setError(null);
+      } catch (reason) {
+        if (!disposed) setError(displayError(reason));
+      } finally {
+        refreshing = false;
+      }
+    };
+    const interval =
+      socketStatus === 'connected'
+        ? Math.max(15_000, pollIntervalMs * 10)
+        : Math.max(2_000, pollIntervalMs);
+    const timer = window.setInterval(() => void refreshState(), interval);
+    return () => {
+      disposed = true;
+      window.clearInterval(timer);
+    };
   }, [analysisId, pollIntervalMs, shouldSync, socketStatus]);
 
   const start = useCallback(

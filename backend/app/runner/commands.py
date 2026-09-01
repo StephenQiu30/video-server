@@ -195,6 +195,8 @@ class MediaCommands:
         command.extend(("-map", "0:v:0"))
         command.extend(("-map", "0:a:0" if len(inputs) == 1 else "1:a:0"))
         command.extend(("-c", "copy", "-map_metadata", "-1"))
+        if container is Container.MP4:
+            command.extend(("-movflags", "+faststart"))
         command.extend(("-f", container.value, str(output)))
         await self._run(
             command,

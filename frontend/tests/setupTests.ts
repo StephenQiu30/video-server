@@ -7,6 +7,7 @@ import { MockWebSocket } from './helpers/websocket';
 beforeEach(() => {
   vi.spyOn(httpClient, 'request');
   MockWebSocket.instances = [];
+  MockWebSocket.autoOpen = true;
 });
 
 afterEach(() => {

@@ -86,26 +86,35 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   }, [jobId, jobStatus]);
 
   useEffect(() => {
-    if (
-      !jobStatus ||
-      terminalDownloadStatuses.has(jobStatus) ||
-      socketStatus !== 'degraded'
-    )
-      return;
-    const timer = window.setInterval(
-      async () => {
-        try {
-          setJob(await getDownload(jobId));
-          setError(null);
-          setErrorKind(null);
-        } catch (reason) {
-          setError(displayError(reason));
-          setErrorKind('sync');
-        }
-      },
-      Math.max(15_000, pollIntervalMs * 10),
-    );
-    return () => window.clearInterval(timer);
+    if (!jobStatus || terminalDownloadStatuses.has(jobStatus)) return;
+    let disposed = false;
+    let refreshing = false;
+    const refreshState = async () => {
+      if (disposed || refreshing) return;
+      refreshing = true;
+      try {
+        const current = await getDownload(jobId);
+        if (disposed) return;
+        setJob(current);
+        setError(null);
+        setErrorKind(null);
+      } catch (reason) {
+        if (disposed) return;
+        setError(displayError(reason));
+        setErrorKind('sync');
+      } finally {
+        refreshing = false;
+      }
+    };
+    const interval =
+      socketStatus === 'connected'
+        ? Math.max(15_000, pollIntervalMs * 10)
+        : Math.max(2_000, pollIntervalMs);
+    const timer = window.setInterval(() => void refreshState(), interval);
+    return () => {
+      disposed = true;
+      window.clearInterval(timer);
+    };
   }, [jobId, jobStatus, pollIntervalMs, socketStatus]);
 
   const refresh = useCallback(() => {

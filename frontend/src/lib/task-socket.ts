@@ -14,6 +14,34 @@ type Subscription = {
   listeners: Set<Listener>;
 };
 
+const CONNECT_TIMEOUT_MS = 8_000;
+
+export function resolveTaskSocketUrl({
+  environment = process.env.NODE_ENV,
+  location = window.location,
+}: {
+  environment?: string;
+  location?: Pick<Location, 'origin'>;
+} = {}): string {
+  const origin =
+    environment === 'development'
+      ? localApiOrigin(location.origin)
+      : new URL(location.origin);
+  origin.protocol = origin.protocol === 'https:' || origin.protocol === 'wss:'
+    ? 'wss:'
+    : 'ws:';
+  origin.pathname = '/api/ws/tasks';
+  origin.search = '';
+  origin.hash = '';
+  return origin.toString();
+}
+
+function localApiOrigin(frontendOrigin: string): URL {
+  const origin = new URL(frontendOrigin);
+  origin.port = '8111';
+  return origin;
+}
+
 class TaskSocketManager {
   private socket: WebSocket | null = null;
   private subscriptions = new Map<string, Subscription>();
@@ -21,6 +49,7 @@ class TaskSocketManager {
   private status: TaskSocketStatus = 'disconnected';
   private reconnectAttempt = 0;
   private reconnectTimer: number | null = null;
+  private connectTimer: number | null = null;
 
   subscribe(
     taskType: TaskType,
@@ -63,12 +92,26 @@ class TaskSocketManager {
   private connect() {
     if (typeof window === 'undefined' || this.socket) return;
     this.setStatus('connecting');
-    const scheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socket = new WebSocket(
-      `${scheme}//${window.location.host}/api/ws/tasks`,
-    );
+    let socket: WebSocket;
+    try {
+      socket = new WebSocket(resolveTaskSocketUrl());
+    } catch {
+      this.scheduleReconnect();
+      return;
+    }
     this.socket = socket;
+    this.connectTimer = window.setTimeout(() => {
+      if (
+        this.socket === socket &&
+        socket.readyState === WebSocket.CONNECTING
+      ) {
+        this.setStatus('degraded');
+        socket.close();
+      }
+    }, CONNECT_TIMEOUT_MS);
     socket.onopen = () => {
+      if (this.socket !== socket) return;
+      this.clearConnectTimer();
       this.reconnectAttempt = 0;
       this.setStatus('connected');
       for (const subscription of this.subscriptions.values()) {
@@ -76,9 +119,13 @@ class TaskSocketManager {
       }
     };
     socket.onmessage = (message) => this.receive(message.data);
-    socket.onerror = () => this.setStatus('degraded');
+    socket.onerror = () => {
+      if (this.socket === socket) this.setStatus('degraded');
+    };
     socket.onclose = () => {
-      if (this.socket === socket) this.socket = null;
+      if (this.socket !== socket) return;
+      this.clearConnectTimer();
+      this.socket = null;
       if (this.subscriptions.size > 0) this.scheduleReconnect();
       else this.setStatus('disconnected');
     };
@@ -145,10 +192,16 @@ class TaskSocketManager {
   private disconnect() {
     if (this.reconnectTimer !== null) window.clearTimeout(this.reconnectTimer);
     this.reconnectTimer = null;
+    this.clearConnectTimer();
     const socket = this.socket;
     this.socket = null;
     socket?.close(1000, 'no subscriptions');
     this.setStatus('disconnected');
+  }
+
+  private clearConnectTimer() {
+    if (this.connectTimer !== null) window.clearTimeout(this.connectTimer);
+    this.connectTimer = null;
   }
 
   private setStatus(status: TaskSocketStatus) {
