@@ -149,9 +149,7 @@ class RunnerInspectionPipeline:
                 await asyncio.sleep(profile.inspection_retry_delay)
         raise AssertionError("inspection retry loop did not terminate")
 
-    def _usable_inspection(
-        self, payload: dict[str, object]
-    ) -> MediaInspection | None:
+    def _usable_inspection(self, payload: dict[str, object]) -> MediaInspection | None:
         try:
             inspection = normalize_for_settings(payload, self._settings)
         except RunnerFailure as exc:

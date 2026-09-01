@@ -57,9 +57,7 @@ async def get_current_user(
     request: Request,
     settings: Annotated[Settings, Depends(get_runtime_settings)],
     auth: Annotated[AuthService, Depends(get_auth_service)],
-    credentials: Annotated[
-        HTTPAuthorizationCredentials | None, Depends(native_bearer)
-    ],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(native_bearer)],
 ) -> CurrentUser:
     authorization = request.headers.get("authorization")
     access_token: str | None

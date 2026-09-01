@@ -103,9 +103,7 @@ def parse_scene(context: ParseContext, value: object, index: int) -> VideoScene:
         narrative_function=context.text(
             source["narrative_function"], f"{path}.narrative_function"
         ),
-        visual_rules=_strings(
-            context, source["visual_rules"], f"{path}.visual_rules"
-        ),
+        visual_rules=_strings(context, source["visual_rules"], f"{path}.visual_rules"),
         continuity_risks=_strings(
             context, source["continuity_risks"], f"{path}.continuity_risks"
         ),

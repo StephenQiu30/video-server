@@ -108,9 +108,7 @@ def stored_scene(value: object) -> VideoScene:
             source["narrative_function"], "scene.narrative_function"
         ),
         visual_rules=strings(source["visual_rules"], "scene.visual_rules"),
-        continuity_risks=strings(
-            source["continuity_risks"], "scene.continuity_risks"
-        ),
+        continuity_risks=strings(source["continuity_risks"], "scene.continuity_risks"),
         evidence_shot_ids=strings(
             source["evidence_shot_ids"], "scene.evidence_shot_ids"
         ),

@@ -76,7 +76,9 @@ def config() -> DeepSeekAdapterConfig:
 async def test_video_analysis_sends_ordered_inline_screenshots(tmp_path: Path) -> None:
     model = FakeModel()
     analyzer = LangChainDeepSeekAnalyzer(
-        config(), model=model, frames=FakeFrames()  # type: ignore[arg-type]
+        config(),
+        model=model,
+        frames=FakeFrames(),  # type: ignore[arg-type]
     )
 
     result = await analyzer.analyze(request(tmp_path))

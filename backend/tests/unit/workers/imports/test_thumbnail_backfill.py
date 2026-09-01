@@ -49,9 +49,7 @@ class Recovery:
     def __init__(self) -> None:
         self.calls: list[tuple[UUID, str, Path]] = []
 
-    async def recover(
-        self, resource_id: UUID, owner_hash: str, artifact: Path
-    ) -> bool:
+    async def recover(self, resource_id: UUID, owner_hash: str, artifact: Path) -> bool:
         self.calls.append((resource_id, owner_hash, artifact))
         return True
 

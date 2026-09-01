@@ -50,9 +50,7 @@ def test_auth_openapi_exposes_email_session_contract(tmp_path: Path) -> None:
     assert paths["/api/app/v1/auth/register"]["post"]["operationId"] == (
         "registerNativeUser"
     )
-    assert paths["/api/app/v1/auth/login"]["post"]["operationId"] == (
-        "loginNativeUser"
-    )
+    assert paths["/api/app/v1/auth/login"]["post"]["operationId"] == ("loginNativeUser")
     assert paths["/api/app/v1/auth/refresh"]["post"]["operationId"] == (
         "refreshNativeSession"
     )

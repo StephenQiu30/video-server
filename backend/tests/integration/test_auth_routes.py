@@ -317,15 +317,11 @@ async def test_native_session_rotates_refresh_and_logout_revokes_it(
         "password": "strong-pass-123",
     }
     async with auth_client(tmp_path, postgres_engine) as client:
-        registered = await client.post(
-            "/api/app/v1/auth/register", json=credentials
-        )
+        registered = await client.post("/api/app/v1/auth/register", json=credentials)
         first_session = registered.json()
         current = await client.get(
             "/api/app/v1/auth/me",
-            headers={
-                "Authorization": f"Bearer {first_session['access_token']}"
-            },
+            headers={"Authorization": f"Bearer {first_session['access_token']}"},
         )
         refreshed = await client.post(
             "/api/app/v1/auth/refresh",

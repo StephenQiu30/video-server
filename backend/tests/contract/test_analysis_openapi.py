@@ -75,7 +75,7 @@ def test_analysis_openapi_is_current_and_excludes_internal_fields(
     assert result_union["discriminator"] == {
         "propertyName": "kind",
         "mapping": {
-        "screenplay_analysis": (
+            "screenplay_analysis": (
                 "#/components/schemas/ScreenplayAnalysisResultResponse"
             ),
             "video_article": "#/components/schemas/VideoArticleResultResponse",

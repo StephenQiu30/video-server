@@ -75,9 +75,7 @@ def test_normalizes_ytdlp_formats_into_domain_streams_and_options() -> None:
     assert inspection.extractor_key == "Controlled"
     assert inspection.duration_seconds == 60.5
     assert inspection.thumbnail_url == "https://images.example.com/cover.webp"
-    assert inspection.thumbnail_urls == (
-        "https://images.example.com/cover.webp",
-    )
+    assert inspection.thumbnail_urls == ("https://images.example.com/cover.webp",)
     assert len(inspection.streams) == 3
     muxed, video, audio = inspection.streams
     assert muxed.kind is StreamKind.MUXED

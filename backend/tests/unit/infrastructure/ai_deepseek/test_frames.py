@@ -55,7 +55,8 @@ async def test_ffmpeg_frames_are_bounded_and_timestamped(tmp_path: Path) -> None
     video = workspace / "video.bin"
     video.write_bytes(b"video")
     extractor = DeepSeekFrameExtractor(
-        config, supervisor=supervisor  # type: ignore[arg-type]
+        config,
+        supervisor=supervisor,  # type: ignore[arg-type]
     )
 
     frames = await extractor.extract(video, workspace=workspace, duration_ms=2_000)

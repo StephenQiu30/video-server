@@ -282,6 +282,4 @@ def test_media_import_accepts_only_controlled_wechat_channels_origin(
 
     assert accepted.status_code == 201
     assert rejected.status_code == 422
-    assert stubs["create"].calls[0][1]["declared_origin"].value == (
-        "wechat_channels"
-    )
+    assert stubs["create"].calls[0][1]["declared_origin"].value == ("wechat_channels")

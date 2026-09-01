@@ -57,9 +57,7 @@ def video_result_from_document(document: object) -> VideoAnalysisResult:
         ),
         shot_count=integer(root["shot_count"], "shot_count"),
         shots=tuple(stored_shot(value) for value in array(root["shots"], "shots")),
-        scenes=tuple(
-            stored_scene(value) for value in array(root["scenes"], "scenes")
-        ),
+        scenes=tuple(stored_scene(value) for value in array(root["scenes"], "scenes")),
         highlights=tuple(
             stored_highlight(value) for value in array(root["highlights"], "highlights")
         ),

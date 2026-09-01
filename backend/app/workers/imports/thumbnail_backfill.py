@@ -58,9 +58,7 @@ class DownloadThumbnailBackfill:
             try:
                 workspace = await self._workspace.create(task_id)
                 workspace_path = workspace.path
-                await self._storage.download(
-                    candidate.object_key, workspace.input_path
-                )
+                await self._storage.download(candidate.object_key, workspace.input_path)
                 if await self._recovery.recover(
                     candidate.job_id,
                     candidate.owner_hash,

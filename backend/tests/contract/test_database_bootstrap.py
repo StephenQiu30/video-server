@@ -461,8 +461,7 @@ def test_local_youtube_operator_owns_the_host_cookie_sync_mount() -> None:
     )
     assert (
         'source: "${YOUTUBE_COOKIE_SYNC_DIR:-${HOME}/Library/Caches/'
-        'FrameFetch/youtube-cookie-sync}"'
-        in youtube_operator
+        'FrameFetch/youtube-cookie-sync}"' in youtube_operator
     )
     assert "target: /run/youtube-cookie-sync" in youtube_operator
     assert "read_only: false" in youtube_operator
@@ -471,9 +470,7 @@ def test_local_youtube_operator_owns_the_host_cookie_sync_mount() -> None:
     assert compose.count("target: /run/youtube-cookie-sync") == 1
     assert "RUNNER_YOUTUBE_COOKIE_SYNC_ROOT" not in production
     assert "YOUTUBE_COOKIE_SYNC_DIR" not in production
-    assert "YOUTUBE_COOKIE_SYNC_DIR=\n" in ENV_EXAMPLE_PATH.read_text(
-        encoding="utf-8"
-    )
+    assert "YOUTUBE_COOKIE_SYNC_DIR=\n" in ENV_EXAMPLE_PATH.read_text(encoding="utf-8")
     assert _env_value(ENV_EXAMPLE_PATH, "YOUTUBE_COOKIE_VERSION") == (
         "chrome-default-v1"
     )

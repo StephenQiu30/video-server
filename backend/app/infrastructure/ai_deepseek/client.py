@@ -69,9 +69,7 @@ async def invoke_structured(
         )
         async with asyncio.timeout(timeout_seconds):
             langchain_content = cast(list[str | dict[Any, Any]], message_content)
-            value = await runnable.ainvoke(
-                [HumanMessage(content=langchain_content)]
-            )
+            value = await runnable.ainvoke([HumanMessage(content=langchain_content)])
     except AuthenticationError as exc:
         raise AnalysisCliError("analysis_cli_not_authenticated") from exc
     except RateLimitError as exc:

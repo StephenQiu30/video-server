@@ -65,9 +65,7 @@ def validated_name(value: str) -> str:
     return normalized
 
 
-def validated_model(
-    value: str, *, engine: AiProviderEngine | None = None
-) -> str:
+def validated_model(value: str, *, engine: AiProviderEngine | None = None) -> str:
     normalized = value.strip()
     if not 1 <= len(normalized) <= 128 or any(ord(char) < 32 for char in normalized):
         raise AiProviderError(AiProviderErrorCode.INVALID_PROFILE)

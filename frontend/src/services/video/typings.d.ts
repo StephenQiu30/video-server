@@ -788,11 +788,6 @@ declare namespace API {
     evidence_shot_ids: string[];
   };
 
-  type HTTPValidationError = {
-    /** Detail */
-    detail?: ValidationError[];
-  };
-
   type IdentityState = "verified" | "ambiguous" | "unknown";
 
   type ImportErrorCode =
@@ -989,7 +984,7 @@ declare namespace API {
     /** Refresh Token */
     refresh_token: string;
     /** Token Type */
-    token_type?: string;
+    token_type: string;
     /** Access Expires At */
     access_expires_at: string;
     /** Refresh Expires At */
@@ -1436,19 +1431,6 @@ declare namespace API {
   };
 
   type UserRole = "admin" | "user";
-
-  type ValidationError = {
-    /** Location */
-    loc: (string | number)[];
-    /** Message */
-    msg: string;
-    /** Error Type */
-    type: string;
-    /** Input */
-    input?: any;
-    /** Context */
-    ctx?: Record<string, any>;
-  };
 
   type VideoAnalysisResultResponse = {
     /** Kind */

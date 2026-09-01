@@ -106,9 +106,7 @@ class DeepSeekFrameExtractor:
                     or total > _TOTAL_EVIDENCE_LIMIT
                 ):
                     raise AnalysisCliError("analysis_resource_limit")
-                timestamp = min(
-                    duration_ms - 1, round(index * duration_ms / requested)
-                )
+                timestamp = min(duration_ms - 1, round(index * duration_ms / requested))
                 evidence.append(FrameEvidence(timestamp, raw))
             return tuple(evidence)
         except OSError as exc:

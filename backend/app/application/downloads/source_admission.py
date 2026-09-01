@@ -88,9 +88,12 @@ def classify_restricted_source(url: str) -> RestrictedSourceAdmission | None:
             ),
         )
     if host == "weixin.qq.com":
-        valid = parsed.port in (None, 443) and bool(
-            _CHANNELS_PATH.fullmatch(parsed.path)
-        ) and not parsed.query and not parsed.fragment
+        valid = (
+            parsed.port in (None, 443)
+            and bool(_CHANNELS_PATH.fullmatch(parsed.path))
+            and not parsed.query
+            and not parsed.fragment
+        )
         if valid:
             return None
         return RestrictedSourceAdmission(

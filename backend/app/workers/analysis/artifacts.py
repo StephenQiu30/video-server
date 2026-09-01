@@ -134,8 +134,7 @@ def _validate_source(
 def _reject_instruction_ancestor(root: Path) -> None:
     resolved = root.expanduser().resolve(strict=False)
     if any(
-        (parent / "AGENTS.md").is_file()
-        for parent in (resolved, *resolved.parents)
+        (parent / "AGENTS.md").is_file() for parent in (resolved, *resolved.parents)
     ):
         raise AnalysisArtifactError("analysis_sandbox_unavailable")
 

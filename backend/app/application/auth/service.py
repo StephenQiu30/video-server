@@ -75,9 +75,7 @@ class AuthService:
             raise AuthError(AuthErrorCode.USERNAME_ALREADY_REGISTERED) from exc
         return await self._grant(account.public_view(), now)
 
-    def _registration_role(
-        self, email: str, bootstrap_secret: str | None
-    ) -> UserRole:
+    def _registration_role(self, email: str, bootstrap_secret: str | None) -> UserRole:
         if email != self._bootstrap_admin_email:
             return UserRole.USER
         supplied = (bootstrap_secret or "").encode()
