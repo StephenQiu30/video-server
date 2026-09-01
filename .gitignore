@@ -30,6 +30,7 @@ reports/
 test-results/
 playwright-report/
 dogfood-output/
+qa-output/
 tmp/
 temp/
 .tmp/
