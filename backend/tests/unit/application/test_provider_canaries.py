@@ -43,7 +43,7 @@ def access_context(
         access_mode is ProviderAccessMode.OPERATOR_MANAGED
         and credential_version_id is None
     ):
-        credential_version_id = "credential-v1"
+        credential_version_id = "credential-current"
     return ProviderAccessContextRef(
         provider_key=provider_key,
         profile_version=profile_version,
@@ -420,7 +420,7 @@ async def test_old_runtime_route_cannot_keep_download_status_available() -> None
         (
             access_context(
                 access_mode=ProviderAccessMode.OPERATOR_MANAGED,
-                credential_version_id="credential-v1",
+                credential_version_id="credential-current",
             ),
             access_context(
                 access_mode=ProviderAccessMode.OPERATOR_MANAGED,
@@ -428,7 +428,7 @@ async def test_old_runtime_route_cannot_keep_download_status_available() -> None
             ),
         ),
         (
-            access_context(attestation_provider_version="bgutil-v1"),
+            access_context(attestation_provider_version="bgutil"),
             access_context(attestation_provider_version="bgutil-v2"),
         ),
     ),

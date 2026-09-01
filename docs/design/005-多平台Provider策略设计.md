@@ -214,9 +214,9 @@ engine_commit
 规则：
 
 1. 下载任务保存上述引用，不保存 Cookie、visitor data 或 token 原文。
-2. 生产静态凭据的“同一 context”表示同一个不可变 credential snapshot version、client 和出口身份，不要求把初次 inspection 中收到的临时 `Set-Cookie` 持久化到业务数据面。`chrome-default-v1` 是本机动态来源协议标识，不是 Cookie 内容快照 ID；inspect 和 download 各自在操作开始时从同一本机来源刷新。
+2. 生产静态凭据的“同一 context”表示同一个不可变 credential snapshot version、client 和出口身份，不要求把初次 inspection 中收到的临时 `Set-Cookie` 持久化到业务数据面。`chrome-default` 是本机动态来源协议标识，不是 Cookie 内容快照 ID；inspect 和 download 各自在操作开始时从同一本机来源刷新。
 3. 初次 inspection 与异步 download 各创建一个操作级可写 jar；download 必须先用原 snapshot version 重新 inspect，再让 video/audio stream、probe sample 和需要远程访问的 ffprobe 串行复用该 jar。
-4. Download Worker 重解析时必须获得原来源引用；生产静态 snapshot 至少保留到 inspection TTL 和最大排队窗口结束，本机 `chrome-default-v1` 则重新触发同一来源协议。对应来源不可用时返回稳定错误，不用其他账号或匿名模式替代。
+4. Download Worker 重解析时必须获得原来源引用；生产静态 snapshot 至少保留到 inspection TTL 和最大排队窗口结束，本机 `chrome-default` 则重新触发同一来源协议。对应来源不可用时返回稳定错误，不用其他账号或匿名模式替代。
 5. POT 由同一 client/session/出口上的 Provider 按视频生成；不把 video-bound token 长期持久化。
 6. `egress_affinity_id` 不使用 Profile pool 名或代理明文；它由实际代理 URL 的 SHA-256 前 12 位和 `default` / `provider:{key}` scope 组成。URL 变更即视为不同出口，必须新建 context 且旧 canary 不得继续作为当前证据。
 7. redirect 到另一 Provider 时销毁 context，重新执行 URL 安全校验和 admission；原凭据不得随 redirect 发送。
@@ -251,7 +251,7 @@ pending → canary → active → retired
 - 只有当前登录的 macOS 用户显式安装助手并启用 YouTube Operator 后，解析/下载操作才可触发 Chrome Default 来源；生产多用户服务默认不使用该来源，但获批准的单机 production Compose 可以复用该宿主机来源。
 - Chrome Cookies 数据库的 SQL 查询在选择阶段就限制为 `youtube.com` / `youtube-nocookie.com`，只返回并解密中选行；非 YouTube 域 Cookie 不进入 helper 的查询结果、输出文件或日志。
 - 单次读取在独立进程组中执行，持有 15 秒硬超时；成功后立即退出，超时、取消或异常时终止并回收整个进程组。helper 不启动、操作或持有 Chrome，不使用定时轮询或常驻端口。
-- `chrome-default-v1` 表示动态本机来源协议，不是 Cookie 原文哈希或内容 cohort。其平台状态历史只能证明该来源在相同非敏感上下文近期完成过制品，不证明当前 Cookie 未轮换或仍可用，不能单独将 `access_required` 提升为 `verified`。
+- `chrome-default` 表示动态本机来源协议，不是 Cookie 原文哈希或内容 cohort。其平台状态历史只能证明该来源在相同非敏感上下文近期完成过制品，不证明当前 Cookie 未轮换或仍可用，不能单独将 `access_required` 提升为 `verified`。
 - 应用服务的启动与重启仍只使用根 Docker Compose；按需 helper 是凭据适配器，不是宿主机平行应用或新的启动脚本。
 
 ### 8.3 第二阶段：用户 ProviderCredential
@@ -317,10 +317,10 @@ pending → canary → active → retired
 | Vimeo | player URL + impersonation | Cookie、password、Referer 分开建模 | private/password 内容不因 Cookie 开放而自动允许 |
 | Twitch / Reddit | yt-dlp 公开 clip/VOD/post | 权益 Cookie 后续评审 | live/私有/quarantine 不在首期 |
 | Pinterest / 微博 / 优酷 | yt-dlp 公开单视频 | anonymous | 保留当前版本化公开 Profile；受保护或多资产内容 fail closed |
-| QQVideo | 仅保留识别用 `qqvideo-public-video-v1` Profile | 无可用访问模式 | `disabled`；历史媒体证据不能恢复下载，重新开放须先满足 024 的官方授权与权益边界 |
+| QQVideo | 仅保留识别用 `qqvideo-public-video` Profile | 无可用访问模式 | `disabled`；历史媒体证据不能恢复下载，重新开放须先满足 024 的官方授权与权益边界 |
 | AcFun / Rutube / VK Clips / Dailymotion / NicoNico | 无 | 无 | 不在产品范围；主域及子域 fail closed，不进入 Generic |
 | Generic | 公开 direct/HLS/DASH/embed | 永不携带 Provider Secret | redirect 后重新归类 |
-| 快手 | 仓库可信 `KuaishouPublicIE` + 第一方移动分享页 | anonymous | `kuaishou-public-v1` 已完成真实 metadata/media 回归 |
+| 快手 | 仓库可信 `KuaishouPublicIE` + 第一方移动分享页 | anonymous | `kuaishou-public` 已完成真实 metadata/media 回归 |
 | 视频号 | 第一方预览页 + `get_feed_info` 的仓库内可审计 extractor | anonymous only；无 Cookie/浏览器/第三方中转 | `wechat-channels-public-v2` 为 `degraded`；仅处理 `/sph/` 直接公开 clear 媒体，受保护或未公开媒体 fail closed |
 
 图片、carousel、gallery 和用户时间线若进入产品范围，使用独立 gallery-dl engine adapter，返回受限 manifest；在领域模型支持多条目之前不静默只取第一项。gallery-dl 为 GPL-2.0，必须以独立进程/镜像评估分发义务，不直接导入当前核心源码。
@@ -412,7 +412,7 @@ unknown | verified | degraded | access_required | rate_limited | blocked | disab
 
 最近 5 次至少 4 次成功、最近 2 次连续成功、metadata 成功不超过 6 小时且 media 成功不超过 26 小时，已批准基线才可恢复 `verified`；至少 2 次失败进入 `degraded`；连续 3 次同类永久失败进入 `blocked`。会话失效立即进入 `access_required`。API 已实现该聚合器，但新平台的 `unknown/access_required` 基线不能被下载探针自动提升，必须先完成完整视频 Agent E2E 并显式批准。当前逐平台状态只由 Registry、状态 API 与对应验收文档维护，不在本通用策略中复制易过期快照；微信视频号当前边界见 025，腾讯视频授权媒体边界见 024。
 
-API 通过 HMAC/replay 防护的批量 Runner context 接口读取当前运行时，2 秒内一次解析全部匿名平台，各 operator group 并行且故障隔离。状态和 scheduler 使用完整 context 的 SHA-256 generation：`provider_key + profile_version + access_mode + credential_version_id + egress_affinity_id + client_profile_id + attestation_provider_version + engine_commit`。任一字段变化都会创建新 generation；查询必须在 SQL 排序/限额前按当前 generation 过滤，历史任务即使晚完成也不能污染当前状态或推迟新一轮 canary。无法取得或无法通过语义校验的 group 只将对应平台标为 `degraded`，绝不从历史记录推断“当前 cohort”。动态本机来源 `chrome-default-v1` 不将 Cookie 原文或哈希加入 generation，因此其关联的真实下载只是“这个来源近期成功”的历史证据，不是当前 Cookie 内容 cohort 的验证结果；它不能单独把 `access_required` 提升为 `verified`。
+API 通过 HMAC/replay 防护的批量 Runner context 接口读取当前运行时，2 秒内一次解析全部匿名平台，各 operator group 并行且故障隔离。状态和 scheduler 使用完整 context 的 SHA-256 generation：`provider_key + profile_version + access_mode + credential_version_id + egress_affinity_id + client_profile_id + attestation_provider_version + engine_commit`。任一字段变化都会创建新 generation；查询必须在 SQL 排序/限额前按当前 generation 过滤，历史任务即使晚完成也不能污染当前状态或推迟新一轮 canary。无法取得或无法通过语义校验的 group 只将对应平台标为 `degraded`，绝不从历史记录推断“当前 cohort”。动态本机来源 `chrome-default` 不将 Cookie 原文或哈希加入 generation，因此其关联的真实下载只是“这个来源近期成功”的历史证据，不是当前 Cookie 内容 cohort 的验证结果；它不能单独把 `access_required` 提升为 `verified`。
 
 ## 14. 可观测性与审计
 

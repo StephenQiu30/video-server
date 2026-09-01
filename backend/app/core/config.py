@@ -14,6 +14,7 @@ from cryptography.fernet import Fernet
 from pydantic import EmailStr, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.domain.identifiers import RightsStatementVersion, UrlEncryptionKeyId
 from app.runner.provider_instances import validated_instance_hosts
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -121,7 +122,7 @@ class Settings(BaseSettings):
     )
     url_encryption_key: SecretStr = SecretStr(DEFAULT_URL_ENCRYPTION_KEY)
     url_encryption_key_id: str = Field(
-        default="fernet-v1",
+        default=UrlEncryptionKeyId.FERNET,
         min_length=1,
         max_length=32,
         pattern=r"^[a-z0-9_-]+$",
@@ -172,7 +173,7 @@ class Settings(BaseSettings):
     import_upload_max_concurrency: int = Field(default=4, ge=1, le=16)
     import_quarantine_retention_days: int = Field(default=1, ge=1, le=7)
     import_rights_statement_version: str = Field(
-        default="content-rights-v1",
+        default=RightsStatementVersion.CONTENT,
         min_length=1,
         max_length=64,
         pattern=r"^[a-z0-9][a-z0-9._-]{0,63}$",

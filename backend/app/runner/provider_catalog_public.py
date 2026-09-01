@@ -1,6 +1,11 @@
 """Public single-media provider profiles."""
 
-from app.domain.providers import ProviderCapability, ProviderSupportStatus
+from app.domain.providers import (
+    ProviderCapability,
+    ProviderKey,
+    ProviderProfileVersion,
+    ProviderSupportStatus,
+)
 from app.runner.provider_factories import CHROME_IMPERSONATION, standard_provider
 from app.runner.provider_normalizers import (
     hongguo_url,
@@ -16,46 +21,46 @@ SINGLE_VIDEO = frozenset({ProviderCapability.SINGLE_VIDEO})
 
 PUBLIC_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
     standard_provider(
-        "pinterest",
+        ProviderKey.PINTEREST,
         "Pinterest",
         ("pinterest.com", "www.pinterest.com", "pin.it"),
-        version="pinterest-public-video-pin-v1",
+        version=ProviderProfileVersion.PINTEREST,
         capabilities=SINGLE_VIDEO,
         status=ProviderSupportStatus.VERIFIED,
         canary_suite="pinterest-public-video-pin",
     ),
     standard_provider(
-        "weibo",
+        ProviderKey.WEIBO,
         "微博",
         ("weibo.com", "www.weibo.com", "weibo.cn", "m.weibo.cn"),
-        version="weibo-public-video-v1",
+        version=ProviderProfileVersion.WEIBO,
         capabilities=SINGLE_VIDEO,
         status=ProviderSupportStatus.VERIFIED,
         canary_suite="weibo-public-single-video",
     ),
     standard_provider(
-        "youku",
+        ProviderKey.YOUKU,
         "优酷",
         ("youku.com", "www.youku.com", "v.youku.com"),
-        version="youku-public-video-v1",
+        version=ProviderProfileVersion.YOUKU,
         capabilities=SINGLE_VIDEO,
         status=ProviderSupportStatus.VERIFIED,
         canary_suite="youku-public-single-video",
     ),
     standard_provider(
-        "qqvideo",
+        ProviderKey.QQVIDEO,
         "腾讯视频",
         ("v.qq.com",),
-        version="qqvideo-public-video-v1",
+        version=ProviderProfileVersion.QQVIDEO,
         capabilities=SINGLE_VIDEO,
         status=ProviderSupportStatus.DISABLED,
         canary_suite="qqvideo-public-single-video",
     ),
     standard_provider(
-        "snapchat",
+        ProviderKey.SNAPCHAT,
         "Snapchat Spotlight",
         ("snapchat.com", "www.snapchat.com"),
-        version="snapchat-spotlight-v1",
+        version=ProviderProfileVersion.SNAPCHAT,
         normalize_url=snapchat_url,
         capabilities=frozenset(
             {ProviderCapability.SINGLE_VIDEO, ProviderCapability.SHORT_VIDEO}
@@ -64,30 +69,30 @@ PUBLIC_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         canary_suite="snapchat-public-spotlight",
     ),
     standard_provider(
-        "linkedin",
+        ProviderKey.LINKEDIN,
         "LinkedIn",
         ("linkedin.com", "www.linkedin.com"),
-        version="linkedin-public-post-v1",
+        version=ProviderProfileVersion.LINKEDIN,
         normalize_url=linkedin_url,
         capabilities=SINGLE_VIDEO,
         status=ProviderSupportStatus.VERIFIED,
         canary_suite="linkedin-public-single-video-post",
     ),
     standard_provider(
-        "telegram",
+        ProviderKey.TELEGRAM,
         "Telegram",
         ("t.me",),
-        version="telegram-public-channel-post-v1",
+        version=ProviderProfileVersion.TELEGRAM,
         normalize_url=telegram_url,
         capabilities=SINGLE_VIDEO,
         status=ProviderSupportStatus.VERIFIED,
         canary_suite="telegram-public-channel-single-video",
     ),
     standard_provider(
-        "kick",
+        ProviderKey.KICK,
         "Kick",
         ("kick.com", "www.kick.com"),
-        version="kick-public-clip-v1",
+        version=ProviderProfileVersion.KICK,
         normalize_url=kick_url,
         capabilities=frozenset(
             {ProviderCapability.SINGLE_VIDEO, ProviderCapability.CLIP_OR_VOD}
@@ -96,10 +101,10 @@ PUBLIC_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         canary_suite="kick-public-clip",
     ),
     standard_provider(
-        "tumblr",
+        ProviderKey.TUMBLR,
         "Tumblr",
         ("tumblr.com", "www.tumblr.com"),
-        version="tumblr-public-video-post-v1",
+        version=ProviderProfileVersion.TUMBLR,
         normalize_url=tumblr_url,
         host_suffixes=frozenset({"tumblr.com"}),
         capabilities=SINGLE_VIDEO,
@@ -111,10 +116,10 @@ PUBLIC_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         inspection_retry_delay=4,
     ),
     ProviderProfile(
-        key="hongguo_web",
+        key=ProviderKey.HONGGUO_WEB,
         display_name="红果短剧官方分享",
         hosts=frozenset({"novelquickapp.com", "hongguoduanju.com"}),
-        version="hongguo-official-share-v1",
+        version=ProviderProfileVersion.HONGGUO_WEB,
         normalize_url=hongguo_url,
         capabilities=SINGLE_VIDEO,
         support_status=ProviderSupportStatus.VERIFIED,

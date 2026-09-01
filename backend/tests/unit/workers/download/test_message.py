@@ -18,7 +18,7 @@ def envelope(**payload) -> EventEnvelope:
     )
 
 
-def test_parse_strict_v1_download_request() -> None:
+def test_parse_strict_download_request() -> None:
     message = envelope()
     parsed = parse_download_requested(message.to_bytes())
     assert parsed.job_id == message.aggregate_id

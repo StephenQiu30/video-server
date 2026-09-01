@@ -66,11 +66,11 @@ def test_sync_exports_only_live_youtube_cookies(
     result = sync.sync_cookie_file(
         tmp_path,
         profile="Default",
-        version="chrome-default-v1",
+        version="chrome-default",
         clock=lambda: 1_000,
     )
 
-    target = tmp_path / "chrome-default-v1.cookies.txt"
+    target = tmp_path / "chrome-default.cookies.txt"
     payload = target.read_text()
     assert result == "ok"
     assert captured["profile"] == "Default"
@@ -85,7 +85,7 @@ def test_sync_exports_only_live_youtube_cookies(
 def test_sync_requires_an_eligible_cookie_without_replacing_previous_file(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    target = tmp_path / "chrome-default-v1.cookies.txt"
+    target = tmp_path / "chrome-default.cookies.txt"
     target.write_bytes(b"previous")
     monkeypatch.setattr(
         sync,
@@ -134,7 +134,7 @@ def test_prepare_only_changes_owned_leaf_directories(tmp_path: Path) -> None:
 def test_sync_rejects_oversized_cookie_without_replacing_previous_file(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    target = tmp_path / "chrome-default-v1.cookies.txt"
+    target = tmp_path / "chrome-default.cookies.txt"
     target.write_bytes(b"previous")
     monkeypatch.setattr(
         sync,
@@ -202,10 +202,10 @@ def test_drain_batches_requests_and_writes_exact_responses(
         runtime,
         secret_root,
         profile="Default",
-        version="chrome-default-v1",
+        version="chrome-default",
     )
 
-    assert calls == [(secret_root, "Default", "chrome-default-v1")]
+    assert calls == [(secret_root, "Default", "chrome-default")]
     assert not tuple(requests.iterdir())
     for token in tokens:
         assert published[f"{token}.response"] == (b"ok", 0o644)

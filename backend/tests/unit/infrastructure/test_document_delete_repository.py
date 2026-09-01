@@ -50,7 +50,7 @@ def command() -> ImportResourceCreate:
         content_type=ImportSourceFormat.TXT.content_type,
         declared_size_bytes=1024,
         declared_sha256="c" * 64,
-        rights_statement_version="content-rights-v1",
+        rights_statement_version="content-rights",
     )
 
 

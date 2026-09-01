@@ -9,7 +9,11 @@ from contextlib import asynccontextmanager
 from dataclasses import replace
 from pathlib import Path
 
-from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
+from app.domain.providers import (
+    ProviderAccessContextRef,
+    ProviderAccessMode,
+    ProviderKey,
+)
 from app.runner.errors import RunnerFailure
 from app.runner.provider_cookie_sync import (
     ProviderCookieSync,
@@ -90,7 +94,7 @@ class ProviderSessionStore:
             client_profile_id=profile.client_profile_id,
             attestation_provider_version=(
                 self._settings.runner_youtube_pot_provider_version
-                if profile.key == "youtube"
+                if profile.key == ProviderKey.YOUTUBE
                 and self._settings.runner_youtube_pot_base_url is not None
                 else None
             ),
@@ -141,12 +145,14 @@ class ProviderSessionStore:
     def _uses_live_sync(self, provider: str, version: str) -> bool:
         return (
             self._live_sync_enabled()
-            and provider == "youtube"
+            and provider == ProviderKey.YOUTUBE
             and self._versions.get(provider) == version
         )
 
     def _live_sync_enabled(self) -> bool:
-        return self._cookie_sync is not None and set(self._versions) == {"youtube"}
+        return self._cookie_sync is not None and set(self._versions) == {
+            ProviderKey.YOUTUBE
+        }
 
     def _validated_payload(self, provider: str, version: str) -> bytes:
         profile = _profile_for_key(provider)

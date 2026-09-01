@@ -9,6 +9,7 @@ import secrets
 
 from app.application.downloads import EncryptedUrl
 from app.core.url_cipher import URLCipher
+from app.domain.identifiers import UrlEncryptionKeyId
 from app.runner.url_policy import validate_media_url
 
 _XHS_SHORT_LINK = re.compile(
@@ -66,7 +67,10 @@ class FernetUrlEnvelope:
         )
 
     def decrypt(self, envelope: EncryptedUrl) -> str:
-        if envelope.key_id != self._key_id:
+        if envelope.key_id not in {
+            self._key_id,
+            UrlEncryptionKeyId.LEGACY_FERNET,
+        }:
             raise ValueError("unknown URL encryption key id")
         value = self._cipher.decrypt(envelope.ciphertext)
         try:

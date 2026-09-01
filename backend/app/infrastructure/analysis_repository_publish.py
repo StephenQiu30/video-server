@@ -15,6 +15,7 @@ from app.application.analysis import (
     render_analysis_report_markdown,
 )
 from app.domain.analysis import analysis_result_contract, analysis_result_language
+from app.domain.identifiers import AnalysisReportRenderer
 from app.infrastructure.analysis_repository_mapping import analysis_job_snapshot
 from app.infrastructure.analysis_repository_recovery import AnalysisRecoveryRepository
 from app.infrastructure.analysis_repository_serialization import (
@@ -77,7 +78,7 @@ class AnalysisPublishRepository(AnalysisRecoveryRepository):
                     result_json=document,
                     report_markdown=markdown,
                     content_sha256=markdown_sha256,
-                    renderer_version="analysis-report-v1",
+                    renderer_version=AnalysisReportRenderer.DEFAULT,
                     status="validated",
                     attempt=0,
                     created_at=command.now,

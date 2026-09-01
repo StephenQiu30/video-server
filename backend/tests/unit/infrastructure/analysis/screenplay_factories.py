@@ -42,7 +42,7 @@ async def seed_screenplay(
                 content_type="text/plain",
                 declared_size_bytes=128,
                 declared_sha256="e" * 64,
-                rights_statement_version="rights-v1",
+                rights_statement_version="rights",
                 status=status,
                 attempt=1,
                 version=1,

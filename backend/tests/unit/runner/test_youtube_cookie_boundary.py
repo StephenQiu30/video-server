@@ -69,7 +69,7 @@ def test_child_calls_sync_and_writes_only_the_status(
             "--profile",
             "Default",
             "--version",
-            "chrome-default-v1",
+            "chrome-default",
             "--staging",
             str(staging),
         )
@@ -77,7 +77,7 @@ def test_child_calls_sync_and_writes_only_the_status(
 
     captured = capsys.readouterr()
     assert result == 0
-    assert calls == [(tmp_path, "Default", "chrome-default-v1", staging)]
+    assert calls == [(tmp_path, "Default", "chrome-default", staging)]
     assert captured.out == "credential_required"
     assert captured.err == ""
 
@@ -101,7 +101,7 @@ def test_child_exception_is_a_stable_unavailable_status(
                 "--profile",
                 "Default",
                 "--version",
-                "chrome-default-v1",
+                "chrome-default",
                 "--staging",
                 str(staging),
             )
@@ -136,7 +136,7 @@ def test_child_unblocks_spawn_time_termination_signals(
                     "--profile",
                     "Default",
                     "--version",
-                    "chrome-default-v1",
+                    "chrome-default",
                     "--staging",
                     str(staging),
                 )
@@ -152,7 +152,7 @@ def test_child_unblocks_spawn_time_termination_signals(
 
 def test_command_uses_current_python_and_module_cli(tmp_path: Path) -> None:
     staging = tmp_path / ".staging"
-    command = boundary._child_command(tmp_path, "Default", "v1", staging)
+    command = boundary._child_command(tmp_path, "Default", "revision", staging)
 
     assert command[:4] == (
         sys.executable,
@@ -166,7 +166,7 @@ def test_command_uses_current_python_and_module_cli(tmp_path: Path) -> None:
         "--profile",
         "Default",
         "--version",
-        "v1",
+        "revision",
         "--staging",
         str(staging),
     )

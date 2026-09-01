@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from app.domain.providers import ProviderAccessMode
+from app.domain.providers import ProviderAccessMode, ProviderKey
 from app.runner.provider_instances import validated_instance_hosts
 from app.runner.version import (
     YOUTUBE_POT_PROVIDER_ATTESTATION,
@@ -200,7 +200,7 @@ class RunnerSettings(BaseSettings):
         if self.runner_youtube_cookie_sync_root is not None:
             youtube_operator = operator and set(
                 self.runner_operator_session_versions
-            ) == {"youtube"}
+            ) == {ProviderKey.YOUTUBE}
             if not youtube_operator:
                 raise ValueError(
                     "YouTube cookie sync is restricted to the YouTube operator"
@@ -244,7 +244,7 @@ class RunnerSettings(BaseSettings):
         if self.runner_youtube_pot_base_url is not None:
             youtube_operator = operator and set(
                 self.runner_operator_session_versions
-            ) == {"youtube"}
+            ) == {ProviderKey.YOUTUBE}
             if (
                 not youtube_operator
                 and self.runner_access_mode is not ProviderAccessMode.ANONYMOUS

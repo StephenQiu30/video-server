@@ -17,6 +17,7 @@ from app.domain.downloads import (
     RightsBasis,
     SourceOrigin,
 )
+from app.domain.providers import ProviderKey
 
 _ARTICLE_PATH = re.compile(r"/s/[A-Za-z0-9_-]{6,256}")
 _ARTICLE_QUERY_KEYS = frozenset({"__biz", "mid", "idx", "sn", "chksm", "scene"})
@@ -66,7 +67,7 @@ def classify_restricted_source(url: str) -> RestrictedSourceAdmission | None:
             parsed.path, parsed.query, parsed.port, parsed.fragment
         )
         return RestrictedSourceAdmission(
-            provider_key="wechat_official_account_article",
+            provider_key=ProviderKey.WECHAT_OFFICIAL_ACCOUNT_ARTICLE,
             provider_media_id=_opaque_source_id(url),
             title="微信公众号文章",
             source_origin=SourceOrigin.PUBLIC_URL,
@@ -97,7 +98,7 @@ def classify_restricted_source(url: str) -> RestrictedSourceAdmission | None:
         if valid:
             return None
         return RestrictedSourceAdmission(
-            provider_key="wechat_channels",
+            provider_key=ProviderKey.WECHAT_CHANNELS,
             provider_media_id=_opaque_source_id(url),
             title="微信视频号内容",
             source_origin=SourceOrigin.PUBLIC_URL,
@@ -113,7 +114,7 @@ def classify_restricted_source(url: str) -> RestrictedSourceAdmission | None:
     if host == "v.qq.com":
         media_id = _qqvideo_media_id(parsed.path)
         return RestrictedSourceAdmission(
-            provider_key="qqvideo",
+            provider_key=ProviderKey.QQVIDEO,
             provider_media_id=media_id or _opaque_source_id(url),
             title="腾讯视频内容",
             source_origin=SourceOrigin.PUBLIC_URL,

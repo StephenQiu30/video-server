@@ -91,7 +91,7 @@ canary 只降级对应 Provider；API、文件上传、匿名下载和 AI 配置
 `GET /api/providers` 将 Registry 发布验收基线、近期固定探针和已经生成完整制品的
 真实下载合并展示。长期无人使用或未配置探针不会撤销已验收能力；近期重复失败仍会
 自动降级对应平台。真实任务投影只使用非敏感 Provider 上下文与完成时间，不读取或
-公开来源 URL、账号和 Cookie。`chrome-default-v1` 只是本机动态来源标识；关联的近期成功
+公开来源 URL、账号和 Cookie。`chrome-default` 只是本机动态来源标识；关联的近期成功
 表示该来源曾在相同非敏感上下文生成完整制品，不是当前 Cookie 内容 cohort，也不能单独证明
 当前会话可用或将 `access_required` 提升为 `verified`。
 

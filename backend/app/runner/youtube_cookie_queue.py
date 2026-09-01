@@ -12,6 +12,7 @@ from pathlib import Path
 
 _REQUEST = re.compile(r"(?P<token>[0-9a-f]{32})\.request")
 DEFAULT_ACK_TIMEOUT_SECONDS = 1.0
+AGENT_READY_MARKER = ".agent-installed"
 
 
 def prepare_runtime(runtime_root: Path) -> tuple[Path, Path]:

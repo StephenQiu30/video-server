@@ -7,7 +7,7 @@
 
 > 2026-08-10 实施更新：本文第 3 节记录的是实施前基线。Profile/context、操作级 Cookie jar、YouTube 运维 Runner、POT sidecar 拓扑、错误映射和 Provider 状态 API/UI 已落地；真实 Cookie/POT E2E、动态 canary 与生产验收状态以 005 Acceptance 为准。
 
-> 2026-08-29 状态说明：第 6 节平台矩阵是调研时快照，不是当前支持清单。视频号现行匿名公开链路与 `degraded` 边界以 015 调研、025 设计/验收为准；腾讯视频当前为 `disabled`，快手当前为 `kuaishou-public-v1`。
+> 2026-08-29 状态说明：第 6 节平台矩阵是调研时快照，不是当前支持清单。视频号现行匿名公开链路与 `degraded` 边界以 015 调研、025 设计/验收为准；腾讯视频当前为 `disabled`，快手当前为 `kuaishou-public`。
 
 > 2026-08-30 YouTube 复核：第 1–5 节中 yt-dlp `2026.07.04` / `5d6b8c8` 和 bgutil `1.3.1` 是调研与故障复现基线，不再是当前运行时。现行锁定版本、PID1 恢复/日志隔离、sidecar 网络、验证结果和部署结论见第 10 节；上述历史表格保留当时证据，不用它们判定当前平台状态。
 
@@ -222,7 +222,7 @@ yt-dlp 官方 [PO Token Guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Gu
 
 `RUNNER_PROVIDER_EGRESS_PROXIES={}` 时，YouTube 实际仍通过共享 `default` egress；Profile 的 `egress_pool` 是期望路由，不是已经获得专用 IP 的证据。Runner 使用实际代理 URL 的 SHA-256 前 12 位指纹生成非 Secret `egress_affinity_id`，带 `default` 或 `provider:youtube` scope；URL 变更即创建新 context。本轮将缺失 Runner context 的 canary 出口记为 `unresolved`，防止平台状态伪报已使用 `youtube-sticky`。
 
-平台状态通过 HMAC/replay 防护的批量 Runner 接口读取实时 context，并只聚合精确相同的 SHA-256 generation；generation 覆盖 provider、profile、access mode、credential version、实际 egress affinity、client profile、attestation/POT version 和 engine commit。旧 generation 保留审计但即使晚完成也不能影响当前状态；scheduler 同样按该 generation 查询最近执行时间。某个 runner group 取不到或返回畸形 context 时，只将该组平台标为 `degraded`，不会用历史 cohort 猜测当前运行时。`chrome-default-v1` 是动态本机来源标识，不是 Cookie 内容哈希；与它关联的近期真实下载成功只证明该来源在相同非敏感上下文完成过制品，不是“当前 Cookie cohort 已验证”，也不能单独将 `access_required` 提升为 `verified`。
+平台状态通过 HMAC/replay 防护的批量 Runner 接口读取实时 context，并只聚合精确相同的 SHA-256 generation；generation 覆盖 provider、profile、access mode、credential version、实际 egress affinity、client profile、attestation/POT version 和 engine commit。旧 generation 保留审计但即使晚完成也不能影响当前状态；scheduler 同样按该 generation 查询最近执行时间。某个 runner group 取不到或返回畸形 context 时，只将该组平台标为 `degraded`，不会用历史 cohort 猜测当前运行时。`chrome-default` 是动态本机来源标识，不是 Cookie 内容哈希；与它关联的近期真实下载成功只证明该来源在相同非敏感上下文完成过制品，不是“当前 Cookie cohort 已验证”，也不能单独将 `access_required` 提升为 `verified`。
 
 面向多用户的长期可用性要求部署方为 `youtube` 配置自身运维、稳定、合规且可审计的专用出口，在同一实际 affinity 上完成 metadata + media canary，并以低并发、`Retry-After` 和冷却控制请求。这是部署能力门禁，不是需要再增加解析器补丁。
 

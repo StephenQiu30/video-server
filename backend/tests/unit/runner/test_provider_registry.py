@@ -2,6 +2,8 @@ import pytest
 from app.domain.providers import (
     ProviderAccessMode,
     ProviderCapability,
+    ProviderKey,
+    ProviderProfileVersion,
     ProviderSupportStatus,
 )
 from app.runner.errors import RunnerFailure
@@ -9,6 +11,7 @@ from app.runner.provider_registry import (
     ProviderProfile,
     ProviderRegistry,
     configure_provider_instances,
+    default_provider_registry,
     provider_profile,
     provider_request,
 )
@@ -44,11 +47,23 @@ def test_uses_public_vimeo_player_endpoint_for_canonical_video() -> None:
 def test_youtube_v5_uses_the_managed_mweb_pot_route() -> None:
     profile = provider_profile("https://www.youtube.com/watch?v=owned")
 
-    assert profile.version == "youtube-v5"
+    assert profile.version == ProviderProfileVersion.YOUTUBE
     assert profile.client_profile_id == "youtube-mweb"
     assert profile.attestation_policy == "bgutil-mweb-player-gvs"
     assert profile.yt_dlp_retry_count == 0
     assert profile.inspection_attempts == 1
+
+
+def test_builtin_profiles_use_centralized_provider_identifiers() -> None:
+    profiles = ProviderRegistry(
+        default_provider_registry().profiles
+    ).profiles
+
+    provider_keys = {key.value for key in ProviderKey}
+    profile_versions = {version.value for version in ProviderProfileVersion}
+
+    assert all(profile.key in provider_keys for profile in profiles)
+    assert all(profile.version in profile_versions for profile in profiles)
 
 
 def test_registry_rejects_negative_yt_dlp_retry_budget() -> None:
@@ -90,7 +105,7 @@ def test_hongguo_official_share_is_a_single_video_profile() -> None:
     profile = provider_profile("https://novelquickapp.com/s/YMc-jWnOo1U/")
 
     assert profile.key == "hongguo_web"
-    assert profile.version == "hongguo-official-share-v1"
+    assert profile.version == "hongguo-official-share"
     assert profile.support_status is ProviderSupportStatus.VERIFIED
     assert profile.capabilities == frozenset({ProviderCapability.SINGLE_VIDEO})
 
@@ -121,10 +136,10 @@ def test_remaining_provider_profiles_record_verified_access_boundaries() -> None
     )
     wechat = provider_profile("https://weixin.qq.com/sph/AFWYoXF5Bw")
 
-    assert facebook.version == "facebook-public-reel-v1"
+    assert facebook.version == "facebook-public-reel"
     assert facebook.client_profile_id == "chrome-136-macos-15"
     assert ProviderCapability.SHORT_VIDEO in facebook.capabilities
-    assert twitch.version == "twitch-public-clip-v1"
+    assert twitch.version == "twitch-public-clip"
     assert twitch.capabilities == frozenset(
         {
             ProviderCapability.SINGLE_VIDEO,
@@ -132,7 +147,7 @@ def test_remaining_provider_profiles_record_verified_access_boundaries() -> None
         }
     )
     assert reddit.support_status is ProviderSupportStatus.ACCESS_REQUIRED
-    assert reddit.version == "reddit-public-video-v1"
+    assert reddit.version == "reddit-public-video"
     assert douyin.version == "douyin-public-v3"
     assert douyin.support_status is ProviderSupportStatus.ACCESS_REQUIRED
     assert douyin.access_modes == (
@@ -165,23 +180,23 @@ def test_wechat_channels_rejects_non_public_single_video_paths(url: str) -> None
 def test_new_social_profiles_have_versioned_single_media_boundaries() -> None:
     expected = {
         "https://www.snapchat.com/spotlight/example_1": (
-            "snapchat-spotlight-v1",
+            "snapchat-spotlight",
             "yt-dlp-default",
         ),
         "https://www.linkedin.com/posts/example-activity-1234567890-example": (
-            "linkedin-public-post-v1",
+            "linkedin-public-post",
             "yt-dlp-default",
         ),
         "https://t.me/example_channel/613": (
-            "telegram-public-channel-post-v1",
+            "telegram-public-channel-post",
             "yt-dlp-default",
         ),
         "https://kick.com/example/clips/clip_01ABCDEF": (
-            "kick-public-clip-v1",
+            "kick-public-clip",
             "yt-dlp-default",
         ),
         "https://www.tumblr.com/example/1234567890/video": (
-            "tumblr-public-video-post-v1",
+            "tumblr-public-video-post",
             "chrome-136-macos-15",
         ),
     }
@@ -474,7 +489,7 @@ def test_peertube_requires_an_exact_approved_instance_and_video_path() -> None:
         profile = provider_profile(url)
 
         assert profile.key == "peertube"
-        assert profile.version == "peertube-approved-instance-v1"
+        assert profile.version == "peertube-approved-instance"
         assert provider_request_url(url) == url
         assert (
             provider_profile(

@@ -386,7 +386,7 @@ async def test_create_resource_derives_safe_server_contract() -> None:
         document_enabled=True,
         media_max_bytes=2 * 1024**3,
         document_max_bytes=50 * 1024**2,
-        rights_statement_version="content-rights-v1",
+        rights_statement_version="content-rights",
     )
 
     view = await use_case(
@@ -404,7 +404,7 @@ async def test_create_resource_derives_safe_server_contract() -> None:
     assert view.status is ImportStatus.UPLOADING
     assert command.display_name == "example.mp4"
     assert command.content_type == "video/mp4"
-    assert command.rights_statement_version == "content-rights-v1"
+    assert command.rights_statement_version == "content-rights"
     assert command.request_fingerprint.startswith("content-import|video|mp4|")
 
 
@@ -419,7 +419,7 @@ async def test_create_resource_accepts_only_supported_screenplay_format() -> Non
         document_enabled=True,
         media_max_bytes=2 * 1024**3,
         document_max_bytes=50 * 1024**2,
-        rights_statement_version="content-rights-v1",
+        rights_statement_version="content-rights",
     )
 
     view = await use_case(
@@ -460,7 +460,7 @@ async def test_create_resource_rejects_untrusted_invalid_declarations(
         document_enabled=True,
         media_max_bytes=2 * 1024**3,
         document_max_bytes=50 * 1024**2,
-        rights_statement_version="content-rights-v1",
+        rights_statement_version="content-rights",
     )
     values: dict[str, object] = {
         "owner_hash": OWNER_HASH,
@@ -490,7 +490,7 @@ async def test_create_resource_is_fail_closed_when_feature_disabled() -> None:
         document_enabled=False,
         media_max_bytes=2 * 1024**3,
         document_max_bytes=50 * 1024**2,
-        rights_statement_version="content-rights-v1",
+        rights_statement_version="content-rights",
     )
 
     with pytest.raises(ImportApplicationError) as captured:

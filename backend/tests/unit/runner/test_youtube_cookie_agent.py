@@ -23,7 +23,7 @@ def test_launchd_definition_is_strictly_on_demand(
         runtime,
         tmp_path / "secret",
         "Default",
-        "chrome-default-v1",
+        "chrome-default",
     )
 
     assert "RunAtLoad" not in document
@@ -60,7 +60,7 @@ def test_install_bootstraps_without_starting_agent(
         runtime,
         secret,
         profile="Default",
-        version="chrome-default-v1",
+        version="chrome-default",
     )
 
     document = plistlib.loads(definition.read_bytes())
@@ -90,7 +90,7 @@ def test_install_replaces_loaded_definition_without_kickstart(
         tmp_path / "runtime",
         tmp_path / "secret",
         profile="Default",
-        version="chrome-default-v1",
+        version="chrome-default",
     )
 
     assert actions[0] == (
@@ -197,7 +197,7 @@ def test_main_run_drains_queue_with_explicit_paths(
             "--profile",
             "Default",
             "--version",
-            "chrome-default-v1",
+            "chrome-default",
         )
     )
 
@@ -207,10 +207,10 @@ def test_main_run_drains_queue_with_explicit_paths(
             tmp_path / "runtime",
             tmp_path / "secret",
             "Default",
-            "chrome-default-v1",
+            "chrome-default",
         )
     ]
-    assert refreshes == [(tmp_path / "secret", "Default", "chrome-default-v1")]
+    assert refreshes == [(tmp_path / "secret", "Default", "chrome-default")]
 
 
 def test_non_macos_commands_are_rejected(monkeypatch: pytest.MonkeyPatch) -> None:

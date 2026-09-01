@@ -1,16 +1,21 @@
 """Mainstream social and video provider profiles."""
 
-from app.domain.providers import ProviderCapability, ProviderSupportStatus
+from app.domain.providers import (
+    ProviderCapability,
+    ProviderKey,
+    ProviderProfileVersion,
+    ProviderSupportStatus,
+)
 from app.runner.provider_factories import CHROME_IMPERSONATION, standard_provider
 from app.runner.provider_normalizers import vimeo_url, wechat_channels_url
 from app.runner.provider_registry import ProviderProfile
 
 SOCIAL_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
     standard_provider(
-        "wechat_channels",
+        ProviderKey.WECHAT_CHANNELS,
         "微信视频号",
         ("weixin.qq.com",),
-        version="wechat-channels-public-v2",
+        version=ProviderProfileVersion.WECHAT_CHANNELS,
         normalize_url=wechat_channels_url,
         capabilities=frozenset(
             {ProviderCapability.SINGLE_VIDEO, ProviderCapability.SHORT_VIDEO}
@@ -21,7 +26,7 @@ SOCIAL_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         canary_suite="wechat-channels-public-single-video",
     ),
     standard_provider(
-        "vimeo",
+        ProviderKey.VIMEO,
         "Vimeo",
         ("vimeo.com", "www.vimeo.com", "player.vimeo.com"),
         normalize_url=vimeo_url,
@@ -30,7 +35,7 @@ SOCIAL_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         command_args=("--check-formats",),
     ),
     standard_provider(
-        "x",
+        ProviderKey.X,
         "X / Twitter",
         (
             "x.com",
@@ -43,14 +48,14 @@ SOCIAL_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         operator_cookie_domains=frozenset({"x.com", "twitter.com"}),
     ),
     standard_provider(
-        "instagram",
+        ProviderKey.INSTAGRAM,
         "Instagram",
         ("instagram.com", "www.instagram.com"),
         status=ProviderSupportStatus.VERIFIED,
         operator_cookie_domains=frozenset({"instagram.com"}),
     ),
     standard_provider(
-        "facebook",
+        ProviderKey.FACEBOOK,
         "Facebook",
         (
             "facebook.com",
@@ -59,7 +64,7 @@ SOCIAL_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             "m.facebook.com",
             "fb.watch",
         ),
-        version="facebook-public-reel-v1",
+        version=ProviderProfileVersion.FACEBOOK,
         capabilities=frozenset(
             {
                 ProviderCapability.SINGLE_VIDEO,
@@ -74,10 +79,10 @@ SOCIAL_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         canary_suite="facebook-public-reel-single-video",
     ),
     standard_provider(
-        "twitch",
+        ProviderKey.TWITCH,
         "Twitch",
         ("twitch.tv", "www.twitch.tv", "clips.twitch.tv"),
-        version="twitch-public-clip-v1",
+        version=ProviderProfileVersion.TWITCH,
         capabilities=frozenset(
             {ProviderCapability.SINGLE_VIDEO, ProviderCapability.CLIP_OR_VOD}
         ),
@@ -85,10 +90,10 @@ SOCIAL_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         canary_suite="twitch-public-clip",
     ),
     standard_provider(
-        "reddit",
+        ProviderKey.REDDIT,
         "Reddit",
         ("reddit.com", "www.reddit.com", "old.reddit.com", "redd.it"),
-        version="reddit-public-video-v1",
+        version=ProviderProfileVersion.REDDIT,
         capabilities=frozenset({ProviderCapability.SINGLE_VIDEO}),
         status=ProviderSupportStatus.ACCESS_REQUIRED,
         operator_cookie_domains=frozenset({"reddit.com"}),

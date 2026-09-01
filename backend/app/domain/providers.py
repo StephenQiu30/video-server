@@ -12,6 +12,72 @@ from typing import Self
 _REFERENCE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")
 
 
+class ProviderKey(StrEnum):
+    GENERIC = "generic"
+    YOUTUBE = "youtube"
+    BILIBILI = "bilibili"
+    DOUYIN = "douyin"
+    TIKTOK = "tiktok"
+    XIAOHONGSHU = "xiaohongshu"
+    KUAISHOU = "kuaishou"
+    WECHAT_CHANNELS = "wechat_channels"
+    VIMEO = "vimeo"
+    X = "x"
+    INSTAGRAM = "instagram"
+    FACEBOOK = "facebook"
+    TWITCH = "twitch"
+    REDDIT = "reddit"
+    PINTEREST = "pinterest"
+    WEIBO = "weibo"
+    YOUKU = "youku"
+    QQVIDEO = "qqvideo"
+    SNAPCHAT = "snapchat"
+    LINKEDIN = "linkedin"
+    TELEGRAM = "telegram"
+    KICK = "kick"
+    TUMBLR = "tumblr"
+    HONGGUO_WEB = "hongguo_web"
+    PEERTUBE = "peertube"
+    WECHAT_OFFICIAL_ACCOUNT_ARTICLE = "wechat_official_account_article"
+
+
+class ProviderProfileVersion(StrEnum):
+    DEFAULT = "1"
+    YOUTUBE = "youtube-v5"
+    BILIBILI = "bilibili-public"
+    DOUYIN = "douyin-public-v3"
+    TIKTOK = "tiktok-public-player-v3"
+    XIAOHONGSHU = "xiaohongshu-public"
+    KUAISHOU = "kuaishou-public"
+    WECHAT_CHANNELS = "wechat-channels-public-v2"
+    VIMEO = "vimeo-public"
+    X = "x-public"
+    INSTAGRAM = "instagram-public"
+    FACEBOOK = "facebook-public-reel"
+    TWITCH = "twitch-public-clip"
+    REDDIT = "reddit-public-video"
+    PINTEREST = "pinterest-public-video-pin"
+    WEIBO = "weibo-public-video"
+    YOUKU = "youku-public-video"
+    QQVIDEO = "qqvideo-public-video"
+    SNAPCHAT = "snapchat-spotlight"
+    LINKEDIN = "linkedin-public-post"
+    TELEGRAM = "telegram-public-channel-post"
+    KICK = "kick-public-clip"
+    TUMBLR = "tumblr-public-video-post"
+    HONGGUO_WEB = "hongguo-official-share"
+    PEERTUBE = "peertube-approved-instance"
+
+
+class YouTubeCookieVersion(StrEnum):
+    CHROME_DEFAULT = "chrome-default"
+
+
+class YouTubeCookieDomain(StrEnum):
+    PRIMARY = "youtube.com"
+    NOCOOKIE = "youtube-nocookie.com"
+
+
 class ProviderAccessMode(StrEnum):
     ANONYMOUS = "anonymous"
     OPERATOR_MANAGED = "operator_managed"

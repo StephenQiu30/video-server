@@ -8,6 +8,7 @@ from datetime import datetime
 from app.domain.providers import (
     ProviderAccessMode,
     ProviderCapability,
+    ProviderKey,
     ProviderSupportStatus,
 )
 
@@ -69,23 +70,26 @@ def provider_user_action(
     sample = (
         "公开样本" if access_mode is ProviderAccessMode.ANONYMOUS else "受控线路样本"
     )
-    if provider_key == "youku":
+    if provider_key == ProviderKey.YOUKU:
         return YOUKU_PUBLIC_ONLY_ACTION
-    if provider_key == "qqvideo":
+    if provider_key == ProviderKey.QQVIDEO:
         return QQVIDEO_PLAYBACK_ONLY_ACTION
     if status is ProviderSupportStatus.ACCESS_REQUIRED and download_available:
         return "真实下载已完成验证；当前链接仍可能因平台授权或验证要求失败。"
-    if provider_key == "wechat_channels":
+    if provider_key == ProviderKey.WECHAT_CHANNELS:
         return (
             "仅支持分享页直接公开非加密媒体的单视频；"
             "平台未公开媒体时请上传自己拥有或已获授权的文件。"
         )
-    if provider_key == "hongguo_web":
+    if provider_key == ProviderKey.HONGGUO_WEB:
         return (
             "已接入红果官方分享链接当前单集；"
             "不支持 App 受保护媒体、全集抓取或批量下载。"
         )
-    if provider_key == "xiaohongshu" and status is ProviderSupportStatus.DEGRADED:
+    if (
+        provider_key == ProviderKey.XIAOHONGSHU
+        and status is ProviderSupportStatus.DEGRADED
+    ):
         return (
             "当前出口受到小红书官方风控；失效笔记会单独提示，"
             "请使用新的公开分享链接后稍后重试。"

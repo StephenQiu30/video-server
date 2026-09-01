@@ -39,7 +39,7 @@
 
 Runner 使用 `ProviderStrategy + ProviderRegistry + GenericFallback`：平台策略只管理域名别名、规范化 URL、固定请求参数和有限重试；下载、格式选择、FFmpeg 校验仍走同一条流水线。当前登记的 16 个 Provider key 包括 YouTube、哔哩哔哩、抖音、TikTok、小红书、快手、Vimeo、X/Twitter、Instagram、Facebook、Twitch、Reddit、Pinterest、微博、优酷和腾讯视频。登记域名、extractor 存在和真实 canary 是不同状态；未登记且不在显式排除清单的 HTTP(S) 地址仍交给 Generic extractor，最终能力以带时间戳的实际解析/媒体验证为准。[Supported sites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md)
 
-快手由仓库可信公开页插件与 `kuaishou-public-v1` Profile 提供，并已完成实际 metadata/media 回归；AcFun、Rutube、VK Clips、Dailymotion 和 NicoNico 即使存在上游 extractor 也不在产品范围。
+快手由仓库可信公开页插件与 `kuaishou-public` Profile 提供，并已完成实际 metadata/media 回归；AcFun、Rutube、VK Clips、Dailymotion 和 NicoNico 即使存在上游 extractor 也不在产品范围。
 
 ## 关键风险与治理
 

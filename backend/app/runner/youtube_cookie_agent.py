@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from app.runner.youtube_cookie_boundary import sync_cookie_file_bounded
+from app.runner.youtube_cookie_queue import AGENT_READY_MARKER
 from app.runner.youtube_cookie_sync import (
     DEFAULT_PROFILE,
     DEFAULT_RUNTIME_ROOT,
@@ -49,6 +50,7 @@ def install_agent(
         _launch_agent_plist(runtime_root, secret_root, profile, version),
     )
     subprocess.run(("launchctl", "bootstrap", _domain(), str(PLIST_PATH)), check=True)
+    _write_ready_marker(runtime_root)
     print(f"installed: {PLIST_PATH}")
 
 
@@ -57,6 +59,7 @@ def uninstall_agent(runtime_root: Path) -> None:
     _stop_loaded_agent()
     PLIST_PATH.unlink(missing_ok=True)
     runtime_root = runtime_root.absolute()
+    (runtime_root / AGENT_READY_MARKER).unlink(missing_ok=True)
     for name in ("requests", "responses", ".discarded", ""):
         directory = runtime_root / name
         try:
@@ -143,6 +146,21 @@ def _atomic_write_plist(target: Path, document: dict[str, Any]) -> None:
             output.flush()
             os.fsync(output.fileno())
         os.replace(temp, target)
+    finally:
+        temp.unlink(missing_ok=True)
+
+
+def _write_ready_marker(runtime_root: Path) -> None:
+    marker = runtime_root / AGENT_READY_MARKER
+    descriptor, raw_temp = tempfile.mkstemp(prefix=f".{marker.name}.", dir=runtime_root)
+    temp = Path(raw_temp)
+    try:
+        os.fchmod(descriptor, 0o644)
+        with os.fdopen(descriptor, "w", encoding="ascii", closefd=True) as output:
+            output.write("installed\n")
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temp, marker)
     finally:
         temp.unlink(missing_ok=True)
 

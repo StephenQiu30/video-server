@@ -140,7 +140,7 @@
 - 状态机阈值、恢复迟滞、kill switch 和单 Provider 降级有确定性测试。
 - API 不泄露 canary URL、账号、credential version、POT 或出口地址。
 - Canary 失败不改变整体 readiness，不影响无关 Provider。
-- 视频号以 `wechat-channels-public-v2` / `degraded` / anonymous-only 显示，且仅接受 `/sph/` 直接公开 clear 媒体；快手以 `kuaishou-public-v1` 公开链显示，两者的无效或受保护输入都不得回退 Generic。
+- 视频号以 `wechat-channels-public-v2` / `degraded` / anonymous-only 显示，且仅接受 `/sph/` 直接公开 clear 媒体；快手以 `kuaishou-public` 公开链显示，两者的无效或受保护输入都不得回退 Generic。
 
 ## 8. Phase 6：其他平台专用 Profile
 

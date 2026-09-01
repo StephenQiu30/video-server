@@ -122,7 +122,7 @@ Phase 2 不因本文存在而自动获得上线授权；必须完成对应验收
 - 腾讯视频在官方授权/API 与媒体权益边界获批前保持 `disabled`，不得用历史媒体成功恢复下载能力或暴露访问模式。
 - AcFun、Rutube、VK Clips、Dailymotion、NicoNico 不在产品范围，相关域名必须返回 `provider_unsupported`。
 - 视频号仅以 `wechat-channels-public-v2` / `degraded` / anonymous-only 处理 `/sph/` 直接公开 clear 媒体；第一方未公开媒体或存在保护材料时 fail closed，且不得回退 Cookie、浏览器或第三方解析站。
-- 快手保留 `kuaishou-public-v1` 匿名公开单视频能力；图集和非第一方重定向 fail closed。
+- 快手保留 `kuaishou-public` 匿名公开单视频能力；图集和非第一方重定向 fail closed。
 
 ### FR-005-09 用户 ProviderCredential
 

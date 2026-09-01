@@ -8,7 +8,7 @@ from app.runner import youtube_cookie_staging as staging
 
 
 def test_publish_replaces_a_stale_private_staging_file(tmp_path: Path) -> None:
-    version = "chrome-default-v1"
+    version = "chrome-default"
     stale = staging.create_cookie_staging(tmp_path, version)
     stale.write_bytes(b"stale-canary")
 
@@ -24,7 +24,7 @@ def test_publish_replaces_a_stale_private_staging_file(tmp_path: Path) -> None:
 def test_publish_failure_removes_the_sensitive_staging_file(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    version = "chrome-default-v1"
+    version = "chrome-default"
     active = staging.create_cookie_staging(tmp_path, version)
 
     def fail(descriptor: int) -> None:
@@ -47,7 +47,7 @@ def test_publish_rejects_an_unexpected_staging_path(tmp_path: Path) -> None:
     with pytest.raises(OSError, match="unsafe Cookie staging"):
         staging.publish_cookie_payload(
             tmp_path,
-            "chrome-default-v1",
+            "chrome-default",
             b"private-canary",
             unexpected,
         )

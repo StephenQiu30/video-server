@@ -75,7 +75,7 @@ def command(
         content_type="video/mp4",
         declared_size_bytes=DECLARED_SIZE,
         declared_sha256="c" * 64,
-        rights_statement_version="content-rights-v1",
+        rights_statement_version="content-rights",
     )
 
 
@@ -108,7 +108,7 @@ async def test_create_is_idempotent_and_creates_browser_download_projection(
     assert job.status == "running"
     assert job.stage == "downloading"
     assert stored is not None
-    assert stored.rights_statement_version == "content-rights-v1"
+    assert stored.rights_statement_version == "content-rights"
     # ORM metadata intentionally excludes deployment triggers. Creation must
     # not enqueue the remote downloader's download.requested event.
     assert outbox_count == 0

@@ -392,7 +392,7 @@ async def test_download_sends_expected_inspection_identity(tmp_path) -> None:
             "audio_language": None,
             "container_preference": "mp4",
             "compatibility_profile": "balanced",
-            "hints": {"video_id": "v1", "audio_id": "a1"},
+            "hints": {"video_id": "video-id", "audio_id": "a1"},
         }
     ).to_domain()
 

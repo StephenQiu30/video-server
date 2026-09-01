@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Set
 
 from app.application.providers import ProviderStatusView, provider_user_action
-from app.domain.providers import ProviderAccessMode, ProviderSupportStatus
+from app.domain.providers import ProviderAccessMode, ProviderKey, ProviderSupportStatus
 from app.runner.provider_registry import ProviderProfile, current_provider_registry
 
 
@@ -18,7 +18,7 @@ def configured_provider_statuses(
     )
     non_runner = (
         ProviderStatusView(
-            key="wechat_official_account_article",
+            key=ProviderKey.WECHAT_OFFICIAL_ACCOUNT_ARTICLE,
             display_name="微信公众号文章",
             profile_version=None,
             registered=True,

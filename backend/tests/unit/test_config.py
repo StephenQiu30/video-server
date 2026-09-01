@@ -84,7 +84,7 @@ def test_local_import_defaults_and_bounds() -> None:
     assert settings.import_upload_max_parts == 1000
     assert settings.import_upload_max_concurrency == 4
     assert settings.import_quarantine_retention_days == 1
-    assert settings.import_rights_statement_version == "content-rights-v1"
+    assert settings.import_rights_statement_version == "content-rights"
     assert settings.import_ffprobe_timeout_seconds == 30
     assert settings.import_max_probe_output_bytes == 256 * 1024
     assert settings.import_max_video_width == 8192

@@ -57,7 +57,7 @@ class Decryptor:
         self.url = url
 
     def decrypt(self, envelope: EncryptedUrl) -> str:
-        assert envelope.key_id == "fernet-v1"
+        assert envelope.key_id == "fernet"
         return self.url
 
 
@@ -72,7 +72,7 @@ def evidence(
 ) -> AnalysisCanaryEvidence:
     operator = access_mode is ProviderAccessMode.OPERATOR_MANAGED
     return AnalysisCanaryEvidence(
-        EncryptedUrl(b"ciphertext", b"nonce", "fernet-v1"),
+        EncryptedUrl(b"ciphertext", b"nonce", "fernet"),
         ProviderAccessContextRef(
             provider_key="vimeo",
             profile_version="1",

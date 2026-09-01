@@ -12,11 +12,16 @@ from typing import Protocol, cast
 
 from yt_dlp import cookies as yt_dlp_cookies  # type: ignore[import-untyped]
 
+from app.domain.providers import YouTubeCookieDomain
+
 DEFAULT_CHROME_ROOT = (
     Path.home() / "Library" / "Application Support" / "Google" / "Chrome"
 )
 _PROFILE = re.compile(r"(?:Default|Profile [1-9][0-9]*)")
-_DOMAINS = ("youtube.com", "youtube-nocookie.com")
+_DOMAINS = (
+    YouTubeCookieDomain.PRIMARY,
+    YouTubeCookieDomain.NOCOOKIE,
+)
 _COOKIE_QUERY = """
 SELECT host_key, name, value, encrypted_value, path, expires_utc, {secure}
 FROM cookies

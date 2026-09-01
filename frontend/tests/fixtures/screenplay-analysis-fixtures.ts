@@ -149,7 +149,7 @@ export function screenplayAnalysisJob(
         ? {
             id: '99999999-9999-4999-8999-999999999999',
             status: 'available',
-            renderer_version: 'analysis-report-v1',
+            renderer_version: 'analysis-report',
             content_sha256: 'a'.repeat(64),
             published_at: '2026-08-14T12:01:00Z',
             artifacts: [

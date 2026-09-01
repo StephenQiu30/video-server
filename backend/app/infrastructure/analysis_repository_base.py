@@ -17,6 +17,7 @@ from app.application.analysis import (
     PersistenceConflict,
 )
 from app.domain.analysis import AnalysisResult
+from app.domain.identifiers import AnalysisReportRenderer
 from app.infrastructure.analysis_repository_inputs import AnalysisInputRepository
 from app.infrastructure.analysis_repository_mapping import analysis_job_snapshot
 from app.infrastructure.analysis_repository_serialization import (
@@ -167,7 +168,7 @@ class AnalysisRepositoryBase(AnalysisInputRepository):
                 "job_id": str(row.id),
                 "run_id": str(run.id),
                 "report_id": str(report_id),
-                "renderer_version": "analysis-report-v1",
+                "renderer_version": AnalysisReportRenderer.DEFAULT,
                 "version": row.version,
             },
             available_at=now,

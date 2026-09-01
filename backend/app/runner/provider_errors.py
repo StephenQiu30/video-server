@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.domain.providers import ProviderKey
+
 
 @dataclass(frozen=True, slots=True)
 class ProviderFailureContext:
@@ -44,13 +46,13 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         "pot_provider_unavailable",
         503,
         all_stderr=(b"error reaching get ", b"/ping", b"server is reachable"),
-        providers=frozenset({"youtube"}),
+        providers=frozenset({ProviderKey.YOUTUBE}),
     ),
     FailureRule(
         "pot_provider_unavailable",
         503,
         all_stderr=(b"po token provider", b"server is not available"),
-        providers=frozenset({"youtube"}),
+        providers=frozenset({ProviderKey.YOUTUBE}),
     ),
     FailureRule(
         "provider_unsupported",
@@ -62,13 +64,13 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         "provider_unsupported",
         422,
         any_stderr=(b"kuaishou image posts are not supported by the video runner",),
-        providers=frozenset({"kuaishou"}),
+        providers=frozenset({ProviderKey.KUAISHOU}),
     ),
     FailureRule(
         "provider_media_unsupported",
         422,
         any_stderr=(b"facebook image and multi-asset posts are not supported",),
-        providers=frozenset({"facebook"}),
+        providers=frozenset({ProviderKey.FACEBOOK}),
     ),
     FailureRule(
         "provider_link_unavailable",
@@ -78,49 +80,51 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
             b"kuaishou public link unavailable",
             b"xiaohongshu note unavailable",
         ),
-        providers=frozenset({"douyin", "xiaohongshu", "kuaishou"}),
+        providers=frozenset(
+            {ProviderKey.DOUYIN, ProviderKey.XIAOHONGSHU, ProviderKey.KUAISHOU}
+        ),
     ),
     FailureRule(
         "provider_media_unsupported",
         422,
         any_stderr=(b"douyin official note is not a supported single video",),
-        providers=frozenset({"douyin"}),
+        providers=frozenset({ProviderKey.DOUYIN}),
     ),
     FailureRule(
         "provider_link_unavailable",
         422,
         any_stderr=(b"douyin official share link unavailable",),
-        providers=frozenset({"douyin"}),
+        providers=frozenset({ProviderKey.DOUYIN}),
     ),
     FailureRule(
         "provider_temporarily_unavailable",
         503,
         any_stderr=(b"douyin official share link temporarily unavailable",),
-        providers=frozenset({"douyin"}),
+        providers=frozenset({ProviderKey.DOUYIN}),
     ),
     FailureRule(
         "extractor_regression",
         502,
         any_stderr=(b"douyin official share link response structure changed",),
-        providers=frozenset({"douyin"}),
+        providers=frozenset({ProviderKey.DOUYIN}),
     ),
     FailureRule(
         "egress_challenged",
         422,
         any_stderr=(b"douyin official share link verification required",),
-        providers=frozenset({"douyin"}),
+        providers=frozenset({ProviderKey.DOUYIN}),
     ),
     FailureRule(
         "provider_rate_limited",
         429,
         any_stderr=(b"douyin official share link rate limited",),
-        providers=frozenset({"douyin"}),
+        providers=frozenset({ProviderKey.DOUYIN}),
     ),
     FailureRule(
         "provider_link_unavailable",
         422,
         any_stderr=(b"unable to extract initial state",),
-        providers=frozenset({"xiaohongshu", "kuaishou"}),
+        providers=frozenset({ProviderKey.XIAOHONGSHU, ProviderKey.KUAISHOU}),
     ),
     FailureRule(
         "provider_link_unavailable",
@@ -129,31 +133,31 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
             b"unsupported url:",
             b"tiktok video not available from the official player",
         ),
-        providers=frozenset({"tiktok"}),
+        providers=frozenset({ProviderKey.TIKTOK}),
     ),
     FailureRule(
         "extractor_regression",
         502,
         any_stderr=(b"tiktok official player response structure changed",),
-        providers=frozenset({"tiktok"}),
+        providers=frozenset({ProviderKey.TIKTOK}),
     ),
     FailureRule(
         "provider_link_unavailable",
         422,
         any_stderr=(b"domain not found",),
-        providers=frozenset({"x"}),
+        providers=frozenset({ProviderKey.X}),
     ),
     FailureRule(
         "provider_link_unavailable",
         422,
         any_stderr=(b"wechat channels public link unavailable",),
-        providers=frozenset({"wechat_channels"}),
+        providers=frozenset({ProviderKey.WECHAT_CHANNELS}),
     ),
     FailureRule(
         "content_entitlement_unknown",
         422,
         any_stderr=(b"wechat channels public media is not downloadable",),
-        providers=frozenset({"wechat_channels"}),
+        providers=frozenset({ProviderKey.WECHAT_CHANNELS}),
     ),
     FailureRule(
         "drm_protected",
@@ -214,13 +218,13 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         "provider_geo_restricted",
         422,
         any_stderr=(b"your ip address is blocked from accessing this post",),
-        providers=frozenset({"tiktok"}),
+        providers=frozenset({ProviderKey.TIKTOK}),
     ),
     FailureRule(
         "egress_challenged",
         422,
         any_stderr=(b"xiaohongshu request verification required",),
-        providers=frozenset({"xiaohongshu"}),
+        providers=frozenset({ProviderKey.XIAOHONGSHU}),
     ),
     FailureRule(
         "pot_provider_unavailable",
@@ -247,7 +251,7 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
             b"unable to download video data: http error 403",
             b"http error 403: forbidden",
         ),
-        providers=frozenset({"youtube"}),
+        providers=frozenset({ProviderKey.YOUTUBE}),
         authenticated=False,
     ),
     FailureRule(
@@ -274,7 +278,7 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         "provider_temporarily_unavailable",
         503,
         any_stderr=(b"tiktok official player api temporarily unavailable",),
-        providers=frozenset({"tiktok"}),
+        providers=frozenset({ProviderKey.TIKTOK}),
     ),
     FailureRule(
         "provider_link_unavailable",
@@ -284,7 +288,7 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
             b"this video is unavailable",
             b"video is no longer available",
         ),
-        providers=frozenset({"youtube"}),
+        providers=frozenset({ProviderKey.YOUTUBE}),
     ),
     FailureRule(
         "extractor_regression",
@@ -293,7 +297,7 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
             b"cannot parse data",
             b"facebook post media structure could not be identified",
         ),
-        providers=frozenset({"facebook"}),
+        providers=frozenset({ProviderKey.FACEBOOK}),
     ),
     FailureRule(
         "extractor_regression",
@@ -302,7 +306,7 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
             b"no video formats found",
             b"xiaohongshu note media structure could not be identified",
         ),
-        providers=frozenset({"xiaohongshu"}),
+        providers=frozenset({ProviderKey.XIAOHONGSHU}),
     ),
     FailureRule(
         "extractor_regression",

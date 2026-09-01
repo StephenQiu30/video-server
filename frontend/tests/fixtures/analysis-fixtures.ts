@@ -158,7 +158,7 @@ export function analysisJob(
         ? {
             id: '66666666-6666-4666-8666-666666666666',
             status: 'available',
-            renderer_version: 'analysis-report-v1',
+            renderer_version: 'analysis-report',
             content_sha256: 'a'.repeat(64),
             published_at: '2026-08-06T10:02:00Z',
             artifacts: [

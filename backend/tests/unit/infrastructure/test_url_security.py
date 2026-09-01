@@ -3,13 +3,14 @@ from __future__ import annotations
 import pytest
 from app.application.downloads import EncryptedUrl
 from app.core.url_cipher import URLCipher
+from app.domain.identifiers import UrlEncryptionKeyId
 from app.infrastructure.url_security import FernetUrlEnvelope, MediaUrlValidator
 
 KEY = b"MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
 
 
 def test_url_envelope_round_trip_binds_nonce_and_key() -> None:
-    adapter = FernetUrlEnvelope(URLCipher(KEY), key_id="fernet-v1")
+    adapter = FernetUrlEnvelope(URLCipher(KEY), key_id=UrlEncryptionKeyId.FERNET)
     source = "https://media.example/video?id=sensitive"
 
     encrypted = adapter.encrypt(source)
@@ -20,7 +21,7 @@ def test_url_envelope_round_trip_binds_nonce_and_key() -> None:
 
 
 def test_url_envelope_rejects_nonce_or_key_mismatch() -> None:
-    adapter = FernetUrlEnvelope(URLCipher(KEY), key_id="fernet-v1")
+    adapter = FernetUrlEnvelope(URLCipher(KEY), key_id=UrlEncryptionKeyId.FERNET)
     encrypted = adapter.encrypt("https://media.example/video")
 
     with pytest.raises(ValueError, match="nonce"):
@@ -31,6 +32,18 @@ def test_url_envelope_rejects_nonce_or_key_mismatch() -> None:
                 encrypted.key_id,
             )
         )
+
+
+def test_url_envelope_keeps_reading_legacy_key_labels() -> None:
+    adapter = FernetUrlEnvelope(URLCipher(KEY), key_id=UrlEncryptionKeyId.FERNET)
+    encrypted = adapter.encrypt("https://media.example/video")
+    legacy = EncryptedUrl(
+        encrypted.ciphertext,
+        encrypted.nonce,
+        UrlEncryptionKeyId.LEGACY_FERNET,
+    )
+
+    assert adapter.decrypt(legacy) == "https://media.example/video"
     with pytest.raises(ValueError, match="key id"):
         adapter.decrypt(
             EncryptedUrl(

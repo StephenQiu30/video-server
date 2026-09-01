@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'video-server:navigation-history:v1';
+const STORAGE_KEY = 'video-server:navigation-history';
 const HISTORY_ENTRY_KEY = '__videoServerNavigationEntryId';
 export const NAVIGATION_PUSH_EVENT = 'video-server:navigation-push';
 

@@ -16,6 +16,7 @@ def bridge_root(tmp_path: Path) -> Path:
     root = tmp_path / "bridge"
     (root / "requests").mkdir(parents=True)
     (root / "responses").mkdir()
+    (root / ".agent-installed").write_text("installed\n")
     return root
 
 
@@ -160,6 +161,14 @@ def test_readiness_only_validates_bridge_directories(tmp_path: Path) -> None:
     assert client.is_ready() is True
     assert list((root / "requests").iterdir()) == []
     assert list((root / "responses").iterdir()) == []
+
+
+def test_readiness_requires_the_installed_agent_marker(tmp_path: Path) -> None:
+    root = bridge_root(tmp_path)
+    (root / ".agent-installed").unlink()
+    client = ProviderCookieSyncClient(root)
+
+    assert client.is_ready() is False
 
 
 @pytest.mark.skipif(not getattr(os, "O_PATH", 0), reason="Linux O_PATH behavior")

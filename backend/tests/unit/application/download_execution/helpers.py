@@ -58,7 +58,7 @@ class FakeRepository:
             },
             url_ciphertext=b"ciphertext",
             url_nonce=b"nonce",
-            url_key_id="fernet-v1",
+            url_key_id="fernet",
         )
 
     async def claim_job(self, *args, **kwargs):
@@ -226,5 +226,5 @@ def download_plan() -> DownloadPlan:
         audio_language=None,
         container_preference=ContainerPreference.MP4,
         compatibility_profile=CompatibilityProfile.BALANCED,
-        hints=ProviderHints(video_id="v1", audio_id="a1"),
+        hints=ProviderHints(video_id="video-id", audio_id="audio-id"),
     )

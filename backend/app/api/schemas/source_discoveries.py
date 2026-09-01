@@ -8,6 +8,7 @@ from pydantic import Field
 
 from app.api.schemas.common import StrictModel
 from app.application.source_discoveries import SourceDiscoveryView
+from app.domain.providers import ProviderKey
 from app.domain.source_discovery import (
     DiscoveryDecisionHint,
     DiscoveryItemKind,
@@ -17,7 +18,7 @@ from app.domain.source_discovery import (
 
 
 class SourceDiscoveryRequest(StrictModel):
-    kind: Literal["wechat_official_account_article"]
+    kind: Literal[ProviderKey.WECHAT_OFFICIAL_ACCOUNT_ARTICLE]
     url: str = Field(min_length=8, max_length=4096)
 
 

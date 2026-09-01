@@ -10,6 +10,7 @@ from urllib.parse import SplitResult, urlsplit
 from app.domain.providers import (
     ProviderAccessMode,
     ProviderCapability,
+    ProviderProfileVersion,
     ProviderSupportStatus,
 )
 from app.runner.errors import RunnerFailure
@@ -54,7 +55,7 @@ class ProviderProfile:
     display_name: str
     hosts: frozenset[str]
     host_suffixes: frozenset[str] = frozenset()
-    version: str = "1"
+    version: str = ProviderProfileVersion.DEFAULT
     capabilities: frozenset[ProviderCapability] = frozenset(
         {ProviderCapability.SINGLE_VIDEO}
     )

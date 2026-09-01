@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.domain.providers import ProviderKey
+
 
 @dataclass(frozen=True, slots=True)
 class DownloadSource:
@@ -13,23 +15,23 @@ class DownloadSource:
 
 
 DOWNLOAD_SOURCES: tuple[DownloadSource, ...] = (
-    DownloadSource("youtube", "YouTube", ("youtube",)),
-    DownloadSource("bilibili", "哔哩哔哩", ("bilibili", "biliintl")),
-    DownloadSource("douyin", "抖音", ("douyin",)),
-    DownloadSource("tiktok", "TikTok", ("tiktok",)),
-    DownloadSource("xiaohongshu", "小红书", ("xiaohongshu",)),
-    DownloadSource("kuaishou", "快手", ("kuaishou",)),
-    DownloadSource("vimeo", "Vimeo", ("vimeo",)),
-    DownloadSource("x", "X / Twitter", ("twitter",)),
-    DownloadSource("instagram", "Instagram", ("instagram",)),
-    DownloadSource("facebook", "Facebook", ("facebook",)),
-    DownloadSource("twitch", "Twitch", ("twitch",)),
-    DownloadSource("reddit", "Reddit", ("reddit",)),
-    DownloadSource("pinterest", "Pinterest", ("pinterest",)),
-    DownloadSource("weibo", "微博", ("weibo",)),
-    DownloadSource("youku", "优酷", ("youku",)),
+    DownloadSource(ProviderKey.YOUTUBE, "YouTube", ("youtube",)),
+    DownloadSource(ProviderKey.BILIBILI, "哔哩哔哩", ("bilibili", "biliintl")),
+    DownloadSource(ProviderKey.DOUYIN, "抖音", ("douyin",)),
+    DownloadSource(ProviderKey.TIKTOK, "TikTok", ("tiktok",)),
+    DownloadSource(ProviderKey.XIAOHONGSHU, "小红书", ("xiaohongshu",)),
+    DownloadSource(ProviderKey.KUAISHOU, "快手", ("kuaishou",)),
+    DownloadSource(ProviderKey.VIMEO, "Vimeo", ("vimeo",)),
+    DownloadSource(ProviderKey.X, "X / Twitter", ("twitter",)),
+    DownloadSource(ProviderKey.INSTAGRAM, "Instagram", ("instagram",)),
+    DownloadSource(ProviderKey.FACEBOOK, "Facebook", ("facebook",)),
+    DownloadSource(ProviderKey.TWITCH, "Twitch", ("twitch",)),
+    DownloadSource(ProviderKey.REDDIT, "Reddit", ("reddit",)),
+    DownloadSource(ProviderKey.PINTEREST, "Pinterest", ("pinterest",)),
+    DownloadSource(ProviderKey.WEIBO, "微博", ("weibo",)),
+    DownloadSource(ProviderKey.YOUKU, "优酷", ("youku",)),
     DownloadSource(
-        "qqvideo",
+        ProviderKey.QQVIDEO,
         "腾讯视频",
         ("vqqvideo", "qqvideo", "tencentvideo"),
     ),

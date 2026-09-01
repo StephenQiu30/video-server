@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
+from app.domain.identifiers import AnalysisReportRenderer
 from app.infrastructure.messaging import EventEnvelope, EventEnvelopeError
 
 _FIELDS = {"job_id", "run_id", "report_id", "renderer_version", "version"}
@@ -39,7 +40,7 @@ def parse_report_requested(body: bytes) -> ReportRequested:
         if (
             report_id != envelope.aggregate_id
             or not isinstance(renderer, str)
-            or renderer != "analysis-report-v1"
+            or renderer != AnalysisReportRenderer.DEFAULT
             or type(version) is not int
             or version < 0
         ):

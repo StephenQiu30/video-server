@@ -29,7 +29,7 @@ def envelope(**changes: object) -> EventEnvelope:
     )
 
 
-def test_parse_strict_v1_import_verification_request() -> None:
+def test_parse_strict_import_verification_request() -> None:
     parsed = parse_import_verify_requested(envelope().to_bytes())
 
     assert parsed.resource_id == RESOURCE_ID

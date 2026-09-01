@@ -9,6 +9,7 @@ from typing import Any, Protocol
 import httpx
 
 from app.domain.downloads import Container
+from app.domain.providers import ProviderKey
 from app.runner.command_support import child_environment, json_object
 from app.runner.errors import RunnerFailure
 from app.runner.process import ProcessResult, ProcessTimeoutError
@@ -363,7 +364,11 @@ class MediaCommands:
         context: ProviderFailureContext | None,
     ) -> None:
         base_url = self._settings.runner_youtube_pot_base_url
-        if context is None or context.provider_key != "youtube" or base_url is None:
+        if (
+            context is None
+            or context.provider_key != ProviderKey.YOUTUBE
+            or base_url is None
+        ):
             return
         expected_version = _pot_release(
             self._settings.runner_youtube_pot_provider_version

@@ -35,7 +35,7 @@
 
 ## 4. Phase B：微信视频号明文文件导入
 
-1. 固定 `wechat-authorized-file-v1` manifest，只接受用户通过系统文件选择器显式选择的标准 MP4。
+1. 固定 `wechat-authorized-file` manifest，只接受用户通过系统文件选择器显式选择的标准 MP4。
 2. Agent 不读取微信/元宝进程、浏览器 profile、缓存、网络流量、系统代理或平台 URL；不存在登录、抓取、转换或解密模块。
 3. 本地只执行大小、SHA-256、BMFF/保护标记和 ffprobe 预检，再调用 Phase A 的签名上传协议；服务端继续独立复验。
 4. manifest 只允许 rights statement、脱敏 declared origin、Agent/protocol version 和不可逆 source fingerprint。

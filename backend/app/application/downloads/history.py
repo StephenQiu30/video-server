@@ -18,6 +18,7 @@ from app.application.downloads.thumbnail import (
 )
 from app.application.downloads.validation import validate_now, validate_owner_hash
 from app.domain.downloads import DownloadErrorCode, DownloadSourceKind, DownloadStatus
+from app.domain.providers import ProviderKey
 
 
 class GetDownloadHistory:
@@ -99,7 +100,7 @@ def _item_view(item: DownloadHistoryItemSnapshot) -> DownloadHistoryItemView:
         source_label=(
             (
                 "用户提供的视频号来源文件"
-                if item.declared_origin == "wechat_channels"
+                if item.declared_origin == ProviderKey.WECHAT_CHANNELS
                 else "本地视频上传"
             )
             if source_kind is DownloadSourceKind.BROWSER_IMPORT

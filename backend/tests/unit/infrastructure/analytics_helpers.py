@@ -142,7 +142,7 @@ async def add_browser_import(
                 content_type="video/mp4",
                 declared_size_bytes=size_bytes,
                 declared_sha256="1" * 64,
-                rights_statement_version="v1",
+                rights_statement_version="rights",
                 status="ready",
                 attempt=1,
                 finished_at=created_at + timedelta(minutes=1),

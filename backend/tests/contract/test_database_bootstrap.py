@@ -183,7 +183,7 @@ def test_environment_bootstrap_provisions_analysis_storage_probe() -> None:
         "a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727"
     ) in minio_init
     assert "mc mb --ignore-existing" in minio_init
-    assert "system/analysis-readiness-v1" in minio_init
+    assert "system/analysis-readiness" in minio_init
     assert "mc pipe" in minio_init
 
 
@@ -472,8 +472,9 @@ def test_youtube_operator_mount_is_shared_by_compose_modes() -> None:
     assert "YOUTUBE_COOKIE_SYNC_DIR=\n" in PROD_ENV_EXAMPLE_PATH.read_text(
         encoding="utf-8"
     )
-    assert _env_value(ENV_EXAMPLE_PATH, "YOUTUBE_COOKIE_VERSION") == (
-        "chrome-default-v1"
+    assert _env_value(ENV_EXAMPLE_PATH, "YOUTUBE_COOKIE_VERSION") == "chrome-default"
+    assert _env_value(PROD_ENV_EXAMPLE_PATH, "YOUTUBE_COOKIE_SECRET_DIR") == (
+        "./.provider-secrets/youtube"
     )
 
 

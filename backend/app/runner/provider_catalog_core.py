@@ -5,7 +5,10 @@ from __future__ import annotations
 from app.domain.providers import (
     ProviderAccessMode,
     ProviderCapability,
+    ProviderKey,
+    ProviderProfileVersion,
     ProviderSupportStatus,
+    YouTubeCookieDomain,
 )
 from app.runner.provider_factories import (
     ANDROID_IMPERSONATION,
@@ -32,7 +35,7 @@ def _youtube_runtime_args(settings: ProviderRuntimeSettings) -> tuple[str, ...]:
 
 CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
     ProviderProfile(
-        key="youtube",
+        key=ProviderKey.YOUTUBE,
         display_name="YouTube",
         hosts=frozenset(
             {
@@ -45,7 +48,7 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
                 "www.youtube-nocookie.com",
             }
         ),
-        version="youtube-v5",
+        version=ProviderProfileVersion.YOUTUBE,
         capabilities=frozenset(
             {
                 ProviderCapability.SINGLE_VIDEO,
@@ -58,7 +61,9 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             ProviderAccessMode.ANONYMOUS,
             ProviderAccessMode.OPERATOR_MANAGED,
         ),
-        cookie_domain_allowlist=frozenset({"youtube.com", "youtube-nocookie.com"}),
+        cookie_domain_allowlist=frozenset(
+            {YouTubeCookieDomain.PRIMARY, YouTubeCookieDomain.NOCOOKIE}
+        ),
         client_profile_id="youtube-mweb",
         attestation_policy="bgutil-mweb-player-gvs",
         egress_pool="youtube-sticky",
@@ -70,13 +75,13 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         inspection_attempts=1,
     ),
     standard_provider(
-        "bilibili",
+        ProviderKey.BILIBILI,
         "哔哩哔哩",
         ("bilibili.com", "www.bilibili.com", "m.bilibili.com", "b23.tv"),
         status=ProviderSupportStatus.VERIFIED,
     ),
     challenged_provider(
-        "douyin",
+        ProviderKey.DOUYIN,
         "抖音",
         (
             "douyin.com",
@@ -86,7 +91,7 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             "iesdouyin.com",
             "www.iesdouyin.com",
         ),
-        version="douyin-public-v3",
+        version=ProviderProfileVersion.DOUYIN,
         normalize_url=douyin_url,
         status=ProviderSupportStatus.ACCESS_REQUIRED,
         operator_cookie_domains=frozenset({"douyin.com", "iesdouyin.com"}),
@@ -95,7 +100,7 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         probe_media_duration=True,
     ),
     standard_provider(
-        "tiktok",
+        ProviderKey.TIKTOK,
         "TikTok",
         (
             "tiktok.com",
@@ -104,7 +109,7 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             "vm.tiktok.com",
             "vt.tiktok.com",
         ),
-        version="tiktok-public-player-v3",
+        version=ProviderProfileVersion.TIKTOK,
         normalize_url=tiktok_url,
         capabilities=frozenset(
             {
@@ -118,7 +123,7 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         canary_suite="tiktok-public-player-video",
     ),
     challenged_provider(
-        "xiaohongshu",
+        ProviderKey.XIAOHONGSHU,
         "小红书",
         (
             "xiaohongshu.com",
@@ -131,7 +136,7 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         canary_suite="xiaohongshu-anonymous-operator-video",
     ),
     ProviderProfile(
-        key="kuaishou",
+        key=ProviderKey.KUAISHOU,
         display_name="快手",
         hosts=frozenset(
             {
@@ -146,7 +151,7 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
                 "m.gifshow.com",
             }
         ),
-        version="kuaishou-public-v1",
+        version=ProviderProfileVersion.KUAISHOU,
         capabilities=frozenset(
             {ProviderCapability.SINGLE_VIDEO, ProviderCapability.SHORT_VIDEO}
         ),

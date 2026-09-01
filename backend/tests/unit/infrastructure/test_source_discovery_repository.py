@@ -32,11 +32,11 @@ def command(
         owner_hash=owner,
         idempotency_key="discovery-1",
         request_fingerprint=fingerprint,
-        encrypted_url=EncryptedUrl(b"cipher", b"nonce", "fernet-v1"),
+        encrypted_url=EncryptedUrl(b"cipher", b"nonce", "fernet"),
         source_fingerprint="s" * 64,
         provider_key="wechat_official_account_article",
         title="Article",
-        adapter_version="wechat-article-static-v1",
+        adapter_version="wechat-article-static",
         status=DiscoveryStatus.READY,
         expires_at=NOW + timedelta(minutes=15),
         items=(

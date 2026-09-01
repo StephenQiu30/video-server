@@ -53,7 +53,7 @@ def command(resource_id: UUID, owner_hash: str, key: str) -> ImportResourceCreat
         content_type=ImportSourceFormat.MARKDOWN.content_type,
         declared_size_bytes=1024,
         declared_sha256="d" * 64,
-        rights_statement_version="content-rights-v1",
+        rights_statement_version="content-rights",
     )
 
 

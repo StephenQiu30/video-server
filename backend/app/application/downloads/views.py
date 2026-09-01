@@ -36,6 +36,7 @@ from app.domain.downloads import (
     RightsBasis,
     SourceOrigin,
 )
+from app.domain.providers import ProviderKey
 
 
 def inspection_view(snapshot: InspectionSnapshot) -> InspectionView:
@@ -215,7 +216,8 @@ def download_view(
         source_label=(
             (
                 "用户提供的视频号来源文件"
-                if snapshot.semantic_plan.get("declared_origin") == "wechat_channels"
+                if snapshot.semantic_plan.get("declared_origin")
+                == ProviderKey.WECHAT_CHANNELS
                 else "本地视频上传"
             )
             if source_kind is DownloadSourceKind.BROWSER_IMPORT

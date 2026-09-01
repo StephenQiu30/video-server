@@ -130,7 +130,7 @@ def analysis_view(
             status="available",
             markdown=render_analysis_report_markdown(result),
             content_sha256="a" * 64,
-            renderer_version="analysis-report-v1",
+            renderer_version="analysis-report",
             created_at=NOW,
             published_at=NOW,
             artifacts=(),
@@ -409,7 +409,7 @@ def test_analysis_creation_rejects_invalid_or_extra_input(tmp_path: Path) -> Non
         ({}, {"skill_id": "director-breakdown", "output_language": "zh-CN"}),
         (
             {"Idempotency-Key": "analysis-1"},
-            {"skill_id": "legacy.v1", "output_language": "zh-CN"},
+            {"skill_id": "legacy.skill", "output_language": "zh-CN"},
         ),
         (
             {"Idempotency-Key": "analysis-1"},

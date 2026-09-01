@@ -20,7 +20,7 @@ def test_report_message_is_strict_and_contains_only_stable_ids() -> None:
             "job_id": str(job_id),
             "run_id": str(run_id),
             "report_id": str(report_id),
-            "renderer_version": "analysis-report-v1",
+            "renderer_version": "analysis-report",
             "version": 4,
         },
     ).to_bytes()

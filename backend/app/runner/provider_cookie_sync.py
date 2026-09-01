@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Protocol
 
 from app.runner.errors import RunnerFailure
+from app.runner.youtube_cookie_queue import AGENT_READY_MARKER
 
 _TOKEN = re.compile(r"[0-9a-f]{32}")
 _RESULTS = {
@@ -56,11 +57,23 @@ class ProviderCookieSyncClient:
         self._token_factory = token_factory
 
     def is_ready(self) -> bool:
+        descriptors: tuple[int, int, int] | None = None
         try:
             descriptors = self._open_directories()
+            marker = os.stat(
+                AGENT_READY_MARKER,
+                dir_fd=descriptors[0],
+                follow_symlinks=False,
+            )
+            if not stat.S_ISREG(marker.st_mode) or marker.st_size > 64:
+                return False
         except RunnerFailure:
             return False
-        self._close_directories(descriptors)
+        except OSError:
+            return False
+        finally:
+            if descriptors is not None:
+                self._close_directories(descriptors)
         return True
 
     async def sync(self) -> None:

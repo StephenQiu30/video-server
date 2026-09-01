@@ -16,6 +16,7 @@ from app.application.source_discoveries import (
     ArticleDiscoveryFailure,
     ArticleDiscoveryResult,
 )
+from app.domain.providers import ProviderKey
 from app.domain.source_discovery import (
     DiscoveryDecisionHint,
     DiscoveryItemKind,
@@ -123,7 +124,7 @@ def _classify_embed(
         verified = native_identity.get(mpvid, False)
         return _candidate(
             DiscoveryItemKind.OFFICIAL_ACCOUNT_NATIVE,
-            "wechat_official_account_article",
+            ProviderKey.WECHAT_OFFICIAL_ACCOUNT_ARTICLE,
             attrs.get("data-title") or attrs.get("title") or "公众号原生视频",
             f"native:{mpvid}",
             DiscoveryDecisionHint.CANDIDATE
@@ -157,7 +158,7 @@ def _classify_embed(
         if media_id is not None:
             return _candidate(
                 DiscoveryItemKind.TENCENT_VIDEO,
-                "qqvideo",
+                ProviderKey.QQVIDEO,
                 attrs.get("title") or "腾讯视频",
                 f"qqvideo:{media_id}",
                 DiscoveryDecisionHint.UNSUPPORTED,
@@ -169,7 +170,7 @@ def _classify_embed(
         identity = attrs.get("data-id") or attrs.get("id") or parsed.path or tag
         return _candidate(
             DiscoveryItemKind.WECHAT_CHANNELS,
-            "wechat_channels",
+            ProviderKey.WECHAT_CHANNELS,
             attrs.get("data-title") or attrs.get("title") or "微信视频号内容",
             f"channels:{identity}",
             DiscoveryDecisionHint.EXPORT_REQUIRED,

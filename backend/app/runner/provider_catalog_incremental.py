@@ -7,6 +7,8 @@ from urllib.parse import SplitResult
 
 from app.domain.providers import (
     ProviderCapability,
+    ProviderKey,
+    ProviderProfileVersion,
     ProviderSupportStatus,
 )
 from app.runner.errors import RunnerFailure
@@ -42,10 +44,10 @@ def peertube_profile(hosts: frozenset[str]) -> ProviderProfile:
     if not hosts:
         raise ValueError("PeerTube profile requires approved instances")
     return ProviderProfile(
-        key="peertube",
+        key=ProviderKey.PEERTUBE,
         display_name="PeerTube",
         hosts=hosts,
-        version="peertube-approved-instance-v1",
+        version=ProviderProfileVersion.PEERTUBE,
         capabilities=frozenset(
             {
                 ProviderCapability.SINGLE_VIDEO,

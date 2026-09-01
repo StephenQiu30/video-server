@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from app.domain.providers import ProviderAccessMode
+from app.domain.providers import ProviderAccessMode, ProviderKey
 from app.runner.errors import RunnerFailure
 
 _ALLOWED_YOUTUBE_AVAILABILITY = {"public", "unlisted"}
@@ -21,14 +21,14 @@ _RESTRICTED_AVAILABILITY = {
 }
 _OPERATOR_PROVIDER_POLICIES = frozenset(
     {
-        "youtube",
-        "vimeo",
-        "douyin",
-        "xiaohongshu",
-        "reddit",
-        "x",
-        "instagram",
-        "facebook",
+        ProviderKey.YOUTUBE,
+        ProviderKey.VIMEO,
+        ProviderKey.DOUYIN,
+        ProviderKey.XIAOHONGSHU,
+        ProviderKey.REDDIT,
+        ProviderKey.X,
+        ProviderKey.INSTAGRAM,
+        ProviderKey.FACEBOOK,
     }
 )
 
@@ -48,7 +48,7 @@ def enforce_media_rights(
         if restricted is not None:
             raise RunnerFailure(restricted, status=403)
         if (
-            provider_key == "youtube"
+            provider_key == ProviderKey.YOUTUBE
             and normalized not in _ALLOWED_YOUTUBE_AVAILABILITY
         ):
             raise RunnerFailure("content_entitlement_unknown", status=422)
@@ -68,7 +68,7 @@ def enforce_media_rights(
         return
     if provider_key not in _OPERATOR_PROVIDER_POLICIES:
         raise RunnerFailure("provider_session_not_allowed", status=422)
-    if provider_key == "youtube" and not isinstance(availability, str):
+    if provider_key == ProviderKey.YOUTUBE and not isinstance(availability, str):
         raise RunnerFailure("content_entitlement_unknown", status=422)
 
 

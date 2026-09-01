@@ -44,14 +44,16 @@ from app.domain.downloads import (
     ProtectionState,
     SourceOrigin,
 )
+from app.domain.identifiers import SourceDiscoveryAdapter
+from app.domain.providers import ProviderKey
 from app.domain.source_discovery import (
     DiscoveryItemKind,
     DiscoveryItemStatus,
     DiscoveryStatus,
 )
 
-ADAPTER_VERSION = "wechat-article-static-v1"
-PROVIDER_KEY = "wechat_official_account_article"
+ADAPTER_VERSION = SourceDiscoveryAdapter.WECHAT_ARTICLE
+PROVIDER_KEY = ProviderKey.WECHAT_OFFICIAL_ACCOUNT_ARTICLE
 
 
 class CreateSourceDiscovery:
@@ -262,7 +264,7 @@ def _item_decision(
 ) -> tuple[str, ExecutionMode, AccessDecision, IdentityState, str, str]:
     if item.kind is DiscoveryItemKind.TENCENT_VIDEO:
         return (
-            "qqvideo",
+            ProviderKey.QQVIDEO,
             ExecutionMode.PROVIDER_RUNNER,
             AccessDecision.PLAYBACK_ONLY,
             IdentityState.VERIFIED,
@@ -271,7 +273,7 @@ def _item_decision(
         )
     if item.kind is DiscoveryItemKind.WECHAT_CHANNELS:
         return (
-            "wechat_channels",
+            ProviderKey.WECHAT_CHANNELS,
             ExecutionMode.VERIFIED_IMPORT,
             AccessDecision.EXPORT_REQUIRED,
             IdentityState.VERIFIED,

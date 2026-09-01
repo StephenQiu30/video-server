@@ -15,6 +15,7 @@ from typing import Protocol
 
 from app.application.analysis_execution import AnalysisArtifactError
 from app.core.config import REPOSITORY_ROOT, Settings
+from app.domain.identifiers import AnalysisStorageProbe
 from app.infrastructure.object_storage import StoredObjectStat
 from app.workers.analysis.agent_platforms import (
     agent_paths,
@@ -24,7 +25,7 @@ from app.workers.analysis.agent_platforms import (
 )
 from app.workers.analysis.main import build_runtime
 
-ANALYSIS_STORAGE_PROBE = "system/analysis-readiness-v1"
+ANALYSIS_STORAGE_PROBE = AnalysisStorageProbe.READINESS
 
 
 class StorageProbe(Protocol):

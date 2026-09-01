@@ -5,6 +5,7 @@ from __future__ import annotations
 from app.domain.providers import (
     ProviderAccessMode,
     ProviderCapability,
+    ProviderProfileVersion,
     ProviderSupportStatus,
 )
 from app.runner.provider_registry import (
@@ -43,7 +44,7 @@ def standard_provider(
     display_name: str,
     hosts: tuple[str, ...],
     *,
-    version: str = "1",
+    version: str = ProviderProfileVersion.DEFAULT,
     normalize_url: UrlNormalizer = identity_url,
     capabilities: frozenset[ProviderCapability] = STANDARD_CAPABILITIES,
     status: ProviderSupportStatus = ProviderSupportStatus.UNKNOWN,
@@ -94,7 +95,7 @@ def challenged_provider(
     display_name: str,
     hosts: tuple[str, ...],
     *,
-    version: str = "1",
+    version: str = ProviderProfileVersion.DEFAULT,
     normalize_url: UrlNormalizer = identity_url,
     status: ProviderSupportStatus = ProviderSupportStatus.UNKNOWN,
     operator_cookie_domains: frozenset[str] = frozenset(),

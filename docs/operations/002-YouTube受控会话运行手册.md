@@ -63,7 +63,7 @@ COMPOSE_PROFILES=youtube-operator
 RUNNER_OPERATOR_BASE_URLS={"youtube":"http://youtube-operator-runner:19100"}
 YOUTUBE_COOKIE_SYNC_DIR=
 YOUTUBE_COOKIE_SECRET_DIR=./.provider-secrets/youtube
-YOUTUBE_COOKIE_VERSION=chrome-default-v1
+YOUTUBE_COOKIE_VERSION=chrome-default
 RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS={}
 YOUTUBE_OPERATOR_ACCOUNT_BASELINE_ATTESTED=true
 ```
@@ -76,10 +76,10 @@ Docker 启动命令，不运行宿主应用脚本：
 docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
 ```
 
-`chrome-default-v1` 表示固定的本机会话来源协议，而不是 Cookie 内容哈希。每个
+`chrome-default` 表示固定的本机会话来源协议，而不是 Cookie 内容哈希。每个
 inspect/download 操作开始时都会刷新一次，并在该操作内使用独立的只写 `0600`
 快照；静态版本和 retained version 的不可变语义不变。平台状态中关联
-`chrome-default-v1` 的下载成功只表示这个本机来源在相同非敏感运行上下文上近期曾生成
+`chrome-default` 的下载成功只表示这个本机来源在相同非敏感运行上下文上近期曾生成
 完整制品；它是历史成功证据，不是当前 Cookie 内容 cohort，不证明 Cookie 仍未轮换或
 当前请求必然可用，也不会仅凭这个动态本机版本把 `access_required` 提升为
 `verified`。需要停用本机能力时执行：
@@ -134,7 +134,7 @@ YOUTUBE_OPERATOR_ACCOUNT_BASELINE_ATTESTED=true
 ```dotenv
 YOUTUBE_COOKIE_SYNC_DIR=
 YOUTUBE_COOKIE_SECRET_DIR=./.provider-secrets/youtube
-YOUTUBE_COOKIE_VERSION=chrome-default-v1
+YOUTUBE_COOKIE_VERSION=chrome-default
 ```
 
 以上 Operator 配置不替代 YouTube 专用出口。面向 C 端的生产部署还需把由部署方管理、在 Runner 网络中可达的无 URL 内嵌凭据网关写入映射，例如：
@@ -183,7 +183,7 @@ docker compose exec -T youtube-pot-provider node -e \
 5. 故障反例：缺失、过期、拒绝、撤销 Cookie；POT unavailable/rejected；出口 challenge；429；进程取消与重启。
 6. 泄漏扫描：API 响应、DB/outbox、RabbitMQ、MinIO metadata、日志、trace、container env、共享 `/work` 和任务快照均不得出现测试 Cookie/POT/绑定标记。额外确认 sidecar 上游子进程 stdout/stderr 被完全丢弃，容器日志只包含 PID1 supervisor 的固定故障事件。
 7. 出口证据：成功/失败都记录实际脱敏 affinity，其值是实际代理 URL 的 SHA-256 前 12 位指纹和 `default` / `provider:youtube` scope；代理 URL 变更后必须观察到新 affinity/context。无 Runner context 的失败记为 `unresolved`，不用 Profile 目标 pool 伪充实际出口。
-8. generation 隔离：Runner 通过 HMAC/replay 防护的单次批量接口返回当前非 Secret context，状态只接受其完整 SHA-256 generation：`provider + profile + access mode + credential version + egress affinity + client profile + attestation/POT version + engine commit`。任一字段变化都会立即进入新 canary 周期；旧 generation 即使更晚完成也不得提升或降级当前状态。某个 Runner group 无法在 2 秒内返回有效 context 时，只把对应平台标为 `degraded`，不回退到“最新历史 cohort”。`chrome-default-v1` 是明确例外：它只是本机动态来源标识，不把 Cookie 原文或哈希并入 generation；其普通下载历史只能更新近期制品可用证据，不能被解读为“当前 Cookie cohort 已验证”。
+8. generation 隔离：Runner 通过 HMAC/replay 防护的单次批量接口返回当前非 Secret context，状态只接受其完整 SHA-256 generation：`provider + profile + access mode + credential version + egress affinity + client profile + attestation/POT version + engine commit`。任一字段变化都会立即进入新 canary 周期；旧 generation 即使更晚完成也不得提升或降级当前状态。某个 Runner group 无法在 2 秒内返回有效 context 时，只把对应平台标为 `degraded`，不回退到“最新历史 cohort”。`chrome-default` 是明确例外：它只是本机动态来源标识，不把 Cookie 原文或哈希并入 generation；其普通下载历史只能更新近期制品可用证据，不能被解读为“当前 Cookie cohort 已验证”。
 
 证据只记录日期、Git SHA、Provider/capability、access mode、Profile/engine/POT version、脱敏 egress ref、阶段、稳定码和证据位置。没有真实媒体 Range/完整下载证据时，不得把 YouTube 标记为 `verified`。
 

@@ -11,6 +11,7 @@ from http.cookiejar import Cookie
 from pathlib import Path
 from typing import Final, Literal
 
+from app.domain.providers import YouTubeCookieDomain, YouTubeCookieVersion
 from app.runner.chrome_youtube_cookies import extract_youtube_cookies
 from app.runner.youtube_cookie_process import termination_guard
 from app.runner.youtube_cookie_queue import (
@@ -31,14 +32,17 @@ OK: Final[SyncResult] = "ok"
 CREDENTIAL_REQUIRED: Final[SyncResult] = "credential_required"
 SESSION_UNAVAILABLE: Final[SyncResult] = "provider_session_unavailable"
 DEFAULT_PROFILE = "Default"
-DEFAULT_VERSION = "chrome-default-v1"
+DEFAULT_VERSION = YouTubeCookieVersion.CHROME_DEFAULT
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_RUNTIME_ROOT = (
     Path.home() / "Library" / "Caches" / "FrameFetch" / "youtube-cookie-sync"
 )
 DEFAULT_SECRET_ROOT = PROJECT_ROOT / ".provider-secrets" / "youtube"
 
-_ALLOWED_DOMAINS = ("youtube.com", "youtube-nocookie.com")
+_ALLOWED_DOMAINS = (
+    YouTubeCookieDomain.PRIMARY,
+    YouTubeCookieDomain.NOCOOKIE,
+)
 _VERSION = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
 _CONTROL = frozenset("\t\r\n")
 _MAX_COOKIE_BYTES = 1024**2

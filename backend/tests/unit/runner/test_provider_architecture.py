@@ -19,7 +19,7 @@ def test_one_profile_defines_a_complete_builtin_extractor_integration() -> None:
         "example",
         "Example Video",
         ("video.example",),
-        version="example-v1",
+        version="example",
         normalize_url=canonical_url,
         command_args=("--impersonate", "Chrome-136:Macos-15"),
         canary_suite="example-public-video",

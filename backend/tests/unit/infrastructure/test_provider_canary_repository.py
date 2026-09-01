@@ -40,7 +40,7 @@ def runtime_context(
         provider_key=provider,
         profile_version=profile_version,
         access_mode=access_mode,
-        credential_version_id="operator-v1" if operator else None,
+        credential_version_id="operator-current" if operator else None,
         egress_affinity_id=egress_affinity_id,
         client_profile_id=client_profile_id,
         attestation_provider_version=None,
@@ -56,7 +56,7 @@ def ProviderEvidenceScope(  # noqa: N802
     egress_affinity_id: str = "default",
     client_profile_id: str = "yt-dlp-default",
 ) -> _ProviderEvidenceScope:
-    provider = profile_version.partition("-public-")[0]
+    provider = profile_version.split("-public", maxsplit=1)[0]
     return _ProviderEvidenceScope(
         profile_version=profile_version,
         access_context=runtime_context(
@@ -81,7 +81,7 @@ def canary(
     egress_affinity_id: str = "default",
     client_profile_id: str = "yt-dlp-default",
 ) -> ProviderCanaryResult:
-    profile_version = profile_version or f"{provider}-public-v1"
+    profile_version = profile_version or f"{provider}-public"
     context = runtime_context(
         provider,
         profile_version=profile_version,
@@ -123,7 +123,7 @@ async def test_persists_sanitized_evidence_and_limits_each_provider(
         limit_per_provider_stage=5,
         scopes={
             provider: ProviderEvidenceScope(
-                profile_version=f"{provider}-public-v1",
+                profile_version=f"{provider}-public",
                 access_mode=ProviderAccessMode.ANONYMOUS,
             )
             for provider in ("vimeo", "youtube")
@@ -131,7 +131,7 @@ async def test_persists_sanitized_evidence_and_limits_each_provider(
     )
     latest = await repository.latest_checked_at(
         "vimeo-owned-1",
-        "vimeo-public-v1",
+        "vimeo-public",
         ProviderCanaryStage.METADATA,
         ProviderAccessMode.ANONYMOUS,
         canary("vimeo", 0).engine_commit,
@@ -168,7 +168,7 @@ async def test_filters_access_mode_before_per_provider_limit(
         limit_per_provider_stage=1,
         scopes={
             "vimeo": ProviderEvidenceScope(
-                profile_version="vimeo-public-v1",
+                profile_version="vimeo-public",
                 access_mode=ProviderAccessMode.ANONYMOUS,
             )
         },
@@ -193,7 +193,7 @@ async def test_filters_engine_before_per_provider_limit(
         limit_per_provider_stage=1,
         scopes={
             "vimeo": ProviderEvidenceScope(
-                profile_version="vimeo-public-v1",
+                profile_version="vimeo-public",
                 access_mode=ProviderAccessMode.ANONYMOUS,
                 engine_commit=YTDLP_ENGINE_COMMIT,
             )
@@ -224,7 +224,7 @@ async def test_filters_context_generation_before_per_provider_limit(
         limit_per_provider_stage=1,
         scopes={
             "vimeo": ProviderEvidenceScope(
-                profile_version="vimeo-public-v1",
+                profile_version="vimeo-public",
                 access_mode=ProviderAccessMode.ANONYMOUS,
             )
         },
@@ -257,7 +257,7 @@ async def test_public_failure_and_operator_success_are_read_in_separate_scopes(
         limit_per_provider_stage=1,
         scopes={
             "vimeo": ProviderEvidenceScope(
-                profile_version="vimeo-public-v1",
+                profile_version="vimeo-public",
                 access_mode=ProviderAccessMode.ANONYMOUS,
             )
         },
@@ -266,7 +266,7 @@ async def test_public_failure_and_operator_success_are_read_in_separate_scopes(
         limit_per_provider_stage=1,
         scopes={
             "vimeo": ProviderEvidenceScope(
-                profile_version="vimeo-public-v1",
+                profile_version="vimeo-public",
                 access_mode=ProviderAccessMode.OPERATOR_MANAGED,
             )
         },
@@ -293,7 +293,7 @@ async def test_limits_each_stage_independently(
         limit_per_provider_stage=1,
         scopes={
             "vimeo": ProviderEvidenceScope(
-                profile_version="vimeo-public-v1",
+                profile_version="vimeo-public",
                 access_mode=ProviderAccessMode.ANONYMOUS,
             )
         },
@@ -340,7 +340,7 @@ async def test_latest_target_check_is_scoped_to_profile_version(
     repository = SqlAlchemyProviderCanaryRepository(
         create_session_factory(postgres_engine)
     )
-    old = canary("vimeo", 0, profile_version="vimeo-public-v1")
+    old = canary("vimeo", 0, profile_version="vimeo-public")
     await repository.save(old)
 
     latest = await repository.latest_checked_at(
@@ -412,7 +412,7 @@ async def test_equal_timestamps_use_persisted_id_as_stable_tiebreaker(
                     id=row_id,
                     target_id=target_id,
                     provider_key="vimeo",
-                    profile_version="vimeo-public-v1",
+                    profile_version="vimeo-public",
                     stage=ProviderCanaryStage.METADATA.value,
                     access_mode=ProviderAccessMode.ANONYMOUS.value,
                     outcome=ProviderCanaryOutcome.SUCCEEDED.value,
@@ -424,7 +424,7 @@ async def test_equal_timestamps_use_persisted_id_as_stable_tiebreaker(
                     client_profile_id="yt-dlp-default",
                     context_generation_id=runtime_context(
                         "vimeo",
-                        profile_version="vimeo-public-v1",
+                        profile_version="vimeo-public",
                         access_mode=ProviderAccessMode.ANONYMOUS,
                         engine_commit="engine",
                     ).generation_id,
@@ -436,7 +436,7 @@ async def test_equal_timestamps_use_persisted_id_as_stable_tiebreaker(
         limit_per_provider_stage=1,
         scopes={
             "vimeo": ProviderEvidenceScope(
-                profile_version="vimeo-public-v1",
+                profile_version="vimeo-public",
                 access_mode=ProviderAccessMode.ANONYMOUS,
                 engine_commit="engine",
             )

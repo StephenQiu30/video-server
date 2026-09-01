@@ -90,7 +90,7 @@ Edge 只复用 019 的签名设备文件传输：用户通过系统文件选择�
 
 ### 5.3 官方授权 Provider
 
-取得官方合作资料后新增独立 `hongguo-authorized-v1` Adapter：
+取得官方合作资料后新增独立 `hongguo-authorized` Adapter：
 
 1. 只接受官方声明的入口和媒体域名，重定向后重新执行 URL admission。
 2. 通过版本化、只读 Secret 调用官方 API/SDK，不接收普通 API 请求中的 Cookie、Token 或设备参数。

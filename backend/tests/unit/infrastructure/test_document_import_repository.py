@@ -49,7 +49,7 @@ def command(
         content_type=ImportSourceFormat.FOUNTAIN.content_type,
         declared_size_bytes=DECLARED_SIZE,
         declared_sha256="c" * 64,
-        rights_statement_version="content-rights-v1",
+        rights_statement_version="content-rights",
     )
 
 

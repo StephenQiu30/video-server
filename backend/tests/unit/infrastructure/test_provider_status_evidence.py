@@ -44,7 +44,7 @@ def runtime_context(
 ) -> ProviderAccessContextRef:
     operator = access_mode is ProviderAccessMode.OPERATOR_MANAGED
     if operator and credential_version_id is None:
-        credential_version_id = "operator-v1"
+        credential_version_id = "operator-current"
     return ProviderAccessContextRef(
         provider_key="tiktok",
         profile_version=profile_version,
@@ -355,7 +355,7 @@ async def _seed_download(
         provider_key="tiktok",
         profile_version="tiktok-public-player-v3",
         access_mode=access_mode,
-        credential_version_id="operator-v1" if operator else None,
+        credential_version_id="operator-current" if operator else None,
         egress_affinity_id="default",
         client_profile_id="yt-dlp-default",
         attestation_provider_version=None,
