@@ -75,6 +75,7 @@ def test_frontend_compose_receives_only_public_runtime_configuration() -> None:
         "MINIO_PUBLIC_SECURE",
         "NODE_ENV",
         "PORT",
+        "SITE_URL",
     }
     for path in (COMPOSE_PATH, PROD_COMPOSE_PATH):
         document = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -82,7 +83,12 @@ def test_frontend_compose_receives_only_public_runtime_configuration() -> None:
         api = document["services"]["api"]
 
         assert "env_file" not in frontend
-        assert set(frontend["environment"]) == expected
+        local_only = (
+            {"MINIO_LOCAL_BROWSER_ENDPOINT", "MINIO_LOCAL_BROWSER_SECURE"}
+            if path == COMPOSE_PATH
+            else set()
+        )
+        assert set(frontend["environment"]) == expected | local_only
         assert frontend["networks"]["app_net"]["ipv4_address"] == "10.251.0.10"
         assert "10.251.0.10/32" in api["environment"]["TRUSTED_PROXY_CIDRS"]
 

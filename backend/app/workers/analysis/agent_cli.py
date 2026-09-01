@@ -74,7 +74,7 @@ def _env_file(value: Path | None) -> Path:
 
 
 def _settings(env_file: Path) -> Settings:
-    return Settings(  # type: ignore[call-arg]
+    return Settings(
         _env_file=env_file,
         service_role="analysis-worker",
     )
