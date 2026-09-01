@@ -24,6 +24,7 @@ _ALLOWED_SHARE_HOSTS = frozenset(
     }
 )
 _LINK_UNAVAILABLE = "Douyin official share link unavailable"
+_NOTE_UNSUPPORTED = "Douyin official note is not a supported single video"
 _LINK_TEMPORARY = "Douyin official share link temporarily unavailable"
 _LINK_SCHEMA_CHANGED = "Douyin official share link response structure changed"
 _LINK_VERIFICATION_REQUIRED = "Douyin official share link verification required"
@@ -61,6 +62,8 @@ class DouyinOfficialShortIE(InfoExtractor):  # type: ignore[misc]
             raise ExtractorError(_LINK_SCHEMA_CHANGED, video_id=share_id, expected=True)
         if not _allowed_share_url(redirected):
             raise ExtractorError(_LINK_UNAVAILABLE, video_id=share_id, expected=True)
+        if _is_official_note_url(redirected):
+            raise ExtractorError(_NOTE_UNSUPPORTED, video_id=share_id, expected=True)
 
         normalized = _canonical_video_url(redirected)
         if normalized is None or not _DouyinSharePageIE.suitable(normalized):
@@ -185,6 +188,15 @@ def _allowed_share_url(url: str) -> bool:
         and not parsed.fragment
         and (parsed.hostname or "").casefold() in _ALLOWED_SHARE_HOSTS
     )
+
+
+def _is_official_note_url(url: str) -> bool:
+    path = urlsplit(url).path.rstrip("/")
+    for prefix in ("/note/", "/share/note/"):
+        note_id = path.removeprefix(prefix)
+        if note_id != path and note_id.isdigit():
+            return True
+    return False
 
 
 def _canonical_video_url(url: str) -> str | None:

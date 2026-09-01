@@ -13,6 +13,7 @@ from app.runner.plugins.yt_dlp_plugins.extractor.douyin_share import (
     _canonical_video_url,
     _correct_download_addr_dimensions,
     _DouyinSharePageIE,
+    _is_official_note_url,
     _router_item,
 )
 from yt_dlp.extractor.tiktok import DouyinIE
@@ -139,6 +140,25 @@ def test_official_short_link_rejects_cross_domain_redirect(
         extractor._real_extract(SHORT_URL)
 
 
+def test_official_short_link_identifies_graphic_note_redirect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    extractor = DouyinOfficialShortIE()
+    monkeypatch.setattr(
+        extractor,
+        "_request_webpage",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            url="https://www.iesdouyin.com/share/note/7680102712177097642/"
+        ),
+    )
+
+    with pytest.raises(
+        ExtractorError,
+        match="official note is not a supported single video",
+    ):
+        extractor._real_extract(SHORT_URL)
+
+
 def test_official_short_link_transport_failure_is_temporary(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -203,6 +223,13 @@ def test_official_redirect_must_use_approved_https_host() -> None:
     assert not _allowed_share_url("http://www.douyin.com/video/123")
     assert not _allowed_share_url("https://douyin.com.example/video/123")
     assert not _allowed_share_url("https://example.com/video/123")
+
+
+def test_official_note_url_requires_a_numeric_note_id() -> None:
+    assert _is_official_note_url("https://www.iesdouyin.com/share/note/123/")
+    assert _is_official_note_url("https://www.douyin.com/note/123")
+    assert not _is_official_note_url("https://www.douyin.com/share/note/abc")
+    assert not _is_official_note_url("https://www.douyin.com/share/note/123/more")
 
 
 def test_corrects_download_format_dimensions_from_video_source() -> None:

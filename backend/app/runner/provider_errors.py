@@ -81,6 +81,12 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         providers=frozenset({"douyin", "xiaohongshu", "kuaishou"}),
     ),
     FailureRule(
+        "provider_media_unsupported",
+        422,
+        any_stderr=(b"douyin official note is not a supported single video",),
+        providers=frozenset({"douyin"}),
+    ),
+    FailureRule(
         "provider_link_unavailable",
         422,
         any_stderr=(b"douyin official share link unavailable",),

@@ -884,6 +884,24 @@ async def test_douyin_official_share_failures_keep_distinct_classifications(
 
 
 @pytest.mark.asyncio
+async def test_douyin_official_note_is_classified_as_media_unsupported(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(
+            b"ERROR: Douyin official note is not a supported single video"
+        ),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect("https://v.douyin.com/qao3WztsXns/", tmp_path)
+
+    assert caught.value.code == "provider_media_unsupported"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
 async def test_xhs_share_link_without_token_is_classified_as_unavailable(
     tmp_path: Path,
 ) -> None:
