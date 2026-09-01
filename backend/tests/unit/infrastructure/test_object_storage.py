@@ -330,6 +330,28 @@ async def test_storage_can_sign_upload_parts_for_local_web_clients() -> None:
     assert next(call for call in local_browser.calls if call[0] == "presign_part")
 
 
+async def test_storage_can_sign_downloads_for_local_web_clients() -> None:
+    public = FakeMinio()
+    local_browser = FakeMinio()
+    storage = MinioObjectStorage(
+        settings(),
+        private=FakeMinio(),
+        public=public,
+        local_browser=local_browser,
+    )
+
+    url = await storage.presigned_download(
+        "downloads/job-1/1/video.mp4",
+        ttl_seconds=60,
+        inline=True,
+        use_local_browser_endpoint=True,
+    )
+
+    assert url == "https://objects.example/artifact"
+    assert not public.calls
+    assert next(call for call in local_browser.calls if call[0] == "presign")
+
+
 async def test_storage_lists_bounded_incomplete_uploads_for_reconciliation() -> None:
     private = FakeMinio()
     storage = MinioObjectStorage(settings(), private=private)

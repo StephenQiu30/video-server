@@ -170,6 +170,9 @@ describe('typed API client', () => {
       '/health/live',
       '/health/ready',
     ]);
+    expect(httpRequests()[3]).toMatchObject({
+      headers: { 'X-FrameFetch-Download-Client': 'local-web' },
+    });
   });
 
   it('forwards typed pagination and filters to the download history endpoint', async () => {

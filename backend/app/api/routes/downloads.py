@@ -3,13 +3,14 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 
 from app.api.auth_dependencies import get_current_user
 from app.api.dependencies import (
     DownloadUseCases,
     IdempotencyKey,
     get_download_use_cases,
+    get_runtime_settings,
 )
 from app.api.errors import application_error
 from app.api.schemas.downloads import (
@@ -18,6 +19,7 @@ from app.api.schemas.downloads import (
     DownloadUrlResponse,
 )
 from app.api.schemas.history import DownloadHistoryResponse
+from app.api.upload_signing import use_local_browser_download_endpoint
 from app.application.auth import CurrentUser
 from app.application.downloads import ApplicationError
 from app.domain.downloads import DownloadStatus
@@ -213,6 +215,7 @@ async def retry_download(
 )
 async def issue_download_url(
     job_id: UUID,
+    request: Request,
     user: User,
     use_cases: UseCases,
     preview: bool = False,
@@ -220,7 +223,12 @@ async def issue_download_url(
     """为已完成的下载任务签发短时制品地址。"""
     try:
         view = await use_cases.issue_download_url(
-            job_id, user.owner_hash, preview=preview
+            job_id,
+            user.owner_hash,
+            preview=preview,
+            use_local_browser_endpoint=use_local_browser_download_endpoint(
+                request, get_runtime_settings(request)
+            ),
         )
     except ApplicationError as exc:
         raise application_error(exc) from exc

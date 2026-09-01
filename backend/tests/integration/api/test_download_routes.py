@@ -182,7 +182,10 @@ def test_download_routes_delegate_with_session_owner(tmp_path: Path) -> None:
     assert created.json()["status"] == "queued"
     assert cancelled.json()["status"] == "cancelled"
     assert issued.json()["url"] == "https://objects.example/token"
-    assert stubs["issue_url"].calls[0][1] == {"preview": True}
+    assert stubs["issue_url"].calls[0][1] == {
+        "preview": True,
+        "use_local_browser_endpoint": False,
+    }
     owners = [
         stubs["create"].calls[0][0][-2],
         *(

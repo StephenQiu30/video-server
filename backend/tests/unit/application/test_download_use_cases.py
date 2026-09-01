@@ -480,6 +480,10 @@ async def test_download_url_passes_inspection_title_to_storage() -> None:
         True,
     )
 
+    await issue(created.id, OWNER, use_local_browser_endpoint=True)
+
+    assert storage.local_browser_signing[-1] is True
+
 
 @pytest.mark.asyncio
 async def test_download_url_omits_missing_inspection_title() -> None:

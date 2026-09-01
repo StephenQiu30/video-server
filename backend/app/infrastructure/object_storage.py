@@ -464,12 +464,14 @@ class MinioObjectStorage:
         title: str | None = None,
         ttl_seconds: int,
         inline: bool = False,
+        use_local_browser_endpoint: bool = False,
     ) -> str:
         _validate_key(object_key)
-        if self._public is None:
+        signer = self._local_browser if use_local_browser_endpoint else self._public
+        if signer is None:
             raise RuntimeError("public download signing is not enabled")
         return await asyncio.to_thread(
-            self._public.presigned_get_object,
+            signer.presigned_get_object,
             self._bucket,
             object_key,
             expires=timedelta(seconds=ttl_seconds),

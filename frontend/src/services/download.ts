@@ -126,10 +126,15 @@ export function issueDownloadUrl(
   id: string,
   preview = false,
 ): Promise<DownloadUrl> {
-  return issueDownloadUrlRequest({
-    job_id: encodeURIComponent(id),
-    preview,
-  });
+  return issueDownloadUrlRequest(
+    {
+      job_id: encodeURIComponent(id),
+      preview,
+    },
+    {
+      headers: { 'X-FrameFetch-Download-Client': 'local-web' },
+    },
+  );
 }
 
 export function triggerBrowserDownload(url: string): void {

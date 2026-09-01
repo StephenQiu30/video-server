@@ -59,8 +59,9 @@ export default function DownloadVideoPreview({
     <MediaPlayer
       ariaLabel={`${title}视频预览`}
       className="overflow-hidden rounded-none bg-black"
+      crossOrigin="anonymous"
       key={preview.source}
-      load="play"
+      load="eager"
       onError={preview.reportPlaybackError}
       playsInline
       poster={poster ?? undefined}

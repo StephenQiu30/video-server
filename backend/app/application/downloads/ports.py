@@ -130,6 +130,7 @@ class ObjectStorage(Protocol):
         title: str | None = None,
         ttl_seconds: int,
         inline: bool = False,
+        use_local_browser_endpoint: bool = False,
     ) -> str: ...
 
 

@@ -166,7 +166,12 @@ class IssueDownloadUrl:
         self._url_ttl = url_ttl
 
     async def __call__(
-        self, job_id: UUID, owner_hash: str, *, preview: bool = False
+        self,
+        job_id: UUID,
+        owner_hash: str,
+        *,
+        preview: bool = False,
+        use_local_browser_endpoint: bool = False,
     ) -> DownloadUrl:
         job = await _owned_job(self._repository, job_id, owner_hash)
         if job.status != DownloadStatus.SUCCEEDED.value:
@@ -185,6 +190,7 @@ class IssueDownloadUrl:
             title=title,
             ttl_seconds=ttl_seconds,
             inline=preview,
+            use_local_browser_endpoint=use_local_browser_endpoint,
         )
         return DownloadUrl(url=url, expires_at=now + timedelta(seconds=ttl_seconds))
 

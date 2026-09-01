@@ -61,7 +61,8 @@ class FakeRunner:
 
 class FakeStorage:
     def __init__(self) -> None:
-        self.calls: list[tuple[str, int, str | None]] = []
+        self.calls: list[tuple[str, int, str | None, bool]] = []
+        self.local_browser_signing: list[bool] = []
         self.deleted: list[str] = []
         self.aborted: list[tuple[str, str]] = []
 
@@ -72,8 +73,10 @@ class FakeStorage:
         title: str | None = None,
         ttl_seconds: int,
         inline: bool = False,
+        use_local_browser_endpoint: bool = False,
     ) -> str:
         self.calls.append((object_key, ttl_seconds, title, inline))
+        self.local_browser_signing.append(use_local_browser_endpoint)
         return "https://objects.example/download-token"
 
     async def abort_multipart_upload(self, object_key: str, upload_id: str) -> None:

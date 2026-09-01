@@ -24,6 +24,7 @@ describe('useVideoPreviewSource', () => {
     await waitFor(() => expect(result.current.source).toBe(signedVideoUrl.url));
     expect(result.current.loading).toBe(false);
     expect(httpRequests()[0]).toMatchObject({
+      headers: { 'X-FrameFetch-Download-Client': 'local-web' },
       method: 'POST',
       params: { preview: true },
       url: `/api/downloads/${downloadId}/download-url`,

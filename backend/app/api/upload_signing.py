@@ -11,6 +11,8 @@ from app.core.config import Settings
 
 LOCAL_WEB_UPLOAD_HEADER = "x-framefetch-upload-client"
 LOCAL_WEB_UPLOAD_VALUE = "local-web"
+LOCAL_WEB_DOWNLOAD_HEADER = "x-framefetch-download-client"
+LOCAL_WEB_DOWNLOAD_VALUE = "local-web"
 
 
 def use_local_browser_upload_endpoint(request: Request, settings: Settings) -> bool:
@@ -19,6 +21,24 @@ def use_local_browser_upload_endpoint(request: Request, settings: Settings) -> b
         settings.app_env != "development"
         or settings.minio_local_browser_endpoint is None
         or request.headers.get(LOCAL_WEB_UPLOAD_HEADER) != LOCAL_WEB_UPLOAD_VALUE
+    ):
+        return False
+    source = request.headers.get("origin") or request.headers.get("referer")
+    return _is_loopback_web_origin(source)
+
+
+def use_local_browser_download_endpoint(request: Request, settings: Settings) -> bool:
+    """Use loopback signing for an explicitly identified local Web client.
+
+    Downloads and previews are also used by the production-shaped local
+    Compose stack. The endpoint remains opt-in and is restricted to loopback
+    browser origins so remote/native clients keep receiving the public URL.
+    """
+    if (
+        settings.app_env not in {"development", "production"}
+        or settings.minio_local_browser_endpoint is None
+        or request.headers.get(LOCAL_WEB_DOWNLOAD_HEADER)
+        != LOCAL_WEB_DOWNLOAD_VALUE
     ):
         return False
     source = request.headers.get("origin") or request.headers.get("referer")
