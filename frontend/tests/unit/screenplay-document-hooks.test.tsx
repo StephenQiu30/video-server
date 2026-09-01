@@ -78,4 +78,24 @@ describe('screenplay document hooks', () => {
     act(() => resolveSecond?.(screenplayDocument({ id: 'second-id' })));
     await waitFor(() => expect(result.current.document?.id).toBe('second-id'));
   });
+
+  it('stops polling after an upload session has failed', async () => {
+    runtime.getScreenplayDocument.mockResolvedValue(
+      screenplayDocument({
+        error_code: 'upload_session_expired',
+        id: 'expired-upload',
+        status: 'uploading',
+      }),
+    );
+    const { result } = renderHook(() =>
+      useScreenplayDocument('expired-upload', 10),
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 40));
+    });
+
+    expect(runtime.getScreenplayDocument).toHaveBeenCalledOnce();
+  });
 });

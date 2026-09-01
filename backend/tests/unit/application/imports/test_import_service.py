@@ -720,11 +720,30 @@ async def test_cancel_is_durable_when_object_cleanup_is_unavailable() -> None:
 
 async def test_get_import_does_not_reveal_another_owner_resource() -> None:
     repository = FakeRepository(resource())
+    storage = FakeStorage()
 
     with pytest.raises(ImportApplicationError) as captured:
-        await GetImport(repository)(RESOURCE_ID, "c" * 64, ContentKind.VIDEO)
+        await GetImport(repository, storage, now=lambda: NOW)(
+            RESOURCE_ID, "c" * 64, ContentKind.VIDEO
+        )
 
     assert captured.value.code is ImportApplicationErrorCode.NOT_FOUND
+
+
+async def test_get_import_expires_and_cleans_an_abandoned_upload() -> None:
+    current_attempt = attempt(expired=True)
+    repository = FakeRepository(resource(active_attempt=current_attempt))
+    storage = FakeStorage()
+
+    view = await GetImport(repository, storage, now=lambda: NOW)(
+        RESOURCE_ID, OWNER_HASH, ContentKind.VIDEO
+    )
+
+    assert view.status is ImportStatus.UPLOADING
+    assert view.error_code is ImportErrorCode.UPLOAD_SESSION_EXPIRED
+    assert repository.expired == 1
+    assert storage.aborted == [(current_attempt.object_key, "upload-1")]
+    assert storage.deleted == [current_attempt.object_key]
 
 
 def test_upload_limits_enforce_multipart_budget() -> None:

@@ -15,6 +15,7 @@ export function useScreenplayDocument(
   const [cycle, setCycle] = useState(0);
   const visibleDocument = document?.id === documentId ? document : null;
   const status = visibleDocument?.status ?? null;
+  const errorCode = visibleDocument?.error_code ?? null;
   const changingDocument = document !== null && visibleDocument === null;
 
   const load = useCallback(async () => {
@@ -50,10 +51,16 @@ export function useScreenplayDocument(
   }, [cycle, documentId]);
 
   useEffect(() => {
-    if (!status || !activeStatuses.has(status)) return;
+    if (
+      !status ||
+      !activeStatuses.has(status) ||
+      (status === 'uploading' && errorCode !== null)
+    ) {
+      return;
+    }
     const timer = window.setInterval(() => void load(), pollIntervalMs);
     return () => window.clearInterval(timer);
-  }, [load, pollIntervalMs, status]);
+  }, [errorCode, load, pollIntervalMs, status]);
 
   return {
     document: visibleDocument,

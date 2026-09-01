@@ -163,6 +163,31 @@ describe('local media import transport', () => {
       },
     ]);
   });
+
+  it('recovers an idempotent document whose completion response was lost', async () => {
+    const completed = documentImportResponse('verifying');
+    mockHttpResponses(completed);
+
+    const result = await importScreenplayDocument(
+      new File(['INT. ROOM - DAY\n\nA story begins.'], 'story.fountain', {
+        type: 'text/plain',
+      }),
+      'stable-document-key',
+      {
+        onPhase: vi.fn(),
+        onProgress: vi.fn(),
+        onResource: vi.fn(),
+      },
+      new AbortController().signal,
+    );
+
+    expect(result).toEqual(completed);
+    expect(httpRequests()).toHaveLength(1);
+    expect(httpRequests()[0]).toMatchObject({
+      method: 'POST',
+      url: '/api/documents',
+    });
+  });
 });
 
 class FakeXMLHttpRequest {

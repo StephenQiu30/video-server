@@ -224,6 +224,24 @@ describe('screenplay documents', () => {
     ).toBeInTheDocument();
     failedView.unmount();
 
+    runtime.getScreenplayDocument.mockResolvedValueOnce(
+      screenplayDocument({
+        error_code: 'upload_session_expired',
+        id: 'expired-upload-id',
+        preview: null,
+        preview_truncated: false,
+        status: 'uploading',
+      }),
+    );
+    const expiredUpload = render(
+      <ScreenplayDocumentDetailView documentId="expired-upload-id" />,
+    );
+    expect(await screen.findByText('上传会话已过期。')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '重新上传' }),
+    ).toBeInTheDocument();
+    expiredUpload.unmount();
+
     runtime.getScreenplayDocument.mockRejectedValueOnce(
       new Error('文档服务暂时不可用'),
     );

@@ -76,6 +76,12 @@ export async function importScreenplayDocument(
     { headers: { 'Idempotency-Key': idempotencyKey } },
   );
   observer.onResource(resource.id);
+  if (resource.status === 'verifying' || resource.status === 'ready') {
+    return resource;
+  }
+  if (resource.status !== 'uploading') {
+    throw new MediaTransferError('当前剧本文档不能继续上传，请重新选择文件。');
+  }
 
   const session = await createDocumentUploadSession({
     document_id: encodeURIComponent(resource.id),

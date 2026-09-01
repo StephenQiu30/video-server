@@ -5,6 +5,7 @@ import { useDocumentImport } from '@/hooks/useDocumentImport';
 import { useMediaImport } from '@/hooks/useMediaImport';
 
 const runtime = vi.hoisted(() => ({
+  cancelDocument: vi.fn(),
   importDocument: vi.fn(),
   importMedia: vi.fn(),
 }));
@@ -19,7 +20,7 @@ vi.mock('@/services/media-import', () => ({
 }));
 
 vi.mock('@/services/document-import', () => ({
-  cancelScreenplayDocumentImport: vi.fn(),
+  cancelScreenplayDocumentImport: runtime.cancelDocument,
   displayDocumentImportError: () => '上传失败',
   importScreenplayDocument: runtime.importDocument,
   isDocumentImportAbort: (reason: unknown) =>
@@ -29,6 +30,8 @@ vi.mock('@/services/document-import', () => ({
 
 describe('upload hook cleanup', () => {
   beforeEach(() => {
+    runtime.cancelDocument.mockReset();
+    runtime.cancelDocument.mockResolvedValue(undefined);
     runtime.importDocument.mockReset();
     runtime.importMedia.mockReset();
   });
@@ -89,6 +92,57 @@ describe('upload hook cleanup', () => {
     unmount();
     expect(uploadSignal?.aborted).toBe(true);
     expect(onComplete).not.toHaveBeenCalled();
+  });
+
+  it('cleans a created document resource after upload failure', async () => {
+    runtime.importDocument.mockImplementation(
+      async (_file, _key, observer: { onResource: (id: string) => void }) => {
+        observer.onResource('failed-document');
+        throw new Error('storage unavailable');
+      },
+    );
+    const { result } = renderHook(() => useDocumentImport(vi.fn()));
+
+    act(() =>
+      result.current.selectFile(
+        new File(['screenplay'], 'script.txt', { type: 'text/plain' }),
+      ),
+    );
+    act(() => void result.current.start());
+
+    await waitFor(() =>
+      expect(runtime.cancelDocument).toHaveBeenCalledWith('failed-document'),
+    );
+    await waitFor(() => expect(result.current.error).toBe('上传失败'));
+    expect(result.current.progress).toBe(0);
+  });
+
+  it('keeps a document after an uncertain completion response', async () => {
+    runtime.importDocument.mockImplementation(
+      async (
+        _file,
+        _key,
+        observer: {
+          onPhase: (phase: string) => void;
+          onResource: (id: string) => void;
+        },
+      ) => {
+        observer.onResource('completed-document');
+        observer.onPhase('completing');
+        throw new Error('response lost');
+      },
+    );
+    const { result } = renderHook(() => useDocumentImport(vi.fn()));
+
+    act(() =>
+      result.current.selectFile(
+        new File(['screenplay'], 'script.txt', { type: 'text/plain' }),
+      ),
+    );
+    act(() => void result.current.start());
+
+    await waitFor(() => expect(result.current.error).toBe('上传失败'));
+    expect(runtime.cancelDocument).not.toHaveBeenCalled();
   });
 });
 

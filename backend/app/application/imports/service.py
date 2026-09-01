@@ -433,8 +433,16 @@ class CompleteImportUpload:
 
 
 class GetImport:
-    def __init__(self, repository: ImportRepository) -> None:
+    def __init__(
+        self,
+        repository: ImportRepository,
+        storage: QuarantineObjectStorage,
+        *,
+        now: Clock,
+    ) -> None:
         self._repository = repository
+        self._storage = storage
+        self._now = now
 
     async def __call__(
         self,
@@ -442,14 +450,36 @@ class GetImport:
         owner_hash: str,
         content_kind: ContentKind = ContentKind.VIDEO,
     ) -> ImportView:
-        return _view(
-            await _get_resource(
-                self._repository,
-                resource_id,
-                _validate_owner_hash(owner_hash),
-                content_kind,
-            )
+        owner_hash = _validate_owner_hash(owner_hash)
+        resource = await _get_resource(
+            self._repository,
+            resource_id,
+            owner_hash,
+            content_kind,
         )
+        attempt = resource.active_attempt
+        now = _validate_now(self._now())
+        if (
+            _status(resource) is ImportStatus.UPLOADING
+            and attempt is not None
+            and now >= attempt.expires_at
+        ):
+            _validate_existing_attempt(attempt, resource, content_kind)
+            try:
+                resource = await self._repository.expire_attempt(
+                    resource_id,
+                    owner_hash,
+                    content_kind,
+                    attempt.attempt,
+                    now=now,
+                )
+            except ImportPersistenceError as error:
+                raise _map_persistence_error(error) from error
+            await _cleanup(
+                self._storage,
+                ImportCleanupRef(attempt.object_key, attempt.upload_id),
+            )
+        return _view(resource)
 
 
 class CancelImport:

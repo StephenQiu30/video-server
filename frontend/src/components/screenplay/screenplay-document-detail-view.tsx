@@ -15,6 +15,7 @@ import {
   extractMarkdownHeadings,
   ScreenplayDocumentToc,
 } from '@/components/screenplay/screenplay-document-toc';
+import { ScreenplayUploadDialog } from '@/components/screenplay/screenplay-upload-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -96,16 +97,22 @@ export default function ScreenplayDocumentDetailView({
                 {state.document.original_filename}
               </p>
             </div>
-            <Button
-              className="h-11 w-full border-0 bg-surface px-4 sm:w-auto"
-              disabled={state.loading}
-              onClick={state.refresh}
-              type="button"
-              variant="outline"
-            >
-              <ArrowClockwise aria-hidden size={17} />
-              刷新
-            </Button>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              {state.document.status === 'uploading' &&
+              state.document.error_code ? (
+                <ScreenplayUploadDialog label="重新上传" />
+              ) : null}
+              <Button
+                className="h-11 w-full border-0 bg-surface px-4 sm:w-auto"
+                disabled={state.loading}
+                onClick={state.refresh}
+                type="button"
+                variant="outline"
+              >
+                <ArrowClockwise aria-hidden size={17} />
+                刷新
+              </Button>
+            </div>
           </header>
           <ScreenplayDocumentMetadata document={state.document} />
           <div

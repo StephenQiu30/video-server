@@ -13,6 +13,7 @@ import { createIdempotencyKey } from '@/utils/idempotency';
 type ActiveRun = {
   controller: AbortController;
   documentId: string | null;
+  phase: DocumentImportPhase;
 };
 
 type StableKey = { payload: string; value: string };
@@ -64,6 +65,7 @@ export function useDocumentImport(onComplete: (documentId: string) => void) {
     const run: ActiveRun = {
       controller: new AbortController(),
       documentId: null,
+      phase: 'hashing',
     };
     activeRef.current = run;
     setError(null);
@@ -78,6 +80,7 @@ export function useDocumentImport(onComplete: (documentId: string) => void) {
         keyRef.current.value,
         {
           onPhase: (next) => {
+            run.phase = next;
             if (activeRef.current === run) setPhase(next);
           },
           onProgress: (next) => {
@@ -92,7 +95,20 @@ export function useDocumentImport(onComplete: (documentId: string) => void) {
       if (activeRef.current === run) onComplete(result.id);
     } catch (reason) {
       if (activeRef.current === run && !isDocumentImportAbort(reason)) {
-        setError(displayDocumentImportError(reason));
+        const message = displayDocumentImportError(reason);
+        if (run.documentId && run.phase !== 'completing') {
+          setPhase('cancelling');
+          try {
+            await cancelScreenplayDocumentImport(run.documentId);
+            keyRef.current = null;
+          } catch {
+            // Keep the stable key so a retry can recover the existing resource.
+          }
+        }
+        if (activeRef.current === run) {
+          setError(message);
+          setProgress(0);
+        }
       }
     } finally {
       if (activeRef.current === run) {

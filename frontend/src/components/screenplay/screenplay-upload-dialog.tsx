@@ -16,7 +16,11 @@ import {
 } from '@/components/ui/dialog';
 import { useDocumentImport } from '@/hooks/useDocumentImport';
 
-export function ScreenplayUploadDialog() {
+export function ScreenplayUploadDialog({
+  label = '上传剧本',
+}: {
+  label?: string;
+}) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const openDocument = useCallback(
@@ -38,9 +42,9 @@ export function ScreenplayUploadDialog() {
       open={open}
     >
       <DialogTrigger asChild>
-        <Button className="h-11 px-4">
+        <Button className="h-11 w-full px-4 sm:w-auto">
           <UploadSimple aria-hidden />
-          上传剧本
+          {label}
         </Button>
       </DialogTrigger>
       <DialogContent

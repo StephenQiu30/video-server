@@ -325,7 +325,11 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             import_storage,
             now=clock,
         ),
-        get_import=GetImport(media_import_repository),
+        get_import=GetImport(
+            media_import_repository,
+            import_storage,
+            now=clock,
+        ),
         cancel_import=cancel_import,
     )
     document_import_use_cases = DocumentImportUseCases(
@@ -351,7 +355,11 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             import_storage,
             now=clock,
         ),
-        get_import=GetImport(document_import_repository),
+        get_import=GetImport(
+            document_import_repository,
+            import_storage,
+            now=clock,
+        ),
         cancel_import=CancelImport(
             document_import_repository,
             import_storage,

@@ -185,6 +185,11 @@ def test_document_routes_delegate_owner_and_hide_storage(tmp_path: Path) -> None
     assert create["source_format"] is ImportSourceFormat.FOUNTAIN
     complete = stubs["complete"].calls[0][0]
     assert complete[:3] == (DOCUMENT_ID, TEST_USER.owner_hash, ContentKind.SCREENPLAY)
+    assert stubs["get"].calls[0][0] == (
+        DOCUMENT_ID,
+        TEST_USER.owner_hash,
+        ContentKind.SCREENPLAY,
+    )
     assert stubs["delete"].calls[0][0] == (DOCUMENT_ID, TEST_USER.owner_hash)
 
 
