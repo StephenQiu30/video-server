@@ -57,6 +57,7 @@ def standard_provider(
     inspection_attempts: int = 2,
     inspection_retry_delay: float = 1,
     probe_authenticated_media: bool = False,
+    probe_media_duration: bool = False,
 ) -> ProviderProfile:
     access_modes: tuple[ProviderAccessMode, ...] = (
         (ProviderAccessMode.ANONYMOUS,) if anonymous_access else ()
@@ -83,6 +84,7 @@ def standard_provider(
         inspection_attempts=inspection_attempts,
         inspection_retry_delay=inspection_retry_delay,
         probe_authenticated_media=probe_authenticated_media,
+        probe_media_duration=probe_media_duration,
         normalize_url=normalize_url,
     )
 
@@ -101,6 +103,8 @@ def challenged_provider(
     client_profile_id: str = "chrome-136-macos-15",
     runtime_command_args: RuntimeCommandArgs = default_runtime_command_args,
     canary_suite: str = "anonymous-metadata-range",
+    probe_authenticated_media: bool = False,
+    probe_media_duration: bool = False,
 ) -> ProviderProfile:
     return standard_provider(
         key,
@@ -118,4 +122,6 @@ def challenged_provider(
         canary_suite=canary_suite,
         inspection_attempts=8,
         inspection_retry_delay=0.5,
+        probe_authenticated_media=probe_authenticated_media,
+        probe_media_duration=probe_media_duration,
     )

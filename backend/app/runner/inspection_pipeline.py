@@ -23,6 +23,7 @@ from app.runner.utilities import normalize_for_settings, safe_media_url
 from app.runner.workspace import TaskWorkspace
 
 _MAX_PROBE_SAMPLE_ATTEMPTS = 8
+_MAX_DURATION_PROBE_ATTEMPTS = 4
 
 
 class RunnerInspectionPipeline:
@@ -45,6 +46,12 @@ class RunnerInspectionPipeline:
             access_mode=context.access_mode,
         )
         payload = normalize_selected_format_metadata(payload)
+        if source.profile.probe_media_duration:
+            payload = await self._probe_authoritative_duration(
+                payload,
+                source,
+                workspace,
+            )
         if payload.get("direct") is True and cookie_jar is None:
             probe = await self._commands.probe_remote(
                 source.source_url,
@@ -81,6 +88,42 @@ class RunnerInspectionPipeline:
             cookie_jar=cookie_jar,
         )
         return normalize_for_settings(sampled, self._settings)
+
+    async def _probe_authoritative_duration(
+        self,
+        payload: dict[str, object],
+        source: ProviderRequest,
+        workspace: TaskWorkspace,
+    ) -> dict[str, object]:
+        formats = payload.get("formats")
+        if not isinstance(formats, list):
+            raise RunnerFailure("inspection_failed", status=502)
+
+        attempts = 0
+        for index, value in enumerate(formats):
+            if not isinstance(value, dict) or not isinstance(value.get("url"), str):
+                continue
+            attempts += 1
+            try:
+                media_url = safe_media_url(value["url"])
+                probe = await self._commands.probe_remote(
+                    media_url,
+                    workspace.path,
+                    referer=source.source_url,
+                )
+                duration = _probe_duration(probe)
+            except (RunnerFailure, ValueError):
+                duration = None
+            if duration is not None:
+                enriched_formats = list(formats)
+                enriched_formats[index] = enrich_format_metadata(value, probe)
+                enriched_payload = dict(payload)
+                enriched_payload["formats"] = enriched_formats
+                enriched_payload["duration"] = duration
+                return enriched_payload
+            if attempts == _MAX_DURATION_PROBE_ATTEMPTS:
+                break
+        raise RunnerFailure("inspection_failed", status=502)
 
     async def _inspect_with_retry(
         self,

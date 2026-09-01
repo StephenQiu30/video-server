@@ -133,7 +133,7 @@ def test_remaining_provider_profiles_record_verified_access_boundaries() -> None
     )
     assert reddit.support_status is ProviderSupportStatus.ACCESS_REQUIRED
     assert reddit.version == "reddit-public-video-v1"
-    assert douyin.version == "douyin-public-v2"
+    assert douyin.version == "douyin-public-v3"
     assert douyin.support_status is ProviderSupportStatus.ACCESS_REQUIRED
     assert douyin.access_modes == (
         ProviderAccessMode.ANONYMOUS,
@@ -316,6 +316,8 @@ def test_targets_douyin_request_impersonation_and_retries() -> None:
     assert provider_profile(url).cookie_domain_allowlist == frozenset(
         {"douyin.com", "iesdouyin.com"}
     )
+    assert provider_profile(url).probe_authenticated_media is True
+    assert provider_profile(url).probe_media_duration is True
 
     short_url = "https://v.douyin.com/example/"
     assert provider_command_args(short_url) == (

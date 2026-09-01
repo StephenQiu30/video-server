@@ -73,6 +73,7 @@ class ProviderProfile:
     inspection_attempts: int = 2
     inspection_retry_delay: float = 1.0
     probe_authenticated_media: bool = False
+    probe_media_duration: bool = False
     normalize_url: UrlNormalizer = identity_url
 
     def request_url(self, url: str, parsed: SplitResult) -> str:

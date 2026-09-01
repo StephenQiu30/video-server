@@ -192,6 +192,27 @@ class ProbeSampleSupervisor(FixtureSupervisor):
         )
 
 
+class RemoteProbeFailureSupervisor(FixtureSupervisor):
+    async def run(
+        self,
+        argv: Sequence[str],
+        *,
+        cwd: Path,
+        timeout_seconds: float,
+        env: Mapping[str, str] | None = None,
+    ) -> ProcessResult:
+        command = tuple(argv)
+        if command[0] == "ffprobe" and str(command[-1]).startswith("https://"):
+            self.calls.append((command, env))
+            return ProcessResult(1, b"", b"forbidden", False, False)
+        return await super().run(
+            argv,
+            cwd=cwd,
+            timeout_seconds=timeout_seconds,
+            env=env,
+        )
+
+
 class ClassifiedFailureThenSuccessSupervisor(FixtureSupervisor):
     def __init__(self, info: dict[str, object], stderr: bytes) -> None:
         super().__init__(info)
@@ -659,6 +680,56 @@ async def test_inspect_prefers_downloadable_stream_duration_from_probe(
     response = await service.inspect("https://media.example.com/video")
 
     assert response.media.duration_seconds == 30
+
+
+def douyin_muxed_info() -> dict[str, object]:
+    info = split_media_info()
+    info["duration"] = 24
+    info["formats"] = [
+        {
+            "format_id": "download_addr-0",
+            "ext": "mp4",
+            "url": "https://v3-dy.example.com/video.mp4",
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "vcodec": "h264",
+            "acodec": "aac",
+        }
+    ]
+    return info
+
+
+async def test_douyin_inspect_uses_media_duration_instead_of_page_metadata(
+    tmp_path: Path,
+) -> None:
+    supervisor = FixtureSupervisor(douyin_muxed_info())
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    response = await service.inspect(
+        "https://www.douyin.com/video/7662711608636889201"
+    )
+
+    assert response.media.duration_seconds == 30
+    remote_probes = [
+        command
+        for command, _ in supervisor.calls
+        if command[0] == "ffprobe" and str(command[-1]).startswith("https://")
+    ]
+    assert len(remote_probes) == 1
+
+
+async def test_douyin_inspect_fails_closed_without_media_duration(
+    tmp_path: Path,
+) -> None:
+    supervisor = RemoteProbeFailureSupervisor(douyin_muxed_info())
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    with pytest.raises(RunnerFailure) as caught:
+        await service.inspect("https://www.douyin.com/video/7662711608636889201")
+
+    assert caught.value.code == "inspection_failed"
+    assert list(tmp_path.iterdir()) == []
 
 
 async def test_inspect_retries_and_uses_bounded_local_probe_sample(
