@@ -141,7 +141,7 @@ export default function DownloadJobView({
             <div className="mt-14 sm:mt-20">
               <AnalysisPanel downloadId={state.job.id} />
             </div>
-          ) : (
+          ) : ['failed', 'cancelled'].includes(state.job.status) ? null : (
             <p className="mt-14 py-8 text-sm text-muted-foreground sm:mt-20">
               下载并验证完成后，可继续生成视觉分镜、高光与资产目录。
             </p>

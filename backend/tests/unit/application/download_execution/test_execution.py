@@ -120,6 +120,7 @@ async def test_runner_and_storage_failures_converge_before_ack(tmp_path) -> None
     assert runner_case.repository.failure["error_code"] == (
         DownloadErrorCode.DOWNLOAD_TIMEOUT.value
     )
+    assert runner_case.repository.failure["error_message"] == "download_timeout"
     assert runner_case.repository.failure["retryable"] is True
     assert runner_case.cleaner.calls
 
@@ -208,6 +209,9 @@ async def test_duplicate_and_hash_mismatch_are_idempotent(tmp_path) -> None:
     )
     assert mismatch.repository.failure["error_code"] == (
         DownloadErrorCode.MEDIA_VALIDATION_FAILED.value
+    )
+    assert (
+        mismatch.repository.failure["error_message"] == "artifact digest does not match"
     )
     assert mismatch.storage.uploads == []
 

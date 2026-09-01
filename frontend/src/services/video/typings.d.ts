@@ -629,6 +629,8 @@ declare namespace API {
     /** Version */
     version: number;
     error_code: DownloadErrorCode | null;
+    /** Error Message */
+    error_message: string | null;
     /** Created At */
     created_at: string;
     /** Updated At */

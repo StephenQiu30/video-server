@@ -137,7 +137,10 @@ class DownloadExecution:
                 raise
             except Exception as exc:
                 return await self._transitions.fail(
-                    job_id, attempt, classify_runner_failure(exc)
+                    job_id,
+                    attempt,
+                    classify_runner_failure(exc),
+                    error_message=str(exc),
                 )
             try:
                 verified = await monitor.run_fixed(
@@ -151,9 +154,12 @@ class DownloadExecution:
                     progress=90,
                     drain_on_abort=True,
                 )
-            except ArtifactValidationError:
+            except ArtifactValidationError as exc:
                 return await self._transitions.fail(
-                    job_id, attempt, DownloadErrorCode.MEDIA_VALIDATION_FAILED
+                    job_id,
+                    attempt,
+                    DownloadErrorCode.MEDIA_VALIDATION_FAILED,
+                    error_message=str(exc),
                 )
             except (LeaseLost, ExecutionOwnershipLost):
                 return await self._transitions.convergence(job_id)

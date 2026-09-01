@@ -19,11 +19,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
-import { localizedErrorMessage } from '@/lib/error-messages';
 import type { DownloadJob } from '@/types/video';
 import { DownloadExecutionSummary } from './download-execution-summary';
 import {
   displayStage,
+  failureDescription,
+  failureTitle,
+  retryActionLabel,
   statusDescription,
   statusHeading,
   statusLabels,
@@ -50,6 +52,7 @@ export default function DownloadState({
   const retryable =
     ['failed', 'cancelled'].includes(job.status) ||
     (complete && !job.file_available);
+  const showProgress = active;
 
   return (
     <section aria-labelledby="download-status-title" className="self-start">
@@ -66,7 +69,7 @@ export default function DownloadState({
         {statusDescription(job)}
       </p>
 
-      {!complete ? (
+      {showProgress ? (
         <>
           <div className="mt-7 flex items-end justify-between gap-5">
             <span className="text-3xl font-medium leading-none tracking-[-0.045em] tabular-nums">
@@ -86,11 +89,8 @@ export default function DownloadState({
 
       {job.status === 'failed' ? (
         <Alert className="mt-6" variant="destructive">
-          <AlertTitle>下载失败</AlertTitle>
-          <AlertDescription>
-            {localizedErrorMessage(job.error_code) ??
-              '下载任务未能完成，请稍后重试。'}
-          </AlertDescription>
+          <AlertTitle>{failureTitle(job.error_code)}</AlertTitle>
+          <AlertDescription>{failureDescription(job)}</AlertDescription>
         </Alert>
       ) : null}
 
@@ -116,7 +116,9 @@ export default function DownloadState({
             ) : (
               <DownloadSimple />
             )}
-            {job.media_kind === 'image_gallery' ? '获取图集 ZIP' : '获取视频文件'}
+            {job.media_kind === 'image_gallery'
+              ? '获取图集 ZIP'
+              : '获取视频文件'}
           </Button>
         ) : null}
         {retryable ? (
@@ -127,7 +129,7 @@ export default function DownloadState({
             size="lg"
           >
             {action === 'retry' ? <Spinner aria-hidden /> : <ArrowClockwise />}
-            重新下载
+            {retryActionLabel(job.error_code)}
           </Button>
         ) : null}
         {active ? (

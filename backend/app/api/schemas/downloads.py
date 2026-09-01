@@ -38,6 +38,7 @@ class DownloadResponse(StrictModel):
     attempt: int
     version: int
     error_code: DownloadErrorCode | None
+    error_message: str | None
     created_at: datetime
     updated_at: datetime
     finished_at: datetime | None
@@ -65,6 +66,7 @@ class DownloadResponse(StrictModel):
             attempt=view.attempt,
             version=view.version,
             error_code=view.error_code,
+            error_message=view.error_message,
             created_at=view.created_at,
             updated_at=view.updated_at,
             finished_at=view.finished_at,

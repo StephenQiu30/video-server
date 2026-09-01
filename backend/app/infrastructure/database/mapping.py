@@ -79,6 +79,7 @@ def job_snapshot(row: DownloadJobRow) -> JobSnapshot:
         retry_at=None if row.retry_at is None else as_utc(row.retry_at),
         finished_at=None if row.finished_at is None else as_utc(row.finished_at),
         error_code=row.error_code,
+        error_message=row.error_message,
         created_at=as_utc(row.created_at),
         updated_at=as_utc(row.updated_at),
         source_kind=row.source_kind,

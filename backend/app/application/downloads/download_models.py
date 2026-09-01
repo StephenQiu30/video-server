@@ -55,6 +55,7 @@ class JobSnapshot:
     created_at: datetime
     updated_at: datetime
     source_kind: str = DownloadSourceKind.REMOTE_PROVIDER.value
+    error_message: str | None = None
 
     @classmethod
     def queued(cls, command: DownloadCreate, *, now: datetime) -> JobSnapshot:
@@ -137,6 +138,7 @@ class DownloadView:
     source_label: str = "链接下载"
     media_kind: MediaKind = MediaKind.VIDEO
     asset_count: int = 0
+    error_message: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

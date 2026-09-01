@@ -28,7 +28,12 @@ class ExecutionTransitions:
         self._clock = clock
 
     async def fail(
-        self, job_id: UUID, attempt: int, code: DownloadErrorCode
+        self,
+        job_id: UUID,
+        attempt: int,
+        code: DownloadErrorCode,
+        *,
+        error_message: str | None = None,
     ) -> ExecutionDisposition:
         now = self._clock()
         retry_at = now + _retry_delay(attempt) if code.retryable else None
@@ -38,7 +43,7 @@ class ExecutionTransitions:
                 self._settings.worker_id,
                 attempt,
                 error_code=code.value,
-                error_message=code.value,
+                error_message=_safe_error_message(error_message, code),
                 retryable=code.retryable,
                 now=now,
                 retry_at=retry_at,
@@ -98,6 +103,16 @@ class ExecutionTransitions:
 
 def _retry_delay(attempt: int) -> timedelta:
     return timedelta(seconds=min(300, 5 * (2 ** max(0, attempt - 1))))
+
+
+def _safe_error_message(value: str | None, code: DownloadErrorCode) -> str:
+    """Persist a short diagnostic without leaking provider response details."""
+    if not isinstance(value, str):
+        return code.value
+    normalized = " ".join(value.split())
+    if not normalized or len(normalized) > 512:
+        return code.value
+    return normalized
 
 
 def _converged(job: JobState, worker_id: str, now: datetime) -> ExecutionDisposition:

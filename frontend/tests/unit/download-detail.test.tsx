@@ -161,6 +161,35 @@ describe('DownloadJobView', () => {
     expect(screen.queryByText('download_timeout')).not.toBeInTheDocument();
   });
 
+  it('turns media validation failures into a source recovery action', async () => {
+    const failed = {
+      ...job('failed'),
+      error_code: 'media_validation_failed' as const,
+      error_message: 'artifact digest does not match',
+    };
+    mockHttpResponses(failed);
+    render(<DownloadJobView jobId={failed.id} pollIntervalMs={60_000} />);
+
+    expect(
+      await screen.findByRole('heading', { name: '下载源需要刷新' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('下载文件内容校验失败，请重新获取下载源。'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('artifact digest does not match'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '重新获取并下载' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        '下载并验证完成后，可继续生成视觉分镜、高光与资产目录。',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
   it('does not present a retry failure as a task read failure', async () => {
     mockHttpResponses(job('failed'));
     mockHttpError(
@@ -193,13 +222,20 @@ describe('DownloadJobView', () => {
   });
 
   it('presents a completed image note as a ZIP instead of a video preview', async () => {
-    mockHttpResponses(galleryJob('succeeded'), analysisSkills, null, signedVideoUrl);
+    mockHttpResponses(
+      galleryJob('succeeded'),
+      analysisSkills,
+      null,
+      signedVideoUrl,
+    );
     render(<DownloadJobView jobId={galleryJob().id} />);
 
     expect(
       await screen.findByRole('heading', { name: '图集文件已就绪' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '获取图集 ZIP' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '获取图集 ZIP' }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('region', { name: `${galleryJob().title}视频预览` }),
     ).not.toBeInTheDocument();

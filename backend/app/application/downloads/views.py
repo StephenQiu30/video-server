@@ -192,6 +192,7 @@ def download_view(
         progress=snapshot.progress,
         attempt=snapshot.attempt,
         error_code=error,
+        error_message=snapshot.error_message,
         created_at=snapshot.created_at,
         updated_at=snapshot.updated_at,
         finished_at=snapshot.finished_at,

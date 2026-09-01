@@ -24,6 +24,7 @@ class FakeClient:
     def __init__(self, context: ProviderAccessContextRef) -> None:
         self.context = context
         self.inspect_error: Exception | None = None
+        self.download_error: Exception | None = None
         self.inspected: list[str] = []
         self.downloaded: list[str] = []
         self.context_requests: list[tuple[str, ...]] = []
@@ -53,6 +54,8 @@ class FakeClient:
 
     async def download(self, task_id: str, *_args, **_kwargs) -> RunnerArtifact:
         self.downloaded.append(task_id)
+        if self.download_error is not None:
+            raise self.download_error
         return RunnerArtifact(
             task_id=task_id,
             workspace=Path("/work") / task_id,
@@ -209,6 +212,44 @@ async def test_download_routes_frozen_context_to_matching_pool() -> None:
 
     assert anonymous.downloaded == []
     assert operator.downloaded == ["task-1"]
+
+
+async def test_download_falls_back_to_operator_after_anonymous_auth_failure():
+    anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
+    anonymous.download_error = MediaRunnerClientError("credential_required", 422)
+    operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED))
+    router = MediaRunnerRouter(anonymous, {"youtube": operator})  # type: ignore[arg-type]
+
+    await router.download(
+        "task-1",
+        "https://www.youtube.com/watch?v=owned",
+        object(),  # type: ignore[arg-type]
+        expected_provider_media_id="owned",
+        expected_extractor_key="Youtube",
+        access_context=anonymous.context,
+    )
+
+    assert anonymous.downloaded == ["task-1"]
+    assert operator.context_requests == [("youtube",)]
+    assert operator.downloaded == ["task-1"]
+
+
+async def test_download_keeps_anonymous_error_when_operator_is_not_configured() -> None:
+    anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
+    anonymous.download_error = MediaRunnerClientError("credential_required", 422)
+    router = MediaRunnerRouter(anonymous)
+
+    with pytest.raises(MediaRunnerClientError) as captured:
+        await router.download(
+            "task-1",
+            "https://www.youtube.com/watch?v=owned",
+            object(),  # type: ignore[arg-type]
+            expected_provider_media_id="owned",
+            expected_extractor_key="Youtube",
+            access_context=anonymous.context,
+        )
+
+    assert captured.value.code == "credential_required"
 
 
 async def test_context_batch_resolves_anonymous_and_operator_routes_once() -> None:

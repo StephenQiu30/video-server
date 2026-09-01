@@ -96,6 +96,7 @@ export function job(status: DownloadJob['status'] = 'queued'): DownloadJob {
     attempt: status === 'queued' ? 0 : 1,
     version: status === 'queued' ? 0 : status === 'running' ? 1 : 2,
     error_code: status === 'failed' ? 'download_timeout' : null,
+    error_message: null,
     created_at: '2026-08-06T10:00:00Z',
     updated_at: '2026-08-06T10:00:10Z',
     finished_at: status === 'succeeded' ? '2026-08-06T10:00:10Z' : null,

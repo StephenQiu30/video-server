@@ -133,6 +133,7 @@ class JobSnapshot:
     created_at: datetime
     updated_at: datetime
     source_kind: str = "remote_provider"
+    error_message: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
