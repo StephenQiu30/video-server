@@ -43,6 +43,7 @@ from app.application.downloads.errors import (
     PersistenceIdempotencyConflict,
     PersistenceNotFound,
 )
+from app.application.downloads.file_delivery import download_disposition
 from app.application.downloads.fingerprints import HmacRequestFingerprinter
 from app.application.downloads.history import GetDownloadHistory
 from app.application.downloads.history_models import (
@@ -72,6 +73,7 @@ from app.application.downloads.plans import (
     plan_to_documents,
 )
 from app.application.downloads.ports import (
+    DownloadArtifactStorage,
     DownloadDeletionStorage,
     DownloadRepository,
     MediaRunner,
@@ -83,6 +85,7 @@ from app.application.downloads.ports import (
 from app.application.downloads.queries import (
     CancelDownload,
     GetDownload,
+    GetDownloadArtifact,
     GetInspection,
     IssueDownloadUrl,
 )
@@ -110,6 +113,7 @@ __all__ = [
     "DeleteDownload",
     "DownloadCleanupRef",
     "DownloadCreate",
+    "DownloadArtifactStorage",
     "DownloadDeletionPlan",
     "DownloadDeletionStorage",
     "DownloadPresentationSnapshot",
@@ -124,11 +128,13 @@ __all__ = [
     "DownloadRepository",
     "DownloadUrl",
     "DownloadView",
+    "download_disposition",
     "EncryptedUrl",
     "FormatCreate",
     "FormatSnapshot",
     "FormatView",
     "GetDownload",
+    "GetDownloadArtifact",
     "GetDownloadAnalytics",
     "GetDownloadHistory",
     "GetDownloadThumbnail",

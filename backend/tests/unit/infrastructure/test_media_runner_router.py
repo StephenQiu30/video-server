@@ -6,6 +6,7 @@ import pytest
 from app.application.downloads import (
     MediaInspectionAuthRequired,
     MediaInspectionLinkUnavailable,
+    MediaInspectionMediaUnsupported,
     MediaInspectionRateLimited,
     MediaInspectionSessionExpired,
     MediaInspectionTemporarilyUnavailable,
@@ -93,6 +94,18 @@ async def test_youtube_access_failure_falls_back_to_operator_pool() -> None:
 async def test_youtube_link_unavailable_falls_back_to_operator_pool() -> None:
     anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
     anonymous.inspect_error = MediaInspectionLinkUnavailable()
+    operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED))
+    router = MediaRunnerRouter(anonymous, {"youtube": operator})  # type: ignore[arg-type]
+
+    result = await router.inspect("https://www.youtube.com/watch?v=owned")
+
+    assert result.access_context.access_mode is ProviderAccessMode.OPERATOR_MANAGED
+    assert len(anonymous.inspected) == len(operator.inspected) == 1
+
+
+async def test_youtube_unsupported_source_falls_back() -> None:
+    anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
+    anonymous.inspect_error = MediaInspectionMediaUnsupported()
     operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED))
     router = MediaRunnerRouter(anonymous, {"youtube": operator})  # type: ignore[arg-type]
 

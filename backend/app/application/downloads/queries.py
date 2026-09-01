@@ -6,6 +6,7 @@ from typing import Protocol
 from uuid import UUID
 
 from app.application.downloads.download_models import (
+    ArtifactSnapshot,
     DownloadUrl,
     DownloadView,
     JobSnapshot,
@@ -71,6 +72,30 @@ class GetDownload:
             except PersistenceNotFound:
                 artifact = None
         return download_view(job, artifact, presentation)
+
+
+class GetDownloadArtifact:
+    """Authorize access to a completed artifact before it is streamed."""
+
+    def __init__(
+        self, repository: DownloadRepository, *, now: Callable[[], datetime]
+    ) -> None:
+        self._repository = repository
+        self._now = now
+
+    async def __call__(self, job_id: UUID, owner_hash: str) -> ArtifactSnapshot:
+        job = await _owned_job(self._repository, job_id, owner_hash)
+        if job.status != DownloadStatus.SUCCEEDED.value:
+            raise ApplicationError(ApplicationErrorCode.DOWNLOAD_NOT_READY)
+        try:
+            artifact = await self._repository.get_artifact(
+                job_id, owner_hash, validate_now(self._now())
+            )
+        except PersistenceNotFound as exc:
+            raise ApplicationError(ApplicationErrorCode.NOT_FOUND) from exc
+        if artifact is None or artifact.job_id != job_id:
+            raise ApplicationError(ApplicationErrorCode.NOT_FOUND)
+        return artifact
 
 
 class GetInspection:
@@ -171,7 +196,7 @@ class IssueDownloadUrl:
         owner_hash: str,
         *,
         preview: bool = False,
-        use_local_browser_endpoint: bool = False,
+        use_browser_proxy: bool = False,
     ) -> DownloadUrl:
         job = await _owned_job(self._repository, job_id, owner_hash)
         if job.status != DownloadStatus.SUCCEEDED.value:
@@ -185,13 +210,17 @@ class IssueDownloadUrl:
             raise ApplicationError(ApplicationErrorCode.NOT_FOUND)
         ttl_seconds = int(self._url_ttl.total_seconds())
         title = await self._inspection_title(job, owner_hash, now)
-        url = await self._storage.presigned_download(
-            artifact.object_key,
-            title=title,
-            ttl_seconds=ttl_seconds,
-            inline=preview,
-            use_local_browser_endpoint=use_local_browser_endpoint,
-        )
+        if use_browser_proxy:
+            url = f"/api/downloads/{job_id}/file"
+            if preview:
+                url += "?preview=true"
+        else:
+            url = await self._storage.presigned_download(
+                artifact.object_key,
+                title=title,
+                ttl_seconds=ttl_seconds,
+                inline=preview,
+            )
         return DownloadUrl(url=url, expires_at=now + timedelta(seconds=ttl_seconds))
 
     async def _inspection_title(

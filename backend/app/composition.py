@@ -35,8 +35,10 @@ from app.application.downloads import (
     CancelDownload,
     CreateDownload,
     DeleteDownload,
+    DownloadArtifactStorage,
     GetDownload,
     GetDownloadAnalytics,
+    GetDownloadArtifact,
     GetDownloadHistory,
     GetDownloadThumbnail,
     GetInspection,
@@ -134,6 +136,7 @@ class ApiRuntime:
     provider_catalog_service: ProviderCatalogService
     ai_provider_service: AiProviderService
     storage_file_service: StorageFileService
+    download_storage: DownloadArtifactStorage
 
     async def start(self) -> None:
         await self.realtime_consumer.start()
@@ -404,6 +407,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
             now=clock,
         ),
         get_download=GetDownload(store, now=clock),
+        get_download_artifact=GetDownloadArtifact(store, now=clock),
         get_download_history=GetDownloadHistory(store, now=clock),
         get_download_analytics=GetDownloadAnalytics(store, now=clock),
         cancel_download=cancel_download,
@@ -510,6 +514,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         provider_catalog_service=provider_catalog_service,
         ai_provider_service=ai_provider_service,
         storage_file_service=storage_file_service,
+        download_storage=storage,
     )
 
 

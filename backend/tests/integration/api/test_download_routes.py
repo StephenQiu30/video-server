@@ -32,6 +32,19 @@ TEST_USER = CurrentUser(
 )
 
 
+class FakeDownloadStorage:
+    def iter_download(
+        self,
+        _object_key: str,
+        *,
+        offset: int,
+        length: int,
+        chunk_size: int = 1024 * 1024,
+    ):
+        del chunk_size
+        return iter((b"artifact"[offset : offset + length],))
+
+
 def client(tmp_path: Path) -> tuple[TestClient, dict[str, StubUseCase]]:
     app = create_app(
         Settings(
@@ -184,7 +197,7 @@ def test_download_routes_delegate_with_session_owner(tmp_path: Path) -> None:
     assert issued.json()["url"] == "https://objects.example/token"
     assert stubs["issue_url"].calls[0][1] == {
         "preview": True,
-        "use_local_browser_endpoint": False,
+        "use_browser_proxy": False,
     }
     owners = [
         stubs["create"].calls[0][0][-2],
@@ -196,6 +209,23 @@ def test_download_routes_delegate_with_session_owner(tmp_path: Path) -> None:
     ]
     assert len(set(owners)) == 1
     assert stubs["retry"].calls[0][0][-1] == "retry-1"
+
+
+def test_download_file_route_streams_an_owned_range(tmp_path: Path) -> None:
+    test_client, _ = client(tmp_path)
+    test_client.app.state.download_storage = FakeDownloadStorage()
+
+    with test_client:
+        response = test_client.get(
+            f"/api/downloads/{JOB_ID}/file",
+            headers={"Range": "bytes=2-5"},
+        )
+
+    assert response.status_code == 206
+    assert response.content == b"tifa"
+    assert response.headers["content-range"] == "bytes 2-5/8"
+    assert response.headers["content-length"] == "4"
+    assert response.headers["accept-ranges"] == "bytes"
 
 
 def test_download_history_route_supports_filters_and_returns_public_fields(

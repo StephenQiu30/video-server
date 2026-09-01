@@ -6,6 +6,7 @@ from uuid import UUID
 from app.api.dependencies import DownloadUseCases, SourceDiscoveryUseCases
 from app.application.downloads import (
     ApplicationError,
+    ArtifactSnapshot,
     DownloadAnalyticsDailyView,
     DownloadAnalyticsSourceView,
     DownloadAnalyticsSummaryView,
@@ -101,6 +102,22 @@ def download_view(status: DownloadStatus = DownloadStatus.QUEUED) -> DownloadVie
         finished_at=NOW
         if status in {DownloadStatus.SUCCEEDED, DownloadStatus.CANCELLED}
         else None,
+    )
+
+
+def artifact_view() -> ArtifactSnapshot:
+    return ArtifactSnapshot(
+        id=UUID("66666666-6666-4666-8666-666666666666"),
+        job_id=JOB_ID,
+        attempt=1,
+        bucket="video-artifacts",
+        object_key=f"downloads/{JOB_ID}/1/video.mp4",
+        sha256="c" * 64,
+        size_bytes=8,
+        duration_ms=30_000,
+        container="mp4",
+        content_type="video/mp4",
+        media_metadata={},
     )
 
 
@@ -224,6 +241,7 @@ def use_cases() -> tuple[DownloadUseCases, dict[str, StubUseCase]]:
         "create": StubUseCase(download_view()),
         "delete": StubUseCase(None),
         "get": StubUseCase(download_view()),
+        "get_artifact": StubUseCase(artifact_view()),
         "cancel": StubUseCase(download_view(DownloadStatus.CANCELLED)),
         "retry": StubUseCase(download_view()),
         "issue_url": StubUseCase(
@@ -244,6 +262,7 @@ def use_cases() -> tuple[DownloadUseCases, dict[str, StubUseCase]]:
         create_download=stubs["create"],
         delete_download=stubs["delete"],
         get_download=stubs["get"],
+        get_download_artifact=stubs["get_artifact"],
         cancel_download=stubs["cancel"],
         retry_download=stubs["retry"],
         issue_download_url=stubs["issue_url"],

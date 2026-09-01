@@ -480,9 +480,9 @@ async def test_download_url_passes_inspection_title_to_storage() -> None:
         True,
     )
 
-    await issue(created.id, OWNER, use_local_browser_endpoint=True)
+    proxied = await issue(created.id, OWNER, use_browser_proxy=True)
 
-    assert storage.local_browser_signing[-1] is True
+    assert proxied.url == f"/api/downloads/{created.id}/file"
 
 
 @pytest.mark.asyncio

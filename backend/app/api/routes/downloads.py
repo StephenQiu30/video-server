@@ -3,12 +3,14 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request, Response, status
+from fastapi import APIRouter, Depends, Header, Query, Request, Response, status
+from fastapi.responses import StreamingResponse
 
 from app.api.auth_dependencies import get_current_user
 from app.api.dependencies import (
     DownloadUseCases,
     IdempotencyKey,
+    get_download_storage,
     get_download_use_cases,
     get_runtime_settings,
 )
@@ -19,14 +21,19 @@ from app.api.schemas.downloads import (
     DownloadUrlResponse,
 )
 from app.api.schemas.history import DownloadHistoryResponse
-from app.api.upload_signing import use_local_browser_download_endpoint
+from app.api.upload_signing import use_browser_download_proxy
 from app.application.auth import CurrentUser
-from app.application.downloads import ApplicationError
+from app.application.downloads import (
+    ApplicationError,
+    DownloadArtifactStorage,
+    download_disposition,
+)
 from app.domain.downloads import DownloadStatus
 
 router = APIRouter(prefix="/downloads", tags=["downloads"])
 User = Annotated[CurrentUser, Depends(get_current_user)]
 UseCases = Annotated[DownloadUseCases, Depends(get_download_use_cases)]
+DownloadStorage = Annotated[DownloadArtifactStorage, Depends(get_download_storage)]
 
 
 @router.post(
@@ -143,6 +150,66 @@ async def get_download_thumbnail(
 
 
 @router.get(
+    "/{job_id}/file",
+    operation_id="downloadFile",
+    response_class=StreamingResponse,
+    summary="读取已完成的视频文件",
+)
+async def download_file(
+    job_id: UUID,
+    user: User,
+    use_cases: UseCases,
+    storage: DownloadStorage,
+    preview: bool = False,
+    range_header: Annotated[str | None, Header(alias="Range")] = None,
+) -> Response:
+    """Stream an owned artifact through the authenticated application origin."""
+    try:
+        artifact = await use_cases.get_download_artifact(job_id, user.owner_hash)
+        download = await use_cases.get_download(job_id, user.owner_hash)
+    except ApplicationError as exc:
+        raise application_error(exc) from exc
+
+    selected_range = _parse_range(range_header, artifact.size_bytes)
+    if range_header is not None and selected_range is None:
+        return Response(
+            status_code=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE,
+            headers={"Content-Range": f"bytes */{artifact.size_bytes}"},
+        )
+
+    if selected_range is None:
+        start, end = 0, artifact.size_bytes - 1
+        response_status = status.HTTP_200_OK
+    else:
+        start, end = selected_range
+        response_status = status.HTTP_206_PARTIAL_CONTENT
+    length = end - start + 1
+    headers = {
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "private, no-store",
+        "Content-Disposition": (
+            "inline"
+            if preview
+            else download_disposition(artifact.object_key, download.title)
+        ),
+        "Content-Length": str(length),
+        "ETag": f'"{artifact.sha256}"',
+    }
+    if selected_range is not None:
+        headers["Content-Range"] = f"bytes {start}-{end}/{artifact.size_bytes}"
+    return StreamingResponse(
+        storage.iter_download(
+            artifact.object_key,
+            offset=start,
+            length=length,
+        ),
+        status_code=response_status,
+        headers=headers,
+        media_type=artifact.content_type,
+    )
+
+
+@router.get(
     "/{job_id}",
     operation_id="getDownload",
     response_model=DownloadResponse,
@@ -226,10 +293,37 @@ async def issue_download_url(
             job_id,
             user.owner_hash,
             preview=preview,
-            use_local_browser_endpoint=use_local_browser_download_endpoint(
+            use_browser_proxy=use_browser_download_proxy(
                 request, get_runtime_settings(request)
             ),
         )
     except ApplicationError as exc:
         raise application_error(exc) from exc
     return DownloadUrlResponse.from_view(view)
+
+
+def _parse_range(
+    value: str | None,
+    size: int,
+) -> tuple[int, int] | None:
+    if value is None:
+        return None
+    if size < 1 or not value.startswith("bytes=") or "," in value:
+        return None
+    start_text, separator, end_text = value.removeprefix("bytes=").partition("-")
+    if not separator:
+        return None
+    try:
+        if not start_text:
+            suffix_length = int(end_text)
+            if suffix_length < 1:
+                return None
+            start = max(0, size - suffix_length)
+            return start, size - 1
+        start = int(start_text)
+        end = size - 1 if not end_text else int(end_text)
+    except ValueError:
+        return None
+    if start < 0 or start >= size or end < start:
+        return None
+    return start, min(end, size - 1)

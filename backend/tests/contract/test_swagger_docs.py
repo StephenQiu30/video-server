@@ -86,6 +86,7 @@ def test_swagger_ui_and_openapi_contract_are_available(tmp_path: Path) -> None:
         "cancelDocumentImport",
         "deleteDocument",
         "getDownload",
+        "downloadFile",
         "getDownloadHistory",
         "getDownloadThumbnail",
         "cancelDownload",

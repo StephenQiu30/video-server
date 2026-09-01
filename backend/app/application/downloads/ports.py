@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import datetime
 from typing import Protocol
 from uuid import UUID
@@ -132,6 +133,19 @@ class ObjectStorage(Protocol):
         inline: bool = False,
         use_local_browser_endpoint: bool = False,
     ) -> str: ...
+
+
+class DownloadArtifactStorage(Protocol):
+    """Read completed artifacts without exposing a storage endpoint."""
+
+    def iter_download(
+        self,
+        object_key: str,
+        *,
+        offset: int,
+        length: int,
+        chunk_size: int = 1024 * 1024,
+    ) -> Iterator[bytes]: ...
 
 
 class DownloadDeletionStorage(Protocol):

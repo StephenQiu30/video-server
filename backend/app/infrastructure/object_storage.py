@@ -4,17 +4,18 @@ from __future__ import annotations
 
 import asyncio
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from io import BytesIO
 from pathlib import Path, PurePosixPath
 from typing import Protocol
-from urllib.parse import quote
 
 from minio import Minio
 from minio.commonconfig import REPLACE, CopySource
 from minio.datatypes import Part
 
+from app.application.downloads import download_disposition
 from app.application.imports.errors import (
     ImportObjectStorageError,
     MultipartUploadNotFound,
@@ -457,6 +458,51 @@ class MinioObjectStorage:
             str(target),
         )
 
+    def iter_download(
+        self,
+        object_key: str,
+        *,
+        offset: int = 0,
+        length: int | None = None,
+        chunk_size: int = 1024 * 1024,
+    ) -> Iterator[bytes]:
+        """Stream a private artifact without exposing the storage endpoint."""
+        _validate_key(object_key)
+        if offset < 0 or (length is not None and length < 1):
+            raise ValueError("download range is invalid")
+        if chunk_size < 1:
+            raise ValueError("download chunk size is invalid")
+        if length is None:
+            response = (
+                self._private.get_object(self._bucket, object_key, offset=offset)
+                if offset
+                else self._private.get_object(self._bucket, object_key)
+            )
+        else:
+            response = self._private.get_object(
+                self._bucket,
+                object_key,
+                offset=offset,
+                length=length,
+            )
+        remaining = length
+        try:
+            while True:
+                read_size = chunk_size if remaining is None else min(
+                    chunk_size, remaining
+                )
+                chunk = response.read(read_size)
+                if not chunk:
+                    break
+                yield chunk
+                if remaining is not None:
+                    remaining -= len(chunk)
+                    if remaining <= 0:
+                        break
+        finally:
+            response.close()
+            response.release_conn()
+
     async def presigned_download(
         self,
         object_key: str,
@@ -477,7 +523,7 @@ class MinioObjectStorage:
             expires=timedelta(seconds=ttl_seconds),
             response_headers={
                 "response-content-disposition": (
-                    "inline" if inline else _download_disposition(object_key, title)
+                    "inline" if inline else download_disposition(object_key, title)
                 )
             },
         )
@@ -566,34 +612,3 @@ def _normalize_multipart_parts(
         seen.add(item.part_number)
         normalized.append(Part(item.part_number, etag.lower()))
     return sorted(normalized, key=lambda item: item.part_number)
-
-
-def _download_filename(object_key: str) -> str:
-    suffix = PurePosixPath(object_key).suffix.casefold()
-    return f"video{suffix}" if suffix in {".mp4", ".webm"} else "download"
-
-
-def _download_disposition(object_key: str, title: str | None) -> str:
-    """Build an RFC 6266 attachment disposition using the video title.
-
-    Non-ASCII titles use RFC 5987 ``filename*=UTF-8''...`` encoding so browsers
-    save the file with a readable name; an ASCII ``filename=`` fallback is always
-    included so legacy agents still get a name.
-    """
-    fallback = _download_filename(object_key)
-    clean_title = _sanitize_filename(title) if title else ""
-    if not clean_title:
-        return f'attachment; filename="{fallback}"'
-    extension = PurePosixPath(object_key).suffix
-    encoded_name = f"{clean_title}{extension}"
-    if encoded_name.isascii():
-        return f'attachment; filename="{encoded_name}"'
-    return (
-        f'attachment; filename="{fallback}"; '
-        f"filename*=UTF-8''{quote(encoded_name, safe='')}"
-    )
-
-
-def _sanitize_filename(title: str) -> str:
-    value = re.sub(r'[\\/:*?"<>|\x00-\x1f\x7f]', "", title).strip()
-    return value[:128].rstrip(".") if value else ""

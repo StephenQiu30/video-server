@@ -26,8 +26,10 @@ from app.application.downloads import (
     CancelDownload,
     CreateDownload,
     DeleteDownload,
+    DownloadArtifactStorage,
     GetDownload,
     GetDownloadAnalytics,
+    GetDownloadArtifact,
     GetDownloadHistory,
     GetDownloadThumbnail,
     GetInspection,
@@ -71,6 +73,18 @@ def get_runtime_settings(request: Request) -> Settings:
     return cast(Settings, request.app.state.settings)
 
 
+def get_download_storage(request: Request) -> DownloadArtifactStorage:
+    storage = getattr(request.app.state, "download_storage", None)
+    if storage is None:
+        raise AppError(
+            status=503,
+            code="service_unavailable",
+            title="Service unavailable",
+            detail="The download storage service is not available.",
+        )
+    return cast(DownloadArtifactStorage, storage)
+
+
 @dataclass(frozen=True, slots=True)
 class DownloadUseCases:
     inspect_media: InspectMedia
@@ -81,6 +95,7 @@ class DownloadUseCases:
     create_download: CreateDownload
     delete_download: DeleteDownload
     get_download: GetDownload
+    get_download_artifact: GetDownloadArtifact
     get_download_history: GetDownloadHistory
     get_download_analytics: GetDownloadAnalytics
     cancel_download: CancelDownload

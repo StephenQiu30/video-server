@@ -11,6 +11,7 @@ from app.application.downloads.errors import (
     MediaInspectionAuthRequired,
     MediaInspectionFormatUnavailable,
     MediaInspectionLinkUnavailable,
+    MediaInspectionMediaUnsupported,
     MediaInspectionSessionExpired,
     MediaInspectionTemporarilyUnavailable,
     MediaInspectionVerificationFailed,
@@ -40,6 +41,7 @@ class InspectionFailurePolicy:
         MediaInspectionAuthRequired,
         MediaInspectionFormatUnavailable,
         MediaInspectionLinkUnavailable,
+        MediaInspectionMediaUnsupported,
         MediaInspectionTemporarilyUnavailable,
         MediaInspectionVerificationFailed,
     )

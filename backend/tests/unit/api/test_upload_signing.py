@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.api.upload_signing import (
+    use_browser_download_proxy,
     use_local_browser_download_endpoint,
     use_local_browser_upload_endpoint,
 )
@@ -108,6 +109,21 @@ def test_download_signing_keeps_public_endpoint_for_remote_or_test_clients() -> 
         )
         is False
     )
+
+
+def test_web_download_proxy_is_available_for_any_authenticated_web_origin() -> None:
+    settings = Settings.model_construct(app_env="production")
+
+    assert use_browser_download_proxy(
+        _request(
+            {
+                "x-framefetch-download-client": "local-web",
+                "origin": "https://stephenqius-macbook-pro.tailda4efa.ts.net",
+            }
+        ),
+        settings,
+    ) is True
+    assert use_browser_download_proxy(_request({}), settings) is False
 
 
 def _request(headers: dict[str, str]) -> Request:

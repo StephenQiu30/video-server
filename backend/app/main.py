@@ -79,6 +79,7 @@ def create_app(
         )
         application.state.ai_provider_service = configured_runtime.ai_provider_service
         application.state.storage_file_service = configured_runtime.storage_file_service
+        application.state.download_storage = configured_runtime.download_storage
     application.include_router(router)
     application.middleware("http")(
         lambda request, call_next: request_guard(

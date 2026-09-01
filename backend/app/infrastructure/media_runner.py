@@ -221,6 +221,12 @@ class MediaRunnerHttpClient:
                 raise MediaInspectionLinkUnavailable from exc
             if exc.code == "provider_media_unsupported":
                 raise MediaInspectionMediaUnsupported from exc
+            if exc.code == "unsupported_source":
+                # Anonymous YouTube responses can be structurally incomplete
+                # when the provider requires a session. Let the inspection
+                # pipeline try the configured operator runner before exposing
+                # this as a terminal media-type diagnosis.
+                raise MediaInspectionMediaUnsupported from exc
             if exc.code == "format_unavailable":
                 raise MediaInspectionFormatUnavailable from exc
             if exc.code == "provider_unsupported":

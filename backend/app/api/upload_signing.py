@@ -45,6 +45,13 @@ def use_local_browser_download_endpoint(request: Request, settings: Settings) ->
     return _is_loopback_web_origin(source)
 
 
+def use_browser_download_proxy(request: Request, settings: Settings) -> bool:
+    """Use the authenticated same-origin file stream for the Web client."""
+    return settings.app_env in {"development", "production"} and (
+        request.headers.get(LOCAL_WEB_DOWNLOAD_HEADER) == LOCAL_WEB_DOWNLOAD_VALUE
+    )
+
+
 def _is_loopback_web_origin(value: str | None) -> bool:
     if value is None:
         return False
