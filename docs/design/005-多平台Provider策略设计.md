@@ -6,7 +6,7 @@
 - 前置调研：`docs/research/003-多平台下载会话与GitHub适配调研.md`
 - 实现状态：Phase 1 已落地版本化 Profile、非 Secret 访问上下文、匿名/YouTube 运维 Runner 路由、操作级 Cookie jar、权益防火墙、服务端托管 POT sidecar、稳定错误、Provider 探针结果表/定时执行器/动态状态聚合、`GET /api/providers` 与前端状态页。YouTube 已停止 yt-dlp 与 Runner 的同出口立即重试放大；授权目标的真实 Cookie/POT canary、完整视频 Agent E2E、账号权益漂移自动停用，以及遵守 `Retry-After` 的跨层总预算/cooldown 仍是生产发布门禁；Phase 2 的用户 Credential Broker/Vault 与 gallery-dl 尚未实现。
 
-> 当前实现增量（2026-08-30）：Runner 固定 yt-dlp package `2026.8.19`（CLI 输出 `2026.08.19`）/ commit `3a08beaf031ab68f966401ead017ac81fe8486cf`，YouTube Profile 为 `youtube-v5`，匿名公开链路由服务端自动使用 `mweb` + EJS + bgutil POT Provider `1.3.2`。Sidecar 锁定为 `brainicism/bgutil-ytdlp-pot-provider:1.3.2@sha256:9a96e6385ce1928da87dea07b1cab0413d2cf8c07a3b8a8bd419f53df2c3843c`；Runner 与 sidecar 只接 internal 网络，只有 Squid 接入非 internal 的 `proxy_uplink_net`。默认 HTTP(S) proxy 是 Squid；配置 YouTube 专用代理时，部署方必须把受管双网卡网关加入 internal `youtube_pot_net`，映射只能指向它的内部服务地址，bgutil 与 yt-dlp 使用同一实际 proxy。用户无需上传 Cookie、PO Token 或 yt-dlp 参数；生产 Compose 不读取个人浏览器会话。macOS 单机模式可显式安装 `launchd QueueDirectories` 按需助手：Chrome Cookies 数据库的 SQL 查询只选择 YouTube 域，单次读取使用 15 秒硬超时的独立进程组，超时或取消时整组回收；它只在 YouTube Operator 操作开始时运行，排空后退出且不启动 Chrome。该助手不是平行应用入口，项目仍仅通过根 Docker Compose 运行。YouTube Profile 只执行一次 inspection，三个 yt-dlp retry scope 均为 `0`；429 和出口 challenge 不在 Runner 内立即重试，warning 保留用于稳定分类。POT 只解决 Player/GVS 请求证明，不能修复已被 `LOGIN_REQUIRED` / bot challenge 的出口 IP；YouTube 在面向 C 端的生产环境恢复 `verified` 前，部署方必须配置可持续、合规、由自身运维的 YouTube 专用出口并通过授权样本 media canary，不使用公共代理、WARP/Tor 或公共解析服务作为可用性基础。
+> 当前实现增量（2026-08-30）：Runner 固定 yt-dlp package `2026.8.19`（CLI 输出 `2026.08.19`）/ commit `3a08beaf031ab68f966401ead017ac81fe8486cf`，YouTube Profile 为 `youtube-v5`，匿名公开链路由服务端自动使用 `mweb` + EJS + bgutil POT Provider `1.3.2`。Sidecar 锁定为 `brainicism/bgutil-ytdlp-pot-provider:1.3.2@sha256:9a96e6385ce1928da87dea07b1cab0413d2cf8c07a3b8a8bd419f53df2c3843c`；Runner 与 sidecar 只接 internal 网络，只有 Squid 接入非 internal 的 `proxy_uplink_net`。默认 HTTP(S) proxy 是 Squid；配置 YouTube 专用代理时，部署方必须把受管双网卡网关加入 internal `youtube_pot_net`，映射只能指向它的内部服务地址，bgutil 与 yt-dlp 使用同一实际 proxy。用户无需上传 Cookie、PO Token 或 yt-dlp 参数；生产 Compose 默认不读取个人浏览器会话，但获批准的单机 production Compose 可通过与本机相同的 `launchd QueueDirectories` 按需助手读取 Chrome Default。Chrome Cookies 数据库的 SQL 查询只选择 YouTube 域，单次读取使用 15 秒硬超时的独立进程组，超时或取消时整组回收；它只在 YouTube Operator 操作开始时运行，排空后退出且不启动 Chrome。该助手不是平行应用入口，项目仍仅通过根 Docker Compose 运行。YouTube Profile 只执行一次 inspection，三个 yt-dlp retry scope 均为 `0`；429 和出口 challenge 不在 Runner 内立即重试，warning 保留用于稳定分类。POT 只解决 Player/GVS 请求证明，不能修复已被 `LOGIN_REQUIRED` / bot challenge 的出口 IP；YouTube 在面向 C 端的生产环境恢复 `verified` 前，部署方必须配置可持续、合规、由自身运维的 YouTube 专用出口并通过授权样本 media canary，不使用公共代理、WARP/Tor 或公共解析服务作为可用性基础。
 
 ## 1. 目标
 
@@ -248,7 +248,7 @@ pending → canary → active → retired
 
 ### 8.2 macOS 单机按需来源
 
-- 只有当前登录的 macOS 用户显式安装助手并启用 YouTube Operator 后，解析/下载操作才可触发 Chrome Default 来源；生产多用户服务不使用该来源。
+- 只有当前登录的 macOS 用户显式安装助手并启用 YouTube Operator 后，解析/下载操作才可触发 Chrome Default 来源；生产多用户服务默认不使用该来源，但获批准的单机 production Compose 可以复用该宿主机来源。
 - Chrome Cookies 数据库的 SQL 查询在选择阶段就限制为 `youtube.com` / `youtube-nocookie.com`，只返回并解密中选行；非 YouTube 域 Cookie 不进入 helper 的查询结果、输出文件或日志。
 - 单次读取在独立进程组中执行，持有 15 秒硬超时；成功后立即退出，超时、取消或异常时终止并回收整个进程组。helper 不启动、操作或持有 Chrome，不使用定时轮询或常驻端口。
 - `chrome-default-v1` 表示动态本机来源协议，不是 Cookie 原文哈希或内容 cohort。其平台状态历史只能证明该来源在相同非敏感上下文近期完成过制品，不证明当前 Cookie 未轮换或仍可用，不能单独将 `access_required` 提升为 `verified`。

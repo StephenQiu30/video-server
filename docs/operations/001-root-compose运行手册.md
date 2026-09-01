@@ -61,7 +61,8 @@ docker compose --env-file .env -f docker-compose.yml up -d --build --force-recre
 有 15 秒硬超时，超时或取消会回收整个进程组；请求排空后 helper 退出，不会
 打开或留下 Chrome 后台进程。该 helper 只是按需的本机凭据适配器，不是平行应用启动
 方式；项目仍只通过上述 Docker Compose 命令运行。生产多用户部署不安装该 helper，也不
-依赖任何个人 Chrome。不要使用不会应用代码、镜像或配置变化的
+依赖任何个人 Chrome；获批准的单机 production Compose 可以按 YouTube 手册显式启用它。
+不要使用不会应用代码、镜像或配置变化的
 `docker compose restart`。
 
 访问地址：

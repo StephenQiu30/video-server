@@ -6,7 +6,7 @@
 - 关联 Design：`docs/design/005-多平台Provider策略设计.md`
 - 关联 Acceptance：`docs/acceptance/005-多平台Provider与会话适配验收.md`
 
-本文只用于项目所有者有权处理的公开、非 DRM 内容。默认 C 端链路是服务端匿名解析：固定 yt-dlp package `2026.8.19`（`yt-dlp --version` 输出 `2026.08.19`）/ commit `3a08beaf031ab68f966401ead017ac81fe8486cf`，使用 `youtube-v5` 的 `mweb` + EJS + bgutil POT Provider `1.3.2`，不要求用户手工提供 Cookie 或 PO Token。macOS 单机部署可显式安装按需 Cookie 助手；匿名链路遇到平台验证后，受控 Runner 才自动同步 Chrome Default 中仅限 YouTube 域的会话。
+本文只用于项目所有者有权处理的公开、非 DRM 内容。默认 C 端链路是服务端匿名解析：固定 yt-dlp package `2026.8.19`（`yt-dlp --version` 输出 `2026.08.19`）/ commit `3a08beaf031ab68f966401ead017ac81fe8486cf`，使用 `youtube-v5` 的 `mweb` + EJS + bgutil POT Provider `1.3.2`，不要求用户手工提供 Cookie 或 PO Token。macOS 单机部署（包括在同一台 macOS 宿主机运行的 production Compose）可显式安装按需 Cookie 助手；匿名链路遇到平台验证后，受控 Runner 才自动同步 Chrome Default 中仅限 YouTube 域的会话。
 
 Cookie 等同账号会话密码，可能被平台轮换，也可能导致账号限制。下文 Operator Secret 流程只适用于部署方明确批准的会话场景，不是公开 YouTube 的默认依赖，更不是 IP bot challenge 的修复手段。不得使用主 Google 账号或开发者/用户个人 Cookie，不得把 Cookie 粘贴到普通 API、Issue、日志、命令参数或验收文档。
 
@@ -17,7 +17,7 @@ Cookie 等同账号会话密码，可能被平台轮换，也可能导致账号�
 - Compose 中 `youtube-pot-provider` 锁定为 `brainicism/bgutil-ytdlp-pot-provider:1.3.2@sha256:9a96e6385ce1928da87dea07b1cab0413d2cf8c07a3b8a8bd419f53df2c3843c`，不使用浮动 tag。
 - Runner readiness 校验 yt-dlp package 版本/锁定源 commit 和 bgutil 插件版本。Sidecar 不参与 API/公共 Runner readiness，也不作为 Compose `service_healthy` wait gate。容器 PID1 是版本库托管的 supervisor：按精确 `1.3.2` 校验 `/ping`，连续 3 次失败后才重启上游子进程；上游子进程 stdout/stderr 均设为 `ignore`，不让 PO Token 或绑定标识进入持久容器日志。每个 YouTube yt-dlp 子进程启动前还执行独立的 2 秒语义预检，只接受无重定向的 HTTP 200、JSON object 和精确 `1.3.2`；失败进程结束后再检查一次以关闭运行中断裂竞态。失败只返回 `pot_provider_unavailable` 并降级 YouTube，不改变公共 readiness 或其他平台。
 - 生产 `RUNNER_PROVIDER_EGRESS_PROXIES` 显式为 `youtube` 配置部署方自身运维、长期稳定且合规的内部出口网关。未配置时实际使用共享 `default` egress，不得声称 YouTube 已具备 C 端稳定可用性。
-- 不使用公共代理、WARP/Tor 或公共 cobalt/Invidious 作为故障降级链路。生产 C 端部署不依赖个人 Chrome；本机 Chrome 助手只用于已登录用户明确安装的单机受控线路。
+- 不使用公共代理、WARP/Tor 或公共 cobalt/Invidious 作为故障降级链路。多用户生产服务默认不依赖个人 Chrome；如果 production Compose 明确运行在已授权用户的 macOS 单机上，可以按下文启用同一个按需助手，并将同步目录与 Secret 目录配置为同一宿主机路径。
 
 只有显式启用 Operator Profile 时，专用账号才需满足以下条件，任一项未知都不得启用：
 
@@ -28,7 +28,7 @@ Cookie 等同账号会话密码，可能被平台轮换，也可能导致账号�
 - 已记录 yt-dlp commit、EJS、POT Provider、Profile version 和脱敏 egress affinity，不记录账号、Cookie、完整 URL 或出口地址。
 
 项目不会借助 Codex/AI Worker 获取 YouTube Cookie，也不会启动 Chrome。默认匿名链路和
-生产 Compose 不读取浏览器 Profile；macOS 本机模式只有在用户安装按需助手并启用
+未显式配置的生产 Compose 不读取浏览器 Profile；macOS 本机模式或获批准的单机生产模式，只有在用户安装按需助手并启用
 YouTube Operator 后，才由解析/下载请求触发固定的 Chrome Default 读取。Chrome
 Cookies 数据库在 SQL 查询阶段就只选择 `youtube.com` 和
 `youtube-nocookie.com` 域的行，不把其他域的行返回到查询结果后再过滤；解密和最终
@@ -56,7 +56,7 @@ helper 进程；解析或下载进入 YouTube Operator 时，Runner 写入一个
 强杀后下一次请求也会先清理该固定 staging。队列中的畸形目录只会被常数时间原子移出
 `QueueDirectories` 监视范围，不递归遍历不可信内容，因此不会让 launchd 持续重启。
 
-本机 `.env` 配置为：
+本机 `.env`（或单机 production 的 `.env.prod`）配置为：
 
 ```dotenv
 COMPOSE_PROFILES=youtube-operator
@@ -69,7 +69,7 @@ YOUTUBE_OPERATOR_ACCOUNT_BASELINE_ATTESTED=true
 ```
 
 空值会使用当前 macOS 用户的 `~/Library/Caches/FrameFetch/youtube-cookie-sync`；该位置
-可被 `launchd` 可靠监视，且不受桌面目录的 FSEvents 隔离影响。随后仍使用项目唯一的
+可被 `launchd` 可靠监视，且不受桌面目录的 FSEvents 隔离影响。随后仍使用对应的根
 Docker 启动命令，不运行宿主应用脚本：
 
 ```bash
@@ -107,7 +107,7 @@ uv run python -m app.runner.youtube_cookie_agent uninstall
 
 ## 4. 生产配置与启动
 
-默认 `.env` 保持：
+默认 `.env` 或 `.env.prod` 保持：
 
 ```dotenv
 RUNNER_OPERATOR_BASE_URLS={}
@@ -125,6 +125,16 @@ YOUTUBE_COOKIE_SECRET_DIR=./.provider-secrets/youtube
 YOUTUBE_COOKIE_VERSION=yt-20260810-01
 RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS={}
 YOUTUBE_OPERATOR_ACCOUNT_BASELINE_ATTESTED=true
+```
+
+如果 production Compose 运行在安装了助手的授权 macOS 宿主机上，再增加以下配置；
+`YOUTUBE_COOKIE_SECRET_DIR` 必须与助手安装时使用的宿主机 Secret 目录一致，通常是
+项目的 `.provider-secrets/youtube`：
+
+```dotenv
+YOUTUBE_COOKIE_SYNC_DIR=
+YOUTUBE_COOKIE_SECRET_DIR=./.provider-secrets/youtube
+YOUTUBE_COOKIE_VERSION=chrome-default-v1
 ```
 
 以上 Operator 配置不替代 YouTube 专用出口。面向 C 端的生产部署还需把由部署方管理、在 Runner 网络中可达的无 URL 内嵌凭据网关写入映射，例如：
@@ -192,7 +202,7 @@ docker compose exec -T youtube-pot-provider node -e \
 
 | 稳定类别 | 含义 | 处理 |
 | --- | --- | --- |
-| `provider_auth_required` / `provider_session_expired` | 会话缺失、过期或撤销 | 停止重试；部署方导入新 version 后重新 canary |
+| `provider_auth_required` / `provider_session_expired` | 会话缺失、过期或撤销 | 停止重试；单机 Chrome 模式先确认 Chrome 登录态，静态 Secret 模式由部署方导入新 version 后重新 canary |
 | `provider_session_unavailable` | 本机按需同步未安装、读取异常或超过 15 秒 | 确认助手状态和 Chrome Default 登录态；超时后进程组已回收，不在同一操作内放大重试 |
 | `provider_verification_failed` | POT、EJS、签名或出口验证 | 先检查固定版本、supervisor 固定故障事件和 `/ping`；如仍为 `LOGIN_REQUIRED` / bot challenge，则治理专用出口，不反复更换 Cookie |
 | `provider_rate_limited` | Provider/会话/出口限流 | 等待并降低并发；当前实现尚未完成统一 `Retry-After` 预算 |

@@ -83,11 +83,7 @@ def test_frontend_compose_receives_only_public_runtime_configuration() -> None:
         api = document["services"]["api"]
 
         assert "env_file" not in frontend
-        local_only = (
-            {"MINIO_LOCAL_BROWSER_ENDPOINT", "MINIO_LOCAL_BROWSER_SECURE"}
-            if path == COMPOSE_PATH
-            else set()
-        )
+        local_only = {"MINIO_LOCAL_BROWSER_ENDPOINT", "MINIO_LOCAL_BROWSER_SECURE"}
         assert set(frontend["environment"]) == expected | local_only
         assert frontend["networks"]["app_net"]["ipv4_address"] == "10.251.0.10"
         assert "10.251.0.10/32" in api["environment"]["TRUSTED_PROXY_CIDRS"]
@@ -451,26 +447,31 @@ def test_provider_session_runners_are_physically_isolated_by_provider() -> None:
             )
 
 
-def test_local_youtube_operator_owns_the_host_cookie_sync_mount() -> None:
-    compose = COMPOSE_PATH.read_text(encoding="utf-8")
-    production = PROD_COMPOSE_PATH.read_text(encoding="utf-8")
-    youtube_operator = _service_block(compose, "youtube-operator-runner")
+def test_youtube_operator_mount_is_shared_by_compose_modes() -> None:
+    compose_documents = (
+        COMPOSE_PATH.read_text(encoding="utf-8"),
+        PROD_COMPOSE_PATH.read_text(encoding="utf-8"),
+    )
 
-    assert "RUNNER_YOUTUBE_COOKIE_SYNC_ROOT: /run/youtube-cookie-sync" in (
-        youtube_operator
-    )
-    assert (
-        'source: "${YOUTUBE_COOKIE_SYNC_DIR:-${HOME}/Library/Caches/'
-        'FrameFetch/youtube-cookie-sync}"' in youtube_operator
-    )
-    assert "target: /run/youtube-cookie-sync" in youtube_operator
-    assert "read_only: false" in youtube_operator
-    assert "create_host_path: false" in youtube_operator
-    assert compose.count("RUNNER_YOUTUBE_COOKIE_SYNC_ROOT") == 1
-    assert compose.count("target: /run/youtube-cookie-sync") == 1
-    assert "RUNNER_YOUTUBE_COOKIE_SYNC_ROOT" not in production
-    assert "YOUTUBE_COOKIE_SYNC_DIR" not in production
+    for document in compose_documents:
+        youtube_operator = _service_block(document, "youtube-operator-runner")
+        assert "RUNNER_YOUTUBE_COOKIE_SYNC_ROOT: /run/youtube-cookie-sync" in (
+            youtube_operator
+        )
+        assert (
+            'source: "${YOUTUBE_COOKIE_SYNC_DIR:-${HOME}/Library/Caches/'
+            'FrameFetch/youtube-cookie-sync}"' in youtube_operator
+        )
+        assert "target: /run/youtube-cookie-sync" in youtube_operator
+        assert "read_only: false" in youtube_operator
+        assert "create_host_path: false" in youtube_operator
+        assert document.count("RUNNER_YOUTUBE_COOKIE_SYNC_ROOT") == 1
+        assert document.count("target: /run/youtube-cookie-sync") == 1
+
     assert "YOUTUBE_COOKIE_SYNC_DIR=\n" in ENV_EXAMPLE_PATH.read_text(encoding="utf-8")
+    assert "YOUTUBE_COOKIE_SYNC_DIR=\n" in PROD_ENV_EXAMPLE_PATH.read_text(
+        encoding="utf-8"
+    )
     assert _env_value(ENV_EXAMPLE_PATH, "YOUTUBE_COOKIE_VERSION") == (
         "chrome-default-v1"
     )
