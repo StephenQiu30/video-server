@@ -1,5 +1,35 @@
 # 方案 3 无边框重设计 QA
 
+## 2026-09-01 全路由 BasicLayout 统一
+
+- source visual truth：用户提供的欢迎页 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-2474a2bb-698e-49bd-8894-06a9eb528287.png` 与登录页 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-b3b43f17-5391-4389-baef-53deae0cac0a.png`，原始尺寸均为 2582×1740 px。来源要求不是只让两个页面视觉接近，而是让全部路由消费同一个 Header、main、Footer 与响应式 gutter 标准。
+- implementation evidence：桌面欢迎页与登录页分别为 `/Users/stephenqiu/.codex/visualizations/2026/09/01/basic-layout-unification/home-desktop.png` 和 `/Users/stephenqiu/.codex/visualizations/2026/09/01/basic-layout-unification/login-desktop.png`；390×844 验证为 `/Users/stephenqiu/.codex/visualizations/2026/09/01/basic-layout-unification/home-mobile.png` 与 `/Users/stephenqiu/.codex/visualizations/2026/09/01/basic-layout-unification/login-mobile.png`。同输入比较图为 `/Users/stephenqiu/.codex/visualizations/2026/09/01/basic-layout-unification/source-vs-basic-layout.png`，上排是归一化来源、下排是统一布局后的实现。
+- viewport and normalization：桌面浏览器使用 1291×749 CSS 视口；常驻滚动条后页面截图为 1276×740 px，`deviceScaleFactor = 1`。来源移除顶部 242px Chrome 外壳、右侧 30px 滚动条和底部 18px 非关键区域，将 2552×1480 内容区域按 2× 密度归一化为 1276×740，与实现逐像素等尺寸比较。移动浏览器使用 390×844 CSS 视口，常驻滚动条后截图为 375×812 px。
+- state：未登录、浅色、页面顶部；补充验证登录页浅色→深色→浅色切换，主题切换前后 main 几何不变。登录页只显示认证上下文需要的主题动作，但 Header、操作槽、main 与 Footer 均来自同一个 `BasicLayout`。
+- full-view comparison evidence：桌面欢迎页和登录页的品牌均为 `x = 80px / y = 18px / 77.3×44px`，Header shell 与 main 均为 `x = 80px / width = 1116px`；登录页主题按钮右边界与 shell 同为 1196px。移动两页品牌均为 `x = 16px / y = 18px`，Header/main 均为 `x = 16px / width = 343px`。每个页面实测只有一个 `[data-slot="basic-layout"]` 和一个 `main`，认证内容内部 `.content-shell` 数量为 0。
+- focused region comparison：完整对照已经以等尺寸清晰展示品牌、主题入口、双栏标题、表单、Footer 和左右边界，无需再制造重复局部裁切。结构测试另外覆盖业务路由、公开根路由、认证恢复、管理员导航、移动 Sheet 和认证路由，确保统一不是只对截图中的两个页面生效。
+- required fidelity surfaces：字体与标题继续使用 Geist/中文系统回退及现有 `.editorial-title`；所有根间距统一由 80px Header、`.content-shell` 和 80/32/16px gutter 管理；颜色只消费既有浅色/深色语义 token；品牌仍使用现有 `logo.svg`，图标仍使用 Phosphor；登录、注册、公开首页和业务导航文案未改写。没有新增 Card、边框、阴影、近似图标、装饰资产或平行主题。
+- comparison history：第一轮存在 P1 架构分叉：业务页由 `BasicLayout` 渲染 Header/main/Footer，认证路由却由 `AppShell` 直接返回页面并在 `AuthPageFrame` 中重复 Header、main 和 `.content-shell`，因此任何单页校正都可能再次漂移。修复删除该旁路与 `AppShell`，在根 App Router layout 中无条件挂载唯一 `BasicLayout`，并把站内导航历史一起收回该布局；`AuthPageFrame` 只保留共享 main 内部的双栏内容。后验同输入比较与精确 DOM 测量没有剩余 P0/P1/P2。
+- interactions and accessibility：跳过链接、唯一 main、唯一 H1、真实字段 label/button、Header 主题切换、移动响应式和 Footer 语义均保留；桌面与移动 `scrollWidth` 均等于可用页面宽度，没有横向溢出。浏览器控制台 error 为 0。
+- engineering gates：BasicLayout 针对性 8 项测试、前端 lint/typecheck、格式检查、56 个测试文件共 221 项测试，以及 Next.js production build（20 个静态页面）全部通过。
+
+final result: passed
+
+## 2026-09-01 欢迎页与认证页网格统一
+
+- source visual truth：用户提供的欢迎页 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-2474a2bb-698e-49bd-8894-06a9eb528287.png` 与登录页 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-b3b43f17-5391-4389-baef-53deae0cac0a.png`，均为 2582×1740 px。欢迎页提供目标导航网格与编辑式标题尺度；登录页记录修复前品牌、主题入口、双栏和标题落入另一套宽网格的问题。
+- implementation evidence：桌面浅色欢迎页 `/Users/stephenqiu/.codex/visualizations/2026/09/01/welcome-auth-alignment/home-1440x1000.png`、桌面浅色登录页 `/Users/stephenqiu/.codex/visualizations/2026/09/01/welcome-auth-alignment/login-1440x1000.png`、桌面深色登录页 `/Users/stephenqiu/.codex/visualizations/2026/09/01/welcome-auth-alignment/login-dark-1440x1000.png`、390×844 欢迎页与登录页 `/Users/stephenqiu/.codex/visualizations/2026/09/01/welcome-auth-alignment/home-390x844.png` 和 `/Users/stephenqiu/.codex/visualizations/2026/09/01/welcome-auth-alignment/login-390x844.png`。移动并排证据为 `/Users/stephenqiu/.codex/visualizations/2026/09/01/welcome-auth-alignment/mobile-fixed.png`。
+- viewport and normalization：桌面实现使用 1440×1000 CSS 视口、`deviceScaleFactor = 1`。来源图移除顶部 242px Chrome 外壳，将 2582×1498 页面区域等比缩放到 1440×836；实现截图裁为相同 1440×836。`/Users/stephenqiu/.codex/visualizations/2026/09/01/welcome-auth-alignment/source-vs-fixed.png` 的上排是来源欢迎页/登录页，下排是同视口修复后欢迎页/登录页，构成同一比较输入。
+- state：未登录、浅色、页面顶部；补充验证登录页深色主题以及 390×844 响应式状态。来源包含浏览器外壳，比较前已按上述方式移除，不把浏览器 UI 当作产品差异。
+- full-view comparison evidence：修复后两个页面的品牌链接均为 `x = 80px / y = 18px / 77.3×44px`，内容网格均为 `x = 80px / width = 1280px`，右边界均为 1360px；登录页主题按钮右边界同样为 1360px。欢迎页流程栏和登录表单的桌面起点均为 `x = 856.8px`，证明两页共享 `1.15fr / 0.85fr` 双栏与 96px 列间距。欢迎页 H1 和认证页产品主张计算字号均为 68px，统一消费 `.editorial-title`。
+- focused region comparison：全视图对照中品牌、主题入口、两列起点、两组标题和 440px 表单均清晰可读，因此不再制作会重复相同证据的局部裁切。移动并排证据确认两页品牌均从 `x = 16px` 开始，欢迎页 main 与认证页 shell 都为 358px 宽；登录表单同为 `x = 16px / width = 358px`，页面 `scrollWidth = 390px`，没有横向溢出。
+- required fidelity surfaces：字体与标题继续使用自托管 Geist、中文系统回退和现有 `.editorial-title`；间距由统一 `.content-shell`、80px Header、96px 桌面列间距和响应式 80/32/16px gutter 决定。浅色继续使用 `#FAFAFA/#0A0A0A`，深色画布实测为 `rgb(10, 10, 10)`，主题切换不改变几何。唯一可见品牌资产仍为现有 `logo.svg`，功能图标继续使用 Phosphor，没有生成、替换或近似绘制资产。登录、注册、产品主张和字段文案全部保留。
+- comparison history：第一轮存在 P1 导航网格断裂：欢迎页使用桌面 80px gutter，而认证页使用 40px gutter，使 Logo、主题入口和内容边界整体错位；同时存在 P2 标题尺度与列起点漂移。实现移除第二套 `.page-shell`，认证页改为共享 `.content-shell`、欢迎页双栏公式和 `.editorial-title`。后验同输入及精确 DOM 测量没有剩余 P0/P1/P2；无新增 Card、边框、阴影或装饰性结构。
+- interactions and accessibility：桌面与移动主题按钮均完成浅色↔深色切换，Header 与表单没有位移；认证页继续保持唯一 H1、真实 label/input/button、44px 品牌与主题触控高度。浏览器控制台 error 为 0，1440px 与 390px 均满足 `scrollWidth = viewport width`。
+- engineering gates：针对性 AppShell 8 项测试、前端 lint/typecheck、格式检查、56 个测试文件共 221 项测试和 Next.js production build（20 个静态页面）全部通过。
+
+final result: passed
+
 ## 2026-09-01 根路由认证恢复与 Header 宽度稳定性
 
 - source visual truth：用户提供的刷新瞬间截图已保存为 `qa-output/018-header-auth-stability/source-refresh-chrome.png`（3372×1942 px，2× Chrome 窗口）。来源图明确显示公开首页内容已经出现，但 Header 暂时渲染了“首页 / 下载记录 / 剧本文档 / 平台状态”和灰色账户骨架，属于认证恢复状态泄漏而不是最终导航设计。

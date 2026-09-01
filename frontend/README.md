@@ -92,9 +92,9 @@ npm run openapi
   表单控件。`tests/unit/component-boundaries.test.ts` 必须阻止边界回退。
 - 下载完成且文件仍可用时，详情页通过 Vidstack React 默认布局加载短时制品地址；播放控件、键盘交互、全屏与移动端布局由开源组件负责，业务代码不维护平行播放器 UI。
 - 当前视觉基准是用户选定的 Product Design 方案 3 无边框修订稿：`/Users/stephenqiu/.codex/generated_images/019fe657-3556-7102-a4d8-f0f95698076b/exec-6ad65a6b-a139-48c1-a789-730a53116807.png`。风格贴近 Vercel Home：`#FAFAFA` 偏白画布、Geist、`#0A0A0A` 前景、`#111111` 近黑主操作、大尺寸编辑式首页 Hero 和克制的中性表面。
-- Header 高 80px 且无下边线/外框/阴影。Header、main 与 footer 统一使用 `.content-shell = min(calc(100% - 160px), 1376px)`，使导航与主体对齐；认证双栏可在内部使用更宽的 `.page-shell = min(calc(100% - 80px), 1456px)`。641–1023px 时常规内容 gutter 各 32px；不超过 640px 时两种网格 gutter 均为 16px。这些是对齐约束，不能显示成页面外壳。
+- Header 高 80px 且无下边线/外框/阴影。Header、main、footer 与认证双栏统一使用 `.content-shell = min(calc(100% - 160px), 1376px)`，使品牌、导航、欢迎页和认证页处在同一组对齐线上；认证表单只在该网格内部收窄到 440px。641–1023px 时全部页面 gutter 各 32px；不超过 640px 时 gutter 各 16px。这些是对齐约束，不能显示成页面外壳。
 - 桌面主导航、移动 Sheet 内导航、页脚项目链接和剧本文档目录统一组合官方 shadcn/ui `NavigationMenu`；业务组件不手写原生 `nav`，最终语义 DOM 与键盘行为由 Radix UI 输出。主题入口使用 shadcn/ui `Button`，单击只在持久化的浅色/深色之间切换，不显示下拉菜单或“跟随系统”。
-- 已认证应用页统一由 `src/components/basic-layout.tsx` 提供 Header、唯一 main、Footer 和跳过链接；业务页面只返回内容区，不重复创建页面级 `main` 或 `.content-shell`。main 使用 `flex-1`，Footer 在短页面贴近视口底部，长页面随内容自然出现；认证页继续使用 `AuthPageFrame` 的双栏例外。
+- 全部路由统一由 `src/components/layout/basic-layout.tsx` 提供 Header、唯一 `.content-shell` main、Footer、跳过链接和站内导航历史；公开页、认证页、业务页与管理页都只返回内容区，不重复创建页面级 Header、`main` 或根 `.content-shell`。main 使用 `flex-1`，Footer 在短页面贴近视口底部，长页面随内容自然出现；`AuthPageFrame` 只负责共享 main 内部的无边框双栏内容，不再拥有独立页面外壳。
 - 首页 Hero 与内页标题使用 Geist 响应式标题阶梯，不强制旧的固定页标尺寸。只有真实流程序号可使用中性 mono eyebrow，不使用彩色装饰性分类标签或与标题重复的说明。
 - 页面根、标题区、筛选区、列表区和表单区不使用可见 PageShell/Card 外壳、装饰 ring、阴影或大边框。输入、选择器和按钮优先使用无边框实心填充面；内容层级只使用必要的 1px 发丝 Separator。错误边界、可见键盘焦点轮廓与 Radix 覆盖层的表面/遮罩必须保留。
 - 首页格式选择必须使用 Radix RadioGroup 直接渲染 API 返回的真实 `MediaFormat`。不使用旧三步 UI、伪画质预设、伪字幕/容器选择器或静态封面上的伪播放按钮。群山湖泊演示/回归资产位于 `public/images/media-preview-mountain.webp`（约 221 KiB），真实封面仍优先。

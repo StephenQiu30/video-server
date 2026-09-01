@@ -2,8 +2,8 @@
 
 import { CheckCircle, FloppyDisk, WarningCircle } from '@phosphor-icons/react';
 import { type FormEvent, useEffect, useState } from 'react';
+import { ReadOnlyField } from '@/components/account/read-only-field';
 import { useAuth } from '@/components/auth/auth-provider';
-import { ReadOnlyField } from '@/components/layout/app-shell';
 import { BackLink } from '@/components/layout/back-link';
 import { PageHeader } from '@/components/layout/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';

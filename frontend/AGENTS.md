@@ -56,7 +56,7 @@ npm run build
 - 优先复用 `src/components/ui/` 和已有业务组件；Radix primitive 负责菜单、对话框、选择、标签页等交互语义。
 - 样式只使用 Tailwind CSS 与 `src/app/globals.css` 中的语义 token，不新增 Less、CSS-in-JS 主题或 Ant Design token。
 - 唯一视觉基线是用户确认的方案 3：Vercel Home 式无边框中性界面。浅色使用 `#FAFAFA` 画布、`#0A0A0A` 前景和 `#111111` 主操作；深色使用 `#0A0A0A` 画布与 `#F5F5F5` 前景。状态、表面和文字只消费 `globals.css` 的语义 token，不恢复蓝色企业后台或 Apple 蓝主操作。
-- 80px Header 与常规 main/footer 复用 `.content-shell = min(calc(100% - 160px), 1376px)`，保证导航和主体对齐；根滚动容器必须保留稳定的 scrollbar gutter，Header 的异步账户区域必须使用固定宽度槽位，禁止因页面长短或认证恢复改变导航几何。认证双栏 main 是唯一例外，可使用更宽的 `.page-shell = min(calc(100% - 80px), 1456px)`，右侧表单在内部收窄到 440px，不足 `lg` 时隐藏介绍栏并水平居中。完整桌面导航从 `lg` 开始展示，其余宽度使用移动 Sheet。641–1023px 时常规内容两侧各 32px，不超过 640px 时两种网格两侧各 16px。网格只提供对齐，不得呈现为可见外框。
+- 所有路由都必须消费 `src/components/layout/basic-layout.tsx` 提供的唯一 Header、`.content-shell` main、Footer、跳过链接与站内导航历史；页面和内容框架不得重复创建这些根结构。Header 高 80px，Header/main/footer 统一复用 `.content-shell = min(calc(100% - 160px), 1376px)`，保证导航和主体对齐；根滚动容器必须保留稳定的 scrollbar gutter，Header 的异步账户区域必须使用固定宽度槽位，禁止因页面长短或认证恢复改变导航几何。认证双栏只是共享 main 内部的内容网格，右侧表单收窄到 440px，不足 `lg` 时隐藏介绍栏并水平居中，不得另建 `.page-shell`。完整桌面导航从 `lg` 开始展示，其余宽度使用移动 Sheet。641–1023px 时全部内容两侧各 32px，不超过 640px 时各 16px。网格只提供对齐，不得呈现为可见外框。
 - 字体统一为自托管 Geist Sans/Mono 与仓库规定的中文系统回退。首页编辑式标题使用 `.editorial-title` 响应式尺度；内页使用短标题与清晰层级，不强制旧的 32px/28px 固定尺寸。页面主标题上方只有真实流程编号可以使用 `.eyebrow`，不得添加“任务记录”“账户设置”“系统管理”等装饰性重复眉题；区段标签也应克制且不与标题重复。
 - Vercel 风格的无边框布局依靠留白、排版、实心中性表面和 Separator 组织内容。页面根、标题区、筛选区、列表区和表单区不使用可见 Card 外壳、装饰性 ring、重阴影或大圆角容器；输入、选择器和按钮默认无边框。焦点、错误、表格/列表分隔及 Dialog、Sheet 等覆盖层的功能边界必须保留。因语义复用 Card 时使用 `border-0`、`ring-0`、`shadow-none`，不得 Card 套 Card。
 - 基础圆角只从 `--radius: 6px` 派生，不在业务组件中硬编码近似主题色、任意圆角或一次性阴影；修改 token、网格或基础控件时同步根规范、前端视觉系统设计文档与必要测试。

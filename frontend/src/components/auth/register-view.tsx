@@ -4,12 +4,12 @@ import { ArrowRightIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { AuthField, AuthPageFrame } from '@/components/auth/auth-page-frame';
 import { useAuth } from '@/components/auth/auth-provider';
 import {
   type FieldErrors,
   validateRegistration,
 } from '@/components/auth/register-form-model';
-import { AuthField, AuthPageFrame } from '@/components/layout/app-shell';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { FieldGroup } from '@/components/ui/field';

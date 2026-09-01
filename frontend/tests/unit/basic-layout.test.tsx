@@ -7,11 +7,8 @@ import {
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  AppShell,
-  AuthField,
-  AuthPageFrame,
-} from '@/components/layout/app-shell';
+import { AuthField, AuthPageFrame } from '@/components/auth/auth-page-frame';
+import { BasicLayout } from '@/components/layout/basic-layout';
 import { InputGroupInput } from '@/components/ui/input-group';
 
 const runtime = vi.hoisted(() => ({
@@ -43,7 +40,7 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: vi.fn(), replace: runtime.replace }),
 }));
 
-describe('AppShell', () => {
+describe('BasicLayout', () => {
   beforeEach(() => {
     runtime.loading = false;
     runtime.pathname = '/';
@@ -51,12 +48,12 @@ describe('AppShell', () => {
     runtime.user = undefined;
   });
 
-  it('renders the accessible Next.js product navigation on application routes', () => {
+  it('renders the shared accessible navigation on application routes', () => {
     runtime.pathname = '/providers';
     render(
-      <AppShell>
+      <BasicLayout>
         <div>页面内容</div>
-      </AppShell>,
+      </BasicLayout>,
     );
 
     const banner = screen.getByRole('banner');
@@ -142,9 +139,9 @@ describe('AppShell', () => {
 
   it('renders discoverable public navigation for anonymous root visitors', () => {
     render(
-      <AppShell>
+      <BasicLayout>
         <div>公开首页</div>
-      </AppShell>,
+      </BasicLayout>,
     );
 
     const navigation = screen.getByRole('navigation', { name: '主要导航' });
@@ -178,9 +175,9 @@ describe('AppShell', () => {
   it('renders a neutral fixed-width header while root authentication is loading', () => {
     runtime.loading = true;
     const { container } = render(
-      <AppShell>
+      <BasicLayout>
         <div>正在加载</div>
-      </AppShell>,
+      </BasicLayout>,
     );
 
     const actions = container.querySelector('[data-slot="header-actions"]');
@@ -219,9 +216,9 @@ describe('AppShell', () => {
       username: 'viewer',
     };
     render(
-      <AppShell>
+      <BasicLayout>
         <div>页面内容</div>
-      </AppShell>,
+      </BasicLayout>,
     );
 
     fireEvent.click(screen.getByRole('button', { name: '打开导航菜单' }));
@@ -234,9 +231,9 @@ describe('AppShell', () => {
   it('keeps explicit desktop and mobile routes from history back to parsing', async () => {
     runtime.pathname = '/history';
     render(
-      <AppShell>
+      <BasicLayout>
         <div>历史页面</div>
-      </AppShell>,
+      </BasicLayout>,
     );
 
     expect(screen.getByRole('link', { name: '帧取首页' })).toHaveAttribute(
@@ -279,9 +276,9 @@ describe('AppShell', () => {
       username: 'owner',
     };
     render(
-      <AppShell>
+      <BasicLayout>
         <div>下载分析页面</div>
-      </AppShell>,
+      </BasicLayout>,
     );
 
     fireEvent.pointerDown(
@@ -318,10 +315,10 @@ describe('AppShell', () => {
     ).toHaveAttribute('href', '/admin/providers');
   });
 
-  it('removes the main navigation from authentication routes', () => {
+  it('uses the shared BasicLayout chrome on authentication routes', () => {
     runtime.pathname = '/user/login';
     render(
-      <AppShell>
+      <BasicLayout>
         <AuthPageFrame
           description="登录后继续使用。"
           title="登录帧取"
@@ -329,11 +326,14 @@ describe('AppShell', () => {
         >
           <div>登录页面</div>
         </AuthPageFrame>
-      </AppShell>,
+      </BasicLayout>,
     );
 
     expect(screen.getByText('登录页面')).toBeInTheDocument();
-    expect(document.querySelector('header.sticky')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-slot="basic-layout"]')).toBeTruthy();
+    expect(document.querySelector('header.sticky')).toBeInTheDocument();
+    expect(screen.getByRole('main')).toHaveClass('content-shell', 'flex-1');
+    expect(screen.getByRole('contentinfo')).toHaveTextContent('帧取');
     expect(
       screen.queryByRole('navigation', { name: '主要导航' }),
     ).not.toBeInTheDocument();
@@ -382,6 +382,17 @@ describe('AppShell', () => {
       container.querySelector('section[aria-labelledby="login-title"]')
         ?.parentElement,
     ).toHaveClass('justify-center', 'lg:justify-start');
+    expect(container.querySelector('[data-slot="auth-frame"]')).not.toHaveClass(
+      'content-shell',
+      'page-shell',
+    );
+    expect(
+      container.querySelector('[data-slot="auth-hero-title"]'),
+    ).toHaveClass('editorial-title', 'max-w-4xl');
+    expect(container.querySelector('[data-slot="auth-frame"]')).toHaveClass(
+      'lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]',
+      'lg:gap-24',
+    );
     expect(container.querySelector('[data-slot="card"]')).toBeNull();
   });
 });

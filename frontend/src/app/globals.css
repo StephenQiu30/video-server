@@ -146,11 +146,6 @@
 }
 
 @layer utilities {
-  .page-shell {
-    width: min(calc(100% - 80px), 1456px);
-    margin-inline: auto;
-  }
-
   .content-shell {
     width: min(calc(100% - 160px), 1376px);
     margin-inline: auto;
@@ -188,7 +183,6 @@
 }
 
 @media (max-width: 640px) {
-  .page-shell,
   .content-shell {
     width: min(calc(100% - 32px), 1376px);
   }

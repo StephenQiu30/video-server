@@ -43,6 +43,7 @@ export function SiteHeader() {
   const pathname = usePathname() ?? '/';
   const router = useRouter();
   const homeActive = pathname === '/';
+  const authView = pathname.startsWith('/user/');
   const historyActive = pathname.startsWith('/history');
   const documentsActive = pathname.startsWith('/documents');
   const providersActive = pathname.startsWith('/providers');
@@ -51,7 +52,7 @@ export function SiteHeader() {
   const aiProvidersActive = pathname.startsWith('/admin/ai-providers');
   const catalogActive = pathname.startsWith('/admin/providers');
   const usersActive = pathname.startsWith('/admin/users');
-  const rootAuthPending = homeActive && loading;
+  const headerAuthPending = (homeActive || authView) && loading;
   const publicView = homeActive && !loading && !user;
 
   async function handleSignOut() {
@@ -66,16 +67,18 @@ export function SiteHeader() {
       <div className="content-shell flex h-20 items-center justify-between">
         <BrandLink />
         <div
-          aria-busy={rootAuthPending || undefined}
+          aria-busy={headerAuthPending || undefined}
           className="flex w-[192px] shrink-0 items-center justify-end gap-2 lg:w-[606px]"
           data-slot="header-actions"
         >
-          {rootAuthPending ? (
+          {headerAuthPending ? (
             <div
               aria-hidden
               className="h-11 w-full"
               data-slot="header-auth-pending"
             />
+          ) : authView ? (
+            <ThemeToggle />
           ) : (
             <>
               <div

@@ -63,7 +63,7 @@ server/
 
 - 画面以内容、排版和留白组织层级：浅色主题使用 `#FAFAFA` 画布、`#0A0A0A` 前景和 `#111111` 主操作；深色主题使用 `#0A0A0A` 画布、`#F5F5F5` 前景。控件表面、弱化文字、边界、成功、警告和错误只能消费 `background`、`foreground`、`surface`、`muted`、`primary`、`border`、`success`、`warning`、`destructive` 等语义 token，不在业务组件中散落十六进制色值或近似色。
 - 基础圆角为 `6px`，只通过 `--radius` 派生。默认不使用阴影；层级优先依靠明度、间距和排版，覆盖层仅保留识别层级所必需的表面与遮罩。
-- 80px Header 与常规 main/footer 复用 `.content-shell = min(calc(100% - 160px), 1376px)`，保证全局导航和页面主体在同一条对齐线上。`body` 保留常驻纵向滚动容器，Radix 覆盖层独占滚动锁和滚动条宽度补偿；不得再设置第二套根 `scrollbar-gutter` 或覆盖 `data-scroll-locked`。Header 异步账户区域必须使用固定宽度槽位，页面长短和认证恢复不得改变导航几何。Header 品牌标识使用 32px，品牌文字使用 17px，桌面导航文字保持 15px、控件至少 44px 高。认证页的无外框双栏 main 是唯一例外，可使用更宽的 `.page-shell = min(calc(100% - 80px), 1456px)`，但表单必须在内部收窄到 440px；不足 `lg` 时隐藏介绍栏。641–1023px 时常规内容两侧各 32px；不超过 640px 时两种网格两侧均为 16px。网格只负责对齐，不得被渲染成可见应用外壳。
+- 所有路由只能通过 `BasicLayout` 获得唯一的 Header、`.content-shell` main、Footer、跳过链接与站内导航历史；页面和内容框架不得绕过它重复创建页面级 Header、main 或根内容容器。80px Header、main/footer 与认证页统一复用 `.content-shell = min(calc(100% - 160px), 1376px)`，保证品牌、导航、欢迎页 Hero 和认证双栏处在同一条对齐线上。`body` 保留常驻纵向滚动容器，Radix 覆盖层独占滚动锁和滚动条宽度补偿；不得再设置第二套根 `scrollbar-gutter` 或覆盖 `data-scroll-locked`。Header 异步账户区域必须使用固定宽度槽位，页面长短和认证恢复不得改变导航几何。Header 品牌标识使用 32px，品牌文字使用 17px，桌面导航文字保持 15px、控件至少 44px 高。认证页继续保留无外框双栏内容，但左侧主张必须复用 `.editorial-title`，右侧表单在共享 main 网格内收窄到 440px；不足 `lg` 时隐藏介绍栏。641–1023px 时全部页面两侧各 32px；不超过 640px 时两侧各 16px。网格只负责对齐，不得被渲染成可见应用外壳。
 - 字体统一为自托管 Geist Sans/Mono，中文按 `PingFang SC`、`Hiragino Sans GB`、`Microsoft YaHei`、系统无衬线顺序回退。正文、标题、控件、表格、KPI、日期、数量、百分比、时长和文件大小使用 Geist Sans；Geist Mono 仅用于代码、命令、路径、原始 token、精确时间戳和短操作标识。可比较数字使用 `tabular-nums`，桌面表格的数值表头和单元格共同右对齐。首页编辑式标题复用 `.editorial-title`；编号 `.eyebrow` 仅用于首页真实流程步骤，普通内页、错误和空状态不得增加重复眉题或装饰标签。
 
 ### 控件、组件与交互

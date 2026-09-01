@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { AuthProvider } from '@/components/auth/auth-provider';
-import { AppShell } from '@/components/layout/app-shell';
+import { BasicLayout } from '@/components/layout/basic-layout';
 import { ThemeProvider } from '@/components/layout/theme-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { siteConfig, siteUrl } from '@/lib/site';
@@ -83,7 +83,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         >
           <AuthProvider>
             <TooltipProvider delayDuration={300}>
-              <AppShell>{children}</AppShell>
+              <BasicLayout>{children}</BasicLayout>
             </TooltipProvider>
           </AuthProvider>
         </ThemeProvider>
