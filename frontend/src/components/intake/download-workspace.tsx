@@ -163,7 +163,7 @@ export default function DownloadWorkspace() {
   }
 
   return (
-    <div className="pb-6">
+    <div className="pb-6" data-home-view-root="workspace">
       <ContentIntakeHero
         disabled={busy !== null || mediaImport.busy || documentImport.busy}
         linkForm={

@@ -1,44 +1,78 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '@/components/auth/auth-provider';
 import DownloadWorkspace from '@/components/intake/download-workspace';
-import { Spinner } from '@/components/ui/spinner';
+import { HomeStartup } from '@/components/intake/home-startup';
+import { useGSAP } from '@/lib/gsap-client';
+import {
+  createHomeResolutionTimeline,
+  createSessionRestoreTimeline,
+} from '@/lib/home-transition-motion';
+
+type ResolvedHome = 'public' | 'workspace';
 
 export function HomeExperience({ publicHome }: { publicHome: ReactNode }) {
   const { loading, user } = useAuth();
-  const authPending = loading;
+  const rootRef = useRef<HTMLDivElement>(null);
+  const targetView: ResolvedHome | undefined = loading
+    ? undefined
+    : user
+      ? 'workspace'
+      : 'public';
+  const [resolvedView, setResolvedView] = useState<ResolvedHome>();
+  const [transitioning, setTransitioning] = useState(true);
+
+  useEffect(() => {
+    if (!targetView || targetView === resolvedView) return;
+    setTransitioning(true);
+    setResolvedView(targetView);
+  }, [resolvedView, targetView]);
+
+  useGSAP(
+    () => {
+      const root = rootRef.current;
+      if (!root) return;
+
+      if (!resolvedView) return createSessionRestoreTimeline(root);
+
+      return createHomeResolutionTimeline(root, () => {
+        setTransitioning(false);
+      });
+    },
+    {
+      dependencies: [resolvedView],
+      revertOnUpdate: true,
+      scope: rootRef,
+    },
+  );
+
+  const authPending = resolvedView === undefined;
+  const busy = authPending || transitioning;
 
   return (
     <div
-      aria-busy={authPending || undefined}
-      className="relative"
+      aria-busy={busy || undefined}
+      className="relative flex min-h-[60vh] flex-1 flex-col"
       data-auth-pending={authPending || undefined}
+      data-home-phase={
+        authPending ? 'resolving' : transitioning ? 'entering' : 'ready'
+      }
       data-slot="home-experience"
+      ref={rootRef}
     >
-      {authPending ? (
+      {transitioning ? <HomeStartup /> : null}
+      {resolvedView ? (
         <div
-          aria-live="polite"
-          className="absolute inset-x-0 top-0 z-10 flex min-h-[60vh] items-center justify-center gap-2 text-sm text-muted-foreground"
-          data-slot="home-auth-pending"
-          role="status"
+          aria-hidden={transitioning || undefined}
+          data-home-view={resolvedView}
+          data-slot="home-auth-content"
+          inert={transitioning || undefined}
         >
-          <Spinner
-            aria-hidden
-            className="size-5 text-primary"
-            role="presentation"
-          />
-          <span>正在恢复登录状态</span>
+          {resolvedView === 'workspace' ? <DownloadWorkspace /> : publicHome}
         </div>
       ) : null}
-      <div
-        aria-hidden={authPending || undefined}
-        className={authPending ? 'invisible' : undefined}
-        data-slot="home-auth-content"
-      >
-        {user ? <DownloadWorkspace /> : publicHome}
-      </div>
     </div>
   );
 }

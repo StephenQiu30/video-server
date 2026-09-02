@@ -61,7 +61,7 @@ frontend/src/
     └── ...                 薄业务适配层
 ```
 
-App Router 页面默认保持可静态渲染；只有表单、菜单、选择器、轮询和任务操作等交互边界使用 `'use client'`。认证用户数据由浏览器加载，不把 Cookie、用户资料或任务状态写入静态 HTML。
+App Router 页面默认保持可静态渲染；只有表单、菜单、选择器、轮询和任务操作等交互边界使用 `'use client'`。认证用户数据由浏览器加载，不把 Cookie、用户资料或任务状态写入静态 HTML。根路由的静态 HTML 也不得预先渲染公开首页或登录工作区中的任一套内容：首屏只提供与身份无关的会话启动态和独立 JSON-LD，浏览器确认 `/api/auth/me` 后才挂载唯一目标页面，避免 hydration 前泄漏错误首页。
 
 ## 路由与访问控制
 
@@ -85,7 +85,7 @@ App Router 页面默认保持可静态渲染；只有表单、菜单、选择器
 
 Next.js `output: "export"` 无法为未知任务 ID 枚举 `/downloads/[jobId]` 静态页面，因此动态段不进入目标路由树。FastAPI 必须在静态挂载前匹配旧地址并进行安全 URL 编码的 308 重定向；`/downloads/detail` 必须先于该兼容规则匹配。前端创建任务、历史入口和内部链接全部直接生成 canonical 地址。
 
-`(app)` 布局使用客户端 Auth Boundary 调用 `/api/auth/me`。恢复会话期间显示稳定骨架；401 只允许跳转到 `/user/login?redirect=<站内地址>`，管理员页面还需校验最新角色。重定向参数必须拒绝绝对 URL、协议相对 URL、反斜杠和认证页自循环。
+客户端 Auth Boundary 调用 `/api/auth/me`。根路由恢复会话期间显示中性的品牌会话启动态，Header 只保留品牌和固定宽度操作槽；公开首页和登录工作区都不进入可见 DOM。认证完成后，Header 与唯一目标页面通过同一套受控入场节奏呈现。其他受保护路由继续使用稳定骨架；401 只允许跳转到 `/user/login?redirect=<站内地址>`，管理员页面还需校验最新角色。重定向参数必须拒绝绝对 URL、协议相对 URL、反斜杠和认证页自循环。
 
 ## 静态导出与 FastAPI 同源
 
@@ -144,7 +144,7 @@ FastAPI `/openapi.json` 是请求、响应与错误字段的唯一事实来源�
 - Header 视觉高度为 80px，与 main/footer 共用 `.content-shell` 的桌面 80px gutter 和 1376px 最大宽度。品牌标识为 32px，品牌文字为 17px，桌面导航文字为 15px，导航控件高度为 44px，以明确的品牌层级与宽屏主体保持稳定的视觉比例。Header 本身不使用下边线、外框、ring 或阴影。
 - 页面根、标题区、筛选区、列表区、表格、双栏和表单区不使用可见 Card 外壳、Separator、装饰 ring、阴影或结构性边框。输入、选择器和按钮优先用实心中性填充面与颜色对比建立边界；相邻内容只通过 24/32/48px 间距、字号和字重分组。Dialog、Sheet、Popover 等 Radix 覆盖层仍保留可辨识表面、遮罩、焦点圈定和 Escape/焦点恢复。键盘焦点轮廓、错误状态和图表坐标网格是功能性边界，不属于装饰边框。
 - Button、Link 与 Radix Trigger 的 hover、active、loading、展开和选中反馈只改变颜色、透明度或不参与文档流的覆盖层，不得通过 `top`、`left`、margin、尺寸或 translate 改变控件几何；异步状态切换必须保留稳定外框与必要的图标、账户占位槽。
-- 动效以 120–200ms 的透明度或位移过渡为主，并遵循 `prefers-reduced-motion`。
+- 动效以 120–200ms 的透明度或位移过渡为主，并遵循 `prefers-reduced-motion`。根路由使用 GSAP React 生命周期与 `gsap.utils.selector/toArray` 限定当前作用域，通过 `clamp/mapRange/distribute` 生成 8–14px 位移和最多 100ms 的稳定错峰；会话启动态退出与正确页面进入组成单一 timeline。所有动画结束或组件卸载后清除 `transform/opacity/will-change`，Header 不用 `visibility` 隐藏可访问导航，reduced motion 下直接完成状态交接。
 
 “无边框”指应用内容层不显示应用壳、卡片、表格行线、列表分隔、双栏竖线、区域 Separator 或控件装饰轮廓；错误表达、可见键盘焦点、Radix 弹层边界和图表坐标网格继续保留。
 

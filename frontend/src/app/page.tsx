@@ -92,15 +92,11 @@ const structuredData = {
 
 export default function HomePage() {
   return (
-    <HomeExperience
-      publicHome={
-        <>
-          <script type="application/ld+json">
-            {JSON.stringify(structuredData).replace(/</g, '\\u003c')}
-          </script>
-          <PublicHome />
-        </>
-      }
-    />
+    <>
+      <script type="application/ld+json">
+        {JSON.stringify(structuredData).replace(/</g, '\\u003c')}
+      </script>
+      <HomeExperience publicHome={<PublicHome />} />
+    </>
   );
 }

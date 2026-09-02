@@ -1,7 +1,62 @@
 import { gsap } from '@/lib/gsap-client';
+import {
+  collectMotionTargets,
+  createMotionCleanup,
+  createRevealMetrics,
+  REDUCED_MOTION_QUERY,
+  REVEAL_CLEAR_PROPS,
+} from '@/lib/gsap-motion-utils';
 
-const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
-const REVEAL_CLEAR_PROPS = 'transform,opacity,willChange';
+type StagedRevealOptions = {
+  distance?: number;
+  duration?: number;
+  maxStagger?: number;
+  selector: string;
+};
+
+export function createStagedRevealTimeline(
+  scope: HTMLElement,
+  { distance, duration, maxStagger = 0.1, selector }: StagedRevealOptions,
+) {
+  const preference = window.matchMedia(REDUCED_MOTION_QUERY);
+  const targets = collectMotionTargets(scope, selector);
+  if (targets.length === 0) return undefined;
+
+  if (preference.matches) {
+    gsap.set(targets, { clearProps: REVEAL_CLEAR_PROPS });
+    return undefined;
+  }
+
+  const metrics = createRevealMetrics(targets.length);
+  const distribute = gsap.utils.distribute({
+    amount: Math.min(metrics.stagger, maxStagger),
+    ease: 'power1.out',
+    from: 'start',
+  });
+  const timeline = gsap.timeline();
+
+  targets.forEach((target, index, collection) => {
+    timeline.fromTo(
+      target,
+      {
+        opacity: 0,
+        willChange: 'transform, opacity',
+        y: distance ?? metrics.distance,
+      },
+      {
+        opacity: 1,
+        clearProps: REVEAL_CLEAR_PROPS,
+        duration: duration ?? metrics.duration,
+        ease: 'power2.out',
+        immediateRender: true,
+        y: 0,
+      },
+      distribute(index, target, collection),
+    );
+  });
+
+  return createMotionCleanup(preference, timeline, targets);
+}
 
 /**
  * Creates the small reveal used for client-only result/state transitions.
@@ -13,8 +68,11 @@ export function createRevealTween(target: HTMLElement, duration: number) {
   const reducedMotion = window.matchMedia(REDUCED_MOTION_QUERY);
   if (reducedMotion.matches) return undefined;
 
+  const [element] = gsap.utils.toArray<HTMLElement>(target);
+  if (!element) return undefined;
+
   const tween = gsap.fromTo(
-    target,
+    element,
     {
       opacity: 0,
       willChange: 'transform, opacity',

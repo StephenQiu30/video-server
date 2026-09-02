@@ -7,6 +7,8 @@ import {
   type IntakeMode,
 } from '@/components/intake/content-intake-hero';
 import { MotionReveal } from '@/components/intake/motion-reveal';
+import { createStagedRevealTimeline } from '@/lib/gsap-motion';
+import { createHomeResolutionTimeline } from '@/lib/home-transition-motion';
 
 describe('intake motion', () => {
   it('keeps the initial intake still and animates only a later mode change', () => {
@@ -74,6 +76,59 @@ describe('intake motion', () => {
     unmount();
     expect(tween.kill).toHaveBeenCalledTimes(2);
     expect(preference.listenerCount()).toBe(0);
+  });
+
+  it('scopes and distributes staged entrance targets without touching siblings', () => {
+    mockMotionPreference(false);
+    const root = document.createElement('div');
+    const first = document.createElement('div');
+    const second = document.createElement('div');
+    const outside = document.createElement('div');
+    first.dataset.motionStage = '';
+    second.dataset.motionStage = '';
+    outside.dataset.motionStage = '';
+    root.append(first, second);
+    document.body.append(outside);
+
+    const timeline = { fromTo: vi.fn(), kill: vi.fn() };
+    vi.spyOn(gsap, 'timeline').mockReturnValue(timeline as never);
+    const distribute = vi
+      .spyOn(gsap.utils, 'distribute')
+      .mockReturnValue(((index: number) => index * 0.04) as never);
+
+    const cleanup = createStagedRevealTimeline(root, {
+      selector: '[data-motion-stage]',
+    });
+
+    expect(distribute).toHaveBeenCalledWith(
+      expect.objectContaining({ from: 'start' }),
+    );
+    expect(timeline.fromTo).toHaveBeenCalledTimes(2);
+    expect(timeline.fromTo.mock.calls.map(([target]) => target)).toEqual([
+      first,
+      second,
+    ]);
+    expect(timeline.fromTo.mock.calls.flat()).not.toContain(outside);
+
+    cleanup?.();
+    expect(timeline.kill).toHaveBeenCalledOnce();
+    outside.remove();
+  });
+
+  it('completes the home handoff immediately for reduced motion', () => {
+    mockMotionPreference(true);
+    const root = document.createElement('div');
+    root.innerHTML = `
+      <div data-home-boot><div data-home-boot-copy></div></div>
+      <div data-home-reveal></div>
+    `;
+    const complete = vi.fn();
+    const timeline = vi.spyOn(gsap, 'timeline');
+
+    createHomeResolutionTimeline(root, complete);
+
+    expect(complete).toHaveBeenCalledOnce();
+    expect(timeline).not.toHaveBeenCalled();
   });
 });
 

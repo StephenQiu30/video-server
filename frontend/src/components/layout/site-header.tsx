@@ -4,7 +4,7 @@ import { GithubLogoIcon } from '@phosphor-icons/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { useAuth } from '@/components/auth/auth-provider';
 import { DesktopNavigation } from '@/components/layout/desktop-navigation';
@@ -12,6 +12,8 @@ import { HeaderAccount } from '@/components/layout/header-account';
 import { MobileNavigation } from '@/components/layout/mobile-navigation';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { Button } from '@/components/ui/button';
+import { useGSAP } from '@/lib/gsap-client';
+import { createStagedRevealTimeline } from '@/lib/gsap-motion';
 import { cn } from '@/lib/utils';
 
 export function BrandLink({ className }: { className?: string }) {
@@ -39,6 +41,7 @@ export function BrandLink({ className }: { className?: string }) {
 
 export function SiteHeader() {
   const { user, loading, signOut } = useAuth();
+  const actionsRef = useRef<HTMLDivElement>(null);
   const [signingOut, setSigningOut] = useState(false);
   const pathname = usePathname() ?? '/';
   const router = useRouter();
@@ -54,6 +57,32 @@ export function SiteHeader() {
   const usersActive = pathname.startsWith('/admin/users');
   const headerAuthPending = (homeActive || authView) && loading;
   const publicView = homeActive && !loading && !user;
+  const headerView = headerAuthPending
+    ? 'pending'
+    : authView
+      ? 'auth'
+      : publicView
+        ? 'public'
+        : 'workspace';
+
+  useGSAP(
+    () => {
+      const actions = actionsRef.current;
+      if (!actions || headerAuthPending) return;
+
+      return createStagedRevealTimeline(actions, {
+        distance: 6,
+        duration: 0.16,
+        maxStagger: 0,
+        selector: '[data-header-reveal]',
+      });
+    },
+    {
+      dependencies: [headerAuthPending, headerView],
+      revertOnUpdate: true,
+      scope: actionsRef,
+    },
+  );
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -70,6 +99,7 @@ export function SiteHeader() {
           aria-busy={headerAuthPending || undefined}
           className="flex w-[192px] shrink-0 items-center justify-end gap-2 lg:w-[606px]"
           data-slot="header-actions"
+          ref={actionsRef}
         >
           {headerAuthPending ? (
             <div
@@ -77,75 +107,82 @@ export function SiteHeader() {
               className="h-11 w-full"
               data-slot="header-auth-pending"
             />
-          ) : authView ? (
-            <ThemeToggle />
           ) : (
-            <>
-              <div
-                className="hidden min-w-0 flex-1 items-center justify-end lg:flex"
-                data-slot="header-navigation"
-              >
-                <DesktopNavigation
-                  documentsActive={documentsActive}
-                  historyActive={historyActive}
-                  homeActive={homeActive}
-                  providersActive={providersActive}
-                  publicView={publicView}
-                />
-              </div>
-              {publicView ? (
-                <Button
-                  asChild
-                  className="size-11 lg:hidden"
-                  size="icon-lg"
-                  variant="ghost"
-                >
-                  <a
-                    aria-label="在 GitHub 查看 FrameFetch 源代码"
-                    href="https://github.com/StephenQiu30/video-server"
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    <GithubLogoIcon aria-hidden className="size-5" />
-                  </a>
-                </Button>
-              ) : null}
-              <ThemeToggle />
-              {publicView ? (
-                <div className="flex w-[88px] shrink-0 justify-end">
-                  <Button
-                    asChild
-                    className="min-h-11 w-[74px] px-3.5 text-[15px]"
-                  >
-                    <Link href="/user/login">登录</Link>
-                  </Button>
-                </div>
+            <div
+              className="flex w-full min-w-0 flex-1 items-center justify-end gap-2"
+              data-header-reveal
+            >
+              {authView ? (
+                <ThemeToggle />
               ) : (
                 <>
-                  <div className="hidden lg:block">
-                    <HeaderAccount
-                      analyticsActive={analyticsActive}
-                      aiProvidersActive={aiProvidersActive}
-                      catalogActive={catalogActive}
-                      filesActive={filesActive}
-                      loading={loading}
-                      onSignOut={() => void handleSignOut()}
-                      pathname={pathname}
-                      signingOut={signingOut}
-                      user={user}
-                      usersActive={usersActive}
+                  <div
+                    className="hidden min-w-0 flex-1 items-center justify-end lg:flex"
+                    data-slot="header-navigation"
+                  >
+                    <DesktopNavigation
+                      documentsActive={documentsActive}
+                      historyActive={historyActive}
+                      homeActive={homeActive}
+                      providersActive={providersActive}
+                      publicView={publicView}
                     />
                   </div>
-                  <MobileNavigation
-                    loading={loading}
-                    onSignOut={handleSignOut}
-                    pathname={pathname}
-                    signingOut={signingOut}
-                    user={user}
-                  />
+                  {publicView ? (
+                    <Button
+                      asChild
+                      className="size-11 lg:hidden"
+                      size="icon-lg"
+                      variant="ghost"
+                    >
+                      <a
+                        aria-label="在 GitHub 查看 FrameFetch 源代码"
+                        href="https://github.com/StephenQiu30/video-server"
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        <GithubLogoIcon aria-hidden className="size-5" />
+                      </a>
+                    </Button>
+                  ) : null}
+                  <ThemeToggle />
+                  {publicView ? (
+                    <div className="flex w-[88px] shrink-0 justify-end">
+                      <Button
+                        asChild
+                        className="min-h-11 w-[74px] px-3.5 text-[15px]"
+                      >
+                        <Link href="/user/login">登录</Link>
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="hidden lg:block">
+                        <HeaderAccount
+                          analyticsActive={analyticsActive}
+                          aiProvidersActive={aiProvidersActive}
+                          catalogActive={catalogActive}
+                          filesActive={filesActive}
+                          loading={loading}
+                          onSignOut={() => void handleSignOut()}
+                          pathname={pathname}
+                          signingOut={signingOut}
+                          user={user}
+                          usersActive={usersActive}
+                        />
+                      </div>
+                      <MobileNavigation
+                        loading={loading}
+                        onSignOut={handleSignOut}
+                        pathname={pathname}
+                        signingOut={signingOut}
+                        user={user}
+                      />
+                    </>
+                  )}
                 </>
               )}
-            </>
+            </div>
           )}
         </div>
       </div>

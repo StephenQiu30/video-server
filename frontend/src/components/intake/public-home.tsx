@@ -44,12 +44,12 @@ const safeguards = [
 
 export function PublicHome() {
   return (
-    <div className="flex flex-col pb-6">
+    <div className="flex flex-col pb-6" data-home-view-root="public">
       <section
         className="grid gap-12 pb-20 pt-10 sm:pt-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:gap-24 lg:pb-28 lg:pt-14"
         data-slot="borderless-section"
       >
-        <div>
+        <div data-home-reveal>
           <EditorialIntro
             description="开源、自托管地完成公开视频解析、本地视频与剧本文档导入、制品管理和 AI 分析。数据与运行边界由你掌控。"
             eyebrow="FrameFetch · Open Source"
@@ -84,7 +84,7 @@ export function PublicHome() {
           </div>
         </div>
 
-        <div className="self-end lg:pb-1">
+        <div className="self-end lg:pb-1" data-home-reveal>
           <p className="text-sm font-medium">一套可审计的完整链路</p>
           <ol className="mt-7 space-y-6">
             {workflow.map(([title, description], index) => (
@@ -107,6 +107,7 @@ export function PublicHome() {
       <section
         aria-labelledby="capabilities-title"
         className="scroll-mt-24 py-20 lg:py-28"
+        data-home-reveal
         data-slot="borderless-section"
         id="capabilities"
       >
@@ -137,6 +138,7 @@ export function PublicHome() {
       <section
         aria-labelledby="architecture-title"
         className="grid scroll-mt-24 gap-14 py-20 lg:grid-cols-2 lg:gap-24 lg:py-28"
+        data-home-reveal
         data-slot="borderless-section"
         id="architecture"
       >
@@ -163,6 +165,7 @@ export function PublicHome() {
 
       <section
         className="flex flex-col items-start justify-between gap-8 py-20 sm:flex-row sm:items-end lg:py-28"
+        data-home-reveal
         data-slot="borderless-section"
       >
         <EditorialIntro

@@ -1,5 +1,16 @@
 # 方案 3 无边框重设计 QA
 
+## 2026-09-02 根路由会话启动态与 GSAP 过渡重构
+
+- source visual truth：用户提供的刷新错误态 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-683960b4-9f69-4310-bc6b-7b5b1e2ff91f.png` 和最终登录工作区 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-b9e0b99f-d279-4e50-8572-1952c92605d5.png`。两张图确认刷新时完整公开首页先于登录工作区出现，问题覆盖 Header 与 main，而不是单个 Spinner 或局部淡入缺失。
+- root cause：旧实现把完整 `PublicHome` 放进预渲染首屏 DOM，再依赖 hydration 后的 `invisible` 遮挡。服务器首屏无法仅凭客户端 HttpOnly 会话确定目标页面，样式或客户端脚本接管前仍可绘制错误内容；公开页到工作区的整页替换也没有连续的视觉状态。修复后直接读取开发服务器首屏 HTML并移除 script/style 内容，结果为 `hasStartup=true`、`hasPublicHome=false`、`hasWorkspace=false`、`hasHiddenPublicWrapper=false`，证明首屏不再携带可绘制的错误页面。
+- transition design：首屏只显示与身份无关的 `FrameFetch / Session` 会话启动态、说明和 1px 进度线；认证完成后，启动态退出、正确内容分组进入，Header 操作同步淡入。`gsap.utils.selector/toArray` 将查询限制在组件作用域，`clamp/mapRange/distribute` 根据视口和节点数生成 8–14px 位移、160–200ms 时长与最多 100ms 错峰；没有渐变、阴影、Card 或新增视觉 token。
+- authenticated refresh：真实 Chrome 登录会话在 `http://localhost:8102/` 冷刷新后的第一个可检查状态只有品牌、会话启动态和 Footer，不存在公开导航、公开首页或工作区；认证完成后 `data-home-phase=ready`、`data-home-view=workspace`、`publicViewPresent=false`、`workspaceViewPresent=true`、启动态已卸载。匿名浏览器同样先显示中性启动态，完成后只存在 `data-home-view=public`，工作区不存在。
+- responsive and cleanup：Chrome 1280×800 与 390×844 均完成刷新回归，两个视口都满足 `scrollWidth=clientWidth`。桌面和移动的最终 `[data-home-reveal]` 与 `[data-header-reveal]` style 均为空，临时 `transform/opacity/will-change` 已清理；reduced motion 单元测试确认不创建 timeline 并立即完成交接。内容在过渡完成前使用 `inert` 与 `aria-hidden`，Header 只动画透明度/位移，不从辅助技术树隐藏真实导航。
+- engineering gates：针对性 4 个文件、18 项首页与动效测试通过；完整 `npm run lint`、`npm run format:check`、58 个测试文件 / 233 项测试和 Next.js production build（20 个预渲染页面）全部通过。构建产物复核为 `hasStartup=true`、`hasPublicHome=false`、`hasWorkspace=false`、`hasHiddenPublicWrapper=false`、`hasJsonLd=true`。
+
+final result: passed
+
 ## 2026-09-01 全路由 BasicLayout 统一
 
 - source visual truth：用户提供的欢迎页 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-2474a2bb-698e-49bd-8894-06a9eb528287.png` 与登录页 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-b3b43f17-5391-4389-baef-53deae0cac0a.png`，原始尺寸均为 2582×1740 px。来源要求不是只让两个页面视觉接近，而是让全部路由消费同一个 Header、main、Footer 与响应式 gutter 标准。
