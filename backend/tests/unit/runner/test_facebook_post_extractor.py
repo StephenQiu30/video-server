@@ -69,20 +69,39 @@ def test_share_post_delegates_one_video_to_upstream_facebook(
     "media",
     [
         ({"__typename": "Photo", "id": "10168534459259466"},),
-        (
-            {"__typename": "Video", "id": "99887766"},
-            {"__typename": "Photo", "id": "10168534459259466"},
-        ),
     ],
 )
-def test_rejects_image_and_multi_asset_posts(
+def test_rejects_posts_without_videos(
     monkeypatch: pytest.MonkeyPatch,
     media: tuple[dict[str, str], ...],
 ) -> None:
     extractor = configured_extractor(monkeypatch, facebook_page(*media))
 
-    with pytest.raises(ExtractorError, match="image and multi-asset posts"):
+    with pytest.raises(ExtractorError, match="does not contain a downloadable video"):
         extractor._real_extract(SHARE_URL)
+
+
+def test_multi_video_post_becomes_a_playlist(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    extractor = configured_extractor(
+        monkeypatch,
+        facebook_page(
+            {"__typename": "Video", "id": "99887766"},
+            {"__typename": "Photo", "id": "10168534459259466"},
+            {"__typename": "Video", "id": "88776655"},
+        ),
+    )
+
+    result = extractor._real_extract(SHARE_URL)
+
+    assert result["_type"] == "playlist"
+    entries = result["entries"]
+    assert isinstance(entries, list)
+    assert [entry["url"] for entry in entries] == [
+        "facebook:99887766",
+        "facebook:88776655",
+    ]
 
 
 def test_rejects_cross_origin_and_identity_changing_redirects(

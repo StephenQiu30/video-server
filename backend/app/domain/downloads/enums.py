@@ -13,6 +13,7 @@ class StreamKind(StrEnum):
 class MediaKind(StrEnum):
     VIDEO = "video"
     IMAGE_GALLERY = "image_gallery"
+    VIDEO_COLLECTION = "video_collection"
 
 
 class Container(StrEnum):

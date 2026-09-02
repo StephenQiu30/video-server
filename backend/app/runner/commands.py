@@ -146,6 +146,35 @@ class MediaCommands:
         if not output.is_file() or output.is_symlink():
             raise RunnerFailure("download_failed", status=502)
 
+    async def download_collection(
+        self,
+        source: str | ProviderRequest,
+        output_dir: Path,
+        cwd: Path,
+        *,
+        max_bytes: int,
+        max_entries: int,
+        cookie_jar: Path | None = None,
+    ) -> None:
+        output_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+        command = self._ytdlp.download_collection(
+            source,
+            output_dir,
+            max_bytes=max_bytes,
+            max_entries=max_entries,
+            cookie_jar=cookie_jar,
+        )
+        await self._run(
+            command.argv,
+            cwd,
+            self._settings.runner_download_timeout_seconds,
+            timeout_code="download_timeout",
+            failure_code="download_failed",
+            monitor_workspace=True,
+            egress_proxy=command.egress_proxy,
+            failure_context=command.failure_context,
+        )
+
     async def download_public_asset(
         self,
         url: str,

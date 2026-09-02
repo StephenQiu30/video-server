@@ -28,6 +28,7 @@ export default function InspectionWorkspace({
   const selected = inspection.formats.find((item) => item.id === selectedId);
   const downloadable = inspection.access_decision === 'downloadable';
   const gallery = inspection.media_kind === 'image_gallery';
+  const collection = inspection.media_kind === 'video_collection';
 
   return (
     <section
@@ -56,6 +57,11 @@ export default function InspectionWorkspace({
               label="媒体"
               value={`图文作品 · ${inspection.asset_count} 张原图`}
             />
+          ) : collection ? (
+            <Meta
+              label="媒体"
+              value={`视频合集 · ${inspection.asset_count} 个视频`}
+            />
           ) : selected?.plan ? (
             <Meta
               label="当前清晰度"
@@ -68,7 +74,7 @@ export default function InspectionWorkspace({
       <div className="min-w-0">
         <h2 className="text-base font-medium">
           {downloadable
-            ? gallery
+            ? gallery || collection
               ? '下载内容'
               : '画质预设'
             : decisionTitle(inspection.access_decision)}
@@ -76,6 +82,7 @@ export default function InspectionWorkspace({
         {downloadable ? (
           <FormatPicker
             formats={inspection.formats}
+            mediaKind={inspection.media_kind}
             onChange={onChange}
             selectedId={selectedId}
           />
@@ -105,15 +112,21 @@ export default function InspectionWorkspace({
               value={selected.plan.audio_codec_family.toUpperCase()}
             />
           </dl>
-        ) : gallery && selected ? (
+        ) : (gallery || collection) && selected ? (
           <dl className="mt-7 grid grid-cols-2 gap-x-5 gap-y-4 pt-5 text-sm">
-            <SelectionMeta label="媒体类型" value="官方图文" />
+            <SelectionMeta
+              label="媒体类型"
+              value={collection ? '视频合集' : '官方图文'}
+            />
             <SelectionMeta
               label="内容数量"
-              value={`${inspection.asset_count} 张原图`}
+              value={`${inspection.asset_count} ${collection ? '个视频' : '张原图'}`}
             />
             <SelectionMeta label="导出格式" value="ZIP" />
-            <SelectionMeta label="下载方式" value="原图打包" />
+            <SelectionMeta
+              label="下载方式"
+              value={collection ? '视频打包' : '原图打包'}
+            />
           </dl>
         ) : null}
         {inspection.access_decision === 'export_required' ? (

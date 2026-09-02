@@ -106,6 +106,7 @@ class MediaRunnerClient(Protocol):
         expected_extractor_key: str,
         access_context: ProviderAccessContextRef,
         media_kind: MediaKind = MediaKind.VIDEO,
+        asset_count: int = 0,
     ) -> RunnerArtifact: ...
 
     async def status(self, task_id: str) -> RunnerProgress: ...
@@ -264,6 +265,7 @@ class MediaRunnerHttpClient:
         expected_extractor_key: str,
         access_context: ProviderAccessContextRef,
         media_kind: MediaKind = MediaKind.VIDEO,
+        asset_count: int = 0,
     ) -> RunnerArtifact:
         self._validate_task_id(task_id)
         body = (
@@ -274,6 +276,7 @@ class MediaRunnerHttpClient:
                 expected_extractor_key=expected_extractor_key,
                 plan=(None if plan is None else DownloadPlanContract.from_domain(plan)),
                 media_kind=media_kind,
+                asset_count=asset_count,
                 access_context=ProviderAccessContextContract.from_domain(
                     access_context
                 ),
@@ -465,6 +468,7 @@ class MediaRunnerRouter:
         expected_extractor_key: str,
         access_context: ProviderAccessContextRef,
         media_kind: MediaKind = MediaKind.VIDEO,
+        asset_count: int = 0,
     ) -> RunnerArtifact:
         client = self._client_for(access_context)
         self._active[task_id] = client
@@ -478,6 +482,7 @@ class MediaRunnerRouter:
                     expected_extractor_key=expected_extractor_key,
                     access_context=access_context,
                     media_kind=media_kind,
+                    asset_count=asset_count,
                 )
             except MediaRunnerClientError as exc:
                 if access_context.access_mode is not ProviderAccessMode.ANONYMOUS:
@@ -500,6 +505,7 @@ class MediaRunnerRouter:
                     expected_extractor_key=expected_extractor_key,
                     access_context=refreshed_context,
                     media_kind=media_kind,
+                    asset_count=asset_count,
                 )
         finally:
             self._active.pop(task_id, None)

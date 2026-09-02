@@ -64,6 +64,7 @@ class LeaseMonitor:
         extractor_key: str,
         access_context: ProviderAccessContextRef,
         media_kind: MediaKind = MediaKind.VIDEO,
+        asset_count: int = 0,
     ) -> RunnerArtifactView:
         task = asyncio.create_task(
             self._runner.download(
@@ -74,6 +75,7 @@ class LeaseMonitor:
                 expected_extractor_key=extractor_key,
                 access_context=access_context,
                 media_kind=media_kind,
+                asset_count=asset_count,
             )
         )
         progress = _ProgressState()

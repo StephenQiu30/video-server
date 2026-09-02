@@ -958,7 +958,7 @@ declare namespace API {
     declared_origin: DeclaredOrigin;
   };
 
-  type MediaKind = "video" | "image_gallery";
+  type MediaKind = "video" | "image_gallery" | "video_collection";
 
   type MediaUploadSessionResponse = {
     /** Resource Id */

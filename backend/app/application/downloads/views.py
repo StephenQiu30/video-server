@@ -48,7 +48,10 @@ def inspection_view(snapshot: InspectionSnapshot) -> InspectionView:
                 display_name=item.display_name,
                 plan=(
                     None
-                    if media_kind is MediaKind.IMAGE_GALLERY
+                    if media_kind in {
+                        MediaKind.IMAGE_GALLERY,
+                        MediaKind.VIDEO_COLLECTION,
+                    }
                     else public_plan(
                         plan_from_documents(item.semantic_plan, item.provider_hints)
                     )

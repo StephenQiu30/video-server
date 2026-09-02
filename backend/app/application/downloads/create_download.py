@@ -68,7 +68,8 @@ class CreateDownload:
         if now >= selected.expires_at:
             raise ApplicationError(ApplicationErrorCode.RESOURCE_EXPIRED)
         media_kind = _media_kind(inspection.metadata)
-        if media_kind is MediaKind.IMAGE_GALLERY:
+        semantic: dict[str, object]
+        if media_kind in {MediaKind.IMAGE_GALLERY, MediaKind.VIDEO_COLLECTION}:
             semantic = {
                 "media_kind": media_kind.value,
                 "asset_count": _asset_count(inspection.metadata),

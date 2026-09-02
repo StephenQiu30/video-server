@@ -9,7 +9,7 @@ import {
 import { FieldLabel } from '@/components/ui/field';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
-import type { MediaFormat } from '@/types/video';
+import type { MediaFormat, MediaKind } from '@/types/video';
 
 const fpsLabels = {
   fps_30: '最高 30 FPS',
@@ -19,10 +19,12 @@ const fpsLabels = {
 
 export default function FormatPicker({
   formats,
+  mediaKind = 'image_gallery',
   onChange,
   selectedId,
 }: {
   formats: MediaFormat[];
+  mediaKind?: MediaKind;
   onChange: (id: string) => void;
   selectedId: string;
 }) {
@@ -83,7 +85,9 @@ export default function FormatPicker({
                       </strong>
                     </span>
                     <span className="mt-1 block truncate text-xs text-muted-foreground">
-                      官方图文 · 原图 ZIP
+                      {mediaKind === 'video_collection'
+                        ? '视频合集 · 视频 ZIP'
+                        : '官方图文 · 原图 ZIP'}
                     </span>
                   </>
                 )}

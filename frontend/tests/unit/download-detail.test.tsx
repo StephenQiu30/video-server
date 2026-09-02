@@ -4,7 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DownloadJobView from '@/components/downloads/download-job-view';
 import { ApiError } from '@/lib/request-error';
 import { analysisSkills } from '../fixtures/analysis-fixtures';
-import { galleryJob, inspection, job } from '../fixtures/download-fixtures';
+import {
+  galleryJob,
+  inspection,
+  job,
+  videoCollectionJob,
+} from '../fixtures/download-fixtures';
 import {
   httpRequests,
   mockHttpError,
@@ -238,6 +243,31 @@ describe('DownloadJobView', () => {
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('region', { name: `${galleryJob().title}视频预览` }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('presents a completed multi-video source as a ZIP', async () => {
+    mockHttpResponses(
+      videoCollectionJob('succeeded'),
+      analysisSkills,
+      null,
+      signedVideoUrl,
+    );
+    render(<DownloadJobView jobId={videoCollectionJob().id} />);
+
+    expect(
+      await screen.findByRole('heading', { name: '视频合集文件已就绪' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '获取视频合集 ZIP' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('region', {
+        name: `${videoCollectionJob().title}视频预览`,
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'AI 智能分析' }),
     ).not.toBeInTheDocument();
   });
 

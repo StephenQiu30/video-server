@@ -107,7 +107,8 @@ class DownloadExecution:
                 media_kind = _media_kind(source.semantic_plan)
                 plan = (
                     None
-                    if media_kind is MediaKind.IMAGE_GALLERY
+                    if media_kind
+                    in {MediaKind.IMAGE_GALLERY, MediaKind.VIDEO_COLLECTION}
                     else plan_from_documents(
                         source.semantic_plan, source.provider_hints
                     )
@@ -127,6 +128,7 @@ class DownloadExecution:
                     extractor_key=source.extractor_key,
                     access_context=access_context,
                     media_kind=media_kind,
+                    asset_count=_asset_count(source.semantic_plan),
                 )
                 workspace = artifact.workspace
             except (LeaseLost, ExecutionOwnershipLost):
@@ -213,3 +215,10 @@ def _media_kind(document: dict[str, object]) -> MediaKind:
         return MediaKind(value)
     except ValueError as exc:
         raise ValueError("unknown media kind") from exc
+
+
+def _asset_count(document: dict[str, object]) -> int:
+    value = document.get("asset_count", 0)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ValueError("invalid asset count")
+    return value

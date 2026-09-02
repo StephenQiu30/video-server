@@ -100,6 +100,28 @@ def test_normalizes_public_image_gallery_assets() -> None:
     assert inspection.gallery_assets[0].width == 1080
 
 
+def test_normalizes_playlist_as_a_video_collection() -> None:
+    payload = {
+        "_type": "playlist",
+        "id": "playlist-1",
+        "title": "多个视频",
+        "extractor_key": "Instagram",
+        "entries": [{"id": "video-1"}, {"id": "video-2"}],
+    }
+
+    inspection = normalize_metadata(
+        payload,
+        max_duration_seconds=7200,
+        max_candidate_streams=200,
+        max_gallery_assets=10,
+    )
+
+    assert inspection.media_kind is MediaKind.VIDEO_COLLECTION
+    assert inspection.duration_seconds == 0
+    assert inspection.asset_count == 2
+    assert inspection.streams == ()
+
+
 def test_rejects_gallery_assets_over_configured_limit() -> None:
     payload = gallery_info()
     assets = payload["assets"]

@@ -15,9 +15,7 @@ _FACEBOOK_HOSTS = frozenset(
 _POST_PATH = re.compile(
     r"^/groups/[^/]+/(?:permalink|posts)/(?P<id>pfbid[A-Za-z0-9]+|[0-9]+)(?:/|$)"
 )
-_MEDIA_UNSUPPORTED = (
-    "Facebook image and multi-asset posts are not supported by the video runner"
-)
+_MEDIA_UNSUPPORTED = "Facebook post does not contain a downloadable video"
 _SCHEMA_UNAVAILABLE = "Facebook post media structure could not be identified"
 _LINK_UNAVAILABLE = "Facebook sharing link unavailable"
 
@@ -50,14 +48,34 @@ class FacebookPostIE(InfoExtractor):  # type: ignore[misc]
         media = _post_media(self, webpage, final_post_id)
         if media is None:
             raise ExtractorError(_SCHEMA_UNAVAILABLE)
-        if len(media) != 1 or media[0].get("__typename") != "Video":
+        videos = [item for item in media if item.get("__typename") == "Video"]
+        if not videos:
             raise ExtractorError(_MEDIA_UNSUPPORTED, expected=True)
 
-        video_id = media[0].get("id")
-        if not isinstance(video_id, str) or not re.fullmatch(
-            r"pfbid[A-Za-z0-9]+|[0-9]+", video_id
+        video_ids = [item.get("id") for item in videos]
+        if any(
+            not isinstance(video_id, str)
+            or re.fullmatch(r"pfbid[A-Za-z0-9]+|[0-9]+", video_id) is None
+            for video_id in video_ids
         ):
             raise ExtractorError(_SCHEMA_UNAVAILABLE)
+        if len(video_ids) > 1:
+            return cast(
+                dict[str, Any],
+                self.playlist_result(
+                    [
+                        self.url_result(
+                            f"facebook:{video_id}",
+                            ie=FacebookIE.ie_key(),
+                            video_id=video_id,
+                        )
+                        for video_id in video_ids
+                    ],
+                    playlist_id=final_post_id,
+                    playlist_title=f"Facebook post {final_post_id}",
+                ),
+            )
+        video_id = video_ids[0]
         return cast(
             dict[str, Any],
             self.url_result(

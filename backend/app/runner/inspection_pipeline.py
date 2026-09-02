@@ -46,7 +46,10 @@ class RunnerInspectionPipeline:
             access_mode=context.access_mode,
         )
         payload = normalize_selected_format_metadata(payload)
-        if payload.get("media_kind") == "image_gallery":
+        if payload.get("media_kind") in {"image_gallery", "video_collection"} or (
+            str(payload.get("_type") or "").casefold() in {"playlist", "multi_video"}
+            or isinstance(payload.get("entries"), list)
+        ):
             return normalize_for_settings(payload, self._settings)
         if source.profile.probe_media_duration:
             payload = await self._probe_authoritative_duration(

@@ -164,6 +164,7 @@ class ExecutionRunner(Protocol):
         expected_extractor_key: str,
         access_context: ProviderAccessContextRef,
         media_kind: MediaKind = MediaKind.VIDEO,
+        asset_count: int = 0,
     ) -> RunnerArtifactView: ...
 
     async def status(self, task_id: str) -> RunnerProgressView: ...

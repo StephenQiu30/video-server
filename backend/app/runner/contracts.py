@@ -180,14 +180,23 @@ class DownloadRequest(ContractModel):
     expected_extractor_key: str = Field(min_length=1, max_length=128)
     plan: DownloadPlanContract | None = None
     media_kind: MediaKind = MediaKind.VIDEO
+    asset_count: int = Field(default=0, ge=0, le=1000)
     access_context: ProviderAccessContextContract
 
     @model_validator(mode="after")
     def validate_media_plan(self) -> DownloadRequest:
         if self.media_kind is MediaKind.VIDEO and self.plan is None:
             raise ValueError("video downloads require a plan")
-        if self.media_kind is MediaKind.IMAGE_GALLERY and self.plan is not None:
-            raise ValueError("image galleries do not accept a video plan")
+        if self.media_kind in {
+            MediaKind.IMAGE_GALLERY,
+            MediaKind.VIDEO_COLLECTION,
+        }:
+            if self.plan is not None:
+                raise ValueError("media collections do not accept a video plan")
+            if self.asset_count < 1:
+                raise ValueError("media collections require an asset count")
+        elif self.asset_count != 0:
+            raise ValueError("single videos do not accept an asset count")
         return self
 
     @field_validator("expected_provider_media_id", "expected_extractor_key")

@@ -25,6 +25,7 @@ export default function DownloadJobView({
   const state = useDownloadJob(jobId, pollIntervalMs);
   const format = state.job?.format ?? undefined;
   const gallery = state.job?.media_kind === 'image_gallery';
+  const collection = state.job?.media_kind === 'video_collection';
   const title = state.job?.title ?? state.job?.source_label ?? '媒体下载任务';
   const thumbnail = state.job?.thumbnail_url ?? null;
   const extractor = state.job?.extractor_key ?? null;
@@ -87,7 +88,7 @@ export default function DownloadJobView({
             <div className="min-w-0">
               {state.job.status === 'succeeded' &&
               state.job.file_available &&
-              !gallery ? (
+              !gallery && !collection ? (
                 <DownloadVideoPreview
                   container={
                     format?.container_preference === 'mp4' ||
@@ -138,9 +139,11 @@ export default function DownloadJobView({
             </div>
           </section>
           {state.job.status === 'succeeded' ? (
-            <div className="mt-14 sm:mt-20">
-              <AnalysisPanel downloadId={state.job.id} />
-            </div>
+            !gallery && !collection ? (
+              <div className="mt-14 sm:mt-20">
+                <AnalysisPanel downloadId={state.job.id} />
+              </div>
+            ) : null
           ) : ['failed', 'cancelled'].includes(state.job.status) ? null : (
             <p className="mt-14 py-8 text-sm text-muted-foreground sm:mt-20">
               下载并验证完成后，可继续生成视觉分镜、高光与资产目录。
@@ -191,6 +194,9 @@ function formatLabel(
 ) {
   if (mediaKind === 'image_gallery') {
     return `${assetCount ?? 0} 张原图 · ZIP`;
+  }
+  if (mediaKind === 'video_collection') {
+    return `${assetCount ?? 0} 个视频 · ZIP`;
   }
   if (!format) return duration ? formatDuration(duration) : '正在读取媒体信息';
   return `${format.width}×${format.height} · ${format.video_codec_family.toUpperCase()} + ${format.audio_codec_family.toUpperCase()}${duration ? ` · ${formatDuration(duration)}` : ''}`;

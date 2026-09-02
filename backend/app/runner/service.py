@@ -8,11 +8,13 @@ from app.domain.downloads import (
     CandidateStream,
     Container,
     FormatSelectionError,
+    MediaKind,
     ProviderHints,
     select_streams,
 )
 from app.domain.providers import ProviderAccessContextRef
 from app.runner.active_tasks import ActiveTaskRegistry
+from app.runner.collection import download_video_collection_zip
 from app.runner.command_support import default_supervisor
 from app.runner.commands import MediaCommands, ProcessRunner
 from app.runner.contracts import (
@@ -119,10 +121,10 @@ class MediaRunnerService:
                                 inspection.streams,
                                 max_options=self._settings.runner_max_options,
                             )
-                            if inspection.media_kind.value == "video"
+                            if inspection.media_kind is MediaKind.VIDEO
                             else ()
                         )
-                        if inspection.media_kind.value == "video" and not plans:
+                        if inspection.media_kind is MediaKind.VIDEO and not plans:
                             raise RunnerFailure("format_unavailable", status=409)
                         thumbnail_data_url = await self._thumbnails.fetch(
                             inspection.thumbnail_urls,
@@ -214,21 +216,43 @@ class MediaRunnerService:
             provider_media_id=request.expected_provider_media_id,
             extractor_key=request.expected_extractor_key,
         )
-        if inspection.media_kind.value == "image_gallery":
-            if request.media_kind.value != "image_gallery":
+        if inspection.media_kind in {
+            MediaKind.IMAGE_GALLERY,
+            MediaKind.VIDEO_COLLECTION,
+        }:
+            if (
+                request.media_kind is not inspection.media_kind
+                or request.asset_count != inspection.asset_count
+            ):
                 raise RunnerFailure("source_changed", status=409)
+            if request.media_kind is MediaKind.VIDEO_COLLECTION:
+                self._active.update(request.task_id, RunnerTaskStage.DOWNLOADING, 10)
+                count = await download_video_collection_zip(
+                    source,
+                    workspace.path / "artifact.zip",
+                    workspace,
+                    expected_count=request.asset_count,
+                    title=inspection.title,
+                    referer=source.source_url,
+                    commands=self._commands,
+                    max_video_bytes=self._settings.runner_max_output_bytes,
+                    max_duration_seconds=self._settings.runner_max_duration_seconds,
+                    max_assets=self._settings.runner_max_gallery_assets,
+                    cookie_jar=cookie_jar,
+                )
+            else:
+                self._active.update(request.task_id, RunnerTaskStage.DOWNLOADING, 10)
+                count = await download_gallery_zip(
+                    inspection.gallery_assets,
+                    workspace.path / "artifact.zip",
+                    workspace,
+                    title=inspection.title,
+                    referer=source.source_url,
+                    commands=self._commands,
+                    max_asset_bytes=self._settings.runner_max_gallery_asset_bytes,
+                    max_assets=self._settings.runner_max_gallery_assets,
+                )
             artifact = workspace.path / "artifact.zip"
-            self._active.update(request.task_id, RunnerTaskStage.DOWNLOADING, 10)
-            count = await download_gallery_zip(
-                inspection.gallery_assets,
-                artifact,
-                workspace,
-                title=inspection.title,
-                referer=source.source_url,
-                commands=self._commands,
-                max_asset_bytes=self._settings.runner_max_gallery_asset_bytes,
-                max_assets=self._settings.runner_max_gallery_assets,
-            )
             workspace.validate_usage()
             output = workspace.validate_outputs([artifact.name])[0]
             self._active.update(request.task_id, RunnerTaskStage.VERIFYING, 90)

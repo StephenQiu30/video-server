@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 
-from app.domain.downloads import DownloadPlan
+from app.domain.downloads import DownloadPlan, MediaKind
 from app.domain.providers import ProviderAccessContextRef
 from app.runner.contracts import (
     CandidateStreamContract,
@@ -36,8 +36,9 @@ def inspect_response(
             CandidateStreamContract.from_domain(stream) for stream in inspection.streams
         ],
         options=(
-            _gallery_option(inspection)
-            if inspection.media_kind.value == "image_gallery"
+            _archive_option(inspection)
+            if inspection.media_kind
+            in {MediaKind.IMAGE_GALLERY, MediaKind.VIDEO_COLLECTION}
             else [_option(plan) for plan in plans]
         ),
         access_context=ProviderAccessContextContract.from_domain(access_context),
@@ -56,11 +57,17 @@ def _option(plan: DownloadPlan) -> DownloadOption:
     return DownloadOption(option_id=digest, label=label, plan=contract)
 
 
-def _gallery_option(inspection: MediaInspection) -> list[DownloadOption]:
+def _archive_option(inspection: MediaInspection) -> list[DownloadOption]:
+    unit = "张原图" if inspection.media_kind is MediaKind.IMAGE_GALLERY else "个视频"
+    option_id = (
+        "image-gallery-zip"
+        if inspection.media_kind is MediaKind.IMAGE_GALLERY
+        else "video-collection-zip"
+    )
     return [
         DownloadOption(
-            option_id="image-gallery-zip",
-            label=f"下载 {inspection.asset_count} 张原图（ZIP）",
+            option_id=option_id,
+            label=f"下载 {inspection.asset_count} {unit}（ZIP）",
             media_kind=inspection.media_kind,
             asset_count=inspection.asset_count,
         )

@@ -57,6 +57,22 @@ export const galleryInspection: Inspection = {
   ],
 };
 
+export const videoCollectionInspection: Inspection = {
+  ...inspection,
+  provider_media_id: 'collection-1',
+  title: '视频合集',
+  duration_seconds: 0,
+  media_kind: 'video_collection',
+  asset_count: 2,
+  formats: [
+    {
+      id: 'video-collection-zip',
+      display_name: '下载 2 个视频（ZIP）',
+      plan: null,
+    },
+  ],
+};
+
 export const sourceDiscovery: SourceDiscovery = {
   id: '44444444-4444-4444-8444-444444444444',
   provider_key: 'wechat_official_account_article',
@@ -120,6 +136,19 @@ export function galleryJob(
     duration_seconds: 0,
     media_kind: 'image_gallery',
     asset_count: galleryInspection.asset_count,
+    format: null,
+  };
+}
+
+export function videoCollectionJob(
+  status: DownloadJob['status'] = 'queued',
+): DownloadJob {
+  return {
+    ...job(status),
+    title: videoCollectionInspection.title,
+    duration_seconds: 0,
+    media_kind: 'video_collection',
+    asset_count: videoCollectionInspection.asset_count,
     format: null,
   };
 }

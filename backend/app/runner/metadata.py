@@ -207,6 +207,11 @@ def normalize_metadata(
             payload,
             max_assets=max_gallery_assets,
         )
+    if _is_video_collection_payload(payload):
+        return normalize_video_collection_metadata(
+            payload,
+            max_assets=max_gallery_assets,
+        )
     _validate_source(payload, max_duration_seconds)
     raw_formats = payload.get("formats")
     if not isinstance(raw_formats, list):
@@ -306,6 +311,44 @@ def normalize_gallery_metadata(
     )
 
 
+def normalize_video_collection_metadata(
+    payload: dict[str, Any],
+    *,
+    max_assets: int,
+) -> MediaInspection:
+    """Normalize a bounded yt-dlp playlist into one ZIP-downloadable source."""
+    raw_entries = payload.get("entries")
+    if not isinstance(raw_entries, list) or not raw_entries:
+        raise RunnerFailure("unsupported_source")
+    if len(raw_entries) > max_assets:
+        raise RunnerFailure("format_limit_exceeded", status=413)
+    if any(not isinstance(entry, dict) for entry in raw_entries):
+        raise RunnerFailure("invalid_inspection_response", status=502)
+
+    raw_title = str(payload.get("title") or "")
+    title = raw_title.strip()
+    if not title or len(title) > 4096 or any(
+        ord(character) < 32 or ord(character) == 127 for character in raw_title
+    ):
+        raise RunnerFailure("invalid_inspection_response", status=502)
+    extractor = _identity(
+        payload.get("extractor_key") or payload.get("extractor"),
+        max_length=128,
+    )
+    provider_media_id = _identity(payload.get("id"), max_length=256)
+    return MediaInspection(
+        provider_media_id=provider_media_id,
+        title=title,
+        duration_seconds=0,
+        extractor_key=extractor,
+        streams=(),
+        media_kind=MediaKind.VIDEO_COLLECTION,
+        asset_count=len(raw_entries),
+        thumbnail_urls=_thumbnail_urls(payload),
+        download_info=payload,
+    )
+
+
 def _thumbnail_urls(payload: dict[str, Any]) -> tuple[str, ...]:
     candidates: list[object] = [payload.get("thumbnail")]
     thumbnails = payload.get("thumbnails")
@@ -326,6 +369,15 @@ def _thumbnail_urls(payload: dict[str, Any]) -> tuple[str, ...]:
         if safe_url not in safe_urls:
             safe_urls.append(safe_url)
     return tuple(safe_urls)
+
+
+def _is_video_collection_payload(payload: dict[str, Any]) -> bool:
+    if payload.get("media_kind") == MediaKind.VIDEO_COLLECTION.value:
+        return True
+    media_type = str(payload.get("_type") or "").casefold()
+    return media_type in {"playlist", "multi_video"} or isinstance(
+        payload.get("entries"), list
+    )
 
 
 def _validate_source(payload: dict[str, Any], max_duration: float) -> None:

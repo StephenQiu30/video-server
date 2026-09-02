@@ -97,14 +97,17 @@ def _verify_artifact(
     digest = _file_sha256(path)
     if not hmac.compare_digest(digest, artifact.sha256):
         raise ArtifactValidationError("artifact digest does not match")
-    if artifact.media_kind is MediaKind.IMAGE_GALLERY:
+    if artifact.media_kind in {
+        MediaKind.IMAGE_GALLERY,
+        MediaKind.VIDEO_COLLECTION,
+    }:
         if (
             artifact.container != "zip"
             or artifact.video_streams != 0
             or artifact.audio_streams != 0
             or artifact.asset_count < 1
         ):
-            raise ArtifactValidationError("gallery artifact metadata is invalid")
+            raise ArtifactValidationError("archive artifact metadata is invalid")
     elif (
         not math.isfinite(artifact.duration_seconds)
         or artifact.duration_seconds <= 0

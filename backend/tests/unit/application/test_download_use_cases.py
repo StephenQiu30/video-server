@@ -22,7 +22,12 @@ from app.application.downloads import (
     RetryDownload,
     plan_to_documents,
 )
-from app.domain.downloads import DownloadSourceKind, DownloadStage, DownloadStatus
+from app.domain.downloads import (
+    DownloadSourceKind,
+    DownloadStage,
+    DownloadStatus,
+    MediaKind,
+)
 from tests.unit.application.fakes import FakeRepository, FakeStorage
 from tests.unit.application.test_inspect_media import (
     NOW,
@@ -57,6 +62,37 @@ def seed_inspection(
                 semantic_plan=semantic,
                 provider_hints=hints,
                 expires_at=expires_at or NOW + timedelta(minutes=15),
+            ),
+        ),
+    )
+    return inspection_id, format_id
+
+
+def seed_video_collection(repository: FakeRepository) -> tuple[UUID, UUID]:
+    inspection_id, format_id = uuid4(), uuid4()
+    expires_at = NOW + timedelta(minutes=15)
+    semantic = {
+        "media_kind": MediaKind.VIDEO_COLLECTION.value,
+        "asset_count": 2,
+    }
+    repository.inspections[inspection_id] = InspectionSnapshot(
+        id=inspection_id,
+        owner_hash=OWNER,
+        request_fingerprint="a" * 64,
+        extractor_key="Instagram",
+        provider_media_id="collection-1",
+        title="视频合集",
+        duration_seconds=0,
+        metadata=semantic,
+        expires_at=expires_at,
+        formats=(
+            FormatSnapshot(
+                id=format_id,
+                display_name="下载 2 个视频（ZIP）",
+                plan_fingerprint="b" * 64,
+                semantic_plan=semantic,
+                provider_hints={},
+                expires_at=expires_at,
             ),
         ),
     )
@@ -98,6 +134,26 @@ async def test_create_download_persists_job_and_outbox_idempotently() -> None:
     command = repository.download_commands[0]
     assert command.semantic_plan["height"] == 1080
     assert "hints" not in command.semantic_plan
+
+
+@pytest.mark.asyncio
+async def test_create_download_persists_video_collection_without_a_video_plan() -> None:
+    repository = FakeRepository()
+    inspection_id, format_id = seed_video_collection(repository)
+
+    created = await creator(repository)(
+        inspection_id,
+        format_id,
+        OWNER,
+        "video-collection-download",
+    )
+
+    assert created.media_kind is MediaKind.VIDEO_COLLECTION
+    assert created.asset_count == 2
+    assert repository.download_commands[0].semantic_plan == {
+        "media_kind": MediaKind.VIDEO_COLLECTION.value,
+        "asset_count": 2,
+    }
 
 
 @pytest.mark.asyncio

@@ -149,7 +149,11 @@ class InspectMedia:
             raise ApplicationError(ApplicationErrorCode.INSPECTION_FAILED) from exc
         if result.media_kind is MediaKind.VIDEO and result.duration_seconds <= 0:
             raise ApplicationError(ApplicationErrorCode.INSPECTION_FAILED)
-        if result.media_kind is MediaKind.IMAGE_GALLERY and result.asset_count <= 0:
+        if (
+            result.media_kind
+            in {MediaKind.IMAGE_GALLERY, MediaKind.VIDEO_COLLECTION}
+            and result.asset_count <= 0
+        ):
             raise ApplicationError(ApplicationErrorCode.INSPECTION_FAILED)
         if (
             result.media_kind is MediaKind.VIDEO
@@ -245,15 +249,19 @@ class InspectMedia:
         media_kind: MediaKind,
         asset_count: int,
     ) -> tuple[FormatCreate, ...]:
-        if media_kind is MediaKind.IMAGE_GALLERY:
-            semantic = {
+        if media_kind in {MediaKind.IMAGE_GALLERY, MediaKind.VIDEO_COLLECTION}:
+            semantic: dict[str, object] = {
                 "media_kind": media_kind.value,
                 "asset_count": asset_count,
             }
             return (
                 FormatCreate(
                     id=self._new_id(),
-                    display_name=f"{asset_count} 张原图（ZIP）",
+                    display_name=(
+                        f"{asset_count} 张原图（ZIP）"
+                        if media_kind is MediaKind.IMAGE_GALLERY
+                        else f"{asset_count} 个视频（ZIP）"
+                    ),
                     plan_fingerprint=plan_fingerprint(semantic),
                     semantic_plan=semantic,
                     provider_hints={},
@@ -291,7 +299,7 @@ def _inspection_metadata(result: RunnerInspection) -> dict[str, object]:
     metadata: dict[str, object] = {
         "provider_access_context": result.access_context.to_document()
     }
-    if result.media_kind is MediaKind.IMAGE_GALLERY:
+    if result.media_kind in {MediaKind.IMAGE_GALLERY, MediaKind.VIDEO_COLLECTION}:
         metadata["media_kind"] = result.media_kind.value
         metadata["asset_count"] = result.asset_count
     if result.thumbnail_data_url is not None:

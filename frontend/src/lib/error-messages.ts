@@ -55,7 +55,7 @@ const localizedErrorMessages: Record<string, string> = {
   provider_failure: 'AI 服务未能完成分析，请稍后重试。',
   provider_geo_restricted: '该视频在当前服务区域不可用。',
   provider_link_unavailable: '未找到可下载的公开视频，请复制新的公开分享链接。',
-  provider_media_unsupported: '该链接不是受支持的单个视频，请更换链接。',
+  provider_media_unsupported: '该链接不包含受支持的可下载视频，请更换链接。',
   provider_rate_limited: '平台请求过于频繁，请稍后重试。',
   provider_session_expired: '平台授权或验证状态已失效，请稍后重试。',
   provider_temporarily_unavailable: '平台服务暂时不可用，请稍后重试。',

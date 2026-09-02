@@ -69,7 +69,7 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
     FailureRule(
         "provider_media_unsupported",
         422,
-        any_stderr=(b"facebook image and multi-asset posts are not supported",),
+        any_stderr=(b"facebook post does not contain a downloadable video",),
         providers=frozenset({ProviderKey.FACEBOOK}),
     ),
     FailureRule(

@@ -16,6 +16,49 @@ class VerifiedProbe:
     audio_streams: int
 
 
+@dataclass(frozen=True, slots=True)
+class VerifiedCollectionVideo:
+    duration_seconds: float
+    video_streams: int
+    audio_streams: int
+    extension: str
+
+
+def verify_collection_video(
+    payload: dict[str, Any],
+    *,
+    max_duration: float,
+    source_extension: str,
+) -> VerifiedCollectionVideo:
+    """Verify one downloaded collection member without imposing one format plan."""
+    format_info = payload.get("format")
+    streams = payload.get("streams")
+    if not isinstance(format_info, dict) or not isinstance(streams, list):
+        raise RunnerFailure("media_validation_failed", status=502)
+    names = {
+        name.strip().casefold()
+        for name in str(format_info.get("format_name") or "").split(",")
+    }
+    if not names & {"mp4", "mov", "m4v", "3gp", "3g2", "webm", "matroska"}:
+        raise RunnerFailure("media_validation_failed", status=502)
+    video = [item for item in streams if _stream_type(item) == "video"]
+    audio = [item for item in streams if _stream_type(item) == "audio"]
+    if not video:
+        raise RunnerFailure("media_validation_failed", status=502)
+    duration = _duration(format_info.get("duration"))
+    if duration is None or duration > max_duration:
+        raise RunnerFailure("media_validation_failed", status=502)
+    extension = _collection_extension(source_extension, names)
+    return VerifiedCollectionVideo(duration, len(video), len(audio), extension)
+
+
+def _collection_extension(source_extension: str, names: set[str]) -> str:
+    extension = source_extension.casefold().lstrip(".")
+    if extension in {"mp4", "webm", "mkv", "mov", "m4v", "3gp", "3g2"}:
+        return extension
+    return "webm" if "webm" in names and "mp4" not in names else "mp4"
+
+
 def verify_probe(
     payload: dict[str, Any],
     *,

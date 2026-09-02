@@ -117,6 +117,26 @@ def test_provider_retry_budget_applies_to_inspect_and_download(tmp_path: Path) -
     assert "--ignore-no-formats-error" not in commands[3]
 
 
+def test_collection_download_enables_playlist_with_bounded_output(
+    tmp_path: Path,
+) -> None:
+    builder = YtDlpCommandBuilder(settings(tmp_path), tmp_path)
+
+    command = builder.download_collection(
+        "https://www.instagram.com/p/example/",
+        tmp_path / "collection",
+        max_bytes=1024,
+        max_entries=11,
+        cookie_jar=None,
+    ).argv
+
+    assert "--yes-playlist" in command
+    assert "--no-playlist" not in command
+    assert command[command.index("--playlist-end") + 1] == "11"
+    assert command[command.index("--max-filesize") + 1] == "1024"
+    assert command[-1] == "https://www.instagram.com/p/example/"
+
+
 @pytest.mark.asyncio
 async def test_inspection_classifies_douyin_fresh_cookie_requirement(
     tmp_path: Path,
@@ -1050,8 +1070,7 @@ async def test_facebook_image_post_is_classified_as_unsupported_media(
     commands = MediaCommands(
         settings(tmp_path),
         FailingSupervisor(
-            b"ERROR: Facebook image and multi-asset posts are not supported "
-            b"by the video runner"
+            b"ERROR: Facebook post does not contain a downloadable video"
         ),
     )
 

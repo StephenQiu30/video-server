@@ -48,6 +48,7 @@ class YtDlpCommandBuilder:
                 "--ignore-no-formats-error",
             ),
             cookie_jar=cookie_jar,
+            include_playlist=True,
         )
 
     def download(
@@ -78,6 +79,37 @@ class YtDlpCommandBuilder:
             include_source=info_json is None,
         )
 
+    def download_collection(
+        self,
+        source: str | ProviderRequest,
+        output_dir: Path,
+        *,
+        max_bytes: int,
+        max_entries: int,
+        cookie_jar: Path | None,
+    ) -> BuiltYtDlpCommand:
+        if max_bytes <= 0 or max_entries <= 0:
+            raise ValueError("collection download limits must be positive")
+        request = self._resolve(source)
+        operation_args = (
+            "--yes-playlist",
+            "--format",
+            "bestvideo*+bestaudio/best",
+            "--max-filesize",
+            str(max_bytes),
+            "--playlist-end",
+            str(max_entries),
+            "--restrict-filenames",
+            "--output",
+            str(output_dir / "video-%(playlist_index)04d.%(ext)s"),
+        )
+        return self._build(
+            request,
+            operation_args,
+            cookie_jar=cookie_jar,
+            include_playlist=True,
+        )
+
     def _build(
         self,
         request: ProviderRequest,
@@ -85,6 +117,7 @@ class YtDlpCommandBuilder:
         *,
         cookie_jar: Path | None,
         include_source: bool = True,
+        include_playlist: bool = False,
     ) -> BuiltYtDlpCommand:
         profile = request.profile
         if (
@@ -98,7 +131,6 @@ class YtDlpCommandBuilder:
             "--ignore-config",
             "--plugin-dirs",
             str(self._plugin_root),
-            "--no-playlist",
             "--no-progress",
             "--retries",
             str(profile.yt_dlp_retry_count),
@@ -111,6 +143,8 @@ class YtDlpCommandBuilder:
             "--proxy",
             egress_proxy,
         )
+        if not include_playlist:
+            command += ("--no-playlist",)
         if cookie_jar is not None:
             command += ("--cookies", str(cookie_jar))
         command += (*operation_args, *profile.command_args_for(self._settings))

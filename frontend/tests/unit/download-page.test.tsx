@@ -13,6 +13,7 @@ import {
   job,
   reportedDouyinShareMessage,
   sourceDiscovery,
+  videoCollectionInspection,
 } from '../fixtures/download-fixtures';
 import {
   httpRequests,
@@ -265,6 +266,24 @@ describe('DownloadWorkspace', () => {
     expect(screen.getByText('下载 3 张原图（ZIP）')).toBeInTheDocument();
     expect(screen.getByText('图文作品 · 3 张原图')).toBeInTheDocument();
     expect(screen.getByText('原图打包')).toBeInTheDocument();
+  });
+
+  it('shows a multi-video source as a ZIP download option', async () => {
+    mockHttpResponses(videoCollectionInspection);
+    renderWorkspace();
+
+    fireEvent.change(screen.getByLabelText('公开视频地址'), {
+      target: { value: 'https://www.instagram.com/p/example/' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
+
+    expect(
+      await screen.findByRole('heading', { name: '视频合集' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '下载内容' })).toBeInTheDocument();
+    expect(screen.getByText('下载 2 个视频（ZIP）')).toBeInTheDocument();
+    expect(screen.getByText('视频合集 · 2 个视频')).toBeInTheDocument();
+    expect(screen.getByText('视频合集 · 视频 ZIP')).toBeInTheDocument();
   });
 
   it('routes a recognized WeChat Channels source to owned-file upload', async () => {

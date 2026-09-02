@@ -38,7 +38,7 @@ export function statusVariant(status: DownloadStatus) {
 }
 
 export function statusHeading(job: DownloadJob) {
-  const media = job.media_kind === 'image_gallery' ? '图集' : '视频';
+  const media = archiveLabel(job);
   if (job.status === 'queued') return '下载即将开始';
   if (job.status === 'running') return `正在准备${media}文件`;
   if (job.status === 'retry_wait') return '等待再次尝试';
@@ -50,14 +50,16 @@ export function statusHeading(job: DownloadJob) {
 }
 
 export function statusDescription(job: DownloadJob) {
+  const media = archiveLabel(job);
   if (job.status === 'queued')
     return '任务已经进入队列，开始后会实时更新进度。';
   if (job.status === 'running') return '正在完成媒体下载、封装与文件校验。';
   if (job.status === 'retry_wait')
     return '系统会在等待结束后自动继续当前任务。';
   if (job.status === 'succeeded' && job.file_available) {
-    return job.media_kind === 'image_gallery'
-      ? '图集已经完成校验，可以直接保存 ZIP 文件。'
+    return job.media_kind === 'image_gallery' ||
+      job.media_kind === 'video_collection'
+      ? `${media}已经完成校验，可以直接保存 ZIP 文件。`
       : '视频已经完成校验，可以直接保存到你的设备。';
   }
   if (job.status === 'succeeded') return '下载记录仍然保留，可以重新创建任务。';
@@ -71,6 +73,14 @@ export function statusDescription(job: DownloadJob) {
     return '系统保留了失败记录，可以根据原因恢复下载。';
   }
   return '任务已经停止，随时可以重新创建下载。';
+}
+
+function archiveLabel(job: DownloadJob) {
+  return job.media_kind === 'image_gallery'
+    ? '图集'
+    : job.media_kind === 'video_collection'
+      ? '视频合集'
+      : '视频';
 }
 
 export function executionTitle(job: DownloadJob) {
