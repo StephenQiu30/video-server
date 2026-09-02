@@ -32,6 +32,7 @@ from app.runner.gallery import download_gallery_zip
 from app.runner.inspection_pipeline import RunnerInspectionPipeline
 from app.runner.metadata import (
     build_download_options,
+    collection_fallback_assets,
 )
 from app.runner.presentation import inspect_response
 from app.runner.provider_registry import (
@@ -220,26 +221,47 @@ class MediaRunnerService:
             MediaKind.IMAGE_GALLERY,
             MediaKind.VIDEO_COLLECTION,
         }:
+            legacy_collection_image_fallback = (
+                request.media_kind is MediaKind.VIDEO_COLLECTION
+                and inspection.media_kind is MediaKind.IMAGE_GALLERY
+            )
             if (
                 request.media_kind is not inspection.media_kind
-                or request.asset_count != inspection.asset_count
+                and not legacy_collection_image_fallback
+            ) or (
+                request.asset_count != inspection.asset_count
             ):
                 raise RunnerFailure("source_changed", status=409)
             if request.media_kind is MediaKind.VIDEO_COLLECTION:
                 self._active.update(request.task_id, RunnerTaskStage.DOWNLOADING, 10)
-                count = await download_video_collection_zip(
-                    source,
-                    workspace.path / "artifact.zip",
-                    workspace,
-                    expected_count=request.asset_count,
-                    title=inspection.title,
-                    referer=source.source_url,
-                    commands=self._commands,
-                    max_video_bytes=self._settings.runner_max_output_bytes,
-                    max_duration_seconds=self._settings.runner_max_duration_seconds,
-                    max_assets=self._settings.runner_max_gallery_assets,
-                    cookie_jar=cookie_jar,
-                )
+                if inspection.media_kind is MediaKind.IMAGE_GALLERY:
+                    count = await download_gallery_zip(
+                        inspection.gallery_assets,
+                        workspace.path / "artifact.zip",
+                        workspace,
+                        title=inspection.title,
+                        referer=source.source_url,
+                        commands=self._commands,
+                        max_asset_bytes=self._settings.runner_max_gallery_asset_bytes,
+                        max_assets=self._settings.runner_max_gallery_assets,
+                    )
+                else:
+                    count = await download_video_collection_zip(
+                        source,
+                        workspace.path / "artifact.zip",
+                        workspace,
+                        expected_count=request.asset_count,
+                        title=inspection.title,
+                        referer=source.source_url,
+                        commands=self._commands,
+                        max_video_bytes=self._settings.runner_max_output_bytes,
+                        max_duration_seconds=self._settings.runner_max_duration_seconds,
+                        max_assets=self._settings.runner_max_gallery_assets,
+                        cookie_jar=cookie_jar,
+                        fallback_assets=collection_fallback_assets(
+                            inspection.download_info
+                        ),
+                    )
             else:
                 self._active.update(request.task_id, RunnerTaskStage.DOWNLOADING, 10)
                 count = await download_gallery_zip(

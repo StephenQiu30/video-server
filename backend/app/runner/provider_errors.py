@@ -265,6 +265,12 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         authenticated=False,
     ),
     FailureRule(
+        "format_unavailable",
+        409,
+        any_stderr=(b"no video formats found",),
+        providers=frozenset({ProviderKey.INSTAGRAM}),
+    ),
+    FailureRule(
         "credential_required",
         422,
         all_stderr=(b"fresh cookies", b"needed"),

@@ -176,6 +176,28 @@ async def test_public_instagram_empty_response_requests_operator_session(
 
 
 @pytest.mark.asyncio
+async def test_instagram_missing_video_formats_is_not_retried_as_temporary_failure(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(b"ERROR: [Instagram] No video formats found!"),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.download_collection(
+            "https://www.instagram.com/p/example/",
+            tmp_path / "collection",
+            tmp_path,
+            max_bytes=1024,
+            max_entries=2,
+        )
+
+    assert caught.value.code == "format_unavailable"
+    assert caught.value.status == 409
+
+
+@pytest.mark.asyncio
 async def test_inspection_classifies_youtube_bot_confirmation_requirement(
     tmp_path: Path,
 ) -> None:

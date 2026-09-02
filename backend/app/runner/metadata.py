@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import base64
 import math
 import re
 from dataclasses import dataclass, field
 from typing import Any
+from urllib.parse import parse_qs, urlsplit
 
 from app.domain.downloads import CandidateStream, DynamicRange, MediaKind, StreamKind
 from app.runner.codecs import (
@@ -19,6 +21,7 @@ __all__ = [
     "MediaInspection",
     "GalleryAsset",
     "build_download_options",
+    "collection_fallback_assets",
     "enrich_direct_metadata",
     "enrich_format_metadata",
     "normalize_metadata",
@@ -318,7 +321,14 @@ def normalize_video_collection_metadata(
     *,
     max_assets: int,
 ) -> MediaInspection:
-    """Normalize a bounded yt-dlp playlist into one ZIP-downloadable source."""
+    """Normalize a bounded yt-dlp playlist into one ZIP-downloadable source.
+
+    A playlist entry can be returned as metadata-only when an extractor can
+    enumerate the post but cannot resolve any playable representation. Keep
+    the collection as a ZIP-capable source so the download path can choose a
+    provider-specific fallback (for example, an image carousel) without
+    inventing a format selection.
+    """
     raw_entries = payload.get("entries")
     if not isinstance(raw_entries, list) or not raw_entries:
         raise RunnerFailure("unsupported_source")
@@ -340,6 +350,20 @@ def normalize_video_collection_metadata(
         max_length=128,
     )
     provider_media_id = _identity(payload.get("id"), max_length=256)
+    fallback_assets = collection_fallback_assets(payload)
+    if fallback_assets:
+        return MediaInspection(
+            provider_media_id=provider_media_id,
+            title=title,
+            duration_seconds=0,
+            extractor_key=extractor,
+            streams=(),
+            media_kind=MediaKind.IMAGE_GALLERY,
+            asset_count=len(fallback_assets),
+            gallery_assets=fallback_assets,
+            thumbnail_urls=_thumbnail_urls(payload),
+            download_info=payload,
+        )
     return MediaInspection(
         provider_media_id=provider_media_id,
         title=title,
@@ -351,6 +375,131 @@ def normalize_video_collection_metadata(
         thumbnail_urls=_thumbnail_urls(payload),
         download_info=payload,
     )
+
+
+def collection_fallback_assets(
+    payload: dict[str, Any],
+) -> tuple[GalleryAsset, ...]:
+    """Extract safe image assets for metadata-only image carousels.
+
+    Instagram can expose an image carousel through its playlist shape while
+    returning no video formats. In that case the high-resolution image
+    thumbnails are the actual downloadable assets. Do not use this fallback
+    for entries that identify themselves as video media: a poster image must
+    never be presented as a downloaded video.
+    """
+    raw_entries = payload.get("entries")
+    if (
+        not isinstance(raw_entries, list)
+        or not raw_entries
+        or any(not isinstance(entry, dict) for entry in raw_entries)
+        or any(_entry_has_downloadable_format(entry) for entry in raw_entries)
+        or any(_entry_declares_video(entry) for entry in raw_entries)
+    ):
+        return ()
+
+    assets: list[GalleryAsset] = []
+    for entry in raw_entries:
+        thumbnail = _entry_thumbnail_url(entry)
+        if thumbnail is None or not _entry_declares_image(entry, thumbnail):
+            return ()
+        try:
+            url = validate_media_url(thumbnail).value
+        except UrlPolicyError:
+            return ()
+        extension = urlsplit(url).path.rsplit(".", maxsplit=1)[-1].casefold()
+        if extension not in {"jpg", "jpeg", "png", "webp"}:
+            extension = "jpg"
+        assets.append(
+            GalleryAsset(
+                url=url,
+                extension="jpg" if extension == "jpeg" else extension,
+            )
+        )
+    return tuple(assets)
+
+
+def _entry_has_downloadable_format(entry: dict[str, Any]) -> bool:
+    """Return whether yt-dlp exposed at least one usable representation."""
+    formats = entry.get("formats")
+    if isinstance(formats, list):
+        return any(
+            isinstance(raw_format, dict)
+            and isinstance(raw_format.get("format_id"), str)
+            and bool(raw_format["format_id"].strip())
+            and isinstance(raw_format.get("url"), str)
+            and bool(raw_format["url"].strip())
+            for raw_format in formats
+        )
+    return (
+        isinstance(entry.get("format_id"), str)
+        and bool(entry["format_id"].strip())
+        and isinstance(entry.get("url"), str)
+        and bool(entry["url"].strip())
+    )
+
+
+def _entry_declares_video(entry: dict[str, Any]) -> bool:
+    if entry.get("is_video") is True:
+        return True
+    if str(entry.get("__typename") or "").casefold() == "graphvideo":
+        return True
+    return any(
+        key in entry
+        for key in (
+            "video_duration",
+            "video_url",
+            "video_versions",
+            "video_dash_manifest",
+        )
+    )
+
+
+def _entry_declares_image(entry: dict[str, Any], thumbnail: str) -> bool:
+    if entry.get("is_video") is False:
+        return True
+    if str(entry.get("__typename") or "").casefold() == "graphimage":
+        return True
+    if "image_versions2" in entry:
+        return True
+    return _thumbnail_is_regular_photo(thumbnail)
+
+
+def _thumbnail_is_regular_photo(url: str) -> bool:
+    parsed = urlsplit(url)
+    if "regular_photo" in parsed.query.casefold():
+        return True
+    encoded = parse_qs(parsed.query).get("efg", [""])[0]
+    if not encoded:
+        return False
+    try:
+        padding = "=" * (-len(encoded) % 4)
+        decoded = base64.urlsafe_b64decode(f"{encoded}{padding}").decode()
+    except (UnicodeDecodeError, ValueError):
+        return False
+    return "regular_photo" in decoded.casefold()
+
+
+def _entry_thumbnail_url(entry: dict[str, Any]) -> str | None:
+    direct = entry.get("thumbnail")
+    if isinstance(direct, str) and direct.strip():
+        return direct.strip()
+    thumbnails = entry.get("thumbnails")
+    if not isinstance(thumbnails, list):
+        return None
+    candidates = [
+        value
+        for value in thumbnails
+        if isinstance(value, dict) and isinstance(value.get("url"), str)
+    ]
+    if not candidates:
+        return None
+    selected = max(
+        candidates,
+        key=lambda value: (_positive_int(value.get("width")) or 0)
+        * (_positive_int(value.get("height")) or 0),
+    )
+    return str(selected["url"]).strip() or None
 
 
 def _thumbnail_urls(payload: dict[str, Any]) -> tuple[str, ...]:

@@ -8,6 +8,8 @@ import zipfile
 from pathlib import Path
 
 from app.runner.errors import RunnerFailure
+from app.runner.gallery import download_gallery_zip
+from app.runner.metadata import GalleryAsset
 from app.runner.verification import verify_collection_video
 from app.runner.workspace import TaskWorkspace
 
@@ -25,8 +27,14 @@ async def download_video_collection_zip(
     max_duration_seconds: float,
     max_assets: int,
     cookie_jar: Path | None,
+    fallback_assets: tuple[GalleryAsset, ...] = (),
 ) -> int:
-    """Download each playlist member, validate it, then package every member."""
+    """Download each playlist member, then package every member.
+
+    Some providers expose an image carousel as a playlist with no playable
+    video formats. In that case, use the validated image assets supplied by
+    inspection instead of forcing a video format selection.
+    """
     if not 1 <= expected_count <= max_assets:
         raise RunnerFailure("format_limit_exceeded", status=413)
     download = getattr(commands, "download_collection", None)
@@ -38,14 +46,31 @@ async def download_video_collection_zip(
     output_dir.mkdir(mode=0o700)
     files: list[tuple[Path, str]] = []
     try:
-        await download(
-            source,
-            output_dir,
-            workspace.path,
-            max_bytes=max_video_bytes,
-            max_entries=max_assets + 1,
-            cookie_jar=cookie_jar,
-        )
+        try:
+            await download(
+                source,
+                output_dir,
+                workspace.path,
+                max_bytes=max_video_bytes,
+                max_entries=max_assets + 1,
+                cookie_jar=cookie_jar,
+            )
+        except RunnerFailure as exc:
+            if (
+                exc.code != "format_unavailable"
+                or len(fallback_assets) != expected_count
+            ):
+                raise
+            return await download_gallery_zip(
+                fallback_assets,
+                output,
+                workspace,
+                title=title,
+                referer=referer,
+                commands=commands,
+                max_asset_bytes=max_video_bytes,
+                max_assets=max_assets,
+            )
         workspace.validate_usage()
         downloaded = _files(output_dir)
         if len(downloaded) != expected_count:

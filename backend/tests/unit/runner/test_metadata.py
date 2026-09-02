@@ -13,6 +13,7 @@ from app.domain.downloads import (
 from app.runner.errors import RunnerFailure
 from app.runner.metadata import (
     build_download_options,
+    collection_fallback_assets,
     enrich_direct_metadata,
     enrich_format_metadata,
     normalize_metadata,
@@ -120,6 +121,67 @@ def test_normalizes_playlist_as_a_video_collection() -> None:
     assert inspection.duration_seconds == 0
     assert inspection.asset_count == 2
     assert inspection.streams == ()
+
+
+def test_keeps_metadata_only_video_collection_zip_capable() -> None:
+    payload = {
+        "_type": "playlist",
+        "id": "playlist-without-media",
+        "title": "没有可播放格式的合集",
+        "extractor_key": "Instagram",
+        "entries": [
+            {"id": "video-1", "formats": []},
+            {"id": "video-2", "formats": []},
+        ],
+    }
+
+    inspection = normalize_metadata(
+        payload,
+        max_duration_seconds=7200,
+        max_candidate_streams=200,
+        max_gallery_assets=10,
+    )
+
+    assert inspection.media_kind is MediaKind.VIDEO_COLLECTION
+    assert inspection.asset_count == 2
+
+
+def test_extracts_image_fallback_assets_from_metadata_only_carousel() -> None:
+    payload = {
+        "_type": "playlist",
+        "id": "image-carousel",
+        "title": "图文合集",
+        "extractor_key": "Instagram",
+        "entries": [
+            {
+                "id": "image-1",
+                "thumbnail": "https://cdn.example.com/image-1.webp?regular_photo=1",
+            },
+            {
+                "id": "image-2",
+                "thumbnail": "https://cdn.example.com/image-2.webp?regular_photo=1",
+            },
+        ]
+    }
+
+    assets = collection_fallback_assets(payload)
+
+    assert [asset.extension for asset in assets] == ["webp", "webp"]
+    assert [asset.url for asset in assets] == [
+        "https://cdn.example.com/image-1.webp?regular_photo=1",
+        "https://cdn.example.com/image-2.webp?regular_photo=1",
+    ]
+
+    inspection = normalize_metadata(
+        payload,
+        max_duration_seconds=7200,
+        max_candidate_streams=200,
+        max_gallery_assets=10,
+    )
+
+    assert inspection.media_kind is MediaKind.IMAGE_GALLERY
+    assert inspection.asset_count == 2
+    assert inspection.gallery_assets == assets
 
 
 def test_rejects_gallery_assets_over_configured_limit() -> None:
