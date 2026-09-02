@@ -257,6 +257,16 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
     FailureRule(
         "credential_required",
         422,
+        any_stderr=(
+            b"instagram api is not granting access",
+            b"instagram sent an empty media response",
+        ),
+        providers=frozenset({ProviderKey.INSTAGRAM}),
+        authenticated=False,
+    ),
+    FailureRule(
+        "credential_required",
+        422,
         all_stderr=(b"fresh cookies", b"needed"),
     ),
     FailureRule(

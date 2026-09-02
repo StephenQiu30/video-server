@@ -156,6 +156,26 @@ async def test_inspection_classifies_douyin_fresh_cookie_requirement(
 
 
 @pytest.mark.asyncio
+async def test_public_instagram_empty_response_requests_operator_session(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(
+            b"WARNING: Instagram API is not granting access\n"
+            b"ERROR: Instagram sent an empty media response. "
+            b"Use --cookies-from-browser or --cookies"
+        ),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect("https://www.instagram.com/p/example/", tmp_path)
+
+    assert caught.value.code == "credential_required"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
 async def test_inspection_classifies_youtube_bot_confirmation_requirement(
     tmp_path: Path,
 ) -> None:
