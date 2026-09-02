@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from datetime import datetime
 from uuid import UUID
 
@@ -16,8 +17,14 @@ from app.infrastructure.database.models import AuthSessionRow, UserRow
 
 
 class SqlAlchemyUserRepository:
-    def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
+    def __init__(
+        self,
+        sessions: async_sessionmaker[AsyncSession],
+        *,
+        revoke_sessions: Callable[[UUID], Awaitable[None]] | None = None,
+    ) -> None:
         self._sessions = sessions
+        self._revoke_sessions = revoke_sessions
 
     async def update_username(
         self,
@@ -99,6 +106,7 @@ class SqlAlchemyUserRepository:
             values["role"] = role.value
         if is_active is not None:
             values["is_active"] = is_active
+        should_revoke_sessions = False
         async with self._sessions.begin() as session:
             row = await session.scalar(
                 update(UserRow)
@@ -110,4 +118,7 @@ class SqlAlchemyUserRepository:
                 await session.execute(
                     delete(AuthSessionRow).where(AuthSessionRow.user_id == account_id)
                 )
+                should_revoke_sessions = True
+        if should_revoke_sessions and self._revoke_sessions is not None:
+            await self._revoke_sessions(account_id)
         return account_from_row(row) if row is not None else None

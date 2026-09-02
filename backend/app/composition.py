@@ -111,6 +111,10 @@ from app.infrastructure.provider_status_evidence import (
 from app.infrastructure.rate_limiter import ValkeyRateLimiter
 from app.infrastructure.readiness import RuntimeReadiness, build_runtime_readiness
 from app.infrastructure.realtime import RabbitMqRealtimeConsumer, RealtimeHub
+from app.infrastructure.redis_auth_repository import (
+    RedisAuthRepository,
+    ValkeyAuthSessionStore,
+)
 from app.infrastructure.storage_file_repository import SqlAlchemyStorageFileRepository
 from app.infrastructure.task_event_store import TaskEventStore
 from app.infrastructure.thumbnail_storage import MinioThumbnailStorage
@@ -130,6 +134,7 @@ class ApiRuntime:
     source_discovery_use_cases: SourceDiscoveryUseCases
     engine: AsyncEngine
     runner: MediaRunnerRouter
+    auth_session_store: ValkeyAuthSessionStore
     rate_limiter: ValkeyRateLimiter | None
     readiness: RuntimeReadiness
     realtime_hub: RealtimeHub
@@ -149,6 +154,7 @@ class ApiRuntime:
         await self.realtime_consumer.close()
         await self.readiness.close()
         await self.runner.close()
+        await self.auth_session_store.close()
         if self.rate_limiter is not None:
             await self.rate_limiter.close()
         await self.engine.dispose()
@@ -175,8 +181,18 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         expected_message_schema_version=ANALYSIS_MESSAGE_SCHEMA_VERSION,
         stale_after=timedelta(seconds=settings.analysis_worker_stale_seconds),
     )
-    auth_repository = SqlAlchemyAuthRepository(sessions)
-    user_repository = SqlAlchemyUserRepository(sessions)
+    auth_database_repository = SqlAlchemyAuthRepository(sessions)
+    if not settings.valkey_url:
+        raise ValueError("API auth sessions require VALKEY_URL")
+    auth_session_store = ValkeyAuthSessionStore(settings.valkey_url)
+    auth_repository = RedisAuthRepository(
+        auth_database_repository,
+        auth_session_store,
+    )
+    user_repository = SqlAlchemyUserRepository(
+        sessions,
+        revoke_sessions=auth_session_store.delete_user_sessions,
+    )
     provider_catalog_repository = SqlAlchemyProviderCatalogRepository(sessions)
     ai_provider_repository = SqlAlchemyAiProviderRepository(sessions)
     store = SqlAlchemyDownloadStore(repository)
@@ -468,6 +484,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         source_discovery_use_cases=source_discovery_use_cases,
         engine=engine,
         runner=runner,
+        auth_session_store=auth_session_store,
         rate_limiter=rate_limiter,
         readiness=build_runtime_readiness(
             settings,

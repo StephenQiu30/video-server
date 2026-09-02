@@ -24,7 +24,10 @@ let refreshRequest: Promise<void> | null = null;
 export const httpClient: AxiosInstance = axios.create({
   timeout: API_TIMEOUT_MS,
   withCredentials: true,
-  headers: { Accept: 'application/json' },
+  headers: {
+    Accept: 'application/json',
+    'X-Client-Platform': 'web',
+  },
 });
 
 httpClient.interceptors.response.use(
