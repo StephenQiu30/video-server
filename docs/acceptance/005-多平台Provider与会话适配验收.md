@@ -111,7 +111,7 @@
 - [ ] H3：凭据创建/激活/验证/撤销/lease 审计只记录非 Secret 元数据。
 - [ ] H4：未登记许可证、未固定 version 或用户可加载的插件在 CI 被拒绝。
 - [ ] H5：镜像和依赖扫描无未接受 Critical/High；发布物可追溯 Git SHA、Profile/engine/POT 版本和 SBOM digest。
-- [x] H6：production-like Compose 证明 Runner pool、Secret mount、tmpfs、网络和 kill switch 符合设计。
+- [x] H6：production-like Compose 证明 Runner pool、加密会话队列、独占 tmpfs、网络和 kill switch 符合设计，且没有 Cookie 持久卷或宿主 Secret mount。
 - [x] H7：平台目录由 PostgreSQL 持久化，只有管理员可通过 CRUD API 和 `/admin/providers` 页面维护名称、排序与可见性；普通用户返回 403，自定义目录条目保持 `unsupported`，不能创建下载 Profile 或扩大域名 admission。
 
 ## 10. I. Phase 2 用户 ProviderCredential

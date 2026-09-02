@@ -150,8 +150,7 @@ class InspectMedia:
         if result.media_kind is MediaKind.VIDEO and result.duration_seconds <= 0:
             raise ApplicationError(ApplicationErrorCode.INSPECTION_FAILED)
         if (
-            result.media_kind
-            in {MediaKind.IMAGE_GALLERY, MediaKind.VIDEO_COLLECTION}
+            result.media_kind in {MediaKind.IMAGE_GALLERY, MediaKind.VIDEO_COLLECTION}
             and result.asset_count <= 0
         ):
             raise ApplicationError(ApplicationErrorCode.INSPECTION_FAILED)

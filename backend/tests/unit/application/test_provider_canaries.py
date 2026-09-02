@@ -468,9 +468,7 @@ async def test_credential_or_attestation_rotation_invalidates_old_evidence(
 
 
 @pytest.mark.asyncio
-async def test_operator_evidence_does_not_override_mixed_unknown_public_status() -> (
-    None
-):
+async def test_mixed_unknown_status_uses_operator_download_evidence() -> None:
     operator_context = access_context(
         access_mode=ProviderAccessMode.OPERATOR_MANAGED,
     )
@@ -490,14 +488,15 @@ async def test_operator_evidence_does_not_override_mixed_unknown_public_status()
         Reader((operator_media,)),
         (operator_baseline,),
         now=lambda: NOW,
+        context_reader=ContextReader((operator_context,)),
     )
 
     view = (await service.list())[0]
 
-    assert view.last_checked_at is None
-    assert view.last_check_succeeded is None
-    assert view.download_available is False
-    assert view.last_media_verified_at is None
+    assert view.last_checked_at == NOW
+    assert view.last_check_succeeded is True
+    assert view.download_available is True
+    assert view.last_media_verified_at == NOW
 
 
 @pytest.mark.asyncio
@@ -541,7 +540,7 @@ async def test_mixed_access_required_status_uses_operator_download_evidence() ->
 
 
 @pytest.mark.asyncio
-async def test_mixed_verified_status_keeps_anonymous_evidence_scope() -> None:
+async def test_mixed_verified_status_uses_operator_evidence_scope() -> None:
     operator_context = access_context(
         access_mode=ProviderAccessMode.OPERATOR_MANAGED,
     )
@@ -557,7 +556,7 @@ async def test_mixed_verified_status_keeps_anonymous_evidence_scope() -> None:
             ProviderAccessMode.OPERATOR_MANAGED,
         ),
     )
-    contexts = ContextReader()
+    contexts = ContextReader((operator_context,))
     service = ProviderStatusService(
         Reader((operator_media,)),
         (mixed_baseline,),
@@ -567,11 +566,12 @@ async def test_mixed_verified_status_keeps_anonymous_evidence_scope() -> None:
 
     view = (await service.list())[0]
 
-    assert contexts.requests == [{"vimeo": ProviderAccessMode.ANONYMOUS}]
+    assert contexts.requests == [{"vimeo": ProviderAccessMode.OPERATOR_MANAGED}]
     assert view.status is ProviderSupportStatus.VERIFIED
-    assert view.last_checked_at is None
-    assert view.download_available is False
-    assert view.last_media_verified_at is None
+    assert view.last_checked_at == NOW
+    assert view.last_check_succeeded is True
+    assert view.download_available is True
+    assert view.last_media_verified_at == NOW
 
 
 @pytest.mark.asyncio

@@ -42,14 +42,14 @@ class ProviderKey(StrEnum):
 
 
 class ProviderProfileVersion(StrEnum):
-    DEFAULT = "1"
-    YOUTUBE = "youtube-v5"
+    DEFAULT = "default"
+    YOUTUBE = "youtube"
     BILIBILI = "bilibili-public"
-    DOUYIN = "douyin-public-v3"
-    TIKTOK = "tiktok-public-player-v3"
+    DOUYIN = "douyin-public"
+    TIKTOK = "tiktok-public-player"
     XIAOHONGSHU = "xiaohongshu-public"
     KUAISHOU = "kuaishou-public"
-    WECHAT_CHANNELS = "wechat-channels-public-v2"
+    WECHAT_CHANNELS = "wechat-channels-public"
     VIMEO = "vimeo-public"
     X = "x-public"
     INSTAGRAM = "instagram-public"
@@ -69,13 +69,23 @@ class ProviderProfileVersion(StrEnum):
     PEERTUBE = "peertube-approved-instance"
 
 
-class YouTubeCookieVersion(StrEnum):
-    CHROME_DEFAULT = "chrome-default"
+class ProviderSessionVersion(StrEnum):
+    BROWSER = "browser"
 
 
-class YouTubeCookieDomain(StrEnum):
-    PRIMARY = "youtube.com"
-    NOCOOKIE = "youtube-nocookie.com"
+class ProviderCookieDomain(StrEnum):
+    YOUTUBE = "youtube.com"
+    YOUTUBE_NOCOOKIE = "youtube-nocookie.com"
+    DOUYIN = "douyin.com"
+    DOUYIN_MEDIA = "iesdouyin.com"
+    XIAOHONGSHU = "xiaohongshu.com"
+    X = "x.com"
+    TWITTER = "twitter.com"
+    INSTAGRAM = "instagram.com"
+    FACEBOOK = "facebook.com"
+    REDDIT = "reddit.com"
+    PINTEREST = "pinterest.com"
+    YUANBAO = "yuanbao.tencent.com"
 
 
 class ProviderAccessMode(StrEnum):

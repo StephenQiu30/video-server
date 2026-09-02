@@ -11,6 +11,7 @@ import {
 
 const downloadId = '33333333-3333-4333-8333-333333333333';
 const signedVideoUrl = {
+  filename: 'Owned video.mp4',
   url: 'https://objects.example/downloads/video.mp4?signature=preview',
   expires_at: '2026-08-26T07:05:00Z',
 };

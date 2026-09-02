@@ -1,4 +1,4 @@
-"""Cancellation-safe lifecycle helpers for the Cookie extraction process."""
+"""Cancellation-safe lifecycle helpers for provider Cookie extraction."""
 
 from __future__ import annotations
 

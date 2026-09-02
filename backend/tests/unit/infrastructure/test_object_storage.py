@@ -5,6 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from app.application.downloads import download_filename
 from app.application.imports import (
     ImportObjectStorageError,
     MultipartUploadNotFound,
@@ -160,6 +161,17 @@ async def test_storage_uses_video_title_in_content_disposition() -> None:
     )
 
     assert _signed_disposition(public) == 'attachment; filename="Q4 Showreel.mp4"'
+
+
+def test_download_filename_uses_a_sanitized_video_title() -> None:
+    assert (
+        download_filename("downloads/job-1/1/video.mp4", '  A/B: "cut"  ')
+        == "AB cut.mp4"
+    )
+
+
+def test_download_filename_falls_back_to_a_media_extension() -> None:
+    assert download_filename("downloads/job-1/1/video.mp4", "   ") == "video.mp4"
 
 
 async def test_storage_uses_inline_disposition_for_video_preview() -> None:

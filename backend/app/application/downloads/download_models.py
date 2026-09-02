@@ -145,6 +145,7 @@ class DownloadView:
 class DownloadUrl:
     url: str
     expires_at: datetime
+    filename: str
 
 
 @dataclass(frozen=True, slots=True)

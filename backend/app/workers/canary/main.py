@@ -9,7 +9,10 @@ from datetime import UTC, datetime, timedelta
 
 from app.core.config import Settings, get_settings_for_role
 from app.infrastructure.database import create_engine, create_session_factory
-from app.infrastructure.media_runner import MediaRunnerHttpClient
+from app.infrastructure.media_runner_factory import (
+    anonymous_media_runner,
+    operator_media_runners,
+)
 from app.infrastructure.provider_canary_repository import (
     SqlAlchemyProviderCanaryRepository,
 )
@@ -40,23 +43,8 @@ def build_runtime(settings: Settings) -> ProviderCanaryRuntime:
     configure_provider_instances(settings.peertube_allowed_instances)
     engine = create_engine(settings.database_url)
     repository = SqlAlchemyProviderCanaryRepository(create_session_factory(engine))
-    anonymous = MediaRunnerHttpClient(
-        base_url=settings.runner_base_url,
-        secret=settings.runner_hmac_secret.get_secret_value().encode(),
-        workspace_root=settings.runner_workspace_root,
-        inspect_timeout_seconds=settings.inspect_timeout_seconds,
-        download_timeout_seconds=settings.download_timeout_seconds,
-    )
-    operators = {
-        provider: MediaRunnerHttpClient(
-            base_url=base_url,
-            secret=settings.runner_hmac_secret.get_secret_value().encode(),
-            workspace_root=settings.runner_workspace_root,
-            inspect_timeout_seconds=settings.inspect_timeout_seconds,
-            download_timeout_seconds=settings.download_timeout_seconds,
-        )
-        for provider, base_url in settings.runner_operator_base_urls.items()
-    }
+    anonymous = anonymous_media_runner(settings)
+    operators = operator_media_runners(settings)
     runner = ProviderCanaryRunner(anonymous, operators)
     service = ProviderCanaryService(
         repository,

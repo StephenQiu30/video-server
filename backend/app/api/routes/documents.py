@@ -99,9 +99,7 @@ async def get_document_import(
     use_cases: UseCases,
 ) -> DocumentDetailResponse:
     try:
-        await use_cases.get_import(
-            document_id, user.owner_hash, ContentKind.SCREENPLAY
-        )
+        await use_cases.get_import(document_id, user.owner_hash, ContentKind.SCREENPLAY)
         view = await use_cases.get_document(document_id, user.owner_hash)
     except ImportApplicationError as error:
         raise import_application_error(error) from error

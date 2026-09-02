@@ -261,9 +261,7 @@ class FakeRepository:
             cleanup=self.deletion_cleanup.get(job_id, ()),
         )
 
-    async def finish_download_deletion(
-        self, job_id: UUID, owner_hash: str
-    ) -> None:
+    async def finish_download_deletion(self, job_id: UUID, owner_hash: str) -> None:
         if self.jobs[job_id].owner_hash != owner_hash:
             return
         self.jobs.pop(job_id)

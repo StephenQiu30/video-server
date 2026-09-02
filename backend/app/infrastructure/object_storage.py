@@ -488,8 +488,8 @@ class MinioObjectStorage:
         remaining = length
         try:
             while True:
-                read_size = chunk_size if remaining is None else min(
-                    chunk_size, remaining
+                read_size = (
+                    chunk_size if remaining is None else min(chunk_size, remaining)
                 )
                 chunk = response.read(read_size)
                 if not chunk:

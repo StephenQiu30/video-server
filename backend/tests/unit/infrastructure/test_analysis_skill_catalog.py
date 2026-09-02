@@ -173,9 +173,7 @@ def test_visual_skills_prevent_long_take_single_segment_collapse(
 
 
 def test_article_and_screenplay_skills_preserve_stage_boundaries() -> None:
-    article = BUILTIN_ANALYSIS_SKILLS.get(
-        "video-to-article", AnalysisInputKind.VIDEO
-    )
+    article = BUILTIN_ANALYSIS_SKILLS.get("video-to-article", AnalysisInputKind.VIDEO)
     screenplay = BUILTIN_ANALYSIS_SKILLS.get(
         "screenplay-analysis", AnalysisInputKind.SCREENPLAY
     )

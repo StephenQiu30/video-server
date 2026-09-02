@@ -79,9 +79,7 @@ class DownloadDeleteRepository(AnalyticsRepository):
                 cleanup=cleanup,
             )
 
-    async def finish_download_deletion(
-        self, job_id: UUID, owner_hash: str
-    ) -> None:
+    async def finish_download_deletion(self, job_id: UUID, owner_hash: str) -> None:
         async with self._sessions() as session, session.begin():
             job = await session.scalar(
                 select(DownloadJobRow)

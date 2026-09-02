@@ -30,6 +30,7 @@ const runtime = vi.hoisted(() => ({
 }));
 
 const signedVideoUrl = {
+  filename: 'Owned video.mp4',
   url: 'https://objects.example/token',
   expires_at: '2026-08-06T10:05:00Z',
 };

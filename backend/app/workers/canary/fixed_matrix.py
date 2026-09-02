@@ -1,4 +1,4 @@
-"""Run the versioned public diagnostics without printing source URLs."""
+"""Run the fixed public diagnostics without printing source URLs."""
 
 from __future__ import annotations
 

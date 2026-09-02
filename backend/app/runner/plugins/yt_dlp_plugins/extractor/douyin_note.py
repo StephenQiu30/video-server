@@ -16,9 +16,7 @@ _ITEM_INFO = "https://www.iesdouyin.com/web/api/v2/aweme/iteminfo/"
 _SHARE_PAGE = "https://www.iesdouyin.com/share/note/{note_id}/"
 _NOTE_PAGE = "https://www.douyin.com/note/{note_id}/"
 _NOTE_UNAVAILABLE = "Douyin official note content unavailable"
-_PACE_FLIGHT = re.compile(
-    r'self\.__pace_f\.push\(\[1,(?P<data>"(?:\\.|[^"\\])*")\]\)'
-)
+_PACE_FLIGHT = re.compile(r'self\.__pace_f\.push\(\[1,(?P<data>"(?:\\.|[^"\\])*")\]\)')
 _HEADERS = {
     "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
     "Referer": "https://www.douyin.com/",

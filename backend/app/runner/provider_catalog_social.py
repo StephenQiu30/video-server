@@ -2,6 +2,7 @@
 
 from app.domain.providers import (
     ProviderCapability,
+    ProviderCookieDomain,
     ProviderKey,
     ProviderProfileVersion,
     ProviderSupportStatus,
@@ -20,10 +21,13 @@ SOCIAL_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         capabilities=frozenset(
             {ProviderCapability.SINGLE_VIDEO, ProviderCapability.SHORT_VIDEO}
         ),
-        status=ProviderSupportStatus.DEGRADED,
+        status=ProviderSupportStatus.ACCESS_REQUIRED,
+        operator_cookie_domains=frozenset({ProviderCookieDomain.YUANBAO}),
         command_args=CHROME_IMPERSONATION,
         client_profile_id="chrome-136-macos-15",
         canary_suite="wechat-channels-public-single-video",
+        probe_authenticated_media=True,
+        probe_media_duration=True,
     ),
     standard_provider(
         ProviderKey.VIMEO,
@@ -31,7 +35,6 @@ SOCIAL_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         ("vimeo.com", "www.vimeo.com", "player.vimeo.com"),
         normalize_url=vimeo_url,
         status=ProviderSupportStatus.VERIFIED,
-        operator_cookie_domains=frozenset({"vimeo.com"}),
         command_args=("--check-formats",),
     ),
     standard_provider(
@@ -45,14 +48,17 @@ SOCIAL_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             "mobile.twitter.com",
         ),
         status=ProviderSupportStatus.VERIFIED,
-        operator_cookie_domains=frozenset({"x.com", "twitter.com"}),
+        operator_cookie_domains=frozenset(
+            {ProviderCookieDomain.X, ProviderCookieDomain.TWITTER}
+        ),
     ),
     standard_provider(
         ProviderKey.INSTAGRAM,
         "Instagram",
         ("instagram.com", "www.instagram.com"),
         status=ProviderSupportStatus.VERIFIED,
-        operator_cookie_domains=frozenset({"instagram.com"}),
+        operator_cookie_domains=frozenset({ProviderCookieDomain.INSTAGRAM}),
+        probe_authenticated_media=True,
     ),
     standard_provider(
         ProviderKey.FACEBOOK,
@@ -73,10 +79,11 @@ SOCIAL_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             }
         ),
         status=ProviderSupportStatus.VERIFIED,
-        operator_cookie_domains=frozenset({"facebook.com"}),
+        operator_cookie_domains=frozenset({ProviderCookieDomain.FACEBOOK}),
         command_args=CHROME_IMPERSONATION,
         client_profile_id="chrome-136-macos-15",
         canary_suite="facebook-public-reel-single-video",
+        probe_authenticated_media=True,
     ),
     standard_provider(
         ProviderKey.TWITCH,
@@ -96,7 +103,7 @@ SOCIAL_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         version=ProviderProfileVersion.REDDIT,
         capabilities=frozenset({ProviderCapability.SINGLE_VIDEO}),
         status=ProviderSupportStatus.ACCESS_REQUIRED,
-        operator_cookie_domains=frozenset({"reddit.com"}),
+        operator_cookie_domains=frozenset({ProviderCookieDomain.REDDIT}),
         canary_suite="reddit-anonymous-operator-video",
     ),
 )

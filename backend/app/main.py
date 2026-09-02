@@ -15,6 +15,7 @@ from app.api.router import router
 from app.composition import ApiRuntime, build_api_runtime
 from app.core.config import Settings, get_settings
 from app.core.errors import AppError
+from app.infrastructure.media_runner_factory import operator_provider_keys
 from app.infrastructure.provider_status import current_provider_statuses
 
 
@@ -50,7 +51,7 @@ def create_app(
     )
     application.state.settings = effective
     application.state.provider_statuses = current_provider_statuses(
-        frozenset(effective.runner_operator_base_urls)
+        operator_provider_keys(effective)
     )
     if configured_runtime is not None:
         application.state.auth_service = configured_runtime.auth_service

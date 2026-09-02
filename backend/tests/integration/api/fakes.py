@@ -87,7 +87,11 @@ def inspection_view() -> InspectionView:
     )
 
 
-def download_view(status: DownloadStatus = DownloadStatus.QUEUED) -> DownloadView:
+def download_view(
+    status: DownloadStatus = DownloadStatus.QUEUED,
+    *,
+    title: str | None = None,
+) -> DownloadView:
     return DownloadView(
         id=JOB_ID,
         inspection_id=INSPECTION_ID,
@@ -102,6 +106,7 @@ def download_view(status: DownloadStatus = DownloadStatus.QUEUED) -> DownloadVie
         finished_at=NOW
         if status in {DownloadStatus.SUCCEEDED, DownloadStatus.CANCELLED}
         else None,
+        title=title,
     )
 
 
@@ -248,6 +253,7 @@ def use_cases() -> tuple[DownloadUseCases, dict[str, StubUseCase]]:
             DownloadUrl(
                 "https://objects.example/token",
                 NOW + timedelta(minutes=5),
+                "video.mp4",
             )
         ),
         "history": StubUseCase(history_view()),

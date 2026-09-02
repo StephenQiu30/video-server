@@ -1,16 +1,12 @@
 'use client';
 
-import { useGSAP } from '@gsap/react';
 import { FileText, FileVideo, LinkSimple } from '@phosphor-icons/react';
-import gsap from 'gsap';
 import { type ReactNode, useRef } from 'react';
 
 import { EditorialIntro } from '@/components/layout/editorial-intro';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-gsap.registerPlugin(useGSAP);
-
-const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+import { useGSAP } from '@/lib/gsap-client';
+import { createRevealTween } from '@/lib/gsap-motion';
 
 export type IntakeMode = 'link' | 'video' | 'screenplay';
 
@@ -49,33 +45,7 @@ export function ContentIntakeHero({
       );
       if (!activePanel) return;
 
-      const reducedMotion = window.matchMedia(REDUCED_MOTION_QUERY);
-      if (reducedMotion.matches) return;
-
-      const tween = gsap.fromTo(
-        activePanel,
-        { opacity: 0, y: 6, willChange: 'transform, opacity' },
-        {
-          clearProps: 'transform,opacity,willChange',
-          duration: 0.16,
-          ease: 'power2.out',
-          opacity: 1,
-          y: 0,
-        },
-      );
-      const finishImmediately = (event: MediaQueryListEvent) => {
-        if (!event.matches) return;
-        tween.kill();
-        gsap.set(activePanel, {
-          clearProps: 'transform,opacity,willChange',
-        });
-      };
-      reducedMotion.addEventListener('change', finishImmediately);
-
-      return () => {
-        reducedMotion.removeEventListener('change', finishImmediately);
-        tween.kill();
-      };
+      return createRevealTween(activePanel, 0.16);
     },
     { dependencies: [mode], revertOnUpdate: true, scope: rootRef },
   );

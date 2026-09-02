@@ -364,16 +364,30 @@ def test_compose_assigns_each_application_container_its_process_entrypoint() -> 
 
 def test_compose_waits_for_runner_and_api_dependency_readiness() -> None:
     for path in (COMPOSE_PATH, PROD_COMPOSE_PATH):
-        compose = path.read_text(encoding="utf-8")
-        api = _service_block(compose, "api")
-        frontend = _service_block(compose, "frontend")
-        runner = _service_block(compose, "media-runner")
+        compose = yaml.safe_load(path.read_text(encoding="utf-8"))
+        services = compose["services"]
 
-        assert "media-runner:\n        condition: service_healthy" in api
-        assert "127.0.0.1:8111/health/ready" in api
-        assert "api:\n        condition: service_healthy" in frontend
-        assert "127.0.0.1:8101/" in frontend
-        assert "127.0.0.1:19100/health/ready" in runner
+        assert services["api"]["depends_on"]["media-runner"]["condition"] == (
+            "service_healthy"
+        )
+        assert "127.0.0.1:8111/health/ready" in " ".join(
+            services["api"]["healthcheck"]["test"]
+        )
+        assert services["frontend"]["depends_on"]["api"]["condition"] == (
+            "service_healthy"
+        )
+        assert "127.0.0.1:8101/" in " ".join(
+            services["frontend"]["healthcheck"]["test"]
+        )
+        assert "127.0.0.1:19100/health/ready" in " ".join(
+            services["media-runner"]["healthcheck"]["test"]
+        )
+
+        if path == PROD_COMPOSE_PATH:
+            for service in _OPERATOR_RUNNERS:
+                assert services["api"]["depends_on"][service]["condition"] == (
+                    "service_healthy"
+                )
 
 
 def test_project_documents_container_and_complete_local_entrypoints() -> None:
@@ -409,93 +423,98 @@ def test_runtime_dependency_install_is_cached_and_retried() -> None:
 
 
 def test_compose_pins_shared_runner_workspace_to_the_mounted_container_path() -> None:
-    compose = COMPOSE_PATH.read_text(encoding="utf-8")
+    compose = yaml.safe_load(COMPOSE_PATH.read_text(encoding="utf-8"))
 
-    for service in (
-        "media-runner",
-        "worker-download",
-        "youtube-operator-runner",
-        "provider-operator-runner",
-    ):
-        service_config = _service_block(compose, service)
-        assert "RUNNER_WORKSPACE_ROOT: /work" in service_config
-        assert "RUNNER_WORKSPACE_ROOT:-" not in service_config
-        assert "runner_work:/work" in service_config
+    for service in ("media-runner", "worker-download", *_OPERATOR_RUNNERS):
+        service_config = compose["services"][service]
+        assert service_config["environment"]["RUNNER_WORKSPACE_ROOT"] == "/work"
+        assert "runner_work:/work" in service_config["volumes"]
+
+
+_OPERATOR_PROVIDERS = {
+    "youtube-operator-runner": "youtube",
+    "douyin-operator-runner": "douyin",
+    "xiaohongshu-operator-runner": "xiaohongshu",
+    "reddit-operator-runner": "reddit",
+    "x-operator-runner": "x",
+    "instagram-operator-runner": "instagram",
+    "facebook-operator-runner": "facebook",
+    "pinterest-operator-runner": "pinterest",
+    "wechat-channels-operator-runner": "wechat_channels",
+}
+_OPERATOR_RUNNERS = tuple(_OPERATOR_PROVIDERS)
 
 
 def test_provider_session_runners_are_physically_isolated_by_provider() -> None:
-    expected = {
-        "douyin-operator-runner": ("douyin", "douyin-operator"),
-        "xiaohongshu-operator-runner": ("xiaohongshu", "xiaohongshu-operator"),
-        "reddit-operator-runner": ("reddit", "reddit-operator"),
-        "x-operator-runner": ("x", "x-operator"),
-        "instagram-operator-runner": ("instagram", "instagram-operator"),
-    }
-
     for path in (COMPOSE_PATH, PROD_COMPOSE_PATH):
-        compose = path.read_text(encoding="utf-8")
-        for service, (provider, profile) in expected.items():
-            service_config = _service_block(compose, service)
-            assert f"profiles: [{profile}]" in service_config
-            assert "<<: *provider-session-runner" in service_config
-            assert "<<: *provider-session-environment" in service_config
-            assert "runner_work:/work" in service_config
-            assert f"target: /run/provider-secrets/{provider}" in service_config
-            assert service_config.count("target: /run/provider-secrets/") == 1
-            assert f'RUNNER_OPERATOR_SESSION_VERSIONS: \'{{"{provider}":' in (
-                service_config
+        compose = yaml.safe_load(path.read_text(encoding="utf-8"))
+        for service, provider in _OPERATOR_PROVIDERS.items():
+            service_config = compose["services"][service]
+            assert "runner_work:/work" in service_config["volumes"]
+            assert "/run/provider-secrets" not in str(service_config)
+            assert any(
+                str(entry).startswith("/run/provider-session:")
+                for entry in service_config["tmpfs"]
             )
+            assert (
+                service_config["environment"]["RUNNER_OPERATOR_SESSION_VERSIONS"]
+                == f'{{"{provider}":"browser"}}'
+            )
+            assert "127.0.0.1:19100/health/ready" in " ".join(
+                service_config["healthcheck"]["test"]
+            )
+            if path == COMPOSE_PATH:
+                assert service_config["profiles"] == [
+                    f"{provider.replace('_', '-')}-operator"
+                ]
+            else:
+                assert "profiles" not in service_config
 
 
-def test_youtube_operator_mount_is_shared_by_compose_modes() -> None:
+def test_provider_cookie_agent_mount_is_physically_scoped_per_provider() -> None:
     compose_documents = (
         COMPOSE_PATH.read_text(encoding="utf-8"),
         PROD_COMPOSE_PATH.read_text(encoding="utf-8"),
     )
 
     for document in compose_documents:
-        youtube_operator = _service_block(document, "youtube-operator-runner")
-        assert "RUNNER_YOUTUBE_COOKIE_SYNC_ROOT: /run/youtube-cookie-sync" in (
-            youtube_operator
-        )
-        assert (
-            'source: "${YOUTUBE_COOKIE_SYNC_DIR:-${HOME}/Library/Caches/'
-            'FrameFetch/youtube-cookie-sync}"' in youtube_operator
-        )
-        assert "target: /run/youtube-cookie-sync" in youtube_operator
-        assert "read_only: false" in youtube_operator
-        assert "create_host_path: false" in youtube_operator
-        assert document.count("RUNNER_YOUTUBE_COOKIE_SYNC_ROOT") == 1
-        assert document.count("target: /run/youtube-cookie-sync") == 1
+        compose = yaml.safe_load(document)
+        for service, provider in _OPERATOR_PROVIDERS.items():
+            service_config = compose["services"][service]
+            assert (
+                service_config["environment"]["RUNNER_PROVIDER_COOKIE_SYNC_ROOT"]
+                == "/run/provider-cookie-agent"
+            )
+            runtime_mounts = [
+                volume
+                for volume in service_config["volumes"]
+                if isinstance(volume, dict)
+                and volume.get("target") == "/run/provider-cookie-agent"
+            ]
+            assert len(runtime_mounts) == 1
+            assert runtime_mounts[0]["read_only"] is False
+            assert runtime_mounts[0]["bind"]["create_host_path"] is False
+            assert Path(runtime_mounts[0]["source"]).name == provider
 
-    assert "YOUTUBE_COOKIE_SYNC_DIR=\n" in ENV_EXAMPLE_PATH.read_text(encoding="utf-8")
-    assert "YOUTUBE_COOKIE_SYNC_DIR=\n" in PROD_ENV_EXAMPLE_PATH.read_text(
+    assert "PROVIDER_COOKIE_AGENT_RUNTIME_DIR=\n" in ENV_EXAMPLE_PATH.read_text(
         encoding="utf-8"
     )
-    assert _env_value(ENV_EXAMPLE_PATH, "YOUTUBE_COOKIE_VERSION") == "chrome-default"
-    assert _env_value(PROD_ENV_EXAMPLE_PATH, "YOUTUBE_COOKIE_SECRET_DIR") == (
-        "./.provider-secrets/youtube"
+    assert "PROVIDER_COOKIE_AGENT_RUNTIME_DIR=\n" in PROD_ENV_EXAMPLE_PATH.read_text(
+        encoding="utf-8"
     )
+    assert "COOKIE_SECRET_DIR" not in PROD_ENV_EXAMPLE_PATH.read_text(encoding="utf-8")
 
 
-def test_wechat_channels_is_anonymous_only_without_browser_session_runtime() -> None:
-    compose_documents = (
-        COMPOSE_PATH.read_text(encoding="utf-8"),
-        PROD_COMPOSE_PATH.read_text(encoding="utf-8"),
-    )
+def test_wechat_channels_uses_the_same_isolated_browser_session_contract() -> None:
+    for path in (COMPOSE_PATH, PROD_COMPOSE_PATH):
+        compose = yaml.safe_load(path.read_text(encoding="utf-8"))
+        service = compose["services"]["wechat-channels-operator-runner"]
 
-    assert not (ROOT.parent / "scripts/authorize-provider-session.sh").exists()
-    assert not (ROOT.parent / "scripts/provider-session-broker.sh").exists()
-    assert not (ROOT / "app/runner/provider_session_broker.py").exists()
-    assert not (ROOT / "app/runner/provider_session_launchd.py").exists()
-    assert not (ROOT / "app/runner/provider_session_authorize.py").exists()
-    assert not (ROOT / "app/runner/managed_chrome_session.py").exists()
-    assert not (ROOT / "app/runner/managed_chrome_cdp.py").exists()
-    assert not (ROOT / "app/runner/managed_session_cookies.py").exists()
-    assert not (ROOT / "app/runner/browser_cookie_export.py").exists()
-    assert not (ROOT / "app/runner/browser_cookie_source.py").exists()
-    for compose in compose_documents:
-        assert "wechat-channels-operator-runner" not in compose
-        assert "wechat-channels-operator" not in compose
-        assert "WECHAT_CHANNELS_COOKIE_" not in compose
-        assert "RUNNER_PROVIDER_SESSION_ACQUISITION" not in compose
+        assert service["environment"]["RUNNER_OPERATOR_SESSION_VERSIONS"] == (
+            '{"wechat_channels":"browser"}'
+        )
+        assert "/run/provider-secrets" not in str(service)
+        assert any(
+            str(entry).startswith("/run/provider-session:")
+            for entry in service["tmpfs"]
+        )

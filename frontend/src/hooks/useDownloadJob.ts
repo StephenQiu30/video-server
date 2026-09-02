@@ -164,7 +164,7 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     setErrorKind(null);
     try {
       const result = await issueDownloadUrl(jobId);
-      triggerBrowserDownload(result.url);
+      triggerBrowserDownload(result.url, result.filename);
       setErrorKind(null);
     } catch (reason) {
       setError(displayError(reason));

@@ -118,9 +118,7 @@ class DownloadRepository(Protocol):
         self, job_id: UUID, owner_hash: str, *, now: datetime
     ) -> DownloadDeletionPlan: ...
 
-    async def finish_download_deletion(
-        self, job_id: UUID, owner_hash: str
-    ) -> None: ...
+    async def finish_download_deletion(self, job_id: UUID, owner_hash: str) -> None: ...
 
 
 class ObjectStorage(Protocol):

@@ -554,6 +554,11 @@ declare namespace API {
     | "unsupported_source"
     | "worker_lost";
 
+  type downloadFileParams = {
+    job_id: string;
+    preview?: boolean;
+  };
+
   type DownloadHistoryItemResponse = {
     /** Id */
     id: string;
@@ -675,6 +680,8 @@ declare namespace API {
     url: string;
     /** Expires At */
     expires_at: string;
+    /** Filename */
+    filename: string;
   };
 
   type DynamicRange = "sdr" | "hdr";

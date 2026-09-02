@@ -18,6 +18,7 @@ from tests.integration.api.fakes import (
     ITEM_REF,
     JOB_ID,
     StubUseCase,
+    download_view,
     source_discovery_use_cases,
     use_cases,
 )
@@ -195,6 +196,7 @@ def test_download_routes_delegate_with_session_owner(tmp_path: Path) -> None:
     assert created.json()["status"] == "queued"
     assert cancelled.json()["status"] == "cancelled"
     assert issued.json()["url"] == "https://objects.example/token"
+    assert issued.json()["filename"] == "video.mp4"
     assert stubs["issue_url"].calls[0][1] == {
         "preview": True,
         "use_browser_proxy": False,
@@ -212,7 +214,8 @@ def test_download_routes_delegate_with_session_owner(tmp_path: Path) -> None:
 
 
 def test_download_file_route_streams_an_owned_range(tmp_path: Path) -> None:
-    test_client, _ = client(tmp_path)
+    test_client, stubs = client(tmp_path)
+    stubs["get"].result = download_view(title="Owned video")
     test_client.app.state.download_storage = FakeDownloadStorage()
 
     with test_client:
@@ -226,6 +229,9 @@ def test_download_file_route_streams_an_owned_range(tmp_path: Path) -> None:
     assert response.headers["content-range"] == "bytes 2-5/8"
     assert response.headers["content-length"] == "4"
     assert response.headers["accept-ranges"] == "bytes"
+    assert response.headers["content-disposition"] == (
+        'attachment; filename="Owned video.mp4"'
+    )
 
 
 def test_download_history_route_supports_filters_and_returns_public_fields(
@@ -320,7 +326,7 @@ def test_provider_status_distinguishes_registered_verified_and_unsupported(
         items[key]["status"]
         for key in ("snapchat", "linkedin", "telegram", "kick", "tumblr")
     } == {"verified"}
-    assert items["wechat_channels"]["status"] == "degraded"
+    assert items["wechat_channels"]["status"] == "access_required"
     assert items["wechat_channels"]["registered"] is True
     assert items["wechat_channels"]["extractor_exists"] is True
     assert items["wechat_official_account_article"]["registered"] is True

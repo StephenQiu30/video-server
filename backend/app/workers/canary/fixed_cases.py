@@ -1,4 +1,4 @@
-"""Versioned public diagnostics; production canary URLs remain Secret-configured."""
+"""Fixed diagnostics; production canary URLs remain Secret-configured."""
 
 from __future__ import annotations
 

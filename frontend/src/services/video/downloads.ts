@@ -78,6 +78,22 @@ export async function issueDownloadUrl(
   );
 }
 
+/** 读取已完成的视频文件 Stream an owned artifact through the authenticated application origin. GET /api/downloads/${param0}/file */
+export async function downloadFile(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.downloadFileParams,
+  options?: RequestOptions
+) {
+  const { job_id: param0, ...queryParams } = params;
+  return request<any>(`/api/downloads/${param0}/file`, {
+    method: "GET",
+    params: {
+      ...queryParams,
+    },
+    ...(options || {}),
+  });
+}
+
 /** 重试下载任务 从失败或已取消的任务创建一条新的下载任务。 POST /api/downloads/${param0}/retry */
 export async function retryDownload(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)

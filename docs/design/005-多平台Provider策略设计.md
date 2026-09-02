@@ -6,7 +6,7 @@
 - 前置调研：`docs/research/003-多平台下载会话与GitHub适配调研.md`
 - 实现状态：Phase 1 已落地版本化 Profile、非 Secret 访问上下文、匿名/YouTube 运维 Runner 路由、操作级 Cookie jar、权益防火墙、服务端托管 POT sidecar、稳定错误、Provider 探针结果表/定时执行器/动态状态聚合、`GET /api/providers` 与前端状态页。YouTube 已停止 yt-dlp 与 Runner 的同出口立即重试放大；授权目标的真实 Cookie/POT canary、完整视频 Agent E2E、账号权益漂移自动停用，以及遵守 `Retry-After` 的跨层总预算/cooldown 仍是生产发布门禁；Phase 2 的用户 Credential Broker/Vault 与 gallery-dl 尚未实现。
 
-> 当前实现增量（2026-08-30）：Runner 固定 yt-dlp package `2026.8.19`（CLI 输出 `2026.08.19`）/ commit `3a08beaf031ab68f966401ead017ac81fe8486cf`，YouTube Profile 为 `youtube-v5`，匿名公开链路由服务端自动使用 `mweb` + EJS + bgutil POT Provider `1.3.2`。Sidecar 锁定为 `brainicism/bgutil-ytdlp-pot-provider:1.3.2@sha256:9a96e6385ce1928da87dea07b1cab0413d2cf8c07a3b8a8bd419f53df2c3843c`；Runner 与 sidecar 只接 internal 网络，只有 Squid 接入非 internal 的 `proxy_uplink_net`。默认 HTTP(S) proxy 是 Squid；配置 YouTube 专用代理时，部署方必须把受管双网卡网关加入 internal `youtube_pot_net`，映射只能指向它的内部服务地址，bgutil 与 yt-dlp 使用同一实际 proxy。用户无需上传 Cookie、PO Token 或 yt-dlp 参数；生产 Compose 默认不读取个人浏览器会话，但获批准的单机 production Compose 可通过与本机相同的 `launchd QueueDirectories` 按需助手读取 Chrome Default。Chrome Cookies 数据库的 SQL 查询只选择 YouTube 域，单次读取使用 15 秒硬超时的独立进程组，超时或取消时整组回收；它只在 YouTube Operator 操作开始时运行，排空后退出且不启动 Chrome。该助手不是平行应用入口，项目仍仅通过根 Docker Compose 运行。YouTube Profile 只执行一次 inspection，三个 yt-dlp retry scope 均为 `0`；429 和出口 challenge 不在 Runner 内立即重试，warning 保留用于稳定分类。POT 只解决 Player/GVS 请求证明，不能修复已被 `LOGIN_REQUIRED` / bot challenge 的出口 IP；YouTube 在面向 C 端的生产环境恢复 `verified` 前，部署方必须配置可持续、合规、由自身运维的 YouTube 专用出口并通过授权样本 media canary，不使用公共代理、WARP/Tor 或公共解析服务作为可用性基础。
+> 当前实现：Provider Profile 与会话来源由中央枚举登记，生产使用一个匿名 Runner 和九个 Provider 隔离 Runner。统一 macOS `launchd QueueDirectories` 代理按 `provider + browser + ephemeral public key` 请求从 Chrome 读取最小域集合，并用一次性认证加密租约交付；应用不保存 Cookie 或专用浏览器 Profile。微信视频号只在操作期间克隆正常 Chrome 的当前元宝授权，计算动态头后销毁临时目录。配置受控 Runner 后直接路由到该 Runner，download 复用 inspect 冻结的上下文，不进行匿名/账号切换。YouTube 继续使用 `mweb`、EJS 和固定 digest 的 bgutil POT sidecar；POT 不能修复登录过期或出口挑战。
 
 ## 1. 目标
 
@@ -47,7 +47,7 @@ Cookie 的一刀切禁令被调整为“默认关闭、Provider allowlist、生�
 - YouTube 运维 Runner 的 inspect、download stream 和 probe sample 统一使用操作级 `--cookies`，匿名、Generic 与非 YouTube 路径不携带 Cookie。
 - YouTube bot challenge、credential、POT、rate、geo、private/entitlement、DRM 与 extractor regression 已分层；download re-inspect 的 Provider 错误不再降为 `worker_lost`。
 - Provider Profile 直接声明 yt-dlp retry 次数；YouTube 的 yt-dlp/inspection 都只尝试一次，429 与出口 challenge 交给上层冷却，不在相同 context 内立即重打。yt-dlp warning 不再被隐藏，复合 `429 + unavailable` 优先归为限流。
-- Cookie 源按不可变版本只读挂载，临时 jar 位于 Runner 独占 `/run/provider-secrets-tmp`，不位于共享 `/work`。
+- Cookie 在每次操作开始时通过 X25519/HKDF/ChaCha20-Poly1305 租约交付，明文 jar 只位于 Runner 独占 tmpfs `/run/provider-session`，不位于共享 `/work` 或宿主持久目录。
 - inspection 冻结 `ProviderAccessContextRef` 并随下载快照传递；匿名与运维 Runner 物理分离，YouTube 可选择固定 Provider 出口和内部 POT sidecar。
 - Runner readiness 已校验 yt-dlp 包版本与锁定源 commit、bgutil 插件版本。Sidecar 不参与 API/公共 Runner readiness，也不作为 Compose `service_healthy` wait gate；版本库内脚本以只读方式挂载为容器 PID1 supervisor，独立检查 `/ping`，连续 3 次失败才终止并重启上游子进程。上游子进程 stdout/stderr 全部丢弃，防止它输出的 PO Token 或绑定标识进入持久容器日志；supervisor 只记录不含异常原文和证明数据的固定故障事件。YouTube 命令在 spawn 前和失败后执行 2 秒、禁用环境代理/重定向、精确版本的语义预检，因此 sidecar 运行中断裂不会被误归因为出口 challenge；非 YouTube 命令不执行该探测。
 
@@ -88,7 +88,7 @@ flowchart LR
     CP --> A["Anonymous Runner Pool"]
     CP --> O["Operator Credential Runner"]
     CP --> U["User Credential Runner (Phase 2)"]
-    O --> BR["Credential Broker / readonly Secret"]
+    O --> BR["Host Agent / encrypted one-operation lease"]
     U --> BR
     O --> TMP["Runner-only tmpfs"]
     U --> TMP
@@ -115,16 +115,16 @@ flowchart LR
 
 ### 5.2 Runner pools
 
-| Pool | 可见 Secret | 用途 | 网络范围 |
+| Pool | 可见会话 | 用途 | 网络范围 |
 | --- | --- | --- | --- |
 | `anonymous-runner` | 无 | 默认公开内容和 Generic | Profile 允许的公共媒体域 |
-| `youtube-operator-runner` | 只读 YouTube Secret 源；任务期 POT | 第一阶段 YouTube 会话 | YouTube/Google 媒体域和本地 POT sidecar |
+| `youtube-operator-runner` | 本次操作的 YouTube 租约；任务期 POT | 第一阶段 YouTube 会话 | YouTube/Google 媒体域和本地 POT sidecar |
 | `user-auth-runner` | 单 owner、单 Provider、短租约 | 第二阶段用户凭据 | 租约声明的 Provider 域 |
 | `gallery-runner` | Profile 决定，默认无 | 后续图片/轮播 manifest | 与视频池隔离 |
 
 所有 pool 都保持非 root、只读 rootfs、`no-new-privileges`、无 Docker socket、无 DB/MQ/MinIO/AI 凭据，并只能经 egress gateway 出网。
 
-## 6. Provider Profile v2
+## 6. Provider Profile 当前契约
 
 现有 Profile 扩展为版本化、静态审计的描述，不从用户请求构造命令参数。
 
@@ -214,44 +214,35 @@ engine_commit
 规则：
 
 1. 下载任务保存上述引用，不保存 Cookie、visitor data 或 token 原文。
-2. 生产静态凭据的“同一 context”表示同一个不可变 credential snapshot version、client 和出口身份，不要求把初次 inspection 中收到的临时 `Set-Cookie` 持久化到业务数据面。`chrome-default` 是本机动态来源协议标识，不是 Cookie 内容快照 ID；inspect 和 download 各自在操作开始时从同一本机来源刷新。
+2. 当前受控会话只有强类型 `browser` 协议；它是本机动态来源标识，不是 Cookie 内容快照 ID。inspect 和 download 各自在操作开始时请求对应 Provider 的一次性加密租约。
 3. 初次 inspection 与异步 download 各创建一个操作级可写 jar；download 必须先用原 snapshot version 重新 inspect，再让 video/audio stream、probe sample 和需要远程访问的 ffprobe 串行复用该 jar。
-4. Download Worker 重解析时必须获得原来源引用；生产静态 snapshot 至少保留到 inspection TTL 和最大排队窗口结束，本机 `chrome-default` 则重新触发同一来源协议。对应来源不可用时返回稳定错误，不用其他账号或匿名模式替代。
+4. Download Worker 重解析时必须使用 inspection 冻结的同一来源引用；`browser` 会重新触发同一 Provider 来源协议。对应来源不可用时返回稳定错误，不用其他账号或匿名模式替代。
 5. POT 由同一 client/session/出口上的 Provider 按视频生成；不把 video-bound token 长期持久化。
 6. `egress_affinity_id` 不使用 Profile pool 名或代理明文；它由实际代理 URL 的 SHA-256 前 12 位和 `default` / `provider:{key}` scope 组成。URL 变更即视为不同出口，必须新建 context 且旧 canary 不得继续作为当前证据。
 7. redirect 到另一 Provider 时销毁 context，重新执行 URL 安全校验和 admission；原凭据不得随 redirect 发送。
 8. Profile/credential 已被撤销或版本不一致时，排队任务不再启动；运行中任务按撤销策略终止。
 
-## 8. Secret 与 Cookie 生命周期
+## 8. 会话租约与 Cookie 生命周期
 
-### 8.1 第一阶段：运维 Secret
+### 8.1 第一阶段：运维一次性租约
 
-- 只配置 Secret 文件路径，不把 Cookie 内容写入环境变量。
-- 源文件按不可变 version 挂载到 credentialed Runner 的 `/run/provider-secrets/{provider}/{version}.cookies.txt:ro`。
-- Runner 启动和轮换 canary 验证：普通文件、非 symlink、Netscape header、最大 1 MiB、仅允许该 Profile 的域名。
-- 每次 Runner inspect/download 操作在独占 tmpfs `/run/provider-secrets-tmp` 创建唯一目录；目录 `0700`、Cookie jar `0600`。
-- 不能把只读源直接传给 yt-dlp，因为 yt-dlp 退出时会回写 Cookie jar。
-- 初次 inspection 使用独立 jar 并在返回时销毁；异步 download 从原 snapshot version 新建 jar，重解析、视频流、音频流和 probe 串行复用，让该操作内的 `Set-Cookie` 更新可见。
+- 不配置 Cookie 文件路径，也不把 Cookie 内容写入环境变量。
+- Runner 为每次 inspect/download 生成一次性 X25519 私钥；请求包含强类型 Provider、来源标识和公钥。宿主代理按域读取当前 Chrome Cookie，以 HKDF 派生密钥并用 ChaCha20-Poly1305 绑定请求内容加密。
+- 请求队列没有 Cookie；响应队列只短暂保存只能由该请求私钥解开的密文。Runner 领取后立即确认，代理删除请求和响应；超时也会清除密文。
+- Runner 解密后验证 Netscape header、最大 1 MiB 和该 Profile 域名 allowlist，只在独占 tmpfs `/run/provider-session` 创建唯一目录；目录 `0700`、Cookie jar `0600`。
+- 初次 inspection 使用独立 jar 并在返回时销毁；异步 download 从同一强类型来源请求新租约，重解析、视频流、音频流和 probe 串行复用本次 jar，让该操作内的 `Set-Cookie` 更新可见。
 - 同一 jar 不得被多个子进程并发写；未来若并发下载 stream，必须先增加 Cookie coordinator 或在冻结更新后分叉副本。
 - 成功、失败、超时、取消、SIGTERM 和子进程异常都在 `finally` 删除 jar；Runner/container 销毁后 tmpfs 清空。
 - 临时文件绝不位于当前 Runner 与 Download Worker 共享的 `/work`。
-- 操作级 jar 的更新在终态丢弃，不反向写 Secret；轮换只走运维渠道。
-
-运维 Cookie 版本状态为：
-
-```text
-pending → canary → active → retired
-                    ↘ rejected
-```
-
-新版本只有 canary 通过后才能激活；旧版本至少保留到引用它的 inspection TTL 和最大排队窗口结束，并可在短时窗口回滚。会话出现明确 rotated/expired 信号时标记 `needs_refresh`，不依据猜测 TTL 自动登录或自动化 2FA。
+- 操作级 jar 的更新在终态丢弃，不反向写宿主 Chrome。私钥只存在于请求协程内，终态后遗留密文不可恢复。
+- 微信视频号不保留元宝专用 Profile：每次操作只复制正常 Chrome 当前 localStorage 到随机临时目录，注入当次元宝 Cookie，计算动态头并在 `finally` 中关闭 Chrome、销毁目录。
 
 ### 8.2 macOS 单机按需来源
 
-- 只有当前登录的 macOS 用户显式安装助手并启用 YouTube Operator 后，解析/下载操作才可触发 Chrome Default 来源；生产多用户服务默认不使用该来源，但获批准的单机 production Compose 可以复用该宿主机来源。
-- Chrome Cookies 数据库的 SQL 查询在选择阶段就限制为 `youtube.com` / `youtube-nocookie.com`，只返回并解密中选行；非 YouTube 域 Cookie 不进入 helper 的查询结果、输出文件或日志。
+- 只有当前登录的 macOS 用户显式安装助手并启用对应 Operator 后，解析/下载操作才可触发 Chrome Default 来源；获批准的单机 production Compose 可以复用该宿主机来源。
+- Chrome Cookies 数据库的 SQL 查询在选择阶段就限制为当前 Provider 的中央域 allowlist，只返回并解密中选行；其他域 Cookie 不进入 helper 的查询结果、输出或日志。
 - 单次读取在独立进程组中执行，持有 15 秒硬超时；成功后立即退出，超时、取消或异常时终止并回收整个进程组。helper 不启动、操作或持有 Chrome，不使用定时轮询或常驻端口。
-- `chrome-default` 表示动态本机来源协议，不是 Cookie 原文哈希或内容 cohort。其平台状态历史只能证明该来源在相同非敏感上下文近期完成过制品，不证明当前 Cookie 未轮换或仍可用，不能单独将 `access_required` 提升为 `verified`。
+- `browser` 表示动态本机来源协议，不是 Cookie 原文哈希或内容 cohort。其平台状态历史只能证明该来源在相同非敏感上下文近期完成过制品，不证明当前 Cookie 未轮换或仍可用，不能单独将 `access_required` 提升为 `verified`。
 - 应用服务的启动与重启仍只使用根 Docker Compose；按需 helper 是凭据适配器，不是宿主机平行应用或新的启动脚本。
 
 ### 8.3 第二阶段：用户 ProviderCredential
@@ -321,7 +312,7 @@ pending → canary → active → retired
 | AcFun / Rutube / VK Clips / Dailymotion / NicoNico | 无 | 无 | 不在产品范围；主域及子域 fail closed，不进入 Generic |
 | Generic | 公开 direct/HLS/DASH/embed | 永不携带 Provider Secret | redirect 后重新归类 |
 | 快手 | 仓库可信 `KuaishouPublicIE` + 第一方移动分享页 | anonymous | `kuaishou-public` 已完成真实 metadata/media 回归 |
-| 视频号 | 第一方预览页 + `get_feed_info` 的仓库内可审计 extractor | anonymous only；无 Cookie/浏览器/第三方中转 | `wechat-channels-public-v2` 为 `degraded`；仅处理 `/sph/` 直接公开 clear 媒体，受保护或未公开媒体 fail closed |
+| 视频号 | 第一方预览页 + `get_feed_info` + 元宝官方解析接口的仓库内可审计 extractor | 正常 Chrome 当前元宝授权的操作级临时克隆；动态头和 Cookie 只进入本次加密租约 | Profile 为 `wechat-channels-public`；保护媒体 fail closed，未登录返回稳定会话错误 |
 
 图片、carousel、gallery 和用户时间线若进入产品范围，使用独立 gallery-dl engine adapter，返回受限 manifest；在领域模型支持多条目之前不静默只取第一项。gallery-dl 为 GPL-2.0，必须以独立进程/镜像评估分发义务，不直接导入当前核心源码。
 
@@ -412,7 +403,7 @@ unknown | verified | degraded | access_required | rate_limited | blocked | disab
 
 最近 5 次至少 4 次成功、最近 2 次连续成功、metadata 成功不超过 6 小时且 media 成功不超过 26 小时，已批准基线才可恢复 `verified`；至少 2 次失败进入 `degraded`；连续 3 次同类永久失败进入 `blocked`。会话失效立即进入 `access_required`。API 已实现该聚合器，但新平台的 `unknown/access_required` 基线不能被下载探针自动提升，必须先完成完整视频 Agent E2E 并显式批准。当前逐平台状态只由 Registry、状态 API 与对应验收文档维护，不在本通用策略中复制易过期快照；微信视频号当前边界见 025，腾讯视频授权媒体边界见 024。
 
-API 通过 HMAC/replay 防护的批量 Runner context 接口读取当前运行时，2 秒内一次解析全部匿名平台，各 operator group 并行且故障隔离。状态和 scheduler 使用完整 context 的 SHA-256 generation：`provider_key + profile_version + access_mode + credential_version_id + egress_affinity_id + client_profile_id + attestation_provider_version + engine_commit`。任一字段变化都会创建新 generation；查询必须在 SQL 排序/限额前按当前 generation 过滤，历史任务即使晚完成也不能污染当前状态或推迟新一轮 canary。无法取得或无法通过语义校验的 group 只将对应平台标为 `degraded`，绝不从历史记录推断“当前 cohort”。动态本机来源 `chrome-default` 不将 Cookie 原文或哈希加入 generation，因此其关联的真实下载只是“这个来源近期成功”的历史证据，不是当前 Cookie 内容 cohort 的验证结果；它不能单独把 `access_required` 提升为 `verified`。
+API 通过 HMAC/replay 防护的批量 Runner context 接口读取当前运行时，2 秒内解析匿名组并并行读取每个隔离 operator group。状态和 scheduler 使用完整 context 的 SHA-256 generation：`provider_key + profile_version + access_mode + credential_version_id + egress_affinity_id + client_profile_id + attestation_provider_version + engine_commit`。任一字段变化都会创建新 generation；查询必须在 SQL 排序/限额前按当前 generation 过滤，历史任务即使晚完成也不能污染当前状态或推迟新一轮 canary。无法取得或无法通过语义校验的 group 只将对应平台标为 `degraded`，绝不从历史记录推断当前运行时。动态本机来源 `browser` 不将 Cookie 原文或哈希加入 generation，因此其关联的真实下载只是历史成功证据，不证明当前 Cookie 仍可用，也不能单独把 `access_required` 提升为 `verified`。
 
 ## 14. 可观测性与审计
 

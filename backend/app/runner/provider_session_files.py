@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import os
-import re
 import shutil
 import stat
+import sys
 import tempfile
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -13,12 +13,12 @@ from pathlib import Path
 
 from app.runner.errors import RunnerFailure
 
-_VERSION = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
 _NETSCAPE_HEADERS = (
     b"# Netscape HTTP Cookie File",
     b"# HTTP Cookie File",
 )
 _MAX_COOKIE_BYTES = 1024**2
+_MEMORY_FILESYSTEMS = frozenset({"tmpfs", "ramfs"})
 
 
 def prepare_private_root(root: Path) -> None:
@@ -29,25 +29,39 @@ def prepare_private_root(root: Path) -> None:
     os.chmod(root, 0o700)
 
 
-def validated_cookie_payload(
-    source_root: Path,
-    provider: str,
-    version: str,
-    allowlist: frozenset[str],
+def require_memory_backed_root(
+    root: Path,
     *,
-    now: float,
-    max_age_seconds: float,
+    mountinfo: Path = Path("/proc/self/mountinfo"),
+) -> None:
+    """Fail closed unless the operation root lives on a Linux memory filesystem."""
+    if sys.platform != "linux":
+        raise RunnerFailure("provider_session_unavailable", status=503)
+    try:
+        resolved = root.resolve(strict=True)
+        candidates: list[tuple[int, str]] = []
+        for line in mountinfo.read_text(encoding="utf-8").splitlines():
+            before, after = line.split(" - ", 1)
+            fields = before.split()
+            filesystem = after.split()[0]
+            mount_point = Path(_decode_mount_path(fields[4])).resolve()
+            if resolved == mount_point or resolved.is_relative_to(mount_point):
+                candidates.append((len(mount_point.parts), filesystem))
+        if not candidates or max(candidates)[1] not in _MEMORY_FILESYSTEMS:
+            raise RunnerFailure("provider_session_unavailable", status=503)
+    except RunnerFailure:
+        raise
+    except (OSError, UnicodeError, ValueError) as exc:
+        raise RunnerFailure("provider_session_unavailable", status=503) from exc
+
+
+def validated_cookie_payload(
+    payload: bytes,
+    allowlist: frozenset[str],
 ) -> bytes:
-    if _VERSION.fullmatch(version) is None:
+    """Validate one in-memory lease without reading a retained source file."""
+    if not 0 < len(payload) <= _MAX_COOKIE_BYTES:
         raise RunnerFailure("credential_rejected", status=422)
-    candidate = source_root / provider / f"{version}.cookies.txt"
-    if candidate.is_symlink():
-        raise RunnerFailure("credential_rejected", status=422)
-    source = candidate.resolve()
-    if not source.is_relative_to(source_root):
-        raise RunnerFailure("credential_rejected", status=422)
-    _validate_freshness(source, now, max_age_seconds)
-    payload = _read_regular_file(source)
     _validate_netscape_cookie(payload, allowlist)
     return payload
 
@@ -71,41 +85,7 @@ def operation_cookie(payload: bytes, temp_root: Path, provider: str) -> Iterator
             raise RunnerFailure("provider_session_unavailable", status=503)
         yield jar
     finally:
-        shutil.rmtree(operation_dir, ignore_errors=True)
-
-
-def _validate_freshness(source: Path, now: float, max_age_seconds: float) -> None:
-    if max_age_seconds <= 0:
-        return
-    try:
-        age = now - source.stat().st_mtime
-    except OSError as exc:
-        raise RunnerFailure("credential_required", status=422) from exc
-    if age < 0 or age > max_age_seconds:
-        raise RunnerFailure("provider_session_unavailable", status=503)
-
-
-def _read_regular_file(path: Path) -> bytes:
-    try:
-        info = path.lstat()
-        if path.is_symlink() or not stat.S_ISREG(info.st_mode):
-            raise RunnerFailure("credential_rejected", status=422)
-        if info.st_size <= 0 or info.st_size > _MAX_COOKIE_BYTES:
-            raise RunnerFailure("credential_rejected", status=422)
-        descriptor = os.open(path, os.O_RDONLY | _no_follow())
-        current = os.fstat(descriptor)
-        if not stat.S_ISREG(current.st_mode) or current.st_ino != info.st_ino:
-            os.close(descriptor)
-            raise RunnerFailure("credential_rejected", status=422)
-        with os.fdopen(descriptor, "rb", closefd=True) as source:
-            payload = source.read(_MAX_COOKIE_BYTES + 1)
-    except RunnerFailure:
-        raise
-    except OSError as exc:
-        raise RunnerFailure("credential_required", status=422) from exc
-    if len(payload) > _MAX_COOKIE_BYTES:
-        raise RunnerFailure("credential_rejected", status=422)
-    return payload
+        shutil.rmtree(operation_dir)
 
 
 def _validate_netscape_cookie(payload: bytes, allowlist: frozenset[str]) -> None:
@@ -135,3 +115,12 @@ def _validate_netscape_cookie(payload: bytes, allowlist: frozenset[str]) -> None
 
 def _no_follow() -> int:
     return getattr(os, "O_NOFOLLOW", 0)
+
+
+def _decode_mount_path(value: str) -> str:
+    return (
+        value.replace(r"\040", " ")
+        .replace(r"\011", "\t")
+        .replace(r"\012", "\n")
+        .replace(r"\134", "\\")
+    )

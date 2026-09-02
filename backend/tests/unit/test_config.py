@@ -260,25 +260,37 @@ def test_operator_runner_endpoints_are_provider_keyed_internal_urls() -> None:
         _env_file=None,
         runner_operator_base_urls={
             "youtube": "http://youtube-operator-runner:19100/",
-            "x": "http://provider-operator-runner:19100",
+            "x": "http://x-operator-runner:19100",
         },
     )
 
     assert settings.runner_operator_base_urls == {
         "youtube": "http://youtube-operator-runner:19100",
-        "x": "http://provider-operator-runner:19100",
+        "x": "http://x-operator-runner:19100",
     }
-    for invalid in (
-        {"X": "http://provider-operator-runner:19100"},
+    invalid_cases = (
+        {"X": "http://x-operator-runner:19100"},
         {"x": "https://public.example/runner"},
-        {"x": "http://user:pass@provider-operator-runner:19100"},
-    ):
-        with pytest.raises(ValidationError, match="runner operator"):
+        {"x": "http://user:pass@x-operator-runner:19100"},
+        {"x": "http://x-operator-runner:19100/path"},
+    )
+    for invalid in invalid_cases:
+        with pytest.raises(ValidationError):
             Settings(
                 app_env="test",
                 _env_file=None,
                 runner_operator_base_urls=invalid,
             )
+
+    with pytest.raises(ValidationError, match="provider-isolated"):
+        Settings(
+            app_env="test",
+            _env_file=None,
+            runner_operator_base_urls={
+                "youtube": "http://shared-runner:19100",
+                "x": "http://shared-runner:19100",
+            },
+        )
 
 
 def test_article_discovery_proxy_is_an_http_authority() -> None:

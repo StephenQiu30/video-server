@@ -33,7 +33,7 @@ def test_bilibili_tls_media_port_is_scoped_to_its_cdn() -> None:
     assert scoped_deny < public_allow
 
 
-def test_docker_desktop_public_range_is_not_trusted_in_production() -> None:
+def test_destination_policies_separate_linux_and_docker_desktop_dns() -> None:
     production = (CONFIG_ROOT / "blocked-destinations.conf").read_text(encoding="utf-8")
     docker_desktop = (
         CONFIG_ROOT / "blocked-destinations-docker-desktop.conf"
@@ -51,6 +51,20 @@ def test_compose_selects_environment_specific_destination_policy() -> None:
         encoding="utf-8"
     )
 
-    assert "backend/egress/blocked-destinations-docker-desktop.conf" in development
-    assert "backend/egress/blocked-destinations.conf" in production
-    assert "blocked-destinations-docker-desktop.conf" not in production
+    variable = "EGRESS_DESTINATION_POLICY_FILE"
+    assert variable in development
+    assert variable in production
+    assert "blocked-destinations-docker-desktop.conf" in development
+    assert "blocked-destinations.conf" in production
+
+    local_environment = (REPOSITORY_ROOT / ".env.prod").read_text(encoding="utf-8")
+    production_example = (REPOSITORY_ROOT / ".env.prod.example").read_text(
+        encoding="utf-8"
+    )
+    assert (
+        f"{variable}=./backend/egress/blocked-destinations-docker-desktop.conf"
+        in local_environment
+    )
+    assert (
+        f"{variable}=./backend/egress/blocked-destinations.conf" in production_example
+    )

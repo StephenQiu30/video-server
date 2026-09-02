@@ -9,13 +9,14 @@ from app.runner.errors import RunnerFailure
 @pytest.mark.parametrize(
     "provider",
     (
-        "vimeo",
         "douyin",
         "xiaohongshu",
         "reddit",
         "x",
         "instagram",
         "facebook",
+        "pinterest",
+        "wechat_channels",
     ),
 )
 def test_operator_allows_unrestricted_public_web_metadata(provider: str) -> None:
@@ -26,7 +27,7 @@ def test_operator_allows_unrestricted_public_web_metadata(provider: str) -> None
     )
 
 
-@pytest.mark.parametrize("provider", ("tiktok", "wechat_channels"))
+@pytest.mark.parametrize("provider", ("tiktok", "vimeo"))
 def test_anonymous_only_provider_is_not_operator_allowlisted(provider: str) -> None:
     with pytest.raises(RunnerFailure) as caught:
         enforce_media_rights(

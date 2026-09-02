@@ -25,9 +25,7 @@ def test_schema_uses_codex_and_claude_supported_subset() -> None:
 
 def test_schema_exposes_continuous_visual_beat_boundary() -> None:
     schema = analysis_output_schema("zh-CN")
-    transition = schema["properties"]["shots"]["items"]["properties"][
-        "transition_in"
-    ]
+    transition = schema["properties"]["shots"]["items"]["properties"]["transition_in"]
 
     assert transition["enum"] == [
         "cut",

@@ -1,3 +1,5 @@
+import { createUuid } from '@/utils/uuid';
+
 const STORAGE_KEY = 'video-server:navigation-history';
 const HISTORY_ENTRY_KEY = '__videoServerNavigationEntryId';
 export const NAVIGATION_PUSH_EVENT = 'video-server:navigation-push';
@@ -147,7 +149,7 @@ function internalRoute(targetHref: string) {
 }
 
 function createEntry(route: string): NavigationEntry {
-  return { id: crypto.randomUUID(), route };
+  return { id: createUuid(), route };
 }
 
 function isNavigationEntry(entry: unknown): entry is NavigationEntry {

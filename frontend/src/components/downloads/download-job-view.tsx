@@ -88,7 +88,8 @@ export default function DownloadJobView({
             <div className="min-w-0">
               {state.job.status === 'succeeded' &&
               state.job.file_available &&
-              !gallery && !collection ? (
+              !gallery &&
+              !collection ? (
                 <DownloadVideoPreview
                   container={
                     format?.container_preference === 'mp4' ||

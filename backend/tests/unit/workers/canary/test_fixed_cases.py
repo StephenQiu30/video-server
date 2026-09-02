@@ -6,6 +6,7 @@ from app.domain.providers import (
     ProviderSupportStatus,
 )
 from app.runner.provider_registry import current_provider_registry
+from app.runner.provider_session_policy import browser_session_providers
 from app.workers.canary.fixed_cases import fixed_public_diagnostic_targets
 
 _KNOWN_INVALID_UPSTREAM_FIXTURES = {
@@ -25,10 +26,14 @@ def test_fixed_public_matrix_covers_every_registered_provider_and_stage() -> Non
         for profile in current_provider_registry().profiles
         if profile.support_status is not ProviderSupportStatus.DISABLED
     }
-    for provider_targets in grouped.values():
-        assert {target.access_mode for target in provider_targets} == {
-            ProviderAccessMode.ANONYMOUS
-        }
+    operator_providers = {provider.value for provider in browser_session_providers()}
+    for provider, provider_targets in grouped.items():
+        expected_mode = (
+            ProviderAccessMode.OPERATOR_MANAGED
+            if provider in operator_providers
+            else ProviderAccessMode.ANONYMOUS
+        )
+        assert {target.access_mode for target in provider_targets} == {expected_mode}
         assert {target.stage for target in provider_targets} == {
             ProviderCanaryStage.METADATA,
             ProviderCanaryStage.MEDIA,

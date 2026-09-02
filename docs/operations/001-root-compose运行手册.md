@@ -40,6 +40,8 @@ Compose 文件不再通过 YAML Anchor 隐式继承服务配置；每个服务�
 
 本机开发同时需要从浏览器和真机 App 上传时，`MINIO_PUBLIC_ENDPOINT` 应配置为真机可访问的 HTTPS 地址，`MINIO_LOCAL_BROWSER_ENDPOINT` 配置为 `127.0.0.1:<port>`。只有来自回环页面、显式标记为本地 Web 的开发请求会使用回环签名地址；Flutter 和远程 Web 始终使用公共地址。该分流由项目配置完成，不依赖或修改操作系统代理规则。生产环境应省略 `MINIO_LOCAL_BROWSER_ENDPOINT`。
 
+私有 Tailnet 生产部署也必须使用节点的 Tailscale HTTPS 名称，不能把 `http://100.x.y.z` 设为 `SITE_URL`，否则生产 `Secure` 会话 Cookie 无法工作。手机必须登录同一 Tailnet。Mac 本地浏览器应使用 `http://127.0.0.1:8101`，并由 `MINIO_LOCAL_BROWSER_ENDPOINT` 获得回环下载地址；远程 Web 与移动端继续使用 `MINIO_PUBLIC_ENDPOINT` 的 HTTPS 地址。
+
 ## 本机业务拓扑
 
 ~~~bash
@@ -55,15 +57,22 @@ docker compose --env-file .env -f docker-compose.yml up -d --build --force-recre
 后端镜像、重新创建业务服务并等待健康检查。需要 Operator Runner 时，在 `.env` 的
 `COMPOSE_PROFILES` 中声明与 `RUNNER_OPERATOR_BASE_URLS` 一致的 profile。项目启动
 不会在项目启动或解析时启动宿主机浏览器，也不会调用 AI Worker 获取平台会话。
-生产受控 Provider 的版本化只读 Secret 由部署环境在仓库外提供。macOS 单机部署若
-显式安装 YouTube 按需助手，则只有 YouTube Operator 操作会自动读取 Chrome Default
-的 Cookies 数据库，SQL 查询本身只选择 YouTube 域，不把其他域行返回到查询结果后再过滤。单次读取
-有 15 秒硬超时，超时或取消会回收整个进程组；请求排空后 helper 退出，不会
-打开或留下 Chrome 后台进程。该 helper 只是按需的本机凭据适配器，不是平行应用启动
-方式；项目仍只通过上述 Docker Compose 命令运行。生产多用户部署不安装该 helper，也不
-依赖任何个人 Chrome；获批准的单机 production Compose 可以按 YouTube 手册显式启用它。
+生产受控 Provider 不使用版本化 Cookie 文件。macOS 部署显式安装统一按需助手后，
+Operator 操作才会读取 Chrome Default 的目标域最小集合；SQL 查询本身按中央 Provider
+allowlist 选择，不把其他域行返回后再过滤。Runner 每次生成一次性公钥，宿主返回绑定该
+请求的认证加密密文；明文只在对应 Runner 的 `/run/provider-session` tmpfs 中存在到操作
+结束。单次读取有 15 秒硬超时，超时或取消会回收整个进程组；请求排空后 helper 退出，
+不会留下 Chrome 后台进程、Cookie 文件或项目专用浏览器 Profile。该 helper 只是按需的
+本机凭据适配器，不是平行应用启动方式；项目仍只通过上述 Docker Compose 命令运行。
 不要使用不会应用代码、镜像或配置变化的
 `docker compose restart`。
+
+出口目的地址策略必须匹配 Docker 运行环境。Linux 服务器保持
+`EGRESS_DESTINATION_POLICY_FILE=./backend/egress/blocked-destinations.conf`；macOS/Windows
+Docker Desktop 会把公网 DNS 映射到保留的 synthetic 地址段，必须显式选择
+`blocked-destinations-docker-desktop.conf`。后者仍拒绝字面量 IP URL、私网 DNS 结果和
+非 Web 端口，不能在普通 Linux 服务器上作为放宽策略使用。修改后必须重建
+`egress-proxy`，仅重启其他业务容器不会应用挂载变化。
 
 访问地址：
 
@@ -143,17 +152,20 @@ AI Worker 心跳是功能级状态，不是 API 全局 readiness。Worker 短暂
 
 ## Operator Profile
 
-YouTube 受控会话：
+macOS 生产环境先安装统一宿主会话代理：
 
 ~~~bash
-docker compose --env-file .env.prod -f docker-compose-prod.yml --profile youtube-operator config --quiet
-docker compose --env-file .env.prod -f docker-compose-prod.yml --profile youtube-operator up -d --no-build
+cd backend
+uv run python -m app.runner.provider_cookie_agent install
+uv run python -m app.runner.provider_cookie_agent status
 ~~~
 
-其他受控 Provider：
+生产 Compose 固定启动九个平台隔离 Runner，不使用条件 Profile：
 
 ~~~bash
-docker compose --env-file .env.prod -f docker-compose-prod.yml --profile provider-operator up -d --no-build
+docker compose --env-file .env.prod -f docker-compose-prod.yml config --quiet
+docker compose --env-file .env.prod -f docker-compose-prod.yml \
+  up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
 ~~~
 
 启用前必须按对应 Provider 运维手册完成 Cookie、权限、固定出口和授权 canary 门禁。

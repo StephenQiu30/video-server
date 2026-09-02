@@ -100,7 +100,7 @@ def settings(tmp_path: Path) -> RunnerSettings:
 def anonymous_access_context() -> dict[str, object]:
     return {
         "provider_key": "generic",
-        "profile_version": "1",
+        "profile_version": "default",
         "access_mode": "anonymous",
         "credential_version_id": None,
         "egress_affinity_id": egress_affinity_id("default", "http://egress-proxy:3128"),

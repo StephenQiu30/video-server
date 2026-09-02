@@ -44,6 +44,7 @@ async def runtime_probe(
     client = httpx.AsyncClient(transport=handler)
     settings = Settings(
         app_env="test",
+        _env_file=None,
         database_url=str(engine.url),
         rabbitmq_url="amqp://user:redacted@rabbit.test:5672/",
         runner_base_url="http://runner.test",
@@ -83,7 +84,7 @@ async def test_runtime_readiness_fails_closed_without_exposing_dependency_error(
 
 
 @pytest.mark.usefixtures("rabbitmq_is_available")
-async def test_runtime_readiness_does_not_depend_on_optional_operator_runner(
+async def test_runtime_readiness_checks_every_configured_operator_runner(
     postgres_engine: AsyncEngine,
 ) -> None:
     seen: set[str] = set()
@@ -101,7 +102,22 @@ async def test_runtime_readiness_does_not_depend_on_optional_operator_runner(
 
     assert "runner.test" in seen
     assert "minio.test" in seen
-    assert "x-runner.test" not in seen
+    assert "x-runner.test" in seen
+
+
+@pytest.mark.usefixtures("rabbitmq_is_available")
+async def test_runtime_readiness_fails_when_a_configured_operator_is_unhealthy(
+    postgres_engine: AsyncEngine,
+) -> None:
+    async def respond(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(503 if request.url.host == "x-runner.test" else 200)
+
+    async with runtime_probe(
+        httpx.MockTransport(respond),
+        postgres_engine,
+        operator_runners={"x": "http://x-runner.test"},
+    ) as probe:
+        assert await probe.check() is False
 
 
 @pytest.mark.usefixtures("rabbitmq_is_available")

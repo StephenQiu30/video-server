@@ -26,6 +26,7 @@ describe('intake motion', () => {
     expect(animate.mock.calls[0][1]).toMatchObject({ opacity: 0, y: 6 });
     expect(animate.mock.calls[0][2]).toMatchObject({
       duration: 0.16,
+      overwrite: 'auto',
       opacity: 1,
       y: 0,
     });

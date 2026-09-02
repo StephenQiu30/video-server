@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import sqlite3
+from http.cookiejar import CookieJar
 from pathlib import Path
 
 import pytest
-from app.runner import chrome_youtube_cookies as chrome
+from app.runner import chrome_provider_cookies as chrome
 
 
 class _Decryptor:
@@ -15,7 +16,9 @@ class _Decryptor:
         self.values.append(value)
         if value == b"youtube-encrypted":
             return "youtube-value"
-        raise AssertionError("a non-YouTube Cookie reached the decryptor")
+        if value == b"instagram-encrypted":
+            return "instagram-value"
+        raise AssertionError("a non-allowlisted Cookie reached the decryptor")
 
 
 def _database(path: Path, *, secure_column: str = "is_secure") -> None:
@@ -41,6 +44,7 @@ def _database(path: Path, *, secure_column: str = "is_secure") -> None:
             ("accounts.google.com", "account", "", b"google-encrypted", "/", 9, 1),
             ("notyoutube.com", "other", "", b"other-encrypted", "/", 9, 1),
             ("youtube.com.attacker.test", "fake", "", b"fake-encrypted", "/", 9, 1),
+            (".instagram.com", "sessionid", "", b"instagram-encrypted", "/", 9, 1),
         ),
     )
     connection.commit()
@@ -59,14 +63,16 @@ def _allow_macos(monkeypatch: pytest.MonkeyPatch, decryptor: _Decryptor) -> None
     monkeypatch.setattr(chrome, "_pinned_decryptor", lambda *args: decryptor)
 
 
-def test_extract_selects_and_decrypts_only_youtube_rows(
+def test_extract_selects_and_decrypts_only_requested_provider_rows(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     root, _ = _profile(tmp_path)
     decryptor = _Decryptor()
     _allow_macos(monkeypatch, decryptor)
 
-    jar = chrome.extract_youtube_cookies(chrome_root=root)
+    jar = chrome.extract_chrome_cookies(
+        ("youtube.com", "youtube-nocookie.com"), chrome_root=root
+    )
 
     cookies = {(item.domain, item.name, item.value) for item in jar}
     assert cookies == {
@@ -74,6 +80,20 @@ def test_extract_selects_and_decrypts_only_youtube_rows(
         ("embed.youtube-nocookie.com", "embed", "plain"),
     }
     assert decryptor.values == [b"youtube-encrypted"]
+
+
+def test_extract_selects_and_decrypts_only_instagram_rows(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    root, _ = _profile(tmp_path)
+    decryptor = _Decryptor()
+    _allow_macos(monkeypatch, decryptor)
+
+    jar = chrome.extract_chrome_cookies(("instagram.com",), chrome_root=root)
+
+    cookies = {(item.domain, item.name, item.value) for item in jar}
+    assert cookies == {(".instagram.com", "sessionid", "instagram-value")}
+    assert decryptor.values == [b"instagram-encrypted"]
 
 
 @pytest.mark.parametrize("profile", ("Default", "Profile 1", "Profile 42"))
@@ -84,7 +104,16 @@ def test_extract_accepts_only_named_chrome_profiles(
     decryptor = _Decryptor()
     _allow_macos(monkeypatch, decryptor)
 
-    assert len(chrome.extract_youtube_cookies(profile, chrome_root=root)) == 2
+    assert (
+        len(
+            chrome.extract_chrome_cookies(
+                ("youtube.com", "youtube-nocookie.com"),
+                profile,
+                chrome_root=root,
+            )
+        )
+        == 2
+    )
 
 
 @pytest.mark.parametrize(
@@ -98,7 +127,7 @@ def test_extract_rejects_unsafe_profile_names(
     monkeypatch.setattr(chrome.sys, "platform", "darwin")
 
     with pytest.raises(ValueError, match="unsafe Chrome profile"):
-        chrome.extract_youtube_cookies(profile, chrome_root=root)
+        chrome.extract_chrome_cookies(("youtube.com",), profile, chrome_root=root)
 
 
 def test_extract_reads_the_network_database_and_legacy_secure_column(
@@ -110,7 +139,35 @@ def test_extract_reads_the_network_database_and_legacy_secure_column(
     decryptor = _Decryptor()
     _allow_macos(monkeypatch, decryptor)
 
-    assert len(chrome.extract_youtube_cookies(chrome_root=root)) == 2
+    assert (
+        len(
+            chrome.extract_chrome_cookies(
+                ("youtube.com", "youtube-nocookie.com"), chrome_root=root
+            )
+        )
+        == 2
+    )
+
+
+def test_extract_converts_chrome_expiry_to_unix_seconds(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    root, database = _profile(tmp_path)
+    connection = sqlite3.connect(database)
+    chrome_epoch = 11_644_473_600 * 1_000_000
+    connection.execute(
+        "UPDATE cookies SET expires_utc = ? WHERE name = 'session'",
+        (chrome_epoch + 2_000_000_000 * 1_000_000,),
+    )
+    connection.commit()
+    connection.close()
+    decryptor = _Decryptor()
+    _allow_macos(monkeypatch, decryptor)
+
+    jar = chrome.extract_chrome_cookies(("youtube.com",), chrome_root=root)
+
+    cookie = next(item for item in jar if item.name == "session")
+    assert cookie.expires == 2_000_000_000
 
 
 def test_extract_rejects_a_symlink_database(
@@ -123,7 +180,7 @@ def test_extract_rejects_a_symlink_database(
     monkeypatch.setattr(chrome.sys, "platform", "darwin")
 
     with pytest.raises(OSError, match="unsafe Chrome Cookie database"):
-        chrome.extract_youtube_cookies(chrome_root=root)
+        chrome.extract_chrome_cookies(("youtube.com",), chrome_root=root)
 
 
 def test_extract_rejects_a_non_regular_database(
@@ -135,7 +192,7 @@ def test_extract_rejects_a_non_regular_database(
     monkeypatch.setattr(chrome.sys, "platform", "darwin")
 
     with pytest.raises(OSError, match="unsafe Chrome Cookie database"):
-        chrome.extract_youtube_cookies(chrome_root=root)
+        chrome.extract_chrome_cookies(("youtube.com",), chrome_root=root)
 
 
 def test_extract_rejects_a_symlink_profile(
@@ -146,7 +203,7 @@ def test_extract_rejects_a_symlink_profile(
     monkeypatch.setattr(chrome.sys, "platform", "darwin")
 
     with pytest.raises(OSError, match="unsafe Chrome profile"):
-        chrome.extract_youtube_cookies(chrome_root=root)
+        chrome.extract_chrome_cookies(("youtube.com",), chrome_root=root)
 
 
 def test_extract_reads_the_validated_database_without_a_disk_copy(
@@ -157,16 +214,34 @@ def test_extract_reads_the_validated_database_without_a_disk_copy(
     opened: list[Path] = []
     original = chrome._read_filtered
 
-    def inspect_source(database: Path, chrome_root: Path):  # type: ignore[no-untyped-def]
+    def inspect_source(
+        database: Path, chrome_root: Path, domains: tuple[str, ...]
+    ) -> CookieJar:
         opened.append(database)
-        return original(database, chrome_root)
+        return original(database, chrome_root, domains)
 
     _allow_macos(monkeypatch, decryptor)
     monkeypatch.setattr(chrome, "_read_filtered", inspect_source)
 
-    chrome.extract_youtube_cookies(chrome_root=root)
+    chrome.extract_chrome_cookies(
+        ("youtube.com", "youtube-nocookie.com"), chrome_root=root
+    )
 
     assert opened == [source]
+
+
+@pytest.mark.parametrize(
+    "domains",
+    ((), ("../instagram.com",), ("instagram..com",), ("instagram.com/path",)),
+)
+def test_extract_rejects_unsafe_domain_allowlists(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, domains: tuple[str, ...]
+) -> None:
+    root, _ = _profile(tmp_path)
+    monkeypatch.setattr(chrome.sys, "platform", "darwin")
+
+    with pytest.raises(ValueError, match="domain allowlist"):
+        chrome.extract_chrome_cookies(domains, chrome_root=root)
 
 
 def test_extract_is_macos_only(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -174,4 +249,4 @@ def test_extract_is_macos_only(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
     monkeypatch.setattr(chrome.sys, "platform", "linux")
 
     with pytest.raises(OSError, match="macOS"):
-        chrome.extract_youtube_cookies(chrome_root=root)
+        chrome.extract_chrome_cookies(("youtube.com",), chrome_root=root)

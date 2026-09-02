@@ -1,4 +1,4 @@
-"""Read only YouTube cookies from one local macOS Chrome profile."""
+"""Read a provider-scoped Cookie jar from local macOS Chrome."""
 
 from __future__ import annotations
 
@@ -12,24 +12,12 @@ from typing import Protocol, cast
 
 from yt_dlp import cookies as yt_dlp_cookies  # type: ignore[import-untyped]
 
-from app.domain.providers import YouTubeCookieDomain
-
 DEFAULT_CHROME_ROOT = (
     Path.home() / "Library" / "Application Support" / "Google" / "Chrome"
 )
 _PROFILE = re.compile(r"(?:Default|Profile [1-9][0-9]*)")
-_DOMAINS = (
-    YouTubeCookieDomain.PRIMARY,
-    YouTubeCookieDomain.NOCOOKIE,
-)
-_COOKIE_QUERY = """
-SELECT host_key, name, value, encrypted_value, path, expires_utc, {secure}
-FROM cookies
-WHERE lower(ltrim(host_key, '.')) = ?
-   OR lower(ltrim(host_key, '.')) LIKE '%.' || ?
-   OR lower(ltrim(host_key, '.')) = ?
-   OR lower(ltrim(host_key, '.')) LIKE '%.' || ?
-"""
+_DOMAIN = re.compile(r"[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?")
+_CHROME_EPOCH_OFFSET_MICROSECONDS = 11_644_473_600 * 1_000_000
 
 
 class _CookieDecryptor(Protocol):
@@ -43,17 +31,28 @@ class _SilentLogger:
     debug = info = warning = error = _ignore
 
 
-def extract_youtube_cookies(
+def extract_chrome_cookies(
+    domains: tuple[str, ...],
     profile: str = "Default",
     *,
     chrome_root: Path = DEFAULT_CHROME_ROOT,
 ) -> CookieJar:
-    """Return a jar populated only by the allowlisted Chrome Cookie rows."""
+    """Return only rows for explicitly allowlisted provider domains."""
     if sys.platform != "darwin":
         raise OSError("macOS Chrome Cookie extraction is unavailable")
+    normalized = _validated_domains(domains)
     profile_dir = _safe_profile(chrome_root, profile)
     database = _cookie_database(profile_dir)
-    return _read_filtered(database, chrome_root)
+    return _read_filtered(database, chrome_root, normalized)
+
+
+def chrome_profile_directory(
+    profile: str = "Default",
+    *,
+    chrome_root: Path = DEFAULT_CHROME_ROOT,
+) -> Path:
+    """Resolve one allowlisted Chrome profile without following symlinks."""
+    return _safe_profile(chrome_root, profile)
 
 
 def _safe_profile(chrome_root: Path, profile: str) -> Path:
@@ -82,7 +81,11 @@ def _cookie_database(profile_dir: Path) -> Path:
     return max(candidates, key=lambda item: item[0])[1]
 
 
-def _read_filtered(database: Path, chrome_root: Path) -> CookieJar:
+def _read_filtered(
+    database: Path,
+    chrome_root: Path,
+    domains: tuple[str, ...],
+) -> CookieJar:
     before = database.lstat()
     connection = sqlite3.connect(f"{database.as_uri()}?mode=ro", uri=True)
     try:
@@ -105,10 +108,17 @@ def _read_filtered(database: Path, chrome_root: Path) -> CookieJar:
         if secure not in columns:
             raise sqlite3.DatabaseError("unsupported Chrome Cookie schema")
         connection.text_factory = bytes
-        rows = connection.execute(
-            _COOKIE_QUERY.format(secure=secure),
-            (_DOMAINS[0], _DOMAINS[0], _DOMAINS[1], _DOMAINS[1]),
+        clause = " OR ".join(
+            "(lower(ltrim(host_key, '.')) = ? "
+            "OR lower(ltrim(host_key, '.')) LIKE '%.' || ?)"
+            for _ in domains
         )
+        query = (
+            "SELECT host_key, name, value, encrypted_value, path, "
+            f"expires_utc, {secure} FROM cookies WHERE {clause}"
+        )
+        parameters = tuple(value for domain in domains for value in (domain, domain))
+        rows = connection.execute(query, parameters)
         decryptor = _pinned_decryptor(chrome_root, meta_version)
         jar = CookieJar()
         for row in rows:
@@ -145,7 +155,7 @@ def _to_cookie(decryptor: _CookieDecryptor, row: tuple[object, ...]) -> Cookie |
         decoded_path = cast(bytes, path).decode()
     except Exception:
         return None
-    expiry = int(cast(int, expires)) or None
+    expiry = _chrome_expiry(cast(int, expires))
     return Cookie(
         0,
         decoded_name,
@@ -167,10 +177,27 @@ def _to_cookie(decryptor: _CookieDecryptor, row: tuple[object, ...]) -> Cookie |
     )
 
 
+def _chrome_expiry(value: int) -> int | None:
+    """Convert Chrome WebKit microseconds to the CookieJar Unix timestamp."""
+    raw = int(value)
+    if raw == 0:
+        return None
+    return max(0, (raw - _CHROME_EPOCH_OFFSET_MICROSECONDS) // 1_000_000)
+
+
 def _require_directory(path: Path) -> None:
     info = path.lstat()
     if path.is_symlink() or not stat.S_ISDIR(info.st_mode):
         raise OSError("unsafe Chrome profile path")
+
+
+def _validated_domains(domains: tuple[str, ...]) -> tuple[str, ...]:
+    normalized = tuple(dict.fromkeys(value.casefold().lstrip(".") for value in domains))
+    if not normalized or len(normalized) > 8:
+        raise ValueError("invalid provider Cookie domain allowlist")
+    if any(_DOMAIN.fullmatch(value) is None or ".." in value for value in normalized):
+        raise ValueError("invalid provider Cookie domain allowlist")
+    return normalized
 
 
 def _lexists(path: Path) -> bool:

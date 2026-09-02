@@ -2,6 +2,7 @@
 
 from app.domain.providers import (
     ProviderCapability,
+    ProviderCookieDomain,
     ProviderKey,
     ProviderProfileVersion,
     ProviderSupportStatus,
@@ -27,6 +28,7 @@ PUBLIC_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         version=ProviderProfileVersion.PINTEREST,
         capabilities=SINGLE_VIDEO,
         status=ProviderSupportStatus.VERIFIED,
+        operator_cookie_domains=frozenset({ProviderCookieDomain.PINTEREST}),
         canary_suite="pinterest-public-video-pin",
     ),
     standard_provider(

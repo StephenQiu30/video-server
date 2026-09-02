@@ -313,10 +313,7 @@ def _status_access_mode(
     baseline: ProviderStatusView,
 ) -> ProviderAccessMode | None:
     access_modes = baseline.access_modes
-    if (
-        baseline.status is ProviderSupportStatus.ACCESS_REQUIRED
-        and ProviderAccessMode.OPERATOR_MANAGED in access_modes
-    ):
+    if ProviderAccessMode.OPERATOR_MANAGED in access_modes:
         return ProviderAccessMode.OPERATOR_MANAGED
     if ProviderAccessMode.ANONYMOUS in access_modes:
         return ProviderAccessMode.ANONYMOUS

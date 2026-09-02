@@ -166,9 +166,7 @@ def test_official_short_link_identifies_graphic_note_redirect(
 def test_official_note_redirect_keeps_share_context_for_resolution() -> None:
     assert _canonical_note_url(
         "https://www.iesdouyin.com/share/note/123/?share_sign=opaque&ts=1"
-    ) == (
-        "https://www.iesdouyin.com/share/note/123/?share_sign=opaque&ts=1"
-    )
+    ) == ("https://www.iesdouyin.com/share/note/123/?share_sign=opaque&ts=1")
 
 
 def test_douyin_note_extracts_official_slides_payload(
@@ -290,9 +288,7 @@ def test_douyin_note_uses_iteminfo_when_slides_api_is_empty(
                 {
                     "aweme_id": "123",
                     "note_info": {
-                        "images": [
-                            {"url_list": ["https://cdn.test/iteminfo.webp"]}
-                        ]
+                        "images": [{"url_list": ["https://cdn.test/iteminfo.webp"]}]
                     },
                 }
             ]
@@ -331,9 +327,7 @@ def test_douyin_note_reads_current_web_flight_payload(
                                 "width": 1280,
                                 "height": 720,
                                 "urlList": ["https://cdn.test/preview.webp"],
-                                "downloadUrlList": [
-                                    "https://cdn.test/original.webp"
-                                ],
+                                "downloadUrlList": ["https://cdn.test/original.webp"],
                             }
                         ],
                     }

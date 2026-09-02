@@ -3,6 +3,7 @@ from __future__ import annotations
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -79,17 +80,58 @@ def test_public_share_extracts_directly_exposed_clear_media(
     assert info["formats"][0]["vcodec"] == "h264"
 
 
-def test_public_share_without_direct_media_fails_without_session_fallback(
+def test_public_share_without_direct_media_requires_the_declared_session(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     extractor, requests = configured_extractor(monkeypatch, [feed_payload()])
+    monkeypatch.setattr(extractor, "_get_cookies", lambda _url: {})
 
-    with pytest.raises(ExtractorError, match="public media is not downloadable"):
+    with pytest.raises(ExtractorError, match="Fresh cookies are needed"):
         extractor._real_extract(SHARE_URL)
 
     assert requests == [
         "https://channels.weixin.qq.com/finder-preview/api/feed/get_feed_info"
     ]
+
+
+def test_declared_yuanbao_session_resolves_public_share_media(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    extractor, requests = configured_extractor(
+        monkeypatch,
+        [
+            feed_payload(),
+            {
+                "code": 0,
+                "data": {
+                    "playable_url": (
+                        "https://channels.weixin.qq.com/finder-preview/pages/feed"
+                        "?token=public-token&eid=export-id"
+                    )
+                },
+            },
+            feed_payload(video_url=MEDIA_URL),
+        ],
+    )
+
+    def cookies(url: str) -> dict[str, SimpleNamespace]:
+        if url == "https://yuanbao.tencent.com/":
+            return {
+                "hy_user": SimpleNamespace(value="account-id"),
+                "hy_token": SimpleNamespace(value="auth-token"),
+            }
+        return {}
+
+    monkeypatch.setattr(extractor, "_get_cookies", cookies)
+
+    info = extractor._real_extract(SHARE_URL)
+
+    assert requests == [
+        "https://channels.weixin.qq.com/finder-preview/api/feed/get_feed_info",
+        "https://yuanbao.tencent.com/api/weixin/get_parse_result",
+        "https://channels.weixin.qq.com/finder-preview/api/feed/get_feed_info",
+    ]
+    assert info["formats"][0]["url"] == MEDIA_URL
 
 
 def test_unavailable_public_share_never_uses_operator_session(

@@ -12,36 +12,36 @@ Profile。项目不启动 Session Broker：
 ```bash
 docker compose --env-file .env -f docker-compose.yml \
   --profile youtube-operator \
-  --profile provider-operator \
   --profile douyin-operator --profile xiaohongshu-operator \
-  --profile reddit-operator up -d --build
+  --profile x-operator --profile instagram-operator \
+  --profile facebook-operator --profile reddit-operator \
+  --profile pinterest-operator --profile wechat-channels-operator \
+  up -d --build --wait
 
 curl --fail http://127.0.0.1:8111/health/ready
 ```
 
-全局就绪检查只探测匿名 Runner 和业务核心依赖。Operator Runner 是可选的平台级
-容量，其故障由平台状态和 canary 降级对应 Provider，不得拖垮 API、上传、匿名下载
-或 AI 配置。`provider-canary` 必须显示 `runner_work:/work` 挂载，且容器内
+全局就绪检查会探测匿名 Runner 和所有已配置的 Operator Runner；任一受控端点缺失时
+API 不得错报就绪。`provider-canary` 必须显示 `runner_work:/work` 挂载，且容器内
 `RUNNER_WORKSPACE_ROOT=/work`。
 
 `PROVIDER_CANARY_TARGETS` 的每条目标必须显式声明 `access_mode`。公开路由写
 `anonymous`，会话路由写 `operator_managed`；同一样本的两种路由必须使用
 不同 `target_id` 分别配置 metadata/media 目标。Canary 只执行声明的单一
-Runner，不经过业务下载的 anonymous→operator fallback；因此公开失败与
-会话成功会分别持久化，不会相互遮蔽。未配置对应 Operator Runner 的
+Runner，不存在 anonymous→operator 回退。未配置对应 Operator Runner 的
 `operator_managed` 目标会如实记录为访问失败。
 
 ## 2. 固定矩阵
 
 样本位于 `backend/app/workers/canary/fixed_public_cases.json`。每个 Registry key
-必须恰好有同一 target/version 的 metadata 与 media 两条记录；URL 不会出现在命令
-输出或数据库 canary 行中。该固定公开矩阵的每条记录都固定为
-`access_mode=anonymous`，不会消费任何 Operator 会话。
+必须恰好有同一 target 的 metadata 与 media 两条记录；URL 不会出现在命令
+输出或数据库 canary 行中。需要会话的平台固定使用 `operator_managed`，其余
+平台固定使用 `anonymous`；不允许运行时在两种路径之间切换。
 
 media 阶段必须下载解析结果中的第一项格式，与 Web 界面默认选项保持一致；不得改成
 最低清晰度来缩短探针时间，否则会漏掉真实用户默认格式的签名或客户端兼容问题。
 
-浏览器、API 和重启验收必须从该版本化矩阵取样，不得使用 yt-dlp README、
+浏览器、API 和重启验收必须从该固定矩阵取样，不得使用 yt-dlp README、
 extractor 单元测试或其他项目的历史链接代替服务验收样本。上游历史样本下架、
 转私密或对当前出口限制时，只能作为内容级负例，不能用于判定 Provider
 整体不可用。
@@ -87,7 +87,7 @@ metadata、media、完整视频 Analysis attestation 和显式批准才能提升
 
 2026-08-29 当前版本对 22 个已启用 Provider 执行了 44 个固定探针（metadata/media
 各 22 个）。其中 16 个 Provider 在全矩阵中两阶段均成功，哔哩哔哩的 media
-阶段成功；TikTok 已以 `tiktok-public-player-v3` Profile 单独复测，anonymous
+阶段成功；TikTok 已以 `tiktok-public-player` Profile 单独复测，anonymous
 metadata 与完整媒体探针分别在 2678ms、4771ms 成功。该版本删除了遗留的浏览器、会话与
 device-id 参数，只使用第一方公开播放器 API，不依赖 Cookie、本地浏览器或 Operator
 会话。YouTube、抖音、Reddit 和微信视频号的

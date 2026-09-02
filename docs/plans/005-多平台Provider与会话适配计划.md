@@ -34,7 +34,7 @@
 - 许可证清单覆盖 yt-dlp、EJS、curl-cffi、POT 插件、可信 extractor 插件和可选 gallery-dl。
 - 现有无 Cookie 单元/集成测试保持通过，并明确标记为 anonymous path。
 
-## 3. Phase 1：错误 taxonomy 与 Provider Profile v2
+## 3. Phase 1：错误 taxonomy 与 Provider Profile 当前契约
 
 实施状态：Profile、context、错误链、API 映射和契约测试已完成；跨 Provider redirect 独立 re-admission 尚未完成。
 
@@ -56,19 +56,19 @@
 - Profile snapshot/contract 测试覆盖 17 个 key，并区分 registered、verified 和 unsupported。
 - request body 直接附加 `cookie` 仍返回 422。
 
-## 4. Phase 2：Runner Secret 边界
+## 4. Phase 2：Runner 一次性会话边界
 
-实施状态：只读版本源、Runner-only tmpfs、权限/域验证、操作级 jar 和 Compose 隔离已完成；SIGTERM/restart 与全系统泄漏扫描仍待 production-like 验收。
+实施状态：原先的只读 Cookie 源设计已废弃，因为它会把浏览器会话持久化到项目目录。当前实现改为一次操作级加密租约、Runner-only tmpfs、权限/域验证和 Compose 隔离；SIGTERM/restart 与全系统泄漏扫描仍待 production-like 验收。
 
 ### 交付
 
-- `RunnerSettings` 只增加 allowlist Secret 路径、会话临时根和非 Secret version id；不增加 Cookie 内容环境变量。
-- Compose 新增只读 YouTube Secret mount 和 Runner 独占 tmpfs `/run/provider-secrets-tmp`，mode `0700`。
-- 启动验证 Netscape header、普通文件、no symlink、最大 1 MiB 和 YouTube 域 allowlist。
+- `RunnerSettings` 只保留无凭据队列、会话 tmpfs 根和强类型来源 id；不增加 Cookie 文件路径或内容环境变量。
+- Compose 只挂载请求/加密响应队列，并为每个 Runner 提供独占 tmpfs `/run/provider-session`，mode `0700`。
+- 每次操作用一次性 X25519 公钥请求，宿主用 ChaCha20-Poly1305 认证加密；Runner 解密后验证 Netscape header、最大 1 MiB 和 Provider 域 allowlist。
 - 增加 per-operation context manager：唯一目录、`0600` Cookie jar；初次 inspect 独立销毁，download 的重解析/双流/probe 串行复用并在所有终态 `finally` unlink。
-- Secret 源使用不可变 version path，旧 version 保留到 inspection TTL 和最大排队窗口结束；任务不得改用当前 active 版本。
-- 确保 Cookie 文件不出现在共享 `/work`、API/Worker 容器、命令输出、日志或错误。
-- 按 Runner pool 隔离 anonymous 与 YouTube operator path；非 YouTube 命令无法解析或挂载该 Secret。
+- 不保留 active/retained 文件或应用专用浏览器 Profile；每次 inspect/download 都从同一强类型来源重新读取当前会话，不尝试其他来源。
+- 确保 Cookie 明文不出现在共享 `/work`、宿主持久目录、API/Worker 容器、命令输出、日志或错误。
+- 按 Runner pool 隔离 anonymous 与 Provider operator path；非目标 Provider 命令无法领取或解密该租约。
 
 ### 验证
 
@@ -204,7 +204,7 @@
 | --- | --- | --- |
 | Unit | Profile、domain allowlist、错误 marker、context equality、权限/cleanup | pytest 输出 |
 | Contract | API/RPC/消息无 Secret、稳定 error code、OpenAPI | contract snapshot |
-| Integration | Secret mount/tmpfs、并发、轮换、撤销、Broker/POT 故障 | 容器测试日志 |
+| Integration | 加密租约/tmpfs、并发、超时清理、撤销、Broker/POT 故障 | 容器测试日志 |
 | Security | symlink、oversize、跨 Provider、跨 owner、redirect、日志/卷泄漏 | 扫描报告 |
 | Provider canary | metadata、Range、完整小文件、remux/probe/SHA | 时间戳结果 |
 | E2E | 浏览器解析、格式、任务、下载、状态页 | 浏览器与 API 证据 |

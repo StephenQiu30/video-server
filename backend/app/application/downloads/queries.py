@@ -17,6 +17,7 @@ from app.application.downloads.errors import (
     PersistenceConflict,
     PersistenceNotFound,
 )
+from app.application.downloads.file_delivery import download_filename
 from app.application.downloads.inspection_models import InspectionView
 from app.application.downloads.ports import DownloadRepository, ObjectStorage
 from app.application.downloads.validation import validate_now, validate_owner_hash
@@ -221,7 +222,11 @@ class IssueDownloadUrl:
                 ttl_seconds=ttl_seconds,
                 inline=preview,
             )
-        return DownloadUrl(url=url, expires_at=now + timedelta(seconds=ttl_seconds))
+        return DownloadUrl(
+            url=url,
+            expires_at=now + timedelta(seconds=ttl_seconds),
+            filename=download_filename(artifact.object_key, title),
+        )
 
     async def _inspection_title(
         self, job: JobSnapshot, owner_hash: str, now: datetime

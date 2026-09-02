@@ -100,7 +100,8 @@ class DownloadUrlResponse(StrictModel):
 
     url: str
     expires_at: datetime
+    filename: str
 
     @classmethod
     def from_view(cls, view: DownloadUrl) -> DownloadUrlResponse:
-        return cls(url=view.url, expires_at=view.expires_at)
+        return cls(url=view.url, expires_at=view.expires_at, filename=view.filename)

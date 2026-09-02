@@ -117,6 +117,7 @@ describe('download history', () => {
     runtime.getDownloadHistory.mockResolvedValue(history());
     runtime.issueDownloadUrl.mockResolvedValue({
       expires_at: '2026-08-09T10:05:00Z',
+      filename: '示例视频.mp4',
       url: 'https://objects.example/signed',
     });
     const { container } = render(<DownloadHistoryView />);
@@ -145,6 +146,7 @@ describe('download history', () => {
     await waitFor(() =>
       expect(runtime.triggerBrowserDownload).toHaveBeenCalledWith(
         'https://objects.example/signed',
+        '示例视频.mp4',
       ),
     );
     expect(runtime.issueDownloadUrl).toHaveBeenCalledWith('history-job-1');

@@ -20,6 +20,7 @@ import {
   analysisSkills,
 } from '../fixtures/analysis-fixtures';
 import { job } from '../fixtures/download-fixtures';
+import { stubCryptoUuids } from '../helpers/crypto';
 import {
   httpRequests,
   mockHttpError,
@@ -129,7 +130,7 @@ describe('AnalysisPanel', () => {
 
   it('creates, receives WebSocket state and renders a structured result', async () => {
     mockHttpResponses(analysisJob('running'), analysisJob('succeeded'));
-    vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'analysis-key') });
+    stubCryptoUuids('11111111-1111-4111-8111-111111111111');
     render(<AnalysisPanel downloadId={job().id} pollIntervalMs={5} />);
 
     fireEvent.change(await screen.findByLabelText('分析提示词'), {
@@ -178,7 +179,7 @@ describe('AnalysisPanel', () => {
         analysisJob('running'),
         analysisJob('running'),
       );
-      vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'analysis-key') });
+      stubCryptoUuids('11111111-1111-4111-8111-111111111111');
       render(<AnalysisPanel downloadId={job().id} pollIntervalMs={5} />);
       await vi.waitFor(() =>
         expect(
@@ -257,7 +258,7 @@ describe('AnalysisPanel', () => {
 
   it('cancels an active analysis task', async () => {
     mockHttpResponses(analysisJob('running'), analysisJob('cancelled'));
-    vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'analysis-key') });
+    stubCryptoUuids('11111111-1111-4111-8111-111111111111');
     render(<AnalysisPanel downloadId={job().id} pollIntervalMs={60_000} />);
 
     fireEvent.click(
@@ -299,7 +300,7 @@ describe('AnalysisPanel', () => {
       version: failed.version + 1,
     } satisfies AnalysisJob;
     mockHttpResponses(failed, retried);
-    vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'stable-action-key') });
+    stubCryptoUuids('33333333-3333-4333-8333-333333333333');
     render(<AnalysisPanel downloadId={job().id} pollIntervalMs={60_000} />);
 
     fireEvent.click(
@@ -311,14 +312,14 @@ describe('AnalysisPanel', () => {
     const retryRequest = httpRequests()[3];
     expect(retryRequest?.url).toContain(`/analyses/${failed.id}/retry`);
     expect(retryRequest?.headers?.['Idempotency-Key']).toBe(
-      'stable-action-key',
+      '33333333-3333-4333-8333-333333333333',
     );
     expect(retried.id).toBe(failed.id);
   });
 
   it('shows a Chinese message for a failed analysis', async () => {
     mockHttpResponses(analysisJob('failed'));
-    vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'analysis-key') });
+    stubCryptoUuids('11111111-1111-4111-8111-111111111111');
     render(<AnalysisPanel downloadId={job().id} pollIntervalMs={60_000} />);
 
     fireEvent.click(

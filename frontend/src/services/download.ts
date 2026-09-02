@@ -137,10 +137,10 @@ export function issueDownloadUrl(
   );
 }
 
-export function triggerBrowserDownload(url: string): void {
+export function triggerBrowserDownload(url: string, filename = ''): void {
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = '';
+  anchor.download = filename;
   anchor.rel = 'noopener';
   document.body.append(anchor);
   anchor.click();

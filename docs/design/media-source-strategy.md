@@ -14,9 +14,8 @@
 
 1. 用可测试的策略责任链统一匿名与 Provider Operator 解析路径。
 2. 以错误策略对象约束降级范围，并优先暴露已配置会话过期。
-3. Operator 会话来自部署环境提供的版本化只读 Secret；macOS 单机 YouTube 可显式
-   启用按需 Chrome 同步，但生产不依赖开发者电脑或 AI Worker，也不提供普通用户
-   Cookie 上传入口。
+3. Operator 会话只在操作开始时从已授权 Chrome 读取，并通过一次性加密租约交付；
+   应用不持久化 Cookie、不依赖 AI Worker，也不提供普通用户 Cookie 上传入口。
 4. 私有封面通过认证 HTTP client 获取并在内存中显示，不让原生图片请求绕过
    Access/Refresh Cookie 恢复。
 5. 下载任务由 Worker 在执行前重新解析并校验规格；终态重试只负责入队，避免
@@ -42,45 +41,40 @@ flowchart LR
 采用的模式和边界如下：
 
 - **Strategy**：每个隔离 Runner client 是一个可替换的解析策略。
-- **Chain of Responsibility**：`MediaInspectionPipeline` 根据 Provider 生成有界
-  的 `anonymous → operator` 尝试链，不穷举账号、client 或代理。
-- **Policy Object**：`InspectionFailurePolicy` 独立决定是否继续和选择哪个稳定
-  错误；鉴权、链接临时不可用、临时故障和平台验证错误才允许进入 Operator。
-- **Facade**：`MediaRunnerRouter` 只协调解析管线、下载上下文路由和活跃任务，
-  不再内嵌 Provider 错误分支。
+- **Deterministic routing**：`MediaInspectionPipeline` 每次只选择一个 Runner。已配置受控会话的
+  Provider 直接进入对应的独立 Operator，其余 Provider 直接进入匿名 Runner。
+- **Frozen access context**：解析成功后固化 Provider、Profile、会话来源和 Runner，下载不得
+  切换匿名、账号或其他端点。
+- **Facade**：`MediaRunnerRouter` 只协调单一解析、下载上下文和活跃任务，不再内嵌
+  Provider 字符串分支或失败回退。
 
-限流、地域、DRM、内容权益、格式不支持等错误不会消耗 Operator 会话。若
-Operator Cookie 已过期，管线返回会话过期，而不是保留匿名 bot challenge；
-Operator 已确认链接失效时也优先返回这个确定结论，避免匿名提取器回归把失效内容
-误报成平台临时故障。其他 Operator 基础设施故障仍保留匿名路径的原始诊断。
+受控会话缺失、过期、验证失败或被限流时直接返回对应稳定错误，不转移到匿名
+路径掩盖根因。DRM、付费、私密、地域或其他权益限制直接拒绝，不切换账号或客户端。
 
 ## 3. Provider Session 生命周期
 
-C 端生产服务不能把任何个人电脑上的 Chrome Profile、Keychain、Codex Worker 或登录
-窗口作为可用性前提。Provider Operator 因此是部署方可选能力，并遵循同一生命周期；
-macOS 单机 YouTube 助手是显式安装的本地例外：
+C 端业务进程不直接读取 Chrome Profile 或 Keychain。macOS 部署通过显式安装的
+统一宿主代理按操作读取已授权会话，容器只能领取发给本次操作的加密租约：
 
-1. 生产部署方在仓库外完成账号授权，把最小 Netscape Cookie 文件写入 Secret 管理
-   系统；本机助手不自动登录或启动 Chrome，只在操作触发时同步已登录 Default Profile
-   中的 YouTube 域 Cookie。
-2. 每个 Secret 只允许一个 Provider 的批准域，使用不可变版本名并以只读方式挂载到
-   对应的物理隔离 Runner。
-3. Runner 在单次操作内创建 `0600` 临时副本；Cookie 原文不进入 API、数据库、
+1. 部署方在第一方站点完成账号授权；宿主代理只在操作触发时，按中央白名单导出
+   对应 Provider 域和必需 Cookie。
+2. 每次请求携带强类型 Provider/来源和一次性公钥；响应使用认证加密，不能被其他
+   操作、其他 Runner 或队列观察者解开。
+3. Runner 只在独占 tmpfs 中创建 `0600` 操作 jar；Cookie 原文不进入 API、数据库、
    RabbitMQ、日志、业务响应或 AI Worker。
-4. 新版本必须通过自有或明确授权样本的 canary 后才能激活；撤销时从路由移除对应
-   Provider，停止 Runner 并删除 active/retained 版本。
+4. 操作结束时销毁私钥、jar 和密文；撤销时从路由移除对应 Provider，并在第一方平台
+   撤销会话，不存在应用会话文件。
 
-微信视频号是明确例外：当前没有采用可供本服务代表任意用户授权和下载分享作品的官方
-接口，因此 Profile 只有匿名模式，不配置 Operator Secret。匿名第一方响应未直接公开
-clear 媒体时立即失败，并引导用户上传自己拥有或已获授权的文件。
+微信视频号使用独立的元宝 Chrome 状态目录，只允许 `yuanbao.tencent.com` 会话和已登记
+的动态请求头。它不读取默认 Chrome Profile，也不作为其他 Provider 的备用路径。
 
 ## 4. 环境策略
 
 | 环境 | 会话来源 | 生命周期 | 用途 |
 | --- | --- | --- | --- |
-| 本地开发 | 无真实账号或测试专用 Secret | 测试期 | 单元测试和隔离 Runner 契约 |
-| CI | 无真实账号或短期测试 Secret | 测试期 | 单元测试和授权 canary |
-| 生产 | 受控 Secret 管理系统提供的专用账号版本 | 不可变、canary 后激活 | 可审计、可回滚的 Operator Runner |
+| 本地开发 | 伪造的一次性租约 | 单次操作 | 单元测试和隔离 Runner 契约 |
+| CI | 伪造的一次性租约 | 单次操作 | 单元测试和授权 canary |
+| 生产 | 宿主 Chrome 按需读取并认证加密 | 单次操作 | 可审计的独立 Operator Runner |
 
 若未来平台提供官方 OAuth 或资产导出 API，应新增官方 Connector，以用户授权范围和
 资产级导出权替代 Cookie。不得把本地授权工具、消费端私有接口或浏览器自动化扩展为
@@ -88,12 +82,12 @@ clear 媒体时立即失败，并引导用户上传自己拥有或已获授权�
 
 ## 5. 验收条件
 
-- 同一公开 YouTube 链接可由匿名失败后自动选择 YouTube Operator。
+- 需要会话的 YouTube 链接在 inspect 开始时直接选择 YouTube Operator。
 - 带 Cookie 的 bot challenge 分类为 `credential_expired`，页面给出可操作错误。
-- 版本化最小 Secret 可由 Operator Runner 只读加载，仓库运行时没有浏览器获取代码。
-- 视频号 Profile 只有匿名模式，匿名响应没有 clear 媒体时不进入任何会话回退。
+- 平台级最小会话通过一次性加密租约交给对应 Operator Runner，业务容器不读宿主浏览器。
+- 视频号只使用正常 Chrome 当前元宝授权的临时克隆解析官方返回，不进入匿名或第三方回退。
 - 解析成功后下载仍使用 inspection 冻结的 Operator access context。
-- 限流等非白名单错误不触发 Operator，失败链保持有界。
+- 限流等稳定错误在当前 Runner 内终止，不触发跨路由重试。
 - 目标链接完成解析、选格式、下载、制品校验和 AI 分析入口验证。
 
 ## 6. 私有封面交付

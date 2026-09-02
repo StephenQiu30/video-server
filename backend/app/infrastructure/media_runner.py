@@ -64,20 +64,6 @@ from app.runner.signing import sign_request
 _TASK_ID = re.compile(r"[A-Za-z0-9_-]{1,64}")
 _CONTEXT_TIMEOUT_SECONDS = 2.0
 _STATUS_CONTEXT_TIMEOUT_SECONDS = 0.25
-_ANONYMOUS_DOWNLOAD_FALLBACK_ERRORS = frozenset(
-    {
-        "credential_required",
-        "provider_session_unavailable",
-        "provider_temporarily_unavailable",
-        "format_unavailable",
-        "egress_challenged",
-        "pot_required",
-        "pot_rejected",
-        "client_context_mismatch",
-        "media_validation_failed",
-        "invalid_runner_response",
-    }
-)
 ResponseModel = TypeVar("ResponseModel", bound=BaseModel)
 
 
@@ -473,40 +459,16 @@ class MediaRunnerRouter:
         client = self._client_for(access_context)
         self._active[task_id] = client
         try:
-            try:
-                return await client.download(
-                    task_id,
-                    url,
-                    plan,
-                    expected_provider_media_id=expected_provider_media_id,
-                    expected_extractor_key=expected_extractor_key,
-                    access_context=access_context,
-                    media_kind=media_kind,
-                    asset_count=asset_count,
-                )
-            except MediaRunnerClientError as exc:
-                if access_context.access_mode is not ProviderAccessMode.ANONYMOUS:
-                    raise
-                operator = self._operators.get(provider_profile(url).key)
-                if (
-                    operator is None
-                    or exc.code not in _ANONYMOUS_DOWNLOAD_FALLBACK_ERRORS
-                ):
-                    raise
-                refreshed_context = await operator.context_for_provider(
-                    provider_profile(url).key
-                )
-                self._active[task_id] = operator
-                return await operator.download(
-                    task_id,
-                    url,
-                    plan,
-                    expected_provider_media_id=expected_provider_media_id,
-                    expected_extractor_key=expected_extractor_key,
-                    access_context=refreshed_context,
-                    media_kind=media_kind,
-                    asset_count=asset_count,
-                )
+            return await client.download(
+                task_id,
+                url,
+                plan,
+                expected_provider_media_id=expected_provider_media_id,
+                expected_extractor_key=expected_extractor_key,
+                access_context=access_context,
+                media_kind=media_kind,
+                asset_count=asset_count,
+            )
         finally:
             self._active.pop(task_id, None)
 

@@ -7,6 +7,7 @@ import {
   screenplayAnalysisJob,
   screenplaySkills,
 } from '../fixtures/screenplay-analysis-fixtures';
+import { stubCryptoUuids } from '../helpers/crypto';
 import { httpRequests, mockHttpResponses } from '../helpers/http';
 
 const documentId = '99999999-9999-4999-8999-999999999999';
@@ -14,7 +15,7 @@ const documentId = '99999999-9999-4999-8999-999999999999';
 describe('ScreenplayAnalysisPanel', () => {
   beforeEach(() => {
     vi.mocked(httpClient.request).mockReset();
-    vi.stubGlobal('crypto', { randomUUID: vi.fn(() => 'screenplay-key') });
+    stubCryptoUuids('22222222-2222-4222-8222-222222222222');
   });
 
   it('discloses cloud processing and creates a document-bound task', async () => {
@@ -39,7 +40,9 @@ describe('ScreenplayAnalysisPanel', () => {
     expect(await screen.findByText('等待分析')).toBeInTheDocument();
     const create = httpRequests().find((request) => request.method === 'POST');
     expect(create?.url).toBe(`/api/documents/${documentId}/analyses`);
-    expect(create?.headers?.['Idempotency-Key']).toBe('screenplay-key');
+    expect(create?.headers?.['Idempotency-Key']).toBe(
+      '22222222-2222-4222-8222-222222222222',
+    );
     expect(
       httpRequests().some(
         (request) =>

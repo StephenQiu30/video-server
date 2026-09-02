@@ -253,7 +253,5 @@ class SqlAlchemyDownloadStore:
         )
         return download_deletion_plan(stored)
 
-    async def finish_download_deletion(
-        self, job_id: UUID, owner_hash: str
-    ) -> None:
+    async def finish_download_deletion(self, job_id: UUID, owner_hash: str) -> None:
         await self.repository.finish_download_deletion(job_id, owner_hash)

@@ -26,9 +26,7 @@ def test_artifact_key_is_consistent_between_upload_and_persistence(
     assert persistence_artifact_object_key(job_id, 1, container) == expected
 
 
-@pytest.mark.parametrize(
-    ("attempt", "container"), [(0, "mp4"), (1, "mkv"), (1, "")]
-)
+@pytest.mark.parametrize(("attempt", "container"), [(0, "mp4"), (1, "mkv"), (1, "")])
 def test_artifact_key_rejects_invalid_identity(attempt: int, container: str) -> None:
     job_id = uuid4()
 

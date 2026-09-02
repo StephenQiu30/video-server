@@ -7,6 +7,7 @@ from typing import Any
 
 from app.domain.providers import ProviderAccessMode, ProviderKey
 from app.runner.errors import RunnerFailure
+from app.runner.provider_session_policy import browser_session_policy
 
 _ALLOWED_YOUTUBE_AVAILABILITY = {"public", "unlisted"}
 _RESTRICTED_AVAILABILITY = {
@@ -19,18 +20,6 @@ _RESTRICTED_AVAILABILITY = {
     "preview": "content_not_entitled",
     "needs_auth": "credential_required",
 }
-_OPERATOR_PROVIDER_POLICIES = frozenset(
-    {
-        ProviderKey.YOUTUBE,
-        ProviderKey.VIMEO,
-        ProviderKey.DOUYIN,
-        ProviderKey.XIAOHONGSHU,
-        ProviderKey.REDDIT,
-        ProviderKey.X,
-        ProviderKey.INSTAGRAM,
-        ProviderKey.FACEBOOK,
-    }
-)
 
 
 def enforce_media_rights(
@@ -66,8 +55,7 @@ def enforce_media_rights(
         raise RunnerFailure("content_not_entitled", status=403)
     if access_mode is not ProviderAccessMode.OPERATOR_MANAGED:
         return
-    if provider_key not in _OPERATOR_PROVIDER_POLICIES:
-        raise RunnerFailure("provider_session_not_allowed", status=422)
+    browser_session_policy(provider_key)
     if provider_key == ProviderKey.YOUTUBE and not isinstance(availability, str):
         raise RunnerFailure("content_entitlement_unknown", status=422)
 

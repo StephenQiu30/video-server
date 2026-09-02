@@ -37,8 +37,7 @@ def use_local_browser_download_endpoint(request: Request, settings: Settings) ->
     if (
         settings.app_env not in {"development", "production"}
         or settings.minio_local_browser_endpoint is None
-        or request.headers.get(LOCAL_WEB_DOWNLOAD_HEADER)
-        != LOCAL_WEB_DOWNLOAD_VALUE
+        or request.headers.get(LOCAL_WEB_DOWNLOAD_HEADER) != LOCAL_WEB_DOWNLOAD_VALUE
     ):
         return False
     source = request.headers.get("origin") or request.headers.get("referer")

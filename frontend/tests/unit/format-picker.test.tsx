@@ -46,7 +46,11 @@ describe('FormatPicker', () => {
     };
 
     render(
-      <FormatPicker formats={[format]} onChange={onChange} selectedId={format.id} />,
+      <FormatPicker
+        formats={[format]}
+        onChange={onChange}
+        selectedId={format.id}
+      />,
     );
 
     expect(screen.getByText('下载 3 张原图（ZIP）')).toBeInTheDocument();

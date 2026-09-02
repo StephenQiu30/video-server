@@ -27,7 +27,7 @@ from app.workers.canary.targets import ProviderCanaryTarget
 from tests.unit.runner.helpers import download_request
 
 NOW = datetime(2026, 8, 11, 5, tzinfo=UTC)
-URL = "https://vimeo.com/76979871"
+URL = "https://www.youtube.com/watch?v=owned"
 
 
 class Repository:
@@ -99,8 +99,8 @@ class Runner:
         default_request = download_request()
         fallback_request = download_request(height=240, width=320)
         return RunnerInspection(
-            extractor_key="Vimeo",
-            provider_media_id="76979871",
+            extractor_key="Youtube",
+            provider_media_id="owned",
             title="Authorized canary",
             duration_seconds=30,
             formats=(
@@ -136,11 +136,11 @@ def target(
 ) -> ProviderCanaryTarget:
     return ProviderCanaryTarget(
         target_id=(
-            "vimeo-operator-1"
+            "youtube-operator"
             if access_mode is ProviderAccessMode.OPERATOR_MANAGED
-            else "vimeo-owned-1"
+            else "youtube-public"
         ),
-        provider_key="vimeo",
+        provider_key="youtube",
         stage=stage,
         access_mode=access_mode,
         url=URL,
@@ -506,16 +506,16 @@ async def test_runner_cannot_return_a_different_route_as_public_success(
     assert result.outcome is ProviderCanaryOutcome.FAILED
     assert result.stable_error_code == "client_context_mismatch"
     assert result.access_mode is ProviderAccessMode.ANONYMOUS
-    assert result.profile_version == "1"
+    assert result.profile_version == "youtube"
 
 
 def _context(access_mode: ProviderAccessMode) -> ProviderAccessContextRef:
     operator = access_mode is ProviderAccessMode.OPERATOR_MANAGED
     return ProviderAccessContextRef(
-        provider_key="vimeo",
-        profile_version="1",
+        provider_key="youtube",
+        profile_version="youtube",
         access_mode=access_mode,
-        credential_version_id="version-1" if operator else None,
+        credential_version_id="browser" if operator else None,
         egress_affinity_id="default",
         client_profile_id="yt-dlp-default",
         attestation_provider_version=None,

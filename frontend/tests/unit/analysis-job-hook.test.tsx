@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAnalysisJob } from '@/hooks/useAnalysisJob';
 import type { CreateAnalysisInput } from '@/types/video';
 import { analysisJob } from '../fixtures/analysis-fixtures';
+import { stubCryptoUuids } from '../helpers/crypto';
 
 const runtime = vi.hoisted(() => ({
   createAnalysis: vi.fn(),
@@ -37,9 +38,10 @@ describe('useAnalysisJob', () => {
       .mockResolvedValueOnce(first)
       .mockResolvedValueOnce(second);
     runtime.deleteAnalysis.mockResolvedValue(undefined);
-    vi.spyOn(globalThis.crypto, 'randomUUID')
-      .mockReturnValueOnce('11111111-1111-4111-8111-111111111111')
-      .mockReturnValueOnce('22222222-2222-4222-8222-222222222222');
+    stubCryptoUuids(
+      '11111111-1111-4111-8111-111111111111',
+      '22222222-2222-4222-8222-222222222222',
+    );
     const { result } = renderHook(() => useAnalysisJob('download-id', 60_000));
     const input: CreateAnalysisInput = {
       skill_id: 'director-breakdown',

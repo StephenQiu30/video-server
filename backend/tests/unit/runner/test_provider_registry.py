@@ -15,6 +15,7 @@ from app.runner.provider_registry import (
     provider_profile,
     provider_request,
 )
+from app.runner.provider_session_policy import browser_session_providers
 
 
 def provider_request_url(url: str) -> str:
@@ -44,7 +45,7 @@ def test_uses_public_vimeo_player_endpoint_for_canonical_video() -> None:
     )
 
 
-def test_youtube_v5_uses_the_managed_mweb_pot_route() -> None:
+def test_youtube_uses_the_managed_mweb_pot_route() -> None:
     profile = provider_profile("https://www.youtube.com/watch?v=owned")
 
     assert profile.version == ProviderProfileVersion.YOUTUBE
@@ -55,15 +56,23 @@ def test_youtube_v5_uses_the_managed_mweb_pot_route() -> None:
 
 
 def test_builtin_profiles_use_centralized_provider_identifiers() -> None:
-    profiles = ProviderRegistry(
-        default_provider_registry().profiles
-    ).profiles
+    profiles = ProviderRegistry(default_provider_registry().profiles).profiles
 
     provider_keys = {key.value for key in ProviderKey}
     profile_versions = {version.value for version in ProviderProfileVersion}
 
     assert all(profile.key in provider_keys for profile in profiles)
     assert all(profile.version in profile_versions for profile in profiles)
+
+
+def test_operator_profiles_and_session_policies_are_the_same_provider_set() -> None:
+    operator_profiles = {
+        ProviderKey(profile.key)
+        for profile in default_provider_registry().profiles
+        if ProviderAccessMode.OPERATOR_MANAGED in profile.access_modes
+    }
+
+    assert operator_profiles == browser_session_providers()
 
 
 def test_registry_rejects_negative_yt_dlp_retry_budget() -> None:
@@ -128,6 +137,7 @@ def test_preserves_unlisted_and_non_vimeo_urls() -> None:
 
 def test_remaining_provider_profiles_record_verified_access_boundaries() -> None:
     facebook = provider_profile("https://www.facebook.com/reel/1195289147628387")
+    instagram = provider_profile("https://www.instagram.com/reel/DbKfjdhTMAY/")
     twitch = provider_profile("https://clips.twitch.tv/FaintLightGullWholeWheat")
     reddit = provider_profile("https://www.reddit.com/comments/124pp33")
     douyin = provider_profile("https://www.douyin.com/video/7647907920252949425")
@@ -139,6 +149,8 @@ def test_remaining_provider_profiles_record_verified_access_boundaries() -> None
     assert facebook.version == "facebook-public-reel"
     assert facebook.client_profile_id == "chrome-136-macos-15"
     assert ProviderCapability.SHORT_VIDEO in facebook.capabilities
+    assert facebook.probe_authenticated_media is True
+    assert instagram.probe_authenticated_media is True
     assert twitch.version == "twitch-public-clip"
     assert twitch.capabilities == frozenset(
         {
@@ -148,19 +160,24 @@ def test_remaining_provider_profiles_record_verified_access_boundaries() -> None
     )
     assert reddit.support_status is ProviderSupportStatus.ACCESS_REQUIRED
     assert reddit.version == "reddit-public-video"
-    assert douyin.version == "douyin-public-v3"
+    assert douyin.version == "douyin-public"
     assert douyin.support_status is ProviderSupportStatus.ACCESS_REQUIRED
     assert douyin.access_modes == (
         ProviderAccessMode.ANONYMOUS,
         ProviderAccessMode.OPERATOR_MANAGED,
     )
     assert tiktok.support_status is ProviderSupportStatus.VERIFIED
-    assert tiktok.version == "tiktok-public-player-v3"
-    assert wechat.version == "wechat-channels-public-v2"
-    assert wechat.support_status is ProviderSupportStatus.DEGRADED
-    assert wechat.access_modes == (ProviderAccessMode.ANONYMOUS,)
-    assert wechat.cookie_domain_allowlist == frozenset()
+    assert tiktok.version == "tiktok-public-player"
+    assert wechat.version == "wechat-channels-public"
+    assert wechat.support_status is ProviderSupportStatus.ACCESS_REQUIRED
+    assert wechat.access_modes == (
+        ProviderAccessMode.ANONYMOUS,
+        ProviderAccessMode.OPERATOR_MANAGED,
+    )
+    assert wechat.cookie_domain_allowlist == frozenset({"yuanbao.tencent.com"})
     assert ProviderCapability.SHORT_VIDEO in wechat.capabilities
+    assert wechat.probe_authenticated_media is True
+    assert wechat.probe_media_duration is True
 
 
 @pytest.mark.parametrize(

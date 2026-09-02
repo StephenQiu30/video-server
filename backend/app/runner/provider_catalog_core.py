@@ -5,10 +5,10 @@ from __future__ import annotations
 from app.domain.providers import (
     ProviderAccessMode,
     ProviderCapability,
+    ProviderCookieDomain,
     ProviderKey,
     ProviderProfileVersion,
     ProviderSupportStatus,
-    YouTubeCookieDomain,
 )
 from app.runner.provider_factories import (
     ANDROID_IMPERSONATION,
@@ -62,7 +62,10 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             ProviderAccessMode.OPERATOR_MANAGED,
         ),
         cookie_domain_allowlist=frozenset(
-            {YouTubeCookieDomain.PRIMARY, YouTubeCookieDomain.NOCOOKIE}
+            {
+                ProviderCookieDomain.YOUTUBE,
+                ProviderCookieDomain.YOUTUBE_NOCOOKIE,
+            }
         ),
         client_profile_id="youtube-mweb",
         attestation_policy="bgutil-mweb-player-gvs",
@@ -94,7 +97,9 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
         version=ProviderProfileVersion.DOUYIN,
         normalize_url=douyin_url,
         status=ProviderSupportStatus.ACCESS_REQUIRED,
-        operator_cookie_domains=frozenset({"douyin.com", "iesdouyin.com"}),
+        operator_cookie_domains=frozenset(
+            {ProviderCookieDomain.DOUYIN, ProviderCookieDomain.DOUYIN_MEDIA}
+        ),
         canary_suite="douyin-anonymous-operator-video",
         probe_authenticated_media=True,
         probe_media_duration=True,
@@ -132,7 +137,7 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             "www.xhslink.com",
         ),
         status=ProviderSupportStatus.DEGRADED,
-        operator_cookie_domains=frozenset({"xiaohongshu.com"}),
+        operator_cookie_domains=frozenset({ProviderCookieDomain.XIAOHONGSHU}),
         canary_suite="xiaohongshu-anonymous-operator-video",
     ),
     ProviderProfile(

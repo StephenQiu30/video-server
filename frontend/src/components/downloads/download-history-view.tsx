@@ -60,7 +60,8 @@ export default function DownloadHistoryView() {
     setActionError(null);
     setPendingAction({ id: item.id, type: 'download' });
     try {
-      triggerBrowserDownload((await issueDownloadUrl(item.id)).url);
+      const result = await issueDownloadUrl(item.id);
+      triggerBrowserDownload(result.url, result.filename);
     } catch (reason) {
       setActionError(displayError(reason));
     } finally {

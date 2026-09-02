@@ -62,7 +62,7 @@ def download_request(height: int = 1080, width: int = 1920) -> DownloadRequest:
             "expected_extractor_key": "Controlled",
             "access_context": {
                 "provider_key": "generic",
-                "profile_version": "1",
+                "profile_version": "default",
                 "access_mode": "anonymous",
                 "credential_version_id": None,
                 "egress_affinity_id": egress_affinity_id(

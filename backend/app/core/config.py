@@ -15,6 +15,7 @@ from pydantic import EmailStr, Field, SecretStr, field_validator, model_validato
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.domain.identifiers import RightsStatementVersion, UrlEncryptionKeyId
+from app.domain.providers import ProviderKey
 from app.runner.provider_instances import validated_instance_hosts
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -129,7 +130,7 @@ class Settings(BaseSettings):
     )
 
     runner_base_url: str = "http://localhost:19100"
-    runner_operator_base_urls: dict[str, str] = Field(default_factory=dict)
+    runner_operator_base_urls: dict[ProviderKey, str] = Field(default_factory=dict)
     runner_workspace_root: Path = Path("/work")
     runner_hmac_secret: SecretStr = SecretStr("development-runner-secret-change-me")
     provider_canary_targets: SecretStr = SecretStr("[]")
@@ -375,11 +376,11 @@ class Settings(BaseSettings):
 
     @field_validator("runner_operator_base_urls")
     @classmethod
-    def validate_runner_operator_urls(cls, value: dict[str, str]) -> dict[str, str]:
-        validated: dict[str, str] = {}
+    def validate_runner_operator_urls(
+        cls, value: dict[ProviderKey, str]
+    ) -> dict[ProviderKey, str]:
+        validated: dict[ProviderKey, str] = {}
         for provider, endpoint in value.items():
-            if re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", provider) is None:
-                raise ValueError("runner operator provider key is invalid")
             try:
                 parsed = urlsplit(endpoint)
                 _ = parsed.port
@@ -390,11 +391,14 @@ class Settings(BaseSettings):
                 or parsed.hostname is None
                 or parsed.username is not None
                 or parsed.password is not None
+                or parsed.path not in {"", "/"}
                 or parsed.query
                 or parsed.fragment
             ):
                 raise ValueError("runner operator URL must be an internal HTTP URL")
             validated[provider] = endpoint.rstrip("/")
+        if len(set(validated.values())) != len(validated):
+            raise ValueError("runner operator URLs must be provider-isolated")
         return validated
 
     @field_validator("article_discovery_proxy_url", mode="before")

@@ -8,7 +8,11 @@ from urllib.parse import urlsplit
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from app.domain.providers import ProviderAccessMode, ProviderKey
+from app.domain.providers import (
+    ProviderAccessMode,
+    ProviderKey,
+    ProviderSessionVersion,
+)
 from app.runner.provider_instances import validated_instance_hosts
 from app.runner.version import (
     YOUTUBE_POT_PROVIDER_ATTESTATION,
@@ -32,19 +36,12 @@ class RunnerSettings(BaseSettings):
     runner_provider_egress_proxies: dict[str, str] = Field(default_factory=dict)
     runner_workspace_root: Path = Path("/var/lib/video-runner")
     runner_access_mode: ProviderAccessMode = ProviderAccessMode.ANONYMOUS
-    runner_operator_session_versions: dict[str, str] = Field(default_factory=dict)
-    runner_operator_retained_session_versions: dict[str, list[str]] = Field(
+    runner_operator_session_versions: dict[ProviderKey, ProviderSessionVersion] = Field(
         default_factory=dict
     )
     runner_operator_account_baseline_attested: bool = False
-    runner_provider_secret_root: Path = Path("/run/provider-secrets")
-    runner_provider_secret_temp_root: Path = Path("/run/provider-secrets-tmp")
-    runner_youtube_cookie_sync_root: Path | None = None
-    runner_provider_session_max_age_seconds: float = Field(
-        default=0,
-        ge=0,
-        le=3600,
-    )
+    runner_provider_session_temp_root: Path = Path("/run/provider-session")
+    runner_provider_cookie_sync_root: Path | None = None
     peertube_allowed_instances: frozenset[str] = frozenset()
 
     runner_ytdlp_bin: str = "yt-dlp"
@@ -137,44 +134,18 @@ class RunnerSettings(BaseSettings):
 
     @field_validator(
         "runner_workspace_root",
-        "runner_provider_secret_root",
-        "runner_provider_secret_temp_root",
+        "runner_provider_session_temp_root",
     )
     @classmethod
     def resolve_workspace(cls, value: Path) -> Path:
         return value.expanduser().resolve()
 
-    @field_validator("runner_youtube_cookie_sync_root")
+    @field_validator("runner_provider_cookie_sync_root")
     @classmethod
     def normalize_cookie_sync_root(cls, value: Path | None) -> Path | None:
         if value is None:
             return None
         return value.expanduser().resolve()
-
-    @field_validator("runner_operator_session_versions")
-    @classmethod
-    def validate_operator_versions(cls, value: dict[str, str]) -> dict[str, str]:
-        for provider, version in value.items():
-            if (
-                _PROVIDER_KEY.fullmatch(provider) is None
-                or _REFERENCE.fullmatch(version) is None
-            ):
-                raise ValueError("operator session version is invalid")
-        return value
-
-    @field_validator("runner_operator_retained_session_versions")
-    @classmethod
-    def validate_retained_versions(
-        cls, value: dict[str, list[str]]
-    ) -> dict[str, list[str]]:
-        for provider, versions in value.items():
-            if _PROVIDER_KEY.fullmatch(provider) is None or not versions:
-                raise ValueError("retained session versions are invalid")
-            if len(set(versions)) != len(versions):
-                raise ValueError("retained session versions must be unique")
-            if any(_REFERENCE.fullmatch(version) is None for version in versions):
-                raise ValueError("retained session version is invalid")
-        return value
 
     @field_validator("runner_ytdlp_commit", "runner_youtube_pot_provider_version")
     @classmethod
@@ -192,20 +163,17 @@ class RunnerSettings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_session_boundary(self) -> RunnerSettings:
-        if self.runner_provider_secret_temp_root.is_relative_to(
+        if self.runner_provider_session_temp_root.is_relative_to(
             self.runner_workspace_root
         ):
             raise ValueError("provider session temp root cannot be in the workspace")
         operator = self.runner_access_mode is ProviderAccessMode.OPERATOR_MANAGED
-        if self.runner_youtube_cookie_sync_root is not None:
-            youtube_operator = operator and set(
-                self.runner_operator_session_versions
-            ) == {ProviderKey.YOUTUBE}
-            if not youtube_operator:
+        if self.runner_provider_cookie_sync_root is not None:
+            if not operator:
                 raise ValueError(
-                    "YouTube cookie sync is restricted to the YouTube operator"
+                    "provider Cookie sync is restricted to an operator runner"
                 )
-            if self.runner_youtube_cookie_sync_root.is_relative_to(
+            if self.runner_provider_cookie_sync_root.is_relative_to(
                 self.runner_workspace_root
             ):
                 raise ValueError("cookie sync root cannot be in the workspace")
@@ -216,9 +184,8 @@ class RunnerSettings(BaseSettings):
                     "operator runner requires exactly one provider session"
                 )
             provider = next(iter(providers))
-            if set(self.runner_operator_retained_session_versions) - providers:
-                raise ValueError("retained sessions must match the operator provider")
             from app.runner.provider_registry import default_provider_registry
+            from app.runner.provider_session_policy import browser_session_policy
 
             profile = next(
                 (
@@ -233,14 +200,20 @@ class RunnerSettings(BaseSettings):
                 or ProviderAccessMode.OPERATOR_MANAGED not in profile.access_modes
             ):
                 raise ValueError("operator provider is not allowlisted")
+            try:
+                policy = browser_session_policy(provider)
+            except Exception as exc:
+                raise ValueError("operator provider is not allowlisted") from exc
+            if self.runner_operator_session_versions[provider] is not policy.version:
+                raise ValueError("operator session version does not match policy")
             if not self.runner_operator_account_baseline_attested:
                 raise ValueError("operator account baseline must be attested")
             if self.runner_max_active_tasks != 1:
                 raise ValueError("operator runner concurrency must be one")
+            if self.runner_provider_cookie_sync_root is None:
+                raise ValueError("operator runner requires provider Cookie sync")
         elif self.runner_operator_session_versions:
             raise ValueError("anonymous runner cannot configure provider sessions")
-        elif self.runner_operator_retained_session_versions:
-            raise ValueError("anonymous runner cannot retain provider sessions")
         if self.runner_youtube_pot_base_url is not None:
             youtube_operator = operator and set(
                 self.runner_operator_session_versions

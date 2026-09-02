@@ -53,9 +53,9 @@ Cookie 是平台适配的合法技术手段，不应被一刀切禁止；同时�
 
 ### Phase 1：受控服务端会话
 
-- YouTube 运维专用 Cookie Secret。
+- YouTube 运维会话的一次操作级加密租约。
 - YouTube EJS、自动 POT Provider、固定出口和 credential 并发限制。
-- Provider Profile v2、统一访问上下文、稳定错误和 canary/status。
+- Provider Profile 当前契约、统一访问上下文、稳定错误和 canary/status。
 - Bilibili、抖音、小红书匿名回归；Tier 2 平台 metadata/Range canary。
 - 普通 inspection JSON 仍不接受 Cookie 原文。
 
@@ -84,9 +84,9 @@ Phase 2 不因本文存在而自动获得上线授权；必须完成对应验收
 ### FR-005-03 运维会话
 
 - 第一阶段只允许 Profile allowlist 中的 YouTube 使用运维 Cookie。
-- Cookie 源必须为 credentialed Runner 的只读 Secret mount，内容不得位于环境变量。
+- Cookie 必须在操作开始时从批准的浏览器来源读取，以绑定该请求一次性公钥的认证加密租约交付；不得写入环境变量、宿主持久目录或 Runner 持久卷。
 - 每次 Runner 操作必须使用独占 tmpfs 中的唯一 `0600` 可写 jar；download 的重解析、双流和 probe 串行复用，在所有终态删除。
-- 新 Cookie 版本必须 canary 成功后激活；支持回滚、retire、needs_refresh 和撤销。
+- 每次 inspect/download 必须重新读取同一强类型来源；不保留 Cookie 内容版本或回滚副本。来源失效时稳定失败，撤销在第一方平台完成。
 - 运维账号必须无 Premium、会员、购买/租赁和 private share；credentialed inspect/re-inspect 只允许明确不依赖账号权益的公开/非 DRM 内容，未知 availability 也必须拒绝。
 
 ### FR-005-04 YouTube 请求证明与出口
@@ -206,6 +206,6 @@ Phase 2 不因本文存在而自动获得上线授权；必须完成对应验收
 
 - `AGENTS.md`、`SECURITY.md`、根 README 和 backend README 已同步为受控会话边界；后续实现不得恢复一刀切禁令或把 Cookie 带回普通业务 JSON。
 - POT Provider 和 gallery-dl 需要许可证/分发评估；未经批准不进入默认生产镜像。
-- Phase 1 需要 Secret mount、Runner 独占 tmpfs、Provider 出口 affinity 和分布式 credential 并发控制。
+- Phase 1 需要一次性加密租约、Runner 独占 tmpfs、Provider 出口 affinity 和 credential 并发控制。
 - Phase 2 需要 KMS/Vault、Credential Broker、审计与用户删除/撤销流程。
 - 是否允许任何 private/会员/购买内容不在本需求内；如需改变必须另立产品与法律决策。

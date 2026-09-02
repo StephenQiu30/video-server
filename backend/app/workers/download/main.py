@@ -23,7 +23,8 @@ from app.infrastructure.database import (
     create_session_factory,
 )
 from app.infrastructure.download_store import SqlAlchemyDownloadStore
-from app.infrastructure.media_runner import MediaRunnerHttpClient, MediaRunnerRouter
+from app.infrastructure.media_runner import MediaRunnerRouter
+from app.infrastructure.media_runner_factory import media_runner_router
 from app.infrastructure.messaging import RabbitMqTopology
 from app.infrastructure.object_storage import MinioObjectStorage
 from app.infrastructure.thumbnail_storage import MinioThumbnailStorage
@@ -63,24 +64,7 @@ def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
     engine = create_engine(settings.database_url)
     raw_repository = SqlAlchemyDownloadRepository(create_session_factory(engine))
     repository = DownloadExecutionRepository(raw_repository)
-    anonymous_runner = MediaRunnerHttpClient(
-        base_url=settings.runner_base_url,
-        secret=settings.runner_hmac_secret.get_secret_value().encode(),
-        workspace_root=settings.runner_workspace_root,
-        inspect_timeout_seconds=settings.inspect_timeout_seconds,
-        download_timeout_seconds=settings.download_timeout_seconds,
-    )
-    operator_runners = {
-        provider: MediaRunnerHttpClient(
-            base_url=base_url,
-            secret=settings.runner_hmac_secret.get_secret_value().encode(),
-            workspace_root=settings.runner_workspace_root,
-            inspect_timeout_seconds=settings.inspect_timeout_seconds,
-            download_timeout_seconds=settings.download_timeout_seconds,
-        )
-        for provider, base_url in settings.runner_operator_base_urls.items()
-    }
-    runner = MediaRunnerRouter(anonymous_runner, operator_runners)
+    runner = media_runner_router(settings)
     storage = MinioObjectStorage(settings)
     thumbnail_recovery = ArtifactThumbnailRecovery(
         PersistThumbnail(

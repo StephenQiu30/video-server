@@ -35,10 +35,7 @@ def test_download_openapi_exposes_required_routes_and_idempotency(
         assert header["required"] is True
     assert paths["/api/inspections"]["post"]["operationId"] == "inspectMedia"
     assert paths["/api/downloads"]["post"]["operationId"] == "createDownload"
-    assert (
-        paths["/api/downloads/{job_id}"]["delete"]["operationId"]
-        == "deleteDownload"
-    )
+    assert paths["/api/downloads/{job_id}"]["delete"]["operationId"] == "deleteDownload"
     assert "204" in paths["/api/downloads/{job_id}"]["delete"]["responses"]
     assert (
         paths["/api/downloads/{job_id}/retry"]["post"]["operationId"] == "retryDownload"

@@ -7,9 +7,9 @@ import { httpClient } from '@/lib/request';
 import { ApiError } from '@/services/download';
 import { URL_MESSAGE } from '@/utils/validation';
 import {
-  inspection,
   galleryInspection,
   galleryJob,
+  inspection,
   job,
   reportedDouyinShareMessage,
   sourceDiscovery,
@@ -262,7 +262,9 @@ describe('DownloadWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
 
     expect(await screen.findByText('官方图文作品')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '下载内容' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: '下载内容' }),
+    ).toBeInTheDocument();
     expect(screen.getByText('下载 3 张原图（ZIP）')).toBeInTheDocument();
     expect(screen.getByText('图文作品 · 3 张原图')).toBeInTheDocument();
     expect(screen.getByText('原图打包')).toBeInTheDocument();
@@ -280,7 +282,9 @@ describe('DownloadWorkspace', () => {
     expect(
       await screen.findByRole('heading', { name: '视频合集' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '下载内容' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: '下载内容' }),
+    ).toBeInTheDocument();
     expect(screen.getByText('下载 2 个视频（ZIP）')).toBeInTheDocument();
     expect(screen.getByText('视频合集 · 2 个视频')).toBeInTheDocument();
     expect(screen.getByText('视频合集 · 视频 ZIP')).toBeInTheDocument();

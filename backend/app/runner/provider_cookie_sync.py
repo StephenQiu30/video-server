@@ -11,14 +11,22 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Protocol
 
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
+
+from app.domain.providers import ProviderKey, ProviderSessionVersion
 from app.runner.errors import RunnerFailure
-from app.runner.youtube_cookie_queue import AGENT_READY_MARKER
+from app.runner.provider_cookie_lease import (
+    MAX_RESPONSE_BYTES,
+    open_cookie_lease,
+    public_key_bytes,
+)
+from app.runner.provider_cookie_queue import (
+    AGENT_READY_MARKER,
+    AGENT_READY_PAYLOAD,
+    ProviderCookieRequest,
+)
 
 _TOKEN = re.compile(r"[0-9a-f]{32}")
-_RESULTS = {
-    b"credential_required": ("credential_required", 422),
-    b"provider_session_unavailable": ("provider_session_unavailable", 503),
-}
 _MAX_TIMEOUT_SECONDS = 20.0
 
 
@@ -29,9 +37,13 @@ def _new_token() -> str:
 class ProviderCookieSync(Protocol):
     """Minimal refresh boundary consumed by the provider session store."""
 
-    def is_ready(self) -> bool: ...
+    def is_ready(
+        self, provider: ProviderKey, version: ProviderSessionVersion
+    ) -> bool: ...
 
-    async def sync(self) -> None: ...
+    async def sync(
+        self, provider: ProviderKey, version: ProviderSessionVersion
+    ) -> bytes: ...
 
 
 class ProviderCookieSyncClient:
@@ -44,6 +56,7 @@ class ProviderCookieSyncClient:
         timeout_seconds: float = _MAX_TIMEOUT_SECONDS,
         poll_interval_seconds: float = 0.05,
         token_factory: Callable[[], str] = _new_token,
+        private_key_factory: Callable[[], X25519PrivateKey] = X25519PrivateKey.generate,
     ) -> None:
         if not root.is_absolute():
             raise ValueError("cookie sync root must be absolute")
@@ -55,8 +68,16 @@ class ProviderCookieSyncClient:
         self._timeout = timeout_seconds
         self._poll_interval = poll_interval_seconds
         self._token_factory = token_factory
+        self._private_key_factory = private_key_factory
 
-    def is_ready(self) -> bool:
+    def is_ready(self, provider: ProviderKey, version: ProviderSessionVersion) -> bool:
+        requested = ProviderCookieRequest(
+            provider,
+            version,
+            public_key_bytes(X25519PrivateKey.generate()),
+        )
+        if ProviderCookieRequest.parse(requested.serialize()) != requested:
+            return False
         descriptors: tuple[int, int, int] | None = None
         try:
             descriptors = self._open_directories()
@@ -65,8 +86,19 @@ class ProviderCookieSyncClient:
                 dir_fd=descriptors[0],
                 follow_symlinks=False,
             )
-            if not stat.S_ISREG(marker.st_mode) or marker.st_size > 64:
+            if not stat.S_ISREG(marker.st_mode) or marker.st_size != len(
+                AGENT_READY_PAYLOAD
+            ):
                 return False
+            marker_fd = os.open(
+                AGENT_READY_MARKER,
+                os.O_RDONLY | _no_follow(),
+                dir_fd=descriptors[0],
+            )
+            with os.fdopen(marker_fd, "rb", closefd=True) as marker_file:
+                marker_payload = marker_file.read(len(AGENT_READY_PAYLOAD) + 1)
+                if marker_payload != AGENT_READY_PAYLOAD:
+                    return False
         except RunnerFailure:
             return False
         except OSError:
@@ -76,7 +108,16 @@ class ProviderCookieSyncClient:
                 self._close_directories(descriptors)
         return True
 
-    async def sync(self) -> None:
+    async def sync(
+        self, provider: ProviderKey, version: ProviderSessionVersion
+    ) -> bytes:
+        private_key = self._private_key_factory()
+        requested = ProviderCookieRequest(
+            provider,
+            version,
+            public_key_bytes(private_key),
+        )
+        request_payload = requested.serialize()
         token = self._token_factory()
         if _TOKEN.fullmatch(token) is None:
             raise RunnerFailure("provider_session_unavailable", status=503)
@@ -96,6 +137,7 @@ class ProviderCookieSyncClient:
             created = True
             try:
                 os.fchmod(descriptor, 0o600)
+                os.write(descriptor, request_payload)
                 os.fsync(descriptor)
             finally:
                 os.close(descriptor)
@@ -106,13 +148,11 @@ class ProviderCookieSyncClient:
                     raise RunnerFailure("provider_session_unavailable", status=503)
                 result = _read_response(responses_fd, response_name)
                 if result is not None:
-                    if result == b"ok":
-                        return
-                    code, status = _RESULTS.get(
+                    return open_cookie_lease(
                         result,
-                        ("provider_session_unavailable", 503),
+                        private_key,
+                        associated_data=request_payload,
                     )
-                    raise RunnerFailure(code, status=status)
                 await asyncio.sleep(min(self._poll_interval, remaining))
         except RunnerFailure:
             raise
@@ -180,14 +220,21 @@ def _read_response(directory_fd: int, name: str) -> bytes | None:
         before = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
     except FileNotFoundError:
         return None
-    if not stat.S_ISREG(before.st_mode) or before.st_size > 32:
+    if (
+        not stat.S_ISREG(before.st_mode)
+        or before.st_size <= 0
+        or before.st_size > MAX_RESPONSE_BYTES
+    ):
         raise RunnerFailure("provider_session_unavailable", status=503)
     descriptor = os.open(name, os.O_RDONLY | _no_follow(), dir_fd=directory_fd)
     with os.fdopen(descriptor, "rb", closefd=True) as response:
         current = os.fstat(response.fileno())
         if current.st_ino != before.st_ino or not stat.S_ISREG(current.st_mode):
             raise RunnerFailure("provider_session_unavailable", status=503)
-        return response.read(33)
+        payload = response.read(MAX_RESPONSE_BYTES + 1)
+        if len(payload) > MAX_RESPONSE_BYTES:
+            raise RunnerFailure("provider_session_unavailable", status=503)
+        return payload
 
 
 def _unlink_quiet(directory_fd: int, name: str) -> None:

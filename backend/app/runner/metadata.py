@@ -286,8 +286,10 @@ def normalize_gallery_metadata(
 
     raw_title = str(payload.get("title") or "")
     title = raw_title.strip()
-    if not title or len(title) > 4096 or any(
-        ord(character) < 32 or ord(character) == 127 for character in raw_title
+    if (
+        not title
+        or len(title) > 4096
+        or any(ord(character) < 32 or ord(character) == 127 for character in raw_title)
     ):
         raise RunnerFailure("invalid_inspection_response", status=502)
     extractor = _identity(
@@ -327,8 +329,10 @@ def normalize_video_collection_metadata(
 
     raw_title = str(payload.get("title") or "")
     title = raw_title.strip()
-    if not title or len(title) > 4096 or any(
-        ord(character) < 32 or ord(character) == 127 for character in raw_title
+    if (
+        not title
+        or len(title) > 4096
+        or any(ord(character) < 32 or ord(character) == 127 for character in raw_title)
     ):
         raise RunnerFailure("invalid_inspection_response", status=502)
     extractor = _identity(

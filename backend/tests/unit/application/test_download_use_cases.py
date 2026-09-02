@@ -482,6 +482,7 @@ async def test_download_url_requires_success_and_available_artifact() -> None:
 
     assert result.url == "https://objects.example/download-token"
     assert result.expires_at == NOW + timedelta(minutes=5)
+    assert result.filename == "Owned video.mp4"
     assert storage.calls == [
         (f"downloads/{created.id}/1/video.mp4", 300, "Owned video", False)
     ]
@@ -539,6 +540,7 @@ async def test_download_url_passes_inspection_title_to_storage() -> None:
     proxied = await issue(created.id, OWNER, use_browser_proxy=True)
 
     assert proxied.url == f"/api/downloads/{created.id}/file"
+    assert proxied.filename == "Owned video.mp4"
 
 
 @pytest.mark.asyncio

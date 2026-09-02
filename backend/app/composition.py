@@ -89,7 +89,11 @@ from app.infrastructure.database import (
 )
 from app.infrastructure.download_store import SqlAlchemyDownloadStore
 from app.infrastructure.jwt_tokens import JwtTokenService
-from app.infrastructure.media_runner import MediaRunnerHttpClient, MediaRunnerRouter
+from app.infrastructure.media_runner import MediaRunnerRouter
+from app.infrastructure.media_runner_factory import (
+    media_runner_router,
+    operator_provider_keys,
+)
 from app.infrastructure.object_storage import MinioObjectStorage
 from app.infrastructure.operational_metrics import OperationalMetrics
 from app.infrastructure.passwords import Argon2PasswordHasher
@@ -176,24 +180,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
     provider_catalog_repository = SqlAlchemyProviderCatalogRepository(sessions)
     ai_provider_repository = SqlAlchemyAiProviderRepository(sessions)
     store = SqlAlchemyDownloadStore(repository)
-    anonymous_runner = MediaRunnerHttpClient(
-        base_url=settings.runner_base_url,
-        secret=settings.runner_hmac_secret.get_secret_value().encode(),
-        workspace_root=settings.runner_workspace_root,
-        inspect_timeout_seconds=settings.inspect_timeout_seconds,
-        download_timeout_seconds=settings.download_timeout_seconds,
-    )
-    operator_runners = {
-        provider: MediaRunnerHttpClient(
-            base_url=base_url,
-            secret=settings.runner_hmac_secret.get_secret_value().encode(),
-            workspace_root=settings.runner_workspace_root,
-            inspect_timeout_seconds=settings.inspect_timeout_seconds,
-            download_timeout_seconds=settings.download_timeout_seconds,
-        )
-        for provider, base_url in settings.runner_operator_base_urls.items()
-    }
-    runner = MediaRunnerRouter(anonymous_runner, operator_runners)
+    runner = media_runner_router(settings)
     storage = MinioObjectStorage(settings, enable_public_signing=True)
     import_storage = MinioObjectStorage.for_imports(settings)
     thumbnail_storage = MinioThumbnailStorage(storage)
@@ -227,9 +214,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         bootstrap_admin_secret=settings.auth_bootstrap_admin_secret.get_secret_value(),
     )
     user_service = UserService(repository=user_repository, now=clock)
-    provider_baselines = configured_provider_statuses(
-        frozenset(settings.runner_operator_base_urls)
-    )
+    provider_baselines = configured_provider_statuses(operator_provider_keys(settings))
     provider_catalog_service = ProviderCatalogService(
         provider_catalog_repository,
         provider_baselines,

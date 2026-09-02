@@ -96,7 +96,7 @@ def context(access_mode: ProviderAccessMode) -> ProviderAccessContextRef:
     operator = access_mode is ProviderAccessMode.OPERATOR_MANAGED
     return ProviderAccessContextRef(
         provider_key="youtube",
-        profile_version="youtube-v5",
+        profile_version="youtube",
         access_mode=access_mode,
         credential_version_id="version-1" if operator else None,
         egress_affinity_id="default",

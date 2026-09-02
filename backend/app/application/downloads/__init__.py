@@ -43,7 +43,10 @@ from app.application.downloads.errors import (
     PersistenceIdempotencyConflict,
     PersistenceNotFound,
 )
-from app.application.downloads.file_delivery import download_disposition
+from app.application.downloads.file_delivery import (
+    download_disposition,
+    download_filename,
+)
 from app.application.downloads.fingerprints import HmacRequestFingerprinter
 from app.application.downloads.history import GetDownloadHistory
 from app.application.downloads.history_models import (
@@ -129,6 +132,7 @@ __all__ = [
     "DownloadUrl",
     "DownloadView",
     "download_disposition",
+    "download_filename",
     "EncryptedUrl",
     "FormatCreate",
     "FormatSnapshot",

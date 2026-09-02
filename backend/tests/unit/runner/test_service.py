@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
-import os
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
@@ -11,6 +10,7 @@ import pytest
 from app.domain.providers import ProviderAccessMode
 from app.runner.errors import RunnerFailure
 from app.runner.process import ProcessResult
+from app.runner.provider_sessions import ProviderSessionStore
 from app.runner.service import MediaRunnerService
 from app.runner.settings import RunnerSettings
 from helpers import download_request, result, settings, split_media_info
@@ -292,27 +292,37 @@ class OperatorCookieSupervisor(FixtureSupervisor):
         )
 
 
-def operator_settings(tmp_path: Path) -> tuple[RunnerSettings, Path]:
-    cookie = (
-        b"# Netscape HTTP Cookie File\n"
-        b".youtube.com\tTRUE\t/\tTRUE\t2147483647\tSID\tfixture-secret\n"
-    )
-    source = tmp_path / "secrets/youtube/version-1.cookies.txt"
-    source.parent.mkdir(parents=True)
-    source.write_bytes(cookie)
-    os.chmod(source, 0o400)
-    configured = RunnerSettings(
+def operator_settings(tmp_path: Path) -> RunnerSettings:
+    return RunnerSettings(
         runner_hmac_secret="runner-shared-secret-material-at-least-32-bytes",
         runner_egress_proxy="http://youtube-egress:3128",
         runner_workspace_root=tmp_path / "work",
         runner_access_mode=ProviderAccessMode.OPERATOR_MANAGED,
-        runner_operator_session_versions={"youtube": "version-1"},
+        runner_operator_session_versions={"youtube": "browser"},
         runner_operator_account_baseline_attested=True,
-        runner_provider_secret_root=tmp_path / "secrets",
-        runner_provider_secret_temp_root=tmp_path / "session-tmp",
+        runner_provider_session_temp_root=tmp_path / "session-tmp",
+        runner_provider_cookie_sync_root=tmp_path / "sync",
         runner_max_active_tasks=1,
     )
-    return configured, source
+
+
+class SuccessfulCookieSync:
+    def is_ready(self, *_args: object) -> bool:
+        return True
+
+    async def sync(self, *_args: object) -> bytes:
+        return (
+            b"# Netscape HTTP Cookie File\n"
+            b".youtube.com\tTRUE\t/\tTRUE\t2147483647\tSID\tfixture-secret\n"
+        )
+
+
+def operator_session_store(settings: RunnerSettings) -> ProviderSessionStore:
+    return ProviderSessionStore(
+        settings,
+        cookie_sync=SuccessfulCookieSync(),
+        enforce_memory_backing=False,
+    )
 
 
 async def test_download_reinspects_selects_semantics_and_verifies_artifact(
@@ -445,12 +455,15 @@ async def test_download_reselects_current_streams_instead_of_stale_hints(
 async def test_operator_session_is_rebuilt_then_reused_for_download_operation(
     tmp_path: Path,
 ) -> None:
-    configured, source = operator_settings(tmp_path)
-    original = source.read_bytes()
+    configured = operator_settings(tmp_path)
     info = split_media_info()
     info["availability"] = "public"
     supervisor = OperatorCookieSupervisor(info)
-    service = MediaRunnerService(configured, supervisor=supervisor)
+    service = MediaRunnerService(
+        configured,
+        supervisor=supervisor,
+        session_store=operator_session_store(configured),
+    )
     url = "https://www.youtube.com/watch?v=owned"
 
     inspected = await service.inspect(url)
@@ -466,19 +479,23 @@ async def test_operator_session_is_rebuilt_then_reused_for_download_operation(
     assert len(supervisor.cookie_paths) == 4
     assert supervisor.cookie_paths[0] != supervisor.cookie_paths[1]
     assert len(set(supervisor.cookie_paths[1:])) == 1
-    assert source.read_bytes() == original
-    assert list(configured.runner_provider_secret_temp_root.iterdir()) == []
+    assert not (tmp_path / "secrets").exists()
+    assert list(configured.runner_provider_session_temp_root.iterdir()) == []
     assert all(not path.exists() for path in supervisor.cookie_paths)
 
 
 async def test_operator_session_rejects_private_before_media_download(
     tmp_path: Path,
 ) -> None:
-    configured, _ = operator_settings(tmp_path)
+    configured = operator_settings(tmp_path)
     info = split_media_info()
     info["availability"] = "private"
     supervisor = OperatorCookieSupervisor(info)
-    service = MediaRunnerService(configured, supervisor=supervisor)
+    service = MediaRunnerService(
+        configured,
+        supervisor=supervisor,
+        session_store=operator_session_store(configured),
+    )
 
     with pytest.raises(RunnerFailure) as caught:
         await service.inspect("https://www.youtube.com/watch?v=private")
@@ -486,7 +503,7 @@ async def test_operator_session_rejects_private_before_media_download(
     assert caught.value.code == "content_private"
     assert len(supervisor.calls) == 1
     assert "--dump-single-json" in supervisor.calls[0][0]
-    assert list(configured.runner_provider_secret_temp_root.iterdir()) == []
+    assert list(configured.runner_provider_session_temp_root.iterdir()) == []
 
 
 async def test_download_never_downgrades_and_cleans_failed_workspace(
@@ -706,9 +723,7 @@ async def test_douyin_inspect_uses_media_duration_instead_of_page_metadata(
     supervisor = FixtureSupervisor(douyin_muxed_info())
     service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
 
-    response = await service.inspect(
-        "https://www.douyin.com/video/7662711608636889201"
-    )
+    response = await service.inspect("https://www.douyin.com/video/7662711608636889201")
 
     assert response.media.duration_seconds == 30
     remote_probes = [

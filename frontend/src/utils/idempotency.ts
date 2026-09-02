@@ -1,3 +1,5 @@
+import { createUuid } from '@/utils/uuid';
+
 export function createIdempotencyKey(): string {
-  return globalThis.crypto.randomUUID();
+  return createUuid();
 }

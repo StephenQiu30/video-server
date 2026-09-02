@@ -13,10 +13,22 @@ x-provider-session-runner: &provider-session-runner
     - runner_egress_net
   tmpfs:
     - /tmp:rw,noexec,nosuid,size=64m
-    - /run/provider-secrets-tmp:rw,noexec,nosuid,size=16m,mode=0700,uid=10001,gid=10001
+    - /run/provider-session:rw,noexec,nosuid,size=16m,mode=0700,uid=10001,gid=10001
   depends_on:
     egress-proxy:
       condition: service_healthy
+  healthcheck:
+    test:
+      [
+        "CMD",
+        "python",
+        "-c",
+        "import urllib.request; urllib.request.urlopen('http://127.0.0.1:19100/health/ready', timeout=3)",
+      ]
+    interval: 5s
+    timeout: 5s
+    retries: 24
+    start_period: 5s
   command:
     [
       "python",
@@ -45,9 +57,8 @@ x-provider-session-environment: &provider-session-environment
   RUNNER_MAX_OUTPUT_BYTES: "${RUNNER_MAX_OUTPUT_BYTES:-21474836480}"
   RUNNER_MAX_WORKSPACE_BYTES: "${RUNNER_MAX_WORKSPACE_BYTES:-42949672960}"
   RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "true"
-  RUNNER_PROVIDER_SECRET_ROOT: /run/provider-secrets
-  RUNNER_PROVIDER_SECRET_TEMP_ROOT: /run/provider-secrets-tmp
-  RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS: "${RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS:-0}"
+  RUNNER_PROVIDER_SESSION_TEMP_ROOT: /run/provider-session
+  RUNNER_PROVIDER_COOKIE_SYNC_ROOT: /run/provider-cookie-agent
   PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
 
 services:
@@ -328,7 +339,7 @@ services:
       - "127.0.0.1:${EGRESS_PROXY_HOST_PORT:-13128}:3128"
     volumes:
       - ./backend/egress/squid.conf:/etc/squid/squid.conf:ro
-      - ./backend/egress/blocked-destinations-docker-desktop.conf:/etc/squid/blocked-destinations.conf:ro
+      - ${EGRESS_DESTINATION_POLICY_FILE:-./backend/egress/blocked-destinations-docker-desktop.conf}:/etc/squid/blocked-destinations.conf:ro
     networks:
       - runner_egress_net
       - youtube_pot_net
@@ -351,78 +362,19 @@ services:
     volumes:
       - runner_work:/work
 
-  provider-operator-runner:
-    build: *app-build
-    image: video-server:local
-    container_name: provider-operator-runner
-    restart: unless-stopped
-    profiles: [provider-operator]
-    environment:
-      APP_ENV: "${APP_ENV:-development}"
-      RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
-      RUNNER_EGRESS_PROXY: http://egress-proxy:3128
-      RUNNER_PROVIDER_EGRESS_PROXIES: "${RUNNER_PROVIDER_EGRESS_PROXIES:-{}}"
-      RUNNER_WORKSPACE_ROOT: /work
-      RUNNER_ACCESS_MODE: operator_managed
-      RUNNER_MAX_ACTIVE_TASKS: "1"
-      RUNNER_DOWNLOAD_TIMEOUT_SECONDS: "${RUNNER_DOWNLOAD_TIMEOUT_SECONDS:-7200}"
-      RUNNER_INSPECT_TIMEOUT_SECONDS: "${RUNNER_INSPECT_TIMEOUT_SECONDS:-120}"
-      RUNNER_MAX_DURATION_SECONDS: "${RUNNER_MAX_DURATION_SECONDS:-86400}"
-      RUNNER_MAX_OUTPUT_BYTES: "${RUNNER_MAX_OUTPUT_BYTES:-21474836480}"
-      RUNNER_MAX_WORKSPACE_BYTES: "${RUNNER_MAX_WORKSPACE_BYTES:-42949672960}"
-      RUNNER_OPERATOR_SESSION_VERSIONS: '{"${OPERATOR_PROVIDER_KEY:-disabled}":"${OPERATOR_COOKIE_VERSION:-disabled}"}'
-      RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS: "${OPERATOR_RETAINED_SESSION_VERSIONS:-{}}"
-      RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
-      RUNNER_PROVIDER_SECRET_ROOT: /run/provider-secrets
-      RUNNER_PROVIDER_SECRET_TEMP_ROOT: /run/provider-secrets-tmp
-      RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS: "${RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS:-0}"
-      PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
-    networks:
-      - runner_rpc_net
-      - runner_egress_net
-    volumes:
-      - runner_work:/work
-      - type: bind
-        source: "${OPERATOR_COOKIE_SECRET_DIR:-./.provider-secrets/provider}"
-        target: "/run/provider-secrets/${OPERATOR_PROVIDER_KEY:-disabled}"
-        read_only: true
-        bind:
-          create_host_path: false
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=64m
-      - /run/provider-secrets-tmp:rw,noexec,nosuid,size=16m,mode=0700,uid=10001,gid=10001
-    depends_on:
-      egress-proxy:
-        condition: service_healthy
-    command:
-      [
-        "python",
-        "-m",
-        "uvicorn",
-        "app.runner.main:create_app",
-        "--factory",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "19100",
-        "--no-access-log",
-      ]
-
   douyin-operator-runner:
     <<: *provider-session-runner
     container_name: douyin-operator-runner
     profiles: [douyin-operator]
     environment:
       <<: *provider-session-environment
-      RUNNER_OPERATOR_SESSION_VERSIONS: '{"douyin":"${DOUYIN_COOKIE_VERSION:-disabled}"}'
-      RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS: "${DOUYIN_RETAINED_SESSION_VERSIONS:-{}}"
-      RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${DOUYIN_OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
+      RUNNER_OPERATOR_SESSION_VERSIONS: '{"douyin":"browser"}'
     volumes:
       - runner_work:/work
       - type: bind
-        source: "${DOUYIN_COOKIE_SECRET_DIR:-./.provider-secrets/douyin}"
-        target: /run/provider-secrets/douyin
-        read_only: true
+        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/douyin"
+        target: /run/provider-cookie-agent
+        read_only: false
         bind:
           create_host_path: false
 
@@ -432,15 +384,13 @@ services:
     profiles: [xiaohongshu-operator]
     environment:
       <<: *provider-session-environment
-      RUNNER_OPERATOR_SESSION_VERSIONS: '{"xiaohongshu":"${XIAOHONGSHU_COOKIE_VERSION:-disabled}"}'
-      RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS: "${XIAOHONGSHU_RETAINED_SESSION_VERSIONS:-{}}"
-      RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${XIAOHONGSHU_OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
+      RUNNER_OPERATOR_SESSION_VERSIONS: '{"xiaohongshu":"browser"}'
     volumes:
       - runner_work:/work
       - type: bind
-        source: "${XIAOHONGSHU_COOKIE_SECRET_DIR:-./.provider-secrets/xiaohongshu}"
-        target: /run/provider-secrets/xiaohongshu
-        read_only: true
+        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/xiaohongshu"
+        target: /run/provider-cookie-agent
+        read_only: false
         bind:
           create_host_path: false
 
@@ -450,15 +400,13 @@ services:
     profiles: [reddit-operator]
     environment:
       <<: *provider-session-environment
-      RUNNER_OPERATOR_SESSION_VERSIONS: '{"reddit":"${REDDIT_COOKIE_VERSION:-disabled}"}'
-      RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS: "${REDDIT_RETAINED_SESSION_VERSIONS:-{}}"
-      RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${REDDIT_OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
+      RUNNER_OPERATOR_SESSION_VERSIONS: '{"reddit":"browser"}'
     volumes:
       - runner_work:/work
       - type: bind
-        source: "${REDDIT_COOKIE_SECRET_DIR:-./.provider-secrets/reddit}"
-        target: /run/provider-secrets/reddit
-        read_only: true
+        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/reddit"
+        target: /run/provider-cookie-agent
+        read_only: false
         bind:
           create_host_path: false
 
@@ -468,15 +416,13 @@ services:
     profiles: [x-operator]
     environment:
       <<: *provider-session-environment
-      RUNNER_OPERATOR_SESSION_VERSIONS: '{"x":"${X_COOKIE_VERSION:-disabled}"}'
-      RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS: "${X_RETAINED_SESSION_VERSIONS:-{}}"
-      RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${X_OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
+      RUNNER_OPERATOR_SESSION_VERSIONS: '{"x":"browser"}'
     volumes:
       - runner_work:/work
       - type: bind
-        source: "${X_COOKIE_SECRET_DIR:-./.provider-secrets/x}"
-        target: /run/provider-secrets/x
-        read_only: true
+        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/x"
+        target: /run/provider-cookie-agent
+        read_only: false
         bind:
           create_host_path: false
 
@@ -486,47 +432,73 @@ services:
     profiles: [instagram-operator]
     environment:
       <<: *provider-session-environment
-      RUNNER_OPERATOR_SESSION_VERSIONS: '{"instagram":"${INSTAGRAM_COOKIE_VERSION:-disabled}"}'
-      RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS: "${INSTAGRAM_RETAINED_SESSION_VERSIONS:-{}}"
-      RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${INSTAGRAM_OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
+      RUNNER_OPERATOR_SESSION_VERSIONS: '{"instagram":"browser"}'
     volumes:
       - runner_work:/work
       - type: bind
-        source: "${INSTAGRAM_COOKIE_SECRET_DIR:-./.provider-secrets/instagram}"
-        target: /run/provider-secrets/instagram
-        read_only: true
+        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/instagram"
+        target: /run/provider-cookie-agent
+        read_only: false
+        bind:
+          create_host_path: false
+
+  facebook-operator-runner:
+    <<: *provider-session-runner
+    container_name: facebook-operator-runner
+    profiles: [facebook-operator]
+    environment:
+      <<: *provider-session-environment
+      RUNNER_OPERATOR_SESSION_VERSIONS: '{"facebook":"browser"}'
+    volumes:
+      - runner_work:/work
+      - type: bind
+        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/facebook"
+        target: /run/provider-cookie-agent
+        read_only: false
+        bind:
+          create_host_path: false
+
+  pinterest-operator-runner:
+    <<: *provider-session-runner
+    container_name: pinterest-operator-runner
+    profiles: [pinterest-operator]
+    environment:
+      <<: *provider-session-environment
+      RUNNER_OPERATOR_SESSION_VERSIONS: '{"pinterest":"browser"}'
+    volumes:
+      - runner_work:/work
+      - type: bind
+        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/pinterest"
+        target: /run/provider-cookie-agent
+        read_only: false
+        bind:
+          create_host_path: false
+
+  wechat-channels-operator-runner:
+    <<: *provider-session-runner
+    container_name: wechat-channels-operator-runner
+    profiles: [wechat-channels-operator]
+    environment:
+      <<: *provider-session-environment
+      RUNNER_OPERATOR_SESSION_VERSIONS: '{"wechat_channels":"browser"}'
+    volumes:
+      - runner_work:/work
+      - type: bind
+        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/wechat_channels"
+        target: /run/provider-cookie-agent
+        read_only: false
         bind:
           create_host_path: false
 
   youtube-operator-runner:
-    build: *app-build
-    image: video-server:local
+    <<: *provider-session-runner
     container_name: youtube-operator-runner
-    restart: unless-stopped
     profiles: [youtube-operator]
     environment:
-      APP_ENV: "${APP_ENV:-development}"
-      RUNNER_HMAC_SECRET: "${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}"
-      RUNNER_EGRESS_PROXY: http://egress-proxy:3128
-      RUNNER_PROVIDER_EGRESS_PROXIES: "${RUNNER_PROVIDER_EGRESS_PROXIES:-{}}"
-      RUNNER_WORKSPACE_ROOT: /work
-      RUNNER_ACCESS_MODE: operator_managed
-      RUNNER_MAX_ACTIVE_TASKS: "1"
-      RUNNER_DOWNLOAD_TIMEOUT_SECONDS: "${RUNNER_DOWNLOAD_TIMEOUT_SECONDS:-7200}"
-      RUNNER_INSPECT_TIMEOUT_SECONDS: "${RUNNER_INSPECT_TIMEOUT_SECONDS:-120}"
-      RUNNER_MAX_DURATION_SECONDS: "${RUNNER_MAX_DURATION_SECONDS:-86400}"
-      RUNNER_MAX_OUTPUT_BYTES: "${RUNNER_MAX_OUTPUT_BYTES:-21474836480}"
-      RUNNER_MAX_WORKSPACE_BYTES: "${RUNNER_MAX_WORKSPACE_BYTES:-42949672960}"
-      RUNNER_OPERATOR_SESSION_VERSIONS: '{"youtube":"${YOUTUBE_COOKIE_VERSION:-disabled}"}'
-      RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS: "${RUNNER_OPERATOR_RETAINED_SESSION_VERSIONS:-{}}"
-      RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "${YOUTUBE_OPERATOR_ACCOUNT_BASELINE_ATTESTED:-false}"
-      RUNNER_PROVIDER_SECRET_ROOT: /run/provider-secrets
-      RUNNER_PROVIDER_SECRET_TEMP_ROOT: /run/provider-secrets-tmp
-      RUNNER_YOUTUBE_COOKIE_SYNC_ROOT: /run/youtube-cookie-sync
-      RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS: "${RUNNER_PROVIDER_SESSION_MAX_AGE_SECONDS:-0}"
+      <<: *provider-session-environment
+      RUNNER_OPERATOR_SESSION_VERSIONS: '{"youtube":"browser"}'
       RUNNER_YOUTUBE_POT_BASE_URL: http://youtube-pot-provider:4416
       RUNNER_YOUTUBE_POT_PROVIDER_VERSION: bgutil-http-1.3.2
-      PEERTUBE_ALLOWED_INSTANCES: "${PEERTUBE_ALLOWED_INSTANCES:-[]}"
     networks:
       - runner_rpc_net
       - runner_egress_net
@@ -534,38 +506,16 @@ services:
     volumes:
       - runner_work:/work
       - type: bind
-        source: "${YOUTUBE_COOKIE_SECRET_DIR:-./.provider-secrets/youtube}"
-        target: /run/provider-secrets/youtube
-        read_only: true
-        bind:
-          create_host_path: false
-      - type: bind
-        source: "${YOUTUBE_COOKIE_SYNC_DIR:-${HOME}/Library/Caches/FrameFetch/youtube-cookie-sync}"
-        target: /run/youtube-cookie-sync
+        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/youtube"
+        target: /run/provider-cookie-agent
         read_only: false
         bind:
           create_host_path: false
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=64m
-      - /run/provider-secrets-tmp:rw,noexec,nosuid,size=16m,mode=0700,uid=10001,gid=10001
     depends_on:
       egress-proxy:
         condition: service_healthy
       youtube-pot-provider:
         condition: service_started
-    command:
-      [
-        "python",
-        "-m",
-        "uvicorn",
-        "app.runner.main:create_app",
-        "--factory",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "19100",
-        "--no-access-log",
-      ]
 
   youtube-pot-provider:
     image: brainicism/bgutil-ytdlp-pot-provider:1.3.2@sha256:9a96e6385ce1928da87dea07b1cab0413d2cf8c07a3b8a8bd419f53df2c3843c

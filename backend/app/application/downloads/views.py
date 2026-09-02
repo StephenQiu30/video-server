@@ -48,7 +48,8 @@ def inspection_view(snapshot: InspectionSnapshot) -> InspectionView:
                 display_name=item.display_name,
                 plan=(
                     None
-                    if media_kind in {
+                    if media_kind
+                    in {
                         MediaKind.IMAGE_GALLERY,
                         MediaKind.VIDEO_COLLECTION,
                     }
