@@ -38,6 +38,11 @@ export default function InspectionWorkspace({
       <div className="min-w-0">
         <MediaCover
           alt={`${inspection.title} 媒体封面`}
+          fallback={{
+            detail: inspectionDetailLabel(inspection, selected?.plan ?? undefined),
+            eyebrow: inspection.extractor_key,
+            title: inspection.title,
+          }}
           priority
           src={inspection.thumbnail_url}
         />
@@ -174,6 +179,22 @@ function Meta({
       <dd className={mono ? 'font-mono' : 'tabular-nums'}>{value}</dd>
     </div>
   );
+}
+
+function inspectionDetailLabel(
+  inspection: Inspection,
+  selected: Inspection['formats'][number]['plan'] | undefined,
+) {
+  if (inspection.media_kind === 'image_gallery') {
+    return `${inspection.asset_count} 张原图 · ZIP`;
+  }
+  if (inspection.media_kind === 'video_collection') {
+    return `${inspection.asset_count} 个视频 · ZIP`;
+  }
+  if (selected) {
+    return `${selected.width}×${selected.height}`;
+  }
+  return '封面未提供';
 }
 
 function SelectionMeta({ label, value }: { label: string; value: string }) {

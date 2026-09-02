@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import MediaCover from '@/components/intake/media-cover';
@@ -48,18 +48,51 @@ describe('MediaCover', () => {
     expect(revoke).toHaveBeenCalledWith('blob:private-thumbnail');
   });
 
-  it('shows unavailable only after the authenticated thumbnail request fails', async () => {
+  it('shows readable metadata when the authenticated thumbnail request fails', async () => {
     vi.mocked(loadPrivateThumbnail).mockRejectedValue(
       new Error('storage unavailable'),
     );
 
-    render(<MediaCover alt="测试视频" src={THUMBNAIL} />);
+    render(
+      <MediaCover
+        alt="测试视频媒体封面"
+        fallback={{
+          detail: '1080p MP4',
+          eyebrow: '链接下载',
+          title: '测试视频',
+        }}
+        src={THUMBNAIL}
+      />,
+    );
 
     await waitFor(() =>
       expect(
-        screen.getByRole('img', { name: '测试视频（封面不可用）' }),
+        screen.getByRole('img', { name: '测试视频（暂无封面）' }),
       ).toBeVisible(),
     );
+    expect(screen.getByText('链接下载')).toBeVisible();
+    expect(screen.getByText('1080p MP4')).toBeVisible();
+    expect(screen.getByText('暂无封面')).toBeVisible();
+  });
+
+  it('uses the same readable metadata fallback when no thumbnail exists', () => {
+    render(
+      <MediaCover
+        alt="图集媒体封面"
+        fallback={{
+          detail: '4 张原图 · ZIP',
+          eyebrow: 'Instagram',
+          title: 'Post by angelababy.weibo',
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole('img', { name: 'Post by angelababy.weibo（暂无封面）' }),
+    ).toBeVisible();
+    expect(screen.getByText('Instagram')).toBeVisible();
+    expect(screen.getByText('4 张原图 · ZIP')).toBeVisible();
+    expect(screen.queryByText('封面不可用')).not.toBeInTheDocument();
   });
 
   it('shows generating while a task can still produce a cover', () => {
@@ -79,5 +112,21 @@ describe('MediaCover', () => {
       'http://localhost:3000/images/demo.webp',
     );
     expect(loadPrivateThumbnail).not.toHaveBeenCalled();
+  });
+
+  it('switches a public image to the readable fallback after an image error', () => {
+    render(
+      <MediaCover
+        alt="演示视频媒体封面"
+        fallback={{ title: '演示视频' }}
+        src="/images/missing.webp"
+      />,
+    );
+
+    fireEvent.error(screen.getByRole('img', { name: '演示视频媒体封面' }));
+
+    expect(
+      screen.getByRole('img', { name: '演示视频（暂无封面）' }),
+    ).toBeVisible();
   });
 });

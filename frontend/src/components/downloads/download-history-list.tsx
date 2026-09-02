@@ -103,6 +103,12 @@ function HistoryRow({
         <MediaCover
           alt={`${item.title} 媒体封面`}
           className="w-24 rounded-md ring-0 sm:w-32"
+          compact
+          fallback={{
+            detail: item.format_name,
+            eyebrow: item.source_label,
+            title: item.title,
+          }}
           src={item.thumbnail_url}
         />
       </ItemMedia>

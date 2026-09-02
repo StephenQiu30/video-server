@@ -122,7 +122,9 @@ describe('download history', () => {
     });
     const { container } = render(<DownloadHistoryView />);
 
-    expect(await screen.findByText('示例视频')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('link', { name: '示例视频' }),
+    ).toBeInTheDocument();
     expect(container.querySelector('.inner-page')).toHaveClass('inner-page');
     expect(
       screen.getByRole('heading', { level: 1, name: '下载记录' }),
@@ -140,7 +142,10 @@ describe('download history', () => {
       'href',
       '/downloads/detail?jobId=history-job-1',
     );
-    expect(screen.getByText('链接下载')).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: '示例视频（暂无封面）' }),
+    ).toBeVisible();
+    expect(screen.getAllByText('链接下载')).toHaveLength(2);
 
     fireEvent.click(screen.getByRole('button', { name: '获取文件' }));
     await waitFor(() =>
@@ -263,7 +268,7 @@ describe('download history', () => {
   it('submits a trimmed title search from the accessible form', async () => {
     runtime.getDownloadHistory.mockResolvedValue(history());
     render(<DownloadHistoryView />);
-    await screen.findByText('示例视频');
+    await screen.findByRole('link', { name: '示例视频' });
 
     const input = screen.getByRole('textbox', { name: '搜索下载记录' });
     fireEvent.change(input, { target: { value: '  示例视频  ' } });
@@ -282,7 +287,7 @@ describe('download history', () => {
   it('submits the search when the colored search icon is clicked', async () => {
     runtime.getDownloadHistory.mockResolvedValue(history());
     render(<DownloadHistoryView />);
-    await screen.findByText('示例视频');
+    await screen.findByRole('link', { name: '示例视频' });
 
     const input = screen.getByRole('textbox', { name: '搜索下载记录' });
     fireEvent.change(input, { target: { value: ' 夹克  ' } });

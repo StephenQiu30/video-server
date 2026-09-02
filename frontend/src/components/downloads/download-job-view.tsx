@@ -105,6 +105,16 @@ export default function DownloadJobView({
                 <MediaCover
                   alt={`${title}媒体封面`}
                   className="rounded-none ring-0"
+                  fallback={{
+                    detail: formatLabel(
+                      format,
+                      duration,
+                      state.job?.media_kind,
+                      state.job?.asset_count,
+                    ),
+                    eyebrow: sourceLabel ?? extractor,
+                    title,
+                  }}
                   pending={
                     !['succeeded', 'failed', 'cancelled'].includes(
                       state.job.status,
