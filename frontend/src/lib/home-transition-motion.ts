@@ -40,7 +40,7 @@ export function createHomeResolutionTimeline(
   const bootLayer = collectMotionTargets(scope, '[data-home-boot]');
   const bootCopy = collectMotionTargets(scope, '[data-home-boot-copy]');
   const bootLine = collectMotionTargets(scope, '[data-home-boot-line]');
-  const content = collectMotionTargets(scope, '[data-home-reveal]');
+  const content = collectMotionTargets(scope, '[data-motion-stage="home"]');
   const animatedTargets = [...bootLayer, ...bootCopy, ...bootLine, ...content];
   let finished = false;
   const finish = () => {

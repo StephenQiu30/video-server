@@ -1,13 +1,18 @@
 import {
   ArrowRightIcon,
   ArrowUpRightIcon,
-  CheckCircleIcon,
   GithubLogoIcon,
 } from '@phosphor-icons/react/dist/ssr';
 import Link from 'next/link';
 
+import {
+  PublicHomeCapabilities,
+  PublicHomeSafeguards,
+  PublicHomeWorkflow,
+} from '@/components/intake/public-home-details';
 import { EditorialIntro } from '@/components/layout/editorial-intro';
 import { Button } from '@/components/ui/button';
+import { MotionStage } from '@/components/ui/motion-stage';
 import { siteConfig } from '@/lib/site';
 
 const capabilities = [
@@ -49,7 +54,7 @@ export function PublicHome() {
         className="grid gap-12 pb-20 pt-10 sm:pt-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:gap-24 lg:pb-28 lg:pt-14"
         data-slot="borderless-section"
       >
-        <div data-home-reveal>
+        <MotionStage stage="home">
           <EditorialIntro
             description="开源、自托管地完成公开视频解析、本地视频与剧本文档导入、制品管理和 AI 分析。数据与运行边界由你掌控。"
             eyebrow="FrameFetch · Open Source"
@@ -62,125 +67,94 @@ export function PublicHome() {
               </>
             }
             titleClassName="max-w-4xl sm:whitespace-nowrap"
-          />
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg">
-              <Link href="/user/register">
-                创建本地账户
-                <ArrowRightIcon aria-hidden className="size-4" />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="secondary">
-              <a
-                href={siteConfig.repositoryUrl}
-                rel="noreferrer"
-                target="_blank"
-              >
-                <GithubLogoIcon aria-hidden className="size-4" />
-                查看源代码
-                <ArrowUpRightIcon aria-hidden className="size-4" />
-              </a>
-            </Button>
+          >
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button asChild size="lg">
+                <Link href="/user/register">
+                  创建本地账户
+                  <ArrowRightIcon aria-hidden className="size-4" />
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="secondary">
+                <a
+                  href={siteConfig.repositoryUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  <GithubLogoIcon aria-hidden className="size-4" />
+                  查看源代码
+                  <ArrowUpRightIcon aria-hidden className="size-4" />
+                </a>
+              </Button>
+            </div>
+          </EditorialIntro>
+        </MotionStage>
+
+        <MotionStage stage="home">
+          <div className="self-end lg:pb-1">
+            <p className="text-sm font-medium">一套可审计的完整链路</p>
+            <PublicHomeWorkflow items={workflow} />
           </div>
-        </div>
-
-        <div className="self-end lg:pb-1" data-home-reveal>
-          <p className="text-sm font-medium">一套可审计的完整链路</p>
-          <ol className="mt-7 space-y-6">
-            {workflow.map(([title, description], index) => (
-              <li className="grid grid-cols-[2rem_1fr] gap-4" key={title}>
-                <span className="font-mono text-xs text-muted-foreground">
-                  {String(index + 1).padStart(2, '0')}
-                </span>
-                <div>
-                  <p className="font-medium">{title}</p>
-                  <p className="mt-1 leading-6 text-muted-foreground">
-                    {description}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
+        </MotionStage>
       </section>
 
-      <section
-        aria-labelledby="capabilities-title"
-        className="scroll-mt-24 py-20 lg:py-28"
-        data-home-reveal
-        data-slot="borderless-section"
-        id="capabilities"
-      >
-        <EditorialIntro
-          as="h2"
-          description="Web 控制面、API 与 Worker 共享同一套权限、任务和制品模型，适合个人本地使用，也便于团队自托管。"
-          eyebrow="Product capabilities"
-          title="从公开媒体到可验证制品"
-          titleId="capabilities-title"
-        />
-        <div className="mt-12 grid gap-10 md:grid-cols-3 md:gap-12">
-          {capabilities.map(([eyebrow, title, description]) => (
-            <article key={title}>
-              <p className="font-mono text-xs text-muted-foreground">
-                {eyebrow}
-              </p>
-              <h3 className="mt-5 text-xl font-medium tracking-[-0.025em]">
-                {title}
-              </h3>
-              <p className="mt-3 max-w-md leading-7 text-muted-foreground">
-                {description}
-              </p>
-            </article>
-          ))}
-        </div>
-      </section>
+      <MotionStage stage="home">
+        <section
+          aria-labelledby="capabilities-title"
+          className="scroll-mt-24 py-20 lg:py-28"
+          data-slot="borderless-section"
+          id="capabilities"
+        >
+          <EditorialIntro
+            as="h2"
+            description="Web 控制面、API 与 Worker 共享同一套权限、任务和制品模型，适合个人本地使用，也便于团队自托管。"
+            eyebrow="Product capabilities"
+            title="从公开媒体到可验证制品"
+            titleId="capabilities-title"
+          />
+          <PublicHomeCapabilities items={capabilities} />
+        </section>
+      </MotionStage>
 
-      <section
-        aria-labelledby="architecture-title"
-        className="grid scroll-mt-24 gap-14 py-20 lg:grid-cols-2 lg:gap-24 lg:py-28"
-        data-home-reveal
-        data-slot="borderless-section"
-        id="architecture"
-      >
-        <EditorialIntro
-          as="h2"
-          description="FastAPI、Next.js、PostgreSQL、RabbitMQ、MinIO、FFmpeg 与 yt-dlp 组成可独立部署的工作流。MIT 许可证允许你免费检查、修改和自托管。"
-          eyebrow="Built for self-hosting"
-          title="开源，不交出数据控制权"
-          titleId="architecture-title"
-        />
-        <div className="space-y-5 self-end">
-          {safeguards.map((item) => (
-            <p className="flex gap-3 leading-7" key={item}>
-              <CheckCircleIcon
-                aria-hidden
-                className="mt-1 size-5 shrink-0 text-success"
-                weight="fill"
-              />
-              <span>{item}</span>
-            </p>
-          ))}
-        </div>
-      </section>
+      <MotionStage stage="home">
+        <section
+          aria-labelledby="architecture-title"
+          className="grid scroll-mt-24 gap-14 py-20 lg:grid-cols-2 lg:gap-24 lg:py-28"
+          data-slot="borderless-section"
+          id="architecture"
+        >
+          <EditorialIntro
+            as="h2"
+            description="FastAPI、Next.js、PostgreSQL、RabbitMQ、MinIO、FFmpeg 与 yt-dlp 组成可独立部署的工作流。MIT 许可证允许你免费检查、修改和自托管。"
+            eyebrow="Built for self-hosting"
+            title="开源，不交出数据控制权"
+            titleId="architecture-title"
+          />
+          <PublicHomeSafeguards items={safeguards} />
+        </section>
+      </MotionStage>
 
-      <section
-        className="flex flex-col items-start justify-between gap-8 py-20 sm:flex-row sm:items-end lg:py-28"
-        data-home-reveal
-        data-slot="borderless-section"
-      >
-        <EditorialIntro
-          as="h2"
-          description="从仓库的 Quick Start、架构文档和安全边界开始，按需启用媒体解析、剧本工作流与 AI 服务。"
-          eyebrow="Start locally"
-          title="在自己的基础设施上运行 FrameFetch"
-        />
-        <Button asChild size="lg" variant="secondary">
-          <a href={`${siteConfig.repositoryUrl}/blob/main/README.md#快速开始`}>
-            阅读部署说明
-            <ArrowUpRightIcon aria-hidden className="size-4" />
-          </a>
-        </Button>
-      </section>
+      <MotionStage stage="home">
+        <section
+          className="flex flex-col items-start justify-between gap-8 py-20 sm:flex-row sm:items-end lg:py-28"
+          data-slot="borderless-section"
+        >
+          <EditorialIntro
+            as="h2"
+            description="从仓库的 Quick Start、架构文档和安全边界开始，按需启用媒体解析、剧本工作流与 AI 服务。"
+            eyebrow="Start locally"
+            title="在自己的基础设施上运行 FrameFetch"
+          />
+          <Button asChild size="lg" variant="secondary">
+            <a
+              href={`${siteConfig.repositoryUrl}/blob/main/README.md#快速开始`}
+            >
+              阅读部署说明
+              <ArrowUpRightIcon aria-hidden className="size-4" />
+            </a>
+          </Button>
+        </section>
+      </MotionStage>
     </div>
   );
 }

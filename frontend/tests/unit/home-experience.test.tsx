@@ -36,7 +36,10 @@ describe('HomeExperience', () => {
     expect(experience).toHaveAttribute('data-home-phase', 'resolving');
     expect(screen.queryByText('公开首页')).not.toBeInTheDocument();
     expect(screen.queryByTestId('download-workspace')).not.toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('正在确认当前会话');
+    const startup = screen.getByRole('status');
+    expect(startup).toHaveAttribute('data-slot', 'empty');
+    expect(startup).toHaveTextContent('正在确认当前会话');
+    expect(startup.querySelector('[data-slot="progress"]')).not.toBeNull();
   });
 
   it('reveals only the workspace after an authenticated session is restored', async () => {

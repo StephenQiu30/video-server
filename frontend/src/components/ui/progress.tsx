@@ -18,7 +18,7 @@ function Progress({
         'relative h-1.5 w-full overflow-hidden rounded-full bg-muted',
         className,
       )}
-      value={percentage}
+      value={value}
       {...props}
     >
       <ProgressPrimitive.Indicator

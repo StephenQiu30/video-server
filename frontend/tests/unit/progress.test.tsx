@@ -11,4 +11,12 @@ describe('Progress', () => {
       screen.getByRole('progressbar', { name: '任务进度' }),
     ).toHaveAttribute('aria-valuenow', '35');
   });
+
+  it('preserves Radix indeterminate semantics when value is null', () => {
+    render(<Progress aria-label="会话状态" value={null} />);
+
+    expect(
+      screen.getByRole('progressbar', { name: '会话状态' }),
+    ).not.toHaveAttribute('aria-valuenow');
+  });
 });

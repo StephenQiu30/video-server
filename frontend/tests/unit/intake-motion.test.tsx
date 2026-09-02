@@ -120,7 +120,7 @@ describe('intake motion', () => {
     const root = document.createElement('div');
     root.innerHTML = `
       <div data-home-boot><div data-home-boot-copy></div></div>
-      <div data-home-reveal></div>
+      <div data-motion-stage="home"></div>
     `;
     const complete = vi.fn();
     const timeline = vi.spyOn(gsap, 'timeline');

@@ -1,10 +1,17 @@
 import { cva, type VariantProps } from 'class-variance-authority';
+import { Slot } from 'radix-ui';
+import type * as React from 'react';
 
 import { cn } from '@/lib/utils';
 
-function Empty({ className, ...props }: React.ComponentProps<'div'>) {
+function Empty({
+  asChild = false,
+  className,
+  ...props
+}: React.ComponentProps<'div'> & { asChild?: boolean }) {
+  const Comp = asChild ? Slot.Root : 'div';
   return (
-    <div
+    <Comp
       data-slot="empty"
       className={cn(
         'flex w-full min-w-0 flex-1 flex-col items-center justify-center gap-4 rounded-xl border-dashed p-6 text-center text-balance',

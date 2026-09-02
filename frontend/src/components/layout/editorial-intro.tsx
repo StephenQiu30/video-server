@@ -1,8 +1,8 @@
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
 
-type EditorialIntroProps = {
+type EditorialIntroProps = Omit<ComponentProps<'div'>, 'title'> & {
   as?: 'h1' | 'h2';
   className?: string;
   description: ReactNode;
@@ -15,6 +15,7 @@ type EditorialIntroProps = {
 
 export function EditorialIntro({
   as = 'h1',
+  children,
   className,
   description,
   descriptionClassName,
@@ -22,11 +23,16 @@ export function EditorialIntro({
   title,
   titleClassName,
   titleId,
+  ...props
 }: EditorialIntroProps) {
   const Heading = as;
 
   return (
-    <div className={cn('min-w-0', className)} data-slot="editorial-intro">
+    <div
+      className={cn('min-w-0', className)}
+      data-slot="editorial-intro"
+      {...props}
+    >
       {eyebrow ? (
         <p className="font-mono text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
           {eyebrow}
@@ -52,6 +58,7 @@ export function EditorialIntro({
       >
         {description}
       </p>
+      {children}
     </div>
   );
 }

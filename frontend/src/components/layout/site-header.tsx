@@ -12,6 +12,7 @@ import { HeaderAccount } from '@/components/layout/header-account';
 import { MobileNavigation } from '@/components/layout/mobile-navigation';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { Button } from '@/components/ui/button';
+import { MotionStage } from '@/components/ui/motion-stage';
 import { useGSAP } from '@/lib/gsap-client';
 import { createStagedRevealTimeline } from '@/lib/gsap-motion';
 import { cn } from '@/lib/utils';
@@ -74,7 +75,7 @@ export function SiteHeader() {
         distance: 6,
         duration: 0.16,
         maxStagger: 0,
-        selector: '[data-header-reveal]',
+        selector: '[data-motion-stage="header"]',
       });
     },
     {
@@ -108,81 +109,80 @@ export function SiteHeader() {
               data-slot="header-auth-pending"
             />
           ) : (
-            <div
-              className="flex w-full min-w-0 flex-1 items-center justify-end gap-2"
-              data-header-reveal
-            >
-              {authView ? (
-                <ThemeToggle />
-              ) : (
-                <>
-                  <div
-                    className="hidden min-w-0 flex-1 items-center justify-end lg:flex"
-                    data-slot="header-navigation"
-                  >
-                    <DesktopNavigation
-                      documentsActive={documentsActive}
-                      historyActive={historyActive}
-                      homeActive={homeActive}
-                      providersActive={providersActive}
-                      publicView={publicView}
-                    />
-                  </div>
-                  {publicView ? (
-                    <Button
-                      asChild
-                      className="size-11 lg:hidden"
-                      size="icon-lg"
-                      variant="ghost"
-                    >
-                      <a
-                        aria-label="在 GitHub 查看 FrameFetch 源代码"
-                        href="https://github.com/StephenQiu30/video-server"
-                        rel="noreferrer"
-                        target="_blank"
-                      >
-                        <GithubLogoIcon aria-hidden className="size-5" />
-                      </a>
-                    </Button>
-                  ) : null}
+            <MotionStage stage="header">
+              <div className="flex w-full min-w-0 flex-1 items-center justify-end gap-2">
+                {authView ? (
                   <ThemeToggle />
-                  {publicView ? (
-                    <div className="flex w-[88px] shrink-0 justify-end">
+                ) : (
+                  <>
+                    <div
+                      className="hidden min-w-0 flex-1 items-center justify-end lg:flex"
+                      data-slot="header-navigation"
+                    >
+                      <DesktopNavigation
+                        documentsActive={documentsActive}
+                        historyActive={historyActive}
+                        homeActive={homeActive}
+                        providersActive={providersActive}
+                        publicView={publicView}
+                      />
+                    </div>
+                    {publicView ? (
                       <Button
                         asChild
-                        className="min-h-11 w-[74px] px-3.5 text-[15px]"
+                        className="size-11 lg:hidden"
+                        size="icon-lg"
+                        variant="ghost"
                       >
-                        <Link href="/user/login">登录</Link>
+                        <a
+                          aria-label="在 GitHub 查看 FrameFetch 源代码"
+                          href="https://github.com/StephenQiu30/video-server"
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          <GithubLogoIcon aria-hidden className="size-5" />
+                        </a>
                       </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="hidden lg:block">
-                        <HeaderAccount
-                          analyticsActive={analyticsActive}
-                          aiProvidersActive={aiProvidersActive}
-                          catalogActive={catalogActive}
-                          filesActive={filesActive}
+                    ) : null}
+                    <ThemeToggle />
+                    {publicView ? (
+                      <div className="flex w-[88px] shrink-0 justify-end">
+                        <Button
+                          asChild
+                          className="min-h-11 w-[74px] px-3.5 text-[15px]"
+                        >
+                          <Link href="/user/login">登录</Link>
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="hidden lg:block">
+                          <HeaderAccount
+                            analyticsActive={analyticsActive}
+                            aiProvidersActive={aiProvidersActive}
+                            catalogActive={catalogActive}
+                            filesActive={filesActive}
+                            loading={loading}
+                            onSignOut={() => void handleSignOut()}
+                            pathname={pathname}
+                            signingOut={signingOut}
+                            user={user}
+                            usersActive={usersActive}
+                          />
+                        </div>
+                        <MobileNavigation
                           loading={loading}
-                          onSignOut={() => void handleSignOut()}
+                          onSignOut={handleSignOut}
                           pathname={pathname}
                           signingOut={signingOut}
                           user={user}
-                          usersActive={usersActive}
                         />
-                      </div>
-                      <MobileNavigation
-                        loading={loading}
-                        onSignOut={handleSignOut}
-                        pathname={pathname}
-                        signingOut={signingOut}
-                        user={user}
-                      />
-                    </>
-                  )}
-                </>
-              )}
-            </div>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+            </MotionStage>
           )}
         </div>
       </div>
