@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { HomeExperience } from '@/components/intake/home-experience';
@@ -14,12 +14,6 @@ vi.mock('@/components/auth/auth-provider', () => ({
 
 vi.mock('@/components/intake/download-workspace', () => ({
   default: () => <div data-testid="download-workspace">工作区</div>,
-}));
-
-vi.mock('@/lib/home-transition-motion', () => ({
-  createHomeResolutionTimeline: (_scope: HTMLElement, onComplete: () => void) =>
-    onComplete(),
-  createSessionRestoreTimeline: () => undefined,
 }));
 
 describe('HomeExperience', () => {
@@ -42,30 +36,32 @@ describe('HomeExperience', () => {
     expect(startup.querySelector('[data-slot="progress"]')).not.toBeNull();
   });
 
-  it('reveals only the workspace after an authenticated session is restored', async () => {
+  it('renders only the workspace after an authenticated session is restored', () => {
     runtime.loading = false;
     runtime.user = { username: 'video-user' };
 
     render(<HomeExperience publicHome={<h1>公开首页</h1>} />);
 
-    expect(await screen.findByTestId('download-workspace')).toBeVisible();
+    expect(screen.getByTestId('download-workspace')).toBeVisible();
     expect(screen.queryByText('公开首页')).not.toBeInTheDocument();
-    await waitFor(() => {
-      expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    });
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('download-workspace').closest('[data-home-view]'),
+    ).toHaveAttribute('data-home-view', 'workspace');
   });
 
-  it('reveals only the public content for an anonymous visitor', async () => {
+  it('renders only the public content for an anonymous visitor', () => {
     runtime.loading = false;
 
     render(<HomeExperience publicHome={<h1>公开首页</h1>} />);
 
-    expect(
-      await screen.findByRole('heading', { name: '公开首页' }),
-    ).toBeVisible();
+    expect(screen.getByRole('heading', { name: '公开首页' })).toBeVisible();
     expect(screen.queryByTestId('download-workspace')).not.toBeInTheDocument();
-    await waitFor(() => {
-      expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    });
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(
+      screen
+        .getByRole('heading', { name: '公开首页' })
+        .closest('[data-home-view]'),
+    ).toHaveAttribute('data-home-view', 'public');
   });
 });

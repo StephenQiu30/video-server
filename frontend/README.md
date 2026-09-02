@@ -102,7 +102,7 @@ npm run openapi
 - 功能图标继续使用已有 `@phosphor-icons/react`，品牌标识通过 Next.js `Image` 复用 `public/logo.svg`，浏览器与 Apple 图标复用同组品牌资源；不用 emoji、手绘 SVG、CSS 图形或文本符号代替标准图标。
 - 业务颜色和尺寸使用语义 token 与 Tailwind utility，不在页面散落近似色值、任意阴影或一次性 CSS。
 - Client Component 只用于交互和浏览器 API；其余页面、布局和元数据保持 Server Component。
-- 根路由的静态首屏只渲染中性会话启动态，不渲染后再隐藏公开首页。`/api/auth/me` 完成后只挂载公开首页或登录工作区之一，并使用 scoped `useGSAP`、`gsap.utils` 与单一 timeline 协调 Header、启动态和目标内容；动画结束必须清理临时内联样式。
+- 根路由的静态首屏只渲染中性会话启动态，不渲染后再隐藏公开首页。`/api/auth/me` 完成后直接且只挂载公开首页或登录工作区之一；身份未确定前 Header 同样保留稳定空槽，避免两套权限布局同时出现。
 - 所有交互支持键盘，表单控件有可关联标签，错误和异步状态可被辅助技术感知；RadioGroup 支持标准方向键，Dialog、Sheet、Popover、Dropdown Menu 保留 Radix 焦点圈定、Escape 关闭与触发器焦点恢复；尊重 reduced motion。
 - 首次加载与异步刷新必须为最终摘要、工具条和关键操作保留同尺寸槽位；Skeleton 只能替换槽位内容，不能让成功、空或错误状态把后续内容推移。
 - 桌面和 390px 窄屏均不得出现页面级横向溢出，主操作、错误恢复和核心数据在两种尺寸下都必须可用。

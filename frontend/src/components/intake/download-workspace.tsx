@@ -15,7 +15,6 @@ import {
 import InspectionWorkspace from '@/components/intake/inspection-workspace';
 import { LinkDownloadForm } from '@/components/intake/link-download-form';
 import { MediaUploadForm } from '@/components/intake/media-upload-form';
-import { MotionReveal } from '@/components/intake/motion-reveal';
 import { SourceDiscoveryWorkspace } from '@/components/intake/source-discovery-workspace';
 import { markNavigationPush } from '@/components/layout/navigation-history';
 import { ScreenplayUploadForm } from '@/components/screenplay/screenplay-upload-form';
@@ -252,28 +251,26 @@ export default function DownloadWorkspace() {
         </Alert>
       ) : null}
       {mode === 'link' && discovery ? (
-        <MotionReveal key={`discovery:${discovery.id}`}>
-          <SourceDiscoveryWorkspace
-            busyItemRef={busyItemRef}
-            discovery={discovery}
-            onSelect={(item) => void selectDiscoveredItem(item)}
-          />
-        </MotionReveal>
+        <SourceDiscoveryWorkspace
+          busyItemRef={busyItemRef}
+          discovery={discovery}
+          key={`discovery:${discovery.id}`}
+          onSelect={(item) => void selectDiscoveredItem(item)}
+        />
       ) : null}
       {mode === 'link' && inspection ? (
-        <MotionReveal key={`inspection:${inspection.id}`}>
-          <InspectionWorkspace
-            busy={busy === 'create'}
-            inspection={inspection}
-            onChange={setSelectedId}
-            onCreate={() => void create()}
-            onUseUpload={() => {
-              setMediaDeclaredOrigin('wechat_channels');
-              setMode('video');
-            }}
-            selectedId={selectedId}
-          />
-        </MotionReveal>
+        <InspectionWorkspace
+          busy={busy === 'create'}
+          inspection={inspection}
+          key={`inspection:${inspection.id}`}
+          onChange={setSelectedId}
+          onCreate={() => void create()}
+          onUseUpload={() => {
+            setMediaDeclaredOrigin('wechat_channels');
+            setMode('video');
+          }}
+          selectedId={selectedId}
+        />
       ) : null}
     </div>
   );

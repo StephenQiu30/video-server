@@ -17,9 +17,6 @@ describe('PublicHome', () => {
     expect(
       container.querySelectorAll('[data-slot="editorial-intro"]'),
     ).toHaveLength(4);
-    expect(
-      container.querySelector('[data-slot="editorial-intro"]'),
-    ).toHaveAttribute('data-motion-stage', 'home');
     expect(container.querySelectorAll('[data-slot="item-group"]')).toHaveLength(
       3,
     );
