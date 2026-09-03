@@ -96,6 +96,17 @@ def test_media_url_validator_extracts_hongguo_share_message() -> None:
     assert validator.validate(message) == "https://novelquickapp.com/s/YMc-jWnOo1U/"
 
 
+def test_media_url_validator_preserves_the_provided_hongguo_share_contract() -> None:
+    validator = MediaUrlValidator()
+    message = (
+        "漫剧《死对头校花竟是我网恋女友》 - 免费好剧，尽在红果\n"
+        "点击链接打开👉https://novelquickapp.com/s/QVcr7YNEMwI/\n"
+        "复制本条消息后，打开「红果短剧App」后免费看全集~"
+    )
+
+    assert validator.validate(message) == "https://novelquickapp.com/s/QVcr7YNEMwI/"
+
+
 def test_media_url_validator_rejects_share_message_with_multiple_urls() -> None:
     validator = MediaUrlValidator()
 

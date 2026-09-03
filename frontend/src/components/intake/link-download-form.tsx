@@ -8,7 +8,7 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
-  InputGroupInput,
+  InputGroupTextarea,
 } from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
 import {
@@ -43,17 +43,18 @@ export function LinkDownloadForm({
       className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_148px]"
       onSubmit={submit}
     >
-      <InputGroup className="h-16 rounded-md bg-input sm:h-[68px]">
-        <InputGroupInput
+      <InputGroup className="rounded-md bg-input sm:min-h-[68px]">
+        <InputGroupTextarea
           aria-describedby={invalid ? 'download-workspace-error' : undefined}
           aria-invalid={invalid ? true : undefined}
           aria-label="公开视频地址"
           autoComplete="url"
-          className="h-full px-2 text-[15px]"
+          className="min-h-16 px-2 text-[15px] sm:min-h-[68px]"
           disabled={disabled}
           maxLength={4096}
           onChange={(event) => onUrlChange(event.target.value)}
           placeholder="粘贴公开的视频链接"
+          rows={3}
           value={url}
         />
         <InputGroupAddon align="inline-start" className="gap-2 pl-4">

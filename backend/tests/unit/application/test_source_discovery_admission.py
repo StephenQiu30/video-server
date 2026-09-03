@@ -13,6 +13,14 @@ def test_article_path_and_query_forms_are_canonicalized() -> None:
     )
 
 
+def test_article_share_text_is_canonicalized_before_admission() -> None:
+    message = "文章内容\nhttps://mp.weixin.qq.com/s/article_123\n打开链接"
+
+    assert canonicalize_article_url(message) == (
+        "https://mp.weixin.qq.com/s/article_123"
+    )
+
+
 @pytest.mark.parametrize(
     "url",
     [

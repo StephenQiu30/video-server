@@ -3,12 +3,15 @@ from __future__ import annotations
 import re
 from urllib.parse import parse_qs, urlencode, urlsplit, urlunsplit
 
+from app.application.public_input import extract_public_url
+
 _ARTICLE_PATH = re.compile(r"/s/[A-Za-z0-9_-]{6,256}")
 _QUERY_KEYS = frozenset({"__biz", "mid", "idx", "sn", "chksm", "scene"})
 _REQUIRED_QUERY_KEYS = frozenset({"__biz", "mid", "idx", "sn"})
 
 
 def canonicalize_article_url(url: str) -> str:
+    url = extract_public_url(url)
     parsed = urlsplit(url)
     if (
         parsed.scheme != "https"

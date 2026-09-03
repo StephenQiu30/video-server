@@ -5,7 +5,7 @@ import DownloadWorkspace from '@/components/intake/download-workspace';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { httpClient } from '@/lib/request';
 import { ApiError } from '@/services/download';
-import { URL_MESSAGE } from '@/utils/validation';
+import { PUBLIC_INPUT_REQUIRED } from '@/utils/public-input';
 import {
   galleryInspection,
   galleryJob,
@@ -70,16 +70,14 @@ describe('DownloadWorkspace', () => {
     ).toBeInTheDocument();
   });
 
-  it('rejects an invalid address before making an API request', async () => {
+  it('rejects blank input before making an API request', async () => {
     renderWorkspace();
 
     const input = screen.getByLabelText('公开视频地址');
-    fireEvent.change(input, {
-      target: { value: 'file:///tmp/private-video' },
-    });
+    fireEvent.change(input, { target: { value: '' } });
     fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
 
-    const error = await screen.findByText(URL_MESSAGE);
+    const error = await screen.findByText(PUBLIC_INPUT_REQUIRED);
     expect(error).toHaveAttribute('id', 'download-workspace-error');
     expect(input).toHaveAttribute('aria-invalid', 'true');
     expect(input).toHaveAttribute(
@@ -103,14 +101,14 @@ describe('DownloadWorkspace', () => {
       screen.getByRole('button', { name: '创建下载任务' }),
     ).toBeInTheDocument();
 
-    fireEvent.change(input, { target: { value: 'not-a-url' } });
+    fireEvent.change(input, { target: { value: '' } });
 
     expect(screen.queryByText(inspection.title)).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: '创建下载任务' }),
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
-    expect(await screen.findByText(URL_MESSAGE)).toBeInTheDocument();
+    expect(await screen.findByText(PUBLIC_INPUT_REQUIRED)).toBeInTheDocument();
   });
 
   it('locks the submitted URL until its inspection response is applied', async () => {
@@ -142,7 +140,7 @@ describe('DownloadWorkspace', () => {
     expect(input).toBeEnabled();
   });
 
-  it('normalizes the reported Douyin share message before inspection', async () => {
+  it('sends the original share message to the server for inspection', async () => {
     mockHttpResponses(inspection);
     renderWorkspace();
 
@@ -156,11 +154,35 @@ describe('DownloadWorkspace', () => {
       data: {
         source: {
           kind: 'public_url',
-          url: 'https://v.douyin.com/Tq0eYJRMYRk/',
+          url: reportedDouyinShareMessage,
         },
       },
       method: 'POST',
       url: '/api/inspections',
+    });
+  });
+
+  it('sends the complete Hongguo share message without client rewriting', async () => {
+    mockHttpResponses(inspection);
+    renderWorkspace();
+
+    const shareMessage =
+      '漫剧《死对头校花竟是我网恋女友》 - 免费好剧，尽在红果\n' +
+      '点击链接打开👉https://novelquickapp.com/s/QVcr7YNEMwI/\n' +
+      '复制本条消息后，打开「红果短剧App」后免费看全集~';
+    fireEvent.change(screen.getByLabelText('公开视频地址'), {
+      target: { value: shareMessage },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
+
+    expect(await screen.findByText(inspection.title)).toBeInTheDocument();
+    expect(httpRequests()[0]).toMatchObject({
+      data: {
+        source: {
+          kind: 'public_url',
+          url: shareMessage,
+        },
+      },
     });
   });
 

@@ -35,7 +35,11 @@ import type {
   SourceDiscovery,
   SourceDiscoveryItem,
 } from '@/types/video';
-import { normalizeMediaUrl, URL_MESSAGE } from '@/utils/validation';
+import {
+  hasPublicInput,
+  isWeChatArticleInput,
+  PUBLIC_INPUT_REQUIRED,
+} from '@/utils/public-input';
 
 type BusyAction = 'inspect' | 'select' | 'create' | null;
 type StableKey = { payload: string; value: string };
@@ -87,27 +91,27 @@ export default function DownloadWorkspace() {
 
   async function inspect() {
     if (busy !== null) return;
-    const normalized = normalizeMediaUrl(url);
+    const input = url.trim();
     clearLinkResult();
-    if (!normalized) {
+    if (!hasPublicInput(input)) {
       setUrlInvalid(true);
-      setError(URL_MESSAGE);
+      setError(PUBLIC_INPUT_REQUIRED);
       return;
     }
     setUrlInvalid(false);
     setBusy('inspect');
     setError(null);
     try {
-      if (isWeChatArticleUrl(normalized)) {
+      if (isWeChatArticleInput(input)) {
         const result = await createSourceDiscovery(
-          normalized,
-          stableKey(discoveryKey, normalized),
+          input,
+          stableKey(discoveryKey, input),
         );
         setDiscovery(result);
       } else {
         const result = await inspectMedia(
-          normalized,
-          stableKey(inspectionKey, normalized),
+          input,
+          stableKey(inspectionKey, input),
         );
         setInspection(result);
         setSelectedId(result.formats[0]?.id ?? '');
@@ -274,17 +278,6 @@ export default function DownloadWorkspace() {
       ) : null}
     </div>
   );
-}
-
-function isWeChatArticleUrl(value: string) {
-  try {
-    const parsed = new URL(value);
-    return (
-      parsed.protocol === 'https:' && parsed.hostname === 'mp.weixin.qq.com'
-    );
-  } catch {
-    return false;
-  }
 }
 
 function stableKey(ref: RefObject<StableKey | null>, payload: string) {
