@@ -139,7 +139,6 @@ services:
     container_name: video-frontend
     restart: unless-stopped
     environment:
-      APP_ENV: "${APP_ENV:-production}"
       BACKEND_ORIGIN: http://api:8111
       HOSTNAME: 0.0.0.0
       MINIO_PUBLIC_ENDPOINT: "${MINIO_PUBLIC_ENDPOINT:-127.0.0.1:19190}"
