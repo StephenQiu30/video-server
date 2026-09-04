@@ -21,6 +21,8 @@ def test_non_test_app_wires_download_use_cases(tmp_path: Path) -> None:
         app_env="development",
         frontend_dist_dir=tmp_path / "missing",
         runner_base_url="http://runner.test",
+        valkey_url="redis://127.0.0.1:6379/0",
+        _env_file=None,
     )
     application = create_app(settings)
 
@@ -36,6 +38,8 @@ def test_non_test_app_wires_runtime_readiness_into_the_route(tmp_path: Path) -> 
         app_env="development",
         frontend_dist_dir=tmp_path / "missing",
         runner_base_url="http://runner.test",
+        valkey_url="redis://127.0.0.1:6379/0",
+        _env_file=None,
     )
     application = create_app(settings)
 
