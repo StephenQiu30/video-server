@@ -6,6 +6,15 @@ import {
   Metric,
   ResultTab,
 } from '@/components/screenplay/screenplay-result-primitives';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
 import type { ScreenplayRewriteResult } from '@/types/video';
 
@@ -55,29 +64,39 @@ export default function ScreenplayRewriteResultView({
             统一术语
           </h3>
           {result.glossary.length ? (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[560px] border-collapse text-left text-sm">
-                <caption className="sr-only">剧本改写统一术语表</caption>
-                <thead>
-                  <tr className="text-muted-foreground">
-                    <th className="py-3 pr-5 font-normal">原文</th>
-                    <th className="py-3 pr-5 font-normal">统一写法</th>
-                    <th className="py-3 font-normal">类别</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.glossary.map((term) => (
-                    <tr key={`${term.category}:${term.source}`}>
-                      <td className="py-4 pr-5 font-medium">{term.source}</td>
-                      <td className="py-4 pr-5">{term.target}</td>
-                      <td className="py-4 text-muted-foreground">
-                        {categoryLabels[term.category] ?? term.category}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table className="mt-4 min-w-[560px] border-collapse text-left text-sm">
+              <TableCaption className="sr-only">
+                剧本改写统一术语表
+              </TableCaption>
+              <TableHeader>
+                <TableRow className="text-muted-foreground hover:bg-transparent">
+                  <TableHead className="py-3 pr-5 font-normal whitespace-normal">
+                    原文
+                  </TableHead>
+                  <TableHead className="py-3 pr-5 font-normal whitespace-normal">
+                    统一写法
+                  </TableHead>
+                  <TableHead className="py-3 font-normal whitespace-normal">
+                    类别
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {result.glossary.map((term) => (
+                  <TableRow key={`${term.category}:${term.source}`}>
+                    <TableCell className="py-4 pr-5 font-medium whitespace-normal">
+                      {term.source}
+                    </TableCell>
+                    <TableCell className="py-4 pr-5 whitespace-normal">
+                      {term.target}
+                    </TableCell>
+                    <TableCell className="py-4 text-muted-foreground whitespace-normal">
+                      {categoryLabels[term.category] ?? term.category}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           ) : (
             <p className="mt-4 py-7 text-muted-foreground">
               本次改写没有需要单独统一的术语。

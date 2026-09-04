@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowClockwiseIcon, WarningCircleIcon } from '@phosphor-icons/react';
-import { useMemo, useState } from 'react';
+import { type KeyboardEvent, useMemo, useState } from 'react';
 
 import { BackLink } from '@/components/layout/back-link';
 import { PageHeader } from '@/components/layout/page-header';
@@ -16,12 +16,13 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty';
 import { ItemGroup } from '@/components/ui/item';
+import { RadioGroup, RadioGroupButtonItem } from '@/components/ui/radio-group';
 import { Spinner } from '@/components/ui/spinner';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useProviderStatuses } from '@/hooks/useProviderStatuses';
 import type { ProviderStatus } from '@/services/providers';
 
 type StatusFilter = 'all' | 'available' | 'attention';
+const STATUS_FILTERS: StatusFilter[] = ['all', 'available', 'attention'];
 const STATUS_PAGE_SIZE = 8;
 const EMPTY_PROVIDERS: ProviderStatus[] = [];
 
@@ -92,21 +93,30 @@ export function ProviderStatusView() {
                 个平台 · {available} 个当前可用 · {providers.length - available}{' '}
                 个需关注
               </p>
-              <ToggleGroup
+              <RadioGroup
                 aria-label="筛选平台状态"
-                onValueChange={(value) => {
-                  if (value) {
-                    setFilter(value as StatusFilter);
+                className="flex w-auto flex-wrap items-center gap-1"
+                onKeyDownCapture={(event) => {
+                  const nextFilter = nextStatusFilter(event);
+                  if (nextFilter) {
+                    setFilter(nextFilter);
                     setPage(1);
                   }
                 }}
-                type="single"
+                onValueChange={(value) => {
+                  setFilter(value as StatusFilter);
+                  setPage(1);
+                }}
                 value={filter}
               >
-                <ToggleGroupItem value="all">全部</ToggleGroupItem>
-                <ToggleGroupItem value="available">当前可用</ToggleGroupItem>
-                <ToggleGroupItem value="attention">需关注</ToggleGroupItem>
-              </ToggleGroup>
+                <RadioGroupButtonItem value="all">全部</RadioGroupButtonItem>
+                <RadioGroupButtonItem value="available">
+                  当前可用
+                </RadioGroupButtonItem>
+                <RadioGroupButtonItem value="attention">
+                  需关注
+                </RadioGroupButtonItem>
+              </RadioGroup>
             </div>
             {visibleProviders.length > 0 ? (
               <div className="space-y-5">
@@ -153,6 +163,33 @@ function matchesFilter(provider: ProviderStatus, filter: StatusFilter) {
   if (filter === 'available') return provider.download_available;
   if (filter === 'attention') return !provider.download_available;
   return true;
+}
+
+function nextStatusFilter(
+  event: KeyboardEvent<HTMLDivElement>,
+): StatusFilter | null {
+  const direction =
+    event.key === 'ArrowRight' || event.key === 'ArrowDown'
+      ? 1
+      : event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+        ? -1
+        : 0;
+  const target = event.target;
+  if (
+    direction === 0 ||
+    !(target instanceof HTMLButtonElement) ||
+    target.getAttribute('role') !== 'radio'
+  ) {
+    return null;
+  }
+
+  const currentIndex = STATUS_FILTERS.indexOf(target.value as StatusFilter);
+  if (currentIndex < 0) {
+    return null;
+  }
+  const nextIndex =
+    (currentIndex + direction + STATUS_FILTERS.length) % STATUS_FILTERS.length;
+  return STATUS_FILTERS[nextIndex];
 }
 
 function StatusMessage({ label }: { label: string }) {

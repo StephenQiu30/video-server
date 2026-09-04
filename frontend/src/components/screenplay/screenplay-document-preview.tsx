@@ -4,6 +4,14 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import type { ScreenplayDocument } from '@/types/video';
 import type { MarkdownHeading } from './screenplay-document-toc';
 
@@ -155,18 +163,23 @@ export function ScreenplayDocumentPreview({
                   <strong className="font-semibold">{children}</strong>
                 ),
                 table: ({ children }) => (
-                  <div className="my-5 overflow-x-auto">
-                    <table className="min-w-full border-collapse text-left text-sm">
-                      {children}
-                    </table>
-                  </div>
-                ),
-                th: ({ children }) => (
-                  <th className="bg-muted/50 px-3 py-2 font-medium">
+                  <Table className="my-5 min-w-full border-collapse text-left text-sm">
                     {children}
-                  </th>
+                  </Table>
                 ),
-                td: ({ children }) => <td className="px-3 py-2">{children}</td>,
+                thead: ({ children }) => <TableHeader>{children}</TableHeader>,
+                tbody: ({ children }) => <TableBody>{children}</TableBody>,
+                tr: ({ children }) => <TableRow>{children}</TableRow>,
+                th: ({ children }) => (
+                  <TableHead className="bg-muted/50 px-3 py-2 font-medium whitespace-normal">
+                    {children}
+                  </TableHead>
+                ),
+                td: ({ children }) => (
+                  <TableCell className="px-3 py-2 whitespace-normal">
+                    {children}
+                  </TableCell>
+                ),
                 ul: ({ children }) => (
                   <ul className="my-4 list-disc space-y-1 pl-6">{children}</ul>
                 ),

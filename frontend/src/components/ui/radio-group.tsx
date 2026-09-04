@@ -41,4 +41,20 @@ function RadioGroupItem({
   );
 }
 
-export { RadioGroup, RadioGroupItem };
+function RadioGroupButtonItem({
+  className,
+  ...props
+}: React.ComponentProps<typeof RadioGroupPrimitive.Item>) {
+  return (
+    <RadioGroupPrimitive.Item
+      data-slot="radio-group-button-item"
+      className={cn(
+        'focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-md px-2.5 text-xs text-muted-foreground transition-colors hover:bg-surface hover:text-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=checked]:bg-surface data-[state=checked]:text-foreground',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+export { RadioGroup, RadioGroupButtonItem, RadioGroupItem };

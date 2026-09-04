@@ -105,13 +105,13 @@ export function ProviderStatusItem({ provider }: { provider: ProviderStatus }) {
 
 function statusLabel(provider: ProviderStatus): string {
   if (provider.download_supported) {
-    if (provider.download_available) return '已支持下载';
+    if (provider.download_available) return '当前可用';
     if (provider.status === 'access_required') return '已接入 · 当前不可用';
     if (provider.status === 'degraded') return '支持下载 · 当前降级';
     if (provider.status === 'rate_limited') return '支持下载 · 当前限流';
     if (provider.status === 'blocked') return '支持下载 · 当前受限';
     if (provider.status === 'unknown') return '支持下载 · 待复验';
-    return '已支持下载';
+    return '已接入 · 待重新验证';
   }
   if (
     provider.status === 'unknown' &&
@@ -175,7 +175,10 @@ function formatDate(value: string, includeTime = false): string {
 function statusVariant(
   provider: ProviderStatus,
 ): 'destructive' | 'neutral' | 'success' | 'warning' {
-  if (provider.download_available || provider.status === 'verified') {
+  if (
+    provider.download_available ||
+    (!provider.download_supported && provider.status === 'verified')
+  ) {
     return 'success';
   }
   if (provider.status === 'unsupported' || provider.status === 'blocked') {

@@ -3,6 +3,15 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+
 const allowedElements = [
   'blockquote',
   'code',
@@ -63,17 +72,22 @@ export default function AnalysisReportPreview({
             <p className="my-3 text-muted-foreground">{children}</p>
           ),
           table: ({ children }) => (
-            <div className="my-6 overflow-x-auto">
-              <table className="w-full border-collapse text-left text-sm">
-                {children}
-              </table>
-            </div>
+            <Table className="my-6 w-full border-collapse text-left text-sm">
+              {children}
+            </Table>
           ),
+          thead: ({ children }) => <TableHeader>{children}</TableHeader>,
+          tbody: ({ children }) => <TableBody>{children}</TableBody>,
+          tr: ({ children }) => <TableRow>{children}</TableRow>,
           td: ({ children }) => (
-            <td className="px-3 py-2 align-top">{children}</td>
+            <TableCell className="px-3 py-2 align-top whitespace-normal">
+              {children}
+            </TableCell>
           ),
           th: ({ children }) => (
-            <th className="bg-muted px-3 py-2 font-medium">{children}</th>
+            <TableHead className="bg-muted px-3 py-2 font-medium whitespace-normal">
+              {children}
+            </TableHead>
           ),
           ul: ({ children }) => (
             <ul className="my-4 list-disc space-y-1 pl-5">{children}</ul>

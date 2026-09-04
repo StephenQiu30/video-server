@@ -58,7 +58,7 @@ describe('provider status page', () => {
       .getByRole('heading', { name: 'TikTok' })
       .closest('[role="listitem"]');
     expect(tiktok).not.toBeNull();
-    expect(tiktok).toHaveTextContent('已支持下载');
+    expect(tiktok).toHaveTextContent('当前可用');
     fireEvent.click(
       within(tiktok as HTMLElement).getByRole('button', {
         name: '验证详情',
@@ -71,7 +71,7 @@ describe('provider status page', () => {
       .getByRole('heading', { name: '哔哩哔哩' })
       .closest('[role="listitem"]');
     expect(bilibili).not.toBeNull();
-    expect(bilibili).toHaveTextContent('已支持下载');
+    expect(bilibili).toHaveTextContent('当前可用');
     fireEvent.click(
       within(bilibili as HTMLElement).getByRole('button', {
         name: '验证详情',
@@ -87,7 +87,7 @@ describe('provider status page', () => {
       .getByRole('heading', { name: '红果短剧官方分享' })
       .closest('[role="listitem"]');
     expect(hongguo).not.toBeNull();
-    expect(hongguo).toHaveTextContent('已支持下载');
+    expect(hongguo).toHaveTextContent('当前可用');
     expect(hongguo).toHaveTextContent('下载解析器已部署');
     fireEvent.click(
       within(hongguo as HTMLElement).getByRole('button', {
@@ -111,6 +111,15 @@ describe('provider status page', () => {
     expect(qqvideo).toHaveTextContent('支持识别腾讯视频单视频链接');
     expect(qqvideo).toHaveTextContent('VIP、付费及 DRM 内容不提供下载');
     expect(qqvideo).not.toHaveTextContent('运维');
+
+    const vimeo = within(list)
+      .getByRole('heading', { name: 'Vimeo' })
+      .closest('[role="listitem"]');
+    expect(vimeo).not.toBeNull();
+    expect(vimeo).toHaveTextContent('已接入 · 待重新验证');
+    expect(
+      within(vimeo as HTMLElement).getByText('已接入 · 待重新验证'),
+    ).toHaveAttribute('data-variant', 'neutral');
   });
 
   it('supports loading, safe error and retry states', async () => {
@@ -188,6 +197,42 @@ describe('provider status page', () => {
     expect(
       screen.getByRole('heading', { name: '哔哩哔哩' }),
     ).toBeInTheDocument();
+  });
+
+  it('selects the next status filter with the arrow keys', async () => {
+    runtime.listProviders.mockResolvedValue(statuses());
+    render(<ProviderStatusView />);
+
+    await screen.findByRole('heading', { name: 'YouTube' });
+    const availableFilter = screen.getByRole('radio', {
+      name: '当前可用',
+    });
+    fireEvent.click(availableFilter);
+    act(() => {
+      availableFilter.focus();
+    });
+    fireEvent.keyDown(availableFilter, { key: 'ArrowRight' });
+
+    expect(screen.getByRole('radio', { name: '需关注' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    expect(
+      screen.queryByRole('heading', { name: 'TikTok' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'YouTube' }),
+    ).toBeInTheDocument();
+
+    const attentionFilter = screen.getByRole('radio', { name: '需关注' });
+    act(() => {
+      attentionFilter.focus();
+    });
+    fireEvent.keyDown(attentionFilter, { key: 'ArrowRight' });
+    expect(screen.getByRole('radio', { name: '全部' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
   });
 
   it('paginates long status lists instead of rendering every diagnostic row', async () => {
@@ -298,6 +343,22 @@ function statuses(): ProviderStatusList {
         last_verified_at: null,
         user_action:
           '支持识别腾讯视频单视频链接并引导官方播放；消费端私有接口、VIP、付费及 DRM 内容不提供下载。自有媒资请通过腾讯云 VOD 官方导出或上传明文文件。',
+      },
+      {
+        key: 'vimeo',
+        display_name: 'Vimeo',
+        registered: true,
+        extractor_exists: true,
+        capabilities: ['single_video'],
+        access_modes: ['anonymous'],
+        status: 'verified',
+        last_checked_at: '2026-08-01T00:00:00Z',
+        last_check_succeeded: true,
+        download_supported: true,
+        download_available: false,
+        last_media_verified_at: '2026-08-01T00:00:00Z',
+        last_verified_at: null,
+        user_action: null,
       },
     ],
   };
