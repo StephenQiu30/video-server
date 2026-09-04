@@ -170,11 +170,38 @@ jobs:
           "${compose[@]}" up --detach --wait --wait-timeout 240 --no-build api frontend outbox worker-download provider-canary worker-report media-runner
           python3 - <<'PY'
           import json
+          import urllib.error
           import urllib.request
 
           def request(origin: str, path: str):
               with urllib.request.urlopen(f'{origin}{path}', timeout=10) as response:
                   return response.status, response.headers.get_content_type(), response.read()
+
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return None
+
+          def post_without_redirect(origin: str, path: str, payload: dict):
+              request = urllib.request.Request(
+                  f'{origin}{path}',
+                  data=json.dumps(payload).encode(),
+                  headers={'Content-Type': 'application/json'},
+                  method='POST',
+              )
+              try:
+                  response = urllib.request.build_opener(NoRedirect).open(
+                      request,
+                      timeout=10,
+                  )
+              except urllib.error.HTTPError as error:
+                  response = error
+              with response:
+                  return (
+                      response.status,
+                      response.headers.get('Location'),
+                      response.headers.get_content_type(),
+                      response.read(),
+                  )
 
           api_origin = 'http://127.0.0.1:8111'
           frontend_origin = 'http://127.0.0.1:8101'
@@ -187,6 +214,18 @@ jobs:
           assert status == 200 and content_type == 'application/json' and schema.get('paths')
           status, content_type, _ = request(frontend_origin, '/')
           assert status == 200 and content_type == 'text/html'
+          status, location, content_type, body = post_without_redirect(
+              frontend_origin,
+              '/api/auth/login',
+              {
+                  'email': 'runtime-boundary@framefetch.example',
+                  'password': 'invalid-password',
+              },
+          )
+          problem = json.loads(body)
+          assert status == 401 and location is None
+          assert content_type == 'application/problem+json'
+          assert problem['code'] == 'invalid_credentials'
           print(f'运行时烟测通过：{len(schema["paths"])} 个 OpenAPI paths')
           PY
           "${compose[@]}" run --rm --no-deps database-init
