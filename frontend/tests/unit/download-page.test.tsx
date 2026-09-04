@@ -38,7 +38,18 @@ describe('DownloadWorkspace', () => {
     expect(screen.queryByText('Public media workflow')).not.toBeInTheDocument();
     expect(screen.queryByText('02 / 选择画质')).not.toBeInTheDocument();
     expect(screen.queryByText('03 / 创建任务')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('公开视频地址')).toBeInTheDocument();
+    const input = screen.getByLabelText('公开视频地址');
+    expect(input).toHaveAttribute('placeholder', '粘贴视频链接或平台分享文案');
+    expect(input).toHaveClass(
+      'block',
+      'field-sizing-fixed',
+      '[align-content:safe_center]',
+    );
+    expect(input.parentElement).toHaveClass('h-16', 'sm:h-[68px]');
+    expect(input.parentElement).toHaveAttribute(
+      'data-textarea-layout',
+      'fixed',
+    );
     expect(screen.queryByText('⌘V')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '解析媒体' })).toBeEnabled();
     expect(screen.getByRole('tab', { name: '链接解析' })).toHaveAttribute(

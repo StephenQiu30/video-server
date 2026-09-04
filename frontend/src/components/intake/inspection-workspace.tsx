@@ -39,7 +39,10 @@ export default function InspectionWorkspace({
         <MediaCover
           alt={`${inspection.title} 媒体封面`}
           fallback={{
-            detail: inspectionDetailLabel(inspection, selected?.plan ?? undefined),
+            detail: inspectionDetailLabel(
+              inspection,
+              selected?.plan ?? undefined,
+            ),
             eyebrow: inspection.extractor_key,
             title: inspection.title,
           }}

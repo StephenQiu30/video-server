@@ -28,4 +28,21 @@ describe('InputGroup controls', () => {
       expect(control).not.toHaveClass('focus-visible:ring-offset-2');
     }
   });
+
+  it('supports a fixed textarea row without inheriting content sizing', () => {
+    render(
+      <InputGroup className="h-16" textareaLayout="fixed">
+        <InputGroupTextarea aria-label="固定文本域" sizing="fixed" />
+      </InputGroup>,
+    );
+
+    const control = screen.getByRole('textbox', { name: '固定文本域' });
+    expect(control).toHaveClass('field-sizing-fixed');
+    expect(control.parentElement).toHaveAttribute(
+      'data-textarea-layout',
+      'fixed',
+    );
+    expect(control.parentElement).toHaveClass('h-16');
+    expect(control.parentElement).not.toHaveClass('has-[>textarea]:h-auto');
+  });
 });

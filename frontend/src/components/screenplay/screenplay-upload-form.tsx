@@ -3,6 +3,11 @@
 import { FileText, UploadSimple, X } from '@phosphor-icons/react';
 import { type FormEvent, useRef } from 'react';
 
+import {
+  IntakeControlRow,
+  IntakePickerButton,
+  IntakeSubmitButton,
+} from '@/components/intake/intake-control-row';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,25 +61,13 @@ export function ScreenplayUploadForm({
 
   return (
     <form className={workspace ? undefined : 'mt-2'} onSubmit={submit}>
-      <div
-        className={
-          workspace
-            ? 'grid gap-2 sm:grid-cols-[minmax(0,1fr)_148px]'
-            : undefined
-        }
-      >
-        <Button
+      <IntakeControlRow className={workspace ? undefined : 'block'}>
+        <IntakePickerButton
           aria-describedby={error ? 'screenplay-upload-error' : undefined}
           aria-invalid={fileInvalid || undefined}
-          className={
-            workspace
-              ? 'h-16 min-w-0 justify-start px-4 text-left font-normal sm:h-[68px]'
-              : 'h-20 w-full justify-start px-4 text-left font-normal'
-          }
+          className={workspace ? undefined : 'h-20 w-full sm:h-20'}
           disabled={busy}
           onClick={() => inputRef.current?.click()}
-          type="button"
-          variant="secondary"
         >
           <FileText aria-hidden className="size-5 text-muted-foreground" />
           <span className="min-w-0">
@@ -90,7 +83,7 @@ export function ScreenplayUploadForm({
                 : 'DOCX、PDF、TXT、Markdown 或 Fountain'}
             </span>
           </span>
-        </Button>
+        </IntakePickerButton>
         <Input
           accept=".docx,.pdf,.txt,.md,.markdown,.fountain"
           aria-label="选择剧本文档文件"
@@ -104,16 +97,12 @@ export function ScreenplayUploadForm({
           type="file"
         />
         {workspace ? (
-          <Button
-            className="h-16 px-6 text-[15px] sm:h-[68px]"
-            disabled={busy}
-            type="submit"
-          >
+          <IntakeSubmitButton disabled={busy}>
             {busy ? <Spinner aria-hidden /> : <UploadSimple aria-hidden />}
             {busy ? '处理中…' : '上传剧本'}
-          </Button>
+          </IntakeSubmitButton>
         ) : null}
-      </div>
+      </IntakeControlRow>
 
       {error ? (
         <Alert

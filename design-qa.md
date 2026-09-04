@@ -1,5 +1,18 @@
 # 方案 3 无边框重设计 QA
 
+## 2026-09-03 首页输入区对齐与控件系统收敛
+
+- source visual truth：用户提供的登录首页截图 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-d10fcac0-4581-459d-8f51-301c027ceb3f.png`，原始尺寸 3024×1740 px、Chrome 2× 截图。来源图明确显示链接图标位于输入面中心，而占位文案仍靠近顶部；输入面与右侧主按钮也存在不易察觉的高度差。
+- root cause：链接控件使用的 Textarea 继承了 `display: flex`，浏览器不会按预期在其原生多行编辑内容上执行 `align-content`，所以单行占位文案停留在首行；同时固定行高与自适应内容尺寸让输入组和按钮缺少同一几何基线。现在 Textarea 使用块级布局，链接输入显式采用固定尺寸、零上下内边距和安全垂直居中；共享控件行统一解决输入组与按钮高度差。
+- comparison evidence：`/Users/stephenqiu/.codex/visualizations/2026/09/03/home-intake-ui/source-vs-implementation.jpg` 将去除 242px Chrome 外壳并归一化到 1512×749 的来源页面放在左侧，将同尺寸最终实现放在右侧；输入区聚焦对照为 `/Users/stephenqiu/.codex/visualizations/2026/09/03/home-intake-ui/source-vs-implementation-intake.jpg`。最终桌面和移动实现分别保存在 `implementation-desktop-1512x749.jpg` 与 `implementation-mobile-390x844.jpg`。
+- desktop geometry：1280×800 浏览器视口中，InputGroup 与主按钮均为 `68px` 高且 `y = 337.27px`；内部 Textarea 为扣除透明边框后的 `66px`，使用块级布局、行高 `22px`、左右内边距 `8px`、上下内边距 `0` 和 `align-content: safe center`。空占位、单行 URL 与两行分享文案均以内容块自然居中；多行测试文案的 `clientHeight` 仍为 `66px`，超出部分仅在控件内部滚动，不撑开操作行。
+- responsive and consistency：390×844 生产视口中，InputGroup 与主按钮均为 `358×64px`，依次位于 `y = 354.30px / 426.30px`；内部 Textarea 为 `324×62px`，页面 `body` 与根节点 `scrollWidth` 均为 `390px`。链接解析、本地视频和剧本文档三个 Tabs 逐一切换后，选择控件和主按钮都保持同一组 64px 移动高度与 8px 间距；桌面恢复为同一组 68px 高度和 148px 主按钮列。
+- component composition：新增 `IntakeControlRow`、`IntakePickerButton` 与 `IntakeSubmitButton`，集中维护三类入口的网格、控件高度、文字尺度与按钮内边距；业务组件不再分别复制同一组 Tailwind 字符串。Textarea 新增显式 `content/fixed` 尺寸模式，InputGroup 新增显式 `auto/fixed` Textarea 布局模式，默认行为保持兼容，首页链接输入按需使用固定模式。React 最佳实践复核确认没有新增状态、副作用、请求或重渲染路径。
+- states, themes and accessibility：占位文案改为“粘贴视频链接或平台分享文案”，与系统已支持的完整分享文本保持一致；真实 `aria-label`、错误关联、清除按钮、Tooltip、44px 清除触控区和父组焦点环继续保留。浅色生产页面无新增颜色、阴影或边框，深色实测画布为 `rgb(10, 10, 10)`、输入面为 `rgb(28, 28, 28)`；桌面、移动和 Tab 切换后的控制台 error/warning 均为 0。
+- engineering gates：`npm run format:check`、`npm run lint`（含 TypeScript）、57 个测试文件 / 227 项测试与 Next.js production build（20 个静态页面）全部通过；Docker production 镜像重新构建成功，`video-frontend` 为 healthy，首页与 API readiness 均返回 200。
+
+final result: passed
+
 ## 2026-09-02 根路由会话启动态与 GSAP 过渡重构
 
 - source visual truth：用户提供的刷新错误态 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-683960b4-9f69-4310-bc6b-7b5b1e2ff91f.png` 和最终登录工作区 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-b9e0b99f-d279-4e50-8572-1952c92605d5.png`。两张图确认刷新时完整公开首页先于登录工作区出现，问题覆盖 Header 与 main，而不是单个 Spinner 或局部淡入缺失。

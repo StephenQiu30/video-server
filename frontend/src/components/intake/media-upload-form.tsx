@@ -3,6 +3,11 @@
 import { FileVideo, UploadSimple, X } from '@phosphor-icons/react';
 import { type FormEvent, useRef } from 'react';
 
+import {
+  IntakeControlRow,
+  IntakePickerButton,
+  IntakeSubmitButton,
+} from '@/components/intake/intake-control-row';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -55,16 +60,14 @@ export function MediaUploadForm({
           当前文件将记录为“用户提供的视频号来源”，系统不会接收视频号链接、会话或令牌。
         </p>
       ) : null}
-      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_148px]">
-        <Button
+      <IntakeControlRow>
+        <IntakePickerButton
           aria-describedby={
             fileInvalid ? 'download-workspace-error' : undefined
           }
           aria-invalid={fileInvalid || undefined}
-          className="h-16 min-w-0 justify-start px-4 text-left font-normal sm:h-[68px]"
           disabled={busy}
           onClick={() => inputRef.current?.click()}
-          variant="secondary"
         >
           <FileVideo aria-hidden className="size-5 text-muted-foreground" />
           <span className="min-w-0">
@@ -78,7 +81,7 @@ export function MediaUploadForm({
               {file ? formatFileSize(file.size) : 'MP4 · 单个文件'}
             </span>
           </span>
-        </Button>
+        </IntakePickerButton>
         <Input
           accept="video/mp4,.mp4"
           aria-label="选择本地 MP4 视频文件"
@@ -91,15 +94,11 @@ export function MediaUploadForm({
           ref={inputRef}
           type="file"
         />
-        <Button
-          className="h-16 px-6 text-[15px] sm:h-[68px]"
-          disabled={busy}
-          type="submit"
-        >
+        <IntakeSubmitButton disabled={busy}>
           {busy ? <Spinner aria-hidden /> : <UploadSimple aria-hidden />}
           {busy ? '处理中…' : '上传视频'}
-        </Button>
-      </div>
+        </IntakeSubmitButton>
+      </IntakeControlRow>
 
       {busy ? (
         <div className="mt-4 py-4">

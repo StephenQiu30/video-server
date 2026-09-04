@@ -54,8 +54,11 @@ describe('local media import transport', () => {
     expect(phases).toEqual(['hashing', 'creating', 'uploading', 'completing']);
     expect(progress.at(-1)).toBe(100);
     expect(FakeXMLHttpRequest.instances[0]).toMatchObject({
+      headers: {
+        'X-FrameFetch-Upload-Target': 'https://storage.example/upload-part-1',
+      },
       method: 'PUT',
-      url: 'https://storage.example/upload-part-1',
+      url: '/storage-upload',
       timeout: expect.any(Number),
     });
     expect(httpRequests()).toMatchObject([
@@ -199,6 +202,7 @@ class FakeXMLHttpRequest {
   };
   method = '';
   url = '';
+  headers: Record<string, string> = {};
   timeout = 0;
   status = 200;
   onload: (() => void) | null = null;
@@ -213,6 +217,10 @@ class FakeXMLHttpRequest {
   open(method: string, url: string) {
     this.method = method;
     this.url = url;
+  }
+
+  setRequestHeader(name: string, value: string) {
+    this.headers[name] = value;
   }
 
   getResponseHeader(name: string) {
