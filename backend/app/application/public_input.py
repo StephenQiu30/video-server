@@ -25,7 +25,7 @@ def extract_public_url(value: str) -> str:
     """
     if not isinstance(value, str):
         return value
-    public_urls = _HTTP_URL.findall(value)
+    public_urls = tuple(match.group() for match in _HTTP_URL.finditer(value))
     if len(public_urls) > 1:
         return value
     if len(public_urls) == 1:
