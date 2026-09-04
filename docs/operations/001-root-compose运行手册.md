@@ -40,7 +40,9 @@ Compose 文件不再通过 YAML Anchor 隐式继承服务配置；每个服务�
 
 本机开发同时需要从浏览器和真机 App 上传时，`MINIO_PUBLIC_ENDPOINT` 应配置为真机可访问的 HTTPS 地址，`MINIO_LOCAL_BROWSER_ENDPOINT` 配置为 `127.0.0.1:<port>`。只有来自回环页面、显式标记为本地 Web 的开发请求会使用回环签名地址；Flutter 和远程 Web 始终使用公共地址。该分流由项目配置完成，不依赖或修改操作系统代理规则。生产环境应省略 `MINIO_LOCAL_BROWSER_ENDPOINT`。
 
-私有 Tailnet 生产部署也必须使用节点的 Tailscale HTTPS 名称，不能把 `http://100.x.y.z` 设为 `SITE_URL`，否则生产 `Secure` 会话 Cookie 无法工作。手机必须登录同一 Tailnet。Mac 本地浏览器应使用 `http://127.0.0.1:8101`，并由 `MINIO_LOCAL_BROWSER_ENDPOINT` 获得回环下载地址；远程 Web 与移动端继续使用 `MINIO_PUBLIC_ENDPOINT` 的 HTTPS 地址。
+私有 Tailnet 生产部署也必须使用节点的 Tailscale HTTPS 名称，不能把 `http://100.x.y.z` 设为 `SITE_URL`。生产前端只接受该 HTTPS 地址作为浏览器入口；直接访问内部 `8101` 端口会在页面渲染前跳转到 `SITE_URL`，生产 `Secure` 会话 Cookie 不提供 HTTP 例外。手机和 Mac 浏览器都必须通过同一 Tailnet HTTPS 地址访问，远程 Web 与移动端继续使用 `MINIO_PUBLIC_ENDPOINT` 的 HTTPS 地址。本地 HTTP 只属于使用 `.env` 和开发 Compose 的开发环境。
+
+macOS 若启用了系统 HTTP/HTTPS/SOCKS 代理，活动网络服务的代理绕过列表必须包含 `100.64.0.0/10` 与 `*.ts.net`。否则 Safari/WebKit 会把 Tailnet TLS 请求交给公网代理，而不是经 Tailscale `utun` 接口直连，表现为证书正常但页面无法建立安全连接。该规则属于 Tailnet 路由边界，不是浏览器兼容分支；修改后应在 WebKit 网络日志中确认目标 `100.x` 地址通过 `utun` 连接。
 
 ## 本机业务拓扑
 

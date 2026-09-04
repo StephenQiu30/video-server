@@ -139,6 +139,7 @@ services:
     container_name: video-frontend
     restart: unless-stopped
     environment:
+      APP_ENV: "${APP_ENV:-production}"
       BACKEND_ORIGIN: http://api:8111
       HOSTNAME: 0.0.0.0
       MINIO_PUBLIC_ENDPOINT: "${MINIO_PUBLIC_ENDPOINT:-127.0.0.1:19190}"
@@ -160,9 +161,9 @@ services:
       test:
         [
           "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8101/', timeout=3)",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8101/', {redirect: 'manual'}).then((response) => process.exit(response.status >= 200 && response.status < 400 ? 0 : 1)).catch(() => process.exit(1))",
         ]
       interval: 10s
       timeout: 5s

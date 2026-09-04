@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 from app.domain.downloads import (
+    AudioCodecFamily,
     CandidateStream,
     CompatibilityProfile,
     ContainerPreference,
@@ -31,9 +32,15 @@ def build_download_options(
             if plan is not None:
                 _add_viable(proposed, plan, streams)
     for video in videos:
+        has_viable_audio = False
         for audio in audios:
             for container in (ContainerPreference.MP4, ContainerPreference.WEBM):
                 plan = _plan(video, audio, container)
+                if plan is not None and _add_viable(proposed, plan, streams):
+                    has_viable_audio = True
+        if not has_viable_audio:
+            for container in (ContainerPreference.MP4, ContainerPreference.WEBM):
+                plan = _plan(video, None, container)
                 if plan is not None:
                     _add_viable(proposed, plan, streams)
 
@@ -53,16 +60,17 @@ def build_download_options(
 
 def _plan(
     video: CandidateStream,
-    audio: CandidateStream,
+    audio: CandidateStream | None,
     container: ContainerPreference,
 ) -> DownloadPlan | None:
+    audio_codec = AudioCodecFamily.NONE if audio is None else audio.audio_codec_family
     required = (
         video.height,
         video.width,
         video.fps,
         video.dynamic_range,
         video.video_codec_family,
-        audio.audio_codec_family,
+        audio_codec,
     )
     if any(value is None for value in required):
         return None
@@ -71,20 +79,20 @@ def _plan(
     assert video.fps is not None
     assert video.dynamic_range is not None
     assert video.video_codec_family is not None
-    assert audio.audio_codec_family is not None
+    assert audio_codec is not None
     return DownloadPlan(
         height=video.height,
         width=video.width,
         fps_bucket=FpsBucket.from_fps(video.fps),
         dynamic_range=video.dynamic_range,
         video_codec_family=video.video_codec_family,
-        audio_codec_family=audio.audio_codec_family,
-        audio_language=audio.audio_language,
+        audio_codec_family=audio_codec,
+        audio_language=None if audio is None else audio.audio_language,
         container_preference=container,
         compatibility_profile=CompatibilityProfile.BALANCED,
         hints=ProviderHints(
             video_id=video.provider_id,
-            audio_id=None if video is audio else audio.provider_id,
+            audio_id=(None if audio is None or video is audio else audio.provider_id),
         ),
     )
 
@@ -93,11 +101,11 @@ def _add_viable(
     options: dict[tuple[object, ...], DownloadPlan],
     plan: DownloadPlan,
     streams: tuple[CandidateStream, ...],
-) -> None:
+) -> bool:
     try:
         selection = select_streams(plan, streams)
     except FormatSelectionError:
-        return
+        return False
     resolved = replace(
         plan,
         hints=ProviderHints(
@@ -119,3 +127,4 @@ def _add_viable(
         resolved.compatibility_profile,
     )
     options.setdefault(key, resolved)
+    return True

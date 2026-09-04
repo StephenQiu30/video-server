@@ -25,7 +25,7 @@ const failureDetails: Record<string, string> = {
   'artifact digest is invalid': '下载文件摘要校验失败，请重新获取下载源。',
   'artifact digest does not match': '下载文件内容校验失败，请重新获取下载源。',
   'artifact media metadata is invalid':
-    '视频音视频流校验失败，请重新获取下载源。',
+    '生成的视频流与所选规格不一致，请重新下载。',
   'artifact container is unsupported':
     '视频封装格式暂不支持，请重新获取下载源。',
 };
@@ -68,7 +68,7 @@ export function statusDescription(job: DownloadJob) {
       return '当前平台需要新的授权会话，系统无法继续获取文件。';
     }
     if (job.error_code === 'media_validation_failed') {
-      return '下载源或生成文件已失效，系统会先刷新下载源再尝试。';
+      return '生成文件未通过完整性校验，系统会重新下载并再次验证。';
     }
     return '系统保留了失败记录，可以根据原因恢复下载。';
   }
@@ -103,7 +103,7 @@ export function displayStage(job: DownloadJob): string {
 export function failureTitle(code: DownloadJob['error_code']): string {
   if (code === 'provider_auth_required') return '需要授权访问';
   if (code === 'provider_session_expired') return '授权会话已过期';
-  if (code === 'media_validation_failed') return '下载源需要刷新';
+  if (code === 'media_validation_failed') return '文件校验未通过';
   if (code === 'format_unavailable') return '当前格式不可用';
   return '下载未完成';
 }
@@ -115,9 +115,8 @@ export function failureStage(code: DownloadJob['error_code']): string {
   ) {
     return '授权检查失败';
   }
-  if (code === 'media_validation_failed' || code === 'format_unavailable') {
-    return '下载源检查失败';
-  }
+  if (code === 'media_validation_failed') return '文件校验失败';
+  if (code === 'format_unavailable') return '下载源检查失败';
   return localizedErrorMessage(code) ? '执行失败' : '需要恢复';
 }
 

@@ -21,6 +21,7 @@ def test_download_openapi_exposes_required_routes_and_idempotency(
         "/api/downloads/{job_id}/cancel",
         "/api/downloads/{job_id}/retry",
         "/api/downloads/{job_id}/download-url",
+        "/api/downloads/{job_id}/file",
         "/api/admin/downloads/analytics",
         "/api/providers",
     } <= paths.keys()
@@ -39,6 +40,10 @@ def test_download_openapi_exposes_required_routes_and_idempotency(
     assert "204" in paths["/api/downloads/{job_id}"]["delete"]["responses"]
     assert (
         paths["/api/downloads/{job_id}/retry"]["post"]["operationId"] == "retryDownload"
+    )
+    assert (
+        paths["/api/downloads/{job_id}/file"]["head"]["operationId"]
+        == "inspectDownloadFile"
     )
     assert paths["/api/providers"]["get"]["operationId"] == "listProviders"
     download_url = paths["/api/downloads/{job_id}/download-url"]["post"]

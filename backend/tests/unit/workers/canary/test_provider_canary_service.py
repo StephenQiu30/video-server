@@ -10,6 +10,7 @@ from app.application.downloads import (
     RunnerFormat,
     RunnerInspection,
 )
+from app.application.downloads.errors import MediaInspectionFormatUnavailable
 from app.domain.downloads import DownloadPlan
 from app.domain.providers import (
     ProviderAccessContextRef,
@@ -300,6 +301,36 @@ async def test_metadata_failure_is_persisted_as_stable_access_error(
     assert result.access_mode is ProviderAccessMode.ANONYMOUS
     assert result.egress_affinity_id == "default"
     assert cleaner.calls == []
+
+
+@pytest.mark.asyncio
+async def test_metadata_format_failure_keeps_its_stable_error(
+    tmp_path: Path,
+) -> None:
+    class FormatFailureRunner(Runner):
+        async def inspect(
+            self,
+            url: str,
+            *,
+            access_mode: ProviderAccessMode,
+        ) -> RunnerInspection:
+            assert url == URL
+            raise MediaInspectionFormatUnavailable(access_mode=access_mode)
+
+    repository, cleaner = Repository(), Cleaner()
+    ticks = iter((1.0, 1.1))
+    service = ProviderCanaryService(
+        repository,
+        FormatFailureRunner(tmp_path),
+        cleaner,
+        now=lambda: NOW,
+        timer=lambda: next(ticks),
+    )
+
+    result = await service.execute(target(ProviderCanaryStage.METADATA))
+
+    assert result.outcome is ProviderCanaryOutcome.FAILED
+    assert result.stable_error_code == "format_unavailable"
 
 
 @pytest.mark.asyncio

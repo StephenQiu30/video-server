@@ -69,6 +69,7 @@ def test_environment_templates_do_not_override_duplicate_assignments() -> None:
 
 def test_frontend_compose_receives_only_public_runtime_configuration() -> None:
     expected = {
+        "APP_ENV",
         "BACKEND_ORIGIN",
         "HOSTNAME",
         "MINIO_PUBLIC_ENDPOINT",
@@ -85,6 +86,12 @@ def test_frontend_compose_receives_only_public_runtime_configuration() -> None:
         assert "env_file" not in frontend
         local_only = {"MINIO_LOCAL_BROWSER_ENDPOINT", "MINIO_LOCAL_BROWSER_SECURE"}
         assert set(frontend["environment"]) == expected | local_only
+        expected_environment = (
+            "${APP_ENV:-development}"
+            if path == COMPOSE_PATH
+            else "${APP_ENV:-production}"
+        )
+        assert frontend["environment"]["APP_ENV"] == expected_environment
         assert frontend["networks"]["app_net"]["ipv4_address"] == "10.251.0.10"
         assert "10.251.0.10/32" in api["environment"]["TRUSTED_PROXY_CIDRS"]
 

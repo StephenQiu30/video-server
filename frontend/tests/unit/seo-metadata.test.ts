@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import manifest from '@/app/manifest';
 import robots from '@/app/robots';
 import sitemap from '@/app/sitemap';
-import { resolveSiteUrl } from '@/lib/site';
+import { canonicalSecureDeploymentRedirect, resolveSiteUrl } from '@/lib/site';
 
 describe('public SEO metadata', () => {
   it('publishes crawl discovery files for the public landing page', () => {
@@ -36,6 +36,68 @@ describe('public SEO metadata', () => {
     expect(() => resolveSiteUrl('ftp://framefetch.example')).toThrow(
       'SITE_URL must be an absolute HTTP(S) URL',
     );
+  });
+
+  it('redirects production UI requests to the configured HTTPS origin', () => {
+    const redirect = canonicalSecureDeploymentRedirect(
+      new URL('http://127.0.0.1:8101/user/login?redirect=%2Fhistory'),
+      '127.0.0.1:8101',
+      'http',
+      'https://framefetch.example',
+      true,
+    );
+
+    expect(redirect?.toString()).toBe(
+      'https://framefetch.example/user/login?redirect=%2Fhistory',
+    );
+    expect(
+      canonicalSecureDeploymentRedirect(
+        new URL('https://framefetch.example/user/login'),
+        'framefetch.example',
+        'https',
+        'https://framefetch.example',
+        true,
+      ),
+    ).toBeNull();
+    expect(
+      canonicalSecureDeploymentRedirect(
+        new URL('http://framefetch.example/user/login?redirect=%2Fhistory'),
+        'framefetch.example',
+        'http',
+        'https://framefetch.example',
+        true,
+      )?.toString(),
+    ).toBe('https://framefetch.example/user/login?redirect=%2Fhistory');
+    expect(
+      canonicalSecureDeploymentRedirect(
+        new URL('http://frontend:8101/user/login'),
+        'framefetch.example',
+        'https',
+        'https://framefetch.example',
+        true,
+      ),
+    ).toBeNull();
+  });
+
+  it('keeps local development on HTTP and rejects insecure production origins', () => {
+    expect(
+      canonicalSecureDeploymentRedirect(
+        new URL('http://127.0.0.1:8101/user/login'),
+        '127.0.0.1:8101',
+        null,
+        undefined,
+        false,
+      ),
+    ).toBeNull();
+    expect(() =>
+      canonicalSecureDeploymentRedirect(
+        new URL('http://127.0.0.1:8101/user/login'),
+        '127.0.0.1:8101',
+        'http',
+        'http://127.0.0.1:8101',
+        true,
+      ),
+    ).toThrow('SITE_URL must use HTTPS in secure deployments');
   });
 
   it('describes an installable FrameFetch web application', () => {

@@ -41,7 +41,7 @@ const localizedErrorMessages: Record<string, string> = {
   invalid_state: '当前任务状态不支持此操作，请刷新页面后重试。',
   invalid_url: '视频链接无效或不受支持，请检查后重试。',
   invalid_username: '用户名格式不符合要求，请重新输入。',
-  media_validation_failed: '下载源或生成文件已失效，系统会先刷新下载源后再试。',
+  media_validation_failed: '生成文件未通过完整性校验，请重新下载后再试。',
   metrics_unavailable: '运行指标暂时不可用，请稍后重试。',
   not_found: '任务或相关资源不存在，请返回下载记录确认。',
   output_limit_exceeded: '下载文件超过大小限制，请选择更小的规格。',

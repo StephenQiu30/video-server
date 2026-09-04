@@ -5,6 +5,7 @@ import { DownloadSimple, UploadSimple } from '@phosphor-icons/react';
 import FormatPicker from '@/components/intake/format-picker';
 import MediaCover from '@/components/intake/media-cover';
 import { Button } from '@/components/ui/button';
+import { audioCodecLabel } from '@/lib/media-format';
 import type { Inspection } from '@/types/video';
 import { formatDuration } from '@/utils/format';
 
@@ -117,7 +118,7 @@ export default function InspectionWorkspace({
             />
             <SelectionMeta
               label="音频编码"
-              value={selected.plan.audio_codec_family.toUpperCase()}
+              value={audioCodecLabel(selected.plan.audio_codec_family)}
             />
           </dl>
         ) : (gallery || collection) && selected ? (

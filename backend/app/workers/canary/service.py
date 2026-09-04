@@ -23,6 +23,7 @@ from app.application.downloads import (
     MediaInspectionVerificationFailed,
     RunnerInspection,
 )
+from app.application.downloads.errors import MediaInspectionFormatUnavailable
 from app.domain.downloads import DownloadPlan, MediaKind
 from app.domain.providers import (
     ProviderAccessContextRef,
@@ -49,6 +50,7 @@ _INSPECTION_ERRORS: tuple[tuple[type[Exception], str], ...] = (
     (MediaInspectionTemporarilyUnavailable, "provider_temporarily_unavailable"),
     (MediaInspectionLinkUnavailable, "provider_link_unavailable"),
     (MediaInspectionMediaUnsupported, "provider_media_unsupported"),
+    (MediaInspectionFormatUnavailable, "format_unavailable"),
     (MediaInspectionUnsupported, "provider_unsupported"),
     (MediaInspectionTimeout, "inspection_timeout"),
     (MediaInspectionFailure, "inspection_failed"),

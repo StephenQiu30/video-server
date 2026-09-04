@@ -161,7 +161,7 @@ def test_extracts_image_fallback_assets_from_metadata_only_carousel() -> None:
                 "id": "image-2",
                 "thumbnail": "https://cdn.example.com/image-2.webp?regular_photo=1",
             },
-        ]
+        ],
     }
 
     assets = collection_fallback_assets(payload)
@@ -275,6 +275,65 @@ def test_image_scrubber_format_does_not_become_a_download_option() -> None:
 
     assert options
     assert all(option.hints.video_id != "scrubber_hd" for option in options)
+
+
+def test_silent_video_becomes_a_download_option() -> None:
+    payload = media_info()
+    payload["formats"] = [
+        {
+            "format_id": "silent",
+            "ext": "mp4",
+            "width": 640,
+            "height": 360,
+            "fps": 30,
+            "vcodec": "h264",
+            "acodec": "none",
+        }
+    ]
+
+    inspection = normalize_metadata(
+        payload,
+        max_duration_seconds=7200,
+        max_candidate_streams=200,
+    )
+    options = build_download_options(inspection.streams, max_options=20)
+
+    assert len(options) == 1
+    assert options[0].audio_codec_family is AudioCodecFamily.NONE
+    assert options[0].hints.audio_id is None
+
+
+def test_incompatible_audio_does_not_hide_a_silent_video_option() -> None:
+    payload = media_info()
+    payload["formats"] = [
+        {
+            "format_id": "silent",
+            "ext": "mp4",
+            "width": 640,
+            "height": 360,
+            "fps": 30,
+            "vcodec": "h264",
+            "acodec": "none",
+        },
+        {
+            "format_id": "unsupported-audio",
+            "ext": "mp3",
+            "vcodec": "none",
+            "acodec": "mp3",
+        },
+    ]
+
+    inspection = normalize_metadata(
+        payload,
+        max_duration_seconds=7200,
+        max_candidate_streams=200,
+    )
+    options = build_download_options(inspection.streams, max_options=20)
+
+    assert len(options) == 1
+    assert options[0].audio_codec_family is AudioCodecFamily.NONE
+    assert options[0].hints.video_id == "silent"
+    assert options[0].hints.audio_id is None
 
 
 def test_top_level_selected_format_becomes_one_semantic_candidate() -> None:

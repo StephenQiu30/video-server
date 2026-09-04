@@ -81,6 +81,24 @@ async def test_webm_remux_does_not_use_mp4_faststart_flag(tmp_path: Path) -> Non
     assert "-movflags" not in supervisor.argv
 
 
+@pytest.mark.asyncio
+async def test_silent_remux_does_not_require_an_audio_stream(tmp_path: Path) -> None:
+    supervisor = RecordingSupervisor()
+    commands = MediaCommands(settings(tmp_path), supervisor)
+
+    await commands.remux(
+        (tmp_path / "video.input",),
+        tmp_path / "silent.mp4",
+        Container.MP4,
+        tmp_path,
+        include_audio=False,
+    )
+
+    assert "0:v:0" in supervisor.argv
+    assert "0:a:0" not in supervisor.argv
+    assert "1:a:0" not in supervisor.argv
+
+
 def test_provider_retry_budget_applies_to_inspect_and_download(tmp_path: Path) -> None:
     builder = YtDlpCommandBuilder(settings(tmp_path), tmp_path)
     commands = (
@@ -115,6 +133,21 @@ def test_provider_retry_budget_applies_to_inspect_and_download(tmp_path: Path) -
     assert "--ignore-no-formats-error" in commands[2]
     assert "--ignore-no-formats-error" not in commands[1]
     assert "--ignore-no-formats-error" not in commands[3]
+
+
+def test_probe_download_can_disable_ytdlp_cache(tmp_path: Path) -> None:
+    builder = YtDlpCommandBuilder(settings(tmp_path), tmp_path)
+
+    command = builder.download(
+        "https://vimeo.com/76979871",
+        "http-540p",
+        tmp_path / "probe.mp4",
+        max_bytes=8 * 1024**2,
+        cookie_jar=None,
+        disable_cache=True,
+    ).argv
+
+    assert command.count("--no-cache-dir") == 1
 
 
 def test_collection_download_enables_playlist_with_bounded_output(
@@ -172,6 +205,27 @@ async def test_public_instagram_empty_response_requests_operator_session(
         await commands.inspect("https://www.instagram.com/p/example/", tmp_path)
 
     assert caught.value.code == "credential_required"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
+async def test_bilibili_412_is_classified_as_an_egress_challenge(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(
+            b"ERROR: [BiliBili] fixture: HTTP Error 412: Precondition Failed"
+        ),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect(
+            "https://www.bilibili.com/video/BV13x41117TL",
+            tmp_path,
+        )
+
+    assert caught.value.code == "egress_challenged"
     assert caught.value.status == 422
 
 

@@ -25,7 +25,9 @@ from app.api.upload_signing import use_browser_download_proxy
 from app.application.auth import CurrentUser
 from app.application.downloads import (
     ApplicationError,
+    ArtifactSnapshot,
     DownloadArtifactStorage,
+    DownloadView,
     download_disposition,
 )
 from app.domain.downloads import DownloadStatus
@@ -149,27 +151,26 @@ async def get_download_thumbnail(
     )
 
 
-@router.get(
-    "/{job_id}/file",
-    operation_id="downloadFile",
-    response_class=StreamingResponse,
-    summary="读取已完成的视频文件",
-)
-async def download_file(
+async def _owned_download_file(
     job_id: UUID,
-    user: User,
-    use_cases: UseCases,
-    storage: DownloadStorage,
-    preview: bool = False,
-    range_header: Annotated[str | None, Header(alias="Range")] = None,
-) -> Response:
-    """Stream an owned artifact through the authenticated application origin."""
+    user: CurrentUser,
+    use_cases: DownloadUseCases,
+) -> tuple[ArtifactSnapshot, DownloadView]:
     try:
         artifact = await use_cases.get_download_artifact(job_id, user.owner_hash)
         download = await use_cases.get_download(job_id, user.owner_hash)
     except ApplicationError as exc:
         raise application_error(exc) from exc
+    return artifact, download
 
+
+def _download_file_response(
+    artifact: ArtifactSnapshot,
+    download: DownloadView,
+    *,
+    preview: bool,
+    range_header: str | None,
+) -> tuple[int, int, int, dict[str, str]] | Response:
     selected_range = _parse_range(range_header, artifact.size_bytes)
     if range_header is not None and selected_range is None:
         return Response(
@@ -197,6 +198,66 @@ async def download_file(
     }
     if selected_range is not None:
         headers["Content-Range"] = f"bytes {start}-{end}/{artifact.size_bytes}"
+    return start, end, response_status, headers
+
+
+@router.head(
+    "/{job_id}/file",
+    operation_id="inspectDownloadFile",
+    response_class=Response,
+    summary="读取已完成视频文件元数据",
+)
+async def inspect_download_file(
+    job_id: UUID,
+    user: User,
+    use_cases: UseCases,
+    preview: bool = False,
+    range_header: Annotated[str | None, Header(alias="Range")] = None,
+) -> Response:
+    """Return owned artifact headers without streaming its body."""
+    artifact, download = await _owned_download_file(job_id, user, use_cases)
+    selection = _download_file_response(
+        artifact,
+        download,
+        preview=preview,
+        range_header=range_header,
+    )
+    if isinstance(selection, Response):
+        return selection
+    _start, _end, response_status, headers = selection
+    return Response(
+        status_code=response_status,
+        headers=headers,
+        media_type=artifact.content_type,
+    )
+
+
+@router.get(
+    "/{job_id}/file",
+    operation_id="downloadFile",
+    response_class=StreamingResponse,
+    summary="读取已完成的视频文件",
+)
+async def download_file(
+    job_id: UUID,
+    user: User,
+    use_cases: UseCases,
+    storage: DownloadStorage,
+    preview: bool = False,
+    range_header: Annotated[str | None, Header(alias="Range")] = None,
+) -> Response:
+    """Stream an owned artifact through the authenticated application origin."""
+    artifact, download = await _owned_download_file(job_id, user, use_cases)
+    selection = _download_file_response(
+        artifact,
+        download,
+        preview=preview,
+        range_header=range_header,
+    )
+    if isinstance(selection, Response):
+        return selection
+    start, end, response_status, headers = selection
+    length = end - start + 1
     return StreamingResponse(
         storage.iter_download(
             artifact.object_key,

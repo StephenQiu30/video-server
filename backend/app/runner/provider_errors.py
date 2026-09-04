@@ -49,6 +49,12 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         providers=frozenset({ProviderKey.YOUTUBE}),
     ),
     FailureRule(
+        "egress_challenged",
+        422,
+        any_stderr=(b"http error 412", b"precondition failed"),
+        providers=frozenset({ProviderKey.BILIBILI}),
+    ),
+    FailureRule(
         "pot_provider_unavailable",
         503,
         all_stderr=(b"po token provider", b"server is not available"),

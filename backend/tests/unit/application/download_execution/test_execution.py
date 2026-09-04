@@ -6,12 +6,13 @@ from dataclasses import replace
 
 import pytest
 from app.application.download_execution import ExecutionDisposition
-from app.domain.downloads import DownloadErrorCode
+from app.application.downloads import plan_to_documents
+from app.domain.downloads import AudioCodecFamily, DownloadErrorCode, ProviderHints
 from app.infrastructure.media_runner_models import (
     MediaRunnerClientError,
     RunnerArtifact,
 )
-from tests.unit.application.download_execution.helpers import fixture
+from tests.unit.application.download_execution.helpers import download_plan, fixture
 
 
 def artifact(tmp_path, data: bytes = b"controlled-video") -> RunnerArtifact:
@@ -53,6 +54,26 @@ async def test_success_revalidates_identity_uploads_and_completes(tmp_path) -> N
         item[1] for item in case.repository.heartbeats
     )
     assert case.cleaner.calls[0][1] == case.runner.artifact.workspace
+
+
+@pytest.mark.asyncio
+async def test_success_accepts_a_verified_silent_video(tmp_path) -> None:
+    case = fixture(replace(artifact(tmp_path), audio_streams=0))
+    silent_plan = replace(
+        download_plan(),
+        audio_codec_family=AudioCodecFamily.NONE,
+        audio_language=None,
+        hints=ProviderHints(video_id="video-id"),
+    )
+    semantic, hints = plan_to_documents(silent_plan)
+    case.repository.source.semantic_plan = semantic
+    case.repository.source.provider_hints = hints
+
+    result = await case.execution.execute(case.job_id)
+
+    assert result is ExecutionDisposition.ACK
+    assert case.repository.success is not None
+    assert case.repository.success.media_metadata["audio_streams"] == 0
 
 
 @pytest.mark.asyncio

@@ -60,9 +60,11 @@ class YtDlpCommandBuilder:
         max_bytes: int,
         cookie_jar: Path | None,
         info_json: Path | None = None,
+        disable_cache: bool = False,
     ) -> BuiltYtDlpCommand:
         request = self._resolve(source)
-        operation_args: tuple[str, ...] = (
+        operation_args: tuple[str, ...] = ("--no-cache-dir",) if disable_cache else ()
+        operation_args += (
             "--format",
             provider_id,
             "--max-filesize",

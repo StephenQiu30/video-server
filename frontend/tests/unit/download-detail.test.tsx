@@ -167,7 +167,7 @@ describe('DownloadJobView', () => {
     expect(screen.queryByText('download_timeout')).not.toBeInTheDocument();
   });
 
-  it('turns media validation failures into a source recovery action', async () => {
+  it('turns media validation failures into a file recovery action', async () => {
     const failed = {
       ...job('failed'),
       error_code: 'media_validation_failed' as const,
@@ -177,7 +177,7 @@ describe('DownloadJobView', () => {
     render(<DownloadJobView jobId={failed.id} pollIntervalMs={60_000} />);
 
     expect(
-      await screen.findByRole('heading', { name: '下载源需要刷新' }),
+      await screen.findByRole('heading', { name: '文件校验未通过' }),
     ).toBeInTheDocument();
     expect(
       screen.getByText('下载文件内容校验失败，请重新获取下载源。'),

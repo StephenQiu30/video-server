@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { FieldGroup } from '@/components/ui/field';
 import { InputGroupInput } from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
+import { normalizeUsername, USERNAME_HELP } from '@/lib/username';
 import { displayError, register } from '@/services/auth';
 import { authRedirect } from '@/utils/authRedirect';
 
@@ -43,7 +44,7 @@ export function RegisterView() {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const values = {
-      username: String(data.get('username') ?? '').trim(),
+      username: normalizeUsername(String(data.get('username') ?? '')),
       email: String(data.get('email') ?? '').trim(),
       password: String(data.get('password') ?? ''),
       confirmPassword: String(data.get('confirmPassword') ?? ''),
@@ -89,19 +90,22 @@ export function RegisterView() {
         ) : null}
         <FieldGroup className="gap-5">
           <AuthField
+            description={USERNAME_HELP}
             error={errors.username}
             idPrefix="register"
             label="用户名"
             name="username"
           >
             <InputGroupInput
-              aria-describedby={errors.username ? 'username-error' : undefined}
+              aria-describedby={
+                errors.username
+                  ? 'username-description username-error'
+                  : 'username-description'
+              }
               aria-invalid={Boolean(errors.username)}
               autoComplete="username"
               className="h-full"
               id="register-username"
-              maxLength={32}
-              minLength={2}
               name="username"
               placeholder="2–32 个字符"
             />

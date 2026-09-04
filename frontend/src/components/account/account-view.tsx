@@ -18,6 +18,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
+import {
+  normalizeUsername,
+  USERNAME_HELP,
+  usernameLength,
+  validateUsername,
+} from '@/lib/username';
 import { displayError, updateCurrentUser } from '@/services/users';
 
 type Notice = { kind: 'error' | 'success'; text: string } | null;
@@ -32,9 +38,16 @@ export function AccountView() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const value = username.trim();
-    if (value.length < 2 || value.length > 32) {
-      setNotice({ kind: 'error', text: '用户名长度需要在 2–32 个字符之间。' });
+    const value = normalizeUsername(username);
+    const validationError = validateUsername(value);
+    if (validationError) {
+      setNotice({
+        kind: 'error',
+        text:
+          validationError === 'unsupported_characters'
+            ? '用户名仅支持字母、数字、中文以及 _-. 字符。'
+            : '用户名长度需要在 2–32 个字符之间。',
+      });
       return;
     }
     setSaving(true);
@@ -85,7 +98,7 @@ export function AccountView() {
     );
   }
 
-  const unchanged = username.trim() === user.username;
+  const unchanged = normalizeUsername(username) === user.username;
   const role = user.role === 'admin' ? '管理员' : '普通用户';
   const initials = user.username.trim().slice(0, 2).toUpperCase();
 
@@ -128,14 +141,12 @@ export function AccountView() {
               <div className="flex items-center justify-between gap-3">
                 <FieldLabel htmlFor="username">用户名</FieldLabel>
                 <span className="text-xs text-muted-foreground tabular-nums">
-                  {username.length}/32
+                  {usernameLength(username)}/32
                 </span>
               </div>
               <Input
                 aria-describedby="username-help"
                 id="username"
-                maxLength={32}
-                minLength={2}
                 onChange={(event) => {
                   setUsername(event.target.value);
                   setNotice(null);
@@ -144,7 +155,7 @@ export function AccountView() {
                 value={username}
               />
               <FieldDescription id="username-help">
-                2–32 个字符，将显示在导航和任务记录中。
+                {USERNAME_HELP} 将显示在导航和任务记录中。
               </FieldDescription>
             </Field>
             <div className="grid gap-6 sm:grid-cols-2">

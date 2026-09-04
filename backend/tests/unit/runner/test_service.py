@@ -213,6 +213,37 @@ class RemoteProbeFailureSupervisor(FixtureSupervisor):
         )
 
 
+class DirtyWorkspaceProbeSupervisor(RemoteProbeFailureSupervisor):
+    def __init__(self, info: dict[str, object]) -> None:
+        super().__init__(info)
+        self.inspection_cwd: Path | None = None
+        self.sample_cwd: Path | None = None
+
+    async def run(
+        self,
+        argv: Sequence[str],
+        *,
+        cwd: Path,
+        timeout_seconds: float,
+        env: Mapping[str, str] | None = None,
+    ) -> ProcessResult:
+        command = tuple(argv)
+        if "--dump-single-json" in command:
+            self.inspection_cwd = cwd
+            cache = cwd / ".cache" / "yt-dlp"
+            cache.mkdir(parents=True)
+            (cache / "existing").write_bytes(b"x" * (9 * 1024**2))
+        elif command[0] == "yt-dlp" and "--max-filesize" in command:
+            self.sample_cwd = cwd
+            await asyncio.sleep(0.05)
+        return await super().run(
+            argv,
+            cwd=cwd,
+            timeout_seconds=timeout_seconds,
+            env=env,
+        )
+
+
 class ClassifiedFailureThenSuccessSupervisor(FixtureSupervisor):
     def __init__(self, info: dict[str, object], stderr: bytes) -> None:
         super().__init__(info)
@@ -537,9 +568,18 @@ async def test_download_rejects_source_identity_drift_before_download(
 
 async def test_inspect_requires_at_least_one_semantic_option(tmp_path: Path) -> None:
     info = split_media_info()
-    formats = info["formats"]
-    assert isinstance(formats, list)
-    info["formats"] = formats[:1]
+    info["formats"] = [
+        {
+            "format_id": "unsupported",
+            "ext": "mp4",
+            "width": 1920,
+            "height": 1080,
+            "fps": 30,
+            "vcodec": "unknown",
+            "acodec": "none",
+            "filesize": 9 * 1024**2,
+        }
+    ]
     supervisor = FixtureSupervisor(info)
     service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
 
@@ -779,6 +819,61 @@ async def test_inspect_retries_and_uses_bounded_local_probe_sample(
     )
     assert sample[sample.index("--max-filesize") + 1] == str(8 * 1024**2)
     assert not (tmp_path / "format-probe.input").exists()
+
+
+async def test_inspect_boundedly_probes_a_format_with_unknown_filesize(
+    tmp_path: Path,
+) -> None:
+    info = split_media_info()
+    info["duration"] = None
+    info["formats"] = [
+        {
+            "format_id": "sparse-mp4",
+            "ext": "mp4",
+            "url": "https://cdn.example.com/sparse.mp4",
+        }
+    ]
+    supervisor = RemoteProbeFailureSupervisor(info)
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    response = await service.inspect("https://media.example.com/video")
+
+    assert response.media.duration_seconds == 30
+    assert response.streams[0].video_codec_family.value == "h264"
+    sample = next(
+        command
+        for command, _ in supervisor.calls
+        if command[0] == "yt-dlp" and "--max-filesize" in command
+    )
+    assert sample[sample.index("--max-filesize") + 1] == str(8 * 1024**2)
+    assert "--no-cache-dir" in sample
+    assert not (tmp_path / "format-probe.input").exists()
+
+
+async def test_probe_sample_uses_a_clean_isolated_workspace(tmp_path: Path) -> None:
+    info = split_media_info()
+    info["duration"] = 10
+    info["formats"] = [
+        {
+            "format_id": "sparse-mp4",
+            "ext": "mp4",
+            "url": "https://cdn.example.com/sparse.mp4",
+        }
+    ]
+    supervisor = DirtyWorkspaceProbeSupervisor(info)
+    configured = settings(tmp_path).model_copy(
+        update={"runner_workspace_poll_interval_seconds": 0.005}
+    )
+    service = MediaRunnerService(configured, supervisor=supervisor)
+
+    response = await service.inspect("https://media.example.com/video")
+
+    assert response.streams[0].video_codec_family.value == "h264"
+    assert supervisor.inspection_cwd is not None
+    assert supervisor.sample_cwd is not None
+    assert supervisor.sample_cwd != supervisor.inspection_cwd
+    assert supervisor.sample_cwd.parent == supervisor.inspection_cwd
+    assert not supervisor.sample_cwd.exists()
 
 
 async def test_inspect_does_not_immediately_retry_tumblr_rate_limit(

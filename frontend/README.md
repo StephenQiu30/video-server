@@ -83,7 +83,7 @@ npm run openapi
 
 `npm run build` 使用 Next.js standalone 输出生成独立 Node.js 服务。前端服务监听 `8101`，FastAPI API 服务监听 `8111`；Next.js 只代理普通 `/api/*` 和 `/health/*` HTTP 请求，WebSocket Upgrade 由部署入口直接转发给 FastAPI。FastAPI 不挂载 `frontend/out`，也不会把页面 HTML 返回给根路径或未知 UI 路由。
 
-生产环境启动独立 Next.js Server 和 FastAPI 服务。需要服务端运行时能力的功能应继续保持前端 `8101`、API `8111` 的边界。
+生产环境启动独立 Next.js Server 和 FastAPI 服务。`SITE_URL` 必须是部署入口的 HTTPS 地址；浏览器直接访问内部 `8101` 端口时，前端会在渲染页面前保留路径与查询参数并跳转到该统一入口，确保页面、API 与 HttpOnly `Secure` Cookie 始终同源。需要服务端运行时能力的功能应继续保持前端 `8101`、API `8111` 的边界。
 
 ## 组件、主题与可访问性
 

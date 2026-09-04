@@ -10,6 +10,7 @@ from app.domain.downloads import (
     FormatSelectionError,
     MediaKind,
     ProviderHints,
+    StreamKind,
     select_streams,
 )
 from app.domain.providers import ProviderAccessContextRef
@@ -228,9 +229,7 @@ class MediaRunnerService:
             if (
                 request.media_kind is not inspection.media_kind
                 and not legacy_collection_image_fallback
-            ) or (
-                request.asset_count != inspection.asset_count
-            ):
+            ) or (request.asset_count != inspection.asset_count):
                 raise RunnerFailure("source_changed", status=409)
             if request.media_kind is MediaKind.VIDEO_COLLECTION:
                 self._active.update(request.task_id, RunnerTaskStage.DOWNLOADING, 10)
@@ -355,7 +354,13 @@ class MediaRunnerService:
         artifact = workspace.path / f"artifact.{selection.output_container.value}"
         self._active.update(request.task_id, RunnerTaskStage.REMUXING, 75)
         await self._commands.remux(
-            tuple(inputs), artifact, selection.output_container, workspace.path
+            tuple(inputs),
+            artifact,
+            selection.output_container,
+            workspace.path,
+            include_audio=(
+                selection.audio is not None or selection.video.kind is StreamKind.MUXED
+            ),
         )
         output = workspace.validate_outputs([artifact.name])[0]
         self._active.update(request.task_id, RunnerTaskStage.VERIFYING, 85)

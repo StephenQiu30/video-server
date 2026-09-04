@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from dataclasses import replace
 
 import pytest
-from app.domain.downloads import Container
+from app.domain.downloads import AudioCodecFamily, Container
 from app.runner.errors import RunnerFailure
 from app.runner.verification import verify_probe
 from helpers import download_request
@@ -62,3 +63,27 @@ def test_rejects_artifact_that_does_not_match_plan(case: str) -> None:
         verify(payload)
 
     assert caught.value.code == "media_validation_failed"
+
+
+def test_accepts_a_silent_artifact_for_a_silent_plan() -> None:
+    payload = probe()
+    streams = payload["streams"]
+    assert isinstance(streams, list)
+    payload["streams"] = streams[:1]
+    silent_plan = replace(
+        download_request().plan.to_domain(),
+        audio_codec_family=AudioCodecFamily.NONE,
+        audio_language=None,
+    )
+
+    verified = verify_probe(
+        payload,
+        plan=silent_plan,
+        expected_container=Container.MP4,
+        expected_duration=30,
+        max_duration=7200,
+        tolerance_seconds=3,
+    )
+
+    assert verified.video_streams == 1
+    assert verified.audio_streams == 0

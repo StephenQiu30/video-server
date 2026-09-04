@@ -21,6 +21,36 @@ export function resolveSiteUrl(value: string | undefined): URL {
   }
 }
 
+export function canonicalSecureDeploymentRedirect(
+  requestUrl: URL,
+  requestHost: string | null,
+  forwardedProtocol: string | null,
+  configuredSiteUrl: string | undefined,
+  secureDeployment: boolean,
+): URL | null {
+  if (!secureDeployment) return null;
+
+  const canonicalUrl = resolveSiteUrl(configuredSiteUrl);
+  if (canonicalUrl.protocol !== 'https:') {
+    throw new Error('SITE_URL must use HTTPS in secure deployments');
+  }
+
+  const host = (requestHost ?? requestUrl.host).trim().toLowerCase();
+  const protocol = (forwardedProtocol ?? requestUrl.protocol)
+    .split(',', 1)[0]
+    .trim()
+    .toLowerCase()
+    .replace(/:$/, '');
+  if (host === canonicalUrl.host.toLowerCase() && protocol === 'https') {
+    return null;
+  }
+
+  const redirectUrl = new URL(canonicalUrl);
+  redirectUrl.pathname = requestUrl.pathname;
+  redirectUrl.search = requestUrl.search;
+  return redirectUrl;
+}
+
 export const siteConfig = {
   name: '帧取 FrameFetch',
   shortName: '帧取',

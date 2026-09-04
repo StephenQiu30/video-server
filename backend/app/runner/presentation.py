@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 
-from app.domain.downloads import DownloadPlan, MediaKind
+from app.domain.downloads import AudioCodecFamily, DownloadPlan, MediaKind
 from app.domain.providers import ProviderAccessContextRef
 from app.runner.contracts import (
     CandidateStreamContract,
@@ -49,10 +49,14 @@ def _option(plan: DownloadPlan) -> DownloadOption:
     contract = DownloadPlanContract.from_domain(plan)
     semantic = contract.model_dump_json(exclude={"hints"})
     digest = hashlib.sha256(semantic.encode()).hexdigest()[:16]
+    audio_label = (
+        "无音频"
+        if plan.audio_codec_family is AudioCodecFamily.NONE
+        else plan.audio_codec_family.value.upper()
+    )
     label = (
         f"{plan.height}p · {plan.container_preference.value.upper()} · "
-        f"{plan.video_codec_family.value.upper()}/"
-        f"{plan.audio_codec_family.value.upper()}"
+        f"{plan.video_codec_family.value.upper()}/{audio_label}"
     )
     return DownloadOption(option_id=digest, label=label, plan=contract)
 

@@ -11,6 +11,7 @@ import { markNavigationPush } from '@/components/layout/navigation-history';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDownloadJob } from '@/hooks/useDownloadJob';
+import { audioCodecLabel } from '@/lib/media-format';
 import type { MediaKind, SemanticPlan } from '@/types/video';
 import { formatDuration } from '@/utils/format';
 
@@ -210,5 +211,5 @@ function formatLabel(
     return `${assetCount ?? 0} 个视频 · ZIP`;
   }
   if (!format) return duration ? formatDuration(duration) : '正在读取媒体信息';
-  return `${format.width}×${format.height} · ${format.video_codec_family.toUpperCase()} + ${format.audio_codec_family.toUpperCase()}${duration ? ` · ${formatDuration(duration)}` : ''}`;
+  return `${format.width}×${format.height} · ${format.video_codec_family.toUpperCase()} + ${audioCodecLabel(format.audio_codec_family)}${duration ? ` · ${formatDuration(duration)}` : ''}`;
 }

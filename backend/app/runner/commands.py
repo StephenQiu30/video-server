@@ -243,6 +243,7 @@ class MediaCommands:
             output,
             max_bytes=self._settings.runner_max_probe_sample_bytes,
             cookie_jar=cookie_jar,
+            disable_cache=True,
         )
         await self._run(
             command.argv,
@@ -251,10 +252,15 @@ class MediaCommands:
             timeout_code="inspection_timeout",
             failure_code="inspection_failed",
             monitor_workspace=True,
+            workspace_limit_bytes=self._settings.runner_max_probe_sample_bytes,
             egress_proxy=command.egress_proxy,
             failure_context=command.failure_context,
         )
-        if not output.is_file() or output.is_symlink():
+        if (
+            not output.is_file()
+            or output.is_symlink()
+            or output.stat().st_size > self._settings.runner_max_probe_sample_bytes
+        ):
             raise RunnerFailure("inspection_failed", status=502)
 
     async def remux(
@@ -263,6 +269,8 @@ class MediaCommands:
         output: Path,
         container: Container,
         cwd: Path,
+        *,
+        include_audio: bool = True,
     ) -> None:
         command: list[str] = [
             self._settings.runner_ffmpeg_bin,
@@ -277,7 +285,8 @@ class MediaCommands:
                 ("-protocol_whitelist", "file,crypto,data", "-i", str(source))
             )
         command.extend(("-map", "0:v:0"))
-        command.extend(("-map", "0:a:0" if len(inputs) == 1 else "1:a:0"))
+        if include_audio:
+            command.extend(("-map", "0:a:0" if len(inputs) == 1 else "1:a:0"))
         command.extend(("-c", "copy", "-map_metadata", "-1"))
         if container is Container.MP4:
             command.extend(("-movflags", "+faststart"))
@@ -322,6 +331,7 @@ class MediaCommands:
         timeout_code: str,
         failure_code: str,
         monitor_workspace: bool = False,
+        workspace_limit_bytes: int | None = None,
         egress_proxy: str | None = None,
         failure_context: ProviderFailureContext | None = None,
     ) -> ProcessResult:
@@ -338,7 +348,11 @@ class MediaCommands:
                 result = await run_with_workspace_limit(
                     operation,
                     root=cwd,
-                    max_bytes=self._settings.runner_max_workspace_bytes,
+                    max_bytes=(
+                        workspace_limit_bytes
+                        if workspace_limit_bytes is not None
+                        else self._settings.runner_max_workspace_bytes
+                    ),
                     poll_interval_seconds=(
                         self._settings.runner_workspace_poll_interval_seconds
                     ),

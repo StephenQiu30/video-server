@@ -143,6 +143,21 @@ def test_compatible_split_streams_are_selected() -> None:
     assert selected.used_provider_hint is True
 
 
+def test_silent_video_is_selected_without_an_audio_stream() -> None:
+    wanted = plan(
+        audio_codec_family=AudioCodecFamily.NONE,
+        audio_language=None,
+        hints=ProviderHints(video_id="silent"),
+    )
+
+    selected = select_streams(wanted, [video("silent")])
+
+    assert selected.video.provider_id == "silent"
+    assert selected.audio is None
+    assert selected.output_container is Container.MP4
+    assert selected.used_provider_hint is True
+
+
 @pytest.mark.parametrize(
     ("container", "video_codec", "audio_codec"),
     [

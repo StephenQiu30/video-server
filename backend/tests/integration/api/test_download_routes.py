@@ -234,6 +234,26 @@ def test_download_file_route_streams_an_owned_range(tmp_path: Path) -> None:
     )
 
 
+def test_download_file_head_returns_preview_metadata(tmp_path: Path) -> None:
+    test_client, stubs = client(tmp_path)
+    stubs["get"].result = download_view(title="Owned video")
+    test_client.app.state.download_storage = FakeDownloadStorage()
+
+    with test_client:
+        response = test_client.head(
+            f"/api/downloads/{JOB_ID}/file",
+            params={"preview": True},
+        )
+
+    assert response.status_code == 200
+    assert response.content == b""
+    assert response.headers["content-type"] == "video/mp4"
+    assert response.headers["content-length"] == "8"
+    assert response.headers["accept-ranges"] == "bytes"
+    assert response.headers["content-disposition"] == "inline"
+    assert response.headers["etag"] == f'"{"c" * 64}"'
+
+
 def test_download_history_route_supports_filters_and_returns_public_fields(
     tmp_path: Path,
 ) -> None:

@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import math
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from app.domain.providers import ProviderAccessContextRef
 from app.runner.commands import MediaCommands
@@ -73,6 +74,14 @@ class RunnerInspectionPipeline:
                 cookie_jar=cookie_jar,
                 probe_authenticated_media=source.profile.probe_authenticated_media,
             )
+            duration = payload.get("duration")
+            if not isinstance(duration, (int, float)) or duration <= 0:
+                payload = await self._enrich_from_probe_sample(
+                    payload,
+                    source,
+                    workspace,
+                    cookie_jar=cookie_jar,
+                )
         inspection = self._usable_inspection(payload)
         if inspection is not None:
             return inspection
@@ -235,38 +244,53 @@ class RunnerInspectionPipeline:
         formats = payload.get("formats")
         if not isinstance(formats, list):
             return payload
-        candidates: list[tuple[int, dict[str, object], int]] = []
+        candidates: list[tuple[int, dict[str, object], int | None]] = []
         for index, value in enumerate(formats):
             if not isinstance(value, dict):
                 continue
             provider_id = value.get("format_id")
             size = value.get("filesize") or value.get("filesize_approx")
-            if not isinstance(provider_id, str) or not isinstance(size, (int, float)):
+            if not isinstance(provider_id, str):
                 continue
-            size_bytes = int(size)
-            if 0 < size_bytes <= self._settings.runner_max_probe_sample_bytes:
-                candidates.append((index, value, size_bytes))
-        candidates.sort(key=lambda item: item[2])
-        output = workspace.path / "format-probe.input"
+            if size is None:
+                candidates.append((index, value, None))
+                continue
+            if isinstance(size, (int, float)):
+                size_bytes = int(size)
+                if 0 < size_bytes <= self._settings.runner_max_probe_sample_bytes:
+                    candidates.append((index, value, size_bytes))
+        candidates.sort(
+            key=lambda item: (
+                item[2] is None,
+                item[2] if item[2] is not None else 0,
+            )
+        )
         for index, raw, _ in candidates[:_MAX_PROBE_SAMPLE_ATTEMPTS]:
             try:
-                await self._commands.download_probe_sample(
-                    source,
-                    str(raw["format_id"]),
-                    output,
-                    workspace.path,
-                    cookie_jar=cookie_jar,
-                )
-                probe = await self._commands.probe(output, workspace.path)
+                with TemporaryDirectory(
+                    prefix="format-probe-",
+                    dir=workspace.path,
+                ) as directory:
+                    probe_workspace = Path(directory)
+                    output = probe_workspace / "sample.input"
+                    await self._commands.download_probe_sample(
+                        source,
+                        str(raw["format_id"]),
+                        output,
+                        probe_workspace,
+                        cookie_jar=cookie_jar,
+                    )
+                    probe = await self._commands.probe(output, probe_workspace)
                 enriched_formats = list(formats)
                 enriched_formats[index] = enrich_format_metadata(raw, probe)
                 enriched_payload = dict(payload)
                 enriched_payload["formats"] = enriched_formats
+                probed_duration = _probe_duration(probe)
+                if probed_duration is not None:
+                    enriched_payload["duration"] = probed_duration
                 return enriched_payload
             except (RunnerFailure, OSError):
                 continue
-            finally:
-                output.unlink(missing_ok=True)
         return payload
 
 

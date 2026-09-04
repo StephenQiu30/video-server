@@ -43,6 +43,7 @@ async def verify_artifact(
     task_id: str,
     shared_root: Path,
     max_size_bytes: int,
+    expected_audio: bool = True,
 ) -> VerifiedArtifact:
     return await asyncio.to_thread(
         _verify_artifact,
@@ -50,6 +51,7 @@ async def verify_artifact(
         task_id,
         shared_root,
         max_size_bytes,
+        expected_audio,
     )
 
 
@@ -65,6 +67,7 @@ def _verify_artifact(
     task_id: str,
     shared_root: Path,
     max_size_bytes: int,
+    expected_audio: bool,
 ) -> VerifiedArtifact:
     if artifact.task_id != task_id:
         raise ArtifactValidationError("runner task identity mismatch")
@@ -112,7 +115,8 @@ def _verify_artifact(
         not math.isfinite(artifact.duration_seconds)
         or artifact.duration_seconds <= 0
         or artifact.video_streams < 1
-        or artifact.audio_streams < 1
+        or (expected_audio and artifact.audio_streams < 1)
+        or (not expected_audio and artifact.audio_streams != 0)
         or artifact.container not in {"mp4", "webm"}
     ):
         raise ArtifactValidationError("artifact media metadata is invalid")

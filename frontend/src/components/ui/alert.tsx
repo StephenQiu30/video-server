@@ -51,7 +51,7 @@ function AlertDescription({
   return (
     <div
       data-slot="alert-description"
-      className={cn('text-sm opacity-85', className)}
+      className={cn('text-sm', className)}
       {...props}
     />
   );

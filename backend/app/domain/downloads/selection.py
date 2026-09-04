@@ -22,11 +22,15 @@ from app.domain.downloads.formats import (
 _COMPATIBLE_CODECS = {
     Container.MP4: (
         {VideoCodecFamily.H264, VideoCodecFamily.HEVC},
-        {AudioCodecFamily.AAC},
+        {AudioCodecFamily.NONE, AudioCodecFamily.AAC},
     ),
     Container.WEBM: (
         {VideoCodecFamily.VP9, VideoCodecFamily.AV1},
-        {AudioCodecFamily.OPUS, AudioCodecFamily.VORBIS},
+        {
+            AudioCodecFamily.NONE,
+            AudioCodecFamily.OPUS,
+            AudioCodecFamily.VORBIS,
+        },
     ),
 }
 
@@ -66,6 +70,23 @@ def select_streams(
         for stream in available
         if stream.kind is StreamKind.AUDIO and plan.matches_audio(stream)
     ]
+    if plan.audio_codec_family is AudioCodecFamily.NONE:
+        compatible_silent = [
+            video for video in videos if _output_for(plan, video, None) is not None
+        ]
+        if compatible_silent:
+            chosen = min(
+                compatible_silent,
+                key=lambda item: _rank(plan, item, "video"),
+            )
+            output = _output_for(plan, chosen, None)
+            assert output is not None
+            return StreamSelection(
+                video=chosen,
+                audio=None,
+                output_container=output,
+                used_provider_hint=_used_hints(plan, chosen, None),
+            )
     pairs = [
         (video, audio) for video in videos for audio in audios if video is not audio
     ]

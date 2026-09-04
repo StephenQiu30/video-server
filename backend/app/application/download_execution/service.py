@@ -6,7 +6,12 @@ from pathlib import Path
 from uuid import UUID
 
 from app.application.downloads import EncryptedUrl, plan_from_documents
-from app.domain.downloads import DownloadErrorCode, DownloadStage, MediaKind
+from app.domain.downloads import (
+    AudioCodecFamily,
+    DownloadErrorCode,
+    DownloadStage,
+    MediaKind,
+)
 from app.domain.providers import ProviderAccessContextRef
 
 from .artifact import verify_artifact
@@ -151,6 +156,10 @@ class DownloadExecution:
                         task_id=task_id,
                         shared_root=self._settings.workspace_root,
                         max_size_bytes=self._settings.max_file_size_bytes,
+                        expected_audio=(
+                            plan is None
+                            or plan.audio_codec_family is not AudioCodecFamily.NONE
+                        ),
                     ),
                     stage=DownloadStage.VERIFYING,
                     progress=90,

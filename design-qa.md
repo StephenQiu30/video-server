@@ -13,6 +13,19 @@
 
 final result: passed
 
+## 2026-09-04 媒体播放、注册约束与警告对比度回归
+
+- `agent-browser` 首轮 dogfood 在 production Web 中定位 3 项问题：本地视频详情的预览探测 `HEAD /api/downloads/{jobId}/file?preview=true` 返回 405、注册用户名允许提交服务端必然拒绝的空格字符、浅色 warning 的 `AlertDescription` 因文字透明度未达到普通正文 AA 对比度。初始复现与证据归档在 `/tmp/framefetch-dogfood-20260904/report.md`。
+- 后端为已鉴权、归属校验后的媒体文件增加与 GET 共用 Range、ETag、Content-Length、Content-Disposition 和内容类型逻辑的 HEAD 路由。重建 prod 镜像后，Tailscale HTTPS 实测 HEAD 返回 200、媒体 GET 返回 206；HTML video 为 `readyState = 4`、无 media error，播放后 `currentTime` 从 0 推进到 0.88 秒。
+- Web 注册和个人资料统一按服务端 NFKC 规范化及 Unicode 字母/数字、`_-.` 契约校验；390×844 注册页对带空格用户名显示字段级错误并通过 `aria-describedby` 关联，网络日志确认没有发出注册 POST。Flutter 注册同步使用同一字符与 Unicode code point 长度规则及中英文帮助文案。
+- 共享 `AlertDescription` 移除 `opacity-85`，保持语义前景色完整不透明。390×844 浅色剧本文档详情 axe WCAG 2 A/AA 为 0 violations、0 incomplete；视频详情为 0 violations，仅播放器渐变背景上的时间与章节文字因背景不可静态判定保留 3 个 incomplete，不构成已确认违规。
+- 剧本文档上传后可直接进入解析详情，从 `/documents` 列表点击同一文档也可返回详情；移动详情 `scrollWidth = clientWidth = 390`。视频、文档、注册页均无页面级横向溢出。
+- Safari/WebKit 的首轮 iOS 26.5 XCUITest 验证只证明本地 HTTP 表单可以提交，随后真实 macOS Safari 复现出生产 `Secure` Cookie 不会随 HTTP 请求发送，以及系统代理错误接管 Tailnet TLS 的两个根因。最终实现撤销全部 localhost Cookie 特判，生产 UI 请求在页面渲染前保留路径和查询参数跳转到 `SITE_URL`；活动 Wi-Fi 代理绕过列表补齐 `100.64.0.0/10` 与 `*.ts.net` 后，WebKit 从 `127.0.0.1:7897` 改为经 `utun8` 直连 `100.97.238.126`。真实 Safari 在 HTTPS 入口完成 `login 200 → history 200`，整页刷新后继续得到 `me 200 → history 200`；agent-browser 在桌面和 390×844 视口复验相同会话，移动页无横向溢出、控制台和页面错误均为 0。
+- 验收数据通过产品删除流程清空：下载记录与剧本文档列表均恢复真实空态；随后精确删除本轮 QA 账号并确认三个候选 QA 邮箱的剩余数量为 0。
+- 工程门禁：后端 1420 项通过、1 项平台差异跳过，ruff 与 mypy 通过；Web 60 个测试文件/239 项通过，lint、format、typecheck、OpenAPI 生成和 Next.js production build 通过；Flutter 108 项测试、analyze、全仓格式检查与未签名 iOS release 构建通过。开发/生产 Compose 解析通过，Docker prod 镜像重建后 API 与前端均健康。
+
+final result: passed
+
 ## 2026-09-02 根路由会话启动态与 GSAP 过渡重构
 
 - source visual truth：用户提供的刷新错误态 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-683960b4-9f69-4310-bc6b-7b5b1e2ff91f.png` 和最终登录工作区 `/var/folders/r5/lm_1_1hd321dzlfq0lctjdnw0000gn/T/codex-clipboard-b9e0b99f-d279-4e50-8572-1952c92605d5.png`。两张图确认刷新时完整公开首页先于登录工作区出现，问题覆盖 Header 与 main，而不是单个 Spinner 或局部淡入缺失。

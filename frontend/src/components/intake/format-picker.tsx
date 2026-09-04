@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/empty';
 import { FieldLabel } from '@/components/ui/field';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { audioCodecLabel } from '@/lib/media-format';
 import { cn } from '@/lib/utils';
 import type { MediaFormat, MediaKind } from '@/types/video';
 
@@ -73,7 +74,7 @@ export default function FormatPicker({
                     <span className="mt-1 block truncate text-xs text-muted-foreground">
                       {plan.width}×{plan.height} ·{' '}
                       {plan.video_codec_family.toUpperCase()} ·{' '}
-                      {plan.audio_codec_family.toUpperCase()} ·{' '}
+                      {audioCodecLabel(plan.audio_codec_family)} ·{' '}
                       {fpsLabels[plan.fps_bucket]}
                     </span>
                   </>

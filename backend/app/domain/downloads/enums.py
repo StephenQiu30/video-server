@@ -43,6 +43,7 @@ class VideoCodecFamily(StrEnum):
 
 
 class AudioCodecFamily(StrEnum):
+    NONE = "none"
     AAC = "aac"
     OPUS = "opus"
     VORBIS = "vorbis"

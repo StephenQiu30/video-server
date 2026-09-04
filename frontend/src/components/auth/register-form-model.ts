@@ -1,3 +1,5 @@
+import { validateUsername } from '@/lib/username';
+
 export type FieldName = 'username' | 'email' | 'password' | 'confirmPassword';
 
 export type FieldErrors = Partial<Record<FieldName, string>>;
@@ -6,11 +8,14 @@ export function validateRegistration(
   values: Record<FieldName, string>,
 ): FieldErrors {
   const errors: FieldErrors = {};
-  if (!values.username) errors.username = '请设置用户名';
-  else if (values.username.length < 2)
+  const usernameError = validateUsername(values.username);
+  if (usernameError === 'required') errors.username = '请设置用户名';
+  else if (usernameError === 'too_short')
     errors.username = '用户名至少需要 2 个字符';
-  else if (values.username.length > 32)
+  else if (usernameError === 'too_long')
     errors.username = '用户名不能超过 32 个字符';
+  else if (usernameError === 'unsupported_characters')
+    errors.username = '用户名仅支持字母、数字、中文以及 _-. 字符';
   if (!values.email) errors.email = '请输入邮箱地址';
   else if (!isValidEmail(values.email)) errors.email = '请输入有效的邮箱地址';
   if (!values.password) errors.password = '请设置密码';

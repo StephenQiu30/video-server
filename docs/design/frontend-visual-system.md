@@ -250,6 +250,7 @@ PageHeader 直接显示“下载记录”及一句用途说明、可选的“新
 
 - 使用 `header/nav/main/footer`、唯一 `h1`、顺序标题、真实 `form/label/button/table`；不得用可点击 `div` 代替控件。
 - 正文对比度至少 4.5:1，大字至少 3:1，控件边界和焦点指示至少 3:1。
+- `AlertDescription` 使用完整语义前景色，不叠加文字透明度；warning、success 与 destructive 变体必须在浅色和深色背景上继续满足普通正文 AA 对比度。
 - 所有交互可仅用键盘完成；焦点顺序与视觉顺序一致。焦点环至少 2px，并与背景留出 2px 偏移。
 - Radix Dialog、AlertDialog、Sheet、Select、Dropdown Menu 等保留其焦点圈定、Escape 关闭、触发器焦点恢复和语义属性，不覆盖为不可访问的自定义行为。AlertDialog 不允许用 Escape 绕过需要明确决策的确认语义。
 - Radix `asChild` 按 [Composition 指南](https://www.radix-ui.com/primitives/docs/guides/composition) 组合：触发元素必须可聚焦，自定义 leaf component 必须透传 props 和 ref。Tooltip Trigger 不得使用不可聚焦容器。

@@ -496,8 +496,10 @@ def _entry_thumbnail_url(entry: dict[str, Any]) -> str | None:
         return None
     selected = max(
         candidates,
-        key=lambda value: (_positive_int(value.get("width")) or 0)
-        * (_positive_int(value.get("height")) or 0),
+        key=lambda value: (
+            (_positive_int(value.get("width")) or 0)
+            * (_positive_int(value.get("height")) or 0)
+        ),
     )
     return str(selected["url"]).strip() or None
 

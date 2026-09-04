@@ -182,7 +182,7 @@ declare namespace API {
     | "failed"
     | "cancelled";
 
-  type AudioCodecFamily = "aac" | "opus" | "vorbis" | "other";
+  type AudioCodecFamily = "none" | "aac" | "opus" | "vorbis" | "other";
 
   type cancelAnalysisParams = {
     analysis_id: string;

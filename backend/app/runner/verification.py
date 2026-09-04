@@ -4,7 +4,7 @@ import math
 from dataclasses import dataclass
 from typing import Any
 
-from app.domain.downloads import Container, DownloadPlan
+from app.domain.downloads import AudioCodecFamily, Container, DownloadPlan
 from app.runner.codecs import audio_codec_family, video_codec_family
 from app.runner.errors import RunnerFailure
 
@@ -77,17 +77,25 @@ def verify_probe(
 
     video = [item for item in streams if _stream_type(item) == "video"]
     audio = [item for item in streams if _stream_type(item) == "audio"]
-    if not video or not audio:
+    if not video:
         raise RunnerFailure("media_validation_failed", status=502)
     first_video = video[0]
-    first_audio = audio[0]
     dimensions = (first_video.get("width"), first_video.get("height"))
     if dimensions != (plan.width, plan.height):
         raise RunnerFailure("media_validation_failed", status=502)
     if video_codec_family(first_video.get("codec_name")) is not plan.video_codec_family:
         raise RunnerFailure("media_validation_failed", status=502)
-    if audio_codec_family(first_audio.get("codec_name")) is not plan.audio_codec_family:
-        raise RunnerFailure("media_validation_failed", status=502)
+    if plan.audio_codec_family is AudioCodecFamily.NONE:
+        if audio:
+            raise RunnerFailure("media_validation_failed", status=502)
+    else:
+        if not audio:
+            raise RunnerFailure("media_validation_failed", status=502)
+        if (
+            audio_codec_family(audio[0].get("codec_name"))
+            is not plan.audio_codec_family
+        ):
+            raise RunnerFailure("media_validation_failed", status=502)
 
     duration = _duration(format_info.get("duration"))
     tolerance = max(tolerance_seconds, expected_duration * 0.02)
