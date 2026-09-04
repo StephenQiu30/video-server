@@ -77,7 +77,15 @@ async def seed_screenplay(
                                 "end": 64,
                                 "elements": [],
                             }
-                        ]
+                        ],
+                        "parse_summary": {
+                            "page_count": None,
+                            "paragraph_count": 4,
+                            "heading_count": 1,
+                            "list_item_count": 0,
+                            "table_count": 0,
+                            "dialogue_block_count": 1,
+                        },
                     },
                     created_at=now,
                     updated_at=now,

@@ -131,7 +131,12 @@ class AnalysisInputRepository:
 
 
 def _screenplay_scenes(metadata: object) -> tuple[ScreenplaySceneSource, ...]:
-    if not isinstance(metadata, dict) or set(metadata) != {"scenes"}:
+    allowed_keys = {"scenes", "parse_summary"}
+    if (
+        not isinstance(metadata, dict)
+        or "scenes" not in metadata
+        or not set(metadata).issubset(allowed_keys)
+    ):
         raise ValueError("screenplay artifact metadata is invalid")
     values = metadata["scenes"]
     if not isinstance(values, list):
