@@ -12,9 +12,17 @@ Operator 必须处于同一 Compose 网络；不提供宿主机业务进程与�
 | docker-compose.yml | 本机/共享环境运行，只启动业务容器 | 否，复用宿主机已有服务 |
 | docker-compose-prod.yml | 独立的生产业务容器运行配置，与默认拓扑保持一致 | 否，复用生产宿主机服务 |
 
-默认业务拓扑包含 API、Outbox、下载 Worker、导入 Worker、报告 Worker、Provider Canary、Media Runner 和受控出口代理。YouTube Operator 与其他 Provider Operator 只通过对应 profile 显式启用。
+默认业务拓扑包含独立 Next.js 前端、API、Outbox、下载 Worker、导入 Worker、报告 Worker、Provider Canary、Media Runner 和受控出口代理。前端监听 8101，API 监听 8111。YouTube Operator 与其他 Provider Operator 只通过对应 profile 显式启用。
 
-Compose 文件不再通过 YAML Anchor 隐式继承服务配置；每个服务直接声明自己的角色、连接地址、挂载、网络和启动命令。
+构建参数和受控 Runner 可共用 YAML Anchor；业务进程分别声明自己的角色、连接地址、密钥、挂载、网络和启动命令。`.env` / `.env.prod` 仅供 Compose 插值，业务服务不再使用整份 `env_file` 注入。
+
+## 配额与代理配置
+
+`QUOTA_LIMITS` 和 `RATE_LIMIT_POLICIES` 接受局部 JSON 覆盖；默认值、滚动 24 小时口径、存储预留和恢复方式见 [准入设计](../design/006-上线产品能力补全设计.md)。调整文件、规范化文本或报告上限时，应同步重建 API 与对应 Worker，使准入预留与执行上限一致。分片 URL 绑定精确 `Content-Length`；代理必须保留此头，不能改为未确定长度的上传。Next.js `/storage-upload` 已转发该头。
+
+部署者通过 `TRUSTED_PROXY_CIDRS` 声明外部入口代理，使用 `FRONTEND_IPV4_ADDRESS` 同时配置前端容器地址及 API 对该主机的信任；`APP_NETWORK_SUBNET`、`APP_NETWORK_IP_RANGE` 应与它相容。API 自行解析可信转发链，入口关闭 Uvicorn 自动代理头改写。公网入口需要将真实客户端地址追加到转发链，并直接转发 WebSocket Upgrade；不要信任任意客户端传入的地址。
+
+生产密钥检查只要求当前角色使用的密钥。Import、Report、Outbox 不接收 URL 解密密钥，Worker 不接收 JWT、管理员初始化及指标访问密钥；MinIO 消费者继续共用仓库规定的一组业务凭据。更改配置后使用对应 Compose `up -d --build` 应用，不用 `restart` 代替配置更新。
 
 ## Docker 文件使用规范
 

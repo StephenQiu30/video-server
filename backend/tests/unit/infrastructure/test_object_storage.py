@@ -104,9 +104,11 @@ class FakeResponse:
 
 def settings() -> Settings:
     return Settings(
+        _env_file=None,
         app_env="test",
         minio_access_key=SecretStr("access"),
         minio_secret_key=SecretStr("secret"),
+        minio_local_browser_endpoint="127.0.0.1:9000",
     )
 
 
@@ -273,6 +275,7 @@ async def test_storage_controls_one_deterministic_multipart_upload() -> None:
         upload_id,
         2,
         ttl_seconds=900,
+        size_bytes=32,
     )
     etag = await storage.complete_multipart_upload(
         object_key,
@@ -285,7 +288,7 @@ async def test_storage_controls_one_deterministic_multipart_upload() -> None:
     await storage.abort_multipart_upload(object_key, upload_id)
 
     assert upload_id == "upload-id"
-    assert url == "https://objects.example/upload-part"
+    assert "X-Amz-SignedHeaders=content-length%3Bhost" in url
     assert etag == "completed-etag"
     assert (
         "create_multipart",
@@ -306,12 +309,8 @@ async def test_storage_controls_one_deterministic_multipart_upload() -> None:
             (2, "22222222222222222222222222222222"),
         ),
     ) in private.calls
-    presign = next(call for call in public.calls if call[0] == "presign_part")
-    assert presign[1:4] == ("PUT", "video-artifacts", object_key)
-    assert presign[-1]["extra_query_params"] == {
-        "partNumber": "2",
-        "uploadId": "upload-id",
-    }
+    assert "partNumber=2" in url
+    assert "uploadId=upload-id" in url
     assert (
         "abort_multipart",
         "video-artifacts",
@@ -330,16 +329,18 @@ async def test_storage_can_sign_upload_parts_for_local_web_clients() -> None:
         local_browser=local_browser,
     )
 
-    await storage.presign_upload_part(
+    url = await storage.presign_upload_part(
         "quarantine/video/resource/1/source",
         "upload-id",
         1,
         ttl_seconds=900,
+        size_bytes=32,
         use_local_browser_endpoint=True,
     )
 
     assert not public.calls
-    assert next(call for call in local_browser.calls if call[0] == "presign_part")
+    assert "X-Amz-SignedHeaders=content-length%3Bhost" in url
+    assert url.startswith(settings().minio_local_browser_origin())
 
 
 async def test_storage_can_sign_downloads_for_local_web_clients() -> None:

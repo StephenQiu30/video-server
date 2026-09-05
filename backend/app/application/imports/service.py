@@ -245,6 +245,11 @@ class CreateUploadSession:
                         upload_id,
                         part_number,
                         ttl_seconds=ttl_seconds,
+                        size_bytes=min(
+                            active.part_size_bytes,
+                            resource.declared_size_bytes
+                            - (part_number - 1) * active.part_size_bytes,
+                        ),
                         use_local_browser_endpoint=use_local_browser_endpoint,
                     )
                     for part_number in range(1, active.part_count + 1)

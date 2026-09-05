@@ -7,11 +7,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.analysis_repository_base import AnalysisRepositoryBase
 from app.infrastructure.database.models import (
+    AnalysisJobRow,
     AnalysisReportArtifactRow,
     AnalysisResultRow,
     AnalysisRunRow,
@@ -68,6 +69,59 @@ class AnalysisReportLifecycleRepository(AnalysisRepositoryBase):
                 artifact.status = "deleted"
                 artifact.deleted_at = now
                 await self._finish_report_deletion(session, artifact.report_id)
+                deleted += 1
+        unpublished = await self._purge_unpublished(
+            now, delete, limit=max(0, limit - deleted)
+        )
+        return ReportPurgeResult(
+            deleted + unpublished.deleted, failed + unpublished.failed
+        )
+
+    async def _purge_unpublished(
+        self, now: datetime, delete: Callable[[str], Awaitable[None]], *, limit: int
+    ) -> ReportPurgeResult:
+        deleted = failed = 0
+        async with self._sessions() as session, session.begin():
+            inactive = or_(
+                AnalysisJobRow.status.not_in(("queued", "running", "retry_wait")),
+                AnalysisJobRow.active_run_id != AnalysisResultRow.run_id,
+            )
+            has_artifacts = exists().where(
+                AnalysisReportArtifactRow.report_id == AnalysisResultRow.id
+            )
+            rows = (
+                await session.execute(
+                    select(AnalysisResultRow, AnalysisRunRow.run_no)
+                    .join(AnalysisRunRow, AnalysisRunRow.id == AnalysisResultRow.run_id)
+                    .join(AnalysisJobRow, AnalysisJobRow.id == AnalysisResultRow.job_id)
+                    .where(
+                        ~has_artifacts,
+                        or_(
+                            AnalysisResultRow.status == "delete_pending",
+                            (AnalysisResultRow.status == "publishing")
+                            & inactive
+                            & (AnalysisResultRow.lease_expires_at <= now),
+                        ),
+                    )
+                    .order_by(AnalysisResultRow.created_at)
+                    .limit(limit)
+                    .with_for_update(of=AnalysisResultRow, skip_locked=True)
+                )
+            ).all()
+            for report, run_no in rows:
+                report.status = "delete_pending"
+                try:
+                    prefix = (
+                        f"analyses/{report.job_id}/runs/{run_no}/reports/{report.id}"
+                    )
+                    await delete(f"{prefix}/report.md")
+                    await delete(f"{prefix}/report.docx")
+                except Exception:
+                    failed += 1
+                    continue
+                report.status = "deleted"
+                report.lease_owner = None
+                report.lease_expires_at = None
                 deleted += 1
         return ReportPurgeResult(deleted, failed)
 

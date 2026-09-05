@@ -168,13 +168,25 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         max_connections=settings.websocket_max_connections,
         max_per_owner=settings.websocket_max_connections_per_owner,
     )
-    repository = SqlAlchemyDownloadRepository(sessions)
+    quota_policy = settings.quota_limits.policy(
+        download_bytes=settings.max_file_size_bytes,
+        document_normalized_bytes=settings.document_normalized_max_characters * 4,
+        report_bytes=settings.analysis_report_max_bytes,
+        thumbnail_bytes=settings.download_thumbnail_max_bytes,
+    )
+    repository = SqlAlchemyDownloadRepository(sessions, quota_policy=quota_policy)
     source_discovery_repository = SqlAlchemySourceDiscoveryRepository(sessions)
-    media_import_repository = SqlAlchemyMediaImportRepository(sessions)
-    document_import_repository = SqlAlchemyDocumentImportRepository(sessions)
+    media_import_repository = SqlAlchemyMediaImportRepository(
+        sessions, quota_policy=quota_policy
+    )
+    document_import_repository = SqlAlchemyDocumentImportRepository(
+        sessions, quota_policy=quota_policy
+    )
     document_catalog_repository = SqlAlchemyDocumentCatalogRepository(sessions)
     document_delete_repository = SqlAlchemyDocumentDeleteRepository(sessions)
-    analysis_repository = SqlAlchemyAnalysisRepository(sessions)
+    analysis_repository = SqlAlchemyAnalysisRepository(
+        sessions, quota_policy=quota_policy
+    )
     analysis_availability = SqlAlchemyAnalysisWorkerRegistry(
         sessions,
         expected_app_version=settings.app_version,

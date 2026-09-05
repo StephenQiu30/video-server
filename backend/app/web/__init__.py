@@ -1,1 +1,0 @@
-"""Same-origin frontend delivery."""

@@ -7,8 +7,8 @@ from uuid import UUID
 
 from sqlalchemy import case, update
 
-from .job_repository import JobRepository
 from .models import DownloadJobRow
+from .repository_base import RepositoryBase
 
 STAGE_RANKS = {
     "revalidating": 1,
@@ -19,7 +19,7 @@ STAGE_RANKS = {
 }
 
 
-class ProgressRepository(JobRepository):
+class ProgressRepository(RepositoryBase):
     async def heartbeat(
         self,
         job_id: UUID,

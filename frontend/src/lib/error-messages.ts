@@ -1,4 +1,12 @@
 const localizedErrorMessages: Record<string, string> = {
+  active_task_quota_exceeded:
+    '同时进行的任务已达上限，请等待完成或取消任务后再试。',
+  daily_task_quota_exceeded: '最近 24 小时的任务额度已用完，请稍后再试。',
+  daily_byte_quota_exceeded: '最近 24 小时的文件处理额度已用完，请稍后再试。',
+  analysis_budget_exceeded: '最近 24 小时的分析额度已用完，请稍后再试。',
+  storage_quota_exceeded:
+    '存储空间不足，请删除不再需要的文件，或等待任务完成后再试。',
+  service_capacity_exceeded: '当前任务较多，请稍后再试。',
   analysis_already_active: '当前已有分析任务正在执行，请等待完成后再试。',
   analysis_artifact_unavailable: '原视频文件已失效，请重新下载后再分析。',
   analysis_cli_failed: 'AI 分析执行失败，请稍后重试。',

@@ -51,7 +51,6 @@ def client(tmp_path: Path) -> tuple[TestClient, dict[str, StubUseCase]]:
         Settings(
             app_env="test",
             _env_file=None,
-            frontend_dist_dir=tmp_path / "none",
             runner_operator_base_urls={},
         )
     )
@@ -65,7 +64,7 @@ def client(tmp_path: Path) -> tuple[TestClient, dict[str, StubUseCase]]:
 
 
 def test_download_use_cases_are_resolved_from_app_state(tmp_path: Path) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     with TestClient(app) as test_client:
         response = test_client.post(
             "/api/inspections",

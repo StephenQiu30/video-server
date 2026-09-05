@@ -30,7 +30,7 @@ USER = CurrentUser(
 def test_admin_download_analytics_returns_visualization_safe_fields(
     tmp_path: Path,
 ) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     container, stubs = use_cases()
     app.state.download_use_cases = container
     app.dependency_overrides[get_current_admin] = lambda: ADMIN
@@ -62,7 +62,7 @@ def test_admin_download_analytics_returns_visualization_safe_fields(
 
 
 def test_admin_download_analytics_rejects_non_admin(tmp_path: Path) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     container, stubs = use_cases()
     app.state.download_use_cases = container
     app.dependency_overrides[get_current_user] = lambda: USER

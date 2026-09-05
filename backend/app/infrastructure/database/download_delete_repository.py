@@ -7,7 +7,6 @@ from uuid import UUID
 
 from sqlalchemy import select
 
-from .analytics_repository import AnalyticsRepository
 from .contracts import DownloadCleanupRef, DownloadDeletionPlan
 from .errors import RepositoryConflict, RepositoryNotFound
 from .models import (
@@ -17,11 +16,12 @@ from .models import (
     DownloadThumbnailRow,
     MediaImportAttemptRow,
 )
+from .repository_base import RepositoryBase
 
 _ACTIVE_STATUSES = {"queued", "running", "retry_wait"}
 
 
-class DownloadDeleteRepository(AnalyticsRepository):
+class DownloadDeleteRepository(RepositoryBase):
     async def prepare_download_deletion(
         self, job_id: UUID, owner_hash: str, *, now: datetime
     ) -> DownloadDeletionPlan:

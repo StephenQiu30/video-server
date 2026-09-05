@@ -18,6 +18,10 @@ MARKDOWN_TYPE = "text/markdown; charset=utf-8"
 DOCX_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
 
+class ReportSizeExceeded(Exception):
+    pass
+
+
 class Clock(Protocol):
     def __call__(self) -> datetime: ...
 
@@ -32,6 +36,7 @@ class ReportPublisher:
         bucket: str,
         worker_id: str,
         clock: Clock,
+        max_bytes: int = 16 * 1024**2,
     ) -> None:
         self._repository = repository
         self._storage = storage
@@ -39,6 +44,7 @@ class ReportPublisher:
         self._bucket = bucket
         self._worker_id = worker_id
         self._clock = clock
+        self._max_bytes = max_bytes
 
     async def execute(self, requested: ReportRequested) -> bool:
         now: datetime = self._clock()
@@ -58,6 +64,8 @@ class ReportPublisher:
             if hashlib.sha256(markdown).hexdigest() != publication.markdown_sha256:
                 raise RuntimeError("canonical Markdown hash mismatch")
             docx = self._renderer.render(publication.markdown)
+            if len(markdown) + len(docx) > self._max_bytes:
+                raise ReportSizeExceeded("report exceeds publication byte budget")
             prefix = (
                 f"analyses/{publication.job_id}/runs/{publication.run_no}/"
                 f"reports/{publication.id}"
@@ -70,6 +78,15 @@ class ReportPublisher:
             )
             await self._repository.complete(
                 publication, self._worker_id, objects, self._clock()
+            )
+            return True
+        except ReportSizeExceeded:
+            await self._repository.fail(
+                publication.id,
+                self._worker_id,
+                "report_size_exceeded",
+                self._clock(),
+                terminal=True,
             )
             return True
         except Exception as error:

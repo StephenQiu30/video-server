@@ -24,12 +24,12 @@ from .analytics_contracts import (
     DownloadAnalyticsSummarySnapshot,
 )
 from .models import ArtifactRow, DownloadJobRow, MediaInspectionRow
-from .recovery_repository import RecoveryRepository
+from .repository_base import RepositoryBase
 
 _ACTIVE_STATUSES = ("queued", "running", "retry_wait")
 
 
-class AnalyticsRepository(RecoveryRepository):
+class AnalyticsRepository(RepositoryBase):
     async def get_download_analytics(
         self,
         *,

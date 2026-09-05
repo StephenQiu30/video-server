@@ -1,7 +1,19 @@
-"""Concrete SQLAlchemy adapter for the analysis application repository port."""
+"""SQLAlchemy analysis port composed from independent repository capabilities."""
 
-from app.infrastructure.analysis_repository_publish import AnalysisPublishRepository
+from .analysis_repository_create import AnalysisCreationRepository
+from .analysis_repository_inputs import AnalysisInputRepository
+from .analysis_repository_lifecycle import AnalysisLifecycleRepository
+from .analysis_repository_publish import AnalysisPublishRepository
+from .analysis_repository_recovery import AnalysisRecoveryRepository
+from .analysis_repository_retry import AnalysisRetryRepository
 
 
-class SqlAlchemyAnalysisRepository(AnalysisPublishRepository):
-    pass
+class SqlAlchemyAnalysisRepository(
+    AnalysisInputRepository,
+    AnalysisCreationRepository,
+    AnalysisRetryRepository,
+    AnalysisLifecycleRepository,
+    AnalysisRecoveryRepository,
+    AnalysisPublishRepository,
+):
+    """Each capability shares sessions and helpers without inheriting siblings."""

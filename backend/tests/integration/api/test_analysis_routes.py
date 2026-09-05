@@ -161,9 +161,7 @@ def analysis_view(
 
 
 def client(tmp_path: Path) -> tuple[TestClient, dict[str, StubUseCase]]:
-    application = create_app(
-        Settings(app_env="test", frontend_dist_dir=tmp_path / "none")
-    )
+    application = create_app(Settings(app_env="test"))
     queued = analysis_view()
     stubs = {
         "create": StubUseCase(queued),
@@ -226,9 +224,7 @@ def client(tmp_path: Path) -> tuple[TestClient, dict[str, StubUseCase]]:
 
 
 def test_analysis_service_must_be_wired(tmp_path: Path) -> None:
-    application = create_app(
-        Settings(app_env="test", frontend_dist_dir=tmp_path / "none")
-    )
+    application = create_app(Settings(app_env="test"))
     with TestClient(application) as test_client:
         response = test_client.get(f"/api/analyses/{ANALYSIS_ID}")
 

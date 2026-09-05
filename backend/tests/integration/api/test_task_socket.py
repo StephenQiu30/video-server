@@ -55,7 +55,7 @@ class RacingStore(FakeStore):
 
 
 def test_socket_auth_replay_and_subscription(tmp_path) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     app.state.auth_service = FakeAuth()
     app.state.realtime_hub = RealtimeHub()
     app.state.task_event_store = FakeStore()
@@ -115,7 +115,7 @@ def test_socket_rejects_different_development_origin_host() -> None:
 
 
 def test_socket_rejects_missing_cookie(tmp_path) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     app.state.auth_service = FakeAuth()
     with TestClient(app) as client:
         with pytest.raises(WebSocketDisconnect) as caught:
@@ -125,7 +125,7 @@ def test_socket_rejects_missing_cookie(tmp_path) -> None:
 
 
 def test_socket_buffers_events_during_replay_takeover(tmp_path) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     app.state.auth_service = FakeAuth()
     hub = RealtimeHub()
     app.state.realtime_hub = hub
@@ -153,7 +153,7 @@ def test_socket_buffers_events_during_replay_takeover(tmp_path) -> None:
 
 
 def test_socket_enforces_owner_connection_limit(tmp_path) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     app.state.auth_service = FakeAuth()
     app.state.realtime_hub = RealtimeHub(max_connections=2, max_per_owner=1)
     app.state.task_event_store = FakeStore()
@@ -169,7 +169,7 @@ def test_socket_enforces_owner_connection_limit(tmp_path) -> None:
 
 
 def test_socket_closes_when_owner_session_is_invalidated(tmp_path) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     app.state.auth_service = FakeAuth()
     hub = RealtimeHub()
     app.state.realtime_hub = hub

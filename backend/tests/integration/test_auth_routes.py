@@ -52,7 +52,6 @@ async def auth_client(
             auth_refresh_cookie_name="test_refresh",
             auth_jwt_issuer="video-server-test",
             auth_jwt_audience="video-web-test",
-            frontend_dist_dir=tmp_path / "missing",
         )
     )
     app.state.auth_service = service

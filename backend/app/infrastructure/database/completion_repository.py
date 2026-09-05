@@ -15,7 +15,7 @@ from .contracts import ArtifactCreate, ArtifactSnapshot, JobSnapshot
 from .errors import LeaseConflict, RepositoryConflict, RepositoryNotFound
 from .mapping import artifact_snapshot, job_snapshot
 from .models import ArtifactRow, DownloadJobRow
-from .progress_repository import ProgressRepository
+from .repository_base import RepositoryBase
 
 
 def _validate_artifact(artifact: ArtifactCreate) -> None:
@@ -25,7 +25,7 @@ def _validate_artifact(artifact: ArtifactCreate) -> None:
         raise ValueError("artifact size and duration must be positive")
 
 
-class CompletionRepository(ProgressRepository):
+class CompletionRepository(RepositoryBase):
     async def complete_success(
         self,
         job_id: UUID,

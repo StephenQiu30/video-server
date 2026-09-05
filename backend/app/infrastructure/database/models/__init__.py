@@ -25,10 +25,12 @@ from .operational_metric import OperationalCounterRow
 from .outbox import OutboxEventRow
 from .provider_canary import ProviderCanaryResultRow
 from .provider_catalog import ProviderCatalogEntryRow
+from .quota import ResourceAdmissionRow
 from .source_discovery import SourceDiscoveryItemRow, SourceDiscoveryRow
 from .task_event import TaskEventRow
 
 __all__ = [
+    "ResourceAdmissionRow",
     "ArtifactRow",
     "AnalysisDocumentLockRow",
     "AuthSessionRow",

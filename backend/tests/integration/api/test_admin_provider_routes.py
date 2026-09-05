@@ -84,7 +84,7 @@ class Catalog:
 def test_admin_can_create_list_update_and_delete_provider_catalog_entries(
     tmp_path: Path,
 ) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     app.state.provider_catalog_service = Catalog()
     app.dependency_overrides[get_current_admin] = lambda: ADMIN
 
@@ -116,7 +116,7 @@ def test_admin_can_create_list_update_and_delete_provider_catalog_entries(
 
 
 def test_provider_catalog_routes_reject_non_admin(tmp_path: Path) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     catalog = Catalog()
     app.state.provider_catalog_service = catalog
     app.dependency_overrides[get_current_user] = lambda: USER

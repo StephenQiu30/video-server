@@ -1324,4 +1324,22 @@ CREATE TRIGGER analysis_task_event_trigger
 AFTER INSERT OR UPDATE OF version ON analysis_jobs
 FOR EACH ROW EXECUTE FUNCTION emit_analysis_task_event();
 
+-- Daily usage survives resource deletion. Active and retained usage is derived
+-- from resource state; no duplicate lifecycle state or mutable billing counter.
+CREATE TABLE IF NOT EXISTS resource_admissions (
+    id UUID PRIMARY KEY,
+    owner_hash VARCHAR(64) NOT NULL,
+    kind VARCHAR(24) NOT NULL,
+    reserved_bytes BIGINT NOT NULL,
+    analysis_attempts INTEGER NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
+    CONSTRAINT ck_admissions_kind CHECK (
+        kind IN ('download','media_import','document_import','analysis')
+    ),
+    CONSTRAINT ck_admissions_bytes CHECK (reserved_bytes > 0),
+    CONSTRAINT ck_admissions_attempts CHECK (analysis_attempts >= 0)
+);
+CREATE INDEX IF NOT EXISTS ix_admissions_owner_created
+    ON resource_admissions (owner_hash, created_at);
+
 COMMIT;

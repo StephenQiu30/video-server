@@ -85,8 +85,15 @@ def test_frontend_compose_receives_only_public_runtime_configuration() -> None:
         assert "env_file" not in frontend
         local_only = {"MINIO_LOCAL_BROWSER_ENDPOINT", "MINIO_LOCAL_BROWSER_SECURE"}
         assert set(frontend["environment"]) == expected | local_only
-        assert frontend["networks"]["app_net"]["ipv4_address"] == "10.251.0.10"
-        assert "10.251.0.10/32" in api["environment"]["TRUSTED_PROXY_CIDRS"]
+        assert (
+            frontend["networks"]["app_net"]["ipv4_address"]
+            == "${FRONTEND_IPV4_ADDRESS:-10.251.0.10}"
+        )
+        assert "${TRUSTED_PROXY_CIDRS" in api["environment"]["TRUSTED_PROXY_CIDRS"]
+        assert (
+            api["environment"]["TRUSTED_FRONTEND_PROXY_IP"]
+            == frontend["networks"]["app_net"]["ipv4_address"]
+        )
 
 
 def test_production_analysis_is_opt_in() -> None:
@@ -287,7 +294,7 @@ def test_production_compose_uses_the_production_env_and_host_database() -> None:
     production = PROD_COMPOSE_PATH.read_text(encoding="utf-8")
     api = _service_block(production, "api")
 
-    assert "env_file:\n      - .env.prod" in api
+    assert "env_file" not in api
     assert "@${POSTGRES_HOST:-host.docker.internal}:${POSTGRES_PORT:-5432}/" in api
     assert not re.search(r"(?m)^  database-init:$", production)
 
@@ -300,12 +307,7 @@ def test_compose_uses_typed_application_retention_defaults() -> None:
         "ARTIFACT_TTL_SECONDS",
         "ARTIFACT_GC_INTERVAL_SECONDS",
         "ARTIFACT_GC_BATCH_SIZE",
-        "ARTIFACT_DELETE_TIMEOUT_SECONDS",
-        "ARTIFACT_DOWNLOAD_URL_TTL_SECONDS",
         "ANALYSIS_REPORT_TTL_SECONDS",
-        "ANALYSIS_REPORT_GC_INTERVAL_SECONDS",
-        "ANALYSIS_REPORT_GC_BATCH_SIZE",
-        "ANALYSIS_REPORT_ORPHAN_GRACE_SECONDS",
     ):
         assert variable not in compose
         assert variable not in production
@@ -314,7 +316,7 @@ def test_compose_uses_typed_application_retention_defaults() -> None:
 def test_api_receives_feature_flags_and_uses_typed_import_defaults() -> None:
     api = _service_block(COMPOSE_PATH.read_text(encoding="utf-8"), "api")
 
-    assert "env_file:\n      - .env" in api
+    assert "env_file" not in api
     for variable in (
         "MEDIA_IMPORT_ENABLED",
         "DOCUMENT_IMPORT_ENABLED",
@@ -327,17 +329,21 @@ def test_api_receives_feature_flags_and_uses_typed_import_defaults() -> None:
         "IMPORT_UPLOAD_MAX_CONCURRENCY",
         "IMPORT_RIGHTS_STATEMENT_VERSION",
     ):
-        assert variable not in api
+        assert variable in api
 
 
-def test_import_worker_is_private_bounded_and_uses_env_file_credentials() -> None:
+def test_import_worker_is_private_bounded_and_receives_only_required_credentials() -> (
+    None
+):
     compose = COMPOSE_PATH.read_text(encoding="utf-8")
     worker = _service_block(compose, "worker-import")
 
     assert "SERVICE_ROLE: import-worker" in worker
     assert "RABBITMQ_IMPORT_USER" in worker
     assert "RABBITMQ_IMPORT_PASS" in worker
-    assert "env_file:\n      - .env" in worker
+    assert "env_file" not in worker
+    assert "MINIO_ACCESS_KEY" in worker
+    assert "MINIO_SECRET_KEY" in worker
     assert "MINIO_IMPORT_ACCESS_KEY" not in worker
     assert "MINIO_IMPORT_SECRET_KEY" not in worker
     assert "networks:\n      - app_net" in worker

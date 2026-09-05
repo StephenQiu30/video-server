@@ -8,26 +8,6 @@ from app.core.config import DEFAULT_URL_ENCRYPTION_KEY, Settings
 from pydantic import SecretStr, ValidationError
 
 
-def test_settings_resolve_frontend_dist_from_repository_root() -> None:
-    settings = Settings(app_env="test")
-
-    assert settings.frontend_dist_dir.name == "out"
-    assert settings.frontend_dist_dir.parent.name == "frontend"
-
-
-def test_explicit_frontend_dist_is_resolved(tmp_path: Path) -> None:
-    settings = Settings(app_env="test", frontend_dist_dir=tmp_path / "web")
-
-    assert settings.frontend_dist_dir == (tmp_path / "web").resolve()
-
-
-def test_relative_frontend_dist_is_resolved_from_repository() -> None:
-    settings = Settings(app_env="test", frontend_dist_dir=Path("custom-ui"))
-
-    assert settings.frontend_dist_dir.is_absolute()
-    assert settings.frontend_dist_dir.name == "custom-ui"
-
-
 def test_port_bounds_are_validated() -> None:
     with pytest.raises(ValidationError):
         Settings(app_env="test", app_port=0)
@@ -433,45 +413,41 @@ def test_production_canary_requires_dedicated_storage_credentials() -> None:
 
 
 @pytest.mark.parametrize(
-    "role",
-    (
-        "api",
-        "outbox",
-        "download-worker",
-        "analysis-worker",
-        "report-worker",
-        "provider-canary",
-    ),
+    "role", ("api", "download-worker", "analysis-worker", "provider-canary")
 )
-def test_production_rejects_default_url_key_for_every_role(role: str) -> None:
-    kwargs: dict[str, object] = {
-        "app_env": "production",
-        "service_role": role,
-        "database_url": "postgresql+asyncpg://app:db-secret@postgres:5432/video",
-    }
-    if role in {"api", "outbox", "download-worker"}:
-        kwargs["rabbitmq_url"] = "amqp://app:mq-secret@rabbitmq:5672/"
-        kwargs["auth_jwt_secret"] = SecretStr("s" * 48)
-        kwargs["request_fingerprint_secret"] = SecretStr("f" * 48)
-        kwargs["runner_hmac_secret"] = SecretStr("r" * 48)
-        kwargs["minio_access_key"] = SecretStr("production-access")
-        kwargs["minio_secret_key"] = SecretStr("m" * 48)
-    elif role == "analysis-worker":
-        kwargs["analysis_rabbitmq_url"] = "amqp://app:mq-secret@rabbitmq:5672/"
-        kwargs["minio_access_key"] = SecretStr("production-access")
-        kwargs["minio_secret_key"] = SecretStr("m" * 48)
-    elif role == "report-worker":
-        kwargs["minio_access_key"] = SecretStr("production-access")
-        kwargs["minio_secret_key"] = SecretStr("m" * 48)
-    elif role == "provider-canary":
-        kwargs["rabbitmq_url"] = "amqp://app:mq-secret@rabbitmq:5672/"
-        kwargs["runner_hmac_secret"] = SecretStr("r" * 48)
-        kwargs["minio_access_key"] = SecretStr("production-access")
-        kwargs["minio_secret_key"] = SecretStr("m" * 48)
-
-    # All roles share the same default URL key; leaving it unset must fail closed.
+def test_production_url_key_required_only_for_consumers(role: str) -> None:
+    kwargs = dict(
+        _env_file=None,
+        app_env="production",
+        service_role=role,
+        database_url="postgresql+asyncpg://app:db-password@postgres:5432/video",
+        rabbitmq_url="amqp://app:mq-password@rabbitmq:5672/",
+        analysis_rabbitmq_url="amqp://app:mq-password@rabbitmq:5672/",
+        auth_jwt_secret="s" * 48,
+        request_fingerprint_secret="f" * 48,
+        runner_hmac_secret="r" * 48,
+        minio_access_key="production-access",
+        minio_secret_key="m" * 48,
+        metrics_access_key="k" * 48,
+        auth_bootstrap_admin_secret="a" * 48,
+        auth_bootstrap_admin_email="admin@example.com",
+        valkey_url="redis://valkey:6379/0",
+    )
     with pytest.raises(ValidationError, match="production secrets"):
-        Settings(**kwargs, url_encryption_key=SecretStr(DEFAULT_URL_ENCRYPTION_KEY))
+        Settings(**kwargs, url_encryption_key=DEFAULT_URL_ENCRYPTION_KEY)
+
+
+@pytest.mark.parametrize("role", ("outbox", "import-worker", "report-worker"))
+def test_production_non_consumers_do_not_require_url_or_auth_secrets(role: str) -> None:
+    Settings(
+        _env_file=None,
+        app_env="production",
+        service_role=role,
+        database_url="postgresql+asyncpg://app:db-password@postgres:5432/video",
+        rabbitmq_url="amqp://app:mq-password@rabbitmq:5672/",
+        minio_access_key="production-access",
+        minio_secret_key="m" * 48,
+    )
 
 
 def test_analysis_settings_only_configure_host_binary_paths() -> None:

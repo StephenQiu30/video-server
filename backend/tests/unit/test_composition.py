@@ -19,7 +19,6 @@ def disable_external_realtime(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_non_test_app_wires_download_use_cases(tmp_path: Path) -> None:
     settings = Settings(
         app_env="development",
-        frontend_dist_dir=tmp_path / "missing",
         runner_base_url="http://runner.test",
         valkey_url="redis://127.0.0.1:6379/0",
         _env_file=None,
@@ -36,7 +35,6 @@ def test_non_test_app_wires_download_use_cases(tmp_path: Path) -> None:
 def test_non_test_app_wires_runtime_readiness_into_the_route(tmp_path: Path) -> None:
     settings = Settings(
         app_env="development",
-        frontend_dist_dir=tmp_path / "missing",
         runner_base_url="http://runner.test",
         valkey_url="redis://127.0.0.1:6379/0",
         _env_file=None,
@@ -54,9 +52,7 @@ def test_non_test_app_wires_runtime_readiness_into_the_route(tmp_path: Path) -> 
 
 
 def test_test_app_leaves_download_use_cases_injectable(tmp_path: Path) -> None:
-    application = create_app(
-        Settings(app_env="test", frontend_dist_dir=tmp_path / "missing")
-    )
+    application = create_app(Settings(app_env="test"))
 
     with TestClient(application) as client:
         response = client.post(

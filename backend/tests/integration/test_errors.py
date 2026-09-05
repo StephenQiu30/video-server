@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 
 def test_app_error_uses_stable_problem_details(tmp_path: Path) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "missing"))
+    app = create_app(Settings(app_env="test"))
 
     @app.get("/api/test-error")
     async def test_error() -> None:
@@ -36,7 +36,7 @@ def test_app_error_uses_stable_problem_details(tmp_path: Path) -> None:
 
 
 def test_request_validation_uses_stable_problem_details(tmp_path: Path) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "missing"))
+    app = create_app(Settings(app_env="test"))
 
     @app.get("/api/validation")
     async def validation(limit: int) -> dict[str, int]:

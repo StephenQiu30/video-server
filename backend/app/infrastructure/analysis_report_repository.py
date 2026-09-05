@@ -11,6 +11,7 @@ from sqlalchemy import exists, or_, select
 from app.infrastructure.analysis_report_lifecycle import (
     AnalysisReportLifecycleRepository,
 )
+from app.infrastructure.analysis_report_state import lock_report_and_job
 from app.infrastructure.database.base import as_utc
 from app.infrastructure.database.models import (
     AnalysisJobRow,
@@ -72,7 +73,14 @@ class SqlAlchemyAnalysisReportRepository(AnalysisReportLifecycleRepository):
             if report.status == "available":
                 await increment_counter(session, "claim_noop", "report")
                 return None
-            if job.active_run_id != run_id or job.version != expected_version:
+            if (
+                job.active_run_id != run_id
+                or job.version != expected_version
+                or job.status != "running"
+                or job.stage != "publishing"
+                or job.deleted_at is not None
+                or report.status not in {"validated", "publishing", "publish_failed"}
+            ):
                 await increment_counter(session, "claim_noop", "report")
                 return None
             if (
@@ -107,11 +115,7 @@ class SqlAlchemyAnalysisReportRepository(AnalysisReportLifecycleRepository):
         if {item.format for item in objects} != {"markdown", "docx"}:
             raise ValueError("both report formats are required")
         async with self._sessions() as session, session.begin():
-            report = await session.scalar(
-                select(AnalysisResultRow)
-                .where(AnalysisResultRow.id == publication.id)
-                .with_for_update()
-            )
+            report, job = await lock_report_and_job(session, publication.id)
             if (
                 report is None
                 or report.status != "publishing"
@@ -120,6 +124,15 @@ class SqlAlchemyAnalysisReportRepository(AnalysisReportLifecycleRepository):
                 or as_utc(report.lease_expires_at) <= as_utc(now)
             ):
                 raise RuntimeError("report publication lease lost")
+            run = await session.get(AnalysisRunRow, publication.run_id)
+            active = (
+                job is not None
+                and run is not None
+                and job.active_run_id == run.id
+                and job.status == "running"
+                and job.stage == "publishing"
+                and job.deleted_at is None
+            )
             existing = {
                 item.format: item
                 for item in (
@@ -143,7 +156,7 @@ class SqlAlchemyAnalysisReportRepository(AnalysisReportLifecycleRepository):
                             content_type=item.content_type,
                             size_bytes=item.size_bytes,
                             sha256=item.sha256,
-                            status="available",
+                            status="available" if active else "delete_pending",
                             created_at=now,
                             available_at=now,
                         )
@@ -154,13 +167,11 @@ class SqlAlchemyAnalysisReportRepository(AnalysisReportLifecycleRepository):
                     item.sha256,
                 ):
                     raise RuntimeError("stored report metadata conflicts")
-            report.status = "available"
+            report.status = "available" if active else "delete_pending"
             report.published_at = now
             report.lease_owner = None
             report.lease_expires_at = None
-            job = await session.get(AnalysisJobRow, publication.job_id)
-            run = await session.get(AnalysisRunRow, publication.run_id)
-            if job is not None and run is not None and job.active_run_id == run.id:
+            if active and job is not None and run is not None:
                 job.current_report_id = report.id
                 job.status = "succeeded"
                 job.stage = None
@@ -173,19 +184,50 @@ class SqlAlchemyAnalysisReportRepository(AnalysisReportLifecycleRepository):
                 await self.release_lock(session, job.id)
 
     async def fail(
-        self, report_id: UUID, worker_id: str, message: str, now: datetime
+        self,
+        report_id: UUID,
+        worker_id: str,
+        message: str,
+        now: datetime,
+        *,
+        terminal: bool = False,
     ) -> None:
         async with self._sessions() as session, session.begin():
-            report = await session.scalar(
-                select(AnalysisResultRow)
-                .where(AnalysisResultRow.id == report_id)
-                .with_for_update()
-            )
-            if report is None or report.status == "available":
+            report, job = await lock_report_and_job(session, report_id)
+            if report is None or report.status in {
+                "available",
+                "deleted",
+                "delete_pending",
+            }:
                 return
             if report.lease_owner not in {None, worker_id}:
                 return
-            report.status = "publish_failed"
+            active = (
+                job is not None
+                and job.active_run_id == report.run_id
+                and job.status == "running"
+                and job.stage == "publishing"
+                and job.deleted_at is None
+            )
+            report.status = (
+                "publish_failed" if active and not terminal else "delete_pending"
+            )
+            if terminal and active and job is not None:
+                run = await session.get(AnalysisRunRow, report.run_id)
+                job.status = "failed"
+                job.stage = None
+                job.stage_rank = 0
+                job.error_code = "analysis_resource_limit"
+                job.error_message = "Report exceeds publication byte budget."
+                job.finished_at = now
+                job.updated_at = now
+                job.lease_owner = None
+                job.lease_expires_at = None
+                job.heartbeat_at = None
+                job.version += 1
+                if run is not None:
+                    self.sync_run(job, run)
+                await self.release_lock(session, job.id)
             report.error_message = message[:512]
             report.lease_owner = None
             report.lease_expires_at = None

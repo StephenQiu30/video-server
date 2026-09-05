@@ -18,7 +18,6 @@ def test_internal_metrics_require_scrape_key_and_stay_out_of_openapi(
     app = create_app(
         Settings(
             app_env="test",
-            frontend_dist_dir=tmp_path / "none",
             metrics_access_key="controlled-metrics-key",
         )
     )

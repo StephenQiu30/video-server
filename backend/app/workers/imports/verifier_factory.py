@@ -8,7 +8,8 @@ from .text import TextScreenplayVerifier, TextVerificationSettings
 
 def build_screenplay_verifier(settings: Settings) -> ScreenplayImportVerifier:
     text_settings = TextVerificationSettings(
-        max_size_bytes=settings.document_import_max_bytes
+        max_size_bytes=settings.document_import_max_bytes,
+        max_characters=settings.document_normalized_max_characters,
     )
     return ScreenplayImportVerifier(
         TextScreenplayVerifier(settings.import_workspace_root, text_settings),

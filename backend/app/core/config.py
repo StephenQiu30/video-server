@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 import tempfile
 from functools import lru_cache
-from ipaddress import ip_address, ip_network
+from ipaddress import IPv4Address, IPv6Address, ip_address, ip_network
 from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
@@ -14,6 +14,7 @@ from cryptography.fernet import Fernet
 from pydantic import EmailStr, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.core.quota_config import QuotaLimits
 from app.core.rate_limits import RateLimitOperation, RateLimitPolicy
 from app.domain.identifiers import RightsStatementVersion, UrlEncryptionKeyId
 from app.domain.providers import ProviderKey
@@ -51,11 +52,11 @@ class Settings(BaseSettings):
     app_host: str = "0.0.0.0"
     app_port: int = Field(default=8111, ge=1, le=65535)
     app_version: str = "0.1.0"
-    frontend_dist_dir: Path = REPOSITORY_ROOT / "frontend" / "out"
     readiness_timeout_seconds: float = Field(default=2.0, ge=0.1, le=10)
     request_max_bytes: int = Field(default=256 * 1024, ge=1024, le=4 * 1024 * 1024)
     request_timeout_seconds: float = Field(default=180, ge=1, le=300)
     trusted_proxy_cidrs: tuple[str, ...] = ("127.0.0.0/8", "::1/128")
+    trusted_frontend_proxy_ip: IPv4Address | IPv6Address | None = None
     rate_limit_policies: dict[RateLimitOperation, RateLimitPolicy] = Field(
         default_factory=dict
     )
@@ -157,6 +158,13 @@ class Settings(BaseSettings):
     download_thumbnail_timeout_seconds: float = Field(default=15, ge=1, le=60)
     download_thumbnail_max_bytes: int = Field(
         default=2_000_000, ge=1024, le=10 * 1024**2
+    )
+    quota_limits: QuotaLimits = Field(default_factory=QuotaLimits)
+    document_normalized_max_characters: int = Field(
+        default=2_000_000, ge=1, le=2_000_000
+    )
+    analysis_report_max_bytes: int = Field(
+        default=16 * 1024**2, ge=1024, le=64 * 1024**2
     )
     media_import_enabled: bool = True
     document_import_enabled: bool = True
@@ -279,13 +287,6 @@ class Settings(BaseSettings):
         if not value.startswith("postgresql+asyncpg://"):
             raise ValueError("database URLs must use postgresql+asyncpg")
         return value
-
-    @field_validator("frontend_dist_dir")
-    @classmethod
-    def resolve_frontend_dist(cls, value: Path) -> Path:
-        if not value.is_absolute():
-            value = REPOSITORY_ROOT / value
-        return value.resolve()
 
     @field_validator("runner_workspace_root")
     @classmethod
@@ -544,11 +545,13 @@ class Settings(BaseSettings):
             marker in f"{self.database_url} {rabbitmq_url}"
             for marker in ("video:video@", "replace-with", "-secret@")
         )
-        # Every role loads url_encryption_key from Settings, and api/download/canary
-        # use it to encrypt/decrypt user URLs. A production deployment must never
-        # fall back to the hardcoded development key, regardless of service role.
+        # Only processes that encrypt or decrypt URLs/provider keys receive this
+        # secret. Queue forwarding, import verification and report publication do
+        # not need it and must be able to start without it.
         default_url_key = (
-            self.url_encryption_key.get_secret_value() == DEFAULT_URL_ENCRYPTION_KEY
+            self.service_role
+            in {"api", "download-worker", "provider-canary", "analysis-worker"}
+            and self.url_encryption_key.get_secret_value() == DEFAULT_URL_ENCRYPTION_KEY
         )
         if insecure or insecure_urls or default_url_key:
             raise ValueError("production secrets must be explicitly configured")

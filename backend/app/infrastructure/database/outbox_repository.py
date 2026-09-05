@@ -8,10 +8,17 @@ from uuid import UUID
 from sqlalchemy import Select, or_, select
 
 from .access_repository import AccessRepository
+from .analytics_repository import AnalyticsRepository
+from .completion_repository import CompletionRepository
 from .contracts import OutboxSnapshot
+from .download_delete_repository import DownloadDeleteRepository
+from .job_repository import JobRepository
 from .mapping import outbox_snapshot
+from .media_repository import MediaRepository
 from .models import OutboxEventRow
 from .operational_counter import increment_counter
+from .progress_repository import ProgressRepository
+from .recovery_repository import RecoveryRepository
 
 
 def outbox_claim_statement(now: datetime, limit: int) -> Select[tuple[OutboxEventRow]]:
@@ -35,7 +42,16 @@ def outbox_claim_statement(now: datetime, limit: int) -> Select[tuple[OutboxEven
     )
 
 
-class SqlAlchemyDownloadRepository(AccessRepository):
+class SqlAlchemyDownloadRepository(
+    AccessRepository,
+    DownloadDeleteRepository,
+    AnalyticsRepository,
+    RecoveryRepository,
+    CompletionRepository,
+    ProgressRepository,
+    JobRepository,
+    MediaRepository,
+):
     async def claim_outbox(
         self,
         publisher_id: str,

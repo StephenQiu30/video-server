@@ -43,7 +43,10 @@ async def enforce_rate_limit(
     )
     if limiter is None:
         return
-    client_host = _client_host(request, settings.trusted_proxy_cidrs)
+    trusted = settings.trusted_proxy_cidrs
+    if settings.trusted_frontend_proxy_ip is not None:
+        trusted += (str(settings.trusted_frontend_proxy_ip),)
+    client_host = _client_host(request, trusted)
     try:
         await limiter.check(
             operation=operation,

@@ -16,8 +16,8 @@ from app.application.analysis import (
 )
 from app.domain.analysis import analysis_result_contract, analysis_result_language
 from app.domain.identifiers import AnalysisReportRenderer
+from app.infrastructure.analysis_repository_base import AnalysisRepositoryBase
 from app.infrastructure.analysis_repository_mapping import analysis_job_snapshot
-from app.infrastructure.analysis_repository_recovery import AnalysisRecoveryRepository
 from app.infrastructure.analysis_repository_serialization import (
     analysis_result_document,
 )
@@ -25,7 +25,7 @@ from app.infrastructure.database.base import as_utc
 from app.infrastructure.database.models import AnalysisJobRow, AnalysisResultRow
 
 
-class AnalysisPublishRepository(AnalysisRecoveryRepository):
+class AnalysisPublishRepository(AnalysisRepositoryBase):
     async def publish_result(self, command: AnalysisPublish) -> AnalysisJobSnapshot:
         document = analysis_result_document(command.result)
         async with self._sessions() as session, session.begin():

@@ -19,7 +19,6 @@ from .contracts import (
     ThumbnailSnapshot,
     ThumbnailSourceSnapshot,
 )
-from .download_delete_repository import DownloadDeleteRepository
 from .errors import LeaseConflict, RepositoryConflict, RepositoryNotFound
 from .mapping import (
     artifact_snapshot,
@@ -36,9 +35,10 @@ from .models import (
     MediaInspectionRow,
     MediaThumbnailRow,
 )
+from .repository_base import RepositoryBase
 
 
-class AccessRepository(DownloadDeleteRepository):
+class AccessRepository(RepositoryBase):
     async def list_missing_download_thumbnails(
         self, *, limit: int
     ) -> tuple[DownloadThumbnailCandidateSnapshot, ...]:

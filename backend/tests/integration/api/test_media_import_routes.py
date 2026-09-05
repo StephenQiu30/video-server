@@ -79,7 +79,7 @@ def upload_session_view() -> UploadSessionView:
 def client(
     tmp_path: Path,
 ) -> tuple[TestClient, dict[str, StubUseCase]]:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     stubs = {
         "create": StubUseCase(import_view()),
         "session": StubUseCase(upload_session_view()),
@@ -108,7 +108,7 @@ def request_body() -> dict[str, object]:
 
 
 def test_media_import_use_cases_are_resolved_from_app_state(tmp_path: Path) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     app.dependency_overrides[get_current_user] = lambda: TEST_USER
     with TestClient(app) as test_client:
         response = test_client.post(
@@ -232,9 +232,7 @@ def test_media_import_errors_use_stable_problem_details(tmp_path: Path) -> None:
 def test_media_import_openapi_is_strict_and_has_unique_operations(
     tmp_path: Path,
 ) -> None:
-    schema = create_app(
-        Settings(app_env="test", frontend_dist_dir=tmp_path / "none")
-    ).openapi()
+    schema = create_app(Settings(app_env="test")).openapi()
     paths = schema["paths"]
     assert paths["/api/media-imports"]["post"]["operationId"] == ("createMediaImport")
     assert paths["/api/media-imports/{resource_id}"]["get"]["operationId"] == (

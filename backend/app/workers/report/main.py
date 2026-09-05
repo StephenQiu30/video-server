@@ -40,6 +40,7 @@ async def run() -> None:
         storage,
         PythonDocxAnalysisReportRenderer(),
         bucket=settings.minio_bucket,
+        max_bytes=settings.analysis_report_max_bytes,
         worker_id=worker_id().replace("analysis-", "report-", 1),
         clock=lambda: datetime.now(UTC),
     )

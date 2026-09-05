@@ -79,7 +79,7 @@ class Providers:
 
 
 def test_admin_crud_never_returns_ai_provider_secret(tmp_path: Path) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     providers = Providers()
     app.state.ai_provider_service = providers
     app.dependency_overrides[get_current_admin] = lambda: ADMIN
@@ -117,7 +117,7 @@ def test_admin_crud_never_returns_ai_provider_secret(tmp_path: Path) -> None:
 
 
 def test_ai_provider_routes_reject_non_admin(tmp_path: Path) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     providers = Providers()
     app.state.ai_provider_service = providers
     app.dependency_overrides[get_current_user] = lambda: USER
@@ -135,7 +135,7 @@ def test_reserved_local_codex_mutation_has_a_stable_conflict(tmp_path: Path) -> 
             assert actor == ADMIN and key == "local-codex"
             raise AiProviderError(AiProviderErrorCode.RESERVED_MUTATION)
 
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     app.state.ai_provider_service = ReservedProviders()
     app.dependency_overrides[get_current_admin] = lambda: ADMIN
 

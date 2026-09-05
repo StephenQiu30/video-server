@@ -5,9 +5,7 @@ from app.main import create_app
 
 
 def test_document_openapi_operations_are_stable(tmp_path: Path) -> None:
-    schema = create_app(
-        Settings(app_env="test", frontend_dist_dir=tmp_path / "none")
-    ).openapi()
+    schema = create_app(Settings(app_env="test")).openapi()
     paths = schema["paths"]
     assert paths["/api/documents"]["post"]["operationId"] == "createDocumentImport"
     assert paths["/api/documents"]["get"]["operationId"] == "listDocuments"

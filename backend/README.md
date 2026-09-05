@@ -2,7 +2,7 @@
 
 FastAPI API、下载/分析领域逻辑、异步 Worker、当前态数据库 SQL 和 Python 测试位于本模块。
 
-所有 Python 与 `uv` 命令都应从 `backend/` 执行。数据库当前结构定义在可重复执行的 `sql/schema.sql`；宿主机或外部平台必须在启动业务容器前幂等加载该文件。项目不维护迁移历史、Compose 数据库初始化服务或旧 schema 兼容路径。生产镜像由仓库根目录 `Dockerfile` 统一构建。
+所有 Python 与 `uv` 命令都应从 `backend/` 执行。数据库当前结构定义在可重复执行的 `sql/schema.sql`；项目环境 Compose 的初始化服务负责加载，复用外部环境时由部署者在启动业务容器前幂等加载。项目不维护迁移历史或旧 schema 兼容路径。生产镜像由仓库根目录 `Dockerfile` 统一构建，Next.js 与 FastAPI 分别运行。
 
 ## 目录约定
 
@@ -38,9 +38,15 @@ macOS 部署可显式安装统一按需助手，在解析进入受控线路时�
 
 内置 `local-codex` 不可删除或改造为第三方结构；模型和线路仅由数据库 Web Profile 决定，`.env` 只保留宿主机 CLI 二进制路径。
 
+## 资源准入
+
+高成本路由显式声明速率策略，PostgreSQL 在资源/run/outbox 创建事务内统一检查账户及全局配额。配置入口为 `RATE_LIMIT_POLICIES` 与 `QUOTA_LIMITS`；幂等重放不重复扣减，取消释放活跃名额，物理清理完成后释放保留存储。报告超限是可见的终态失败；取消后迟到的报告只进入清理流程。完整计量口径和生产边界见 [上线准入设计](../docs/design/006-上线产品能力补全设计.md)。
+
+分片上传使用 AWS SDK 的 SigV4 查询签名绑定每片精确长度，MinIO 在接收时拒绝长度不匹配；Next.js 上传代理保留 `Content-Length`。可用隔离 MinIO 运行 `TEST_MINIO_ENDPOINT=... TEST_MINIO_ACCESS_KEY=... TEST_MINIO_SECRET_KEY=... uv run pytest tests/integration/test_upload_size_boundary.py`；设置 `TEST_NEXT_UPLOAD_ORIGIN` 可一并验证独立前端代理。
+
 ## 运行与就绪
 
-本机必须先提供 PostgreSQL、RabbitMQ、Valkey/Redis 和 MinIO，并预置数据库 schema、消息拓扑、对象存储身份与 bucket。随后从仓库根目录启动前端、API 和业务 Worker；Compose 不管理这些外部基础设施：
+本机必须先提供 PostgreSQL、RabbitMQ、Valkey/Redis 和 MinIO，并预置数据库 schema、消息拓扑、对象存储身份与 bucket。随后从仓库根目录启动前端、API 和业务 Worker；业务 Compose 不管理这些外部基础设施；需要项目专用环境时先按根运行手册启动 `docker-compose-env.yml`：
 
 ```bash
 docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300

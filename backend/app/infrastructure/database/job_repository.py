@@ -3,37 +3,40 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from sqlalchemy import Select, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.infrastructure.database.quota_admission import lock_admission, reserve
+
 from .contracts import DownloadCreate, JobCreateResult, JobSnapshot
+from .download_events import requested_event
 from .errors import (
     IdempotencyConflict,
     RepositoryConflict,
     RepositoryNotFound,
 )
 from .mapping import job_snapshot
-from .media_repository import MediaRepository
 from .models import (
     DownloadJobRow,
     MediaFormatRow,
     MediaInspectionRow,
-    OutboxEventRow,
 )
+from .repository_base import RepositoryBase
 
 _ACTIVE_JOB_STATUSES = ("queued", "running", "retry_wait")
 
 
-class JobRepository(MediaRepository):
+class JobRepository(RepositoryBase):
     async def create_job(
         self, command: DownloadCreate, *, now: datetime
     ) -> JobCreateResult:
         async with self._sessions() as session:
             try:
                 async with session.begin():
+                    await lock_admission(session, command.owner_hash)
                     existing = await session.scalar(self._idempotency_query(command))
                     if existing is not None:
                         return self._idempotent_result(existing, command)
@@ -41,6 +44,14 @@ class JobRepository(MediaRepository):
                     if active is not None:
                         return JobCreateResult(job_snapshot(active), created=False)
                     await self._validate_source(session, command, now)
+                    await reserve(
+                        session,
+                        self._quota_policy,
+                        owner_hash=command.owner_hash,
+                        resource_id=command.id,
+                        kind="download",
+                        now=now,
+                    )
                     row = DownloadJobRow(
                         id=command.id,
                         source_kind=command.source_kind,
@@ -55,7 +66,7 @@ class JobRepository(MediaRepository):
                         updated_at=now,
                     )
                     session.add(row)
-                    session.add(self._requested_event(row, now))
+                    session.add(requested_event(row, now))
                     await session.flush()
                     result = JobCreateResult(job_snapshot(row), created=True)
                 return result
@@ -148,22 +159,6 @@ class JobRepository(MediaRepository):
         if row.request_fingerprint != command.request_fingerprint:
             raise IdempotencyConflict("download idempotency key already used")
         return JobCreateResult(job_snapshot(row), created=False)
-
-    @staticmethod
-    def _requested_event(row: DownloadJobRow, now: datetime) -> OutboxEventRow:
-        return OutboxEventRow(
-            id=uuid4(),
-            aggregate_type="download_job",
-            aggregate_id=row.id,
-            event_type="download.requested",
-            payload={
-                "job_id": str(row.id),
-                "attempt": row.attempt or 0,
-                "version": row.version or 0,
-            },
-            available_at=now,
-            created_at=now,
-        )
 
     @staticmethod
     async def _validate_source(

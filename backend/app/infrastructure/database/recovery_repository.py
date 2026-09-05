@@ -7,8 +7,9 @@ from uuid import UUID
 
 from sqlalchemy import Select, select
 
-from .completion_repository import CompletionRepository
+from .download_events import requested_event
 from .models import DownloadJobRow
+from .repository_base import RepositoryBase
 
 
 def stale_jobs_statement(now: datetime, limit: int) -> Select[tuple[DownloadJobRow]]:
@@ -55,7 +56,7 @@ def stale_queued_jobs_statement(
     )
 
 
-class RecoveryRepository(CompletionRepository):
+class RecoveryRepository(RepositoryBase):
     async def recover_stale_queued(
         self,
         now: datetime,
@@ -69,7 +70,7 @@ class RecoveryRepository(CompletionRepository):
         async with self._sessions() as session, session.begin():
             rows = tuple((await session.scalars(statement)).all())
             for row in rows:
-                session.add(self._requested_event(row, now))
+                session.add(requested_event(row, now))
                 # Throttle recovery publication while preserving job/version identity.
                 row.updated_at = now
             await session.flush()
@@ -112,6 +113,6 @@ class RecoveryRepository(CompletionRepository):
                 row.retry_at = None
                 row.version += 1
                 row.updated_at = now
-                session.add(self._requested_event(row, now))
+                session.add(requested_event(row, now))
             await session.flush()
             return tuple(row.id for row in rows)

@@ -125,6 +125,7 @@ class QuarantineObjectStorage(Protocol):
         part_number: int,
         *,
         ttl_seconds: int,
+        size_bytes: int,
         use_local_browser_endpoint: bool = False,
     ) -> str: ...
 

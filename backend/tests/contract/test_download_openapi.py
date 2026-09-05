@@ -9,7 +9,7 @@ from app.main import create_app
 def test_download_openapi_exposes_required_routes_and_idempotency(
     tmp_path: Path,
 ) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     schema = app.openapi()
     paths = schema["paths"]
 
@@ -80,7 +80,7 @@ def test_download_openapi_exposes_required_routes_and_idempotency(
 def test_admin_download_analytics_openapi_is_bounded_and_safe(
     tmp_path: Path,
 ) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     schema = app.openapi()
     operation = schema["paths"]["/api/admin/downloads/analytics"]["get"]
 
@@ -116,7 +116,7 @@ def test_admin_download_analytics_openapi_is_bounded_and_safe(
 def test_request_schemas_forbid_unknown_fields_and_plan_has_no_hints(
     tmp_path: Path,
 ) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     components = app.openapi()["components"]["schemas"]
 
     assert components["InspectionRequest"]["additionalProperties"] is False
@@ -129,7 +129,7 @@ def test_request_schemas_forbid_unknown_fields_and_plan_has_no_hints(
 
 
 def test_provider_status_contract_is_coarse_and_non_secret(tmp_path: Path) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     components = app.openapi()["components"]["schemas"]
     contract = str(components["ProviderStatusResponse"])
 

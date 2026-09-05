@@ -6,9 +6,7 @@ from app.main import create_app
 
 
 def test_auth_openapi_exposes_email_session_contract(tmp_path: Path) -> None:
-    schema = create_app(
-        Settings(app_env="test", frontend_dist_dir=tmp_path / "none")
-    ).openapi()
+    schema = create_app(Settings(app_env="test")).openapi()
     paths = schema["paths"]
 
     assert {

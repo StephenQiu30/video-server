@@ -22,6 +22,7 @@ from app.application.imports.errors import (
     MultipartUploadRejected,
 )
 from app.core.config import Settings
+from app.infrastructure.upload_signing import UploadSigner
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,6 +76,20 @@ class MinioObjectStorage:
         access_key = access_key or settings.minio_access_key.get_secret_value()
         secret_key = secret_key or settings.minio_secret_key.get_secret_value()
         self._bucket = settings.minio_bucket
+        self._upload_signer = UploadSigner(
+            settings.minio_public_origin(),
+            settings.minio_region,
+            access_key,
+            secret_key,
+        )
+        local_origin = settings.minio_local_browser_origin()
+        self._local_upload_signer = (
+            None
+            if local_origin is None
+            else UploadSigner(
+                local_origin, settings.minio_region, access_key, secret_key
+            )
+        )
         self._private = private or Minio(
             settings.minio_endpoint,
             access_key=access_key,
@@ -220,6 +235,7 @@ class MinioObjectStorage:
         part_number: int,
         *,
         ttl_seconds: int,
+        size_bytes: int,
         use_local_browser_endpoint: bool = False,
     ) -> str:
         _validate_key(object_key)
@@ -231,20 +247,21 @@ class MinioObjectStorage:
             raise ValueError("part number must be between 1 and 10000")
         if isinstance(ttl_seconds, bool) or not 1 <= ttl_seconds <= 604_800:
             raise ValueError("upload signing TTL must be between 1 and 604800")
-        try:
-            return await asyncio.to_thread(
-                signer.get_presigned_url,
-                "PUT",
-                self._bucket,
-                object_key,
-                expires=timedelta(seconds=ttl_seconds),
-                extra_query_params={
-                    "partNumber": str(part_number),
-                    "uploadId": upload_id,
-                },
-            )
-        except Exception as error:
-            raise ImportObjectStorageError("upload part signing failed") from error
+        upload_signer = (
+            self._local_upload_signer
+            if use_local_browser_endpoint
+            else self._upload_signer
+        )
+        if upload_signer is None:
+            raise RuntimeError("local browser upload signing is not configured")
+        return upload_signer.part_url(
+            self._bucket,
+            object_key,
+            upload_id,
+            part_number,
+            size_bytes=size_bytes,
+            ttl_seconds=ttl_seconds,
+        )
 
     async def complete_multipart_upload(
         self,

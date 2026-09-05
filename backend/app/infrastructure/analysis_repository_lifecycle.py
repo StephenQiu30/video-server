@@ -12,8 +12,8 @@ from app.application.analysis import (
     PersistenceConflict,
     PersistenceNotFound,
 )
+from app.infrastructure.analysis_repository_base import AnalysisRepositoryBase
 from app.infrastructure.analysis_repository_mapping import analysis_job_snapshot
-from app.infrastructure.analysis_repository_retry import AnalysisRetryRepository
 from app.infrastructure.database.base import as_utc
 from app.infrastructure.database.models import (
     AnalysisJobRow,
@@ -30,7 +30,7 @@ STAGE_RANKS = {
 }
 
 
-class AnalysisLifecycleRepository(AnalysisRetryRepository):
+class AnalysisLifecycleRepository(AnalysisRepositoryBase):
     async def get_latest_job_for_download(
         self, download_id: UUID, owner_hash: str
     ) -> AnalysisJobSnapshot | None:
@@ -236,6 +236,13 @@ class AnalysisLifecycleRepository(AnalysisRetryRepository):
             row.heartbeat_at = None
             row.updated_at = now
             self.sync_run(row, run)
+            report = await session.scalar(
+                select(AnalysisResultRow)
+                .where(AnalysisResultRow.run_id == run.id)
+                .with_for_update()
+            )
+            if report is not None and report.status in {"validated", "publish_failed"}:
+                report.status = "delete_pending"
             await self.release_lock(session, row.id)
             await session.flush()
             return analysis_job_snapshot(row)

@@ -28,7 +28,9 @@ class SqlAlchemyDocumentImportRepository(RepositoryBase):
     async def create_resource(
         self, command: ImportResourceCreate, *, now: datetime
     ) -> ImportResourceSaveResult:
-        return await resources.create_resource(self._sessions, command, now=now)
+        return await resources.create_resource(
+            self._sessions, command, now=now, quota_policy=self._quota_policy
+        )
 
     async def get_resource(
         self, resource_id: UUID, owner_hash: str, content_kind: ContentKind

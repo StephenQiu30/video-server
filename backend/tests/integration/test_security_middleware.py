@@ -12,7 +12,6 @@ def test_request_guard_rejects_large_bodies_and_adds_security_headers(
     app = create_app(
         Settings(
             app_env="test",
-            frontend_dist_dir=tmp_path / "missing",
             request_max_bytes=1024,
         )
     )
@@ -35,7 +34,6 @@ def test_request_guard_counts_streamed_bodies_without_content_length(
     app = create_app(
         Settings(
             app_env="test",
-            frontend_dist_dir=tmp_path / "missing",
             request_max_bytes=1024,
         )
     )
@@ -62,7 +60,6 @@ def test_media_import_csp_allows_only_configured_storage_origin(
     app = create_app(
         Settings(
             app_env="test",
-            frontend_dist_dir=tmp_path / "missing",
             media_import_enabled=True,
             minio_public_endpoint="storage.example.com:9443",
             minio_public_secure=True,
@@ -84,7 +81,6 @@ def test_document_import_enables_bounded_storage_origin(tmp_path: Path) -> None:
     app = create_app(
         Settings(
             app_env="test",
-            frontend_dist_dir=tmp_path / "missing",
             media_import_enabled=False,
             document_import_enabled=True,
             minio_public_endpoint="documents.example.com:9443",
@@ -102,7 +98,7 @@ def test_document_import_enables_bounded_storage_origin(tmp_path: Path) -> None:
 
 
 def test_rate_limit_returns_problem_details_and_retry_after(tmp_path: Path) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "missing"))
+    app = create_app(Settings(app_env="test"))
 
     class BlockedLimiter:
         async def check(self, **_kwargs: object) -> None:

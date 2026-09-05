@@ -16,7 +16,6 @@ server/
 │   │   ├── infrastructure/        数据库、消息、存储、AI 与媒体适配器
 │   │   ├── runner/                隔离执行媒体命令的进程
 │   │   ├── workers/               Outbox、下载与分析 Worker
-│   │   ├── web/                   Next.js 静态导出、404 与旧路由转发
 │   │   ├── composition.py         运行时依赖装配
 │   │   └── main.py                FastAPI 入口
 │   ├── egress/                    Squid 出口代理策略
@@ -40,7 +39,7 @@ server/
 └── docker-compose-prod.yml        生产业务容器拓扑
 ```
 
-仓库只保留 `backend/`、`frontend/`、`docs/` 三个业务模块和根治理文件，不新增 `deploy/`、重复子仓库或平行应用目录。生产环境不运行独立前端容器，静态资源由根镜像构建并通过 FastAPI 同源提供。
+仓库只保留 `backend/`、`frontend/`、`docs/` 三个业务模块和根治理文件，不新增 `deploy/`、重复子仓库或平行应用目录。生产环境保持前后端分离：Next.js standalone 前端独立监听 `8101`，FastAPI API 独立监听 `8111`。统一镜像按服务启动不同进程；FastAPI 不托管页面。浏览器使用同源相对 API 路径，由 Next.js 或部署入口转发到 API，WebSocket Upgrade 由部署入口直达 FastAPI。
 
 ## 文件放置规则
 

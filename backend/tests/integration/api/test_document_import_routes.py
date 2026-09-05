@@ -95,7 +95,7 @@ def detail_view() -> DocumentView:
 
 
 def client(tmp_path: Path) -> tuple[TestClient, dict[str, StubUseCase]]:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     stubs = {
         "create": StubUseCase(document_view()),
         "session": StubUseCase(session_view()),
@@ -131,7 +131,7 @@ def body() -> dict[str, object]:
 
 
 def test_document_use_cases_are_required(tmp_path: Path) -> None:
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     app.dependency_overrides[get_current_user] = lambda: TEST_USER
     with TestClient(app) as test_client:
         response = test_client.post(

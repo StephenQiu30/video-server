@@ -15,6 +15,7 @@ from app.application.imports import (
     ImportResourceSaveResult,
     ImportResourceSnapshot,
 )
+from app.application.quotas import QuotaPolicy
 from app.domain.imports import ContentKind, ImportStatus
 
 from .document_import_mapping import (
@@ -27,6 +28,7 @@ from .document_import_repository_support import (
     require_document_create,
 )
 from .models import DocumentRow
+from .quota_admission import lock_admission, reserve
 
 
 async def create_resource(
@@ -34,14 +36,25 @@ async def create_resource(
     command: ImportResourceCreate,
     *,
     now: datetime,
+    quota_policy: QuotaPolicy,
 ) -> ImportResourceSaveResult:
     require_document_create(command)
     async with sessions() as session:
         try:
             async with session.begin():
+                await lock_admission(session, command.owner_hash)
                 existing = await session.scalar(idempotency_query(command))
                 if existing is not None:
                     return await idempotent_result(session, existing, command)
+                await reserve(
+                    session,
+                    quota_policy,
+                    owner_hash=command.owner_hash,
+                    resource_id=command.id,
+                    kind="document_import",
+                    size_bytes=command.declared_size_bytes,
+                    now=now,
+                )
                 row = DocumentRow(
                     id=command.id,
                     owner_hash=command.owner_hash,

@@ -24,4 +24,5 @@ def test_run_uses_typed_host_and_port(monkeypatch: Any) -> None:
         "host": "127.0.0.1",
         "port": 19191,
         "reload": False,
+        "proxy_headers": False,
     }

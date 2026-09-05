@@ -42,13 +42,13 @@ npm run build
 - 客户端路由和导航可按当前用户隐藏管理员入口，但后端 403 始终是最终权限判定。
 - 退出登录后清理内存中的用户态并返回登录页，不将业务数据当作会话凭据保存在浏览器。
 
-## App Router 与静态导出
+## App Router 与独立服务
 
 - 优先使用 Server Component；只有交互、状态或浏览器 API 需要时才添加 `'use client'`，并把客户端边界控制在最小范围。
-- 动态任务路由必须为静态导出提供可构建的壳层，并在客户端读取运行时参数；不得依赖 Next.js Server、Server Action 或生产时动态渲染。
-- `next.config.ts` 保持 static export，生产构建产物为 `out/`。
-- 根 Dockerfile 将 `out/` 复制到 `/app/frontend/out`，由 FastAPI 同源提供页面、`/api/*` 和 `/health/*`；不要增加独立前端生产容器。
-- 开发代理只服务本地联调，业务代码始终使用同源相对路径。
+- `next.config.ts` 保持 `output: 'standalone'`，生产使用独立 Node.js 服务，不改为静态导出或 FastAPI 页面托管。
+- 根 Dockerfile 构建 `.next/standalone` 并复制 `public/`、`.next/static/`；Compose 的 frontend 与 api 独立运行，分别监听 `8101`、`8111`。
+- Next.js 负责页面、前端安全头和上传代理，业务状态、认证授权、配额及任务编排由 FastAPI 负责；不在 Next.js 重复实现后端领域逻辑。
+- 开发和生产业务请求使用同源相对路径，普通 `/api/*`、`/health/*` 由 Next.js 代理；生产入口直接将 WebSocket Upgrade 转发给 FastAPI。
 - 深链接刷新必须返回对应页面；未知 `/api/*` 不得回退到 HTML。
 
 ## 组件与样式

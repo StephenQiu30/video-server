@@ -6,7 +6,6 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import and_, select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.application.analysis import (
@@ -24,12 +23,10 @@ from app.infrastructure.database.models import (
     DocumentRow,
     DownloadJobRow,
 )
+from app.infrastructure.database.repository_base import RepositoryBase
 
 
-class AnalysisInputRepository:
-    def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
-        self._sessions = sessions
-
+class AnalysisInputRepository(RepositoryBase):
     async def get_artifact_for_download(
         self, download_id: UUID
     ) -> AnalysisArtifactSnapshot | None:

@@ -11,7 +11,9 @@ from fastapi.exceptions import RequestValidationError
 from app.api.errors import app_error_handler, validation_error_handler
 from app.api.middleware import request_guard
 from app.api.openapi import API_DESCRIPTION, OPENAPI_TAGS, SWAGGER_UI_PARAMETERS
+from app.api.quota_errors import quota_error_handler
 from app.api.router import router
+from app.application.quotas import QuotaExceeded
 from app.composition import ApiRuntime, build_api_runtime
 from app.core.config import Settings, get_settings
 from app.core.errors import AppError
@@ -101,6 +103,7 @@ def create_app(
             ),
         )
     )
+    application.add_exception_handler(QuotaExceeded, quota_error_handler)
     application.add_exception_handler(AppError, app_error_handler)
     application.add_exception_handler(RequestValidationError, validation_error_handler)
     return application
@@ -118,6 +121,7 @@ def run() -> None:
         host=settings.app_host,
         port=settings.app_port,
         reload=False,
+        proxy_headers=False,
     )
 
 

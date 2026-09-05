@@ -62,7 +62,7 @@ class StorageFilesStub:
 
 
 def _app(tmp_path: Path, stub: StorageFilesStub):
-    app = create_app(Settings(app_env="test", frontend_dist_dir=tmp_path / "none"))
+    app = create_app(Settings(app_env="test"))
     app.state.storage_file_service = stub
     return app
 

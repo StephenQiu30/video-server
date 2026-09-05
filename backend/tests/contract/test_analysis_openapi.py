@@ -7,9 +7,7 @@ from app.main import create_app
 def test_analysis_openapi_is_current_and_excludes_internal_fields(
     tmp_path: Path,
 ) -> None:
-    schema = create_app(
-        Settings(app_env="test", frontend_dist_dir=tmp_path / "none")
-    ).openapi()
+    schema = create_app(Settings(app_env="test")).openapi()
     paths = schema["paths"]
     create_path = "/api/downloads/{download_id}/analyses"
     create_document_path = "/api/documents/{document_id}/analyses"

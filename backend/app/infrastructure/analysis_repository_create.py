@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from uuid import UUID
 
 from sqlalchemy import Select, select
 from sqlalchemy.exc import IntegrityError
@@ -20,10 +19,11 @@ from app.infrastructure.analysis_repository_sources import (
     new_source_lock,
     validate_create_source,
 )
+from app.infrastructure.analysis_run_factory import new_analysis_run
 from app.infrastructure.database.models import (
     AnalysisJobRow,
-    AnalysisRunRow,
 )
+from app.infrastructure.database.quota_admission import lock_admission, reserve
 
 
 class AnalysisCreationRepository(AnalysisRepositoryBase):
@@ -35,17 +35,27 @@ class AnalysisCreationRepository(AnalysisRepositoryBase):
         async with self._sessions() as session:
             try:
                 async with session.begin():
+                    await lock_admission(session, command.owner_hash)
                     existing = await session.scalar(self._key_query(command))
                     if existing is not None:
                         return self._key_replay(existing, command)
                     await validate_create_source(session, command, now)
+                    await reserve(
+                        session,
+                        self._quota_policy,
+                        owner_hash=command.owner_hash,
+                        resource_id=command.run_id,
+                        kind="analysis",
+                        analysis_attempts=command.max_attempts,
+                        now=now,
+                    )
                     row = self._new_row(command, now)
                     session.add(row)
                     # The lock references analysis_jobs. Flush the parent first
                     # instead of relying on SQLAlchemy to infer an ORM dependency
                     # from UUID values alone (there is no relationship configured).
                     await session.flush((row,))
-                    run = self._new_run(
+                    run = new_analysis_run(
                         run_id=command.run_id,
                         job_id=row.id,
                         run_no=1,
@@ -112,26 +122,6 @@ class AnalysisCreationRepository(AnalysisRepositoryBase):
             active_run_id=command.run_id,
             current_run_no=1,
             current_run_trigger="initial",
-            created_at=now,
-            updated_at=now,
-        )
-
-    @staticmethod
-    def _new_run(
-        *,
-        run_id: UUID,
-        job_id: UUID,
-        run_no: int,
-        trigger: str,
-        max_attempts: int,
-        now: datetime,
-    ) -> AnalysisRunRow:
-        return AnalysisRunRow(
-            id=run_id,
-            job_id=job_id,
-            run_no=run_no,
-            trigger=trigger,
-            max_attempts=max_attempts,
             created_at=now,
             updated_at=now,
         )

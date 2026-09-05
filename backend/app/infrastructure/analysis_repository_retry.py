@@ -16,29 +16,30 @@ from app.application.analysis import (
     PersistenceNotFound,
     PersistenceRetryLimited,
 )
-from app.infrastructure.analysis_repository_create import AnalysisCreationRepository
+from app.infrastructure.analysis_repository_base import AnalysisRepositoryBase
 from app.infrastructure.analysis_repository_mapping import analysis_job_snapshot
 from app.infrastructure.analysis_repository_sources import (
     new_source_lock,
     require_retry_source,
 )
+from app.infrastructure.analysis_run_factory import new_analysis_run
 from app.infrastructure.database.base import as_utc
 from app.infrastructure.database.models import (
     AnalysisJobRow,
     AnalysisRetryOperationRow,
     AnalysisRunRow,
 )
-from app.infrastructure.database.owner_lock import lock_owner
+from app.infrastructure.database.quota_admission import lock_admission, reserve
 
 
-class AnalysisRetryRepository(AnalysisCreationRepository):
+class AnalysisRetryRepository(AnalysisRepositoryBase):
     async def retry_job_and_enqueue(
         self, command: AnalysisRetry, *, now: datetime
     ) -> AnalysisJobSaveResult:
         async with self._sessions() as session:
             try:
                 async with session.begin():
-                    await lock_owner(session, command.owner_hash)
+                    await lock_admission(session, command.owner_hash)
                     row = await session.scalar(
                         select(AnalysisJobRow)
                         .where(
@@ -56,7 +57,16 @@ class AnalysisRetryRepository(AnalysisCreationRepository):
                         raise PersistenceActiveRun("analysis already has an active run")
                     await self._require_retry_capacity(session, row, command, now)
                     await require_retry_source(session, row, now)
-                    run = self._new_run(
+                    await reserve(
+                        session,
+                        self._quota_policy,
+                        owner_hash=command.owner_hash,
+                        resource_id=command.run_id,
+                        kind="analysis",
+                        analysis_attempts=command.max_attempts,
+                        now=now,
+                    )
+                    run = new_analysis_run(
                         run_id=command.run_id,
                         job_id=row.id,
                         run_no=row.current_run_no + 1,

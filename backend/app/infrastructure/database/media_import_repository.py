@@ -38,6 +38,7 @@ from app.domain.imports import (
     ImportStatus,
     quarantine_object_key,
 )
+from app.infrastructure.database.quota_admission import lock_admission, reserve
 
 from .base import as_utc
 from .models import (
@@ -60,9 +61,19 @@ class SqlAlchemyMediaImportRepository(RepositoryBase):
         async with self._sessions() as session:
             try:
                 async with session.begin():
+                    await lock_admission(session, command.owner_hash)
                     existing = await session.scalar(self._idempotency_query(command))
                     if existing is not None:
                         return await self._idempotent_result(session, existing, command)
+                    await reserve(
+                        session,
+                        self._quota_policy,
+                        owner_hash=command.owner_hash,
+                        resource_id=command.id,
+                        kind="media_import",
+                        size_bytes=command.declared_size_bytes,
+                        now=now,
+                    )
                     job = DownloadJobRow(
                         id=command.id,
                         source_kind="browser_import",

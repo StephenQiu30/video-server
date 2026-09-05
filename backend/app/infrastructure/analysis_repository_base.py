@@ -18,7 +18,6 @@ from app.application.analysis import (
 )
 from app.domain.analysis import AnalysisResult
 from app.domain.identifiers import AnalysisReportRenderer
-from app.infrastructure.analysis_repository_inputs import AnalysisInputRepository
 from app.infrastructure.analysis_repository_mapping import analysis_job_snapshot
 from app.infrastructure.analysis_repository_serialization import (
     analysis_result_from_document,
@@ -32,9 +31,10 @@ from app.infrastructure.database.models import (
     AnalysisRunRow,
     OutboxEventRow,
 )
+from app.infrastructure.database.repository_base import RepositoryBase
 
 
-class AnalysisRepositoryBase(AnalysisInputRepository):
+class AnalysisRepositoryBase(RepositoryBase):
     async def get_job(self, job_id: UUID) -> AnalysisJobSnapshot | None:
         async with self._sessions() as session:
             row = await session.scalar(

@@ -8,9 +8,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import Select, select
 
 from app.application.analysis import AnalysisJobSnapshot, PersistenceNotFound
-from app.infrastructure.analysis_repository_lifecycle import (
-    AnalysisLifecycleRepository,
-)
+from app.infrastructure.analysis_repository_base import AnalysisRepositoryBase
 from app.infrastructure.analysis_repository_mapping import analysis_job_snapshot
 from app.infrastructure.database.base import as_utc
 from app.infrastructure.database.models import AnalysisJobRow
@@ -61,7 +59,7 @@ def ready_analysis_retries_statement(
     )
 
 
-class AnalysisRecoveryRepository(AnalysisLifecycleRepository):
+class AnalysisRecoveryRepository(AnalysisRepositoryBase):
     async def recover_stale_queued(
         self, now: datetime, stale_before: datetime, *, limit: int = 100
     ) -> tuple[UUID, ...]:
