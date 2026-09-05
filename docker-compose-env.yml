@@ -1,8 +1,8 @@
 name: video-server-env
 
-# Dedicated local infrastructure for this project.
-# Start this file before docker-compose.yml. The ports are intentionally
-# separate from other existing Docker environments on this machine.
+# Disposable infrastructure fixture for GitHub CI only.
+# Local development and deployment reuse existing host services.
+# This file is not part of the local project startup procedure.
 
 services:
   postgres:

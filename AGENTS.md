@@ -34,7 +34,7 @@ server/
 │   └── tests/                     Vitest 测试
 ├── docs/                          当前设计、需求、计划、验收与运维文档
 ├── Dockerfile                     前后端统一生产镜像
-├── docker-compose-env.yml         本项目基础环境拓扑
+├── docker-compose-env.yml         仅 GitHub CI 使用的隔离基础服务夹具
 ├── docker-compose.yml             本机业务容器拓扑
 └── docker-compose-prod.yml        生产业务容器拓扑
 ```
@@ -93,7 +93,7 @@ server/
 
 - 后端依赖方向为 `api/workers → application → domain`。`domain` 不得导入 FastAPI、SQLAlchemy、RabbitMQ、MinIO、yt-dlp、FFmpeg 或模型 SDK。
 - API、下载 Worker、媒体 Runner、AI Worker 是独立进程。PostgreSQL 是状态事实来源；跨 PostgreSQL/RabbitMQ 使用 transactional outbox，消费者必须支持幂等和 lease/heartbeat。
-- PostgreSQL 只通过 `backend/sql/schema.sql` 维护当前态结构。`docker-compose-env.yml` 提供本项目专用的 PostgreSQL、RabbitMQ、Valkey、MinIO 及一次性初始化服务；复用已有基础环境时，部署者必须保证这些服务已完成同等初始化，并在启动业务容器前幂等执行该 SQL。项目不维护迁移目录、历史 schema 或旧版本兼容逻辑。结构变化时同步更新可重复执行的当前态 SQL、ORM 和测试，并同时使用空数据库与已有当前态数据库验证。
+- PostgreSQL 只通过 `backend/sql/schema.sql` 维护当前态结构。本机直接复用已运行的 PostgreSQL，按结构变更需要在已有项目数据库中幂等执行该 SQL；不得为启动或验证项目另起基础服务或覆盖现有数据。空库验证只能使用已有服务中的隔离测试数据库或远端 CI。项目不维护迁移目录、历史 schema 或旧版本兼容逻辑。结构变化时同步更新可重复执行的当前态 SQL、ORM 和测试，并同时使用空数据库与已有当前态数据库验证。
 - OpenAPI 是前后端接口契约的唯一来源，通过 `/openapi.json` 提供，并由 `/docs` 展示 Swagger UI；不维护平行 DTO、手写生成类型或旧 API 适配层。
 - 只实现当前需求，不添加旧目录、旧 API、旧 Provider 或旧数据库的兼容分支。单个源码文件原则上不超过 200 行，超过时按职责拆分。
 
@@ -105,7 +105,7 @@ server/
 - AI 任务独立于下载任务；AI 失败不得改变下载成功状态。模型输出必须通过严格 schema、连续分镜时间轴和 shot evidence 校验，普通日志不得记录完整 Prompt、抽帧或原始模型响应。
 - 基础设施 Secret 只来自类型化配置和环境变量；管理员在 Web 中维护的 AI Provider Key 只允许进入记录绑定的加密数据库字段，并仅在 Analysis Worker 内存中解密。任何 Secret 都不得进入前端、API 响应、异常、快照、测试夹具或普通日志。外部操作必须设置大小、时长、并发和超时上限，取消时终止整个子进程组。
 - 复用本机 OAuth 的 AI Worker 是 Compose 完整拓扑的唯一例外：必须由已登录 Codex 或 Claude CLI 的宿主机用户启动，容器不得挂载或复制 CLI 认证目录。
-- Compose 必须保持职责清晰：`docker-compose-env.yml` 只定义本项目基础环境及其一次性初始化，`docker-compose.yml` 只定义本机业务、Worker、Runner 和出口代理，`docker-compose-prod.yml` 只定义生产业务差异；不新增仅供 CI 或单个开发者使用的覆盖文件。业务 Compose 通过 `.env` 中的 `POSTGRES_HOST/PORT`、`RABBITMQ_HOST/PORT`、`VALKEY_HOST/PORT` 和 `MINIO_HOST/PORT` 连接基础环境：组合环境 Compose 时使用服务名和容器端口，复用已有基础环境时使用宿主机可达地址和已发布端口。`HOST_*_PORT` 只用于环境 Compose 的宿主机端口发布。MinIO 全部业务进程只共用一组 `MINIO_ACCESS_KEY` 与 `MINIO_SECRET_KEY`。所有服务必须显式设置稳定的 `container_name`。启动前按需复制 `.env.example` 为 `.env`，生产环境复制 `.env.prod.example` 为 `.env.prod` 并替换占位值。不要提交 `.env`、制品、缓存、日志、临时目录、虚拟环境或 `node_modules/`。
+- Compose 只管理业务服务：`docker-compose.yml` 用于本机业务、Worker、Runner 和出口代理，`docker-compose-prod.yml` 用于生产业务。本机启动和验证直接复用当前 `.env` / `.env.prod` 与已运行的 PostgreSQL、RabbitMQ、Valkey/Redis、MinIO，不另建基础环境、不覆盖已有环境文件。容器通过 `POSTGRES_HOST/PORT`、`RABBITMQ_HOST/PORT`、`VALKEY_HOST/PORT`、`MINIO_HOST/PORT` 连接宿主机服务，默认主机为 `host.docker.internal`，端口和凭据以现有配置为准。`docker-compose-env.yml` 仅保留给没有宿主服务的 GitHub CI，不属于本机启动入口。MinIO 全部业务进程共用一组 `MINIO_ACCESS_KEY` 与 `MINIO_SECRET_KEY`；所有业务服务显式设置稳定的 `container_name`。只有配置文件不存在时才从示例创建。不要提交 `.env`、制品、缓存、日志、临时目录、虚拟环境或 `node_modules/`。
 
 ## 实现与验证
 
@@ -131,7 +131,7 @@ npm test
 npm run build
 ```
 
-- 涉及接口契约时验证 OpenAPI 生成结果和前后端契约测试；涉及运行时、依赖或容器时分别验证环境 Compose、业务 Compose 和生产 Compose 可以解析，按需验证镜像构建和关键健康接口。
+- 涉及接口契约时验证 OpenAPI 生成结果和前后端契约测试；涉及运行时、依赖或容器时验证业务 Compose 和生产 Compose 可以解析，按需验证镜像构建和已有服务的健康接口；CI 夹具只做静态解析，不在本机启动。
 - 不得隐瞒失败的检查。无法在当前平台完成的验证应在交付说明中写明原因、已执行范围和剩余风险。
 
 ## 文档规范

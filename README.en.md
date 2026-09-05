@@ -68,16 +68,15 @@ The web application includes media inspection and download, job history and deta
 ### Requirements
 
 - Docker Engine and Docker Compose
-- Allocate disk and runtime resources for media artifacts, databases and messaging services
+- Existing PostgreSQL, RabbitMQ, Valkey/Redis and MinIO services; reuse their addresses and credentials
 - Strong random secrets and a public origin are required before an internet-facing deployment
 
 ```bash
 git clone https://github.com/StephenQiu30/video-server.git
 cd video-server
-cp .env.example .env
+test -f .env || cp .env.example .env
 
-# PostgreSQL, RabbitMQ, Valkey and MinIO
-docker compose --env-file .env -f docker-compose-env.yml up -d
+# Configure .env to reuse existing PostgreSQL, RabbitMQ, Valkey/Redis and MinIO
 
 # Web, API, workers, runners and controlled egress proxy
 docker compose --env-file .env -f docker-compose.yml \
@@ -87,8 +86,7 @@ docker compose --env-file .env -f docker-compose.yml \
 PowerShell:
 
 ```powershell
-Copy-Item .env.example .env
-docker compose --env-file .env -f docker-compose-env.yml up -d
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
 ```
 

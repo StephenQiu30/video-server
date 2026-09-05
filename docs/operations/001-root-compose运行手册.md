@@ -2,13 +2,12 @@
 
 ## 运行模型
 
-业务拓扑只有一个运行入口：根目录 `docker-compose.yml`。本地可继续复用由 Homebrew
-管理的 PostgreSQL、RabbitMQ、Redis 和 MinIO，但前端、API、Worker、Runner 与
+业务拓扑只有一个运行入口：根目录 `docker-compose.yml`。本机直接复用已经运行的
+PostgreSQL、RabbitMQ、Valkey/Redis 和 MinIO，但前端、API、Worker、Runner 与
 Operator 必须处于同一 Compose 网络；不提供宿主机业务进程与容器 Operator 混合运行入口：
 
 | 文件 | 用途 | 是否启动 PostgreSQL、RabbitMQ、Valkey、MinIO |
 | --- | --- | --- |
-| docker-compose-env.yml | 本项目专用基础环境 | 是，仅启动 PostgreSQL、RabbitMQ、Valkey、MinIO |
 | docker-compose.yml | 本机/共享环境运行，只启动业务容器 | 否，复用宿主机已有服务 |
 | docker-compose-prod.yml | 独立的生产业务容器运行配置，与默认拓扑保持一致 | 否，复用生产宿主机服务 |
 
@@ -26,23 +25,21 @@ Operator 必须处于同一 Compose 网络；不提供宿主机业务进程与�
 
 ## Docker 文件使用规范
 
-- `docker-compose-env.yml` 只部署本项目专用的 PostgreSQL、RabbitMQ、Valkey 和 MinIO，并负责一次性初始化；`docker-compose.yml` 只部署业务容器；`docker-compose-prod.yml` 只提供生产业务容器差异。
-- 业务 Compose 通过 `POSTGRES_HOST/PORT`、`RABBITMQ_HOST/PORT`、`VALKEY_HOST/PORT` 和 `MINIO_HOST/PORT` 连接基础服务。启动 `docker-compose-env.yml` 时使用服务名和容器端口；复用已有基础服务时改为宿主机可达地址和已发布端口。
-- `HOST_*_PORT` 仅用于环境 Compose 向宿主机发布端口，不是业务容器的连接端口。不要把两类端口混用。
-- MinIO 只配置一组 `MINIO_ACCESS_KEY` 与 `MINIO_SECRET_KEY`，所有业务进程共用；不要按 API、导入、下载、报告或分析进程复制密钥变量。
-- 仓库环境 Compose 将 `MINIO_CORS_ALLOWED_ORIGINS` 直接映射为 MinIO 实例级 `MINIO_API_CORS_ALLOW_ORIGIN`。固定 digest 的一次性 `minio-config-check` 会先拒绝空值、通配符、路径、userinfo、非法主机、越界端口和非 HTTP(S) 值；只有校验成功后，保留官方 entrypoint 的 MinIO 才会启动。列表中的每一项必须是完整的 `scheme://host[:port]` exact origin；修改后重新执行环境 Compose 的 `up -d` 以重建 MinIO 容器，不能使用 `restart`。
-- CI、开发和本机验收必须复用上述正式 Compose 文件，不新增仅供某个环境的覆盖文件。
+- `docker-compose.yml` 和 `docker-compose-prod.yml` 只管理业务容器，不启动基础设施或初始化容器。
+- 直接沿用当前 `.env` / `.env.prod`。容器通过 `POSTGRES_HOST/PORT`、`RABBITMQ_HOST/PORT`、`VALKEY_HOST/PORT` 和 `MINIO_HOST/PORT` 访问已有服务；默认主机为 `host.docker.internal`，端口以本机实际配置为准。宿主机运行的命令使用相应回环地址。
+- MinIO 只配置一组 `MINIO_ACCESS_KEY` 与 `MINIO_SECRET_KEY`，所有业务进程共用。
+- `docker-compose-env.yml` 仅保留为 GitHub CI 的隔离夹具，本机启动和验证不使用它。CI 的临时服务端口不应复制到本机业务配置中。
 
 ## 宿主机基础设施
 
-不启动 docker-compose-env.yml 时，使用 docker-compose.yml 或 docker-compose-prod.yml 前，宿主机必须已经提供：
+使用业务 Compose 前，确认本机以下服务已经运行：
 
 - PostgreSQL
 - RabbitMQ
 - Valkey/Redis
 - MinIO
 
-容器通过 `.env` 中的连接地址访问这些服务。生产环境的连接地址和凭据只放在本地 .env.prod，不能提交到 Git。
+容器通过现有环境文件中的连接地址访问这些服务。连接地址和凭据不能提交到 Git。数据库结构变更时按需执行 `backend/sql/schema.sql`；已有 RabbitMQ 拓扑、MinIO bucket 和身份继续复用，启动项目不执行整套初始化。
 
 复用外部 MinIO 时，部署者必须在该实例的启动环境中设置与 `.env` 相同的 `MINIO_API_CORS_ALLOW_ORIGIN` exact-origin 列表并重建实例；不能依赖手工 bucket CORS、`*` 或遗留实例状态。社区版 MinIO 的浏览器上传策略是实例级 API 配置，仓库不会尝试调用不受支持的 bucket CORS API。无法控制外部实例启动配置时，应关闭 `MEDIA_IMPORT_ENABLED` 与 `DOCUMENT_IMPORT_ENABLED`，而不是放宽 CORS。
 
@@ -55,11 +52,9 @@ macOS 若启用了系统 HTTP/HTTPS/SOCKS 代理，活动网络服务的代理�
 ## 本机业务拓扑
 
 ~~~bash
-cp .env.example .env
-docker compose --env-file .env -f docker-compose-env.yml config --quiet
+# 已有 .env 直接复用；仅首次缺少文件时创建并填写已有服务的连接信息
+test -f .env || cp .env.example .env
 docker compose --env-file .env -f docker-compose.yml config --quiet
-# 首次使用或基础依赖尚未运行时执行一次
-docker compose --env-file .env -f docker-compose-env.yml up -d
 docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
 ~~~
 
@@ -96,16 +91,7 @@ Docker Desktop 会把公网 DNS 映射到保留的 synthetic 地址段，必须�
 docker compose --env-file .env -f docker-compose.yml up -d egress-proxy
 ~~~
 
-## 完整隔离环境
-
-项目专用基础环境只需在首次使用或依赖未运行时准备一次，随后由唯一业务 Compose
-入口复用：
-
-~~~bash
-cp .env.example .env
-docker compose --env-file .env -f docker-compose-env.yml up -d
-docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
-~~~
+## 更新项目
 
 代码同步与服务启动保持解耦；需要更新时先执行：
 
@@ -117,14 +103,14 @@ git pull --ff-only
 启动后的验收步骤，不与项目生命周期耦合；命令见
 `docs/operations/007-固定Provider探针运行手册.md`。
 
-项目专用环境与本机已有同端口服务不要同时运行，避免端口冲突；业务 Compose 不会自动启动基础环境。
+业务 Compose 的更新和停止只作用于项目业务容器，已有基础服务继续运行。
 
 ## 生产环境
 
 .env.prod 只允许由部署者在本机或 Secret 管理系统生成。仓库中的 .env.prod.example 只包含占位值。
 
 ~~~bash
-cp .env.prod.example .env.prod
+test -f .env.prod || cp .env.prod.example .env.prod
 # 替换全部 replace-with-* 占位值
 docker compose --env-file .env.prod -f docker-compose-prod.yml config --quiet
 docker compose --env-file .env.prod -f docker-compose-prod.yml up -d --no-build

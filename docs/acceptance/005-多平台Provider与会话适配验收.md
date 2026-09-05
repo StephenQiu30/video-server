@@ -152,7 +152,6 @@ npm test
 npm run build
 
 cd ..
-docker compose --env-file .env -f docker-compose-env.yml config
 docker compose --env-file .env -f docker-compose.yml config
 docker compose --env-file .env.prod -f docker-compose-prod.yml config
 ```

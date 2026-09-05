@@ -65,7 +65,7 @@ uv run python -m app.workers.analysis.agent_cli doctor
 
 依次确认：活动 Profile 存在、CLI 可执行、登录有效、FFmpeg/FFprobe 可执行、PostgreSQL/RabbitMQ/MinIO 地址对宿主机可达。Agent 状态未确认不会阻止 API 接收任务；任务会保持 `queued`，直到 Agent 恢复并消费消息。
 
-若本机使用仓库基础环境且 `doctor` 返回 MinIO readiness probe 缺失，在 `backend` 目录执行 `docker compose --env-file ../.env -f ../docker-compose-env.yml run --rm minio-init`，由环境初始化任务幂等创建 `video-artifacts` bucket 与 `system/analysis-readiness` 探针。外部或生产 MinIO 应由其管理员创建同名探针，不能另起一套本机 MinIO 掩盖连接错误。若返回凭据无法读取，再确认统一 AK/SK 的 bucket 读取权限，并检查 `.env` 或 `.env.prod` 中唯一的 `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY`。
+若 `doctor` 返回 MinIO readiness probe 缺失，先核对当前 MinIO 地址和 bucket，再由其管理员在已有 bucket 中创建 `system/analysis-readiness` 探针对象（内容为 `ready`）。不要另起 MinIO 或重新初始化环境来掩盖连接错误。若返回凭据无法读取，再确认统一 AK/SK 的 bucket 读取权限，并检查 `.env` 或 `.env.prod` 中唯一的 `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY`。
 
 ### 本机登录不可用
 

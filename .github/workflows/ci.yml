@@ -126,6 +126,12 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     needs: [repository-check, backend-quality, frontend-quality]
+    # Hosted CI has no existing host services; these names belong to its fixture.
+    env:
+      POSTGRES_HOST: postgres
+      RABBITMQ_HOST: rabbitmq
+      VALKEY_HOST: valkey
+      MINIO_HOST: minio
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:

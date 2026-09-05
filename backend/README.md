@@ -2,7 +2,7 @@
 
 FastAPI API、下载/分析领域逻辑、异步 Worker、当前态数据库 SQL 和 Python 测试位于本模块。
 
-所有 Python 与 `uv` 命令都应从 `backend/` 执行。数据库当前结构定义在可重复执行的 `sql/schema.sql`；项目环境 Compose 的初始化服务负责加载，复用外部环境时由部署者在启动业务容器前幂等加载。项目不维护迁移历史或旧 schema 兼容路径。生产镜像由仓库根目录 `Dockerfile` 统一构建，Next.js 与 FastAPI 分别运行。
+所有 Python 与 `uv` 命令都应从 `backend/` 执行。数据库当前结构定义在可重复执行的 `sql/schema.sql`；由部署者按需在已有项目数据库中幂等加载；业务启动不创建基础服务，也不重复初始化已有环境。项目不维护迁移历史或旧 schema 兼容路径。生产镜像由仓库根目录 `Dockerfile` 统一构建，Next.js 与 FastAPI 分别运行。
 
 ## 目录约定
 
@@ -46,7 +46,7 @@ macOS 部署可显式安装统一按需助手，在解析进入受控线路时�
 
 ## 运行与就绪
 
-本机必须先提供 PostgreSQL、RabbitMQ、Valkey/Redis 和 MinIO，并预置数据库 schema、消息拓扑、对象存储身份与 bucket。随后从仓库根目录启动前端、API 和业务 Worker；业务 Compose 不管理这些外部基础设施；需要项目专用环境时先按根运行手册启动 `docker-compose-env.yml`：
+本机必须先提供 PostgreSQL、RabbitMQ、Valkey/Redis 和 MinIO，并预置数据库 schema、消息拓扑、对象存储身份与 bucket。随后从仓库根目录启动前端、API 和业务 Worker；业务 Compose 只连接已有基础设施，沿用当前 `.env`，不再启动另一套环境：
 
 ```bash
 docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300

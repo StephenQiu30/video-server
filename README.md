@@ -50,7 +50,7 @@
 - **可隔离**：下载、媒体命令和 AI 长任务不在 HTTP 请求进程中执行；Runner 经过受控出口代理。
 - **可验证**：Provider 返回值不会直接成为最终制品，Worker 会重新解析并验证媒体身份、格式和文件完整性。
 - **可扩展**：Provider、Runner、应用用例、OpenAPI 客户端和前端 feature 组件保持清晰边界。
-- **可自托管**：Docker Compose 分离基础环境、业务服务和生产差异，不依赖官方托管服务。
+- **可自托管**：Docker Compose 只管理业务服务并复用已有基础环境，不依赖官方托管服务。
 
 ## 界面预览
 
@@ -76,7 +76,7 @@
 ### 前置条件
 
 - Docker Engine 与 Docker Compose
-- 为媒体制品、数据库和消息服务预留足够的磁盘空间与运行资源
+- 本机已运行 PostgreSQL、RabbitMQ、Valkey/Redis 和 MinIO，已有配置直接复用
 - 用于生产部署时，需要自行提供强随机密钥和公开访问地址
 
 ### Docker Compose 启动
@@ -84,10 +84,9 @@
 ```bash
 git clone https://github.com/StephenQiu30/video-server.git
 cd video-server
-cp .env.example .env
+test -f .env || cp .env.example .env
 
-# 启动项目专用的 PostgreSQL、RabbitMQ、Valkey 与 MinIO
-docker compose --env-file .env -f docker-compose-env.yml up -d
+# 确认 .env 连接本机已运行的 PostgreSQL、RabbitMQ、Valkey/Redis 与 MinIO
 
 # 启动 Web、API、Worker、Runner 与受控出口代理
 docker compose --env-file .env -f docker-compose.yml \
@@ -97,8 +96,7 @@ docker compose --env-file .env -f docker-compose.yml \
 PowerShell 使用相同入口：
 
 ```powershell
-Copy-Item .env.example .env
-docker compose --env-file .env -f docker-compose-env.yml up -d
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
 ```
 
@@ -213,7 +211,7 @@ backend/                 FastAPI、领域逻辑、Worker、Runner 与当前态 S
 frontend/                Next.js App Router、业务组件、Hooks 与 OpenAPI 客户端
 docs/                    设计、需求、计划、验收、研究和运维事实
 Dockerfile               前后端统一生产镜像
-docker-compose-env.yml   PostgreSQL、RabbitMQ、Valkey、MinIO 基础环境
+docker-compose-env.yml   GitHub CI 隔离测试夹具，不用于本机启动
 docker-compose.yml       Web、API、Worker、Runner 与出口代理
 docker-compose-prod.yml  生产业务差异
 ```
