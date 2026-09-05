@@ -205,6 +205,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         ValkeyRateLimiter(
             settings.valkey_url,
             settings.request_fingerprint_secret.get_secret_value().encode(),
+            policies=settings.rate_limit_policies,
         )
         if settings.valkey_url
         else None

@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Header, Query, Request, Response, status
 from fastapi.responses import StreamingResponse
 
+from app.api.admission import RateLimitAdmission
 from app.api.auth_dependencies import get_current_user
 from app.api.dependencies import (
     DownloadUseCases,
@@ -41,6 +42,7 @@ DownloadStorage = Annotated[DownloadArtifactStorage, Depends(get_download_storag
 @router.post(
     "",
     operation_id="createDownload",
+    dependencies=[Depends(RateLimitAdmission("download"))],
     response_model=DownloadResponse,
     status_code=status.HTTP_201_CREATED,
     summary="创建下载任务",
@@ -311,6 +313,7 @@ async def cancel_download(
 @router.post(
     "/{job_id}/retry",
     operation_id="retryDownload",
+    dependencies=[Depends(RateLimitAdmission("download_retry"))],
     response_model=DownloadResponse,
     status_code=status.HTTP_201_CREATED,
     summary="重试下载任务",

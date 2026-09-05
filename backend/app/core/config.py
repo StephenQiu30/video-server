@@ -14,6 +14,7 @@ from cryptography.fernet import Fernet
 from pydantic import EmailStr, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.core.rate_limits import RateLimitOperation, RateLimitPolicy
 from app.domain.identifiers import RightsStatementVersion, UrlEncryptionKeyId
 from app.domain.providers import ProviderKey
 from app.runner.provider_instances import validated_instance_hosts
@@ -55,6 +56,9 @@ class Settings(BaseSettings):
     request_max_bytes: int = Field(default=256 * 1024, ge=1024, le=4 * 1024 * 1024)
     request_timeout_seconds: float = Field(default=180, ge=1, le=300)
     trusted_proxy_cidrs: tuple[str, ...] = ("127.0.0.0/8", "::1/128")
+    rate_limit_policies: dict[RateLimitOperation, RateLimitPolicy] = Field(
+        default_factory=dict
+    )
     metrics_access_key: SecretStr = SecretStr(
         "development-metrics-access-key-change-me"
     )

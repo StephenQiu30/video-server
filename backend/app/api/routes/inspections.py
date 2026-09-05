@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Response, status
 
+from app.api.admission import RateLimitAdmission
 from app.api.auth_dependencies import get_current_user
 from app.api.dependencies import (
     DownloadUseCases,
@@ -28,6 +29,7 @@ UseCases = Annotated[DownloadUseCases, Depends(get_download_use_cases)]
 @router.post(
     "",
     operation_id="inspectMedia",
+    dependencies=[Depends(RateLimitAdmission("inspect"))],
     response_model=InspectionResponse,
     status_code=status.HTTP_201_CREATED,
     summary="解析媒体信息",

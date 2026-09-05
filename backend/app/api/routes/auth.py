@@ -5,9 +5,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, Request, Response, status
 
+from app.api.admission import enforce_rate_limit
 from app.api.auth_dependencies import (
     clear_auth_cookies,
-    enforce_rate_limit,
     get_auth_service,
     get_current_user,
     set_auth_cookies,

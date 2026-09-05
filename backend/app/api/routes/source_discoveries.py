@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Response, status
 
+from app.api.admission import RateLimitAdmission
 from app.api.auth_dependencies import get_current_user
 from app.api.dependencies import (
     IdempotencyKey,
@@ -27,6 +28,7 @@ UseCases = Annotated[SourceDiscoveryUseCases, Depends(get_source_discovery_use_c
 @router.post(
     "",
     operation_id="createSourceDiscovery",
+    dependencies=[Depends(RateLimitAdmission("inspect"))],
     response_model=SourceDiscoveryResponse,
     status_code=status.HTTP_201_CREATED,
     summary="发现微信公众号文章中的视频",

@@ -7,6 +7,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request, Response, status
 
+from app.api.admission import RateLimitAdmission
 from app.api.auth_dependencies import get_current_user
 from app.api.dependencies import (
     DocumentImportUseCases,
@@ -36,6 +37,7 @@ UseCases = Annotated[DocumentImportUseCases, Depends(get_document_import_use_cas
 @router.post(
     "",
     operation_id="createDocumentImport",
+    dependencies=[Depends(RateLimitAdmission("document_import"))],
     response_model=DocumentImportResponse,
     status_code=status.HTTP_201_CREATED,
     summary="创建剧本文档导入",
@@ -128,6 +130,7 @@ async def delete_document(
 @router.post(
     "/{document_id}/upload-sessions",
     operation_id="createDocumentUploadSession",
+    dependencies=[Depends(RateLimitAdmission("document_import_upload"))],
     response_model=DocumentUploadSessionResponse,
     status_code=status.HTTP_201_CREATED,
     summary="创建或刷新文档上传会话",
@@ -157,6 +160,7 @@ async def create_document_upload_session(
 @router.post(
     "/{document_id}/complete",
     operation_id="completeDocumentImport",
+    dependencies=[Depends(RateLimitAdmission("document_import_upload"))],
     response_model=DocumentImportResponse,
     summary="完成文档上传并触发验证",
 )

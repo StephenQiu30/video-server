@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.exceptions import RequestValidationError
 
+from app.api.admission import RateLimitAdmission
 from app.api.auth_dependencies import get_current_user
 from app.api.dependencies import (
     AnalysisUseCases,
@@ -51,6 +52,7 @@ async def list_analysis_skills(
 @router.post(
     "/downloads/{download_id}/analyses",
     operation_id="createAnalysis",
+    dependencies=[Depends(RateLimitAdmission("analysis"))],
     response_model=AnalysisResponse,
     status_code=status.HTTP_201_CREATED,
     summary="创建视频分析任务",
@@ -209,6 +211,7 @@ async def cancel_analysis(
 @router.post(
     "/analyses/{analysis_id}/retry",
     operation_id="retryAnalysis",
+    dependencies=[Depends(RateLimitAdmission("analysis_retry"))],
     response_model=AnalysisResponse,
     status_code=status.HTTP_201_CREATED,
     summary="重试原视频分析任务",

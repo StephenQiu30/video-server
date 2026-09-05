@@ -1,23 +1,15 @@
 from __future__ import annotations
 
-from app.api.auth_dependencies import _client_host, _rate_limit_operation
-from app.infrastructure.rate_limiter import _POLICIES
+from types import SimpleNamespace
+
+import pytest
+from app.api.admission import RateLimitAdmission, _client_host
+from app.api.auth_dependencies import get_current_user
+from app.core.config import Settings
+from app.infrastructure.rate_limiter import RateLimitExceeded
+from app.main import create_app
+from fastapi.testclient import TestClient
 from starlette.requests import Request
-
-
-class _Request:
-    def __init__(self, method: str, path: str) -> None:
-        self.method = method
-        self.url = _URL(path)
-
-
-class _URL:
-    def __init__(self, path: str) -> None:
-        self.path = path
-
-
-def _request(method: str, path: str) -> object:
-    return _Request(method, path)
 
 
 def _network_request(peer: str, forwarded_for: str | None = None) -> Request:
@@ -61,103 +53,78 @@ def test_client_host_fails_closed_for_a_malformed_forwarding_chain() -> None:
     assert _client_host(request, ("127.0.0.0/8",)) == "127.0.0.1"
 
 
-def test_inspection_post_is_rate_limited() -> None:
-    assert _rate_limit_operation(_request("POST", "/api/inspections")) == "inspect"
-    assert (
-        _rate_limit_operation(_request("POST", "/api/source-discoveries")) == "inspect"
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/downloads/00000000-0000-0000-0000-000000000001/analyses",
+        "/api/documents/00000000-0000-0000-0000-000000000001/analyses",
+        "/api/analyses/00000000-0000-0000-0000-000000000001/retry",
+    ],
+)
+def test_all_analysis_creation_routes_enforce_admission(path: str) -> None:
+    app = create_app(Settings(app_env="test", _env_file=None))
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(
+        owner_hash="a" * 64
     )
 
+    class Limiter:
+        async def check(self, **kwargs):
+            assert kwargs["operation"] in {"analysis", "analysis_retry"}
+            raise RateLimitExceeded(9)
 
-def test_download_post_is_rate_limited() -> None:
-    assert _rate_limit_operation(_request("POST", "/api/downloads")) == "download"
+    app.state.rate_limiter = Limiter()
+    with TestClient(app) as client:
+        response = client.post(path, json={}, headers={"Idempotency-Key": "review"})
+    assert response.status_code == 429
+    assert response.json()["code"] == "rate_limited"
+    assert response.headers["Retry-After"] == "9"
 
 
-def test_analysis_post_is_rate_limited() -> None:
-    assert (
-        _rate_limit_operation(
-            _request(
-                "POST",
-                "/api/downloads/2a11fb32-0e3d-4a2b-8a5d-0f2d1a4f9f4e/analyses",
+def test_costly_routes_declare_admission_and_recovery_routes_remain_available() -> None:
+    from app.api.routes import (
+        analyses,
+        document_analyses,
+        documents,
+        downloads,
+        inspections,
+        media_imports,
+        source_discoveries,
+    )
+
+    expected = {
+        "inspectMedia",
+        "createSourceDiscovery",
+        "createDownload",
+        "retryDownload",
+        "createMediaImport",
+        "createMediaUploadSession",
+        "completeMediaImport",
+        "createDocumentImport",
+        "createDocumentUploadSession",
+        "completeDocumentImport",
+        "createAnalysis",
+        "createDocumentAnalysis",
+        "retryAnalysis",
+    }
+    found = set()
+    for module in (
+        analyses,
+        document_analyses,
+        documents,
+        downloads,
+        inspections,
+        media_imports,
+        source_discoveries,
+    ):
+        for route in module.router.routes:
+            limited = any(
+                isinstance(dep.call, RateLimitAdmission)
+                for dep in route.dependant.dependencies
             )
-        )
-        == "analysis"
-    )
-
-
-def test_download_retry_post_is_rate_limited() -> None:
-    assert (
-        _rate_limit_operation(
-            _request(
-                "POST", "/api/downloads/2a11fb32-0e3d-4a2b-8a5d-0f2d1a4f9f4e/retry"
-            )
-        )
-        == "download_retry"
-    )
-
-
-def test_media_import_mutations_are_rate_limited() -> None:
-    resource = "2a11fb32-0e3d-4a2b-8a5d-0f2d1a4f9f4e"
-
-    assert (
-        _rate_limit_operation(_request("POST", "/api/media-imports")) == "media_import"
-    )
-    assert (
-        _rate_limit_operation(
-            _request("POST", f"/api/media-imports/{resource}/upload-sessions")
-        )
-        == "media_import_upload"
-    )
-    assert (
-        _rate_limit_operation(
-            _request("POST", f"/api/media-imports/{resource}/complete")
-        )
-        == "media_import_upload"
-    )
-
-
-def test_media_import_rate_limit_operations_have_admission_policies() -> None:
-    assert {"media_import", "media_import_upload"} <= _POLICIES.keys()
-
-
-def test_document_import_mutations_have_admission_policies() -> None:
-    resource = "2a11fb32-0e3d-4a2b-8a5d-0f2d1a4f9f4e"
-
-    assert _rate_limit_operation(_request("POST", "/api/documents")) == (
-        "document_import"
-    )
-    assert (
-        _rate_limit_operation(
-            _request("POST", f"/api/documents/{resource}/upload-sessions")
-        )
-        == "document_import_upload"
-    )
-    assert (
-        _rate_limit_operation(_request("POST", f"/api/documents/{resource}/complete"))
-        == "document_import_upload"
-    )
-    assert {"document_import", "document_import_upload"} <= _POLICIES.keys()
-    assert (
-        _rate_limit_operation(_request("DELETE", f"/api/documents/{resource}"))
-        == "document_import"
-    )
-
-
-def test_download_cancel_post_is_not_rate_limited() -> None:
-    assert (
-        _rate_limit_operation(
-            _request(
-                "POST", "/api/downloads/2a11fb32-0e3d-4a2b-8a5d-0f2d1a4f9f4e/cancel"
-            )
-        )
-        is None
-    )
-
-
-def test_read_methods_are_not_rate_limited() -> None:
-    assert _rate_limit_operation(_request("GET", "/api/downloads")) is None
-    assert (
-        _rate_limit_operation(
-            _request("GET", "/api/downloads/2a11fb32-0e3d-4a2b-8a5d-0f2d1a4f9f4e/retry")
-        )
-        is None
-    )
+            if limited:
+                found.add(route.operation_id)
+            if route.operation_id.startswith(
+                ("get", "cancel", "delete", "list", "export")
+            ):
+                assert not limited
+    assert found == expected

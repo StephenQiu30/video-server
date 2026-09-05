@@ -5,8 +5,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Response, status
 
+from app.api.admission import enforce_rate_limit
 from app.api.auth_dependencies import (
-    enforce_rate_limit,
     get_auth_service,
     get_current_user,
 )

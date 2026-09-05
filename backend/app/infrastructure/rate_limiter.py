@@ -4,10 +4,17 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
 from valkey.asyncio import Valkey
+
+from app.core.rate_limits import (
+    RateLimitOperation,
+    RateLimitPolicy,
+    default_rate_limits,
+)
 
 
 class RateLimiterUnavailable(RuntimeError):
@@ -17,16 +24,6 @@ class RateLimiterUnavailable(RuntimeError):
 @dataclass(frozen=True, slots=True)
 class RateLimitExceeded(Exception):
     retry_after: int
-
-
-@dataclass(frozen=True, slots=True)
-class RateLimitPolicy:
-    limit: int
-    window_seconds: int
-
-    def __post_init__(self) -> None:
-        if self.limit < 1 or self.window_seconds < 1:
-            raise ValueError("rate limit policy must be positive")
 
 
 _INCREMENT_SCRIPT = """
@@ -47,14 +44,23 @@ return {denied, retry}
 
 
 class ValkeyRateLimiter:
-    def __init__(self, url: str, salt: bytes) -> None:
+    def __init__(
+        self,
+        url: str,
+        salt: bytes,
+        *,
+        policies: Mapping[RateLimitOperation, RateLimitPolicy] | None = None,
+    ) -> None:
         if not url or len(salt) < 16:
             raise ValueError("rate limiter URL and salt are required")
         self._client: Any = Valkey.from_url(url, decode_responses=False)
         self._salt = salt
+        self._policies = default_rate_limits() | dict(policies or {})
 
-    async def check(self, *, operation: str, owner_hash: str, client_host: str) -> None:
-        policy = _POLICIES[operation]
+    async def check(
+        self, *, operation: RateLimitOperation, owner_hash: str, client_host: str
+    ) -> None:
+        policy = self._policies[operation]
         keys = [
             self._key(operation, "ip", client_host, policy.window_seconds),
             self._key(operation, "owner", owner_hash, policy.window_seconds),
@@ -89,17 +95,3 @@ class ValkeyRateLimiter:
             hashlib.sha256,
         ).hexdigest()
         return f"video:ratelimit:{operation}:{window}:{digest}"
-
-
-_POLICIES = {
-    "login": RateLimitPolicy(limit=10, window_seconds=60),
-    "register": RateLimitPolicy(limit=5, window_seconds=3600),
-    "inspect": RateLimitPolicy(limit=20, window_seconds=60),
-    "download": RateLimitPolicy(limit=10, window_seconds=60),
-    "download_retry": RateLimitPolicy(limit=5, window_seconds=60),
-    "media_import": RateLimitPolicy(limit=10, window_seconds=60),
-    "media_import_upload": RateLimitPolicy(limit=30, window_seconds=60),
-    "document_import": RateLimitPolicy(limit=10, window_seconds=60),
-    "document_import_upload": RateLimitPolicy(limit=30, window_seconds=60),
-    "analysis": RateLimitPolicy(limit=5, window_seconds=60),
-}

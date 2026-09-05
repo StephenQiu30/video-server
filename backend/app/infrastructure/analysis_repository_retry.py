@@ -28,6 +28,7 @@ from app.infrastructure.database.models import (
     AnalysisRetryOperationRow,
     AnalysisRunRow,
 )
+from app.infrastructure.database.owner_lock import lock_owner
 
 
 class AnalysisRetryRepository(AnalysisCreationRepository):
@@ -37,6 +38,7 @@ class AnalysisRetryRepository(AnalysisCreationRepository):
         async with self._sessions() as session:
             try:
                 async with session.begin():
+                    await lock_owner(session, command.owner_hash)
                     row = await session.scalar(
                         select(AnalysisJobRow)
                         .where(

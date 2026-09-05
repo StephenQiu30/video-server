@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, Response, status
 
+from app.api.admission import RateLimitAdmission
 from app.api.auth_dependencies import get_current_user
 from app.api.dependencies import (
     IdempotencyKey,
@@ -32,6 +33,7 @@ UseCases = Annotated[MediaImportUseCases, Depends(get_media_import_use_cases)]
 @router.post(
     "",
     operation_id="createMediaImport",
+    dependencies=[Depends(RateLimitAdmission("media_import"))],
     response_model=MediaImportResponse,
     status_code=status.HTTP_201_CREATED,
     summary="创建本地视频导入",
@@ -88,6 +90,7 @@ async def get_media_import(
 @router.post(
     "/{resource_id}/upload-sessions",
     operation_id="createMediaUploadSession",
+    dependencies=[Depends(RateLimitAdmission("media_import_upload"))],
     response_model=MediaUploadSessionResponse,
     status_code=status.HTTP_201_CREATED,
     summary="创建或刷新视频上传会话",
@@ -117,6 +120,7 @@ async def create_media_upload_session(
 @router.post(
     "/{resource_id}/complete",
     operation_id="completeMediaImport",
+    dependencies=[Depends(RateLimitAdmission("media_import_upload"))],
     response_model=MediaImportResponse,
     summary="完成视频上传并触发验证",
 )

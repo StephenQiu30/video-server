@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Response, status
 
+from app.api.admission import RateLimitAdmission
 from app.api.auth_dependencies import get_current_user
 from app.api.dependencies import (
     AnalysisUseCases,
@@ -24,6 +25,7 @@ UseCases = Annotated[AnalysisUseCases, Depends(get_analysis_use_cases)]
 @router.post(
     "/documents/{document_id}/analyses",
     operation_id="createDocumentAnalysis",
+    dependencies=[Depends(RateLimitAdmission("analysis"))],
     response_model=AnalysisResponse,
     status_code=status.HTTP_201_CREATED,
     summary="创建剧本分析或改写任务",
