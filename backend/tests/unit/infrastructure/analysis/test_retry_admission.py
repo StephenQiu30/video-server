@@ -16,7 +16,9 @@ from tests.unit.infrastructure.analysis.factories import analysis_command, seed_
 NOW = datetime(2026, 9, 5, tzinfo=UTC)
 
 
-@pytest.mark.parametrize("lock_enabled", [True, False], ids=["owner-lock", "negative-control"])
+@pytest.mark.parametrize(
+    "lock_enabled", [True, False], ids=["owner-lock", "negative-control"]
+)
 async def test_concurrent_different_jobs_share_one_owner_retry_budget(
     analysis_db, monkeypatch, lock_enabled
 ):
@@ -90,22 +92,15 @@ async def test_concurrent_different_jobs_share_one_owner_retry_budget(
         1 if lock_enabled else 0
     )
     assert capacity_checks == 2
-    assert (
-        sum(
-            not isinstance(result, BaseException) and result.created
-            for result in results
-        )
-        == (1 if lock_enabled else 2)
-    )
+    assert sum(
+        not isinstance(result, BaseException) and result.created for result in results
+    ) == (1 if lock_enabled else 2)
     async with analysis_db.sessions() as session:
-        assert (
-            await session.scalar(
-                select(func.count())
-                .select_from(AnalysisRunRow)
-                .where(AnalysisRunRow.trigger == "manual_retry")
-            )
-            == (1 if lock_enabled else 2)
-        )
+        assert await session.scalar(
+            select(func.count())
+            .select_from(AnalysisRunRow)
+            .where(AnalysisRunRow.trigger == "manual_retry")
+        ) == (1 if lock_enabled else 2)
 
     successful = next(
         command
