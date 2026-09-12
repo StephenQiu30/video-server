@@ -1,0 +1,147 @@
+# 代码质量问题与修复登记
+
+- 更新：2026-09-12；首轮登记，未实施代码修复。
+- 服务端/Web 基线：`8ef415ce638131747988b033d5eb12916d20890e`；App 基线：`7439f49a6a4da1d6f1212ca43a058c4a82f55dd9`。
+- 范围：当前平台访问设计、下载/上传及状态恢复链路，延伸到相邻分析校验、并发测试和 App 下载操作。使用文本重复候选扫描、实现/调用方/测试人工核对；不是全仓逐行审计，不证明未列区域不存在问题。
+- 本轮只改治理和设计文档。App 原有 4 个已修改 Dart 文件及 1 个未跟踪测试原样保留；发现项不以这些未提交修改为证据。
+- 与 [018 业务评审](research/018-业务逻辑评审与ToC最小上线能力.md)分工：018 保留业务/上线事实；本文维护代码质量缺陷及去重裁决。已修复的 App 会话/分析竞态不重复记为未修复。
+
+## 1. 登记和关闭规则
+
+代码整洁以正确性、可维护性和职责清晰为目标，不以行数、文件数或“所有相似代码都合并”为目标。
+
+每条记录必须包含：稳定 ID、分类、优先级、证据及基线、具体影响、最小修复、保留边界、验收、当前状态。源码事实、推断风险、实测复现分别标记，不能把搜索命中直接算缺陷。
+
+- 分类：行为缺陷、验证缺陷、重复规则、过度设计风险；架构复杂但有职责依据的可裁决保留。
+- 优先级：P0 数据/安全紧急事故；P1 严重阻断核心流程；P2 有明确影响的功能或测试问题；P3 无当前行为错误证据的维护性问题。优先级不替代证据强度。
+- 流程：待核实 → 已确认待修复 → 方案就绪 → 已修复待验收 → 已关闭。设计候选可保留条件限制；不采纳必须写原因，不静默删除记录。
+- 关闭需填写修复 commit、稳定的回归测试和执行结果；涉及状态、契约、数据库、部署或真机时，补对应证据。测试通过但没有覆盖发现项，不能关闭。
+- 后续修改触及登记项时，先核对当前事实与影响范围，在批准的切片中完成 Red→Green→Refactor；相关 P0/P1 未解决不交付该切片，P2 必须修复或由用户明确接受延期，P3 可排序。无关缺陷登记独立切片，不搭车重构。
+- 默认复用现有服务、端口、模型、组件和测试。删除确认失效的实现与引用；不以抽象工厂、通用工作流、兼容层或第二套状态事实替代少量重复。
+- 用户当前要求仍为先设计、验证可行后再实现；本登记不授权生产重构、修改 Secret、迁移数据库或覆盖 App 未提交修改。
+
+## 2. 问题索引
+
+| ID | 优先级 / 分类 | 问题 | 当前状态 | 修复切片 |
+| --- | --- | --- | --- | --- |
+| CQ-001 | P2 / 行为缺陷 | Web/App 对本地上传任务展示不可执行的下载重试 | 源码确认，待修复；新负例未执行 | 下载操作契约 |
+| CQ-002 | P2 / 行为缺陷 | Web 视频上传缺少完成响应丢失后的幂等恢复 | 源码确认，待修复；新负例未执行 | 上传恢复 |
+| CQ-003 | P2 / 行为缺陷 | Web 任务多个查询入口可写回倒退版本 | 源码确认，待修复；乱序实验未执行 | 任务状态收敛 |
+| CQ-004 | P2 / 验证缺陷 | 并发重试测试的子类注入已脱离真实能力对象 | 源码确认，待修复；DB 并发验证未执行 | 测试有效性 |
+| CQ-005 | P2 / 行为缺陷 | App 不确定响应后的手动重试重新生成幂等键 | 源码确认，待修复；丢响应实验未执行 | 下载操作契约 |
+| CQ-006 | P3 / 重复规则 | 下载创建和展示重复解析 media_kind | 重复已确认，待最小去重 | 下载元数据 |
+| CQ-007 | P3 / 重复规则 | 剧本分析/改写复制同一输入完整性校验 | 重复已确认，待最小去重 | 剧本输入校验 |
+| CQ-008 | P3 / 重复规则 | Web 两套上传生命周期重复且恢复行为分叉 | 重复已确认，先修 CQ-002 再裁定提取 | 上传恢复 |
+| CQ-009 | 设计风险 / 非现有代码缺陷 | 035 可选来源维护者可能先于必要性证明落地 | 条件限制，未实施 | 035 G1–G4 |
+
+## 3. 证据、最小修复与验收
+
+### CQ-001：重试入口必须区分远程来源和本地上传
+
+证据：[RetryDownload](../backend/app/services/downloads/retry_download.py)第 60–61 行明确拒绝非 `remote_provider`；[Web 详情](../frontend/src/components/downloads/download-state.tsx)第 52–54 行、[Web 列表](../frontend/src/components/downloads/download-history-list.tsx)第 92–94 行、[App 详情](../../video-app/lib/features/history/presentation/download_task_actions.dart)第 106 行附近与 [App 列表](../../video-app/lib/features/history/presentation/download_history_item.dart)第 116 行附近只按 status/fileAvailable 决定重试。响应已有 source_kind，无需新建接口。
+
+影响：本地上传取消/失败或文件已不可取时，按钮会调用必然被拒绝的远程重试用例。服务器的拒绝是正确边界，不能为了按钮“能点”而删除。
+
+最小修复：两端各收敛一份来源感知的操作判定，列表/详情共用；本地来源提供明确重新选择文件/重新导入入口，不静默创建远程任务。跨语言通过契约样例对齐，不建设共享运行时规则引擎。
+
+验收：两端列表和详情都覆盖 `remote_provider/browser_import × failed/cancelled/succeeded-without-file`；本地不调用 retryDownload，远程保留原行为；保留服务端拒绝测试。
+
+### CQ-002：视频上传复用已提交的幂等结果
+
+证据：[media-import.ts](../frontend/src/services/media-import.ts)第 57–75 行创建资源后无条件申请 upload session；[document-import.ts](../frontend/src/services/document-import.ts)第 86–91 行会直接返回 verifying/ready 结果；[CreateUploadSession](../backend/app/services/imports/service.py)第 190 行拒绝非 uploading。既有 [媒体导入测试](../frontend/tests/unit/media-import.test.ts)第 172 行附近只为文档覆盖“完成响应丢失”。
+
+影响：视频 complete 已被服务端接受、客户端没收到响应时，以同一 key 再次启动会取回 verifying/ready 资源，然后错误请求上传会话，无法从已有成功提交恢复。不是存储故障，也不应丢弃幂等键重复创建资源。
+
+最小修复：视频流程消费真实资源状态；verifying/ready 直接返回，其他终态明确引导，只有 uploading 才申请分片会话。先补视频对应负例，不先重写整个上传器。
+
+验收：verifying/ready 重放只发创建资源的幂等查询式请求，不重新 PUT 或 complete；uploading 正常上传；failed/cancelled/expired 不冒充成功。
+
+### CQ-003：Web 任务更新必须按目标、操作代次和版本收敛
+
+证据：[useDownloadJob](../frontend/src/hooks/useDownloadJob.ts)第 69–106 行包含独立 Socket/轮询 GET，Socket 回调 await 后没有失效检查；[useAnalysisJob](../frontend/src/hooks/useAnalysisJob.ts)第 74–114 行同样存在独立 GET，虽有 disposed 但都直接 setJob，没有响应 version 比较。两处 versionRef 用于订阅起点，不是写回保护；[task-socket](../frontend/src/lib/task-socket.ts)过滤事件版本也不能控制后续 HTTP 响应顺序。
+
+影响：同一活动任务 v4 响应先返回、v3 后返回时，进度/状态可以倒退；下载的旧 Socket 回调还可能在切换任务或取消后污染新状态。此处是 Web 问题，不把 018 已修的 App 问题重新打开。
+
+最小修复：集中同一 Hook 内所有状态接纳入口，检查目标身份、操作代次和单调版本；成功、失败、finally 都受保护。先修两个 Hook，再判断是否值得提取小型请求代次辅助，不创建通用任务框架；下载新 job 与分析同 job/new run 的语义保留。
+
+验收：Socket/轮询乱序、同任务版本倒退、取消/删除后迟到成功与失败、切换来源后旧请求返回均有可控 Promise 回归；新状态和操作错误不被旧请求覆盖。
+
+### CQ-004：故障注入必须命中真正执行对象
+
+证据：[test_retry_admission.py](../backend/tests/unit/infrastructure/analysis/test_retry_admission.py)第 48–58 行在 `SqlAlchemyAnalysisRepository` 子类覆盖 `_require_retry_capacity`；[当前组合入口](../backend/app/repositories/analysis_repository.py)最后两行把 retry_job_and_enqueue 绑定到独立 `AnalysisRetryRepository` 实例；[实际调用](../backend/app/repositories/analysis_repository_retry.py)第 54 行调用的是该实例的校验，不是测试子类的方法。
+
+影响：测试中声称“读计数后暂停”的 sleep 不会执行，预期交错不受控制；最终计数断言仍有价值，但不能证明指定竞态已被覆盖。未据此宣称生产锁失效或测试必然失败。
+
+最小修复：在真实能力调用边界设置可观测同步点，并断言注入确实执行；保留实际 PostgreSQL 事务和 owner 锁。不要恢复已移除的继承结构来迁就测试，也不要单靠 sleep 猜调度顺序。
+
+验收：测试证明实际校验路径被命中，受控并发最终只有一个新 run；使用隔离测试变体去掉关键锁后应稳定暴露预算竞争，恢复锁后通过。不能要求两个持锁事务同时抵达锁内 barrier 而制造死锁。
+
+### CQ-005：App 幂等键应属于一次逻辑重试操作
+
+证据：[download_history_repository.dart](../../video-app/lib/features/history/data/download_history_repository.dart)第 79–85 行每次 retry(jobId) 新建随机 key；两处 Widget 捕获错误后恢复按钮，再点击会重新调用该方法。相比之下，[Web 列表](../frontend/src/components/downloads/download-history-view.tsx)第 74–80 行和 [Web 详情 Hook](../frontend/src/hooks/useDownloadJob.ts)第 132 行附近在不确定失败后保留 key。服务端 RetryDownload 以原任务和 key 创建新任务，同源不同 key 可创建不同资源。
+
+影响：服务端已经创建任务但响应丢失时，App 再点击会创建第二个任务并重复占用预算。当前认证层内部重放复用闭包中的同一个 key，这条路径不是本项缺陷。
+
+最小修复：在应用操作状态中保存 owner/session + 原任务 + 逻辑操作的 key；不确定失败复用，确认完成或用户发起新逻辑操作后更新，退出/切账号清理。不能给每个 job 永久固定一个 key，也不引入持久数据库或全局无限缓存。
+
+验收：服务端提交后丢响应，再点击使用同 key、得到同新任务；新操作得到新 key；切换账号不继承旧 key；列表和详情行为一致。
+
+### CQ-006：只提取确实相同的 media_kind 规则
+
+证据：[create_download.py](../backend/app/services/downloads/create_download.py)第 115–122 行与 [views.py](../backend/app/services/downloads/views.py)第 234–241 行 `_media_kind` 完全相同。同文件相邻 `_asset_count` 却分别要求正数与非负数，不能视为完全重复。
+
+影响：媒体类型扩展/非法数据处理需要双点修改。尚无该重复已造成线上错误的证据。
+
+最小修复：放到现有 downloads 业务内聚的校验模块，保持默认值、异常种类不变；先追踪 asset_count 的图集/视频调用语义，不合并其不同约束，不引入新的通用元数据 DTO。
+
+验收：缺字段、有效枚举、非字符串、未知枚举产生与原调用方相同结果；视频零资产与图集正资产边界保留。
+
+### CQ-007：共享输入完整性规则，不合并两种分块算法
+
+证据：[screenplay_analysis_plan.py](../backend/app/services/analysis_execution/screenplay_analysis_plan.py)第 76 行起与 [screenplay_rewrite_plan.py](../backend/app/services/analysis_execution/screenplay_rewrite_plan.py)第 109 行起 `_validate_source` 相同。分析按场景聚合，改写可拆场景且绑定哈希，输出模型不同。
+
+最小修复：仅收敛同一服务内的来源完整性函数；不做可配置的“万能分块器”、共同基类或 strategy registry。任何新增边界校验应单列行为变化，不能夹在等价去重里。
+
+验收：两入口对空文本、CR/NUL、末尾换行、重复场景 ID、不连续场景和尾端不匹配的错误一致；既有分块输出、文本覆盖、哈希及资源上限不变。
+
+### CQ-008：上传生命周期去重必须先讲清差异
+
+证据：[useMediaImport](../frontend/src/hooks/useMediaImport.ts)、[useDocumentImport](../frontend/src/hooks/useDocumentImport.ts)重复维护 ActiveRun、StableKey、取消与进度；[两类服务](../frontend/src/services/media-import.ts)和[文档服务](../frontend/src/services/document-import.ts)还复制 phase/observer 及传输编排。文档有失败取消和已完成恢复，视频有 declared_origin 与取消通知，不能简单互相替换。
+
+最小修复：先解决 CQ-002 并明确取消/完成竞态，再只提取相同的操作身份和传输生命周期，具体资源 API、格式校验及失败策略保留在各自服务。继续复用已有 `lib/media-upload`；如果小型提取仍需大量模式开关，保留局部重复并记录理由。
+
+验收：两个流程都覆盖取消、卸载、创建响应迟到、完成响应丢失、失败重试及稳定 key；检查没有吞掉原错误或新增第二套上传底层。不是以减少多少行作为通过条件。
+
+### CQ-009：035 可选架构不得先于必要性证明
+
+证据：[035 设计](design/035-平台访问与会话恢复能力设计.md)第 6 节定义了来源维护者、持久 envelope 和操作租约，但第 11–13 节明确自动来源未证明、可放弃；这是设计中的潜在复杂度，不是已经存在的冗余代码。
+
+处置：先用现有 manual_file/引擎/出口完成 G1/G2；只有 G3 证明单个平台必须且能够安全维护来源才批准 I2。没有 Go 不生成占位模块、空端口或全平台 sidecar。路径冷却/repair 字段也必须有失效重试实验支持后才引入。
+
+验收：G4 提交“保留/修改/删除/不引入”清单；每个新进程、字段和抽象对应明确需求、失败场景和测试。仅文件来源足够时，明确不实施来源维护者。
+
+## 4. 已审查但不应机械删除的结构
+
+- 下载与分析的 Repository 组合：承担不同事务和任务模型；不因有多个能力对象就报过度设计。CQ-004 应修测试注入，不反向恢复继承。
+- [DownloadExecutionRepository](../backend/app/repositories/download_execution.py)：含错误语义转换和 ArtifactCreate 映射，不是已证实的空转发层；是否去掉须先证明这些边界另有唯一所有者。
+- Web/App 的端侧呈现和状态模型：不同语言/生命周期，需要契约一致，不要求共用一份可执行 UI 代码。
+- 生成客户端、Protocol 与实现的同名签名、SQL/ORM 必须一致的字段以及 UI import 列表：不作为复制缺陷，也不手改生成文件“去重”。
+
+## 5. 修复顺序与未覆盖范围
+
+1. 在批准修复后，先修 CQ-004 的验证有效性，并为 CQ-001/002/003/005 补稳定失败测试；修复顺序按实际影响，不以去重率排序。
+2. 分别交付下载操作、上传恢复、任务状态收敛的小切片；App 在它自己的仓库内实施，不顺带提交用户现有修改。
+3. CQ-006/007 可独立做等价重构；CQ-008 在上传行为稳定后再决定抽取；CQ-009 依 035 门禁裁决。
+4. 后续扩大到账号/管理、AI/报告、存储清理、配置/依赖和容器时继续在本文登记，不新建重复问题平台；本轮未完成这些区域的全面审查。
+
+## 6. 本轮验证记录
+
+2026-09-12 运行现有 Web 测试：
+
+```bash
+npm test -- tests/unit/media-import.test.ts tests/unit/media-import-page.test.tsx tests/unit/download-job-hook.test.tsx tests/unit/analysis-job-hook.test.tsx tests/unit/history-page.test.tsx
+```
+
+5 个文件、20 项测试通过。它们是原有覆盖基线，不包含上述新增负例，因此所有缺陷仍未关闭。未新增/修改业务代码或测试；未运行数据库并发故障注入、Flutter/浏览器真机、真实平台和部署验证。后续关闭记录必须追加实际修复与验收结果，不把本轮通过当修复证据。
+
+文档静态检查：7 个变更文件、154 个相对链接存在；035 的 15 项需求/21 项验收引用合法，9 个 CQ 索引与正文一一对应；两处被列为完全重复的函数已逐块比较相同。diff 空白检查通过，变更白名单不包含业务源码。
