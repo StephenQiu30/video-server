@@ -8,6 +8,8 @@ import re
 import secrets
 import time
 from collections.abc import Callable, Mapping
+from datetime import UTC, datetime, timedelta
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Protocol, TypeVar
 
@@ -63,6 +65,12 @@ from app.services.downloads.errors import (
     MediaInspectionUnsupported,
     MediaInspectionVerificationFailed,
 )
+from app.services.provider_route_admission import (
+    ProviderRouteAdmission,
+    RouteAdmissionUnavailable,
+    RouteCoolingDown,
+    RouteProbeTimeout,
+)
 
 _TASK_ID = re.compile(r"[A-Za-z0-9_-]{1,64}")
 _CONTEXT_TIMEOUT_SECONDS = 2.0
@@ -117,6 +125,8 @@ class MediaRunnerHttpClient:
         client: httpx.AsyncClient | None = None,
         clock: Callable[[], int] | None = None,
         nonce: Callable[[], str] | None = None,
+        admission: ProviderRouteAdmission | None = None,
+        expected_access_mode: ProviderAccessMode | None = None,
     ) -> None:
         if len(secret) < 32:
             raise ValueError("runner HMAC secret must contain at least 32 bytes")
@@ -127,6 +137,8 @@ class MediaRunnerHttpClient:
         self._clock = clock or (lambda: int(time.time()))
         self._nonce = nonce or (lambda: secrets.token_urlsafe(24))
         self._owns_client = client is None
+        self._admission = admission
+        self._expected_access_mode = expected_access_mode
         self._client = client or httpx.AsyncClient(base_url=base_url)
 
     async def context(self, url: str) -> ProviderAccessContextRef:
@@ -143,7 +155,13 @@ class MediaRunnerHttpClient:
             min(self._inspect_timeout, _CONTEXT_TIMEOUT_SECONDS),
             timeout_code="inspection_timeout",
         )
-        return _context_to_domain(response)
+        context = _context_to_domain(response)
+        if context.provider_key != provider_key or (
+            self._expected_access_mode is not None
+            and context.access_mode is not self._expected_access_mode
+        ):
+            raise MediaRunnerClientError("client_context_mismatch", 502)
+        return context
 
     async def contexts_for_providers(
         self, provider_keys: tuple[str, ...]
@@ -162,14 +180,25 @@ class MediaRunnerHttpClient:
 
     async def inspect(self, url: str) -> RunnerInspection:
         try:
-            response = await self._request(
-                "POST",
-                "/internal/v1/inspect",
-                InspectRequest(url=url).model_dump_json().encode(),
-                InspectResponse,
-                self._inspect_timeout,
-                timeout_code="inspection_timeout",
+            context = (
+                await self.context(url)
+                if self._admission is not None or self._expected_access_mode is not None
+                else None
             )
+            if self._admission is None:
+                response = await self._inspect_response(url, context)
+            else:
+                assert context is not None
+                response = await self._admission.run(
+                    context,
+                    lambda deadline: self._inspect_response(url, context, deadline),
+                )
+        except RouteCoolingDown as exc:
+            raise MediaInspectionRateLimited(retry_at=exc.retry_at) from exc
+        except RouteProbeTimeout as exc:
+            raise MediaInspectionTimeout from exc
+        except RouteAdmissionUnavailable as exc:
+            raise MediaInspectionTemporarilyUnavailable from exc
         except MediaRunnerClientError as exc:
             if exc.code in ContentRestriction:
                 raise MediaInspectionPaidContentRestricted(
@@ -247,6 +276,37 @@ class MediaRunnerHttpClient:
             asset_count=response.media.asset_count,
         )
 
+    async def _inspect_response(
+        self,
+        url: str,
+        context: ProviderAccessContextRef | None = None,
+        deadline_at: datetime | None = None,
+    ) -> InspectResponse:
+        response = await self._request(
+            "POST",
+            "/internal/v1/inspect",
+            InspectRequest(
+                url=url,
+                access_context=(
+                    None
+                    if context is None
+                    else ProviderAccessContextContract.from_domain(context)
+                ),
+                deadline_at=deadline_at,
+            )
+            .model_dump_json()
+            .encode(),
+            InspectResponse,
+            self._inspect_timeout,
+            timeout_code="inspection_timeout",
+        )
+        if context is not None:
+            if response.access_context.to_domain() != context:
+                raise MediaRunnerClientError("client_context_mismatch", 422)
+            if not response.options:
+                raise MediaRunnerClientError("format_unavailable", 422)
+        return response
+
     async def download(
         self,
         task_id: str,
@@ -276,13 +336,28 @@ class MediaRunnerHttpClient:
             .model_dump_json()
             .encode()
         )
-        response = await self._request(
-            "POST",
-            "/internal/v1/download",
-            body,
-            DownloadResponse,
-            self._download_timeout,
-            timeout_code="download_timeout",
+
+        async def execute(_deadline: datetime | None = None) -> DownloadResponse:
+            return await self._request(
+                "POST",
+                "/internal/v1/download",
+                body,
+                DownloadResponse,
+                self._download_timeout,
+                timeout_code="download_timeout",
+            )
+
+        response = (
+            await execute()
+            if self._admission is None
+            else await self._admission.run(
+                access_context,
+                execute,
+                owner=task_id,
+                probe=lambda deadline: self._inspect_response(
+                    url, access_context, deadline
+                ),
+            )
         )
         workspace = Path(response.workspace_path).resolve()
         artifact = (workspace / response.artifact.relative_path).resolve()
@@ -363,7 +438,11 @@ class MediaRunnerHttpClient:
         except httpx.HTTPError as exc:
             raise MediaRunnerClientError("runner_unavailable", 503) from exc
         if response.is_error:
-            raise MediaRunnerClientError(_error_code(response), response.status_code)
+            raise MediaRunnerClientError(
+                _error_code(response),
+                response.status_code,
+                retry_at=_retry_after(response.headers.get("Retry-After")),
+            )
         try:
             return model.model_validate_json(response.content)
         except ValidationError as exc:
@@ -515,6 +594,19 @@ def _error_code(response: httpx.Response) -> str:
     except (KeyError, TypeError, ValueError):
         return "runner_failed"
     return value if isinstance(value, str) and value else "runner_failed"
+
+
+def _retry_after(value: str | None) -> datetime | None:
+    if value is None or len(value) > 128:
+        return None
+    now = datetime.now(UTC)
+    try:
+        if value.isascii() and value.isdigit():
+            return now + timedelta(seconds=int(value))
+        result = parsedate_to_datetime(value)
+        return result if result.tzinfo is not None and result > now else None
+    except (ValueError, TypeError, OverflowError):
+        return None
 
 
 def _context_to_domain(

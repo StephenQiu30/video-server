@@ -21,9 +21,11 @@ from app.integrations.thumbnail_storage import MinioThumbnailStorage
 from app.integrations.url_security import FernetUrlEnvelope
 from app.repositories.download_execution import DownloadExecutionRepository
 from app.repositories.download_repository import SqlAlchemyDownloadRepository
+from app.repositories.provider_route_cooldowns import SqlAlchemyProviderRouteCooldowns
 from app.runner.provider_registry import configure_provider_instances
 from app.services.download_execution import DownloadExecution, DownloadExecutionSettings
 from app.services.downloads import PersistThumbnail
+from app.services.provider_route_admission import ProviderRouteAdmission
 from app.workers.download.consumer import RabbitMqDownloadConsumer
 from app.workers.download.sweeper import DownloadRecoverySweeper, RecoverySettings
 from app.workers.download.thumbnail import ArtifactThumbnailRecovery
@@ -52,9 +54,12 @@ class DownloadWorkerRuntime:
 def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
     configure_provider_instances(settings.peertube_allowed_instances)
     engine = create_engine(settings.database_url)
-    raw_repository = SqlAlchemyDownloadRepository(create_session_factory(engine))
+    sessions = create_session_factory(engine)
+    raw_repository = SqlAlchemyDownloadRepository(sessions)
     repository = DownloadExecutionRepository(raw_repository)
-    runner = media_runner_router(settings)
+    runner = media_runner_router(
+        settings, ProviderRouteAdmission(SqlAlchemyProviderRouteCooldowns(sessions))
+    )
     storage = MinioObjectStorage(settings)
     thumbnail_recovery = ArtifactThumbnailRecovery(
         PersistThumbnail(

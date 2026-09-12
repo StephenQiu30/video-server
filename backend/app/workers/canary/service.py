@@ -34,6 +34,11 @@ from app.services.downloads import (
     RunnerInspection,
 )
 from app.services.downloads.errors import MediaInspectionFormatUnavailable
+from app.services.provider_route_admission import (
+    RouteAdmissionUnavailable,
+    RouteCoolingDown,
+    RouteProbeTimeout,
+)
 from app.workers.canary.targets import ProviderCanaryTarget
 
 _INSPECTION_ERRORS: tuple[tuple[type[Exception], str], ...] = (
@@ -64,6 +69,7 @@ _RUNNER_ERRORS = {
     "runner_unavailable",
 }
 _RUNNER_ERROR_ALIASES = {
+    "runner_dependency_unavailable": "runner_unavailable",
     "egress_challenged": "provider_verification_failed",
     "pot_required": "provider_verification_failed",
     "pot_rejected": "provider_verification_failed",
@@ -283,7 +289,15 @@ class ProviderCanaryService:
 
 
 def _stable_error(exc: Exception) -> str:
-    if isinstance(exc, MediaRunnerClientError):
+    if isinstance(
+        exc,
+        (
+            MediaRunnerClientError,
+            RouteCoolingDown,
+            RouteProbeTimeout,
+            RouteAdmissionUnavailable,
+        ),
+    ):
         if exc.code in _RUNNER_ERRORS:
             return exc.code
         return _RUNNER_ERROR_ALIASES.get(exc.code, "runner_failed")

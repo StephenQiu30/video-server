@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+from math import ceil
 from typing import cast
 
 from fastapi import Request
@@ -365,6 +367,15 @@ def application_error(error: ApplicationError) -> AppError:
         code=error.code.value,
         title=title,
         detail=detail,
+        headers=(
+            {
+                "Retry-After": str(
+                    max(1, ceil((error.retry_at - datetime.now(UTC)).total_seconds()))
+                )
+            }
+            if error.retry_at is not None
+            else None
+        ),
     )
 
 

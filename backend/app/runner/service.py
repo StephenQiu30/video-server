@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import replace
+from datetime import UTC, datetime
 from pathlib import Path
 
 from app.domain.downloads import (
@@ -94,16 +95,29 @@ class MediaRunnerService:
             for provider_key in provider_keys
         )
 
-    async def inspect(self, url: str) -> InspectResponse:
+    async def inspect(
+        self,
+        url: str,
+        *,
+        access_context: ProviderAccessContextRef | None = None,
+        deadline_at: datetime | None = None,
+    ) -> InspectResponse:
         safe_url = safe_media_url(url)
         source = provider_request(safe_url)
-        context = self._sessions.context_for(source.profile)
+        context = (
+            self._sessions.context_for(source.profile)
+            if access_context is None
+            else self._sessions.validate_context(source.profile, access_context)
+        )
+        timeout = self._settings.runner_inspect_timeout_seconds
+        if deadline_at is not None:
+            timeout = min(timeout, (deadline_at - datetime.now(UTC)).total_seconds())
+            if timeout <= 0:
+                raise RunnerFailure("inspection_timeout", status=504)
         workspace = self._workspaces.create("inspect")
         try:
             try:
-                async with asyncio.timeout(
-                    self._settings.runner_inspect_timeout_seconds
-                ):
+                async with asyncio.timeout(timeout):
                     async with self._sessions.operation(context) as cookie_jar:
                         inspection = await self._inspection.inspect(
                             source,

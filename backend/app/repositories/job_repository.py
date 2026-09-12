@@ -9,6 +9,7 @@ from sqlalchemy import Select, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domain.providers import ProviderAccessContextRef
 from app.models import DownloadJobRow, MediaFormatRow, MediaInspectionRow
 from app.repositories.download_events import requested_event
 from app.repositories.errors import (
@@ -17,6 +18,10 @@ from app.repositories.errors import (
     RepositoryNotFound,
 )
 from app.repositories.mapping import job_snapshot
+from app.repositories.provider_route_cooldowns import (
+    acquire_route,
+    bound_route_transaction,
+)
 from app.repositories.quota_admission import lock_admission, reserve
 from app.repositories.repository_base import RepositoryBase
 from app.services.downloads.download_models import (
@@ -24,6 +29,7 @@ from app.services.downloads.download_models import (
     JobSaveResult,
     JobSnapshot,
 )
+from app.services.provider_route_admission import ProviderRouteKey, RouteCoolingDown
 
 _ACTIVE_JOB_STATUSES = ("queued", "running", "retry_wait")
 
@@ -140,6 +146,43 @@ class JobRepository(RepositoryBase):
             .returning(DownloadJobRow)
         )
         async with self._sessions() as session, session.begin():
+            await bound_route_transaction(session)
+            queued = await session.scalar(
+                select(DownloadJobRow)
+                .where(
+                    DownloadJobRow.id == job_id,
+                    DownloadJobRow.source_kind == "remote_provider",
+                    DownloadJobRow.status == "queued",
+                    DownloadJobRow.attempt < DownloadJobRow.max_attempts,
+                    DownloadJobRow.retry_at.is_(None),
+                )
+                .with_for_update()
+            )
+            if queued is None:
+                return None
+            inspection = await session.get(MediaInspectionRow, queued.inspection_id)
+            if inspection is not None:
+                try:
+                    context = ProviderAccessContextRef.from_document(
+                        inspection.metadata_json.get("provider_access_context")
+                    )
+                except (ValueError, TypeError):
+                    context = None  # Execution retains the existing strict failure.
+                if context is not None:
+                    try:
+                        await acquire_route(
+                            session,
+                            ProviderRouteKey.from_context(context),
+                            f"download_{job_id.hex}_{queued.attempt + 1}",
+                        )
+                    except RouteCoolingDown as exc:
+                        queued.status = "retry_wait"
+                        queued.retry_at = exc.retry_at
+                        queued.error_code = "provider_rate_limited"
+                        queued.error_message = "provider_rate_limited"
+                        queued.version += 1
+                        queued.updated_at = now
+                        return None
             return_row = (await session.execute(statement)).scalar_one_or_none()
             return None if return_row is None else job_snapshot(return_row)
 

@@ -4,6 +4,8 @@ import asyncio
 import hashlib
 import json
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -14,6 +16,53 @@ from app.runner.provider_sessions import ProviderSessionStore
 from app.runner.service import MediaRunnerService
 from app.runner.settings import RunnerSettings
 from helpers import download_request, result, settings, split_media_info
+
+
+async def test_inspect_rejects_frozen_context_drift_before_platform_io(tmp_path):
+    supervisor = FixtureSupervisor(split_media_info())
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+    url = "https://media.example.com/video"
+    frozen = replace(await service.context(url), engine_commit="obsolete")
+    with pytest.raises(RunnerFailure) as error:
+        await service.inspect(url, access_context=frozen)
+    assert error.value.code == "client_context_mismatch"
+    assert supervisor.calls == []
+
+
+async def test_expired_probe_deadline_never_accesses_platform(tmp_path):
+    supervisor = FixtureSupervisor(split_media_info())
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+    with pytest.raises(RunnerFailure) as error:
+        await service.inspect(
+            "https://media.example.com/video",
+            deadline_at=datetime.now(UTC) - timedelta(seconds=1),
+        )
+    assert error.value.code == "inspection_timeout"
+    assert supervisor.calls == []
+
+
+async def test_probe_deadline_cancels_runner_work_and_cleans_workspace(tmp_path):
+    cancelled = asyncio.Event()
+
+    class BlockingSupervisor:
+        async def run(self, *args, **kwargs):
+            try:
+                await asyncio.Event().wait()
+            finally:
+                cancelled.set()
+
+    service = MediaRunnerService(settings(tmp_path), supervisor=BlockingSupervisor())
+    with pytest.raises(RunnerFailure) as error:
+        await asyncio.wait_for(
+            service.inspect(
+                "https://media.example.com/video",
+                deadline_at=datetime.now(UTC) + timedelta(seconds=0.05),
+            ),
+            timeout=1,
+        )
+    assert error.value.code == "inspection_timeout"
+    assert cancelled.is_set()
+    assert list(tmp_path.iterdir()) == []
 
 
 class ThumbnailStream:

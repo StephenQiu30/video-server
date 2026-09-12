@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from api_helpers import FakeService, anonymous_access_context, settings, signed_headers
@@ -14,6 +15,26 @@ class Readiness:
 
     async def check(self) -> bool:
         return self.available
+
+
+def test_signed_inspect_forwards_frozen_context_and_aware_deadline(tmp_path):
+    service = FakeService()
+    client = TestClient(create_app(settings(tmp_path), service=service))
+    deadline = datetime.now(UTC) + timedelta(seconds=20)
+    body = json.dumps(
+        {
+            "url": "https://media.example.com/video",
+            "access_context": anonymous_access_context(),
+            "deadline_at": deadline.isoformat(),
+        }
+    ).encode()
+    path = "/internal/v1/inspect"
+    response = client.post(
+        path, content=body, headers=signed_headers(path, body, "deadline_nonce_123456")
+    )
+    assert response.status_code == 200
+    assert service.inspected_context.to_document() == anonymous_access_context()
+    assert service.inspect_deadline == deadline
 
 
 def test_health_is_public_and_inspect_requires_valid_raw_body_signature(

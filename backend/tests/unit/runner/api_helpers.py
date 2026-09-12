@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from datetime import datetime
 from pathlib import Path
 
 from app.domain.providers import ProviderAccessContextRef
@@ -24,6 +25,8 @@ SECRET = "runner-shared-secret-material-at-least-32-bytes"
 class FakeService:
     def __init__(self) -> None:
         self.inspected_url: str | None = None
+        self.inspected_context: ProviderAccessContextRef | None = None
+        self.inspect_deadline: datetime | None = None
         self.context_requests: list[str] = []
         self.download_request: DownloadRequest | None = None
         self.cancelled: list[str] = []
@@ -42,8 +45,16 @@ class FakeService:
             for _ in provider_keys
         )
 
-    async def inspect(self, url: str) -> InspectResponse:
+    async def inspect(
+        self,
+        url: str,
+        *,
+        access_context: ProviderAccessContextRef | None = None,
+        deadline_at: datetime | None = None,
+    ) -> InspectResponse:
         self.inspected_url = url
+        self.inspected_context = access_context
+        self.inspect_deadline = deadline_at
         return InspectResponse(
             media=MediaSummary(
                 provider_media_id="fixture-id",

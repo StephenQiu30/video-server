@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from enum import StrEnum
 from typing import Self
 
@@ -39,8 +40,11 @@ class ApplicationErrorCode(StrEnum):
 
 
 class ApplicationError(RuntimeError):
-    def __init__(self, code: ApplicationErrorCode) -> None:
+    def __init__(
+        self, code: ApplicationErrorCode, *, retry_at: datetime | None = None
+    ) -> None:
         self.code = code
+        self.retry_at = retry_at
         super().__init__(code.value)
 
 
@@ -99,6 +103,10 @@ class MediaInspectionVerificationFailed(MediaInspectionFailure):
 
 class MediaInspectionRateLimited(MediaInspectionFailure):
     """The provider rejected the bounded request rate."""
+
+    def __init__(self, *, retry_at: datetime | None = None) -> None:
+        self.retry_at = retry_at
+        super().__init__()
 
 
 class MediaInspectionGeoRestricted(MediaInspectionFailure):

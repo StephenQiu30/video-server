@@ -4,7 +4,14 @@ import re
 from enum import StrEnum
 from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 from app.domain.downloads import (
     AudioCodecFamily,
@@ -143,6 +150,8 @@ class DownloadOption(ContractModel):
 
 class InspectRequest(ContractModel):
     url: str = Field(min_length=1, max_length=4096)
+    access_context: ProviderAccessContextContract | None = None
+    deadline_at: AwareDatetime | None = None
 
 
 class ProviderContextRequest(ContractModel):

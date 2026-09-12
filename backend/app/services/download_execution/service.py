@@ -39,6 +39,7 @@ from app.services.download_execution.ports import (
 )
 from app.services.download_execution.transitions import ExecutionTransitions
 from app.services.downloads import EncryptedUrl, plan_from_documents
+from app.services.provider_route_admission import RouteCoolingDown
 
 
 class DownloadExecution:
@@ -144,6 +145,13 @@ class DownloadExecution:
                 return ExecutionDisposition.REQUEUE
             except asyncio.CancelledError:
                 raise
+            except RouteCoolingDown as exc:
+                return await self._transitions.fail(
+                    job_id,
+                    attempt,
+                    DownloadErrorCode.PROVIDER_RATE_LIMITED,
+                    retry_not_before=exc.retry_at,
+                )
             except Exception as exc:
                 return await self._transitions.fail(
                     job_id,

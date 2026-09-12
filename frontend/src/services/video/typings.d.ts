@@ -1120,6 +1120,8 @@ declare namespace API {
     last_media_verified_at: string | null;
     /** User Action */
     user_action: string | null;
+    /** Route Retry At */
+    route_retry_at?: string | null;
   };
 
   type ProviderStatusResponse = {
@@ -1158,6 +1160,8 @@ declare namespace API {
     hosts: string[];
     /** Host Suffixes */
     host_suffixes: string[];
+    /** Route Retry At */
+    route_retry_at?: string | null;
   };
 
   type ProviderSupportStatus =

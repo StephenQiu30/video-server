@@ -59,6 +59,7 @@ class ProviderStatusView:
     hosts: tuple[str, ...] = ()
     host_suffixes: tuple[str, ...] = ()
     runtime_context: ProviderAccessContextRef | None = None
+    route_retry_at: datetime | None = None
 
     @property
     def download_supported(self) -> bool:

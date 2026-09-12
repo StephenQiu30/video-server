@@ -144,7 +144,9 @@ class InspectMedia:
                 ApplicationErrorCode.PROVIDER_VERIFICATION_FAILED
             ) from exc
         except MediaInspectionRateLimited as exc:
-            raise ApplicationError(ApplicationErrorCode.PROVIDER_RATE_LIMITED) from exc
+            raise ApplicationError(
+                ApplicationErrorCode.PROVIDER_RATE_LIMITED, retry_at=exc.retry_at
+            ) from exc
         except MediaInspectionGeoRestricted as exc:
             raise ApplicationError(
                 ApplicationErrorCode.PROVIDER_GEO_RESTRICTED

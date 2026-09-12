@@ -51,6 +51,7 @@ from app.repositories.provider_canary_repository import (
 from app.repositories.provider_catalog_repository import (
     SqlAlchemyProviderCatalogRepository,
 )
+from app.repositories.provider_route_cooldowns import SqlAlchemyProviderRouteCooldowns
 from app.repositories.provider_status_evidence import (
     MergedProviderStatusEvidenceReader,
     SqlAlchemyDownloadEvidenceReader,
@@ -119,6 +120,7 @@ from app.services.imports import (
 )
 from app.services.provider_canaries import ProviderStatusService
 from app.services.provider_catalog import ProviderCatalogService
+from app.services.provider_route_admission import ProviderRouteAdmission
 from app.services.source_discoveries import (
     CreateSourceDiscovery,
     GetSourceDiscovery,
@@ -175,7 +177,9 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
     provider_catalog_repository = SqlAlchemyProviderCatalogRepository(sessions)
     ai_provider_repository = SqlAlchemyAiProviderRepository(sessions)
     store = repository
-    runner = media_runner_router(settings)
+    runner = media_runner_router(
+        settings, ProviderRouteAdmission(SqlAlchemyProviderRouteCooldowns(sessions))
+    )
     storage = MinioObjectStorage(settings, enable_public_signing=True)
     import_storage = MinioObjectStorage.for_imports(settings)
     thumbnail_storage = MinioThumbnailStorage(storage)
@@ -487,6 +491,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
                 ),
                 provider_baselines,
                 snapshot_ttl_seconds=30,
+                cooldown_reader=SqlAlchemyProviderRouteCooldowns(sessions),
                 now=clock,
                 context_reader=runner,
                 approved_keys=settings.provider_verified_keys,

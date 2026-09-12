@@ -37,6 +37,7 @@ class ProviderStatusResponse(StrictModel):
     evidence_state: ProviderEvidenceState
     hosts: tuple[str, ...]
     host_suffixes: tuple[str, ...]
+    route_retry_at: datetime | None = None
 
     @classmethod
     def from_view(cls, value: ProviderStatusView) -> ProviderStatusResponse:
@@ -63,6 +64,7 @@ class ProviderStatusResponse(StrictModel):
             evidence_state=value.evidence_state,
             hosts=value.hosts,
             host_suffixes=value.host_suffixes,
+            route_retry_at=value.route_retry_at,
         )
 
 

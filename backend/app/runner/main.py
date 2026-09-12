@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import time
+from datetime import datetime
 from typing import Protocol
 
 from fastapi import FastAPI, Request
@@ -49,7 +50,13 @@ class RunnerService(Protocol):
         self, provider_keys: tuple[str, ...]
     ) -> tuple[ProviderAccessContextRef, ...]: ...
 
-    async def inspect(self, url: str) -> InspectResponse: ...
+    async def inspect(
+        self,
+        url: str,
+        *,
+        access_context: ProviderAccessContextRef | None = None,
+        deadline_at: datetime | None = None,
+    ) -> InspectResponse: ...
 
     async def download(self, request: DownloadRequest) -> DownloadResponse: ...
 
@@ -122,7 +129,15 @@ def create_app(
             authenticator,
         )
         payload = _parse(InspectRequest, body)
-        return await runner.inspect(payload.url)
+        return await runner.inspect(
+            payload.url,
+            access_context=(
+                None
+                if payload.access_context is None
+                else payload.access_context.to_domain()
+            ),
+            deadline_at=payload.deadline_at,
+        )
 
     @app.post(
         "/internal/v1/context",

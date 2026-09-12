@@ -1186,6 +1186,27 @@ CREATE TABLE IF NOT EXISTS operational_counters (
     CONSTRAINT ck_operational_counters_value CHECK (value >= 0)
 );
 
+CREATE TABLE IF NOT EXISTS provider_route_cooldowns (
+    provider_key VARCHAR(32) NOT NULL,
+    access_policy_id VARCHAR(32) NOT NULL,
+    egress_binding_id VARCHAR(128) NOT NULL,
+    blocked_until TIMESTAMPTZ,
+    reason_code VARCHAR(32) NOT NULL,
+    probe_owner VARCHAR(64),
+    probe_lease_until TIMESTAMPTZ,
+    version BIGINT NOT NULL,
+    PRIMARY KEY (provider_key, access_policy_id, egress_binding_id),
+    CONSTRAINT ck_provider_route_cooldown_version CHECK (version > 0),
+    CONSTRAINT ck_provider_route_cooldown_policy CHECK (
+        access_policy_id IN ('public','operator_public','personal_entitled')
+    ),
+    CONSTRAINT ck_provider_route_cooldown_probe CHECK (
+        (probe_owner IS NULL) = (probe_lease_until IS NULL)
+        AND (probe_owner IS NULL OR blocked_until IS NOT NULL)
+    ),
+    CONSTRAINT ck_provider_route_cooldown_reason CHECK (reason_code = 'provider_rate_limited')
+);
+
 CREATE TABLE IF NOT EXISTS provider_canary_results (
     id UUID PRIMARY KEY,
     target_id VARCHAR(128) NOT NULL,

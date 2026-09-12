@@ -22,6 +22,7 @@ class ProviderRuntimeResponse(StrictModel):
     evidence_state: ProviderEvidenceState
     last_media_verified_at: datetime | None
     user_action: str | None
+    route_retry_at: datetime | None = None
 
     @classmethod
     def from_view(cls, view: ProviderStatusView) -> "ProviderRuntimeResponse":
@@ -50,6 +51,7 @@ class ProviderRuntimeResponse(StrictModel):
             evidence_state=view.evidence_state,
             last_media_verified_at=view.last_media_verified_at,
             user_action=view.user_action,
+            route_retry_at=view.route_retry_at,
         )
 
 

@@ -16,7 +16,9 @@ from app.integrations.media_runner_factory import (
 from app.repositories.provider_canary_repository import (
     SqlAlchemyProviderCanaryRepository,
 )
+from app.repositories.provider_route_cooldowns import SqlAlchemyProviderRouteCooldowns
 from app.runner.provider_registry import configure_provider_instances
+from app.services.provider_route_admission import ProviderRouteAdmission
 from app.workers.canary.runner import ProviderCanaryRunner
 from app.workers.canary.scheduler import ProviderCanaryScheduler
 from app.workers.canary.service import ProviderCanaryService
@@ -42,9 +44,11 @@ class ProviderCanaryRuntime:
 def build_runtime(settings: Settings) -> ProviderCanaryRuntime:
     configure_provider_instances(settings.peertube_allowed_instances)
     engine = create_engine(settings.database_url)
-    repository = SqlAlchemyProviderCanaryRepository(create_session_factory(engine))
-    anonymous = anonymous_media_runner(settings)
-    operators = operator_media_runners(settings)
+    sessions = create_session_factory(engine)
+    repository = SqlAlchemyProviderCanaryRepository(sessions)
+    admission = ProviderRouteAdmission(SqlAlchemyProviderRouteCooldowns(sessions))
+    anonymous = anonymous_media_runner(settings, admission)
+    operators = operator_media_runners(settings, admission)
     runner = ProviderCanaryRunner(anonymous, operators)
     service = ProviderCanaryService(
         repository,

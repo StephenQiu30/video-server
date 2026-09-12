@@ -1,6 +1,7 @@
 """Infrastructure-owned results returned by the Media Runner client."""
 
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 from app.domain.downloads import DownloadStage, MediaKind
@@ -8,9 +9,12 @@ from app.runner.contracts import RunnerTaskStage
 
 
 class MediaRunnerClientError(RuntimeError):
-    def __init__(self, code: str, status: int) -> None:
+    def __init__(
+        self, code: str, status: int, *, retry_at: datetime | None = None
+    ) -> None:
         self.code = code
         self.status = status
+        self.retry_at = retry_at
         super().__init__(code)
 
 

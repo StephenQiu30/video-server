@@ -1,11 +1,27 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from app.api.errors import application_error
 from app.core.config import Settings
 from app.core.errors import AppError
 from app.main import create_app
+from app.services.downloads import ApplicationError, ApplicationErrorCode
 from fastapi.testclient import TestClient
+
+
+def test_provider_cooldown_exposes_only_bounded_retry_header():
+    mapped = application_error(
+        ApplicationError(
+            ApplicationErrorCode.PROVIDER_RATE_LIMITED,
+            retry_at=datetime.now(UTC) + timedelta(minutes=5),
+        )
+    )
+    assert mapped.status == 429
+    assert mapped.headers is not None
+    assert 299 <= int(mapped.headers["Retry-After"]) <= 300
+    assert "egress" not in mapped.detail
 
 
 def test_app_error_uses_stable_problem_details(tmp_path: Path) -> None:

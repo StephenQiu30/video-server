@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { accessPolicyLabel } from '@/lib/provider-access';
+import { accessPolicyLabel, routeCooldownLabel } from '@/lib/provider-access';
 import { displayError } from '@/lib/request-error';
 import { getAdminProviderRuntime } from '@/services/provider-catalog';
 
@@ -70,6 +70,9 @@ export function ProviderRuntimePanel() {
                   : '上下文不可达或尚未确认'}
               </p>
               <p>{sourceLabels[item.source_state]}</p>
+              {item.route_retry_at ? (
+                <p>{routeCooldownLabel(item.route_retry_at)}</p>
+              ) : null}
               <p className="break-words text-muted-foreground">
                 引擎：{item.engine_commit ?? '未知'} · 证据：
                 {item.evidence_state === 'fresh'

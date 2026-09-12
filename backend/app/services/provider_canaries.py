@@ -17,6 +17,10 @@ from app.domain.providers import (
     ProviderSupportStatus,
 )
 from app.services.provider_catalog import ProviderCatalogRepository
+from app.services.provider_route_admission import (
+    ProviderRouteCooldownReader,
+    ProviderRouteKey,
+)
 from app.services.providers import (
     ProviderEvidenceState,
     ProviderStatusView,
@@ -90,6 +94,7 @@ class ProviderStatusService:
         catalog: ProviderCatalogRepository | None = None,
         snapshot_ttl_seconds: float = 0,
         monotonic: Callable[[], float] = time.monotonic,
+        cooldown_reader: ProviderRouteCooldownReader | None = None,
     ) -> None:
         if (
             not math.isfinite(snapshot_ttl_seconds)
@@ -116,6 +121,7 @@ class ProviderStatusService:
         self._approved_keys = approved_keys
         self._catalog = catalog
         self._context_reader = context_reader
+        self._cooldown_reader = cooldown_reader
         self._snapshot_ttl = snapshot_ttl_seconds
         self._monotonic = monotonic
         self._snapshot: tuple[ProviderStatusView, ...] | None = None
@@ -144,6 +150,15 @@ class ProviderStatusService:
             ),
         )
         now = self._now()
+        route_keys = {
+            key: ProviderRouteKey.from_context(context)
+            for key, context in contexts.items()
+        }
+        retry_times = (
+            await self._cooldown_reader.retry_times(tuple(route_keys.values()))
+            if self._cooldown_reader is not None
+            else {}
+        )
         merged = tuple(
             replace(
                 _merge_status(
@@ -158,8 +173,24 @@ class ProviderStatusService:
                     ),
                 ),
                 runtime_context=contexts.get(view.key),
+                route_retry_at=retry_times.get(route_keys[view.key])
+                if view.key in route_keys
+                else None,
             )
             for view in self._baselines
+        )
+        merged = tuple(
+            replace(
+                view,
+                status=ProviderSupportStatus.RATE_LIMITED,
+                download_available=False,
+                user_action=provider_user_action(
+                    ProviderSupportStatus.RATE_LIMITED, view.key
+                ),
+            )
+            if view.route_retry_at is not None
+            else view
+            for view in merged
         )
         if self._catalog is None:
             return merged

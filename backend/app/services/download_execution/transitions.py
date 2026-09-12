@@ -42,9 +42,12 @@ class ExecutionTransitions:
         code: DownloadErrorCode,
         *,
         error_message: str | None = None,
+        retry_not_before: datetime | None = None,
     ) -> ExecutionDisposition:
         now = self._clock()
         retry_at = now + _retry_delay(attempt) if code.retryable else None
+        if retry_at is not None and retry_not_before is not None:
+            retry_at = max(retry_at, retry_not_before)
         try:
             await self._repository.complete_failure(
                 job_id,

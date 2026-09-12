@@ -1,8 +1,12 @@
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
+from app.domain.provider_access import ProviderAccessPolicy
+from app.domain.providers import ProviderAccessMode, ProviderSupportStatus
+from app.integrations.provider_status import configured_provider_statuses
 from app.services.provider_canaries import ProviderStatusService
+from tests.unit.infrastructure.test_media_runner_router import context
 
 
 class Evidence:
@@ -24,6 +28,45 @@ class Contexts:
     async def contexts_for_providers(self, requested):
         self.calls += 1
         return {}
+
+
+async def test_persisted_cooldown_overrides_old_success_without_claiming_a_probe():
+    from dataclasses import replace
+
+    access = replace(context(ProviderAccessMode.ANONYMOUS), provider_key="youtube")
+    deadline = datetime.now(UTC) + timedelta(minutes=5)
+    baseline = next(
+        view
+        for view in configured_provider_statuses(
+            default_policies={"youtube": ProviderAccessPolicy.PUBLIC}
+        )
+        if view.key == "youtube"
+    )
+    access = replace(access, profile_version=baseline.profile_version)
+    baseline = replace(
+        baseline, status=ProviderSupportStatus.VERIFIED, download_available=True
+    )
+
+    class Runtime:
+        async def contexts_for_providers(self, requested):
+            return {"youtube": access}
+
+    class Cooldowns:
+        async def retry_times(self, keys):
+            assert len(keys) == 1
+            return {keys[0]: deadline}
+
+    service = ProviderStatusService(
+        Evidence(),
+        (baseline,),
+        now=lambda: datetime.now(UTC),
+        context_reader=Runtime(),
+        cooldown_reader=Cooldowns(),
+    )
+    (view,) = await service.list()
+    assert view.route_retry_at == deadline
+    assert view.status is ProviderSupportStatus.RATE_LIMITED
+    assert view.download_available is False
 
 
 async def test_two_hundred_readers_share_one_snapshot_and_expiry_refresh():

@@ -6,7 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { accessPolicyLabel } from '@/lib/provider-access';
+import { accessPolicyLabel, routeCooldownLabel } from '@/lib/provider-access';
 
 export function ProviderAccessSelector({
   provider,
@@ -59,6 +59,11 @@ export function ProviderAccessSelector({
           ? ' 当前默认线路尚无新鲜验证证据。'
           : null}
       </p>
+      {provider.route_retry_at ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          默认线路{routeCooldownLabel(provider.route_retry_at)}
+        </p>
+      ) : null}
     </div>
   );
 }

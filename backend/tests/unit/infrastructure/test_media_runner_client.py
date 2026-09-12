@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
+from email.utils import format_datetime
 from pathlib import Path
 
 import httpx
 import pytest
 from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
-from app.integrations.media_runner import MediaRunnerHttpClient
+from app.integrations.media_runner import MediaRunnerHttpClient, _retry_after
 from app.integrations.media_runner_models import MediaRunnerClientError
 from app.runner.contracts import DownloadPlanContract
 from app.services.downloads.errors import (
@@ -19,6 +21,15 @@ from app.services.downloads.errors import (
     MediaInspectionTimeout,
     MediaInspectionUnsupported,
 )
+
+
+def test_retry_after_parses_seconds_dates_and_rejects_malformed_values():
+    before = datetime.now(UTC)
+    numeric = _retry_after("600")
+    assert numeric is not None and 600 <= (numeric - before).total_seconds() < 601
+    assert _retry_after(format_datetime(numeric)) is not None
+    for invalid in ("-1", "NaN", "infinity", "9" * 200, "tomorrow", None):
+        assert _retry_after(invalid) is None
 
 
 @pytest.mark.asyncio
