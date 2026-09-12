@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRequestScope } from '@/hooks/useRequestScope';
 
 import { displayError } from '@/lib/request-error';
 import { type TaskSocketStatus, taskSocket } from '@/lib/task-socket';
@@ -30,11 +31,25 @@ export function useAnalysisJob(
   const [socketStatus, setSocketStatus] =
     useState<TaskSocketStatus>('disconnected');
   const sourceKey = `${inputKind}:${inputId}`;
+  const scope = useRequestScope(sourceKey);
   const createKey = useRef<StableKey | null>(null);
   const retryKey = useRef<StableKey | null>(null);
   const hasLocalJob = useRef(false);
   const sourceKeyRef = useRef(sourceKey);
   const versionRef = useRef(0);
+  const snapshotRef = useRef<AnalysisJob | null>(null);
+
+  const accept = useCallback((next: AnalysisJob) => {
+    const current = snapshotRef.current;
+    if (
+      current?.id === next.id &&
+      (next.version < current.version || next.run_no < current.run_no)
+    )
+      return false;
+    snapshotRef.current = next;
+    setJob(next);
+    return true;
+  }, []);
 
   const analysisId = job?.id ?? null;
   const shouldSync = job ? !terminalAnalysisStatuses.has(job.status) : false;
@@ -46,43 +61,59 @@ export function useAnalysisJob(
     hasLocalJob.current = false;
     createKey.current = null;
     retryKey.current = null;
+    snapshotRef.current = null;
     setJob(null);
     setError(null);
+    setAction(null);
   }, [sourceKey]);
 
   useEffect(() => {
     let disposed = false;
+    const request = scope.capture();
     const loadLatest =
       inputKind === 'screenplay'
         ? getLatestDocumentAnalysis
         : getLatestDownloadAnalysis;
     void loadLatest(inputId)
       .then((current) => {
-        if (disposed || hasLocalJob.current || current === null) return;
+        if (
+          disposed ||
+          !request.current() ||
+          hasLocalJob.current ||
+          current === null
+        )
+          return;
         hasLocalJob.current = true;
-        setJob(current);
+        accept(current);
       })
       .catch((reason: unknown) => {
-        if (!disposed && !hasLocalJob.current) setError(displayError(reason));
+        if (!disposed && request.latest() && !hasLocalJob.current)
+          setError(displayError(reason));
       });
     return () => {
       disposed = true;
     };
-  }, [inputId, inputKind]);
+  }, [accept, inputId, inputKind, scope]);
 
   useEffect(() => {
-    if (!analysisId || !shouldSync) {
+    if (action || !analysisId || !shouldSync) {
       return;
     }
     let disposed = false;
     const refresh = async () => {
+      const request = scope.capture();
       try {
         const current = await getAnalysis(analysisId as string);
-        if (disposed) return;
-        setJob(current);
+        if (
+          disposed ||
+          !request.current() ||
+          current.id !== analysisId ||
+          !accept(current)
+        )
+          return;
         setError(null);
       } catch (reason) {
-        if (!disposed) setError(displayError(reason));
+        if (!disposed && request.latest()) setError(displayError(reason));
       }
     };
     const unsubscribe = taskSocket.subscribe(
@@ -90,28 +121,36 @@ export function useAnalysisJob(
       analysisId,
       versionRef.current,
       () => void refresh(),
-      setSocketStatus,
+      (status) => {
+        if (!disposed) setSocketStatus(status);
+      },
     );
     return () => {
       disposed = true;
       unsubscribe();
     };
-  }, [analysisId, shouldSync]);
+  }, [accept, action, analysisId, scope, shouldSync]);
 
   useEffect(() => {
-    if (!analysisId || !shouldSync) return;
+    if (action || !analysisId || !shouldSync) return;
     let disposed = false;
     let refreshing = false;
     const refreshState = async () => {
       if (disposed || refreshing) return;
       refreshing = true;
+      const request = scope.capture();
       try {
         const current = await getAnalysis(analysisId);
-        if (disposed) return;
-        setJob(current);
+        if (
+          disposed ||
+          !request.current() ||
+          current.id !== analysisId ||
+          !accept(current)
+        )
+          return;
         setError(null);
       } catch (reason) {
-        if (!disposed) setError(displayError(reason));
+        if (!disposed && request.latest()) setError(displayError(reason));
       } finally {
         refreshing = false;
       }
@@ -125,10 +164,20 @@ export function useAnalysisJob(
       disposed = true;
       window.clearInterval(timer);
     };
-  }, [analysisId, pollIntervalMs, shouldSync, socketStatus]);
+  }, [
+    accept,
+    action,
+    analysisId,
+    pollIntervalMs,
+    scope,
+    shouldSync,
+    socketStatus,
+  ]);
 
   const start = useCallback(
     async (input: CreateAnalysisInput) => {
+      scope.invalidate();
+      const request = scope.capture();
       hasLocalJob.current = true;
       const payload = JSON.stringify([inputKind, inputId, input]);
       if (createKey.current?.payload !== payload) {
@@ -143,45 +192,53 @@ export function useAnalysisJob(
       try {
         const create =
           inputKind === 'screenplay' ? createDocumentAnalysis : createAnalysis;
-        setJob(await create(inputId, input, createKey.current.value));
+        const next = await create(inputId, input, createKey.current.value);
+        if (request.current()) accept(next);
       } catch (reason) {
-        setError(displayError(reason));
+        if (request.current()) setError(displayError(reason));
       } finally {
-        setAction(null);
+        if (request.current()) setAction(null);
       }
     },
-    [inputId, inputKind],
+    [accept, inputId, inputKind, scope],
   );
 
   const cancel = useCallback(async () => {
     if (!analysisId) {
       return;
     }
+    scope.invalidate();
+    const request = scope.capture();
     setAction('cancel');
     setError(null);
     try {
-      setJob(await cancelAnalysis(analysisId));
+      const next = await cancelAnalysis(analysisId);
+      if (request.current()) accept(next);
     } catch (reason) {
-      setError(displayError(reason));
+      if (request.current()) setError(displayError(reason));
     } finally {
-      setAction(null);
+      if (request.current()) setAction(null);
     }
-  }, [analysisId]);
+  }, [accept, analysisId, scope]);
 
   const retryPoll = useCallback(async () => {
     setError(null);
     if (!analysisId) return;
+    const request = scope.capture();
     try {
-      setJob(await getAnalysis(analysisId));
+      const next = await getAnalysis(analysisId);
+      if (request.current() && next.id === analysisId) accept(next);
     } catch (reason) {
-      setError(displayError(reason));
+      if (request.latest()) setError(displayError(reason));
     }
-  }, [analysisId]);
+  }, [accept, analysisId, scope]);
 
   const retry = useCallback(async () => {
     if (!analysisId) {
       return;
     }
+    scope.invalidate();
+    const request = scope.capture();
     if (retryKey.current?.payload !== analysisId) {
       retryKey.current = {
         payload: analysisId,
@@ -191,37 +248,43 @@ export function useAnalysisJob(
     setAction('retry');
     setError(null);
     try {
-      setJob(await retryAnalysis(analysisId, retryKey.current.value));
+      const next = await retryAnalysis(analysisId, retryKey.current.value);
+      if (!request.current()) return;
+      accept(next);
       retryKey.current = null;
     } catch (reason) {
-      setError(displayError(reason));
+      if (request.current()) setError(displayError(reason));
     } finally {
-      setAction(null);
+      if (request.current()) setAction(null);
     }
-  }, [analysisId]);
+  }, [accept, analysisId, scope]);
 
   const remove = useCallback(async () => {
     if (!analysisId) return;
+    scope.invalidate();
+    const request = scope.capture();
     setAction('delete');
     setError(null);
     try {
       await deleteAnalysis(analysisId);
+      if (!request.current()) return;
       hasLocalJob.current = false;
       createKey.current = null;
       retryKey.current = null;
+      snapshotRef.current = null;
       setJob(null);
     } catch (reason) {
-      setError(displayError(reason));
+      if (request.current()) setError(displayError(reason));
     } finally {
-      setAction(null);
+      if (request.current()) setAction(null);
     }
-  }, [analysisId]);
+  }, [analysisId, scope]);
 
   return {
     action,
     cancel,
     error,
-    job,
+    job: sourceKeyRef.current === sourceKey ? job : null,
     remove,
     retry,
     retryPoll,

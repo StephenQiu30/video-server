@@ -1,0 +1,170 @@
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { useAnalysisJob } from '@/hooks/useAnalysisJob';
+import { useDownloadJob } from '@/hooks/useDownloadJob';
+import { analysisJob } from '../fixtures/analysis-fixtures';
+import { job } from '../fixtures/download-fixtures';
+
+const runtime = vi.hoisted(() => ({
+  get: vi.fn(),
+  latest: vi.fn(),
+  cancel: vi.fn(),
+  remove: vi.fn(),
+  callbacks: [] as Array<() => void>,
+}));
+vi.mock('@/lib/task-socket', () => ({
+  taskSocket: {
+    subscribe: (
+      _type: string,
+      _id: string,
+      _version: number,
+      callback: () => void,
+    ) => {
+      runtime.callbacks.push(callback);
+      return () => undefined;
+    },
+  },
+}));
+vi.mock('@/services/download', () => ({
+  getDownload: runtime.get,
+  cancelDownload: runtime.cancel,
+  retryDownload: vi.fn(),
+  deleteDownload: runtime.remove,
+  issueDownloadUrl: vi.fn(),
+  triggerBrowserDownload: vi.fn(),
+  createIdempotencyKey: () => 'key',
+  displayError: () => 'old request failed',
+}));
+vi.mock('@/services/analysis', () => ({
+  getAnalysis: runtime.get,
+  getLatestDownloadAnalysis: runtime.latest,
+  getLatestDocumentAnalysis: runtime.latest,
+  cancelAnalysis: runtime.cancel,
+  createAnalysis: vi.fn(),
+  createDocumentAnalysis: vi.fn(),
+  deleteAnalysis: runtime.remove,
+  retryAnalysis: vi.fn(),
+}));
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: Error) => void;
+  const promise = new Promise<T>((yes, no) => {
+    resolve = yes;
+    reject = no;
+  });
+  return { promise, resolve, reject };
+}
+
+describe.each(['download', 'analysis'] as const)(
+  '%s response ordering',
+  (kind) => {
+    const useJob = kind === 'download' ? useDownloadJob : useAnalysisJob;
+    const active =
+      kind === 'download' ? job('running') : analysisJob('running');
+    beforeEach(() => {
+      runtime.callbacks = [];
+      runtime.get.mockReset().mockResolvedValue(active);
+      runtime.latest.mockReset().mockResolvedValue(active);
+      runtime.cancel.mockReset();
+      runtime.remove.mockReset().mockResolvedValue(undefined);
+    });
+
+    it('does not accept an older snapshot after a newer response', async () => {
+      const { result } = renderHook(() => useJob(active.id, 60_000));
+      await waitFor(() => expect(runtime.callbacks).toHaveLength(1));
+      const first = deferred<typeof active>();
+      const second = deferred<typeof active>();
+      runtime.get
+        .mockImplementationOnce(() => first.promise)
+        .mockImplementationOnce(() => second.promise);
+      act(() => {
+        runtime.callbacks[0]();
+        runtime.callbacks[0]();
+      });
+      await act(async () =>
+        second.resolve({ ...active, version: 4, progress: 60 }),
+      );
+      await act(async () =>
+        first.resolve({ ...active, version: 3, progress: 40 }),
+      );
+      expect(result.current.job?.version).toBe(4);
+      expect(result.current.job?.progress).toBe(60);
+    });
+
+    it.each(['success', 'failure'] as const)(
+      'ignores a pending query %s after deletion',
+      async (outcome) => {
+        const { result } = renderHook(() => useJob(active.id, 60_000));
+        await waitFor(() => expect(runtime.callbacks).toHaveLength(1));
+        const pending = deferred<typeof active>();
+        runtime.get.mockImplementationOnce(() => pending.promise);
+        act(() => {
+          runtime.callbacks[0]();
+        });
+        await act(async () => {
+          await result.current.remove();
+        });
+        await act(async () => {
+          if (outcome === 'success') pending.resolve(active);
+          else pending.reject(new Error('old request failed'));
+        });
+        expect(result.current.job).toBeNull();
+        expect(result.current.error).toBeNull();
+      },
+    );
+
+    it.each(['success', 'failure'] as const)(
+      'ignores an old target query %s after switching targets',
+      async (outcome) => {
+        const { result, rerender } = renderHook(
+          ({ id }) => useJob(id, 60_000),
+          { initialProps: { id: active.id } },
+        );
+        await waitFor(() => expect(runtime.callbacks).toHaveLength(1));
+        const pending = deferred<typeof active>();
+        runtime.get.mockImplementationOnce(() => pending.promise);
+        act(() => {
+          runtime.callbacks[0]();
+        });
+        const next = { ...active, id: 'another-job', version: 7 };
+        runtime.get.mockResolvedValue(next);
+        runtime.latest.mockResolvedValue(next);
+        rerender({ id: next.id });
+        await waitFor(() => expect(result.current.job?.id).toBe(next.id));
+        await act(async () => {
+          if (outcome === 'success') pending.resolve(active);
+          else pending.reject(new Error('old request failed'));
+        });
+        expect(result.current.job?.id).toBe(next.id);
+        expect(result.current.error).toBeNull();
+      },
+    );
+
+    it.each(['success', 'failure'] as const)(
+      'ignores a pending query %s after cancellation',
+      async (outcome) => {
+        const { result } = renderHook(() => useJob(active.id, 60_000));
+        await waitFor(() => expect(runtime.callbacks).toHaveLength(1));
+        const pending = deferred<typeof active>();
+        runtime.get.mockImplementationOnce(() => pending.promise);
+        act(() => {
+          runtime.callbacks[0]();
+        });
+        runtime.cancel.mockResolvedValue({
+          ...active,
+          status: 'cancelled',
+          version: 5,
+        });
+        await act(async () => result.current.cancel());
+        await act(async () => {
+          if (outcome === 'success') pending.resolve(active);
+          else pending.reject(new Error('old request failed'));
+        });
+        expect(result.current.job?.status).toBe('cancelled');
+        expect(result.current.error).toBeNull();
+      },
+    );
+  },
+);
