@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-
+import {
+  displayImportError,
+  type ImportPhase,
+  isImportAbort,
+} from '@/services/import-lifecycle';
 import {
   cancelLocalVideoImport,
-  displayMediaImportError,
   importLocalVideo,
-  isMediaImportAbort,
-  type MediaImportPhase,
   validateLocalVideo,
 } from '@/services/media-import';
 import { createIdempotencyKey } from '@/utils/idempotency';
@@ -22,7 +23,7 @@ export function useMediaImport(
   declaredOrigin: API.DeclaredOrigin = 'user_file',
 ) {
   const [file, setFile] = useState<File | null>(null);
-  const [phase, setPhase] = useState<MediaImportPhase>('idle');
+  const [phase, setPhase] = useState<ImportPhase>('idle');
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -98,8 +99,8 @@ export function useMediaImport(
       );
       if (activeRef.current === run) onComplete(result.download_id);
     } catch (reason) {
-      if (activeRef.current === run && !isMediaImportAbort(reason)) {
-        setError(displayMediaImportError(reason));
+      if (activeRef.current === run && !isImportAbort(reason)) {
+        setError(displayImportError(reason));
       }
     } finally {
       if (activeRef.current === run) {
@@ -121,7 +122,7 @@ export function useMediaImport(
       setNotice('上传已取消，未完成的分片将由服务端清理。');
       keyRef.current = null;
     } catch (reason) {
-      setError(displayMediaImportError(reason));
+      setError(displayImportError(reason));
     } finally {
       setPhase('idle');
       setProgress(0);

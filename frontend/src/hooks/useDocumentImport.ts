@@ -2,25 +2,27 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   cancelScreenplayDocumentImport,
-  type DocumentImportPhase,
-  displayDocumentImportError,
   importScreenplayDocument,
-  isDocumentImportAbort,
   validateScreenplayDocument,
 } from '@/services/document-import';
+import {
+  displayImportError,
+  type ImportPhase,
+  isImportAbort,
+} from '@/services/import-lifecycle';
 import { createIdempotencyKey } from '@/utils/idempotency';
 
 type ActiveRun = {
   controller: AbortController;
   documentId: string | null;
-  phase: DocumentImportPhase;
+  phase: ImportPhase;
 };
 
 type StableKey = { payload: string; value: string };
 
 export function useDocumentImport(onComplete: (documentId: string) => void) {
   const [file, setFile] = useState<File | null>(null);
-  const [phase, setPhase] = useState<DocumentImportPhase>('idle');
+  const [phase, setPhase] = useState<ImportPhase>('idle');
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [fileInvalid, setFileInvalid] = useState(false);
@@ -94,8 +96,8 @@ export function useDocumentImport(onComplete: (documentId: string) => void) {
       );
       if (activeRef.current === run) onComplete(result.id);
     } catch (reason) {
-      if (activeRef.current === run && !isDocumentImportAbort(reason)) {
-        const message = displayDocumentImportError(reason);
+      if (activeRef.current === run && !isImportAbort(reason)) {
+        const message = displayImportError(reason);
         if (run.documentId && run.phase !== 'completing') {
           setPhase('cancelling');
           try {
@@ -131,7 +133,7 @@ export function useDocumentImport(onComplete: (documentId: string) => void) {
       }
       keyRef.current = null;
     } catch (reason) {
-      setError(displayDocumentImportError(reason));
+      setError(displayImportError(reason));
     } finally {
       setPhase('idle');
       setProgress(0);

@@ -13,10 +13,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
-import type { DocumentImportPhase } from '@/services/document-import';
+import type { ImportPhase } from '@/services/import-lifecycle';
 import { formatFileSize } from '@/utils/format-file-size';
 
-const phaseLabels: Record<DocumentImportPhase, string> = {
+const phaseLabels: Record<ImportPhase, string> = {
   idle: '准备上传',
   hashing: '正在计算文件校验值',
   creating: '正在创建剧本文档',
@@ -35,7 +35,7 @@ type ScreenplayUploadFormProps = {
   onCancel: () => void;
   onFileSelect: (file: File | null) => void;
   onStart: () => void;
-  phase: DocumentImportPhase;
+  phase: ImportPhase;
   progress: number;
 };
 

@@ -12,20 +12,19 @@ const runtime = vi.hoisted(() => ({
 
 vi.mock('@/services/media-import', () => ({
   cancelLocalVideoImport: vi.fn(),
-  displayMediaImportError: () => '上传失败',
   importLocalVideo: runtime.importMedia,
-  isMediaImportAbort: (reason: unknown) =>
-    reason instanceof DOMException && reason.name === 'AbortError',
   validateLocalVideo: () => null,
 }));
 
 vi.mock('@/services/document-import', () => ({
   cancelScreenplayDocumentImport: runtime.cancelDocument,
-  displayDocumentImportError: () => '上传失败',
   importScreenplayDocument: runtime.importDocument,
-  isDocumentImportAbort: (reason: unknown) =>
-    reason instanceof DOMException && reason.name === 'AbortError',
   validateScreenplayDocument: () => null,
+}));
+
+vi.mock('@/services/import-lifecycle', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/services/import-lifecycle')>()),
+  displayImportError: () => '上传失败',
 }));
 
 describe('upload hook cleanup', () => {

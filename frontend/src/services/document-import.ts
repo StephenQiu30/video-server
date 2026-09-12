@@ -3,7 +3,7 @@ import {
   MediaTransferError,
   uploadMultipartFile,
 } from '@/lib/media-upload';
-import { displayError } from '@/lib/request-error';
+import type { ImportObserver } from '@/services/import-lifecycle';
 import {
   cancelDocumentImport,
   completeDocumentImport,
@@ -21,20 +21,6 @@ const formats = new Map<string, API.DocumentSourceFormat>([
   ['.txt', 'txt'],
 ]);
 
-export type DocumentImportPhase =
-  | 'idle'
-  | 'hashing'
-  | 'creating'
-  | 'uploading'
-  | 'completing'
-  | 'cancelling';
-
-export type DocumentImportObserver = {
-  onPhase: (phase: DocumentImportPhase) => void;
-  onProgress: (percentage: number) => void;
-  onResource: (resourceId: string) => void;
-};
-
 export function validateScreenplayDocument(file: File): string | null {
   if (file.size <= 0) return '请选择包含内容的剧本文档。';
   if (file.size > MAX_DOCUMENT_BYTES) return '剧本文档不能超过 50 MB。';
@@ -47,7 +33,7 @@ export function validateScreenplayDocument(file: File): string | null {
 export async function importScreenplayDocument(
   file: File,
   idempotencyKey: string,
-  observer: DocumentImportObserver,
+  observer: ImportObserver,
   signal: AbortSignal,
 ): Promise<API.DocumentImportResponse> {
   const sourceFormat = documentSourceFormat(file.name);
@@ -115,16 +101,6 @@ export async function cancelScreenplayDocumentImport(
   documentId: string,
 ): Promise<void> {
   await cancelDocumentImport({ document_id: encodeURIComponent(documentId) });
-}
-
-export function displayDocumentImportError(error: unknown): string {
-  return error instanceof MediaTransferError
-    ? error.message
-    : displayError(error);
-}
-
-export function isDocumentImportAbort(error: unknown): boolean {
-  return error instanceof DOMException && error.name === 'AbortError';
 }
 
 function documentSourceFormat(name: string): API.DocumentSourceFormat | null {

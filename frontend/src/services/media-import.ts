@@ -3,27 +3,13 @@ import {
   MediaTransferError,
   uploadMultipartFile,
 } from '@/lib/media-upload';
-import { displayError } from '@/lib/request-error';
+import type { ImportObserver } from '@/services/import-lifecycle';
 import { cancelDownload as cancelDownloadRequest } from '@/services/video/downloads';
 import {
   completeMediaImport as completeMediaImportRequest,
   createMediaImport as createMediaImportRequest,
   createMediaUploadSession as createMediaUploadSessionRequest,
 } from '@/services/video/mediaImports';
-
-export type MediaImportPhase =
-  | 'idle'
-  | 'hashing'
-  | 'creating'
-  | 'uploading'
-  | 'completing'
-  | 'cancelling';
-
-export type MediaImportObserver = {
-  onPhase: (phase: MediaImportPhase) => void;
-  onProgress: (percentage: number) => void;
-  onResource: (resourceId: string) => void;
-};
 
 export function validateLocalVideo(file: File): string | null {
   if (file.size <= 0) return '请选择包含内容的 MP4 视频。';
@@ -39,7 +25,7 @@ export function validateLocalVideo(file: File): string | null {
 export async function importLocalVideo(
   file: File,
   idempotencyKey: string,
-  observer: MediaImportObserver,
+  observer: ImportObserver,
   signal: AbortSignal,
   declaredOrigin: API.DeclaredOrigin = 'user_file',
 ): Promise<API.MediaImportResponse> {
@@ -102,14 +88,4 @@ export async function cancelLocalVideoImport(
   resourceId: string,
 ): Promise<void> {
   await cancelDownloadRequest({ job_id: encodeURIComponent(resourceId) });
-}
-
-export function displayMediaImportError(error: unknown): string {
-  return error instanceof MediaTransferError
-    ? error.message
-    : displayError(error);
-}
-
-export function isMediaImportAbort(error: unknown): boolean {
-  return error instanceof DOMException && error.name === 'AbortError';
 }

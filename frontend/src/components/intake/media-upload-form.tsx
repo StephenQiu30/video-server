@@ -12,10 +12,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
-import type { MediaImportPhase } from '@/services/media-import';
+import type { ImportPhase } from '@/services/import-lifecycle';
 import { formatFileSize } from '@/utils/format-file-size';
 
-const phaseLabels: Record<MediaImportPhase, string> = {
+const phaseLabels: Record<ImportPhase, string> = {
   idle: '准备上传',
   hashing: '正在计算文件校验值',
   creating: '正在创建上传任务',
@@ -43,7 +43,7 @@ export function MediaUploadForm({
   onCancel: () => void;
   onFileSelect: (file: File | null) => void;
   onStart: () => void;
-  phase: MediaImportPhase;
+  phase: ImportPhase;
   progress: number;
   declaredOrigin: API.DeclaredOrigin;
 }) {
