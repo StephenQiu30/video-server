@@ -2,6 +2,7 @@ import { ArrowClockwise, DownloadSimple } from '@phosphor-icons/react';
 import Link from 'next/link';
 
 import { DownloadDeleteDialog } from '@/components/downloads/download-delete-dialog';
+import { downloadRecovery } from '@/components/downloads/download-state-model';
 import MediaCover from '@/components/intake/media-cover';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -89,9 +90,7 @@ function HistoryRow({
 }) {
   const detailHref = `/downloads/detail?jobId=${encodeURIComponent(item.id)}`;
   const canDownload = item.status === 'succeeded' && item.file_available;
-  const canRetry =
-    ['failed', 'cancelled'].includes(item.status) ||
-    (item.status === 'succeeded' && !item.file_available);
+  const recovery = downloadRecovery(item);
   const busy = pendingAction?.id === item.id;
 
   return (
@@ -160,7 +159,11 @@ function HistoryRow({
               )}
               获取文件
             </Button>
-          ) : canRetry ? (
+          ) : recovery === 'reimport' ? (
+            <Button asChild size="sm" variant="ghost">
+              <Link href="/">返回首页重新导入</Link>
+            </Button>
+          ) : recovery === 'retry' ? (
             <Button
               disabled={busy}
               onClick={() => onRetry(item)}

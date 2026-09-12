@@ -1,6 +1,17 @@
 import { localizedErrorMessage } from '@/lib/error-messages';
 import type { DownloadJob, DownloadStage, DownloadStatus } from '@/types/video';
 
+export function downloadRecovery(
+  job: Pick<DownloadJob, 'source_kind' | 'status' | 'file_available'>,
+): 'retry' | 'reimport' | null {
+  const terminal =
+    job.status === 'failed' ||
+    job.status === 'cancelled' ||
+    (job.status === 'succeeded' && !job.file_available);
+  if (!terminal) return null;
+  return job.source_kind === 'remote_provider' ? 'retry' : 'reimport';
+}
+
 export const statusLabels: Record<DownloadStatus, string> = {
   queued: '等待处理',
   running: '正在下载',
@@ -50,6 +61,8 @@ export function statusHeading(job: DownloadJob) {
 }
 
 export function statusDescription(job: DownloadJob) {
+  if (downloadRecovery(job) === 'reimport')
+    return '任务记录仍然保留。请返回首页重新选择本地文件导入。';
   const media = archiveLabel(job);
   if (job.status === 'queued')
     return '任务已经进入队列，开始后会实时更新进度。';

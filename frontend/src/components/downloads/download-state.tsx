@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowClockwise, DownloadSimple, X } from '@phosphor-icons/react';
+import Link from 'next/link';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
@@ -23,6 +24,7 @@ import type { DownloadJob } from '@/types/video';
 import { DownloadExecutionSummary } from './download-execution-summary';
 import {
   displayStage,
+  downloadRecovery,
   failureDescription,
   failureTitle,
   retryActionLabel,
@@ -49,9 +51,7 @@ export default function DownloadState({
 }: Props) {
   const active = ['queued', 'running', 'retry_wait'].includes(job.status);
   const complete = job.status === 'succeeded';
-  const retryable =
-    ['failed', 'cancelled'].includes(job.status) ||
-    (complete && !job.file_available);
+  const recovery = downloadRecovery(job);
   const showProgress = active;
 
   return (
@@ -98,7 +98,9 @@ export default function DownloadState({
         <Alert className="mt-6" variant="warning">
           <AlertTitle>文件已经不在存储中</AlertTitle>
           <AlertDescription>
-            下载记录仍会保留。管理员清理文件后，你可以重新创建下载任务。
+            {recovery === 'reimport'
+              ? '记录仍会保留。请返回首页重新选择本地文件导入。'
+              : '下载记录仍会保留。管理员清理文件后，你可以重新创建下载任务。'}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -123,7 +125,12 @@ export default function DownloadState({
                 : '获取视频文件'}
           </Button>
         ) : null}
-        {retryable ? (
+        {recovery === 'reimport' ? (
+          <Button asChild className="w-full" size="lg">
+            <Link href="/">返回首页重新导入</Link>
+          </Button>
+        ) : null}
+        {recovery === 'retry' ? (
           <Button
             className="w-full"
             disabled={action !== null}
@@ -154,7 +161,9 @@ export default function DownloadState({
                 </AlertDialogMedia>
                 <AlertDialogTitle>取消当前下载任务？</AlertDialogTitle>
                 <AlertDialogDescription>
-                  确认后将停止当前下载。取消后可在当前页面重新下载。
+                  {job.source_kind === 'browser_import'
+                    ? '确认后将停止当前导入。再次导入需要重新选择本地文件。'
+                    : '确认后将停止当前下载。取消后可在当前页面重新下载。'}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

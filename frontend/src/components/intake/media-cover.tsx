@@ -185,7 +185,7 @@ function MediaCoverFallback({
         >
           <p className="truncate">{detail}</p>
           {!compact ? (
-            <p className="mt-0.5 text-background/45">暂无封面</p>
+            <p className="mt-0.5 text-background/70">暂无封面</p>
           ) : null}
         </div>
       </div>
