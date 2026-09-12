@@ -4,6 +4,9 @@ from dataclasses import dataclass, field
 
 from app.services.analysis_execution.errors import AnalysisArtifactError
 from app.services.analysis_execution.models import ScreenplaySceneSource
+from app.services.analysis_execution.screenplay_source_validation import (
+    validate_screenplay_source,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,7 +40,7 @@ def plan_screenplay_analysis(
         for value in limits
     ):
         raise ValueError("screenplay analysis planning limits must be positive")
-    _validate_source(text, scenes)
+    validate_screenplay_source(text, scenes)
     chunks: list[ScreenplayAnalysisSourceChunk] = []
     chunk_start = 0
     chunk_scenes: list[ScreenplaySceneSource] = []
@@ -71,19 +74,3 @@ def _chunk(
     scenes: tuple[ScreenplaySceneSource, ...],
 ) -> ScreenplayAnalysisSourceChunk:
     return ScreenplayAnalysisSourceChunk(start, end, scenes, text[start:end])
-
-
-def _validate_source(text: str, scenes: tuple[ScreenplaySceneSource, ...]) -> None:
-    if (
-        not text
-        or "\r" in text
-        or "\x00" in text
-        or not text.endswith("\n")
-        or not scenes
-        or len({scene.id for scene in scenes}) != len(scenes)
-        or scenes[-1].end != len(text)
-    ):
-        raise AnalysisArtifactError("artifact_integrity_failed")
-    for index, scene in enumerate(scenes):
-        if index > 0 and scenes[index - 1].end != scene.start:
-            raise AnalysisArtifactError("artifact_integrity_failed")

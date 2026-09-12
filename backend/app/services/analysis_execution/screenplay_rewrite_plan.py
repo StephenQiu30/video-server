@@ -5,6 +5,9 @@ from dataclasses import dataclass, field
 
 from app.services.analysis_execution.errors import AnalysisArtifactError
 from app.services.analysis_execution.models import ScreenplaySceneSource
+from app.services.analysis_execution.screenplay_source_validation import (
+    validate_screenplay_source,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,7 +51,7 @@ def plan_screenplay_rewrite(
         for value in limits
     ):
         raise ValueError("rewrite planning limits must be positive")
-    _validate_source(text, scenes)
+    validate_screenplay_source(text, scenes)
     chunks: list[ScreenplayRewriteSourceChunk] = []
     owned_start = 0
     for scene in scenes:
@@ -104,22 +107,6 @@ def plan_screenplay_glossary_chunks(
     if "".join(chunks) != text:
         raise AnalysisArtifactError("artifact_integrity_failed")
     return tuple(chunks)
-
-
-def _validate_source(text: str, scenes: tuple[ScreenplaySceneSource, ...]) -> None:
-    if (
-        not text
-        or "\r" in text
-        or "\x00" in text
-        or not text.endswith("\n")
-        or not scenes
-        or len({scene.id for scene in scenes}) != len(scenes)
-        or scenes[-1].end != len(text)
-    ):
-        raise AnalysisArtifactError("artifact_integrity_failed")
-    for index, scene in enumerate(scenes):
-        if index > 0 and scenes[index - 1].end != scene.start:
-            raise AnalysisArtifactError("artifact_integrity_failed")
 
 
 def _chunk_boundary(text: str, start: int, end: int, maximum: int) -> int:
