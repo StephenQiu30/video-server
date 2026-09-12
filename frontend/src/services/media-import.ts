@@ -63,6 +63,12 @@ export async function importLocalVideo(
     { headers: { 'Idempotency-Key': idempotencyKey } },
   );
   observer.onResource(resource.id);
+  if (resource.status === 'verifying' || resource.status === 'ready') {
+    return resource;
+  }
+  if (resource.status !== 'uploading') {
+    throw new MediaTransferError('当前视频不能继续上传，请重新选择文件。');
+  }
 
   const session = await createMediaUploadSessionRequest(
     {

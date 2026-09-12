@@ -102,6 +102,39 @@ describe('local media import transport', () => {
     expect(FakeXMLHttpRequest.instances).toHaveLength(0);
   });
 
+  it.each(['verifying', 'ready'] as const)(
+    'recovers an idempotent video already %s without reuploading',
+    async (status) => {
+      const resource = mediaImportResponse(status);
+      mockHttpResponses(resource);
+      const result = await importLocalVideo(
+        new File(['abc'], 'sample.mp4', { type: 'video/mp4' }),
+        'stable-import-key',
+        { onPhase: vi.fn(), onProgress: vi.fn(), onResource: vi.fn() },
+        new AbortController().signal,
+      );
+      expect(result).toEqual(resource);
+      expect(httpRequests()).toHaveLength(1);
+      expect(FakeXMLHttpRequest.instances).toHaveLength(0);
+    },
+  );
+
+  it.each(['failed', 'cancelled', 'expired'] as const)(
+    'does not reopen a terminal video upload: %s',
+    async (status) => {
+      mockHttpResponses(mediaImportResponse(status));
+      await expect(
+        importLocalVideo(
+          new File(['abc'], 'sample.mp4', { type: 'video/mp4' }),
+          'stable-import-key',
+          { onPhase: vi.fn(), onProgress: vi.fn(), onResource: vi.fn() },
+          new AbortController().signal,
+        ),
+      ).rejects.toThrow('重新选择文件');
+      expect(httpRequests()).toHaveLength(1);
+    },
+  );
+
   it('rejects an upload session issued for another resource', async () => {
     vi.stubGlobal('XMLHttpRequest', FakeXMLHttpRequest);
     const resource = mediaImportResponse('uploading');
