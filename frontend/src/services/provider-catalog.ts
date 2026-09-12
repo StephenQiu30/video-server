@@ -32,3 +32,4 @@ export function deleteProviderCatalogEntry(key: string): Promise<unknown> {
 }
 
 export { displayError } from '@/lib/request-error';
+export { getAdminProviderRuntime } from '@/services/video/admin';

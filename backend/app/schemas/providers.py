@@ -2,13 +2,19 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from app.domain.provider_access import ProviderAccessPolicy
 from app.domain.providers import (
     ProviderAccessMode,
     ProviderCapability,
     ProviderSupportStatus,
 )
 from app.schemas.common import StrictModel
-from app.services.providers import ProviderStatusView
+from app.services.providers import ProviderEvidenceState, ProviderStatusView
+
+
+class ProviderAccessPolicyResponse(StrictModel):
+    id: ProviderAccessPolicy
+    configured: bool
 
 
 class ProviderStatusResponse(StrictModel):
@@ -26,6 +32,11 @@ class ProviderStatusResponse(StrictModel):
     last_media_verified_at: datetime | None
     last_verified_at: datetime | None
     user_action: str | None
+    access_policies: tuple[ProviderAccessPolicyResponse, ...]
+    default_access_policy_id: ProviderAccessPolicy | None
+    evidence_state: ProviderEvidenceState
+    hosts: tuple[str, ...]
+    host_suffixes: tuple[str, ...]
 
     @classmethod
     def from_view(cls, value: ProviderStatusView) -> ProviderStatusResponse:
@@ -44,6 +55,14 @@ class ProviderStatusResponse(StrictModel):
             last_media_verified_at=value.last_media_verified_at,
             last_verified_at=value.last_verified_at,
             user_action=value.user_action,
+            access_policies=tuple(
+                ProviderAccessPolicyResponse(id=item.id, configured=item.configured)
+                for item in value.access_policies
+            ),
+            default_access_policy_id=value.default_access_policy_id,
+            evidence_state=value.evidence_state,
+            hosts=value.hosts,
+            host_suffixes=value.host_suffixes,
         )
 
 

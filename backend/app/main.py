@@ -38,7 +38,7 @@ def create_app(
     )
     application.state.settings = effective
     application.state.provider_statuses = current_provider_statuses(
-        operator_provider_keys(effective)
+        operator_provider_keys(effective), effective.runner_default_access_policies
     )
     application.state.services = runtime.services if runtime else ApiServices()
     application.include_router(router)

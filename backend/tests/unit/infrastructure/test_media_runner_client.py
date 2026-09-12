@@ -15,6 +15,7 @@ from app.services.downloads.errors import (
     MediaInspectionFailure,
     MediaInspectionLinkUnavailable,
     MediaInspectionMediaUnsupported,
+    MediaInspectionTemporarilyUnavailable,
     MediaInspectionTimeout,
     MediaInspectionUnsupported,
 )
@@ -352,7 +353,7 @@ async def test_inspect_exposes_client_read_timeout() -> None:
 
 
 @pytest.mark.asyncio
-async def test_inspect_keeps_non_timeout_network_failure_generic() -> None:
+async def test_inspect_classifies_runner_disconnect_as_dependency_unavailable() -> None:
     async def respond(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("runner unavailable", request=request)
 
@@ -372,7 +373,7 @@ async def test_inspect_keeps_non_timeout_network_failure_generic() -> None:
     with pytest.raises(MediaInspectionFailure) as caught:
         await client.inspect("https://www.douyin.com/video/123")
 
-    assert type(caught.value) is MediaInspectionFailure
+    assert type(caught.value) is MediaInspectionTemporarilyUnavailable
     await http.aclose()
 
 

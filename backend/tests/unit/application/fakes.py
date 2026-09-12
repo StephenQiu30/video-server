@@ -4,6 +4,7 @@ from dataclasses import replace
 from datetime import datetime
 from uuid import UUID
 
+from app.domain.provider_access import ProviderAccessPolicy
 from app.services.downloads import (
     ArtifactSnapshot,
     DownloadCleanupRef,
@@ -54,7 +55,14 @@ class FakeRunner:
         self.inspection = inspection
         self.seen: list[str] = []
 
-    async def inspect(self, url: str) -> RunnerInspection:
+    def resolve_access_policy(
+        self, url: str, requested: ProviderAccessPolicy | None = None
+    ) -> ProviderAccessPolicy:
+        return requested or ProviderAccessPolicy.PUBLIC
+
+    async def inspect(
+        self, url: str, *, access_policy: ProviderAccessPolicy
+    ) -> RunnerInspection:
         self.seen.append(url)
         return self.inspection
 

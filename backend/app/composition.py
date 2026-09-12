@@ -216,7 +216,9 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         bootstrap_admin_secret=settings.auth_bootstrap_admin_secret.get_secret_value(),
     )
     user_service = UserService(repository=user_repository, now=clock)
-    provider_baselines = configured_provider_statuses(operator_provider_keys(settings))
+    provider_baselines = configured_provider_statuses(
+        operator_provider_keys(settings), settings.runner_default_access_policies
+    )
     provider_catalog_service = ProviderCatalogService(
         provider_catalog_repository,
         provider_baselines,
@@ -484,6 +486,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
                     SqlAlchemyDownloadEvidenceReader(sessions),
                 ),
                 provider_baselines,
+                snapshot_ttl_seconds=30,
                 now=clock,
                 context_reader=runner,
                 approved_keys=settings.provider_verified_keys,

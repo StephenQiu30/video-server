@@ -132,6 +132,17 @@ export async function cleanupStoredFiles(
   });
 }
 
+/** 读取已开放平台的脱敏运行诊断 仅元数据快照，不登录、不导出会话、不解析或下载媒体。 GET /api/admin/provider-runtime */
+export async function getAdminProviderRuntime(options?: RequestOptions) {
+  return request<API.ProviderRuntimeListResponse>(
+    "/api/admin/provider-runtime",
+    {
+      method: "GET",
+      ...(options || {}),
+    }
+  );
+}
+
 /** 查询平台目录 GET /api/admin/providers */
 export async function listProviderCatalogEntries(options?: RequestOptions) {
   return request<API.ProviderCatalogListResponse>("/api/admin/providers", {

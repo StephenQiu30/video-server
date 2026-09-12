@@ -17,6 +17,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from app.core.quota_config import QuotaLimits
 from app.core.rate_limits import RateLimitOperation, RateLimitPolicy
 from app.domain.identifiers import RightsStatementVersion, UrlEncryptionKeyId
+from app.domain.provider_access import ProviderAccessPolicy
 from app.domain.providers import ProviderKey
 from app.runner.provider_instances import validated_instance_hosts
 
@@ -160,6 +161,9 @@ class Settings(BaseSettings):
 
     runner_base_url: str = "http://localhost:19100"
     runner_operator_base_urls: dict[ProviderKey, str] = Field(default_factory=dict)
+    runner_default_access_policies: dict[str, ProviderAccessPolicy] = Field(
+        default_factory=dict
+    )
     runner_workspace_root: Path = Path("/work")
     runner_hmac_secret: SecretStr = SecretStr("development-runner-secret-change-me")
     provider_canary_targets: SecretStr = SecretStr("[]")
@@ -402,6 +406,15 @@ class Settings(BaseSettings):
         raise ValueError(
             "MINIO_LOCAL_BROWSER_ENDPOINT must use localhost or a loopback IP"
         )
+
+    @field_validator("runner_default_access_policies")
+    @classmethod
+    def validate_default_policy_keys(
+        cls, value: dict[str, ProviderAccessPolicy]
+    ) -> dict[str, ProviderAccessPolicy]:
+        for key in value:
+            ProviderKey(key)
+        return value
 
     @field_validator("runner_operator_base_urls")
     @classmethod

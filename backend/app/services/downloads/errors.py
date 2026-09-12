@@ -22,6 +22,8 @@ class ApplicationErrorCode(StrEnum):
     INVALID_URL = "invalid_url"
     NOT_FOUND = "not_found"
     PROVIDER_AUTH_REQUIRED = "provider_auth_required"
+    PROVIDER_CONFIGURATION_MISSING = "provider_configuration_missing"
+    PROVIDER_ACCESS_POLICY_NOT_ALLOWED = "provider_access_policy_not_allowed"
     PROVIDER_SESSION_EXPIRED = "provider_session_expired"
     PROVIDER_VERIFICATION_FAILED = "provider_verification_failed"
     PROVIDER_RATE_LIMITED = "provider_rate_limited"
@@ -77,6 +79,14 @@ class MediaInspectionDurationLimitExceeded(MediaInspectionFailure):
 
 class MediaInspectionAuthRequired(MediaInspectionFailure):
     """The provider requires an approved session."""
+
+
+class MediaInspectionConfigurationMissing(MediaInspectionFailure):
+    """The selected approved route has no configured runner endpoint."""
+
+
+class MediaInspectionPolicyNotAllowed(MediaInspectionFailure):
+    """The requested policy is not admitted for this provider."""
 
 
 class MediaInspectionSessionExpired(MediaInspectionFailure):

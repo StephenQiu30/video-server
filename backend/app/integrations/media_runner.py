@@ -16,6 +16,7 @@ from pydantic import BaseModel, ValidationError
 
 from app.domain.downloads import DownloadPlan, MediaKind
 from app.domain.downloads.content_restrictions import ContentRestriction
+from app.domain.provider_access import ProviderAccessPolicy
 from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
 from app.integrations.media_inspection_pipeline import MediaInspectionPipeline
 from app.integrations.media_runner_models import (
@@ -208,6 +209,7 @@ class MediaRunnerHttpClient:
                 "extractor_regression",
                 "provider_temporarily_unavailable",
                 "provider_session_unavailable",
+                "runner_unavailable",
             }:
                 raise MediaInspectionTemporarilyUnavailable from exc
             if exc.code == "provider_link_unavailable":
@@ -215,10 +217,8 @@ class MediaRunnerHttpClient:
             if exc.code == "provider_media_unsupported":
                 raise MediaInspectionMediaUnsupported from exc
             if exc.code == "unsupported_source":
-                # Anonymous YouTube responses can be structurally incomplete
-                # when the provider requires a session. Let the inspection
-                # pipeline try the configured operator runner before exposing
-                # this as a terminal media-type diagnosis.
+                # Preserve the selected route's diagnosis; never retry it
+                # with a different account or access policy.
                 raise MediaInspectionMediaUnsupported from exc
             if exc.code == "format_unavailable":
                 raise MediaInspectionFormatUnavailable from exc
@@ -382,17 +382,27 @@ class MediaRunnerRouter:
         self,
         anonymous: MediaRunnerClient,
         operators: Mapping[str, MediaRunnerClient] | None = None,
+        *,
+        default_policies: Mapping[str, ProviderAccessPolicy] | None = None,
     ) -> None:
         self._anonymous = anonymous
         self._operators = dict(operators or {})
         self._inspection_pipeline = MediaInspectionPipeline(
             anonymous,
             self._operators,
+            default_policies=default_policies,
         )
         self._active: dict[str, MediaRunnerClient] = {}
 
-    async def inspect(self, url: str) -> RunnerInspection:
-        return await self._inspection_pipeline.inspect(url)
+    def resolve_access_policy(
+        self, url: str, requested: ProviderAccessPolicy | None = None
+    ) -> ProviderAccessPolicy:
+        return self._inspection_pipeline.resolve_access_policy(url, requested)
+
+    async def inspect(
+        self, url: str, *, access_policy: ProviderAccessPolicy | None = None
+    ) -> RunnerInspection:
+        return await self._inspection_pipeline.inspect(url, access_policy=access_policy)
 
     async def context_for_provider(
         self,

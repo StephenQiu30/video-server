@@ -24,15 +24,16 @@ import type {
   SourceDiscovery,
 } from '@/types/video';
 
-export {
-  ApiError,
-  displayError,
-} from '@/lib/request-error';
+export { ApiError, displayError } from '@/lib/request-error';
 export { createIdempotencyKey } from '@/utils/idempotency';
 
-export function inspectMedia(url: string, key: string): Promise<Inspection> {
+export function inspectMedia(
+  url: string,
+  key: string,
+  policy?: API.ProviderAccessPolicy,
+): Promise<Inspection> {
   return inspectMediaRequest(
-    { source: { kind: 'public_url', url } },
+    { source: { kind: 'public_url', url, access_policy_id: policy } },
     {
       headers: { 'Idempotency-Key': key },
       timeout: 180_000,

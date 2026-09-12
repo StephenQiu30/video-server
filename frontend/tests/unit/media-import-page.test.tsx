@@ -2,6 +2,16 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import DownloadWorkspace from '@/components/intake/download-workspace';
+
+vi.mock('@/hooks/useProviderStatuses', () => ({
+  useProviderStatuses: () => ({
+    data: { items: [] },
+    error: null,
+    loading: false,
+    retry: vi.fn(),
+  }),
+}));
+
 import { TooltipProvider } from '@/components/ui/tooltip';
 import * as mediaImportRuntime from '@/services/media-import';
 

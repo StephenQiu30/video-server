@@ -2,18 +2,28 @@
 
 from __future__ import annotations
 
-from collections.abc import Set
+from collections.abc import Mapping, Set
 
+from app.domain.provider_access import (
+    ProviderAccessPolicy,
+    default_access_policy,
+    provider_access_policies,
+)
 from app.domain.providers import ProviderAccessMode, ProviderKey, ProviderSupportStatus
 from app.runner.provider_registry import ProviderProfile, current_provider_registry
-from app.services.providers import ProviderStatusView, provider_user_action
+from app.services.providers import (
+    ProviderAccessPolicyView,
+    ProviderStatusView,
+    provider_user_action,
+)
 
 
 def configured_provider_statuses(
     enabled_operator_keys: Set[str] = frozenset(),
+    default_policies: Mapping[str, ProviderAccessPolicy] | None = None,
 ) -> tuple[ProviderStatusView, ...]:
     configured = tuple(
-        _configured_status(profile, enabled_operator_keys)
+        _configured_status(profile, enabled_operator_keys, default_policies or {})
         for profile in current_provider_registry().profiles
     )
     non_runner = (
@@ -43,6 +53,7 @@ current_provider_statuses = configured_provider_statuses
 def _configured_status(
     profile: ProviderProfile,
     enabled_operator_keys: Set[str],
+    defaults: Mapping[str, ProviderAccessPolicy],
 ) -> ProviderStatusView:
     access_modes = (
         ()
@@ -55,6 +66,31 @@ def _configured_status(
         profile.support_status
         if access_modes or profile.support_status is ProviderSupportStatus.DISABLED
         else ProviderSupportStatus.ACCESS_REQUIRED
+    )
+    policies = (
+        ()
+        if profile.support_status is ProviderSupportStatus.DISABLED
+        else tuple(
+            ProviderAccessPolicyView(
+                id=policy, configured=policy.access_mode in access_modes
+            )
+            for policy in provider_access_policies(profile.key, profile.access_modes)
+        )
+    )
+    default_policy = (
+        (
+            defaults.get(profile.key)
+            or default_access_policy(profile.key, profile.access_modes)
+        )
+        if policies
+        else None
+    )
+    if default_policy is not None and default_policy not in {
+        item.id for item in policies
+    }:
+        raise ValueError("default provider access policy is not admitted")
+    missing_default = any(
+        item.id is default_policy and not item.configured for item in policies
     )
     return ProviderStatusView(
         key=profile.key,
@@ -70,7 +106,16 @@ def _configured_status(
         download_available=False,
         last_media_verified_at=None,
         last_verified_at=None,
-        user_action=provider_user_action(status, profile.key),
+        user_action=(
+            "默认受控线路尚未配置；请部署者配置持久会话，或显式选择公开线路重新解析。"
+            + (provider_user_action(status, profile.key) or "")
+            if missing_default
+            else provider_user_action(status, profile.key)
+        ),
+        access_policies=policies,
+        default_access_policy_id=default_policy,
+        hosts=tuple(sorted(profile.hosts)),
+        host_suffixes=tuple(sorted(profile.host_suffixes)),
     )
 
 

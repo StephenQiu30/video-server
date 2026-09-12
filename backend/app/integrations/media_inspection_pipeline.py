@@ -5,10 +5,18 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Protocol
 
+from app.domain.provider_access import (
+    ProviderAccessPolicy,
+    default_access_policy,
+    provider_access_policies,
+)
 from app.domain.providers import ProviderAccessMode
-from app.runner.provider_registry import provider_profile
+from app.runner.provider_registry import provider_profile, provider_profile_for_key
 from app.services.downloads import MediaInspectionFailure, RunnerInspection
-from app.services.downloads.errors import MediaInspectionAuthRequired
+from app.services.downloads.errors import (
+    MediaInspectionConfigurationMissing,
+    MediaInspectionPolicyNotAllowed,
+)
 
 
 class MediaInspectionClient(Protocol):
@@ -24,26 +32,54 @@ class MediaInspectionPipeline:
         self,
         anonymous: MediaInspectionClient,
         operators: Mapping[str, MediaInspectionClient] | None = None,
+        *,
+        default_policies: Mapping[str, ProviderAccessPolicy] | None = None,
     ) -> None:
         self._anonymous = anonymous
         self._operators = dict(operators or {})
+        self._defaults = dict(default_policies or {})
+        for key, policy in self._defaults.items():
+            profile = provider_profile_for_key(key)
+            if policy not in provider_access_policies(key, profile.access_modes):
+                raise ValueError("default provider access policy is not admitted")
 
-    async def inspect(self, url: str) -> RunnerInspection:
+    def resolve_access_policy(
+        self, url: str, requested: ProviderAccessPolicy | None = None
+    ) -> ProviderAccessPolicy:
         profile = provider_profile(url)
-        operator = self._operators.get(profile.key)
+        selected = (
+            requested
+            or self._defaults.get(profile.key)
+            or default_access_policy(profile.key, profile.access_modes)
+        )
+        if selected not in provider_access_policies(profile.key, profile.access_modes):
+            raise MediaInspectionPolicyNotAllowed
         if (
-            ProviderAccessMode.OPERATOR_MANAGED in profile.access_modes
-            and operator is not None
+            selected.access_mode is ProviderAccessMode.OPERATOR_MANAGED
+            and profile.key not in self._operators
         ):
-            client = operator
-            access_mode = ProviderAccessMode.OPERATOR_MANAGED
-        elif ProviderAccessMode.ANONYMOUS in profile.access_modes:
-            client = self._anonymous
-            access_mode = ProviderAccessMode.ANONYMOUS
-        else:
-            raise MediaInspectionAuthRequired
+            raise MediaInspectionConfigurationMissing
+        return selected
+
+    async def inspect(
+        self, url: str, *, access_policy: ProviderAccessPolicy | None = None
+    ) -> RunnerInspection:
+        selected = self.resolve_access_policy(url, access_policy)
+        profile = provider_profile(url)
+        access_mode = selected.access_mode
+        client = (
+            self._anonymous
+            if access_mode is ProviderAccessMode.ANONYMOUS
+            else self._operators[profile.key]
+        )
         try:
-            return await client.inspect(url)
+            result = await client.inspect(url)
+            if (
+                result.access_context.access_mode is not access_mode
+                or result.access_context.provider_key != profile.key
+            ):
+                raise MediaInspectionFailure("runner policy context mismatch")
+            return result
         except MediaInspectionFailure as error:
             error.attributed_to(access_mode)
             raise

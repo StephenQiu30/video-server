@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
+from app.domain.provider_access import ProviderAccessPolicy
 from app.services.downloads.analytics_models import DownloadAnalyticsSnapshot
 from app.services.downloads.download_models import (
     ArtifactSnapshot,
@@ -40,7 +41,13 @@ class UrlCipher(Protocol):
 
 
 class MediaRunner(Protocol):
-    async def inspect(self, url: str) -> RunnerInspection: ...
+    def resolve_access_policy(
+        self, url: str, requested: ProviderAccessPolicy | None = None
+    ) -> ProviderAccessPolicy: ...
+
+    async def inspect(
+        self, url: str, *, access_policy: ProviderAccessPolicy
+    ) -> RunnerInspection: ...
 
 
 class RequestFingerprinter(Protocol):

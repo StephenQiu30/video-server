@@ -15,6 +15,7 @@ from app.domain.downloads import (
     RightsBasis,
     SourceOrigin,
 )
+from app.domain.provider_access import ProviderAccessPolicy
 from app.domain.providers import ProviderAccessContextRef
 
 
@@ -137,3 +138,4 @@ class InspectionView:
     user_action: str | None = None
     media_kind: MediaKind = MediaKind.VIDEO
     asset_count: int = 0
+    access_policy_id: ProviderAccessPolicy | None = None

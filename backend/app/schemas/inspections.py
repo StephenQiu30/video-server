@@ -22,6 +22,7 @@ from app.domain.downloads import (
     SourceOrigin,
     VideoCodecFamily,
 )
+from app.domain.provider_access import ProviderAccessPolicy
 from app.schemas.common import StrictModel
 from app.services.downloads import InspectionView
 
@@ -33,6 +34,10 @@ class PublicUrlInspectionSource(StrictModel):
         examples=["https://media.example/video"],
         min_length=8,
         max_length=4096,
+    )
+    access_policy_id: ProviderAccessPolicy | None = Field(
+        default=None,
+        description="显式选择平台允许的访问策略；省略时使用平台固定默认策略，不按端点存在性切换。",
     )
 
 
@@ -91,6 +96,7 @@ class InspectionResponse(StrictModel):
     rights_basis: RightsBasis | None
     restriction_reason: str | None
     user_action: str | None
+    access_policy_id: ProviderAccessPolicy | None
 
     @classmethod
     def from_view(cls, view: InspectionView) -> InspectionResponse:
@@ -135,4 +141,5 @@ class InspectionResponse(StrictModel):
             rights_basis=view.rights_basis,
             restriction_reason=view.restriction_reason,
             user_action=view.user_action,
+            access_policy_id=view.access_policy_id,
         )

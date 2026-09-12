@@ -4,8 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from enum import StrEnum
 
+from app.domain.provider_access import ProviderAccessPolicy
 from app.domain.providers import (
+    ProviderAccessContextRef,
     ProviderAccessMode,
     ProviderCapability,
     ProviderKey,
@@ -20,6 +23,18 @@ QQVIDEO_DOWNLOAD_ACTION = (
     "普通单视频可直接解析，VIP 内容需要部署者配置有效持久会话。"
     "仅处理完整非 DRM 媒体，VIP 下载仍待账号样本验证。"
 )
+
+
+class ProviderEvidenceState(StrEnum):
+    MISSING = "missing"
+    STALE = "stale"
+    FRESH = "fresh"
+
+
+@dataclass(frozen=True, slots=True)
+class ProviderAccessPolicyView:
+    id: ProviderAccessPolicy
+    configured: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,6 +53,12 @@ class ProviderStatusView:
     last_media_verified_at: datetime | None
     last_verified_at: datetime | None
     user_action: str | None
+    access_policies: tuple[ProviderAccessPolicyView, ...] = ()
+    default_access_policy_id: ProviderAccessPolicy | None = None
+    evidence_state: ProviderEvidenceState = ProviderEvidenceState.MISSING
+    hosts: tuple[str, ...] = ()
+    host_suffixes: tuple[str, ...] = ()
+    runtime_context: ProviderAccessContextRef | None = None
 
     @property
     def download_supported(self) -> bool:

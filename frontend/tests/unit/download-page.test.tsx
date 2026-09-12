@@ -23,6 +23,15 @@ import {
 
 const push = vi.fn();
 
+vi.mock('@/hooks/useProviderStatuses', () => ({
+  useProviderStatuses: () => ({
+    data: { items: [] },
+    error: null,
+    loading: false,
+    retry: vi.fn(),
+  }),
+}));
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
 }));

@@ -16,6 +16,7 @@ from app.domain.downloads import (
     RightsBasis,
     SourceOrigin,
 )
+from app.domain.provider_access import ProviderAccessPolicy
 from app.domain.providers import ProviderKey
 from app.services.downloads.download_models import (
     ArtifactSnapshot,
@@ -114,6 +115,9 @@ def inspection_view(snapshot: InspectionSnapshot) -> InspectionView:
         user_action=_optional_text(snapshot.metadata, "user_action"),
         media_kind=media_kind,
         asset_count=_asset_count(snapshot.metadata),
+        access_policy_id=_optional_enum_metadata(
+            snapshot.metadata, "access_policy_id", ProviderAccessPolicy, None
+        ),
     )
 
 
@@ -136,7 +140,7 @@ def _optional_enum_metadata[EnumT: StrEnum](
     metadata: dict[str, object],
     key: str,
     enum_type: type[EnumT],
-    default: EnumT,
+    default: EnumT | None,
 ) -> EnumT | None:
     if key not in metadata:
         return default

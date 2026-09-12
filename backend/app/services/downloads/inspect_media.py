@@ -5,11 +5,13 @@ from datetime import datetime, timedelta
 from uuid import UUID
 
 from app.domain.downloads import MediaKind
+from app.domain.provider_access import ProviderAccessPolicy
 from app.domain.providers import ProviderAccessMode, ProviderKey
 from app.services.downloads.errors import (
     ApplicationError,
     ApplicationErrorCode,
     MediaInspectionAuthRequired,
+    MediaInspectionConfigurationMissing,
     MediaInspectionContentRestricted,
     MediaInspectionDrmProtected,
     MediaInspectionDurationLimitExceeded,
@@ -19,6 +21,7 @@ from app.services.downloads.errors import (
     MediaInspectionLinkUnavailable,
     MediaInspectionMediaUnsupported,
     MediaInspectionPaidContentRestricted,
+    MediaInspectionPolicyNotAllowed,
     MediaInspectionRateLimited,
     MediaInspectionSessionExpired,
     MediaInspectionTemporarilyUnavailable,
@@ -86,7 +89,12 @@ class InspectMedia:
         self._persist_thumbnail = persist_thumbnail
 
     async def __call__(
-        self, url: str, owner_hash: str, idempotency_key: str
+        self,
+        url: str,
+        owner_hash: str,
+        idempotency_key: str,
+        *,
+        access_policy: ProviderAccessPolicy | None = None,
     ) -> InspectionView:
         owner_hash = validate_owner_hash(owner_hash)
         idempotency_key = validate_idempotency_key(idempotency_key)
@@ -96,6 +104,10 @@ class InspectMedia:
             raise ApplicationError(ApplicationErrorCode.INVALID_URL) from exc
         restricted = classify_restricted_source(validated_url)
         if restricted is not None:
+            if access_policy not in {None, ProviderAccessPolicy.PUBLIC}:
+                raise ApplicationError(
+                    ApplicationErrorCode.PROVIDER_ACCESS_POLICY_NOT_ALLOWED
+                )
             return await self._save_restricted(
                 validated_url,
                 owner_hash,
@@ -103,7 +115,20 @@ class InspectMedia:
                 restricted,
             )
         try:
-            result = await self._runner.inspect(validated_url)
+            selected_policy = self._runner.resolve_access_policy(
+                validated_url, access_policy
+            )
+            result = await self._runner.inspect(
+                validated_url, access_policy=selected_policy
+            )
+        except MediaInspectionConfigurationMissing as exc:
+            raise ApplicationError(
+                ApplicationErrorCode.PROVIDER_CONFIGURATION_MISSING
+            ) from exc
+        except MediaInspectionPolicyNotAllowed as exc:
+            raise ApplicationError(
+                ApplicationErrorCode.PROVIDER_ACCESS_POLICY_NOT_ALLOWED
+            ) from exc
         except MediaInspectionDurationLimitExceeded as exc:
             raise ApplicationError(
                 ApplicationErrorCode.DURATION_LIMIT_EXCEEDED
@@ -130,6 +155,7 @@ class InspectMedia:
                 owner_hash,
                 idempotency_key,
                 paid_content_admission(validated_url, exc.reason),
+                access_policy=selected_policy,
             )
         except MediaInspectionContentRestricted as exc:
             raise ApplicationError(
@@ -186,7 +212,7 @@ class InspectMedia:
             owner_hash=owner_hash,
             idempotency_key=idempotency_key,
             request_fingerprint=self._fingerprinter.fingerprint(
-                "inspection", validated_url
+                "inspection", validated_url, selected_policy.value
             ),
             url_ciphertext=envelope.ciphertext,
             url_nonce=envelope.nonce,
@@ -195,7 +221,10 @@ class InspectMedia:
             provider_media_id=_required(result.provider_media_id),
             title=_required(result.title),
             duration_seconds=result.duration_seconds,
-            metadata=_inspection_metadata(result),
+            metadata={
+                **_inspection_metadata(result),
+                "access_policy_id": selected_policy.value,
+            },
             expires_at=expires_at,
             formats=formats,
         )
@@ -223,6 +252,8 @@ class InspectMedia:
         owner_hash: str,
         idempotency_key: str,
         restricted: RestrictedSourceAdmission,
+        *,
+        access_policy: ProviderAccessPolicy = ProviderAccessPolicy.PUBLIC,
     ) -> InspectionView:
         now = validate_now(self._now())
         envelope = self._url_cipher.encrypt(validated_url)
@@ -231,7 +262,7 @@ class InspectMedia:
             owner_hash=owner_hash,
             idempotency_key=idempotency_key,
             request_fingerprint=self._fingerprinter.fingerprint(
-                "inspection", validated_url
+                "inspection", validated_url, access_policy.value
             ),
             url_ciphertext=envelope.ciphertext,
             url_nonce=envelope.nonce,
@@ -240,7 +271,7 @@ class InspectMedia:
             provider_media_id=restricted.provider_media_id,
             title=restricted.title,
             duration_seconds=0,
-            metadata=restricted.metadata(),
+            metadata={**restricted.metadata(), "access_policy_id": access_policy.value},
             expires_at=now + self._ttl,
             formats=(),
         )

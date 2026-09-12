@@ -15,6 +15,7 @@ from app.domain.downloads import (
     ProviderHints,
     VideoCodecFamily,
 )
+from app.domain.provider_access import ProviderAccessPolicy
 from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
 from app.services.downloads import (
     ApplicationError,
@@ -113,6 +114,7 @@ async def test_inspect_encrypts_url_and_returns_only_semantic_formats() -> None:
         "audio_id": "140",
     }
     assert command.metadata == {
+        "access_policy_id": "public",
         "provider_access_context": access_context().to_document(),
         "thumbnail_url": "data:image/avif;base64,Y292ZXI=",
     }
@@ -129,6 +131,24 @@ async def test_inspection_idempotency_replays_and_conflicts() -> None:
     assert replay.id == first.id
     with pytest.raises(ApplicationError) as caught:
         await inspect("https://other.example/video", OWNER, "same-key")
+    assert caught.value.code is ApplicationErrorCode.IDEMPOTENCY_CONFLICT
+
+
+async def test_inspection_policy_is_frozen_and_part_of_idempotency() -> None:
+    repository = FakeRepository()
+    inspect, _, _ = use_case(repository, runner_result())
+    first = await inspect(
+        URL, OWNER, "policy-key", access_policy=ProviderAccessPolicy.PUBLIC
+    )
+    replay = await inspect(
+        URL, OWNER, "policy-key", access_policy=ProviderAccessPolicy.PUBLIC
+    )
+    assert first.id == replay.id
+    assert first.access_policy_id is ProviderAccessPolicy.PUBLIC
+    with pytest.raises(ApplicationError) as caught:
+        await inspect(
+            URL, OWNER, "policy-key", access_policy=ProviderAccessPolicy.OPERATOR_PUBLIC
+        )
     assert caught.value.code is ApplicationErrorCode.IDEMPOTENCY_CONFLICT
 
 
@@ -219,13 +239,15 @@ async def test_duration_limit_and_empty_formats_are_rejected() -> None:
 
 @pytest.mark.asyncio
 async def test_runner_duration_boundary_keeps_provider_support_distinct() -> None:
-    class DurationRejectedRunner:
-        async def inspect(self, _url: str) -> RunnerInspection:
+    class DurationRejectedRunner(FakeRunner):
+        async def inspect(
+            self, _url: str, *, access_policy: ProviderAccessPolicy
+        ) -> RunnerInspection:
             raise MediaInspectionDurationLimitExceeded
 
     inspect = InspectMedia(
         repository=FakeRepository(),
-        runner=DurationRejectedRunner(),
+        runner=DurationRejectedRunner(runner_result()),
         url_validator=FakeValidator(),
         url_cipher=FakeCipher(),
         fingerprinter=HmacRequestFingerprinter(b"k" * 32),
@@ -277,15 +299,21 @@ async def test_unsupported_provider_is_reported_explicitly() -> None:
     assert caught.value.code is ApplicationErrorCode.PROVIDER_UNSUPPORTED
 
 
-async def _raise_provider_access(_: str) -> RunnerInspection:
+async def _raise_provider_access(
+    _: str, *, access_policy: ProviderAccessPolicy
+) -> RunnerInspection:
     raise MediaInspectionAuthRequired
 
 
-async def _raise_provider_link_unavailable(_: str) -> RunnerInspection:
+async def _raise_provider_link_unavailable(
+    _: str, *, access_policy: ProviderAccessPolicy
+) -> RunnerInspection:
     raise MediaInspectionLinkUnavailable
 
 
-async def _raise_provider_unsupported(_: str) -> RunnerInspection:
+async def _raise_provider_unsupported(
+    _: str, *, access_policy: ProviderAccessPolicy
+) -> RunnerInspection:
     raise MediaInspectionUnsupported
 
 

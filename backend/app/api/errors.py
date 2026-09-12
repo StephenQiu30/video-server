@@ -85,6 +85,16 @@ _ERRORS: dict[ApplicationErrorCode, tuple[int, str, str]] = {
         "Provider session required",
         "This provider requires an approved session for the requested public media.",
     ),
+    ApplicationErrorCode.PROVIDER_CONFIGURATION_MISSING: (
+        503,
+        "Provider route not configured",
+        "The selected access policy requires an operator-configured route.",
+    ),
+    ApplicationErrorCode.PROVIDER_ACCESS_POLICY_NOT_ALLOWED: (
+        422,
+        "Provider access policy not allowed",
+        "The requested access policy is not admitted for this source.",
+    ),
     ApplicationErrorCode.PROVIDER_SESSION_EXPIRED: (
         422,
         "Provider session unavailable",

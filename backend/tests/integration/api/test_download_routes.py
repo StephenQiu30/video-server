@@ -79,6 +79,39 @@ def test_download_use_cases_are_resolved_from_app_state(tmp_path: Path) -> None:
     assert response.json()["code"] == "service_unavailable"
 
 
+def test_explicit_policy_reaches_use_case_but_unknown_policy_does_not(
+    tmp_path: Path,
+) -> None:
+    test_client, stubs = client(tmp_path)
+    with test_client:
+        result = test_client.post(
+            "/api/inspections",
+            headers={"Idempotency-Key": "policy"},
+            json={
+                "source": {
+                    "kind": "public_url",
+                    "url": "https://media.example/video",
+                    "access_policy_id": "public",
+                },
+            },
+        )
+        assert result.status_code == 201
+        assert stubs["inspect"].calls[0][1]["access_policy"] == "public"
+        rejected = test_client.post(
+            "/api/inspections",
+            headers={"Idempotency-Key": "unknown"},
+            json={
+                "source": {
+                    "kind": "public_url",
+                    "url": "https://media.example/video",
+                    "access_policy_id": "bypass",
+                },
+            },
+        )
+    assert rejected.status_code == 422
+    assert len(stubs["inspect"].calls) == 1
+
+
 def test_inspection_routes_use_stable_session_and_hide_hints(tmp_path: Path) -> None:
     test_client, stubs = client(tmp_path)
     with test_client:

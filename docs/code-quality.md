@@ -181,3 +181,11 @@ npm test -- tests/unit/media-import.test.ts tests/unit/media-import-page.test.ts
 后端全量 1688 passed / 2 skipped；跳过项分别是未提供隔离 MinIO 的边界集成测试、macOS 不具备的 Linux O_PATH 行为。Ruff 检查/格式通过，mypy 528 个源文件无问题。App analyze 无问题、全量 199 项通过、Android debug 与 iOS simulator 构建通过；插件未来 SPM/Kotlin 迁移提示仍保留。
 
 Web lint/typecheck/format 与生产构建通过；最终全量 60 个文件、263 项通过，其中乱序测试 16 项，未再出现连接报错。浏览器使用 agent-browser 隔离会话、独立候选前端和合成响应，不使用真实账号或平台来源。前述 UI 与单测不能关闭 035 的 G1/G2/G3/G5；本轮未更新生产、Tailscale、手机或凭据，未推送远端。App 保留未提交变更且不搭车提交原有改动。
+
+## 8. 平台策略与诊断切片的复杂度裁决
+
+- 已修复：端点存在性隐式决定默认权限；默认值改为经过目录校验的显式策略，inspection 指纹包含所选策略。验证缺少端点时不会调用另一路线，改变策略不会重放旧结果。
+- 已合并：状态投影不再逐字段复制 ProviderStatusView，使用不可变 replace 保留新增契约；平台 hostname 只由后端目录下发，Web/App 不再维护平行匹配白名单。
+- 已复用：Flutter 策略选择使用 AppDropdownField，仅增加 option.enabled；保留用户已有下拉组件布局改动。Web 使用现有 Radix Select/Button、稳定 services 入口。
+- 有必要新增：30 秒状态 single-flight，减少同进程并发状态查询重复 DB/RPC；有取消/失败/过期并发负例。此缓存不充当授权事实。
+- 不引入：同命令的重复 Profile、第二个任务模型、账号池、自动登录、没有 G3 证据的来源维护者和占位 repair_count；持久冷却独立按 I3 验证，不能用状态缓存替代。

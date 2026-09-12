@@ -867,6 +867,7 @@ declare namespace API {
     restriction_reason: string | null;
     /** User Action */
     user_action: string | null;
+    access_policy_id: ProviderAccessPolicy | null;
   };
 
   type issueDownloadUrlParams = {
@@ -1037,6 +1038,18 @@ declare namespace API {
 
   type ProviderAccessMode = "anonymous" | "operator_managed";
 
+  type ProviderAccessPolicy =
+    | "public"
+    | "public_session"
+    | "operator_public"
+    | "personal_entitled";
+
+  type ProviderAccessPolicyResponse = {
+    id: ProviderAccessPolicy;
+    /** Configured */
+    configured: boolean;
+  };
+
   type ProviderCapability =
     | "single_video"
     | "short_video"
@@ -1070,9 +1083,43 @@ declare namespace API {
     items: ProviderCatalogEntryResponse[];
   };
 
+  type ProviderEvidenceState = "missing" | "stale" | "fresh";
+
   type ProviderListResponse = {
     /** Items */
     items: ProviderStatusResponse[];
+  };
+
+  type ProviderRuntimeListResponse = {
+    /** Items */
+    items: ProviderRuntimeResponse[];
+    /** Snapshot Max Age Seconds */
+    snapshot_max_age_seconds?: number;
+  };
+
+  type ProviderRuntimeResponse = {
+    /** Provider Key */
+    provider_key: string;
+    access_policy_id: ProviderAccessPolicy | null;
+    /** Route Configured */
+    route_configured: boolean;
+    /** Context Available */
+    context_available: boolean;
+    /** Profile Version */
+    profile_version: string | null;
+    /** Engine Commit */
+    engine_commit: string | null;
+    /** Source State */
+    source_state:
+      | "not_required"
+      | "revision_observed"
+      | "not_observed"
+      | "unknown";
+    evidence_state: ProviderEvidenceState;
+    /** Last Media Verified At */
+    last_media_verified_at: string | null;
+    /** User Action */
+    user_action: string | null;
   };
 
   type ProviderStatusResponse = {
@@ -1103,6 +1150,14 @@ declare namespace API {
     last_verified_at: string | null;
     /** User Action */
     user_action: string | null;
+    /** Access Policies */
+    access_policies: ProviderAccessPolicyResponse[];
+    default_access_policy_id: ProviderAccessPolicy | null;
+    evidence_state: ProviderEvidenceState;
+    /** Hosts */
+    hosts: string[];
+    /** Host Suffixes */
+    host_suffixes: string[];
   };
 
   type ProviderSupportStatus =
@@ -1120,6 +1175,8 @@ declare namespace API {
     kind: string;
     /** Url 用户有权处理的公开、非 DRM HTTP(S) 媒体地址。 */
     url: string;
+    /** 显式选择平台允许的访问策略；省略时使用平台固定默认策略，不按端点存在性切换。 */
+    access_policy_id?: ProviderAccessPolicy | null;
   };
 
   type ReadinessResponse = {

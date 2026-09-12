@@ -1,6 +1,7 @@
 import type { Inspection, MediaFormat } from '@/types/video';
 
 export const demoInspection: Inspection = {
+  access_policy_id: 'public',
   id: '00000000-0000-4000-8000-000000000001',
   extractor_key: 'Public media',
   provider_media_id: 'alpine-lake-demo',

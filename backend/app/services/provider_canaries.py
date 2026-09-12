@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import asyncio
+import math
+import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
@@ -14,7 +17,11 @@ from app.domain.providers import (
     ProviderSupportStatus,
 )
 from app.services.provider_catalog import ProviderCatalogRepository
-from app.services.providers import ProviderStatusView, provider_user_action
+from app.services.providers import (
+    ProviderEvidenceState,
+    ProviderStatusView,
+    provider_user_action,
+)
 
 _ACCESS_ERRORS = {"provider_auth_required", "provider_session_expired"}
 _RATE_ERRORS = {"provider_rate_limited"}
@@ -81,7 +88,16 @@ class ProviderStatusService:
         context_reader: ProviderRuntimeContextReader,
         approved_keys: frozenset[str] = frozenset(),
         catalog: ProviderCatalogRepository | None = None,
+        snapshot_ttl_seconds: float = 0,
+        monotonic: Callable[[], float] = time.monotonic,
     ) -> None:
+        if (
+            not math.isfinite(snapshot_ttl_seconds)
+            or not 0 <= snapshot_ttl_seconds <= 30
+        ):
+            raise ValueError(
+                "provider status snapshot TTL must be between 0 and 30 seconds"
+            )
         registered = {
             item.key
             for item in baselines
@@ -100,8 +116,25 @@ class ProviderStatusService:
         self._approved_keys = approved_keys
         self._catalog = catalog
         self._context_reader = context_reader
+        self._snapshot_ttl = snapshot_ttl_seconds
+        self._monotonic = monotonic
+        self._snapshot: tuple[ProviderStatusView, ...] | None = None
+        self._snapshot_until = 0.0
+        self._snapshot_lock = asyncio.Lock()
 
     async def list(self) -> tuple[ProviderStatusView, ...]:
+        if self._snapshot_ttl == 0:
+            return await self._load()
+        async with self._snapshot_lock:
+            if self._snapshot is not None and self._monotonic() < self._snapshot_until:
+                return self._snapshot
+            # Failed or cancelled refreshes never extend the last snapshot.
+            result = await self._load()
+            self._snapshot = result
+            self._snapshot_until = self._monotonic() + self._snapshot_ttl
+            return result
+
+    async def _load(self) -> tuple[ProviderStatusView, ...]:
         contexts = await _runtime_contexts(self._baselines, self._context_reader)
         recent = await self._reader.list_recent(
             limit_per_provider_stage=32,
@@ -112,14 +145,19 @@ class ProviderStatusService:
         )
         now = self._now()
         merged = tuple(
-            _merge_status(
-                view,
-                recent.get(view.key, ()),
-                now,
-                explicitly_approved=view.key in self._approved_keys,
-                context_generation_id=(
-                    contexts[view.key].generation_id if view.key in contexts else None
+            replace(
+                _merge_status(
+                    view,
+                    recent.get(view.key, ()),
+                    now,
+                    explicitly_approved=view.key in self._approved_keys,
+                    context_generation_id=(
+                        contexts[view.key].generation_id
+                        if view.key in contexts
+                        else None
+                    ),
                 ),
+                runtime_context=contexts.get(view.key),
             )
             for view in self._baselines
         )
@@ -228,14 +266,8 @@ def _merge_status(
         status = baseline.status
     verified_at = _latest_analysis_success(ordered)
     download_available = _download_available(ordered, now)
-    return ProviderStatusView(
-        key=baseline.key,
-        display_name=baseline.display_name,
-        profile_version=baseline.profile_version,
-        registered=baseline.registered,
-        extractor_exists=baseline.extractor_exists,
-        capabilities=baseline.capabilities,
-        access_modes=baseline.access_modes,
+    return replace(
+        baseline,
         status=status,
         last_checked_at=latest.checked_at,
         last_check_succeeded=(latest.outcome is ProviderCanaryOutcome.SUCCEEDED),
@@ -250,6 +282,11 @@ def _merge_status(
             baseline.key,
             download_available=download_available,
             access_mode=access_mode,
+        ),
+        evidence_state=(
+            ProviderEvidenceState.FRESH
+            if latest_decision is not None
+            else ProviderEvidenceState.STALE
         ),
     )
 
@@ -313,6 +350,9 @@ def _status_access_mode(
     baseline: ProviderStatusView,
 ) -> ProviderAccessMode | None:
     access_modes = baseline.access_modes
+    if baseline.default_access_policy_id is not None:
+        mode = baseline.default_access_policy_id.access_mode
+        return mode if mode in access_modes else None
     if ProviderAccessMode.OPERATOR_MANAGED in access_modes:
         return ProviderAccessMode.OPERATOR_MANAGED
     if ProviderAccessMode.ANONYMOUS in access_modes:

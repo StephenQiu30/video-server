@@ -42,7 +42,10 @@ async def inspect_media(
     try:
         if isinstance(body.source, PublicUrlInspectionSource):
             view = await use_cases.inspect_media(
-                body.source.url, user.owner_hash, idempotency_key
+                body.source.url,
+                user.owner_hash,
+                idempotency_key,
+                access_policy=body.source.access_policy_id,
             )
         else:
             view = await use_cases.inspect_discovered_item(

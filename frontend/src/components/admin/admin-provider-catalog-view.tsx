@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-
 import {
   type CatalogDeleteState,
   type CatalogEditorState,
@@ -10,6 +9,7 @@ import {
 import { ProviderCatalogDelete } from '@/components/admin/admin-provider-catalog/provider-catalog-delete';
 import { ProviderCatalogEditor } from '@/components/admin/admin-provider-catalog/provider-catalog-editor';
 import { ProviderCatalogScreen } from '@/components/admin/admin-provider-catalog/provider-catalog-screen';
+import { ProviderRuntimePanel } from '@/components/admin/provider-runtime-panel';
 import {
   createProviderCatalogEntry,
   deleteProviderCatalogEntry,
@@ -155,6 +155,7 @@ export function AdminProviderCatalogView() {
         onConfirm={() => void confirmDelete()}
         state={deleting}
       />
+      <ProviderRuntimePanel />
     </>
   );
 }

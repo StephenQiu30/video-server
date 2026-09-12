@@ -28,7 +28,9 @@ async def pending_provider_statuses() -> tuple[dict[str, str], ...]:
     runner = media_runner_router(settings)
     service = ProviderStatusService(
         SqlAlchemyProviderCanaryRepository(create_session_factory(engine)),
-        configured_provider_statuses(operator_provider_keys(settings)),
+        configured_provider_statuses(
+            operator_provider_keys(settings), settings.runner_default_access_policies
+        ),
         now=lambda: datetime.now(UTC),
         context_reader=runner,
         approved_keys=settings.provider_verified_keys,

@@ -30,6 +30,7 @@ def media_runner_router(settings: Settings) -> MediaRunnerRouter:
     return MediaRunnerRouter(
         anonymous_media_runner(settings),
         operator_media_runners(settings),
+        default_policies=settings.runner_default_access_policies,
     )
 
 
