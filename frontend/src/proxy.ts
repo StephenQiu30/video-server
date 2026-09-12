@@ -3,7 +3,34 @@ import { NextResponse } from 'next/server';
 
 import { browserSecurityHeaders } from '@/lib/security-headers';
 
-export function proxy(_request: NextRequest) {
+export function proxy(request: NextRequest) {
+  const { pathname, search } = request.nextUrl;
+  if (/^\/(api|health)(\/|$)/.test(pathname)) {
+    // next.config rewrites are frozen into standalone builds. Resolve the
+    // deployment origin here so the same image can run against another API.
+    let target: URL;
+    try {
+      target = new URL(process.env.BACKEND_ORIGIN ?? 'http://127.0.0.1:8111');
+      if (
+        !['http:', 'https:'].includes(target.protocol) ||
+        target.username ||
+        target.password ||
+        target.pathname !== '/' ||
+        target.search ||
+        target.hash
+      ) {
+        throw new Error('Invalid backend origin');
+      }
+    } catch {
+      return NextResponse.json(
+        { code: 'service_unavailable', detail: 'API routing is unavailable.' },
+        { status: 503 },
+      );
+    }
+    target.pathname = pathname;
+    target.search = search;
+    return NextResponse.rewrite(target);
+  }
   const response = NextResponse.next();
   for (const [name, value] of browserSecurityHeaders({
     production: process.env.NODE_ENV === 'production',
@@ -18,7 +45,5 @@ export function proxy(_request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/((?!api(?:/|$)|health(?:/|$)|_next/static|_next/image|favicon.ico).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };

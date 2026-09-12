@@ -1,6 +1,6 @@
 # Frontend
 
-本目录是“帧取”视频下载器的 Next.js App Router 前端。界面使用 Radix UI primitives 与 shadcn/ui 源码组件，样式由 Tailwind CSS 主题 token 管理；接口客户端由独立的 `@umijs/openapi` 根据 FastAPI 契约生成。前端固定运行在 `8101`，通过 Next.js rewrite 将 `/api/*` 和 `/health/*` 转发到 `8111` 的 FastAPI。
+本目录是“帧取”视频下载器的 Next.js App Router 前端。界面使用 Radix UI primitives 与 shadcn/ui 源码组件，样式由 Tailwind CSS 主题 token 管理；接口客户端由独立的 `@umijs/openapi` 根据 FastAPI 契约生成。前端固定运行在 `8101`，通过 `src/proxy.ts` 在运行时将 `/api/*` 和 `/health/*` 转发到 `BACKEND_ORIGIN` 指定的 FastAPI。
 
 ## 技术栈
 
@@ -84,6 +84,8 @@ npm run openapi
 `npm run build` 使用 Next.js standalone 输出生成独立 Node.js 服务。前端服务监听 `8101`，FastAPI API 服务监听 `8111`；Next.js 只代理普通 `/api/*` 和 `/health/*` HTTP 请求，WebSocket Upgrade 由部署入口直接转发给 FastAPI。FastAPI 不挂载 `frontend/out`，也不会把页面 HTML 返回给根路径或未知 UI 路由。
 
 生产环境启动独立 Next.js Server 和 FastAPI 服务。`SITE_URL` 只用于生成公开元数据与绝对链接，不接管浏览器请求的 Host 或协议；直接访问 `8101` 时始终保留原始地址。HTTPS、规范域名和外部入口跳转属于部署入口的职责。需要服务端运行时能力的功能应继续保持前端 `8101`、API `8111` 的边界。
+
+`BACKEND_ORIGIN` 是运行时配置，必须是无凭据、无路径/查询/片段的 HTTP(S) origin；Compose 默认 `http://api:8111`，独立本机进程缺省为 `http://127.0.0.1:8111`。镜像不再把它写入构建期 rewrites。同一镜像用于候选环境时，设置候选 API 的容器地址并重建前端容器即可；不能把只测 readiness 当作路由正确，须同时确认目标 API 日志出现实际业务请求。上传 `/storage-upload` 仍走原有流式处理器。
 
 ## 组件、主题与可访问性
 

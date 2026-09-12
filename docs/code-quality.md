@@ -203,3 +203,8 @@ Web lint/typecheck/format 与生产构建通过；最终全量 60 个文件、26
 - CQ-012 / P2 / 已修复：fixed_matrix 先过滤未知 provider，混合已知/拼错名称可能只测已知子集仍返回成功。新增 runtime 创建前全集校验，未知项退出 2 且零外部调用；已知单项执行/资源关闭/不输出 URL 有回归。
 - CQ-013 / P2 / 已修复文档：schema 顶部仍说 Compose 每次启动自动初始化、换机手册仍暗示缺 operator 自动走匿名。改为当前态 SQL 由部署者按需应用，访问策略显式，更新必须同版重建；保留既有 fixed_matrix 命令，不新增重复诊断 CLI。
 - CQ-014 / P1 / 已修复：生产私有 `.provider-sessions` 与 `.provider-secrets` 只在 Git 忽略，Docker 上下文未排除。补充递归目录排除和契约测试；没有读取真实会话内容，没有将私有来源复制进镜像。镜像显式 COPY 原先未引用这些目录，本项修复的是构建上下文暴露，不声称曾泄漏到发布镜像。
+
+## 11. 实际用户链接暴露的部署缺陷（2026-09-13）
+
+- CQ-015 / P1 / 已修复：Next.js standalone 构建期 rewrites 固定后端地址，候选 frontend 的运行时 BACKEND_ORIGIN 被忽略；用户新页面实际调用旧 API，策略缺失且失败被旧链路泛化。复用已有 proxy 运行时外部 rewrite，移除重复构建地址，不读取凭据或请求体。回归先 10 项失败后通过；Web 280 项、构建、lint/类型/格式及 23 项部署契约通过。真实已登录页面会话保持，策略出现，新 API 日志确认 GET/POST 到达。仅修复路由，不宣称该 YouTube 视频可下载。
+- CQ-016 / P1 / 待修复：镜像构建提示依赖公告；`npm audit --omit=dev` 确认 next 16.3.0 的 critical 公告 GHSA-p293-qw3h-jr36、GHSA-2xp9-vwfh-vxw4，sharp 的 high 公告 GHSA-rgj7-g3m4-5g8c。当前候选为 Linux 且 images.unoptimized=true，不据此宣称已受攻击或所有利用条件成立；仍需独立升级受影响依赖、重新生成锁文件并完成全量/镜像/页面回归，再关闭该项。本次未更改依赖或自动执行 audit fix。
