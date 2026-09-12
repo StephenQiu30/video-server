@@ -13,6 +13,13 @@ ROOT = Path(__file__).resolve().parents[2]
 SUPPLY_CHAIN = ROOT / "supply-chain"
 
 
+def test_private_provider_sources_are_excluded_from_docker_build_context() -> None:
+    rules = (ROOT.parent / ".dockerignore").read_text().splitlines()
+    for directory in (".provider-sessions", ".provider-secrets"):
+        assert f"**/{directory}/" in rules
+    assert not any("provider-" in rule and rule.startswith("!") for rule in rules)
+
+
 def test_provider_sbom_pins_runtime_components_and_licenses() -> None:
     document = json.loads((SUPPLY_CHAIN / "provider-sbom.json").read_text())
     components = {item["name"]: item for item in document["components"]}

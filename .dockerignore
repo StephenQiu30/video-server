@@ -1,5 +1,7 @@
 .git
 .github
+**/.provider-sessions/
+**/.provider-secrets/
 **/.venv
 **/node_modules
 **/.next

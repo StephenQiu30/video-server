@@ -202,3 +202,4 @@ Web lint/typecheck/format 与生产构建通过；最终全量 60 个文件、26
 
 - CQ-012 / P2 / 已修复：fixed_matrix 先过滤未知 provider，混合已知/拼错名称可能只测已知子集仍返回成功。新增 runtime 创建前全集校验，未知项退出 2 且零外部调用；已知单项执行/资源关闭/不输出 URL 有回归。
 - CQ-013 / P2 / 已修复文档：schema 顶部仍说 Compose 每次启动自动初始化、换机手册仍暗示缺 operator 自动走匿名。改为当前态 SQL 由部署者按需应用，访问策略显式，更新必须同版重建；保留既有 fixed_matrix 命令，不新增重复诊断 CLI。
+- CQ-014 / P1 / 已修复：生产私有 `.provider-sessions` 与 `.provider-secrets` 只在 Git 忽略，Docker 上下文未排除。补充递归目录排除和契约测试；没有读取真实会话内容，没有将私有来源复制进镜像。镜像显式 COPY 原先未引用这些目录，本项修复的是构建上下文暴露，不声称曾泄漏到发布镜像。
