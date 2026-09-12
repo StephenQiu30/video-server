@@ -93,6 +93,31 @@ describe.each(['download', 'analysis'] as const)(
       expect(result.current.job?.progress).toBe(60);
     });
 
+    it('merges polling and socket queries without rolling back', async () => {
+      let poll: (() => void) | undefined;
+      const setInterval = window.setInterval.bind(window);
+      vi.spyOn(window, 'setInterval').mockImplementation((callback, delay) => {
+        if (delay === 60_000 && typeof callback === 'function') {
+          poll = () => callback();
+        }
+        return Reflect.apply(setInterval, window, [callback, delay]);
+      });
+      const { result } = renderHook(() => useJob(active.id, 60_000));
+      await waitFor(() => expect(poll).toBeDefined());
+      const older = deferred<typeof active>();
+      const newer = deferred<typeof active>();
+      runtime.get
+        .mockImplementationOnce(() => older.promise)
+        .mockImplementationOnce(() => newer.promise);
+      act(() => {
+        poll?.();
+        runtime.callbacks[0]();
+      });
+      await act(async () => newer.resolve({ ...active, version: 4 }));
+      await act(async () => older.resolve({ ...active, version: 3 }));
+      expect(result.current.job?.version).toBe(4);
+    });
+
     it.each(['success', 'failure'] as const)(
       'ignores a pending query %s after deletion',
       async (outcome) => {
