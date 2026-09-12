@@ -15,6 +15,7 @@ from app.services.downloads.errors import (
 from app.services.downloads.plans import plan_from_documents, plan_to_documents
 from app.services.downloads.ports import DownloadRepository, RequestFingerprinter
 from app.services.downloads.validation import (
+    media_kind_from_metadata,
     validate_idempotency_key,
     validate_now,
     validate_owner_hash,
@@ -70,7 +71,7 @@ class CreateDownload:
             raise ApplicationError(ApplicationErrorCode.NOT_FOUND)
         if now >= selected.expires_at:
             raise ApplicationError(ApplicationErrorCode.RESOURCE_EXPIRED)
-        media_kind = _media_kind(inspection.metadata)
+        media_kind = media_kind_from_metadata(inspection.metadata)
         semantic: dict[str, object]
         if media_kind in {MediaKind.IMAGE_GALLERY, MediaKind.VIDEO_COLLECTION}:
             semantic = {
@@ -110,16 +111,6 @@ class CreateDownload:
             # the atomic source re-validation inside create_job (TOCTOU window).
             raise ApplicationError(ApplicationErrorCode.NOT_FOUND) from exc
         return download_view(saved.job)
-
-
-def _media_kind(metadata: dict[str, object]) -> MediaKind:
-    value = metadata.get("media_kind", MediaKind.VIDEO.value)
-    if not isinstance(value, str):
-        raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR)
-    try:
-        return MediaKind(value)
-    except (TypeError, ValueError) as exc:
-        raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
 
 
 def _asset_count(metadata: dict[str, object]) -> int:

@@ -34,10 +34,11 @@ from app.services.downloads.thumbnail import (
     safe_thumbnail_data_url,
     thumbnail_resource_url,
 )
+from app.services.downloads.validation import media_kind_from_metadata
 
 
 def inspection_view(snapshot: InspectionSnapshot) -> InspectionView:
-    media_kind = _media_kind(snapshot.metadata)
+    media_kind = media_kind_from_metadata(snapshot.metadata)
     try:
         formats = tuple(
             FormatView(
@@ -176,7 +177,7 @@ def download_view(
     except ValueError as exc:
         raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
     format_plan = None
-    media_kind = _media_kind(snapshot.semantic_plan)
+    media_kind = media_kind_from_metadata(snapshot.semantic_plan)
     if (
         source_kind is DownloadSourceKind.REMOTE_PROVIDER
         and media_kind is MediaKind.VIDEO
@@ -229,16 +230,6 @@ def download_view(
         media_kind=media_kind,
         asset_count=_asset_count(snapshot.semantic_plan),
     )
-
-
-def _media_kind(metadata: dict[str, object]) -> MediaKind:
-    value = metadata.get("media_kind", MediaKind.VIDEO.value)
-    if not isinstance(value, str):
-        raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR)
-    try:
-        return MediaKind(value)
-    except (TypeError, ValueError) as exc:
-        raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
 
 
 def _asset_count(metadata: dict[str, object]) -> int:

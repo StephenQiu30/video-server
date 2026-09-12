@@ -3,9 +3,20 @@ from __future__ import annotations
 import re
 from datetime import datetime
 
+from app.domain.downloads import MediaKind
 from app.services.downloads.errors import ApplicationError, ApplicationErrorCode
 
 _OWNER_HASH = re.compile(r"[0-9a-f]{64}")
+
+
+def media_kind_from_metadata(metadata: dict[str, object]) -> MediaKind:
+    value = metadata.get("media_kind", MediaKind.VIDEO.value)
+    if not isinstance(value, str):
+        raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR)
+    try:
+        return MediaKind(value)
+    except (TypeError, ValueError) as exc:
+        raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
 
 
 def validate_owner_hash(owner_hash: str) -> str:
