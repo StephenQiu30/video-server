@@ -1,5 +1,5 @@
 -- Universal video downloader: current PostgreSQL schema.
--- The Docker database-init service applies this file on every Compose startup.
+-- The deployment operator applies this file to the existing project database.
 -- Keep creation idempotent so both empty and already initialized volumes converge
 -- on all currently required tables and indexes. This remains a current-state
 -- schema, not a historical migration chain.

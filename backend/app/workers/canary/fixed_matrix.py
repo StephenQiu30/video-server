@@ -13,13 +13,25 @@ from app.workers.canary.main import build_runtime
 
 
 async def _run(providers: frozenset[str], stage: str) -> int:
-    runtime = build_runtime(get_settings_for_role("provider-canary"))
+    cases = fixed_public_diagnostic_targets()
+    if providers - {target.provider_key for target in cases}:
+        print(
+            json.dumps(
+                {
+                    "matrix_complete": False,
+                    "target_count": 0,
+                    "error": "unknown_provider",
+                }
+            )
+        )
+        return 2
     targets = tuple(
         target
-        for target in fixed_public_diagnostic_targets()
+        for target in cases
         if (not providers or target.provider_key in providers)
         and (stage == "all" or target.stage.value == stage)
     )
+    runtime = build_runtime(get_settings_for_role("provider-canary"))
     results: list[dict[str, object]] = []
     try:
         for target in targets:
