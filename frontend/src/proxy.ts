@@ -27,7 +27,9 @@ export function proxy(request: NextRequest) {
         { status: 503 },
       );
     }
-    target.pathname = pathname;
+    // FastAPI routes are slashless. Avoid its redirect leaking the internal
+    // host, including when a browser retained a previous slash redirect.
+    target.pathname = pathname.replace(/\/+$/, '');
     target.search = search;
     return NextResponse.rewrite(target);
   }

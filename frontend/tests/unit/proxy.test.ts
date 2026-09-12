@@ -60,6 +60,23 @@ describe('frontend proxy', () => {
     },
   );
 
+  it.each(['/api/auth/me/', '/api/inspections/', '/health/ready/'])(
+    'normalizes %s without redirecting the browser to the internal host',
+    (path) => {
+      vi.stubEnv('BACKEND_ORIGIN', 'http://api:8111');
+      const response = proxy(
+        new NextRequest(`http://localhost:8101${path}?test=1`, {
+          method: 'POST',
+          body: '{}',
+        }),
+      );
+      expect(response.headers.get('x-middleware-rewrite')).toBe(
+        `http://api:8111${path.slice(0, -1)}?test=1`,
+      );
+      expect(response.headers.get('location')).toBeNull();
+    },
+  );
+
   it.each([
     'invalid',
     'file:///tmp/api',
