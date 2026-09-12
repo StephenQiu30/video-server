@@ -175,7 +175,7 @@ describe('AnalysisPanel', () => {
       mockHttpResponses(
         analysisJob('running'),
         analysisJob('running'),
-        analysisJob('running'),
+        analysisJob('succeeded'),
       );
       stubCryptoUuids('11111111-1111-4111-8111-111111111111');
       render(<AnalysisPanel downloadId={job().id} pollIntervalMs={5} />);
@@ -194,13 +194,17 @@ describe('AnalysisPanel', () => {
         degradeLatestSocket();
       });
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(30_001);
+        await vi.advanceTimersByTimeAsync(2_001);
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2_001);
       });
 
       const refreshes = httpRequests().filter((request) =>
         (request.url ?? '').includes(`/analyses/${analysisJob('running').id}`),
       );
-      expect(refreshes.length).toBeGreaterThanOrEqual(2);
+      expect(refreshes).toHaveLength(2);
+      expect(screen.getByText('已完成')).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
     }
