@@ -1,0 +1,14 @@
+# Optional macOS YouTube source; merge after docker-compose-prod.yml.
+# Reuses the existing on-demand host agent, not the Chrome profile itself.
+services:
+  youtube-operator-runner:
+    environment:
+      RUNNER_PROVIDER_COOKIE_FILE: !reset null
+      RUNNER_PROVIDER_COOKIE_SYNC_ROOT: /run/provider-source
+    volumes:
+      - type: bind
+        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/youtube"
+        target: /run/provider-source
+        read_only: false
+        bind:
+          create_host_path: false

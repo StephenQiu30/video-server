@@ -73,6 +73,8 @@
 
 ## 快速开始
 
+macOS 已授权的 YouTube 会话可在解析和下载时自动读取，无需手工导出 Cookie；生产启用与重建命令见 [YouTube 按需会话](docs/operations/002-YouTube受控会话运行手册.md#macos-生产部署免手工导出)。Linux 默认文件来源不变。
+
 ### 前置条件
 
 - Docker Engine 与 Docker Compose
