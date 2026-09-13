@@ -114,6 +114,9 @@ describe('MediaCover', () => {
     );
     expect(image).toHaveClass('object-contain');
     expect(image).not.toHaveClass('object-cover');
+    const frame = image.closest('[data-slot="aspect-ratio"]');
+    expect(frame).not.toBeNull();
+    expect(frame?.parentElement).toHaveStyle({ paddingBottom: '56.25%' });
     expect(loadPrivateThumbnail).not.toHaveBeenCalled();
   });
 

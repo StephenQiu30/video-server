@@ -76,7 +76,10 @@ describe('DownloadJobView', () => {
       name: `${inspection.title}视频预览`,
     });
     expect(preview).toHaveStyle({ aspectRatio: 'auto' });
-    expect(preview).not.toHaveClass('aspect-[1.86]');
+    expect(preview).toHaveClass('size-full');
+    const frame = preview.closest('[data-slot="aspect-ratio"]');
+    expect(frame).not.toBeNull();
+    expect(frame?.parentElement).toHaveStyle({ paddingBottom: '56.25%' });
     expect(
       screen.getByRole('heading', { name: 'AI 智能分析' }),
     ).toBeInTheDocument();
@@ -297,9 +300,25 @@ describe('DownloadJobView', () => {
     mockHttpResponses(job('succeeded'), analysisSkills, null);
     render(<DownloadJobView jobId={job().id} />);
 
-    expect(await screen.findByText('暂时无法预览视频')).toBeInTheDocument();
+    const warning = await screen.findByText('暂时无法预览视频');
+    expect(warning).toBeInTheDocument();
+    const frame = warning.closest('[data-slot="aspect-ratio"]');
+    expect(frame).not.toBeNull();
+    expect(frame?.parentElement).toHaveStyle({ paddingBottom: '56.25%' });
     fireEvent.click(screen.getByRole('button', { name: '重新加载预览' }));
     expect(runtime.preview.reload).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the preview loading state in the shared media frame', async () => {
+    runtime.preview.loading = true;
+    runtime.preview.source = null;
+    mockHttpResponses(job('succeeded'), analysisSkills, null);
+    render(<DownloadJobView jobId={job().id} />);
+
+    const loading = await screen.findByLabelText('正在准备视频预览');
+    const frame = loading.closest('[data-slot="aspect-ratio"]');
+    expect(frame).not.toBeNull();
+    expect(frame?.parentElement).toHaveStyle({ paddingBottom: '56.25%' });
   });
 
   it('shows the declared source for an owned WeChat Channels import', async () => {

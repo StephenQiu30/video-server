@@ -4,6 +4,7 @@ import { ImageIcon } from '@phosphor-icons/react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import {
@@ -24,6 +25,8 @@ type MediaCoverProps = {
   pending?: boolean;
   src?: string | null;
 };
+
+export const mediaFrameAspectRatio = 16 / 9;
 
 export default function MediaCover({
   alt,
@@ -78,25 +81,23 @@ export default function MediaCover({
   const fallbackEyebrow = fallback?.eyebrow?.trim() || '媒体内容';
   const fallbackDetail = fallback?.detail?.trim() || '封面未提供';
   return (
-    <div
+    <AspectRatio
       className={cn(
         'media-frame relative overflow-hidden rounded-none bg-muted',
         className,
       )}
+      ratio={mediaFrameAspectRatio}
     >
       {loading ? (
         <div
           aria-label={`${alt}（封面加载中）`}
-          className={cn('animate-pulse bg-muted', compact ? 'h-16' : 'h-40')}
+          className="size-full animate-pulse bg-muted"
           role="img"
         />
       ) : generating ? (
         <div
           aria-label={`${alt}（封面生成中）`}
-          className={cn(
-            'flex animate-pulse flex-col items-center justify-center gap-3 text-muted-foreground',
-            compact ? 'min-h-16' : 'min-h-40',
-          )}
+          className="flex size-full animate-pulse flex-col items-center justify-center gap-3 text-muted-foreground"
           role="img"
         >
           <ImageIcon aria-hidden className="size-7" />
@@ -112,17 +113,16 @@ export default function MediaCover({
       ) : (
         <Image
           alt={alt}
-          className="block h-auto w-full object-contain"
-          height={0}
+          className="object-contain"
+          fill
           onError={() => setFailedSource(src)}
           priority={priority}
           sizes="(min-width: 1024px) 50vw, 100vw"
           src={resolvedSource}
           unoptimized
-          width={0}
         />
       )}
-    </div>
+    </AspectRatio>
   );
 }
 
@@ -140,10 +140,7 @@ function MediaCoverFallback({
   return (
     <div
       aria-label={`${title}（暂无封面）`}
-      className={cn(
-        'relative overflow-hidden bg-foreground text-background',
-        compact ? 'min-h-16' : 'min-h-40',
-      )}
+      className="relative size-full overflow-hidden bg-foreground text-background"
       role="img"
     >
       <div

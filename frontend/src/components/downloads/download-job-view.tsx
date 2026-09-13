@@ -5,10 +5,13 @@ import AnalysisPanel from '@/components/analysis/analysis-panel';
 import { DownloadDeleteDialog } from '@/components/downloads/download-delete-dialog';
 import DownloadState from '@/components/downloads/download-state';
 import DownloadVideoPreview from '@/components/downloads/download-video-preview';
-import MediaCover from '@/components/intake/media-cover';
+import MediaCover, {
+  mediaFrameAspectRatio,
+} from '@/components/intake/media-cover';
 import { BackLink } from '@/components/layout/back-link';
 import { markNavigationPush } from '@/components/layout/navigation-history';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDownloadJob } from '@/hooks/useDownloadJob';
 import { audioCodecLabel } from '@/lib/media-format';
@@ -184,7 +187,9 @@ function DownloadJobSkeleton() {
       </div>
       <div className="mt-8 grid items-start gap-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.65fr)] lg:gap-16 xl:gap-24">
         <div>
-          <Skeleton className="h-40 rounded-none" />
+          <AspectRatio ratio={mediaFrameAspectRatio}>
+            <Skeleton className="size-full rounded-none" />
+          </AspectRatio>
         </div>
         <div className="lg:pt-1">
           <Skeleton className="h-5 w-20" />
