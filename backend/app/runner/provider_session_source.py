@@ -6,11 +6,11 @@ from collections.abc import Callable
 from http.cookiejar import CookieJar
 
 from app.runner.chrome_provider_cookies import extract_chrome_cookies
-from app.runner.ephemeral_yuanbao_session import EphemeralYuanbaoSession
 from app.runner.provider_session_policy import (
     ProviderBrowserSessionPolicy,
     ProviderSessionSource,
 )
+from app.runner.yuanbao_session import YuanbaoSession
 
 type ProviderSessionLoader = Callable[[ProviderBrowserSessionPolicy, str], CookieJar]
 
@@ -21,6 +21,6 @@ def load_provider_session(
 ) -> CookieJar:
     if policy.source is ProviderSessionSource.CHROME_PROFILE:
         return extract_chrome_cookies(policy.domains, profile)
-    if policy.source is ProviderSessionSource.EPHEMERAL_YUANBAO:
-        return EphemeralYuanbaoSession(profile).load()
+    if policy.source is ProviderSessionSource.MANAGED_YUANBAO:
+        return YuanbaoSession().load()
     raise ValueError("unsupported provider session source")

@@ -6,7 +6,7 @@
 - 前置调研：`docs/research/003-多平台下载会话与GitHub适配调研.md`
 - 实现状态：Phase 1 已落地版本化 Profile、非 Secret 访问上下文、匿名/YouTube 运维 Runner 路由、操作级 Cookie jar、权益防火墙、服务端托管 POT sidecar、稳定错误、Provider 探针结果表/定时执行器/动态状态聚合、`GET /api/providers` 与前端状态页。YouTube 已停止 yt-dlp 与 Runner 的同出口立即重试放大；授权目标的真实 Cookie/POT canary、完整视频 Agent E2E、账号权益漂移自动停用，以及遵守 `Retry-After` 的跨层总预算/cooldown 仍是生产发布门禁；Phase 2 的用户 Credential Broker/Vault 与 gallery-dl 尚未实现。
 
-> 当前实现：Provider Profile 与会话来源由中央枚举登记，生产默认使用匿名 Runner，九个 Provider 隔离 Runner 按 profile 选择；八个普通 Cookie 平台使用只读文件，视频号保留可选 macOS 来源。统一 macOS `launchd QueueDirectories` 代理按 `provider + browser + ephemeral public key` 请求从 Chrome 读取最小域集合，并用一次性认证加密租约交付；浏览器模式不保存 Cookie 或专用浏览器 Profile；文件模式由部署方私下持久保存单平台会话，详见 [031](031-Linux无人值守运行设计.md)。微信视频号只在操作期间克隆正常 Chrome 的当前元宝授权，计算动态头后销毁临时目录。配置受控 Runner 后直接路由到该 Runner，download 复用 inspect 冻结的上下文，不进行匿名/账号切换。YouTube 继续使用 `mweb`、EJS 和固定 digest 的 bgutil POT sidecar；POT 不能修复登录过期或出口挑战。
+> 当前实现：Provider Profile 与会话来源由中央枚举登记，独立 Runner 按 profile 选择。文件来源见 [031](031-Linux无人值守运行设计.md)，可选 macOS 代理通过单次加密租约交付按域会话。按用户在 [035](035-平台访问与会话恢复能力设计.md) 的明确批准，视频号改用专用持久元宝 Profile：由用户首次登录，不复制普通 Chrome；按需启动、计算动态头、导出限定租约后关闭浏览器。其他浏览器来源仍按域读取当前 Chrome；生产 YouTube/抖音/Reddit 可显式合并来源覆盖。运行策略由部署默认与显式准入决定，不在失败后切换账号。YouTube 保留 mweb、EJS 和固定 bgutil POT sidecar；POT 不能修复登录过期或出口挑战。
 
 ## 1. 目标
 
@@ -235,13 +235,13 @@ engine_commit
 - 成功、失败、超时、取消、SIGTERM 和子进程异常都在 `finally` 删除 jar；Runner/container 销毁后 tmpfs 清空。
 - 临时文件绝不位于当前 Runner 与 Download Worker 共享的 `/work`。
 - 操作级 jar 的更新在终态丢弃，不反向写宿主 Chrome。私钥只存在于请求协程内，终态后遗留密文不可恢复。
-- 微信视频号不保留元宝专用 Profile：每次操作只复制正常 Chrome 当前 localStorage 到随机临时目录，注入当次元宝 Cookie，计算动态头并在 `finally` 中关闭 Chrome、销毁目录。
+- 微信视频号专用 Profile 由宿主来源独占持久保存，目录 0700、锁 0600，登录/导出互斥；操作结束在 finally 关闭 Chrome、释放锁，保留用户登录。仅元宝限定字段进入本次加密租约，Profile 不进入 Runner；失效需用户重新登录，不自动恢复已撤销权限。
 
 ### 8.2 macOS 单机按需来源
 
-- 只有当前登录的 macOS 用户显式安装助手并启用对应 Operator 后，解析/下载操作才可触发 Chrome Default 来源；本机开发 Compose 使用该来源；production Compose 仅视频号仍保留此可选路径，其他受控平台使用 031 文件来源。
+- 只有当前登录的 macOS 用户显式安装助手并启用对应 Operator 后，解析/下载操作才可触发浏览器来源。本机开发及 production Compose 可显式合并浏览器来源覆盖；视频号使用专用元宝目录，其他平台按域读取 Chrome Default。Linux 文件来源见 031，不在失败后自动切换来源。
 - Chrome Cookies 数据库的 SQL 查询在选择阶段就限制为当前 Provider 的中央域 allowlist，只返回并解密中选行；其他域 Cookie 不进入 helper 的查询结果、输出或日志。
-- 单次读取在独立进程组中执行，持有 15 秒硬超时；成功后立即退出，超时、取消或异常时终止并回收整个进程组。helper 不启动、操作或持有 Chrome，不使用定时轮询或常驻端口。
+- 单次读取在独立进程组中执行，持有 15 秒硬超时；成功后立即退出，超时、取消或异常时终止并回收整个进程组。视频号导出按需启动专用 Chrome 并在结束关闭；助手不长期持有浏览器，不使用定时轮询或常驻端口。
 - `browser` 表示动态本机来源协议，不是 Cookie 原文哈希或内容 cohort。其平台状态历史只能证明该来源在相同非敏感上下文近期完成过制品，不证明当前 Cookie 未轮换或仍可用，不能单独将 `access_required` 提升为 `verified`。
 - 应用服务的启动与重启仍只使用根 Docker Compose；按需 helper 是凭据适配器，不是宿主机平行应用或新的启动脚本。
 
@@ -312,7 +312,7 @@ engine_commit
 | AcFun / Rutube / VK Clips / Dailymotion / NicoNico | 无 | 无 | 不在产品范围；主域及子域 fail closed，不进入 Generic |
 | Generic | 公开 direct/HLS/DASH/embed | 永不携带 Provider Secret | redirect 后重新归类 |
 | 快手 | 仓库可信 `KuaishouPublicIE` + 第一方移动分享页 | anonymous | `kuaishou-public` 已完成真实 metadata/media 回归 |
-| 视频号 | 第一方预览页 + `get_feed_info` + 元宝官方解析接口的仓库内可审计 extractor | 正常 Chrome 当前元宝授权的操作级临时克隆；动态头和 Cookie 只进入本次加密租约 | Profile 为 `wechat-channels-public`；保护媒体 fail closed，未登录返回稳定会话错误 |
+| 视频号 | 第一方预览页 + `get_feed_info` + 元宝官方解析接口的仓库内可审计 extractor | 本机专用元宝登录来源；动态头和 Cookie 只进入本次加密租约 | Profile 为 `wechat-channels-public`；保护媒体 fail closed，来源和完整文件仍需分别验收 |
 
 图片、carousel、gallery 和用户时间线若进入产品范围，使用独立 gallery-dl engine adapter，返回受限 manifest；在领域模型支持多条目之前不静默只取第一项。gallery-dl 为 GPL-2.0，必须以独立进程/镜像评估分发义务，不直接导入当前核心源码。
 

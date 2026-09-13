@@ -227,7 +227,7 @@ class RunnerSettings(BaseSettings):
             from app.runner.provider_session_policy import ProviderSessionSource
 
             if cookie_file is not None:
-                if policy.source is ProviderSessionSource.EPHEMERAL_YUANBAO:
+                if policy.source is ProviderSessionSource.MANAGED_YUANBAO:
                     raise ValueError("provider requires dynamic browser session state")
             elif policy.source is ProviderSessionSource.COOKIE_FILE:
                 raise ValueError("provider requires a persistent Cookie file")

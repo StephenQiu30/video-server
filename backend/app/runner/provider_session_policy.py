@@ -18,7 +18,7 @@ class CookieRequirement(StrEnum):
 class ProviderSessionSource(StrEnum):
     CHROME_PROFILE = "chrome_profile"
     COOKIE_FILE = "cookie_file"
-    EPHEMERAL_YUANBAO = "ephemeral_yuanbao"
+    MANAGED_YUANBAO = "managed_yuanbao"
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,7 +114,7 @@ _BROWSER_SESSION_POLICIES = {
             ProviderSessionVersion.BROWSER,
             frozenset({"hy_user", "hy_token"}),
             CookieRequirement.ALL,
-            ProviderSessionSource.EPHEMERAL_YUANBAO,
+            ProviderSessionSource.MANAGED_YUANBAO,
         ),
     )
 }

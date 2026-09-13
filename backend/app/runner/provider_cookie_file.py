@@ -27,7 +27,7 @@ class ProviderCookieFile:
         policy = browser_session_policy(provider)
         if (
             version is not policy.version
-            or policy.source is ProviderSessionSource.EPHEMERAL_YUANBAO
+            or policy.source is ProviderSessionSource.MANAGED_YUANBAO
         ):
             raise RunnerFailure("provider_session_not_allowed", status=422)
         try:
