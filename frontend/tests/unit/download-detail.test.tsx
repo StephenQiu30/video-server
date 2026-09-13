@@ -77,7 +77,6 @@ describe('DownloadJobView', () => {
     });
     expect(preview).toHaveStyle({ aspectRatio: 'auto' });
     expect(preview).toHaveClass('size-full');
-    expect(preview.parentElement?.querySelector('.media-frame')).not.toBeNull();
     const frame = preview.closest('[data-slot="aspect-ratio"]');
     expect(frame).not.toBeNull();
     expect(frame?.parentElement).toHaveStyle({ paddingBottom: '56.25%' });

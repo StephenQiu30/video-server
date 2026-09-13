@@ -112,13 +112,11 @@ describe('MediaCover', () => {
       'src',
       'http://localhost:3000/images/demo.webp',
     );
-    expect(image).toHaveClass('object-contain');
-    expect(image).not.toHaveClass('object-cover');
+    expect(image).toHaveClass('object-cover');
+    expect(image).not.toHaveClass('object-contain');
     const frame = image.closest('[data-slot="aspect-ratio"]');
     const images = frame?.querySelectorAll('img');
-    expect(images).toHaveLength(2);
-    expect(images?.[0]).toHaveAttribute('alt', '');
-    expect(images?.[0]).toHaveClass('object-cover', 'blur-xl');
+    expect(images).toHaveLength(1);
     expect(frame).not.toBeNull();
     expect(frame?.parentElement).toHaveStyle({ paddingBottom: '56.25%' });
     expect(loadPrivateThumbnail).not.toHaveBeenCalled();

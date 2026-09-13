@@ -111,31 +111,16 @@ export default function MediaCover({
           title={fallbackTitle}
         />
       ) : (
-        <>
-          <Image
-            alt=""
-            aria-hidden
-            className="pointer-events-none scale-110 object-cover opacity-60 blur-xl"
-            fill
-            sizes="(min-width: 1024px) 50vw, 100vw"
-            src={resolvedSource}
-            unoptimized
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 bg-black/10"
-          />
-          <Image
-            alt={alt}
-            className="object-contain"
-            fill
-            onError={() => setFailedSource(src)}
-            priority={priority}
-            sizes="(min-width: 1024px) 50vw, 100vw"
-            src={resolvedSource}
-            unoptimized
-          />
-        </>
+        <Image
+          alt={alt}
+          className="object-cover"
+          fill
+          onError={() => setFailedSource(src)}
+          priority={priority}
+          sizes="(min-width: 1024px) 50vw, 100vw"
+          src={resolvedSource}
+          unoptimized
+        />
       )}
     </AspectRatio>
   );
