@@ -60,7 +60,7 @@ describe('DownloadJobView', () => {
 
     expect((await screen.findAllByText('正在下载')).length).toBeGreaterThan(0);
     emitTaskUpdate('download', job('running').id, 2);
-    expect((await screen.findAllByText('下载已完成')).length).toBeGreaterThan(
+    expect((await screen.findAllByText('服务端已完成')).length).toBeGreaterThan(
       0,
     );
     expect(

@@ -16,7 +16,7 @@ export const statusLabels: Record<DownloadStatus, string> = {
   queued: '等待处理',
   running: '正在下载',
   retry_wait: '等待重试',
-  succeeded: '下载已完成',
+  succeeded: '服务端已完成',
   failed: '下载失败',
   cancelled: '任务已取消',
 };
@@ -72,8 +72,8 @@ export function statusDescription(job: DownloadJob) {
   if (job.status === 'succeeded' && job.file_available) {
     return job.media_kind === 'image_gallery' ||
       job.media_kind === 'video_collection'
-      ? `${media}已经完成校验，可以直接保存 ZIP 文件。`
-      : '视频已经完成校验，可以直接保存到你的设备。';
+      ? `${media}文件已在服务器完成校验，可获取 ZIP 保存到设备。保存结果请查看浏览器下载记录；如被组织策略屏蔽，请联系策略管理者。`
+      : '视频文件已在服务器完成校验，可获取文件保存到设备。保存结果请查看浏览器下载记录；如被组织策略屏蔽，请联系策略管理者。';
   }
   if (job.status === 'succeeded') return '下载记录仍然保留，可以重新创建任务。';
   if (job.status === 'failed') {
