@@ -86,6 +86,21 @@ class RunnerInspectionPipeline:
                     workspace,
                     cookie_jar=cookie_jar,
                 )
+        formats = payload.get("formats")
+        if isinstance(formats, list) and any(_unknown_audio(raw) for raw in formats):
+            # Missing codec metadata is not evidence that advertised audio is
+            # absent. Resolve only those tracks before accepting silent video.
+            payload = await self._enrich_sparse_formats(
+                payload,
+                workspace,
+                referer=source.source_url,
+                cookie_jar=cookie_jar,
+                probe_authenticated_media=source.profile.probe_authenticated_media,
+                unknown_audio_only=True,
+            )
+            streams = normalize_for_settings(payload, self._settings).streams
+            if not any(stream.audio_codec_family is not None for stream in streams):
+                raise RunnerFailure("format_unavailable", status=409)
         inspection = self._usable_inspection(payload)
         if inspection is not None:
             return inspection
@@ -188,6 +203,7 @@ class RunnerInspectionPipeline:
         referer: str,
         cookie_jar: Path | None,
         probe_authenticated_media: bool,
+        unknown_audio_only: bool = False,
     ) -> dict[str, object]:
         if cookie_jar is not None and not probe_authenticated_media:
             return payload
@@ -197,6 +213,8 @@ class RunnerInspectionPipeline:
         candidates: list[tuple[int, dict[str, object], str]] = []
         for index, value in enumerate(formats):
             if not isinstance(value, dict):
+                continue
+            if unknown_audio_only and not _unknown_audio(value):
                 continue
             url = value.get("url")
             if payload.get("_framefetch_full_stream") is True:
@@ -244,6 +262,7 @@ class RunnerInspectionPipeline:
         if (
             probed_duration is not None
             and payload.get("_framefetch_full_stream") is not True
+            and not unknown_audio_only
         ):
             enriched_payload["duration"] = probed_duration
         return enriched_payload
@@ -310,6 +329,14 @@ class RunnerInspectionPipeline:
             except (RunnerFailure, OSError):
                 continue
         return payload
+
+
+def _unknown_audio(raw: object) -> bool:
+    return (
+        isinstance(raw, dict)
+        and raw.get("vcodec") == "none"
+        and raw.get("acodec") in (None, "")
+    )
 
 
 def _probe_duration(probe: dict[str, object]) -> float | None:
