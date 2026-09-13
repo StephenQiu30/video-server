@@ -1,18 +1,22 @@
-"""The optional browser source changes only YouTube's credential transport."""
+"""Browser transport remains explicitly scoped to approved existing runners."""
 
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
 
 
-def test_browser_override_is_scoped_to_one_existing_runner() -> None:
+@pytest.mark.parametrize("provider", ["youtube", "douyin", "reddit"])
+def test_browser_override_is_scoped_to_existing_runners(provider: str) -> None:
     source = (ROOT / "docker-compose-browser.yml").read_text()
     document = yaml.load(source, Loader=yaml.BaseLoader)
     assert set(document) == {"services"}
-    assert set(document["services"]) == {"youtube-operator-runner"}
-    service = document["services"]["youtube-operator-runner"]
+    assert set(document["services"]) == {
+        f"{key}-operator-runner" for key in ("youtube", "douyin", "reddit")
+    }
+    service = document["services"][f"{provider}-operator-runner"]
     assert set(service) == {"environment", "volumes"}
     assert service["environment"] == {
         "RUNNER_PROVIDER_COOKIE_FILE": "null",
@@ -22,7 +26,7 @@ def test_browser_override_is_scoped_to_one_existing_runner() -> None:
         {
             "type": "bind",
             "source": "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/"
-            "FrameFetch/provider-cookie-agent}/youtube",
+            f"FrameFetch/provider-cookie-agent}}/{provider}",
             "target": "/run/provider-source",
             "read_only": "false",
             "bind": {"create_host_path": "false"},

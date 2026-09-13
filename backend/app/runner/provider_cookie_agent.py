@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor, wait
 from pathlib import Path
 from typing import Any
 
@@ -208,20 +209,43 @@ def drain_requests(
             version=version,
         )
 
-    with termination_guard():
-        # Respond to the current probe snapshot before any browser export.
-        for operation in (
-            ProviderCookieOperation.PROBE,
-            ProviderCookieOperation.REFRESH,
-        ):
-            for provider in sorted(browser_session_providers(), key=str):
-                drain_request_batch(
-                    _provider_runtime(runtime_root, provider),
-                    provider,
-                    refresh,
-                    _atomic_write_response,
-                    acknowledgement_timeout_seconds=acknowledgement_timeout_seconds,
-                    operation=operation,
+    providers = sorted(browser_session_providers(), key=str)
+    if not providers:
+        return
+
+    def drain(provider: ProviderKey, operation: ProviderCookieOperation) -> None:
+        drain_request_batch(
+            _provider_runtime(runtime_root, provider),
+            provider,
+            refresh,
+            _atomic_write_response,
+            acknowledgement_timeout_seconds=acknowledgement_timeout_seconds,
+            operation=operation,
+        )
+
+    with termination_guard(), ThreadPoolExecutor(max_workers=len(providers)) as pool:
+        # One bounded export per provider; slow origins cannot starve later probes
+        # or other origins. All child exports retain their existing timeout/cleanup.
+        for provider in providers:
+            drain(provider, ProviderCookieOperation.PROBE)
+        pending = {
+            provider: pool.submit(drain, provider, ProviderCookieOperation.REFRESH)
+            for provider in providers
+        }
+        while pending:
+            wait(pending.values(), timeout=0.05)
+            for provider in providers:
+                drain(provider, ProviderCookieOperation.PROBE)
+            completed = [
+                provider for provider, future in pending.items() if future.done()
+            ]
+            for provider in completed:
+                pending.pop(provider).result()
+            if not pending:
+                break
+            for provider in completed:
+                pending[provider] = pool.submit(
+                    drain, provider, ProviderCookieOperation.REFRESH
                 )
 
 

@@ -38,6 +38,10 @@ class EphemeralYuanbaoSession:
                 ("yuanbao.tencent.com",),
                 self._profile,
             )
+            if not any(
+                cookie.value and not cookie.is_expired() for cookie in source_cookies
+            ):
+                return CookieJar()
             self._prepare_disposable_profile()
             port = self._start_browser()
             target = self._devtools.page(port, "about:blank")
@@ -100,7 +104,9 @@ class EphemeralYuanbaoSession:
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            start_new_session=True,
+            # The export boundary owns the process group and must reap Chrome
+            # too if page loading or graceful browser shutdown exceeds its limit.
+            start_new_session=False,
         )
         for _attempt in range(100):
             if self._process.poll() is not None:

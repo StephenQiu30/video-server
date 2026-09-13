@@ -4,6 +4,7 @@ import asyncio
 import plistlib
 import stat
 import subprocess
+import threading
 from collections.abc import Callable
 from pathlib import Path
 
@@ -164,3 +165,49 @@ async def test_agent_probe_recovers_after_no_response_without_browser_access(
     assert exports == []
     assert list((root / "requests").iterdir()) == []
     assert list((root / "responses").iterdir()) == []
+
+
+@pytest.mark.parametrize("operation", list(ProviderCookieOperation))
+async def test_slow_provider_does_not_block_later_requests(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    operation: ProviderCookieOperation,
+) -> None:
+    started = threading.Event()
+    arrived = threading.Event()
+    served = threading.Event()
+    release = threading.Event()
+    monkeypatch.setattr(
+        agent,
+        "browser_session_providers",
+        lambda: frozenset({ProviderKey.DOUYIN, ProviderKey.WECHAT_CHANNELS}),
+    )
+
+    def drain(
+        _root: Path, provider: ProviderKey, *_args: object, **kwargs: object
+    ) -> None:
+        requested = kwargs["operation"]
+        if (
+            provider is ProviderKey.WECHAT_CHANNELS
+            and requested is ProviderCookieOperation.REFRESH
+        ):
+            started.set()
+            assert release.wait(3)
+        if (
+            provider is ProviderKey.DOUYIN
+            and requested is operation
+            and arrived.is_set()
+        ):
+            served.set()
+
+    monkeypatch.setattr(agent, "drain_request_batch", drain)
+    task = asyncio.create_task(
+        asyncio.to_thread(agent.drain_requests, tmp_path, profile="Default")
+    )
+    try:
+        assert await asyncio.to_thread(started.wait, 1)
+        arrived.set()
+        assert await asyncio.to_thread(served.wait, 1)
+    finally:
+        release.set()
+        await task

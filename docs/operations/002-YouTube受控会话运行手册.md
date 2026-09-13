@@ -49,7 +49,7 @@ COMPOSE_PROFILES=youtube-operator
 RUNNER_DEFAULT_ACCESS_POLICIES={"youtube":"operator_public"}
 ```
 
-已有其他 profile 或默认策略时合并保留，不能覆盖。日常启动和容器重建统一使用 `docker compose --env-file .env.prod up -d --no-build`；指定单个 `-f docker-compose-prod.yml` 会忽略 `COMPOSE_FILE`，重新采用文件来源。覆盖文件只替换 YouTube 队列挂载；队列中仅传递一次性加密租约，可写不等于挂载可写 Cookie。容器不持有或挂载 Chrome 数据库、密码或其他网站会话。
+已有其他 profile 或默认策略时合并保留，不能覆盖。日常启动和容器重建统一使用 `docker compose --env-file .env.prod up -d --no-build`；指定单个 `-f docker-compose-prod.yml` 会忽略 `COMPOSE_FILE`，重新采用文件来源。覆盖文件为 YouTube、抖音、Reddit 分别替换队列挂载，仅启用已获授权的 profile；队列中仅传递一次性加密租约，可写不等于挂载可写 Cookie。容器不持有或挂载 Chrome 数据库、密码或其他网站会话。
 
 正常 Chrome 登录仍有效时，inspect/download 自动按域获取，无需导出；失效时在正常 Chrome 重新登录再解析，不处理验证码。Linux 文件模式继续使用生产基础文件，不加载此 macOS 覆盖。账号变更及新机授权需重新验证，不能视作自动恢复已撤销授权。
 

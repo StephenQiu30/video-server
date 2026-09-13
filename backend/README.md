@@ -95,7 +95,7 @@ docker compose --env-file .env -f docker-compose.yml \
   --profile pinterest-operator --profile wechat-channels-operator up -d --build
 ```
 
-API readiness 与媒体 Runner 健康隔离。生产 Compose 提供按 profile 选择的十一个独立 Runner；十个文件会话平台使用只读文件，视频号仍为浏览器来源。个人配置与换机见 [运行手册](../docs/operations/008-个人部署重启与换机手册.md)。API、
+API readiness 与媒体 Runner 健康隔离。生产 Compose 提供按 profile 选择的十一个独立 Runner；默认十个文件会话平台使用只读文件，视频号仍为浏览器来源。macOS 可为已授权的 YouTube、抖音、Reddit 合并浏览器来源覆盖。个人配置与换机见 [运行手册](../docs/operations/008-个人部署重启与换机手册.md)。API、
 下载 Worker 与 Canary 不等待平台健康；Worker/Canary 仅等待共享工作目录初始化。
 受控 Runner 通过无凭据 probe 验证宿主代理实际响应，平台可用性仍由探针和真实任务证明。
 开发环境只需启用 `.env` 实际声明的平台 Profile。腾讯与优酷的实验个人线路仅在生产 Compose 提供，接入范围和未完成验证见 [032 设计](../docs/design/032-腾讯视频与优酷个人下载设计.md)。
