@@ -29,7 +29,10 @@ def test_admin_runtime_is_allowlisted_and_does_not_expose_context(tmp_path):
     )
     baseline = next(
         view
-        for view in configured_provider_statuses(frozenset({"youtube"}))
+        for view in configured_provider_statuses(
+            frozenset({"youtube"}),
+            default_policies={"youtube": ProviderAccessPolicy.OPERATOR_PUBLIC},
+        )
         if view.key == "youtube"
     )
     runtime = replace(

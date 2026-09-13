@@ -6,7 +6,6 @@ import FormatPicker from '@/components/intake/format-picker';
 import MediaCover from '@/components/intake/media-cover';
 import { Button } from '@/components/ui/button';
 import { audioCodecLabel } from '@/lib/media-format';
-import { accessPolicyLabel } from '@/lib/provider-access';
 import type { Inspection } from '@/types/video';
 import { formatDuration } from '@/utils/format';
 
@@ -58,12 +57,6 @@ export default function InspectionWorkspace({
         </h2>
         <dl className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground tabular-nums">
           <Meta label="平台" mono value={inspection.extractor_key} />
-          {inspection.access_policy_id ? (
-            <Meta
-              label="访问策略"
-              value={accessPolicyLabel[inspection.access_policy_id]}
-            />
-          ) : null}
           {inspection.duration_seconds > 0 ? (
             <Meta
               label="时长"

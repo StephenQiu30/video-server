@@ -16,17 +16,13 @@ import {
 import InspectionWorkspace from '@/components/intake/inspection-workspace';
 import { LinkDownloadForm } from '@/components/intake/link-download-form';
 import { MediaUploadForm } from '@/components/intake/media-upload-form';
-import { ProviderAccessSelector } from '@/components/intake/provider-access-selector';
 import { SourceDiscoveryWorkspace } from '@/components/intake/source-discovery-workspace';
 import { markNavigationPush } from '@/components/layout/navigation-history';
 import { ScreenplayUploadForm } from '@/components/screenplay/screenplay-upload-form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import { useDocumentImport } from '@/hooks/useDocumentImport';
 import { useMediaImport } from '@/hooks/useMediaImport';
-import { useProviderStatuses } from '@/hooks/useProviderStatuses';
 import { demoInspection } from '@/lib/demo-inspection';
-import { providerForInput } from '@/lib/provider-access';
 import {
   createDownload,
   createIdempotencyKey,
@@ -53,11 +49,6 @@ export default function DownloadWorkspace() {
   const router = useRouter();
   const [mode, setMode] = useState<IntakeMode>('link');
   const [url, setUrl] = useState('');
-  const [accessPolicy, setAccessPolicy] = useState<API.ProviderAccessPolicy>();
-  const providers = useProviderStatuses();
-  const provider = providerForInput(url, providers.data?.items ?? []);
-  const selectedPolicy =
-    accessPolicy ?? provider?.default_access_policy_id ?? undefined;
   const [inspection, setInspection] = useState<Inspection | null>(null);
   const [discovery, setDiscovery] = useState<SourceDiscovery | null>(null);
   const [busyItemRef, setBusyItemRef] = useState<string | null>(null);
@@ -132,8 +123,7 @@ export default function DownloadWorkspace() {
       } else {
         const result = await inspectMedia(
           input,
-          stableKey(inspectionKey, JSON.stringify([input, selectedPolicy])),
-          selectedPolicy,
+          stableKey(inspectionKey, input),
         );
         setInspection(result);
         setSelectedId(result.formats[0]?.id ?? '');
@@ -192,48 +182,20 @@ export default function DownloadWorkspace() {
       <ContentIntakeHero
         disabled={busy !== null || mediaImport.busy || documentImport.busy}
         linkForm={
-          <>
-            <LinkDownloadForm
-              busy={busy === 'inspect'}
-              disabled={busy !== null}
-              hasResult={inspection !== null || discovery !== null}
-              invalid={urlInvalid}
-              onInspect={() => void inspect()}
-              onUrlChange={(value) => {
-                setUrl(value);
-                setAccessPolicy(undefined);
-                clearLinkResult();
-                setUrlInvalid(false);
-                setError(null);
-              }}
-              url={url}
-            />
-            {provider ? (
-              <ProviderAccessSelector
-                disabled={busy !== null}
-                onChange={(policy) => {
-                  setAccessPolicy(policy);
-                  clearLinkResult();
-                  setError(null);
-                }}
-                provider={provider}
-                selected={selectedPolicy}
-              />
-            ) : null}
-            {providers.error ? (
-              <p className="mt-3 text-sm text-muted-foreground" role="status">
-                访问策略暂不可用，解析将使用平台默认策略。
-                <Button
-                  className="min-h-11 underline underline-offset-4"
-                  onClick={providers.retry}
-                  type="button"
-                  variant="link"
-                >
-                  刷新策略
-                </Button>
-              </p>
-            ) : null}
-          </>
+          <LinkDownloadForm
+            busy={busy === 'inspect'}
+            disabled={busy !== null}
+            hasResult={inspection !== null || discovery !== null}
+            invalid={urlInvalid}
+            onInspect={() => void inspect()}
+            onUrlChange={(value) => {
+              setUrl(value);
+              clearLinkResult();
+              setUrlInvalid(false);
+              setError(null);
+            }}
+            url={url}
+          />
         }
         mode={mode}
         onModeChange={(nextMode) => {

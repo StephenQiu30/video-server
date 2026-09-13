@@ -39,10 +39,10 @@ def provider_access_policies(
 def default_access_policy(
     provider_key: str, access_modes: tuple[ProviderAccessMode, ...]
 ) -> ProviderAccessPolicy:
-    # Preserve the declared controlled route for challenged profiles, regardless
-    # of endpoint presence. Public-only profiles keep their public default.
-    # Moving a challenged profile to public by default requires canary evidence.
+    # Input-only clients do not choose infrastructure or credentials. Prefer
+    # public access; deployments may explicitly select an authorized session.
+    # An available endpoint alone must never increase the request's privileges.
     policies = provider_access_policies(provider_key, access_modes)
     if not policies:
         raise ValueError("provider has no admitted access policy")
-    return policies[-1]
+    return policies[0]

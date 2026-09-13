@@ -25,13 +25,40 @@ async def test_explicit_public_never_touches_configured_operator() -> None:
     assert operator.inspected == []
 
 
-@pytest.mark.parametrize("requested", [None, Policy.OPERATOR_PUBLIC])
-async def test_missing_controlled_route_is_not_anonymous_fallback(requested) -> None:
+async def test_missing_controlled_route_is_not_anonymous_fallback() -> None:
     anonymous = FakeClient(context(Mode.ANONYMOUS))
     router = MediaRunnerRouter(anonymous)  # type: ignore[arg-type]
     with pytest.raises(MediaInspectionConfigurationMissing):
-        await router.inspect(URL, access_policy=requested)
+        await router.inspect(URL, access_policy=Policy.OPERATOR_PUBLIC)
     assert anonymous.inspected == []
+
+
+async def test_input_only_uses_public_without_touching_configured_sessions() -> None:
+    anonymous = FakeClient(replace(context(Mode.ANONYMOUS), provider_key="youtube"))
+    operator = FakeClient(context(Mode.OPERATOR_MANAGED))
+    operator.inspect_error = AssertionError("must not access session implicitly")
+    for operators in ({}, {"youtube": operator}):
+        router = MediaRunnerRouter(anonymous, operators)  # type: ignore[arg-type]
+        assert (await router.inspect(URL)).access_context.access_mode is Mode.ANONYMOUS
+    assert anonymous.inspected == [URL, URL]
+    assert operator.inspected == []
+
+
+async def test_deployment_can_select_authorized_session_without_client_policy() -> None:
+    anonymous = FakeClient(context(Mode.ANONYMOUS))
+    operator = FakeClient(
+        replace(context(Mode.OPERATOR_MANAGED), provider_key="youtube")
+    )
+    router = MediaRunnerRouter(
+        anonymous,
+        {"youtube": operator},
+        default_policies={"youtube": Policy.OPERATOR_PUBLIC},
+    )  # type: ignore[arg-type]
+    assert (
+        await router.inspect(URL)
+    ).access_context.access_mode is Mode.OPERATOR_MANAGED
+    assert anonymous.inspected == []
+    assert operator.inspected == [URL]
 
 
 @pytest.mark.parametrize("requested", [Policy.PUBLIC_SESSION, Policy.PERSONAL_ENTITLED])

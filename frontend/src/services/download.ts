@@ -27,13 +27,9 @@ import type {
 export { ApiError, displayError } from '@/lib/request-error';
 export { createIdempotencyKey } from '@/utils/idempotency';
 
-export function inspectMedia(
-  url: string,
-  key: string,
-  policy?: API.ProviderAccessPolicy,
-): Promise<Inspection> {
+export function inspectMedia(url: string, key: string): Promise<Inspection> {
   return inspectMediaRequest(
-    { source: { kind: 'public_url', url, access_policy_id: policy } },
+    { source: { kind: 'public_url', url } },
     {
       headers: { 'Idempotency-Key': key },
       timeout: 180_000,

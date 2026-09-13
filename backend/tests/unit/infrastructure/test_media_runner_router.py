@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from app.domain.provider_access import ProviderAccessPolicy
 from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
 from app.integrations.media_runner import MediaRunnerRouter
 from app.integrations.media_runner_models import MediaRunnerClientError, RunnerArtifact
@@ -71,10 +72,14 @@ class FakeClient:
         return None
 
 
-async def test_configured_youtube_routes_directly_to_operator_pool() -> None:
+async def test_deployment_selected_youtube_routes_directly_to_operator_pool() -> None:
     anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
     operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED))
-    router = MediaRunnerRouter(anonymous, {"youtube": operator})  # type: ignore[arg-type]
+    router = MediaRunnerRouter(
+        anonymous,
+        {"youtube": operator},
+        default_policies={"youtube": ProviderAccessPolicy.OPERATOR_PUBLIC},
+    )  # type: ignore[arg-type]
 
     result = await router.inspect("https://www.youtube.com/watch?v=owned")
 
@@ -87,7 +92,11 @@ async def test_operator_diagnosis_is_authoritative_without_anonymous_attempt() -
     anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
     operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED))
     operator.inspect_error = MediaInspectionTemporarilyUnavailable()
-    router = MediaRunnerRouter(anonymous, {"youtube": operator})  # type: ignore[arg-type]
+    router = MediaRunnerRouter(
+        anonymous,
+        {"youtube": operator},
+        default_policies={"youtube": ProviderAccessPolicy.OPERATOR_PUBLIC},
+    )  # type: ignore[arg-type]
 
     with pytest.raises(MediaInspectionTemporarilyUnavailable) as captured:
         await router.inspect("https://www.youtube.com/watch?v=owned")
@@ -96,12 +105,15 @@ async def test_operator_diagnosis_is_authoritative_without_anonymous_attempt() -
     assert anonymous.inspected == []
 
 
-async def test_configured_xiaohongshu_routes_directly_to_operator_pool() -> None:
+async def test_deployment_selected_xiaohongshu_routes_directly_to_operator_pool() -> (
+    None
+):
     anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
     operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED, "xiaohongshu"))
     router = MediaRunnerRouter(  # type: ignore[arg-type]
         anonymous,
         {"xiaohongshu": operator},
+        default_policies={"xiaohongshu": ProviderAccessPolicy.OPERATOR_PUBLIC},
     )
 
     result = await router.inspect(
@@ -137,10 +149,14 @@ async def test_tiktok_access_failure_never_uses_configured_operator() -> None:
     assert operator.inspected == []
 
 
-async def test_configured_instagram_routes_directly_to_operator_pool() -> None:
+async def test_deployment_selected_instagram_routes_directly_to_operator_pool() -> None:
     anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
     operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED, "instagram"))
-    router = MediaRunnerRouter(anonymous, {"instagram": operator})  # type: ignore[arg-type]
+    router = MediaRunnerRouter(
+        anonymous,
+        {"instagram": operator},
+        default_policies={"instagram": ProviderAccessPolicy.OPERATOR_PUBLIC},
+    )  # type: ignore[arg-type]
 
     result = await router.inspect("https://www.instagram.com/reel/owned/")
 
