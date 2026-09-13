@@ -5,7 +5,9 @@ import {
   DefaultVideoLayout,
   defaultLayoutIcons,
 } from '@vidstack/react/player/layouts/default';
-import { mediaFrameAspectRatio } from '@/components/intake/media-cover';
+import MediaCover, {
+  mediaFrameAspectRatio,
+} from '@/components/intake/media-cover';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Button } from '@/components/ui/button';
@@ -57,11 +59,19 @@ export default function DownloadVideoPreview({
   }
 
   return (
-    <AspectRatio ratio={mediaFrameAspectRatio}>
+    <AspectRatio
+      className="overflow-hidden bg-black"
+      ratio={mediaFrameAspectRatio}
+    >
+      {poster ? (
+        <div aria-hidden className="absolute inset-0">
+          <MediaCover alt="" className="size-full" src={poster} />
+        </div>
+      ) : null}
       <MediaPlayer
         ariaLabel={`${title}视频预览`}
         aspectRatio="auto"
-        className="size-full overflow-hidden rounded-none bg-black"
+        className="relative size-full overflow-hidden rounded-none bg-transparent [--media-poster-bg:transparent] [--video-bg:transparent]"
         crossOrigin="anonymous"
         key={preview.source}
         load="eager"
