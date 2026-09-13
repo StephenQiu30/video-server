@@ -72,6 +72,11 @@ describe('DownloadJobView', () => {
         name: `${inspection.title}视频预览`,
       }),
     ).toBeInTheDocument();
+    const preview = screen.getByRole('region', {
+      name: `${inspection.title}视频预览`,
+    });
+    expect(preview).toHaveStyle({ aspectRatio: 'auto' });
+    expect(preview).not.toHaveClass('aspect-[1.86]');
     expect(
       screen.getByRole('heading', { name: 'AI 智能分析' }),
     ).toBeInTheDocument();

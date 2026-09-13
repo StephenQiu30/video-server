@@ -107,10 +107,13 @@ describe('MediaCover', () => {
   it('keeps public and bundled images on the direct browser path', () => {
     render(<MediaCover alt="演示视频" src="/images/demo.webp" />);
 
-    expect(screen.getByRole('img', { name: '演示视频' })).toHaveAttribute(
+    const image = screen.getByRole('img', { name: '演示视频' });
+    expect(image).toHaveAttribute(
       'src',
       'http://localhost:3000/images/demo.webp',
     );
+    expect(image).toHaveClass('object-contain');
+    expect(image).not.toHaveClass('object-cover');
     expect(loadPrivateThumbnail).not.toHaveBeenCalled();
   });
 

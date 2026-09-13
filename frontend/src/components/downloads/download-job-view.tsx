@@ -184,7 +184,7 @@ function DownloadJobSkeleton() {
       </div>
       <div className="mt-8 grid items-start gap-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.65fr)] lg:gap-16 xl:gap-24">
         <div>
-          <Skeleton className="aspect-video rounded-none" />
+          <Skeleton className="h-40 rounded-none" />
         </div>
         <div className="lg:pt-1">
           <Skeleton className="h-5 w-20" />

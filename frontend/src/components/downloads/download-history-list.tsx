@@ -206,7 +206,7 @@ function LoadingRows() {
             className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-4 py-5 sm:grid-cols-[128px_minmax(0,1fr)_auto] sm:gap-6 sm:py-6"
             key={key}
           >
-            <Skeleton className="aspect-video w-24 rounded-md sm:w-32" />
+            <Skeleton className="h-16 w-24 rounded-md sm:w-32" />
             <div className="space-y-2">
               <Skeleton className="h-4 w-2/5" />
               <Skeleton className="h-3 w-3/5" />

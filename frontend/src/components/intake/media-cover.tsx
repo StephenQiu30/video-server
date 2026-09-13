@@ -4,7 +4,6 @@ import { ImageIcon } from '@phosphor-icons/react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
-import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import {
@@ -79,23 +78,25 @@ export default function MediaCover({
   const fallbackEyebrow = fallback?.eyebrow?.trim() || '媒体内容';
   const fallbackDetail = fallback?.detail?.trim() || '封面未提供';
   return (
-    <AspectRatio
+    <div
       className={cn(
-        'relative overflow-hidden rounded-none bg-muted',
+        'media-frame relative overflow-hidden rounded-none bg-muted',
         className,
       )}
-      ratio={1.86}
     >
       {loading ? (
         <div
           aria-label={`${alt}（封面加载中）`}
-          className="absolute inset-0 animate-pulse bg-muted"
+          className={cn('animate-pulse bg-muted', compact ? 'h-16' : 'h-40')}
           role="img"
         />
       ) : generating ? (
         <div
           aria-label={`${alt}（封面生成中）`}
-          className="absolute inset-0 flex animate-pulse flex-col items-center justify-center gap-3 text-muted-foreground"
+          className={cn(
+            'flex animate-pulse flex-col items-center justify-center gap-3 text-muted-foreground',
+            compact ? 'min-h-16' : 'min-h-40',
+          )}
           role="img"
         >
           <ImageIcon aria-hidden className="size-7" />
@@ -111,16 +112,17 @@ export default function MediaCover({
       ) : (
         <Image
           alt={alt}
-          className="object-cover"
-          fill
+          className="block h-auto w-full object-contain"
+          height={0}
           onError={() => setFailedSource(src)}
           priority={priority}
           sizes="(min-width: 1024px) 50vw, 100vw"
           src={resolvedSource}
           unoptimized
+          width={0}
         />
       )}
-    </AspectRatio>
+    </div>
   );
 }
 
@@ -138,7 +140,10 @@ function MediaCoverFallback({
   return (
     <div
       aria-label={`${title}（暂无封面）`}
-      className="absolute inset-0 overflow-hidden bg-foreground text-background"
+      className={cn(
+        'relative overflow-hidden bg-foreground text-background',
+        compact ? 'min-h-16' : 'min-h-40',
+      )}
       role="img"
     >
       <div
