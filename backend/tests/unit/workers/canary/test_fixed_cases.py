@@ -31,7 +31,7 @@ def test_fixed_public_matrix_covers_every_registered_provider_and_stage() -> Non
     for provider, provider_targets in grouped.items():
         expected_mode = (
             ProviderAccessMode.OPERATOR_MANAGED
-            if provider in operator_providers
+            if provider in operator_providers and provider != "xiaohongshu"
             else ProviderAccessMode.ANONYMOUS
         )
         assert {target.access_mode for target in provider_targets} == {expected_mode}
@@ -41,6 +41,20 @@ def test_fixed_public_matrix_covers_every_registered_provider_and_stage() -> Non
         }
         assert len({target.target_id for target in provider_targets}) == 1
         assert len({target.safe_url() for target in provider_targets}) == 1
+
+
+def test_xiaohongshu_fixed_case_uses_the_proven_anonymous_route() -> None:
+    targets = tuple(
+        item
+        for item in fixed_public_diagnostic_targets()
+        if item.provider_key == "xiaohongshu"
+    )
+
+    assert {item.access_mode for item in targets} == {ProviderAccessMode.ANONYMOUS}
+    assert {item.stage for item in targets} == {
+        ProviderCanaryStage.METADATA,
+        ProviderCanaryStage.MEDIA,
+    }
 
 
 def test_fixed_public_matrix_does_not_reuse_known_invalid_upstream_fixtures() -> None:
