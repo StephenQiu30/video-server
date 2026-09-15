@@ -1,6 +1,6 @@
 # YouTube 受控会话运行手册
 
-> 浏览器来源只用于本机开发诊断和显式采集。生产 YouTube 使用独立只读文件；重启与换机步骤见[个人部署手册](008-个人部署重启与换机手册.md)。
+> 浏览器来源只由本机宿主维护进程读取。生产 YouTube 使用独立只读文件；重启与换机步骤见[个人部署手册](008-个人部署重启与换机手册.md)。
 
 YouTube 使用统一多平台会话架构，安装、启动、撤销和故障处理见 `docs/operations/003-多平台受控会话运行手册.md`。本页只记录 YouTube 特有约束。
 
@@ -8,7 +8,7 @@ YouTube 使用统一多平台会话架构，安装、启动、撤销和故障处
 
 - Provider Profile：`youtube`
 - 会话版本：`browser`
-- 会话来源：操作开始时读取 Chrome `Default`，通过一次性加密租约交付
+- 会话来源：生产 Runner 每次操作读取独立 YouTube 文件；macOS 宿主维护进程在请求外更新该文件
 - 隔离服务：`youtube-operator-runner`
 - Chrome 域：`youtube.com`、`youtube-nocookie.com`
 - Player 客户端：`mweb`
@@ -16,28 +16,27 @@ YouTube 使用统一多平台会话架构，安装、启动、撤销和故障处
 
 生产请求不会先尝试匿名再切换账号。启用 `youtube-operator-runner` 并显式设置 `RUNNER_DEFAULT_ACCESS_POLICIES={"youtube":"operator_public"}` 后，YouTube inspect 直接进入该 Runner；download 必须使用 inspect 冻结的同一上下文。会话失败返回稳定错误，不能改走匿名或其他账号。
 
-## 2. 会话代理
+## 2. 生产来源维护
 
-在 Chrome `Default` Profile 登录 YouTube，然后安装统一代理：
+在 Chrome `Default` Profile 已登录 YouTube、且实际执行宿主已经获得 macOS Chrome 数据读取权限后，从 `backend/` 启动维护进程：
 
 ```bash
 cd backend
-uv run python -m app.runner.provider_cookie_agent install
-uv run python -m app.runner.provider_cookie_agent status
+uv run python -m app.runner.provider_session_maintainer start
+uv run python -m app.runner.provider_session_maintainer status
 ```
 
-代理只查询 YouTube 域行并要求至少存在一个已登记的 Google 会话 Cookie。Runner 为每次操作生成一次性 X25519 密钥；宿主代理只把当前 Cookie 加密给该次请求，确认领取后删除密文。明文不进入请求队列、日志、容器环境、项目目录或宿主持久文件。
+`start` 是幂等命令：先同步采集和校验一次，失败时不启动后台进程；成功后脱离项目生命周期，每 60 秒只比较 YouTube 域数据。发生变化时用锁、`fsync` 和原子替换更新 `.provider-sessions/youtube/cookies.txt`；读取、校验或发布失败保留上一份来源。状态与 PID 位于 `~/Library/Caches/FrameFetch/youtube-session-maintainer`，目录 0700、文件 0600，`status` 只输出 `running/stopped` 和稳定结果码。
 
-配置：
+维护器不打开网页、不处理登录/验证码、不访问其他平台 Cookie，也不进入 API、下载请求或 Docker。Runner 只读生产文件并为每次操作创建 tmpfs jar。停止维护时保留生产来源：
 
-```dotenv
-RUNNER_OPERATOR_BASE_URLS={"youtube":"http://youtube-operator-runner:19100"}
-PROVIDER_COOKIE_AGENT_RUNTIME_DIR=
+```bash
+uv run python -m app.runner.provider_session_maintainer stop
 ```
 
-Runner 只在容器独占 tmpfs `/run/provider-session` 中为 yt-dlp 创建本次操作所需的 `0600` jar，并在操作终态删除；不能用磁盘目录替代该挂载。
+不要把 Python 直接配置为读取 Chrome 的 LaunchAgent。macOS TCC 授权归属于实际责任进程；系统启动的 Python 不继承 VS Code、ChatGPT 或终端的 Full Disk Access。本机已验证该路径返回 `provider_session_permission_denied`。机器重启后必须从已授权的宿主再次运行幂等 `start`，再启动 Compose；普通项目、Docker 或 Runner 重启不会终止维护进程。
 
-开发和生产均需启用 `youtube-operator` Profile，不会因配置了端点自动启动。
+开发和生产均需启用 `youtube-operator` Profile，不会因配置了端点自动启动。Linux 或无人桌面部署继续使用由部署者管理的单平台文件，不运行此 macOS 维护器。
 
 ### macOS 生产部署
 
@@ -49,9 +48,9 @@ COMPOSE_PROFILES=youtube-operator
 RUNNER_DEFAULT_ACCESS_POLICIES={"youtube":"operator_public"}
 ```
 
-已有其他 profile 或默认策略时合并保留，不能覆盖。使用 `provider_session_setup capture-chrome` 采集并验收 `.provider-sessions/youtube/cookies.txt`；日常启动和容器重建统一使用 `docker compose --env-file .env.prod up -d --no-build`。生产只有一个 Compose 文件，容器只读挂载该平台文件，不持有 Chrome 数据库、密码或其他网站会话。
+已有其他 profile 或默认策略时合并保留，不能覆盖。首次启动和整机重启先运行本节维护器 `start`，再执行 `docker compose --env-file .env.prod up -d --no-build`。生产只有一个 Compose 文件，容器只读挂载该平台文件，不持有 Chrome 数据库、密码或其他网站会话。
 
-来源失效时只更新 YouTube 文件并重新验证，不在用户点击下载时采集，不处理验证码。账号变更及新机授权需重新验证，不能视作自动恢复已撤销授权。
+账号退出、平台撤销或新机授权仍需人工重新验证；维护器不会恢复已撤销授权。此时保留准确的 `provider_session_expired`，修复来源后执行一次 `refresh` 和真实 metadata/media，不重启全部服务。
 
 ## 3. POT 与出口
 

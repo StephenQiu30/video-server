@@ -296,6 +296,16 @@ engine_commit
 - 专用出口要求长期稳定的合规来源、可审计变更、低并发和冷却策略；禁止抓取公共代理列表、自动轮换匿名出口或使用用户个人网络/浏览器会话填补服务端缺口。
 - Runner readiness 证明固定执行依赖和受控代理的无凭据 probe 响应，安装标记不能单独证明健康；POT sidecar 由 PID1 supervisor 内部以 `/ping` 连续失败阈值管理子进程，不参与 API/公共 Runner readiness 或 Compose health wait gate。YouTube 命令自己的语义预检负责快速失败和精确归因。平台可用性必须由同一实际出口上的授权 metadata/media canary 证明。Sidecar 故障只降级 YouTube，API、其他 Provider 和 AI 分析不因该单平台依赖失败而不可用。
 
+### 9.4 macOS 单机来源维护
+
+yt-dlp 官方说明，日常浏览器中打开 YouTube 标签页会轮换账号 Cookie，因此一次导出的静态文件不能作为持续来源。[YouTube extractor guidance](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies)；PO Token 只覆盖请求证明，不能代替账号 Cookie。[PO Token Guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide)
+
+macOS 个人部署使用一个仅限 YouTube 的宿主维护进程：由已经获得 Chrome 数据读取权限的桌面宿主显式启动，先执行一次有界采集，成功后脱离项目进程，每 60 秒比较当前 YouTube 域来源。新 payload 先通过既有域、必需字段、过期时间、大小和文件安全校验，再用锁、`fsync` 和 `os.replace` 原子发布；采集或发布失败只更新非敏感状态，不删除上一份生产文件。Runner 每次操作重新打开只读文件，因此不需要重建容器，也不会在用户解析、下载或获取文件时读取 Chrome。
+
+不使用 `launchd` 直接读取 Chrome Cookie 数据库。macOS TCC 按实际责任进程授权，系统启动的 Python 不继承 VS Code、ChatGPT 或终端的 Full Disk Access；2026-09-15 本机实测该方式会稳定返回 `provider_session_permission_denied`。维护进程必须由已授权的实际宿主启动；机器重启后把幂等 `start` 纳入部署启动步骤。新机器必须重新建立合法来源和实际宿主授权，不能从代码仓库恢复账号授权。
+
+首期维护者只允许 `ProviderKey.YOUTUBE`，不接受通用 provider 参数，不访问网络、Docker、数据库、其他平台来源或浏览器页面。其他平台只有在各自轮换机制和真实 canary 证明需要后才能新增独立维护者。
+
 ## 10. 其他平台策略
 
 | Provider 族 | 主路径 | 会话策略 | 当前产品决策 |

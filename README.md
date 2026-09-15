@@ -95,6 +95,18 @@ docker compose --env-file .env -f docker-compose.yml \
   up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
 ```
 
+macOS 个人生产部署启用 YouTube 受控路线时，先从已经获得 Chrome 数据读取权限的实际桌面宿主启动单平台维护器，再启动生产 Compose。该命令幂等；整机重启后重复执行，普通 Docker 或项目重启无需重新登录：
+
+```bash
+cd backend
+uv run python -m app.runner.provider_session_maintainer start
+uv run python -m app.runner.provider_session_maintainer status
+cd ..
+docker compose --env-file .env.prod -f docker-compose-prod.yml up -d --wait --wait-timeout 300
+```
+
+维护器只更新 `.provider-sessions/youtube/cookies.txt`，不会在解析或下载请求中读取浏览器。完整来源边界、停止与换机步骤见 [YouTube 受控会话手册](docs/operations/002-YouTube受控会话运行手册.md)和[个人部署手册](docs/operations/008-个人部署重启与换机手册.md)。
+
 PowerShell 使用相同入口：
 
 ```powershell
