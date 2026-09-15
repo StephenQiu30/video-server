@@ -73,7 +73,7 @@
 
 ## 快速开始
 
-macOS 已授权的 YouTube 会话可在解析和下载时自动读取，无需手工导出 Cookie；生产启用与重建命令见 [YouTube 按需会话](docs/operations/002-YouTube受控会话运行手册.md#macos-生产部署免手工导出)。Linux 默认文件来源不变。
+生产只使用 `docker-compose-prod.yml`：YouTube、抖音和 Reddit 读取各自的只读会话文件，视频号按需使用专用元宝来源。下载和解析不会读取日常 Chrome；来源安装与更新见[个人部署手册](docs/operations/008-个人部署重启与换机手册.md)。
 
 ### 前置条件
 

@@ -6,7 +6,7 @@
 - 前置调研：`docs/research/003-多平台下载会话与GitHub适配调研.md`
 - 实现状态：Phase 1 已落地版本化 Profile、非 Secret 访问上下文、匿名/YouTube 运维 Runner 路由、操作级 Cookie jar、权益防火墙、服务端托管 POT sidecar、稳定错误、Provider 探针结果表/定时执行器/动态状态聚合、`GET /api/providers` 与前端状态页。YouTube 已停止 yt-dlp 与 Runner 的同出口立即重试放大；授权目标的真实 Cookie/POT canary、完整视频 Agent E2E、账号权益漂移自动停用，以及遵守 `Retry-After` 的跨层总预算/cooldown 仍是生产发布门禁；Phase 2 的用户 Credential Broker/Vault 与 gallery-dl 尚未实现。
 
-> 当前实现：Provider Profile 与会话来源由中央枚举登记，独立 Runner 按 profile 选择。文件来源见 [031](031-Linux无人值守运行设计.md)，可选 macOS 代理通过单次加密租约交付按域会话。按用户在 [035](035-平台访问与会话恢复能力设计.md) 的明确批准，视频号改用专用持久元宝 Profile：由用户首次登录，不复制普通 Chrome；按需启动、计算动态头、导出限定租约后关闭浏览器。其他浏览器来源仍按域读取当前 Chrome；生产 YouTube/抖音/Reddit 可显式合并来源覆盖。运行策略由部署默认与显式准入决定，不在失败后切换账号。YouTube 保留 mweb、EJS 和固定 bgutil POT sidecar；POT 不能修复登录过期或出口挑战。
+> 当前实现：Provider Profile 与会话来源由中央枚举登记，独立 Runner 按 profile 选择。生产只使用 `docker-compose-prod.yml`；YouTube、抖音、Reddit读取独立只读文件，视频号使用专用持久元宝 Profile，腾讯视频与优酷保留个人文件实验线路。其他已验证公开平台只走匿名 Runner。运行策略由部署默认与显式准入决定，不在失败后切换账号或读取日常 Chrome。YouTube 保留 mweb、EJS 和固定 bgutil POT sidecar；POT 不能修复登录过期或出口挑战。
 
 ## 1. 目标
 

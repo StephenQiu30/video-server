@@ -382,12 +382,7 @@ def test_compose_pins_shared_runner_workspace_to_the_mounted_container_path() ->
 _OPERATOR_PROVIDERS = {
     "youtube-operator-runner": "youtube",
     "douyin-operator-runner": "douyin",
-    "xiaohongshu-operator-runner": "xiaohongshu",
     "reddit-operator-runner": "reddit",
-    "x-operator-runner": "x",
-    "instagram-operator-runner": "instagram",
-    "facebook-operator-runner": "facebook",
-    "pinterest-operator-runner": "pinterest",
     "wechat-channels-operator-runner": "wechat_channels",
 }
 _OPERATOR_RUNNERS = tuple(_OPERATOR_PROVIDERS)
@@ -481,6 +476,14 @@ def test_default_personal_production_does_not_require_desktop_sessions() -> None
                 "environment", {}
             )
     assert "RUNNER_OPERATOR_BASE_URLS={}\n" in PROD_ENV_EXAMPLE_PATH.read_text()
+
+
+def test_production_compose_is_the_only_production_topology_file() -> None:
+    assert not (ROOT.parent / "docker-compose-browser.yml").exists()
+    assert not (ROOT.parent / "docker-compose-session-files.yml").exists()
+    assert "COMPOSE_FILE=docker-compose-prod.yml\n" in (
+        PROD_ENV_EXAMPLE_PATH.read_text(encoding="utf-8")
+    )
 
 
 def test_wechat_channels_uses_the_same_isolated_browser_session_contract() -> None:

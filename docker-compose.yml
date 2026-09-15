@@ -606,22 +606,6 @@ services:
         bind:
           create_host_path: false
 
-  xiaohongshu-operator-runner:
-    <<: *provider-session-runner
-    container_name: xiaohongshu-operator-runner
-    profiles: [xiaohongshu-operator]
-    environment:
-      <<: *provider-session-environment
-      RUNNER_OPERATOR_SESSION_VERSIONS: '{"xiaohongshu":"browser"}'
-    volumes:
-      - runner_work:/work
-      - type: bind
-        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/xiaohongshu"
-        target: /run/provider-cookie-agent
-        read_only: false
-        bind:
-          create_host_path: false
-
   reddit-operator-runner:
     <<: *provider-session-runner
     container_name: reddit-operator-runner
@@ -633,70 +617,6 @@ services:
       - runner_work:/work
       - type: bind
         source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/reddit"
-        target: /run/provider-cookie-agent
-        read_only: false
-        bind:
-          create_host_path: false
-
-  x-operator-runner:
-    <<: *provider-session-runner
-    container_name: x-operator-runner
-    profiles: [x-operator]
-    environment:
-      <<: *provider-session-environment
-      RUNNER_OPERATOR_SESSION_VERSIONS: '{"x":"browser"}'
-    volumes:
-      - runner_work:/work
-      - type: bind
-        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/x"
-        target: /run/provider-cookie-agent
-        read_only: false
-        bind:
-          create_host_path: false
-
-  instagram-operator-runner:
-    <<: *provider-session-runner
-    container_name: instagram-operator-runner
-    profiles: [instagram-operator]
-    environment:
-      <<: *provider-session-environment
-      RUNNER_OPERATOR_SESSION_VERSIONS: '{"instagram":"browser"}'
-    volumes:
-      - runner_work:/work
-      - type: bind
-        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/instagram"
-        target: /run/provider-cookie-agent
-        read_only: false
-        bind:
-          create_host_path: false
-
-  facebook-operator-runner:
-    <<: *provider-session-runner
-    container_name: facebook-operator-runner
-    profiles: [facebook-operator]
-    environment:
-      <<: *provider-session-environment
-      RUNNER_OPERATOR_SESSION_VERSIONS: '{"facebook":"browser"}'
-    volumes:
-      - runner_work:/work
-      - type: bind
-        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/facebook"
-        target: /run/provider-cookie-agent
-        read_only: false
-        bind:
-          create_host_path: false
-
-  pinterest-operator-runner:
-    <<: *provider-session-runner
-    container_name: pinterest-operator-runner
-    profiles: [pinterest-operator]
-    environment:
-      <<: *provider-session-environment
-      RUNNER_OPERATOR_SESSION_VERSIONS: '{"pinterest":"browser"}'
-    volumes:
-      - runner_work:/work
-      - type: bind
-        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/pinterest"
         target: /run/provider-cookie-agent
         read_only: false
         bind:

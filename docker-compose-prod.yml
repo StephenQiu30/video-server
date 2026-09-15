@@ -606,23 +606,6 @@ services:
         bind:
           create_host_path: false
 
-  xiaohongshu-operator-runner:
-    <<: *provider-session-runner
-    container_name: xiaohongshu-operator-runner
-    profiles: [xiaohongshu-operator]
-    environment:
-      <<: *provider-session-environment
-      RUNNER_OPERATOR_SESSION_VERSIONS: '{"xiaohongshu":"browser"}'
-      RUNNER_PROVIDER_COOKIE_FILE: /run/provider-source/cookies.txt
-    volumes:
-      - runner_work:/work
-      - type: bind
-        source: "${PROVIDER_SESSION_DIR:-./.provider-sessions}/xiaohongshu"
-        target: /run/provider-source
-        read_only: true
-        bind:
-          create_host_path: false
-
   reddit-operator-runner:
     <<: *provider-session-runner
     container_name: reddit-operator-runner
@@ -635,74 +618,6 @@ services:
       - runner_work:/work
       - type: bind
         source: "${PROVIDER_SESSION_DIR:-./.provider-sessions}/reddit"
-        target: /run/provider-source
-        read_only: true
-        bind:
-          create_host_path: false
-
-  x-operator-runner:
-    <<: *provider-session-runner
-    container_name: x-operator-runner
-    profiles: [x-operator]
-    environment:
-      <<: *provider-session-environment
-      RUNNER_OPERATOR_SESSION_VERSIONS: '{"x":"browser"}'
-      RUNNER_PROVIDER_COOKIE_FILE: /run/provider-source/cookies.txt
-    volumes:
-      - runner_work:/work
-      - type: bind
-        source: "${PROVIDER_SESSION_DIR:-./.provider-sessions}/x"
-        target: /run/provider-source
-        read_only: true
-        bind:
-          create_host_path: false
-
-  instagram-operator-runner:
-    <<: *provider-session-runner
-    container_name: instagram-operator-runner
-    profiles: [instagram-operator]
-    environment:
-      <<: *provider-session-environment
-      RUNNER_OPERATOR_SESSION_VERSIONS: '{"instagram":"browser"}'
-      RUNNER_PROVIDER_COOKIE_FILE: /run/provider-source/cookies.txt
-    volumes:
-      - runner_work:/work
-      - type: bind
-        source: "${PROVIDER_SESSION_DIR:-./.provider-sessions}/instagram"
-        target: /run/provider-source
-        read_only: true
-        bind:
-          create_host_path: false
-
-  facebook-operator-runner:
-    <<: *provider-session-runner
-    container_name: facebook-operator-runner
-    profiles: [facebook-operator]
-    environment:
-      <<: *provider-session-environment
-      RUNNER_OPERATOR_SESSION_VERSIONS: '{"facebook":"browser"}'
-      RUNNER_PROVIDER_COOKIE_FILE: /run/provider-source/cookies.txt
-    volumes:
-      - runner_work:/work
-      - type: bind
-        source: "${PROVIDER_SESSION_DIR:-./.provider-sessions}/facebook"
-        target: /run/provider-source
-        read_only: true
-        bind:
-          create_host_path: false
-
-  pinterest-operator-runner:
-    <<: *provider-session-runner
-    container_name: pinterest-operator-runner
-    profiles: [pinterest-operator]
-    environment:
-      <<: *provider-session-environment
-      RUNNER_OPERATOR_SESSION_VERSIONS: '{"pinterest":"browser"}'
-      RUNNER_PROVIDER_COOKIE_FILE: /run/provider-source/cookies.txt
-    volumes:
-      - runner_work:/work
-      - type: bind
-        source: "${PROVIDER_SESSION_DIR:-./.provider-sessions}/pinterest"
         target: /run/provider-source
         read_only: true
         bind:

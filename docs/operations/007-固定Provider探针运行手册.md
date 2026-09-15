@@ -11,11 +11,8 @@ Profile。项目不启动 Session Broker：
 
 ```bash
 docker compose --env-file .env -f docker-compose.yml \
-  --profile youtube-operator \
-  --profile douyin-operator --profile xiaohongshu-operator \
-  --profile x-operator --profile instagram-operator \
-  --profile facebook-operator --profile reddit-operator \
-  --profile pinterest-operator --profile wechat-channels-operator \
+  --profile youtube-operator --profile douyin-operator \
+  --profile reddit-operator --profile wechat-channels-operator \
   up -d --build --wait
 
 curl --fail http://127.0.0.1:8111/health/ready
