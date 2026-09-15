@@ -33,7 +33,10 @@ from app.services.downloads import (
     MediaInspectionVerificationFailed,
     RunnerInspection,
 )
-from app.services.downloads.errors import MediaInspectionFormatUnavailable
+from app.services.downloads.errors import (
+    MediaInspectionConfigurationMissing,
+    MediaInspectionFormatUnavailable,
+)
 from app.services.provider_route_admission import (
     RouteAdmissionUnavailable,
     RouteCoolingDown,
@@ -42,6 +45,7 @@ from app.services.provider_route_admission import (
 from app.workers.canary.targets import ProviderCanaryTarget
 
 _INSPECTION_ERRORS: tuple[tuple[type[Exception], str], ...] = (
+    (MediaInspectionConfigurationMissing, "provider_configuration_missing"),
     (MediaInspectionAuthRequired, "provider_auth_required"),
     (MediaInspectionSessionExpired, "provider_session_expired"),
     (MediaInspectionVerificationFailed, "provider_verification_failed"),

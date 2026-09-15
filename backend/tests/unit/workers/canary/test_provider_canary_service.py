@@ -19,7 +19,10 @@ from app.services.downloads import (
     RunnerFormat,
     RunnerInspection,
 )
-from app.services.downloads.errors import MediaInspectionFormatUnavailable
+from app.services.downloads.errors import (
+    MediaInspectionConfigurationMissing,
+    MediaInspectionFormatUnavailable,
+)
 from app.workers.canary.service import ProviderCanaryService
 from app.workers.canary.targets import ProviderCanaryTarget
 from tests.unit.runner.helpers import download_request
@@ -328,6 +331,36 @@ async def test_metadata_format_failure_keeps_its_stable_error(
 
     assert result.outcome is ProviderCanaryOutcome.FAILED
     assert result.stable_error_code == "format_unavailable"
+
+
+@pytest.mark.asyncio
+async def test_metadata_source_failure_is_reported_as_configuration_missing(
+    tmp_path: Path,
+) -> None:
+    class SourceFailureRunner(Runner):
+        async def inspect(
+            self,
+            url: str,
+            *,
+            access_mode: ProviderAccessMode,
+        ) -> RunnerInspection:
+            assert url == URL
+            raise MediaInspectionConfigurationMissing(access_mode=access_mode)
+
+    repository, cleaner = Repository(), Cleaner()
+    ticks = iter((1.0, 1.1))
+    service = ProviderCanaryService(
+        repository,
+        SourceFailureRunner(tmp_path),
+        cleaner,
+        now=lambda: NOW,
+        timer=lambda: next(ticks),
+    )
+
+    result = await service.execute(target(ProviderCanaryStage.METADATA))
+
+    assert result.outcome is ProviderCanaryOutcome.FAILED
+    assert result.stable_error_code == "provider_configuration_missing"
 
 
 @pytest.mark.asyncio
