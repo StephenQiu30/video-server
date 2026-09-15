@@ -1,5 +1,8 @@
 from app.domain.providers import ProviderAccessMode, ProviderCanaryStage
-from app.workers.canary.targets import parse_canary_targets
+from app.workers.canary.targets import (
+    parse_canary_targets,
+    validate_canary_target_routes,
+)
 from pydantic import SecretStr
 
 
@@ -64,3 +67,26 @@ def test_rejects_insecure_mismatched_and_duplicate_targets() -> None:
             assert "vimeo.com" not in str(exc)
         else:
             raise AssertionError("invalid target was accepted")
+
+
+def test_operator_canary_target_requires_a_matching_runner_endpoint() -> None:
+    targets = parse_canary_targets(
+        SecretStr(
+            '[{"target_id":"youtube-owned","provider_key":"youtube",'
+            '"stage":"metadata","access_mode":"operator_managed",'
+            '"url":"https://www.youtube.com/watch?v=abc12345678"}]'
+        )
+    )
+
+    try:
+        validate_canary_target_routes(targets, frozenset())
+    except ValueError as exc:
+        assert str(exc) == (
+            "provider canary operator targets require matching runner endpoints: "
+            "youtube"
+        )
+        assert "youtube.com" not in str(exc)
+    else:
+        raise AssertionError("operator canary target without a runner was accepted")
+
+    validate_canary_target_routes(targets, frozenset({"youtube"}))

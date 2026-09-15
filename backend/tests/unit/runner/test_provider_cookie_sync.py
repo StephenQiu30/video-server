@@ -110,6 +110,16 @@ async def test_sync_uses_typed_0600_request_and_cleans_files(tmp_path: Path) -> 
     [
         (b"credential_required", "credential_required", 422),
         (b"provider_session_unavailable", "provider_session_unavailable", 503),
+        (
+            b"provider_session_source_missing",
+            "provider_session_source_missing",
+            503,
+        ),
+        (
+            b"provider_session_permission_denied",
+            "provider_session_permission_denied",
+            503,
+        ),
         (b"ok\n", "provider_session_unavailable", 503),
         (b"unknown", "provider_session_unavailable", 503),
     ],

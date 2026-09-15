@@ -21,6 +21,8 @@ from app.runner.provider_session_source import (
 
 OK: Final = ProviderCookieLeaseStatus.OK
 CREDENTIAL_REQUIRED: Final = ProviderCookieLeaseStatus.CREDENTIAL_REQUIRED
+SOURCE_MISSING: Final = ProviderCookieLeaseStatus.SOURCE_MISSING
+PERMISSION_DENIED: Final = ProviderCookieLeaseStatus.PERMISSION_DENIED
 SESSION_UNAVAILABLE: Final = ProviderCookieLeaseStatus.SESSION_UNAVAILABLE
 
 _VERSION = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
@@ -51,7 +53,9 @@ def export_provider_cookie_lease(
             return ProviderCookieLease(CREDENTIAL_REQUIRED)
         payload = cookie_payload(cookies)
     except FileNotFoundError:
-        return ProviderCookieLease(CREDENTIAL_REQUIRED)
+        return ProviderCookieLease(SOURCE_MISSING)
+    except PermissionError:
+        return ProviderCookieLease(PERMISSION_DENIED)
     except Exception:
         return ProviderCookieLease(SESSION_UNAVAILABLE)
     return ProviderCookieLease(OK, payload)

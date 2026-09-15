@@ -230,6 +230,24 @@ def test_extract_reads_the_validated_database_without_a_disk_copy(
     assert opened == [source]
 
 
+def test_extract_preserves_an_operating_system_permission_denial(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    root, database = _profile(tmp_path)
+    original_open = chrome.os.open
+
+    def deny_cookie_database(path: object, flags: int, *args: object) -> int:
+        if Path(path) == database:
+            raise PermissionError("operation not permitted")
+        return original_open(path, flags, *args)
+
+    monkeypatch.setattr(chrome.sys, "platform", "darwin")
+    monkeypatch.setattr(chrome.os, "open", deny_cookie_database)
+
+    with pytest.raises(PermissionError, match="operation not permitted"):
+        chrome.extract_chrome_cookies(("youtube.com",), chrome_root=root)
+
+
 @pytest.mark.parametrize(
     "domains",
     ((), ("../instagram.com",), ("instagram..com",), ("instagram.com/path",)),

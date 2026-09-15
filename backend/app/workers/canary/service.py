@@ -89,6 +89,8 @@ _RUNNER_ERROR_ALIASES = {
     "credential_revoked": "provider_session_expired",
     "pot_provider_unavailable": "provider_temporarily_unavailable",
     "provider_session_unavailable": "provider_temporarily_unavailable",
+    "provider_session_source_missing": "provider_temporarily_unavailable",
+    "provider_session_permission_denied": "provider_temporarily_unavailable",
     "provider_geo_restricted": "provider_geo_restricted",
     "provider_media_unsupported": "provider_media_unsupported",
     "provider_unsupported": "provider_unsupported",

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 from app.core.config import DEFAULT_URL_ENCRYPTION_KEY, Settings
+from app.domain.provider_access import ProviderAccessPolicy
 from pydantic import SecretStr, ValidationError
 
 
@@ -271,6 +272,28 @@ def test_operator_runner_endpoints_are_provider_keyed_internal_urls() -> None:
                 "x": "http://shared-runner:19100",
             },
         )
+
+
+def test_operator_default_policy_requires_a_matching_runner_endpoint() -> None:
+    with pytest.raises(
+        ValidationError,
+        match="operator default policy requires a matching runner endpoint",
+    ):
+        Settings(
+            app_env="test",
+            _env_file=None,
+            runner_default_access_policies={"youtube": "operator_public"},
+        )
+
+    settings = Settings(
+        app_env="test",
+        _env_file=None,
+        runner_default_access_policies={"youtube": "operator_public"},
+        runner_operator_base_urls={"youtube": "http://youtube-operator-runner:19100"},
+    )
+    assert settings.runner_default_access_policies == {
+        "youtube": ProviderAccessPolicy.OPERATOR_PUBLIC
+    }
 
 
 def test_article_discovery_proxy_is_an_http_authority() -> None:

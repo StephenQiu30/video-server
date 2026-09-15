@@ -104,7 +104,8 @@ def test_export_rejects_oversized_cookie_without_publishing_payload() -> None:
 @pytest.mark.parametrize(
     ("error", "expected"),
     (
-        (FileNotFoundError(), "credential_required"),
+        (FileNotFoundError(), "provider_session_source_missing"),
+        (PermissionError(), "provider_session_permission_denied"),
         (RuntimeError("internal detail"), "provider_session_unavailable"),
     ),
 )

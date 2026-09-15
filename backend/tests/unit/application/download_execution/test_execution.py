@@ -158,6 +158,16 @@ async def test_runner_and_storage_failures_converge_before_ack(tmp_path) -> None
     ("runner_code", "expected", "retryable"),
     [
         ("credential_required", DownloadErrorCode.PROVIDER_AUTH_REQUIRED, False),
+        (
+            "provider_session_source_missing",
+            DownloadErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE,
+            True,
+        ),
+        (
+            "provider_session_permission_denied",
+            DownloadErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE,
+            True,
+        ),
         ("credential_expired", DownloadErrorCode.PROVIDER_SESSION_EXPIRED, False),
         (
             "egress_challenged",

@@ -22,7 +22,10 @@ from app.services.provider_route_admission import ProviderRouteAdmission
 from app.workers.canary.runner import ProviderCanaryRunner
 from app.workers.canary.scheduler import ProviderCanaryScheduler
 from app.workers.canary.service import ProviderCanaryService
-from app.workers.canary.targets import parse_canary_targets
+from app.workers.canary.targets import (
+    parse_canary_targets,
+    validate_canary_target_routes,
+)
 from app.workers.download.workspace import SharedWorkspaceCleaner
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -43,6 +46,11 @@ class ProviderCanaryRuntime:
 
 def build_runtime(settings: Settings) -> ProviderCanaryRuntime:
     configure_provider_instances(settings.peertube_allowed_instances)
+    targets = parse_canary_targets(settings.provider_canary_targets)
+    validate_canary_target_routes(
+        targets,
+        frozenset(provider.value for provider in settings.runner_operator_base_urls),
+    )
     engine = create_engine(settings.database_url)
     sessions = create_session_factory(engine)
     repository = SqlAlchemyProviderCanaryRepository(sessions)
@@ -60,7 +68,7 @@ def build_runtime(settings: Settings) -> ProviderCanaryRuntime:
         scheduler=ProviderCanaryScheduler(
             repository,
             service,
-            parse_canary_targets(settings.provider_canary_targets),
+            targets,
             metadata_interval=timedelta(
                 seconds=settings.provider_canary_metadata_interval_seconds
             ),

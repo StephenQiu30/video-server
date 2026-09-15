@@ -131,6 +131,48 @@ def test_non_macos_commands_are_rejected(monkeypatch: pytest.MonkeyPatch) -> Non
         agent.main(("status",))
 
 
+def test_doctor_reports_only_stable_source_statuses(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(agent.sys, "platform", "darwin")
+    monkeypatch.setattr(
+        agent,
+        "browser_session_providers",
+        lambda: frozenset({ProviderKey.YOUTUBE}),
+    )
+    monkeypatch.setattr(
+        agent,
+        "export_provider_cookie_lease_bounded",
+        lambda **_kwargs: ProviderCookieLease(
+            ProviderCookieLeaseStatus.PERMISSION_DENIED
+        ),
+    )
+
+    assert agent.main(("doctor", "--profile", "Default")) == 5
+    assert capsys.readouterr().out == ("youtube: provider_session_permission_denied\n")
+
+
+def test_doctor_accepts_one_provider_and_never_prints_cookie_payload(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(agent.sys, "platform", "darwin")
+    monkeypatch.setattr(
+        agent,
+        "export_provider_cookie_lease_bounded",
+        lambda **_kwargs: ProviderCookieLease(
+            ProviderCookieLeaseStatus.OK,
+            b"private-cookie-payload",
+        ),
+    )
+
+    assert agent.main(("doctor", "--provider", "youtube")) == 0
+    output = capsys.readouterr().out
+    assert output == "youtube: ok\n"
+    assert "private-cookie-payload" not in output
+
+
 async def test_agent_probe_recovers_after_no_response_without_browser_access(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

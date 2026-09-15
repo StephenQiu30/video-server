@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import sqlite3
 import stat
@@ -87,6 +88,19 @@ def _read_filtered(
     domains: tuple[str, ...],
 ) -> CookieJar:
     before = database.lstat()
+    # sqlite may collapse an operating-system privacy denial into a generic
+    # OperationalError. Probe the already validated file so the source boundary
+    # can distinguish a deployment permission problem from missing login data.
+    descriptor = os.open(database, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    try:
+        opened = os.fstat(descriptor)
+        if not stat.S_ISREG(opened.st_mode) or (opened.st_dev, opened.st_ino) != (
+            before.st_dev,
+            before.st_ino,
+        ):
+            raise OSError("unsafe Chrome Cookie database")
+    finally:
+        os.close(descriptor)
     connection = sqlite3.connect(f"{database.as_uri()}?mode=ro", uri=True)
     try:
         current = database.lstat()

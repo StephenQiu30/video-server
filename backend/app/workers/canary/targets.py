@@ -40,6 +40,25 @@ def parse_canary_targets(value: SecretStr) -> tuple[ProviderCanaryTarget, ...]:
     return targets
 
 
+def validate_canary_target_routes(
+    targets: tuple[ProviderCanaryTarget, ...],
+    operator_provider_keys: frozenset[str],
+) -> None:
+    missing = sorted(
+        {
+            target.provider_key
+            for target in targets
+            if target.access_mode is ProviderAccessMode.OPERATOR_MANAGED
+            and target.provider_key not in operator_provider_keys
+        }
+    )
+    if missing:
+        raise ValueError(
+            "provider canary operator targets require matching runner endpoints: "
+            + ",".join(missing)
+        )
+
+
 def _validate_targets(targets: tuple[ProviderCanaryTarget, ...]) -> None:
     identities: set[tuple[str, ProviderCanaryStage]] = set()
     for target in targets:

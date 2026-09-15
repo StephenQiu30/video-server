@@ -22,6 +22,8 @@ from app.runner.errors import RunnerFailure
 class ProviderCookieLeaseStatus(StrEnum):
     OK = "ok"
     CREDENTIAL_REQUIRED = "credential_required"
+    SOURCE_MISSING = "provider_session_source_missing"
+    PERMISSION_DENIED = "provider_session_permission_denied"
     SESSION_UNAVAILABLE = "provider_session_unavailable"
 
 
@@ -108,7 +110,7 @@ def open_cookie_lease(
             raise RunnerFailure("provider_session_unavailable", status=503) from exc
         if status is ProviderCookieLeaseStatus.CREDENTIAL_REQUIRED:
             raise RunnerFailure("credential_required", status=422)
-        raise RunnerFailure("provider_session_unavailable", status=503)
+        raise RunnerFailure(status.value, status=503)
     offset = len(_SUCCESS_PREFIX)
     minimum = offset + PUBLIC_KEY_BYTES + NONCE_BYTES + 16
     if len(response) < minimum or len(response) > MAX_RESPONSE_BYTES:

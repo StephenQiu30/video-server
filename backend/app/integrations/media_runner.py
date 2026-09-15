@@ -50,6 +50,7 @@ from app.services.downloads import (
 )
 from app.services.downloads.errors import (
     MediaInspectionAuthRequired,
+    MediaInspectionConfigurationMissing,
     MediaInspectionContentRestricted,
     MediaInspectionDrmProtected,
     MediaInspectionDurationLimitExceeded,
@@ -208,6 +209,11 @@ class MediaRunnerHttpClient:
                 raise MediaInspectionDurationLimitExceeded from exc
             if exc.code in {"credential_required", "provider_session_not_allowed"}:
                 raise MediaInspectionAuthRequired from exc
+            if exc.code in {
+                "provider_session_source_missing",
+                "provider_session_permission_denied",
+            }:
+                raise MediaInspectionConfigurationMissing from exc
             if exc.code in {
                 "credential_expired",
                 "credential_rejected",

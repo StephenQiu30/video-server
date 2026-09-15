@@ -54,6 +54,16 @@ def test_lease_cannot_be_opened_by_another_operation_or_request() -> None:
             "provider_session_unavailable",
             503,
         ),
+        (
+            ProviderCookieLeaseStatus.SOURCE_MISSING,
+            "provider_session_source_missing",
+            503,
+        ),
+        (
+            ProviderCookieLeaseStatus.PERMISSION_DENIED,
+            "provider_session_permission_denied",
+            503,
+        ),
     ),
 )
 def test_non_secret_statuses_map_to_stable_runner_errors(

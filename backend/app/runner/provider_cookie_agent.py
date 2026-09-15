@@ -16,7 +16,11 @@ from typing import Any
 
 from app.domain.providers import ProviderKey, ProviderSessionVersion
 from app.runner.provider_cookie_boundary import export_provider_cookie_lease_bounded
-from app.runner.provider_cookie_lease import ProviderCookieLease, seal_cookie_lease
+from app.runner.provider_cookie_lease import (
+    ProviderCookieLease,
+    ProviderCookieLeaseStatus,
+    seal_cookie_lease,
+)
 from app.runner.provider_cookie_process import termination_guard
 from app.runner.provider_cookie_queue import (
     AGENT_READY_MARKER,
@@ -32,6 +36,7 @@ from app.runner.provider_session_policy import browser_session_providers
 SERVICE_ID = "com.framefetch.provider-cookie-agent"
 PLIST_PATH = Path.home() / "Library" / "LaunchAgents" / f"{SERVICE_ID}.plist"
 _MISSING_SERVICE = 113
+_DIAGNOSTIC_FAILURE = 5
 DEFAULT_PROFILE = "Default"
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_RUNTIME_ROOT = (
@@ -93,6 +98,45 @@ def agent_status() -> int:
         return 4
     print("status unavailable")
     return result.returncode
+
+
+def diagnose_sources(
+    *,
+    profile: str,
+    provider: ProviderKey | None = None,
+) -> int:
+    """Report bounded, non-secret source states for operator diagnostics."""
+    providers = (
+        (provider,)
+        if provider is not None
+        else tuple(sorted(browser_session_providers(), key=str))
+    )
+    if not providers:
+        return 0
+
+    def diagnose(item: ProviderKey) -> ProviderCookieLease:
+        try:
+            return export_provider_cookie_lease_bounded(
+                provider=item,
+                profile=profile,
+                version=ProviderSessionVersion.BROWSER,
+            )
+        except Exception:
+            return ProviderCookieLease(ProviderCookieLeaseStatus.SESSION_UNAVAILABLE)
+
+    with ThreadPoolExecutor(max_workers=len(providers)) as pool:
+        futures = {item: pool.submit(diagnose, item) for item in providers}
+        results = {item: futures[item].result() for item in providers}
+
+    for item in providers:
+        print(f"{item.value}: {results[item].status.value}")
+    return (
+        0
+        if all(
+            result.status is ProviderCookieLeaseStatus.OK for result in results.values()
+        )
+        else _DIAGNOSTIC_FAILURE
+    )
 
 
 def _launch_agent_plist(
@@ -188,9 +232,12 @@ def _require_macos() -> None:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="帧取平台 Cookie 同步工具")
-    parser.add_argument("command", choices=("install", "status", "uninstall", "run"))
+    parser.add_argument(
+        "command", choices=("install", "status", "doctor", "uninstall", "run")
+    )
     parser.add_argument("--runtime-root", type=Path, default=DEFAULT_RUNTIME_ROOT)
     parser.add_argument("--profile", default=DEFAULT_PROFILE)
+    parser.add_argument("--provider", type=ProviderKey)
     return parser
 
 
@@ -290,6 +337,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         uninstall_agent(args.runtime_root)
     elif args.command == "status":
         return agent_status()
+    elif args.command == "doctor":
+        return diagnose_sources(profile=args.profile, provider=args.provider)
     else:
         drain_requests(
             args.runtime_root,

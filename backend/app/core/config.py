@@ -17,8 +17,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from app.core.quota_config import QuotaLimits
 from app.core.rate_limits import RateLimitOperation, RateLimitPolicy
 from app.domain.identifiers import RightsStatementVersion, UrlEncryptionKeyId
-from app.domain.provider_access import ProviderAccessPolicy
-from app.domain.providers import ProviderKey
+from app.domain.provider_access import ProviderAccessPolicy, provider_access_policies
+from app.domain.providers import ProviderAccessMode, ProviderKey
 from app.runner.provider_instances import validated_instance_hosts
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -442,6 +442,28 @@ class Settings(BaseSettings):
         if len(set(validated.values())) != len(validated):
             raise ValueError("runner operator URLs must be provider-isolated")
         return validated
+
+    @model_validator(mode="after")
+    def validate_runner_route_declarations(self) -> Settings:
+        from app.runner.provider_registry import provider_profile_for_key
+
+        missing_operator_endpoints: list[str] = []
+        for key, policy in self.runner_default_access_policies.items():
+            profile = provider_profile_for_key(key)
+            if policy not in provider_access_policies(key, profile.access_modes):
+                raise ValueError("default provider access policy is not admitted")
+            if (
+                policy.access_mode is ProviderAccessMode.OPERATOR_MANAGED
+                and ProviderKey(key) not in self.runner_operator_base_urls
+            ):
+                missing_operator_endpoints.append(key)
+        if missing_operator_endpoints:
+            providers = ",".join(sorted(missing_operator_endpoints))
+            raise ValueError(
+                "operator default policy requires a matching runner endpoint: "
+                f"{providers}"
+            )
+        return self
 
     @field_validator("article_discovery_proxy_url", mode="before")
     @classmethod

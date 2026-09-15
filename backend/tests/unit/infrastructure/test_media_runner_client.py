@@ -13,6 +13,7 @@ from app.integrations.media_runner_models import MediaRunnerClientError
 from app.runner.contracts import DownloadPlanContract
 from app.services.downloads.errors import (
     MediaInspectionAuthRequired,
+    MediaInspectionConfigurationMissing,
     MediaInspectionDurationLimitExceeded,
     MediaInspectionFailure,
     MediaInspectionLinkUnavailable,
@@ -147,6 +148,36 @@ async def test_inspect_exposes_provider_access_requirement() -> None:
     )
 
     with pytest.raises(MediaInspectionAuthRequired):
+        await client.inspect("https://www.douyin.com/video/123")
+
+    await http.aclose()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "code",
+    ("provider_session_source_missing", "provider_session_permission_denied"),
+)
+async def test_inspect_exposes_unreadable_provider_source_as_configuration_missing(
+    code: str,
+) -> None:
+    async def respond(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(503, json={"error": {"code": code, "message": code}})
+
+    http = httpx.AsyncClient(
+        base_url="http://runner",
+        transport=httpx.MockTransport(respond),
+    )
+    client = MediaRunnerHttpClient(
+        base_url="http://runner",
+        secret=b"s" * 32,
+        workspace_root=Path("."),
+        inspect_timeout_seconds=1,
+        download_timeout_seconds=1,
+        client=http,
+    )
+
+    with pytest.raises(MediaInspectionConfigurationMissing):
         await client.inspect("https://www.douyin.com/video/123")
 
     await http.aclose()
