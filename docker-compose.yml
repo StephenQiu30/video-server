@@ -559,6 +559,8 @@ services:
     container_name: egress-proxy
     restart: unless-stopped
     stop_grace_period: 35s
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m,mode=1777
     entrypoint: ["squid"]
     command: ["-N", "-f", "/etc/squid/squid.conf"]
     ports:

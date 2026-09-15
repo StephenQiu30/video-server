@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import yaml
+
 BACKEND_ROOT = Path(__file__).resolve().parents[3]
 CONFIG = BACKEND_ROOT / "egress" / "squid.conf"
 CONFIG_ROOT = CONFIG.parent
@@ -68,3 +70,12 @@ def test_compose_selects_environment_specific_destination_policy() -> None:
     assert (
         f"{variable}=./backend/egress/blocked-destinations.conf" in production_example
     )
+
+
+def test_egress_proxy_pid_directory_is_ephemeral_across_container_restarts() -> None:
+    expected = ["/tmp:rw,noexec,nosuid,size=16m,mode=1777"]
+
+    for filename in ("docker-compose.yml", "docker-compose-prod.yml"):
+        compose = yaml.safe_load((REPOSITORY_ROOT / filename).read_text())
+
+        assert compose["services"]["egress-proxy"]["tmpfs"] == expected
