@@ -138,6 +138,10 @@ uv sync --frozen --dev
 uv run pytest
 ```
 
+## 独立平台会话安装
+
+`uv run python -m app.runner.provider_session_setup --help` 提供部署侧 现有 Chrome 单平台采集、文件校验与原子导入；日常下载仍使用既有只读文件 Runner。系统来源权限、容器 UID/GID、候选实测和来源切换顺序见 [个人部署手册](../docs/operations/008-个人部署重启与换机手册.md)。此命令不证明平台下载成功。
+
 ## 下载持久化与 API 生命周期
 
 下载 Repository 直接实现应用层端口并返回唯一的应用模型；不建立重复的数据库 DTO、Store 或字段复制层。下载仓库使用显式组合组织事务能力，Outbox 发布由独立的 `SqlAlchemyOutboxRepository` 负责。数据库会话仍由仓库事务管理。API 工厂只定义应用；外部运行时资源在 FastAPI lifespan 启动时创建，启动失败和停止时释放。测试可在不连接外部服务的情况下导入入口并生成 OpenAPI。
