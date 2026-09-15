@@ -231,7 +231,7 @@ Web lint/typecheck/format 与生产构建通过；最终全量 60 个文件、26
 证据基线与完整方案见 [021 深度调研](research/021-下载可靠性与重启会话故障深度调研.md)。优先级沿用本登记定义；共同出口故障为本轮最先处置项。
 
 - **CQ-029 / P1 / 行为与验证缺陷 / 已修复**：Squid 前台 PID 1 将 PID 文件写入无 tmpfs 的容器 `/tmp`，异常停止后残留文件导致重启持续退出。修复 `500c1a71` 为两个业务 Compose 的代理 `/tmp` 增加受限 tmpfs，保留 PID 健康检查和现有 ACL。契约测试先失败后通过，34 项聚焦回归及两套 Compose 解析通过；同镜像完整配置候选与生产容器均完成正常停止/start 3 轮、SIGKILL/start 3 轮。生产代理保持原镜像，公网转发成功、私网目的地址被 403 拒绝，四个当前运行的受控 Runner 与公共 Runner 全部恢复健康；B站匿名 metadata/media、抖音 operator_managed metadata/media 固定矩阵全部通过。该项关闭公共出口的重启循环；浏览器本地保存、九平台完整矩阵及缺失 Operator 仍按 CQ-028/CQ-031 独立验收。
-- **CQ-030 / P1 / 行为与验证缺陷 / 方案就绪**：provider_errors 对 Fresh cookies 的全局规则忽略 authenticated 状态，将抖音空 detail/JSON 失败直接映射为需要登录；混合限流或登录提示亦有歧义。两个认证上下文输入已确定性复现；既有 test_commands 固化了部分错误期待。最小修复是证据优先的分类，未知空响应不宣判账号失效；补断网、空 JSON、429、明确过期/挑战和客户端不退出站内会话的回归。保留严格权限及内容边界，不把所有 403 一律改成临时网络错误。
+- **CQ-030 / P1 / 行为与验证缺陷 / 已修复待生产验收**：provider_errors 的全局 Fresh cookies 规则忽略 authenticated 状态，将抖音空 detail/JSON 失败直接映射为需要登录；混合限流或登录提示亦有歧义。新增四项红测稳定复现：抖音匿名/已认证上下文均误报 credential_required，明确 429 与无额外证据的混合提示也误报登录。修复将抖音模糊 Fresh cookies 限定为 provider_temporarily_unavailable，将明确 429 与模糊混合提示分别映射为 rate_limited/temporarily_unavailable；明确 Cookie 过期、Vimeo/微信视频号等确切认证要求及内容权限规则保持原分类。四项红测转绿，相关 127 项与后端全量 1616 项通过；目标文件 Ruff/mypy 通过。全量 mypy 仍有 settings.py、agent_cli.py 共 3 个既存 Pydantic `_env_file` call-arg，不作为本修复通过证据。Runner 镜像替换、真实错误响应和客户端会话保持仍待生产验收。
 - **CQ-031 / P1 / 运行与验证缺陷 / 方案就绪**：现运行部署引用已不存在的临时 images.yml；API/Worker/Canary 配置九条受控路线但仅四个 Operator 正在运行，Canary targets 为 0。最小修复是持久发布清单、配置/实例一致性预检和实际探针目标；当前 endpoint 缺失不自动否定匿名能力。验收需不依赖临时文件重建同镜像组合、缺失来源明确报错、真实 metadata/media 和重启后制品通过。
 
 CQ-020 动态来源身份修订、CQ-027 间歇平台请求、CQ-022 红果探测和 CQ-021 音轨问题仍独立保留；本次研究不借旧文档的单次成功关闭这些项。

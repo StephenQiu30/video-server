@@ -320,6 +320,23 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         authenticated=False,
     ),
     FailureRule(
+        "provider_temporarily_unavailable",
+        503,
+        all_stderr=(b"fresh cookies", b"needed"),
+        providers=frozenset({ProviderKey.DOUYIN}),
+    ),
+    FailureRule(
+        "provider_rate_limited",
+        429,
+        any_stderr=(b"http error 429", b"too many requests"),
+        all_stderr=(b"rate-limit reached or login required",),
+    ),
+    FailureRule(
+        "provider_temporarily_unavailable",
+        503,
+        any_stderr=(b"rate-limit reached or login required",),
+    ),
+    FailureRule(
         "format_unavailable",
         409,
         any_stderr=(b"no video formats found",),
@@ -336,7 +353,6 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         any_stderr=(
             b"vimeo extractor only works when logged-in",
             b"account authentication is required",
-            b"rate-limit reached or login required",
             b"login required. use --cookies",
         ),
     ),

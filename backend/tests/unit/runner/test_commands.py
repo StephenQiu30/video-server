@@ -188,8 +188,10 @@ def test_collection_download_enables_playlist_with_bounded_output(
 
 
 @pytest.mark.asyncio
-async def test_inspection_classifies_douyin_fresh_cookie_requirement(
+@pytest.mark.parametrize("authenticated", (False, True))
+async def test_douyin_fresh_cookie_hint_is_temporary_for_both_session_contexts(
     tmp_path: Path,
+    authenticated: bool,
 ) -> None:
     commands = MediaCommands(
         settings(tmp_path),
@@ -199,10 +201,49 @@ async def test_inspection_classifies_douyin_fresh_cookie_requirement(
     )
 
     with pytest.raises(RunnerFailure) as caught:
-        await commands.inspect("https://www.douyin.com/video/123", tmp_path)
+        await commands.inspect(
+            "https://www.douyin.com/video/123",
+            tmp_path,
+            cookie_jar=tmp_path / "cookies.txt" if authenticated else None,
+        )
 
-    assert caught.value.code == "credential_required"
-    assert caught.value.status == 422
+    assert caught.value.code == "provider_temporarily_unavailable"
+    assert caught.value.status == 503
+
+
+@pytest.mark.asyncio
+async def test_explicit_rate_limit_precedes_ambiguous_login_hint(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(
+            b"WARNING: rate-limit reached or login required\n"
+            b"ERROR: HTTP Error 429: Too Many Requests"
+        ),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect("https://x.com/example/status/123", tmp_path)
+
+    assert caught.value.code == "provider_rate_limited"
+    assert caught.value.status == 429
+
+
+@pytest.mark.asyncio
+async def test_ambiguous_rate_limit_or_login_hint_is_temporary(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(b"ERROR: rate-limit reached or login required"),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect("https://x.com/example/status/123", tmp_path)
+
+    assert caught.value.code == "provider_temporarily_unavailable"
+    assert caught.value.status == 503
 
 
 @pytest.mark.asyncio
