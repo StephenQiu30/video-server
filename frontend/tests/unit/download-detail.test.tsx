@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import DownloadJobView from '@/components/downloads/download-job-view';
 import { ApiError } from '@/lib/request-error';
@@ -31,7 +31,7 @@ const runtime = vi.hoisted(() => ({
 
 const signedVideoUrl = {
   filename: 'Owned video.mp4',
-  url: 'https://objects.example/token',
+  url: 'about:blank#download',
   expires_at: '2026-08-06T10:05:00Z',
 };
 
@@ -44,6 +44,14 @@ vi.mock('@/hooks/useVideoPreviewSource', () => ({
 }));
 
 describe('DownloadJobView', () => {
+  afterEach(() => {
+    document
+      .querySelectorAll('[data-framefetch-download]')
+      .forEach((element) => {
+        element.remove();
+      });
+  });
+
   beforeEach(() => {
     runtime.preview.error = null;
     runtime.preview.loading = false;
@@ -229,7 +237,15 @@ describe('DownloadJobView', () => {
     fireEvent.click(
       await screen.findByRole('button', { name: '获取视频文件' }),
     );
-    await waitFor(() => expect(click).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(
+        document.querySelector<HTMLIFrameElement>(
+          'iframe[data-framefetch-download]',
+        ),
+      ).not.toBeNull(),
+    );
+    expect(click).not.toHaveBeenCalled();
+    expect(window.location.pathname).toBe('/downloads/detail/');
   });
 
   it('presents a completed image note as a ZIP instead of a video preview', async () => {

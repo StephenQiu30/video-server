@@ -135,11 +135,11 @@ export function issueDownloadUrl(
 }
 
 export function triggerBrowserDownload(url: string, filename = ''): void {
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.rel = 'noopener';
-  document.body.append(anchor);
-  anchor.click();
-  anchor.remove();
+  const frame = document.createElement('iframe');
+  frame.dataset.framefetchDownload = '';
+  frame.hidden = true;
+  frame.title = filename ? `正在下载：${filename}` : '正在下载文件';
+  frame.src = url;
+  document.body.append(frame);
+  window.setTimeout(() => frame.remove(), 60_000);
 }

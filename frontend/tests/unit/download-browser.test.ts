@@ -1,23 +1,36 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { triggerBrowserDownload } from '@/services/download';
 
 describe('browser download', () => {
-  it('starts attachment downloads in the current tab without opening a blank tab', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    document
+      .querySelectorAll('[data-framefetch-download]')
+      .forEach((element) => {
+        element.remove();
+      });
+  });
+
+  it('starts attachment downloads without navigating the current page', () => {
+    vi.useFakeTimers();
     const click = vi
       .spyOn(HTMLAnchorElement.prototype, 'click')
       .mockImplementation(() => {});
 
-    triggerBrowserDownload(
-      'https://objects.example/signed-video',
-      '示例视频.mp4',
-    );
+    triggerBrowserDownload('about:blank#signed-video', '示例视频.mp4');
 
-    const anchor = click.mock.instances[0] as HTMLAnchorElement;
-    expect(anchor.href).toBe('https://objects.example/signed-video');
-    expect(anchor.download).toBe('示例视频.mp4');
-    expect(anchor.rel).toBe('noopener');
-    expect(anchor.target).toBe('');
-    expect(anchor.isConnected).toBe(false);
+    expect(click).not.toHaveBeenCalled();
+    const frame = document.querySelector<HTMLIFrameElement>(
+      'iframe[data-framefetch-download]',
+    );
+    expect(frame).not.toBeNull();
+    expect(frame?.src).toBe('about:blank#signed-video');
+    expect(frame?.hidden).toBe(true);
+    expect(frame?.title).toBe('正在下载：示例视频.mp4');
+    expect(frame?.isConnected).toBe(true);
+
+    vi.advanceTimersByTime(60_000);
+    expect(frame?.isConnected).toBe(false);
   });
 });
