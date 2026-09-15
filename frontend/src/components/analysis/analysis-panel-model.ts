@@ -13,7 +13,7 @@ export const stageLabels: Record<AnalysisStage, string> = {
   preparing: '准备输入',
   analyzing: '执行 AI 分析',
   validating: '校验结构化结果',
-  publishing: '发布分析报告',
+  publishing: '生成报告文件',
 };
 
 export function screenplayAnalysisErrorMessage(

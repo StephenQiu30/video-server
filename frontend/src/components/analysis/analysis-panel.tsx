@@ -8,6 +8,7 @@ import {
   stageLabels,
   statusLabels,
 } from '@/components/analysis/analysis-panel-model';
+import AnalysisReportDownloadLink from '@/components/analysis/analysis-report-download-link';
 import AnalysisResultView from '@/components/analysis/analysis-result-view';
 import AnalysisStorageNotice from '@/components/analysis/analysis-storage-notice';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -34,9 +35,13 @@ import type { AnalysisJob } from '@/types/video';
 
 export default function AnalysisPanel({
   downloadId,
+  onSelectTime,
+  playbackUnavailableReason = '视频预览尚未就绪，请在上方播放器检查或重新加载。',
   pollIntervalMs = 1500,
 }: {
   downloadId: string;
+  onSelectTime?: (milliseconds: number) => void;
+  playbackUnavailableReason?: string;
   pollIntervalMs?: number;
 }) {
   const state = useAnalysisJob(downloadId, pollIntervalMs);
@@ -54,6 +59,12 @@ export default function AnalysisPanel({
     const reportAvailable = formats.has('markdown') && formats.has('docx');
     return (
       <section aria-label="AI 智能分析" className="py-12 sm:py-16">
+        {state.error ? (
+          <Alert className="mb-8" variant="destructive">
+            <AlertTitle>操作未完成</AlertTitle>
+            <AlertDescription>{state.error}</AlertDescription>
+          </Alert>
+        ) : null}
         <div className="flex flex-col gap-6">
           <div className="min-w-0 w-full">
             <h2 className="w-full text-[32px] font-medium leading-[1.05] tracking-[-0.045em] sm:text-[44px]">
@@ -68,22 +79,22 @@ export default function AnalysisPanel({
             {reportAvailable ? (
               <>
                 <Button asChild variant="outline">
-                  <a
+                  <AnalysisReportDownloadLink
                     download={`analysis-report-${state.job.id}.md`}
                     href={analysisMarkdownUrl(state.job.id)}
                   >
                     <DownloadSimple />
                     导出 Markdown
-                  </a>
+                  </AnalysisReportDownloadLink>
                 </Button>
                 <Button asChild>
-                  <a
+                  <AnalysisReportDownloadLink
                     download={`analysis-report-${state.job.id}.docx`}
                     href={analysisReportUrl(state.job.id)}
                   >
                     <DownloadSimple />
                     导出 DOCX
-                  </a>
+                  </AnalysisReportDownloadLink>
                 </Button>
               </>
             ) : null}
@@ -112,13 +123,20 @@ export default function AnalysisPanel({
         <div className="mt-5">
           <AnalysisStorageNotice />
         </div>
+        {!onSelectTime ? (
+          <p className="mt-3 text-sm text-muted-foreground">
+            {playbackUnavailableReason}
+          </p>
+        ) : null}
         {state.job.result.kind === 'video_article' ? (
           <AnalysisArticleResultView
+            onSelectTime={onSelectTime}
             reportMarkdown={state.job.report_markdown}
             result={state.job.result}
           />
         ) : (
           <AnalysisResultView
+            onSelectTime={onSelectTime}
             defaultView={
               state.job.skill_id === 'scene-extraction' ? 'scenes' : 'shots'
             }
@@ -160,7 +178,12 @@ export default function AnalysisPanel({
           onStart={state.start}
         />
       ) : (
-        <AnalysisJobState job={state.job} state={state} />
+        <AnalysisJobState
+          job={state.job}
+          state={state}
+          onSelectTime={onSelectTime}
+          playbackUnavailableReason={playbackUnavailableReason}
+        />
       )}
     </section>
   );
@@ -169,9 +192,13 @@ export default function AnalysisPanel({
 function AnalysisJobState({
   job,
   state,
+  onSelectTime,
+  playbackUnavailableReason,
 }: {
   job: AnalysisJob;
   state: ReturnType<typeof useAnalysisJob>;
+  onSelectTime?: (milliseconds: number) => void;
+  playbackUnavailableReason: string;
 }) {
   const cancellable = ['queued', 'running', 'retry_wait'].includes(job.status);
   return (
@@ -262,29 +289,42 @@ function AnalysisJobState({
           <div className="flex flex-wrap items-center gap-3">
             <Badge variant="neutral">
               {job.report?.status === 'publishing'
-                ? '新报告发布中'
+                ? '新报告文件生成中'
                 : job.report?.status === 'publish_failed'
-                  ? '报告发布失败，等待恢复'
+                  ? '报告文件生成失败，等待恢复'
                   : '上一版本报告'}
             </Badge>
             {job.current_report_id ? (
               <>
                 <Button asChild size="sm" variant="outline">
-                  <a href={analysisMarkdownUrl(job.id)}>下载上一版 Markdown</a>
+                  <AnalysisReportDownloadLink
+                    href={analysisMarkdownUrl(job.id)}
+                  >
+                    下载上一版 Markdown
+                  </AnalysisReportDownloadLink>
                 </Button>
                 <Button asChild size="sm" variant="outline">
-                  <a href={analysisReportUrl(job.id)}>下载上一版 DOCX</a>
+                  <AnalysisReportDownloadLink href={analysisReportUrl(job.id)}>
+                    下载上一版 DOCX
+                  </AnalysisReportDownloadLink>
                 </Button>
               </>
             ) : null}
           </div>
+          {!onSelectTime ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              {playbackUnavailableReason}
+            </p>
+          ) : null}
           {job.result.kind === 'video_article' ? (
             <AnalysisArticleResultView
+              onSelectTime={onSelectTime}
               reportMarkdown={job.report_markdown}
               result={job.result}
             />
           ) : (
             <AnalysisResultView
+              onSelectTime={onSelectTime}
               defaultView={
                 job.skill_id === 'scene-extraction' ? 'scenes' : 'shots'
               }

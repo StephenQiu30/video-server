@@ -1,15 +1,18 @@
 'use client';
 
 import AnalysisReportPreview from '@/components/analysis/analysis-report-preview';
+import { Button } from '@/components/ui/button';
 import { Item, ItemGroup } from '@/components/ui/item';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { VideoArticleResult } from '@/types/video';
 import { formatMilliseconds } from '@/utils/format';
 
 export default function AnalysisArticleResultView({
+  onSelectTime,
   reportMarkdown,
   result,
 }: {
+  onSelectTime?: (milliseconds: number) => void;
   reportMarkdown?: string | null;
   result: VideoArticleResult;
 }) {
@@ -61,10 +64,17 @@ export default function AnalysisArticleResultView({
                       <p
                         key={`${evidence.start_ms}-${evidence.end_ms}-${evidence.note}`}
                       >
-                        <span className="text-xs tabular-nums">
+                        <Button
+                          className="h-11 px-0 text-xs tabular-nums"
+                          disabled={!onSelectTime}
+                          onClick={() => onSelectTime?.(evidence.start_ms)}
+                          type="button"
+                          variant="link"
+                          aria-label={`查看视频依据 ${formatMilliseconds(evidence.start_ms)}–${formatMilliseconds(evidence.end_ms)}`}
+                        >
                           {formatMilliseconds(evidence.start_ms)}–
                           {formatMilliseconds(evidence.end_ms)}
-                        </span>{' '}
+                        </Button>{' '}
                         {evidence.note}
                       </p>
                     ))}

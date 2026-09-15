@@ -1,6 +1,7 @@
 import { ArrowClockwise, DownloadSimple } from '@phosphor-icons/react';
 
 import AnalysisDeleteDialog from '@/components/analysis/analysis-delete-dialog';
+import AnalysisReportDownloadLink from '@/components/analysis/analysis-report-download-link';
 import AnalysisStorageNotice from '@/components/analysis/analysis-storage-notice';
 import { ScreenplayResultView } from '@/components/screenplay/screenplay-result-view';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -60,22 +61,22 @@ export function ScreenplayCompletedAnalysis({
           {reportAvailable ? (
             <>
               <Button asChild variant="outline">
-                <a
+                <AnalysisReportDownloadLink
                   download={`screenplay-analysis-${job.id}.md`}
                   href={analysisMarkdownUrl(job.id)}
                 >
                   <DownloadSimple aria-hidden />
                   导出 Markdown
-                </a>
+                </AnalysisReportDownloadLink>
               </Button>
               <Button asChild>
-                <a
+                <AnalysisReportDownloadLink
                   download={`screenplay-analysis-${job.id}.docx`}
                   href={analysisReportUrl(job.id)}
                 >
                   <DownloadSimple aria-hidden />
                   导出 DOCX
-                </a>
+                </AnalysisReportDownloadLink>
               </Button>
             </>
           ) : null}

@@ -6,7 +6,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import AnalysisPanel from '@/components/analysis/analysis-panel';
 import AnalysisReportPreview from '@/components/analysis/analysis-report-preview';
@@ -18,6 +18,7 @@ import {
   analysisJob,
   analysisResult,
   analysisSkills,
+  articleResult,
 } from '../fixtures/analysis-fixtures';
 import { job } from '../fixtures/download-fixtures';
 import { stubCryptoUuids } from '../helpers/crypto';
@@ -29,9 +30,120 @@ import {
 import { degradeLatestSocket, emitTaskUpdate } from '../helpers/websocket';
 
 describe('AnalysisPanel', () => {
+  afterEach(() => {
+    document.querySelectorAll('[data-framefetch-download]').forEach((frame) => {
+      frame.remove();
+    });
+  });
   beforeEach(() => {
     mockHttpResponses(analysisSkills, null);
   });
+
+  it('keeps retry errors visible beside the completed result', async () => {
+    vi.mocked(httpClient.request).mockReset();
+    mockHttpResponses(analysisSkills, analysisJob('succeeded'));
+    mockHttpError(
+      new ApiError(503, 'analysis_unavailable', 'Unavailable', 'Unavailable'),
+    );
+    render(<AnalysisPanel downloadId={job().id} />);
+    fireEvent.click(await screen.findByRole('button', { name: '重新分析' }));
+    expect(await screen.findByText('操作未完成')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: analysisResult.title }),
+    ).toBeInTheDocument();
+  });
+
+  it.each(['succeeded', 'running'] as const)(
+    'routes %s report downloads outside the current document',
+    async (status) => {
+      vi.mocked(httpClient.request).mockReset();
+      mockHttpResponses(analysisSkills, {
+        ...analysisJob('succeeded'),
+        status,
+      });
+      render(<AnalysisPanel downloadId={job().id} />);
+      const link = await screen.findByRole('link', {
+        name: status === 'succeeded' ? '导出 DOCX' : '下载上一版 DOCX',
+      });
+      const cancelled = !fireEvent.click(link);
+      expect(cancelled).toBe(true);
+      const frame = document.querySelector<HTMLIFrameElement>(
+        'iframe[data-framefetch-download]',
+      );
+      expect(frame?.src).toBe((link as HTMLAnchorElement).href);
+      frame?.remove();
+    },
+  );
+
+  it('preserves the completed report when deletion fails', async () => {
+    vi.mocked(httpClient.request).mockReset();
+    mockHttpResponses(analysisSkills, analysisJob('succeeded'));
+    mockHttpError(
+      new ApiError(503, 'analysis_unavailable', 'Unavailable', 'Unavailable'),
+    );
+    render(<AnalysisPanel downloadId={job().id} />);
+    fireEvent.click(await screen.findByRole('button', { name: '删除分析' }));
+    fireEvent.click(await screen.findByRole('button', { name: '确认删除' }));
+    expect(await screen.findByText('操作未完成')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: analysisResult.title }),
+    ).toBeInTheDocument();
+  });
+
+  it.each(['succeeded', 'running'] as const)(
+    'connects article evidence in the %s branch',
+    async (status) => {
+      vi.mocked(httpClient.request).mockReset();
+      mockHttpResponses(analysisSkills, {
+        ...analysisJob('succeeded'),
+        status,
+        result: articleResult,
+        skill_id: 'video-to-article',
+        result_contract: 'video-article',
+      });
+      const seek = vi.fn();
+      render(<AnalysisPanel downloadId={job().id} onSelectTime={seek} />);
+      fireEvent.click(
+        await screen.findByRole('button', { name: '查看视频依据 0:30–1:02' }),
+      );
+      expect(seek).toHaveBeenCalledWith(30_000);
+    },
+  );
+
+  it('explains why article evidence cannot be replayed after media cleanup', async () => {
+    vi.mocked(httpClient.request).mockReset();
+    mockHttpResponses(analysisSkills, {
+      ...analysisJob('succeeded'),
+      result: articleResult,
+    });
+    render(
+      <AnalysisPanel
+        downloadId={job().id}
+        playbackUnavailableReason="原视频文件已清理"
+      />,
+    );
+    expect(
+      await screen.findByRole('button', { name: '查看视频依据 0:30–1:02' }),
+    ).toBeDisabled();
+    expect(screen.getByText('原视频文件已清理')).toBeInTheDocument();
+  });
+
+  it.each(['succeeded', 'running'] as const)(
+    'connects evidence from the %s result to playback',
+    async (status) => {
+      vi.mocked(httpClient.request).mockReset();
+      mockHttpResponses(analysisSkills, {
+        ...analysisJob('succeeded'),
+        status,
+      });
+      const seek = vi.fn();
+      render(<AnalysisPanel downloadId={job().id} onSelectTime={seek} />);
+      const time = await screen.findByRole('button', { name: '0:30' });
+      expect(time).toBeEnabled();
+      fireEvent.click(time);
+      expect(seek).toHaveBeenCalledWith(30_000);
+    },
+  );
 
   it('loads analysis skills and exposes an editable prompt', async () => {
     render(<AnalysisPanel downloadId={job().id} />);

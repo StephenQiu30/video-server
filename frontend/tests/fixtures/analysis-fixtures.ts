@@ -2,7 +2,29 @@ import type {
   AnalysisJob,
   AnalysisSkill,
   VideoAnalysisResult,
+  VideoArticleResult,
 } from '@/types/video';
+
+export const articleResult: VideoArticleResult = {
+  kind: 'video_article',
+  language: 'zh-CN',
+  title: '如何核对视频分析结论',
+  media: { duration_ms: 62_000, container: 'mp4', size_bytes: 1_024_000 },
+  lead: '通过画面证据核对结论。',
+  sections: [
+    {
+      id: 'section-1',
+      title: '查看分析结果',
+      body: '画面显示任务结果。',
+      evidence: [
+        { start_ms: 30_000, end_ms: 62_000, note: '结构化分析界面。' },
+      ],
+    },
+  ],
+  key_points: ['保留证据'],
+  closing: '回看原片后再作判断。',
+  limitations: ['仅依据可见画面。'],
+};
 
 export const analysisSkills: AnalysisSkill[] = [
   {

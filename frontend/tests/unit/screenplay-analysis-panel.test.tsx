@@ -82,6 +82,13 @@ describe('ScreenplayAnalysisPanel', () => {
       'href',
       `/api/analyses/${screenplayAnalysisJob('analysis').id}/report.docx`,
     );
+    const link = screen.getByRole('link', { name: '导出 DOCX' });
+    expect(fireEvent.click(link)).toBe(false);
+    const frame = document.querySelector<HTMLIFrameElement>(
+      'iframe[data-framefetch-download]',
+    );
+    expect(frame?.src).toBe((link as HTMLAnchorElement).href);
+    frame?.remove();
   });
 
   it('keeps rewritten text in the canonical report view', async () => {

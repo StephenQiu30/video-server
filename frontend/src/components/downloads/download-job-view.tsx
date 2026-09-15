@@ -1,6 +1,8 @@
 'use client';
 
+import type { MediaPlayerInstance } from '@vidstack/react';
 import { useRouter } from 'next/navigation';
+import { useRef, useState } from 'react';
 import AnalysisPanel from '@/components/analysis/analysis-panel';
 import { DownloadDeleteDialog } from '@/components/downloads/download-delete-dialog';
 import DownloadState from '@/components/downloads/download-state';
@@ -26,6 +28,8 @@ export default function DownloadJobView({
   pollIntervalMs?: number;
 }) {
   const router = useRouter();
+  const playerRef = useRef<MediaPlayerInstance>(null);
+  const [previewReady, setPreviewReady] = useState(false);
   const state = useDownloadJob(jobId, pollIntervalMs);
   const format = state.job?.format ?? undefined;
   const gallery = state.job?.media_kind === 'image_gallery';
@@ -35,6 +39,17 @@ export default function DownloadJobView({
   const extractor = state.job?.extractor_key ?? null;
   const sourceLabel = state.job?.source_label ?? null;
   const duration = state.job?.duration_seconds ?? undefined;
+
+  function selectTime(milliseconds: number) {
+    const player = playerRef.current;
+    if (!player?.state.canPlay || !Number.isFinite(milliseconds)) return;
+    const seconds = Math.max(0, milliseconds / 1000);
+    player.currentTime = Number.isFinite(player.state.duration)
+      ? Math.min(seconds, Math.max(0, player.state.duration - 0.01))
+      : seconds;
+    player.el?.scrollIntoView({ block: 'center', behavior: 'instant' });
+    player.el?.focus({ preventScroll: true });
+  }
 
   async function retry() {
     const retried = await state.retry();
@@ -95,6 +110,9 @@ export default function DownloadJobView({
               !gallery &&
               !collection ? (
                 <DownloadVideoPreview
+                  key={state.job.id}
+                  playerRef={playerRef}
+                  onReadyChange={setPreviewReady}
                   container={
                     format?.container_preference === 'mp4' ||
                     format?.container_preference === 'webm'
@@ -156,7 +174,19 @@ export default function DownloadJobView({
           {state.job.status === 'succeeded' ? (
             !gallery && !collection ? (
               <div className="mt-14 sm:mt-20">
-                <AnalysisPanel downloadId={state.job.id} />
+                <AnalysisPanel
+                  downloadId={state.job.id}
+                  onSelectTime={
+                    state.job.file_available && previewReady
+                      ? selectTime
+                      : undefined
+                  }
+                  playbackUnavailableReason={
+                    state.job.file_available
+                      ? undefined
+                      : '原视频文件已清理，分析结果仍可阅读；重新获取视频后才能回看时间证据。'
+                  }
+                />
               </div>
             ) : null
           ) : ['failed', 'cancelled'].includes(state.job.status) ? null : (

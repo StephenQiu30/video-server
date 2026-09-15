@@ -55,6 +55,6 @@
 | 031 | 个人部署重启与换机；文件来源已实现，实机待验收 | [Design](design/031-Linux无人值守运行设计.md) | [PRD](prd/031-Linux无人值守运行需求.md) | [Plan](plans/031-Linux无人值守运行计划.md) | [Acceptance](acceptance/031-Linux无人值守运行验收.md) |
 | 032 | 腾讯与优酷个人下载；代码已接入，VIP 实测待完成 | [Design](design/032-腾讯视频与优酷个人下载设计.md) | [PRD](prd/032-腾讯视频与优酷个人下载需求.md) | [Plan](plans/032-腾讯视频与优酷个人下载计划.md) | [Acceptance](acceptance/032-腾讯视频与优酷个人下载验收.md) |
 | 035 | 平台访问策略、会话生命周期与跨机器恢复；首批基础修复已实施，平台可行性待验证 | [Design](design/035-平台访问与会话恢复能力设计.md) | [PRD](prd/035-平台访问与会话恢复能力需求.md) | [Plan](plans/035-平台访问与会话恢复能力计划.md) | [Acceptance](acceptance/035-平台访问与会话恢复能力验收.md) |
-| 036 | 内容创作与平台发布；研究与设计完成，待实施 | [Design](design/036-内容创作与平台发布设计.md) | [PRD](prd/036-内容创作与平台发布需求.md) | [Plan](plans/036-内容创作与平台发布计划.md) | [Acceptance](acceptance/036-内容创作与平台发布验收.md) |
+| 036 | 内容创作与平台发布；既有证据回看/报告交互已修复，新增创作发布待实施 | [Design](design/036-内容创作与平台发布设计.md) | [PRD](prd/036-内容创作与平台发布需求.md) | [Plan](plans/036-内容创作与平台发布计划.md) | [Acceptance](acceptance/036-内容创作与平台发布验收.md) |
 
 本次全业务一致性：[034 设计](design/034-App与Web业务一致性设计.md) · [需求](prd/034-App与Web业务一致性需求.md) · [计划](plans/034-App与Web业务一致性计划.md) · [验收](acceptance/034-App与Web业务一致性验收.md)。

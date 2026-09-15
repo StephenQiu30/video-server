@@ -669,3 +669,12 @@ final result: passed（仅链接入口简化的视觉交互增量；平台下载
 - 边界：以上不等于真实 Provider 下载或全站所有状态重验。此前 iOS 单任务播放错误未在本切片中修复，封面几何通过不替代播放可用性结论。
 
 final result: passed（封面等宽、自适应高度；不包含真实平台播放可用性）
+
+## 2026-09-15 分析证据回看与报告交互
+
+- 复用已有 Vidstack、Button、Alert 与链接布局，没有改动全局 token、导航、网格或播放器视觉。候选生产构建 8125 连接隔离 API 夹具 8126，真实62秒测试视频可解码；分镜和文章依据点击均定位30秒并聚焦播放器，不自动播放。
+- 390×844、1280×900、1920×1080 的 scrollWidth 均等于视口宽；明暗主题目视检查通过。报告下载保留文档、账户菜单和播放位置；模拟操作503错误可见，原报告保留。原文件清理时文章仍可读，证据按钮禁用并说明原因。
+- 截图：`/tmp/framefetch-analysis-qa-20260915/mobile.png`、`desktop.png`、`mobile-evidence-dark.png`。仅作为本机验收材料，不提交生成图片。
+- axe 分析区0 violations/0 incomplete；整页0 violations，播放器渐变背景时长对比1项 incomplete，完整站点无障碍不在本次通过范围。前端63文件/296项测试、格式、lint/typecheck及生产构建通过。
+
+final result: passed（仅分析回看、报告导航和错误提示增量；不包含真实 Provider、App、内容创作或平台发布）
