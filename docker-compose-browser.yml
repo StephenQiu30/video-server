@@ -23,6 +23,50 @@ services:
         read_only: false
         bind:
           create_host_path: false
+  xiaohongshu-operator-runner:
+    environment:
+      RUNNER_PROVIDER_COOKIE_FILE: !reset null
+      RUNNER_PROVIDER_COOKIE_SYNC_ROOT: /run/provider-source
+    volumes:
+      - type: bind
+        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/xiaohongshu"
+        target: /run/provider-source
+        read_only: false
+        bind:
+          create_host_path: false
+  x-operator-runner:
+    environment:
+      RUNNER_PROVIDER_COOKIE_FILE: !reset null
+      RUNNER_PROVIDER_COOKIE_SYNC_ROOT: /run/provider-source
+    volumes:
+      - type: bind
+        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/x"
+        target: /run/provider-source
+        read_only: false
+        bind:
+          create_host_path: false
+  instagram-operator-runner:
+    environment:
+      RUNNER_PROVIDER_COOKIE_FILE: !reset null
+      RUNNER_PROVIDER_COOKIE_SYNC_ROOT: /run/provider-source
+    volumes:
+      - type: bind
+        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/instagram"
+        target: /run/provider-source
+        read_only: false
+        bind:
+          create_host_path: false
+  facebook-operator-runner:
+    environment:
+      RUNNER_PROVIDER_COOKIE_FILE: !reset null
+      RUNNER_PROVIDER_COOKIE_SYNC_ROOT: /run/provider-source
+    volumes:
+      - type: bind
+        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/facebook"
+        target: /run/provider-source
+        read_only: false
+        bind:
+          create_host_path: false
   reddit-operator-runner:
     environment:
       RUNNER_PROVIDER_COOKIE_FILE: !reset null
@@ -30,6 +74,17 @@ services:
     volumes:
       - type: bind
         source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/reddit"
+        target: /run/provider-source
+        read_only: false
+        bind:
+          create_host_path: false
+  pinterest-operator-runner:
+    environment:
+      RUNNER_PROVIDER_COOKIE_FILE: !reset null
+      RUNNER_PROVIDER_COOKIE_SYNC_ROOT: /run/provider-source
+    volumes:
+      - type: bind
+        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/pinterest"
         target: /run/provider-source
         read_only: false
         bind:
