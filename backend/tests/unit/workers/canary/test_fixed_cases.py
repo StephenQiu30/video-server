@@ -14,6 +14,20 @@ _KNOWN_INVALID_UPSTREAM_FIXTURES = {
     "7206382937372134662",
 }
 
+_FIXED_OPERATOR_PROVIDERS = {
+    "douyin",
+    "reddit",
+    "wechat_channels",
+    "youtube",
+}
+_PROVEN_ANONYMOUS_SESSION_PROVIDERS = {
+    "facebook",
+    "instagram",
+    "pinterest",
+    "x",
+    "xiaohongshu",
+}
+
 
 def test_fixed_public_matrix_covers_every_registered_provider_and_stage() -> None:
     targets = fixed_public_diagnostic_targets()
@@ -27,11 +41,14 @@ def test_fixed_public_matrix_covers_every_registered_provider_and_stage() -> Non
         if profile.support_status is not ProviderSupportStatus.DISABLED
         and ProviderAccessMode.ANONYMOUS in profile.access_modes
     }
-    operator_providers = {provider.value for provider in browser_session_providers()}
+    session_providers = {provider.value for provider in browser_session_providers()}
+    assert session_providers == (
+        _FIXED_OPERATOR_PROVIDERS | _PROVEN_ANONYMOUS_SESSION_PROVIDERS
+    )
     for provider, provider_targets in grouped.items():
         expected_mode = (
             ProviderAccessMode.OPERATOR_MANAGED
-            if provider in operator_providers and provider != "xiaohongshu"
+            if provider in _FIXED_OPERATOR_PROVIDERS
             else ProviderAccessMode.ANONYMOUS
         )
         assert {target.access_mode for target in provider_targets} == {expected_mode}
@@ -43,14 +60,17 @@ def test_fixed_public_matrix_covers_every_registered_provider_and_stage() -> Non
         assert len({target.safe_url() for target in provider_targets}) == 1
 
 
-def test_xiaohongshu_fixed_case_uses_the_proven_anonymous_route() -> None:
+def test_session_capable_public_cases_use_their_proven_routes() -> None:
     targets = tuple(
         item
         for item in fixed_public_diagnostic_targets()
-        if item.provider_key == "xiaohongshu"
+        if item.provider_key in _PROVEN_ANONYMOUS_SESSION_PROVIDERS
     )
 
     assert {item.access_mode for item in targets} == {ProviderAccessMode.ANONYMOUS}
+    assert {item.provider_key for item in targets} == (
+        _PROVEN_ANONYMOUS_SESSION_PROVIDERS
+    )
     assert {item.stage for item in targets} == {
         ProviderCanaryStage.METADATA,
         ProviderCanaryStage.MEDIA,

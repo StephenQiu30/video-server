@@ -35,8 +35,11 @@ Runner，不存在 anonymous→operator 回退。未配置对应 Operator Runner
 
 样本位于 `backend/app/workers/canary/fixed_public_cases.json`。每个 Registry key
 必须恰好有同一 target 的 metadata 与 media 两条记录；URL 不会出现在命令
-输出或数据库 canary 行中。需要会话的平台固定使用 `operator_managed`，其余
-平台固定使用 `anonymous`；不允许运行时在两种路径之间切换。
+输出或数据库 canary 行中。路线必须以同一样本的真实结果明确选择，不能因为
+平台具备 Cookie 能力就推断公开样本需要会话：匿名 metadata/media 均通过的
+公开样本固定使用 `anonymous`；匿名失败且已有批准会话证据的平台才使用
+`operator_managed`。不允许运行时在两种路径之间切换，也不在用户请求中试探
+Cookie。
 
 media 阶段必须下载解析结果中的第一项格式，与 Web 界面默认选项保持一致；不得改成
 最低清晰度来缩短探针时间，否则会漏掉真实用户默认格式的签名或客户端兼容问题。
