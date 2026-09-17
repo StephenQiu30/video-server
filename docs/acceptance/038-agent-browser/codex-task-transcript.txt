@@ -1,0 +1,31 @@
+Codex App task: 查询 FrameFetch Agent 状态
+Project: Video
+Source: framefetch
+
+User:
+仅调用 FrameFetch 插件的 framefetch_agent_status 工具一次。不要运行 shell。请用中文返回本地 Agent、Codex 与 Claude Code 状态。
+
+ChatGPT (19 seconds):
+本地 Agent：framefetch-local-agent 0.1.0，运行中（PID 2317，loopback HTTP）。
+Codex：已安装并完成认证，状态 ready；版本 codex-cli 0.149.1。
+Claude Code：已安装并完成认证，状态 ready；版本 2.1.220，认证方式为 OAuth token。
+
+User:
+仅调用 FrameFetch 插件的 framefetch_agent_stop 工具一次。不要运行 shell。请返回是否停止成功。
+
+ChatGPT (5 seconds):
+停止成功。本地 Agent 原先正在运行，现已停止。
+
+User:
+再次仅调用 FrameFetch 插件的 framefetch_agent_status 工具一次。不要运行 shell。请返回 Agent PID 与 Codex、Claude Code 状态。
+
+ChatGPT (7 seconds):
+Agent PID：22633
+Codex：已安装、已认证，状态 ready（codex-cli 0.149.1）
+Claude Code：已安装、已认证，状态 ready（2.1.220）
+
+User:
+最后仅调用 FrameFetch 插件的 framefetch_agent_stop 工具一次。不要运行 shell。请确认停止结果。
+
+ChatGPT (6 seconds):
+停止成功：stopped: true。调用时 Agent 正在运行（wasRunning: true）。
