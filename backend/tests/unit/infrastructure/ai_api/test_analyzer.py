@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from app.integrations.ai_deepseek.analyzer import LangChainDeepSeekAnalyzer
-from app.integrations.ai_deepseek.config import DeepSeekAdapterConfig
-from app.integrations.ai_deepseek.frames import FrameEvidence
+from app.integrations.ai_api.analyzer import ApiAnalyzer
+from app.integrations.ai_api.config import ApiAdapterConfig
+from app.integrations.ai_api.frames import FrameEvidence
 from tests.unit.infrastructure.ai_cli.helpers import (
     request,
     screenplay_glossary_request,
@@ -53,9 +53,9 @@ class FakeFrames:
         return (FrameEvidence(0, b"first"), FrameEvidence(1_000, b"second"))
 
 
-def config() -> DeepSeekAdapterConfig:
+def config() -> ApiAdapterConfig:
     executable = Path(sys.executable)
-    return DeepSeekAdapterConfig(
+    return ApiAdapterConfig(
         model="deepseek-v4-flash-vision-exp",
         base_url="https://api.deepseek.com",
         ffmpeg=executable,
@@ -75,7 +75,7 @@ def config() -> DeepSeekAdapterConfig:
 @pytest.mark.asyncio
 async def test_video_analysis_sends_ordered_inline_screenshots(tmp_path: Path) -> None:
     model = FakeModel()
-    analyzer = LangChainDeepSeekAnalyzer(
+    analyzer = ApiAnalyzer(
         config(),
         model=model,
         frames=FakeFrames(),  # type: ignore[arg-type]
@@ -98,7 +98,7 @@ async def test_screenplay_operations_share_structured_langchain_client(
     tmp_path: Path,
 ) -> None:
     model = FakeModel()
-    analyzer = LangChainDeepSeekAnalyzer(config(), model=model)
+    analyzer = ApiAnalyzer(config(), model=model)
 
     assert await analyzer.analyze_screenplay(screenplay_request(tmp_path))
     assert await analyzer.synthesize_screenplay_analysis(

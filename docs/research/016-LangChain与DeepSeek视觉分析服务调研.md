@@ -34,7 +34,7 @@
 ## 4. 实现映射
 
 - `AiProviderEngine.DEEPSEEK` 与数据库约束表达 Web 可配置线路；默认行仍为 `local-codex`。
-- `LangChainDeepSeekAnalyzer` 复用视频分析、剧本分析、全局汇总、术语表和分块改写端口。
+- `ApiAnalyzer` 复用视频分析、剧本分析、全局汇总、术语表和分块改写端口。
 - `DeepSeekFrameExtractor` 使用受监督 FFmpeg 子进程和现有工作区资源监控。
 - `ConfiguredAnalyzerResolver` 按 `profile.key + updated_at` 在任务边界热切换，不要求重启 API 或 Worker。
 - 生产验收仍需要一枚获授权的真实 DeepSeek Key；仓库自动化只证明协议、脱敏、顺序、资源上限和失败收敛，不伪造真实视觉结果。

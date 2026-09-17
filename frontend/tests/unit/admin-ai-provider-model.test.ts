@@ -26,3 +26,14 @@ describe('AI Provider editor model', () => {
     expect(providerEngineLabel('deepseek')).toBe('DeepSeek');
   });
 });
+
+it('separates direct API routes from local CLI login', () => {
+  expect(providerEngineDefaults('openrouter')).toEqual({
+    authMode: 'api_key',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    model: '',
+  });
+  expect(providerEngineDefaults('openai').authMode).toBe('api_key');
+  expect(providerEngineLabel('openrouter')).toBe('OpenRouter');
+  expect(providerEngineLabel('openai')).toBe('OpenAI 兼容 API');
+});

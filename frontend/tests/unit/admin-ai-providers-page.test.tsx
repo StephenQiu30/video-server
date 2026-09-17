@@ -103,7 +103,7 @@ describe('administrator AI Provider screen', () => {
       />,
     );
 
-    expect(screen.getByText('LangChain · DeepSeek')).toBeInTheDocument();
+    expect(screen.getAllByText('DeepSeek')[0]).toBeInTheDocument();
     expect(screen.getByText('https://api.deepseek.com')).toBeInTheDocument();
     expect(
       screen.getByText('deepseek-v4-flash-vision-exp'),

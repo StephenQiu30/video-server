@@ -144,3 +144,52 @@ def test_reserved_local_codex_mutation_has_a_stable_conflict(tmp_path: Path) -> 
 
     assert response.status_code == 409
     assert response.json()["code"] == "reserved_ai_provider_mutation"
+
+
+def test_openrouter_catalog_has_typed_metadata_and_requires_admin() -> None:
+    from app.services.ai_model_catalog import AiModel
+
+    class CatalogProviders(Providers):
+        async def list_models(self, actor: CurrentUser):
+            assert actor == ADMIN
+            return (
+                AiModel(
+                    "vendor/model",
+                    "Model",
+                    10000,
+                    ("text", "image"),
+                    ("text",),
+                    ("structured_outputs",),
+                ),
+            )
+
+    app = create_app(Settings(app_env="test", _env_file=None))
+    app.state.services.ai_provider_service = CatalogProviders()
+    app.dependency_overrides[get_current_admin] = lambda: ADMIN
+    with TestClient(app) as client:
+        response = client.get("/api/admin/ai-providers/models/openrouter")
+        assert response.status_code == 200
+        assert response.json()["items"][0]["input_modalities"] == ["text", "image"]
+        assert "credential" not in response.text
+    app.dependency_overrides.clear()
+    app.dependency_overrides[get_current_user] = lambda: USER
+    with TestClient(app) as client:
+        assert (
+            client.get("/api/admin/ai-providers/models/openrouter").status_code == 403
+        )
+
+
+def test_openrouter_catalog_outage_is_not_an_empty_success() -> None:
+    from app.services.ai_model_catalog import ModelCatalogUnavailable
+
+    class CatalogProviders(Providers):
+        async def list_models(self, actor: CurrentUser):
+            raise ModelCatalogUnavailable()
+
+    app = create_app(Settings(app_env="test", _env_file=None))
+    app.state.services.ai_provider_service = CatalogProviders()
+    app.dependency_overrides[get_current_admin] = lambda: ADMIN
+    with TestClient(app) as client:
+        response = client.get("/api/admin/ai-providers/models/openrouter")
+        assert response.status_code == 503
+        assert response.json()["code"] == "ai_model_catalog_unavailable"

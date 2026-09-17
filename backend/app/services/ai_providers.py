@@ -5,6 +5,11 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime
 
+from app.services.ai_model_catalog import (
+    AiModel,
+    AiModelCatalog,
+    ModelCatalogUnavailable,
+)
 from app.services.ai_provider_models import (
     LOCAL_CODEX_PROVIDER_KEY as LOCAL_CODEX_PROVIDER_KEY,
 )
@@ -40,11 +45,19 @@ class AiProviderService:
         *,
         now: Callable[[], datetime],
         availability: AnalysisAgentAvailability | None = None,
+        model_catalog: AiModelCatalog | None = None,
     ) -> None:
         self._repository = repository
         self._cipher = cipher
         self._now = now
         self._availability = availability
+        self._model_catalog = model_catalog
+
+    async def list_models(self, actor: CurrentUser) -> tuple[AiModel, ...]:
+        _require_admin(actor)
+        if self._model_catalog is None:
+            raise ModelCatalogUnavailable()
+        return await self._model_catalog.list_models()
 
     async def list_profiles(self, actor: CurrentUser) -> tuple[AiProviderProfile, ...]:
         _require_admin(actor)
@@ -133,6 +146,17 @@ class AiProviderService:
             if effective_auth is AiProviderAuthMode.HOST_LOGIN
             else (base_url if base_url_changed else current.base_url)
         )
+        if (
+            effective_auth is AiProviderAuthMode.API_KEY
+            and (
+                effective_engine != current.engine
+                or _validated_base_url(effective_base_url, effective_auth)
+                != current.base_url
+            )
+            and not api_key
+        ):
+            # Destination changes require a newly supplied credential.
+            raise AiProviderError(AiProviderErrorCode.INVALID_PROFILE)
         effective_name = display_name or current.display_name
         effective_model = model or current.model
         _validated_profile(

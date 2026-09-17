@@ -19,9 +19,16 @@ type Props = {
   onChange: (values: Partial<AiProviderEditorState>) => void;
   onClose: () => void;
   onSave: () => void;
+  onRestoreFocus?: () => void;
 };
 
-export function AiProviderEditor({ editor, onChange, onClose, onSave }: Props) {
+export function AiProviderEditor({
+  editor,
+  onChange,
+  onClose,
+  onSave,
+  onRestoreFocus,
+}: Props) {
   const creating = editor.mode === 'create';
   return (
     <Dialog
@@ -30,7 +37,15 @@ export function AiProviderEditor({ editor, onChange, onClose, onSave }: Props) {
         if (!open && !editor.saving) onClose();
       }}
     >
-      <DialogContent className="max-h-[calc(100svh-2rem)] overflow-y-auto sm:max-w-[600px]">
+      <DialogContent
+        className="max-h-[calc(100svh-2rem)] overflow-y-auto sm:max-w-[600px]"
+        onCloseAutoFocus={(event) => {
+          if (onRestoreFocus) {
+            event.preventDefault();
+            onRestoreFocus();
+          }
+        }}
+      >
         <DialogHeader>
           <p className="mb-4 text-sm font-medium text-primary">AI 分析路由</p>
           <DialogTitle className="text-xl font-medium tracking-[-0.025em]">

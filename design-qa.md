@@ -678,3 +678,10 @@ final result: passed（封面等宽、自适应高度；不包含真实平台播
 - axe 分析区0 violations/0 incomplete；整页0 violations，播放器渐变背景时长对比1项 incomplete，完整站点无障碍不在本次通过范围。前端63文件/296项测试、格式、lint/typecheck及生产构建通过。
 
 final result: passed（仅分析回看、报告导航和错误提示增量；不包含真实 Provider、App、内容创作或平台发布）
+
+## 2026-09-17 AI 服务 OpenRouter 接入
+
+- final result: passed（本次新增表单与目录 UI 范围）。
+- 候选 standalone 生产构建 8128，合成管理员/模型目录，不访问生产写接口。桌面 1280×900 与移动 390×844、明暗主题实测无横向溢出；新增引擎、读取目录、选择模型回填正常。
+- Escape 关闭后恢复“新增 AI 服务”触发器焦点。页面 axe 0 violations/0 incomplete；Dialog 的 aria-hidden-focus 标记为人工复核，已检查实际键盘焦点和关闭恢复，未把自动检查未决项当作自动通过。
+- 截图与 037 验收一致，不提交 /tmp 的 QA 图片。目录失败/重试/空结果另有组件测试。模型 Key、真实推理和设备 Agent 不属于视觉验收结论。

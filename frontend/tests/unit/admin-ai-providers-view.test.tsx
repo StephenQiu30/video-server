@@ -37,6 +37,21 @@ describe('administrator AI Provider mutations', () => {
     runtime.update.mockResolvedValue(localCodex());
   });
 
+  it('restores keyboard focus after dismissing the editor', async () => {
+    render(<AdminAiProvidersView />);
+    const trigger = await screen.findByRole('button', {
+      name: '编辑 本机 Codex',
+    });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.keyDown(dialog, { key: 'Escape', code: 'Escape' });
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    );
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
   it('sends only editable fields when updating local Codex', async () => {
     render(<AdminAiProvidersView />);
 

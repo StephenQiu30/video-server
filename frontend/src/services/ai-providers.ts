@@ -3,6 +3,7 @@ import {
   createAiProviderProfile as createRequest,
   deleteAiProviderProfile as deleteRequest,
   listAiProviderProfiles as listRequest,
+  listOpenRouterModels as modelsRequest,
   updateAiProviderProfile as updateRequest,
 } from '@/services/video/admin';
 
@@ -34,3 +35,7 @@ export function deleteAiProviderProfile(key: string): Promise<unknown> {
 }
 
 export { displayError } from '@/lib/request-error';
+
+export function listOpenRouterModels(): Promise<API.AiModelListResponse> {
+  return modelsRequest();
+}

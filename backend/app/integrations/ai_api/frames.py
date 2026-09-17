@@ -6,8 +6,8 @@ import math
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from app.integrations.ai_api.config import ApiAdapterConfig
 from app.integrations.ai_cli.errors import AnalysisCliError
-from app.integrations.ai_deepseek.config import DeepSeekAdapterConfig
 from app.runner.process import ProcessSupervisor, ProcessTimeoutError
 
 _FRAME_LIMIT = 64
@@ -25,10 +25,10 @@ class FrameEvidence:
         return f"data:image/jpeg;base64,{encoded}"
 
 
-class DeepSeekFrameExtractor:
+class ApiFrameExtractor:
     def __init__(
         self,
-        config: DeepSeekAdapterConfig,
+        config: ApiAdapterConfig,
         *,
         supervisor: ProcessSupervisor | None = None,
     ) -> None:
@@ -47,7 +47,7 @@ class DeepSeekFrameExtractor:
             self._config.max_frames,
             max(4, math.ceil(duration_ms / 1_000)),
         )
-        output = workspace / "work" / "deepseek-frames"
+        output = workspace / "work" / "api-frames"
         output.mkdir(parents=True, exist_ok=True, mode=0o700)
         for stale in output.glob("frame-*.jpg"):
             stale.unlink()

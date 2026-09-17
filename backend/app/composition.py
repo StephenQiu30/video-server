@@ -9,6 +9,7 @@ from app.core.ai_provider_cipher import FernetAiProviderSecretCipher
 from app.core.config import Settings
 from app.core.url_cipher import URLCipher
 from app.db.session import create_engine, create_session_factory
+from app.integrations.ai_api.catalog import OpenRouterModelCatalog
 from app.integrations.analysis_skill_catalog import BuiltinAnalysisSkillCatalog
 from app.integrations.article_discovery import WeChatArticleDiscoveryAdapter
 from app.integrations.jwt_tokens import JwtTokenService
@@ -236,6 +237,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
         ),
         now=clock,
         availability=analysis_availability,
+        model_catalog=OpenRouterModelCatalog(),
     )
     storage_file_service = StorageFileService(
         SqlAlchemyStorageFileRepository(sessions),

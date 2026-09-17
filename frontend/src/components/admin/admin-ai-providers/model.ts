@@ -35,6 +35,16 @@ export const EMPTY_AI_PROVIDER_EDITOR: AiProviderEditorState = {
 export function providerEngineDefaults(
   engine: API.AiProviderEngine,
 ): Pick<AiProviderEditorState, 'authMode' | 'baseUrl' | 'model'> {
+  if (engine === 'openrouter' || engine === 'openai') {
+    return {
+      authMode: 'api_key',
+      baseUrl:
+        engine === 'openrouter'
+          ? 'https://openrouter.ai/api/v1'
+          : 'https://api.openai.com/v1',
+      model: '',
+    };
+  }
   if (engine === 'deepseek') {
     return {
       authMode: 'api_key',
@@ -52,5 +62,13 @@ export function providerEngineDefaults(
 export function providerEngineLabel(engine: API.AiProviderEngine): string {
   if (engine === 'codex') return 'Codex';
   if (engine === 'claude') return 'Claude';
+  if (engine === 'openrouter') return 'OpenRouter';
+  if (engine === 'openai') return 'OpenAI 兼容 API';
   return 'DeepSeek';
+}
+
+export function isDirectApiEngine(engine: API.AiProviderEngine): boolean {
+  return (
+    engine === 'openrouter' || engine === 'openai' || engine === 'deepseek'
+  );
 }

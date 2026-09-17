@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 @dataclass(frozen=True, slots=True)
-class DeepSeekAdapterConfig:
+class ApiAdapterConfig:
     model: str
     base_url: str
     ffmpeg: Path
@@ -39,4 +39,4 @@ class DeepSeekAdapterConfig:
             or not self.ffprobe.is_absolute()
             or any(isinstance(value, bool) or value <= 0 for value in limits)
         ):
-            raise ValueError("DeepSeek adapter configuration is invalid")
+            raise ValueError("API adapter configuration is invalid")

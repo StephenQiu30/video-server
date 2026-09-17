@@ -8,8 +8,8 @@ from uuid import uuid4
 
 import pytest
 from app.core.config import Settings
+from app.integrations.ai_api import ApiAnalyzer
 from app.integrations.ai_cli import CliCapabilities, CodexAppServerVideoAnalyzer
-from app.integrations.ai_deepseek import LangChainDeepSeekAnalyzer
 from app.services.ai_providers import (
     AiProviderAuthMode,
     AiProviderEngine,
@@ -273,7 +273,7 @@ async def test_deepseek_profile_uses_web_secret_and_media_tools_without_cli_logi
 
     selection = await resolver.resolve()
 
-    assert isinstance(selection.analyzer, LangChainDeepSeekAnalyzer)
+    assert isinstance(selection.analyzer, ApiAnalyzer)
     assert selection.provider == "deepseek-main"
     assert selection.model == "deepseek-v4-flash-vision-exp"
     assert selection.cli_version.startswith("langchain-deepseek/")
@@ -329,3 +329,48 @@ async def test_recovery_sweeper_reclaims_then_requeues_ready_jobs() -> None:
         repository.ready,
     )
     assert repository.calls == [("queued", 100), ("stale", 100), ("ready", 100)]
+
+
+@pytest.mark.parametrize(
+    "engine", [AiProviderEngine.OPENAI, AiProviderEngine.OPENROUTER]
+)
+def test_direct_api_runtime_never_requires_a_cli(
+    engine: AiProviderEngine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    now = datetime(2026, 9, 17, tzinfo=UTC)
+    profile = AiProviderProfile(
+        key="api",
+        display_name="API",
+        engine=engine,
+        auth_mode=AiProviderAuthMode.API_KEY,
+        base_url="https://openrouter.ai/api/v1",
+        model="vendor/model",
+        credential_ciphertext=b"encrypted",
+        credential_key_id="test",
+        is_active=True,
+        created_at=now,
+        updated_at=now,
+    )
+
+    class Cipher:
+        def decrypt(self, *args: object) -> str:
+            return "controlled-secret"
+
+    monkeypatch.setattr(
+        profile_runtime, "preflight", lambda *a, **k: pytest.fail("CLI must not run")
+    )
+    monkeypatch.setattr(
+        profile_runtime,
+        "media_preflight",
+        lambda **k: (Path(sys.executable), Path(sys.executable)),
+    )
+    runtime = profile_runtime.build_profile_runtime(
+        Settings(app_env="test", _env_file=None), profile, Cipher(), environment={}
+    )  # type: ignore[arg-type]
+    assert isinstance(runtime.analyzer, ApiAnalyzer)
+    assert runtime.model == "vendor/model"
+    assert "chat-completions" in runtime.cli_version
+
+
+def test_runtime_registry_covers_every_declared_engine() -> None:
+    assert set(profile_runtime._RUNTIME_FACTORIES) == set(AiProviderEngine)

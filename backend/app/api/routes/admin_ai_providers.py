@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import asdict
 from typing import Annotated
 from urllib.parse import quote
 
@@ -9,11 +10,14 @@ from app.api.auth_dependencies import get_current_admin
 from app.api.dependencies import get_ai_provider_service
 from app.core.errors import AppError
 from app.schemas.ai_providers import (
+    AiModelListResponse,
+    AiModelResponse,
     AiProviderProfileListResponse,
     AiProviderProfileResponse,
     CreateAiProviderProfileRequest,
     UpdateAiProviderProfileRequest,
 )
+from app.services.ai_model_catalog import ModelCatalogUnavailable
 from app.services.ai_providers import (
     AiProviderError,
     AiProviderErrorCode,
@@ -43,6 +47,31 @@ async def list_ai_provider_profiles(
     return AiProviderProfileListResponse(
         items=tuple(AiProviderProfileResponse.from_domain(item) for item in items),
         agent_available=agent_available,
+    )
+
+
+@router.get(
+    "/models/openrouter",
+    operation_id="listOpenRouterModels",
+    response_model=AiModelListResponse,
+    summary="查询 OpenRouter 公开模型能力",
+)
+async def list_openrouter_models(
+    admin: Admin, providers: Providers
+) -> AiModelListResponse:
+    try:
+        models = await providers.list_models(admin)
+    except AiProviderError as exc:
+        raise _provider_error(exc) from exc
+    except ModelCatalogUnavailable:
+        raise AppError(
+            status=503,
+            code="ai_model_catalog_unavailable",
+            title="Model catalog unavailable",
+            detail="The model catalog is temporarily unavailable.",
+        ) from None
+    return AiModelListResponse(
+        items=tuple(AiModelResponse.model_validate(asdict(model)) for model in models)
     )
 
 

@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS ai_provider_profiles (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT ck_ai_provider_engine CHECK (
-        engine IN ('codex', 'claude', 'deepseek')
+        engine IN ('codex', 'claude', 'deepseek', 'openrouter', 'openai')
     ),
     CONSTRAINT ck_ai_provider_auth_mode CHECK (
         auth_mode IN ('host_login', 'api_key')
@@ -94,13 +94,20 @@ ALTER TABLE ai_provider_profiles
     DROP CONSTRAINT IF EXISTS ck_ai_provider_engine;
 ALTER TABLE ai_provider_profiles
     ADD CONSTRAINT ck_ai_provider_engine CHECK (
-        engine IN ('codex', 'claude', 'deepseek')
+        engine IN ('codex', 'claude', 'deepseek', 'openrouter', 'openai')
     );
 ALTER TABLE ai_provider_profiles
     DROP CONSTRAINT IF EXISTS ck_ai_provider_deepseek_auth;
 ALTER TABLE ai_provider_profiles
     ADD CONSTRAINT ck_ai_provider_deepseek_auth CHECK (
-        engine <> 'deepseek' OR auth_mode = 'api_key'
+        engine NOT IN ('deepseek', 'openrouter', 'openai') OR auth_mode = 'api_key'
+    );
+
+ALTER TABLE ai_provider_profiles
+    DROP CONSTRAINT IF EXISTS ck_ai_provider_openrouter_endpoint;
+ALTER TABLE ai_provider_profiles
+    ADD CONSTRAINT ck_ai_provider_openrouter_endpoint CHECK (
+        engine <> 'openrouter' OR base_url = 'https://openrouter.ai/api/v1'
     );
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_ai_provider_active

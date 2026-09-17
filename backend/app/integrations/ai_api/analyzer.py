@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.integrations.ai_api.client import (
+    StructuredModel,
+    invoke_structured,
+)
+from app.integrations.ai_api.config import ApiAdapterConfig
+from app.integrations.ai_api.frames import ApiFrameExtractor, FrameEvidence
 from app.integrations.ai_cli.prompt import analysis_prompt
 from app.integrations.ai_cli.schema import analysis_output_schema
 from app.integrations.ai_cli.screenplay_prompt import (
@@ -24,13 +30,6 @@ from app.integrations.ai_cli.workspace import (
     prepare_job_files,
     run_with_workspace_policy,
 )
-from app.integrations.ai_deepseek.client import (
-    StructuredModel,
-    build_model,
-    invoke_structured,
-)
-from app.integrations.ai_deepseek.config import DeepSeekAdapterConfig
-from app.integrations.ai_deepseek.frames import DeepSeekFrameExtractor, FrameEvidence
 from app.services.analysis_execution import (
     ScreenplayAnalysisRequest,
     ScreenplayAnalysisSynthesisRequest,
@@ -40,20 +39,17 @@ from app.services.analysis_execution import (
 )
 
 
-class LangChainDeepSeekAnalyzer:
+class ApiAnalyzer:
     def __init__(
         self,
-        config: DeepSeekAdapterConfig,
+        config: ApiAdapterConfig,
         *,
-        api_key: str | None = None,
-        model: StructuredModel | None = None,
-        frames: DeepSeekFrameExtractor | None = None,
+        model: StructuredModel,
+        frames: ApiFrameExtractor | None = None,
     ) -> None:
-        if model is None and not api_key:
-            raise ValueError("DeepSeek API key is required")
         self._config = config
-        self._model = model or build_model(config, api_key or "")
-        self._frames = frames or DeepSeekFrameExtractor(config)
+        self._model = model
+        self._frames = frames or ApiFrameExtractor(config)
 
     async def analyze(self, request: VideoAnalysisRequest) -> object:
         schema = analysis_output_schema(

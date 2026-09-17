@@ -10,7 +10,11 @@ import {
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { isLocalCodexProvider, providerEngineLabel } from './model';
+import {
+  isDirectApiEngine,
+  isLocalCodexProvider,
+  providerEngineLabel,
+} from './model';
 
 export function ExecutionRoute({
   active,
@@ -24,8 +28,8 @@ export function ExecutionRoute({
       <RouteNode
         icon={<TerminalWindow />}
         label={
-          active.engine === 'deepseek'
-            ? 'LangChain · DeepSeek'
+          isDirectApiEngine(active.engine)
+            ? providerEngineLabel(active.engine)
             : `${providerEngineLabel(active.engine)} CLI`
         }
       />

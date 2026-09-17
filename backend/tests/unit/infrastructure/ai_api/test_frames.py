@@ -5,8 +5,8 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import pytest
-from app.integrations.ai_deepseek.config import DeepSeekAdapterConfig
-from app.integrations.ai_deepseek.frames import DeepSeekFrameExtractor
+from app.integrations.ai_api.config import ApiAdapterConfig
+from app.integrations.ai_api.frames import ApiFrameExtractor
 from app.runner.process import ProcessResult
 
 
@@ -25,7 +25,7 @@ class FakeSupervisor:
     ) -> ProcessResult:
         del timeout_seconds, env, input_bytes
         self.argv = tuple(argv)
-        output = cwd / "work" / "deepseek-frames"
+        output = cwd / "work" / "api-frames"
         (output / "frame-0001.jpg").write_bytes(b"one")
         (output / "frame-0002.jpg").write_bytes(b"two")
         return ProcessResult(0, b"", b"", False, False)
@@ -34,7 +34,7 @@ class FakeSupervisor:
 @pytest.mark.asyncio
 async def test_ffmpeg_frames_are_bounded_and_timestamped(tmp_path: Path) -> None:
     executable = Path(sys.executable)
-    config = DeepSeekAdapterConfig(
+    config = ApiAdapterConfig(
         model="deepseek-v4-flash-vision-exp",
         base_url="https://api.deepseek.com",
         ffmpeg=executable,
@@ -54,7 +54,7 @@ async def test_ffmpeg_frames_are_bounded_and_timestamped(tmp_path: Path) -> None
     (workspace / "work").mkdir(parents=True)
     video = workspace / "video.bin"
     video.write_bytes(b"video")
-    extractor = DeepSeekFrameExtractor(
+    extractor = ApiFrameExtractor(
         config,
         supervisor=supervisor,  # type: ignore[arg-type]
     )

@@ -31,6 +31,7 @@ export function AdminAiProvidersView() {
     useState<API.AiProviderProfileResponse | null>(null);
   const [deleting, setDeleting] = useState(false);
   const requestId = useRef(0);
+  const editorTrigger = useRef<HTMLElement | null>(null);
 
   const load = useCallback(async () => {
     const current = ++requestId.current;
@@ -57,11 +58,19 @@ export function AdminAiProvidersView() {
   }, [load]);
 
   function openCreate() {
+    editorTrigger.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
     setNotice('');
     setEditor({ ...EMPTY_AI_PROVIDER_EDITOR, mode: 'create' });
   }
 
   function openEdit(item: API.AiProviderProfileResponse) {
+    editorTrigger.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
     setNotice('');
     setEditor({
       mode: 'edit',
@@ -185,6 +194,7 @@ export function AdminAiProvidersView() {
           setEditor((current) => ({ ...current, ...values, error: '' }))
         }
         onClose={() => setEditor(EMPTY_AI_PROVIDER_EDITOR)}
+        onRestoreFocus={() => editorTrigger.current?.focus()}
         onSave={() => void saveEditor()}
       />
       <AiProviderDelete

@@ -1,13 +1,20 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from importlib.metadata import version
 from pathlib import Path
 
 from app.core.ai_provider_cipher import FernetAiProviderSecretCipher
 from app.core.config import Settings
+from app.integrations.ai_api import (
+    ApiAdapterConfig,
+    ApiAnalyzer,
+)
+from app.integrations.ai_api.catalog import OpenRouterModelCatalog
+from app.integrations.ai_api.chat import ChatCompletionsModel
+from app.integrations.ai_api.client import build_model
 from app.integrations.ai_cli import (
     AnalysisCliError,
     ClaudeCliVideoAnalyzer,
@@ -15,10 +22,6 @@ from app.integrations.ai_cli import (
     CodexAppServerVideoAnalyzer,
     media_preflight,
     preflight,
-)
-from app.integrations.ai_deepseek import (
-    DeepSeekAdapterConfig,
-    LangChainDeepSeekAnalyzer,
 )
 from app.services.ai_providers import (
     AiProviderAuthMode,
@@ -43,8 +46,18 @@ def build_profile_runtime(
     *,
     environment: Mapping[str, str],
 ) -> AnalyzerRuntime:
-    if profile.engine is AiProviderEngine.DEEPSEEK:
-        return _deepseek_runtime(settings, profile, cipher, environment)
+    factory = _RUNTIME_FACTORIES.get(profile.engine)
+    if factory is None:
+        raise AnalysisCliError("analysis_cli_unsupported")
+    return factory(settings, profile, cipher, environment)
+
+
+def _cli_runtime(
+    settings: Settings,
+    profile: AiProviderProfile,
+    cipher: FernetAiProviderSecretCipher,
+    environment: Mapping[str, str],
+) -> AnalyzerRuntime:
     binary = (
         settings.analysis_codex_binary
         if profile.engine is AiProviderEngine.CODEX
@@ -90,7 +103,7 @@ def build_profile_runtime(
     return AnalyzerRuntime(analyzer, profile.key, profile.model, capabilities.version)
 
 
-def _deepseek_runtime(
+def _api_runtime(
     settings: Settings,
     profile: AiProviderProfile,
     cipher: FernetAiProviderSecretCipher,
@@ -103,7 +116,7 @@ def _deepseek_runtime(
         ffprobe_binary=settings.analysis_ffprobe_binary,
         environment=environment,
     )
-    config = DeepSeekAdapterConfig(
+    config = ApiAdapterConfig(
         model=profile.model,
         base_url=profile.base_url,
         ffmpeg=ffmpeg,
@@ -118,10 +131,23 @@ def _deepseek_runtime(
         workspace_poll_seconds=settings.analysis_workspace_poll_seconds,
         terminate_grace_seconds=settings.analysis_terminate_grace_seconds,
     )
-    analyzer = LangChainDeepSeekAnalyzer(
-        config, api_key=_profile_secret(profile, cipher)
-    )
-    label = f"langchain-deepseek/{version('langchain-deepseek')}"
+    secret = _profile_secret(profile, cipher)
+    if profile.engine is AiProviderEngine.DEEPSEEK:
+        model = build_model(config, secret)
+        label = f"langchain-deepseek/{version('langchain-deepseek')}"
+    else:
+        model = ChatCompletionsModel(
+            base_url=config.base_url,
+            model=config.model,
+            api_key=secret,
+            timeout_seconds=config.timeout_seconds,
+            maximum_bytes=config.max_stdout_bytes,
+            catalog=OpenRouterModelCatalog()
+            if profile.engine is AiProviderEngine.OPENROUTER
+            else None,
+        )
+        label = f"chat-completions/httpx-{version('httpx')}"
+    analyzer = ApiAnalyzer(config, model=model)
     return AnalyzerRuntime(analyzer, profile.key, profile.model, label)
 
 
@@ -176,3 +202,19 @@ def _cli_config(
         terminate_grace_seconds=settings.analysis_terminate_grace_seconds,
         max_turns=settings.analysis_claude_max_turns,
     )
+
+
+# Explicit strategy registry: unsupported engines must never fall through to Claude.
+_RUNTIME_FACTORIES: Mapping[
+    AiProviderEngine,
+    Callable[
+        [Settings, AiProviderProfile, FernetAiProviderSecretCipher, Mapping[str, str]],
+        AnalyzerRuntime,
+    ],
+] = {
+    AiProviderEngine.CODEX: _cli_runtime,
+    AiProviderEngine.CLAUDE: _cli_runtime,
+    AiProviderEngine.DEEPSEEK: _api_runtime,
+    AiProviderEngine.OPENROUTER: _api_runtime,
+    AiProviderEngine.OPENAI: _api_runtime,
+}

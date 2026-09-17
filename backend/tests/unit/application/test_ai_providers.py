@@ -408,3 +408,81 @@ async def test_local_codex_rejects_structural_updates(
 
     assert error.value.code is AiProviderErrorCode.RESERVED_MUTATION
     assert repository.items["local-codex"] == local_codex_profile(active=True)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "engine", [AiProviderEngine.OPENROUTER, AiProviderEngine.OPENAI]
+)
+async def test_direct_api_profile_requires_key_and_never_allows_host_login(
+    engine: AiProviderEngine,
+) -> None:
+    service = AiProviderService(Repository(), Cipher(), now=lambda: NOW)
+    profile = await service.create_profile(
+        ADMIN,
+        key="direct-api",
+        display_name="API",
+        engine=engine,
+        auth_mode=AiProviderAuthMode.API_KEY,
+        base_url="https://openrouter.ai/api/v1",
+        model="vendor/model",
+        api_key="controlled-secret",
+    )
+    assert profile.credential_configured
+    assert profile.model == "vendor/model"
+    with pytest.raises(AiProviderError):
+        await service.create_profile(
+            ADMIN,
+            key="invalid-api",
+            display_name="API",
+            engine=engine,
+            auth_mode=AiProviderAuthMode.HOST_LOGIN,
+            base_url=None,
+            model="vendor/model",
+            api_key=None,
+        )
+
+
+@pytest.mark.asyncio
+async def test_openrouter_cannot_send_key_to_a_different_endpoint() -> None:
+    service = AiProviderService(Repository(), Cipher(), now=lambda: NOW)
+    with pytest.raises(AiProviderError):
+        await service.create_profile(
+            ADMIN,
+            key="router",
+            display_name="API",
+            engine=AiProviderEngine.OPENROUTER,
+            auth_mode=AiProviderAuthMode.API_KEY,
+            base_url="https://example.com/v1",
+            model="vendor/model",
+            api_key="secret",
+        )
+
+
+@pytest.mark.asyncio
+async def test_destination_change_requires_an_explicit_new_credential() -> None:
+    repository = Repository()
+    service = AiProviderService(repository, Cipher(), now=lambda: NOW)
+    await service.create_profile(
+        ADMIN,
+        key="api",
+        display_name="API",
+        engine=AiProviderEngine.OPENAI,
+        auth_mode=AiProviderAuthMode.API_KEY,
+        base_url="https://first.example/v1",
+        model="model",
+        api_key="first-secret",
+    )
+    with pytest.raises(AiProviderError):
+        await service.update_profile(
+            ADMIN,
+            "api",
+            display_name=None,
+            engine=None,
+            auth_mode=None,
+            base_url="https://second.example/v1",
+            base_url_changed=True,
+            model=None,
+            api_key=None,
+        )
+    assert repository.items["api"].base_url == "https://first.example/v1"

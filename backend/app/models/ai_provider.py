@@ -22,7 +22,7 @@ class AiProviderProfileRow(Base):
     __tablename__ = "ai_provider_profiles"
     __table_args__ = (
         CheckConstraint(
-            "engine IN ('codex', 'claude', 'deepseek')",
+            "engine IN ('codex', 'claude', 'deepseek', 'openrouter', 'openai')",
             name="ck_ai_provider_engine",
         ),
         CheckConstraint(
@@ -43,8 +43,13 @@ class AiProviderProfileRow(Base):
             name="ck_ai_provider_local_codex_shape",
         ),
         CheckConstraint(
-            "engine <> 'deepseek' OR auth_mode = 'api_key'",
+            "engine NOT IN ('deepseek', 'openrouter', 'openai') "
+            "OR auth_mode = 'api_key'",
             name="ck_ai_provider_deepseek_auth",
+        ),
+        CheckConstraint(
+            "engine <> 'openrouter' OR base_url = 'https://openrouter.ai/api/v1'",
+            name="ck_ai_provider_openrouter_endpoint",
         ),
         Index(
             "uq_ai_provider_active",

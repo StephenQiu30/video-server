@@ -1,5 +1,7 @@
 # 文档索引
 
+- 统一 AI 执行与 OpenRouter：[设计](design/037-统一AI执行与OpenRouter接入设计.md) · [需求](prd/037-统一AI执行与OpenRouter接入需求.md) · [计划](plans/037-统一AI执行与OpenRouter接入计划.md) · [验收](acceptance/037-统一AI执行与OpenRouter接入验收.md)。代码与确定性验证完成，真实付费模型待验收。
+
 - [内容创作与平台发布能力调研](research/023-内容创作与平台发布能力调研.md)：基于当前源码及 GitHub、Firecrawl、Context7 的文章/小红书能力审查、Skill 候选与官方发布边界；[036 设计](design/036-内容创作与平台发布设计.md) · [需求](prd/036-内容创作与平台发布需求.md) · [实施 SOP](plans/036-内容创作与平台发布计划.md) · [验收](acceptance/036-内容创作与平台发布验收.md)。研究与设计完成，新增功能尚未实施。
 
 - [可迁移下载服务与平台会话架构调研](research/022-可迁移下载服务与平台会话架构调研.md)：GitHub、Firecrawl、Context7 一手资料与源码对照；区分客户端换机和服务迁移，明确项目独立来源、平台适配、六个实施切片及失败边界。方案已整理，新增来源与换机尚未实现/验收。

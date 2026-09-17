@@ -1,5 +1,4 @@
 import { Key, WarningCircle } from '@phosphor-icons/react';
-
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Field,
@@ -15,13 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
 import {
   type AiProviderEditorState,
+  isDirectApiEngine,
   isLocalCodexProvider,
   providerEngineDefaults,
   providerEngineLabel,
 } from './model';
+import { OpenRouterModels } from './openrouter-models';
 
 export function AiProviderFields({
   editor,
@@ -83,6 +83,7 @@ export function AiProviderFields({
                 engine,
                 ...providerEngineDefaults(engine),
                 apiKey: '',
+                credentialConfigured: false,
               })
             }
             value={editor.engine}
@@ -91,6 +92,8 @@ export function AiProviderFields({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="openrouter">OpenRouter API</SelectItem>
+              <SelectItem value="openai">OpenAI 兼容 API</SelectItem>
               <SelectItem value="codex">Codex CLI · Responses</SelectItem>
               <SelectItem value="claude">Claude CLI · Messages</SelectItem>
               <SelectItem value="deepseek">
@@ -104,7 +107,14 @@ export function AiProviderFields({
           <Select
             disabled={editor.saving || localCodex}
             onValueChange={(authMode: API.AiProviderAuthMode) =>
-              onChange({ authMode, baseUrl: '', apiKey: '' })
+              onChange({
+                authMode,
+                baseUrl:
+                  authMode === 'api_key'
+                    ? providerEngineDefaults(editor.engine).baseUrl
+                    : '',
+                apiKey: '',
+              })
             }
             value={editor.authMode}
           >
@@ -113,7 +123,7 @@ export function AiProviderFields({
             </SelectTrigger>
             <SelectContent>
               <SelectItem
-                disabled={editor.engine === 'deepseek'}
+                disabled={isDirectApiEngine(editor.engine)}
                 value="host_login"
               >
                 本机账号登录 · 免 Key
@@ -124,6 +134,12 @@ export function AiProviderFields({
         </Field>
       </div>
 
+      {editor.engine === 'openrouter' ? (
+        <OpenRouterModels
+          disabled={editor.saving}
+          onSelect={(model) => onChange({ model })}
+        />
+      ) : null}
       <Field>
         <FieldLabel htmlFor="ai-provider-model">模型</FieldLabel>
         <Input
@@ -131,7 +147,12 @@ export function AiProviderFields({
           id="ai-provider-model"
           maxLength={128}
           onChange={(event) => onChange({ model: event.target.value })}
-          placeholder={providerEngineDefaults(editor.engine).model}
+          placeholder={
+            editor.engine === 'openrouter'
+              ? 'provider/model'
+              : providerEngineDefaults(editor.engine).model ||
+                '填写服务支持的模型 ID'
+          }
           required
           value={editor.model}
         />
@@ -179,23 +200,32 @@ function ApiKeyFields({
         <Input
           autoCapitalize="none"
           autoComplete="url"
-          disabled={editor.saving}
+          disabled={editor.saving || editor.engine === 'openrouter'}
           id="ai-provider-url"
           maxLength={2048}
-          onChange={(event) => onChange({ baseUrl: event.target.value })}
+          onChange={(event) =>
+            onChange({
+              baseUrl: event.target.value,
+              credentialConfigured: false,
+            })
+          }
           placeholder={
-            editor.engine === 'codex'
-              ? 'https://api.openai.com/v1'
-              : editor.engine === 'claude'
-                ? 'https://api.anthropic.com'
-                : 'https://api.deepseek.com'
+            editor.engine === 'openrouter'
+              ? 'https://openrouter.ai/api/v1'
+              : editor.engine === 'codex' || editor.engine === 'openai'
+                ? 'https://api.openai.com/v1'
+                : editor.engine === 'claude'
+                  ? 'https://api.anthropic.com'
+                  : 'https://api.deepseek.com'
           }
           required
           type="url"
           value={editor.baseUrl}
         />
         <FieldDescription>
-          公网地址必须使用 HTTPS；本机 localhost 可使用 HTTP。
+          {editor.engine === 'openrouter'
+            ? '使用 OpenRouter 官方地址；视频分析要求模型支持图像输入与结构化输出。'
+            : '公网地址必须使用 HTTPS；本机 localhost 可使用 HTTP。'}
         </FieldDescription>
       </Field>
       <Field>

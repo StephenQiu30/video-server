@@ -10,9 +10,34 @@ declare namespace API {
     provider_key: string;
   };
 
+  type AiModelListResponse = {
+    /** Items */
+    items: AiModelResponse[];
+  };
+
+  type AiModelResponse = {
+    /** Id */
+    id: string;
+    /** Name */
+    name: string;
+    /** Context Length */
+    context_length: number;
+    /** Input Modalities */
+    input_modalities: string[];
+    /** Output Modalities */
+    output_modalities: string[];
+    /** Supported Parameters */
+    supported_parameters: string[];
+  };
+
   type AiProviderAuthMode = "host_login" | "api_key";
 
-  type AiProviderEngine = "codex" | "claude" | "deepseek";
+  type AiProviderEngine =
+    | "codex"
+    | "claude"
+    | "deepseek"
+    | "openrouter"
+    | "openai";
 
   type AiProviderProfileListResponse = {
     /** Items */

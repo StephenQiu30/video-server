@@ -142,8 +142,11 @@ def test_current_schema_can_be_applied_repeatedly() -> None:
         in schema
     )
     assert "('hongguo_web', '红果短剧官方分享', 230, TRUE, FALSE)" in schema
-    assert "engine IN ('codex', 'claude', 'deepseek')" in schema
-    assert "engine <> 'deepseek' OR auth_mode = 'api_key'" in schema
+    assert "engine IN ('codex', 'claude', 'deepseek', 'openrouter', 'openai')" in schema
+    assert (
+        "engine NOT IN ('deepseek', 'openrouter', 'openai') OR auth_mode = 'api_key'"
+        in schema
+    )
     assert "'local-codex', '本机 Codex', 'codex', 'host_login'" in schema
     assert "ck_ai_provider_local_codex_shape" in schema
     assert "ON CONFLICT (key) DO UPDATE SET" in schema

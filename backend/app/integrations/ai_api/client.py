@@ -17,8 +17,8 @@ from openai import (
 )
 from pydantic import SecretStr
 
+from app.integrations.ai_api.config import ApiAdapterConfig
 from app.integrations.ai_cli.errors import AnalysisCliError
-from app.integrations.ai_deepseek.config import DeepSeekAdapterConfig
 
 
 class StructuredInvoker(Protocol):
@@ -35,14 +35,14 @@ class StructuredModel(Protocol):
     ) -> StructuredInvoker: ...
 
 
-def build_model(config: DeepSeekAdapterConfig, api_key: str) -> StructuredModel:
+def build_model(config: ApiAdapterConfig, api_key: str) -> StructuredModel:
     model = ChatDeepSeek.model_validate(
         {
             "model": config.model,
             "api_key": SecretStr(api_key),
             "base_url": config.base_url,
             "timeout": config.timeout_seconds,
-            "max_retries": 2,
+            "max_retries": 0,
         }
     )
     return cast(StructuredModel, model)
@@ -58,7 +58,11 @@ async def invoke_structured(
     maximum_result_bytes: int,
 ) -> dict[str, Any]:
     schema_json = json.dumps(schema, ensure_ascii=False, separators=(",", ":"))
-    message_content = content or [{"type": "text", "text": prompt}]
+    message_content = (
+        [dict(part) for part in content]
+        if content
+        else [{"type": "text", "text": prompt}]
+    )
     message_content[0]["text"] = (
         f"{message_content[0]['text']}\nJSON Schema：\n{schema_json}\n"
     )

@@ -78,6 +78,17 @@ export async function activateAiProviderProfile(
   );
 }
 
+/** 查询 OpenRouter 公开模型能力 GET /api/admin/ai-providers/models/openrouter */
+export async function listOpenRouterModels(options?: RequestOptions) {
+  return request<API.AiModelListResponse>(
+    "/api/admin/ai-providers/models/openrouter",
+    {
+      method: "GET",
+      ...(options || {}),
+    }
+  );
+}
+
 /** 查询下载分析 按 UTC 自然日查询管理员可见的全局下载聚合。 GET /api/admin/downloads/analytics */
 export async function getDownloadAnalytics(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)

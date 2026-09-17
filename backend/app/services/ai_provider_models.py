@@ -14,6 +14,8 @@ class AiProviderEngine(StrEnum):
     CODEX = "codex"
     CLAUDE = "claude"
     DEEPSEEK = "deepseek"
+    OPENROUTER = "openrouter"
+    OPENAI = "openai"
 
 
 class AiProviderAuthMode(StrEnum):

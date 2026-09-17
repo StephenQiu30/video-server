@@ -263,3 +263,9 @@ CQ-020 动态来源身份修订、CQ-027 间歇平台请求、CQ-022 红果探�
 - **CQ-044 / P1 / YouTube 静态会话轮换 / 本机项目生命周期已修复**：同一已验证来源曾被上游两次判定过期，本地文件校验仍通过，确认一次性快照不能持续。新增仅限 YouTube 的宿主维护进程：从已获 TCC 授权的实际桌面宿主启动，先同步采集，随后每 60 秒在用户请求之外有界读取现有 Chrome；变更通过既有域/字段/过期/文件安全校验后原子发布，失败保留旧来源，状态和 PID 文件均为 0600，输出不含 Cookie、路径或 revision。实测直接 `launchd` 子进程无法继承 VS Code FDA，已删除该无效路径；脱离启动宿主的维护进程父 PID 为 1，并完成第二周期 `unchanged`。生产来源 revision `d7dd2bd14bea…` 后固定 YouTube metadata/media 成功；重启 Operator Runner 后再次成功。已登录 8101 创建任务 `c7817c5e-3cd3-4eef-b5e8-b312f8f50cff`，51,933,107 bytes、564.431 秒、H.264/AAC、SHA 匹配、全片解码退出 0；点击获取文件前后 URL/标题/就绪状态保持且未出现认证恢复。本项关闭 Cookie 轮换导致的项目/容器重启与请求期反复采集；整机冷启动后仍须从已授权宿主执行幂等 `start`，第二机器和跨多次真实轮换由 T23–T26 继续验收。
 - **CQ-045 / P1 / 腾讯视频完整媒体重新解析超时 / 待修复**：`agent-browser` 匿名访问固定样本可见播放器、剧集和会员全集，生产 metadata 18007 ms succeeded，但同轮完整 media 在重新解析阶段 120048 ms 返回 `inspection_timeout`。这不是来源缺失证据；需对同一固定链接分段记录 extractor、权益/DRM 判定和重新解析预算，补免费非 DRM 单集与明确会员/DRM 负例。不得以通用 Cookie、单纯放大超时或浏览器页面可播放来宣称支持。
 - **CQ-046 / P1 / Compose 会话覆盖与无效 Runner / 已修复**：生产实际容器原由 prod/browser/session-files 三层配置混合创建；最后一层为清除前一层残留的 Cookie sync 重复了三个 Runner 的完整环境。小红书、X、Instagram、Facebook、Pinterest 已有完整匿名媒体证据，但两套业务 Compose 仍声明无默认路由的受控 Runner。现已收敛为单一 `docker-compose-prod.yml`，前三个当前文件平台直接只读挂载、视频号保留专用动态来源，删除两层覆盖与五组无依据 Runner；来源采集工具继续独立保留。两套业务 Compose、CI 夹具解析通过，契约 45 passed；零活动任务下完成单文件生产重建，全部目标服务健康且容器标签仅引用生产文件。重建后 metadata 22/23 succeeded，五个移除受控 Runner 的平台继续 anonymous 成功；唯一失败为既有 CQ-044 YouTube 会话过期。
+
+## 037 AI 执行接入裁决（2026-09-17）
+
+- CQ-AI-001，P3 / 重复风险：直接复制 DeepSeek 分析器会复制视频、剧本与改写提示词/限额逻辑。采用共享 ApiAnalyzer＋模型适配器组合；保留 CLI 工具调用边界。已实施，共享流程与 CLI 回归通过，真实模型待验收。
+- CQ-AI-002，P2 / 行为缺陷：原 Profile 修改服务地址可保留旧 Key；本次新增 API 后必须绑定凭据目的地。现在地址/引擎变化要求显式新凭据，回归验证拒绝变更且原配置不变。已修复并通过确定性验收。
+- CQ-AI-003，P2 / 键盘交互：AI 编辑器通过受控状态打开，缺少 DialogTrigger，Escape 后焦点落入 body。新增显式触发器焦点恢复，组件回归与生产构建浏览器复验通过。

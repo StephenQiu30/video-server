@@ -33,8 +33,18 @@ def validated_profile(
     require_api_key: bool,
 ) -> tuple[str, str, str | None, str]:
     if (
-        engine is AiProviderEngine.DEEPSEEK
+        engine
+        in {
+            AiProviderEngine.DEEPSEEK,
+            AiProviderEngine.OPENROUTER,
+            AiProviderEngine.OPENAI,
+        }
         and auth_mode is not AiProviderAuthMode.API_KEY
+    ):
+        raise AiProviderError(AiProviderErrorCode.INVALID_PROFILE)
+    if engine is AiProviderEngine.OPENROUTER and (
+        base_url is None
+        or base_url.strip().rstrip("/") != "https://openrouter.ai/api/v1"
     ):
         raise AiProviderError(AiProviderErrorCode.INVALID_PROFILE)
     if auth_mode is AiProviderAuthMode.API_KEY and require_api_key:

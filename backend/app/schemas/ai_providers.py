@@ -85,3 +85,16 @@ class UpdateAiProviderProfileRequest(StrictModel):
             "model": self.model,
             "api_key": self.api_key.get_secret_value() if self.api_key else None,
         }
+
+
+class AiModelResponse(StrictModel):
+    id: str
+    name: str
+    context_length: int
+    input_modalities: tuple[str, ...]
+    output_modalities: tuple[str, ...]
+    supported_parameters: tuple[str, ...]
+
+
+class AiModelListResponse(StrictModel):
+    items: tuple[AiModelResponse, ...]
