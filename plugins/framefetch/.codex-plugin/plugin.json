@@ -1,0 +1,22 @@
+{
+  "name": "framefetch",
+  "version": "0.1.0",
+  "description": "Connect Codex to the local FrameFetch Agent and inspect Codex or Claude Code readiness.",
+  "author": {
+    "name": "FrameFetch"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "FrameFetch",
+    "shortDescription": "Connect Codex to the local FrameFetch Agent.",
+    "longDescription": "FrameFetch registers a local MCP server, starts the per-user local Agent on demand, and reports whether Codex and Claude Code are installed and authenticated without copying their credentials.",
+    "developerName": "FrameFetch",
+    "category": "Productivity",
+    "capabilities": [
+      "Start and stop the local FrameFetch Agent",
+      "Inspect Codex and Claude Code connection readiness"
+    ],
+    "defaultPrompt": "Check the FrameFetch local Agent and tell me whether Codex and Claude Code are ready."
+  },
+  "mcpServers": "./.mcp.json"
+}

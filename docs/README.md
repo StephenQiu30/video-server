@@ -1,5 +1,7 @@
 # 文档索引
 
+- 本地 Agent 与 Codex App 插件：[设计](design/038-本地Agent与CodexApp插件设计.md) · [需求](prd/038-本地Agent与CodexApp插件需求.md) · [计划](plans/038-本地Agent与CodexApp插件计划.md) · [验收](acceptance/038-本地Agent与CodexApp插件验收.md)。本机控制面与插件自动拉起已实现，设备配对和业务任务执行待实施。
+
 - 统一 AI 执行与 OpenRouter：[设计](design/037-统一AI执行与OpenRouter接入设计.md) · [需求](prd/037-统一AI执行与OpenRouter接入需求.md) · [计划](plans/037-统一AI执行与OpenRouter接入计划.md) · [验收](acceptance/037-统一AI执行与OpenRouter接入验收.md)。代码与确定性验证完成，真实付费模型待验收。
 
 - [内容创作与平台发布能力调研](research/023-内容创作与平台发布能力调研.md)：基于当前源码及 GitHub、Firecrawl、Context7 的文章/小红书能力审查、Skill 候选与官方发布边界；[036 设计](design/036-内容创作与平台发布设计.md) · [需求](prd/036-内容创作与平台发布需求.md) · [实施 SOP](plans/036-内容创作与平台发布计划.md) · [验收](acceptance/036-内容创作与平台发布验收.md)。研究与设计完成，新增功能尚未实施。
@@ -58,5 +60,7 @@
 | 032 | 腾讯与优酷个人下载；代码已接入，VIP 实测待完成 | [Design](design/032-腾讯视频与优酷个人下载设计.md) | [PRD](prd/032-腾讯视频与优酷个人下载需求.md) | [Plan](plans/032-腾讯视频与优酷个人下载计划.md) | [Acceptance](acceptance/032-腾讯视频与优酷个人下载验收.md) |
 | 035 | 平台访问策略、会话生命周期与跨机器恢复；首批基础修复已实施，平台可行性待验证 | [Design](design/035-平台访问与会话恢复能力设计.md) | [PRD](prd/035-平台访问与会话恢复能力需求.md) | [Plan](plans/035-平台访问与会话恢复能力计划.md) | [Acceptance](acceptance/035-平台访问与会话恢复能力验收.md) |
 | 036 | 内容创作与平台发布；既有证据回看/报告交互已修复，新增创作发布待实施 | [Design](design/036-内容创作与平台发布设计.md) | [PRD](prd/036-内容创作与平台发布需求.md) | [Plan](plans/036-内容创作与平台发布计划.md) | [Acceptance](acceptance/036-内容创作与平台发布验收.md) |
+| 037 | 统一 AI 执行与 OpenRouter；代码与确定性验证完成，真实付费模型待验收 | [Design](design/037-统一AI执行与OpenRouter接入设计.md) | [PRD](prd/037-统一AI执行与OpenRouter接入需求.md) | [Plan](plans/037-统一AI执行与OpenRouter接入计划.md) | [Acceptance](acceptance/037-统一AI执行与OpenRouter接入验收.md) |
+| 038 | 本地 Agent 与 Codex App 插件；控制面已实现，任务闭环待实施 | [Design](design/038-本地Agent与CodexApp插件设计.md) | [PRD](prd/038-本地Agent与CodexApp插件需求.md) | [Plan](plans/038-本地Agent与CodexApp插件计划.md) | [Acceptance](acceptance/038-本地Agent与CodexApp插件验收.md) |
 
 本次全业务一致性：[034 设计](design/034-App与Web业务一致性设计.md) · [需求](prd/034-App与Web业务一致性需求.md) · [计划](plans/034-App与Web业务一致性计划.md) · [验收](acceptance/034-App与Web业务一致性验收.md)。

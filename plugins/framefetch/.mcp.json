@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "framefetch": {
+      "title": "FrameFetch Local Agent",
+      "description": "Starts and controls the local FrameFetch Agent for Codex and Claude Code.",
+      "cwd": ".",
+      "command": "python3",
+      "args": [
+        "./scripts/framefetch_mcp.py"
+      ],
+      "env_vars": [
+        "HOME",
+        "USERPROFILE",
+        "LOCALAPPDATA",
+        "XDG_STATE_HOME",
+        "PATH",
+        "FRAMEFETCH_AGENT_STATE_DIR"
+      ],
+      "default_tools_approval_mode": "approve",
+      "startup_timeout_sec": 10,
+      "tool_timeout_sec": 15
+    }
+  }
+}

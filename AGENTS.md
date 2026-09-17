@@ -39,6 +39,8 @@ server/
 │   │   ├── types/                 前端业务类型
 │   │   └── utils/                 无 UI 的通用函数
 │   └── tests/                     Vitest 测试
+├── plugins/framefetch/             Codex App 插件与独立本地 Agent 发行包
+├── .agents/plugins/                仓库内 Codex 插件市场清单
 ├── docs/                          当前设计、需求、计划、验收与运维文档
 ├── Dockerfile                     前后端统一生产镜像
 ├── docker-compose-env.yml         仅 GitHub CI 使用的隔离基础服务夹具
@@ -46,7 +48,7 @@ server/
 └── docker-compose-prod.yml        生产业务容器拓扑
 ```
 
-仓库只保留 `backend/`、`frontend/`、`docs/` 三个业务模块和根治理文件，不新增 `deploy/`、重复子仓库或平行应用目录。生产环境保持前后端分离：Next.js standalone 前端独立监听 `8101`，FastAPI API 独立监听 `8111`。统一镜像按服务启动不同进程；FastAPI 不托管页面。浏览器使用同源相对 API 路径，由 Next.js 或部署入口转发到 API，WebSocket Upgrade 由部署入口直达 FastAPI。
+仓库只保留 `backend/`、`frontend/`、`plugins/framefetch/`、`docs/` 四个业务模块和根治理文件；`.agents/plugins/` 只保存仓库内 Codex 插件市场清单。不得新增 `deploy/`、重复子仓库或平行应用目录。生产环境保持前后端分离：Next.js standalone 前端独立监听 `8101`，FastAPI API 独立监听 `8111`。统一镜像按服务启动不同进程；FastAPI 不托管页面。浏览器使用同源相对 API 路径，由 Next.js 或部署入口转发到 API，WebSocket Upgrade 由部署入口直达 FastAPI。
 
 ## 文件放置规则
 
@@ -54,6 +56,7 @@ server/
 - 请求与响应模型放在 `schemas/`，不得直接暴露 ORM 模型或基础设施对象。
 - 用例编排和外部能力接口放在 `services/`；纯业务规则放在 `domain/`；SQL 查询与事务放在 `repositories/`，数据库连接配置放在 `db/`，ORM 模型放在 `models/`，具体 SDK、消息、存储和媒体实现放在 `integrations/`。
 - 进程入口放在 `workers/` 或 `runner/`，不要把下载、转码或 AI 长任务放进 HTTP 请求进程。
+- Codex App 插件、stdio MCP 桥接和可独立发行的用户本机 Agent 放在 `plugins/framefetch/`；插件不得导入后端应用模块，也不得持有数据库、队列、对象存储或模型服务密钥。
 - 前端不使用独立的 `src/features/` 目录。App Router 页面放在 `src/app/`，业务组件按 feature 放在 `src/components/{account,admin,analysis,auth,downloads,intake,layout,providers,screenplay}/`，shadcn/ui 源码放在 `src/components/ui/`。
 - 前端请求统一从 `services/` 暴露，状态流程优先放在 `hooks/`；不要在页面中散落原始请求、轮询或错误映射逻辑。
 - `frontend/src/services/video/` 保留已提交的 OpenAPI 客户端，禁止在页面中绕过稳定入口；生成代码统一导入 `frontend/src/lib/request.ts` 的 Axios 请求封装，接口变化时同步审查契约和客户端。

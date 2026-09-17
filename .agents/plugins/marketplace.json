@@ -1,0 +1,20 @@
+{
+  "name": "framefetch-dev",
+  "interface": {
+    "displayName": "FrameFetch Dev"
+  },
+  "plugins": [
+    {
+      "name": "framefetch",
+      "source": {
+        "source": "local",
+        "path": "./plugins/framefetch"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

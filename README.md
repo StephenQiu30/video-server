@@ -151,6 +151,22 @@ uv run python -m app.workers.analysis.agent_cli install --env-file ../.env.prod
 
 不要把 Codex/Claude OAuth 目录复制或挂载进容器。启用第三方模型前，请使用已获授权样本完成 canary，并确认模型服务条款和组织数据策略。
 
+### 安装 Codex App 插件
+
+仓库内提供 FrameFetch Codex 插件。安装后，Codex 会自动注册本地 MCP；MCP
+初始化时会尝试拉起当前用户的 FrameFetch Local Agent，并检查本机 Codex 与
+Claude Code 的安装和登录状态：
+
+```bash
+codex plugin marketplace add .
+codex plugin add framefetch@framefetch-dev
+codex plugin list
+```
+
+插件和 Agent 不读取或复制 Codex/Claude Code 的 OAuth 凭据。当前版本提供
+本机 Agent 生命周期与连接诊断，业务分析任务提交和设备配对仍由 038 后续切片
+接入。实现边界与验收状态见[本地 Agent 与 Codex App 插件设计](docs/design/038-本地Agent与CodexApp插件设计.md)。
+
 ## 架构
 
 ```mermaid
