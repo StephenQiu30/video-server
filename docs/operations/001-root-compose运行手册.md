@@ -107,11 +107,10 @@ git pull --ff-only
 
 ## 生产环境
 
-.env.prod 只允许由部署者在本机或 Secret 管理系统生成。仓库中的 .env.prod.example 只包含占位值。
+.env.prod 由部署者在本机或 Secret 管理系统维护；以 .env.example 为配置字段参考，保留已有环境文件。生产需设置 APP_ENV=production，按部署实际填写公开地址与凭据；显式设置 ANALYSIS_ENABLED=false、SCREENPLAY_ANALYSIS_ENABLED=false，直到宿主分析 Worker 已完成配置。出口策略使用 ./backend/egress/blocked-destinations.conf。
 
 ~~~bash
-test -f .env.prod || cp .env.prod.example .env.prod
-# 替换全部 replace-with-* 占位值
+# 准备好 .env.prod 并替换全部 replace-with-* 占位值后执行
 docker compose --env-file .env.prod -f docker-compose-prod.yml config --quiet
 docker compose --env-file .env.prod -f docker-compose-prod.yml up -d --no-build
 ~~~

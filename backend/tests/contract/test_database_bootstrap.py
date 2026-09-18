@@ -12,7 +12,6 @@ ENV_COMPOSE_PATH = ROOT.parent / "docker-compose-env.yml"
 COMPOSE_PATH = ROOT.parent / "docker-compose.yml"
 PROD_COMPOSE_PATH = ROOT.parent / "docker-compose-prod.yml"
 ENV_EXAMPLE_PATH = ROOT.parent / ".env.example"
-PROD_ENV_EXAMPLE_PATH = ROOT.parent / ".env.prod.example"
 SCHEMA_PATH = ROOT / "sql/schema.sql"
 ROOT_README_PATH = ROOT.parent / "README.md"
 FRONTEND_README_PATH = ROOT.parent / "frontend/README.md"
@@ -55,12 +54,11 @@ def _assert_exact_http_origins(value: str) -> None:
 
 
 def test_environment_templates_do_not_override_duplicate_assignments() -> None:
-    for path in (ENV_EXAMPLE_PATH, PROD_ENV_EXAMPLE_PATH):
-        assignments = re.findall(
-            r"(?m)^([A-Z][A-Z0-9_]*)=", path.read_text(encoding="utf-8")
-        )
-        assert len(assignments) == len(set(assignments))
-        assert _env_value(path, "REQUEST_TIMEOUT_SECONDS") == "180"
+    assignments = re.findall(
+        r"(?m)^([A-Z][A-Z0-9_]*)=", ENV_EXAMPLE_PATH.read_text(encoding="utf-8")
+    )
+    assert len(assignments) == len(set(assignments))
+    assert _env_value(ENV_EXAMPLE_PATH, "REQUEST_TIMEOUT_SECONDS") == "180"
 
 
 def test_frontend_compose_receives_only_required_runtime_configuration() -> None:
@@ -95,8 +93,10 @@ def test_frontend_compose_receives_only_required_runtime_configuration() -> None
 
 
 def test_production_analysis_is_opt_in() -> None:
-    assert _env_value(PROD_ENV_EXAMPLE_PATH, "ANALYSIS_ENABLED") == "false"
-    assert _env_value(PROD_ENV_EXAMPLE_PATH, "SCREENPLAY_ANALYSIS_ENABLED") == "false"
+    compose = yaml.safe_load(PROD_COMPOSE_PATH.read_text(encoding="utf-8"))
+    environment = compose["services"]["api"]["environment"]
+    for name in ("ANALYSIS_ENABLED", "SCREENPLAY_ANALYSIS_ENABLED"):
+        assert environment[name] == "${" + name + ":-false}"
 
 
 def test_current_schema_can_be_applied_repeatedly() -> None:
@@ -159,11 +159,14 @@ def test_current_schema_can_be_applied_repeatedly() -> None:
 
 
 def test_ai_provider_selection_is_not_configured_by_environment() -> None:
-    for path in (ENV_EXAMPLE_PATH, PROD_ENV_EXAMPLE_PATH):
+    for path in (ENV_EXAMPLE_PATH, COMPOSE_PATH, PROD_COMPOSE_PATH):
         document = path.read_text(encoding="utf-8")
-        assert "ANALYSIS_CLI_PROVIDER=" not in document
-        assert "ANALYSIS_CODEX_MODEL=" not in document
-        assert "ANALYSIS_CLAUDE_MODEL=" not in document
+        for name in (
+            "ANALYSIS_CLI_PROVIDER",
+            "ANALYSIS_CODEX_MODEL",
+            "ANALYSIS_CLAUDE_MODEL",
+        ):
+            assert name not in document
 
 
 def test_compose_does_not_bundle_host_managed_infrastructure() -> None:
@@ -213,8 +216,9 @@ def test_environment_minio_applies_exact_browser_cors_origins() -> None:
     assert "/bin/sh" not in minio
     assert "/usr/bin/docker-entrypoint.sh" not in minio
 
-    for path in (ENV_EXAMPLE_PATH, PROD_ENV_EXAMPLE_PATH):
-        _assert_exact_http_origins(_env_value(path, "MINIO_CORS_ALLOWED_ORIGINS"))
+    _assert_exact_http_origins(
+        _env_value(ENV_EXAMPLE_PATH, "MINIO_CORS_ALLOWED_ORIGINS")
+    )
 
 
 def test_database_consumers_use_the_configured_postgres_service() -> None:
@@ -464,10 +468,7 @@ def test_provider_cookie_agent_mount_is_physically_scoped_per_provider() -> None
     assert "PROVIDER_COOKIE_AGENT_RUNTIME_DIR=\n" in ENV_EXAMPLE_PATH.read_text(
         encoding="utf-8"
     )
-    assert "PROVIDER_COOKIE_AGENT_RUNTIME_DIR=\n" in PROD_ENV_EXAMPLE_PATH.read_text(
-        encoding="utf-8"
-    )
-    assert "COOKIE_SECRET_DIR" not in PROD_ENV_EXAMPLE_PATH.read_text(encoding="utf-8")
+    assert "COOKIE_SECRET_DIR" not in PROD_COMPOSE_PATH.read_text(encoding="utf-8")
 
 
 def test_default_personal_production_does_not_require_desktop_sessions() -> None:
@@ -478,15 +479,16 @@ def test_default_personal_production_does_not_require_desktop_sessions() -> None
             assert "RUNNER_PROVIDER_COOKIE_SYNC_ROOT" not in service.get(
                 "environment", {}
             )
-    assert "RUNNER_OPERATOR_BASE_URLS={}\n" in PROD_ENV_EXAMPLE_PATH.read_text()
+    assert compose["services"]["api"]["environment"]["RUNNER_OPERATOR_BASE_URLS"] == (
+        "${RUNNER_OPERATOR_BASE_URLS:-{}}"
+    )
 
 
 def test_production_compose_is_the_only_production_topology_file() -> None:
     assert not (ROOT.parent / "docker-compose-browser.yml").exists()
     assert not (ROOT.parent / "docker-compose-session-files.yml").exists()
-    assert "COMPOSE_FILE=docker-compose-prod.yml\n" in (
-        PROD_ENV_EXAMPLE_PATH.read_text(encoding="utf-8")
-    )
+    assert PROD_COMPOSE_PATH.is_file()
+    assert "-f docker-compose-prod.yml" in ROOT_README_PATH.read_text(encoding="utf-8")
 
 
 def test_wechat_channels_uses_the_same_isolated_browser_session_contract() -> None:

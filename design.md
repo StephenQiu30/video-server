@@ -29,7 +29,7 @@ FastAPI 路由注解与 Pydantic 模型自动产生 /openapi.json；Swagger UI �
 
 使用 pnpm dlx shadcn@latest info、docs 和 add --dry-run/--diff 检查官方配置和变化。更新组件后验证真实业务流程，生成 API 后运行类型检查和请求层测试。
 
-验收包含 format、lint、Vitest、production build 与浏览器检查。实际结果记录在 design-qa.md；不能用旧截图或单元测试代替当前浏览器证据。
+验收包含 format、lint、Vitest、production build 与浏览器检查。实际结果记录在对应的 docs/acceptance 验收文档；不能用旧截图或单元测试代替当前浏览器证据。
 
 ## 官方依据
 

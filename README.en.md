@@ -165,7 +165,7 @@ Do not disclose exploit details, secrets or user content in a public issue. Foll
 - Provider behavior can change with source pages and platforms. A platform name does not imply support for every item, region or account entitlement.
 - AI analysis needs a separate host agent or a deployment-configured model service. Disabling AI does not disable downloads or document imports.
 - Presigned URLs expire, but stored artifacts are not automatically deleted for that reason. Operators must plan MinIO capacity, backups and explicit retention cleanup.
-- Replace every placeholder credential in `.env.prod.example` and complete network, storage, runner and provider-canary acceptance before exposing a deployment to the internet.
+- Replace every placeholder credential in your deployment environment and complete network, storage, runner and provider-canary acceptance before exposing a deployment to the internet.
 
 ## Development
 

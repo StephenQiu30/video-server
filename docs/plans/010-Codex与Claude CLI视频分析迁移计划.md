@@ -264,7 +264,7 @@ Prompt 与 Codex 一样由父进程写入 stdin，不作为 argv 暴露在进程
 
 1. 删除 `backend/app/integrations/ai/` 中 OpenAI transcriber 与 LangChain analyzer，删除不再使用的 audio preprocessor。
 2. 从 `backend/pyproject.toml` 与 lock file 删除 `openai`、`langchain-core`、`langchain-deepseek`、`langchain-ollama` 及仅旧链路使用的依赖。
-3. 从代码、Compose、`.env.example`、`.env.prod.example`、测试和 README 删除所有 `OPENAI_*`、`DEEPSEEK_*`、`OLLAMA_*` 和旧 `ANALYSIS_PROVIDER`。
+3. 从代码、Compose、`.env.example`、测试和 README 删除所有 `OPENAI_*`、`DEEPSEEK_*`、`OLLAMA_*` 和旧 `ANALYSIS_PROVIDER`。
 4. 删除 transcript/mind-map 旧测试和 fixture，以 shot evidence 测试替代；不留下“legacy”目录或 adapter。
 5. 010 改为当前事实；移除或重写 003 的旧 Provider、ASR 和 transcript evidence 内容，并更新 `docs/README.md`、operations、AGENTS 与所有交叉引用，使仓库只保留一个当前方案。
 6. 全库 `rg` 验证旧 ASR、Ollama 和文本优先 Provider 不在当前运行源码；022 的 Web Profile 与 DeepSeek 视觉适配器是允许的当前实现。

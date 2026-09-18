@@ -60,15 +60,12 @@ def test_compose_selects_environment_specific_destination_policy() -> None:
     assert "blocked-destinations.conf" in production
 
     development_example = (REPOSITORY_ROOT / ".env.example").read_text(encoding="utf-8")
-    production_example = (REPOSITORY_ROOT / ".env.prod.example").read_text(
-        encoding="utf-8"
-    )
     assert (
         f"{variable}=./backend/egress/blocked-destinations-docker-desktop.conf"
         in development_example
     )
     assert (
-        f"{variable}=./backend/egress/blocked-destinations.conf" in production_example
+        "${" + variable + ":-./backend/egress/blocked-destinations.conf}" in production
     )
 
 

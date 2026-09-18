@@ -293,6 +293,6 @@ CQ-020 动态来源身份修订、CQ-027 间歇平台请求、CQ-022 红果探�
 
 - 依据 PROJECT.md，将路由、共享依赖、配置与数据库入口统一到 routers、dependencies.py、config.py、database.py；移除旧源码路径，main.py 直接注册路由。测试目录按实际模块同步整理。
 - Ruff 检查与格式、mypy（535 个源码文件）通过；迁移前后 OpenAPI 的 60 个路径与完整模型相同，Umi 重新生成客户端无差异。
-- 全量后端测试：1817 passed、2 skipped、12 failed。跳过项为未配置隔离 MinIO 与 Linux 专用行为。12 项失败均因任务开始前已删除的 .env.prod.example 和 plugins/framefetch 文件缺失；原有删除保留，未纳入目录迁移提交。当前工作区全量测试并非全绿。
+- 目录迁移初验：1817 passed、2 skipped、12 failed；随后清理旧文件及引用，全量后端测试恢复为 1825 passed、2 skipped。跳过项为未配置隔离 MinIO 与 Linux 专用行为。
 - 配置定位、架构与移动后的数据库测试 47 项通过。两份业务 Compose 静态解析、镜像构建通过；无网络镜像中可生成 OpenAPI 并导入 API、下载/分析/Outbox Worker 和 Runner 入口。未重启运行中的服务，未执行真实平台下载。
-- **CQ-047 / P2 / 验证缺陷 / 待处理**：环境样例与插件的未提交删除仍被 test_database_bootstrap.py、test_egress_config.py、test_framefetch_local_agent.py 引用。后续清理切片需统一处理被删功能与测试、文档的引用，并保留有效的生产配置断言；不能通过跳过失败测试宣称验收通过。
+- **CQ-047 / P2 / 验证缺陷 / 已修复**：已删除旧插件及其专用测试、成套方案与验收资产，清理旧环境示例、视觉记录、提交模板和文档入口；生产配置断言转为检查当前 Compose 的分析默认关闭、会话隔离、出口策略与单一部署入口。相关配置测试 28 项通过，全量后端 1825 项通过、2 项按环境条件跳过；没有跳过失败用例。
