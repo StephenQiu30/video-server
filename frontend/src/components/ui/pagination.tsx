@@ -3,14 +3,14 @@ import {
   CaretRightIcon,
   DotsThreeIcon,
 } from '@phosphor-icons/react';
+import { cn } from 'cn';
 import type * as React from 'react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 
 function Pagination({ className, ...props }: React.ComponentProps<'nav'>) {
   return (
     <nav
-      aria-label="分页"
+      aria-label="pagination"
       data-slot="pagination"
       className={cn('mx-auto flex w-full justify-center', className)}
       {...props}
@@ -65,12 +65,12 @@ function PaginationLink({
 
 function PaginationPrevious({
   className,
-  text = '上一页',
+  text = 'Previous',
   ...props
 }: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
   return (
     <PaginationLink
-      aria-label="前往上一页"
+      aria-label="Go to previous page"
       size="default"
       className={cn('pl-1.5!', className)}
       {...props}
@@ -83,12 +83,12 @@ function PaginationPrevious({
 
 function PaginationNext({
   className,
-  text = '下一页',
+  text = 'Next',
   ...props
 }: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
   return (
     <PaginationLink
-      aria-label="前往下一页"
+      aria-label="Go to next page"
       size="default"
       className={cn('pr-1.5!', className)}
       {...props}
@@ -114,7 +114,7 @@ function PaginationEllipsis({
       {...props}
     >
       <DotsThreeIcon />
-      <span className="sr-only">更多页面</span>
+      <span className="sr-only">More pages</span>
     </span>
   );
 }

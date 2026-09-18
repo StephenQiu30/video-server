@@ -9,11 +9,10 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-import type { AdminDownloadAnalytics } from '@/services/analytics';
 
 import { formatInteger, formatPercent } from './analytics-format';
 
-type Source = AdminDownloadAnalytics['sources'][number];
+type Source = API.DownloadAnalyticsResponse['sources'][number];
 
 const sourceConfig = {
   total: { color: 'var(--chart-3)', label: '任务数' },

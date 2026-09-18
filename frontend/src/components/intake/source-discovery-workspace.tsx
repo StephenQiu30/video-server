@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowRight, FilmStrip } from '@phosphor-icons/react';
+import { cn } from 'cn';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -8,9 +9,7 @@ import {
   ItemActions,
   ItemContent,
   ItemDescription,
-  ItemGroup,
   ItemMedia,
-  ItemTitle,
 } from '@/components/ui/item';
 import { Spinner } from '@/components/ui/spinner';
 import type { SourceDiscovery, SourceDiscoveryItem } from '@/types/video';
@@ -44,53 +43,51 @@ export function SourceDiscoveryWorkspace({
       </div>
 
       {discovery.items.length > 0 ? (
-        <ItemGroup asChild className="gap-1" aria-label="文章视频候选项">
-          <ul>
-            {discovery.items.map((item, index) => {
-              const busy = busyItemRef === item.item_ref;
-              return (
-                <Item
-                  asChild
-                  className="-mx-3 gap-4 rounded-md border-0 px-3 py-5 hover:bg-muted/50"
-                  key={item.item_ref}
-                >
-                  <li>
-                    <ItemMedia className="self-start pt-0.5">
-                      <FilmStrip
-                        aria-hidden
-                        className="text-muted-foreground"
-                        size={22}
-                      />
-                    </ItemMedia>
-                    <ItemContent className="min-w-0">
-                      <ItemTitle asChild className="truncate">
-                        <h3>{item.title || `文章视频 ${index + 1}`}</h3>
-                      </ItemTitle>
-                      <ItemDescription className="mt-0 text-xs leading-5">
-                        {itemKindLabel(item.kind)} · {decisionLabel(item)}
-                      </ItemDescription>
-                    </ItemContent>
-                    <ItemActions className="w-full sm:w-auto">
-                      <Button
-                        className="h-11 w-full sm:w-auto"
-                        disabled={busyItemRef !== null}
-                        onClick={() => onSelect(item)}
-                        variant="secondary"
-                      >
-                        {busy ? (
-                          <Spinner aria-hidden />
-                        ) : (
-                          <ArrowRight aria-hidden />
-                        )}
-                        {busy ? '处理中…' : '选择并查看'}
-                      </Button>
-                    </ItemActions>
-                  </li>
-                </Item>
-              );
-            })}
-          </ul>
-        </ItemGroup>
+        <ul aria-label="文章视频候选项" className={cn('gap-1')}>
+          {discovery.items.map((item, index) => {
+            const busy = busyItemRef === item.item_ref;
+            return (
+              <Item
+                asChild
+                className="-mx-3 gap-4 rounded-md border-0 px-3 py-5 hover:bg-muted/50"
+                key={item.item_ref}
+              >
+                <li>
+                  <ItemMedia className="self-start pt-0.5">
+                    <FilmStrip
+                      aria-hidden
+                      className="text-muted-foreground"
+                      size={22}
+                    />
+                  </ItemMedia>
+                  <ItemContent className="min-w-0">
+                    <h3 className={cn('truncate')}>
+                      {item.title || `文章视频 ${index + 1}`}
+                    </h3>
+                    <ItemDescription className="mt-0 text-xs leading-5">
+                      {itemKindLabel(item.kind)} · {decisionLabel(item)}
+                    </ItemDescription>
+                  </ItemContent>
+                  <ItemActions className="w-full sm:w-auto">
+                    <Button
+                      className="h-11 w-full sm:w-auto"
+                      disabled={busyItemRef !== null}
+                      onClick={() => onSelect(item)}
+                      variant="secondary"
+                    >
+                      {busy ? (
+                        <Spinner aria-hidden />
+                      ) : (
+                        <ArrowRight aria-hidden />
+                      )}
+                      {busy ? '处理中…' : '选择并查看'}
+                    </Button>
+                  </ItemActions>
+                </li>
+              </Item>
+            );
+          })}
+        </ul>
       ) : (
         <p className="py-8 text-sm text-muted-foreground" role="status">
           请检查文章是否仍公开，或改用自有明文 MP4 导入。

@@ -17,14 +17,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import type { AuthUser } from '@/services/auth';
 
 type MobileNavigationProps = {
   loading: boolean;
   onSignOut: () => Promise<void>;
   pathname: string;
   signingOut: boolean;
-  user?: AuthUser;
+  user?: API.UserResponse;
 };
 
 export function MobileNavigation({

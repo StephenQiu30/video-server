@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { sendRegistrationCode as requestRegistrationCode } from '@/api/auth';
 import { AuthField } from '@/components/auth/auth-page-frame';
 import { isValidEmail } from '@/components/auth/register-form-model';
 import { Button } from '@/components/ui/button';
 import { InputGroupInput } from '@/components/ui/input-group';
-import { displayError, requestRegistrationCode } from '@/services/auth';
+import { displayError } from '@/lib/request-error';
 
 export function RegistrationCodeField({
   email,
@@ -54,7 +55,7 @@ export function RegistrationCodeField({
     onSendingChange(true);
     setMessage('');
     try {
-      const result = await requestRegistrationCode(email.trim());
+      const result = await requestRegistrationCode({ email: email.trim() });
       if (!mounted.current) return;
       if (!result.email_sent) {
         setMessage('邮件发送未能确认，请稍后重新获取验证码。');
@@ -75,7 +76,7 @@ export function RegistrationCodeField({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       <AuthField
         idPrefix="register"
         name="verificationCode"

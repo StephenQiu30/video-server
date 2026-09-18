@@ -16,7 +16,6 @@ import {
   ItemDescription,
   ItemTitle,
 } from '@/components/ui/item';
-import type { ProviderStatus } from '@/services/providers';
 
 const STATUS_LABELS: Record<API.ProviderSupportStatus, string> = {
   unknown: '待验证',
@@ -40,7 +39,11 @@ const CAPABILITY_LABELS: Record<API.ProviderCapability, string> = {
   playlist: '播放列表',
 };
 
-export function ProviderStatusItem({ provider }: { provider: ProviderStatus }) {
+export function ProviderStatusItem({
+  provider,
+}: {
+  provider: API.ProviderListResponse['items'][number];
+}) {
   const capabilities = provider.capabilities
     .map((capability) => CAPABILITY_LABELS[capability])
     .join(' · ');
@@ -103,7 +106,9 @@ export function ProviderStatusItem({ provider }: { provider: ProviderStatus }) {
   );
 }
 
-function statusLabel(provider: ProviderStatus): string {
+function statusLabel(
+  provider: API.ProviderListResponse['items'][number],
+): string {
   if (provider.download_supported) {
     if (provider.download_available) return '当前可用';
     if (provider.status === 'access_required') return '已接入 · 当前不可用';
@@ -123,14 +128,18 @@ function statusLabel(provider: ProviderStatus): string {
   return STATUS_LABELS[provider.status];
 }
 
-function integrationDescription(provider: ProviderStatus): string {
+function integrationDescription(
+  provider: API.ProviderListResponse['items'][number],
+): string {
   if (!provider.registered) return '未登记';
   if (!provider.extractor_exists) return '已登记，暂无解析器';
   if (provider.status === 'disabled') return '仅识别链接，未开放下载';
   return provider.download_supported ? '下载解析器已部署' : '解析器已部署';
 }
 
-function accessDescription(provider: ProviderStatus): string {
+function accessDescription(
+  provider: API.ProviderListResponse['items'][number],
+): string {
   const anonymous = provider.access_modes.includes('anonymous');
   const operatorManaged = provider.access_modes.includes('operator_managed');
   if (operatorManaged && !anonymous) return '服务端受控线路已配置';
@@ -139,7 +148,9 @@ function accessDescription(provider: ProviderStatus): string {
   return '当前未开放';
 }
 
-function latestCheckDescription(provider: ProviderStatus): string {
+function latestCheckDescription(
+  provider: API.ProviderListResponse['items'][number],
+): string {
   if (!provider.last_checked_at || provider.last_check_succeeded === null) {
     return '状态检查：暂无当前版本记录';
   }
@@ -147,7 +158,9 @@ function latestCheckDescription(provider: ProviderStatus): string {
   return `状态检查：${formatDate(provider.last_checked_at, true)} · ${outcome}`;
 }
 
-function mediaVerificationDescription(provider: ProviderStatus): string {
+function mediaVerificationDescription(
+  provider: API.ProviderListResponse['items'][number],
+): string {
   if (!provider.last_media_verified_at) return '真实下载：暂无当前版本证据';
   if (provider.download_available) {
     const sample = provider.access_modes.includes('anonymous')
@@ -160,7 +173,9 @@ function mediaVerificationDescription(provider: ProviderStatus): string {
   return `真实下载：${formatDate(provider.last_media_verified_at)}`;
 }
 
-function analysisVerificationDescription(provider: ProviderStatus): string {
+function analysisVerificationDescription(
+  provider: API.ProviderListResponse['items'][number],
+): string {
   if (!provider.last_verified_at) return '完整分析：暂无当前版本证据';
   return `完整分析：${formatDate(provider.last_verified_at)}`;
 }
@@ -173,13 +188,13 @@ function formatDate(value: string, includeTime = false): string {
 }
 
 function statusVariant(
-  provider: ProviderStatus,
-): 'destructive' | 'neutral' | 'success' | 'warning' {
+  provider: API.ProviderListResponse['items'][number],
+): 'destructive' | 'secondary' | 'default' | 'secondary' {
   if (
     provider.download_available ||
     (!provider.download_supported && provider.status === 'verified')
   ) {
-    return 'success';
+    return 'default';
   }
   if (provider.status === 'unsupported' || provider.status === 'blocked') {
     return 'destructive';
@@ -189,7 +204,7 @@ function statusVariant(
     provider.status === 'degraded' ||
     provider.status === 'rate_limited'
   ) {
-    return 'warning';
+    return 'secondary';
   }
-  return 'neutral';
+  return 'secondary';
 }

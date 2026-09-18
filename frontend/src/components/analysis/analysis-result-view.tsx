@@ -1,11 +1,13 @@
 'use client';
 
+import { cn } from 'cn';
+
 import type { ReactNode } from 'react';
 
 import AnalysisReportPreview from '@/components/analysis/analysis-report-preview';
 import AnalysisSceneList from '@/components/analysis/analysis-scene-list';
 import { Button } from '@/components/ui/button';
-import { Item, ItemGroup } from '@/components/ui/item';
+import { Item } from '@/components/ui/item';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { VideoAnalysisResult } from '@/types/video';
 import { formatMilliseconds } from '@/utils/format';
@@ -65,104 +67,98 @@ export default function AnalysisResultView({
         <AnalysisSceneList onSelectTime={onSelectTime} scenes={result.scenes} />
       </TabsContent>
       <TabsContent className="pt-7" value="shots">
-        <ItemGroup asChild className="gap-2">
-          <ol>
-            {result.shots.map((shot) => (
-              <Item
-                asChild
-                className="grid gap-4 rounded-md border-0 px-0 py-6 sm:grid-cols-[72px_minmax(0,1fr)]"
-                key={shot.id}
-              >
-                <li>
-                  <TimeButton
-                    milliseconds={shot.start_ms}
-                    onSelect={onSelectTime}
-                  />
-                  <div>
-                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                      <strong className="font-medium">分镜 {shot.index}</strong>
-                      <span className="text-xs text-muted-foreground">
-                        {shot.shot_size} · {shot.camera_motion}
-                      </span>
-                    </div>
-                    <p className="mt-2 leading-7 text-muted-foreground">
-                      {shot.description}
-                    </p>
-                    {shot.visual_tags.length ? (
-                      <p className="mt-3 text-xs text-muted-foreground">
-                        {shot.visual_tags.join(' · ')}
-                      </p>
-                    ) : null}
+        <ol className={cn('gap-2')}>
+          {result.shots.map((shot) => (
+            <Item
+              asChild
+              className="grid gap-4 rounded-md border-0 px-0 py-6 sm:grid-cols-[72px_minmax(0,1fr)]"
+              key={shot.id}
+            >
+              <li>
+                <TimeButton
+                  milliseconds={shot.start_ms}
+                  onSelect={onSelectTime}
+                />
+                <div>
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <strong className="font-medium">分镜 {shot.index}</strong>
+                    <span className="text-xs text-muted-foreground">
+                      {shot.shot_size} · {shot.camera_motion}
+                    </span>
                   </div>
-                </li>
-              </Item>
-            ))}
-          </ol>
-        </ItemGroup>
+                  <p className="mt-2 leading-7 text-muted-foreground">
+                    {shot.description}
+                  </p>
+                  {shot.visual_tags.length ? (
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      {shot.visual_tags.join(' · ')}
+                    </p>
+                  ) : null}
+                </div>
+              </li>
+            </Item>
+          ))}
+        </ol>
       </TabsContent>
       <TabsContent className="pt-7" value="highlights">
         {result.highlights.length ? (
-          <ItemGroup asChild className="gap-2">
-            <ul>
-              {result.highlights.map((highlight) => (
-                <Item
-                  asChild
-                  className="block rounded-md border-0 px-0 py-6"
-                  key={highlight.id}
-                >
-                  <li>
-                    <div className="flex items-start justify-between gap-4">
-                      <strong className="font-medium">{highlight.title}</strong>
-                      <span className="text-sm text-muted-foreground tabular-nums">
-                        评分 {highlight.score}
-                      </span>
-                    </div>
-                    <p className="mt-3 leading-7 text-muted-foreground">
-                      {highlight.description}
-                    </p>
-                    <p className="mt-3 text-sm">{highlight.reason}</p>
-                    <TimeButton
-                      milliseconds={highlight.start_ms}
-                      onSelect={onSelectTime}
-                    />
-                  </li>
-                </Item>
-              ))}
-            </ul>
-          </ItemGroup>
+          <ul className={cn('gap-2')}>
+            {result.highlights.map((highlight) => (
+              <Item
+                asChild
+                className="block rounded-md border-0 px-0 py-6"
+                key={highlight.id}
+              >
+                <li>
+                  <div className="flex items-start justify-between gap-4">
+                    <strong className="font-medium">{highlight.title}</strong>
+                    <span className="text-sm text-muted-foreground tabular-nums">
+                      评分 {highlight.score}
+                    </span>
+                  </div>
+                  <p className="mt-3 leading-7 text-muted-foreground">
+                    {highlight.description}
+                  </p>
+                  <p className="mt-3 text-sm">{highlight.reason}</p>
+                  <TimeButton
+                    milliseconds={highlight.start_ms}
+                    onSelect={onSelectTime}
+                  />
+                </li>
+              </Item>
+            ))}
+          </ul>
         ) : (
           <EmptyState>未识别出独立视觉高光。</EmptyState>
         )}
       </TabsContent>
       <TabsContent className="pt-7" value="assets">
         {result.assets.length ? (
-          <ItemGroup asChild className="gap-2">
-            <ul>
-              {result.assets.map((asset) => (
-                <Item
-                  asChild
-                  className="block rounded-md border-0 px-0 py-6"
-                  key={asset.id}
-                >
-                  <li>
-                    <p className="text-xs text-muted-foreground">
-                      {assetTypeLabels[asset.type] ?? asset.type}
-                    </p>
-                    <strong className="mt-3 block font-medium">
-                      {asset.label}
-                    </strong>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                      {asset.description}
-                    </p>
-                    <TimeButton
-                      milliseconds={asset.first_seen_ms}
-                      onSelect={onSelectTime}
-                    />
-                  </li>
-                </Item>
-              ))}
-            </ul>
-          </ItemGroup>
+          <ul className={cn('gap-2')}>
+            {result.assets.map((asset) => (
+              <Item
+                asChild
+                className="block rounded-md border-0 px-0 py-6"
+                key={asset.id}
+              >
+                <li>
+                  <p className="text-xs text-muted-foreground">
+                    {assetTypeLabels[asset.type] ?? asset.type}
+                  </p>
+                  <strong className="mt-3 block font-medium">
+                    {asset.label}
+                  </strong>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {asset.description}
+                  </p>
+                  <TimeButton
+                    milliseconds={asset.first_seen_ms}
+                    onSelect={onSelectTime}
+                  />
+                </li>
+              </Item>
+            ))}
+          </ul>
         ) : (
           <EmptyState>未识别出可复用的视觉资产。</EmptyState>
         )}

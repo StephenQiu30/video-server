@@ -1,19 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRequestScope } from '@/hooks/useRequestScope';
-
-import { type TaskSocketStatus, taskSocket } from '@/lib/task-socket';
 import {
   cancelDownload,
-  createIdempotencyKey,
   deleteDownload,
-  displayError,
   getDownload,
   issueDownloadUrl,
   retryDownload,
-  triggerBrowserDownload,
-} from '@/services/download';
+} from '@/api/downloads';
+import { useRequestScope } from '@/hooks/useRequestScope';
+import { triggerBrowserDownload } from '@/lib/browser-download';
+import { displayError } from '@/lib/request-error';
+import { type TaskSocketStatus, taskSocket } from '@/lib/task-socket';
 import type { DownloadJob } from '@/types/video';
 import { terminalDownloadStatuses } from '@/types/video';
+import { createIdempotencyKey } from '@/utils/idempotency';
 
 type Action = 'cancel' | 'delete' | 'download' | 'retry' | null;
 type ErrorKind = 'load' | 'sync' | 'action' | null;
@@ -59,7 +58,9 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     async function load() {
       const request = scope.capture();
       try {
-        const current = await getDownload(jobId);
+        const current = await getDownload({
+          job_id: encodeURIComponent(jobId),
+        });
         if (disposed || !request.current()) {
           return;
         }
@@ -91,7 +92,7 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
       async () => {
         const request = scope.capture();
         try {
-          const next = await getDownload(jobId);
+          const next = await getDownload({ job_id: encodeURIComponent(jobId) });
           if (disposed || !request.current() || !accept(next)) return;
           setError(null);
           setErrorKind(null);
@@ -120,7 +121,9 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
       refreshing = true;
       const request = scope.capture();
       try {
-        const current = await getDownload(jobId);
+        const current = await getDownload({
+          job_id: encodeURIComponent(jobId),
+        });
         if (disposed || !request.current() || !accept(current)) return;
         setError(null);
         setErrorKind(null);
@@ -158,7 +161,10 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
       retryRequest.current = { jobId, key: createIdempotencyKey() };
     }
     try {
-      const retried = await retryDownload(jobId, retryRequest.current.key);
+      const retried = await retryDownload(
+        { job_id: encodeURIComponent(jobId) },
+        { headers: { 'Idempotency-Key': retryRequest.current.key } },
+      );
       if (!request.current()) return null;
       setJob(retried);
       setErrorKind(null);
@@ -180,7 +186,9 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     setError(null);
     setErrorKind(null);
     try {
-      const cancelled = await cancelDownload(jobId);
+      const cancelled = await cancelDownload({
+        job_id: encodeURIComponent(jobId),
+      });
       if (!request.current() || !accept(cancelled)) return;
       setErrorKind(null);
     } catch (reason) {
@@ -199,7 +207,15 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     setError(null);
     setErrorKind(null);
     try {
-      const result = await issueDownloadUrl(jobId);
+      const result = await issueDownloadUrl(
+        {
+          job_id: encodeURIComponent(jobId),
+          preview: false,
+        },
+        {
+          headers: { 'X-FrameFetch-Download-Client': 'local-web' },
+        },
+      );
       if (!request.current()) return;
       triggerBrowserDownload(result.url, result.filename);
       setErrorKind(null);
@@ -219,7 +235,7 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     setError(null);
     setErrorKind(null);
     try {
-      await deleteDownload(jobId);
+      await deleteDownload({ job_id: encodeURIComponent(jobId) });
       if (!request.current()) return false;
       setJob(null);
       return true;

@@ -88,7 +88,7 @@ export function ScreenplayDocumentMetadata({
         </Alert>
       ) : null}
       {document.quality_warnings.length ? (
-        <Alert className="mt-6" variant="warning">
+        <Alert className="mt-6" variant="default">
           <Warning aria-hidden />
           <div className="min-w-0">
             <AlertTitle>需要人工核对</AlertTitle>

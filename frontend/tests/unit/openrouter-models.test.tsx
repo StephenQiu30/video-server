@@ -3,10 +3,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { OpenRouterModels } from '@/components/admin/admin-ai-providers/openrouter-models';
 
 const list = vi.hoisted(() => vi.fn());
-vi.mock('@/services/ai-providers', () => ({
-  listOpenRouterModels: list,
-  displayError: () => '模型目录暂时不可用',
-}));
+
 beforeEach(() => list.mockReset());
 
 it('loads model capabilities and lets the user select a compatible model', async () => {
@@ -54,3 +51,12 @@ it('shows an unavailable catalog and supports retry', async () => {
   await screen.findByText(/0 个匹配模型/);
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });
+
+vi.mock('@/api/admin', async (original) => ({
+  ...(await original<typeof import('@/api/admin')>()),
+  listOpenRouterModels: list,
+}));
+vi.mock('@/lib/request-error', async (original) => ({
+  ...(await original<typeof import('@/lib/request-error')>()),
+  displayError: () => '模型目录暂时不可用',
+}));

@@ -2,6 +2,7 @@
 
 import { CheckCircle, FloppyDisk, WarningCircle } from '@phosphor-icons/react';
 import { type FormEvent, useEffect, useState } from 'react';
+import { updateCurrentUser } from '@/api/users';
 import { ReadOnlyField } from '@/components/account/read-only-field';
 import { useAuth } from '@/components/auth/auth-provider';
 import { BackLink } from '@/components/layout/back-link';
@@ -18,15 +19,15 @@ import {
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
+import { displayError } from '@/lib/request-error';
 import {
   normalizeUsername,
   USERNAME_HELP,
   usernameLength,
   validateUsername,
 } from '@/lib/username';
-import { displayError, updateCurrentUser } from '@/services/users';
 
-type Notice = { kind: 'error' | 'success'; text: string } | null;
+type Notice = { kind: 'error' | 'default'; text: string } | null;
 
 export function AccountView() {
   const { user, loading, setUser, refreshUser } = useAuth();
@@ -56,7 +57,7 @@ export function AccountView() {
       const updated = await updateCurrentUser({ username: value });
       setUser(updated);
       setUsername(updated.username);
-      setNotice({ kind: 'success', text: '个人资料已更新。' });
+      setNotice({ kind: 'default', text: '个人资料已更新。' });
     } catch (error) {
       setNotice({ kind: 'error', text: displayError(error) });
     } finally {
@@ -174,9 +175,9 @@ export function AccountView() {
             </div>
             {notice ? (
               <Alert
-                variant={notice.kind === 'success' ? 'success' : 'destructive'}
+                variant={notice.kind === 'default' ? 'default' : 'destructive'}
               >
-                {notice.kind === 'success' ? (
+                {notice.kind === 'default' ? (
                   <CheckCircle aria-hidden />
                 ) : (
                   <WarningCircle aria-hidden />

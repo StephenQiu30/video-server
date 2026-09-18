@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from 'cn';
 import {
   Empty,
   EmptyDescription,
@@ -9,7 +10,6 @@ import {
 import { FieldLabel } from '@/components/ui/field';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { audioCodecLabel } from '@/lib/media-format';
-import { cn } from '@/lib/utils';
 import type { MediaFormat, MediaKind } from '@/types/video';
 
 const fpsLabels = {

@@ -13,14 +13,13 @@ import {
 
 import { MobileNavigationLink as MobileLink } from '@/components/layout/mobile-navigation-link';
 import { NavigationMenuList } from '@/components/ui/navigation-menu';
-import type { AuthUser } from '@/services/auth';
 
 export function MobileNavigationItems({
   pathname,
   user,
 }: {
   pathname: string;
-  user?: AuthUser;
+  user?: API.UserResponse;
 }) {
   return (
     <NavigationMenuList className="grid w-full flex-none justify-stretch gap-1">

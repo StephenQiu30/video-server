@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-
+import { listAnalysisSkills } from '@/api/analyses';
 import { displayError } from '@/lib/request-error';
-import { listAnalysisSkills } from '@/services/analysis';
 import type { AnalysisSkill } from '@/types/video';
 
 export function useAnalysisSkills(inputKind: API.AnalysisInputKind = 'video') {
@@ -13,7 +12,7 @@ export function useAnalysisSkills(inputKind: API.AnalysisInputKind = 'video') {
     setLoading(true);
     setError(null);
     try {
-      const result = await listAnalysisSkills(inputKind);
+      const result = await listAnalysisSkills({ input_kind: inputKind });
       if (!Array.isArray(result)) {
         throw new Error('分析 Skill 清单格式无效');
       }

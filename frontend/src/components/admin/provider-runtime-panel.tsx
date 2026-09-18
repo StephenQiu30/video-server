@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { getAdminProviderRuntime } from '@/api/admin';
 import { Button } from '@/components/ui/button';
 import { accessPolicyLabel, routeCooldownLabel } from '@/lib/provider-access';
 import { displayError } from '@/lib/request-error';
-import { getAdminProviderRuntime } from '@/services/provider-catalog';
 
 const sourceLabels: Record<
   API.ProviderRuntimeResponse['source_state'],

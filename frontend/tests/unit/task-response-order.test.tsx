@@ -26,26 +26,6 @@ vi.mock('@/lib/task-socket', () => ({
     },
   },
 }));
-vi.mock('@/services/download', () => ({
-  getDownload: runtime.get,
-  cancelDownload: runtime.cancel,
-  retryDownload: vi.fn(),
-  deleteDownload: runtime.remove,
-  issueDownloadUrl: vi.fn(),
-  triggerBrowserDownload: vi.fn(),
-  createIdempotencyKey: () => 'key',
-  displayError: () => 'old request failed',
-}));
-vi.mock('@/services/analysis', () => ({
-  getAnalysis: runtime.get,
-  getLatestDownloadAnalysis: runtime.latest,
-  getLatestDocumentAnalysis: runtime.latest,
-  cancelAnalysis: runtime.cancel,
-  createAnalysis: vi.fn(),
-  createDocumentAnalysis: vi.fn(),
-  deleteAnalysis: runtime.remove,
-  retryAnalysis: vi.fn(),
-}));
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -193,3 +173,35 @@ describe.each(['download', 'analysis'] as const)(
     );
   },
 );
+
+vi.mock('@/api/downloads', async (original) => ({
+  ...(await original<typeof import('@/api/downloads')>()),
+  getDownload: runtime.get,
+  cancelDownload: runtime.cancel,
+  retryDownload: vi.fn(),
+  deleteDownload: runtime.remove,
+  issueDownloadUrl: vi.fn(),
+}));
+vi.mock('@/lib/browser-download', async (original) => ({
+  ...(await original<typeof import('@/lib/browser-download')>()),
+  triggerBrowserDownload: vi.fn(),
+}));
+vi.mock('@/utils/idempotency', async (original) => ({
+  ...(await original<typeof import('@/utils/idempotency')>()),
+  createIdempotencyKey: () => 'key',
+}));
+vi.mock('@/lib/request-error', async (original) => ({
+  ...(await original<typeof import('@/lib/request-error')>()),
+  displayError: () => 'old request failed',
+}));
+vi.mock('@/api/analyses', async (original) => ({
+  ...(await original<typeof import('@/api/analyses')>()),
+  getAnalysis: runtime.get,
+  getLatestDownloadAnalysis: runtime.latest,
+  getLatestDocumentAnalysis: runtime.latest,
+  cancelAnalysis: runtime.cancel,
+  createAnalysis: vi.fn(),
+  createDocumentAnalysis: vi.fn(),
+  deleteAnalysis: runtime.remove,
+  retryAnalysis: vi.fn(),
+}));

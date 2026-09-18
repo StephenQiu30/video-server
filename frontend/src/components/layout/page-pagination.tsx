@@ -1,12 +1,11 @@
 import { CaretLeft, CaretRight } from '@phosphor-icons/react';
-
+import { cn } from 'cn';
 import { Button } from '@/components/ui/button';
 import {
   Pagination,
   PaginationContent,
   PaginationItem,
 } from '@/components/ui/pagination';
-import { cn } from '@/lib/utils';
 
 type PagePaginationProps = {
   ariaLabel: string;

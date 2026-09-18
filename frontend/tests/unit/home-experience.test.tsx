@@ -31,7 +31,7 @@ describe('HomeExperience', () => {
     expect(screen.queryByRole('heading')).not.toBeInTheDocument();
     expect(screen.queryByTestId('download-workspace')).not.toBeInTheDocument();
     const startup = screen.getByRole('status');
-    expect(startup).toHaveAttribute('data-slot', 'empty');
+    expect(startup).toHaveTextContent('正在确认当前会话');
     expect(startup.querySelector('[data-slot="progress"]')).not.toBeNull();
   });
 

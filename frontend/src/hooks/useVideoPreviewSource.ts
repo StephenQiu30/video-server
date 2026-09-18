@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-
-import { displayError, issueDownloadUrl } from '@/services/download';
+import { issueDownloadUrl } from '@/api/downloads';
+import { displayError } from '@/lib/request-error';
 
 export function useVideoPreviewSource(downloadId: string) {
   const [source, setSource] = useState<string | null>(null);
@@ -14,7 +14,15 @@ export function useVideoPreviewSource(downloadId: string) {
     setLoading(true);
     setError(null);
 
-    void issueDownloadUrl(downloadId, true)
+    void issueDownloadUrl(
+      {
+        job_id: encodeURIComponent(downloadId),
+        preview: true,
+      },
+      {
+        headers: { 'X-FrameFetch-Download-Client': 'local-web' },
+      },
+    )
       .then((result) => {
         if (!disposed) setSource(result.url);
       })

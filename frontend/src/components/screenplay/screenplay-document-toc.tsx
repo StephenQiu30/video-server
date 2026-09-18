@@ -1,15 +1,14 @@
 'use client';
 
 import { List } from '@phosphor-icons/react';
+import { cn } from 'cn';
 import Link from 'next/link';
-
 import {
   NavigationMenu,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
 } from '@/components/ui/navigation-menu';
-import { cn } from '@/lib/utils';
 
 export type MarkdownHeading = {
   id: string;

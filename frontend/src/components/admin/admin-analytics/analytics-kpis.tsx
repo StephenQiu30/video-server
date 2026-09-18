@@ -6,7 +6,6 @@ import {
 } from '@phosphor-icons/react';
 
 import { Progress } from '@/components/ui/progress';
-import type { AdminDownloadAnalytics } from '@/services/analytics';
 
 import {
   formatBytes,
@@ -18,7 +17,7 @@ import {
 export function AnalyticsKpis({
   summary,
 }: {
-  summary: AdminDownloadAnalytics['summary'];
+  summary: API.DownloadAnalyticsResponse['summary'];
 }) {
   const metrics = [
     {

@@ -23,7 +23,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { AuthUser } from '@/services/auth';
 
 type HeaderAccountProps = {
   analyticsActive: boolean;
@@ -34,7 +33,7 @@ type HeaderAccountProps = {
   onSignOut: () => void;
   pathname: string;
   signingOut: boolean;
-  user?: AuthUser;
+  user?: API.UserResponse;
   usersActive: boolean;
 };
 

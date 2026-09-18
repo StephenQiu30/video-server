@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DownloadWorkspace from '@/components/intake/download-workspace';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { httpClient } from '@/lib/request';
-import { ApiError } from '@/services/download';
+import { ApiError } from '@/lib/request-error';
 import { PUBLIC_INPUT_REQUIRED } from '@/utils/public-input';
 import {
   galleryInspection,
@@ -46,10 +46,7 @@ describe('DownloadWorkspace', () => {
     renderWorkspace();
 
     const input = screen.getByLabelText('公开视频地址');
-    expect(input.parentElement).toHaveAttribute(
-      'data-textarea-layout',
-      'fixed',
-    );
+    expect(input).toHaveClass('field-sizing-fixed');
     expect(screen.getByRole('button', { name: '解析媒体' })).toBeEnabled();
     expect(screen.getByRole('tab', { name: '链接解析' })).toHaveAttribute(
       'aria-selected',

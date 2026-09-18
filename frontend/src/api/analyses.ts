@@ -51,7 +51,7 @@ export async function exportAnalysisReport(
   options?: RequestOptions
 ) {
   const { analysis_id: param0, ...queryParams } = params;
-  return request<string>(`/api/analyses/${param0}/report.docx`, {
+  return request<Blob>(`/api/analyses/${param0}/report.docx`, {
     method: "GET",
     params: { ...queryParams },
     ...(options || {}),
@@ -65,7 +65,7 @@ export async function exportAnalysisMarkdown(
   options?: RequestOptions
 ) {
   const { analysis_id: param0, ...queryParams } = params;
-  return request<string>(`/api/analyses/${param0}/report.md`, {
+  return request<Blob>(`/api/analyses/${param0}/report.md`, {
     method: "GET",
     params: { ...queryParams },
     ...(options || {}),

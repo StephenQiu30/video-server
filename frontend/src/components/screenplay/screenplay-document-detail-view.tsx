@@ -3,7 +3,7 @@
 import { ArrowClockwise } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
-
+import { deleteDocument as deleteScreenplayDocument } from '@/api/documents';
 import { BackLink } from '@/components/layout/back-link';
 import ScreenplayAnalysisPanel from '@/components/screenplay/screenplay-analysis-panel';
 import { ScreenplayDocumentDeleteDialog } from '@/components/screenplay/screenplay-document-delete-dialog';
@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useScreenplayDocument } from '@/hooks/useScreenplayDocument';
-import { deleteScreenplayDocument, displayError } from '@/services/documents';
+import { displayError } from '@/lib/request-error';
 
 const metadataSkeletonKeys = [
   'format',
@@ -70,7 +70,9 @@ export default function ScreenplayDocumentDetailView({
     setDeleting(true);
     setActionError(null);
     try {
-      await deleteScreenplayDocument(documentId);
+      await deleteScreenplayDocument({
+        document_id: encodeURIComponent(documentId),
+      });
       router.replace('/documents');
     } catch (reason) {
       setActionError(displayError(reason));

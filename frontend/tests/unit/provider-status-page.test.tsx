@@ -2,16 +2,9 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ProviderStatusView } from '@/components/providers/provider-status-view';
-import type { ProviderStatusList } from '@/services/providers';
 
 const runtime = vi.hoisted(() => ({
   listProviders: vi.fn(),
-}));
-
-vi.mock('@/services/providers', () => ({
-  displayError: (reason: unknown) =>
-    reason instanceof Error ? reason.message : '请求失败',
-  listProviders: runtime.listProviders,
 }));
 
 describe('provider status page', () => {
@@ -117,12 +110,12 @@ describe('provider status page', () => {
     expect(vimeo).toHaveTextContent('已接入 · 待重新验证');
     expect(
       within(vimeo as HTMLElement).getByText('已接入 · 待重新验证'),
-    ).toHaveAttribute('data-variant', 'neutral');
+    ).toHaveAttribute('data-variant', 'secondary');
   });
 
   it('supports loading, safe error and retry states', async () => {
-    const first = deferred<ProviderStatusList>();
-    const refresh = deferred<ProviderStatusList>();
+    const first = deferred<API.ProviderListResponse>();
+    const refresh = deferred<API.ProviderListResponse>();
     runtime.listProviders
       .mockReturnValueOnce(first.promise)
       .mockReturnValueOnce(refresh.promise)
@@ -255,7 +248,7 @@ describe('provider status page', () => {
   });
 });
 
-function statuses(): ProviderStatusList {
+function statuses(): API.ProviderListResponse {
   return {
     items: [
       {
@@ -400,3 +393,13 @@ function deferred<T>() {
   });
   return { promise, reject, resolve };
 }
+
+vi.mock('@/lib/request-error', async (original) => ({
+  ...(await original<typeof import('@/lib/request-error')>()),
+  displayError: (reason: unknown) =>
+    reason instanceof Error ? reason.message : '请求失败',
+}));
+vi.mock('@/api/providers', async (original) => ({
+  ...(await original<typeof import('@/api/providers')>()),
+  listProviders: runtime.listProviders,
+}));

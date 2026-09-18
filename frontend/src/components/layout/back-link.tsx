@@ -1,15 +1,14 @@
 'use client';
 
 import { ArrowLeftIcon } from '@phosphor-icons/react';
+import { cn } from 'cn';
 import Link from 'next/link';
 import type { MouseEvent } from 'react';
-
 import {
   markNavigationPush,
   useCanNavigateBack,
 } from '@/components/layout/navigation-history';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 
 type BackLinkProps = {
   className?: string;

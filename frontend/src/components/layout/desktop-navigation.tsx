@@ -6,9 +6,9 @@ import {
   HouseIcon,
   PulseIcon,
 } from '@phosphor-icons/react';
+import { cn } from 'cn';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -16,7 +16,6 @@ import {
   NavigationMenuList,
   navigationMenuTriggerStyle,
 } from '@/components/ui/navigation-menu';
-import { cn } from '@/lib/utils';
 
 type DesktopNavigationProps = {
   documentsActive: boolean;

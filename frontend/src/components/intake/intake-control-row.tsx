@@ -1,7 +1,6 @@
+import { cn } from 'cn';
 import type * as React from 'react';
-
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 
 export const intakeControlHeightClassName = 'h-16 sm:h-[68px]';
 

@@ -57,7 +57,7 @@ export function AiProviderScreen({
       </div>
 
       {notice ? (
-        <Alert variant="success">
+        <Alert variant="default">
           <CheckCircle aria-hidden />
           <AlertDescription>{notice}</AlertDescription>
         </Alert>
@@ -88,7 +88,7 @@ export function AiProviderScreen({
               Agent 与模型连接状态
             </h2>
           </div>
-          <Badge variant={agentAvailable ? 'success' : 'destructive'}>
+          <Badge variant={agentAvailable ? 'default' : 'destructive'}>
             {agentAvailable ? 'Agent 在线' : 'Agent 离线'}
           </Badge>
         </div>
@@ -101,7 +101,7 @@ export function AiProviderScreen({
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-xl font-medium">{active.display_name}</h3>
                   <Badge variant="default">已启用</Badge>
-                  <Badge variant="neutral">
+                  <Badge variant="secondary">
                     {active.auth_mode === 'host_login'
                       ? '免 Key'
                       : 'Key 已加密'}

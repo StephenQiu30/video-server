@@ -15,23 +15,19 @@ import { PageHeader } from '@/components/layout/page-header';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import type {
-  AdminDownloadAnalytics,
-  AnalyticsPeriod,
-} from '@/services/analytics';
 
 import { formatDateRange } from './analytics-format';
 
 type AdminAnalyticsScreenProps = {
-  data: AdminDownloadAnalytics | null;
-  days: AnalyticsPeriod;
+  data: API.DownloadAnalyticsResponse | null;
+  days: 7 | 30 | 90;
   error: string | null;
   loading: boolean;
-  onDaysChange: (days: AnalyticsPeriod) => void;
+  onDaysChange: (days: 7 | 30 | 90) => void;
   onRetry: () => void;
 };
 
-const periods: AnalyticsPeriod[] = [7, 30, 90];
+const periods: (7 | 30 | 90)[] = [7, 30, 90];
 
 export function AdminAnalyticsScreen({
   data,
@@ -58,7 +54,7 @@ export function AdminAnalyticsScreen({
                   aria-label="统计周期"
                   className="min-w-0 flex-1 gap-0 rounded-md bg-surface p-1 sm:flex-none"
                   onValueChange={(value) => {
-                    if (value) onDaysChange(Number(value) as AnalyticsPeriod);
+                    if (value) onDaysChange(Number(value) as 7 | 30 | 90);
                   }}
                   role="group"
                   type="single"

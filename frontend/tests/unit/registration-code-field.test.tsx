@@ -1,12 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { sendRegistrationCode as requestRegistrationCode } from '@/api/auth';
 import { RegistrationCodeField } from '@/components/auth/registration-code-field';
-import { ApiError, requestRegistrationCode } from '@/services/auth';
-
-vi.mock('@/services/auth', async (original) => ({
-  ...(await original<typeof import('@/services/auth')>()),
-  requestRegistrationCode: vi.fn(),
-}));
+import { ApiError } from '@/lib/request-error';
 
 function field(email = 'member@example.com') {
   return render(
@@ -32,7 +28,9 @@ describe('registration email proof', () => {
     await waitFor(() =>
       expect(screen.getByRole('status')).toHaveTextContent('验证码已发送'),
     );
-    expect(requestRegistrationCode).toHaveBeenCalledWith('member@example.com');
+    expect(requestRegistrationCode).toHaveBeenCalledWith({
+      email: 'member@example.com',
+    });
     expect(
       await screen.findByRole('button', { name: /秒后可重发/ }),
     ).toBeDisabled();
@@ -56,3 +54,8 @@ describe('registration email proof', () => {
     expect(requestRegistrationCode).not.toHaveBeenCalled();
   });
 });
+
+vi.mock('@/api/auth', async (original) => ({
+  ...(await original<typeof import('@/api/auth')>()),
+  sendRegistrationCode: vi.fn(),
+}));

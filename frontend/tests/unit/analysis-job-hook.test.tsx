@@ -12,17 +12,6 @@ const runtime = vi.hoisted(() => ({
   getLatestDownloadAnalysis: vi.fn(),
 }));
 
-vi.mock('@/services/analysis', () => ({
-  cancelAnalysis: vi.fn(),
-  createAnalysis: runtime.createAnalysis,
-  createDocumentAnalysis: vi.fn(),
-  deleteAnalysis: runtime.deleteAnalysis,
-  getAnalysis: vi.fn(),
-  getLatestDocumentAnalysis: vi.fn(),
-  getLatestDownloadAnalysis: runtime.getLatestDownloadAnalysis,
-  retryAnalysis: vi.fn(),
-}));
-
 describe('useAnalysisJob', () => {
   beforeEach(() => {
     runtime.createAnalysis.mockReset();
@@ -55,15 +44,31 @@ describe('useAnalysisJob', () => {
 
     expect(runtime.createAnalysis).toHaveBeenNthCalledWith(
       1,
-      'download-id',
+      { download_id: 'download-id' },
       input,
-      '11111111-1111-4111-8111-111111111111',
+      {
+        headers: { 'Idempotency-Key': '11111111-1111-4111-8111-111111111111' },
+      },
     );
     expect(runtime.createAnalysis).toHaveBeenNthCalledWith(
       2,
-      'download-id',
+      { download_id: 'download-id' },
       input,
-      '22222222-2222-4222-8222-222222222222',
+      {
+        headers: { 'Idempotency-Key': '22222222-2222-4222-8222-222222222222' },
+      },
     );
   });
 });
+
+vi.mock('@/api/analyses', async (original) => ({
+  ...(await original<typeof import('@/api/analyses')>()),
+  cancelAnalysis: vi.fn(),
+  createAnalysis: runtime.createAnalysis,
+  createDocumentAnalysis: vi.fn(),
+  deleteAnalysis: runtime.deleteAnalysis,
+  getAnalysis: vi.fn(),
+  getLatestDocumentAnalysis: vi.fn(),
+  getLatestDownloadAnalysis: runtime.getLatestDownloadAnalysis,
+  retryAnalysis: vi.fn(),
+}));

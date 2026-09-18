@@ -229,11 +229,11 @@ function fileAvailabilityLabel(item: DownloadHistoryItem) {
 
 function statusVariant(
   status: DownloadStatus,
-): 'neutral' | 'success' | 'warning' | 'destructive' {
-  if (status === 'succeeded') return 'success';
+): 'secondary' | 'default' | 'secondary' | 'destructive' {
+  if (status === 'succeeded') return 'default';
   if (status === 'failed') return 'destructive';
-  if (activeStatuses.has(status)) return 'warning';
-  return 'neutral';
+  if (activeStatuses.has(status)) return 'secondary';
+  return 'secondary';
 }
 
 export const downloadStatusLabels: Record<DownloadStatus, string> = {

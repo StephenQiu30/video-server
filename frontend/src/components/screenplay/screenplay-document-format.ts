@@ -37,11 +37,11 @@ const errorLabels: Record<API.ImportErrorCode, string> = {
 
 export function documentStatusVariant(
   status: ScreenplayDocumentStatus,
-): 'neutral' | 'success' | 'warning' | 'destructive' {
-  if (status === 'ready') return 'success';
+): 'secondary' | 'default' | 'secondary' | 'destructive' {
+  if (status === 'ready') return 'default';
   if (status === 'failed') return 'destructive';
-  if (status === 'uploading' || status === 'verifying') return 'warning';
-  return 'neutral';
+  if (status === 'uploading' || status === 'verifying') return 'secondary';
+  return 'secondary';
 }
 
 export function documentErrorLabel(

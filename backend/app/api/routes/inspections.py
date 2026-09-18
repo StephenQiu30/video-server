@@ -68,10 +68,10 @@ async def inspect_media(
         200: {
             "description": "Private persisted media thumbnail",
             "content": {
-                "image/avif": {},
-                "image/jpeg": {},
-                "image/png": {},
-                "image/webp": {},
+                "image/avif": {"schema": {"type": "string", "format": "binary"}},
+                "image/jpeg": {"schema": {"type": "string", "format": "binary"}},
+                "image/png": {"schema": {"type": "string", "format": "binary"}},
+                "image/webp": {"schema": {"type": "string", "format": "binary"}},
             },
         }
     },

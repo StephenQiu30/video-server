@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-
-import { displayError, getScreenplayDocument } from '@/services/documents';
+import { getDocumentImport as getScreenplayDocument } from '@/api/documents';
+import { displayError } from '@/lib/request-error';
 import type { ScreenplayDocument } from '@/types/video';
 
 const activeStatuses = new Set(['uploading', 'verifying']);
@@ -20,7 +20,9 @@ export function useScreenplayDocument(
 
   const load = useCallback(async () => {
     try {
-      const result = await getScreenplayDocument(documentId);
+      const result = await getScreenplayDocument({
+        document_id: encodeURIComponent(documentId),
+      });
       setDocument(result);
       setError(null);
     } catch (reason) {
@@ -35,7 +37,7 @@ export function useScreenplayDocument(
     void cycle;
     setLoading(true);
     setError(null);
-    getScreenplayDocument(documentId)
+    getScreenplayDocument({ document_id: encodeURIComponent(documentId) })
       .then((result) => {
         if (!disposed) setDocument(result);
       })

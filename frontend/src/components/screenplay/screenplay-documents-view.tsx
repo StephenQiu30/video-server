@@ -2,7 +2,7 @@
 
 import { ArrowClockwise } from '@phosphor-icons/react';
 import { useState } from 'react';
-
+import { deleteDocument as deleteScreenplayDocument } from '@/api/documents';
 import { BackLink } from '@/components/layout/back-link';
 import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
@@ -11,7 +11,7 @@ import { ScreenplayUploadDialog } from '@/components/screenplay/screenplay-uploa
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useScreenplayDocuments } from '@/hooks/useScreenplayDocuments';
-import { deleteScreenplayDocument, displayError } from '@/services/documents';
+import { displayError } from '@/lib/request-error';
 import type { ScreenplayDocumentSummary } from '@/types/video';
 
 export default function ScreenplayDocumentsView() {
@@ -24,7 +24,9 @@ export default function ScreenplayDocumentsView() {
     setActionError(null);
     setPendingDeleteId(document.id);
     try {
-      await deleteScreenplayDocument(document.id);
+      await deleteScreenplayDocument({
+        document_id: encodeURIComponent(document.id),
+      });
       if (page > 1 && state.data?.items.length === 1) {
         setPage((current) => current - 1);
       } else {

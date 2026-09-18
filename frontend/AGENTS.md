@@ -1,80 +1,23 @@
 # Frontend 协作规范
 
-本文件适用于整个前端目录，并补充仓库根 `AGENTS.md`。冲突时遵循根规范；实现、测试和文档必须反映当前 Next.js 前端，不保留 Umi、Ant Design 或旧路由兼容层。
+本目录属于 video-server；video-app 是独立项目。遵循根 AGENTS.md 和用户最新要求。
 
-## 技术边界
+## 技术与目录
 
-- 使用 Next.js App Router、React、TypeScript strict、Radix UI、shadcn/ui 与 Tailwind CSS。
-- 页面、布局、元数据、loading/error/not-found 边界放在 `src/app/`。
-- 跨页面业务组件按 feature 放在 `src/components/{account,admin,analysis,auth,downloads,intake,layout,providers,screenplay}/`；shadcn/ui 源码和 Radix 组合组件放在 `src/components/ui/`。
-- 状态流程放在 `src/hooks/`，请求基础设施放在 `src/lib/`，稳定业务请求入口放在 `src/services/`。
-- 不新增 `src/pages/`、`features/`、Umi/Vite 入口、平行路由器、Ant Design 运行时或第二套基础组件库。
-- 文件按业务内聚性和真实职责拆分，不以固定行数机械拆分，不为缩短文件引入转发层或空抽象。
+- 官方 Next.js App Router、React、TypeScript strict、Tailwind CSS、shadcn/ui（radix-nova、neutral、Phosphor）。工程参数由 package.json、tsconfig.json、components.json 管理。
+- 使用 pnpm 和唯一 pnpm-lock.yaml；不引入 npm/yarn 锁文件或额外生成包装脚本。
+- src/app 放路由、布局和元数据；src/components 放业务组件，ui 子目录放官方 shadcn 源码；src/hooks 放状态流程。
+- src/api 只放 @umijs/openapi 生成的请求函数与类型，禁止手写或修改。生成配置只在 openapi2ts.config.ts。
+- 后端路由注解、请求与响应模型自动生成 /openapi.json 和 Swagger UI；不手写接口文档。修改后端注解后执行 pnpm openapi，同步提交生成结果。
+- src/lib/request.ts 是统一 Axios 封装，负责 Cookie、认证恢复、超时和错误。业务组件、Hooks 直接调用生成 API；src/services 只保留上传、媒体等多步编排，不添加转发包装层。
+- Access/Refresh JWT 只在 HttpOnly Cookie 中；并发刷新共享一次请求，失败不能无限重试。登录跳转必须限制为同源路径。
+- Next.js standalone 服务监听 8101，FastAPI 监听 8111；保留运行时代理和上传流式代理，业务规则由后端负责。
 
-## 常用命令
+## 组件与验证
 
-从 `frontend/` 执行：
-
-```bash
-npm ci
-npm run openapi
-npm run lint
-npm run format:check
-npm test
-npm run build
-```
-
-使用 npm 和仓库 `package-lock.json`，Node/npm 版本以 `package.json`、根 Dockerfile 和 CI 的一致配置为准。不要引入 yarn、pnpm 或第二份锁文件。
-
-## OpenAPI 与请求
-
-- `/openapi.json` 是前后端唯一接口契约，生成配置位于 `openapi2ts.config.ts`。
-- `src/services/video/` 由 `@umijs/openapi` 的 `openapi2ts` CLI 直接生成；配置只维护在 `openapi2ts.config.ts`，禁止增加包装生成脚本、手工修改生成文件、复制类型或创建平行客户端。
-- 接口变化时先更新 FastAPI schema 与稳定 `operationId`/tag，启动 API 后运行 `npm run openapi`。
-- 生成函数必须通过 `src/lib/request.ts` 的同源 Axios 封装；业务组件只调用 `src/services/` 暴露的稳定入口。
-- 请求层统一处理 RFC Problem Details、超时和认证恢复；页面中不得散落原始 Axios/fetch、401 刷新或错误码映射。
-
-## 客户端鉴权
-
-- Access JWT 与 Refresh JWT 只存在于 HttpOnly Cookie，前端不得读取、持久化或复制令牌。
-- Access 失效时最多刷新并重试原请求一次；刷新失败后收敛到未登录状态，禁止无限重试。
-- 登录后的返回地址必须是经过校验的同源路径，不能接受任意外部跳转。
-- 客户端路由和导航可按当前用户隐藏管理员入口，但后端 403 始终是最终权限判定。
-- 退出登录后清理内存中的用户态并返回登录页，不将业务数据当作会话凭据保存在浏览器。
-
-## App Router 与独立服务
-
-- 优先使用 Server Component；只有交互、状态或浏览器 API 需要时才添加 `'use client'`，并把客户端边界控制在最小范围。
-- `next.config.ts` 保持 `output: 'standalone'`，生产使用独立 Node.js 服务，不改为静态导出或 FastAPI 页面托管。
-- 根 Dockerfile 构建 `.next/standalone` 并复制 `public/`、`.next/static/`；Compose 的 frontend 与 api 独立运行，分别监听 `8101`、`8111`。
-- Next.js 负责页面、前端安全头和上传代理，业务状态、认证授权、配额及任务编排由 FastAPI 负责；不在 Next.js 重复实现后端领域逻辑。
-- 开发和生产业务请求使用同源相对路径，普通 `/api/*`、`/health/*` 由 Next.js 代理；生产入口直接将 WebSocket Upgrade 转发给 FastAPI。
-- 深链接刷新必须返回对应页面；未知 `/api/*` 不得回退到 HTML。
-
-## 组件与样式
-
-- 优先复用 `src/components/ui/` 和已有业务组件；Radix primitive 负责菜单、对话框、选择、标签页等交互语义。
-- 样式只使用 Tailwind CSS 与 `src/app/globals.css` 中的语义 token，不新增 Less、CSS-in-JS 主题或 Ant Design token。
-- 唯一视觉基线是用户确认的方案 3：Vercel Home 式无边框中性界面。浅色使用 `#FAFAFA` 画布、`#0A0A0A` 前景和 `#111111` 主操作；深色使用 `#0A0A0A` 画布与 `#F5F5F5` 前景。状态、表面和文字只消费 `globals.css` 的语义 token，不恢复蓝色企业后台或 Apple 蓝主操作。
-- 所有路由都必须消费 `src/components/layout/basic-layout.tsx` 提供的唯一 Header、`.content-shell` main、Footer、跳过链接与站内导航历史；页面和内容框架不得重复创建这些根结构。Header 高 80px，Header/main/footer 统一复用 `.content-shell = min(calc(100% - 160px), 1376px)`，保证导航和主体对齐；`body` 保留常驻纵向滚动容器，Radix 覆盖层统一管理滚动锁与滚动条宽度补偿，不设置第二套根 `scrollbar-gutter`，Header 的异步账户区域必须使用固定宽度槽位，禁止因页面长短或认证恢复改变导航几何。认证双栏只是共享 main 内部的内容网格，右侧表单收窄到 440px，不足 `lg` 时隐藏介绍栏并水平居中，不得另建 `.page-shell`。完整桌面导航从 `lg` 开始展示，其余宽度使用移动 Sheet。641–1023px 时全部内容两侧各 32px，不超过 640px 时各 16px。网格只提供对齐，不得呈现为可见外框。
-- 字体统一为自托管 Geist Sans/Mono 与仓库规定的中文系统回退。首页编辑式标题使用 `.editorial-title` 响应式尺度；内页使用短标题与清晰层级，不强制旧的 32px/28px 固定尺寸。页面主标题上方只有真实流程编号可以使用 `.eyebrow`，不得添加“任务记录”“账户设置”“系统管理”等装饰性重复眉题；区段标签也应克制且不与标题重复。
-- Vercel 风格的无边框布局依靠留白、排版、实心中性表面和 Separator 组织内容。页面根、标题区、筛选区、列表区和表单区不使用可见 Card 外壳、装饰性 ring、重阴影或大圆角容器；输入、选择器和按钮默认无边框。焦点、错误、表格/列表分隔及 Dialog、Sheet 等覆盖层的功能边界必须保留。因语义复用 Card 时使用 `border-0`、`ring-0`、`shadow-none`，不得 Card 套 Card。
-- 基础圆角只从 `--radius: 6px` 派生，不在业务组件中硬编码近似主题色、任意圆角或一次性阴影；修改 token、网格或基础控件时同步根规范、前端视觉系统设计文档与必要测试。
-- 基础控件的 hover、active、loading 和选中反馈不得改变外部几何尺寸或在文档流中位移；Button、Link 与 Radix Trigger 只过渡颜色、透明度及覆盖层属性，异步内容使用与最终摘要、工具条或操作同尺寸的固定槽位。Radix `asChild` 只组合语义和行为，不得借此注入让触发器位移的共享样式。
-- 功能图标统一使用 `@phosphor-icons/react`；品牌标识通过 Next.js `Image` 使用 `public/logo.svg`。不使用 emoji、文本符号、手写 SVG、CSS 图形或第二套图标库代替产品图标。
-- 所有已认证的非首页页面与多步骤流程都使用统一 `BackLink`：有精确站内上一条历史时执行浏览器后退，直接访问时落到稳定的层级 fallback。登录与注册不显示通用历史返回，只使用彼此的交叉链接和校验后的 `redirect`，避免过期受保护页面形成认证循环。
-
-## 可访问性与响应式
-
-- 使用原生语义元素和 Radix 的键盘行为；不要用带点击事件的 `div` 代替按钮、链接或表单控件。
-- 控件必须有可关联标签，错误与异步状态需要可被辅助技术感知，焦点顺序和焦点环必须可见。
-- 保持足够颜色对比度，不能只靠颜色表达状态，并尊重 `prefers-reduced-motion`。
-- 桌面与 390px 视口都要检查页面级横向溢出、内容裁切、点击目标、表格/筛选降级和主操作可达性。
-
-## 修改与验证
-
-- 修改前先阅读相邻页面、组件、服务、测试和 `frontend/README.md`，优先复用现有实现。
-- 不编辑生成目录、构建产物、`.next/`、`out/`、`node_modules/` 或旧 `.umi/` 缓存。
-- 页面迁移必须保留当前路由、认证恢复、下载/分析状态、历史筛选、资料修改和管理员权限行为。
-- 根据改动范围执行最小充分测试；前端架构或组件迁移完成后至少运行 lint、format、tests 和 production build。
-- 涉及 OpenAPI 时重新生成客户端并检查差异；涉及生产交付时验证根镜像复制 `.next/standalone`、`.next/static` 和 `public/`，由独立 Node.js 进程提供前端服务。
+- 先查官方 CLI 和文档，不使用旧设计反推组件实现。更新先预览差异；必要可访问性修复需有回归测试（Progress 需向 Radix 传 value）。
+- 页面无边框布局通过留白、排版组织；基础控件保留官方视觉与键盘语义，不追加旧版非官方属性或 variant。
+- Client Component 只用于交互、状态或浏览器能力；业务图标使用 Phosphor，品牌复用 public/logo.svg。
+- 桌面与 390px、明暗主题均须可用，检查可访问名称、焦点恢复、溢出和错误恢复。
+- 验证命令：pnpm install --frozen-lockfile、pnpm format:check、pnpm lint、pnpm test、pnpm build。
+- 接口生成：pnpm openapi；可用 OPENAPI_SCHEMA_URL 指向运行中的后端或后端自动导出的临时 schema。不得提交本地临时 schema。

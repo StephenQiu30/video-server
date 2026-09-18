@@ -130,13 +130,13 @@ describe('silent JWT refresh', () => {
         ),
       },
     });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null)));
 
     await expect(request('/api/downloads/history')).resolves.toEqual({
       status: 'restored',
     });
     expect(adapter.mock.calls.map(([config]) => config.url)).toEqual([
       '/api/downloads/history',
+      '/api/auth/me',
       '/api/downloads/history',
     ]);
   });

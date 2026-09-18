@@ -1,10 +1,9 @@
 import { ChartLineUpIcon } from '@phosphor-icons/react';
 
-import type { AdminDownloadAnalytics } from '@/services/analytics';
 import { DailyTrendDataTable } from './daily-trend-data-table';
 import { DailyTrendPlot } from './daily-trend-plot';
 
-type DailyPoint = AdminDownloadAnalytics['daily'][number];
+type DailyPoint = API.DownloadAnalyticsResponse['daily'][number];
 
 export function DailyTrendChart({ daily }: { daily: DailyPoint[] }) {
   if (daily.length === 0) {

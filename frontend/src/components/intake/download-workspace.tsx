@@ -8,7 +8,12 @@ import {
   useRef,
   useState,
 } from 'react';
-
+import { createDownload } from '@/api/downloads';
+import {
+  inspectMedia as inspectDiscoveredItem,
+  inspectMedia,
+} from '@/api/inspections';
+import { createSourceDiscovery } from '@/api/sourceDiscoveries';
 import {
   ContentIntakeHero,
   type IntakeMode,
@@ -23,19 +28,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useDocumentImport } from '@/hooks/useDocumentImport';
 import { useMediaImport } from '@/hooks/useMediaImport';
 import { demoInspection } from '@/lib/demo-inspection';
-import {
-  createDownload,
-  createIdempotencyKey,
-  createSourceDiscovery,
-  displayError,
-  inspectDiscoveredItem,
-  inspectMedia,
-} from '@/services/download';
+import { displayError } from '@/lib/request-error';
 import type {
   Inspection,
   SourceDiscovery,
   SourceDiscoveryItem,
 } from '@/types/video';
+import { createIdempotencyKey } from '@/utils/idempotency';
 import {
   hasPublicInput,
   isWeChatArticleInput,
@@ -116,14 +115,20 @@ export default function DownloadWorkspace() {
     try {
       if (isWeChatArticleInput(input)) {
         const result = await createSourceDiscovery(
-          input,
-          stableKey(discoveryKey, input),
+          { kind: 'wechat_official_account_article', url: input },
+          {
+            headers: { 'Idempotency-Key': stableKey(discoveryKey, input) },
+            timeout: 30_000,
+          },
         );
         setDiscovery(result);
       } else {
         const result = await inspectMedia(
-          input,
-          stableKey(inspectionKey, input),
+          { source: { kind: 'public_url', url: input } },
+          {
+            headers: { 'Idempotency-Key': stableKey(inspectionKey, input) },
+            timeout: 180_000,
+          },
         );
         setInspection(result);
         setSelectedId(result.formats[0]?.id ?? '');
@@ -144,9 +149,22 @@ export default function DownloadWorkspace() {
     setSelectedId('');
     try {
       const result = await inspectDiscoveredItem(
-        discovery.id,
-        item.item_ref,
-        stableKey(inspectionKey, `${discovery.id}:${item.item_ref}`),
+        {
+          source: {
+            kind: 'discovered_item',
+            discovery_id: discovery.id,
+            item_ref: item.item_ref,
+          },
+        },
+        {
+          headers: {
+            'Idempotency-Key': stableKey(
+              inspectionKey,
+              `${discovery.id}:${item.item_ref}`,
+            ),
+          },
+          timeout: 30_000,
+        },
       );
       setInspection(result);
       setSelectedId(result.formats[0]?.id ?? '');
@@ -165,9 +183,18 @@ export default function DownloadWorkspace() {
     setError(null);
     try {
       const result = await createDownload(
-        inspection.id,
-        selectedId,
-        stableKey(downloadKey, `${inspection.id}:${selectedId}`),
+        {
+          inspection_id: inspection.id,
+          format_id: selectedId,
+        },
+        {
+          headers: {
+            'Idempotency-Key': stableKey(
+              downloadKey,
+              `${inspection.id}:${selectedId}`,
+            ),
+          },
+        },
       );
       openDownload(result.id);
     } catch (reason) {

@@ -4,6 +4,11 @@ import { ArrowClockwise, MagnifyingGlass, Plus } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
+import {
+  deleteDownload,
+  issueDownloadUrl,
+  retryDownload,
+} from '@/api/downloads';
 import DownloadHistoryList, {
   downloadStatusLabels,
 } from '@/components/downloads/download-history-list';
@@ -29,15 +34,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useDownloadHistory } from '@/hooks/useDownloadHistory';
-import {
-  createIdempotencyKey,
-  deleteDownload,
-  displayError,
-  issueDownloadUrl,
-  retryDownload,
-  triggerBrowserDownload,
-} from '@/services/download';
+import { triggerBrowserDownload } from '@/lib/browser-download';
+import { displayError } from '@/lib/request-error';
 import type { DownloadHistoryItem, DownloadStatus } from '@/types/video';
+import { createIdempotencyKey } from '@/utils/idempotency';
 
 export default function DownloadHistoryView() {
   const router = useRouter();
@@ -62,7 +62,15 @@ export default function DownloadHistoryView() {
     setActionError(null);
     setPendingAction({ id: item.id, type: 'download' });
     try {
-      const result = await issueDownloadUrl(item.id);
+      const result = await issueDownloadUrl(
+        {
+          job_id: encodeURIComponent(item.id),
+          preview: false,
+        },
+        {
+          headers: { 'X-FrameFetch-Download-Client': 'local-web' },
+        },
+      );
       triggerBrowserDownload(result.url, result.filename);
     } catch (reason) {
       setActionError(displayError(reason));
@@ -77,7 +85,10 @@ export default function DownloadHistoryView() {
     const key = retryKeys.current.get(item.id) ?? createIdempotencyKey();
     retryKeys.current.set(item.id, key);
     try {
-      const retried = await retryDownload(item.id, key);
+      const retried = await retryDownload(
+        { job_id: encodeURIComponent(item.id) },
+        { headers: { 'Idempotency-Key': key } },
+      );
       const target = `/downloads/detail?jobId=${encodeURIComponent(retried.id)}`;
       markNavigationPush(target);
       router.push(target);
@@ -91,7 +102,7 @@ export default function DownloadHistoryView() {
     setActionError(null);
     setPendingAction({ id: item.id, type: 'delete' });
     try {
-      await deleteDownload(item.id);
+      await deleteDownload({ job_id: encodeURIComponent(item.id) });
       state.retry();
     } catch (reason) {
       setActionError(displayError(reason));

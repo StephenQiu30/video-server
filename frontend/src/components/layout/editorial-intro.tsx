@@ -1,6 +1,5 @@
+import { cn } from 'cn';
 import type { ComponentProps, ReactNode } from 'react';
-
-import { cn } from '@/lib/utils';
 
 type EditorialIntroProps = Omit<ComponentProps<'div'>, 'title'> & {
   as?: 'h1' | 'h2';

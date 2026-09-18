@@ -35,10 +35,10 @@ export function ProviderCatalogList({
   function badges(item: API.ProviderCatalogEntryResponse) {
     return (
       <span className="flex flex-wrap gap-1.5">
-        <Badge variant={item.system_registered ? 'success' : 'warning'}>
+        <Badge variant={item.system_registered ? 'default' : 'secondary'}>
           {item.system_registered ? '系统已注册' : '仅目录'}
         </Badge>
-        <Badge variant={item.is_visible ? 'neutral' : 'outline'}>
+        <Badge variant={item.is_visible ? 'secondary' : 'outline'}>
           {item.is_visible ? '公开显示' : '已隐藏'}
         </Badge>
       </span>

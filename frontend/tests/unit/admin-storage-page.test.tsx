@@ -26,13 +26,6 @@ vi.mock('@/components/auth/auth-provider', () => ({
   useAuth: () => ({ loading: false, user: runtime.user }),
 }));
 
-vi.mock('@/services/storage-files', () => ({
-  cleanupStoredFiles: runtime.cleanupStoredFiles,
-  displayError: (reason: unknown) =>
-    reason instanceof Error ? reason.message : '请求失败',
-  listStoredFiles: runtime.listStoredFiles,
-}));
-
 describe('administrator storage management', () => {
   beforeEach(() => {
     runtime.cleanupStoredFiles.mockReset();
@@ -79,7 +72,9 @@ describe('administrator storage management', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: '确认清理' }));
 
     await waitFor(() =>
-      expect(runtime.cleanupStoredFiles).toHaveBeenCalledWith(30),
+      expect(runtime.cleanupStoredFiles).toHaveBeenCalledWith({
+        older_than_days: 30,
+      }),
     );
     expect(
       await screen.findByText('已清理 1 项资源、2 个对象；0 项清理失败。'),
@@ -106,3 +101,14 @@ function storedFile(
     ...overrides,
   };
 }
+
+vi.mock('@/api/admin', async (original) => ({
+  ...(await original<typeof import('@/api/admin')>()),
+  cleanupStoredFiles: runtime.cleanupStoredFiles,
+  listStoredFiles: runtime.listStoredFiles,
+}));
+vi.mock('@/lib/request-error', async (original) => ({
+  ...(await original<typeof import('@/lib/request-error')>()),
+  displayError: (reason: unknown) =>
+    reason instanceof Error ? reason.message : '请求失败',
+}));

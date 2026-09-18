@@ -1,15 +1,15 @@
+import { cancelDownload as cancelDownloadRequest } from '@/api/downloads';
+import {
+  completeMediaImport as completeMediaImportRequest,
+  createMediaImport as createMediaImportRequest,
+  createMediaUploadSession as createMediaUploadSessionRequest,
+} from '@/api/mediaImports';
 import {
   hashFileSha256,
   MediaTransferError,
   uploadMultipartFile,
 } from '@/lib/media-upload';
 import type { ImportObserver } from '@/services/import-lifecycle';
-import { cancelDownload as cancelDownloadRequest } from '@/services/video/downloads';
-import {
-  completeMediaImport as completeMediaImportRequest,
-  createMediaImport as createMediaImportRequest,
-  createMediaUploadSession as createMediaUploadSessionRequest,
-} from '@/services/video/mediaImports';
 
 export function validateLocalVideo(file: File): string | null {
   if (file.size <= 0) return '请选择包含内容的 MP4 视频。';

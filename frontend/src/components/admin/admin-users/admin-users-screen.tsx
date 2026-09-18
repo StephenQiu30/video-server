@@ -86,7 +86,7 @@ export function AdminUsersScreen({
       </div>
 
       {notice && (
-        <Alert variant="success">
+        <Alert variant="default">
           <CheckCircle aria-hidden />
           <AlertDescription>{notice}</AlertDescription>
         </Alert>

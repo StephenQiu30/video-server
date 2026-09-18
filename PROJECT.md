@@ -34,14 +34,14 @@ Flutter App 是独立项目，通过 API 使用本项目能力，不在本仓库
 
 | 层次 | 当前选型 | 用途 |
 | --- | --- | --- |
-| 运行与语言 | Node.js 24、npm、TypeScript 5 | 构建与依赖管理 |
+| 运行与语言 | Node.js 24、pnpm、TypeScript 5 | 构建与依赖管理 |
 | 框架 | Next.js 16 App Router、React 19 | 页面、布局与 standalone 服务 |
 | 设计系统 | Tailwind CSS 4、shadcn/ui、Radix UI | 主题、组件和可访问交互 |
 | 图标与媒体 | Phosphor Icons、Vidstack | 统一功能图标与媒体播放 |
 | API 请求 | Axios、OpenAPI 生成客户端 | 统一请求与接口类型 |
 | 质量工具 | Biome、TypeScript、Vitest、Testing Library | 格式、类型和交互测试 |
 
-依赖依据：[frontend/package.json](frontend/package.json)。`@umijs/openapi` 用于客户端生成；应用路由和页面由 Next.js 管理。视觉规范见 [design.md](design.md)。
+依赖依据：[frontend/package.json](frontend/package.json)。`@umijs/openapi` 用于客户端生成；应用路由和页面由 Next.js 管理。视觉规范见 [design.md](design.md)，采用官方 Next.js、shadcn `radix-nova` / neutral / Phosphor 基线；页面使用无边框内容布局，控件保留官方实现。
 
 ## 3. 目录结构
 
@@ -81,7 +81,7 @@ video-server/
 │   │   ├── components/            按业务组织的组件及 ui 基础组件
 │   │   ├── hooks/                 可复用状态与流程
 │   │   ├── lib/                   请求封装、错误映射等基础设施
-│   │   ├── services/video/        OpenAPI 生成客户端
+│   │   ├── api/                   OpenAPI 生成客户端
 │   │   ├── types/                 业务类型
 │   │   └── utils/                 通用函数
 │   ├── public/                    静态资源
@@ -97,7 +97,7 @@ video-server/
 
 后端依赖方向为 `api/workers → services → domain`。路由负责协议转换，服务组织业务用例，仓库管理查询与事务，领域层不依赖框架或基础设施。
 
-前端页面位于 `src/app/`，业务组件按功能放在 `src/components/`，请求统一从 `services/` 暴露；不建立平行路由或独立 `src/features/` 目录。视觉规范见 [design.md](design.md)。
+前端页面位于 `src/app/`，业务组件按功能放在 `src/components/`，请求直接从 `src/api/` 生成代码导入，统一使用 `src/lib/request.ts` 的 Axios 封装；不建立平行路由或独立 `src/features/` 目录。视觉规范见 [design.md](design.md)，采用官方 Next.js、shadcn `radix-nova` / neutral / Phosphor 基线；页面使用无边框内容布局，控件保留官方实现。
 
 ## 4. 本地 Agent 与平台配置维护
 

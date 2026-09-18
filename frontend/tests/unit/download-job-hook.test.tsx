@@ -8,17 +8,6 @@ const runtime = vi.hoisted(() => ({
   getDownload: vi.fn(),
 }));
 
-vi.mock('@/services/download', () => ({
-  cancelDownload: vi.fn(),
-  createIdempotencyKey: () => 'test-key',
-  displayError: (reason: unknown) =>
-    reason instanceof Error ? reason.message : '请求失败',
-  getDownload: runtime.getDownload,
-  issueDownloadUrl: vi.fn(),
-  retryDownload: vi.fn(),
-  triggerBrowserDownload: vi.fn(),
-}));
-
 describe('useDownloadJob', () => {
   beforeEach(() => {
     runtime.getDownload.mockReset();
@@ -49,3 +38,24 @@ describe('useDownloadJob', () => {
     expect(result.current.error).toBe('second job unavailable');
   });
 });
+
+vi.mock('@/api/downloads', async (original) => ({
+  ...(await original<typeof import('@/api/downloads')>()),
+  cancelDownload: vi.fn(),
+  getDownload: runtime.getDownload,
+  issueDownloadUrl: vi.fn(),
+  retryDownload: vi.fn(),
+}));
+vi.mock('@/utils/idempotency', async (original) => ({
+  ...(await original<typeof import('@/utils/idempotency')>()),
+  createIdempotencyKey: () => 'test-key',
+}));
+vi.mock('@/lib/request-error', async (original) => ({
+  ...(await original<typeof import('@/lib/request-error')>()),
+  displayError: (reason: unknown) =>
+    reason instanceof Error ? reason.message : '请求失败',
+}));
+vi.mock('@/lib/browser-download', async (original) => ({
+  ...(await original<typeof import('@/lib/browser-download')>()),
+  triggerBrowserDownload: vi.fn(),
+}));

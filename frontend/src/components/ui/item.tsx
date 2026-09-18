@@ -1,17 +1,13 @@
 import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from 'cn';
 import { Slot } from 'radix-ui';
 import type * as React from 'react';
-import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
 
-function ItemGroup({
-  className,
-  asChild = false,
-  ...props
-}: React.ComponentProps<'div'> & { asChild?: boolean }) {
-  const Comp = asChild ? Slot.Root : 'div';
+import { Separator } from '@/components/ui/separator';
+
+function ItemGroup({ className, ...props }: React.ComponentProps<'div'>) {
   return (
-    <Comp
+    <div
       role="list"
       data-slot="item-group"
       className={cn(
@@ -124,14 +120,9 @@ function ItemContent({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-function ItemTitle({
-  asChild = false,
-  className,
-  ...props
-}: React.ComponentProps<'div'> & { asChild?: boolean }) {
-  const Comp = asChild ? Slot.Root : 'div';
+function ItemTitle({ className, ...props }: React.ComponentProps<'div'>) {
   return (
-    <Comp
+    <div
       data-slot="item-title"
       className={cn(
         'line-clamp-1 flex w-fit items-center gap-2 text-sm leading-snug font-medium underline-offset-4',

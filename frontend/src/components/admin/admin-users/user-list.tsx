@@ -50,14 +50,14 @@ export function UserList({ items, currentUserId, onEdit }: UserListProps) {
   function badges(item: API.ManagedUserResponse) {
     return (
       <span className="flex flex-wrap gap-1.5">
-        <Badge variant={item.role === 'admin' ? 'default' : 'neutral'}>
+        <Badge variant={item.role === 'admin' ? 'default' : 'secondary'}>
           {item.role === 'admin' ? '管理员' : '普通用户'}
         </Badge>
-        <Badge variant={item.is_active ? 'success' : 'neutral'}>
+        <Badge variant={item.is_active ? 'default' : 'secondary'}>
           {item.is_active ? '已启用' : '已停用'}
         </Badge>
         {(item.role === 'admin' || item.quota.exempt) && (
-          <Badge variant="neutral">配额豁免</Badge>
+          <Badge variant="secondary">配额豁免</Badge>
         )}
       </span>
     );

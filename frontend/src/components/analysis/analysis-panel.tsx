@@ -30,7 +30,7 @@ import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
 import { useAnalysisJob } from '@/hooks/useAnalysisJob';
 import { localizedErrorMessage } from '@/lib/error-messages';
-import { analysisMarkdownUrl, analysisReportUrl } from '@/services/analysis';
+
 import type { AnalysisJob } from '@/types/video';
 
 export default function AnalysisPanel({
@@ -72,7 +72,7 @@ export default function AnalysisPanel({
             </h2>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Badge variant="success">已完成</Badge>
+            <Badge variant="default">已完成</Badge>
             <span className="text-sm text-muted-foreground tabular-nums">
               第 {state.job.run_no} 次执行
             </span>
@@ -81,7 +81,8 @@ export default function AnalysisPanel({
                 <Button asChild variant="outline">
                   <AnalysisReportDownloadLink
                     download={`analysis-report-${state.job.id}.md`}
-                    href={analysisMarkdownUrl(state.job.id)}
+                    analysisId={state.job.id}
+                    format="md"
                   >
                     <DownloadSimple />
                     导出 Markdown
@@ -90,7 +91,8 @@ export default function AnalysisPanel({
                 <Button asChild>
                   <AnalysisReportDownloadLink
                     download={`analysis-report-${state.job.id}.docx`}
-                    href={analysisReportUrl(state.job.id)}
+                    analysisId={state.job.id}
+                    format="docx"
                   >
                     <DownloadSimple />
                     导出 DOCX
@@ -287,7 +289,7 @@ function AnalysisJobState({
       job.result?.kind === 'video_article' ? (
         <div className="mt-10">
           <div className="flex flex-wrap items-center gap-3">
-            <Badge variant="neutral">
+            <Badge variant="secondary">
               {job.report?.status === 'publishing'
                 ? '新报告文件生成中'
                 : job.report?.status === 'publish_failed'
@@ -297,14 +299,12 @@ function AnalysisJobState({
             {job.current_report_id ? (
               <>
                 <Button asChild size="sm" variant="outline">
-                  <AnalysisReportDownloadLink
-                    href={analysisMarkdownUrl(job.id)}
-                  >
+                  <AnalysisReportDownloadLink analysisId={job.id} format="md">
                     下载上一版 Markdown
                   </AnalysisReportDownloadLink>
                 </Button>
                 <Button asChild size="sm" variant="outline">
-                  <AnalysisReportDownloadLink href={analysisReportUrl(job.id)}>
+                  <AnalysisReportDownloadLink analysisId={job.id} format="docx">
                     下载上一版 DOCX
                   </AnalysisReportDownloadLink>
                 </Button>

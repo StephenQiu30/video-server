@@ -2,7 +2,7 @@
 
 FROM node:24-alpine AS frontend-builder
 
-ARG NPM_VERSION=11.19.0
+ARG PNPM_VERSION=12.4.2
 ENV SOURCE_DATE_EPOCH=0
 WORKDIR /workspace/frontend
 
@@ -10,13 +10,13 @@ ARG SITE_URL=http://127.0.0.1:8101
 ENV SITE_URL=${SITE_URL}
 
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --global "npm@${NPM_VERSION}"
-COPY --link frontend/package.json frontend/package-lock.json ./
+    npm install --global "pnpm@${PNPM_VERSION}"
+COPY --link frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --ignore-scripts
+    pnpm install --frozen-lockfile --ignore-scripts
 COPY --link frontend/ ./
-RUN npm rebuild \
-    && npm run build
+RUN pnpm rebuild \
+    && pnpm build
 
 FROM node:24-bookworm-slim AS node-runtime
 
@@ -60,7 +60,6 @@ COPY --link --from=backend-builder --chown=10001:10001 /app/backend /app/backend
 COPY --link --from=frontend-builder --chown=10001:10001 /workspace/frontend/.next/standalone /app/frontend/.next/standalone
 COPY --link --from=frontend-builder --chown=10001:10001 /workspace/frontend/.next/static /app/frontend/.next/standalone/.next/static
 COPY --link --from=frontend-builder --chown=10001:10001 /workspace/frontend/public /app/frontend/.next/standalone/public
-COPY --link --from=frontend-builder --chown=10001:10001 /workspace/frontend/THIRD-PARTY-NOTICES.md /app/frontend/THIRD-PARTY-NOTICES.md
 COPY --link --from=node-runtime /usr/local/bin/node /usr/local/bin/node
 
 USER appuser

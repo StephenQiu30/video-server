@@ -10,11 +10,10 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-import type { AdminDownloadAnalytics } from '@/services/analytics';
 
 import { formatInteger, formatShortDate } from './analytics-format';
 
-type DailyPoint = AdminDownloadAnalytics['daily'][number];
+type DailyPoint = API.DownloadAnalyticsResponse['daily'][number];
 
 const trendConfig = {
   total: { color: 'var(--chart-1)', label: '全部任务' },

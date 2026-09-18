@@ -4,6 +4,7 @@ import { ArrowRightIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { loginUser as login } from '@/api/auth';
 import { AuthField, AuthPageFrame } from '@/components/auth/auth-page-frame';
 import { useAuth } from '@/components/auth/auth-provider';
 import { PasswordInput } from '@/components/auth/password-input';
@@ -13,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { FieldGroup } from '@/components/ui/field';
 import { InputGroupInput } from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
-import { displayError, login } from '@/services/auth';
+import { displayError } from '@/lib/request-error';
 import { authRedirect } from '@/utils/authRedirect';
 
 type FieldErrors = Partial<Record<'email' | 'password', string>>;
@@ -71,7 +72,7 @@ export function LoginView() {
     >
       <form
         aria-busy={submitting}
-        className="space-y-7"
+        className="flex flex-col gap-7"
         noValidate
         onSubmit={handleSubmit}
       >
@@ -133,7 +134,7 @@ export function LoginView() {
           ) : null}
           {submitting ? '正在登录…' : '登录'}
           {!submitting ? (
-            <ArrowRightIcon aria-hidden className="size-4" />
+            <ArrowRightIcon aria-hidden data-icon="inline-end" />
           ) : null}
         </Button>
       </form>

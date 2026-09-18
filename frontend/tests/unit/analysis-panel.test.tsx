@@ -65,13 +65,25 @@ describe('AnalysisPanel', () => {
       const link = await screen.findByRole('link', {
         name: status === 'succeeded' ? '导出 DOCX' : '下载上一版 DOCX',
       });
-      const cancelled = !fireEvent.click(link);
-      expect(cancelled).toBe(true);
-      const frame = document.querySelector<HTMLIFrameElement>(
-        'iframe[data-framefetch-download]',
-      );
-      expect(frame?.src).toBe((link as HTMLAnchorElement).href);
-      frame?.remove();
+      const blob = new Blob(['report'], {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      });
+      mockHttpResponses(blob);
+      const createUrl = vi
+        .spyOn(URL, 'createObjectURL')
+        .mockReturnValue('blob:report-test');
+      const click = vi
+        .spyOn(HTMLAnchorElement.prototype, 'click')
+        .mockImplementation(() => {});
+      expect(!fireEvent.click(link)).toBe(true);
+      await waitFor(() => expect(createUrl).toHaveBeenCalledWith(blob));
+      expect(httpRequests().at(-1)).toMatchObject({
+        url: `/api/analyses/${analysisJob('succeeded').id}/report.docx`,
+        responseType: 'blob',
+      });
+      expect(click).toHaveBeenCalledOnce();
+      createUrl.mockRestore();
+      click.mockRestore();
     },
   );
 
@@ -189,7 +201,7 @@ describe('AnalysisPanel', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '导出 DOCX' })).toHaveAttribute(
       'href',
-      `/api/analyses/${analysisJob('succeeded').id}/report.docx`,
+      '#report-docx',
     );
     expect(screen.getByText(/原始文件持久保存/)).toBeInTheDocument();
   });
@@ -267,11 +279,11 @@ describe('AnalysisPanel', () => {
     expect(screen.getByRole('tab', { name: '报告预览' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '导出 DOCX' })).toHaveAttribute(
       'href',
-      `/api/analyses/${analysisJob('succeeded').id}/report.docx`,
+      '#report-docx',
     );
     expect(screen.getByRole('link', { name: '导出 Markdown' })).toHaveAttribute(
       'href',
-      `/api/analyses/${analysisJob('succeeded').id}/report.md`,
+      '#report-md',
     );
 
     const reportTab = screen.getByRole('tab', { name: '报告预览' });

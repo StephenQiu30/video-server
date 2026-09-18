@@ -38,7 +38,7 @@ export async function getInspectionThumbnail(
   options?: RequestOptions
 ) {
   const { inspection_id: param0, ...queryParams } = params;
-  return request<{ id?: number }>(`/api/inspections/${param0}/thumbnail`, {
+  return request<Blob>(`/api/inspections/${param0}/thumbnail`, {
     method: "GET",
     params: { ...queryParams },
     ...(options || {}),

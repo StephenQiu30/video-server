@@ -27,13 +27,6 @@ vi.mock('@/components/auth/auth-provider', () => ({
   useAuth: () => ({ loading: false, user: runtime.user }),
 }));
 
-vi.mock('@/services/users', () => ({
-  displayError: (reason: unknown) =>
-    reason instanceof Error ? reason.message : '请求失败',
-  listUsers: runtime.listUsers,
-  updateUserAccess: runtime.updateUserAccess,
-}));
-
 describe('administrator user management', () => {
   beforeEach(() => {
     runtime.listUsers.mockReset();
@@ -94,18 +87,21 @@ describe('administrator user management', () => {
     );
     fireEvent.click(within(dialog).getByRole('button', { name: '保存更改' }));
     await waitFor(() =>
-      expect(runtime.updateUserAccess).toHaveBeenCalledWith('editor-id', {
-        is_active: true,
-        role: 'user',
-        quota: {
-          daily_analysis_attempts: null,
-          daily_bytes: 536870912,
-          daily_tasks: 75,
-          exempt: false,
-          max_active_per_owner: null,
-          storage_bytes: null,
+      expect(runtime.updateUserAccess).toHaveBeenCalledWith(
+        { user_id: 'editor-id' },
+        {
+          is_active: true,
+          role: 'user',
+          quota: {
+            daily_analysis_attempts: null,
+            daily_bytes: 536870912,
+            daily_tasks: 75,
+            exempt: false,
+            max_active_per_owner: null,
+            storage_bytes: null,
+          },
         },
-      }),
+      ),
     );
 
     const pagination = screen.getByRole('navigation', { name: '用户列表分页' });
@@ -218,3 +214,14 @@ function deferred<T>() {
   });
   return { promise, resolve };
 }
+
+vi.mock('@/lib/request-error', async (original) => ({
+  ...(await original<typeof import('@/lib/request-error')>()),
+  displayError: (reason: unknown) =>
+    reason instanceof Error ? reason.message : '请求失败',
+}));
+vi.mock('@/api/admin', async (original) => ({
+  ...(await original<typeof import('@/api/admin')>()),
+  listUsers: runtime.listUsers,
+  updateUserAccess: runtime.updateUserAccess,
+}));

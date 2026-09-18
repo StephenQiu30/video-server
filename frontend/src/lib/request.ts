@@ -4,6 +4,7 @@ import axios, {
   type AxiosRequestConfig,
 } from 'axios';
 
+import { getCurrentUser, refreshUserSession } from '@/api/auth';
 import { ApiError, apiErrorFrom } from '@/lib/request-error';
 
 const API_TIMEOUT_MS = 30_000;
@@ -11,12 +12,14 @@ const API_TIMEOUT_MS = 30_000;
 export type RequestOptions = AxiosRequestConfig & {
   getResponse?: boolean;
   skipAuthRedirect?: boolean;
+  skipAuthRefresh?: boolean;
   skipErrorHandler?: boolean;
 };
 
 type RetriableRequestConfig = AxiosRequestConfig & {
   authRetried?: boolean;
   skipAuthRedirect?: boolean;
+  skipAuthRefresh?: boolean;
 };
 
 let refreshRequest: Promise<void> | null = null;
@@ -62,7 +65,12 @@ function shouldRefresh(
   error: AxiosError,
   config: RetriableRequestConfig | undefined,
 ): config is RetriableRequestConfig {
-  if (error.response?.status !== 401 || !config || config.authRetried)
+  if (
+    error.response?.status !== 401 ||
+    !config ||
+    config.authRetried ||
+    config.skipAuthRefresh
+  )
     return false;
   return ![
     '/api/auth/login',
@@ -77,7 +85,10 @@ async function refreshAccessToken(): Promise<void> {
     refreshRequest = withBrowserRefreshLock(async (recheckSession) => {
       if (recheckSession && (await hasCurrentSession())) return;
       try {
-        await httpClient.post('/api/auth/refresh');
+        await refreshUserSession({
+          skipAuthRefresh: true,
+          skipAuthRedirect: true,
+        });
       } catch (error) {
         if (error instanceof ApiError && error.code === 'refresh_in_progress') {
           return;
@@ -101,13 +112,13 @@ async function withBrowserRefreshLock(
 }
 
 async function hasCurrentSession(): Promise<boolean> {
-  const response = await fetch('/api/auth/me', {
-    credentials: 'include',
-    headers: { Accept: 'application/json', 'X-Client-Platform': 'web' },
-  });
-  if (response.ok) return true;
-  if (response.status === 401) return false;
-  throw apiErrorFrom(response.status, await response.json().catch(() => null));
+  try {
+    await getCurrentUser({ skipAuthRefresh: true, skipAuthRedirect: true });
+    return true;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) return false;
+    throw error;
+  }
 }
 
 function redirectToLogin(): void {

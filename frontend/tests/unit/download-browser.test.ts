@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { triggerBrowserDownload } from '@/services/download';
+import { triggerBrowserDownload } from '@/lib/browser-download';
 
 describe('browser download', () => {
   afterEach(() => {

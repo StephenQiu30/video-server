@@ -19,8 +19,8 @@ def test_ci_is_limited_to_deterministic_system_tests() -> None:
         step.get("run", "") for job in jobs.values() for step in job["steps"]
     )
     assert "pytest -q" in commands
-    assert "npm test" in commands
-    assert "npm run build" in commands
+    assert "pnpm test" in commands
+    assert "pnpm build" in commands
     assert "docker compose" not in commands
     assert "npm audit" not in commands
 

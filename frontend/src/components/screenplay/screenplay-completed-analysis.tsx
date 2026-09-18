@@ -7,7 +7,7 @@ import { ScreenplayResultView } from '@/components/screenplay/screenplay-result-
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { analysisMarkdownUrl, analysisReportUrl } from '@/services/analysis';
+
 import type { AnalysisJob } from '@/types/video';
 
 export function ScreenplayCompletedAnalysis({
@@ -54,7 +54,7 @@ export function ScreenplayCompletedAnalysis({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Badge variant="success">已完成</Badge>
+          <Badge variant="default">已完成</Badge>
           <span className="text-sm text-muted-foreground tabular-nums">
             第 {job.run_no} 次执行
           </span>
@@ -63,7 +63,8 @@ export function ScreenplayCompletedAnalysis({
               <Button asChild variant="outline">
                 <AnalysisReportDownloadLink
                   download={`screenplay-analysis-${job.id}.md`}
-                  href={analysisMarkdownUrl(job.id)}
+                  analysisId={job.id}
+                  format="md"
                 >
                   <DownloadSimple aria-hidden />
                   导出 Markdown
@@ -72,7 +73,8 @@ export function ScreenplayCompletedAnalysis({
               <Button asChild>
                 <AnalysisReportDownloadLink
                   download={`screenplay-analysis-${job.id}.docx`}
-                  href={analysisReportUrl(job.id)}
+                  analysisId={job.id}
+                  format="docx"
                 >
                   <DownloadSimple aria-hidden />
                   导出 DOCX

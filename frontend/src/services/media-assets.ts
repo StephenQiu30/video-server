@@ -1,4 +1,5 @@
-import { request } from '@/lib/request';
+import { getDownloadThumbnail } from '@/api/downloads';
+import { getInspectionThumbnail } from '@/api/inspections';
 
 const PRIVATE_THUMBNAIL_PATH =
   /^\/api\/(?:inspections|downloads)\/[0-9a-f-]{36}\/thumbnail$/i;
@@ -23,13 +24,18 @@ export async function loadPrivateThumbnail(
     throw new TypeError('Only private media thumbnail paths are allowed.');
   }
 
-  const image = await request<Blob>(path, {
+  const [, , kind, id] = path.split('/');
+  const options = {
     headers: {
       Accept: 'image/avif,image/webp,image/png,image/jpeg',
     },
     responseType: 'blob',
     signal,
-  });
+  } as const;
+  const image: Blob =
+    kind === 'inspections'
+      ? await getInspectionThumbnail({ inspection_id: id }, options)
+      : await getDownloadThumbnail({ job_id: id }, options);
   if (image.size === 0 || !SUPPORTED_IMAGE_TYPES.has(image.type)) {
     throw new TypeError('Unsupported thumbnail response.');
   }

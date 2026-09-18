@@ -16,15 +16,14 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty';
 import { ItemGroup } from '@/components/ui/item';
-import { RadioGroup, RadioGroupButtonItem } from '@/components/ui/radio-group';
 import { Spinner } from '@/components/ui/spinner';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useProviderStatuses } from '@/hooks/useProviderStatuses';
-import type { ProviderStatus } from '@/services/providers';
 
 type StatusFilter = 'all' | 'available' | 'attention';
 const STATUS_FILTERS: StatusFilter[] = ['all', 'available', 'attention'];
 const STATUS_PAGE_SIZE = 8;
-const EMPTY_PROVIDERS: ProviderStatus[] = [];
+const EMPTY_PROVIDERS: API.ProviderListResponse['items'][number][] = [];
 
 export function ProviderStatusView() {
   const state = useProviderStatuses();
@@ -93,7 +92,8 @@ export function ProviderStatusView() {
                 个平台 · {available} 个当前可用 · {providers.length - available}{' '}
                 个需关注
               </p>
-              <RadioGroup
+              <ToggleGroup
+                type="single"
                 aria-label="筛选平台状态"
                 className="flex w-auto flex-wrap items-center gap-1"
                 onKeyDownCapture={(event) => {
@@ -104,19 +104,22 @@ export function ProviderStatusView() {
                   }
                 }}
                 onValueChange={(value) => {
+                  if (!value) return;
                   setFilter(value as StatusFilter);
                   setPage(1);
                 }}
                 value={filter}
               >
-                <RadioGroupButtonItem value="all">全部</RadioGroupButtonItem>
-                <RadioGroupButtonItem value="available">
+                <ToggleGroupItem data-filter="all" value="all">
+                  全部
+                </ToggleGroupItem>
+                <ToggleGroupItem data-filter="available" value="available">
                   当前可用
-                </RadioGroupButtonItem>
-                <RadioGroupButtonItem value="attention">
+                </ToggleGroupItem>
+                <ToggleGroupItem data-filter="attention" value="attention">
                   需关注
-                </RadioGroupButtonItem>
-              </RadioGroup>
+                </ToggleGroupItem>
+              </ToggleGroup>
             </div>
             {visibleProviders.length > 0 ? (
               <div className="space-y-5">
@@ -159,7 +162,10 @@ export function ProviderStatusView() {
   );
 }
 
-function matchesFilter(provider: ProviderStatus, filter: StatusFilter) {
+function matchesFilter(
+  provider: API.ProviderListResponse['items'][number],
+  filter: StatusFilter,
+) {
   if (filter === 'available') return provider.download_available;
   if (filter === 'attention') return !provider.download_available;
   return true;
@@ -183,7 +189,9 @@ function nextStatusFilter(
     return null;
   }
 
-  const currentIndex = STATUS_FILTERS.indexOf(target.value as StatusFilter);
+  const currentIndex = STATUS_FILTERS.indexOf(
+    target.dataset.filter as StatusFilter,
+  );
   if (currentIndex < 0) {
     return null;
   }

@@ -30,17 +30,6 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: runtime.push }),
 }));
 
-vi.mock('@/services/download', () => ({
-  displayError: (reason: unknown) =>
-    reason instanceof Error ? reason.message : '请求失败',
-  getDownloadHistory: runtime.getDownloadHistory,
-  deleteDownload: runtime.deleteDownload,
-  issueDownloadUrl: runtime.issueDownloadUrl,
-  createIdempotencyKey: () => 'history-retry-key',
-  retryDownload: runtime.retryDownload,
-  triggerBrowserDownload: runtime.triggerBrowserDownload,
-}));
-
 describe('download history', () => {
   beforeEach(() => {
     runtime.deleteDownload.mockReset();
@@ -151,7 +140,10 @@ describe('download history', () => {
         '示例视频.mp4',
       ),
     );
-    expect(runtime.issueDownloadUrl).toHaveBeenCalledWith('history-job-1');
+    expect(runtime.issueDownloadUrl).toHaveBeenCalledWith(
+      { job_id: 'history-job-1', preview: false },
+      { headers: { 'X-FrameFetch-Download-Client': 'local-web' } },
+    );
   });
 
   it('renders pending task actions as detail links', async () => {
@@ -189,7 +181,9 @@ describe('download history', () => {
     fireEvent.click(screen.getByRole('button', { name: '确认删除' }));
 
     await waitFor(() =>
-      expect(runtime.deleteDownload).toHaveBeenCalledWith('history-job-1'),
+      expect(runtime.deleteDownload).toHaveBeenCalledWith({
+        job_id: 'history-job-1',
+      }),
     );
     await waitFor(() =>
       expect(runtime.getDownloadHistory).toHaveBeenCalledTimes(2),
@@ -214,8 +208,8 @@ describe('download history', () => {
 
     await waitFor(() =>
       expect(runtime.retryDownload).toHaveBeenCalledWith(
-        'history-job-1',
-        'history-retry-key',
+        { job_id: 'history-job-1' },
+        { headers: { 'Idempotency-Key': 'history-retry-key' } },
       ),
     );
     expect(runtime.push).toHaveBeenCalledWith(
@@ -326,3 +320,24 @@ function history(overrides: Partial<DownloadHistory> = {}): DownloadHistory {
     ...overrides,
   };
 }
+
+vi.mock('@/lib/request-error', async (original) => ({
+  ...(await original<typeof import('@/lib/request-error')>()),
+  displayError: (reason: unknown) =>
+    reason instanceof Error ? reason.message : '请求失败',
+}));
+vi.mock('@/api/downloads', async (original) => ({
+  ...(await original<typeof import('@/api/downloads')>()),
+  getDownloadHistory: runtime.getDownloadHistory,
+  deleteDownload: runtime.deleteDownload,
+  issueDownloadUrl: runtime.issueDownloadUrl,
+  retryDownload: runtime.retryDownload,
+}));
+vi.mock('@/utils/idempotency', async (original) => ({
+  ...(await original<typeof import('@/utils/idempotency')>()),
+  createIdempotencyKey: () => 'history-retry-key',
+}));
+vi.mock('@/lib/browser-download', async (original) => ({
+  ...(await original<typeof import('@/lib/browser-download')>()),
+  triggerBrowserDownload: runtime.triggerBrowserDownload,
+}));

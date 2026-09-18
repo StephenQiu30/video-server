@@ -9,7 +9,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-import type { AdminDownloadAnalytics } from '@/services/analytics';
 
 import { formatInteger, formatPercent } from './analytics-format';
 
@@ -23,7 +22,7 @@ const statusConfig = {
 export function StatusDistributionChart({
   summary,
 }: {
-  summary: AdminDownloadAnalytics['summary'];
+  summary: API.DownloadAnalyticsResponse['summary'];
 }) {
   const data: Array<{
     fill: string;

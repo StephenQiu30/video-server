@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-
-import { displayError, listScreenplayDocuments } from '@/services/documents';
+import { listDocuments as listScreenplayDocuments } from '@/api/documents';
+import { displayError } from '@/lib/request-error';
 import type {
   ScreenplayDocumentPage,
   ScreenplayDocumentQuery,

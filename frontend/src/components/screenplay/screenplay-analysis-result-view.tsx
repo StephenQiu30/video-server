@@ -1,5 +1,7 @@
 'use client';
 
+import { cn } from 'cn';
+
 import AnalysisReportPreview from '@/components/analysis/analysis-report-preview';
 import {
   Detail,
@@ -9,7 +11,7 @@ import {
   Metric,
   ResultTab,
 } from '@/components/screenplay/screenplay-result-primitives';
-import { Item, ItemGroup } from '@/components/ui/item';
+import { Item } from '@/components/ui/item';
 import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
 import type { ScreenplayAnalysisResult } from '@/types/video';
 
@@ -61,27 +63,25 @@ export default function ScreenplayAnalysisResultView({
       </TabsContent>
       <TabsContent className="pt-7" value="characters">
         {result.characters.length ? (
-          <ItemGroup asChild className="gap-2">
-            <ul>
-              {result.characters.map((character) => (
-                <Item
-                  asChild
-                  className="block rounded-md border-0 px-0 py-6"
-                  key={character.id}
-                >
-                  <li>
-                    <strong className="font-medium">{character.name}</strong>
-                    <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-3">
-                      <Detail label="目标">{character.goal}</Detail>
-                      <Detail label="冲突">{character.conflict}</Detail>
-                      <Detail label="人物弧">{character.arc}</Detail>
-                    </dl>
-                    <EvidenceIds ids={character.evidence_scene_ids} />
-                  </li>
-                </Item>
-              ))}
-            </ul>
-          </ItemGroup>
+          <ul className={cn('gap-2')}>
+            {result.characters.map((character) => (
+              <Item
+                asChild
+                className="block rounded-md border-0 px-0 py-6"
+                key={character.id}
+              >
+                <li>
+                  <strong className="font-medium">{character.name}</strong>
+                  <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-3">
+                    <Detail label="目标">{character.goal}</Detail>
+                    <Detail label="冲突">{character.conflict}</Detail>
+                    <Detail label="人物弧">{character.arc}</Detail>
+                  </dl>
+                  <EvidenceIds ids={character.evidence_scene_ids} />
+                </li>
+              </Item>
+            ))}
+          </ul>
         ) : (
           <p className="py-7 text-muted-foreground">
             本次结果没有独立人物条目。
@@ -89,38 +89,36 @@ export default function ScreenplayAnalysisResultView({
         )}
       </TabsContent>
       <TabsContent className="pt-7" value="scenes">
-        <ItemGroup asChild className="gap-2">
-          <ol>
-            {result.scenes.map((scene, index) => (
-              <Item
-                asChild
-                className="grid gap-4 rounded-md border-0 px-0 py-6 sm:grid-cols-[88px_minmax(0,1fr)]"
-                key={scene.id}
-              >
-                <li>
-                  <span className="text-sm text-muted-foreground tabular-nums">
-                    场景 {index + 1}
-                  </span>
-                  <div>
-                    <strong className="font-medium">{scene.purpose}</strong>
-                    <p className="mt-2 leading-7 text-muted-foreground">
-                      {scene.conflict} · {scene.turn}
-                    </p>
-                    <p className="mt-3 text-sm">节奏：{scene.pacing}</p>
-                    {scene.findings.length ? (
-                      <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                        {scene.findings.map((finding) => (
-                          <li key={finding}>{finding}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                    <EvidenceIds ids={[scene.source_scene_id]} />
-                  </div>
-                </li>
-              </Item>
-            ))}
-          </ol>
-        </ItemGroup>
+        <ol className={cn('gap-2')}>
+          {result.scenes.map((scene, index) => (
+            <Item
+              asChild
+              className="grid gap-4 rounded-md border-0 px-0 py-6 sm:grid-cols-[88px_minmax(0,1fr)]"
+              key={scene.id}
+            >
+              <li>
+                <span className="text-sm text-muted-foreground tabular-nums">
+                  场景 {index + 1}
+                </span>
+                <div>
+                  <strong className="font-medium">{scene.purpose}</strong>
+                  <p className="mt-2 leading-7 text-muted-foreground">
+                    {scene.conflict} · {scene.turn}
+                  </p>
+                  <p className="mt-3 text-sm">节奏：{scene.pacing}</p>
+                  {scene.findings.length ? (
+                    <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                      {scene.findings.map((finding) => (
+                        <li key={finding}>{finding}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  <EvidenceIds ids={[scene.source_scene_id]} />
+                </div>
+              </li>
+            </Item>
+          ))}
+        </ol>
       </TabsContent>
       <TabsContent className="pt-7" value="dialogue">
         <EvidenceList heading="对白发现" items={result.dialogue_findings} />

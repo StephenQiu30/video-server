@@ -1,8 +1,10 @@
 'use client';
 
+import { cn } from 'cn';
+
 import AnalysisReportPreview from '@/components/analysis/analysis-report-preview';
 import { Button } from '@/components/ui/button';
-import { Item, ItemGroup } from '@/components/ui/item';
+import { Item } from '@/components/ui/item';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { VideoArticleResult } from '@/types/video';
 import { formatMilliseconds } from '@/utils/format';
@@ -43,47 +45,45 @@ export default function AnalysisArticleResultView({
         </TabsList>
       </div>
       <TabsContent className="pt-7" value="article">
-        <ItemGroup asChild className="gap-2">
-          <ol>
-            {result.sections.map((section, index) => (
-              <Item
-                asChild
-                className="block rounded-md border-0 px-0 py-7"
-                key={section.id}
-              >
-                <li>
-                  <p className="text-xs text-muted-foreground">
-                    章节 {index + 1}
-                  </p>
-                  <h4 className="mt-2 text-xl font-medium">{section.title}</h4>
-                  <p className="mt-4 whitespace-pre-line leading-8 text-muted-foreground">
-                    {section.body}
-                  </p>
-                  <div className="mt-5 space-y-1 text-sm text-muted-foreground">
-                    {section.evidence.map((evidence) => (
-                      <p
-                        key={`${evidence.start_ms}-${evidence.end_ms}-${evidence.note}`}
+        <ol className={cn('gap-2')}>
+          {result.sections.map((section, index) => (
+            <Item
+              asChild
+              className="block rounded-md border-0 px-0 py-7"
+              key={section.id}
+            >
+              <li>
+                <p className="text-xs text-muted-foreground">
+                  章节 {index + 1}
+                </p>
+                <h4 className="mt-2 text-xl font-medium">{section.title}</h4>
+                <p className="mt-4 whitespace-pre-line leading-8 text-muted-foreground">
+                  {section.body}
+                </p>
+                <div className="mt-5 space-y-1 text-sm text-muted-foreground">
+                  {section.evidence.map((evidence) => (
+                    <p
+                      key={`${evidence.start_ms}-${evidence.end_ms}-${evidence.note}`}
+                    >
+                      <Button
+                        className="h-11 px-0 text-xs tabular-nums"
+                        disabled={!onSelectTime}
+                        onClick={() => onSelectTime?.(evidence.start_ms)}
+                        type="button"
+                        variant="link"
+                        aria-label={`查看视频依据 ${formatMilliseconds(evidence.start_ms)}–${formatMilliseconds(evidence.end_ms)}`}
                       >
-                        <Button
-                          className="h-11 px-0 text-xs tabular-nums"
-                          disabled={!onSelectTime}
-                          onClick={() => onSelectTime?.(evidence.start_ms)}
-                          type="button"
-                          variant="link"
-                          aria-label={`查看视频依据 ${formatMilliseconds(evidence.start_ms)}–${formatMilliseconds(evidence.end_ms)}`}
-                        >
-                          {formatMilliseconds(evidence.start_ms)}–
-                          {formatMilliseconds(evidence.end_ms)}
-                        </Button>{' '}
-                        {evidence.note}
-                      </p>
-                    ))}
-                  </div>
-                </li>
-              </Item>
-            ))}
-          </ol>
-        </ItemGroup>
+                        {formatMilliseconds(evidence.start_ms)}–
+                        {formatMilliseconds(evidence.end_ms)}
+                      </Button>{' '}
+                      {evidence.note}
+                    </p>
+                  ))}
+                </div>
+              </li>
+            </Item>
+          ))}
+        </ol>
       </TabsContent>
       <TabsContent className="pt-7" value="points">
         <ul className="list-disc space-y-3 py-4 pl-5 leading-7 text-muted-foreground">

@@ -120,10 +120,10 @@ async def get_download_history(
         200: {
             "description": "Private persisted download thumbnail",
             "content": {
-                "image/avif": {},
-                "image/jpeg": {},
-                "image/png": {},
-                "image/webp": {},
+                "image/avif": {"schema": {"type": "string", "format": "binary"}},
+                "image/jpeg": {"schema": {"type": "string", "format": "binary"}},
+                "image/png": {"schema": {"type": "string", "format": "binary"}},
+                "image/webp": {"schema": {"type": "string", "format": "binary"}},
             },
         }
     },

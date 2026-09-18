@@ -22,14 +22,6 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: runtime.push, replace: runtime.replace }),
 }));
 
-vi.mock('@/services/documents', () => ({
-  displayError: (reason: unknown) =>
-    reason instanceof Error ? reason.message : '请求失败',
-  getScreenplayDocument: runtime.getScreenplayDocument,
-  deleteScreenplayDocument: runtime.deleteScreenplayDocument,
-  listScreenplayDocuments: runtime.listScreenplayDocuments,
-}));
-
 vi.mock('@/components/screenplay/screenplay-analysis-panel', () => ({
   default: ({ documentId }: { documentId: string }) => (
     <section aria-label="剧本分析工作区">{documentId}</section>
@@ -120,9 +112,9 @@ describe('screenplay documents', () => {
     fireEvent.click(await screen.findByRole('button', { name: '确认删除' }));
 
     await waitFor(() =>
-      expect(runtime.deleteScreenplayDocument).toHaveBeenCalledWith(
-        '99999999-9999-4999-8999-999999999999',
-      ),
+      expect(runtime.deleteScreenplayDocument).toHaveBeenCalledWith({
+        document_id: '99999999-9999-4999-8999-999999999999',
+      }),
     );
     await waitFor(() =>
       expect(runtime.listScreenplayDocuments).toHaveBeenCalledTimes(2),
@@ -140,9 +132,9 @@ describe('screenplay documents', () => {
     fireEvent.click(await screen.findByRole('button', { name: '确认删除' }));
 
     await waitFor(() =>
-      expect(runtime.deleteScreenplayDocument).toHaveBeenCalledWith(
-        'document-id',
-      ),
+      expect(runtime.deleteScreenplayDocument).toHaveBeenCalledWith({
+        document_id: 'document-id',
+      }),
     );
     expect(runtime.replace).toHaveBeenCalledWith('/documents');
   });
@@ -284,3 +276,15 @@ describe('screenplay documents', () => {
     ).toBeInTheDocument();
   });
 });
+
+vi.mock('@/lib/request-error', async (original) => ({
+  ...(await original<typeof import('@/lib/request-error')>()),
+  displayError: (reason: unknown) =>
+    reason instanceof Error ? reason.message : '请求失败',
+}));
+vi.mock('@/api/documents', async (original) => ({
+  ...(await original<typeof import('@/api/documents')>()),
+  getDocumentImport: runtime.getScreenplayDocument,
+  deleteDocument: runtime.deleteScreenplayDocument,
+  listDocuments: runtime.listScreenplayDocuments,
+}));

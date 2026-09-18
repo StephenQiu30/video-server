@@ -1,46 +1,45 @@
 import { describe, expect, it } from 'vitest';
-
+import {
+  createProviderCatalogEntry,
+  deleteProviderCatalogEntry,
+  getDownloadAnalytics as getAdminDownloadAnalytics,
+  listProviderCatalogEntries,
+  listUsers,
+  updateProviderCatalogEntry,
+  updateUserAccess,
+} from '@/api/admin';
 import {
   cancelAnalysis,
   createAnalysis,
   getAnalysis,
   listAnalysisSkills,
-} from '@/services/analysis';
-import { getAdminDownloadAnalytics } from '@/services/analytics';
+} from '@/api/analyses';
 import {
   getCurrentUser,
-  login,
-  logout,
-  refreshSession,
-  register,
-} from '@/services/auth';
+  loginUser as login,
+  logoutUser as logout,
+  refreshUserSession as refreshSession,
+  registerUser as register,
+} from '@/api/auth';
 import {
-  getScreenplayDocument,
-  listScreenplayDocuments,
-} from '@/services/documents';
+  getDocumentImport as getScreenplayDocument,
+  listDocuments as listScreenplayDocuments,
+} from '@/api/documents';
 import {
   cancelDownload,
   createDownload,
-  createSourceDiscovery,
   getDownload,
   getDownloadHistory,
-  getInspection,
-  inspectDiscoveredItem,
-  inspectMedia,
   issueDownloadUrl,
-} from '@/services/download';
+} from '@/api/downloads';
 import {
-  createProviderCatalogEntry,
-  deleteProviderCatalogEntry,
-  listProviderCatalogEntries,
-  updateProviderCatalogEntry,
-} from '@/services/provider-catalog';
-import { getLiveness, getReadiness } from '@/services/system';
-import {
-  listUsers,
-  updateCurrentUser,
-  updateUserAccess,
-} from '@/services/users';
+  getInspection,
+  inspectMedia as inspectDiscoveredItem,
+  inspectMedia,
+} from '@/api/inspections';
+import { createSourceDiscovery } from '@/api/sourceDiscoveries';
+import { getLiveness, getReadiness } from '@/api/system';
+import { updateCurrentUser } from '@/api/users';
 import { analysisJob, analysisSkills } from '../fixtures/analysis-fixtures';
 import {
   documentId,
@@ -73,7 +72,7 @@ describe('typed API client', () => {
       password: 'strong-pass-123',
     });
     await login({ email: user.email, password: 'strong-pass-123' });
-    await getCurrentUser();
+    await getCurrentUser({ skipAuthRedirect: true });
     await refreshSession();
     await logout();
 
@@ -88,11 +87,21 @@ describe('typed API client', () => {
 
   it('uses same-origin download endpoints and idempotency headers', async () => {
     mockHttpResponses(inspection, job());
-    await inspectMedia('https://media.example/owned', 'inspect-key');
+    await inspectMedia(
+      { source: { kind: 'public_url', url: 'https://media.example/owned' } },
+      {
+        headers: { 'Idempotency-Key': 'inspect-key' },
+        timeout: 180_000,
+      },
+    );
     await createDownload(
-      inspection.id,
-      inspection.formats[0].id,
-      'download-key',
+      {
+        inspection_id: inspection.id,
+        format_id: inspection.formats[0].id,
+      },
+      {
+        headers: { 'Idempotency-Key': 'download-key' },
+      },
     );
 
     expect(httpRequests()).toMatchObject([
@@ -121,13 +130,27 @@ describe('typed API client', () => {
     mockHttpResponses(sourceDiscovery, inspection);
 
     await createSourceDiscovery(
-      'https://mp.weixin.qq.com/s/article_123',
-      'discover-key',
+      {
+        kind: 'wechat_official_account_article',
+        url: 'https://mp.weixin.qq.com/s/article_123',
+      },
+      {
+        headers: { 'Idempotency-Key': 'discover-key' },
+        timeout: 30_000,
+      },
     );
     await inspectDiscoveredItem(
-      sourceDiscovery.id,
-      sourceDiscovery.items[0].item_ref,
-      'inspect-item-key',
+      {
+        source: {
+          kind: 'discovered_item',
+          discovery_id: sourceDiscovery.id,
+          item_ref: sourceDiscovery.items[0].item_ref,
+        },
+      },
+      {
+        headers: { 'Idempotency-Key': 'inspect-item-key' },
+        timeout: 30_000,
+      },
     );
 
     expect(httpRequests()).toMatchObject([
@@ -157,10 +180,18 @@ describe('typed API client', () => {
       { status: 'ok' },
       { status: 'ok', service: 'api' },
     );
-    await getInspection(inspection.id);
-    await getDownload(job().id);
-    await cancelDownload(job().id);
-    await issueDownloadUrl(job().id);
+    await getInspection({ inspection_id: encodeURIComponent(inspection.id) });
+    await getDownload({ job_id: encodeURIComponent(job().id) });
+    await cancelDownload({ job_id: encodeURIComponent(job().id) });
+    await issueDownloadUrl(
+      {
+        job_id: encodeURIComponent(job().id),
+        preview: false,
+      },
+      {
+        headers: { 'X-FrameFetch-Download-Client': 'local-web' },
+      },
+    );
     await getLiveness();
     await getReadiness();
 
@@ -213,9 +244,9 @@ describe('typed API client', () => {
     await expect(
       listScreenplayDocuments({ page: 2, page_size: 20 }),
     ).resolves.toEqual(screenplayDocumentPage());
-    await expect(getScreenplayDocument(documentId)).resolves.toEqual(
-      screenplayDocument(),
-    );
+    await expect(
+      getScreenplayDocument({ document_id: encodeURIComponent(documentId) }),
+    ).resolves.toEqual(screenplayDocument());
 
     expect(httpRequests()).toMatchObject([
       {
@@ -248,7 +279,9 @@ describe('typed API client', () => {
     };
     mockHttpResponses(result);
 
-    await expect(getAdminDownloadAnalytics(30)).resolves.toEqual(result);
+    await expect(getAdminDownloadAnalytics({ days: 30 })).resolves.toEqual(
+      result,
+    );
     expect(httpRequests()[0]).toMatchObject({
       method: 'GET',
       params: { days: 30 },
@@ -263,16 +296,18 @@ describe('typed API client', () => {
       analysisJob('cancelled'),
     );
     await createAnalysis(
-      job().id,
+      { download_id: encodeURIComponent(job().id) },
       {
         skill_id: 'highlights',
         output_language: 'en-US',
         custom_prompt: 'Focus on product reveals.',
       },
-      'analysis-key',
+      {
+        headers: { 'Idempotency-Key': 'analysis-key' },
+      },
     );
-    await getAnalysis(analysisJob().id);
-    await cancelAnalysis(analysisJob().id);
+    await getAnalysis({ analysis_id: encodeURIComponent(analysisJob().id) });
+    await cancelAnalysis({ analysis_id: encodeURIComponent(analysisJob().id) });
 
     expect(httpRequests()).toMatchObject([
       { url: `/api/downloads/${job().id}/analyses`, method: 'POST' },
@@ -289,7 +324,9 @@ describe('typed API client', () => {
   it('lists server-defined analysis skills', async () => {
     mockHttpResponses(analysisSkills);
 
-    await expect(listAnalysisSkills()).resolves.toEqual(analysisSkills);
+    await expect(listAnalysisSkills({ input_kind: 'video' })).resolves.toEqual(
+      analysisSkills,
+    );
     expect(httpRequests()[0]).toMatchObject({
       url: '/api/analysis-skills',
       method: 'GET',
@@ -315,7 +352,10 @@ describe('typed API client', () => {
 
     await updateCurrentUser({ username: 'video_user' });
     await listUsers({ page: 1, page_size: 20, role: 'user' });
-    await updateUserAccess(managedUser.id, { role: 'admin' });
+    await updateUserAccess(
+      { user_id: encodeURIComponent(managedUser.id) },
+      { role: 'admin' },
+    );
 
     expect(httpRequests()).toMatchObject([
       {
@@ -361,10 +401,15 @@ describe('typed API client', () => {
       sort_order: entry.sort_order,
       is_visible: entry.is_visible,
     });
-    await updateProviderCatalogEntry(entry.key, {
-      display_name: 'YouTube Video',
+    await updateProviderCatalogEntry(
+      { provider_key: encodeURIComponent(entry.key) },
+      {
+        display_name: 'YouTube Video',
+      },
+    );
+    await deleteProviderCatalogEntry({
+      provider_key: encodeURIComponent(entry.key),
     });
-    await deleteProviderCatalogEntry(entry.key);
 
     expect(httpRequests().slice(-4)).toMatchObject([
       { url: '/api/admin/providers', method: 'GET' },

@@ -17,16 +17,6 @@ const runtime = vi.hoisted(() => ({
   update: vi.fn(),
 }));
 
-vi.mock('@/services/ai-providers', () => ({
-  activateAiProviderProfile: runtime.activate,
-  createAiProviderProfile: runtime.create,
-  deleteAiProviderProfile: runtime.delete,
-  displayError: (reason: unknown) =>
-    reason instanceof Error ? reason.message : '请求失败',
-  listAiProviderProfiles: runtime.list,
-  updateAiProviderProfile: runtime.update,
-}));
-
 describe('administrator AI Provider mutations', () => {
   beforeEach(() => {
     for (const mock of Object.values(runtime)) mock.mockReset();
@@ -68,10 +58,13 @@ describe('administrator AI Provider mutations', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: '保存配置' }));
 
     await waitFor(() =>
-      expect(runtime.update).toHaveBeenCalledWith('local-codex', {
-        display_name: '本机 Codex App Server',
-        model: 'gpt-next',
-      }),
+      expect(runtime.update).toHaveBeenCalledWith(
+        { provider_key: 'local-codex' },
+        {
+          display_name: '本机 Codex App Server',
+          model: 'gpt-next',
+        },
+      ),
     );
     expect(runtime.delete).not.toHaveBeenCalled();
   });
@@ -91,3 +84,17 @@ function localCodex(): API.AiProviderProfileResponse {
     updated_at: '2026-08-29T00:00:00Z',
   };
 }
+
+vi.mock('@/api/admin', async (original) => ({
+  ...(await original<typeof import('@/api/admin')>()),
+  activateAiProviderProfile: runtime.activate,
+  createAiProviderProfile: runtime.create,
+  deleteAiProviderProfile: runtime.delete,
+  listAiProviderProfiles: runtime.list,
+  updateAiProviderProfile: runtime.update,
+}));
+vi.mock('@/lib/request-error', async (original) => ({
+  ...(await original<typeof import('@/lib/request-error')>()),
+  displayError: (reason: unknown) =>
+    reason instanceof Error ? reason.message : '请求失败',
+}));

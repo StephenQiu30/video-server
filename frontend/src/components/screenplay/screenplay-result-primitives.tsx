@@ -1,6 +1,7 @@
+import { cn } from 'cn';
 import type { ReactNode } from 'react';
 
-import { Item, ItemGroup } from '@/components/ui/item';
+import { Item } from '@/components/ui/item';
 import { TabsTrigger } from '@/components/ui/tabs';
 import type { ScreenplayAnalysisResult } from '@/types/video';
 
@@ -19,25 +20,23 @@ export function EvidenceList({
     <section className={className}>
       <h3 className="mb-4 text-lg font-medium tracking-[-0.02em]">{heading}</h3>
       {items.length ? (
-        <ItemGroup asChild className="gap-2">
-          <ul>
-            {items.map((item) => (
-              <Item
-                asChild
-                className="block rounded-md border-0 px-0 py-5"
-                key={item.id}
-              >
-                <li>
-                  <strong className="font-medium">{item.title}</strong>
-                  <p className="mt-2 leading-7 text-muted-foreground">
-                    {item.description}
-                  </p>
-                  <EvidenceIds ids={item.evidence_scene_ids} />
-                </li>
-              </Item>
-            ))}
-          </ul>
-        </ItemGroup>
+        <ul className={cn('gap-2')}>
+          {items.map((item) => (
+            <Item
+              asChild
+              className="block rounded-md border-0 px-0 py-5"
+              key={item.id}
+            >
+              <li>
+                <strong className="font-medium">{item.title}</strong>
+                <p className="mt-2 leading-7 text-muted-foreground">
+                  {item.description}
+                </p>
+                <EvidenceIds ids={item.evidence_scene_ids} />
+              </li>
+            </Item>
+          ))}
+        </ul>
       ) : (
         <p className="py-7 text-muted-foreground">本项没有独立发现。</p>
       )}

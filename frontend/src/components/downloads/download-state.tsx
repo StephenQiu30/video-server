@@ -95,7 +95,7 @@ export default function DownloadState({
       ) : null}
 
       {complete && !job.file_available ? (
-        <Alert className="mt-6" variant="warning">
+        <Alert className="mt-6" variant="default">
           <AlertTitle>文件已经不在存储中</AlertTitle>
           <AlertDescription>
             {recovery === 'reimport'

@@ -12,21 +12,21 @@ import {
   useRef,
   useState,
 } from 'react';
+import { getCurrentUser, logoutUser as logout } from '@/api/auth';
 import { ApiError } from '@/lib/request-error';
 import { taskSocket } from '@/lib/task-socket';
-import { type AuthUser, getCurrentUser, logout } from '@/services/auth';
 
 type AuthContextValue = {
-  user?: AuthUser;
+  user?: API.UserResponse;
   loading: boolean;
-  setUser: Dispatch<SetStateAction<AuthUser | undefined>>;
-  refreshUser: () => Promise<AuthUser | undefined>;
+  setUser: Dispatch<SetStateAction<API.UserResponse | undefined>>;
+  refreshUser: () => Promise<API.UserResponse | undefined>;
   signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const DESIGN_USER: AuthUser = {
+const DESIGN_USER: API.UserResponse = {
   id: '00000000-0000-4000-8000-000000000009',
   username: '设计预览',
   email: 'preview@example.com',
@@ -44,17 +44,16 @@ function isDesignInspection(): boolean {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUserState] = useState<AuthUser>();
+  const [user, setUserState] = useState<API.UserResponse>();
   const [loading, setLoading] = useState(true);
   const designPreview = useRef(false);
   const initialized = useRef(false);
-  const setUser = useCallback<Dispatch<SetStateAction<AuthUser | undefined>>>(
-    (value) => {
-      taskSocket.reset();
-      setUserState(value);
-    },
-    [],
-  );
+  const setUser = useCallback<
+    Dispatch<SetStateAction<API.UserResponse | undefined>>
+  >((value) => {
+    taskSocket.reset();
+    setUserState(value);
+  }, []);
 
   const refreshUser = useCallback(async () => {
     if (designPreview.current) {
@@ -65,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (!initialized.current) setLoading(true);
     try {
-      const currentUser = await getCurrentUser();
+      const currentUser = await getCurrentUser({ skipAuthRedirect: true });
       setUser(currentUser);
       return currentUser;
     } catch (reason) {

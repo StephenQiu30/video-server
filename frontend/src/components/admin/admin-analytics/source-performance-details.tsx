@@ -16,11 +16,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { AdminDownloadAnalytics } from '@/services/analytics';
 
 import { formatBytes, formatInteger, formatPercent } from './analytics-format';
 
-type Source = AdminDownloadAnalytics['sources'][number];
+type Source = API.DownloadAnalyticsResponse['sources'][number];
 
 export function SourcePerformanceDetails({ sources }: { sources: Source[] }) {
   return (

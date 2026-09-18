@@ -1,15 +1,15 @@
 import {
+  cancelDocumentImport,
+  completeDocumentImport,
+  createDocumentImport,
+  createDocumentUploadSession,
+} from '@/api/documents';
+import {
   hashFileSha256,
   MediaTransferError,
   uploadMultipartFile,
 } from '@/lib/media-upload';
 import type { ImportObserver } from '@/services/import-lifecycle';
-import {
-  cancelDocumentImport,
-  completeDocumentImport,
-  createDocumentImport,
-  createDocumentUploadSession,
-} from '@/services/video/documents';
 
 const MAX_DOCUMENT_BYTES = 50 * 1024 * 1024;
 const formats = new Map<string, API.DocumentSourceFormat>([

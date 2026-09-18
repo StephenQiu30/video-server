@@ -1,3 +1,4 @@
+import { cn } from 'cn';
 import Link from 'next/link';
 import {
   NavigationMenu,
@@ -6,7 +7,6 @@ import {
   NavigationMenuList,
 } from '@/components/ui/navigation-menu';
 import { siteConfig } from '@/lib/site';
-import { cn } from '@/lib/utils';
 
 export function SiteFooter({ className }: { className?: string }) {
   return (

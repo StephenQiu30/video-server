@@ -1,8 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRequestScope } from '@/hooks/useRequestScope';
-
-import { displayError } from '@/lib/request-error';
-import { type TaskSocketStatus, taskSocket } from '@/lib/task-socket';
 import {
   cancelAnalysis,
   createAnalysis,
@@ -12,7 +8,10 @@ import {
   getLatestDocumentAnalysis,
   getLatestDownloadAnalysis,
   retryAnalysis,
-} from '@/services/analysis';
+} from '@/api/analyses';
+import { useRequestScope } from '@/hooks/useRequestScope';
+import { displayError } from '@/lib/request-error';
+import { type TaskSocketStatus, taskSocket } from '@/lib/task-socket';
 import type { AnalysisJob, CreateAnalysisInput } from '@/types/video';
 import { terminalAnalysisStatuses } from '@/types/video';
 import { createIdempotencyKey } from '@/utils/idempotency';
@@ -70,11 +69,15 @@ export function useAnalysisJob(
   useEffect(() => {
     let disposed = false;
     const request = scope.capture();
-    const loadLatest =
+    const latest =
       inputKind === 'screenplay'
-        ? getLatestDocumentAnalysis
-        : getLatestDownloadAnalysis;
-    void loadLatest(inputId)
+        ? getLatestDocumentAnalysis({
+            document_id: encodeURIComponent(inputId),
+          })
+        : getLatestDownloadAnalysis({
+            download_id: encodeURIComponent(inputId),
+          });
+    void latest
       .then((current) => {
         if (
           disposed ||
@@ -103,7 +106,9 @@ export function useAnalysisJob(
     const refresh = async () => {
       const request = scope.capture();
       try {
-        const current = await getAnalysis(analysisId as string);
+        const current = await getAnalysis({
+          analysis_id: encodeURIComponent(analysisId as string),
+        });
         if (
           disposed ||
           !request.current() ||
@@ -140,7 +145,9 @@ export function useAnalysisJob(
       refreshing = true;
       const request = scope.capture();
       try {
-        const current = await getAnalysis(analysisId);
+        const current = await getAnalysis({
+          analysis_id: encodeURIComponent(analysisId),
+        });
         if (
           disposed ||
           !request.current() ||
@@ -190,9 +197,21 @@ export function useAnalysisJob(
       setAction('start');
       setError(null);
       try {
-        const create =
-          inputKind === 'screenplay' ? createDocumentAnalysis : createAnalysis;
-        const next = await create(inputId, input, createKey.current.value);
+        const options = {
+          headers: { 'Idempotency-Key': createKey.current.value },
+        };
+        const next =
+          inputKind === 'screenplay'
+            ? await createDocumentAnalysis(
+                { document_id: encodeURIComponent(inputId) },
+                input,
+                options,
+              )
+            : await createAnalysis(
+                { download_id: encodeURIComponent(inputId) },
+                input,
+                options,
+              );
         if (request.current()) accept(next);
       } catch (reason) {
         if (request.current()) setError(displayError(reason));
@@ -212,7 +231,9 @@ export function useAnalysisJob(
     setAction('cancel');
     setError(null);
     try {
-      const next = await cancelAnalysis(analysisId);
+      const next = await cancelAnalysis({
+        analysis_id: encodeURIComponent(analysisId),
+      });
       if (request.current()) accept(next);
     } catch (reason) {
       if (request.current()) setError(displayError(reason));
@@ -226,7 +247,9 @@ export function useAnalysisJob(
     if (!analysisId) return;
     const request = scope.capture();
     try {
-      const next = await getAnalysis(analysisId);
+      const next = await getAnalysis({
+        analysis_id: encodeURIComponent(analysisId),
+      });
       if (request.current() && next.id === analysisId) accept(next);
     } catch (reason) {
       if (request.latest()) setError(displayError(reason));
@@ -248,7 +271,10 @@ export function useAnalysisJob(
     setAction('retry');
     setError(null);
     try {
-      const next = await retryAnalysis(analysisId, retryKey.current.value);
+      const next = await retryAnalysis(
+        { analysis_id: encodeURIComponent(analysisId) },
+        { headers: { 'Idempotency-Key': retryKey.current.value } },
+      );
       if (!request.current()) return;
       accept(next);
       retryKey.current = null;
@@ -266,7 +292,7 @@ export function useAnalysisJob(
     setAction('delete');
     setError(null);
     try {
-      await deleteAnalysis(analysisId);
+      await deleteAnalysis({ analysis_id: encodeURIComponent(analysisId) });
       if (!request.current()) return;
       hasLocalJob.current = false;
       createKey.current = null;

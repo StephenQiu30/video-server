@@ -1,14 +1,9 @@
 import { useEffect, useState } from 'react';
+import { getDownloadAnalytics as getAdminDownloadAnalytics } from '@/api/admin';
+import { displayError } from '@/lib/request-error';
 
-import {
-  type AdminDownloadAnalytics,
-  type AnalyticsPeriod,
-  displayError,
-  getAdminDownloadAnalytics,
-} from '@/services/analytics';
-
-export function useAdminDownloadAnalytics(days: AnalyticsPeriod) {
-  const [data, setData] = useState<AdminDownloadAnalytics | null>(null);
+export function useAdminDownloadAnalytics(days: 7 | 30 | 90) {
+  const [data, setData] = useState<API.DownloadAnalyticsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [retryKey, setRetryKey] = useState(0);
@@ -18,7 +13,7 @@ export function useAdminDownloadAnalytics(days: AnalyticsPeriod) {
     void retryKey;
     setLoading(true);
 
-    getAdminDownloadAnalytics(days)
+    getAdminDownloadAnalytics({ days: days })
       .then((result) => {
         if (!disposed) {
           setData(result);

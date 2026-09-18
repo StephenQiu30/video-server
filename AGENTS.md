@@ -35,7 +35,8 @@ server/
 │   │   ├── components/            按 feature 归类的业务组件与 shadcn/ui 源码
 │   │   ├── hooks/                 可复用状态和流程 Hooks
 │   │   ├── lib/                   Axios、请求错误与通用基础设施
-│   │   ├── services/              业务请求入口与 OpenAPI 生成代码
+│   │   ├── api/                   OpenAPI 自动生成的请求与类型
+│   │   ├── services/              上传与媒体流程编排
 │   │   ├── types/                 前端业务类型
 │   │   └── utils/                 无 UI 的通用函数
 │   └── tests/                     Vitest 测试
@@ -58,46 +59,19 @@ server/
 - 进程入口放在 `workers/` 或 `runner/`，不要把下载、转码或 AI 长任务放进 HTTP 请求进程。
 - Codex App 插件、stdio MCP 桥接和可独立发行的用户本机 Agent 放在 `plugins/framefetch/`；插件不得导入后端应用模块，也不得持有数据库、队列、对象存储或模型服务密钥。
 - 前端不使用独立的 `src/features/` 目录。App Router 页面放在 `src/app/`，业务组件按 feature 放在 `src/components/{account,admin,analysis,auth,downloads,intake,layout,providers,screenplay}/`，shadcn/ui 源码放在 `src/components/ui/`。
-- 前端请求统一从 `services/` 暴露，状态流程优先放在 `hooks/`；不要在页面中散落原始请求、轮询或错误映射逻辑。
-- `frontend/src/services/video/` 保留已提交的 OpenAPI 客户端，禁止在页面中绕过稳定入口；生成代码统一导入 `frontend/src/lib/request.ts` 的 Axios 请求封装，接口变化时同步审查契约和客户端。
+- 前端 REST 请求与类型全部从 `src/api/` 的生成代码导入；状态流程放在 `hooks/`，上传等多步业务编排放在 `services/`。不得另写请求函数或平行 DTO。
+- FastAPI 根据路由注解和 Pydantic 模型自动生成 `/openapi.json`；`@umijs/openapi` 直接生成 `frontend/src/api/`，全部调用 `src/lib/request.ts` 的 Axios 封装。禁止手工维护 Swagger 文件或修改生成代码。
 - 后端公开操作必须声明稳定且唯一的 `operationId` 和 tag，供已提交的 OpenAPI 客户端和契约测试使用。创建出可查询资源的接口返回 `201 Created` 和 `Location`；异步执行状态放在响应模型中，不用 `202` 损失返回类型。
 - 路由、布局和元数据遵循 Next.js App Router 官方约定；交互组件使用 shadcn/ui 与 Radix UI，样式使用 Tailwind CSS 主题 token，不得重新引入 Umi、Ant Design、Vite 入口或平行路由器。
 - 测试目录应与被测职责对应；通用测试数据和 Fake 可以复用，但不得为了覆盖率复制实现细节。
 
-## 前端设计系统规范（强制）
+## 前端官方实现规范
 
-本项目唯一视觉方向是用户确认的“方案 3”：Vercel Home 式无边框界面。Vercel/Geist 判断基准与产品适配规则见根目录 [design.md](design.md)，详细设计决策见 [前端视觉系统设计](docs/design/frontend-visual-system.md)，视觉回归证据见 [设计 QA](design-qa.md)。本节是所有前端变更必须满足的仓库级门禁；`frontend/src/app/globals.css` 是 token 和布局公式的可执行事实来源。四者不一致时视为缺陷，必须在同一变更中同步，不得另建平行规范。
-
-### 视觉、token 与网格
-
-- 画面以内容、排版和留白组织层级：浅色主题使用 `#FAFAFA` 画布、`#0A0A0A` 前景和 `#111111` 主操作；深色主题使用 `#0A0A0A` 画布、`#F5F5F5` 前景。控件表面、弱化文字、边界、成功、警告和错误只能消费 `background`、`foreground`、`surface`、`muted`、`primary`、`border`、`success`、`warning`、`destructive` 等语义 token，不在业务组件中散落十六进制色值或近似色。
-- 基础圆角为 `6px`，只通过 `--radius` 派生。默认不使用阴影；层级优先依靠明度、间距和排版，覆盖层仅保留识别层级所必需的表面与遮罩。
-- 所有路由只能通过 `BasicLayout` 获得唯一的 Header、`.content-shell` main、Footer、跳过链接与站内导航历史；页面和内容框架不得绕过它重复创建页面级 Header、main 或根内容容器。80px Header、main/footer 与认证页统一复用 `.content-shell = min(calc(100% - 160px), 1376px)`，保证品牌、导航、欢迎页 Hero 和认证双栏处在同一条对齐线上。`body` 保留常驻纵向滚动容器，Radix 覆盖层独占滚动锁和滚动条宽度补偿；不得再设置第二套根 `scrollbar-gutter` 或覆盖 `data-scroll-locked`。Header 异步账户区域必须使用固定宽度槽位，页面长短和认证恢复不得改变导航几何。Header 品牌标识使用 32px，品牌文字使用 17px，桌面导航文字保持 15px、控件至少 44px 高。认证页继续保留无外框双栏内容，但左侧主张必须复用 `.editorial-title`，右侧表单在共享 main 网格内收窄到 440px；不足 `lg` 时隐藏介绍栏。641–1023px 时全部页面两侧各 32px；不超过 640px 时两侧各 16px。网格只负责对齐，不得被渲染成可见应用外壳。
-- 字体统一为自托管 Geist Sans/Mono，中文按 `PingFang SC`、`Hiragino Sans GB`、`Microsoft YaHei`、系统无衬线顺序回退。正文、标题、控件、表格、KPI、日期、数量、百分比、时长和文件大小使用 Geist Sans；Geist Mono 仅用于代码、命令、路径、原始 token、精确时间戳和短操作标识。可比较数字使用 `tabular-nums`，桌面表格的数值表头和单元格共同右对齐。首页编辑式标题复用 `.editorial-title`；编号 `.eyebrow` 仅用于首页真实流程步骤，普通内页、错误和空状态不得增加重复眉题或装饰标签。
-
-### 控件、组件与交互
-
-- 基础控件的 hover、active、loading、展开和选中状态不得改变外部几何尺寸或在文档流中位移；Button、Link 与 Radix Trigger 只过渡颜色、透明度及覆盖层属性，异步内容使用固定尺寸槽位。`asChild` 只负责组合语义与行为，不得传播会让触发器抖动的共享 transform。
-
-- 页面根、标题区、筛选区、列表区和表单区禁止可见 Card 外壳、装饰性 border/ring、重阴影和大面积圆角容器。Input、Select、Button 等默认使用无边框实心中性表面；内容分组只使用必要的 1px 发丝 Separator。错误边界、键盘焦点轮廓和 Radix 覆盖层边界属于功能反馈，不得以“无边框”为由移除。
-- 交互原语优先组合 `frontend/src/components/ui/` 中 shadcn/ui `radix-nova` 源码与 Radix UI。Dialog、AlertDialog、Sheet、Select、Dropdown Menu、Tabs、RadioGroup、Progress、Tooltip 等必须保留语义、焦点圈定、Escape 行为和触发器焦点恢复；不得用可点击 `div`、自制浮层或第二套基础组件绕过这些能力。
-- 功能图标只使用 `@phosphor-icons/react` 的同一家族，并提供可访问名称；品牌标识统一通过 Next.js `Image` 使用已经设计好的 `frontend/public/logo.svg`。禁止用 emoji、文本符号、CSS 图形、临时手绘 SVG 或混用图标库代替业务图标。
-- `Badge` 和胶囊只表达状态、身份、选择或交互；能力、分类、评分、尝试次数等普通元数据使用辅助文字与 `·` 分隔。空状态默认不放装饰性圆角图标 tile；图标必须提供标题之外的独立语义，否则直接省略。
-- 所有已认证的非首页页面与多步骤流程必须提供明确、可键盘操作的返回路径。返回上一步优先遵循由应用记录的站内浏览历史，并为无可用历史的直接访问提供稳定站内 fallback；登录与注册不渲染通用历史返回，改用彼此之间的明确交叉链接和校验后的 `redirect`，避免过期受保护页面参与回退并形成认证循环。不得让用户只能依赖浏览器工具栏，也不得用硬编码跳转破坏正常返回链路。
-- 首页格式选择必须用 Radix RadioGroup 渲染 API 返回的真实 `MediaFormat`。界面不得虚构后端没有的画质预设、字幕、容器、音频模式、文件大小、播放能力或任务状态。
-
-### 响应式、状态与可访问性
-
-- 390×844 是强制移动验收视口，桌面同时覆盖 1280px 与方案稿桌面尺寸。页面不得产生横向滚动；固定尺寸必须受 `max-width: 100%` 约束。移动端重排信息而非缩放桌面：导航进入 Sheet，输入/主操作纵向满宽，媒体与格式单列，表格转换为可读 Item，Dialog/Sheet 内容可滚动。
-- 每个异步流程都必须设计并验证初始、加载、成功、空、校验失败、请求失败、禁用和重试状态；状态不能只靠颜色表达，也不得用空白区域冒充失败或无数据。轮询状态通过节流的 `aria-live` 播报，避免每次刷新重复朗读。
-- 目标为 WCAG 2.2 AA：语义化结构、唯一 `h1`、顺序标题、真实 label/button/table、正文至少 4.5:1 对比度、可见 `2px` 焦点环与 `2px` 偏移、至少 44×44px 触控目标、完整键盘路径、准确图片替代文本，并遵循 `prefers-reduced-motion`。Tooltip 不能承载唯一必要信息。
-- 生产界面优先使用真实媒体封面；失败时显示准确的不可用状态。视觉回归专用山景资产固定为 `frontend/public/images/media-preview-mountain.webp`，新增位图必须按显示尺寸裁切并优先压缩为 WebP/AVIF，禁止提交无用途原图、外链热链、伪造业务数据或仅用于装饰的大图。
-
-### 禁止事项与变更门禁
-
-- 禁止恢复侧栏后台壳、卡片堆叠、三步向导、高密度工具栏、渐变炫光、玻璃拟态、重投影或蓝色企业后台视觉；禁止重新引入 Ant Design、Ant Design Pro、Umi、Less、CSS-in-JS 或平行主题系统。
-- 修改颜色、字体、圆角、网格、断点或基础控件时，必须同步更新 `globals.css`、[前端视觉系统设计](docs/design/frontend-visual-system.md) 和必要测试；修改导航模式或核心页面信息层级时，必须同步更新该设计文档与必要测试。视觉基准变化还必须重做 [design-qa.md](design-qa.md) 的桌面/390px 同状态比较。
-- 交付前至少运行前端 `npm run lint`、`npm test`、`npm run build`，并实际检查键盘返回路径、明暗主题、加载/空/错误状态、Radix 覆盖层和页面级横向溢出。视觉 QA 只有在没有剩余 P0/P1/P2 差异且 `design-qa.md` 写明 `final result: passed` 时才算通过；QA 截图不能替代功能和无障碍验证。
+- 工程基线使用官方 create-next-app（App Router、TypeScript、Tailwind、src 目录）和 shadcn CLI；使用 pnpm 与唯一 pnpm-lock.yaml。
+- 基础组件采用官方 radix-nova / neutral / Phosphor 实现，不恢复旧组件的自定义 variant、asChild 或输入尺寸属性。业务页面通过官方组件组合实现功能。
+- 页面采用无边框内容布局；基础控件保留官方边界、焦点、错误和覆盖层行为，不通过全局规则强制删除。
+- 主题以官方 neutral tokens 为起点，遵循明暗主题和官方圆角比例。旧方案稿与旧项目样式不作为组件实现标准。
+- 详情见根 design.md。验证包含 pnpm lint、pnpm format:check、ppnpm test、pnpm build，以及桌面和 390px 的真实浏览器交互。
 
 ## 架构与数据边界
 
@@ -139,11 +113,11 @@ uv run pytest
 - 前端命令从 `frontend/` 执行：
 
 ```bash
-npm ci
-npm run format:check
-npm run lint
-npm test
-npm run build
+pnpm install --frozen-lockfile
+pnpm format:check
+pnpm lint
+pnpm test
+pnpm build
 ```
 
 - 涉及接口契约时验证 OpenAPI 生成结果和前后端契约测试；涉及运行时、依赖或容器时验证业务 Compose 和生产 Compose 可以解析，按需验证镜像构建和已有服务的健康接口；CI 夹具只做静态解析，不在本机启动。

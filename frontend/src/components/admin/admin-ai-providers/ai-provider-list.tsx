@@ -63,9 +63,9 @@ export function ProviderRow({
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="font-medium">{item.display_name}</h3>
-          {item.is_active ? <Badge variant="success">当前线路</Badge> : null}
-          {localCodex ? <Badge variant="neutral">系统兜底</Badge> : null}
-          <Badge variant="neutral">{providerEngineLabel(item.engine)}</Badge>
+          {item.is_active ? <Badge variant="default">当前线路</Badge> : null}
+          {localCodex ? <Badge variant="secondary">系统兜底</Badge> : null}
+          <Badge variant="secondary">{providerEngineLabel(item.engine)}</Badge>
         </div>
         <p className="mt-1 truncate text-sm text-muted-foreground">
           {item.model} ·{' '}

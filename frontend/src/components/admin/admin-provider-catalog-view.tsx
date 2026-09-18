@@ -2,6 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  createProviderCatalogEntry,
+  deleteProviderCatalogEntry,
+  listProviderCatalogEntries,
+  updateProviderCatalogEntry,
+} from '@/api/admin';
+import {
   type CatalogDeleteState,
   type CatalogEditorState,
   EMPTY_EDITOR,
@@ -10,13 +16,7 @@ import { ProviderCatalogDelete } from '@/components/admin/admin-provider-catalog
 import { ProviderCatalogEditor } from '@/components/admin/admin-provider-catalog/provider-catalog-editor';
 import { ProviderCatalogScreen } from '@/components/admin/admin-provider-catalog/provider-catalog-screen';
 import { ProviderRuntimePanel } from '@/components/admin/provider-runtime-panel';
-import {
-  createProviderCatalogEntry,
-  deleteProviderCatalogEntry,
-  displayError,
-  listProviderCatalogEntries,
-  updateProviderCatalogEntry,
-} from '@/services/provider-catalog';
+import { displayError } from '@/lib/request-error';
 
 const EMPTY_DELETE: CatalogDeleteState = {
   target: null,
@@ -96,11 +96,14 @@ export function AdminProviderCatalogView() {
         });
         setNotice(`已新增平台“${displayName}”。`);
       } else {
-        await updateProviderCatalogEntry(key, {
-          display_name: displayName,
-          sort_order: sortOrder,
-          is_visible: editor.visible,
-        });
+        await updateProviderCatalogEntry(
+          { provider_key: encodeURIComponent(key) },
+          {
+            display_name: displayName,
+            sort_order: sortOrder,
+            is_visible: editor.visible,
+          },
+        );
         setNotice(`已更新平台“${displayName}”。`);
       }
       setEditor(EMPTY_EDITOR);
@@ -119,7 +122,9 @@ export function AdminProviderCatalogView() {
     const target = deleting.target;
     setDeleting((current) => ({ ...current, deleting: true, error: '' }));
     try {
-      await deleteProviderCatalogEntry(target.key);
+      await deleteProviderCatalogEntry({
+        provider_key: encodeURIComponent(target.key),
+      });
       setDeleting(EMPTY_DELETE);
       setNotice(`已删除平台“${target.display_name}”。`);
       await loadCatalog();

@@ -1,12 +1,11 @@
 'use client';
 
 import { ImageIcon } from '@phosphor-icons/react';
+import { cn } from 'cn';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 import {
   isPrivateThumbnailPath,
   loadPrivateThumbnail,

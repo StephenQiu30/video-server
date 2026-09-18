@@ -9,16 +9,9 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AdminAnalyticsView } from '@/components/admin/admin-analytics-view';
-import type { AdminDownloadAnalytics } from '@/services/analytics';
 
 const runtime = vi.hoisted(() => ({
   getAdminDownloadAnalytics: vi.fn(),
-}));
-
-vi.mock('@/services/analytics', () => ({
-  displayError: (reason: unknown) =>
-    reason instanceof Error ? reason.message : '请求失败',
-  getAdminDownloadAnalytics: runtime.getAdminDownloadAnalytics,
 }));
 
 describe('administrator download analytics', () => {
@@ -33,7 +26,9 @@ describe('administrator download analytics', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: '下载分析' }),
     ).toBeInTheDocument();
-    expect(runtime.getAdminDownloadAnalytics).toHaveBeenCalledWith(30);
+    expect(runtime.getAdminDownloadAnalytics).toHaveBeenCalledWith({
+      days: 30,
+    });
     expect(screen.getByText('下载总数').nextElementSibling).toHaveTextContent(
       '48',
     );
@@ -101,7 +96,7 @@ describe('administrator download analytics', () => {
   });
 
   it('maps period changes and refresh to the analytics request', async () => {
-    const periodRefresh = deferred<AdminDownloadAnalytics>();
+    const periodRefresh = deferred<API.DownloadAnalyticsResponse>();
     runtime.getAdminDownloadAnalytics
       .mockResolvedValueOnce(analytics())
       .mockReturnValueOnce(periodRefresh.promise)
@@ -117,7 +112,9 @@ describe('administrator download analytics', () => {
     ).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(within(periodGroup).getByRole('radio', { name: '7 天' }));
     await waitFor(() =>
-      expect(runtime.getAdminDownloadAnalytics).toHaveBeenLastCalledWith(7),
+      expect(runtime.getAdminDownloadAnalytics).toHaveBeenLastCalledWith({
+        days: 7,
+      }),
     );
     expect(screen.getByText('下载总数').nextElementSibling).toHaveTextContent(
       '48',
@@ -142,7 +139,7 @@ describe('administrator download analytics', () => {
   });
 
   it('covers loading, error retry and empty states', async () => {
-    const first = deferred<AdminDownloadAnalytics>();
+    const first = deferred<API.DownloadAnalyticsResponse>();
     runtime.getAdminDownloadAnalytics
       .mockReturnValueOnce(first.promise)
       .mockResolvedValueOnce(
@@ -168,8 +165,8 @@ describe('administrator download analytics', () => {
 });
 
 function analytics(
-  overrides: Partial<AdminDownloadAnalytics> = {},
-): AdminDownloadAnalytics {
+  overrides: Partial<API.DownloadAnalyticsResponse> = {},
+): API.DownloadAnalyticsResponse {
   return {
     period_days: 30,
     start: '2026-07-12',
@@ -240,3 +237,13 @@ function deferred<T>() {
   });
   return { promise, reject, resolve };
 }
+
+vi.mock('@/lib/request-error', async (original) => ({
+  ...(await original<typeof import('@/lib/request-error')>()),
+  displayError: (reason: unknown) =>
+    reason instanceof Error ? reason.message : '请求失败',
+}));
+vi.mock('@/api/admin', async (original) => ({
+  ...(await original<typeof import('@/api/admin')>()),
+  getDownloadAnalytics: runtime.getAdminDownloadAnalytics,
+}));

@@ -57,7 +57,7 @@ export default function DownloadVideoPreview({
     return (
       <AspectRatio ratio={mediaFrameAspectRatio}>
         <div className="flex size-full items-center bg-muted p-5 sm:p-8">
-          <Alert variant="warning">
+          <Alert variant="default">
             <AlertTitle>暂时无法预览视频</AlertTitle>
             <AlertDescription>
               {preview.error ?? '没有可用的视频预览地址。'}

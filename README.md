@@ -220,7 +220,7 @@ flowchart LR
 
 ## 本地开发
 
-前端需要 Node.js `>=24.15 <25` 与 npm 11，后端需要 Python `>=3.12 <3.13` 与 [uv](https://docs.astral.sh/uv/)。代码级质量门禁：
+前端需要 Node.js `>=24.15 <25` 与 pnpm 12，后端需要 Python `>=3.12 <3.13` 与 [uv](https://docs.astral.sh/uv/)。代码级质量门禁：
 
 ```bash
 cd backend
@@ -230,10 +230,10 @@ uv run --frozen mypy --strict app
 uv run --frozen pytest -q
 
 cd ../frontend
-npm ci
-npm run lint
-npm test
-npm run build
+pnpm install --frozen-lockfile
+pnpm lint
+pnpm test
+pnpm build
 ```
 
 仓库主要目录：

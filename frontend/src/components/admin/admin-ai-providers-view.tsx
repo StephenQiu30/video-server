@@ -1,6 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  activateAiProviderProfile,
+  createAiProviderProfile,
+  deleteAiProviderProfile,
+  listAiProviderProfiles,
+  updateAiProviderProfile,
+} from '@/api/admin';
 import { AiProviderDelete } from '@/components/admin/admin-ai-providers/ai-provider-delete';
 import { AiProviderEditor } from '@/components/admin/admin-ai-providers/ai-provider-editor';
 import { AiProviderScreen } from '@/components/admin/admin-ai-providers/ai-provider-screen';
@@ -9,14 +16,7 @@ import {
   EMPTY_AI_PROVIDER_EDITOR,
   isLocalCodexProvider,
 } from '@/components/admin/admin-ai-providers/model';
-import {
-  activateAiProviderProfile,
-  createAiProviderProfile,
-  deleteAiProviderProfile,
-  displayError,
-  listAiProviderProfiles,
-  updateAiProviderProfile,
-} from '@/services/ai-providers';
+import { displayError } from '@/lib/request-error';
 
 export function AdminAiProvidersView() {
   const [items, setItems] = useState<API.AiProviderProfileResponse[]>([]);
@@ -122,7 +122,7 @@ export function AdminAiProvidersView() {
         setNotice(`已新增 AI Provider“${displayName}”。`);
       } else {
         await updateAiProviderProfile(
-          key,
+          { provider_key: encodeURIComponent(key) },
           isLocalCodexProvider(key)
             ? { display_name: displayName, model }
             : {
@@ -151,7 +151,9 @@ export function AdminAiProvidersView() {
     setError('');
     setNotice('');
     try {
-      await activateAiProviderProfile(item.key);
+      await activateAiProviderProfile({
+        provider_key: encodeURIComponent(item.key),
+      });
       setNotice(`“${item.display_name}”已成为当前分析线路。`);
       await load();
     } catch (reason) {
@@ -163,7 +165,9 @@ export function AdminAiProvidersView() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await deleteAiProviderProfile(deleteTarget.key);
+      await deleteAiProviderProfile({
+        provider_key: encodeURIComponent(deleteTarget.key),
+      });
       setNotice(`已删除 AI Provider“${deleteTarget.display_name}”。`);
       setDeleteTarget(null);
       await load();

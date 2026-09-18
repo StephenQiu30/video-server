@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import ScreenplayAnalysisPanel from '@/components/screenplay/screenplay-analysis-panel';
@@ -80,15 +86,26 @@ describe('ScreenplayAnalysisPanel', () => {
     expect(screen.getByRole('tab', { name: '修改建议' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '导出 DOCX' })).toHaveAttribute(
       'href',
-      `/api/analyses/${screenplayAnalysisJob('analysis').id}/report.docx`,
+      '#report-docx',
     );
     const link = screen.getByRole('link', { name: '导出 DOCX' });
+    const blob = new Blob(['report']);
+    mockHttpResponses(blob);
+    const createUrl = vi
+      .spyOn(URL, 'createObjectURL')
+      .mockReturnValue('blob:screenplay-report');
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {});
     expect(fireEvent.click(link)).toBe(false);
-    const frame = document.querySelector<HTMLIFrameElement>(
-      'iframe[data-framefetch-download]',
-    );
-    expect(frame?.src).toBe((link as HTMLAnchorElement).href);
-    frame?.remove();
+    await waitFor(() => expect(createUrl).toHaveBeenCalledWith(blob));
+    expect(httpRequests().at(-1)).toMatchObject({
+      url: `/api/analyses/${screenplayAnalysisJob('analysis').id}/report.docx`,
+      responseType: 'blob',
+    });
+    expect(click).toHaveBeenCalledOnce();
+    createUrl.mockRestore();
+    click.mockRestore();
   });
 
   it('keeps rewritten text in the canonical report view', async () => {

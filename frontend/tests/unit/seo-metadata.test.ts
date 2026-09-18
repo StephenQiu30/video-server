@@ -66,7 +66,7 @@ describe('public SEO metadata', () => {
 
   it('keeps anonymous session discovery on the public landing page', () => {
     const authService = readFileSync(
-      resolve(process.cwd(), 'src/services/auth.ts'),
+      resolve(process.cwd(), 'src/components/auth/auth-provider.tsx'),
       'utf8',
     );
     const requestClient = readFileSync(

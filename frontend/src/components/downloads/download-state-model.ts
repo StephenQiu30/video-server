@@ -42,10 +42,10 @@ const failureDetails: Record<string, string> = {
 };
 
 export function statusVariant(status: DownloadStatus) {
-  if (status === 'succeeded') return 'success' as const;
+  if (status === 'succeeded') return 'default' as const;
   if (status === 'failed') return 'destructive' as const;
-  if (status === 'retry_wait') return 'warning' as const;
-  return 'neutral' as const;
+  if (status === 'retry_wait') return 'secondary' as const;
+  return 'secondary' as const;
 }
 
 export function statusHeading(job: DownloadJob) {

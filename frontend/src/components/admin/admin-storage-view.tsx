@@ -1,15 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-
+import { cleanupStoredFiles, listStoredFiles } from '@/api/admin';
 import { AdminStorageScreen } from '@/components/admin/admin-storage/admin-storage-screen';
 import { STORAGE_PAGE_SIZE } from '@/components/admin/admin-storage/model';
 import { useAuth } from '@/components/auth/auth-provider';
-import {
-  cleanupStoredFiles,
-  displayError,
-  listStoredFiles,
-} from '@/services/storage-files';
+import { displayError } from '@/lib/request-error';
 
 export function AdminStorageView() {
   const { user, loading: authLoading } = useAuth();
@@ -57,7 +53,7 @@ export function AdminStorageView() {
     setCleaning(true);
     setCleanupError('');
     try {
-      const result = await cleanupStoredFiles(cleanupDays);
+      const result = await cleanupStoredFiles({ older_than_days: cleanupDays });
       setCleanupOpen(false);
       setNotice(
         `已清理 ${result.removed_resources} 项资源、${result.removed_objects} 个对象；${result.failed_resources} 项清理失败。`,

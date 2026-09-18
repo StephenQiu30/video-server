@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-
+import { listUsers, updateUserAccess } from '@/api/admin';
 import { AdminUsersScreen } from '@/components/admin/admin-users/admin-users-screen';
 import {
   type ActiveFilter,
@@ -14,8 +14,7 @@ import {
   UnauthenticatedUsers,
 } from '@/components/admin/admin-users/user-states';
 import { useAuth } from '@/components/auth/auth-provider';
-import { ApiError } from '@/lib/request-error';
-import { displayError, listUsers, updateUserAccess } from '@/services/users';
+import { ApiError, displayError } from '@/lib/request-error';
 
 const GIB = 1024 ** 3;
 const EMPTY_QUOTA: UserQuotaDraft = {
@@ -100,11 +99,14 @@ export function AdminUsersView() {
     setEditError('');
     try {
       const quota = quotaInput(editQuota);
-      await updateUserAccess(editing.id, {
-        role: editRole,
-        is_active: editActive,
-        quota,
-      });
+      await updateUserAccess(
+        { user_id: encodeURIComponent(editing.id) },
+        {
+          role: editRole,
+          is_active: editActive,
+          quota,
+        },
+      );
       setEditing(null);
       setNotice(`已更新 ${editing.username} 的账户权限。`);
       await loadUsers();

@@ -10,11 +10,6 @@ const runtime = vi.hoisted(() => ({
   resetSocket: vi.fn(),
 }));
 
-vi.mock('@/services/auth', () => ({
-  getCurrentUser: runtime.getCurrentUser,
-  logout: runtime.logout,
-}));
-
 vi.mock('@/lib/task-socket', () => ({
   taskSocket: { reset: runtime.resetSocket },
 }));
@@ -146,3 +141,9 @@ function AuthProbe() {
     </div>
   );
 }
+
+vi.mock('@/api/auth', async (original) => ({
+  ...(await original<typeof import('@/api/auth')>()),
+  getCurrentUser: runtime.getCurrentUser,
+  logoutUser: runtime.logout,
+}));

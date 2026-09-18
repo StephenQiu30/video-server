@@ -1,6 +1,4 @@
-import type { AdminDownloadAnalytics } from '@/services/analytics';
-
-type DailyPoint = AdminDownloadAnalytics['daily'][number];
+type DailyPoint = API.DownloadAnalyticsResponse['daily'][number];
 
 export function DailyTrendDataTable({ points }: { points: DailyPoint[] }) {
   return (

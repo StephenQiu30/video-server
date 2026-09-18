@@ -17,15 +17,6 @@ const runtime = vi.hoisted(() => ({
   update: vi.fn(),
 }));
 
-vi.mock('@/services/provider-catalog', () => ({
-  createProviderCatalogEntry: runtime.create,
-  deleteProviderCatalogEntry: runtime.delete,
-  displayError: (reason: unknown) =>
-    reason instanceof Error ? reason.message : '请求失败',
-  listProviderCatalogEntries: runtime.list,
-  updateProviderCatalogEntry: runtime.update,
-}));
-
 describe('administrator provider catalog management', () => {
   beforeEach(() => {
     runtime.create.mockReset();
@@ -85,11 +76,14 @@ describe('administrator provider catalog management', () => {
     fireEvent.click(within(dialog).getByLabelText('公开显示'));
     fireEvent.click(within(dialog).getByRole('button', { name: '保存更改' }));
     await waitFor(() =>
-      expect(runtime.update).toHaveBeenCalledWith('custom', {
-        display_name: '新名称',
-        is_visible: false,
-        sort_order: 90,
-      }),
+      expect(runtime.update).toHaveBeenCalledWith(
+        { provider_key: 'custom' },
+        {
+          display_name: '新名称',
+          is_visible: false,
+          sort_order: 90,
+        },
+      ),
     );
 
     await waitFor(() =>
@@ -101,7 +95,9 @@ describe('administrator provider catalog management', () => {
     const alert = await screen.findByRole('alertdialog');
     expect(alert).toHaveTextContent('系统下载 Profile 不会因此被删除');
     fireEvent.click(within(alert).getByRole('button', { name: '确认删除' }));
-    await waitFor(() => expect(runtime.delete).toHaveBeenCalledWith('custom'));
+    await waitFor(() =>
+      expect(runtime.delete).toHaveBeenCalledWith({ provider_key: 'custom' }),
+    );
   });
 
   it('keeps the current catalog mounted during a background reload', () => {
@@ -202,3 +198,16 @@ function custom(
     ...overrides,
   };
 }
+
+vi.mock('@/api/admin', async (original) => ({
+  ...(await original<typeof import('@/api/admin')>()),
+  createProviderCatalogEntry: runtime.create,
+  deleteProviderCatalogEntry: runtime.delete,
+  listProviderCatalogEntries: runtime.list,
+  updateProviderCatalogEntry: runtime.update,
+}));
+vi.mock('@/lib/request-error', async (original) => ({
+  ...(await original<typeof import('@/lib/request-error')>()),
+  displayError: (reason: unknown) =>
+    reason instanceof Error ? reason.message : '请求失败',
+}));

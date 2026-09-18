@@ -115,7 +115,7 @@ export async function getDownloadThumbnail(
   options?: RequestOptions
 ) {
   const { job_id: param0, ...queryParams } = params;
-  return request<{ id?: number }>(`/api/downloads/${param0}/thumbnail`, {
+  return request<Blob>(`/api/downloads/${param0}/thumbnail`, {
     method: "GET",
     params: { ...queryParams },
     ...(options || {}),

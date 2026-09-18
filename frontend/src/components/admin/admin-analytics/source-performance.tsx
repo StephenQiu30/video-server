@@ -8,12 +8,11 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import type { AdminDownloadAnalytics } from '@/services/analytics';
 
 import { formatInteger } from './analytics-format';
 import { SourcePerformanceDetails } from './source-performance-details';
 
-type Source = AdminDownloadAnalytics['sources'][number];
+type Source = API.DownloadAnalyticsResponse['sources'][number];
 
 export function SourcePerformance({ sources }: { sources: Source[] }) {
   const sorted = [...sources].sort((left, right) => right.total - left.total);

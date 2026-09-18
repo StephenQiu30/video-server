@@ -159,3 +159,17 @@ def test_provider_status_contract_is_coarse_and_non_secret(tmp_path: Path) -> No
             "po_token",
         )
     )
+
+
+def test_thumbnail_responses_declare_binary_content_for_generated_clients() -> None:
+    paths = create_app(Settings(app_env="test")).openapi()["paths"]
+    for path in (
+        "/api/inspections/{inspection_id}/thumbnail",
+        "/api/downloads/{job_id}/thumbnail",
+    ):
+        content = paths[path]["get"]["responses"]["200"]["content"]
+        for media_type in ("image/avif", "image/jpeg", "image/png", "image/webp"):
+            assert content[media_type]["schema"] == {
+                "type": "string",
+                "format": "binary",
+            }

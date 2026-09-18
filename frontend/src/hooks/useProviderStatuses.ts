@@ -1,13 +1,9 @@
 import { useEffect, useState } from 'react';
-
-import {
-  displayError,
-  listProviders,
-  type ProviderStatusList,
-} from '@/services/providers';
+import { listProviders } from '@/api/providers';
+import { displayError } from '@/lib/request-error';
 
 export function useProviderStatuses() {
-  const [data, setData] = useState<ProviderStatusList | null>(null);
+  const [data, setData] = useState<API.ProviderListResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [retryKey, setRetryKey] = useState(0);

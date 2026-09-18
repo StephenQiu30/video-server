@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-
-import { displayError, getDownloadHistory } from '@/services/download';
+import { getDownloadHistory } from '@/api/downloads';
+import { displayError } from '@/lib/request-error';
 import type { DownloadHistory, DownloadHistoryQuery } from '@/types/video';
 
 export function useDownloadHistory(query: DownloadHistoryQuery) {

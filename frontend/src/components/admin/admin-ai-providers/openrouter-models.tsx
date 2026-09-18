@@ -1,5 +1,5 @@
 import { useState } from 'react';
-
+import { listOpenRouterModels } from '@/api/admin';
 import { Button } from '@/components/ui/button';
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { displayError, listOpenRouterModels } from '@/services/ai-providers';
+import { displayError } from '@/lib/request-error';
 
 export function OpenRouterModels({
   disabled,

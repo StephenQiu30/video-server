@@ -9,11 +9,10 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-import type { AdminDownloadAnalytics } from '@/services/analytics';
 
 import { formatPercent, formatShortDate } from './analytics-format';
 
-type DailyPoint = AdminDownloadAnalytics['daily'][number];
+type DailyPoint = API.DownloadAnalyticsResponse['daily'][number];
 
 const completionConfig = {
   rate: { color: 'var(--chart-4)', label: '成功率' },

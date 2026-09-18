@@ -1,12 +1,11 @@
+import { cn } from 'cn';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-
 import {
   NavigationMenuItem,
   NavigationMenuLink,
 } from '@/components/ui/navigation-menu';
 import { SheetClose } from '@/components/ui/sheet';
-import { cn } from '@/lib/utils';
 
 export function MobileNavigationLink({
   active = false,

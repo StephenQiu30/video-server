@@ -1,18 +1,17 @@
 'use client';
 
 import { GithubLogoIcon } from '@phosphor-icons/react';
+import { cn } from 'cn';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
-
 import { useAuth } from '@/components/auth/auth-provider';
 import { DesktopNavigation } from '@/components/layout/desktop-navigation';
 import { HeaderAccount } from '@/components/layout/header-account';
 import { MobileNavigation } from '@/components/layout/mobile-navigation';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 
 export function BrandLink({ className }: { className?: string }) {
   return (

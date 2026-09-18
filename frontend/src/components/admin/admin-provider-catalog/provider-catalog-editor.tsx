@@ -136,7 +136,7 @@ export function ProviderCatalogEditor({
               <Alert className="border-0 bg-surface">
                 <AlertDescription className="flex items-center gap-2">
                   <Badge
-                    variant={editor.systemRegistered ? 'success' : 'warning'}
+                    variant={editor.systemRegistered ? 'default' : 'secondary'}
                   >
                     {editor.systemRegistered ? '系统已注册' : '仅目录'}
                   </Badge>

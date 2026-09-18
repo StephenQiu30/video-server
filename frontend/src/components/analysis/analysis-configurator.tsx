@@ -12,6 +12,7 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -88,11 +89,13 @@ export default function AnalysisConfigurator({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {catalog.skills.map((skill) => (
-                <SelectItem key={skill.id} value={skill.id}>
-                  {skill.display_name}
-                </SelectItem>
-              ))}
+              <SelectGroup>
+                {catalog.skills.map((skill) => (
+                  <SelectItem key={skill.id} value={skill.id}>
+                    {skill.display_name}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
           <FieldDescription>
@@ -128,8 +131,10 @@ export default function AnalysisConfigurator({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="zh-CN">简体中文</SelectItem>
-              <SelectItem value="en-US">English</SelectItem>
+              <SelectGroup>
+                <SelectItem value="zh-CN">简体中文</SelectItem>
+                <SelectItem value="en-US">English</SelectItem>
+              </SelectGroup>
             </SelectContent>
           </Select>
           <FieldDescription>
@@ -152,7 +157,7 @@ export default function AnalysisConfigurator({
             type="button"
             variant="ghost"
           >
-            <ArrowCounterClockwise />
+            <ArrowCounterClockwise data-icon="inline-start" />
             恢复模式默认值
           </Button>
         </div>

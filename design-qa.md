@@ -1,4 +1,22 @@
-# 方案 3 无边框重设计 QA
+# 前端设计与交互 QA
+
+## 2026-09-18 官方组件与 OpenAPI 客户端迁移
+
+当前基线：根 design.md 中的官方 Next.js / shadcn 实现。下方历史方案记录仅作历史证据，不再决定基础组件实现。
+
+- pnpm 12.4.2；shadcn CLI 识别 Next.js App Router、Tailwind 4、radix-nova / neutral / Phosphor。主题采用官方 neutral 默认值与圆角比例。
+- FastAPI 路由注解自动产生 Swagger/OpenAPI，@umijs/openapi 直接生成 src/api；共享 src/lib/request.ts 使用 Axios。旧手写 API 包装、旧生成目录、npm 锁文件和本地 mockjs 依赖已删除。
+- 从当前后端源码自动导出 schema、以及从更新后的运行中 /openapi.json 生成客户端，openapi:check 均无差异。CI 增加同一校验。
+- format、lint、TypeScript、64 文件 / 300 项前端测试、10 项相关后端契约测试通过；Next.js production build 与 Docker 镜像构建通过。
+- video-api、video-frontend 通过 Compose 单独重建并为 healthy。Worker 与基础设施没有重建。
+- 1280×800 浅色登录页：输入、显示密码按钮、主题切换正常，页面无横向溢出。
+- 390×844 深色登录页和注册页：scrollWidth = clientWidth = 390。登录页截图已检查，未发现控件或文本裁切。
+- 分析页用浏览器拦截提供隔离数据：Select 可选 English，关闭后焦点恢复到 analysis-language；390px Sheet 可打开、Escape 关闭，焦点回到“打开导航菜单”，无横向溢出。
+- 两个验收浏览器会话没有捕获到 JavaScript 页面异常。没有执行真实注册、分析、删除或外部平台下载。
+- 临时截图：/tmp/framefetch-official-login-desktop.png、/tmp/framefetch-official-login-mobile-dark.png、/tmp/framefetch-official-analysis-mobile.png。
+
+final result: passed（上述迁移与页面检查范围；不包含 YouTube/抖音真实下载或全站无障碍认证）
+
 
 ## 2026-09-03 首页输入区对齐与控件系统收敛
 

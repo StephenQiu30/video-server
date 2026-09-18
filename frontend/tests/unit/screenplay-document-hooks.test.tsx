@@ -13,13 +13,6 @@ const runtime = vi.hoisted(() => ({
   listScreenplayDocuments: vi.fn(),
 }));
 
-vi.mock('@/services/documents', () => ({
-  displayError: (reason: unknown) =>
-    reason instanceof Error ? reason.message : '请求失败',
-  getScreenplayDocument: runtime.getScreenplayDocument,
-  listScreenplayDocuments: runtime.listScreenplayDocuments,
-}));
-
 describe('screenplay document hooks', () => {
   beforeEach(() => {
     runtime.getScreenplayDocument.mockReset();
@@ -99,3 +92,14 @@ describe('screenplay document hooks', () => {
     expect(runtime.getScreenplayDocument).toHaveBeenCalledOnce();
   });
 });
+
+vi.mock('@/lib/request-error', async (original) => ({
+  ...(await original<typeof import('@/lib/request-error')>()),
+  displayError: (reason: unknown) =>
+    reason instanceof Error ? reason.message : '请求失败',
+}));
+vi.mock('@/api/documents', async (original) => ({
+  ...(await original<typeof import('@/api/documents')>()),
+  getDocumentImport: runtime.getScreenplayDocument,
+  listDocuments: runtime.listScreenplayDocuments,
+}));
