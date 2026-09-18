@@ -26,7 +26,6 @@ server/
 │   │   ├── lifespan.py            FastAPI 生命周期
 │   │   └── main.py                FastAPI 应用工厂与入口
 │   ├── egress/                    Squid 出口代理策略
-│   ├── supply-chain/              后端 SBOM 与第三方声明
 │   ├── sql/schema.sql             PostgreSQL 当前态结构
 │   └── tests/                     architecture/contract/integration/unit 测试
 ├── frontend/                      Next.js App Router 前端
@@ -37,8 +36,6 @@ server/
 │   │   ├── lib/                   Axios、请求错误与通用基础设施；upload/ 为上传编排
 │   │   └── api/                   OpenAPI 自动生成的请求与类型
 │   └── tests/                     Vitest 测试
-├── plugins/framefetch/             Codex App 插件与独立本地 Agent 发行包
-├── .agents/plugins/                仓库内 Codex 插件市场清单
 ├── docs/                          当前设计、需求、计划、验收与运维文档
 ├── Dockerfile                     前后端统一生产镜像
 ├── docker-compose-env.yml         仅 GitHub CI 使用的隔离基础服务夹具
@@ -46,7 +43,7 @@ server/
 └── docker-compose-prod.yml        生产业务容器拓扑
 ```
 
-仓库只保留 `backend/`、`frontend/`、`plugins/framefetch/`、`docs/` 四个业务模块和根治理文件；`.agents/plugins/` 只保存仓库内 Codex 插件市场清单。不得新增 `deploy/`、重复子仓库或平行应用目录。生产环境保持前后端分离：Next.js standalone 前端独立监听 `8101`，FastAPI API 独立监听 `8111`。统一镜像按服务启动不同进程；FastAPI 不托管页面。浏览器使用同源相对 API 路径，由 Next.js 或部署入口转发到 API，WebSocket Upgrade 由部署入口直达 FastAPI。
+仓库保留 `backend/`、`frontend/`、`docs/` 和根治理文件。不得新增 `deploy/`、重复子仓库或平行应用目录。生产环境保持前后端分离：Next.js standalone 前端独立监听 `8101`，FastAPI API 独立监听 `8111`。统一镜像按服务启动不同进程；FastAPI 不托管页面。浏览器使用同源相对 API 路径，由 Next.js 或部署入口转发到 API，WebSocket Upgrade 由部署入口直达 FastAPI。
 
 ## 文件放置规则
 
@@ -54,7 +51,6 @@ server/
 - 请求与响应模型放在 `schemas/`，不得直接暴露 ORM 模型或基础设施对象。
 - 用例编排和外部能力接口放在 `services/`；纯业务规则放在 `domain/`；SQL 查询与事务放在 `repositories/`，数据库连接配置放在 `db/`，ORM 模型放在 `models/`，具体 SDK、消息、存储和媒体实现放在 `integrations/`。
 - 进程入口放在 `workers/` 或 `runner/`，不要把下载、转码或 AI 长任务放进 HTTP 请求进程。
-- Codex App 插件、stdio MCP 桥接和可独立发行的用户本机 Agent 放在 `plugins/framefetch/`；插件不得导入后端应用模块，也不得持有数据库、队列、对象存储或模型服务密钥。
 - 前端不使用独立的 `src/features/` 目录。App Router 页面放在 `src/app/`，业务组件按 feature 放在 `src/components/{account,admin,analysis,auth,downloads,intake,layout,providers,screenplay}/`，shadcn/ui 源码放在 `src/components/ui/`。
 - 前端 REST 请求与类型全部从 `src/api/` 的生成代码导入；业务专用 Hooks 与组件同目录，跨业务 Hook 放在 `hooks/`，共享上传编排放在 `lib/upload/`。不得另写请求函数或平行 DTO。
 - FastAPI 根据路由注解和 Pydantic 模型自动生成 `/openapi.json`；`@umijs/openapi` 直接生成 `frontend/src/api/`，全部调用 `src/lib/request.ts` 的 Axios 封装。禁止手工维护 Swagger 文件或修改生成代码。

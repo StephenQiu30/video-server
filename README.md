@@ -216,7 +216,7 @@ flowchart LR
 - Provider 能力受来源页面和平台变化影响；平台名称不代表对所有内容、地区或账户权益都可用。
 - AI 分析依赖独立宿主机 Agent 或部署方配置的模型服务，关闭 AI 不影响下载和文档导入。
 - 预签名 URL 会过期，但最终制品不会因此自动删除；管理员仍需规划 MinIO 容量、备份和显式清理策略。
-- 对外部署前必须替换 `.env.prod.example` 中的占位凭据，并完成网络、存储、Runner 和 Provider canary 验收。
+- 对外部署前必须检查 `.env.prod` 的实际配置，替换所有占位凭据，并完成网络、存储、Runner 和 Provider canary 验收。
 
 ## 本地开发
 

@@ -8,7 +8,7 @@
 
 - 用户明确批准的本机视频号专用元宝来源存放在 `~/Library/Application Support/FrameFetch/provider-sessions/yuanbao`，目录 `0700`，独占锁 `0600`。仅用于元宝和必要登录认证，不复制普通 Chrome Profile，不同步到云端、不挂载到容器；首次登录及后续失效重新登录由用户完成。持久浏览器来源只由宿主代理读取，Runner 仍仅获得单操作加密租约。来源文件含敏感会话，不能打包进镜像、日志或诊断附件；撤销时先停用视频号受控来源，确认登录/导出已结束，再由用户清除该专用目录；本地清除不能代替平台侧撤销登录会话。
 
-- 生产环境必须替换 `.env.prod.example` 中的全部占位凭据；配置校验会拒绝开发密钥。
+- 生产环境必须检查 `.env.prod` 的实际配置，替换全部占位凭据；配置校验会拒绝开发密钥。
 - 匿名 Media Runner 不得获得 Provider Secret；凭据 Runner 只能获得对应 Provider 的版本化只读 Secret。所有 Runner 均不得获得 PostgreSQL、RabbitMQ、MinIO、Redis 或 AI provider 凭据，也不得挂载 Docker socket。
 - 用户 URL 只加密持久化；普通日志、消息和 API 错误中不得出现完整 URL query。
 - 外部媒体流量只能经过 egress proxy；入口校验不是 SSRF 防线的替代品。

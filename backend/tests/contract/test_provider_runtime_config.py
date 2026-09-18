@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import inspect
-import json
 import os
 import subprocess
 from pathlib import Path
@@ -10,7 +9,6 @@ import yaml
 from yt_dlp_plugins.extractor.getpot_bgutil_http import BgUtilHTTPPTP
 
 ROOT = Path(__file__).resolve().parents[2]
-SUPPLY_CHAIN = ROOT / "supply-chain"
 
 
 def test_private_provider_sources_are_excluded_from_docker_build_context() -> None:
@@ -20,28 +18,10 @@ def test_private_provider_sources_are_excluded_from_docker_build_context() -> No
     assert not any("provider-" in rule and rule.startswith("!") for rule in rules)
 
 
-def test_provider_sbom_pins_runtime_components_and_licenses() -> None:
-    document = json.loads((SUPPLY_CHAIN / "provider-sbom.json").read_text())
-    components = {item["name"]: item for item in document["components"]}
-
-    assert document["bomFormat"] == "CycloneDX"
-    assert components["yt-dlp"]["version"] == "2026.8.19"
-    assert "3a08beaf031ab68f966401ead017ac81fe8486cf" in components["yt-dlp"]["purl"]
-    assert components["yt-dlp-ejs"]["version"] == "0.8.0"
-    assert components["curl-cffi"]["version"] == "0.15.0"
-    assert components["bgutil-ytdlp-pot-provider"]["version"] == "1.3.2"
-    assert components["brainicism/bgutil-ytdlp-pot-provider"]["purl"].endswith(
-        "sha256:9a96e6385ce1928da87dea07b1cab0413d2cf8c07a3b8a8bd419f53df2c3843c"
-    )
-    assert all(component.get("licenses") for component in components.values())
-
-
-def test_pyproject_and_compose_match_provider_sbom() -> None:
+def test_pyproject_and_compose_pin_provider_runtime() -> None:
     pyproject = (ROOT / "pyproject.toml").read_text()
     compose = (ROOT.parent / "docker-compose.yml").read_text()
     production_compose = (ROOT.parent / "docker-compose-prod.yml").read_text()
-    dockerfile = (ROOT.parent / "Dockerfile").read_text()
-    notices = (SUPPLY_CHAIN / "PROVIDER-NOTICES.md").read_text()
     supervisor = (ROOT / "app" / "runner" / "youtube-pot-supervisor.mjs").read_text()
 
     image = (
@@ -64,9 +44,6 @@ def test_pyproject_and_compose_match_provider_sbom() -> None:
     assert "delete childEnvironment.RUNNER_PROVIDER_EGRESS_PROXIES" in supervisor
     assert "const MAX_RESTART_DELAY_MS = 30_000" in supervisor
     assert "restartDelayMs = RESTART_DELAY_MS" in supervisor
-    assert "backend/supply-chain/" in dockerfile
-    assert "GPL-3.0-only" in notices
-    assert "MeTube, cobalt and gallery-dl are research references only" in notices
 
 
 def test_youtube_sidecar_and_runners_can_only_egress_through_a_gateway() -> None:

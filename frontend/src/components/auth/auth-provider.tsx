@@ -26,27 +26,9 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const DESIGN_USER: API.UserResponse = {
-  id: '00000000-0000-4000-8000-000000000009',
-  username: '设计预览',
-  email: 'preview@example.com',
-  role: 'user',
-  created_at: '2026-08-09T00:00:00Z',
-  updated_at: '2026-08-09T00:00:00Z',
-};
-
-function isDesignInspection(): boolean {
-  return (
-    process.env.NODE_ENV === 'development' &&
-    typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).get('design') === 'inspection'
-  );
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUserState] = useState<API.UserResponse>();
   const [loading, setLoading] = useState(true);
-  const designPreview = useRef(false);
   const initialized = useRef(false);
   const setUser = useCallback<
     Dispatch<SetStateAction<API.UserResponse | undefined>>
@@ -56,12 +38,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshUser = useCallback(async () => {
-    if (designPreview.current) {
-      setUser(DESIGN_USER);
-      setLoading(false);
-      return DESIGN_USER;
-    }
-
     if (!initialized.current) setLoading(true);
     try {
       const currentUser = await getCurrentUser({ skipAuthRedirect: true });
@@ -82,23 +58,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [setUser]);
 
   useEffect(() => {
-    if (isDesignInspection()) {
-      designPreview.current = true;
-      initialized.current = true;
-      setUser(DESIGN_USER);
-      setLoading(false);
-      return;
-    }
     void refreshUser();
-  }, [refreshUser, setUser]);
+  }, [refreshUser]);
 
   const signOut = useCallback(async () => {
     try {
-      if (!designPreview.current) await logout();
+      await logout();
     } catch {
       // A stale server session is still a successful local sign-out.
     } finally {
-      designPreview.current = false;
       setUser(undefined);
       setLoading(false);
     }

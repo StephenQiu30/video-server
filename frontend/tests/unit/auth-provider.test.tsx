@@ -55,8 +55,9 @@ describe('AuthProvider', () => {
     expect(runtime.getCurrentUser).toHaveBeenCalledOnce();
   });
 
-  it('uses the built-in user for development design inspection without a request', async () => {
+  it('restores the real session even when the removed design query is present', async () => {
     vi.stubEnv('NODE_ENV', 'development');
+    runtime.getCurrentUser.mockResolvedValue(user);
     window.history.replaceState({}, '', '/?design=inspection');
     render(
       <AuthProvider>
@@ -66,13 +67,13 @@ describe('AuthProvider', () => {
 
     expect(await screen.findByTestId('auth-user')).toHaveAttribute(
       'data-user',
-      '设计预览',
+      'video_user',
     );
     expect(screen.getByRole('status')).toHaveAttribute(
       'data-auth-state',
       'ready',
     );
-    expect(runtime.getCurrentUser).not.toHaveBeenCalled();
+    expect(runtime.getCurrentUser).toHaveBeenCalledOnce();
   });
 
   it('clears local identity even when server logout fails', async () => {

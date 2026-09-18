@@ -1,13 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import {
-  type RefObject,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { type RefObject, useCallback, useRef, useState } from 'react';
 import { createDownload } from '@/api/downloads';
 import {
   inspectMedia as inspectDiscoveredItem,
@@ -18,7 +12,6 @@ import {
   ContentIntakeHero,
   type IntakeMode,
 } from '@/components/intake/content-intake-hero';
-import { demoInspection } from '@/components/intake/demo-inspection';
 import InspectionWorkspace from '@/components/intake/inspection-workspace';
 import { LinkDownloadForm } from '@/components/intake/link-download-form';
 import { MediaUploadForm } from '@/components/intake/media-upload-form';
@@ -86,17 +79,6 @@ export default function DownloadWorkspace() {
     setDiscovery(null);
     setSelectedId('');
   }
-
-  useEffect(() => {
-    if (
-      process.env.NODE_ENV !== 'production' &&
-      new URLSearchParams(window.location.search).get('design') === 'inspection'
-    ) {
-      setUrl('https://media.example/alpine-lake');
-      setInspection(demoInspection);
-      setSelectedId(demoInspection.formats[0]?.id ?? '');
-    }
-  }, []);
 
   async function inspect() {
     if (busy !== null) return;

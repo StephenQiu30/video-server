@@ -23,7 +23,7 @@
 - [业务逻辑评审与 ToC 最小上线能力](research/018-业务逻辑评审与ToC最小上线能力.md)：2026-09-08 Server/Web/App 当前实现评审、已复现问题、可用性与分阶段最小上线缺口。
 - [个人部署重启与换机](operations/008-个人部署重启与换机手册.md)：会话文件、持久配置、受控平台选择和迁移边界。
 
-- [前端视觉系统](design/frontend-visual-system.md)：Next.js、Vercel/Geist 无边框视觉、响应式和可访问性规范。
+- [前端实现规范](../design.md)：官方 Next.js/shadcn 基线、主题、响应式和可访问性规范。
 - [媒体解析策略](design/media-source-strategy.md)：解析责任链、错误优先级、封面认证交付与部署方 Provider Secret 生命周期。
 - [Provider 接入架构重构调研](research/008-Provider接入架构重构调研.md)：yt-dlp 官方扩展边界、现有耦合和声明式接入结论。
 - [微信与腾讯授权媒体调研](research/014-微信视频号与腾讯视频授权媒体下载调研.md)：公众号文章原生视频、视频号 GitHub 方案、腾讯消费站权益与腾讯云 VOD 官方边界。
