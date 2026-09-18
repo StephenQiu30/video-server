@@ -1,10 +1,4 @@
-import type {
-  ScreenplayDocument,
-  ScreenplayDocumentFormat,
-  ScreenplayDocumentStatus,
-} from '@/types/video';
-
-export const documentStatusLabels: Record<ScreenplayDocumentStatus, string> = {
+export const documentStatusLabels: Record<API.ImportStatus, string> = {
   uploading: '等待上传',
   verifying: '正在解析',
   ready: '可以核对',
@@ -13,7 +7,7 @@ export const documentStatusLabels: Record<ScreenplayDocumentStatus, string> = {
   expired: '已过期',
 };
 
-export const documentFormatLabels: Record<ScreenplayDocumentFormat, string> = {
+export const documentFormatLabels: Record<API.DocumentSourceFormat, string> = {
   docx: 'DOCX',
   pdf: 'PDF',
   txt: '纯文本',
@@ -36,7 +30,7 @@ const errorLabels: Record<API.ImportErrorCode, string> = {
 };
 
 export function documentStatusVariant(
-  status: ScreenplayDocumentStatus,
+  status: API.ImportStatus,
 ): 'secondary' | 'default' | 'secondary' | 'destructive' {
   if (status === 'ready') return 'default';
   if (status === 'failed') return 'destructive';
@@ -45,7 +39,7 @@ export function documentStatusVariant(
 }
 
 export function documentErrorLabel(
-  document: ScreenplayDocument,
+  document: API.DocumentDetailResponse,
 ): string | null {
   return document.error_code ? errorLabels[document.error_code] : null;
 }

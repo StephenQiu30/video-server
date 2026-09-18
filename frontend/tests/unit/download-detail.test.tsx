@@ -39,7 +39,7 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: runtime.push, replace: runtime.replace }),
 }));
 
-vi.mock('@/hooks/useVideoPreviewSource', () => ({
+vi.mock('@/components/downloads/use-video-preview-source', () => ({
   useVideoPreviewSource: () => runtime.preview,
 }));
 

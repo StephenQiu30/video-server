@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { authRedirect } from '@/utils/authRedirect';
+import { authRedirect } from '@/lib/auth-redirect';
 
 describe('auth redirect validation', () => {
   it('keeps same-origin application destinations', () => {

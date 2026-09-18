@@ -1,11 +1,4 @@
-import type {
-  AnalysisJob,
-  AnalysisSkill,
-  ScreenplayAnalysisResult,
-  ScreenplayRewriteResult,
-} from '@/types/video';
-
-export const screenplaySkills: AnalysisSkill[] = [
+export const screenplaySkills: API.AnalysisSkillResponse[] = [
   {
     id: 'screenplay-analysis',
     display_name: '剧本综合分析',
@@ -24,7 +17,7 @@ export const screenplaySkills: AnalysisSkill[] = [
   },
 ];
 
-export const screenplayAnalysisResult: ScreenplayAnalysisResult = {
+export const screenplayAnalysisResult: API.ScreenplayAnalysisResultResponse = {
   kind: 'screenplay_analysis',
   language: 'zh-CN',
   title: '午夜来客',
@@ -96,7 +89,7 @@ export const screenplayAnalysisResult: ScreenplayAnalysisResult = {
   ],
 };
 
-export const screenplayRewriteResult: ScreenplayRewriteResult = {
+export const screenplayRewriteResult: API.ScreenplayRewriteResultResponse = {
   kind: 'screenplay_rewrite',
   source_language: 'zh-CN',
   target_language: 'en-US',
@@ -111,8 +104,8 @@ export const screenplayRewriteResult: ScreenplayRewriteResult = {
 
 export function screenplayAnalysisJob(
   kind: 'analysis' | 'rewrite',
-  status: AnalysisJob['status'] = 'succeeded',
-): AnalysisJob {
+  status: API.AnalysisResponse['status'] = 'succeeded',
+): API.AnalysisResponse {
   const result =
     kind === 'analysis' ? screenplayAnalysisResult : screenplayRewriteResult;
   return {

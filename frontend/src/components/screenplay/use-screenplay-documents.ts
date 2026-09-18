@@ -1,21 +1,20 @@
 import { useEffect, useState } from 'react';
-import { getDownloadHistory } from '@/api/downloads';
+import { listDocuments as listScreenplayDocuments } from '@/api/documents';
 import { displayError } from '@/lib/request-error';
-import type { DownloadHistory, DownloadHistoryQuery } from '@/types/video';
 
-export function useDownloadHistory(query: DownloadHistoryQuery) {
-  const [data, setData] = useState<DownloadHistory | null>(null);
+export function useScreenplayDocuments(query: API.listDocumentsParams) {
+  const [data, setData] = useState<API.DocumentPageResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [retryKey, setRetryKey] = useState(0);
-  const { page, page_size: pageSize, search, status } = query;
+  const [cycle, setCycle] = useState(0);
+  const { page, page_size: pageSize } = query;
 
   useEffect(() => {
     let disposed = false;
-    void retryKey;
+    void cycle;
     setLoading(true);
     setError(null);
-    getDownloadHistory({ page, page_size: pageSize, search, status })
+    listScreenplayDocuments({ page, page_size: pageSize })
       .then((result) => {
         if (!disposed) setData(result);
       })
@@ -28,12 +27,12 @@ export function useDownloadHistory(query: DownloadHistoryQuery) {
     return () => {
       disposed = true;
     };
-  }, [page, pageSize, retryKey, search, status]);
+  }, [cycle, page, pageSize]);
 
   return {
     data,
     error,
     loading,
-    retry: () => setRetryKey((current) => current + 1),
+    refresh: () => setCycle((current) => current + 1),
   };
 }

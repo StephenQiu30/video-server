@@ -11,12 +11,12 @@ import {
   defaultLayoutIcons,
 } from '@vidstack/react/player/layouts/default';
 import { type Ref, useEffect } from 'react';
+import { useVideoPreviewSource } from '@/components/downloads/use-video-preview-source';
 import { mediaFrameAspectRatio } from '@/components/intake/media-cover';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useVideoPreviewSource } from '@/hooks/useVideoPreviewSource';
 
 type Props = {
   container?: 'mp4' | 'webm';

@@ -1,8 +1,8 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useAnalysisJob } from '@/hooks/useAnalysisJob';
-import type { CreateAnalysisInput } from '@/types/video';
+import { useAnalysisJob } from '@/components/analysis/use-analysis-job';
+
 import { analysisJob } from '../fixtures/analysis-fixtures';
 import { stubCryptoUuids } from '../helpers/crypto';
 
@@ -32,7 +32,7 @@ describe('useAnalysisJob', () => {
       '22222222-2222-4222-8222-222222222222',
     );
     const { result } = renderHook(() => useAnalysisJob('download-id', 60_000));
-    const input: CreateAnalysisInput = {
+    const input: API.AnalysisRequest = {
       skill_id: 'director-breakdown',
       output_language: 'zh-CN',
       custom_prompt: null,

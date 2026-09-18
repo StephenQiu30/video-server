@@ -1,5 +1,3 @@
-import type { AudioCodec } from '@/types/video';
-
-export function audioCodecLabel(codec: AudioCodec): string {
+export function audioCodecLabel(codec: API.AudioCodecFamily): string {
   return codec === 'none' ? '无音轨' : codec.toUpperCase();
 }

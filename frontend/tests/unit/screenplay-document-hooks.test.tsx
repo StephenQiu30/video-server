@@ -1,8 +1,8 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useScreenplayDocument } from '@/hooks/useScreenplayDocument';
-import { useScreenplayDocuments } from '@/hooks/useScreenplayDocuments';
+import { useScreenplayDocument } from '@/components/screenplay/use-screenplay-document';
+import { useScreenplayDocuments } from '@/components/screenplay/use-screenplay-documents';
 import {
   screenplayDocument,
   screenplayDocumentPage,

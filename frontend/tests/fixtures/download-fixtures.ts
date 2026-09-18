@@ -1,9 +1,7 @@
-import type { DownloadJob, Inspection, SourceDiscovery } from '@/types/video';
-
 export const reportedDouyinShareMessage =
   '9.25 04/21 :1pm F@U.yt Bgb:/ ୨୧⊹ ࣪ 幸福是一步步变成小蛋糕( 𓏼˙ ᴥ ˙𓏼 )🍰 # lolilta# 小甜裙# 变装( yc@7仔 )# lolilta # 奶芙泡泡原创Lolita  https://v.douyin.com/Tq0eYJRMYRk/ 复制此链接，打开Dou音搜索，直接观看视频！';
 
-export const inspection: Inspection = {
+export const inspection: API.InspectionResponse = {
   access_policy_id: 'public',
   id: '11111111-1111-4111-8111-111111111111',
   extractor_key: 'Controlled',
@@ -42,7 +40,7 @@ export const inspection: Inspection = {
   ],
 };
 
-export const galleryInspection: Inspection = {
+export const galleryInspection: API.InspectionResponse = {
   ...inspection,
   provider_media_id: 'note-1',
   title: '官方图文作品',
@@ -58,7 +56,7 @@ export const galleryInspection: Inspection = {
   ],
 };
 
-export const videoCollectionInspection: Inspection = {
+export const videoCollectionInspection: API.InspectionResponse = {
   ...inspection,
   provider_media_id: 'collection-1',
   title: '视频合集',
@@ -74,7 +72,7 @@ export const videoCollectionInspection: Inspection = {
   ],
 };
 
-export const sourceDiscovery: SourceDiscovery = {
+export const sourceDiscovery: API.SourceDiscoveryResponse = {
   id: '44444444-4444-4444-8444-444444444444',
   provider_key: 'wechat_official_account_article',
   title: '含多个视频的公众号文章',
@@ -100,7 +98,9 @@ export const sourceDiscovery: SourceDiscovery = {
   ],
 };
 
-export function job(status: DownloadJob['status'] = 'queued'): DownloadJob {
+export function job(
+  status: API.DownloadResponse['status'] = 'queued',
+): API.DownloadResponse {
   return {
     id: '33333333-3333-4333-8333-333333333333',
     inspection_id: inspection.id,
@@ -129,8 +129,8 @@ export function job(status: DownloadJob['status'] = 'queued'): DownloadJob {
 }
 
 export function galleryJob(
-  status: DownloadJob['status'] = 'queued',
-): DownloadJob {
+  status: API.DownloadResponse['status'] = 'queued',
+): API.DownloadResponse {
   return {
     ...job(status),
     title: galleryInspection.title,
@@ -142,8 +142,8 @@ export function galleryJob(
 }
 
 export function videoCollectionJob(
-  status: DownloadJob['status'] = 'queued',
-): DownloadJob {
+  status: API.DownloadResponse['status'] = 'queued',
+): API.DownloadResponse {
   return {
     ...job(status),
     title: videoCollectionInspection.title,

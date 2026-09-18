@@ -18,28 +18,23 @@ import {
   ContentIntakeHero,
   type IntakeMode,
 } from '@/components/intake/content-intake-hero';
+import { demoInspection } from '@/components/intake/demo-inspection';
 import InspectionWorkspace from '@/components/intake/inspection-workspace';
 import { LinkDownloadForm } from '@/components/intake/link-download-form';
 import { MediaUploadForm } from '@/components/intake/media-upload-form';
-import { SourceDiscoveryWorkspace } from '@/components/intake/source-discovery-workspace';
-import { markNavigationPush } from '@/components/layout/navigation-history';
-import { ScreenplayUploadForm } from '@/components/screenplay/screenplay-upload-form';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useDocumentImport } from '@/hooks/useDocumentImport';
-import { useMediaImport } from '@/hooks/useMediaImport';
-import { demoInspection } from '@/lib/demo-inspection';
-import { displayError } from '@/lib/request-error';
-import type {
-  Inspection,
-  SourceDiscovery,
-  SourceDiscoveryItem,
-} from '@/types/video';
-import { createIdempotencyKey } from '@/utils/idempotency';
 import {
   hasPublicInput,
   isWeChatArticleInput,
   PUBLIC_INPUT_REQUIRED,
-} from '@/utils/public-input';
+} from '@/components/intake/public-input';
+import { SourceDiscoveryWorkspace } from '@/components/intake/source-discovery-workspace';
+import { useDocumentImport } from '@/components/intake/use-document-import';
+import { useMediaImport } from '@/components/intake/use-media-import';
+import { markNavigationPush } from '@/components/layout/navigation-history';
+import { ScreenplayUploadForm } from '@/components/screenplay/screenplay-upload-form';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { displayError } from '@/lib/request-error';
+import { createUuid as createIdempotencyKey } from '@/lib/uuid';
 
 type BusyAction = 'inspect' | 'select' | 'create' | null;
 type StableKey = { payload: string; value: string };
@@ -48,8 +43,11 @@ export default function DownloadWorkspace() {
   const router = useRouter();
   const [mode, setMode] = useState<IntakeMode>('link');
   const [url, setUrl] = useState('');
-  const [inspection, setInspection] = useState<Inspection | null>(null);
-  const [discovery, setDiscovery] = useState<SourceDiscovery | null>(null);
+  const [inspection, setInspection] = useState<API.InspectionResponse | null>(
+    null,
+  );
+  const [discovery, setDiscovery] =
+    useState<API.SourceDiscoveryResponse | null>(null);
   const [busyItemRef, setBusyItemRef] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState('');
   const [busy, setBusy] = useState<BusyAction>(null);
@@ -140,7 +138,7 @@ export default function DownloadWorkspace() {
     }
   }
 
-  async function selectDiscoveredItem(item: SourceDiscoveryItem) {
+  async function selectDiscoveredItem(item: API.SourceDiscoveryItemResponse) {
     if (!discovery || busy !== null) return;
     setBusy('select');
     setBusyItemRef(item.item_ref);

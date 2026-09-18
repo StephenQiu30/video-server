@@ -4,7 +4,7 @@ import {
   hasPublicInput,
   isWeChatArticleInput,
   PUBLIC_INPUT_REQUIRED,
-} from '@/utils/public-input';
+} from '@/components/intake/public-input';
 
 describe('public input', () => {
   it('only rejects blank input locally', () => {

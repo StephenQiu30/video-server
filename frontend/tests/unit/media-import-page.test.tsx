@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import DownloadWorkspace from '@/components/intake/download-workspace';
 
-vi.mock('@/hooks/useProviderStatuses', () => ({
+vi.mock('@/components/providers/use-provider-statuses', () => ({
   useProviderStatuses: () => ({
     data: { items: [] },
     error: null,
@@ -13,7 +13,7 @@ vi.mock('@/hooks/useProviderStatuses', () => ({
 }));
 
 import { TooltipProvider } from '@/components/ui/tooltip';
-import * as mediaImportRuntime from '@/services/media-import';
+import * as mediaImportRuntime from '@/lib/upload/media-import';
 
 const push = vi.fn();
 

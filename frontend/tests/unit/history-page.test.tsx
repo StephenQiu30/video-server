@@ -10,12 +10,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import DownloadHistoryView from '@/components/downloads/download-history-view';
-import { useDownloadHistory } from '@/hooks/useDownloadHistory';
-import type {
-  DownloadHistory,
-  DownloadHistoryItem,
-  DownloadHistoryQuery,
-} from '@/types/video';
+import { useDownloadHistory } from '@/components/downloads/use-download-history';
 
 const runtime = vi.hoisted(() => ({
   deleteDownload: vi.fn(),
@@ -42,12 +37,13 @@ describe('download history', () => {
 
   it('maps pagination, search, status, and refresh to the history facade', async () => {
     runtime.getDownloadHistory.mockResolvedValue(history());
-    const initialQuery: DownloadHistoryQuery = {
+    const initialQuery: API.getDownloadHistoryParams = {
       page: 1,
       page_size: 20,
     };
     const { result, rerender } = renderHook(
-      ({ query }: { query: DownloadHistoryQuery }) => useDownloadHistory(query),
+      ({ query }: { query: API.getDownloadHistoryParams }) =>
+        useDownloadHistory(query),
       { initialProps: { query: initialQuery } },
     );
 
@@ -83,9 +79,9 @@ describe('download history', () => {
   });
 
   it('exposes loading and computed summary states', async () => {
-    let resolveHistory!: (value: DownloadHistory) => void;
+    let resolveHistory!: (value: API.DownloadHistoryResponse) => void;
     runtime.getDownloadHistory.mockReturnValue(
-      new Promise<DownloadHistory>((resolve) => {
+      new Promise<API.DownloadHistoryResponse>((resolve) => {
         resolveHistory = resolve;
       }),
     );
@@ -219,7 +215,7 @@ describe('download history', () => {
 
   it('changes pages through the shared pagination controls', async () => {
     runtime.getDownloadHistory.mockImplementation(
-      async ({ page = 1 }: DownloadHistoryQuery) =>
+      async ({ page = 1 }: API.getDownloadHistoryParams) =>
         history({
           items: [historyItem({ id: `history-job-${page}` })],
           page,
@@ -290,8 +286,8 @@ describe('download history', () => {
 });
 
 function historyItem(
-  overrides: Partial<DownloadHistoryItem> = {},
-): DownloadHistoryItem {
+  overrides: Partial<API.DownloadHistoryItemResponse> = {},
+): API.DownloadHistoryItemResponse {
   return {
     created_at: '2026-08-09T10:00:00Z',
     error_code: null,
@@ -310,7 +306,9 @@ function historyItem(
   };
 }
 
-function history(overrides: Partial<DownloadHistory> = {}): DownloadHistory {
+function history(
+  overrides: Partial<API.DownloadHistoryResponse> = {},
+): API.DownloadHistoryResponse {
   return {
     items: [historyItem()],
     page: 1,
@@ -333,9 +331,9 @@ vi.mock('@/api/downloads', async (original) => ({
   issueDownloadUrl: runtime.issueDownloadUrl,
   retryDownload: runtime.retryDownload,
 }));
-vi.mock('@/utils/idempotency', async (original) => ({
-  ...(await original<typeof import('@/utils/idempotency')>()),
-  createIdempotencyKey: () => 'history-retry-key',
+vi.mock('@/lib/uuid', async (original) => ({
+  ...(await original<typeof import('@/lib/uuid')>()),
+  createUuid: () => 'history-retry-key',
 }));
 vi.mock('@/lib/browser-download', async (original) => ({
   ...(await original<typeof import('@/lib/browser-download')>()),

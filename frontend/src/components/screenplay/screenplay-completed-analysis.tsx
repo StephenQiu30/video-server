@@ -8,8 +8,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
-import type { AnalysisJob } from '@/types/video';
-
 export function ScreenplayCompletedAnalysis({
   action,
   job,
@@ -17,7 +15,7 @@ export function ScreenplayCompletedAnalysis({
   onRetry,
 }: {
   action: string | null;
-  job: AnalysisJob;
+  job: API.AnalysisResponse;
   onDelete: () => Promise<void>;
   onRetry: () => Promise<void>;
 }) {

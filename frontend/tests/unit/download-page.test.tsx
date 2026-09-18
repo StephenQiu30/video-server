@@ -2,10 +2,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import DownloadWorkspace from '@/components/intake/download-workspace';
+import { PUBLIC_INPUT_REQUIRED } from '@/components/intake/public-input';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { httpClient } from '@/lib/request';
 import { ApiError } from '@/lib/request-error';
-import { PUBLIC_INPUT_REQUIRED } from '@/utils/public-input';
 import {
   galleryInspection,
   galleryJob,
@@ -23,7 +23,7 @@ import {
 
 const push = vi.fn();
 
-vi.mock('@/hooks/useProviderStatuses', () => ({
+vi.mock('@/components/providers/use-provider-statuses', () => ({
   useProviderStatuses: () => ({
     data: { items: [] },
     error: null,

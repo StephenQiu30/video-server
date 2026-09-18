@@ -23,15 +23,12 @@ pnpm build
 src/
 ├── app/          路由、布局、元数据与全局主题
 ├── api/          Umi OpenAPI 生成的请求函数与 API 类型
-├── components/   按业务组织的组件；ui/ 保存官方 shadcn 源码
-├── hooks/        状态、查询与任务流程
-├── lib/          request.ts Axios 封装、错误处理与浏览器基础能力
-├── services/     上传、取消清理和媒体处理等多步业务编排
-├── types/        前端业务类型；接口类型复用 API
-└── utils/        格式化、校验与幂等键
+├── components/   按业务组织组件、专用 Hooks 与展示逻辑；ui/ 为官方组件
+├── hooks/        跨业务共享的 React Hooks
+└── lib/          request.ts、错误处理、浏览器能力与共享函数；upload/ 为上传编排
 ```
 
-不维护旧 src/services/video 或手写的 API 转发层。
+完整放置规则见根 [PROJECT.md](../PROJECT.md)。不建立 services、utils、types 聚合目录；接口类型直接引用生成的 API.*。
 
 ## 自动生成接口
 

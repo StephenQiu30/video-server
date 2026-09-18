@@ -11,7 +11,7 @@ import {
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 const statuses = vi.hoisted(() => vi.fn(() => ({ data: null, error: null })));
-vi.mock('@/hooks/useProviderStatuses', () => ({
+vi.mock('@/components/providers/use-provider-statuses', () => ({
   useProviderStatuses: statuses,
 }));
 

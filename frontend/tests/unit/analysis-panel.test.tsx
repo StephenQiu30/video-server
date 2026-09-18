@@ -13,7 +13,7 @@ import AnalysisReportPreview from '@/components/analysis/analysis-report-preview
 import AnalysisResultView from '@/components/analysis/analysis-result-view';
 import { httpClient } from '@/lib/request';
 import { ApiError } from '@/lib/request-error';
-import type { AnalysisJob } from '@/types/video';
+
 import {
   analysisJob,
   analysisResult,
@@ -424,7 +424,7 @@ describe('AnalysisPanel', () => {
       run_no: 2,
       run_trigger: 'manual_retry',
       version: failed.version + 1,
-    } satisfies AnalysisJob;
+    } satisfies API.AnalysisResponse;
     mockHttpResponses(failed, retried);
     stubCryptoUuids('33333333-3333-4333-8333-333333333333');
     render(<AnalysisPanel downloadId={job().id} pollIntervalMs={60_000} />);

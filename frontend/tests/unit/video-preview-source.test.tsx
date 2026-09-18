@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { useVideoPreviewSource } from '@/hooks/useVideoPreviewSource';
+import { useVideoPreviewSource } from '@/components/downloads/use-video-preview-source';
 import { ApiError } from '@/lib/request-error';
 import {
   httpRequests,

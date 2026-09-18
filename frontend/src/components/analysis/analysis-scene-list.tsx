@@ -1,15 +1,15 @@
 import { cn } from 'cn';
 import { Button } from '@/components/ui/button';
 import { Item } from '@/components/ui/item';
-import type { VideoAnalysisResult } from '@/types/video';
-import { formatMilliseconds } from '@/utils/format';
+
+import { formatMilliseconds } from '@/lib/format';
 
 export default function AnalysisSceneList({
   onSelectTime,
   scenes,
 }: {
   onSelectTime?: (milliseconds: number) => void;
-  scenes: VideoAnalysisResult['scenes'];
+  scenes: API.VideoAnalysisResultResponse['scenes'];
 }) {
   return (
     <ol className={cn('gap-2')}>

@@ -4,12 +4,12 @@ import {
   createDocumentImport,
   createDocumentUploadSession,
 } from '@/api/documents';
+import type { ImportObserver } from '@/lib/upload/import-lifecycle';
 import {
   hashFileSha256,
   MediaTransferError,
   uploadMultipartFile,
-} from '@/lib/media-upload';
-import type { ImportObserver } from '@/services/import-lifecycle';
+} from '@/lib/upload/media-upload';
 
 const MAX_DOCUMENT_BYTES = 50 * 1024 * 1024;
 const formats = new Map<string, API.DocumentSourceFormat>([

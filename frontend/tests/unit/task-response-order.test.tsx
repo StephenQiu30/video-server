@@ -1,8 +1,8 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useAnalysisJob } from '@/hooks/useAnalysisJob';
-import { useDownloadJob } from '@/hooks/useDownloadJob';
+import { useAnalysisJob } from '@/components/analysis/use-analysis-job';
+import { useDownloadJob } from '@/components/downloads/use-download-job';
 import { analysisJob } from '../fixtures/analysis-fixtures';
 import { job } from '../fixtures/download-fixtures';
 
@@ -186,9 +186,9 @@ vi.mock('@/lib/browser-download', async (original) => ({
   ...(await original<typeof import('@/lib/browser-download')>()),
   triggerBrowserDownload: vi.fn(),
 }));
-vi.mock('@/utils/idempotency', async (original) => ({
-  ...(await original<typeof import('@/utils/idempotency')>()),
-  createIdempotencyKey: () => 'key',
+vi.mock('@/lib/uuid', async (original) => ({
+  ...(await original<typeof import('@/lib/uuid')>()),
+  createUuid: () => 'key',
 }));
 vi.mock('@/lib/request-error', async (original) => ({
   ...(await original<typeof import('@/lib/request-error')>()),

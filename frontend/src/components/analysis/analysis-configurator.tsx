@@ -2,6 +2,7 @@
 
 import { ArrowCounterClockwise } from '@phosphor-icons/react';
 import { useEffect, useMemo, useState } from 'react';
+import { useAnalysisSkills } from '@/components/analysis/use-analysis-skills';
 import { Button } from '@/components/ui/button';
 import {
   Field,
@@ -18,9 +19,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useAnalysisSkills } from '@/hooks/useAnalysisSkills';
-import type { CreateAnalysisInput, OutputLanguage } from '@/types/video';
+
 import { AnalysisExecutionNotice } from './analysis-execution-notice';
+
+type OutputLanguage = 'zh-CN' | 'en-US';
 
 const MAX_PROMPT_LENGTH = 4_000;
 
@@ -31,7 +33,7 @@ export default function AnalysisConfigurator({
 }: {
   busy: boolean;
   inputKind?: API.AnalysisInputKind;
-  onStart: (input: CreateAnalysisInput) => void;
+  onStart: (input: API.AnalysisRequest) => void;
 }) {
   const catalog = useAnalysisSkills(inputKind);
   const [skillId, setSkillId] = useState('');

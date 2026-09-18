@@ -1,6 +1,4 @@
-import type { AnalysisStage, AnalysisStatus } from '@/types/video';
-
-export const statusLabels: Record<AnalysisStatus, string> = {
+export const statusLabels: Record<API.AnalysisStatus, string> = {
   queued: '等待分析',
   running: '正在分析',
   retry_wait: '等待重试',
@@ -9,7 +7,7 @@ export const statusLabels: Record<AnalysisStatus, string> = {
   cancelled: '分析已取消',
 };
 
-export const stageLabels: Record<AnalysisStage, string> = {
+export const stageLabels: Record<API.AnalysisStage, string> = {
   preparing: '准备输入',
   analyzing: '执行 AI 分析',
   validating: '校验结构化结果',

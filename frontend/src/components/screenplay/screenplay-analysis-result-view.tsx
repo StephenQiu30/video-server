@@ -13,14 +13,13 @@ import {
 } from '@/components/screenplay/screenplay-result-primitives';
 import { Item } from '@/components/ui/item';
 import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
-import type { ScreenplayAnalysisResult } from '@/types/video';
 
 export default function ScreenplayAnalysisResultView({
   reportMarkdown,
   result,
 }: {
   reportMarkdown?: string | null;
-  result: ScreenplayAnalysisResult;
+  result: API.ScreenplayAnalysisResultResponse;
 }) {
   return (
     <Tabs className="mt-10 gap-0" defaultValue="overview">

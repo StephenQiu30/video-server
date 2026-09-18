@@ -8,11 +8,10 @@ import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
 import { ScreenplayDocumentList } from '@/components/screenplay/screenplay-document-list';
 import { ScreenplayUploadDialog } from '@/components/screenplay/screenplay-upload-dialog';
+import { useScreenplayDocuments } from '@/components/screenplay/use-screenplay-documents';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { useScreenplayDocuments } from '@/hooks/useScreenplayDocuments';
 import { displayError } from '@/lib/request-error';
-import type { ScreenplayDocumentSummary } from '@/types/video';
 
 export default function ScreenplayDocumentsView() {
   const [page, setPage] = useState(1);
@@ -20,7 +19,7 @@ export default function ScreenplayDocumentsView() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const state = useScreenplayDocuments({ page, page_size: 20 });
 
-  async function remove(document: ScreenplayDocumentSummary) {
+  async function remove(document: API.DocumentResponse) {
     setActionError(null);
     setPendingDeleteId(document.id);
     try {

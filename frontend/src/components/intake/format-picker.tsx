@@ -10,7 +10,6 @@ import {
 import { FieldLabel } from '@/components/ui/field';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { audioCodecLabel } from '@/lib/media-format';
-import type { MediaFormat, MediaKind } from '@/types/video';
 
 const fpsLabels = {
   fps_30: '最高 30 FPS',
@@ -24,8 +23,8 @@ export default function FormatPicker({
   onChange,
   selectedId,
 }: {
-  formats: MediaFormat[];
-  mediaKind?: MediaKind;
+  formats: API.FormatResponse[];
+  mediaKind?: API.MediaKind;
   onChange: (id: string) => void;
   selectedId: string;
 }) {

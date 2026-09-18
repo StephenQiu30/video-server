@@ -23,7 +23,7 @@ import {
   readNavigationState,
   tagCurrentHistoryEntry,
   writeNavigationState,
-} from '@/lib/navigation-history';
+} from '@/components/layout/navigation-state';
 
 const NavigationHistoryContext = createContext(false);
 
@@ -154,7 +154,7 @@ export function useCanNavigateBack() {
   return useContext(NavigationHistoryContext);
 }
 
-export { markNavigationPush } from '@/lib/navigation-history';
+export { markNavigationPush } from '@/components/layout/navigation-state';
 
 function isPlainPrimaryClick(event: MouseEvent) {
   return !(

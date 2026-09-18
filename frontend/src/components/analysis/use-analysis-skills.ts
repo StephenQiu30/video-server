@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { listAnalysisSkills } from '@/api/analyses';
 import { displayError } from '@/lib/request-error';
-import type { AnalysisSkill } from '@/types/video';
 
 export function useAnalysisSkills(inputKind: API.AnalysisInputKind = 'video') {
-  const [skills, setSkills] = useState<AnalysisSkill[]>([]);
+  const [skills, setSkills] = useState<API.AnalysisSkillResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 

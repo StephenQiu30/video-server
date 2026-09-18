@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   isPrivateThumbnailPath,
   loadPrivateThumbnail,
-} from '@/services/media-assets';
+} from '@/lib/media-assets';
 
 type MediaCoverProps = {
   alt: string;

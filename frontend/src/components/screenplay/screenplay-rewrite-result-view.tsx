@@ -16,7 +16,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
-import type { ScreenplayRewriteResult } from '@/types/video';
 
 const categoryLabels: Record<string, string> = {
   character: '人物',
@@ -32,7 +31,7 @@ export default function ScreenplayRewriteResultView({
   result,
 }: {
   reportMarkdown?: string | null;
-  result: ScreenplayRewriteResult;
+  result: API.ScreenplayRewriteResultResponse;
 }) {
   return (
     <Tabs className="mt-10 gap-0" defaultValue="summary">

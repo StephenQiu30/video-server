@@ -23,10 +23,6 @@ import {
   ItemTitle,
 } from '@/components/ui/item';
 import { Skeleton } from '@/components/ui/skeleton';
-import type {
-  ScreenplayDocumentPage,
-  ScreenplayDocumentSummary,
-} from '@/types/video';
 
 export function ScreenplayDocumentList({
   data,
@@ -34,9 +30,9 @@ export function ScreenplayDocumentList({
   onDelete,
   pendingDeleteId,
 }: {
-  data: ScreenplayDocumentPage | null;
+  data: API.DocumentPageResponse | null;
   loading: boolean;
-  onDelete: (document: ScreenplayDocumentSummary) => Promise<void>;
+  onDelete: (document: API.DocumentResponse) => Promise<void>;
   pendingDeleteId: string | null;
 }) {
   return (
@@ -77,8 +73,8 @@ function DocumentRow({
   onDelete,
   pending,
 }: {
-  document: ScreenplayDocumentSummary;
-  onDelete: (document: ScreenplayDocumentSummary) => Promise<void>;
+  document: API.DocumentResponse;
+  onDelete: (document: API.DocumentResponse) => Promise<void>;
   pending: boolean;
 }) {
   const detailHref = `/documents/detail?documentId=${encodeURIComponent(document.id)}`;

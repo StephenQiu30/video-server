@@ -4,13 +4,13 @@ import {
   cancelScreenplayDocumentImport,
   importScreenplayDocument,
   validateScreenplayDocument,
-} from '@/services/document-import';
+} from '@/lib/upload/document-import';
 import {
   displayImportError,
   type ImportPhase,
   isImportAbort,
-} from '@/services/import-lifecycle';
-import { createIdempotencyKey } from '@/utils/idempotency';
+} from '@/lib/upload/import-lifecycle';
+import { createUuid as createIdempotencyKey } from '@/lib/uuid';
 
 type ActiveRun = {
   controller: AbortController;

@@ -7,6 +7,7 @@ import AnalysisPanel from '@/components/analysis/analysis-panel';
 import { DownloadDeleteDialog } from '@/components/downloads/download-delete-dialog';
 import DownloadState from '@/components/downloads/download-state';
 import DownloadVideoPreview from '@/components/downloads/download-video-preview';
+import { useDownloadJob } from '@/components/downloads/use-download-job';
 import MediaCover, {
   mediaFrameAspectRatio,
 } from '@/components/intake/media-cover';
@@ -15,10 +16,8 @@ import { markNavigationPush } from '@/components/layout/navigation-history';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useDownloadJob } from '@/hooks/useDownloadJob';
+import { formatDuration } from '@/lib/format';
 import { audioCodecLabel } from '@/lib/media-format';
-import type { MediaKind, SemanticPlan } from '@/types/video';
-import { formatDuration } from '@/utils/format';
 
 export default function DownloadJobView({
   jobId,
@@ -234,9 +233,9 @@ function DownloadJobSkeleton() {
 }
 
 function formatLabel(
-  format: SemanticPlan | null | undefined,
+  format: API.SemanticPlanResponse | null | undefined,
   duration: number | undefined,
-  mediaKind: MediaKind | undefined,
+  mediaKind: API.MediaKind | undefined,
   assetCount: number | undefined,
 ) {
   if (mediaKind === 'image_gallery') {

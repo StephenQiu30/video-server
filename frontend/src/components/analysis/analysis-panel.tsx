@@ -11,6 +11,7 @@ import {
 import AnalysisReportDownloadLink from '@/components/analysis/analysis-report-download-link';
 import AnalysisResultView from '@/components/analysis/analysis-result-view';
 import AnalysisStorageNotice from '@/components/analysis/analysis-storage-notice';
+import { useAnalysisJob } from '@/components/analysis/use-analysis-job';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -28,10 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
-import { useAnalysisJob } from '@/hooks/useAnalysisJob';
 import { localizedErrorMessage } from '@/lib/error-messages';
-
-import type { AnalysisJob } from '@/types/video';
 
 export default function AnalysisPanel({
   downloadId,
@@ -197,7 +195,7 @@ function AnalysisJobState({
   onSelectTime,
   playbackUnavailableReason,
 }: {
-  job: AnalysisJob;
+  job: API.AnalysisResponse;
   state: ReturnType<typeof useAnalysisJob>;
   onSelectTime?: (milliseconds: number) => void;
   playbackUnavailableReason: string;

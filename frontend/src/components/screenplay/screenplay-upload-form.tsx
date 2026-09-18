@@ -13,8 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
-import type { ImportPhase } from '@/services/import-lifecycle';
-import { formatFileSize } from '@/utils/format-file-size';
+import { formatFileSize } from '@/lib/format';
+import type { ImportPhase } from '@/lib/upload/import-lifecycle';
 
 const phaseLabels: Record<ImportPhase, string> = {
   idle: '准备上传',

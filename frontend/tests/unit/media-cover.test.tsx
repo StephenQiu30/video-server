@@ -2,11 +2,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import MediaCover from '@/components/intake/media-cover';
-import { loadPrivateThumbnail } from '@/services/media-assets';
+import { loadPrivateThumbnail } from '@/lib/media-assets';
 
-vi.mock('@/services/media-assets', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@/services/media-assets')>();
+vi.mock('@/lib/media-assets', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/media-assets')>();
   return {
     ...actual,
     loadPrivateThumbnail: vi.fn(),

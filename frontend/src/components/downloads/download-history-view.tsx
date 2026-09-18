@@ -13,6 +13,7 @@ import DownloadHistoryList, {
   downloadStatusLabels,
 } from '@/components/downloads/download-history-list';
 import { DownloadHistorySummary } from '@/components/downloads/download-history-summary';
+import { useDownloadHistory } from '@/components/downloads/use-download-history';
 import { BackLink } from '@/components/layout/back-link';
 import { markNavigationPush } from '@/components/layout/navigation-history';
 import { PageHeader } from '@/components/layout/page-header';
@@ -33,18 +34,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useDownloadHistory } from '@/hooks/useDownloadHistory';
 import { triggerBrowserDownload } from '@/lib/browser-download';
 import { displayError } from '@/lib/request-error';
-import type { DownloadHistoryItem, DownloadStatus } from '@/types/video';
-import { createIdempotencyKey } from '@/utils/idempotency';
+
+import { createUuid as createIdempotencyKey } from '@/lib/uuid';
 
 export default function DownloadHistoryView() {
   const router = useRouter();
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<DownloadStatus | undefined>();
+  const [status, setStatus] = useState<API.DownloadStatus | undefined>();
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<{
     id: string;
@@ -58,7 +58,7 @@ export default function DownloadHistoryView() {
     status,
   });
 
-  async function download(item: DownloadHistoryItem) {
+  async function download(item: API.DownloadHistoryItemResponse) {
     setActionError(null);
     setPendingAction({ id: item.id, type: 'download' });
     try {
@@ -79,7 +79,7 @@ export default function DownloadHistoryView() {
     }
   }
 
-  async function retry(item: DownloadHistoryItem) {
+  async function retry(item: API.DownloadHistoryItemResponse) {
     setActionError(null);
     setPendingAction({ id: item.id, type: 'retry' });
     const key = retryKeys.current.get(item.id) ?? createIdempotencyKey();
@@ -98,7 +98,7 @@ export default function DownloadHistoryView() {
     }
   }
 
-  async function remove(item: DownloadHistoryItem) {
+  async function remove(item: API.DownloadHistoryItemResponse) {
     setActionError(null);
     setPendingAction({ id: item.id, type: 'delete' });
     try {
@@ -169,7 +169,7 @@ export default function DownloadHistoryView() {
             onValueChange={(value) => {
               setPage(1);
               setStatus(
-                value === 'all' ? undefined : (value as DownloadStatus),
+                value === 'all' ? undefined : (value as API.DownloadStatus),
               );
             }}
             value={status ?? 'all'}

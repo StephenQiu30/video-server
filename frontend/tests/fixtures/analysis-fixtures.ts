@@ -1,11 +1,4 @@
-import type {
-  AnalysisJob,
-  AnalysisSkill,
-  VideoAnalysisResult,
-  VideoArticleResult,
-} from '@/types/video';
-
-export const articleResult: VideoArticleResult = {
+export const articleResult: API.VideoArticleResultResponse = {
   kind: 'video_article',
   language: 'zh-CN',
   title: '如何核对视频分析结论',
@@ -26,7 +19,7 @@ export const articleResult: VideoArticleResult = {
   limitations: ['仅依据可见画面。'],
 };
 
-export const analysisSkills: AnalysisSkill[] = [
+export const analysisSkills: API.AnalysisSkillResponse[] = [
   {
     id: 'director-breakdown',
     display_name: '导演拉片',
@@ -45,7 +38,7 @@ export const analysisSkills: AnalysisSkill[] = [
   },
 ];
 
-export const analysisResult: VideoAnalysisResult = {
+export const analysisResult: API.VideoAnalysisResultResponse = {
   kind: 'video_visual_analysis',
   language: 'zh-CN',
   title: '可靠的视频处理流水线',
@@ -145,8 +138,8 @@ export const analysisResult: VideoAnalysisResult = {
 };
 
 export function analysisJob(
-  status: AnalysisJob['status'] = 'queued',
-): AnalysisJob {
+  status: API.AnalysisResponse['status'] = 'queued',
+): API.AnalysisResponse {
   return {
     id: '44444444-4444-4444-8444-444444444444',
     run_id: '55555555-5555-4555-8555-555555555555',

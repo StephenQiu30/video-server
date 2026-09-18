@@ -2,8 +2,11 @@
 
 import { useState } from 'react';
 import { getAdminProviderRuntime } from '@/api/admin';
+import {
+  accessPolicyLabel,
+  routeCooldownLabel,
+} from '@/components/providers/provider-access';
 import { Button } from '@/components/ui/button';
-import { accessPolicyLabel, routeCooldownLabel } from '@/lib/provider-access';
 import { displayError } from '@/lib/request-error';
 
 const sourceLabels: Record<

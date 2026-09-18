@@ -4,7 +4,7 @@
 
 ## 1. 项目职责
 
-本项目负责 FastAPI API、Next.js Web、媒体解析与下载、文档导入、制品管理、异步任务及 AI 分析，并包含独立发行的 Codex 插件。
+本项目负责 FastAPI API、Next.js Web、媒体解析与下载、文档导入、制品管理、异步任务及 AI 分析。
 
 Flutter App 是独立项目，通过 API 使用本项目能力，不在本仓库维护移动端实现或制定其工程规范。
 
@@ -78,16 +78,12 @@ video-server/
 │   ├── package.json               Web 依赖与脚本
 │   ├── src/
 │   │   ├── app/                   页面、布局与全局样式
-│   │   ├── components/            按业务组织的组件及 ui 基础组件
-│   │   ├── hooks/                 可复用状态与流程
-│   │   ├── lib/                   请求封装、错误映射等基础设施
-│   │   ├── api/                   OpenAPI 生成客户端
-│   │   ├── types/                 业务类型
-│   │   └── utils/                 通用函数
+│   │   ├── components/            按业务内聚组织 UI、专用 Hooks 与展示逻辑；ui/ 为基础组件
+│   │   ├── hooks/                 跨业务共享的 React Hooks
+│   │   ├── lib/                   共享非 React 能力；upload/ 为文件传输与导入流程
+│   │   └── api/                   OpenAPI 生成的请求函数与类型（禁止手改）
 │   ├── public/                    静态资源
 │   └── tests/                     Web 测试
-├── plugins/framefetch/            Codex 插件、MCP 和独立 Local Agent
-├── .agents/plugins/               仓库插件市场清单
 ├── docs/                          设计、需求、计划、验收与运维
 ├── Dockerfile                     统一生产镜像
 ├── docker-compose.yml            本机业务拓扑
@@ -99,14 +95,39 @@ video-server/
 
 前端页面位于 `src/app/`，业务组件按功能放在 `src/components/`，请求直接从 `src/api/` 生成代码导入，统一使用 `src/lib/request.ts` 的 Axios 封装；不建立平行路由或独立 `src/features/` 目录。视觉规范见 [design.md](design.md)，采用官方 Next.js、shadcn `radix-nova` / neutral / Phosphor 基线；页面使用无边框内容布局，控件保留官方实现。
 
+### 前端目录与文件规则
+
+Next.js 官方规定路由文件约定，允许应用自行组织共享代码；以下是本项目的明确约定，不把所有可选目录当作必须创建的脚手架。依据：[Next.js Project Structure](https://nextjs.org/docs/app/getting-started/project-structure)。
+
+| 目录 | 放什么 | 不放什么 |
+| --- | --- | --- |
+| `src/app/` | Next.js 路由、layout、loading/error、元数据与 Route Handler | 跨业务共享工具、另一套 API 客户端 |
+| `src/api/` | Umi OpenAPI 根据后端 Swagger 自动生成的请求与 `API` 类型 | 手写函数、手改类型、业务流程 |
+| `src/components/ui/` | 官方 shadcn 基础组件 | 下载、鉴权、分析等业务流程 |
+| `src/components/<业务>/` | 该业务的 UI、专用 `use-*.ts`、展示规则与本地类型 | 无归属的全局工具集合 |
+| `src/hooks/` | 跨业务共享且使用 React 生命周期或状态的 Hook，目前为 `use-request-scope.ts` | 单业务查询 Hook、纯函数、API 转发 |
+| `src/lib/` | Axios `request.ts`、错误处理、WebSocket、站点配置、浏览器能力与真正共享的纯函数 | 组件、单业务展示文案、重复 DTO |
+| `src/lib/upload/` | 视频/文档共用的哈希、分片上传、取消清理、导入编排 | 手写 REST 请求；仍须调用 `src/api/` |
+| `tests/fixtures/`、`tests/helpers/` | 测试数据、Fake 和测试辅助能力 | 被生产代码依赖的测试实现 |
+
+放置顺序与命名：
+
+1. 新增逻辑先判断能否留在调用文件；有独立职责或确需复用时才拆文件。
+2. 单业务逻辑与其组件同目录；跨业务复用才放 `hooks/` 或 `lib/`。文件被调用一次不等于无用，例如取消、错误恢复和请求竞态处理仍有独立职责。
+3. 普通文件使用 `kebab-case.ts/tsx`；Hook 文件使用 `use-*.ts`，导出函数使用 `useXxx`。Next.js 特殊文件名与生成器输出保持官方命名。
+4. 不再建立平行的 `services/`、`utils/`、`types/` 聚合目录。无状态共享函数统一归入 `lib/`；同职责格式化函数集中在 `lib/format.ts`。
+5. 接口类型直接引用生成的 `API.*`，不维护 `type DownloadJob = API.DownloadResponse` 一类纯重命名层。前端专用状态或表单选择类型定义在使用它的业务文件附近。
+6. 禁止只有转发、改名或再导出的包装文件；例如幂等键直接使用 `lib/uuid.ts` 的 UUID 生成能力。导入具体文件，不新增无职责的 barrel `index.ts`；生成器输出除外。
+7. 删除文件前核对源码、动态导入、测试和 Next.js 配置入口；测试引用不能单独证明生产用途。迁移同步更新引用和规范，不保留旧路径兼容文件。
+
+当前整理结果：移除 `types/video.ts` 的接口别名层和 `utils/idempotency.ts` 的转发函数；合并文件大小与时长格式化；11 个业务 Hook 回归对应业务目录；4 个 service 文件归入有明确职责的共享模块。原有 Hook 的取消、加载、错误和竞态处理保留。
+
 ## 4. 本地 Agent 与平台配置维护
 
-当前存在不同职责的本地组件，维护时需要明确对应入口：
+本仓库当前保留以下本地运行组件；已移除的 FrameFetch 插件不再作为本仓库维护入口：
 
 | 组件 | 代码入口 | 当前职责 |
 | --- | --- | --- |
-| FrameFetch Local Agent | `plugins/framefetch/scripts/framefetch_agent.py` | Codex/Claude Code 安装、登录诊断，以及本地 Agent 启停 |
-| MCP 桥接 | `plugins/framefetch/scripts/framefetch_mcp.py` | 向 Codex 暴露 status、doctor、start、stop 工具 |
 | Analysis Agent / Worker | `backend/app/workers/analysis/` | 宿主机分析服务管理与实际任务执行 |
 | Provider Cookie Agent | `backend/app/runner/provider_cookie_agent.py` | 按平台处理受控会话请求与临时租约；macOS 使用按需队列服务 |
 | 会话策略与安装 | `provider_session_policy.py`、`provider_session_setup.py`（位于 `runner/`） | 平台来源策略、来源安装及检查 |
@@ -117,11 +138,11 @@ video-server/
 - `.env` / `.env.prod` 保存部署配置，本地已有文件按现状复用；本文不记录密钥、Cookie 或 Token 值。
 - 生产 YouTube、抖音、Reddit 使用各自只读会话来源；视频号按需使用专用元宝来源。具体配置以生产 Compose 与平台运维手册为准。
 - `.provider-sessions/<provider>/` 属于本地敏感运行数据，不作为源码提交。来源目录可通过部署配置调整。
-- Local Agent 的 CLI 登录诊断不代表 YouTube、抖音等媒体平台会话有效，也不代表分析任务已经完成。
+- CLI 登录诊断不代表 YouTube、抖音等媒体平台会话有效，也不代表分析任务已经完成。
 - “统一多平台配置、状态检查与恢复入口”是当前讨论的改进方向，尚不能作为已经实现的全平台服务描述。现有 YouTube 维护器不能替代抖音等平台的独立恢复验证。
 - 平台恢复需要分别验证元数据解析和真实媒体文件；进程存活或文件存在不足以证明恢复成功。
 
-实现说明见 [插件 README](plugins/framefetch/README.md)、[YouTube 会话手册](docs/operations/002-YouTube受控会话运行手册.md)及[个人部署重启与换机手册](docs/operations/008-个人部署重启与换机手册.md)。
+实现说明见 [YouTube 会话手册](docs/operations/002-YouTube受控会话运行手册.md)及[个人部署重启与换机手册](docs/operations/008-个人部署重启与换机手册.md)。
 
 ## 5. 运行与数据边界
 

@@ -1,10 +1,10 @@
 'use client';
 
 import AnalysisConfigurator from '@/components/analysis/analysis-configurator';
+import { useAnalysisJob } from '@/components/analysis/use-analysis-job';
 import { ScreenplayAnalysisJobState } from '@/components/screenplay/screenplay-analysis-job-state';
 import { ScreenplayCompletedAnalysis } from '@/components/screenplay/screenplay-completed-analysis';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useAnalysisJob } from '@/hooks/useAnalysisJob';
 
 export default function ScreenplayAnalysisPanel({
   documentId,

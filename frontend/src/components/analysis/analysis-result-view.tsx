@@ -9,8 +9,8 @@ import AnalysisSceneList from '@/components/analysis/analysis-scene-list';
 import { Button } from '@/components/ui/button';
 import { Item } from '@/components/ui/item';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { VideoAnalysisResult } from '@/types/video';
-import { formatMilliseconds } from '@/utils/format';
+
+import { formatMilliseconds } from '@/lib/format';
 
 const assetTypeLabels: Record<string, string> = {
   person: '人物',
@@ -30,7 +30,7 @@ export default function AnalysisResultView({
   defaultView?: 'scenes' | 'shots';
   onSelectTime?: (milliseconds: number) => void;
   reportMarkdown?: string | null;
-  result: VideoAnalysisResult;
+  result: API.VideoAnalysisResultResponse;
 }) {
   return (
     <Tabs className="mt-10 gap-0" defaultValue={defaultView}>

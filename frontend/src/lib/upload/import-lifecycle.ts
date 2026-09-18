@@ -1,5 +1,5 @@
-import { MediaTransferError } from '@/lib/media-upload';
 import { displayError } from '@/lib/request-error';
+import { MediaTransferError } from '@/lib/upload/media-upload';
 
 export type ImportPhase =
   | 'idle'

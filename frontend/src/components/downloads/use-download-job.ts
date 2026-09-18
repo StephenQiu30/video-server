@@ -6,20 +6,19 @@ import {
   issueDownloadUrl,
   retryDownload,
 } from '@/api/downloads';
-import { useRequestScope } from '@/hooks/useRequestScope';
+import { useRequestScope } from '@/hooks/use-request-scope';
 import { triggerBrowserDownload } from '@/lib/browser-download';
 import { displayError } from '@/lib/request-error';
 import { type TaskSocketStatus, taskSocket } from '@/lib/task-socket';
-import type { DownloadJob } from '@/types/video';
-import { terminalDownloadStatuses } from '@/types/video';
-import { createIdempotencyKey } from '@/utils/idempotency';
+
+import { createUuid as createIdempotencyKey } from '@/lib/uuid';
 
 type Action = 'cancel' | 'delete' | 'download' | 'retry' | null;
 type ErrorKind = 'load' | 'sync' | 'action' | null;
 
 export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   const scope = useRequestScope(jobId);
-  const [job, setJob] = useState<DownloadJob | null>(null);
+  const [job, setJob] = useState<API.DownloadResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [errorKind, setErrorKind] = useState<ErrorKind>(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +34,7 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   const jobStatus = visibleJob?.status ?? null;
 
   const accept = useCallback(
-    (next: DownloadJob) => {
+    (next: API.DownloadResponse) => {
       if (next.id !== jobId || next.version < versionRef.current) return false;
       versionRef.current = next.version;
       setJob((current) =>
@@ -151,7 +150,7 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     setCycle((current) => current + 1);
   }, [scope]);
 
-  const retry = useCallback(async (): Promise<DownloadJob | null> => {
+  const retry = useCallback(async (): Promise<API.DownloadResponse | null> => {
     scope.invalidate();
     const request = scope.capture();
     setAction('retry');
@@ -265,9 +264,9 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
 }
 
 function mergePresentation(
-  current: DownloadJob | null,
-  next: DownloadJob,
-): DownloadJob {
+  current: API.DownloadResponse | null,
+  next: API.DownloadResponse,
+): API.DownloadResponse {
   if (!current) return next;
   return {
     ...next,
@@ -278,3 +277,9 @@ function mergePresentation(
     format: next.format ?? current.format,
   };
 }
+
+const terminalDownloadStatuses = new Set<API.DownloadStatus>([
+  'succeeded',
+  'failed',
+  'cancelled',
+]);

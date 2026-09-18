@@ -35,6 +35,7 @@
 | CQ-009 | 设计风险 / 非现有代码缺陷 | 035 可选来源维护者可能先于必要性证明落地 | 条件限制，未实施 | 035 G1–G4 |
 | CQ-010 | P2 / 可访问性 | 封面占位辅助文字对比度不足 | 已关闭：浏览器复验通过，16516f5c | 恢复页 QA |
 | CQ-011 | P2 / 验证缺陷 | 轮询假时钟未逐轮渲染，过度请求漏到真实网络 | 已关闭：84dfb5e5，受控次数与终态通过 | 测试隔离 |
+| CQ-012 | P3 / 过度设计风险 | Web 公共目录混放业务 Hooks、接口类型别名和纯转发函数 | 已清理；类型检查、300 项测试与构建验证 | 前端目录职责 |
 
 ## 3. 证据、最小修复与验收
 
@@ -50,7 +51,7 @@
 
 ### CQ-002：视频上传复用已提交的幂等结果
 
-证据：[media-import.ts](../frontend/src/services/media-import.ts)第 57–75 行创建资源后无条件申请 upload session；[document-import.ts](../frontend/src/services/document-import.ts)第 86–91 行会直接返回 verifying/ready 结果；[CreateUploadSession](../backend/app/services/imports/service.py)第 190 行拒绝非 uploading。既有 [媒体导入测试](../frontend/tests/unit/media-import.test.ts)第 172 行附近只为文档覆盖“完成响应丢失”。
+证据：[media-import.ts](../frontend/src/lib/upload/media-import.ts)第 57–75 行创建资源后无条件申请 upload session；[document-import.ts](../frontend/src/lib/upload/document-import.ts)第 86–91 行会直接返回 verifying/ready 结果；[CreateUploadSession](../backend/app/services/imports/service.py)第 190 行拒绝非 uploading。既有 [媒体导入测试](../frontend/tests/unit/media-import.test.ts)第 172 行附近只为文档覆盖“完成响应丢失”。
 
 影响：视频 complete 已被服务端接受、客户端没收到响应时，以同一 key 再次启动会取回 verifying/ready 资源，然后错误请求上传会话，无法从已有成功提交恢复。不是存储故障，也不应丢弃幂等键重复创建资源。
 
@@ -62,7 +63,7 @@
 
 ### CQ-003：Web 任务更新必须按目标、操作代次和版本收敛
 
-证据：[useDownloadJob](../frontend/src/hooks/useDownloadJob.ts)第 69–106 行包含独立 Socket/轮询 GET，Socket 回调 await 后没有失效检查；[useAnalysisJob](../frontend/src/hooks/useAnalysisJob.ts)第 74–114 行同样存在独立 GET，虽有 disposed 但都直接 setJob，没有响应 version 比较。两处 versionRef 用于订阅起点，不是写回保护；[task-socket](../frontend/src/lib/task-socket.ts)过滤事件版本也不能控制后续 HTTP 响应顺序。
+证据：[useDownloadJob](../frontend/src/components/downloads/use-download-job.ts)第 69–106 行包含独立 Socket/轮询 GET，Socket 回调 await 后没有失效检查；[useAnalysisJob](../frontend/src/components/analysis/use-analysis-job.ts)第 74–114 行同样存在独立 GET，虽有 disposed 但都直接 setJob，没有响应 version 比较。两处 versionRef 用于订阅起点，不是写回保护；[task-socket](../frontend/src/lib/task-socket.ts)过滤事件版本也不能控制后续 HTTP 响应顺序。
 
 影响：同一活动任务 v4 响应先返回、v3 后返回时，进度/状态可以倒退；下载的旧 Socket 回调还可能在切换任务或取消后污染新状态。此处是 Web 问题，不把 018 已修的 App 问题重新打开。
 
@@ -84,7 +85,7 @@
 
 ### CQ-005：App 幂等键应属于一次逻辑重试操作
 
-证据：[download_history_repository.dart](../../video-app/lib/features/history/data/download_history_repository.dart)第 79–85 行每次 retry(jobId) 新建随机 key；两处 Widget 捕获错误后恢复按钮，再点击会重新调用该方法。相比之下，[Web 列表](../frontend/src/components/downloads/download-history-view.tsx)第 74–80 行和 [Web 详情 Hook](../frontend/src/hooks/useDownloadJob.ts)第 132 行附近在不确定失败后保留 key。服务端 RetryDownload 以原任务和 key 创建新任务，同源不同 key 可创建不同资源。
+证据：[download_history_repository.dart](../../video-app/lib/features/history/data/download_history_repository.dart)第 79–85 行每次 retry(jobId) 新建随机 key；两处 Widget 捕获错误后恢复按钮，再点击会重新调用该方法。相比之下，[Web 列表](../frontend/src/components/downloads/download-history-view.tsx)第 74–80 行和 [Web 详情 Hook](../frontend/src/components/downloads/use-download-job.ts)第 132 行附近在不确定失败后保留 key。服务端 RetryDownload 以原任务和 key 创建新任务，同源不同 key 可创建不同资源。
 
 影响：服务端已经创建任务但响应丢失时，App 再点击会创建第二个任务并重复占用预算。当前认证层内部重放复用闭包中的同一个 key，这条路径不是本项缺陷。
 
@@ -112,7 +113,7 @@
 
 ### CQ-008：上传生命周期去重必须先讲清差异
 
-证据：[useMediaImport](../frontend/src/hooks/useMediaImport.ts)、[useDocumentImport](../frontend/src/hooks/useDocumentImport.ts)重复维护 ActiveRun、StableKey、取消与进度；[两类服务](../frontend/src/services/media-import.ts)和[文档服务](../frontend/src/services/document-import.ts)还复制 phase/observer 及传输编排。文档有失败取消和已完成恢复，视频有 declared_origin 与取消通知，不能简单互相替换。
+证据：[useMediaImport](../frontend/src/components/intake/use-media-import.ts)、[useDocumentImport](../frontend/src/components/intake/use-document-import.ts)重复维护 ActiveRun、StableKey、取消与进度；[两类服务](../frontend/src/lib/upload/media-import.ts)和[文档服务](../frontend/src/lib/upload/document-import.ts)还复制 phase/observer 及传输编排。文档有失败取消和已完成恢复，视频有 declared_origin 与取消通知，不能简单互相替换。
 
 最小修复：先解决 CQ-002 并明确取消/完成竞态，再只提取相同的操作身份和传输生命周期，具体资源 API、格式校验及失败策略保留在各自服务。继续复用已有 `lib/media-upload`；如果小型提取仍需大量模式开关，保留局部重复并记录理由。
 
@@ -269,3 +270,11 @@ CQ-020 动态来源身份修订、CQ-027 间歇平台请求、CQ-022 红果探�
 - CQ-AI-001，P3 / 重复风险：直接复制 DeepSeek 分析器会复制视频、剧本与改写提示词/限额逻辑。采用共享 ApiAnalyzer＋模型适配器组合；保留 CLI 工具调用边界。已实施，共享流程与 CLI 回归通过，真实模型待验收。
 - CQ-AI-002，P2 / 行为缺陷：原 Profile 修改服务地址可保留旧 Key；本次新增 API 后必须绑定凭据目的地。现在地址/引擎变化要求显式新凭据，回归验证拒绝变更且原配置不变。已修复并通过确定性验收。
 - CQ-AI-003，P2 / 键盘交互：AI 编辑器通过受控状态打开，缺少 DialogTrigger，Escape 后焦点落入 body。新增显式触发器焦点恢复，组件回归与生产构建浏览器复验通过。
+
+### CQ-012：前端目录职责与冗余层
+
+证据基线：10abe772。lib/hooks/services/types/utils 中 36 个源码文件均有生产引用，不能将文件数直接视为死代码；types/video.ts 重命名生成接口类型，utils/idempotency.ts 只转发 UUID，公共 Hooks 混放单业务状态流程。
+
+最小修复：删除重复接口类型层和转发函数，合并同职责格式化函数，业务 Hooks 与展示逻辑就近放到组件目录，共享导入流程放 lib/upload。API 生成目录、Axios 封装、上传取消、认证和任务竞态逻辑保留。目录规范统一记录在 PROJECT.md。
+
+验收：Biome、TypeScript、64 文件 / 300 项测试和 Next.js production build；纯目录与类型整理，不以本轮检查声明平台下载恢复或新生产部署。

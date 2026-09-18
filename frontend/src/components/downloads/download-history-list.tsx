@@ -23,11 +23,6 @@ import {
 } from '@/components/ui/item';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
-import type {
-  DownloadHistory,
-  DownloadHistoryItem,
-  DownloadStatus,
-} from '@/types/video';
 
 export default function DownloadHistoryList({
   data,
@@ -37,11 +32,11 @@ export default function DownloadHistoryList({
   onRetry,
   pendingAction,
 }: {
-  data: DownloadHistory | null;
+  data: API.DownloadHistoryResponse | null;
   loading: boolean;
-  onDownload: (item: DownloadHistoryItem) => void;
-  onDelete: (item: DownloadHistoryItem) => Promise<void>;
-  onRetry: (item: DownloadHistoryItem) => void;
+  onDownload: (item: API.DownloadHistoryItemResponse) => void;
+  onDelete: (item: API.DownloadHistoryItemResponse) => Promise<void>;
+  onRetry: (item: API.DownloadHistoryItemResponse) => void;
   pendingAction: { id: string; type: 'delete' | 'download' | 'retry' } | null;
 }) {
   return (
@@ -82,10 +77,10 @@ function HistoryRow({
   onRetry,
   pendingAction,
 }: {
-  item: DownloadHistoryItem;
-  onDownload: (item: DownloadHistoryItem) => void;
-  onDelete: (item: DownloadHistoryItem) => Promise<void>;
-  onRetry: (item: DownloadHistoryItem) => void;
+  item: API.DownloadHistoryItemResponse;
+  onDownload: (item: API.DownloadHistoryItemResponse) => void;
+  onDelete: (item: API.DownloadHistoryItemResponse) => Promise<void>;
+  onRetry: (item: API.DownloadHistoryItemResponse) => void;
   pendingAction: { id: string; type: 'delete' | 'download' | 'retry' } | null;
 }) {
   const detailHref = `/downloads/detail?jobId=${encodeURIComponent(item.id)}`;
@@ -223,12 +218,12 @@ function formatDate(value: string) {
   return historyDateFormatter.format(new Date(value));
 }
 
-function fileAvailabilityLabel(item: DownloadHistoryItem) {
+function fileAvailabilityLabel(item: API.DownloadHistoryItemResponse) {
   return item.file_available ? '文件持久保存' : '文件已清理';
 }
 
 function statusVariant(
-  status: DownloadStatus,
+  status: API.DownloadStatus,
 ): 'secondary' | 'default' | 'secondary' | 'destructive' {
   if (status === 'succeeded') return 'default';
   if (status === 'failed') return 'destructive';
@@ -236,7 +231,7 @@ function statusVariant(
   return 'secondary';
 }
 
-export const downloadStatusLabels: Record<DownloadStatus, string> = {
+export const downloadStatusLabels: Record<API.DownloadStatus, string> = {
   queued: '排队中',
   running: '下载中',
   retry_wait: '等待重试',
@@ -245,7 +240,7 @@ export const downloadStatusLabels: Record<DownloadStatus, string> = {
   cancelled: '已取消',
 };
 
-const activeStatuses = new Set<DownloadStatus>([
+const activeStatuses = new Set<API.DownloadStatus>([
   'queued',
   'running',
   'retry_wait',

@@ -33,12 +33,9 @@ server/
 │   ├── src/app/                   页面、布局与全局 Tailwind 主题
 │   ├── src/
 │   │   ├── components/            按 feature 归类的业务组件与 shadcn/ui 源码
-│   │   ├── hooks/                 可复用状态和流程 Hooks
-│   │   ├── lib/                   Axios、请求错误与通用基础设施
-│   │   ├── api/                   OpenAPI 自动生成的请求与类型
-│   │   ├── services/              上传与媒体流程编排
-│   │   ├── types/                 前端业务类型
-│   │   └── utils/                 无 UI 的通用函数
+│   │   ├── hooks/                 跨业务共享 React Hooks
+│   │   ├── lib/                   Axios、请求错误与通用基础设施；upload/ 为上传编排
+│   │   └── api/                   OpenAPI 自动生成的请求与类型
 │   └── tests/                     Vitest 测试
 ├── plugins/framefetch/             Codex App 插件与独立本地 Agent 发行包
 ├── .agents/plugins/                仓库内 Codex 插件市场清单
@@ -59,7 +56,7 @@ server/
 - 进程入口放在 `workers/` 或 `runner/`，不要把下载、转码或 AI 长任务放进 HTTP 请求进程。
 - Codex App 插件、stdio MCP 桥接和可独立发行的用户本机 Agent 放在 `plugins/framefetch/`；插件不得导入后端应用模块，也不得持有数据库、队列、对象存储或模型服务密钥。
 - 前端不使用独立的 `src/features/` 目录。App Router 页面放在 `src/app/`，业务组件按 feature 放在 `src/components/{account,admin,analysis,auth,downloads,intake,layout,providers,screenplay}/`，shadcn/ui 源码放在 `src/components/ui/`。
-- 前端 REST 请求与类型全部从 `src/api/` 的生成代码导入；状态流程放在 `hooks/`，上传等多步业务编排放在 `services/`。不得另写请求函数或平行 DTO。
+- 前端 REST 请求与类型全部从 `src/api/` 的生成代码导入；业务专用 Hooks 与组件同目录，跨业务 Hook 放在 `hooks/`，共享上传编排放在 `lib/upload/`。不得另写请求函数或平行 DTO。
 - FastAPI 根据路由注解和 Pydantic 模型自动生成 `/openapi.json`；`@umijs/openapi` 直接生成 `frontend/src/api/`，全部调用 `src/lib/request.ts` 的 Axios 封装。禁止手工维护 Swagger 文件或修改生成代码。
 - 后端公开操作必须声明稳定且唯一的 `operationId` 和 tag，供已提交的 OpenAPI 客户端和契约测试使用。创建出可查询资源的接口返回 `201 Created` 和 `Location`；异步执行状态放在响应模型中，不用 `202` 损失返回类型。
 - 路由、布局和元数据遵循 Next.js App Router 官方约定；交互组件使用 shadcn/ui 与 Radix UI，样式使用 Tailwind CSS 主题 token，不得重新引入 Umi、Ant Design、Vite 入口或平行路由器。
@@ -152,3 +149,5 @@ pnpm build
 API 使用 `runtime.py` 定义类型化的 `ApiServices`，在 `app.state.services` 中只挂载一次，通过 FastAPI 依赖函数读取；`lifespan.py` 管理资源所有权和释放，不逐项复制服务到动态 State。外部注入的运行时由调用方管理。
 
 API readiness 检查业务核心依赖，不把匿名或受控 Runner 的健康作为全局可用条件。API、下载 Worker 和 Canary 的启动不得等待所有 Provider 健康；Worker/Canary 仍等待共享工作目录初始化。浏览器来源 Runner 的代理 readiness 必须使用不读取 Cookie 的有界 probe 往返，安装标记不能代替响应；个人文件来源按 031 校验只读平台文件，不依赖桌面代理。下载 Worker 与 Runner 的容器停止宽限必须覆盖 Worker 有限排空预算。对应设计和目标环境验收见 030 四件套。
+
+前端目录职责以 PROJECT.md“前端目录与文件规则”为准。接口类型直接使用生成的 API.*，不新增 services、utils、types 聚合目录或纯转发文件。

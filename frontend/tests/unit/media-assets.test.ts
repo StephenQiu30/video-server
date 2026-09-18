@@ -1,10 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-
-import { request } from '@/lib/request';
 import {
   isPrivateThumbnailPath,
   loadPrivateThumbnail,
-} from '@/services/media-assets';
+} from '@/lib/media-assets';
+import { request } from '@/lib/request';
 
 vi.mock('@/lib/request', () => ({ request: vi.fn() }));
 

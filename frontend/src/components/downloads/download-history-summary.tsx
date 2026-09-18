@@ -1,8 +1,7 @@
 import { Skeleton } from '@/components/ui/skeleton';
-import type { DownloadHistory } from '@/types/video';
 
 type DownloadHistorySummaryProps = {
-  data: DownloadHistory | null;
+  data: API.DownloadHistoryResponse | null;
   loading: boolean;
 };
 

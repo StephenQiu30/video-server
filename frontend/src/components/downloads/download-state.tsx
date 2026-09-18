@@ -20,7 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
-import type { DownloadJob } from '@/types/video';
+
 import { DownloadExecutionSummary } from './download-execution-summary';
 import {
   displayStage,
@@ -36,7 +36,7 @@ import {
 
 type Props = {
   action: 'cancel' | 'delete' | 'download' | 'retry' | null;
-  job: DownloadJob;
+  job: API.DownloadResponse;
   onCancel: () => void;
   onDownload: () => void;
   onRetry: () => void;

@@ -9,12 +9,11 @@ import {
   getLatestDownloadAnalysis,
   retryAnalysis,
 } from '@/api/analyses';
-import { useRequestScope } from '@/hooks/useRequestScope';
+import { useRequestScope } from '@/hooks/use-request-scope';
 import { displayError } from '@/lib/request-error';
 import { type TaskSocketStatus, taskSocket } from '@/lib/task-socket';
-import type { AnalysisJob, CreateAnalysisInput } from '@/types/video';
-import { terminalAnalysisStatuses } from '@/types/video';
-import { createIdempotencyKey } from '@/utils/idempotency';
+
+import { createUuid as createIdempotencyKey } from '@/lib/uuid';
 
 type Action = 'start' | 'cancel' | 'retry' | 'delete' | null;
 type StableKey = { payload: string; value: string };
@@ -24,7 +23,7 @@ export function useAnalysisJob(
   pollIntervalMs: number,
   inputKind: API.AnalysisInputKind = 'video',
 ) {
-  const [job, setJob] = useState<AnalysisJob | null>(null);
+  const [job, setJob] = useState<API.AnalysisResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [action, setAction] = useState<Action>(null);
   const [socketStatus, setSocketStatus] =
@@ -36,9 +35,9 @@ export function useAnalysisJob(
   const hasLocalJob = useRef(false);
   const sourceKeyRef = useRef(sourceKey);
   const versionRef = useRef(0);
-  const snapshotRef = useRef<AnalysisJob | null>(null);
+  const snapshotRef = useRef<API.AnalysisResponse | null>(null);
 
-  const accept = useCallback((next: AnalysisJob) => {
+  const accept = useCallback((next: API.AnalysisResponse) => {
     const current = snapshotRef.current;
     if (
       current?.id === next.id &&
@@ -182,7 +181,7 @@ export function useAnalysisJob(
   ]);
 
   const start = useCallback(
-    async (input: CreateAnalysisInput) => {
+    async (input: API.AnalysisRequest) => {
       scope.invalidate();
       const request = scope.capture();
       hasLocalJob.current = true;
@@ -318,3 +317,9 @@ export function useAnalysisJob(
     start,
   };
 }
+
+const terminalAnalysisStatuses = new Set<API.AnalysisStatus>([
+  'succeeded',
+  'failed',
+  'cancelled',
+]);

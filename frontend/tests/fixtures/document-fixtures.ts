@@ -1,14 +1,8 @@
-import type {
-  ScreenplayDocument,
-  ScreenplayDocumentPage,
-  ScreenplayDocumentSummary,
-} from '@/types/video';
-
 export const documentId = '99999999-9999-4999-8999-999999999999';
 
 export function screenplayDocumentSummary(
-  overrides: Partial<ScreenplayDocumentSummary> = {},
-): ScreenplayDocumentSummary {
+  overrides: Partial<API.DocumentResponse> = {},
+): API.DocumentResponse {
   return {
     id: documentId,
     title: '午夜来客',
@@ -31,8 +25,8 @@ export function screenplayDocumentSummary(
 }
 
 export function screenplayDocument(
-  overrides: Partial<ScreenplayDocument> = {},
-): ScreenplayDocument {
+  overrides: Partial<API.DocumentDetailResponse> = {},
+): API.DocumentDetailResponse {
   return {
     ...screenplayDocumentSummary(),
     preview: '<script>只作为台词文本</script>\n\nINT. LOBBY - NIGHT\n',
@@ -51,8 +45,8 @@ export function screenplayDocument(
 }
 
 export function screenplayDocumentPage(
-  overrides: Partial<ScreenplayDocumentPage> = {},
-): ScreenplayDocumentPage {
+  overrides: Partial<API.DocumentPageResponse> = {},
+): API.DocumentPageResponse {
   return {
     items: [screenplayDocumentSummary()],
     page: 1,

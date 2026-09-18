@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getDocumentImport as getScreenplayDocument } from '@/api/documents';
 import { displayError } from '@/lib/request-error';
-import type { ScreenplayDocument } from '@/types/video';
 
 const activeStatuses = new Set(['uploading', 'verifying']);
 
@@ -9,7 +8,9 @@ export function useScreenplayDocument(
   documentId: string,
   pollIntervalMs = 3000,
 ) {
-  const [document, setDocument] = useState<ScreenplayDocument | null>(null);
+  const [document, setDocument] = useState<API.DocumentDetailResponse | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [cycle, setCycle] = useState(0);

@@ -1,8 +1,7 @@
 import { localizedErrorMessage } from '@/lib/error-messages';
-import type { DownloadJob, DownloadStage, DownloadStatus } from '@/types/video';
 
 export function downloadRecovery(
-  job: Pick<DownloadJob, 'source_kind' | 'status' | 'file_available'>,
+  job: Pick<API.DownloadResponse, 'source_kind' | 'status' | 'file_available'>,
 ): 'retry' | 'reimport' | null {
   const terminal =
     job.status === 'failed' ||
@@ -12,7 +11,7 @@ export function downloadRecovery(
   return job.source_kind === 'remote_provider' ? 'retry' : 'reimport';
 }
 
-export const statusLabels: Record<DownloadStatus, string> = {
+export const statusLabels: Record<API.DownloadStatus, string> = {
   queued: '等待处理',
   running: '正在下载',
   retry_wait: '等待重试',
@@ -21,7 +20,7 @@ export const statusLabels: Record<DownloadStatus, string> = {
   cancelled: '任务已取消',
 };
 
-const stageLabels: Record<DownloadStage, string> = {
+const stageLabels: Record<API.DownloadStage, string> = {
   revalidating: '重新验证',
   downloading: '下载媒体',
   remuxing: '封装媒体',
@@ -41,14 +40,14 @@ const failureDetails: Record<string, string> = {
     '视频封装格式暂不支持，请重新获取下载源。',
 };
 
-export function statusVariant(status: DownloadStatus) {
+export function statusVariant(status: API.DownloadStatus) {
   if (status === 'succeeded') return 'default' as const;
   if (status === 'failed') return 'destructive' as const;
   if (status === 'retry_wait') return 'secondary' as const;
   return 'secondary' as const;
 }
 
-export function statusHeading(job: DownloadJob) {
+export function statusHeading(job: API.DownloadResponse) {
   const media = archiveLabel(job);
   if (job.status === 'queued') return '下载即将开始';
   if (job.status === 'running') return `正在准备${media}文件`;
@@ -60,7 +59,7 @@ export function statusHeading(job: DownloadJob) {
   return '下载已取消';
 }
 
-export function statusDescription(job: DownloadJob) {
+export function statusDescription(job: API.DownloadResponse) {
   if (downloadRecovery(job) === 'reimport')
     return '任务记录仍然保留。请返回首页重新选择本地文件导入。';
   const media = archiveLabel(job);
@@ -88,7 +87,7 @@ export function statusDescription(job: DownloadJob) {
   return '任务已经停止，随时可以重新创建下载。';
 }
 
-function archiveLabel(job: DownloadJob) {
+function archiveLabel(job: API.DownloadResponse) {
   return job.media_kind === 'image_gallery'
     ? '图集'
     : job.media_kind === 'video_collection'
@@ -96,7 +95,7 @@ function archiveLabel(job: DownloadJob) {
       : '视频';
 }
 
-export function executionTitle(job: DownloadJob) {
+export function executionTitle(job: API.DownloadResponse) {
   if (job.status === 'succeeded' && job.file_available) {
     return '文件完整性验证通过';
   }
@@ -106,14 +105,14 @@ export function executionTitle(job: DownloadJob) {
   return '任务由隔离的媒体 Runner 执行';
 }
 
-export function displayStage(job: DownloadJob): string {
+export function displayStage(job: API.DownloadResponse): string {
   if (job.status === 'succeeded') return '已完成';
   if (job.status === 'failed') return failureStage(job.error_code);
   if (job.status === 'cancelled') return '已取消';
   return job.stage ? stageLabels[job.stage] : '等待调度';
 }
 
-export function failureTitle(code: DownloadJob['error_code']): string {
+export function failureTitle(code: API.DownloadResponse['error_code']): string {
   if (code === 'provider_auth_required') return '需要授权访问';
   if (code === 'provider_session_expired') return '授权会话已过期';
   if (code === 'media_validation_failed') return '文件校验未通过';
@@ -121,7 +120,7 @@ export function failureTitle(code: DownloadJob['error_code']): string {
   return '下载未完成';
 }
 
-export function failureStage(code: DownloadJob['error_code']): string {
+export function failureStage(code: API.DownloadResponse['error_code']): string {
   if (
     code === 'provider_auth_required' ||
     code === 'provider_session_expired'
@@ -133,7 +132,9 @@ export function failureStage(code: DownloadJob['error_code']): string {
   return localizedErrorMessage(code) ? '执行失败' : '需要恢复';
 }
 
-export function retryActionLabel(code: DownloadJob['error_code']): string {
+export function retryActionLabel(
+  code: API.DownloadResponse['error_code'],
+): string {
   if (
     code === 'provider_auth_required' ||
     code === 'provider_session_expired'
@@ -146,7 +147,7 @@ export function retryActionLabel(code: DownloadJob['error_code']): string {
   return '重新下载';
 }
 
-export function failureDescription(job: DownloadJob): string {
+export function failureDescription(job: API.DownloadResponse): string {
   const detail = job.error_message?.trim();
   if (detail && detail !== job.error_code) {
     return (

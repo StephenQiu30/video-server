@@ -7,6 +7,7 @@ import {
   statusLabels,
 } from '@/components/analysis/analysis-panel-model';
 import AnalysisStorageNotice from '@/components/analysis/analysis-storage-notice';
+import type { useAnalysisJob } from '@/components/analysis/use-analysis-job';
 import { ScreenplayResultView } from '@/components/screenplay/screenplay-result-view';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
@@ -25,15 +26,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
-import type { useAnalysisJob } from '@/hooks/useAnalysisJob';
 import { localizedErrorMessage } from '@/lib/error-messages';
-import type { AnalysisJob } from '@/types/video';
 
 export function ScreenplayAnalysisJobState({
   job,
   state,
 }: {
-  job: AnalysisJob;
+  job: API.AnalysisResponse;
   state: ReturnType<typeof useAnalysisJob>;
 }) {
   const cancellable = ['queued', 'running', 'retry_wait'].includes(job.status);

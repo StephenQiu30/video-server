@@ -18,11 +18,11 @@ import {
   ScreenplayDocumentToc,
 } from '@/components/screenplay/screenplay-document-toc';
 import { ScreenplayUploadDialog } from '@/components/screenplay/screenplay-upload-dialog';
+import { useScreenplayDocument } from '@/components/screenplay/use-screenplay-document';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useScreenplayDocument } from '@/hooks/useScreenplayDocument';
 import { displayError } from '@/lib/request-error';
 
 const metadataSkeletonKeys = [

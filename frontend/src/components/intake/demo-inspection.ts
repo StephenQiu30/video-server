@@ -1,6 +1,4 @@
-import type { Inspection, MediaFormat } from '@/types/video';
-
-export const demoInspection: Inspection = {
+export const demoInspection: API.InspectionResponse = {
   access_policy_id: 'public',
   id: '00000000-0000-4000-8000-000000000001',
   extractor_key: 'Public media',
@@ -33,7 +31,7 @@ function demoFormat(
   width: number,
   height: number,
   codec: 'h264' | 'hevc',
-): MediaFormat {
+): API.FormatResponse {
   return {
     id: `${codec}-${height}`,
     display_name: displayName,

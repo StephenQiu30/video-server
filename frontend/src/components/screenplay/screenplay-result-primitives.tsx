@@ -3,9 +3,9 @@ import type { ReactNode } from 'react';
 
 import { Item } from '@/components/ui/item';
 import { TabsTrigger } from '@/components/ui/tabs';
-import type { ScreenplayAnalysisResult } from '@/types/video';
 
-type ScreenplayEvidence = ScreenplayAnalysisResult['dialogue_findings'][number];
+type ScreenplayEvidence =
+  API.ScreenplayAnalysisResultResponse['dialogue_findings'][number];
 
 export function EvidenceList({
   className = '',

@@ -1,8 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-
-import { hashFileSha256, uploadMultipartFile } from '@/lib/media-upload';
-import { importScreenplayDocument } from '@/services/document-import';
-import { importLocalVideo } from '@/services/media-import';
+import { importScreenplayDocument } from '@/lib/upload/document-import';
+import { importLocalVideo } from '@/lib/upload/media-import';
+import { hashFileSha256, uploadMultipartFile } from '@/lib/upload/media-upload';
 import { httpRequests, mockHttpResponses } from '../helpers/http';
 
 const ETAG = '0123456789abcdef0123456789abcdef';

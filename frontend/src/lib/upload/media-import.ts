@@ -4,12 +4,12 @@ import {
   createMediaImport as createMediaImportRequest,
   createMediaUploadSession as createMediaUploadSessionRequest,
 } from '@/api/mediaImports';
+import type { ImportObserver } from '@/lib/upload/import-lifecycle';
 import {
   hashFileSha256,
   MediaTransferError,
   uploadMultipartFile,
-} from '@/lib/media-upload';
-import type { ImportObserver } from '@/services/import-lifecycle';
+} from '@/lib/upload/media-upload';
 
 export function validateLocalVideo(file: File): string | null {
   if (file.size <= 0) return '请选择包含内容的 MP4 视频。';

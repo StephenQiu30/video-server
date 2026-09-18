@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatDuration, formatMilliseconds } from '@/utils/format';
+import { formatDuration, formatMilliseconds } from '@/lib/format';
 
 describe('formatDuration', () => {
   it('formats mm:ss when under an hour', () => {

@@ -3,13 +3,13 @@ import {
   displayImportError,
   type ImportPhase,
   isImportAbort,
-} from '@/services/import-lifecycle';
+} from '@/lib/upload/import-lifecycle';
 import {
   cancelLocalVideoImport,
   importLocalVideo,
   validateLocalVideo,
-} from '@/services/media-import';
-import { createIdempotencyKey } from '@/utils/idempotency';
+} from '@/lib/upload/media-import';
+import { createUuid as createIdempotencyKey } from '@/lib/uuid';
 
 type ActiveRun = {
   controller: AbortController;

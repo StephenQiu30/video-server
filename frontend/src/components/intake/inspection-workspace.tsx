@@ -5,13 +5,12 @@ import { DownloadSimple, UploadSimple } from '@phosphor-icons/react';
 import FormatPicker from '@/components/intake/format-picker';
 import MediaCover from '@/components/intake/media-cover';
 import { Button } from '@/components/ui/button';
+import { formatDuration } from '@/lib/format';
 import { audioCodecLabel } from '@/lib/media-format';
-import type { Inspection } from '@/types/video';
-import { formatDuration } from '@/utils/format';
 
 type InspectionWorkspaceProps = {
   busy: boolean;
-  inspection: Inspection;
+  inspection: API.InspectionResponse;
   onChange: (id: string) => void;
   onCreate: () => void;
   onUseUpload: () => void;
@@ -165,7 +164,7 @@ export default function InspectionWorkspace({
   );
 }
 
-function decisionTitle(inspection: Inspection) {
+function decisionTitle(inspection: API.InspectionResponse) {
   const titles: Record<string, string> = {
     content_preview_only: '仅提供试看内容',
     content_supporter_only: '充电专属内容',
@@ -200,8 +199,8 @@ function Meta({
 }
 
 function inspectionDetailLabel(
-  inspection: Inspection,
-  selected: Inspection['formats'][number]['plan'] | undefined,
+  inspection: API.InspectionResponse,
+  selected: API.InspectionResponse['formats'][number]['plan'] | undefined,
 ) {
   if (inspection.media_kind === 'image_gallery') {
     return `${inspection.asset_count} 张原图 · ZIP`;

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createUuid } from '@/utils/uuid';
+import { createUuid } from '@/lib/uuid';
 
 describe('createUuid', () => {
   afterEach(() => vi.unstubAllGlobals());

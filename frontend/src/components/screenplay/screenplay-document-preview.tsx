@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { ScreenplayDocument } from '@/types/video';
+
 import type { MarkdownHeading } from './screenplay-document-toc';
 
 function renderHeading(
@@ -38,7 +38,7 @@ export function ScreenplayDocumentPreview({
   document,
   headings,
 }: {
-  document: ScreenplayDocument;
+  document: API.DocumentDetailResponse;
   headings: MarkdownHeading[];
 }) {
   const headingCursor = { current: 0 };
@@ -213,7 +213,7 @@ export function ScreenplayDocumentPreview({
   );
 }
 
-function previewStatusMessage(status: ScreenplayDocument['status']) {
+function previewStatusMessage(status: API.DocumentDetailResponse['status']) {
   if (status === 'uploading') return '文件上传完成后，这里会显示提取结果。';
   if (status === 'verifying') return '正在解析剧本文本，请稍后刷新。';
   if (status === 'ready') return '文档已解析，但当前没有可显示的预览。';

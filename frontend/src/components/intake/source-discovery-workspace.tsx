@@ -12,7 +12,6 @@ import {
   ItemMedia,
 } from '@/components/ui/item';
 import { Spinner } from '@/components/ui/spinner';
-import type { SourceDiscovery, SourceDiscoveryItem } from '@/types/video';
 
 export function SourceDiscoveryWorkspace({
   busyItemRef,
@@ -20,8 +19,8 @@ export function SourceDiscoveryWorkspace({
   onSelect,
 }: {
   busyItemRef: string | null;
-  discovery: SourceDiscovery;
-  onSelect: (item: SourceDiscoveryItem) => void;
+  discovery: API.SourceDiscoveryResponse;
+  onSelect: (item: API.SourceDiscoveryItemResponse) => void;
 }) {
   return (
     <section aria-labelledby="source-discovery-title" className="pt-10">
@@ -97,14 +96,14 @@ export function SourceDiscoveryWorkspace({
   );
 }
 
-function itemKindLabel(kind: SourceDiscoveryItem['kind']) {
+function itemKindLabel(kind: API.SourceDiscoveryItemResponse['kind']) {
   if (kind === 'official_account_native') return '公众号原生视频';
   if (kind === 'tencent_video') return '腾讯视频';
   if (kind === 'wechat_channels') return '微信视频号';
   return '未知嵌入';
 }
 
-function decisionLabel(item: SourceDiscoveryItem) {
+function decisionLabel(item: API.SourceDiscoveryItemResponse) {
   if (item.status === 'identity_unverified') return '身份无法可靠绑定';
   if (item.decision_hint === 'export_required') return '需要导入自有文件';
   if (item.decision_hint === 'candidate') return '已发现，下载能力待验收';

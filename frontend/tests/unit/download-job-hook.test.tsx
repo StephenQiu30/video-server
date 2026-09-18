@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useDownloadJob } from '@/hooks/useDownloadJob';
+import { useDownloadJob } from '@/components/downloads/use-download-job';
 import { job } from '../fixtures/download-fixtures';
 
 const runtime = vi.hoisted(() => ({
@@ -46,9 +46,9 @@ vi.mock('@/api/downloads', async (original) => ({
   issueDownloadUrl: vi.fn(),
   retryDownload: vi.fn(),
 }));
-vi.mock('@/utils/idempotency', async (original) => ({
-  ...(await original<typeof import('@/utils/idempotency')>()),
-  createIdempotencyKey: () => 'test-key',
+vi.mock('@/lib/uuid', async (original) => ({
+  ...(await original<typeof import('@/lib/uuid')>()),
+  createUuid: () => 'test-key',
 }));
 vi.mock('@/lib/request-error', async (original) => ({
   ...(await original<typeof import('@/lib/request-error')>()),

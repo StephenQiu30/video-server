@@ -3,7 +3,7 @@
 import { UploadSimple } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
-
+import { useDocumentImport } from '@/components/intake/use-document-import';
 import { ScreenplayUploadForm } from '@/components/screenplay/screenplay-upload-form';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,7 +14,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { useDocumentImport } from '@/hooks/useDocumentImport';
 
 export function ScreenplayUploadDialog({
   label = '上传剧本',

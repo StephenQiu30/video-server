@@ -6,8 +6,8 @@ import AnalysisReportPreview from '@/components/analysis/analysis-report-preview
 import { Button } from '@/components/ui/button';
 import { Item } from '@/components/ui/item';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { VideoArticleResult } from '@/types/video';
-import { formatMilliseconds } from '@/utils/format';
+
+import { formatMilliseconds } from '@/lib/format';
 
 export default function AnalysisArticleResultView({
   onSelectTime,
@@ -16,7 +16,7 @@ export default function AnalysisArticleResultView({
 }: {
   onSelectTime?: (milliseconds: number) => void;
   reportMarkdown?: string | null;
-  result: VideoArticleResult;
+  result: API.VideoArticleResultResponse;
 }) {
   return (
     <Tabs className="mt-10 gap-0" defaultValue="article">

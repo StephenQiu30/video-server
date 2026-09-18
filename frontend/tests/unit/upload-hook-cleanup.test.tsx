@@ -1,8 +1,8 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useDocumentImport } from '@/hooks/useDocumentImport';
-import { useMediaImport } from '@/hooks/useMediaImport';
+import { useDocumentImport } from '@/components/intake/use-document-import';
+import { useMediaImport } from '@/components/intake/use-media-import';
 
 const runtime = vi.hoisted(() => ({
   cancelDocument: vi.fn(),
@@ -10,20 +10,20 @@ const runtime = vi.hoisted(() => ({
   importMedia: vi.fn(),
 }));
 
-vi.mock('@/services/media-import', () => ({
+vi.mock('@/lib/upload/media-import', () => ({
   cancelLocalVideoImport: vi.fn(),
   importLocalVideo: runtime.importMedia,
   validateLocalVideo: () => null,
 }));
 
-vi.mock('@/services/document-import', () => ({
+vi.mock('@/lib/upload/document-import', () => ({
   cancelScreenplayDocumentImport: runtime.cancelDocument,
   importScreenplayDocument: runtime.importDocument,
   validateScreenplayDocument: () => null,
 }));
 
-vi.mock('@/services/import-lifecycle', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/services/import-lifecycle')>()),
+vi.mock('@/lib/upload/import-lifecycle', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/upload/import-lifecycle')>()),
   displayImportError: () => '上传失败',
 }));
 

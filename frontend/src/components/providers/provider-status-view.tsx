@@ -7,6 +7,7 @@ import { BackLink } from '@/components/layout/back-link';
 import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
 import { ProviderStatusItem } from '@/components/providers/provider-status-item';
+import { useProviderStatuses } from '@/components/providers/use-provider-statuses';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,7 +19,6 @@ import {
 import { ItemGroup } from '@/components/ui/item';
 import { Spinner } from '@/components/ui/spinner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { useProviderStatuses } from '@/hooks/useProviderStatuses';
 
 type StatusFilter = 'all' | 'available' | 'attention';
 const STATUS_FILTERS: StatusFilter[] = ['all', 'available', 'attention'];

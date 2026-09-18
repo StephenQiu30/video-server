@@ -12,10 +12,14 @@ import {
   ItemMedia,
   ItemTitle,
 } from '@/components/ui/item';
-import type { DownloadJob } from '@/types/video';
+
 import { displayStage, executionTitle } from './download-state-model';
 
-export function DownloadExecutionSummary({ job }: { job: DownloadJob }) {
+export function DownloadExecutionSummary({
+  job,
+}: {
+  job: API.DownloadResponse;
+}) {
   const complete = job.status === 'succeeded';
   const failed = job.status === 'failed';
   const cancelled = job.status === 'cancelled';

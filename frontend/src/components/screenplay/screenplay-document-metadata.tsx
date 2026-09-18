@@ -10,12 +10,11 @@ import {
   qualityWarningLabel,
 } from '@/components/screenplay/screenplay-document-format';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import type { ScreenplayDocument } from '@/types/video';
 
 export function ScreenplayDocumentMetadata({
   document,
 }: {
-  document: ScreenplayDocument;
+  document: API.DocumentDetailResponse;
 }) {
   const fields = [
     ['格式', documentFormatLabels[document.source_format]],

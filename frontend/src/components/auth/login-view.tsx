@@ -14,8 +14,8 @@ import { Button } from '@/components/ui/button';
 import { FieldGroup } from '@/components/ui/field';
 import { InputGroupInput } from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
+import { authRedirect } from '@/lib/auth-redirect';
 import { displayError } from '@/lib/request-error';
-import { authRedirect } from '@/utils/authRedirect';
 
 type FieldErrors = Partial<Record<'email' | 'password', string>>;
 

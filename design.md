@@ -15,7 +15,7 @@
 
 FastAPI 路由注解与 Pydantic 模型自动产生 /openapi.json；Swagger UI 展示同一契约。@umijs/openapi 将请求与类型直接生成至 frontend/src/api/，统一导入 src/lib/request.ts 的 Axios 封装。
 
-修改接口只修改后端注解和模型，然后运行 pnpm openapi；禁止手写 Swagger、API 请求函数和重复类型。二进制响应由后端声明 string/binary，生成配置映射为 Blob。业务编排留在 Hooks 或 services，不保留仅转发参数的包装层。
+修改接口只修改后端注解和模型，然后运行 pnpm openapi；禁止手写 Swagger、API 请求函数和重复类型。二进制响应由后端声明 string/binary，生成配置映射为 Blob。业务编排留在所属业务目录或共享的 lib/upload，不保留仅转发参数的包装层。
 
 ## 页面与组件
 

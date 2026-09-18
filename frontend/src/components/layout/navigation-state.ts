@@ -1,4 +1,4 @@
-import { createUuid } from '@/utils/uuid';
+import { createUuid } from '@/lib/uuid';
 
 const STORAGE_KEY = 'video-server:navigation-history';
 const HISTORY_ENTRY_KEY = '__videoServerNavigationEntryId';
