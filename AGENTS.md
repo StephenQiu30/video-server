@@ -2,61 +2,13 @@
 
 本文件适用于整个仓库，是代码代理和贡献者修改本项目时必须遵循的约定。实现、测试、文档和提交都应反映仓库当前状态，不保留无实际用途的旧结构或兼容层。
 
-## 仓库结构
+## 工程标准与目录
 
-```text
-server/
-├── backend/                       Python 3.12 / FastAPI 后端
-│   ├── app/
-│   │   ├── api/                   HTTP 路由、依赖、错误与健康检查
-│   │   │   └── routes/            `/api/*` 接口路由
-│   │   ├── schemas/               请求与响应模型
-│   │   ├── core/                  配置、安全与通用基础能力
-│   │   ├── services/              按业务组织用例、服务模型与能力端口
-│   │   ├── domain/                不依赖框架的领域规则与实体
-│   │   ├── db/                    Engine、Session 与 Base
-│   │   ├── models/                SQLAlchemy ORM 模型
-│   │   ├── repositories/          持久化、查询与事务
-│   │   ├── integrations/          消息、存储、AI 与媒体适配器
-│   │   ├── runner/                隔离执行媒体命令的进程
-│   │   ├── workers/               消息消费、调度与进程入口
-│   │   ├── analysis_skills/       分析技能资源
-│   │   ├── composition.py         具体服务装配
-│   │   ├── runtime.py             类型化服务集合与资源所有者
-│   │   ├── lifespan.py            FastAPI 生命周期
-│   │   └── main.py                FastAPI 应用工厂与入口
-│   ├── egress/                    Squid 出口代理策略
-│   ├── sql/schema.sql             PostgreSQL 当前态结构
-│   └── tests/                     architecture/contract/integration/unit 测试
-├── frontend/                      Next.js App Router 前端
-│   ├── src/app/                   页面、布局与全局 Tailwind 主题
-│   ├── src/
-│   │   ├── components/            按 feature 归类的业务组件与 shadcn/ui 源码
-│   │   ├── hooks/                 跨业务共享 React Hooks
-│   │   ├── lib/                   Axios、请求错误与通用基础设施；upload/ 为上传编排
-│   │   └── api/                   OpenAPI 自动生成的请求与类型
-│   └── tests/                     Vitest 测试
-├── docs/                          当前设计、需求、计划、验收与运维文档
-├── Dockerfile                     前后端统一生产镜像
-├── docker-compose-env.yml         仅 GitHub CI 使用的隔离基础服务夹具
-├── docker-compose.yml             本机业务容器拓扑
-└── docker-compose-prod.yml        生产业务容器拓扑
-```
+目标目录、模块职责、命名与接口生成规则统一由 [PROJECT.md](PROJECT.md) 定义。不得根据现有目录反推规范；新增或重构遵循目标标准，既有代码按完整业务用例逐步迁移并验证，不把文档更新视为迁移完成。
 
-仓库保留 `backend/`、`frontend/`、`docs/` 和根治理文件。不得新增 `deploy/`、重复子仓库或平行应用目录。生产环境保持前后端分离：Next.js standalone 前端独立监听 `8101`，FastAPI API 独立监听 `8111`。统一镜像按服务启动不同进程；FastAPI 不托管页面。浏览器使用同源相对 API 路径，由 Next.js 或部署入口转发到 API，WebSocket Upgrade 由部署入口直达 FastAPI。
+后端采用 FastAPI 官方多文件应用方式：main.py、dependencies.py、routers/，通过 APIRouter、include_router 和 Depends 组织应用。额外模块按实际职责建立；不强制 Service/Repository 分层。目录迁移须同时覆盖调用入口、事务行为、测试与部署入口。
 
-## 文件放置规则
-
-- FastAPI 路由只负责协议转换、依赖注入和调用应用用例；业务规则不得写在 `api/`。
-- 请求与响应模型放在 `schemas/`，不得直接暴露 ORM 模型或基础设施对象。
-- 用例编排和外部能力接口放在 `services/`；纯业务规则放在 `domain/`；SQL 查询与事务放在 `repositories/`，数据库连接配置放在 `db/`，ORM 模型放在 `models/`，具体 SDK、消息、存储和媒体实现放在 `integrations/`。
-- 进程入口放在 `workers/` 或 `runner/`，不要把下载、转码或 AI 长任务放进 HTTP 请求进程。
-- 前端不使用独立的 `src/features/` 目录。App Router 页面放在 `src/app/`，业务组件按 feature 放在 `src/components/{account,admin,analysis,auth,downloads,intake,layout,providers,screenplay}/`，shadcn/ui 源码放在 `src/components/ui/`。
-- 前端 REST 请求与类型全部从 `src/api/` 的生成代码导入；业务专用 Hooks 与组件同目录，跨业务 Hook 放在 `hooks/`，共享上传编排放在 `lib/upload/`。不得另写请求函数或平行 DTO。
-- FastAPI 根据路由注解和 Pydantic 模型自动生成 `/openapi.json`；`@umijs/openapi` 直接生成 `frontend/src/api/`，全部调用 `src/lib/request.ts` 的 Axios 封装。禁止手工维护 Swagger 文件或修改生成代码。
-- 后端公开操作必须声明稳定且唯一的 `operationId` 和 tag，供已提交的 OpenAPI 客户端和契约测试使用。创建出可查询资源的接口返回 `201 Created` 和 `Location`；异步执行状态放在响应模型中，不用 `202` 损失返回类型。
-- 路由、布局和元数据遵循 Next.js App Router 官方约定；交互组件使用 shadcn/ui 与 Radix UI，样式使用 Tailwind CSS 主题 token，不得重新引入 Umi、Ant Design、Vite 入口或平行路由器。
-- 测试目录应与被测职责对应；通用测试数据和 Fake 可以复用，但不得为了覆盖率复制实现细节。
+前端使用官方 Next.js/shadcn；REST 请求与接口类型由 Swagger 自动生成到 src/api，统一调用 lib/request.ts 的 Axios 封装。前后端是独立服务，分别监听 8101、8111；长任务由独立 Worker 执行。
 
 ## 前端官方实现规范
 
@@ -64,11 +16,11 @@ server/
 - 基础组件采用官方 radix-nova / neutral / Phosphor 实现，不恢复旧组件的自定义 variant、asChild 或输入尺寸属性。业务页面通过官方组件组合实现功能。
 - 页面采用无边框内容布局；基础控件保留官方边界、焦点、错误和覆盖层行为，不通过全局规则强制删除。
 - 主题以官方 neutral tokens 为起点，遵循明暗主题和官方圆角比例。旧方案稿与旧项目样式不作为组件实现标准。
-- 详情见根 design.md。验证包含 pnpm lint、pnpm format:check、ppnpm test、pnpm build，以及桌面和 390px 的真实浏览器交互。
+- 详情见根 design.md。验证包含 pnpm lint、pnpm format:check、pnpm test、pnpm build，以及桌面和 390px 的真实浏览器交互。
 
 ## 架构与数据边界
 
-- 后端依赖方向为 `api/workers → services → domain`。`domain` 不得导入 FastAPI、SQLAlchemy、RabbitMQ、MinIO、yt-dlp、FFmpeg 或模型 SDK。
+- 后端模块职责遵循 PROJECT.md；路由不反向导入主应用，共享依赖通过 Depends 提供，业务逻辑按复用需求提取，不为目录整齐增加转发层。
 - API、下载 Worker、媒体 Runner、AI Worker 是独立进程。PostgreSQL 是状态事实来源；跨 PostgreSQL/RabbitMQ 使用 transactional outbox，消费者必须支持幂等和 lease/heartbeat。
 - PostgreSQL 只通过 `backend/sql/schema.sql` 维护当前态结构。本机直接复用已运行的 PostgreSQL，按结构变更需要在已有项目数据库中幂等执行该 SQL；不得为启动或验证项目另起基础服务或覆盖现有数据。空库验证只能使用已有服务中的隔离测试数据库或远端 CI。项目不维护迁移目录、历史 schema 或旧版本兼容逻辑。结构变化时同步更新可重复执行的当前态 SQL、ORM 和测试，并同时使用空数据库与已有当前态数据库验证。
 - OpenAPI 是前后端接口契约的唯一来源，通过 `/openapi.json` 提供，并由 `/docs` 展示 Swagger UI；不维护平行 DTO、手写生成类型或旧 API 适配层。
@@ -140,7 +92,7 @@ pnpm build
 
 ## 下载持久化与 API 生命周期
 
-下载 Repository 直接实现应用层端口并返回唯一的应用模型；不建立重复的数据库 DTO、Store 或字段复制层。下载仓库使用显式组合组织事务能力，Outbox 发布由独立的 `SqlAlchemyOutboxRepository` 负责。数据库会话仍由仓库事务管理。API 工厂只定义应用；外部运行时资源在 FastAPI lifespan 启动时创建，启动失败和停止时释放。测试可在不连接外部服务的情况下导入入口并生成 OpenAPI。
+下载流程不得建立重复的数据库 DTO、Store 或字段复制层。事务必须有明确的所有者，目录调整不得改变现有提交、回滚及 Outbox 原子性。API 工厂只定义应用；外部运行时资源在 FastAPI lifespan 启动时创建，启动失败和停止时释放。测试可在不连接外部服务的情况下导入入口并生成 OpenAPI。
 
 API 使用 `runtime.py` 定义类型化的 `ApiServices`，在 `app.state.services` 中只挂载一次，通过 FastAPI 依赖函数读取；`lifespan.py` 管理资源所有权和释放，不逐项复制服务到动态 State。外部注入的运行时由调用方管理。
 
