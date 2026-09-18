@@ -10,7 +10,7 @@ OUTER_APP_LAYERS = (
     "app.api",
     "app.main",
     "app.integrations",
-    "app.crud",
+    "app.repositories",
     "app.core.db",
     "app.models",
     "app.schemas",
@@ -44,7 +44,7 @@ def test_fastapi_layout_and_route_dependencies() -> None:
     assert directories == {
         "api",
         "core",
-        "crud",
+        "repositories",
         "models",
         "schemas",
         "services",
@@ -87,7 +87,7 @@ def _matches(module: str, prefix: str) -> bool:
 def test_database_and_models_do_not_import_services_or_adapters() -> None:
     forbidden = (
         "app.api",
-        "app.crud",
+        "app.repositories",
         "app.integrations",
         "app.workers",
         "app.main",

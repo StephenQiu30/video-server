@@ -8,6 +8,9 @@ from collections.abc import Awaitable, Callable
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
+from app.api.errors import error_response, unexpected_error_handler
+from app.core.errors import AppError
+
 
 class RequestBodyTooLarge(Exception):
     """Raised while streaming a request that exceeds the admission budget."""
@@ -30,7 +33,7 @@ async def request_guard(
             if declared_length < 0:
                 raise ValueError
             if declared_length > max_body_bytes:
-                return _problem(
+                return _guard_error(
                     request,
                     413,
                     "request_too_large",
@@ -40,7 +43,7 @@ async def request_guard(
                     media_origins=media_origins,
                 )
         except ValueError:
-            return _problem(
+            return _guard_error(
                 request,
                 400,
                 "invalid_request",
@@ -59,7 +62,7 @@ async def request_guard(
             request._body = bytes(body)
             response = await call_next(request)
     except RequestBodyTooLarge:
-        return _problem(
+        return _guard_error(
             request,
             413,
             "request_too_large",
@@ -69,7 +72,7 @@ async def request_guard(
             media_origins=media_origins,
         )
     except TimeoutError:
-        return _problem(
+        return _guard_error(
             request,
             504,
             "request_timeout",
@@ -78,6 +81,8 @@ async def request_guard(
             connect_origins=connect_origins,
             media_origins=media_origins,
         )
+    except Exception as error:
+        response = await unexpected_error_handler(request, error)
     _security_headers(
         response,
         production=production,
@@ -87,7 +92,7 @@ async def request_guard(
     return response
 
 
-def _problem(
+def _guard_error(
     request: Request,
     status: int,
     code: str,
@@ -97,17 +102,14 @@ def _problem(
     connect_origins: tuple[str, ...],
     media_origins: tuple[str, ...],
 ) -> JSONResponse:
-    response = JSONResponse(
-        status_code=status,
-        media_type="application/problem+json",
-        content={
-            "type": f"urn:video-server:error:{code}",
-            "title": "Invalid request" if status < 500 else "Request failed",
-            "status": status,
-            "detail": detail,
-            "code": code,
-            "instance": request.url.path,
-        },
+    response = error_response(
+        request,
+        AppError(
+            status=status,
+            code=code,
+            title="Invalid request" if status < 500 else "Request failed",
+            detail=detail,
+        ),
     )
     _security_headers(
         response,

@@ -12,7 +12,7 @@ from app.api.deps import (
     get_media_import_use_cases,
     get_runtime_settings,
 )
-from app.api.errors import import_application_error
+from app.api.responses import ApiResponseRoute
 from app.api.upload_signing import use_local_browser_upload_endpoint
 from app.core.runtime import MediaImportUseCases
 from app.schemas.media_imports import (
@@ -22,11 +22,12 @@ from app.schemas.media_imports import (
     MediaUploadSessionResponse,
 )
 from app.services.auth.models import CurrentUser
-from app.services.imports.errors import ImportApplicationError
 from app.services.imports.models import CompletedUploadPart
 from app.services.imports.rules.enums import ContentKind, ImportSourceFormat
 
-router = APIRouter(prefix="/media-imports", tags=["media-imports"])
+router = APIRouter(
+    route_class=ApiResponseRoute, prefix="/media-imports", tags=["media-imports"]
+)
 User = Annotated[CurrentUser, Depends(get_current_user)]
 UseCases = Annotated[MediaImportUseCases, Depends(get_media_import_use_cases)]
 
@@ -47,21 +48,18 @@ async def create_media_import(
     use_cases: UseCases,
 ) -> MediaImportResponse:
     """创建只接受 MP4 的浏览器上传资源，不接收任意存储参数。"""
-    try:
-        view = await use_cases.create_resource(
-            owner_hash=user.owner_hash,
-            idempotency_key=idempotency_key,
-            content_kind=ContentKind.VIDEO,
-            source_format=ImportSourceFormat.MP4,
-            file_name=body.file_name,
-            declared_size_bytes=body.declared_size_bytes,
-            declared_sha256=body.declared_sha256,
-            rights_accepted=body.rights_accepted,
-            declared_origin=body.declared_origin,
-            quota=user.admission_quota,
-        )
-    except ImportApplicationError as error:
-        raise import_application_error(error) from error
+    view = await use_cases.create_resource(
+        owner_hash=user.owner_hash,
+        idempotency_key=idempotency_key,
+        content_kind=ContentKind.VIDEO,
+        source_format=ImportSourceFormat.MP4,
+        file_name=body.file_name,
+        declared_size_bytes=body.declared_size_bytes,
+        declared_sha256=body.declared_sha256,
+        rights_accepted=body.rights_accepted,
+        declared_origin=body.declared_origin,
+        quota=user.admission_quota,
+    )
     response.headers["Location"] = f"/api/media-imports/{view.id}"
     response.headers["Cache-Control"] = "no-store"
     return MediaImportResponse.from_view(view)
@@ -79,12 +77,7 @@ async def get_media_import(
     user: User,
     use_cases: UseCases,
 ) -> MediaImportResponse:
-    try:
-        view = await use_cases.get_import(
-            resource_id, user.owner_hash, ContentKind.VIDEO
-        )
-    except ImportApplicationError as error:
-        raise import_application_error(error) from error
+    view = await use_cases.get_import(resource_id, user.owner_hash, ContentKind.VIDEO)
     response.headers["Cache-Control"] = "no-store"
     return MediaImportResponse.from_view(view)
 
@@ -104,17 +97,14 @@ async def create_media_upload_session(
     user: User,
     use_cases: UseCases,
 ) -> MediaUploadSessionResponse:
-    try:
-        view = await use_cases.create_upload_session(
-            resource_id,
-            user.owner_hash,
-            ContentKind.VIDEO,
-            use_local_browser_endpoint=use_local_browser_upload_endpoint(
-                request, get_runtime_settings(request)
-            ),
-        )
-    except ImportApplicationError as error:
-        raise import_application_error(error) from error
+    view = await use_cases.create_upload_session(
+        resource_id,
+        user.owner_hash,
+        ContentKind.VIDEO,
+        use_local_browser_endpoint=use_local_browser_upload_endpoint(
+            request, get_runtime_settings(request)
+        ),
+    )
     response.headers["Cache-Control"] = "no-store"
     return MediaUploadSessionResponse.from_view(view)
 
@@ -133,16 +123,11 @@ async def complete_media_import(
     user: User,
     use_cases: UseCases,
 ) -> MediaImportResponse:
-    try:
-        view = await use_cases.complete_upload(
-            resource_id,
-            user.owner_hash,
-            ContentKind.VIDEO,
-            tuple(
-                CompletedUploadPart(part.part_number, part.etag) for part in body.parts
-            ),
-        )
-    except ImportApplicationError as error:
-        raise import_application_error(error) from error
+    view = await use_cases.complete_upload(
+        resource_id,
+        user.owner_hash,
+        ContentKind.VIDEO,
+        tuple(CompletedUploadPart(part.part_number, part.etag) for part in body.parts),
+    )
     response.headers["Cache-Control"] = "no-store"
     return MediaImportResponse.from_view(view)

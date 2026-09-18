@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
-from app.crud.contracts import OutboxSnapshot
+from app.repositories.contracts import OutboxSnapshot
 from app.workers.outbox import OutboxLoopSettings, OutboxPublisherLoop
 
 NOW = datetime(2026, 8, 6, 10, tzinfo=UTC)

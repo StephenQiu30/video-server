@@ -79,12 +79,12 @@ def test_admin_files_are_paginated_and_cleanup_defaults_to_thirty_days(
         cleanup = client.post("/api/admin/files/cleanup", json={})
 
     assert listing.status_code == 200
-    assert listing.json()["total"] == 21
-    assert listing.json()["items"][0]["name"] == LONG_FILE_NAME
+    assert listing.json()["data"]["total"] == 21
+    assert listing.json()["data"]["items"][0]["name"] == LONG_FILE_NAME
     assert "object_key" not in listing.text
     assert stub.list_calls == [(2, 10)]
     assert cleanup.status_code == 200
-    assert cleanup.json() == {
+    assert cleanup.json()["data"] == {
         "older_than_days": 30,
         "removed_resources": 2,
         "removed_objects": 3,

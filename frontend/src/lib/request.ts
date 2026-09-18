@@ -134,10 +134,18 @@ function redirectToLogin(): void {
   );
 }
 
+type ResponseData<T> = T extends {
+  code: string;
+  message: string;
+  data: infer D;
+}
+  ? D
+  : T;
+
 export async function request<T>(
   url: string,
   options: RequestOptions = {},
-): Promise<T> {
+): Promise<ResponseData<T>> {
   if (!url.startsWith('/') || url.startsWith('//')) {
     throw new TypeError('Only same-origin API paths are allowed.');
   }
@@ -147,5 +155,15 @@ export async function request<T>(
     ...config
   } = options;
   const response = await httpClient.request<T>({ url, ...config });
-  return response.data;
+  const payload = response.data;
+  if (
+    payload &&
+    typeof payload === 'object' &&
+    'code' in payload &&
+    'message' in payload &&
+    'data' in payload
+  ) {
+    return payload.data as ResponseData<T>;
+  }
+  return payload as ResponseData<T>;
 }

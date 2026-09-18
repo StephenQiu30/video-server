@@ -7,14 +7,17 @@ export async function createSourceDiscovery(
   body: API.SourceDiscoveryRequest,
   options?: RequestOptions
 ) {
-  return request<API.SourceDiscoveryResponse>("/api/source-discoveries", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    data: body,
-    ...(options || {}),
-  });
+  return request<API.ApiResponseSourceDiscoveryResponse_>(
+    "/api/source-discoveries",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      data: body,
+      ...(options || {}),
+    }
+  );
 }
 
 /** 查询文章视频发现结果 GET /api/source-discoveries/${param0} */
@@ -24,7 +27,7 @@ export async function getSourceDiscovery(
   options?: RequestOptions
 ) {
   const { discovery_id: param0, ...queryParams } = params;
-  return request<API.SourceDiscoveryResponse>(
+  return request<API.ApiResponseSourceDiscoveryResponse_>(
     `/api/source-discoveries/${param0}`,
     {
       method: "GET",

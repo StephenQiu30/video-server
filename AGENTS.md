@@ -6,7 +6,7 @@
 
 目标目录、模块职责、命名与接口生成规则统一由 [PROJECT.md](PROJECT.md) 定义。不得根据现有目录反推规范；新增或重构遵循目标标准，既有代码按完整业务用例逐步迁移并验证，不把文档更新视为迁移完成。
 
-后端按 PROJECT.md 的完整目录规范组织：main.py 注册 api/routes，api/deps.py 提供 Depends，core 管理配置与生命周期；models、schemas、crud、services、integrations、workers 各有明确职责。业务规则就近放入 services，不设置平行 domain 或批量重导出层。目录迁移须同时覆盖调用入口、事务行为、测试与部署入口。
+后端按 PROJECT.md 的完整目录规范组织：main.py 注册 api/routes，api/deps.py 提供 Depends，core 管理配置与生命周期；models、schemas、repositories、services、integrations、workers 各有明确职责。业务规则就近放入 services，不设置平行 domain 或批量重导出层。目录迁移须同时覆盖调用入口、事务行为、测试与部署入口。
 
 前端使用官方 Next.js/shadcn；REST 请求与接口类型由 Swagger 自动生成到 src/api，统一调用 lib/request.ts 的 Axios 封装。前后端是独立服务，分别监听 8101、8111；长任务由独立 Worker 执行。
 

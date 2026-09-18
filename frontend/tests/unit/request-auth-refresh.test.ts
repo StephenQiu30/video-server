@@ -77,8 +77,8 @@ describe('silent JWT refresh', () => {
             config,
             {
               code: 'unauthenticated',
-              detail: '登录状态已失效',
-              title: '需要登录',
+              message: '登录状态已失效',
+              data: null,
             },
             401,
           ),
@@ -154,8 +154,8 @@ describe('silent JWT refresh', () => {
             config,
             {
               code: 'refresh_in_progress',
-              detail: 'Another request refreshed this session.',
-              title: 'Session refresh in progress',
+              message: 'Another request refreshed this session.',
+              data: null,
             },
             409,
           ),
@@ -191,8 +191,8 @@ describe('silent JWT refresh', () => {
           config,
           {
             code: 'invalid_credentials',
-            detail: '邮箱或密码错误',
-            title: '登录失败',
+            message: '邮箱或密码错误',
+            data: null,
           },
           401,
         ),
@@ -209,7 +209,7 @@ describe('silent JWT refresh', () => {
       code: 'invalid_credentials',
       detail: '邮箱或密码错误',
       status: 401,
-      title: '登录失败',
+      title: '邮箱或密码错误',
     });
     expect(adapter).toHaveBeenCalledOnce();
     expect(adapter.mock.calls[0]?.[0].url).toBe('/api/auth/login');
@@ -223,7 +223,7 @@ function response(
 ): AxiosResponse {
   return {
     config,
-    data,
+    data: status === 200 ? { code: 'ok', message: 'OK', data } : data,
     headers: {},
     status,
     statusText: status === 200 ? 'OK' : 'Unauthorized',

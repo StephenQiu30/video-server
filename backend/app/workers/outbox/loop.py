@@ -10,8 +10,8 @@ from datetime import datetime, timedelta
 from typing import Protocol, cast
 from uuid import UUID
 
-from app.crud.contracts import OutboxSnapshot
 from app.integrations.messaging import EventEnvelope, EventEnvelopeError, JsonValue
+from app.repositories.contracts import OutboxSnapshot
 
 
 class OutboxStateConflict(RuntimeError):

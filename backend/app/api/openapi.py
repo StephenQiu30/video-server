@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from app.schemas.errors import ProblemDetails
+from app.schemas.response import ErrorResponse
 
 API_DESCRIPTION = """
 统一的视频下载与 AI 分析服务接口。
@@ -65,17 +65,17 @@ SWAGGER_UI_PARAMETERS: dict[str, Any] = {
 }
 
 ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
-    401: {"model": ProblemDetails, "description": "未登录或会话已经失效"},
-    403: {"model": ProblemDetails, "description": "当前用户没有操作权限"},
+    401: {"model": ErrorResponse, "description": "未登录或会话已经失效"},
+    403: {"model": ErrorResponse, "description": "当前用户没有操作权限"},
     404: {
-        "model": ProblemDetails,
+        "model": ErrorResponse,
         "description": "资源不存在、已清理或临时解析状态已过期",
     },
-    409: {"model": ProblemDetails, "description": "资源状态或幂等键冲突"},
-    429: {"model": ProblemDetails, "description": "请求频率超过限制"},
-    422: {"model": ProblemDetails, "description": "请求参数或业务输入无效"},
-    500: {"model": ProblemDetails, "description": "服务内部错误"},
-    502: {"model": ProblemDetails, "description": "上游媒体或模型服务失败"},
-    503: {"model": ProblemDetails, "description": "运行依赖暂时不可用"},
-    504: {"model": ProblemDetails, "description": "上游操作超时"},
+    409: {"model": ErrorResponse, "description": "资源状态或幂等键冲突"},
+    429: {"model": ErrorResponse, "description": "请求频率超过限制"},
+    422: {"model": ErrorResponse, "description": "请求参数或业务输入无效"},
+    500: {"model": ErrorResponse, "description": "服务内部错误"},
+    502: {"model": ErrorResponse, "description": "上游媒体或模型服务失败"},
+    503: {"model": ErrorResponse, "description": "运行依赖暂时不可用"},
+    504: {"model": ErrorResponse, "description": "上游操作超时"},
 }

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Response, status
 
 from app.api.admission import RateLimitAdmission
 from app.api.deps import IdempotencyKey, get_current_user, get_download_use_cases
-from app.api.errors import application_error
+from app.api.responses import ApiResponseRoute
 from app.core.runtime import DownloadUseCases
 from app.schemas.inspections import (
     InspectionRequest,
@@ -15,9 +15,10 @@ from app.schemas.inspections import (
     PublicUrlInspectionSource,
 )
 from app.services.auth.models import CurrentUser
-from app.services.downloads.errors import ApplicationError
 
-router = APIRouter(prefix="/inspections", tags=["inspections"])
+router = APIRouter(
+    route_class=ApiResponseRoute, prefix="/inspections", tags=["inspections"]
+)
 User = Annotated[CurrentUser, Depends(get_current_user)]
 UseCases = Annotated[DownloadUseCases, Depends(get_download_use_cases)]
 
@@ -38,23 +39,20 @@ async def inspect_media(
     response: Response,
 ) -> InspectionResponse:
     """校验公开媒体地址并返回可供选择的语义下载格式。"""
-    try:
-        if isinstance(body.source, PublicUrlInspectionSource):
-            view = await use_cases.inspect_media(
-                body.source.url,
-                user.owner_hash,
-                idempotency_key,
-                access_policy=body.source.access_policy_id,
-            )
-        else:
-            view = await use_cases.inspect_discovered_item(
-                body.source.discovery_id,
-                body.source.item_ref,
-                user.owner_hash,
-                idempotency_key,
-            )
-    except ApplicationError as exc:
-        raise application_error(exc) from exc
+    if isinstance(body.source, PublicUrlInspectionSource):
+        view = await use_cases.inspect_media(
+            body.source.url,
+            user.owner_hash,
+            idempotency_key,
+            access_policy=body.source.access_policy_id,
+        )
+    else:
+        view = await use_cases.inspect_discovered_item(
+            body.source.discovery_id,
+            body.source.item_ref,
+            user.owner_hash,
+            idempotency_key,
+        )
     response.headers["Location"] = f"/api/inspections/{view.id}"
     return InspectionResponse.from_view(view)
 
@@ -82,10 +80,7 @@ async def get_inspection_thumbnail(
     use_cases: UseCases,
 ) -> Response:
     """读取当前用户拥有且存储在私有对象存储中的媒体封面。"""
-    try:
-        thumbnail = await use_cases.get_thumbnail(inspection_id, user.owner_hash)
-    except ApplicationError as exc:
-        raise application_error(exc) from exc
+    thumbnail = await use_cases.get_thumbnail(inspection_id, user.owner_hash)
     return Response(
         content=thumbnail.content,
         media_type=thumbnail.content_type,
@@ -109,8 +104,5 @@ async def get_inspection(
     use_cases: UseCases,
 ) -> InspectionResponse:
     """查询当前登录用户拥有的媒体解析结果。"""
-    try:
-        view = await use_cases.get_inspection(inspection_id, user.owner_hash)
-    except ApplicationError as exc:
-        raise application_error(exc) from exc
+    view = await use_cases.get_inspection(inspection_id, user.owner_hash)
     return InspectionResponse.from_view(view)

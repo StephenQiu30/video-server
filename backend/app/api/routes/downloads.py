@@ -14,19 +14,20 @@ from app.api.deps import (
     get_download_use_cases,
     get_runtime_settings,
 )
-from app.api.errors import application_error
+from app.api.responses import ApiResponseRoute
 from app.api.upload_signing import use_browser_download_proxy
 from app.core.runtime import DownloadUseCases
 from app.schemas.downloads import DownloadRequest, DownloadResponse, DownloadUrlResponse
 from app.schemas.history import DownloadHistoryResponse
 from app.services.auth.models import CurrentUser
 from app.services.downloads.download_models import ArtifactSnapshot, DownloadView
-from app.services.downloads.errors import ApplicationError
 from app.services.downloads.file_delivery import download_disposition
 from app.services.downloads.ports import DownloadArtifactStorage
 from app.services.downloads.rules.enums import DownloadStatus
 
-router = APIRouter(prefix="/downloads", tags=["downloads"])
+router = APIRouter(
+    route_class=ApiResponseRoute, prefix="/downloads", tags=["downloads"]
+)
 User = Annotated[CurrentUser, Depends(get_current_user)]
 UseCases = Annotated[DownloadUseCases, Depends(get_download_use_cases)]
 DownloadStorage = Annotated[DownloadArtifactStorage, Depends(get_download_storage)]
@@ -48,16 +49,13 @@ async def create_download(
     use_cases: UseCases,
 ) -> DownloadResponse:
     """根据解析结果和语义格式创建异步下载任务。"""
-    try:
-        view = await use_cases.create_download(
-            body.inspection_id,
-            body.format_id,
-            user.owner_hash,
-            idempotency_key,
-            quota=user.admission_quota,
-        )
-    except ApplicationError as exc:
-        raise application_error(exc) from exc
+    view = await use_cases.create_download(
+        body.inspection_id,
+        body.format_id,
+        user.owner_hash,
+        idempotency_key,
+        quota=user.admission_quota,
+    )
     response.headers["Location"] = f"/api/downloads/{view.id}"
     return DownloadResponse.from_view(view)
 
@@ -74,10 +72,7 @@ async def delete_download(
     use_cases: UseCases,
 ) -> Response:
     """删除当前用户的任务、下载制品、本地上传源文件与私有封面。"""
-    try:
-        await use_cases.delete_download(job_id, user.owner_hash)
-    except ApplicationError as exc:
-        raise application_error(exc) from exc
+    await use_cases.delete_download(job_id, user.owner_hash)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -96,16 +91,13 @@ async def get_download_history(
     search: Annotated[str | None, Query(max_length=128)] = None,
 ) -> DownloadHistoryResponse:
     """查询当前登录用户的下载历史。"""
-    try:
-        view = await use_cases.get_download_history(
-            user.owner_hash,
-            page=page,
-            page_size=page_size,
-            status=status_filter,
-            search=search,
-        )
-    except ApplicationError as exc:
-        raise application_error(exc) from exc
+    view = await use_cases.get_download_history(
+        user.owner_hash,
+        page=page,
+        page_size=page_size,
+        status=status_filter,
+        search=search,
+    )
     return DownloadHistoryResponse.from_view(view)
 
 
@@ -132,10 +124,7 @@ async def get_download_thumbnail(
     use_cases: UseCases,
 ) -> Response:
     """读取当前用户本地导入视频生成的私有首帧封面。"""
-    try:
-        thumbnail = await use_cases.get_download_thumbnail(job_id, user.owner_hash)
-    except ApplicationError as exc:
-        raise application_error(exc) from exc
+    thumbnail = await use_cases.get_download_thumbnail(job_id, user.owner_hash)
     return Response(
         content=thumbnail.content,
         media_type=thumbnail.content_type,
@@ -152,11 +141,8 @@ async def _owned_download_file(
     user: CurrentUser,
     use_cases: DownloadUseCases,
 ) -> tuple[ArtifactSnapshot, DownloadView]:
-    try:
-        artifact = await use_cases.get_download_artifact(job_id, user.owner_hash)
-        download = await use_cases.get_download(job_id, user.owner_hash)
-    except ApplicationError as exc:
-        raise application_error(exc) from exc
+    artifact = await use_cases.get_download_artifact(job_id, user.owner_hash)
+    download = await use_cases.get_download(job_id, user.owner_hash)
     return artifact, download
 
 
@@ -278,10 +264,7 @@ async def get_download(
     use_cases: UseCases,
 ) -> DownloadResponse:
     """查询当前登录用户拥有的下载任务。"""
-    try:
-        view = await use_cases.get_download(job_id, user.owner_hash)
-    except ApplicationError as exc:
-        raise application_error(exc) from exc
+    view = await use_cases.get_download(job_id, user.owner_hash)
     return DownloadResponse.from_view(view)
 
 
@@ -297,10 +280,7 @@ async def cancel_download(
     use_cases: UseCases,
 ) -> DownloadResponse:
     """请求取消尚未结束的下载任务。"""
-    try:
-        view = await use_cases.cancel_download(job_id, user.owner_hash)
-    except ApplicationError as exc:
-        raise application_error(exc) from exc
+    view = await use_cases.cancel_download(job_id, user.owner_hash)
     return DownloadResponse.from_view(view)
 
 
@@ -320,15 +300,12 @@ async def retry_download(
     use_cases: UseCases,
 ) -> DownloadResponse:
     """从失败或已取消的任务创建一条新的下载任务。"""
-    try:
-        view = await use_cases.retry_download(
-            job_id,
-            user.owner_hash,
-            idempotency_key,
-            quota=user.admission_quota,
-        )
-    except ApplicationError as exc:
-        raise application_error(exc) from exc
+    view = await use_cases.retry_download(
+        job_id,
+        user.owner_hash,
+        idempotency_key,
+        quota=user.admission_quota,
+    )
     response.headers["Location"] = f"/api/downloads/{view.id}"
     return DownloadResponse.from_view(view)
 
@@ -347,17 +324,14 @@ async def issue_download_url(
     preview: bool = False,
 ) -> DownloadUrlResponse:
     """为已完成的下载任务签发短时制品地址。"""
-    try:
-        view = await use_cases.issue_download_url(
-            job_id,
-            user.owner_hash,
-            preview=preview,
-            use_browser_proxy=use_browser_download_proxy(
-                request, get_runtime_settings(request)
-            ),
-        )
-    except ApplicationError as exc:
-        raise application_error(exc) from exc
+    view = await use_cases.issue_download_url(
+        job_id,
+        user.owner_hash,
+        preview=preview,
+        use_browser_proxy=use_browser_download_proxy(
+            request, get_runtime_settings(request)
+        ),
+    )
     return DownloadUrlResponse.from_view(view)
 
 

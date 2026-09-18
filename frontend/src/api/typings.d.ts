@@ -207,6 +207,258 @@ declare namespace API {
     | "failed"
     | "cancelled";
 
+  type ApiResponseAiModelListResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: AiModelListResponse;
+  };
+
+  type ApiResponseAiProviderProfileListResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: AiProviderProfileListResponse;
+  };
+
+  type ApiResponseAiProviderProfileResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: AiProviderProfileResponse;
+  };
+
+  type ApiResponseAnalysisResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: AnalysisResponse;
+  };
+
+  type ApiResponseDocumentDetailResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: DocumentDetailResponse;
+  };
+
+  type ApiResponseDocumentImportResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: DocumentImportResponse;
+  };
+
+  type ApiResponseDocumentPageResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: DocumentPageResponse;
+  };
+
+  type ApiResponseDocumentUploadSessionResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: DocumentUploadSessionResponse;
+  };
+
+  type ApiResponseDownloadAnalyticsResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: DownloadAnalyticsResponse;
+  };
+
+  type ApiResponseDownloadHistoryResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: DownloadHistoryResponse;
+  };
+
+  type ApiResponseDownloadResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: DownloadResponse;
+  };
+
+  type ApiResponseDownloadUrlResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: DownloadUrlResponse;
+  };
+
+  type ApiResponseInspectionResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: InspectionResponse;
+  };
+
+  type ApiResponseManagedUserListResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: ManagedUserListResponse;
+  };
+
+  type ApiResponseManagedUserResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: ManagedUserResponse;
+  };
+
+  type ApiResponseMediaImportResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: MediaImportResponse;
+  };
+
+  type ApiResponseMediaUploadSessionResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: MediaUploadSessionResponse;
+  };
+
+  type ApiResponseProviderCatalogEntryResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: ProviderCatalogEntryResponse;
+  };
+
+  type ApiResponseProviderCatalogListResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: ProviderCatalogListResponse;
+  };
+
+  type ApiResponseProviderListResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: ProviderListResponse;
+  };
+
+  type ApiResponseProviderRuntimeListResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: ProviderRuntimeListResponse;
+  };
+
+  type ApiResponseRegistrationCodeResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: RegistrationCodeResponse;
+  };
+
+  type ApiResponseSourceDiscoveryResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: SourceDiscoveryResponse;
+  };
+
+  type ApiResponseStorageCleanupResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: StorageCleanupResponse;
+  };
+
+  type ApiResponseStoredFileListResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: StoredFileListResponse;
+  };
+
+  type ApiResponseTupleAnalysisSkillResponse_____ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** Data 成功时为业务数据，错误时为 null。 */
+    data: AnalysisSkillResponse[];
+  };
+
+  type ApiResponseUnionAnalysisResponse_NoneType_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: AnalysisResponse | null;
+  };
+
+  type ApiResponseUserResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: UserResponse;
+  };
+
   type AudioCodecFamily = "none" | "aac" | "opus" | "vorbis" | "other";
 
   type cancelAnalysisParams = {
@@ -723,6 +975,97 @@ declare namespace API {
     | "official_download_grant"
     | "restricted"
     | "unknown";
+
+  type ErrorCode =
+    | "active_ai_provider_delete"
+    | "active_task_quota_exceeded"
+    | "admin_bootstrap_required"
+    | "ai_model_catalog_unavailable"
+    | "ai_provider_conflict"
+    | "ai_provider_not_found"
+    | "analysis_already_active"
+    | "analysis_artifact_unavailable"
+    | "analysis_budget_exceeded"
+    | "analysis_report_not_ready"
+    | "analysis_report_unavailable"
+    | "analysis_retry_limited"
+    | "analysis_unavailable"
+    | "article_access_restricted"
+    | "article_discovery_failed"
+    | "artifact_not_ready"
+    | "daily_byte_quota_exceeded"
+    | "daily_task_quota_exceeded"
+    | "download_not_ready"
+    | "duration_limit_exceeded"
+    | "email_already_registered"
+    | "email_send_failed"
+    | "email_unavailable"
+    | "forbidden"
+    | "format_unavailable"
+    | "http_error"
+    | "idempotency_conflict"
+    | "import_disabled"
+    | "import_size_mismatch"
+    | "import_storage_unavailable"
+    | "inspection_failed"
+    | "inspection_timeout"
+    | "internal_error"
+    | "invalid_ai_provider_profile"
+    | "invalid_credentials"
+    | "invalid_model_output"
+    | "invalid_provider_catalog_entry"
+    | "invalid_request"
+    | "invalid_state"
+    | "invalid_url"
+    | "invalid_username"
+    | "invalid_verification_code"
+    | "job_conflict"
+    | "method_not_allowed"
+    | "metrics_unavailable"
+    | "not_found"
+    | "ok"
+    | "provider_access_policy_not_allowed"
+    | "provider_auth_required"
+    | "provider_catalog_conflict"
+    | "provider_catalog_not_found"
+    | "provider_configuration_missing"
+    | "provider_content_restricted"
+    | "provider_drm_protected"
+    | "provider_failure"
+    | "provider_geo_restricted"
+    | "provider_link_unavailable"
+    | "provider_media_unsupported"
+    | "provider_rate_limited"
+    | "provider_session_expired"
+    | "provider_temporarily_unavailable"
+    | "provider_unsupported"
+    | "provider_verification_failed"
+    | "rate_limited"
+    | "rate_limiter_unavailable"
+    | "refresh_in_progress"
+    | "request_timeout"
+    | "request_too_large"
+    | "reserved_ai_provider_mutation"
+    | "resource_expired"
+    | "self_admin_change"
+    | "service_unavailable"
+    | "storage_quota_exceeded"
+    | "storage_unavailable"
+    | "unauthenticated"
+    | "upload_incomplete"
+    | "upload_session_expired"
+    | "user_not_found"
+    | "username_already_registered"
+    | "verification_rate_limited";
+
+  type ErrorResponse = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** Data */
+    data: null;
+  };
 
   type EvidenceSummaryResponse = {
     /** Text */

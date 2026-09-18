@@ -7,10 +7,8 @@ from fastapi import APIRouter, Depends, Request, Response, status
 
 from app.api.admission import enforce_rate_limit
 from app.api.deps import get_auth_service, get_current_user, get_runtime_settings
-from app.api.errors import auth_application_error
-from app.api.openapi import ERROR_RESPONSES
+from app.api.openapi import ERROR_RESPONSES as WEB_ERROR_RESPONSES
 from app.core.config import Settings
-from app.core.errors import AppError
 from app.schemas.auth import (
     EmailPasswordRequest,
     RegisterRequest,
@@ -18,14 +16,19 @@ from app.schemas.auth import (
     RegistrationCodeResponse,
     UserResponse,
 )
+from app.schemas.errors import ProblemDetails
 from app.schemas.native_auth import (
     NativeLogoutRequest,
     NativeRefreshRequest,
     NativeSessionResponse,
 )
-from app.services.auth.errors import AuthError, SessionRotationConflict
 from app.services.auth.models import CurrentUser
 from app.services.auth.service import AuthService
+
+ERROR_RESPONSES = {
+    status: {**spec, "model": ProblemDetails}
+    for status, spec in WEB_ERROR_RESPONSES.items()
+}
 
 router = APIRouter(
     prefix="/api/app/v1/auth",
@@ -52,10 +55,7 @@ async def send_registration_code(
     await enforce_rate_limit(
         request, "registration_code", _email_hash(str(body.email)), settings
     )
-    try:
-        await auth.send_registration_code(str(body.email))
-    except AuthError as exc:
-        raise auth_application_error(exc) from exc
+    await auth.send_registration_code(str(body.email))
     return RegistrationCodeResponse()
 
 
@@ -76,15 +76,12 @@ async def register_native_user(
     await enforce_rate_limit(
         request, "register", _email_hash(str(body.email)), settings
     )
-    try:
-        grant = await auth.register(
-            body.username,
-            str(body.email),
-            body.password,
-            verification_code=body.verification_code,
-        )
-    except AuthError as exc:
-        raise auth_application_error(exc) from exc
+    grant = await auth.register(
+        body.username,
+        str(body.email),
+        body.password,
+        verification_code=body.verification_code,
+    )
     response.headers["Location"] = "/api/app/v1/auth/me"
     return NativeSessionResponse.from_grant(grant)
 
@@ -102,10 +99,7 @@ async def login_native_user(
     settings: SettingsDependency,
 ) -> NativeSessionResponse:
     await enforce_rate_limit(request, "login", _email_hash(str(body.email)), settings)
-    try:
-        grant = await auth.login(str(body.email), body.password)
-    except AuthError as exc:
-        raise auth_application_error(exc) from exc
+    grant = await auth.login(str(body.email), body.password)
     return NativeSessionResponse.from_grant(grant)
 
 
@@ -129,17 +123,7 @@ async def refresh_native_session(
     body: NativeRefreshRequest,
     auth: Auth,
 ) -> NativeSessionResponse:
-    try:
-        grant = await auth.refresh(body.refresh_token)
-    except SessionRotationConflict:
-        raise AppError(
-            status=409,
-            code="refresh_in_progress",
-            title="Session refresh in progress",
-            detail="Another request has already refreshed this session.",
-        ) from None
-    except AuthError as exc:
-        raise auth_application_error(exc) from exc
+    grant = await auth.refresh(body.refresh_token)
     return NativeSessionResponse.from_grant(grant)
 
 

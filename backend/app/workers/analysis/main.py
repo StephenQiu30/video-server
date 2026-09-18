@@ -12,16 +12,16 @@ from app.core.config import Settings, get_settings_for_role
 from app.core.db import create_engine, create_session_factory
 from app.core.security.ai_provider_cipher import FernetAiProviderSecretCipher
 from app.core.security.url_cipher import URLCipher
-from app.crud.ai_provider_repository import SqlAlchemyAiProviderRepository
-from app.crud.analysis_execution import AnalysisExecutionPersistence
-from app.crud.analysis_repository import SqlAlchemyAnalysisRepository
-from app.crud.analysis_worker_registry import (
+from app.integrations.messaging import RabbitMqTopology
+from app.integrations.object_storage import MinioObjectStorage
+from app.repositories.ai_provider_repository import SqlAlchemyAiProviderRepository
+from app.repositories.analysis.execution import AnalysisExecutionPersistence
+from app.repositories.analysis.repository import SqlAlchemyAnalysisRepository
+from app.repositories.analysis.worker_registry import (
     ANALYSIS_MESSAGE_SCHEMA_VERSION,
     SqlAlchemyAnalysisWorkerRegistry,
 )
-from app.crud.download_repository import SqlAlchemyDownloadRepository
-from app.integrations.messaging import RabbitMqTopology
-from app.integrations.object_storage import MinioObjectStorage
+from app.repositories.downloads.repository import SqlAlchemyDownloadRepository
 from app.services.analysis_execution.models import AnalysisExecutionSettings
 from app.services.analysis_execution.service import AnalysisExecution
 from app.workers.analysis.agent_lock import (

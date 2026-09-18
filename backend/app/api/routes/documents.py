@@ -14,7 +14,7 @@ from app.api.deps import (
     get_document_import_use_cases,
     get_runtime_settings,
 )
-from app.api.errors import import_application_error
+from app.api.responses import ApiResponseRoute
 from app.api.upload_signing import use_local_browser_upload_endpoint
 from app.core.runtime import DocumentImportUseCases
 from app.schemas.documents import (
@@ -26,11 +26,12 @@ from app.schemas.documents import (
     DocumentUploadSessionResponse,
 )
 from app.services.auth.models import CurrentUser
-from app.services.imports.errors import ImportApplicationError
 from app.services.imports.models import CompletedUploadPart
 from app.services.imports.rules.enums import ContentKind, ImportSourceFormat
 
-router = APIRouter(prefix="/documents", tags=["documents"])
+router = APIRouter(
+    route_class=ApiResponseRoute, prefix="/documents", tags=["documents"]
+)
 User = Annotated[CurrentUser, Depends(get_current_user)]
 UseCases = Annotated[DocumentImportUseCases, Depends(get_document_import_use_cases)]
 
@@ -50,20 +51,17 @@ async def create_document_import(
     user: User,
     use_cases: UseCases,
 ) -> DocumentImportResponse:
-    try:
-        view = await use_cases.create_resource(
-            owner_hash=user.owner_hash,
-            idempotency_key=idempotency_key,
-            content_kind=ContentKind.SCREENPLAY,
-            source_format=ImportSourceFormat(body.source_format),
-            file_name=body.file_name,
-            declared_size_bytes=body.declared_size_bytes,
-            declared_sha256=body.declared_sha256,
-            rights_accepted=body.rights_accepted,
-            quota=user.admission_quota,
-        )
-    except ImportApplicationError as error:
-        raise import_application_error(error) from error
+    view = await use_cases.create_resource(
+        owner_hash=user.owner_hash,
+        idempotency_key=idempotency_key,
+        content_kind=ContentKind.SCREENPLAY,
+        source_format=ImportSourceFormat(body.source_format),
+        file_name=body.file_name,
+        declared_size_bytes=body.declared_size_bytes,
+        declared_sha256=body.declared_sha256,
+        rights_accepted=body.rights_accepted,
+        quota=user.admission_quota,
+    )
     response.headers["Location"] = f"/api/documents/{view.id}"
     response.headers["Cache-Control"] = "no-store"
     return DocumentImportResponse.from_view(view)
@@ -81,12 +79,9 @@ async def list_documents(
     page: Annotated[int, Query(ge=1, le=10_000)] = 1,
     page_size: Annotated[int, Query(ge=1, le=50)] = 20,
 ) -> DocumentPageResponse:
-    try:
-        view = await use_cases.list_documents(
-            user.owner_hash, page=page, page_size=page_size
-        )
-    except ImportApplicationError as error:
-        raise import_application_error(error) from error
+    view = await use_cases.list_documents(
+        user.owner_hash, page=page, page_size=page_size
+    )
     return DocumentPageResponse.from_view(view)
 
 
@@ -102,11 +97,8 @@ async def get_document_import(
     user: User,
     use_cases: UseCases,
 ) -> DocumentDetailResponse:
-    try:
-        await use_cases.get_import(document_id, user.owner_hash, ContentKind.SCREENPLAY)
-        view = await use_cases.get_document(document_id, user.owner_hash)
-    except ImportApplicationError as error:
-        raise import_application_error(error) from error
+    await use_cases.get_import(document_id, user.owner_hash, ContentKind.SCREENPLAY)
+    view = await use_cases.get_document(document_id, user.owner_hash)
     response.headers["Cache-Control"] = "no-store"
     return DocumentDetailResponse.from_view(view)
 
@@ -122,10 +114,7 @@ async def delete_document(
     user: User,
     use_cases: UseCases,
 ) -> Response:
-    try:
-        await use_cases.delete_document(document_id, user.owner_hash)
-    except ImportApplicationError as error:
-        raise import_application_error(error) from error
+    await use_cases.delete_document(document_id, user.owner_hash)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -144,17 +133,14 @@ async def create_document_upload_session(
     user: User,
     use_cases: UseCases,
 ) -> DocumentUploadSessionResponse:
-    try:
-        view = await use_cases.create_upload_session(
-            document_id,
-            user.owner_hash,
-            ContentKind.SCREENPLAY,
-            use_local_browser_endpoint=use_local_browser_upload_endpoint(
-                request, get_runtime_settings(request)
-            ),
-        )
-    except ImportApplicationError as error:
-        raise import_application_error(error) from error
+    view = await use_cases.create_upload_session(
+        document_id,
+        user.owner_hash,
+        ContentKind.SCREENPLAY,
+        use_local_browser_endpoint=use_local_browser_upload_endpoint(
+            request, get_runtime_settings(request)
+        ),
+    )
     response.headers["Cache-Control"] = "no-store"
     return DocumentUploadSessionResponse.from_view(view)
 
@@ -173,17 +159,12 @@ async def complete_document_import(
     user: User,
     use_cases: UseCases,
 ) -> DocumentImportResponse:
-    try:
-        view = await use_cases.complete_upload(
-            document_id,
-            user.owner_hash,
-            ContentKind.SCREENPLAY,
-            tuple(
-                CompletedUploadPart(part.part_number, part.etag) for part in body.parts
-            ),
-        )
-    except ImportApplicationError as error:
-        raise import_application_error(error) from error
+    view = await use_cases.complete_upload(
+        document_id,
+        user.owner_hash,
+        ContentKind.SCREENPLAY,
+        tuple(CompletedUploadPart(part.part_number, part.etag) for part in body.parts),
+    )
     response.headers["Cache-Control"] = "no-store"
     return DocumentImportResponse.from_view(view)
 
@@ -199,10 +180,7 @@ async def cancel_document_import(
     user: User,
     use_cases: UseCases,
 ) -> DocumentImportResponse:
-    try:
-        view = await use_cases.cancel_import(
-            document_id, user.owner_hash, ContentKind.SCREENPLAY
-        )
-    except ImportApplicationError as error:
-        raise import_application_error(error) from error
+    view = await use_cases.cancel_import(
+        document_id, user.owner_hash, ContentKind.SCREENPLAY
+    )
     return DocumentImportResponse.from_view(view)

@@ -226,7 +226,8 @@ pnpm build
 backend/                 FastAPI、领域逻辑、Worker、Runner 与当前态 SQL
 frontend/                Next.js App Router、业务组件、Hooks 与 OpenAPI 客户端
 docs/                    设计、需求、计划、验收、研究和运维事实
-Dockerfile               前后端统一生产镜像
+backend/Dockerfile       API、Worker、Runner 镜像
+frontend/Dockerfile      Next.js 独立镜像
 docker-compose-env.yml   GitHub CI 隔离测试夹具，不用于本机启动
 docker-compose.yml       Web、API、Worker、Runner 与出口代理
 docker-compose-prod.yml  生产业务差异

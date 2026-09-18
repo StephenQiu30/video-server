@@ -1,8 +1,8 @@
 from datetime import UTC, datetime
 
 from app.core.db import Base
-from app.crud.outbox_repository import outbox_claim_statement
-from app.crud.recovery_repository import stale_jobs_statement
+from app.repositories.downloads.recovery_repository import stale_jobs_statement
+from app.repositories.outbox_repository import outbox_claim_statement
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.schema import CreateTable
 

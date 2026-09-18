@@ -129,5 +129,5 @@ def test_swagger_ui_and_openapi_contract_are_available(tmp_path: Path) -> None:
 
     validation_response = schema["paths"]["/api/downloads"]["post"]["responses"]["422"]
     assert validation_response["content"]["application/json"]["schema"] == {
-        "$ref": "#/components/schemas/ProblemDetails"
+        "$ref": "#/components/schemas/ErrorResponse"
     }

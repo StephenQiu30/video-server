@@ -5,9 +5,6 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from app.core.db import as_utc
-from app.crud.analysis_repository_serialization import (
-    analysis_result_from_document,
-)
 from app.models import (
     AnalysisJobRow,
     AnalysisReportArtifactRow,
@@ -17,6 +14,9 @@ from app.models import (
     DownloadJobRow,
     MediaInspectionRow,
     TaskEventRow,
+)
+from app.repositories.analysis.repository_serialization import (
+    analysis_result_from_document,
 )
 from app.services.analysis.rules.result_models import VideoAnalysisResult
 from app.services.downloads.inspection_models import EncryptedUrl

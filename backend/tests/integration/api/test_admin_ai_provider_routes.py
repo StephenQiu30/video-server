@@ -107,13 +107,13 @@ def test_admin_crud_never_returns_ai_provider_secret(tmp_path: Path) -> None:
     assert created.status_code == 201
     assert created.headers["location"] == "/api/admin/ai-providers/openai-main"
     assert providers.received_secret == "rotated-secret"
-    assert "api_key" not in created.json()
+    assert "api_key" not in created.json()["data"]
     assert "ciphertext" not in created.text
     assert updated.status_code == 200
     assert "rotated-secret" not in updated.text
-    assert "api_key" not in updated.json()
-    assert listed.json()["agent_available"] is True
-    assert activated.json()["is_active"] is True
+    assert "api_key" not in updated.json()["data"]
+    assert listed.json()["data"]["agent_available"] is True
+    assert activated.json()["data"]["is_active"] is True
 
 
 def test_ai_provider_routes_reject_non_admin(tmp_path: Path) -> None:
@@ -169,7 +169,10 @@ def test_openrouter_catalog_has_typed_metadata_and_requires_admin() -> None:
     with TestClient(app) as client:
         response = client.get("/api/admin/ai-providers/models/openrouter")
         assert response.status_code == 200
-        assert response.json()["items"][0]["input_modalities"] == ["text", "image"]
+        assert response.json()["data"]["items"][0]["input_modalities"] == [
+            "text",
+            "image",
+        ]
         assert "credential" not in response.text
     app.dependency_overrides.clear()
     app.dependency_overrides[get_current_user] = lambda: USER

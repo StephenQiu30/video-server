@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import get_current_admin, get_storage_file_service
+from app.api.responses import ApiResponseRoute
 from app.schemas.admin_files import (
     StorageCleanupRequest,
     StorageCleanupResponse,
@@ -11,7 +12,7 @@ from app.schemas.admin_files import (
 from app.services.auth.models import CurrentUser
 from app.services.storage_files.service import StorageFileService
 
-router = APIRouter(prefix="/admin/files", tags=["admin"])
+router = APIRouter(route_class=ApiResponseRoute, prefix="/admin/files", tags=["admin"])
 Admin = Annotated[CurrentUser, Depends(get_current_admin)]
 StorageFiles = Annotated[StorageFileService, Depends(get_storage_file_service)]
 

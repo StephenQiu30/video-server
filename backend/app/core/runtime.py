@@ -7,13 +7,13 @@ from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from app.crud.operational_metrics import OperationalMetrics
-from app.crud.redis_auth_repository import RedisAuthSessionStore
-from app.crud.task_event_store import TaskEventStore
 from app.integrations.media_runner import MediaRunnerRouter
 from app.integrations.rate_limiter import RedisRateLimiter
 from app.integrations.readiness import RuntimeReadiness
 from app.integrations.realtime import RabbitMqRealtimeConsumer, RealtimeHub
+from app.repositories.auth.redis_auth_repository import RedisAuthSessionStore
+from app.repositories.operational_metrics import OperationalMetrics
+from app.repositories.task_event_store import TaskEventStore
 from app.services.ai_providers import AiProviderService
 from app.services.analysis.cancel_analysis import CancelAnalysis
 from app.services.analysis.create_analysis import CreateAnalysis

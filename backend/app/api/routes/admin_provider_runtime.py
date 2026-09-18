@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from app.api.deps import get_current_admin, get_provider_statuses
+from app.api.responses import ApiResponseRoute
 from app.schemas.provider_runtime import (
     ProviderRuntimeListResponse,
     ProviderRuntimeResponse,
@@ -10,7 +11,9 @@ from app.schemas.provider_runtime import (
 from app.services.auth.models import CurrentUser
 from app.services.providers import ProviderStatusView
 
-router = APIRouter(prefix="/admin/provider-runtime", tags=["admin"])
+router = APIRouter(
+    route_class=ApiResponseRoute, prefix="/admin/provider-runtime", tags=["admin"]
+)
 
 
 @router.get(

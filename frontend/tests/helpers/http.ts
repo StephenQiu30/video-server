@@ -5,7 +5,10 @@ import { httpClient } from '@/lib/request';
 export function mockHttpResponses(...values: unknown[]): void {
   for (const value of values) {
     vi.mocked(httpClient.request).mockResolvedValueOnce({
-      data: value,
+      data:
+        value === undefined || value instanceof Blob
+          ? value
+          : { code: 'ok', message: 'OK', data: value },
     } as never);
   }
 }

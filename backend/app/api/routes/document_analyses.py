@@ -7,13 +7,12 @@ from fastapi import APIRouter, Depends, Response, status
 
 from app.api.admission import RateLimitAdmission
 from app.api.deps import IdempotencyKey, get_analysis_use_cases, get_current_user
-from app.api.errors import analysis_application_error
+from app.api.responses import ApiResponseRoute
 from app.core.runtime import AnalysisUseCases
 from app.schemas.analyses import AnalysisRequest, AnalysisResponse
-from app.services.analysis.errors import AnalysisApplicationError
 from app.services.auth.models import CurrentUser
 
-router = APIRouter(tags=["analyses"])
+router = APIRouter(route_class=ApiResponseRoute, tags=["analyses"])
 User = Annotated[CurrentUser, Depends(get_current_user)]
 UseCases = Annotated[AnalysisUseCases, Depends(get_analysis_use_cases)]
 
@@ -35,18 +34,15 @@ async def create_document_analysis(
     use_cases: UseCases,
 ) -> AnalysisResponse:
     """基于已规范化的剧本文档创建异步分析或改写任务。"""
-    try:
-        view = await use_cases.create_document_analysis(
-            document_id,
-            user.owner_hash,
-            idempotency_key,
-            body.skill_id,
-            body.output_language,
-            body.custom_prompt,
-            quota=user.admission_quota,
-        )
-    except AnalysisApplicationError as exc:
-        raise analysis_application_error(exc) from exc
+    view = await use_cases.create_document_analysis(
+        document_id,
+        user.owner_hash,
+        idempotency_key,
+        body.skill_id,
+        body.output_language,
+        body.custom_prompt,
+        quota=user.admission_quota,
+    )
     response.headers["Location"] = f"/api/analyses/{view.id}"
     return AnalysisResponse.from_view(view)
 
@@ -63,10 +59,5 @@ async def get_latest_document_analysis(
     use_cases: UseCases,
 ) -> AnalysisResponse | None:
     """恢复当前用户在该剧本文档上最近创建的分析与报告。"""
-    try:
-        view = await use_cases.get_latest_document_analysis(
-            document_id, user.owner_hash
-        )
-    except AnalysisApplicationError as exc:
-        raise analysis_application_error(exc) from exc
+    view = await use_cases.get_latest_document_analysis(document_id, user.owner_hash)
     return None if view is None else AnalysisResponse.from_view(view)

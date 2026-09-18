@@ -9,7 +9,7 @@ export async function getAnalysis(
   options?: RequestOptions
 ) {
   const { analysis_id: param0, ...queryParams } = params;
-  return request<API.AnalysisResponse>(`/api/analyses/${param0}`, {
+  return request<API.ApiResponseAnalysisResponse_>(`/api/analyses/${param0}`, {
     method: "GET",
     params: { ...queryParams },
     ...(options || {}),
@@ -37,11 +37,14 @@ export async function cancelAnalysis(
   options?: RequestOptions
 ) {
   const { analysis_id: param0, ...queryParams } = params;
-  return request<API.AnalysisResponse>(`/api/analyses/${param0}/cancel`, {
-    method: "POST",
-    params: { ...queryParams },
-    ...(options || {}),
-  });
+  return request<API.ApiResponseAnalysisResponse_>(
+    `/api/analyses/${param0}/cancel`,
+    {
+      method: "POST",
+      params: { ...queryParams },
+      ...(options || {}),
+    }
+  );
 }
 
 /** 导出视频分析报告 将已完成的结构化分析结果导出为 DOCX 报告。 GET /api/analyses/${param0}/report.docx */
@@ -81,11 +84,14 @@ export async function retryAnalysis(
   options?: RequestOptions
 ) {
   const { analysis_id: param0, ...queryParams } = params;
-  return request<API.AnalysisResponse>(`/api/analyses/${param0}/retry`, {
-    method: "POST",
-    params: { ...queryParams },
-    ...(options || {}),
-  });
+  return request<API.ApiResponseAnalysisResponse_>(
+    `/api/analyses/${param0}/retry`,
+    {
+      method: "POST",
+      params: { ...queryParams },
+      ...(options || {}),
+    }
+  );
 }
 
 /** 列出输入兼容的分析 Skill 按输入类型返回可选 Skill 及用户可编辑的默认提示词。 GET /api/analysis-skills */
@@ -94,13 +100,16 @@ export async function listAnalysisSkills(
   params: API.listAnalysisSkillsParams,
   options?: RequestOptions
 ) {
-  return request<API.AnalysisSkillResponse[]>("/api/analysis-skills", {
-    method: "GET",
-    params: {
-      ...params,
-    },
-    ...(options || {}),
-  });
+  return request<API.ApiResponseTupleAnalysisSkillResponse_____>(
+    "/api/analysis-skills",
+    {
+      method: "GET",
+      params: {
+        ...params,
+      },
+      ...(options || {}),
+    }
+  );
 }
 
 /** 创建剧本分析或改写任务 基于已规范化的剧本文档创建异步分析或改写任务。 POST /api/documents/${param0}/analyses */
@@ -111,15 +120,18 @@ export async function createDocumentAnalysis(
   options?: RequestOptions
 ) {
   const { document_id: param0, ...queryParams } = params;
-  return request<API.AnalysisResponse>(`/api/documents/${param0}/analyses`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    params: { ...queryParams },
-    data: body,
-    ...(options || {}),
-  });
+  return request<API.ApiResponseAnalysisResponse_>(
+    `/api/documents/${param0}/analyses`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      params: { ...queryParams },
+      data: body,
+      ...(options || {}),
+    }
+  );
 }
 
 /** 读取文档最近的剧本分析 恢复当前用户在该剧本文档上最近创建的分析与报告。 GET /api/documents/${param0}/analysis */
@@ -129,7 +141,7 @@ export async function getLatestDocumentAnalysis(
   options?: RequestOptions
 ) {
   const { document_id: param0, ...queryParams } = params;
-  return request<API.AnalysisResponse | null>(
+  return request<API.ApiResponseUnionAnalysisResponse_NoneType_>(
     `/api/documents/${param0}/analysis`,
     {
       method: "GET",
@@ -147,15 +159,18 @@ export async function createAnalysis(
   options?: RequestOptions
 ) {
   const { download_id: param0, ...queryParams } = params;
-  return request<API.AnalysisResponse>(`/api/downloads/${param0}/analyses`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    params: { ...queryParams },
-    data: body,
-    ...(options || {}),
-  });
+  return request<API.ApiResponseAnalysisResponse_>(
+    `/api/downloads/${param0}/analyses`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      params: { ...queryParams },
+      data: body,
+      ...(options || {}),
+    }
+  );
 }
 
 /** 读取下载任务最近的视频分析 恢复当前用户在该下载任务上最近创建的分析与报告。 GET /api/downloads/${param0}/analysis */
@@ -165,7 +180,7 @@ export async function getLatestDownloadAnalysis(
   options?: RequestOptions
 ) {
   const { download_id: param0, ...queryParams } = params;
-  return request<API.AnalysisResponse | null>(
+  return request<API.ApiResponseUnionAnalysisResponse_NoneType_>(
     `/api/downloads/${param0}/analysis`,
     {
       method: "GET",

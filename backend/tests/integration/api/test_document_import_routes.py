@@ -162,11 +162,11 @@ def test_document_routes_delegate_owner_and_hide_storage(tmp_path: Path) -> None
     assert cancelled.status_code == 200
     assert deleted.status_code == 204 and deleted.content == b""
     assert created.headers["location"] == f"/api/documents/{DOCUMENT_ID}"
-    assert created.json()["source_format"] == "fountain"
-    assert fetched.json()["title"] == "owned"
-    assert fetched.json()["preview"] == "<script>plain text only</script>"
-    assert fetched.json()["preview_truncated"] is True
-    assert fetched.json()["parse_summary"] == {
+    assert created.json()["data"]["source_format"] == "fountain"
+    assert fetched.json()["data"]["title"] == "owned"
+    assert fetched.json()["data"]["preview"] == "<script>plain text only</script>"
+    assert fetched.json()["data"]["preview_truncated"] is True
+    assert fetched.json()["data"]["parse_summary"] == {
         "page_count": 2,
         "paragraph_count": 8,
         "heading_count": 2,
@@ -174,9 +174,9 @@ def test_document_routes_delegate_owner_and_hide_storage(tmp_path: Path) -> None
         "table_count": 0,
         "dialogue_block_count": 2,
     }
-    assert listed.json()["total"] == 1
-    assert completed.json()["status"] == "verifying"
-    assert cancelled.json()["status"] == "cancelled"
+    assert listed.json()["data"]["total"] == 1
+    assert completed.json()["data"]["status"] == "verifying"
+    assert cancelled.json()["data"]["status"] == "cancelled"
     assert "object_key" not in session.text and "upload_id" not in session.text
     assert "object_key" not in fetched.text and "text_sha256" not in fetched.text
     create = stubs["create"].calls[0][1]

@@ -115,7 +115,7 @@ docker compose --env-file .env.prod -f docker-compose-prod.yml config --quiet
 docker compose --env-file .env.prod -f docker-compose-prod.yml up -d --no-build
 ~~~
 
-生产镜像必须先以 video-server:prod 的名称加载或发布。生产 Compose 不启动基础设施初始化服务，也不包含 environment profile。
+生产镜像分别使用 video-server:prod（后端）与 video-frontend:prod（前端），由各自目录的 Dockerfile 构建。生产 Compose 不启动基础设施初始化服务，也不包含 environment profile。
 
 生产健康检查：
 

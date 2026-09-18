@@ -7,7 +7,7 @@ export async function createDownload(
   body: API.DownloadRequest,
   options?: RequestOptions
 ) {
-  return request<API.DownloadResponse>("/api/downloads", {
+  return request<API.ApiResponseDownloadResponse_>("/api/downloads", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -24,7 +24,7 @@ export async function getDownload(
   options?: RequestOptions
 ) {
   const { job_id: param0, ...queryParams } = params;
-  return request<API.DownloadResponse>(`/api/downloads/${param0}`, {
+  return request<API.ApiResponseDownloadResponse_>(`/api/downloads/${param0}`, {
     method: "GET",
     params: { ...queryParams },
     ...(options || {}),
@@ -52,11 +52,14 @@ export async function cancelDownload(
   options?: RequestOptions
 ) {
   const { job_id: param0, ...queryParams } = params;
-  return request<API.DownloadResponse>(`/api/downloads/${param0}/cancel`, {
-    method: "POST",
-    params: { ...queryParams },
-    ...(options || {}),
-  });
+  return request<API.ApiResponseDownloadResponse_>(
+    `/api/downloads/${param0}/cancel`,
+    {
+      method: "POST",
+      params: { ...queryParams },
+      ...(options || {}),
+    }
+  );
 }
 
 /** 签发文件下载地址 为已完成的下载任务签发短时制品地址。 POST /api/downloads/${param0}/download-url */
@@ -66,7 +69,7 @@ export async function issueDownloadUrl(
   options?: RequestOptions
 ) {
   const { job_id: param0, ...queryParams } = params;
-  return request<API.DownloadUrlResponse>(
+  return request<API.ApiResponseDownloadUrlResponse_>(
     `/api/downloads/${param0}/download-url`,
     {
       method: "POST",
@@ -101,11 +104,14 @@ export async function retryDownload(
   options?: RequestOptions
 ) {
   const { job_id: param0, ...queryParams } = params;
-  return request<API.DownloadResponse>(`/api/downloads/${param0}/retry`, {
-    method: "POST",
-    params: { ...queryParams },
-    ...(options || {}),
-  });
+  return request<API.ApiResponseDownloadResponse_>(
+    `/api/downloads/${param0}/retry`,
+    {
+      method: "POST",
+      params: { ...queryParams },
+      ...(options || {}),
+    }
+  );
 }
 
 /** 读取下载任务封面 读取当前用户本地导入视频生成的私有首帧封面。 GET /api/downloads/${param0}/thumbnail */
@@ -128,16 +134,19 @@ export async function getDownloadHistory(
   params: API.getDownloadHistoryParams,
   options?: RequestOptions
 ) {
-  return request<API.DownloadHistoryResponse>("/api/downloads/history", {
-    method: "GET",
-    params: {
-      // page has a default value: 1
-      page: "1",
-      // page_size has a default value: 20
-      page_size: "20",
+  return request<API.ApiResponseDownloadHistoryResponse_>(
+    "/api/downloads/history",
+    {
+      method: "GET",
+      params: {
+        // page has a default value: 1
+        page: "1",
+        // page_size has a default value: 20
+        page_size: "20",
 
-      ...params,
-    },
-    ...(options || {}),
-  });
+        ...params,
+      },
+      ...(options || {}),
+    }
+  );
 }

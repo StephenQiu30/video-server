@@ -126,7 +126,7 @@ def test_inspection_routes_use_stable_session_and_hide_hints(tmp_path: Path) -> 
 
     assert created.status_code == 201
     assert fetched.status_code == 200
-    payload = created.json()
+    payload = created.json()["data"]
     assert payload["id"] == str(INSPECTION_ID)
     assert "hints" not in payload["formats"][0]["plan"]
     assert "provider_hints" not in created.text
@@ -163,7 +163,7 @@ def test_source_discovery_requires_explicit_item_selection(tmp_path: Path) -> No
     assert created.status_code == selected.status_code == 201
     assert fetched.status_code == 200
     assert created.headers["location"] == f"/api/source-discoveries/{DISCOVERY_ID}"
-    assert created.json()["items"][0]["item_ref"] == str(ITEM_REF)
+    assert created.json()["data"]["items"][0]["item_ref"] == str(ITEM_REF)
     assert stubs["inspect"].calls == []
     selected_args = stubs["inspect_discovered"].calls[0][0]
     assert selected_args[:2] == (DISCOVERY_ID, ITEM_REF)
@@ -226,10 +226,10 @@ def test_download_routes_delegate_with_session_owner(tmp_path: Path) -> None:
     assert fetched.status_code == cancelled.status_code == issued.status_code == 200
     assert retried.status_code == 201
     assert retried.headers["location"] == f"/api/downloads/{JOB_ID}"
-    assert created.json()["status"] == "queued"
-    assert cancelled.json()["status"] == "cancelled"
-    assert issued.json()["url"] == "https://objects.example/token"
-    assert issued.json()["filename"] == "video.mp4"
+    assert created.json()["data"]["status"] == "queued"
+    assert cancelled.json()["data"]["status"] == "cancelled"
+    assert issued.json()["data"]["url"] == "https://objects.example/token"
+    assert issued.json()["data"]["filename"] == "video.mp4"
     assert stubs["issue_url"].calls[0][1] == {
         "preview": True,
         "use_browser_proxy": False,
@@ -321,7 +321,7 @@ def test_download_history_route_supports_filters_and_returns_public_fields(
         )
 
     assert response.status_code == 200
-    assert response.json()["items"][0] == {
+    assert response.json()["data"]["items"][0] == {
         "id": str(JOB_ID),
         "title": "Owned video",
         "thumbnail_url": f"/api/inspections/{INSPECTION_ID}/thumbnail",
@@ -336,7 +336,7 @@ def test_download_history_route_supports_filters_and_returns_public_fields(
         "source_kind": "remote_provider",
         "source_label": "链接下载",
     }
-    assert response.json()["summary"] == {
+    assert response.json()["data"]["summary"] == {
         "total": 1,
         "succeeded": 1,
         "active": 0,
@@ -359,7 +359,7 @@ def test_provider_status_distinguishes_registered_verified_and_unsupported(
         response = test_client.get("/api/providers")
 
     assert response.status_code == 200
-    items = {item["key"]: item for item in response.json()["items"]}
+    items = {item["key"]: item for item in response.json()["data"]["items"]}
     assert len(items) == 24
     assert items["hongguo_web"]["status"] == "verified"
     assert (
@@ -451,16 +451,16 @@ def test_creation_contract_rejects_missing_headers_and_invalid_bodies(
     assert stubs["create"].calls == []
 
 
-def test_application_errors_are_rfc9457_problem_details(tmp_path: Path) -> None:
+def test_application_errors_are_error_envelopes(tmp_path: Path) -> None:
     test_client, stubs = client(tmp_path)
     stubs["get"].error = ApplicationError(ApplicationErrorCode.NOT_FOUND)
     with test_client:
         response = test_client.get(f"/api/downloads/{JOB_ID}")
 
     assert response.status_code == 404
-    assert response.headers["content-type"].startswith("application/problem+json")
+    assert response.headers["content-type"].startswith("application/json")
     assert response.json()["code"] == "not_found"
-    assert response.json()["instance"] == f"/api/downloads/{JOB_ID}"
+    assert set(response.json()) == {"code", "message", "data"}
 
 
 @pytest.mark.parametrize(

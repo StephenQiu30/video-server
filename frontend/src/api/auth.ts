@@ -7,7 +7,7 @@ export async function loginUser(
   body: API.EmailPasswordRequest,
   options?: RequestOptions
 ) {
-  return request<API.UserResponse>("/api/auth/login", {
+  return request<API.ApiResponseUserResponse_>("/api/auth/login", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -27,7 +27,7 @@ export async function logoutUser(options?: RequestOptions) {
 
 /** 查询当前用户 GET /api/auth/me */
 export async function getCurrentUser(options?: RequestOptions) {
-  return request<API.UserResponse>("/api/auth/me", {
+  return request<API.ApiResponseUserResponse_>("/api/auth/me", {
     method: "GET",
     ...(options || {}),
   });
@@ -35,7 +35,7 @@ export async function getCurrentUser(options?: RequestOptions) {
 
 /** 刷新登录会话 POST /api/auth/refresh */
 export async function refreshUserSession(options?: RequestOptions) {
-  return request<API.UserResponse>("/api/auth/refresh", {
+  return request<API.ApiResponseUserResponse_>("/api/auth/refresh", {
     method: "POST",
     ...(options || {}),
   });
@@ -46,7 +46,7 @@ export async function registerUser(
   body: API.RegisterRequest,
   options?: RequestOptions
 ) {
-  return request<API.UserResponse>("/api/auth/register", {
+  return request<API.ApiResponseUserResponse_>("/api/auth/register", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -61,12 +61,15 @@ export async function sendRegistrationCode(
   body: API.RegistrationCodeRequest,
   options?: RequestOptions
 ) {
-  return request<API.RegistrationCodeResponse>("/api/auth/registration-code", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    data: body,
-    ...(options || {}),
-  });
+  return request<API.ApiResponseRegistrationCodeResponse_>(
+    "/api/auth/registration-code",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      data: body,
+      ...(options || {}),
+    }
+  );
 }

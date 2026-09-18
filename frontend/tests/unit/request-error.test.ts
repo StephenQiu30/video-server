@@ -3,18 +3,18 @@ import { describe, expect, it } from 'vitest';
 import { ApiError, apiErrorFrom, displayError } from '@/lib/request-error';
 
 describe('request errors', () => {
-  it('converts RFC problem responses into ApiError', () => {
+  it('converts unified error responses into ApiError', () => {
     const error = apiErrorFrom(409, {
       code: 'idempotency_conflict',
-      title: '请求冲突',
-      detail: '同一请求键不能用于不同负载。',
+      data: null,
+      message: '同一请求键不能用于不同负载。',
     });
 
     expect(error).toMatchObject({
       code: 'idempotency_conflict',
       detail: '同一请求键不能用于不同负载。',
       status: 409,
-      title: '请求冲突',
+      title: '同一请求键不能用于不同负载。',
     });
   });
 

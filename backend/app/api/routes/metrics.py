@@ -7,7 +7,7 @@ from fastapi import APIRouter, Header, Request
 from fastapi.responses import PlainTextResponse
 
 from app.core.errors import AppError
-from app.crud.operational_metrics import OperationalMetrics
+from app.repositories.operational_metrics import OperationalMetrics
 
 router = APIRouter()
 

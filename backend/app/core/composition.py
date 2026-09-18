@@ -18,47 +18,6 @@ from app.core.runtime import (
 )
 from app.core.security.ai_provider_cipher import FernetAiProviderSecretCipher
 from app.core.security.url_cipher import URLCipher
-from app.crud.ai_provider_repository import SqlAlchemyAiProviderRepository
-from app.crud.analysis_repository import SqlAlchemyAnalysisRepository
-from app.crud.analysis_worker_registry import (
-    ANALYSIS_MESSAGE_SCHEMA_VERSION,
-    SqlAlchemyAnalysisWorkerRegistry,
-)
-from app.crud.auth_repository import SqlAlchemyAuthRepository
-from app.crud.document_catalog_repository import (
-    SqlAlchemyDocumentCatalogRepository,
-)
-from app.crud.document_delete_repository import (
-    SqlAlchemyDocumentDeleteRepository,
-)
-from app.crud.document_import_repository import (
-    SqlAlchemyDocumentImportRepository,
-)
-from app.crud.download_repository import SqlAlchemyDownloadRepository
-from app.crud.email_verification_repository import SqlAlchemyVerificationStore
-from app.crud.media_import_repository import SqlAlchemyMediaImportRepository
-from app.crud.operational_metrics import OperationalMetrics
-from app.crud.provider_canary_repository import (
-    SqlAlchemyProviderCanaryRepository,
-)
-from app.crud.provider_catalog_repository import (
-    SqlAlchemyProviderCatalogRepository,
-)
-from app.crud.provider_route_cooldowns import SqlAlchemyProviderRouteCooldowns
-from app.crud.provider_status_evidence import (
-    MergedProviderStatusEvidenceReader,
-    SqlAlchemyDownloadEvidenceReader,
-)
-from app.crud.redis_auth_repository import (
-    RedisAuthRepository,
-    RedisAuthSessionStore,
-)
-from app.crud.source_discovery_repository import (
-    SqlAlchemySourceDiscoveryRepository,
-)
-from app.crud.storage_file_repository import SqlAlchemyStorageFileRepository
-from app.crud.task_event_store import TaskEventStore
-from app.crud.user_repository import SqlAlchemyUserRepository
 from app.integrations.ai_api.catalog import OpenRouterModelCatalog
 from app.integrations.analysis_skill_catalog import BuiltinAnalysisSkillCatalog
 from app.integrations.article_discovery import WeChatArticleDiscoveryAdapter
@@ -76,6 +35,49 @@ from app.integrations.realtime import RabbitMqRealtimeConsumer, RealtimeHub
 from app.integrations.registration_mail import SmtpRegistrationMailer
 from app.integrations.thumbnail_storage import MinioThumbnailStorage
 from app.integrations.url_security import FernetUrlEnvelope, MediaUrlValidator
+from app.repositories.ai_provider_repository import SqlAlchemyAiProviderRepository
+from app.repositories.analysis.repository import SqlAlchemyAnalysisRepository
+from app.repositories.analysis.worker_registry import (
+    ANALYSIS_MESSAGE_SCHEMA_VERSION,
+    SqlAlchemyAnalysisWorkerRegistry,
+)
+from app.repositories.auth.auth_repository import SqlAlchemyAuthRepository
+from app.repositories.auth.email_verification_repository import (
+    SqlAlchemyVerificationStore,
+)
+from app.repositories.auth.redis_auth_repository import (
+    RedisAuthRepository,
+    RedisAuthSessionStore,
+)
+from app.repositories.auth.user_repository import SqlAlchemyUserRepository
+from app.repositories.documents.catalog_repository import (
+    SqlAlchemyDocumentCatalogRepository,
+)
+from app.repositories.documents.delete_repository import (
+    SqlAlchemyDocumentDeleteRepository,
+)
+from app.repositories.documents.import_repository import (
+    SqlAlchemyDocumentImportRepository,
+)
+from app.repositories.downloads.repository import SqlAlchemyDownloadRepository
+from app.repositories.imports.repository import SqlAlchemyMediaImportRepository
+from app.repositories.operational_metrics import OperationalMetrics
+from app.repositories.providers.canary_repository import (
+    SqlAlchemyProviderCanaryRepository,
+)
+from app.repositories.providers.catalog_repository import (
+    SqlAlchemyProviderCatalogRepository,
+)
+from app.repositories.providers.route_cooldowns import SqlAlchemyProviderRouteCooldowns
+from app.repositories.providers.status_evidence import (
+    MergedProviderStatusEvidenceReader,
+    SqlAlchemyDownloadEvidenceReader,
+)
+from app.repositories.source_discoveries.repository import (
+    SqlAlchemySourceDiscoveryRepository,
+)
+from app.repositories.storage_files.repository import SqlAlchemyStorageFileRepository
+from app.repositories.task_event_store import TaskEventStore
 from app.services.ai_providers import AiProviderService
 from app.services.analysis.cancel_analysis import CancelAnalysis
 from app.services.analysis.create_analysis import CreateAnalysis

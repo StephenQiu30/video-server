@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
         ("analysis_budget_exceeded", 429),
     ],
 )
-def test_admission_failure_uses_problem_details_and_retry_header(code, status):
+def test_admission_failure_uses_error_envelopes_and_retry_header(code, status):
     app = create_app(Settings(_env_file=None, app_env="test"))
 
     @app.post("/test-quota")
@@ -24,5 +24,5 @@ def test_admission_failure_uses_problem_details_and_retry_header(code, status):
         response = client.post("/test-quota")
     assert response.status_code == status
     assert response.headers["retry-after"] == "123"
-    assert response.headers["content-type"] == "application/problem+json"
+    assert response.headers["content-type"] == "application/json"
     assert response.json()["code"] == code

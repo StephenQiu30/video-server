@@ -7,7 +7,7 @@ export async function updateCurrentUser(
   body: API.UpdateProfileRequest,
   options?: RequestOptions
 ) {
-  return request<API.UserResponse>("/api/users/me", {
+  return request<API.ApiResponseUserResponse_>("/api/users/me", {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",

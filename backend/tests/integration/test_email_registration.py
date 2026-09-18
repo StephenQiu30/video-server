@@ -5,8 +5,10 @@ from uuid import uuid4
 
 import pytest
 from app.core.db import create_session_factory
-from app.crud.email_verification_repository import SqlAlchemyVerificationStore
 from app.models.email_verification import EmailVerificationRow
+from app.repositories.auth.email_verification_repository import (
+    SqlAlchemyVerificationStore,
+)
 from sqlalchemy.ext.asyncio import AsyncEngine
 from tests.integration.test_auth_routes import auth_client
 
@@ -26,7 +28,13 @@ async def test_registration_requires_proof_and_consumes_once(
         sent = await client.post(
             prefix + "/registration-code", json={"email": credentials["email"]}
         )
-        assert sent.status_code == 200 and sent.json()["email_sent"] is True
+        assert (
+            sent.status_code == 200
+            and (sent.json()["data"] if prefix == "/api/auth" else sent.json())[
+                "email_sent"
+            ]
+            is True
+        )
         code = client.mailer.codes[credentials["email"]]
         wrong_email = await client.post(
             prefix + "/register",

@@ -240,7 +240,7 @@ def test_analysis_skills_are_listed_without_versioned_ids(tmp_path: Path) -> Non
         response = test_client.get("/api/analysis-skills?input_kind=video")
 
     assert response.status_code == 200
-    assert response.json() == [
+    assert response.json()["data"] == [
         {
             "id": "director-breakdown",
             "display_name": "导演拉片",
@@ -255,7 +255,7 @@ def test_analysis_skills_are_listed_without_versioned_ids(tmp_path: Path) -> Non
         screenplay = test_client.get("/api/analysis-skills?input_kind=screenplay")
         missing = test_client.get("/api/analysis-skills")
 
-    assert screenplay.json() == []
+    assert screenplay.json()["data"] == []
     assert missing.status_code == 422
 
 
@@ -294,9 +294,9 @@ def test_analysis_routes_share_owner_and_never_expose_internal_ids(
     assert mutable_retry.status_code == 422
     assert deleted.status_code == 204
     assert retried.headers["location"] == f"/api/analyses/{ANALYSIS_ID}"
-    assert retried.json()["run_no"] == 2
-    assert created.json()["result"] is None
-    assert cancelled.json()["status"] == "cancelled"
+    assert retried.json()["data"]["run_no"] == 2
+    assert created.json()["data"]["result"] is None
+    assert cancelled.json()["data"]["status"] == "cancelled"
     assert "artifact_id" not in created.text
     assert "custom_prompt" not in created.text
     assert stubs["create"].calls[0][3:] == (
@@ -332,10 +332,10 @@ def test_document_analysis_create_and_latest_reuse_analysis_resource(
 
     assert created.status_code == 201
     assert created.headers["location"] == f"/api/analyses/{ANALYSIS_ID}"
-    assert created.json()["input_kind"] == "screenplay"
-    assert created.json()["result_contract"] == "screenplay-analysis"
+    assert created.json()["data"]["input_kind"] == "screenplay"
+    assert created.json()["data"]["result_contract"] == "screenplay-analysis"
     assert latest.status_code == 200
-    assert latest.json() is None
+    assert latest.json()["data"] is None
     assert stubs["create_document"].calls == [
         (
             DOCUMENT_ID,
@@ -361,7 +361,7 @@ def test_succeeded_analysis_returns_only_strict_structured_result(
         response = test_client.get(f"/api/analyses/{ANALYSIS_ID}")
 
     assert response.status_code == 200
-    payload = response.json()
+    payload = response.json()["data"]
     assert payload["result"]["kind"] == "video_visual_analysis"
     assert payload["result"]["shot_count"] == 1
     assert payload["result"]["scenes"][0]["evidence_shot_ids"] == ["shot-1"]
@@ -444,7 +444,7 @@ def test_analysis_creation_rejects_invalid_or_extra_input(tmp_path: Path) -> Non
     assert stubs["create"].calls == []
 
 
-def test_analysis_errors_are_problem_details(tmp_path: Path) -> None:
+def test_analysis_errors_are_error_envelopes(tmp_path: Path) -> None:
     test_client, stubs = client(tmp_path)
     with test_client:
         for code, expected_status in (
@@ -460,8 +460,6 @@ def test_analysis_errors_are_problem_details(tmp_path: Path) -> None:
                 json={"skill_id": "director-breakdown", "output_language": "zh-CN"},
             )
             assert response.status_code == expected_status
-            assert response.headers["content-type"].startswith(
-                "application/problem+json"
-            )
+            assert response.headers["content-type"].startswith("application/json")
             assert response.json()["code"] == code.value
-            assert response.json()["instance"].endswith(f"/{DOWNLOAD_ID}/analyses")
+            assert set(response.json()) == {"code", "message", "data"}

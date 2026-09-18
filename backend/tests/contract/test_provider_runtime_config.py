@@ -12,10 +12,11 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_private_provider_sources_are_excluded_from_docker_build_context() -> None:
-    rules = (ROOT.parent / ".dockerignore").read_text().splitlines()
-    for directory in (".provider-sessions", ".provider-secrets"):
-        assert f"**/{directory}/" in rules
-    assert not any("provider-" in rule and rule.startswith("!") for rule in rules)
+    for project in (ROOT, ROOT.parent / "frontend"):
+        rules = (project / ".dockerignore").read_text().splitlines()
+        for directory in (".provider-sessions", ".provider-secrets"):
+            assert f"**/{directory}/" in rules
+        assert not any("provider-" in rule and rule.startswith("!") for rule in rules)
 
 
 def test_pyproject_and_compose_pin_provider_runtime() -> None:

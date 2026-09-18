@@ -9,12 +9,14 @@ from uuid import uuid4
 
 from app.core.config import Settings
 from app.core.db import create_session_factory
-from app.crud.auth_repository import SqlAlchemyAuthRepository
-from app.crud.email_verification_repository import SqlAlchemyVerificationStore
-from app.crud.user_repository import SqlAlchemyUserRepository
 from app.integrations.jwt_tokens import JwtTokenService
 from app.integrations.passwords import Argon2PasswordHasher
 from app.main import create_app
+from app.repositories.auth.auth_repository import SqlAlchemyAuthRepository
+from app.repositories.auth.email_verification_repository import (
+    SqlAlchemyVerificationStore,
+)
+from app.repositories.auth.user_repository import SqlAlchemyUserRepository
 from app.services.auth.email_verification import EmailVerification
 from app.services.auth.errors import SessionRotationConflict
 from app.services.auth.service import AuthService
@@ -127,9 +129,9 @@ async def test_register_creates_http_only_session_and_logout_revokes_it(
 
     assert registered.status_code == 201
     assert registered.headers["location"] == "/api/auth/me"
-    assert registered.json()["email"] == "user@example.com"
-    assert registered.json()["username"] == "VideoUser"
-    assert registered.json()["role"] == "user"
+    assert registered.json()["data"]["email"] == "user@example.com"
+    assert registered.json()["data"]["username"] == "VideoUser"
+    assert registered.json()["data"]["role"] == "user"
     cookie = registered.headers["set-cookie"].lower()
     assert "httponly" in cookie
     assert "samesite=lax" in cookie
@@ -206,12 +208,9 @@ async def test_login_uses_generic_errors_and_duplicate_email_is_rejected(
     assert duplicate_username.json()["code"] == "username_already_registered"
     assert wrong.status_code == 401
     assert wrong.json() == {
-        "type": "urn:video-server:error:invalid_credentials",
-        "title": "Invalid credentials",
-        "status": 401,
-        "detail": "The email or password is incorrect.",
         "code": "invalid_credentials",
-        "instance": "/api/auth/login",
+        "message": "The email or password is incorrect.",
+        "data": None,
     }
     assert logged_in.status_code == 200
 
@@ -288,7 +287,7 @@ async def test_profile_and_admin_user_management_are_role_protected(
         users = await client.get(
             "/api/admin/users", params={"search": "renamed", "role": "user"}
         )
-        user_id = user.json()["id"]
+        user_id = user.json()["data"]["id"]
         promoted = await client.patch(
             f"/api/admin/users/{user_id}",
             json={
@@ -307,23 +306,23 @@ async def test_profile_and_admin_user_management_are_role_protected(
             f"/api/admin/users/{user_id}", json={"is_active": False}
         )
         self_demote = await client.patch(
-            f"/api/admin/users/{admin.json()['id']}", json={"role": "user"}
+            f"/api/admin/users/{admin.json()['data']['id']}", json={"role": "user"}
         )
         client.cookies.clear()
         client.cookies.set("test_refresh", user_refresh)
         revoked_session = await client.post("/api/auth/refresh")
 
-    assert admin.json()["role"] == "admin"
-    assert user.json()["role"] == "user"
+    assert admin.json()["data"]["role"] == "admin"
+    assert user.json()["data"]["role"] == "user"
     assert updated_profile.status_code == 200
-    assert updated_profile.json()["username"] == "renamed_user"
+    assert updated_profile.json()["data"]["username"] == "renamed_user"
     assert forbidden.status_code == 403
     assert forbidden.json()["code"] == "forbidden"
     assert users.status_code == 200
-    assert users.json()["total"] == 1
-    assert users.json()["items"][0]["username"] == "renamed_user"
-    assert promoted.json()["role"] == "admin"
-    assert promoted.json()["quota"] == {
+    assert users.json()["data"]["total"] == 1
+    assert users.json()["data"]["items"][0]["username"] == "renamed_user"
+    assert promoted.json()["data"]["role"] == "admin"
+    assert promoted.json()["data"]["quota"] == {
         "exempt": False,
         "max_active_per_owner": 9,
         "daily_tasks": 120,
@@ -331,7 +330,7 @@ async def test_profile_and_admin_user_management_are_role_protected(
         "storage_bytes": 2 * 1024**3,
         "daily_analysis_attempts": 80,
     }
-    assert disabled.json()["is_active"] is False
+    assert disabled.json()["data"]["is_active"] is False
     assert self_demote.status_code == 409
     assert self_demote.json()["code"] == "self_admin_change"
     assert revoked_session.status_code == 401
@@ -382,11 +381,11 @@ async def test_configured_bootstrap_email_requires_the_bootstrap_secret(
             headers={"X-Admin-Bootstrap-Secret": bootstrap_secret},
         )
 
-    assert member.json()["role"] == "user"
+    assert member.json()["data"]["role"] == "user"
     assert missing_secret.status_code == 403
     assert missing_secret.json()["code"] == "admin_bootstrap_required"
     assert wrong_secret.status_code == 403
-    assert admin.json()["role"] == "admin"
+    assert admin.json()["data"]["role"] == "admin"
 
 
 async def test_native_session_rotates_refresh_and_logout_revokes_it(

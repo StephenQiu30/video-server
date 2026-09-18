@@ -55,7 +55,7 @@ def test_download_openapi_exposes_required_routes_and_idempotency(
     assert preview["schema"]["default"] is False
     create_response = paths["/api/downloads"]["post"]["responses"]["201"]
     assert create_response["content"]["application/json"]["schema"] == {
-        "$ref": "#/components/schemas/DownloadResponse"
+        "$ref": "#/components/schemas/ApiResponse_DownloadResponse_"
     }
     download_fields = schema["components"]["schemas"]["DownloadResponse"]["properties"]
     presentation_fields = {
@@ -91,7 +91,9 @@ def test_admin_download_analytics_openapi_is_bounded_and_safe(
     assert days["schema"]["maximum"] == 365
     assert days["schema"]["default"] == 30
     response = operation["responses"]["200"]["content"]["application/json"]["schema"]
-    assert response == {"$ref": "#/components/schemas/DownloadAnalyticsResponse"}
+    assert response == {
+        "$ref": "#/components/schemas/ApiResponse_DownloadAnalyticsResponse_"
+    }
     components = schema["components"]["schemas"]
     analytics_contract = "".join(
         str(components[name])

@@ -6,8 +6,8 @@ from pathlib import Path
 import httpx
 import pytest
 from app.core.db import create_session_factory
-from app.crud.provider_route_cooldowns import SqlAlchemyProviderRouteCooldowns
 from app.integrations.media_runner import MediaRunnerHttpClient
+from app.repositories.providers.route_cooldowns import SqlAlchemyProviderRouteCooldowns
 from app.services.downloads.errors import (
     MediaInspectionRateLimited,
     MediaInspectionVerificationFailed,

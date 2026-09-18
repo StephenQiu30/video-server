@@ -16,7 +16,7 @@ SCHEMA_PATH = ROOT / "sql/schema.sql"
 ROOT_README_PATH = ROOT.parent / "README.md"
 FRONTEND_README_PATH = ROOT.parent / "frontend/README.md"
 STARTUP_SCRIPT_PATH = ROOT.parent / "scripts/restart-project.ps1"
-DOCKERFILE_PATH = ROOT.parent / "Dockerfile"
+DOCKERFILE_PATH = ROOT / "Dockerfile"
 
 
 def _service_block(document: str, service: str) -> str:
@@ -523,3 +523,17 @@ def test_personal_video_compose_profiles_keep_file_and_network_isolation() -> No
         assert sources[0]["read_only"] is True
         assert sources[0]["bind"]["create_host_path"] is False
         assert "ports" not in service
+
+
+def test_projects_build_and_run_separate_images() -> None:
+    for path in (COMPOSE_PATH, PROD_COMPOSE_PATH):
+        services = yaml.safe_load(path.read_text())["services"]
+        backend = services["api"]
+        frontend = services["frontend"]
+        assert backend["build"]["context"] == "./backend"
+        assert frontend["build"]["context"] == "./frontend"
+        assert backend["image"] != frontend["image"]
+        assert frontend["healthcheck"]["test"][1] == "node"
+    assert not (ROOT.parent / "Dockerfile").exists()
+    assert "frontend-builder" not in (ROOT / "Dockerfile").read_text()
+    assert "python:" not in (ROOT.parent / "frontend/Dockerfile").read_text()

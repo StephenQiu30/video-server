@@ -24,7 +24,9 @@
 
 ### 2.1 官方基线与项目边界
 
-使用 FastAPI 官方 Full Stack Template 的 `main.py`、`api/`、`core/`、`models`、`crud` 组织方式。`api/routes` 使用 APIRouter，`api/deps.py` 使用 Depends，应用通过 main.py 注册路由。官方模板提供工程参考，不规定每个业务必须经过相同的类与接口层。
+以 FastAPI 官方多文件应用和 Full Stack Template 的 APIRouter、Depends、应用入口为基线，并参考 fastapi-best-practices 的业务聚合原则。官方模板的单文件 `crud.py` 是小型示例，不是本项目所有持久化文件的统一容器，也不存在 FastAPI 强制要求的 Java 式分层。
+
+本项目采用 api/core/models/schemas/services/repositories/integrations/workers 的职责边界，较大的业务在职责内部聚合；不创建无用途的空目录或统一基类。该目录是本项目的选择，不宣称是 FastAPI 唯一官方架构。
 
 本项目保留 SQLAlchemy 和独立 Pydantic 契约，因此将 models 与 schemas 分开；媒体、AI 和异步任务分别使用 services、integrations、workers。以下是完整目录规范，所有后端源码必须能归入明确职责，禁止在 app 根目录继续堆积辅助文件。
 
@@ -32,6 +34,7 @@
 
 ```text
 backend/
+├── Dockerfile / .dockerignore      后端独立构建边界
 ├── pyproject.toml / uv.lock
 ├── app/
 │   ├── __init__.py
@@ -39,7 +42,8 @@ backend/
 │   ├── api/
 │   │   ├── deps.py                 共享 Depends、认证与请求依赖
 │   │   ├── routes/                 按业务组织的 APIRouter
-│   │   ├── errors.py               HTTP 异常映射与响应
+│   │   ├── errors.py               全局异常注册、安全错误映射
+│   │   ├── responses.py            类型化成功响应 APIRoute
 │   │   ├── middleware.py           请求限制和安全响应头
 │   │   ├── openapi.py              OpenAPI 元信息与响应声明
 │   │   ├── admission.py            HTTP 限流准入
@@ -47,14 +51,23 @@ backend/
 │   ├── core/
 │   │   ├── config.py               Settings、限流与配额配置
 │   │   ├── db.py                   Engine、Session、ORM Base
-│   │   ├── errors.py               应用公共错误
+│   │   ├── errors.py               AppError 公共异常
+│   │   ├── error_codes.py          公开结果码枚举
 │   │   ├── security/               密文与密钥处理
 │   │   ├── composition.py          具体运行资源与业务对象装配
 │   │   ├── runtime.py              类型化运行资源集合、启动与关闭
 │   │   └── lifespan.py             FastAPI lifespan 资源所有权
 │   ├── models/                     SQLAlchemy 持久化实体
 │   ├── schemas/                    Pydantic HTTP 输入与输出契约
-│   ├── crud/                       数据访问、事务、查询和状态写入
+│   ├── repositories/               数据访问和明确的事务所有权
+│   │   ├── analysis/               分析任务、报告、执行租约
+│   │   ├── auth/                   用户、会话与注册验证
+│   │   ├── documents/              剧本导入和目录
+│   │   ├── downloads/              下载任务、历史、进度和恢复
+│   │   ├── imports/                媒体导入
+│   │   ├── providers/              平台目录、探针与冷却状态
+│   │   ├── source_discoveries/     来源发现
+│   │   └── storage_files/          文件目录与清理
 │   ├── services/                   按业务组织操作与业务类型
 │   │   └── <业务>/
 │   │       ├── rules/              该业务的纯规则，仅复杂业务需要
@@ -84,7 +97,7 @@ backend/
 | core | 配置、运行资源装配与生命周期 | 单一业务的字段、展示转换和用例 |
 | models | ORM 表、索引、约束 | 公开响应 DTO、业务流程 |
 | schemas | 对外请求校验和响应字段 | 数据库访问、内部状态快照 |
-| crud | 数据操作、事务、原子状态变更 | HTTP 对象、平台下载和 AI 调用 |
+| repositories | 数据操作、事务、原子状态变更 | HTTP 对象、平台下载和 AI 调用 |
 | services | 业务操作、内部类型、纯规则 | FastAPI、数据库和外部 SDK 的具体实现 |
 | integrations | 对外部系统的实际调用和结果适配 | 重复业务规则、通用转发接口 |
 | workers | 消费、调度、进程入口、媒体执行 | Web 路由和重复的业务状态事实 |
@@ -110,6 +123,16 @@ backend/
 - 生成请求统一导入 src/lib/request.ts 的 Axios 封装；认证恢复、超时、取消和错误归一化由请求基础设施处理。
 - CI 从后端源码自动导出临时 schema，重新生成并检查 Git 差异。禁止只用旧服务的 Swagger 验证新代码。
 - 后端业务实现、外部对象存储传输和 WebSocket 协议不由 REST 客户端生成器代替。
+
+### 3.1 全局响应与异常
+
+- Web 业务 JSON 统一为 `{ code, message, data }`；成功 code 为 `ok`，data 保持业务模型、列表或 null；错误 data 为 null。保留真实 HTTP 状态码，不将失败转换为 200。
+- `core/error_codes.py` 定义公开 ErrorCode 枚举；业务内部异常保持业务语义，由 `api/errors.py` 唯一映射为公开状态码和安全消息。路由不重复 try/except 转换业务异常。
+- `register_exception_handlers` 在应用工厂一次注册，覆盖业务错误、配额、Starlette HTTPException（含 404/405）、请求校验、响应校验和未捕获异常。中间件的大小限制和超时复用同一响应函数。
+- 保留 Retry-After、Allow、认证 Cookie 清理和安全响应头。未捕获错误仅输出安全消息，普通日志不记录输入、凭据或上游错误文本。
+- Web 路由使用 `ApiResponseRoute`；`schemas/response.py` 的泛型模型参与 FastAPI 序列化和字段校验，Swagger 直接生成封装后的契约。不得仅通过中间件修改 JSON 而保留过时的 OpenAPI。
+- Axios `request.ts` 统一解包业务 data，并把错误映射为 ApiError；页面继续使用业务返回类型，不自行拆包或定义平行响应类型。
+- 204、文件流、Range、WebSocket、健康探针与指标遵循各自协议。独立 App 的 `/api/app/v1` 保持已发布契约；修改需连同 video-app 单独验收。
 
 ## 4. 前端目录与文件规则
 
@@ -172,3 +195,7 @@ frontend/
 - [shadcn Next.js 安装](https://ui.shadcn.com/docs/installation/next)
 
 官方基线与项目扩展分别标明；目录规范不以现有实现为依据。
+
+架构参考：[官方模板](https://github.com/fastapi/full-stack-fastapi-template/tree/master/backend/app)、[多业务组织参考](https://github.com/zhanymkanov/fastapi-best-practices)、[官方异常处理](https://github.com/fastapi/fastapi/blob/master/docs/en/docs/tutorial/handling-errors.md)。
+
+容器构建：backend 与 frontend 各自维护 Dockerfile/.dockerignore，以各自目录为上下文；根 Compose 管理组合部署。后端镜像 video-server 用于 API/Worker/Runner，前端镜像 video-frontend 仅运行 Next.js；不再维护根 Dockerfile。

@@ -31,7 +31,7 @@ def test_analysis_openapi_is_current_and_excludes_internal_fields(
     )
     create_response = paths[create_path]["post"]["responses"]["201"]
     assert create_response["content"]["application/json"]["schema"] == {
-        "$ref": "#/components/schemas/AnalysisResponse"
+        "$ref": "#/components/schemas/ApiResponse_AnalysisResponse_"
     }
     header = next(
         item
@@ -46,7 +46,7 @@ def test_analysis_openapi_is_current_and_excludes_internal_fields(
     assert delete["operationId"] == "deleteAnalysis"
     assert "204" in delete["responses"]
     assert retry["responses"]["201"]["content"]["application/json"]["schema"] == {
-        "$ref": "#/components/schemas/AnalysisResponse"
+        "$ref": "#/components/schemas/ApiResponse_AnalysisResponse_"
     }
     retry_header = next(
         item for item in retry["parameters"] if item["name"] == "Idempotency-Key"

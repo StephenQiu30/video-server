@@ -45,7 +45,7 @@ def test_admin_runtime_is_allowlisted_and_does_not_expose_context(tmp_path):
     with browser:
         response = browser.get("/api/admin/provider-runtime")
     assert response.status_code == 200
-    item = response.json()["items"][0]
+    item = response.json()["data"]["items"][0]
     assert item["access_policy_id"] == ProviderAccessPolicy.OPERATOR_PUBLIC
     assert item["context_available"] is True
     assert item["source_state"] == "revision_observed"

@@ -13,15 +13,15 @@ from datetime import UTC, datetime, timedelta
 from app.core.config import Settings, get_settings_for_role
 from app.core.db import create_engine, create_session_factory
 from app.core.security.url_cipher import URLCipher
-from app.crud.download_execution import DownloadExecutionRepository
-from app.crud.download_repository import SqlAlchemyDownloadRepository
-from app.crud.provider_route_cooldowns import SqlAlchemyProviderRouteCooldowns
 from app.integrations.media_runner import MediaRunnerRouter
 from app.integrations.media_runner_factory import media_runner_router
 from app.integrations.messaging import RabbitMqTopology
 from app.integrations.object_storage import MinioObjectStorage
 from app.integrations.thumbnail_storage import MinioThumbnailStorage
 from app.integrations.url_security import FernetUrlEnvelope
+from app.repositories.downloads.execution import DownloadExecutionRepository
+from app.repositories.downloads.repository import SqlAlchemyDownloadRepository
+from app.repositories.providers.route_cooldowns import SqlAlchemyProviderRouteCooldowns
 from app.services.download_execution.models import DownloadExecutionSettings
 from app.services.download_execution.service import DownloadExecution
 from app.services.downloads.thumbnail_use_cases import PersistThumbnail

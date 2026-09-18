@@ -4,10 +4,13 @@ import { request, type RequestOptions } from "@/lib/request";
 
 /** 查询 AI 分析 Provider GET /api/admin/ai-providers */
 export async function listAiProviderProfiles(options?: RequestOptions) {
-  return request<API.AiProviderProfileListResponse>("/api/admin/ai-providers", {
-    method: "GET",
-    ...(options || {}),
-  });
+  return request<API.ApiResponseAiProviderProfileListResponse_>(
+    "/api/admin/ai-providers",
+    {
+      method: "GET",
+      ...(options || {}),
+    }
+  );
 }
 
 /** 新增 AI 分析 Provider POST /api/admin/ai-providers */
@@ -15,14 +18,17 @@ export async function createAiProviderProfile(
   body: API.CreateAiProviderProfileRequest,
   options?: RequestOptions
 ) {
-  return request<API.AiProviderProfileResponse>("/api/admin/ai-providers", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    data: body,
-    ...(options || {}),
-  });
+  return request<API.ApiResponseAiProviderProfileResponse_>(
+    "/api/admin/ai-providers",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      data: body,
+      ...(options || {}),
+    }
+  );
 }
 
 /** 删除 AI 分析 Provider DELETE /api/admin/ai-providers/${param0} */
@@ -47,7 +53,7 @@ export async function updateAiProviderProfile(
   options?: RequestOptions
 ) {
   const { provider_key: param0, ...queryParams } = params;
-  return request<API.AiProviderProfileResponse>(
+  return request<API.ApiResponseAiProviderProfileResponse_>(
     `/api/admin/ai-providers/${param0}`,
     {
       method: "PATCH",
@@ -68,7 +74,7 @@ export async function activateAiProviderProfile(
   options?: RequestOptions
 ) {
   const { provider_key: param0, ...queryParams } = params;
-  return request<API.AiProviderProfileResponse>(
+  return request<API.ApiResponseAiProviderProfileResponse_>(
     `/api/admin/ai-providers/${param0}/activate`,
     {
       method: "POST",
@@ -80,7 +86,7 @@ export async function activateAiProviderProfile(
 
 /** 查询 OpenRouter 公开模型能力 GET /api/admin/ai-providers/models/openrouter */
 export async function listOpenRouterModels(options?: RequestOptions) {
-  return request<API.AiModelListResponse>(
+  return request<API.ApiResponseAiModelListResponse_>(
     "/api/admin/ai-providers/models/openrouter",
     {
       method: "GET",
@@ -95,7 +101,7 @@ export async function getDownloadAnalytics(
   params: API.getDownloadAnalyticsParams,
   options?: RequestOptions
 ) {
-  return request<API.DownloadAnalyticsResponse>(
+  return request<API.ApiResponseDownloadAnalyticsResponse_>(
     "/api/admin/downloads/analytics",
     {
       method: "GET",
@@ -115,7 +121,7 @@ export async function listStoredFiles(
   params: API.listStoredFilesParams,
   options?: RequestOptions
 ) {
-  return request<API.StoredFileListResponse>("/api/admin/files", {
+  return request<API.ApiResponseStoredFileListResponse_>("/api/admin/files", {
     method: "GET",
     params: {
       // page has a default value: 1
@@ -133,19 +139,22 @@ export async function cleanupStoredFiles(
   body: API.StorageCleanupRequest,
   options?: RequestOptions
 ) {
-  return request<API.StorageCleanupResponse>("/api/admin/files/cleanup", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    data: body,
-    ...(options || {}),
-  });
+  return request<API.ApiResponseStorageCleanupResponse_>(
+    "/api/admin/files/cleanup",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      data: body,
+      ...(options || {}),
+    }
+  );
 }
 
 /** 读取已开放平台的脱敏运行诊断 仅元数据快照，不登录、不导出会话、不解析或下载媒体。 GET /api/admin/provider-runtime */
 export async function getAdminProviderRuntime(options?: RequestOptions) {
-  return request<API.ProviderRuntimeListResponse>(
+  return request<API.ApiResponseProviderRuntimeListResponse_>(
     "/api/admin/provider-runtime",
     {
       method: "GET",
@@ -156,10 +165,13 @@ export async function getAdminProviderRuntime(options?: RequestOptions) {
 
 /** 查询平台目录 GET /api/admin/providers */
 export async function listProviderCatalogEntries(options?: RequestOptions) {
-  return request<API.ProviderCatalogListResponse>("/api/admin/providers", {
-    method: "GET",
-    ...(options || {}),
-  });
+  return request<API.ApiResponseProviderCatalogListResponse_>(
+    "/api/admin/providers",
+    {
+      method: "GET",
+      ...(options || {}),
+    }
+  );
 }
 
 /** 新增平台目录条目 POST /api/admin/providers */
@@ -167,14 +179,17 @@ export async function createProviderCatalogEntry(
   body: API.CreateProviderCatalogEntryRequest,
   options?: RequestOptions
 ) {
-  return request<API.ProviderCatalogEntryResponse>("/api/admin/providers", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    data: body,
-    ...(options || {}),
-  });
+  return request<API.ApiResponseProviderCatalogEntryResponse_>(
+    "/api/admin/providers",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      data: body,
+      ...(options || {}),
+    }
+  );
 }
 
 /** 删除平台目录条目 DELETE /api/admin/providers/${param0} */
@@ -199,7 +214,7 @@ export async function updateProviderCatalogEntry(
   options?: RequestOptions
 ) {
   const { provider_key: param0, ...queryParams } = params;
-  return request<API.ProviderCatalogEntryResponse>(
+  return request<API.ApiResponseProviderCatalogEntryResponse_>(
     `/api/admin/providers/${param0}`,
     {
       method: "PATCH",
@@ -219,7 +234,7 @@ export async function listUsers(
   params: API.listUsersParams,
   options?: RequestOptions
 ) {
-  return request<API.ManagedUserListResponse>("/api/admin/users", {
+  return request<API.ApiResponseManagedUserListResponse_>("/api/admin/users", {
     method: "GET",
     params: {
       // page has a default value: 1
@@ -241,13 +256,16 @@ export async function updateUserAccess(
   options?: RequestOptions
 ) {
   const { user_id: param0, ...queryParams } = params;
-  return request<API.ManagedUserResponse>(`/api/admin/users/${param0}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    params: { ...queryParams },
-    data: body,
-    ...(options || {}),
-  });
+  return request<API.ApiResponseManagedUserResponse_>(
+    `/api/admin/users/${param0}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      params: { ...queryParams },
+      data: body,
+      ...(options || {}),
+    }
+  );
 }

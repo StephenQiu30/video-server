@@ -7,7 +7,7 @@ export async function inspectMedia(
   body: API.InspectionRequest,
   options?: RequestOptions
 ) {
-  return request<API.InspectionResponse>("/api/inspections", {
+  return request<API.ApiResponseInspectionResponse_>("/api/inspections", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -24,11 +24,14 @@ export async function getInspection(
   options?: RequestOptions
 ) {
   const { inspection_id: param0, ...queryParams } = params;
-  return request<API.InspectionResponse>(`/api/inspections/${param0}`, {
-    method: "GET",
-    params: { ...queryParams },
-    ...(options || {}),
-  });
+  return request<API.ApiResponseInspectionResponse_>(
+    `/api/inspections/${param0}`,
+    {
+      method: "GET",
+      params: { ...queryParams },
+      ...(options || {}),
+    }
+  );
 }
 
 /** 读取持久化媒体封面 读取当前用户拥有且存储在私有对象存储中的媒体封面。 GET /api/inspections/${param0}/thumbnail */

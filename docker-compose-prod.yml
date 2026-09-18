@@ -1,11 +1,9 @@
-x-app-build: &app-build
-  context: .
+x-backend-build: &backend-build
+  context: ./backend
   dockerfile: Dockerfile
-  args:
-    SITE_URL: "${SITE_URL:?SITE_URL is required}"
 
 x-provider-session-runner: &provider-session-runner
-  build: *app-build
+  build: *backend-build
   image: video-server:prod
   restart: unless-stopped
   stop_grace_period: 90s
@@ -63,7 +61,7 @@ x-provider-session-environment: &provider-session-environment
 
 services:
   api:
-    build: *app-build
+    build: *backend-build
     image: video-server:prod
     container_name: video-api
     restart: unless-stopped
@@ -198,8 +196,12 @@ services:
     command: ["python", "-m", "app.main"]
 
   frontend:
-    build: *app-build
-    image: video-server:prod
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        SITE_URL: "${SITE_URL:?SITE_URL is required}"
+    image: video-frontend:prod
     container_name: video-frontend
     restart: unless-stopped
     environment:
@@ -240,7 +242,7 @@ services:
     command: ["node", "server.js"]
 
   outbox:
-    build: *app-build
+    build: *backend-build
     image: video-server:prod
     container_name: video-outbox
     restart: unless-stopped
@@ -273,7 +275,7 @@ services:
     command: ["python", "-m", "app.workers.outbox.main"]
 
   worker-download:
-    build: *app-build
+    build: *backend-build
     image: video-server:prod
     container_name: video-worker-download
     restart: unless-stopped
@@ -339,7 +341,7 @@ services:
     command: ["python", "-m", "app.workers.download.main"]
 
   worker-import:
-    build: *app-build
+    build: *backend-build
     image: video-server:prod
     container_name: video-worker-import
     restart: unless-stopped
@@ -403,7 +405,7 @@ services:
     command: ["python", "-m", "app.workers.imports.main"]
 
   worker-report:
-    build: *app-build
+    build: *backend-build
     image: video-server:prod
     container_name: video-worker-report
     restart: unless-stopped
@@ -446,7 +448,7 @@ services:
     command: ["python", "-m", "app.workers.report.main"]
 
   provider-canary:
-    build: *app-build
+    build: *backend-build
     image: video-server:prod
     container_name: video-provider-canary
     restart: unless-stopped
@@ -493,7 +495,7 @@ services:
     command: ["python", "-m", "app.workers.canary.main"]
 
   media-runner:
-    build: *app-build
+    build: *backend-build
     image: video-server:prod
     container_name: media-runner
     restart: unless-stopped
@@ -579,7 +581,7 @@ services:
       start_period: 5s
 
   workspace-init:
-    build: *app-build
+    build: *backend-build
     image: video-server:prod
     container_name: workspace-init
     restart: "no"

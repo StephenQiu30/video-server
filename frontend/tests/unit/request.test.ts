@@ -19,6 +19,33 @@ describe('Axios request wrapper', () => {
     });
   });
 
+  it('unwraps the generated JSON contract, including nullable data', async () => {
+    vi.mocked(httpClient.request).mockResolvedValueOnce({
+      data: { code: 'ok', message: 'OK', data: { id: 'job' } },
+    } as never);
+    await expect(request('/api/downloads/job')).resolves.toEqual({ id: 'job' });
+    vi.mocked(httpClient.request).mockResolvedValueOnce({
+      data: { code: 'ok', message: 'OK', data: null },
+    } as never);
+    await expect(request('/api/downloads/job/analysis')).resolves.toBeNull();
+  });
+
+  it('keeps binary content and no-content responses intact', async () => {
+    const blob = new Blob(['file']);
+    vi.mocked(httpClient.request).mockResolvedValueOnce({
+      data: blob,
+    } as never);
+    await expect(
+      request('/api/files/file', { responseType: 'blob' }),
+    ).resolves.toBe(blob);
+    vi.mocked(httpClient.request).mockResolvedValueOnce({
+      data: undefined,
+    } as never);
+    await expect(
+      request('/api/auth/logout', { method: 'POST' }),
+    ).resolves.toBeUndefined();
+  });
+
   it('rejects absolute cross-origin request targets', async () => {
     await expect(request('https://example.com/private')).rejects.toThrow(
       'Only same-origin API paths are allowed.',

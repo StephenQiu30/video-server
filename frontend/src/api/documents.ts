@@ -8,7 +8,7 @@ export async function listDocuments(
   params: API.listDocumentsParams,
   options?: RequestOptions
 ) {
-  return request<API.DocumentPageResponse>("/api/documents", {
+  return request<API.ApiResponseDocumentPageResponse_>("/api/documents", {
     method: "GET",
     params: {
       // page has a default value: 1
@@ -26,7 +26,7 @@ export async function createDocumentImport(
   body: API.DocumentImportRequest,
   options?: RequestOptions
 ) {
-  return request<API.DocumentImportResponse>("/api/documents", {
+  return request<API.ApiResponseDocumentImportResponse_>("/api/documents", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -43,11 +43,14 @@ export async function getDocumentImport(
   options?: RequestOptions
 ) {
   const { document_id: param0, ...queryParams } = params;
-  return request<API.DocumentDetailResponse>(`/api/documents/${param0}`, {
-    method: "GET",
-    params: { ...queryParams },
-    ...(options || {}),
-  });
+  return request<API.ApiResponseDocumentDetailResponse_>(
+    `/api/documents/${param0}`,
+    {
+      method: "GET",
+      params: { ...queryParams },
+      ...(options || {}),
+    }
+  );
 }
 
 /** 删除剧本文档及其制品 DELETE /api/documents/${param0} */
@@ -71,7 +74,7 @@ export async function cancelDocumentImport(
   options?: RequestOptions
 ) {
   const { document_id: param0, ...queryParams } = params;
-  return request<API.DocumentImportResponse>(
+  return request<API.ApiResponseDocumentImportResponse_>(
     `/api/documents/${param0}/cancel`,
     {
       method: "POST",
@@ -89,7 +92,7 @@ export async function completeDocumentImport(
   options?: RequestOptions
 ) {
   const { document_id: param0, ...queryParams } = params;
-  return request<API.DocumentImportResponse>(
+  return request<API.ApiResponseDocumentImportResponse_>(
     `/api/documents/${param0}/complete`,
     {
       method: "POST",
@@ -110,7 +113,7 @@ export async function createDocumentUploadSession(
   options?: RequestOptions
 ) {
   const { document_id: param0, ...queryParams } = params;
-  return request<API.DocumentUploadSessionResponse>(
+  return request<API.ApiResponseDocumentUploadSessionResponse_>(
     `/api/documents/${param0}/upload-sessions`,
     {
       method: "POST",

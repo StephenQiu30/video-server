@@ -8,19 +8,18 @@ from fastapi.exceptions import RequestValidationError
 
 from app.api.admission import RateLimitAdmission
 from app.api.deps import IdempotencyKey, get_analysis_use_cases, get_current_user
-from app.api.errors import analysis_application_error
+from app.api.responses import ApiResponseRoute
 from app.core.runtime import AnalysisUseCases
 from app.schemas.analyses import (
     AnalysisRequest,
     AnalysisResponse,
     AnalysisSkillResponse,
 )
-from app.services.analysis.errors import AnalysisApplicationError
 from app.services.analysis.export_report import DOCX_MEDIA_TYPE, MARKDOWN_MEDIA_TYPE
 from app.services.analysis.rules.enums import AnalysisInputKind
 from app.services.auth.models import CurrentUser
 
-router = APIRouter(tags=["analyses"])
+router = APIRouter(route_class=ApiResponseRoute, tags=["analyses"])
 User = Annotated[CurrentUser, Depends(get_current_user)]
 UseCases = Annotated[AnalysisUseCases, Depends(get_analysis_use_cases)]
 
@@ -59,18 +58,15 @@ async def create_analysis(
     use_cases: UseCases,
 ) -> AnalysisResponse:
     """基于已完成的下载制品创建异步 AI 分析任务。"""
-    try:
-        view = await use_cases.create_analysis(
-            download_id,
-            user.owner_hash,
-            idempotency_key,
-            body.skill_id,
-            body.output_language,
-            body.custom_prompt,
-            quota=user.admission_quota,
-        )
-    except AnalysisApplicationError as exc:
-        raise analysis_application_error(exc) from exc
+    view = await use_cases.create_analysis(
+        download_id,
+        user.owner_hash,
+        idempotency_key,
+        body.skill_id,
+        body.output_language,
+        body.custom_prompt,
+        quota=user.admission_quota,
+    )
     response.headers["Location"] = f"/api/analyses/{view.id}"
     return AnalysisResponse.from_view(view)
 
@@ -87,12 +83,7 @@ async def get_latest_download_analysis(
     use_cases: UseCases,
 ) -> AnalysisResponse | None:
     """恢复当前用户在该下载任务上最近创建的分析与报告。"""
-    try:
-        view = await use_cases.get_latest_download_analysis(
-            download_id, user.owner_hash
-        )
-    except AnalysisApplicationError as exc:
-        raise analysis_application_error(exc) from exc
+    view = await use_cases.get_latest_download_analysis(download_id, user.owner_hash)
     return None if view is None else AnalysisResponse.from_view(view)
 
 
@@ -108,10 +99,7 @@ async def get_analysis(
     use_cases: UseCases,
 ) -> AnalysisResponse:
     """查询分析进度及经过证据校验的结果。"""
-    try:
-        view = await use_cases.get_analysis(analysis_id, user.owner_hash)
-    except AnalysisApplicationError as exc:
-        raise analysis_application_error(exc) from exc
+    view = await use_cases.get_analysis(analysis_id, user.owner_hash)
     return AnalysisResponse.from_view(view)
 
 
@@ -135,10 +123,7 @@ async def export_analysis_markdown(
     use_cases: UseCases,
 ) -> Response:
     """导出与前端预览、DOCX 转换共用的唯一 Markdown 报告。"""
-    try:
-        report = await use_cases.export_analysis_markdown(analysis_id, user.owner_hash)
-    except AnalysisApplicationError as exc:
-        raise analysis_application_error(exc) from exc
+    report = await use_cases.export_analysis_markdown(analysis_id, user.owner_hash)
     return Response(
         content=report.content,
         media_type=MARKDOWN_MEDIA_TYPE,
@@ -169,10 +154,7 @@ async def export_analysis_report(
     use_cases: UseCases,
 ) -> Response:
     """将已完成的结构化分析结果导出为 DOCX 报告。"""
-    try:
-        report = await use_cases.export_analysis_report(analysis_id, user.owner_hash)
-    except AnalysisApplicationError as exc:
-        raise analysis_application_error(exc) from exc
+    report = await use_cases.export_analysis_report(analysis_id, user.owner_hash)
     return Response(
         content=report.content,
         media_type=report.media_type,
@@ -195,10 +177,7 @@ async def cancel_analysis(
     use_cases: UseCases,
 ) -> AnalysisResponse:
     """请求取消尚未结束的视频分析任务。"""
-    try:
-        view = await use_cases.cancel_analysis(analysis_id, user.owner_hash)
-    except AnalysisApplicationError as exc:
-        raise analysis_application_error(exc) from exc
+    view = await use_cases.cancel_analysis(analysis_id, user.owner_hash)
     return AnalysisResponse.from_view(view)
 
 
@@ -233,15 +212,12 @@ async def retry_analysis(
                 }
             ]
         )
-    try:
-        view = await use_cases.retry_analysis(
-            analysis_id,
-            user.owner_hash,
-            idempotency_key,
-            quota=user.admission_quota,
-        )
-    except AnalysisApplicationError as exc:
-        raise analysis_application_error(exc) from exc
+    view = await use_cases.retry_analysis(
+        analysis_id,
+        user.owner_hash,
+        idempotency_key,
+        quota=user.admission_quota,
+    )
     response.headers["Location"] = f"/api/analyses/{view.id}"
     return AnalysisResponse.from_view(view)
 
@@ -258,8 +234,5 @@ async def delete_analysis(
     use_cases: UseCases,
 ) -> Response:
     """隐藏分析任务并异步清理其私有报告对象。"""
-    try:
-        await use_cases.delete_analysis(analysis_id, user.owner_hash)
-    except AnalysisApplicationError as exc:
-        raise analysis_application_error(exc) from exc
+    await use_cases.delete_analysis(analysis_id, user.owner_hash)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

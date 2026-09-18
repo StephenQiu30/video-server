@@ -39,7 +39,7 @@ def test_admin_download_analytics_returns_visualization_safe_fields(
         response = client.get("/api/admin/downloads/analytics", params={"days": 7})
 
     assert response.status_code == 200
-    payload = response.json()
+    payload = response.json()["data"]
     assert payload["period_days"] == 7
     assert payload["summary"] == {
         "total": 4,

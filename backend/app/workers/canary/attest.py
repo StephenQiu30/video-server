@@ -12,14 +12,14 @@ from uuid import UUID
 from app.core.config import get_settings_for_role
 from app.core.db import create_engine, create_session_factory
 from app.core.security.url_cipher import URLCipher
-from app.crud.provider_canary_repository import (
-    SqlAlchemyProviderCanaryRepository,
-)
 from app.integrations.object_storage import MinioObjectStorage
 from app.integrations.provider_analysis_evidence import (
     SqlAlchemyAnalysisCanaryEvidenceReader,
 )
 from app.integrations.url_security import FernetUrlEnvelope
+from app.repositories.providers.canary_repository import (
+    SqlAlchemyProviderCanaryRepository,
+)
 from app.services.provider_analysis_canary import (
     AnalysisCanaryTarget,
     CanaryObjectStorage,

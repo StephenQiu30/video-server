@@ -6,10 +6,10 @@ from uuid import uuid4
 
 import pytest
 from app.core.db import create_session_factory
-from app.crud.download_repository import SqlAlchemyDownloadRepository
-from app.crud.provider_route_cooldowns import SqlAlchemyProviderRouteCooldowns
 from app.models import DownloadJobRow
 from app.models.provider_route_cooldown import ProviderRouteCooldownRow
+from app.repositories.downloads.repository import SqlAlchemyDownloadRepository
+from app.repositories.providers.route_cooldowns import SqlAlchemyProviderRouteCooldowns
 from app.services.downloads.download_models import DownloadCreate
 from app.services.downloads.inspection_models import FormatCreate, InspectionCreate
 from app.services.provider_access import ProviderAccessPolicy

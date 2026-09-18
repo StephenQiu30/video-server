@@ -74,7 +74,7 @@
 
 ### CQ-004：故障注入必须命中真正执行对象
 
-证据：[test_retry_admission.py](../backend/tests/unit/crud/analysis/test_retry_admission.py)第 48–58 行在 `SqlAlchemyAnalysisRepository` 子类覆盖 `_require_retry_capacity`；[当前组合入口](../backend/app/crud/analysis_repository.py)最后两行把 retry_job_and_enqueue 绑定到独立 `AnalysisRetryRepository` 实例；[实际调用](../backend/app/crud/analysis_repository_retry.py)第 54 行调用的是该实例的校验，不是测试子类的方法。
+证据：[test_retry_admission.py](../backend/tests/unit/repositories/analysis/test_retry_admission.py)第 48–58 行在 `SqlAlchemyAnalysisRepository` 子类覆盖 `_require_retry_capacity`；[当前组合入口](../backend/app/repositories/analysis/repository.py)最后两行把 retry_job_and_enqueue 绑定到独立 `AnalysisRetryRepository` 实例；[实际调用](../backend/app/repositories/analysis/repository_retry.py)第 54 行调用的是该实例的校验，不是测试子类的方法。
 
 影响：测试中声称“读计数后暂停”的 sleep 不会执行，预期交错不受控制；最终计数断言仍有价值，但不能证明指定竞态已被覆盖。未据此宣称生产锁失效或测试必然失败。
 
@@ -143,7 +143,7 @@
 ## 4. 已审查但不应机械删除的结构
 
 - 下载与分析的 Repository 组合：承担不同事务和任务模型；不因有多个能力对象就报过度设计。CQ-004 应修测试注入，不反向恢复继承。
-- [DownloadExecutionRepository](../backend/app/crud/download_execution.py)：含错误语义转换和 ArtifactCreate 映射，不是已证实的空转发层；是否去掉须先证明这些边界另有唯一所有者。
+- [DownloadExecutionRepository](../backend/app/repositories/downloads/execution.py)：含错误语义转换和 ArtifactCreate 映射，不是已证实的空转发层；是否去掉须先证明这些边界另有唯一所有者。
 - Web/App 的端侧呈现和状态模型：不同语言/生命周期，需要契约一致，不要求共用一份可执行 UI 代码。
 - 生成客户端、Protocol 与实现的同名签名、SQL/ORM 必须一致的字段以及 UI import 列表：不作为复制缺陷，也不手改生成文件“去重”。
 
@@ -291,7 +291,7 @@ CQ-020 动态来源身份修订、CQ-027 间歇平台请求、CQ-022 红果探�
 
 ### 2026-09-18 FastAPI 目录迁移验收
 
-- 依据 PROJECT.md 完整规范，HTTP 代码归入 api，配置与资源生命周期归入 core，数据操作归入 crud；业务规则与技能归到 services 所属业务，Runner 归入 workers。旧路径全部移除，测试目录与部署入口同步更新。
+- 依据 PROJECT.md 完整规范，HTTP 代码归入 api，配置与资源生命周期归入 core，数据操作归入 repositories；业务规则与技能归到 services 所属业务，Runner 归入 workers。旧路径全部移除，测试目录与部署入口同步更新。
 - Ruff 检查与格式、mypy（533 个源码文件）通过；迁移前后 OpenAPI 的 60 个路径与完整模型相同，Umi 重新生成客户端无差异。
 - 目录迁移初验：1817 passed、2 skipped、12 failed；随后清理旧文件及引用，全量后端测试恢复为 1825 passed、2 skipped。跳过项为未配置隔离 MinIO 与 Linux 专用行为。
 - 配置定位、架构与移动后的数据库测试 47 项通过。两份业务 Compose 静态解析、镜像构建通过；无网络镜像中可生成 OpenAPI 并导入 API、下载/分析/Outbox Worker 和 Runner 入口。未重启运行中的服务，未执行真实平台下载。
@@ -302,6 +302,19 @@ CQ-020 动态来源身份修订、CQ-027 间歇平台请求、CQ-022 红果探�
 
 证据：01c8f6a1 的 PROJECT.md 仅展示简化教学结构，未覆盖实际后端；app 根目录有 17 个 Python 文件，HTTP、配置和进程装配混放，业务规则与操作跨 domain/services 查找。15 个包维护 856 行导入和 __all__，仅转发实际定义。
 
-修复：以 FastAPI 官方完整模板的 api/core/models/crud 组织方式为基础，明确项目额外需要的 schemas/services/integrations/workers。app 根目录只保留 main.py 和 __init__.py；规则与技能就近放置，取消业务批量重导出并更新调用方直接导入。限流/配额配置合入 core/config.py，配额 HTTP 异常合入 api/errors.py。保留有真实资源生命周期和事务职责的实现，不将它们伪装成无用文件删除。
+修复：以 FastAPI 官方完整模板的 api/core/models 组织方式为基础，明确项目额外需要的 schemas/services/integrations/workers。app 根目录只保留 main.py 和 __init__.py；规则与技能就近放置，取消业务批量重导出并更新调用方直接导入。限流/配额配置合入 core/config.py，配额 HTTP 异常合入 api/errors.py。保留有真实资源生命周期和事务职责的实现，不将它们伪装成无用文件删除。
 
 验收：Ruff 与格式检查、mypy、1825 项后端测试通过，2 项为既有环境条件跳过；60 路径的 OpenAPI 完整内容不变，Umi 客户端重新生成无差异。两份业务 Compose 解析、镜像构建以及无网络容器内 API/Runner/Worker 导入和技能加载通过。运行中的服务没有重启，真实平台任务未复测。
+
+
+## 全局响应与持久化目录归组（2026-09-18）
+
+证据：此前持久化文件平铺、路由包含 57 处重复异常映射，框架 404/405 与业务错误响应格式不同。
+
+修复：repositories 按实际业务聚合并同步所有导入；公开错误码、异常注册、错误响应和泛型成功响应集中维护；前端从 OpenAPI 重新生成并由 Axios 解包。保留事务行为、原始 HTTP 状态及独立 App 契约。
+
+验收：已完成。最终后端全量 1829 项通过、2 项因隔离 MinIO 未配置与 Linux O_PATH 条件跳过；全局响应、认证刷新及容器独立构建契约均覆盖。Ruff/格式、mypy（544 个源码文件）、前端 302 项测试、类型检查及生产构建通过。两份业务 Compose 解析、镜像构建通过；无网络容器可生成 60 路径 OpenAPI 并导入 7 个 Worker/Runner 入口。
+
+部署边界：Web JSON 为破坏性契约更新，发布时必须同步更新 Server 与 Web；尚未重启本机运行服务，未复验真实 Provider 下载。独立 App v1 保留原协议。规范与持续决策已合入 PROJECT.md，纯实施四件套已清理。前端代理的 503 错误也使用统一格式，16 项代理测试与类型检查通过。
+
+按用户确认删除根 Dockerfile；backend 与 frontend 分别维护 Dockerfile 和 .dockerignore，Compose 使用各自构建上下文与独立镜像。前端健康检查使用 Node.js，不再依赖后端 Python 运行时。补充容器独立构建契约测试；两份 Compose 解析与两个独立镜像构建通过。无网络后端容器可生成 60 路径 OpenAPI 并导入 7 个 Worker/Runner；无网络前端容器实际启动后首页返回 200。已运行的业务服务没有重启。

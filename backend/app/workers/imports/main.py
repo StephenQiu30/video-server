@@ -8,17 +8,17 @@ from datetime import timedelta
 
 from app.core.config import Settings, get_settings_for_role
 from app.core.db import create_engine, create_session_factory
-from app.crud.document_import_execution_repository import (
-    SqlAlchemyDocumentImportExecutionRepository,
-)
-from app.crud.download_repository import SqlAlchemyDownloadRepository
-from app.crud.media_import_repository import SqlAlchemyMediaImportRepository
 from app.integrations.imports.verifier_factory import build_screenplay_verifier
 from app.integrations.imports.video import Mp4ImportVerifier, VideoVerificationSettings
 from app.integrations.imports.workspace import PrivateImportWorkspace
 from app.integrations.messaging import RabbitMqTopology
 from app.integrations.object_storage import MinioObjectStorage
 from app.integrations.thumbnail_storage import MinioThumbnailStorage
+from app.repositories.documents.import_execution_repository import (
+    SqlAlchemyDocumentImportExecutionRepository,
+)
+from app.repositories.downloads.repository import SqlAlchemyDownloadRepository
+from app.repositories.imports.repository import SqlAlchemyMediaImportRepository
 from app.services.downloads.thumbnail_use_cases import PersistDownloadThumbnail
 from app.services.import_execution.document_recovery import (
     DocumentImportRecoverySweeper,

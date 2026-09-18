@@ -2,7 +2,7 @@
 
 FastAPI API、下载/分析领域逻辑、异步 Worker、当前态数据库 SQL 和 Python 测试位于本模块。
 
-所有 Python 与 `uv` 命令都应从 `backend/` 执行。数据库当前结构定义在可重复执行的 `sql/schema.sql`；由部署者按需在已有项目数据库中幂等加载；业务启动不创建基础服务，也不重复初始化已有环境。项目不维护迁移历史或旧 schema 兼容路径。生产镜像由仓库根目录 `Dockerfile` 统一构建，Next.js 与 FastAPI 分别运行。
+所有 Python 与 `uv` 命令都应从 `backend/` 执行。数据库当前结构定义在可重复执行的 `sql/schema.sql`；由部署者按需在已有项目数据库中幂等加载；业务启动不创建基础服务，也不重复初始化已有环境。项目不维护迁移历史或旧 schema 兼容路径。本目录 `Dockerfile` 构建 API、Worker 与 Runner 镜像；前端使用 frontend/Dockerfile 独立构建。
 
 ## 目录约定
 
@@ -13,7 +13,7 @@ app/
 ├── core/             配置、数据库连接、安全、资源装配和生命周期
 ├── models/           SQLAlchemy 实体
 ├── schemas/          Pydantic HTTP 契约
-├── crud/             数据操作和事务
+├── repositories/             数据操作和事务
 ├── services/         业务操作、内部类型及就近维护的 rules/skills
 ├── integrations/     外部系统适配
 └── workers/          Worker、独立 Runner 及各自进程入口
@@ -121,7 +121,7 @@ API 固定监听 `8111`，前端固定监听 `8101`。API `/health/live` 只证�
 
 ## 测试目录
 
-`tests/unit/` 按实际模块组织：services（包含业务 rules）、crud、models、integrations、core/security、schemas 与 workers（包含 runner）；入口和配置测试直接放在 unit 下。`tests/integration/api/` 验证 HTTP 与 WebSocket，`tests/contract/` 验证公开契约及部署配置，`tests/architecture/` 检查模块依赖。移动模块时同步更新测试导入和文档命令。
+`tests/unit/` 按实际模块组织：services（包含业务 rules）、repositories、models、integrations、core/security、schemas 与 workers（包含 runner）；入口和配置测试直接放在 unit 下。`tests/integration/api/` 验证 HTTP 与 WebSocket，`tests/contract/` 验证公开契约及部署配置，`tests/architecture/` 检查模块依赖。移动模块时同步更新测试导入和文档命令。
 
 ## 测试数据库
 
@@ -145,3 +145,5 @@ API 使用 `runtime.py` 定义类型化的 `ApiServices`，在 `app.state.servic
 ## 统一 AI API 接入
 
 管理员可在 AI 服务中选择 OpenRouter 或 OpenAI 兼容 API。OpenRouter 使用官方固定 Base URL，读取公开模型目录后选择模型；视频要求图像输入与结构化输出。通用兼容线路自行填写模型、Base URL 和 Key，服务须支持图像与 JSON 输出。API 线路无需 CLI，但现有宿主分析 Worker、FFmpeg 与基础服务仍需运行。修改服务地址或引擎时必须重新提供 Key。设计、能力边界及验收见 [037](../docs/design/037-统一AI执行与OpenRouter接入设计.md)。
+
+Web JSON 响应及全局异常统一遵循 [PROJECT.md §3.1](../PROJECT.md#31-全局响应与异常)。持久化代码在 repositories 内按业务聚合；业务路由使用 ApiResponseRoute，生成契约随注解自动更新。

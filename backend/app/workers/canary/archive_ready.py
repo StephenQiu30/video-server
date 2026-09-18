@@ -8,14 +8,14 @@ from datetime import UTC, datetime
 
 from app.core.config import get_settings_for_role
 from app.core.db import create_engine, create_session_factory
-from app.crud.provider_canary_repository import (
-    SqlAlchemyProviderCanaryRepository,
-)
 from app.integrations.media_runner_factory import (
     media_runner_router,
     operator_provider_keys,
 )
 from app.integrations.provider_status import configured_provider_statuses
+from app.repositories.providers.canary_repository import (
+    SqlAlchemyProviderCanaryRepository,
+)
 from app.services.provider_canaries import ProviderStatusService
 from app.services.provider_types import ProviderSupportStatus
 from app.workers.runner.provider_registry import configure_provider_instances

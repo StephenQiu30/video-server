@@ -2,25 +2,36 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
+from http import HTTPStatus
 from math import ceil
 from typing import cast
 
-from fastapi import Request
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException
 
+from app.core.error_codes import ErrorCode
 from app.core.errors import AppError
+from app.schemas.response import ErrorResponse
+from app.services.ai_model_catalog import ModelCatalogUnavailable
+from app.services.ai_provider_models import AiProviderError, AiProviderErrorCode
 from app.services.analysis.errors import (
     AnalysisApplicationError,
     AnalysisApplicationErrorCode,
 )
-from app.services.auth.errors import AuthError, AuthErrorCode
+from app.services.auth.errors import AuthError, AuthErrorCode, SessionRotationConflict
 from app.services.downloads.errors import ApplicationError, ApplicationErrorCode
 from app.services.imports.errors import (
     ImportApplicationError,
     ImportApplicationErrorCode,
 )
+from app.services.provider_catalog import ProviderCatalogError, ProviderCatalogErrorCode
 from app.services.quotas import QuotaExceeded
+
+logger = logging.getLogger(__name__)
 
 _ERRORS: dict[ApplicationErrorCode, tuple[int, str, str]] = {
     ApplicationErrorCode.ARTICLE_ACCESS_RESTRICTED: (
@@ -412,48 +423,43 @@ def auth_application_error(error: AuthError) -> AppError:
 
 
 async def app_error_handler(request: Request, error: Exception) -> JSONResponse:
-    app_error = cast(AppError, error)
-    return _problem_response(
-        request,
-        status=app_error.status,
-        code=app_error.code,
-        title=app_error.title,
-        detail=app_error.detail,
-        headers=app_error.headers,
-    )
+    return error_response(request, cast(AppError, error))
 
 
 async def validation_error_handler(request: Request, _error: Exception) -> JSONResponse:
-    return _problem_response(
+    return error_response(
         request,
-        status=422,
-        code="invalid_request",
-        title="Invalid request",
-        detail="The request parameters are invalid.",
+        AppError(
+            status=422,
+            code=ErrorCode.INVALID_REQUEST,
+            title="Invalid request",
+            detail="The request parameters are invalid.",
+        ),
     )
 
 
-def _problem_response(
-    request: Request,
-    *,
-    status: int,
-    code: str,
-    title: str,
-    detail: str,
-    headers: dict[str, str] | None = None,
-) -> JSONResponse:
+def error_response(request: Request, error: AppError) -> JSONResponse:
+    if request.url.path.startswith("/api/app/v1/"):
+        # The independently versioned native API retains its published contract.
+        return JSONResponse(
+            status_code=error.status,
+            media_type="application/problem+json",
+            headers=error.headers,
+            content={
+                "type": f"urn:video-server:error:{error.code}",
+                "title": error.title,
+                "status": error.status,
+                "detail": error.detail,
+                "code": error.code,
+                "instance": request.url.path,
+            },
+        )
     return JSONResponse(
-        status_code=status,
-        media_type="application/problem+json",
-        headers=headers,
-        content={
-            "type": f"urn:video-server:error:{code}",
-            "title": title,
-            "status": status,
-            "detail": detail,
-            "code": code,
-            "instance": request.url.path,
-        },
+        status_code=error.status,
+        headers=error.headers,
+        content=ErrorResponse(
+            code=ErrorCode(error.code), message=error.detail, data=None
+        ).model_dump(mode="json"),
     )
 
 
@@ -478,3 +484,170 @@ async def quota_error_handler(request: Request, error: Exception) -> JSONRespons
             headers={"Retry-After": str(quota.retry_after)},
         ),
     )
+
+
+def _provider_error(error: AiProviderError) -> AppError:
+    mapping = {
+        AiProviderErrorCode.FORBIDDEN: (
+            403,
+            "Forbidden",
+            "Administrator access is required.",
+        ),
+        AiProviderErrorCode.INVALID_PROFILE: (
+            422,
+            "Invalid AI Provider profile",
+            "The AI Provider profile is invalid or incomplete.",
+        ),
+        AiProviderErrorCode.CONFLICT: (
+            409,
+            "AI Provider conflict",
+            "An AI Provider profile with this key already exists.",
+        ),
+        AiProviderErrorCode.NOT_FOUND: (
+            404,
+            "AI Provider not found",
+            "The requested AI Provider profile does not exist.",
+        ),
+        AiProviderErrorCode.ACTIVE_DELETE: (
+            409,
+            "Active AI Provider cannot be deleted",
+            "Activate another AI Provider before deleting this profile.",
+        ),
+        AiProviderErrorCode.RESERVED_MUTATION: (
+            409,
+            "Built-in AI Provider is protected",
+            "The local Codex fallback only allows display name and model changes.",
+        ),
+    }
+    status_code, title, detail = mapping[error.code]
+    return AppError(
+        status=status_code,
+        code=error.code.value,
+        title=title,
+        detail=detail,
+    )
+
+
+def _catalog_error(error: ProviderCatalogError) -> AppError:
+    mapping = {
+        ProviderCatalogErrorCode.FORBIDDEN: (
+            403,
+            "Forbidden",
+            "Administrator access is required.",
+        ),
+        ProviderCatalogErrorCode.INVALID_ENTRY: (
+            422,
+            "Invalid Provider catalog entry",
+            "The Provider catalog entry is invalid.",
+        ),
+        ProviderCatalogErrorCode.CONFLICT: (
+            409,
+            "Provider catalog conflict",
+            "A Provider catalog entry with this key already exists.",
+        ),
+        ProviderCatalogErrorCode.NOT_FOUND: (
+            404,
+            "Provider catalog entry not found",
+            "The requested Provider catalog entry does not exist.",
+        ),
+    }
+    status_code, title, detail = mapping[error.code]
+    return AppError(
+        status=status_code,
+        code=error.code.value,
+        title=title,
+        detail=detail,
+    )
+
+
+async def business_error_handler(request: Request, error: Exception) -> JSONResponse:
+    if isinstance(error, SessionRotationConflict):
+        mapped = AppError(
+            status=409,
+            code=ErrorCode.REFRESH_IN_PROGRESS,
+            title="Session refresh in progress",
+            detail="Another request has already refreshed this session.",
+        )
+    elif isinstance(error, ModelCatalogUnavailable):
+        mapped = AppError(
+            status=503,
+            code=ErrorCode.AI_MODEL_CATALOG_UNAVAILABLE,
+            title="Model catalog unavailable",
+            detail="The model catalog is temporarily unavailable.",
+        )
+    elif isinstance(error, ApplicationError):
+        mapped = application_error(error)
+    elif isinstance(error, AnalysisApplicationError):
+        mapped = analysis_application_error(error)
+    elif isinstance(error, ImportApplicationError):
+        mapped = import_application_error(error)
+    elif isinstance(error, AuthError):
+        mapped = auth_application_error(error)
+    elif isinstance(error, AiProviderError):
+        mapped = _provider_error(error)
+    elif isinstance(error, ProviderCatalogError):
+        mapped = _catalog_error(error)
+    else:
+        return await unexpected_error_handler(request, error)
+    return error_response(request, mapped)
+
+
+async def http_error_handler(request: Request, error: Exception) -> JSONResponse:
+    exception = cast(HTTPException, error)
+    code = {
+        400: ErrorCode.INVALID_REQUEST,
+        401: ErrorCode.UNAUTHENTICATED,
+        403: ErrorCode.FORBIDDEN,
+        404: ErrorCode.NOT_FOUND,
+        405: ErrorCode.METHOD_NOT_ALLOWED,
+        413: ErrorCode.REQUEST_TOO_LARGE,
+        422: ErrorCode.INVALID_REQUEST,
+        429: ErrorCode.RATE_LIMITED,
+    }.get(exception.status_code, ErrorCode.HTTP_ERROR)
+    return error_response(
+        request,
+        AppError(
+            status=exception.status_code,
+            code=code,
+            title="Request failed",
+            detail=(
+                HTTPStatus(exception.status_code).phrase
+                if exception.status_code in HTTPStatus._value2member_map_
+                else "Request failed"
+            ),
+            headers=dict(exception.headers) if exception.headers else None,
+        ),
+    )
+
+
+async def unexpected_error_handler(request: Request, error: Exception) -> JSONResponse:
+    logger.error("Unhandled API exception: %s", type(error).__name__)
+    return error_response(
+        request,
+        AppError(
+            status=500,
+            code=ErrorCode.INTERNAL_ERROR,
+            title="Internal error",
+            detail="An internal error occurred. Please try again later.",
+        ),
+    )
+
+
+def register_exception_handlers(app: FastAPI) -> None:
+    for error_type in (
+        ApplicationError,
+        AnalysisApplicationError,
+        ImportApplicationError,
+        AuthError,
+        AiProviderError,
+        ProviderCatalogError,
+        SessionRotationConflict,
+        ModelCatalogUnavailable,
+    ):
+        app.add_exception_handler(error_type, business_error_handler)
+    app.add_exception_handler(AppError, app_error_handler)
+    app.add_exception_handler(QuotaExceeded, quota_error_handler)
+    app.add_exception_handler(RequestValidationError, validation_error_handler)
+    app.add_exception_handler(HTTPException, http_error_handler)
+    app.add_exception_handler(ResponseValidationError, unexpected_error_handler)
+    app.add_exception_handler(Exception, unexpected_error_handler)

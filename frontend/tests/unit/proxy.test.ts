@@ -88,6 +88,11 @@ describe('frontend proxy', () => {
       new NextRequest('http://localhost:8137/api/providers'),
     );
     expect(response.status).toBe(503);
+    expect(await response.clone().json()).toEqual({
+      code: 'service_unavailable',
+      message: 'API routing is unavailable.',
+      data: null,
+    });
     expect(response.headers.get('x-middleware-rewrite')).toBeNull();
     expect(await response.text()).not.toContain(origin);
   });

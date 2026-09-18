@@ -107,10 +107,10 @@ def test_admin_can_create_list_update_and_delete_provider_catalog_entries(
 
     assert created.status_code == 201
     assert created.headers["location"] == "/api/admin/providers/vimeo"
-    assert created.json()["system_registered"] is True
-    assert listed.json()["items"][0]["display_name"] == "Vimeo 视频"
+    assert created.json()["data"]["system_registered"] is True
+    assert listed.json()["data"]["items"][0]["display_name"] == "Vimeo 视频"
     assert updated.status_code == 200
-    assert updated.json()["is_visible"] is False
+    assert updated.json()["data"]["is_visible"] is False
     assert deleted.status_code == 204
     assert deleted.content == b""
 

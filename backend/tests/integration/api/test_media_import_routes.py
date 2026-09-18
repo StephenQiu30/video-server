@@ -148,10 +148,10 @@ def test_media_import_routes_delegate_owner_and_hide_storage_identity(
     assert fetched.status_code == completed.status_code == 200
     assert created.headers["location"] == f"/api/media-imports/{RESOURCE_ID}"
     assert created.headers["cache-control"] == "no-store"
-    assert created.json()["download_id"] == str(RESOURCE_ID)
-    assert completed.json()["status"] == "verifying"
-    assert session.json()["part_count"] == 2
-    assert session.json()["max_concurrency"] == 4
+    assert created.json()["data"]["download_id"] == str(RESOURCE_ID)
+    assert completed.json()["data"]["status"] == "verifying"
+    assert session.json()["data"]["part_count"] == 2
+    assert session.json()["data"]["max_concurrency"] == 4
     assert "object_key" not in session.text
     assert "upload_id" not in session.text
     create_kwargs = stubs["create"].calls[0][1]
@@ -210,7 +210,7 @@ def test_media_import_request_does_not_coerce_rights_or_size(tmp_path: Path) -> 
     assert stubs["create"].calls == []
 
 
-def test_media_import_errors_use_stable_problem_details(tmp_path: Path) -> None:
+def test_media_import_errors_use_stable_error_envelopes(tmp_path: Path) -> None:
     test_client, stubs = client(tmp_path)
     stubs["create"].error = ImportApplicationError(ImportApplicationErrorCode.DISABLED)
     stubs["session"].error = ImportApplicationError(

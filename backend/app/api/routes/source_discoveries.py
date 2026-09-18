@@ -11,16 +11,19 @@ from app.api.deps import (
     get_current_user,
     get_source_discovery_use_cases,
 )
-from app.api.errors import application_error
+from app.api.responses import ApiResponseRoute
 from app.core.runtime import SourceDiscoveryUseCases
 from app.schemas.source_discoveries import (
     SourceDiscoveryRequest,
     SourceDiscoveryResponse,
 )
 from app.services.auth.models import CurrentUser
-from app.services.downloads.errors import ApplicationError
 
-router = APIRouter(prefix="/source-discoveries", tags=["source-discoveries"])
+router = APIRouter(
+    route_class=ApiResponseRoute,
+    prefix="/source-discoveries",
+    tags=["source-discoveries"],
+)
 User = Annotated[CurrentUser, Depends(get_current_user)]
 UseCases = Annotated[SourceDiscoveryUseCases, Depends(get_source_discovery_use_cases)]
 
@@ -40,10 +43,7 @@ async def create_source_discovery(
     use_cases: UseCases,
     response: Response,
 ) -> SourceDiscoveryResponse:
-    try:
-        view = await use_cases.create(body.url, user.owner_hash, idempotency_key)
-    except ApplicationError as exc:
-        raise application_error(exc) from exc
+    view = await use_cases.create(body.url, user.owner_hash, idempotency_key)
     response.headers["Location"] = f"/api/source-discoveries/{view.id}"
     return SourceDiscoveryResponse.from_view(view)
 
@@ -59,8 +59,5 @@ async def get_source_discovery(
     user: User,
     use_cases: UseCases,
 ) -> SourceDiscoveryResponse:
-    try:
-        view = await use_cases.get(discovery_id, user.owner_hash)
-    except ApplicationError as exc:
-        raise application_error(exc) from exc
+    view = await use_cases.get(discovery_id, user.owner_hash)
     return SourceDiscoveryResponse.from_view(view)

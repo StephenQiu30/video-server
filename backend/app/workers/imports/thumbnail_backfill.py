@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Protocol
 from uuid import UUID
 
-from app.crud.contracts import DownloadThumbnailCandidateSnapshot
+from app.repositories.contracts import DownloadThumbnailCandidateSnapshot
 from app.services.import_execution.ports import (
     ImportExecutionStorage,
     ImportWorkspaceManager,

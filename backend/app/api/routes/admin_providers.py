@@ -6,7 +6,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, Response, status
 
 from app.api.deps import get_current_admin, get_provider_catalog_service
-from app.core.errors import AppError
+from app.api.responses import ApiResponseRoute
 from app.schemas.provider_catalog import (
     CreateProviderCatalogEntryRequest,
     ProviderCatalogEntryResponse,
@@ -15,12 +15,12 @@ from app.schemas.provider_catalog import (
 )
 from app.services.auth.models import CurrentUser
 from app.services.provider_catalog import (
-    ProviderCatalogError,
-    ProviderCatalogErrorCode,
     ProviderCatalogService,
 )
 
-router = APIRouter(prefix="/admin/providers", tags=["admin"])
+router = APIRouter(
+    route_class=ApiResponseRoute, prefix="/admin/providers", tags=["admin"]
+)
 Admin = Annotated[CurrentUser, Depends(get_current_admin)]
 Catalog = Annotated[ProviderCatalogService, Depends(get_provider_catalog_service)]
 
@@ -34,10 +34,7 @@ Catalog = Annotated[ProviderCatalogService, Depends(get_provider_catalog_service
 async def list_provider_catalog_entries(
     admin: Admin, catalog: Catalog
 ) -> ProviderCatalogListResponse:
-    try:
-        items = await catalog.list_entries(admin)
-    except ProviderCatalogError as exc:
-        raise _catalog_error(exc) from exc
+    items = await catalog.list_entries(admin)
     return ProviderCatalogListResponse(
         items=tuple(ProviderCatalogEntryResponse.from_view(item) for item in items)
     )
@@ -66,10 +63,7 @@ async def create_provider_catalog_entry(
     catalog: Catalog,
     response: Response,
 ) -> ProviderCatalogEntryResponse:
-    try:
-        item = await catalog.create_entry(admin, **body.model_dump())
-    except ProviderCatalogError as exc:
-        raise _catalog_error(exc) from exc
+    item = await catalog.create_entry(admin, **body.model_dump())
     response.headers["Location"] = f"/api/admin/providers/{quote(item.entry.key)}"
     return ProviderCatalogEntryResponse.from_view(item)
 
@@ -86,14 +80,11 @@ async def update_provider_catalog_entry(
     admin: Admin,
     catalog: Catalog,
 ) -> ProviderCatalogEntryResponse:
-    try:
-        item = await catalog.update_entry(
-            admin,
-            provider_key,
-            **body.model_dump(),
-        )
-    except ProviderCatalogError as exc:
-        raise _catalog_error(exc) from exc
+    item = await catalog.update_entry(
+        admin,
+        provider_key,
+        **body.model_dump(),
+    )
     return ProviderCatalogEntryResponse.from_view(item)
 
 
@@ -108,40 +99,5 @@ async def delete_provider_catalog_entry(
     admin: Admin,
     catalog: Catalog,
 ) -> Response:
-    try:
-        await catalog.delete_entry(admin, provider_key)
-    except ProviderCatalogError as exc:
-        raise _catalog_error(exc) from exc
+    await catalog.delete_entry(admin, provider_key)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-def _catalog_error(error: ProviderCatalogError) -> AppError:
-    mapping = {
-        ProviderCatalogErrorCode.FORBIDDEN: (
-            403,
-            "Forbidden",
-            "Administrator access is required.",
-        ),
-        ProviderCatalogErrorCode.INVALID_ENTRY: (
-            422,
-            "Invalid Provider catalog entry",
-            "The Provider catalog entry is invalid.",
-        ),
-        ProviderCatalogErrorCode.CONFLICT: (
-            409,
-            "Provider catalog conflict",
-            "A Provider catalog entry with this key already exists.",
-        ),
-        ProviderCatalogErrorCode.NOT_FOUND: (
-            404,
-            "Provider catalog entry not found",
-            "The requested Provider catalog entry does not exist.",
-        ),
-    }
-    status_code, title, detail = mapping[error.code]
-    return AppError(
-        status=status_code,
-        code=error.code.value,
-        title=title,
-        detail=detail,
-    )

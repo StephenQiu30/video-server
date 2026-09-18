@@ -3,12 +3,6 @@ import {
   statusErrorMessage,
 } from '@/lib/error-messages';
 
-type ProblemDetails = {
-  code: string;
-  detail: string;
-  title: string;
-};
-
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -36,9 +30,9 @@ export function apiErrorFrom(
   payload: unknown,
   fallbackDetail?: string,
 ): ApiError {
-  const problem = parseProblemDetails(payload);
+  const problem = parseErrorResponse(payload);
   if (problem) {
-    return new ApiError(status, problem.code, problem.title, problem.detail);
+    return new ApiError(status, problem.code, problem.message, problem.message);
   }
   return new ApiError(
     status,
@@ -51,11 +45,13 @@ export function apiErrorFrom(
   );
 }
 
-function parseProblemDetails(value: unknown): ProblemDetails | null {
+function parseErrorResponse(value: unknown): API.ErrorResponse | null {
   if (!value || typeof value !== 'object') return null;
-  const problem = value as Partial<ProblemDetails>;
-  return problem.code && problem.title && problem.detail
-    ? (problem as ProblemDetails)
+  const error = value as Partial<API.ErrorResponse>;
+  return typeof error.code === 'string' &&
+    typeof error.message === 'string' &&
+    error.data === null
+    ? (error as API.ErrorResponse)
     : null;
 }
 

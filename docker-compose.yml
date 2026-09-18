@@ -1,11 +1,9 @@
-x-app-build: &app-build
-  context: .
+x-backend-build: &backend-build
+  context: ./backend
   dockerfile: Dockerfile
-  args:
-    SITE_URL: "${SITE_URL:-http://127.0.0.1:8101}"
 
 x-provider-session-runner: &provider-session-runner
-  build: *app-build
+  build: *backend-build
   image: video-server:local
   restart: unless-stopped
   stop_grace_period: 90s
@@ -64,7 +62,7 @@ x-provider-session-environment: &provider-session-environment
 
 services:
   api:
-    build: *app-build
+    build: *backend-build
     image: video-server:local
     container_name: video-api
     restart: unless-stopped
@@ -199,8 +197,12 @@ services:
     command: ["python", "-m", "app.main"]
 
   frontend:
-    build: *app-build
-    image: video-server:local
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        SITE_URL: "${SITE_URL:-http://127.0.0.1:8101}"
+    image: video-frontend:local
     container_name: video-frontend
     restart: unless-stopped
     environment:
@@ -229,9 +231,9 @@ services:
       test:
         [
           "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8101/', timeout=3)",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8101/', {signal: AbortSignal.timeout(3000)}).then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
         ]
       interval: 10s
       timeout: 5s
@@ -241,7 +243,7 @@ services:
     command: ["node", "server.js"]
 
   outbox:
-    build: *app-build
+    build: *backend-build
     image: video-server:local
     container_name: video-outbox
     restart: unless-stopped
@@ -274,7 +276,7 @@ services:
     command: ["python", "-m", "app.workers.outbox.main"]
 
   worker-download:
-    build: *app-build
+    build: *backend-build
     image: video-server:local
     container_name: video-worker-download
     restart: unless-stopped
@@ -340,7 +342,7 @@ services:
     command: ["python", "-m", "app.workers.download.main"]
 
   worker-import:
-    build: *app-build
+    build: *backend-build
     image: video-server:local
     container_name: video-worker-import
     restart: unless-stopped
@@ -404,7 +406,7 @@ services:
     command: ["python", "-m", "app.workers.imports.main"]
 
   worker-report:
-    build: *app-build
+    build: *backend-build
     image: video-server:local
     container_name: video-worker-report
     restart: unless-stopped
@@ -447,7 +449,7 @@ services:
     command: ["python", "-m", "app.workers.report.main"]
 
   provider-canary:
-    build: *app-build
+    build: *backend-build
     image: video-server:local
     container_name: video-provider-canary
     restart: unless-stopped
@@ -494,7 +496,7 @@ services:
     command: ["python", "-m", "app.workers.canary.main"]
 
   media-runner:
-    build: *app-build
+    build: *backend-build
     image: video-server:local
     container_name: media-runner
     restart: unless-stopped
@@ -580,7 +582,7 @@ services:
       start_period: 5s
 
   workspace-init:
-    build: *app-build
+    build: *backend-build
     image: video-server:local
     container_name: workspace-init
     restart: "no"

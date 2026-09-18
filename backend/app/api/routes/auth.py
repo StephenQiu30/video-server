@@ -14,8 +14,8 @@ from app.api.deps import (
     set_auth_cookies,
 )
 from app.api.errors import app_error_handler, auth_application_error
+from app.api.responses import ApiResponseRoute
 from app.core.config import Settings
-from app.core.errors import AppError
 from app.schemas.auth import (
     EmailPasswordRequest,
     RegisterRequest,
@@ -23,11 +23,11 @@ from app.schemas.auth import (
     RegistrationCodeResponse,
     UserResponse,
 )
-from app.services.auth.errors import AuthError, AuthErrorCode, SessionRotationConflict
+from app.services.auth.errors import AuthError, AuthErrorCode
 from app.services.auth.models import CurrentUser
 from app.services.auth.service import AuthService
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(route_class=ApiResponseRoute, prefix="/auth", tags=["auth"])
 Auth = Annotated[AuthService, Depends(get_auth_service)]
 SettingsDependency = Annotated[Settings, Depends(get_runtime_settings)]
 User = Annotated[CurrentUser, Depends(get_current_user)]
@@ -52,10 +52,7 @@ async def send_registration_code(
         settings,
         include_client_ip=True,
     )
-    try:
-        await auth.send_registration_code(str(body.email))
-    except AuthError as exc:
-        raise auth_application_error(exc) from exc
+    await auth.send_registration_code(str(body.email))
     return RegistrationCodeResponse()
 
 
@@ -83,16 +80,13 @@ async def register_user(
         settings,
         include_client_ip=True,
     )
-    try:
-        grant = await auth.register(
-            body.username,
-            str(body.email),
-            body.password,
-            bootstrap_secret=bootstrap_secret,
-            verification_code=body.verification_code,
-        )
-    except AuthError as exc:
-        raise auth_application_error(exc) from exc
+    grant = await auth.register(
+        body.username,
+        str(body.email),
+        body.password,
+        bootstrap_secret=bootstrap_secret,
+        verification_code=body.verification_code,
+    )
     set_auth_cookies(response, settings, grant)
     response.headers["Location"] = "/api/auth/me"
     return UserResponse.from_user(grant.user)
@@ -118,10 +112,7 @@ async def login_user(
         settings,
         include_client_ip=True,
     )
-    try:
-        grant = await auth.login(str(body.email), body.password)
-    except AuthError as exc:
-        raise auth_application_error(exc) from exc
+    grant = await auth.login(str(body.email), body.password)
     set_auth_cookies(response, settings, grant)
     return UserResponse.from_user(grant.user)
 
@@ -155,13 +146,6 @@ async def refresh_user_session(
         )
     try:
         grant = await auth.refresh(refresh_token)
-    except SessionRotationConflict:
-        raise AppError(
-            status=409,
-            code="refresh_in_progress",
-            title="Session refresh in progress",
-            detail="Another request has already refreshed this session.",
-        ) from None
     except AuthError as exc:
         return await _cleared_auth_error_response(request, settings, exc)
     set_auth_cookies(response, settings, grant)

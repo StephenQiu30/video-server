@@ -3,7 +3,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-from app.crud.completion_repository import (
+from app.repositories.downloads.completion_repository import (
     build_artifact_object_key as persistence_artifact_object_key,
 )
 from app.services.download_execution.artifact import artifact_object_key

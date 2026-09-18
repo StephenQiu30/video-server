@@ -23,7 +23,11 @@ export function proxy(request: NextRequest) {
       }
     } catch {
       return NextResponse.json(
-        { code: 'service_unavailable', detail: 'API routing is unavailable.' },
+        {
+          code: 'service_unavailable',
+          message: 'API routing is unavailable.',
+          data: null,
+        },
         { status: 503 },
       );
     }

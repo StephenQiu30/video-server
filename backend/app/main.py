@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, FastAPI
-from fastapi.exceptions import RequestValidationError
 
 from app.api.errors import (
-    app_error_handler,
-    quota_error_handler,
-    validation_error_handler,
+    register_exception_handlers,
 )
 from app.api.middleware import request_guard
 from app.api.openapi import (
@@ -41,12 +38,10 @@ from app.api.routes.source_discoveries import router as source_discoveries_route
 from app.api.routes.task_socket import router as task_socket_router
 from app.api.routes.users import router as users_router
 from app.core.config import Settings, get_settings
-from app.core.errors import AppError
 from app.core.lifespan import api_lifespan
 from app.core.runtime import ApiRuntime, ApiServices
 from app.integrations.media_runner_factory import operator_provider_keys
 from app.integrations.provider_status import current_provider_statuses
-from app.services.quotas import QuotaExceeded
 
 
 def create_app(
@@ -114,9 +109,7 @@ def create_app(
             ),
         )
     )
-    application.add_exception_handler(QuotaExceeded, quota_error_handler)
-    application.add_exception_handler(AppError, app_error_handler)
-    application.add_exception_handler(RequestValidationError, validation_error_handler)
+    register_exception_handlers(application)
     return application
 
 

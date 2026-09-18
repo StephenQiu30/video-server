@@ -7,7 +7,7 @@ export async function createMediaImport(
   body: API.MediaImportRequest,
   options?: RequestOptions
 ) {
-  return request<API.MediaImportResponse>("/api/media-imports", {
+  return request<API.ApiResponseMediaImportResponse_>("/api/media-imports", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -24,11 +24,14 @@ export async function getMediaImport(
   options?: RequestOptions
 ) {
   const { resource_id: param0, ...queryParams } = params;
-  return request<API.MediaImportResponse>(`/api/media-imports/${param0}`, {
-    method: "GET",
-    params: { ...queryParams },
-    ...(options || {}),
-  });
+  return request<API.ApiResponseMediaImportResponse_>(
+    `/api/media-imports/${param0}`,
+    {
+      method: "GET",
+      params: { ...queryParams },
+      ...(options || {}),
+    }
+  );
 }
 
 /** 完成视频上传并触发验证 POST /api/media-imports/${param0}/complete */
@@ -39,7 +42,7 @@ export async function completeMediaImport(
   options?: RequestOptions
 ) {
   const { resource_id: param0, ...queryParams } = params;
-  return request<API.MediaImportResponse>(
+  return request<API.ApiResponseMediaImportResponse_>(
     `/api/media-imports/${param0}/complete`,
     {
       method: "POST",
@@ -60,7 +63,7 @@ export async function createMediaUploadSession(
   options?: RequestOptions
 ) {
   const { resource_id: param0, ...queryParams } = params;
-  return request<API.MediaUploadSessionResponse>(
+  return request<API.ApiResponseMediaUploadSessionResponse_>(
     `/api/media-imports/${param0}/upload-sessions`,
     {
       method: "POST",

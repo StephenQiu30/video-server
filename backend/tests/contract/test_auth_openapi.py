@@ -30,7 +30,7 @@ def test_auth_openapi_exposes_email_session_contract(tmp_path: Path) -> None:
     assert paths["/api/auth/register"]["post"]["operationId"] == "registerUser"
     assert paths["/api/auth/register"]["post"]["responses"]["201"]["content"][
         "application/json"
-    ]["schema"] == {"$ref": "#/components/schemas/UserResponse"}
+    ]["schema"] == {"$ref": "#/components/schemas/ApiResponse_UserResponse_"}
     assert paths["/api/auth/logout"]["post"]["responses"]["204"] == {
         "description": "Successful Response"
     }
