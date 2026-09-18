@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import exists, or_, select
 
-from app.db.base import as_utc
+from app.database import as_utc
 from app.models import (
     AnalysisJobRow,
     AnalysisReportArtifactRow,

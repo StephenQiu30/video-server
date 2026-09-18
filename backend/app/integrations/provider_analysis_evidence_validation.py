@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from app.db.base import as_utc
+from app.database import as_utc
 from app.domain.analysis import VideoAnalysisResult
 from app.domain.providers import ProviderAccessContextRef
 from app.models import (

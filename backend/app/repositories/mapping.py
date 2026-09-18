@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from app.db.base import as_utc
+from app.database import as_utc
 from app.models import (
     ArtifactRow,
     DownloadJobRow,

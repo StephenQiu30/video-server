@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.base import as_utc
+from app.database import as_utc
 from app.models import AnalysisJobRow, AnalysisRetryOperationRow, AnalysisRunRow
 from app.repositories.analysis_repository_base import AnalysisRepositoryBase
 from app.repositories.analysis_repository_mapping import analysis_job_snapshot

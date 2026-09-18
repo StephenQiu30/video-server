@@ -7,8 +7,8 @@ import signal
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from app.core.config import Settings, get_settings_for_role
-from app.db.session import create_engine, create_session_factory
+from app.config import Settings, get_settings_for_role
+from app.database import create_engine, create_session_factory
 from app.integrations.media_runner_factory import (
     anonymous_media_runner,
     operator_media_runners,

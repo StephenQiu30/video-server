@@ -5,7 +5,7 @@ from typing import Any
 from sqlalchemy import func, literal, select, union_all
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.db.base import as_utc
+from app.database import as_utc
 from app.models import (
     AnalysisReportArtifactRow,
     AnalysisReportVersionRow,

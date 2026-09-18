@@ -86,7 +86,7 @@ jobs:
         working-directory: backend
         run: |
           uv sync --frozen --no-dev
-          uv run --frozen python -c 'import json, os; from pathlib import Path; from app.core.config import Settings; from app.main import create_app; Path(os.environ["RUNNER_TEMP"], "framefetch-openapi.json").write_text(json.dumps(create_app(Settings(app_env="test")).openapi()))'
+          uv run --frozen python -c 'import json, os; from pathlib import Path; from app.config import Settings; from app.main import create_app; Path(os.environ["RUNNER_TEMP"], "framefetch-openapi.json").write_text(json.dumps(create_app(Settings(app_env="test")).openapi()))'
       - name: Test frontend
         working-directory: frontend
         run: |

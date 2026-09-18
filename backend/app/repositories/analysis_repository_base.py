@@ -9,7 +9,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.base import as_utc
+from app.database import as_utc
 from app.domain.analysis import AnalysisResult
 from app.domain.identifiers import AnalysisReportRenderer
 from app.models import (

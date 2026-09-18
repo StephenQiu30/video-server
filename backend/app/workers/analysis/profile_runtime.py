@@ -6,8 +6,7 @@ from dataclasses import dataclass, replace
 from importlib.metadata import version
 from pathlib import Path
 
-from app.core.ai_provider_cipher import FernetAiProviderSecretCipher
-from app.core.config import Settings
+from app.config import Settings
 from app.integrations.ai_api import (
     ApiAdapterConfig,
     ApiAnalyzer,
@@ -23,6 +22,7 @@ from app.integrations.ai_cli import (
     media_preflight,
     preflight,
 )
+from app.security.ai_provider_cipher import FernetAiProviderSecretCipher
 from app.services.ai_providers import (
     AiProviderAuthMode,
     AiProviderEngine,

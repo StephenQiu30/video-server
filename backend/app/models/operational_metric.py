@@ -3,7 +3,7 @@
 from sqlalchemy import BigInteger, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base
+from app.database import Base
 
 
 class OperationalCounterRow(Base):

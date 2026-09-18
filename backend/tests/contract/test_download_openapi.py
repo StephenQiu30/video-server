@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.core.config import Settings
+from app.config import Settings
 from app.main import create_app
 
 

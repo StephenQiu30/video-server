@@ -127,7 +127,7 @@ frontend/
 - 镜像或运行入口变化必须验证构建；界面行为变化补浏览器验证；平台下载需真实任务验证。
 - 推送 main 前核对暂存内容和远端状态；推送后检查同一提交的 CI，并报告失败或尚未完成的检查。
 
-本次修订交付的是**规范**。后端现有代码尚未按本节目标结构完成整体迁移，不能宣称已完成 FastAPI 目录调整。后续迁移按一个完整业务用例逐步实施，并以测试和运行证据确认；不将现有目录自动视为符合规范。
+后端已按本节基线组织 main.py、routers/、dependencies.py、config.py、database.py、schemas/ 与 models/。现有 services、domain、repositories、integrations 承载实际业务与外部适配，保留其行为和事务边界；新增功能按实际职责组织，不强制复制这些分组。源码目录迁移的验收包括导入、HTTP/WebSocket、配置定位、OpenAPI 一致性和构建。
 
 ## 7. 官方依据
 

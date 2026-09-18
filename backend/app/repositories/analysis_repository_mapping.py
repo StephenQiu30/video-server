@@ -1,6 +1,6 @@
 """Map mutable analysis rows into application-owned snapshots."""
 
-from app.db.base import as_utc
+from app.database import as_utc
 from app.models import AnalysisJobRow, AnalysisRunRow, ArtifactRow, DownloadJobRow
 from app.services.analysis import AnalysisArtifactSnapshot, AnalysisJobSnapshot
 

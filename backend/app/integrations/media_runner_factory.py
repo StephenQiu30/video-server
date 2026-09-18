@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.core.config import Settings
+from app.config import Settings
 from app.domain.providers import ProviderAccessMode
 from app.integrations.media_runner import MediaRunnerHttpClient, MediaRunnerRouter
 from app.runner.provider_registry import provider_profile_for_key

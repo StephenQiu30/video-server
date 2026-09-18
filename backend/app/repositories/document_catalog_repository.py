@@ -6,7 +6,7 @@ from uuid import UUID
 
 from sqlalchemy import func, select
 
-from app.db.base import as_utc
+from app.database import as_utc
 from app.domain.documents import DocumentParseSummary
 from app.models import DocumentArtifactRow, DocumentRow
 from app.repositories.repository_base import RepositoryBase

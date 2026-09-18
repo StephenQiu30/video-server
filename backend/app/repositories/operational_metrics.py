@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.db.base import as_utc
+from app.database import as_utc
 from app.models import (
     AnalysisJobRow,
     AnalysisResultRow,

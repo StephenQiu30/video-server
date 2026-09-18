@@ -9,7 +9,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import CheckConstraint, DateTime, Index, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import JSON_DOCUMENT, Base, utc_now
+from app.database import JSON_DOCUMENT, Base, utc_now
 
 
 class OutboxEventRow(Base):

@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import Select, select
 
-from app.db.base import as_utc
+from app.database import as_utc
 from app.models import AnalysisJobRow
 from app.repositories.analysis_repository_base import AnalysisRepositoryBase
 from app.repositories.analysis_repository_mapping import analysis_job_snapshot

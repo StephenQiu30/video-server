@@ -6,9 +6,9 @@ import base64
 import hmac
 import secrets
 
-from app.core.url_cipher import URLCipher
 from app.domain.identifiers import UrlEncryptionKeyId
 from app.runner.url_policy import validate_media_url
+from app.security.url_cipher import URLCipher
 from app.services.downloads import EncryptedUrl
 from app.services.public_input import extract_public_url
 

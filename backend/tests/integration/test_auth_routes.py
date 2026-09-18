@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import cast
 from uuid import uuid4
 
-from app.core.config import Settings
-from app.db.session import create_session_factory
+from app.config import Settings
+from app.database import create_session_factory
 from app.integrations.jwt_tokens import JwtTokenService
 from app.integrations.passwords import Argon2PasswordHasher
 from app.main import create_app

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pytest
-from app.core.config import Settings
+from app.config import Settings
 from app.services.analysis_execution import AnalyzerSelection
 from app.workers.analysis.screenplay_runtime import build_screenplay_components
 

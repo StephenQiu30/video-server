@@ -8,10 +8,8 @@ from dataclasses import dataclass
 from datetime import timedelta
 from urllib.parse import quote, urlsplit, urlunsplit
 
-from app.core.ai_provider_cipher import FernetAiProviderSecretCipher
-from app.core.config import Settings, get_settings_for_role
-from app.core.url_cipher import URLCipher
-from app.db.session import create_engine, create_session_factory
+from app.config import Settings, get_settings_for_role
+from app.database import create_engine, create_session_factory
 from app.integrations.messaging import RabbitMqTopology
 from app.integrations.object_storage import MinioObjectStorage
 from app.repositories.ai_provider_repository import SqlAlchemyAiProviderRepository
@@ -22,6 +20,8 @@ from app.repositories.analysis_worker_registry import (
     SqlAlchemyAnalysisWorkerRegistry,
 )
 from app.repositories.download_repository import SqlAlchemyDownloadRepository
+from app.security.ai_provider_cipher import FernetAiProviderSecretCipher
+from app.security.url_cipher import URLCipher
 from app.services.analysis_execution import AnalysisExecution, AnalysisExecutionSettings
 from app.workers.analysis.agent_lock import (
     AnalysisAgentAlreadyRunning,

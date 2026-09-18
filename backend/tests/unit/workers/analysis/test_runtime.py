@@ -7,7 +7,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
-from app.core.config import Settings
+from app.config import Settings
 from app.integrations.ai_api import ApiAnalyzer
 from app.integrations.ai_cli import CliCapabilities, CodexAppServerVideoAnalyzer
 from app.services.ai_providers import (

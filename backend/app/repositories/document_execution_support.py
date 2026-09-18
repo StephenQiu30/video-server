@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.base import as_utc
+from app.database import as_utc
 from app.domain.documents import ScreenplayElementKind, ScreenplayScene
 from app.domain.imports import ContentKind, ImportSourceFormat
 from app.models import DocumentImportAttemptRow, DocumentRow

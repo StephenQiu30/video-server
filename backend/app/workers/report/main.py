@@ -5,8 +5,8 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime, timedelta
 
-from app.core.config import get_settings_for_role
-from app.db.session import create_engine, create_session_factory
+from app.config import get_settings_for_role
+from app.database import create_engine, create_session_factory
 from app.integrations.analysis_report_docx import PythonDocxAnalysisReportRenderer
 from app.integrations.messaging import RabbitMqTopology
 from app.integrations.object_storage import MinioObjectStorage

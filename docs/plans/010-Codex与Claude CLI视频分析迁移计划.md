@@ -191,7 +191,7 @@ Prompt 与 Codex 一样由父进程写入 stdin，不作为 argv 暴露在进程
 
 ### 工作项
 
-1. 在 `backend/app/core/config.py` 增加类型化 CLI 配置和上限：Provider、两个 binary/model、公共 timeout/输出/工作区/图片/并发，以及 Claude 专用 max turns。
+1. 在 `backend/app/config.py` 增加类型化 CLI 配置和上限：Provider、两个 binary/model、公共 timeout/输出/工作区/图片/并发，以及 Claude 专用 max turns。
 2. 删除 `analysis_provider`、`deepseek_*`、`ollama_*`、`openai_*`、转录 timeout 和旧模型 token 配置。
 3. 在 `backend/app/workers/analysis/main.py`：
    - 只装配一个 `VideoAnalyzer`。

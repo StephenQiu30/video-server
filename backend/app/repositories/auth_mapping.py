@@ -1,4 +1,4 @@
-from app.db.base import as_utc
+from app.database import as_utc
 from app.models import UserRow
 from app.services.auth import AccountRecord, CurrentUser, UserRole
 from app.services.quotas import UserQuota

@@ -6,8 +6,8 @@ import os
 from datetime import UTC, datetime
 
 import aio_pika
-from app.core.config import Settings
-from app.db.session import create_engine, create_session_factory
+from app.config import Settings
+from app.database import create_engine, create_session_factory
 from app.integrations.messaging import (
     RabbitMqPublisher,
     RabbitMqTopology,

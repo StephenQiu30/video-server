@@ -5,7 +5,7 @@ from pathlib import Path
 
 import httpx
 import pytest
-from app.db.session import create_session_factory
+from app.database import create_session_factory
 from app.domain.providers import ProviderAccessMode
 from app.integrations.media_runner import MediaRunnerHttpClient
 from app.repositories.provider_route_cooldowns import SqlAlchemyProviderRouteCooldowns
@@ -14,8 +14,8 @@ from app.services.downloads.errors import (
     MediaInspectionVerificationFailed,
 )
 from app.services.provider_route_admission import ProviderRouteAdmission
-from tests.unit.application.test_provider_route_admission import Cooldowns
-from tests.unit.infrastructure.test_media_runner_client import _access_context
+from tests.unit.integrations.test_media_runner_client import _access_context
+from tests.unit.services.test_provider_route_admission import Cooldowns
 
 
 async def test_independent_api_and_canary_clients_share_durable_429_gate(

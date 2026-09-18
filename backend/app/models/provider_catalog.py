@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlalchemy import Boolean, CheckConstraint, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base, utc_now
+from app.database import Base, utc_now
 
 
 class ProviderCatalogEntryRow(Base):

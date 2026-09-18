@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import BigInteger, CheckConstraint, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base
+from app.database import Base
 
 
 class ProviderRouteCooldownRow(Base):

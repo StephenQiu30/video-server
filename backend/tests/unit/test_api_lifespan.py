@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 from app import lifespan, main
-from app.core.config import Settings
+from app.config import Settings
 from app.runtime import ApiRuntime, ApiServices
 from fastapi.testclient import TestClient
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.core.config import Settings
+from app.config import Settings
 from app.services.analysis_execution import (
     ScreenplayAnalysisExecutor,
     ScreenplayExecutionRouter,

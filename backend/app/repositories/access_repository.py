@@ -7,7 +7,7 @@ from uuid import UUID
 
 from sqlalchemy import func, or_, select
 
-from app.db.base import as_utc, utc_now
+from app.database import as_utc, utc_now
 from app.models import (
     ArtifactRow,
     DownloadJobRow,

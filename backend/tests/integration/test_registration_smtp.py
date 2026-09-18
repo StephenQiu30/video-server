@@ -4,8 +4,8 @@ from email import policy
 from email.parser import BytesParser
 
 import pytest
-from app.core.config import Settings
-from app.db.session import create_session_factory
+from app.config import Settings
+from app.database import create_session_factory
 from app.integrations.registration_mail import SmtpRegistrationMailer
 from app.models.email_verification import EmailVerificationRow
 from app.repositories.email_verification_repository import SqlAlchemyVerificationStore

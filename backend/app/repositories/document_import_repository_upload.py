@@ -7,7 +7,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.db.base import as_utc
+from app.database import as_utc
 from app.domain.imports import ContentKind, ImportErrorCode, ImportStatus
 from app.domain.imports.keys import quarantine_object_key
 from app.models import DocumentImportAttemptRow

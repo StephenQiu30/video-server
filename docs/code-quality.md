@@ -74,7 +74,7 @@
 
 ### CQ-004：故障注入必须命中真正执行对象
 
-证据：[test_retry_admission.py](../backend/tests/unit/infrastructure/analysis/test_retry_admission.py)第 48–58 行在 `SqlAlchemyAnalysisRepository` 子类覆盖 `_require_retry_capacity`；[当前组合入口](../backend/app/repositories/analysis_repository.py)最后两行把 retry_job_and_enqueue 绑定到独立 `AnalysisRetryRepository` 实例；[实际调用](../backend/app/repositories/analysis_repository_retry.py)第 54 行调用的是该实例的校验，不是测试子类的方法。
+证据：[test_retry_admission.py](../backend/tests/unit/repositories/analysis/test_retry_admission.py)第 48–58 行在 `SqlAlchemyAnalysisRepository` 子类覆盖 `_require_retry_capacity`；[当前组合入口](../backend/app/repositories/analysis_repository.py)最后两行把 retry_job_and_enqueue 绑定到独立 `AnalysisRetryRepository` 实例；[实际调用](../backend/app/repositories/analysis_repository_retry.py)第 54 行调用的是该实例的校验，不是测试子类的方法。
 
 影响：测试中声称“读计数后暂停”的 sleep 不会执行，预期交错不受控制；最终计数断言仍有价值，但不能证明指定竞态已被覆盖。未据此宣称生产锁失效或测试必然失败。
 
@@ -287,3 +287,12 @@ CQ-020 动态来源身份修订、CQ-027 间歇平台请求、CQ-022 红果探�
 修复：删除闲置组件、开发假用户/模拟媒体及图片、重复文档；去掉失效 COPY 和清单专用测试。Provider 的依赖固定、出口隔离和代理配置测试保留在 test_provider_runtime_config.py。原有其他删除改动保留，未搭车提交。
 
 验收：认证回归覆盖旧 design 查询参数仍走真实会话；前端 300 项测试、类型检查与生产构建通过，后端 6 项 Provider 配置测试通过；Docker Compose 镜像构建通过。
+
+
+### 2026-09-18 FastAPI 目录迁移验收
+
+- 依据 PROJECT.md，将路由、共享依赖、配置与数据库入口统一到 routers、dependencies.py、config.py、database.py；移除旧源码路径，main.py 直接注册路由。测试目录按实际模块同步整理。
+- Ruff 检查与格式、mypy（535 个源码文件）通过；迁移前后 OpenAPI 的 60 个路径与完整模型相同，Umi 重新生成客户端无差异。
+- 全量后端测试：1817 passed、2 skipped、12 failed。跳过项为未配置隔离 MinIO 与 Linux 专用行为。12 项失败均因任务开始前已删除的 .env.prod.example 和 plugins/framefetch 文件缺失；原有删除保留，未纳入目录迁移提交。当前工作区全量测试并非全绿。
+- 配置定位、架构与移动后的数据库测试 47 项通过。两份业务 Compose 静态解析、镜像构建通过；无网络镜像中可生成 OpenAPI 并导入 API、下载/分析/Outbox Worker 和 Runner 入口。未重启运行中的服务，未执行真实平台下载。
+- **CQ-047 / P2 / 验证缺陷 / 待处理**：环境样例与插件的未提交删除仍被 test_database_bootstrap.py、test_egress_config.py、test_framefetch_local_agent.py 引用。后续清理切片需统一处理被删功能与测试、文档的引用，并保留有效的生产配置断言；不能通过跳过失败测试宣称验收通过。

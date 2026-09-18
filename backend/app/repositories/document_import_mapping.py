@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import PurePath
 
-from app.db.base import as_utc
+from app.database import as_utc
 from app.domain.imports import ContentKind, ImportStatus
 from app.models import DocumentImportAttemptRow, DocumentRow
 from app.services.imports import (

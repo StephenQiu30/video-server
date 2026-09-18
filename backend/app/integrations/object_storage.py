@@ -15,7 +15,7 @@ from minio import Minio
 from minio.commonconfig import REPLACE, CopySource
 from minio.datatypes import Part
 
-from app.core.config import Settings
+from app.config import Settings
 from app.integrations.upload_signing import UploadSigner
 from app.services.downloads import download_disposition
 from app.services.imports.errors import (

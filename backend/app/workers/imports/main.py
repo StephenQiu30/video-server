@@ -6,8 +6,8 @@ import asyncio
 from dataclasses import dataclass
 from datetime import timedelta
 
-from app.core.config import Settings, get_settings_for_role
-from app.db.session import create_engine, create_session_factory
+from app.config import Settings, get_settings_for_role
+from app.database import create_engine, create_session_factory
 from app.integrations.imports.verifier_factory import build_screenplay_verifier
 from app.integrations.imports.video import Mp4ImportVerifier, VideoVerificationSettings
 from app.integrations.imports.workspace import PrivateImportWorkspace

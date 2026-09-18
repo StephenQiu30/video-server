@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.db.base import as_utc
+from app.database import as_utc
 from app.models import AnalysisWorkerHeartbeatRow
 
 ANALYSIS_MESSAGE_SCHEMA_VERSION = 1

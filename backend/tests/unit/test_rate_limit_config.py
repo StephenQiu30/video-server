@@ -1,9 +1,9 @@
 from unittest.mock import AsyncMock
 
 import pytest
-from app.core.config import Settings
-from app.core.rate_limits import RateLimitPolicy
+from app.config import Settings
 from app.integrations.rate_limiter import RedisRateLimiter
+from app.rate_limits import RateLimitPolicy
 from pydantic import ValidationError
 
 

@@ -2,19 +2,46 @@
 
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 from fastapi.exceptions import RequestValidationError
 
-from app.api.errors import app_error_handler, validation_error_handler
-from app.api.middleware import request_guard
-from app.api.openapi import API_DESCRIPTION, OPENAPI_TAGS, SWAGGER_UI_PARAMETERS
-from app.api.quota_errors import quota_error_handler
-from app.api.router import router
-from app.core.config import Settings, get_settings
-from app.core.errors import AppError
+from app.config import Settings, get_settings
+from app.errors import AppError
+from app.exception_handlers import app_error_handler, validation_error_handler
 from app.integrations.media_runner_factory import operator_provider_keys
 from app.integrations.provider_status import current_provider_statuses
 from app.lifespan import api_lifespan
+from app.middleware import request_guard
+from app.openapi import (
+    API_DESCRIPTION,
+    ERROR_RESPONSES,
+    OPENAPI_TAGS,
+    SWAGGER_UI_PARAMETERS,
+)
+from app.quota_errors import quota_error_handler
+from app.routers.admin_ai_providers import router as admin_ai_providers_router
+from app.routers.admin_downloads import router as admin_downloads_router
+from app.routers.admin_files import router as admin_files_router
+from app.routers.admin_provider_runtime import (
+    router as admin_provider_runtime_router,
+)
+from app.routers.admin_providers import router as admin_providers_router
+from app.routers.admin_users import router as admin_users_router
+from app.routers.analyses import router as analyses_router
+from app.routers.auth import router as auth_router
+from app.routers.document_analyses import router as document_analyses_router
+from app.routers.documents import router as documents_router
+from app.routers.downloads import router as downloads_router
+from app.routers.health import router as health_router
+from app.routers.inspections import router as inspections_router
+from app.routers.media_imports import router as media_imports_router
+from app.routers.metrics import router as metrics_router
+from app.routers.native_auth import router as native_auth_router
+from app.routers.native_openapi import router as native_openapi_router
+from app.routers.providers import router as providers_router
+from app.routers.source_discoveries import router as source_discoveries_router
+from app.routers.task_socket import router as task_socket_router
+from app.routers.users import router as users_router
 from app.runtime import ApiRuntime, ApiServices
 from app.services.quotas import QuotaExceeded
 
@@ -41,7 +68,30 @@ def create_app(
         operator_provider_keys(effective), effective.runner_default_access_policies
     )
     application.state.services = runtime.services if runtime else ApiServices()
-    application.include_router(router)
+    application.include_router(health_router)
+    application.include_router(metrics_router)
+    application.include_router(native_auth_router)
+    application.include_router(native_openapi_router)
+
+    api_router = APIRouter(prefix="/api", responses=ERROR_RESPONSES)
+    api_router.include_router(auth_router)
+    api_router.include_router(users_router)
+    api_router.include_router(admin_users_router)
+    api_router.include_router(admin_downloads_router)
+    api_router.include_router(admin_files_router)
+    api_router.include_router(admin_ai_providers_router)
+    api_router.include_router(admin_providers_router)
+    api_router.include_router(admin_provider_runtime_router)
+    api_router.include_router(inspections_router)
+    api_router.include_router(source_discoveries_router)
+    api_router.include_router(providers_router)
+    api_router.include_router(downloads_router)
+    api_router.include_router(documents_router)
+    api_router.include_router(document_analyses_router)
+    api_router.include_router(media_imports_router)
+    api_router.include_router(analyses_router)
+    api_router.include_router(task_socket_router)
+    application.include_router(api_router)
     application.middleware("http")(
         lambda request, call_next: request_guard(
             request,

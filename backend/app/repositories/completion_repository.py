@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import select
 
-from app.db.base import as_utc
+from app.database import as_utc
 from app.domain.downloads import build_artifact_object_key
 from app.models import ArtifactRow, DownloadJobRow
 from app.repositories.contracts import ArtifactCreate

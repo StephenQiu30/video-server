@@ -14,13 +14,12 @@ from unittest.mock import patch
 
 import uvicorn
 from app.composition import build_api_runtime
-from app.core.config import Settings
-from app.core.rate_limits import RateLimitPolicy
-from app.db.base import Base
-from app.db.session import create_session_factory
+from app.config import Settings
+from app.database import Base, create_session_factory
 from app.main import create_app
 from app.models.auth import UserRow
 from app.models.provider_catalog import ProviderCatalogEntryRow
+from app.rate_limits import RateLimitPolicy
 from fastapi import FastAPI
 from sqlalchemy import select
 from tests.postgres import isolated_postgres_engine

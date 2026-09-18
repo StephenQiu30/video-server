@@ -4,7 +4,7 @@ from typing import Any
 
 import uvicorn
 from app import main
-from app.core.config import Settings
+from app.config import Settings
 
 
 def test_run_uses_typed_host_and_port(monkeypatch: Any) -> None:

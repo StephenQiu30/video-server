@@ -12,12 +12,14 @@ app/
 ├── lifespan.py       外部资源创建与释放
 ├── runtime.py        类型化服务集合与资源所有权
 ├── composition.py    具体服务装配
-├── api/routes/       HTTP 路由与协议转换
+├── routers/          APIRouter 路由（由 main.py 注册）
+├── dependencies.py   共享认证、运行时服务与请求依赖
 ├── schemas/          请求与响应契约
-├── core/             配置、安全与通用能力
+├── config.py         类型化配置
+├── security/         URL 与 AI 凭据加密
 ├── services/         按业务组织用例、服务模型与能力端口
 ├── domain/           纯业务规则与实体
-├── db/               Engine、Session 与 Base
+├── database.py       Engine、Session 与 Base
 ├── models/           SQLAlchemy ORM 模型
 ├── repositories/     持久化、查询与事务
 ├── integrations/     AI、存储、消息与媒体/文档适配器
@@ -26,7 +28,7 @@ app/
 └── analysis_skills/   分析技能资源
 ```
 
-依赖方向保持为 `api/workers → services → domain`。FastAPI DTO 位于 `schemas/`；不要把数据库模型、Provider SDK 或 Worker 实现移入 `domain`。
+工程基线见根 PROJECT.md。main.py 注册 routers，dependencies.py 提供 Depends 依赖，schemas 定义公开契约。现有 services、domain、repositories、integrations 分别承载实际业务规则和外部适配，不要求为新接口复制这些目录或增加转发层。纯业务模块继续保持与 HTTP、数据库和 SDK 的隔离。
 
 公共接口不维护无实际兼容需求的版本目录或 URL 前缀。服务启动后可通过 `/docs` 访问 Swagger UI，通过 `/openapi.json` 获取供前端生成客户端的 OpenAPI 契约。
 
@@ -125,6 +127,10 @@ uv run python -m app.workers.analysis.agent_cli install --env-file ../.env.prod
 ```
 
 API 固定监听 `8111`，前端固定监听 `8101`。API `/health/live` 只证明进程存活；`/health/ready` 还会在有界超时内检查数据库结构、MinIO、RabbitMQ 与 Redis。宿主机 AI Worker 内部重连消费者并由系统服务监督进程；短暂故障期间任务保持 queued，恢复后继续消费。没有 AI Worker 的部署必须显式设置 `ANALYSIS_ENABLED=false` 并重建 API。
+
+## 测试目录
+
+`tests/unit/` 按实际模块组织：services、domain、repositories、models、integrations、security、schemas、runner 与 workers；入口和配置测试直接放在 unit 下。`tests/integration/routers/` 验证 HTTP 与 WebSocket，`tests/contract/` 验证公开契约及部署配置，`tests/architecture/` 检查模块依赖。移动模块时同步更新测试导入和文档命令。
 
 ## 测试数据库
 

@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
 
-from app.core.config import REPOSITORY_ROOT, Settings
+from app.config import REPOSITORY_ROOT, Settings
 from app.domain.identifiers import AnalysisStorageProbe
 from app.integrations.object_storage import StoredObjectStat
 from app.services.analysis_execution import AnalysisArtifactError

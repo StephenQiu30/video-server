@@ -5,10 +5,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
-from app.core.ai_provider_cipher import FernetAiProviderSecretCipher
-from app.core.config import Settings
-from app.core.url_cipher import URLCipher
-from app.db.session import create_engine, create_session_factory
+from app.config import Settings
+from app.database import create_engine, create_session_factory
 from app.integrations.ai_api.catalog import OpenRouterModelCatalog
 from app.integrations.analysis_skill_catalog import BuiltinAnalysisSkillCatalog
 from app.integrations.article_discovery import WeChatArticleDiscoveryAdapter
@@ -77,6 +75,8 @@ from app.runtime import (
     MediaImportUseCases,
     SourceDiscoveryUseCases,
 )
+from app.security.ai_provider_cipher import FernetAiProviderSecretCipher
+from app.security.url_cipher import URLCipher
 from app.services.ai_providers import AiProviderService
 from app.services.analysis import (
     CancelAnalysis,

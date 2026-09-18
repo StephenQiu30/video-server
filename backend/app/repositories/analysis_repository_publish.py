@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from sqlalchemy import select
 
-from app.db.base import as_utc
+from app.database import as_utc
 from app.domain.analysis import analysis_result_contract, analysis_result_language
 from app.domain.identifiers import AnalysisReportRenderer
 from app.models import AnalysisJobRow, AnalysisResultRow

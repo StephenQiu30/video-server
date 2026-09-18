@@ -6,8 +6,8 @@ import asyncio
 import json
 from datetime import UTC, datetime
 
-from app.core.config import get_settings_for_role
-from app.db.session import create_engine, create_session_factory
+from app.config import get_settings_for_role
+from app.database import create_engine, create_session_factory
 from app.domain.providers import ProviderSupportStatus
 from app.integrations.media_runner_factory import (
     media_runner_router,

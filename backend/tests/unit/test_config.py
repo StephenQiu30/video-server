@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from app.core.config import DEFAULT_URL_ENCRYPTION_KEY, Settings
+from app.config import DEFAULT_URL_ENCRYPTION_KEY, REPOSITORY_ROOT, Settings
 from app.domain.provider_access import ProviderAccessPolicy
 from pydantic import SecretStr, ValidationError
 
@@ -511,3 +511,9 @@ def test_analysis_worker_uses_shared_minio_credentials() -> None:
     )
 
     assert settings.analysis_minio_credentials() == (access, secret)
+
+
+def test_environment_file_stays_at_repository_root_after_module_move() -> None:
+    repository = Path(__file__).resolve().parents[3]
+    assert REPOSITORY_ROOT == repository
+    assert Settings.model_config["env_file"] == repository / ".env"

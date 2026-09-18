@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.composition import build_api_runtime
-from app.core.config import Settings
+from app.config import Settings
 from app.runtime import ApiRuntime
 
 

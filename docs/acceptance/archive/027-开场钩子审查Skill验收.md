@@ -33,7 +33,7 @@
 - [x] `quick_validate.py app/analysis_skills/opening-hook-review`（Skill is valid）
 - [x] `uv run ruff check app tests`
 - [x] `uv run mypy --strict app`
-- [x] `uv run pytest -q tests/unit/infrastructure/test_analysis_skill_catalog.py tests/unit/infrastructure/ai_cli/test_prompt.py tests/unit/application/analysis/test_create_analysis.py`（37 passed）
+- [x] `uv run pytest -q tests/unit/integrations/test_analysis_skill_catalog.py tests/unit/integrations/ai_cli/test_prompt.py tests/unit/services/analysis/test_create_analysis.py`（37 passed）
 - [x] 全量后端测试通过（1342 passed, 1 skipped）。
 - [x] 受控授权视频的真实 Codex Provider canary 通过。
 

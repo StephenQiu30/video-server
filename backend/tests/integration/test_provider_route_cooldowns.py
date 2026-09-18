@@ -5,7 +5,7 @@ from time import perf_counter
 from uuid import uuid4
 
 import pytest
-from app.db.session import create_session_factory
+from app.database import create_session_factory
 from app.domain.provider_access import ProviderAccessPolicy
 from app.domain.providers import ProviderAccessMode
 from app.models import DownloadJobRow
@@ -19,7 +19,7 @@ from app.services.provider_route_admission import (
     RouteCoolingDown,
 )
 from sqlalchemy import delete, select, update
-from tests.unit.infrastructure.test_media_runner_router import context
+from tests.unit.integrations.test_media_runner_router import context
 
 KEY = ProviderRouteKey("youtube", ProviderAccessPolicy.PUBLIC, "controlled-egress")
 

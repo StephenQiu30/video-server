@@ -7,10 +7,18 @@ from pathlib import Path
 APP_ROOT = Path(__file__).resolve().parents[2] / "app"
 
 OUTER_APP_LAYERS = (
-    "app.api",
+    "app.routers",
+    "app.dependencies",
+    "app.admission",
+    "app.exception_handlers",
+    "app.middleware",
+    "app.openapi",
+    "app.quota_errors",
+    "app.upload_signing",
+    "app.main",
     "app.integrations",
     "app.repositories",
-    "app.db",
+    "app.database",
     "app.models",
     "app.schemas",
     "app.runtime",
@@ -54,12 +62,22 @@ def test_domain_and_services_only_depend_inward() -> None:
     assert not violations, "Invalid outward dependencies:\n" + "\n".join(violations)
 
 
-def test_public_api_uses_one_unversioned_contract_tree() -> None:
-    api_root = APP_ROOT / "api"
-
-    assert (api_root / "routes").is_dir()
+def test_fastapi_modules_have_one_entry_and_no_route_back_imports() -> None:
+    assert (APP_ROOT / "dependencies.py").is_file()
     assert (APP_ROOT / "schemas").is_dir()
-    assert not (api_root / "v1").exists()
+    sources = list((APP_ROOT / "routers").glob("*.py"))
+    assert sources
+    for source in sources:
+        assert not any(
+            _matches(module, "app.main") for module in _imported_modules(source)
+        ), f"Router imports the application entry: {source.name}"
+
+    # Old paths must not survive as parallel packages or forwarding modules.
+    for source in APP_ROOT.rglob("*.py"):
+        for module in _imported_modules(source):
+            assert not any(
+                _matches(module, prefix) for prefix in ("app.api", "app.core", "app.db")
+            ), f"{source.relative_to(APP_ROOT)} imports obsolete module {module}"
 
 
 def _imported_modules(source: Path) -> set[str]:
@@ -88,7 +106,15 @@ def _matches(module: str, prefix: str) -> bool:
 def test_database_and_models_do_not_import_services_or_adapters() -> None:
     forbidden = (
         "app.services",
-        "app.api",
+        "app.routers",
+        "app.dependencies",
+        "app.admission",
+        "app.exception_handlers",
+        "app.middleware",
+        "app.openapi",
+        "app.quota_errors",
+        "app.upload_signing",
+        "app.main",
         "app.repositories",
         "app.integrations",
         "app.workers",
@@ -96,11 +122,10 @@ def test_database_and_models_do_not_import_services_or_adapters() -> None:
         "app.runtime",
         "app.composition",
     )
-    for layer in ("db", "models"):
-        sources = list((APP_ROOT / layer).rglob("*.py"))
-        assert sources, f"Missing layer: {layer}"
-        for source in sources:
-            for module in _imported_modules(source):
-                assert not any(_matches(module, prefix) for prefix in forbidden), (
-                    f"{source.relative_to(APP_ROOT)} imports {module}"
-                )
+    sources = [APP_ROOT / "database.py", *(APP_ROOT / "models").rglob("*.py")]
+    for source in sources:
+        assert source.is_file()
+        for module in _imported_modules(source):
+            assert not any(_matches(module, prefix) for prefix in forbidden), (
+                f"{source.relative_to(APP_ROOT)} imports {module}"
+            )

@@ -8,7 +8,7 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.db.base import as_utc
+from app.database import as_utc
 from app.models import ProviderCatalogEntryRow
 from app.services.provider_catalog import (
     DuplicateProviderCatalogKeyError,

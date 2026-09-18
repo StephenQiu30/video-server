@@ -1,4 +1,4 @@
-from app.core.config import Settings
+from app.config import Settings
 from app.integrations.imports.docx import (
     DocxScreenplayVerifier,
     DocxVerificationSettings,

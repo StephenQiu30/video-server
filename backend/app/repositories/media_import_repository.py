@@ -11,7 +11,7 @@ from sqlalchemy import Select, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.base import as_utc
+from app.database import as_utc
 from app.domain.imports import (
     ContentKind,
     ImportErrorCode,
