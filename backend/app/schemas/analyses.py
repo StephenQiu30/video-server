@@ -5,19 +5,19 @@ from uuid import UUID
 
 from pydantic import Field, field_validator
 
-from app.domain.analysis import (
+from app.schemas.analysis_results import (
+    ANALYSIS_RESULT_RESPONSE_ADAPTER,
+    AnalysisResultResponse,
+)
+from app.schemas.common import StrictModel
+from app.services.analysis.models import AnalysisJobView
+from app.services.analysis.rules.enums import (
     AnalysisErrorCode,
     AnalysisInputKind,
     AnalysisResultContract,
     AnalysisStage,
     AnalysisStatus,
 )
-from app.schemas.analysis_results import (
-    ANALYSIS_RESULT_RESPONSE_ADAPTER,
-    AnalysisResultResponse,
-)
-from app.schemas.common import StrictModel
-from app.services.analysis import AnalysisJobView
 
 
 class AnalysisRequest(StrictModel):

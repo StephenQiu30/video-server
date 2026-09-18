@@ -5,16 +5,16 @@ from uuid import UUID
 
 from pydantic import Field
 
-from app.domain.downloads import (
+from app.schemas.common import StrictModel
+from app.schemas.inspections import SemanticPlanResponse
+from app.services.downloads.download_models import DownloadUrl, DownloadView
+from app.services.downloads.rules.enums import (
     DownloadErrorCode,
     DownloadSourceKind,
     DownloadStage,
     DownloadStatus,
     MediaKind,
 )
-from app.schemas.common import StrictModel
-from app.schemas.inspections import SemanticPlanResponse
-from app.services.downloads import DownloadUrl, DownloadView
 
 
 class DownloadRequest(StrictModel):

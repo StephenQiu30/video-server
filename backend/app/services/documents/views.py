@@ -1,13 +1,20 @@
 from __future__ import annotations
 
-from app.domain.imports import ImportErrorCode, ImportSourceFormat, ImportStatus
 from app.services.documents.models import (
     DocumentPage,
     DocumentPageSnapshot,
     DocumentSnapshot,
     DocumentView,
 )
-from app.services.imports import ImportApplicationError, ImportApplicationErrorCode
+from app.services.imports.errors import (
+    ImportApplicationError,
+    ImportApplicationErrorCode,
+)
+from app.services.imports.rules.enums import (
+    ImportErrorCode,
+    ImportSourceFormat,
+    ImportStatus,
+)
 
 
 def document_page(snapshot: DocumentPageSnapshot, owner_hash: str) -> DocumentPage:

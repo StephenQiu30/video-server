@@ -5,14 +5,14 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.analysis import (
+from app.services.analysis.models import AnalysisJobSnapshot
+from app.services.analysis.rules.enums import (
     AnalysisErrorCode,
     AnalysisInputKind,
     AnalysisStage,
     AnalysisStatus,
-    AnalysisValidationError,
 )
-from app.services.analysis import AnalysisJobSnapshot
+from app.services.analysis.rules.errors import AnalysisValidationError
 from app.services.analysis_execution.errors import (
     AnalysisLeaseLost,
     AnalysisOwnershipLost,

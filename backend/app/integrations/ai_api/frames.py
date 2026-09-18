@@ -8,7 +8,7 @@ from pathlib import Path
 
 from app.integrations.ai_api.config import ApiAdapterConfig
 from app.integrations.ai_cli.errors import AnalysisCliError
-from app.runner.process import ProcessSupervisor, ProcessTimeoutError
+from app.workers.runner.process import ProcessSupervisor, ProcessTimeoutError
 
 _FRAME_LIMIT = 64
 _TOTAL_EVIDENCE_LIMIT = 24 * 1024**2

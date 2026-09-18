@@ -166,7 +166,7 @@ Metrics/Logs ── 内部采集，不含源 URL query、任务帧、模型原�
 | --- | --- |
 | `uv run --frozen pytest -q` | 348 passed，1 个 Starlette/httpx deprecation warning |
 | `uv run --frozen mypy --strict app` | 通过，188 个源码文件无问题 |
-| `uv run --frozen ruff check .` | 失败：`app/runner/metadata.py` 1 个 E501 |
+| `uv run --frozen ruff check .` | 失败：`app/workers/runner/metadata.py` 1 个 E501 |
 | `uv run --frozen ruff format --check .` | 失败：3 个文件需格式化 |
 | `npm run lint` | 通过 |
 | `npm run format:check` | 通过 |

@@ -7,16 +7,18 @@ from pathlib import Path
 from typing import cast
 from uuid import uuid4
 
-from app.config import Settings
-from app.database import create_session_factory
+from app.core.config import Settings
+from app.core.db import create_session_factory
+from app.crud.auth_repository import SqlAlchemyAuthRepository
+from app.crud.email_verification_repository import SqlAlchemyVerificationStore
+from app.crud.user_repository import SqlAlchemyUserRepository
 from app.integrations.jwt_tokens import JwtTokenService
 from app.integrations.passwords import Argon2PasswordHasher
 from app.main import create_app
-from app.repositories.auth_repository import SqlAlchemyAuthRepository
-from app.repositories.email_verification_repository import SqlAlchemyVerificationStore
-from app.repositories.user_repository import SqlAlchemyUserRepository
-from app.services.auth import AuthService, SessionRotationConflict, UserService
 from app.services.auth.email_verification import EmailVerification
+from app.services.auth.errors import SessionRotationConflict
+from app.services.auth.service import AuthService
+from app.services.auth.user_service import UserService
 from httpx import ASGITransport, AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncEngine
 

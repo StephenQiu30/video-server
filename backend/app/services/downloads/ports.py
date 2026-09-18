@@ -5,7 +5,6 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.provider_access import ProviderAccessPolicy
 from app.services.downloads.analytics_models import DownloadAnalyticsSnapshot
 from app.services.downloads.download_models import (
     ArtifactSnapshot,
@@ -28,6 +27,7 @@ from app.services.downloads.thumbnail import (
     ThumbnailObject,
     ThumbnailSource,
 )
+from app.services.provider_access import ProviderAccessPolicy
 
 
 class UrlValidator(Protocol):

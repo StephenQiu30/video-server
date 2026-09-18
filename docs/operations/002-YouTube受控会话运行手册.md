@@ -22,8 +22,8 @@ YouTube 使用统一多平台会话架构，安装、启动、撤销和故障处
 
 ```bash
 cd backend
-uv run python -m app.runner.provider_session_maintainer start
-uv run python -m app.runner.provider_session_maintainer status
+uv run python -m app.workers.runner.provider_session_maintainer start
+uv run python -m app.workers.runner.provider_session_maintainer status
 ```
 
 `start` 是幂等命令：先同步采集和校验一次，失败时不启动后台进程；成功后脱离项目生命周期，每 60 秒只比较 YouTube 域数据。发生变化时用锁、`fsync` 和原子替换更新 `.provider-sessions/youtube/cookies.txt`；读取、校验或发布失败保留上一份来源。状态与 PID 位于 `~/Library/Caches/FrameFetch/youtube-session-maintainer`，目录 0700、文件 0600，`status` 只输出 `running/stopped` 和稳定结果码。
@@ -31,7 +31,7 @@ uv run python -m app.runner.provider_session_maintainer status
 维护器不打开网页、不处理登录/验证码、不访问其他平台 Cookie，也不进入 API、下载请求或 Docker。Runner 只读生产文件并为每次操作创建 tmpfs jar。停止维护时保留生产来源：
 
 ```bash
-uv run python -m app.runner.provider_session_maintainer stop
+uv run python -m app.workers.runner.provider_session_maintainer stop
 ```
 
 不要把 Python 直接配置为读取 Chrome 的 LaunchAgent。macOS TCC 授权归属于实际责任进程；系统启动的 Python 不继承 VS Code、ChatGPT 或终端的 Full Disk Access。本机已验证该路径返回 `provider_session_permission_denied`。机器重启后必须从已授权的宿主再次运行幂等 `start`，再启动 Compose；普通项目、Docker 或 Runner 重启不会终止维护进程。

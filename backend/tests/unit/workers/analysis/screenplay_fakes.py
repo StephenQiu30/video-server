@@ -6,18 +6,20 @@ from datetime import datetime
 from pathlib import Path
 from uuid import UUID, uuid4
 
-from app.services.analysis import AnalysisJobSnapshot
-from app.services.analysis_execution import (
-    AnalysisExecution,
+from app.services.analysis.models import AnalysisJobSnapshot
+from app.services.analysis_execution.models import (
     AnalysisScreenplaySource,
     LocalScreenplayArtifact,
-    ScreenplayAnalysisExecutor,
     ScreenplayAnalysisRequest,
     ScreenplayAnalysisSynthesisRequest,
-    ScreenplayAnalyzerSelection,
     ScreenplaySceneSource,
     VideoAnalysisRequest,
 )
+from app.services.analysis_execution.ports import ScreenplayAnalyzerSelection
+from app.services.analysis_execution.screenplay_executor import (
+    ScreenplayAnalysisExecutor,
+)
+from app.services.analysis_execution.service import AnalysisExecution
 
 from .fakes import NOW, FakeLoader, FakeRepository, running_job, settings
 from .fixtures import valid_mapping

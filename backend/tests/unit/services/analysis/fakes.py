@@ -4,23 +4,25 @@ from dataclasses import replace
 from datetime import datetime
 from uuid import UUID
 
-from app.domain.analysis import AnalysisInputKind, AnalysisResultContract
-from app.services.analysis import (
-    AnalysisArtifactSnapshot,
-    AnalysisCreate,
-    AnalysisDocumentSnapshot,
-    AnalysisJobSaveResult,
-    AnalysisJobSnapshot,
-    AnalysisPublish,
-    AnalysisResult,
-    AnalysisRetry,
-    AnalysisSkillResolution,
-    AnalysisSkillView,
+from app.services.analysis.errors import (
     PersistenceActiveRun,
     PersistenceConflict,
     PersistenceIdempotencyConflict,
     PersistenceNotFound,
 )
+from app.services.analysis.input_models import AnalysisDocumentSnapshot
+from app.services.analysis.models import (
+    AnalysisArtifactSnapshot,
+    AnalysisCreate,
+    AnalysisJobSaveResult,
+    AnalysisJobSnapshot,
+    AnalysisPublish,
+    AnalysisRetry,
+    AnalysisSkillResolution,
+    AnalysisSkillView,
+)
+from app.services.analysis.rules.enums import AnalysisInputKind, AnalysisResultContract
+from app.services.analysis.rules.result_types import AnalysisResult
 
 
 class FakeFingerprinter:

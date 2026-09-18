@@ -35,7 +35,7 @@ x-provider-session-runner: &provider-session-runner
       "python",
       "-m",
       "uvicorn",
-      "app.runner.main:create_app",
+      "app.workers.runner.main:create_app",
       "--factory",
       "--host",
       "0.0.0.0",
@@ -544,7 +544,7 @@ services:
         "python",
         "-m",
         "uvicorn",
-        "app.runner.main:create_app",
+        "app.workers.runner.main:create_app",
         "--factory",
         "--host",
         "0.0.0.0",
@@ -717,7 +717,7 @@ services:
       - youtube_pot_net
     volumes:
       - type: bind
-        source: ./backend/app/runner/youtube-pot-supervisor.mjs
+        source: ./backend/app/workers/runner/youtube-pot-supervisor.mjs
         target: /opt/video/youtube-pot-supervisor.mjs
         read_only: true
         bind:

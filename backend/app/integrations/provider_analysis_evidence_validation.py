@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from app.database import as_utc
-from app.domain.analysis import VideoAnalysisResult
-from app.domain.providers import ProviderAccessContextRef
+from app.core.db import as_utc
+from app.crud.analysis_repository_serialization import (
+    analysis_result_from_document,
+)
 from app.models import (
     AnalysisJobRow,
     AnalysisReportArtifactRow,
@@ -17,14 +18,13 @@ from app.models import (
     MediaInspectionRow,
     TaskEventRow,
 )
-from app.repositories.analysis_repository_serialization import (
-    analysis_result_from_document,
-)
-from app.services.downloads import EncryptedUrl
+from app.services.analysis.rules.result_models import VideoAnalysisResult
+from app.services.downloads.inspection_models import EncryptedUrl
 from app.services.provider_analysis_canary import (
     AnalysisCanaryEvidence,
     AnalysisCanaryObject,
 )
+from app.services.provider_types import ProviderAccessContextRef
 
 
 def validated_evidence(

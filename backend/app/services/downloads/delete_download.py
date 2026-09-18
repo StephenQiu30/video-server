@@ -7,7 +7,6 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.downloads import DownloadStatus
 from app.services.downloads.download_models import JobSnapshot
 from app.services.downloads.errors import (
     ApplicationError,
@@ -16,8 +15,12 @@ from app.services.downloads.errors import (
     PersistenceNotFound,
 )
 from app.services.downloads.ports import DownloadDeletionStorage, DownloadRepository
+from app.services.downloads.rules.enums import DownloadStatus
 from app.services.downloads.validation import validate_now, validate_owner_hash
-from app.services.imports import ImportObjectStorageError, MultipartUploadNotFound
+from app.services.imports.errors import (
+    ImportObjectStorageError,
+    MultipartUploadNotFound,
+)
 
 
 class DownloadCanceller(Protocol):

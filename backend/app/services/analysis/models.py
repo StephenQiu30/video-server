@@ -4,14 +4,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from app.domain.analysis import (
+from app.services.analysis.rules.enums import (
     AnalysisErrorCode,
     AnalysisInputKind,
-    AnalysisResult,
     AnalysisResultContract,
     AnalysisStage,
     AnalysisStatus,
 )
+from app.services.analysis.rules.result_types import AnalysisResult
 from app.services.quotas import UserQuota
 
 

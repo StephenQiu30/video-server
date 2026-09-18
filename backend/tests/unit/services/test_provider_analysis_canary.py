@@ -4,19 +4,19 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 import pytest
-from app.domain.providers import (
-    ProviderAccessContextRef,
-    ProviderAccessMode,
-    ProviderCanaryOutcome,
-    ProviderCanaryResult,
-    ProviderCanaryStage,
-)
-from app.services.downloads import EncryptedUrl
+from app.services.downloads.inspection_models import EncryptedUrl
 from app.services.provider_analysis_canary import (
     AnalysisCanaryEvidence,
     AnalysisCanaryObject,
     AnalysisCanaryTarget,
     ProviderAnalysisCanaryService,
+)
+from app.services.provider_types import (
+    ProviderAccessContextRef,
+    ProviderAccessMode,
+    ProviderCanaryOutcome,
+    ProviderCanaryResult,
+    ProviderCanaryStage,
 )
 
 NOW = datetime(2026, 8, 11, 6, tzinfo=UTC)

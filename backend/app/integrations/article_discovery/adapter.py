@@ -10,10 +10,10 @@ from urllib.parse import urlsplit
 import httpx
 
 from app.integrations.article_discovery.parser import parse_article_html
-from app.services.source_discoveries import (
+from app.services.source_discoveries.models import ArticleDiscoveryResult
+from app.services.source_discoveries.ports import (
     ArticleAccessRestricted,
     ArticleDiscoveryFailure,
-    ArticleDiscoveryResult,
 )
 
 _USER_AGENT = (

@@ -43,7 +43,7 @@
 
 ### 工作项
 
-1. 在 `backend/app/domain/analysis/` 将结果切换为唯一当前态视觉结果契约：
+1. 在 `backend/app/services/analysis/rules/` 将结果切换为唯一当前态视觉结果契约：
    - 新增/重写 `VisualAnalysisResult`、`Shot`、`Highlight`、`VisualAsset` 和限制对象。
    - 将 evidence 从 transcript segment 改为 shot id。
    - 实现严格解析、连续时间分区、引用、媒体元数据和总大小校验。
@@ -73,7 +73,7 @@
    - 删除音频提取与 25 MB ASR 分块逻辑。
    - 建立固定的任务目录、输入 materialization、Prompt/Schema/policy 复制和清理。
    - 视频使用固定 `input/video.bin`，不保留外部文件名或远程 URL。
-2. 扩展 `backend/app/runner/process.py`：
+2. 扩展 `backend/app/workers/runner/process.py`：
    - 支持 `stdin: bytes | None`，Prompt 不进入 argv 或 shell。
    - stdout、stderr 使用独立字节上限和截断标记。
    - 允许 Provider 结果写受限文件，同时验证 regular file、realpath、owner 和最大字节数。
@@ -191,7 +191,7 @@ Prompt 与 Codex 一样由父进程写入 stdin，不作为 argv 暴露在进程
 
 ### 工作项
 
-1. 在 `backend/app/config.py` 增加类型化 CLI 配置和上限：Provider、两个 binary/model、公共 timeout/输出/工作区/图片/并发，以及 Claude 专用 max turns。
+1. 在 `backend/app/core/config.py` 增加类型化 CLI 配置和上限：Provider、两个 binary/model、公共 timeout/输出/工作区/图片/并发，以及 Claude 专用 max turns。
 2. 删除 `analysis_provider`、`deepseek_*`、`ollama_*`、`openai_*`、转录 timeout 和旧模型 token 配置。
 3. 在 `backend/app/workers/analysis/main.py`：
    - 只装配一个 `VideoAnalyzer`。

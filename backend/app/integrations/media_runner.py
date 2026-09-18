@@ -16,10 +16,6 @@ from typing import Protocol, TypeVar
 import httpx
 from pydantic import BaseModel, ValidationError
 
-from app.domain.downloads import DownloadPlan, MediaKind
-from app.domain.downloads.content_restrictions import ContentRestriction
-from app.domain.provider_access import ProviderAccessPolicy
-from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
 from app.integrations.media_inspection_pipeline import MediaInspectionPipeline
 from app.integrations.media_runner_models import (
     MediaRunnerClientError,
@@ -27,7 +23,38 @@ from app.integrations.media_runner_models import (
     RunnerProgress,
     download_stage,
 )
-from app.runner.contracts import (
+from app.services.downloads.errors import (
+    MediaInspectionAuthRequired,
+    MediaInspectionConfigurationMissing,
+    MediaInspectionContentRestricted,
+    MediaInspectionDrmProtected,
+    MediaInspectionDurationLimitExceeded,
+    MediaInspectionFailure,
+    MediaInspectionFormatUnavailable,
+    MediaInspectionGeoRestricted,
+    MediaInspectionLinkUnavailable,
+    MediaInspectionMediaUnsupported,
+    MediaInspectionPaidContentRestricted,
+    MediaInspectionRateLimited,
+    MediaInspectionSessionExpired,
+    MediaInspectionTemporarilyUnavailable,
+    MediaInspectionTimeout,
+    MediaInspectionUnsupported,
+    MediaInspectionVerificationFailed,
+)
+from app.services.downloads.inspection_models import RunnerFormat, RunnerInspection
+from app.services.downloads.rules.content_restrictions import ContentRestriction
+from app.services.downloads.rules.enums import MediaKind
+from app.services.downloads.rules.formats import DownloadPlan
+from app.services.provider_access import ProviderAccessPolicy
+from app.services.provider_route_admission import (
+    ProviderRouteAdmission,
+    RouteAdmissionUnavailable,
+    RouteCoolingDown,
+    RouteProbeTimeout,
+)
+from app.services.provider_types import ProviderAccessContextRef, ProviderAccessMode
+from app.workers.runner.contracts import (
     CancelCommand,
     CancelResponse,
     DownloadPlanContract,
@@ -41,37 +68,8 @@ from app.runner.contracts import (
     ProviderContextsResponse,
     TaskStatusResponse,
 )
-from app.runner.provider_registry import provider_profile
-from app.runner.signing import sign_request
-from app.services.downloads import (
-    MediaInspectionFailure,
-    RunnerFormat,
-    RunnerInspection,
-)
-from app.services.downloads.errors import (
-    MediaInspectionAuthRequired,
-    MediaInspectionConfigurationMissing,
-    MediaInspectionContentRestricted,
-    MediaInspectionDrmProtected,
-    MediaInspectionDurationLimitExceeded,
-    MediaInspectionFormatUnavailable,
-    MediaInspectionGeoRestricted,
-    MediaInspectionLinkUnavailable,
-    MediaInspectionMediaUnsupported,
-    MediaInspectionPaidContentRestricted,
-    MediaInspectionRateLimited,
-    MediaInspectionSessionExpired,
-    MediaInspectionTemporarilyUnavailable,
-    MediaInspectionTimeout,
-    MediaInspectionUnsupported,
-    MediaInspectionVerificationFailed,
-)
-from app.services.provider_route_admission import (
-    ProviderRouteAdmission,
-    RouteAdmissionUnavailable,
-    RouteCoolingDown,
-    RouteProbeTimeout,
-)
+from app.workers.runner.provider_registry import provider_profile
+from app.workers.runner.signing import sign_request
 
 _TASK_ID = re.compile(r"[A-Za-z0-9_-]{1,64}")
 _CONTEXT_TIMEOUT_SECONDS = 2.0

@@ -6,15 +6,15 @@ from uuid import UUID
 
 from pydantic import Field
 
-from app.domain.providers import ProviderKey
-from app.domain.source_discovery import (
+from app.schemas.common import StrictModel
+from app.services.provider_types import ProviderKey
+from app.services.source_discoveries.models import SourceDiscoveryView
+from app.services.source_discovery import (
     DiscoveryDecisionHint,
     DiscoveryItemKind,
     DiscoveryItemStatus,
     DiscoveryStatus,
 )
-from app.schemas.common import StrictModel
-from app.services.source_discoveries import SourceDiscoveryView
 
 
 class SourceDiscoveryRequest(StrictModel):

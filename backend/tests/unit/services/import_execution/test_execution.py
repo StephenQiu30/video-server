@@ -5,17 +5,20 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID
 
-from app.domain.imports import ContentKind, ImportErrorCode, ImportSourceFormat
-from app.services.import_execution import (
-    ImportExecution,
+from app.services.import_execution.errors import ImportVerificationRejected
+from app.services.import_execution.models import (
     ImportExecutionSettings,
-    ImportRecoverySweeper,
     ImportVerificationClaim,
-    ImportVerificationRejected,
     ImportWorkspace,
     VerifiedImportArtifact,
 )
-from app.services.imports import ImportDisposition
+from app.services.import_execution.service import ImportExecution, ImportRecoverySweeper
+from app.services.imports.models import ImportDisposition
+from app.services.imports.rules.enums import (
+    ContentKind,
+    ImportErrorCode,
+    ImportSourceFormat,
+)
 
 NOW = datetime(2026, 8, 14, 10, 0, tzinfo=UTC)
 RESOURCE_ID = UUID("11111111-1111-4111-8111-111111111111")

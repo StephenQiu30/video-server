@@ -8,7 +8,7 @@ import ssl
 from email.message import EmailMessage
 from email.utils import formataddr, make_msgid
 
-from app.config import Settings
+from app.core.config import Settings
 from app.services.auth.errors import AuthError, AuthErrorCode
 
 

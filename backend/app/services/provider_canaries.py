@@ -8,18 +8,18 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import Protocol
 
-from app.domain.providers import (
+from app.services.provider_catalog import ProviderCatalogRepository
+from app.services.provider_route_admission import (
+    ProviderRouteCooldownReader,
+    ProviderRouteKey,
+)
+from app.services.provider_types import (
     ProviderAccessContextRef,
     ProviderAccessMode,
     ProviderCanaryOutcome,
     ProviderCanaryResult,
     ProviderCanaryStage,
     ProviderSupportStatus,
-)
-from app.services.provider_catalog import ProviderCatalogRepository
-from app.services.provider_route_admission import (
-    ProviderRouteCooldownReader,
-    ProviderRouteKey,
 )
 from app.services.providers import (
     ProviderEvidenceState,

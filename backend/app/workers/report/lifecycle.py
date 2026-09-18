@@ -8,11 +8,11 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from app.integrations.object_storage import MinioObjectStorage
-from app.repositories.analysis_report_lifecycle import (
+from app.crud.analysis_report_lifecycle import (
     AnalysisReportLifecycleRepository,
     ReportPurgeResult,
 )
+from app.integrations.object_storage import MinioObjectStorage
 
 _log = logging.getLogger(__name__)
 

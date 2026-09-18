@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from app.config import Settings
-from app.upload_signing import (
+from app.api.upload_signing import (
     use_browser_download_proxy,
     use_local_browser_download_endpoint,
     use_local_browser_upload_endpoint,
 )
+from app.core.config import Settings
 from starlette.requests import Request
 
 

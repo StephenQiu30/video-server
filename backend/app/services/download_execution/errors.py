@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from app.domain.downloads import DownloadErrorCode
-from app.domain.downloads.content_restrictions import ContentRestriction
+from app.services.downloads.rules.content_restrictions import ContentRestriction
+from app.services.downloads.rules.enums import DownloadErrorCode
 
 
 class ExecutionPersistenceUnavailable(RuntimeError):

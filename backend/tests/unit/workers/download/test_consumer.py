@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import pytest
 from app.integrations.messaging import EventEnvelope
-from app.services.download_execution import ExecutionDisposition
+from app.services.download_execution.models import ExecutionDisposition
 from app.workers.download.consumer import process_delivery
 
 

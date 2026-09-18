@@ -1,8 +1,8 @@
 from uuid import UUID
 
-from app.domain.imports import ContentKind
-from app.services.import_execution import RoutedImportExecution
-from app.services.imports import ImportDisposition
+from app.services.import_execution.routing import RoutedImportExecution
+from app.services.imports.models import ImportDisposition
+from app.services.imports.rules.enums import ContentKind
 
 RESOURCE_ID = UUID("cccccccc-cccc-4ccc-8ccc-cccccccccccc")
 

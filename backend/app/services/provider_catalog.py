@@ -9,8 +9,8 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Protocol
 
-from app.domain.providers import ProviderSupportStatus
-from app.services.auth import CurrentUser, UserRole
+from app.services.auth.models import CurrentUser, UserRole
+from app.services.provider_types import ProviderSupportStatus
 from app.services.providers import ProviderStatusView
 
 _KEY = re.compile(r"[a-z][a-z0-9_-]{0,31}")

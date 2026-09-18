@@ -5,7 +5,7 @@ import pytest
 from app.integrations.ai_cli.screenplay_prompt import screenplay_analysis_prompt
 from app.integrations.ai_cli.screenplay_schema import screenplay_analysis_output_schema
 from app.integrations.ai_cli.screenplay_workspace import prepare_screenplay_job_files
-from app.services.analysis_execution import SCREENPLAY_SINGLE_CALL_SCENE_LIMIT
+from app.services.analysis_execution.models import SCREENPLAY_SINGLE_CALL_SCENE_LIMIT
 from tests.unit.integrations.ai_cli.helpers import screenplay_request
 
 

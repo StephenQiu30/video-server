@@ -4,11 +4,11 @@ from datetime import datetime, timedelta
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.imports import ContentKind, ImportErrorCode
 from app.services.import_execution.models import (
     ImportVerificationClaim,
     VerifiedDocumentImport,
 )
+from app.services.imports.rules.enums import ContentKind, ImportErrorCode
 
 
 class DocumentImportExecutionRepository(Protocol):

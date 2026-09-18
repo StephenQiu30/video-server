@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.domain.analysis import (
-    AnalysisValidationCode,
-    AnalysisValidationError,
+from app.services.analysis.models import AnalysisJobSnapshot
+from app.services.analysis.rules.enums import AnalysisValidationCode
+from app.services.analysis.rules.errors import AnalysisValidationError
+from app.services.analysis.rules.screenplay_results import ScreenplayRewriteResult
+from app.services.analysis.rules.screenplay_rewrite_items import (
     ScreenplayGlossaryTerm,
     ScreenplayRewriteChunkOutput,
     ScreenplayRewriteGlossary,
-    ScreenplayRewriteResult,
 )
-from app.services.analysis import AnalysisJobSnapshot
 from app.services.analysis_execution.errors import AnalysisArtifactError
 from app.services.analysis_execution.models import LocalScreenplayArtifact
 from app.services.analysis_execution.screenplay_rewrite_models import (

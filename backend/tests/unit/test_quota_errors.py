@@ -1,5 +1,5 @@
 import pytest
-from app.config import Settings
+from app.core.config import Settings
 from app.main import create_app
 from app.services.quotas import QuotaExceeded
 from fastapi.testclient import TestClient

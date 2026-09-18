@@ -4,7 +4,6 @@ from collections.abc import Callable
 from datetime import datetime
 from uuid import UUID
 
-from app.domain.analysis import AnalysisInputKind
 from app.services.analysis.errors import (
     AnalysisApplicationError,
     AnalysisApplicationErrorCode,
@@ -18,6 +17,7 @@ from app.services.analysis.ports import (
     AnalysisSkillCatalog,
     RequestFingerprinter,
 )
+from app.services.analysis.rules.enums import AnalysisInputKind
 from app.services.analysis.validation import (
     validate_custom_prompt,
     validate_idempotency_key,

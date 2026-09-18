@@ -3,8 +3,6 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime
 
-from app.domain.downloads import DownloadErrorCode, DownloadSourceKind, DownloadStatus
-from app.domain.providers import ProviderKey
 from app.services.downloads.errors import ApplicationError, ApplicationErrorCode
 from app.services.downloads.history_models import (
     DownloadHistoryItemSnapshot,
@@ -14,11 +12,17 @@ from app.services.downloads.history_models import (
     DownloadHistoryView,
 )
 from app.services.downloads.ports import DownloadRepository
+from app.services.downloads.rules.enums import (
+    DownloadErrorCode,
+    DownloadSourceKind,
+    DownloadStatus,
+)
 from app.services.downloads.thumbnail import (
     download_thumbnail_resource_url,
     thumbnail_resource_url,
 )
 from app.services.downloads.validation import validate_now, validate_owner_hash
+from app.services.provider_types import ProviderKey
 
 
 class GetDownloadHistory:

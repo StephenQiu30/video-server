@@ -1,4 +1,4 @@
-from app.domain.providers import ProviderAccessMode, ProviderCanaryStage
+from app.services.provider_types import ProviderAccessMode, ProviderCanaryStage
 from app.workers.canary.targets import (
     parse_canary_targets,
     validate_canary_target_routes,

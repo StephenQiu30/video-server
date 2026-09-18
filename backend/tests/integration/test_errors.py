@@ -3,11 +3,11 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from app.config import Settings
-from app.errors import AppError
-from app.exception_handlers import application_error
+from app.api.errors import application_error
+from app.core.config import Settings
+from app.core.errors import AppError
 from app.main import create_app
-from app.services.downloads import ApplicationError, ApplicationErrorCode
+from app.services.downloads.errors import ApplicationError, ApplicationErrorCode
 from fastapi.testclient import TestClient
 
 

@@ -6,7 +6,7 @@ import re
 from pathlib import PurePosixPath
 from urllib.parse import quote
 
-from app.domain.downloads import Container
+from app.services.downloads.rules.enums import Container
 
 
 def download_disposition(object_key: str, title: str | None) -> str:

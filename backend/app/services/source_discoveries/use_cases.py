@@ -4,7 +4,18 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from app.domain.downloads import (
+from app.services.downloads.errors import (
+    ApplicationError,
+    ApplicationErrorCode,
+    PersistenceIdempotencyConflict,
+)
+from app.services.downloads.inspection_models import InspectionCreate, InspectionView
+from app.services.downloads.ports import (
+    DownloadRepository,
+    RequestFingerprinter,
+    UrlCipher,
+)
+from app.services.downloads.rules.inspection import (
     AccessDecision,
     EntitlementState,
     ExecutionMode,
@@ -12,29 +23,14 @@ from app.domain.downloads import (
     ProtectionState,
     SourceOrigin,
 )
-from app.domain.identifiers import SourceDiscoveryAdapter
-from app.domain.providers import ProviderKey
-from app.domain.source_discovery import (
-    DiscoveryItemKind,
-    DiscoveryItemStatus,
-    DiscoveryStatus,
-)
-from app.services.downloads import (
-    ApplicationError,
-    ApplicationErrorCode,
-    DownloadRepository,
-    InspectionCreate,
-    InspectionView,
-    PersistenceIdempotencyConflict,
-    RequestFingerprinter,
-    UrlCipher,
-)
 from app.services.downloads.validation import (
     validate_idempotency_key,
     validate_now,
     validate_owner_hash,
 )
 from app.services.downloads.views import inspection_view
+from app.services.identifiers import SourceDiscoveryAdapter
+from app.services.provider_types import ProviderKey
 from app.services.source_discoveries.models import (
     SourceDiscoveryCreate,
     SourceDiscoveryItemCreate,
@@ -51,6 +47,11 @@ from app.services.source_discoveries.ports import (
     SourceDiscoveryRepository,
 )
 from app.services.source_discoveries.url_admission import canonicalize_article_url
+from app.services.source_discovery import (
+    DiscoveryItemKind,
+    DiscoveryItemStatus,
+    DiscoveryStatus,
+)
 
 ADAPTER_VERSION = SourceDiscoveryAdapter.WECHAT_ARTICLE
 PROVIDER_KEY = ProviderKey.WECHAT_OFFICIAL_ACCOUNT_ARTICLE

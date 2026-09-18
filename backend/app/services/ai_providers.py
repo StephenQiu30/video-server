@@ -34,7 +34,7 @@ from app.services.ai_provider_validation import validated_key as _validated_key
 from app.services.ai_provider_validation import validated_model as _validated_model
 from app.services.ai_provider_validation import validated_name as _validated_name
 from app.services.ai_provider_validation import validated_profile as _validated_profile
-from app.services.auth import CurrentUser
+from app.services.auth.models import CurrentUser
 
 
 class AiProviderService:

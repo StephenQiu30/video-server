@@ -19,7 +19,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.database import Base, utc_now
+from app.core.db import Base, utc_now
 
 
 class MediaImportRow(Base):

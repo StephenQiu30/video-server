@@ -4,7 +4,6 @@ from collections.abc import Callable
 from datetime import datetime
 from uuid import UUID
 
-from app.domain.downloads import MediaKind
 from app.services.downloads.download_models import DownloadCreate, DownloadView
 from app.services.downloads.errors import (
     ApplicationError,
@@ -14,6 +13,7 @@ from app.services.downloads.errors import (
 )
 from app.services.downloads.plans import plan_from_documents, plan_to_documents
 from app.services.downloads.ports import DownloadRepository, RequestFingerprinter
+from app.services.downloads.rules.enums import MediaKind
 from app.services.downloads.validation import (
     media_kind_from_metadata,
     validate_idempotency_key,

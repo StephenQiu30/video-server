@@ -4,10 +4,10 @@ import asyncio
 from collections.abc import Callable
 from datetime import datetime, timedelta
 
-from app.domain.providers import ProviderCanaryStage
-from app.runner.provider_registry import provider_profile
+from app.services.provider_types import ProviderCanaryStage
 from app.workers.canary.service import CanaryRepository, ProviderCanaryService
 from app.workers.canary.targets import ProviderCanaryTarget
+from app.workers.runner.provider_registry import provider_profile
 
 
 class ProviderCanaryScheduler:

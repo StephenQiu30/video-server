@@ -1,0 +1,49 @@
+"""Analysis persistence composed from explicit transaction capabilities."""
+
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+from app.crud.analysis_repository_base import AnalysisRepositoryBase
+from app.crud.analysis_repository_create import AnalysisCreationRepository
+from app.crud.analysis_repository_inputs import AnalysisInputRepository
+from app.crud.analysis_repository_lifecycle import AnalysisLifecycleRepository
+from app.crud.analysis_repository_publish import AnalysisPublishRepository
+from app.crud.analysis_repository_recovery import AnalysisRecoveryRepository
+from app.crud.analysis_repository_retry import AnalysisRetryRepository
+from app.services.quotas import QuotaPolicy
+
+
+class SqlAlchemyAnalysisRepository:
+    def __init__(
+        self,
+        sessions: async_sessionmaker[AsyncSession],
+        *,
+        quota_policy: QuotaPolicy | None = None,
+    ) -> None:
+        reads = AnalysisRepositoryBase(sessions, quota_policy=quota_policy)
+        self.get_job = reads.get_job
+        self.get_result = reads.get_result
+        self.get_latest_report = reads.get_latest_report
+        self.get_current_report_file = reads.get_current_report_file
+        creation = AnalysisCreationRepository(sessions, quota_policy=quota_policy)
+        self.create_job_and_enqueue = creation.create_job_and_enqueue
+        inputs = AnalysisInputRepository(sessions, quota_policy=quota_policy)
+        self.get_artifact_for_download = inputs.get_artifact_for_download
+        self.get_artifact = inputs.get_artifact
+        self.get_document_for_analysis = inputs.get_document_for_analysis
+        self.get_screenplay_source = inputs.get_screenplay_source
+        lifecycle = AnalysisLifecycleRepository(sessions, quota_policy=quota_policy)
+        self.get_latest_job_for_download = lifecycle.get_latest_job_for_download
+        self.get_latest_job_for_document = lifecycle.get_latest_job_for_document
+        self.delete_job = lifecycle.delete_job
+        self.claim_job = lifecycle.claim_job
+        self.heartbeat = lifecycle.heartbeat
+        self.cancel_job = lifecycle.cancel_job
+        publication = AnalysisPublishRepository(sessions, quota_policy=quota_policy)
+        self.publish_result = publication.publish_result
+        recovery = AnalysisRecoveryRepository(sessions, quota_policy=quota_policy)
+        self.recover_stale_queued = recovery.recover_stale_queued
+        self.complete_failure = recovery.complete_failure
+        self.reclaim_stale = recovery.reclaim_stale
+        self.release_ready_retries = recovery.release_ready_retries
+        retry = AnalysisRetryRepository(sessions, quota_policy=quota_policy)
+        self.retry_job_and_enqueue = retry.retry_job_and_enqueue

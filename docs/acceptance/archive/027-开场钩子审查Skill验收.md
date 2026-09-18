@@ -30,7 +30,7 @@
 
 ## 4. 验证
 
-- [x] `quick_validate.py app/analysis_skills/opening-hook-review`（Skill is valid）
+- [x] `quick_validate.py app/services/analysis/skills/opening-hook-review`（Skill is valid）
 - [x] `uv run ruff check app tests`
 - [x] `uv run mypy --strict app`
 - [x] `uv run pytest -q tests/unit/integrations/test_analysis_skill_catalog.py tests/unit/integrations/ai_cli/test_prompt.py tests/unit/services/analysis/test_create_analysis.py`（37 passed）

@@ -2,17 +2,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.config import Settings
-from app.services.analysis_execution import (
-    ScreenplayAnalysisExecutor,
-    ScreenplayExecutionRouter,
-    ScreenplayRewriteExecutor,
-)
+from app.core.config import Settings
 from app.services.analysis_execution.ports import (
     AnalysisExecutionRepository,
     AnalyzerResolver,
     Clock,
 )
+from app.services.analysis_execution.screenplay_executor import (
+    ScreenplayAnalysisExecutor,
+)
+from app.services.analysis_execution.screenplay_rewrite_executor import (
+    ScreenplayRewriteExecutor,
+)
+from app.services.analysis_execution.screenplay_router import ScreenplayExecutionRouter
 from app.workers.analysis.screenplay_artifacts import (
     LocalScreenplayArtifactLoader,
     ScreenplayStorage,

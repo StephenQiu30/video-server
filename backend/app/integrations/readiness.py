@@ -11,8 +11,8 @@ from sqlalchemy import bindparam, text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 import app.models  # noqa: F401  # Register the complete SQLAlchemy metadata graph.
-from app.config import Settings
-from app.database import Base
+from app.core.config import Settings
+from app.core.db import Base
 
 AsyncCheck = Callable[[], Awaitable[None]]
 EXPECTED_DATABASE_TABLES = frozenset(Base.metadata.tables)

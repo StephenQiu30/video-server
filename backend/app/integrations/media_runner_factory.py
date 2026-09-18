@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from app.config import Settings
-from app.domain.providers import ProviderAccessMode
+from app.core.config import Settings
 from app.integrations.media_runner import MediaRunnerHttpClient, MediaRunnerRouter
-from app.runner.provider_registry import provider_profile_for_key
-from app.runner.provider_session_policy import browser_session_policy
 from app.services.provider_route_admission import ProviderRouteAdmission
+from app.services.provider_types import ProviderAccessMode
+from app.workers.runner.provider_registry import provider_profile_for_key
+from app.workers.runner.provider_session_policy import browser_session_policy
 
 
 def anonymous_media_runner(

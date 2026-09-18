@@ -7,17 +7,16 @@ import signal
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from app.config import Settings, get_settings_for_role
-from app.database import create_engine, create_session_factory
+from app.core.config import Settings, get_settings_for_role
+from app.core.db import create_engine, create_session_factory
+from app.crud.provider_canary_repository import (
+    SqlAlchemyProviderCanaryRepository,
+)
+from app.crud.provider_route_cooldowns import SqlAlchemyProviderRouteCooldowns
 from app.integrations.media_runner_factory import (
     anonymous_media_runner,
     operator_media_runners,
 )
-from app.repositories.provider_canary_repository import (
-    SqlAlchemyProviderCanaryRepository,
-)
-from app.repositories.provider_route_cooldowns import SqlAlchemyProviderRouteCooldowns
-from app.runner.provider_registry import configure_provider_instances
 from app.services.provider_route_admission import ProviderRouteAdmission
 from app.workers.canary.runner import ProviderCanaryRunner
 from app.workers.canary.scheduler import ProviderCanaryScheduler
@@ -27,6 +26,7 @@ from app.workers.canary.targets import (
     validate_canary_target_routes,
 )
 from app.workers.download.workspace import SharedWorkspaceCleaner
+from app.workers.runner.provider_registry import configure_provider_instances
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 

@@ -13,13 +13,12 @@ from email.parser import BytesParser
 from unittest.mock import patch
 
 import uvicorn
-from app.composition import build_api_runtime
-from app.config import Settings
-from app.database import Base, create_session_factory
+from app.core.composition import build_api_runtime
+from app.core.config import RateLimitPolicy, Settings
+from app.core.db import Base, create_session_factory
 from app.main import create_app
 from app.models.auth import UserRow
 from app.models.provider_catalog import ProviderCatalogEntryRow
-from app.rate_limits import RateLimitPolicy
 from fastapi import FastAPI
 from sqlalchemy import select
 from tests.postgres import isolated_postgres_engine
@@ -91,7 +90,7 @@ async def main():
                 "register": RateLimitPolicy(limit=100, window_seconds=3600),
             },
         )
-        with patch("app.composition.create_engine", return_value=engine):
+        with patch("app.core.composition.create_engine", return_value=engine):
             runtime = build_api_runtime(settings)
         app = create_app(settings, runtime=runtime)
         api_server = uvicorn.Server(

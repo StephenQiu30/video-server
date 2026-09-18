@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 from uuid import UUID
 
-from app.domain.downloads import DownloadErrorCode, DownloadStage
 from app.services.download_execution.artifact import (
     VerifiedArtifact,
     artifact_object_key,
@@ -22,6 +21,7 @@ from app.services.download_execution.models import (
 from app.services.download_execution.monitor import LeaseMonitor
 from app.services.download_execution.ports import Clock, ExecutionStorage
 from app.services.download_execution.transitions import ExecutionTransitions
+from app.services.downloads.rules.enums import DownloadErrorCode, DownloadStage
 
 
 class ArtifactDelivery:

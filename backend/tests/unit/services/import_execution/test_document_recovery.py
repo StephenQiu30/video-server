@@ -2,7 +2,9 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from app.services.import_execution import DocumentImportRecoverySweeper
+from app.services.import_execution.document_recovery import (
+    DocumentImportRecoverySweeper,
+)
 
 NOW = datetime(2026, 8, 14, 20, 0, tzinfo=UTC)
 DOCUMENT_ID = UUID("dddddddd-dddd-4ddd-8ddd-dddddddddddd")

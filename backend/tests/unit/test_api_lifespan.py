@@ -1,9 +1,10 @@
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-from app import lifespan, main
-from app.config import Settings
-from app.runtime import ApiRuntime, ApiServices
+from app import main
+from app.core import lifespan
+from app.core.config import Settings
+from app.core.runtime import ApiRuntime, ApiServices
 from fastapi.testclient import TestClient
 
 

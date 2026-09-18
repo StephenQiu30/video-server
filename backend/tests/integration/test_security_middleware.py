@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from app.config import Settings
+from app.core.config import Settings
 from app.integrations.rate_limiter import RateLimitExceeded
 from app.main import create_app
 from fastapi.testclient import TestClient

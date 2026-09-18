@@ -12,7 +12,7 @@ from aio_pika.abc import (
     AbstractRobustConnection,
 )
 from app.integrations.messaging import RabbitMqTopology, configured_rabbitmq_url
-from app.services.analysis_execution import AnalysisDisposition
+from app.services.analysis_execution.models import AnalysisDisposition
 from app.workers.analysis.message import AnalysisMessageError, parse_analysis_requested
 
 

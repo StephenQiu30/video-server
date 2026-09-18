@@ -5,44 +5,47 @@ from __future__ import annotations
 from fastapi import APIRouter, FastAPI
 from fastapi.exceptions import RequestValidationError
 
-from app.config import Settings, get_settings
-from app.errors import AppError
-from app.exception_handlers import app_error_handler, validation_error_handler
-from app.integrations.media_runner_factory import operator_provider_keys
-from app.integrations.provider_status import current_provider_statuses
-from app.lifespan import api_lifespan
-from app.middleware import request_guard
-from app.openapi import (
+from app.api.errors import (
+    app_error_handler,
+    quota_error_handler,
+    validation_error_handler,
+)
+from app.api.middleware import request_guard
+from app.api.openapi import (
     API_DESCRIPTION,
     ERROR_RESPONSES,
     OPENAPI_TAGS,
     SWAGGER_UI_PARAMETERS,
 )
-from app.quota_errors import quota_error_handler
-from app.routers.admin_ai_providers import router as admin_ai_providers_router
-from app.routers.admin_downloads import router as admin_downloads_router
-from app.routers.admin_files import router as admin_files_router
-from app.routers.admin_provider_runtime import (
+from app.api.routes.admin_ai_providers import router as admin_ai_providers_router
+from app.api.routes.admin_downloads import router as admin_downloads_router
+from app.api.routes.admin_files import router as admin_files_router
+from app.api.routes.admin_provider_runtime import (
     router as admin_provider_runtime_router,
 )
-from app.routers.admin_providers import router as admin_providers_router
-from app.routers.admin_users import router as admin_users_router
-from app.routers.analyses import router as analyses_router
-from app.routers.auth import router as auth_router
-from app.routers.document_analyses import router as document_analyses_router
-from app.routers.documents import router as documents_router
-from app.routers.downloads import router as downloads_router
-from app.routers.health import router as health_router
-from app.routers.inspections import router as inspections_router
-from app.routers.media_imports import router as media_imports_router
-from app.routers.metrics import router as metrics_router
-from app.routers.native_auth import router as native_auth_router
-from app.routers.native_openapi import router as native_openapi_router
-from app.routers.providers import router as providers_router
-from app.routers.source_discoveries import router as source_discoveries_router
-from app.routers.task_socket import router as task_socket_router
-from app.routers.users import router as users_router
-from app.runtime import ApiRuntime, ApiServices
+from app.api.routes.admin_providers import router as admin_providers_router
+from app.api.routes.admin_users import router as admin_users_router
+from app.api.routes.analyses import router as analyses_router
+from app.api.routes.auth import router as auth_router
+from app.api.routes.document_analyses import router as document_analyses_router
+from app.api.routes.documents import router as documents_router
+from app.api.routes.downloads import router as downloads_router
+from app.api.routes.health import router as health_router
+from app.api.routes.inspections import router as inspections_router
+from app.api.routes.media_imports import router as media_imports_router
+from app.api.routes.metrics import router as metrics_router
+from app.api.routes.native_auth import router as native_auth_router
+from app.api.routes.native_openapi import router as native_openapi_router
+from app.api.routes.providers import router as providers_router
+from app.api.routes.source_discoveries import router as source_discoveries_router
+from app.api.routes.task_socket import router as task_socket_router
+from app.api.routes.users import router as users_router
+from app.core.config import Settings, get_settings
+from app.core.errors import AppError
+from app.core.lifespan import api_lifespan
+from app.core.runtime import ApiRuntime, ApiServices
+from app.integrations.media_runner_factory import operator_provider_keys
+from app.integrations.provider_status import current_provider_statuses
 from app.services.quotas import QuotaExceeded
 
 

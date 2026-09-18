@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from app.domain.analysis import AnalysisResultContract
-from app.services.analysis import AnalysisJobSnapshot
+from app.services.analysis.models import AnalysisJobSnapshot
+from app.services.analysis.rules.enums import AnalysisResultContract
 from app.services.analysis_execution.errors import AnalysisExecutionError
 from app.services.analysis_execution.models import AnalysisExecutionOutput
 from app.services.analysis_execution.monitor import AnalysisLeaseMonitor

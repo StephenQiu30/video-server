@@ -4,8 +4,8 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Self
 
-from app.domain.downloads.content_restrictions import ContentRestriction
-from app.domain.providers import ProviderAccessMode
+from app.services.downloads.rules.content_restrictions import ContentRestriction
+from app.services.provider_types import ProviderAccessMode
 
 
 class ApplicationErrorCode(StrEnum):

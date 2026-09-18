@@ -1,13 +1,5 @@
 from __future__ import annotations
 
-from app.domain.analysis import (
-    AnalysisErrorCode,
-    AnalysisInputKind,
-    AnalysisResult,
-    AnalysisResultContract,
-    AnalysisStage,
-    AnalysisStatus,
-)
 from app.services.analysis.errors import (
     AnalysisApplicationError,
     AnalysisApplicationErrorCode,
@@ -17,6 +9,14 @@ from app.services.analysis.models import (
     AnalysisJobView,
     AnalysisReportSnapshot,
 )
+from app.services.analysis.rules.enums import (
+    AnalysisErrorCode,
+    AnalysisInputKind,
+    AnalysisResultContract,
+    AnalysisStage,
+    AnalysisStatus,
+)
+from app.services.analysis.rules.result_types import AnalysisResult
 
 
 def analysis_job_view(

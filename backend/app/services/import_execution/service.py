@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Any, TypeVar
 from uuid import UUID
 
-from app.domain.imports import ContentKind, ImportErrorCode, ImportSourceFormat
 from app.services.import_execution.errors import (
     ImportExecutionUnavailable,
     ImportLeaseLost,
@@ -28,7 +27,12 @@ from app.services.import_execution.ports import (
     ImportWorkspaceManager,
     VideoImportVerifier,
 )
-from app.services.imports import ImportDisposition
+from app.services.imports.models import ImportDisposition
+from app.services.imports.rules.enums import (
+    ContentKind,
+    ImportErrorCode,
+    ImportSourceFormat,
+)
 
 ResultT = TypeVar("ResultT")
 _log = logging.getLogger(__name__)

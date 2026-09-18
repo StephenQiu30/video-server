@@ -1,10 +1,10 @@
-from app.analysis_skills import (
+from app.services.analysis.models import AnalysisSkillResolution, AnalysisSkillView
+from app.services.analysis.rules.enums import AnalysisInputKind
+from app.services.analysis.skills.models import AnalysisSkill
+from app.services.analysis.skills.registry import (
     BUILTIN_ANALYSIS_SKILLS,
-    AnalysisSkill,
     AnalysisSkillRegistry,
 )
-from app.domain.analysis import AnalysisInputKind
-from app.services.analysis.models import AnalysisSkillResolution, AnalysisSkillView
 
 
 class BuiltinAnalysisSkillCatalog:

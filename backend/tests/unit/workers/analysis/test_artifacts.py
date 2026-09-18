@@ -6,10 +6,8 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
-from app.services.analysis_execution import (
-    AnalysisArtifactError,
-    AnalysisArtifactSource,
-)
+from app.services.analysis_execution.errors import AnalysisArtifactError
+from app.services.analysis_execution.models import AnalysisArtifactSource
 from app.workers.analysis.artifacts import LocalAnalysisArtifactLoader
 
 

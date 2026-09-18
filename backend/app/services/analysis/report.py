@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from app.domain.analysis import AnalysisResult, VideoAnalysisResult, VideoArticleResult
 from app.services.analysis.report_formatting import format_range as _format_range
 from app.services.analysis.report_formatting import format_size as _format_size
 from app.services.analysis.report_formatting import format_time as _format_time
 from app.services.analysis.report_formatting import markdown_block as _markdown_block
 from app.services.analysis.report_formatting import markdown_text as _markdown_text
+from app.services.analysis.rules.result_models import (
+    VideoAnalysisResult,
+    VideoArticleResult,
+)
+from app.services.analysis.rules.result_types import AnalysisResult
 from app.services.analysis.screenplay_report import render_screenplay_report_markdown
 from app.services.analysis.video_report import render_video_analysis_report_markdown
 from app.services.analysis.video_report_labels import video_report_labels as _labels

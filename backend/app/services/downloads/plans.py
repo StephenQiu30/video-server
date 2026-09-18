@@ -4,16 +4,15 @@ import hashlib
 import json
 from dataclasses import replace
 
-from app.domain.downloads import (
+from app.services.downloads.rules.enums import (
     AudioCodecFamily,
     CompatibilityProfile,
     ContainerPreference,
-    DownloadPlan,
     DynamicRange,
     FpsBucket,
-    ProviderHints,
     VideoCodecFamily,
 )
+from app.services.downloads.rules.formats import DownloadPlan, ProviderHints
 
 
 def plan_to_documents(

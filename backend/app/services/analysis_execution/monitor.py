@@ -4,7 +4,7 @@ import asyncio
 from datetime import timedelta
 from uuid import UUID
 
-from app.domain.analysis import AnalysisStage
+from app.services.analysis.rules.enums import AnalysisStage
 from app.services.analysis_execution.errors import (
     AnalysisLeaseLost,
     AnalysisOwnershipLost,

@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from app.integrations.messaging import EventEnvelope
-from app.services.analysis_execution import AnalysisDisposition
+from app.services.analysis_execution.models import AnalysisDisposition
 from app.workers.analysis.consumer import process_delivery
 from app.workers.analysis.message import AnalysisMessageError, parse_analysis_requested
 

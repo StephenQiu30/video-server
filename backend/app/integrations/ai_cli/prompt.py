@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from app.domain.analysis import AnalysisResultContract
-from app.services.analysis_execution import VideoAnalysisRequest
+from app.services.analysis.rules.enums import AnalysisResultContract
+from app.services.analysis_execution.models import VideoAnalysisRequest
 
 
 def analysis_prompt(

@@ -5,7 +5,6 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.imports import ContentKind, ImportErrorCode
 from app.services.imports.models import (
     BeginUploadAttemptResult,
     CancelImportResult,
@@ -15,6 +14,7 @@ from app.services.imports.models import (
     ImportResourceSaveResult,
     ImportResourceSnapshot,
 )
+from app.services.imports.rules.enums import ContentKind, ImportErrorCode
 
 
 class ObjectHead(Protocol):

@@ -6,7 +6,8 @@ from dataclasses import dataclass, replace
 from importlib.metadata import version
 from pathlib import Path
 
-from app.config import Settings
+from app.core.config import Settings
+from app.core.security.ai_provider_cipher import FernetAiProviderSecretCipher
 from app.integrations.ai_api import (
     ApiAdapterConfig,
     ApiAnalyzer,
@@ -22,13 +23,12 @@ from app.integrations.ai_cli import (
     media_preflight,
     preflight,
 )
-from app.security.ai_provider_cipher import FernetAiProviderSecretCipher
 from app.services.ai_providers import (
     AiProviderAuthMode,
     AiProviderEngine,
     AiProviderProfile,
 )
-from app.services.analysis_execution import VideoAnalyzer
+from app.services.analysis_execution.ports import VideoAnalyzer
 
 
 @dataclass(frozen=True, slots=True)

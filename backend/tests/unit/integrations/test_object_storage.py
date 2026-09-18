@@ -5,10 +5,10 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from app.config import Settings
+from app.core.config import Settings
 from app.integrations.object_storage import MinioObjectStorage, MultipartUploadPart
-from app.services.downloads import download_filename
-from app.services.imports import (
+from app.services.downloads.file_delivery import download_filename
+from app.services.imports.errors import (
     ImportObjectStorageError,
     MultipartUploadNotFound,
     MultipartUploadRejected,

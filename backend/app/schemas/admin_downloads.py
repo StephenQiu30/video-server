@@ -5,7 +5,7 @@ from datetime import date, datetime
 from pydantic import Field
 
 from app.schemas.common import StrictModel
-from app.services.downloads import DownloadAnalyticsView
+from app.services.downloads.analytics_models import DownloadAnalyticsView
 
 
 class DownloadAnalyticsSummaryResponse(StrictModel):

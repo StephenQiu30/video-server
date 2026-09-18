@@ -2,7 +2,7 @@ import asyncio
 import threading
 
 import pytest
-from app.config import Settings
+from app.core.config import Settings
 from app.integrations.registration_mail import SmtpRegistrationMailer
 from pydantic import ValidationError
 

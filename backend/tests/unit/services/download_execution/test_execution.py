@@ -5,10 +5,11 @@ import hashlib
 from dataclasses import replace
 
 import pytest
-from app.domain.downloads import AudioCodecFamily, DownloadErrorCode, ProviderHints
 from app.integrations.media_runner_models import MediaRunnerClientError, RunnerArtifact
-from app.services.download_execution import ExecutionDisposition
-from app.services.downloads import plan_to_documents
+from app.services.download_execution.models import ExecutionDisposition
+from app.services.downloads.plans import plan_to_documents
+from app.services.downloads.rules.enums import AudioCodecFamily, DownloadErrorCode
+from app.services.downloads.rules.formats import ProviderHints
 from tests.unit.services.download_execution.helpers import download_plan, fixture
 
 

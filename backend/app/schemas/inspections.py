@@ -6,25 +6,27 @@ from uuid import UUID
 
 from pydantic import Field
 
-from app.domain.downloads import (
-    AccessDecision,
+from app.schemas.common import StrictModel
+from app.services.downloads.inspection_models import InspectionView
+from app.services.downloads.rules.enums import (
     AudioCodecFamily,
     CompatibilityProfile,
     ContainerPreference,
     DynamicRange,
+    FpsBucket,
+    MediaKind,
+    VideoCodecFamily,
+)
+from app.services.downloads.rules.inspection import (
+    AccessDecision,
     EntitlementState,
     ExecutionMode,
-    FpsBucket,
     IdentityState,
-    MediaKind,
     ProtectionState,
     RightsBasis,
     SourceOrigin,
-    VideoCodecFamily,
 )
-from app.domain.provider_access import ProviderAccessPolicy
-from app.schemas.common import StrictModel
-from app.services.downloads import InspectionView
+from app.services.provider_access import ProviderAccessPolicy
 
 
 class PublicUrlInspectionSource(StrictModel):

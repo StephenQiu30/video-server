@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from app.domain.analysis import VideoAnalysisResult
 from app.services.analysis.report_formatting import (
     format_time,
     markdown_block,
     markdown_text,
 )
+from app.services.analysis.rules.result_models import VideoAnalysisResult
 from app.services.analysis.video_report_labels import video_report_labels
 from app.services.analysis.video_report_sections import (
     append_advice,

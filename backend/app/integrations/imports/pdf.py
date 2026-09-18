@@ -7,15 +7,19 @@ from pathlib import Path
 
 from pypdf import PdfReader
 
-from app.domain.imports import ContentKind, ImportErrorCode, ImportSourceFormat
 from app.integrations.imports.normalization import normalized_document
 from app.integrations.imports.pdf_policy import reject_active_pdf_content
 from app.integrations.imports.source import verified_source
 from app.integrations.imports.text import TextVerificationSettings
-from app.services.import_execution import (
+from app.services.import_execution.errors import ImportVerificationRejected
+from app.services.import_execution.models import (
     ImportVerificationClaim,
-    ImportVerificationRejected,
     VerifiedDocumentImport,
+)
+from app.services.imports.rules.enums import (
+    ContentKind,
+    ImportErrorCode,
+    ImportSourceFormat,
 )
 
 

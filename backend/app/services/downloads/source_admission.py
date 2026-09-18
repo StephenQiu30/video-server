@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass
 from urllib.parse import parse_qs, urlsplit
 
-from app.domain.downloads import (
+from app.services.downloads.rules.inspection import (
     AccessDecision,
     EntitlementState,
     ExecutionMode,
@@ -16,7 +16,7 @@ from app.domain.downloads import (
     RightsBasis,
     SourceOrigin,
 )
-from app.domain.providers import ProviderKey
+from app.services.provider_types import ProviderKey
 from app.services.providers import QQVIDEO_DOWNLOAD_ACTION
 
 _ARTICLE_PATH = re.compile(r"/s/[A-Za-z0-9_-]{6,256}")

@@ -1,6 +1,6 @@
-from app.domain.analysis import AnalysisInputKind
 from app.services.analysis.models import AnalysisSkillView
 from app.services.analysis.ports import AnalysisSkillCatalog
+from app.services.analysis.rules.enums import AnalysisInputKind
 
 
 class ListAnalysisSkills:

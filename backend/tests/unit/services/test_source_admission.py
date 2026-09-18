@@ -1,4 +1,4 @@
-from app.domain.downloads import AccessDecision
+from app.services.downloads.rules.inspection import AccessDecision
 from app.services.downloads.source_admission import classify_restricted_source
 
 

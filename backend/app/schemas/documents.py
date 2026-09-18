@@ -8,11 +8,11 @@ from uuid import UUID
 
 from pydantic import Field, StrictBool, StrictInt
 
-from app.domain.imports import ImportErrorCode, ImportStatus
 from app.schemas.common import StrictModel
 from app.schemas.media_imports import CompletedPartRequest, UploadPartResponse
-from app.services.documents import DocumentPage, DocumentView
-from app.services.imports import ImportView, UploadSessionView
+from app.services.documents.models import DocumentPage, DocumentView
+from app.services.imports.models import ImportView, UploadSessionView
+from app.services.imports.rules.enums import ImportErrorCode, ImportStatus
 
 type DocumentSourceFormat = Literal["docx", "pdf", "txt", "markdown", "fountain"]
 

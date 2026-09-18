@@ -4,19 +4,19 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from app.domain.downloads import (
+from app.services.downloads.rules.enums import MediaKind
+from app.services.downloads.rules.formats import DownloadPlan
+from app.services.downloads.rules.inspection import (
     AccessDecision,
-    DownloadPlan,
     EntitlementState,
     ExecutionMode,
     IdentityState,
-    MediaKind,
     ProtectionState,
     RightsBasis,
     SourceOrigin,
 )
-from app.domain.provider_access import ProviderAccessPolicy
-from app.domain.providers import ProviderAccessContextRef
+from app.services.provider_access import ProviderAccessPolicy
+from app.services.provider_types import ProviderAccessContextRef
 
 
 @dataclass(frozen=True, slots=True)

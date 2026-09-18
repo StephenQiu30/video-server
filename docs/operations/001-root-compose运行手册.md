@@ -151,8 +151,8 @@ AI Worker 心跳是功能级状态，不是 API 全局 readiness。Worker 短暂
 
 ~~~bash
 cd backend
-uv run python -m app.runner.provider_cookie_agent install
-uv run python -m app.runner.provider_cookie_agent status
+uv run python -m app.workers.runner.provider_cookie_agent install
+uv run python -m app.workers.runner.provider_cookie_agent status
 ~~~
 
 生产受控 Runner 按 `COMPOSE_PROFILES` 选择，并在 `RUNNER_OPERATOR_BASE_URLS` 配置相同平台。文件准备和旧配置切换见[个人部署手册](008-个人部署重启与换机手册.md)，完成后使用：

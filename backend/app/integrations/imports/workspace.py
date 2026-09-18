@@ -9,7 +9,7 @@ from contextlib import suppress
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from app.services.import_execution import ImportWorkspace
+from app.services.import_execution.models import ImportWorkspace
 
 _TASK_ID = re.compile(r"import_[0-9a-f]{32}_[1-9][0-9]*")
 

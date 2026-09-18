@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import CheckConstraint, DateTime, Index, Integer, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.database import Base, utc_now
+from app.core.db import Base, utc_now
 
 
 class ProviderCanaryResultRow(Base):

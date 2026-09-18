@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from app.services.download_execution import ExecutionDisposition
+from app.services.download_execution.models import ExecutionDisposition
 from app.services.provider_route_admission import RouteCoolingDown
 from tests.unit.services.download_execution.helpers import NOW, fixture
 from tests.unit.services.download_execution.test_execution import artifact

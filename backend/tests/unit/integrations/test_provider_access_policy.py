@@ -1,14 +1,14 @@
 from dataclasses import replace
 
 import pytest
-from app.domain.provider_access import ProviderAccessPolicy as Policy
-from app.domain.providers import ProviderAccessMode as Mode
 from app.integrations.media_runner import MediaRunnerRouter
 from app.services.downloads.errors import (
     MediaInspectionConfigurationMissing,
     MediaInspectionFailure,
     MediaInspectionPolicyNotAllowed,
 )
+from app.services.provider_access import ProviderAccessPolicy as Policy
+from app.services.provider_types import ProviderAccessMode as Mode
 from tests.unit.integrations.test_media_runner_router import FakeClient, context
 
 URL = "https://www.youtube.com/watch?v=owned"

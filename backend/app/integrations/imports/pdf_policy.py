@@ -8,8 +8,8 @@ from pypdf.generic import (
     StreamObject,
 )
 
-from app.domain.imports import ImportErrorCode
-from app.services.import_execution import ImportVerificationRejected
+from app.services.import_execution.errors import ImportVerificationRejected
+from app.services.imports.rules.enums import ImportErrorCode
 
 _FORBIDDEN_KEYS = {
     "/AA",

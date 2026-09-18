@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.imports import ContentKind
-from app.services.imports import ImportDisposition
+from app.services.imports.models import ImportDisposition
+from app.services.imports.rules.enums import ContentKind
 
 
 class ImportExecutionHandler(Protocol):

@@ -1,7 +1,7 @@
 import json
 from types import SimpleNamespace
 
-from app.domain.providers import ProviderCanaryOutcome
+from app.services.provider_types import ProviderCanaryOutcome
 from app.workers.canary import fixed_matrix
 
 

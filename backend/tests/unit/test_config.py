@@ -4,8 +4,8 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from app.config import DEFAULT_URL_ENCRYPTION_KEY, REPOSITORY_ROOT, Settings
-from app.domain.provider_access import ProviderAccessPolicy
+from app.core.config import DEFAULT_URL_ENCRYPTION_KEY, REPOSITORY_ROOT, Settings
+from app.services.provider_access import ProviderAccessPolicy
 from pydantic import SecretStr, ValidationError
 
 

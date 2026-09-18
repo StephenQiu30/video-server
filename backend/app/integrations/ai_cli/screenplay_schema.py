@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.services.analysis_execution import SCREENPLAY_SINGLE_CALL_SCENE_LIMIT
+from app.services.analysis_execution.models import SCREENPLAY_SINGLE_CALL_SCENE_LIMIT
 
 
 def screenplay_analysis_output_schema(

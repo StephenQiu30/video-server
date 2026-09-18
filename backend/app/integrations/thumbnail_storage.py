@@ -8,7 +8,7 @@ import hashlib
 from uuid import UUID
 
 from app.integrations.object_storage import MinioObjectStorage
-from app.services.downloads import ThumbnailObject, ThumbnailStorageError
+from app.services.downloads.thumbnail import ThumbnailObject, ThumbnailStorageError
 
 _MAX_BYTES = 2_000_000
 _FORMATS = {

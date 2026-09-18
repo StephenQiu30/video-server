@@ -6,12 +6,12 @@ import hashlib
 from datetime import datetime, timedelta
 from typing import Protocol
 
-from app.integrations.analysis_report_docx import PythonDocxAnalysisReportRenderer
-from app.integrations.object_storage import MinioObjectStorage
-from app.repositories.analysis_report_repository import (
+from app.crud.analysis_report_repository import (
     ReportObject,
     SqlAlchemyAnalysisReportRepository,
 )
+from app.integrations.analysis_report_docx import PythonDocxAnalysisReportRenderer
+from app.integrations.object_storage import MinioObjectStorage
 from app.workers.report.message import ReportRequested
 
 MARKDOWN_TYPE = "text/markdown; charset=utf-8"

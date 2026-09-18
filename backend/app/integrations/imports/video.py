@@ -14,11 +14,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import BinaryIO, Protocol
 
-from app.domain.imports import ContentKind, ImportErrorCode, ImportSourceFormat
-from app.services.import_execution import (
+from app.services.import_execution.errors import ImportVerificationRejected
+from app.services.import_execution.models import (
     ImportVerificationClaim,
-    ImportVerificationRejected,
     VerifiedImportArtifact,
+)
+from app.services.imports.rules.enums import (
+    ContentKind,
+    ImportErrorCode,
+    ImportSourceFormat,
 )
 
 _MP4_BRANDS = frozenset(

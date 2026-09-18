@@ -8,43 +8,34 @@ FastAPI API、下载/分析领域逻辑、异步 Worker、当前态数据库 SQL
 
 ```text
 app/
-├── main.py           FastAPI 应用工厂与入口
-├── lifespan.py       外部资源创建与释放
-├── runtime.py        类型化服务集合与资源所有权
-├── composition.py    具体服务装配
-├── routers/          APIRouter 路由（由 main.py 注册）
-├── dependencies.py   共享认证、运行时服务与请求依赖
-├── schemas/          请求与响应契约
-├── config.py         类型化配置
-├── security/         URL 与 AI 凭据加密
-├── services/         按业务组织用例、服务模型与能力端口
-├── domain/           纯业务规则与实体
-├── database.py       Engine、Session 与 Base
-├── models/           SQLAlchemy ORM 模型
-├── repositories/     持久化、查询与事务
-├── integrations/     AI、存储、消息与媒体/文档适配器
-├── workers/          消费、调度与进程入口
-├── runner/           隔离媒体执行进程与 Provider sidecar 入口
-└── analysis_skills/   分析技能资源
+├── main.py           FastAPI 工厂、注册和启动入口
+├── api/              路由、Depends、HTTP 异常和中间件
+├── core/             配置、数据库连接、安全、资源装配和生命周期
+├── models/           SQLAlchemy 实体
+├── schemas/          Pydantic HTTP 契约
+├── crud/             数据操作和事务
+├── services/         业务操作、内部类型及就近维护的 rules/skills
+├── integrations/     外部系统适配
+└── workers/          Worker、独立 Runner 及各自进程入口
 ```
 
-工程基线见根 PROJECT.md。main.py 注册 routers，dependencies.py 提供 Depends 依赖，schemas 定义公开契约。现有 services、domain、repositories、integrations 分别承载实际业务规则和外部适配，不要求为新接口复制这些目录或增加转发层。纯业务模块继续保持与 HTTP、数据库和 SDK 的隔离。
+完整文件职责与依赖规则以根 PROJECT.md 为准。直接从定义模块导入业务符号；不维护平行 domain、顶层 runner、顶层技能资源或大量重导出。Runner 仍使用原来的隔离容器与会话边界。
 
 公共接口不维护无实际兼容需求的版本目录或 URL 前缀。服务启动后可通过 `/docs` 访问 Swagger UI，通过 `/openapi.json` 获取供前端生成客户端的 OpenAPI 契约。
 
 业务接口要求邮箱账户登录。注册前调用 `POST /api/auth/registration-code`（App 使用 `/api/app/v1/auth/registration-code`）发送验证码，再提交唯一用户名、邮箱、密码和 `verification_code`；验证码 10 分钟有效、重发间隔 60 秒，最多校验错误 5 次。SMTP 接受后 `email_sent=true`，不代表已到达收件箱。未配置邮件时注册不能绕过验证；既有账户继续使用邮箱密码登录。`SMTP_*` 配置与验收见 [邮箱验证注册设计](../docs/design/033-邮箱验证注册设计.md)。密码使用 Argon2 哈希；短期 Access JWT 与可轮换、可撤销的 Refresh JWT 通过 `HttpOnly` Cookie 维护。Refresh JWT 的摘要由 Redis 按 TTL 保存并在刷新时原子轮换；JWT 密钥、签发方、受众、Cookie 名、有效期和初始管理员邮箱从根目录 `.env` 的 `AUTH_*` 配置读取，原始 Refresh JWT 不写入数据库。初始管理员邮箱属于保留账号，只有注册请求同时携带与 `AUTH_BOOTSTRAP_ADMIN_SECRET` 匹配的 `X-Admin-Bootstrap-Secret` 请求头时才会创建管理员；普通匿名注册永远只创建普通用户。角色和启用状态以 PostgreSQL 为准，管理员可通过 `/api/admin/users` 管理账号，并通过 `/api/admin/providers` 维护平台状态目录的名称、排序与可见性。平台目录不控制域名匹配、Extractor、Runner 参数或会话能力。
 
-Media Runner 通过 `app/runner/plugins/yt_dlp_plugins/` 加载随项目交付的可信站点提取器。MediaTrack 适配仅处理无需登录的公开审片视频和 API 明确授权的播放转码；抖音适配用数字视频 ID 构造固定公开分享页并修正 landscape 下载规格的短边尺寸语义，TikTok 适配只使用其第一方嵌入播放器 item API 和 yt-dlp 默认客户端，明确无 item/HTTPS 格式、API 临时故障与响应结构漂移分别返回链接不可用、临时不可用和提取器回归，不回退网页挑战；快手适配把公开作品规范化到第一方移动分享页并限制短链重定向域，Tumblr 适配优先读取当前 `www.tumblr.com` 公开页而不强制改写到旧 blog 子域。小红书适配识别第一方 `300031` 笔记失效和 `300012` 平台验证边界，避免把失效内容误报成提取器故障。视频号适配只接受公开 `weixin.qq.com/sph/...` 单视频，读取第一方公开信息，并可在受控线路使用专用元宝会话解析；只接受批准腾讯媒体域上的非加密媒体，保护材料直接拒绝。所有适配都继续经过受控代理、作品身份校验、大小/时长限制、重新 inspect、FFmpeg 和 ffprobe 校验，不支持图集截断、账号内容、无水印承诺或原文件权限绕过。
+Media Runner 通过 `app/workers/runner/plugins/yt_dlp_plugins/` 加载随项目交付的可信站点提取器。MediaTrack 适配仅处理无需登录的公开审片视频和 API 明确授权的播放转码；抖音适配用数字视频 ID 构造固定公开分享页并修正 landscape 下载规格的短边尺寸语义，TikTok 适配只使用其第一方嵌入播放器 item API 和 yt-dlp 默认客户端，明确无 item/HTTPS 格式、API 临时故障与响应结构漂移分别返回链接不可用、临时不可用和提取器回归，不回退网页挑战；快手适配把公开作品规范化到第一方移动分享页并限制短链重定向域，Tumblr 适配优先读取当前 `www.tumblr.com` 公开页而不强制改写到旧 blog 子域。小红书适配识别第一方 `300031` 笔记失效和 `300012` 平台验证边界，避免把失效内容误报成提取器故障。视频号适配只接受公开 `weixin.qq.com/sph/...` 单视频，读取第一方公开信息，并可在受控线路使用专用元宝会话解析；只接受批准腾讯媒体域上的非加密媒体，保护材料直接拒绝。所有适配都继续经过受控代理、作品身份校验、大小/时长限制、重新 inspect、FFmpeg 和 ffprobe 校验，不支持图集截断、账号内容、无水印承诺或原文件权限绕过。
 
 主流视频源使用声明式 Provider Profile 接入：`provider_catalog_*.py` 按策略族登记能力和运行参数，`ProviderRegistry.prepare()` 一次解析得到贯穿 inspect/download 的不可变 `ProviderRequest`，`YtDlpCommandBuilder` 只消费该请求生成固定参数，错误由有序 `FailureRule` 归一化。已有 yt-dlp extractor 的公开单视频平台通常只需增加一个 Profile、契约测试和 metadata/media canary；需要自定义解析时再按 yt-dlp 官方插件目录增加可信 extractor，不修改通用命令执行器。未知站点使用无凭据 Generic extractor。可选的 YouTube、抖音、小红书、Reddit、X、Instagram、Facebook、Pinterest 与微信视频号运维会话在操作开始时由宿主限定来源按需读取，经一次性认证加密租约交给各自物理隔离的 Docker Runner，并仅在 tmpfs 中建立操作级 `0600` Cookie jar。
 
-macOS 部署可显式安装统一按需助手，在解析进入受控线路时从 Chrome `Default` 读取目标 Provider 的最小域集合；SQL 查询本身按域限制，不先读取所有 Cookie 再过滤。每次 Runner 操作生成一次性 X25519 私钥，助手返回的 Cookie 只能由该操作解密；队列确认后删除密文，Runner 终态删除 tmpfs jar。助手空闲时无进程。视频号是明确批准的专用持久元宝来源，不复制普通 Chrome：首次执行 `uv run python -m app.runner.yuanbao_session login` 并由用户登录，后续按需启动浏览器读取当前元宝状态，结束关闭浏览器但保留专用目录。目录权限、互斥和撤销见[个人部署手册](../docs/operations/008-个人部署重启与换机手册.md)。单次读取在独立进程组中执行，15 秒超时、取消或异常都会回收整个进程组。项目仍只通过根 Docker Compose 运行；平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 key 指向受控内部代理。
+macOS 部署可显式安装统一按需助手，在解析进入受控线路时从 Chrome `Default` 读取目标 Provider 的最小域集合；SQL 查询本身按域限制，不先读取所有 Cookie 再过滤。每次 Runner 操作生成一次性 X25519 私钥，助手返回的 Cookie 只能由该操作解密；队列确认后删除密文，Runner 终态删除 tmpfs jar。助手空闲时无进程。视频号是明确批准的专用持久元宝来源，不复制普通 Chrome：首次执行 `uv run python -m app.workers.runner.yuanbao_session login` 并由用户登录，后续按需启动浏览器读取当前元宝状态，结束关闭浏览器但保留专用目录。目录权限、互斥和撤销见[个人部署手册](../docs/operations/008-个人部署重启与换机手册.md)。单次读取在独立进程组中执行，15 秒超时、取消或异常都会回收整个进程组。项目仍只通过根 Docker Compose 运行；平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 key 指向受控内部代理。
 
 完整的 Provider 一次性会话租约、撤销与故障流程见 `docs/operations/003-多平台受控会话运行手册.md`。
 
 微博公开单视频支持普通帖子、移动端 status/detail、`video.weibo.com` 视频页和 `t.cn` 分享短链。短链插件在取得有效微博视频地址后立即交给微博提取器，避免通用网页跳转进入访客页面；使用无账号凭据的受控 Runner，容器重启后重新解析即可。实际下载与重启证据见 [017 验收](../docs/acceptance/017-其他短视频平台分阶段接入验收.md)。
 
-视觉分析默认通过宿主机 Codex App Server stdio 协议运行，也支持 `claude -p` adapter 和 Web 管理的 DeepSeek/LangChain 视觉 API，以及 OpenRouter / OpenAI 兼容 Chat Completions API；各适配器统一实现 `VideoAnalyzer` 端口并返回唯一当前态结果契约。每个 Codex 调用创建独立 ephemeral thread，完成后关闭进程，不依赖长期连接。DeepSeek 由 Worker 使用 FFmpeg 均匀生成最多 64 张、总原始证据不超过 24 MiB 的顺序 JPEG，以 base64 内联图片调用视觉模型，不暴露对象地址或客户端文件路径。分析能力由 `app/analysis_skills/*/SKILL.md` 注册；不运行 ASR。第三方 Endpoint、模型与 Key 只通过管理员 Web Profile 配置，Key 使用 Fernet 加密后存入 PostgreSQL 并仅在 Worker 内存中解密，不使用第三方 AI `.env`。报告以 Markdown 为唯一内容源，可安全预览和导出 Markdown/DOCX。Worker 必须在可访问 FFmpeg、队列和对象存储的宿主机运行；默认 Codex 路径还要求同一系统用户已完成官方登录。
+视觉分析默认通过宿主机 Codex App Server stdio 协议运行，也支持 `claude -p` adapter 和 Web 管理的 DeepSeek/LangChain 视觉 API，以及 OpenRouter / OpenAI 兼容 Chat Completions API；各适配器统一实现 `VideoAnalyzer` 端口并返回唯一当前态结果契约。每个 Codex 调用创建独立 ephemeral thread，完成后关闭进程，不依赖长期连接。DeepSeek 由 Worker 使用 FFmpeg 均匀生成最多 64 张、总原始证据不超过 24 MiB 的顺序 JPEG，以 base64 内联图片调用视觉模型，不暴露对象地址或客户端文件路径。分析能力由 `app/services/analysis/skills/*/SKILL.md` 注册；不运行 ASR。第三方 Endpoint、模型与 Key 只通过管理员 Web Profile 配置，Key 使用 Fernet 加密后存入 PostgreSQL 并仅在 Worker 内存中解密，不使用第三方 AI `.env`。报告以 Markdown 为唯一内容源，可安全预览和导出 Markdown/DOCX。Worker 必须在可访问 FFmpeg、队列和对象存储的宿主机运行；默认 Codex 路径还要求同一系统用户已完成官方登录。
 
 内置 `local-codex` 不可删除或改造为第三方结构；模型和线路仅由数据库 Web Profile 决定，`.env` 只保留宿主机 CLI 二进制路径。
 
@@ -130,7 +121,7 @@ API 固定监听 `8111`，前端固定监听 `8101`。API `/health/live` 只证�
 
 ## 测试目录
 
-`tests/unit/` 按实际模块组织：services、domain、repositories、models、integrations、security、schemas、runner 与 workers；入口和配置测试直接放在 unit 下。`tests/integration/routers/` 验证 HTTP 与 WebSocket，`tests/contract/` 验证公开契约及部署配置，`tests/architecture/` 检查模块依赖。移动模块时同步更新测试导入和文档命令。
+`tests/unit/` 按实际模块组织：services（包含业务 rules）、crud、models、integrations、core/security、schemas 与 workers（包含 runner）；入口和配置测试直接放在 unit 下。`tests/integration/api/` 验证 HTTP 与 WebSocket，`tests/contract/` 验证公开契约及部署配置，`tests/architecture/` 检查模块依赖。移动模块时同步更新测试导入和文档命令。
 
 ## 测试数据库
 
@@ -143,7 +134,7 @@ uv run pytest
 
 ## 独立平台会话安装
 
-`uv run python -m app.runner.provider_session_setup --help` 提供部署侧 现有 Chrome 单平台采集、文件校验与原子导入；日常下载仍使用既有只读文件 Runner。系统来源权限、容器 UID/GID、候选实测和来源切换顺序见 [个人部署手册](../docs/operations/008-个人部署重启与换机手册.md)。此命令不证明平台下载成功。
+`uv run python -m app.workers.runner.provider_session_setup --help` 提供部署侧 现有 Chrome 单平台采集、文件校验与原子导入；日常下载仍使用既有只读文件 Runner。系统来源权限、容器 UID/GID、候选实测和来源切换顺序见 [个人部署手册](../docs/operations/008-个人部署重启与换机手册.md)。此命令不证明平台下载成功。
 
 ## 下载持久化与 API 生命周期
 

@@ -4,13 +4,12 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
-from app.domain.source_discovery import DiscoveryStatus
-from app.services.downloads import ApplicationError, ApplicationErrorCode, EncryptedUrl
+from app.services.downloads.errors import ApplicationError, ApplicationErrorCode
 from app.services.downloads.fingerprints import HmacRequestFingerprinter
-from app.services.source_discoveries import (
-    CreateSourceDiscovery,
-    SourceDiscoverySnapshot,
-)
+from app.services.downloads.inspection_models import EncryptedUrl
+from app.services.source_discoveries.models import SourceDiscoverySnapshot
+from app.services.source_discoveries.use_cases import CreateSourceDiscovery
+from app.services.source_discovery import DiscoveryStatus
 
 NOW = datetime(2026, 8, 27, tzinfo=UTC)
 OWNER = "a" * 64

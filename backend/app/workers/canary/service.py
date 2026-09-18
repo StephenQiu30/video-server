@@ -7,21 +7,14 @@ from time import monotonic
 from typing import Protocol
 from uuid import uuid4
 
-from app.domain.downloads import DownloadPlan, MediaKind
-from app.domain.providers import (
-    ProviderAccessContextRef,
-    ProviderAccessMode,
-    ProviderCanaryOutcome,
-    ProviderCanaryResult,
-    ProviderCanaryStage,
-)
 from app.integrations.media_runner_models import MediaRunnerClientError, RunnerArtifact
-from app.runner.provider_registry import provider_profile
-from app.services.downloads import (
+from app.services.downloads.errors import (
     MediaInspectionAuthRequired,
+    MediaInspectionConfigurationMissing,
     MediaInspectionContentRestricted,
     MediaInspectionDrmProtected,
     MediaInspectionFailure,
+    MediaInspectionFormatUnavailable,
     MediaInspectionGeoRestricted,
     MediaInspectionLinkUnavailable,
     MediaInspectionMediaUnsupported,
@@ -31,18 +24,24 @@ from app.services.downloads import (
     MediaInspectionTimeout,
     MediaInspectionUnsupported,
     MediaInspectionVerificationFailed,
-    RunnerInspection,
 )
-from app.services.downloads.errors import (
-    MediaInspectionConfigurationMissing,
-    MediaInspectionFormatUnavailable,
-)
+from app.services.downloads.inspection_models import RunnerInspection
+from app.services.downloads.rules.enums import MediaKind
+from app.services.downloads.rules.formats import DownloadPlan
 from app.services.provider_route_admission import (
     RouteAdmissionUnavailable,
     RouteCoolingDown,
     RouteProbeTimeout,
 )
+from app.services.provider_types import (
+    ProviderAccessContextRef,
+    ProviderAccessMode,
+    ProviderCanaryOutcome,
+    ProviderCanaryResult,
+    ProviderCanaryStage,
+)
 from app.workers.canary.targets import ProviderCanaryTarget
+from app.workers.runner.provider_registry import provider_profile
 
 _INSPECTION_ERRORS: tuple[tuple[type[Exception], str], ...] = (
     (MediaInspectionConfigurationMissing, "provider_configuration_missing"),

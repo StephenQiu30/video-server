@@ -5,34 +5,38 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import pytest
-from app.domain.imports import (
+from app.services.imports.errors import (
+    ImportApplicationError,
+    ImportApplicationErrorCode,
+    ImportObjectStorageError,
+    ImportPersistenceError,
+    MultipartUploadNotFound,
+    MultipartUploadRejected,
+)
+from app.services.imports.models import (
+    BeginUploadAttemptResult,
+    CancelImportResult,
+    CompletedUploadPart,
+    ImportAttemptSnapshot,
+    ImportCleanupRef,
+    ImportResourceCreate,
+    ImportResourceSaveResult,
+    ImportResourceSnapshot,
+    UploadLimits,
+)
+from app.services.imports.rules.enums import (
     ContentKind,
     ImportErrorCode,
     ImportSourceFormat,
     ImportStatus,
-    quarantine_object_key,
 )
-from app.services.imports import (
-    BeginUploadAttemptResult,
+from app.services.imports.rules.keys import quarantine_object_key
+from app.services.imports.service import (
     CancelImport,
-    CancelImportResult,
-    CompletedUploadPart,
     CompleteImportUpload,
     CreateImportResource,
     CreateUploadSession,
     GetImport,
-    ImportApplicationError,
-    ImportApplicationErrorCode,
-    ImportAttemptSnapshot,
-    ImportCleanupRef,
-    ImportObjectStorageError,
-    ImportPersistenceError,
-    ImportResourceCreate,
-    ImportResourceSaveResult,
-    ImportResourceSnapshot,
-    MultipartUploadNotFound,
-    MultipartUploadRejected,
-    UploadLimits,
 )
 
 NOW = datetime(2026, 8, 14, 9, 0, tzinfo=UTC)

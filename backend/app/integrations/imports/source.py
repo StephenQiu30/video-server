@@ -4,11 +4,9 @@ import hashlib
 import stat
 from pathlib import Path
 
-from app.domain.imports import ImportErrorCode
-from app.services.import_execution import (
-    ImportVerificationClaim,
-    ImportVerificationRejected,
-)
+from app.services.import_execution.errors import ImportVerificationRejected
+from app.services.import_execution.models import ImportVerificationClaim
+from app.services.imports.rules.enums import ImportErrorCode
 
 
 def verified_source(

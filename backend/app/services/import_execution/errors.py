@@ -1,4 +1,4 @@
-from app.domain.imports import ImportErrorCode
+from app.services.imports.rules.enums import ImportErrorCode
 
 
 class ImportLeaseLost(RuntimeError):

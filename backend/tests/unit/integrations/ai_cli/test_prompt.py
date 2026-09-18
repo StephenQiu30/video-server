@@ -1,8 +1,8 @@
 from dataclasses import replace
 from pathlib import Path
 
-from app.domain.analysis import AnalysisResultContract
 from app.integrations.ai_cli.prompt import analysis_prompt
+from app.services.analysis.rules.enums import AnalysisResultContract
 from tests.unit.integrations.ai_cli.helpers import request
 
 

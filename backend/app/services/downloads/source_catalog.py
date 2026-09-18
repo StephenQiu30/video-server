@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.domain.providers import ProviderKey
+from app.services.provider_types import ProviderKey
 
 
 @dataclass(frozen=True, slots=True)

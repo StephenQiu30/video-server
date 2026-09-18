@@ -4,17 +4,24 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Set
 
-from app.domain.provider_access import (
+from app.services.provider_access import (
     ProviderAccessPolicy,
     default_access_policy,
     provider_access_policies,
 )
-from app.domain.providers import ProviderAccessMode, ProviderKey, ProviderSupportStatus
-from app.runner.provider_registry import ProviderProfile, current_provider_registry
+from app.services.provider_types import (
+    ProviderAccessMode,
+    ProviderKey,
+    ProviderSupportStatus,
+)
 from app.services.providers import (
     ProviderAccessPolicyView,
     ProviderStatusView,
     provider_user_action,
+)
+from app.workers.runner.provider_registry import (
+    ProviderProfile,
+    current_provider_registry,
 )
 
 

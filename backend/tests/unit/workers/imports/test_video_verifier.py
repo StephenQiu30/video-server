@@ -5,7 +5,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
-from app.domain.imports import ImportErrorCode
+from app.services.imports.rules.enums import ImportErrorCode
 from app.workers.imports import (
     VideoProbeResult,
     VideoProbeStream,

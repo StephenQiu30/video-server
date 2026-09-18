@@ -2,10 +2,10 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from app.domain.provider_access import ProviderAccessPolicy
-from app.domain.providers import ProviderAccessMode, ProviderSupportStatus
 from app.integrations.provider_status import configured_provider_statuses
+from app.services.provider_access import ProviderAccessPolicy
 from app.services.provider_canaries import ProviderStatusService
+from app.services.provider_types import ProviderAccessMode, ProviderSupportStatus
 from tests.unit.integrations.test_media_runner_router import context
 
 

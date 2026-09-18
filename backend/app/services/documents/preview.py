@@ -3,14 +3,14 @@ from __future__ import annotations
 import hashlib
 from typing import Never
 
-from app.domain.imports import ImportStatus
 from app.services.documents.models import DocumentSnapshot
 from app.services.documents.ports import DocumentPreviewStorage
-from app.services.imports import (
+from app.services.imports.errors import (
     ImportApplicationError,
     ImportApplicationErrorCode,
     ImportObjectStorageError,
 )
+from app.services.imports.rules.enums import ImportStatus
 
 
 async def read_document_preview(

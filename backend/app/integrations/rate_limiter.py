@@ -10,7 +10,7 @@ from typing import Any
 
 from redis.asyncio import Redis
 
-from app.rate_limits import (
+from app.core.config import (
     RateLimitOperation,
     RateLimitPolicy,
     default_rate_limits,

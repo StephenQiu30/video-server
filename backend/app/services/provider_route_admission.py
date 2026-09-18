@@ -9,8 +9,8 @@ from datetime import UTC, datetime, timedelta
 from typing import Protocol
 from uuid import uuid4
 
-from app.domain.provider_access import ProviderAccessPolicy, provider_access_policies
-from app.domain.providers import ProviderAccessContextRef
+from app.services.provider_access import ProviderAccessPolicy, provider_access_policies
+from app.services.provider_types import ProviderAccessContextRef
 
 PROBE_LEASE = timedelta(seconds=60)
 PROBE_TIMEOUT_SECONDS = 30

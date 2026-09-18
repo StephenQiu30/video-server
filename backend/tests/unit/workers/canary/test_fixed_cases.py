@@ -1,13 +1,13 @@
 from collections import defaultdict
 
-from app.domain.providers import (
+from app.services.provider_types import (
     ProviderAccessMode,
     ProviderCanaryStage,
     ProviderSupportStatus,
 )
-from app.runner.provider_registry import current_provider_registry
-from app.runner.provider_session_policy import browser_session_providers
 from app.workers.canary.fixed_cases import fixed_public_diagnostic_targets
+from app.workers.runner.provider_registry import current_provider_registry
+from app.workers.runner.provider_session_policy import browser_session_providers
 
 _KNOWN_INVALID_UPSTREAM_FIXTURES = {
     "BaW_jenozKc",

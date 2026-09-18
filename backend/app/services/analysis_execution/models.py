@@ -6,7 +6,8 @@ from enum import StrEnum
 from pathlib import Path
 from uuid import UUID
 
-from app.domain.analysis import AnalysisResult, AnalysisResultContract
+from app.services.analysis.rules.enums import AnalysisResultContract
+from app.services.analysis.rules.result_types import AnalysisResult
 
 SCREENPLAY_SINGLE_CALL_SCENE_LIMIT = 120
 SCREENPLAY_SYNTHESIS_SCENE_LIMIT = 5_000

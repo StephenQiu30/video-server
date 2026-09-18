@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 
-from app.domain.provider_access import ProviderAccessPolicy
-from app.domain.providers import (
+from app.services.provider_access import ProviderAccessPolicy
+from app.services.provider_types import (
     ProviderAccessContextRef,
     ProviderAccessMode,
     ProviderCapability,

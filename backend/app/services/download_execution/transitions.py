@@ -4,7 +4,6 @@ from contextlib import suppress
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from app.domain.downloads import DownloadErrorCode
 from app.services.download_execution.errors import (
     ExecutionOwnershipLost,
     ExecutionSourceUnavailable,
@@ -20,6 +19,7 @@ from app.services.download_execution.ports import (
     ExecutionStorage,
     JobState,
 )
+from app.services.downloads.rules.enums import DownloadErrorCode
 
 
 class ExecutionTransitions:

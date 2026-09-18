@@ -5,14 +5,14 @@ from uuid import UUID
 
 from pydantic import Field, StrictBool, StrictInt
 
-from app.domain.imports import (
+from app.schemas.common import StrictModel
+from app.services.imports.models import ImportView, UploadSessionView
+from app.services.imports.rules.enums import (
     DeclaredOrigin,
     ImportErrorCode,
     ImportSourceFormat,
     ImportStatus,
 )
-from app.schemas.common import StrictModel
-from app.services.imports import ImportView, UploadSessionView
 
 
 class MediaImportRequest(StrictModel):

@@ -3,11 +3,11 @@ from __future__ import annotations
 from unittest.mock import AsyncMock
 
 import pytest
-from app.domain.downloads import DownloadErrorCode
-from app.domain.downloads.content_restrictions import ContentRestriction
-from app.runner.errors import RunnerFailure
 from app.services.download_execution.errors import classify_runner_failure
 from app.services.downloads.errors import MediaInspectionPaidContentRestricted
+from app.services.downloads.rules.content_restrictions import ContentRestriction
+from app.services.downloads.rules.enums import DownloadErrorCode
+from app.workers.runner.errors import RunnerFailure
 from tests.unit.services.fakes import FakeRepository
 from tests.unit.services.test_inspect_media import OWNER, runner_result, use_case
 

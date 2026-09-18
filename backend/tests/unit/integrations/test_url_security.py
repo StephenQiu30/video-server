@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import pytest
-from app.domain.identifiers import UrlEncryptionKeyId
+from app.core.security.url_cipher import URLCipher
 from app.integrations.url_security import FernetUrlEnvelope, MediaUrlValidator
-from app.security.url_cipher import URLCipher
-from app.services.downloads import EncryptedUrl
+from app.services.downloads.inspection_models import EncryptedUrl
+from app.services.identifiers import UrlEncryptionKeyId
 
 KEY = b"MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
 

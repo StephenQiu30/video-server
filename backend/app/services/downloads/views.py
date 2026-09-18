@@ -2,22 +2,6 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-from app.domain.downloads import (
-    AccessDecision,
-    DownloadErrorCode,
-    DownloadSourceKind,
-    DownloadStage,
-    DownloadStatus,
-    EntitlementState,
-    ExecutionMode,
-    IdentityState,
-    MediaKind,
-    ProtectionState,
-    RightsBasis,
-    SourceOrigin,
-)
-from app.domain.provider_access import ProviderAccessPolicy
-from app.domain.providers import ProviderKey
 from app.services.downloads.download_models import (
     ArtifactSnapshot,
     DownloadPresentationSnapshot,
@@ -31,11 +15,29 @@ from app.services.downloads.inspection_models import (
     InspectionView,
 )
 from app.services.downloads.plans import plan_from_documents, public_plan
+from app.services.downloads.rules.enums import (
+    DownloadErrorCode,
+    DownloadSourceKind,
+    DownloadStage,
+    DownloadStatus,
+    MediaKind,
+)
+from app.services.downloads.rules.inspection import (
+    AccessDecision,
+    EntitlementState,
+    ExecutionMode,
+    IdentityState,
+    ProtectionState,
+    RightsBasis,
+    SourceOrigin,
+)
 from app.services.downloads.thumbnail import (
     safe_thumbnail_data_url,
     thumbnail_resource_url,
 )
 from app.services.downloads.validation import media_kind_from_metadata
+from app.services.provider_access import ProviderAccessPolicy
+from app.services.provider_types import ProviderKey
 
 
 def inspection_view(snapshot: InspectionSnapshot) -> InspectionView:

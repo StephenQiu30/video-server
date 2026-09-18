@@ -8,8 +8,6 @@ from datetime import timedelta
 from typing import Any, TypeVar
 from uuid import UUID
 
-from app.domain.downloads import DownloadPlan, DownloadStage, MediaKind
-from app.domain.providers import ProviderAccessContextRef
 from app.services.download_execution.errors import LeaseInfrastructureError, LeaseLost
 from app.services.download_execution.ports import (
     Clock,
@@ -18,6 +16,9 @@ from app.services.download_execution.ports import (
     RunnerArtifactView,
     RunnerProgressView,
 )
+from app.services.downloads.rules.enums import DownloadStage, MediaKind
+from app.services.downloads.rules.formats import DownloadPlan
+from app.services.provider_types import ProviderAccessContextRef
 
 ResultT = TypeVar("ResultT")
 _STAGE_RANKS = {

@@ -4,7 +4,6 @@ from collections.abc import Callable
 from datetime import datetime
 from uuid import UUID
 
-from app.domain.downloads import DownloadSourceKind, DownloadStatus
 from app.services.downloads.download_models import DownloadCreate, DownloadView
 from app.services.downloads.errors import (
     ApplicationError,
@@ -15,6 +14,7 @@ from app.services.downloads.errors import (
 )
 from app.services.downloads.ports import DownloadRepository, RequestFingerprinter
 from app.services.downloads.queries import _owned_job
+from app.services.downloads.rules.enums import DownloadSourceKind, DownloadStatus
 from app.services.downloads.validation import (
     validate_idempotency_key,
     validate_now,

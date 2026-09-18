@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from app.integrations.ai_api.config import ApiAdapterConfig
 from app.integrations.ai_api.frames import ApiFrameExtractor
-from app.runner.process import ProcessResult
+from app.workers.runner.process import ProcessResult
 
 
 class FakeSupervisor:

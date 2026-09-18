@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 from urllib.parse import urlsplit
 
-from app.domain.providers import ProviderAccessMode, ProviderCanaryStage
-from app.runner.errors import RunnerFailure
-from app.runner.provider_registry import provider_request
+from app.services.provider_types import ProviderAccessMode, ProviderCanaryStage
+from app.workers.runner.errors import RunnerFailure
+from app.workers.runner.provider_registry import provider_request
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError
 
 

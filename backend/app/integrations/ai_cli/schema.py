@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.domain.analysis import AnalysisResultContract
+from app.services.analysis.rules.enums import AnalysisResultContract
 
 
 def analysis_output_schema(

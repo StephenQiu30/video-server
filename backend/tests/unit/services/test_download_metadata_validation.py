@@ -1,6 +1,6 @@
 import pytest
-from app.domain.downloads import MediaKind
 from app.services.downloads.errors import ApplicationError, ApplicationErrorCode
+from app.services.downloads.rules.enums import MediaKind
 from app.services.downloads.validation import media_kind_from_metadata
 
 

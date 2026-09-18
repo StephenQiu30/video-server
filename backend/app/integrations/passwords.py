@@ -8,7 +8,7 @@ import secrets
 from pwdlib import PasswordHash
 from pwdlib.exceptions import UnknownHashError
 
-from app.services.auth import PasswordCheck
+from app.services.auth.models import PasswordCheck
 
 
 class Argon2PasswordHasher:

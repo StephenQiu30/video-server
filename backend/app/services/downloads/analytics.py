@@ -4,7 +4,8 @@ from collections.abc import Callable
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
-from app.services.auth import AuthError, AuthErrorCode, CurrentUser, UserRole
+from app.services.auth.errors import AuthError, AuthErrorCode
+from app.services.auth.models import CurrentUser, UserRole
 from app.services.downloads.analytics_models import (
     DownloadAnalyticsDailySnapshot,
     DownloadAnalyticsDailyView,

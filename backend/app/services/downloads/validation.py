@@ -3,8 +3,8 @@ from __future__ import annotations
 import re
 from datetime import datetime
 
-from app.domain.downloads import MediaKind
 from app.services.downloads.errors import ApplicationError, ApplicationErrorCode
+from app.services.downloads.rules.enums import MediaKind
 
 _OWNER_HASH = re.compile(r"[0-9a-f]{64}")
 

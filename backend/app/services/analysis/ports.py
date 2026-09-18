@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.analysis import AnalysisInputKind, AnalysisResult
 from app.services.analysis.input_models import AnalysisDocumentSnapshot
 from app.services.analysis.models import (
     AnalysisArtifactSnapshot,
@@ -18,6 +17,8 @@ from app.services.analysis.models import (
     AnalysisSkillView,
     AnalysisStoredReportFile,
 )
+from app.services.analysis.rules.enums import AnalysisInputKind
+from app.services.analysis.rules.result_types import AnalysisResult
 
 
 class RequestFingerprinter(Protocol):

@@ -3,7 +3,6 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from app.domain.providers import ProviderAccessMode
 from app.integrations.media_runner_models import MediaRunnerClientError
 from app.services.provider_route_admission import (
     ProviderRouteAdmission,
@@ -12,6 +11,7 @@ from app.services.provider_route_admission import (
     RouteCoolingDown,
     RouteProbeTimeout,
 )
+from app.services.provider_types import ProviderAccessMode
 from tests.unit.integrations.test_media_runner_router import context
 
 

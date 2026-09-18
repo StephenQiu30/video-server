@@ -5,33 +5,29 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
-from app.domain.downloads import (
-    AudioCodecFamily,
-    CompatibilityProfile,
-    ContainerPreference,
-    DownloadPlan,
-    DynamicRange,
-    FpsBucket,
-    ProviderHints,
-    VideoCodecFamily,
-)
-from app.domain.provider_access import ProviderAccessPolicy
-from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
-from app.services.downloads import (
+from app.services.downloads.errors import (
     ApplicationError,
     ApplicationErrorCode,
-    GetInspection,
-    HmacRequestFingerprinter,
-    InspectMedia,
-    RunnerFormat,
-    RunnerInspection,
-)
-from app.services.downloads.errors import (
     MediaInspectionAuthRequired,
     MediaInspectionDurationLimitExceeded,
     MediaInspectionLinkUnavailable,
     MediaInspectionUnsupported,
 )
+from app.services.downloads.fingerprints import HmacRequestFingerprinter
+from app.services.downloads.inspect_media import InspectMedia
+from app.services.downloads.inspection_models import RunnerFormat, RunnerInspection
+from app.services.downloads.queries import GetInspection
+from app.services.downloads.rules.enums import (
+    AudioCodecFamily,
+    CompatibilityProfile,
+    ContainerPreference,
+    DynamicRange,
+    FpsBucket,
+    VideoCodecFamily,
+)
+from app.services.downloads.rules.formats import DownloadPlan, ProviderHints
+from app.services.provider_access import ProviderAccessPolicy
+from app.services.provider_types import ProviderAccessContextRef, ProviderAccessMode
 from tests.unit.services.fakes import (
     FakeCipher,
     FakeRepository,

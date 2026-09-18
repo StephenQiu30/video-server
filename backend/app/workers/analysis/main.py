@@ -8,21 +8,22 @@ from dataclasses import dataclass
 from datetime import timedelta
 from urllib.parse import quote, urlsplit, urlunsplit
 
-from app.config import Settings, get_settings_for_role
-from app.database import create_engine, create_session_factory
-from app.integrations.messaging import RabbitMqTopology
-from app.integrations.object_storage import MinioObjectStorage
-from app.repositories.ai_provider_repository import SqlAlchemyAiProviderRepository
-from app.repositories.analysis_execution import AnalysisExecutionPersistence
-from app.repositories.analysis_repository import SqlAlchemyAnalysisRepository
-from app.repositories.analysis_worker_registry import (
+from app.core.config import Settings, get_settings_for_role
+from app.core.db import create_engine, create_session_factory
+from app.core.security.ai_provider_cipher import FernetAiProviderSecretCipher
+from app.core.security.url_cipher import URLCipher
+from app.crud.ai_provider_repository import SqlAlchemyAiProviderRepository
+from app.crud.analysis_execution import AnalysisExecutionPersistence
+from app.crud.analysis_repository import SqlAlchemyAnalysisRepository
+from app.crud.analysis_worker_registry import (
     ANALYSIS_MESSAGE_SCHEMA_VERSION,
     SqlAlchemyAnalysisWorkerRegistry,
 )
-from app.repositories.download_repository import SqlAlchemyDownloadRepository
-from app.security.ai_provider_cipher import FernetAiProviderSecretCipher
-from app.security.url_cipher import URLCipher
-from app.services.analysis_execution import AnalysisExecution, AnalysisExecutionSettings
+from app.crud.download_repository import SqlAlchemyDownloadRepository
+from app.integrations.messaging import RabbitMqTopology
+from app.integrations.object_storage import MinioObjectStorage
+from app.services.analysis_execution.models import AnalysisExecutionSettings
+from app.services.analysis_execution.service import AnalysisExecution
 from app.workers.analysis.agent_lock import (
     AnalysisAgentAlreadyRunning,
     analysis_agent_process_lock,

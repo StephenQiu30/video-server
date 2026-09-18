@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.domain.imports import ImportErrorCode, ImportSourceFormat
 from app.integrations.imports.docx import DocxScreenplayVerifier
 from app.integrations.imports.pdf import PdfScreenplayVerifier
 from app.integrations.imports.text import TextScreenplayVerifier
-from app.services.import_execution import (
+from app.services.import_execution.errors import ImportVerificationRejected
+from app.services.import_execution.models import (
     ImportVerificationClaim,
-    ImportVerificationRejected,
     VerifiedDocumentImport,
 )
+from app.services.imports.rules.enums import ImportErrorCode, ImportSourceFormat
 
 _TEXT_FORMATS = {
     ImportSourceFormat.TXT,

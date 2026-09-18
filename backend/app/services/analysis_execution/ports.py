@@ -6,8 +6,8 @@ from datetime import datetime, timedelta
 from typing import Any, Protocol
 from uuid import UUID
 
-from app.domain.analysis import AnalysisResult
-from app.services.analysis import AnalysisJobSnapshot
+from app.services.analysis.models import AnalysisJobSnapshot
+from app.services.analysis.rules.result_types import AnalysisResult
 from app.services.analysis_execution.models import (
     AnalysisArtifactSource,
     AnalysisScreenplaySource,

@@ -16,7 +16,7 @@ from app.services.documents.ports import (
 )
 from app.services.documents.preview import read_document_preview
 from app.services.documents.views import document_page, document_view
-from app.services.imports import (
+from app.services.imports.errors import (
     ImportApplicationError,
     ImportApplicationErrorCode,
     ImportObjectStorageError,
@@ -24,8 +24,8 @@ from app.services.imports import (
     ImportPersistenceError,
     ImportPersistenceNotFound,
     MultipartUploadNotFound,
-    QuarantineObjectStorage,
 )
+from app.services.imports.ports import QuarantineObjectStorage
 
 _OWNER_HASH = re.compile(r"[0-9a-f]{64}")
 

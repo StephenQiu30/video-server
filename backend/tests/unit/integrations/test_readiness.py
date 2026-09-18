@@ -7,7 +7,7 @@ from typing import Any
 import aio_pika
 import httpx
 import pytest
-from app.config import Settings
+from app.core.config import Settings
 from app.integrations.readiness import AsyncCheck, build_runtime_readiness
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine

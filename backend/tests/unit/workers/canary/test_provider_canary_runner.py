@@ -3,9 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
 from app.integrations.media_runner_models import RunnerArtifact
-from app.services.downloads import MediaInspectionAuthRequired, RunnerInspection
+from app.services.downloads.errors import MediaInspectionAuthRequired
+from app.services.downloads.inspection_models import RunnerInspection
+from app.services.provider_types import ProviderAccessContextRef, ProviderAccessMode
 from app.workers.canary.runner import ProviderCanaryRunner
 
 URL = "https://www.youtube.com/watch?v=owned"

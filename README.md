@@ -99,8 +99,8 @@ macOS 个人生产部署启用 YouTube 受控路线时，先从已经获得 Chro
 
 ```bash
 cd backend
-uv run python -m app.runner.provider_session_maintainer start
-uv run python -m app.runner.provider_session_maintainer status
+uv run python -m app.workers.runner.provider_session_maintainer start
+uv run python -m app.workers.runner.provider_session_maintainer status
 cd ..
 docker compose --env-file .env.prod -f docker-compose-prod.yml up -d --wait --wait-timeout 300
 ```

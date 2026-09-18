@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 from uuid import UUID
 
-from app.domain.analysis import AnalysisErrorCode
+from app.services.analysis.rules.enums import AnalysisErrorCode
 from app.services.analysis_execution.errors import (
     AnalysisOwnershipLost,
     AnalysisPersistenceUnavailable,

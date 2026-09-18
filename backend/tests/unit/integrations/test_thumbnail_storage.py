@@ -5,13 +5,12 @@ from uuid import UUID
 
 import pytest
 from app.integrations.thumbnail_storage import MinioThumbnailStorage
-from app.services.downloads import (
-    GetThumbnail,
-    PersistThumbnail,
+from app.services.downloads.thumbnail import (
     ThumbnailObject,
     ThumbnailSource,
     ThumbnailStorageError,
 )
+from app.services.downloads.thumbnail_use_cases import GetThumbnail, PersistThumbnail
 
 INSPECTION_ID = UUID("11111111-1111-4111-8111-111111111111")
 OWNER = "a" * 64

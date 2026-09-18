@@ -6,12 +6,12 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 import pytest
-from app.services.analysis import (
+from app.services.analysis.errors import (
     AnalysisApplicationError,
     AnalysisApplicationErrorCode,
-    AnalysisJobSnapshot,
-    RetryAnalysis,
 )
+from app.services.analysis.models import AnalysisJobSnapshot
+from app.services.analysis.retry_analysis import RetryAnalysis
 from tests.unit.services.analysis.fakes import FakeRepository
 
 NOW = datetime(2026, 8, 10, 10, tzinfo=UTC)

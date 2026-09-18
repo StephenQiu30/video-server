@@ -6,10 +6,11 @@ from pathlib import Path
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.downloads import DownloadPlan, DownloadStage, MediaKind
-from app.domain.providers import ProviderAccessContextRef
 from app.services.download_execution.models import ArtifactDetails
-from app.services.downloads import EncryptedUrl
+from app.services.downloads.inspection_models import EncryptedUrl
+from app.services.downloads.rules.enums import DownloadStage, MediaKind
+from app.services.downloads.rules.formats import DownloadPlan
+from app.services.provider_types import ProviderAccessContextRef
 
 
 class JobState(Protocol):

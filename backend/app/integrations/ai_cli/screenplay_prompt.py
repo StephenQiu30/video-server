@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from app.services.analysis_execution import (
+from app.services.analysis_execution.models import (
     ScreenplayAnalysisRequest,
     ScreenplayAnalysisSynthesisRequest,
 )

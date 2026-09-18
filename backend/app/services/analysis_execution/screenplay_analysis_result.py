@@ -3,12 +3,10 @@ from __future__ import annotations
 import json
 from dataclasses import asdict
 
-from app.domain.analysis import (
-    AnalysisValidationCode,
-    AnalysisValidationError,
-    ScreenplayAnalysisResult,
-)
-from app.services.analysis import AnalysisJobSnapshot
+from app.services.analysis.models import AnalysisJobSnapshot
+from app.services.analysis.rules.enums import AnalysisValidationCode
+from app.services.analysis.rules.errors import AnalysisValidationError
+from app.services.analysis.rules.screenplay_results import ScreenplayAnalysisResult
 from app.services.analysis_execution.models import (
     AnalysisScreenplaySource,
     LocalScreenplayArtifact,

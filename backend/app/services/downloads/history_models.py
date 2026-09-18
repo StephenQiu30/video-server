@@ -4,7 +4,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from app.domain.downloads import DownloadErrorCode, DownloadSourceKind, DownloadStatus
+from app.services.downloads.rules.enums import (
+    DownloadErrorCode,
+    DownloadSourceKind,
+    DownloadStatus,
+)
 
 
 @dataclass(frozen=True, slots=True)

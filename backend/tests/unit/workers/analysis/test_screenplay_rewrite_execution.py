@@ -1,8 +1,8 @@
 from pathlib import Path
 
 import pytest
-from app.domain.analysis import ScreenplayRewriteResult
-from app.services.analysis_execution import AnalysisDisposition
+from app.services.analysis.rules.screenplay_results import ScreenplayRewriteResult
+from app.services.analysis_execution.models import AnalysisDisposition
 
 from .screenplay_rewrite_fakes import build_rewrite_execution
 

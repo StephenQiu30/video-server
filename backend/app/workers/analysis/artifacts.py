@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import Protocol
 from uuid import UUID
 
-from app.services.analysis_execution import (
-    AnalysisArtifactError,
+from app.services.analysis_execution.errors import AnalysisArtifactError
+from app.services.analysis_execution.models import (
     AnalysisArtifactSource,
     LocalAnalysisArtifact,
 )

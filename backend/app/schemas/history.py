@@ -3,12 +3,16 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from app.domain.downloads import DownloadErrorCode, DownloadSourceKind, DownloadStatus
 from app.schemas.common import StrictModel
-from app.services.downloads import (
+from app.services.downloads.history_models import (
     DownloadHistoryItemView,
     DownloadHistorySummaryView,
     DownloadHistoryView,
+)
+from app.services.downloads.rules.enums import (
+    DownloadErrorCode,
+    DownloadSourceKind,
+    DownloadStatus,
 )
 
 

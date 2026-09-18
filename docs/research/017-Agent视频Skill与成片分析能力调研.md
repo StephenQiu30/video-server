@@ -28,7 +28,7 @@
 
 ## 3. Skill 供应链决策
 
-新增 Skill 是项目特定的原创重写，只采用已经在 `backend/app/analysis_skills/NOTICE.md` 固定审查的分析原则：
+新增 Skill 是项目特定的原创重写，只采用已经在 `backend/app/services/analysis/skills/NOTICE.md` 固定审查的分析原则：
 
 - [watch-skill](https://github.com/oxbshw/watch-skill)：看片自检、观察与结果区分；不引入 OCR/ASR、索引、服务和评分公式。
 - [video-shotcraft](https://github.com/Vincentwei1021/video-shotcraft)：渲染后复核、文字可读性、镜头交接；不引入镜头卡、媒体、模板和生成工作流。

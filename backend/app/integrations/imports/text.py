@@ -3,13 +3,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from app.domain.imports import ContentKind, ImportErrorCode, ImportSourceFormat
 from app.integrations.imports.normalization import normalized_document
 from app.integrations.imports.source import verified_source
-from app.services.import_execution import (
+from app.services.import_execution.errors import ImportVerificationRejected
+from app.services.import_execution.models import (
     ImportVerificationClaim,
-    ImportVerificationRejected,
     VerifiedDocumentImport,
+)
+from app.services.imports.rules.enums import (
+    ContentKind,
+    ImportErrorCode,
+    ImportSourceFormat,
 )
 
 _TEXT_FORMATS = {

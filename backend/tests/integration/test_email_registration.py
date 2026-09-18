@@ -4,9 +4,9 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
-from app.database import create_session_factory
+from app.core.db import create_session_factory
+from app.crud.email_verification_repository import SqlAlchemyVerificationStore
 from app.models.email_verification import EmailVerificationRow
-from app.repositories.email_verification_repository import SqlAlchemyVerificationStore
 from sqlalchemy.ext.asyncio import AsyncEngine
 from tests.integration.test_auth_routes import auth_client
 

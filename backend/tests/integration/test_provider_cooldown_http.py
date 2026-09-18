@@ -5,15 +5,15 @@ from pathlib import Path
 
 import httpx
 import pytest
-from app.database import create_session_factory
-from app.domain.providers import ProviderAccessMode
+from app.core.db import create_session_factory
+from app.crud.provider_route_cooldowns import SqlAlchemyProviderRouteCooldowns
 from app.integrations.media_runner import MediaRunnerHttpClient
-from app.repositories.provider_route_cooldowns import SqlAlchemyProviderRouteCooldowns
 from app.services.downloads.errors import (
     MediaInspectionRateLimited,
     MediaInspectionVerificationFailed,
 )
 from app.services.provider_route_admission import ProviderRouteAdmission
+from app.services.provider_types import ProviderAccessMode
 from tests.unit.integrations.test_media_runner_client import _access_context
 from tests.unit.services.test_provider_route_admission import Cooldowns
 

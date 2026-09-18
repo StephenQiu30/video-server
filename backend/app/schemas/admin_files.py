@@ -7,7 +7,7 @@ from uuid import UUID
 from pydantic import Field
 
 from app.schemas.common import StrictModel
-from app.services.storage_files import StorageCleanupResult, StoredFilePage
+from app.services.storage_files.models import StorageCleanupResult, StoredFilePage
 
 type StoredFileCategory = Literal["video", "screenplay", "analysis_report"]
 

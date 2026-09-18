@@ -12,7 +12,7 @@ from aio_pika.abc import (
     AbstractRobustConnection,
 )
 from app.integrations.messaging import RabbitMqTopology, configured_rabbitmq_url
-from app.services.download_execution import ExecutionDisposition
+from app.services.download_execution.models import ExecutionDisposition
 from app.workers.download.message import DownloadMessageError, parse_download_requested
 from app.workers.download.pool import AsyncWorkerPool
 

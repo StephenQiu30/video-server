@@ -10,17 +10,19 @@ from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
-from app.domain.providers import ProviderKey
-from app.domain.source_discovery import (
+from app.services.provider_types import ProviderKey
+from app.services.source_discoveries.models import (
+    ArticleDiscoveryCandidate,
+    ArticleDiscoveryResult,
+)
+from app.services.source_discoveries.ports import (
+    ArticleAccessRestricted,
+    ArticleDiscoveryFailure,
+)
+from app.services.source_discovery import (
     DiscoveryDecisionHint,
     DiscoveryItemKind,
     DiscoveryItemStatus,
-)
-from app.services.source_discoveries import (
-    ArticleAccessRestricted,
-    ArticleDiscoveryCandidate,
-    ArticleDiscoveryFailure,
-    ArticleDiscoveryResult,
 )
 
 _MPVID = re.compile(r"wxv_[A-Za-z0-9_-]{4,128}")

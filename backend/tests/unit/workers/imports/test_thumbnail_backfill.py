@@ -5,7 +5,7 @@ from pathlib import Path
 from uuid import UUID
 
 import pytest
-from app.services.import_execution import ImportWorkspace
+from app.services.import_execution.models import ImportWorkspace
 from app.workers.imports.thumbnail_backfill import DownloadThumbnailBackfill
 
 JOB_ID = UUID("11111111-1111-4111-8111-111111111111")

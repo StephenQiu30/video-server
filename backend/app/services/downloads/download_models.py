@@ -4,14 +4,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from app.domain.downloads import (
+from app.services.downloads.rules.enums import (
     DownloadErrorCode,
-    DownloadPlan,
     DownloadSourceKind,
     DownloadStage,
     DownloadStatus,
     MediaKind,
 )
+from app.services.downloads.rules.formats import DownloadPlan
 from app.services.quotas import UserQuota
 
 

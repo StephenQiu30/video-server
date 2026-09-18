@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-from app.services.auth import CurrentUser, UserRole
+from app.services.auth.models import CurrentUser, UserRole
 from app.services.auth.usernames import normalize_username
 
 

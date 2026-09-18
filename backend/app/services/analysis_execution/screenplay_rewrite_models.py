@@ -4,7 +4,9 @@ import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from app.domain.analysis import ScreenplayRewriteGlossary
+from app.services.analysis.rules.screenplay_rewrite_items import (
+    ScreenplayRewriteGlossary,
+)
 
 _SOURCE_LANGUAGES = {"zh-CN", "en-US", "mixed", "unknown"}
 _TARGET_LANGUAGES = {"zh-CN", "en-US"}

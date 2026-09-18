@@ -1,6 +1,6 @@
 import pytest
 from app.integrations.article_discovery import parse_article_html
-from app.services.source_discoveries import ArticleAccessRestricted
+from app.services.source_discoveries.ports import ArticleAccessRestricted
 
 
 @pytest.mark.parametrize(

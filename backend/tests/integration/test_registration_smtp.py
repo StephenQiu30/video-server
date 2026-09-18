@@ -4,11 +4,11 @@ from email import policy
 from email.parser import BytesParser
 
 import pytest
-from app.config import Settings
-from app.database import create_session_factory
+from app.core.config import Settings
+from app.core.db import create_session_factory
+from app.crud.email_verification_repository import SqlAlchemyVerificationStore
 from app.integrations.registration_mail import SmtpRegistrationMailer
 from app.models.email_verification import EmailVerificationRow
-from app.repositories.email_verification_repository import SqlAlchemyVerificationStore
 from app.services.auth.email_verification import EmailVerification
 from app.services.auth.errors import AuthError, AuthErrorCode
 from sqlalchemy.ext.asyncio import AsyncEngine

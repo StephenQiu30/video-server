@@ -2,13 +2,10 @@ from __future__ import annotations
 
 from contextlib import suppress
 
-from app.domain.analysis import (
-    AnalysisMedia,
-    AnalysisResultContract,
-    AnalysisStage,
-    parse_analysis_result,
-)
-from app.services.analysis import AnalysisJobSnapshot
+from app.services.analysis.models import AnalysisJobSnapshot
+from app.services.analysis.rules.enums import AnalysisResultContract, AnalysisStage
+from app.services.analysis.rules.result_models import AnalysisMedia
+from app.services.analysis.rules.result_parser import parse_analysis_result
 from app.services.analysis_execution.models import (
     AnalysisExecutionOutput,
     LocalAnalysisArtifact,

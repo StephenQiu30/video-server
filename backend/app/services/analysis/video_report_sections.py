@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from app.domain.analysis import VideoAnalysisResult
 from app.services.analysis.report_formatting import (
     format_range,
     format_shot_duration,
@@ -8,6 +7,7 @@ from app.services.analysis.report_formatting import (
     markdown_block,
     markdown_text,
 )
+from app.services.analysis.rules.result_models import VideoAnalysisResult
 
 _ZH_TERMS = {
     "extreme_wide": "大远景",

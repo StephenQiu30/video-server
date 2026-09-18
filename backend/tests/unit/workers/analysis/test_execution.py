@@ -6,12 +6,12 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
-from app.services.analysis_execution import (
+from app.services.analysis_execution.errors import AnalysisPersistenceRejected
+from app.services.analysis_execution.models import (
     AnalysisDisposition,
-    AnalysisExecution,
-    AnalysisPersistenceRejected,
     VideoAnalysisRequest,
 )
+from app.services.analysis_execution.service import AnalysisExecution
 
 from .fakes import (
     NOW,

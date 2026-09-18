@@ -6,7 +6,7 @@ from uuid import UUID
 from sqlalchemy import Boolean, DateTime, Index, Integer, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.database import Base
+from app.core.db import Base
 
 
 class EmailVerificationRow(Base):

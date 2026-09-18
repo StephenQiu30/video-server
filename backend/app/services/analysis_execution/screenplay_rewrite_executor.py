@@ -5,16 +5,17 @@ from collections.abc import Awaitable, Callable
 from contextlib import suppress
 from functools import partial
 
-from app.domain.analysis import (
-    AnalysisResultContract,
-    AnalysisStage,
-    AnalysisValidationError,
+from app.services.analysis.models import AnalysisJobSnapshot
+from app.services.analysis.rules.enums import AnalysisResultContract, AnalysisStage
+from app.services.analysis.rules.errors import AnalysisValidationError
+from app.services.analysis.rules.screenplay_rewrite_items import (
     ScreenplayRewriteChunkOutput,
     ScreenplayRewriteGlossary,
+)
+from app.services.analysis.rules.screenplay_rewrite_parser import (
     parse_screenplay_glossary,
     parse_screenplay_rewrite_chunk,
 )
-from app.services.analysis import AnalysisJobSnapshot
 from app.services.analysis_execution.errors import (
     AnalysisArtifactError,
     AnalysisExecutionError,

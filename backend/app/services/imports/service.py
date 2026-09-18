@@ -8,14 +8,6 @@ from pathlib import PurePosixPath
 from typing import Never
 from uuid import UUID
 
-from app.domain.imports import (
-    ContentKind,
-    DeclaredOrigin,
-    ImportErrorCode,
-    ImportSourceFormat,
-    ImportStatus,
-    quarantine_object_key,
-)
 from app.services.imports.errors import (
     ImportApplicationError,
     ImportApplicationErrorCode,
@@ -46,6 +38,14 @@ from app.services.imports.ports import (
     QuarantineObjectStorage,
     RequestFingerprinter,
 )
+from app.services.imports.rules.enums import (
+    ContentKind,
+    DeclaredOrigin,
+    ImportErrorCode,
+    ImportSourceFormat,
+    ImportStatus,
+)
+from app.services.imports.rules.keys import quarantine_object_key
 from app.services.quotas import DEFAULT_USER_QUOTA, UserQuota
 
 _OWNER_HASH = re.compile(r"[0-9a-f]{64}")

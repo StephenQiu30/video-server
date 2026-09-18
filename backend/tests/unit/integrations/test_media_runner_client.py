@@ -7,10 +7,8 @@ from pathlib import Path
 
 import httpx
 import pytest
-from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
 from app.integrations.media_runner import MediaRunnerHttpClient, _retry_after
 from app.integrations.media_runner_models import MediaRunnerClientError
-from app.runner.contracts import DownloadPlanContract
 from app.services.downloads.errors import (
     MediaInspectionAuthRequired,
     MediaInspectionConfigurationMissing,
@@ -22,6 +20,8 @@ from app.services.downloads.errors import (
     MediaInspectionTimeout,
     MediaInspectionUnsupported,
 )
+from app.services.provider_types import ProviderAccessContextRef, ProviderAccessMode
+from app.workers.runner.contracts import DownloadPlanContract
 
 
 def test_retry_after_parses_seconds_dates_and_rejects_malformed_values():

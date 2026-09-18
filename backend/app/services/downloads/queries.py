@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.downloads import DownloadSourceKind, DownloadStatus
 from app.services.downloads.download_models import (
     ArtifactSnapshot,
     DownloadUrl,
@@ -21,9 +20,13 @@ from app.services.downloads.errors import (
 from app.services.downloads.file_delivery import download_filename
 from app.services.downloads.inspection_models import InspectionView
 from app.services.downloads.ports import DownloadRepository, ObjectStorage
+from app.services.downloads.rules.enums import DownloadSourceKind, DownloadStatus
 from app.services.downloads.validation import validate_now, validate_owner_hash
 from app.services.downloads.views import download_view, inspection_view
-from app.services.imports import ImportApplicationError, ImportApplicationErrorCode
+from app.services.imports.errors import (
+    ImportApplicationError,
+    ImportApplicationErrorCode,
+)
 
 
 class BrowserImportCanceller(Protocol):

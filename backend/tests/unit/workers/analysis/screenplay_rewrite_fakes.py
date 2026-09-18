@@ -3,16 +3,20 @@ from __future__ import annotations
 from dataclasses import replace
 from pathlib import Path
 
-from app.services.analysis_execution import (
-    AnalysisExecution,
+from app.services.analysis_execution.errors import AnalysisExecutionError
+from app.services.analysis_execution.ports import ScreenplayRewriteAnalyzerSelection
+from app.services.analysis_execution.screenplay_executor import (
     ScreenplayAnalysisExecutor,
-    ScreenplayExecutionRouter,
-    ScreenplayGlossaryRequest,
-    ScreenplayRewriteAnalyzerSelection,
-    ScreenplayRewriteChunkRequest,
+)
+from app.services.analysis_execution.screenplay_rewrite_executor import (
     ScreenplayRewriteExecutor,
 )
-from app.services.analysis_execution.errors import AnalysisExecutionError
+from app.services.analysis_execution.screenplay_rewrite_models import (
+    ScreenplayGlossaryRequest,
+    ScreenplayRewriteChunkRequest,
+)
+from app.services.analysis_execution.screenplay_router import ScreenplayExecutionRouter
+from app.services.analysis_execution.service import AnalysisExecution
 
 from .fakes import NOW, FakeLoader, settings
 from .screenplay_fakes import (

@@ -6,7 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.auth import UserResponse
-from app.services.auth import SessionGrant
+from app.services.auth.models import SessionGrant
 
 
 class NativeRefreshRequest(BaseModel):

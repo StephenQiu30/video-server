@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from app.integrations.ai_cli.errors import AnalysisCliError
-from app.services.analysis_execution import VideoAnalysisRequest
+from app.services.analysis_execution.models import VideoAnalysisRequest
 
 _IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
 

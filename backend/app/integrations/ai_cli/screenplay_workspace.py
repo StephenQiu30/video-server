@@ -6,7 +6,7 @@ from typing import Any
 
 from app.integrations.ai_cli.errors import AnalysisCliError
 from app.integrations.ai_cli.workspace import JobFiles
-from app.services.analysis_execution import ScreenplayAnalysisRequest
+from app.services.analysis_execution.models import ScreenplayAnalysisRequest
 
 
 def prepare_screenplay_job_files(

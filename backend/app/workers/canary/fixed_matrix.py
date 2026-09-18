@@ -6,8 +6,8 @@ import argparse
 import asyncio
 import json
 
-from app.config import get_settings_for_role
-from app.domain.providers import ProviderCanaryOutcome, ProviderCanaryStage
+from app.core.config import get_settings_for_role
+from app.services.provider_types import ProviderCanaryOutcome, ProviderCanaryStage
 from app.workers.canary.fixed_cases import fixed_public_diagnostic_targets
 from app.workers.canary.main import build_runtime
 

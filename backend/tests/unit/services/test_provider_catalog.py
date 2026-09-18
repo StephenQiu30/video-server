@@ -4,8 +4,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 import pytest
-from app.domain.providers import ProviderSupportStatus
-from app.services.auth import CurrentUser, UserRole
+from app.services.auth.models import CurrentUser, UserRole
 from app.services.provider_catalog import (
     DuplicateProviderCatalogKeyError,
     ProviderCatalogEntry,
@@ -13,6 +12,7 @@ from app.services.provider_catalog import (
     ProviderCatalogErrorCode,
     ProviderCatalogService,
 )
+from app.services.provider_types import ProviderSupportStatus
 from app.services.providers import ProviderStatusView
 
 NOW = datetime(2026, 8, 12, tzinfo=UTC)

@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from app.domain.downloads import DownloadStage, MediaKind
-from app.runner.contracts import RunnerTaskStage
+from app.services.downloads.rules.enums import DownloadStage, MediaKind
+from app.workers.runner.contracts import RunnerTaskStage
 
 
 class MediaRunnerClientError(RuntimeError):

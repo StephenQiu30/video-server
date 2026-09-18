@@ -22,7 +22,9 @@ def test_pyproject_and_compose_pin_provider_runtime() -> None:
     pyproject = (ROOT / "pyproject.toml").read_text()
     compose = (ROOT.parent / "docker-compose.yml").read_text()
     production_compose = (ROOT.parent / "docker-compose-prod.yml").read_text()
-    supervisor = (ROOT / "app" / "runner" / "youtube-pot-supervisor.mjs").read_text()
+    supervisor = (
+        ROOT / "app" / "workers" / "runner" / "youtube-pot-supervisor.mjs"
+    ).read_text()
 
     image = (
         "bgutil-ytdlp-pot-provider:1.3.2@"
@@ -146,7 +148,7 @@ def _supervisor_config_check(
     return subprocess.run(
         [
             "node",
-            str(ROOT / "app" / "runner" / "youtube-pot-supervisor.mjs"),
+            str(ROOT / "app" / "workers" / "runner" / "youtube-pot-supervisor.mjs"),
             "--check-config",
         ],
         check=False,

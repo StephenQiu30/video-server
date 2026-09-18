@@ -5,19 +5,20 @@ from time import perf_counter
 from uuid import uuid4
 
 import pytest
-from app.database import create_session_factory
-from app.domain.provider_access import ProviderAccessPolicy
-from app.domain.providers import ProviderAccessMode
+from app.core.db import create_session_factory
+from app.crud.download_repository import SqlAlchemyDownloadRepository
+from app.crud.provider_route_cooldowns import SqlAlchemyProviderRouteCooldowns
 from app.models import DownloadJobRow
 from app.models.provider_route_cooldown import ProviderRouteCooldownRow
-from app.repositories.download_repository import SqlAlchemyDownloadRepository
-from app.repositories.provider_route_cooldowns import SqlAlchemyProviderRouteCooldowns
-from app.services.downloads import DownloadCreate, FormatCreate, InspectionCreate
+from app.services.downloads.download_models import DownloadCreate
+from app.services.downloads.inspection_models import FormatCreate, InspectionCreate
+from app.services.provider_access import ProviderAccessPolicy
 from app.services.provider_route_admission import (
     ProviderRouteKey,
     RouteAdmissionUnavailable,
     RouteCoolingDown,
 )
+from app.services.provider_types import ProviderAccessMode
 from sqlalchemy import delete, select, update
 from tests.unit.integrations.test_media_runner_router import context
 

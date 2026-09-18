@@ -10,9 +10,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from uuid import UUID
 
-from app.domain.downloads import MediaKind, build_artifact_object_key
 from app.services.download_execution.errors import ArtifactValidationError
 from app.services.download_execution.ports import RunnerArtifactView
+from app.services.downloads.rules.artifact_keys import build_artifact_object_key
+from app.services.downloads.rules.enums import MediaKind
 
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _CONTAINER_TYPES = {

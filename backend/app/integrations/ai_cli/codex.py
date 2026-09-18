@@ -10,12 +10,14 @@ from app.integrations.ai_cli.workspace import (
     prepare_job_files,
     run_with_workspace_policy,
 )
-from app.services.analysis_execution import (
+from app.services.analysis_execution.models import (
     ScreenplayAnalysisRequest,
     ScreenplayAnalysisSynthesisRequest,
+    VideoAnalysisRequest,
+)
+from app.services.analysis_execution.screenplay_rewrite_models import (
     ScreenplayGlossaryRequest,
     ScreenplayRewriteChunkRequest,
-    VideoAnalysisRequest,
 )
 
 

@@ -3,21 +3,21 @@ from __future__ import annotations
 from dataclasses import replace
 
 import pytest
-from app.domain.analysis import (
-    AnalysisMedia,
-    AnalysisStatus,
-    EvidenceSummary,
-    ProductionAdvice,
-    Shot,
-    VideoAnalysisResult,
-    VideoScene,
-)
-from app.services.analysis import (
+from app.services.analysis.cancel_analysis import CancelAnalysis
+from app.services.analysis.errors import (
     AnalysisApplicationError,
     AnalysisApplicationErrorCode,
-    CancelAnalysis,
-    GetAnalysis,
 )
+from app.services.analysis.get_analysis import GetAnalysis
+from app.services.analysis.rules.enums import AnalysisStatus
+from app.services.analysis.rules.result_items import Shot
+from app.services.analysis.rules.result_models import (
+    AnalysisMedia,
+    EvidenceSummary,
+    ProductionAdvice,
+    VideoAnalysisResult,
+)
+from app.services.analysis.rules.video_scene import VideoScene
 from tests.unit.services.analysis.fakes import FakeRepository
 from tests.unit.services.analysis.test_create_analysis import (
     JOB_ID,

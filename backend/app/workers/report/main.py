@@ -5,14 +5,14 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime, timedelta
 
-from app.config import get_settings_for_role
-from app.database import create_engine, create_session_factory
+from app.core.config import get_settings_for_role
+from app.core.db import create_engine, create_session_factory
+from app.crud.analysis_report_repository import (
+    SqlAlchemyAnalysisReportRepository,
+)
 from app.integrations.analysis_report_docx import PythonDocxAnalysisReportRenderer
 from app.integrations.messaging import RabbitMqTopology
 from app.integrations.object_storage import MinioObjectStorage
-from app.repositories.analysis_report_repository import (
-    SqlAlchemyAnalysisReportRepository,
-)
 from app.workers.analysis.utilities import install_signal_handlers, worker_id
 from app.workers.report.consumer import RabbitMqReportConsumer
 from app.workers.report.lifecycle import ReportLifecycleWorker

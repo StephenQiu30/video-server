@@ -3,9 +3,9 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
-from app.admission import RateLimitAdmission, _client_host
-from app.config import Settings
-from app.dependencies import get_current_user
+from app.api.admission import RateLimitAdmission, _client_host
+from app.api.deps import get_current_user
+from app.core.config import Settings
 from app.integrations.rate_limiter import RateLimitExceeded
 from app.main import create_app
 from fastapi.testclient import TestClient
@@ -81,7 +81,7 @@ def test_all_analysis_creation_routes_enforce_admission(path: str) -> None:
 
 
 def test_costly_routes_declare_admission_and_recovery_routes_remain_available() -> None:
-    from app.routers import (
+    from app.api.routes import (
         analyses,
         document_analyses,
         documents,

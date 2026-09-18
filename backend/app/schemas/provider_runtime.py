@@ -3,9 +3,9 @@
 from datetime import datetime
 from typing import Literal
 
-from app.domain.provider_access import ProviderAccessPolicy
-from app.domain.providers import ProviderAccessMode
 from app.schemas.common import StrictModel
+from app.services.provider_access import ProviderAccessPolicy
+from app.services.provider_types import ProviderAccessMode
 from app.services.providers import ProviderEvidenceState, ProviderStatusView
 
 

@@ -5,13 +5,13 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 import pytest
-from app.domain.imports import ContentKind
 from app.integrations.messaging import EventEnvelope
-from app.services.imports import (
+from app.services.imports.events import (
     CONTENT_IMPORT_VERIFY_REQUESTED,
-    ImportDisposition,
     import_verify_requested_payload,
 )
+from app.services.imports.models import ImportDisposition
+from app.services.imports.rules.enums import ContentKind
 from app.workers.imports.consumer import process_delivery
 
 RESOURCE_ID = UUID("11111111-1111-4111-8111-111111111111")

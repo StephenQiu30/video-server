@@ -60,7 +60,7 @@ Skill 不借用 `score` 声称留存率、完播率或转化率；高光分数�
 - `video-shotcraft`：先看渲染证据再交付，文字可读性和镜头信息聚焦。
 
 不复制上游原文、分数公式、脚本、测试样例、资产、工具调用、运行时或生产管线。审阅
-commit 和许可证必须记入 `backend/app/analysis_skills/NOTICE.md`。
+commit 和许可证必须记入 `backend/app/services/analysis/skills/NOTICE.md`。
 
 ## 6. 非目标
 

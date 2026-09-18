@@ -3,8 +3,8 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
-from app.domain.analysis import ScreenplayAnalysisResult
-from app.services.analysis_execution import (
+from app.services.analysis.rules.screenplay_results import ScreenplayAnalysisResult
+from app.services.analysis_execution.models import (
     AnalysisDisposition,
     ScreenplayAnalysisRequest,
     ScreenplayAnalysisSynthesisRequest,

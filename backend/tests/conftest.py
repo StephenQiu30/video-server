@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 
 import pytest
-from app.database import Base
+from app.core.db import Base
 from sqlalchemy.ext.asyncio import AsyncEngine
 from tests.postgres import isolated_postgres_engine
 

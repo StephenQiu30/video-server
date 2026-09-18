@@ -5,8 +5,9 @@ from datetime import timedelta
 from pathlib import Path
 from uuid import UUID
 
-from app.domain.documents import DocumentParseSummary, ScreenplayScene
-from app.domain.imports import ContentKind, ImportSourceFormat
+from app.services.documents.rules.screenplay import ScreenplayScene
+from app.services.documents.rules.summary import DocumentParseSummary
+from app.services.imports.rules.enums import ContentKind, ImportSourceFormat
 
 
 @dataclass(frozen=True, slots=True)

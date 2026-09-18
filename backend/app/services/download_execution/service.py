@@ -5,13 +5,6 @@ from contextlib import suppress
 from pathlib import Path
 from uuid import UUID
 
-from app.domain.downloads import (
-    AudioCodecFamily,
-    DownloadErrorCode,
-    DownloadStage,
-    MediaKind,
-)
-from app.domain.providers import ProviderAccessContextRef
 from app.services.download_execution.artifact import verify_artifact
 from app.services.download_execution.delivery import ArtifactDelivery
 from app.services.download_execution.errors import (
@@ -38,8 +31,16 @@ from app.services.download_execution.ports import (
     WorkspaceCleaner,
 )
 from app.services.download_execution.transitions import ExecutionTransitions
-from app.services.downloads import EncryptedUrl, plan_from_documents
+from app.services.downloads.inspection_models import EncryptedUrl
+from app.services.downloads.plans import plan_from_documents
+from app.services.downloads.rules.enums import (
+    AudioCodecFamily,
+    DownloadErrorCode,
+    DownloadStage,
+    MediaKind,
+)
 from app.services.provider_route_admission import RouteCoolingDown
+from app.services.provider_types import ProviderAccessContextRef
 
 
 class DownloadExecution:

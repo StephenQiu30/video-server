@@ -3,15 +3,15 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from app.domain.provider_access import ProviderAccessPolicy
-from app.domain.providers import ProviderAccessContextRef, ProviderAccessMode
 from app.integrations.media_runner import MediaRunnerRouter
 from app.integrations.media_runner_models import MediaRunnerClientError, RunnerArtifact
-from app.services.downloads import (
+from app.services.downloads.errors import (
     MediaInspectionAuthRequired,
     MediaInspectionTemporarilyUnavailable,
-    RunnerInspection,
 )
+from app.services.downloads.inspection_models import RunnerInspection
+from app.services.provider_access import ProviderAccessPolicy
+from app.services.provider_types import ProviderAccessContextRef, ProviderAccessMode
 
 
 class FakeClient:

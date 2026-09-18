@@ -5,16 +5,21 @@ import json
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
-from app.domain.analysis import ScreenplayGlossaryTerm, ScreenplayRewriteGlossary
 from app.integrations.ai_cli.errors import AnalysisCliError
-from app.runner.process import ProcessResult
-from app.services.analysis_execution import (
+from app.services.analysis.rules.screenplay_rewrite_items import (
+    ScreenplayGlossaryTerm,
+    ScreenplayRewriteGlossary,
+)
+from app.services.analysis_execution.models import (
     ScreenplayAnalysisRequest,
     ScreenplayAnalysisSynthesisRequest,
-    ScreenplayGlossaryRequest,
-    ScreenplayRewriteChunkRequest,
     VideoAnalysisRequest,
 )
+from app.services.analysis_execution.screenplay_rewrite_models import (
+    ScreenplayGlossaryRequest,
+    ScreenplayRewriteChunkRequest,
+)
+from app.workers.runner.process import ProcessResult
 from tests.unit.workers.analysis.fixtures import (
     valid_mapping,
     valid_screenplay_mapping,

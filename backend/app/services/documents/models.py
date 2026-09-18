@@ -6,9 +6,13 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import UUID
 
-from app.domain.documents import DocumentParseSummary
-from app.domain.imports import ImportErrorCode, ImportSourceFormat, ImportStatus
-from app.services.imports import ImportCleanupRef
+from app.services.documents.rules.summary import DocumentParseSummary
+from app.services.imports.models import ImportCleanupRef
+from app.services.imports.rules.enums import (
+    ImportErrorCode,
+    ImportSourceFormat,
+    ImportStatus,
+)
 
 
 @dataclass(frozen=True, slots=True)

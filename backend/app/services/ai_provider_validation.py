@@ -11,7 +11,7 @@ from app.services.ai_provider_models import (
     AiProviderError,
     AiProviderErrorCode,
 )
-from app.services.auth import CurrentUser, UserRole
+from app.services.auth.models import CurrentUser, UserRole
 
 _KEY = re.compile(r"[a-z][a-z0-9_-]{0,31}")
 

@@ -21,7 +21,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.database import JSON_DOCUMENT, Base, utc_now
+from app.core.db import JSON_DOCUMENT, Base, utc_now
 
 
 class DownloadJobRow(Base):

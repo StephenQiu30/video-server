@@ -3,9 +3,9 @@ from __future__ import annotations
 import html
 import re
 
-from app.domain.analysis import (
+from app.services.analysis.rules.screenplay_result_items import ScreenplayEvidenceItem
+from app.services.analysis.rules.screenplay_results import (
     ScreenplayAnalysisResult,
-    ScreenplayEvidenceItem,
     ScreenplayRewriteResult,
 )
 

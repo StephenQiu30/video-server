@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.domain.analysis import AnalysisErrorCode, AnalysisStage
+from app.services.analysis.rules.enums import AnalysisErrorCode, AnalysisStage
 
 
 class AnalysisOwnershipLost(RuntimeError):

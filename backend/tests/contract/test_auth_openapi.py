@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from app.config import Settings
+from app.api.routes.native_openapi import build_native_openapi
+from app.core.config import Settings
 from app.main import create_app
-from app.routers.native_openapi import build_native_openapi
 
 
 def test_auth_openapi_exposes_email_session_contract(tmp_path: Path) -> None:

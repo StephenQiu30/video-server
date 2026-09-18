@@ -4,13 +4,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
-from app.domain.source_discovery import (
+from app.services.downloads.inspection_models import EncryptedUrl
+from app.services.source_discovery import (
     DiscoveryDecisionHint,
     DiscoveryItemKind,
     DiscoveryItemStatus,
     DiscoveryStatus,
 )
-from app.services.downloads import EncryptedUrl
 
 
 @dataclass(frozen=True, slots=True)

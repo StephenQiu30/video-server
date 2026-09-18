@@ -4,13 +4,12 @@ import asyncio
 from contextlib import suppress
 from functools import partial
 
-from app.domain.analysis import (
-    AnalysisResultContract,
-    AnalysisStage,
-    ScreenplayAnalysisResult,
+from app.services.analysis.models import AnalysisJobSnapshot
+from app.services.analysis.rules.enums import AnalysisResultContract, AnalysisStage
+from app.services.analysis.rules.screenplay_parser import (
     parse_screenplay_analysis_result,
 )
-from app.services.analysis import AnalysisJobSnapshot
+from app.services.analysis.rules.screenplay_results import ScreenplayAnalysisResult
 from app.services.analysis_execution.errors import (
     AnalysisArtifactError,
     AnalysisExecutionError,

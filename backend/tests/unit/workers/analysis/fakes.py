@@ -6,9 +6,9 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID, uuid4
 
-from app.domain.analysis import AnalysisResult
-from app.services.analysis import AnalysisJobSnapshot
-from app.services.analysis_execution import (
+from app.services.analysis.models import AnalysisJobSnapshot
+from app.services.analysis.rules.result_types import AnalysisResult
+from app.services.analysis_execution.models import (
     AnalysisArtifactSource,
     AnalysisExecutionSettings,
     LocalAnalysisArtifact,

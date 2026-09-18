@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from app.services.analysis_execution import (
+from app.services.analysis_execution.screenplay_rewrite_models import (
     ScreenplayGlossaryRequest,
     ScreenplayRewriteChunkRequest,
 )

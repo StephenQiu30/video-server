@@ -4,25 +4,26 @@ from dataclasses import replace
 from datetime import datetime
 from uuid import UUID
 
-from app.domain.provider_access import ProviderAccessPolicy
-from app.services.downloads import (
+from app.services.downloads.download_models import (
     ArtifactSnapshot,
     DownloadCleanupRef,
     DownloadCreate,
     DownloadDeletionPlan,
     DownloadPresentationSnapshot,
+    JobSaveResult,
+    JobSnapshot,
+)
+from app.services.downloads.errors import PersistenceIdempotencyConflict
+from app.services.downloads.inspection_models import (
     EncryptedUrl,
     FormatSnapshot,
     InspectionCreate,
     InspectionSaveResult,
     InspectionSnapshot,
-    JobSaveResult,
-    JobSnapshot,
-    PersistenceIdempotencyConflict,
     RunnerInspection,
-    ThumbnailObject,
-    ThumbnailSource,
 )
+from app.services.downloads.thumbnail import ThumbnailObject, ThumbnailSource
+from app.services.provider_access import ProviderAccessPolicy
 
 
 class FakeValidator:
@@ -255,11 +256,11 @@ class FakeRepository:
         del now
         job = self.jobs.get(job_id)
         if job is None or job.owner_hash != owner_hash:
-            from app.services.downloads import PersistenceNotFound
+            from app.services.downloads.errors import PersistenceNotFound
 
             raise PersistenceNotFound
         if self.deletion_conflict:
-            from app.services.downloads import PersistenceConflict
+            from app.services.downloads.errors import PersistenceConflict
 
             raise PersistenceConflict
         return DownloadDeletionPlan(

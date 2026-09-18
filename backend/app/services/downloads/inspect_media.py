@@ -4,9 +4,6 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from app.domain.downloads import MediaKind
-from app.domain.provider_access import ProviderAccessPolicy
-from app.domain.providers import ProviderAccessMode, ProviderKey
 from app.services.downloads.errors import (
     ApplicationError,
     ApplicationErrorCode,
@@ -46,6 +43,7 @@ from app.services.downloads.ports import (
     UrlCipher,
     UrlValidator,
 )
+from app.services.downloads.rules.enums import MediaKind
 from app.services.downloads.source_admission import (
     RestrictedSourceAdmission,
     classify_restricted_source,
@@ -58,6 +56,8 @@ from app.services.downloads.validation import (
     validate_owner_hash,
 )
 from app.services.downloads.views import inspection_view
+from app.services.provider_access import ProviderAccessPolicy
+from app.services.provider_types import ProviderAccessMode, ProviderKey
 
 
 class InspectMedia:

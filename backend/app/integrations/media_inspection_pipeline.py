@@ -5,17 +5,21 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Protocol
 
-from app.domain.provider_access import (
+from app.services.downloads.errors import (
+    MediaInspectionConfigurationMissing,
+    MediaInspectionFailure,
+    MediaInspectionPolicyNotAllowed,
+)
+from app.services.downloads.inspection_models import RunnerInspection
+from app.services.provider_access import (
     ProviderAccessPolicy,
     default_access_policy,
     provider_access_policies,
 )
-from app.domain.providers import ProviderAccessMode
-from app.runner.provider_registry import provider_profile, provider_profile_for_key
-from app.services.downloads import MediaInspectionFailure, RunnerInspection
-from app.services.downloads.errors import (
-    MediaInspectionConfigurationMissing,
-    MediaInspectionPolicyNotAllowed,
+from app.services.provider_types import ProviderAccessMode
+from app.workers.runner.provider_registry import (
+    provider_profile,
+    provider_profile_for_key,
 )
 
 

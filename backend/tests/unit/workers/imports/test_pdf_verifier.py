@@ -6,11 +6,13 @@ from pathlib import Path
 from uuid import UUID
 
 import pytest
-from app.domain.documents import ScreenplayElementKind
-from app.domain.imports import ContentKind, ImportErrorCode, ImportSourceFormat
-from app.services.import_execution import (
-    ImportVerificationClaim,
-    ImportVerificationRejected,
+from app.services.documents.rules.structure import ScreenplayElementKind
+from app.services.import_execution.errors import ImportVerificationRejected
+from app.services.import_execution.models import ImportVerificationClaim
+from app.services.imports.rules.enums import (
+    ContentKind,
+    ImportErrorCode,
+    ImportSourceFormat,
 )
 from app.workers.imports import (
     PdfScreenplayVerifier,

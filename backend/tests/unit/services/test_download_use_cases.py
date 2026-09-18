@@ -5,28 +5,24 @@ from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
-from app.domain.downloads import (
+from app.services.downloads.create_download import CreateDownload
+from app.services.downloads.delete_download import DeleteDownload
+from app.services.downloads.download_models import (
+    ArtifactSnapshot,
+    DownloadCleanupRef,
+    JobSnapshot,
+)
+from app.services.downloads.errors import ApplicationError, ApplicationErrorCode
+from app.services.downloads.fingerprints import HmacRequestFingerprinter
+from app.services.downloads.inspection_models import FormatSnapshot, InspectionSnapshot
+from app.services.downloads.plans import plan_to_documents
+from app.services.downloads.queries import CancelDownload, GetDownload, IssueDownloadUrl
+from app.services.downloads.retry_download import RetryDownload
+from app.services.downloads.rules.enums import (
     DownloadSourceKind,
     DownloadStage,
     DownloadStatus,
     MediaKind,
-)
-from app.services.downloads import (
-    ApplicationError,
-    ApplicationErrorCode,
-    ArtifactSnapshot,
-    CancelDownload,
-    CreateDownload,
-    DeleteDownload,
-    DownloadCleanupRef,
-    FormatSnapshot,
-    GetDownload,
-    HmacRequestFingerprinter,
-    InspectionSnapshot,
-    IssueDownloadUrl,
-    JobSnapshot,
-    RetryDownload,
-    plan_to_documents,
 )
 from tests.unit.services.fakes import FakeRepository, FakeStorage
 from tests.unit.services.test_inspect_media import (

@@ -4,28 +4,25 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-from app.domain.downloads import DownloadPlan
-from app.domain.providers import (
+from app.integrations.media_runner_models import MediaRunnerClientError, RunnerArtifact
+from app.services.downloads.errors import (
+    MediaInspectionAuthRequired,
+    MediaInspectionConfigurationMissing,
+    MediaInspectionFormatUnavailable,
+    MediaInspectionSessionExpired,
+)
+from app.services.downloads.inspection_models import RunnerFormat, RunnerInspection
+from app.services.downloads.rules.formats import DownloadPlan
+from app.services.provider_types import (
     ProviderAccessContextRef,
     ProviderAccessMode,
     ProviderCanaryOutcome,
     ProviderCanaryResult,
     ProviderCanaryStage,
 )
-from app.integrations.media_runner_models import MediaRunnerClientError, RunnerArtifact
-from app.services.downloads import (
-    MediaInspectionAuthRequired,
-    MediaInspectionSessionExpired,
-    RunnerFormat,
-    RunnerInspection,
-)
-from app.services.downloads.errors import (
-    MediaInspectionConfigurationMissing,
-    MediaInspectionFormatUnavailable,
-)
 from app.workers.canary.service import ProviderCanaryService
 from app.workers.canary.targets import ProviderCanaryTarget
-from tests.unit.runner.helpers import download_request
+from tests.unit.workers.runner.helpers import download_request
 
 NOW = datetime(2026, 8, 11, 5, tzinfo=UTC)
 URL = "https://www.youtube.com/watch?v=owned"

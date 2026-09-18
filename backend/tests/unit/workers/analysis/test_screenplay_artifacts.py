@@ -6,8 +6,8 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 import pytest
-from app.services.analysis_execution import (
-    AnalysisArtifactError,
+from app.services.analysis_execution.errors import AnalysisArtifactError
+from app.services.analysis_execution.models import (
     AnalysisScreenplaySource,
     ScreenplaySceneSource,
 )

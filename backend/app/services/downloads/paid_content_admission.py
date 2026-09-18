@@ -5,7 +5,8 @@ from __future__ import annotations
 import hashlib
 from urllib.parse import urlsplit
 
-from app.domain.downloads import (
+from app.services.downloads.rules.content_restrictions import ContentRestriction
+from app.services.downloads.rules.inspection import (
     AccessDecision,
     EntitlementState,
     ExecutionMode,
@@ -13,7 +14,6 @@ from app.domain.downloads import (
     ProtectionState,
     SourceOrigin,
 )
-from app.domain.downloads.content_restrictions import ContentRestriction
 from app.services.downloads.source_admission import RestrictedSourceAdmission
 
 _ACTIONS = {

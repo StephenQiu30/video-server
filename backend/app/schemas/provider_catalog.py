@@ -4,9 +4,9 @@ from datetime import datetime
 
 from pydantic import Field, field_validator, model_validator
 
-from app.domain.providers import ProviderSupportStatus
 from app.schemas.common import StrictModel
 from app.services.provider_catalog import ManagedProviderCatalogEntry
+from app.services.provider_types import ProviderSupportStatus
 
 
 class ProviderCatalogEntryResponse(StrictModel):

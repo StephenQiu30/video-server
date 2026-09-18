@@ -13,8 +13,8 @@
 ## 当前实现
 
 - `RunnerSettings.runner_provider_cookie_file` 与 macOS 的 `runner_provider_cookie_sync_root` 二选一；匿名 Runner 禁止配置任一来源。
-- [文件读取器](../../backend/app/runner/provider_cookie_file.py)每次操作重新打开文件，限制 1 MiB、普通文件、无最终符号链接、无硬链接、无其他用户权限，并校验平台域、格式、到期时间和必需 Cookie 名。普通用户 API 不接受 Cookie。
-- [会话装配](../../backend/app/runner/provider_sessions.py)继续生成唯一的 `0600` 操作 jar。文件来源的访问上下文使用带密钥摘要形成不透明版本；文件替换后旧任务不能静默使用新会话。只要有效负载与部署 HMAC 密钥不变，路径和机器变化不会改变版本。
+- [文件读取器](../../backend/app/workers/runner/provider_cookie_file.py)每次操作重新打开文件，限制 1 MiB、普通文件、无最终符号链接、无硬链接、无其他用户权限，并校验平台域、格式、到期时间和必需 Cookie 名。普通用户 API 不接受 Cookie。
+- [会话装配](../../backend/app/workers/runner/provider_sessions.py)继续生成唯一的 `0600` 操作 jar。文件来源的访问上下文使用带密钥摘要形成不透明版本；文件替换后旧任务不能静默使用新会话。只要有效负载与部署 HMAC 密钥不变，路径和机器变化不会改变版本。
 - 操作期间 Cookie 更新只写临时副本，不覆盖只读来源；此模式不会自动延长会话寿命，也不证明平台端未撤销授权。换机后平台要求重新验证与程序重启丢配置是不同事件。
 - 生产 Compose 为 YouTube、抖音、小红书、X、Instagram、Facebook、Reddit、Pinterest、优酷、腾讯视频提供按平台只读目录。目录级挂载允许部署方原子替换文件；不把全部平台 Cookie 挂到同一 Runner。
 - 两套业务 Compose 的受控 Runner 均按 profile 启用。生产示例默认不配置受控路由，个人只保存已配置的平台组合，避免未安装的会话来源阻止启动。

@@ -2,22 +2,21 @@ import hashlib
 from dataclasses import replace
 
 import pytest
-from app.domain.analysis import (
-    AnalysisMedia,
-    Highlight,
-    VisualAsset,
-    parse_analysis_result,
-    parse_video_article_result,
-)
-from app.services.analysis import (
+from app.services.analysis.errors import (
     AnalysisApplicationError,
     AnalysisApplicationErrorCode,
-    AnalysisStoredReportFile,
-    render_analysis_report_markdown,
 )
 from app.services.analysis.export_report import _read_verified
+from app.services.analysis.models import AnalysisStoredReportFile
+from app.services.analysis.report import render_analysis_report_markdown
+from app.services.analysis.rules.result_items import Highlight, VisualAsset
+from app.services.analysis.rules.result_models import AnalysisMedia
+from app.services.analysis.rules.result_parser import parse_analysis_result
+from app.services.analysis.rules.video_article_parser import parse_video_article_result
 from app.services.analysis.screenplay_report import render_screenplay_report_markdown
-from tests.unit.domain.analysis.screenplay_factories import screenplay_analysis_result
+from tests.unit.services.analysis.rules.screenplay_factories import (
+    screenplay_analysis_result,
+)
 from tests.unit.workers.analysis.fixtures import valid_mapping
 
 

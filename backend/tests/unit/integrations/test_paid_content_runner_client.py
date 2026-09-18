@@ -2,9 +2,9 @@ from pathlib import Path
 
 import httpx
 import pytest
-from app.domain.downloads.content_restrictions import ContentRestriction
 from app.integrations.media_runner import MediaRunnerHttpClient
 from app.services.downloads.errors import MediaInspectionPaidContentRestricted
+from app.services.downloads.rules.content_restrictions import ContentRestriction
 
 
 @pytest.mark.parametrize("reason", list(ContentRestriction))

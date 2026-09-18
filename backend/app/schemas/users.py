@@ -12,7 +12,7 @@ from pydantic import (
     model_validator,
 )
 
-from app.services.auth import ManagedUser, ManagedUserPage, UserRole
+from app.services.auth.models import ManagedUser, ManagedUserPage, UserRole
 from app.services.auth.usernames import normalize_username
 from app.services.quotas import UserQuota
 

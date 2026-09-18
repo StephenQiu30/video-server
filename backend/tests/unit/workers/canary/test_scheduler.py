@@ -3,14 +3,14 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from app.domain.providers import (
+from app.services.provider_types import (
     ProviderAccessContextRef,
     ProviderAccessMode,
     ProviderCanaryStage,
 )
-from app.runner.provider_registry import provider_profile
 from app.workers.canary.scheduler import ProviderCanaryScheduler
 from app.workers.canary.targets import ProviderCanaryTarget
+from app.workers.runner.provider_registry import provider_profile
 
 NOW = datetime(2026, 8, 11, 6, tzinfo=UTC)
 URL = "https://vimeo.com/76979871"

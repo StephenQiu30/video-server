@@ -1,11 +1,10 @@
 import pytest
 from app.integrations.ai_cli import AnalysisCliError
-from app.services.analysis_execution import (
-    AnalyzerSelection,
+from app.services.analysis_execution.models import (
     ScreenplayAnalysisRequest,
     VideoAnalysisRequest,
-    VideoAnalyzer,
 )
+from app.services.analysis_execution.ports import AnalyzerSelection, VideoAnalyzer
 from app.workers.analysis.screenplay_providers import (
     ConfiguredScreenplayAnalyzerResolver,
 )

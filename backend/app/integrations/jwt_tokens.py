@@ -11,7 +11,7 @@ from uuid import UUID, uuid4
 import jwt
 from jwt import InvalidTokenError
 
-from app.services.auth import IssuedTokens, TokenClaims
+from app.services.auth.models import IssuedTokens, TokenClaims
 
 
 class JwtTokenService:

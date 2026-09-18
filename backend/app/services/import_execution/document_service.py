@@ -5,7 +5,6 @@ from contextlib import suppress
 from pathlib import Path
 from uuid import UUID
 
-from app.domain.imports import ContentKind, ImportErrorCode
 from app.services.import_execution.document_ports import (
     DocumentImportExecutionRepository,
 )
@@ -25,7 +24,8 @@ from app.services.import_execution.ports import (
     ImportExecutionStorage,
     ImportWorkspaceManager,
 )
-from app.services.imports import ImportDisposition
+from app.services.imports.models import ImportDisposition
+from app.services.imports.rules.enums import ContentKind, ImportErrorCode
 
 
 class DocumentImportExecution:

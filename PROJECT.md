@@ -22,51 +22,82 @@
 
 ## 2. FastAPI 工程结构
 
-### 2.1 官方基线
+### 2.1 官方基线与项目边界
 
-采用 FastAPI 官方 **Bigger Applications — Multiple Files** 的多文件应用方式：Python package、`main.py`、`dependencies.py`、`routers/`，通过 `APIRouter` 和 `include_router()` 组织接口，通过 `Depends` 提供依赖。FastAPI 保留组织代码的灵活性，没有规定唯一的业务架构。
+使用 FastAPI 官方 Full Stack Template 的 `main.py`、`api/`、`core/`、`models`、`crud` 组织方式。`api/routes` 使用 APIRouter，`api/deps.py` 使用 Depends，应用通过 main.py 注册路由。官方模板提供工程参考，不规定每个业务必须经过相同的类与接口层。
 
-### 2.2 目录规范
+本项目保留 SQLAlchemy 和独立 Pydantic 契约，因此将 models 与 schemas 分开；媒体、AI 和异步任务分别使用 services、integrations、workers。以下是完整目录规范，所有后端源码必须能归入明确职责，禁止在 app 根目录继续堆积辅助文件。
+
+### 2.2 完整目录规范
 
 ```text
 backend/
-├── pyproject.toml
-├── uv.lock
+├── pyproject.toml / uv.lock
 ├── app/
 │   ├── __init__.py
-│   ├── main.py                 FastAPI 应用入口和路由注册
-│   ├── dependencies.py         共享的 Depends 依赖函数
-│   └── routers/
-│       ├── __init__.py
-│       └── <业务>.py           按业务组织的 APIRouter
-└── tests/                      与应用模块对应的测试
+│   ├── main.py                     FastAPI 应用工厂、路由注册、启动入口
+│   ├── api/
+│   │   ├── deps.py                 共享 Depends、认证与请求依赖
+│   │   ├── routes/                 按业务组织的 APIRouter
+│   │   ├── errors.py               HTTP 异常映射与响应
+│   │   ├── middleware.py           请求限制和安全响应头
+│   │   ├── openapi.py              OpenAPI 元信息与响应声明
+│   │   ├── admission.py            HTTP 限流准入
+│   │   └── upload_signing.py       浏览器上传与下载的 HTTP 地址适配
+│   ├── core/
+│   │   ├── config.py               Settings、限流与配额配置
+│   │   ├── db.py                   Engine、Session、ORM Base
+│   │   ├── errors.py               应用公共错误
+│   │   ├── security/               密文与密钥处理
+│   │   ├── composition.py          具体运行资源与业务对象装配
+│   │   ├── runtime.py              类型化运行资源集合、启动与关闭
+│   │   └── lifespan.py             FastAPI lifespan 资源所有权
+│   ├── models/                     SQLAlchemy 持久化实体
+│   ├── schemas/                    Pydantic HTTP 输入与输出契约
+│   ├── crud/                       数据访问、事务、查询和状态写入
+│   ├── services/                   按业务组织操作与业务类型
+│   │   └── <业务>/
+│   │       ├── rules/              该业务的纯规则，仅复杂业务需要
+│   │       └── skills/             分析业务的技能定义与 Markdown 资源
+│   ├── integrations/               存储、队列、邮件、AI 等外部系统适配
+│   └── workers/
+│       ├── analysis/               宿主分析 Worker 与 Agent 管理入口
+│       ├── download/               下载 Worker
+│       ├── imports/                导入 Worker
+│       ├── outbox/                 消息发布
+│       ├── report/                 报告 Worker
+│       ├── canary/                 平台探针
+│       ├── dlq/                    死信管理
+│       └── runner/                 独立隔离的媒体执行进程与可信插件
+├── sql/schema.sql                 当前态数据库结构
+├── egress/                        Runner 出口代理配置
+└── tests/                         单元、集成、契约与架构测试
 ```
 
-这是本项目选定的官方多文件应用基线。官方示例中的 users、items、internal/admin 是演示模块，不要求创建这些业务或空目录。Python 包使用 `__init__.py`，模块采用明确的包导入，避免同名模块冲突。
+所有 Python 包有 `__init__.py`；该文件默认不重导出业务符号。调用方直接从定义模块导入，避免用数百行导出清单再建一层公共接口。models 的导入注册用于建立完整 SQLAlchemy metadata，属于必要的初始化行为。
 
-本项目需要的额外模块按以下职责增加；这些是项目约定，不能标成 FastAPI 强制目录：
+### 2.3 职责与依赖规则
 
-| 模块 | 职责与拆分条件 |
-| --- | --- |
-| schemas.py | Pydantic 请求和响应模型；业务数量增长时拆成 schemas/ 包 |
-| models.py | SQLAlchemy 数据库模型；需要时按业务拆成 models/ 包 |
-| database.py | Engine、Session 配置及资源管理 |
-| config.py | 类型化的应用配置 |
-| 具体业务模块 | 被路由或 Worker 复用的实际业务操作，以业务命名 |
-| workers/ | 媒体、下载、AI 等独立进程入口，按实际任务创建 |
+| 目录 | 应当放入 | 不应放入 |
+| --- | --- | --- |
+| api | 路由、请求认证、HTTP 协议适配 | SQL、后台长任务实现 |
+| core | 配置、运行资源装配与生命周期 | 单一业务的字段、展示转换和用例 |
+| models | ORM 表、索引、约束 | 公开响应 DTO、业务流程 |
+| schemas | 对外请求校验和响应字段 | 数据库访问、内部状态快照 |
+| crud | 数据操作、事务、原子状态变更 | HTTP 对象、平台下载和 AI 调用 |
+| services | 业务操作、内部类型、纯规则 | FastAPI、数据库和外部 SDK 的具体实现 |
+| integrations | 对外部系统的实际调用和结果适配 | 重复业务规则、通用转发接口 |
+| workers | 消费、调度、进程入口、媒体执行 | Web 路由和重复的业务状态事实 |
 
-同一职责只保留一个入口；模块拆成包时更新全部导入，不同时保留同名文件与包。简单操作可以直接写在路径操作函数中；复杂或复用的业务逻辑再提取。不得为每个接口创建固定的一整套类、接口与转发文件。
-
-### 2.3 FastAPI 实现规则
-
-- `main.py` 创建应用并用 `include_router()` 注册业务路由；路由模块导出 `APIRouter`，不能反向导入主应用。
-- 路径操作以类型注解声明参数，使用 Pydantic 校验请求与过滤响应；显式声明稳定的 operation_id、tag、状态码及额外响应。
-- 共享的认证、当前用户、会话等依赖由 `dependencies.py` 提供，使用 `Depends` 注入；仅被单个路由使用的依赖可就近定义。
-- 数据库会话按请求或任务隔离，使用明确的释放机制；事务所有权必须明确并验证回滚，不能因目录调整改变提交行为。
-- 连接池等运行资源由 lifespan 管理；导入应用与生成 OpenAPI 不应连接外部服务或启动 Worker。
-- 异步路径不执行阻塞 IO 或 CPU 密集工作；长任务交给独立 Worker，复用业务操作时保持一致的权限检查。
-- Python 模块与函数使用 snake_case，类使用 PascalCase；输入和输出模型按语义命名，避免以 Any 或自由 dict 代替稳定契约。
-- 使用 FastAPI 的依赖覆盖与测试客户端验证认证、输入校验、响应过滤和异常；测试不需要为每个函数创建一层抽象。
+- 根目录只保留 main.py 与包标记；新增顶级包必须先明确无法归入既有职责的原因，并同步本规范。
+- 一个业务的规则与内部类型就近维护，不再设置平行 domain 目录；rules 和 skills 按实际需求创建，不为每个业务预建。
+- 简单业务使用函数或内聚模块；复杂操作确需共享状态时使用类。禁止为每个接口固定创建 Service/Repository/DTO 全套文件，禁止只为改名创建包装或转发文件。
+- 单一部署配置统一在 core/config.py，HTTP 异常统一在 api/errors.py；不得拆出只有一个配置类或一段相同响应包装的平行入口。
+- 业务类型、HTTP schema、ORM 模型各自承担不同边界；只有字段形状和语义完全相同时才复用，不能为减少文件数暴露数据库内部字段。
+- 事务须有明确所有者；文件归类不能改变事务提交、回滚、Outbox 原子性或权限校验。Runner 归入 workers 后仍是独立隔离进程。
+- 路由不反向导入主应用；共享依赖通过 Depends 注入；运行资源通过 lifespan 创建和关闭。导入应用、生成 OpenAPI 不启动外部服务。
+- Python 文件和函数采用 snake_case，类采用 PascalCase。异步路径不执行阻塞 IO 或 CPU 密集工作；使用线程边界或独立 Worker。
+- `__pycache__` 是 Python 运行缓存，不是源码目录；不得写入 Git。清理可移除缓存，不通过新增脚本控制缓存。
 
 ## 3. Swagger 与生成 API（必须遵守）
 
@@ -127,10 +158,11 @@ frontend/
 - 镜像或运行入口变化必须验证构建；界面行为变化补浏览器验证；平台下载需真实任务验证。
 - 推送 main 前核对暂存内容和远端状态；推送后检查同一提交的 CI，并报告失败或尚未完成的检查。
 
-后端已按本节基线组织 main.py、routers/、dependencies.py、config.py、database.py、schemas/ 与 models/。现有 services、domain、repositories、integrations 承载实际业务与外部适配，保留其行为和事务边界；新增功能按实际职责组织，不强制复制这些分组。源码目录迁移的验收包括导入、HTTP/WebSocket、配置定位、OpenAPI 一致性和构建。
+后端源码按第 2 节完整结构组织。目录调整必须同步所有导入、资源路径、测试、Compose 进程入口和文档；验收包括 OpenAPI 不变、配置定位、技能资源、HTTP/WebSocket、Worker 导入与镜像构建。
 
 ## 7. 官方依据
 
+- [FastAPI 官方完整模板](https://github.com/fastapi/full-stack-fastapi-template/tree/master/backend/app)
 - [FastAPI 多文件应用与 APIRouter](https://fastapi.tiangolo.com/tutorial/bigger-applications/)
 - [FastAPI 依赖注入](https://fastapi.tiangolo.com/tutorial/dependencies/)
 - [FastAPI 请求/响应模型](https://fastapi.tiangolo.com/tutorial/response-model/)

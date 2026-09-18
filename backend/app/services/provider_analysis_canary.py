@@ -10,14 +10,14 @@ from time import monotonic
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.providers import (
+from app.services.downloads.inspection_models import EncryptedUrl
+from app.services.provider_types import (
     ProviderAccessContextRef,
     ProviderAccessMode,
     ProviderCanaryOutcome,
     ProviderCanaryResult,
     ProviderCanaryStage,
 )
-from app.services.downloads import EncryptedUrl
 
 
 @dataclass(frozen=True, slots=True)
