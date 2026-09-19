@@ -16,17 +16,17 @@ import { siteConfig } from '@/lib/site';
 
 const capabilities = [
   [
-    '01 · MEDIA',
+    '公开视频',
     '公开视频工作流',
     '解析有权处理的公开链接，选择真实可用格式，并跟踪下载与最终制品。',
   ],
   [
-    '02 · SCREENPLAY',
+    '剧本文档',
     '剧本与文档处理',
     '导入获授权的剧本文档，在同一工作区完成规范化、分析与处理记录。',
   ],
   [
-    '03 · ANALYSIS',
+    'AI 分析',
     '结构化 AI 视频分析',
     '围绕场景、分镜、高光和内容资产生成结构化结果与运行证据。',
   ],
@@ -55,7 +55,7 @@ export function PublicHome() {
       >
         <EditorialIntro
           description="开源、自托管地完成公开视频解析、本地视频与剧本文档导入、制品管理和 AI 分析。数据与运行边界由你掌控。"
-          eyebrow="FrameFetch · Open Source"
+          eyebrow="开源视频工作流"
           title={
             <>
               把素材，
@@ -100,7 +100,7 @@ export function PublicHome() {
         <EditorialIntro
           as="h2"
           description="Web 控制面、API 与 Worker 共享同一套权限、任务和制品模型，适合个人本地使用，也便于团队自托管。"
-          eyebrow="Product capabilities"
+          eyebrow="核心功能"
           title="从公开媒体到可验证制品"
           titleId="capabilities-title"
         />
@@ -116,7 +116,7 @@ export function PublicHome() {
         <EditorialIntro
           as="h2"
           description="FastAPI、Next.js、PostgreSQL、RabbitMQ、MinIO、FFmpeg 与 yt-dlp 组成可独立部署的工作流。MIT 许可证允许你免费检查、修改和自托管。"
-          eyebrow="Built for self-hosting"
+          eyebrow="自托管架构"
           title="开源，不交出数据控制权"
           titleId="architecture-title"
         />
@@ -130,7 +130,7 @@ export function PublicHome() {
         <EditorialIntro
           as="h2"
           description="从仓库的 Quick Start、架构文档和安全边界开始，按需启用媒体解析、剧本工作流与 AI 服务。"
-          eyebrow="Start locally"
+          eyebrow="快速开始"
           title="在自己的基础设施上运行 FrameFetch"
         />
         <Button asChild size="lg" variant="secondary">

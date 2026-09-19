@@ -51,7 +51,7 @@ export function ProviderStatusItem({
   return (
     <Collapsible>
       <Item
-        className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-3 rounded-none border-0 px-0 py-5 sm:grid-cols-[minmax(12rem,0.8fr)_minmax(16rem,1.4fr)_auto] sm:items-start"
+        className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-3 rounded-none border-0 px-0 py-5 md:grid-cols-[minmax(12rem,0.8fr)_minmax(14rem,1.4fr)_auto] md:items-start"
         role="listitem"
       >
         <ItemContent className="min-w-0">
@@ -66,12 +66,12 @@ export function ProviderStatusItem({
             {integrationDescription(provider)}
           </ItemDescription>
         </ItemContent>
-        <ItemContent className="col-span-2 row-start-2 min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1">
+        <ItemContent className="col-span-2 row-start-2 min-w-0 md:col-span-1 md:col-start-2 md:row-start-1">
           <ItemDescription className="line-clamp-none leading-6">
             {capabilities || '暂无已登记能力'}
           </ItemDescription>
         </ItemContent>
-        <ItemActions className="col-start-2 row-start-1 sm:col-start-3">
+        <ItemActions className="col-start-2 row-start-1 md:col-start-3">
           <CollapsibleTrigger asChild>
             <Button
               className="h-11 text-muted-foreground [&[data-state=open]>svg]:rotate-180"
@@ -86,7 +86,7 @@ export function ProviderStatusItem({
             </Button>
           </CollapsibleTrigger>
         </ItemActions>
-        <CollapsibleContent className="col-span-2 sm:col-span-3">
+        <CollapsibleContent className="col-span-2 md:col-span-3">
           <div className="mt-3 grid gap-5 text-sm leading-6 text-muted-foreground sm:grid-cols-2">
             <div>
               <p className="font-medium text-foreground">验证记录</p>

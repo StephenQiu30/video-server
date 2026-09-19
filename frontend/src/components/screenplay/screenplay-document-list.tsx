@@ -104,8 +104,8 @@ function DocumentRow({
           </time>
         </ItemDescription>
         <p className="text-xs text-muted-foreground sm:text-sm">
-          {document.scene_count ?? '—'} 个场景 ·{' '}
-          {document.character_count?.toLocaleString('zh-CN') ?? '—'} 个字符 ·{' '}
+          {document.scene_count ?? '-'} 个场景 ·{' '}
+          {document.character_count?.toLocaleString('zh-CN') ?? '-'} 个字符 ·{' '}
           {languageLabel(document.detected_language)}
         </p>
       </ItemContent>

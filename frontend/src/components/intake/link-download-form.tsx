@@ -52,7 +52,7 @@ export function LinkDownloadForm({
             aria-invalid={invalid ? true : undefined}
             aria-label="公开视频地址"
             autoComplete="url"
-            className="block field-sizing-fixed h-full min-h-0 max-h-full overflow-y-auto px-2 text-[15px] leading-[22px] [align-content:safe_center]"
+            className="flex-1 field-sizing-fixed h-full min-h-0 max-h-full overflow-y-auto px-2 py-4 text-[15px] leading-[22px]"
             disabled={disabled}
             maxLength={4096}
             onChange={(event) => onUrlChange(event.target.value)}
@@ -69,7 +69,7 @@ export function LinkDownloadForm({
                 <TooltipTrigger asChild>
                   <InputGroupButton
                     aria-label="清空链接"
-                    className="size-11"
+                    className="size-9"
                     disabled={disabled}
                     onClick={() => onUrlChange('')}
                     size="icon-sm"

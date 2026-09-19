@@ -20,7 +20,7 @@ export default function AnalysisArticleResultView({
 }) {
   return (
     <Tabs className="mt-10 gap-0" defaultValue="article">
-      <div className="grid gap-5 py-4 sm:grid-cols-3">
+      <div className="grid grid-cols-3 gap-3 py-4 sm:gap-5">
         <Metric label="文章章节" value={`${result.sections.length}`} />
         <Metric
           label="视频时长"

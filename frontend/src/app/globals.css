@@ -168,7 +168,7 @@
 
 @layer utilities {
   .content-shell {
-    width: min(calc(100% - 160px), 1376px);
+    width: min(calc(100% - 32px), 1376px);
     margin-inline: auto;
   }
 
@@ -203,13 +203,7 @@
   }
 }
 
-@media (max-width: 640px) {
-  .content-shell {
-    width: min(calc(100% - 32px), 1376px);
-  }
-}
-
-@media (min-width: 641px) and (max-width: 1023px) {
+@media (min-width: 640px) {
   .content-shell {
     width: min(calc(100% - 64px), 1376px);
   }
@@ -220,6 +214,10 @@
 }
 
 @media (min-width: 1024px) {
+  .content-shell {
+    width: min(calc(100% - 160px), 1376px);
+  }
+
   .inner-page {
     padding-block: 2rem;
   }

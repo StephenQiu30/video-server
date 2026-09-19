@@ -33,7 +33,7 @@ export function EditorialIntro({
       {...props}
     >
       {eyebrow ? (
-        <p className="font-mono text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
+        <p className="text-xs font-medium text-muted-foreground">
           {eyebrow}
         </p>
       ) : null}

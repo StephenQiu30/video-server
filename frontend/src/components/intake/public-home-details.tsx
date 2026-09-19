@@ -27,7 +27,7 @@ export function PublicHomeCapabilities({
         <Item asChild className="block rounded-none p-0" key={title}>
           <li>
             <ItemContent className="gap-0">
-              <ItemDescription className="font-mono text-xs leading-normal">
+              <ItemDescription className="text-xs font-medium leading-normal text-muted-foreground">
                 {eyebrow}
               </ItemDescription>
               <h3 className={cn('mt-5 text-xl')}>{title}</h3>

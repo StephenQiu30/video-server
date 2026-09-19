@@ -53,7 +53,7 @@ export default function FormatPicker({
           <div key={format.id}>
             <FieldLabel
               className={cn(
-                'min-h-[62px] cursor-pointer flex-row rounded-md border-0 px-2 py-3 transition-colors has-data-[state=checked]:bg-muted/70 hover:bg-muted/50 hover:text-foreground',
+                'min-h-[62px] w-full cursor-pointer flex-row rounded-md border-0 px-3 py-3 transition-colors has-data-[state=checked]:bg-muted/70 hover:bg-muted/50 hover:text-foreground',
                 selected ? 'text-foreground' : 'text-muted-foreground',
               )}
               htmlFor={format.id}

@@ -21,7 +21,7 @@ export default function AnalysisSceneList({
         >
           <li>
             <Button
-              className="mt-2 h-11 w-fit px-0 text-xs text-muted-foreground tabular-nums"
+              className="h-auto w-fit p-0 text-xs font-mono text-muted-foreground tabular-nums self-baseline justify-start hover:text-foreground hover:no-underline"
               disabled={!onSelectTime}
               onClick={() => onSelectTime?.(scene.start_ms)}
               type="button"

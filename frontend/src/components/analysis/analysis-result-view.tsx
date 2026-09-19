@@ -34,7 +34,7 @@ export default function AnalysisResultView({
 }) {
   return (
     <Tabs className="mt-10 gap-0" defaultValue={defaultView}>
-      <div className="grid gap-5 py-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 py-4 sm:grid-cols-4 sm:gap-5">
         <Metric label="分镜数量" value={`${result.shot_count}`} />
         <Metric label="场景数量" value={`${result.scenes.length}`} />
         <Metric
@@ -181,7 +181,7 @@ function TimeButton({
 }) {
   return (
     <Button
-      className="mt-2 h-11 w-fit px-0 text-xs text-muted-foreground tabular-nums"
+      className="h-auto w-fit p-0 text-xs font-mono text-muted-foreground tabular-nums self-baseline justify-start hover:text-foreground hover:no-underline"
       disabled={!onSelect}
       onClick={() => onSelect?.(milliseconds)}
       type="button"

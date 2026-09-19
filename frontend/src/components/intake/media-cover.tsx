@@ -5,7 +5,6 @@ import { cn } from 'cn';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
-import { Badge } from '@/components/ui/badge';
 import {
   isPrivateThumbnailPath,
   loadPrivateThumbnail,
@@ -82,7 +81,7 @@ export default function MediaCover({
   return (
     <AspectRatio
       className={cn(
-        'media-frame relative overflow-hidden rounded-none bg-muted',
+        'media-frame relative aspect-video overflow-hidden rounded-none bg-muted',
         className,
       )}
       ratio={mediaFrameAspectRatio}
@@ -139,37 +138,29 @@ function MediaCoverFallback({
   return (
     <div
       aria-label={`${title}（暂无封面）`}
-      className="relative size-full overflow-hidden bg-foreground text-background"
+      className="relative size-full overflow-hidden border border-border/40 bg-muted/60 text-foreground"
       role="img"
     >
       <div
-        aria-hidden
-        className="absolute -right-12 -top-16 size-44 rounded-full bg-primary/30"
-      />
-      <div
-        aria-hidden
-        className="absolute bottom-0 left-0 h-1 w-2/5 bg-primary"
-      />
-      <div
         className={cn(
           'relative flex h-full min-w-0 flex-col justify-between',
-          compact ? 'gap-1 p-2' : 'gap-3 p-3 sm:p-4',
+          compact ? 'gap-0.5 p-1.5' : 'gap-3 p-3 sm:p-4',
         )}
       >
-        <Badge
+        <span
           className={cn(
-            'border-background/15 bg-background/10 font-normal text-background hover:bg-background/10',
-            compact ? 'px-1.5 py-0 text-[9px]' : 'text-[10px]',
+            'truncate font-medium text-muted-foreground',
+            compact ? 'text-[9px] leading-tight' : 'text-xs',
           )}
         >
           {eyebrow}
-        </Badge>
+        </span>
         <div className="min-w-0">
           <p
             className={cn(
-              'font-medium tracking-[-0.02em]',
+              'font-medium tracking-tight text-foreground',
               compact
-                ? 'line-clamp-1 text-xs leading-tight'
+                ? 'line-clamp-1 text-[11px] leading-tight'
                 : 'line-clamp-2 text-sm leading-snug sm:text-base',
             )}
           >
@@ -178,15 +169,13 @@ function MediaCoverFallback({
         </div>
         <div
           className={cn(
-            'min-w-0 text-background/65',
-            compact
-              ? 'text-[9px] leading-3'
-              : 'text-[10px] leading-4 sm:text-xs',
+            'min-w-0 text-muted-foreground',
+            compact ? 'text-[9px] leading-none' : 'text-xs leading-4',
           )}
         >
           <p className="truncate">{detail}</p>
           {!compact ? (
-            <p className="mt-0.5 text-background/70">暂无封面</p>
+            <p className="mt-0.5 text-muted-foreground/80">暂无封面</p>
           ) : null}
         </div>
       </div>

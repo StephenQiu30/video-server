@@ -67,17 +67,17 @@ export function SiteHeader() {
         <BrandLink />
         <div
           aria-busy={headerAuthPending || undefined}
-          className="flex w-[192px] shrink-0 items-center justify-end gap-2 lg:w-[606px]"
+          className="flex min-w-0 shrink-0 items-center justify-end gap-2"
           data-slot="header-actions"
         >
           {headerAuthPending ? (
             <div
               aria-hidden
-              className="h-11 w-full"
+              className="h-11 w-28 lg:w-48"
               data-slot="header-auth-pending"
             />
           ) : (
-            <div className="flex w-full min-w-0 flex-1 items-center justify-end gap-2">
+            <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
               {authView ? (
                 <ThemeToggle />
               ) : (
@@ -113,10 +113,10 @@ export function SiteHeader() {
                   ) : null}
                   <ThemeToggle />
                   {publicView ? (
-                    <div className="flex w-[88px] shrink-0 justify-end">
+                    <div className="flex shrink-0 justify-end">
                       <Button
                         asChild
-                        className="min-h-11 w-[74px] px-3.5 text-[15px]"
+                        className="min-h-11 px-4 text-[15px]"
                       >
                         <Link href="/user/login">登录</Link>
                       </Button>

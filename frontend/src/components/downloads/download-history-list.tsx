@@ -93,7 +93,7 @@ function HistoryRow({
       className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 rounded-none border-0 px-0 py-5 sm:grid-cols-[128px_minmax(0,1fr)_auto] sm:gap-x-6 sm:py-6"
       role="listitem"
     >
-      <ItemMedia className="self-center">
+      <ItemMedia className="!translate-y-0 shrink-0 self-center group-has-data-[slot=item-description]/item:translate-y-0 group-has-data-[slot=item-description]/item:self-center">
         <MediaCover
           alt={`${item.title} 媒体封面`}
           className="w-24 rounded-md ring-0 sm:w-32"
