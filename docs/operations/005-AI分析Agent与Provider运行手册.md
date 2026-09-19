@@ -1,6 +1,6 @@
 # AI 分析 Agent 与 Provider 运行手册
 
-> 2026-09-17：新增 OpenRouter / OpenAI 兼容直连 API；当前扩展、密钥更换规则与验证边界见 [037 设计](../design/037-统一AI执行与OpenRouter接入设计.md) 和 [验收](../acceptance/037-统一AI执行与OpenRouter接入验收.md)。原 Codex/Claude API Key 模式仍通过 CLI 执行。
+> 2026-09-17：新增 OpenRouter / OpenAI 兼容直连 API；当前扩展、密钥更换规则与验证边界见 [037 设计](../design/037-统一AI执行与OpenRouter接入设计.md)。原 Codex/Claude API Key 模式仍通过 CLI 执行。
 
 ## 1. 首次使用
 

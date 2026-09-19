@@ -1,11 +1,11 @@
 # 022 跨平台 AI 分析 Agent 与模型 Provider 配置设计
 
-> 2026-09-17：新增 OpenRouter / OpenAI 兼容直连 API；当前扩展、密钥更换规则与验证边界见 [037 设计](../design/037-统一AI执行与OpenRouter接入设计.md) 和 [验收](../acceptance/037-统一AI执行与OpenRouter接入验收.md)。原 Codex/Claude API Key 模式仍通过 CLI 执行。
+> 2026-09-17：新增 OpenRouter / OpenAI 兼容直连 API；当前扩展、密钥更换规则与验证边界见 [037 设计](037-统一AI执行与OpenRouter接入设计.md)。原 Codex/Claude API Key 模式仍通过 CLI 执行。
 
 - 状态：默认 Codex 与 DeepSeek/LangChain 通用 Provider 已实现，待第三方真实 Key 与 macOS/Linux 实机验收
 - 日期：2026-08-29
-- 前置设计：`010-Codex与Claude CLI视频分析设计`、`015-RabbitMQ异步分析设计`
-- 前置调研：`docs/research/011-AI分析Agent与通用Provider接入调研.md`、`docs/research/016-LangChain与DeepSeek视觉分析服务调研.md`
+- 前置设计：`010-Codex与Claude CLI视频分析设计`
+- 历史调研依据：通过 Git 历史追溯
 
 ## 1. 决策摘要
 

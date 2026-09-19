@@ -23,7 +23,7 @@ app/
 
 公共接口不维护无实际兼容需求的版本目录或 URL 前缀。服务启动后可通过 `/docs` 访问 Swagger UI，通过 `/openapi.json` 获取供前端生成客户端的 OpenAPI 契约。
 
-业务接口要求邮箱账户登录。注册前调用 `POST /api/auth/registration-code`（App 使用 `/api/app/v1/auth/registration-code`）发送验证码，再提交唯一用户名、邮箱、密码和 `verification_code`；验证码 10 分钟有效、重发间隔 60 秒，最多校验错误 5 次。SMTP 接受后 `email_sent=true`，不代表已到达收件箱。未配置邮件时注册不能绕过验证；既有账户继续使用邮箱密码登录。`SMTP_*` 配置与验收见 [邮箱验证注册设计](../docs/design/033-邮箱验证注册设计.md)。密码使用 Argon2 哈希；短期 Access JWT 与可轮换、可撤销的 Refresh JWT 通过 `HttpOnly` Cookie 维护。Refresh JWT 的摘要由 Redis 按 TTL 保存并在刷新时原子轮换；JWT 密钥、签发方、受众、Cookie 名、有效期和初始管理员邮箱从根目录 `.env` 的 `AUTH_*` 配置读取，原始 Refresh JWT 不写入数据库。初始管理员邮箱属于保留账号，只有注册请求同时携带与 `AUTH_BOOTSTRAP_ADMIN_SECRET` 匹配的 `X-Admin-Bootstrap-Secret` 请求头时才会创建管理员；普通匿名注册永远只创建普通用户。角色和启用状态以 PostgreSQL 为准，管理员可通过 `/api/admin/users` 管理账号，并通过 `/api/admin/providers` 维护平台状态目录的名称、排序与可见性。平台目录不控制域名匹配、Extractor、Runner 参数或会话能力。
+业务接口要求邮箱账户登录。注册前调用 `POST /api/auth/registration-code`（App 使用 `/api/app/v1/auth/registration-code`）发送验证码，再提交唯一用户名、邮箱、密码和 `verification_code`；验证码 10 分钟有效、重发间隔 60 秒，最多校验错误 5 次。SMTP 接受后 `email_sent=true`，不代表已到达收件箱。未配置邮件时注册不能绕过验证；既有账户继续使用邮箱密码登录。`SMTP_*` 配置由根目录 `.env` 提供。密码使用 Argon2 哈希；短期 Access JWT 与可轮换、可撤销的 Refresh JWT 通过 `HttpOnly` Cookie 维护。Refresh JWT 的摘要由 Redis 按 TTL 保存并在刷新时原子轮换；JWT 密钥、签发方、受众、Cookie 名、有效期和初始管理员邮箱从根目录 `.env` 的 `AUTH_*` 配置读取，原始 Refresh JWT 不写入数据库。初始管理员邮箱属于保留账号，只有注册请求同时携带与 `AUTH_BOOTSTRAP_ADMIN_SECRET` 匹配的 `X-Admin-Bootstrap-Secret` 请求头时才会创建管理员；普通匿名注册永远只创建普通用户。角色和启用状态以 PostgreSQL 为准，管理员可通过 `/api/admin/users` 管理账号，并通过 `/api/admin/providers` 维护平台状态目录的名称、排序与可见性。平台目录不控制域名匹配、Extractor、Runner 参数或会话能力。
 
 Media Runner 通过 `app/workers/runner/plugins/yt_dlp_plugins/` 加载随项目交付的可信站点提取器。MediaTrack 适配仅处理无需登录的公开审片视频和 API 明确授权的播放转码；抖音适配用数字视频 ID 构造固定公开分享页并修正 landscape 下载规格的短边尺寸语义，TikTok 适配只使用其第一方嵌入播放器 item API 和 yt-dlp 默认客户端，明确无 item/HTTPS 格式、API 临时故障与响应结构漂移分别返回链接不可用、临时不可用和提取器回归，不回退网页挑战；快手适配把公开作品规范化到第一方移动分享页并限制短链重定向域，Tumblr 适配优先读取当前 `www.tumblr.com` 公开页而不强制改写到旧 blog 子域。小红书适配识别第一方 `300031` 笔记失效和 `300012` 平台验证边界，避免把失效内容误报成提取器故障。视频号适配只接受公开 `weixin.qq.com/sph/...` 单视频，读取第一方公开信息，并可在受控线路使用专用元宝会话解析；只接受批准腾讯媒体域上的非加密媒体，保护材料直接拒绝。所有适配都继续经过受控代理、作品身份校验、大小/时长限制、重新 inspect、FFmpeg 和 ffprobe 校验，不支持图集截断、账号内容、无水印承诺或原文件权限绕过。
 
@@ -33,7 +33,7 @@ macOS 部署可显式安装统一按需助手，在解析进入受控线路时�
 
 完整的 Provider 一次性会话租约、撤销与故障流程见 `docs/operations/003-多平台受控会话运行手册.md`。
 
-微博公开单视频支持普通帖子、移动端 status/detail、`video.weibo.com` 视频页和 `t.cn` 分享短链。短链插件在取得有效微博视频地址后立即交给微博提取器，避免通用网页跳转进入访客页面；使用无账号凭据的受控 Runner，容器重启后重新解析即可。实际下载与重启证据见 [017 验收](../docs/acceptance/017-其他短视频平台分阶段接入验收.md)。
+微博公开单视频支持普通帖子、移动端 status/detail、`video.weibo.com` 视频页和 `t.cn` 分享短链。短链插件在取得有效微博视频地址后立即交给微博提取器，避免通用网页跳转进入访客页面；使用无账号凭据的受控 Runner，容器重启后重新解析即可。分阶段接入设计见 [017 设计](../docs/design/017-其他短视频平台分阶段接入设计.md)。
 
 视觉分析默认通过宿主机 Codex App Server stdio 协议运行，也支持 `claude -p` adapter 和 Web 管理的 DeepSeek/LangChain 视觉 API，以及 OpenRouter / OpenAI 兼容 Chat Completions API；各适配器统一实现 `VideoAnalyzer` 端口并返回唯一当前态结果契约。每个 Codex 调用创建独立 ephemeral thread，完成后关闭进程，不依赖长期连接。DeepSeek 由 Worker 使用 FFmpeg 均匀生成最多 64 张、总原始证据不超过 24 MiB 的顺序 JPEG，以 base64 内联图片调用视觉模型，不暴露对象地址或客户端文件路径。分析能力由 `app/services/analysis/skills/*/SKILL.md` 注册；不运行 ASR。第三方 Endpoint、模型与 Key 只通过管理员 Web Profile 配置，Key 使用 Fernet 加密后存入 PostgreSQL 并仅在 Worker 内存中解密，不使用第三方 AI `.env`。报告以 Markdown 为唯一内容源，可安全预览和导出 Markdown/DOCX。Worker 必须在可访问 FFmpeg、队列和对象存储的宿主机运行；默认 Codex 路径还要求同一系统用户已完成官方登录。
 
