@@ -20,6 +20,19 @@ describe('ContentIntakeHero', () => {
     );
     expect(screen.getByRole('tabpanel', { name: '本地视频' })).toBeVisible();
   });
+
+  it('keeps the source picker and intake form stacked below desktop', () => {
+    const { container } = render(hero('link'));
+
+    expect(container.querySelector('[data-slot="tabs"]')).toHaveClass(
+      'flex-col',
+      'lg:flex-row',
+    );
+    expect(container.querySelector('[data-slot="tabs-list"]')).toHaveClass(
+      'w-full',
+      'lg:w-fit',
+    );
+  });
 });
 
 function hero(mode: IntakeMode) {

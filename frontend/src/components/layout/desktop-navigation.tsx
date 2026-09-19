@@ -44,27 +44,27 @@ export function DesktopNavigation({
             <NavigationLink href="/#capabilities">产品能力</NavigationLink>
             <NavigationLink href="/#architecture">自托管架构</NavigationLink>
             <NavigationLink href="https://github.com/StephenQiu30/video-server">
-              <GithubLogoIcon aria-hidden className="size-5" />
+              <GithubLogoIcon aria-hidden />
               GitHub
-              <ArrowUpRightIcon aria-hidden className="size-4" />
+              <ArrowUpRightIcon aria-hidden />
             </NavigationLink>
           </>
         ) : (
           <>
             <NavigationLink active={homeActive} href="/">
-              <HouseIcon aria-hidden className="size-5" />
+              <HouseIcon aria-hidden />
               首页
             </NavigationLink>
             <NavigationLink active={historyActive} href="/history">
-              <ClockCounterClockwiseIcon aria-hidden className="size-5" />
+              <ClockCounterClockwiseIcon aria-hidden />
               下载记录
             </NavigationLink>
             <NavigationLink active={documentsActive} href="/documents">
-              <FileTextIcon aria-hidden className="size-5" />
+              <FileTextIcon aria-hidden />
               剧本文档
             </NavigationLink>
             <NavigationLink active={providersActive} href="/providers">
-              <PulseIcon aria-hidden className="size-5" />
+              <PulseIcon aria-hidden />
               平台状态
             </NavigationLink>
           </>

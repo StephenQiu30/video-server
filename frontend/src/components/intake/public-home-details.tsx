@@ -1,10 +1,18 @@
 import { CheckCircleIcon } from '@phosphor-icons/react/dist/ssr';
-import { cn } from 'cn';
 
+import { Badge } from '@/components/ui/badge';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import {
   Item,
   ItemContent,
   ItemDescription,
+  ItemGroup,
   ItemMedia,
   ItemTitle,
 } from '@/components/ui/item';
@@ -22,21 +30,28 @@ export function PublicHomeCapabilities({
   items: readonly Capability[];
 }) {
   return (
-    <ul className={cn('mt-12 grid gap-10 md:grid-cols-3 md:gap-12')}>
-      {items.map(([eyebrow, title, description]) => (
-        <Item asChild className="block rounded-none p-0" key={title}>
-          <li>
-            <ItemContent className="gap-0">
-              <ItemDescription className="text-xs font-medium leading-normal text-muted-foreground">
-                {eyebrow}
-              </ItemDescription>
-              <h3 className={cn('mt-5 text-xl')}>{title}</h3>
-              <ItemDescription className="mt-3 line-clamp-none max-w-md text-base leading-7">
-                {description}
-              </ItemDescription>
-            </ItemContent>
-          </li>
-        </Item>
+    <ul className="mt-12 grid gap-4 md:grid-cols-3">
+      {items.map(([eyebrow, title, description], index) => (
+        <li className="h-full" key={title}>
+          <Card className="h-full">
+            <CardHeader>
+              <div className="flex items-center justify-between gap-3">
+                <Badge variant="outline">
+                  {String(index + 1).padStart(2, '0')}
+                </Badge>
+                <span className="text-xs font-medium text-muted-foreground">
+                  {eyebrow}
+                </span>
+              </div>
+              <CardTitle aria-level={3} className="mt-3" role="heading">
+                {title}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>{description}</CardDescription>
+            </CardContent>
+          </Card>
+        </li>
       ))}
     </ul>
   );
@@ -44,28 +59,24 @@ export function PublicHomeCapabilities({
 
 export function PublicHomeSafeguards({ items }: { items: readonly string[] }) {
   return (
-    <ul className={cn('gap-5 self-end')}>
+    <ItemGroup className="gap-4">
       {items.map((item) => (
         <Item
-          asChild
           className="flex-nowrap items-start gap-3 rounded-none p-0"
           key={item}
+          role="listitem"
         >
-          <li>
-            <ItemMedia className="mb-0">
-              <CheckCircleIcon
-                aria-hidden
-                className="mt-1 size-5 shrink-0 text-success"
-                weight="fill"
-              />
-            </ItemMedia>
-            <ItemDescription className="line-clamp-none text-base leading-7 text-foreground">
-              {item}
-            </ItemDescription>
-          </li>
+          <ItemMedia className="mb-0" variant="icon">
+            <CheckCircleIcon
+              aria-hidden
+              className="text-success"
+              weight="fill"
+            />
+          </ItemMedia>
+          <ItemDescription className="line-clamp-none">{item}</ItemDescription>
         </Item>
       ))}
-    </ul>
+    </ItemGroup>
   );
 }
 
@@ -75,26 +86,24 @@ export function PublicHomeWorkflow({
   items: readonly WorkflowStep[];
 }) {
   return (
-    <ol className={cn('mt-7 gap-6')}>
+    <ItemGroup className="gap-5">
       {items.map(([title, description], index) => (
         <Item
-          asChild
-          className="grid grid-cols-[2rem_1fr] gap-4 rounded-none p-0"
+          className="grid grid-cols-[2rem_1fr] items-start gap-3 rounded-none p-0"
           key={title}
+          role="listitem"
         >
-          <li>
-            <ItemMedia className="mb-0 font-mono text-xs text-muted-foreground">
-              {String(index + 1).padStart(2, '0')}
-            </ItemMedia>
-            <ItemContent>
-              <ItemTitle className="text-base">{title}</ItemTitle>
-              <ItemDescription className="line-clamp-none text-base leading-6">
-                {description}
-              </ItemDescription>
-            </ItemContent>
-          </li>
+          <ItemMedia className="mb-0 font-mono text-xs text-muted-foreground">
+            {String(index + 1).padStart(2, '0')}
+          </ItemMedia>
+          <ItemContent>
+            <ItemTitle>{title}</ItemTitle>
+            <ItemDescription className="line-clamp-none">
+              {description}
+            </ItemDescription>
+          </ItemContent>
         </Item>
       ))}
-    </ol>
+    </ItemGroup>
   );
 }

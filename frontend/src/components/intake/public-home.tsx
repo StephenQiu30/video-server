@@ -11,7 +11,16 @@ import {
   PublicHomeWorkflow,
 } from '@/components/intake/public-home-details';
 import { EditorialIntro } from '@/components/layout/editorial-intro';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { siteConfig } from '@/lib/site';
 
 const capabilities = [
@@ -68,7 +77,7 @@ export function PublicHome() {
             <Button asChild size="lg">
               <Link href="/user/register">
                 创建本地账户
-                <ArrowRightIcon aria-hidden className="size-4" />
+                <ArrowRightIcon aria-hidden data-icon="inline-end" />
               </Link>
             </Button>
             <Button asChild size="lg" variant="secondary">
@@ -77,17 +86,32 @@ export function PublicHome() {
                 rel="noreferrer"
                 target="_blank"
               >
-                <GithubLogoIcon aria-hidden className="size-4" />
+                <GithubLogoIcon aria-hidden data-icon="inline-start" />
                 查看源代码
-                <ArrowUpRightIcon aria-hidden className="size-4" />
+                <ArrowUpRightIcon aria-hidden data-icon="inline-end" />
               </a>
             </Button>
           </div>
         </EditorialIntro>
 
         <div className="self-end lg:pb-1">
-          <p className="text-sm font-medium">一套可审计的完整链路</p>
-          <PublicHomeWorkflow items={workflow} />
+          <Card size="sm">
+            <CardHeader>
+              <Badge className="w-fit" variant="secondary">
+                工作流
+              </Badge>
+              <CardTitle aria-level={3} role="heading">
+                一套可审计的完整链路
+              </CardTitle>
+              <CardDescription>
+                从识别到交付，每一步都有明确边界。
+              </CardDescription>
+            </CardHeader>
+            <Separator />
+            <CardContent>
+              <PublicHomeWorkflow items={workflow} />
+            </CardContent>
+          </Card>
         </div>
       </section>
 
@@ -120,7 +144,23 @@ export function PublicHome() {
           title="开源，不交出数据控制权"
           titleId="architecture-title"
         />
-        <PublicHomeSafeguards items={safeguards} />
+        <Card className="h-fit">
+          <CardHeader>
+            <Badge className="w-fit" variant="outline">
+              安全边界
+            </Badge>
+            <CardTitle aria-level={3} role="heading">
+              运行与授权边界
+            </CardTitle>
+            <CardDescription>
+              把访问、执行和交付拆成可检查的边界。
+            </CardDescription>
+          </CardHeader>
+          <Separator />
+          <CardContent>
+            <PublicHomeSafeguards items={safeguards} />
+          </CardContent>
+        </Card>
       </section>
 
       <section
@@ -136,7 +176,7 @@ export function PublicHome() {
         <Button asChild size="lg" variant="secondary">
           <a href={`${siteConfig.repositoryUrl}/blob/main/README.md#快速开始`}>
             阅读部署说明
-            <ArrowUpRightIcon aria-hidden className="size-4" />
+            <ArrowUpRightIcon aria-hidden data-icon="inline-end" />
           </a>
         </Button>
       </section>

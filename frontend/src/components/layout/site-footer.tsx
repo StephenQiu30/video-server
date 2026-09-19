@@ -6,11 +6,13 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
 } from '@/components/ui/navigation-menu';
+import { Separator } from '@/components/ui/separator';
 import { siteConfig } from '@/lib/site';
 
 export function SiteFooter({ className }: { className?: string }) {
   return (
     <footer className={cn('shrink-0 bg-background', className)}>
+      <Separator />
       <div className="content-shell flex min-h-16 flex-col justify-between gap-3 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center">
         <div className="flex items-center gap-4">
           <Link className="focus-ring font-medium text-foreground" href="/">

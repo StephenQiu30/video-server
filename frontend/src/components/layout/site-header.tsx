@@ -62,7 +62,7 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-background">
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background">
       <div className="content-shell flex h-20 items-center justify-between">
         <BrandLink />
         <div
@@ -107,17 +107,14 @@ export function SiteHeader() {
                         rel="noreferrer"
                         target="_blank"
                       >
-                        <GithubLogoIcon aria-hidden className="size-5" />
+                        <GithubLogoIcon aria-hidden />
                       </a>
                     </Button>
                   ) : null}
                   <ThemeToggle />
                   {publicView ? (
                     <div className="flex shrink-0 justify-end">
-                      <Button
-                        asChild
-                        className="min-h-11 px-4 text-[15px]"
-                      >
+                      <Button asChild className="min-h-11 px-4 text-[15px]">
                         <Link href="/user/login">登录</Link>
                       </Button>
                     </div>

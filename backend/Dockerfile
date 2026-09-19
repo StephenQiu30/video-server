@@ -1,5 +1,23 @@
 # syntax=docker/dockerfile:1.7
 
+# --- Egress Proxy Target (Stripe Smokescreen) ---
+FROM golang:1.24-alpine AS egress-proxy-builder
+
+WORKDIR /src
+RUN CGO_ENABLED=0 go install -ldflags="-s -w" github.com/stripe/smokescreen@latest
+
+FROM alpine:3.21 AS egress-proxy
+
+RUN apk add --no-cache ca-certificates
+
+COPY --from=egress-proxy-builder /go/bin/smokescreen /usr/local/bin/smokescreen
+
+EXPOSE 3128
+
+ENTRYPOINT ["smokescreen"]
+CMD ["--listen-ip=0.0.0.0", "--listen-port=3128"]
+
+# --- Backend Application Targets ---
 FROM node:24-bookworm-slim AS node-runtime
 
 FROM python:3.12-slim-bookworm AS backend-builder

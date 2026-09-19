@@ -52,13 +52,13 @@ export function ContentIntakeHero({
       />
 
       <Tabs
-        className="mt-7 gap-0"
+        className="mt-7 flex-col gap-0 lg:flex-row"
         onValueChange={(value) => onModeChange(value as IntakeMode)}
         value={mode}
       >
         <TabsList
           aria-label="选择内容来源"
-          className="grid h-11 w-full grid-cols-3 gap-0 p-0 sm:inline-flex sm:w-fit sm:gap-6 sm:p-[3px]"
+          className="grid h-11 w-full grid-cols-3 gap-0 p-0 lg:inline-flex lg:w-fit lg:gap-6 lg:p-[3px]"
           variant="line"
         >
           <TabsTrigger
