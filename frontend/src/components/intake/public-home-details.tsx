@@ -86,24 +86,26 @@ export function PublicHomeWorkflow({
   items: readonly WorkflowStep[];
 }) {
   return (
-    <ItemGroup className="gap-5">
+    <ol aria-label="使用步骤" className="flex w-full flex-col gap-5">
       {items.map(([title, description], index) => (
         <Item
+          asChild
           className="grid grid-cols-[2rem_1fr] items-start gap-3 rounded-none p-0"
           key={title}
-          role="listitem"
         >
-          <ItemMedia className="mb-0 font-mono text-xs text-muted-foreground">
-            {String(index + 1).padStart(2, '0')}
-          </ItemMedia>
-          <ItemContent>
-            <ItemTitle>{title}</ItemTitle>
-            <ItemDescription className="line-clamp-none">
-              {description}
-            </ItemDescription>
-          </ItemContent>
+          <li>
+            <ItemMedia className="mb-0 font-mono text-xs text-muted-foreground">
+              {String(index + 1).padStart(2, '0')}
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>{title}</ItemTitle>
+              <ItemDescription className="line-clamp-none">
+                {description}
+              </ItemDescription>
+            </ItemContent>
+          </li>
         </Item>
       ))}
-    </ItemGroup>
+    </ol>
   );
 }

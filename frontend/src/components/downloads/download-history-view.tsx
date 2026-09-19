@@ -140,7 +140,7 @@ export default function DownloadHistoryView() {
             <FieldLabel className="sr-only" htmlFor="history-search">
               搜索下载记录
             </FieldLabel>
-            <InputGroup className="h-11 border-0 bg-surface">
+            <InputGroup className="h-11 bg-surface">
               <InputGroupInput
                 className="h-full"
                 id="history-search"
@@ -175,7 +175,7 @@ export default function DownloadHistoryView() {
             value={status ?? 'all'}
           >
             <SelectTrigger
-              className="h-11 w-full border-0 bg-surface"
+              className="h-11 w-full bg-surface"
               id="history-status"
             >
               <SelectValue />
@@ -191,7 +191,7 @@ export default function DownloadHistoryView() {
           </Select>
         </Field>
         <Button
-          className="h-11 border-0 bg-surface px-4"
+          className="h-11 bg-surface px-4"
           onClick={state.retry}
           type="button"
           variant="outline"

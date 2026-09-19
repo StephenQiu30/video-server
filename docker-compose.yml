@@ -557,32 +557,29 @@ services:
       ]
 
   egress-proxy:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      target: egress-proxy
-    image: video-server-egress-proxy:local
+    image: ubuntu/squid:6.6-24.04_edge@sha256:8a3baed477e2c282ab8aa5edad442f69873246964f225c5c2ae8364b6610963c
     container_name: egress-proxy
     restart: unless-stopped
     stop_grace_period: 35s
-    command:
-      [
-        "--listen-ip=0.0.0.0",
-        "--listen-port=3128",
-        "--allow-range=198.18.0.0/15",
-      ]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m,mode=1777
+    entrypoint: ["squid"]
+    command: ["-N", "-f", "/etc/squid/squid.conf"]
     ports:
       - "127.0.0.1:${EGRESS_PROXY_HOST_PORT:-13128}:3128"
+    volumes:
+      - ./backend/egress/squid.conf:/etc/squid/squid.conf:ro
+      - ${EGRESS_DESTINATION_POLICY_FILE:-./backend/egress/blocked-destinations-docker-desktop.conf}:/etc/squid/blocked-destinations.conf:ro
     networks:
       - runner_egress_net
       - youtube_pot_net
       - proxy_uplink_net
     healthcheck:
-      test: ["CMD", "nc", "-z", "127.0.0.1", "3128"]
-      interval: 5s
-      timeout: 3s
+      test: ["CMD", "squid", "-k", "check", "-f", "/etc/squid/squid.conf"]
+      interval: 10s
+      timeout: 5s
       retries: 12
-      start_period: 2s
+      start_period: 5s
 
   workspace-init:
     build: *backend-build

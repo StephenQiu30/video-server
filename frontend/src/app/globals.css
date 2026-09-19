@@ -168,7 +168,7 @@
 
 @layer utilities {
   .content-shell {
-    width: min(calc(100% - 32px), 1376px);
+    width: min(calc(100% - clamp(32px, calc(25vw - 96px), 160px)), 1376px);
     margin-inline: auto;
   }
 
@@ -204,20 +204,12 @@
 }
 
 @media (min-width: 640px) {
-  .content-shell {
-    width: min(calc(100% - 64px), 1376px);
-  }
-
   .inner-page {
     padding-block: 2rem;
   }
 }
 
 @media (min-width: 1024px) {
-  .content-shell {
-    width: min(calc(100% - 160px), 1376px);
-  }
-
   .inner-page {
     padding-block: 2rem;
   }

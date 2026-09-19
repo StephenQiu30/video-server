@@ -72,11 +72,12 @@ allowlist 选择，不把其他域行返回后再过滤。Runner 每次生成一
 不要使用不会应用代码、镜像或配置变化的
 `docker compose restart`。
 
-出口目的地址策略基于 Stripe Smokescreen 轻量安全代理实现。本地开发环境
-`docker-compose.yml` 自动通过 `--allow-range=198.18.0.0/15` 兼容 macOS/Windows
-Docker Desktop 的合成公网 DNS；生产环境 `docker-compose-prod.yml` 默认以严格模式
-运行，无需手动维护 `.conf` 策略路径文件。代理仍坚决阻断任何字面量私网 IP、内网保留
-网段及云厂商元数据地址。
+出口目的地址策略由固定版本 Squid 与只读 ACL 文件实现。Linux 服务器保持
+`EGRESS_DESTINATION_POLICY_FILE=./backend/egress/blocked-destinations.conf`；macOS/Windows
+Docker Desktop 使用 `blocked-destinations-docker-desktop.conf`，兼容其合成公网 DNS。
+两套策略都拒绝字面量 IP、私网 DNS 结果和非 Web 端口；Bilibili 媒体 CDN 的 4483/8082
+例外仅对受控 CDN 域名开放。修改后必须重建 `egress-proxy`，仅重启其他业务容器不会
+应用镜像或挂载配置变化。
 
 访问地址：
 
@@ -106,7 +107,7 @@ git pull --ff-only
 
 ## 生产环境
 
-.env.prod 由部署者在本机或 Secret 管理系统维护；以 .env.example 为配置字段参考，保留已有环境文件。生产需设置 APP_ENV=production，按部署实际填写公开地址与凭据；显式设置 ANALYSIS_ENABLED=false、SCREENPLAY_ANALYSIS_ENABLED=false，直到宿主分析 Worker 已完成配置。出口安全代理已由 Compose 自动配置。
+.env.prod 由部署者在本机或 Secret 管理系统维护；以 .env.example 为配置字段参考，保留已有环境文件。生产需设置 APP_ENV=production，按部署实际填写公开地址与凭据；显式设置 ANALYSIS_ENABLED=false、SCREENPLAY_ANALYSIS_ENABLED=false，直到宿主分析 Worker 已完成配置。生产出口策略使用 `./backend/egress/blocked-destinations.conf`。
 
 ~~~bash
 # 准备好 .env.prod 并替换全部 replace-with-* 占位值后执行

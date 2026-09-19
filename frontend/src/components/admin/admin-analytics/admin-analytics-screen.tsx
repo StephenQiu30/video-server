@@ -72,7 +72,7 @@ export function AdminAnalyticsScreen({
                 </ToggleGroup>
                 <Button
                   aria-label="刷新下载分析"
-                  className="h-12 w-12 shrink-0 border-0 bg-surface px-0 sm:h-10 sm:w-auto sm:px-3"
+                  className="h-12 w-12 shrink-0 bg-surface px-0 sm:h-10 sm:w-auto sm:px-3"
                   disabled={loading}
                   onClick={onRetry}
                   type="button"

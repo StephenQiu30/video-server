@@ -46,7 +46,7 @@ export default function ScreenplayDocumentsView() {
           <div className="flex flex-col gap-2 sm:flex-row">
             <ScreenplayUploadDialog />
             <Button
-              className="h-11 border-0 bg-surface px-4"
+              className="h-11 bg-surface px-4"
               disabled={state.loading}
               onClick={state.refresh}
               type="button"
