@@ -44,7 +44,7 @@ export function ProviderStatusItem({
 
   return (
     <>
-      <TableRow aria-expanded={expanded}>
+      <TableRow>
         <TableHead
           className="max-w-0 px-4 py-5 text-left align-middle whitespace-normal"
           scope="row"
