@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import UTC, datetime
+import os
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -16,6 +17,10 @@ class FakeRecoveryRepository:
         self.stale = (uuid4(),)
         self.ready = (uuid4(),)
         self.calls: list[str] = []
+        self.active: frozenset[str] = frozenset()
+
+    async def active_workspace_task_ids(self, now):
+        return self.active
 
     async def recover_stale_queued(self, now, stale_before, *, limit=100):
         assert stale_before < now
@@ -90,3 +95,49 @@ async def test_cleanup_removes_only_matching_task_workspace(tmp_path) -> None:
     assert not link.exists()
     assert unrelated.exists()
     assert outside.exists()
+
+
+@pytest.mark.asyncio
+async def test_recovery_collects_old_orphans_but_keeps_active_and_unrelated(
+    tmp_path,
+) -> None:
+    root = tmp_path / "work"
+    root.mkdir()
+    now = datetime(2026, 8, 6, tzinfo=UTC)
+    active_id = f"download_{uuid4().hex}_1"
+    orphan_id = f"download_{uuid4().hex}_2"
+    recent_id = f"download_{uuid4().hex}_3"
+    active = root / f"{active_id}-active"
+    orphan = root / f"{orphan_id}-orphan"
+    recent = root / f"{recent_id}-recent"
+    unrelated = root / "not-a-download-workspace"
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    link = root / f"{uuid4().hex}-link"
+
+    for directory in (active, orphan, recent):
+        directory.mkdir()
+    old_timestamp = (now - timedelta(hours=2)).timestamp()
+    os.utime(active, (old_timestamp, old_timestamp))
+    os.utime(orphan, (old_timestamp, old_timestamp))
+    recent_timestamp = (now - timedelta(minutes=10)).timestamp()
+    os.utime(recent, (recent_timestamp, recent_timestamp))
+    unrelated.mkdir()
+    link.symlink_to(outside, target_is_directory=True)
+
+    repository = FakeRecoveryRepository()
+    repository.active = frozenset({active_id})
+    sweeper = DownloadRecoverySweeper(
+        repository,
+        lambda: now,
+        RecoverySettings(workspace_gc_after=timedelta(hours=1)),
+        SharedWorkspaceCleaner(root),
+    )
+
+    await sweeper.tick()
+
+    assert not orphan.exists()
+    assert active.exists()
+    assert recent.exists()
+    assert unrelated.exists()
+    assert link.is_symlink()

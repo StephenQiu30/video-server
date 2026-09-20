@@ -57,6 +57,20 @@ def stale_queued_jobs_statement(
 
 
 class RecoveryRepository(RepositoryBase):
+    async def active_workspace_task_ids(self, now: datetime) -> frozenset[str]:
+        async with self._sessions() as session:
+            rows = (
+                await session.execute(
+                    select(DownloadJobRow.id, DownloadJobRow.attempt).where(
+                        DownloadJobRow.source_kind == "remote_provider",
+                        DownloadJobRow.status == "running",
+                        DownloadJobRow.attempt > 0,
+                        DownloadJobRow.lease_expires_at > now,
+                    )
+                )
+            ).all()
+        return frozenset(f"download_{job_id.hex}_{attempt}" for job_id, attempt in rows)
+
     async def recover_stale_queued(
         self,
         now: datetime,

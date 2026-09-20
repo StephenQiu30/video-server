@@ -98,6 +98,24 @@ async def test_stale_queued_job_is_republished_without_changing_identity(
 
 
 @pytest.mark.asyncio
+async def test_active_workspace_task_ids_only_tracks_live_download_leases(
+    repository,
+) -> None:
+    job_id, now = await _queued_job(repository)
+
+    assert await repository.active_workspace_task_ids(now) == frozenset()
+
+    await repository.claim_job(job_id, "worker", now, timedelta(seconds=30))
+    assert await repository.active_workspace_task_ids(now) == {
+        f"download_{job_id.hex}_1"
+    }
+
+    recovered_at = now + timedelta(seconds=31)
+    await repository.reclaim_stale(recovered_at)
+    assert await repository.active_workspace_task_ids(recovered_at) == frozenset()
+
+
+@pytest.mark.asyncio
 async def test_stale_lease_is_requeued_with_a_new_outbox_event(
     repository, outbox
 ) -> None:

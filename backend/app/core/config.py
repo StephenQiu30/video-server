@@ -310,6 +310,7 @@ class Settings(BaseSettings):
     max_download_attempts: int = Field(default=3, ge=1, le=10)
     max_analysis_attempts: int = Field(default=3, ge=1, le=10)
     download_queued_recovery_seconds: int = Field(default=60, ge=15, le=3600)
+    download_workspace_gc_seconds: int = Field(default=86_400, ge=300, le=2_592_000)
     analysis_max_runs_per_job: int = Field(default=10, ge=1, le=100)
     analysis_queued_recovery_seconds: int = Field(default=60, ge=15, le=3600)
     analysis_worker_heartbeat_seconds: float = Field(default=10, ge=1, le=60)

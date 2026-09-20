@@ -37,6 +37,7 @@ class SqlAlchemyDownloadRepository:
         analytics = AnalyticsRepository(sessions, quota_policy=quota_policy)
         self.get_download_analytics = analytics.get_download_analytics
         recovery = RecoveryRepository(sessions, quota_policy=quota_policy)
+        self.active_workspace_task_ids = recovery.active_workspace_task_ids
         self.recover_stale_queued = recovery.recover_stale_queued
         self.reclaim_stale = recovery.reclaim_stale
         self.release_ready_retries = recovery.release_ready_retries

@@ -58,6 +58,7 @@ def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
     sessions = create_session_factory(engine)
     raw_repository = SqlAlchemyDownloadRepository(sessions)
     repository = DownloadExecutionRepository(raw_repository)
+    workspace_cleaner = SharedWorkspaceCleaner(settings.runner_workspace_root)
     runner = media_runner_router(
         settings, ProviderRouteAdmission(SqlAlchemyProviderRouteCooldowns(sessions))
     )
@@ -82,7 +83,7 @@ def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
             URLCipher(settings.url_encryption_key.get_secret_value().encode()),
             key_id=settings.url_encryption_key_id,
         ),
-        workspace_cleaner=SharedWorkspaceCleaner(settings.runner_workspace_root),
+        workspace_cleaner=workspace_cleaner,
         clock=_utc_now,
         settings=DownloadExecutionSettings(
             worker_id=_worker_id(),
@@ -119,7 +120,11 @@ def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
                 queued_stale_after=timedelta(
                     seconds=settings.download_queued_recovery_seconds
                 ),
+                workspace_gc_after=timedelta(
+                    seconds=settings.download_workspace_gc_seconds
+                ),
             ),
+            workspace_cleaner,
         ),
         storage=storage,
         runner=runner,

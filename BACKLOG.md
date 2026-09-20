@@ -135,7 +135,7 @@
 
 ### P4 孤儿 GC + 会话检测（对应 R10–R11）
 
-- [ ] P4.1 `download/sweeper.py` 增加 `runner_workspace_root` 年龄基 GC，回收无活跃任务的 `{task_id}-*`。
+- [x] P4.1 `download/sweeper.py` 增加 `runner_workspace_root` 年龄基 GC，回收无活跃任务的 `{task_id}-*`。
   - 依赖：无。验证：阈值后回收；活跃任务目录保留。
 - [ ] P4.2 `provider_sessions.py is_ready()` 改按 provider 校验；`assert` 改受控 4xx。
   - 依赖：无。验证：多 provider 失效可感知；异常不再 500。
