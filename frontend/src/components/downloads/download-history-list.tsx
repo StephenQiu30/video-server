@@ -86,44 +86,47 @@ function HistoryRow({
       className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 rounded-none border-0 px-0 py-5 sm:grid-cols-[128px_minmax(0,1fr)_auto] sm:gap-x-6 sm:py-6"
       role="listitem"
     >
-      <ItemMedia className="!translate-y-0 shrink-0 self-center group-has-data-[slot=item-description]/item:translate-y-0 group-has-data-[slot=item-description]/item:self-center">
-        <MediaCover
-          alt={`${item.title} 媒体封面`}
-          className="w-24 rounded-md ring-0 sm:w-32"
-          compact
-          fallback={{
-            detail: item.format_name,
-            eyebrow: item.source_label,
-            title: item.title,
-          }}
-          src={item.thumbnail_url}
-        />
-      </ItemMedia>
-      <ItemContent className="min-w-0 gap-1.5">
-        <ItemTitle className="line-clamp-2">
-          <Button
-            asChild
-            className="h-auto justify-start whitespace-normal p-0 text-left text-[15px] leading-snug text-foreground hover:text-muted-foreground hover:no-underline"
-            size="sm"
-            variant="link"
-          >
-            <Link href={detailHref}>{item.title}</Link>
-          </Button>
-        </ItemTitle>
-        <ItemDescription className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-          <span>{item.source_label}</span>
-          <span aria-hidden>·</span>
-          <span>{item.format_name}</span>
-          <span aria-hidden>·</span>
-          <time dateTime={item.created_at}>{formatDate(item.created_at)}</time>
-          {item.status === 'succeeded' ? (
-            <>
-              <span aria-hidden>·</span>
-              <span>{fileAvailabilityLabel(item)}</span>
-            </>
-          ) : null}
-        </ItemDescription>
-      </ItemContent>
+      <Link
+        aria-label={item.title}
+        className="focus-ring group/summary col-span-2 grid min-w-0 grid-cols-[96px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 rounded-md sm:col-span-2 sm:grid-cols-[128px_minmax(0,1fr)] sm:gap-x-6"
+        href={detailHref}
+      >
+        <ItemMedia className="!translate-y-0 shrink-0 self-center group-has-data-[slot=item-description]/item:translate-y-0 group-has-data-[slot=item-description]/item:self-center">
+          <MediaCover
+            alt={`${item.title} 媒体封面`}
+            className="w-24 rounded-md ring-0 sm:w-32"
+            compact
+            fallback={{
+              detail: item.format_name,
+              eyebrow: item.source_label,
+              title: item.title,
+            }}
+            src={item.thumbnail_url}
+          />
+        </ItemMedia>
+        <ItemContent className="min-w-0 gap-1.5">
+          <ItemTitle className="line-clamp-2">
+            <span className="line-clamp-2 text-[15px] leading-snug text-foreground transition-colors group-hover/summary:text-muted-foreground">
+              {item.title}
+            </span>
+          </ItemTitle>
+          <ItemDescription className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+            <span>{item.source_label}</span>
+            <span aria-hidden>·</span>
+            <span>{item.format_name}</span>
+            <span aria-hidden>·</span>
+            <time dateTime={item.created_at}>
+              {formatDate(item.created_at)}
+            </time>
+            {item.status === 'succeeded' ? (
+              <>
+                <span aria-hidden>·</span>
+                <span>{fileAvailabilityLabel(item)}</span>
+              </>
+            ) : null}
+          </ItemDescription>
+        </ItemContent>
+      </Link>
       <ItemActions className="col-span-2 w-full justify-between gap-1 sm:col-auto sm:w-auto sm:justify-end">
         <Badge
           className="rounded-md px-2 py-1 font-normal"

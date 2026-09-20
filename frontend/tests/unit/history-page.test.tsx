@@ -128,9 +128,11 @@ describe('download history', () => {
       'href',
       '/downloads/detail?jobId=history-job-1',
     );
+    const detailLink = screen.getByRole('link', { name: '示例视频' });
     expect(
-      screen.getByRole('img', { name: '示例视频（暂无封面）' }),
+      within(detailLink).getByRole('img', { name: '示例视频（暂无封面）' }),
     ).toBeVisible();
+    expect(detailLink).toHaveTextContent('链接下载');
     expect(screen.getAllByText('链接下载')).toHaveLength(2);
 
     fireEvent.click(screen.getByRole('button', { name: '获取文件' }));
