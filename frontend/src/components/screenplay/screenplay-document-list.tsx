@@ -33,11 +33,7 @@ export function ScreenplayDocumentList({
   pendingDeleteId: string | null;
 }) {
   return (
-    <section
-      aria-busy={loading}
-      aria-label="剧本文档"
-      className="mt-10 sm:mt-12"
-    >
+    <div aria-busy={loading} className="mt-10 sm:mt-12">
       {loading && !data ? <LoadingRows /> : null}
       {data?.items.length ? (
         <ItemGroup className="gap-2">
@@ -59,7 +55,7 @@ export function ScreenplayDocumentList({
           title="还没有剧本文档"
         />
       ) : null}
-    </section>
+    </div>
   );
 }
 

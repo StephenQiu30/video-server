@@ -27,7 +27,14 @@ from app.services.providers import (
     provider_user_action,
 )
 
-_ACCESS_ERRORS = {"provider_auth_required", "provider_session_expired"}
+_ACCESS_ERRORS = {
+    "provider_auth_required",
+    "provider_session_expired",
+    "provider_verification_failed",
+    "egress_challenged",
+    "pot_required",
+    "pot_rejected",
+}
 _RATE_ERRORS = {"provider_rate_limited"}
 _OPERATIONAL_DECISION_WINDOW = timedelta(hours=26)
 _PERMANENT_ERRORS = {
@@ -236,12 +243,17 @@ def _merge_status(
     if access_mode is None:
         return baseline
     if context_generation_id is None:
+        missing_context_status = (
+            ProviderSupportStatus.ACCESS_REQUIRED
+            if access_mode is ProviderAccessMode.OPERATOR_MANAGED
+            else ProviderSupportStatus.DEGRADED
+        )
         return replace(
             baseline,
-            status=ProviderSupportStatus.DEGRADED,
+            status=missing_context_status,
             download_available=False,
             user_action=provider_user_action(
-                ProviderSupportStatus.DEGRADED,
+                missing_context_status,
                 baseline.key,
                 download_available=False,
                 access_mode=access_mode,

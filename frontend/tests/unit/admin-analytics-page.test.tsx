@@ -33,7 +33,8 @@ describe('administrator download analytics', () => {
       '48',
     );
     expect(
-      screen.getByText('成功率', { selector: 'dt' }).nextElementSibling,
+      screen.getByText('成功率', { selector: '[data-slot="item-title"]' })
+        .nextElementSibling,
     ).toHaveTextContent('75%');
     expect(screen.getByText('独立用户').nextElementSibling).toHaveTextContent(
       '12',
@@ -42,9 +43,7 @@ describe('administrator download analytics', () => {
       '3 GB',
     );
     expect(screen.getByText(/平均视频时长/)).toHaveTextContent('2 分 5 秒');
-    expect(
-      screen.getByRole('progressbar', { name: '下载成功率 75%' }),
-    ).toHaveAttribute('aria-valuenow', '75');
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
 
     expect(
       screen.getByRole('img', { name: '每日下载任务交互趋势图' }),

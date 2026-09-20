@@ -117,6 +117,20 @@ class ProviderSupportStatus(StrEnum):
     UNSUPPORTED = "unsupported"
 
 
+class ProviderAccessState(StrEnum):
+    """User-facing access state projected from support and runtime evidence."""
+
+    PUBLIC_PROBE = "public_probe"
+    PUBLIC_READY = "public_ready"
+    AUTHORIZATION_REQUIRED = "authorization_required"
+    OPERATOR_PROBE = "operator_probe"
+    OPERATOR_READY = "operator_ready"
+    DEGRADED = "degraded"
+    BLOCKED = "blocked"
+    DISABLED = "disabled"
+    UNSUPPORTED = "unsupported"
+
+
 class ProviderCanaryStage(StrEnum):
     METADATA = "metadata"
     MEDIA = "media"

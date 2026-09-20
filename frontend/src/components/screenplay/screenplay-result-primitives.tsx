@@ -1,7 +1,12 @@
 import { cn } from 'cn';
 import type { ReactNode } from 'react';
 
-import { Item } from '@/components/ui/item';
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemTitle,
+} from '@/components/ui/item';
 import { TabsTrigger } from '@/components/ui/tabs';
 
 type ScreenplayEvidence =
@@ -17,7 +22,7 @@ export function EvidenceList({
   items: ScreenplayEvidence[];
 }) {
   return (
-    <section className={className}>
+    <div className={className}>
       <h3 className="mb-4 text-lg font-medium tracking-[-0.02em]">{heading}</h3>
       {items.length ? (
         <ul className={cn('gap-2')}>
@@ -40,7 +45,7 @@ export function EvidenceList({
       ) : (
         <p className="py-7 text-muted-foreground">本项没有独立发现。</p>
       )}
-    </section>
+    </div>
   );
 }
 
@@ -60,10 +65,17 @@ export function Detail({
   label: string;
 }) {
   return (
-    <div>
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="mt-1 leading-6">{children}</dd>
-    </div>
+    <Item
+      className="items-start rounded-none border-0 px-0 py-0"
+      role="listitem"
+    >
+      <ItemContent className="gap-1">
+        <ItemTitle className="text-muted-foreground">{label}</ItemTitle>
+        <ItemDescription className="line-clamp-none leading-6 text-foreground">
+          {children}
+        </ItemDescription>
+      </ItemContent>
+    </Item>
   );
 }
 

@@ -5,6 +5,7 @@ export const youtubeProvider: API.ProviderStatusResponse = {
   extractor_exists: true,
   capabilities: ['single_video'],
   access_modes: ['anonymous', 'operator_managed'],
+  access_state: 'operator_probe',
   status: 'unknown',
   last_checked_at: null,
   last_check_succeeded: null,

@@ -142,6 +142,7 @@ def test_provider_status_contract_is_coarse_and_non_secret(tmp_path: Path) -> No
             "extractor_exists",
             "capabilities",
             "access_modes",
+            "access_state",
             "status",
             "last_checked_at",
             "last_check_succeeded",

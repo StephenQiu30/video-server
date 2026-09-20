@@ -6,6 +6,7 @@ import argparse
 import subprocess
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Final
 
 from app.services.provider_types import ProviderKey, ProviderSessionVersion
@@ -35,6 +36,7 @@ def export_provider_cookie_lease_bounded(
     provider: ProviderKey,
     profile: str,
     version: ProviderSessionVersion,
+    chrome_root: Path | None = None,
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
     terminate_grace_seconds: float = DEFAULT_TERMINATE_GRACE_SECONDS,
 ) -> ProviderCookieLease:
@@ -50,6 +52,7 @@ def export_provider_cookie_lease_bounded(
                         provider,
                         profile,
                         version,
+                        chrome_root,
                     ),
                     stdin=subprocess.DEVNULL,
                     stdout=subprocess.PIPE,
@@ -85,8 +88,9 @@ def _child_command(
     provider: ProviderKey,
     profile: str,
     version: ProviderSessionVersion,
+    chrome_root: Path | None = None,
 ) -> tuple[str, ...]:
-    return (
+    command = [
         sys.executable,
         "-m",
         _MODULE,
@@ -97,7 +101,10 @@ def _child_command(
         profile,
         "--version",
         version.value,
-    )
+    ]
+    if chrome_root is not None:
+        command.extend(("--chrome-root", str(chrome_root)))
+    return tuple(command)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -106,6 +113,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--provider", type=ProviderKey, required=True)
     parser.add_argument("--profile", required=True)
     parser.add_argument("--version", type=ProviderSessionVersion, required=True)
+    parser.add_argument("--chrome-root", type=Path)
     return parser
 
 
@@ -114,11 +122,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     with termination_guard():
         unblock_termination_signals()
         try:
-            result = export_provider_cookie_lease(
-                provider=args.provider,
-                profile=args.profile,
-                version=args.version,
-            )
+            kwargs = {
+                "provider": args.provider,
+                "profile": args.profile,
+                "version": args.version,
+            }
+            if args.chrome_root is not None:
+                result = export_provider_cookie_lease(
+                    **kwargs,
+                    chrome_root=args.chrome_root,
+                )
+            else:
+                result = export_provider_cookie_lease(**kwargs)
         except Exception:
             result = ProviderCookieLease(ProviderCookieLeaseStatus.SESSION_UNAVAILABLE)
     sys.stdout.buffer.write(serialize_export(result))

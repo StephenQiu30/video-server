@@ -58,7 +58,7 @@ export function ProviderCatalogScreen({
   );
 
   return (
-    <section aria-busy={result.loading} className="flex flex-col gap-10">
+    <div aria-busy={result.loading} className="flex flex-col gap-10">
       <div>
         <BackLink className="mb-4" fallbackHref="/providers" />
         <PageHeader
@@ -167,7 +167,7 @@ export function ProviderCatalogScreen({
           </footer>
         </div>
       )}
-    </section>
+    </div>
   );
 }
 

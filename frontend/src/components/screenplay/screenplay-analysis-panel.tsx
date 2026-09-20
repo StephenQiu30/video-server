@@ -20,10 +20,7 @@ export default function ScreenplayAnalysisPanel({
     state.job.result.kind !== 'video_visual_analysis';
 
   return (
-    <section
-      aria-labelledby="screenplay-analysis-title"
-      className="mt-14 py-12 sm:mt-16 sm:py-16"
-    >
+    <div className="mt-14 py-12 sm:mt-16 sm:py-16">
       {succeeded && state.job ? (
         <>
           {state.error ? (
@@ -73,6 +70,6 @@ export default function ScreenplayAnalysisPanel({
           )}
         </>
       )}
-    </section>
+    </div>
   );
 }

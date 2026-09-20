@@ -28,12 +28,12 @@ export default function AnalysisArticleResultView({
         />
         <Metric label="核心观点" value={`${result.key_points.length}`} />
       </div>
-      <section className="mt-8 w-full">
+      <div className="mt-8 w-full">
         <h3 className="text-xl font-medium tracking-[-0.02em]">导读</h3>
         <p className="mt-3 text-base leading-8 text-muted-foreground">
           {result.lead}
         </p>
-      </section>
+      </div>
       <div className="mt-10 overflow-x-auto">
         <TabsList
           className="h-auto w-max gap-7 rounded-none p-0"

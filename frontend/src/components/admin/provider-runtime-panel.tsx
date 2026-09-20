@@ -39,10 +39,7 @@ export function ProviderRuntimePanel() {
     }
   }
   return (
-    <section
-      aria-labelledby="provider-runtime-title"
-      className="mt-10 flex flex-col gap-4"
-    >
+    <div className="mt-10 flex flex-col gap-4">
       <h2 className="text-base font-medium" id="provider-runtime-title">
         运行诊断
       </h2>
@@ -102,6 +99,6 @@ export function ProviderRuntimePanel() {
           {data.items.length === 0 ? <li>暂无已开放平台。</li> : null}
         </ul>
       ) : null}
-    </section>
+    </div>
   );
 }

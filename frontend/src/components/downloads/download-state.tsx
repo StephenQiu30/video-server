@@ -56,7 +56,7 @@ export default function DownloadState({
   const showProgress = active;
 
   return (
-    <section aria-labelledby="download-status-title" className="self-start">
+    <div className="self-start">
       <Badge variant={statusVariant(job.status)}>
         {statusLabels[job.status]}
       </Badge>
@@ -189,6 +189,6 @@ export default function DownloadState({
       </div>
 
       <DownloadExecutionSummary job={job} />
-    </section>
+    </div>
   );
 }

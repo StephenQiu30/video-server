@@ -1427,6 +1427,17 @@ declare namespace API {
     configured: boolean;
   };
 
+  type ProviderAccessState =
+    | "public_probe"
+    | "public_ready"
+    | "authorization_required"
+    | "operator_probe"
+    | "operator_ready"
+    | "degraded"
+    | "blocked"
+    | "disabled"
+    | "unsupported";
+
   type ProviderCapability =
     | "single_video"
     | "short_video"
@@ -1514,6 +1525,7 @@ declare namespace API {
     capabilities: ProviderCapability[];
     /** Access Modes */
     access_modes: ProviderAccessMode[];
+    access_state: ProviderAccessState;
     status: ProviderSupportStatus;
     /** Last Checked At */
     last_checked_at: string | null;

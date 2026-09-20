@@ -44,40 +44,39 @@ def test_bilibili_tls_media_port_is_scoped_to_its_cdn() -> None:
     assert scoped_deny < public_allow
 
 
-def test_destination_policies_separate_linux_and_docker_desktop_dns() -> None:
-    production = (CONFIG_ROOT / "blocked-destinations.conf").read_text(encoding="utf-8")
-    docker_desktop = (
-        CONFIG_ROOT / "blocked-destinations-docker-desktop.conf"
-    ).read_text(encoding="utf-8")
+def test_destination_policy_is_single_and_allows_synthetic_public_range() -> None:
+    policy = (CONFIG_ROOT / "blocked-destinations.conf").read_text(encoding="utf-8")
 
-    assert "acl docker_desktop_public dst 255.255.255.255/32" in production
-    assert "acl blocked_destination dst 198.18.0.0/15" in production
-    assert "acl docker_desktop_public dst 198.18.0.0/15" in docker_desktop
-    assert "acl blocked_destination dst 198.18.0.0/15" not in docker_desktop
+    # Transparent proxies and Docker Desktop answer public DNS through 198.18/15;
+    # the single policy must allow that synthetic range so media egress works on
+    # every machine.
+    assert "acl docker_desktop_public dst 198.18.0.0/15" in policy
+    assert "acl blocked_destination dst 198.18.0.0/15" not in policy
+    for blocked in (
+        "10.0.0.0/8",
+        "100.64.0.0/10",
+        "127.0.0.0/8",
+        "169.254.0.0/16",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+    ):
+        assert f"acl blocked_destination dst {blocked}" in policy
+    assert not (CONFIG_ROOT / "blocked-destinations-docker-desktop.conf").exists()
 
 
-def test_compose_selects_environment_specific_destination_policy() -> None:
-    development = load_compose("docker-compose.yml")
-    production = load_compose("docker-compose-prod.yml")
-
+def test_compose_mounts_single_destination_policy() -> None:
     variable = "EGRESS_DESTINATION_POLICY_FILE"
-    assert variable in (REPOSITORY_ROOT / "docker-compose.yml").read_text(
-        encoding="utf-8"
+    mount = (
+        "./backend/egress/blocked-destinations.conf"
+        ":/etc/squid/blocked-destinations.conf:ro"
     )
-    assert variable in (REPOSITORY_ROOT / "docker-compose-prod.yml").read_text(
-        encoding="utf-8"
-    )
-    assert "blocked-destinations-docker-desktop.conf" in str(development)
-    assert "blocked-destinations.conf" in str(production)
+    for filename in ("docker-compose.yml", "docker-compose-prod.yml"):
+        text = (REPOSITORY_ROOT / filename).read_text(encoding="utf-8")
+        assert variable not in text
+        assert mount in text
 
-    development_example = (REPOSITORY_ROOT / ".env.example").read_text(encoding="utf-8")
-    assert (
-        f"{variable}=./backend/egress/blocked-destinations-docker-desktop.conf"
-        in development_example
-    )
-    assert "${" + variable + ":-./backend/egress/blocked-destinations.conf}" in (
-        REPOSITORY_ROOT / "docker-compose-prod.yml"
-    ).read_text(encoding="utf-8")
+    example = (REPOSITORY_ROOT / ".env.example").read_text(encoding="utf-8")
+    assert variable not in example
 
 
 def test_egress_proxy_uses_pinned_squid_without_a_go_build_surface() -> None:

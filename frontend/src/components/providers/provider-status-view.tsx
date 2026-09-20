@@ -59,7 +59,7 @@ export function ProviderStatusView() {
   }, [state.data, state.error, state.retry]);
 
   return (
-    <section aria-labelledby="provider-status-title">
+    <div>
       <BackLink className="mb-4" fallbackHref="/" />
       <PageHeader
         action={
@@ -168,7 +168,7 @@ export function ProviderStatusView() {
           </>
         ) : null}
       </div>
-    </section>
+    </div>
   );
 }
 

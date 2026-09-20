@@ -24,7 +24,7 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/components/screenplay/screenplay-analysis-panel', () => ({
   default: ({ documentId }: { documentId: string }) => (
-    <section aria-label="剧本分析工作区">{documentId}</section>
+    <div data-testid="screenplay-analysis-workspace">{documentId}</div>
   ),
 }));
 
@@ -193,7 +193,7 @@ describe('screenplay documents', () => {
     expect(screen.getByText('24 段')).toBeInTheDocument();
     expect(screen.getByText('8 个')).toBeInTheDocument();
     const workspace = screen.getByTestId('screenplay-document-workspace');
-    const analysis = screen.getByLabelText('剧本分析工作区');
+    const analysis = screen.getByTestId('screenplay-analysis-workspace');
     expect(analysis).toHaveTextContent('document-id');
     expect(workspace.nextElementSibling).toBe(analysis);
     expect(screen.getByRole('link', { name: '返回上一步' })).toHaveAttribute(

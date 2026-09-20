@@ -143,8 +143,8 @@ async def _declare_download_topology(
         durable=True,
         arguments={"x-max-length": binding.max_length},
     )
-    await exchange.bind(queue, routing_key=binding.routing_key)
-    await dead_exchange.bind(dead_queue, routing_key=binding.dead_routing_key)
+    await queue.bind(exchange, routing_key=binding.routing_key)
+    await dead_queue.bind(dead_exchange, routing_key=binding.dead_routing_key)
     return cast(AbstractQueue, queue)
 
 

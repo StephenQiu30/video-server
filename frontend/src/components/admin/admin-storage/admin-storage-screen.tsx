@@ -54,7 +54,7 @@ export function AdminStorageScreen({
   const last = Math.min(page * STORAGE_PAGE_SIZE, total);
 
   return (
-    <section aria-busy={loading} className="flex flex-col gap-10">
+    <div aria-busy={loading} className="flex flex-col gap-10">
       <div>
         <BackLink className="mb-4" fallbackHref="/account" />
         <PageHeader
@@ -125,6 +125,6 @@ export function AdminStorageScreen({
         onDaysChange={onCleanupDaysChange}
         open={cleanup.open}
       />
-    </section>
+    </div>
   );
 }

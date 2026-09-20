@@ -10,12 +10,16 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart';
 
-import { formatInteger, formatPercent } from './analytics-format';
+import {
+  ANALYTICS_CHART_COLOR,
+  formatInteger,
+  formatPercent,
+} from './analytics-format';
 
 type Source = API.DownloadAnalyticsResponse['sources'][number];
 
 const sourceConfig = {
-  total: { color: 'var(--chart-3)', label: '任务数' },
+  total: { color: ANALYTICS_CHART_COLOR, label: '任务数' },
 } satisfies ChartConfig;
 
 export function SourceBreakdown({
@@ -37,15 +41,15 @@ export function SourceBreakdown({
   const hiddenCount = Math.max(0, sorted.length - visible.length);
 
   return (
-    <section aria-labelledby="source-breakdown-title">
+    <div className="w-full">
       <h2
-        className="flex items-center gap-2 text-base font-medium"
+        className="flex items-center gap-2 text-xl font-medium tracking-[-0.025em]"
         id="source-breakdown-title"
       >
         <ChartBarIcon aria-hidden className="size-4 text-muted-foreground" />
         来源贡献
       </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
         对比主要视频源的任务量与占比。
       </p>
       {sorted.length === 0 ? (
@@ -55,7 +59,7 @@ export function SourceBreakdown({
           <ChartContainer
             aria-describedby="source-breakdown-description"
             aria-label="视频来源任务贡献条形图"
-            className="mt-5 h-52 w-full aspect-auto"
+            className="mt-8 h-64 w-full aspect-auto sm:h-80"
             config={sourceConfig}
             role="img"
           >
@@ -71,7 +75,7 @@ export function SourceBreakdown({
                 tickLine={false}
                 tickFormatter={(value) => {
                   const label = String(value);
-                  return label.length > 5 ? `${label.slice(0, 4)}…` : label;
+                  return label.length > 10 ? `${label.slice(0, 9)}…` : label;
                 }}
               />
               <YAxis
@@ -131,12 +135,12 @@ export function SourceBreakdown({
           </ol>
         </>
       )}
-      <p className="mt-4 text-sm font-medium tabular-nums">
+      <p className="mt-5 text-sm font-medium tabular-nums">
         {formatInteger(sorted.length)} 个来源
         {hiddenCount > 0
           ? ` · 其余 ${formatInteger(hiddenCount)} 个可在明细中查看`
           : ' · 已全部展示'}
       </p>
-    </section>
+    </div>
   );
 }

@@ -20,7 +20,7 @@ export function SourcePerformance({ sources }: { sources: Source[] }) {
 
   return (
     <Collapsible>
-      <section aria-labelledby="source-performance-title">
+      <div>
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-lg font-medium" id="source-performance-title">
@@ -47,7 +47,7 @@ export function SourcePerformance({ sources }: { sources: Source[] }) {
         <CollapsibleContent>
           <SourcePerformanceDetails sources={sorted} />
         </CollapsibleContent>
-      </section>
+      </div>
     </Collapsible>
   );
 }

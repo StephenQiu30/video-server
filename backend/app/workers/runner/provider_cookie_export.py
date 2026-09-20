@@ -6,9 +6,11 @@ import re
 import time
 from collections.abc import Callable, Iterable
 from http.cookiejar import Cookie
+from pathlib import Path
 from typing import Final
 
 from app.services.provider_types import ProviderKey, ProviderSessionVersion
+from app.workers.runner.chrome_provider_cookies import extract_chrome_cookies
 from app.workers.runner.netscape_cookie import (
     has_safe_cookie_fields,
     is_allowed_domain,
@@ -18,7 +20,10 @@ from app.workers.runner.provider_cookie_lease import (
     ProviderCookieLease,
     ProviderCookieLeaseStatus,
 )
-from app.workers.runner.provider_session_policy import browser_session_policy
+from app.workers.runner.provider_session_policy import (
+    ProviderSessionSource,
+    browser_session_policy,
+)
 from app.workers.runner.provider_session_source import (
     ProviderSessionLoader,
     load_provider_session,
@@ -38,6 +43,7 @@ def export_provider_cookie_lease(
     provider: ProviderKey,
     profile: str,
     version: ProviderSessionVersion,
+    chrome_root: Path | None = None,
     load: ProviderSessionLoader = load_provider_session,
     clock: Callable[[], float] = time.time,
 ) -> ProviderCookieLease:
@@ -46,7 +52,17 @@ def export_provider_cookie_lease(
     if version is not policy.version or _VERSION.fullmatch(version.value) is None:
         return ProviderCookieLease(SESSION_UNAVAILABLE)
     try:
-        jar = load(policy, profile)
+        if (
+            chrome_root is not None
+            and policy.source is ProviderSessionSource.CHROME_PROFILE
+        ):
+            jar = extract_chrome_cookies(
+                policy.domains,
+                profile,
+                chrome_root=chrome_root,
+            )
+        else:
+            jar = load(policy, profile)
         now = int(clock())
         cookies = tuple(
             cookie for cookie in jar if eligible_cookie(cookie, policy.domains, now)

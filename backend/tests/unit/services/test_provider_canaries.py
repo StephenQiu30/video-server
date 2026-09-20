@@ -16,6 +16,7 @@ from app.services.provider_catalog import ProviderCatalogEntry
 from app.services.provider_types import (
     ProviderAccessContextRef,
     ProviderAccessMode,
+    ProviderAccessState,
     ProviderCanaryOutcome,
     ProviderCanaryResult,
     ProviderCanaryStage,
@@ -249,6 +250,54 @@ async def test_supported_download_is_explicit_with_conditional_session() -> None
     assert view.user_action == (
         "真实下载已完成验证；当前链接仍可能因平台授权或验证要求失败。"
     )
+    assert view.access_state is ProviderAccessState.AUTHORIZATION_REQUIRED
+
+
+@pytest.mark.asyncio
+async def test_platform_challenge_enters_recoverable_authorization_state() -> None:
+    service = ProviderStatusService(
+        Reader(
+            (
+                replace(
+                    result(0, error="egress_challenged"),
+                    access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+                    context_generation_id=access_context(
+                        access_mode=ProviderAccessMode.OPERATOR_MANAGED
+                    ).generation_id,
+                ),
+            )
+        ),
+        (
+            replace(
+                baseline(),
+                access_modes=(
+                    ProviderAccessMode.ANONYMOUS,
+                    ProviderAccessMode.OPERATOR_MANAGED,
+                ),
+            ),
+        ),
+        now=lambda: NOW,
+        context_reader=ContextReader(
+            (access_context(access_mode=ProviderAccessMode.OPERATOR_MANAGED),)
+        ),
+    )
+
+    view = (await service.list())[0]
+
+    assert view.status is ProviderSupportStatus.ACCESS_REQUIRED
+    assert view.access_state is ProviderAccessState.AUTHORIZATION_REQUIRED
+    assert "受控浏览器授权" in (view.user_action or "")
+
+
+def test_access_state_projection_distinguishes_public_and_operator_routes() -> None:
+    public = baseline(ProviderSupportStatus.VERIFIED)
+    operator = replace(
+        public,
+        access_modes=(ProviderAccessMode.OPERATOR_MANAGED,),
+    )
+
+    assert public.access_state is ProviderAccessState.PUBLIC_PROBE
+    assert operator.access_state is ProviderAccessState.OPERATOR_PROBE
 
 
 @pytest.mark.asyncio

@@ -94,6 +94,32 @@
   - 验收：账号意外获得会员/权限后，对应版本被停用而非 fail-open。
   - 优先级：P1
 
+### 无额外机器的可移植部署
+
+- **R14 clean-room 无会话启动与能力发现**
+  - 背景：031 已明确 Cookie 文件和 operator profile 不能作为全新隔离部署的启动前置条件，全部验收在当前宿主的 clean-room 环境完成。
+  - 需求：标准 Compose 在无 `.provider-sessions` 时启动核心服务；Canary 异步执行静态、metadata、media 分层探针，并投影 `public_probe`、`public_ready`、`authorization_required`、`degraded`、`blocked`、`unsupported` 等可行动状态。
+  - 验收：全新工作目录无需创建空 Cookie 文件即可进入首页；平台状态不以容器健康冒充真实可用。
+  - 优先级：P0
+
+- **R15 本机 Provider Access Agent**
+  - 背景：手工导出、复制 Netscape Cookie 不能满足可移植个人部署；又不采用常驻远端节点。
+  - 需求：实现 loopback/Unix Socket 限定的宿主 Agent、一次性授权事务和 Provider 专用持久浏览器目录；平台要求验证时由 UI 发起可见授权，成功后自动发布受限会话并复用。
+  - 验收：用户不执行 Cookie 导出/导入 CLI；授权后无需重建容器即可重试；不同 Provider 的状态、目录和会话不可互读。
+  - 优先级：P0
+
+- **R16 自适应访问状态机**
+  - 背景：匿名失败不都代表需要登录，链接失效、解析器错误、DRM、地区限制和出口挑战必须分开。
+  - 需求：实现 `public_probe → public_ready | authorization_required | degraded`，授权成功后进入 `operator_ready`；inspection 冻结上下文，download 不静默换身份。
+  - 验收：每个稳定错误只有一个状态迁移；失败不会触发循环登录、无限重试或未知代理回退。
+  - 优先级：P0
+
+- **R17 产品内授权与恢复体验**
+  - 背景：平台验证是第三方边界，但不应转化为运维人员反复手工取文件。
+  - 需求：平台状态页和解析错误提供统一“完成平台验证”“重新探测”“查看限制”动作；Sonner 只用于短时结果，持续状态由页面组件承载。
+  - 验收：桌面和 390px 页面可完成授权、取消、超时与重试；刷新页面和重启服务后状态一致。
+  - 优先级：P1
+
 ---
 
 ## 二、Plan（执行计划）
@@ -149,6 +175,24 @@
 - [x] P5.2 落实 inspect attestation 权益漂移 → disable `credential_version`。
   - 依赖：无。验证：漂移后对应版本停用，不 fail-open。
 
+### P6 无额外机器的可移植部署（对应 R14–R17）
+
+- [x] P6.1 将核心 readiness 与可选 Provider 授权解耦，补充全新工作目录 Compose 契约测试。
+  - 依赖：无。验证：`.env.example` 默认不启用 profile、operator endpoint 或 operator policy；两套 Compose 的核心服务均无 profile，operator 服务保持显式 opt-in；`docker compose --env-file .env.example -f docker-compose.yml config --quiet` 通过。
+- [x] P6.2 实现 Provider 能力状态机和按当前宿主/出口生成的探针 generation。
+  - 依赖：P6.1。已交付：访问状态投影、当前 generation 过滤，以及匿名降级与受控线路缺少上下文的区分。验证：匿名成功、需授权、平台挑战、临时故障、永久不支持路径测试。
+- [ ] P6.3 实现本机 Access Agent 与一次性授权事务，先覆盖 YouTube，再复用 Provider policy 扩展。
+  - [x] P6.3a macOS v1：按 Provider 隔离的专用 Chrome 目录、授权等待、内存租约和按需 LaunchAgent；覆盖 Chrome-backed Provider，并有取消/超时/隔离测试。
+  - [x] P6.3a.1 Compose 接线：开发/生产的 YouTube、抖音、Reddit Operator Runner 使用对应 Agent 队列，不再错误读取旧 Cookie 文件；优酷/腾讯视频和视频号保持各自受控来源边界。
+  - [ ] P6.3b 产品内 loopback/Unix Socket 一次性事务：Web 端直接创建 nonce、打开本机 Agent 并回传状态；当前 UI 先提供显式本机命令引导，不宣称 CLI 已被消除。
+  - 依赖：P6.2。验证：最终交付需覆盖无 Cookie CLI 的可见授权、会话发布、取消/超时、Provider 隔离测试。
+- [ ] P6.4 接入 Web 平台状态与解析恢复动作，完成明暗主题、桌面和 390px 浏览器验收。
+  - [x] P6.4a 平台状态页已接入访问状态和本机授权步骤引导，并由生成 OpenAPI 类型驱动。
+  - [ ] P6.4b 产品内授权完成后自动重试原链接、明暗主题和 390px 真实浏览器验收。
+  - 依赖：P6.2–P6.3。验证：真实浏览器授权后重试原链接；重启后无需再次手工获取。
+- [ ] P6.5 在当前宿主的独立 clean-room Compose project 中运行固定 metadata/media 矩阵，分别记录匿名成功、需平台验证和不可支持项。
+  - 依赖：P6.4。验证：使用独立临时卷、浏览器目录和项目名且不挂载业务私有状态；产出真实制品与失败证据。共享公网出口的限制单独记录，不要求额外机器。
+
 ---
 
 ## 三、可追溯性
@@ -166,6 +210,10 @@
 | R11 | §2-3 | P4.2–P4.3 |
 | R12 | §2-7 | P5.1 |
 | R13 | §5-3 | P5.2 |
+| R14 | 031 启动与能力发现 | P6.1–P6.2 |
+| R15 | 031 本机 Access Agent | P6.3 |
+| R16 | 031 便携访问阶梯 | P6.2–P6.3 |
+| R17 | 031 验收标准 | P6.4–P6.5 |
 
-- 建议排期：P1 → P2（可并行，P2.5 独立）→ P5.2（安全网，尽早）→ P3 → P4 → P5.1。
+- 建议排期：既有 P1–P5 已完成；P6.1、P6.2 和 P6.3a 已交付，下一阶段完成 P6.3b → P6.4b → P6.5，收口无额外机器的可移植部署。
 - 每项完成后按 AGENTS.md §Git 与任务交付 提交：`refactor(runner): <中文描述>` / `fix(worker): ...` / `feat(runner): ...`，附回归证据，未验收不勾选。

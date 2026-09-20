@@ -24,13 +24,13 @@ export function AnalyticsLoading() {
           </div>
         ))}
       </div>
-      <Skeleton className="h-96 rounded-none" />
-      <div className="grid gap-10 lg:grid-cols-3 lg:gap-12">
+      <Skeleton className="h-72 rounded-none sm:h-80" />
+      <div className="flex flex-col gap-20 sm:gap-28">
         {['status', 'completion', 'sources'].map((key) => (
           <div key={key}>
-            <Skeleton className="h-5 w-24" />
-            <Skeleton className="mt-2 h-4 w-48 max-w-full" />
-            <Skeleton className="mt-6 h-52 rounded-none" />
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="mt-2 h-4 w-56 max-w-full" />
+            <Skeleton className="mt-8 h-64 rounded-none sm:h-80" />
           </div>
         ))}
       </div>

@@ -1,4 +1,6 @@
 import { Warning } from '@phosphor-icons/react';
+import { cn } from 'cn';
+
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import {
   documentErrorLabel,
@@ -10,13 +12,20 @@ import {
   qualityWarningLabel,
 } from '@/components/screenplay/screenplay-document-format';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemTitle,
+} from '@/components/ui/item';
 
 export function ScreenplayDocumentMetadata({
   document,
 }: {
   document: API.DocumentDetailResponse;
 }) {
-  const fields = [
+  const fields: Array<readonly [string, string]> = [
     ['格式', documentFormatLabels[document.source_format]],
     ['语言', languageLabel(document.detected_language)],
     ['场景', countLabel(document.scene_count, '个')],
@@ -27,7 +36,7 @@ export function ScreenplayDocumentMetadata({
     ['存储策略', '持久保存'],
   ];
   const error = documentErrorLabel(document);
-  const parseFields = document.parse_summary
+  const parseFields: Array<readonly [string, string]> = document.parse_summary
     ? [
         ['页数', optionalCountLabel(document.parse_summary.page_count)],
         ['文本段', countLabel(document.parse_summary.paragraph_count, '段')],
@@ -42,10 +51,7 @@ export function ScreenplayDocumentMetadata({
     : [];
 
   return (
-    <section
-      aria-labelledby="document-metadata-title"
-      className="mt-8 py-5 sm:mt-10 sm:py-6"
-    >
+    <div className="mt-8 py-5 sm:mt-10 sm:py-6">
       <div className="flex items-baseline justify-between gap-4">
         <h2
           className="text-lg font-medium tracking-[-0.02em]"
@@ -55,29 +61,17 @@ export function ScreenplayDocumentMetadata({
         </h2>
         <span className="text-xs text-muted-foreground">导入摘要</span>
       </div>
-      <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-5 text-sm sm:grid-cols-4 lg:grid-cols-8">
-        {fields.map(([label, value]) => (
-          <div className="min-w-0" key={label}>
-            <dt className="text-xs text-muted-foreground">{label}</dt>
-            <dd className="mt-1 truncate tabular-nums" title={value}>
-              {value}
-            </dd>
-          </div>
-        ))}
-      </dl>
+      <MetadataGrid
+        className="mt-5 grid grid-cols-2 gap-x-6 gap-y-5 text-sm sm:grid-cols-4 lg:grid-cols-8"
+        fields={fields}
+      />
       {parseFields.length ? (
         <div className="mt-7">
           <h3 className="text-sm font-medium">基础解析</h3>
-          <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-5 text-sm sm:grid-cols-3 lg:grid-cols-6">
-            {parseFields.map(([label, value]) => (
-              <div className="min-w-0" key={label}>
-                <dt className="text-xs text-muted-foreground">{label}</dt>
-                <dd className="mt-1 truncate tabular-nums" title={value}>
-                  {value}
-                </dd>
-              </div>
-            ))}
-          </dl>
+          <MetadataGrid
+            className="mt-4 grid grid-cols-2 gap-x-6 gap-y-5 text-sm sm:grid-cols-3 lg:grid-cols-6"
+            fields={parseFields}
+          />
         </div>
       ) : null}
       {error ? (
@@ -103,7 +97,39 @@ export function ScreenplayDocumentMetadata({
           </div>
         </Alert>
       ) : null}
-    </section>
+    </div>
+  );
+}
+
+function MetadataGrid({
+  className,
+  fields,
+}: {
+  className?: string;
+  fields: ReadonlyArray<readonly [string, string]>;
+}) {
+  return (
+    <ItemGroup className={cn(className, 'items-stretch')}>
+      {fields.map(([label, value]) => (
+        <Item
+          className="min-w-0 items-start rounded-none border-0 px-0 py-0"
+          key={label}
+          role="listitem"
+        >
+          <ItemContent className="gap-1">
+            <ItemTitle className="text-xs font-normal text-muted-foreground">
+              {label}
+            </ItemTitle>
+            <ItemDescription
+              className="line-clamp-none truncate tabular-nums text-foreground"
+              title={value}
+            >
+              {value}
+            </ItemDescription>
+          </ItemContent>
+        </Item>
+      ))}
+    </ItemGroup>
   );
 }
 

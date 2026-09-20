@@ -1,3 +1,5 @@
+import { cn } from 'cn';
+
 import {
   Item,
   ItemActions,
@@ -29,20 +31,12 @@ export function SourcePerformanceDetails({ sources }: { sources: Source[] }) {
           <TableCaption className="sr-only">各视频源下载表现</TableCaption>
           <TableHeader className="bg-muted/35">
             <TableRow className="hover:bg-transparent">
-              <SourceHead className="w-[20%]">视频源</SourceHead>
-              <SourceHead className="w-[10%]" numeric>
-                任务
-              </SourceHead>
-              <SourceHead className="w-[11%]" numeric>
-                成功率
-              </SourceHead>
-              <SourceHead className="w-[11%]" numeric>
-                用户
-              </SourceHead>
-              <SourceHead className="w-[15%]" numeric>
-                数据量
-              </SourceHead>
-              <SourceHead className="w-[33%]">状态分布</SourceHead>
+              <SourceHead>视频源</SourceHead>
+              <SourceHead numeric>任务</SourceHead>
+              <SourceHead numeric>成功率</SourceHead>
+              <SourceHead numeric>用户</SourceHead>
+              <SourceHead numeric>数据量</SourceHead>
+              <SourceHead>状态分布</SourceHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -103,16 +97,17 @@ export function SourcePerformanceDetails({ sources }: { sources: Source[] }) {
 
 function SourceHead({
   children,
-  className,
   numeric = false,
 }: {
   children: React.ReactNode;
-  className: string;
   numeric?: boolean;
 }) {
   return (
     <TableHead
-      className={`${className} px-4 text-xs font-normal text-muted-foreground ${numeric ? 'text-right tabular-nums' : ''}`}
+      className={cn(
+        'px-4 text-xs font-normal text-muted-foreground',
+        numeric && 'text-right tabular-nums',
+      )}
       scope="col"
     >
       {children}

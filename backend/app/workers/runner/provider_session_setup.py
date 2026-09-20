@@ -18,6 +18,11 @@ from app.workers.runner.provider_cookie_boundary import (
 from app.workers.runner.provider_cookie_file import ProviderCookieFile
 from app.workers.runner.provider_cookie_lease import ProviderCookieLeaseStatus
 from app.workers.runner.provider_cookie_process import termination_guard
+from app.workers.runner.provider_session_bundle import (
+    create_backup_key,
+    decrypt_session_bundle,
+    encrypt_session_bundle,
+)
 from app.workers.runner.provider_session_policy import (
     ProviderSessionSource,
     browser_session_policy,
@@ -95,32 +100,73 @@ def capture_chrome_session(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="显式采集已登录 Chrome 或导入单平台会话文件"
+        description="采集、校验或加密迁移单平台会话文件"
     )
-    parser.add_argument("command", choices=("capture-chrome", "import", "check"))
+    parser.add_argument(
+        "command",
+        choices=(
+            "capture-chrome",
+            "import",
+            "check",
+            "create-backup-key",
+            "backup",
+            "restore",
+        ),
+    )
     parser.add_argument(
         "--provider",
         choices=sorted(str(p) for p in session_providers()),
         default="youtube",
     )
-    parser.add_argument("--directory", type=Path, required=True)
+    parser.add_argument("--directory", type=Path)
     parser.add_argument("--source", type=Path)
+    parser.add_argument("--bundle", type=Path)
+    parser.add_argument("--key-file", type=Path)
     parser.add_argument("--profile", default="Default")
     args = parser.parse_args()
     provider = ProviderKey(args.provider)
-    if args.command == "import" and args.source is None:
-        parser.error("import requires --source")
+    if args.command == "create-backup-key":
+        if args.key_file is None:
+            parser.error("create-backup-key requires --key-file")
+    else:
+        if args.directory is None:
+            parser.error(f"{args.command} requires --directory")
+        if args.command == "import" and args.source is None:
+            parser.error("import requires --source")
+        if args.command in {"backup", "restore"} and (
+            args.bundle is None or args.key_file is None
+        ):
+            parser.error(f"{args.command} requires --bundle and --key-file")
     try:
         with termination_guard():
-            if args.command == "check":
+            if args.command == "create-backup-key":
+                create_backup_key(args.key_file)
+            elif args.command == "check":
                 ProviderCookieFile(args.directory / "cookies.txt").read(
                     provider, browser_session_policy(provider).version
                 )
             elif args.command == "capture-chrome":
                 capture_chrome_session(provider, args.directory, profile=args.profile)
-            else:
+            elif args.command == "import":
                 payload = ProviderCookieFile(args.source).read(
                     provider, browser_session_policy(provider).version
+                )
+                publish_session(provider, args.directory, payload)
+            elif args.command == "backup":
+                payload = ProviderCookieFile(args.directory / "cookies.txt").read(
+                    provider, browser_session_policy(provider).version
+                )
+                encrypt_session_bundle(
+                    provider,
+                    payload,
+                    key_file=args.key_file,
+                    destination=args.bundle,
+                )
+            else:
+                payload = decrypt_session_bundle(
+                    provider,
+                    key_file=args.key_file,
+                    source=args.bundle,
                 )
                 publish_session(provider, args.directory, payload)
     except RunnerFailure as error:
@@ -129,7 +175,14 @@ def main() -> int:
     except OSError:
         print("单平台来源安装未确认：请检查目录权限、占用或磁盘状态。")
         return 1
-    print("单平台来源校验通过；仍需完成真实解析和完整文件验收。")
+    if args.command == "create-backup-key":
+        print("迁移密钥已创建；请与加密备份分开保管。")
+    elif args.command == "backup":
+        print("单平台来源已加密备份；密钥未写入备份文件。")
+    elif args.command == "restore":
+        print("单平台来源已原子恢复；仍需完成真实解析和完整文件验收。")
+    else:
+        print("单平台来源校验通过；仍需完成真实解析和完整文件验收。")
     return 0
 
 

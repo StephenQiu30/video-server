@@ -57,7 +57,7 @@ describe('simple download entry', () => {
       target: { value: 'https://youtu.be/second' },
     });
     expect(
-      screen.queryByRole('region', { name: '解析结果' }),
+      document.querySelector('[data-slot="inspection-result"]'),
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
     await screen.findByText(inspection.title);

@@ -48,6 +48,21 @@ def test_launchd_definition_is_on_demand_and_platform_neutral(
     ]
 
 
+def test_launchd_definition_can_use_provider_isolated_browser_root(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(agent.sys, "executable", "/private/venv/bin/python")
+
+    document = agent._launch_agent_plist(
+        tmp_path / "runtime",
+        "Default",
+        browser_root=tmp_path / "browser-root",
+    )
+
+    arguments = document["ProgramArguments"]
+    assert arguments[-2:] == ["--browser-root", str(tmp_path / "browser-root")]
+
+
 def test_install_prepares_only_the_encrypted_runtime_and_agent_marker(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -170,6 +185,61 @@ def test_doctor_accepts_one_provider_and_never_prints_cookie_payload(
     assert agent.main(("doctor", "--provider", "youtube")) == 0
     output = capsys.readouterr().out
     assert output == "youtube: ok\n"
+    assert "private-cookie-payload" not in output
+
+
+def test_authorize_opens_a_dedicated_profile_and_waits_for_valid_cookies(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(agent.sys, "platform", "darwin")
+    actions: list[tuple[str, ...]] = []
+    monkeypatch.setattr(
+        agent.subprocess,
+        "run",
+        lambda command, **_kwargs: actions.append(command),
+    )
+    leases = iter(
+        (
+            ProviderCookieLease(ProviderCookieLeaseStatus.CREDENTIAL_REQUIRED),
+            ProviderCookieLease(ProviderCookieLeaseStatus.OK, b"private"),
+        )
+    )
+    calls: list[Path] = []
+    monkeypatch.setattr(
+        agent,
+        "export_provider_cookie_lease_bounded",
+        lambda **kwargs: calls.append(kwargs["chrome_root"]) or next(leases),
+    )
+    clock = iter((0.0, 1.0))
+    monkeypatch.setattr(agent.time, "monotonic", lambda: next(clock))
+    monkeypatch.setattr(agent.time, "sleep", lambda _seconds: None)
+
+    assert (
+        agent.authorize_provider(
+            ProviderKey.YOUTUBE,
+            browser_root=tmp_path / "browser-root",
+            wait_seconds=10,
+        )
+        == 0
+    )
+
+    provider_root = tmp_path / "browser-root" / "youtube"
+    assert actions == [
+        (
+            "open",
+            "-na",
+            "Google Chrome",
+            "--args",
+            f"--user-data-dir={provider_root}",
+            "--profile-directory=Default",
+            "https://www.youtube.com/",
+        )
+    ]
+    assert calls == [provider_root, provider_root]
+    output = capsys.readouterr().out
+    assert "authorized: youtube" in output
     assert "private-cookie-payload" not in output
 
 

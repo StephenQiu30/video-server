@@ -168,7 +168,7 @@ describe('administrator user management', () => {
       screen.queryByRole('status', { name: '正在加载用户列表' }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: '用户管理' }).closest('section'),
+      screen.getByRole('heading', { name: '用户管理' }).closest('[aria-busy]'),
     ).toHaveAttribute('aria-busy', 'true');
 
     await act(async () =>

@@ -45,12 +45,12 @@ export default function AnalysisResultView({
         />
         <Metric label="视觉资产" value={`${result.assets.length}`} />
       </div>
-      <section className="mt-8 w-full">
+      <div className="mt-8 w-full">
         <h3 className="text-xl font-medium tracking-[-0.02em]">视觉摘要</h3>
         <p className="mt-3 text-base leading-8 text-muted-foreground">
           {result.summary.text}
         </p>
-      </section>
+      </div>
       <div className="mt-10 overflow-x-auto">
         <TabsList
           className="h-auto w-max gap-7 rounded-none p-0"

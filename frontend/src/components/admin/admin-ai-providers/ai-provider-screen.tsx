@@ -38,7 +38,7 @@ export function AiProviderScreen({
 }: Props) {
   const active = items.find((item) => item.is_active);
   return (
-    <section aria-busy={loading} className="flex flex-col gap-12">
+    <div aria-busy={loading} className="flex flex-col gap-12">
       <div>
         <BackLink className="mb-4" fallbackHref="/" />
         <PageHeader
@@ -82,7 +82,7 @@ export function AiProviderScreen({
         )
       ) : null}
 
-      <section aria-labelledby="active-ai-route">
+      <div>
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-muted-foreground">
@@ -137,9 +137,9 @@ export function AiProviderScreen({
             消息队列。
           </p>
         ) : null}
-      </section>
+      </div>
 
-      <section aria-labelledby="ai-provider-list">
+      <div>
         <div className="mb-5 flex items-center justify-between gap-4">
           <h2
             className="text-xl font-medium tracking-[-0.025em]"
@@ -166,7 +166,7 @@ export function AiProviderScreen({
                 />
               ))}
         </div>
-      </section>
-    </section>
+      </div>
+    </div>
   );
 }

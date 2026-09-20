@@ -20,12 +20,18 @@ from app.services.provider_types import (
     ProviderCanaryResult,
     ProviderCanaryStage,
 )
-from app.workers.canary.service import ProviderCanaryService
+from app.workers.canary.service import ProviderCanaryService, _stable_error
 from app.workers.canary.targets import ProviderCanaryTarget
 from tests.unit.workers.runner.helpers import download_request
 
 NOW = datetime(2026, 8, 11, 5, tzinfo=UTC)
 URL = "https://www.youtube.com/watch?v=owned"
+
+
+def test_download_failure_keeps_a_stable_runner_error() -> None:
+    assert _stable_error(MediaRunnerClientError("download_failed", 502)) == (
+        "download_failed"
+    )
 
 
 class Repository:

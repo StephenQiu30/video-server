@@ -10,6 +10,7 @@ from app.services.provider_access import ProviderAccessPolicy
 from app.services.provider_types import (
     ProviderAccessContextRef,
     ProviderAccessMode,
+    ProviderAccessState,
     ProviderCapability,
     ProviderKey,
     ProviderSupportStatus,
@@ -79,6 +80,34 @@ class ProviderStatusView:
             and bool(downloadable.intersection(self.capabilities))
         )
 
+    @property
+    def access_state(self) -> ProviderAccessState:
+        """Project internal evidence into one actionable public state."""
+        if self.status is ProviderSupportStatus.DISABLED:
+            return ProviderAccessState.DISABLED
+        if self.status is ProviderSupportStatus.UNSUPPORTED:
+            return ProviderAccessState.UNSUPPORTED
+        if self.status is ProviderSupportStatus.ACCESS_REQUIRED:
+            return ProviderAccessState.AUTHORIZATION_REQUIRED
+        if self.status is ProviderSupportStatus.BLOCKED:
+            return ProviderAccessState.BLOCKED
+        if self.status in {
+            ProviderSupportStatus.DEGRADED,
+            ProviderSupportStatus.RATE_LIMITED,
+        }:
+            return ProviderAccessState.DEGRADED
+        if ProviderAccessMode.OPERATOR_MANAGED in self.access_modes:
+            if self.status is ProviderSupportStatus.VERIFIED and (
+                self.download_available or self.last_verified_at is not None
+            ):
+                return ProviderAccessState.OPERATOR_READY
+            return ProviderAccessState.OPERATOR_PROBE
+        if self.status is ProviderSupportStatus.VERIFIED and (
+            self.download_available or self.last_verified_at is not None
+        ):
+            return ProviderAccessState.PUBLIC_READY
+        return ProviderAccessState.PUBLIC_PROBE
+
 
 def provider_user_action(
     status: ProviderSupportStatus,
@@ -116,6 +145,11 @@ def provider_user_action(
             "请使用新的公开分享链接后稍后重试。"
         )
     if status is ProviderSupportStatus.ACCESS_REQUIRED:
+        if access_mode is ProviderAccessMode.OPERATOR_MANAGED:
+            return (
+                "当前公开出口需要平台授权或验证；请在运行本项目的设备完成一次受控浏览器授权，"
+                "授权数据仅用于本机受控线路，不上传到第三方。"
+            )
         return (
             "该平台当前要求额外授权或验证；请稍后重试，或上传你拥有或已获授权的文件。"
         )

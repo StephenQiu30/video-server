@@ -5,7 +5,13 @@ import {
   UsersThreeIcon,
 } from '@phosphor-icons/react';
 
-import { Progress } from '@/components/ui/progress';
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemTitle,
+} from '@/components/ui/item';
 
 import {
   formatBytes,
@@ -31,7 +37,6 @@ export function AnalyticsKpis({
       label: '成功率',
       value: formatPercent(summary.success_rate),
       detail: `失败 ${formatInteger(summary.failed)} · 取消 ${formatInteger(summary.cancelled)}`,
-      progress: summary.success_rate,
     },
     {
       icon: UsersThreeIcon,
@@ -48,47 +53,40 @@ export function AnalyticsKpis({
   ];
 
   return (
-    <section aria-labelledby="analytics-overview-title">
-      <div className="flex items-end justify-between gap-6">
+    <div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
         <div>
-          <h2 className="text-lg font-medium" id="analytics-overview-title">
-            周期概览
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h2 className="text-xl font-medium tracking-[-0.025em]">周期概览</h2>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
             当前统计周期的核心下载指标。
           </p>
         </div>
-        <p className="hidden text-xs text-muted-foreground sm:block">
-          数据自动汇总
-        </p>
+        <p className="text-xs text-muted-foreground sm:block">数据自动汇总</p>
       </div>
-      <dl className="mt-7 grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-4 lg:gap-10">
+      <ItemGroup className="mt-10 grid grid-cols-2 gap-x-8 gap-y-12 sm:grid-cols-4 sm:gap-10">
         {metrics.map((metric) => {
           return (
-            <div className="min-w-0" key={metric.label}>
-              <dt className="flex items-center gap-2 text-xs text-muted-foreground">
-                <metric.icon aria-hidden className="size-4" />
-                {metric.label}
-              </dt>
-              <dd className="mt-3 text-[clamp(1.9rem,4vw,3rem)] font-medium leading-none tracking-[-0.055em] tabular-nums">
-                {metric.value}
-              </dd>
-              <dd className="mt-3 min-h-9 text-xs leading-5 text-muted-foreground sm:min-h-0">
-                {metric.detail}
-              </dd>
-              {metric.progress === undefined ? null : (
-                <dd className="mt-4">
-                  <Progress
-                    aria-label={`下载成功率 ${formatPercent(metric.progress)}`}
-                    className="h-1 bg-muted"
-                    value={metric.progress}
-                  />
-                </dd>
-              )}
-            </div>
+            <Item
+              className="min-w-0 items-start rounded-none border-0 px-0 py-0"
+              key={metric.label}
+              role="listitem"
+            >
+              <ItemContent className="gap-0">
+                <ItemTitle className="flex items-center gap-2 text-xs font-normal text-muted-foreground">
+                  <metric.icon aria-hidden className="size-4" />
+                  {metric.label}
+                </ItemTitle>
+                <p className="mt-3 text-[clamp(2rem,4vw,3.25rem)] font-medium leading-none tracking-[-0.055em] tabular-nums">
+                  {metric.value}
+                </p>
+                <ItemDescription className="mt-3 min-h-9 leading-5 sm:min-h-0">
+                  {metric.detail}
+                </ItemDescription>
+              </ItemContent>
+            </Item>
           );
         })}
-      </dl>
-    </section>
+      </ItemGroup>
+    </div>
   );
 }

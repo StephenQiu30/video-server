@@ -23,7 +23,7 @@ export function ContentIntakeHero({
   screenplayForm: ReactNode;
   videoForm: ReactNode;
 }) {
-  const rootRef = useRef<HTMLElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const previousModeRef = useRef(mode);
 
   useEffect(() => {
@@ -39,7 +39,7 @@ export function ContentIntakeHero({
   }, [mode]);
 
   return (
-    <section className="pt-10 sm:pt-12 lg:pt-14" ref={rootRef}>
+    <div className="pt-10 sm:pt-12 lg:pt-14" ref={rootRef}>
       <EditorialIntro
         description="解析公开视频、图片与合集链接，或上传本地视频与剧本文档。"
         title={
@@ -96,6 +96,6 @@ export function ContentIntakeHero({
           {screenplayForm}
         </TabsContent>
       </Tabs>
-    </section>
+    </div>
   );
 }

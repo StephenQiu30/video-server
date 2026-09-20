@@ -69,7 +69,11 @@ export function AccountView() {
 
   if (loading) {
     return (
-      <section aria-label="正在加载个人资料" className="flex flex-col gap-8">
+      <div
+        aria-label="正在加载个人资料"
+        className="flex flex-col gap-8"
+        role="status"
+      >
         <Skeleton className="h-3 w-32" />
         <Skeleton className="h-24 w-full max-w-2xl" />
         <div className="grid gap-12 pt-4 lg:grid-cols-[minmax(220px,0.7fr)_minmax(0,1.3fr)] lg:gap-20">
@@ -79,7 +83,7 @@ export function AccountView() {
             <Skeleton className="h-20 w-full" />
           </div>
         </div>
-      </section>
+      </div>
     );
   }
 
@@ -99,7 +103,7 @@ export function AccountView() {
   const initials = user.username.trim().slice(0, 2).toUpperCase();
 
   return (
-    <section>
+    <div>
       <BackLink className="mb-4" fallbackHref="/" />
       <PageHeader
         description="管理公开用户名，并查看不会随任务变化的账户身份信息。"
@@ -192,6 +196,6 @@ export function AccountView() {
           </div>
         </div>
       </Form>
-    </section>
+    </div>
   );
 }

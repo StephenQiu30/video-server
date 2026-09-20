@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
 import {
   Table,
   TableBody,
@@ -12,7 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Separator } from '@/components/ui/separator';
 
 import type { MarkdownHeading } from './screenplay-document-toc';
 
@@ -45,8 +45,7 @@ export function ScreenplayDocumentPreview({
   const headingCursor = { current: 0 };
 
   return (
-    <section
-      aria-labelledby="screenplay-preview-title"
+    <div
       className="min-w-0 lg:grid lg:h-full lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)_auto]"
       data-testid="screenplay-preview-column"
     >
@@ -212,7 +211,7 @@ export function ScreenplayDocumentPreview({
           {previewStatusMessage(document.status)}
         </div>
       )}
-    </section>
+    </div>
   );
 }
 

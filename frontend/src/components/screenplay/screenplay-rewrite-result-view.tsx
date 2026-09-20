@@ -55,7 +55,7 @@ export default function ScreenplayRewriteResultView({
         </TabsList>
       </div>
       <TabsContent className="pt-7" value="summary">
-        <section aria-labelledby="rewrite-glossary-title">
+        <div>
           <h3
             className="text-xl font-medium tracking-[-0.02em]"
             id="rewrite-glossary-title"
@@ -63,7 +63,7 @@ export default function ScreenplayRewriteResultView({
             统一术语
           </h3>
           {result.glossary.length ? (
-            <Table className="mt-4 min-w-[560px] border-collapse text-left text-sm">
+            <Table className="mt-4 border-collapse text-left text-sm">
               <TableCaption className="sr-only">
                 剧本改写统一术语表
               </TableCaption>
@@ -101,11 +101,8 @@ export default function ScreenplayRewriteResultView({
               本次改写没有需要单独统一的术语。
             </p>
           )}
-        </section>
-        <section
-          className="mt-10 max-w-4xl"
-          aria-labelledby="rewrite-summary-title"
-        >
+        </div>
+        <div className="mt-10 max-w-4xl">
           <h3
             className="text-xl font-medium tracking-[-0.02em]"
             id="rewrite-summary-title"
@@ -117,7 +114,7 @@ export default function ScreenplayRewriteResultView({
               <li key={summary}>{summary}</li>
             ))}
           </ul>
-        </section>
+        </div>
       </TabsContent>
       {reportMarkdown ? (
         <TabsContent className="pt-7" value="report">

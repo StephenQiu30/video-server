@@ -5,6 +5,13 @@ import { DownloadSimple, UploadSimple } from '@phosphor-icons/react';
 import FormatPicker from '@/components/intake/format-picker';
 import MediaCover from '@/components/intake/media-cover';
 import { Button } from '@/components/ui/button';
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemTitle,
+} from '@/components/ui/item';
 import { formatDuration } from '@/lib/format';
 import { audioCodecLabel } from '@/lib/media-format';
 
@@ -33,8 +40,8 @@ export default function InspectionWorkspace({
   const collection = inspection.media_kind === 'video_collection';
 
   return (
-    <section
-      aria-label="解析结果"
+    <div
+      data-slot="inspection-result"
       className="grid gap-10 pt-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(360px,1fr)] lg:gap-14"
     >
       <div className="min-w-0">
@@ -54,7 +61,7 @@ export default function InspectionWorkspace({
         <h2 className="mt-5 text-xl font-medium leading-8 tracking-[-0.025em] sm:text-2xl">
           {inspection.title}
         </h2>
-        <dl className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground tabular-nums">
+        <ItemGroup className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground tabular-nums">
           <Meta label="平台" mono value={inspection.extractor_key} />
           {inspection.duration_seconds > 0 ? (
             <Meta
@@ -78,7 +85,7 @@ export default function InspectionWorkspace({
               value={`${selected.plan.width}×${selected.plan.height}`}
             />
           ) : null}
-        </dl>
+        </ItemGroup>
       </div>
 
       <div className="min-w-0">
@@ -104,7 +111,7 @@ export default function InspectionWorkspace({
           </div>
         )}
         {selected?.plan ? (
-          <dl className="mt-7 grid grid-cols-2 gap-x-5 gap-y-4 pt-5 text-sm">
+          <ItemGroup className="mt-7 grid grid-cols-2 gap-x-5 gap-y-4 pt-5 text-sm">
             <SelectionMeta
               label="容器"
               value={selected.plan.container_preference.toUpperCase()}
@@ -121,9 +128,9 @@ export default function InspectionWorkspace({
               label="音频编码"
               value={audioCodecLabel(selected.plan.audio_codec_family)}
             />
-          </dl>
+          </ItemGroup>
         ) : (gallery || collection) && selected ? (
-          <dl className="mt-7 grid grid-cols-2 gap-x-5 gap-y-4 pt-5 text-sm">
+          <ItemGroup className="mt-7 grid grid-cols-2 gap-x-5 gap-y-4 pt-5 text-sm">
             <SelectionMeta
               label="媒体类型"
               value={collection ? '视频合集' : '官方图文'}
@@ -139,7 +146,7 @@ export default function InspectionWorkspace({
               label="下载方式"
               value={collection ? '视频打包' : '原图打包'}
             />
-          </dl>
+          </ItemGroup>
         ) : null}
         {inspection.access_decision === 'export_required' ? (
           <Button
@@ -160,7 +167,7 @@ export default function InspectionWorkspace({
           </Button>
         ) : null}
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -191,10 +198,17 @@ function Meta({
   value: string;
 }) {
   return (
-    <div className="flex items-center gap-3 before:content-['·'] first:before:hidden">
-      <dt className="sr-only">{label}</dt>
-      <dd className={mono ? 'font-mono' : 'tabular-nums'}>{value}</dd>
-    </div>
+    <Item
+      className="flex w-auto items-center gap-3 rounded-none border-0 px-0 py-0 before:content-['·'] first:before:hidden"
+      role="listitem"
+    >
+      <ItemContent className="flex-none gap-0">
+        <ItemTitle className="sr-only">{label}</ItemTitle>
+        <ItemDescription className={mono ? 'font-mono' : 'tabular-nums'}>
+          {value}
+        </ItemDescription>
+      </ItemContent>
+    </Item>
   );
 }
 
@@ -216,10 +230,19 @@ function inspectionDetailLabel(
 
 function SelectionMeta({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-1 font-medium">{value}</dd>
-    </div>
+    <Item
+      className="items-start rounded-none border-0 px-0 py-0"
+      role="listitem"
+    >
+      <ItemContent className="gap-1">
+        <ItemTitle className="text-xs font-normal text-muted-foreground">
+          {label}
+        </ItemTitle>
+        <ItemDescription className="line-clamp-none font-medium text-foreground">
+          {value}
+        </ItemDescription>
+      </ItemContent>
+    </Item>
   );
 }
 

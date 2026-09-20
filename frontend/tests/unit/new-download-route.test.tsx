@@ -6,7 +6,7 @@ import NewDownloadPage from '@/app/downloads/new/page';
 
 vi.mock('@/components/auth/protected-route', () => ({
   ProtectedRoute: ({ children }: { children: ReactNode }) => (
-    <section data-testid="protected-route">{children}</section>
+    <div data-testid="protected-route">{children}</div>
   ),
 }));
 

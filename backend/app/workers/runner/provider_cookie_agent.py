@@ -8,13 +8,14 @@ import plistlib
 import stat
 import subprocess
 import sys
+import time
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor, wait
 from pathlib import Path
 from typing import Any
 
 from app.services.provider_types import ProviderKey, ProviderSessionVersion
-from app.workers.runner._secure_file import atomic_write_bytes
+from app.workers.runner._secure_file import atomic_write_bytes, ensure_private_directory
 from app.workers.runner.provider_cookie_boundary import (
     export_provider_cookie_lease_bounded,
 )
@@ -33,7 +34,11 @@ from app.workers.runner.provider_cookie_queue import (
     drain_request_batch,
     prepare_runtime,
 )
-from app.workers.runner.provider_session_policy import browser_session_providers
+from app.workers.runner.provider_session_policy import (
+    ProviderSessionSource,
+    browser_session_policy,
+    browser_session_providers,
+)
 
 SERVICE_ID = "com.framefetch.provider-cookie-agent"
 PLIST_PATH = Path.home() / "Library" / "LaunchAgents" / f"{SERVICE_ID}.plist"
@@ -44,25 +49,45 @@ PROJECT_ROOT = Path(__file__).resolve().parents[4]
 DEFAULT_RUNTIME_ROOT = (
     Path.home() / "Library" / "Caches" / "FrameFetch" / "provider-cookie-agent"
 )
+DEFAULT_BROWSER_ROOT = (
+    Path.home()
+    / "Library"
+    / "Application Support"
+    / "FrameFetch"
+    / "provider-browser-sessions"
+)
+_AUTHORIZATION_URLS = {
+    ProviderKey.YOUTUBE: "https://www.youtube.com/",
+    ProviderKey.DOUYIN: "https://www.douyin.com/",
+    ProviderKey.XIAOHONGSHU: "https://www.xiaohongshu.com/",
+    ProviderKey.X: "https://x.com/",
+    ProviderKey.INSTAGRAM: "https://www.instagram.com/",
+    ProviderKey.FACEBOOK: "https://www.facebook.com/",
+    ProviderKey.REDDIT: "https://www.reddit.com/",
+    ProviderKey.PINTEREST: "https://www.pinterest.com/",
+}
 
 
 def install_agent(
     runtime_root: Path,
     *,
     profile: str,
+    browser_root: Path | None = None,
 ) -> None:
     _require_macos()
     runtime_root = runtime_root.absolute()
     _stop_loaded_agent()
     runtime_root.mkdir(mode=0o711, parents=True, exist_ok=True)
     os.chmod(runtime_root, 0o711)
+    if browser_root is not None:
+        ensure_private_directory(browser_root.absolute())
     for provider in browser_session_providers():
         provider_root = _provider_runtime(runtime_root, provider)
         prepare_runtime(provider_root)
         _write_ready_marker(provider_root)
     _write_plist(
         PLIST_PATH,
-        _launch_agent_plist(runtime_root, profile),
+        _launch_agent_plist(runtime_root, profile, browser_root=browser_root),
     )
     subprocess.run(("launchctl", "bootstrap", _domain(), str(PLIST_PATH)), check=True)
     print(f"installed: {PLIST_PATH}")
@@ -106,6 +131,7 @@ def diagnose_sources(
     *,
     profile: str,
     provider: ProviderKey | None = None,
+    browser_root: Path | None = None,
 ) -> int:
     """Report bounded, non-secret source states for operator diagnostics."""
     providers = (
@@ -118,10 +144,18 @@ def diagnose_sources(
 
     def diagnose(item: ProviderKey) -> ProviderCookieLease:
         try:
+            resolved_root = _browser_root_or_none(browser_root, item)
+            if resolved_root is None:
+                return export_provider_cookie_lease_bounded(
+                    provider=item,
+                    profile=profile,
+                    version=ProviderSessionVersion.BROWSER,
+                )
             return export_provider_cookie_lease_bounded(
                 provider=item,
                 profile=profile,
                 version=ProviderSessionVersion.BROWSER,
+                chrome_root=resolved_root,
             )
         except Exception:
             return ProviderCookieLease(ProviderCookieLeaseStatus.SESSION_UNAVAILABLE)
@@ -144,19 +178,24 @@ def diagnose_sources(
 def _launch_agent_plist(
     runtime_root: Path,
     profile: str,
+    *,
+    browser_root: Path | None = None,
 ) -> dict[str, Any]:
+    arguments = [
+        str(Path(sys.executable).absolute()),
+        "-m",
+        "app.workers.runner.provider_cookie_agent",
+        "run",
+        "--runtime-root",
+        str(runtime_root),
+        "--profile",
+        profile,
+    ]
+    if browser_root is not None:
+        arguments.extend(("--browser-root", str(browser_root.absolute())))
     return {
         "Label": SERVICE_ID,
-        "ProgramArguments": [
-            str(Path(sys.executable).absolute()),
-            "-m",
-            "app.workers.runner.provider_cookie_agent",
-            "run",
-            "--runtime-root",
-            str(runtime_root),
-            "--profile",
-            profile,
-        ],
+        "ProgramArguments": arguments,
         "WorkingDirectory": str(PROJECT_ROOT / "backend"),
         "QueueDirectories": [
             str(_provider_runtime(runtime_root, provider) / "requests")
@@ -213,27 +252,95 @@ def _require_macos() -> None:
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="帧取平台 Cookie 同步工具")
     parser.add_argument(
-        "command", choices=("install", "status", "doctor", "uninstall", "run")
+        "command",
+        choices=("install", "status", "doctor", "uninstall", "run", "authorize"),
     )
     parser.add_argument("--runtime-root", type=Path, default=DEFAULT_RUNTIME_ROOT)
     parser.add_argument("--profile", default=DEFAULT_PROFILE)
     parser.add_argument("--provider", type=ProviderKey)
+    parser.add_argument("--browser-root", type=Path, default=DEFAULT_BROWSER_ROOT)
+    parser.add_argument("--wait-seconds", type=float, default=600.0)
     return parser
+
+
+def authorize_provider(
+    provider: ProviderKey,
+    *,
+    browser_root: Path = DEFAULT_BROWSER_ROOT,
+    profile: str = DEFAULT_PROFILE,
+    wait_seconds: float = 600.0,
+) -> int:
+    """Open one dedicated browser profile and wait for a valid session."""
+    _require_macos()
+    if (
+        browser_session_policy(provider).source
+        is not ProviderSessionSource.CHROME_PROFILE
+    ):
+        raise SystemExit(
+            f"{provider.value} uses a managed non-Chrome session and cannot be "
+            "authorized by this agent"
+        )
+    if provider not in _AUTHORIZATION_URLS:
+        raise SystemExit(f"{provider.value} has no local browser authorization flow")
+    if wait_seconds <= 0:
+        raise SystemExit("wait-seconds must be positive")
+    provider_root = _provider_browser_root(browser_root, provider)
+    subprocess.run(
+        (
+            "open",
+            "-na",
+            "Google Chrome",
+            "--args",
+            f"--user-data-dir={provider_root}",
+            "--profile-directory=Default",
+            _AUTHORIZATION_URLS[provider],
+        ),
+        check=True,
+    )
+    print(f"browser-opened: {provider.value}")
+    deadline = time.monotonic() + wait_seconds
+    while True:
+        result = export_provider_cookie_lease_bounded(
+            provider=provider,
+            profile=profile,
+            version=ProviderSessionVersion.BROWSER,
+            chrome_root=provider_root,
+        )
+        if result.status is ProviderCookieLeaseStatus.OK:
+            print(f"authorized: {provider.value}")
+            print(
+                "next: install the on-demand agent with "
+                f"--browser-root {browser_root.absolute()}"
+            )
+            return 0
+        if time.monotonic() >= deadline:
+            print(f"authorization-timeout: {provider.value}")
+            return _DIAGNOSTIC_FAILURE
+        time.sleep(2)
 
 
 def drain_requests(
     runtime_root: Path,
     *,
     profile: str,
+    browser_root: Path | None = None,
     acknowledgement_timeout_seconds: float = DEFAULT_ACK_TIMEOUT_SECONDS,
 ) -> None:
     def refresh(
         provider: ProviderKey, version: ProviderSessionVersion
     ) -> ProviderCookieLease:
+        resolved_root = _browser_root_or_none(browser_root, provider)
+        if resolved_root is None:
+            return export_provider_cookie_lease_bounded(
+                provider=provider,
+                profile=profile,
+                version=version,
+            )
         return export_provider_cookie_lease_bounded(
             provider=provider,
             profile=profile,
             version=version,
+            chrome_root=resolved_root,
         )
 
     providers = sorted(browser_session_providers(), key=str)
@@ -280,6 +387,25 @@ def _provider_runtime(runtime_root: Path, provider: ProviderKey) -> Path:
     return runtime_root / provider.value
 
 
+def _provider_browser_root(browser_root: Path, provider: ProviderKey) -> Path:
+    root = browser_root.absolute()
+    ensure_private_directory(root)
+    provider_root = root / provider.value
+    ensure_private_directory(provider_root)
+    return provider_root
+
+
+def _browser_root_or_none(
+    browser_root: Path | None, provider: ProviderKey
+) -> Path | None:
+    if browser_root is None or (
+        browser_session_policy(provider).source
+        is not ProviderSessionSource.CHROME_PROFILE
+    ):
+        return None
+    return _provider_browser_root(browser_root, provider)
+
+
 def _write_response(
     target: Path,
     request: ProviderCookieRequest,
@@ -300,17 +426,32 @@ def main(argv: Sequence[str] | None = None) -> int:
         install_agent(
             args.runtime_root,
             profile=args.profile,
+            browser_root=args.browser_root,
         )
     elif args.command == "uninstall":
         uninstall_agent(args.runtime_root)
     elif args.command == "status":
         return agent_status()
     elif args.command == "doctor":
-        return diagnose_sources(profile=args.profile, provider=args.provider)
+        return diagnose_sources(
+            profile=args.profile,
+            provider=args.provider,
+            browser_root=args.browser_root,
+        )
+    elif args.command == "authorize":
+        if args.provider is None:
+            raise SystemExit("authorize requires --provider")
+        return authorize_provider(
+            args.provider,
+            browser_root=args.browser_root or DEFAULT_BROWSER_ROOT,
+            profile=args.profile,
+            wait_seconds=args.wait_seconds,
+        )
     else:
         drain_requests(
             args.runtime_root,
             profile=args.profile,
+            browser_root=args.browser_root,
         )
     return 0
 

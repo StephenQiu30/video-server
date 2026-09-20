@@ -6,7 +6,7 @@
 - 前置调研：`docs/research/003-多平台下载会话与GitHub适配调研.md`
 - 实现状态：Phase 1 已落地版本化 Profile、非 Secret 访问上下文、匿名/YouTube 运维 Runner 路由、操作级 Cookie jar、Redis 跨副本凭据租约、权益防火墙、服务端托管 POT sidecar、稳定错误、Provider 探针结果表/定时执行器/动态状态聚合、`GET /api/providers` 与前端状态页。YouTube 已停止 yt-dlp 与 Runner 的同出口立即重试放大；授权目标的真实 Cookie/POT canary、完整视频 Agent E2E、账号权益漂移自动停用，以及遵守 `Retry-After` 的跨层总预算/cooldown 仍是生产发布门禁；Phase 2 的用户 Credential Broker/Vault 与 gallery-dl 尚未实现。
 
-> 当前实现：Provider Profile 与会话来源由中央枚举登记，独立 Runner 按 profile 选择。生产只使用 `docker-compose-prod.yml`；YouTube、抖音、Reddit读取独立只读文件，视频号使用专用持久元宝 Profile，腾讯视频与优酷保留个人文件实验线路。其他已验证公开平台只走匿名 Runner。运行策略由部署默认与显式准入决定，不在失败后切换账号或读取日常 Chrome。YouTube 保留 mweb、EJS 和固定 bgutil POT sidecar；POT 不能修复登录过期或出口挑战。
+> 当前实现：Provider Profile 与会话来源由中央枚举登记，独立 Runner 按 profile 选择。标准 Compose 的 YouTube、抖音、Reddit 使用当前宿主按 Provider 隔离的 Agent 加密队列；视频号使用专用持久元宝 Profile，腾讯视频与优酷保留个人文件实验线路。其他已验证公开平台只走匿名 Runner。运行策略由部署默认与显式准入决定，不在失败后切换账号或读取日常 Chrome。YouTube 保留 mweb、EJS 和固定 bgutil POT sidecar；POT 不能修复登录过期或出口挑战。
 
 ## 1. 目标
 
@@ -239,7 +239,7 @@ engine_commit
 
 ### 8.2 macOS 单机按需来源
 
-- 只有当前登录的 macOS 用户显式安装助手并启用对应 Operator 后，解析/下载操作才可触发浏览器来源。本机开发及 production Compose 可显式合并浏览器来源覆盖；视频号使用专用元宝目录，其他平台按域读取 Chrome Default。Linux 文件来源见 031，不在失败后自动切换来源。
+- 只有当前登录的 macOS 用户显式安装助手并启用对应 Operator 后，解析/下载操作才可触发浏览器来源。本机开发及 production Compose 将对应 Provider 的加密队列挂载到 Runner；视频号使用专用元宝目录，优酷/腾讯视频保留文件来源。无 Agent 的 Linux/无人桌面部署只走匿名路线，不能在失败后静默切换来源。
 - Chrome Cookies 数据库的 SQL 查询在选择阶段就限制为当前 Provider 的中央域 allowlist，只返回并解密中选行；其他域 Cookie 不进入 helper 的查询结果、输出或日志。
 - 单次读取在独立进程组中执行，持有 15 秒硬超时；成功后立即退出，超时、取消或异常时终止并回收整个进程组。视频号导出按需启动专用 Chrome 并在结束关闭；助手不长期持有浏览器，不使用定时轮询或常驻端口。
 - `browser` 表示动态本机来源协议，不是 Cookie 原文哈希或内容 cohort。其平台状态历史只能证明该来源在相同非敏感上下文近期完成过制品，不证明当前 Cookie 未轮换或仍可用，不能单独将 `access_required` 提升为 `verified`。

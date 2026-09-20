@@ -11,7 +11,7 @@ import {
   Metric,
   ResultTab,
 } from '@/components/screenplay/screenplay-result-primitives';
-import { Item } from '@/components/ui/item';
+import { Item, ItemGroup } from '@/components/ui/item';
 import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
 
 export default function ScreenplayAnalysisResultView({
@@ -30,7 +30,7 @@ export default function ScreenplayAnalysisResultView({
       </div>
       <div className="mt-9 max-w-none">
         <h2 className="text-xl font-medium tracking-[-0.02em]">故事概览</h2>
-        <dl className="mt-5 grid gap-5">
+        <ItemGroup className="mt-5 grid gap-5">
           <Detail label="一句话梗概">
             <span className="text-lg leading-8">{result.logline}</span>
           </Detail>
@@ -39,16 +39,16 @@ export default function ScreenplayAnalysisResultView({
               {result.synopsis}
             </span>
           </Detail>
-        </dl>
+        </ItemGroup>
       </div>
       <ResultTabs reportMarkdown={reportMarkdown} />
       <TabsContent className="pt-7" value="overview">
-        <section className="max-w-none">
+        <div className="max-w-none">
           <h3 className="text-xl font-medium tracking-[-0.02em]">结构与节奏</h3>
           <p className="mt-3 leading-7 text-muted-foreground">
             {result.structure.pacing_summary}
           </p>
-        </section>
+        </div>
         <EvidenceList
           heading="幕结构"
           items={result.structure.acts}
@@ -71,11 +71,11 @@ export default function ScreenplayAnalysisResultView({
               >
                 <li>
                   <strong className="font-medium">{character.name}</strong>
-                  <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-3">
+                  <ItemGroup className="mt-4 grid gap-4 text-sm sm:grid-cols-3">
                     <Detail label="目标">{character.goal}</Detail>
                     <Detail label="冲突">{character.conflict}</Detail>
                     <Detail label="人物弧">{character.arc}</Detail>
-                  </dl>
+                  </ItemGroup>
                   <EvidenceIds ids={character.evidence_scene_ids} />
                 </li>
               </Item>

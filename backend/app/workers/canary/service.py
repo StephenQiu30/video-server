@@ -62,6 +62,7 @@ _INSPECTION_ERRORS: tuple[tuple[type[Exception], str], ...] = (
 )
 _RUNNER_ERRORS = {
     "canary_internal_error",
+    "download_failed",
     "download_timeout",
     "client_context_mismatch",
     "extractor_regression",

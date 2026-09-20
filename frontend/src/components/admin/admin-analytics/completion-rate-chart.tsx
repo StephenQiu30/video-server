@@ -19,12 +19,16 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-import { formatPercent, formatShortDate } from './analytics-format';
+import {
+  ANALYTICS_CHART_COLOR,
+  formatPercent,
+  formatShortDate,
+} from './analytics-format';
 
 type DailyPoint = API.DownloadAnalyticsResponse['daily'][number];
 
 const completionConfig = {
-  rate: { color: 'var(--chart-4)', label: '成功率' },
+  rate: { color: ANALYTICS_CHART_COLOR, label: '成功率' },
 } satisfies ChartConfig;
 
 export function CompletionRateChart({ daily }: { daily: DailyPoint[] }) {
@@ -37,20 +41,20 @@ export function CompletionRateChart({ daily }: { daily: DailyPoint[] }) {
   const latest = points.at(-1)?.rate ?? 0;
 
   return (
-    <section aria-labelledby="completion-rate-title">
+    <div className="w-full">
       <h2
-        className="flex items-center gap-2 text-base font-medium"
+        className="flex items-center gap-2 text-xl font-medium tracking-[-0.025em]"
         id="completion-rate-title"
       >
         <TrendUpIcon aria-hidden className="size-4 text-muted-foreground" />
         完成率走势
       </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
         按天观察成功完成任务的比例变化。
       </p>
       <ChartContainer
         aria-label="每日下载成功率面积图"
-        className="mt-5 h-52 w-full aspect-auto"
+        className="mt-8 h-64 w-full aspect-auto sm:h-80"
         config={completionConfig}
         role="img"
       >
@@ -105,7 +109,7 @@ export function CompletionRateChart({ daily }: { daily: DailyPoint[] }) {
           />
         </AreaChart>
       </ChartContainer>
-      <p className="mt-4 text-sm font-medium tabular-nums">
+      <p className="mt-5 text-sm font-medium tabular-nums">
         最近一天 {formatPercent(latest)}
       </p>
       <Table className="sr-only">
@@ -125,6 +129,6 @@ export function CompletionRateChart({ daily }: { daily: DailyPoint[] }) {
           ))}
         </TableBody>
       </Table>
-    </section>
+    </div>
   );
 }

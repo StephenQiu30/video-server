@@ -35,7 +35,7 @@ export default function DownloadHistoryList({
   pendingAction: { id: string; type: 'delete' | 'download' | 'retry' } | null;
 }) {
   return (
-    <section aria-label="下载任务" className="mt-4">
+    <div className="mt-4">
       {loading && !data ? <LoadingRows /> : null}
       {data?.items.length ? (
         <ItemGroup className="gap-2">
@@ -59,7 +59,7 @@ export default function DownloadHistoryList({
           title="没有匹配的下载记录"
         />
       ) : null}
-    </section>
+    </div>
   );
 }
 

@@ -114,7 +114,7 @@ export default function DownloadJobView({
               )}
             </p>
           </header>
-          <section className="mt-8 grid items-start gap-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.65fr)] lg:gap-16 xl:gap-24">
+          <div className="mt-8 grid items-start gap-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.65fr)] lg:gap-16 xl:gap-24">
             <div className="min-w-0">
               {state.job.status === 'succeeded' &&
               state.job.file_available &&
@@ -181,7 +181,7 @@ export default function DownloadJobView({
                 </p>
               ) : null}
             </div>
-          </section>
+          </div>
           {state.job.status === 'succeeded' ? (
             !gallery && !collection ? (
               <div className="mt-14 sm:mt-20">

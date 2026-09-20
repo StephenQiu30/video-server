@@ -129,7 +129,7 @@ describe('administrator provider catalog management', () => {
       screen.queryByRole('status', { name: '正在加载平台目录' }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: '平台目录' }).closest('section'),
+      screen.getByRole('heading', { name: '平台目录' }).closest('[aria-busy]'),
     ).toHaveAttribute('aria-busy', 'true');
   });
 

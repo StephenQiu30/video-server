@@ -12,9 +12,23 @@ import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 
 import { formatDateRange } from './analytics-format';
+
+const periodLabels = {
+  7: '最近 7 天',
+  30: '最近 30 天',
+  90: '最近 3 个月',
+} as const;
 
 type AdminAnalyticsScreenProps = {
   data: API.DownloadAnalyticsResponse | null;
@@ -34,20 +48,48 @@ export function AdminAnalyticsScreen({
   onRetry,
 }: AdminAnalyticsScreenProps) {
   return (
-    <section aria-busy={loading} className="flex flex-col gap-10 sm:gap-12">
+    <div aria-busy={loading} className="flex flex-col gap-16 sm:gap-20">
       <div>
         <BackLink className="mb-4" fallbackHref="/account" />
         <PageHeader
           action={
-            <div className="flex flex-col gap-2 sm:items-end">
-              {data ? (
-                <p className="text-xs text-muted-foreground tabular-nums">
-                  {formatDateRange(data.start, data.end)}
-                </p>
-              ) : null}
+            <div className="flex flex-col gap-3 sm:items-end">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                {data ? (
+                  <p className="text-xs text-muted-foreground tabular-nums">
+                    {formatDateRange(data.start, data.end)}
+                  </p>
+                ) : null}
+                <Select
+                  value={String(days)}
+                  onValueChange={(value) => {
+                    if (value) onDaysChange(Number(value) as 7 | 30 | 90);
+                  }}
+                >
+                  <SelectTrigger
+                    aria-label="统计周期"
+                    className="h-10 w-full rounded-lg sm:w-40"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectGroup>
+                      {Object.entries(periodLabels).map(([value, label]) => (
+                        <SelectItem
+                          className="rounded-lg"
+                          key={value}
+                          value={value}
+                        >
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
               <Button
                 aria-label="刷新下载分析"
-                className="h-12 w-12 shrink-0 bg-muted px-0 sm:h-10 sm:w-auto sm:px-3"
+                className="h-10 w-full shrink-0 bg-muted px-3 sm:w-auto"
                 disabled={loading}
                 onClick={onRetry}
                 type="button"
@@ -88,33 +130,21 @@ export function AdminAnalyticsScreen({
       ) : null}
 
       {loading && !data ? <AnalyticsLoading /> : null}
-      {data ? (
-        <DailyTrendChart
-          daily={data.daily}
-          days={days}
-          onDaysChange={onDaysChange}
-        />
-      ) : null}
+      {data ? <DailyTrendChart daily={data.daily} /> : null}
       {data && data.summary.total > 0 ? (
-        <div className="flex flex-col gap-12 sm:gap-14">
+        <div className="flex flex-col gap-20 sm:gap-28">
           <AnalyticsKpis summary={data.summary} />
-          <div className="grid gap-10 lg:grid-cols-3 lg:gap-12">
-            <div>
-              <StatusDistributionChart summary={data.summary} />
-            </div>
-            <div>
-              <CompletionRateChart daily={data.daily} />
-            </div>
-            <div>
-              <SourceBreakdown
-                sources={data.sources}
-                total={data.summary.total}
-              />
-            </div>
+          <div className="flex flex-col gap-20 sm:gap-28">
+            <StatusDistributionChart summary={data.summary} />
+            <CompletionRateChart daily={data.daily} />
+            <SourceBreakdown
+              sources={data.sources}
+              total={data.summary.total}
+            />
           </div>
           <SourcePerformance sources={data.sources} />
         </div>
       ) : null}
-    </section>
+    </div>
   );
 }

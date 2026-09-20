@@ -57,7 +57,7 @@ export default function AnalysisPanel({
     );
     const reportAvailable = formats.has('markdown') && formats.has('docx');
     return (
-      <section aria-label="AI 智能分析" className="py-12 sm:py-16">
+      <div className="py-12 sm:py-16">
         {state.error ? (
           <FeedbackNotice
             className="mb-8"
@@ -151,12 +151,12 @@ export default function AnalysisPanel({
             result={state.job.result}
           />
         )}
-      </section>
+      </div>
     );
   }
 
   return (
-    <section aria-labelledby="analysis-title" className="py-12 sm:py-16">
+    <div className="py-12 sm:py-16">
       <div className="flex items-start justify-between gap-6">
         <div className="max-w-3xl">
           <h2
@@ -194,7 +194,7 @@ export default function AnalysisPanel({
           playbackUnavailableReason={playbackUnavailableReason}
         />
       )}
-    </section>
+    </div>
   );
 }
 

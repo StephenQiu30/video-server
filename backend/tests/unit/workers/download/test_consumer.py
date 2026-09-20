@@ -95,15 +95,15 @@ async def test_consumer_logs_the_delivery_retry_budget(
     assert record.dlq_replay_count == 0
 
 
-class FakeExchange:
-    def __init__(self) -> None:
-        self.bindings: list[tuple[object, str]] = []
-
-    async def bind(self, queue: object, *, routing_key: str) -> None:
-        self.bindings.append((queue, routing_key))
-
-
 class FakeQueue:
+    def __init__(self, bindings: list[tuple[object, str]]) -> None:
+        self.bindings = bindings
+
+    async def bind(self, exchange: object, *, routing_key: str) -> None:
+        self.bindings.append((exchange, routing_key))
+
+
+class FakeExchange:
     pass
 
 
@@ -113,6 +113,7 @@ class FakeChannel:
         self.queues: list[tuple[str, bool, dict[str, object]]] = []
         self.exchange = FakeExchange()
         self.dead_exchange = FakeExchange()
+        self.bindings: list[tuple[object, str]] = []
 
     async def declare_exchange(self, name, *, type, durable):
         self.exchanges.append((name, type, durable))
@@ -120,7 +121,7 @@ class FakeChannel:
 
     async def declare_queue(self, name, *, durable, arguments):
         self.queues.append((name, durable, arguments))
-        return FakeQueue()
+        return FakeQueue(self.bindings)
 
 
 @pytest.mark.asyncio
@@ -145,5 +146,7 @@ async def test_download_topology_declares_and_binds_the_dead_letter_queue() -> N
         True,
         {"x-max-length": 10_000},
     )
-    assert channel.exchange.bindings[0][1] == "download.requested"
-    assert channel.dead_exchange.bindings[0][1] == "video.download.dead"
+    assert channel.bindings == [
+        (channel.exchange, "download.requested"),
+        (channel.dead_exchange, "video.download.dead"),
+    ]

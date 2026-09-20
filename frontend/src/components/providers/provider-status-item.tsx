@@ -2,6 +2,7 @@
 
 import { CaretDownIcon } from '@phosphor-icons/react';
 
+import { ProviderAuthorizationDialog } from '@/components/providers/provider-authorization-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -60,6 +61,9 @@ export function ProviderStatusItem({
             <Badge variant={statusVariant(provider)}>
               {statusLabel(provider)}
             </Badge>
+            <Badge variant="outline">
+              {accessStateLabel(provider.access_state)}
+            </Badge>
           </ItemTitle>
           <ItemDescription className="line-clamp-none">
             <span className="font-mono text-xs">{provider.key}</span> ·{' '}
@@ -98,12 +102,33 @@ export function ProviderStatusItem({
               <p className="font-medium text-foreground">访问与下一步</p>
               <p className="mt-1">{accessDescription(provider)}</p>
               {provider.user_action ? <p>{provider.user_action}</p> : null}
+              {provider.access_state === 'authorization_required' &&
+              provider.access_modes.includes('operator_managed') ? (
+                <div className="mt-3">
+                  <ProviderAuthorizationDialog provider={provider} />
+                </div>
+              ) : null}
             </div>
           </div>
         </CollapsibleContent>
       </Item>
     </Collapsible>
   );
+}
+
+function accessStateLabel(state: API.ProviderAccessState): string {
+  const labels: Record<API.ProviderAccessState, string> = {
+    public_probe: '公开线路待验证',
+    public_ready: '公开线路可用',
+    authorization_required: '需要授权或平台验证',
+    operator_probe: '受控线路待验证',
+    operator_ready: '受控线路可用',
+    degraded: '服务降级',
+    blocked: '出口受限',
+    disabled: '已停用',
+    unsupported: '不支持',
+  };
+  return labels[state];
 }
 
 function statusLabel(

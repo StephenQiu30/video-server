@@ -22,7 +22,7 @@ export function SourceDiscoveryWorkspace({
   onSelect: (item: API.SourceDiscoveryItemResponse) => void;
 }) {
   return (
-    <section aria-labelledby="source-discovery-title" className="pt-10">
+    <div className="pt-10">
       <div className="flex flex-wrap items-end justify-between gap-3 pb-5">
         <div>
           <h2
@@ -91,7 +91,7 @@ export function SourceDiscoveryWorkspace({
           请检查文章是否仍公开，或改用自有明文 MP4 导入。
         </p>
       )}
-    </section>
+    </div>
   );
 }
 

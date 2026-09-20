@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 
 export function HomeStartup() {
   return (
-    <section
+    <div
       aria-atomic="true"
       aria-live="polite"
       data-home-boot
@@ -37,6 +37,6 @@ export function HomeStartup() {
         data-home-boot-line
         value={null}
       />
-    </section>
+    </div>
   );
 }

@@ -61,6 +61,26 @@ def test_environment_templates_do_not_override_duplicate_assignments() -> None:
     assert _env_value(ENV_EXAMPLE_PATH, "REQUEST_TIMEOUT_SECONDS") == "180"
 
 
+def test_default_install_does_not_require_provider_sessions() -> None:
+    environment = ENV_EXAMPLE_PATH.read_text(encoding="utf-8")
+
+    assert "COMPOSE_PROFILES=\n" in environment
+    assert _env_value(ENV_EXAMPLE_PATH, "RUNNER_OPERATOR_BASE_URLS") == "{}"
+    assert _env_value(ENV_EXAMPLE_PATH, "RUNNER_DEFAULT_ACCESS_POLICIES") == "{}"
+
+    for path in (COMPOSE_PATH, PROD_COMPOSE_PATH):
+        compose = yaml.safe_load(path.read_text(encoding="utf-8"))
+        services = compose["services"]
+        operator_services = {
+            name for name, config in services.items() if config.get("profiles")
+        }
+
+        assert operator_services
+        assert all(name.endswith("-operator-runner") for name in operator_services)
+        for service in ("api", "frontend", "media-runner", "worker-download"):
+            assert not services[service].get("profiles")
+
+
 def test_frontend_compose_receives_only_required_runtime_configuration() -> None:
     expected = {
         "BACKEND_ORIGIN",
@@ -432,38 +452,16 @@ def test_provider_session_runners_are_physically_isolated_by_provider() -> None:
             ]
 
 
-def test_provider_cookie_agent_mount_is_physically_scoped_per_provider() -> None:
+def test_provider_session_mount_is_physically_scoped_per_provider() -> None:
     compose_documents = (
         COMPOSE_PATH.read_text(encoding="utf-8"),
         PROD_COMPOSE_PATH.read_text(encoding="utf-8"),
     )
 
-    for index, document in enumerate(compose_documents):
+    for document in compose_documents:
         compose = yaml.safe_load(document)
         for service, provider in _OPERATOR_PROVIDERS.items():
             service_config = compose["services"][service]
-            if index == 1 and provider != "wechat_channels":
-                assert (
-                    "RUNNER_PROVIDER_COOKIE_SYNC_ROOT"
-                    not in service_config["environment"]
-                )
-                assert service_config["environment"]["RUNNER_PROVIDER_COOKIE_FILE"] == (
-                    "/run/provider-source/cookies.txt"
-                )
-                mounts = [
-                    volume
-                    for volume in service_config["volumes"]
-                    if isinstance(volume, dict)
-                    and volume.get("target") == "/run/provider-source"
-                ]
-                assert len(mounts) == 1
-                assert mounts[0]["read_only"] is True
-                assert mounts[0]["bind"]["create_host_path"] is False
-                assert (
-                    mounts[0]["source"]
-                    == "${PROVIDER_SESSION_DIR:-./.provider-sessions}/" + provider
-                )
-                continue
             assert (
                 service_config["environment"]["RUNNER_PROVIDER_COOKIE_SYNC_ROOT"]
                 == "/run/provider-cookie-agent"
@@ -479,10 +477,31 @@ def test_provider_cookie_agent_mount_is_physically_scoped_per_provider() -> None
             assert runtime_mounts[0]["bind"]["create_host_path"] is False
             assert Path(runtime_mounts[0]["source"]).name == provider
 
+            assert "RUNNER_PROVIDER_COOKIE_FILE" not in service_config["environment"]
+
     assert "PROVIDER_COOKIE_AGENT_RUNTIME_DIR=\n" in ENV_EXAMPLE_PATH.read_text(
         encoding="utf-8"
     )
     assert "COOKIE_SECRET_DIR" not in PROD_COMPOSE_PATH.read_text(encoding="utf-8")
+
+
+def test_provider_credential_lease_store_stays_on_the_internal_rpc_network() -> None:
+    for path in (COMPOSE_PATH, PROD_COMPOSE_PATH):
+        compose = yaml.safe_load(path.read_text(encoding="utf-8"))
+        lease_store = compose["services"]["provider-lease-redis"]
+        assert lease_store["networks"] == ["runner_rpc_net"]
+        assert "ports" not in lease_store
+        assert lease_store["read_only"] is True
+        assert lease_store["cap_drop"] == ["ALL"]
+        assert lease_store["command"] == ["--save", "", "--appendonly", "no"]
+        for service in _OPERATOR_RUNNERS:
+            runner = compose["services"][service]
+            assert runner["environment"]["RUNNER_CREDENTIAL_LEASE_REDIS_URL"] == (
+                "redis://provider-lease-redis:6379/0"
+            )
+            assert runner["depends_on"]["provider-lease-redis"]["condition"] == (
+                "service_healthy"
+            )
 
 
 def test_default_personal_production_does_not_require_desktop_sessions() -> None:
@@ -527,6 +546,10 @@ def test_personal_video_compose_profiles_keep_file_and_network_isolation() -> No
         assert service["profiles"] == [f"{provider}-operator"]
         assert "proxy_uplink_net" not in service["networks"]
         assert service["environment"]["RUNNER_MAX_ACTIVE_TASKS"] == "1"
+        assert service["environment"]["RUNNER_PROVIDER_COOKIE_FILE"] == (
+            "/run/provider-source/cookies.txt"
+        )
+        assert "RUNNER_PROVIDER_COOKIE_SYNC_ROOT" not in service["environment"]
         assert (
             service["environment"]["RUNNER_OPERATOR_SESSION_VERSIONS"]
             == f'{{"{provider}":"browser"}}'

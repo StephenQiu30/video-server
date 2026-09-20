@@ -9,14 +9,25 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemGroup,
+  ItemTitle,
+} from '@/components/ui/item';
 
-import { formatInteger, formatPercent } from './analytics-format';
+import {
+  ANALYTICS_CHART_COLOR,
+  formatInteger,
+  formatPercent,
+} from './analytics-format';
 
 const statusConfig = {
-  succeeded: { color: 'var(--chart-2)', label: '成功' },
-  active: { color: 'var(--chart-1)', label: '进行中' },
-  failed: { color: 'var(--chart-5)', label: '失败' },
-  cancelled: { color: 'var(--chart-3)', label: '取消' },
+  succeeded: { color: ANALYTICS_CHART_COLOR, label: '成功' },
+  active: { color: ANALYTICS_CHART_COLOR, label: '进行中' },
+  failed: { color: ANALYTICS_CHART_COLOR, label: '失败' },
+  cancelled: { color: ANALYTICS_CHART_COLOR, label: '取消' },
 } satisfies ChartConfig;
 
 export function StatusDistributionChart({
@@ -52,95 +63,104 @@ export function StatusDistributionChart({
   ];
 
   return (
-    <section aria-labelledby="status-distribution-title">
+    <div className="w-full">
       <h2
-        className="flex items-center gap-2 text-base font-medium"
+        className="flex items-center gap-2 text-xl font-medium tracking-[-0.025em]"
         id="status-distribution-title"
       >
         <CheckCircleIcon aria-hidden className="size-4 text-muted-foreground" />
         任务状态
       </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
         当前周期的完成结构与异常占比。
       </p>
-      <ChartContainer
-        aria-label="下载任务状态环形图"
-        className="mx-auto mt-3 h-52 w-full max-w-64 aspect-square"
-        config={statusConfig}
-        role="img"
-      >
-        <PieChart accessibilityLayer>
-          <ChartTooltip
-            content={<ChartTooltipContent hideLabel nameKey="status" />}
-            cursor={false}
-          />
-          <Pie
-            data={data}
-            dataKey="value"
-            innerRadius={62}
-            isAnimationActive={false}
-            nameKey="status"
-            outerRadius={84}
-            stroke="var(--background)"
-            strokeWidth={3}
-          >
-            <Label
-              content={({ viewBox }) => {
-                if (!viewBox || !('cx' in viewBox) || !('cy' in viewBox)) {
-                  return null;
-                }
-                return (
-                  <text
-                    dominantBaseline="middle"
-                    textAnchor="middle"
-                    x={viewBox.cx}
-                    y={viewBox.cy}
-                  >
-                    <tspan
-                      className="fill-foreground text-2xl font-medium tabular-nums"
+      <div className="mt-8 grid gap-10 sm:grid-cols-[minmax(16rem,18rem)_minmax(0,1fr)] sm:items-center sm:gap-14">
+        <ChartContainer
+          aria-label="下载任务状态环形图"
+          className="mx-auto h-64 w-full max-w-72 aspect-square sm:mx-0"
+          config={statusConfig}
+          role="img"
+        >
+          <PieChart accessibilityLayer>
+            <ChartTooltip
+              content={<ChartTooltipContent hideLabel nameKey="status" />}
+              cursor={false}
+            />
+            <Pie
+              data={data}
+              dataKey="value"
+              innerRadius={78}
+              isAnimationActive={false}
+              nameKey="status"
+              outerRadius={108}
+              stroke="var(--background)"
+              strokeWidth={3}
+            >
+              <Label
+                content={({ viewBox }) => {
+                  if (!viewBox || !('cx' in viewBox) || !('cy' in viewBox)) {
+                    return null;
+                  }
+                  return (
+                    <text
+                      dominantBaseline="middle"
+                      textAnchor="middle"
                       x={viewBox.cx}
                       y={viewBox.cy}
                     >
-                      {formatInteger(summary.total)}
-                    </tspan>
-                    <tspan
-                      className="fill-muted-foreground text-[11px]"
-                      x={viewBox.cx}
-                      y={(viewBox.cy ?? 0) + 21}
-                    >
-                      全部任务
-                    </tspan>
-                  </text>
-                );
-              }}
-            />
-          </Pie>
-        </PieChart>
-      </ChartContainer>
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
-        {data.map((item) => (
-          <div className="min-w-0" key={item.status}>
-            <dt className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span
-                aria-hidden
-                className="size-1.5 rounded-full"
-                style={{ backgroundColor: item.fill }}
+                      <tspan
+                        className="fill-foreground text-2xl font-medium tabular-nums"
+                        x={viewBox.cx}
+                        y={viewBox.cy}
+                      >
+                        {formatInteger(summary.total)}
+                      </tspan>
+                      <tspan
+                        className="fill-muted-foreground text-[11px]"
+                        x={viewBox.cx}
+                        y={(viewBox.cy ?? 0) + 21}
+                      >
+                        全部任务
+                      </tspan>
+                    </text>
+                  );
+                }}
               />
-              {statusConfig[item.status].label}
-            </dt>
-            <dd className="mt-1 flex items-baseline gap-2 tabular-nums">
-              <span className="text-base font-medium">
-                {formatInteger(item.value)}
-              </span>
-              <span className="text-[11px] text-muted-foreground">
-                {formatPercent(
-                  summary.total > 0 ? (item.value / summary.total) * 100 : 0,
-                )}
-              </span>
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </section>
+            </Pie>
+          </PieChart>
+        </ChartContainer>
+        <ItemGroup className="grid grid-cols-2 gap-x-8 gap-y-8 sm:grid-cols-4 sm:gap-x-10">
+          {data.map((item) => (
+            <Item
+              className="min-w-0 items-start rounded-none border-0 px-0 py-0"
+              key={item.status}
+              role="listitem"
+            >
+              <ItemContent className="gap-0">
+                <ItemTitle className="flex items-center gap-2 text-xs font-normal text-muted-foreground">
+                  <span
+                    aria-hidden
+                    className="size-1.5 rounded-full bg-chart-2"
+                  />
+                  {statusConfig[item.status].label}
+                </ItemTitle>
+                <ItemActions className="mt-2 items-baseline gap-2 tabular-nums">
+                  <span className="text-lg font-medium">
+                    {formatInteger(item.value)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatPercent(
+                      summary.total > 0
+                        ? (item.value / summary.total) * 100
+                        : 0,
+                    )}
+                  </span>
+                </ItemActions>
+              </ItemContent>
+            </Item>
+          ))}
+        </ItemGroup>
+      </div>
+    </div>
   );
 }

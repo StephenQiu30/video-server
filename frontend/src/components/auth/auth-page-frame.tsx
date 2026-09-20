@@ -29,18 +29,15 @@ export function AuthPageFrame({
       className="grid flex-1 gap-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:gap-24"
       data-slot="auth-frame"
     >
-      <section
-        aria-label="产品介绍"
-        className="hidden flex-col justify-center py-20 lg:flex"
-      >
+      <div className="hidden flex-col justify-center py-20 lg:flex">
         <p className="editorial-title max-w-4xl" data-slot="auth-hero-title">
           把素材，
           <br />
           带回本地。
         </p>
-      </section>
+      </div>
       <div className="flex items-center justify-center py-12 lg:justify-start lg:py-20">
-        <section aria-labelledby={titleId} className="w-full max-w-[440px]">
+        <div className="w-full max-w-[440px]">
           <PageHeader
             description={description}
             title={title}
@@ -48,7 +45,7 @@ export function AuthPageFrame({
             titleId={titleId}
           />
           <div className="pt-8">{children}</div>
-        </section>
+        </div>
       </div>
     </div>
   );

@@ -55,7 +55,7 @@ describe('DownloadWorkspace', () => {
     expect(screen.getByRole('tab', { name: '本地视频' })).toBeEnabled();
     expect(screen.getByRole('tab', { name: '剧本文档' })).toBeEnabled();
     expect(
-      screen.queryByRole('region', { name: '解析结果' }),
+      document.querySelector('[data-slot="inspection-result"]'),
     ).not.toBeInTheDocument();
   });
 

@@ -57,7 +57,7 @@ export function AdminUsersScreen({
   const last = Math.min(result.page * PAGE_SIZE, result.total);
 
   return (
-    <section aria-busy={result.loading} className="flex flex-col gap-10">
+    <div aria-busy={result.loading} className="flex flex-col gap-10">
       <div>
         <BackLink className="mb-4" fallbackHref="/account" />
         <PageHeader
@@ -129,6 +129,6 @@ export function AdminUsersScreen({
         onClose={actions.onCloseEditor}
         onSave={actions.onSaveEditor}
       />
-    </section>
+    </div>
   );
 }

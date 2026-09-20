@@ -50,7 +50,7 @@ const safeguards = [
 export function PublicHome() {
   return (
     <div className="flex flex-col pb-6" data-home-view-root="public">
-      <section
+      <div
         className="grid gap-12 pb-20 pt-10 sm:pt-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:gap-24 lg:pb-28 lg:pt-14"
         data-slot="borderless-section"
       >
@@ -86,7 +86,7 @@ export function PublicHome() {
           </div>
         </EditorialIntro>
 
-        <section aria-labelledby="workflow-title" className="self-end lg:pb-1">
+        <div className="self-end lg:pb-1">
           <Badge className="w-fit" variant="secondary">
             工作流
           </Badge>
@@ -102,11 +102,10 @@ export function PublicHome() {
           <div className="mt-8">
             <PublicHomeWorkflow items={workflow} />
           </div>
-        </section>
-      </section>
+        </div>
+      </div>
 
-      <section
-        aria-labelledby="capabilities-title"
+      <div
         className="scroll-mt-24 py-20 lg:py-28"
         data-slot="borderless-section"
         id="capabilities"
@@ -119,10 +118,9 @@ export function PublicHome() {
           titleId="capabilities-title"
         />
         <PublicHomeCapabilities items={capabilities} />
-      </section>
+      </div>
 
-      <section
-        aria-labelledby="architecture-title"
+      <div
         className="grid scroll-mt-24 gap-14 py-20 lg:grid-cols-2 lg:gap-24 lg:py-28"
         data-slot="borderless-section"
         id="architecture"
@@ -148,9 +146,9 @@ export function PublicHome() {
             <PublicHomeSafeguards items={safeguards} />
           </div>
         </div>
-      </section>
+      </div>
 
-      <section
+      <div
         className="flex flex-col items-start justify-between gap-8 py-20 sm:flex-row sm:items-end lg:py-28"
         data-slot="borderless-section"
       >
@@ -166,7 +164,7 @@ export function PublicHome() {
             <ArrowUpRightIcon aria-hidden data-icon="inline-end" />
           </a>
         </Button>
-      </section>
+      </div>
     </div>
   );
 }

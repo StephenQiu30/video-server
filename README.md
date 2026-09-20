@@ -73,7 +73,7 @@
 
 ## 快速开始
 
-生产只使用 `docker-compose-prod.yml`：YouTube、抖音和 Reddit 读取各自的只读会话文件，视频号按需使用专用元宝来源。下载和解析不会读取日常 Chrome；来源安装与更新见[个人部署手册](docs/operations/008-个人部署重启与换机手册.md)。
+生产只使用 `docker-compose-prod.yml`：YouTube、抖音和 Reddit 通过当前宿主按 Provider 隔离的本机 Agent 队列按需获取一次性会话租约，视频号按需使用专用元宝来源，优酷/腾讯视频保留各自只读会话文件。下载和解析不会读取日常 Chrome；来源安装与更新见[个人部署手册](docs/operations/008-个人部署重启与换机手册.md)。
 
 ### 前置条件
 

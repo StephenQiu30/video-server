@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from http.cookiejar import Cookie, CookieJar
+from pathlib import Path
 
 import pytest
 from app.services.provider_types import ProviderKey, ProviderSessionVersion
@@ -85,6 +86,30 @@ def test_export_enforces_each_provider_required_cookie_set() -> None:
 
     assert result.status is ProviderCookieLeaseStatus.CREDENTIAL_REQUIRED
     assert result.payload is None
+
+
+def test_managed_browser_source_keeps_using_its_loader_with_chrome_root(
+    tmp_path: Path,
+) -> None:
+    captured: list[tuple[ProviderBrowserSessionPolicy, str]] = []
+
+    def load(policy: ProviderBrowserSessionPolicy, profile: str) -> CookieJar:
+        captured.append((policy, profile))
+        return _jar(
+            _cookie("yuanbao.tencent.com", name="hy_user"),
+            _cookie("yuanbao.tencent.com", name="hy_token"),
+        )
+
+    result = export_provider_cookie_lease(
+        provider=ProviderKey.WECHAT_CHANNELS,
+        profile="Default",
+        version=ProviderSessionVersion.BROWSER,
+        chrome_root=tmp_path / "browser-root",
+        load=load,
+    )
+
+    assert result.status is ProviderCookieLeaseStatus.OK
+    assert captured[0][1] == "Default"
 
 
 def test_export_rejects_oversized_cookie_without_publishing_payload() -> None:

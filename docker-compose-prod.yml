@@ -18,6 +18,8 @@ x-provider-session-runner: &provider-session-runner
   depends_on:
     egress-proxy:
       condition: service_healthy
+    provider-lease-redis:
+      condition: service_healthy
   healthcheck:
     test:
       [
@@ -51,7 +53,7 @@ x-provider-session-environment: &provider-session-environment
   RUNNER_PROVIDER_EGRESS_PROXIES: "${RUNNER_PROVIDER_EGRESS_PROXIES:-{}}"
   RUNNER_WORKSPACE_ROOT: /work
   RUNNER_ACCESS_MODE: operator_managed
-  RUNNER_CREDENTIAL_LEASE_REDIS_URL: "redis://${REDIS_HOST:-host.docker.internal}:${REDIS_PORT:-6379}/1"
+  RUNNER_CREDENTIAL_LEASE_REDIS_URL: redis://provider-lease-redis:6379/0
   RUNNER_CREDENTIAL_LEASE_TTL_SECONDS: "${RUNNER_CREDENTIAL_LEASE_TTL_SECONDS:-120}"
   RUNNER_CREDENTIAL_LEASE_HEARTBEAT_SECONDS: "${RUNNER_CREDENTIAL_LEASE_HEARTBEAT_SECONDS:-30}"
   RUNNER_MAX_ACTIVE_TASKS: "1"
@@ -573,7 +575,7 @@ services:
       - "127.0.0.1:${EGRESS_PROXY_HOST_PORT:-13128}:3128"
     volumes:
       - ./backend/egress/squid.conf:/etc/squid/squid.conf:ro
-      - ${EGRESS_DESTINATION_POLICY_FILE:-./backend/egress/blocked-destinations.conf}:/etc/squid/blocked-destinations.conf:ro
+      - ./backend/egress/blocked-destinations.conf:/etc/squid/blocked-destinations.conf:ro
     networks:
       - runner_egress_net
       - youtube_pot_net
@@ -584,6 +586,28 @@ services:
       timeout: 5s
       retries: 12
       start_period: 5s
+
+  provider-lease-redis:
+    image: redis:7-alpine@sha256:520775a41a63e77e06c73e35d2fd9cc15921a609516818796b4ecbb813078bc7
+    container_name: provider-lease-redis
+    restart: unless-stopped
+    read_only: true
+    user: "999:1000"
+    entrypoint: ["redis-server"]
+    command: ["--save", "", "--appendonly", "no"]
+    networks:
+      - runner_rpc_net
+    cap_drop: [ALL]
+    tmpfs:
+      - /data:rw,noexec,nosuid,size=16m,mode=0700,uid=999,gid=1000
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 3s
 
   workspace-init:
     build: *backend-build
@@ -603,13 +627,13 @@ services:
     environment:
       <<: *provider-session-environment
       RUNNER_OPERATOR_SESSION_VERSIONS: '{"douyin":"browser"}'
-      RUNNER_PROVIDER_COOKIE_FILE: /run/provider-source/cookies.txt
+      RUNNER_PROVIDER_COOKIE_SYNC_ROOT: /run/provider-cookie-agent
     volumes:
       - runner_work:/work
       - type: bind
-        source: "${PROVIDER_SESSION_DIR:-./.provider-sessions}/douyin"
-        target: /run/provider-source
-        read_only: true
+        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/douyin"
+        target: /run/provider-cookie-agent
+        read_only: false
         bind:
           create_host_path: false
 
@@ -620,13 +644,13 @@ services:
     environment:
       <<: *provider-session-environment
       RUNNER_OPERATOR_SESSION_VERSIONS: '{"reddit":"browser"}'
-      RUNNER_PROVIDER_COOKIE_FILE: /run/provider-source/cookies.txt
+      RUNNER_PROVIDER_COOKIE_SYNC_ROOT: /run/provider-cookie-agent
     volumes:
       - runner_work:/work
       - type: bind
-        source: "${PROVIDER_SESSION_DIR:-./.provider-sessions}/reddit"
-        target: /run/provider-source
-        read_only: true
+        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/reddit"
+        target: /run/provider-cookie-agent
+        read_only: false
         bind:
           create_host_path: false
 
@@ -688,7 +712,7 @@ services:
     environment:
       <<: *provider-session-environment
       RUNNER_OPERATOR_SESSION_VERSIONS: '{"youtube":"browser"}'
-      RUNNER_PROVIDER_COOKIE_FILE: /run/provider-source/cookies.txt
+      RUNNER_PROVIDER_COOKIE_SYNC_ROOT: /run/provider-cookie-agent
       RUNNER_YOUTUBE_POT_BASE_URL: http://youtube-pot-provider:4416
       RUNNER_YOUTUBE_POT_PROVIDER_VERSION: bgutil-http-1.3.2
     networks:
@@ -698,13 +722,15 @@ services:
     volumes:
       - runner_work:/work
       - type: bind
-        source: "${PROVIDER_SESSION_DIR:-./.provider-sessions}/youtube"
-        target: /run/provider-source
-        read_only: true
+        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/youtube"
+        target: /run/provider-cookie-agent
+        read_only: false
         bind:
           create_host_path: false
     depends_on:
       egress-proxy:
+        condition: service_healthy
+      provider-lease-redis:
         condition: service_healthy
       youtube-pot-provider:
         condition: service_started

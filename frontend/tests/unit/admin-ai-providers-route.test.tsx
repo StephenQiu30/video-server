@@ -15,14 +15,14 @@ vi.mock('@/components/auth/protected-route', () => ({
   }: {
     children: ReactNode;
     requireAdmin?: boolean;
-  }) => <section data-require-admin={String(requireAdmin)}>{children}</section>,
+  }) => <div data-require-admin={String(requireAdmin)}>{children}</div>,
 }));
 
 describe('administrator AI Provider route', () => {
   it('keeps AI Provider configuration behind the administrator guard', () => {
     const { container } = render(<AdminAiProvidersPage />);
 
-    expect(container.querySelector('section')).toHaveAttribute(
+    expect(container.querySelector('div')).toHaveAttribute(
       'data-require-admin',
       'true',
     );

@@ -6,6 +6,7 @@ from app.schemas.common import StrictModel
 from app.services.provider_access import ProviderAccessPolicy
 from app.services.provider_types import (
     ProviderAccessMode,
+    ProviderAccessState,
     ProviderCapability,
     ProviderSupportStatus,
 )
@@ -24,6 +25,7 @@ class ProviderStatusResponse(StrictModel):
     extractor_exists: bool
     capabilities: tuple[ProviderCapability, ...]
     access_modes: tuple[ProviderAccessMode, ...]
+    access_state: ProviderAccessState
     status: ProviderSupportStatus
     last_checked_at: datetime | None
     last_check_succeeded: bool | None
@@ -48,6 +50,7 @@ class ProviderStatusResponse(StrictModel):
             extractor_exists=value.extractor_exists,
             capabilities=value.capabilities,
             access_modes=value.access_modes,
+            access_state=value.access_state,
             status=value.status,
             last_checked_at=value.last_checked_at,
             last_check_succeeded=value.last_check_succeeded,

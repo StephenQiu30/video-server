@@ -343,9 +343,6 @@ describe('BasicLayout', () => {
     );
     expect(screen.getByRole('alert')).toBeInTheDocument();
     expect(
-      container.querySelector('section[aria-labelledby="login-title"]'),
-    ).toBeInTheDocument();
-    expect(
       container.querySelector('[data-slot="auth-frame"]'),
     ).toBeInTheDocument();
     expect(container.querySelector('[data-slot="card"]')).toBeNull();
