@@ -94,9 +94,10 @@ export function ProviderStatusView() {
         ) : null}
         {state.error && !state.data ? (
           <PageErrorNotice
-            message={state.error}
+            message="我们暂时无法读取最新的平台状态，请稍后再试。"
             onRetry={state.retry}
-            title="平台状态加载失败"
+            retryLabel="重新加载"
+            title="平台状态暂时不可用"
           />
         ) : null}
         {state.data ? (

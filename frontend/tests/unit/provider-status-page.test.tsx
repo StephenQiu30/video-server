@@ -167,11 +167,15 @@ describe('provider status page', () => {
     render(<ProviderStatusView />);
 
     const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent('平台状态加载失败');
-    expect(alert.querySelector('[data-slot="alert-action"]')).not.toBeNull();
+    expect(alert).toHaveAttribute('data-slot', 'empty');
+    expect(alert).toHaveTextContent('平台状态暂时不可用');
+    expect(alert).toHaveTextContent(
+      '我们暂时无法读取最新的平台状态，请稍后再试。',
+    );
+    expect(alert.querySelector('[data-slot="empty-content"]')).not.toBeNull();
     expect(
-      alert.querySelector('[data-slot="alert-description"] button'),
-    ).toBeNull();
+      within(alert).getByRole('button', { name: '重新加载' }),
+    ).toBeInTheDocument();
     expect(runtime.toast.error).not.toHaveBeenCalled();
   });
 
