@@ -1,14 +1,35 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 
 import { HomeExperience } from '@/components/intake/home-experience';
 import { PublicHome } from '@/components/intake/public-home';
 import { absoluteUrl, siteConfig } from '@/lib/site';
 
-export const metadata: Metadata = {
+const publicHomeMetadata: Metadata = {
+  applicationName: siteConfig.name,
   title: {
     absolute: siteConfig.title,
   },
   description: siteConfig.description,
+  keywords: [
+    '帧取',
+    'FrameFetch',
+    '开源视频下载',
+    '自托管视频下载',
+    'AI 视频分析',
+    '剧本分析',
+    'video downloader',
+    'self-hosted',
+    'FastAPI',
+    'Next.js',
+    'yt-dlp',
+    'FFmpeg',
+  ],
+  authors: [{ name: 'FrameFetch contributors', url: siteConfig.repositoryUrl }],
+  creator: 'FrameFetch contributors',
+  publisher: 'FrameFetch',
+  category: 'technology',
+  referrer: 'strict-origin-when-cross-origin',
   alternates: {
     canonical: '/',
   },
@@ -46,6 +67,32 @@ export const metadata: Metadata = {
     },
   },
 };
+
+const privateHomeMetadata: Metadata = {
+  title: '工作区',
+  robots: {
+    index: false,
+    follow: false,
+    noarchive: true,
+    nosnippet: true,
+  },
+};
+
+const accessCookieName =
+  process.env.AUTH_ACCESS_COOKIE_NAME ?? 'video_access_token';
+const refreshCookieName =
+  process.env.AUTH_REFRESH_COOKIE_NAME ?? 'video_refresh_token';
+
+async function hasBrowserSession() {
+  const cookieStore = await cookies();
+  return (
+    cookieStore.has(accessCookieName) || cookieStore.has(refreshCookieName)
+  );
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  return (await hasBrowserSession()) ? privateHomeMetadata : publicHomeMetadata;
+}
 
 const structuredData = {
   '@context': 'https://schema.org',
@@ -90,12 +137,16 @@ const structuredData = {
   ],
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const privateHome = await hasBrowserSession();
+
   return (
     <>
-      <script type="application/ld+json">
-        {JSON.stringify(structuredData).replace(/</g, '\\u003c')}
-      </script>
+      {!privateHome ? (
+        <script type="application/ld+json">
+          {JSON.stringify(structuredData).replace(/</g, '\\u003c')}
+        </script>
+      ) : null}
       <HomeExperience publicHome={<PublicHome />} />
     </>
   );

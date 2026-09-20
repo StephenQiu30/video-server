@@ -47,7 +47,7 @@ describe('public SEO metadata', () => {
     });
   });
 
-  it('indexes only the public root and exposes truthful software JSON-LD', () => {
+  it('indexes only the anonymous welcome view and exposes truthful software JSON-LD', () => {
     const rootLayout = readFileSync(
       resolve(process.cwd(), 'src/app/layout.tsx'),
       'utf8',
@@ -58,10 +58,17 @@ describe('public SEO metadata', () => {
     );
 
     expect(rootLayout).toContain('index: false');
+    expect(rootLayout).not.toContain('description: siteConfig.description');
+    expect(homePage).toContain('generateMetadata');
     expect(homePage).toContain('index: true');
+    expect(homePage).toContain('index: false');
+    expect(homePage).toContain('keywords: [');
+    expect(homePage).toContain('video_access_token');
+    expect(homePage).toContain('video_refresh_token');
     expect(homePage).toContain("'@type': 'SoftwareApplication'");
     expect(homePage).toContain('codeRepository: siteConfig.repositoryUrl');
     expect(homePage).toContain("price: '0'");
+    expect(homePage).toContain('{!privateHome ? (');
   });
 
   it('keeps anonymous session discovery on the public landing page', () => {

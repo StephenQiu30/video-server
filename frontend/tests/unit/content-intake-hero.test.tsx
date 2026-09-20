@@ -21,11 +21,13 @@ describe('ContentIntakeHero', () => {
     expect(screen.getByRole('tabpanel', { name: '本地视频' })).toBeVisible();
   });
 
-  it('keeps the source picker and intake form stacked below desktop', () => {
+  it('keeps the source picker above the intake form at every viewport', () => {
     const { container } = render(hero('link'));
 
     expect(container.querySelector('[data-slot="tabs"]')).toHaveClass(
       'flex-col',
+    );
+    expect(container.querySelector('[data-slot="tabs"]')).not.toHaveClass(
       'lg:flex-row',
     );
     expect(container.querySelector('[data-slot="tabs-list"]')).toHaveClass(

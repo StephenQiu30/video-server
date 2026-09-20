@@ -52,7 +52,7 @@ export function ContentIntakeHero({
       />
 
       <Tabs
-        className="mt-7 flex-col gap-0 lg:flex-row"
+        className="mt-7 flex-col gap-0"
         onValueChange={(value) => onModeChange(value as IntakeMode)}
         value={mode}
       >
