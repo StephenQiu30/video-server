@@ -2,13 +2,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
+
+type StoredFileCategory = Literal["video", "screenplay", "analysis_report"]
 
 
 @dataclass(frozen=True, slots=True)
 class StoredFileView:
     id: UUID
-    category: str
+    category: StoredFileCategory
     name: str
     object_count: int
     size_bytes: int

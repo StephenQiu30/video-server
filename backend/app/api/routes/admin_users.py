@@ -70,3 +70,22 @@ async def update_user_access(
         owner_hash = hashlib.sha256(str(updated.id).encode()).hexdigest()
         hub.invalidate_owner(owner_hash)
     return ManagedUserResponse.from_user(updated)
+
+
+@router.delete(
+    "/{user_id}",
+    operation_id="deleteUser",
+    status_code=204,
+    summary="删除用户",
+)
+async def delete_user(
+    user_id: UUID,
+    admin: Admin,
+    users: Users,
+    request: Request,
+) -> None:
+    await users.delete_account(admin, user_id)
+    hub = getattr(request.app.state.services, "realtime_hub", None)
+    if hub is not None:
+        owner_hash = hashlib.sha256(str(user_id).encode()).hexdigest()
+        hub.invalidate_owner(owner_hash)

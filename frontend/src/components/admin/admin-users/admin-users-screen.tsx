@@ -7,11 +7,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 import {
   PAGE_SIZE,
+  type UserDeletionState,
   type UserEditorState,
   type UserQueryState,
   type UserQuotaDraft,
   type UserResultState,
 } from './model';
+import { UserDeleteDialog } from './user-delete-dialog';
 import { UserEditor } from './user-editor';
 import { UserFilters } from './user-filters';
 import { UserList } from './user-list';
@@ -25,6 +27,7 @@ type ScreenActions = {
   onRetry: () => void;
   onPageChange: (value: number) => void;
   onEdit: (user: API.ManagedUserResponse) => void;
+  onDelete: (user: API.ManagedUserResponse) => void;
   onEditRole: (value: API.UserRole) => void;
   onEditActive: (value: boolean) => void;
   onEditQuota: <K extends keyof UserQuotaDraft>(
@@ -33,6 +36,8 @@ type ScreenActions = {
   ) => void;
   onCloseEditor: () => void;
   onSaveEditor: () => void;
+  onCloseDelete: () => void;
+  onConfirmDelete: () => void;
 };
 
 type AdminUsersScreenProps = {
@@ -40,6 +45,7 @@ type AdminUsersScreenProps = {
   query: UserQueryState;
   result: UserResultState;
   editor: UserEditorState;
+  deletion: UserDeletionState;
   notice: string;
   actions: ScreenActions;
 };
@@ -49,6 +55,7 @@ export function AdminUsersScreen({
   query,
   result,
   editor,
+  deletion,
   notice,
   actions,
 }: AdminUsersScreenProps) {
@@ -101,6 +108,7 @@ export function AdminUsersScreen({
         <UserList
           items={result.items}
           currentUserId={currentUserId}
+          onDelete={actions.onDelete}
           onEdit={actions.onEdit}
         />
       )}
@@ -128,6 +136,11 @@ export function AdminUsersScreen({
         onQuotaChange={actions.onEditQuota}
         onClose={actions.onCloseEditor}
         onSave={actions.onSaveEditor}
+      />
+      <UserDeleteDialog
+        deletion={deletion}
+        onClose={actions.onCloseDelete}
+        onConfirm={actions.onConfirmDelete}
       />
     </div>
   );

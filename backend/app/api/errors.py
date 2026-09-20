@@ -30,6 +30,7 @@ from app.services.imports.errors import (
 )
 from app.services.provider_catalog import ProviderCatalogError, ProviderCatalogErrorCode
 from app.services.quotas import QuotaExceeded
+from app.services.storage_files.errors import StorageFileError, StorageFileErrorCode
 
 logger = logging.getLogger(__name__)
 
@@ -348,7 +349,7 @@ _AUTH_ERRORS: dict[AuthErrorCode, tuple[int, str, str]] = {
     AuthErrorCode.SELF_ADMIN_CHANGE: (
         409,
         "Self administration conflict",
-        "Administrators cannot demote or disable their own account.",
+        "Administrators cannot demote, disable, or delete their own account.",
     ),
     AuthErrorCode.INVALID_VERIFICATION_CODE: (
         400,
@@ -374,6 +375,24 @@ _AUTH_ERRORS: dict[AuthErrorCode, tuple[int, str, str]] = {
         401,
         "Authentication required",
         "Sign in to continue.",
+    ),
+}
+
+_STORAGE_FILE_ERRORS: dict[StorageFileErrorCode, tuple[int, str, str]] = {
+    StorageFileErrorCode.NOT_FOUND: (
+        404,
+        "File not found",
+        "The requested persistent file was not found.",
+    ),
+    StorageFileErrorCode.IN_USE: (
+        409,
+        "File is in use",
+        "The file is currently used by an active analysis and cannot be deleted.",
+    ),
+    StorageFileErrorCode.STORAGE_UNAVAILABLE: (
+        503,
+        "Storage unavailable",
+        "The file could not be deleted because storage is temporarily unavailable.",
     ),
 }
 
@@ -419,6 +438,11 @@ def import_application_error(error: ImportApplicationError) -> AppError:
 
 def auth_application_error(error: AuthError) -> AppError:
     status, title, detail = _AUTH_ERRORS[error.code]
+    return AppError(status=status, code=error.code.value, title=title, detail=detail)
+
+
+def storage_file_error(error: StorageFileError) -> AppError:
+    status, title, detail = _STORAGE_FILE_ERRORS[error.code]
     return AppError(status=status, code=error.code.value, title=title, detail=detail)
 
 
@@ -587,6 +611,8 @@ async def business_error_handler(request: Request, error: Exception) -> JSONResp
         mapped = _provider_error(error)
     elif isinstance(error, ProviderCatalogError):
         mapped = _catalog_error(error)
+    elif isinstance(error, StorageFileError):
+        mapped = storage_file_error(error)
     else:
         return await unexpected_error_handler(request, error)
     return error_response(request, mapped)
@@ -641,6 +667,7 @@ def register_exception_handlers(app: FastAPI) -> None:
         AuthError,
         AiProviderError,
         ProviderCatalogError,
+        StorageFileError,
         SessionRotationConflict,
         ModelCatalogUnavailable,
     ):

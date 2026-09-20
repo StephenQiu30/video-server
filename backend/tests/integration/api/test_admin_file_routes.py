@@ -37,6 +37,7 @@ class StorageFilesStub:
     def __init__(self) -> None:
         self.list_calls: list[tuple[int, int]] = []
         self.cleanup_calls: list[int] = []
+        self.delete_calls: list[tuple[str, UUID]] = []
 
     async def list_files(self, *, page: int, page_size: int) -> StoredFilePage:
         self.list_calls.append((page, page_size))
@@ -59,6 +60,9 @@ class StorageFilesStub:
     async def cleanup(self, *, older_than_days: int) -> StorageCleanupResult:
         self.cleanup_calls.append(older_than_days)
         return StorageCleanupResult(older_than_days, 2, 3, 4096, 0)
+
+    async def delete_file(self, *, category: str, file_id: UUID) -> None:
+        self.delete_calls.append((category, file_id))
 
 
 def _app(tmp_path: Path, stub: StorageFilesStub):
@@ -102,7 +106,25 @@ def test_admin_files_reject_non_admin(tmp_path: Path) -> None:
     with TestClient(app) as client:
         listing = client.get("/api/admin/files")
         cleanup = client.post("/api/admin/files/cleanup", json={"older_than_days": 30})
+        deletion = client.delete(
+            "/api/admin/files/video/11111111-1111-4111-8111-111111111111"
+        )
 
-    assert listing.status_code == cleanup.status_code == 403
+    assert listing.status_code == cleanup.status_code == deletion.status_code == 403
     assert stub.list_calls == []
     assert stub.cleanup_calls == []
+    assert stub.delete_calls == []
+
+
+def test_admin_can_delete_one_persistent_file(tmp_path: Path) -> None:
+    stub = StorageFilesStub()
+    app = _app(tmp_path, stub)
+    app.dependency_overrides[get_current_admin] = lambda: ADMIN
+
+    file_id = UUID("11111111-1111-4111-8111-111111111111")
+    with TestClient(app) as client:
+        response = client.delete(f"/api/admin/files/video/{file_id}")
+
+    assert response.status_code == 204
+    assert response.content == b""
+    assert stub.delete_calls == [("video", file_id)]

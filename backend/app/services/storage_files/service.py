@@ -2,8 +2,13 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime, timedelta
+from uuid import UUID
 
-from app.services.storage_files.models import StorageCleanupResult, StoredFilePage
+from app.services.storage_files.models import (
+    StorageCleanupResult,
+    StoredFileCategory,
+    StoredFilePage,
+)
 from app.services.storage_files.ports import DeleteStoredObject, StorageFileRepository
 
 
@@ -23,6 +28,19 @@ class StorageFileService:
         if not 1 <= page <= 10_000 or not 1 <= page_size <= 50:
             raise ValueError("invalid pagination")
         return await self._repository.list_files(page=page, page_size=page_size)
+
+    async def delete_file(
+        self, *, category: StoredFileCategory, file_id: UUID
+    ) -> None:
+        now = self._now()
+        if now.tzinfo is None or now.utcoffset() is None:
+            raise ValueError("deletion clock must be timezone-aware")
+        await self._repository.delete_file(
+            category=category,
+            file_id=file_id,
+            now=now,
+            delete=self._delete,
+        )
 
     async def cleanup(self, *, older_than_days: int = 30) -> StorageCleanupResult:
         if not 1 <= older_than_days <= 3_650:

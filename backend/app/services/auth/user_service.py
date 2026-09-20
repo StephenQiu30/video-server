@@ -82,6 +82,14 @@ class UserService:
             raise AuthError(AuthErrorCode.USER_NOT_FOUND)
         return account.managed_view()
 
+    async def delete_account(self, actor: CurrentUser, account_id: UUID) -> None:
+        _require_admin(actor)
+        if actor.id == account_id:
+            raise AuthError(AuthErrorCode.SELF_ADMIN_CHANGE)
+        deleted = await self._repository.delete_account(account_id=account_id)
+        if not deleted:
+            raise AuthError(AuthErrorCode.USER_NOT_FOUND)
+
 
 def _require_admin(user: CurrentUser) -> None:
     if user.role is not UserRole.ADMIN:

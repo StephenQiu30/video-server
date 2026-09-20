@@ -575,6 +575,15 @@ declare namespace API {
     provider_key: string;
   };
 
+  type deleteStoredFileParams = {
+    category: "video" | "screenplay" | "analysis_report";
+    file_id: string;
+  };
+
+  type deleteUserParams = {
+    user_id: string;
+  };
+
   type DiscoveredItemInspectionSource = {
     /** Kind */
     kind: string;
@@ -1059,6 +1068,7 @@ declare namespace API {
     | "self_admin_change"
     | "service_unavailable"
     | "storage_quota_exceeded"
+    | "storage_file_in_use"
     | "storage_unavailable"
     | "unauthenticated"
     | "upload_incomplete"

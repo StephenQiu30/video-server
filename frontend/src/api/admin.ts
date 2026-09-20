@@ -134,6 +134,20 @@ export async function listStoredFiles(
   });
 }
 
+/** 删除指定持久文件 DELETE /api/admin/files/${param0}/${param1} */
+export async function deleteStoredFile(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.deleteStoredFileParams,
+  options?: RequestOptions
+) {
+  const { category: param0, file_id: param1, ...queryParams } = params;
+  return request<any>(`/api/admin/files/${param0}/${param1}`, {
+    method: "DELETE",
+    params: { ...queryParams },
+    ...(options || {}),
+  });
+}
+
 /** 手动清理指定天数前的文件 POST /api/admin/files/cleanup */
 export async function cleanupStoredFiles(
   body: API.StorageCleanupRequest,
@@ -244,6 +258,20 @@ export async function listUsers(
 
       ...params,
     },
+    ...(options || {}),
+  });
+}
+
+/** 删除用户 DELETE /api/admin/users/${param0} */
+export async function deleteUser(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.deleteUserParams,
+  options?: RequestOptions
+) {
+  const { user_id: param0, ...queryParams } = params;
+  return request<any>(`/api/admin/users/${param0}`, {
+    method: "DELETE",
+    params: { ...queryParams },
     ...(options || {}),
   });
 }

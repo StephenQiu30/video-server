@@ -133,3 +133,16 @@ class SqlAlchemyUserRepository:
         if should_revoke_sessions and self._revoke_sessions is not None:
             await self._revoke_sessions(account_id)
         return account_from_row(row) if row is not None else None
+
+    async def delete_account(self, *, account_id: UUID) -> bool:
+        async with self._sessions.begin() as session:
+            await session.execute(
+                delete(AuthSessionRow).where(AuthSessionRow.user_id == account_id)
+            )
+            result = await session.execute(
+                delete(UserRow).where(UserRow.id == account_id).returning(UserRow.id)
+            )
+            deleted = result.scalar_one_or_none() is not None
+        if deleted and self._revoke_sessions is not None:
+            await self._revoke_sessions(account_id)
+        return deleted

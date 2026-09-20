@@ -49,6 +49,12 @@ def test_auth_openapi_exposes_email_session_contract(tmp_path: Path) -> None:
         "username",
     ]
     assert paths["/api/admin/users"]["get"]["operationId"] == "listUsers"
+    assert paths["/api/admin/users/{user_id}"]["delete"]["operationId"] == (
+        "deleteUser"
+    )
+    assert paths["/api/admin/users/{user_id}"]["delete"]["responses"]["204"] == {
+        "description": "Successful Response"
+    }
     assert paths["/api/admin/providers"]["get"]["operationId"] == (
         "listProviderCatalogEntries"
     )
@@ -59,9 +65,10 @@ def test_auth_openapi_exposes_email_session_contract(tmp_path: Path) -> None:
     assert paths["/api/app/v1/auth/register"]["post"]["operationId"] == (
         "registerNativeUser"
     )
-    assert paths["/api/app/v1/auth/registration-code/verify"]["post"][
-        "operationId"
-    ] == "verifyNativeRegistrationCode"
+    assert (
+        paths["/api/app/v1/auth/registration-code/verify"]["post"]["operationId"]
+        == "verifyNativeRegistrationCode"
+    )
     assert paths["/api/app/v1/auth/login"]["post"]["operationId"] == ("loginNativeUser")
     assert paths["/api/app/v1/auth/refresh"]["post"]["operationId"] == (
         "refreshNativeSession"

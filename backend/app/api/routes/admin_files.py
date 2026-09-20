@@ -1,6 +1,7 @@
 from typing import Annotated
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.api.deps import get_current_admin, get_storage_file_service
 from app.api.responses import ApiResponseRoute
@@ -10,6 +11,7 @@ from app.schemas.admin_files import (
     StoredFileListResponse,
 )
 from app.services.auth.models import CurrentUser
+from app.services.storage_files.models import StoredFileCategory
 from app.services.storage_files.service import StorageFileService
 
 router = APIRouter(route_class=ApiResponseRoute, prefix="/admin/files", tags=["admin"])
@@ -31,6 +33,22 @@ async def list_stored_files(
 ) -> StoredFileListResponse:
     result = await service.list_files(page=page, page_size=page_size)
     return StoredFileListResponse.from_page(result)
+
+
+@router.delete(
+    "/{category}/{file_id}",
+    operation_id="deleteStoredFile",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="删除指定持久文件",
+)
+async def delete_stored_file(
+    category: StoredFileCategory,
+    file_id: UUID,
+    admin: Admin,
+    service: StorageFiles,
+) -> Response:
+    await service.delete_file(category=category, file_id=file_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post(

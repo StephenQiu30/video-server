@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { listUsers, updateUserAccess } from '@/api/admin';
+import { deleteUser, listUsers, updateUserAccess } from '@/api/admin';
 import { AdminUsersScreen } from '@/components/admin/admin-users/admin-users-screen';
 import {
   type ActiveFilter,
@@ -44,6 +44,10 @@ export function AdminUsersView() {
   const [editQuota, setEditQuota] = useState<UserQuotaDraft>(EMPTY_QUOTA);
   const [editError, setEditError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] =
+    useState<API.ManagedUserResponse | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const requestId = useRef(0);
   const currentUserId = user?.id;
 
@@ -121,6 +125,27 @@ export function AdminUsersView() {
     }
   }
 
+  async function confirmDelete() {
+    if (!deleteTarget || deleteTarget.id === currentUserId) return;
+    const target = deleteTarget;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await deleteUser({ user_id: encodeURIComponent(target.id) });
+      setDeleteTarget(null);
+      setNotice(`已删除账户“${target.username}”。`);
+      if (page > 1 && items.length === 1) {
+        setPage(page - 1);
+      } else {
+        await loadUsers();
+      }
+    } catch (reason) {
+      setDeleteError(displayError(reason));
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   if (authLoading) return <AdminSkeleton />;
   if (!user) return <UnauthenticatedUsers />;
 
@@ -129,6 +154,11 @@ export function AdminUsersView() {
       currentUserId={user.id}
       query={{ draftSearch, role, active }}
       result={{ items, total, page, loading, error }}
+      deletion={{
+        user: deleteTarget,
+        deleting,
+        error: deleteError,
+      }}
       editor={{
         user: editing,
         role: editRole,
@@ -152,6 +182,11 @@ export function AdminUsersView() {
         onRetry: () => void loadUsers(),
         onPageChange: setPage,
         onEdit: openEditor,
+        onDelete: (target) => {
+          if (target.id === user.id) return;
+          setDeleteError('');
+          setDeleteTarget(target);
+        },
         onEditRole: setEditRole,
         onEditActive: setEditActive,
         onEditQuota: (field, value) => {
@@ -162,6 +197,10 @@ export function AdminUsersView() {
           if (!saving) setEditing(null);
         },
         onSaveEditor: () => void saveEditor(),
+        onCloseDelete: () => {
+          if (!deleting) setDeleteTarget(null);
+        },
+        onConfirmDelete: () => void confirmDelete(),
       }}
     />
   );

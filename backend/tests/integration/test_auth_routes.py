@@ -312,6 +312,14 @@ async def test_profile_and_admin_user_management_are_role_protected(
         self_demote = await client.patch(
             f"/api/admin/users/{admin.json()['data']['id']}", json={"role": "user"}
         )
+        self_delete = await client.delete(
+            f"/api/admin/users/{admin.json()['data']['id']}"
+        )
+        deleted = await client.delete(f"/api/admin/users/{user_id}")
+        after_delete = await client.get(
+            "/api/admin/users", params={"search": "renamed"}
+        )
+        missing_delete = await client.delete(f"/api/admin/users/{user_id}")
         client.cookies.clear()
         client.cookies.set("test_refresh", user_refresh)
         revoked_session = await client.post("/api/auth/refresh")
@@ -337,6 +345,13 @@ async def test_profile_and_admin_user_management_are_role_protected(
     assert disabled.json()["data"]["is_active"] is False
     assert self_demote.status_code == 409
     assert self_demote.json()["code"] == "self_admin_change"
+    assert self_delete.status_code == 409
+    assert self_delete.json()["code"] == "self_admin_change"
+    assert deleted.status_code == 204
+    assert after_delete.status_code == 200
+    assert after_delete.json()["data"]["total"] == 0
+    assert missing_delete.status_code == 404
+    assert missing_delete.json()["code"] == "user_not_found"
     assert revoked_session.status_code == 401
     assert revoked_session.headers["set-cookie"].lower().count("max-age=0") == 2
 

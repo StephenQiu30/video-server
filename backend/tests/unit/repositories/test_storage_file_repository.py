@@ -4,6 +4,7 @@ from uuid import uuid4
 import pytest
 from app.models import AnalysisArtifactLockRow, AnalysisJobRow, ArtifactRow
 from app.repositories.storage_files.repository import SqlAlchemyStorageFileRepository
+from app.services.storage_files.errors import StorageFileError, StorageFileErrorCode
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 from tests.unit.repositories.analytics_helpers import add_job
@@ -40,6 +41,7 @@ async def test_storage_files_page_and_manual_cleanup_respect_analysis_lock(
             select(ArtifactRow).order_by(ArtifactRow.created_at)
         )
         assert old_artifact is not None
+        old_artifact_id = old_artifact.id
         analysis_id, run_id = uuid4(), uuid4()
         session.add(
             AnalysisJobRow(
@@ -87,6 +89,15 @@ async def test_storage_files_page_and_manual_cleanup_respect_analysis_lock(
     assert locked.removed_resources == 0
     assert deleted == []
 
+    with pytest.raises(StorageFileError) as error:
+        await repository.delete_file(
+            category="video",
+            file_id=old_artifact_id,
+            now=NOW,
+            delete=delete_object,
+        )
+    assert error.value.code is StorageFileErrorCode.IN_USE
+
     async with sessions() as session, session.begin():
         await session.execute(delete(AnalysisArtifactLockRow))
     cleaned = await repository.cleanup_before(
@@ -99,3 +110,12 @@ async def test_storage_files_page_and_manual_cleanup_respect_analysis_lock(
     remaining = await repository.list_files(page=1, page_size=20)
     assert remaining.total == 1
     assert remaining.items[0].size_bytes == 2_048
+
+    await repository.delete_file(
+        category="video",
+        file_id=remaining.items[0].id,
+        now=NOW,
+        delete=delete_object,
+    )
+    assert len(deleted) == 2
+    assert (await repository.list_files(page=1, page_size=20)).total == 0

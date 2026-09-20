@@ -1,7 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { cleanupStoredFiles, listStoredFiles } from '@/api/admin';
+import {
+  cleanupStoredFiles,
+  deleteStoredFile,
+  listStoredFiles,
+} from '@/api/admin';
 import { AdminStorageScreen } from '@/components/admin/admin-storage/admin-storage-screen';
 import { STORAGE_PAGE_SIZE } from '@/components/admin/admin-storage/model';
 import { useAuth } from '@/components/auth/auth-provider';
@@ -19,6 +23,10 @@ export function AdminStorageView() {
   const [cleanupDays, setCleanupDays] = useState(30);
   const [cleaning, setCleaning] = useState(false);
   const [cleanupError, setCleanupError] = useState('');
+  const [deleteTarget, setDeleteTarget] =
+    useState<API.StoredFileResponse | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const requestId = useRef(0);
 
   const loadFiles = useCallback(async () => {
@@ -67,6 +75,27 @@ export function AdminStorageView() {
     }
   }
 
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await deleteStoredFile({ category: target.category, file_id: target.id });
+      setDeleteTarget(null);
+      setNotice(`已删除文件“${target.name}”。`);
+      if (page > 1 && items.length === 1) {
+        setPage(page - 1);
+      } else {
+        await loadFiles();
+      }
+    } catch (reason) {
+      setDeleteError(displayError(reason));
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <AdminStorageScreen
       cleanup={{
@@ -75,6 +104,7 @@ export function AdminStorageView() {
         cleaning,
         error: cleanupError,
       }}
+      deletion={{ item: deleteTarget, deleting, error: deleteError }}
       error={error}
       items={items}
       loading={loading || authLoading}
@@ -84,9 +114,17 @@ export function AdminStorageView() {
         if (!cleaning) setCleanupOpen(false);
       }}
       onConfirmCleanup={() => void confirmCleanup()}
+      onCloseDelete={() => {
+        if (!deleting) setDeleteTarget(null);
+      }}
+      onConfirmDelete={() => void confirmDelete()}
       onOpenCleanup={() => {
         setCleanupError('');
         setCleanupOpen(true);
+      }}
+      onOpenDelete={(item) => {
+        setDeleteError('');
+        setDeleteTarget(item);
       }}
       onPageChange={setPage}
       onRetry={() => void loadFiles()}

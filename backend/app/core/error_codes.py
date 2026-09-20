@@ -77,6 +77,7 @@ class ErrorCode(StrEnum):
     SELF_ADMIN_CHANGE = "self_admin_change"
     SERVICE_UNAVAILABLE = "service_unavailable"
     STORAGE_QUOTA_EXCEEDED = "storage_quota_exceeded"
+    STORAGE_FILE_IN_USE = "storage_file_in_use"
     STORAGE_UNAVAILABLE = "storage_unavailable"
     UNAUTHENTICATED = "unauthenticated"
     UPLOAD_INCOMPLETE = "upload_incomplete"

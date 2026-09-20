@@ -11,6 +11,7 @@ import { AdminStorageView } from '@/components/admin/admin-storage-view';
 
 const runtime = vi.hoisted(() => ({
   cleanupStoredFiles: vi.fn(),
+  deleteStoredFile: vi.fn(),
   listStoredFiles: vi.fn(),
   user: {
     created_at: '2026-08-09T10:00:00Z',
@@ -29,6 +30,7 @@ vi.mock('@/components/auth/auth-provider', () => ({
 describe('administrator storage management', () => {
   beforeEach(() => {
     runtime.cleanupStoredFiles.mockReset();
+    runtime.deleteStoredFile.mockReset();
     runtime.listStoredFiles.mockReset();
   });
 
@@ -46,6 +48,7 @@ describe('administrator storage management', () => {
       removed_objects: 2,
       removed_resources: 1,
     });
+    runtime.deleteStoredFile.mockResolvedValue(undefined);
     render(<AdminStorageView />);
 
     expect(await screen.findByText('视频 1')).toBeInTheDocument();
@@ -85,6 +88,25 @@ describe('administrator storage management', () => {
         page_size: 20,
       }),
     );
+
+    fireEvent.click(screen.getByRole('button', { name: '删除文件 视频 1' }));
+    const deleteDialog = await screen.findByRole('alertdialog', {
+      name: '删除文件？',
+    });
+    expect(deleteDialog).toHaveTextContent(
+      '“视频 1”及其所有持久对象将被永久删除。',
+    );
+    fireEvent.click(
+      within(deleteDialog).getByRole('button', { name: '确认删除' }),
+    );
+
+    await waitFor(() =>
+      expect(runtime.deleteStoredFile).toHaveBeenCalledWith({
+        category: 'video',
+        file_id: 'file-1',
+      }),
+    );
+    expect(await screen.findByText('已删除文件“视频 1”。')).toBeInTheDocument();
   });
 });
 
@@ -105,6 +127,7 @@ function storedFile(
 vi.mock('@/api/admin', async (original) => ({
   ...(await original<typeof import('@/api/admin')>()),
   cleanupStoredFiles: runtime.cleanupStoredFiles,
+  deleteStoredFile: runtime.deleteStoredFile,
   listStoredFiles: runtime.listStoredFiles,
 }));
 vi.mock('@/lib/request-error', async (original) => ({

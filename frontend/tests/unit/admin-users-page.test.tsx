@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminUsersView } from '@/components/admin/admin-users-view';
 
 const runtime = vi.hoisted(() => ({
+  deleteUser: vi.fn(),
   listUsers: vi.fn(),
   updateUserAccess: vi.fn(),
   user: {
@@ -29,8 +30,10 @@ vi.mock('@/components/auth/auth-provider', () => ({
 
 describe('administrator user management', () => {
   beforeEach(() => {
+    runtime.deleteUser.mockReset();
     runtime.listUsers.mockReset();
     runtime.updateUserAccess.mockReset();
+    runtime.deleteUser.mockResolvedValue(undefined);
     runtime.updateUserAccess.mockResolvedValue(managedUser());
   });
 
@@ -58,6 +61,11 @@ describe('administrator user management', () => {
     });
     for (const button of screen.getAllByRole('button', {
       name: '管理用户 owner',
+    })) {
+      expect(button).toBeDisabled();
+    }
+    for (const button of screen.getAllByRole('button', {
+      name: '删除用户 owner',
     })) {
       expect(button).toBeDisabled();
     }
@@ -143,7 +151,7 @@ describe('administrator user management', () => {
     await act(async () =>
       second.resolve(result([managedUser({ username: 'fresh' })])),
     );
-    expect(await screen.findAllByText('fresh')).toHaveLength(2);
+    expect(await screen.findAllByText('fresh')).toHaveLength(1);
     await act(async () =>
       first.resolve(result([managedUser({ username: 'stale' })])),
     );
@@ -157,13 +165,13 @@ describe('administrator user management', () => {
       .mockReturnValueOnce(refresh.promise);
     render(<AdminUsersView />);
 
-    expect(await screen.findAllByText('editor')).toHaveLength(2);
+    expect(await screen.findAllByText('editor')).toHaveLength(1);
     const search = screen.getByRole('textbox', { name: '搜索用户名或邮箱' });
     fireEvent.change(search, { target: { value: 'fresh' } });
     fireEvent.submit(search.closest('form') as HTMLFormElement);
     await waitFor(() => expect(runtime.listUsers).toHaveBeenCalledTimes(2));
 
-    expect(screen.getAllByText('editor')).toHaveLength(2);
+    expect(screen.getAllByText('editor')).toHaveLength(1);
     expect(
       screen.queryByRole('status', { name: '正在加载用户列表' }),
     ).not.toBeInTheDocument();
@@ -174,7 +182,31 @@ describe('administrator user management', () => {
     await act(async () =>
       refresh.resolve(result([managedUser({ username: 'fresh' })])),
     );
-    expect(await screen.findAllByText('fresh')).toHaveLength(2);
+    expect(await screen.findAllByText('fresh')).toHaveLength(1);
+  });
+
+  it('requires confirmation before deleting another user', async () => {
+    runtime.listUsers.mockResolvedValue(result([managedUser()]));
+    render(<AdminUsersView />);
+
+    expect(await screen.findByText('editor')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '删除用户 editor' }));
+
+    const dialog = await screen.findByRole('alertdialog', {
+      name: '删除用户？',
+    });
+    expect(dialog).toHaveTextContent(
+      '“editor”（editor@example.com）的账户将被永久删除。',
+    );
+    expect(runtime.deleteUser).not.toHaveBeenCalled();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: '确认删除' }));
+    await waitFor(() =>
+      expect(runtime.deleteUser).toHaveBeenCalledWith({
+        user_id: 'editor-id',
+      }),
+    );
+    expect(await screen.findByText('已删除账户“editor”。')).toBeInTheDocument();
   });
 });
 
@@ -222,6 +254,7 @@ vi.mock('@/lib/request-error', async (original) => ({
 }));
 vi.mock('@/api/admin', async (original) => ({
   ...(await original<typeof import('@/api/admin')>()),
+  deleteUser: runtime.deleteUser,
   listUsers: runtime.listUsers,
   updateUserAccess: runtime.updateUserAccess,
 }));

@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 import { STORAGE_PAGE_SIZE } from './model';
 import { StorageCleanupDialog } from './storage-cleanup-dialog';
+import { StorageFileDeleteDialog } from './storage-file-delete-dialog';
 import { StorageFileList } from './storage-file-list';
 
 type AdminStorageScreenProps = {
@@ -26,12 +27,20 @@ type AdminStorageScreenProps = {
     cleaning: boolean;
     error: string;
   };
+  deletion: {
+    item: API.StoredFileResponse | null;
+    deleting: boolean;
+    error: string;
+  };
   onPageChange: (page: number) => void;
   onRetry: () => void;
   onOpenCleanup: () => void;
   onCloseCleanup: () => void;
   onCleanupDaysChange: (days: number) => void;
   onConfirmCleanup: () => void;
+  onOpenDelete: (item: API.StoredFileResponse) => void;
+  onCloseDelete: () => void;
+  onConfirmDelete: () => void;
 };
 
 export function AdminStorageScreen({
@@ -42,12 +51,16 @@ export function AdminStorageScreen({
   error,
   notice,
   cleanup,
+  deletion,
   onPageChange,
   onRetry,
   onOpenCleanup,
   onCloseCleanup,
   onCleanupDaysChange,
   onConfirmCleanup,
+  onOpenDelete,
+  onCloseDelete,
+  onConfirmDelete,
 }: AdminStorageScreenProps) {
   const pages = Math.max(1, Math.ceil(total / STORAGE_PAGE_SIZE));
   const first = total === 0 ? 0 : (page - 1) * STORAGE_PAGE_SIZE + 1;
@@ -97,7 +110,7 @@ export function AdminStorageScreen({
           title="暂无持久文件"
         />
       ) : (
-        <StorageFileList items={items} />
+        <StorageFileList items={items} onDelete={onOpenDelete} />
       )}
 
       {!error && total > 0 ? (
@@ -124,6 +137,13 @@ export function AdminStorageScreen({
         onConfirm={onConfirmCleanup}
         onDaysChange={onCleanupDaysChange}
         open={cleanup.open}
+      />
+      <StorageFileDeleteDialog
+        deleting={deletion.deleting}
+        error={deletion.error}
+        item={deletion.item}
+        onClose={onCloseDelete}
+        onConfirm={onConfirmDelete}
       />
     </div>
   );

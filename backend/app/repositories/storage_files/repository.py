@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -9,8 +10,13 @@ from app.repositories.storage_files.cleanup_sources import (
     cleanup_documents,
     cleanup_videos,
 )
+from app.repositories.storage_files.delete import delete_stored_file
 from app.repositories.storage_files.queries import list_stored_files
-from app.services.storage_files.models import StorageCleanupResult, StoredFilePage
+from app.services.storage_files.models import (
+    StorageCleanupResult,
+    StoredFileCategory,
+    StoredFilePage,
+)
 from app.services.storage_files.ports import DeleteStoredObject
 
 
@@ -20,6 +26,22 @@ class SqlAlchemyStorageFileRepository:
 
     async def list_files(self, *, page: int, page_size: int) -> StoredFilePage:
         return await list_stored_files(self._sessions, page=page, page_size=page_size)
+
+    async def delete_file(
+        self,
+        *,
+        category: StoredFileCategory,
+        file_id: UUID,
+        now: datetime,
+        delete: DeleteStoredObject,
+    ) -> None:
+        await delete_stored_file(
+            self._sessions,
+            category=category,
+            file_id=file_id,
+            now=now,
+            delete=delete,
+        )
 
     async def cleanup_before(
         self,

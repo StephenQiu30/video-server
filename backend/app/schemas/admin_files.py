@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
 from uuid import UUID
 
 from pydantic import Field
 
 from app.schemas.common import StrictModel
-from app.services.storage_files.models import StorageCleanupResult, StoredFilePage
-
-type StoredFileCategory = Literal["video", "screenplay", "analysis_report"]
+from app.services.storage_files.models import (
+    StorageCleanupResult,
+    StoredFileCategory,
+    StoredFilePage,
+)
 
 
 class StoredFileResponse(StrictModel):

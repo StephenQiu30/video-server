@@ -6,6 +6,7 @@ const localizedErrorMessages: Record<string, string> = {
   analysis_budget_exceeded: '最近 24 小时的分析额度已用完，请稍后再试。',
   storage_quota_exceeded:
     '存储空间不足，请删除不再需要的文件，或等待任务完成后再试。',
+  storage_file_in_use: '文件正在被分析使用，请等待分析完成后再删除。',
   analysis_already_active: '当前已有分析任务正在执行，请等待完成后再试。',
   analysis_artifact_unavailable: '原视频文件已失效，请重新下载后再分析。',
   analysis_cli_failed: 'AI 分析执行失败，请稍后重试。',
@@ -85,7 +86,7 @@ const localizedErrorMessages: Record<string, string> = {
   reserved_ai_provider_mutation:
     '本机 Codex 是系统兜底线路，只能修改显示名称和模型。',
   resource_expired: '原始媒体解析信息已失效，请重新解析链接。',
-  self_admin_change: '管理员不能停用自己或修改自己的管理员权限。',
+  self_admin_change: '管理员不能停用、删除自己或修改自己的管理员权限。',
   service_unavailable: '服务暂时不可用，请稍后重试。',
   storage_unavailable: '文件存储服务暂时不可用，请稍后重试。',
   temp_space_exhausted: '下载临时空间不足，请清理空间后重试。',

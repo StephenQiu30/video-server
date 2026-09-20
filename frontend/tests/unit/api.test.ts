@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createProviderCatalogEntry,
   deleteProviderCatalogEntry,
+  deleteUser,
   getDownloadAnalytics as getAdminDownloadAnalytics,
   listProviderCatalogEntries,
   listUsers,
@@ -348,6 +349,7 @@ describe('typed API client', () => {
       managedUser,
       { items: [managedUser], page: 1, page_size: 20, total: 1 },
       { ...managedUser, role: 'admin' },
+      undefined,
     );
 
     await updateCurrentUser({ username: 'video_user' });
@@ -356,6 +358,7 @@ describe('typed API client', () => {
       { user_id: encodeURIComponent(managedUser.id) },
       { role: 'admin' },
     );
+    await deleteUser({ user_id: encodeURIComponent(managedUser.id) });
 
     expect(httpRequests()).toMatchObject([
       {
@@ -372,6 +375,10 @@ describe('typed API client', () => {
         url: `/api/admin/users/${managedUser.id}`,
         method: 'PATCH',
         data: { role: 'admin' },
+      },
+      {
+        url: `/api/admin/users/${managedUser.id}`,
+        method: 'DELETE',
       },
     ]);
   });

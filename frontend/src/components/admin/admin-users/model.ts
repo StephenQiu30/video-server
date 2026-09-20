@@ -26,6 +26,12 @@ export type UserEditorState = {
   saving: boolean;
 };
 
+export type UserDeletionState = {
+  user: API.ManagedUserResponse | null;
+  deleting: boolean;
+  error: string;
+};
+
 export type UserQuotaDraft = {
   exempt: boolean;
   maxActiveTasks: string;
