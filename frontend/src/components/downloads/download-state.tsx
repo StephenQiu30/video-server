@@ -3,6 +3,7 @@
 import { ArrowClockwise, DownloadSimple, X } from '@phosphor-icons/react';
 import Link from 'next/link';
 
+import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -88,10 +89,12 @@ export default function DownloadState({
       ) : null}
 
       {job.status === 'failed' ? (
-        <Alert className="mt-6" variant="destructive">
-          <AlertTitle>{failureTitle(job.error_code)}</AlertTitle>
-          <AlertDescription>{failureDescription(job)}</AlertDescription>
-        </Alert>
+        <PageErrorNotice
+          className="mt-6"
+          compact
+          message={failureDescription(job)}
+          title={failureTitle(job.error_code)}
+        />
       ) : null}
 
       {complete && !job.file_available ? (

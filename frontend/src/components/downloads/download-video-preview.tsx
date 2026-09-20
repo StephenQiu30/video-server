@@ -13,9 +13,8 @@ import {
 import { type Ref, useEffect } from 'react';
 import { useVideoPreviewSource } from '@/components/downloads/use-video-preview-source';
 import { mediaFrameAspectRatio } from '@/components/intake/media-cover';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type Props = {
@@ -56,17 +55,14 @@ export default function DownloadVideoPreview({
   if (preview.error || !preview.source) {
     return (
       <AspectRatio ratio={mediaFrameAspectRatio}>
-        <div className="flex size-full items-center bg-muted p-5 sm:p-8">
-          <Alert variant="default">
-            <AlertTitle>暂时无法预览视频</AlertTitle>
-            <AlertDescription>
-              {preview.error ?? '没有可用的视频预览地址。'}
-            </AlertDescription>
-            <Button className="mt-4" onClick={preview.reload} variant="outline">
-              重新加载预览
-            </Button>
-          </Alert>
-        </div>
+        <PageErrorNotice
+          className="size-full bg-muted p-5 sm:p-8"
+          compact
+          message={preview.error ?? '没有可用的视频预览地址。'}
+          onRetry={preview.reload}
+          retryLabel="重新加载预览"
+          title="暂时无法预览视频"
+        />
       </AspectRatio>
     );
   }

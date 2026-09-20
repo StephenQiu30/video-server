@@ -8,8 +8,8 @@ import {
 } from '@/components/analysis/analysis-panel-model';
 import AnalysisStorageNotice from '@/components/analysis/analysis-storage-notice';
 import type { useAnalysisJob } from '@/components/analysis/use-analysis-job';
+import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { ScreenplayResultView } from '@/components/screenplay/screenplay-result-view';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -58,14 +58,16 @@ export function ScreenplayAnalysisJobState({
         <AnalysisStorageNotice />
       </div>
       {job.status === 'failed' ? (
-        <Alert className="mt-6" variant="destructive">
-          <AlertTitle>剧本任务失败</AlertTitle>
-          <AlertDescription>
-            {screenplayAnalysisErrorMessage(job.error_code) ??
-              localizedErrorMessage(job.error_code) ??
-              '剧本分析或改写未能完成，请稍后重试。'}
-          </AlertDescription>
-        </Alert>
+        <PageErrorNotice
+          className="mt-6"
+          compact
+          message={
+            screenplayAnalysisErrorMessage(job.error_code) ??
+            localizedErrorMessage(job.error_code) ??
+            '剧本分析或改写未能完成，请稍后重试。'
+          }
+          title="剧本任务失败"
+        />
       ) : null}
       <p aria-live="polite" className="mt-2 text-xs text-muted-foreground">
         {state.socketStatus === 'connected'

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { deleteDocument as deleteScreenplayDocument } from '@/api/documents';
 import { BackLink } from '@/components/layout/back-link';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
+import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import ScreenplayAnalysisPanel from '@/components/screenplay/screenplay-analysis-panel';
 import { ScreenplayDocumentDeleteDialog } from '@/components/screenplay/screenplay-document-delete-dialog';
 import {
@@ -19,7 +21,6 @@ import {
 } from '@/components/screenplay/screenplay-document-toc';
 import { ScreenplayUploadDialog } from '@/components/screenplay/screenplay-upload-dialog';
 import { useScreenplayDocument } from '@/components/screenplay/use-screenplay-document';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -89,19 +90,19 @@ export default function ScreenplayDocumentDetailView({
     <div className="inner-page">
       <BackLink fallbackHref="/documents" />
       {state.error || actionError ? (
-        <Alert className="mt-8" variant="destructive">
-          <AlertTitle>
-            {state.error ? '无法读取剧本文档' : '操作未完成'}
-          </AlertTitle>
-          <AlertDescription className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span>{state.error ?? actionError}</span>
-            {state.error ? (
+        <FeedbackNotice
+          action={
+            state.error ? (
               <Button onClick={state.refresh} size="sm" variant="outline">
-                重试
+                重新加载
               </Button>
-            ) : null}
-          </AlertDescription>
-        </Alert>
+            ) : null
+          }
+          className="mt-8"
+          description={state.error ?? actionError ?? ''}
+          title={state.error ? '无法读取剧本文档' : '操作未完成'}
+          tone="error"
+        />
       ) : null}
       {state.document ? (
         <>
@@ -229,15 +230,14 @@ function DocumentDetailError({
   return (
     <div className="inner-page">
       <BackLink fallbackHref="/documents" />
-      <div className="mt-7 max-w-2xl">
-        <h1 className="text-[36px] font-medium leading-[1.02] tracking-[-0.05em] sm:text-[52px]">
-          无法读取剧本文档
-        </h1>
-        <p className="mt-4 text-sm text-muted-foreground">{error}</p>
-        <Button className="mt-6" onClick={onRetry} type="button">
-          重试
-        </Button>
-      </div>
+      <PageErrorNotice
+        className="mt-4"
+        message={error}
+        onRetry={onRetry}
+        retryLabel="重新加载"
+        title="剧本文档暂时不可用"
+        titleAs="h1"
+      />
     </div>
   );
 }

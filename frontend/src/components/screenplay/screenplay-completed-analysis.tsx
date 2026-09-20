@@ -3,8 +3,8 @@ import { ArrowClockwise, DownloadSimple } from '@phosphor-icons/react';
 import AnalysisDeleteDialog from '@/components/analysis/analysis-delete-dialog';
 import AnalysisReportDownloadLink from '@/components/analysis/analysis-report-download-link';
 import AnalysisStorageNotice from '@/components/analysis/analysis-storage-notice';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { ScreenplayResultView } from '@/components/screenplay/screenplay-result-view';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -100,12 +100,12 @@ export function ScreenplayCompletedAnalysis({
         </div>
       </div>
       {!reportAvailable ? (
-        <Alert className="mt-8" variant="destructive">
-          <AlertTitle>报告已清理或暂时不可用</AlertTitle>
-          <AlertDescription>
-            结构化结果仍可查看；重新执行后会生成新的 Markdown 和 DOCX。
-          </AlertDescription>
-        </Alert>
+        <FeedbackNotice
+          className="mt-8"
+          description="结构化结果仍可查看；重新执行后会生成新的 Markdown 和 DOCX。"
+          title="报告已清理或暂时不可用"
+          tone="error"
+        />
       ) : null}
       <div className="mt-5">
         <AnalysisStorageNotice />

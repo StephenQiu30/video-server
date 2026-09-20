@@ -54,15 +54,19 @@ function EmptyMedia({
   );
 }
 
-function EmptyTitle({ className, ...props }: React.ComponentProps<'div'>) {
+function EmptyTitle({ as: Tag = 'div', className, ...props }: EmptyTitleProps) {
   return (
-    <div
+    <Tag
       data-slot="empty-title"
       className={cn('text-sm font-medium tracking-tight', className)}
       {...props}
     />
   );
 }
+
+type EmptyTitleProps = React.HTMLAttributes<HTMLElement> & {
+  as?: 'div' | 'h1' | 'h2' | 'h3' | 'h4';
+};
 
 function EmptyDescription({ className, ...props }: React.ComponentProps<'p'>) {
   return (

@@ -1,5 +1,5 @@
 import { Warning } from '@phosphor-icons/react';
-
+import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import {
   documentErrorLabel,
   documentFormatLabels,
@@ -81,10 +81,12 @@ export function ScreenplayDocumentMetadata({
         </div>
       ) : null}
       {error ? (
-        <Alert className="mt-6" variant="destructive">
-          <AlertTitle>解析未完成</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+        <PageErrorNotice
+          className="mt-6"
+          compact
+          message={error}
+          title="解析未完成"
+        />
       ) : null}
       {document.quality_warnings.length ? (
         <Alert className="mt-6" variant="default">

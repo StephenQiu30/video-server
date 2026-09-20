@@ -2,9 +2,9 @@
 
 import AnalysisConfigurator from '@/components/analysis/analysis-configurator';
 import { useAnalysisJob } from '@/components/analysis/use-analysis-job';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { ScreenplayAnalysisJobState } from '@/components/screenplay/screenplay-analysis-job-state';
 import { ScreenplayCompletedAnalysis } from '@/components/screenplay/screenplay-completed-analysis';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function ScreenplayAnalysisPanel({
   documentId,
@@ -27,10 +27,12 @@ export default function ScreenplayAnalysisPanel({
       {succeeded && state.job ? (
         <>
           {state.error ? (
-            <Alert className="mb-8" variant="destructive">
-              <AlertTitle>操作未完成</AlertTitle>
-              <AlertDescription>{state.error}</AlertDescription>
-            </Alert>
+            <FeedbackNotice
+              className="mb-8"
+              description={state.error}
+              title="操作未完成"
+              tone="error"
+            />
           ) : null}
           <ScreenplayCompletedAnalysis
             action={state.action}
@@ -53,10 +55,12 @@ export default function ScreenplayAnalysisPanel({
             </p>
           </div>
           {state.error ? (
-            <Alert className="mt-6" variant="destructive">
-              <AlertTitle>操作未完成</AlertTitle>
-              <AlertDescription>{state.error}</AlertDescription>
-            </Alert>
+            <FeedbackNotice
+              className="mt-6"
+              description={state.error}
+              title="操作未完成"
+              tone="error"
+            />
           ) : null}
           {!state.job ? (
             <AnalysisConfigurator

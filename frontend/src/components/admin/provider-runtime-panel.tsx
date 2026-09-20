@@ -59,7 +59,12 @@ export function ProviderRuntimePanel() {
         {loading ? '读取中…' : '读取运行诊断'}
       </Button>
       {error ? (
-        <PageErrorNotice message={error} onRetry={() => void load()} />
+        <PageErrorNotice
+          message={error}
+          onRetry={() => void load()}
+          retryLabel="重新加载"
+          title="运行诊断暂时不可用"
+        />
       ) : null}
       {data ? (
         <ul aria-label="平台运行诊断" className="flex flex-col gap-5">

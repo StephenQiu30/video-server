@@ -88,7 +88,12 @@ export function AdminStorageScreen({
           ))}
         </div>
       ) : error ? (
-        <PageErrorNotice message={error} onRetry={onRetry} />
+        <PageErrorNotice
+          message={error}
+          onRetry={onRetry}
+          retryLabel="重新加载"
+          title="暂时无法读取文件列表"
+        />
       ) : items.length === 0 ? (
         <Empty className="min-h-64 items-start rounded-none border-0 py-14 text-left">
           <EmptyHeader className="items-start">

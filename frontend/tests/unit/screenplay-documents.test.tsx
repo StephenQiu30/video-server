@@ -264,10 +264,12 @@ describe('screenplay documents', () => {
       <ScreenplayDocumentDetailView documentId="unavailable-id" />,
     );
     expect(
-      await screen.findByRole('heading', { name: '无法读取剧本文档' }),
+      await screen.findByRole('heading', { name: '剧本文档暂时不可用' }),
     ).toBeInTheDocument();
     expect(screen.getByText('文档服务暂时不可用')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '重试' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '重新加载' }),
+    ).toBeInTheDocument();
     requestFailure.unmount();
 
     render(<MissingScreenplayDocument />);

@@ -4,6 +4,7 @@ import { ArrowClockwise } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { deleteDocument as deleteScreenplayDocument } from '@/api/documents';
 import { BackLink } from '@/components/layout/back-link';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
@@ -65,10 +66,34 @@ export default function ScreenplayDocumentsView() {
         description="核对导入状态、提取规模和规范化剧本文本。"
         title="剧本文档"
       />
-      {state.error || actionError ? (
+      {state.error && !state.data ? (
         <PageErrorNotice
           className="mt-8"
-          message={state.error ?? actionError ?? '请稍后重试。'}
+          message={state.error}
+          onRetry={state.refresh}
+          retryLabel="重新加载"
+          title="暂时无法读取剧本文档"
+        />
+      ) : null}
+      {state.error && state.data ? (
+        <FeedbackNotice
+          action={
+            <Button onClick={state.refresh} size="sm" variant="outline">
+              重新加载
+            </Button>
+          }
+          className="mt-8"
+          description={state.error}
+          title="剧本文档刷新失败"
+          tone="error"
+        />
+      ) : null}
+      {actionError ? (
+        <FeedbackNotice
+          className="mt-8"
+          description={actionError}
+          title="操作未完成"
+          tone="error"
         />
       ) : null}
       <ScreenplayDocumentList

@@ -12,7 +12,8 @@ import AnalysisReportDownloadLink from '@/components/analysis/analysis-report-do
 import AnalysisResultView from '@/components/analysis/analysis-result-view';
 import AnalysisStorageNotice from '@/components/analysis/analysis-storage-notice';
 import { useAnalysisJob } from '@/components/analysis/use-analysis-job';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
+import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -58,10 +59,12 @@ export default function AnalysisPanel({
     return (
       <section aria-label="AI 智能分析" className="py-12 sm:py-16">
         {state.error ? (
-          <Alert className="mb-8" variant="destructive">
-            <AlertTitle>操作未完成</AlertTitle>
-            <AlertDescription>{state.error}</AlertDescription>
-          </Alert>
+          <FeedbackNotice
+            className="mb-8"
+            description={state.error}
+            title="操作未完成"
+            tone="error"
+          />
         ) : null}
         <div className="flex flex-col gap-6">
           <div className="min-w-0 w-full">
@@ -117,12 +120,12 @@ export default function AnalysisPanel({
           </div>
         </div>
         {!reportAvailable ? (
-          <Alert className="mt-8" variant="destructive">
-            <AlertTitle>报告已清理或暂时不可用</AlertTitle>
-            <AlertDescription>
-              分析结果仍可查看，但报告文件已被清理或暂时不可读取。你可以重新分析以生成新报告。
-            </AlertDescription>
-          </Alert>
+          <FeedbackNotice
+            className="mt-8"
+            description="分析结果仍可查看，但报告文件已被清理或暂时不可读取。你可以重新分析以生成新报告。"
+            title="报告已清理或暂时不可用"
+            tone="error"
+          />
         ) : null}
         <div className="mt-5">
           <AnalysisStorageNotice />
@@ -170,10 +173,12 @@ export default function AnalysisPanel({
       </div>
 
       {state.error ? (
-        <Alert className="mt-6" variant="destructive">
-          <AlertTitle>操作未完成</AlertTitle>
-          <AlertDescription>{state.error}</AlertDescription>
-        </Alert>
+        <FeedbackNotice
+          className="mt-6"
+          description={state.error}
+          title="操作未完成"
+          tone="error"
+        />
       ) : null}
 
       {!state.job ? (
@@ -227,13 +232,15 @@ function AnalysisJobState({
         <AnalysisStorageNotice />
       </div>
       {job.status === 'failed' ? (
-        <Alert className="mt-6" variant="destructive">
-          <AlertTitle>分析失败</AlertTitle>
-          <AlertDescription>
-            {localizedErrorMessage(job.error_code) ??
-              'AI 分析未能完成，请稍后重试。'}
-          </AlertDescription>
-        </Alert>
+        <PageErrorNotice
+          className="mt-6"
+          compact
+          message={
+            localizedErrorMessage(job.error_code) ??
+            'AI 分析未能完成，请稍后重试。'
+          }
+          title="分析失败"
+        />
       ) : null}
       <p aria-live="polite" className="mt-2 text-xs text-muted-foreground">
         {state.socketStatus === 'connected'

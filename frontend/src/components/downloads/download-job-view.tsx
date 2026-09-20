@@ -12,8 +12,9 @@ import MediaCover, {
   mediaFrameAspectRatio,
 } from '@/components/intake/media-cover';
 import { BackLink } from '@/components/layout/back-link';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { markNavigationPush } from '@/components/layout/navigation-history';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDuration } from '@/lib/format';
@@ -79,11 +80,22 @@ export default function DownloadJobView({
           />
         ) : null}
       </div>
-      {state.error ? (
-        <Alert className="mt-8" variant="destructive">
-          <AlertTitle>{errorTitle(state.errorKind)}</AlertTitle>
-          <AlertDescription>{state.error}</AlertDescription>
-        </Alert>
+      {state.error && !state.job ? (
+        <PageErrorNotice
+          className="mt-8"
+          message={state.error}
+          onRetry={state.errorKind === 'load' ? state.refresh : undefined}
+          retryLabel="重新加载"
+          title={errorTitle(state.errorKind)}
+        />
+      ) : null}
+      {state.error && state.job ? (
+        <FeedbackNotice
+          className="mt-8"
+          description={state.error}
+          title={errorTitle(state.errorKind)}
+          tone="error"
+        />
       ) : null}
       {state.job ? (
         <>

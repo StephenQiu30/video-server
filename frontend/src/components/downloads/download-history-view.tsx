@@ -15,6 +15,7 @@ import DownloadHistoryList, {
 import { DownloadHistorySummary } from '@/components/downloads/download-history-summary';
 import { useDownloadHistory } from '@/components/downloads/use-download-history';
 import { BackLink } from '@/components/layout/back-link';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { markNavigationPush } from '@/components/layout/navigation-history';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
@@ -203,10 +204,34 @@ export default function DownloadHistoryView() {
       </FieldGroup>
 
       <DownloadHistorySummary data={state.data} loading={state.loading} />
-      {state.error || actionError ? (
+      {state.error && !state.data ? (
         <PageErrorNotice
           className="mt-6"
-          message={state.error ?? actionError ?? '请稍后重试。'}
+          message={state.error}
+          onRetry={state.retry}
+          retryLabel="重新加载"
+          title="暂时无法读取下载记录"
+        />
+      ) : null}
+      {state.error && state.data ? (
+        <FeedbackNotice
+          action={
+            <Button onClick={state.retry} size="sm" variant="outline">
+              重新加载
+            </Button>
+          }
+          className="mt-6"
+          description={state.error}
+          title="下载记录刷新失败"
+          tone="error"
+        />
+      ) : null}
+      {actionError ? (
+        <FeedbackNotice
+          className="mt-6"
+          description={actionError}
+          title="操作未完成"
+          tone="error"
         />
       ) : null}
 

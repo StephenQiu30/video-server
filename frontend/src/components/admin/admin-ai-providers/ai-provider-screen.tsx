@@ -1,11 +1,8 @@
-import {
-  ArrowClockwise,
-  CheckCircle,
-  Plus,
-  WarningCircle,
-} from '@phosphor-icons/react';
+import { ArrowClockwise, CheckCircle, Plus } from '@phosphor-icons/react';
 
 import { BackLink } from '@/components/layout/back-link';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
+import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -63,16 +60,26 @@ export function AiProviderScreen({
         </Alert>
       ) : null}
       {error ? (
-        <Alert variant="destructive">
-          <WarningCircle aria-hidden />
-          <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
-            {error}
-            <Button onClick={onRetry} size="sm" variant="outline">
-              <ArrowClockwise aria-hidden data-icon="inline-start" />
-              重试
-            </Button>
-          </AlertDescription>
-        </Alert>
+        items.length === 0 ? (
+          <PageErrorNotice
+            message={error}
+            onRetry={onRetry}
+            retryLabel="重新加载"
+            title="暂时无法读取 AI 服务"
+          />
+        ) : (
+          <FeedbackNotice
+            action={
+              <Button onClick={onRetry} size="sm" variant="outline">
+                <ArrowClockwise aria-hidden data-icon="inline-start" />
+                重新加载
+              </Button>
+            }
+            description={error}
+            title="操作未完成"
+            tone="error"
+          />
+        )
       ) : null}
 
       <section aria-labelledby="active-ai-route">

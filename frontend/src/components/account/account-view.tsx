@@ -1,6 +1,6 @@
 'use client';
 
-import { FloppyDisk, WarningCircle } from '@phosphor-icons/react';
+import { FloppyDisk } from '@phosphor-icons/react';
 import { type FormEvent, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { updateCurrentUser } from '@/api/users';
@@ -8,8 +8,8 @@ import { ReadOnlyField } from '@/components/account/read-only-field';
 import { useAuth } from '@/components/auth/auth-provider';
 import { BackLink } from '@/components/layout/back-link';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
+import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -85,19 +85,12 @@ export function AccountView() {
 
   if (!user) {
     return (
-      <Alert variant="destructive" className="max-w-2xl">
-        <WarningCircle />
-        <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
-          登录状态已失效，请重新检查账户状态。
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void refreshUser()}
-          >
-            重新检查
-          </Button>
-        </AlertDescription>
-      </Alert>
+      <PageErrorNotice
+        message="登录状态已失效，请重新检查账户状态。"
+        onRetry={() => void refreshUser()}
+        retryLabel="重新检查"
+        title="暂时无法读取个人资料"
+      />
     );
   }
 

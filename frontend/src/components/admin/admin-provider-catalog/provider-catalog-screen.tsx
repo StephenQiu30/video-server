@@ -1,7 +1,8 @@
-import { CheckCircle, Plus } from '@phosphor-icons/react';
+import { ArrowClockwise, CheckCircle, Plus } from '@phosphor-icons/react';
 import { useMemo, useState } from 'react';
 
 import { BackLink } from '@/components/layout/back-link';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
@@ -85,21 +86,41 @@ export function ProviderCatalogScreen({
           <AlertDescription>{notice}</AlertDescription>
         </Alert>
       ) : null}
-      {result.error ? (
-        <PageErrorNotice message={result.error} onRetry={onRetry} />
+      {result.error && result.items.length === 0 ? (
+        <PageErrorNotice
+          message={result.error}
+          onRetry={onRetry}
+          retryLabel="重新加载"
+          title="暂时无法读取平台目录"
+        />
+      ) : null}
+      {result.error && result.items.length > 0 ? (
+        <FeedbackNotice
+          action={
+            <Button onClick={onRetry} size="sm" variant="outline">
+              <ArrowClockwise aria-hidden data-icon="inline-start" />
+              重新加载
+            </Button>
+          }
+          description={result.error}
+          title="平台目录刷新失败"
+          tone="error"
+        />
       ) : null}
       {result.loading && result.items.length === 0 ? (
         <CatalogSkeleton />
       ) : result.items.length === 0 ? (
-        <Empty className="min-h-64 items-start rounded-none border-0 py-14 text-left">
-          <EmptyHeader className="items-start">
-            <EmptyTitle>平台目录为空</EmptyTitle>
-            <EmptyDescription className="text-left">
-              新增条目后，可在平台状态页公开展示。
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      ) : result.items.length > 0 ? (
+        result.error ? null : (
+          <Empty className="min-h-64 items-start rounded-none border-0 py-14 text-left">
+            <EmptyHeader className="items-start">
+              <EmptyTitle>平台目录为空</EmptyTitle>
+              <EmptyDescription className="text-left">
+                新增条目后，可在平台状态页公开展示。
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        )
+      ) : (
         <div className="flex flex-col gap-6">
           <ProviderCatalogFilters
             onQueryChange={(value) => {
@@ -143,7 +164,7 @@ export function ProviderCatalogScreen({
             />
           </footer>
         </div>
-      ) : null}
+      )}
     </section>
   );
 }

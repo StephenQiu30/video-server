@@ -1,7 +1,4 @@
-import { WarningCircle } from '@phosphor-icons/react';
-
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Empty,
   EmptyDescription,
@@ -42,7 +39,14 @@ export function UsersLoadError({
   error: string;
   onRetry: () => void;
 }) {
-  return <PageErrorNotice message={error} onRetry={onRetry} />;
+  return (
+    <PageErrorNotice
+      message={error}
+      onRetry={onRetry}
+      retryLabel="重新加载"
+      title="暂时无法读取用户列表"
+    />
+  );
 }
 
 export function EmptyUsers() {
@@ -60,9 +64,9 @@ export function EmptyUsers() {
 
 export function UnauthenticatedUsers() {
   return (
-    <Alert variant="destructive">
-      <WarningCircle />
-      <AlertDescription>登录状态已失效，无法读取用户列表。</AlertDescription>
-    </Alert>
+    <PageErrorNotice
+      message="登录状态已失效，无法读取用户列表。"
+      title="暂时无法读取用户列表"
+    />
   );
 }

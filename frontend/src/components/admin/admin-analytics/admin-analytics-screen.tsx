@@ -8,6 +8,7 @@ import { SourceBreakdown } from '@/components/admin/admin-analytics/source-break
 import { SourcePerformance } from '@/components/admin/admin-analytics/source-performance';
 import { StatusDistributionChart } from '@/components/admin/admin-analytics/status-distribution-chart';
 import { BackLink } from '@/components/layout/back-link';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
@@ -66,11 +67,23 @@ export function AdminAnalyticsScreen({
         />
       </div>
 
-      {error ? (
+      {error && !data ? (
         <PageErrorNotice
           message={error}
           onRetry={onRetry}
           title="无法加载下载分析"
+        />
+      ) : null}
+      {error && data ? (
+        <FeedbackNotice
+          action={
+            <Button onClick={onRetry} size="sm" variant="outline">
+              重新加载
+            </Button>
+          }
+          description={error}
+          title="下载分析刷新失败"
+          tone="error"
         />
       ) : null}
 
