@@ -30,12 +30,13 @@ class FakeCookieSync:
         self.ready = ready
         self.payload = payload
         self.calls = 0
+        self.ready_providers: list[ProviderKey] = []
 
     async def is_ready(
         self, provider: ProviderKey, version: ProviderSessionVersion
     ) -> bool:
-        assert provider is ProviderKey.YOUTUBE
         assert version is ProviderSessionVersion.BROWSER
+        self.ready_providers.append(provider)
         return self.ready
 
     async def sync(
@@ -296,3 +297,37 @@ async def test_live_agent_readiness_fails_when_bridge_is_unavailable(
     )
 
     assert await store.is_ready() is False
+
+
+async def test_live_agent_readiness_checks_every_configured_provider(
+    tmp_path: Path,
+) -> None:
+    cookie_sync = FakeCookieSync()
+    store = ProviderSessionStore(
+        operator_settings(tmp_path),
+        cookie_sync=cookie_sync,
+        enforce_memory_backing=False,
+    )
+    store._versions[ProviderKey.DOUYIN] = ProviderSessionVersion.BROWSER
+
+    assert await store.is_ready() is True
+    assert cookie_sync.ready_providers == [ProviderKey.YOUTUBE, ProviderKey.DOUYIN]
+
+
+async def test_operation_without_cookie_source_returns_controlled_client_error(
+    tmp_path: Path,
+) -> None:
+    store = ProviderSessionStore(
+        operator_settings(tmp_path),
+        cookie_sync=FakeCookieSync(),
+        enforce_memory_backing=False,
+    )
+    store._cookie_sync = None
+    context = store.context_for("https://youtu.be/owned")
+
+    with pytest.raises(RunnerFailure) as caught:
+        async with store.operation(context):
+            pass
+
+    assert caught.value.code == "credential_required"
+    assert caught.value.status == 422

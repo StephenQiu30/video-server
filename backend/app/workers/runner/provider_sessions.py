@@ -30,6 +30,11 @@ from app.workers.runner.provider_session_files import (
 from app.workers.runner.settings import RunnerSettings
 
 
+def credential_revision(payload: bytes, secret: bytes) -> str:
+    """Return the stable, keyed identity used for file-backed credentials."""
+    return "file-" + hmac.digest(secret, payload, "sha256").hex()[:32]
+
+
 class ProviderSessionStore:
     """Validate one-operation Cookie leases and issue tmpfs-backed jars."""
 
@@ -67,9 +72,13 @@ class ProviderSessionStore:
     async def is_ready(self) -> bool:
         if self._settings.runner_access_mode is ProviderAccessMode.ANONYMOUS:
             return True
-        assert self._cookie_sync is not None
-        provider, version = next(iter(self._versions.items()))
-        return await self._cookie_sync.is_ready(provider, version)
+        cookie_sync = self._cookie_sync
+        if cookie_sync is None or not self._versions:
+            return False
+        for provider, version in self._versions.items():
+            if not await cookie_sync.is_ready(provider, version):
+                return False
+        return True
 
     def context_for(self, source: str | ProviderProfile) -> ProviderAccessContextRef:
         profile = provider_profile(source) if isinstance(source, str) else source
@@ -138,8 +147,10 @@ class ProviderSessionStore:
         except (ValueError, KeyError) as exc:
             raise RunnerFailure("credential_revoked", status=422) from exc
         async with self._gate:
-            assert self._cookie_sync is not None
-            exported = await self._cookie_sync.sync(provider, version)
+            cookie_sync = self._cookie_sync
+            if cookie_sync is None:
+                raise RunnerFailure("credential_required", status=422)
+            exported = await cookie_sync.sync(provider, version)
             if self._cookie_file is not None and not hmac.compare_digest(
                 self._file_revision(exported), raw_version
             ):
@@ -153,12 +164,7 @@ class ProviderSessionStore:
     def _file_revision(self, payload: bytes) -> str:
         # A keyed revision prevents identity changes between inspect and download
         # without exposing Cookie contents or an unkeyed credential hash.
-        return (
-            "file-"
-            + hmac.digest(self._settings.hmac_secret_bytes, payload, "sha256").hex()[
-                :32
-            ]
-        )
+        return credential_revision(payload, self._settings.hmac_secret_bytes)
 
     def _validated_payload(self, provider: ProviderKey, payload: bytes) -> bytes:
         profile = _profile_for_key(provider)

@@ -137,7 +137,7 @@
 
 - [x] P4.1 `download/sweeper.py` 增加 `runner_workspace_root` 年龄基 GC，回收无活跃任务的 `{task_id}-*`。
   - 依赖：无。验证：阈值后回收；活跃任务目录保留。
-- [ ] P4.2 `provider_sessions.py is_ready()` 改按 provider 校验；`assert` 改受控 4xx。
+- [x] P4.2 `provider_sessions.py is_ready()` 改按 provider 校验；`assert` 改受控 4xx。
   - 依赖：无。验证：多 provider 失效可感知；异常不再 500。
 - [ ] P4.3 确认浏览器会话「Cookie 轮换失败」归 `credential_expired` 而非 `provider_link_unavailable`。
   - 依赖：P2.2。验证：构造轮换失败落库正确错误码。
