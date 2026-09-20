@@ -29,7 +29,7 @@ class DlqReplayRow(Base):
         ),
         CheckConstraint(
             "source_queue IN ('video.download.dead','video.analysis.dead',"
-            "'video.analysis-report.dead')",
+            "'video.analysis-report.dead','video.import.dead')",
             name="ck_rabbitmq_dlq_replay_queue",
         ),
         CheckConstraint(

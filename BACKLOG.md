@@ -121,7 +121,7 @@
   - 依赖：无。验证：冷却可追溯；恢复需连续成功。
 - [x] P2.4 删除 `canary/service.py` `_RUNNER_ERROR_ALIASES` 折叠，`canary_internal_error` 仅限探测自身 bug。
   - 依赖：P2.2。验证：canary 证据区分验证码/POT/凭证三类。
-- [ ] P2.5 确认 `download` 队列 DLX 绑定；`dlq` 重放与 `sweeper` 三层恢复去重计数；重试预算可观测。
+- [x] P2.5 确认 `download` 队列 DLX 绑定；`dlq` 重放与 `sweeper` 三层恢复去重计数；重试预算可观测。
   - 依赖：无。验证：消息二次失败进入 DLQ；幂等重放不重复执行。
 
 ### P3 分布式凭证租约（对应 R9）

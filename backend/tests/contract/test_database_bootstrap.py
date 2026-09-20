@@ -156,6 +156,20 @@ def test_current_schema_can_be_applied_repeatedly() -> None:
     assert (
         "DROP INDEX IF EXISTS ix_provider_canary_target_profile_route_checked" in schema
     )
+    assert "'video.import.dead'" in schema
+
+
+def test_download_queue_contract_declares_a_dlq_binding() -> None:
+    compose = ENV_COMPOSE_PATH.read_text(encoding="utf-8")
+
+    assert "declare_queue video.download" in compose
+    assert '"x-dead-letter-exchange":"video.events.dead"' in compose
+    assert '"x-dead-letter-routing-key":"' in compose
+    assert "'\"$$1\"'.dead" in compose
+    assert (
+        "declare_binding video.events.dead video.download.dead video.download.dead"
+        in compose
+    )
 
 
 def test_ai_provider_selection_is_not_configured_by_environment() -> None:

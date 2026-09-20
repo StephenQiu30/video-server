@@ -84,6 +84,7 @@ def test_topology_includes_bounded_import_queue_and_dlq() -> None:
     assert topology.imports.routing_key == "content.import.verify.requested"
     assert topology.imports.dead_queue == "video.import.dead"
     assert topology.imports in topology.durable_queues
+    assert topology.download.dead_queue == "video.download.dead"
 
 
 @pytest.mark.asyncio

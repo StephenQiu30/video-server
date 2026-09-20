@@ -1176,7 +1176,8 @@ CREATE TABLE IF NOT EXISTS rabbitmq_dlq_replays (
         source_queue IN (
             'video.download.dead',
             'video.analysis.dead',
-            'video.analysis-report.dead'
+            'video.analysis-report.dead',
+            'video.import.dead'
         )
     ),
     CONSTRAINT ck_rabbitmq_dlq_replay_status CHECK (
@@ -1184,6 +1185,18 @@ CREATE TABLE IF NOT EXISTS rabbitmq_dlq_replays (
     ),
     CONSTRAINT ck_rabbitmq_dlq_replay_count CHECK (replay_count BETWEEN 1 AND 3)
 );
+
+ALTER TABLE rabbitmq_dlq_replays
+    DROP CONSTRAINT IF EXISTS ck_rabbitmq_dlq_replay_queue;
+ALTER TABLE rabbitmq_dlq_replays
+    ADD CONSTRAINT ck_rabbitmq_dlq_replay_queue CHECK (
+        source_queue IN (
+            'video.download.dead',
+            'video.analysis.dead',
+            'video.analysis-report.dead',
+            'video.import.dead'
+        )
+    );
 
 CREATE TABLE IF NOT EXISTS operational_counters (
     metric VARCHAR(64) NOT NULL,

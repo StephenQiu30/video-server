@@ -124,6 +124,7 @@ async def test_stale_lease_is_requeued_with_a_new_outbox_event(
     assert all(event.event_type == "download.requested" for event in events)
 
     first = events[0]
+    assert first.payload["attempt"] == 1
     assert first.publish_attempts == 1
     assert await outbox.mark_outbox_failed(
         first.id,
@@ -140,6 +141,13 @@ async def test_stale_lease_is_requeued_with_a_new_outbox_event(
     assert await outbox.mark_outbox_published(
         failed_event.id, "publisher", now + timedelta(seconds=42)
     )
+    next_attempt = await repository.claim_job(
+        job_id,
+        "worker-after-retry",
+        now + timedelta(seconds=43),
+        timedelta(seconds=30),
+    )
+    assert next_attempt is not None and next_attempt.attempt == 2
 
 
 @pytest.mark.asyncio

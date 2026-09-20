@@ -6,12 +6,16 @@ from uuid import UUID
 import pytest
 from app.integrations.messaging import EventEnvelope, EventEnvelopeError
 from app.workers.dlq.repository import ReplayAudit
-from app.workers.dlq.service import DlqReplayService
+from app.workers.dlq.service import ALLOWED_EVENTS, DlqReplayService
 
 NOW = datetime(2026, 8, 10, 12, tzinfo=UTC)
 ORIGINAL_ID = UUID("11111111-1111-4111-8111-111111111111")
 REPLAY_ID = UUID("22222222-2222-4222-8222-222222222222")
 AUDIT_ID = UUID("33333333-3333-4333-8333-333333333333")
+
+
+def test_all_declared_dead_letter_queues_can_be_replayed() -> None:
+    assert ALLOWED_EVENTS["video.import.dead"] == "content.import.verify.requested"
 
 
 class FakeDelivery:

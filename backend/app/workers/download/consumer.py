@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from contextlib import suppress
-from typing import Protocol
+from typing import Any, Protocol, cast
 from uuid import UUID
 
 import aio_pika
+from aio_pika import ExchangeType
 from aio_pika.abc import (
     AbstractIncomingMessage,
     AbstractQueue,
@@ -15,6 +17,9 @@ from app.integrations.messaging import RabbitMqTopology, configured_rabbitmq_url
 from app.services.download_execution.models import ExecutionDisposition
 from app.workers.download.message import DownloadMessageError, parse_download_requested
 from app.workers.download.pool import AsyncWorkerPool
+
+_log = logging.getLogger(__name__)
+_MAX_DELIVERY_ATTEMPTS = 2
 
 
 class DownloadHandler(Protocol):
@@ -31,10 +36,18 @@ class Delivery(Protocol):
 
 
 async def process_delivery(message: Delivery, handler: DownloadHandler) -> None:
+    delivery_attempt = _delivery_attempt(message)
+    replay_count = _replay_count(message)
     try:
         requested = parse_download_requested(message.body)
     except DownloadMessageError:
-        await message.nack(requeue=False)
+        await _settle(
+            message,
+            requeue=False,
+            delivery_attempt=delivery_attempt,
+            replay_count=replay_count,
+            outcome="dead_lettered",
+        )
         return
     try:
         result = await handler.execute(requested.job_id)
@@ -43,12 +56,96 @@ async def process_delivery(message: Delivery, handler: DownloadHandler) -> None:
             await asyncio.shield(message.nack(requeue=True))
         raise
     except Exception:
-        await message.nack(requeue=not bool(message.redelivered))
+        await _settle(
+            message,
+            requeue=not bool(message.redelivered),
+            delivery_attempt=delivery_attempt,
+            replay_count=replay_count,
+            outcome="requeued" if not message.redelivered else "dead_lettered",
+        )
         return
     if result is ExecutionDisposition.ACK:
         await message.ack()
+        _log.info(
+            "download delivery acknowledged",
+            extra=_observation(delivery_attempt, replay_count, "acknowledged"),
+        )
     else:
-        await message.nack(requeue=not bool(message.redelivered))
+        await _settle(
+            message,
+            requeue=not bool(message.redelivered),
+            delivery_attempt=delivery_attempt,
+            replay_count=replay_count,
+            outcome="requeued" if not message.redelivered else "dead_lettered",
+        )
+
+
+async def _settle(
+    message: Delivery,
+    *,
+    requeue: bool,
+    delivery_attempt: int,
+    replay_count: int,
+    outcome: str,
+) -> None:
+    _log.warning(
+        "download delivery %s",
+        outcome,
+        extra=_observation(delivery_attempt, replay_count, outcome),
+    )
+    await message.nack(requeue=requeue)
+
+
+def _observation(
+    delivery_attempt: int, replay_count: int, outcome: str
+) -> dict[str, object]:
+    return {
+        "delivery_attempt": delivery_attempt,
+        "delivery_attempt_budget": _MAX_DELIVERY_ATTEMPTS,
+        "delivery_budget_remaining": max(0, _MAX_DELIVERY_ATTEMPTS - delivery_attempt),
+        "dlq_replay_count": replay_count,
+        "delivery_outcome": outcome,
+    }
+
+
+def _delivery_attempt(message: Delivery) -> int:
+    return 2 if bool(message.redelivered) else 1
+
+
+def _replay_count(message: Delivery) -> int:
+    value = (getattr(message, "headers", None) or {}).get("x-replay-count", 0)
+    return value if type(value) is int and 0 <= value <= 3 else 0
+
+
+async def _declare_download_topology(
+    channel: Any, topology: RabbitMqTopology
+) -> AbstractQueue:
+    """Declare the download queue and its DLX so startup verifies the contract."""
+    binding = topology.download
+    exchange = await channel.declare_exchange(
+        topology.exchange, type=ExchangeType.TOPIC, durable=True
+    )
+    dead_exchange = await channel.declare_exchange(
+        topology.dead_exchange, type=ExchangeType.TOPIC, durable=True
+    )
+    queue = await channel.declare_queue(
+        binding.queue,
+        durable=True,
+        arguments={
+            "x-message-ttl": binding.message_ttl_ms,
+            "x-max-length": binding.max_length,
+            "x-dead-letter-exchange": topology.dead_exchange,
+            "x-dead-letter-routing-key": binding.dead_routing_key,
+        },
+    )
+    dead_queue = await channel.declare_queue(
+        binding.dead_queue,
+        durable=True,
+        arguments={"x-max-length": binding.max_length},
+    )
+    await exchange.bind(queue, routing_key=binding.routing_key)
+    await dead_exchange.bind(dead_queue, routing_key=binding.dead_routing_key)
+    return cast(AbstractQueue, queue)
 
 
 class RabbitMqDownloadConsumer:
@@ -106,9 +203,7 @@ class RabbitMqDownloadConsumer:
             async with asyncio.timeout(self._connection_timeout):
                 channel = await connection.channel()
                 await channel.set_qos(prefetch_count=self._prefetch)
-                queue = await channel.declare_queue(
-                    self._topology.download_queue, passive=True
-                )
+                queue = await _declare_download_topology(channel, self._topology)
                 self._queue = queue
                 await self._pool.start()
                 self._consumer_tag = await queue.consume(self._consume)

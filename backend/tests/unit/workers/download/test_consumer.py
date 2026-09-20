@@ -1,18 +1,20 @@
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
-from app.integrations.messaging import EventEnvelope
+from app.integrations.messaging import EventEnvelope, RabbitMqTopology
 from app.services.download_execution.models import ExecutionDisposition
-from app.workers.download.consumer import process_delivery
+from app.workers.download.consumer import _declare_download_topology, process_delivery
 
 
 class FakeDelivery:
     def __init__(self, body: bytes, *, redelivered: bool = False) -> None:
         self.body = body
         self.redelivered = redelivered
+        self.headers: dict[str, object] = {}
         self.acked = 0
         self.nacked: list[bool] = []
 
@@ -72,3 +74,76 @@ async def test_consumer_dead_letters_bad_contract_and_requeues_faults() -> None:
     poison = FakeDelivery(body(), redelivered=True)
     await process_delivery(poison, handler)
     assert poison.nacked == [False]
+
+
+@pytest.mark.asyncio
+async def test_consumer_logs_the_delivery_retry_budget(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    poison = FakeDelivery(body(), redelivered=True)
+    handler = FakeHandler()
+    handler.error = OSError("database unavailable")
+
+    with caplog.at_level(logging.WARNING):
+        await process_delivery(poison, handler)
+
+    record = caplog.records[-1]
+    assert record.message == "download delivery dead_lettered"
+    assert record.delivery_attempt == 2
+    assert record.delivery_attempt_budget == 2
+    assert record.delivery_budget_remaining == 0
+    assert record.dlq_replay_count == 0
+
+
+class FakeExchange:
+    def __init__(self) -> None:
+        self.bindings: list[tuple[object, str]] = []
+
+    async def bind(self, queue: object, *, routing_key: str) -> None:
+        self.bindings.append((queue, routing_key))
+
+
+class FakeQueue:
+    pass
+
+
+class FakeChannel:
+    def __init__(self) -> None:
+        self.exchanges: list[tuple[str, object, bool]] = []
+        self.queues: list[tuple[str, bool, dict[str, object]]] = []
+        self.exchange = FakeExchange()
+        self.dead_exchange = FakeExchange()
+
+    async def declare_exchange(self, name, *, type, durable):
+        self.exchanges.append((name, type, durable))
+        return self.dead_exchange if name.endswith(".dead") else self.exchange
+
+    async def declare_queue(self, name, *, durable, arguments):
+        self.queues.append((name, durable, arguments))
+        return FakeQueue()
+
+
+@pytest.mark.asyncio
+async def test_download_topology_declares_and_binds_the_dead_letter_queue() -> None:
+    channel = FakeChannel()
+    topology = RabbitMqTopology("video.events", "video.download", "download.requested")
+
+    await _declare_download_topology(channel, topology)
+
+    assert [name for name, _, _ in channel.exchanges] == [
+        "video.events",
+        "video.events.dead",
+    ]
+    assert channel.queues[0][2] == {
+        "x-message-ttl": 86_400_000,
+        "x-max-length": 10_000,
+        "x-dead-letter-exchange": "video.events.dead",
+        "x-dead-letter-routing-key": "video.download.dead",
+    }
+    assert channel.queues[1] == (
+        "video.download.dead",
+        True,
+        {"x-max-length": 10_000},
+    )
+    assert channel.exchange.bindings[0][1] == "download.requested"
+    assert channel.dead_exchange.bindings[0][1] == "video.download.dead"

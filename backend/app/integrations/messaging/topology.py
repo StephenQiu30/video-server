@@ -103,6 +103,10 @@ class RabbitMqTopology:
         return self.durable_queues[1]
 
     @property
+    def download(self) -> DurableQueueTopology:
+        return self.durable_queues[0]
+
+    @property
     def report(self) -> DurableQueueTopology:
         return self.durable_queues[2]
 
