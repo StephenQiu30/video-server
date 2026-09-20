@@ -1,10 +1,34 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { AiProviderEditor } from '@/components/admin/admin-ai-providers/ai-provider-editor';
 import { AiProviderScreen } from '@/components/admin/admin-ai-providers/ai-provider-screen';
 
 describe('administrator AI Provider screen', () => {
+  it('provides a first-configuration empty state', () => {
+    const onCreate = vi.fn();
+    render(
+      <AiProviderScreen
+        agentAvailable
+        error=""
+        items={[]}
+        loading={false}
+        notice=""
+        onActivate={vi.fn()}
+        onCreate={onCreate}
+        onDelete={vi.fn()}
+        onEdit={vi.fn()}
+        onRetry={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { name: '还没有 AI 服务配置' }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '新增第一个 AI 服务' }));
+    expect(onCreate).toHaveBeenCalledOnce();
+  });
+
   it('separates agent availability from the active execution route', () => {
     const onActivate = vi.fn();
     render(
@@ -28,7 +52,11 @@ describe('administrator AI Provider screen', () => {
     expect(screen.getByText('Agent 离线')).toBeInTheDocument();
     expect(screen.getByText('本机 Agent')).toBeInTheDocument();
     expect(screen.getByText('当前用户登录')).toBeInTheDocument();
-    expect(screen.getByText('gpt-5.6-sol')).toBeInTheDocument();
+    expect(
+      within(
+        screen.getByRole('table', { name: 'AI Provider 配置列表' }),
+      ).getByText('gpt-5.6-sol'),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '启用' }));
     expect(onActivate).toHaveBeenCalledWith(custom());
@@ -106,7 +134,9 @@ describe('administrator AI Provider screen', () => {
     expect(screen.getAllByText('DeepSeek')[0]).toBeInTheDocument();
     expect(screen.getByText('https://api.deepseek.com')).toBeInTheDocument();
     expect(
-      screen.getByText('deepseek-v4-flash-vision-exp'),
+      within(
+        screen.getByRole('table', { name: 'AI Provider 配置列表' }),
+      ).getByText('deepseek-v4-flash-vision-exp'),
     ).toBeInTheDocument();
   });
 

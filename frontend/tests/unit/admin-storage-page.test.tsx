@@ -108,6 +108,28 @@ describe('administrator storage management', () => {
     );
     expect(await screen.findByText('已删除文件“视频 1”。')).toBeInTheDocument();
   });
+
+  it('keeps the current table mounted when a refresh fails', async () => {
+    runtime.listStoredFiles
+      .mockResolvedValueOnce({
+        items: [storedFile()],
+        page: 1,
+        page_size: 20,
+        total: 21,
+      })
+      .mockRejectedValueOnce(new Error('文件服务暂不可用'));
+    render(<AdminStorageView />);
+
+    expect(await screen.findByText('视频 1')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '下一页' }));
+
+    await waitFor(() =>
+      expect(runtime.listStoredFiles).toHaveBeenCalledTimes(2),
+    );
+    expect(screen.getByText('视频 1')).toBeInTheDocument();
+    expect(screen.getByText('文件列表刷新失败')).toBeInTheDocument();
+    expect(screen.getByText('文件服务暂不可用')).toBeInTheDocument();
+  });
 });
 
 function storedFile(

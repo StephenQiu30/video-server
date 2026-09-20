@@ -1,15 +1,6 @@
 import { cn } from 'cn';
 
 import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemFooter,
-  ItemGroup,
-  ItemTitle,
-} from '@/components/ui/item';
-import {
   Table,
   TableBody,
   TableCaption,
@@ -25,73 +16,43 @@ type Source = API.DownloadAnalyticsResponse['sources'][number];
 
 export function SourcePerformanceDetails({ sources }: { sources: Source[] }) {
   return (
-    <>
-      <div className="mt-7 hidden overflow-hidden rounded-md md:block">
-        <Table className="table-fixed">
-          <TableCaption className="sr-only">各视频源下载表现</TableCaption>
-          <TableHeader className="bg-muted/35">
-            <TableRow className="hover:bg-transparent">
-              <SourceHead>视频源</SourceHead>
-              <SourceHead numeric>任务</SourceHead>
-              <SourceHead numeric>成功率</SourceHead>
-              <SourceHead numeric>用户</SourceHead>
-              <SourceHead numeric>数据量</SourceHead>
-              <SourceHead>状态分布</SourceHead>
+    <div className="mt-7">
+      <Table className="min-w-[900px] table-fixed">
+        <TableCaption className="sr-only">各视频源下载表现</TableCaption>
+        <TableHeader className="bg-muted/35">
+          <TableRow className="hover:bg-transparent">
+            <SourceHead>视频源</SourceHead>
+            <SourceHead numeric>任务</SourceHead>
+            <SourceHead numeric>成功率</SourceHead>
+            <SourceHead numeric>用户</SourceHead>
+            <SourceHead numeric>数据量</SourceHead>
+            <SourceHead>状态分布</SourceHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sources.map((source) => (
+            <TableRow key={source.source_key}>
+              <TableHead
+                className="px-4 py-5 text-left align-middle whitespace-normal"
+                scope="row"
+              >
+                <p className="truncate font-medium">{sourceLabel(source)}</p>
+                <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground">
+                  {source.source_key}
+                </p>
+              </TableHead>
+              <MetricCell value={formatInteger(source.total)} />
+              <MetricCell value={formatPercent(source.success_rate)} />
+              <MetricCell value={formatInteger(source.unique_users)} />
+              <MetricCell value={formatBytes(source.downloaded_bytes)} />
+              <TableCell className="px-4 py-5 whitespace-normal">
+                <StatusSummary source={source} />
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sources.map((source) => (
-              <TableRow key={source.source_key}>
-                <TableHead
-                  className="px-4 py-5 text-left align-middle whitespace-normal"
-                  scope="row"
-                >
-                  <p className="truncate font-medium">{sourceLabel(source)}</p>
-                  <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground">
-                    {source.source_key}
-                  </p>
-                </TableHead>
-                <MetricCell value={formatInteger(source.total)} />
-                <MetricCell value={formatPercent(source.success_rate)} />
-                <MetricCell value={formatInteger(source.unique_users)} />
-                <MetricCell value={formatBytes(source.downloaded_bytes)} />
-                <TableCell className="px-4 py-5 whitespace-normal">
-                  <StatusSummary source={source} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      <ItemGroup className="mt-7 gap-2 md:hidden">
-        {sources.map((source) => (
-          <Item
-            className="rounded-md border-0 px-3 py-5 hover:bg-muted/50"
-            key={source.source_key}
-            role="listitem"
-          >
-            <ItemContent className="min-w-0">
-              <ItemTitle className="truncate">{sourceLabel(source)}</ItemTitle>
-              <ItemDescription className="truncate font-mono text-[11px]">
-                {source.source_key}
-              </ItemDescription>
-            </ItemContent>
-            <ItemActions className="text-sm tabular-nums">
-              {formatPercent(source.success_rate)}
-            </ItemActions>
-            <ItemFooter className="grid w-full gap-3">
-              <p className="text-xs text-muted-foreground">
-                {formatInteger(source.total)} 个任务 ·{' '}
-                {formatInteger(source.unique_users)} 位用户 ·{' '}
-                {formatBytes(source.downloaded_bytes)}
-              </p>
-              <StatusSummary source={source} />
-            </ItemFooter>
-          </Item>
-        ))}
-      </ItemGroup>
-    </>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
 

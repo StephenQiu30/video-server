@@ -87,7 +87,7 @@ describe('administrator download analytics', () => {
     expect(
       screen.getByRole('rowheader', { name: /抖音 douyin/ }),
     ).toBeInTheDocument();
-    expect(screen.getAllByText('抖音').length).toBeGreaterThan(1);
+    expect(screen.getAllByText('抖音')).toHaveLength(1);
     expect(screen.getByRole('link', { name: '返回上一步' })).toHaveAttribute(
       'href',
       '/account',

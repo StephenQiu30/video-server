@@ -3,15 +3,6 @@ import { PencilSimple, Trash } from '@phosphor-icons/react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemFooter,
-  ItemGroup,
-  ItemTitle,
-} from '@/components/ui/item';
-import {
   Table,
   TableBody,
   TableCaption,
@@ -74,59 +65,36 @@ export function ProviderCatalogList({
   }
 
   return (
-    <>
-      <div className="hidden overflow-hidden rounded-md md:block">
-        <Table className="table-fixed">
-          <TableCaption className="sr-only">平台目录列表</TableCaption>
-          <TableHeader className="bg-muted/35">
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="px-4">平台</TableHead>
-              <TableHead className="px-4">目录键</TableHead>
-              <TableHead className="px-4">注册与可见性</TableHead>
-              <TableHead className="px-4 text-right">排序</TableHead>
-              <TableHead className="px-4 text-right">操作</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => (
-              <TableRow key={item.key}>
-                <TableCell className="px-4 py-5 font-medium">
-                  {item.display_name}
-                </TableCell>
-                <TableCell className="px-4 py-5 font-mono text-xs text-muted-foreground">
-                  {item.key}
-                </TableCell>
-                <TableCell className="px-4 py-5">{badges(item)}</TableCell>
-                <TableCell className="px-4 py-5 text-right text-xs tabular-nums">
-                  {item.sort_order}
-                </TableCell>
-                <TableCell className="px-4 py-5 text-right">
-                  {actions(item)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-      <ItemGroup className="gap-2 md:hidden">
+    <Table className="min-w-[720px] table-fixed">
+      <TableCaption className="sr-only">平台目录列表</TableCaption>
+      <TableHeader className="bg-muted/35">
+        <TableRow className="hover:bg-transparent">
+          <TableHead className="px-4">平台</TableHead>
+          <TableHead className="px-4">目录键</TableHead>
+          <TableHead className="px-4">注册与可见性</TableHead>
+          <TableHead className="px-4 text-right">排序</TableHead>
+          <TableHead className="px-4 text-right">操作</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {items.map((item) => (
-          <Item
-            className="rounded-md border-0 px-3 py-5 hover:bg-muted/50"
-            key={item.key}
-            role="listitem"
-          >
-            <ItemContent className="min-w-0">
-              <ItemTitle>{item.display_name}</ItemTitle>
-              <ItemDescription>
-                <span className="font-mono">{item.key}</span> · 排序{' '}
-                <span className="tabular-nums">{item.sort_order}</span>
-              </ItemDescription>
-            </ItemContent>
-            <ItemActions>{actions(item)}</ItemActions>
-            <ItemFooter>{badges(item)}</ItemFooter>
-          </Item>
+          <TableRow key={item.key}>
+            <TableCell className="px-4 py-5 font-medium">
+              {item.display_name}
+            </TableCell>
+            <TableCell className="px-4 py-5 font-mono text-xs text-muted-foreground">
+              {item.key}
+            </TableCell>
+            <TableCell className="px-4 py-5">{badges(item)}</TableCell>
+            <TableCell className="px-4 py-5 text-right text-xs tabular-nums">
+              {item.sort_order}
+            </TableCell>
+            <TableCell className="px-4 py-5 text-right">
+              {actions(item)}
+            </TableCell>
+          </TableRow>
         ))}
-      </ItemGroup>
-    </>
+      </TableBody>
+    </Table>
   );
 }

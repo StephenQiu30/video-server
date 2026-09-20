@@ -185,6 +185,23 @@ describe('administrator user management', () => {
     expect(await screen.findAllByText('fresh')).toHaveLength(1);
   });
 
+  it('keeps the current rows mounted when a search refresh fails', async () => {
+    runtime.listUsers
+      .mockResolvedValueOnce(result([managedUser()]))
+      .mockRejectedValueOnce(new Error('用户服务暂不可用'));
+    render(<AdminUsersView />);
+
+    expect(await screen.findAllByText('editor')).toHaveLength(1);
+    const search = screen.getByRole('textbox', { name: '搜索用户名或邮箱' });
+    fireEvent.change(search, { target: { value: 'fresh' } });
+    fireEvent.submit(search.closest('form') as HTMLFormElement);
+
+    await waitFor(() => expect(runtime.listUsers).toHaveBeenCalledTimes(2));
+    expect(screen.getByText('editor')).toBeInTheDocument();
+    expect(screen.getByText('用户列表刷新失败')).toBeInTheDocument();
+    expect(screen.getByText('用户服务暂不可用')).toBeInTheDocument();
+  });
+
   it('requires confirmation before deleting another user', async () => {
     runtime.listUsers.mockResolvedValue(result([managedUser()]));
     render(<AdminUsersView />);

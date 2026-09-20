@@ -11,15 +11,16 @@ import {
 } from '@/components/screenplay/screenplay-document-format';
 import { ScreenplayUploadDialog } from '@/components/screenplay/screenplay-upload-dialog';
 import { Badge } from '@/components/ui/badge';
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemTitle,
-} from '@/components/ui/item';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 export function ScreenplayDocumentList({
   data,
@@ -36,16 +37,28 @@ export function ScreenplayDocumentList({
     <div aria-busy={loading} className="mt-10 sm:mt-12">
       {loading && !data ? <LoadingRows /> : null}
       {data?.items.length ? (
-        <ItemGroup className="gap-2">
-          {data.items.map((document) => (
-            <DocumentRow
-              document={document}
-              key={document.id}
-              onDelete={onDelete}
-              pending={pendingDeleteId === document.id}
-            />
-          ))}
-        </ItemGroup>
+        <Table className="min-w-[900px] table-fixed">
+          <TableCaption className="sr-only">剧本文档列表</TableCaption>
+          <TableHeader className="bg-muted/35">
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="w-[34%] px-4">文档</TableHead>
+              <TableHead className="w-[15%] px-4">格式与更新时间</TableHead>
+              <TableHead className="w-[22%] px-4">内容统计</TableHead>
+              <TableHead className="w-[13%] px-4">状态</TableHead>
+              <TableHead className="w-[16%] px-4 text-right">操作</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.items.map((document) => (
+              <DocumentRow
+                document={document}
+                key={document.id}
+                onDelete={onDelete}
+                pending={pendingDeleteId === document.id}
+              />
+            ))}
+          </TableBody>
+        </Table>
       ) : null}
       {data && !data.items.length ? (
         <PageEmptyNotice
@@ -70,50 +83,58 @@ function DocumentRow({
 }) {
   const detailHref = `/documents/detail?documentId=${encodeURIComponent(document.id)}`;
   return (
-    <Item
-      className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 rounded-none border-0 px-0 py-6 sm:items-center sm:gap-8"
-      role="listitem"
-    >
-      <ItemContent className="min-w-0 gap-2">
-        <ItemTitle>
+    <TableRow>
+      <TableHead
+        className="max-w-0 px-4 py-5 text-left align-middle whitespace-normal"
+        scope="row"
+      >
+        <div className="flex min-w-0 flex-col gap-1">
           <Link
             className="focus-ring line-clamp-2 rounded-sm text-[15px] font-medium leading-snug hover:text-muted-foreground"
             href={detailHref}
           >
             {document.title}
           </Link>
-        </ItemTitle>
-        <ItemDescription className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm">
-          <span className="max-w-full truncate">
+          <span className="truncate text-xs text-muted-foreground">
             {document.original_filename}
           </span>
-          <span aria-hidden>·</span>
+        </div>
+      </TableHead>
+      <TableCell className="px-4 py-5 text-xs text-muted-foreground whitespace-normal">
+        <div className="flex flex-col gap-1">
           <span>{documentFormatLabels[document.source_format]}</span>
-          <span aria-hidden>·</span>
           <time dateTime={document.updated_at}>
             {formatDocumentDate(document.updated_at)}
           </time>
-        </ItemDescription>
-        <p className="text-xs text-muted-foreground sm:text-sm">
-          {document.scene_count ?? '-'} 个场景 ·{' '}
-          {document.character_count?.toLocaleString('zh-CN') ?? '-'} 个字符 ·{' '}
-          {languageLabel(document.detected_language)}
-        </p>
-      </ItemContent>
-      <ItemActions className="self-start gap-1 sm:self-center">
+        </div>
+      </TableCell>
+      <TableCell className="px-4 py-5 text-sm whitespace-normal">
+        <div className="flex flex-col gap-1">
+          <span>
+            {document.scene_count ?? '-'} 个场景 ·{' '}
+            {document.character_count?.toLocaleString('zh-CN') ?? '-'} 个字符
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {languageLabel(document.detected_language)}
+          </span>
+        </div>
+      </TableCell>
+      <TableCell className="px-4 py-5">
         <Badge
           className="rounded-md px-2 py-1 font-normal"
           variant={documentStatusVariant(document.status)}
         >
           {documentStatusLabels[document.status]}
         </Badge>
+      </TableCell>
+      <TableCell className="px-4 py-5 text-right">
         <ScreenplayDocumentDeleteDialog
           busy={pending}
           compact
           onDelete={() => onDelete(document)}
         />
-      </ItemActions>
-    </Item>
+      </TableCell>
+    </TableRow>
   );
 }
 

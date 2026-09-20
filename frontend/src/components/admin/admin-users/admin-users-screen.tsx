@@ -1,9 +1,11 @@
-import { CheckCircle } from '@phosphor-icons/react';
+import { ArrowClockwise, CheckCircle } from '@phosphor-icons/react';
 
 import { BackLink } from '@/components/layout/back-link';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
 import {
   PAGE_SIZE,
@@ -98,12 +100,27 @@ export function AdminUsersScreen({
           <AlertDescription>{notice}</AlertDescription>
         </Alert>
       )}
+      {result.error && result.items.length > 0 ? (
+        <FeedbackNotice
+          action={
+            <Button onClick={actions.onRetry} size="sm" variant="outline">
+              <ArrowClockwise aria-hidden data-icon="inline-start" />
+              重新加载
+            </Button>
+          }
+          description={result.error}
+          title="用户列表刷新失败"
+          tone="error"
+        />
+      ) : null}
       {result.loading && result.items.length === 0 ? (
         <AdminSkeleton rowsOnly />
-      ) : result.error ? (
-        <UsersLoadError error={result.error} onRetry={actions.onRetry} />
       ) : result.items.length === 0 ? (
-        <EmptyUsers />
+        result.error ? (
+          <UsersLoadError error={result.error} onRetry={actions.onRetry} />
+        ) : (
+          <EmptyUsers />
+        )
       ) : (
         <UserList
           items={result.items}
@@ -113,7 +130,7 @@ export function AdminUsersScreen({
         />
       )}
 
-      {!result.error && result.total > 0 && (
+      {result.total > 0 && (
         <footer className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
           <span>
             显示 {first}–{last}，共 {result.total} 项

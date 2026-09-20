@@ -72,6 +72,37 @@ describe('screenplay document hooks', () => {
     await waitFor(() => expect(result.current.document?.id).toBe('second-id'));
   });
 
+  it('ignores a polling response that belongs to the previous document id', async () => {
+    const stalePoll = deferred<ReturnType<typeof screenplayDocument>>();
+    runtime.getScreenplayDocument
+      .mockResolvedValueOnce(
+        screenplayDocument({ id: 'first-id', status: 'uploading' }),
+      )
+      .mockReturnValueOnce(stalePoll.promise)
+      .mockResolvedValueOnce(
+        screenplayDocument({ id: 'second-id', title: 'Second screenplay' }),
+      );
+    const { result, rerender } = renderHook(
+      ({ documentId }: { documentId: string }) =>
+        useScreenplayDocument(documentId, 10),
+      { initialProps: { documentId: 'first-id' } },
+    );
+
+    await waitFor(() => expect(result.current.document?.id).toBe('first-id'));
+    await waitFor(() =>
+      expect(runtime.getScreenplayDocument).toHaveBeenCalledTimes(2),
+    );
+    rerender({ documentId: 'second-id' });
+    await waitFor(() => expect(result.current.document?.id).toBe('second-id'));
+
+    await act(async () => {
+      stalePoll.resolve(
+        screenplayDocument({ id: 'first-id', title: 'Stale screenplay' }),
+      );
+    });
+    expect(result.current.document?.title).toBe('Second screenplay');
+  });
+
   it('stops polling after an upload session has failed', async () => {
     runtime.getScreenplayDocument.mockResolvedValue(
       screenplayDocument({
@@ -103,3 +134,11 @@ vi.mock('@/api/documents', async (original) => ({
   getDocumentImport: runtime.getScreenplayDocument,
   listDocuments: runtime.listScreenplayDocuments,
 }));
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}

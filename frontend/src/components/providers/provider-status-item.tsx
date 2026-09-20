@@ -1,22 +1,13 @@
 'use client';
 
 import { CaretDownIcon } from '@phosphor-icons/react';
+import { cn } from 'cn';
+import { useId, useState } from 'react';
 
 import { ProviderAuthorizationDialog } from '@/components/providers/provider-authorization-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemTitle,
-} from '@/components/ui/item';
+import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 
 const STATUS_LABELS: Record<API.ProviderSupportStatus, string> = {
   unknown: '待验证',
@@ -45,74 +36,88 @@ export function ProviderStatusItem({
 }: {
   provider: API.ProviderListResponse['items'][number];
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const detailsId = useId();
   const capabilities = provider.capabilities
     .map((capability) => CAPABILITY_LABELS[capability])
     .join(' · ');
 
   return (
-    <Collapsible>
-      <Item
-        className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-3 rounded-none border-0 px-0 py-5 md:grid-cols-[minmax(12rem,0.8fr)_minmax(14rem,1.4fr)_auto] md:items-start"
-        role="listitem"
-      >
-        <ItemContent className="min-w-0">
-          <ItemTitle className="line-clamp-none flex-wrap">
-            <h2>{provider.display_name}</h2>
+    <>
+      <TableRow aria-expanded={expanded}>
+        <TableHead
+          className="max-w-0 px-4 py-5 text-left align-middle whitespace-normal"
+          scope="row"
+        >
+          <div className="flex min-w-0 flex-col gap-1">
+            <h2 className="font-medium">{provider.display_name}</h2>
+            <p className="truncate font-mono text-xs font-normal text-muted-foreground">
+              {provider.key} · {integrationDescription(provider)}
+            </p>
+          </div>
+        </TableHead>
+        <TableCell className="px-4 py-5 whitespace-normal">
+          <div className="flex flex-wrap gap-1.5">
             <Badge variant={statusVariant(provider)}>
               {statusLabel(provider)}
             </Badge>
             <Badge variant="outline">
               {accessStateLabel(provider.access_state)}
             </Badge>
-          </ItemTitle>
-          <ItemDescription className="line-clamp-none">
-            <span className="font-mono text-xs">{provider.key}</span> ·{' '}
-            {integrationDescription(provider)}
-          </ItemDescription>
-        </ItemContent>
-        <ItemContent className="col-span-2 row-start-2 min-w-0 md:col-span-1 md:col-start-2 md:row-start-1">
-          <ItemDescription className="line-clamp-none leading-6">
-            {capabilities || '暂无已登记能力'}
-          </ItemDescription>
-        </ItemContent>
-        <ItemActions className="col-start-2 row-start-1 md:col-start-3">
-          <CollapsibleTrigger asChild>
-            <Button
-              className="h-11 text-muted-foreground [&[data-state=open]>svg]:rotate-180"
-              size="sm"
-              variant="ghost"
-            >
-              验证详情
-              <CaretDownIcon
-                aria-hidden
-                className="transition-transform motion-reduce:transition-none"
-              />
-            </Button>
-          </CollapsibleTrigger>
-        </ItemActions>
-        <CollapsibleContent className="col-span-2 md:col-span-3">
-          <div className="mt-3 grid gap-5 text-sm leading-6 text-muted-foreground sm:grid-cols-2">
-            <div>
-              <p className="font-medium text-foreground">验证记录</p>
-              <p className="mt-1">{latestCheckDescription(provider)}</p>
-              <p>{mediaVerificationDescription(provider)}</p>
-              <p>{analysisVerificationDescription(provider)}</p>
-            </div>
-            <div>
-              <p className="font-medium text-foreground">访问与下一步</p>
-              <p className="mt-1">{accessDescription(provider)}</p>
-              {provider.user_action ? <p>{provider.user_action}</p> : null}
-              {provider.access_state === 'authorization_required' &&
-              provider.access_modes.includes('operator_managed') ? (
-                <div className="mt-3">
-                  <ProviderAuthorizationDialog provider={provider} />
-                </div>
-              ) : null}
-            </div>
           </div>
-        </CollapsibleContent>
-      </Item>
-    </Collapsible>
+        </TableCell>
+        <TableCell className="px-4 py-5 text-sm leading-6 text-muted-foreground whitespace-normal">
+          {capabilities || '暂无已登记能力'}
+        </TableCell>
+        <TableCell className="px-4 py-5 text-right whitespace-nowrap">
+          <Button
+            aria-controls={expanded ? detailsId : undefined}
+            aria-expanded={expanded}
+            className="text-muted-foreground"
+            onClick={() => setExpanded((current) => !current)}
+            size="sm"
+            variant="ghost"
+          >
+            验证详情
+            <CaretDownIcon
+              aria-hidden
+              className={cn(
+                'transition-transform motion-reduce:transition-none',
+                expanded && 'rotate-180',
+              )}
+            />
+          </Button>
+        </TableCell>
+      </TableRow>
+      {expanded ? (
+        <TableRow>
+          <TableCell colSpan={4} className="bg-muted/20 px-4 py-5">
+            <div
+              className="grid gap-5 text-sm leading-6 text-muted-foreground sm:grid-cols-2"
+              id={detailsId}
+            >
+              <div>
+                <p className="font-medium text-foreground">验证记录</p>
+                <p className="mt-1">{latestCheckDescription(provider)}</p>
+                <p>{mediaVerificationDescription(provider)}</p>
+                <p>{analysisVerificationDescription(provider)}</p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">访问与下一步</p>
+                <p className="mt-1">{accessDescription(provider)}</p>
+                {provider.user_action ? <p>{provider.user_action}</p> : null}
+                {provider.access_state === 'authorization_required' &&
+                provider.access_modes.includes('operator_managed') ? (
+                  <div className="mt-3">
+                    <ProviderAuthorizationDialog provider={provider} />
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </TableCell>
+        </TableRow>
+      ) : null}
+    </>
   );
 }
 
@@ -214,7 +219,7 @@ function formatDate(value: string, includeTime = false): string {
 
 function statusVariant(
   provider: API.ProviderListResponse['items'][number],
-): 'destructive' | 'secondary' | 'default' | 'secondary' {
+): 'destructive' | 'secondary' | 'default' {
   if (
     provider.download_available ||
     (!provider.download_supported && provider.status === 'verified')

@@ -1,7 +1,13 @@
-import { ArrowClockwise, CheckCircle, Plus } from '@phosphor-icons/react';
+import {
+  ArrowClockwise,
+  CheckCircle,
+  PlugsConnected,
+  Plus,
+} from '@phosphor-icons/react';
 
 import { BackLink } from '@/components/layout/back-link';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
+import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -9,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
-import { ExecutionRoute, ProviderRow } from './ai-provider-list';
+import { ExecutionRoute, ProviderTable } from './ai-provider-list';
 
 type Props = {
   agentAvailable: boolean;
@@ -150,21 +156,33 @@ export function AiProviderScreen({
           <p className="text-sm text-muted-foreground">共 {items.length} 条</p>
         </div>
         <div className="flex flex-col gap-1">
-          {loading && items.length === 0
-            ? ['one', 'two', 'three'].map((key) => (
-                <div className="py-5" key={key}>
-                  <Skeleton className="h-14 w-full" />
-                </div>
-              ))
-            : items.map((item) => (
-                <ProviderRow
-                  item={item}
-                  key={item.key}
-                  onActivate={() => onActivate(item)}
-                  onDelete={() => onDelete(item)}
-                  onEdit={() => onEdit(item)}
-                />
-              ))}
+          {loading && items.length === 0 ? (
+            ['one', 'two', 'three'].map((key) => (
+              <div className="py-5" key={key}>
+                <Skeleton className="h-14 w-full" />
+              </div>
+            ))
+          ) : items.length > 0 ? (
+            <ProviderTable
+              items={items}
+              onActivate={onActivate}
+              onDelete={onDelete}
+              onEdit={onEdit}
+            />
+          ) : error ? null : (
+            <PageEmptyNotice
+              action={
+                <Button onClick={onCreate} type="button">
+                  <Plus aria-hidden data-icon="inline-start" />
+                  新增第一个 AI 服务
+                </Button>
+              }
+              compact
+              description="新增并启用一个 AI Provider 后，分析任务会从这里选择执行线路。"
+              icon={<PlugsConnected aria-hidden />}
+              title="还没有 AI 服务配置"
+            />
+          )}
         </div>
       </div>
     </div>

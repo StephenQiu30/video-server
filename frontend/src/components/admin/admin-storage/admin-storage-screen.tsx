@@ -1,6 +1,12 @@
-import { CheckCircle, FolderOpen, Trash } from '@phosphor-icons/react';
+import {
+  ArrowClockwise,
+  CheckCircle,
+  FolderOpen,
+  Trash,
+} from '@phosphor-icons/react';
 
 import { BackLink } from '@/components/layout/back-link';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
@@ -88,6 +94,19 @@ export function AdminStorageScreen({
           <AlertDescription>{notice}</AlertDescription>
         </Alert>
       ) : null}
+      {error && items.length > 0 ? (
+        <FeedbackNotice
+          action={
+            <Button onClick={onRetry} size="sm" variant="outline">
+              <ArrowClockwise aria-hidden data-icon="inline-start" />
+              重新加载
+            </Button>
+          }
+          description={error}
+          title="文件列表刷新失败"
+          tone="error"
+        />
+      ) : null}
 
       {loading && items.length === 0 ? (
         <div className="flex flex-col gap-4 py-5">
@@ -95,25 +114,27 @@ export function AdminStorageScreen({
             <Skeleton className="h-14 w-full" key={key} />
           ))}
         </div>
-      ) : error ? (
-        <PageErrorNotice
-          message={error}
-          onRetry={onRetry}
-          retryLabel="重新加载"
-          title="暂时无法读取文件列表"
-        />
       ) : items.length === 0 ? (
-        <PageEmptyNotice
-          compact
-          description="完成下载、剧本解析或报告生成后，文件会显示在这里。"
-          icon={<FolderOpen aria-hidden />}
-          title="暂无持久文件"
-        />
+        error ? (
+          <PageErrorNotice
+            message={error}
+            onRetry={onRetry}
+            retryLabel="重新加载"
+            title="暂时无法读取文件列表"
+          />
+        ) : (
+          <PageEmptyNotice
+            compact
+            description="完成下载、剧本解析或报告生成后，文件会显示在这里。"
+            icon={<FolderOpen aria-hidden />}
+            title="暂无持久文件"
+          />
+        )
       ) : (
         <StorageFileList items={items} onDelete={onOpenDelete} />
       )}
 
-      {!error && total > 0 ? (
+      {total > 0 ? (
         <footer className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
           <span>
             显示 {first}–{last}，共 {total} 项

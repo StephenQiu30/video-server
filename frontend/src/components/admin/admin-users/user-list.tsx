@@ -108,7 +108,7 @@ export function UserList({
               </TableCell>
               <TableCell className="px-4 py-5">{badges(item)}</TableCell>
               <TableCell className="px-4 py-5 text-xs text-muted-foreground tabular-nums">
-                {item.created_at.slice(0, 10)}
+                {formatUserDate(item.created_at)}
               </TableCell>
               <TableCell className="px-4 py-5 text-right whitespace-nowrap">
                 {action(item)}
@@ -119,4 +119,13 @@ export function UserList({
       </Table>
     </div>
   );
+}
+
+const userDateFormatter = new Intl.DateTimeFormat('zh-CN', {
+  dateStyle: 'medium',
+});
+
+function formatUserDate(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '—' : userDateFormatter.format(date);
 }

@@ -123,8 +123,8 @@ describe('administrator provider catalog management', () => {
       />,
     );
 
-    expect(screen.getAllByText('YouTube')).toHaveLength(2);
-    expect(screen.getAllByText('Custom Video')).toHaveLength(2);
+    expect(screen.getAllByText('YouTube')).toHaveLength(1);
+    expect(screen.getAllByText('Custom Video')).toHaveLength(1);
     expect(
       screen.queryByRole('status', { name: '正在加载平台目录' }),
     ).not.toBeInTheDocument();
@@ -162,12 +162,12 @@ describe('administrator provider catalog management', () => {
     expect(
       screen.getByRole('navigation', { name: '平台目录分页' }),
     ).toHaveTextContent('2 / 2');
-    expect(screen.getAllByText('平台 12')).toHaveLength(2);
+    expect(screen.getAllByText('平台 12')).toHaveLength(1);
 
     fireEvent.change(screen.getByLabelText('搜索平台'), {
       target: { value: 'provider_3' },
     });
-    expect(screen.getAllByText('平台 3')).toHaveLength(2);
+    expect(screen.getAllByText('平台 3')).toHaveLength(1);
     expect(screen.queryByText('平台 12')).not.toBeInTheDocument();
     expect(screen.getByText('显示 1 项，共 1 项')).toBeInTheDocument();
   });

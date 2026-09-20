@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getDocumentImport as getScreenplayDocument } from '@/api/documents';
 import { displayError } from '@/lib/request-error';
 
@@ -14,44 +14,44 @@ export function useScreenplayDocument(
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [cycle, setCycle] = useState(0);
+  const requestId = useRef(0);
+  const inFlightDocumentId = useRef<string | null>(null);
   const visibleDocument = document?.id === documentId ? document : null;
   const status = visibleDocument?.status ?? null;
   const errorCode = visibleDocument?.error_code ?? null;
   const changingDocument = document !== null && visibleDocument === null;
 
   const load = useCallback(async () => {
+    if (inFlightDocumentId.current === documentId) return;
+    inFlightDocumentId.current = documentId;
+    const current = ++requestId.current;
     try {
       const result = await getScreenplayDocument({
         document_id: encodeURIComponent(documentId),
       });
-      setDocument(result);
-      setError(null);
+      if (current === requestId.current) {
+        setDocument(result);
+        setError(null);
+      }
     } catch (reason) {
-      setError(displayError(reason));
+      if (current === requestId.current) setError(displayError(reason));
     } finally {
-      setLoading(false);
+      if (current === requestId.current) setLoading(false);
+      if (inFlightDocumentId.current === documentId) {
+        inFlightDocumentId.current = null;
+      }
     }
   }, [documentId]);
 
   useEffect(() => {
-    let disposed = false;
     void cycle;
     setLoading(true);
     setError(null);
-    getScreenplayDocument({ document_id: encodeURIComponent(documentId) })
-      .then((result) => {
-        if (!disposed) setDocument(result);
-      })
-      .catch((reason) => {
-        if (!disposed) setError(displayError(reason));
-      })
-      .finally(() => {
-        if (!disposed) setLoading(false);
-      });
+    void load();
     return () => {
-      disposed = true;
+      requestId.current += 1;
     };
-  }, [cycle, documentId]);
+  }, [cycle, load]);
 
   useEffect(() => {
     if (

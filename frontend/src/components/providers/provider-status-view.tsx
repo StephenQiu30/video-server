@@ -12,8 +12,15 @@ import { PagePagination } from '@/components/layout/page-pagination';
 import { ProviderStatusItem } from '@/components/providers/provider-status-item';
 import { useProviderStatuses } from '@/components/providers/use-provider-statuses';
 import { Button } from '@/components/ui/button';
-import { ItemGroup } from '@/components/ui/item';
 import { Spinner } from '@/components/ui/spinner';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 type StatusFilter = 'all' | 'available' | 'attention';
@@ -135,14 +142,27 @@ export function ProviderStatusView() {
             </div>
             {visibleProviders.length > 0 ? (
               <div className="flex flex-col gap-5">
-                <ItemGroup aria-label="平台能力状态" className="gap-0">
-                  {visibleProviders.map((provider) => (
-                    <ProviderStatusItem
-                      key={provider.key}
-                      provider={provider}
-                    />
-                  ))}
-                </ItemGroup>
+                <Table className="min-w-[980px] table-fixed">
+                  <TableCaption className="sr-only">平台能力状态</TableCaption>
+                  <TableHeader className="bg-muted/35">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="w-[27%] px-4">平台</TableHead>
+                      <TableHead className="w-[24%] px-4">状态与接入</TableHead>
+                      <TableHead className="w-[34%] px-4">已登记能力</TableHead>
+                      <TableHead className="w-[15%] px-4 text-right">
+                        操作
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {visibleProviders.map((provider) => (
+                      <ProviderStatusItem
+                        key={provider.key}
+                        provider={provider}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
                 <footer className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
                   <span>
                     显示 {visibleProviders.length} 项，共 {filtered.length} 项
