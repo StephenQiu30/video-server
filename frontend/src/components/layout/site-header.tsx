@@ -62,7 +62,7 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background">
+    <header className="sticky top-0 z-40 bg-background">
       <div className="content-shell flex h-20 items-center justify-between">
         <BrandLink />
         <div

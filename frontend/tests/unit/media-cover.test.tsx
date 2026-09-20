@@ -94,6 +94,33 @@ describe('MediaCover', () => {
     expect(screen.queryByText('封面不可用')).not.toBeInTheDocument();
   });
 
+  it('keeps the compact fallback borderless and readable', () => {
+    render(
+      <MediaCover
+        alt="列表视频媒体封面"
+        compact
+        fallback={{
+          detail: '1080p MP4',
+          eyebrow: '链接下载',
+          title: '列表视频',
+        }}
+      />,
+    );
+
+    const fallback = screen.getByRole('img', {
+      name: '列表视频（暂无封面）',
+    });
+    expect(fallback).not.toHaveClass('border');
+    expect(screen.getByText('链接下载')).toHaveClass(
+      'text-[10px]',
+      'text-foreground/70',
+    );
+    expect(screen.getByText('1080p MP4').parentElement).toHaveClass(
+      'text-[10px]',
+      'text-foreground/70',
+    );
+  });
+
   it('shows generating while a task can still produce a cover', () => {
     render(<MediaCover alt="测试视频" pending src={null} />);
 

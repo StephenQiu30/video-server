@@ -54,7 +54,7 @@ export function BackLink({
       variant="ghost"
     >
       <Link data-navigation-back="" href={fallbackHref} onClick={navigateBack}>
-        <ArrowLeftIcon aria-hidden size={17} />
+        <ArrowLeftIcon aria-hidden data-icon="inline-start" />
         {label}
       </Link>
     </Button>

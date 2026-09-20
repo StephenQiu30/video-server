@@ -12,8 +12,8 @@ vi.mock('@/components/auth/auth-provider', () => ({
   useAuth: () => runtime,
 }));
 
-vi.mock('@/components/intake/download-workspace', () => ({
-  default: () => <div data-testid="download-workspace">工作区</div>,
+vi.mock('@/components/intake/workspace-home', () => ({
+  WorkspaceHome: () => <div data-testid="workspace-home">工作区</div>,
 }));
 
 describe('HomeExperience', () => {
@@ -29,7 +29,7 @@ describe('HomeExperience', () => {
     expect(experience).toHaveAttribute('data-auth-pending', 'true');
     expect(experience).toHaveAttribute('data-home-phase', 'resolving');
     expect(screen.queryByRole('heading')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('download-workspace')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('workspace-home')).not.toBeInTheDocument();
     const startup = screen.getByRole('status');
     expect(startup).toHaveTextContent('正在确认当前会话');
     expect(startup.querySelector('[data-slot="progress"]')).not.toBeNull();
@@ -41,11 +41,11 @@ describe('HomeExperience', () => {
 
     render(<HomeExperience publicHome={<h1>公开首页</h1>} />);
 
-    expect(screen.getByTestId('download-workspace')).toBeVisible();
+    expect(screen.getByTestId('workspace-home')).toBeVisible();
     expect(screen.queryByRole('heading')).not.toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(
-      screen.getByTestId('download-workspace').closest('[data-home-view]'),
+      screen.getByTestId('workspace-home').closest('[data-home-view]'),
     ).toHaveAttribute('data-home-view', 'workspace');
   });
 
@@ -56,7 +56,7 @@ describe('HomeExperience', () => {
 
     const publicHeading = screen.getByRole('heading', { level: 1 });
     expect(publicHeading).toBeVisible();
-    expect(screen.queryByTestId('download-workspace')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('workspace-home')).not.toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(publicHeading.closest('[data-home-view]')).toHaveAttribute(
       'data-home-view',

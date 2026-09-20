@@ -3,8 +3,8 @@
 import type { ReactNode } from 'react';
 
 import { useAuth } from '@/components/auth/auth-provider';
-import DownloadWorkspace from '@/components/intake/download-workspace';
 import { HomeStartup } from '@/components/intake/home-startup';
+import { WorkspaceHome } from '@/components/intake/workspace-home';
 
 type ResolvedHome = 'public' | 'workspace';
 
@@ -26,7 +26,7 @@ export function HomeExperience({ publicHome }: { publicHome: ReactNode }) {
     >
       {resolvedView ? (
         <div data-home-view={resolvedView} data-slot="home-auth-content">
-          {resolvedView === 'workspace' ? <DownloadWorkspace /> : publicHome}
+          {resolvedView === 'workspace' ? <WorkspaceHome /> : publicHome}
         </div>
       ) : (
         <HomeStartup />

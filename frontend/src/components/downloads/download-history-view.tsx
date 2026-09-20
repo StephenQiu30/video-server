@@ -20,7 +20,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Field, FieldLabel } from '@/components/ui/field';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import {
   InputGroup,
   InputGroupAddon,
@@ -30,6 +30,7 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -57,6 +58,11 @@ export default function DownloadHistoryView() {
     search: search || undefined,
     status,
   });
+
+  function applySearch() {
+    setPage(1);
+    setSearch(searchInput.trim());
+  }
 
   async function download(item: API.DownloadHistoryItemResponse) {
     setActionError(null);
@@ -117,8 +123,8 @@ export default function DownloadHistoryView() {
       <PageHeader
         action={
           <Button asChild size="lg">
-            <Link href="/">
-              <Plus size={17} />
+            <Link href="/downloads/new">
+              <Plus data-icon="inline-start" />
               新建下载
             </Link>
           </Button>
@@ -127,40 +133,36 @@ export default function DownloadHistoryView() {
         title="下载记录"
       />
 
-      <div className="mt-12 grid gap-2 sm:grid-cols-[minmax(0,1fr)_11rem_auto] sm:items-end lg:mt-16">
-        <form
-          className="min-w-0"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setPage(1);
-            setSearch(searchInput.trim());
-          }}
-        >
-          <Field>
-            <FieldLabel className="sr-only" htmlFor="history-search">
-              搜索下载记录
-            </FieldLabel>
-            <InputGroup className="h-11 bg-surface">
-              <InputGroupInput
-                className="h-full"
-                id="history-search"
-                onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="按视频标题搜索"
-                value={searchInput}
-              />
-              <InputGroupAddon align="inline-end">
-                <InputGroupButton
-                  aria-label="搜索下载记录"
-                  className="size-11"
-                  size="icon-sm"
-                  type="submit"
-                >
-                  <MagnifyingGlass aria-hidden />
-                </InputGroupButton>
-              </InputGroupAddon>
-            </InputGroup>
-          </Field>
-        </form>
+      <FieldGroup className="mt-12 grid gap-3 sm:grid-cols-[minmax(0,1fr)_11rem_auto] sm:items-end lg:mt-16">
+        <Field>
+          <FieldLabel className="sr-only" htmlFor="history-search">
+            搜索下载记录
+          </FieldLabel>
+          <InputGroup>
+            <InputGroupInput
+              className="h-full"
+              id="history-search"
+              onChange={(event) => setSearchInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter') return;
+                event.preventDefault();
+                applySearch();
+              }}
+              placeholder="按视频标题搜索"
+              value={searchInput}
+            />
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                aria-label="搜索下载记录"
+                onClick={applySearch}
+                size="icon-sm"
+                type="button"
+              >
+                <MagnifyingGlass aria-hidden data-icon="inline-start" />
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
+        </Field>
         <Field>
           <FieldLabel className="sr-only" htmlFor="history-status">
             按状态筛选
@@ -174,32 +176,31 @@ export default function DownloadHistoryView() {
             }}
             value={status ?? 'all'}
           >
-            <SelectTrigger
-              className="h-11 w-full bg-surface"
-              id="history-status"
-            >
+            <SelectTrigger className="w-full" id="history-status">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">全部状态</SelectItem>
-              {Object.entries(downloadStatusLabels).map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
+              <SelectGroup>
+                <SelectItem value="all">全部状态</SelectItem>
+                {Object.entries(downloadStatusLabels).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
         </Field>
         <Button
-          className="h-11 bg-surface px-4"
+          className="w-full sm:w-auto"
           onClick={state.retry}
           type="button"
           variant="outline"
         >
-          <ArrowClockwise size={17} />
+          <ArrowClockwise data-icon="inline-start" />
           刷新
         </Button>
-      </div>
+      </FieldGroup>
 
       <DownloadHistorySummary data={state.data} loading={state.loading} />
       {state.error || actionError ? (

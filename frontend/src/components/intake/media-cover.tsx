@@ -138,7 +138,7 @@ function MediaCoverFallback({
   return (
     <div
       aria-label={`${title}（暂无封面）`}
-      className="relative size-full overflow-hidden border border-border/40 bg-muted/60 text-foreground"
+      className="relative size-full overflow-hidden bg-muted/60 text-foreground"
       role="img"
     >
       <div
@@ -149,8 +149,10 @@ function MediaCoverFallback({
       >
         <span
           className={cn(
-            'truncate font-medium text-muted-foreground',
-            compact ? 'text-[9px] leading-tight' : 'text-xs',
+            'truncate font-medium',
+            compact
+              ? 'text-[10px] leading-tight text-foreground/70'
+              : 'text-xs text-muted-foreground',
           )}
         >
           {eyebrow}
@@ -169,8 +171,10 @@ function MediaCoverFallback({
         </div>
         <div
           className={cn(
-            'min-w-0 text-muted-foreground',
-            compact ? 'text-[9px] leading-none' : 'text-xs leading-4',
+            'min-w-0',
+            compact
+              ? 'text-[10px] leading-none text-foreground/70'
+              : 'text-xs leading-4 text-muted-foreground',
           )}
         >
           <p className="truncate">{detail}</p>

@@ -83,7 +83,11 @@ export function LinkDownloadForm({
           ) : null}
         </InputGroup>
         <IntakeSubmitButton disabled={disabled}>
-          {busy ? <Spinner aria-hidden /> : <DownloadSimple aria-hidden />}
+          {busy ? (
+            <Spinner aria-hidden data-icon="inline-start" />
+          ) : (
+            <DownloadSimple aria-hidden data-icon="inline-start" />
+          )}
           {busy ? '解析中…' : hasResult ? '重新解析' : '解析媒体'}
         </IntakeSubmitButton>
       </IntakeControlRow>

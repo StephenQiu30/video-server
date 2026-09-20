@@ -117,6 +117,10 @@ describe('download history', () => {
       'href',
       '/',
     );
+    expect(screen.getByRole('link', { name: '新建下载' })).toHaveAttribute(
+      'href',
+      '/downloads/new',
+    );
     expect(
       screen.getByText('共 1 项 · 已完成 1 · 进行中 0'),
     ).toBeInTheDocument();
@@ -246,14 +250,14 @@ describe('download history', () => {
     ).toBeDisabled();
   });
 
-  it('submits a trimmed title search from the accessible form', async () => {
+  it('submits a trimmed title search from the keyboard', async () => {
     runtime.getDownloadHistory.mockResolvedValue(history());
     render(<DownloadHistoryView />);
     await screen.findByRole('link', { name: '示例视频' });
 
     const input = screen.getByRole('textbox', { name: '搜索下载记录' });
     fireEvent.change(input, { target: { value: '  示例视频  ' } });
-    fireEvent.submit(input.closest('form') as HTMLFormElement);
+    fireEvent.keyDown(input, { key: 'Enter' });
 
     await waitFor(() =>
       expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith({
@@ -263,6 +267,24 @@ describe('download history', () => {
         status: undefined,
       }),
     );
+  });
+
+  it('uses one consistent control height for the filter toolbar', async () => {
+    runtime.getDownloadHistory.mockResolvedValue(history());
+    const { container } = render(<DownloadHistoryView />);
+    await screen.findByRole('link', { name: '示例视频' });
+
+    const fieldGroup = container.querySelector('[data-slot="field-group"]');
+    const inputGroup = container.querySelector('[data-slot="input-group"]');
+    const selectTrigger = container.querySelector(
+      '[data-slot="select-trigger"]',
+    );
+    const refreshButton = screen.getByRole('button', { name: '刷新' });
+
+    expect(fieldGroup).toHaveClass('grid', 'gap-3');
+    expect(inputGroup).toHaveClass('h-8');
+    expect(selectTrigger).toHaveAttribute('data-size', 'default');
+    expect(refreshButton).toHaveAttribute('data-size', 'default');
   });
 
   it('submits the search when the colored search icon is clicked', async () => {
