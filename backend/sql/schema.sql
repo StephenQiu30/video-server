@@ -1199,8 +1199,11 @@ CREATE TABLE IF NOT EXISTS provider_route_cooldowns (
     egress_binding_id VARCHAR(128) NOT NULL,
     blocked_until TIMESTAMPTZ,
     reason_code VARCHAR(32) NOT NULL,
+    stable_error_code VARCHAR(128),
     probe_owner VARCHAR(64),
     probe_lease_until TIMESTAMPTZ,
+    failure_count INTEGER NOT NULL DEFAULT 0,
+    success_streak INTEGER NOT NULL DEFAULT 0,
     version BIGINT NOT NULL,
     PRIMARY KEY (provider_key, access_policy_id, egress_binding_id),
     CONSTRAINT ck_provider_route_cooldown_version CHECK (version > 0),
@@ -1211,8 +1214,16 @@ CREATE TABLE IF NOT EXISTS provider_route_cooldowns (
         (probe_owner IS NULL) = (probe_lease_until IS NULL)
         AND (probe_owner IS NULL OR blocked_until IS NOT NULL)
     ),
-    CONSTRAINT ck_provider_route_cooldown_reason CHECK (reason_code = 'provider_rate_limited')
+    CONSTRAINT ck_provider_route_cooldown_failures CHECK (failure_count >= 0),
+    CONSTRAINT ck_provider_route_cooldown_successes CHECK (success_streak >= 0)
 );
+
+ALTER TABLE provider_route_cooldowns
+    ADD COLUMN IF NOT EXISTS stable_error_code VARCHAR(128),
+    ADD COLUMN IF NOT EXISTS failure_count INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS success_streak INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE provider_route_cooldowns
+    DROP CONSTRAINT IF EXISTS ck_provider_route_cooldown_reason;
 
 CREATE TABLE IF NOT EXISTS provider_canary_results (
     id UUID PRIMARY KEY,

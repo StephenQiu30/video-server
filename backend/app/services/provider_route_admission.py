@@ -16,6 +16,9 @@ PROBE_LEASE = timedelta(seconds=60)
 PROBE_TIMEOUT_SECONDS = 30
 PROBE_LEASE_MARGIN = timedelta(seconds=5)
 DEFAULT_COOLDOWN = timedelta(minutes=5)
+MAX_COOLDOWN = timedelta(hours=1)
+COOLDOWN_JITTER_RATIO = 0.2
+SUCCESS_HYSTERESIS = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,8 +68,23 @@ class ProviderRouteCooldowns(Protocol):
     async def acquire(
         self, key: ProviderRouteKey, owner: str
     ) -> ProviderRouteLease: ...
-    async def block(self, key: ProviderRouteKey, *, until: datetime) -> datetime: ...
-    async def finish(self, lease: ProviderRouteLease, *, success: bool) -> None: ...
+    async def block(
+        self,
+        key: ProviderRouteKey,
+        *,
+        until: datetime,
+        reason_code: str = "provider_rate_limited",
+        stable_error_code: str | None = "provider_rate_limited",
+    ) -> datetime: ...
+
+    async def finish(
+        self,
+        lease: ProviderRouteLease,
+        *,
+        success: bool,
+        reason_code: str = "probe_succeeded",
+        stable_error_code: str | None = None,
+    ) -> None: ...
 
 
 class ProviderRouteCooldownReader(Protocol):
@@ -101,7 +119,12 @@ class ProviderRouteAdmission:
             return await operation(None)
         except Exception as error:
             if getattr(error, "code", None) == "provider_rate_limited":
-                until = await self._repository.block(key, until=_limited_until(error))
+                until = await self._repository.block(
+                    key,
+                    until=_limited_until(error),
+                    reason_code="provider_rate_limited",
+                    stable_error_code=_stable_error_code(error),
+                )
                 raise RouteCoolingDown(until) from error
             raise
 
@@ -127,27 +150,48 @@ class ProviderRouteAdmission:
             # Crash/cancellation retains the lease until expiry; no early open.
             raise
         except TimeoutError as error:
-            await self._repository.finish(lease, success=False)
+            await self._repository.finish(
+                lease,
+                success=False,
+                reason_code="probe_timeout",
+                stable_error_code="inspection_timeout",
+            )
             raise RouteProbeTimeout("inspection_timeout") from error
         except Exception as error:
             if getattr(error, "code", None) == "provider_rate_limited":
                 until = await self._repository.block(
-                    lease.key, until=_limited_until(error)
+                    lease.key,
+                    until=_limited_until(error),
+                    reason_code="provider_rate_limited",
+                    stable_error_code=_stable_error_code(error),
                 )
                 raise RouteCoolingDown(until) from error
-            await self._repository.finish(lease, success=False)
+            await self._repository.finish(
+                lease,
+                success=False,
+                reason_code="probe_failed",
+                stable_error_code=_stable_error_code(error),
+            )
             raise
-        await self._repository.finish(lease, success=True)
+        await self._repository.finish(
+            lease,
+            success=True,
+            reason_code="probe_succeeded",
+        )
         return result
 
 
 def _limited_until(error: Exception) -> datetime:
-    # CLI platform errors generally have no Retry-After; use the bounded default.
-    # If the signed Runner response supplies it, never retry before that deadline.
-    minimum = datetime.now(UTC) + DEFAULT_COOLDOWN
+    # The repository applies the persistent exponential backoff. An explicit
+    # Retry-After remains a lower bound and is never shortened.
     explicit = getattr(error, "retry_at", None)
     return (
-        max(minimum, explicit)
+        explicit
         if isinstance(explicit, datetime) and explicit.tzinfo is not None
-        else minimum
+        else datetime.now(UTC)
     )
+
+
+def _stable_error_code(error: Exception) -> str:
+    code = getattr(error, "code", None)
+    return code if isinstance(code, str) else "inspection_failed"

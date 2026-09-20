@@ -117,7 +117,7 @@
   - 依赖：无。验证：新增「时长超限→4xx」「无流→4xx」「上游 5xx 透传」回归测试。
 - [x] P2.2 `commands.py` probe/remux/public_asset 构造命令时补传 `failure_context`，使 `classify_provider_failure` 全阶段生效。
   - 依赖：无。验证：probe 失败落库稳定错误码。
-- [ ] P2.3 冷却：`route_cooldowns.py` 增加指数退避 + jitter + 滞回；`block()/finish()` 落库 `reason_code` + 稳定错误码。
+- [x] P2.3 冷却：`route_cooldowns.py` 增加指数退避 + jitter + 滞回；`block()/finish()` 落库 `reason_code` + 稳定错误码。
   - 依赖：无。验证：冷却可追溯；恢复需连续成功。
 - [x] P2.4 删除 `canary/service.py` `_RUNNER_ERROR_ALIASES` 折叠，`canary_internal_error` 仅限探测自身 bug。
   - 依赖：P2.2。验证：canary 证据区分验证码/POT/凭证三类。

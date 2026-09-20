@@ -28,11 +28,25 @@ class Cooldowns:
             key, owner, self.version, datetime.now(UTC) + timedelta(seconds=60)
         )
 
-    async def block(self, key, *, until):
+    async def block(
+        self,
+        key,
+        *,
+        until,
+        reason_code="provider_rate_limited",
+        stable_error_code="provider_rate_limited",
+    ):
         self.blocked = True
         return until
 
-    async def finish(self, lease, *, success):
+    async def finish(
+        self,
+        lease,
+        *,
+        success,
+        reason_code="probe_succeeded",
+        stable_error_code=None,
+    ):
         self.finished.append(success)
         self.blocked = not success
         self.version = None

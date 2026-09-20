@@ -25,6 +25,16 @@ from tests.unit.integrations.test_media_runner_router import context
 KEY = ProviderRouteKey("youtube", ProviderAccessPolicy.PUBLIC, "controlled-egress")
 
 
+async def expire_cooldown(repo, sessions) -> None:
+    await repo.block(KEY, until=datetime.now(UTC) + timedelta(minutes=5))
+    async with sessions() as session, session.begin():
+        await session.execute(
+            update(ProviderRouteCooldownRow).values(
+                blocked_until=datetime.now(UTC) - timedelta(seconds=1)
+            )
+        )
+
+
 async def test_bounded_twenty_concurrent_two_hundred_admissions(postgres_engine):
     repo = SqlAlchemyProviderRouteCooldowns(create_session_factory(postgres_engine))
     await repo.block(KEY, until=datetime.now(UTC) + timedelta(minutes=5))
@@ -88,7 +98,7 @@ async def test_only_one_half_open_probe_and_old_success_cannot_clear_new_limit(
 ):
     sessions = create_session_factory(postgres_engine)
     repo = SqlAlchemyProviderRouteCooldowns(sessions)
-    await repo.block(KEY, until=datetime.now(UTC) - timedelta(seconds=1))
+    await expire_cooldown(repo, sessions)
     results = await asyncio.gather(
         *(repo.acquire(KEY, f"probe-{i}") for i in range(20)), return_exceptions=True
     )
@@ -103,13 +113,17 @@ async def test_only_one_half_open_probe_and_old_success_cannot_clear_new_limit(
 
 
 async def test_success_closes_without_deleting_fencing_generation(postgres_engine):
-    repo = SqlAlchemyProviderRouteCooldowns(create_session_factory(postgres_engine))
-    await repo.block(KEY, until=datetime.now(UTC) - timedelta(seconds=1))
+    sessions = create_session_factory(postgres_engine)
+    repo = SqlAlchemyProviderRouteCooldowns(sessions)
+    await expire_cooldown(repo, sessions)
     lease = await repo.acquire(KEY, "probe")
     assert lease.version is not None
     await repo.finish(lease, success=True)
+    second = await repo.acquire(KEY, "probe-2")
+    assert second.version is not None
+    await repo.finish(second, success=True)
     assert (await repo.acquire(KEY, "normal")).version is None
-    await repo.block(KEY, until=datetime.now(UTC) - timedelta(seconds=1))
+    await expire_cooldown(repo, sessions)
     newer = await repo.acquire(KEY, "new-probe")
     assert newer.version > lease.version
 
@@ -119,9 +133,9 @@ async def test_crashed_probe_expires_and_cannot_publish_after_reacquisition(
 ):
     sessions = create_session_factory(postgres_engine)
     repo = SqlAlchemyProviderRouteCooldowns(sessions)
-    past = datetime.now(UTC) - timedelta(seconds=1)
-    await repo.block(KEY, until=past)
+    await expire_cooldown(repo, sessions)
     old = await repo.acquire(KEY, "crashed")
+    past = datetime.now(UTC) - timedelta(seconds=1)
     async with sessions() as session, session.begin():
         await session.execute(
             update(ProviderRouteCooldownRow).values(probe_lease_until=past)
@@ -224,3 +238,38 @@ async def test_worker_defers_without_spending_attempt_and_delete_cannot_reset(
     assert lease.version is not None
     with pytest.raises(RouteCoolingDown):
         await cooldowns.acquire(KEY, "other-worker")
+
+
+async def test_cooldown_records_backoff_reason_and_success_hysteresis(postgres_engine):
+    sessions = create_session_factory(postgres_engine)
+    repo = SqlAlchemyProviderRouteCooldowns(sessions)
+    until = await repo.block(
+        KEY,
+        until=datetime.now(UTC),
+        reason_code="provider_rate_limited",
+        stable_error_code="egress_challenged",
+    )
+    assert until > datetime.now(UTC) + timedelta(minutes=4)
+
+    async with sessions() as session:
+        row = await session.get(
+            ProviderRouteCooldownRow,
+            {
+                "provider_key": KEY.provider_key,
+                "access_policy_id": KEY.access_policy_id.value,
+                "egress_binding_id": KEY.egress_binding_id,
+            },
+        )
+        assert row is not None
+        assert row.reason_code == "provider_rate_limited"
+        assert row.stable_error_code == "egress_challenged"
+        assert row.failure_count == 1
+        assert row.success_streak == 0
+
+    await expire_cooldown(repo, sessions)
+    first = await repo.acquire(KEY, "hysteresis-1")
+    await repo.finish(first, success=True)
+    second = await repo.acquire(KEY, "hysteresis-2")
+    assert second.version is not None
+    await repo.finish(second, success=True)
+    assert (await repo.acquire(KEY, "hysteresis-normal-2")).version is None
