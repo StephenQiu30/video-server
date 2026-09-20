@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { listProviders } from '@/api/providers';
 import { displayError } from '@/lib/request-error';
 
@@ -11,6 +11,7 @@ export function useProviderStatuses() {
   useEffect(() => {
     let disposed = false;
     void retryKey;
+    setError(null);
     setLoading(true);
 
     listProviders()
@@ -32,10 +33,15 @@ export function useProviderStatuses() {
     };
   }, [retryKey]);
 
+  const retry = useCallback(() => {
+    setError(null);
+    setRetryKey((current) => current + 1);
+  }, []);
+
   return {
     data,
     error,
     loading,
-    retry: () => setRetryKey((current) => current + 1),
+    retry,
   };
 }

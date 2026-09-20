@@ -1,7 +1,8 @@
 'use client';
 
 import { ArrowClockwiseIcon } from '@phosphor-icons/react';
-import { type KeyboardEvent, useMemo, useState } from 'react';
+import { type KeyboardEvent, useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 import { BackLink } from '@/components/layout/back-link';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
@@ -24,6 +25,7 @@ type StatusFilter = 'all' | 'available' | 'attention';
 const STATUS_FILTERS: StatusFilter[] = ['all', 'available', 'attention'];
 const STATUS_PAGE_SIZE = 8;
 const EMPTY_PROVIDERS: API.ProviderListResponse['items'][number][] = [];
+const PROVIDER_STATUS_ERROR_TOAST_ID = 'provider-status-refresh-error';
 
 export function ProviderStatusView() {
   const state = useProviderStatuses();
@@ -41,6 +43,25 @@ export function ProviderStatusView() {
     (currentPage - 1) * STATUS_PAGE_SIZE,
     currentPage * STATUS_PAGE_SIZE,
   );
+
+  useEffect(() => {
+    if (!state.error || !state.data) {
+      if (!state.error) toast.dismiss(PROVIDER_STATUS_ERROR_TOAST_ID);
+      return;
+    }
+
+    toast.error('平台状态刷新失败', {
+      action: {
+        label: '重试',
+        onClick: () => {
+          toast.dismiss(PROVIDER_STATUS_ERROR_TOAST_ID);
+          state.retry();
+        },
+      },
+      description: state.error,
+      id: PROVIDER_STATUS_ERROR_TOAST_ID,
+    });
+  }, [state.data, state.error, state.retry]);
 
   return (
     <section aria-labelledby="provider-status-title">
@@ -71,8 +92,12 @@ export function ProviderStatusView() {
         {state.loading && !state.data ? (
           <StatusMessage label="正在加载平台状态" />
         ) : null}
-        {state.error ? (
-          <PageErrorNotice message={state.error} onRetry={state.retry} />
+        {state.error && !state.data ? (
+          <PageErrorNotice
+            message={state.error}
+            onRetry={state.retry}
+            title="平台状态加载失败"
+          />
         ) : null}
         {state.data ? (
           <>

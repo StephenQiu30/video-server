@@ -3,10 +3,15 @@ import {
   InfoIcon,
   WarningCircleIcon,
 } from '@phosphor-icons/react';
-import type { ReactNode } from 'react';
 import { cn } from 'cn';
+import type { ReactNode } from 'react';
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  Alert,
+  AlertAction,
+  AlertDescription,
+  AlertTitle,
+} from '@/components/ui/alert';
 
 type FeedbackTone = 'error' | 'info' | 'success';
 
@@ -41,13 +46,8 @@ export function FeedbackNotice({
     >
       {icon}
       {title ? <AlertTitle>{title}</AlertTitle> : null}
-      <AlertDescription
-        className="flex flex-wrap items-center justify-between gap-3"
-        id={descriptionId}
-      >
-        {description}
-        {action}
-      </AlertDescription>
+      <AlertDescription id={descriptionId}>{description}</AlertDescription>
+      {action ? <AlertAction>{action}</AlertAction> : null}
     </Alert>
   );
 }

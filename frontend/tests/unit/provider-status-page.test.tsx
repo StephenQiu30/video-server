@@ -5,11 +5,21 @@ import { ProviderStatusView } from '@/components/providers/provider-status-view'
 
 const runtime = vi.hoisted(() => ({
   listProviders: vi.fn(),
+  toast: {
+    dismiss: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+vi.mock('sonner', () => ({
+  toast: runtime.toast,
 }));
 
 describe('provider status page', () => {
   beforeEach(() => {
     runtime.listProviders.mockReset();
+    runtime.toast.dismiss.mockReset();
+    runtime.toast.error.mockReset();
   });
 
   it('distinguishes registration, verification and availability', async () => {
@@ -138,12 +148,31 @@ describe('provider status page', () => {
       screen.queryByRole('status', { name: '正在加载平台状态' }),
     ).not.toBeInTheDocument();
     await act(async () => refresh.reject(new Error('状态服务暂不可用')));
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      '状态服务暂不可用',
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(runtime.toast.error).toHaveBeenCalledWith(
+      '平台状态刷新失败',
+      expect.objectContaining({
+        description: '状态服务暂不可用',
+        id: 'provider-status-refresh-error',
+      }),
     );
-    fireEvent.click(screen.getByRole('button', { name: '重试' }));
+    const toastOptions = runtime.toast.error.mock.calls.at(-1)?.[1];
+    await act(async () => toastOptions.action.onClick());
     expect(await screen.findByText('哔哩哔哩')).toBeInTheDocument();
     expect(runtime.listProviders).toHaveBeenCalledTimes(3);
+  });
+
+  it('uses the unified page error state for an initial load failure', async () => {
+    runtime.listProviders.mockRejectedValue(new Error('状态服务暂不可用'));
+    render(<ProviderStatusView />);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('平台状态加载失败');
+    expect(alert.querySelector('[data-slot="alert-action"]')).not.toBeNull();
+    expect(
+      alert.querySelector('[data-slot="alert-description"] button'),
+    ).toBeNull();
+    expect(runtime.toast.error).not.toHaveBeenCalled();
   });
 
   it('labels operator-only evidence without calling it a public sample', async () => {
