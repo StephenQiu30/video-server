@@ -1,11 +1,13 @@
 'use client';
 
-import { CheckCircle, FloppyDisk, WarningCircle } from '@phosphor-icons/react';
+import { FloppyDisk, WarningCircle } from '@phosphor-icons/react';
 import { type FormEvent, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { updateCurrentUser } from '@/api/users';
 import { ReadOnlyField } from '@/components/account/read-only-field';
 import { useAuth } from '@/components/auth/auth-provider';
 import { BackLink } from '@/components/layout/back-link';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -16,6 +18,7 @@ import {
   FieldGroup,
   FieldLabel,
 } from '@/components/ui/field';
+import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
@@ -27,7 +30,7 @@ import {
   validateUsername,
 } from '@/lib/username';
 
-type Notice = { kind: 'error' | 'default'; text: string } | null;
+type Notice = { text: string } | null;
 
 export function AccountView() {
   const { user, loading, setUser, refreshUser } = useAuth();
@@ -43,7 +46,6 @@ export function AccountView() {
     const validationError = validateUsername(value);
     if (validationError) {
       setNotice({
-        kind: 'error',
         text:
           validationError === 'unsupported_characters'
             ? '用户名仅支持字母、数字、中文以及 _-. 字符。'
@@ -57,9 +59,9 @@ export function AccountView() {
       const updated = await updateCurrentUser({ username: value });
       setUser(updated);
       setUsername(updated.username);
-      setNotice({ kind: 'default', text: '个人资料已更新。' });
+      toast.success('个人资料已更新。');
     } catch (error) {
-      setNotice({ kind: 'error', text: displayError(error) });
+      setNotice({ text: displayError(error) });
     } finally {
       setSaving(false);
     }
@@ -67,12 +69,12 @@ export function AccountView() {
 
   if (loading) {
     return (
-      <section aria-label="正在加载个人资料" className="space-y-8">
+      <section aria-label="正在加载个人资料" className="flex flex-col gap-8">
         <Skeleton className="h-3 w-32" />
         <Skeleton className="h-24 w-full max-w-2xl" />
         <div className="grid gap-12 pt-4 lg:grid-cols-[minmax(220px,0.7fr)_minmax(0,1.3fr)] lg:gap-20">
           <Skeleton className="h-32 w-full max-w-xs" />
-          <div className="space-y-6">
+          <div className="flex flex-col gap-6">
             <Skeleton className="h-20 w-full" />
             <Skeleton className="h-20 w-full" />
           </div>
@@ -111,7 +113,7 @@ export function AccountView() {
         title="个人资料"
       />
 
-      <form
+      <Form
         className="mt-14 grid gap-12 sm:mt-16 lg:grid-cols-[minmax(220px,0.7fr)_minmax(0,1.3fr)] lg:gap-20"
         onSubmit={submit}
       >
@@ -174,30 +176,29 @@ export function AccountView() {
               />
             </div>
             {notice ? (
-              <Alert
-                variant={notice.kind === 'default' ? 'default' : 'destructive'}
-              >
-                {notice.kind === 'default' ? (
-                  <CheckCircle aria-hidden />
-                ) : (
-                  <WarningCircle aria-hidden />
-                )}
-                <AlertDescription>{notice.text}</AlertDescription>
-              </Alert>
+              <FeedbackNotice
+                description={notice.text}
+                title="资料保存失败"
+                tone="error"
+              />
             ) : null}
           </FieldGroup>
           <div className="mt-9 flex justify-start">
             <Button disabled={saving || unchanged} size="lg" type="submit">
               {saving ? (
-                <Spinner aria-hidden role="presentation" />
+                <Spinner
+                  aria-hidden
+                  data-icon="inline-start"
+                  role="presentation"
+                />
               ) : (
-                <FloppyDisk aria-hidden />
+                <FloppyDisk aria-hidden data-icon="inline-start" />
               )}
               {saving ? '正在保存' : '保存资料'}
             </Button>
           </div>
         </div>
-      </form>
+      </Form>
     </section>
   );
 }

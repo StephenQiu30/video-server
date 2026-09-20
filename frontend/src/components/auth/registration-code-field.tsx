@@ -9,6 +9,7 @@ import { AuthField } from '@/components/auth/auth-page-frame';
 import { isValidEmail } from '@/components/auth/register-form-model';
 import { Button } from '@/components/ui/button';
 import { InputGroupInput } from '@/components/ui/input-group';
+import { Spinner } from '@/components/ui/spinner';
 import { displayError } from '@/lib/request-error';
 
 export function RegistrationCodeField({
@@ -151,6 +152,7 @@ export function RegistrationCodeField({
           }
           onClick={() => void verify()}
         >
+          {verifying ? <Spinner aria-hidden data-icon="inline-start" /> : null}
           {verified ? '邮箱已验证' : verifying ? '验证中…' : '验证邮箱'}
         </Button>
         <Button
@@ -165,6 +167,7 @@ export function RegistrationCodeField({
           }
           onClick={() => void send()}
         >
+          {sending ? <Spinner aria-hidden data-icon="inline-start" /> : null}
           {sending
             ? '正在发送…'
             : remaining > 0

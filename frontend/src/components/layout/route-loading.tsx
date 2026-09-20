@@ -1,3 +1,5 @@
+import { Spinner } from '@/components/ui/spinner';
+
 export function RouteLoading({ label = '正在加载页面' }: { label?: string }) {
   return (
     <div
@@ -6,10 +8,7 @@ export function RouteLoading({ label = '正在加载页面' }: { label?: string 
       data-slot="route-loading"
       role="status"
     >
-      <span
-        aria-hidden
-        className="size-5 animate-spin rounded-full border-2 border-muted border-t-foreground motion-reduce:animate-none"
-      />
+      <Spinner aria-hidden role="presentation" />
       <span>{label}</span>
     </div>
   );

@@ -1,8 +1,8 @@
 'use client';
 
-import { ArrowClockwiseIcon, WarningCircleIcon } from '@phosphor-icons/react';
+import { ArrowClockwiseIcon } from '@phosphor-icons/react';
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { Button } from '@/components/ui/button';
 
 export function PageErrorNotice({
@@ -17,18 +17,19 @@ export function PageErrorNotice({
   title?: string;
 }) {
   return (
-    <Alert className={className} variant="destructive">
-      <WarningCircleIcon aria-hidden />
-      <AlertTitle>{title}</AlertTitle>
-      <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
-        <span>{message}</span>
-        {onRetry ? (
+    <FeedbackNotice
+      action={
+        onRetry ? (
           <Button onClick={onRetry} size="sm" type="button" variant="outline">
-            <ArrowClockwiseIcon aria-hidden />
+            <ArrowClockwiseIcon aria-hidden data-icon="inline-start" />
             重试
           </Button>
-        ) : null}
-      </AlertDescription>
-    </Alert>
+        ) : undefined
+      }
+      className={className}
+      description={message}
+      title={title}
+      tone="error"
+    />
   );
 }

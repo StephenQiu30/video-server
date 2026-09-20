@@ -14,6 +14,7 @@ import {
   InputGroupButton,
   InputGroupTextarea,
 } from '@/components/ui/input-group';
+import { Form } from '@/components/ui/form';
 import { Spinner } from '@/components/ui/spinner';
 import {
   Tooltip,
@@ -44,7 +45,7 @@ export function LinkDownloadForm({
   };
 
   return (
-    <form onSubmit={submit}>
+    <Form onSubmit={submit}>
       <IntakeControlRow>
         <InputGroup className={cn(intakeControlHeightClassName)}>
           <InputGroupTextarea
@@ -91,6 +92,6 @@ export function LinkDownloadForm({
           {busy ? '解析中…' : hasResult ? '重新解析' : '解析媒体'}
         </IntakeSubmitButton>
       </IntakeControlRow>
-    </form>
+    </Form>
   );
 }

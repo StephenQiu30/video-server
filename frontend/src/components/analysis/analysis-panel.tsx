@@ -82,7 +82,7 @@ export default function AnalysisPanel({
                     analysisId={state.job.id}
                     format="md"
                   >
-                    <DownloadSimple />
+                    <DownloadSimple data-icon="inline-start" />
                     导出 Markdown
                   </AnalysisReportDownloadLink>
                 </Button>
@@ -92,7 +92,7 @@ export default function AnalysisPanel({
                     analysisId={state.job.id}
                     format="docx"
                   >
-                    <DownloadSimple />
+                    <DownloadSimple data-icon="inline-start" />
                     导出 DOCX
                   </AnalysisReportDownloadLink>
                 </Button>
@@ -103,7 +103,11 @@ export default function AnalysisPanel({
               onClick={() => void state.retry()}
               variant="outline"
             >
-              <ArrowClockwise />
+              {state.action === 'retry' ? (
+                <Spinner aria-hidden data-icon="inline-start" />
+              ) : (
+                <ArrowClockwise data-icon="inline-start" />
+              )}
               {state.action === 'retry' ? '正在重新分析' : '重新分析'}
             </Button>
             <AnalysisDeleteDialog
@@ -243,7 +247,9 @@ function AnalysisJobState({
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button disabled={state.action === 'cancel'} variant="outline">
-                {state.action === 'cancel' ? <Spinner aria-hidden /> : null}
+                {state.action === 'cancel' ? (
+                  <Spinner aria-hidden data-icon="inline-start" />
+                ) : null}
                 取消分析
               </Button>
             </AlertDialogTrigger>
@@ -271,7 +277,9 @@ function AnalysisJobState({
             disabled={state.action === 'retry'}
             onClick={() => void state.retry()}
           >
-            {state.action === 'retry' ? <Spinner aria-hidden /> : null}
+            {state.action === 'retry' ? (
+              <Spinner aria-hidden data-icon="inline-start" />
+            ) : null}
             {state.action === 'retry' ? '正在重试' : '重试分析'}
           </Button>
         ) : null}

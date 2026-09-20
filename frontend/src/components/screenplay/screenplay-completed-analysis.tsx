@@ -7,6 +7,7 @@ import { ScreenplayResultView } from '@/components/screenplay/screenplay-result-
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 
 export function ScreenplayCompletedAnalysis({
   action,
@@ -64,7 +65,7 @@ export function ScreenplayCompletedAnalysis({
                   analysisId={job.id}
                   format="md"
                 >
-                  <DownloadSimple aria-hidden />
+                  <DownloadSimple aria-hidden data-icon="inline-start" />
                   导出 Markdown
                 </AnalysisReportDownloadLink>
               </Button>
@@ -74,7 +75,7 @@ export function ScreenplayCompletedAnalysis({
                   analysisId={job.id}
                   format="docx"
                 >
-                  <DownloadSimple aria-hidden />
+                  <DownloadSimple aria-hidden data-icon="inline-start" />
                   导出 DOCX
                 </AnalysisReportDownloadLink>
               </Button>
@@ -85,7 +86,11 @@ export function ScreenplayCompletedAnalysis({
             onClick={() => void onRetry()}
             variant="outline"
           >
-            <ArrowClockwise aria-hidden />
+            {action === 'retry' ? (
+              <Spinner aria-hidden data-icon="inline-start" />
+            ) : (
+              <ArrowClockwise aria-hidden data-icon="inline-start" />
+            )}
             {action === 'retry' ? '正在重新执行' : '重新执行'}
           </Button>
           <AnalysisDeleteDialog

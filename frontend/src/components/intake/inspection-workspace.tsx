@@ -146,7 +146,7 @@ export default function InspectionWorkspace({
             className="mt-7 h-13 w-full text-[15px]"
             onClick={onUseUpload}
           >
-            <UploadSimple size={19} />
+            <UploadSimple data-icon="inline-start" />
             上传自有 MP4
           </Button>
         ) : downloadable ? (
@@ -155,7 +155,7 @@ export default function InspectionWorkspace({
             disabled={!selectedId || busy}
             onClick={onCreate}
           >
-            <DownloadSimple size={19} />
+            <DownloadSimple data-icon="inline-start" />
             {busy ? '正在创建任务…' : '创建下载任务'}
           </Button>
         ) : null}

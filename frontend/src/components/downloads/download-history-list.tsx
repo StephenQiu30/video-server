@@ -148,9 +148,9 @@ function HistoryRow({
               variant="ghost"
             >
               {busy && pendingAction?.type === 'download' ? (
-                <Spinner aria-hidden />
+                <Spinner aria-hidden data-icon="inline-start" />
               ) : (
-                <DownloadSimple size={16} />
+                <DownloadSimple data-icon="inline-start" />
               )}
               获取文件
             </Button>
@@ -166,9 +166,9 @@ function HistoryRow({
               variant="ghost"
             >
               {busy && pendingAction?.type === 'retry' ? (
-                <Spinner aria-hidden />
+                <Spinner aria-hidden data-icon="inline-start" />
               ) : (
-                <ArrowClockwise size={16} />
+                <ArrowClockwise data-icon="inline-start" />
               )}
               重新下载
             </Button>
@@ -195,14 +195,14 @@ function LoadingRows() {
       <span className="sr-only" role="status">
         正在加载下载记录
       </span>
-      <div aria-hidden className="space-y-2">
+      <div aria-hidden className="flex flex-col gap-2">
         {['first', 'second', 'third'].map((key) => (
           <div
             className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-4 py-5 sm:grid-cols-[128px_minmax(0,1fr)_auto] sm:gap-6 sm:py-6"
             key={key}
           >
             <Skeleton className="h-16 w-24 rounded-md sm:w-32" />
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Skeleton className="h-4 w-2/5" />
               <Skeleton className="h-3 w-3/5" />
             </div>

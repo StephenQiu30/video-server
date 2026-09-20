@@ -106,7 +106,7 @@ export default function ScreenplayAnalysisResultView({
                   </p>
                   <p className="mt-3 text-sm">节奏：{scene.pacing}</p>
                   {scene.findings.length ? (
-                    <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                    <ul className="mt-3 flex flex-col gap-1 list-disc pl-5 text-sm text-muted-foreground">
                       {scene.findings.map((finding) => (
                         <li key={finding}>{finding}</li>
                       ))}

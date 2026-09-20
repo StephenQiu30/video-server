@@ -48,7 +48,7 @@ export function SourcePerformanceDetails({ sources }: { sources: Source[] }) {
           <TableBody>
             {sources.map((source) => (
               <TableRow key={source.source_key}>
-                <th
+                <TableHead
                   className="px-4 py-5 text-left align-middle whitespace-normal"
                   scope="row"
                 >
@@ -56,7 +56,7 @@ export function SourcePerformanceDetails({ sources }: { sources: Source[] }) {
                   <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground">
                     {source.source_key}
                   </p>
-                </th>
+                </TableHead>
                 <MetricCell value={formatInteger(source.total)} />
                 <MetricCell value={formatPercent(source.success_rate)} />
                 <MetricCell value={formatInteger(source.unique_users)} />

@@ -66,7 +66,7 @@ export default function AnalysisReportPreview({
           ),
           li: ({ children }) => <li className="pl-1">{children}</li>,
           ol: ({ children }) => (
-            <ol className="my-4 list-decimal space-y-1 pl-5">{children}</ol>
+            <ol className="my-4 flex flex-col gap-1 list-decimal pl-5">{children}</ol>
           ),
           p: ({ children }) => (
             <p className="my-3 text-muted-foreground">{children}</p>
@@ -90,7 +90,7 @@ export default function AnalysisReportPreview({
             </TableHead>
           ),
           ul: ({ children }) => (
-            <ul className="my-4 list-disc space-y-1 pl-5">{children}</ul>
+            <ul className="my-4 flex flex-col gap-1 list-disc pl-5">{children}</ul>
           ),
         }}
         remarkPlugins={[remarkGfm]}

@@ -11,6 +11,7 @@ import { BackLink } from '@/components/layout/back-link';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 
 import { formatDateRange } from './analytics-format';
 
@@ -32,7 +33,7 @@ export function AdminAnalyticsScreen({
   onRetry,
 }: AdminAnalyticsScreenProps) {
   return (
-    <section aria-busy={loading} className="space-y-10 sm:space-y-12">
+    <section aria-busy={loading} className="flex flex-col gap-10 sm:gap-12">
       <div>
         <BackLink className="mb-4" fallbackHref="/account" />
         <PageHeader
@@ -51,7 +52,11 @@ export function AdminAnalyticsScreen({
                 type="button"
                 variant="outline"
               >
-                <ArrowClockwiseIcon aria-hidden />
+                {loading ? (
+                  <Spinner aria-hidden data-icon="inline-start" />
+                ) : (
+                  <ArrowClockwiseIcon aria-hidden data-icon="inline-start" />
+                )}
                 <span className="hidden sm:inline">刷新</span>
               </Button>
             </div>
@@ -78,7 +83,7 @@ export function AdminAnalyticsScreen({
         />
       ) : null}
       {data && data.summary.total > 0 ? (
-        <div className="space-y-12 sm:space-y-14">
+        <div className="flex flex-col gap-12 sm:gap-14">
           <AnalyticsKpis summary={data.summary} />
           <div className="grid gap-10 lg:grid-cols-3 lg:gap-12">
             <div>

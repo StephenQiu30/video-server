@@ -60,7 +60,7 @@ export default function AnalysisArticleResultView({
                 <p className="mt-4 whitespace-pre-line leading-8 text-muted-foreground">
                   {section.body}
                 </p>
-                <div className="mt-5 space-y-1 text-sm text-muted-foreground">
+                <div className="mt-5 flex flex-col gap-1 text-sm text-muted-foreground">
                   {section.evidence.map((evidence) => (
                     <p
                       key={`${evidence.start_ms}-${evidence.end_ms}-${evidence.note}`}
@@ -86,7 +86,7 @@ export default function AnalysisArticleResultView({
         </ol>
       </TabsContent>
       <TabsContent className="pt-7" value="points">
-        <ul className="list-disc space-y-3 py-4 pl-5 leading-7 text-muted-foreground">
+        <ul className="flex flex-col gap-3 list-disc py-4 pl-5 leading-7 text-muted-foreground">
           {result.key_points.map((point) => (
             <li key={point}>{point}</li>
           ))}
@@ -94,7 +94,7 @@ export default function AnalysisArticleResultView({
         {result.limitations.length ? (
           <div className="mt-8 py-6">
             <h4 className="font-medium">说明与局限</h4>
-            <ul className="mt-3 list-disc space-y-2 pl-5 leading-7 text-muted-foreground">
+            <ul className="mt-3 flex flex-col gap-2 list-disc pl-5 leading-7 text-muted-foreground">
               {result.limitations.map((limitation) => (
                 <li key={limitation}>{limitation}</li>
               ))}

@@ -92,7 +92,7 @@ export function ScreenplayDocumentMetadata({
           <div className="min-w-0">
             <AlertTitle>需要人工核对</AlertTitle>
             <AlertDescription>
-              <ul className="mt-1 list-disc space-y-1 pl-4">
+              <ul className="mt-1 flex flex-col gap-1 list-disc pl-4">
                 {document.quality_warnings.map((warning) => (
                   <li key={warning}>{qualityWarningLabel(warning)}</li>
                 ))}

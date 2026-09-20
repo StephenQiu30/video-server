@@ -17,6 +17,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { Spinner } from '@/components/ui/spinner';
 
 type MobileNavigationProps = {
   loading: boolean;
@@ -96,7 +97,11 @@ export function MobileNavigation({
                 onClick={() => void onSignOut()}
                 variant="ghost"
               >
-                <SignOutIcon aria-hidden />
+                {signingOut ? (
+                  <Spinner aria-hidden data-icon="inline-start" />
+                ) : (
+                  <SignOutIcon aria-hidden data-icon="inline-start" />
+                )}
                 {signingOut ? '正在退出…' : '退出登录'}
               </Button>
             </SheetClose>

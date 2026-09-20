@@ -114,9 +114,9 @@ export default function DownloadState({
             size="lg"
           >
             {action === 'download' ? (
-              <Spinner aria-hidden />
+              <Spinner aria-hidden data-icon="inline-start" />
             ) : (
-              <DownloadSimple />
+              <DownloadSimple data-icon="inline-start" />
             )}
             {job.media_kind === 'image_gallery'
               ? '获取图集 ZIP'
@@ -137,7 +137,11 @@ export default function DownloadState({
             onClick={onRetry}
             size="lg"
           >
-            {action === 'retry' ? <Spinner aria-hidden /> : <ArrowClockwise />}
+            {action === 'retry' ? (
+              <Spinner aria-hidden data-icon="inline-start" />
+            ) : (
+              <ArrowClockwise data-icon="inline-start" />
+            )}
             {retryActionLabel(job.error_code)}
           </Button>
         ) : null}
@@ -150,7 +154,11 @@ export default function DownloadState({
                 size="lg"
                 variant="outline"
               >
-                {action === 'cancel' ? <Spinner aria-hidden /> : <X />}
+                {action === 'cancel' ? (
+                  <Spinner aria-hidden data-icon="inline-start" />
+                ) : (
+                  <X data-icon="inline-start" />
+                )}
                 取消任务
               </Button>
             </AlertDialogTrigger>

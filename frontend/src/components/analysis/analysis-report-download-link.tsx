@@ -2,6 +2,7 @@
 
 import { type ComponentProps, useState } from 'react';
 import { exportAnalysisMarkdown, exportAnalysisReport } from '@/api/analyses';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { displayError } from '@/lib/request-error';
 
 export default function AnalysisReportDownloadLink({
@@ -56,7 +57,14 @@ export default function AnalysisReportDownloadLink({
           }
         }}
       />
-      {error ? <span role="alert">{error}</span> : null}
+      {error ? (
+        <FeedbackNotice
+          className="mt-2"
+          description={error}
+          title="报告下载失败"
+          tone="error"
+        />
+      ) : null}
     </>
   );
 }

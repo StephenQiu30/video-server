@@ -52,7 +52,7 @@ export function StorageCleanupDialog({
             将永久删除指定天数前的视频、剧本文档和分析报告。正在执行分析的源文件会被跳过。
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="cleanup-days">清理多少天前的文件</Label>
           <Input
             id="cleanup-days"
@@ -81,7 +81,11 @@ export function StorageCleanupDialog({
             onClick={onConfirm}
             variant="destructive"
           >
-            {cleaning ? <Spinner aria-hidden /> : <Trash aria-hidden />}
+            {cleaning ? (
+              <Spinner aria-hidden data-icon="inline-start" />
+            ) : (
+              <Trash aria-hidden data-icon="inline-start" />
+            )}
             {cleaning ? '正在清理' : '确认清理'}
           </Button>
         </AlertDialogFooter>

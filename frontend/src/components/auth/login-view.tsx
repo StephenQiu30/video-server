@@ -12,6 +12,7 @@ import { isValidEmail } from '@/components/auth/register-form-model';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { FieldGroup } from '@/components/ui/field';
+import { Form } from '@/components/ui/form';
 import { InputGroupInput } from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
 import { authRedirect } from '@/lib/auth-redirect';
@@ -70,7 +71,7 @@ export function LoginView() {
       title="欢迎回来"
       titleId="login-title"
     >
-      <form
+      <Form
         aria-busy={submitting}
         className="flex flex-col gap-7"
         noValidate
@@ -129,6 +130,7 @@ export function LoginView() {
             <Spinner
               aria-hidden
               className="motion-reduce:animate-none"
+              data-icon="inline-start"
               role="presentation"
             />
           ) : null}
@@ -137,7 +139,7 @@ export function LoginView() {
             <ArrowRightIcon aria-hidden data-icon="inline-end" />
           ) : null}
         </Button>
-      </form>
+      </Form>
       <p className="mt-7 text-sm text-muted-foreground">
         还没有账户？{' '}
         <Link

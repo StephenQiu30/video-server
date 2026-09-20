@@ -56,13 +56,13 @@ export function ProviderCatalogScreen({
   );
 
   return (
-    <section aria-busy={result.loading} className="space-y-10">
+    <section aria-busy={result.loading} className="flex flex-col gap-10">
       <div>
         <BackLink className="mb-4" fallbackHref="/providers" />
         <PageHeader
           action={
             <Button onClick={onCreate}>
-              <Plus aria-hidden />
+              <Plus aria-hidden data-icon="inline-start" />
               新增平台
             </Button>
           }
@@ -100,7 +100,7 @@ export function ProviderCatalogScreen({
           </EmptyHeader>
         </Empty>
       ) : result.items.length > 0 ? (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
           <ProviderCatalogFilters
             onQueryChange={(value) => {
               setQuery(value);
@@ -168,7 +168,11 @@ function filterCatalog(
 
 function CatalogSkeleton() {
   return (
-    <div aria-label="正在加载平台目录" className="space-y-2" role="status">
+    <div
+      aria-label="正在加载平台目录"
+      className="flex flex-col gap-2"
+      role="status"
+    >
       {['first', 'second', 'third', 'fourth'].map((row) => (
         <div className="py-4" key={row}>
           <Skeleton className="h-12 w-full" />

@@ -41,7 +41,7 @@ export function UserList({ items, currentUserId, onEdit }: UserListProps) {
         onClick={() => onEdit(item)}
         type="button"
       >
-        <PencilSimple />
+        <PencilSimple data-icon="inline-start" />
         管理
       </Button>
     );

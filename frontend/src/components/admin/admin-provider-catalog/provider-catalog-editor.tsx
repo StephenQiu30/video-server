@@ -18,6 +18,7 @@ import {
   FieldGroup,
   FieldLabel,
 } from '@/components/ui/field';
+import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
@@ -55,7 +56,7 @@ export function ProviderCatalogEditor({
             此处只维护状态页名称、排序与可见性，不会新增下载域名或执行能力。
           </DialogDescription>
         </DialogHeader>
-        <form
+        <Form
           aria-busy={editor.saving}
           className="grid gap-6"
           onSubmit={(event) => {
@@ -163,11 +164,15 @@ export function ProviderCatalogEditor({
               取消
             </Button>
             <Button disabled={editor.saving} type="submit">
-              {editor.saving ? <Spinner aria-hidden /> : <CheckCircle />}
+              {editor.saving ? (
+                <Spinner aria-hidden data-icon="inline-start" />
+              ) : (
+                <CheckCircle data-icon="inline-start" />
+              )}
               {editor.saving ? '正在保存' : creating ? '新增平台' : '保存更改'}
             </Button>
           </DialogFooter>
-        </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

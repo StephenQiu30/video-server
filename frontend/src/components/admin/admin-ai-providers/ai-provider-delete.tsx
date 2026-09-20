@@ -8,6 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Spinner } from '@/components/ui/spinner';
 
 export function AiProviderDelete({
   deleting,
@@ -42,6 +43,7 @@ export function AiProviderDelete({
             onClick={onConfirm}
             variant="destructive"
           >
+            {deleting ? <Spinner aria-hidden data-icon="inline-start" /> : null}
             {deleting ? '正在删除' : '确认删除'}
           </AlertDialogAction>
         </AlertDialogFooter>

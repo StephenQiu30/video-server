@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Separator } from '@/components/ui/separator';
 
 import type { MarkdownHeading } from './screenplay-document-toc';
 
@@ -144,10 +145,10 @@ export function ScreenplayDocumentPreview({
                     {children}
                   </p>
                 ),
-                hr: () => <hr className="my-8 border-0" />,
+                hr: () => <Separator className="my-8" />,
                 li: ({ children }) => <li className="pl-1">{children}</li>,
                 ol: ({ children }) => (
-                  <ol className="my-4 list-decimal space-y-1 pl-6">
+                  <ol className="my-4 flex list-decimal flex-col gap-1 pl-6">
                     {children}
                   </ol>
                 ),
@@ -181,7 +182,9 @@ export function ScreenplayDocumentPreview({
                   </TableCell>
                 ),
                 ul: ({ children }) => (
-                  <ul className="my-4 list-disc space-y-1 pl-6">{children}</ul>
+                  <ul className="my-4 flex list-disc flex-col gap-1 pl-6">
+                    {children}
+                  </ul>
                 ),
               }}
               remarkPlugins={[remarkGfm]}

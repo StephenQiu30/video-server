@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { AuthProvider } from '@/components/auth/auth-provider';
 import { BasicLayout } from '@/components/layout/basic-layout';
 import { ThemeProvider } from '@/components/layout/theme-provider';
+import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { siteConfig, siteUrl } from '@/lib/site';
 
@@ -64,6 +65,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <TooltipProvider delayDuration={300}>
               <BasicLayout>{children}</BasicLayout>
             </TooltipProvider>
+            <Toaster closeButton position="bottom-right" />
           </AuthProvider>
         </ThemeProvider>
       </body>

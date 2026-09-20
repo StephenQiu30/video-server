@@ -1,29 +1,39 @@
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+
 type DailyPoint = API.DownloadAnalyticsResponse['daily'][number];
 
 export function DailyTrendDataTable({ points }: { points: DailyPoint[] }) {
   return (
-    <table className="sr-only">
-      <caption>每日下载趋势精确数据</caption>
-      <thead>
-        <tr>
-          <th scope="col">日期</th>
-          <th scope="col">全部</th>
-          <th scope="col">成功</th>
-          <th scope="col">失败</th>
-          <th scope="col">取消</th>
-        </tr>
-      </thead>
-      <tbody>
+    <Table className="sr-only">
+      <TableCaption>每日下载趋势精确数据</TableCaption>
+      <TableHeader>
+        <TableRow>
+          <TableHead scope="col">日期</TableHead>
+          <TableHead scope="col">全部</TableHead>
+          <TableHead scope="col">成功</TableHead>
+          <TableHead scope="col">失败</TableHead>
+          <TableHead scope="col">取消</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {points.map((point) => (
-          <tr key={point.date}>
-            <th scope="row">{point.date}</th>
-            <td>{point.total}</td>
-            <td>{point.succeeded}</td>
-            <td>{point.failed}</td>
-            <td>{point.cancelled}</td>
-          </tr>
+          <TableRow key={point.date}>
+            <TableHead scope="row">{point.date}</TableHead>
+            <TableCell>{point.total}</TableCell>
+            <TableCell>{point.succeeded}</TableCell>
+            <TableCell>{point.failed}</TableCell>
+            <TableCell>{point.cancelled}</TableCell>
+          </TableRow>
         ))}
-      </tbody>
-    </table>
+      </TableBody>
+    </Table>
   );
 }

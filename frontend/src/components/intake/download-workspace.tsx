@@ -2,12 +2,14 @@
 
 import { useRouter } from 'next/navigation';
 import { type RefObject, useCallback, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { createDownload } from '@/api/downloads';
 import {
   inspectMedia as inspectDiscoveredItem,
   inspectMedia,
 } from '@/api/inspections';
 import { createSourceDiscovery } from '@/api/sourceDiscoveries';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import {
   ContentIntakeHero,
   type IntakeMode,
@@ -25,7 +27,7 @@ import { useDocumentImport } from '@/components/intake/use-document-import';
 import { useMediaImport } from '@/components/intake/use-media-import';
 import { markNavigationPush } from '@/components/layout/navigation-history';
 import { ScreenplayUploadForm } from '@/components/screenplay/screenplay-upload-form';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { toast } from 'sonner';
 import { displayError } from '@/lib/request-error';
 import { createUuid as createIdempotencyKey } from '@/lib/uuid';
 
@@ -73,6 +75,10 @@ export default function DownloadWorkspace() {
   );
   const mediaImport = useMediaImport(openDownload, mediaDeclaredOrigin);
   const documentImport = useDocumentImport(openDocument);
+
+  useEffect(() => {
+    if (mediaImport.notice) toast.info(mediaImport.notice);
+  }, [mediaImport.notice]);
 
   function clearLinkResult() {
     setInspection(null);
@@ -260,18 +266,13 @@ export default function DownloadWorkspace() {
             ? mediaImport.error
             : null
       ) ? (
-        <Alert className="mt-8" variant="destructive">
-          <AlertTitle>操作未完成</AlertTitle>
-          <AlertDescription id="download-workspace-error">
-            {mode === 'link' ? error : mediaImport.error}
-          </AlertDescription>
-        </Alert>
-      ) : null}
-      {mode === 'video' && mediaImport.notice ? (
-        <Alert className="mt-8">
-          <AlertTitle>上传已取消</AlertTitle>
-          <AlertDescription>{mediaImport.notice}</AlertDescription>
-        </Alert>
+        <FeedbackNotice
+          className="mt-8"
+          description={mode === 'link' ? error : mediaImport.error}
+          descriptionId="download-workspace-error"
+          title="操作未完成"
+          tone="error"
+        />
       ) : null}
       {mode === 'link' && discovery ? (
         <SourceDiscoveryWorkspace

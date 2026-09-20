@@ -28,7 +28,11 @@ export default function AnalysisDeleteDialog({
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <Button disabled={busy} variant="outline">
-          {busy ? <Spinner aria-hidden /> : <Trash aria-hidden />}
+          {busy ? (
+            <Spinner aria-hidden data-icon="inline-start" />
+          ) : (
+            <Trash aria-hidden data-icon="inline-start" />
+          )}
           删除分析
         </Button>
       </AlertDialogTrigger>

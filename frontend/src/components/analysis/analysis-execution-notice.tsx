@@ -52,7 +52,7 @@ export function AnalysisExecutionNotice({
           onClick={onStart}
           size="lg"
         >
-          {busy ? <Spinner aria-hidden /> : null}
+          {busy ? <Spinner aria-hidden data-icon="inline-start" /> : null}
           {resultContract === 'video-article'
             ? '整理成文章'
             : resultContract === 'screenplay-rewrite'

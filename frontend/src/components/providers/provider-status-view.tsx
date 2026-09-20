@@ -55,9 +55,9 @@ export function ProviderStatusView() {
             variant="secondary"
           >
             {state.loading ? (
-              <Spinner aria-hidden />
+              <Spinner aria-hidden data-icon="inline-start" />
             ) : (
-              <ArrowClockwiseIcon aria-hidden />
+              <ArrowClockwiseIcon aria-hidden data-icon="inline-start" />
             )}
             {state.loading ? '刷新中…' : '刷新状态'}
           </Button>
@@ -67,7 +67,7 @@ export function ProviderStatusView() {
         titleId="provider-status-title"
       />
 
-      <div className="mt-10 space-y-6 sm:mt-12">
+      <div className="mt-10 flex flex-col gap-6 sm:mt-12">
         {state.loading && !state.data ? (
           <StatusMessage label="正在加载平台状态" />
         ) : null}
@@ -113,7 +113,7 @@ export function ProviderStatusView() {
               </ToggleGroup>
             </div>
             {visibleProviders.length > 0 ? (
-              <div className="space-y-5">
+              <div className="flex flex-col gap-5">
                 <ItemGroup aria-label="平台能力状态" className="gap-0">
                   {visibleProviders.map((provider) => (
                     <ProviderStatusItem

@@ -9,6 +9,15 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 import { formatPercent, formatShortDate } from './analytics-format';
 
@@ -99,23 +108,23 @@ export function CompletionRateChart({ daily }: { daily: DailyPoint[] }) {
       <p className="mt-4 text-sm font-medium tabular-nums">
         最近一天 {formatPercent(latest)}
       </p>
-      <table className="sr-only">
-        <caption>每日下载成功率精确数据</caption>
-        <thead>
-          <tr>
-            <th scope="col">日期</th>
-            <th scope="col">成功率</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table className="sr-only">
+        <TableCaption>每日下载成功率精确数据</TableCaption>
+        <TableHeader>
+          <TableRow>
+            <TableHead scope="col">日期</TableHead>
+            <TableHead scope="col">成功率</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {points.map((point) => (
-            <tr key={point.date}>
-              <th scope="row">{point.date}</th>
-              <td>{formatPercent(point.rate)}</td>
-            </tr>
+            <TableRow key={point.date}>
+              <TableHead scope="row">{point.date}</TableHead>
+              <TableCell>{formatPercent(point.rate)}</TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </section>
   );
 }

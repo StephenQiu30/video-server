@@ -59,13 +59,13 @@ export function AdminStorageScreen({
   const last = Math.min(page * STORAGE_PAGE_SIZE, total);
 
   return (
-    <section aria-busy={loading} className="space-y-10">
+    <section aria-busy={loading} className="flex flex-col gap-10">
       <div>
         <BackLink className="mb-4" fallbackHref="/account" />
         <PageHeader
           action={
             <Button onClick={onOpenCleanup} variant="destructive">
-              <Trash aria-hidden />
+              <Trash aria-hidden data-icon="inline-start" />
               清理历史文件
             </Button>
           }
@@ -82,7 +82,7 @@ export function AdminStorageScreen({
       ) : null}
 
       {loading && items.length === 0 ? (
-        <div className="space-y-4 py-5">
+        <div className="flex flex-col gap-4 py-5">
           {['one', 'two', 'three', 'four', 'five'].map((key) => (
             <Skeleton className="h-14 w-full" key={key} />
           ))}

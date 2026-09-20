@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Field, FieldLabel } from '@/components/ui/field';
+import { Form } from '@/components/ui/form';
 import {
   InputGroup,
   InputGroupAddon,
@@ -39,7 +40,7 @@ export function UserFilters({
   }
 
   return (
-    <form
+    <Form
       onSubmit={submit}
       className="grid items-end gap-4 md:grid-cols-2 lg:grid-cols-[minmax(220px,1fr)_160px_160px_auto]"
     >
@@ -109,6 +110,6 @@ export function UserFilters({
         <MagnifyingGlass />
         搜索
       </Button>
-    </form>
+    </Form>
   );
 }

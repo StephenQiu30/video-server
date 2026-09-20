@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Form } from '@/components/ui/form';
 import { Spinner } from '@/components/ui/spinner';
 
 import { AiProviderFields } from './ai-provider-fields';
@@ -56,7 +57,7 @@ export function AiProviderEditor({
             会加密保存，仅在分析任务运行时交给所选适配器，不写入环境文件。
           </DialogDescription>
         </DialogHeader>
-        <form
+        <Form
           aria-busy={editor.saving}
           className="grid gap-6"
           onSubmit={(event) => {
@@ -75,11 +76,15 @@ export function AiProviderEditor({
               取消
             </Button>
             <Button disabled={editor.saving} type="submit">
-              {editor.saving ? <Spinner aria-hidden /> : <CheckCircle />}
+              {editor.saving ? (
+                <Spinner aria-hidden data-icon="inline-start" />
+              ) : (
+                <CheckCircle data-icon="inline-start" />
+              )}
               {editor.saving ? '正在保存' : '保存配置'}
             </Button>
           </DialogFooter>
-        </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

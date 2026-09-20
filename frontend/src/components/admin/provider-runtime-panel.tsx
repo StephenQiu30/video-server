@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { getAdminProviderRuntime } from '@/api/admin';
+import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import {
   accessPolicyLabel,
   routeCooldownLabel,
 } from '@/components/providers/provider-access';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { displayError } from '@/lib/request-error';
 
 const sourceLabels: Record<
@@ -39,7 +41,7 @@ export function ProviderRuntimePanel() {
   return (
     <section
       aria-labelledby="provider-runtime-title"
-      className="mt-10 space-y-4"
+      className="mt-10 flex flex-col gap-4"
     >
       <h2 className="text-base font-medium" id="provider-runtime-title">
         运行诊断
@@ -53,13 +55,16 @@ export function ProviderRuntimePanel() {
         onClick={() => void load()}
         variant="secondary"
       >
+        {loading ? <Spinner aria-hidden data-icon="inline-start" /> : null}
         {loading ? '读取中…' : '读取运行诊断'}
       </Button>
-      {error ? <p role="alert">{error}</p> : null}
+      {error ? (
+        <PageErrorNotice message={error} onRetry={() => void load()} />
+      ) : null}
       {data ? (
-        <ul aria-label="平台运行诊断" className="space-y-5">
+        <ul aria-label="平台运行诊断" className="flex flex-col gap-5">
           {data.items.map((item) => (
-            <li className="space-y-1 text-sm" key={item.provider_key}>
+            <li className="flex flex-col gap-1 text-sm" key={item.provider_key}>
               <h3 className="font-medium">
                 {item.provider_key}
                 {item.access_policy_id

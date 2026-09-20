@@ -38,7 +38,17 @@ export function DownloadDeleteDialog({
           size={compact ? 'icon-sm' : 'default'}
           variant="ghost"
         >
-          {busy ? <Spinner aria-hidden /> : <Trash aria-hidden />}
+          {busy ? (
+            <Spinner
+              aria-hidden
+              data-icon={compact ? undefined : 'inline-start'}
+            />
+          ) : (
+            <Trash
+              aria-hidden
+              data-icon={compact ? undefined : 'inline-start'}
+            />
+          )}
           {compact ? <span className="sr-only">删除</span> : '删除任务'}
         </Button>
       </AlertDialogTrigger>

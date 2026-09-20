@@ -10,6 +10,7 @@ import {
 } from '@/components/intake/intake-control-row';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
@@ -60,7 +61,7 @@ export function ScreenplayUploadForm({
   };
 
   return (
-    <form className={workspace ? undefined : 'mt-2'} onSubmit={submit}>
+    <Form className={workspace ? undefined : 'mt-2'} onSubmit={submit}>
       <IntakeControlRow className={workspace ? undefined : 'block'}>
         <IntakePickerButton
           aria-describedby={error ? 'screenplay-upload-error' : undefined}
@@ -98,7 +99,11 @@ export function ScreenplayUploadForm({
         />
         {workspace ? (
           <IntakeSubmitButton disabled={busy}>
-            {busy ? <Spinner aria-hidden /> : <UploadSimple aria-hidden />}
+            {busy ? (
+              <Spinner aria-hidden data-icon="inline-start" />
+            ) : (
+              <UploadSimple aria-hidden data-icon="inline-start" />
+            )}
             {busy ? '处理中…' : '上传剧本'}
           </IntakeSubmitButton>
         ) : null}
@@ -135,7 +140,7 @@ export function ScreenplayUploadForm({
                   type="button"
                   variant="ghost"
                 >
-                  <X aria-hidden />
+                  <X aria-hidden data-icon="inline-start" />
                   取消上传
                 </Button>
               ) : null}
@@ -147,10 +152,14 @@ export function ScreenplayUploadForm({
 
       {!workspace ? (
         <Button className="mt-5 h-11 w-full" disabled={busy} type="submit">
-          {busy ? <Spinner aria-hidden /> : <UploadSimple aria-hidden />}
+          {busy ? (
+            <Spinner aria-hidden data-icon="inline-start" />
+          ) : (
+            <UploadSimple aria-hidden data-icon="inline-start" />
+          )}
           {busy ? '处理中…' : '上传剧本'}
         </Button>
       ) : null}
-    </form>
+    </Form>
   );
 }

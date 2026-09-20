@@ -23,6 +23,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Spinner } from '@/components/ui/spinner';
 import { displayError } from '@/lib/request-error';
 
 const metadataSkeletonKeys = [
@@ -132,7 +133,11 @@ export default function ScreenplayDocumentDetailView({
                 type="button"
                 variant="outline"
               >
-                <ArrowClockwise aria-hidden size={17} />
+                {state.loading ? (
+                  <Spinner aria-hidden data-icon="inline-start" />
+                ) : (
+                  <ArrowClockwise aria-hidden data-icon="inline-start" />
+                )}
                 刷新
               </Button>
               <ScreenplayDocumentDeleteDialog
@@ -184,7 +189,7 @@ function DocumentDetailSkeleton() {
         <Skeleton className="h-6 w-24" />
         <div className="mt-5 grid grid-cols-2 gap-5 sm:grid-cols-4 lg:grid-cols-8">
           {metadataSkeletonKeys.map((key) => (
-            <div className="space-y-2" key={key}>
+            <div className="flex flex-col gap-2" key={key}>
               <Skeleton className="h-3 w-14" />
               <Skeleton className="h-4 w-20" />
             </div>
@@ -193,7 +198,7 @@ function DocumentDetailSkeleton() {
       </div>
       <div className={workspaceClassName}>
         <div
-          className={`${previewColumnClassName} flex flex-col space-y-4 lg:h-full`}
+          className={`${previewColumnClassName} flex flex-col gap-4 lg:h-full`}
         >
           <div className="flex items-baseline justify-between gap-4">
             <Skeleton className="h-6 w-28" />
@@ -201,9 +206,9 @@ function DocumentDetailSkeleton() {
           </div>
           <Skeleton className="min-h-0 w-full flex-1 rounded-none" />
         </div>
-        <div className={`${tocColumnClassName} space-y-4`}>
+        <div className={`${tocColumnClassName} flex flex-col gap-4`}>
           <Skeleton className="h-5 w-16" />
-          <div className="space-y-3 pt-1">
+          <div className="flex flex-col gap-3 pt-1">
             {tocSkeletonKeys.map((key) => (
               <Skeleton className="h-4 w-full" key={key} />
             ))}

@@ -1,7 +1,6 @@
 'use client';
 
 import { ArrowRight, FilmStrip } from '@phosphor-icons/react';
-import { cn } from 'cn';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -42,7 +41,7 @@ export function SourceDiscoveryWorkspace({
       </div>
 
       {discovery.items.length > 0 ? (
-        <ul aria-label="文章视频候选项" className={cn('gap-1')}>
+        <ul aria-label="文章视频候选项" className="flex flex-col gap-1">
           {discovery.items.map((item, index) => {
             const busy = busyItemRef === item.item_ref;
             return (
@@ -60,7 +59,7 @@ export function SourceDiscoveryWorkspace({
                     />
                   </ItemMedia>
                   <ItemContent className="min-w-0">
-                    <h3 className={cn('truncate')}>
+                    <h3 className="truncate">
                       {item.title || `文章视频 ${index + 1}`}
                     </h3>
                     <ItemDescription className="mt-0 text-xs leading-5">
@@ -75,9 +74,9 @@ export function SourceDiscoveryWorkspace({
                       variant="secondary"
                     >
                       {busy ? (
-                        <Spinner aria-hidden />
+                        <Spinner aria-hidden data-icon="inline-start" />
                       ) : (
-                        <ArrowRight aria-hidden />
+                        <ArrowRight aria-hidden data-icon="inline-start" />
                       )}
                       {busy ? '处理中…' : '选择并查看'}
                     </Button>

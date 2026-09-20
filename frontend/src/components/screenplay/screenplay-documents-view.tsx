@@ -11,6 +11,7 @@ import { ScreenplayDocumentList } from '@/components/screenplay/screenplay-docum
 import { ScreenplayUploadDialog } from '@/components/screenplay/screenplay-upload-dialog';
 import { useScreenplayDocuments } from '@/components/screenplay/use-screenplay-documents';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { displayError } from '@/lib/request-error';
 
 export default function ScreenplayDocumentsView() {
@@ -52,7 +53,11 @@ export default function ScreenplayDocumentsView() {
               type="button"
               variant="outline"
             >
-              <ArrowClockwise aria-hidden size={17} />
+              {state.loading ? (
+                <Spinner aria-hidden data-icon="inline-start" />
+              ) : (
+                <ArrowClockwise aria-hidden data-icon="inline-start" />
+              )}
               刷新
             </Button>
           </div>

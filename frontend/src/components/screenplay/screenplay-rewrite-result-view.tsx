@@ -112,7 +112,7 @@ export default function ScreenplayRewriteResultView({
           >
             修改摘要
           </h3>
-          <ul className="mt-4 list-disc space-y-2 pl-5 leading-7 text-muted-foreground">
+          <ul className="mt-4 flex flex-col gap-2 list-disc pl-5 leading-7 text-muted-foreground">
             {result.change_summary.map((summary) => (
               <li key={summary}>{summary}</li>
             ))}

@@ -8,7 +8,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export function AnalyticsLoading() {
   return (
-    <div aria-label="正在加载下载分析" className="space-y-12" role="status">
+    <div
+      aria-label="正在加载下载分析"
+      className="flex flex-col gap-12"
+      role="status"
+    >
       <span className="sr-only">正在加载下载分析</span>
       <div>
         <Skeleton className="h-5 w-20" />
@@ -16,7 +20,7 @@ export function AnalyticsLoading() {
       </div>
       <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
         {['total', 'rate', 'users', 'bytes'].map((key) => (
-          <div className="space-y-3" key={key}>
+          <div className="flex flex-col gap-3" key={key}>
             <Skeleton className="h-3 w-20" />
             <Skeleton className="h-12 w-32" />
             <Skeleton className="h-3 w-full max-w-40" />

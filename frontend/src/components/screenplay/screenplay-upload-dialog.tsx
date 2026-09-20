@@ -42,7 +42,7 @@ export function ScreenplayUploadDialog({
     >
       <DialogTrigger asChild>
         <Button className="h-11 w-full px-4 sm:w-auto">
-          <UploadSimple aria-hidden />
+          <UploadSimple aria-hidden data-icon="inline-start" />
           {label}
         </Button>
       </DialogTrigger>

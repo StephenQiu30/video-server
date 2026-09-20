@@ -41,13 +41,13 @@ export function AiProviderScreen({
 }: Props) {
   const active = items.find((item) => item.is_active);
   return (
-    <section aria-busy={loading} className="space-y-12">
+    <section aria-busy={loading} className="flex flex-col gap-12">
       <div>
         <BackLink className="mb-4" fallbackHref="/" />
         <PageHeader
           action={
             <Button onClick={onCreate}>
-              <Plus aria-hidden />
+              <Plus aria-hidden data-icon="inline-start" />
               新增 AI 服务
             </Button>
           }
@@ -68,7 +68,7 @@ export function AiProviderScreen({
           <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
             {error}
             <Button onClick={onRetry} size="sm" variant="outline">
-              <ArrowClockwise aria-hidden />
+              <ArrowClockwise aria-hidden data-icon="inline-start" />
               重试
             </Button>
           </AlertDescription>
@@ -142,7 +142,7 @@ export function AiProviderScreen({
           </h2>
           <p className="text-sm text-muted-foreground">共 {items.length} 条</p>
         </div>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           {loading && items.length === 0
             ? ['one', 'two', 'three'].map((key) => (
                 <div className="py-5" key={key}>

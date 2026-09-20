@@ -81,7 +81,9 @@ export function ScreenplayAnalysisJobState({
             disabled={state.action === 'retry'}
             onClick={() => void state.retry()}
           >
-            {state.action === 'retry' ? <Spinner aria-hidden /> : null}
+            {state.action === 'retry' ? (
+              <Spinner aria-hidden data-icon="inline-start" />
+            ) : null}
             {state.action === 'retry' ? '正在重试' : '重试任务'}
           </Button>
         ) : null}
@@ -112,7 +114,9 @@ function CancelControl({
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <Button disabled={state.action === 'cancel'} variant="outline">
-          {state.action === 'cancel' ? <Spinner aria-hidden /> : null}
+          {state.action === 'cancel' ? (
+            <Spinner aria-hidden data-icon="inline-start" />
+          ) : null}
           取消任务
         </Button>
       </AlertDialogTrigger>

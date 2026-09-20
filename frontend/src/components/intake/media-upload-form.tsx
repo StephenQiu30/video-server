@@ -9,6 +9,7 @@ import {
   IntakeSubmitButton,
 } from '@/components/intake/intake-control-row';
 import { Button } from '@/components/ui/button';
+import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
@@ -54,7 +55,7 @@ export function MediaUploadForm({
   };
 
   return (
-    <form onSubmit={submit}>
+    <Form onSubmit={submit}>
       {declaredOrigin === 'wechat_channels' ? (
         <p className="mb-3 text-sm leading-6 text-muted-foreground">
           当前文件将记录为“用户提供的视频号来源”，系统不会接收视频号链接、会话或令牌。
@@ -95,7 +96,11 @@ export function MediaUploadForm({
           type="file"
         />
         <IntakeSubmitButton disabled={busy}>
-          {busy ? <Spinner aria-hidden /> : <UploadSimple aria-hidden />}
+          {busy ? (
+            <Spinner aria-hidden data-icon="inline-start" />
+          ) : (
+            <UploadSimple aria-hidden data-icon="inline-start" />
+          )}
           {busy ? '处理中…' : '上传视频'}
         </IntakeSubmitButton>
       </IntakeControlRow>
@@ -115,7 +120,7 @@ export function MediaUploadForm({
               </span>
               {canCancel ? (
                 <Button onClick={onCancel} size="sm" variant="ghost">
-                  <X aria-hidden />
+                  <X aria-hidden data-icon="inline-start" />
                   取消上传
                 </Button>
               ) : null}
@@ -124,6 +129,6 @@ export function MediaUploadForm({
           <Progress aria-label={phaseLabels[phase]} value={progress} />
         </div>
       ) : null}
-    </form>
+    </Form>
   );
 }

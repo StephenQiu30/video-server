@@ -132,13 +132,13 @@ function LoadingRows() {
       <span className="sr-only" role="status">
         正在加载剧本文档
       </span>
-      <div aria-hidden className="space-y-2">
+      <div aria-hidden className="flex flex-col gap-2">
         {['first', 'second', 'third'].map((key) => (
           <div
             className="grid grid-cols-[minmax(0,1fr)_5rem] gap-5 py-6"
             key={key}
           >
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Skeleton className="h-5 w-2/5" />
               <Skeleton className="h-4 w-3/5" />
               <Skeleton className="h-4 w-1/2" />

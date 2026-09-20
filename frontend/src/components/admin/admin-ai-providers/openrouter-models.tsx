@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { listOpenRouterModels } from '@/api/admin';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { Button } from '@/components/ui/button';
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -10,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
 import { displayError } from '@/lib/request-error';
 
 export function OpenRouterModels({
@@ -52,13 +54,16 @@ export function OpenRouterModels({
           type="button"
           variant="outline"
         >
+          {loading ? <Spinner aria-hidden data-icon="inline-start" /> : null}
           {loading ? '正在读取模型…' : '读取 OpenRouter 模型'}
         </Button>
       </div>
       {error ? (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
+        <FeedbackNotice
+          description={error}
+          title="模型目录读取失败"
+          tone="error"
+        />
       ) : null}
       {items !== null ? (
         <>

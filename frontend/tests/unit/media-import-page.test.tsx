@@ -3,6 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import DownloadWorkspace from '@/components/intake/download-workspace';
 
+const toastInfo = vi.hoisted(() => vi.fn());
+
+vi.mock('sonner', () => ({
+  toast: { info: toastInfo },
+}));
+
 vi.mock('@/components/providers/use-provider-statuses', () => ({
   useProviderStatuses: () => ({
     data: { items: [] },
@@ -24,6 +30,7 @@ vi.mock('next/navigation', () => ({
 describe('DownloadWorkspace local video upload', () => {
   beforeEach(() => {
     push.mockReset();
+    toastInfo.mockReset();
     window.history.replaceState({}, '', '/');
   });
 
@@ -114,11 +121,11 @@ describe('DownloadWorkspace local video upload', () => {
     await waitFor(() =>
       expect(cancelRequest).toHaveBeenCalledWith('import-to-cancel'),
     );
-    expect(
-      await screen.findByText('未完成的分片将由服务端清理。', {
-        exact: false,
-      }),
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(toastInfo).toHaveBeenCalledWith(
+        '上传已取消，未完成的分片将由服务端清理。',
+      ),
+    );
   });
 });
 

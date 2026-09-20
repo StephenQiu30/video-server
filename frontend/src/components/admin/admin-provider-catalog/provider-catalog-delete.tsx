@@ -59,7 +59,11 @@ export function ProviderCatalogDelete({
             onClick={onConfirm}
             variant="destructive"
           >
-            {state.deleting ? <Spinner aria-hidden /> : <Trash aria-hidden />}
+            {state.deleting ? (
+              <Spinner aria-hidden data-icon="inline-start" />
+            ) : (
+              <Trash aria-hidden data-icon="inline-start" />
+            )}
             {state.deleting ? '正在删除' : '确认删除'}
           </Button>
         </AlertDialogFooter>

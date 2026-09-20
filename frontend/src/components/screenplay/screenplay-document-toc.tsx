@@ -90,7 +90,7 @@ export function ScreenplayDocumentToc({
       </div>
 
       {headings.length ? (
-        <NavigationMenuList className="mt-3 block w-full flex-none space-y-0.5 lg:h-auto lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:scrollbar-thin">
+        <NavigationMenuList className="mt-3 flex w-full flex-none flex-col gap-0.5 lg:h-auto lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:scrollbar-thin">
           {headings.map((heading) => (
             <NavigationMenuItem key={heading.id}>
               <NavigationMenuLink

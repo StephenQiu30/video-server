@@ -16,6 +16,7 @@ import { RegistrationCodeField } from '@/components/auth/registration-code-field
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { FieldGroup } from '@/components/ui/field';
+import { Form } from '@/components/ui/form';
 import { InputGroupInput } from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
 import { authRedirect } from '@/lib/auth-redirect';
@@ -87,7 +88,7 @@ export function RegisterView() {
       title="创建你的帧取账户"
       titleId="register-title"
     >
-      <form
+      <Form
         aria-busy={submitting}
         className="flex flex-col gap-7"
         noValidate
@@ -218,6 +219,7 @@ export function RegisterView() {
               <Spinner
                 aria-hidden
                 className="motion-reduce:animate-none"
+                data-icon="inline-start"
                 role="presentation"
               />
             ) : null}
@@ -227,7 +229,7 @@ export function RegisterView() {
             ) : null}
           </Button>
         ) : null}
-      </form>
+      </Form>
       <p className="mt-7 text-sm text-muted-foreground">
         已有账户？{' '}
         <Link

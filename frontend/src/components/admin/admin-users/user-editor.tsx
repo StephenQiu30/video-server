@@ -18,6 +18,7 @@ import {
   FieldGroup,
   FieldLabel,
 } from '@/components/ui/field';
+import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -68,7 +69,7 @@ export function UserEditor({
             角色和停用状态会在该用户下一次认证请求时立即生效。
           </DialogDescription>
         </DialogHeader>
-        <form
+        <Form
           aria-busy={editor.saving}
           className="grid gap-6"
           onSubmit={(event) => {
@@ -182,14 +183,14 @@ export function UserEditor({
             </DialogClose>
             <Button disabled={editor.saving || !editor.user} type="submit">
               {editor.saving ? (
-                <Spinner aria-hidden />
+                <Spinner aria-hidden data-icon="inline-start" />
               ) : (
-                <CheckCircle aria-hidden />
+                <CheckCircle aria-hidden data-icon="inline-start" />
               )}
               {editor.saving ? '正在保存' : '保存更改'}
             </Button>
           </DialogFooter>
-        </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

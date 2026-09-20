@@ -12,7 +12,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export function AdminSkeleton({ rowsOnly = false }: { rowsOnly?: boolean }) {
   return (
-    <div role="status" className="space-y-6" aria-label="正在加载用户列表">
+    <div
+      aria-label="正在加载用户列表"
+      className="flex flex-col gap-6"
+      role="status"
+    >
       {!rowsOnly && (
         <>
           <Skeleton className="h-3 w-32" />
@@ -20,7 +24,7 @@ export function AdminSkeleton({ rowsOnly = false }: { rowsOnly?: boolean }) {
           <Skeleton className="h-16 w-full" />
         </>
       )}
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         {['first', 'second', 'third', 'fourth', 'fifth'].map((row) => (
           <div className="py-3" key={row}>
             <Skeleton className="h-12 w-full" />
