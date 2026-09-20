@@ -12,6 +12,7 @@ from app.workers.runner.provider_cookie_lease import (
     ProviderCookieLeaseStatus,
 )
 from app.workers.runner.provider_session_setup import publish_session
+from app.workers.runner.provider_sessions import credential_revision
 
 COOKIE = (
     b"# Netscape HTTP Cookie File\n"
@@ -26,6 +27,7 @@ def test_refresh_publishes_changed_youtube_source_and_private_state(
     state = tmp_path / "state"
     publish_session(ProviderKey.YOUTUBE, source, COOKIE)
     replacement = COOKIE.replace(b"fixture-only", b"replacement")
+    revision_secret = b"unit-test-maintainer-hmac-secret"
     monkeypatch.setattr(
         maintainer,
         "export_provider_cookie_lease_bounded",
@@ -35,7 +37,10 @@ def test_refresh_publishes_changed_youtube_source_and_private_state(
     )
 
     result = maintainer.refresh_youtube_source(
-        source, state_root=state, profile="Default"
+        source,
+        state_root=state,
+        profile="Default",
+        revision_secret=revision_secret,
     )
 
     assert result is maintainer.MaintenanceResult.UPDATED
@@ -43,7 +48,7 @@ def test_refresh_publishes_changed_youtube_source_and_private_state(
     document = json.loads((state / "state.json").read_text())
     assert document["status"] == "updated"
     assert document["provider"] == "youtube"
-    assert document["revision"]
+    assert document["revision"] == credential_revision(replacement, revision_secret)
     assert "cookie" not in json.dumps(document).casefold()
     assert stat.S_IMODE(state.stat().st_mode) == 0o700
     assert stat.S_IMODE((state / "state.json").stat().st_mode) == 0o600

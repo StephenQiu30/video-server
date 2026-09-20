@@ -4,14 +4,10 @@ from __future__ import annotations
 
 import argparse
 import fcntl
-import hashlib
-import json
 import os
 import signal
-import stat
 import subprocess
 import sys
-import tempfile
 import time
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -20,6 +16,13 @@ from pathlib import Path
 from types import FrameType
 
 from app.services.provider_types import ProviderKey
+from app.workers.runner._secure_file import (
+    atomic_write_json,
+    ensure_private_directory,
+    no_follow_flag,
+    read_private_json,
+    validate_private_file,
+)
 from app.workers.runner.errors import RunnerFailure
 from app.workers.runner.provider_cookie_boundary import (
     export_provider_cookie_lease_bounded,
@@ -28,6 +31,8 @@ from app.workers.runner.provider_cookie_file import ProviderCookieFile
 from app.workers.runner.provider_cookie_lease import ProviderCookieLeaseStatus
 from app.workers.runner.provider_session_policy import browser_session_policy
 from app.workers.runner.provider_session_setup import publish_session
+from app.workers.runner.provider_sessions import credential_revision
+from app.workers.runner.settings import get_runner_settings
 
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
 DEFAULT_SOURCE_ROOT = PROJECT_ROOT / ".provider-sessions" / "youtube"
@@ -53,18 +58,20 @@ def refresh_youtube_source(
     *,
     state_root: Path = DEFAULT_STATE_ROOT,
     profile: str = DEFAULT_PROFILE,
+    revision_secret: bytes | None = None,
 ) -> MaintenanceResult:
     """Capture, validate and atomically publish a changed YouTube source."""
     source_root = source_root.absolute()
     state_root = state_root.absolute()
-    _ensure_private_directory(state_root)
+    ensure_private_directory(state_root)
     lock = os.open(
         state_root / ".maintain.lock",
-        os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK,
+        os.O_CREAT | os.O_RDWR | no_follow_flag() | os.O_NONBLOCK,
         0o600,
     )
     try:
-        _validate_private_file(lock, "unsafe maintainer lock")
+        validate_private_file(lock, "unsafe maintainer lock")
+        revision_secret = revision_secret or get_runner_settings().hmac_secret_bytes
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
@@ -81,12 +88,12 @@ def refresh_youtube_source(
                 state_root,
                 status=outcome,
                 attempted_at=attempted_at,
-                revision=_current_revision(source_root),
+                revision=_current_revision(source_root, revision_secret),
             )
             return outcome
 
         payload = result.payload
-        revision = hashlib.sha256(payload).hexdigest()
+        revision = credential_revision(payload, revision_secret)
         if _current_payload(source_root) == payload:
             outcome = MaintenanceResult.UNCHANGED
         else:
@@ -98,7 +105,7 @@ def refresh_youtube_source(
                     state_root,
                     status=outcome,
                     attempted_at=attempted_at,
-                    revision=_current_revision(source_root),
+                    revision=_current_revision(source_root, revision_secret),
                 )
                 return outcome
             outcome = MaintenanceResult.UPDATED
@@ -125,8 +132,8 @@ def start_maintainer(
     _require_macos()
     source_root = source_root.absolute()
     state_root = state_root.absolute()
-    _ensure_private_directory(source_root)
-    _ensure_private_directory(state_root)
+    ensure_private_directory(source_root)
+    ensure_private_directory(state_root)
     if _daemon_running(state_root):
         print("running: YouTube session maintenance already enabled")
         return
@@ -190,14 +197,14 @@ def serve_maintainer(
         raise SystemExit("maintenance interval must be at least 10 seconds")
     source_root = source_root.absolute()
     state_root = state_root.absolute()
-    _ensure_private_directory(state_root)
+    ensure_private_directory(state_root)
     lock = os.open(
         state_root / ".daemon.lock",
-        os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK,
+        os.O_CREAT | os.O_RDWR | no_follow_flag() | os.O_NONBLOCK,
         0o600,
     )
     try:
-        _validate_private_file(lock, "unsafe maintainer daemon lock")
+        validate_private_file(lock, "unsafe maintainer daemon lock")
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
@@ -268,9 +275,9 @@ def _current_payload(source_root: Path) -> bytes | None:
         return None
 
 
-def _current_revision(source_root: Path) -> str | None:
+def _current_revision(source_root: Path, revision_secret: bytes) -> str | None:
     payload = _current_payload(source_root)
-    return None if payload is None else hashlib.sha256(payload).hexdigest()
+    return None if payload is None else credential_revision(payload, revision_secret)
 
 
 def _write_state(
@@ -290,21 +297,25 @@ def _write_state(
         or (previous.get("last_success_at") if previous else None),
         "revision": revision,
     }
-    _atomic_write_json(state_root / "state.json", document)
+    atomic_write_json(state_root / "state.json", document)
 
 
 def _read_state(state_root: Path) -> dict[str, object] | None:
-    document = _read_private_json(state_root / "state.json")
+    document = read_private_json(
+        state_root / "state.json", message="unsafe maintainer state"
+    )
     return document if isinstance(document, dict) else None
 
 
 def _write_pid(state_root: Path, pid: int) -> None:
-    _atomic_write_json(state_root / "daemon.json", {"pid": pid})
+    atomic_write_json(state_root / "daemon.json", {"pid": pid})
 
 
 def _read_pid(state_root: Path) -> int | None:
     try:
-        document = _read_private_json(state_root / "daemon.json")
+        document = read_private_json(
+            state_root / "daemon.json", message="unsafe maintainer state"
+        )
     except OSError:
         return None
     if not isinstance(document, dict):
@@ -349,67 +360,6 @@ def _remove_own_pid(state_root: Path) -> None:
 def _remove_stale_pid(state_root: Path) -> None:
     if not _daemon_running(state_root):
         (state_root / "daemon.json").unlink(missing_ok=True)
-
-
-def _read_private_json(path: Path) -> object | None:
-    try:
-        descriptor = os.open(
-            path, os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0)
-        )
-    except FileNotFoundError:
-        return None
-    with os.fdopen(descriptor, "r", encoding="utf-8") as source:
-        _validate_private_file(source.fileno(), "unsafe maintainer state")
-        try:
-            document: object = json.load(source)
-            return document
-        except (json.JSONDecodeError, UnicodeError):
-            return None
-
-
-def _atomic_write_json(target: Path, document: object) -> None:
-    if target.is_symlink():
-        raise OSError("unsafe maintainer state")
-    descriptor, raw_temp = tempfile.mkstemp(
-        prefix=f".{target.name}-", dir=target.parent
-    )
-    temp = Path(raw_temp)
-    try:
-        os.fchmod(descriptor, 0o600)
-        with os.fdopen(descriptor, "w", encoding="utf-8", closefd=True) as output:
-            json.dump(document, output, ensure_ascii=True, separators=(",", ":"))
-            output.write("\n")
-            output.flush()
-            os.fsync(output.fileno())
-        os.replace(temp, target)
-        directory = os.open(target.parent, os.O_RDONLY)
-        try:
-            os.fsync(directory)
-        finally:
-            os.close(directory)
-    finally:
-        temp.unlink(missing_ok=True)
-
-
-def _ensure_private_directory(path: Path) -> None:
-    if any(parent.is_symlink() for parent in (path, *path.parents)):
-        raise OSError("unsafe maintainer directory")
-    path.mkdir(mode=0o700, parents=True, exist_ok=True)
-    info = path.stat()
-    if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid():
-        raise OSError("maintainer directory must belong to the current user")
-    os.chmod(path, 0o700)
-
-
-def _validate_private_file(descriptor: int, message: str) -> None:
-    info = os.fstat(descriptor)
-    if (
-        not stat.S_ISREG(info.st_mode)
-        or info.st_uid != os.getuid()
-        or info.st_nlink != 1
-        or info.st_mode & 0o077
-    ):
-        raise OSError(message)
 
 
 def _require_macos() -> None:

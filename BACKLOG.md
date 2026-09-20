@@ -102,11 +102,11 @@
 
 ### P1 共享安全模块 + 凭证哈希一致性（对应 R1–R3）
 
-- [ ] P1.1 新建 `app/workers/runner/_secure_file.py`：`_no_follow`、原子写、私有目录校验；替换 `provider_cookie_sync.py:275`、`provider_session_files.py:116`、`provider_cookie_queue.py:237` 的 `_no_follow` 与 `_atomic_write_*` 三处。
+- [x] P1.1 新建 `app/workers/runner/_secure_file.py`：`_no_follow`、原子写、私有目录校验；替换 `provider_cookie_sync.py:275`、`provider_session_files.py:116`、`provider_cookie_queue.py:237` 的 `_no_follow` 与 `_atomic_write_*` 三处。
   - 依赖：无。验证：`ruff`/`mypy`/`pytest` + `grep` 确认单一定义。
-- [ ] P1.2 新建 `app/workers/runner/netscape_cookie.py`：统一解析/序列化/校验/过期/`\x00`/allowlist；替换 `provider_cookie_export`、`provider_cookie_file`、`provider_session_files._validate_netscape_cookie`。
+- [x] P1.2 新建 `app/workers/runner/netscape_cookie.py`：统一解析/序列化/校验/过期/`\x00`/allowlist；替换 `provider_cookie_export`、`provider_cookie_file`、`provider_session_files._validate_netscape_cookie`。
   - 依赖：P1.1。验证：cookie 相关单测全绿；allowlist 匹配收敛一处。
-- [ ] P1.3 `provider_session_maintainer.py:89,273` 改 HMAC 派生，复用 `provider_sessions.py:158` 的密钥来源。
+- [x] P1.3 `provider_session_maintainer.py:89,273` 改 HMAC 派生，复用 `provider_sessions.py:158` 的密钥来源。
   - 依赖：P1.1。验证：状态文件哈希可跨进程稳定对账；无未加盐哈希残留。
 - [ ] P1.4 收敛 `provider_cookie_*` / `provider_session_*` 职责后删除空文件与转发层，同步 PROJECT.md 目录归属（如新增模块位置）。
   - 依赖：P1.1–P1.3。验证：架构边界测试 `test_dependency_boundaries.py` 全绿。

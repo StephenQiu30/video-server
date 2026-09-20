@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Protocol
 
 from app.services.provider_types import ProviderKey, ProviderSessionVersion
+from app.workers.runner._secure_file import no_follow_flag
 from app.workers.runner.errors import RunnerFailure
 from app.workers.runner.provider_cookie_lease import (
     MAX_RESPONSE_BYTES,
@@ -87,7 +88,7 @@ class ProviderCookieSyncClient:
                 return False
             marker_fd = os.open(
                 AGENT_READY_MARKER,
-                os.O_RDONLY | _no_follow(),
+                os.O_RDONLY | no_follow_flag(),
                 dir_fd=descriptors[0],
             )
             with os.fdopen(marker_fd, "rb", closefd=True) as marker_file:
@@ -158,7 +159,7 @@ class ProviderCookieSyncClient:
                 raise RunnerFailure("provider_session_unavailable", status=503)
             descriptor = os.open(
                 request_name,
-                os.O_WRONLY | os.O_CREAT | os.O_EXCL | _no_follow(),
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL | no_follow_flag(),
                 0o600,
                 dir_fd=requests_fd,
             )
@@ -221,7 +222,7 @@ def _open_directory(path: str | Path, *, dir_fd: int | None = None) -> int:
         path,
         getattr(os, "O_PATH", os.O_RDONLY)
         | getattr(os, "O_DIRECTORY", 0)
-        | _no_follow(),
+        | no_follow_flag(),
         dir_fd=dir_fd,
     )
     current = os.fstat(descriptor)
@@ -254,7 +255,7 @@ def _read_response(directory_fd: int, name: str) -> bytes | None:
         or before.st_size > MAX_RESPONSE_BYTES
     ):
         raise RunnerFailure("provider_session_unavailable", status=503)
-    descriptor = os.open(name, os.O_RDONLY | _no_follow(), dir_fd=directory_fd)
+    descriptor = os.open(name, os.O_RDONLY | no_follow_flag(), dir_fd=directory_fd)
     with os.fdopen(descriptor, "rb", closefd=True) as response:
         current = os.fstat(response.fileno())
         if current.st_ino != before.st_ino or not stat.S_ISREG(current.st_mode):
@@ -270,7 +271,3 @@ def _unlink_quiet(directory_fd: int, name: str) -> None:
         os.unlink(name, dir_fd=directory_fd)
     except OSError:
         pass
-
-
-def _no_follow() -> int:
-    return getattr(os, "O_NOFOLLOW", 0)

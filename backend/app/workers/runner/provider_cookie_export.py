@@ -9,6 +9,11 @@ from http.cookiejar import Cookie
 from typing import Final
 
 from app.services.provider_types import ProviderKey, ProviderSessionVersion
+from app.workers.runner.netscape_cookie import (
+    has_safe_cookie_fields,
+    is_allowed_domain,
+    serialize_cookies,
+)
 from app.workers.runner.provider_cookie_lease import (
     ProviderCookieLease,
     ProviderCookieLeaseStatus,
@@ -26,8 +31,6 @@ PERMISSION_DENIED: Final = ProviderCookieLeaseStatus.PERMISSION_DENIED
 SESSION_UNAVAILABLE: Final = ProviderCookieLeaseStatus.SESSION_UNAVAILABLE
 
 _VERSION = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
-_CONTROL = frozenset("\t\r\n")
-_MAX_COOKIE_BYTES = 1024**2
 
 
 def export_provider_cookie_lease(
@@ -62,42 +65,13 @@ def export_provider_cookie_lease(
 
 
 def eligible_cookie(cookie: Cookie, allowed_domains: Iterable[str], now: int) -> bool:
-    domain = cookie.domain.lstrip(".").casefold()
-    allowed = any(
-        domain == item or domain.endswith(f".{item}") for item in allowed_domains
-    )
-    fields = (cookie.domain, cookie.path, cookie.name, cookie.value or "")
     return (
-        allowed
+        is_allowed_domain(cookie.domain, allowed_domains)
         and not cookie.is_expired(now)
         and cookie.path.startswith("/")
-        and all(not (_CONTROL & set(field)) for field in fields)
+        and has_safe_cookie_fields(cookie)
     )
 
 
 def cookie_payload(cookies: tuple[Cookie, ...]) -> bytes:
-    lines = ["# Netscape HTTP Cookie File"]
-    for cookie in cookies:
-        name, value = cookie.name, cookie.value
-        if value is None:
-            name, value = "", name
-        domain = cookie.domain
-        if cookie.has_nonstandard_attr("HttpOnly"):
-            domain = f"#HttpOnly_{domain}"
-        lines.append(
-            "\t".join(
-                (
-                    domain,
-                    "TRUE" if cookie.domain.startswith(".") else "FALSE",
-                    cookie.path,
-                    "TRUE" if cookie.secure else "FALSE",
-                    str(cookie.expires or 0),
-                    name,
-                    value,
-                )
-            )
-        )
-    payload = ("\n".join(lines) + "\n").encode()
-    if len(payload) > _MAX_COOKIE_BYTES:
-        raise OSError("Cookie payload exceeds the bounded session file size")
-    return payload
+    return serialize_cookies(cookies)

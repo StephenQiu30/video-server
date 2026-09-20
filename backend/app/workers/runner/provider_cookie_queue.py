@@ -13,6 +13,7 @@ from enum import StrEnum
 from pathlib import Path
 
 from app.services.provider_types import ProviderKey, ProviderSessionVersion
+from app.workers.runner._secure_file import no_follow_flag
 from app.workers.runner.errors import RunnerFailure
 from app.workers.runner.provider_cookie_lease import (
     ProviderCookieLease,
@@ -162,7 +163,7 @@ def _pending_requests(
                 or not 0 < info.st_size <= _MAX_REQUEST_BYTES
             ):
                 raise ValueError("invalid provider Cookie request")
-            descriptor = os.open(request, os.O_RDONLY | _no_follow())
+            descriptor = os.open(request, os.O_RDONLY | no_follow_flag())
             with os.fdopen(descriptor, "rb", closefd=True) as source:
                 opened = os.fstat(source.fileno())
                 if opened.st_ino != info.st_ino or not stat.S_ISREG(opened.st_mode):
@@ -232,7 +233,3 @@ def _secure_directory(directory: Path, mode: int) -> None:
     if directory.is_symlink() or not stat.S_ISDIR(info.st_mode):
         raise OSError("unsafe Cookie synchronization directory")
     os.chmod(directory, mode)
-
-
-def _no_follow() -> int:
-    return getattr(os, "O_NOFOLLOW", 0)

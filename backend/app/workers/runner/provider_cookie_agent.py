@@ -8,13 +8,13 @@ import plistlib
 import stat
 import subprocess
 import sys
-import tempfile
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor, wait
 from pathlib import Path
 from typing import Any
 
 from app.services.provider_types import ProviderKey, ProviderSessionVersion
+from app.workers.runner._secure_file import atomic_write_bytes
 from app.workers.runner.provider_cookie_boundary import (
     export_provider_cookie_lease_bounded,
 )
@@ -60,7 +60,7 @@ def install_agent(
         provider_root = _provider_runtime(runtime_root, provider)
         prepare_runtime(provider_root)
         _write_ready_marker(provider_root)
-    _atomic_write_plist(
+    _write_plist(
         PLIST_PATH,
         _launch_agent_plist(runtime_root, profile),
     )
@@ -189,38 +189,16 @@ def _launchctl_print() -> subprocess.CompletedProcess[str]:
     return subprocess.run(command, check=False, capture_output=True, text=True)
 
 
-def _atomic_write_plist(target: Path, document: dict[str, Any]) -> None:
+def _write_plist(target: Path, document: dict[str, Any]) -> None:
     target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     if target.parent.is_symlink() or not stat.S_ISDIR(target.parent.lstat().st_mode):
         raise SystemExit("unsafe LaunchAgents directory")
-    descriptor, raw_temp = tempfile.mkstemp(
-        prefix=f".{target.name}.", dir=target.parent
-    )
-    temp = Path(raw_temp)
-    try:
-        os.fchmod(descriptor, 0o600)
-        with os.fdopen(descriptor, "wb", closefd=True) as output:
-            output.write(plistlib.dumps(document))
-            output.flush()
-            os.fsync(output.fileno())
-        os.replace(temp, target)
-    finally:
-        temp.unlink(missing_ok=True)
+    atomic_write_bytes(target, plistlib.dumps(document))
 
 
 def _write_ready_marker(runtime_root: Path) -> None:
     marker = runtime_root / AGENT_READY_MARKER
-    descriptor, raw_temp = tempfile.mkstemp(prefix=f".{marker.name}.", dir=runtime_root)
-    temp = Path(raw_temp)
-    try:
-        os.fchmod(descriptor, 0o644)
-        with os.fdopen(descriptor, "w", encoding="ascii", closefd=True) as output:
-            output.write(AGENT_READY_PAYLOAD.decode("ascii"))
-            output.flush()
-            os.fsync(output.fileno())
-        os.replace(temp, marker)
-    finally:
-        temp.unlink(missing_ok=True)
+    atomic_write_bytes(marker, AGENT_READY_PAYLOAD, mode=0o644)
 
 
 def _domain() -> str:
@@ -267,7 +245,7 @@ def drain_requests(
             _provider_runtime(runtime_root, provider),
             provider,
             refresh,
-            _atomic_write_response,
+            _write_response,
             acknowledgement_timeout_seconds=acknowledgement_timeout_seconds,
             operation=operation,
         )
@@ -302,7 +280,7 @@ def _provider_runtime(runtime_root: Path, provider: ProviderKey) -> Path:
     return runtime_root / provider.value
 
 
-def _atomic_write_response(
+def _write_response(
     target: Path,
     request: ProviderCookieRequest,
     lease: ProviderCookieLease,
@@ -312,19 +290,7 @@ def _atomic_write_response(
         request.public_key,
         associated_data=request.serialize(),
     )
-    descriptor, raw_temp = tempfile.mkstemp(
-        prefix=f".{target.name}.", dir=target.parent
-    )
-    temp = Path(raw_temp)
-    try:
-        os.fchmod(descriptor, 0o644)
-        with os.fdopen(descriptor, "wb", closefd=True) as output:
-            output.write(result)
-            output.flush()
-            os.fsync(output.fileno())
-        os.replace(temp, target)
-    finally:
-        temp.unlink(missing_ok=True)
+    atomic_write_bytes(target, result, mode=0o644)
 
 
 def main(argv: Sequence[str] | None = None) -> int:

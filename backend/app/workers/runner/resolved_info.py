@@ -7,6 +7,7 @@ import os
 from collections.abc import Mapping
 from pathlib import Path
 
+from app.workers.runner._secure_file import no_follow_flag
 from app.workers.runner.errors import RunnerFailure
 
 
@@ -19,7 +20,7 @@ def write_resolved_info(path: Path, payload: Mapping[str, object]) -> None:
         ).encode()
     except (TypeError, ValueError) as exc:
         raise RunnerFailure("invalid_inspection_response", status=502) from exc
-    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | no_follow_flag()
     try:
         descriptor = os.open(path, flags, 0o600)
         with os.fdopen(descriptor, "wb", closefd=True) as output:

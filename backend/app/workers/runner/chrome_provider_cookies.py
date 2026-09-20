@@ -11,6 +11,7 @@ from http.cookiejar import Cookie, CookieJar
 from pathlib import Path
 from typing import Protocol, cast
 
+from app.workers.runner._secure_file import no_follow_flag
 from yt_dlp import cookies as yt_dlp_cookies  # type: ignore[import-untyped]
 
 DEFAULT_CHROME_ROOT = (
@@ -91,7 +92,7 @@ def _read_filtered(
     # sqlite may collapse an operating-system privacy denial into a generic
     # OperationalError. Probe the already validated file so the source boundary
     # can distinguish a deployment permission problem from missing login data.
-    descriptor = os.open(database, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    descriptor = os.open(database, os.O_RDONLY | no_follow_flag())
     try:
         opened = os.fstat(descriptor)
         if not stat.S_ISREG(opened.st_mode) or (opened.st_dev, opened.st_ino) != (

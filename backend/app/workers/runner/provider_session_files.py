@@ -11,13 +11,10 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
+from app.workers.runner._secure_file import no_follow_flag
 from app.workers.runner.errors import RunnerFailure
+from app.workers.runner.netscape_cookie import parse_cookie_payload
 
-_NETSCAPE_HEADERS = (
-    b"# Netscape HTTP Cookie File",
-    b"# HTTP Cookie File",
-)
-_MAX_COOKIE_BYTES = 1024**2
 _MEMORY_FILESYSTEMS = frozenset({"tmpfs", "ramfs"})
 
 
@@ -60,9 +57,7 @@ def validated_cookie_payload(
     allowlist: frozenset[str],
 ) -> bytes:
     """Validate one in-memory lease without reading a retained source file."""
-    if not 0 < len(payload) <= _MAX_COOKIE_BYTES:
-        raise RunnerFailure("credential_rejected", status=422)
-    _validate_netscape_cookie(payload, allowlist)
+    parse_cookie_payload(payload, allowlist)
     return payload
 
 
@@ -74,7 +69,7 @@ def operation_cookie(payload: bytes, temp_root: Path, provider: str) -> Iterator
     try:
         descriptor = os.open(
             jar,
-            os.O_WRONLY | os.O_CREAT | os.O_EXCL | _no_follow(),
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | no_follow_flag(),
             0o600,
         )
         with os.fdopen(descriptor, "wb", closefd=True) as output:
@@ -86,35 +81,6 @@ def operation_cookie(payload: bytes, temp_root: Path, provider: str) -> Iterator
         yield jar
     finally:
         shutil.rmtree(operation_dir)
-
-
-def _validate_netscape_cookie(payload: bytes, allowlist: frozenset[str]) -> None:
-    lines = payload.splitlines()
-    if not lines or not any(lines[0].startswith(item) for item in _NETSCAPE_HEADERS):
-        raise RunnerFailure("credential_rejected", status=422)
-    found = False
-    for line in lines[1:]:
-        if not line or (line.startswith(b"#") and not line.startswith(b"#HttpOnly_")):
-            continue
-        fields = line.split(b"\t")
-        if len(fields) != 7:
-            raise RunnerFailure("credential_rejected", status=422)
-        try:
-            domain = fields[0].removeprefix(b"#HttpOnly_").decode("ascii")
-        except UnicodeDecodeError as exc:
-            raise RunnerFailure("credential_rejected", status=422) from exc
-        normalized = domain.lstrip(".").casefold()
-        if not any(
-            normalized == item or normalized.endswith(f".{item}") for item in allowlist
-        ):
-            raise RunnerFailure("credential_rejected", status=422)
-        found = True
-    if not found:
-        raise RunnerFailure("credential_rejected", status=422)
-
-
-def _no_follow() -> int:
-    return getattr(os, "O_NOFOLLOW", 0)
 
 
 def _decode_mount_path(value: str) -> str:

@@ -10,6 +10,7 @@ import tempfile
 from pathlib import Path
 
 from app.services.provider_types import ProviderKey
+from app.workers.runner._secure_file import no_follow_flag
 from app.workers.runner.errors import RunnerFailure
 from app.workers.runner.provider_cookie_boundary import (
     export_provider_cookie_lease_bounded,
@@ -39,7 +40,7 @@ def publish_session(provider: ProviderKey, root: Path, payload: bytes) -> None:
         raise OSError("provider source must be private to its owner")
     lock = os.open(
         root / ".publish.lock",
-        os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK,
+        os.O_CREAT | os.O_RDWR | no_follow_flag() | os.O_NONBLOCK,
         0o600,
     )
     candidate: Path | None = None

@@ -12,6 +12,7 @@ import time
 from http.cookiejar import CookieJar
 from pathlib import Path
 
+from app.workers.runner._secure_file import no_follow_flag
 from app.workers.runner.managed_chrome_cdp import ChromeDevTools
 from app.workers.runner.provider_cookie_process import termination_guard
 from app.workers.runner.provider_session_headers import yuanbao_session_cookie_jar
@@ -138,7 +139,7 @@ class YuanbaoSession:
             raise OSError("Yuanbao profile must be private to its owner")
         descriptor = os.open(
             root / ".framefetch.lock",
-            os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK,
+            os.O_CREAT | os.O_RDWR | no_follow_flag() | os.O_NONBLOCK,
             0o600,
         )
         try:
