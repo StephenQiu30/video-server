@@ -19,7 +19,9 @@ describe('empty route states', () => {
 
     expect(heading).toBeInTheDocument();
     expect(backLink).toHaveAttribute('href', '/history');
-    expect(container.querySelector('[data-slot="empty-icon"]')).toBeNull();
+    expect(
+      container.querySelector('[data-slot="empty-icon"]'),
+    ).toBeInTheDocument();
     expect(backLink.compareDocumentPosition(heading)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );

@@ -1,19 +1,20 @@
-import { ArrowClockwise, CheckCircle, Plus } from '@phosphor-icons/react';
+import {
+  ArrowClockwise,
+  CheckCircle,
+  FunnelX,
+  PlugsConnected,
+  Plus,
+} from '@phosphor-icons/react';
 import { useMemo, useState } from 'react';
 
 import { BackLink } from '@/components/layout/back-link';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
+import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import type { CatalogResultState } from './model';
@@ -111,14 +112,17 @@ export function ProviderCatalogScreen({
         <CatalogSkeleton />
       ) : result.items.length === 0 ? (
         result.error ? null : (
-          <Empty className="min-h-64 items-start rounded-none border-0 py-14 text-left">
-            <EmptyHeader className="items-start">
-              <EmptyTitle>平台目录为空</EmptyTitle>
-              <EmptyDescription className="text-left">
-                新增条目后，可在平台状态页公开展示。
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
+          <PageEmptyNotice
+            action={
+              <Button onClick={onCreate} type="button">
+                <Plus aria-hidden data-icon="inline-start" />
+                新增第一个平台
+              </Button>
+            }
+            description="新增条目后，可在平台状态页公开展示。"
+            icon={<PlugsConnected aria-hidden />}
+            title="平台目录为空"
+          />
         )
       ) : (
         <div className="flex flex-col gap-6">
@@ -141,14 +145,12 @@ export function ProviderCatalogScreen({
               onEdit={onEdit}
             />
           ) : (
-            <Empty className="min-h-48 items-start rounded-none px-0 text-left">
-              <EmptyHeader className="items-start">
-                <EmptyTitle>没有匹配的平台</EmptyTitle>
-                <EmptyDescription className="text-left">
-                  调整搜索词或公开状态后重试。
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
+            <PageEmptyNotice
+              compact
+              description="调整搜索词或公开状态后重试。"
+              icon={<FunnelX aria-hidden />}
+              title="没有匹配的平台"
+            />
           )}
           <footer className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
             <span>

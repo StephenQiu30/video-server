@@ -1,11 +1,13 @@
 'use client';
 
+import { Images, Sparkle } from '@phosphor-icons/react';
 import { cn } from 'cn';
 
 import type { ReactNode } from 'react';
 
 import AnalysisReportPreview from '@/components/analysis/analysis-report-preview';
 import AnalysisSceneList from '@/components/analysis/analysis-scene-list';
+import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { Button } from '@/components/ui/button';
 import { Item } from '@/components/ui/item';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -129,7 +131,12 @@ export default function AnalysisResultView({
             ))}
           </ul>
         ) : (
-          <EmptyState>未识别出独立视觉高光。</EmptyState>
+          <PageEmptyNotice
+            compact
+            description="未识别出独立视觉高光。"
+            icon={<Sparkle aria-hidden />}
+            title="暂无独立视觉高光"
+          />
         )}
       </TabsContent>
       <TabsContent className="pt-7" value="assets">
@@ -160,7 +167,12 @@ export default function AnalysisResultView({
             ))}
           </ul>
         ) : (
-          <EmptyState>未识别出可复用的视觉资产。</EmptyState>
+          <PageEmptyNotice
+            compact
+            description="未识别出可复用的视觉资产。"
+            icon={<Images aria-hidden />}
+            title="暂无可复用的视觉资产"
+          />
         )}
       </TabsContent>
       {reportMarkdown ? (
@@ -216,8 +228,4 @@ function ResultTab({
       {children}
     </TabsTrigger>
   );
-}
-
-function EmptyState({ children }: { children: ReactNode }) {
-  return <p className="py-8 text-muted-foreground">{children}</p>;
 }

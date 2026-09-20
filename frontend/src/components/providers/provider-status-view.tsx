@@ -1,22 +1,17 @@
 'use client';
 
-import { ArrowClockwiseIcon } from '@phosphor-icons/react';
+import { ArrowClockwiseIcon, FunnelX } from '@phosphor-icons/react';
 import { type KeyboardEvent, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { BackLink } from '@/components/layout/back-link';
+import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
 import { ProviderStatusItem } from '@/components/providers/provider-status-item';
 import { useProviderStatuses } from '@/components/providers/use-provider-statuses';
 import { Button } from '@/components/ui/button';
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from '@/components/ui/empty';
 import { ItemGroup } from '@/components/ui/item';
 import { Spinner } from '@/components/ui/spinner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -163,14 +158,12 @@ export function ProviderStatusView() {
                 </footer>
               </div>
             ) : (
-              <Empty className="min-h-48 items-start px-0 text-left">
-                <EmptyHeader className="items-start">
-                  <EmptyTitle>没有匹配的平台</EmptyTitle>
-                  <EmptyDescription className="text-left">
-                    切换状态筛选，查看其他平台。
-                  </EmptyDescription>
-                </EmptyHeader>
-              </Empty>
+              <PageEmptyNotice
+                compact
+                description="切换状态筛选，查看其他平台。"
+                icon={<FunnelX aria-hidden />}
+                title="没有匹配的平台"
+              />
             )}
           </>
         ) : null}

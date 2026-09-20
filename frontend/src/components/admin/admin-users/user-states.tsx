@@ -1,10 +1,7 @@
+import { UserList } from '@phosphor-icons/react';
+
+import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function AdminSkeleton({ rowsOnly = false }: { rowsOnly?: boolean }) {
@@ -51,14 +48,12 @@ export function UsersLoadError({
 
 export function EmptyUsers() {
   return (
-    <Empty className="min-h-64 items-start rounded-none border-0 py-14 text-left">
-      <EmptyHeader className="items-start">
-        <EmptyTitle>没有匹配的用户</EmptyTitle>
-        <EmptyDescription className="text-left">
-          尝试清空搜索词或更换筛选条件。
-        </EmptyDescription>
-      </EmptyHeader>
-    </Empty>
+    <PageEmptyNotice
+      compact
+      description="尝试清空搜索词或更换筛选条件。"
+      icon={<UserList aria-hidden />}
+      title="没有匹配的用户"
+    />
   );
 }
 

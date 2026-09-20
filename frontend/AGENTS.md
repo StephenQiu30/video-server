@@ -17,6 +17,7 @@
 
 - 先查官方 CLI 和文档，不使用旧设计反推组件实现。更新先预览差异；必要可访问性修复需有回归测试（Progress 需向 Radix 传 value）。
 - 页面无边框布局通过留白、排版组织；基础控件保留官方视觉与键盘语义，不追加旧版非官方属性或 variant。
+- 页面或列表空状态统一使用 `@/components/layout/page-empty-notice`；页面级请求失败使用 `PageErrorNotice`，已有数据刷新或操作反馈使用 `FeedbackNotice`/Sonner message，不在业务页面复制左对齐的 Empty 结构。
 - Client Component 只用于交互、状态或浏览器能力；业务图标使用 Phosphor，品牌复用 public/logo.svg。
 - 桌面与 390px、明暗主题均须可用，检查可访问名称、焦点恢复、溢出和错误恢复。
 - 验证命令：pnpm install --frozen-lockfile、pnpm format:check、pnpm lint、pnpm test、pnpm build。

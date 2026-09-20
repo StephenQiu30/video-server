@@ -170,6 +170,14 @@ frontend/
 - UI 优先 Server Component，交互需要时再使用 Client Component；Server-only 能力不能经共享模块导入浏览器。
 - 基础组件使用官方源码与 API；按需安装，不预存未使用组件，不维护假用户、模拟业务入口或演示资产。
 
+### 4.1 页面状态展示
+
+- 页面级或列表级的无数据状态统一使用 `frontend/src/components/layout/page-empty-notice.tsx`；该组件内部使用 Radix/shadcn `Empty`，禁止在业务页面重新实现一套左对齐的空提示结构。
+- 标准结构为居中 `Empty`、`EmptyMedia variant="icon"`、语义化 `EmptyTitle`（页面已有 `h1` 时使用 `h2`）、`EmptyDescription`，以及可选的 `EmptyContent` 主操作。图标必须使用 Phosphor，并标记 `aria-hidden`。
+- 首次为空、页面级无数据使用常规高度；筛选无匹配或局部面板无结果使用 `compact`。说明文案必须告诉用户下一步；存在明确恢复动作时在空状态中提供按钮，同时保留页面头部的稳定入口。
+- 首次请求失败且没有可用数据使用 `PageErrorNotice` 居中展示并提供重试；已有数据刷新失败使用 `FeedbackNotice` 或 Sonner message，不得把请求错误降级成普通空状态。表单字段校验、删除确认和加载骨架属于各自语义，不套用页面空状态。
+- 页面状态必须有稳定的可访问名称、可见焦点和键盘操作；异步反馈使用 `aria-live` 或组件自带的 alert/message 语义。特殊 404 可以保留专属排版，但仍须基于 `Empty` 的居中结构。
+
 ## 5. 清理与变更规则
 
 - 创建文件前必须说明独立职责和实际调用方。禁止空目录、纯转发文件、重复类型、备用实现和无用途 barrel。

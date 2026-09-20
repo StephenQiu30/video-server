@@ -1,17 +1,12 @@
-import { CheckCircle, Trash } from '@phosphor-icons/react';
+import { CheckCircle, FolderOpen, Trash } from '@phosphor-icons/react';
 
 import { BackLink } from '@/components/layout/back-link';
+import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { STORAGE_PAGE_SIZE } from './model';
@@ -95,14 +90,12 @@ export function AdminStorageScreen({
           title="暂时无法读取文件列表"
         />
       ) : items.length === 0 ? (
-        <Empty className="min-h-64 items-start rounded-none border-0 py-14 text-left">
-          <EmptyHeader className="items-start">
-            <EmptyTitle>暂无持久文件</EmptyTitle>
-            <EmptyDescription className="text-left">
-              完成下载、剧本解析或报告生成后，文件会显示在这里。
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        <PageEmptyNotice
+          compact
+          description="完成下载、剧本解析或报告生成后，文件会显示在这里。"
+          icon={<FolderOpen aria-hidden />}
+          title="暂无持久文件"
+        />
       ) : (
         <StorageFileList items={items} />
       )}

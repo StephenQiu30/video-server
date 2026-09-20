@@ -1,9 +1,6 @@
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from '@/components/ui/empty';
+import { ChartLineUp } from '@phosphor-icons/react';
+
+import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function AnalyticsLoading() {
@@ -44,13 +41,10 @@ export function AnalyticsLoading() {
 
 export function AnalyticsEmpty() {
   return (
-    <Empty className="min-h-80 items-start rounded-none border-0 py-20 text-left">
-      <EmptyHeader className="items-start">
-        <EmptyTitle>当前周期还没有下载数据</EmptyTitle>
-        <EmptyDescription className="text-left">
-          切换统计周期，或等待用户创建下载任务后再查看。
-        </EmptyDescription>
-      </EmptyHeader>
-    </Empty>
+    <PageEmptyNotice
+      description="切换统计周期，或等待用户创建下载任务后再查看。"
+      icon={<ChartLineUp aria-hidden />}
+      title="当前周期还没有下载数据"
+    />
   );
 }

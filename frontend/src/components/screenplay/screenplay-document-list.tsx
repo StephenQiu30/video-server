@@ -1,5 +1,6 @@
 import { FileText } from '@phosphor-icons/react';
 import Link from 'next/link';
+import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { ScreenplayDocumentDeleteDialog } from '@/components/screenplay/screenplay-document-delete-dialog';
 import {
   documentFormatLabels,
@@ -10,14 +11,6 @@ import {
 } from '@/components/screenplay/screenplay-document-format';
 import { ScreenplayUploadDialog } from '@/components/screenplay/screenplay-upload-dialog';
 import { Badge } from '@/components/ui/badge';
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty';
 import {
   Item,
   ItemActions,
@@ -59,22 +52,12 @@ export function ScreenplayDocumentList({
         </ItemGroup>
       ) : null}
       {data && !data.items.length ? (
-        <Empty className="min-h-80 rounded-none border-0 px-0 py-16">
-          <EmptyMedia className="bg-primary/10 text-primary" variant="icon">
-            <FileText aria-hidden />
-          </EmptyMedia>
-          <EmptyHeader className="max-w-md">
-            <EmptyTitle as="h2" className="text-base">
-              还没有剧本文档
-            </EmptyTitle>
-            <EmptyDescription>
-              上传一份剧本文档后，可在这里核对解析状态与正文。
-            </EmptyDescription>
-          </EmptyHeader>
-          <EmptyContent>
-            <ScreenplayUploadDialog label="上传第一份剧本" />
-          </EmptyContent>
-        </Empty>
+        <PageEmptyNotice
+          action={<ScreenplayUploadDialog label="上传第一份剧本" />}
+          description="上传一份剧本文档后，可在这里核对解析状态与正文。"
+          icon={<FileText aria-hidden />}
+          title="还没有剧本文档"
+        />
       ) : null}
     </section>
   );

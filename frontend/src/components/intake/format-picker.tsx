@@ -1,12 +1,8 @@
 'use client';
 
+import { FileVideo } from '@phosphor-icons/react';
 import { cn } from 'cn';
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from '@/components/ui/empty';
+import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { FieldLabel } from '@/components/ui/field';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { audioCodecLabel } from '@/lib/media-format';
@@ -30,12 +26,12 @@ export default function FormatPicker({
 }) {
   if (!formats.length) {
     return (
-      <Empty className="min-h-48 border-0">
-        <EmptyHeader>
-          <EmptyTitle>没有可用格式</EmptyTitle>
-          <EmptyDescription>当前媒体没有可用的下载版本。</EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <PageEmptyNotice
+        compact
+        description="当前媒体没有可用的下载版本。"
+        icon={<FileVideo aria-hidden />}
+        title="没有可用格式"
+      />
     );
   }
 

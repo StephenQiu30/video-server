@@ -4,14 +4,9 @@ import Link from 'next/link';
 import { DownloadDeleteDialog } from '@/components/downloads/download-delete-dialog';
 import { downloadRecovery } from '@/components/downloads/download-state-model';
 import MediaCover from '@/components/intake/media-cover';
+import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from '@/components/ui/empty';
 import {
   Item,
   ItemActions,
@@ -57,14 +52,12 @@ export default function DownloadHistoryList({
         </ItemGroup>
       ) : null}
       {data && !data.items.length ? (
-        <Empty className="min-h-72 items-start rounded-none border-0 py-20 text-left">
-          <EmptyHeader className="items-start">
-            <EmptyTitle>没有匹配的下载记录</EmptyTitle>
-            <EmptyDescription className="text-left">
-              调整筛选条件，或新建一个下载任务。
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        <PageEmptyNotice
+          compact
+          description="调整筛选条件，或新建一个下载任务。"
+          icon={<DownloadSimple aria-hidden />}
+          title="没有匹配的下载记录"
+        />
       ) : null}
     </section>
   );
