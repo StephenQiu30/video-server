@@ -320,6 +320,12 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         authenticated=False,
     ),
     FailureRule(
+        "credential_expired",
+        422,
+        all_stderr=(b"fresh cookies", b"needed"),
+        authenticated=True,
+    ),
+    FailureRule(
         "provider_temporarily_unavailable",
         503,
         all_stderr=(b"fresh cookies", b"needed"),

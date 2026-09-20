@@ -189,10 +189,18 @@ def test_collection_download_enables_playlist_with_bounded_output(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("authenticated", (False, True))
-async def test_douyin_fresh_cookie_hint_is_temporary_for_both_session_contexts(
+@pytest.mark.parametrize(
+    ("authenticated", "expected_code", "expected_status"),
+    (
+        (False, "provider_temporarily_unavailable", 503),
+        (True, "credential_expired", 422),
+    ),
+)
+async def test_douyin_fresh_cookie_hint_distinguishes_session_contexts(
     tmp_path: Path,
     authenticated: bool,
+    expected_code: str,
+    expected_status: int,
 ) -> None:
     commands = MediaCommands(
         settings(tmp_path),
@@ -208,8 +216,8 @@ async def test_douyin_fresh_cookie_hint_is_temporary_for_both_session_contexts(
             cookie_jar=tmp_path / "cookies.txt" if authenticated else None,
         )
 
-    assert caught.value.code == "provider_temporarily_unavailable"
-    assert caught.value.status == 503
+    assert caught.value.code == expected_code
+    assert caught.value.status == expected_status
 
 
 @pytest.mark.asyncio
@@ -381,6 +389,26 @@ async def test_authenticated_youtube_bot_confirmation_is_expired_session(
             b"ERROR: Sign in to confirm you're not a bot. "
             b"Use --cookies for authentication"
         ),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.inspect(
+            "https://www.youtube.com/watch?v=owned",
+            tmp_path,
+            cookie_jar=tmp_path / "cookies.txt",
+        )
+
+    assert caught.value.code == "credential_expired"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
+async def test_authenticated_cookie_rotation_failure_is_expired_session(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(b"ERROR: Fresh cookies are needed"),
     )
 
     with pytest.raises(RunnerFailure) as caught:
