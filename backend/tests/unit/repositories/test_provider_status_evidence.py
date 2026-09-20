@@ -302,6 +302,35 @@ async def test_download_reader_breaks_equal_timestamp_ties_by_job_id(
     assert results == {"tiktok": (expected,)}
 
 
+@pytest.mark.asyncio
+async def test_download_reader_includes_terminal_failures(
+    postgres_engine: AsyncEngine,
+) -> None:
+    sessions = create_session_factory(postgres_engine)
+    expected = await _seed_download(
+        sessions,
+        age=0,
+        access_mode=ProviderAccessMode.ANONYMOUS,
+        status="failed",
+        error_code="provider_session_expired",
+    )
+    reader = SqlAlchemyDownloadEvidenceReader(sessions)
+
+    results = await reader.list_recent(
+        limit_per_provider_stage=1,
+        scopes={
+            "tiktok": ProviderEvidenceScope(
+                profile_version="tiktok-public-player-v3",
+                access_mode=ProviderAccessMode.ANONYMOUS,
+            )
+        },
+    )
+
+    assert results == {"tiktok": (expected,)}
+    assert expected.outcome is ProviderCanaryOutcome.FAILED
+    assert expected.stable_error_code == "provider_session_expired"
+
+
 def test_projects_verified_download_without_exposing_source_url() -> None:
     context = ProviderAccessContextRef(
         provider_key="tiktok",
@@ -315,6 +344,7 @@ def test_projects_verified_download_without_exposing_source_url() -> None:
     )
     job = DownloadJobRow(
         id=uuid4(),
+        status="succeeded",
         started_at=NOW - timedelta(seconds=2),
         finished_at=NOW,
         created_at=NOW - timedelta(seconds=3),
@@ -334,6 +364,36 @@ def test_projects_verified_download_without_exposing_source_url() -> None:
     assert result.stable_error_code is None
 
 
+def test_projects_terminal_download_failure_with_stable_error_code() -> None:
+    context = ProviderAccessContextRef(
+        provider_key="tiktok",
+        profile_version="tiktok-public-player-v2",
+        access_mode=ProviderAccessMode.ANONYMOUS,
+        credential_version_id=None,
+        egress_affinity_id="default",
+        client_profile_id="chrome",
+        attestation_provider_version=None,
+        engine_commit="engine",
+    )
+    job = DownloadJobRow(
+        id=uuid4(),
+        status="failed",
+        error_code="provider_link_unavailable",
+        started_at=NOW - timedelta(seconds=2),
+        finished_at=NOW,
+        created_at=NOW - timedelta(seconds=3),
+    )
+    inspection = MediaInspectionRow(
+        metadata_json={"provider_access_context": context.to_document()}
+    )
+
+    result = _download_result(job, None, inspection)
+
+    assert result is not None
+    assert result.outcome is ProviderCanaryOutcome.FAILED
+    assert result.stable_error_code == "provider_link_unavailable"
+
+
 async def _seed_download(
     sessions,
     *,
@@ -341,6 +401,8 @@ async def _seed_download(
     access_mode: ProviderAccessMode,
     job_id: UUID | None = None,
     engine_commit: str = "engine",
+    status: str = "succeeded",
+    error_code: str | None = None,
 ) -> ProviderCanaryResult:
     inspection_id, format_id = uuid4(), uuid4()
     job_id = job_id or uuid4()
@@ -389,48 +451,51 @@ async def _seed_download(
             )
         )
         await session.flush()
-        session.add(
-            DownloadJobRow(
-                id=job_id,
-                inspection_id=inspection_id,
-                format_id=format_id,
-                owner_hash="a" * 64,
-                idempotency_key=f"download-{job_id}",
-                request_fingerprint="d" * 64,
-                semantic_plan={"height": 720},
-                status="succeeded",
-                progress=100,
-                attempt=1,
-                started_at=completed_at - timedelta(seconds=2),
-                finished_at=completed_at,
-                created_at=completed_at - timedelta(seconds=3),
-                updated_at=completed_at,
-            )
-        )
-        await session.flush()
-        artifact = ArtifactRow(
-            id=uuid4(),
-            job_id=job_id,
+        job = DownloadJobRow(
+            id=job_id,
+            inspection_id=inspection_id,
+            format_id=format_id,
+            owner_hash="a" * 64,
+            idempotency_key=f"download-{job_id}",
+            request_fingerprint="d" * 64,
+            semantic_plan={"height": 720},
+            status=status,
+            progress=100 if status == "succeeded" else 0,
             attempt=1,
-            bucket="video-artifacts",
-            object_key=f"downloads/{job_id}/1/video.mp4",
-            sha256="e" * 64,
-            size_bytes=1024,
-            duration_ms=2000,
-            container="mp4",
-            content_type="video/mp4",
-            media_metadata={"video_streams": 1, "audio_streams": 1},
-            created_at=completed_at,
+            started_at=completed_at - timedelta(seconds=2),
+            finished_at=completed_at if status in {"succeeded", "failed"} else None,
+            error_code=error_code,
+            created_at=completed_at - timedelta(seconds=3),
+            updated_at=completed_at,
         )
-        session.add(artifact)
+        session.add(job)
+        await session.flush()
+        if status == "succeeded":
+            artifact = ArtifactRow(
+                id=uuid4(),
+                job_id=job_id,
+                attempt=1,
+                bucket="video-artifacts",
+                object_key=f"downloads/{job_id}/1/video.mp4",
+                sha256="e" * 64,
+                size_bytes=1024,
+                duration_ms=2000,
+                container="mp4",
+                content_type="video/mp4",
+                media_metadata={"video_streams": 1, "audio_streams": 1},
+                created_at=completed_at,
+            )
+            session.add(artifact)
     result = _download_result(
         DownloadJobRow(
             id=job_id,
+            status=status,
+            error_code=error_code,
             started_at=completed_at - timedelta(seconds=2),
             finished_at=completed_at,
             created_at=completed_at - timedelta(seconds=3),
         ),
-        ArtifactRow(created_at=completed_at),
+        ArtifactRow(created_at=completed_at) if status == "succeeded" else None,
         MediaInspectionRow(
             metadata_json={"provider_access_context": context.to_document()}
         ),

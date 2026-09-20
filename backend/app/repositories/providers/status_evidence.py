@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.db import as_utc
 from app.models import ArtifactRow, DownloadJobRow, MediaInspectionRow
+from app.services.downloads.rules.enums import DownloadErrorCode
 from app.services.provider_canaries import ProviderCanaryReader, ProviderEvidenceScope
 from app.services.provider_types import (
     ProviderAccessContextRef,
@@ -73,7 +74,7 @@ class MergedProviderStatusEvidenceReader:
 
 
 class SqlAlchemyDownloadEvidenceReader:
-    """Project successful, retained user downloads into status evidence."""
+    """Project retained successful and terminal-failed downloads into evidence."""
 
     def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
         self._sessions = sessions
@@ -154,6 +155,17 @@ def _statement(  # type: ignore[no-untyped-def]
             for key, scope in scopes.items()
         )
     )
+    evidence_filter = or_(
+        and_(
+            DownloadJobRow.status == "succeeded",
+            ArtifactRow.id.is_not(None),
+            ArtifactRow.deleted_at.is_(None),
+        ),
+        and_(
+            DownloadJobRow.status == "failed",
+            DownloadJobRow.error_code.is_not(None),
+        ),
+    )
     provider_rank = func.row_number().over(
         partition_by=provider_key,
         order_by=(completed_at.desc(), DownloadJobRow.id.desc()),
@@ -163,12 +175,11 @@ def _statement(  # type: ignore[no-untyped-def]
             DownloadJobRow.id.label("job_id"),
             provider_rank.label("provider_rank"),
         )
-        .join(ArtifactRow, ArtifactRow.job_id == DownloadJobRow.id)
+        .outerjoin(ArtifactRow, ArtifactRow.job_id == DownloadJobRow.id)
         .join(MediaInspectionRow, MediaInspectionRow.id == DownloadJobRow.inspection_id)
         .where(
-            DownloadJobRow.status == "succeeded",
             DownloadJobRow.source_kind == "remote_provider",
-            ArtifactRow.deleted_at.is_(None),
+            evidence_filter,
             provider_key.is_not(None),
             scope_filter,
         )
@@ -176,7 +187,7 @@ def _statement(  # type: ignore[no-untyped-def]
     )
     return (
         select(DownloadJobRow, ArtifactRow, MediaInspectionRow)
-        .join(ArtifactRow, ArtifactRow.job_id == DownloadJobRow.id)
+        .outerjoin(ArtifactRow, ArtifactRow.job_id == DownloadJobRow.id)
         .join(MediaInspectionRow, MediaInspectionRow.id == DownloadJobRow.inspection_id)
         .join(ranked, ranked.c.job_id == DownloadJobRow.id)
         .where(ranked.c.provider_rank <= limit_per_provider_stage)
@@ -201,7 +212,7 @@ def _in_scope(
 
 def _download_result(
     job: DownloadJobRow,
-    artifact: ArtifactRow,
+    artifact: ArtifactRow | None,
     inspection: MediaInspectionRow,
 ) -> ProviderCanaryResult | None:
     try:
@@ -210,7 +221,23 @@ def _download_result(
         )
     except (TypeError, ValueError):
         return None
-    completed_at = as_utc(job.finished_at or artifact.created_at)
+    if job.status == "succeeded":
+        if artifact is None or artifact.deleted_at is not None:
+            return None
+        outcome = ProviderCanaryOutcome.SUCCEEDED
+        stable_error_code = None
+    elif job.status == "failed" and job.error_code:
+        try:
+            stable_error_code = DownloadErrorCode(job.error_code).value
+        except ValueError:
+            return None
+        outcome = ProviderCanaryOutcome.FAILED
+    else:
+        return None
+    completed_at = as_utc(
+        job.finished_at
+        or (artifact.created_at if artifact is not None else job.updated_at)
+    )
     started_at = as_utc(job.started_at or job.created_at)
     return ProviderCanaryResult(
         target_id=f"download:{job.id}",
@@ -218,13 +245,14 @@ def _download_result(
         profile_version=context.profile_version,
         stage=ProviderCanaryStage.MEDIA,
         access_mode=context.access_mode,
-        outcome=ProviderCanaryOutcome.SUCCEEDED,
+        outcome=outcome,
         checked_at=completed_at,
         duration_ms=max(0, round((completed_at - started_at).total_seconds() * 1000)),
         engine_commit=context.engine_commit,
         egress_affinity_id=context.egress_affinity_id,
         client_profile_id=context.client_profile_id,
         context_generation_id=context.generation_id,
+        stable_error_code=stable_error_code,
     )
 
 
