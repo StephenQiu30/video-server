@@ -87,6 +87,12 @@ backend/
 └── tests/                         单元、集成、契约与架构测试
 ```
 
+`workers/runner/` 内部按实际边界就近组织，不保留空文件或兼容转发层：
+
+- `provider_cookie_*` 负责凭据租约、跨进程队列、浏览器代理和安全文件传输；通用私有文件原语集中在 `_secure_file.py`，Netscape Cookie 解析与序列化集中在 `netscape_cookie.py`。
+- `provider_session_*` 负责会话策略、来源加载、临时会话文件、发布和维护；会话业务直接依赖上述凭据模块，不复制文件安全或 Cookie 解析实现。
+- `provider_cookie_boundary.py`、`provider_cookie_process.py` 与 `provider_credential_lease.py` 分别维护跨进程边界、子进程终止语义和分布式凭据租约，不能退化为重导出模块。
+
 所有 Python 包有 `__init__.py`；该文件默认不重导出业务符号。调用方直接从定义模块导入，避免用数百行导出清单再建一层公共接口。models 的导入注册用于建立完整 SQLAlchemy metadata，属于必要的初始化行为。
 
 ### 2.3 职责与依赖规则

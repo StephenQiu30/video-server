@@ -108,8 +108,8 @@
   - 依赖：P1.1。验证：cookie 相关单测全绿；allowlist 匹配收敛一处。
 - [x] P1.3 `provider_session_maintainer.py:89,273` 改 HMAC 派生，复用 `provider_sessions.py:158` 的密钥来源。
   - 依赖：P1.1。验证：状态文件哈希可跨进程稳定对账；无未加盐哈希残留。
-- [ ] P1.4 收敛 `provider_cookie_*` / `provider_session_*` 职责后删除空文件与转发层，同步 PROJECT.md 目录归属（如新增模块位置）。
-  - 依赖：P1.1–P1.3。验证：架构边界测试 `test_dependency_boundaries.py` 全绿。
+- [x] P1.4 收敛 `provider_cookie_*` / `provider_session_*` 职责后删除空文件与转发层，同步 PROJECT.md 目录归属（如新增模块位置）。已核对 runner 目录无空文件或纯转发层，并补充 `_secure_file.py` 与 `netscape_cookie.py` 的职责归属。
+  - 依赖：P1.1–P1.3。验证：runner 目录无空文件或纯转发层，通用文件与 Cookie 原语各保持单一定义；Ruff、mypy、pytest 全绿。
 
 ### P2 错误语义 + 冷却预算（对应 R4–R8）
 
