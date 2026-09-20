@@ -131,10 +131,10 @@ function MetricCell({ value }: { value: string }) {
 function StatusSummary({ source }: { source: Source }) {
   return (
     <span className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground tabular-nums">
-      <span className="text-success">成功 {source.succeeded}</span>
+      <span className="text-chart-2">成功 {source.succeeded}</span>
       <span className="text-destructive">失败 {source.failed}</span>
       <span>取消 {source.cancelled}</span>
-      <span className="text-warning">进行中 {source.active}</span>
+      <span className="text-chart-1">进行中 {source.active}</span>
     </span>
   );
 }

@@ -1,7 +1,7 @@
-import { ArrowClockwise, WarningCircle } from '@phosphor-icons/react';
+import { WarningCircle } from '@phosphor-icons/react';
 
+import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import {
   Empty,
   EmptyDescription,
@@ -38,18 +38,7 @@ export function UsersLoadError({
   error: string;
   onRetry: () => void;
 }) {
-  return (
-    <Alert variant="destructive">
-      <WarningCircle />
-      <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
-        {error}
-        <Button onClick={onRetry} size="sm" type="button" variant="outline">
-          <ArrowClockwise />
-          重试
-        </Button>
-      </AlertDescription>
-    </Alert>
-  );
+  return <PageErrorNotice message={error} onRetry={onRetry} />;
 }
 
 export function EmptyUsers() {

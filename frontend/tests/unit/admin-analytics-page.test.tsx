@@ -106,11 +106,10 @@ describe('administrator download analytics', () => {
       expect(runtime.getAdminDownloadAnalytics).toHaveBeenCalledTimes(1),
     );
 
-    const periodGroup = screen.getByRole('group', { name: '统计周期' });
-    expect(
-      within(periodGroup).getByRole('radio', { name: '30 天' }),
-    ).toHaveAttribute('aria-checked', 'true');
-    fireEvent.click(within(periodGroup).getByRole('radio', { name: '7 天' }));
+    const periodSelect = screen.getByRole('combobox', { name: '统计周期' });
+    expect(periodSelect).toHaveTextContent('最近 30 天');
+    fireEvent.click(periodSelect);
+    fireEvent.click(await screen.findByRole('option', { name: '最近 7 天' }));
     await waitFor(() =>
       expect(runtime.getAdminDownloadAnalytics).toHaveBeenLastCalledWith({
         days: 7,
@@ -122,9 +121,7 @@ describe('administrator download analytics', () => {
     expect(
       screen.queryByRole('status', { name: '正在加载下载分析' }),
     ).not.toBeInTheDocument();
-    expect(
-      within(periodGroup).getByRole('radio', { name: '7 天' }),
-    ).toHaveAttribute('aria-checked', 'true');
+    expect(periodSelect).toHaveTextContent('最近 7 天');
 
     await act(async () => periodRefresh.resolve(analytics()));
     await waitFor(() =>

@@ -1,14 +1,14 @@
 'use client';
 
-import { ArrowClockwiseIcon, WarningCircleIcon } from '@phosphor-icons/react';
+import { ArrowClockwiseIcon } from '@phosphor-icons/react';
 import { type KeyboardEvent, useMemo, useState } from 'react';
 
 import { BackLink } from '@/components/layout/back-link';
+import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
 import { ProviderStatusItem } from '@/components/providers/provider-status-item';
 import { useProviderStatuses } from '@/components/providers/use-provider-statuses';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   Empty,
@@ -72,16 +72,7 @@ export function ProviderStatusView() {
           <StatusMessage label="正在加载平台状态" />
         ) : null}
         {state.error ? (
-          <Alert variant="destructive">
-            <WarningCircleIcon aria-hidden />
-            <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
-              {state.error}
-              <Button onClick={state.retry} size="sm" variant="outline">
-                <ArrowClockwiseIcon aria-hidden />
-                重试
-              </Button>
-            </AlertDescription>
-          </Alert>
+          <PageErrorNotice message={state.error} onRetry={state.retry} />
         ) : null}
         {state.data ? (
           <>

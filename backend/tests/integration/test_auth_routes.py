@@ -49,6 +49,10 @@ class AuthTestClient(AsyncClient):
             json={"email": json["email"]},
         )
         code = self.mailer.codes.get(json["email"].strip().casefold(), "000000")
+        await self.post(
+            url.removesuffix("register") + "registration-code/verify",
+            json={"email": json["email"], "verification_code": code},
+        )
         return await self.post(
             url, json={**json, "verification_code": code}, headers=headers
         )

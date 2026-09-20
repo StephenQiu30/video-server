@@ -36,6 +36,14 @@ async def test_registration_requires_proof_and_consumes_once(
             is True
         )
         code = client.mailer.codes[credentials["email"]]
+        verified = await client.post(
+            prefix + "/registration-code/verify",
+            json={"email": credentials["email"], "verification_code": code},
+        )
+        assert verified.status_code == 200
+        assert (verified.json()["data"] if prefix == "/api/auth" else verified.json())[
+            "verified"
+        ] is True
         wrong_email = await client.post(
             prefix + "/register",
             json={

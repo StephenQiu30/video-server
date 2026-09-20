@@ -16,9 +16,9 @@ import { DownloadHistorySummary } from '@/components/downloads/download-history-
 import { useDownloadHistory } from '@/components/downloads/use-download-history';
 import { BackLink } from '@/components/layout/back-link';
 import { markNavigationPush } from '@/components/layout/navigation-history';
+import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import {
@@ -204,10 +204,10 @@ export default function DownloadHistoryView() {
 
       <DownloadHistorySummary data={state.data} loading={state.loading} />
       {state.error || actionError ? (
-        <Alert className="mt-6" variant="destructive">
-          <AlertTitle>操作未完成</AlertTitle>
-          <AlertDescription>{state.error ?? actionError}</AlertDescription>
-        </Alert>
+        <PageErrorNotice
+          className="mt-6"
+          message={state.error ?? actionError ?? '请稍后重试。'}
+        />
       ) : null}
 
       <DownloadHistoryList

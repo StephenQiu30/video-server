@@ -1,6 +1,7 @@
-import { ArrowClockwise, CheckCircle, Trash } from '@phosphor-icons/react';
+import { CheckCircle, Trash } from '@phosphor-icons/react';
 
 import { BackLink } from '@/components/layout/back-link';
+import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -87,15 +88,7 @@ export function AdminStorageScreen({
           ))}
         </div>
       ) : error ? (
-        <Alert variant="destructive">
-          <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
-            <span>{error}</span>
-            <Button onClick={onRetry} size="sm" variant="outline">
-              <ArrowClockwise aria-hidden />
-              重试
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <PageErrorNotice message={error} onRetry={onRetry} />
       ) : items.length === 0 ? (
         <Empty className="min-h-64 items-start rounded-none border-0 py-14 text-left">
           <EmptyHeader className="items-start">

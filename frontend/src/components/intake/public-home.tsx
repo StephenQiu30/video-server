@@ -13,14 +13,6 @@ import {
 import { EditorialIntro } from '@/components/layout/editorial-intro';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { siteConfig } from '@/lib/site';
 
 const capabilities = [
@@ -94,25 +86,23 @@ export function PublicHome() {
           </div>
         </EditorialIntro>
 
-        <div className="self-end lg:pb-1">
-          <Card size="sm">
-            <CardHeader>
-              <Badge className="w-fit" variant="secondary">
-                工作流
-              </Badge>
-              <CardTitle aria-level={3} role="heading">
-                一套可审计的完整链路
-              </CardTitle>
-              <CardDescription>
-                从识别到交付，每一步都有明确边界。
-              </CardDescription>
-            </CardHeader>
-            <Separator />
-            <CardContent>
-              <PublicHomeWorkflow items={workflow} />
-            </CardContent>
-          </Card>
-        </div>
+        <section aria-labelledby="workflow-title" className="self-end lg:pb-1">
+          <Badge className="w-fit" variant="secondary">
+            工作流
+          </Badge>
+          <h2
+            className="mt-4 text-xl font-medium leading-snug"
+            id="workflow-title"
+          >
+            一套可审计的完整链路
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            从识别到交付，每一步都有明确边界。
+          </p>
+          <div className="mt-8">
+            <PublicHomeWorkflow items={workflow} />
+          </div>
+        </section>
       </section>
 
       <section
@@ -144,23 +134,20 @@ export function PublicHome() {
           title="开源，不交出数据控制权"
           titleId="architecture-title"
         />
-        <Card className="h-fit">
-          <CardHeader>
-            <Badge className="w-fit" variant="outline">
-              安全边界
-            </Badge>
-            <CardTitle aria-level={3} role="heading">
-              运行与授权边界
-            </CardTitle>
-            <CardDescription>
-              把访问、执行和交付拆成可检查的边界。
-            </CardDescription>
-          </CardHeader>
-          <Separator />
-          <CardContent>
+        <div className="h-fit lg:pt-10">
+          <Badge className="w-fit" variant="secondary">
+            安全边界
+          </Badge>
+          <h3 className="mt-4 text-xl font-medium leading-snug">
+            运行与授权边界
+          </h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            把访问、执行和交付拆成可检查的边界。
+          </p>
+          <div className="mt-8">
             <PublicHomeSafeguards items={safeguards} />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </section>
 
       <section

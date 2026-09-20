@@ -11,12 +11,14 @@ def test_auth_openapi_exposes_email_session_contract(tmp_path: Path) -> None:
 
     assert {
         "/api/auth/register",
+        "/api/auth/registration-code/verify",
         "/api/auth/login",
         "/api/auth/me",
         "/api/auth/refresh",
         "/api/auth/logout",
         "/api/app/v1/auth/register",
         "/api/app/v1/auth/registration-code",
+        "/api/app/v1/auth/registration-code/verify",
         "/api/app/v1/auth/login",
         "/api/app/v1/auth/me",
         "/api/app/v1/auth/refresh",
@@ -28,6 +30,9 @@ def test_auth_openapi_exposes_email_session_contract(tmp_path: Path) -> None:
         "/api/admin/providers/{provider_key}",
     } <= paths.keys()
     assert paths["/api/auth/register"]["post"]["operationId"] == "registerUser"
+    assert paths["/api/auth/registration-code/verify"]["post"]["operationId"] == (
+        "verifyRegistrationCode"
+    )
     assert paths["/api/auth/register"]["post"]["responses"]["201"]["content"][
         "application/json"
     ]["schema"] == {"$ref": "#/components/schemas/ApiResponse_UserResponse_"}
@@ -54,6 +59,9 @@ def test_auth_openapi_exposes_email_session_contract(tmp_path: Path) -> None:
     assert paths["/api/app/v1/auth/register"]["post"]["operationId"] == (
         "registerNativeUser"
     )
+    assert paths["/api/app/v1/auth/registration-code/verify"]["post"][
+        "operationId"
+    ] == "verifyNativeRegistrationCode"
     assert paths["/api/app/v1/auth/login"]["post"]["operationId"] == ("loginNativeUser")
     assert paths["/api/app/v1/auth/refresh"]["post"]["operationId"] == (
         "refreshNativeSession"
@@ -79,6 +87,7 @@ def test_native_openapi_excludes_browser_and_admin_contracts() -> None:
     assert set(schema["paths"]) == {
         "/api/app/v1/auth/register",
         "/api/app/v1/auth/registration-code",
+        "/api/app/v1/auth/registration-code/verify",
         "/api/app/v1/auth/login",
         "/api/app/v1/auth/me",
         "/api/app/v1/auth/refresh",

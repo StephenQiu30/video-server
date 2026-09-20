@@ -1,4 +1,4 @@
-import { BackLink } from '@/components/layout/back-link';
+import { NotFoundActions } from '@/components/layout/not-found-actions';
 import {
   Empty,
   EmptyContent,
@@ -20,7 +20,7 @@ export default function NotFound() {
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent className="max-w-none items-start">
-          <BackLink className="ml-0" fallbackHref="/" />
+          <NotFoundActions />
         </EmptyContent>
       </Empty>
     </div>

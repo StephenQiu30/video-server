@@ -52,7 +52,7 @@ export function LinkDownloadForm({
             aria-invalid={invalid ? true : undefined}
             aria-label="公开视频地址"
             autoComplete="url"
-            className="flex-1 field-sizing-fixed h-full min-h-0 max-h-full overflow-y-auto px-2 py-4 text-[15px] leading-[22px]"
+            className="flex-1 field-sizing-fixed h-full min-h-0 max-h-full overflow-y-auto px-2 py-[21px] text-[15px] leading-[22px] sm:py-[23px]"
             disabled={disabled}
             maxLength={4096}
             onChange={(event) => onUrlChange(event.target.value)}

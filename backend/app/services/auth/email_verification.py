@@ -25,6 +25,7 @@ class VerificationStore(Protocol):
     ) -> bool: ...
     async def mark_sent(self, email: str, generation: UUID) -> bool: ...
     async def invalidate(self, email: str, generation: UUID) -> None: ...
+    async def verify(self, email: str, digest: str, now: datetime) -> bool: ...
     async def consume(self, email: str, digest: str, now: datetime) -> bool: ...
 
 
@@ -74,4 +75,9 @@ class EmailVerification:
     async def consume(self, email: str, code: str) -> None:
         email = email.strip().casefold()
         if not await self._store.consume(email, self._digest(email, code), self._now()):
+            raise AuthError(AuthErrorCode.INVALID_VERIFICATION_CODE)
+
+    async def verify(self, email: str, code: str) -> None:
+        email = email.strip().casefold()
+        if not await self._store.verify(email, self._digest(email, code), self._now()):
             raise AuthError(AuthErrorCode.INVALID_VERIFICATION_CODE)

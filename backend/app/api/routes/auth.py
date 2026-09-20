@@ -21,6 +21,8 @@ from app.schemas.auth import (
     RegisterRequest,
     RegistrationCodeRequest,
     RegistrationCodeResponse,
+    RegistrationCodeVerificationRequest,
+    RegistrationCodeVerificationResponse,
     UserResponse,
 )
 from app.services.auth.errors import AuthError, AuthErrorCode
@@ -54,6 +56,29 @@ async def send_registration_code(
     )
     await auth.send_registration_code(str(body.email))
     return RegistrationCodeResponse()
+
+
+@router.post(
+    "/registration-code/verify",
+    operation_id="verifyRegistrationCode",
+    response_model=RegistrationCodeVerificationResponse,
+    summary="验证注册邮箱验证码",
+)
+async def verify_registration_code(
+    body: RegistrationCodeVerificationRequest,
+    request: Request,
+    auth: Auth,
+    settings: SettingsDependency,
+) -> RegistrationCodeVerificationResponse:
+    await enforce_rate_limit(
+        request,
+        "registration_code_verify",
+        _email_hash(str(body.email)),
+        settings,
+        include_client_ip=True,
+    )
+    await auth.verify_registration_code(str(body.email), body.verification_code)
+    return RegistrationCodeVerificationResponse()
 
 
 @router.post(

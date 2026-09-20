@@ -46,6 +46,7 @@ RateLimitOperation = Literal[
     "login",
     "register",
     "registration_code",
+    "registration_code_verify",
     "inspect",
     "download",
     "download_retry",
@@ -68,6 +69,7 @@ def default_rate_limits() -> dict[RateLimitOperation, RateLimitPolicy]:
     return {
         "login": RateLimitPolicy(limit=10, window_seconds=60),
         "registration_code": RateLimitPolicy(limit=5, window_seconds=3600),
+        "registration_code_verify": RateLimitPolicy(limit=10, window_seconds=60),
         "register": RateLimitPolicy(limit=5, window_seconds=3600),
         "inspect": RateLimitPolicy(limit=20, window_seconds=60),
         "download": RateLimitPolicy(limit=10, window_seconds=60),

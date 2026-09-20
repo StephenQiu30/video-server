@@ -87,6 +87,12 @@ class AuthService:
             raise AuthError(AuthErrorCode.USERNAME_ALREADY_REGISTERED) from exc
         return await self._grant(account.public_view(), now)
 
+    async def verify_registration_code(self, email: str, code: str) -> None:
+        normalized = _normalize_email(email)
+        if await self._repository.find_account_by_email(normalized):
+            raise AuthError(AuthErrorCode.EMAIL_ALREADY_REGISTERED)
+        await self._verification.verify(normalized, code)
+
     def _registration_role(self, email: str, bootstrap_secret: str | None) -> UserRole:
         if email != self._bootstrap_admin_email:
             return UserRole.USER

@@ -4,12 +4,12 @@ import { ArrowClockwise } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { deleteDocument as deleteScreenplayDocument } from '@/api/documents';
 import { BackLink } from '@/components/layout/back-link';
+import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
 import { ScreenplayDocumentList } from '@/components/screenplay/screenplay-document-list';
 import { ScreenplayUploadDialog } from '@/components/screenplay/screenplay-upload-dialog';
 import { useScreenplayDocuments } from '@/components/screenplay/use-screenplay-documents';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { displayError } from '@/lib/request-error';
 
@@ -61,10 +61,10 @@ export default function ScreenplayDocumentsView() {
         title="剧本文档"
       />
       {state.error || actionError ? (
-        <Alert className="mt-8" variant="destructive">
-          <AlertTitle>操作未完成</AlertTitle>
-          <AlertDescription>{state.error ?? actionError}</AlertDescription>
-        </Alert>
+        <PageErrorNotice
+          className="mt-8"
+          message={state.error ?? actionError ?? '请稍后重试。'}
+        />
       ) : null}
       <ScreenplayDocumentList
         data={state.data}

@@ -72,6 +72,20 @@ class SqlAlchemyVerificationStore:
                 .values(consumed=True, sent=False)
             )
 
+    async def verify(self, email: str, digest: str, now: datetime) -> bool:
+        async with self._sessions.begin() as session:
+            row = await session.scalar(
+                select(EmailVerificationRow)
+                .where(EmailVerificationRow.email == email)
+                .with_for_update()
+            )
+            if row is None or not row.sent or row.consumed or row.expires_at <= now:
+                return False
+            if row.attempts >= 5:
+                return False
+            row.attempts += 1
+            return hmac.compare_digest(row.code_digest, digest)
+
     async def consume(self, email: str, digest: str, now: datetime) -> bool:
         async with self._sessions.begin() as session:
             row = await session.scalar(

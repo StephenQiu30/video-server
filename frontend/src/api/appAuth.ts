@@ -87,3 +87,21 @@ export async function sendNativeRegistrationCode(
     }
   );
 }
+
+/** 验证注册邮箱验证码 POST /api/app/v1/auth/registration-code/verify */
+export async function verifyNativeRegistrationCode(
+  body: API.RegistrationCodeVerificationRequest,
+  options?: RequestOptions
+) {
+  return request<API.RegistrationCodeVerificationResponse>(
+    "/api/app/v1/auth/registration-code/verify",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      data: body,
+      ...(options || {}),
+    }
+  );
+}

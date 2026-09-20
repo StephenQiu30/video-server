@@ -1,12 +1,8 @@
-import {
-  ArrowClockwise,
-  CheckCircle,
-  Plus,
-  WarningCircle,
-} from '@phosphor-icons/react';
+import { CheckCircle, Plus } from '@phosphor-icons/react';
 import { useMemo, useState } from 'react';
 
 import { BackLink } from '@/components/layout/back-link';
+import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -90,16 +86,7 @@ export function ProviderCatalogScreen({
         </Alert>
       ) : null}
       {result.error ? (
-        <Alert variant="destructive">
-          <WarningCircle aria-hidden />
-          <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
-            {result.error}
-            <Button onClick={onRetry} size="sm" variant="outline">
-              <ArrowClockwise aria-hidden />
-              重试
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <PageErrorNotice message={result.error} onRetry={onRetry} />
       ) : null}
       {result.loading && result.items.length === 0 ? (
         <CatalogSkeleton />

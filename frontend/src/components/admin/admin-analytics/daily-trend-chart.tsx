@@ -1,43 +1,90 @@
-import { ChartLineUpIcon } from '@phosphor-icons/react';
-
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { DailyTrendDataTable } from './daily-trend-data-table';
 import { DailyTrendPlot } from './daily-trend-plot';
 
 type DailyPoint = API.DownloadAnalyticsResponse['daily'][number];
 
-export function DailyTrendChart({ daily }: { daily: DailyPoint[] }) {
-  if (daily.length === 0) {
-    return (
-      <p className="py-12 text-sm text-muted-foreground">暂无趋势数据。</p>
-    );
-  }
+const periodLabels = {
+  7: '最近 7 天',
+  30: '最近 30 天',
+  90: '最近 3 个月',
+} as const;
 
+export function DailyTrendChart({
+  daily,
+  days,
+  onDaysChange,
+}: {
+  daily: DailyPoint[];
+  days: 7 | 30 | 90;
+  onDaysChange: (days: 7 | 30 | 90) => void;
+}) {
   const points = [...daily].sort((left, right) =>
     left.date.localeCompare(right.date),
   );
-  const maximum = Math.max(1, ...points.map((point) => point.total));
+
   return (
-    <section aria-labelledby="daily-trend-title">
-      <h2
-        className="flex items-center gap-2 text-lg font-medium"
-        id="daily-trend-title"
-      >
-        <ChartLineUpIcon aria-hidden className="size-5 text-muted-foreground" />
-        每日下载趋势
-      </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        使用面积对比每日创建任务与成功完成任务。
-      </p>
-      <figure className="mt-6 py-2 sm:py-4">
-        <p className="sr-only" id="daily-trend-description">
-          面积图纵轴从 0 到 {maximum}
-          。两层面积分别表示全部任务与成功任务，可悬浮或使用键盘读取单日数据，失败与取消的精确数值见图表后的数据表。
-        </p>
-        <div className="h-72 w-full sm:h-80 xl:h-96">
-          <DailyTrendPlot maximum={maximum} points={points} />
+    <Card
+      aria-labelledby="daily-trend-title"
+      className="border-0 bg-transparent py-0 text-foreground shadow-none ring-0"
+      role="region"
+    >
+      <CardHeader className="flex items-center gap-2 px-0 py-0 sm:flex-row">
+        <div className="grid flex-1 gap-1">
+          <CardTitle id="daily-trend-title">每日下载趋势</CardTitle>
+          <CardDescription>
+            使用面积对比每日创建任务与成功完成任务。
+          </CardDescription>
         </div>
+        <Select
+          value={String(days)}
+          onValueChange={(value) => {
+            if (value) onDaysChange(Number(value) as 7 | 30 | 90);
+          }}
+        >
+          <SelectTrigger
+            aria-label="统计周期"
+            className="w-full rounded-lg sm:ml-auto sm:w-40"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl">
+            {Object.entries(periodLabels).map(([value, label]) => (
+              <SelectItem className="rounded-lg" key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </CardHeader>
+      <CardContent className="px-0 pt-6">
+        <p className="sr-only" id="daily-trend-description">
+          两层面积分别表示全部任务与成功任务，可悬浮或使用键盘读取单日数据，失败与取消的精确数值见图表后的数据表。
+        </p>
+        {points.length > 0 ? (
+          <div className="h-[250px] w-full">
+            <DailyTrendPlot points={points} />
+          </div>
+        ) : (
+          <p className="py-12 text-sm text-muted-foreground">
+            当前周期还没有下载数据
+          </p>
+        )}
         <DailyTrendDataTable points={points} />
-      </figure>
-    </section>
+      </CardContent>
+    </Card>
   );
 }

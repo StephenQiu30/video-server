@@ -26,6 +26,7 @@ export function RegisterView() {
   const { user, loading, setUser } = useAuth();
   const [email, setEmail] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
+  const [emailVerified, setEmailVerified] = useState(false);
   const [sendingCode, setSendingCode] = useState(false);
   const [redirect, setRedirect] = useState('/');
   const [search, setSearch] = useState('');
@@ -49,6 +50,7 @@ export function RegisterView() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (loading || submitting || sendingCode) return;
+    if (!emailVerified) return;
     const data = new FormData(event.currentTarget);
     const values = {
       username: normalizeUsername(String(data.get('username') ?? '')),
@@ -136,6 +138,7 @@ export function RegisterView() {
               onChange={(event) => {
                 setEmail(event.target.value);
                 setVerificationCode('');
+                setEmailVerified(false);
               }}
               name="email"
               placeholder="name@example.com"
@@ -148,65 +151,82 @@ export function RegisterView() {
             code={verificationCode}
             onCodeChange={setVerificationCode}
             onSendingChange={setSendingCode}
+            onVerifiedChange={setEmailVerified}
             disabled={submitting}
             error={errors.verificationCode}
+            verified={emailVerified}
           />
-          <AuthField
-            error={errors.password}
-            idPrefix="register"
-            label="密码"
-            name="password"
-          >
-            <PasswordInput
-              aria-describedby={errors.password ? 'password-error' : undefined}
-              aria-invalid={Boolean(errors.password)}
-              autoComplete="new-password"
-              className="h-full"
-              id="register-password"
-              minLength={8}
-              name="password"
-              placeholder="至少 8 个字符"
-              type="password"
-            />
-          </AuthField>
-          <AuthField
-            error={errors.confirmPassword}
-            idPrefix="register"
-            label="确认密码"
-            name="confirmPassword"
-          >
-            <PasswordInput
-              aria-describedby={
-                errors.confirmPassword ? 'confirmPassword-error' : undefined
-              }
-              aria-invalid={Boolean(errors.confirmPassword)}
-              autoComplete="new-password"
-              className="h-full"
-              id="register-confirmPassword"
-              name="confirmPassword"
-              placeholder="再次输入密码"
-              type="password"
-            />
-          </AuthField>
+          {emailVerified ? (
+            <>
+              <p className="text-sm text-muted-foreground" role="status">
+                邮箱已验证，现在设置密码完成注册。
+              </p>
+              <FieldGroup className="gap-5">
+                <AuthField
+                  error={errors.password}
+                  idPrefix="register"
+                  label="密码"
+                  name="password"
+                >
+                  <PasswordInput
+                    aria-describedby={
+                      errors.password ? 'password-error' : undefined
+                    }
+                    aria-invalid={Boolean(errors.password)}
+                    autoComplete="new-password"
+                    className="h-full"
+                    id="register-password"
+                    minLength={8}
+                    name="password"
+                    placeholder="至少 8 个字符"
+                    type="password"
+                  />
+                </AuthField>
+                <AuthField
+                  error={errors.confirmPassword}
+                  idPrefix="register"
+                  label="确认密码"
+                  name="confirmPassword"
+                >
+                  <PasswordInput
+                    aria-describedby={
+                      errors.confirmPassword
+                        ? 'confirmPassword-error'
+                        : undefined
+                    }
+                    aria-invalid={Boolean(errors.confirmPassword)}
+                    autoComplete="new-password"
+                    className="h-full"
+                    id="register-confirmPassword"
+                    name="confirmPassword"
+                    placeholder="再次输入密码"
+                    type="password"
+                  />
+                </AuthField>
+              </FieldGroup>
+            </>
+          ) : null}
         </FieldGroup>
-        <Button
-          className="h-12 w-full text-[15px]"
-          disabled={loading || submitting || sendingCode}
-          size="lg"
-          type="submit"
-        >
-          {submitting ? (
-            <Spinner
-              aria-hidden
-              className="motion-reduce:animate-none"
-              role="presentation"
-            />
-          ) : null}
-          {submitting ? '正在创建…' : '注册并登录'}
-          {!submitting ? (
-            <ArrowRightIcon aria-hidden data-icon="inline-end" />
-          ) : null}
-        </Button>
+        {emailVerified ? (
+          <Button
+            className="h-12 w-full text-[15px]"
+            disabled={loading || submitting || sendingCode}
+            size="lg"
+            type="submit"
+          >
+            {submitting ? (
+              <Spinner
+                aria-hidden
+                className="motion-reduce:animate-none"
+                role="presentation"
+              />
+            ) : null}
+            {submitting ? '正在创建…' : '注册并登录'}
+            {!submitting ? (
+              <ArrowRightIcon aria-hidden data-icon="inline-end" />
+            ) : null}
+          </Button>
+        ) : null}
       </form>
       <p className="mt-7 text-sm text-muted-foreground">
         已有账户？{' '}

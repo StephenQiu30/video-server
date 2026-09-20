@@ -1,6 +1,6 @@
 'use client';
 
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
 
 import {
   type ChartConfig,
@@ -11,7 +11,7 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart';
 
-import { formatInteger, formatShortDate } from './analytics-format';
+import { formatShortDate } from './analytics-format';
 
 type DailyPoint = API.DownloadAnalyticsResponse['daily'][number];
 
@@ -20,15 +20,7 @@ const trendConfig = {
   succeeded: { color: 'var(--chart-2)', label: '成功任务' },
 } satisfies ChartConfig;
 
-export function DailyTrendPlot({
-  maximum,
-  points,
-}: {
-  maximum: number;
-  points: DailyPoint[];
-}) {
-  const showDot = points.length === 1;
-
+export function DailyTrendPlot({ points }: { points: DailyPoint[] }) {
   return (
     <ChartContainer
       aria-describedby="daily-trend-description"
@@ -40,87 +32,62 @@ export function DailyTrendPlot({
       <AreaChart
         accessibilityLayer
         data={points}
-        margin={{ bottom: 4, left: -8, right: 4, top: 8 }}
+        margin={{ left: 8, right: 8 }}
       >
-        <CartesianGrid
-          stroke="var(--border)"
-          strokeDasharray="3 4"
-          vertical={false}
-        />
+        <defs>
+          <linearGradient id="fillTotal" x1="0" y1="0" x2="0" y2="1">
+            <stop
+              offset="5%"
+              stopColor="var(--color-total)"
+              stopOpacity={0.8}
+            />
+            <stop
+              offset="95%"
+              stopColor="var(--color-total)"
+              stopOpacity={0.1}
+            />
+          </linearGradient>
+          <linearGradient id="fillSucceeded" x1="0" y1="0" x2="0" y2="1">
+            <stop
+              offset="5%"
+              stopColor="var(--color-succeeded)"
+              stopOpacity={0.8}
+            />
+            <stop
+              offset="95%"
+              stopColor="var(--color-succeeded)"
+              stopOpacity={0.1}
+            />
+          </linearGradient>
+        </defs>
+        <CartesianGrid vertical={false} />
         <XAxis
           axisLine={false}
           dataKey="date"
-          minTickGap={48}
+          minTickGap={32}
           tickFormatter={formatShortDate}
           tickLine={false}
-        />
-        <YAxis
-          allowDecimals={false}
-          axisLine={false}
-          domain={[0, maximum]}
-          tickFormatter={formatInteger}
-          tickLine={false}
-          width={42}
+          tickMargin={8}
         />
         <ChartTooltip
           content={
             <ChartTooltipContent
-              indicator="line"
               labelFormatter={(label) => formatShortDate(String(label))}
             />
           }
-          cursor={{
-            stroke: 'var(--muted-foreground)',
-            strokeDasharray: '3 4',
-            strokeOpacity: 0.55,
-            strokeWidth: 1,
-          }}
+          cursor={false}
         />
         <Area
-          activeDot={{
-            fill: 'var(--background)',
-            r: 4,
-            stroke: 'var(--color-total)',
-            strokeWidth: 2,
-          }}
           dataKey="total"
-          dot={
-            showDot
-              ? {
-                  fill: 'var(--background)',
-                  r: 3,
-                  stroke: 'var(--color-total)',
-                  strokeWidth: 2,
-                }
-              : false
-          }
-          fill="var(--color-total)"
-          fillOpacity={0.1}
+          fill="url(#fillTotal)"
           isAnimationActive={false}
           stroke="var(--color-total)"
           strokeWidth={2}
           type="natural"
         />
         <Area
-          activeDot={{
-            fill: 'var(--background)',
-            r: 4,
-            stroke: 'var(--color-succeeded)',
-            strokeWidth: 2,
-          }}
           dataKey="succeeded"
-          dot={
-            showDot
-              ? {
-                  fill: 'var(--background)',
-                  r: 3,
-                  stroke: 'var(--color-succeeded)',
-                  strokeWidth: 2,
-                }
-              : false
-          }
-          fill="var(--color-succeeded)"
-          fillOpacity={0.18}
+          fill="url(#fillSucceeded)"
           isAnimationActive={false}
           stroke="var(--color-succeeded)"
           strokeWidth={2}

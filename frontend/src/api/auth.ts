@@ -73,3 +73,21 @@ export async function sendRegistrationCode(
     }
   );
 }
+
+/** 验证注册邮箱验证码 POST /api/auth/registration-code/verify */
+export async function verifyRegistrationCode(
+  body: API.RegistrationCodeVerificationRequest,
+  options?: RequestOptions
+) {
+  return request<API.ApiResponseRegistrationCodeVerificationResponse_>(
+    "/api/auth/registration-code/verify",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      data: body,
+      ...(options || {}),
+    }
+  );
+}

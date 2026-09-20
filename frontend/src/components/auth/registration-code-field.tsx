@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { sendRegistrationCode as requestRegistrationCode } from '@/api/auth';
+import {
+  sendRegistrationCode as requestRegistrationCode,
+  verifyRegistrationCode as requestVerifyRegistrationCode,
+} from '@/api/auth';
 import { AuthField } from '@/components/auth/auth-page-frame';
 import { isValidEmail } from '@/components/auth/register-form-model';
 import { Button } from '@/components/ui/button';
@@ -13,17 +16,23 @@ export function RegistrationCodeField({
   code,
   onCodeChange,
   onSendingChange,
+  onVerifiedChange,
   disabled,
   error,
+  verified,
 }: {
   email: string;
   code: string;
   onCodeChange: (code: string) => void;
   onSendingChange: (sending: boolean) => void;
+  onVerifiedChange: (verified: boolean) => void;
   disabled: boolean;
   error?: string;
+  verified: boolean;
 }) {
   const [sending, setSending] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [sent, setSent] = useState(false);
   const [until, setUntil] = useState(0);
   const [remaining, setRemaining] = useState(0);
   const [message, setMessage] = useState('');
@@ -62,6 +71,8 @@ export function RegistrationCodeField({
         return;
       }
       onCodeChange('');
+      onVerifiedChange(false);
+      setSent(true);
       setUntil(Date.now() + (result.retry_after_seconds ?? 60) * 1000);
       setMessage('验证码已发送，10 分钟内有效。未收到时请检查垃圾邮件。');
     } catch (failure) {
@@ -72,6 +83,34 @@ export function RegistrationCodeField({
         setSending(false);
         onSendingChange(false);
       }
+    }
+  }
+
+  async function verify() {
+    if (
+      verifying ||
+      disabled ||
+      verified ||
+      !sent ||
+      !isValidEmail(email.trim()) ||
+      !/^[0-9]{6}$/.test(code)
+    ) {
+      return;
+    }
+    setVerifying(true);
+    setMessage('');
+    try {
+      await requestVerifyRegistrationCode({
+        email: email.trim(),
+        verification_code: code,
+      });
+      if (!mounted.current) return;
+      onVerifiedChange(true);
+      setMessage('邮箱已验证，可以设置密码。');
+    } catch (failure) {
+      if (mounted.current) setMessage(displayError(failure));
+    } finally {
+      if (mounted.current) setVerifying(false);
     }
   }
 
@@ -95,26 +134,46 @@ export function RegistrationCodeField({
           maxLength={6}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? 'verificationCode-error' : undefined}
-          disabled={disabled}
+          disabled={disabled || verified}
           className="h-full"
           placeholder="6 位验证码"
         />
       </AuthField>
-      <Button
-        type="button"
-        variant="secondary"
-        className="min-h-11"
-        disabled={
-          disabled || sending || remaining > 0 || !isValidEmail(email.trim())
-        }
-        onClick={() => void send()}
-      >
-        {sending
-          ? '正在发送…'
-          : remaining > 0
-            ? `${remaining} 秒后可重发`
-            : '获取验证码'}
-      </Button>
+      <div className="flex flex-wrap gap-3">
+        <Button
+          type="button"
+          disabled={
+            disabled ||
+            verifying ||
+            verified ||
+            !sent ||
+            !/^[0-9]{6}$/.test(code)
+          }
+          onClick={() => void verify()}
+        >
+          {verified ? '邮箱已验证' : verifying ? '验证中…' : '验证邮箱'}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={
+            disabled ||
+            sending ||
+            verified ||
+            remaining > 0 ||
+            !isValidEmail(email.trim())
+          }
+          onClick={() => void send()}
+        >
+          {sending
+            ? '正在发送…'
+            : remaining > 0
+              ? `${remaining} 秒后可重发`
+              : sent
+                ? '重新获取验证码'
+                : '获取验证码'}
+        </Button>
+      </div>
       <p role="status" className="text-sm text-muted-foreground">
         {message}
       </p>

@@ -405,6 +405,15 @@ declare namespace API {
     data: RegistrationCodeResponse;
   };
 
+  type ApiResponseRegistrationCodeVerificationResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: RegistrationCodeVerificationResponse;
+  };
+
   type ApiResponseSourceDiscoveryResponse_ = {
     /** 稳定的业务结果码。 */
     code: ErrorCode;
@@ -1581,6 +1590,18 @@ declare namespace API {
     expires_in_seconds?: number;
     /** Retry After Seconds */
     retry_after_seconds?: number;
+  };
+
+  type RegistrationCodeVerificationRequest = {
+    /** Email */
+    email: string;
+    /** Verification Code */
+    verification_code: string;
+  };
+
+  type RegistrationCodeVerificationResponse = {
+    /** Verified */
+    verified?: boolean;
   };
 
   type retryAnalysisParams = {

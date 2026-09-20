@@ -1,6 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { sendRegistrationCode as requestRegistrationCode } from '@/api/auth';
+import {
+  sendRegistrationCode as requestRegistrationCode,
+  verifyRegistrationCode as requestVerifyRegistrationCode,
+} from '@/api/auth';
 import { RegistrationCodeField } from '@/components/auth/registration-code-field';
 import { ApiError } from '@/lib/request-error';
 
@@ -11,7 +14,9 @@ function field(email = 'member@example.com') {
       code=""
       onCodeChange={vi.fn()}
       onSendingChange={vi.fn()}
+      onVerifiedChange={vi.fn()}
       disabled={false}
+      verified={false}
     />,
   );
 }
@@ -53,9 +58,46 @@ describe('registration email proof', () => {
     expect(screen.getByRole('button', { name: '获取验证码' })).toBeDisabled();
     expect(requestRegistrationCode).not.toHaveBeenCalled();
   });
+
+  it('verifies the code before exposing the password step', async () => {
+    vi.mocked(requestRegistrationCode).mockResolvedValue({
+      email_sent: true,
+      retry_after_seconds: 60,
+      expires_in_seconds: 600,
+    });
+    vi.mocked(requestVerifyRegistrationCode).mockResolvedValue({
+      verified: true,
+    });
+    const onCodeChange = vi.fn();
+    const onVerifiedChange = vi.fn();
+    render(
+      <RegistrationCodeField
+        email="member@example.com"
+        code="123456"
+        onCodeChange={onCodeChange}
+        onSendingChange={vi.fn()}
+        onVerifiedChange={onVerifiedChange}
+        disabled={false}
+        verified={false}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: '获取验证码' }));
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: '验证邮箱' })).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole('button', { name: '验证邮箱' }));
+    await waitFor(() =>
+      expect(requestVerifyRegistrationCode).toHaveBeenCalledWith({
+        email: 'member@example.com',
+        verification_code: '123456',
+      }),
+    );
+    expect(onVerifiedChange).toHaveBeenCalledWith(true);
+  });
 });
 
 vi.mock('@/api/auth', async (original) => ({
   ...(await original<typeof import('@/api/auth')>()),
   sendRegistrationCode: vi.fn(),
+  verifyRegistrationCode: vi.fn(),
 }));

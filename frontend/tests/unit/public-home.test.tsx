@@ -29,4 +29,15 @@ describe('PublicHome', () => {
     expect(workflow.tagName).toBe('OL');
     expect(within(workflow).getAllByRole('listitem')).toHaveLength(4);
   });
+
+  it('keeps the welcome page free of structural card and separator chrome', () => {
+    const { container } = render(<PublicHome />);
+
+    expect(
+      container.querySelector('[data-slot="card"]'),
+    ).not.toBeInTheDocument();
+    expect(
+      container.querySelector('[data-slot="separator"]'),
+    ).not.toBeInTheDocument();
+  });
 });

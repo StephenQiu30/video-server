@@ -2,13 +2,6 @@ import { CheckCircleIcon } from '@phosphor-icons/react/dist/ssr';
 
 import { Badge } from '@/components/ui/badge';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
   Item,
   ItemContent,
   ItemDescription,
@@ -32,25 +25,19 @@ export function PublicHomeCapabilities({
   return (
     <ul className="mt-12 grid gap-4 md:grid-cols-3">
       {items.map(([eyebrow, title, description], index) => (
-        <li className="h-full" key={title}>
-          <Card className="h-full">
-            <CardHeader>
-              <div className="flex items-center justify-between gap-3">
-                <Badge variant="outline">
-                  {String(index + 1).padStart(2, '0')}
-                </Badge>
-                <span className="text-xs font-medium text-muted-foreground">
-                  {eyebrow}
-                </span>
-              </div>
-              <CardTitle aria-level={3} className="mt-3" role="heading">
-                {title}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>{description}</CardDescription>
-            </CardContent>
-          </Card>
+        <li className="flex h-full flex-col gap-3" key={title}>
+          <div className="flex items-center justify-between gap-3">
+            <Badge variant="secondary">
+              {String(index + 1).padStart(2, '0')}
+            </Badge>
+            <span className="text-xs font-medium text-muted-foreground">
+              {eyebrow}
+            </span>
+          </div>
+          <h3 className="text-base font-medium leading-snug">{title}</h3>
+          <p className="text-sm leading-6 text-muted-foreground">
+            {description}
+          </p>
         </li>
       ))}
     </ul>

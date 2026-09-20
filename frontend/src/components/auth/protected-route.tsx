@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { type ReactNode, useEffect } from 'react';
 
 import { useAuth } from '@/components/auth/auth-provider';
-import { Spinner } from '@/components/ui/spinner';
+import { RouteLoading } from '@/components/layout/route-loading';
 
 type ProtectedRouteProps = {
   children: ReactNode;
@@ -31,29 +31,12 @@ export function ProtectedRoute({
     if (requireAdmin && user.role !== 'admin') router.replace('/');
   }, [loading, pathname, requireAdmin, router, user]);
 
-  if (loading) return <RouteStatus label="正在恢复登录状态" />;
+  if (loading) return <RouteLoading label="正在恢复登录状态" />;
   if (!user || (requireAdmin && user.role !== 'admin')) {
-    return <RouteStatus label="正在前往可访问页面" />;
+    return <RouteLoading label="正在前往可访问页面" />;
   }
 
   return children;
-}
-
-function RouteStatus({ label }: { label: string }) {
-  return (
-    <div
-      aria-live="polite"
-      className="flex min-h-[60vh] items-center justify-center gap-2 text-sm text-muted-foreground"
-      role="status"
-    >
-      <Spinner
-        aria-hidden
-        className="size-5 text-primary"
-        role="presentation"
-      />
-      <span>{label}</span>
-    </div>
-  );
 }
 
 export default ProtectedRoute;
