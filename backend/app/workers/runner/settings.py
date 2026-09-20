@@ -42,6 +42,9 @@ class RunnerSettings(BaseSettings):
     runner_provider_session_temp_root: Path = Path("/run/provider-session")
     runner_provider_cookie_sync_root: Path | None = None
     runner_provider_cookie_file: Path | None = None
+    runner_credential_lease_redis_url: str | None = None
+    runner_credential_lease_ttl_seconds: int = Field(default=120, ge=5, le=3600)
+    runner_credential_lease_heartbeat_seconds: int = Field(default=30, ge=1, le=120)
     peertube_allowed_instances: frozenset[str] = frozenset()
 
     runner_ytdlp_bin: str = "yt-dlp"
@@ -169,6 +172,10 @@ class RunnerSettings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_session_boundary(self) -> RunnerSettings:
+        if self.runner_credential_lease_heartbeat_seconds >= (
+            self.runner_credential_lease_ttl_seconds
+        ):
+            raise ValueError("credential lease heartbeat must be below TTL")
         if self.runner_provider_session_temp_root.is_relative_to(
             self.runner_workspace_root
         ):

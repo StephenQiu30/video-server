@@ -20,6 +20,9 @@ from app.workers.runner.provider_cookie_sync import (
     ProviderCookieSync,
     ProviderCookieSyncClient,
 )
+from app.workers.runner.provider_credential_lease import (
+    ProviderCredentialLeaseCoordinator,
+)
 from app.workers.runner.provider_registry import ProviderProfile, provider_profile
 from app.workers.runner.provider_session_files import (
     operation_cookie,
@@ -43,6 +46,7 @@ class ProviderSessionStore:
         settings: RunnerSettings,
         *,
         cookie_sync: ProviderCookieSync | None = None,
+        credential_lease: ProviderCredentialLeaseCoordinator | None = None,
         enforce_memory_backing: bool = True,
     ) -> None:
         self._settings = settings
@@ -50,6 +54,16 @@ class ProviderSessionStore:
         self._versions = dict(settings.runner_operator_session_versions)
         self._disabled_credentials: set[tuple[str, str]] = set()
         self._gate = asyncio.Semaphore(1)
+        self._credential_lease = credential_lease
+        if (
+            self._credential_lease is None
+            and settings.runner_credential_lease_redis_url
+        ):
+            self._credential_lease = ProviderCredentialLeaseCoordinator(
+                settings.runner_credential_lease_redis_url,
+                ttl_seconds=settings.runner_credential_lease_ttl_seconds,
+                heartbeat_seconds=settings.runner_credential_lease_heartbeat_seconds,
+            )
         sync_root = settings.runner_provider_cookie_sync_root
         self._cookie_file = (
             ProviderCookieFile(settings.runner_provider_cookie_file)
@@ -76,6 +90,11 @@ class ProviderSessionStore:
         cookie_sync = self._cookie_sync
         if cookie_sync is None or not self._versions:
             return False
+        if self._credential_lease is not None:
+            try:
+                await self._credential_lease.ping()
+            except RunnerFailure:
+                return False
         for provider, version in self._versions.items():
             if (provider.value, version.value) in self._disabled_credentials:
                 return False
@@ -163,16 +182,40 @@ class ProviderSessionStore:
             cookie_sync = self._cookie_sync
             if cookie_sync is None:
                 raise RunnerFailure("credential_required", status=422)
-            exported = await cookie_sync.sync(provider, version)
-            if self._cookie_file is not None and not hmac.compare_digest(
-                self._file_revision(exported), raw_version
-            ):
-                raise RunnerFailure("credential_revoked", status=422)
-            payload = self._validated_payload(provider, exported)
-            with operation_cookie(
-                payload, self._temp_root, context.provider_key
-            ) as jar:
-                yield jar
+            if self._credential_lease is None:
+                async with (
+                    _noop_lease(),
+                    self._operation_cookie(
+                        cookie_sync, provider, version, raw_version, context
+                    ) as jar,
+                ):
+                    yield jar
+            else:
+                async with (
+                    self._credential_lease.hold(context.provider_key, raw_version),
+                    self._operation_cookie(
+                        cookie_sync, provider, version, raw_version, context
+                    ) as jar,
+                ):
+                    yield jar
+
+    @asynccontextmanager
+    async def _operation_cookie(
+        self,
+        cookie_sync: ProviderCookieSync,
+        provider: ProviderKey,
+        version: ProviderSessionVersion,
+        raw_version: str,
+        context: ProviderAccessContextRef,
+    ) -> AsyncIterator[Path | None]:
+        exported = await cookie_sync.sync(provider, version)
+        if self._cookie_file is not None and not hmac.compare_digest(
+            self._file_revision(exported), raw_version
+        ):
+            raise RunnerFailure("credential_revoked", status=422)
+        payload = self._validated_payload(provider, exported)
+        with operation_cookie(payload, self._temp_root, context.provider_key) as jar:
+            yield jar
 
     def _file_revision(self, payload: bytes) -> str:
         # A keyed revision prevents identity changes between inspect and download
@@ -200,6 +243,15 @@ class ProviderSessionStore:
             payload,
             profile.cookie_domain_allowlist,
         )
+
+    async def close(self) -> None:
+        if self._credential_lease is not None:
+            await self._credential_lease.close()
+
+
+@asynccontextmanager
+async def _noop_lease() -> AsyncIterator[None]:
+    yield
 
 
 def _profile_for_key(key: str | ProviderKey) -> ProviderProfile:

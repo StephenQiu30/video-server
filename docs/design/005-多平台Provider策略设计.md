@@ -4,7 +4,7 @@
 - 日期：2026-08-10
 - 最近更新：2026-08-30
 - 前置调研：`docs/research/003-多平台下载会话与GitHub适配调研.md`
-- 实现状态：Phase 1 已落地版本化 Profile、非 Secret 访问上下文、匿名/YouTube 运维 Runner 路由、操作级 Cookie jar、权益防火墙、服务端托管 POT sidecar、稳定错误、Provider 探针结果表/定时执行器/动态状态聚合、`GET /api/providers` 与前端状态页。YouTube 已停止 yt-dlp 与 Runner 的同出口立即重试放大；授权目标的真实 Cookie/POT canary、完整视频 Agent E2E、账号权益漂移自动停用，以及遵守 `Retry-After` 的跨层总预算/cooldown 仍是生产发布门禁；Phase 2 的用户 Credential Broker/Vault 与 gallery-dl 尚未实现。
+- 实现状态：Phase 1 已落地版本化 Profile、非 Secret 访问上下文、匿名/YouTube 运维 Runner 路由、操作级 Cookie jar、Redis 跨副本凭据租约、权益防火墙、服务端托管 POT sidecar、稳定错误、Provider 探针结果表/定时执行器/动态状态聚合、`GET /api/providers` 与前端状态页。YouTube 已停止 yt-dlp 与 Runner 的同出口立即重试放大；授权目标的真实 Cookie/POT canary、完整视频 Agent E2E、账号权益漂移自动停用，以及遵守 `Retry-After` 的跨层总预算/cooldown 仍是生产发布门禁；Phase 2 的用户 Credential Broker/Vault 与 gallery-dl 尚未实现。
 
 > 当前实现：Provider Profile 与会话来源由中央枚举登记，独立 Runner 按 profile 选择。生产只使用 `docker-compose-prod.yml`；YouTube、抖音、Reddit读取独立只读文件，视频号使用专用持久元宝 Profile，腾讯视频与优酷保留个人文件实验线路。其他已验证公开平台只走匿名 Runner。运行策略由部署默认与显式准入决定，不在失败后切换账号或读取日常 Chrome。YouTube 保留 mweb、EJS 和固定 bgutil POT sidecar；POT 不能修复登录过期或出口挑战。
 
@@ -58,7 +58,7 @@ Cookie 的一刀切禁令被调整为“默认关闭、Provider allowlist、生�
 - 尚未提供生产专用账号和授权样本，因此未执行真实 Cookie/POT 的完整 Runner → Worker → MinIO E2E。
 - `GET /api/providers` 已合并配置/历史基线与最近 5 条持久化探针结果；定时 metadata/media 执行、连续失败阈值、恢复迟滞和动态降级已实现。真实授权目标默认未配置，能力/Agent E2E gate、指标和自动 kill switch 仍待补齐。
 - 账号最小权益使用启动 attestation 和媒体 metadata fail-closed；自动检测账号权益漂移并 disable version 尚未实现。
-- 凭据并发当前由单运维 Runner 的 `RUNNER_MAX_ACTIVE_TASKS=1` 和本地 semaphore 约束；跨副本分布式租约尚未实现。
+- 凭据并发由单运维 Runner 的 `RUNNER_MAX_ACTIVE_TASKS=1` 和本地 semaphore 约束本副本队列；`ProviderCredentialLeaseCoordinator` 通过共享 Redis 的 `{provider}:{credential_version}` 租约、TTL 和心跳续租保护跨副本互斥，Redis 不可用时配置了租约的 Runner readiness 失败。
 - 429 `Retry-After`、跨 Worker/Runner/yt-dlp 的持久化总预算、POT 刷新一次和出口 cooldown 尚未实现；Runner 内的 429/challenge 与 YouTube yt-dlp 立即重试放大已停止。
 - Generic 仍依赖 yt-dlp 内部重定向；“跨 Provider redirect 后重新 admission/context”尚未完成独立控制面实现。
 

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import re
 import time
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Protocol
 
@@ -91,7 +93,20 @@ def create_app(
         max_age_seconds=configured.runner_signature_max_age_seconds,
         max_future_skew_seconds=configured.runner_signature_future_skew_seconds,
     )
-    app = FastAPI(title="Media Runner", docs_url=None, redoc_url=None)
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        try:
+            yield
+        finally:
+            await sessions.close()
+
+    app = FastAPI(
+        title="Media Runner",
+        docs_url=None,
+        redoc_url=None,
+        lifespan=lifespan,
+    )
 
     @app.exception_handler(RunnerFailure)
     async def runner_failure(_: Request, exc: RunnerFailure) -> JSONResponse:

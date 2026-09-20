@@ -126,12 +126,12 @@
 
 ### P3 分布式凭证租约（对应 R9）
 
-- [ ] P3.1 设计租约数据模型与 Redis key 规范（`{provider}:{credential_version}` + TTL + 心跳）。
+- [x] P3.1 设计租约数据模型与 Redis key 规范（`{provider}:{credential_version}` + TTL + 心跳）。
   - 依赖：无。验证：方案评审通过（可选）。
-- [ ] P3.2 实现租约协调器 `app/workers/runner/`（或 `integrations/`），接入 operator runner 下载前 acquire / 完成 release / 心跳续租。
+- [x] P3.2 实现租约协调器 `app/workers/runner/`（或 `integrations/`），接入 operator runner 下载前 acquire / 完成 release / 心跳续租。
   - 依赖：P3.1。验证：两副本并发仅一个获租约；崩溃后到期接管（集成测试）。
-- [ ] P3.3 若短期接受单点：在 038 §5 与运行手册显式标注「operator 会话 = 单副本 SPOF」并加监控告警。
-  - 依赖：P3.1。验证：文档 + 告警落地。
+- [x] P3.3 不适用：P3.2 已落地 Redis 跨副本租约；operator runner 的生产 Compose 已配置共享 Redis，未采用单副本 SPOF 作为长期方案。
+  - 依赖：P3.1。验证：已由 P3.2 的 Redis 互斥、TTL 接管、心跳续租测试和 Compose 配置覆盖；不采用单点告警替代租约。
 
 ### P4 孤儿 GC + 会话检测（对应 R10–R11）
 

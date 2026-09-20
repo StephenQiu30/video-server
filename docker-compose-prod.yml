@@ -10,6 +10,8 @@ x-provider-session-runner: &provider-session-runner
   networks:
     - runner_rpc_net
     - runner_egress_net
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
   tmpfs:
     - /tmp:rw,noexec,nosuid,size=64m
     - /run/provider-session:rw,noexec,nosuid,size=16m,mode=0700,uid=10001,gid=10001
@@ -49,6 +51,9 @@ x-provider-session-environment: &provider-session-environment
   RUNNER_PROVIDER_EGRESS_PROXIES: "${RUNNER_PROVIDER_EGRESS_PROXIES:-{}}"
   RUNNER_WORKSPACE_ROOT: /work
   RUNNER_ACCESS_MODE: operator_managed
+  RUNNER_CREDENTIAL_LEASE_REDIS_URL: "redis://${REDIS_HOST:-host.docker.internal}:${REDIS_PORT:-6379}/1"
+  RUNNER_CREDENTIAL_LEASE_TTL_SECONDS: "${RUNNER_CREDENTIAL_LEASE_TTL_SECONDS:-120}"
+  RUNNER_CREDENTIAL_LEASE_HEARTBEAT_SECONDS: "${RUNNER_CREDENTIAL_LEASE_HEARTBEAT_SECONDS:-30}"
   RUNNER_MAX_ACTIVE_TASKS: "1"
   RUNNER_DOWNLOAD_TIMEOUT_SECONDS: "${RUNNER_DOWNLOAD_TIMEOUT_SECONDS:-7200}"
   RUNNER_INSPECT_TIMEOUT_SECONDS: "${RUNNER_INSPECT_TIMEOUT_SECONDS:-120}"
