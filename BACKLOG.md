@@ -113,13 +113,13 @@
 
 ### P2 错误语义 + 冷却预算（对应 R4–R8）
 
-- [ ] P2.1 `verification.py`/`gallery.py`/`collection.py` 产物非法统一 4xx，基础设施失败保留 5xx。
+- [x] P2.1 `verification.py`/`gallery.py`/`collection.py` 产物非法统一 4xx，基础设施失败保留 5xx。
   - 依赖：无。验证：新增「时长超限→4xx」「无流→4xx」「上游 5xx 透传」回归测试。
-- [ ] P2.2 `commands.py` probe/remux/public_asset 构造命令时补传 `failure_context`，使 `classify_provider_failure` 全阶段生效。
+- [x] P2.2 `commands.py` probe/remux/public_asset 构造命令时补传 `failure_context`，使 `classify_provider_failure` 全阶段生效。
   - 依赖：无。验证：probe 失败落库稳定错误码。
 - [ ] P2.3 冷却：`route_cooldowns.py` 增加指数退避 + jitter + 滞回；`block()/finish()` 落库 `reason_code` + 稳定错误码。
   - 依赖：无。验证：冷却可追溯；恢复需连续成功。
-- [ ] P2.4 删除 `canary/service.py` `_RUNNER_ERROR_ALIASES` 折叠，`canary_internal_error` 仅限探测自身 bug。
+- [x] P2.4 删除 `canary/service.py` `_RUNNER_ERROR_ALIASES` 折叠，`canary_internal_error` 仅限探测自身 bug。
   - 依赖：P2.2。验证：canary 证据区分验证码/POT/凭证三类。
 - [ ] P2.5 确认 `download` 队列 DLX 绑定；`dlq` 重放与 `sweeper` 三层恢复去重计数；重试预算可观测。
   - 依赖：无。验证：消息二次失败进入 DLQ；幂等重放不重复执行。

@@ -102,7 +102,9 @@ class MediaCommands:
         cwd: Path,
         *,
         referer: str | None = None,
+        failure_context: ProviderFailureContext | None = None,
     ) -> dict[str, Any]:
+        failure_context = failure_context or self._failure_context(referer or url)
         egress_proxy = self._egress_proxy(referer or url)
         command = (
             self._settings.runner_ffprobe_bin,
@@ -127,14 +129,21 @@ class MediaCommands:
             timeout_code="inspection_timeout",
             failure_code="inspection_failed",
             egress_proxy=egress_proxy,
+            failure_context=failure_context,
         )
         return json_object(result.stdout, "invalid_inspection_response")
 
     async def probe_remote_prefix(
-        self, url: str, cwd: Path, *, referer: str
+        self,
+        url: str,
+        cwd: Path,
+        *,
+        referer: str,
+        failure_context: ProviderFailureContext | None = None,
     ) -> dict[str, Any]:
         # A throttled CDN must not force inspection to fetch an entire segment.
         # Only a small clear prefix is needed to identify codecs.
+        failure_context = failure_context or self._failure_context(referer)
         limit = 8 * 1024
         data = bytearray()
         try:
@@ -154,6 +163,13 @@ class MediaCommands:
                         data.extend(chunk[: limit - len(data)])
                         if len(data) == limit:
                             break
+        except httpx.HTTPStatusError as exc:
+            raise self._provider_failure(
+                failure_context,
+                f"http error {exc.response.status_code}".encode(),
+                fallback_code="inspection_failed",
+                fallback_status=502,
+            ) from exc
         except httpx.HTTPError as exc:
             raise RunnerFailure("inspection_failed", status=502) from exc
         if not data:
@@ -161,7 +177,11 @@ class MediaCommands:
         with TemporaryDirectory(prefix="segment-probe-", dir=cwd) as directory:
             sample = Path(directory) / "prefix.input"
             sample.write_bytes(data)
-            return await self.probe(sample, Path(directory))
+            return await self.probe(
+                sample,
+                Path(directory),
+                failure_context=failure_context,
+            )
 
     async def download_stream(
         self,
@@ -231,9 +251,11 @@ class MediaCommands:
         *,
         referer: str,
         max_bytes: int,
+        failure_context: ProviderFailureContext | None = None,
     ) -> str:
         """Fetch one already-authorized public image through the provider egress."""
         del cwd
+        failure_context = failure_context or self._failure_context(referer)
         safe_url = safe_media_url(url)
         try:
             selected_proxy = self._egress_proxy(referer)
@@ -253,7 +275,12 @@ class MediaCommands:
                 ) as response:
                     safe_media_url(str(response.url))
                     if response.status_code != 200:
-                        raise RunnerFailure("download_failed", status=502)
+                        raise self._provider_failure(
+                            failure_context,
+                            f"http error {response.status_code}".encode(),
+                            fallback_code="download_failed",
+                            fallback_status=502,
+                        )
                     content_length = response.headers.get("content-length")
                     if content_length is not None:
                         try:
@@ -319,6 +346,7 @@ class MediaCommands:
         cwd: Path,
         *,
         include_audio: bool = True,
+        failure_context: ProviderFailureContext | None = None,
     ) -> None:
         command: list[str] = [
             self._settings.runner_ffmpeg_bin,
@@ -346,9 +374,16 @@ class MediaCommands:
             timeout_code="download_timeout",
             failure_code="remux_failed",
             monitor_workspace=True,
+            failure_context=failure_context,
         )
 
-    async def probe(self, artifact: Path, cwd: Path) -> dict[str, Any]:
+    async def probe(
+        self,
+        artifact: Path,
+        cwd: Path,
+        *,
+        failure_context: ProviderFailureContext | None = None,
+    ) -> dict[str, Any]:
         command = (
             self._settings.runner_ffprobe_bin,
             "-v",
@@ -366,9 +401,10 @@ class MediaCommands:
             cwd,
             self._settings.runner_inspect_timeout_seconds,
             timeout_code="inspection_timeout",
-            failure_code="media_validation_failed",
+            failure_code="media_probe_failed",
+            failure_context=failure_context,
         )
-        return json_object(result.stdout, "media_validation_failed")
+        return json_object(result.stdout, "media_probe_failed")
 
     async def _run(
         self,
@@ -476,6 +512,29 @@ class MediaCommands:
 
     def _egress_proxy(self, url: str) -> str:
         return self._settings.egress_proxy_for(provider_request(url).profile.key)
+
+    @staticmethod
+    def _failure_context(url: str) -> ProviderFailureContext:
+        request = provider_request(url)
+        return ProviderFailureContext(
+            provider_key=request.profile.key,
+            source_url=request.source_url,
+            authenticated=False,
+        )
+
+    @staticmethod
+    def _provider_failure(
+        context: ProviderFailureContext,
+        stderr: bytes,
+        *,
+        fallback_code: str,
+        fallback_status: int,
+    ) -> RunnerFailure:
+        provider_failure = classify_provider_failure(context, stderr)
+        if provider_failure is not None:
+            code, status = provider_failure
+            return RunnerFailure(code, status=status)
+        return RunnerFailure(fallback_code, status=fallback_status)
 
 
 def _inspection_payload_has_media(payload: Mapping[str, Any]) -> bool:

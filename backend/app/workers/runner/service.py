@@ -9,7 +9,7 @@ from app.services.downloads.rules.enums import Container, MediaKind, StreamKind
 from app.services.downloads.rules.errors import FormatSelectionError
 from app.services.downloads.rules.formats import CandidateStream, ProviderHints
 from app.services.downloads.rules.selection import select_streams
-from app.services.provider_types import ProviderAccessContextRef
+from app.services.provider_types import ProviderAccessContextRef, ProviderAccessMode
 from app.workers.runner.active_tasks import ActiveTaskRegistry
 from app.workers.runner.collection import download_video_collection_zip
 from app.workers.runner.command_support import default_supervisor
@@ -32,6 +32,7 @@ from app.workers.runner.metadata import (
     collection_fallback_assets,
 )
 from app.workers.runner.presentation import inspect_response
+from app.workers.runner.provider_errors import ProviderFailureContext
 from app.workers.runner.provider_registry import (
     ProviderRequest,
     provider_profile_for_key,
@@ -222,6 +223,11 @@ class MediaRunnerService:
             context=context,
             cookie_jar=cookie_jar,
         )
+        failure_context = ProviderFailureContext(
+            provider_key=source.profile.key,
+            source_url=source.source_url,
+            authenticated=context.access_mode is ProviderAccessMode.OPERATOR_MANAGED,
+        )
         require_source_identity(
             inspection,
             provider_media_id=request.expected_provider_media_id,
@@ -370,10 +376,15 @@ class MediaRunnerService:
             include_audio=(
                 selection.audio is not None or selection.video.kind is StreamKind.MUXED
             ),
+            failure_context=failure_context,
         )
         output = workspace.validate_outputs([artifact.name])[0]
         self._active.update(request.task_id, RunnerTaskStage.VERIFYING, 85)
-        probe_payload = await self._commands.probe(artifact, workspace.path)
+        probe_payload = await self._commands.probe(
+            artifact,
+            workspace.path,
+            failure_context=failure_context,
+        )
         verification_plan = plan
         if selection.video.width is not None and selection.video.height is not None:
             verification_plan = replace(

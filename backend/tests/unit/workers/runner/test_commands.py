@@ -10,6 +10,7 @@ from app.workers.runner import commands as commands_module
 from app.workers.runner.commands import MediaCommands
 from app.workers.runner.errors import RunnerFailure
 from app.workers.runner.process import ProcessResult
+from app.workers.runner.provider_errors import ProviderFailureContext
 from app.workers.runner.yt_dlp_commands import YtDlpCommandBuilder
 from helpers import settings
 
@@ -1036,7 +1037,7 @@ async def test_non_allowlisted_provider_cannot_receive_cookie_jar(
 async def test_non_ytdlp_failures_keep_their_original_code(tmp_path: Path) -> None:
     commands = MediaCommands(
         settings(tmp_path),
-        FailingSupervisor(b"Fresh cookies are needed"),
+        FailingSupervisor(b"ffprobe exited with status 1"),
     )
 
     with pytest.raises(RunnerFailure) as caught:
@@ -1044,6 +1045,53 @@ async def test_non_ytdlp_failures_keep_their_original_code(tmp_path: Path) -> No
 
     assert caught.value.code == "inspection_failed"
     assert caught.value.status == 502
+
+
+@pytest.mark.asyncio
+async def test_remote_probe_classifies_provider_failure_context(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(b"ERROR: Sign in to confirm you're not a bot"),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.probe_remote(
+            "https://media.example/video",
+            tmp_path,
+            referer="https://www.youtube.com/watch?v=owned",
+        )
+
+    assert caught.value.code == "egress_challenged"
+    assert caught.value.status == 422
+
+
+@pytest.mark.asyncio
+async def test_remux_preserves_provider_failure_context(
+    tmp_path: Path,
+) -> None:
+    commands = MediaCommands(
+        settings(tmp_path),
+        FailingSupervisor(b"ERROR: HTTP Error 403: Forbidden"),
+    )
+
+    with pytest.raises(RunnerFailure) as caught:
+        await commands.remux(
+            (tmp_path / "video.input",),
+            tmp_path / "artifact.mp4",
+            Container.MP4,
+            tmp_path,
+            include_audio=False,
+            failure_context=ProviderFailureContext(
+                provider_key="youtube",
+                source_url="https://www.youtube.com/watch?v=owned",
+                authenticated=False,
+            ),
+        )
+
+    assert caught.value.code == "egress_challenged"
+    assert caught.value.status == 422
 
 
 @pytest.mark.asyncio

@@ -7,7 +7,7 @@ import math
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from app.services.provider_types import ProviderAccessContextRef
+from app.services.provider_types import ProviderAccessContextRef, ProviderAccessMode
 from app.workers.runner.commands import MediaCommands
 from app.workers.runner.entitlements import enforce_media_rights
 from app.workers.runner.errors import RunnerFailure
@@ -19,6 +19,7 @@ from app.workers.runner.metadata import (
     normalize_media_payload,
     normalize_selected_format_metadata,
 )
+from app.workers.runner.provider_errors import ProviderFailureContext
 from app.workers.runner.provider_registry import ProviderRequest
 from app.workers.runner.settings import RunnerSettings
 from app.workers.runner.utilities import normalize_for_settings, safe_media_url
@@ -42,6 +43,7 @@ class RunnerInspectionPipeline:
         cookie_jar: Path | None,
     ) -> MediaInspection:
         payload = await self._inspect_with_retry(source, workspace, cookie_jar)
+        failure_context = _failure_context(source, context)
         payload = normalize_media_payload(
             payload, max_assets=self._settings.runner_max_gallery_assets
         )
@@ -61,12 +63,14 @@ class RunnerInspectionPipeline:
                 payload,
                 source,
                 workspace,
+                failure_context=failure_context,
             )
         if payload.get("direct") is True and cookie_jar is None:
             probe = await self._commands.probe_remote(
                 source.source_url,
                 workspace.path,
                 referer=source.source_url,
+                failure_context=failure_context,
             )
             payload = enrich_direct_metadata(payload, probe)
         duration = payload.get("duration")
@@ -77,6 +81,7 @@ class RunnerInspectionPipeline:
                 referer=source.source_url,
                 cookie_jar=cookie_jar,
                 probe_authenticated_media=source.profile.probe_authenticated_media,
+                failure_context=failure_context,
             )
             duration = payload.get("duration")
             if not isinstance(duration, (int, float)) or duration <= 0:
@@ -85,6 +90,7 @@ class RunnerInspectionPipeline:
                     source,
                     workspace,
                     cookie_jar=cookie_jar,
+                    failure_context=failure_context,
                 )
         formats = payload.get("formats")
         if isinstance(formats, list) and any(_unknown_audio(raw) for raw in formats):
@@ -97,6 +103,7 @@ class RunnerInspectionPipeline:
                 cookie_jar=cookie_jar,
                 probe_authenticated_media=source.profile.probe_authenticated_media,
                 unknown_audio_only=True,
+                failure_context=failure_context,
             )
             streams = normalize_for_settings(payload, self._settings).streams
             if not any(stream.audio_codec_family is not None for stream in streams):
@@ -110,6 +117,7 @@ class RunnerInspectionPipeline:
             referer=source.source_url,
             cookie_jar=cookie_jar,
             probe_authenticated_media=source.profile.probe_authenticated_media,
+            failure_context=failure_context,
         )
         inspection = self._usable_inspection(enriched)
         if inspection is not None:
@@ -119,6 +127,7 @@ class RunnerInspectionPipeline:
             source,
             workspace,
             cookie_jar=cookie_jar,
+            failure_context=failure_context,
         )
         return normalize_for_settings(sampled, self._settings)
 
@@ -127,6 +136,8 @@ class RunnerInspectionPipeline:
         payload: dict[str, object],
         source: ProviderRequest,
         workspace: TaskWorkspace,
+        *,
+        failure_context: ProviderFailureContext,
     ) -> dict[str, object]:
         formats = payload.get("formats")
         if not isinstance(formats, list):
@@ -143,9 +154,14 @@ class RunnerInspectionPipeline:
                     media_url,
                     workspace.path,
                     referer=source.source_url,
+                    failure_context=failure_context,
                 )
                 duration = _probe_duration(probe)
-            except (RunnerFailure, ValueError):
+            except RunnerFailure as exc:
+                if not _is_soft_probe_failure(exc):
+                    raise
+                duration = None
+            except ValueError:
                 duration = None
             if duration is not None:
                 enriched_formats = list(formats)
@@ -204,6 +220,7 @@ class RunnerInspectionPipeline:
         cookie_jar: Path | None,
         probe_authenticated_media: bool,
         unknown_audio_only: bool = False,
+        failure_context: ProviderFailureContext,
     ) -> dict[str, object]:
         if cookie_jar is not None and not probe_authenticated_media:
             return payload
@@ -243,9 +260,14 @@ class RunnerInspectionPipeline:
                         media_url,
                         workspace.path,
                         referer=referer,
+                        failure_context=failure_context,
                     )
                 return index, enrich_format_metadata(raw, probe), _probe_duration(probe)
-            except (RunnerFailure, ValueError):
+            except RunnerFailure as exc:
+                if not _is_soft_probe_failure(exc):
+                    raise
+                return index, raw, None
+            except ValueError:
                 return index, raw, None
 
         results = await asyncio.gather(
@@ -274,6 +296,7 @@ class RunnerInspectionPipeline:
         workspace: TaskWorkspace,
         *,
         cookie_jar: Path | None,
+        failure_context: ProviderFailureContext,
     ) -> dict[str, object]:
         formats = payload.get("formats")
         if not isinstance(formats, list):
@@ -314,7 +337,11 @@ class RunnerInspectionPipeline:
                         probe_workspace,
                         cookie_jar=cookie_jar,
                     )
-                    probe = await self._commands.probe(output, probe_workspace)
+                    probe = await self._commands.probe(
+                        output,
+                        probe_workspace,
+                        failure_context=failure_context,
+                    )
                 enriched_formats = list(formats)
                 enriched_formats[index] = enrich_format_metadata(raw, probe)
                 enriched_payload = dict(payload)
@@ -326,7 +353,11 @@ class RunnerInspectionPipeline:
                 ):
                     enriched_payload["duration"] = probed_duration
                 return enriched_payload
-            except (RunnerFailure, OSError):
+            except RunnerFailure as exc:
+                if not _is_soft_probe_failure(exc):
+                    raise
+                continue
+            except OSError:
                 continue
         return payload
 
@@ -337,6 +368,21 @@ def _unknown_audio(raw: object) -> bool:
         and raw.get("vcodec") == "none"
         and raw.get("acodec") in (None, "")
     )
+
+
+def _failure_context(
+    source: ProviderRequest,
+    context: ProviderAccessContextRef,
+) -> ProviderFailureContext:
+    return ProviderFailureContext(
+        provider_key=source.profile.key,
+        source_url=source.source_url,
+        authenticated=context.access_mode is ProviderAccessMode.OPERATOR_MANAGED,
+    )
+
+
+def _is_soft_probe_failure(error: RunnerFailure) -> bool:
+    return error.code in {"inspection_failed", "media_probe_failed"}
 
 
 def _probe_duration(probe: dict[str, object]) -> float | None:

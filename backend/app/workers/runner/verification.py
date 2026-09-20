@@ -35,20 +35,20 @@ def verify_collection_video(
     format_info = payload.get("format")
     streams = payload.get("streams")
     if not isinstance(format_info, dict) or not isinstance(streams, list):
-        raise RunnerFailure("media_validation_failed", status=502)
+        raise RunnerFailure("invalid_artifact", status=422)
     names = {
         name.strip().casefold()
         for name in str(format_info.get("format_name") or "").split(",")
     }
     if not names & {"mp4", "mov", "m4v", "3gp", "3g2", "webm", "matroska"}:
-        raise RunnerFailure("media_validation_failed", status=502)
+        raise RunnerFailure("invalid_artifact", status=422)
     video = [item for item in streams if _stream_type(item) == "video"]
     audio = [item for item in streams if _stream_type(item) == "audio"]
     if not video:
-        raise RunnerFailure("media_validation_failed", status=502)
+        raise RunnerFailure("invalid_artifact", status=422)
     duration = _duration(format_info.get("duration"))
     if duration is None or duration > max_duration:
-        raise RunnerFailure("media_validation_failed", status=502)
+        raise RunnerFailure("invalid_artifact", status=422)
     extension = _collection_extension(source_extension, names)
     return VerifiedCollectionVideo(duration, len(video), len(audio), extension)
 
@@ -72,38 +72,38 @@ def verify_probe(
     format_info = payload.get("format")
     streams = payload.get("streams")
     if not isinstance(format_info, dict) or not isinstance(streams, list):
-        raise RunnerFailure("media_validation_failed", status=502)
+        raise RunnerFailure("invalid_artifact", status=422)
     if not _container_matches(format_info.get("format_name"), expected_container):
-        raise RunnerFailure("media_validation_failed", status=502)
+        raise RunnerFailure("invalid_artifact", status=422)
 
     video = [item for item in streams if _stream_type(item) == "video"]
     audio = [item for item in streams if _stream_type(item) == "audio"]
     if not video:
-        raise RunnerFailure("media_validation_failed", status=502)
+        raise RunnerFailure("invalid_artifact", status=422)
     first_video = video[0]
     dimensions = (first_video.get("width"), first_video.get("height"))
     if dimensions != (plan.width, plan.height):
-        raise RunnerFailure("media_validation_failed", status=502)
+        raise RunnerFailure("invalid_artifact", status=422)
     if video_codec_family(first_video.get("codec_name")) is not plan.video_codec_family:
-        raise RunnerFailure("media_validation_failed", status=502)
+        raise RunnerFailure("invalid_artifact", status=422)
     if plan.audio_codec_family is AudioCodecFamily.NONE:
         if audio:
-            raise RunnerFailure("media_validation_failed", status=502)
+            raise RunnerFailure("invalid_artifact", status=422)
     else:
         if not audio:
-            raise RunnerFailure("media_validation_failed", status=502)
+            raise RunnerFailure("invalid_artifact", status=422)
         if (
             audio_codec_family(audio[0].get("codec_name"))
             is not plan.audio_codec_family
         ):
-            raise RunnerFailure("media_validation_failed", status=502)
+            raise RunnerFailure("invalid_artifact", status=422)
 
     duration = _duration(format_info.get("duration"))
     tolerance = max(tolerance_seconds, expected_duration * 0.02)
     if duration is None or duration > max_duration:
-        raise RunnerFailure("media_validation_failed", status=502)
+        raise RunnerFailure("invalid_artifact", status=422)
     if abs(duration - expected_duration) > tolerance:
-        raise RunnerFailure("media_validation_failed", status=502)
+        raise RunnerFailure("invalid_artifact", status=422)
     return VerifiedProbe(duration, len(video), len(audio))
 
 

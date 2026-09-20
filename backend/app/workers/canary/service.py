@@ -61,45 +61,49 @@ _INSPECTION_ERRORS: tuple[tuple[type[Exception], str], ...] = (
     (MediaInspectionFailure, "inspection_failed"),
 )
 _RUNNER_ERRORS = {
+    "canary_internal_error",
     "download_timeout",
     "client_context_mismatch",
     "extractor_regression",
     "format_unavailable",
+    "invalid_artifact",
+    "media_probe_failed",
     "inspection_timeout",
+    "provider_configuration_missing",
+    "provider_auth_required",
+    "provider_session_expired",
+    "provider_verification_failed",
     "provider_rate_limited",
     "provider_link_unavailable",
     "provider_temporarily_unavailable",
+    "runner_dependency_unavailable",
     "runner_unavailable",
-}
-_RUNNER_ERROR_ALIASES = {
-    "runner_dependency_unavailable": "runner_unavailable",
-    "egress_challenged": "provider_verification_failed",
-    "pot_required": "provider_verification_failed",
-    "pot_rejected": "provider_verification_failed",
-    "drm_protected": "provider_drm_protected",
-    "content_private": "provider_content_restricted",
-    "content_not_entitled": "provider_content_restricted",
-    "content_preview_only": "provider_content_restricted",
-    "content_supporter_only": "provider_content_restricted",
-    "content_paid_only": "provider_content_restricted",
-    "content_export_required": "provider_content_restricted",
-    "content_access_metadata_invalid": "provider_content_restricted",
-    "content_entitlement_unknown": "provider_content_restricted",
-    "credential_required": "provider_auth_required",
-    "provider_session_not_allowed": "provider_auth_required",
-    "credential_expired": "provider_session_expired",
-    "credential_rejected": "provider_session_expired",
-    "credential_revoked": "provider_session_expired",
-    "pot_provider_unavailable": "provider_temporarily_unavailable",
-    "provider_session_unavailable": "provider_temporarily_unavailable",
-    "provider_session_source_missing": "provider_temporarily_unavailable",
-    "provider_session_permission_denied": "provider_temporarily_unavailable",
-    "provider_geo_restricted": "provider_geo_restricted",
-    "provider_media_unsupported": "provider_media_unsupported",
-    "provider_unsupported": "provider_unsupported",
-    "invalid_artifact_path": "media_validation_failed",
-    "media_validation_failed": "media_validation_failed",
-    "workspace_limit_exceeded": "output_limit_exceeded",
+    "workspace_limit_exceeded",
+    "egress_challenged",
+    "pot_required",
+    "pot_rejected",
+    "pot_provider_unavailable",
+    "drm_protected",
+    "content_private",
+    "content_not_entitled",
+    "content_preview_only",
+    "content_supporter_only",
+    "content_paid_only",
+    "content_export_required",
+    "content_access_metadata_invalid",
+    "content_entitlement_unknown",
+    "credential_required",
+    "provider_session_not_allowed",
+    "credential_expired",
+    "credential_rejected",
+    "credential_revoked",
+    "provider_session_unavailable",
+    "provider_session_source_missing",
+    "provider_session_permission_denied",
+    "provider_geo_restricted",
+    "provider_media_unsupported",
+    "provider_unsupported",
+    "invalid_artifact_path",
 }
 _FORMAT_DRIFT_ATTEMPTS = 3
 
@@ -305,7 +309,7 @@ def _stable_error(exc: Exception) -> str:
     ):
         if exc.code in _RUNNER_ERRORS:
             return exc.code
-        return _RUNNER_ERROR_ALIASES.get(exc.code, "runner_failed")
+        return "canary_internal_error"
     return next(
         (
             code

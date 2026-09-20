@@ -115,5 +115,5 @@ async def download_video_collection_zip(
 def _files(directory: Path) -> list[Path]:
     candidates = sorted(directory.iterdir(), key=lambda path: path.name)
     if any(path.is_symlink() or not path.is_file() for path in candidates):
-        raise RunnerFailure("media_validation_failed", status=502)
+        raise RunnerFailure("invalid_artifact", status=422)
     return candidates

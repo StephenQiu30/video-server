@@ -83,4 +83,4 @@ def _image_extension(path: Path) -> str:
         return "png"
     if header[:4] == b"RIFF" and header[8:12] == b"WEBP":
         return "webp"
-    raise RunnerFailure("media_validation_failed", status=422)
+    raise RunnerFailure("invalid_artifact", status=422)

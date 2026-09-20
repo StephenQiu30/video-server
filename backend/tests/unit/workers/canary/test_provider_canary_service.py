@@ -199,7 +199,7 @@ async def test_media_canary_translates_runner_drm_failure(tmp_path: Path) -> Non
     result = await service.execute(target(ProviderCanaryStage.MEDIA))
 
     assert result.outcome is ProviderCanaryOutcome.FAILED
-    assert result.stable_error_code == "provider_drm_protected"
+    assert result.stable_error_code == "drm_protected"
 
 
 @pytest.mark.asyncio
@@ -221,7 +221,7 @@ async def test_media_canary_translates_runner_challenge_failure(tmp_path: Path) 
     result = await service.execute(target(ProviderCanaryStage.MEDIA))
 
     assert result.outcome is ProviderCanaryOutcome.FAILED
-    assert result.stable_error_code == "provider_verification_failed"
+    assert result.stable_error_code == "egress_challenged"
 
 
 @pytest.mark.asyncio
@@ -253,7 +253,7 @@ async def test_media_canary_preserves_transient_provider_failure(
     "runner_error",
     ("pot_provider_unavailable", "provider_session_unavailable"),
 )
-async def test_media_canary_normalizes_provider_dependency_outages(
+async def test_media_canary_preserves_provider_dependency_outages(
     tmp_path: Path,
     runner_error: str,
 ) -> None:
@@ -274,7 +274,7 @@ async def test_media_canary_normalizes_provider_dependency_outages(
     result = await service.execute(target(ProviderCanaryStage.MEDIA))
 
     assert result.outcome is ProviderCanaryOutcome.FAILED
-    assert result.stable_error_code == "provider_temporarily_unavailable"
+    assert result.stable_error_code == runner_error
 
 
 @pytest.mark.asyncio

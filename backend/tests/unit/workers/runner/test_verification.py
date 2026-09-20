@@ -62,7 +62,8 @@ def test_rejects_artifact_that_does_not_match_plan(case: str) -> None:
     with pytest.raises(RunnerFailure) as caught:
         verify(payload)
 
-    assert caught.value.code == "media_validation_failed"
+    assert caught.value.code == "invalid_artifact"
+    assert caught.value.status == 422
 
 
 def test_accepts_a_silent_artifact_for_a_silent_plan() -> None:
@@ -99,4 +100,5 @@ def test_short_preview_cannot_be_published_as_a_complete_episode() -> None:
             max_duration=7200,
             tolerance_seconds=3,
         )
-    assert caught.value.code == "media_validation_failed"
+    assert caught.value.code == "invalid_artifact"
+    assert caught.value.status == 422
