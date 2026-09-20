@@ -223,16 +223,23 @@ def test_tencent_login_token_is_scoped_to_exact_api_and_never_mutates_query(
 
 
 @pytest.mark.parametrize("provider", [ProviderKey.YOUKU, ProviderKey.QQVIDEO])
-def test_personal_membership_requires_adapter_evidence_and_does_not_allow_preview(
+def test_personal_membership_disables_account_on_entitlement_drift(
     provider,
 ) -> None:
     mode = ProviderAccessMode.OPERATOR_MANAGED
-    with pytest.raises(RunnerFailure, match="content access metadata invalid"):
+    with pytest.raises(RunnerFailure) as caught:
         enforce_media_rights(
             {"is_premium": True}, provider_key=provider, access_mode=mode
         )
-    data = {"is_premium": True, "_framefetch_full_stream": True}
-    enforce_media_rights(data, provider_key=provider, access_mode=mode)
+    assert caught.value.code == "credential_entitlement_drift"
+    with pytest.raises(RunnerFailure) as caught:
+        enforce_media_rights(
+            {"availability": "premium_only", "_framefetch_full_stream": True},
+            provider_key=provider,
+            access_mode=mode,
+        )
+    assert caught.value.code == "credential_entitlement_drift"
+    data = {"_framefetch_full_stream": True}
     for flags in (
         {"is_preview": True},
         {"has_drm": True},
@@ -245,7 +252,9 @@ def test_personal_membership_requires_adapter_evidence_and_does_not_allow_previe
             )
     with pytest.raises(RunnerFailure):
         enforce_media_rights(
-            data, provider_key=provider, access_mode=ProviderAccessMode.ANONYMOUS
+            {"is_premium": True, **data},
+            provider_key=provider,
+            access_mode=ProviderAccessMode.ANONYMOUS,
         )
 
 

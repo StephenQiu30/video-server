@@ -146,7 +146,7 @@
 
 - [x] P5.1 `status_evidence.py` 纳入失败证据（稳定错误码 + `context_generation_id` 过滤）。
   - 依赖：P2.4。验证：平台回归秒级可见；单链接失效不污染状态。
-- [ ] P5.2 落实 inspect attestation 权益漂移 → disable `credential_version`。
+- [x] P5.2 落实 inspect attestation 权益漂移 → disable `credential_version`。
   - 依赖：无。验证：漂移后对应版本停用，不 fail-open。
 
 ---

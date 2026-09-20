@@ -97,6 +97,7 @@ _RUNNER_ERRORS = {
     "credential_expired",
     "credential_rejected",
     "credential_revoked",
+    "credential_entitlement_drift",
     "provider_session_unavailable",
     "provider_session_source_missing",
     "provider_session_permission_denied",

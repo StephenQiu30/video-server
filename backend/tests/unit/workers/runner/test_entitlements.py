@@ -39,6 +39,29 @@ def test_anonymous_only_provider_is_not_operator_allowlisted(provider: str) -> N
     assert caught.value.code == "provider_session_not_allowed"
 
 
+@pytest.mark.parametrize(
+    "payload",
+    (
+        {"availability": "premium_only"},
+        {"availability": "subscriber_only"},
+        {"availability": "paid"},
+        {"is_premium": True},
+        {"is_member_only": True},
+    ),
+)
+def test_operator_entitlement_drift_disables_personal_account(
+    payload: dict[str, object],
+) -> None:
+    with pytest.raises(RunnerFailure) as caught:
+        enforce_media_rights(
+            payload,
+            provider_key="qqvideo",
+            access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+        )
+
+    assert caught.value.code == "credential_entitlement_drift"
+
+
 def test_unapproved_operator_provider_remains_blocked() -> None:
     with pytest.raises(RunnerFailure) as caught:
         enforce_media_rights(

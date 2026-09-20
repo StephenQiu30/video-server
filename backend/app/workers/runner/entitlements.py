@@ -20,6 +20,16 @@ _RESTRICTED_AVAILABILITY = {
     "preview": "content_not_entitled",
     "needs_auth": "credential_required",
 }
+_ACCOUNT_ENTITLEMENT_AVAILABILITY = {
+    "premium_only",
+    "subscriber_only",
+    "vip_only",
+    "paid",
+}
+_ACCOUNT_ENTITLEMENT_FLAGS = (
+    "is_premium",
+    "is_member_only",
+)
 
 
 def enforce_media_rights(
@@ -37,6 +47,8 @@ def enforce_media_rights(
     availability = payload.get("availability")
     if isinstance(availability, str):
         normalized = availability.casefold()
+        if personal and normalized in _ACCOUNT_ENTITLEMENT_AVAILABILITY:
+            raise RunnerFailure("credential_entitlement_drift", status=422)
         restricted = _RESTRICTED_AVAILABILITY.get(normalized)
         if restricted is not None and not (
             personal
@@ -50,6 +62,10 @@ def enforce_media_rights(
             raise RunnerFailure("content_entitlement_unknown", status=422)
     if payload.get("is_private") is True:
         raise RunnerFailure("content_private", status=403)
+    if personal and any(
+        payload.get(field) is True for field in _ACCOUNT_ENTITLEMENT_FLAGS
+    ):
+        raise RunnerFailure("credential_entitlement_drift", status=422)
     restricted_flags: tuple[str, ...] = ("is_preview", "requires_purchase")
     if not personal:
         restricted_flags += ("is_premium", "is_member_only")

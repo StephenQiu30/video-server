@@ -151,6 +151,9 @@ class MediaRunnerService:
                             access_context=context,
                             thumbnail_data_url=thumbnail_data_url,
                         )
+            except RunnerFailure as exc:
+                self._disable_credential_on_entitlement_drift(context, exc)
+                raise
             except TimeoutError as exc:
                 raise RunnerFailure("inspection_timeout", status=504) from exc
         finally:
@@ -189,10 +192,21 @@ class MediaRunnerService:
             raise RunnerFailure("download_timeout", status=504) from exc
         except WorkspaceViolation as exc:
             raise RunnerFailure("workspace_limit_exceeded", status=413) from exc
+        except RunnerFailure as exc:
+            self._disable_credential_on_entitlement_drift(
+                request.access_context.to_domain(), exc
+            )
+            raise
         finally:
             self._active.discard(request.task_id, task)
             if workspace is not None and not succeeded:
                 workspace.cleanup()
+
+    def _disable_credential_on_entitlement_drift(
+        self, context: ProviderAccessContextRef, error: RunnerFailure
+    ) -> None:
+        if error.code == "credential_entitlement_drift":
+            self._sessions.disable_credential_version(context)
 
     async def cancel(self, task_id: str) -> CancelResponse:
         self._active.cancel(task_id)

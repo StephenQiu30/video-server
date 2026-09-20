@@ -191,6 +191,24 @@ async def test_operation_uses_unique_0600_tmpfs_file_and_deletes_it(
     assert list(settings.runner_provider_session_temp_root.iterdir()) == []
 
 
+@pytest.mark.asyncio
+async def test_disabling_credential_version_fails_closed(tmp_path: Path) -> None:
+    settings = operator_settings(tmp_path)
+    store = ProviderSessionStore(
+        settings,
+        cookie_sync=FakeCookieSync(),
+        enforce_memory_backing=False,
+    )
+    context = store.context_for("https://www.youtube.com/watch?v=owned")
+
+    store.disable_credential_version(context)
+
+    with pytest.raises(RunnerFailure, match="credential revoked") as caught:
+        store.context_for("https://www.youtube.com/watch?v=owned")
+    assert caught.value.code == "credential_revoked"
+    assert not await store.is_ready()
+
+
 async def test_failure_and_concurrent_operations_cleanup_and_isolate(
     tmp_path: Path,
 ) -> None:

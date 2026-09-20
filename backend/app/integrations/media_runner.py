@@ -216,6 +216,7 @@ class MediaRunnerHttpClient:
                 "credential_expired",
                 "credential_rejected",
                 "credential_revoked",
+                "credential_entitlement_drift",
             }:
                 raise MediaInspectionSessionExpired from exc
             if exc.code in {

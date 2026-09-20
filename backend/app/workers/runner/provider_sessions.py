@@ -48,6 +48,7 @@ class ProviderSessionStore:
         self._settings = settings
         self._temp_root = settings.runner_provider_session_temp_root
         self._versions = dict(settings.runner_operator_session_versions)
+        self._disabled_credentials: set[tuple[str, str]] = set()
         self._gate = asyncio.Semaphore(1)
         sync_root = settings.runner_provider_cookie_sync_root
         self._cookie_file = (
@@ -76,6 +77,8 @@ class ProviderSessionStore:
         if cookie_sync is None or not self._versions:
             return False
         for provider, version in self._versions.items():
+            if (provider.value, version.value) in self._disabled_credentials:
+                return False
             if not await cookie_sync.is_ready(provider, version):
                 return False
         return True
@@ -97,6 +100,7 @@ class ProviderSessionStore:
             credential_version = self._file_revision(
                 self._cookie_file.read(ProviderKey(profile.key), version)
             )
+        self._require_credential_enabled(profile.key, credential_version)
         return ProviderAccessContextRef(
             provider_key=profile.key,
             profile_version=profile.version,
@@ -127,6 +131,14 @@ class ProviderSessionStore:
             raise RunnerFailure("credential_revoked", status=422)
         return current
 
+    def disable_credential_version(self, context: ProviderAccessContextRef) -> None:
+        """Quarantine one credential revision after an entitlement drift."""
+        if context.access_mode is not ProviderAccessMode.OPERATOR_MANAGED:
+            return
+        credential_version = context.credential_version_id
+        if credential_version is not None:
+            self._disabled_credentials.add((context.provider_key, credential_version))
+
     @asynccontextmanager
     async def operation(
         self, context: ProviderAccessContextRef
@@ -137,6 +149,7 @@ class ProviderSessionStore:
         raw_version = context.credential_version_id
         if raw_version is None:
             raise RunnerFailure("credential_required", status=422)
+        self._require_credential_enabled(context.provider_key, raw_version)
         try:
             provider = ProviderKey(context.provider_key)
             version = (
@@ -165,6 +178,19 @@ class ProviderSessionStore:
         # A keyed revision prevents identity changes between inspect and download
         # without exposing Cookie contents or an unkeyed credential hash.
         return credential_revision(payload, self._settings.hmac_secret_bytes)
+
+    def _require_credential_enabled(
+        self, provider: str, credential_version: str | None
+    ) -> None:
+        if (
+            credential_version is not None
+            and (
+                provider,
+                credential_version,
+            )
+            in self._disabled_credentials
+        ):
+            raise RunnerFailure("credential_revoked", status=422)
 
     def _validated_payload(self, provider: ProviderKey, payload: bytes) -> bytes:
         profile = _profile_for_key(provider)
