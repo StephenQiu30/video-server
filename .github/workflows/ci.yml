@@ -52,6 +52,12 @@ jobs:
           version: "0.11.32"
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
+      - name: Install Redis lease test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends redis-server redis-tools
+          command -v redis-server
+          command -v redis-cli
       - name: Test backend
         working-directory: backend
         run: |

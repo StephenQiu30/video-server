@@ -46,6 +46,10 @@ def test_ci_keeps_all_quality_gates_blocking() -> None:
 def _assert_quality_gates(workflow: dict) -> None:
     expected = {
         "backend-tests": (
+            "sudo apt-get install --yes --no-install-recommends "
+            "redis-server redis-tools",
+            "command -v redis-server",
+            "command -v redis-cli",
             "uv sync --frozen --dev",
             "uv run --frozen ruff check app tests",
             "uv run --frozen ruff format --check app tests",
