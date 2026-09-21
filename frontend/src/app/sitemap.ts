@@ -1,13 +1,9 @@
 import type { MetadataRoute } from 'next';
 
-import { absoluteUrl } from '@/lib/site';
+import { absoluteUrl, siteIndexable } from '@/lib/site';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return [
-    {
-      url: absoluteUrl('/'),
-      changeFrequency: 'weekly',
-      priority: 1,
-    },
-  ];
+  return siteIndexable
+    ? ['/', '/guide/'].map((path) => ({ url: absoluteUrl(path) }))
+    : [];
 }

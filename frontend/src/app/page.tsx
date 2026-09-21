@@ -3,79 +3,18 @@ import { cookies } from 'next/headers';
 
 import { HomeExperience } from '@/components/intake/home-experience';
 import { PublicHome } from '@/components/intake/public-home';
+import { publicQuestions } from '@/components/intake/public-home-content';
+import { privateRobots, publicMetadata } from '@/lib/public-metadata';
 import { absoluteUrl, siteConfig } from '@/lib/site';
 
-const publicHomeMetadata: Metadata = {
-  applicationName: siteConfig.name,
-  title: {
-    absolute: siteConfig.title,
-  },
-  description: siteConfig.description,
-  keywords: [
-    '帧取',
-    'FrameFetch',
-    '开源视频下载',
-    '自托管视频下载',
-    'AI 视频分析',
-    '剧本分析',
-    'video downloader',
-    'self-hosted',
-    'FastAPI',
-    'Next.js',
-    'yt-dlp',
-    'FFmpeg',
-  ],
-  authors: [{ name: 'FrameFetch contributors', url: siteConfig.repositoryUrl }],
-  creator: 'FrameFetch contributors',
-  publisher: 'FrameFetch',
-  category: 'technology',
-  referrer: 'strict-origin-when-cross-origin',
-  alternates: {
-    canonical: '/',
-  },
-  openGraph: {
-    type: 'website',
-    locale: 'zh_CN',
-    url: '/',
-    siteName: siteConfig.name,
-    title: siteConfig.title,
-    description: siteConfig.description,
-    images: [
-      {
-        url: '/opengraph-image/',
-        width: 1200,
-        height: 630,
-        alt: 'FrameFetch — self-hosted media workflow and AI analysis',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: siteConfig.title,
-    description: siteConfig.englishDescription,
-    images: ['/opengraph-image/'],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-      'max-video-preview': -1,
-    },
-  },
-};
-
+const publicHomeMetadata = publicMetadata(
+  siteConfig.title,
+  siteConfig.description,
+  '/',
+);
 const privateHomeMetadata: Metadata = {
   title: '工作区',
-  robots: {
-    index: false,
-    follow: false,
-    noarchive: true,
-    nosnippet: true,
-  },
+  robots: privateRobots,
 };
 
 const accessCookieName =
@@ -104,7 +43,7 @@ const structuredData = {
       name: siteConfig.name,
       alternateName: 'FrameFetch',
       description: siteConfig.description,
-      inLanguage: ['zh-CN', 'en'],
+      inLanguage: 'zh-CN',
     },
     {
       '@type': 'SoftwareApplication',
@@ -113,26 +52,45 @@ const structuredData = {
       alternateName: 'FrameFetch',
       description: siteConfig.englishDescription,
       url: absoluteUrl('/'),
-      codeRepository: siteConfig.repositoryUrl,
+      sameAs: siteConfig.repositoryUrl,
       license: siteConfig.licenseUrl,
       applicationCategory: 'MultimediaApplication',
       applicationSubCategory: 'Media workflow and video analysis',
       operatingSystem: 'Web, Docker, Linux, macOS, Windows',
-      isAccessibleForFree: true,
-      offers: {
-        '@type': 'Offer',
-        price: '0',
-        priceCurrency: 'USD',
-      },
+      subjectOf: { '@id': absoluteUrl('/#source') },
     },
     {
       '@type': 'SoftwareSourceCode',
+      '@id': absoluteUrl('/#source'),
+      targetProduct: { '@id': absoluteUrl('/#software') },
+      isAccessibleForFree: true,
       name: 'FrameFetch source code',
       description: siteConfig.englishDescription,
       codeRepository: siteConfig.repositoryUrl,
       license: siteConfig.licenseUrl,
       programmingLanguage: ['Python', 'TypeScript'],
       runtimePlatform: ['Docker', 'Node.js', 'Python'],
+    },
+    {
+      '@type': 'WebPage',
+      '@id': absoluteUrl('/#webpage'),
+      url: absoluteUrl('/'),
+      name: siteConfig.title,
+      description: siteConfig.description,
+      inLanguage: 'zh-CN',
+      isPartOf: { '@id': absoluteUrl('/#website') },
+      about: { '@id': absoluteUrl('/#software') },
+      hasPart: { '@id': absoluteUrl('/#questions') },
+    },
+    {
+      '@type': 'FAQPage',
+      '@id': absoluteUrl('/#questions'),
+      mainEntity: publicQuestions.map(({ id, question, answer }) => ({
+        '@type': 'Question',
+        '@id': absoluteUrl(`/#${id}`),
+        name: question,
+        acceptedAnswer: { '@type': 'Answer', text: answer },
+      })),
     },
   ],
 };
@@ -147,7 +105,10 @@ export default async function HomePage() {
           {JSON.stringify(structuredData).replace(/</g, '\\u003c')}
         </script>
       ) : null}
-      <HomeExperience publicHome={<PublicHome />} />
+      <HomeExperience
+        initialPublic={!privateHome}
+        publicHome={<PublicHome />}
+      />
     </>
   );
 }

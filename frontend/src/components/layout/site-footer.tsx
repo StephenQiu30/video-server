@@ -24,6 +24,7 @@ export function SiteFooter({ className }: { className?: string }) {
           viewport={false}
         >
           <NavigationMenuList className="gap-4">
+            <FooterLink href="/guide/">使用指南</FooterLink>
             <FooterLink href={siteConfig.repositoryUrl}>GitHub</FooterLink>
             <FooterLink href={`${siteConfig.repositoryUrl}/tree/main/docs`}>
               文档

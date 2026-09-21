@@ -62,7 +62,7 @@ export default function OpenGraphImage() {
             marginTop: 28,
           }}
         >
-          Download · Screenplay · AI analysis
+          Video parsing · Screenplay · AI analysis
         </div>
       </div>
       <div

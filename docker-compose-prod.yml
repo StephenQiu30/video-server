@@ -208,6 +208,7 @@ services:
       dockerfile: Dockerfile
       args:
         SITE_URL: "${SITE_URL:?SITE_URL is required}"
+        SITE_INDEXABLE: "${SITE_INDEXABLE:-false}"
     image: video-frontend:prod
     container_name: video-frontend
     restart: unless-stopped
@@ -223,6 +224,7 @@ services:
       NODE_ENV: production
       PORT: 8101
       SITE_URL: "${SITE_URL:?SITE_URL is required}"
+      SITE_INDEXABLE: "${SITE_INDEXABLE:-false}"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

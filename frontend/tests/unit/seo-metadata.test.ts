@@ -1,41 +1,77 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import manifest from '@/app/manifest';
-import robots from '@/app/robots';
-import sitemap from '@/app/sitemap';
 import { resolveSiteUrl } from '@/lib/site';
 
-describe('public SEO metadata', () => {
-  it('publishes crawl discovery files for the public landing page', () => {
-    const robotsFile = robots();
-    const sitemapFile = sitemap();
+beforeEach(() => vi.resetModules());
+afterEach(() => vi.unstubAllEnvs());
 
-    expect(robotsFile.rules).toMatchObject({
-      userAgent: '*',
-      allow: '/',
-      disallow: ['/api/', '/health/'],
-    });
-    expect(robotsFile.sitemap).toMatch(/\/sitemap\.xml$/);
-    expect(sitemapFile).toHaveLength(1);
-    expect(sitemapFile[0]).toMatchObject({
-      changeFrequency: 'weekly',
-      priority: 1,
+describe('public SEO metadata', () => {
+  it('publishes only public canonical pages when deployment opts into indexing', async () => {
+    vi.stubEnv('SITE_INDEXABLE', 'true');
+    vi.stubEnv('SITE_URL', 'https://framefetch.example');
+    const { default: robots } = await import('@/app/robots');
+    const { default: sitemap } = await import('@/app/sitemap');
+    const { publicMetadata } = await import('@/lib/public-metadata');
+    expect(robots().rules).toEqual([
+      { userAgent: '*', allow: '/', disallow: ['/api', '/health'] },
+      { userAgent: 'OAI-SearchBot', allow: '/', disallow: ['/api', '/health'] },
+    ]);
+    expect(robots().sitemap).toBe('https://framefetch.example/sitemap.xml');
+    expect(sitemap()).toEqual([
+      { url: 'https://framefetch.example/' },
+      { url: 'https://framefetch.example/guide/' },
+    ]);
+    const metadata = publicMetadata('Guide', 'Description', '/guide/');
+    expect(metadata.alternates?.canonical).toBe(
+      'https://framefetch.example/guide/',
+    );
+    expect(metadata.robots).toMatchObject({ index: true, follow: true });
+    expect(metadata.robots).not.toHaveProperty('nosnippet');
+    expect(metadata.openGraph).toMatchObject({
+      url: 'https://framefetch.example/guide/',
+      description: 'Description',
     });
   });
 
-  it('rejects an explicitly invalid canonical origin', () => {
+  it.each([undefined, 'false', 'TRUE'])(
+    'does not advertise a private deployment (%s)',
+    async (setting) => {
+      vi.stubEnv('SITE_INDEXABLE', setting);
+      const { default: robots } = await import('@/app/robots');
+      const { default: sitemap } = await import('@/app/sitemap');
+      const { publicMetadata } = await import('@/lib/public-metadata');
+      expect(sitemap()).toEqual([]);
+      expect(robots().sitemap).toBeUndefined();
+      expect(publicMetadata('Home', 'Description', '/').robots).toMatchObject({
+        index: false,
+        nosnippet: true,
+      });
+      // Crawlers can still retrieve HTML to see noindex, including after de-indexing.
+      expect(robots().rules).toContainEqual({
+        userAgent: '*',
+        allow: '/',
+        disallow: ['/api', '/health'],
+      });
+    },
+  );
+
+  it('rejects invalid or credential-bearing canonical origins', () => {
     expect(resolveSiteUrl(undefined).origin).toBe('http://127.0.0.1:8101');
-    expect(resolveSiteUrl('https://framefetch.example/path').toString()).toBe(
-      'https://framefetch.example/',
-    );
-    expect(() => resolveSiteUrl('framefetch.example')).toThrow(
-      'SITE_URL must be an absolute HTTP(S) URL',
-    );
-    expect(() => resolveSiteUrl('ftp://framefetch.example')).toThrow(
-      'SITE_URL must be an absolute HTTP(S) URL',
-    );
+    expect(
+      resolveSiteUrl('https://framefetch.example/path?q=1#fragment').toString(),
+    ).toBe('https://framefetch.example/');
+    for (const value of [
+      'framefetch.example',
+      'ftp://framefetch.example',
+      'https://user:password@framefetch.example',
+    ]) {
+      expect(() => resolveSiteUrl(value)).toThrow(
+        'SITE_URL must be an absolute HTTP(S) URL',
+      );
+    }
   });
 
   it('describes an installable FrameFetch web application', () => {
@@ -47,43 +83,12 @@ describe('public SEO metadata', () => {
     });
   });
 
-  it('indexes only the anonymous welcome view and exposes truthful software JSON-LD', () => {
+  it('keeps private pages noindex by default', () => {
     const rootLayout = readFileSync(
       resolve(process.cwd(), 'src/app/layout.tsx'),
       'utf8',
     );
-    const homePage = readFileSync(
-      resolve(process.cwd(), 'src/app/page.tsx'),
-      'utf8',
-    );
-
     expect(rootLayout).toContain('index: false');
     expect(rootLayout).not.toContain('description: siteConfig.description');
-    expect(homePage).toContain('generateMetadata');
-    expect(homePage).toContain('index: true');
-    expect(homePage).toContain('index: false');
-    expect(homePage).toContain('keywords: [');
-    expect(homePage).toContain('video_access_token');
-    expect(homePage).toContain('video_refresh_token');
-    expect(homePage).toContain("'@type': 'SoftwareApplication'");
-    expect(homePage).toContain('codeRepository: siteConfig.repositoryUrl');
-    expect(homePage).toContain("price: '0'");
-    expect(homePage).toContain('{!privateHome ? (');
-  });
-
-  it('keeps anonymous session discovery on the public landing page', () => {
-    const authService = readFileSync(
-      resolve(process.cwd(), 'src/components/auth/auth-provider.tsx'),
-      'utf8',
-    );
-    const requestClient = readFileSync(
-      resolve(process.cwd(), 'src/lib/request.ts'),
-      'utf8',
-    );
-
-    expect(authService).toContain('skipAuthRedirect: true');
-    expect(requestClient).toContain(
-      'if (!config.skipAuthRedirect) redirectToLogin();',
-    );
   });
 });

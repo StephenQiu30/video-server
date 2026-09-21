@@ -35,6 +35,13 @@ describe('HomeExperience', () => {
     expect(startup.querySelector('[data-slot="progress"]')).not.toBeNull();
   });
 
+  it('shows server-selected public content during anonymous session discovery', () => {
+    render(<HomeExperience initialPublic publicHome={<h1>公开首页</h1>} />);
+    expect(screen.getByRole('heading')).toBeVisible();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('workspace-home')).not.toBeInTheDocument();
+  });
+
   it('renders only the workspace after an authenticated session is restored', () => {
     runtime.loading = false;
     runtime.user = { username: 'video-user' };

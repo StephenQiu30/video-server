@@ -8,6 +8,8 @@ WORKDIR /workspace/frontend
 
 ARG SITE_URL=http://127.0.0.1:8101
 ENV SITE_URL=${SITE_URL}
+ARG SITE_INDEXABLE=false
+ENV SITE_INDEXABLE=${SITE_INDEXABLE}
 
 RUN --mount=type=cache,target=/root/.npm \
     npm install --global "pnpm@${PNPM_VERSION}"

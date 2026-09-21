@@ -42,6 +42,8 @@ export function SiteHeader() {
   const pathname = usePathname() ?? '/';
   const router = useRouter();
   const homeActive = pathname === '/';
+  const publicPage =
+    homeActive || pathname === '/guide' || pathname === '/guide/';
   const authView = pathname.startsWith('/user/');
   const historyActive = pathname.startsWith('/history');
   const documentsActive = pathname.startsWith('/documents');
@@ -51,8 +53,8 @@ export function SiteHeader() {
   const aiProvidersActive = pathname.startsWith('/admin/ai-providers');
   const catalogActive = pathname.startsWith('/admin/providers');
   const usersActive = pathname.startsWith('/admin/users');
-  const headerAuthPending = (homeActive || authView) && loading;
-  const publicView = homeActive && !loading && !user;
+  const headerAuthPending = (publicPage || authView) && loading;
+  const publicView = publicPage && !loading && !user;
 
   async function handleSignOut() {
     setSigningOut(true);

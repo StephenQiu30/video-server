@@ -24,9 +24,28 @@
 
 ## What is FrameFetch?
 
-FrameFetch is an open-source, self-hosted video downloader and media workflow for creators, content researchers and developers. It turns an authorized public-media URL or a local screenplay into an observable, recoverable job: inspect the source, select a real format, download and verify it in an isolated runner, persist the artifact, and optionally produce a structured AI analysis report.
+FrameFetch is an open-source, self-hosted video downloader and media workflow for creators, content researchers and developers. It turns an authorized public-media URL, local video or screenplay into an observable, recoverable job: inspect the source, select a real format, download and verify it in an isolated runner, persist the artifact, and optionally produce a structured AI analysis report.
 
 FrameFetch is not designed to circumvent platform restrictions. Anonymous providers only handle content that can be positively identified as public, free and non-DRM. Membership, private, purchased, region-restricted and protected playback rights are outside the project's scope.
+
+## From video parsing to an AI report
+
+1. Inspect an authorized public-media link or import your own local video or screenplay.
+2. Confirm the source and format, then track processing; media artifacts and AI analyses have separate task states.
+3. Run an available video, scene, shot or screenplay analysis and review its timeline and keyframe evidence against the source.
+4. Export a Markdown or DOCX report for content research, creative planning or team review.
+
+The Web instance exposes a public `/guide/` in Chinese. See the capability table below and [project documentation](docs/README.md) for implementation and configuration. Available outputs depend on the configured analysis capabilities and AI service.
+
+### Frequently asked questions
+
+**How does FrameFetch relate to yt-dlp and FFmpeg?** They provide media adaptation and processing within the workflow. FrameFetch adds Web/API access, users and jobs, isolated workers, artifact storage, document processing and optional AI analysis. Extractor support does not guarantee that every platform works in a particular deployment.
+
+**Does open source mean zero operating cost?** The source code is MIT licensed. Infrastructure, storage, bandwidth and external AI services may incur costs; free hosting or model credits are not included.
+
+**Does self-hosting keep all data on the device?** Data resides in the infrastructure configured by the operator. When an external AI provider is used, the content needed for analysis is sent to that service. Check content permissions and the provider's data handling terms before enabling it.
+
+**Where are the Web and mobile clients?** This repository maintains the API, Next.js Web and workers. [video-app](https://github.com/StephenQiu30/video-app) is the Flutter iOS/Android client that connects to this server; it does not run offline AI on the phone.
 
 ## Capabilities
 
@@ -194,3 +213,5 @@ Keep implementation, OpenAPI contracts, tests, operations documentation and acce
 ## License
 
 FrameFetch is available under the [MIT License](LICENSE). The software license does not grant rights to download, copy or analyze third-party media.
+
+For public-site indexing and generative-search visibility, see the [SEO/GEO operations guide](docs/operations/010-SEO与GEO运行手册.md) (Chinese). Private self-hosted instances default to noindex; intentionally public sites must opt in with `SITE_INDEXABLE=true` and a stable `SITE_URL` at build and runtime.

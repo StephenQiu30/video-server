@@ -112,68 +112,76 @@ describe('BasicLayout', () => {
     ).toHaveAttribute('aria-current', 'page');
   });
 
-  it('renders discoverable public navigation for anonymous root visitors', () => {
-    render(
-      <BasicLayout>
-        <div>公开首页</div>
-      </BasicLayout>,
-    );
+  it.each(['/', '/guide', '/guide/'])(
+    'renders public navigation on %s',
+    (pathname) => {
+      runtime.pathname = pathname;
+      render(
+        <BasicLayout>
+          <div>公开首页</div>
+        </BasicLayout>,
+      );
 
-    const navigation = screen.getByRole('navigation', { name: '主要导航' });
-    expect(
-      within(navigation).getByRole('link', { name: '产品能力' }),
-    ).toHaveAttribute('href', '/#capabilities');
-    expect(
-      within(navigation).getByRole('link', { name: '自托管架构' }),
-    ).toHaveAttribute('href', '/#architecture');
-    expect(
-      within(navigation).getByRole('link', { name: 'GitHub' }),
-    ).toHaveAttribute('href', 'https://github.com/StephenQiu30/video-server');
-    expect(screen.getByRole('link', { name: '登录' })).toHaveAttribute(
-      'href',
-      '/user/login',
-    );
-    expect(
-      screen.getByRole('button', { name: /切换到.+主题/ }),
-    ).toBeInTheDocument();
-    expect(screen.queryAllByRole('menuitemradio')).toHaveLength(0);
-    expect(
-      screen.queryByRole('button', { name: '打开导航菜单' }),
-    ).not.toBeInTheDocument();
-  });
+      const navigation = screen.getByRole('navigation', { name: '主要导航' });
+      expect(
+        within(navigation).getByRole('link', { name: '产品能力' }),
+      ).toHaveAttribute('href', '/#capabilities');
+      expect(
+        within(navigation).getByRole('link', { name: '自托管架构' }),
+      ).toHaveAttribute('href', '/#architecture');
+      expect(
+        within(navigation).getByRole('link', { name: 'GitHub' }),
+      ).toHaveAttribute('href', 'https://github.com/StephenQiu30/video-server');
+      expect(screen.getByRole('link', { name: '登录' })).toHaveAttribute(
+        'href',
+        '/user/login',
+      );
+      expect(
+        screen.getByRole('button', { name: /切换到.+主题/ }),
+      ).toBeInTheDocument();
+      expect(screen.queryAllByRole('menuitemradio')).toHaveLength(0);
+      expect(
+        screen.queryByRole('button', { name: '打开导航菜单' }),
+      ).not.toBeInTheDocument();
+    },
+  );
 
-  it('hides authenticated navigation while root authentication is loading', () => {
-    runtime.loading = true;
-    const { container } = render(
-      <BasicLayout>
-        <div>正在加载</div>
-      </BasicLayout>,
-    );
+  it.each(['/', '/guide/'])(
+    'hides authenticated navigation during session discovery on %s',
+    (pathname) => {
+      runtime.pathname = pathname;
+      runtime.loading = true;
+      const { container } = render(
+        <BasicLayout>
+          <div>正在加载</div>
+        </BasicLayout>,
+      );
 
-    const actions = container.querySelector('[data-slot="header-actions"]');
-    expect(actions).toHaveAttribute('aria-busy', 'true');
-    expect(
-      container.querySelector('[data-slot="header-auth-pending"]'),
-    ).toBeInTheDocument();
-    expect(
-      container.querySelector('[data-slot="header-account"]'),
-    ).not.toBeInTheDocument();
-    expect(
-      container.querySelector('[data-slot="skeleton"]'),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('navigation', { name: '主要导航' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /切换到.+主题/ }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: /账户/ }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: '打开导航菜单' }),
-    ).not.toBeInTheDocument();
-  });
+      const actions = container.querySelector('[data-slot="header-actions"]');
+      expect(actions).toHaveAttribute('aria-busy', 'true');
+      expect(
+        container.querySelector('[data-slot="header-auth-pending"]'),
+      ).toBeInTheDocument();
+      expect(
+        container.querySelector('[data-slot="header-account"]'),
+      ).not.toBeInTheDocument();
+      expect(
+        container.querySelector('[data-slot="skeleton"]'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('navigation', { name: '主要导航' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /切换到.+主题/ }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', { name: /账户/ }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: '打开导航菜单' }),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   it('focuses the mobile navigation title instead of the sign-out action', async () => {
     runtime.user = {

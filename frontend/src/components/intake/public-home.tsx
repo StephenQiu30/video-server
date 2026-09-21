@@ -10,6 +10,7 @@ import {
   PublicHomeSafeguards,
   PublicHomeWorkflow,
 } from '@/components/intake/public-home-details';
+import { PublicHomeFaq } from '@/components/intake/public-home-faq';
 import { EditorialIntro } from '@/components/layout/editorial-intro';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -56,7 +57,7 @@ export function PublicHome() {
       >
         <EditorialIntro
           description="开源、自托管地完成公开视频解析、本地视频与剧本文档导入、制品管理和 AI 分析。数据与运行边界由你掌控。"
-          eyebrow="开源视频工作流"
+          eyebrow="帧取 FrameFetch · 开源视频工作流"
           title={
             <>
               把素材，
@@ -114,7 +115,7 @@ export function PublicHome() {
           as="h2"
           description="Web 控制面、API 与 Worker 共享同一套权限、任务和制品模型，适合个人本地使用，也便于团队自托管。"
           eyebrow="核心功能"
-          title="从公开媒体到可验证制品"
+          title="视频解析、剧本处理与 AI 分析"
           titleId="capabilities-title"
         />
         <PublicHomeCapabilities items={capabilities} />
@@ -147,6 +148,14 @@ export function PublicHome() {
           </div>
         </div>
       </div>
+
+      <PublicHomeFaq />
+      <Link
+        className="focus-ring w-fit text-sm underline underline-offset-4"
+        href="/guide/"
+      >
+        阅读视频分析与自托管使用指南
+      </Link>
 
       <div
         className="flex flex-col items-start justify-between gap-8 py-20 sm:flex-row sm:items-end lg:py-28"

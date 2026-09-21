@@ -66,3 +66,7 @@ Biome 对官方 ui 源码中有明确用途的角色、事件、数组 key 与�
 Vitest 覆盖认证恢复、生成请求、上传、下载、分析和页面交互。浏览器额外检查桌面/390px、明暗主题、导航、焦点和溢出。生成成功、单元测试或构建成功均不等于 YouTube、抖音等平台的真实解析/下载验收。
 
 容器由本目录 Dockerfile 独立构建，构建上下文为 frontend；运行镜像只包含 Node.js 与 Next.js standalone。根 Compose 分别构建前后端镜像。
+
+## 公开页面与 SEO
+
+匿名首页与 `/guide/` 在服务端输出可阅读正文；存在会话 Cookie 的首页继续恢复工作区并禁止索引。`SITE_INDEXABLE` 默认 false，正式公开网站需明确设置 true，并使构建/运行时 `SITE_URL` 一致。调整后重建前端镜像。公开页面使用统一 canonical、OpenGraph 与 robots，sitemap 不包含私有路由。部署检查和 GEO 内容规则见 [SEO 与 GEO 运行手册](../docs/operations/010-SEO与GEO运行手册.md)。

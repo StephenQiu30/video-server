@@ -25,11 +25,30 @@
 
 ## 帧取是什么
 
-帧取（FrameFetch）是一个面向创作者、内容研究者和开发者的开源媒体工作流。它把公开媒体链接或本地剧本文档转换为可观察、可恢复的异步任务：解析来源、选择真实格式、隔离下载与校验、保存制品，并按需生成结构化 AI 分析报告。
+帧取（FrameFetch）是一个面向创作者、内容研究者和开发者的开源媒体工作流。它把公开媒体链接、本地视频或剧本文档转换为可观察、可恢复的异步任务：解析来源、选择真实格式、隔离下载与校验、保存制品，并按需生成结构化 AI 分析报告。
 
 项目不是规避平台限制的下载脚本。默认能力只处理用户有权使用、公开、免费且非 DRM 的 HTTP(S) 内容；受保护、会员、私密、购买或地域限制内容不属于项目目标。
 
 **English summary:** FrameFetch is an open-source, self-hosted video downloader and media workflow for authorized public content. It combines FastAPI, Next.js, PostgreSQL, RabbitMQ, MinIO, yt-dlp/FFmpeg adapters, screenplay ingestion and optional AI video analysis. See the [English README](README.en.md) for the complete overview.
+
+## 视频解析与 AI 分析如何配合
+
+1. 检查已获授权的公开媒体链接，或导入自己的本地视频、剧本文档。
+2. 确认来源和格式，跟踪处理任务；媒体制品与 AI 分析分别记录状态。
+3. 按需执行视频分镜、场景或剧本文档分析，结合时间轴与关键帧证据复核结果。
+4. 导出 Markdown / DOCX 报告，用于内容研究、创作整理与团队审阅。
+
+Web 实例的 `/guide/` 提供公开使用指南；完整实现与配置见下方能力表和[项目文档](docs/README.md)。模型可用性与输出内容取决于已配置的分析能力和 AI 服务。
+
+### 常见问题
+
+**帧取和 yt-dlp、FFmpeg 有什么关系？** yt-dlp 与 FFmpeg 是媒体适配和处理链路中的工具。FrameFetch 在其上提供 Web / API、用户与任务管理、隔离 Worker、制品存储、文档处理和可选 AI 分析，不保证所有提取器支持的平台在当前部署中都可用。
+
+**开源免费是否包含模型与服务器费用？** MIT 许可证开放源代码；服务器、存储、流量和外部模型可能产生费用，不包含免费托管或模型额度。
+
+**自托管是否代表所有数据仅在本地？** 数据保存在部署者配置的基础设施中；使用外部 AI Provider 时，分析所需内容会发送到该服务。启用前请确认素材授权与服务的数据处理约定。
+
+**Web 和手机端在哪个仓库？** 本仓库维护 API、Next.js Web 和 Worker；[video-app](https://github.com/StephenQiu30/video-app) 是连接本服务的 Flutter iOS / Android 客户端，不在手机端运行离线 AI。
 
 ## 产品能力
 
@@ -248,3 +267,5 @@ docker-compose-prod.yml  生产业务差异
 ## 许可证
 
 FrameFetch 基于 [MIT License](LICENSE) 开源。MIT 许可证授予软件使用、修改和分发权，不代表授予任何第三方媒体内容的下载、复制或分析权。
+
+公开网站的索引配置、生成式搜索可发现性与上线核查见 [SEO 与 GEO 运行手册](docs/operations/010-SEO与GEO运行手册.md)。个人自托管实例默认不开放索引。

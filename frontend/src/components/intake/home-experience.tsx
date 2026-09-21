@@ -8,17 +8,25 @@ import { WorkspaceHome } from '@/components/intake/workspace-home';
 
 type ResolvedHome = 'public' | 'workspace';
 
-export function HomeExperience({ publicHome }: { publicHome: ReactNode }) {
+export function HomeExperience({
+  publicHome,
+  initialPublic = false,
+}: {
+  publicHome: ReactNode;
+  initialPublic?: boolean;
+}) {
   const { loading, user } = useAuth();
   const resolvedView: ResolvedHome | undefined = loading
-    ? undefined
+    ? initialPublic
+      ? 'public'
+      : undefined
     : user
       ? 'workspace'
       : 'public';
 
   return (
     <div
-      aria-busy={loading || undefined}
+      aria-busy={(loading && !resolvedView) || undefined}
       className="relative flex min-h-[60vh] flex-1 flex-col"
       data-auth-pending={loading || undefined}
       data-home-phase={loading ? 'resolving' : 'ready'}
