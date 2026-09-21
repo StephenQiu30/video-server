@@ -9,6 +9,8 @@ from importlib.metadata import PackageNotFoundError, distribution
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from packaging.version import InvalidVersion, Version
+
 from app.workers.runner.settings import RunnerSettings
 from app.workers.runner.version import YTDLP_ENGINE_VERSION
 
@@ -78,8 +80,14 @@ def _runtime_packages_ready(settings: RunnerSettings) -> bool:
         "https://github.com/yt-dlp/yt-dlp/archive/"
         f"{settings.runner_ytdlp_commit}.tar.gz"
     )
+    if yt_dlp is None or yt_dlp[1] != expected_source:
+        return False
+    try:
+        engine_version_matches = Version(yt_dlp[0]) == Version(YTDLP_ENGINE_VERSION)
+    except InvalidVersion:
+        return False
     return bool(
-        yt_dlp == (YTDLP_ENGINE_VERSION, expected_source)
+        engine_version_matches
         and pot_release is not None
         and pot_plugin is not None
         and pot_plugin[0] == pot_release
