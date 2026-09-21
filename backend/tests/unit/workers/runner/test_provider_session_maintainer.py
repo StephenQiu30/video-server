@@ -68,7 +68,10 @@ def test_refresh_failure_preserves_previous_source(
     )
 
     result = maintainer.refresh_youtube_source(
-        source, state_root=tmp_path / "state", profile="Default"
+        source,
+        state_root=tmp_path / "state",
+        profile="Default",
+        revision_secret=b"unit-test-maintainer-hmac-secret",
     )
 
     assert result is maintainer.MaintenanceResult.PERMISSION_DENIED
@@ -93,7 +96,10 @@ def test_unchanged_refresh_does_not_publish_again(
 
     assert (
         maintainer.refresh_youtube_source(
-            source, state_root=tmp_path / "state", profile="Default"
+            source,
+            state_root=tmp_path / "state",
+            profile="Default",
+            revision_secret=b"unit-test-maintainer-hmac-secret",
         )
         is maintainer.MaintenanceResult.UNCHANGED
     )
@@ -120,7 +126,10 @@ def test_publish_failure_preserves_previous_source_and_records_failure(
     )
 
     result = maintainer.refresh_youtube_source(
-        source, state_root=state, profile="Default"
+        source,
+        state_root=state,
+        profile="Default",
+        revision_secret=b"unit-test-maintainer-hmac-secret",
     )
 
     assert result is maintainer.MaintenanceResult.SESSION_UNAVAILABLE
@@ -147,7 +156,10 @@ def test_corrupt_previous_state_does_not_block_refresh(
     )
 
     result = maintainer.refresh_youtube_source(
-        source, state_root=state, profile="Default"
+        source,
+        state_root=state,
+        profile="Default",
+        revision_secret=b"unit-test-maintainer-hmac-secret",
     )
 
     assert result is maintainer.MaintenanceResult.UNCHANGED

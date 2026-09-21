@@ -29,9 +29,7 @@ class StorageFileService:
             raise ValueError("invalid pagination")
         return await self._repository.list_files(page=page, page_size=page_size)
 
-    async def delete_file(
-        self, *, category: StoredFileCategory, file_id: UUID
-    ) -> None:
+    async def delete_file(self, *, category: StoredFileCategory, file_id: UUID) -> None:
         now = self._now()
         if now.tzinfo is None or now.utcoffset() is None:
             raise ValueError("deletion clock must be timezone-aware")

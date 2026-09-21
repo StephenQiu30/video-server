@@ -92,6 +92,7 @@ def test_frontend_compose_receives_only_required_runtime_configuration() -> None
         "NODE_ENV",
         "PORT",
         "SITE_URL",
+        "SITE_INDEXABLE",
     }
     for path in (COMPOSE_PATH, PROD_COMPOSE_PATH):
         document = yaml.safe_load(path.read_text(encoding="utf-8"))

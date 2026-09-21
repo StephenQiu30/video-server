@@ -1,15 +1,20 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { type RefObject, useCallback, useRef, useState } from 'react';
-import { useEffect } from 'react';
+import {
+  type RefObject,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+import { toast } from 'sonner';
 import { createDownload } from '@/api/downloads';
 import {
   inspectMedia as inspectDiscoveredItem,
   inspectMedia,
 } from '@/api/inspections';
 import { createSourceDiscovery } from '@/api/sourceDiscoveries';
-import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import {
   ContentIntakeHero,
   type IntakeMode,
@@ -25,9 +30,9 @@ import {
 import { SourceDiscoveryWorkspace } from '@/components/intake/source-discovery-workspace';
 import { useDocumentImport } from '@/components/intake/use-document-import';
 import { useMediaImport } from '@/components/intake/use-media-import';
+import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { markNavigationPush } from '@/components/layout/navigation-history';
 import { ScreenplayUploadForm } from '@/components/screenplay/screenplay-upload-form';
-import { toast } from 'sonner';
 import { displayError } from '@/lib/request-error';
 import { createUuid as createIdempotencyKey } from '@/lib/uuid';
 

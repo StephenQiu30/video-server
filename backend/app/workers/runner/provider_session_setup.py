@@ -99,9 +99,7 @@ def capture_chrome_session(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="采集、校验或加密迁移单平台会话文件"
-    )
+    parser = argparse.ArgumentParser(description="采集、校验或加密迁移单平台会话文件")
     parser.add_argument(
         "command",
         choices=(

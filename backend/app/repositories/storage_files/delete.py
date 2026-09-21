@@ -50,11 +50,14 @@ async def _delete_video(
         )
         if artifact is None:
             raise StorageFileError(StorageFileErrorCode.NOT_FOUND)
-        if await session.scalar(
-            select(AnalysisArtifactLockRow.job_id).where(
-                AnalysisArtifactLockRow.artifact_id == artifact.id
+        if (
+            await session.scalar(
+                select(AnalysisArtifactLockRow.job_id).where(
+                    AnalysisArtifactLockRow.artifact_id == artifact.id
+                )
             )
-        ) is not None:
+            is not None
+        ):
             raise StorageFileError(StorageFileErrorCode.IN_USE)
         await _delete_object(delete, artifact.object_key)
         artifact.deleted_at = now
@@ -78,11 +81,14 @@ async def _delete_document(
         )
         if document is None:
             raise StorageFileError(StorageFileErrorCode.NOT_FOUND)
-        if await session.scalar(
-            select(AnalysisDocumentLockRow.job_id).where(
-                AnalysisDocumentLockRow.document_id == document.id
+        if (
+            await session.scalar(
+                select(AnalysisDocumentLockRow.job_id).where(
+                    AnalysisDocumentLockRow.document_id == document.id
+                )
             )
-        ) is not None:
+            is not None
+        ):
             raise StorageFileError(StorageFileErrorCode.IN_USE)
         artifacts = tuple(
             await session.scalars(

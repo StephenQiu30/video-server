@@ -12,7 +12,7 @@
     "biome:lint": "biome lint .",
     "format:check": "biome check . --linter-enabled=false",
     "openapi": "node node_modules/@umijs/openapi/dist/cli.js",
-    "openapi:check": "pnpm openapi && git diff --exit-code -- src/api",
+    "openapi:check": "pnpm openapi && git diff --exit-code -- src/api && test -z \"$(git ls-files --others --exclude-standard -- src/api)\"",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

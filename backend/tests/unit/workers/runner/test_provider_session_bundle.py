@@ -42,9 +42,12 @@ def test_encrypted_bundle_restores_on_another_host_directory(tmp_path: Path) -> 
 
     assert stat.S_IMODE(key.stat().st_mode) == 0o600
     assert stat.S_IMODE(bundle.stat().st_mode) == 0o600
-    assert ProviderCookieFile(destination / "cookies.txt").read(
-        ProviderKey.YOUTUBE, ProviderSessionVersion.BROWSER
-    ) == COOKIE
+    assert (
+        ProviderCookieFile(destination / "cookies.txt").read(
+            ProviderKey.YOUTUBE, ProviderSessionVersion.BROWSER
+        )
+        == COOKIE
+    )
     assert b"fixture-only" not in bundle.read_bytes()
 
 
