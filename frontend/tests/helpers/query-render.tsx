@@ -4,13 +4,16 @@ import {
   renderHook as renderReactHook,
 } from '@testing-library/react';
 import type { ComponentType, ReactElement, ReactNode } from 'react';
+import { IntakeDraftProvider } from '@/components/intake/intake-draft-provider';
 import { QueryProvider } from '@/components/layout/query-provider';
 
 function withQueries(Wrapper?: ComponentType<{ children: ReactNode }>) {
   return function TestProviders({ children }: { children: ReactNode }) {
     return (
       <QueryProvider>
-        {Wrapper ? <Wrapper>{children}</Wrapper> : children}
+        <IntakeDraftProvider>
+          {Wrapper ? <Wrapper>{children}</Wrapper> : children}
+        </IntakeDraftProvider>
       </QueryProvider>
     );
   };

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { AuthProvider } from '@/components/auth/auth-provider';
+import { IntakeDraftProvider } from '@/components/intake/intake-draft-provider';
 import { BasicLayout } from '@/components/layout/basic-layout';
 import { QueryProvider } from '@/components/layout/query-provider';
 import { ThemeProvider } from '@/components/layout/theme-provider';
@@ -64,10 +65,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         >
           <AuthProvider>
             <QueryProvider>
-              <TooltipProvider delayDuration={300}>
-                <BasicLayout>{children}</BasicLayout>
-              </TooltipProvider>
-              <Toaster closeButton position="bottom-right" />
+              <IntakeDraftProvider>
+                <TooltipProvider delayDuration={300}>
+                  <BasicLayout>{children}</BasicLayout>
+                </TooltipProvider>
+                <Toaster closeButton position="bottom-right" />
+              </IntakeDraftProvider>
             </QueryProvider>
           </AuthProvider>
         </ThemeProvider>

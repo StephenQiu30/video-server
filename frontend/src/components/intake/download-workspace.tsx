@@ -16,11 +16,9 @@ import {
   inspectMedia,
 } from '@/api/inspections';
 import { createSourceDiscovery } from '@/api/sourceDiscoveries';
-import {
-  ContentIntakeHero,
-  type IntakeMode,
-} from '@/components/intake/content-intake-hero';
+import { ContentIntakeHero } from '@/components/intake/content-intake-hero';
 import InspectionWorkspace from '@/components/intake/inspection-workspace';
+import { useIntakeDraft } from '@/components/intake/intake-draft-provider';
 import { LinkDownloadForm } from '@/components/intake/link-download-form';
 import { MediaUploadForm } from '@/components/intake/media-upload-form';
 import {
@@ -49,8 +47,14 @@ type StableKey = { payload: string; value: string };
 export default function DownloadWorkspace() {
   const router = useRouter();
   const queries = useQueryClient();
-  const [mode, setMode] = useState<IntakeMode>('link');
-  const [url, setUrl] = useState('');
+  const {
+    mode,
+    setMode,
+    input: url,
+    setInput: setUrl,
+    declaredOrigin: mediaDeclaredOrigin,
+    setDeclaredOrigin: setMediaDeclaredOrigin,
+  } = useIntakeDraft();
   const [inspection, setInspection] = useState<API.InspectionResponse | null>(
     null,
   );
@@ -63,8 +67,6 @@ export default function DownloadWorkspace() {
   const [authorizationTarget, setAuthorizationTarget] =
     useState<ProviderAuthorizationTarget | null>(null);
   const [urlInvalid, setUrlInvalid] = useState(false);
-  const [mediaDeclaredOrigin, setMediaDeclaredOrigin] =
-    useState<API.DeclaredOrigin>('user_file');
   const inspectionKey = useRef<StableKey | null>(null);
   const discoveryKey = useRef<StableKey | null>(null);
   const downloadKey = useRef<StableKey | null>(null);

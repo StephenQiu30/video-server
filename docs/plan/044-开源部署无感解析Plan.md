@@ -254,8 +254,9 @@
 - 自动验证：`pnpm lint`、`pnpm format:check`、`pnpm build` 通过；72 个测试文件、368 项测试通过。新增导航缓存、后台失败保留数据、身份切换取消和迟到响应、StrictMode、输入不被迟到默认值覆盖的回归测试。
 - agent-browser 使用生产构建与受控接口夹具验证 UI：历史→文档→历史，逐帧观察为 0 帧历史骨架、0 帧登录跳转；阻断历史 API 后仍保留记录并显示刷新失败。桌面／390px、浅色／深色布局已检查无横向溢出。发现反馈文字和头像回退文字对比度不足并修复，四种尺寸／主题组合的 axe WCAG 2A／2AA 复验均为 0 违规、0 待判读项。
 - 本机录制：`/tmp/framefetch-query-continuity-verified.webm`；最终截图：`/tmp/framefetch-query-mobile-light-final.png`、`/tmp/framefetch-query-desktop-light-final.png`。夹具仅用于 UI 故障与导航复现，不是上游平台解析、认证协议或真实媒体验收证据。
-- 剩余：持久 intent 观察／同意图继续、owner 草稿与筛选恢复、下载／分析详情缓存、全部异常与身份场景的真实浏览器验收。P9.10 保持未勾选。
+- 剩余：持久 intent 观察／同意图继续、筛选恢复、下载／分析详情缓存、全部异常与身份场景的真实浏览器验收。P9.10 保持未勾选。
 - 响应丢失恢复接口：新增当前 owner + 幂等键的只读意图查询，使用现有唯一索引，不创建工作、不改变 version／截止、不新增 outbox／配额；陌生 owner 与未接单都返回相同 404。后端 29 项意图／交接集成测试、Ruff／Mypy 及自动生成客户端的类型检查和 13 项契约测试通过。Web 接入尚未完成。
+- 草稿连续性：输入原文、来源选择和文件来源声明移入身份代际隔离的根布局 Context，软导航保留，身份变更即时清空；不写 URL、localStorage 或 sessionStorage，刷新／关闭应用后不保留未提交原文。新增路由卸载恢复、换身份清除和独立应用实例隔离测试；前端 73 个文件、371 项测试以及 lint／format／类型检查／生产构建通过。agent-browser 在生产构建中验证输入→文档页→返回、来源选择恢复，390px 明暗主题无横向溢出且 axe 均为 0 违规、0 待判读；截图 `/tmp/framefetch-draft-mobile-dark.png`。此证据覆盖 UI 草稿，不替代已提交意图的持久恢复验收。
 
 <a id="p9-11"></a>
 
