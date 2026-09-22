@@ -1,4 +1,5 @@
 from app.integrations.provider_status import configured_provider_statuses
+from app.services.provider_access import ProviderAccessPolicy
 from app.services.provider_types import ProviderAccessMode, ProviderSupportStatus
 
 
@@ -41,3 +42,55 @@ def test_personal_video_routes_do_not_claim_download_verification() -> None:
         assert ProviderAccessMode.OPERATOR_MANAGED in statuses[key].access_modes
         assert statuses[key].status is ProviderSupportStatus.UNKNOWN
         assert statuses[key].download_available is False
+
+
+def test_fresh_guest_deployment_does_not_require_an_operator_source() -> None:
+    statuses = {
+        item.key: item
+        for item in configured_provider_statuses(
+            enabled_guest_keys=frozenset({"douyin"})
+        )
+    }
+    douyin = statuses["douyin"]
+    assert douyin.access_modes == (
+        ProviderAccessMode.ANONYMOUS,
+        ProviderAccessMode.GUEST,
+    )
+    assert douyin.default_access_policy_id is ProviderAccessPolicy.PUBLIC_SESSION
+    assert douyin.status is ProviderSupportStatus.UNKNOWN
+    assert not douyin.download_available
+    policies = {policy.id: policy.configured for policy in douyin.access_policies}
+    assert policies[ProviderAccessPolicy.PUBLIC_SESSION]
+    assert not policies[ProviderAccessPolicy.OPERATOR_PUBLIC]
+    assert "授权" not in douyin.user_action
+
+
+def test_operator_configuration_never_invents_guest_availability() -> None:
+    statuses = {
+        item.key: item for item in configured_provider_statuses(frozenset({"douyin"}))
+    }
+    douyin = statuses["douyin"]
+    assert douyin.access_modes == (
+        ProviderAccessMode.ANONYMOUS,
+        ProviderAccessMode.OPERATOR_MANAGED,
+    )
+    assert not next(
+        policy.configured
+        for policy in douyin.access_policies
+        if policy.id is ProviderAccessPolicy.PUBLIC_SESSION
+    )
+
+
+def test_explicit_route_default_is_preserved_with_guest_configured() -> None:
+    statuses = {
+        item.key: item
+        for item in configured_provider_statuses(
+            frozenset({"douyin"}),
+            {"douyin": ProviderAccessPolicy.OPERATOR_PUBLIC},
+            enabled_guest_keys=frozenset({"douyin"}),
+        )
+    }
+    assert (
+        statuses["douyin"].default_access_policy_id
+        is ProviderAccessPolicy.OPERATOR_PUBLIC
+    )

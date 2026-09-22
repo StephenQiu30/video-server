@@ -28,9 +28,13 @@ from app.workers.runner.provider_registry import (
 def configured_provider_statuses(
     enabled_operator_keys: Set[str] = frozenset(),
     default_policies: Mapping[str, ProviderAccessPolicy] | None = None,
+    *,
+    enabled_guest_keys: Set[str] = frozenset(),
 ) -> tuple[ProviderStatusView, ...]:
     configured = tuple(
-        _configured_status(profile, enabled_operator_keys, default_policies or {})
+        _configured_status(
+            profile, enabled_operator_keys, enabled_guest_keys, default_policies or {}
+        )
         for profile in current_provider_registry().profiles
     )
     non_runner = (
@@ -60,13 +64,14 @@ current_provider_statuses = configured_provider_statuses
 def _configured_status(
     profile: ProviderProfile,
     enabled_operator_keys: Set[str],
+    enabled_guest_keys: Set[str],
     defaults: Mapping[str, ProviderAccessPolicy],
 ) -> ProviderStatusView:
     access_modes = (
         ()
         if profile.support_status is ProviderSupportStatus.DISABLED
         else _effective_access_modes(
-            profile.key, profile.access_modes, enabled_operator_keys
+            profile.key, profile.access_modes, enabled_operator_keys, enabled_guest_keys
         )
     )
     status = (
@@ -87,6 +92,11 @@ def _configured_status(
     default_policy = (
         (
             defaults.get(profile.key)
+            or (
+                ProviderAccessPolicy.PUBLIC_SESSION
+                if ProviderAccessMode.GUEST in access_modes
+                else None
+            )
             or default_access_policy(profile.key, profile.access_modes)
         )
         if policies
@@ -99,6 +109,10 @@ def _configured_status(
     missing_default = any(
         item.id is default_policy and not item.configured for item in policies
     )
+    if default_policy is ProviderAccessPolicy.PUBLIC_SESSION and not missing_default:
+        # Configured visitor preparation is not an account requirement or a
+        # successful download. Current, matching canary evidence decides that.
+        status = ProviderSupportStatus.UNKNOWN
     return ProviderStatusView(
         key=profile.key,
         display_name=profile.display_name,
@@ -130,9 +144,15 @@ def _effective_access_modes(
     provider_key: str,
     declared: tuple[ProviderAccessMode, ...],
     enabled_operator_keys: Set[str],
+    enabled_guest_keys: Set[str],
 ) -> tuple[ProviderAccessMode, ...]:
     return tuple(
         mode
         for mode in declared
-        if mode is ProviderAccessMode.ANONYMOUS or provider_key in enabled_operator_keys
+        if mode is ProviderAccessMode.ANONYMOUS
+        or (
+            mode is ProviderAccessMode.OPERATOR_MANAGED
+            and provider_key in enabled_operator_keys
+        )
+        or (mode is ProviderAccessMode.GUEST and provider_key in enabled_guest_keys)
     )

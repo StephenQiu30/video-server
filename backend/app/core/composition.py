@@ -257,7 +257,9 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
     )
     user_service = UserService(repository=user_repository, now=clock)
     provider_baselines = configured_provider_statuses(
-        operator_provider_keys(settings), settings.runner_default_access_policies
+        operator_provider_keys(settings),
+        settings.runner_default_access_policies,
+        enabled_guest_keys=frozenset(settings.runner_guest_base_urls),
     )
     provider_catalog_service = ProviderCatalogService(
         provider_catalog_repository,
