@@ -62,11 +62,11 @@ export default function FormatPicker({
                       <strong className="text-[15px] tracking-[-0.02em]">
                         {plan.height}P
                       </strong>
-                      <span className="font-mono text-xs text-muted-foreground">
+                      <span className="font-mono text-xs text-foreground/70">
                         {plan.container_preference.toUpperCase()}
                       </span>
                     </span>
-                    <span className="mt-1 block truncate text-xs text-muted-foreground">
+                    <span className="mt-1 block truncate text-xs text-foreground/70">
                       {plan.width}×{plan.height} ·{' '}
                       {plan.video_codec_family.toUpperCase()} ·{' '}
                       {audioCodecLabel(plan.audio_codec_family)} ·{' '}
@@ -80,7 +80,7 @@ export default function FormatPicker({
                         {format.display_name}
                       </strong>
                     </span>
-                    <span className="mt-1 block truncate text-xs text-muted-foreground">
+                    <span className="mt-1 block truncate text-xs text-foreground/70">
                       {mediaKind === 'video_collection'
                         ? '视频合集 · 视频 ZIP'
                         : '官方图文 · 原图 ZIP'}

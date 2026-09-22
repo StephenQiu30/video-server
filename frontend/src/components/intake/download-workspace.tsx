@@ -28,11 +28,14 @@ import {
 } from '@/components/intake/public-input';
 import { SourceDiscoveryWorkspace } from '@/components/intake/source-discovery-workspace';
 import { useDocumentImport } from '@/components/intake/use-document-import';
+import { useDownloadIntent } from '@/components/intake/use-download-intent';
 import { useMediaImport } from '@/components/intake/use-media-import';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { markNavigationPush } from '@/components/layout/navigation-history';
 import { ProviderAuthorizationDialog } from '@/components/providers/provider-authorization-dialog';
 import { ScreenplayUploadForm } from '@/components/screenplay/screenplay-upload-form';
+import { Button } from '@/components/ui/button';
+import { localizedErrorMessage } from '@/lib/error-messages';
 import {
   type ProviderAuthorizationTarget,
   providerAuthorizationTarget,
@@ -54,18 +57,25 @@ export default function DownloadWorkspace() {
     setInput: setUrl,
     declaredOrigin: mediaDeclaredOrigin,
     setDeclaredOrigin: setMediaDeclaredOrigin,
+    selectedFormatId,
+    setSelectedFormatId: setSelectedId,
   } = useIntakeDraft();
-  const [inspection, setInspection] = useState<API.InspectionResponse | null>(
-    null,
-  );
+  const intent = useDownloadIntent();
+  const [localInspection, setInspection] =
+    useState<API.InspectionResponse | null>(null);
+  const inspection = localInspection ?? intent.inspection ?? null;
+  const selectedId = selectedFormatId || inspection?.formats[0]?.id || '';
   const [discovery, setDiscovery] =
     useState<API.SourceDiscoveryResponse | null>(null);
   const [busyItemRef, setBusyItemRef] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState('');
   const [busy, setBusy] = useState<BusyAction>(null);
   const [error, setError] = useState<string | null>(null);
   const [authorizationTarget, setAuthorizationTarget] =
     useState<ProviderAuthorizationTarget | null>(null);
+  const intentAuthorization =
+    intent.snapshot?.status === 'failed' && intent.snapshot.reason_code
+      ? providerAuthorizationTarget(url, intent.snapshot.reason_code)
+      : null;
   const [urlInvalid, setUrlInvalid] = useState(false);
   const inspectionKey = useRef<StableKey | null>(null);
   const discoveryKey = useRef<StableKey | null>(null);
@@ -104,6 +114,7 @@ export default function DownloadWorkspace() {
   }, [mediaImport.notice]);
 
   function clearLinkResult() {
+    if (!intent.pending) intent.clear();
     setInspection(null);
     setDiscovery(null);
     setSelectedId('');
@@ -111,7 +122,7 @@ export default function DownloadWorkspace() {
   }
 
   async function inspect(accessPolicy?: API.ProviderAccessPolicy) {
-    if (busy !== null) return;
+    if (busy !== null || (intent.pending && !intent.canResubmit)) return;
     const input = url.trim();
     clearLinkResult();
     if (!hasPublicInput(input)) {
@@ -132,7 +143,7 @@ export default function DownloadWorkspace() {
           },
         );
         setDiscovery(result);
-      } else {
+      } else if (accessPolicy) {
         const source: API.PublicUrlInspectionSource = {
           kind: 'public_url',
           url: input,
@@ -152,6 +163,8 @@ export default function DownloadWorkspace() {
         );
         setInspection(result);
         setSelectedId(result.formats[0]?.id ?? '');
+      } else {
+        await intent.submit(input, intent.canResubmit);
       }
     } catch (reason) {
       setAuthorizationTarget(
@@ -234,11 +247,16 @@ export default function DownloadWorkspace() {
   return (
     <div className="pb-6" data-slot="download-workspace">
       <ContentIntakeHero
-        disabled={busy !== null || mediaImport.busy || documentImport.busy}
+        disabled={
+          busy !== null ||
+          intent.pending ||
+          mediaImport.busy ||
+          documentImport.busy
+        }
         linkForm={
           <LinkDownloadForm
-            busy={busy === 'inspect'}
-            disabled={busy !== null}
+            busy={busy === 'inspect' || (intent.pending && !intent.canResubmit)}
+            disabled={busy !== null || (intent.pending && !intent.canResubmit)}
             hasResult={inspection !== null || discovery !== null}
             invalid={urlInvalid}
             onInspect={() => void inspect()}
@@ -286,6 +304,73 @@ export default function DownloadWorkspace() {
           />
         }
       />
+      {mode === 'link' && intent.attempt ? (
+        <section className="mt-8 space-y-3" aria-label="解析任务状态">
+          <FeedbackNotice
+            title={
+              intent.error
+                ? '任务状态暂时无法更新'
+                : intentTitle(intent.snapshot?.status)
+            }
+            description={
+              intent.error ??
+              (intent.snapshot?.reason_code
+                ? localizedErrorMessage(intent.snapshot.reason_code)
+                : null) ??
+              (!intent.snapshot
+                ? '正在确认接单，请稍候，无需重复提交。'
+                : intent.pending
+                  ? '任务已在后台处理，切换页面不会中断解析。'
+                  : intent.snapshot?.status === 'ready'
+                    ? '解析完成，请选择需要的下载规格。'
+                    : intent.snapshot?.status === 'handed_off'
+                      ? '已创建下载任务，可继续查看进度。'
+                      : '本次解析已结束。')
+            }
+            tone={
+              intent.error ||
+              intent.snapshot?.status === 'failed' ||
+              intent.snapshot?.status === 'expired'
+                ? 'error'
+                : 'info'
+            }
+          />
+          <div className="flex flex-wrap gap-2">
+            {intentAuthorization ? (
+              <ProviderAuthorizationDialog
+                onAuthorized={() => inspect(intentAuthorization.accessPolicy)}
+                provider={{
+                  authorization_action: intentAuthorization.authorizationAction,
+                  display_name: intentAuthorization.displayName,
+                  key: intentAuthorization.key,
+                }}
+              />
+            ) : null}
+            {intent.error ? (
+              <Button variant="outline" onClick={() => void intent.retry()}>
+                恢复任务
+              </Button>
+            ) : null}
+            {intent.snapshot &&
+            (intent.pending || intent.snapshot.status === 'action_required') ? (
+              <Button
+                variant="outline"
+                disabled={intent.cancelling}
+                onClick={() => void intent.cancel()}
+              >
+                {intent.cancelling ? '正在取消…' : '取消解析'}
+              </Button>
+            ) : null}
+            {intent.snapshot?.job_id ? (
+              <Button
+                onClick={() => openDownload(intent.snapshot?.job_id ?? '')}
+              >
+                查看下载任务
+              </Button>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
       <div
         aria-atomic="true"
         aria-live="polite"
@@ -337,7 +422,9 @@ export default function DownloadWorkspace() {
           onSelect={(item) => void selectDiscoveredItem(item)}
         />
       ) : null}
-      {mode === 'link' && inspection ? (
+      {mode === 'link' &&
+      inspection &&
+      intent.snapshot?.status !== 'handed_off' ? (
         <InspectionWorkspace
           busy={busy === 'create'}
           inspection={inspection}
@@ -353,6 +440,33 @@ export default function DownloadWorkspace() {
       ) : null}
     </div>
   );
+}
+
+function intentTitle(status?: API.IntentStatus) {
+  switch (status) {
+    case 'queued':
+      return '等待解析';
+    case 'preparing':
+      return '正在准备解析';
+    case 'resolving':
+      return '正在读取媒体信息';
+    case 'retry_wait':
+      return '正在自动恢复';
+    case 'action_required':
+      return '此内容需要额外权限';
+    case 'ready':
+      return '解析完成';
+    case 'handed_off':
+      return '下载任务已创建';
+    case 'cancelled':
+      return '解析已取消';
+    case 'expired':
+      return '本次解析已超时';
+    case 'failed':
+      return '本次解析未完成';
+    default:
+      return '正在确认解析任务';
+  }
 }
 
 function stableKey(ref: RefObject<StableKey | null>, payload: string) {

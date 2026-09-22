@@ -5,6 +5,7 @@ import { httpClient } from '@/lib/request';
 import { MockWebSocket } from './helpers/websocket';
 
 beforeEach(() => {
+  sessionStorage.clear();
   // Happy DOM has no Web Locks. Individual coordination tests hold/reject this
   // callback; regular view tests model an immediately available browser lock.
   Object.defineProperty(navigator, 'locks', {

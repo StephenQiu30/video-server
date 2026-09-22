@@ -14,6 +14,7 @@ import {
   sourceDiscovery,
   videoCollectionInspection,
 } from '../fixtures/download-fixtures';
+import { intentFixture } from '../fixtures/intent-fixtures';
 import {
   httpRequests,
   mockHttpError,
@@ -28,7 +29,7 @@ const authorization = vi.hoisted(() => ({
   get: vi.fn(),
 }));
 const auth = vi.hoisted(() => ({
-  user: { role: 'admin' },
+  user: { id: 'intent-test-owner', role: 'admin' },
 }));
 
 vi.mock('@/api/providers', () => ({
@@ -56,7 +57,7 @@ vi.mock('next/navigation', () => ({
 
 describe('DownloadWorkspace', () => {
   beforeEach(() => {
-    auth.user = { role: 'admin' };
+    auth.user = { id: 'intent-test-owner', role: 'admin' };
     push.mockReset();
     authorization.begin.mockReset();
     authorization.cancel.mockReset();
@@ -66,14 +67,13 @@ describe('DownloadWorkspace', () => {
   });
 
   it('does not turn provider verification failures into account authorization', async () => {
-    auth.user = { role: 'user' };
-    mockHttpError(
-      new ApiError(
-        422,
-        'provider_verification_failed',
-        '需要平台验证',
-        '平台要求验证。',
-      ),
+    auth.user = { id: 'intent-test-owner', role: 'user' };
+    mockHttpResponses(
+      intentFixture({
+        status: 'failed',
+        inspection_id: null,
+        reason_code: 'provider_verification_failed',
+      }),
     );
     renderWorkspace();
 
@@ -146,7 +146,7 @@ describe('DownloadWorkspace', () => {
   });
 
   it('clears a stale inspection when the URL changes', async () => {
-    mockHttpResponses(inspection);
+    mockReadyInspection(inspection);
     renderWorkspace();
 
     const input = screen.getByLabelText('公开视频地址');
@@ -171,7 +171,7 @@ describe('DownloadWorkspace', () => {
 
   it('locks the submitted URL until its inspection response is applied', async () => {
     let resolveInspection:
-      | ((value: { data: typeof inspection }) => void)
+      | ((value: { data: API.IntentResponse }) => void)
       | undefined;
     vi.mocked(httpClient.request).mockImplementationOnce(
       () =>
@@ -193,13 +193,14 @@ describe('DownloadWorkspace', () => {
     expect(input).toBeDisabled();
     expect(screen.getByRole('button', { name: '清空链接' })).toBeDisabled();
 
-    resolveInspection?.({ data: inspection });
+    mockHttpResponses(inspection);
+    resolveInspection?.({ data: intentFixture() });
     expect(await screen.findByText(inspection.title)).toBeInTheDocument();
     expect(input).toBeEnabled();
   });
 
   it('sends the original share message to the server for inspection', async () => {
-    mockHttpResponses(inspection);
+    mockReadyInspection(inspection);
     renderWorkspace();
 
     fireEvent.change(screen.getByLabelText('公开视频地址'), {
@@ -210,18 +211,15 @@ describe('DownloadWorkspace', () => {
     expect(await screen.findByText(inspection.title)).toBeInTheDocument();
     expect(httpRequests()[0]).toMatchObject({
       data: {
-        source: {
-          kind: 'public_url',
-          url: reportedDouyinShareMessage,
-        },
+        input: reportedDouyinShareMessage,
       },
       method: 'POST',
-      url: '/api/inspections',
+      url: '/api/download-intents',
     });
   });
 
   it('sends the complete Hongguo share message without client rewriting', async () => {
-    mockHttpResponses(inspection);
+    mockReadyInspection(inspection);
     renderWorkspace();
 
     const shareMessage =
@@ -236,17 +234,18 @@ describe('DownloadWorkspace', () => {
     expect(await screen.findByText(inspection.title)).toBeInTheDocument();
     expect(httpRequests()[0]).toMatchObject({
       data: {
-        source: {
-          kind: 'public_url',
-          url: shareMessage,
-        },
+        input: shareMessage,
       },
     });
   });
 
   it('does not mark the URL field invalid when inspection fails downstream', async () => {
-    mockHttpError(
-      new ApiError(504, 'inspection_timeout', '解析超时', '媒体解析超时。'),
+    mockHttpResponses(
+      intentFixture({
+        status: 'failed',
+        inspection_id: null,
+        reason_code: 'inspection_timeout',
+      }),
     );
     renderWorkspace();
 
@@ -264,13 +263,12 @@ describe('DownloadWorkspace', () => {
   });
 
   it('does not retry ambiguous verification failures with an account session', async () => {
-    mockHttpError(
-      new ApiError(
-        422,
-        'provider_verification_failed',
-        '需要平台验证',
-        '平台要求验证。',
-      ),
+    mockHttpResponses(
+      intentFixture({
+        status: 'failed',
+        inspection_id: null,
+        reason_code: 'provider_verification_failed',
+      }),
     );
     renderWorkspace();
 
@@ -294,13 +292,12 @@ describe('DownloadWorkspace', () => {
 
   it('offers the managed Yuanbao session for WeChat Channels', async () => {
     const url = 'https://weixin.qq.com/sph/AvvqOTT0yG';
-    mockHttpError(
-      new ApiError(
-        422,
-        'provider_auth_required',
-        '需要平台授权',
-        '平台要求授权。',
-      ),
+    mockHttpResponses(
+      intentFixture({
+        status: 'failed',
+        inspection_id: null,
+        reason_code: 'provider_auth_required',
+      }),
     );
     mockHttpResponses(inspection);
     renderWorkspace();
@@ -331,7 +328,7 @@ describe('DownloadWorkspace', () => {
   });
 
   it('does not mark the URL field invalid when task creation fails', async () => {
-    mockHttpResponses(inspection);
+    mockReadyInspection(inspection);
     mockHttpError(
       new ApiError(503, 'download_failed', '创建失败', '任务创建失败。'),
     );
@@ -351,7 +348,7 @@ describe('DownloadWorkspace', () => {
   });
 
   it('inspects a public URL, creates a download, and opens its Next route', async () => {
-    mockHttpResponses(inspection, job());
+    mockReadyInspection(inspection, job());
     renderWorkspace();
 
     fireEvent.change(screen.getByLabelText('公开视频地址'), {
@@ -375,15 +372,13 @@ describe('DownloadWorkspace', () => {
     expect(httpRequests()).toMatchObject([
       {
         data: {
-          source: {
-            kind: 'public_url',
-            url: 'https://media.example/owned',
-          },
+          input: 'https://media.example/owned',
         },
         headers: { 'Idempotency-Key': expect.any(String) },
         method: 'POST',
-        url: '/api/inspections',
+        url: '/api/download-intents',
       },
+      { method: 'GET', url: `/api/inspections/${inspection.id}` },
       {
         data: {
           format_id: inspection.formats[0].id,
@@ -397,7 +392,7 @@ describe('DownloadWorkspace', () => {
   });
 
   it('shows an official image note as a ZIP download option', async () => {
-    mockHttpResponses(galleryInspection, galleryJob());
+    mockReadyInspection(galleryInspection, galleryJob());
     renderWorkspace();
 
     fireEvent.change(screen.getByLabelText('公开视频地址'), {
@@ -415,7 +410,7 @@ describe('DownloadWorkspace', () => {
   });
 
   it('shows a multi-video source as a ZIP download option', async () => {
-    mockHttpResponses(videoCollectionInspection);
+    mockReadyInspection(videoCollectionInspection);
     renderWorkspace();
 
     fireEvent.change(screen.getByLabelText('公开视频地址'), {
@@ -435,7 +430,7 @@ describe('DownloadWorkspace', () => {
   });
 
   it('routes a recognized WeChat Channels source to owned-file upload', async () => {
-    mockHttpResponses({
+    mockReadyInspection({
       ...inspection,
       extractor_key: 'wechat_channels',
       title: '微信视频号内容',
@@ -533,7 +528,7 @@ describe('DownloadWorkspace', () => {
   });
 
   it('does not offer a download for Tencent consumer playback content', async () => {
-    mockHttpResponses({
+    mockReadyInspection({
       ...inspection,
       extractor_key: 'qqvideo',
       title: '腾讯视频内容',
@@ -566,7 +561,7 @@ describe('DownloadWorkspace', () => {
   });
 
   it('labels a blocked inspection as currently unavailable', async () => {
-    mockHttpResponses({
+    mockReadyInspection({
       ...inspection,
       formats: [],
       access_decision: 'blocked',
@@ -593,4 +588,11 @@ function renderWorkspace() {
       <DownloadWorkspace />
     </TooltipProvider>,
   );
+}
+
+function mockReadyInspection(
+  value: API.InspectionResponse,
+  ...more: unknown[]
+) {
+  mockHttpResponses(intentFixture({ inspection_id: value.id }), value, ...more);
 }

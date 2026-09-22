@@ -5,6 +5,10 @@ import { WorkspaceHome } from '@/components/intake/workspace-home';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { render } from '../helpers/query-render';
 
+vi.mock('@/components/auth/auth-provider', () => ({
+  useAuth: () => ({ user: { id: 'intent-test-owner', role: 'user' } }),
+}));
+
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 describe('WorkspaceHome', () => {

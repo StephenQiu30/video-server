@@ -3,12 +3,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DownloadWorkspace from '@/components/intake/download-workspace';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { inspection } from '../fixtures/download-fixtures';
+import { intentFixture } from '../fixtures/intent-fixtures';
 import {
   httpRequests,
   mockHttpError,
   mockHttpResponses,
 } from '../helpers/http';
 import { render } from '../helpers/query-render';
+
+vi.mock('@/components/auth/auth-provider', () => ({
+  useAuth: () => ({ user: { id: 'intent-test-owner', role: 'user' } }),
+}));
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 const statuses = vi.hoisted(() => vi.fn(() => ({ data: null, error: null })));
@@ -27,7 +32,10 @@ describe('simple download entry', () => {
   beforeEach(() => window.history.replaceState({}, '', '/'));
 
   it('submits only the input and does not fetch provider configuration', async () => {
-    mockHttpResponses({ ...inspection, access_policy_id: 'operator_public' });
+    mockHttpResponses(intentFixture(), {
+      ...inspection,
+      access_policy_id: 'operator_public',
+    });
     render(
       <TooltipProvider>
         <DownloadWorkspace />
@@ -39,14 +47,14 @@ describe('simple download entry', () => {
     enter(url);
     expect(await screen.findByText(inspection.title)).toBeInTheDocument();
     expect(screen.queryByText('部署者公开会话')).not.toBeInTheDocument();
-    expect(httpRequests()).toHaveLength(1);
+    expect(httpRequests()).toHaveLength(2);
     expect(httpRequests()[0].data).toEqual({
-      source: { kind: 'public_url', url },
+      input: url,
     });
   });
 
   it('clears previous results and changes the key only when input changes', async () => {
-    mockHttpResponses(inspection, inspection);
+    mockHttpResponses(intentFixture(), inspection, intentFixture());
     render(
       <TooltipProvider>
         <DownloadWorkspace />
@@ -62,15 +70,17 @@ describe('simple download entry', () => {
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
     await screen.findByText(inspection.title);
-    const requests = httpRequests();
+    const requests = httpRequests().filter(
+      (request) => request.method === 'POST',
+    );
     expect(requests[0].headers?.['Idempotency-Key']).not.toBe(
       requests[1].headers?.['Idempotency-Key'],
     );
   });
 
-  it('keeps the input and reuses the key after an uncertain failure', async () => {
-    mockHttpError(new Error('request failed'));
-    mockHttpResponses(inspection);
+  it('finds the original intent after an uncertain submission without replaying POST', async () => {
+    mockHttpError(new Error('response lost'));
+    mockHttpResponses(intentFixture(), inspection);
     render(
       <TooltipProvider>
         <DownloadWorkspace />
@@ -78,13 +88,16 @@ describe('simple download entry', () => {
     );
     const url = 'https://youtu.be/owned';
     enter(url);
-    await screen.findByText('操作未完成');
-    expect(screen.getByLabelText('公开视频地址')).toHaveValue(url);
-    fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
     await screen.findByText(inspection.title);
+    expect(screen.getByLabelText('公开视频地址')).toHaveValue(url);
     const requests = httpRequests();
-    expect(requests[0].headers?.['Idempotency-Key']).toBe(
-      requests[1].headers?.['Idempotency-Key'],
-    );
+    expect(
+      requests.filter((request) => request.method === 'POST'),
+    ).toHaveLength(1);
+    expect(requests[1]).toMatchObject({
+      method: 'GET',
+      url: '/api/download-intents',
+      params: { idempotency_key: requests[0].headers?.['Idempotency-Key'] },
+    });
   });
 });

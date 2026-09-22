@@ -7,6 +7,10 @@ import { QueryProvider } from '@/components/layout/query-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { advanceSessionGeneration } from '@/lib/session-events';
 
+vi.mock('@/components/auth/auth-provider', () => ({
+  useAuth: () => ({ user: { id: 'intent-test-owner', role: 'user' } }),
+}));
+
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 function Routes() {

@@ -23,6 +23,10 @@ import * as mediaImportRuntime from '@/lib/upload/media-import';
 
 const push = vi.fn();
 
+vi.mock('@/components/auth/auth-provider', () => ({
+  useAuth: () => ({ user: { id: 'intent-test-owner', role: 'user' } }),
+}));
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
 }));
