@@ -95,6 +95,7 @@ def test_swagger_ui_and_openapi_contract_are_available(tmp_path: Path) -> None:
         "getSourceDiscovery",
         "inspectMedia",
         "createDownloadIntent",
+        "findDownloadIntent",
         "getDownloadIntent",
         "cancelDownloadIntent",
         "getInspection",
