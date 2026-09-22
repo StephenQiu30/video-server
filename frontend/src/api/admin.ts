@@ -177,6 +177,17 @@ export async function getAdminProviderRuntime(options?: RequestOptions) {
   );
 }
 
+/** 读取匿名 Runner 实际安装的引擎候选清单 GET /api/admin/provider-runtime/engine-catalog */
+export async function getAdminEngineCatalog(options?: RequestOptions) {
+  return request<API.ApiResponseEngineCatalogResponse_>(
+    "/api/admin/provider-runtime/engine-catalog",
+    {
+      method: "GET",
+      ...(options || {}),
+    }
+  );
+}
+
 /** 查询平台目录 GET /api/admin/providers */
 export async function listProviderCatalogEntries(options?: RequestOptions) {
   return request<API.ApiResponseProviderCatalogListResponse_>(

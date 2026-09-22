@@ -8,7 +8,8 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Protocol
 
-from app.services.provider_types import ProviderAccessContextRef
+from app.schemas.engine_catalog import EngineCatalogResponse
+from app.services.provider_types import ProviderAccessContextRef, ProviderAccessMode
 from app.workers.runner.contracts import (
     CancelCommand,
     CancelResponse,
@@ -22,6 +23,7 @@ from app.workers.runner.contracts import (
     ProviderContextsResponse,
     TaskStatusResponse,
 )
+from app.workers.runner.engine_catalog import RunnerEngineCatalog
 from app.workers.runner.errors import RunnerFailure
 from app.workers.runner.provider_registry import configure_provider_instances
 from app.workers.runner.provider_sessions import ProviderSessionStore
@@ -113,6 +115,7 @@ def create_app(
         session_ready=sessions.is_ready,
     )
     runtime_probe = RunnerReadiness(configured)
+    engine_catalog = RunnerEngineCatalog(configured)
     authenticator = HmacRequestAuthenticator(
         configured.hmac_secret_bytes,
         nonce_guard=InMemoryNonceGuard(
@@ -176,6 +179,13 @@ def create_app(
                 "status": "ready" if healthy else "unavailable",
             },
         )
+
+    @app.get("/internal/v1/engine-catalog", response_model=EngineCatalogResponse)
+    async def get_engine_catalog(request: Request) -> EngineCatalogResponse:
+        await _authenticated_body(request, configured, authenticator)
+        if configured.runner_access_mode is not ProviderAccessMode.ANONYMOUS:
+            raise RunnerFailure("engine_catalog_unavailable", status=503)
+        return await engine_catalog.get()
 
     @app.post("/internal/v1/inspect", response_model=InspectResponse)
     async def inspect(request: Request) -> InspectResponse:

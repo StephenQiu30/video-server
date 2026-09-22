@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack
 from dataclasses import dataclass
 
@@ -14,6 +15,7 @@ from app.integrations.realtime import RabbitMqRealtimeConsumer, RealtimeHub
 from app.repositories.auth.redis_auth_repository import RedisAuthSessionStore
 from app.repositories.operational_metrics import OperationalMetrics
 from app.repositories.task_event_store import TaskEventStore
+from app.schemas.engine_catalog import EngineCatalogResponse
 from app.services.ai_providers import AiProviderService
 from app.services.analysis.cancel_analysis import CancelAnalysis
 from app.services.analysis.create_analysis import CreateAnalysis
@@ -132,6 +134,7 @@ class DocumentImportUseCases:
 
 @dataclass(slots=True)
 class ApiServices:
+    engine_catalog_reader: Callable[[], Awaitable[EngineCatalogResponse]] | None = None
     intent_service: IntentService | None = None
     auth_service: AuthService | None = None
     user_service: UserService | None = None

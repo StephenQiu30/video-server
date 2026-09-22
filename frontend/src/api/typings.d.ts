@@ -315,6 +315,15 @@ declare namespace API {
     data: DownloadUrlResponse;
   };
 
+  type ApiResponseEngineCatalogResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: EngineCatalogResponse;
+  };
+
   type ApiResponseInspectionResponse_ = {
     /** 稳定的业务结果码。 */
     code: ErrorCode;
@@ -1022,6 +1031,36 @@ declare namespace API {
     email: string;
     /** Password */
     password: string;
+  };
+
+  type EngineCandidateResponse = {
+    /** Key */
+    key: string;
+    /** Name */
+    name: string;
+    /** Upstream Working */
+    upstream_working: boolean;
+  };
+
+  type EngineCatalogResponse = {
+    /** Scope */
+    scope?: string;
+    /** Engine Version */
+    engine_version: string;
+    /** Engine Commit */
+    engine_commit?: string | null;
+    /** Expected Engine Commit */
+    expected_engine_commit: string;
+    /** Pin Matches */
+    pin_matches: boolean;
+    /** Bundled Plugins Sha256 */
+    bundled_plugins_sha256: string;
+    /** Pot Provider Version */
+    pot_provider_version?: string | null;
+    /** Manifest Id */
+    manifest_id: string;
+    /** Candidates */
+    candidates: EngineCandidateResponse[];
   };
 
   type EntitlementState =

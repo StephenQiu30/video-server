@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ProviderCatalogScreen } from '@/components/admin/admin-provider-catalog/provider-catalog-screen';
 import { AdminProviderCatalogView } from '@/components/admin/admin-provider-catalog-view';
+import { QueryProvider } from '@/components/layout/query-provider';
 
 const runtime = vi.hoisted(() => ({
   create: vi.fn(),
@@ -30,7 +31,11 @@ describe('administrator provider catalog management', () => {
   });
 
   it('maps create, edit, visibility and delete actions to the admin API', async () => {
-    render(<AdminProviderCatalogView />);
+    render(
+      <QueryProvider>
+        <AdminProviderCatalogView />
+      </QueryProvider>,
+    );
 
     expect(
       await screen.findByRole('heading', { level: 1, name: '平台目录' }),

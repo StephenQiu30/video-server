@@ -508,6 +508,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
     )
     return ApiRuntime(
         services=ApiServices(
+            engine_catalog_reader=runner.engine_catalog,
             intent_service=IntentService(
                 IntentRepository(sessions, quota_policy=quota_policy),
                 MediaUrlValidator(),

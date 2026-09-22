@@ -23,6 +23,7 @@ from app.integrations.media_runner_models import (
     RunnerProgress,
     download_stage,
 )
+from app.schemas.engine_catalog import EngineCatalogResponse
 from app.services.downloads.errors import (
     MediaInspectionAuthRequired,
     MediaInspectionConfigurationMissing,
@@ -81,6 +82,8 @@ ResponseModel = TypeVar("ResponseModel", bound=BaseModel)
 
 class MediaRunnerClient(Protocol):
     """Runner strategy used by the routing facade."""
+
+    async def engine_catalog(self) -> EngineCatalogResponse: ...
 
     async def context(self, url: str) -> ProviderAccessContextRef: ...
 
@@ -141,6 +144,16 @@ class MediaRunnerHttpClient:
         self._admission = admission
         self._expected_access_mode = expected_access_mode
         self._client = client or httpx.AsyncClient(base_url=base_url)
+
+    async def engine_catalog(self) -> EngineCatalogResponse:
+        return await self._request(
+            "GET",
+            "/internal/v1/engine-catalog",
+            b"",
+            EngineCatalogResponse,
+            15.0,
+            timeout_code="engine_catalog_unavailable",
+        )
 
     async def context(self, url: str) -> ProviderAccessContextRef:
         return await self.context_for_provider(provider_profile(url).key)
@@ -491,6 +504,9 @@ class MediaRunnerRouter:
         self, url: str, requested: ProviderAccessPolicy | None = None
     ) -> ProviderAccessPolicy:
         return self._inspection_pipeline.resolve_access_policy(url, requested)
+
+    async def engine_catalog(self) -> EngineCatalogResponse:
+        return await self._anonymous.engine_catalog()
 
     async def inspect(
         self, url: str, *, access_policy: ProviderAccessPolicy | None = None
