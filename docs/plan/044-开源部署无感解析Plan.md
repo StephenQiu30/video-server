@@ -354,7 +354,7 @@
 
 ### P9.12 Flutter 契约同步与恢复
 
-- [ ] **P9.12**；状态：未开始；承接者：待分配；职责：video-app 独立仓库／服务端契约；依赖：P9.02、P9.07、P9.08。
+- [ ] **P9.12**；状态：进行中；承接者：Codex；职责：video-app 独立仓库／服务端契约；依赖：P9.02、P9.07、P9.08。
   - 功能需求：FR-02、FR-06、FR-13、FR-16。生成新契约、观察 intent、必要动作和前后台恢复，不复制平台准备逻辑。
   - 非功能需求：NFR-06、NFR-09、NFR-10。既有 Riverpod／Dio／go_router；原生认证和用户隔离；不保存 Provider 凭据。
   - 交付：App 对应设计与台账链接、冻结 schema 和生成客户端、Controller／页面迁移；仅暂存该仓库本任务文件。
@@ -366,7 +366,11 @@
 2. **P9.12.S2**：实现同一意图观察、必要动作、前后台和断网恢复，保持原生认证及 owner 隔离。
 3. **P9.12.S3**：完成静态／Widget 和 iOS／Android 设备流程；记录两仓库 commit 和 schema 标识，未通过阻断破坏性 API 发布。
 
-执行记录：尚未实施；提交／测试与实测证据／阻塞项均待执行时按 §6 填写。
+执行记录（2026-09-23）：
+
+- App 设计／PRD／Plan／Acceptance 为 `video-app/docs/{design,prd,plans,acceptance}/017-*`；代码与冻结 OpenAPI 提交 `video-app` `de990ac7ce68749d9a79f0f6efdb0b4ffa845ec6`，来源为本地运行服务端的 `/openapi.json`（服务端 `55899cb872ceca8abfb91505361655e81578c83d`）。公开 URL／分享文案迁到持久意图，历史独立按 owner／游标恢复；前后台只读查询、过期显式更新、取消／刷新未知结果收敛、账号切换清理已实现。文章和明确账号策略仍走旧同步路径，相关发布依赖不能提前删除。
+- `$review-agent` 两轮只读审查提出 8 项恢复缺陷和 1 项跨意图轮询阻塞，均在 App 提交前修复并加回归。完整工作树 Flutter 单元／Widget 236 项通过；排除原工作区 015 首页修改的暂存隔离检出 231 项通过，`flutter analyze` 无问题，Android Debug APK 构建通过；iPhone 17 Pro／iOS 27.0 模拟器通过 `flutter run` 构建、启动与首屏查看。提交后的生成客户端漂移检查通过。独立 `flutter build ios --simulator --no-codesign` 在 Flutter `debug_unpack_ios` 将 `arm64 x86_64` 当成单架构时失败，模拟器定向运行可构建。
+- 剩余：App 的真实账号与授权样本、进程重建／断网恢复、Android 设备、同一真实 job／文件校验、双平台发布版本与服务端互通均未验收；P9.08／P9.06 依赖和最终发布门禁未完成，P9.12 保持进行中。模拟器首屏及 mock 测试不代表全平台可下载。
 
 <a id="p9-13"></a>
 
