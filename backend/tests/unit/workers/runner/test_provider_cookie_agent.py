@@ -77,8 +77,10 @@ def test_install_prepares_only_the_encrypted_runtime_and_agent_marker(
     definition = tmp_path / "LaunchAgents" / "agent.plist"
     runtime = tmp_path / "runtime"
     actions: list[tuple[str, ...]] = []
+    # Files are created by the real CI user; mocking getuid globally would
+    # invalidate the production ownership checks on every non-501 host.
+    uid = agent.os.getuid()
     monkeypatch.setattr(agent.sys, "platform", "darwin")
-    monkeypatch.setattr(agent.os, "getuid", lambda: 501, raising=False)
     monkeypatch.setattr(agent, "PLIST_PATH", definition)
     monkeypatch.setattr(agent, "_launchctl_print", lambda: _result(113))
     native_hosts: list[tuple[Path, str]] = []
@@ -94,7 +96,7 @@ def test_install_prepares_only_the_encrypted_runtime_and_agent_marker(
     agent.install_agent(runtime, profile="Default")
 
     document = plistlib.loads(definition.read_bytes())
-    assert actions == [("launchctl", "bootstrap", "gui/501", str(definition))]
+    assert actions == [("launchctl", "bootstrap", f"gui/{uid}", str(definition))]
     assert native_hosts == [(runtime, "ljffjbenpehbfgjgdmgecaiimhekoeng")]
     assert "RunAtLoad" not in document
     assert stat.S_IMODE(runtime.stat().st_mode) == 0o711
