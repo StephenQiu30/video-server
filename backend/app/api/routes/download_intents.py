@@ -6,7 +6,11 @@ from fastapi import APIRouter, Depends, Query, Request, Response
 from app.api.admission import RateLimitAdmission
 from app.api.deps import IdempotencyKey, get_current_user, get_services, require_service
 from app.api.responses import ApiResponseRoute
-from app.schemas.download_intents import IntentRequest, IntentResponse
+from app.schemas.download_intents import (
+    IntentHistoryResponse,
+    IntentRequest,
+    IntentResponse,
+)
 from app.services.auth.models import CurrentUser
 from app.services.downloads.intents import IntentService
 
@@ -62,6 +66,25 @@ async def create_intent(
     response.headers["Location"] = f"/api/download-intents/{result.id}"
     response.headers["Cache-Control"] = "no-store"
     return IntentResponse.from_snapshot(result)
+
+
+@router.get(
+    "/history",
+    response_model=IntentHistoryResponse,
+    operation_id="listDownloadIntents",
+    summary="分页查询当前用户的解析记录",
+)
+async def list_intents(
+    user: User,
+    service: Service,
+    response: Response,
+    before: UUID | None = None,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+) -> IntentHistoryResponse:
+    response.headers["Cache-Control"] = "no-store"
+    return IntentHistoryResponse.from_page(
+        await service.history(user.owner_hash, before=before, limit=limit)
+    )
 
 
 @router.get(

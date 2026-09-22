@@ -333,6 +333,15 @@ declare namespace API {
     data: InspectionResponse;
   };
 
+  type ApiResponseIntentHistoryResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: IntentHistoryResponse;
+  };
+
   type ApiResponseIntentResponse_ = {
     /** 稳定的业务结果码。 */
     code: ErrorCode;
@@ -1346,6 +1355,37 @@ declare namespace API {
     access_policy_id: ProviderAccessPolicy | null;
   };
 
+  type IntentHistoryItemResponse = {
+    /** Id */
+    id: string;
+    /** Version */
+    version: number;
+    status: IntentStatus;
+    /** Reason Code */
+    reason_code: string | null;
+    /** Next Action */
+    next_action?: string;
+    /** Retry At */
+    retry_at: string | null;
+    /** Deadline */
+    deadline: string;
+    /** Inspection Id */
+    inspection_id: string | null;
+    /** Job Id */
+    job_id: string | null;
+    /** Created At */
+    created_at: string;
+    /** Title */
+    title: string | null;
+  };
+
+  type IntentHistoryResponse = {
+    /** Items */
+    items: IntentHistoryItemResponse[];
+    /** Next Cursor */
+    next_cursor: string | null;
+  };
+
   type IntentRequest = {
     /** Input 公开媒体地址或包含唯一媒体地址的分享文案。 */
     input: string;
@@ -1395,6 +1435,11 @@ declare namespace API {
   type listDocumentsParams = {
     page?: number;
     page_size?: number;
+  };
+
+  type listDownloadIntentsParams = {
+    before?: string | null;
+    limit?: number;
   };
 
   type listStoredFilesParams = {

@@ -310,6 +310,10 @@
 - 浏览器发现并修复首次从历史进入未缓存详情时的加载阻塞：有写操作时仍允许读取缺失快照，完成写入先中止旧读取。回归覆盖跨历史／详情的同任务互斥、卸载期间完成、失败键复用、删除后不重读、身份隔离、离线不重放及迟到重试不强制跳页。前端 81 文件／426 项测试、lint／类型／format／生产构建及最终 arm64 镜像通过；只读审查完成。
 - 2026-09-23 agent-browser 最终镜像验证（真实登录＋延迟写响应夹具）：历史发起重试→首次进入详情可见标题，重新下载／删除禁用，写请求计数 1；离开后释放响应不跳页，返回可见新任务入口；删除在离开后完成，返回显示已删除。修正无封面说明和失败标签对比度后，详情桌面／390px 明暗四组合 axe 均 0 违规／0 待判读，删除反馈 390px 亦通过。证据 `/tmp/framefetch-download-action-mobile-light-final.png`、`/tmp/framefetch-download-action-deleted-mobile.png`。未创建真实下载／AI 任务，不计入平台验收；分析操作提交 `5f3e3319` 的远端 [CI 35752440396](https://github.com/StephenQiu30/video-server/actions/runs/35752440396) 已成功。
 
+- 解析记录与跨浏览器找回已实施：当前 owner 的历史按创建时间／ID 游标分页，单页最多 50 条，游标同样校验 owner；只返回状态、时间、已有标题与资源引用。Web 按需打开记录，选择后使用 ID 只读恢复，接单键与 ID 查询共用单调版本状态，不新增解析／配额／期限。没有浏览器存储仍可只读找回；记录已不可用不会被当作未接单请求重放；已交接任务不读取过期 inspection。
+- 2026-09-23 验证：API／仓储及 Swagger 契约 78 项通过；前端 82 文件／433 项测试、lint／类型／format／生产构建及最终 arm64 镜像通过，开发／生产 Compose 解析通过。后端全量 2,045 通过、4 环境跳过，2 项既有扩展删除造成的测试失败仍保留；只读审查修复了共享版本缓存使用响应时身份代际的风险，改为捕获发起时身份作用域。
+- agent-browser 使用全新独立浏览器真实登录，初始恢复引用为空；选择 B 站记录仅发出 1 次 GET，刷新后进入原下载 `84b12bde-55f7-4adb-95df-aea66625dfb1`。原浏览器新解析抖音后关闭，另一浏览器从列表找回意图 `24760553-ce24-4ad2-9edb-ac3dfcb0b453`，只有意图／inspection／缩略图 GET，无重复 POST；确认后真实下载 `2a9283bf-1bdf-4b5d-9ccc-5be3a497e78d` 得到 1280×720 H.264／AAC、14.07 秒、2,991,195 bytes，SHA-256 `b495811a95bddf1332cf3327198016f6f485b691539819c7fb7256870a1d00fc`。随后 A 退出、B 登录，记录为空、旧标题消失、恢复引用为空。记录桌面／390px 明暗四组合 axe 均 0 违规／0 待判读、移动端宽度为 390px；截图 `/tmp/framefetch-intent-history-mobile-light.png`、`/tmp/framefetch-intent-history-desktop-dark.png`、`/tmp/framefetch-intent-history-owner-b.png`。这是 Web 跨浏览器证据，不替代 App 设备验收；内容授权续接和 P9.07 生命周期仍未完成。排序提交 `c038990f` 的远端 [CI 35756816204](https://github.com/StephenQiu30/video-server/actions/runs/35756816204) 成功。
+
 <a id="p9-11"></a>
 
 ### P9.11 Web 持久会话协议收敛

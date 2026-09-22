@@ -6,6 +6,7 @@ import {
   cancelDownloadIntent,
   createDownloadIntent,
   findDownloadIntent,
+  getDownloadIntent,
 } from '@/api/downloadIntents';
 import { getInspection } from '@/api/inspections';
 import { useAuth } from '@/components/auth/auth-provider';
@@ -34,7 +35,21 @@ export function useDownloadIntent() {
   const [restored, setRestored] = useState(false);
   const [operationError, setOperationError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
-  const key = privateQueryKey('download-intent', attempt?.key);
+  const intentRoot = privateQueryKey('download-intent');
+  const key = [
+    ...intentRoot,
+    attempt?.id ? 'id' : 'key',
+    attempt?.id ?? attempt?.key,
+  ];
+
+  function remember(result: API.IntentResponse) {
+    const canonical = [...intentRoot, 'id', result.id];
+    const current = queries.getQueryData<API.IntentResponse>(canonical);
+    const latest =
+      current && current.version > result.version ? current : result;
+    queries.setQueryData(canonical, latest);
+    return latest;
+  }
 
   useEffect(() => {
     if (!user?.id) return;
@@ -42,14 +57,22 @@ export function useDownloadIntent() {
       const raw = sessionStorage.getItem(referenceKey);
       if (raw) {
         const saved = JSON.parse(raw);
-        if (
-          saved.owner === user.id &&
-          typeof saved.key === 'string' &&
-          uuid.test(saved.key)
-        ) {
+        const id =
+          typeof saved.id === 'string' && uuid.test(saved.id)
+            ? saved.id
+            : undefined;
+        const requestKey =
+          typeof saved.key === 'string' && uuid.test(saved.key)
+            ? saved.key
+            : undefined;
+        if (saved.owner === user.id && (id || requestKey)) {
           setAttempt(
             (current) =>
-              current ?? { key: saved.key, input: null, submitting: false },
+              current ?? {
+                ...(id ? { id } : { key: requestKey }),
+                input: null,
+                submitting: false,
+              },
           );
         } else sessionStorage.removeItem(referenceKey);
       }
@@ -70,12 +93,16 @@ export function useDownloadIntent() {
     queryKey: key,
     enabled: restored && !!attempt && !attempt.submitting,
     queryFn: async ({ signal }) => {
-      const result = await findDownloadIntent(
-        { idempotency_key: attempt?.key ?? '' },
-        { signal },
-      );
+      const result = attempt?.id
+        ? await getDownloadIntent({ intent_id: attempt.id }, { signal })
+        : await findDownloadIntent(
+            { idempotency_key: attempt?.key ?? '' },
+            { signal },
+          );
       const current = queries.getQueryData<API.IntentResponse>(key);
-      return current && current.version > result.version ? current : result;
+      const latest =
+        current && current.version > result.version ? current : result;
+      return remember(latest);
     },
     refetchInterval: (query) =>
       query.state.error ||
@@ -90,9 +117,7 @@ export function useDownloadIntent() {
   const inspectionId = intent.data?.inspection_id;
   const inspection = useQuery({
     queryKey: privateQueryKey('inspection', inspectionId),
-    enabled:
-      !!inspectionId &&
-      ['ready', 'handed_off'].includes(intent.data?.status ?? ''),
+    enabled: !!inspectionId && intent.data?.status === 'ready',
     queryFn: ({ signal }) =>
       getInspection({ inspection_id: inspectionId ?? '' }, { signal }),
     staleTime: 5 * 60_000,
@@ -107,7 +132,7 @@ export function useDownloadIntent() {
     )
       return;
     if (!user?.id) return;
-    const requestKey = reuse && attempt ? attempt.key : createUuid();
+    const requestKey = reuse && attempt?.key ? attempt.key : createUuid();
     // Persist only random references, before a request can be accepted. Raw
     // share text remains in the identity-owned in-memory draft.
     try {
@@ -126,14 +151,14 @@ export function useDownloadIntent() {
     writing.current = true;
     setOperationError(null);
     setAttempt({ key: requestKey, input, submitting: true });
-    const queryKey = privateQueryKey('download-intent', requestKey);
+    const queryKey = [...intentRoot, 'key', requestKey];
     try {
       await queries.cancelQueries({ queryKey });
       const result = await createDownloadIntent(
         { input },
         { headers: { 'Idempotency-Key': requestKey } },
       );
-      queries.setQueryData(queryKey, result);
+      queries.setQueryData(queryKey, remember(result));
     } catch (error) {
       // Definitive rejection means no new work was accepted. An uncertain
       // transport outcome keeps the key and is resolved by read-only lookup.
@@ -166,11 +191,11 @@ export function useDownloadIntent() {
     setCancelling(true);
     setOperationError(null);
     try {
-      await queries.cancelQueries({ queryKey: key });
+      await queries.cancelQueries({
+        queryKey: intentRoot,
+      });
       const result = await cancelDownloadIntent({ intent_id: intent.data.id });
-      queries.setQueryData<API.IntentResponse>(key, (current) =>
-        current && current.version > result.version ? current : result,
-      );
+      queries.setQueryData(key, remember(result));
     } catch (error) {
       setOperationError(displayError(error));
     } finally {
@@ -188,15 +213,45 @@ export function useDownloadIntent() {
     }
   }
 
+  function resume(id: string) {
+    if (
+      !user?.id ||
+      !uuid.test(id) ||
+      writing.current ||
+      attempt?.submitting ||
+      cancelling
+    )
+      return false;
+    // The server owns the task. Losing browser storage must not prevent this
+    // read-only recovery; history remains available after the next sign-in.
+    try {
+      sessionStorage.setItem(
+        referenceKey,
+        JSON.stringify({ owner: user.id, id }),
+      );
+    } catch {
+      /* History can recover again when storage is unavailable. */
+    }
+    setOperationError(null);
+    setAttempt({ id, input: null, submitting: false });
+    return true;
+  }
+
+  const missing =
+    intent.error instanceof ApiError && intent.error.status === 404;
   const pending =
     !!attempt &&
-    (attempt.submitting || !intent.data || !terminal.has(intent.data.status));
+    (attempt.submitting ||
+      (!intent.data
+        ? !(attempt.id && missing)
+        : !terminal.has(intent.data.status)));
   return {
     attempt,
     snapshot: intent.data,
     inspection: inspection.data,
     pending,
     canResubmit:
+      !attempt?.id &&
       !intent.data &&
       intent.error instanceof ApiError &&
       intent.error.status === 404,
@@ -205,11 +260,14 @@ export function useDownloadIntent() {
     submit,
     cancel,
     clear,
+    resume,
     error:
       operationError ??
       (intent.error
         ? intent.error instanceof ApiError && intent.error.status === 404
-          ? '尚未确认接单，请查询原任务或使用同一请求重试。'
+          ? attempt?.id
+            ? '这条解析记录已不可用，可重新粘贴链接开始解析。'
+            : '尚未确认接单，请查询原任务或使用同一请求重试。'
           : displayError(intent.error)
         : inspection.error
           ? displayError(inspection.error)
@@ -232,7 +290,8 @@ export function useDownloadIntent() {
         }
       } else {
         await intent.refetch();
-        if (inspectionId) await inspection.refetch();
+        if (inspectionId && intent.data?.status === 'ready')
+          await inspection.refetch();
       }
     },
   };

@@ -5,7 +5,11 @@ from uuid import UUID
 from pydantic import Field
 
 from app.schemas.common import StrictModel
-from app.services.downloads.intent_models import IntentSnapshot, IntentStatus
+from app.services.downloads.intent_models import (
+    IntentHistoryPage,
+    IntentSnapshot,
+    IntentStatus,
+)
 
 
 class IntentRequest(StrictModel):
@@ -38,4 +42,28 @@ class IntentResponse(StrictModel):
             deadline=value.deadline,
             inspection_id=value.inspection_id,
             job_id=value.job_id,
+        )
+
+
+class IntentHistoryItemResponse(IntentResponse):
+    created_at: datetime
+    title: str | None
+
+
+class IntentHistoryResponse(StrictModel):
+    items: list[IntentHistoryItemResponse]
+    next_cursor: UUID | None
+
+    @classmethod
+    def from_page(cls, page: IntentHistoryPage) -> "IntentHistoryResponse":
+        return cls(
+            items=[
+                IntentHistoryItemResponse(
+                    **IntentResponse.from_snapshot(item.intent).model_dump(),
+                    created_at=item.intent.created_at,
+                    title=item.title,
+                )
+                for item in page.items
+            ],
+            next_cursor=page.next_cursor,
         )

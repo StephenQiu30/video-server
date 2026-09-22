@@ -65,3 +65,23 @@ export async function cancelDownloadIntent(
     }
   );
 }
+
+/** 分页查询当前用户的解析记录 GET /api/download-intents/history */
+export async function listDownloadIntents(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.listDownloadIntentsParams,
+  options?: RequestOptions
+) {
+  return request<API.ApiResponseIntentHistoryResponse_>(
+    "/api/download-intents/history",
+    {
+      method: "GET",
+      params: {
+        // limit has a default value: 20
+        limit: "20",
+        ...params,
+      },
+      ...(options || {}),
+    }
+  );
+}

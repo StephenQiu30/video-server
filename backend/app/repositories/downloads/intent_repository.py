@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.models.download import DownloadJobRow
 from app.models.download_intent import DownloadIntentRow
+from app.models.media import MediaInspectionRow
 from app.models.outbox import OutboxEventRow
 from app.repositories.downloads.access_repository import cancel_job_row
 from app.repositories.downloads.media_repository import insert_inspection
@@ -25,6 +26,8 @@ from app.repositories.quota_admission import lock_admission, reserve
 from app.services.downloads.inspection_models import EncryptedUrl, InspectionCreate
 from app.services.downloads.intent_models import (
     IntentCreate,
+    IntentHistoryEntry,
+    IntentHistoryPage,
     IntentLease,
     IntentSnapshot,
     IntentStatus,
@@ -166,6 +169,49 @@ class IntentRepository:
             if row.status not in _TERMINAL:
                 _transition(row, "cancelled", now, "cancelled")
             return _snapshot(row)
+
+    async def history(
+        self, owner_hash: str, *, before: UUID | None = None, limit: int = 20
+    ) -> IntentHistoryPage:
+        validate_owner_hash(owner_hash)
+        if not 1 <= limit <= 50:
+            raise ValueError("invalid history page size")
+        async with self._sessions() as session:
+            query = (
+                select(DownloadIntentRow, MediaInspectionRow.title)
+                .outerjoin(
+                    MediaInspectionRow,
+                    and_(
+                        MediaInspectionRow.id == DownloadIntentRow.inspection_id,
+                        MediaInspectionRow.owner_hash == owner_hash,
+                    ),
+                )
+                .where(DownloadIntentRow.owner_hash == owner_hash)
+            )
+            if before is not None:
+                cursor = await self._owned(session, before, owner_hash)
+                query = query.where(
+                    or_(
+                        DownloadIntentRow.created_at < cursor.created_at,
+                        and_(
+                            DownloadIntentRow.created_at == cursor.created_at,
+                            DownloadIntentRow.id < cursor.id,
+                        ),
+                    )
+                )
+            rows = (
+                await session.execute(
+                    query.order_by(
+                        DownloadIntentRow.created_at.desc(), DownloadIntentRow.id.desc()
+                    ).limit(limit + 1)
+                )
+            ).all()
+            items = tuple(
+                IntentHistoryEntry(_snapshot(row), title) for row, title in rows[:limit]
+            )
+            return IntentHistoryPage(
+                items, items[-1].intent.id if len(rows) > limit else None
+            )
 
     async def claim(
         self, intent_id: UUID, worker_id: str, *, now: datetime, lease_for: timedelta

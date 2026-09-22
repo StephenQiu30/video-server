@@ -25,7 +25,8 @@ type IntakeDraft = {
 };
 
 export type ParseAttempt = {
-  key: string;
+  key?: string;
+  id?: string;
   input: string | null;
   submitting: boolean;
 };

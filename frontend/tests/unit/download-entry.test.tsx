@@ -25,7 +25,7 @@ function enter(url: string) {
   fireEvent.change(screen.getByLabelText('公开视频地址'), {
     target: { value: url },
   });
-  fireEvent.click(screen.getByRole('button', { name: /解析/ }));
+  fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
 }
 
 describe('simple download entry', () => {

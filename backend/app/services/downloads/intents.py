@@ -15,6 +15,7 @@ from app.services.downloads.errors import (
 from app.services.downloads.inspection_models import InspectionCreate
 from app.services.downloads.intent_models import (
     IntentCreate,
+    IntentHistoryPage,
     IntentLease,
     IntentSnapshot,
 )
@@ -39,6 +40,9 @@ class IntentPersistence(Protocol):
     async def get_by_key(
         self, idempotency_key: str, owner_hash: str
     ) -> IntentSnapshot: ...
+    async def history(
+        self, owner_hash: str, *, before: UUID | None, limit: int
+    ) -> IntentHistoryPage: ...
     async def cancel(
         self, intent_id: UUID, owner_hash: str, *, now: datetime
     ) -> IntentSnapshot: ...
@@ -142,3 +146,16 @@ class IntentService:
             raise ApplicationError(ApplicationErrorCode.NOT_FOUND) from exc
         except PersistenceConflict as exc:
             raise ApplicationError(ApplicationErrorCode.INVALID_STATE) from exc
+
+    async def history(
+        self, owner_hash: str, *, before: UUID | None = None, limit: int = 20
+    ) -> IntentHistoryPage:
+        validate_owner_hash(owner_hash)
+        if not 1 <= limit <= 50:
+            raise ValueError("invalid history page size")
+        try:
+            return await self._repository.history(
+                owner_hash, before=before, limit=limit
+            )
+        except PersistenceNotFound as exc:
+            raise ApplicationError(ApplicationErrorCode.NOT_FOUND) from exc

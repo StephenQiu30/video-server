@@ -171,11 +171,102 @@ it('rejects a previous owner reference without querying it and clears state at a
 
 it('does not start remote work when a refresh-safe reference cannot be saved', async () => {
   const { result } = renderHook(useDownloadIntent);
-  vi.spyOn(sessionStorage, 'setItem').mockImplementation(() => {
+  const denied = vi.spyOn(sessionStorage, 'setItem').mockImplementation(() => {
     throw new DOMException('Denied');
   });
   await expect(result.current.submit(input)).rejects.toMatchObject({
     code: 'intent_reference_unavailable',
   });
   expect(httpRequests()).toHaveLength(0);
+  denied.mockRestore();
+});
+
+it('recovers a history record by ID without browser references or a new POST and restores it after remount', async () => {
+  const saved = intentFixture();
+  const first = renderHook(useDownloadIntent);
+  mockHttpResponses(saved, inspection);
+  act(() => expect(first.result.current.resume(saved.id)).toBe(true));
+  await waitFor(() =>
+    expect(first.result.current.inspection?.id).toBe(inspection.id),
+  );
+  expect(sessionStorage.getItem(reference)).toBe(
+    JSON.stringify({ owner: identity.id, id: saved.id }),
+  );
+  first.unmount();
+  mockHttpResponses(saved, inspection);
+  const second = renderHook(useDownloadIntent);
+  await waitFor(() =>
+    expect(second.result.current.inspection?.id).toBe(inspection.id),
+  );
+  expect(httpRequests().every((item) => item.method === 'GET')).toBe(true);
+  expect(
+    httpRequests()
+      .filter((item) => item.url?.startsWith('/api/download-intents'))
+      .every((item) => item.url === `/api/download-intents/${saved.id}`),
+  ).toBe(true);
+});
+
+it('does not treat an unavailable history ID as an unaccepted request to replay', async () => {
+  mockHttpError(new ApiError(404, 'not_found', 'not found', '不存在。'));
+  const { result } = renderHook(useDownloadIntent);
+  act(() => result.current.resume(intentFixture().id));
+  await waitFor(() =>
+    expect(result.current.error).toContain('这条解析记录已不可用'),
+  );
+  expect(result.current.pending).toBe(false);
+  expect(result.current.canResubmit).toBe(false);
+  mockHttpError(new ApiError(404, 'not_found', 'not found', '不存在。'));
+  await act(async () => result.current.retry());
+  expect(httpRequests().every((item) => item.method === 'GET')).toBe(true);
+});
+
+it('allows read-only history recovery when session storage is unavailable', async () => {
+  const storage = vi
+    .spyOn(Storage.prototype, 'setItem')
+    .mockImplementation(() => {
+      throw new Error('denied');
+    });
+  mockHttpResponses(intentFixture(), inspection);
+  const { result } = renderHook(useDownloadIntent);
+  act(() => expect(result.current.resume(intentFixture().id)).toBe(true));
+  await waitFor(() =>
+    expect(result.current.inspection?.id).toBe(inspection.id),
+  );
+  expect(httpRequests().every((item) => item.method === 'GET')).toBe(true);
+  storage.mockRestore();
+});
+
+it('opens a handed-off history record without reading its expired inspection', async () => {
+  mockHttpResponses(
+    intentFixture({
+      status: 'handed_off',
+      job_id: '77777777-7777-4777-8777-777777777777',
+    }),
+  );
+  const { result } = renderHook(useDownloadIntent);
+  act(() => result.current.resume(intentFixture().id));
+  await waitFor(() =>
+    expect(result.current.snapshot?.status).toBe('handed_off'),
+  );
+  expect(result.current.error).toBeNull();
+  expect(result.current.inspection).toBeUndefined();
+  expect(httpRequests()).toHaveLength(1);
+});
+
+it('keeps confirmed cancellation when switching from an acceptance key to the same history ID', async () => {
+  mockHttpResponses(
+    intentFixture({ status: 'queued', version: 1, inspection_id: null }),
+  );
+  const { result } = renderHook(useDownloadIntent);
+  await act(async () => result.current.submit(input));
+  mockHttpResponses(
+    intentFixture({ status: 'cancelled', version: 3, inspection_id: null }),
+  );
+  await act(async () => result.current.cancel());
+  mockHttpResponses(intentFixture({ status: 'ready', version: 2 }));
+  act(() => result.current.resume(intentFixture().id));
+  await act(async () => result.current.retry());
+  await waitFor(() => expect(httpRequests()).toHaveLength(3));
+  expect(result.current.snapshot?.status).toBe('cancelled');
+  expect(result.current.inspection).toBeUndefined();
 });

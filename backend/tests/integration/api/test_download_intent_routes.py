@@ -313,3 +313,81 @@ async def test_lost_acceptance_can_be_found_without_resubmitting_input(postgres_
                     "/api/download-intents", params={"idempotency_key": invalid}
                 )
             ).status_code == 422
+
+
+async def test_history_recovers_without_client_storage_and_is_bounded_and_owner_scoped(
+    postgres_engine,
+):
+    service, _, executor, clock, sessions = components(postgres_engine)
+    created = []
+    for index in range(4):
+        item = await service.create(URL, TEST_USER.owner_hash, f"history-{index}")
+        created.append(item)
+        if index == 0:
+            await executor.execute(item.id)
+        else:
+            await service.cancel(item.id, TEST_USER.owner_hash)
+    other_owner = replace(TEST_USER, id=uuid4()).owner_hash
+    foreign = await service.create(URL, other_owner, "foreign-history")
+    app = create_app(Settings(app_env="test"))
+    app.state.services.intent_service = service
+    app.dependency_overrides[get_current_user] = lambda: TEST_USER
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://testserver"
+    ) as client:
+        first = await client.get("/api/download-intents/history", params={"limit": 2})
+        assert first.status_code == 200
+        assert first.headers["cache-control"] == "no-store"
+        page = first.json()["data"]
+        assert len(page["items"]) == 2
+        # Concurrent insertion cannot shift an existing cursor page.
+        clock[0] += timedelta(seconds=1)
+        newest = await service.create(URL, TEST_USER.owner_hash, "history-new")
+        second = await client.get(
+            "/api/download-intents/history",
+            params={"limit": 2, "before": page["next_cursor"]},
+        )
+        tail = second.json()["data"]
+        assert tail["next_cursor"] is None
+        items = page["items"] + tail["items"]
+        assert [item["id"] for item in items] == sorted(
+            [str(item.id) for item in created], reverse=True
+        )
+        assert str(newest.id) not in [item["id"] for item in items]
+        resolved = next(item for item in items if item["id"] == str(created[0].id))
+        assert resolved["status"] == "ready"
+        assert resolved["title"]
+        for item in items:
+            assert (
+                not {
+                    "input",
+                    "url",
+                    "owner_hash",
+                    "idempotency_key",
+                    "url_ciphertext",
+                    "lease_owner",
+                }
+                & item.keys()
+            )
+            restored = await client.get(f"/api/download-intents/{item['id']}")
+            assert restored.json()["data"]["version"] == item["version"]
+        for cursor in (foreign.id, uuid4()):
+            assert (
+                await client.get(
+                    "/api/download-intents/history", params={"before": str(cursor)}
+                )
+            ).status_code == 404
+        for limit in (0, 51):
+            assert (
+                await client.get(
+                    "/api/download-intents/history", params={"limit": limit}
+                )
+            ).status_code == 422
+    async with sessions() as session:
+        assert (
+            await session.scalar(select(func.count()).select_from(OutboxEventRow)) == 6
+        )
+        assert (
+            await session.scalar(select(func.count()).select_from(ResourceAdmissionRow))
+            == 6
+        )

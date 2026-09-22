@@ -19,6 +19,8 @@ import { createSourceDiscovery } from '@/api/sourceDiscoveries';
 import { ContentIntakeHero } from '@/components/intake/content-intake-hero';
 import InspectionWorkspace from '@/components/intake/inspection-workspace';
 import { useIntakeDraft } from '@/components/intake/intake-draft-provider';
+import { IntentHistory } from '@/components/intake/intent-history';
+import { intentTitle } from '@/components/intake/intent-status';
 import { LinkDownloadForm } from '@/components/intake/link-download-form';
 import { MediaUploadForm } from '@/components/intake/media-upload-form';
 import {
@@ -305,6 +307,23 @@ export default function DownloadWorkspace() {
           />
         }
       />
+      {mode === 'link' ? (
+        <IntentHistory
+          disabled={
+            busy !== null || intent.cancelling || !!intent.attempt?.submitting
+          }
+          onResume={(id) => {
+            if (!intent.resume(id)) return;
+            setInspection(null);
+            setDiscovery(null);
+            setSelectedId('');
+            setUrl('');
+            setError(null);
+            setUrlInvalid(false);
+            setAuthorizationTarget(null);
+          }}
+        />
+      ) : null}
       {mode === 'link' && intent.attempt ? (
         <section className="mt-8 space-y-3" aria-label="解析任务状态">
           <FeedbackNotice
@@ -441,33 +460,6 @@ export default function DownloadWorkspace() {
       ) : null}
     </div>
   );
-}
-
-function intentTitle(status?: API.IntentStatus) {
-  switch (status) {
-    case 'queued':
-      return '等待解析';
-    case 'preparing':
-      return '正在准备解析';
-    case 'resolving':
-      return '正在读取媒体信息';
-    case 'retry_wait':
-      return '正在自动恢复';
-    case 'action_required':
-      return '此内容需要额外权限';
-    case 'ready':
-      return '解析完成';
-    case 'handed_off':
-      return '下载任务已创建';
-    case 'cancelled':
-      return '解析已取消';
-    case 'expired':
-      return '本次解析已超时';
-    case 'failed':
-      return '本次解析未完成';
-    default:
-      return '正在确认解析任务';
-  }
 }
 
 function stableKey(ref: RefObject<StableKey | null>, payload: string) {

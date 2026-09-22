@@ -58,3 +58,15 @@ class IntentSnapshot:
 class IntentLease:
     intent: IntentSnapshot
     url: EncryptedUrl = field(repr=False)
+
+
+@dataclass(frozen=True, slots=True)
+class IntentHistoryEntry:
+    intent: IntentSnapshot
+    title: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class IntentHistoryPage:
+    items: tuple[IntentHistoryEntry, ...]
+    next_cursor: UUID | None
