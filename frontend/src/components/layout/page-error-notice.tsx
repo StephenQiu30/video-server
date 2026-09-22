@@ -52,7 +52,9 @@ export function PageErrorNotice({
         <EmptyTitle as={titleAs} className="text-base">
           {title}
         </EmptyTitle>
-        <EmptyDescription>{message}</EmptyDescription>
+        <EmptyDescription className="text-foreground/70">
+          {message}
+        </EmptyDescription>
       </EmptyHeader>
       {onRetry || secondaryAction ? (
         <EmptyContent className="flex-row flex-wrap justify-center">

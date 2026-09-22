@@ -20,8 +20,8 @@ describe('ScreenplayAnalysisPanel', () => {
 
   it('discloses cloud processing and creates a document-bound task', async () => {
     mockHttpResponses(
-      screenplaySkills,
       null,
+      screenplaySkills,
       screenplayAnalysisJob('analysis', 'queued'),
     );
     render(<ScreenplayAnalysisPanel documentId={documentId} />);
@@ -55,7 +55,7 @@ describe('ScreenplayAnalysisPanel', () => {
   });
 
   it('turns the primary action into a rewrite action for the rewrite Skill', async () => {
-    mockHttpResponses(screenplaySkills, null);
+    mockHttpResponses(null, screenplaySkills);
     render(<ScreenplayAnalysisPanel documentId={documentId} />);
 
     await waitFor(() =>
@@ -71,7 +71,7 @@ describe('ScreenplayAnalysisPanel', () => {
   });
 
   it('renders the screenplay evidence reading path', async () => {
-    mockHttpResponses(screenplaySkills, screenplayAnalysisJob('analysis'));
+    mockHttpResponses(screenplayAnalysisJob('analysis'));
     render(<ScreenplayAnalysisPanel documentId={documentId} />);
 
     expect(
@@ -108,7 +108,7 @@ describe('ScreenplayAnalysisPanel', () => {
   });
 
   it('keeps rewritten text in the canonical report view', async () => {
-    mockHttpResponses(screenplaySkills, screenplayAnalysisJob('rewrite'));
+    mockHttpResponses(screenplayAnalysisJob('rewrite'));
     render(<ScreenplayAnalysisPanel documentId={documentId} />);
 
     expect(
@@ -131,7 +131,7 @@ describe('ScreenplayAnalysisPanel', () => {
       ...screenplayAnalysisJob('rewrite', 'failed'),
       error_code: 'analysis_resource_limit',
     } satisfies API.AnalysisResponse;
-    mockHttpResponses(screenplaySkills, failed);
+    mockHttpResponses(failed);
     render(<ScreenplayAnalysisPanel documentId={documentId} />);
 
     expect(

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   cancelAnalysis,
   createAnalysis,
@@ -10,6 +11,7 @@ import {
   retryAnalysis,
 } from '@/api/analyses';
 import { useRequestScope } from '@/hooks/use-request-scope';
+import { privateQueryKey } from '@/lib/query-keys';
 import { displayError } from '@/lib/request-error';
 import { type TaskSocketStatus, taskSocket } from '@/lib/task-socket';
 
@@ -23,32 +25,79 @@ export function useAnalysisJob(
   pollIntervalMs: number,
   inputKind: API.AnalysisInputKind = 'video',
 ) {
-  const [job, setJob] = useState<API.AnalysisResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const queries = useQueryClient();
+  const [actionError, setError] = useState<string | null>(null);
   const [action, setAction] = useState<Action>(null);
   const [socketStatus, setSocketStatus] =
     useState<TaskSocketStatus>('disconnected');
   const sourceKey = `${inputKind}:${inputId}`;
+  const queryKey = useMemo(
+    () => privateQueryKey('analysis', inputKind, inputId),
+    [inputKind, inputId],
+  );
   const scope = useRequestScope(sourceKey);
   const createKey = useRef<StableKey | null>(null);
   const retryKey = useRef<StableKey | null>(null);
-  const hasLocalJob = useRef(false);
   const sourceKeyRef = useRef(sourceKey);
   const versionRef = useRef(0);
-  const snapshotRef = useRef<API.AnalysisResponse | null>(null);
 
-  const accept = useCallback((next: API.AnalysisResponse) => {
-    const current = snapshotRef.current;
-    if (
-      current?.id === next.id &&
-      (next.version < current.version || next.run_no < current.run_no)
-    )
-      return false;
-    snapshotRef.current = next;
-    setJob(next);
-    return true;
-  }, []);
-
+  const snapshot = useQuery({
+    queryKey,
+    enabled: !action,
+    queryFn: async ({ signal }) => {
+      const previous = queries.getQueryData<API.AnalysisResponse | null>(
+        queryKey,
+      );
+      const active = previous && !terminalAnalysisStatuses.has(previous.status);
+      const next = active
+        ? await getAnalysis(
+            { analysis_id: encodeURIComponent(previous.id) },
+            { signal },
+          )
+        : inputKind === 'screenplay'
+          ? await getLatestDocumentAnalysis(
+              { document_id: encodeURIComponent(inputId) },
+              { signal },
+            )
+          : await getLatestDownloadAnalysis(
+              { download_id: encodeURIComponent(inputId) },
+              { signal },
+            );
+      if (active && next?.id !== previous.id)
+        throw new Error('Unexpected analysis response');
+      const current = queries.getQueryData<API.AnalysisResponse | null>(
+        queryKey,
+      );
+      return current && next && isOlder(current, next) ? current : next;
+    },
+    refetchInterval: (query) => {
+      const current = query.state.data;
+      if (
+        !current ||
+        query.state.error ||
+        terminalAnalysisStatuses.has(current.status)
+      )
+        return false;
+      return socketStatus === 'connected'
+        ? Math.max(15_000, pollIntervalMs * 10)
+        : Math.max(2_000, pollIntervalMs);
+    },
+    refetchOnWindowFocus: true,
+  });
+  const job = snapshot.data ?? null;
+  const error =
+    actionError ?? (snapshot.error ? displayError(snapshot.error) : null);
+  const accept = useCallback(
+    (next: API.AnalysisResponse) => {
+      const current = queries.getQueryData<API.AnalysisResponse | null>(
+        queryKey,
+      );
+      if (current && isOlder(current, next)) return false;
+      queries.setQueryData(queryKey, next);
+      return true;
+    },
+    [queries, queryKey],
+  );
   const analysisId = job?.id ?? null;
   const shouldSync = job ? !terminalAnalysisStatuses.has(job.status) : false;
   versionRef.current = job?.version ?? 0;
@@ -56,135 +105,31 @@ export function useAnalysisJob(
   useEffect(() => {
     if (sourceKeyRef.current === sourceKey) return;
     sourceKeyRef.current = sourceKey;
-    hasLocalJob.current = false;
     createKey.current = null;
     retryKey.current = null;
-    snapshotRef.current = null;
-    setJob(null);
     setError(null);
     setAction(null);
+    setSocketStatus('disconnected');
   }, [sourceKey]);
 
+  const refetch = snapshot.refetch;
   useEffect(() => {
-    let disposed = false;
-    const request = scope.capture();
-    const latest =
-      inputKind === 'screenplay'
-        ? getLatestDocumentAnalysis({
-            document_id: encodeURIComponent(inputId),
-          })
-        : getLatestDownloadAnalysis({
-            download_id: encodeURIComponent(inputId),
-          });
-    void latest
-      .then((current) => {
-        if (
-          disposed ||
-          !request.current() ||
-          hasLocalJob.current ||
-          current === null
-        )
-          return;
-        hasLocalJob.current = true;
-        accept(current);
-      })
-      .catch((reason: unknown) => {
-        if (!disposed && request.latest() && !hasLocalJob.current)
-          setError(displayError(reason));
-      });
-    return () => {
-      disposed = true;
-    };
-  }, [accept, inputId, inputKind, scope]);
-
-  useEffect(() => {
-    if (action || !analysisId || !shouldSync) {
-      return;
-    }
-    let disposed = false;
-    const refresh = async () => {
-      const request = scope.capture();
-      try {
-        const current = await getAnalysis({
-          analysis_id: encodeURIComponent(analysisId as string),
-        });
-        if (
-          disposed ||
-          !request.current() ||
-          current.id !== analysisId ||
-          !accept(current)
-        )
-          return;
-        setError(null);
-      } catch (reason) {
-        if (!disposed && request.latest()) setError(displayError(reason));
-      }
-    };
-    const unsubscribe = taskSocket.subscribe(
+    if (action || !analysisId || !shouldSync) return;
+    return taskSocket.subscribe(
       'analysis',
       analysisId,
       versionRef.current,
-      () => void refresh(),
-      (status) => {
-        if (!disposed) setSocketStatus(status);
+      () => {
+        void refetch({ cancelRefetch: false });
       },
+      setSocketStatus,
     );
-    return () => {
-      disposed = true;
-      unsubscribe();
-    };
-  }, [accept, action, analysisId, scope, shouldSync]);
-
-  useEffect(() => {
-    if (action || !analysisId || !shouldSync) return;
-    let disposed = false;
-    let refreshing = false;
-    const refreshState = async () => {
-      if (disposed || refreshing) return;
-      refreshing = true;
-      const request = scope.capture();
-      try {
-        const current = await getAnalysis({
-          analysis_id: encodeURIComponent(analysisId),
-        });
-        if (
-          disposed ||
-          !request.current() ||
-          current.id !== analysisId ||
-          !accept(current)
-        )
-          return;
-        setError(null);
-      } catch (reason) {
-        if (!disposed && request.latest()) setError(displayError(reason));
-      } finally {
-        refreshing = false;
-      }
-    };
-    const interval =
-      socketStatus === 'connected'
-        ? Math.max(15_000, pollIntervalMs * 10)
-        : Math.max(2_000, pollIntervalMs);
-    const timer = window.setInterval(() => void refreshState(), interval);
-    return () => {
-      disposed = true;
-      window.clearInterval(timer);
-    };
-  }, [
-    accept,
-    action,
-    analysisId,
-    pollIntervalMs,
-    scope,
-    shouldSync,
-    socketStatus,
-  ]);
+  }, [action, analysisId, refetch, shouldSync]);
 
   const start = useCallback(
     async (input: API.AnalysisRequest) => {
       scope.invalidate();
       const request = scope.capture();
-      hasLocalJob.current = true;
       const payload = JSON.stringify([inputKind, inputId, input]);
       if (createKey.current?.payload !== payload) {
         createKey.current = {
@@ -196,6 +141,8 @@ export function useAnalysisJob(
       setAction('start');
       setError(null);
       try {
+        await queries.cancelQueries({ queryKey });
+        if (!request.current()) return;
         const options = {
           headers: { 'Idempotency-Key': createKey.current.value },
         };
@@ -216,9 +163,10 @@ export function useAnalysisJob(
         if (request.current()) setError(displayError(reason));
       } finally {
         if (request.current()) setAction(null);
+        else void queries.invalidateQueries({ queryKey });
       }
     },
-    [accept, inputId, inputKind, scope],
+    [accept, inputId, inputKind, queries, queryKey, scope],
   );
 
   const cancel = useCallback(async () => {
@@ -230,6 +178,8 @@ export function useAnalysisJob(
     setAction('cancel');
     setError(null);
     try {
+      await queries.cancelQueries({ queryKey });
+      if (!request.current()) return;
       const next = await cancelAnalysis({
         analysis_id: encodeURIComponent(analysisId),
       });
@@ -238,22 +188,14 @@ export function useAnalysisJob(
       if (request.current()) setError(displayError(reason));
     } finally {
       if (request.current()) setAction(null);
+      else void queries.invalidateQueries({ queryKey });
     }
-  }, [accept, analysisId, scope]);
+  }, [accept, analysisId, queries, queryKey, scope]);
 
   const retryPoll = useCallback(async () => {
     setError(null);
-    if (!analysisId) return;
-    const request = scope.capture();
-    try {
-      const next = await getAnalysis({
-        analysis_id: encodeURIComponent(analysisId),
-      });
-      if (request.current() && next.id === analysisId) accept(next);
-    } catch (reason) {
-      if (request.latest()) setError(displayError(reason));
-    }
-  }, [accept, analysisId, scope]);
+    await refetch({ cancelRefetch: false });
+  }, [refetch]);
 
   const retry = useCallback(async () => {
     if (!analysisId) {
@@ -270,6 +212,8 @@ export function useAnalysisJob(
     setAction('retry');
     setError(null);
     try {
+      await queries.cancelQueries({ queryKey });
+      if (!request.current()) return;
       const next = await retryAnalysis(
         { analysis_id: encodeURIComponent(analysisId) },
         { headers: { 'Idempotency-Key': retryKey.current.value } },
@@ -281,8 +225,9 @@ export function useAnalysisJob(
       if (request.current()) setError(displayError(reason));
     } finally {
       if (request.current()) setAction(null);
+      else void queries.invalidateQueries({ queryKey });
     }
-  }, [accept, analysisId, scope]);
+  }, [accept, analysisId, queries, queryKey, scope]);
 
   const remove = useCallback(async () => {
     if (!analysisId) return;
@@ -291,25 +236,34 @@ export function useAnalysisJob(
     setAction('delete');
     setError(null);
     try {
+      await queries.cancelQueries({ queryKey });
+      if (!request.current()) return;
       await deleteAnalysis({ analysis_id: encodeURIComponent(analysisId) });
       if (!request.current()) return;
-      hasLocalJob.current = false;
       createKey.current = null;
       retryKey.current = null;
-      snapshotRef.current = null;
-      setJob(null);
+      queries.setQueryData(queryKey, null);
     } catch (reason) {
       if (request.current()) setError(displayError(reason));
     } finally {
       if (request.current()) setAction(null);
+      else void queries.invalidateQueries({ queryKey });
     }
-  }, [analysisId, scope]);
+  }, [analysisId, queries, queryKey, scope]);
 
   return {
     action,
     cancel,
     error,
-    job: sourceKeyRef.current === sourceKey ? job : null,
+    errorKind: actionError
+      ? 'action'
+      : snapshot.error
+        ? job
+          ? 'sync'
+          : 'load'
+        : null,
+    job,
+    loading: snapshot.isPending,
     remove,
     retry,
     retryPoll,
@@ -323,3 +277,10 @@ const terminalAnalysisStatuses = new Set<API.AnalysisStatus>([
   'failed',
   'cancelled',
 ]);
+
+function isOlder(current: API.AnalysisResponse, next: API.AnalysisResponse) {
+  return (
+    current.id === next.id &&
+    (next.version < current.version || next.run_no < current.run_no)
+  );
+}

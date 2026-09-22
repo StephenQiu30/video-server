@@ -251,7 +251,7 @@
 
 ### P9.10 Web 单次提交与页面连续性
 
-- [ ] **P9.10**；状态：实施中（公开意图入口、刷新恢复及查询缓存已实施；内容授权续接、详情缓存和完整验收未完成）；承接者：当前实现任务；职责：Web 产品／前端；依赖：P9.02、P9.07、P9.08。
+- [ ] **P9.10**；状态：实施中（公开意图、首屏身份及详情缓存已实施；内容授权续接、筛选恢复和完整验收未完成）；承接者：当前实现任务；职责：Web 产品／前端；依赖：P9.02、P9.07、P9.08。
   - 功能需求：FR-01、FR-02、FR-06、FR-12。观察同一意图，后台准备与必要动作清晰；根布局查询缓存、草稿、筛选和已加载数据恢复。
   - 非功能需求：NFR-06、NFR-09、NFR-10、NFR-12。owner 隔离、生成客户端、局部加载、键盘／读屏、请求与导航职责分开。
   - 交付：统一入口与任务观察、TanStack Query 业务缓存迁移、删除页面级重复恢复决策；已修复 AuthProvider 行为保持。
@@ -270,7 +270,7 @@
 - 自动验证：`pnpm lint`、`pnpm format:check`、`pnpm build` 通过；72 个测试文件、368 项测试通过。新增导航缓存、后台失败保留数据、身份切换取消和迟到响应、StrictMode、输入不被迟到默认值覆盖的回归测试。
 - agent-browser 使用生产构建与受控接口夹具验证 UI：历史→文档→历史，逐帧观察为 0 帧历史骨架、0 帧登录跳转；阻断历史 API 后仍保留记录并显示刷新失败。桌面／390px、浅色／深色布局已检查无横向溢出。发现反馈文字和头像回退文字对比度不足并修复，四种尺寸／主题组合的 axe WCAG 2A／2AA 复验均为 0 违规、0 待判读项。
 - 本机录制：`/tmp/framefetch-query-continuity-verified.webm`；最终截图：`/tmp/framefetch-query-mobile-light-final.png`、`/tmp/framefetch-query-desktop-light-final.png`。夹具仅用于 UI 故障与导航复现，不是上游平台解析、认证协议或真实媒体验收证据。
-- 剩余：内容授权后同意图继续、筛选恢复、下载／分析详情缓存、全部异常与身份场景的真实浏览器验收。P9.10 保持未勾选。
+- 剩余：内容授权后同意图继续、筛选／提示词恢复、跨页面进行中操作协调、全部异常与身份场景的真实浏览器验收。P9.10 保持未勾选。
 - 响应丢失恢复接口：新增当前 owner + 幂等键的只读意图查询，使用现有唯一索引，不创建工作、不改变 version／截止、不新增 outbox／配额；陌生 owner 与未接单都返回相同 404。后端 29 项意图／交接集成测试、Ruff／Mypy 及自动生成客户端的类型检查和 13 项契约测试通过；Web 接入证据见下方公开意图记录。
 - 草稿连续性：输入原文、来源选择和文件来源声明移入身份代际隔离的根布局 Context，软导航保留，身份变更即时清空；不写 URL、localStorage 或 sessionStorage，刷新／关闭应用后不保留未提交原文。新增路由卸载恢复、换身份清除和独立应用实例隔离测试；前端 73 个文件、371 项测试以及 lint／format／类型检查／生产构建通过。agent-browser 在生产构建中验证输入→文档页→返回、来源选择恢复，390px 明暗主题无横向溢出且 axe 均为 0 违规、0 待判读；截图 `/tmp/framefetch-draft-mobile-dark.png`。此证据覆盖 UI 草稿，不替代已提交意图的持久恢复验收。
 - 公开意图入口已实施：普通链接不再等待 180 秒同步解析；短请求持久接单，直接使用生成的 create／find／cancel／getInspection 接口。根布局保存当前尝试与格式选择，sessionStorage 只保存 owner 和随机 key；查询失联保留结果、停止定时查询，显式恢复与前台／联网重新核对。未知接单结果先只读查询，404 后的显式重试复用原 key；旧版本不能覆盖取消。公众号候选选择和明确选择的受控授权解析仍按各自契约执行，不能将其算作 P9.06 内容授权与同意图续接完成。
@@ -280,6 +280,12 @@
 - 390px／1440px、明暗主题四种组合的实际结果页 axe 均 0 违规／0 待判读。初次浅色检查发现格式说明文字对比度 4.46:1，已调整并复验；截图 `/tmp/framefetch-intent-mobile-light-final.png`、`/tmp/framefetch-intent-mobile-dark-final.png`、`/tmp/framefetch-intent-desktop-light-final.png`。验收结束恢复 Worker，下载制品通过业务删除接口清理，其余临时账号、意图、解析及封面按 owner 清理。
 - 首屏身份投影已实施：server-only + React 请求范围 cache，复用生成的用户接口和校验过的部署 API 地址，仅转发本站 Cookie，2 秒上限／no-store／拒绝重定向。已确认身份直接生成首屏，AuthProvider 原位后台复核；不可用保持 unknown，页头也不显示匿名登录入口。修复已确认匿名状态在后台核对时重新隐藏页头的问题，后到的 RSC 投影不得覆盖当前客户端身份。
 - SSR 验证：前端 77 文件／402 项通过，lint／类型检查／format／本机生产构建和 arm64 镜像通过。两个独立账户 10 次并发 HTML 请求均只包含各自用户，均有 workspace／ready 和 `private, no-cache, no-store`，没有 Cookie 或另一账户资料；匿名请求只输出公开首页。agent-browser 在最终 8101 镜像确认首屏即工作区；实际停止 API 后刷新保持 resolving／原地恢复，无匿名首页、登录入口或登录跳转，恢复 API 后点击重试回到工作区。截图 `/tmp/framefetch-ssr-unknown-final.png`、`/tmp/framefetch-ssr-mobile.png`；临时独立前端、验收账户和会话均清理。公开意图提交 `750265a8` 的远端 [CI 35743294703](https://github.com/StephenQiu30/video-server/actions/runs/35743294703) 已成功。
+
+
+- 下载／分析详情已迁移到身份隔离的根查询缓存；同一任务的轮询与 Socket 通知合并并发读取，接入 AbortSignal，版本／run_no 单调接收。取消／删除先中止旧读取，创建与重试结果写入目标缓存；操作期间离开页面，在返回原任务时重新校验状态。视频／剧本分析初读未知时不展示新建表单，首次失败可重试，后台刷新失败保留结果并提供恢复动作。
+- 缓存回归：前端 78 文件／411 项通过，lint／类型检查／format／本机生产构建通过；新增两类任务的卸载返回、后台失败保留数据、身份变更清空以及操作完成后原缓存重验测试，保留取消／删除／换目标迟到响应和版本顺序回归。首屏身份提交 `9ab7ae6e` 的远端 [CI 35745088275](https://github.com/StephenQiu30/video-server/actions/runs/35745088275) 已成功。
+- agent-browser 使用真实登录及受控 GET 夹具验证详情→文档→返回：同一文档内观察到 0 次主体清空、0 次分析加载提示、0 次登录跳转；阻断两个详情查询仍保留下载标题与完整分析结果。夹具无真实下载／AI 执行，不计入平台验收。
+- 真实页面审查发现 shadcn 状态样式未接入，Tabs 根节点实际按横向排列，桌面分镜正文被挤为 0 像素；按 [官方安装要求](https://ui.shadcn.com/docs/installation/manual) 引入锁定版本 `shadcn@4.21.0` 的 `shadcn/tailwind.css`，正文恢复为 1192 像素，修复不依赖业务页逐处覆盖。同步调整移动端分析标签间距及错误描述对比度。最终本机生产构建桌面／390px、明暗四组合 axe 均 0 违规／0 待判读，分镜正文可读，键盘切换标签、菜单 Escape 关闭后焦点回到入口；断网恢复按钮在恢复接口后分别清除下载／分析错误且保留原结果。截图 `/tmp/framefetch-detail-final-mobile-light.png`、`/tmp/framefetch-detail-final-mobile-dark.png`、`/tmp/framefetch-detail-final-offline.png`。最终 arm64 镜像构建通过；P9.10 保持未勾选。
 
 <a id="p9-11"></a>
 

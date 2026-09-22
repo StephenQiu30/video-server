@@ -34,12 +34,30 @@ describe('AnalysisPanel', () => {
     });
   });
   beforeEach(() => {
-    mockHttpResponses(analysisSkills, null);
+    mockHttpResponses(null, analysisSkills);
+  });
+
+  it('does not offer a new analysis while the existing record is unknown', async () => {
+    vi.mocked(httpClient.request).mockReset();
+    mockHttpError(
+      new ApiError(503, 'analysis_unavailable', 'Unavailable', 'Unavailable'),
+    );
+    render(<AnalysisPanel downloadId={job().id} />);
+    expect(
+      screen.queryByRole('button', { name: '开始 AI 分析' }),
+    ).not.toBeInTheDocument();
+    await screen.findByText('暂时无法读取分析记录');
+    expect(
+      screen.queryByRole('button', { name: '开始 AI 分析' }),
+    ).not.toBeInTheDocument();
+    mockHttpResponses(analysisJob('succeeded'));
+    fireEvent.click(screen.getByRole('button', { name: '重试' }));
+    await screen.findByRole('heading', { name: analysisResult.title });
   });
 
   it('keeps retry errors visible beside the completed result', async () => {
     vi.mocked(httpClient.request).mockReset();
-    mockHttpResponses(analysisSkills, analysisJob('succeeded'));
+    mockHttpResponses(analysisJob('succeeded'));
     mockHttpError(
       new ApiError(503, 'analysis_unavailable', 'Unavailable', 'Unavailable'),
     );
@@ -55,7 +73,7 @@ describe('AnalysisPanel', () => {
     'routes %s report downloads outside the current document',
     async (status) => {
       vi.mocked(httpClient.request).mockReset();
-      mockHttpResponses(analysisSkills, {
+      mockHttpResponses({
         ...analysisJob('succeeded'),
         status,
       });
@@ -87,7 +105,7 @@ describe('AnalysisPanel', () => {
 
   it('preserves the completed report when deletion fails', async () => {
     vi.mocked(httpClient.request).mockReset();
-    mockHttpResponses(analysisSkills, analysisJob('succeeded'));
+    mockHttpResponses(analysisJob('succeeded'));
     mockHttpError(
       new ApiError(503, 'analysis_unavailable', 'Unavailable', 'Unavailable'),
     );
@@ -104,7 +122,7 @@ describe('AnalysisPanel', () => {
     'connects article evidence in the %s branch',
     async (status) => {
       vi.mocked(httpClient.request).mockReset();
-      mockHttpResponses(analysisSkills, {
+      mockHttpResponses({
         ...analysisJob('succeeded'),
         status,
         result: articleResult,
@@ -122,7 +140,7 @@ describe('AnalysisPanel', () => {
 
   it('explains why article evidence cannot be replayed after media cleanup', async () => {
     vi.mocked(httpClient.request).mockReset();
-    mockHttpResponses(analysisSkills, {
+    mockHttpResponses({
       ...analysisJob('succeeded'),
       result: articleResult,
     });
@@ -142,7 +160,7 @@ describe('AnalysisPanel', () => {
     'connects evidence from the %s result to playback',
     async (status) => {
       vi.mocked(httpClient.request).mockReset();
-      mockHttpResponses(analysisSkills, {
+      mockHttpResponses({
         ...analysisJob('succeeded'),
         status,
       });
@@ -158,7 +176,7 @@ describe('AnalysisPanel', () => {
   it('loads analysis skills and exposes an editable prompt', async () => {
     render(<AnalysisPanel downloadId={job().id} />);
     expect(
-      screen.getByRole('heading', { name: 'AI 智能分析' }),
+      await screen.findByRole('heading', { name: 'AI 智能分析' }),
     ).toBeInTheDocument();
     expect(await screen.findByLabelText('分析 Skill')).toHaveAttribute(
       'id',
@@ -190,7 +208,7 @@ describe('AnalysisPanel', () => {
 
   it('restores the latest persisted analysis after a page load', async () => {
     vi.mocked(httpClient.request).mockReset();
-    mockHttpResponses(analysisSkills, analysisJob('succeeded'));
+    mockHttpResponses(analysisJob('succeeded'));
 
     render(<AnalysisPanel downloadId={job().id} />);
 
@@ -214,7 +232,7 @@ describe('AnalysisPanel', () => {
       ...available,
       report: { ...available.report, artifacts: [] },
     };
-    mockHttpResponses(analysisSkills, unavailable);
+    mockHttpResponses(unavailable);
 
     render(<AnalysisPanel downloadId={job().id} />);
 
@@ -232,7 +250,7 @@ describe('AnalysisPanel', () => {
   it('deletes an analysis only after accessible confirmation', async () => {
     vi.mocked(httpClient.request).mockReset();
     const succeeded = analysisJob('succeeded');
-    mockHttpResponses(analysisSkills, succeeded, undefined, analysisSkills);
+    mockHttpResponses(succeeded, undefined, analysisSkills);
     render(<AnalysisPanel downloadId={job().id} />);
 
     const trigger = await screen.findByRole('button', { name: '删除分析' });

@@ -1,5 +1,5 @@
-import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   cancelDownload,
   deleteDownload,
@@ -21,199 +21,169 @@ type ErrorKind = 'load' | 'sync' | 'action' | null;
 export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   const queries = useQueryClient();
   const scope = useRequestScope(jobId);
-  const [job, setJob] = useState<API.DownloadResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [errorKind, setErrorKind] = useState<ErrorKind>(null);
-  const [loading, setLoading] = useState(true);
+  const queryKey = useMemo(() => privateQueryKey('download', jobId), [jobId]);
+  const [actionError, setError] = useState<string | null>(null);
   const [action, setAction] = useState<Action>(null);
-  const [cycle, setCycle] = useState(0);
+  const [removedId, setRemovedId] = useState<string | null>(null);
   const [socketStatus, setSocketStatus] =
     useState<TaskSocketStatus>('disconnected');
   const retryRequest = useRef<{ jobId: string; key: string } | null>(null);
-  const versionRef = useRef(0);
-  const visibleJob = job?.id === jobId ? job : null;
-  const changingJob = job !== null && visibleJob === null;
-  versionRef.current = visibleJob?.version ?? 0;
-  const jobStatus = visibleJob?.status ?? null;
+  const targetId = useRef(jobId);
+
+  const snapshot = useQuery({
+    queryKey,
+    enabled: !action && removedId !== jobId,
+    queryFn: async ({ signal }) => {
+      const next = await getDownload(
+        { job_id: encodeURIComponent(jobId) },
+        { signal },
+      );
+      if (next.id !== jobId) throw new Error('Unexpected download response');
+      const current = queries.getQueryData<API.DownloadResponse | null>(
+        queryKey,
+      );
+      return current && current.version > next.version
+        ? current
+        : mergePresentation(current ?? null, next);
+    },
+    refetchInterval: (query) => {
+      const current = query.state.data;
+      if (
+        !current ||
+        query.state.error ||
+        terminalDownloadStatuses.has(current.status)
+      )
+        return false;
+      return socketStatus === 'connected'
+        ? Math.max(15_000, pollIntervalMs * 10)
+        : Math.max(2_000, pollIntervalMs);
+    },
+    refetchOnWindowFocus: true,
+  });
+  const job = snapshot.data ?? null;
+  const queryError = snapshot.error ? displayError(snapshot.error) : null;
+  const error = actionError ?? queryError;
+  const errorKind: ErrorKind = actionError
+    ? 'action'
+    : queryError
+      ? job
+        ? 'sync'
+        : 'load'
+      : null;
 
   const accept = useCallback(
     (next: API.DownloadResponse) => {
-      if (next.id !== jobId || next.version < versionRef.current) return false;
-      versionRef.current = next.version;
-      void queries.invalidateQueries({
-        queryKey: privateQueryKey('download-history'),
-      });
-      setJob((current) =>
-        mergePresentation(current?.id === next.id ? current : null, next),
+      if (next.id !== jobId) return false;
+      const current = queries.getQueryData<API.DownloadResponse | null>(
+        queryKey,
       );
+      if (current && next.version < current.version) return false;
+      queries.setQueryData(queryKey, mergePresentation(current ?? null, next));
       return true;
     },
-    [jobId, queries],
+    [jobId, queries, queryKey],
   );
 
   useEffect(() => {
-    void cycle;
-    let disposed = false;
-    setJob(null);
+    if (targetId.current === jobId) return;
+    targetId.current = jobId;
     setAction(null);
-    setLoading(true);
     setError(null);
-    setErrorKind(null);
+    setSocketStatus('disconnected');
+    retryRequest.current = null;
+  }, [jobId]);
 
-    async function load() {
-      const request = scope.capture();
-      try {
-        const current = await getDownload({
-          job_id: encodeURIComponent(jobId),
-        });
-        if (disposed || !request.current()) {
-          return;
-        }
-        accept(current);
-        setErrorKind(null);
-        setLoading(false);
-      } catch (reason) {
-        if (!disposed && request.latest()) {
-          setError(displayError(reason));
-          setErrorKind('load');
-          setLoading(false);
-        }
-      }
-    }
+  const snapshotId = job?.id;
+  const snapshotVersion = job?.version;
+  useEffect(() => {
+    if (snapshotId && snapshotVersion !== undefined)
+      void queries.invalidateQueries({
+        queryKey: privateQueryKey('download-history'),
+      });
+  }, [snapshotId, snapshotVersion, queries]);
 
-    void load();
-    return () => {
-      disposed = true;
-    };
-  }, [accept, cycle, jobId, scope]);
-
+  const refetch = snapshot.refetch;
+  const version = useRef(0);
+  version.current = job?.version ?? 0;
+  const jobStatus = job?.status;
   useEffect(() => {
     if (action || !jobStatus || terminalDownloadStatuses.has(jobStatus)) return;
-    let disposed = false;
-    const unsubscribe = taskSocket.subscribe(
+    return taskSocket.subscribe(
       'download',
       jobId,
-      versionRef.current,
-      async () => {
-        const request = scope.capture();
-        try {
-          const next = await getDownload({ job_id: encodeURIComponent(jobId) });
-          if (disposed || !request.current() || !accept(next)) return;
-          setError(null);
-          setErrorKind(null);
-        } catch (reason) {
-          if (disposed || !request.latest()) return;
-          setError(displayError(reason));
-          setErrorKind('sync');
-        }
+      version.current,
+      () => {
+        // Socket and periodic observation share one query and one active read.
+        void refetch({ cancelRefetch: false });
       },
-      (status) => {
-        if (!disposed) setSocketStatus(status);
-      },
+      setSocketStatus,
     );
-    return () => {
-      disposed = true;
-      unsubscribe();
-    };
-  }, [accept, action, jobId, jobStatus, scope]);
-
-  useEffect(() => {
-    if (action || !jobStatus || terminalDownloadStatuses.has(jobStatus)) return;
-    let disposed = false;
-    let refreshing = false;
-    const refreshState = async () => {
-      if (disposed || refreshing) return;
-      refreshing = true;
-      const request = scope.capture();
-      try {
-        const current = await getDownload({
-          job_id: encodeURIComponent(jobId),
-        });
-        if (disposed || !request.current() || !accept(current)) return;
-        setError(null);
-        setErrorKind(null);
-      } catch (reason) {
-        if (disposed || !request.latest()) return;
-        setError(displayError(reason));
-        setErrorKind('sync');
-      } finally {
-        refreshing = false;
-      }
-    };
-    const interval =
-      socketStatus === 'connected'
-        ? Math.max(15_000, pollIntervalMs * 10)
-        : Math.max(2_000, pollIntervalMs);
-    const timer = window.setInterval(() => void refreshState(), interval);
-    return () => {
-      disposed = true;
-      window.clearInterval(timer);
-    };
-  }, [accept, action, jobId, jobStatus, pollIntervalMs, scope, socketStatus]);
+  }, [action, jobId, jobStatus, refetch]);
 
   const refresh = useCallback(() => {
-    scope.invalidate();
-    setCycle((current) => current + 1);
-  }, [scope]);
+    setError(null);
+    void refetch({ cancelRefetch: false });
+  }, [refetch]);
 
   const retry = useCallback(async (): Promise<API.DownloadResponse | null> => {
     scope.invalidate();
     const request = scope.capture();
     setAction('retry');
     setError(null);
-    setErrorKind(null);
     if (retryRequest.current?.jobId !== jobId) {
       retryRequest.current = { jobId, key: createIdempotencyKey() };
     }
     try {
+      await queries.cancelQueries({ queryKey });
+      if (!request.current()) return null;
       const retried = await retryDownload(
         { job_id: encodeURIComponent(jobId) },
         { headers: { 'Idempotency-Key': retryRequest.current.key } },
       );
       if (!request.current()) return null;
-      setJob(retried);
+      if (retried.id === jobId) accept(retried);
+      else
+        queries.setQueryData(privateQueryKey('download', retried.id), retried);
       void queries.invalidateQueries({
         queryKey: privateQueryKey('download-history'),
       });
-      setErrorKind(null);
       return retried;
     } catch (reason) {
       if (!request.current()) return null;
       setError(displayError(reason));
-      setErrorKind('action');
       return null;
     } finally {
       if (request.current()) setAction(null);
+      else void queries.invalidateQueries({ queryKey });
     }
-  }, [jobId, queries, scope]);
+  }, [accept, jobId, queries, queryKey, scope]);
 
   const cancel = useCallback(async () => {
     scope.invalidate();
     const request = scope.capture();
     setAction('cancel');
     setError(null);
-    setErrorKind(null);
     try {
+      await queries.cancelQueries({ queryKey });
+      if (!request.current()) return;
       const cancelled = await cancelDownload({
         job_id: encodeURIComponent(jobId),
       });
       if (!request.current() || !accept(cancelled)) return;
-      setErrorKind(null);
     } catch (reason) {
       if (!request.current()) return;
       setError(displayError(reason));
-      setErrorKind('action');
     } finally {
       if (request.current()) setAction(null);
+      else void queries.invalidateQueries({ queryKey });
     }
-  }, [accept, jobId, scope]);
+  }, [accept, jobId, queries, queryKey, scope]);
 
   const download = useCallback(async () => {
     scope.invalidate();
     const request = scope.capture();
     setAction('download');
     setError(null);
-    setErrorKind(null);
     try {
       const result = await issueDownloadUrl(
         {
@@ -226,11 +196,9 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
       );
       if (!request.current()) return;
       triggerBrowserDownload(result.url, result.filename);
-      setErrorKind(null);
     } catch (reason) {
       if (!request.current()) return;
       setError(displayError(reason));
-      setErrorKind('action');
     } finally {
       if (request.current()) setAction(null);
     }
@@ -241,24 +209,26 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     const request = scope.capture();
     setAction('delete');
     setError(null);
-    setErrorKind(null);
     try {
+      await queries.cancelQueries({ queryKey });
+      if (!request.current()) return false;
       await deleteDownload({ job_id: encodeURIComponent(jobId) });
       if (!request.current()) return false;
       void queries.invalidateQueries({
         queryKey: privateQueryKey('download-history'),
       });
-      setJob(null);
+      setRemovedId(jobId);
+      queries.setQueryData(queryKey, null);
       return true;
     } catch (reason) {
       if (!request.current()) return false;
       setError(displayError(reason));
-      setErrorKind('action');
       return false;
     } finally {
       if (request.current()) setAction(null);
+      else void queries.invalidateQueries({ queryKey });
     }
-  }, [jobId, queries, scope]);
+  }, [jobId, queries, queryKey, scope]);
 
   return {
     action,
@@ -266,8 +236,8 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     download,
     error,
     errorKind,
-    job: visibleJob,
-    loading: loading || changingJob,
+    job,
+    loading: snapshot.isPending && removedId !== jobId,
     remove,
     refresh,
     retry,

@@ -53,7 +53,7 @@ export default function AnalysisResultView({
       </div>
       <div className="mt-10 overflow-x-auto">
         <TabsList
-          className="h-auto w-max gap-7 rounded-none p-0"
+          className="h-auto w-max gap-3 rounded-none p-0 sm:gap-7"
           variant="line"
         >
           <ResultTab value="scenes">场景</ResultTab>

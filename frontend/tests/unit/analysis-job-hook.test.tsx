@@ -1,10 +1,9 @@
-import { act, renderHook } from '@testing-library/react';
+import { act } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { useAnalysisJob } from '@/components/analysis/use-analysis-job';
-
 import { analysisJob } from '../fixtures/analysis-fixtures';
 import { stubCryptoUuids } from '../helpers/crypto';
+import { renderHook } from '../helpers/query-render';
 
 const runtime = vi.hoisted(() => ({
   createAnalysis: vi.fn(),

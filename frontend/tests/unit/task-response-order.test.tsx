@@ -54,48 +54,37 @@ describe.each(['download', 'analysis'] as const)(
     it('does not accept an older snapshot after a newer response', async () => {
       const { result } = renderHook(() => useJob(active.id, 60_000));
       await waitFor(() => expect(runtime.callbacks).toHaveLength(1));
-      const first = deferred<typeof active>();
-      const second = deferred<typeof active>();
-      runtime.get
-        .mockImplementationOnce(() => first.promise)
-        .mockImplementationOnce(() => second.promise);
-      act(() => {
-        runtime.callbacks[0]();
-        runtime.callbacks[0]();
+      runtime.get.mockResolvedValueOnce({
+        ...active,
+        version: 4,
+        progress: 60,
       });
-      await act(async () =>
-        second.resolve({ ...active, version: 4, progress: 60 }),
-      );
-      await act(async () =>
-        first.resolve({ ...active, version: 3, progress: 40 }),
-      );
+      act(() => runtime.callbacks[0]());
+      await waitFor(() => expect(result.current.job?.version).toBe(4));
+      runtime.get.mockResolvedValueOnce({
+        ...active,
+        version: 3,
+        progress: 40,
+      });
+      await act(async () => runtime.callbacks[0]());
       expect(result.current.job?.version).toBe(4);
       expect(result.current.job?.progress).toBe(60);
     });
 
-    it('merges polling and socket queries without rolling back', async () => {
-      let poll: (() => void) | undefined;
-      const setInterval = window.setInterval.bind(window);
-      vi.spyOn(window, 'setInterval').mockImplementation((callback, delay) => {
-        if (delay === 60_000 && typeof callback === 'function') {
-          poll = () => callback();
-        }
-        return Reflect.apply(setInterval, window, [callback, delay]);
-      });
+    it('coalesces simultaneous socket notifications into one active query', async () => {
       const { result } = renderHook(() => useJob(active.id, 60_000));
-      await waitFor(() => expect(poll).toBeDefined());
-      const older = deferred<typeof active>();
-      const newer = deferred<typeof active>();
-      runtime.get
-        .mockImplementationOnce(() => older.promise)
-        .mockImplementationOnce(() => newer.promise);
+      await waitFor(() => expect(runtime.callbacks).toHaveLength(1));
+      runtime.get.mockClear();
+      const pending = deferred<typeof active>();
+      runtime.get.mockReturnValueOnce(pending.promise);
       act(() => {
-        poll?.();
+        runtime.callbacks[0]();
+        runtime.callbacks[0]();
         runtime.callbacks[0]();
       });
-      await act(async () => newer.resolve({ ...active, version: 4 }));
-      await act(async () => older.resolve({ ...active, version: 3 }));
-      expect(result.current.job?.version).toBe(4);
+      expect(runtime.get).toHaveBeenCalledTimes(1);
+      await act(async () => pending.resolve({ ...active, version: 4 }));
+      await waitFor(() => expect(result.current.job?.version).toBe(4));
     });
 
     it.each(['success', 'failure'] as const)(

@@ -16,6 +16,7 @@ import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { markNavigationPush } from '@/components/layout/navigation-history';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDuration } from '@/lib/format';
 import { audioCodecLabel } from '@/lib/media-format';
@@ -91,6 +92,13 @@ export default function DownloadJobView({
       ) : null}
       {state.error && state.job ? (
         <FeedbackNotice
+          action={
+            state.errorKind === 'sync' ? (
+              <Button variant="outline" size="sm" onClick={state.refresh}>
+                恢复下载状态
+              </Button>
+            ) : undefined
+          }
           className="mt-8"
           description={state.error}
           title={errorTitle(state.errorKind)}

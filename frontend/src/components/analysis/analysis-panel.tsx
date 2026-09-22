@@ -45,6 +45,25 @@ export default function AnalysisPanel({
 }) {
   const state = useAnalysisJob(downloadId, pollIntervalMs);
 
+  if (state.loading && state.action !== 'start') {
+    return (
+      <div className="py-12" role="status">
+        <Spinner aria-hidden className="mr-2 inline" />
+        正在读取分析记录
+      </div>
+    );
+  }
+  if (state.errorKind === 'load' && state.error) {
+    return (
+      <PageErrorNotice
+        compact
+        title="暂时无法读取分析记录"
+        message={state.error}
+        onRetry={() => void state.retryPoll()}
+      />
+    );
+  }
+
   if (
     state.job?.status === 'succeeded' &&
     (state.job.result?.kind === 'video_visual_analysis' ||
@@ -60,6 +79,17 @@ export default function AnalysisPanel({
       <div className="py-12 sm:py-16">
         {state.error ? (
           <FeedbackNotice
+            action={
+              state.errorKind === 'sync' ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void state.retryPoll()}
+                >
+                  恢复同步
+                </Button>
+              ) : undefined
+            }
             className="mb-8"
             description={state.error}
             title="操作未完成"
@@ -174,6 +204,17 @@ export default function AnalysisPanel({
 
       {state.error ? (
         <FeedbackNotice
+          action={
+            state.errorKind === 'sync' ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void state.retryPoll()}
+              >
+                恢复同步
+              </Button>
+            ) : undefined
+          }
           className="mt-6"
           description={state.error}
           title="操作未完成"

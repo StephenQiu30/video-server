@@ -235,6 +235,7 @@ export default function DownloadWorkspace() {
           },
         },
       );
+      queries.setQueryData(privateQueryKey('download', result.id), result);
       openDownload(result.id);
     } catch (reason) {
       setAuthorizationTarget(null);
