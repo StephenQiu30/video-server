@@ -122,6 +122,18 @@ class FileProviderAuthorizationQueue:
     def cancel(self, token: str) -> None:
         cancel_authorization(self._root, token)
 
+    def cleanup(self, token: str) -> None:
+        if _TOKEN.fullmatch(token) is None:
+            raise ValueError("invalid authorization transaction token")
+        requests, responses, cancelled = _authorization_paths(self._root)
+        # Called only after the durable operation and its retention deadline end.
+        for directory, suffix in (
+            (requests, "request"),
+            (responses, "response"),
+            (cancelled, "cancel"),
+        ):
+            (directory / f"{token}.{suffix}").unlink(missing_ok=True)
+
 
 def write_authorization_source(
     root: Path,
@@ -209,9 +221,15 @@ def write_authorization_request(
 
     if _TOKEN.fullmatch(token) is None:
         raise ValueError("invalid authorization transaction token")
-    requests, _, _ = _authorization_paths(root)
+    requests, _, cancelled = _authorization_paths(root)
+    if (cancelled / f"{token}.cancel").exists():
+        return
     target = requests / f"{token}.request"
-    _atomic_publish_shared(target, request.serialize())
+    try:
+        _atomic_publish_shared(target, request.serialize())
+    except FileExistsError:
+        if read_authorization_request(target) != request:
+            raise OSError("authorization request identity mismatch") from None
 
 
 def read_authorization_request(path: Path) -> ProviderAuthorizationRequest:
@@ -296,11 +314,14 @@ def cancel_authorization(root: Path, token: str) -> None:
         return
     _, _, cancelled = _authorization_paths(root)
     marker = cancelled / f"{token}.cancel"
-    descriptor = os.open(
-        marker,
-        os.O_WRONLY | os.O_CREAT | os.O_EXCL | no_follow_flag(),
-        0o644,
-    )
+    try:
+        descriptor = os.open(
+            marker,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | no_follow_flag(),
+            0o644,
+        )
+    except FileExistsError:
+        return
     os.close(descriptor)
 
 

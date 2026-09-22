@@ -63,6 +63,7 @@ from app.repositories.downloads.intent_repository import IntentRepository
 from app.repositories.downloads.repository import SqlAlchemyDownloadRepository
 from app.repositories.imports.repository import SqlAlchemyMediaImportRepository
 from app.repositories.operational_metrics import OperationalMetrics
+from app.repositories.providers.authorizations import ProviderAuthorizationRepository
 from app.repositories.providers.canary_repository import (
     SqlAlchemyProviderCanaryRepository,
 )
@@ -551,7 +552,7 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
                 FileProviderAuthorizationQueue(
                     settings.provider_authorization_queue_root
                 ),
-                settings.redis_url,
+                ProviderAuthorizationRepository(sessions),
                 now=clock,
                 can_authorize_provider=_can_authorize_provider,
             ),

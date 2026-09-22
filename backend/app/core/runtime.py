@@ -163,6 +163,8 @@ class ApiRuntime:
 
     async def start(self) -> None:
         await self.realtime_consumer.start()
+        if self.services.provider_authorization_service is not None:
+            await self.services.provider_authorization_service.start()
 
     async def close(self) -> None:
         # Every owner releases its resource even if an earlier close fails.

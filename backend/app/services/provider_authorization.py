@@ -1,63 +1,22 @@
-"""User-owned authorization transactions backed by the local Access Agent queue."""
+"""Durable administrator source maintenance; a readable source is not a grant."""
 
 from __future__ import annotations
 
 import asyncio
-import hashlib
-import hmac
 import json
-import secrets
+import logging
 from collections.abc import Callable
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Protocol, cast
+from typing import Protocol
 from uuid import UUID
-
-from redis.asyncio import Redis
 
 from app.services.provider_types import ProviderAuthorizationSource, ProviderKey
 
-_KEY_PREFIX = "video:provider-authorization:"
-_ACTIVE_KEY_PREFIX = "video:provider-authorization-active:"
-_TOKEN_BYTES = 16
 _MAX_REQUEST_BYTES = 256
 _DEFAULT_RESULT_RETENTION = timedelta(hours=24)
-
-_CLAIM_TRANSACTION_SCRIPT = """
-local existing = redis.call('GET', KEYS[1])
-if existing then
-  return existing
-end
-redis.call('SET', KEYS[1], ARGV[1], 'EX', tonumber(ARGV[2]))
-redis.call(
-  'HSET', KEYS[2],
-  'user_id', ARGV[3],
-  'provider_key', ARGV[4],
-  'source', ARGV[5],
-  'status', ARGV[6],
-  'expires_at', ARGV[7],
-  'active_key', KEYS[1]
-)
-redis.call('EXPIRE', KEYS[2], tonumber(ARGV[8]))
-return ARGV[1]
-"""
-
-_TRANSITION_STATUS_SCRIPT = """
-local current = redis.call('HGET', KEYS[1], 'status')
-if current ~= ARGV[1] then
-  return 0
-end
-redis.call('HSET', KEYS[1], 'status', ARGV[2])
-redis.call('EXPIRE', KEYS[1], tonumber(ARGV[3]))
-return 1
-"""
-
-_RELEASE_ACTIVE_SCRIPT = """
-if redis.call('GET', KEYS[1]) == ARGV[1] then
-  return redis.call('DEL', KEYS[1])
-end
-return 0
-"""
+_logger = logging.getLogger(__name__)
 
 
 class ProviderAuthorizationStatus:
@@ -78,11 +37,50 @@ class ProviderAuthorizationTransaction:
     expires_at: datetime
 
 
+@dataclass(frozen=True, slots=True)
+class AuthorizationRecord:
+    id: UUID
+    user_id: UUID
+    provider_key: str
+    source: ProviderAuthorizationSource
+    status: str
+    expires_at: datetime
+
+    def view(self) -> ProviderAuthorizationTransaction:
+        return ProviderAuthorizationTransaction(
+            self.id.hex, self.provider_key, self.status, self.expires_at
+        )
+
+
 class ProviderAuthorizationError(RuntimeError):
     def __init__(self, code: str, detail: str) -> None:
         self.code = code
         self.detail = detail
         super().__init__(detail)
+
+
+class AuthorizationPersistence(Protocol):
+    async def accept(
+        self,
+        user_id: UUID,
+        provider_key: str,
+        source: ProviderAuthorizationSource,
+        *,
+        now: datetime,
+        ttl: timedelta,
+        retention: timedelta,
+    ) -> tuple[AuthorizationRecord, bool]: ...
+    async def get(
+        self, transaction_id: UUID, user_id: UUID, *, now: datetime
+    ) -> AuthorizationRecord: ...
+    async def transition(
+        self, record: AuthorizationRecord, target: str, *, now: datetime
+    ) -> AuthorizationRecord: ...
+    async def pending(self, *, limit: int = 100) -> tuple[AuthorizationRecord, ...]: ...
+    async def expired_results(
+        self, *, now: datetime, limit: int = 100
+    ) -> tuple[AuthorizationRecord, ...]: ...
+    async def forget(self, record: AuthorizationRecord, *, now: datetime) -> None: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -139,14 +137,16 @@ class ProviderAuthorizationQueue(Protocol):
 
     def cancel(self, token: str) -> None: ...
 
+    def cleanup(self, token: str) -> None: ...
+
 
 class ProviderAuthorizationService:
-    """Persist only transaction metadata; Cookies stay inside the host agent."""
+    """PostgreSQL owns transactions; bounded reconciliation is page-independent."""
 
     def __init__(
         self,
         authorization_queue: ProviderAuthorizationQueue,
-        redis_url: str,
+        repository: AuthorizationPersistence,
         *,
         now: Callable[[], datetime],
         can_authorize_provider: Callable[[str], bool],
@@ -158,11 +158,12 @@ class ProviderAuthorizationService:
         if result_retention.total_seconds() <= 0:
             raise ValueError("provider authorization result retention must be positive")
         self._authorization_queue = authorization_queue
-        self._redis = Redis.from_url(redis_url, decode_responses=True)
+        self._repository = repository
         self._now = now
         self._can_authorize_provider = can_authorize_provider
         self._ttl = transaction_ttl
         self._result_retention = result_retention
+        self._task: asyncio.Task[None] | None = None
 
     async def begin(
         self,
@@ -172,150 +173,9 @@ class ProviderAuthorizationService:
             ProviderAuthorizationSource.CURRENT_CHROME
         ),
     ) -> ProviderAuthorizationTransaction:
-        self._validate_provider(provider_key)
         try:
-            authorization_source = ProviderAuthorizationSource(source)
-        except ValueError as exc:
-            raise ProviderAuthorizationError(
-                "provider_unsupported", "该平台没有可用的本机授权流程。"
-            ) from exc
-        provider = ProviderKey(provider_key)
-        active_key = self._active_key(provider)
-        existing = await self._existing_active(
-            user_id, active_key, authorization_source
-        )
-        if existing is not None:
-            return existing
-        if not await asyncio.to_thread(self._authorization_queue.agent_ready, provider):
-            raise ProviderAuthorizationError(
-                "provider_configuration_missing",
-                "本机授权 Agent 尚未安装，请先完成一次本机初始化。",
-            )
-        token = secrets.token_hex(_TOKEN_BYTES)
-        expires_at = self._now() + self._ttl
-        key = self._key(token)
-        operation_ttl = max(1, int(self._ttl.total_seconds()))
-        ttl = max(1, int((self._ttl + self._result_retention).total_seconds()))
-        claimed = False
-        for _attempt in range(3):
-            claimed_token = await self._redis.eval(
-                _CLAIM_TRANSACTION_SCRIPT,
-                2,
-                active_key,
-                key,
-                token,
-                operation_ttl,
-                str(user_id),
-                provider_key,
-                authorization_source.value,
-                ProviderAuthorizationStatus.PENDING,
-                expires_at.astimezone(UTC).isoformat(),
-                ttl,
-            )
-            if claimed_token == token:
-                claimed = True
-                break
-            existing = await self._existing_active(
-                user_id, active_key, authorization_source
-            )
-            if existing is not None:
-                return existing
-        if not claimed:
-            raise ProviderAuthorizationError(
-                "provider_authorization_unavailable",
-                "同一平台的授权事务正在收敛，请稍后重试。",
-            )
-        try:
-            self._authorization_queue.write_request(
-                token,
-                ProviderAuthorizationRequest(
-                    provider,
-                    expires_at,
-                    authorization_source,
-                ),
-            )
-        except Exception:
-            await self._redis.delete(key)
-            await self._release_active(active_key, token)
-            raise ProviderAuthorizationError(
-                "provider_authorization_unavailable",
-                "本机授权队列暂时不可用，请检查本机 Agent 状态。",
-            ) from None
-        return ProviderAuthorizationTransaction(
-            transaction_id=token,
-            provider_key=provider_key,
-            status=ProviderAuthorizationStatus.PENDING,
-            expires_at=expires_at,
-        )
-
-    async def get(
-        self,
-        user_id: UUID,
-        transaction_id: str,
-    ) -> ProviderAuthorizationTransaction:
-        record = await self._record_for_user(user_id, transaction_id)
-        status = record["status"]
-        expires_at = _parse_expiry(record["expires_at"])
-        if status == ProviderAuthorizationStatus.PENDING:
-            if self._now() >= expires_at:
-                transitioned = await self._transition_status(
-                    transaction_id,
-                    ProviderAuthorizationStatus.PENDING,
-                    ProviderAuthorizationStatus.EXPIRED,
-                )
-                if transitioned:
-                    status = ProviderAuthorizationStatus.EXPIRED
-                    _cancel_quietly(self._authorization_queue, transaction_id)
-                    _remove_response_quietly(self._authorization_queue, transaction_id)
-                else:
-                    record = await self._record_for_user(user_id, transaction_id)
-                    status = record["status"]
-            elif (
-                response := self._authorization_queue.read_response(transaction_id)
-            ) is not None:
-                response_status = _response_status(response)
-                transitioned = await self._transition_status(
-                    transaction_id,
-                    ProviderAuthorizationStatus.PENDING,
-                    response_status,
-                )
-                if transitioned:
-                    status = response_status
-                    self._authorization_queue.remove_response(transaction_id)
-                else:
-                    record = await self._record_for_user(user_id, transaction_id)
-                    status = record["status"]
-                    if status != ProviderAuthorizationStatus.PENDING:
-                        _remove_response_quietly(
-                            self._authorization_queue, transaction_id
-                        )
-        else:
-            _remove_response_quietly(self._authorization_queue, transaction_id)
-        return ProviderAuthorizationTransaction(
-            transaction_id=transaction_id,
-            provider_key=record["provider_key"],
-            status=status,
-            expires_at=expires_at,
-        )
-
-    async def cancel(self, user_id: UUID, transaction_id: str) -> None:
-        record = await self._record_for_user(user_id, transaction_id)
-        if record["status"] == ProviderAuthorizationStatus.PENDING:
-            transitioned = await self._transition_status(
-                transaction_id,
-                ProviderAuthorizationStatus.PENDING,
-                ProviderAuthorizationStatus.CANCELLED,
-            )
-            if transitioned:
-                _cancel_quietly(self._authorization_queue, transaction_id)
-                _remove_response_quietly(self._authorization_queue, transaction_id)
-
-    async def close(self) -> None:
-        await self._redis.aclose()
-
-    def _validate_provider(self, provider_key: str) -> None:
-        try:
-            ProviderKey(provider_key)
+            provider = ProviderKey(provider_key)
+            source = ProviderAuthorizationSource(source)
         except ValueError as exc:
             raise ProviderAuthorizationError(
                 "provider_unsupported", "该平台没有可用的本机授权流程。"
@@ -324,115 +184,134 @@ class ProviderAuthorizationService:
             raise ProviderAuthorizationError(
                 "provider_unsupported", "该平台没有可用的本机授权流程。"
             )
-
-    async def _record_for_user(
-        self,
-        user_id: UUID,
-        transaction_id: str,
-    ) -> dict[str, str]:
-        if len(transaction_id) != _TOKEN_BYTES * 2 or any(
-            character not in "0123456789abcdef" for character in transaction_id
-        ):
-            raise ProviderAuthorizationError("not_found", "授权事务不存在或已经过期。")
-        record = cast(
-            dict[str, str], await self._redis.hgetall(self._key(transaction_id))
+        if not await asyncio.to_thread(self._authorization_queue.agent_ready, provider):
+            raise ProviderAuthorizationError(
+                "provider_configuration_missing",
+                "本机授权 Agent 尚未安装，请先完成一次本机初始化。",
+            )
+        record, created = await self._repository.accept(
+            user_id,
+            provider_key,
+            source,
+            now=self._now(),
+            ttl=self._ttl,
+            retention=self._result_retention,
         )
-        stored_user_id = record.get("user_id")
-        if (
-            not record
-            or stored_user_id is None
-            or not hmac.compare_digest(stored_user_id, str(user_id))
+        if created:
+            try:
+                self._authorization_queue.write_request(
+                    record.id.hex,
+                    ProviderAuthorizationRequest(provider, record.expires_at, source),
+                )
+            except Exception:
+                # Preserve the failed operation for diagnosis; never acknowledge
+                # a source whose control request was not durably published.
+                await self._repository.transition(
+                    record, ProviderAuthorizationStatus.FAILED, now=self._now()
+                )
+                raise ProviderAuthorizationError(
+                    "provider_authorization_unavailable",
+                    "本机授权队列暂时不可用，请检查本机 Agent 状态。",
+                ) from None
+        return record.view()
+
+    async def get(
+        self, user_id: UUID, transaction_id: str
+    ) -> ProviderAuthorizationTransaction:
+        record = await self._owned(user_id, transaction_id)
+        return (await self._reconcile(record)).view()
+
+    async def cancel(self, user_id: UUID, transaction_id: str) -> None:
+        record = await self._owned(user_id, transaction_id)
+        result = await self._repository.transition(
+            record, ProviderAuthorizationStatus.CANCELLED, now=self._now()
+        )
+        if result.status in {
+            ProviderAuthorizationStatus.CANCELLED,
+            ProviderAuthorizationStatus.EXPIRED,
+        }:
+            self._authorization_queue.cancel(transaction_id)
+            _remove_response_quietly(self._authorization_queue, transaction_id)
+
+    async def _owned(self, user_id: UUID, transaction_id: str) -> AuthorizationRecord:
+        if len(transaction_id) != 32 or any(
+            c not in "0123456789abcdef" for c in transaction_id
         ):
             raise ProviderAuthorizationError("not_found", "授权事务不存在或已经过期。")
+        return await self._repository.get(
+            UUID(hex=transaction_id), user_id, now=self._now()
+        )
+
+    async def _reconcile(self, record: AuthorizationRecord) -> AuthorizationRecord:
+        token = record.id.hex
+        if record.status == ProviderAuthorizationStatus.PENDING:
+            response = None
+            if self._now() >= record.expires_at:
+                target = ProviderAuthorizationStatus.EXPIRED
+            else:
+                response = self._authorization_queue.read_response(token)
+                if response is None:
+                    # The persisted pending operation is also its delivery intent.
+                    # Re-publish idempotently after a crash between DB and queue.
+                    self._authorization_queue.write_request(
+                        token,
+                        ProviderAuthorizationRequest(
+                            ProviderKey(record.provider_key),
+                            record.expires_at,
+                            record.source,
+                        ),
+                    )
+                    return record
+                target = _response_status(response)
+            # Commit before ACK/removing the response. Replays observe the same
+            # terminal state; a concurrent cancellation cannot be overwritten.
+            record = await self._repository.transition(record, target, now=self._now())
+        # Retain a terminal queue marker until result retention ends. A delayed
+        # publisher cannot reopen an already completed/cancelled host operation.
+        self._authorization_queue.cancel(token)
+        _remove_response_quietly(self._authorization_queue, token)
         return record
 
-    async def _transition_status(
-        self,
-        transaction_id: str,
-        expected: str,
-        target: str,
-    ) -> bool:
-        retention = max(1, int(self._result_retention.total_seconds()))
-        record = cast(
-            dict[str, str], await self._redis.hgetall(self._key(transaction_id))
-        )
-        changed = await self._redis.eval(
-            _TRANSITION_STATUS_SCRIPT,
-            1,
-            self._key(transaction_id),
-            expected,
-            target,
-            retention,
-        )
-        if changed and (active_key := record.get("active_key")):
-            await self._release_active(active_key, transaction_id)
-        return bool(changed)
+    async def reconcile(self) -> int:
+        records = await self._repository.pending()
+        completed = 0
+        for record in records:
+            try:
+                async with asyncio.timeout(5):
+                    result = await self._reconcile(record)
+                completed += result.status != ProviderAuthorizationStatus.PENDING
+            except Exception:
+                # One bad queue entry must not stop other providers. Do not log
+                # exception bodies: filesystem errors can disclose local paths.
+                _logger.warning("provider authorization reconciliation failed")
+        for record in await self._repository.expired_results(now=self._now()):
+            self._authorization_queue.cleanup(record.id.hex)
+            await self._repository.forget(record, now=self._now())
+        return completed
 
-    async def _existing_active(
-        self,
-        user_id: UUID,
-        active_key: str,
-        source: ProviderAuthorizationSource,
-    ) -> ProviderAuthorizationTransaction | None:
-        value = await self._redis.get(active_key)
-        if not isinstance(value, str):
-            return None
-        record = cast(dict[str, str], await self._redis.hgetall(self._key(value)))
-        if not record:
-            await self._release_active(active_key, value)
-            return None
-        if record.get("status") != ProviderAuthorizationStatus.PENDING:
-            await self._release_active(active_key, value)
-            return None
-        expires_at = _parse_expiry(record["expires_at"])
-        if self._now() >= expires_at:
-            await self._transition_status(
-                value,
-                ProviderAuthorizationStatus.PENDING,
-                ProviderAuthorizationStatus.EXPIRED,
-            )
-            return None
-        if not hmac.compare_digest(
-            record.get("user_id", ""), str(user_id)
-        ) or not hmac.compare_digest(record.get("source", ""), source.value):
-            raise ProviderAuthorizationError(
-                "provider_authorization_unavailable",
-                "该平台已有管理员授权事务正在进行，请等待其完成或取消后重试。",
-            )
-        return ProviderAuthorizationTransaction(
-            transaction_id=value,
-            provider_key=record["provider_key"],
-            status=record["status"],
-            expires_at=expires_at,
-        )
+    async def start(self) -> None:
+        if self._task is None:
+            self._task = asyncio.create_task(self._run())
 
-    async def _release_active(self, active_key: str, transaction_id: str) -> None:
-        await self._redis.eval(
-            _RELEASE_ACTIVE_SCRIPT,
-            1,
-            active_key,
-            transaction_id,
-        )
+    async def _run(self) -> None:
+        while True:
+            try:
+                async with asyncio.timeout(15):
+                    await self.reconcile()
+            except Exception:
+                _logger.warning("provider authorization maintenance unavailable")
+            await asyncio.sleep(2)
 
-    @staticmethod
-    def _key(transaction_id: str) -> str:
-        digest = hashlib.sha256(transaction_id.encode("ascii")).hexdigest()
-        return _KEY_PREFIX + digest
-
-    @staticmethod
-    def _active_key(provider: ProviderKey) -> str:
-        return _ACTIVE_KEY_PREFIX + hashlib.sha256(provider.value.encode()).hexdigest()
-
-
-def _parse_expiry(value: str) -> datetime:
-    parsed = datetime.fromisoformat(value)
-    if parsed.tzinfo is None:
-        raise ValueError("authorization expiry must include a timezone")
-    return parsed.astimezone(UTC)
+    async def close(self) -> None:
+        if self._task is not None:
+            self._task.cancel()
+            with suppress(asyncio.CancelledError):
+                await self._task
+            self._task = None
 
 
 def _response_status(value: str) -> str:
-    if value in {"authorized", "source_available"}:
+    if value == "source_available":
         return ProviderAuthorizationStatus.SOURCE_AVAILABLE
     if value == "cancelled":
         return ProviderAuthorizationStatus.CANCELLED
@@ -443,15 +322,6 @@ def _response_status(value: str) -> str:
     if value == "provider_session_permission_denied":
         return ProviderAuthorizationStatus.PERMISSION_REQUIRED
     return ProviderAuthorizationStatus.FAILED
-
-
-def _cancel_quietly(
-    authorization_queue: ProviderAuthorizationQueue, transaction_id: str
-) -> None:
-    try:
-        authorization_queue.cancel(transaction_id)
-    except OSError:
-        pass
 
 
 def _remove_response_quietly(

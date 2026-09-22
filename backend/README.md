@@ -41,6 +41,8 @@ macOS 部署可显式安装统一按需助手和一次性浏览器连接器。�
 
 ## 资源准入
 
+管理员的平台来源维护事务保存在 PostgreSQL `provider_authorizations`，API 后台在页面关闭后继续协调回执、超时及控制队列缺投；Web 切页只停止观察，明确取消才终止事务。来源维护有独立截止和 24 小时结果保留，结果清理后才回收对应队列标记。`source_available` 仅表示来源可读，不是内容授权，也不会自动恢复其他用户的下载。升级前应用当前 `sql/schema.sql`，并等待旧 Redis 中尚在进行的维护操作结束；不迁移旧临时事务或从其回执生成内容授权。API 与宿主 Agent 使用同一版本，具体状态见 [P9.06](../docs/plan/044-开源部署无感解析Plan.md#p9-06)。
+
 公开访客访问由 `provider-guest` 自动维护，当前启用抖音第一方访客初始化；`douyin-guest-runner` 只读短期材料，与匿名／账号 Runner 分离。标准 Compose 为持久解析意图配置此路线，无需导入账号 Cookie；保留稳定 `URL_ENCRYPTION_KEY` 和 PostgreSQL 数据即可恢复，丢失访客副本也可自动重建。部署前须应用当前 `sql/schema.sql`。运行预算与验收边界见 [044 设计](../docs/design/044-开源部署无感解析需求与系统设计.md) 和 [044 Plan](../docs/plan/044-开源部署无感解析Plan.md)；其他平台及 Web／App 的整体切换仍按 Plan 验收，不能以访客进程健康代替媒体成功。
 
 持久解析入口为 `POST /api/download-intents`，接单提交后返回 202；查询和取消使用同一资源 ID。API 不等待上游解析。下载 Worker 的独立解析消费槽通过 `download.intent.requested` 事件执行，失联租约和重试由同一恢复循环收敛；解析总预算 180 秒、最多三次执行。用户取消后 Worker 停止 HTTP 操作，Runner 断连处理终止实际子进程。新入口和双客户端切换状态见 [044 Plan](../docs/plan/044-开源部署无感解析Plan.md#p9-02)。解析按每日任务计量、零下载字节，同幂等键重放不重复计量。Worker 与 API 使用相同 `REQUEST_FINGERPRINT_SECRET`，生产环境禁止开发默认值。

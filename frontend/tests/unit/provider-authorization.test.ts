@@ -164,3 +164,57 @@ function dispatchBridgeResult(value: object) {
     }),
   );
 }
+
+it.each([false, true])(
+  'keeps a durable authorization on navigation (response pending: %s)',
+  async (pendingResponse) => {
+    let finish!: (value: API.ProviderAuthorizationResponse) => void;
+    const transaction: API.ProviderAuthorizationResponse = {
+      expires_at: '2026-09-22T12:10:00Z',
+      provider_key: 'youtube',
+      status: 'pending',
+      transaction_id: TRANSACTION_ID,
+    };
+    vi.spyOn(providers, 'beginProviderAuthorization').mockImplementation(() =>
+      pendingResponse
+        ? new Promise((resolve) => {
+            finish = resolve;
+          })
+        : Promise.resolve(transaction),
+    );
+    const cancel = vi
+      .spyOn(providers, 'cancelProviderAuthorization')
+      .mockResolvedValue(undefined);
+    const postMessage = vi
+      .spyOn(window, 'postMessage')
+      .mockImplementation((message) => {
+        if (message?.type === 'framefetch:provider-sync')
+          dispatchBridgeResult({
+            provider: message.provider,
+            requestId: message.requestId,
+            ok: true,
+            revision: 'verified-local-revision',
+          });
+      });
+    const view = render(
+      createElement(ProviderAuthorizationDialog, {
+        provider: {
+          authorization_action: 'browser_session',
+          display_name: 'YouTube',
+          key: 'youtube',
+        },
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: '使用当前 Chrome 会话' }),
+    );
+    if (!pendingResponse)
+      await waitFor(() => expect(postMessage).toHaveBeenCalled());
+    view.unmount();
+    if (pendingResponse) finish(transaction);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(cancel).not.toHaveBeenCalled();
+    postMessage.mockRestore();
+  },
+);

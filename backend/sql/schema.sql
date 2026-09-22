@@ -1495,6 +1495,37 @@ CREATE TABLE IF NOT EXISTS email_registration_challenges (
 
 CREATE INDEX IF NOT EXISTS ix_email_registration_expires ON email_registration_challenges (expires_at);
 
+-- Administrator source maintenance is durable and is not a content grant.
+CREATE TABLE IF NOT EXISTS provider_authorizations (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    provider_key VARCHAR(32) NOT NULL,
+    source VARCHAR(32) NOT NULL,
+    purpose VARCHAR(32) NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    retain_until TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL,
+    CONSTRAINT ck_provider_authorizations_status CHECK (
+        status IN ('pending','source_available','authorization_required',
+                   'permission_required','expired','cancelled','failed')
+    ),
+    CONSTRAINT ck_provider_authorizations_source CHECK (
+        source IN ('current_chrome','dedicated_chrome')
+    ),
+    CONSTRAINT ck_provider_authorizations_purpose CHECK (
+        purpose = 'maintain_deployment_source'
+    ),
+    CONSTRAINT ck_provider_authorizations_deadline CHECK (
+        expires_at > created_at AND retain_until >= expires_at
+    )
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_provider_authorizations_active
+    ON provider_authorizations (provider_key) WHERE status = 'pending';
+CREATE INDEX IF NOT EXISTS ix_provider_authorizations_retention
+    ON provider_authorizations (retain_until);
+
 -- Deployment sources survive application hosts; NULL ciphertext is a durable
 -- revocation tombstone. Only the source publisher receives the decryption key.
 CREATE TABLE IF NOT EXISTS provider_session_sources (

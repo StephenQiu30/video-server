@@ -574,7 +574,7 @@ def _authorize_request(
                 runtime_root=runtime_root,
             )
             if lease.status is ProviderCookieLeaseStatus.OK:
-                if cancel_marker.exists():
+                if cancel_marker.exists() or datetime.now(UTC) >= parsed.expires_at:
                     return
                 write_authorization_source(
                     runtime_root,
@@ -607,7 +607,10 @@ def _authorize_request(
         _write_authorization_response(response, "provider_session_unavailable")
     finally:
         _remove_authorization_entry(request)
-        _remove_authorization_entry(cancel_marker)
+        # API terminal markers fence delayed queue publishers until the durable
+        # result retention ends; the API cleanup owns their removal.
+        if parsed.probe:
+            _remove_authorization_entry(cancel_marker)
 
 
 def _write_authorization_response(target: Path, value: str) -> None:

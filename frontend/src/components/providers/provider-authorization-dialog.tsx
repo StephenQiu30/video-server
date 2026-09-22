@@ -77,18 +77,15 @@ function ChromeProviderAuthorizationDialog({
   const [setupRequired, setSetupRequired] = useState(false);
   const [startError, setStartError] = useState('');
   const pollingRef = useRef(false);
+  const mountedRef = useRef(false);
   const generationRef = useRef(0);
   const transactionRef = useRef<API.ProviderAuthorizationResponse | null>(null);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
       generationRef.current += 1;
-      const current = transactionRef.current;
-      if (current?.status === 'pending') {
-        void cancelProviderAuthorization({
-          transaction_id: current.transaction_id,
-        }).catch(() => undefined);
-      }
     };
   }, []);
 
@@ -175,9 +172,13 @@ function ChromeProviderAuthorizationDialog({
       );
       const next = started;
       if (generation !== generationRef.current) {
-        await cancelProviderAuthorization({
-          transaction_id: next.transaction_id,
-        }).catch(() => undefined);
+        // Navigation leaves the durable operation running. An explicit dialog
+        // cancellation while this component remains mounted still cancels it.
+        if (mountedRef.current) {
+          await cancelProviderAuthorization({
+            transaction_id: next.transaction_id,
+          }).catch(() => undefined);
+        }
         return;
       }
       transactionRef.current = next;
