@@ -19,15 +19,17 @@ import { Spinner } from '@/components/ui/spinner';
 
 export default function AnalysisDeleteDialog({
   busy,
+  disabled = false,
   onDelete,
 }: {
   busy: boolean;
+  disabled?: boolean;
   onDelete: () => Promise<void>;
 }) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button disabled={busy} variant="outline">
+        <Button disabled={busy || disabled} variant="outline">
           {busy ? (
             <Spinner aria-hidden data-icon="inline-start" />
           ) : (
@@ -49,7 +51,11 @@ export default function AnalysisDeleteDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>保留分析</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" onClick={onDelete}>
+          <AlertDialogAction
+            disabled={busy || disabled}
+            variant="destructive"
+            onClick={onDelete}
+          >
             确认删除
           </AlertDialogAction>
         </AlertDialogFooter>

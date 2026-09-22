@@ -1,4 +1,4 @@
-import { act } from '@testing-library/react';
+import { act, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAnalysisJob } from '@/components/analysis/use-analysis-job';
 import { analysisJob } from '../fixtures/analysis-fixtures';
@@ -38,7 +38,9 @@ describe('useAnalysisJob', () => {
     };
 
     await act(async () => result.current.start(input));
+    await waitFor(() => expect(result.current.job?.id).toBe(first.id));
     await act(async () => result.current.remove());
+    await waitFor(() => expect(result.current.job).toBeNull());
     await act(async () => result.current.start(input));
 
     expect(runtime.createAnalysis).toHaveBeenNthCalledWith(

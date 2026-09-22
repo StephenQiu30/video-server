@@ -80,7 +80,7 @@ export function ScreenplayAnalysisJobState({
         {cancellable ? <CancelControl state={state} /> : null}
         {['failed', 'cancelled'].includes(job.status) ? (
           <Button
-            disabled={state.action === 'retry'}
+            disabled={Boolean(state.action)}
             onClick={() => void state.retry()}
           >
             {state.action === 'retry' ? (
@@ -90,6 +90,7 @@ export function ScreenplayAnalysisJobState({
           </Button>
         ) : null}
         <AnalysisDeleteDialog
+          disabled={Boolean(state.action)}
           busy={state.action === 'delete'}
           onDelete={state.remove}
         />
@@ -115,7 +116,7 @@ function CancelControl({
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button disabled={state.action === 'cancel'} variant="outline">
+        <Button disabled={Boolean(state.action)} variant="outline">
           {state.action === 'cancel' ? (
             <Spinner aria-hidden data-icon="inline-start" />
           ) : null}
@@ -134,7 +135,11 @@ function CancelControl({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>继续执行</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" onClick={state.cancel}>
+          <AlertDialogAction
+            disabled={Boolean(state.action)}
+            variant="destructive"
+            onClick={state.cancel}
+          >
             确认取消任务
           </AlertDialogAction>
         </AlertDialogFooter>

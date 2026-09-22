@@ -1,4 +1,9 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useMutation,
+  useMutationState,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   cancelAnalysis,
@@ -10,15 +15,17 @@ import {
   getLatestDownloadAnalysis,
   retryAnalysis,
 } from '@/api/analyses';
-import { useRequestScope } from '@/hooks/use-request-scope';
 import { privateQueryKey } from '@/lib/query-keys';
 import { displayError } from '@/lib/request-error';
+import { sessionGeneration } from '@/lib/session-events';
 import { type TaskSocketStatus, taskSocket } from '@/lib/task-socket';
 
 import { createUuid as createIdempotencyKey } from '@/lib/uuid';
 
-type Action = 'start' | 'cancel' | 'retry' | 'delete' | null;
-type StableKey = { payload: string; value: string };
+type Operation =
+  | { action: 'start'; input: API.AnalysisRequest; key: string }
+  | { action: 'retry'; analysisId: string; runNo: number; key: string }
+  | { action: 'cancel' | 'delete'; analysisId: string };
 
 export function useAnalysisJob(
   inputId: string,
@@ -26,8 +33,6 @@ export function useAnalysisJob(
   inputKind: API.AnalysisInputKind = 'video',
 ) {
   const queries = useQueryClient();
-  const [actionError, setError] = useState<string | null>(null);
-  const [action, setAction] = useState<Action>(null);
   const [socketStatus, setSocketStatus] =
     useState<TaskSocketStatus>('disconnected');
   const sourceKey = `${inputKind}:${inputId}`;
@@ -35,11 +40,67 @@ export function useAnalysisJob(
     () => privateQueryKey('analysis', inputKind, inputId),
     [inputKind, inputId],
   );
-  const scope = useRequestScope(sourceKey);
-  const createKey = useRef<StableKey | null>(null);
-  const retryKey = useRef<StableKey | null>(null);
+  const mutationKey = useMemo(
+    () => privateQueryKey('analysis-action', inputKind, inputId),
+    [inputKind, inputId],
+  );
   const sourceKeyRef = useRef(sourceKey);
   const versionRef = useRef(0);
+  const operations = useMutationState({
+    filters: { mutationKey, exact: true },
+    select: (mutation) => mutation.state,
+  });
+  const latest = operations.at(-1);
+  const action =
+    latest?.status === 'pending'
+      ? (latest.variables as Operation).action
+      : null;
+  const actionError =
+    latest?.status === 'error' ? displayError(latest.error) : null;
+  const mutation = useMutation({
+    mutationKey,
+    retry: false,
+    networkMode: 'always',
+    mutationFn: async (
+      operation: Operation,
+    ): Promise<API.AnalysisResponse | null> => {
+      await queries.cancelQueries({ queryKey });
+      if (queryKey[1] !== sessionGeneration())
+        throw new Error('Session changed');
+      if (operation.action === 'start') {
+        const options = { headers: { 'Idempotency-Key': operation.key } };
+        return inputKind === 'screenplay'
+          ? createDocumentAnalysis(
+              { document_id: encodeURIComponent(inputId) },
+              operation.input,
+              options,
+            )
+          : createAnalysis(
+              { download_id: encodeURIComponent(inputId) },
+              operation.input,
+              options,
+            );
+      }
+      const params = { analysis_id: encodeURIComponent(operation.analysisId) };
+      if (operation.action === 'retry')
+        return retryAnalysis(params, {
+          headers: { 'Idempotency-Key': operation.key },
+        });
+      if (operation.action === 'cancel') return cancelAnalysis(params);
+      await deleteAnalysis(params);
+      return null;
+    },
+    onSuccess: async (next) => {
+      if (queryKey[1] !== sessionGeneration()) return;
+      await queries.cancelQueries({ queryKey });
+      if (queryKey[1] !== sessionGeneration()) return;
+      const current = queries.getQueryData<API.AnalysisResponse | null>(
+        queryKey,
+      );
+      if (current && next && isOlder(current, next)) return;
+      queries.setQueryData(queryKey, next);
+    },
+  });
 
   const snapshot = useQuery({
     queryKey,
@@ -87,17 +148,6 @@ export function useAnalysisJob(
   const job = snapshot.data ?? null;
   const error =
     actionError ?? (snapshot.error ? displayError(snapshot.error) : null);
-  const accept = useCallback(
-    (next: API.AnalysisResponse) => {
-      const current = queries.getQueryData<API.AnalysisResponse | null>(
-        queryKey,
-      );
-      if (current && isOlder(current, next)) return false;
-      queries.setQueryData(queryKey, next);
-      return true;
-    },
-    [queries, queryKey],
-  );
   const analysisId = job?.id ?? null;
   const shouldSync = job ? !terminalAnalysisStatuses.has(job.status) : false;
   versionRef.current = job?.version ?? 0;
@@ -105,10 +155,6 @@ export function useAnalysisJob(
   useEffect(() => {
     if (sourceKeyRef.current === sourceKey) return;
     sourceKeyRef.current = sourceKey;
-    createKey.current = null;
-    retryKey.current = null;
-    setError(null);
-    setAction(null);
     setSocketStatus('disconnected');
   }, [sourceKey]);
 
@@ -126,130 +172,69 @@ export function useAnalysisJob(
     );
   }, [action, analysisId, refetch, shouldSync]);
 
-  const start = useCallback(
-    async (input: API.AnalysisRequest) => {
-      scope.invalidate();
-      const request = scope.capture();
-      const payload = JSON.stringify([inputKind, inputId, input]);
-      if (createKey.current?.payload !== payload) {
-        createKey.current = {
-          payload,
-          value: createIdempotencyKey(),
-        };
+  function requestKey(
+    operation: Exclude<Operation, { action: 'cancel' | 'delete' }>,
+  ) {
+    const previous = queries
+      .getMutationCache()
+      .findAll({ mutationKey, exact: true });
+    for (const candidate of previous.toReversed()) {
+      const value = candidate.state.variables as Operation | undefined;
+      if (value?.action === 'delete' && candidate.state.status === 'success')
+        break;
+      if (
+        operation.action === 'start' &&
+        value?.action === 'start' &&
+        JSON.stringify(value.input) === JSON.stringify(operation.input)
+      ) {
+        if (candidate.state.status === 'error') return value.key;
+        break;
       }
-
-      setAction('start');
-      setError(null);
-      try {
-        await queries.cancelQueries({ queryKey });
-        if (!request.current()) return;
-        const options = {
-          headers: { 'Idempotency-Key': createKey.current.value },
-        };
-        const next =
-          inputKind === 'screenplay'
-            ? await createDocumentAnalysis(
-                { document_id: encodeURIComponent(inputId) },
-                input,
-                options,
-              )
-            : await createAnalysis(
-                { download_id: encodeURIComponent(inputId) },
-                input,
-                options,
-              );
-        if (request.current()) accept(next);
-      } catch (reason) {
-        if (request.current()) setError(displayError(reason));
-      } finally {
-        if (request.current()) setAction(null);
-        else void queries.invalidateQueries({ queryKey });
+      if (
+        operation.action === 'retry' &&
+        value?.action === 'retry' &&
+        value.analysisId === operation.analysisId &&
+        value.runNo === operation.runNo
+      ) {
+        if (candidate.state.status === 'error') return value.key;
+        break;
       }
-    },
-    [accept, inputId, inputKind, queries, queryKey, scope],
-  );
-
-  const cancel = useCallback(async () => {
-    if (!analysisId) {
-      return;
     }
-    scope.invalidate();
-    const request = scope.capture();
-    setAction('cancel');
-    setError(null);
+    return createIdempotencyKey();
+  }
+
+  async function execute(operation: Operation) {
+    // Pending is recorded synchronously, before another click or route mount.
+    if (queries.isMutating({ mutationKey, exact: true })) return;
     try {
-      await queries.cancelQueries({ queryKey });
-      if (!request.current()) return;
-      const next = await cancelAnalysis({
-        analysis_id: encodeURIComponent(analysisId),
-      });
-      if (request.current()) accept(next);
-    } catch (reason) {
-      if (request.current()) setError(displayError(reason));
-    } finally {
-      if (request.current()) setAction(null);
-      else void queries.invalidateQueries({ queryKey });
+      await mutation.mutateAsync(operation);
+    } catch {
+      /* Shared state owns the visible error. */
     }
-  }, [accept, analysisId, queries, queryKey, scope]);
-
+  }
+  const start = async (input: API.AnalysisRequest) => {
+    const operation: Operation = { action: 'start', input, key: '' };
+    await execute({ ...operation, key: requestKey(operation) });
+  };
+  const cancel = async () => {
+    if (analysisId) await execute({ action: 'cancel', analysisId });
+  };
   const retryPoll = useCallback(async () => {
-    setError(null);
-    await refetch({ cancelRefetch: false });
-  }, [refetch]);
-
-  const retry = useCallback(async () => {
-    if (!analysisId) {
-      return;
-    }
-    scope.invalidate();
-    const request = scope.capture();
-    if (retryKey.current?.payload !== analysisId) {
-      retryKey.current = {
-        payload: analysisId,
-        value: createIdempotencyKey(),
-      };
-    }
-    setAction('retry');
-    setError(null);
-    try {
-      await queries.cancelQueries({ queryKey });
-      if (!request.current()) return;
-      const next = await retryAnalysis(
-        { analysis_id: encodeURIComponent(analysisId) },
-        { headers: { 'Idempotency-Key': retryKey.current.value } },
-      );
-      if (!request.current()) return;
-      accept(next);
-      retryKey.current = null;
-    } catch (reason) {
-      if (request.current()) setError(displayError(reason));
-    } finally {
-      if (request.current()) setAction(null);
-      else void queries.invalidateQueries({ queryKey });
-    }
-  }, [accept, analysisId, queries, queryKey, scope]);
-
-  const remove = useCallback(async () => {
-    if (!analysisId) return;
-    scope.invalidate();
-    const request = scope.capture();
-    setAction('delete');
-    setError(null);
-    try {
-      await queries.cancelQueries({ queryKey });
-      if (!request.current()) return;
-      await deleteAnalysis({ analysis_id: encodeURIComponent(analysisId) });
-      if (!request.current()) return;
-      createKey.current = null;
-      retryKey.current = null;
-      queries.setQueryData(queryKey, null);
-    } catch (reason) {
-      if (request.current()) setError(displayError(reason));
-    } finally {
-      if (request.current()) setAction(null);
-      else void queries.invalidateQueries({ queryKey });
-    }
-  }, [analysisId, queries, queryKey, scope]);
+    if (!action) await refetch({ cancelRefetch: false });
+  }, [action, refetch]);
+  const retry = async () => {
+    if (!job) return;
+    const operation: Operation = {
+      action: 'retry',
+      analysisId: job.id,
+      runNo: job.run_no,
+      key: '',
+    };
+    await execute({ ...operation, key: requestKey(operation) });
+  };
+  const remove = async () => {
+    if (analysisId) await execute({ action: 'delete', analysisId });
+  };
 
   return {
     action,

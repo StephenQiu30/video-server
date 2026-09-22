@@ -104,7 +104,7 @@ describe.each(['download', 'analysis'] as const)(
           if (outcome === 'success') pending.resolve(active);
           else pending.reject(new Error('old request failed'));
         });
-        expect(result.current.job).toBeNull();
+        await waitFor(() => expect(result.current.job).toBeNull());
         expect(result.current.error).toBeNull();
       },
     );
@@ -156,7 +156,9 @@ describe.each(['download', 'analysis'] as const)(
           if (outcome === 'success') pending.resolve(active);
           else pending.reject(new Error('old request failed'));
         });
-        expect(result.current.job?.status).toBe('cancelled');
+        await waitFor(() =>
+          expect(result.current.job?.status).toBe('cancelled'),
+        );
         expect(result.current.error).toBeNull();
       },
     );

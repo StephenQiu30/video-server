@@ -132,7 +132,7 @@ export default function AnalysisPanel({
               </>
             ) : null}
             <Button
-              disabled={state.action === 'retry'}
+              disabled={Boolean(state.action)}
               onClick={() => void state.retry()}
               variant="outline"
             >
@@ -144,6 +144,7 @@ export default function AnalysisPanel({
               {state.action === 'retry' ? '正在重新分析' : '重新分析'}
             </Button>
             <AnalysisDeleteDialog
+              disabled={Boolean(state.action)}
               busy={state.action === 'delete'}
               onDelete={state.remove}
             />
@@ -295,7 +296,7 @@ function AnalysisJobState({
         {cancellable ? (
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button disabled={state.action === 'cancel'} variant="outline">
+              <Button disabled={Boolean(state.action)} variant="outline">
                 {state.action === 'cancel' ? (
                   <Spinner aria-hidden data-icon="inline-start" />
                 ) : null}
@@ -314,7 +315,11 @@ function AnalysisJobState({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>继续分析</AlertDialogCancel>
-                <AlertDialogAction variant="destructive" onClick={state.cancel}>
+                <AlertDialogAction
+                  disabled={Boolean(state.action)}
+                  variant="destructive"
+                  onClick={state.cancel}
+                >
                   确认取消分析
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -323,7 +328,7 @@ function AnalysisJobState({
         ) : null}
         {['failed', 'cancelled'].includes(job.status) ? (
           <Button
-            disabled={state.action === 'retry'}
+            disabled={Boolean(state.action)}
             onClick={() => void state.retry()}
           >
             {state.action === 'retry' ? (
@@ -333,6 +338,7 @@ function AnalysisJobState({
           </Button>
         ) : null}
         <AnalysisDeleteDialog
+          disabled={Boolean(state.action)}
           busy={state.action === 'delete'}
           onDelete={state.remove}
         />

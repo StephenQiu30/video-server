@@ -82,7 +82,7 @@ export function ScreenplayCompletedAnalysis({
             </>
           ) : null}
           <Button
-            disabled={action === 'retry'}
+            disabled={Boolean(action)}
             onClick={() => void onRetry()}
             variant="outline"
           >
@@ -94,6 +94,7 @@ export function ScreenplayCompletedAnalysis({
             {action === 'retry' ? '正在重新执行' : '重新执行'}
           </Button>
           <AnalysisDeleteDialog
+            disabled={Boolean(action)}
             busy={action === 'delete'}
             onDelete={onDelete}
           />
