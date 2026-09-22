@@ -111,6 +111,11 @@ _ERRORS: dict[ApplicationErrorCode, tuple[int, str, str]] = {
         "Provider route not configured",
         "The selected access policy requires an operator-configured route.",
     ),
+    ApplicationErrorCode.PROVIDER_GUEST_CONTEXT_REQUIRED: (
+        503,
+        "Provider visitor context required",
+        "The public route is preparing a visitor context. Try again later.",
+    ),
     ApplicationErrorCode.PROVIDER_ACCESS_POLICY_NOT_ALLOWED: (
         422,
         "Provider access policy not allowed",

@@ -10,12 +10,34 @@ import subprocess
 import sys
 import time
 from collections.abc import Sequence
-from concurrent.futures import ThreadPoolExecutor, wait
+from concurrent.futures import Future, ThreadPoolExecutor, wait
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from app.services.provider_types import ProviderKey, ProviderSessionVersion
+from app.services.provider_authorization import ProviderAuthorizationRequest
+from app.services.provider_types import (
+    ProviderAuthorizationSource,
+    ProviderKey,
+    ProviderSessionVersion,
+)
 from app.workers.runner._secure_file import atomic_write_bytes, ensure_private_directory
+from app.workers.runner.provider_authorization_queue import (
+    AUTHORIZATION_READY_MARKER,
+    authorization_runtime,
+    prepare_authorization_runtime,
+    read_authorization_request,
+    read_authorization_source,
+    write_authorization_source,
+)
+from app.workers.runner.provider_browser_bridge import (
+    browser_extension_id,
+    install_native_host,
+    uninstall_native_host,
+)
+from app.workers.runner.provider_browser_bridge_store import (
+    ProviderBrowserBridgeStore,
+)
 from app.workers.runner.provider_cookie_boundary import (
     export_provider_cookie_lease_bounded,
 )
@@ -44,6 +66,7 @@ SERVICE_ID = "com.framefetch.provider-cookie-agent"
 PLIST_PATH = Path.home() / "Library" / "LaunchAgents" / f"{SERVICE_ID}.plist"
 _MISSING_SERVICE = 113
 _DIAGNOSTIC_FAILURE = 5
+BROWSER_BRIDGE_HANDSHAKE_SECONDS = 15.0
 DEFAULT_PROFILE = "Default"
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
 DEFAULT_RUNTIME_ROOT = (
@@ -85,10 +108,15 @@ def install_agent(
         provider_root = _provider_runtime(runtime_root, provider)
         prepare_runtime(provider_root)
         _write_ready_marker(provider_root)
+    authorization_root = authorization_runtime(runtime_root)
+    prepare_authorization_runtime(runtime_root)
+    ProviderBrowserBridgeStore(runtime_root).prepare()
+    _write_ready_marker(authorization_root)
     _write_plist(
         PLIST_PATH,
         _launch_agent_plist(runtime_root, profile, browser_root=browser_root),
     )
+    install_native_host(runtime_root, browser_extension_id())
     subprocess.run(("launchctl", "bootstrap", _domain(), str(PLIST_PATH)), check=True)
     print(f"installed: {PLIST_PATH}")
 
@@ -97,6 +125,7 @@ def uninstall_agent(runtime_root: Path) -> None:
     _require_macos()
     _stop_loaded_agent()
     PLIST_PATH.unlink(missing_ok=True)
+    uninstall_native_host()
     runtime_root = runtime_root.absolute()
     for provider in browser_session_providers():
         provider_root = _provider_runtime(runtime_root, provider)
@@ -107,6 +136,24 @@ def uninstall_agent(runtime_root: Path) -> None:
                 directory.rmdir()
             except OSError:
                 pass
+    authorization_root = authorization_runtime(runtime_root)
+    (authorization_root / AUTHORIZATION_READY_MARKER).unlink(missing_ok=True)
+    for name in (
+        "requests",
+        "responses",
+        "cancelled",
+        "sources",
+        ".discarded",
+        "",
+    ):
+        directory = authorization_root / name
+        if name == "sources":
+            for source in directory.glob("*.source") if directory.exists() else ():
+                _remove_authorization_entry(source)
+        try:
+            directory.rmdir()
+        except OSError:
+            pass
     try:
         runtime_root.rmdir()
     except OSError:
@@ -132,6 +179,8 @@ def diagnose_sources(
     profile: str,
     provider: ProviderKey | None = None,
     browser_root: Path | None = None,
+    source: ProviderAuthorizationSource = ProviderAuthorizationSource.DEDICATED_CHROME,
+    runtime_root: Path = DEFAULT_RUNTIME_ROOT,
 ) -> int:
     """Report bounded, non-secret source states for operator diagnostics."""
     providers = (
@@ -144,18 +193,13 @@ def diagnose_sources(
 
     def diagnose(item: ProviderKey) -> ProviderCookieLease:
         try:
-            resolved_root = _browser_root_or_none(browser_root, item)
-            if resolved_root is None:
-                return export_provider_cookie_lease_bounded(
-                    provider=item,
-                    profile=profile,
-                    version=ProviderSessionVersion.BROWSER,
-                )
-            return export_provider_cookie_lease_bounded(
-                provider=item,
+            return _export_from_source(
+                item,
                 profile=profile,
                 version=ProviderSessionVersion.BROWSER,
-                chrome_root=resolved_root,
+                browser_root=browser_root,
+                source=source,
+                runtime_root=runtime_root,
             )
         except Exception:
             return ProviderCookieLease(ProviderCookieLeaseStatus.SESSION_UNAVAILABLE)
@@ -200,7 +244,8 @@ def _launch_agent_plist(
         "QueueDirectories": [
             str(_provider_runtime(runtime_root, provider) / "requests")
             for provider in sorted(browser_session_providers(), key=str)
-        ],
+        ]
+        + [str(authorization_runtime(runtime_root) / "requests")],
         "ProcessType": "Background",
         # launchd defaults to 10 seconds, exceeding the runner's 2-second probe.
         "ThrottleInterval": 1,
@@ -259,6 +304,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--profile", default=DEFAULT_PROFILE)
     parser.add_argument("--provider", type=ProviderKey)
     parser.add_argument("--browser-root", type=Path, default=DEFAULT_BROWSER_ROOT)
+    parser.add_argument(
+        "--source",
+        type=ProviderAuthorizationSource,
+        default=ProviderAuthorizationSource.DEDICATED_CHROME,
+    )
     parser.add_argument("--wait-seconds", type=float, default=600.0)
     return parser
 
@@ -269,8 +319,10 @@ def authorize_provider(
     browser_root: Path = DEFAULT_BROWSER_ROOT,
     profile: str = DEFAULT_PROFILE,
     wait_seconds: float = 600.0,
+    source: ProviderAuthorizationSource = ProviderAuthorizationSource.DEDICATED_CHROME,
+    runtime_root: Path = DEFAULT_RUNTIME_ROOT,
 ) -> int:
-    """Open one dedicated browser profile and wait for a valid session."""
+    """Authorize from an explicit current or dedicated Chrome source."""
     _require_macos()
     if (
         browser_session_policy(provider).source
@@ -284,34 +336,45 @@ def authorize_provider(
         raise SystemExit(f"{provider.value} has no local browser authorization flow")
     if wait_seconds <= 0:
         raise SystemExit("wait-seconds must be positive")
-    provider_root = _provider_browser_root(browser_root, provider)
-    subprocess.run(
-        (
-            "open",
-            "-na",
-            "Google Chrome",
-            "--args",
-            f"--user-data-dir={provider_root}",
-            "--profile-directory=Default",
-            _AUTHORIZATION_URLS[provider],
-        ),
-        check=True,
-    )
-    print(f"browser-opened: {provider.value}")
+    if source is ProviderAuthorizationSource.DEDICATED_CHROME:
+        provider_root = _chrome_root_for_source(
+            provider,
+            browser_root=browser_root,
+            source=source,
+        )
+        subprocess.run(
+            (
+                "open",
+                "-na",
+                "Google Chrome",
+                "--args",
+                f"--user-data-dir={provider_root}",
+                "--profile-directory=Default",
+                _AUTHORIZATION_URLS[provider],
+            ),
+            check=True,
+        )
+        print(f"browser-opened: {provider.value}")
+    else:
+        print(f"checking-browser-bridge: {provider.value}")
     deadline = time.monotonic() + wait_seconds
     while True:
-        result = export_provider_cookie_lease_bounded(
-            provider=provider,
+        result = _export_from_source(
+            provider,
             profile=profile,
             version=ProviderSessionVersion.BROWSER,
-            chrome_root=provider_root,
+            browser_root=browser_root,
+            source=source,
+            runtime_root=runtime_root,
         )
         if result.status is ProviderCookieLeaseStatus.OK:
+            write_authorization_source(runtime_root, provider, source)
             print(f"authorized: {provider.value}")
-            print(
-                "next: install the on-demand agent with "
-                f"--browser-root {browser_root.absolute()}"
-            )
+            if source is ProviderAuthorizationSource.DEDICATED_CHROME:
+                print(
+                    "next: install the on-demand agent with "
+                    f"--browser-root {browser_root.absolute()}"
+                )
             return 0
         if time.monotonic() >= deadline:
             print(f"authorization-timeout: {provider.value}")
@@ -329,18 +392,14 @@ def drain_requests(
     def refresh(
         provider: ProviderKey, version: ProviderSessionVersion
     ) -> ProviderCookieLease:
-        resolved_root = _browser_root_or_none(browser_root, provider)
-        if resolved_root is None:
-            return export_provider_cookie_lease_bounded(
-                provider=provider,
-                profile=profile,
-                version=version,
-            )
-        return export_provider_cookie_lease_bounded(
-            provider=provider,
+        return _export_from_source(
+            provider,
             profile=profile,
             version=version,
-            chrome_root=resolved_root,
+            browser_root=browser_root,
+            source=read_authorization_source(runtime_root, provider)
+            or ProviderAuthorizationSource.CURRENT_CHROME,
+            runtime_root=runtime_root,
         )
 
     providers = sorted(browser_session_providers(), key=str)
@@ -357,7 +416,16 @@ def drain_requests(
             operation=operation,
         )
 
-    with termination_guard(), ThreadPoolExecutor(max_workers=len(providers)) as pool:
+    with (
+        termination_guard(),
+        ThreadPoolExecutor(max_workers=len(providers) + 1) as pool,
+    ):
+        authorization = pool.submit(
+            drain_authorization_requests,
+            runtime_root,
+            profile=profile,
+            browser_root=browser_root,
+        )
         # One bounded export per provider; slow origins cannot starve later probes
         # or other origins. All child exports retain their existing timeout/cleanup.
         for provider in providers:
@@ -366,7 +434,7 @@ def drain_requests(
             provider: pool.submit(drain, provider, ProviderCookieOperation.REFRESH)
             for provider in providers
         }
-        while pending:
+        while pending or not authorization.done():
             wait(pending.values(), timeout=0.05)
             for provider in providers:
                 drain(provider, ProviderCookieOperation.PROBE)
@@ -375,12 +443,174 @@ def drain_requests(
             ]
             for provider in completed:
                 pending.pop(provider).result()
-            if not pending:
+            if not pending and authorization.done():
                 break
             for provider in completed:
                 pending[provider] = pool.submit(
                     drain, provider, ProviderCookieOperation.REFRESH
                 )
+            # Keep exports in their provider slots while interactive authorization
+            # waits too. A blocking export must never run on the probe loop.
+            if authorization.done():
+                continue
+            time.sleep(0.05)
+        authorization.result()
+
+
+def drain_authorization_requests(
+    runtime_root: Path,
+    *,
+    profile: str,
+    browser_root: Path | None,
+) -> None:
+    """Handle current and newly-arriving intents without exposing Cookies."""
+
+    requests, responses, cancelled = prepare_authorization_runtime(runtime_root)
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures: dict[Future[None], str] = {}
+        while True:
+            active_tokens = frozenset(futures.values())
+            for request in sorted(requests.glob("*.request")):
+                token = request.name.removesuffix(".request")
+                if token in active_tokens:
+                    continue
+                if len(token) != 32 or any(
+                    character not in "0123456789abcdef" for character in token
+                ):
+                    _remove_authorization_entry(request)
+                    continue
+                try:
+                    parsed = read_authorization_request(request)
+                except (OSError, ValueError):
+                    _remove_authorization_entry(request)
+                    continue
+                arguments = (
+                    request,
+                    token,
+                    parsed,
+                    responses,
+                    cancelled,
+                    runtime_root,
+                    profile,
+                    browser_root,
+                )
+                if parsed.probe:
+                    # Probes never open a browser or read a session, so handle
+                    # them immediately even while all interactive slots wait.
+                    _authorize_request(*arguments)
+                elif len(futures) < 4:
+                    futures[pool.submit(_authorize_request, *arguments)] = token
+
+            completed = [future for future in futures if future.done()]
+            for future in completed:
+                futures.pop(future)
+                future.result()
+            if futures:
+                wait(tuple(futures), timeout=0.05)
+                continue
+            # A launchd queue event racing this final check will either be seen
+            # here or start the on-demand job again after this process exits.
+            if any(requests.glob("*.request")):
+                continue
+            return
+
+
+def _authorize_request(
+    request: Path,
+    token: str,
+    parsed: ProviderAuthorizationRequest,
+    responses: Path,
+    cancelled: Path,
+    runtime_root: Path,
+    profile: str,
+    browser_root: Path | None,
+) -> None:
+    response = responses / f"{token}.response"
+    cancel_marker = cancelled / f"{token}.cancel"
+    bridge_deadline = datetime.now(UTC).timestamp() + BROWSER_BRIDGE_HANDSHAKE_SECONDS
+    try:
+        if cancel_marker.exists():
+            return
+        if datetime.now(UTC) >= parsed.expires_at:
+            return
+        if parsed.probe:
+            _write_authorization_response(response, "agent_ready")
+            return
+        if parsed.source is ProviderAuthorizationSource.DEDICATED_CHROME:
+            provider_root = _chrome_root_for_source(
+                parsed.provider,
+                browser_root=browser_root,
+                source=parsed.source,
+            )
+            subprocess.run(
+                (
+                    "open",
+                    "-na",
+                    "Google Chrome",
+                    "--args",
+                    f"--user-data-dir={provider_root}",
+                    "--profile-directory=Default",
+                    _AUTHORIZATION_URLS[parsed.provider],
+                ),
+                check=True,
+            )
+        while datetime.now(UTC) < parsed.expires_at:
+            if cancel_marker.exists():
+                return
+            lease = _export_from_source(
+                parsed.provider,
+                profile=profile,
+                version=ProviderSessionVersion.BROWSER,
+                browser_root=browser_root,
+                source=parsed.source,
+                runtime_root=runtime_root,
+            )
+            if lease.status is ProviderCookieLeaseStatus.OK:
+                if cancel_marker.exists():
+                    return
+                write_authorization_source(
+                    runtime_root,
+                    provider=parsed.provider,
+                    source=parsed.source,
+                )
+                _write_authorization_response(
+                    response,
+                    "source_available",
+                )
+                return
+            if lease.status is ProviderCookieLeaseStatus.PERMISSION_DENIED:
+                # A missing browser bridge or a macOS TCC denial is deterministic.
+                # Give the browser connector a short handshake window, but do not
+                # make the UI wait for the ten-minute transaction TTL.
+                if (
+                    parsed.source is ProviderAuthorizationSource.CURRENT_CHROME
+                    and datetime.now(UTC).timestamp() < bridge_deadline
+                ):
+                    time.sleep(0.5)
+                    continue
+                _write_authorization_response(
+                    response,
+                    ProviderCookieLeaseStatus.PERMISSION_DENIED.value,
+                )
+                return
+            time.sleep(2)
+        _write_authorization_response(response, "credential_required")
+    except Exception:
+        _write_authorization_response(response, "provider_session_unavailable")
+    finally:
+        _remove_authorization_entry(request)
+        _remove_authorization_entry(cancel_marker)
+
+
+def _write_authorization_response(target: Path, value: str) -> None:
+    atomic_write_bytes(target, f"{value}\n".encode("ascii"), mode=0o644)
+
+
+def _remove_authorization_entry(path: Path) -> None:
+    try:
+        path.unlink()
+    except FileNotFoundError:
+        pass
 
 
 def _provider_runtime(runtime_root: Path, provider: ProviderKey) -> Path:
@@ -393,6 +623,61 @@ def _provider_browser_root(browser_root: Path, provider: ProviderKey) -> Path:
     provider_root = root / provider.value
     ensure_private_directory(provider_root)
     return provider_root
+
+
+def _chrome_root_for_source(
+    provider: ProviderKey,
+    *,
+    browser_root: Path | None,
+    source: ProviderAuthorizationSource,
+) -> Path | None:
+    if (
+        browser_session_policy(provider).source
+        is not ProviderSessionSource.CHROME_PROFILE
+    ):
+        return None
+    if source is ProviderAuthorizationSource.CURRENT_CHROME:
+        return None
+    if browser_root is None:
+        return None
+    return _provider_browser_root(browser_root or DEFAULT_BROWSER_ROOT, provider)
+
+
+def _export_from_source(
+    provider: ProviderKey,
+    *,
+    profile: str,
+    version: ProviderSessionVersion,
+    browser_root: Path | None,
+    source: ProviderAuthorizationSource,
+    runtime_root: Path = DEFAULT_RUNTIME_ROOT,
+) -> ProviderCookieLease:
+    policy = browser_session_policy(provider)
+    if (
+        source is ProviderAuthorizationSource.CURRENT_CHROME
+        and policy.source is ProviderSessionSource.CHROME_PROFILE
+    ):
+        payload = ProviderBrowserBridgeStore(runtime_root).read(provider)
+        if payload is None:
+            return ProviderCookieLease(ProviderCookieLeaseStatus.PERMISSION_DENIED)
+        return ProviderCookieLease(ProviderCookieLeaseStatus.OK, payload)
+    chrome_root = _chrome_root_for_source(
+        provider,
+        browser_root=browser_root,
+        source=source,
+    )
+    if chrome_root is None:
+        return export_provider_cookie_lease_bounded(
+            provider=provider,
+            profile=profile,
+            version=version,
+        )
+    return export_provider_cookie_lease_bounded(
+        provider=provider,
+        profile=profile,
+        version=version,
+        chrome_root=chrome_root,
+    )
 
 
 def _browser_root_or_none(
@@ -437,6 +722,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             profile=args.profile,
             provider=args.provider,
             browser_root=args.browser_root,
+            source=args.source,
+            runtime_root=args.runtime_root,
         )
     elif args.command == "authorize":
         if args.provider is None:
@@ -446,6 +733,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             browser_root=args.browser_root or DEFAULT_BROWSER_ROOT,
             profile=args.profile,
             wait_seconds=args.wait_seconds,
+            source=args.source,
+            runtime_root=args.runtime_root,
         )
     else:
         drain_requests(

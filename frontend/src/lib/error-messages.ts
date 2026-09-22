@@ -59,7 +59,7 @@ const localizedErrorMessages: Record<string, string> = {
   not_found: '任务或相关资源不存在，请返回下载记录确认。',
   output_limit_exceeded: '下载文件超过大小限制，请选择更小的规格。',
   provider_auth_required:
-    '该链接需要平台登录或官方授权，当前服务无法代表用户获取。',
+    '该链接需要平台登录或官方授权，请使用右侧的受控会话重试。',
   provider_catalog_conflict: '相同标识的平台配置已经存在。',
   provider_catalog_not_found: '平台配置不存在或已被删除。',
   provider_content_restricted:
@@ -67,18 +67,19 @@ const localizedErrorMessages: Record<string, string> = {
   provider_drm_protected: '该视频受 DRM 保护，当前无法下载。',
   provider_failure: 'AI 服务未能完成分析，请稍后重试。',
   provider_geo_restricted: '该视频在当前服务区域不可用。',
+  provider_guest_context_required:
+    '平台公开访问环境正在自动准备，请稍后重试，无需登录或提供 Cookie。',
   provider_link_unavailable: '未找到可下载的公开视频，请复制新的公开分享链接。',
   provider_media_unsupported: '该链接不包含受支持的可下载视频，请更换链接。',
   provider_rate_limited: '平台请求过于频繁，请稍后重试。',
   provider_session_expired: '平台授权或验证状态已失效，请稍后重试。',
   provider_configuration_missing:
-    '所选访问策略尚未配置。请部署者配置持久来源，或显式选择公开线路重新解析。',
+    '当前平台的受控下载路线尚未配置，请先完成本机授权 Agent 初始化后重试。',
   provider_access_policy_not_allowed:
     '此来源不允许所选访问策略，请更换策略后重新解析。',
   provider_temporarily_unavailable: '平台服务暂时不可用，请稍后重试。',
   provider_unsupported: '当前暂不支持该视频平台。',
-  provider_verification_failed:
-    '平台要求额外验证，当前下载线路不可用；服务状态已降级，请稍后重试或更换公开链接。',
+  provider_verification_failed: '平台要求额外验证，请使用右侧的受控会话重试。',
   rate_limited: '操作过于频繁，请稍后再试。',
   rate_limiter_unavailable: '请求限制服务暂时不可用，请稍后重试。',
   request_timeout: '请求处理超时，请稍后重试。',

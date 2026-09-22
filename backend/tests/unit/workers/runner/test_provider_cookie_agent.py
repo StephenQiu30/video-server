@@ -9,8 +9,13 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pytest
-from app.services.provider_types import ProviderKey, ProviderSessionVersion
+from app.services.provider_types import (
+    ProviderAuthorizationSource,
+    ProviderKey,
+    ProviderSessionVersion,
+)
 from app.workers.runner import provider_cookie_agent as agent
+from app.workers.runner.provider_authorization_queue import AUTHORIZATION_READY_PAYLOAD
 from app.workers.runner.provider_cookie_lease import (
     ProviderCookieLease,
     ProviderCookieLeaseStatus,
@@ -37,8 +42,11 @@ def test_launchd_definition_is_on_demand_and_platform_neutral(
     assert "KeepAlive" not in document
     assert document["ThrottleInterval"] == 1
     assert document["QueueDirectories"] == [
-        str(tmp_path / "runtime" / provider.value / "requests")
-        for provider in sorted(agent.browser_session_providers(), key=str)
+        *[
+            str(tmp_path / "runtime" / provider.value / "requests")
+            for provider in sorted(agent.browser_session_providers(), key=str)
+        ],
+        str(tmp_path / "runtime" / "control" / "requests"),
     ]
     assert document["ProgramArguments"][:4] == [
         "/private/venv/bin/python",
@@ -73,6 +81,12 @@ def test_install_prepares_only_the_encrypted_runtime_and_agent_marker(
     monkeypatch.setattr(agent.os, "getuid", lambda: 501, raising=False)
     monkeypatch.setattr(agent, "PLIST_PATH", definition)
     monkeypatch.setattr(agent, "_launchctl_print", lambda: _result(113))
+    native_hosts: list[tuple[Path, str]] = []
+    monkeypatch.setattr(
+        agent,
+        "install_native_host",
+        lambda root, extension_id: native_hosts.append((root, extension_id)),
+    )
     monkeypatch.setattr(
         agent.subprocess, "run", lambda command, **kwargs: actions.append(command)
     )
@@ -81,6 +95,7 @@ def test_install_prepares_only_the_encrypted_runtime_and_agent_marker(
 
     document = plistlib.loads(definition.read_bytes())
     assert actions == [("launchctl", "bootstrap", "gui/501", str(definition))]
+    assert native_hosts == [(runtime, "ljffjbenpehbfgjgdmgecaiimhekoeng")]
     assert "RunAtLoad" not in document
     assert stat.S_IMODE(runtime.stat().st_mode) == 0o711
     assert stat.S_IMODE(definition.stat().st_mode) == 0o600
@@ -89,6 +104,9 @@ def test_install_prepares_only_the_encrypted_runtime_and_agent_marker(
         assert (provider_root / ".agent-installed").read_bytes() == (
             agent.AGENT_READY_PAYLOAD
         )
+    assert (runtime / "control" / agent.AUTHORIZATION_READY_MARKER).read_bytes() == (
+        AUTHORIZATION_READY_PAYLOAD
+    )
     arguments = document["ProgramArguments"]
     assert "--secret-root" not in arguments
     assert "--state-root" not in arguments
@@ -109,6 +127,11 @@ def test_agent_routes_each_request_to_an_in_memory_export(
         return ProviderCookieLease(ProviderCookieLeaseStatus.OK, b"cookie")
 
     monkeypatch.setattr(agent, "export_provider_cookie_lease_bounded", refresh)
+    monkeypatch.setattr(
+        agent,
+        "read_authorization_source",
+        lambda *_args: ProviderAuthorizationSource.DEDICATED_CHROME,
+    )
 
     def drain(
         _runtime: Path,
@@ -130,13 +153,56 @@ def test_agent_routes_each_request_to_an_in_memory_export(
         profile="Default",
     )
 
-    assert calls == [
+    assert calls
+    assert set(calls) == {
         (
             ProviderKey.INSTAGRAM,
             "Default",
             ProviderSessionVersion.BROWSER,
         )
-    ]
+    }
+
+
+def test_agent_uses_current_browser_bridge_by_default(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from app.workers.runner.provider_browser_bridge_store import (
+        ProviderBrowserBridgeStore,
+    )
+
+    runtime = tmp_path / "runtime"
+    ProviderBrowserBridgeStore(runtime).write(
+        ProviderKey.YOUTUBE,
+        b"# Netscape HTTP Cookie File\n"
+        b".youtube.com\tTRUE\t/\tTRUE\t0\tSID\tcurrent-session\n",
+    )
+    monkeypatch.setattr(
+        agent,
+        "browser_session_providers",
+        lambda: frozenset({ProviderKey.YOUTUBE}),
+    )
+    results: list[agent.ProviderCookieLease] = []
+
+    def drain(
+        _runtime: Path,
+        expected: ProviderKey,
+        callback: Callable[
+            [ProviderKey, ProviderSessionVersion], agent.ProviderCookieLease
+        ],
+        _publish: object,
+        **_kwargs: object,
+    ) -> None:
+        if _kwargs.get("operation") is ProviderCookieOperation.REFRESH:
+            results.append(callback(expected, ProviderSessionVersion.BROWSER))
+
+    monkeypatch.setattr(agent, "drain_request_batch", drain)
+
+    agent.drain_requests(runtime, profile="Default")
+
+    assert len(results) == 1
+    assert results[0].status is agent.ProviderCookieLeaseStatus.OK
+    assert results[0].payload is not None
+    assert b"current-session" in results[0].payload
 
 
 def test_non_macos_commands_are_rejected(monkeypatch: pytest.MonkeyPatch) -> None:

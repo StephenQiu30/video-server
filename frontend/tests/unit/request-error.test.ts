@@ -49,7 +49,7 @@ describe('request errors', () => {
     ['import_disabled', '当前部署未开放本地视频上传。'],
     [
       'provider_verification_failed',
-      '平台要求额外验证，当前下载线路不可用；服务状态已降级，请稍后重试或更换公开链接。',
+      '平台要求额外验证，请使用右侧的受控会话重试。',
     ],
     [
       'duration_limit_exceeded',

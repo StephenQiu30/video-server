@@ -13,11 +13,12 @@ class ProviderAccessPolicy(StrEnum):
 
     @property
     def access_mode(self) -> ProviderAccessMode:
-        return (
-            ProviderAccessMode.ANONYMOUS
-            if self is ProviderAccessPolicy.PUBLIC
-            else ProviderAccessMode.OPERATOR_MANAGED
-        )
+        return {
+            ProviderAccessPolicy.PUBLIC: ProviderAccessMode.ANONYMOUS,
+            ProviderAccessPolicy.PUBLIC_SESSION: ProviderAccessMode.GUEST,
+            ProviderAccessPolicy.OPERATOR_PUBLIC: ProviderAccessMode.OPERATOR_MANAGED,
+            ProviderAccessPolicy.PERSONAL_ENTITLED: ProviderAccessMode.OPERATOR_MANAGED,
+        }[self]
 
 
 def provider_access_policies(
@@ -27,6 +28,8 @@ def provider_access_policies(
     policies = []
     if ProviderAccessMode.ANONYMOUS in access_modes:
         policies.append(ProviderAccessPolicy.PUBLIC)
+    if ProviderAccessMode.GUEST in access_modes:
+        policies.append(ProviderAccessPolicy.PUBLIC_SESSION)
     if ProviderAccessMode.OPERATOR_MANAGED in access_modes:
         policies.append(
             ProviderAccessPolicy.PERSONAL_ENTITLED

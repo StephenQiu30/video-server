@@ -559,6 +559,21 @@ def test_default_personal_production_does_not_require_desktop_sessions() -> None
     )
 
 
+def test_api_mounts_only_the_non_secret_authorization_control_subtree() -> None:
+    for path in (COMPOSE_PATH, PROD_COMPOSE_PATH):
+        compose = yaml.safe_load(path.read_text(encoding="utf-8"))
+        mounts = [
+            item
+            for item in compose["services"]["api"]["volumes"]
+            if isinstance(item, dict)
+            and item.get("target") == "/run/provider-authorization/control"
+        ]
+
+        assert len(mounts) == 1
+        assert mounts[0]["source"].endswith("/control")
+        assert "authorization-sources" not in str(mounts[0])
+
+
 def test_production_compose_is_the_only_production_topology_file() -> None:
     assert not (ROOT.parent / "docker-compose-browser.yml").exists()
     assert not (ROOT.parent / "docker-compose-session-files.yml").exists()

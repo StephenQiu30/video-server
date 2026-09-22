@@ -7,11 +7,25 @@ from app.services.downloads.errors import (
     MediaInspectionFailure,
     MediaInspectionPolicyNotAllowed,
 )
-from app.services.provider_access import ProviderAccessPolicy as Policy
+from app.services.provider_access import (
+    ProviderAccessPolicy as Policy,
+)
+from app.services.provider_access import (
+    provider_access_policies,
+)
 from app.services.provider_types import ProviderAccessMode as Mode
 from tests.unit.integrations.test_media_runner_router import FakeClient, context
 
 URL = "https://www.youtube.com/watch?v=owned"
+
+
+def test_public_session_is_a_guest_policy_without_account_privilege() -> None:
+    assert Policy.PUBLIC.access_mode is Mode.ANONYMOUS
+    assert Policy.PUBLIC_SESSION.access_mode is Mode.GUEST
+    assert Policy.OPERATOR_PUBLIC.access_mode is Mode.OPERATOR_MANAGED
+    assert provider_access_policies(
+        "youtube", (Mode.ANONYMOUS, Mode.GUEST, Mode.OPERATOR_MANAGED)
+    ) == (Policy.PUBLIC, Policy.PUBLIC_SESSION, Policy.OPERATOR_PUBLIC)
 
 
 async def test_explicit_public_never_touches_configured_operator() -> None:

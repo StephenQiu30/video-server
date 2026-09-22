@@ -10,10 +10,12 @@ def test_error_codes_are_stable_snake_case_values() -> None:
         "internal_error",
         "media_validation_failed",
         "output_limit_exceeded",
+        "provider_access_policy_not_allowed",
         "provider_auth_required",
         "provider_content_restricted",
         "provider_drm_protected",
         "provider_geo_restricted",
+        "provider_guest_context_required",
         "provider_link_unavailable",
         "provider_media_unsupported",
         "provider_rate_limited",
@@ -35,6 +37,7 @@ def test_only_transient_errors_are_retryable() -> None:
     assert DownloadErrorCode.DOWNLOAD_TIMEOUT.retryable is True
     assert DownloadErrorCode.FORMAT_UNAVAILABLE.retryable is False
     assert DownloadErrorCode.PROVIDER_RATE_LIMITED.retryable is True
+    assert DownloadErrorCode.PROVIDER_GUEST_CONTEXT_REQUIRED.retryable is True
     assert DownloadErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE.retryable is True
     assert DownloadErrorCode.PROVIDER_AUTH_REQUIRED.retryable is False
     assert DownloadErrorCode.PROVIDER_DRM_PROTECTED.retryable is False

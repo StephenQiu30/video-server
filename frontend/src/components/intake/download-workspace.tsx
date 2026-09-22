@@ -32,8 +32,13 @@ import { useDocumentImport } from '@/components/intake/use-document-import';
 import { useMediaImport } from '@/components/intake/use-media-import';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { markNavigationPush } from '@/components/layout/navigation-history';
+import { ProviderAuthorizationDialog } from '@/components/providers/provider-authorization-dialog';
 import { ScreenplayUploadForm } from '@/components/screenplay/screenplay-upload-form';
-import { displayError } from '@/lib/request-error';
+import {
+  type ProviderAuthorizationTarget,
+  providerAuthorizationTarget,
+} from '@/lib/provider-authorization';
+import { ApiError, displayError } from '@/lib/request-error';
 import { createUuid as createIdempotencyKey } from '@/lib/uuid';
 
 type BusyAction = 'inspect' | 'select' | 'create' | null;
@@ -52,6 +57,8 @@ export default function DownloadWorkspace() {
   const [selectedId, setSelectedId] = useState('');
   const [busy, setBusy] = useState<BusyAction>(null);
   const [error, setError] = useState<string | null>(null);
+  const [authorizationTarget, setAuthorizationTarget] =
+    useState<ProviderAuthorizationTarget | null>(null);
   const [urlInvalid, setUrlInvalid] = useState(false);
   const [mediaDeclaredOrigin, setMediaDeclaredOrigin] =
     useState<API.DeclaredOrigin>('user_file');
@@ -89,9 +96,10 @@ export default function DownloadWorkspace() {
     setInspection(null);
     setDiscovery(null);
     setSelectedId('');
+    setAuthorizationTarget(null);
   }
 
-  async function inspect() {
+  async function inspect(accessPolicy?: API.ProviderAccessPolicy) {
     if (busy !== null) return;
     const input = url.trim();
     clearLinkResult();
@@ -114,10 +122,20 @@ export default function DownloadWorkspace() {
         );
         setDiscovery(result);
       } else {
+        const source: API.PublicUrlInspectionSource = {
+          kind: 'public_url',
+          url: input,
+          ...(accessPolicy ? { access_policy_id: accessPolicy } : {}),
+        };
         const result = await inspectMedia(
-          { source: { kind: 'public_url', url: input } },
+          { source },
           {
-            headers: { 'Idempotency-Key': stableKey(inspectionKey, input) },
+            headers: {
+              'Idempotency-Key': stableKey(
+                inspectionKey,
+                `${input}:${accessPolicy ?? 'default'}`,
+              ),
+            },
             timeout: 180_000,
           },
         );
@@ -125,6 +143,11 @@ export default function DownloadWorkspace() {
         setSelectedId(result.formats[0]?.id ?? '');
       }
     } catch (reason) {
+      setAuthorizationTarget(
+        reason instanceof ApiError
+          ? providerAuthorizationTarget(input, reason.code)
+          : null,
+      );
       setError(displayError(reason));
     } finally {
       setBusy(null);
@@ -160,6 +183,7 @@ export default function DownloadWorkspace() {
       setInspection(result);
       setSelectedId(result.formats[0]?.id ?? '');
     } catch (reason) {
+      setAuthorizationTarget(null);
       setError(displayError(reason));
     } finally {
       setBusy(null);
@@ -189,6 +213,7 @@ export default function DownloadWorkspace() {
       );
       openDownload(result.id);
     } catch (reason) {
+      setAuthorizationTarget(null);
       setError(displayError(reason));
     } finally {
       setBusy(null);
@@ -272,6 +297,20 @@ export default function DownloadWorkspace() {
             : null
       ) ? (
         <FeedbackNotice
+          action={
+            mode === 'link' && authorizationTarget ? (
+              <ProviderAuthorizationDialog
+                onAuthorized={() => {
+                  return inspect(authorizationTarget.accessPolicy);
+                }}
+                provider={{
+                  authorization_action: authorizationTarget.authorizationAction,
+                  display_name: authorizationTarget.displayName,
+                  key: authorizationTarget.key,
+                }}
+              />
+            ) : undefined
+          }
           className="mt-8"
           description={mode === 'link' ? error : mediaImport.error}
           descriptionId="download-workspace-error"

@@ -58,10 +58,13 @@ export default function InspectionWorkspace({
           priority
           src={inspection.thumbnail_url}
         />
-        <h2 className="mt-5 text-xl font-medium leading-8 tracking-[-0.025em] sm:text-2xl">
+        <h2 className="mt-5 break-words text-pretty text-xl font-medium leading-8 tracking-[-0.025em] sm:text-2xl">
           {inspection.title}
         </h2>
-        <ItemGroup className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground tabular-nums">
+        <ItemGroup
+          aria-label="媒体信息"
+          className="mt-2 flex-row flex-wrap items-start justify-start gap-x-3 gap-y-2 text-left text-xs text-muted-foreground tabular-nums"
+        >
           <Meta label="平台" mono value={inspection.extractor_key} />
           {inspection.duration_seconds > 0 ? (
             <Meta

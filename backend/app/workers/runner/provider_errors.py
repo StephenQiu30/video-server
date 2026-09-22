@@ -310,8 +310,8 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         authenticated=False,
     ),
     FailureRule(
-        "credential_required",
-        422,
+        "provider_temporarily_unavailable",
+        503,
         any_stderr=(
             b"instagram api is not granting access",
             b"instagram sent an empty media response",
@@ -324,6 +324,13 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         422,
         all_stderr=(b"fresh cookies", b"needed"),
         authenticated=True,
+    ),
+    FailureRule(
+        "guest_context_required",
+        503,
+        all_stderr=(b"fresh cookies", b"needed"),
+        providers=frozenset({ProviderKey.DOUYIN}),
+        authenticated=False,
     ),
     FailureRule(
         "provider_temporarily_unavailable",
@@ -349,9 +356,10 @@ PROVIDER_FAILURE_RULES: tuple[FailureRule, ...] = (
         providers=frozenset({ProviderKey.INSTAGRAM}),
     ),
     FailureRule(
-        "credential_required",
-        422,
+        "guest_context_required",
+        503,
         all_stderr=(b"fresh cookies", b"needed"),
+        authenticated=False,
     ),
     FailureRule(
         "credential_required",

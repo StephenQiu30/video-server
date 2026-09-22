@@ -58,11 +58,11 @@ export function ContentIntakeHero({
       >
         <TabsList
           aria-label="选择内容来源"
-          className="grid h-11 w-full grid-cols-3 gap-0 p-0 lg:inline-flex lg:w-fit lg:gap-6 lg:p-[3px]"
+          className="grid h-11 w-full grid-cols-3 gap-0 p-0 lg:inline-flex lg:w-fit lg:gap-6 lg:p-0"
           variant="line"
         >
           <TabsTrigger
-            className="min-w-0 px-1 sm:px-2"
+            className="min-w-0 px-1 sm:px-2 lg:px-0"
             disabled={disabled}
             value="link"
           >
@@ -70,7 +70,7 @@ export function ContentIntakeHero({
             链接解析
           </TabsTrigger>
           <TabsTrigger
-            className="min-w-0 px-1 sm:px-2"
+            className="min-w-0 px-1 sm:px-2 lg:px-0"
             disabled={disabled}
             value="video"
           >
@@ -78,7 +78,7 @@ export function ContentIntakeHero({
             本地视频
           </TabsTrigger>
           <TabsTrigger
-            className="min-w-0 px-1 sm:px-2"
+            className="min-w-0 px-1 sm:px-2 lg:px-0"
             disabled={disabled}
             value="screenplay"
           >

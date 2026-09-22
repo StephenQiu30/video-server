@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import StrEnum
 
 from app.schemas.common import StrictModel
 from app.services.provider_access import ProviderAccessPolicy
 from app.services.provider_types import (
     ProviderAccessMode,
     ProviderAccessState,
+    ProviderAuthorizationAction,
+    ProviderAuthorizationSource,
     ProviderCapability,
     ProviderSupportStatus,
+    provider_authorization_action,
 )
 from app.services.providers import ProviderEvidenceState, ProviderStatusView
 
@@ -40,6 +44,7 @@ class ProviderStatusResponse(StrictModel):
     hosts: tuple[str, ...]
     host_suffixes: tuple[str, ...]
     route_retry_at: datetime | None = None
+    authorization_action: ProviderAuthorizationAction
 
     @classmethod
     def from_view(cls, value: ProviderStatusView) -> ProviderStatusResponse:
@@ -68,6 +73,12 @@ class ProviderStatusResponse(StrictModel):
             hosts=value.hosts,
             host_suffixes=value.host_suffixes,
             route_retry_at=value.route_retry_at,
+            authorization_action=provider_authorization_action(
+                value.key,
+                access_modes=value.access_modes,
+                status=value.status,
+                last_check_succeeded=value.last_check_succeeded,
+            ),
         )
 
 
@@ -79,3 +90,26 @@ class ProviderListResponse(StrictModel):
         return cls(
             items=tuple(ProviderStatusResponse.from_view(item) for item in values)
         )
+
+
+class ProviderAuthorizationStatus(StrEnum):
+    PENDING = "pending"
+    SOURCE_AVAILABLE = "source_available"
+    AUTHORIZATION_REQUIRED = "authorization_required"
+    PERMISSION_REQUIRED = "permission_required"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"
+    FAILED = "failed"
+
+
+class BeginProviderAuthorizationRequest(StrictModel):
+    """Select the explicit local browser session used for authorization."""
+
+    source: ProviderAuthorizationSource = ProviderAuthorizationSource.CURRENT_CHROME
+
+
+class ProviderAuthorizationResponse(StrictModel):
+    transaction_id: str
+    provider_key: str
+    status: ProviderAuthorizationStatus
+    expires_at: datetime

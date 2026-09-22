@@ -32,9 +32,11 @@ from app.services.downloads.errors import (
     MediaInspectionFailure,
     MediaInspectionFormatUnavailable,
     MediaInspectionGeoRestricted,
+    MediaInspectionGuestContextRequired,
     MediaInspectionLinkUnavailable,
     MediaInspectionMediaUnsupported,
     MediaInspectionPaidContentRestricted,
+    MediaInspectionPolicyNotAllowed,
     MediaInspectionRateLimited,
     MediaInspectionSessionExpired,
     MediaInspectionTemporarilyUnavailable,
@@ -205,8 +207,12 @@ class MediaRunnerHttpClient:
                 ) from exc
             if exc.code == "duration_limit_exceeded":
                 raise MediaInspectionDurationLimitExceeded from exc
-            if exc.code in {"credential_required", "provider_session_not_allowed"}:
+            if exc.code == "credential_required":
                 raise MediaInspectionAuthRequired from exc
+            if exc.code == "guest_context_required":
+                raise MediaInspectionGuestContextRequired from exc
+            if exc.code == "provider_session_not_allowed":
+                raise MediaInspectionPolicyNotAllowed from exc
             if exc.code in {
                 "provider_session_source_missing",
                 "provider_session_permission_denied",
@@ -467,13 +473,16 @@ class MediaRunnerRouter:
         anonymous: MediaRunnerClient,
         operators: Mapping[str, MediaRunnerClient] | None = None,
         *,
+        guests: Mapping[str, MediaRunnerClient] | None = None,
         default_policies: Mapping[str, ProviderAccessPolicy] | None = None,
     ) -> None:
         self._anonymous = anonymous
+        self._guests = dict(guests or {})
         self._operators = dict(operators or {})
         self._inspection_pipeline = MediaInspectionPipeline(
             anonymous,
             self._operators,
+            guests=self._guests,
             default_policies=default_policies,
         )
         self._active: dict[str, MediaRunnerClient] = {}
@@ -493,13 +502,15 @@ class MediaRunnerRouter:
         provider_key: str,
         access_mode: ProviderAccessMode,
     ) -> ProviderAccessContextRef:
-        client = (
-            self._anonymous
-            if access_mode is ProviderAccessMode.ANONYMOUS
-            else self._operators.get(provider_key)
-        )
+        client = self._client_for_mode(provider_key, access_mode)
         if client is None:
-            raise MediaRunnerClientError("credential_required", 422)
+            code = (
+                "guest_context_required"
+                if access_mode is ProviderAccessMode.GUEST
+                else "credential_required"
+            )
+            status = 503 if access_mode is ProviderAccessMode.GUEST else 422
+            raise MediaRunnerClientError(code, status)
         context = await client.context_for_provider(provider_key)
         if context.access_mode is not access_mode:
             raise MediaRunnerClientError("client_context_mismatch", 502)
@@ -517,6 +528,12 @@ class MediaRunnerRouter:
         groups: list[tuple[MediaRunnerClient, tuple[str, ...]]] = []
         if anonymous_keys:
             groups.append((self._anonymous, anonymous_keys))
+        groups.extend(
+            (client, (key,))
+            for key, mode in requested.items()
+            if mode is ProviderAccessMode.GUEST
+            and (client := self._guests.get(key)) is not None
+        )
         groups.extend(
             (client, (key,))
             for key, mode in requested.items()
@@ -580,17 +597,31 @@ class MediaRunnerRouter:
 
     async def close(self) -> None:
         await self._anonymous.close()
+        for guest in self._guests.values():
+            await guest.close()
         for operator in self._operators.values():
             await operator.close()
 
     def _client_for(self, context: ProviderAccessContextRef) -> MediaRunnerClient:
-        if context.access_mode is ProviderAccessMode.ANONYMOUS:
+        client = self._client_for_mode(context.provider_key, context.access_mode)
+        if client is not None:
+            return client
+        code = (
+            "guest_context_required"
+            if context.access_mode is ProviderAccessMode.GUEST
+            else "credential_required"
+        )
+        status = 503 if context.access_mode is ProviderAccessMode.GUEST else 422
+        raise MediaRunnerClientError(code, status)
+
+    def _client_for_mode(
+        self, provider_key: str, access_mode: ProviderAccessMode
+    ) -> MediaRunnerClient | None:
+        if access_mode is ProviderAccessMode.ANONYMOUS:
             return self._anonymous
-        if context.access_mode is ProviderAccessMode.OPERATOR_MANAGED:
-            operator = self._operators.get(context.provider_key)
-            if operator is not None:
-                return operator
-        raise MediaRunnerClientError("credential_required", 422)
+        if access_mode is ProviderAccessMode.GUEST:
+            return self._guests.get(provider_key)
+        return self._operators.get(provider_key)
 
 
 def _error_code(response: httpx.Response) -> str:

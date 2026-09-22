@@ -125,16 +125,41 @@ from app.services.imports.service import (
     CreateUploadSession,
     GetImport,
 )
+from app.services.provider_authorization import ProviderAuthorizationService
 from app.services.provider_canaries import ProviderStatusService
 from app.services.provider_catalog import ProviderCatalogService
 from app.services.provider_route_admission import ProviderRouteAdmission
+from app.services.provider_types import ProviderAccessMode
 from app.services.source_discoveries.use_cases import (
     CreateSourceDiscovery,
     GetSourceDiscovery,
     InspectDiscoveredItem,
 )
 from app.services.storage_files.service import StorageFileService
-from app.workers.runner.provider_registry import configure_provider_instances
+from app.workers.runner.errors import RunnerFailure
+from app.workers.runner.provider_authorization_queue import (
+    FileProviderAuthorizationQueue,
+)
+from app.workers.runner.provider_registry import (
+    configure_provider_instances,
+    provider_profile_for_key,
+)
+from app.workers.runner.provider_session_policy import (
+    ProviderSessionSource,
+    browser_session_policy,
+)
+
+
+def _can_authorize_provider(provider_key: str) -> bool:
+    try:
+        profile = provider_profile_for_key(provider_key)
+        policy = browser_session_policy(provider_key)
+    except (RunnerFailure, ValueError):
+        return False
+    return (
+        ProviderAccessMode.OPERATOR_MANAGED in profile.access_modes
+        and policy.source is ProviderSessionSource.CHROME_PROFILE
+    )
 
 
 def build_api_runtime(settings: Settings) -> ApiRuntime:
@@ -505,6 +530,14 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
                 context_reader=runner,
                 approved_keys=settings.provider_verified_keys,
                 catalog=provider_catalog_repository,
+            ),
+            provider_authorization_service=ProviderAuthorizationService(
+                FileProviderAuthorizationQueue(
+                    settings.provider_authorization_queue_root
+                ),
+                settings.redis_url,
+                now=clock,
+                can_authorize_provider=_can_authorize_provider,
             ),
             provider_catalog_service=provider_catalog_service,
             ai_provider_service=ai_provider_service,

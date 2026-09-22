@@ -192,7 +192,7 @@ def test_collection_download_enables_playlist_with_bounded_output(
 @pytest.mark.parametrize(
     ("authenticated", "expected_code", "expected_status"),
     (
-        (False, "provider_temporarily_unavailable", 503),
+        (False, "guest_context_required", 503),
         (True, "credential_expired", 422),
     ),
 )
@@ -256,7 +256,7 @@ async def test_ambiguous_rate_limit_or_login_hint_is_temporary(
 
 
 @pytest.mark.asyncio
-async def test_public_instagram_empty_response_requests_operator_session(
+async def test_public_instagram_empty_response_does_not_request_account_session(
     tmp_path: Path,
 ) -> None:
     commands = MediaCommands(
@@ -271,8 +271,8 @@ async def test_public_instagram_empty_response_requests_operator_session(
     with pytest.raises(RunnerFailure) as caught:
         await commands.inspect("https://www.instagram.com/p/example/", tmp_path)
 
-    assert caught.value.code == "credential_required"
-    assert caught.value.status == 422
+    assert caught.value.code == "provider_temporarily_unavailable"
+    assert caught.value.status == 503
 
 
 @pytest.mark.asyncio
@@ -488,7 +488,7 @@ async def test_youtube_rate_limit_precedes_unavailable_fallback(tmp_path: Path) 
             "credential_expired",
             422,
         ),
-        (b"ERROR: Fresh cookies are needed", "credential_required", 422),
+        (b"ERROR: Fresh cookies are needed", "guest_context_required", 503),
     ),
 )
 async def test_youtube_terminal_failure_precedes_rate_limit_warning(

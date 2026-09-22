@@ -253,6 +253,7 @@ class Settings(BaseSettings):
         default_factory=dict
     )
     runner_workspace_root: Path = Path("/work")
+    provider_authorization_queue_root: Path = Path("/run/provider-authorization")
     runner_hmac_secret: SecretStr = SecretStr("development-runner-secret-change-me")
     provider_canary_targets: SecretStr = SecretStr("[]")
     provider_verified_keys: frozenset[str] = frozenset()

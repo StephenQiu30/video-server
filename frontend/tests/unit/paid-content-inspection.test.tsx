@@ -5,6 +5,30 @@ import InspectionWorkspace from '@/components/intake/inspection-workspace';
 import { inspection } from '../fixtures/download-fixtures';
 
 describe('paid content inspection', () => {
+  it('keeps the media title and metadata aligned to the left', () => {
+    render(
+      <InspectionWorkspace
+        busy={false}
+        inspection={inspection}
+        onChange={vi.fn()}
+        onCreate={vi.fn()}
+        onUseUpload={vi.fn()}
+        selectedId={inspection.formats[0].id}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: inspection.title })).toHaveClass(
+      'break-words',
+      'text-pretty',
+    );
+    expect(screen.getByRole('list', { name: '媒体信息' })).toHaveClass(
+      'flex-row',
+      'items-start',
+      'justify-start',
+      'text-left',
+    );
+  });
+
   it.each([
     ['content_preview_only', '仅提供试看内容'],
     ['content_supporter_only', '充电专属内容'],

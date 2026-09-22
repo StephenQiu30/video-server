@@ -5,6 +5,7 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from app.services.provider_access import ProviderAccessPolicy
 from app.services.provider_canaries import (
     ProviderEvidenceScope,
     ProviderRuntimeContextReader,
@@ -41,7 +42,7 @@ def access_context(
     engine_commit: str = YTDLP_ENGINE_COMMIT,
 ) -> ProviderAccessContextRef:
     if (
-        access_mode is ProviderAccessMode.OPERATOR_MANAGED
+        access_mode is not ProviderAccessMode.ANONYMOUS
         and credential_version_id is None
     ):
         credential_version_id = "credential-current"
@@ -286,18 +287,46 @@ async def test_platform_challenge_enters_recoverable_authorization_state() -> No
 
     assert view.status is ProviderSupportStatus.ACCESS_REQUIRED
     assert view.access_state is ProviderAccessState.AUTHORIZATION_REQUIRED
-    assert "受控浏览器授权" in (view.user_action or "")
+    assert "部署方已批准的单平台来源" in (view.user_action or "")
+    assert "客户端无需安装扩展" in (view.user_action or "")
 
 
-def test_access_state_projection_distinguishes_public_and_operator_routes() -> None:
+def test_access_state_projection_uses_the_selected_route_not_all_capabilities() -> None:
     public = baseline(ProviderSupportStatus.VERIFIED)
+    public_with_operator_capability = replace(
+        public,
+        access_modes=(
+            ProviderAccessMode.ANONYMOUS,
+            ProviderAccessMode.OPERATOR_MANAGED,
+        ),
+        default_access_policy_id=ProviderAccessPolicy.PUBLIC,
+    )
+    guest = replace(
+        public,
+        access_modes=(ProviderAccessMode.GUEST,),
+        default_access_policy_id=ProviderAccessPolicy.PUBLIC_SESSION,
+    )
     operator = replace(
         public,
         access_modes=(ProviderAccessMode.OPERATOR_MANAGED,),
     )
 
     assert public.access_state is ProviderAccessState.PUBLIC_PROBE
+    assert (
+        public_with_operator_capability.access_state is ProviderAccessState.PUBLIC_PROBE
+    )
+    assert guest.access_state is ProviderAccessState.GUEST_PROBE
     assert operator.access_state is ProviderAccessState.OPERATOR_PROBE
+
+
+def test_guest_access_required_stays_an_automatic_guest_recovery_state() -> None:
+    guest = replace(
+        baseline(ProviderSupportStatus.ACCESS_REQUIRED),
+        access_modes=(ProviderAccessMode.GUEST,),
+        default_access_policy_id=ProviderAccessPolicy.PUBLIC_SESSION,
+    )
+
+    assert guest.access_state is ProviderAccessState.GUEST_PROBE
 
 
 @pytest.mark.asyncio

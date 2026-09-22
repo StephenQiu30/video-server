@@ -83,11 +83,14 @@ class ProviderStatusView:
     @property
     def access_state(self) -> ProviderAccessState:
         """Project internal evidence into one actionable public state."""
+        access_mode = self._selected_access_mode()
         if self.status is ProviderSupportStatus.DISABLED:
             return ProviderAccessState.DISABLED
         if self.status is ProviderSupportStatus.UNSUPPORTED:
             return ProviderAccessState.UNSUPPORTED
         if self.status is ProviderSupportStatus.ACCESS_REQUIRED:
+            if access_mode is ProviderAccessMode.GUEST:
+                return ProviderAccessState.GUEST_PROBE
             return ProviderAccessState.AUTHORIZATION_REQUIRED
         if self.status is ProviderSupportStatus.BLOCKED:
             return ProviderAccessState.BLOCKED
@@ -96,17 +99,40 @@ class ProviderStatusView:
             ProviderSupportStatus.RATE_LIMITED,
         }:
             return ProviderAccessState.DEGRADED
-        if ProviderAccessMode.OPERATOR_MANAGED in self.access_modes:
-            if self.status is ProviderSupportStatus.VERIFIED and (
-                self.download_available or self.last_verified_at is not None
-            ):
+        ready = self.status is ProviderSupportStatus.VERIFIED and (
+            self.download_available or self.last_verified_at is not None
+        )
+        if access_mode is ProviderAccessMode.OPERATOR_MANAGED:
+            if ready:
                 return ProviderAccessState.OPERATOR_READY
             return ProviderAccessState.OPERATOR_PROBE
-        if self.status is ProviderSupportStatus.VERIFIED and (
-            self.download_available or self.last_verified_at is not None
-        ):
+        if access_mode is ProviderAccessMode.GUEST:
+            if ready:
+                return ProviderAccessState.GUEST_READY
+            return ProviderAccessState.GUEST_PROBE
+        if ready:
             return ProviderAccessState.PUBLIC_READY
         return ProviderAccessState.PUBLIC_PROBE
+
+    def _selected_access_mode(self) -> ProviderAccessMode:
+        """Resolve the active route without inferring identity from capabilities."""
+        if (
+            self.runtime_context is not None
+            and self.runtime_context.access_mode in self.access_modes
+        ):
+            return self.runtime_context.access_mode
+        if self.default_access_policy_id is not None:
+            default_mode = self.default_access_policy_id.access_mode
+            if default_mode in self.access_modes:
+                return default_mode
+        for mode in (
+            ProviderAccessMode.ANONYMOUS,
+            ProviderAccessMode.GUEST,
+            ProviderAccessMode.OPERATOR_MANAGED,
+        ):
+            if mode in self.access_modes:
+                return mode
+        return ProviderAccessMode.ANONYMOUS
 
 
 def provider_user_action(
@@ -117,9 +143,11 @@ def provider_user_action(
     access_mode: ProviderAccessMode = ProviderAccessMode.ANONYMOUS,
 ) -> str | None:
     """Return the single public recovery message for one Provider state."""
-    sample = (
-        "公开样本" if access_mode is ProviderAccessMode.ANONYMOUS else "受控线路样本"
-    )
+    sample = {
+        ProviderAccessMode.ANONYMOUS: "公开样本",
+        ProviderAccessMode.GUEST: "游客线路样本",
+        ProviderAccessMode.OPERATOR_MANAGED: "受控线路样本",
+    }[access_mode]
     if provider_key == ProviderKey.YOUKU:
         return YOUKU_DOWNLOAD_ACTION
     if provider_key == ProviderKey.QQVIDEO:
@@ -147,8 +175,8 @@ def provider_user_action(
     if status is ProviderSupportStatus.ACCESS_REQUIRED:
         if access_mode is ProviderAccessMode.OPERATOR_MANAGED:
             return (
-                "当前公开出口需要平台授权或验证；请在运行本项目的设备完成一次受控浏览器授权，"
-                "授权数据仅用于本机受控线路，不上传到第三方。"
+                "当前托管线路需要平台授权或验证；服务端会复用部署方已批准的单平台来源，"
+                "客户端无需安装扩展或提供浏览器会话。"
             )
         return (
             "该平台当前要求额外授权或验证；请稍后重试，或上传你拥有或已获授权的文件。"

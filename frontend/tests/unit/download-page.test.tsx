@@ -22,6 +22,20 @@ import {
 } from '../helpers/http';
 
 const push = vi.fn();
+const authorization = vi.hoisted(() => ({
+  begin: vi.fn(),
+  cancel: vi.fn(),
+  get: vi.fn(),
+}));
+const auth = vi.hoisted(() => ({
+  user: { role: 'admin' },
+}));
+
+vi.mock('@/api/providers', () => ({
+  beginProviderAuthorization: authorization.begin,
+  cancelProviderAuthorization: authorization.cancel,
+  getProviderAuthorization: authorization.get,
+}));
 
 vi.mock('@/components/providers/use-provider-statuses', () => ({
   useProviderStatuses: () => ({
@@ -32,14 +46,52 @@ vi.mock('@/components/providers/use-provider-statuses', () => ({
   }),
 }));
 
+vi.mock('@/components/auth/auth-provider', () => ({
+  useAuth: () => ({ user: auth.user }),
+}));
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
 }));
 
 describe('DownloadWorkspace', () => {
   beforeEach(() => {
+    auth.user = { role: 'admin' };
     push.mockReset();
+    authorization.begin.mockReset();
+    authorization.cancel.mockReset();
+    authorization.cancel.mockResolvedValue(undefined);
+    authorization.get.mockReset();
     window.history.replaceState({}, '', '/');
+  });
+
+  it('does not turn provider verification failures into account authorization', async () => {
+    auth.user = { role: 'user' };
+    mockHttpError(
+      new ApiError(
+        422,
+        'provider_verification_failed',
+        '需要平台验证',
+        '平台要求验证。',
+      ),
+    );
+    renderWorkspace();
+
+    fireEvent.change(screen.getByLabelText('公开视频地址'), {
+      target: { value: 'https://www.youtube.com/watch?v=regular-user' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
+
+    expect(
+      await screen.findByText('平台要求额外验证，请使用右侧的受控会话重试。'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '使用托管线路重试' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '使用当前 Chrome 会话' }),
+    ).not.toBeInTheDocument();
+    expect(authorization.begin).not.toHaveBeenCalled();
   });
 
   it('renders the inspection form and source tabs', () => {
@@ -207,6 +259,71 @@ describe('DownloadWorkspace', () => {
     ).toBeInTheDocument();
     expect(input).not.toHaveAttribute('aria-invalid');
     expect(input).not.toHaveAttribute('aria-describedby');
+  });
+
+  it('does not retry ambiguous verification failures with an account session', async () => {
+    mockHttpError(
+      new ApiError(
+        422,
+        'provider_verification_failed',
+        '需要平台验证',
+        '平台要求验证。',
+      ),
+    );
+    renderWorkspace();
+
+    const url = 'https://www.youtube.com/watch?v=owned';
+    fireEvent.change(screen.getByLabelText('公开视频地址'), {
+      target: { value: url },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
+
+    expect(
+      await screen.findByText('平台要求额外验证，请使用右侧的受控会话重试。'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '使用托管线路重试' }),
+    ).not.toBeInTheDocument();
+    expect(httpRequests()).toHaveLength(1);
+    expect(authorization.begin).not.toHaveBeenCalled();
+  });
+
+  it('offers the managed Yuanbao session for WeChat Channels', async () => {
+    const url = 'https://weixin.qq.com/sph/AvvqOTT0yG';
+    mockHttpError(
+      new ApiError(
+        422,
+        'provider_auth_required',
+        '需要平台授权',
+        '平台要求授权。',
+      ),
+    );
+    mockHttpResponses(inspection);
+    renderWorkspace();
+
+    fireEvent.change(screen.getByLabelText('公开视频地址'), {
+      target: { value: url },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
+
+    expect(
+      await screen.findByText(
+        '该链接需要平台登录或官方授权，请使用右侧的受控会话重试。',
+      ),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '使用托管线路重试' }));
+
+    expect(await screen.findByText(inspection.title)).toBeInTheDocument();
+    expect(httpRequests()[1]).toMatchObject({
+      data: {
+        source: {
+          access_policy_id: 'operator_public',
+          kind: 'public_url',
+          url,
+        },
+      },
+    });
+    expect(authorization.begin).not.toHaveBeenCalled();
   });
 
   it('does not mark the URL field invalid when task creation fails', async () => {

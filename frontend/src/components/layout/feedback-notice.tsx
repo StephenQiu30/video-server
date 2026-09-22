@@ -41,13 +41,23 @@ export function FeedbackNotice({
 
   return (
     <Alert
-      className={cn('border-0 bg-surface', className)}
+      className={cn(
+        'border-0 bg-surface',
+        action && 'pr-44 sm:pr-48',
+        className,
+      )}
       variant={tone === 'error' ? 'destructive' : 'default'}
     >
       {icon}
-      {title ? <AlertTitle>{title}</AlertTitle> : null}
-      <AlertDescription id={descriptionId}>{description}</AlertDescription>
-      {action ? <AlertAction>{action}</AlertAction> : null}
+      <div className="min-w-0">
+        {title ? <AlertTitle>{title}</AlertTitle> : null}
+        <AlertDescription id={descriptionId}>{description}</AlertDescription>
+      </div>
+      {action ? (
+        <AlertAction className="top-1/2 right-4 -translate-y-1/2 sm:right-5">
+          {action}
+        </AlertAction>
+      ) : null}
     </Alert>
   );
 }

@@ -37,9 +37,11 @@ class MediaInspectionPipeline:
         anonymous: MediaInspectionClient,
         operators: Mapping[str, MediaInspectionClient] | None = None,
         *,
+        guests: Mapping[str, MediaInspectionClient] | None = None,
         default_policies: Mapping[str, ProviderAccessPolicy] | None = None,
     ) -> None:
         self._anonymous = anonymous
+        self._guests = dict(guests or {})
         self._operators = dict(operators or {})
         self._defaults = dict(default_policies or {})
         for key, policy in self._defaults.items():
@@ -58,10 +60,7 @@ class MediaInspectionPipeline:
         )
         if selected not in provider_access_policies(profile.key, profile.access_modes):
             raise MediaInspectionPolicyNotAllowed
-        if (
-            selected.access_mode is ProviderAccessMode.OPERATOR_MANAGED
-            and profile.key not in self._operators
-        ):
+        if self._client_for(profile.key, selected.access_mode) is None:
             raise MediaInspectionConfigurationMissing
         return selected
 
@@ -71,11 +70,9 @@ class MediaInspectionPipeline:
         selected = self.resolve_access_policy(url, access_policy)
         profile = provider_profile(url)
         access_mode = selected.access_mode
-        client = (
-            self._anonymous
-            if access_mode is ProviderAccessMode.ANONYMOUS
-            else self._operators[profile.key]
-        )
+        client = self._client_for(profile.key, access_mode)
+        if client is None:
+            raise MediaInspectionConfigurationMissing
         try:
             result = await client.inspect(url)
             if (
@@ -87,3 +84,12 @@ class MediaInspectionPipeline:
         except MediaInspectionFailure as error:
             error.attributed_to(access_mode)
             raise
+
+    def _client_for(
+        self, provider_key: str, access_mode: ProviderAccessMode
+    ) -> MediaInspectionClient | None:
+        if access_mode is ProviderAccessMode.ANONYMOUS:
+            return self._anonymous
+        if access_mode is ProviderAccessMode.GUEST:
+            return self._guests.get(provider_key)
+        return self._operators.get(provider_key)

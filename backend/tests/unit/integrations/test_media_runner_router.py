@@ -183,6 +183,42 @@ async def test_download_routes_frozen_context_to_matching_pool() -> None:
     assert operator.downloaded == ["task-1"]
 
 
+async def test_download_routes_guest_context_without_touching_account_pool() -> None:
+    anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
+    guest = FakeClient(context(ProviderAccessMode.GUEST))
+    operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED))
+    router = MediaRunnerRouter(
+        anonymous,
+        {"youtube": operator},
+        guests={"youtube": guest},
+    )  # type: ignore[arg-type]
+
+    await router.download(
+        "task-guest",
+        "https://www.youtube.com/watch?v=owned",
+        object(),  # type: ignore[arg-type]
+        expected_provider_media_id="owned",
+        expected_extractor_key="Youtube",
+        access_context=guest.context,
+    )
+
+    assert guest.downloaded == ["task-guest"]
+    assert anonymous.downloaded == operator.downloaded == []
+
+
+async def test_missing_guest_context_never_falls_back_to_account() -> None:
+    anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
+    operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED))
+    router = MediaRunnerRouter(anonymous, {"youtube": operator})  # type: ignore[arg-type]
+
+    with pytest.raises(MediaRunnerClientError) as captured:
+        await router.context_for_provider("youtube", ProviderAccessMode.GUEST)
+
+    assert captured.value.code == "guest_context_required"
+    assert captured.value.status == 503
+    assert anonymous.context_requests == operator.context_requests == []
+
+
 async def test_download_never_changes_the_frozen_access_context() -> None:
     anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
     anonymous.download_error = MediaRunnerClientError("credential_required", 422)
@@ -223,20 +259,31 @@ async def test_download_keeps_anonymous_error_when_operator_is_not_configured() 
     assert captured.value.code == "credential_required"
 
 
-async def test_context_batch_resolves_anonymous_and_operator_routes_once() -> None:
+async def test_context_batch_resolves_public_guest_and_account_routes_once() -> None:
     anonymous = FakeClient(context(ProviderAccessMode.ANONYMOUS))
+    guest = FakeClient(context(ProviderAccessMode.GUEST, "douyin"))
     operator = FakeClient(context(ProviderAccessMode.OPERATOR_MANAGED))
-    router = MediaRunnerRouter(anonymous, {"youtube": operator})  # type: ignore[arg-type]
+    router = MediaRunnerRouter(
+        anonymous,
+        {"youtube": operator},
+        guests={"douyin": guest},
+    )  # type: ignore[arg-type]
 
     resolved = await router.contexts_for_providers(
         {
             "generic": ProviderAccessMode.ANONYMOUS,
+            "douyin": ProviderAccessMode.GUEST,
             "youtube": ProviderAccessMode.OPERATOR_MANAGED,
         }
     )
 
-    assert resolved == {"generic": anonymous.context, "youtube": operator.context}
+    assert resolved == {
+        "generic": anonymous.context,
+        "douyin": guest.context,
+        "youtube": operator.context,
+    }
     assert anonymous.context_requests == [("generic",)]
+    assert guest.context_requests == [("douyin",)]
     assert operator.context_requests == [("youtube",)]
 
 
@@ -265,13 +312,13 @@ async def test_context_batch_isolates_one_unavailable_operator_runner() -> None:
 def context(
     mode: ProviderAccessMode, provider: str = "youtube"
 ) -> ProviderAccessContextRef:
-    operator = mode is ProviderAccessMode.OPERATOR_MANAGED
+    stateful = mode is not ProviderAccessMode.ANONYMOUS
     return ProviderAccessContextRef(
-        provider_key=provider if operator else "generic",
-        profile_version=provider if operator else "default",
+        provider_key=provider if stateful else "generic",
+        profile_version=provider if stateful else "default",
         access_mode=mode,
-        credential_version_id="browser" if operator else None,
-        egress_affinity_id=f"provider:{provider}" if operator else "default",
+        credential_version_id="browser" if stateful else None,
+        egress_affinity_id=f"provider:{provider}" if stateful else "default",
         client_profile_id="yt-dlp-default",
         attestation_provider_version=None,
         engine_commit="5d6b8c8",

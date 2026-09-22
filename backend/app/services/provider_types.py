@@ -73,6 +73,53 @@ class ProviderSessionVersion(StrEnum):
     BROWSER = "browser"
 
 
+class ProviderAuthorizationSource(StrEnum):
+    """Explicit local browser source selected for a provider authorization."""
+
+    CURRENT_CHROME = "current_chrome"
+    DEDICATED_CHROME = "dedicated_chrome"
+
+
+class ProviderAuthorizationAction(StrEnum):
+    """Coarse, non-secret recovery action exposed by the Provider API."""
+
+    NONE = "none"
+    BROWSER_SESSION = "browser_session"
+    MANAGED_SESSION = "managed_session"
+
+
+_DEPLOYMENT_MANAGED_PROVIDERS = frozenset(
+    {
+        ProviderKey.YOUTUBE,
+        ProviderKey.DOUYIN,
+        ProviderKey.REDDIT,
+    }
+)
+
+
+def provider_authorization_action(
+    provider: str | ProviderKey,
+    *,
+    access_modes: tuple[ProviderAccessMode, ...],
+    status: ProviderSupportStatus,
+    last_check_succeeded: bool | None,
+) -> ProviderAuthorizationAction:
+    try:
+        key = ProviderKey(provider)
+    except ValueError:
+        return ProviderAuthorizationAction.NONE
+    supports_account = ProviderAccessMode.OPERATOR_MANAGED in access_modes
+    explicitly_requires_account = status is ProviderSupportStatus.ACCESS_REQUIRED
+    if (
+        supports_account
+        and explicitly_requires_account
+        and last_check_succeeded is False
+        and (key in _DEPLOYMENT_MANAGED_PROVIDERS or key is ProviderKey.WECHAT_CHANNELS)
+    ):
+        return ProviderAuthorizationAction.MANAGED_SESSION
+    return ProviderAuthorizationAction.NONE
+
+
 class ProviderCookieDomain(StrEnum):
     YOUTUBE = "youtube.com"
     YOUTUBE_NOCOOKIE = "youtube-nocookie.com"
@@ -91,7 +138,14 @@ class ProviderCookieDomain(StrEnum):
 
 
 class ProviderAccessMode(StrEnum):
+    """Privilege boundary for one provider operation.
+
+    GUEST may use automatically maintained visitor material but has no account
+    entitlement. OPERATOR_MANAGED is the only account-bearing mode.
+    """
+
     ANONYMOUS = "anonymous"
+    GUEST = "guest"
     OPERATOR_MANAGED = "operator_managed"
 
 
@@ -122,6 +176,8 @@ class ProviderAccessState(StrEnum):
 
     PUBLIC_PROBE = "public_probe"
     PUBLIC_READY = "public_ready"
+    GUEST_PROBE = "guest_probe"
+    GUEST_READY = "guest_ready"
     AUTHORIZATION_REQUIRED = "authorization_required"
     OPERATOR_PROBE = "operator_probe"
     OPERATOR_READY = "operator_ready"
@@ -210,8 +266,9 @@ class ProviderAccessContextRef:
             for value in optional
         ):
             raise ValueError("provider access context contains an invalid reference")
-        has_credential = self.credential_version_id is not None
-        if has_credential != (self.access_mode is ProviderAccessMode.OPERATOR_MANAGED):
+        has_context_material = self.credential_version_id is not None
+        needs_context_material = self.access_mode is not ProviderAccessMode.ANONYMOUS
+        if has_context_material != needs_context_material:
             raise ValueError("provider credential reference does not match access mode")
 
     def to_document(self) -> dict[str, str | None]:

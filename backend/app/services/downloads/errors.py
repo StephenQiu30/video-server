@@ -24,6 +24,7 @@ class ApplicationErrorCode(StrEnum):
     NOT_FOUND = "not_found"
     PROVIDER_AUTH_REQUIRED = "provider_auth_required"
     PROVIDER_CONFIGURATION_MISSING = "provider_configuration_missing"
+    PROVIDER_GUEST_CONTEXT_REQUIRED = "provider_guest_context_required"
     PROVIDER_ACCESS_POLICY_NOT_ALLOWED = "provider_access_policy_not_allowed"
     PROVIDER_SESSION_EXPIRED = "provider_session_expired"
     PROVIDER_VERIFICATION_FAILED = "provider_verification_failed"
@@ -83,6 +84,10 @@ class MediaInspectionDurationLimitExceeded(MediaInspectionFailure):
 
 class MediaInspectionAuthRequired(MediaInspectionFailure):
     """The provider requires an approved session."""
+
+
+class MediaInspectionGuestContextRequired(MediaInspectionFailure):
+    """The public route needs a visitor context, never an account login."""
 
 
 class MediaInspectionConfigurationMissing(MediaInspectionFailure):

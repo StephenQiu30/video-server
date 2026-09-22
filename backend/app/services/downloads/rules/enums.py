@@ -102,10 +102,12 @@ class DownloadErrorCode(StrEnum):
     INTERNAL_ERROR = "internal_error"
     MEDIA_VALIDATION_FAILED = "media_validation_failed"
     OUTPUT_LIMIT_EXCEEDED = "output_limit_exceeded"
+    PROVIDER_ACCESS_POLICY_NOT_ALLOWED = "provider_access_policy_not_allowed"
     PROVIDER_AUTH_REQUIRED = "provider_auth_required"
     PROVIDER_CONTENT_RESTRICTED = "provider_content_restricted"
     PROVIDER_DRM_PROTECTED = "provider_drm_protected"
     PROVIDER_GEO_RESTRICTED = "provider_geo_restricted"
+    PROVIDER_GUEST_CONTEXT_REQUIRED = "provider_guest_context_required"
     PROVIDER_LINK_UNAVAILABLE = "provider_link_unavailable"
     PROVIDER_MEDIA_UNSUPPORTED = "provider_media_unsupported"
     PROVIDER_RATE_LIMITED = "provider_rate_limited"
@@ -125,6 +127,7 @@ class DownloadErrorCode(StrEnum):
             self.DOWNLOAD_TIMEOUT,
             self.INSPECTION_TIMEOUT,
             self.PROVIDER_RATE_LIMITED,
+            self.PROVIDER_GUEST_CONTEXT_REQUIRED,
             self.PROVIDER_TEMPORARILY_UNAVAILABLE,
             self.STORAGE_UNAVAILABLE,
             self.TEMP_SPACE_EXHAUSTED,

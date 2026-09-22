@@ -49,7 +49,10 @@ _RUNNER_CODES = {
     "unsupported_source": DownloadErrorCode.UNSUPPORTED_SOURCE,
     "unsupported_url": DownloadErrorCode.UNSUPPORTED_SOURCE,
     "credential_required": DownloadErrorCode.PROVIDER_AUTH_REQUIRED,
-    "provider_session_not_allowed": DownloadErrorCode.PROVIDER_AUTH_REQUIRED,
+    "guest_context_required": DownloadErrorCode.PROVIDER_GUEST_CONTEXT_REQUIRED,
+    "provider_session_not_allowed": (
+        DownloadErrorCode.PROVIDER_ACCESS_POLICY_NOT_ALLOWED
+    ),
     "credential_expired": DownloadErrorCode.PROVIDER_SESSION_EXPIRED,
     "credential_rejected": DownloadErrorCode.PROVIDER_SESSION_EXPIRED,
     "credential_revoked": DownloadErrorCode.PROVIDER_SESSION_EXPIRED,

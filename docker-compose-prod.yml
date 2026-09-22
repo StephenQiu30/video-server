@@ -142,6 +142,7 @@ services:
       MINIO_REGION: '${MINIO_REGION:-us-east-1}'
       MINIO_SECRET_KEY: '${MINIO_SECRET_KEY:-video-secret-change-me}'
       PEERTUBE_ALLOWED_INSTANCES: '${PEERTUBE_ALLOWED_INSTANCES:-[]}'
+      PROVIDER_AUTHORIZATION_QUEUE_ROOT: /run/provider-authorization
       PROVIDER_VERIFIED_KEYS: '${PROVIDER_VERIFIED_KEYS:-[]}'
       QUOTA_LIMITS: '${QUOTA_LIMITS:-{"max_active_per_owner":5,"daily_tasks":50,"daily_bytes":107374182400,"storage_bytes":107374182400,"daily_analysis_attempts":60}}'
       RABBITMQ_CONNECTION_TIMEOUT_SECONDS: '${RABBITMQ_CONNECTION_TIMEOUT_SECONDS:-10}'
@@ -188,6 +189,13 @@ services:
       - app_net
       - runner_rpc_net
       - runner_egress_net
+    volumes:
+      - type: bind
+        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-./tmp/provider-cookie-agent}/control"
+        target: /run/provider-authorization/control
+        read_only: false
+        bind:
+          create_host_path: true
     ports:
       - "${APP_HOST_BIND:-127.0.0.1}:${APP_HOST_PORT:-8111}:8111"
     healthcheck:

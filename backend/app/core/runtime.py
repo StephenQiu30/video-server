@@ -58,6 +58,7 @@ from app.services.imports.service import (
     CreateUploadSession,
     GetImport,
 )
+from app.services.provider_authorization import ProviderAuthorizationService
 from app.services.provider_canaries import ProviderStatusService
 from app.services.provider_catalog import ProviderCatalogService
 from app.services.source_discoveries.use_cases import (
@@ -143,6 +144,7 @@ class ApiServices:
     task_event_store: TaskEventStore | None = None
     operational_metrics: OperationalMetrics | None = None
     provider_status_service: ProviderStatusService | None = None
+    provider_authorization_service: ProviderAuthorizationService | None = None
     provider_catalog_service: ProviderCatalogService | None = None
     ai_provider_service: AiProviderService | None = None
     storage_file_service: StorageFileService | None = None
@@ -170,4 +172,8 @@ class ApiRuntime:
                 cleanup.push_async_callback(self.services.rate_limiter.close)
             if self.services.readiness_probe is not None:
                 cleanup.push_async_callback(self.services.readiness_probe.close)
+            if self.services.provider_authorization_service is not None:
+                cleanup.push_async_callback(
+                    self.services.provider_authorization_service.close
+                )
             cleanup.push_async_callback(self.realtime_consumer.close)

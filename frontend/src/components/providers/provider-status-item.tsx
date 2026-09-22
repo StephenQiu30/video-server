@@ -107,7 +107,8 @@ export function ProviderStatusItem({
                 <p className="mt-1">{accessDescription(provider)}</p>
                 {provider.user_action ? <p>{provider.user_action}</p> : null}
                 {provider.access_state === 'authorization_required' &&
-                provider.access_modes.includes('operator_managed') ? (
+                provider.access_modes.includes('operator_managed') &&
+                provider.authorization_action !== 'none' ? (
                   <div className="mt-3">
                     <ProviderAuthorizationDialog provider={provider} />
                   </div>
@@ -125,6 +126,8 @@ function accessStateLabel(state: API.ProviderAccessState): string {
   const labels: Record<API.ProviderAccessState, string> = {
     public_probe: '公开线路待验证',
     public_ready: '公开线路可用',
+    guest_probe: '游客线路准备中',
+    guest_ready: '游客线路可用',
     authorization_required: '需要授权或平台验证',
     operator_probe: '受控线路待验证',
     operator_ready: '受控线路可用',
