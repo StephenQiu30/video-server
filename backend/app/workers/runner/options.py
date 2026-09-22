@@ -14,6 +14,7 @@ from app.services.downloads.rules.formats import (
     CandidateStream,
     DownloadPlan,
     ProviderHints,
+    download_plan_priority,
 )
 from app.services.downloads.rules.selection import select_streams
 
@@ -46,17 +47,7 @@ def build_download_options(
                 if plan is not None:
                     _add_viable(proposed, plan, streams)
 
-    ordered = sorted(
-        proposed.values(),
-        key=lambda item: (
-            -item.height,
-            -item.width,
-            item.container_preference.value,
-            item.video_codec_family.value,
-            item.audio_codec_family.value,
-            item.audio_language or "",
-        ),
-    )
+    ordered = sorted(proposed.values(), key=download_plan_priority)
     return tuple(ordered[:max_options])
 
 

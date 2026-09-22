@@ -133,3 +133,22 @@ class StreamSelection:
     audio: CandidateStream | None
     output_container: Container
     used_provider_hint: bool
+
+
+def download_plan_priority(
+    plan: DownloadPlan,
+) -> tuple[bool, int, int, str, str, str, str, int, str, str]:
+    """One deterministic recommendation order for Runner and persisted results."""
+    fps_rank = {FpsBucket.FPS_30: 0, FpsBucket.FPS_60: 1, FpsBucket.ABOVE_60: 2}
+    return (
+        plan.audio_codec_family is AudioCodecFamily.NONE,
+        -plan.height,
+        -plan.width,
+        plan.container_preference.value,
+        plan.video_codec_family.value,
+        plan.audio_codec_family.value,
+        plan.audio_language or "",
+        -fps_rank[plan.fps_bucket],
+        plan.dynamic_range.value,
+        plan.compatibility_profile.value,
+    )

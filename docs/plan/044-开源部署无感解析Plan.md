@@ -153,7 +153,9 @@
 
 - 当前部署固定样本的匿名路线基线：B 站／小红书／微博 metadata 各成功，耗时 2,439／1,192／1,637 ms；同样本 media 各成功，耗时 16,916／6,849／14,996 ms。这是每个平台 1 个样本的探针结果，不是三样本或冷启动验收，也不等同浏览器默认格式结果。
 - YouTube 同一固定样本另作明确匿名诊断，metadata／media 均 `provider_verification_failed`（4,336／7,612 ms），未回退到账号，不以既有 operator 成功替代开源新部署可用性。当前仍未通过。
-- B 站真实 agent-browser 默认流程创建 `cee7f981-2a8f-4b7a-880b-07b34097eb1f`，完成下载后 ffprobe 显示只有 AV1 视频、无音轨，13,171,289 bytes、553.92 秒。界面默认项为 480P WEBM；数据库读取按随机 format UUID 排序，而 Runner 探针使用解析器内存中的首个格式，存在默认结果不一致。已定位到 `MediaRepository._snapshot` 与下载选项规则，后续修复前不得将该默认体验判为通过。
+- B 站真实 agent-browser 默认流程创建 `cee7f981-2a8f-4b7a-880b-07b34097eb1f`，完成下载后 ffprobe 显示只有 AV1 视频、无音轨，13,171,289 bytes、553.92 秒。界面默认项为 480P WEBM；数据库读取按随机 format UUID 排序，而 Runner 探针使用解析器内存中的首个格式，存在默认结果不一致。修复为 Runner 选项截断前、API 持久化结果投影时共用语义排序，优先有音轨的完整方案。109 项针对性检查通过，包含故意反转格式 UUID 的 PostgreSQL 保存／读取／幂等重放回归，以及高分辨率无声项不能挤掉有声项；真实文件复验仍待完成。
+- 最终 arm64 镜像更新 API、匿名／Douyin guest Runner、下载 Worker、Canary 后，agent-browser 重新解析并刷新，默认均为 1080P MP4 H.264／AAC。真实任务 `84b12bde-55f7-4adb-95df-aea66625dfb1` 完整下载 116,649,570 bytes，ffprobe 为 1920×1080 H.264 视频和 AAC 音轨、554.117619 秒；浏览器文件 SHA-256 `2be37c16fa3acd011581d00b7b37d5e1be605c8fe925d0eae5b3e0ccf167b71f` 与 Artifact 记录一致。截图 `/tmp/framefetch-bilibili-default-with-audio.png` 已检查；详情 axe 0 违规，播放器渐变背景的对比度有 1 项待人工判读，不计为全站可访问性通过。
+- 排序变更只读审查无新增可操作缺陷；Ruff／format／Mypy 通过，全量后端 2,044 通过、4 环境跳过。两项浏览器桥接测试因工作区外部删除 `browser-extension/manifest.json` 失败，删除未纳入本次提交，不能记为全量通过。guest 探针前项提交 `18b7e1b1` 的远端 [CI 35755553244](https://github.com/StephenQiu30/video-server/actions/runs/35755553244) 成功。
 
 <a id="p9-06"></a>
 

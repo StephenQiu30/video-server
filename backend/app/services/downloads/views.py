@@ -22,6 +22,7 @@ from app.services.downloads.rules.enums import (
     DownloadStatus,
     MediaKind,
 )
+from app.services.downloads.rules.formats import download_plan_priority
 from app.services.downloads.rules.inspection import (
     AccessDecision,
     EntitlementState,
@@ -63,6 +64,15 @@ def inspection_view(snapshot: InspectionSnapshot) -> InspectionView:
         )
     except (TypeError, ValueError) as exc:
         raise ApplicationError(ApplicationErrorCode.INTERNAL_ERROR) from exc
+    # Persistence order (including random format IDs) never chooses a default.
+    formats = tuple(
+        sorted(
+            formats,
+            key=lambda item: (
+                () if item.plan is None else download_plan_priority(item.plan)
+            ),
+        )
+    )
     thumbnail_available = snapshot.thumbnail_available or (
         safe_thumbnail_data_url(snapshot.metadata.get("thumbnail_url")) is not None
     )
