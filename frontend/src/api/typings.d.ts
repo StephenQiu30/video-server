@@ -1789,6 +1789,10 @@ declare namespace API {
     service: string;
   };
 
+  type refreshDownloadIntentParams = {
+    intent_id: string;
+  };
+
   type RegisterRequest = {
     /** Email */
     email: string;

@@ -391,3 +391,32 @@ async def test_history_recovers_without_client_storage_and_is_bounded_and_owner_
             await session.scalar(select(func.count()).select_from(ResourceAdmissionRow))
             == 6
         )
+
+
+async def test_expired_result_refresh_is_an_owned_202_on_the_same_intent(
+    postgres_engine,
+):
+    service, _, executor, clock, _ = components(postgres_engine)
+    item = await service.create(URL, TEST_USER.owner_hash, "refresh-contract")
+    await executor.execute(item.id)
+    clock[0] += timedelta(minutes=16)
+    app = create_app(Settings(app_env="test"))
+    app.state.services.intent_service = service
+    app.dependency_overrides[get_current_user] = lambda: TEST_USER
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://testserver"
+    ) as client:
+        path = f"/api/download-intents/{item.id}/refresh"
+        response = await client.post(path)
+        assert response.status_code == 202
+        assert response.headers["cache-control"] == "no-store"
+        assert response.json()["data"]["id"] == str(item.id)
+        assert response.json()["data"]["status"] == "queued"
+        assert (await client.post(path)).json() == response.json()
+        app.dependency_overrides[get_current_user] = lambda: replace(
+            TEST_USER, id=uuid4()
+        )
+        assert (await client.post(path)).status_code == 404
+        app.dependency_overrides[get_current_user] = lambda: TEST_USER
+        await service.cancel(item.id, TEST_USER.owner_hash)
+        assert (await client.post(path)).status_code == 409

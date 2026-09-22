@@ -362,6 +362,7 @@ async def test_get_inspection_keeps_expired_metadata_readable() -> None:
     expired = await get(created.id, OWNER)
     assert expired.id == created.id
     assert expired.expires_at == NOW
+    assert expired.formats == ()
 
 
 @pytest.mark.parametrize(

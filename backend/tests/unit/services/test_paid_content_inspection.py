@@ -5,11 +5,12 @@ from unittest.mock import AsyncMock
 import pytest
 from app.services.download_execution.errors import classify_runner_failure
 from app.services.downloads.errors import MediaInspectionPaidContentRestricted
+from app.services.downloads.queries import GetInspection
 from app.services.downloads.rules.content_restrictions import ContentRestriction
 from app.services.downloads.rules.enums import DownloadErrorCode
 from app.workers.runner.errors import RunnerFailure
 from tests.unit.services.fakes import FakeRepository
-from tests.unit.services.test_inspect_media import OWNER, runner_result, use_case
+from tests.unit.services.test_inspect_media import NOW, OWNER, runner_result, use_case
 
 
 @pytest.mark.parametrize("reason", list(ContentRestriction))
@@ -33,6 +34,7 @@ async def test_recognized_restriction_is_inspectable_but_never_downloadable(
     assert view.identity_state.value == "unknown"
     assert view.user_action
     assert view.extractor_key == "bilibili"
+    assert await GetInspection(repository, now=lambda: NOW)(view.id, OWNER) == view
     assert (
         classify_runner_failure(RunnerFailure(reason.value, status=422))
         is DownloadErrorCode.PROVIDER_CONTENT_RESTRICTED

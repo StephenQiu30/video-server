@@ -101,3 +101,60 @@ describe('simple download entry', () => {
     });
   });
 });
+
+it('shows an explicit update action for expired results without displaying stale format controls', async () => {
+  mockHttpResponses(intentFixture(), {
+    ...inspection,
+    expires_at: new Date(Date.now() - 1000).toISOString(),
+    formats: [],
+  });
+  render(
+    <TooltipProvider>
+      <DownloadWorkspace />
+    </TooltipProvider>,
+  );
+  enter('https://youtu.be/owned');
+  expect(
+    await screen.findByRole('button', { name: '更新解析结果' }),
+  ).toBeEnabled();
+  expect(
+    screen.queryByRole('button', { name: '创建下载任务' }),
+  ).not.toBeInTheDocument();
+  expect(httpRequests().filter((item) => item.method === 'POST')).toHaveLength(
+    1,
+  );
+  mockHttpResponses(intentFixture({ status: 'queued', version: 3 }));
+  fireEvent.click(screen.getByRole('button', { name: '更新解析结果' }));
+  expect(await screen.findByText('等待解析')).toBeVisible();
+  expect(
+    httpRequests()
+      .filter((item) => item.method === 'POST')
+      .map((item) => item.url),
+  ).toEqual([
+    '/api/download-intents',
+    `/api/download-intents/${intentFixture().id}/refresh`,
+  ]);
+});
+
+it('updates the original intent when confirmation races expiry and does not automatically confirm again', async () => {
+  mockHttpResponses(intentFixture(), inspection);
+  render(
+    <TooltipProvider>
+      <DownloadWorkspace />
+    </TooltipProvider>,
+  );
+  enter('https://youtu.be/owned');
+  await screen.findByRole('button', { name: '创建下载任务' });
+  const { ApiError } = await import('@/lib/request-error');
+  mockHttpError(new ApiError(410, 'resource_expired', 'expired', '已过期。'));
+  mockHttpResponses(intentFixture({ status: 'queued', version: 3 }));
+  fireEvent.click(screen.getByRole('button', { name: '创建下载任务' }));
+  expect(await screen.findByText('等待解析')).toBeVisible();
+  expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
+  expect(
+    httpRequests().filter((item) => item.url === '/api/downloads'),
+  ).toHaveLength(1);
+  expect(
+    httpRequests().filter((item) => item.url?.endsWith('/refresh')),
+  ).toHaveLength(1);
+});

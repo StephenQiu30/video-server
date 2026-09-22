@@ -103,7 +103,7 @@ class IntentExecution:
                 result = await self._inspector.prepare(
                     url,
                     lease.owner_hash,
-                    f"intent:{lease.id}",
+                    f"intent:{lease.id}:{lease.fence}",
                     access_policy=lease.access_policy,
                 )
             await self._repository.complete(lease, result, now=self._clock())

@@ -22,7 +22,11 @@ from app.repositories.errors import (
     RepositoryConflict,
     RepositoryNotFound,
 )
-from app.repositories.quota_admission import lock_admission, reserve
+from app.repositories.quota_admission import (
+    ensure_active_capacity,
+    lock_admission,
+    reserve,
+)
 from app.services.downloads.inspection_models import EncryptedUrl, InspectionCreate
 from app.services.downloads.intent_models import (
     IntentCreate,
@@ -33,6 +37,7 @@ from app.services.downloads.intent_models import (
     IntentStatus,
 )
 from app.services.downloads.validation import (
+    media_kind_from_metadata,
     validate_idempotency_key,
     validate_now,
     validate_owner_hash,
@@ -243,6 +248,42 @@ class IntentRepository:
                 EncryptedUrl(row.url_ciphertext, row.url_nonce, row.url_key_id),
             )
 
+    async def refresh(
+        self,
+        intent_id: UUID,
+        owner_hash: str,
+        *,
+        now: datetime,
+        quota: UserQuota = DEFAULT_USER_QUOTA,
+    ) -> IntentSnapshot:
+        validate_now(now)
+        validate_owner_hash(owner_hash)
+        async with self._sessions() as session, session.begin():
+            await lock_admission(session, owner_hash)
+            row = await self._owned(session, intent_id, owner_hash, lock=True)
+            if row.status in (*_RUNNING, "queued", "retry_wait", "handed_off"):
+                return _snapshot(row)
+            if row.status != "ready" or row.inspection_id is None:
+                raise RepositoryConflict("intent cannot refresh in this state")
+            previous = await session.get(MediaInspectionRow, row.inspection_id)
+            if previous is None or previous.owner_hash != owner_hash:
+                raise RepositoryConflict("intent result is unavailable")
+            if previous.expires_at > now:
+                return _snapshot(row)
+            # Waiting for a format choice was not active work. Only the saved
+            # remainder is available; neither attempt nor budget is reset.
+            if row.remaining_budget_ms <= 0 or row.attempt >= row.max_attempts:
+                _transition(row, "expired", now, "resource_expired")
+                return _snapshot(row)
+            if not quota.exempt:
+                await ensure_active_capacity(
+                    session, quota.apply(self._quota_policy), owner_hash
+                )
+            row.deadline = now + timedelta(milliseconds=row.remaining_budget_ms)
+            _transition(row, "queued", now)
+            session.add(_requested(row, now))
+            return _snapshot(row)
+
     async def heartbeat(
         self, lease: IntentSnapshot, *, now: datetime, lease_for: timedelta
     ) -> bool:
@@ -276,8 +317,19 @@ class IntentRepository:
                 raise RepositoryConflict("inspection does not match intent scope")
             # This namespace is reserved for durable intent results; clients never
             # select its inspection key or reuse another intent's result.
-            if result.idempotency_key != f"intent:{row.id}":
+            if result.idempotency_key != f"intent:{row.id}:{row.fence}":
                 raise RepositoryConflict("inspection does not match intent identity")
+            if row.inspection_id is not None:
+                previous = await session.get(MediaInspectionRow, row.inspection_id)
+                if previous is None or (
+                    previous.owner_hash != row.owner_hash
+                    or previous.extractor_key != result.extractor_key
+                    or previous.provider_media_id != result.provider_media_id
+                    or media_kind_from_metadata(previous.metadata_json)
+                    != media_kind_from_metadata(result.metadata)
+                ):
+                    _transition(row, "failed", now, "unsupported_source")
+                    return _snapshot(row)
             await insert_inspection(session, result)
             row.inspection_id = result.id
             _transition(row, "ready", now)

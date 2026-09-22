@@ -66,6 +66,23 @@ export async function cancelDownloadIntent(
   );
 }
 
+/** 在原意图与剩余预算内更新过期解析结果 POST /api/download-intents/${param0}/refresh */
+export async function refreshDownloadIntent(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.refreshDownloadIntentParams,
+  options?: RequestOptions
+) {
+  const { intent_id: param0, ...queryParams } = params;
+  return request<API.ApiResponseIntentResponse_>(
+    `/api/download-intents/${param0}/refresh`,
+    {
+      method: "POST",
+      params: { ...queryParams },
+      ...(options || {}),
+    }
+  );
+}
+
 /** 分页查询当前用户的解析记录 GET /api/download-intents/history */
 export async function listDownloadIntents(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)

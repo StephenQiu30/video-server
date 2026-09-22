@@ -47,7 +47,7 @@ def inspection(intent: IntentSnapshot) -> InspectionCreate:
     return InspectionCreate(
         id=uuid4(),
         owner_hash=intent.owner_hash,
-        idempotency_key=f"intent:{intent.id}",
+        idempotency_key=f"intent:{intent.id}:{intent.fence}",
         request_fingerprint="c" * 64,
         url_ciphertext=b"ciphertext",
         url_nonce=b"nonce",

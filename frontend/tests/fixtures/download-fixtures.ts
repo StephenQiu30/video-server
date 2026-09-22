@@ -11,7 +11,7 @@ export const inspection: API.InspectionResponse = {
   media_kind: 'video',
   asset_count: 0,
   thumbnail_url: 'data:image/jpeg;base64,Y292ZXI=',
-  expires_at: '2026-08-06T11:00:00Z',
+  expires_at: '2099-08-06T11:00:00Z',
   source_origin: 'public_url',
   execution_mode: 'provider_runner',
   access_decision: 'downloadable',

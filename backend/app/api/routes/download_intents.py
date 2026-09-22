@@ -101,6 +101,24 @@ async def get_intent(
 
 
 @router.post(
+    "/{intent_id}/refresh",
+    status_code=202,
+    response_model=IntentResponse,
+    operation_id="refreshDownloadIntent",
+    dependencies=[Depends(RateLimitAdmission("inspect"))],
+    summary="在原意图与剩余预算内更新过期解析结果",
+)
+async def refresh_intent(
+    intent_id: UUID, user: User, service: Service, response: Response
+) -> IntentResponse:
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Location"] = f"/api/download-intents/{intent_id}"
+    return IntentResponse.from_snapshot(
+        await service.refresh(intent_id, user.owner_hash, quota=user.admission_quota)
+    )
+
+
+@router.post(
     "/{intent_id}/cancel",
     response_model=IntentResponse,
     operation_id="cancelDownloadIntent",

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import Protocol
 from uuid import UUID
@@ -21,6 +22,7 @@ from app.services.downloads.file_delivery import download_filename
 from app.services.downloads.inspection_models import InspectionView
 from app.services.downloads.ports import DownloadRepository, ObjectStorage
 from app.services.downloads.rules.enums import DownloadSourceKind, DownloadStatus
+from app.services.downloads.rules.inspection import AccessDecision
 from app.services.downloads.validation import validate_now, validate_owner_hash
 from app.services.downloads.views import download_view, inspection_view
 from app.services.imports.errors import (
@@ -117,9 +119,12 @@ class GetInspection:
             raise ApplicationError(ApplicationErrorCode.NOT_FOUND) from exc
         if inspection is None or inspection.owner_hash != owner_hash:
             raise ApplicationError(ApplicationErrorCode.NOT_FOUND)
-        if not inspection.formats:
+        if inspection.expires_at <= now:
+            return inspection_view(replace(inspection, formats=()))
+        view = inspection_view(inspection)
+        if not view.formats and view.access_decision is AccessDecision.DOWNLOADABLE:
             raise ApplicationError(ApplicationErrorCode.NOT_FOUND)
-        return inspection_view(inspection)
+        return view
 
 
 class CancelDownload:

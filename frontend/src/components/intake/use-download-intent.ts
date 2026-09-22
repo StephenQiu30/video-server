@@ -7,6 +7,7 @@ import {
   createDownloadIntent,
   findDownloadIntent,
   getDownloadIntent,
+  refreshDownloadIntent,
 } from '@/api/downloadIntents';
 import { getInspection } from '@/api/inspections';
 import { useAuth } from '@/components/auth/auth-provider';
@@ -203,6 +204,39 @@ export function useDownloadIntent() {
     }
   }
 
+  async function refresh() {
+    if (
+      !intent.data ||
+      !attempt ||
+      writing.current ||
+      attempt.submitting ||
+      cancelling
+    )
+      return;
+    writing.current = true;
+    setOperationError(null);
+    const original = attempt;
+    setAttempt({ ...original, submitting: true });
+    let accepted = false;
+    try {
+      await queries.cancelQueries({ queryKey: intentRoot });
+      const result = await refreshDownloadIntent({ intent_id: intent.data.id });
+      queries.setQueryData(key, remember(result));
+      accepted = true;
+    } catch (error) {
+      setOperationError(displayError(error));
+    } finally {
+      writing.current = false;
+      setAttempt((current) =>
+        current && current.key === original.key && current.id === original.id
+          ? { ...current, submitting: false }
+          : current,
+      );
+      // An uncertain write is resolved by a read, never an automatic POST.
+      if (!accepted) void queries.invalidateQueries({ queryKey: key });
+    }
+  }
+
   function clear() {
     setAttempt(null);
     setOperationError(null);
@@ -245,10 +279,20 @@ export function useDownloadIntent() {
       (!intent.data
         ? !(attempt.id && missing)
         : !terminal.has(intent.data.status)));
+  const resultExpired =
+    intent.data?.status === 'ready' &&
+    ((inspection.data &&
+      Date.parse(inspection.data.expires_at) <= Date.now()) ||
+      (inspection.error instanceof ApiError &&
+        inspection.error.code === 'resource_expired'));
   return {
     attempt,
     snapshot: intent.data,
-    inspection: inspection.data,
+    inspection:
+      intent.data?.status === 'ready' && !attempt?.submitting
+        ? inspection.data
+        : undefined,
+    resultExpired: !!resultExpired,
     pending,
     canResubmit:
       !attempt?.id &&
@@ -259,6 +303,7 @@ export function useDownloadIntent() {
     restored,
     submit,
     cancel,
+    refresh,
     clear,
     resume,
     error:

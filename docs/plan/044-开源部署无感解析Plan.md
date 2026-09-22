@@ -206,7 +206,10 @@
 - 验证：新增 50 次并发确认、取消竞争、outbox 失败回滚、删除引用与历史重试检查；60 项初始关联检查、24 项后续关联检查通过；全量 **1993 passed、3 skipped**，Ruff／格式／mypy 通过。现有 PostgreSQL 已幂等加载唯一索引；arm64 业务镜像构建后重建 API／Outbox／下载 Worker／guest Runner，启动前确认无既有活跃任务。
 - 部署发现并修复的缺口：真实下载角色缺少新队列权限，Outbox 的 topic write 列表缺少 `download.intent.requested`，导致接单无法执行。只给这两个现有角色补对应队列／routing key 权限，未给管理员权限；CI 夹具补完整队列绑定，运行手册补双层 ACL，并新增真实受限下载角色的拓扑检查（1 passed）。首次验收意图超时；第二条在权限修复后沿原意图恢复，144.27 秒 ready、149.40 秒 succeeded，未重置预算或重新提交；修复后的第三条 4.07 秒 ready、10.18 秒 succeeded，并落入 MinIO。两次成功的验收下载及对象已按正常删除用例清理。
 - 接口生成：发现当前生成器忽略 202，仅在生成阶段选择服务端 202 schema，生成明确响应类型；未改 HTTP 状态或手写 DTO。Web 362 tests、lint／格式／生产 build 通过，提交 `990b5df6`；队列部署修复 `ecf425a1`。
-- 剩余：Web／App 的同意图用户路径、结果过期的产品动作、账号授权续接和完整生命周期验收仍由 P9.06／P9.10／P9.12／P9.14 完成，P9.07 不提前勾选。
+- 2026-09-23 完成过期结果的同意图更新：`POST /api/download-intents/{id}/refresh` 仅重排已过期的 ready 结果，保留原权限、累计尝试和剩余预算，重新检查当前并发上限但不重复扣接单额度；行锁保证并发更新只写一次 outbox。每轮使用 fence 隔离 inspection 内部幂等键，重新核对内容标识及媒体种类，变化时终止。过期元数据可读、旧规格不可确认；Web 显式更新，确认恰逢过期时自动转入更新后等待再次确认，不自动创建下载。
+- PostgreSQL／接口关联 66 项通过；最后补充受限结果可读回归后 49 项通过；全量后端 2,054 passed、4 skipped、2 failed，两个失败仍为外部删除 browser-extension 文件导致，最后的小幅受限读取修正另由 49 项覆盖。Ruff／格式／Mypy 580 文件通过；Web 82 文件、437 tests，lint／类型／格式／生产 build 通过；已从服务端 OpenAPI 更新客户端。最终 arm64 API／下载 Worker／Web 镜像部署成功，未修改 schema。
+- agent-browser 真实普通账号验收：仅将验收意图 `16dbce7b-4939-44cb-a710-5113a153bea9` 的结果时间置为到期，先验证旧页面确认竞态，再刷新页面验证显式更新。两次更新始终保留原意图，attempt 1 → 2 → 3，剩余预算 176,194 → 173,359 → 170,085 ms；更新后不产生 job，用户再次确认后仅交接 `0450f538-849c-4108-a8d7-87704491066a`。真实抖音公开样本 6961737553342991651 文件 H.264／AAC、720×1280、19.735011 秒、4,076,260 bytes，SHA-256 `16abdd9f7a431e9e3db8a787a2fdbe9030de5f47d85bc7cbb178a3c495a9723d`。过期状态桌面／390px 明暗四组合 axe 均 0 违规／0 待判读；证据 `/tmp/framefetch-intent-refresh-*.json`，移动端截图 `/tmp/framefetch-intent-refresh-expired-mobile-light.png`。这属于受控到期故障及真实文件验收，不代表全部平台或完整生命周期通过。
+- 剩余：App 同意图用户路径、账号授权续接和完整生命周期验收仍由 P9.06／P9.10／P9.12／P9.14 完成，P9.07 不提前勾选。解析记录提交 `4fa7a1f9` 的远端 [CI 35759464113](https://github.com/StephenQiu30/video-server/actions/runs/35759464113) 成功。
 
 <a id="p9-08"></a>
 

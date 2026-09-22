@@ -270,3 +270,69 @@ it('keeps confirmed cancellation when switching from an acceptance key to the sa
   expect(result.current.snapshot?.status).toBe('cancelled');
   expect(result.current.inspection).toBeUndefined();
 });
+
+it('refreshes an expired result explicitly once and keeps the same intent until new options are ready', async () => {
+  const expired = {
+    ...inspection,
+    expires_at: new Date(Date.now() - 1000).toISOString(),
+    formats: [],
+  };
+  mockHttpResponses(intentFixture(), expired);
+  const { result } = renderHook(useDownloadIntent);
+  act(() => result.current.resume(intentFixture().id));
+  await waitFor(() => expect(result.current.resultExpired).toBe(true));
+  expect(httpRequests().every((item) => item.method === 'GET')).toBe(true);
+  let finish!: (value: unknown) => void;
+  vi.mocked(httpClient.request).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }) as never,
+  );
+  let updating!: Promise<void>;
+  act(() => {
+    updating = result.current.refresh();
+    void result.current.refresh();
+  });
+  await waitFor(() => expect(result.current.pending).toBe(true));
+  expect(result.current.inspection).toBeUndefined();
+  expect(httpRequests().filter((item) => item.method === 'POST')).toHaveLength(
+    1,
+  );
+  await act(async () => {
+    finish({ data: intentFixture({ version: 3, status: 'queued' }) });
+    await updating;
+  });
+  const newId = '88888888-8888-4888-8888-888888888888';
+  mockHttpResponses(intentFixture({ version: 4, inspection_id: newId }), {
+    ...inspection,
+    id: newId,
+  });
+  await act(async () => result.current.retry());
+  await waitFor(() => expect(result.current.inspection?.id).toBe(newId));
+  expect(result.current.resultExpired).toBe(false);
+  expect(result.current.snapshot?.id).toBe(intentFixture().id);
+  const posts = httpRequests().filter((item) => item.method === 'POST');
+  expect(posts).toHaveLength(1);
+  expect(posts[0].url).toBe(
+    `/api/download-intents/${intentFixture().id}/refresh`,
+  );
+});
+
+it('resolves an uncertain refresh by a read without automatically replaying it', async () => {
+  mockHttpResponses(intentFixture(), {
+    ...inspection,
+    expires_at: new Date(Date.now() - 1000).toISOString(),
+    formats: [],
+  });
+  const { result } = renderHook(useDownloadIntent);
+  act(() => result.current.resume(intentFixture().id));
+  await waitFor(() => expect(result.current.resultExpired).toBe(true));
+  mockHttpError(new ApiError(0, 'request_failed', 'offline', '连接失败。'));
+  mockHttpResponses(intentFixture({ version: 3, status: 'queued' }));
+  await act(async () => result.current.refresh());
+  await waitFor(() => expect(result.current.snapshot?.status).toBe('queued'));
+  expect(httpRequests().filter((item) => item.method === 'POST')).toHaveLength(
+    1,
+  );
+});

@@ -28,6 +28,31 @@ async def lock_admission(session: AsyncSession, owner_hash: str) -> None:
     await lock_owner(session, owner_hash)
 
 
+async def ensure_active_capacity(
+    session: AsyncSession, policy: QuotaPolicy, owner_hash: str
+) -> int:
+    """Check one additional active operation and return current reserved bytes.
+
+    The caller holds the owner admission lock and has applied account policy.
+    Existing intents use this check without a second daily reservation.
+    """
+    active = (
+        await session.execute(
+            ACTIVE_USAGE,
+            {
+                "owner": owner_hash,
+                "download_bytes": policy.download_bytes,
+                "document_bytes": policy.document_normalized_bytes,
+                "report_bytes": policy.report_bytes,
+                "thumbnail_bytes": policy.thumbnail_bytes,
+            },
+        )
+    ).one()
+    if active.owner_active >= policy.max_active_per_owner:
+        raise QuotaExceeded("active_task_quota_exceeded")
+    return int(active.reserved)
+
+
 async def reserve(
     session: AsyncSession,
     policy: QuotaPolicy,
@@ -61,9 +86,7 @@ async def reserve(
         "report_bytes": policy.report_bytes,
         "thumbnail_bytes": policy.thumbnail_bytes,
     }
-    active = (await session.execute(ACTIVE_USAGE, parameters)).one()
-    if active.owner_active >= policy.max_active_per_owner:
-        raise QuotaExceeded("active_task_quota_exceeded")
+    active_reserved = await ensure_active_capacity(session, policy, owner_hash)
     daily = (
         await session.execute(
             select(
@@ -89,7 +112,7 @@ async def reserve(
         if used + requested > maximum:
             raise QuotaExceeded(code, retry_after=86400)
     stored = int(await session.scalar(STORED_BYTES, parameters) or 0)
-    if stored + active.reserved + reserved > policy.storage_bytes:
+    if stored + active_reserved + reserved > policy.storage_bytes:
         raise QuotaExceeded("storage_quota_exceeded")
     session.add(
         ResourceAdmissionRow(

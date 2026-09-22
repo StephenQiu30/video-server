@@ -66,7 +66,11 @@ export default function DownloadWorkspace() {
   const [localInspection, setInspection] =
     useState<API.InspectionResponse | null>(null);
   const inspection = localInspection ?? intent.inspection ?? null;
-  const selectedId = selectedFormatId || inspection?.formats[0]?.id || '';
+  const selectedId = inspection?.formats.some(
+    (item) => item.id === selectedFormatId,
+  )
+    ? selectedFormatId
+    : inspection?.formats[0]?.id || '';
   const [discovery, setDiscovery] =
     useState<API.SourceDiscoveryResponse | null>(null);
   const [busyItemRef, setBusyItemRef] = useState<string | null>(null);
@@ -241,6 +245,15 @@ export default function DownloadWorkspace() {
       openDownload(result.id);
     } catch (reason) {
       setAuthorizationTarget(null);
+      if (
+        reason instanceof ApiError &&
+        reason.code === 'resource_expired' &&
+        intent.snapshot?.status === 'ready'
+      ) {
+        setSelectedId('');
+        await intent.refresh();
+        return;
+      }
       setError(displayError(reason));
     } finally {
       setBusy(null);
@@ -330,10 +343,17 @@ export default function DownloadWorkspace() {
             title={
               intent.error
                 ? '任务状态暂时无法更新'
-                : intentTitle(intent.snapshot?.status)
+                : intent.pending && intent.snapshot?.status === 'ready'
+                  ? '正在更新解析结果'
+                  : intent.resultExpired
+                    ? '解析结果已过期'
+                    : intentTitle(intent.snapshot?.status)
             }
             description={
               intent.error ??
+              (intent.resultExpired
+                ? '更新后请重新确认下载规格，无需再次粘贴原链接。'
+                : null) ??
               (intent.snapshot?.reason_code
                 ? localizedErrorMessage(intent.snapshot.reason_code)
                 : null) ??
@@ -356,6 +376,17 @@ export default function DownloadWorkspace() {
             }
           />
           <div className="flex flex-wrap gap-2">
+            {intent.resultExpired ? (
+              <Button
+                disabled={intent.pending}
+                onClick={() => {
+                  setSelectedId('');
+                  void intent.refresh();
+                }}
+              >
+                更新解析结果
+              </Button>
+            ) : null}
             {intentAuthorization ? (
               <ProviderAuthorizationDialog
                 onAuthorized={() => inspect(intentAuthorization.accessPolicy)}
@@ -444,6 +475,7 @@ export default function DownloadWorkspace() {
       ) : null}
       {mode === 'link' &&
       inspection &&
+      !intent.resultExpired &&
       intent.snapshot?.status !== 'handed_off' ? (
         <InspectionWorkspace
           busy={busy === 'create'}

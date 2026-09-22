@@ -43,6 +43,14 @@ class IntentPersistence(Protocol):
     async def history(
         self, owner_hash: str, *, before: UUID | None, limit: int
     ) -> IntentHistoryPage: ...
+    async def refresh(
+        self,
+        intent_id: UUID,
+        owner_hash: str,
+        *,
+        now: datetime,
+        quota: UserQuota = DEFAULT_USER_QUOTA,
+    ) -> IntentSnapshot: ...
     async def cancel(
         self, intent_id: UUID, owner_hash: str, *, now: datetime
     ) -> IntentSnapshot: ...
@@ -159,3 +167,16 @@ class IntentService:
             )
         except PersistenceNotFound as exc:
             raise ApplicationError(ApplicationErrorCode.NOT_FOUND) from exc
+
+    async def refresh(
+        self, intent_id: UUID, owner_hash: str, *, quota: UserQuota = DEFAULT_USER_QUOTA
+    ) -> IntentSnapshot:
+        validate_owner_hash(owner_hash)
+        try:
+            return await self._repository.refresh(
+                intent_id, owner_hash, now=self._now(), quota=quota
+            )
+        except PersistenceNotFound as exc:
+            raise ApplicationError(ApplicationErrorCode.NOT_FOUND) from exc
+        except PersistenceConflict as exc:
+            raise ApplicationError(ApplicationErrorCode.INVALID_STATE) from exc
