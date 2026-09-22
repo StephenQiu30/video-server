@@ -10,7 +10,7 @@
 - src/api 只放 @umijs/openapi 生成的请求函数与类型，禁止手写或修改。生成配置只在 openapi2ts.config.ts。
 - 后端路由注解、请求与响应模型自动生成 /openapi.json 和 Swagger UI；不手写接口文档。修改后端注解后执行 pnpm openapi，同步提交生成结果。
 - src/lib/request.ts 是统一 Axios 封装，负责 Cookie、认证恢复、超时和错误。业务组件、Hooks 直接调用生成 API；src/lib/upload 保留上传、导入等多步编排，不添加转发包装层。
-- Access/Refresh JWT 只在 HttpOnly Cookie 中；并发刷新共享一次请求，失败不能无限重试。登录跳转必须限制为同源路径。
+- Web 只用 PostgreSQL 持久化的不透明 HttpOnly Cookie；不做 JWT 刷新和业务请求自动重放，依赖故障不能清空身份。App Bearer 协议独立。登录跳转必须限制为同源路径。
 - Next.js standalone 服务监听 8101，FastAPI 监听 8111；保留运行时代理和上传流式代理，业务规则由后端负责。
 
 ## 组件与验证

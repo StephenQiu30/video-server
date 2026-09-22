@@ -5,6 +5,18 @@ import { httpClient } from '@/lib/request';
 import { MockWebSocket } from './helpers/websocket';
 
 beforeEach(() => {
+  // Happy DOM has no Web Locks. Individual coordination tests hold/reject this
+  // callback; regular view tests model an immediately available browser lock.
+  Object.defineProperty(navigator, 'locks', {
+    configurable: true,
+    value: {
+      request: async (
+        _name: string,
+        _options: LockOptions,
+        action: () => Promise<unknown>,
+      ) => action(),
+    },
+  });
   vi.spyOn(httpClient, 'request');
   MockWebSocket.instances = [];
   MockWebSocket.autoOpen = true;

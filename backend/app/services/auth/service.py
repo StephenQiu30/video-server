@@ -59,6 +59,24 @@ class AuthService:
         verification_code: str,
         bootstrap_secret: str | None = None,
     ) -> SessionGrant:
+        user = await self.register_account(
+            username,
+            email,
+            password,
+            verification_code=verification_code,
+            bootstrap_secret=bootstrap_secret,
+        )
+        return await self._grant(user, self._now())
+
+    async def register_account(
+        self,
+        username: str,
+        email: str,
+        password: str,
+        *,
+        verification_code: str,
+        bootstrap_secret: str | None = None,
+    ) -> CurrentUser:
         normalized = _normalize_email(email)
         try:
             display_username, normalized_username = normalize_username(username)
@@ -85,7 +103,7 @@ class AuthService:
             raise AuthError(AuthErrorCode.EMAIL_ALREADY_REGISTERED) from exc
         except DuplicateUsernameError as exc:
             raise AuthError(AuthErrorCode.USERNAME_ALREADY_REGISTERED) from exc
-        return await self._grant(account.public_view(), now)
+        return account.public_view()
 
     async def verify_registration_code(self, email: str, code: str) -> None:
         normalized = _normalize_email(email)
@@ -104,6 +122,9 @@ class AuthService:
         return UserRole.ADMIN
 
     async def login(self, email: str, password: str) -> SessionGrant:
+        return await self._grant(await self.authenticate(email, password), self._now())
+
+    async def authenticate(self, email: str, password: str) -> CurrentUser:
         account = await self._repository.find_account_by_email(_normalize_email(email))
         checked = await self._passwords.verify(
             password, account.password_hash if account is not None else None
@@ -115,7 +136,7 @@ class AuthService:
             await self._repository.update_password_hash(
                 account.id, checked.updated_hash, now
             )
-        return await self._grant(account.public_view(), now)
+        return account.public_view()
 
     async def current_user(self, access_token: str) -> CurrentUser:
         claims = self._tokens.decode_access(access_token)

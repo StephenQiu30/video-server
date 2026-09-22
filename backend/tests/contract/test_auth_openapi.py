@@ -14,7 +14,6 @@ def test_auth_openapi_exposes_email_session_contract(tmp_path: Path) -> None:
         "/api/auth/registration-code/verify",
         "/api/auth/login",
         "/api/auth/me",
-        "/api/auth/refresh",
         "/api/auth/logout",
         "/api/app/v1/auth/register",
         "/api/app/v1/auth/registration-code",
@@ -39,7 +38,7 @@ def test_auth_openapi_exposes_email_session_contract(tmp_path: Path) -> None:
     assert paths["/api/auth/logout"]["post"]["responses"]["204"] == {
         "description": "Successful Response"
     }
-    assert paths["/api/auth/refresh"]["post"]["operationId"] == ("refreshUserSession")
+    assert "/api/auth/refresh" not in paths
     request_schema = schema["components"]["schemas"]["RegisterRequest"]
     assert request_schema["additionalProperties"] is False
     assert request_schema["required"] == [

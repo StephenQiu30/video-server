@@ -21,6 +21,7 @@ import { InputGroupInput } from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
 import { authRedirect } from '@/lib/auth-redirect';
 import { displayError } from '@/lib/request-error';
+import { withWebSessionMutation } from '@/lib/session-events';
 import { normalizeUsername, USERNAME_HELP } from '@/lib/username';
 
 export function RegisterView() {
@@ -67,13 +68,15 @@ export function RegisterView() {
 
     setSubmitting(true);
     try {
-      const currentUser = await register({
-        username: values.username,
-        email: values.email,
-        password: values.password,
-        verification_code: values.verificationCode,
+      await withWebSessionMutation(async () => {
+        const currentUser = await register({
+          username: values.username,
+          email: values.email,
+          password: values.password,
+          verification_code: values.verificationCode,
+        });
+        setUser(currentUser);
       });
-      setUser(currentUser);
       router.replace(redirect);
     } catch (error) {
       setErrorMessage(displayError(error));

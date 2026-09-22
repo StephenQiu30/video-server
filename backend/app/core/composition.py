@@ -50,6 +50,7 @@ from app.repositories.auth.redis_auth_repository import (
     RedisAuthSessionStore,
 )
 from app.repositories.auth.user_repository import SqlAlchemyUserRepository
+from app.repositories.auth.web_sessions import WebSessionRepository
 from app.repositories.documents.catalog_repository import (
     SqlAlchemyDocumentCatalogRepository,
 )
@@ -99,6 +100,7 @@ from app.services.analysis.retry_analysis import RetryAnalysis
 from app.services.auth.email_verification import EmailVerification
 from app.services.auth.service import AuthService
 from app.services.auth.user_service import UserService
+from app.services.auth.web_sessions import WebSessionService
 from app.services.documents.service import DeleteDocument, GetDocument, ListDocuments
 from app.services.downloads.analytics import GetDownloadAnalytics
 from app.services.downloads.create_download import CreateDownload
@@ -521,6 +523,12 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
                 ),
             ),
             auth_service=auth_service,
+            web_session_service=WebSessionService(
+                WebSessionRepository(sessions),
+                now=clock,
+                idle_ttl=timedelta(seconds=settings.auth_web_idle_ttl_seconds),
+                absolute_ttl=timedelta(seconds=settings.auth_web_absolute_ttl_seconds),
+            ),
             user_service=user_service,
             download_use_cases=use_cases,
             analysis_use_cases=analysis_use_cases,

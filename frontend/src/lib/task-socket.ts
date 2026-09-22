@@ -17,28 +17,17 @@ type Subscription = {
 const CONNECT_TIMEOUT_MS = 8_000;
 
 export function resolveTaskSocketUrl({
-  environment = process.env.NODE_ENV,
   location = window.location,
 }: {
-  environment?: string;
   location?: Pick<Location, 'origin'>;
 } = {}): string {
-  const origin =
-    environment === 'development'
-      ? localApiOrigin(location.origin)
-      : new URL(location.origin);
+  const origin = new URL(location.origin);
   origin.protocol =
     origin.protocol === 'https:' || origin.protocol === 'wss:' ? 'wss:' : 'ws:';
   origin.pathname = '/api/ws/tasks';
   origin.search = '';
   origin.hash = '';
   return origin.toString();
-}
-
-function localApiOrigin(frontendOrigin: string): URL {
-  const origin = new URL(frontendOrigin);
-  origin.port = '8111';
-  return origin;
 }
 
 class TaskSocketManager {

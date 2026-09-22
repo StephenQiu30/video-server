@@ -56,7 +56,7 @@ describe('anonymous homepage server rendering', () => {
     expect(metadata.robots).toMatchObject({ index: true });
   });
 
-  it.each(['video_access_token', 'video_refresh_token'])(
+  it.each(['video_web_session'])(
     'does not render promotional content with %s',
     async (cookie) => {
       session.names.add(cookie);
@@ -72,7 +72,7 @@ describe('anonymous homepage server rendering', () => {
   );
 
   it('respects custom cookie names', async () => {
-    vi.stubEnv('AUTH_ACCESS_COOKIE_NAME', 'custom_access');
+    vi.stubEnv('AUTH_WEB_COOKIE_NAME', 'custom_access');
     session.names.add('custom_access');
     const { metadata } = await renderHome();
     expect(metadata.robots).toMatchObject({ index: false });

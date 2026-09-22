@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.models import AuthSessionRow, UserRow
+from app.models.web_session import WebSessionRow
 from app.repositories.auth.mapping import account_from_row
 from app.services.auth.errors import DuplicateUsernameError
 from app.services.auth.models import AccountRecord, ManagedUserPage, UserRole
@@ -126,6 +127,14 @@ class SqlAlchemyUserRepository:
                 .returning(UserRow)
             )
             if row is not None and is_active is False:
+                await session.execute(
+                    update(WebSessionRow)
+                    .where(
+                        WebSessionRow.user_id == account_id,
+                        WebSessionRow.revoked_at.is_(None),
+                    )
+                    .values(revoked_at=now)
+                )
                 await session.execute(
                     delete(AuthSessionRow).where(AuthSessionRow.user_id == account_id)
                 )

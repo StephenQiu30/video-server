@@ -48,6 +48,24 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
 CREATE INDEX IF NOT EXISTS ix_auth_sessions_user ON auth_sessions (user_id);
 CREATE INDEX IF NOT EXISTS ix_auth_sessions_expires ON auth_sessions (expires_at);
 
+CREATE TABLE IF NOT EXISTS web_sessions (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    token_hash VARCHAR(64) NOT NULL UNIQUE,
+    created_at TIMESTAMPTZ NOT NULL,
+    last_seen_at TIMESTAMPTZ NOT NULL,
+    idle_expires_at TIMESTAMPTZ NOT NULL,
+    absolute_expires_at TIMESTAMPTZ NOT NULL,
+    revoked_at TIMESTAMPTZ,
+    CONSTRAINT ck_web_sessions_token_hash CHECK (length(token_hash) = 64),
+    CONSTRAINT ck_web_sessions_lifetime CHECK (
+        created_at <= last_seen_at AND last_seen_at < idle_expires_at
+        AND idle_expires_at <= absolute_expires_at
+    )
+);
+CREATE INDEX IF NOT EXISTS ix_web_sessions_user ON web_sessions (user_id);
+CREATE INDEX IF NOT EXISTS ix_web_sessions_absolute_expires ON web_sessions (absolute_expires_at);
+
 CREATE TABLE IF NOT EXISTS ai_provider_profiles (
     key VARCHAR(32) PRIMARY KEY,
     display_name VARCHAR(64) NOT NULL,

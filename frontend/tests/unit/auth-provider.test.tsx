@@ -5,10 +5,11 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthProvider, useAuth } from '@/components/auth/auth-provider';
 import { ApiError } from '@/lib/request-error';
+import { sessionGeneration } from '@/lib/session-events';
 
 const runtime = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
@@ -29,13 +30,46 @@ const user = {
   username: 'video_user',
 };
 
+class TestChannel {
+  static instances: TestChannel[] = [];
+  onmessage: ((event: { data: unknown }) => void) | null = null;
+  postMessage = vi.fn();
+  close = vi.fn();
+  constructor() {
+    TestChannel.instances.push(this);
+  }
+}
+
 describe('AuthProvider', () => {
   beforeEach(() => {
+    TestChannel.instances = [];
+    vi.stubGlobal('BroadcastChannel', TestChannel);
     runtime.getCurrentUser.mockReset();
     runtime.logout.mockReset();
     runtime.resetSocket.mockReset();
     window.history.replaceState({}, '', '/');
     vi.unstubAllEnvs();
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('does not invalidate an in-flight login when anonymous session discovery returns 401', async () => {
+    const generation = sessionGeneration();
+    runtime.getCurrentUser.mockRejectedValueOnce(
+      new ApiError(401, 'unauthenticated', '', 'Sign in'),
+    );
+    render(
+      <AuthProvider>
+        <AuthProbe />
+      </AuthProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveAttribute(
+        'data-session-status',
+        'anonymous',
+      ),
+    );
+    expect(sessionGeneration()).toBe(generation);
   });
 
   it('restores the current cookie session and exposes it through useAuth', async () => {
@@ -82,7 +116,7 @@ describe('AuthProvider', () => {
     expect(runtime.getCurrentUser).toHaveBeenCalledOnce();
   });
 
-  it('retains identity when the server cannot confirm logout', async () => {
+  it('masks private identity and retains retry state until logout is confirmed', async () => {
     runtime.getCurrentUser.mockResolvedValue(user);
     runtime.logout.mockRejectedValue(new Error('stale session'));
     render(
@@ -99,10 +133,22 @@ describe('AuthProvider', () => {
     await waitFor(() =>
       expect(screen.getByTestId('auth-user')).toHaveAttribute(
         'data-user',
-        'video_user',
+        'guest',
       ),
     );
-    expect(runtime.logout).toHaveBeenCalledOnce();
+    expect(screen.getByRole('status')).toHaveAttribute(
+      'data-session-status',
+      'unknown',
+    );
+    runtime.logout.mockResolvedValueOnce(undefined);
+    fireEvent.click(screen.getByRole('button', { name: '刷新用户' }));
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveAttribute(
+        'data-session-status',
+        'anonymous',
+      ),
+    );
+    expect(runtime.logout).toHaveBeenCalledTimes(2);
     expect(runtime.resetSocket).toHaveBeenCalled();
   });
 
@@ -177,6 +223,92 @@ describe('AuthProvider', () => {
       'data-user',
       'new_user',
     );
+  });
+
+  it('masks an old identity on cross-tab change and does not rebroadcast reads', async () => {
+    runtime.getCurrentUser.mockResolvedValueOnce(user);
+    render(
+      <AuthProvider>
+        <AuthProbe />
+      </AuthProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('auth-user')).toHaveAttribute(
+        'data-user',
+        'video_user',
+      ),
+    );
+    let resolve!: (value: typeof user) => void;
+    runtime.getCurrentUser.mockImplementationOnce(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
+    const channel = TestChannel.instances.at(-1);
+    if (!channel) throw new Error('Expected identity channel');
+    act(() => channel.onmessage?.({ data: { type: 'identity-changed' } }));
+    expect(screen.getByTestId('auth-user')).toHaveAttribute(
+      'data-user',
+      'guest',
+    );
+    expect(screen.getByRole('status')).toHaveAttribute(
+      'data-session-status',
+      'unknown',
+    );
+    await act(async () =>
+      resolve({ ...user, id: 'other-user', username: 'other_user' }),
+    );
+    expect(screen.getByTestId('auth-user')).toHaveAttribute(
+      'data-user',
+      'other_user',
+    );
+    expect(channel.postMessage).not.toHaveBeenCalled();
+    runtime.getCurrentUser.mockRejectedValueOnce(
+      new ApiError(401, 'unauthenticated', '', 'Sign in'),
+    );
+    await act(async () =>
+      channel.onmessage?.({ data: { type: 'identity-changed' } }),
+    );
+    expect(screen.getByRole('status')).toHaveAttribute(
+      'data-session-status',
+      'anonymous',
+    );
+    expect(channel.postMessage).not.toHaveBeenCalled();
+  });
+
+  it('confirms logout even when another tab starts logout at the same time', async () => {
+    runtime.getCurrentUser.mockResolvedValue(user);
+    let resolve!: () => void;
+    runtime.logout.mockImplementationOnce(
+      () =>
+        new Promise<void>((done) => {
+          resolve = done;
+        }),
+    );
+    render(
+      <AuthProvider>
+        <AuthProbe />
+      </AuthProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('auth-user')).toHaveAttribute(
+        'data-user',
+        'video_user',
+      ),
+    );
+    fireEvent.click(screen.getByRole('button', { name: '退出' }));
+    const channel = TestChannel.instances.at(-1);
+    if (!channel) throw new Error('Expected identity channel');
+    act(() => channel.onmessage?.({ data: { type: 'logout-started' } }));
+    await act(async () => resolve());
+    expect(screen.getByRole('status')).toHaveAttribute(
+      'data-session-status',
+      'anonymous',
+    );
+    expect(channel.postMessage).toHaveBeenLastCalledWith({
+      type: 'identity-changed',
+    });
   });
 
   it('keeps the current page authenticated during a failed background refresh', async () => {

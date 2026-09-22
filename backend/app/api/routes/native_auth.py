@@ -6,7 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request, Response, status
 
 from app.api.admission import enforce_rate_limit
-from app.api.deps import get_auth_service, get_current_user, get_runtime_settings
+from app.api.deps import get_auth_service, get_native_user, get_runtime_settings
 from app.api.openapi import ERROR_RESPONSES as WEB_ERROR_RESPONSES
 from app.core.config import Settings
 from app.schemas.auth import (
@@ -39,7 +39,7 @@ router = APIRouter(
 )
 Auth = Annotated[AuthService, Depends(get_auth_service)]
 SettingsDependency = Annotated[Settings, Depends(get_runtime_settings)]
-User = Annotated[CurrentUser, Depends(get_current_user)]
+User = Annotated[CurrentUser, Depends(get_native_user)]
 
 
 @router.post(

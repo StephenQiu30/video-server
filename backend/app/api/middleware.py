@@ -8,6 +8,7 @@ from collections.abc import Awaitable, Callable
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
+from app.api.browser_origin import requires_browser_origin, same_browser_origin
 from app.api.errors import error_response, unexpected_error_handler
 from app.core.errors import AppError
 
@@ -26,6 +27,19 @@ async def request_guard(
     connect_origins: tuple[str, ...] = (),
     media_origins: tuple[str, ...] = (),
 ) -> Response:
+    settings = request.app.state.settings
+    if requires_browser_origin(request, settings) and not same_browser_origin(
+        request, settings
+    ):
+        return _guard_error(
+            request,
+            403,
+            "forbidden",
+            "The browser request origin is not allowed.",
+            production=production,
+            connect_origins=connect_origins,
+            media_origins=media_origins,
+        )
     content_length = request.headers.get("content-length")
     if content_length is not None:
         try:

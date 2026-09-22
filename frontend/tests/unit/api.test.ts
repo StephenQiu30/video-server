@@ -19,7 +19,6 @@ import {
   getCurrentUser,
   loginUser as login,
   logoutUser as logout,
-  refreshUserSession as refreshSession,
   registerUser as register,
 } from '@/api/auth';
 import {
@@ -100,7 +99,7 @@ describe('typed API client', () => {
     ]);
   });
 
-  it('covers email registration, JWT session restore and logout endpoints', async () => {
+  it('covers email registration, opaque session restore and logout endpoints', async () => {
     const user = {
       id: '11111111-1111-4111-8111-111111111111',
       username: 'video_user',
@@ -109,7 +108,7 @@ describe('typed API client', () => {
       created_at: '2026-08-09T10:00:00Z',
       updated_at: '2026-08-09T10:00:00Z',
     };
-    mockHttpResponses(user, user, user, user, undefined);
+    mockHttpResponses(user, user, user, undefined);
 
     await register({
       verification_code: '123456',
@@ -119,14 +118,12 @@ describe('typed API client', () => {
     });
     await login({ email: user.email, password: 'strong-pass-123' });
     await getCurrentUser();
-    await refreshSession();
     await logout();
 
     expect(httpRequests().map(({ url }) => url)).toEqual([
       '/api/auth/register',
       '/api/auth/login',
       '/api/auth/me',
-      '/api/auth/refresh',
       '/api/auth/logout',
     ]);
   });

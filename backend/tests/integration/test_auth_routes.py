@@ -4,7 +4,6 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import cast
 from uuid import uuid4
 
 from app.core.config import Settings
@@ -17,10 +16,11 @@ from app.repositories.auth.email_verification_repository import (
     SqlAlchemyVerificationStore,
 )
 from app.repositories.auth.user_repository import SqlAlchemyUserRepository
+from app.repositories.auth.web_sessions import WebSessionRepository
 from app.services.auth.email_verification import EmailVerification
-from app.services.auth.errors import SessionRotationConflict
 from app.services.auth.service import AuthService
 from app.services.auth.user_service import UserService
+from app.services.auth.web_sessions import WebSessionService
 from httpx import ASGITransport, AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -31,11 +31,6 @@ class CapturingMailer:
 
     async def send_code(self, email: str, code: str) -> None:
         self.codes[email] = code
-
-
-class ConflictingRefreshAuth:
-    async def refresh(self, refresh_token: str) -> None:
-        raise SessionRotationConflict
 
 
 class AuthTestClient(AsyncClient):
@@ -95,16 +90,23 @@ async def auth_client(
     app = create_app(
         Settings(
             app_env="test",
-            auth_access_cookie_name="test_access",
-            auth_refresh_cookie_name="test_refresh",
+            auth_web_cookie_name="test_web",
             auth_jwt_issuer="video-server-test",
             auth_jwt_audience="video-web-test",
         )
     )
     app.state.services.auth_service = service
     app.state.services.user_service = user_service
+    app.state.services.web_session_service = WebSessionService(
+        WebSessionRepository(sessions),
+        now=lambda: datetime.now(UTC),
+        idle_ttl=timedelta(days=7),
+        absolute_ttl=timedelta(days=30),
+    )
     async with AuthTestClient(
-        transport=ASGITransport(app=app), base_url="http://testserver"
+        transport=ASGITransport(app=app),
+        base_url="http://testserver",
+        headers={"Origin": "http://testserver"},
     ) as client:
         client.mailer = mailer
         yield client
@@ -124,9 +126,10 @@ async def test_register_creates_http_only_session_and_logout_revokes_it(
             },
         )
         current = await client.get("/api/auth/me")
-        client.cookies.delete("test_access")
+        token = client.cookies.get("test_web")
+        client.cookies.clear()
         without_access = await client.get("/api/auth/me")
-        refreshed = await client.post("/api/auth/refresh")
+        client.cookies.set("test_web", token)
         restored = await client.get("/api/auth/me")
         logged_out = await client.post("/api/auth/logout")
         after_logout = await client.get("/api/auth/me")
@@ -139,41 +142,19 @@ async def test_register_creates_http_only_session_and_logout_revokes_it(
     cookie = registered.headers["set-cookie"].lower()
     assert "httponly" in cookie
     assert "samesite=lax" in cookie
-    assert "test_access=" in cookie
-    assert "test_refresh=" in cookie
+    assert "test_web=" in cookie
+    assert len(registered.headers.get_list("set-cookie")) == 1
     assert current.status_code == 200
     assert current.json() == registered.json()
     assert without_access.status_code == 401
     assert "set-cookie" not in without_access.headers
-    assert refreshed.status_code == 200
-    assert refreshed.json() == registered.json()
-    assert "test_access=" in refreshed.headers["set-cookie"].lower()
+    assert "set-cookie" not in restored.headers
     assert restored.status_code == 200
     assert restored.json() == registered.json()
     assert logged_out.status_code == 204
-    assert logged_out.headers["set-cookie"].lower().count("max-age=0") == 2
+    assert logged_out.headers["set-cookie"].lower().count("max-age=0") == 1
     assert after_logout.status_code == 401
     assert after_logout.json()["code"] == "unauthenticated"
-
-
-async def test_refresh_rotation_conflict_preserves_browser_cookies() -> None:
-    app = create_app(
-        Settings(
-            app_env="test",
-            auth_access_cookie_name="test_access",
-            auth_refresh_cookie_name="test_refresh",
-        )
-    )
-    app.state.services.auth_service = cast(AuthService, ConflictingRefreshAuth())
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://testserver"
-    ) as client:
-        client.cookies.set("test_refresh", "already-rotated")
-        response = await client.post("/api/auth/refresh")
-
-    assert response.status_code == 409
-    assert response.json()["code"] == "refresh_in_progress"
-    assert "set-cookie" not in response.headers
 
 
 async def test_login_uses_generic_errors_and_duplicate_email_is_rejected(
@@ -278,7 +259,7 @@ async def test_profile_and_admin_user_management_are_role_protected(
         updated_profile = await client.patch(
             "/api/users/me", json={"username": "renamed_user"}
         )
-        user_refresh = client.cookies.get("test_refresh")
+        user_session = client.cookies.get("test_web")
         forbidden = await client.get("/api/admin/users")
         await client.post("/api/auth/logout")
         await client.post(
@@ -321,8 +302,8 @@ async def test_profile_and_admin_user_management_are_role_protected(
         )
         missing_delete = await client.delete(f"/api/admin/users/{user_id}")
         client.cookies.clear()
-        client.cookies.set("test_refresh", user_refresh)
-        revoked_session = await client.post("/api/auth/refresh")
+        client.cookies.set("test_web", user_session)
+        revoked_session = await client.get("/api/auth/me")
 
     assert admin.json()["data"]["role"] == "admin"
     assert user.json()["data"]["role"] == "user"
@@ -353,7 +334,7 @@ async def test_profile_and_admin_user_management_are_role_protected(
     assert missing_delete.status_code == 404
     assert missing_delete.json()["code"] == "user_not_found"
     assert revoked_session.status_code == 401
-    assert revoked_session.headers["set-cookie"].lower().count("max-age=0") == 2
+    assert "set-cookie" not in revoked_session.headers
 
 
 async def test_configured_bootstrap_email_requires_the_bootstrap_secret(
@@ -480,3 +461,73 @@ async def test_invalid_bearer_does_not_fall_back_to_browser_cookie(
 
     assert registered.status_code == 201
     assert current.status_code == 401
+
+
+async def test_web_and_native_credentials_are_not_interchangeable(
+    tmp_path, postgres_engine
+):
+    async with auth_client(tmp_path, postgres_engine) as client:
+        registered = await client.register(
+            "/api/auth/register",
+            json={
+                "username": "isolated_user",
+                "email": "isolated@example.com",
+                "password": "strong-pass-123",
+            },
+        )
+        assert registered.status_code == 201
+        assert (await client.get("/api/app/v1/auth/me")).status_code == 401
+        native = await client.post(
+            "/api/app/v1/auth/login",
+            json={"email": "isolated@example.com", "password": "strong-pass-123"},
+        )
+        headers = {"Authorization": f"Bearer {native.json()['access_token']}"}
+        assert (await client.get("/api/auth/me", headers=headers)).status_code == 401
+        assert (
+            await client.get("/api/app/v1/auth/me", headers=headers)
+        ).status_code == 200
+        assert (
+            await client.get(
+                "/api/downloads/history", headers={"Authorization": "Basic invalid"}
+            )
+        ).status_code == 401
+
+
+async def test_web_session_store_outage_preserves_cookie_and_recovers(
+    tmp_path, postgres_engine
+):
+    from unittest.mock import patch
+
+    from app.services.auth.errors import SessionStoreUnavailable
+
+    async with auth_client(tmp_path, postgres_engine) as client:
+        await client.register(
+            "/api/auth/register",
+            json={
+                "username": "outage_user",
+                "email": "outage@example.com",
+                "password": "strong-pass-123",
+            },
+        )
+        token = client.cookies.get("test_web")
+        with patch.object(
+            WebSessionRepository, "current_user", side_effect=SessionStoreUnavailable
+        ):
+            failed = await client.get("/api/auth/me")
+        assert failed.status_code == 503
+        assert failed.json()["code"] == "service_unavailable"
+        assert "set-cookie" not in failed.headers
+        with patch.object(
+            WebSessionRepository, "revoke", side_effect=SessionStoreUnavailable
+        ):
+            failed_logout = await client.post("/api/auth/logout")
+        assert failed_logout.status_code == 503
+        assert "set-cookie" not in failed_logout.headers
+        assert client.cookies.get("test_web") == token
+        restored = await client.get("/api/auth/me")
+        assert restored.status_code == 200
+        assert restored.headers["cache-control"] == "no-store"
+        assert "set-cookie" not in restored.headers
+        await client.post("/api/auth/logout")
+        client.cookies.set("test_web", token)
+        assert (await client.get("/api/auth/me")).status_code == 401

@@ -35,6 +35,9 @@ it('keeps the protected route on recovery failure and retries in place', async (
   expect(await screen.findByRole('alert')).toHaveTextContent(
     '暂时无法确认登录状态',
   );
+  expect(
+    screen.getByRole('heading', { level: 1, name: '暂时无法确认登录状态' }),
+  ).toBeVisible();
   expect(runtime.replace).not.toHaveBeenCalled();
   expect(screen.queryByText('下载记录内容')).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: '重试' }));

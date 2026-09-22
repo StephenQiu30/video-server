@@ -35,7 +35,20 @@ export function proxy(request: NextRequest) {
     // host, including when a browser retained a previous slash redirect.
     target.pathname = pathname.replace(/\/+$/, '');
     target.search = search;
-    return NextResponse.rewrite(target);
+    // Overwrite caller-supplied forwarding hosts before the trusted API hop.
+    const headers = new Headers(request.headers);
+    headers.set(
+      'x-forwarded-host',
+      request.headers.get('host') ?? request.nextUrl.host,
+    );
+    const forwardedProto = request.headers.get('x-forwarded-proto');
+    headers.set(
+      'x-forwarded-proto',
+      forwardedProto === 'https'
+        ? 'https'
+        : request.nextUrl.protocol.slice(0, -1),
+    );
+    return NextResponse.rewrite(target, { request: { headers } });
   }
   const response = NextResponse.next();
   for (const [name, value] of browserSecurityHeaders({

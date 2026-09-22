@@ -37,6 +37,21 @@ describe('frontend proxy', () => {
     expect(await request.text()).toContain('public_url');
   });
 
+  it('overwrites caller forwarded host before the trusted API hop', () => {
+    const response = proxy(
+      new NextRequest('http://localhost:8101/api/auth/login', {
+        method: 'POST',
+        headers: { host: 'localhost:8101', 'x-forwarded-host': 'evil.example' },
+      }),
+    );
+    expect(response.headers.get('x-middleware-request-x-forwarded-host')).toBe(
+      'localhost:8101',
+    );
+    expect(response.headers.get('x-middleware-request-x-forwarded-proto')).toBe(
+      'http',
+    );
+  });
+
   it.each(['/api', '/api/providers', '/health', '/health/ready'])(
     'forwards backend path %s',
     (path) => {

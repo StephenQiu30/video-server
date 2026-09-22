@@ -34,6 +34,7 @@ from app.services.analysis.list_skills import ListAnalysisSkills
 from app.services.analysis.retry_analysis import RetryAnalysis
 from app.services.auth.service import AuthService
 from app.services.auth.user_service import UserService
+from app.services.auth.web_sessions import WebSessionService
 from app.services.documents.service import DeleteDocument, GetDocument, ListDocuments
 from app.services.downloads.analytics import GetDownloadAnalytics
 from app.services.downloads.create_download import CreateDownload
@@ -137,6 +138,7 @@ class ApiServices:
     engine_catalog_reader: Callable[[], Awaitable[EngineCatalogResponse]] | None = None
     intent_service: IntentService | None = None
     auth_service: AuthService | None = None
+    web_session_service: WebSessionService | None = None
     user_service: UserService | None = None
     download_use_cases: DownloadUseCases | None = None
     analysis_use_cases: AnalysisUseCases | None = None

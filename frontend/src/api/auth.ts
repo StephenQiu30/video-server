@@ -33,14 +33,6 @@ export async function getCurrentUser(options?: RequestOptions) {
   });
 }
 
-/** 刷新登录会话 POST /api/auth/refresh */
-export async function refreshUserSession(options?: RequestOptions) {
-  return request<API.ApiResponseUserResponse_>("/api/auth/refresh", {
-    method: "POST",
-    ...(options || {}),
-  });
-}
-
 /** 使用邮箱注册 POST /api/auth/register */
 export async function registerUser(
   body: API.RegisterRequest,

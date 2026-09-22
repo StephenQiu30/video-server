@@ -21,6 +21,7 @@ export function HomeExperience({
     return (
       <PageErrorNotice
         title="暂时无法确认登录状态"
+        titleAs="h1"
         message={sessionError}
         onRetry={() => void refreshUser()}
       />

@@ -17,6 +17,7 @@ import { ApiError, displayError } from '@/lib/request-error';
 import {
   advanceSessionGeneration,
   onSessionExpired,
+  withWebSessionMutation,
 } from '@/lib/session-events';
 import { taskSocket } from '@/lib/task-socket';
 
@@ -41,6 +42,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const generation = useRef(0);
   const pending = useRef<Promise<API.UserResponse | undefined> | null>(null);
   const signingOut = useRef(false);
+  const logoutPending = useRef(false);
+  const channel = useRef<BroadcastChannel | null>(null);
+  const maskIdentity = useCallback(() => {
+    generation.current += 1;
+    pending.current = null;
+    advanceSessionGeneration();
+    taskSocket.reset();
+    userRef.current = undefined;
+    setUserState(undefined);
+    setStatus('unknown');
+    setSessionError(null);
+    setLoading(true);
+  }, []);
   const applyUser = useCallback((next: API.UserResponse | undefined) => {
     if (userRef.current?.id !== next?.id) {
       advanceSessionGeneration();
@@ -58,14 +72,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (value) => {
       generation.current += 1;
       pending.current = null;
+      logoutPending.current = false;
       advanceSessionGeneration();
+      channel.current?.postMessage({ type: 'identity-changed' });
       applyUser(typeof value === 'function' ? value(userRef.current) : value);
     },
     [applyUser],
   );
 
+  const sessionExpired = useCallback(() => {
+    if (logoutPending.current) return;
+    // An anonymous /me response must not invalidate a simultaneous login. Only
+    // losing a previously confirmed owner advances the private data generation.
+    if (userRef.current) maskIdentity();
+    else {
+      generation.current += 1;
+      pending.current = null;
+    }
+    applyUser(undefined);
+  }, [maskIdentity, applyUser]);
+
+  const signOut = useCallback(async () => {
+    if (signingOut.current) return;
+    signingOut.current = true;
+    logoutPending.current = true;
+    maskIdentity();
+    channel.current?.postMessage({ type: 'logout-started' });
+    const current = generation.current;
+    try {
+      await withWebSessionMutation(async () => {
+        await logout();
+        if (current === generation.current) setUser(undefined);
+      });
+    } catch (reason) {
+      if (current === generation.current) {
+        setSessionError('退出尚未完成。请恢复连接后重试，当前私密内容已隐藏。');
+      }
+      throw reason;
+    } finally {
+      signingOut.current = false;
+      if (current === generation.current) setLoading(false);
+    }
+  }, [maskIdentity, setUser]);
+
   const refreshUser = useCallback(() => {
-    if (signingOut.current) return Promise.resolve(userRef.current);
+    if (signingOut.current) return Promise.resolve(undefined);
+    if (logoutPending.current) {
+      return signOut().then(
+        () => undefined,
+        () => undefined,
+      );
+    }
     if (pending.current) return pending.current;
     const current = generation.current;
     if (!userRef.current) setLoading(true);
@@ -79,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (reason) {
         if (current !== generation.current) return userRef.current;
         if (reason instanceof ApiError && reason.status === 401) {
-          setUser(undefined);
+          sessionExpired();
         } else {
           setSessionError(displayError(reason));
         }
@@ -93,37 +150,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (pending.current === request) pending.current = null;
     });
     return request;
-  }, [applyUser, setUser]);
+  }, [applyUser, sessionExpired, signOut]);
 
   useEffect(() => {
-    const unsubscribe = onSessionExpired(() => setUser(undefined));
+    const unsubscribe = onSessionExpired(sessionExpired);
     void refreshUser();
     const recover = () => {
       void refreshUser();
     };
+    const visibility = () => {
+      if (document.visibilityState === 'visible') recover();
+    };
+    const identityChannel =
+      typeof BroadcastChannel === 'undefined'
+        ? null
+        : new BroadcastChannel('framefetch-identity');
+    channel.current = identityChannel;
+    if (identityChannel)
+      identityChannel.onmessage = (event) => {
+        if (event.data?.type === 'logout-started') {
+          if (logoutPending.current) return;
+          logoutPending.current = true;
+          maskIdentity();
+          setLoading(false);
+          setSessionError('正在其他页面退出登录。如未完成，可重试。');
+        } else if (event.data?.type === 'identity-changed') {
+          logoutPending.current = false;
+          maskIdentity();
+          void refreshUser();
+        }
+      };
     window.addEventListener('online', recover);
+    document.addEventListener('visibilitychange', visibility);
     return () => {
       unsubscribe();
       window.removeEventListener('online', recover);
+      document.removeEventListener('visibilitychange', visibility);
+      identityChannel?.close();
+      if (channel.current === identityChannel) channel.current = null;
       generation.current += 1;
       pending.current = null;
     };
-  }, [refreshUser, setUser]);
-
-  const signOut = useCallback(async () => {
-    if (signingOut.current) return;
-    signingOut.current = true;
-    generation.current += 1;
-    const current = generation.current;
-    pending.current = null;
-    try {
-      await logout();
-      if (current === generation.current) setUser(undefined);
-    } finally {
-      signingOut.current = false;
-      setLoading(false);
-    }
-  }, [setUser]);
+  }, [refreshUser, sessionExpired, maskIdentity]);
 
   const value = useMemo(
     () => ({

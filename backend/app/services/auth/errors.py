@@ -33,3 +33,7 @@ class DuplicateUsernameError(RuntimeError):
 
 class SessionRotationConflict(RuntimeError):
     """Raised when another request has just rotated the same refresh session."""
+
+
+class SessionStoreUnavailable(RuntimeError):
+    """A persistence outage is not evidence that a browser identity expired."""

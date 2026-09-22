@@ -17,16 +17,10 @@ const privateHomeMetadata: Metadata = {
   robots: privateRobots,
 };
 
-const accessCookieName =
-  process.env.AUTH_ACCESS_COOKIE_NAME ?? 'video_access_token';
-const refreshCookieName =
-  process.env.AUTH_REFRESH_COOKIE_NAME ?? 'video_refresh_token';
+const webCookieName = process.env.AUTH_WEB_COOKIE_NAME ?? 'video_web_session';
 
 async function hasBrowserSession() {
-  const cookieStore = await cookies();
-  return (
-    cookieStore.has(accessCookieName) || cookieStore.has(refreshCookieName)
-  );
+  return (await cookies()).has(webCookieName);
 }
 
 export async function generateMetadata(): Promise<Metadata> {

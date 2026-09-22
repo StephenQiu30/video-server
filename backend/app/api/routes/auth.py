@@ -9,11 +9,11 @@ from app.api.admission import enforce_rate_limit
 from app.api.deps import (
     clear_auth_cookies,
     get_auth_service,
-    get_current_user,
     get_runtime_settings,
+    get_web_session_service,
+    get_web_user,
     set_auth_cookies,
 )
-from app.api.errors import app_error_handler, auth_application_error
 from app.api.responses import ApiResponseRoute
 from app.core.config import Settings
 from app.schemas.auth import (
@@ -25,14 +25,15 @@ from app.schemas.auth import (
     RegistrationCodeVerificationResponse,
     UserResponse,
 )
-from app.services.auth.errors import AuthError, AuthErrorCode
 from app.services.auth.models import CurrentUser
 from app.services.auth.service import AuthService
+from app.services.auth.web_sessions import WebSessionService
 
 router = APIRouter(route_class=ApiResponseRoute, prefix="/auth", tags=["auth"])
 Auth = Annotated[AuthService, Depends(get_auth_service)]
+WebSessions = Annotated[WebSessionService, Depends(get_web_session_service)]
 SettingsDependency = Annotated[Settings, Depends(get_runtime_settings)]
-User = Annotated[CurrentUser, Depends(get_current_user)]
+User = Annotated[CurrentUser, Depends(get_web_user)]
 
 
 @router.post(
@@ -94,6 +95,7 @@ async def register_user(
     response: Response,
     auth: Auth,
     settings: SettingsDependency,
+    web: WebSessions,
     bootstrap_secret: Annotated[
         str | None, Header(alias="X-Admin-Bootstrap-Secret")
     ] = None,
@@ -105,12 +107,15 @@ async def register_user(
         settings,
         include_client_ip=True,
     )
-    grant = await auth.register(
+    user = await auth.register_account(
         body.username,
         str(body.email),
         body.password,
         bootstrap_secret=bootstrap_secret,
         verification_code=body.verification_code,
+    )
+    grant = await web.issue(
+        user.id, previous_token=request.cookies.get(settings.auth_web_cookie_name)
     )
     set_auth_cookies(response, settings, grant)
     response.headers["Location"] = "/api/auth/me"
@@ -128,6 +133,7 @@ async def login_user(
     request: Request,
     response: Response,
     auth: Auth,
+    web: WebSessions,
     settings: SettingsDependency,
 ) -> UserResponse:
     await enforce_rate_limit(
@@ -137,7 +143,10 @@ async def login_user(
         settings,
         include_client_ip=True,
     )
-    grant = await auth.login(str(body.email), body.password)
+    user = await auth.authenticate(str(body.email), body.password)
+    grant = await web.issue(
+        user.id, previous_token=request.cookies.get(settings.auth_web_cookie_name)
+    )
     set_auth_cookies(response, settings, grant)
     return UserResponse.from_user(grant.user)
 
@@ -148,33 +157,9 @@ async def login_user(
     response_model=UserResponse,
     summary="查询当前用户",
 )
-async def get_current_user_profile(user: User) -> UserResponse:
+async def get_current_user_profile(user: User, response: Response) -> UserResponse:
+    response.headers["Cache-Control"] = "no-store"
     return UserResponse.from_user(user)
-
-
-@router.post(
-    "/refresh",
-    operation_id="refreshUserSession",
-    response_model=UserResponse,
-    summary="刷新登录会话",
-)
-async def refresh_user_session(
-    request: Request,
-    response: Response,
-    auth: Auth,
-    settings: SettingsDependency,
-) -> UserResponse | Response:
-    refresh_token = request.cookies.get(settings.auth_refresh_cookie_name)
-    if not refresh_token:
-        return await _cleared_auth_error_response(
-            request, settings, AuthError(AuthErrorCode.UNAUTHENTICATED)
-        )
-    try:
-        grant = await auth.refresh(refresh_token)
-    except AuthError as exc:
-        return await _cleared_auth_error_response(request, settings, exc)
-    set_auth_cookies(response, settings, grant)
-    return UserResponse.from_user(grant.user)
 
 
 @router.post(
@@ -186,30 +171,15 @@ async def refresh_user_session(
 async def logout_user(
     request: Request,
     response: Response,
-    auth: Auth,
+    web: WebSessions,
     settings: SettingsDependency,
 ) -> None:
-    access_token = request.cookies.get(settings.auth_access_cookie_name)
-    try:
-        user = await auth.current_user(access_token or "")
-    except AuthError:
-        user = None
-    refresh_token = request.cookies.get(settings.auth_refresh_cookie_name)
-    if refresh_token:
-        await auth.logout(refresh_token)
+    user_id = await web.revoke(request.cookies.get(settings.auth_web_cookie_name, ""))
     clear_auth_cookies(response, settings)
     hub = getattr(request.app.state.services, "realtime_hub", None)
-    if user is not None and hub is not None:
-        hub.invalidate_owner(user.owner_hash)
+    if user_id is not None and hub is not None:
+        hub.invalidate_owner(hashlib.sha256(str(user_id).encode()).hexdigest())
 
 
 def _email_hash(email: str) -> str:
     return hashlib.sha256(email.strip().casefold().encode()).hexdigest()
-
-
-async def _cleared_auth_error_response(
-    request: Request, settings: Settings, error: AuthError
-) -> Response:
-    response = await app_error_handler(request, auth_application_error(error))
-    clear_auth_cookies(response, settings)
-    return response

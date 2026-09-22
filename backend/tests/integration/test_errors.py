@@ -164,7 +164,16 @@ async def test_timeout_uses_global_error_contract_and_security_headers() -> None
     from starlette.requests import Request
 
     receive = AsyncMock(return_value={"type": "http.request", "body": b""})
-    request = Request({"type": "http", "path": "/api/slow", "headers": []}, receive)
+    request = Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "app": create_app(Settings(app_env="test")),
+            "path": "/api/slow",
+            "headers": [],
+        },
+        receive,
+    )
     response = await request_guard(
         request,
         AsyncMock(side_effect=TimeoutError),

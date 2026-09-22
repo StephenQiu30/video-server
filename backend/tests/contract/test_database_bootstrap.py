@@ -83,6 +83,7 @@ def test_default_install_does_not_require_provider_sessions() -> None:
 
 def test_frontend_compose_receives_only_required_runtime_configuration() -> None:
     expected = {
+        "AUTH_WEB_COOKIE_NAME",
         "BACKEND_ORIGIN",
         "HOSTNAME",
         "MINIO_ENDPOINT",

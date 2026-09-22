@@ -199,12 +199,21 @@ class Settings(BaseSettings):
     auth_jwt_secret: SecretStr = SecretStr("development-jwt-secret-change-me-32-bytes")
     auth_jwt_issuer: str = Field(default="video-server", min_length=1, max_length=128)
     auth_jwt_audience: str = Field(default="video-web", min_length=1, max_length=128)
-    auth_access_cookie_name: str = Field(
-        default="video_access_token", min_length=1, max_length=128
+    auth_web_cookie_name: str = Field(
+        default="video_web_session",
+        min_length=1,
+        max_length=128,
+        pattern=r"^[A-Za-z0-9_-]+$",
     )
-    auth_refresh_cookie_name: str = Field(
-        default="video_refresh_token", min_length=1, max_length=128
-    )
+    auth_web_idle_ttl_seconds: int = Field(default=604_800, ge=60, le=31_536_000)
+    auth_web_absolute_ttl_seconds: int = Field(default=2_592_000, ge=60, le=31_536_000)
+
+    @model_validator(mode="after")
+    def validate_web_session_lifetime(self) -> Settings:
+        if self.auth_web_idle_ttl_seconds > self.auth_web_absolute_ttl_seconds:
+            raise ValueError("Web idle lifetime must not exceed absolute lifetime")
+        return self
+
     auth_access_token_ttl_seconds: int = Field(default=900, ge=60, le=3600)
     auth_refresh_token_ttl_seconds: int = Field(
         default=2_592_000, ge=3600, le=31_536_000

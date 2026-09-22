@@ -16,7 +16,7 @@ def test_request_guard_rejects_large_bodies_and_adds_security_headers(
         )
     )
 
-    with TestClient(app) as client:
+    with TestClient(app, headers={"Origin": "http://testserver"}) as client:
         response = client.post("/health/live", content=b"x" * 1025)
 
     assert response.status_code == 413
@@ -43,7 +43,7 @@ def test_request_guard_counts_streamed_bodies_without_content_length(
         yield b"x" * 1024
         yield b'"}'
 
-    with TestClient(app) as client:
+    with TestClient(app, headers={"Origin": "http://testserver"}) as client:
         response = client.post(
             "/api/auth/login",
             content=chunks(),
@@ -67,7 +67,7 @@ def test_media_import_csp_allows_only_configured_storage_origin(
         )
     )
 
-    with TestClient(app) as client:
+    with TestClient(app, headers={"Origin": "http://testserver"}) as client:
         response = client.get("/health/live")
 
     csp = response.headers["content-security-policy"]
@@ -89,7 +89,7 @@ def test_document_import_enables_bounded_storage_origin(tmp_path: Path) -> None:
         )
     )
 
-    with TestClient(app) as client:
+    with TestClient(app, headers={"Origin": "http://testserver"}) as client:
         csp = client.get("/health/live").headers["content-security-policy"]
 
     assert "connect-src 'self' https://documents.example.com:9443" in csp
@@ -106,7 +106,8 @@ def test_rate_limit_returns_problem_details_and_retry_after(tmp_path: Path) -> N
 
     app.state.services.rate_limiter = BlockedLimiter()
     app.state.services.auth_service = object()
-    with TestClient(app) as client:
+    app.state.services.web_session_service = object()
+    with TestClient(app, headers={"Origin": "http://testserver"}) as client:
         response = client.post(
             "/api/auth/login",
             json={"email": "user@example.com", "password": "strong-pass-123"},

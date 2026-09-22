@@ -38,8 +38,10 @@ from app.models.provider_session_source import ProviderSessionSourceRow
 from app.models.quota import ResourceAdmissionRow
 from app.models.source_discovery import SourceDiscoveryItemRow, SourceDiscoveryRow
 from app.models.task_event import TaskEventRow
+from app.models.web_session import WebSessionRow
 
 __all__ = [
+    "WebSessionRow",
     "EmailVerificationRow",
     "ResourceAdmissionRow",
     "ArtifactRow",

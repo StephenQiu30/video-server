@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import suppress
-from urllib.parse import urlsplit
 from uuid import UUID
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from app.api.browser_origin import same_browser_origin
+from app.core.errors import AppError
 from app.integrations.realtime import (
     RealtimeConnection,
     RealtimeConnectionLimit,
@@ -16,6 +17,7 @@ from app.integrations.realtime import (
 )
 from app.repositories.task_event_store import TaskEventStore
 from app.services.auth.errors import AuthError
+from app.services.auth.web_sessions import WebSessionService
 
 router = APIRouter(tags=["realtime"])
 
@@ -23,14 +25,20 @@ router = APIRouter(tags=["realtime"])
 @router.websocket("/ws/tasks")
 async def task_socket(websocket: WebSocket) -> None:
     settings = websocket.app.state.settings
-    if not _same_origin(websocket, settings.app_env == "production"):
+    if not same_browser_origin(websocket, settings):
         await websocket.close(code=4403)
         return
-    access_token = websocket.cookies.get(settings.auth_access_cookie_name)
-    auth_service = websocket.app.state.services.auth_service
+    access_token = websocket.cookies.get(settings.auth_web_cookie_name)
+    auth_service = websocket.app.state.services.web_session_service
     try:
-        user = await auth_service.current_user(access_token or "")
-    except (AuthError, AttributeError):
+        if auth_service is None:
+            await websocket.close(code=1013)
+            return
+        user = await auth_service.current_user(access_token or "", touch=False)
+    except AppError:
+        await websocket.close(code=1013)
+        return
+    except AuthError:
         user = None
     if user is None:
         await websocket.close(code=4401)
@@ -141,7 +149,7 @@ async def _write_events(websocket: WebSocket, connection: RealtimeConnection) ->
 async def _monitor_session(
     websocket: WebSocket,
     connection: RealtimeConnection,
-    auth_service: object,
+    auth_service: WebSessionService,
     access_token: str,
     original_user: object,
     interval: float,
@@ -150,15 +158,14 @@ async def _monitor_session(
     while True:
         await asyncio.sleep(interval)
         try:
-            current = await auth_service.current_user(access_token)  # type: ignore[attr-defined]
-        except (AuthError, AttributeError):
+            current = await auth_service.current_user(access_token, touch=False)
+        except AppError:
+            await websocket.close(code=1013)
+            return
+        except AuthError:
             current = None
         if current is None or _identity(current) != original_identity:
-            # Access token expired (or the session was revoked). Close with
-            # 4401 and let the client's exponential-backoff reconnect plus
-            # HTTP polling fallback recover — never rotate the refresh token
-            # here, since that invalidates the browser cookie and would force
-            # a logout on the next HTTP refresh.
+            # Only a definitive identity change closes as unauthenticated.
             await websocket.close(code=4401)
             return
         await _send_json(websocket, connection, {"type": "heartbeat"})
@@ -179,24 +186,3 @@ async def _send_json(
 ) -> None:
     async with connection.send_lock:
         await websocket.send_json(event)
-
-
-def _same_origin(websocket: WebSocket, production: bool) -> bool:
-    origin = websocket.headers.get("origin")
-    host = websocket.headers.get("host")
-    if origin is None or host is None:
-        return not production
-    forwarded_host = websocket.headers.get("x-forwarded-host")
-    expected_host = forwarded_host.split(",", 1)[0].strip() if forwarded_host else host
-    parsed = urlsplit(origin)
-    if parsed.scheme not in {"http", "https"} or parsed.hostname is None:
-        return False
-    if production:
-        return parsed.scheme == "https" and (
-            parsed.netloc.casefold() == expected_host.casefold()
-        )
-    expected = urlsplit(f"//{expected_host}")
-    return (
-        expected.hostname is not None
-        and parsed.hostname.casefold() == expected.hostname.casefold()
-    )

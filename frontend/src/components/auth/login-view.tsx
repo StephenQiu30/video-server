@@ -17,6 +17,7 @@ import { InputGroupInput } from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
 import { authRedirect } from '@/lib/auth-redirect';
 import { displayError } from '@/lib/request-error';
+import { withWebSessionMutation } from '@/lib/session-events';
 
 type FieldErrors = Partial<Record<'email' | 'password', string>>;
 
@@ -55,8 +56,10 @@ export function LoginView() {
 
     setSubmitting(true);
     try {
-      const currentUser = await login({ email, password });
-      setUser(currentUser);
+      await withWebSessionMutation(async () => {
+        const currentUser = await login({ email, password });
+        setUser(currentUser);
+      });
       router.replace(redirect);
     } catch (error) {
       setErrorMessage(displayError(error));

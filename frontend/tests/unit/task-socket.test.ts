@@ -30,21 +30,19 @@ describe('taskSocket snapshots', () => {
     );
   });
 
-  it('connects directly to the API port in local development', () => {
+  it('uses the same origin in local development', () => {
     expect(
       resolveTaskSocketUrl({
-        environment: 'development',
         location: {
           origin: 'http://localhost:8101',
         },
       }),
-    ).toBe('ws://localhost:8111/api/ws/tasks');
+    ).toBe('ws://localhost:8101/api/ws/tasks');
   });
 
   it('uses the secure same-origin task path in production', () => {
     expect(
       resolveTaskSocketUrl({
-        environment: 'production',
         location: {
           origin: 'https://frontend.example.com',
         },

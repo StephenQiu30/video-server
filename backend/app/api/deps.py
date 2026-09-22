@@ -20,9 +20,10 @@ from app.core.runtime import (
 )
 from app.services.ai_providers import AiProviderService
 from app.services.auth.errors import AuthError
-from app.services.auth.models import CurrentUser, SessionGrant, UserRole
+from app.services.auth.models import CurrentUser, UserRole
 from app.services.auth.service import AuthService
 from app.services.auth.user_service import UserService
+from app.services.auth.web_sessions import WebSessionGrant, WebSessionService
 from app.services.downloads.ports import DownloadArtifactStorage
 from app.services.provider_authorization import ProviderAuthorizationService
 from app.services.provider_catalog import ProviderCatalogService
@@ -129,30 +130,47 @@ def get_user_service(request: Request) -> UserService:
     return require_service(get_services(request).user_service, "user")
 
 
+def get_web_session_service(request: Request) -> WebSessionService:
+    return require_service(get_services(request).web_session_service, "Web session")
+
+
+async def get_native_user(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(native_bearer)],
+    auth: Annotated[AuthService, Depends(get_auth_service)],
+) -> CurrentUser:
+    if credentials is None or credentials.scheme.casefold() != "bearer":
+        raise _unauthenticated()
+    try:
+        return await auth.current_user(credentials.credentials)
+    except AuthError as exc:
+        raise _unauthenticated() from exc
+
+
+async def get_web_user(
+    request: Request,
+    settings: Annotated[Settings, Depends(get_runtime_settings)],
+    web: Annotated[WebSessionService, Depends(get_web_session_service)],
+) -> CurrentUser:
+    if request.headers.get("authorization") is not None:
+        raise _unauthenticated()
+    try:
+        return await web.current_user(
+            request.cookies.get(settings.auth_web_cookie_name, "")
+        )
+    except AuthError as exc:
+        raise _unauthenticated() from exc
+
+
 async def get_current_user(
     request: Request,
     settings: Annotated[Settings, Depends(get_runtime_settings)],
-    auth: Annotated[AuthService, Depends(get_auth_service)],
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(native_bearer)],
 ) -> CurrentUser:
-    authorization = request.headers.get("authorization")
-    access_token: str | None
-    if authorization is not None:
-        if credentials is None or credentials.scheme.casefold() != "bearer":
-            raise _unauthenticated()
-        access_token = credentials.credentials
-    else:
-        access_token = request.cookies.get(settings.auth_access_cookie_name)
-    if access_token:
-        try:
-            user = await auth.current_user(access_token)
-        except AuthError:
-            user = None
-    else:
-        user = None
-    if user is None:
-        raise _unauthenticated()
-    return user
+    # Explicit credentials choose exactly one transport; invalid Bearer never
+    # falls back to ambient browser identity.
+    if request.headers.get("authorization") is not None:
+        return await get_native_user(credentials, get_auth_service(request))
+    return await get_web_user(request, settings, get_web_session_service(request))
 
 
 async def get_current_admin(
@@ -169,43 +187,30 @@ async def get_current_admin(
 
 
 def set_auth_cookies(
-    response: Response, settings: Settings, grant: SessionGrant
+    response: Response, settings: Settings, grant: WebSessionGrant
 ) -> None:
     response.set_cookie(
-        key=settings.auth_access_cookie_name,
-        value=grant.access_token,
-        max_age=settings.auth_access_token_ttl_seconds,
+        key=settings.auth_web_cookie_name,
+        value=grant.token,
+        max_age=settings.auth_web_absolute_ttl_seconds,
+        expires=grant.expires_at,
         httponly=True,
         secure=settings.app_env in {"staging", "production"},
         samesite="lax",
         path="/",
     )
-    response.set_cookie(
-        key=settings.auth_refresh_cookie_name,
-        value=grant.refresh_token,
-        max_age=settings.auth_refresh_token_ttl_seconds,
-        httponly=True,
-        secure=settings.app_env in {"staging", "production"},
-        samesite="lax",
-        path="/api/auth",
-    )
+    response.headers["Cache-Control"] = "no-store"
 
 
 def clear_auth_cookies(response: Response, settings: Settings) -> None:
     response.delete_cookie(
-        key=settings.auth_access_cookie_name,
+        key=settings.auth_web_cookie_name,
         httponly=True,
         secure=settings.app_env in {"staging", "production"},
         samesite="lax",
         path="/",
     )
-    response.delete_cookie(
-        key=settings.auth_refresh_cookie_name,
-        httponly=True,
-        secure=settings.app_env in {"staging", "production"},
-        samesite="lax",
-        path="/api/auth",
-    )
+    response.headers["Cache-Control"] = "no-store"
 
 
 def _unauthenticated() -> AppError:
