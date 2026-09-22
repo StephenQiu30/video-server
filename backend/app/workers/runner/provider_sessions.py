@@ -6,8 +6,10 @@ import asyncio
 import hmac
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 
+from app.services.provider_guest import GuestScope
 from app.services.provider_types import (
     ProviderAccessContextRef,
     ProviderAccessMode,
@@ -15,6 +17,7 @@ from app.services.provider_types import (
     ProviderSessionVersion,
 )
 from app.workers.runner.errors import RunnerFailure
+from app.workers.runner.guest_material import read_guest_lease
 from app.workers.runner.provider_cookie_file import ProviderCookieFile
 from app.workers.runner.provider_cookie_sync import (
     ProviderCookieSync,
@@ -82,7 +85,10 @@ class ProviderSessionStore:
             self._cookie_sync = ProviderCookieSyncClient(sync_root)
         else:
             self._cookie_sync = None
-        if settings.runner_access_mode is ProviderAccessMode.OPERATOR_MANAGED:
+        if settings.runner_access_mode in {
+            ProviderAccessMode.OPERATOR_MANAGED,
+            ProviderAccessMode.GUEST,
+        }:
             prepare_private_root(self._temp_root)
             if enforce_memory_backing:
                 require_memory_backed_root(self._temp_root)
@@ -90,6 +96,16 @@ class ProviderSessionStore:
     async def is_ready(self) -> bool:
         if self._settings.runner_access_mode is ProviderAccessMode.ANONYMOUS:
             return True
+        if self._settings.runner_access_mode is ProviderAccessMode.GUEST:
+            try:
+                provider = self._settings.runner_guest_provider
+                assert provider is not None
+                self.context_for(_profile_for_key(provider))
+                assert self._credential_lease is not None
+                await self._credential_lease.ping()
+                return True
+            except RunnerFailure:
+                return False
         cookie_sync = self._cookie_sync
         if cookie_sync is None or not self._versions:
             return False
@@ -118,6 +134,14 @@ class ProviderSessionStore:
         if mode is ProviderAccessMode.OPERATOR_MANAGED and version is None:
             raise RunnerFailure("credential_required", status=422)
         credential_version = None if version is None else version.value
+        if mode is ProviderAccessMode.GUEST:
+            if profile.key != self._settings.runner_guest_provider:
+                raise RunnerFailure("provider_session_not_allowed", status=422)
+            path = self._settings.runner_guest_cookie_file
+            assert path is not None
+            credential_version = read_guest_lease(
+                path, self._guest_scope(profile), now=datetime.now(UTC)
+            ).version
         if self._cookie_file is not None and version is not None:
             credential_version = self._file_revision(
                 self._cookie_file.read(ProviderKey(profile.key), version)
@@ -150,6 +174,8 @@ class ProviderSessionStore:
                 raise RunnerFailure("client_context_mismatch", status=409)
             return current
         if expected != current:
+            if current.access_mode is ProviderAccessMode.GUEST:
+                raise RunnerFailure("guest_context_required", status=503)
             raise RunnerFailure("credential_revoked", status=422)
         return current
 
@@ -167,6 +193,30 @@ class ProviderSessionStore:
     ) -> AsyncIterator[Path | None]:
         if context.access_mode is ProviderAccessMode.ANONYMOUS:
             yield None
+            return
+        if context.access_mode is ProviderAccessMode.GUEST:
+            profile = _profile_for_key(context.provider_key)
+            path = self._settings.runner_guest_cookie_file
+            if (
+                path is None
+                or context.provider_key != self._settings.runner_guest_provider
+            ):
+                raise RunnerFailure("provider_session_not_allowed", status=422)
+            self.validate_context(profile, context)
+            assert self._credential_lease is not None
+            async with (
+                self._gate,
+                self._credential_lease.hold(context.provider_key, "public-guest"),
+            ):
+                lease = read_guest_lease(
+                    path, self._guest_scope(profile), now=datetime.now(UTC)
+                )
+                if lease.version != context.credential_version_id:
+                    raise RunnerFailure("guest_context_required", status=503)
+                with operation_cookie(
+                    lease.payload, self._temp_root, context.provider_key
+                ) as jar:
+                    yield jar
             return
         raw_version = context.credential_version_id
         if raw_version is None:
@@ -224,6 +274,14 @@ class ProviderSessionStore:
         # A keyed revision prevents identity changes between inspect and download
         # without exposing Cookie contents or an unkeyed credential hash.
         return credential_revision(payload, self._settings.hmac_secret_bytes)
+
+    def _guest_scope(self, profile: ProviderProfile) -> GuestScope:
+        return GuestScope(
+            ProviderKey(profile.key),
+            profile.version,
+            profile.client_profile_id,
+            self._settings.egress_affinity_for(profile.key),
+        )
 
     def _require_credential_enabled(
         self, provider: str, credential_version: str | None

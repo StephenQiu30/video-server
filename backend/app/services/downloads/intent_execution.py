@@ -21,6 +21,7 @@ _RETRYABLE = {
     ApplicationErrorCode.INSPECTION_TIMEOUT,
     ApplicationErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE,
     ApplicationErrorCode.PROVIDER_RATE_LIMITED,
+    ApplicationErrorCode.PROVIDER_GUEST_CONTEXT_REQUIRED,
 }
 
 
@@ -117,7 +118,12 @@ class IntentExecution:
             )
             retry_at = None
             if code in _RETRYABLE:
-                retry_at = now + timedelta(seconds=min(30, 2**lease.attempt))
+                delay = (
+                    15
+                    if code is ApplicationErrorCode.PROVIDER_GUEST_CONTEXT_REQUIRED
+                    else min(30, 2**lease.attempt)
+                )
+                retry_at = now + timedelta(seconds=delay)
                 if isinstance(exc, ApplicationError) and exc.retry_at is not None:
                     retry_at = max(retry_at, exc.retry_at)
             with suppress(PersistenceConflict):

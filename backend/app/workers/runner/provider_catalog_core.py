@@ -98,6 +98,7 @@ CORE_PROVIDER_PROFILES: tuple[ProviderProfile, ...] = (
             "www.iesdouyin.com",
         ),
         version=ProviderProfileVersion.DOUYIN,
+        guest_access=True,
         normalize_url=douyin_url,
         status=ProviderSupportStatus.ACCESS_REQUIRED,
         operator_cookie_domains=frozenset(

@@ -20,6 +20,7 @@ from app.services.downloads.inspect_media import InspectMedia
 from app.services.downloads.intent_execution import IntentExecution
 from app.services.downloads.intents import IntentService
 from app.services.quotas import UserQuota
+from app.workers.runner.provider_registry import provider_profile
 from cryptography.fernet import Fernet
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -31,7 +32,7 @@ NOW = datetime(2026, 9, 22, tzinfo=UTC)
 URL = "https://www.youtube.com/watch?v=BaW_jenozKc"
 
 
-def components(engine, runner=None):
+def components(engine, runner=None, *, guest_providers=frozenset()):
     sessions = async_sessionmaker(engine, expire_on_commit=False)
     repo = IntentRepository(sessions)
     cipher = FernetUrlEnvelope(URLCipher(Fernet.generate_key()), key_id="test")
@@ -44,6 +45,7 @@ def components(engine, runner=None):
         fingerprint,
         now=lambda: clock[0],
         new_id=uuid4,
+        uses_guest=lambda url: provider_profile(url).key in guest_providers,
     )
     inspector = InspectMedia(
         repository=SqlAlchemyDownloadRepository(sessions),
@@ -65,6 +67,23 @@ def components(engine, runner=None):
         heartbeat_interval=0.01,
     )
     return service, repo, executor, clock, sessions
+
+
+async def test_public_intent_selects_guest_without_account_escalation(postgres_engine):
+    from app.services.provider_access import ProviderAccessPolicy
+
+    service, _, _, _, _ = components(
+        postgres_engine, guest_providers=frozenset({"douyin"})
+    )
+    url = "https://www.douyin.com/video/7674644830270473609"
+    first = await service.create(url, TEST_USER.owner_hash, "guest")
+    assert first.access_policy is ProviderAccessPolicy.PUBLIC_SESSION
+    # Deployment configuration changes do not create another intent on replay.
+    anonymous, _, _, _, _ = components(postgres_engine)
+    replay = await anonymous.create(url, TEST_USER.owner_hash, "guest")
+    assert replay.id == first.id and replay.access_policy == first.access_policy
+    other = await service.create(URL, TEST_USER.owner_hash, "other")
+    assert other.access_policy is ProviderAccessPolicy.PUBLIC
 
 
 async def test_api_accepts_before_parse_and_recovers_same_result(postgres_engine):

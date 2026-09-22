@@ -112,6 +112,7 @@ class Settings(BaseSettings):
         "report-worker",
         "provider-canary",
         "provider-sources",
+        "provider-guest",
     ] = "api"
     app_host: str = "0.0.0.0"
     app_port: int = Field(default=8111, ge=1, le=65535)
@@ -249,6 +250,7 @@ class Settings(BaseSettings):
 
     runner_base_url: str = "http://localhost:19100"
     runner_operator_base_urls: dict[ProviderKey, str] = Field(default_factory=dict)
+    runner_guest_base_urls: dict[ProviderKey, str] = Field(default_factory=dict)
     runner_default_access_policies: dict[str, ProviderAccessPolicy] = Field(
         default_factory=dict
     )
@@ -506,7 +508,7 @@ class Settings(BaseSettings):
             ProviderKey(key)
         return value
 
-    @field_validator("runner_operator_base_urls")
+    @field_validator("runner_operator_base_urls", "runner_guest_base_urls")
     @classmethod
     def validate_runner_operator_urls(
         cls, value: dict[ProviderKey, str]
@@ -538,10 +540,29 @@ class Settings(BaseSettings):
         from app.workers.runner.provider_registry import provider_profile_for_key
 
         missing_operator_endpoints: list[str] = []
+        if set(self.runner_guest_base_urls.values()) & (
+            {self.runner_base_url} | set(self.runner_operator_base_urls.values())
+        ):
+            raise ValueError(
+                "guest runners must be isolated from anonymous and account runners"
+            )
+        for guest_key in self.runner_guest_base_urls:
+            if (
+                ProviderAccessMode.GUEST
+                not in provider_profile_for_key(guest_key).access_modes
+            ):
+                raise ValueError("provider does not allow guest access")
         for key, policy in self.runner_default_access_policies.items():
             profile = provider_profile_for_key(key)
             if policy not in provider_access_policies(key, profile.access_modes):
                 raise ValueError("default provider access policy is not admitted")
+            if (
+                policy is ProviderAccessPolicy.PUBLIC_SESSION
+                and ProviderKey(key) not in self.runner_guest_base_urls
+            ):
+                raise ValueError(
+                    "guest default policy requires a matching runner endpoint"
+                )
             if (
                 policy.access_mode is ProviderAccessMode.OPERATOR_MANAGED
                 and ProviderKey(key) not in self.runner_operator_base_urls
@@ -689,7 +710,11 @@ class Settings(BaseSettings):
         rabbitmq_url = ""
         if self.service_role == "analysis-worker":
             rabbitmq_url = self.analysis_rabbitmq_url
-        elif self.service_role not in {"provider-canary", "provider-sources"}:
+        elif self.service_role not in {
+            "provider-canary",
+            "provider-sources",
+            "provider-guest",
+        }:
             rabbitmq_url = self.rabbitmq_url
         insecure_urls = any(
             marker in f"{self.database_url} {rabbitmq_url}"
@@ -700,7 +725,13 @@ class Settings(BaseSettings):
         # not need it and must be able to start without it.
         default_url_key = (
             self.service_role
-            in {"api", "download-worker", "provider-canary", "analysis-worker"}
+            in {
+                "api",
+                "download-worker",
+                "provider-canary",
+                "analysis-worker",
+                "provider-guest",
+            }
             and self.url_encryption_key.get_secret_value() == DEFAULT_URL_ENCRYPTION_KEY
         )
         if insecure or insecure_urls or default_url_key:
@@ -742,6 +773,7 @@ def get_settings_for_role(
         "analysis-worker",
         "report-worker",
         "provider-canary",
+        "provider-guest",
     ],
 ) -> Settings:
     return Settings(service_role=role)

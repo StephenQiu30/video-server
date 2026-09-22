@@ -23,16 +23,46 @@ _REFERENCE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
 REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
 
 
-class RunnerSettings(BaseSettings):
+class ProviderEgressSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=None,
         extra="ignore",
         case_sensitive=False,
     )
 
-    runner_hmac_secret: SecretStr
     runner_egress_proxy: str
     runner_provider_egress_proxies: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("runner_egress_proxy")
+    @classmethod
+    def validate_proxy(cls, value: str) -> str:
+        return _validate_proxy(value)
+
+    @field_validator("runner_provider_egress_proxies")
+    @classmethod
+    def validate_provider_proxies(cls, value: dict[str, str]) -> dict[str, str]:
+        validated: dict[str, str] = {}
+        for provider, proxy in value.items():
+            if _PROVIDER_KEY.fullmatch(provider) is None:
+                raise ValueError("provider proxy key is invalid")
+            validated[provider] = _validate_proxy(proxy)
+        return validated
+
+    def egress_proxy_for(self, provider: str) -> str:
+        return self.runner_provider_egress_proxies.get(
+            provider, self.runner_egress_proxy
+        )
+
+    def egress_affinity_for(self, provider: str) -> str:
+        if provider in self.runner_provider_egress_proxies:
+            return egress_affinity_id(
+                f"provider:{provider}", self.runner_provider_egress_proxies[provider]
+            )
+        return egress_affinity_id("default", self.runner_egress_proxy)
+
+
+class RunnerSettings(ProviderEgressSettings):
+    runner_hmac_secret: SecretStr
     runner_workspace_root: Path = Path("/var/lib/video-runner")
     runner_access_mode: ProviderAccessMode = ProviderAccessMode.ANONYMOUS
     runner_operator_session_versions: dict[ProviderKey, ProviderSessionVersion] = Field(
@@ -42,6 +72,8 @@ class RunnerSettings(BaseSettings):
     runner_provider_session_temp_root: Path = Path("/run/provider-session")
     runner_provider_cookie_sync_root: Path | None = None
     runner_provider_cookie_file: Path | None = None
+    runner_guest_provider: ProviderKey | None = None
+    runner_guest_cookie_file: Path | None = None
     runner_provider_source_require_lease: bool = False
     runner_credential_lease_redis_url: str | None = None
     runner_credential_lease_ttl_seconds: int = Field(default=120, ge=5, le=3600)
@@ -107,35 +139,6 @@ class RunnerSettings(BaseSettings):
     def validate_peertube_instances(cls, value: frozenset[str]) -> frozenset[str]:
         return validated_instance_hosts(value)
 
-    @field_validator("runner_egress_proxy")
-    @classmethod
-    def validate_proxy(cls, value: str) -> str:
-        return _validate_proxy(value)
-
-    @field_validator("runner_provider_egress_proxies")
-    @classmethod
-    def validate_provider_proxies(cls, value: dict[str, str]) -> dict[str, str]:
-        validated: dict[str, str] = {}
-        for provider, proxy in value.items():
-            if _PROVIDER_KEY.fullmatch(provider) is None:
-                raise ValueError("provider proxy key is invalid")
-            validated[provider] = _validate_proxy(proxy)
-        return validated
-
-    def egress_proxy_for(self, provider: str) -> str:
-        return self.runner_provider_egress_proxies.get(
-            provider,
-            self.runner_egress_proxy,
-        )
-
-    def egress_affinity_for(self, provider: str) -> str:
-        if provider in self.runner_provider_egress_proxies:
-            return egress_affinity_id(
-                f"provider:{provider}",
-                self.runner_provider_egress_proxies[provider],
-            )
-        return egress_affinity_id("default", self.runner_egress_proxy)
-
     @field_validator(
         "runner_workspace_root",
         "runner_provider_session_temp_root",
@@ -151,7 +154,7 @@ class RunnerSettings(BaseSettings):
             return None
         return value.expanduser().resolve()
 
-    @field_validator("runner_provider_cookie_file")
+    @field_validator("runner_provider_cookie_file", "runner_guest_cookie_file")
     @classmethod
     def normalize_cookie_file(cls, value: Path | None) -> Path | None:
         # Preserve the final component so O_NOFOLLOW can reject symlink sources.
@@ -182,6 +185,28 @@ class RunnerSettings(BaseSettings):
         ):
             raise ValueError("provider session temp root cannot be in the workspace")
         operator = self.runner_access_mode is ProviderAccessMode.OPERATOR_MANAGED
+        guest = self.runner_access_mode is ProviderAccessMode.GUEST
+        if guest:
+            if (
+                self.runner_guest_provider is not ProviderKey.DOUYIN
+                or self.runner_guest_cookie_file is None
+            ):
+                raise ValueError(
+                    "guest runner requires a supported provider and read-only lease"
+                )
+            if self.runner_guest_cookie_file.resolve().is_relative_to(
+                self.runner_workspace_root
+            ):
+                raise ValueError("guest lease cannot be in the workspace")
+            if self.runner_max_active_tasks != 1:
+                raise ValueError("guest runner concurrency must be one")
+            if not self.runner_credential_lease_redis_url:
+                raise ValueError("guest runner requires distributed execution leases")
+        elif (
+            self.runner_guest_provider is not None
+            or self.runner_guest_cookie_file is not None
+        ):
+            raise ValueError("only a guest runner may read guest material")
         cookie_file = self.runner_provider_cookie_file
         if cookie_file is not None:
             if not operator:

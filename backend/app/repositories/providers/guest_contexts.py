@@ -140,6 +140,28 @@ class GuestContexts:
                 _clear_material(row)
             return _snapshot(row, lease.scope)
 
+    async def invalidate(self, observed: GuestContext, *, now: datetime) -> bool:
+        """Discard only the corrupt snapshot we read, never a newer publication."""
+        validate_now(now)
+        async with self._sessions() as session, session.begin():
+            row = await session.scalar(
+                select(Row).where(Row.id == observed.scope.key).with_for_update()
+            )
+            if (
+                row is None
+                or row.state == "revoked"
+                or row.fence != observed.fence
+                or row.revision != observed.revision
+            ):
+                return False
+            row.fence += 1
+            row.failures += 1
+            _clear_material(row)
+            _transition(row, "cooling", now)
+            row.reason_code = "provider_guest_context_required"
+            row.retry_at = now + timedelta(seconds=30)
+            return True
+
     async def revoke(self, scope: GuestScope, *, now: datetime) -> None:
         validate_now(now)
         async with self._sessions() as session, session.begin():

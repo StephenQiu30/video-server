@@ -40,6 +40,12 @@ def media_runner_router(
     return MediaRunnerRouter(
         anonymous_media_runner(settings, admission),
         operator_media_runners(settings, admission),
+        guests={
+            provider.value: _media_runner(
+                settings, url, admission, ProviderAccessMode.GUEST
+            )
+            for provider, url in settings.runner_guest_base_urls.items()
+        },
         default_policies=settings.runner_default_access_policies,
     )
 

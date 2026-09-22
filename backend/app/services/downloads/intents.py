@@ -23,6 +23,7 @@ from app.services.downloads.validation import (
     validate_idempotency_key,
     validate_owner_hash,
 )
+from app.services.provider_access import ProviderAccessPolicy
 from app.services.quotas import DEFAULT_USER_QUOTA, UserQuota
 
 
@@ -74,6 +75,7 @@ class IntentService:
         *,
         now: Callable[[], datetime],
         new_id: Callable[[], UUID],
+        uses_guest: Callable[[str], bool] = lambda _: False,
     ) -> None:
         self._repository = repository
         self._validator = validator
@@ -81,6 +83,7 @@ class IntentService:
         self._fingerprinter = fingerprinter
         self._now = now
         self._new_id = new_id
+        self._uses_guest = uses_guest
 
     async def create(
         self,
@@ -104,6 +107,11 @@ class IntentService:
                 "download_intent", url, "public"
             ),
             url=self._cipher.encrypt(url),
+            access_policy=(
+                ProviderAccessPolicy.PUBLIC_SESSION
+                if self._uses_guest(url)
+                else ProviderAccessPolicy.PUBLIC
+            ),
         )
         try:
             return await self._repository.accept(command, now=self._now(), quota=quota)

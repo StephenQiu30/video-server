@@ -150,6 +150,28 @@ def test_guest_cipher_binds_kind_scope_revision_and_deadline():
         cipher.decrypt_guest(SCOPE, 1, end, account)
 
 
+async def test_invalidation_cannot_erase_newer_publication(postgres_engine):
+    repo = repository(postgres_engine)
+    lease = await repo.claim(SCOPE, "one", now=NOW)
+    observed = await repo.publish(
+        lease, b"bad", now=NOW, valid_until=NOW + timedelta(seconds=100)
+    )
+    refresh = await repo.claim(SCOPE, "two", now=NOW + timedelta(seconds=81))
+    assert not await repo.invalidate(observed, now=NOW + timedelta(seconds=82))
+    current = await repo.publish(
+        refresh,
+        b"new",
+        now=NOW + timedelta(seconds=83),
+        valid_until=NOW + timedelta(minutes=5),
+    )
+    assert not await repo.invalidate(observed, now=NOW + timedelta(seconds=84))
+    assert await repo.invalidate(current, now=NOW + timedelta(seconds=85))
+    state = await repo.read(SCOPE)
+    assert state.state == "cooling" and state.ciphertext is None
+    assert await repo.claim(SCOPE, "three", now=NOW + timedelta(seconds=86)) is None
+    assert await repo.claim(SCOPE, "three", now=state.retry_at)
+
+
 async def test_guest_schema_empty_and_repeated_preserves_active_lease():
     sql = (Path(__file__).resolve().parents[2] / "sql/schema.sql").read_text()
     async with isolated_postgres_engine() as engine:

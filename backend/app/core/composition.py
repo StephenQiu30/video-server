@@ -144,6 +144,7 @@ from app.workers.runner.provider_authorization_queue import (
 )
 from app.workers.runner.provider_registry import (
     configure_provider_instances,
+    provider_profile,
     provider_profile_for_key,
 )
 from app.workers.runner.provider_session_policy import (
@@ -511,6 +512,9 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
                 fingerprinter,
                 now=clock,
                 new_id=uuid4,
+                uses_guest=lambda url: (
+                    provider_profile(url).key in settings.runner_guest_base_urls
+                ),
             ),
             auth_service=auth_service,
             user_service=user_service,

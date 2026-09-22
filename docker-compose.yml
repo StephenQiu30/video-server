@@ -160,6 +160,7 @@ services:
       REQUEST_TIMEOUT_SECONDS: '${REQUEST_TIMEOUT_SECONDS:-180}'
       RUNNER_HMAC_SECRET: '${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}'
       RUNNER_OPERATOR_BASE_URLS: '${RUNNER_OPERATOR_BASE_URLS:-{}}'
+      RUNNER_GUEST_BASE_URLS: '${RUNNER_GUEST_BASE_URLS:-{"douyin":"http://douyin-guest-runner:19100"}}'
       RUNNER_DEFAULT_ACCESS_POLICIES: '${RUNNER_DEFAULT_ACCESS_POLICIES:-{}}'
       RUNNER_SIGNATURE_TTL_SECONDS: '${RUNNER_SIGNATURE_TTL_SECONDS:-30}'
       SCREENPLAY_ANALYSIS_ENABLED: '${SCREENPLAY_ANALYSIS_ENABLED:-false}'
@@ -336,6 +337,7 @@ services:
       RABBITMQ_VHOST: '${RABBITMQ_VHOST:-video}'
       RUNNER_HMAC_SECRET: '${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}'
       RUNNER_OPERATOR_BASE_URLS: '${RUNNER_OPERATOR_BASE_URLS:-{}}'
+      RUNNER_GUEST_BASE_URLS: '${RUNNER_GUEST_BASE_URLS:-{"douyin":"http://douyin-guest-runner:19100"}}'
       RUNNER_DEFAULT_ACCESS_POLICIES: '${RUNNER_DEFAULT_ACCESS_POLICIES:-{}}'
       RUNNER_SIGNATURE_TTL_SECONDS: '${RUNNER_SIGNATURE_TTL_SECONDS:-30}'
       URL_ENCRYPTION_KEY: '${URL_ENCRYPTION_KEY:-ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE=}'
@@ -491,6 +493,7 @@ services:
       PROVIDER_CANARY_TARGETS: '${PROVIDER_CANARY_TARGETS:-[]}'
       RUNNER_HMAC_SECRET: '${RUNNER_HMAC_SECRET:-development-runner-secret-change-me}'
       RUNNER_OPERATOR_BASE_URLS: '${RUNNER_OPERATOR_BASE_URLS:-{}}'
+      RUNNER_GUEST_BASE_URLS: '${RUNNER_GUEST_BASE_URLS:-{"douyin":"http://douyin-guest-runner:19100"}}'
       RUNNER_DEFAULT_ACCESS_POLICIES: '${RUNNER_DEFAULT_ACCESS_POLICIES:-{}}'
       RUNNER_SIGNATURE_TTL_SECONDS: '${RUNNER_SIGNATURE_TTL_SECONDS:-30}'
       URL_ENCRYPTION_KEY: '${URL_ENCRYPTION_KEY:-ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE=}'
@@ -669,6 +672,81 @@ services:
       retries: 3
       start_period: 15s
 
+  provider-guest-init:
+    build: *backend-build
+    image: video-server:local
+    container_name: provider-guest-init
+    restart: "no"
+    network_mode: none
+    user: "0:0"
+    command: ["sh", "-c", "install -d -o 10001 -g 10001 -m 0700 /guests/douyin"]
+    volumes:
+      - provider_guest_douyin:/guests/douyin
+
+  provider-guest:
+    build: *backend-build
+    image: video-server:local
+    container_name: provider-guest
+    restart: unless-stopped
+    read_only: true
+    stop_grace_period: 30s
+    mem_limit: 256m
+    cpus: 0.5
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    networks: [app_net, runner_egress_net]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    environment:
+      APP_ENV: "${APP_ENV:-development}"
+      SERVICE_ROLE: provider-guest
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-video}:${POSTGRES_PASSWORD:-video}@${POSTGRES_HOST:-host.docker.internal}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-video}"
+      URL_ENCRYPTION_KEY: "${URL_ENCRYPTION_KEY:-ZGV2ZWxvcG1lbnQtdXJsLWtleS0zMi1ieXRlcyEhISE=}"
+      PROVIDER_SOURCE_ROOT: /guests
+      RUNNER_EGRESS_PROXY: http://egress-proxy:3128
+      RUNNER_PROVIDER_EGRESS_PROXIES: "${RUNNER_PROVIDER_EGRESS_PROXIES:-{}}"
+    volumes:
+      - provider_guest_douyin:/guests/douyin
+    depends_on:
+      provider-guest-init:
+        condition: service_completed_successfully
+      egress-proxy:
+        condition: service_healthy
+    command: ["python", "-m", "app.workers.runner.provider_guest_manager"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import time,pathlib; assert time.time()-float(pathlib.Path('/tmp/provider-guest-heartbeat').read_text()) < 45"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+
+  douyin-guest-runner:
+    <<: *provider-session-runner
+    container_name: douyin-guest-runner
+    read_only: true
+    mem_limit: 1g
+    cpus: 1
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      <<: *provider-session-environment
+      RUNNER_ACCESS_MODE: guest
+      RUNNER_OPERATOR_ACCOUNT_BASELINE_ATTESTED: "false"
+      RUNNER_GUEST_PROVIDER: douyin
+      RUNNER_GUEST_COOKIE_FILE: /guest/cookies.txt
+    volumes:
+      - runner_work:/work
+      - provider_guest_douyin:/guest:ro
+    depends_on:
+      provider-guest-init:
+        condition: service_completed_successfully
+      workspace-init:
+        condition: service_completed_successfully
+      egress-proxy:
+        condition: service_healthy
+      provider-lease-redis:
+        condition: service_healthy
+
   workspace-init:
     build: *backend-build
     image: video-server:local
@@ -787,6 +865,7 @@ services:
       - no-new-privileges:true
 
 volumes:
+  provider_guest_douyin:
   provider_source_youtube:
   provider_source_douyin:
   provider_source_reddit:
