@@ -6,7 +6,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DownloadHistoryView from '@/components/downloads/download-history-view';
 import { useDownloadHistory } from '@/components/downloads/use-download-history';
@@ -206,7 +206,7 @@ describe('download history', () => {
     await waitFor(() =>
       expect(runtime.getDownloadHistory).toHaveBeenCalledTimes(2),
     );
-    expect(client.getQueryData(detailKey)).toBeUndefined();
+    expect(client.getQueryData(detailKey)).toBeNull();
     expect(client.getQueryData(analysisKey)).toBeUndefined();
   });
 
@@ -259,6 +259,37 @@ describe('download history', () => {
     expect(runtime.push).toHaveBeenCalledWith(
       '/downloads/detail?jobId=retried-job',
     );
+  });
+
+  it('does not navigate after a history retry completes on another page', async () => {
+    runtime.getDownloadHistory.mockResolvedValue(
+      history({
+        items: [historyItem({ status: 'failed', file_available: false })],
+      }),
+    );
+    let resolveRetry!: (value: { id: string }) => void;
+    runtime.retryDownload.mockReturnValue(
+      new Promise((resolve) => {
+        resolveRetry = resolve;
+      }),
+    );
+    function Routes() {
+      const [visible, setVisible] = useState(true);
+      return (
+        <>
+          <button type="button" onClick={() => setVisible(!visible)}>
+            Navigate away
+          </button>
+          {visible && <DownloadHistoryView />}
+        </>
+      );
+    }
+    render(<Routes />);
+    fireEvent.click(await screen.findByRole('button', { name: '重新下载' }));
+    await waitFor(() => expect(runtime.retryDownload).toHaveBeenCalledOnce());
+    fireEvent.click(screen.getByText('Navigate away'));
+    await act(async () => resolveRetry({ id: 'retried-job' }));
+    expect(runtime.push).not.toHaveBeenCalled();
   });
 
   it('changes pages through the shared pagination controls', async () => {

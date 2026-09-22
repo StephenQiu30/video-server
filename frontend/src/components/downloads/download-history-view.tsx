@@ -1,19 +1,14 @@
 'use client';
 
 import { ArrowClockwise, MagnifyingGlass, Plus } from '@phosphor-icons/react';
-import { useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
-import {
-  deleteDownload,
-  issueDownloadUrl,
-  retryDownload,
-} from '@/api/downloads';
+import { useEffect } from 'react';
 import DownloadHistoryList, {
   downloadStatusLabels,
 } from '@/components/downloads/download-history-list';
 import { DownloadHistorySummary } from '@/components/downloads/download-history-summary';
+import { useDownloadActions } from '@/components/downloads/use-download-actions';
 import { useDownloadHistory } from '@/components/downloads/use-download-history';
 import { BackLink } from '@/components/layout/back-link';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
@@ -38,23 +33,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { triggerBrowserDownload } from '@/lib/browser-download';
-import { privateQueryKey } from '@/lib/query-keys';
-import { displayError } from '@/lib/request-error';
-
-import { createUuid as createIdempotencyKey } from '@/lib/uuid';
-
+import { useRequestScope } from '@/hooks/use-request-scope';
 export default function DownloadHistoryView() {
-  const queries = useQueryClient();
   const router = useRouter();
   const { history, setHistory } = useWorkspaceState();
   const { page, searchInput, search, status } = history;
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<{
-    id: string;
-    type: 'delete' | 'download' | 'retry';
-  } | null>(null);
-  const retryKeys = useRef(new Map<string, string>());
+  const operations = useDownloadActions();
+  const actionError = operations.error;
+  const scope = useRequestScope('download-history');
   const state = useDownloadHistory({
     page,
     page_size: 20,
@@ -82,70 +68,18 @@ export default function DownloadHistoryView() {
   }
 
   async function download(item: API.DownloadHistoryItemResponse) {
-    setActionError(null);
-    setPendingAction({ id: item.id, type: 'download' });
-    try {
-      const result = await issueDownloadUrl(
-        {
-          job_id: encodeURIComponent(item.id),
-          preview: false,
-        },
-        {
-          headers: { 'X-FrameFetch-Download-Client': 'local-web' },
-        },
-      );
-      triggerBrowserDownload(result.url, result.filename);
-    } catch (reason) {
-      setActionError(displayError(reason));
-    } finally {
-      setPendingAction(null);
-    }
+    await operations.execute(item.id, 'download');
   }
-
   async function retry(item: API.DownloadHistoryItemResponse) {
-    setActionError(null);
-    setPendingAction({ id: item.id, type: 'retry' });
-    const key = retryKeys.current.get(item.id) ?? createIdempotencyKey();
-    retryKeys.current.set(item.id, key);
-    try {
-      const retried = await retryDownload(
-        { job_id: encodeURIComponent(item.id) },
-        { headers: { 'Idempotency-Key': key } },
-      );
-      const target = `/downloads/detail?jobId=${encodeURIComponent(retried.id)}`;
-      void queries.invalidateQueries({
-        queryKey: privateQueryKey('download-history'),
-      });
-      queries.setQueryData(privateQueryKey('download', retried.id), retried);
-      markNavigationPush(target);
-      router.push(target);
-    } catch (reason) {
-      setActionError(displayError(reason));
-      setPendingAction(null);
-    }
+    const request = scope.capture();
+    const result = await operations.execute(item.id, 'retry');
+    if (!request.current() || result?.action !== 'retry') return;
+    const target = `/downloads/detail?jobId=${encodeURIComponent(result.job.id)}`;
+    markNavigationPush(target);
+    router.push(target);
   }
-
   async function remove(item: API.DownloadHistoryItemResponse) {
-    setActionError(null);
-    setPendingAction({ id: item.id, type: 'delete' });
-    try {
-      await deleteDownload({ job_id: encodeURIComponent(item.id) });
-      const detailKey = privateQueryKey('download', item.id);
-      const analysisKey = privateQueryKey('analysis', 'video', item.id);
-      await Promise.all([
-        queries.cancelQueries({ queryKey: detailKey }),
-        queries.cancelQueries({ queryKey: analysisKey }),
-      ]);
-      queries.removeQueries({ queryKey: detailKey });
-      queries.removeQueries({ queryKey: analysisKey });
-      void queries.invalidateQueries({
-        queryKey: privateQueryKey('download-history'),
-      });
-    } catch (reason) {
-      setActionError(displayError(reason));
-    } finally {
-      setPendingAction(null);
-    }
+    await operations.execute(item.id, 'delete');
   }
 
   return (
@@ -278,7 +212,7 @@ export default function DownloadHistoryView() {
         onDownload={(item) => void download(item)}
         onDelete={remove}
         onRetry={(item) => void retry(item)}
-        pendingAction={pendingAction}
+        pendingActions={operations.pendingActions}
       />
 
       {state.data && state.data.total > state.data.page_size ? (

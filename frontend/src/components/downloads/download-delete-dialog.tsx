@@ -65,7 +65,11 @@ export function DownloadDeleteDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>保留任务</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" onClick={onDelete}>
+          <AlertDialogAction
+            disabled={busy}
+            variant="destructive"
+            onClick={onDelete}
+          >
             确认删除
           </AlertDialogAction>
         </AlertDialogFooter>

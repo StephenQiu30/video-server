@@ -57,7 +57,10 @@ export default function DownloadState({
 
   return (
     <div className="self-start">
-      <Badge variant={statusVariant(job.status)}>
+      <Badge
+        className="data-[variant=destructive]:text-foreground"
+        variant={statusVariant(job.status)}
+      >
         {statusLabels[job.status]}
       </Badge>
       <h2
@@ -179,7 +182,11 @@ export default function DownloadState({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>继续下载</AlertDialogCancel>
-                <AlertDialogAction variant="destructive" onClick={onCancel}>
+                <AlertDialogAction
+                  disabled={action !== null}
+                  variant="destructive"
+                  onClick={onCancel}
+                >
                   确认取消下载
                 </AlertDialogAction>
               </AlertDialogFooter>

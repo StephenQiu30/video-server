@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import { DownloadDeleteDialog } from '@/components/downloads/download-delete-dialog';
 import { downloadRecovery } from '@/components/downloads/download-state-model';
+import type { DownloadAction } from '@/components/downloads/use-download-actions';
 import MediaCover from '@/components/intake/media-cover';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { Badge } from '@/components/ui/badge';
@@ -25,14 +26,14 @@ export default function DownloadHistoryList({
   onDownload,
   onDelete,
   onRetry,
-  pendingAction,
+  pendingActions,
 }: {
   data: API.DownloadHistoryResponse | null;
   loading: boolean;
   onDownload: (item: API.DownloadHistoryItemResponse) => void;
   onDelete: (item: API.DownloadHistoryItemResponse) => Promise<void>;
   onRetry: (item: API.DownloadHistoryItemResponse) => void;
-  pendingAction: { id: string; type: 'delete' | 'download' | 'retry' } | null;
+  pendingActions: Array<{ id: string; type: DownloadAction }>;
 }) {
   return (
     <div className="mt-4">
@@ -46,7 +47,9 @@ export default function DownloadHistoryList({
               onDownload={onDownload}
               onDelete={onDelete}
               onRetry={onRetry}
-              pendingAction={pendingAction}
+              pendingAction={
+                pendingActions.find((action) => action.id === item.id) ?? null
+              }
             />
           ))}
         </ItemGroup>
@@ -74,7 +77,7 @@ function HistoryRow({
   onDownload: (item: API.DownloadHistoryItemResponse) => void;
   onDelete: (item: API.DownloadHistoryItemResponse) => Promise<void>;
   onRetry: (item: API.DownloadHistoryItemResponse) => void;
-  pendingAction: { id: string; type: 'delete' | 'download' | 'retry' } | null;
+  pendingAction: { id: string; type: DownloadAction } | null;
 }) {
   const detailHref = `/downloads/detail?jobId=${encodeURIComponent(item.id)}`;
   const canDownload = item.status === 'succeeded' && item.file_available;
@@ -129,7 +132,7 @@ function HistoryRow({
       </Link>
       <ItemActions className="col-span-2 w-full justify-between gap-1 sm:col-auto sm:w-auto sm:justify-end">
         <Badge
-          className="rounded-md px-2 py-1 font-normal"
+          className="rounded-md px-2 py-1 font-normal data-[variant=destructive]:text-foreground"
           variant={statusVariant(item.status)}
         >
           {downloadStatusLabels[item.status]}

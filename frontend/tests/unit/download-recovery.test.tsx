@@ -38,7 +38,7 @@ describe('source-aware download recovery', () => {
             summary: { total: 1, active: 0, failed: 0, succeeded: 0 },
           }}
           loading={false}
-          pendingAction={null}
+          pendingActions={[]}
           onDownload={vi.fn()}
           onRetry={vi.fn()}
           onDelete={vi.fn()}

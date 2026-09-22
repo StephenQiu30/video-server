@@ -152,7 +152,7 @@ function MediaCoverFallback({
             'truncate font-medium',
             compact
               ? 'text-[10px] leading-tight text-foreground/70'
-              : 'text-xs text-muted-foreground',
+              : 'text-xs text-foreground/70',
           )}
         >
           {eyebrow}
@@ -174,12 +174,12 @@ function MediaCoverFallback({
             'min-w-0',
             compact
               ? 'text-[10px] leading-none text-foreground/70'
-              : 'text-xs leading-4 text-muted-foreground',
+              : 'text-xs leading-4 text-foreground/70',
           )}
         >
           <p className="truncate">{detail}</p>
           {!compact ? (
-            <p className="mt-0.5 text-muted-foreground/80">暂无封面</p>
+            <p className="mt-0.5 text-foreground/70">暂无封面</p>
           ) : null}
         </div>
       </div>

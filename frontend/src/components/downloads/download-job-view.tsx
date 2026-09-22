@@ -1,6 +1,7 @@
 'use client';
 
 import type { MediaPlayerInstance } from '@vidstack/react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import AnalysisPanel from '@/components/analysis/analysis-panel';
@@ -14,6 +15,7 @@ import MediaCover, {
 import { BackLink } from '@/components/layout/back-link';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { markNavigationPush } from '@/components/layout/navigation-history';
+import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Button } from '@/components/ui/button';
@@ -65,6 +67,23 @@ export default function DownloadJobView({
     router.replace('/history');
   }
 
+  if (state.removed)
+    return (
+      <div className="inner-page">
+        <BackLink fallbackHref="/history" />
+        <PageEmptyNotice
+          title="下载任务已删除"
+          titleAs="h1"
+          description="请返回下载记录查看其他任务。"
+          action={
+            <Button asChild variant="outline">
+              <Link href="/history">返回下载记录</Link>
+            </Button>
+          }
+        />
+      </div>
+    );
+
   if (state.loading && !state.job) return <DownloadJobSkeleton />;
 
   return (
@@ -81,6 +100,23 @@ export default function DownloadJobView({
           />
         ) : null}
       </div>
+      {state.retryTarget && state.retryTarget !== jobId ? (
+        <FeedbackNotice
+          className="mt-8"
+          title="已创建新的下载任务"
+          description="重新下载的进度和结果会保存在新任务中。"
+          tone="info"
+          action={
+            <Button asChild size="sm" variant="outline">
+              <Link
+                href={`/downloads/detail?jobId=${encodeURIComponent(state.retryTarget)}`}
+              >
+                查看新任务
+              </Link>
+            </Button>
+          }
+        />
+      ) : null}
       {state.error && !state.job ? (
         <PageErrorNotice
           className="mt-8"

@@ -1,38 +1,32 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getDownload } from '@/api/downloads';
 import {
-  cancelDownload,
-  deleteDownload,
-  getDownload,
-  issueDownloadUrl,
-  retryDownload,
-} from '@/api/downloads';
+  mergeDownloadPresentation,
+  useDownloadActions,
+} from '@/components/downloads/use-download-actions';
 import { useRequestScope } from '@/hooks/use-request-scope';
-import { triggerBrowserDownload } from '@/lib/browser-download';
 import { privateQueryKey } from '@/lib/query-keys';
 import { displayError } from '@/lib/request-error';
 import { type TaskSocketStatus, taskSocket } from '@/lib/task-socket';
 
-import { createUuid as createIdempotencyKey } from '@/lib/uuid';
-
-type Action = 'cancel' | 'delete' | 'download' | 'retry' | null;
 type ErrorKind = 'load' | 'sync' | 'action' | null;
 
 export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   const queries = useQueryClient();
   const scope = useRequestScope(jobId);
   const queryKey = useMemo(() => privateQueryKey('download', jobId), [jobId]);
-  const [actionError, setError] = useState<string | null>(null);
-  const [action, setAction] = useState<Action>(null);
-  const [removedId, setRemovedId] = useState<string | null>(null);
+  const operations = useDownloadActions(jobId);
+  const { action, error: actionError, removed } = operations;
   const [socketStatus, setSocketStatus] =
     useState<TaskSocketStatus>('disconnected');
-  const retryRequest = useRef<{ jobId: string; key: string } | null>(null);
   const targetId = useRef(jobId);
 
-  const snapshot = useQuery({
+  const snapshot = useQuery<API.DownloadResponse | null>({
     queryKey,
-    enabled: !action && removedId !== jobId,
+    // A history action can precede the first detail visit. Load the missing
+    // snapshot once; mutation completion cancels this read before publishing.
+    enabled: (query) => !removed && (!action || query.state.data === undefined),
     queryFn: async ({ signal }) => {
       const next = await getDownload(
         { job_id: encodeURIComponent(jobId) },
@@ -44,7 +38,7 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
       );
       return current && current.version > next.version
         ? current
-        : mergePresentation(current ?? null, next);
+        : mergeDownloadPresentation(current ?? null, next);
     },
     refetchInterval: (query) => {
       const current = query.state.data;
@@ -71,26 +65,10 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
         : 'load'
       : null;
 
-  const accept = useCallback(
-    (next: API.DownloadResponse) => {
-      if (next.id !== jobId) return false;
-      const current = queries.getQueryData<API.DownloadResponse | null>(
-        queryKey,
-      );
-      if (current && next.version < current.version) return false;
-      queries.setQueryData(queryKey, mergePresentation(current ?? null, next));
-      return true;
-    },
-    [jobId, queries, queryKey],
-  );
-
   useEffect(() => {
     if (targetId.current === jobId) return;
     targetId.current = jobId;
-    setAction(null);
-    setError(null);
     setSocketStatus('disconnected');
-    retryRequest.current = null;
   }, [jobId]);
 
   const snapshotId = job?.id;
@@ -121,114 +99,25 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   }, [action, jobId, jobStatus, refetch]);
 
   const refresh = useCallback(() => {
-    setError(null);
-    void refetch({ cancelRefetch: false });
-  }, [refetch]);
+    if (!action) void refetch({ cancelRefetch: false });
+  }, [action, refetch]);
 
-  const retry = useCallback(async (): Promise<API.DownloadResponse | null> => {
-    scope.invalidate();
+  const retry = async (): Promise<API.DownloadResponse | null> => {
     const request = scope.capture();
-    setAction('retry');
-    setError(null);
-    if (retryRequest.current?.jobId !== jobId) {
-      retryRequest.current = { jobId, key: createIdempotencyKey() };
-    }
-    try {
-      await queries.cancelQueries({ queryKey });
-      if (!request.current()) return null;
-      const retried = await retryDownload(
-        { job_id: encodeURIComponent(jobId) },
-        { headers: { 'Idempotency-Key': retryRequest.current.key } },
-      );
-      if (!request.current()) return null;
-      if (retried.id === jobId) accept(retried);
-      else
-        queries.setQueryData(privateQueryKey('download', retried.id), retried);
-      void queries.invalidateQueries({
-        queryKey: privateQueryKey('download-history'),
-      });
-      return retried;
-    } catch (reason) {
-      if (!request.current()) return null;
-      setError(displayError(reason));
-      return null;
-    } finally {
-      if (request.current()) setAction(null);
-      else void queries.invalidateQueries({ queryKey });
-    }
-  }, [accept, jobId, queries, queryKey, scope]);
-
-  const cancel = useCallback(async () => {
-    scope.invalidate();
+    const result = await operations.execute(jobId, 'retry');
+    return request.current() && result?.action === 'retry' ? result.job : null;
+  };
+  const cancel = async () => {
+    await operations.execute(jobId, 'cancel');
+  };
+  const download = async () => {
+    await operations.execute(jobId, 'download');
+  };
+  const remove = async (): Promise<boolean> => {
     const request = scope.capture();
-    setAction('cancel');
-    setError(null);
-    try {
-      await queries.cancelQueries({ queryKey });
-      if (!request.current()) return;
-      const cancelled = await cancelDownload({
-        job_id: encodeURIComponent(jobId),
-      });
-      if (!request.current() || !accept(cancelled)) return;
-    } catch (reason) {
-      if (!request.current()) return;
-      setError(displayError(reason));
-    } finally {
-      if (request.current()) setAction(null);
-      else void queries.invalidateQueries({ queryKey });
-    }
-  }, [accept, jobId, queries, queryKey, scope]);
-
-  const download = useCallback(async () => {
-    scope.invalidate();
-    const request = scope.capture();
-    setAction('download');
-    setError(null);
-    try {
-      const result = await issueDownloadUrl(
-        {
-          job_id: encodeURIComponent(jobId),
-          preview: false,
-        },
-        {
-          headers: { 'X-FrameFetch-Download-Client': 'local-web' },
-        },
-      );
-      if (!request.current()) return;
-      triggerBrowserDownload(result.url, result.filename);
-    } catch (reason) {
-      if (!request.current()) return;
-      setError(displayError(reason));
-    } finally {
-      if (request.current()) setAction(null);
-    }
-  }, [jobId, scope]);
-
-  const remove = useCallback(async (): Promise<boolean> => {
-    scope.invalidate();
-    const request = scope.capture();
-    setAction('delete');
-    setError(null);
-    try {
-      await queries.cancelQueries({ queryKey });
-      if (!request.current()) return false;
-      await deleteDownload({ job_id: encodeURIComponent(jobId) });
-      if (!request.current()) return false;
-      void queries.invalidateQueries({
-        queryKey: privateQueryKey('download-history'),
-      });
-      setRemovedId(jobId);
-      queries.setQueryData(queryKey, null);
-      return true;
-    } catch (reason) {
-      if (!request.current()) return false;
-      setError(displayError(reason));
-      return false;
-    } finally {
-      if (request.current()) setAction(null);
-      else void queries.invalidateQueries({ queryKey });
-    }
-  }, [jobId, queries, queryKey, scope]);
+    const result = await operations.execute(jobId, 'delete');
+    return request.current() && result?.action === 'delete';
+  };
 
   return {
     action,
@@ -237,26 +126,13 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     error,
     errorKind,
     job,
-    loading: snapshot.isPending && removedId !== jobId,
+    loading: snapshot.isPending && !removed,
+    removed,
+    retryTarget: operations.retryTarget,
     remove,
     refresh,
     retry,
     socketStatus,
-  };
-}
-
-function mergePresentation(
-  current: API.DownloadResponse | null,
-  next: API.DownloadResponse,
-): API.DownloadResponse {
-  if (!current) return next;
-  return {
-    ...next,
-    title: next.title ?? current.title,
-    extractor_key: next.extractor_key ?? current.extractor_key,
-    duration_seconds: next.duration_seconds ?? current.duration_seconds,
-    thumbnail_url: next.thumbnail_url ?? current.thumbnail_url,
-    format: next.format ?? current.format,
   };
 }
 
