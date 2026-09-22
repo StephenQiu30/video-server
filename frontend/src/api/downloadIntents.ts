@@ -7,7 +7,7 @@ export async function createDownloadIntent(
   body: API.IntentRequest,
   options?: RequestOptions
 ) {
-  return request<any>("/api/download-intents", {
+  return request<API.ApiResponseIntentResponse_>("/api/download-intents", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
