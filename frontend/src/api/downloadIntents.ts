@@ -1,0 +1,52 @@
+// @ts-ignore
+/* eslint-disable */
+import { request, type RequestOptions } from "@/lib/request";
+
+/** 提交持久解析意图 POST /api/download-intents */
+export async function createDownloadIntent(
+  body: API.IntentRequest,
+  options?: RequestOptions
+) {
+  return request<any>("/api/download-intents", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+/** 查询当前用户的解析意图 GET /api/download-intents/${param0} */
+export async function getDownloadIntent(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getDownloadIntentParams,
+  options?: RequestOptions
+) {
+  const { intent_id: param0, ...queryParams } = params;
+  return request<API.ApiResponseIntentResponse_>(
+    `/api/download-intents/${param0}`,
+    {
+      method: "GET",
+      params: { ...queryParams },
+      ...(options || {}),
+    }
+  );
+}
+
+/** 取消当前用户的解析意图 POST /api/download-intents/${param0}/cancel */
+export async function cancelDownloadIntent(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.cancelDownloadIntentParams,
+  options?: RequestOptions
+) {
+  const { intent_id: param0, ...queryParams } = params;
+  return request<API.ApiResponseIntentResponse_>(
+    `/api/download-intents/${param0}/cancel`,
+    {
+      method: "POST",
+      params: { ...queryParams },
+      ...(options || {}),
+    }
+  );
+}

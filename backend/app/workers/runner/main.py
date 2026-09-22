@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import re
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Protocol
@@ -35,11 +36,38 @@ from app.workers.runner.signing import (
     ReplayDetectedError,
     RequestAuthenticationError,
 )
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError
 
 _TASK_ID = re.compile(r"[A-Za-z0-9_-]{1,64}")
+
+
+async def _inspect_until_disconnect(
+    request: Request, operation: Awaitable[InspectResponse]
+) -> InspectResponse:
+    async def disconnected() -> None:
+        # Authentication has consumed the request body. Waiting on ASGI receive
+        # avoids polling CancelScope cancellation swallowing our own shutdown.
+        while (await request.receive())["type"] != "http.disconnect":
+            pass
+
+    work = asyncio.ensure_future(operation)
+    watcher = asyncio.create_task(disconnected())
+    try:
+        done, _ = await asyncio.wait(
+            {work, watcher}, return_when=asyncio.FIRST_COMPLETED
+        )
+        if work in done:
+            return work.result()
+        watcher.result()
+        raise HTTPException(status_code=499, detail="inspection_cancelled")
+    finally:
+        work.cancel()
+        watcher.cancel()
+        # The runner propagates cancellation into process-group termination and
+        # private workspace cleanup before this request is released.
+        await asyncio.gather(work, watcher, return_exceptions=True)
 
 
 class RunnerService(Protocol):
@@ -157,14 +185,17 @@ def create_app(
             authenticator,
         )
         payload = _parse(InspectRequest, body)
-        return await runner.inspect(
-            payload.url,
-            access_context=(
-                None
-                if payload.access_context is None
-                else payload.access_context.to_domain()
+        return await _inspect_until_disconnect(
+            request,
+            runner.inspect(
+                payload.url,
+                access_context=(
+                    None
+                    if payload.access_context is None
+                    else payload.access_context.to_domain()
+                ),
+                deadline_at=payload.deadline_at,
             ),
-            deadline_at=payload.deadline_at,
         )
 
     @app.post(

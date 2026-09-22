@@ -9,6 +9,7 @@ import signal
 import socket
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from uuid import uuid4
 
 from app.core.config import Settings, get_settings_for_role
 from app.core.db import create_engine, create_session_factory
@@ -18,12 +19,16 @@ from app.integrations.media_runner_factory import media_runner_router
 from app.integrations.messaging import RabbitMqTopology
 from app.integrations.object_storage import MinioObjectStorage
 from app.integrations.thumbnail_storage import MinioThumbnailStorage
-from app.integrations.url_security import FernetUrlEnvelope
+from app.integrations.url_security import FernetUrlEnvelope, MediaUrlValidator
 from app.repositories.downloads.execution import DownloadExecutionRepository
+from app.repositories.downloads.intent_repository import IntentRepository
 from app.repositories.downloads.repository import SqlAlchemyDownloadRepository
 from app.repositories.providers.route_cooldowns import SqlAlchemyProviderRouteCooldowns
 from app.services.download_execution.models import DownloadExecutionSettings
 from app.services.download_execution.service import DownloadExecution
+from app.services.downloads.fingerprints import HmacRequestFingerprinter
+from app.services.downloads.inspect_media import InspectMedia
+from app.services.downloads.intent_execution import IntentExecution
 from app.services.downloads.thumbnail_use_cases import PersistThumbnail
 from app.services.provider_route_admission import ProviderRouteAdmission
 from app.workers.download.consumer import RabbitMqDownloadConsumer
@@ -41,10 +46,11 @@ class DownloadWorkerRuntime:
     storage: MinioObjectStorage
     runner: MediaRunnerRouter
     engine: AsyncEngine
+    intent_consumer: RabbitMqDownloadConsumer
 
     async def close(self) -> None:
         try:
-            await self.consumer.close()
+            await asyncio.gather(self.consumer.close(), self.intent_consumer.close())
         finally:
             try:
                 await self.runner.close()
@@ -100,7 +106,42 @@ def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
         settings.download_queue,
         settings.download_routing_key,
     )
+    intents = IntentRepository(sessions)
+    envelope = FernetUrlEnvelope(
+        URLCipher(settings.url_encryption_key.get_secret_value().encode()),
+        key_id=settings.url_encryption_key_id,
+    )
+    intent_execution = IntentExecution(
+        intents,
+        InspectMedia(
+            repository=raw_repository,
+            runner=runner,
+            url_validator=MediaUrlValidator(),
+            url_cipher=envelope,
+            fingerprinter=HmacRequestFingerprinter(
+                settings.request_fingerprint_secret.get_secret_value().encode()
+            ),
+            now=_utc_now,
+            new_id=uuid4,
+            inspection_ttl=timedelta(seconds=settings.inspection_ttl_seconds),
+            max_duration_seconds=settings.max_video_duration_seconds,
+        ),
+        envelope,
+        worker_id=_worker_id(),
+        clock=_utc_now,
+    )
     return DownloadWorkerRuntime(
+        intent_consumer=RabbitMqDownloadConsumer(
+            settings.rabbitmq_url,
+            topology,
+            intent_execution,
+            prefetch=2,
+            workers=2,
+            intent=True,
+            connection_timeout=settings.rabbitmq_connection_timeout_seconds,
+            heartbeat=settings.rabbitmq_heartbeat_seconds,
+            reconnect_interval=settings.rabbitmq_reconnect_interval_seconds,
+        ),
         consumer=RabbitMqDownloadConsumer(
             settings.rabbitmq_url,
             topology,
@@ -125,6 +166,7 @@ def build_runtime(settings: Settings) -> DownloadWorkerRuntime:
                 ),
             ),
             workspace_cleaner,
+            intents,
         ),
         storage=storage,
         runner=runner,
@@ -145,16 +187,17 @@ async def run() -> None:
 
 async def _serve(runtime: DownloadWorkerRuntime, stop: asyncio.Event) -> None:
     consumer = asyncio.create_task(runtime.consumer.run(stop))
+    intent_consumer = asyncio.create_task(runtime.intent_consumer.run(stop))
     sweeper = asyncio.create_task(runtime.sweeper.run(stop))
     stop_wait = asyncio.create_task(stop.wait())
-    tasks = (consumer, sweeper)
+    tasks = (consumer, intent_consumer, sweeper)
     try:
         await asyncio.wait(
-            {consumer, sweeper, stop_wait},
+            {*tasks, stop_wait},
             return_when=asyncio.FIRST_COMPLETED,
         )
         stop.set()
-        await runtime.consumer.close()
+        await asyncio.gather(runtime.consumer.close(), runtime.intent_consumer.close())
         await asyncio.gather(*tasks, return_exceptions=True)
         for task in tasks:
             if task.cancelled():

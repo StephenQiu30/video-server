@@ -26,6 +26,7 @@ from app.api.routes.analyses import router as analyses_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.document_analyses import router as document_analyses_router
 from app.api.routes.documents import router as documents_router
+from app.api.routes.download_intents import router as download_intents_router
 from app.api.routes.downloads import router as downloads_router
 from app.api.routes.health import router as health_router
 from app.api.routes.inspections import router as inspections_router
@@ -81,6 +82,7 @@ def create_app(
     api_router.include_router(admin_providers_router)
     api_router.include_router(admin_provider_runtime_router)
     api_router.include_router(inspections_router)
+    api_router.include_router(download_intents_router)
     api_router.include_router(source_discoveries_router)
     api_router.include_router(providers_router)
     api_router.include_router(downloads_router)

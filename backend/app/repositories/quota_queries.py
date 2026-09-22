@@ -6,6 +6,9 @@ from sqlalchemy import text
 # Workers replace active reservations with bounded artifacts in one transaction.
 ACTIVE_USAGE = text("""
 WITH active AS (
+    SELECT owner_hash, 0 AS reserved_bytes FROM download_intents
+    WHERE status IN ('queued','preparing','resolving','retry_wait','action_required')
+    UNION ALL
     SELECT j.owner_hash, COALESCE(q.reserved_bytes,
         m.declared_size_bytes + :thumbnail_bytes,
         :download_bytes + :thumbnail_bytes) AS reserved_bytes

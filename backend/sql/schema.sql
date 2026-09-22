@@ -1466,11 +1466,17 @@ CREATE TABLE IF NOT EXISTS resource_admissions (
     analysis_attempts INTEGER NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     CONSTRAINT ck_admissions_kind CHECK (
-        kind IN ('download','media_import','document_import','analysis')
+        kind IN ('download','media_import','document_import','analysis','inspection')
     ),
-    CONSTRAINT ck_admissions_bytes CHECK (reserved_bytes > 0),
+    CONSTRAINT ck_admissions_bytes CHECK (reserved_bytes >= 0),
     CONSTRAINT ck_admissions_attempts CHECK (analysis_attempts >= 0)
 );
+
+ALTER TABLE resource_admissions DROP CONSTRAINT IF EXISTS ck_admissions_kind;
+ALTER TABLE resource_admissions ADD CONSTRAINT ck_admissions_kind
+    CHECK (kind IN ('download','media_import','document_import','analysis','inspection'));
+ALTER TABLE resource_admissions DROP CONSTRAINT IF EXISTS ck_admissions_bytes;
+ALTER TABLE resource_admissions ADD CONSTRAINT ck_admissions_bytes CHECK (reserved_bytes >= 0);
 CREATE INDEX IF NOT EXISTS ix_admissions_owner_created
     ON resource_admissions (owner_hash, created_at);
 

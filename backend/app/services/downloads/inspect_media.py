@@ -97,6 +97,32 @@ class InspectMedia:
         *,
         access_policy: ProviderAccessPolicy | None = None,
     ) -> InspectionView:
+        command = await self.prepare(
+            url, owner_hash, idempotency_key, access_policy=access_policy
+        )
+        try:
+            saved = await self._repository.save_inspection(command)
+        except PersistenceIdempotencyConflict as exc:
+            raise ApplicationError(ApplicationErrorCode.IDEMPOTENCY_CONFLICT) from exc
+        thumbnail = command.metadata.get("thumbnail_url")
+        if self._persist_thumbnail is not None and isinstance(thumbnail, str):
+            try:
+                await self._persist_thumbnail(
+                    saved.inspection.id, owner_hash, thumbnail
+                )
+            except (ThumbnailStorageError, ValueError):
+                pass
+        return inspection_view(saved.inspection)
+
+    async def prepare(
+        self,
+        url: str,
+        owner_hash: str,
+        idempotency_key: str,
+        *,
+        access_policy: ProviderAccessPolicy | None = None,
+    ) -> InspectionCreate:
+        """Compute a result without persistence; the caller owns its commit."""
         owner_hash = validate_owner_hash(owner_hash)
         idempotency_key = validate_idempotency_key(idempotency_key)
         try:
@@ -109,7 +135,7 @@ class InspectMedia:
                 raise ApplicationError(
                     ApplicationErrorCode.PROVIDER_ACCESS_POLICY_NOT_ALLOWED
                 )
-            return await self._save_restricted(
+            return self._restricted_command(
                 validated_url,
                 owner_hash,
                 idempotency_key,
@@ -157,7 +183,7 @@ class InspectMedia:
                 ApplicationErrorCode.PROVIDER_GEO_RESTRICTED
             ) from exc
         except MediaInspectionPaidContentRestricted as exc:
-            return await self._save_restricted(
+            return self._restricted_command(
                 validated_url,
                 owner_hash,
                 idempotency_key,
@@ -235,25 +261,9 @@ class InspectMedia:
             expires_at=expires_at,
             formats=formats,
         )
-        try:
-            saved = await self._repository.save_inspection(command)
-        except PersistenceIdempotencyConflict as exc:
-            raise ApplicationError(ApplicationErrorCode.IDEMPOTENCY_CONFLICT) from exc
-        if (
-            self._persist_thumbnail is not None
-            and result.thumbnail_data_url is not None
-        ):
-            try:
-                await self._persist_thumbnail(
-                    saved.inspection.id, owner_hash, result.thumbnail_data_url
-                )
-            except (ThumbnailStorageError, ValueError):
-                # The inline value remains in inspection metadata so the authenticated
-                # thumbnail endpoint can retry the idempotent object migration later.
-                pass
-        return inspection_view(saved.inspection)
+        return command
 
-    async def _save_restricted(
+    def _restricted_command(
         self,
         validated_url: str,
         owner_hash: str,
@@ -261,7 +271,7 @@ class InspectMedia:
         restricted: RestrictedSourceAdmission,
         *,
         access_policy: ProviderAccessPolicy = ProviderAccessPolicy.PUBLIC,
-    ) -> InspectionView:
+    ) -> InspectionCreate:
         now = validate_now(self._now())
         envelope = self._url_cipher.encrypt(validated_url)
         command = InspectionCreate(
@@ -282,11 +292,7 @@ class InspectMedia:
             expires_at=now + self._ttl,
             formats=(),
         )
-        try:
-            saved = await self._repository.save_inspection(command)
-        except PersistenceIdempotencyConflict as exc:
-            raise ApplicationError(ApplicationErrorCode.IDEMPOTENCY_CONFLICT) from exc
-        return inspection_view(saved.inspection)
+        return command
 
     def _formats(
         self,

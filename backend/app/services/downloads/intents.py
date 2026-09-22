@@ -1,0 +1,125 @@
+"""Persist a validated public parsing request before any upstream operation."""
+
+from collections.abc import Callable
+from datetime import datetime, timedelta
+from typing import Protocol
+from uuid import UUID
+
+from app.services.downloads.errors import (
+    ApplicationError,
+    ApplicationErrorCode,
+    PersistenceConflict,
+    PersistenceIdempotencyConflict,
+    PersistenceNotFound,
+)
+from app.services.downloads.inspection_models import InspectionCreate
+from app.services.downloads.intent_models import (
+    IntentCreate,
+    IntentLease,
+    IntentSnapshot,
+)
+from app.services.downloads.ports import RequestFingerprinter, UrlCipher, UrlValidator
+from app.services.downloads.validation import (
+    validate_idempotency_key,
+    validate_owner_hash,
+)
+from app.services.quotas import DEFAULT_USER_QUOTA, UserQuota
+
+
+class IntentPersistence(Protocol):
+    async def accept(
+        self,
+        command: IntentCreate,
+        *,
+        now: datetime,
+        quota: UserQuota = DEFAULT_USER_QUOTA,
+    ) -> IntentSnapshot: ...
+    async def get(self, intent_id: UUID, owner_hash: str) -> IntentSnapshot: ...
+    async def cancel(
+        self, intent_id: UUID, owner_hash: str, *, now: datetime
+    ) -> IntentSnapshot: ...
+    async def claim(
+        self, intent_id: UUID, worker_id: str, *, now: datetime, lease_for: timedelta
+    ) -> IntentLease | None: ...
+    async def heartbeat(
+        self, lease: IntentSnapshot, *, now: datetime, lease_for: timedelta
+    ) -> bool: ...
+    async def complete(
+        self, lease: IntentSnapshot, result: InspectionCreate, *, now: datetime
+    ) -> IntentSnapshot: ...
+    async def fail(
+        self,
+        lease: IntentSnapshot,
+        *,
+        now: datetime,
+        reason_code: str,
+        retry_at: datetime | None = None,
+    ) -> IntentSnapshot: ...
+    async def recover(
+        self,
+        *,
+        now: datetime,
+        limit: int = 100,
+        queued_stale_for: timedelta = timedelta(seconds=30),
+    ) -> int: ...
+
+
+class IntentService:
+    def __init__(
+        self,
+        repository: IntentPersistence,
+        validator: UrlValidator,
+        cipher: UrlCipher,
+        fingerprinter: RequestFingerprinter,
+        *,
+        now: Callable[[], datetime],
+        new_id: Callable[[], UUID],
+    ) -> None:
+        self._repository = repository
+        self._validator = validator
+        self._cipher = cipher
+        self._fingerprinter = fingerprinter
+        self._now = now
+        self._new_id = new_id
+
+    async def create(
+        self,
+        value: str,
+        owner_hash: str,
+        idempotency_key: str,
+        *,
+        quota: UserQuota = DEFAULT_USER_QUOTA,
+    ) -> IntentSnapshot:
+        validate_owner_hash(owner_hash)
+        validate_idempotency_key(idempotency_key)
+        try:
+            url = self._validator.validate(value)
+        except ValueError as exc:
+            raise ApplicationError(ApplicationErrorCode.INVALID_URL) from exc
+        command = IntentCreate(
+            id=self._new_id(),
+            owner_hash=owner_hash,
+            idempotency_key=idempotency_key,
+            request_fingerprint=self._fingerprinter.fingerprint(
+                "download_intent", url, "public"
+            ),
+            url=self._cipher.encrypt(url),
+        )
+        try:
+            return await self._repository.accept(command, now=self._now(), quota=quota)
+        except PersistenceIdempotencyConflict as exc:
+            raise ApplicationError(ApplicationErrorCode.IDEMPOTENCY_CONFLICT) from exc
+
+    async def get(self, intent_id: UUID, owner_hash: str) -> IntentSnapshot:
+        try:
+            return await self._repository.get(intent_id, owner_hash)
+        except PersistenceNotFound as exc:
+            raise ApplicationError(ApplicationErrorCode.NOT_FOUND) from exc
+
+    async def cancel(self, intent_id: UUID, owner_hash: str) -> IntentSnapshot:
+        try:
+            return await self._repository.cancel(intent_id, owner_hash, now=self._now())
+        except PersistenceNotFound as exc:
+            raise ApplicationError(ApplicationErrorCode.NOT_FOUND) from exc
+        except PersistenceConflict as exc:
+            raise ApplicationError(ApplicationErrorCode.INVALID_STATE) from exc

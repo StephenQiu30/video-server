@@ -19,6 +19,7 @@ from app.repositories.errors import (
     RepositoryConflict,
     RepositoryNotFound,
 )
+from app.repositories.quota_admission import lock_admission, reserve
 from app.services.downloads.inspection_models import EncryptedUrl, InspectionCreate
 from app.services.downloads.intent_models import (
     IntentCreate,
@@ -32,6 +33,7 @@ from app.services.downloads.validation import (
     validate_owner_hash,
 )
 from app.services.provider_access import ProviderAccessPolicy
+from app.services.quotas import DEFAULT_USER_QUOTA, QuotaPolicy, UserQuota
 
 _RUNNING = ("preparing", "resolving")
 _TERMINAL = ("cancelled", "expired", "failed", "handed_off")
@@ -39,16 +41,51 @@ _BUDGET = timedelta(seconds=180)
 
 
 class IntentRepository:
-    def __init__(self, sessions: async_sessionmaker[AsyncSession]) -> None:
+    def __init__(
+        self,
+        sessions: async_sessionmaker[AsyncSession],
+        *,
+        quota_policy: QuotaPolicy | None = None,
+    ) -> None:
         self._sessions = sessions
+        self._quota_policy = quota_policy or QuotaPolicy()
 
-    async def accept(self, command: IntentCreate, *, now: datetime) -> IntentSnapshot:
+    async def accept(
+        self,
+        command: IntentCreate,
+        *,
+        now: datetime,
+        quota: UserQuota = DEFAULT_USER_QUOTA,
+    ) -> IntentSnapshot:
         validate_now(now)
         validate_owner_hash(command.owner_hash)
         validate_idempotency_key(command.idempotency_key)
         if len(command.request_fingerprint) != 64:
             raise ValueError("invalid intent fingerprint")
         async with self._sessions() as session, session.begin():
+            await lock_admission(session, command.owner_hash)
+            existing = await session.scalar(
+                select(DownloadIntentRow).where(
+                    DownloadIntentRow.owner_hash == command.owner_hash,
+                    DownloadIntentRow.idempotency_key == command.idempotency_key,
+                )
+            )
+            if existing is not None:
+                if (
+                    existing.request_fingerprint != command.request_fingerprint
+                    or existing.access_policy != command.access_policy.value
+                ):
+                    raise IdempotencyConflict("intent idempotency key already used")
+                return _snapshot(existing)
+            await reserve(
+                session,
+                self._quota_policy,
+                owner_hash=command.owner_hash,
+                resource_id=command.id,
+                kind="inspection",
+                now=now,
+                quota=quota,
+            )
             row = await session.scalar(
                 insert(DownloadIntentRow)
                 .values(

@@ -17,7 +17,9 @@ from app.services.quotas import (
     UserQuota,
 )
 
-AdmissionKind = Literal["download", "media_import", "document_import", "analysis"]
+AdmissionKind = Literal[
+    "download", "media_import", "document_import", "analysis", "inspection"
+]
 
 
 async def lock_admission(session: AsyncSession, owner_hash: str) -> None:
@@ -46,6 +48,7 @@ async def reserve(
         return
     policy = quota.apply(policy)
     reserved = {
+        "inspection": 0,
         "download": policy.download_bytes + policy.thumbnail_bytes,
         "media_import": (size_bytes or 0) + policy.thumbnail_bytes,
         "document_import": (size_bytes or 0) + policy.document_normalized_bytes,

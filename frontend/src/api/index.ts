@@ -8,6 +8,7 @@ import * as auth from "./auth";
 import * as users from "./users";
 import * as admin from "./admin";
 import * as inspections from "./inspections";
+import * as downloadIntents from "./downloadIntents";
 import * as sourceDiscoveries from "./sourceDiscoveries";
 import * as providers from "./providers";
 import * as downloads from "./downloads";
@@ -21,6 +22,7 @@ export default {
   users,
   admin,
   inspections,
+  downloadIntents,
   sourceDiscoveries,
   providers,
   downloads,

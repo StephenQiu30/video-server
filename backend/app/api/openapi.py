@@ -36,6 +36,10 @@ OPENAPI_TAGS: list[dict[str, Any]] = [
         "description": "校验媒体地址并解析可用的语义下载格式。",
     },
     {
+        "name": "download-intents",
+        "description": "持久接收、查询和取消公开媒体解析意图。",
+    },
+    {
         "name": "source-discoveries",
         "description": "有界发现微信公众号文章中的视频并要求用户显式选择。",
     },

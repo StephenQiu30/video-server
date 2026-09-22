@@ -647,6 +647,7 @@ class Settings(BaseSettings):
         elif self.service_role == "download-worker":
             secret_values.extend(
                 (
+                    self.request_fingerprint_secret.get_secret_value(),
                     self.runner_hmac_secret.get_secret_value(),
                     self.minio_access_key.get_secret_value(),
                     self.minio_secret_key.get_secret_value(),

@@ -324,6 +324,15 @@ declare namespace API {
     data: InspectionResponse;
   };
 
+  type ApiResponseIntentResponse_ = {
+    /** 稳定的业务结果码。 */
+    code: ErrorCode;
+    /** Message 安全的结果说明。 */
+    message: string;
+    /** 成功时为业务数据，错误时为 null。 */
+    data: IntentResponse;
+  };
+
   type ApiResponseManagedUserListResponse_ = {
     /** 稳定的业务结果码。 */
     code: ErrorCode;
@@ -493,6 +502,10 @@ declare namespace API {
 
   type cancelDocumentImportParams = {
     document_id: string;
+  };
+
+  type cancelDownloadIntentParams = {
+    intent_id: string;
   };
 
   type cancelDownloadParams = {
@@ -1161,6 +1174,10 @@ declare namespace API {
     search?: string | null;
   };
 
+  type getDownloadIntentParams = {
+    intent_id: string;
+  };
+
   type getDownloadParams = {
     job_id: string;
   };
@@ -1285,6 +1302,43 @@ declare namespace API {
     user_action: string | null;
     access_policy_id: ProviderAccessPolicy | null;
   };
+
+  type IntentRequest = {
+    /** Input 公开媒体地址或包含唯一媒体地址的分享文案。 */
+    input: string;
+  };
+
+  type IntentResponse = {
+    /** Id */
+    id: string;
+    /** Version */
+    version: number;
+    status: IntentStatus;
+    /** Reason Code */
+    reason_code: string | null;
+    /** Next Action */
+    next_action?: string;
+    /** Retry At */
+    retry_at: string | null;
+    /** Deadline */
+    deadline: string;
+    /** Inspection Id */
+    inspection_id: string | null;
+    /** Job Id */
+    job_id: string | null;
+  };
+
+  type IntentStatus =
+    | "queued"
+    | "preparing"
+    | "resolving"
+    | "retry_wait"
+    | "action_required"
+    | "ready"
+    | "handed_off"
+    | "cancelled"
+    | "expired"
+    | "failed";
 
   type issueDownloadUrlParams = {
     job_id: string;

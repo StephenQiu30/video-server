@@ -41,6 +41,8 @@ macOS 部署可显式安装统一按需助手和一次性浏览器连接器。�
 
 ## 资源准入
 
+持久解析入口为 `POST /api/download-intents`，接单提交后返回 202；查询和取消使用同一资源 ID。API 不等待上游解析。下载 Worker 的独立解析消费槽通过 `download.intent.requested` 事件执行，失联租约和重试由同一恢复循环收敛；解析总预算 180 秒、最多三次执行。用户取消后 Worker 停止 HTTP 操作，Runner 断连处理终止实际子进程。新入口和双客户端切换状态见 [044 Plan](../docs/plan/044-开源部署无感解析Plan.md#p9-02)。解析按每日任务计量、零下载字节，同幂等键重放不重复计量。Worker 与 API 使用相同 `REQUEST_FINGERPRINT_SECRET`，生产环境禁止开发默认值。
+
 高成本路由显式声明速率策略，PostgreSQL 在资源/run/outbox 创建事务内统一检查账户及全局配额。配置入口为 `RATE_LIMIT_POLICIES` 与 `QUOTA_LIMITS`；幂等重放不重复扣减，取消释放活跃名额，物理清理完成后释放保留存储。报告超限是可见的终态失败；取消后迟到的报告只进入清理流程。完整计量口径和生产边界见 [上线准入设计](../docs/design/006-上线产品能力补全设计.md)。
 
 分片上传使用 AWS SDK 的 SigV4 查询签名绑定每片精确长度，MinIO 在接收时拒绝长度不匹配；Next.js 上传代理保留 `Content-Length`。可用隔离 MinIO 运行 `TEST_MINIO_ENDPOINT=... TEST_MINIO_ACCESS_KEY=... TEST_MINIO_SECRET_KEY=... uv run pytest tests/integration/test_upload_size_boundary.py`；设置 `TEST_NEXT_UPLOAD_ORIGIN` 可一并验证独立前端代理。

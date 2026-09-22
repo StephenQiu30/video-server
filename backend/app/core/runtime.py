@@ -38,6 +38,7 @@ from app.services.downloads.create_download import CreateDownload
 from app.services.downloads.delete_download import DeleteDownload
 from app.services.downloads.history import GetDownloadHistory
 from app.services.downloads.inspect_media import InspectMedia
+from app.services.downloads.intents import IntentService
 from app.services.downloads.ports import DownloadArtifactStorage
 from app.services.downloads.queries import (
     CancelDownload,
@@ -131,6 +132,7 @@ class DocumentImportUseCases:
 
 @dataclass(slots=True)
 class ApiServices:
+    intent_service: IntentService | None = None
     auth_service: AuthService | None = None
     user_service: UserService | None = None
     download_use_cases: DownloadUseCases | None = None

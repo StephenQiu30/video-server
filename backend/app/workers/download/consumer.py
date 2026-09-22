@@ -15,7 +15,11 @@ from aio_pika.abc import (
 )
 from app.integrations.messaging import RabbitMqTopology, configured_rabbitmq_url
 from app.services.download_execution.models import ExecutionDisposition
-from app.workers.download.message import DownloadMessageError, parse_download_requested
+from app.workers.download.message import (
+    DownloadMessageError,
+    parse_download_requested,
+    parse_intent_requested,
+)
 from app.workers.download.pool import AsyncWorkerPool
 
 _log = logging.getLogger(__name__)
@@ -35,11 +39,17 @@ class Delivery(Protocol):
     async def nack(self, *, requeue: bool) -> None: ...
 
 
-async def process_delivery(message: Delivery, handler: DownloadHandler) -> None:
+async def process_delivery(
+    message: Delivery, handler: DownloadHandler, *, intent: bool = False
+) -> None:
     delivery_attempt = _delivery_attempt(message)
     replay_count = _replay_count(message)
     try:
-        requested = parse_download_requested(message.body)
+        resource_id = (
+            parse_intent_requested(message.body)
+            if intent
+            else parse_download_requested(message.body).job_id
+        )
     except DownloadMessageError:
         await _settle(
             message,
@@ -50,7 +60,7 @@ async def process_delivery(message: Delivery, handler: DownloadHandler) -> None:
         )
         return
     try:
-        result = await handler.execute(requested.job_id)
+        result = await handler.execute(resource_id)
     except asyncio.CancelledError:
         with suppress(Exception):
             await asyncio.shield(message.nack(requeue=True))
@@ -118,10 +128,10 @@ def _replay_count(message: Delivery) -> int:
 
 
 async def _declare_download_topology(
-    channel: Any, topology: RabbitMqTopology
+    channel: Any, topology: RabbitMqTopology, *, intent: bool = False
 ) -> AbstractQueue:
     """Declare the download queue and its DLX so startup verifies the contract."""
-    binding = topology.download
+    binding = topology.intents if intent else topology.download
     exchange = await channel.declare_exchange(
         topology.exchange, type=ExchangeType.TOPIC, durable=True
     )
@@ -160,6 +170,7 @@ class RabbitMqDownloadConsumer:
         connection_timeout: float = 10,
         heartbeat: int = 60,
         reconnect_interval: float = 5,
+        intent: bool = False,
     ) -> None:
         worker_count = prefetch if workers is None else workers
         if (
@@ -174,6 +185,7 @@ class RabbitMqDownloadConsumer:
         self._url = url
         self._topology = topology
         self._handler = handler
+        self._intent = intent
         self._prefetch = prefetch
         self._pool = AsyncWorkerPool(
             self._consume_delivery,
@@ -203,7 +215,9 @@ class RabbitMqDownloadConsumer:
             async with asyncio.timeout(self._connection_timeout):
                 channel = await connection.channel()
                 await channel.set_qos(prefetch_count=self._prefetch)
-                queue = await _declare_download_topology(channel, self._topology)
+                queue = await _declare_download_topology(
+                    channel, self._topology, intent=self._intent
+                )
                 self._queue = queue
                 await self._pool.start()
                 self._consumer_tag = await queue.consume(self._consume)
@@ -232,4 +246,4 @@ class RabbitMqDownloadConsumer:
         await self._pool.submit(message)
 
     async def _consume_delivery(self, message: AbstractIncomingMessage) -> None:
-        await process_delivery(message, self._handler)
+        await process_delivery(message, self._handler, intent=self._intent)

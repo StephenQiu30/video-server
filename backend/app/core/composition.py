@@ -59,6 +59,7 @@ from app.repositories.documents.delete_repository import (
 from app.repositories.documents.import_repository import (
     SqlAlchemyDocumentImportRepository,
 )
+from app.repositories.downloads.intent_repository import IntentRepository
 from app.repositories.downloads.repository import SqlAlchemyDownloadRepository
 from app.repositories.imports.repository import SqlAlchemyMediaImportRepository
 from app.repositories.operational_metrics import OperationalMetrics
@@ -104,6 +105,7 @@ from app.services.downloads.delete_download import DeleteDownload
 from app.services.downloads.fingerprints import HmacRequestFingerprinter
 from app.services.downloads.history import GetDownloadHistory
 from app.services.downloads.inspect_media import InspectMedia
+from app.services.downloads.intents import IntentService
 from app.services.downloads.queries import (
     CancelDownload,
     GetDownload,
@@ -502,6 +504,14 @@ def build_api_runtime(settings: Settings) -> ApiRuntime:
     )
     return ApiRuntime(
         services=ApiServices(
+            intent_service=IntentService(
+                IntentRepository(sessions, quota_policy=quota_policy),
+                MediaUrlValidator(),
+                envelope,
+                fingerprinter,
+                now=clock,
+                new_id=uuid4,
+            ),
             auth_service=auth_service,
             user_service=user_service,
             download_use_cases=use_cases,

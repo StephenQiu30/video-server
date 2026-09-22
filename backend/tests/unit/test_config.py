@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from app.core.config import DEFAULT_URL_ENCRYPTION_KEY, REPOSITORY_ROOT, Settings
 from app.services.provider_access import ProviderAccessPolicy
+from cryptography.fernet import Fernet
 from pydantic import SecretStr, ValidationError
 
 
@@ -471,6 +472,23 @@ def test_production_non_consumers_do_not_require_url_or_auth_secrets(role: str) 
         minio_access_key="production-access",
         minio_secret_key="m" * 48,
     )
+
+
+def test_production_download_worker_requires_explicit_fingerprint_secret() -> None:
+    kwargs = dict(
+        _env_file=None,
+        app_env="production",
+        service_role="download-worker",
+        database_url="postgresql+asyncpg://app:db-password@postgres:5432/video",
+        rabbitmq_url="amqp://app:mq-password@rabbitmq:5672/",
+        runner_hmac_secret="r" * 48,
+        minio_access_key="production-access",
+        minio_secret_key="m" * 48,
+        url_encryption_key=Fernet.generate_key().decode(),
+    )
+    with pytest.raises(ValidationError, match="production secrets"):
+        Settings(**kwargs)
+    Settings(**kwargs, request_fingerprint_secret="f" * 48)
 
 
 def test_analysis_settings_only_configure_host_binary_paths() -> None:
