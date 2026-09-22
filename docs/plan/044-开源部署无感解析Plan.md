@@ -241,6 +241,7 @@
 - 2026-09-23 修复 Canary 的 guest 路由缺口：匿名、guest、operator 分别选用独立客户端；缺失 guest 返回 `guest_context_required`，不查找账号端点。复用业务 Runner 的访客客户端装配，启动前校验所选访客目标配置，关闭时释放访客连接。抖音固定样本改为已有真实证据的 guest 路线。
 - 同步修复 `provider_canary_results` 仍拒绝 guest 的 ORM／当前态 SQL 约束。空隔离 schema 初始化、三种访问模式写入、重复应用保留证据及 guest／账号证据隔离测试通过；现有项目数据库只幂等应用 Canary 对应 SQL，既有记录保留。Canary／仓储／schema 共 54 项通过，Ruff／格式／Mypy 580 文件通过；全量先前运行 2,040 通过、4 环境跳过、2 失败，失败均为工作区外部删除的 browser-extension/manifest.json 导致，未恢复或提交这些外部改动。
 - 最终 arm64 探针镜像已构建并仅重建 provider-canary。开发／生产 Compose 解析通过（生产使用 .env＋.env.prod）；真实抖音固定样本 metadata／media 均 guest 成功且证据持久化，耗时 2,674／6,635 ms。未使用账号路线；此结果不替代全平台冷／热／失效矩阵。下载状态提交 `9a814e04` 的远端 [CI 35754311067](https://github.com/StephenQiu30/video-server/actions/runs/35754311067) 已成功。
+- 修正公开能力投影把历史完整分析成功时间误当作当前媒体可用性的缺陷：保留发布验证标记与历史时间作诊断，但 `public_ready`／`guest_ready`／`operator_ready` 仅在所选线路当前媒体证据有效时返回。旧媒体证据加新分析成功的回归夹具以及 Provider 状态相关 48 项测试、Ruff、Mypy 通过；真实平台矩阵与策略／候选完整关联仍待完成，P9.08 不关闭。
 
 <a id="p9-09"></a>
 

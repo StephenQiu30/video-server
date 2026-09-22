@@ -905,6 +905,26 @@ async def test_stale_failures_do_not_override_release_verification() -> None:
 
 
 @pytest.mark.asyncio
+async def test_stale_media_route_is_not_ready_after_analysis_success() -> None:
+    service = ProviderStatusService(
+        Reader(
+            (
+                result(0, stage=ProviderCanaryStage.ANALYSIS),
+                result(27 * 60, stage=ProviderCanaryStage.MEDIA),
+            )
+        ),
+        (baseline(ProviderSupportStatus.VERIFIED),),
+        now=lambda: NOW,
+    )
+
+    view = (await service.list())[0]
+
+    assert view.last_verified_at == NOW
+    assert view.download_available is False
+    assert view.access_state is ProviderAccessState.PUBLIC_PROBE
+
+
+@pytest.mark.asyncio
 async def test_admin_catalog_controls_public_order_names_and_custom_entries() -> None:
     service = ProviderStatusService(
         Reader(()),

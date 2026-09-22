@@ -99,8 +99,11 @@ class ProviderStatusView:
             ProviderSupportStatus.RATE_LIMITED,
         }:
             return ProviderAccessState.DEGRADED
-        ready = self.status is ProviderSupportStatus.VERIFIED and (
-            self.download_available or self.last_verified_at is not None
+        # Historical analysis success is diagnostic evidence, not current media
+        # availability. A release-verified profile must still have fresh media
+        # evidence for its selected route before it is shown as ready.
+        ready = (
+            self.status is ProviderSupportStatus.VERIFIED and self.download_available
         )
         if access_mode is ProviderAccessMode.OPERATOR_MANAGED:
             if ready:
