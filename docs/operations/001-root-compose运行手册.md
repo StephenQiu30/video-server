@@ -142,6 +142,25 @@ docker compose --env-file .env.prod -f docker-compose-prod.yml up -d --no-build
 
 生产镜像分别使用 video-server:prod（后端）与 video-frontend:prod（前端），由各自目录的 Dockerfile 构建。生产 Compose 不启动基础设施初始化服务，也不包含 environment profile。
 
+后端所有进程（包括来源同步与初始化）必须使用同一份 `video-server:prod` 发布镜像。Python／Node 基础镜像在两个 Dockerfile 中固定多架构索引摘要；Python 依赖来自 `uv.lock`，Web 来自 `pnpm-lock.yaml`，yt-dlp 固定源码 commit。基础镜像摘要不等于最终镜像摘要：系统 apt 包仍在构建时解析，因此部署和回滚保留最终构建产物，不在不同机器重新构建后假定二进制相同。更新基础摘要须重新执行确定性检查、双架构运行检查和相关平台验收；启动阶段不得临时安装最新版依赖。
+
+在支持 containerd image store 的 Docker Desktop／Engine 上，标准镜像的双架构本地构建入口为：
+
+~~~bash
+docker buildx build --platform linux/amd64,linux/arm64 --load \
+  --metadata-file /tmp/framefetch-backend-build.json \
+  -t video-server:prod ./backend
+docker buildx build --platform linux/amd64,linux/arm64 --load \
+  --build-arg SITE_URL=https://你的实际域名 \
+  --build-arg SITE_INDEXABLE=false \
+  --metadata-file /tmp/framefetch-frontend-build.json \
+  -t video-frontend:prod ./frontend
+~~~
+
+两份 metadata 中的 `containerimage.digest` 是本次多架构产物身份。经典 Docker image store 不支持同时加载两架构时，分别指定单一 `--platform` 构建并记录产物；需要发布仓库时由部署者指定可信仓库，用 `--push` 保留索引与构建证明。不要把 amd64 模拟执行的耗时用于原生容量承诺。此入口覆盖标准镜像；精简模式和自动升级／回滚尚待 Plan P9.09／P9.13 验收，不能通过自行删除 guest 服务声称同等平台能力。
+
+依据：[Docker 固定基础镜像](https://docs.docker.com/build/building/best-practices/#pin-base-image-versions)、[多架构构建](https://docs.docker.com/build/building/multi-platform/)。
+
 生产健康检查：
 
 ~~~bash

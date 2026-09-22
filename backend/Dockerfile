@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1.7
 
 # --- Backend Application Targets ---
-FROM node:24-bookworm-slim AS node-runtime
+FROM node:24-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS node-runtime
 
-FROM python:3.12-slim-bookworm AS backend-builder
+FROM python:3.12-slim-bookworm@sha256:392307d22300de8b5986851a12d9176dfc0fc073e65bf6523ebd7dcbeb23564e AS backend-builder
 
 ARG UV_VERSION=0.11.32
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -22,7 +22,7 @@ COPY --link app ./app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
-FROM python:3.12-slim-bookworm AS runtime
+FROM python:3.12-slim-bookworm@sha256:392307d22300de8b5986851a12d9176dfc0fc073e65bf6523ebd7dcbeb23564e AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

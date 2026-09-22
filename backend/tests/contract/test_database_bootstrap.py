@@ -639,3 +639,24 @@ def test_projects_build_and_run_separate_images() -> None:
     assert not (ROOT.parent / "Dockerfile").exists()
     assert "frontend-builder" not in (ROOT / "Dockerfile").read_text()
     assert "python:" not in (ROOT.parent / "frontend/Dockerfile").read_text()
+
+
+def test_compose_application_roles_share_the_selected_release_image() -> None:
+    for path, image in (
+        (COMPOSE_PATH, "video-server:local"),
+        (PROD_COMPOSE_PATH, "video-server:prod"),
+    ):
+        services = yaml.safe_load(path.read_text())["services"]
+        for name, config in services.items():
+            if config.get("build", {}).get("context") == "./backend":
+                assert config["image"] == image, name
+
+
+def test_runtime_base_images_are_pinned_without_host_architecture_override() -> None:
+    for path in (DOCKERFILE_PATH, ROOT.parent / "frontend/Dockerfile"):
+        references = re.findall(r"^FROM (\S+) AS ", path.read_text(), re.MULTILINE)
+        assert references
+        assert all(
+            re.fullmatch(r"[^@]+@sha256:[0-9a-f]{64}", ref) for ref in references
+        )
+        assert "FROM --platform=" not in path.read_text()

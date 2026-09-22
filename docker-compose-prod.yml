@@ -630,7 +630,7 @@ services:
 
   provider-sources-init:
     build: *backend-build
-    image: video-server:local
+    image: video-server:prod
     container_name: provider-sources-init
     restart: "no"
     network_mode: none
@@ -645,7 +645,7 @@ services:
 
   provider-sources:
     build: *backend-build
-    image: video-server:local
+    image: video-server:prod
     container_name: provider-sources
     restart: unless-stopped
     read_only: true
