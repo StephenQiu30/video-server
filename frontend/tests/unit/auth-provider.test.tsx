@@ -53,6 +53,71 @@ describe('AuthProvider', () => {
 
   afterEach(() => vi.unstubAllGlobals());
 
+  it('does not hide confirmed anonymous content while checking the session in the background', () => {
+    runtime.getCurrentUser.mockReturnValue(new Promise(() => {}));
+    render(
+      <AuthProvider initialUser={null}>
+        <AuthProbe />
+      </AuthProvider>,
+    );
+    expect(screen.getByRole('status')).toHaveAttribute(
+      'data-auth-state',
+      'ready',
+    );
+    expect(screen.getByRole('status')).toHaveAttribute(
+      'data-session-status',
+      'anonymous',
+    );
+  });
+
+  it('renders the server-confirmed identity immediately and keeps it through a failed background check', async () => {
+    runtime.getCurrentUser.mockRejectedValue(
+      new ApiError(503, 'service_unavailable', '', '服务暂时不可用。'),
+    );
+    render(
+      <AuthProvider initialUser={user}>
+        <AuthProbe />
+      </AuthProvider>,
+    );
+    expect(screen.getByTestId('auth-user')).toHaveAttribute(
+      'data-user',
+      'video_user',
+    );
+    expect(screen.getByRole('status')).toHaveAttribute(
+      'data-auth-state',
+      'ready',
+    );
+    await waitFor(() => expect(runtime.getCurrentUser).toHaveBeenCalledOnce());
+    expect(screen.getByTestId('auth-user')).toHaveAttribute(
+      'data-user',
+      'video_user',
+    );
+    expect(screen.getByRole('status')).toHaveAttribute(
+      'data-session-status',
+      'authenticated',
+    );
+  });
+
+  it('does not replace the current identity with a later server-render projection', async () => {
+    runtime.getCurrentUser.mockReturnValue(new Promise(() => {}));
+    const view = render(
+      <AuthProvider initialUser={user}>
+        <AuthProbe />
+      </AuthProvider>,
+    );
+    view.rerender(
+      <AuthProvider
+        initialUser={{ ...user, id: 'another-owner', username: 'stale-render' }}
+      >
+        <AuthProbe />
+      </AuthProvider>,
+    );
+    expect(screen.getByTestId('auth-user')).toHaveAttribute(
+      'data-user',
+      'video_user',
+    );
+  });
+
   it('does not invalidate an in-flight login when anonymous session discovery returns 401', async () => {
     const generation = sessionGeneration();
     runtime.getCurrentUser.mockRejectedValueOnce(

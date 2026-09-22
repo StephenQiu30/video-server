@@ -33,18 +33,38 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUserState] = useState<API.UserResponse>();
-  const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState<AuthContextValue['status']>('unknown');
+export function AuthProvider({
+  children,
+  initialUser,
+}: {
+  children: ReactNode;
+  initialUser?: API.UserResponse | null;
+}) {
+  // This projection seeds only the first render. Later RSC responses cannot
+  // replace an identity already owned by this provider.
+  const [user, setUserState] = useState<API.UserResponse | undefined>(
+    initialUser ?? undefined,
+  );
+  const [loading, setLoading] = useState(initialUser === undefined);
+  const [status, setStatus] = useState<AuthContextValue['status']>(
+    initialUser === undefined
+      ? 'unknown'
+      : initialUser
+        ? 'authenticated'
+        : 'anonymous',
+  );
   const [sessionError, setSessionError] = useState<string | null>(null);
-  const userRef = useRef<API.UserResponse | undefined>(undefined);
+  const userRef = useRef<API.UserResponse | undefined>(
+    initialUser ?? undefined,
+  );
+  const identityKnown = useRef(initialUser !== undefined);
   const generation = useRef(0);
   const pending = useRef<Promise<API.UserResponse | undefined> | null>(null);
   const signingOut = useRef(false);
   const logoutPending = useRef(false);
   const channel = useRef<BroadcastChannel | null>(null);
   const maskIdentity = useCallback(() => {
+    identityKnown.current = false;
     generation.current += 1;
     pending.current = null;
     advanceSessionGeneration();
@@ -56,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
   }, []);
   const applyUser = useCallback((next: API.UserResponse | undefined) => {
+    identityKnown.current = true;
     if (userRef.current?.id !== next?.id) {
       advanceSessionGeneration();
       taskSocket.reset();
@@ -125,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     if (pending.current) return pending.current;
     const current = generation.current;
-    if (!userRef.current) setLoading(true);
+    if (!identityKnown.current) setLoading(true);
     setSessionError(null);
     const request = (async () => {
       try {

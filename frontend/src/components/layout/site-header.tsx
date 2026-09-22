@@ -39,7 +39,7 @@ export function BrandLink({ className }: { className?: string }) {
 }
 
 export function SiteHeader() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, status, signOut } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
   const pathname = usePathname() ?? '/';
   const router = useRouter();
@@ -55,8 +55,8 @@ export function SiteHeader() {
   const aiProvidersActive = pathname.startsWith('/admin/ai-providers');
   const catalogActive = pathname.startsWith('/admin/providers');
   const usersActive = pathname.startsWith('/admin/users');
-  const headerAuthPending = (publicPage || authView) && loading;
-  const publicView = publicPage && !loading && !user;
+  const headerAuthPending = !user && (loading || status === 'unknown');
+  const publicView = publicPage && status === 'anonymous';
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -76,7 +76,7 @@ export function SiteHeader() {
       <div className="content-shell flex h-20 items-center justify-between">
         <BrandLink />
         <div
-          aria-busy={headerAuthPending || undefined}
+          aria-busy={(headerAuthPending && loading) || undefined}
           className="flex min-w-0 shrink-0 items-center justify-end gap-2"
           data-slot="header-actions"
         >

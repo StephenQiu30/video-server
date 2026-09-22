@@ -8,6 +8,7 @@ import { QueryProvider } from '@/components/layout/query-provider';
 import { ThemeProvider } from '@/components/layout/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { readServerSession } from '@/lib/server-session';
 import { siteConfig, siteUrl } from '@/lib/site';
 
 import '@vidstack/react/player/styles/default/theme.css';
@@ -47,7 +48,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const initialUser = await readServerSession();
   return (
     <html
       className={`${geistSans.variable} ${geistMono.variable}`}
@@ -63,7 +69,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           storageKey="framegrab-theme"
           themes={['light', 'dark']}
         >
-          <AuthProvider>
+          <AuthProvider initialUser={initialUser}>
             <QueryProvider>
               <IntakeDraftProvider>
                 <TooltipProvider delayDuration={300}>

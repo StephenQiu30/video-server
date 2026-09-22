@@ -270,7 +270,7 @@
 - 自动验证：`pnpm lint`、`pnpm format:check`、`pnpm build` 通过；72 个测试文件、368 项测试通过。新增导航缓存、后台失败保留数据、身份切换取消和迟到响应、StrictMode、输入不被迟到默认值覆盖的回归测试。
 - agent-browser 使用生产构建与受控接口夹具验证 UI：历史→文档→历史，逐帧观察为 0 帧历史骨架、0 帧登录跳转；阻断历史 API 后仍保留记录并显示刷新失败。桌面／390px、浅色／深色布局已检查无横向溢出。发现反馈文字和头像回退文字对比度不足并修复，四种尺寸／主题组合的 axe WCAG 2A／2AA 复验均为 0 违规、0 待判读项。
 - 本机录制：`/tmp/framefetch-query-continuity-verified.webm`；最终截图：`/tmp/framefetch-query-mobile-light-final.png`、`/tmp/framefetch-query-desktop-light-final.png`。夹具仅用于 UI 故障与导航复现，不是上游平台解析、认证协议或真实媒体验收证据。
-- 剩余：内容授权后同意图继续、筛选恢复、下载／分析详情缓存、SSR 身份投影、全部异常与身份场景的真实浏览器验收。P9.10 保持未勾选。
+- 剩余：内容授权后同意图继续、筛选恢复、下载／分析详情缓存、全部异常与身份场景的真实浏览器验收。P9.10 保持未勾选。
 - 响应丢失恢复接口：新增当前 owner + 幂等键的只读意图查询，使用现有唯一索引，不创建工作、不改变 version／截止、不新增 outbox／配额；陌生 owner 与未接单都返回相同 404。后端 29 项意图／交接集成测试、Ruff／Mypy 及自动生成客户端的类型检查和 13 项契约测试通过；Web 接入证据见下方公开意图记录。
 - 草稿连续性：输入原文、来源选择和文件来源声明移入身份代际隔离的根布局 Context，软导航保留，身份变更即时清空；不写 URL、localStorage 或 sessionStorage，刷新／关闭应用后不保留未提交原文。新增路由卸载恢复、换身份清除和独立应用实例隔离测试；前端 73 个文件、371 项测试以及 lint／format／类型检查／生产构建通过。agent-browser 在生产构建中验证输入→文档页→返回、来源选择恢复，390px 明暗主题无横向溢出且 axe 均为 0 违规、0 待判读；截图 `/tmp/framefetch-draft-mobile-dark.png`。此证据覆盖 UI 草稿，不替代已提交意图的持久恢复验收。
 - 公开意图入口已实施：普通链接不再等待 180 秒同步解析；短请求持久接单，直接使用生成的 create／find／cancel／getInspection 接口。根布局保存当前尝试与格式选择，sessionStorage 只保存 owner 和随机 key；查询失联保留结果、停止定时查询，显式恢复与前台／联网重新核对。未知接单结果先只读查询，404 后的显式重试复用原 key；旧版本不能覆盖取消。公众号候选选择和明确选择的受控授权解析仍按各自契约执行，不能将其算作 P9.06 内容授权与同意图续接完成。
@@ -278,6 +278,8 @@
 - 真实 agent-browser 验证：确认无活跃任务后停止下载 Worker，接单得到 `dd03d8b0-47a0-4eeb-9806-1efd8369cbd6`；首页→文档→首页及整页刷新仍返回同一 queued 意图，软导航保留输入，刷新不从存储还原原文。启动 Worker 后得到 ready；阻断查询仍显示原结果且不跳登录，恢复查询后继续创建 job `847228ee-e9a0-4e76-a37c-cd953705d1d3`。返回首页展示 handed_off／同一 job，不能再次创建。
 - 真实文件：该抖音公开样本 `7674644830270473609` 浏览器下载为 2,991,195 bytes，SHA-256 `b495811a95bddf1332cf3327198016f6f485b691539819c7fb7256870a1d00fc` 与 Artifact 一致；ffprobe 为 H.264／AAC、14.07 秒。另一个排队意图 `1ad83d19-af8a-47e8-bb36-3a587feccae3` 取消后 Worker 重启和页面刷新仍 cancelled；公开样本 `6961737553342991651` 的新意图解析成功。此为 Web 恢复链路证据，不替代全平台三样本准入或性能分位数。
 - 390px／1440px、明暗主题四种组合的实际结果页 axe 均 0 违规／0 待判读。初次浅色检查发现格式说明文字对比度 4.46:1，已调整并复验；截图 `/tmp/framefetch-intent-mobile-light-final.png`、`/tmp/framefetch-intent-mobile-dark-final.png`、`/tmp/framefetch-intent-desktop-light-final.png`。验收结束恢复 Worker，下载制品通过业务删除接口清理，其余临时账号、意图、解析及封面按 owner 清理。
+- 首屏身份投影已实施：server-only + React 请求范围 cache，复用生成的用户接口和校验过的部署 API 地址，仅转发本站 Cookie，2 秒上限／no-store／拒绝重定向。已确认身份直接生成首屏，AuthProvider 原位后台复核；不可用保持 unknown，页头也不显示匿名登录入口。修复已确认匿名状态在后台核对时重新隐藏页头的问题，后到的 RSC 投影不得覆盖当前客户端身份。
+- SSR 验证：前端 77 文件／402 项通过，lint／类型检查／format／本机生产构建和 arm64 镜像通过。两个独立账户 10 次并发 HTML 请求均只包含各自用户，均有 workspace／ready 和 `private, no-cache, no-store`，没有 Cookie 或另一账户资料；匿名请求只输出公开首页。agent-browser 在最终 8101 镜像确认首屏即工作区；实际停止 API 后刷新保持 resolving／原地恢复，无匿名首页、登录入口或登录跳转，恢复 API 后点击重试回到工作区。截图 `/tmp/framefetch-ssr-unknown-final.png`、`/tmp/framefetch-ssr-mobile.png`；临时独立前端、验收账户和会话均清理。公开意图提交 `750265a8` 的远端 [CI 35743294703](https://github.com/StephenQiu30/video-server/actions/runs/35743294703) 已成功。
 
 <a id="p9-11"></a>
 

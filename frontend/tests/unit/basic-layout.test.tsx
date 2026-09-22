@@ -13,6 +13,7 @@ import { InputGroupInput } from '@/components/ui/input-group';
 
 const runtime = vi.hoisted(() => ({
   loading: false,
+  status: undefined as 'unknown' | undefined,
   pathname: '/',
   replace: vi.fn(),
   user: undefined as
@@ -30,6 +31,13 @@ const runtime = vi.hoisted(() => ({
 vi.mock('@/components/auth/auth-provider', () => ({
   useAuth: () => ({
     loading: runtime.loading,
+    status:
+      runtime.status ??
+      (runtime.loading
+        ? 'unknown'
+        : runtime.user
+          ? 'authenticated'
+          : 'anonymous'),
     signOut: vi.fn(),
     user: runtime.user,
   }),
@@ -43,6 +51,7 @@ vi.mock('next/navigation', () => ({
 describe('BasicLayout', () => {
   beforeEach(() => {
     runtime.loading = false;
+    runtime.status = undefined;
     runtime.pathname = '/';
     runtime.replace.mockReset();
     runtime.user = undefined;
@@ -110,6 +119,23 @@ describe('BasicLayout', () => {
     expect(
       within(mobileNavigation).getByRole('link', { name: '平台状态' }),
     ).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('does not advertise anonymous login while identity recovery is unavailable', () => {
+    runtime.status = 'unknown';
+    runtime.loading = false;
+    render(
+      <BasicLayout>
+        <div>原地恢复</div>
+      </BasicLayout>,
+    );
+    expect(
+      screen.queryByRole('link', { name: '登录' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '打开导航菜单' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '帧取首页' })).toBeVisible();
   });
 
   it.each(['/', '/guide', '/guide/'])(

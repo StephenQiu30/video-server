@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-
+import { backendOrigin } from '@/lib/backend-origin';
 import { browserSecurityHeaders } from '@/lib/security-headers';
 
 export function proxy(request: NextRequest) {
@@ -10,17 +10,7 @@ export function proxy(request: NextRequest) {
     // deployment origin here so the same image can run against another API.
     let target: URL;
     try {
-      target = new URL(process.env.BACKEND_ORIGIN ?? 'http://127.0.0.1:8111');
-      if (
-        !['http:', 'https:'].includes(target.protocol) ||
-        target.username ||
-        target.password ||
-        target.pathname !== '/' ||
-        target.search ||
-        target.hash
-      ) {
-        throw new Error('Invalid backend origin');
-      }
+      target = backendOrigin();
     } catch {
       return NextResponse.json(
         {

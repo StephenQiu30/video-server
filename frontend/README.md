@@ -46,6 +46,7 @@ pnpm openapi
 - 路径参数按生成签名传入对象；幂等键、取消信号、上传回调和二进制 responseType 通过 RequestOptions 传递。
 - 后端二进制响应必须声明 string/binary，生成器通过官方 customType hook 映射为 Blob；不手工补类型。
 - Web 使用 PostgreSQL 持久化的不透明 HttpOnly Cookie，不刷新 JWT、不自动重放业务请求。登录／注册／退出通过同源 Web Locks 串行写入，要求 HTTPS（开发可用 localhost／回环地址）和支持 Web Locks 的现代浏览器；临时故障保留已确认身份，只有明确的本站会话失效才重新登录。
+- 首屏在请求范围内调用生成的用户接口，2 秒内确认身份并将用户投影交给 AuthProvider，Cookie 不传入客户端属性。已有身份在后台复核时不闪回等待页；不可用保持 unknown，不显示匿名登录入口。服务端请求和私有 HTML 均 no-store；BACKEND_ORIGIN 仅来自部署配置。
 - 根布局的 TanStack Query 缓存按身份代际隔离。下载历史、剧本文档、平台列表、分析 Skill 和管理统计直接调用生成 API 并传递 AbortSignal；切页保留已加载数据，换账号取消旧请求并清空旧缓存。写操作成功后定向失效相关列表；业务查询不自动重试写操作或把临时故障转成登录跳转。公开链接通过持久 intent 接单、观察和取消，sessionStorage 只保存 owner 与随机恢复键；原文仅在内存，刷新后查询原任务。其他任务快照与完整恢复范围以 044 Plan 为准。
 - 接口变化时先更新后端注解并重启后端，再执行生成、类型检查和相关测试，提交生成差异。
 
