@@ -1,6 +1,6 @@
 # 开源部署无感解析 Plan
 
-日期：2026-09-22。状态：尚未开始业务实施。本文接管 BACKLOG P9 的执行细节，保留 P9.01–P9.14 编号；本次文档拆分不关闭任何业务任务。
+日期：2026-09-22。状态：实施中，P9.01 已进入代码完成待验收。本文接管 BACKLOG P9 的执行细节，保留 P9.01–P9.14 编号；文档拆分不关闭任何业务任务。
 
 [PRD](../prd/044-开源部署无感解析PRD.md) 定义 FR／NFR／AC；[Design](../design/044-开源部署无感解析需求与系统设计.md) 定义技术方案；[BACKLOG P9](../../BACKLOG.md#p9-开源部署无感解析执行计划044) 只提供入口和任务导航。**任务状态、承接者、阻塞和证据仅在本文维护**，不在 BACKLOG 复制勾选项。
 
@@ -37,7 +37,7 @@
 
 ### P9.01 统一身份、错误和契约语义
 
-- [ ] **P9.01**；状态：未开始；承接者：待分配；职责：后端架构／Provider／Web 与 App 契约；依赖：无。
+- [ ] **P9.01**；状态：代码完成待验收；承接者：Codex；职责：后端架构／Provider／Web 与 App 契约；依赖：无。
   - 功能需求：FR-03、FR-06、FR-07、FR-13。分开 public、guest 与 account；盘点 040 未提交授权原型；明确唯一意图、操作、上下文唯一约束和错误动作，不直接将 fresh cookies 转成账号授权。
   - 非功能需求：NFR-06、NFR-08、NFR-09。准入、owner 和作用域先确定；只有 FastAPI/Pydantic 是契约编辑入口，不新增手写 schema 或第二套 Provider 框架。
   - 交付：类型／错误和策略变更、代码现状对照、生成契约及客户端迁移范围；明确稳定错误在任务状态与 HTTP 之间的职责。
@@ -49,7 +49,13 @@
 2. **P9.01.S2**：补齐 public／guest／account 类型、owner／作用域约束以及任务失败与 HTTP 错误映射。
 3. **P9.01.S3**：用匿名失败、明确账号要求、权限拒绝等反例固化契约，生成客户端并记录后续迁移范围。
 
-执行记录：尚未实施；提交／测试与实测证据／阻塞项均待执行时按 §6 填写。
+执行记录（2026-09-22）：
+
+- 承接范围：完成 P9.01.S1–S3 的服务端与 Web 契约实现；复核并复用 040 授权原型中的显式账号动作，删除“仅因平台名或模糊错误就进入授权”的推断。
+- 实际变更：提交 `8b0be2fe`。新增 `guest` 访问模式、游客准备／可用状态与 `provider_guest_context_required` 稳定错误；`public_session` 只映射 guest，guest Runner 与 operator Runner 独立路由且缺失时不得互相回退；账号动作仅在该平台具备 account 路线、状态明确为 `access_required` 且最近探测明确失败时出现。fresh cookies 和匿名空响应分别归入游客准备或平台暂时不可用，配置缺失、验证失败与策略拒绝不再触发账号授权。状态投影按选中的策略／运行上下文判定，不再因平台“具备账号能力”就显示为账号线路。
+- 契约与客户端：FastAPI/Pydantic 仍是唯一编辑入口，已从运行中的 `/openapi.json` 重新生成 Web `src/api`；Flutter 当前生成快照及迁移由 P9.12 承接，在其通过前不得发布依赖新枚举／错误的破坏性服务端替换。
+- 确定性验证：后端 `ruff check`、`ruff format --check`、`mypy app` 通过；`pytest` 为 1938 passed、2 skipped（隔离 MinIO 未提供、Linux `O_PATH` 平台项）；Web `format:check`、`lint`、361 tests 与生产 `build` 通过；从临时 code-first 服务执行 `openapi:check` 通过。开发 Compose 解析通过；生产 Compose 在提供必填 `SITE_URL=https://example.invalid` 后解析通过。测试覆盖 public／guest／account 分流、guest 不回退 operator、权限拒绝、模糊验证失败不展示账号动作及生成枚举一致性。
+- 未验收边界：本项尚未勾选。P9.03 仍需实现 guest 生命周期，P9.06 仍需完成 owner／用途／主体绑定和乱序续接，P9.12 仍需同步 App 并做设备验证；这些项及真实平台样本未完成前，不宣称 AC-03／AC-06／AC-07 或跨客户端发布门禁已整体通过。
 
 <a id="p9-02"></a>
 
