@@ -25,6 +25,12 @@ Operator 必须处于同一 Compose 网络；不提供宿主机业务进程与�
 
 ## Docker 文件使用规范
 
+下载角色需要声明与消费两条有界队列：`video.download` 和 `video.download-intent`，各自有 `.dead` 队列。升级持久解析入口前，在现有 RabbitMQ 的项目 vhost 中，为实际 `RABBITMQ_DOWNLOAD_USER` 配置这四条队列以及 `video.events`／`video.events.dead` 的 configure、write、read 权限；标准名称的匹配式为 `^video\.(events|events\.dead|download|download\.dead|download-intent|download-intent\.dead)$`。使用自定义队列／交换机名时对应精确调整，不给 Worker 管理员权限。Outbox 仍只需写 `video.events`，无需管理权限；运维 DLQ 角色如要处理新死信队列，再增加该队列的 read 权限。不要覆盖其他业务 vhost 或删除已有队列。
+
+如果 Worker 报 `ACCESS_REFUSED` 且指向 `video.download-intent`，先修复该角色权限，再重启 Worker 重新声明绑定；仅看到 API 健康不代表接单能够执行。部署验收必须使用 Compose 中真实受限角色，确认新意图实际离开 queued。CI 基础设施夹具也声明解析队列及 DLQ，但它的宽权限测试账号不能代替受限账号验收。
+
+若 RabbitMQ 同时启用了 topic permissions，还须在 Outbox 角色的 `video.events` write routing-key 列表中加入 `^download\.intent\.requested$`；资源级 exchange write 权限不能替代该项。下载角色如有 topic read 限制，也须加入对应解析与死信 routing key。新队列已声明但 outbox 持续 `ChannelAccessRefused` 时检查这一层，不能通过给业务进程管理员权限解决。
+
 - `docker-compose.yml` 和 `docker-compose-prod.yml` 只管理业务容器，不启动基础设施或初始化容器。
 - 直接沿用当前 `.env` / `.env.prod`。容器通过 `POSTGRES_HOST/PORT`、`RABBITMQ_HOST/PORT`、`REDIS_HOST/PORT` 和 `MINIO_HOST/PORT` 访问已有服务；默认主机为 `host.docker.internal`，端口以本机实际配置为准。宿主机运行的命令使用相应回环地址。
 - MinIO 只配置一组 `MINIO_ACCESS_KEY` 与 `MINIO_SECRET_KEY`，所有业务进程共用。

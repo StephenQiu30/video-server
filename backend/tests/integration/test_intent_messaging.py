@@ -11,11 +11,31 @@ from app.integrations.messaging import RabbitMqTopology
 from app.integrations.messaging.rabbitmq import RabbitMqPublisher
 from app.models import MediaInspectionRow, OutboxEventRow
 from app.repositories.outbox_repository import SqlAlchemyOutboxRepository
-from app.workers.download.consumer import RabbitMqDownloadConsumer
+from app.workers.download.consumer import (
+    RabbitMqDownloadConsumer,
+    _declare_download_topology,
+)
 from app.workers.outbox.loop import OutboxPublisherLoop
 from sqlalchemy import func, select
 from tests.integration.api.test_download_intent_routes import URL, components
 from tests.integration.api.test_download_routes import TEST_USER
+
+
+async def test_deployed_download_role_can_declare_both_command_queues():
+    url = os.environ.get("TEST_RABBITMQ_DOWNLOAD_URL")
+    if not url:
+        pytest.skip("existing deployment download-role URL not supplied")
+    # Re-declare the existing bounded topology only. Do not consume or remove
+    # deployment queues; this catches ACL drift hidden by administrator tests.
+    topology = RabbitMqTopology("video.events", "video.download", "download.requested")
+    connection = await aio_pika.connect_robust(url, timeout=5)
+    try:
+        channel = await connection.channel()
+        async with asyncio.timeout(10):
+            await _declare_download_topology(channel, topology)
+            await _declare_download_topology(channel, topology, intent=True)
+    finally:
+        await connection.close()
 
 
 async def test_intent_outbox_delivery_and_duplicate_after_confirm_loss(postgres_engine):
