@@ -52,9 +52,10 @@
 执行记录（2026-09-22）：
 
 - 承接范围：完成 P9.01.S1–S3 的服务端与 Web 契约实现；复核并复用 040 授权原型中的显式账号动作，删除“仅因平台名或模糊错误就进入授权”的推断。
-- 实际变更：提交 `8b0be2fe`。新增 `guest` 访问模式、游客准备／可用状态与 `provider_guest_context_required` 稳定错误；`public_session` 只映射 guest，guest Runner 与 operator Runner 独立路由且缺失时不得互相回退；账号动作仅在该平台具备 account 路线、状态明确为 `access_required` 且最近探测明确失败时出现。fresh cookies 和匿名空响应分别归入游客准备或平台暂时不可用，配置缺失、验证失败与策略拒绝不再触发账号授权。状态投影按选中的策略／运行上下文判定，不再因平台“具备账号能力”就显示为账号线路。
+- 实际变更：提交 `8b0be2fe`、审查修复 `ca919b5c`。新增 `guest` 访问模式、游客准备／可用状态与 `provider_guest_context_required` 稳定错误；`public_session` 只映射 guest，guest Runner 与 operator Runner 独立路由且缺失时不得互相回退；账号动作仅在该平台具备 account 路线、状态明确为 `access_required` 且最近探测明确失败时出现。fresh cookies 和匿名空响应分别归入游客准备或平台暂时不可用，配置缺失、验证失败与策略拒绝不再触发账号授权。状态投影按选中的策略／运行上下文判定，不再因平台“具备账号能力”就显示为账号线路。
+- 审查修复：浏览器同步必须携带服务端管理员先创建的待处理事务，Native Host 校验事务、平台、来源和期限后才接收快照；同平台账号授权按部署级单飞，禁止不同管理员或不同来源并发覆盖；管理员的浏览器动作可从真实状态响应到达；卸载清除加密快照与来源标记；系统／验证错误不再提示不存在的账号动作。
 - 契约与客户端：FastAPI/Pydantic 仍是唯一编辑入口，已从运行中的 `/openapi.json` 重新生成 Web `src/api`；Flutter 当前生成快照及迁移由 P9.12 承接，在其通过前不得发布依赖新枚举／错误的破坏性服务端替换。
-- 确定性验证：后端 `ruff check`、`ruff format --check`、`mypy app` 通过；`pytest` 为 1938 passed、2 skipped（隔离 MinIO 未提供、Linux `O_PATH` 平台项）；Web `format:check`、`lint`、361 tests 与生产 `build` 通过；从临时 code-first 服务执行 `openapi:check` 通过。开发 Compose 解析通过；生产 Compose 在提供必填 `SITE_URL=https://example.invalid` 后解析通过。测试覆盖 public／guest／account 分流、guest 不回退 operator、权限拒绝、模糊验证失败不展示账号动作及生成枚举一致性。
+- 确定性验证：后端 `ruff check`、`ruff format --check`、`mypy app` 通过；`pytest` 为 1942 passed、2 skipped（隔离 MinIO 未提供、Linux `O_PATH` 平台项）；Web `format:check`、`lint`、361 tests 与生产 `build` 通过；浏览器扩展脚本语法检查通过；从临时 code-first 服务执行 `openapi:check` 通过。开发 Compose 解析通过；生产 Compose 在提供必填 `SITE_URL=https://example.invalid` 后解析通过。测试覆盖 public／guest／account 分流、guest 不回退 operator、跨 owner／来源竞争、无服务端事务的浏览器同步、卸载清理、权限拒绝、模糊验证失败不展示账号动作及生成枚举一致性。
 - 未验收边界：本项尚未勾选。P9.03 仍需实现 guest 生命周期，P9.06 仍需完成 owner／用途／主体绑定和乱序续接，P9.12 仍需同步 App 并做设备验证；这些项及真实平台样本未完成前，不宣称 AC-03／AC-06／AC-07 或跨客户端发布门禁已整体通过。
 
 <a id="p9-02"></a>
