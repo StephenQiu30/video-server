@@ -41,40 +41,7 @@ class MediaRepository(RepositoryBase):
                         return InspectionSaveResult(
                             await self._snapshot(session, existing), created=False
                         )
-                    row = MediaInspectionRow(
-                        id=command.id,
-                        owner_hash=command.owner_hash,
-                        idempotency_key=command.idempotency_key,
-                        request_fingerprint=command.request_fingerprint,
-                        url_ciphertext=command.url_ciphertext,
-                        url_nonce=command.url_nonce,
-                        url_key_id=command.url_key_id,
-                        extractor_key=command.extractor_key,
-                        provider_media_id=command.provider_media_id,
-                        title=command.title,
-                        duration_seconds=command.duration_seconds,
-                        metadata_json=command.metadata,
-                        expires_at=command.expires_at,
-                    )
-                    session.add(row)
-                    await session.flush()
-                    format_rows = tuple(
-                        MediaFormatRow(
-                            id=item.id,
-                            inspection_id=command.id,
-                            display_name=item.display_name,
-                            plan_fingerprint=item.plan_fingerprint,
-                            semantic_plan=item.semantic_plan,
-                            provider_hints=item.provider_hints,
-                            expires_at=item.expires_at,
-                        )
-                        for item in command.formats
-                    )
-                    session.add_all(format_rows)
-                    await session.flush()
-                    result = InspectionSaveResult(
-                        inspection_snapshot(row, format_rows), created=True
-                    )
+                    result = await insert_inspection(session, command)
                 return result
             except IntegrityError as exc:
                 await session.rollback()
@@ -125,3 +92,41 @@ class MediaRepository(RepositoryBase):
         return inspection_snapshot(
             row, formats, thumbnail_available=thumbnail_available
         )
+
+
+async def insert_inspection(
+    session: AsyncSession, command: InspectionCreate
+) -> InspectionSaveResult:
+    """Insert the existing result graph inside the caller's transaction."""
+    row = MediaInspectionRow(
+        id=command.id,
+        owner_hash=command.owner_hash,
+        idempotency_key=command.idempotency_key,
+        request_fingerprint=command.request_fingerprint,
+        url_ciphertext=command.url_ciphertext,
+        url_nonce=command.url_nonce,
+        url_key_id=command.url_key_id,
+        extractor_key=command.extractor_key,
+        provider_media_id=command.provider_media_id,
+        title=command.title,
+        duration_seconds=command.duration_seconds,
+        metadata_json=command.metadata,
+        expires_at=command.expires_at,
+    )
+    session.add(row)
+    await session.flush()
+    formats = tuple(
+        MediaFormatRow(
+            id=item.id,
+            inspection_id=command.id,
+            display_name=item.display_name,
+            plan_fingerprint=item.plan_fingerprint,
+            semantic_plan=item.semantic_plan,
+            provider_hints=item.provider_hints,
+            expires_at=item.expires_at,
+        )
+        for item in command.formats
+    )
+    session.add_all(formats)
+    await session.flush()
+    return InspectionSaveResult(inspection_snapshot(row, formats), created=True)

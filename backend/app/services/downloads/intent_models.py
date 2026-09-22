@@ -1,0 +1,60 @@
+"""One durable parse intent; the existing inspection and job own their results."""
+
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import StrEnum
+from uuid import UUID
+
+from app.services.downloads.inspection_models import EncryptedUrl
+from app.services.provider_access import ProviderAccessPolicy
+
+
+class IntentStatus(StrEnum):
+    QUEUED = "queued"
+    PREPARING = "preparing"
+    RESOLVING = "resolving"
+    RETRY_WAIT = "retry_wait"
+    ACTION_REQUIRED = "action_required"
+    READY = "ready"
+    HANDED_OFF = "handed_off"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+    FAILED = "failed"
+
+
+@dataclass(frozen=True, slots=True)
+class IntentCreate:
+    id: UUID
+    owner_hash: str
+    idempotency_key: str
+    request_fingerprint: str
+    url: EncryptedUrl = field(repr=False)
+    access_policy: ProviderAccessPolicy = ProviderAccessPolicy.PUBLIC
+
+
+@dataclass(frozen=True, slots=True)
+class IntentSnapshot:
+    id: UUID
+    owner_hash: str
+    status: IntentStatus
+    access_policy: ProviderAccessPolicy
+    version: int
+    fence: int
+    attempt: int
+    max_attempts: int
+    remaining_budget_ms: int
+    deadline: datetime
+    lease_owner: str | None
+    lease_expires_at: datetime | None
+    retry_at: datetime | None
+    inspection_id: UUID | None
+    job_id: UUID | None
+    reason_code: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class IntentLease:
+    intent: IntentSnapshot
+    url: EncryptedUrl = field(repr=False)

@@ -1158,6 +1158,73 @@ CREATE INDEX IF NOT EXISTS ix_outbox_events_publishable
     ON outbox_events (published_at, available_at, next_attempt_at);
 CREATE INDEX IF NOT EXISTS ix_outbox_events_lock ON outbox_events (lock_expires_at);
 
+ALTER TABLE outbox_events ADD COLUMN IF NOT EXISTS aggregate_version INTEGER;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_outbox_aggregate_event_version
+    ON outbox_events (aggregate_type, aggregate_id, event_type, aggregate_version);
+ALTER TABLE outbox_events DROP CONSTRAINT IF EXISTS ck_outbox_intent_version;
+ALTER TABLE outbox_events ADD CONSTRAINT ck_outbox_intent_version
+    CHECK (aggregate_type <> 'download_intent' OR aggregate_version IS NOT NULL);
+
+CREATE TABLE IF NOT EXISTS download_intents (
+    id UUID PRIMARY KEY,
+    owner_hash VARCHAR(64) NOT NULL,
+    idempotency_key VARCHAR(128) NOT NULL,
+    request_fingerprint VARCHAR(64) NOT NULL,
+    url_ciphertext BYTEA NOT NULL,
+    url_nonce BYTEA NOT NULL,
+    url_key_id VARCHAR(64) NOT NULL,
+    mode VARCHAR(16) NOT NULL DEFAULT 'inspect',
+    access_policy VARCHAR(32) NOT NULL,
+    status VARCHAR(24) NOT NULL DEFAULT 'queued',
+    version INTEGER NOT NULL DEFAULT 0,
+    fence INTEGER NOT NULL DEFAULT 0,
+    attempt INTEGER NOT NULL DEFAULT 0,
+    max_attempts INTEGER NOT NULL DEFAULT 3,
+    remaining_budget_ms INTEGER NOT NULL DEFAULT 180000,
+    deadline TIMESTAMPTZ NOT NULL,
+    lease_owner VARCHAR(128),
+    lease_expires_at TIMESTAMPTZ,
+    retry_at TIMESTAMPTZ,
+    authorization_id UUID,
+    authorization_deadline TIMESTAMPTZ,
+    inspection_id UUID REFERENCES media_inspections (id),
+    job_id UUID REFERENCES download_jobs (id),
+    reason_code VARCHAR(64),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_download_intents_owner_key UNIQUE (owner_hash, idempotency_key),
+    CONSTRAINT uq_download_intents_job UNIQUE (job_id),
+    CONSTRAINT ck_download_intents_status CHECK (status IN (
+        'queued','preparing','resolving','retry_wait','action_required',
+        'ready','handed_off','cancelled','expired','failed'
+    )),
+    CONSTRAINT ck_download_intents_mode CHECK (mode = 'inspect'),
+    CONSTRAINT ck_download_intents_policy CHECK (access_policy IN (
+        'public','public_session','operator_public','personal_entitled'
+    )),
+    CONSTRAINT ck_download_intents_version CHECK (version >= 0 AND fence >= 0),
+    CONSTRAINT ck_download_intents_attempt CHECK (
+        attempt >= 0 AND attempt <= max_attempts AND max_attempts BETWEEN 1 AND 3
+    ),
+    CONSTRAINT ck_download_intents_budget CHECK (remaining_budget_ms BETWEEN 0 AND 180000),
+    CONSTRAINT ck_download_intents_lease CHECK (
+        (status IN ('preparing','resolving') AND lease_owner IS NOT NULL AND lease_expires_at IS NOT NULL)
+        OR (status NOT IN ('preparing','resolving') AND lease_owner IS NULL AND lease_expires_at IS NULL)
+    ),
+    CONSTRAINT ck_download_intents_retry CHECK ((status = 'retry_wait') = (retry_at IS NOT NULL)),
+    CONSTRAINT ck_download_intents_result CHECK (status <> 'ready' OR inspection_id IS NOT NULL),
+    CONSTRAINT ck_download_intents_handoff CHECK (status <> 'handed_off' OR job_id IS NOT NULL),
+    CONSTRAINT ck_download_intents_action CHECK (
+        status <> 'action_required' OR (authorization_id IS NOT NULL AND authorization_deadline IS NOT NULL)
+    )
+);
+CREATE INDEX IF NOT EXISTS ix_download_intents_owner_created
+    ON download_intents (owner_hash, created_at);
+CREATE INDEX IF NOT EXISTS ix_download_intents_recovery
+    ON download_intents (status, lease_expires_at, retry_at);
+CREATE INDEX IF NOT EXISTS ix_download_intents_deadline
+    ON download_intents (status, deadline);
+
 CREATE TABLE IF NOT EXISTS rabbitmq_dlq_replays (
     id UUID PRIMARY KEY,
     source_queue VARCHAR(64) NOT NULL,
