@@ -20,6 +20,7 @@ FastAPI 路由注解与 Pydantic 模型自动产生 /openapi.json；Swagger UI �
 ## 页面与组件
 
 - 页面层以内容、排版和留白分组，复用 BasicLayout 的 Header、main 与 Footer。
+- 页面标题、正文、元数据、指标和操作说明默认沿同一左侧基线对齐；只有 `Empty`、图标按钮、进度指示等组件自身语义明确要求时才居中。
 - 基础控件保持官方 props、variant、边框、焦点、错误和浮层行为；不用无边框要求覆盖官方基础组件。
 - 采用官方 neutral 明暗 token 与圆角比例；业务状态可增加有明确用途的语义 token。
 - 使用官方 Radix 交互和 Phosphor 图标，保留键盘操作、表单标签与异步反馈。Progress 补充向 Radix 根节点传递 value，以正确公布进度。

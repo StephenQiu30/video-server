@@ -6,7 +6,7 @@
 - 前置调研：`docs/research/003-多平台下载会话与GitHub适配调研.md`
 - 实现状态：Phase 1 已落地版本化 Profile、非 Secret 访问上下文、匿名/YouTube 运维 Runner 路由、操作级 Cookie jar、Redis 跨副本凭据租约、权益防火墙、服务端托管 POT sidecar、稳定错误、Provider 探针结果表/定时执行器/动态状态聚合、`GET /api/providers` 与前端状态页。YouTube 已停止 yt-dlp 与 Runner 的同出口立即重试放大；授权目标的真实 Cookie/POT canary、完整视频 Agent E2E、账号权益漂移自动停用，以及遵守 `Retry-After` 的跨层总预算/cooldown 仍是生产发布门禁；Phase 2 的用户 Credential Broker/Vault 与 gallery-dl 尚未实现。
 
-> 当前实现：Provider Profile 与会话来源由中央枚举登记，独立 Runner 按 profile 选择。标准 Compose 的 YouTube、抖音、Reddit 使用当前宿主按 Provider 隔离的 Agent 加密队列；视频号使用专用持久元宝 Profile，腾讯视频与优酷保留个人文件实验线路。其他已验证公开平台只走匿名 Runner。运行策略由部署默认与显式准入决定，不在失败后切换账号或读取日常 Chrome。YouTube 保留 mweb、EJS 和固定 bgutil POT sidecar；POT 不能修复登录过期或出口挑战。
+> 当前实现：Provider Profile 与会话来源由中央枚举登记，独立 Runner 按 profile 选择。标准 Compose 的 YouTube、抖音、Reddit 使用部署方按 Provider 隔离的只读来源；视频号使用专用持久元宝 Profile，腾讯视频与优酷保留个人文件实验线路。其他已验证公开平台只走匿名 Runner。普通客户端不安装扩展、不提供 Cookie；运行策略由部署默认与显式准入决定，不在失败后切换账号或读取日常 Chrome。YouTube 保留 mweb、EJS 和固定 bgutil POT sidecar；POT 不能修复登录过期或出口挑战。
 
 ## 1. 目标
 
@@ -226,9 +226,9 @@ engine_commit
 
 ### 8.1 第一阶段：运维一次性租约
 
-- 浏览器模式不配置 Cookie 文件路径；个人文件模式只配置 `RUNNER_PROVIDER_COOKIE_FILE` 路径。两者均不把 Cookie 内容写入环境变量。
-- Runner 为每次 inspect/download 生成一次性 X25519 私钥；请求包含强类型 Provider、来源标识和公钥。宿主代理按域读取当前 Chrome Cookie，以 HKDF 派生密钥并用 ChaCha20-Poly1305 绑定请求内容加密。
-- 请求队列没有 Cookie；响应队列只短暂保存只能由该请求私钥解开的密文。Runner 领取后立即确认，代理删除请求和响应；超时也会清除密文。
+- 默认文件模式只配置 `RUNNER_PROVIDER_COOKIE_FILE` 路径，不把 Cookie 内容写入环境变量。Runner 每次操作重新打开只读来源，原子轮换无需重建容器。
+- 可选浏览器导入模式为每次 inspect/download 生成一次性 X25519 私钥；连接器按域读取当前 Chrome Cookie，经 Native Messaging 写入本机加密快照，再由宿主 Agent 以 HKDF/ChaCha20-Poly1305 交付。该模式只用于个人部署显式导入，不是普通请求依赖。
+- 可选导入队列没有 Cookie；响应只短暂保存只能由该请求私钥解开的密文。Runner 领取后立即确认，代理删除请求和响应；超时也会清除密文。
 - Runner 解密后验证 Netscape header、最大 1 MiB 和该 Profile 域名 allowlist，只在独占 tmpfs `/run/provider-session` 创建唯一目录；目录 `0700`、Cookie jar `0600`。
 - 初次 inspection 使用独立 jar 并在返回时销毁；异步 download 从同一强类型来源请求新租约，重解析、视频流、音频流和 probe 串行复用本次 jar，让该操作内的 `Set-Cookie` 更新可见。
 - 同一 jar 不得被多个子进程并发写；未来若并发下载 stream，必须先增加 Cookie coordinator 或在冻结更新后分叉副本。
@@ -237,13 +237,13 @@ engine_commit
 - 操作级 jar 的更新在终态丢弃，不反向写宿主 Chrome。私钥只存在于请求协程内，终态后遗留密文不可恢复。
 - 微信视频号专用 Profile 由宿主来源独占持久保存，目录 0700、锁 0600，登录/导出互斥；操作结束在 finally 关闭 Chrome、释放锁，保留用户登录。仅元宝限定字段进入本次加密租约，Profile 不进入 Runner；失效需用户重新登录，不自动恢复已撤销权限。
 
-### 8.2 macOS 单机按需来源
+### 8.2 macOS 单机可选导入器
 
-- 只有当前登录的 macOS 用户显式安装助手并启用对应 Operator 后，解析/下载操作才可触发浏览器来源。本机开发及 production Compose 将对应 Provider 的加密队列挂载到 Runner；视频号使用专用元宝目录，优酷/腾讯视频保留文件来源。无 Agent 的 Linux/无人桌面部署只走匿名路线，不能在失败后静默切换来源。
-- Chrome Cookies 数据库的 SQL 查询在选择阶段就限制为当前 Provider 的中央域 allowlist，只返回并解密中选行；其他域 Cookie 不进入 helper 的查询结果、输出或日志。
+- 只有当前登录的 macOS 管理员显式安装助手时，才启用浏览器来源导入。普通解析/下载不触发扩展；本机开发及 production Compose 的 YouTube、抖音、Reddit 直接消费部署级只读来源。视频号使用专用元宝目录，优酷/腾讯视频保留文件来源。
+- Chrome Cookies 数据库不由 API、Worker 或 LaunchAgent 直接读取。Chrome 扩展使用官方 `cookies` API，在选择阶段就限制为当前 Provider 的中央域 allowlist；其他域 Cookie 不进入连接器快照、输出或日志。
 - 单次读取在独立进程组中执行，持有 15 秒硬超时；成功后立即退出，超时、取消或异常时终止并回收整个进程组。视频号导出按需启动专用 Chrome 并在结束关闭；助手不长期持有浏览器，不使用定时轮询或常驻端口。
-- `browser` 表示动态本机来源协议，不是 Cookie 原文哈希或内容 cohort。其平台状态历史只能证明该来源在相同非敏感上下文近期完成过制品，不证明当前 Cookie 未轮换或仍可用，不能单独将 `access_required` 提升为 `verified`。
-- 应用服务的启动与重启仍只使用根 Docker Compose；按需 helper 是凭据适配器，不是宿主机平行应用或新的启动脚本。
+- `browser` 表示可选动态导入协议，不是 Cookie 原文哈希或内容 cohort。其平台状态历史只能证明该来源在相同非敏感上下文近期完成过制品，不证明当前 Cookie 未轮换或仍可用，不能单独将 `access_required` 提升为 `verified`。
+- 应用服务的启动与重启仍只使用根 Docker Compose；按需 helper 是个人部署导入器，不是宿主机平行应用或客户端前置。
 
 ### 8.3 第二阶段：用户 ProviderCredential
 
@@ -298,11 +298,11 @@ engine_commit
 
 ### 9.4 macOS 单机来源维护
 
-yt-dlp 官方说明，日常浏览器中打开 YouTube 标签页会轮换账号 Cookie，因此一次导出的静态文件不能作为持续来源。[YouTube extractor guidance](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies)；PO Token 只覆盖请求证明，不能代替账号 Cookie。[PO Token Guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide)
+yt-dlp 官方说明，日常浏览器中打开 YouTube 标签页会轮换账号 Cookie，因此一次导出的静态文件不能视为永久来源。[YouTube extractor guidance](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies)；PO Token 只覆盖请求证明，不能代替账号 Cookie。[PO Token Guide](https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide)。默认由部署发布流程或 Secret controller 轮换来源；下述本机维护器仅保留为个人部署兼容通道。
 
-macOS 个人部署使用一个仅限 YouTube 的宿主维护进程：由已经获得 Chrome 数据读取权限的桌面宿主显式启动，先执行一次有界采集，成功后脱离项目进程，每 60 秒比较当前 YouTube 域来源。新 payload 先通过既有域、必需字段、过期时间、大小和文件安全校验，再用锁、`fsync` 和 `os.replace` 原子发布；采集或发布失败只更新非敏感状态，不删除上一份生产文件。Runner 每次操作重新打开只读文件，因此不需要重建容器，也不会在用户解析、下载或获取文件时读取 Chrome。
+macOS 个人部署的旧版灾备通道使用一个仅限 YouTube 的宿主维护进程：由已经获得 Chrome 数据读取权限的桌面宿主显式启动，先执行一次有界采集，成功后脱离项目进程，每 60 秒比较当前 YouTube 域来源。新 payload 先通过既有域、必需字段、过期时间、大小和文件安全校验，再用锁、`fsync` 和 `os.replace` 原子发布；采集或发布失败只更新非敏感状态，不删除上一份生产文件。Runner 每次操作重新打开只读文件，因此不需要重建容器，也不会在用户解析、下载或获取文件时读取 Chrome。
 
-不使用 `launchd` 直接读取 Chrome Cookie 数据库。macOS TCC 按实际责任进程授权，系统启动的 Python 不继承 VS Code、ChatGPT 或终端的 Full Disk Access；2026-09-15 本机实测该方式会稳定返回 `provider_session_permission_denied`。维护进程必须由已授权的实际宿主启动；机器重启后把幂等 `start` 纳入部署启动步骤。新机器必须重新建立合法来源和实际宿主授权，不能从代码仓库恢复账号授权。
+不使用 `launchd` 直接读取 Chrome Cookie 数据库。macOS TCC 按实际责任进程授权，系统启动的 Python 不继承 VS Code、ChatGPT 或终端的 Full Disk Access；2026-09-15 本机实测该方式会稳定返回 `provider_session_permission_denied`。服务端默认路径不读取浏览器；仅在个人部署显式使用旧版维护器或浏览器导入器时，才由已授权的实际宿主建立来源。新部署从 Secret/受控目录恢复批准来源，不能从代码仓库恢复账号授权。
 
 首期维护者只允许 `ProviderKey.YOUTUBE`，不接受通用 provider 参数，不访问网络、Docker、数据库、其他平台来源或浏览器页面。其他平台只有在各自轮换机制和真实 canary 证明需要后才能新增独立维护者。
 
