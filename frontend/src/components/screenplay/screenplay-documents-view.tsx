@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowClockwise } from '@phosphor-icons/react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { deleteDocument as deleteScreenplayDocument } from '@/api/documents';
 import { BackLink } from '@/components/layout/back-link';
@@ -13,9 +14,11 @@ import { ScreenplayUploadDialog } from '@/components/screenplay/screenplay-uploa
 import { useScreenplayDocuments } from '@/components/screenplay/use-screenplay-documents';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { privateQueryKey } from '@/lib/query-keys';
 import { displayError } from '@/lib/request-error';
 
 export default function ScreenplayDocumentsView() {
+  const queries = useQueryClient();
   const [page, setPage] = useState(1);
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -28,10 +31,14 @@ export default function ScreenplayDocumentsView() {
       await deleteScreenplayDocument({
         document_id: encodeURIComponent(document.id),
       });
+      queries.removeQueries({
+        queryKey: privateQueryKey('document', document.id),
+      });
+      void queries.invalidateQueries({
+        queryKey: privateQueryKey('documents'),
+      });
       if (page > 1 && state.data?.items.length === 1) {
         setPage((current) => current - 1);
-      } else {
-        state.refresh();
       }
     } catch (reason) {
       setActionError(displayError(reason));
@@ -49,12 +56,13 @@ export default function ScreenplayDocumentsView() {
             <ScreenplayUploadDialog />
             <Button
               className="h-11 bg-surface px-4"
-              disabled={state.loading}
+              aria-busy={state.refreshing}
+              disabled={state.refreshing}
               onClick={state.refresh}
               type="button"
               variant="outline"
             >
-              {state.loading ? (
+              {state.refreshing ? (
                 <Spinner aria-hidden data-icon="inline-start" />
               ) : (
                 <ArrowClockwise aria-hidden data-icon="inline-start" />

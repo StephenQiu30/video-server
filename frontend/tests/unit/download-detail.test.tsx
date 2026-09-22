@@ -1,6 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
 import DownloadJobView from '@/components/downloads/download-job-view';
 import { ApiError } from '@/lib/request-error';
 import { analysisSkills } from '../fixtures/analysis-fixtures';
@@ -15,6 +14,7 @@ import {
   mockHttpError,
   mockHttpResponses,
 } from '../helpers/http';
+import { render } from '../helpers/query-render';
 import { emitTaskUpdate } from '../helpers/websocket';
 
 const runtime = vi.hoisted(() => ({

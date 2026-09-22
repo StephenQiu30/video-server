@@ -1,31 +1,25 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { listAnalysisSkills } from '@/api/analyses';
+import { privateQueryKey } from '@/lib/query-keys';
 import { displayError } from '@/lib/request-error';
 
 export function useAnalysisSkills(inputKind: API.AnalysisInputKind = 'video') {
-  const [skills, setSkills] = useState<API.AnalysisSkillResponse[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await listAnalysisSkills({ input_kind: inputKind });
-      if (!Array.isArray(result)) {
-        throw new Error('分析 Skill 清单格式无效');
-      }
-      setSkills(result);
-    } catch (reason) {
-      setError(displayError(reason));
-    } finally {
-      setLoading(false);
-    }
-  }, [inputKind]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { error, loading, retry: load, skills };
+  const result = useQuery({
+    queryKey: privateQueryKey('analysis-skills', inputKind),
+    queryFn: async ({ signal }) => {
+      const data = await listAnalysisSkills(
+        { input_kind: inputKind },
+        { signal },
+      );
+      if (!Array.isArray(data)) throw new Error('分析 Skill 清单格式无效');
+      return data;
+    },
+    staleTime: 5 * 60_000,
+  });
+  return {
+    error: result.error ? displayError(result.error) : null,
+    loading: result.isPending,
+    retry: () => result.refetch(),
+    skills: result.data ?? [],
+  };
 }

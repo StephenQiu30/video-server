@@ -1,7 +1,7 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import DownloadWorkspace from '@/components/intake/download-workspace';
+import { render } from '../helpers/query-render';
 
 const toastInfo = vi.hoisted(() => vi.fn());
 

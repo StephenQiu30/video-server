@@ -1,12 +1,12 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { act, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { useScreenplayDocument } from '@/components/screenplay/use-screenplay-document';
 import { useScreenplayDocuments } from '@/components/screenplay/use-screenplay-documents';
 import {
   screenplayDocument,
   screenplayDocumentPage,
 } from '../fixtures/document-fixtures';
+import { renderHook } from '../helpers/query-render';
 
 const runtime = vi.hoisted(() => ({
   getScreenplayDocument: vi.fn(),
@@ -28,16 +28,22 @@ describe('screenplay document hooks', () => {
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(runtime.listScreenplayDocuments).toHaveBeenLastCalledWith({
-      page: 1,
-      page_size: 20,
-    });
+    expect(runtime.listScreenplayDocuments).toHaveBeenLastCalledWith(
+      {
+        page: 1,
+        page_size: 20,
+      },
+      { signal: expect.any(AbortSignal) },
+    );
     rerender({ page: 2 });
     await waitFor(() =>
-      expect(runtime.listScreenplayDocuments).toHaveBeenLastCalledWith({
-        page: 2,
-        page_size: 20,
-      }),
+      expect(runtime.listScreenplayDocuments).toHaveBeenLastCalledWith(
+        {
+          page: 2,
+          page_size: 20,
+        },
+        { signal: expect.any(AbortSignal) },
+      ),
     );
     act(() => result.current.refresh());
     await waitFor(() =>

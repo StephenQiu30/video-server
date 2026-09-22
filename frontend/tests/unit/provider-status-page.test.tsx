@@ -1,7 +1,13 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { ProviderStatusView } from '@/components/providers/provider-status-view';
+import { render } from '../helpers/query-render';
 
 const runtime = vi.hoisted(() => ({
   listProviders: vi.fn(),
@@ -39,7 +45,7 @@ describe('provider status page', () => {
       'data-slot',
       'page-header',
     );
-    const table = screen.getByRole('table', { name: '平台能力状态' });
+    const table = await screen.findByRole('table', { name: '平台能力状态' });
     const youtube = within(table)
       .getByRole('heading', { name: 'YouTube' })
       .closest('tr');
@@ -166,12 +172,14 @@ describe('provider status page', () => {
     ).not.toBeInTheDocument();
     await act(async () => refresh.reject(new Error('状态服务暂不可用')));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(runtime.toast.error).toHaveBeenCalledWith(
-      '平台状态刷新失败',
-      expect.objectContaining({
-        description: '状态服务暂不可用',
-        id: 'provider-status-refresh-error',
-      }),
+    await waitFor(() =>
+      expect(runtime.toast.error).toHaveBeenCalledWith(
+        '平台状态刷新失败',
+        expect.objectContaining({
+          description: '状态服务暂不可用',
+          id: 'provider-status-refresh-error',
+        }),
+      ),
     );
     const toastOptions = runtime.toast.error.mock.calls.at(-1)?.[1];
     await act(async () => toastOptions.action.onClick());

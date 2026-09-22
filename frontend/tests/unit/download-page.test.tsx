@@ -1,6 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import DownloadWorkspace from '@/components/intake/download-workspace';
 import { PUBLIC_INPUT_REQUIRED } from '@/components/intake/public-input';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -20,6 +19,7 @@ import {
   mockHttpError,
   mockHttpResponses,
 } from '../helpers/http';
+import { render } from '../helpers/query-render';
 
 const push = vi.fn();
 const authorization = vi.hoisted(() => ({

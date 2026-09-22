@@ -1,6 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { MissingScreenplayDocument } from '@/components/screenplay/missing-screenplay-document';
 import ScreenplayDocumentDetailView from '@/components/screenplay/screenplay-document-detail-view';
 import ScreenplayDocumentsView from '@/components/screenplay/screenplay-documents-view';
@@ -9,6 +8,7 @@ import {
   screenplayDocumentPage,
   screenplayDocumentSummary,
 } from '../fixtures/document-fixtures';
+import { render } from '../helpers/query-render';
 
 const runtime = vi.hoisted(() => ({
   deleteScreenplayDocument: vi.fn(),
@@ -59,10 +59,16 @@ describe('screenplay documents', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: '下一页' }));
     await waitFor(() =>
-      expect(runtime.listScreenplayDocuments).toHaveBeenLastCalledWith({
-        page: 2,
-        page_size: 20,
-      }),
+      expect(runtime.listScreenplayDocuments).toHaveBeenLastCalledWith(
+        {
+          page: 2,
+          page_size: 20,
+        },
+        { signal: expect.any(AbortSignal) },
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: '刷新' })).toBeEnabled(),
     );
     fireEvent.click(screen.getByRole('button', { name: '刷新' }));
     await waitFor(() =>

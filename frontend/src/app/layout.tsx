@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { AuthProvider } from '@/components/auth/auth-provider';
 import { BasicLayout } from '@/components/layout/basic-layout';
+import { QueryProvider } from '@/components/layout/query-provider';
 import { ThemeProvider } from '@/components/layout/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -62,10 +63,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           themes={['light', 'dark']}
         >
           <AuthProvider>
-            <TooltipProvider delayDuration={300}>
-              <BasicLayout>{children}</BasicLayout>
-            </TooltipProvider>
-            <Toaster closeButton position="bottom-right" />
+            <QueryProvider>
+              <TooltipProvider delayDuration={300}>
+                <BasicLayout>{children}</BasicLayout>
+              </TooltipProvider>
+              <Toaster closeButton position="bottom-right" />
+            </QueryProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

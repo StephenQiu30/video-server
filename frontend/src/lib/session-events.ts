@@ -2,6 +2,7 @@
 // it so a response from an old identity cannot invalidate the current one.
 let generation = 0;
 const listeners = new Set<() => void>();
+const generationListeners = new Set<() => void>();
 
 export function sessionGeneration(): number {
   return generation;
@@ -9,6 +10,14 @@ export function sessionGeneration(): number {
 
 export function advanceSessionGeneration(): void {
   generation += 1;
+  for (const listener of generationListeners) listener();
+}
+
+export function onSessionGenerationChanged(listener: () => void): () => void {
+  generationListeners.add(listener);
+  return () => {
+    generationListeners.delete(listener);
+  };
 }
 
 export function reportSessionExpired(expectedGeneration: number): void {

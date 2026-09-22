@@ -1,12 +1,5 @@
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import ScreenplayAnalysisPanel from '@/components/screenplay/screenplay-analysis-panel';
 import { httpClient } from '@/lib/request';
 import {
@@ -15,6 +8,7 @@ import {
 } from '../fixtures/screenplay-analysis-fixtures';
 import { stubCryptoUuids } from '../helpers/crypto';
 import { httpRequests, mockHttpResponses } from '../helpers/http';
+import { render } from '../helpers/query-render';
 
 const documentId = '99999999-9999-4999-8999-999999999999';
 
@@ -36,8 +30,10 @@ describe('ScreenplayAnalysisPanel', () => {
       'id',
       'screenplay-analysis-skill',
     );
-    expect(screen.getByLabelText('分析或改写要求')).toHaveValue(
-      '重点分析故事结构、人物弧光、场景功能、节奏与对白。',
+    await waitFor(() =>
+      expect(screen.getByLabelText('分析或改写要求')).toHaveValue(
+        '重点分析故事结构、人物弧光、场景功能、节奏与对白。',
+      ),
     );
     expect(screen.getByText(/规范化剧本文本、任务指令/)).toBeInTheDocument();
     expect(screen.getByText(/不能使用文件、Shell、网络/)).toBeInTheDocument();
@@ -62,7 +58,10 @@ describe('ScreenplayAnalysisPanel', () => {
     mockHttpResponses(screenplaySkills, null);
     render(<ScreenplayAnalysisPanel documentId={documentId} />);
 
-    fireEvent.click(await screen.findByLabelText('剧本 Skill'));
+    await waitFor(() =>
+      expect(screen.getByLabelText('剧本 Skill')).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByLabelText('剧本 Skill'));
     fireEvent.click(await screen.findByRole('option', { name: '剧本改写' }));
 
     expect(screen.getByRole('button', { name: '开始剧本改写' })).toBeEnabled();

@@ -1,38 +1,22 @@
-import { useEffect, useState } from 'react';
-import { listDocuments as listScreenplayDocuments } from '@/api/documents';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { listDocuments } from '@/api/documents';
+import { privateQueryKey } from '@/lib/query-keys';
 import { displayError } from '@/lib/request-error';
 
 export function useScreenplayDocuments(query: API.listDocumentsParams) {
-  const [data, setData] = useState<API.DocumentPageResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [cycle, setCycle] = useState(0);
-  const { page, page_size: pageSize } = query;
-
-  useEffect(() => {
-    let disposed = false;
-    void cycle;
-    setLoading(true);
-    setError(null);
-    listScreenplayDocuments({ page, page_size: pageSize })
-      .then((result) => {
-        if (!disposed) setData(result);
-      })
-      .catch((reason) => {
-        if (!disposed) setError(displayError(reason));
-      })
-      .finally(() => {
-        if (!disposed) setLoading(false);
-      });
-    return () => {
-      disposed = true;
-    };
-  }, [cycle, page, pageSize]);
-
+  const params = { page: query.page, page_size: query.page_size };
+  const result = useQuery({
+    queryKey: privateQueryKey('documents', params),
+    queryFn: ({ signal }) => listDocuments(params, { signal }),
+    placeholderData: keepPreviousData,
+  });
   return {
-    data,
-    error,
-    loading,
-    refresh: () => setCycle((current) => current + 1),
+    data: result.data ?? null,
+    error: result.error ? displayError(result.error) : null,
+    loading: result.isPending,
+    refreshing: result.isFetching,
+    refresh: () => {
+      void result.refetch();
+    },
   };
 }

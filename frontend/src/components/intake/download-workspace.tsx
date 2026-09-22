@@ -1,5 +1,6 @@
 'use client';
 
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import {
   type RefObject,
@@ -38,6 +39,7 @@ import {
   type ProviderAuthorizationTarget,
   providerAuthorizationTarget,
 } from '@/lib/provider-authorization';
+import { privateQueryKey } from '@/lib/query-keys';
 import { ApiError, displayError } from '@/lib/request-error';
 import { createUuid as createIdempotencyKey } from '@/lib/uuid';
 
@@ -46,6 +48,7 @@ type StableKey = { payload: string; value: string };
 
 export default function DownloadWorkspace() {
   const router = useRouter();
+  const queries = useQueryClient();
   const [mode, setMode] = useState<IntakeMode>('link');
   const [url, setUrl] = useState('');
   const [inspection, setInspection] = useState<API.InspectionResponse | null>(
@@ -67,23 +70,29 @@ export default function DownloadWorkspace() {
   const downloadKey = useRef<StableKey | null>(null);
   const openDownload = useCallback(
     (downloadId: string) => {
+      void queries.invalidateQueries({
+        queryKey: privateQueryKey('download-history'),
+      });
       const target = `/downloads/detail?jobId=${encodeURIComponent(
         downloadId,
       )}`;
       markNavigationPush(target);
       router.push(target);
     },
-    [router],
+    [queries, router],
   );
   const openDocument = useCallback(
     (documentId: string) => {
+      void queries.invalidateQueries({
+        queryKey: privateQueryKey('documents'),
+      });
       const target = `/documents/detail?documentId=${encodeURIComponent(
         documentId,
       )}`;
       markNavigationPush(target);
       router.push(target);
     },
-    [router],
+    [queries, router],
   );
   const mediaImport = useMediaImport(openDownload, mediaDeclaredOrigin);
   const documentImport = useDocumentImport(openDocument);

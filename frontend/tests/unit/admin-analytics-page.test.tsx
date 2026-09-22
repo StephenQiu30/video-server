@@ -1,14 +1,13 @@
 import {
   act,
   fireEvent,
-  render,
   screen,
   waitFor,
   within,
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { AdminAnalyticsView } from '@/components/admin/admin-analytics-view';
+import { render } from '../helpers/query-render';
 
 const runtime = vi.hoisted(() => ({
   getAdminDownloadAnalytics: vi.fn(),
@@ -26,11 +25,16 @@ describe('administrator download analytics', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: '下载分析' }),
     ).toBeInTheDocument();
-    expect(runtime.getAdminDownloadAnalytics).toHaveBeenCalledWith({
-      days: 30,
-    });
-    expect(screen.getByText('下载总数').nextElementSibling).toHaveTextContent(
-      '48',
+    expect(runtime.getAdminDownloadAnalytics).toHaveBeenCalledWith(
+      {
+        days: 30,
+      },
+      { signal: expect.any(AbortSignal) },
+    );
+    await waitFor(() =>
+      expect(screen.getByText('下载总数').nextElementSibling).toHaveTextContent(
+        '48',
+      ),
     );
     expect(
       screen.getByText('成功率', { selector: '[data-slot="item-title"]' })
@@ -110,9 +114,12 @@ describe('administrator download analytics', () => {
     fireEvent.click(periodSelect);
     fireEvent.click(await screen.findByRole('option', { name: '最近 7 天' }));
     await waitFor(() =>
-      expect(runtime.getAdminDownloadAnalytics).toHaveBeenLastCalledWith({
-        days: 7,
-      }),
+      expect(runtime.getAdminDownloadAnalytics).toHaveBeenLastCalledWith(
+        {
+          days: 7,
+        },
+        { signal: expect.any(AbortSignal) },
+      ),
     );
     expect(screen.getByText('下载总数').nextElementSibling).toHaveTextContent(
       '48',

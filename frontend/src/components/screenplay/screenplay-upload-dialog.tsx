@@ -1,6 +1,7 @@
 'use client';
 
 import { UploadSimple } from '@phosphor-icons/react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { useDocumentImport } from '@/components/intake/use-document-import';
@@ -14,6 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { privateQueryKey } from '@/lib/query-keys';
 
 export function ScreenplayUploadDialog({
   label = '上传剧本',
@@ -22,14 +24,18 @@ export function ScreenplayUploadDialog({
 }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const queries = useQueryClient();
   const openDocument = useCallback(
     (documentId: string) => {
+      void queries.invalidateQueries({
+        queryKey: privateQueryKey('documents'),
+      });
       setOpen(false);
       router.push(
         `/documents/detail?documentId=${encodeURIComponent(documentId)}`,
       );
     },
-    [router],
+    [queries, router],
   );
   const upload = useDocumentImport(openDocument);
 

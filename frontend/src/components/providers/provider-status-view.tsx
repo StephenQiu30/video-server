@@ -71,18 +71,18 @@ export function ProviderStatusView() {
       <PageHeader
         action={
           <Button
-            aria-label={state.loading ? '正在刷新平台状态' : '刷新状态'}
+            aria-label={state.refreshing ? '正在刷新平台状态' : '刷新状态'}
             className="disabled:opacity-100"
-            disabled={state.loading}
+            disabled={state.refreshing}
             onClick={state.retry}
             variant="secondary"
           >
-            {state.loading ? (
+            {state.refreshing ? (
               <Spinner aria-hidden data-icon="inline-start" />
             ) : (
               <ArrowClockwiseIcon aria-hidden data-icon="inline-start" />
             )}
-            {state.loading ? '刷新中…' : '刷新状态'}
+            {state.refreshing ? '刷新中…' : '刷新状态'}
           </Button>
         }
         description="先查看当前下载支持；需要时再展开单个平台，核对探针与真实任务证据。"

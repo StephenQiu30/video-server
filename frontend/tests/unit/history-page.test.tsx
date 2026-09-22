@@ -1,16 +1,14 @@
 import {
   act,
   fireEvent,
-  render,
-  renderHook,
   screen,
   waitFor,
   within,
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import DownloadHistoryView from '@/components/downloads/download-history-view';
 import { useDownloadHistory } from '@/components/downloads/use-download-history';
+import { render, renderHook } from '../helpers/query-render';
 
 const runtime = vi.hoisted(() => ({
   deleteDownload: vi.fn(),
@@ -48,12 +46,15 @@ describe('download history', () => {
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith({
-      page: 1,
-      page_size: 20,
-      search: undefined,
-      status: undefined,
-    });
+    expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith(
+      {
+        page: 1,
+        page_size: 20,
+        search: undefined,
+        status: undefined,
+      },
+      { signal: expect.any(AbortSignal) },
+    );
 
     rerender({
       query: {
@@ -64,12 +65,15 @@ describe('download history', () => {
       },
     });
     await waitFor(() =>
-      expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith({
-        page: 3,
-        page_size: 20,
-        search: '示例视频',
-        status: 'succeeded',
-      }),
+      expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith(
+        {
+          page: 3,
+          page_size: 20,
+          search: '示例视频',
+          status: 'succeeded',
+        },
+        { signal: expect.any(AbortSignal) },
+      ),
     );
 
     act(() => result.current.retry());
@@ -245,6 +249,7 @@ describe('download history', () => {
     await waitFor(() =>
       expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith(
         expect.objectContaining({ page: 2 }),
+        { signal: expect.any(AbortSignal) },
       ),
     );
     expect(
@@ -262,12 +267,15 @@ describe('download history', () => {
     fireEvent.keyDown(input, { key: 'Enter' });
 
     await waitFor(() =>
-      expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith({
-        page: 1,
-        page_size: 20,
-        search: '示例视频',
-        status: undefined,
-      }),
+      expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith(
+        {
+          page: 1,
+          page_size: 20,
+          search: '示例视频',
+          status: undefined,
+        },
+        { signal: expect.any(AbortSignal) },
+      ),
     );
   });
 
@@ -299,12 +307,15 @@ describe('download history', () => {
     fireEvent.click(screen.getByRole('button', { name: '搜索下载记录' }));
 
     await waitFor(() =>
-      expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith({
-        page: 1,
-        page_size: 20,
-        search: '夹克',
-        status: undefined,
-      }),
+      expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith(
+        {
+          page: 1,
+          page_size: 20,
+          search: '夹克',
+          status: undefined,
+        },
+        { signal: expect.any(AbortSignal) },
+      ),
     );
   });
 });

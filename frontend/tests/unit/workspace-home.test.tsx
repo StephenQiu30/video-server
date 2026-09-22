@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { WorkspaceHome } from '@/components/intake/workspace-home';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { render } from '../helpers/query-render';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 

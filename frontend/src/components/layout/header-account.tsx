@@ -65,7 +65,7 @@ export function HeaderAccount({
               variant="ghost"
             >
               <Avatar>
-                <AvatarFallback>
+                <AvatarFallback className="text-foreground">
                   {user.username.slice(0, 1).toUpperCase()}
                 </AvatarFallback>
               </Avatar>

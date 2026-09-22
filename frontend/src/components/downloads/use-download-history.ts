@@ -1,38 +1,27 @@
-import { useEffect, useState } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { getDownloadHistory } from '@/api/downloads';
+import { privateQueryKey } from '@/lib/query-keys';
 import { displayError } from '@/lib/request-error';
 
 export function useDownloadHistory(query: API.getDownloadHistoryParams) {
-  const [data, setData] = useState<API.DownloadHistoryResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [retryKey, setRetryKey] = useState(0);
-  const { page, page_size: pageSize, search, status } = query;
-
-  useEffect(() => {
-    let disposed = false;
-    void retryKey;
-    setLoading(true);
-    setError(null);
-    getDownloadHistory({ page, page_size: pageSize, search, status })
-      .then((result) => {
-        if (!disposed) setData(result);
-      })
-      .catch((reason) => {
-        if (!disposed) setError(displayError(reason));
-      })
-      .finally(() => {
-        if (!disposed) setLoading(false);
-      });
-    return () => {
-      disposed = true;
-    };
-  }, [page, pageSize, retryKey, search, status]);
-
+  const params = {
+    page: query.page,
+    page_size: query.page_size,
+    search: query.search,
+    status: query.status,
+  };
+  const result = useQuery({
+    queryKey: privateQueryKey('download-history', params),
+    queryFn: ({ signal }) => getDownloadHistory(params, { signal }),
+    placeholderData: keepPreviousData,
+  });
   return {
-    data,
-    error,
-    loading,
-    retry: () => setRetryKey((current) => current + 1),
+    data: result.data ?? null,
+    error: result.error ? displayError(result.error) : null,
+    loading: result.isPending,
+    refreshing: result.isFetching,
+    retry: () => {
+      void result.refetch();
+    },
   };
 }

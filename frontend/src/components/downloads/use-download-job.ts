@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   cancelDownload,
@@ -8,6 +9,7 @@ import {
 } from '@/api/downloads';
 import { useRequestScope } from '@/hooks/use-request-scope';
 import { triggerBrowserDownload } from '@/lib/browser-download';
+import { privateQueryKey } from '@/lib/query-keys';
 import { displayError } from '@/lib/request-error';
 import { type TaskSocketStatus, taskSocket } from '@/lib/task-socket';
 
@@ -17,6 +19,7 @@ type Action = 'cancel' | 'delete' | 'download' | 'retry' | null;
 type ErrorKind = 'load' | 'sync' | 'action' | null;
 
 export function useDownloadJob(jobId: string, pollIntervalMs: number) {
+  const queries = useQueryClient();
   const scope = useRequestScope(jobId);
   const [job, setJob] = useState<API.DownloadResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,12 +40,15 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     (next: API.DownloadResponse) => {
       if (next.id !== jobId || next.version < versionRef.current) return false;
       versionRef.current = next.version;
+      void queries.invalidateQueries({
+        queryKey: privateQueryKey('download-history'),
+      });
       setJob((current) =>
         mergePresentation(current?.id === next.id ? current : null, next),
       );
       return true;
     },
-    [jobId],
+    [jobId, queries],
   );
 
   useEffect(() => {
@@ -166,6 +172,9 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
       );
       if (!request.current()) return null;
       setJob(retried);
+      void queries.invalidateQueries({
+        queryKey: privateQueryKey('download-history'),
+      });
       setErrorKind(null);
       return retried;
     } catch (reason) {
@@ -176,7 +185,7 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     } finally {
       if (request.current()) setAction(null);
     }
-  }, [jobId, scope]);
+  }, [jobId, queries, scope]);
 
   const cancel = useCallback(async () => {
     scope.invalidate();
@@ -236,6 +245,9 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     try {
       await deleteDownload({ job_id: encodeURIComponent(jobId) });
       if (!request.current()) return false;
+      void queries.invalidateQueries({
+        queryKey: privateQueryKey('download-history'),
+      });
       setJob(null);
       return true;
     } catch (reason) {
@@ -246,7 +258,7 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     } finally {
       if (request.current()) setAction(null);
     }
-  }, [jobId, scope]);
+  }, [jobId, queries, scope]);
 
   return {
     action,

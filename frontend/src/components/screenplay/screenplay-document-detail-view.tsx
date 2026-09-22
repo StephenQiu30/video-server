@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowClockwise } from '@phosphor-icons/react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { deleteDocument as deleteScreenplayDocument } from '@/api/documents';
@@ -25,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
+import { privateQueryKey } from '@/lib/query-keys';
 import { displayError } from '@/lib/request-error';
 
 const metadataSkeletonKeys = [
@@ -61,6 +63,7 @@ export default function ScreenplayDocumentDetailView({
   pollIntervalMs?: number;
 }) {
   const router = useRouter();
+  const queries = useQueryClient();
   const [deleting, setDeleting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const state = useScreenplayDocument(documentId, pollIntervalMs);
@@ -74,6 +77,12 @@ export default function ScreenplayDocumentDetailView({
     try {
       await deleteScreenplayDocument({
         document_id: encodeURIComponent(documentId),
+      });
+      queries.removeQueries({
+        queryKey: privateQueryKey('document', documentId),
+      });
+      void queries.invalidateQueries({
+        queryKey: privateQueryKey('documents'),
       });
       router.replace('/documents');
     } catch (reason) {

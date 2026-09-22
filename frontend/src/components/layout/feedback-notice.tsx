@@ -50,8 +50,12 @@ export function FeedbackNotice({
     >
       {icon}
       <div className="min-w-0">
-        {title ? <AlertTitle>{title}</AlertTitle> : null}
-        <AlertDescription id={descriptionId}>{description}</AlertDescription>
+        {title ? (
+          <AlertTitle className="text-foreground">{title}</AlertTitle>
+        ) : null}
+        <AlertDescription className="text-foreground/80" id={descriptionId}>
+          {description}
+        </AlertDescription>
       </div>
       {action ? (
         <AlertAction className="top-1/2 right-4 -translate-y-1/2 sm:right-5">

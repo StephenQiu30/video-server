@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowCounterClockwise } from '@phosphor-icons/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useAnalysisSkills } from '@/components/analysis/use-analysis-skills';
 import { Button } from '@/components/ui/button';
 import {
@@ -38,27 +38,20 @@ export default function AnalysisConfigurator({
   const catalog = useAnalysisSkills(inputKind);
   const [skillId, setSkillId] = useState('');
   const [language, setLanguage] = useState<OutputLanguage>('zh-CN');
-  const [prompt, setPrompt] = useState('');
-  const selected = useMemo(
-    () => catalog.skills.find((skill) => skill.id === skillId),
-    [catalog.skills, skillId],
-  );
-
-  useEffect(() => {
-    const first = catalog.skills[0];
-    if (!skillId && first) {
-      setSkillId(first.id);
-      setPrompt(first.default_prompt);
-    }
-  }, [catalog.skills, skillId]);
+  const [customPrompt, setPrompt] = useState<string | null>(null);
+  const selected = skillId
+    ? catalog.skills.find((skill) => skill.id === skillId)
+    : catalog.skills[0];
+  // Late catalog data supplies a default without overwriting user input.
+  const prompt = customPrompt ?? selected?.default_prompt ?? '';
 
   function changeSkill(value: string) {
     const next = catalog.skills.find((skill) => skill.id === value);
     if (!next) return;
-    setPrompt((current) =>
-      !selected || current === selected.default_prompt
+    setPrompt(
+      !selected || prompt === selected.default_prompt
         ? next.default_prompt
-        : current,
+        : prompt,
     );
     setSkillId(next.id);
   }
@@ -82,7 +75,7 @@ export default function AnalysisConfigurator({
           <Select
             disabled={catalog.loading || catalog.skills.length === 0}
             onValueChange={changeSkill}
-            value={skillId}
+            value={selected?.id ?? ''}
           >
             <SelectTrigger
               className="w-full"

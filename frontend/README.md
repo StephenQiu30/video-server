@@ -46,6 +46,7 @@ pnpm openapi
 - 路径参数按生成签名传入对象；幂等键、取消信号、上传回调和二进制 responseType 通过 RequestOptions 传递。
 - 后端二进制响应必须声明 string/binary，生成器通过官方 customType hook 映射为 Blob；不手工补类型。
 - Access/Refresh JWT 仅存于 HttpOnly Cookie；认证恢复最多重试一次，并发失败共享刷新请求。
+- 根布局的 TanStack Query 缓存按身份代际隔离。下载历史、剧本文档、平台列表、分析 Skill 和管理统计直接调用生成 API 并传递 AbortSignal；切页保留已加载数据，换账号取消旧请求并清空旧缓存。写操作成功后定向失效相关列表；业务查询不自动重试写操作或把临时故障转成登录跳转。持久 intent 入口与其他任务快照的迁移状态以 044 Plan 为准。
 - 接口变化时先更新后端注解并重启后端，再执行生成、类型检查和相关测试，提交生成差异。
 
 ## 官方组件

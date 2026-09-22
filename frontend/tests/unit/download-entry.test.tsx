@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DownloadWorkspace from '@/components/intake/download-workspace';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -8,6 +8,7 @@ import {
   mockHttpError,
   mockHttpResponses,
 } from '../helpers/http';
+import { render } from '../helpers/query-render';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 const statuses = vi.hoisted(() => vi.fn(() => ({ data: null, error: null })));

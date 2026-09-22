@@ -1,10 +1,10 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { act, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { useAnalysisJob } from '@/components/analysis/use-analysis-job';
 import { useDownloadJob } from '@/components/downloads/use-download-job';
 import { analysisJob } from '../fixtures/analysis-fixtures';
 import { job } from '../fixtures/download-fixtures';
+import { renderHook } from '../helpers/query-render';
 
 const runtime = vi.hoisted(() => ({
   get: vi.fn(),

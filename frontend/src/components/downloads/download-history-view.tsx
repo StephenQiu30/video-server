@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowClockwise, MagnifyingGlass, Plus } from '@phosphor-icons/react';
+import { useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
@@ -37,11 +38,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { triggerBrowserDownload } from '@/lib/browser-download';
+import { privateQueryKey } from '@/lib/query-keys';
 import { displayError } from '@/lib/request-error';
 
 import { createUuid as createIdempotencyKey } from '@/lib/uuid';
 
 export default function DownloadHistoryView() {
+  const queries = useQueryClient();
   const router = useRouter();
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
@@ -97,6 +100,9 @@ export default function DownloadHistoryView() {
         { headers: { 'Idempotency-Key': key } },
       );
       const target = `/downloads/detail?jobId=${encodeURIComponent(retried.id)}`;
+      void queries.invalidateQueries({
+        queryKey: privateQueryKey('download-history'),
+      });
       markNavigationPush(target);
       router.push(target);
     } catch (reason) {
@@ -110,7 +116,9 @@ export default function DownloadHistoryView() {
     setPendingAction({ id: item.id, type: 'delete' });
     try {
       await deleteDownload({ job_id: encodeURIComponent(item.id) });
-      state.retry();
+      void queries.invalidateQueries({
+        queryKey: privateQueryKey('download-history'),
+      });
     } catch (reason) {
       setActionError(displayError(reason));
     } finally {
@@ -194,12 +202,14 @@ export default function DownloadHistoryView() {
         </Field>
         <Button
           className="w-full sm:w-auto"
+          aria-busy={state.refreshing}
+          disabled={state.refreshing}
           onClick={state.retry}
           type="button"
           variant="outline"
         >
           <ArrowClockwise data-icon="inline-start" />
-          刷新
+          {state.refreshing ? '更新中…' : '刷新'}
         </Button>
       </FieldGroup>
 

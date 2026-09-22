@@ -1,19 +1,16 @@
 import {
   act,
   fireEvent,
-  render,
   screen,
   waitFor,
   within,
 } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
 import AnalysisPanel from '@/components/analysis/analysis-panel';
 import AnalysisReportPreview from '@/components/analysis/analysis-report-preview';
 import AnalysisResultView from '@/components/analysis/analysis-result-view';
 import { httpClient } from '@/lib/request';
 import { ApiError } from '@/lib/request-error';
-
 import {
   analysisJob,
   analysisResult,
@@ -27,6 +24,7 @@ import {
   mockHttpError,
   mockHttpResponses,
 } from '../helpers/http';
+import { render } from '../helpers/query-render';
 import { degradeLatestSocket, emitTaskUpdate } from '../helpers/websocket';
 
 describe('AnalysisPanel', () => {
@@ -170,8 +168,10 @@ describe('AnalysisPanel', () => {
       'id',
       'analysis-language',
     );
-    expect(screen.getByLabelText('分析提示词')).toHaveValue(
-      '逐镜头分析画面、叙事作用和高光价值。',
+    await waitFor(() =>
+      expect(screen.getByLabelText('分析提示词')).toHaveValue(
+        '逐镜头分析画面、叙事作用和高光价值。',
+      ),
     );
     expect(screen.getByText('导演拉片')).toBeInTheDocument();
     expect(
@@ -258,6 +258,11 @@ describe('AnalysisPanel', () => {
     fireEvent.change(await screen.findByLabelText('分析提示词'), {
       target: { value: '重点识别产品功能演示。' },
     });
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: '开始 AI 分析' }),
+      ).toBeEnabled(),
+    );
     fireEvent.click(screen.getByRole('button', { name: '开始 AI 分析' }));
     await screen.findByText('正在分析');
     emitTaskUpdate('analysis', analysisJob('running').id, 2);
@@ -387,6 +392,12 @@ describe('AnalysisPanel', () => {
     stubCryptoUuids('11111111-1111-4111-8111-111111111111');
     render(<AnalysisPanel downloadId={job().id} pollIntervalMs={60_000} />);
 
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: '开始 AI 分析' }),
+      ).toBeEnabled(),
+    );
+
     fireEvent.click(
       await screen.findByRole('button', { name: '开始 AI 分析' }),
     );
@@ -429,6 +440,12 @@ describe('AnalysisPanel', () => {
     stubCryptoUuids('33333333-3333-4333-8333-333333333333');
     render(<AnalysisPanel downloadId={job().id} pollIntervalMs={60_000} />);
 
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: '开始 AI 分析' }),
+      ).toBeEnabled(),
+    );
+
     fireEvent.click(
       await screen.findByRole('button', { name: '开始 AI 分析' }),
     );
@@ -447,6 +464,12 @@ describe('AnalysisPanel', () => {
     mockHttpResponses(analysisJob('failed'));
     stubCryptoUuids('11111111-1111-4111-8111-111111111111');
     render(<AnalysisPanel downloadId={job().id} pollIntervalMs={60_000} />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: '开始 AI 分析' }),
+      ).toBeEnabled(),
+    );
 
     fireEvent.click(
       await screen.findByRole('button', { name: '开始 AI 分析' }),
@@ -467,6 +490,11 @@ describe('AnalysisPanel', () => {
       ),
     );
     render(<AnalysisPanel downloadId={job().id} />);
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: '开始 AI 分析' }),
+      ).toBeEnabled(),
+    );
     fireEvent.click(
       await screen.findByRole('button', { name: '开始 AI 分析' }),
     );
