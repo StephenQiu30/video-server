@@ -20,7 +20,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   ) {
     return false;
   }
-  scheduleSync(message.provider).then(
+  scheduleSync(message.provider, message.transactionId).then(
     (result) => sendResponse(result),
     (error) => sendResponse({
       ok: false,
@@ -30,16 +30,16 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   return true;
 });
 
-function scheduleSync(provider) {
+function scheduleSync(provider, transactionId) {
   const previous = providerSyncs.get(provider) ?? Promise.resolve();
-  const current = previous.catch(() => undefined).then(() => syncProvider(provider));
+  const current = previous.catch(() => undefined).then(() => syncProvider(provider, transactionId));
   providerSyncs.set(provider, current);
   return current.finally(() => {
     if (providerSyncs.get(provider) === current) providerSyncs.delete(provider);
   });
 }
 
-async function syncProvider(provider) {
+async function syncProvider(provider, transactionId) {
   const domains = PROVIDER_DOMAINS[provider];
   if (!domains) return;
   const revision = crypto.randomUUID();
@@ -64,9 +64,9 @@ async function syncProvider(provider) {
   }
   const response = await sendNative({
     type: 'sync',
-      provider,
-      transaction_id: message.transactionId,
-      revision,
+    provider,
+    transaction_id: transactionId,
+    revision,
     cookies: [...cookies.values()],
   });
   if (response.provider !== provider || response.revision !== revision) {
