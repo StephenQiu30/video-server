@@ -6,6 +6,10 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { httpClient, request } from '@/lib/request';
+import {
+  advanceSessionGeneration,
+  onSessionExpired,
+} from '@/lib/session-events';
 
 const originalAdapter = httpClient.defaults.adapter;
 
@@ -213,6 +217,153 @@ describe('silent JWT refresh', () => {
     });
     expect(adapter).toHaveBeenCalledOnce();
     expect(adapter.mock.calls[0]?.[0].url).toBe('/api/auth/login');
+  });
+
+  it.each([0, 403, 429, 503])(
+    'keeps identity when refresh fails with %s',
+    async (status) => {
+      const expired = vi.fn();
+      const unsubscribe = onSessionExpired(expired);
+      httpClient.defaults.adapter = async (config) => {
+        const resultStatus = config.url === '/api/auth/refresh' ? status : 401;
+        throw new AxiosError(
+          'failed',
+          'ERR_BAD_REQUEST',
+          config,
+          undefined,
+          resultStatus
+            ? response(
+                config,
+                { code: 'request_failed', message: '失败', data: null },
+                resultStatus,
+              )
+            : undefined,
+        );
+      };
+      try {
+        await expect(request('/api/downloads/history')).rejects.toMatchObject({
+          status,
+        });
+        expect(expired).not.toHaveBeenCalled();
+      } finally {
+        unsubscribe();
+      }
+    },
+  );
+
+  it('reports confirmed session expiry to the identity owner', async () => {
+    const expired = vi.fn();
+    const unsubscribe = onSessionExpired(expired);
+    httpClient.defaults.adapter = async (config) => {
+      throw new AxiosError(
+        'expired',
+        '',
+        config,
+        undefined,
+        response(
+          config,
+          { code: 'unauthenticated', message: '失效', data: null },
+          401,
+        ),
+      );
+    };
+    try {
+      await expect(request('/api/downloads/history')).rejects.toMatchObject({
+        status: 401,
+      });
+      expect(expired).toHaveBeenCalledOnce();
+    } finally {
+      unsubscribe();
+    }
+  });
+
+  it('keeps identity when replayed business authorization is denied', async () => {
+    const expired = vi.fn();
+    const unsubscribe = onSessionExpired(expired);
+    let attempts = 0;
+    httpClient.defaults.adapter = async (config) => {
+      if (config.url === '/api/auth/refresh') return response(config, {});
+      throw new AxiosError(
+        'denied',
+        '',
+        config,
+        undefined,
+        response(
+          config,
+          { code: 'forbidden', message: '拒绝', data: null },
+          ++attempts === 1 ? 401 : 403,
+        ),
+      );
+    };
+    try {
+      await expect(request('/api/admin/users')).rejects.toMatchObject({
+        status: 403,
+      });
+      expect(expired).not.toHaveBeenCalled();
+    } finally {
+      unsubscribe();
+    }
+  });
+
+  it('does not treat a refresh conflict as a successful session recovery', async () => {
+    const expired = vi.fn();
+    const unsubscribe = onSessionExpired(expired);
+    const paths: string[] = [];
+    httpClient.defaults.adapter = async (config) => {
+      paths.push(config.url ?? '');
+      const refresh = config.url === '/api/auth/refresh';
+      throw new AxiosError(
+        'failed',
+        '',
+        config,
+        undefined,
+        response(
+          config,
+          {
+            code: refresh ? 'refresh_in_progress' : 'unauthenticated',
+            message: '等待刷新',
+            data: null,
+          },
+          refresh ? 409 : 401,
+        ),
+      );
+    };
+    try {
+      await expect(request('/api/downloads/history')).rejects.toMatchObject({
+        status: 409,
+      });
+      expect(paths).toEqual([
+        '/api/downloads/history',
+        '/api/auth/refresh',
+        '/api/auth/me',
+      ]);
+      expect(expired).not.toHaveBeenCalled();
+    } finally {
+      unsubscribe();
+    }
+  });
+
+  it('discards a stale identity response without refreshing or replaying it', async () => {
+    const expired = vi.fn();
+    const unsubscribe = onSessionExpired(expired);
+    httpClient.defaults.adapter = async (config) => {
+      advanceSessionGeneration();
+      throw new AxiosError(
+        'expired',
+        '',
+        config,
+        undefined,
+        response(config, {}, 401),
+      );
+    };
+    try {
+      await expect(request('/api/downloads/history')).rejects.toMatchObject({
+        code: 'ERR_CANCELED',
+      });
+      expect(expired).not.toHaveBeenCalled();
+    } finally {
+      unsubscribe();
+    }
   });
 });
 

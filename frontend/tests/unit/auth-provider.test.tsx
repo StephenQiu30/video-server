@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthProvider, useAuth } from '@/components/auth/auth-provider';
@@ -76,7 +82,7 @@ describe('AuthProvider', () => {
     expect(runtime.getCurrentUser).toHaveBeenCalledOnce();
   });
 
-  it('clears local identity even when server logout fails', async () => {
+  it('retains identity when the server cannot confirm logout', async () => {
     runtime.getCurrentUser.mockResolvedValue(user);
     runtime.logout.mockRejectedValue(new Error('stale session'));
     render(
@@ -86,16 +92,91 @@ describe('AuthProvider', () => {
     );
     await screen.findByTestId('auth-user');
 
-    fireEvent.click(screen.getByRole('button', { name: '退出' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '退出' }));
+    });
 
     await waitFor(() =>
       expect(screen.getByTestId('auth-user')).toHaveAttribute(
         'data-user',
-        'guest',
+        'video_user',
       ),
     );
     expect(runtime.logout).toHaveBeenCalledOnce();
     expect(runtime.resetSocket).toHaveBeenCalled();
+  });
+
+  it('does not interpret an initial network failure as an anonymous session', async () => {
+    runtime.getCurrentUser.mockRejectedValue(
+      new ApiError(503, 'unavailable', '', '暂不可用'),
+    );
+    render(
+      <AuthProvider>
+        <AuthProbe />
+      </AuthProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveAttribute(
+        'data-auth-state',
+        'ready',
+      ),
+    );
+    expect(screen.getByRole('status')).toHaveAttribute(
+      'data-session-status',
+      'unknown',
+    );
+    expect(screen.getByRole('status')).toHaveAttribute(
+      'data-session-error',
+      'true',
+    );
+  });
+
+  it('does not reset task subscriptions for the same authenticated identity', async () => {
+    runtime.getCurrentUser.mockResolvedValue(user);
+    render(
+      <AuthProvider>
+        <AuthProbe />
+      </AuthProvider>,
+    );
+    await screen.findByTestId('auth-user');
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveAttribute(
+        'data-auth-state',
+        'ready',
+      ),
+    );
+    runtime.resetSocket.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: '刷新用户' }));
+    await waitFor(() =>
+      expect(runtime.getCurrentUser).toHaveBeenCalledTimes(2),
+    );
+    expect(runtime.resetSocket).not.toHaveBeenCalled();
+  });
+
+  it('ignores session restoration that arrives after a new login', async () => {
+    let resolve!: (value: typeof user) => void;
+    runtime.getCurrentUser.mockReturnValue(
+      new Promise((done) => {
+        resolve = done;
+      }),
+    );
+    render(
+      <AuthProvider>
+        <AuthProbe />
+      </AuthProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: '另一账号登录' }));
+    resolve(user);
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveAttribute(
+        'data-auth-state',
+        'ready',
+      ),
+    );
+    expect(screen.getByTestId('auth-user')).toHaveAttribute(
+      'data-user',
+      'new_user',
+    );
   });
 
   it('keeps the current page authenticated during a failed background refresh', async () => {
@@ -128,13 +209,34 @@ describe('AuthProvider', () => {
 });
 
 function AuthProbe() {
-  const { loading, refreshUser, signOut, user } = useAuth();
+  const { loading, refreshUser, signOut, user, status, sessionError, setUser } =
+    useAuth();
   return (
     <div>
-      <p data-auth-state={loading ? 'loading' : 'ready'} role="status" />
+      <p
+        data-auth-state={loading ? 'loading' : 'ready'}
+        data-session-status={status}
+        data-session-error={Boolean(sessionError)}
+        role="status"
+      />
       <p data-testid="auth-user" data-user={user?.username ?? 'guest'} />
-      <button onClick={() => void signOut()} type="button">
+      <button
+        onClick={() => void signOut().catch(() => undefined)}
+        type="button"
+      >
         退出
+      </button>
+      <button
+        onClick={() =>
+          setUser({
+            ...user,
+            id: 'new-user',
+            username: 'new_user',
+          } as API.UserResponse)
+        }
+        type="button"
+      >
+        另一账号登录
       </button>
       <button onClick={() => void refreshUser()} type="button">
         刷新用户

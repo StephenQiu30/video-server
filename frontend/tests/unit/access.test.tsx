@@ -6,6 +6,7 @@ import { ProtectedRoute } from '@/components/auth/protected-route';
 const runtime = vi.hoisted(() => ({
   auth: {
     loading: false,
+    status: 'anonymous',
     user: undefined as { role: API.UserRole } | undefined,
   },
   pathname: '/history',
@@ -23,7 +24,7 @@ vi.mock('next/navigation', () => ({
 
 describe('ProtectedRoute', () => {
   beforeEach(() => {
-    runtime.auth = { loading: false, user: undefined };
+    runtime.auth = { loading: false, status: 'anonymous', user: undefined };
     runtime.pathname = '/history';
     runtime.replace.mockReset();
     window.history.replaceState({}, '', '/');
@@ -47,7 +48,11 @@ describe('ProtectedRoute', () => {
   });
 
   it('keeps administrator routes hidden from regular users', async () => {
-    runtime.auth = { loading: false, user: { role: 'user' } };
+    runtime.auth = {
+      loading: false,
+      status: 'authenticated',
+      user: { role: 'user' },
+    };
     render(
       <ProtectedRoute requireAdmin>
         <p data-testid="admin-content" />
@@ -59,7 +64,11 @@ describe('ProtectedRoute', () => {
   });
 
   it('renders protected content after an administrator is restored', () => {
-    runtime.auth = { loading: false, user: { role: 'admin' } };
+    runtime.auth = {
+      loading: false,
+      status: 'authenticated',
+      user: { role: 'admin' },
+    };
     render(
       <ProtectedRoute requireAdmin>
         <p data-testid="admin-content" />

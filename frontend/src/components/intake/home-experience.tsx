@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { useAuth } from '@/components/auth/auth-provider';
 import { HomeStartup } from '@/components/intake/home-startup';
 import { WorkspaceHome } from '@/components/intake/workspace-home';
+import { PageErrorNotice } from '@/components/layout/page-error-notice';
 
 type ResolvedHome = 'public' | 'workspace';
 
@@ -15,7 +16,16 @@ export function HomeExperience({
   publicHome: ReactNode;
   initialPublic?: boolean;
 }) {
-  const { loading, user } = useAuth();
+  const { loading, user, status, sessionError, refreshUser } = useAuth();
+  if (status === 'unknown' && sessionError && !initialPublic) {
+    return (
+      <PageErrorNotice
+        title="暂时无法确认登录状态"
+        message={sessionError}
+        onRetry={() => void refreshUser()}
+      />
+    );
+  }
   const resolvedView: ResolvedHome | undefined = loading
     ? initialPublic
       ? 'public'

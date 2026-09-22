@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { type ReactNode, useEffect } from 'react';
 
 import { useAuth } from '@/components/auth/auth-provider';
+import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { RouteLoading } from '@/components/layout/route-loading';
 
 type ProtectedRouteProps = {
@@ -15,22 +16,30 @@ export function ProtectedRoute({
   children,
   requireAdmin = false,
 }: ProtectedRouteProps) {
-  const { user, loading } = useAuth();
+  const { user, loading, status, sessionError, refreshUser } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
   useEffect(() => {
     if (loading) return;
 
-    if (!user) {
+    if (status === 'anonymous') {
       const currentPath = `${pathname ?? '/'}${window.location.search}`;
       router.replace(`/user/login?redirect=${encodeURIComponent(currentPath)}`);
       return;
     }
 
-    if (requireAdmin && user.role !== 'admin') router.replace('/');
-  }, [loading, pathname, requireAdmin, router, user]);
+    if (user && requireAdmin && user.role !== 'admin') router.replace('/');
+  }, [loading, status, pathname, requireAdmin, router, user]);
 
+  if (status === 'unknown' && sessionError)
+    return (
+      <PageErrorNotice
+        title="暂时无法确认登录状态"
+        message={sessionError}
+        onRetry={() => void refreshUser()}
+      />
+    );
   if (loading) return <RouteLoading label="正在恢复登录状态" />;
   if (!user || (requireAdmin && user.role !== 'admin')) {
     return <RouteLoading label="正在前往可访问页面" />;

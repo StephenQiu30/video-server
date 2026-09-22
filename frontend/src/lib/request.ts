@@ -6,23 +6,24 @@ import axios, {
 
 import { getCurrentUser, refreshUserSession } from '@/api/auth';
 import { ApiError, apiErrorFrom } from '@/lib/request-error';
+import { reportSessionExpired, sessionGeneration } from '@/lib/session-events';
 
 const API_TIMEOUT_MS = 30_000;
 
 export type RequestOptions = AxiosRequestConfig & {
   getResponse?: boolean;
-  skipAuthRedirect?: boolean;
   skipAuthRefresh?: boolean;
   skipErrorHandler?: boolean;
 };
 
 type RetriableRequestConfig = AxiosRequestConfig & {
   authRetried?: boolean;
-  skipAuthRedirect?: boolean;
+  sessionGeneration?: number;
   skipAuthRefresh?: boolean;
 };
 
 let refreshRequest: Promise<void> | null = null;
+let refreshGeneration = -1;
 
 export const httpClient: AxiosInstance = axios.create({
   timeout: API_TIMEOUT_MS,
@@ -33,21 +34,40 @@ export const httpClient: AxiosInstance = axios.create({
   },
 });
 
+httpClient.interceptors.request.use((config) => {
+  const sessionConfig = config as RetriableRequestConfig;
+  sessionConfig.sessionGeneration ??= sessionGeneration();
+  return config;
+});
+
 httpClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    assertCurrentSession(response.config as RetriableRequestConfig);
+    return response;
+  },
   async (error: unknown) => {
-    if (!axios.isAxiosError(error)) return Promise.reject(error);
+    if (axios.isCancel(error) || !axios.isAxiosError(error))
+      return Promise.reject(error);
 
     const config = error.config as RetriableRequestConfig | undefined;
-    if (shouldRefresh(error, config)) {
+    if (config) assertCurrentSession(config);
+    if (config && shouldRefresh(error, config)) {
       config.authRetried = true;
       try {
         await refreshAccessToken();
-        return await httpClient.request(config);
       } catch (refreshError) {
-        if (!config.skipAuthRedirect) redirectToLogin();
+        if (refreshError instanceof ApiError && refreshError.status === 401) {
+          reportSessionExpired(config.sessionGeneration ?? sessionGeneration());
+        }
         return Promise.reject(refreshError);
       }
+      // A replayed business failure is not a failed session refresh.
+      assertCurrentSession(config);
+      return httpClient.request(config);
+    }
+
+    if (config?.authRetried && error.response?.status === 401) {
+      reportSessionExpired(config.sessionGeneration ?? sessionGeneration());
     }
 
     if (!error.response) {
@@ -61,10 +81,19 @@ httpClient.interceptors.response.use(
   },
 );
 
+function assertCurrentSession(config: RetriableRequestConfig): void {
+  if (
+    config.sessionGeneration !== undefined &&
+    config.sessionGeneration !== sessionGeneration()
+  ) {
+    throw new axios.CanceledError('Session changed');
+  }
+}
+
 function shouldRefresh(
   error: AxiosError,
   config: RetriableRequestConfig | undefined,
-): config is RetriableRequestConfig {
+): boolean {
   if (
     error.response?.status !== 401 ||
     !config ||
@@ -81,23 +110,27 @@ function shouldRefresh(
 }
 
 async function refreshAccessToken(): Promise<void> {
-  if (!refreshRequest) {
-    refreshRequest = withBrowserRefreshLock(async (recheckSession) => {
+  const current = sessionGeneration();
+  if (!refreshRequest || refreshGeneration !== current) {
+    refreshGeneration = current;
+    const pending = withBrowserRefreshLock(async (recheckSession) => {
+      if (current !== sessionGeneration())
+        throw new axios.CanceledError('Session changed');
       if (recheckSession && (await hasCurrentSession())) return;
       try {
         await refreshUserSession({
           skipAuthRefresh: true,
-          skipAuthRedirect: true,
         });
       } catch (error) {
         if (error instanceof ApiError && error.code === 'refresh_in_progress') {
-          return;
+          if (await hasCurrentSession()) return;
         }
         throw error;
       }
     }).finally(() => {
-      refreshRequest = null;
+      if (refreshRequest === pending) refreshRequest = null;
     });
+    refreshRequest = pending;
   }
   await refreshRequest;
 }
@@ -113,25 +146,12 @@ async function withBrowserRefreshLock(
 
 async function hasCurrentSession(): Promise<boolean> {
   try {
-    await getCurrentUser({ skipAuthRefresh: true, skipAuthRedirect: true });
+    await getCurrentUser({ skipAuthRefresh: true });
     return true;
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) return false;
     throw error;
   }
-}
-
-function redirectToLogin(): void {
-  if (
-    typeof window === 'undefined' ||
-    window.location.pathname.startsWith('/user/')
-  ) {
-    return;
-  }
-  const redirect = `${window.location.pathname}${window.location.search}`;
-  window.location.replace(
-    `/user/login?redirect=${encodeURIComponent(redirect)}`,
-  );
 }
 
 type ResponseData<T> = T extends {

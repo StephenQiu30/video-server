@@ -73,7 +73,7 @@ describe('typed API client', () => {
       password: 'strong-pass-123',
     });
     await login({ email: user.email, password: 'strong-pass-123' });
-    await getCurrentUser({ skipAuthRedirect: true });
+    await getCurrentUser();
     await refreshSession();
     await logout();
 

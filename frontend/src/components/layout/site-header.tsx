@@ -6,12 +6,14 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useAuth } from '@/components/auth/auth-provider';
 import { DesktopNavigation } from '@/components/layout/desktop-navigation';
 import { HeaderAccount } from '@/components/layout/header-account';
 import { MobileNavigation } from '@/components/layout/mobile-navigation';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { Button } from '@/components/ui/button';
+import { displayError } from '@/lib/request-error';
 
 export function BrandLink({ className }: { className?: string }) {
   return (
@@ -58,9 +60,15 @@ export function SiteHeader() {
 
   async function handleSignOut() {
     setSigningOut(true);
-    await signOut();
-    router.replace('/user/login');
-    router.refresh();
+    try {
+      await signOut();
+      router.replace('/user/login');
+      router.refresh();
+    } catch (error) {
+      toast.error(displayError(error));
+    } finally {
+      setSigningOut(false);
+    }
   }
 
   return (
