@@ -18,7 +18,7 @@ from app.services.provider_authorization import (
     ProviderAuthorizationService,
     ProviderAuthorizationStatus,
 )
-from app.services.provider_types import ProviderKey
+from app.services.provider_types import ProviderAuthorizationSource, ProviderKey
 from app.workers.runner.provider_authorization_queue import (
     AUTHORIZATION_READY_MARKER,
     AUTHORIZATION_READY_PAYLOAD,
@@ -126,8 +126,9 @@ class FakeRedis:
             self.hashes[record_key] = {
                 "user_id": str(values[2]),
                 "provider_key": str(values[3]),
-                "status": str(values[4]),
-                "expires_at": str(values[5]),
+                "source": str(values[4]),
+                "status": str(values[5]),
+                "expires_at": str(values[6]),
                 "active_key": key,
             }
             return token
@@ -378,6 +379,32 @@ async def test_concurrent_authorization_claim_is_atomic(
     assert second == first
     requests = list((tmp_path / "control" / "requests").glob("*.request"))
     assert len(requests) == 1
+    await service.close()
+
+
+@pytest.mark.asyncio
+async def test_shared_provider_rejects_a_competing_owner_or_source(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    service, _redis = _service(
+        monkeypatch,
+        tmp_path,
+        datetime(2026, 9, 20, 12, tzinfo=UTC),
+    )
+    first = await service.begin(USER_ID, ProviderKey.YOUTUBE.value)
+
+    with pytest.raises(ProviderAuthorizationError, match="已有管理员授权事务"):
+        await service.begin(OTHER_USER_ID, ProviderKey.YOUTUBE.value)
+    with pytest.raises(ProviderAuthorizationError, match="已有管理员授权事务"):
+        await service.begin(
+            USER_ID,
+            ProviderKey.YOUTUBE.value,
+            ProviderAuthorizationSource.DEDICATED_CHROME,
+        )
+
+    requests = list((tmp_path / "control" / "requests").glob("*.request"))
+    assert [item.stem for item in requests] == [first.transaction_id]
     await service.close()
 
 

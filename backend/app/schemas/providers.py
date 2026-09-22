@@ -47,7 +47,12 @@ class ProviderStatusResponse(StrictModel):
     authorization_action: ProviderAuthorizationAction
 
     @classmethod
-    def from_view(cls, value: ProviderStatusView) -> ProviderStatusResponse:
+    def from_view(
+        cls,
+        value: ProviderStatusView,
+        *,
+        browser_session_allowed: bool = False,
+    ) -> ProviderStatusResponse:
         return cls(
             key=value.key,
             display_name=value.display_name,
@@ -78,6 +83,7 @@ class ProviderStatusResponse(StrictModel):
                 access_modes=value.access_modes,
                 status=value.status,
                 last_check_succeeded=value.last_check_succeeded,
+                browser_session_allowed=browser_session_allowed,
             ),
         )
 
@@ -86,9 +92,20 @@ class ProviderListResponse(StrictModel):
     items: tuple[ProviderStatusResponse, ...]
 
     @classmethod
-    def from_views(cls, values: tuple[ProviderStatusView, ...]) -> ProviderListResponse:
+    def from_views(
+        cls,
+        values: tuple[ProviderStatusView, ...],
+        *,
+        browser_session_allowed: bool = False,
+    ) -> ProviderListResponse:
         return cls(
-            items=tuple(ProviderStatusResponse.from_view(item) for item in values)
+            items=tuple(
+                ProviderStatusResponse.from_view(
+                    item,
+                    browser_session_allowed=browser_session_allowed,
+                )
+                for item in values
+            )
         )
 
 

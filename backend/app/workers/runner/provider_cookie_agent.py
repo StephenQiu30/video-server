@@ -24,6 +24,7 @@ from app.services.provider_types import (
 from app.workers.runner._secure_file import atomic_write_bytes, ensure_private_directory
 from app.workers.runner.provider_authorization_queue import (
     AUTHORIZATION_READY_MARKER,
+    AUTHORIZATION_SOURCE_DIRECTORY,
     authorization_runtime,
     prepare_authorization_runtime,
     read_authorization_request,
@@ -142,18 +143,25 @@ def uninstall_agent(runtime_root: Path) -> None:
         "requests",
         "responses",
         "cancelled",
-        "sources",
         ".discarded",
         "",
     ):
         directory = authorization_root / name
-        if name == "sources":
-            for source in directory.glob("*.source") if directory.exists() else ():
-                _remove_authorization_entry(source)
         try:
             directory.rmdir()
         except OSError:
             pass
+    source_root = runtime_root / AUTHORIZATION_SOURCE_DIRECTORY
+    for source in source_root.glob("*.source") if source_root.exists() else ():
+        _remove_authorization_entry(source)
+    try:
+        source_root.rmdir()
+    except OSError:
+        pass
+    try:
+        ProviderBrowserBridgeStore(runtime_root).clear()
+    except FileNotFoundError:
+        pass
     try:
         runtime_root.rmdir()
     except OSError:

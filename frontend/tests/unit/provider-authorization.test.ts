@@ -8,6 +8,8 @@ import {
   requestBrowserProviderSync,
 } from '@/lib/provider-authorization';
 
+const TRANSACTION_ID = '1'.repeat(32);
+
 vi.mock('@/components/auth/auth-provider', () => ({
   useAuth: () => ({
     user: { role: 'admin' },
@@ -60,14 +62,17 @@ it('retries a deployment-managed provider without starting browser authorization
 });
 
 it('accepts only the correlated provider acknowledgement with a revision', async () => {
-  let outbound: { provider: string; requestId: string } | undefined;
+  let outbound:
+    | { provider: string; requestId: string; transactionId: string }
+    | undefined;
   const postMessage = vi
     .spyOn(window, 'postMessage')
     .mockImplementation((message) => {
       if (message?.type === 'framefetch:provider-sync') outbound = message;
     });
-  const request = requestBrowserProviderSync('youtube', 1_000);
+  const request = requestBrowserProviderSync('youtube', TRANSACTION_ID, 1_000);
   expect(outbound).toBeDefined();
+  expect(outbound?.transactionId).toBe(TRANSACTION_ID);
 
   dispatchBridgeResult({
     ok: true,
@@ -87,13 +92,15 @@ it('accepts only the correlated provider acknowledgement with a revision', async
 });
 
 it('rejects an acknowledgement without a native bridge revision', async () => {
-  let outbound: { provider: string; requestId: string } | undefined;
+  let outbound:
+    | { provider: string; requestId: string; transactionId: string }
+    | undefined;
   const postMessage = vi
     .spyOn(window, 'postMessage')
     .mockImplementation((message) => {
       if (message?.type === 'framefetch:provider-sync') outbound = message;
     });
-  const request = requestBrowserProviderSync('youtube', 1_000);
+  const request = requestBrowserProviderSync('youtube', TRANSACTION_ID, 1_000);
 
   dispatchBridgeResult({
     ok: true,
@@ -106,8 +113,18 @@ it('rejects an acknowledgement without a native bridge revision', async () => {
   postMessage.mockRestore();
 });
 
-it('does not authorize a stale source when browser synchronization fails', async () => {
-  const begin = vi.spyOn(providers, 'beginProviderAuthorization');
+it('cancels the server intent when browser synchronization fails', async () => {
+  const begin = vi
+    .spyOn(providers, 'beginProviderAuthorization')
+    .mockResolvedValue({
+      expires_at: '2026-09-22T12:10:00Z',
+      provider_key: 'youtube',
+      status: 'pending',
+      transaction_id: TRANSACTION_ID,
+    });
+  const cancel = vi
+    .spyOn(providers, 'cancelProviderAuthorization')
+    .mockResolvedValue(undefined);
   const postMessage = vi
     .spyOn(window, 'postMessage')
     .mockImplementation((message) => {
@@ -133,7 +150,8 @@ it('does not authorize a stale source when browser synchronization fails', async
       screen.getByText('浏览器连接器未能同步当前平台会话。'),
     ).toBeInTheDocument(),
   );
-  expect(begin).not.toHaveBeenCalled();
+  expect(begin).toHaveBeenCalledOnce();
+  expect(cancel).toHaveBeenCalledWith({ transaction_id: TRANSACTION_ID });
   postMessage.mockRestore();
 });
 

@@ -232,6 +232,20 @@ def read_authorization_request(path: Path) -> ProviderAuthorizationRequest:
     return ProviderAuthorizationRequest.parse(payload)
 
 
+def pending_authorization_request(
+    root: Path, token: str
+) -> ProviderAuthorizationRequest | None:
+    """Resolve a browser bridge token only while its API intent is pending."""
+
+    if _TOKEN.fullmatch(token) is None:
+        return None
+    try:
+        requests, _, _ = _authorization_paths(root)
+        return read_authorization_request(requests / f"{token}.request")
+    except (FileNotFoundError, OSError, ValueError):
+        return None
+
+
 def read_authorization_response(root: Path, token: str) -> str | None:
     """Read a bounded agent status without exposing any session material."""
 

@@ -112,6 +112,36 @@ def test_install_prepares_only_the_encrypted_runtime_and_agent_marker(
     assert "--state-root" not in arguments
 
 
+def test_uninstall_removes_browser_snapshots_and_source_markers(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from app.workers.runner.provider_browser_bridge_store import (
+        ProviderBrowserBridgeStore,
+    )
+
+    runtime = tmp_path / "runtime"
+    agent.prepare_authorization_runtime(runtime)
+    agent.write_authorization_source(
+        runtime,
+        ProviderKey.YOUTUBE,
+        ProviderAuthorizationSource.CURRENT_CHROME,
+    )
+    ProviderBrowserBridgeStore(runtime).write(
+        ProviderKey.YOUTUBE,
+        b"# Netscape HTTP Cookie File\n"
+        b".youtube.com\tTRUE\t/\tTRUE\t0\tSID\tcurrent-session\n",
+    )
+    monkeypatch.setattr(agent.sys, "platform", "darwin")
+    monkeypatch.setattr(agent, "_stop_loaded_agent", lambda: True)
+    monkeypatch.setattr(agent, "uninstall_native_host", lambda: None)
+    monkeypatch.setattr(agent, "PLIST_PATH", tmp_path / "missing.plist")
+
+    agent.uninstall_agent(runtime)
+
+    assert not (runtime / "bridge").exists()
+    assert not (runtime / agent.AUTHORIZATION_SOURCE_DIRECTORY).exists()
+
+
 def test_agent_routes_each_request_to_an_in_memory_export(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

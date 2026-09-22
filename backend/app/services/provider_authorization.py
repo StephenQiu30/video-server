@@ -33,11 +33,12 @@ redis.call(
   'HSET', KEYS[2],
   'user_id', ARGV[3],
   'provider_key', ARGV[4],
-  'status', ARGV[5],
-  'expires_at', ARGV[6],
+  'source', ARGV[5],
+  'status', ARGV[6],
+  'expires_at', ARGV[7],
   'active_key', KEYS[1]
 )
-redis.call('EXPIRE', KEYS[2], tonumber(ARGV[7]))
+redis.call('EXPIRE', KEYS[2], tonumber(ARGV[8]))
 return ARGV[1]
 """
 
@@ -179,8 +180,10 @@ class ProviderAuthorizationService:
                 "provider_unsupported", "该平台没有可用的本机授权流程。"
             ) from exc
         provider = ProviderKey(provider_key)
-        active_key = self._active_key(user_id, provider, authorization_source)
-        existing = await self._existing_active(user_id, active_key)
+        active_key = self._active_key(provider)
+        existing = await self._existing_active(
+            user_id, active_key, authorization_source
+        )
         if existing is not None:
             return existing
         if not await asyncio.to_thread(self._authorization_queue.agent_ready, provider):
@@ -204,6 +207,7 @@ class ProviderAuthorizationService:
                 operation_ttl,
                 str(user_id),
                 provider_key,
+                authorization_source.value,
                 ProviderAuthorizationStatus.PENDING,
                 expires_at.astimezone(UTC).isoformat(),
                 ttl,
@@ -211,7 +215,9 @@ class ProviderAuthorizationService:
             if claimed_token == token:
                 claimed = True
                 break
-            existing = await self._existing_active(user_id, active_key)
+            existing = await self._existing_active(
+                user_id, active_key, authorization_source
+            )
             if existing is not None:
                 return existing
         if not claimed:
@@ -366,13 +372,13 @@ class ProviderAuthorizationService:
         self,
         user_id: UUID,
         active_key: str,
+        source: ProviderAuthorizationSource,
     ) -> ProviderAuthorizationTransaction | None:
         value = await self._redis.get(active_key)
         if not isinstance(value, str):
             return None
-        try:
-            record = await self._record_for_user(user_id, value)
-        except ProviderAuthorizationError:
+        record = cast(dict[str, str], await self._redis.hgetall(self._key(value)))
+        if not record:
             await self._release_active(active_key, value)
             return None
         if record.get("status") != ProviderAuthorizationStatus.PENDING:
@@ -386,6 +392,13 @@ class ProviderAuthorizationService:
                 ProviderAuthorizationStatus.EXPIRED,
             )
             return None
+        if not hmac.compare_digest(
+            record.get("user_id", ""), str(user_id)
+        ) or not hmac.compare_digest(record.get("source", ""), source.value):
+            raise ProviderAuthorizationError(
+                "provider_authorization_unavailable",
+                "该平台已有管理员授权事务正在进行，请等待其完成或取消后重试。",
+            )
         return ProviderAuthorizationTransaction(
             transaction_id=value,
             provider_key=record["provider_key"],
@@ -407,13 +420,8 @@ class ProviderAuthorizationService:
         return _KEY_PREFIX + digest
 
     @staticmethod
-    def _active_key(
-        user_id: UUID,
-        provider: ProviderKey,
-        source: ProviderAuthorizationSource,
-    ) -> str:
-        identity = f"{user_id}:{provider.value}:{source.value}"
-        return _ACTIVE_KEY_PREFIX + hashlib.sha256(identity.encode()).hexdigest()
+    def _active_key(provider: ProviderKey) -> str:
+        return _ACTIVE_KEY_PREFIX + hashlib.sha256(provider.value.encode()).hexdigest()
 
 
 def _parse_expiry(value: str) -> datetime:

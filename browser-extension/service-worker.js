@@ -13,7 +13,11 @@ const PROVIDER_DOMAINS = {
 const providerSyncs = new Map();
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.type !== 'sync' || typeof message.provider !== 'string') {
+  if (
+    message?.type !== 'sync' ||
+    typeof message.provider !== 'string' ||
+    !/^[0-9a-f]{32}$/.test(message.transactionId)
+  ) {
     return false;
   }
   scheduleSync(message.provider).then(
@@ -60,8 +64,9 @@ async function syncProvider(provider) {
   }
   const response = await sendNative({
     type: 'sync',
-    provider,
-    revision,
+      provider,
+      transaction_id: message.transactionId,
+      revision,
     cookies: [...cookies.values()],
   });
   if (response.provider !== provider || response.revision !== revision) {

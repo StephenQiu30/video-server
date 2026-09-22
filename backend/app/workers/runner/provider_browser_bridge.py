@@ -17,13 +17,17 @@ import shlex
 import struct
 import sys
 from collections.abc import Iterator, Sequence
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from app.services.provider_types import ProviderKey
+from app.services.provider_types import ProviderAuthorizationSource, ProviderKey
 from app.workers.runner._secure_file import atomic_write_bytes, atomic_write_json
 from app.workers.runner.errors import RunnerFailure
 from app.workers.runner.netscape_cookie import serialize_cookies
+from app.workers.runner.provider_authorization_queue import (
+    pending_authorization_request,
+)
 from app.workers.runner.provider_browser_bridge_store import (
     ProviderBrowserBridgeStore,
 )
@@ -78,12 +82,14 @@ def browser_extension_id(
 def sync_message(
     message: object,
     store: ProviderBrowserBridgeStore,
+    runtime_root: Path,
 ) -> dict[str, object]:
     """Validate and persist one extension snapshot without exposing secrets."""
     if not isinstance(message, dict) or message.get("type") != "sync":
         return {"ok": False, "error": "invalid_message"}
     try:
         revision = _text(message.get("revision"), max_length=128)
+        transaction_id = _text(message.get("transaction_id"), max_length=32)
     except ValueError:
         return {"ok": False, "error": "invalid_message"}
     try:
@@ -98,6 +104,19 @@ def sync_message(
         return {
             "ok": False,
             "error": "unsupported_provider",
+            "revision": revision,
+        }
+    authorization = pending_authorization_request(runtime_root, transaction_id)
+    if (
+        authorization is None
+        or authorization.provider is not provider
+        or authorization.source is not ProviderAuthorizationSource.CURRENT_CHROME
+        or authorization.probe
+        or datetime.now(UTC) >= authorization.expires_at
+    ):
+        return {
+            "ok": False,
+            "error": "authorization_required",
             "revision": revision,
         }
     policy = browser_session_policy(provider)
@@ -197,7 +216,7 @@ def serve(runtime_root: Path) -> int:
     store = ProviderBrowserBridgeStore(runtime_root)
     for message in _messages(sys.stdin.buffer):
         try:
-            result = sync_message(message, store)
+            result = sync_message(message, store, runtime_root)
         except Exception:
             result = {"ok": False, "error": "bridge_unavailable"}
         _write_message(sys.stdout.buffer, result)

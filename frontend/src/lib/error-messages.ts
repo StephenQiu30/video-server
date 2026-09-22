@@ -59,7 +59,7 @@ const localizedErrorMessages: Record<string, string> = {
   not_found: '任务或相关资源不存在，请返回下载记录确认。',
   output_limit_exceeded: '下载文件超过大小限制，请选择更小的规格。',
   provider_auth_required:
-    '该链接需要平台登录或官方授权，请使用右侧的受控会话重试。',
+    '该链接明确需要平台账号权限，请使用部署方提供的受控授权路线或更换公开链接。',
   provider_catalog_conflict: '相同标识的平台配置已经存在。',
   provider_catalog_not_found: '平台配置不存在或已被删除。',
   provider_content_restricted:
@@ -74,12 +74,13 @@ const localizedErrorMessages: Record<string, string> = {
   provider_rate_limited: '平台请求过于频繁，请稍后重试。',
   provider_session_expired: '平台授权或验证状态已失效，请稍后重试。',
   provider_configuration_missing:
-    '当前平台的受控下载路线尚未配置，请先完成本机授权 Agent 初始化后重试。',
+    '当前所选访问路线尚未配置，请联系部署管理员完成配置后重试。',
   provider_access_policy_not_allowed:
     '此来源不允许所选访问策略，请更换策略后重新解析。',
   provider_temporarily_unavailable: '平台服务暂时不可用，请稍后重试。',
   provider_unsupported: '当前暂不支持该视频平台。',
-  provider_verification_failed: '平台要求额外验证，请使用右侧的受控会话重试。',
+  provider_verification_failed:
+    '平台要求额外验证，当前公开路线暂不可用，请稍后重试或更换公开链接。',
   rate_limited: '操作过于频繁，请稍后再试。',
   rate_limiter_unavailable: '请求限制服务暂时不可用，请稍后重试。',
   request_timeout: '请求处理超时，请稍后重试。',

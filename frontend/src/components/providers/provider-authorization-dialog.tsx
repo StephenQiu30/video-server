@@ -163,12 +163,9 @@ function ChromeProviderAuthorizationDialog({
     setStartError('');
     transactionRef.current = null;
     setTransaction(null);
+    let started: API.ProviderAuthorizationResponse | null = null;
     try {
-      if (source === 'current_chrome') {
-        await requestBrowserProviderSync(provider.key);
-        if (generation !== generationRef.current) return;
-      }
-      const next = await beginProviderAuthorization(
+      started = await beginProviderAuthorization(
         {
           provider_key: provider.key,
         },
@@ -176,6 +173,7 @@ function ChromeProviderAuthorizationDialog({
           source,
         },
       );
+      const next = started;
       if (generation !== generationRef.current) {
         await cancelProviderAuthorization({
           transaction_id: next.transaction_id,
@@ -184,8 +182,19 @@ function ChromeProviderAuthorizationDialog({
       }
       transactionRef.current = next;
       setTransaction(next);
+      if (source === 'current_chrome') {
+        await requestBrowserProviderSync(provider.key, next.transaction_id);
+        if (generation !== generationRef.current) return;
+      }
     } catch (error) {
       if (generation !== generationRef.current) return;
+      if (started?.status === 'pending') {
+        await cancelProviderAuthorization({
+          transaction_id: started.transaction_id,
+        }).catch(() => undefined);
+        transactionRef.current = null;
+        setTransaction(null);
+      }
       setSetupRequired(
         error instanceof ApiError &&
           error.code === 'provider_configuration_missing',

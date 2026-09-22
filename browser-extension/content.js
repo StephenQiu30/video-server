@@ -7,11 +7,16 @@ window.addEventListener('message', (event) => {
   if (!message || message.type !== MESSAGE_TYPE) return;
   if (
     typeof message.provider !== 'string' ||
-    typeof message.requestId !== 'string'
+    typeof message.requestId !== 'string' ||
+    !/^[0-9a-f]{32}$/.test(message.transactionId)
   ) return;
 
   chrome.runtime.sendMessage(
-    { type: 'sync', provider: message.provider },
+    {
+      type: 'sync',
+      provider: message.provider,
+      transactionId: message.transactionId,
+    },
     (response) => {
       const error = chrome.runtime.lastError;
       window.postMessage(

@@ -43,9 +43,12 @@ Authorizations = Annotated[
     response_model=ProviderListResponse,
     summary="查询平台能力状态",
 )
-async def list_providers(_user: User, statuses: Statuses) -> ProviderListResponse:
+async def list_providers(user: User, statuses: Statuses) -> ProviderListResponse:
     """返回不含凭据、出口地址和 Canary 目标的能力快照。"""
-    return ProviderListResponse.from_views(statuses)
+    return ProviderListResponse.from_views(
+        statuses,
+        browser_session_allowed=user.is_admin,
+    )
 
 
 @router.post(

@@ -71,6 +71,7 @@ export function providerAuthorizationTarget(
 /** Ask the installed local browser connector to refresh one provider snapshot. */
 export function requestBrowserProviderSync(
   providerKey: string,
+  transactionId: string,
   timeoutMs = 5_000,
 ): Promise<void> {
   if (typeof window === 'undefined') return Promise.resolve();
@@ -119,6 +120,7 @@ export function requestBrowserProviderSync(
         type: 'framefetch:provider-sync',
         provider: providerKey,
         requestId,
+        transactionId,
       },
       window.location.origin,
     );

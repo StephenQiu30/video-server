@@ -75,6 +75,23 @@ class ProviderBrowserBridgeStore:
             raise OSError("unsafe browser bridge snapshot")
         path.unlink()
 
+    def clear(self) -> None:
+        """Remove all encrypted browser material during explicit uninstall."""
+
+        for path in self._root.iterdir():
+            if path.name not in {".key", ".key.lock"} and not path.name.endswith(
+                ".snapshot"
+            ):
+                continue
+            try:
+                info = path.lstat()
+            except FileNotFoundError:
+                continue
+            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+                raise OSError("unsafe browser bridge entry")
+            path.unlink()
+        self._root.rmdir()
+
     def read(self, provider: ProviderKey) -> bytes | None:
         policy = browser_session_policy(provider)
         if policy.source is not ProviderSessionSource.CHROME_PROFILE:

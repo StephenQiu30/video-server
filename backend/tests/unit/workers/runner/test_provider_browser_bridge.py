@@ -4,14 +4,53 @@ import json
 import struct
 import subprocess
 import sys
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
-from app.services.provider_types import ProviderKey
+from app.services.provider_authorization import ProviderAuthorizationRequest
+from app.services.provider_types import (
+    ProviderAuthorizationSource,
+    ProviderKey,
+)
 from app.workers.runner import provider_browser_bridge as bridge
+from app.workers.runner.provider_authorization_queue import (
+    prepare_authorization_runtime,
+    write_authorization_request,
+)
 from app.workers.runner.provider_browser_bridge_store import ProviderBrowserBridgeStore
 
 REVISION = "11111111-1111-4111-8111-111111111111"
+TRANSACTION_ID = "1" * 32
+
+
+def _authorize_current_browser(root: Path) -> None:
+    prepare_authorization_runtime(root)
+    request = root / "control" / "requests" / f"{TRANSACTION_ID}.request"
+    if request.exists():
+        return
+    write_authorization_request(
+        root,
+        TRANSACTION_ID,
+        ProviderAuthorizationRequest(
+            ProviderKey.YOUTUBE,
+            datetime.now(UTC) + timedelta(minutes=5),
+            ProviderAuthorizationSource.CURRENT_CHROME,
+        ),
+    )
+
+
+def _sync(
+    root: Path,
+    message: dict[str, object],
+    store: ProviderBrowserBridgeStore | None = None,
+) -> dict[str, object]:
+    _authorize_current_browser(root)
+    return bridge.sync_message(
+        {**message, "transaction_id": TRANSACTION_ID},
+        store or ProviderBrowserBridgeStore(root),
+        root,
+    )
 
 
 def _youtube_cookie(value: str = "session") -> dict[str, object]:
@@ -31,7 +70,8 @@ def test_sync_message_persists_only_an_encrypted_provider_snapshot(
 ) -> None:
     store = ProviderBrowserBridgeStore(tmp_path)
 
-    result = bridge.sync_message(
+    result = _sync(
+        tmp_path,
         {
             "type": "sync",
             "provider": "youtube",
@@ -51,14 +91,14 @@ def test_sync_message_persists_only_an_encrypted_provider_snapshot(
 def test_sync_message_rejects_cookie_outside_provider_allowlist(
     tmp_path: Path,
 ) -> None:
-    result = bridge.sync_message(
+    result = _sync(
+        tmp_path,
         {
             "type": "sync",
             "provider": "youtube",
             "revision": REVISION,
             "cookies": [{**_youtube_cookie(), "domain": ".example.com"}],
         },
-        ProviderBrowserBridgeStore(tmp_path),
     )
 
     assert result == {
@@ -72,7 +112,8 @@ def test_empty_browser_snapshot_removes_previous_provider_session(
     tmp_path: Path,
 ) -> None:
     store = ProviderBrowserBridgeStore(tmp_path)
-    bridge.sync_message(
+    _sync(
+        tmp_path,
         {
             "type": "sync",
             "provider": "youtube",
@@ -82,7 +123,8 @@ def test_empty_browser_snapshot_removes_previous_provider_session(
         store,
     )
 
-    result = bridge.sync_message(
+    result = _sync(
+        tmp_path,
         {
             "type": "sync",
             "provider": "youtube",
@@ -100,7 +142,8 @@ def test_invalid_optional_cookie_does_not_remove_previous_session(
     tmp_path: Path,
 ) -> None:
     store = ProviderBrowserBridgeStore(tmp_path)
-    bridge.sync_message(
+    _sync(
+        tmp_path,
         {
             "type": "sync",
             "provider": "youtube",
@@ -110,7 +153,8 @@ def test_invalid_optional_cookie_does_not_remove_previous_session(
         store,
     )
 
-    result = bridge.sync_message(
+    result = _sync(
+        tmp_path,
         {
             "type": "sync",
             "provider": "youtube",
@@ -134,7 +178,8 @@ def test_cookie_snapshot_preserves_host_only_domain_and_path_semantics(
 ) -> None:
     store = ProviderBrowserBridgeStore(tmp_path)
 
-    result = bridge.sync_message(
+    result = _sync(
+        tmp_path,
         {
             "type": "sync",
             "provider": "youtube",
@@ -168,7 +213,8 @@ def test_cookie_snapshot_rejects_mixed_browser_stores_without_revoking_previous(
     tmp_path: Path,
 ) -> None:
     store = ProviderBrowserBridgeStore(tmp_path)
-    bridge.sync_message(
+    _sync(
+        tmp_path,
         {
             "type": "sync",
             "provider": "youtube",
@@ -178,7 +224,8 @@ def test_cookie_snapshot_rejects_mixed_browser_stores_without_revoking_previous(
         store,
     )
 
-    result = bridge.sync_message(
+    result = _sync(
+        tmp_path,
         {
             "type": "sync",
             "provider": "youtube",
@@ -246,11 +293,13 @@ def test_native_host_wrapper_ignores_chrome_origin_and_serves_snapshot(
     monkeypatch.setattr(bridge, "NATIVE_HOST_PATH", bridge_home / "host")
     runtime = tmp_path / "runtime"
     bridge.install_native_host(runtime, "a" * 32, python_executable=sys.executable)
+    _authorize_current_browser(runtime)
 
     payload = json.dumps(
         {
             "type": "sync",
             "provider": "youtube",
+            "transaction_id": TRANSACTION_ID,
             "revision": REVISION,
             "cookies": [_youtube_cookie("wrapper-session")],
         },
@@ -272,3 +321,23 @@ def test_native_host_wrapper_ignores_chrome_origin_and_serves_snapshot(
         "revision": REVISION,
     }
     assert ProviderBrowserBridgeStore(runtime).read(ProviderKey.YOUTUBE) is not None
+
+
+def test_sync_message_rejects_missing_api_authorization(tmp_path: Path) -> None:
+    result = bridge.sync_message(
+        {
+            "type": "sync",
+            "provider": "youtube",
+            "transaction_id": TRANSACTION_ID,
+            "revision": REVISION,
+            "cookies": [_youtube_cookie()],
+        },
+        ProviderBrowserBridgeStore(tmp_path),
+        tmp_path,
+    )
+
+    assert result == {
+        "ok": False,
+        "error": "authorization_required",
+        "revision": REVISION,
+    }

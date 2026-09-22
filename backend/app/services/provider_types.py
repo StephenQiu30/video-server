@@ -103,6 +103,7 @@ def provider_authorization_action(
     access_modes: tuple[ProviderAccessMode, ...],
     status: ProviderSupportStatus,
     last_check_succeeded: bool | None,
+    browser_session_allowed: bool = False,
 ) -> ProviderAuthorizationAction:
     try:
         key = ProviderKey(provider)
@@ -116,6 +117,8 @@ def provider_authorization_action(
         and last_check_succeeded is False
         and (key in _DEPLOYMENT_MANAGED_PROVIDERS or key is ProviderKey.WECHAT_CHANNELS)
     ):
+        if browser_session_allowed and key in _DEPLOYMENT_MANAGED_PROVIDERS:
+            return ProviderAuthorizationAction.BROWSER_SESSION
         return ProviderAuthorizationAction.MANAGED_SESSION
     return ProviderAuthorizationAction.NONE
 

@@ -83,7 +83,9 @@ describe('DownloadWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
 
     expect(
-      await screen.findByText('平台要求额外验证，请使用右侧的受控会话重试。'),
+      await screen.findByText(
+        '平台要求额外验证，当前公开路线暂不可用，请稍后重试或更换公开链接。',
+      ),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: '使用托管线路重试' }),
@@ -279,7 +281,9 @@ describe('DownloadWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
 
     expect(
-      await screen.findByText('平台要求额外验证，请使用右侧的受控会话重试。'),
+      await screen.findByText(
+        '平台要求额外验证，当前公开路线暂不可用，请稍后重试或更换公开链接。',
+      ),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: '使用托管线路重试' }),
@@ -308,7 +312,7 @@ describe('DownloadWorkspace', () => {
 
     expect(
       await screen.findByText(
-        '该链接需要平台登录或官方授权，请使用右侧的受控会话重试。',
+        '该链接明确需要平台账号权限，请使用部署方提供的受控授权路线或更换公开链接。',
       ),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '使用托管线路重试' }));
