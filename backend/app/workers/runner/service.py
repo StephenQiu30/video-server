@@ -172,6 +172,7 @@ class MediaRunnerService:
             context = self._sessions.validate_context(
                 source.profile,
                 request.access_context.to_domain(),
+                allow_guest_refresh=True,
             )
             workspace = self._workspaces.create(request.task_id)
             async with asyncio.timeout(self._settings.runner_download_timeout_seconds):

@@ -75,6 +75,7 @@ class DownloadIntentRow(Base):
         Index("ix_download_intents_owner_created", "owner_hash", "created_at"),
         Index("ix_download_intents_recovery", "status", "lease_expires_at", "retry_at"),
         Index("ix_download_intents_deadline", "status", "deadline"),
+        Index("uq_download_intents_inspection", "inspection_id", unique=True),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)

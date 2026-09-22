@@ -1224,6 +1224,8 @@ CREATE INDEX IF NOT EXISTS ix_download_intents_recovery
     ON download_intents (status, lease_expires_at, retry_at);
 CREATE INDEX IF NOT EXISTS ix_download_intents_deadline
     ON download_intents (status, deadline);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_download_intents_inspection
+    ON download_intents (inspection_id);
 
 CREATE TABLE IF NOT EXISTS rabbitmq_dlq_replays (
     id UUID PRIMARY KEY,

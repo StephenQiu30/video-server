@@ -8,6 +8,7 @@ from app.services.downloads.download_models import DownloadCreate, DownloadView
 from app.services.downloads.errors import (
     ApplicationError,
     ApplicationErrorCode,
+    PersistenceConflict,
     PersistenceIdempotencyConflict,
     PersistenceNotFound,
 )
@@ -110,6 +111,8 @@ class CreateDownload:
             # The inspection or selected format expired between the read above and
             # the atomic source re-validation inside create_job (TOCTOU window).
             raise ApplicationError(ApplicationErrorCode.NOT_FOUND) from exc
+        except PersistenceConflict as exc:
+            raise ApplicationError(ApplicationErrorCode.INVALID_STATE) from exc
         return download_view(saved.job)
 
 

@@ -94,6 +94,21 @@ async def test_guest_runner_only_reads_scoped_lease_and_cleans_operation(tmp_pat
     with pytest.raises(RunnerFailure):
         async with store.operation(context):
             pytest.fail("stale guest revision entered execution")
+    refreshed = store.validate_context(
+        provider_profile_for_key("douyin"), context, allow_guest_refresh=True
+    )
+    assert refreshed.credential_version_id == "guest-2"
+    for changed in (
+        replace(context, engine_commit="another-engine"),
+        replace(context, egress_affinity_id="another-egress"),
+        replace(context, profile_version="another-profile"),
+        replace(context, client_profile_id="another-client"),
+        replace(context, access_mode=ProviderAccessMode.OPERATOR_MANAGED),
+    ):
+        with pytest.raises(RunnerFailure):
+            store.validate_context(
+                provider_profile_for_key("douyin"), changed, allow_guest_refresh=True
+            )
     await store.close()
 
 

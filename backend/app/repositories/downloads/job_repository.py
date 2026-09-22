@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import DownloadJobRow, MediaFormatRow, MediaInspectionRow
+from app.models.download_intent import DownloadIntentRow
 from app.repositories.downloads.events import requested_event
 from app.repositories.downloads.mapping import job_snapshot
 from app.repositories.errors import (
@@ -39,14 +40,45 @@ class JobRepository(RepositoryBase):
         self, command: DownloadCreate, *, now: datetime
     ) -> JobSaveResult:
         async with self._sessions() as session:
+            intent = None
             try:
                 async with session.begin():
                     await lock_admission(session, command.owner_hash)
+                    # Explicit history retries are separate user-confirmed jobs;
+                    # they do not replace the original intent's unique handoff.
+                    intent = (
+                        None
+                        if command.allow_expired_source
+                        else await session.scalar(
+                            select(DownloadIntentRow)
+                            .where(
+                                DownloadIntentRow.inspection_id
+                                == command.inspection_id,
+                                DownloadIntentRow.owner_hash == command.owner_hash,
+                            )
+                            .with_for_update()
+                        )
+                    )
+                    if intent is not None:
+                        if intent.status == "handed_off":
+                            handed_off = await session.get(
+                                DownloadJobRow, intent.job_id
+                            )
+                            if handed_off is None:
+                                raise RepositoryConflict(
+                                    "intent download is unavailable"
+                                )
+                            return self._idempotent_result(handed_off, command)
+                        if intent.status != "ready":
+                            raise RepositoryConflict("intent is not ready for download")
                     existing = await session.scalar(self._idempotency_query(command))
                     if existing is not None:
-                        return self._idempotent_result(existing, command)
+                        result = self._idempotent_result(existing, command)
+                        _handoff(intent, existing, now)
+                        return result
                     active = await session.scalar(self._active_request_query(command))
                     if active is not None:
+                        _handoff(intent, active, now)
                         return JobSaveResult(job_snapshot(active), created=False)
                     await self._validate_source(session, command, now)
                     await reserve(
@@ -74,10 +106,13 @@ class JobRepository(RepositoryBase):
                     session.add(row)
                     session.add(requested_event(row, now))
                     await session.flush()
+                    _handoff(intent, row, now)
                     result = JobSaveResult(job_snapshot(row), created=True)
                 return result
             except IntegrityError as exc:
                 await session.rollback()
+                if intent is not None:
+                    raise
                 existing = await session.scalar(self._idempotency_query(command))
                 if existing is not None:
                     try:
@@ -240,3 +275,13 @@ class JobRepository(RepositoryBase):
         _, selected_format = selected
         if selected_format.semantic_plan != command.semantic_plan:
             raise RepositoryConflict("semantic plan differs from selected format")
+
+
+def _handoff(
+    intent: DownloadIntentRow | None, job: DownloadJobRow, now: datetime
+) -> None:
+    if intent is not None:
+        intent.status = "handed_off"
+        intent.job_id = job.id
+        intent.version += 1
+        intent.updated_at = now

@@ -439,22 +439,7 @@ class AccessRepository(RepositoryBase):
             )
             if row is None:
                 raise RepositoryNotFound("download job does not exist")
-            if row.status == "cancelled":
-                return job_snapshot(row)
-            if row.status not in {"queued", "running", "retry_wait"}:
-                raise RepositoryConflict("terminal download job cannot be cancelled")
-            row.status = "cancelled"
-            row.stage = None
-            row.stage_rank = 0
-            row.version += 1
-            row.cancel_requested_at = now
-            row.finished_at = now
-            row.retry_at = None
-            row.error_code = "cancelled"
-            row.error_message = None
-            row.lease_owner = None
-            row.lease_expires_at = None
-            row.updated_at = now
+            cancel_job_row(row, now)
             await session.flush()
             return job_snapshot(row)
 
@@ -479,3 +464,23 @@ class AccessRepository(RepositoryBase):
 
 def _escape_like(value: str) -> str:
     return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def cancel_job_row(row: DownloadJobRow, now: datetime) -> None:
+    """Apply cancellation inside the caller-owned transaction and row lock."""
+    if row.status == "cancelled":
+        return
+    if row.status not in {"queued", "running", "retry_wait"}:
+        raise RepositoryConflict("terminal download job cannot be cancelled")
+    row.status = "cancelled"
+    row.stage = None
+    row.stage_rank = 0
+    row.version += 1
+    row.cancel_requested_at = now
+    row.finished_at = now
+    row.retry_at = None
+    row.error_code = "cancelled"
+    row.error_message = None
+    row.lease_owner = None
+    row.lease_expires_at = None
+    row.updated_at = now

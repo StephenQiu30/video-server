@@ -6,6 +6,7 @@ import asyncio
 import hmac
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -167,6 +168,8 @@ class ProviderSessionStore:
         self,
         source: str | ProviderProfile,
         expected: ProviderAccessContextRef,
+        *,
+        allow_guest_refresh: bool = False,
     ) -> ProviderAccessContextRef:
         current = self.context_for(source)
         if current.access_mode is ProviderAccessMode.ANONYMOUS:
@@ -174,6 +177,18 @@ class ProviderSessionStore:
                 raise RunnerFailure("client_context_mismatch", status=409)
             return current
         if expected != current:
+            if (
+                allow_guest_refresh
+                and current.access_mode is ProviderAccessMode.GUEST
+                and expected.access_mode is ProviderAccessMode.GUEST
+                and replace(
+                    expected, credential_version_id=current.credential_version_id
+                )
+                == current
+            ):
+                # Only visitor material may rotate. Provider, engine, profile,
+                # client and egress remain frozen; download re-inspects identity.
+                return current
             if current.access_mode is ProviderAccessMode.GUEST:
                 raise RunnerFailure("guest_context_required", status=503)
             raise RunnerFailure("credential_revoked", status=422)

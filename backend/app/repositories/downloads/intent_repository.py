@@ -10,8 +10,10 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.models.download import DownloadJobRow
 from app.models.download_intent import DownloadIntentRow
 from app.models.outbox import OutboxEventRow
+from app.repositories.downloads.access_repository import cancel_job_row
 from app.repositories.downloads.media_repository import insert_inspection
 from app.repositories.errors import (
     IdempotencyConflict,
@@ -137,8 +139,18 @@ class IntentRepository:
         async with self._sessions() as session, session.begin():
             row = await self._owned(session, intent_id, owner_hash, lock=True)
             if row.status == "handed_off":
-                # P9.07 must cancel the existing job under the same transaction.
-                raise RepositoryConflict("intent has already handed off to a job")
+                job = await session.scalar(
+                    select(DownloadJobRow)
+                    .where(
+                        DownloadJobRow.id == row.job_id,
+                        DownloadJobRow.owner_hash == owner_hash,
+                    )
+                    .with_for_update()
+                )
+                if job is None:
+                    raise RepositoryConflict("intent download is unavailable")
+                cancel_job_row(job, now)
+                _transition(row, "cancelled", now, "cancelled")
             if row.status not in _TERMINAL:
                 _transition(row, "cancelled", now, "cancelled")
             return _snapshot(row)

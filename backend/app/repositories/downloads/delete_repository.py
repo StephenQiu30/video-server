@@ -7,6 +7,7 @@ from uuid import UUID
 
 from sqlalchemy import select
 
+from app.core.db import utc_now
 from app.models import (
     AnalysisArtifactLockRow,
     ArtifactRow,
@@ -14,6 +15,7 @@ from app.models import (
     DownloadThumbnailRow,
     MediaImportAttemptRow,
 )
+from app.models.download_intent import DownloadIntentRow
 from app.repositories.errors import RepositoryConflict, RepositoryNotFound
 from app.repositories.repository_base import RepositoryBase
 from app.services.downloads.download_models import (
@@ -84,6 +86,15 @@ class DownloadDeleteRepository(RepositoryBase):
 
     async def finish_download_deletion(self, job_id: UUID, owner_hash: str) -> None:
         async with self._sessions() as session, session.begin():
+            # Same lock order as handoff/cancel: intent, then the referenced job.
+            intent = await session.scalar(
+                select(DownloadIntentRow)
+                .where(
+                    DownloadIntentRow.job_id == job_id,
+                    DownloadIntentRow.owner_hash == owner_hash,
+                )
+                .with_for_update()
+            )
             job = await session.scalar(
                 select(DownloadJobRow)
                 .where(
@@ -94,4 +105,11 @@ class DownloadDeleteRepository(RepositoryBase):
             )
             if job is None:
                 raise RepositoryNotFound("download job does not exist")
+            if intent is not None:
+                intent.status = "expired"
+                intent.reason_code = "resource_expired"
+                intent.job_id = None
+                intent.version += 1
+                intent.updated_at = utc_now()
+                await session.flush()
             await session.delete(job)
