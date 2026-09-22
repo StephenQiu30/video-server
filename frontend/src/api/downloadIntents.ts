@@ -2,6 +2,21 @@
 /* eslint-disable */
 import { request, type RequestOptions } from "@/lib/request";
 
+/** 按幂等键找回当前用户已提交的解析意图 GET /api/download-intents */
+export async function findDownloadIntent(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.findDownloadIntentParams,
+  options?: RequestOptions
+) {
+  return request<API.ApiResponseIntentResponse_>("/api/download-intents", {
+    method: "GET",
+    params: {
+      ...params,
+    },
+    ...(options || {}),
+  });
+}
+
 /** 提交持久解析意图 POST /api/download-intents */
 export async function createDownloadIntent(
   body: API.IntentRequest,

@@ -259,3 +259,57 @@ def test_openapi_intent_response_does_not_expose_execution_or_secrets():
         not {"url", "url_ciphertext", "owner_hash", "lease_owner", "fence"}
         & properties.keys()
     )
+
+
+async def test_lost_acceptance_can_be_found_without_resubmitting_input(postgres_engine):
+    service, _, _, clock, sessions = components(postgres_engine)
+    intent = await service.create(URL, TEST_USER.owner_hash, "lost-response")
+    clock[0] += timedelta(seconds=30)
+    app = create_app(Settings(app_env="test"))
+    app.state.services.intent_service = service
+    app.dependency_overrides[get_current_user] = lambda: TEST_USER
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app), base_url="http://testserver"
+    ) as client:
+        result = await client.get(
+            "/api/download-intents", params={"idempotency_key": "lost-response"}
+        )
+        assert result.status_code == 200
+        assert result.headers["cache-control"] == "no-store"
+        recovered = result.json()["data"]
+        assert recovered["id"] == str(intent.id)
+        assert recovered["version"] == intent.version
+        assert (
+            datetime.fromisoformat(recovered["deadline"].replace("Z", "+00:00"))
+            == intent.deadline
+        )
+        assert not {"input", "url", "owner_hash", "idempotency_key"} & recovered.keys()
+        # The lookup must never create, reset or requeue work.
+        async with sessions() as session:
+            assert (
+                await session.scalar(select(func.count()).select_from(OutboxEventRow))
+                == 1
+            )
+            assert (
+                await session.scalar(
+                    select(func.count()).select_from(ResourceAdmissionRow)
+                )
+                == 1
+            )
+        app.dependency_overrides[get_current_user] = lambda: replace(
+            TEST_USER, id=uuid4()
+        )
+        foreign = await client.get(
+            "/api/download-intents", params={"idempotency_key": "lost-response"}
+        )
+        missing = await client.get(
+            "/api/download-intents", params={"idempotency_key": "not-submitted"}
+        )
+        assert foreign.status_code == missing.status_code == 404
+        assert foreign.json() == missing.json()
+        for invalid in ("", "x" * 129):
+            assert (
+                await client.get(
+                    "/api/download-intents", params={"idempotency_key": invalid}
+                )
+            ).status_code == 422

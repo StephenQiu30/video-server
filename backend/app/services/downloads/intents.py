@@ -36,6 +36,9 @@ class IntentPersistence(Protocol):
         quota: UserQuota = DEFAULT_USER_QUOTA,
     ) -> IntentSnapshot: ...
     async def get(self, intent_id: UUID, owner_hash: str) -> IntentSnapshot: ...
+    async def get_by_key(
+        self, idempotency_key: str, owner_hash: str
+    ) -> IntentSnapshot: ...
     async def cancel(
         self, intent_id: UUID, owner_hash: str, *, now: datetime
     ) -> IntentSnapshot: ...
@@ -121,6 +124,14 @@ class IntentService:
     async def get(self, intent_id: UUID, owner_hash: str) -> IntentSnapshot:
         try:
             return await self._repository.get(intent_id, owner_hash)
+        except PersistenceNotFound as exc:
+            raise ApplicationError(ApplicationErrorCode.NOT_FOUND) from exc
+
+    async def get_by_key(self, idempotency_key: str, owner_hash: str) -> IntentSnapshot:
+        validate_owner_hash(owner_hash)
+        validate_idempotency_key(idempotency_key)
+        try:
+            return await self._repository.get_by_key(idempotency_key, owner_hash)
         except PersistenceNotFound as exc:
             raise ApplicationError(ApplicationErrorCode.NOT_FOUND) from exc
 

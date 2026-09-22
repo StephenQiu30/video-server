@@ -1145,6 +1145,10 @@ declare namespace API {
     analysis_id: string;
   };
 
+  type findDownloadIntentParams = {
+    idempotency_key: string;
+  };
+
   type FormatResponse = {
     /** Id */
     id: string;

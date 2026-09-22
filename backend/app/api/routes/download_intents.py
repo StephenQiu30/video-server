@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 
 from app.api.admission import RateLimitAdmission
 from app.api.deps import IdempotencyKey, get_current_user, get_services, require_service
@@ -21,6 +21,24 @@ def get_intent_service(request: Request) -> IntentService:
 
 User = Annotated[CurrentUser, Depends(get_current_user)]
 Service = Annotated[IntentService, Depends(get_intent_service)]
+
+
+@router.get(
+    "",
+    response_model=IntentResponse,
+    operation_id="findDownloadIntent",
+    summary="按幂等键找回当前用户已提交的解析意图",
+)
+async def find_intent(
+    idempotency_key: Annotated[str, Query(min_length=1, max_length=128)],
+    user: User,
+    service: Service,
+    response: Response,
+) -> IntentResponse:
+    response.headers["Cache-Control"] = "no-store"
+    return IntentResponse.from_snapshot(
+        await service.get_by_key(idempotency_key, user.owner_hash)
+    )
 
 
 @router.post(

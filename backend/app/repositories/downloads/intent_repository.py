@@ -132,6 +132,18 @@ class IntentRepository:
             row = await self._owned(session, intent_id, owner_hash)
             return _snapshot(row)
 
+    async def get_by_key(self, idempotency_key: str, owner_hash: str) -> IntentSnapshot:
+        async with self._sessions() as session:
+            row = await session.scalar(
+                select(DownloadIntentRow).where(
+                    DownloadIntentRow.owner_hash == owner_hash,
+                    DownloadIntentRow.idempotency_key == idempotency_key,
+                )
+            )
+            if row is None:
+                raise RepositoryNotFound("intent not found")
+            return _snapshot(row)
+
     async def cancel(
         self, intent_id: UUID, owner_hash: str, *, now: datetime
     ) -> IntentSnapshot:
