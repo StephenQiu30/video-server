@@ -9,10 +9,9 @@ from importlib.metadata import PackageNotFoundError, distribution
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from packaging.version import InvalidVersion, Version
-
 from app.workers.runner.settings import RunnerSettings
 from app.workers.runner.version import YTDLP_ENGINE_VERSION
+from packaging.version import InvalidVersion, Version
 
 
 async def _session_ready() -> bool:
