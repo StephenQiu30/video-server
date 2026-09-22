@@ -1,8 +1,11 @@
 'use client';
 
 import { ArrowCounterClockwise } from '@phosphor-icons/react';
-import { useState } from 'react';
 import { useAnalysisSkills } from '@/components/analysis/use-analysis-skills';
+import {
+  emptyAnalysisDraft,
+  useWorkspaceState,
+} from '@/components/layout/workspace-state-provider';
 import { Button } from '@/components/ui/button';
 import {
   Field,
@@ -22,23 +25,30 @@ import { Textarea } from '@/components/ui/textarea';
 
 import { AnalysisExecutionNotice } from './analysis-execution-notice';
 
-type OutputLanguage = 'zh-CN' | 'en-US';
-
 const MAX_PROMPT_LENGTH = 4_000;
 
 export default function AnalysisConfigurator({
   busy,
   inputKind = 'video',
+  inputId,
   onStart,
 }: {
   busy: boolean;
+  inputId: string;
   inputKind?: API.AnalysisInputKind;
   onStart: (input: API.AnalysisRequest) => void;
 }) {
   const catalog = useAnalysisSkills(inputKind);
-  const [skillId, setSkillId] = useState('');
-  const [language, setLanguage] = useState<OutputLanguage>('zh-CN');
-  const [customPrompt, setPrompt] = useState<string | null>(null);
+  const { analyses, setAnalyses } = useWorkspaceState();
+  const draftKey = `${inputKind}:${inputId}`;
+  const draft = analyses[draftKey] ?? emptyAnalysisDraft;
+  const { skillId, language, customPrompt } = draft;
+  function updateDraft(patch: Partial<typeof draft>) {
+    setAnalyses((current) => ({
+      ...current,
+      [draftKey]: { ...(current[draftKey] ?? emptyAnalysisDraft), ...patch },
+    }));
+  }
   const selected = skillId
     ? catalog.skills.find((skill) => skill.id === skillId)
     : catalog.skills[0];
@@ -48,12 +58,13 @@ export default function AnalysisConfigurator({
   function changeSkill(value: string) {
     const next = catalog.skills.find((skill) => skill.id === value);
     if (!next) return;
-    setPrompt(
-      !selected || prompt === selected.default_prompt
-        ? next.default_prompt
-        : prompt,
-    );
-    setSkillId(next.id);
+    updateDraft({
+      skillId: next.id,
+      customPrompt:
+        !selected || prompt === selected.default_prompt
+          ? next.default_prompt
+          : prompt,
+    });
   }
 
   function startAnalysis() {
@@ -116,7 +127,9 @@ export default function AnalysisConfigurator({
             输出语言
           </FieldLabel>
           <Select
-            onValueChange={(value) => setLanguage(value as OutputLanguage)}
+            onValueChange={(value) =>
+              updateDraft({ language: value as typeof language })
+            }
             value={language}
           >
             <SelectTrigger
@@ -147,7 +160,9 @@ export default function AnalysisConfigurator({
           </FieldLabel>
           <Button
             disabled={!selected || prompt === selected.default_prompt}
-            onClick={() => selected && setPrompt(selected.default_prompt)}
+            onClick={() =>
+              selected && updateDraft({ customPrompt: selected.default_prompt })
+            }
             size="sm"
             type="button"
             variant="ghost"
@@ -159,7 +174,9 @@ export default function AnalysisConfigurator({
         <Textarea
           id={controlId(inputKind, 'prompt')}
           maxLength={MAX_PROMPT_LENGTH}
-          onChange={(event) => setPrompt(event.target.value)}
+          onChange={(event) =>
+            updateDraft({ customPrompt: event.target.value })
+          }
           rows={5}
           value={prompt}
         />

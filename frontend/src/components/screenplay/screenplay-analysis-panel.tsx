@@ -105,6 +105,7 @@ export default function ScreenplayAnalysisPanel({
           ) : null}
           {!state.job ? (
             <AnalysisConfigurator
+              inputId={documentId}
               busy={state.action === 'start'}
               inputKind="screenplay"
               onStart={state.start}

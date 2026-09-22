@@ -1,3 +1,4 @@
+import { type QueryClient, useQueryClient } from '@tanstack/react-query';
 import {
   act,
   fireEvent,
@@ -5,9 +6,11 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DownloadHistoryView from '@/components/downloads/download-history-view';
 import { useDownloadHistory } from '@/components/downloads/use-download-history';
+import { privateQueryKey } from '@/lib/query-keys';
 import { render, renderHook } from '../helpers/query-render';
 
 const runtime = vi.hoisted(() => ({
@@ -174,7 +177,16 @@ describe('download history', () => {
   it('confirms deletion and refreshes the download history', async () => {
     runtime.getDownloadHistory.mockResolvedValue(history());
     runtime.deleteDownload.mockResolvedValue(undefined);
-    render(<DownloadHistoryView />);
+    let client!: QueryClient;
+    function Cache({ children }: { children: ReactNode }) {
+      client = useQueryClient();
+      return children;
+    }
+    render(<DownloadHistoryView />, { wrapper: Cache });
+    const detailKey = privateQueryKey('download', 'history-job-1');
+    const analysisKey = privateQueryKey('analysis', 'video', 'history-job-1');
+    client.setQueryData(detailKey, { id: 'history-job-1' });
+    client.setQueryData(analysisKey, { id: 'analysis-1' });
 
     fireEvent.click(
       await screen.findByRole('button', { name: '删除下载记录' }),
@@ -193,6 +205,32 @@ describe('download history', () => {
     );
     await waitFor(() =>
       expect(runtime.getDownloadHistory).toHaveBeenCalledTimes(2),
+    );
+    expect(client.getQueryData(detailKey)).toBeUndefined();
+    expect(client.getQueryData(analysisKey)).toBeUndefined();
+  });
+
+  it('returns to the last available page after deleting its final record', async () => {
+    let total = 21;
+    runtime.getDownloadHistory.mockImplementation(({ page }) =>
+      Promise.resolve(history({ page, total })),
+    );
+    runtime.deleteDownload.mockImplementation(async () => {
+      total = 20;
+    });
+    render(<DownloadHistoryView />);
+    fireEvent.click(await screen.findByRole('button', { name: '下一页' }));
+    await screen.findByText('2 / 2');
+    fireEvent.click(screen.getByRole('button', { name: '删除下载记录' }));
+    fireEvent.click(await screen.findByRole('button', { name: '确认删除' }));
+    await waitFor(() =>
+      expect(runtime.getDownloadHistory).toHaveBeenLastCalledWith(
+        expect.objectContaining({ page: 1 }),
+        expect.anything(),
+      ),
+    );
+    expect(screen.getByRole('textbox', { name: '搜索下载记录' })).toHaveValue(
+      '',
     );
   });
 

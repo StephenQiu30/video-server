@@ -83,7 +83,11 @@ describe('root query continuity', () => {
     const start = vi.fn();
     render(
       <QueryProvider>
-        <AnalysisConfigurator busy={false} onStart={start} />
+        <AnalysisConfigurator
+          inputId="test-input"
+          busy={false}
+          onStart={start}
+        />
       </QueryProvider>,
     );
     fireEvent.change(screen.getByLabelText('分析提示词'), {

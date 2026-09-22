@@ -224,6 +224,7 @@ export default function AnalysisPanel({
 
       {!state.job ? (
         <AnalysisConfigurator
+          inputId={downloadId}
           busy={state.action === 'start'}
           onStart={state.start}
         />

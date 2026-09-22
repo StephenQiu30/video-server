@@ -7,6 +7,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
+import { WorkspaceStateProvider } from '@/components/layout/workspace-state-provider';
 import {
   onSessionGenerationChanged,
   sessionGeneration,
@@ -46,5 +47,9 @@ function IdentityQueries({ children }: { children: ReactNode }) {
     },
     [client],
   );
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <WorkspaceStateProvider>{children}</WorkspaceStateProvider>
+    </QueryClientProvider>
+  );
 }

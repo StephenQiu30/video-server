@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import DownloadJobView from '@/components/downloads/download-job-view';
+import { httpClient } from '@/lib/request';
 import { ApiError } from '@/lib/request-error';
 import { analysisSkills } from '../fixtures/analysis-fixtures';
 import {
@@ -228,7 +229,20 @@ describe('DownloadJobView', () => {
   });
 
   it('issues a short-lived URL for completed downloads', async () => {
-    mockHttpResponses(job('succeeded'), null, analysisSkills, signedVideoUrl);
+    vi.mocked(httpClient.request).mockImplementation(async ({ url }) => {
+      const data =
+        url === `/api/downloads/${job().id}`
+          ? job('succeeded')
+          : url === `/api/downloads/${job().id}/analysis`
+            ? null
+            : url === '/api/analysis-skills'
+              ? analysisSkills
+              : url === `/api/downloads/${job().id}/download-url`
+                ? signedVideoUrl
+                : undefined;
+      if (data === undefined) throw new Error(`Unexpected request: ${url}`);
+      return { data: { code: 'ok', message: 'OK', data } } as never;
+    });
     const click = vi
       .spyOn(HTMLAnchorElement.prototype, 'click')
       .mockImplementation(() => {});
@@ -242,7 +256,7 @@ describe('DownloadJobView', () => {
         document.querySelector<HTMLIFrameElement>(
           'iframe[data-framefetch-download]',
         ),
-      ).not.toBeNull(),
+      ).toHaveAttribute('src', signedVideoUrl.url),
     );
     expect(click).not.toHaveBeenCalled();
     expect(window.location.pathname).toBe('/downloads/detail/');

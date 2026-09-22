@@ -4,7 +4,7 @@ import { ArrowClockwise, MagnifyingGlass, Plus } from '@phosphor-icons/react';
 import { useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   deleteDownload,
   issueDownloadUrl,
@@ -21,6 +21,7 @@ import { markNavigationPush } from '@/components/layout/navigation-history';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
+import { useWorkspaceState } from '@/components/layout/workspace-state-provider';
 import { Button } from '@/components/ui/button';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import {
@@ -46,10 +47,8 @@ import { createUuid as createIdempotencyKey } from '@/lib/uuid';
 export default function DownloadHistoryView() {
   const queries = useQueryClient();
   const router = useRouter();
-  const [page, setPage] = useState(1);
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<API.DownloadStatus | undefined>();
+  const { history, setHistory } = useWorkspaceState();
+  const { page, searchInput, search, status } = history;
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<{
     id: string;
@@ -62,10 +61,24 @@ export default function DownloadHistoryView() {
     search: search || undefined,
     status,
   });
+  const responsePage = state.data?.page;
+  const lastPage = state.data
+    ? Math.max(1, Math.ceil(state.data.total / state.data.page_size))
+    : page;
+  useEffect(() => {
+    // Placeholder data belongs to the previous filter/page and cannot clamp a
+    // new request. Correct only an authoritative response for this page.
+    if (responsePage === page && page > lastPage) {
+      setHistory((current) => ({ ...current, page: lastPage }));
+    }
+  }, [lastPage, page, responsePage, setHistory]);
 
   function applySearch() {
-    setPage(1);
-    setSearch(searchInput.trim());
+    setHistory((current) => ({
+      ...current,
+      page: 1,
+      search: current.searchInput.trim(),
+    }));
   }
 
   async function download(item: API.DownloadHistoryItemResponse) {
@@ -103,6 +116,7 @@ export default function DownloadHistoryView() {
       void queries.invalidateQueries({
         queryKey: privateQueryKey('download-history'),
       });
+      queries.setQueryData(privateQueryKey('download', retried.id), retried);
       markNavigationPush(target);
       router.push(target);
     } catch (reason) {
@@ -116,6 +130,14 @@ export default function DownloadHistoryView() {
     setPendingAction({ id: item.id, type: 'delete' });
     try {
       await deleteDownload({ job_id: encodeURIComponent(item.id) });
+      const detailKey = privateQueryKey('download', item.id);
+      const analysisKey = privateQueryKey('analysis', 'video', item.id);
+      await Promise.all([
+        queries.cancelQueries({ queryKey: detailKey }),
+        queries.cancelQueries({ queryKey: analysisKey }),
+      ]);
+      queries.removeQueries({ queryKey: detailKey });
+      queries.removeQueries({ queryKey: analysisKey });
       void queries.invalidateQueries({
         queryKey: privateQueryKey('download-history'),
       });
@@ -151,7 +173,10 @@ export default function DownloadHistoryView() {
             <InputGroupInput
               className="h-full"
               id="history-search"
-              onChange={(event) => setSearchInput(event.target.value)}
+              onChange={(event) => {
+                const searchInput = event.target.value;
+                setHistory((current) => ({ ...current, searchInput }));
+              }}
               onKeyDown={(event) => {
                 if (event.key !== 'Enter') return;
                 event.preventDefault();
@@ -178,10 +203,12 @@ export default function DownloadHistoryView() {
           </FieldLabel>
           <Select
             onValueChange={(value) => {
-              setPage(1);
-              setStatus(
-                value === 'all' ? undefined : (value as API.DownloadStatus),
-              );
+              setHistory((current) => ({
+                ...current,
+                page: 1,
+                status:
+                  value === 'all' ? undefined : (value as API.DownloadStatus),
+              }));
             }}
             value={status ?? 'all'}
           >
@@ -258,7 +285,9 @@ export default function DownloadHistoryView() {
         <PagePagination
           ariaLabel="下载记录分页"
           className="mt-10 justify-end"
-          onPageChange={setPage}
+          onPageChange={(page) =>
+            setHistory((current) => ({ ...current, page }))
+          }
           page={page}
           pages={Math.ceil(state.data.total / state.data.page_size)}
         />

@@ -149,9 +149,11 @@ describe('AuthProvider', () => {
       'data-auth-state',
       'loading',
     );
-    expect(await screen.findByTestId('auth-user')).toHaveAttribute(
-      'data-user',
-      'video_user',
+    await waitFor(() =>
+      expect(screen.getByTestId('auth-user')).toHaveAttribute(
+        'data-user',
+        'video_user',
+      ),
     );
     expect(screen.getByRole('status')).toHaveAttribute(
       'data-auth-state',
@@ -170,9 +172,11 @@ describe('AuthProvider', () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByTestId('auth-user')).toHaveAttribute(
-      'data-user',
-      'video_user',
+    await waitFor(() =>
+      expect(screen.getByTestId('auth-user')).toHaveAttribute(
+        'data-user',
+        'video_user',
+      ),
     );
     expect(screen.getByRole('status')).toHaveAttribute(
       'data-auth-state',
@@ -189,7 +193,12 @@ describe('AuthProvider', () => {
         <AuthProbe />
       </AuthProvider>,
     );
-    await screen.findByTestId('auth-user');
+    await waitFor(() =>
+      expect(screen.getByTestId('auth-user')).toHaveAttribute(
+        'data-user',
+        'video_user',
+      ),
+    );
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: '退出' }));
@@ -249,7 +258,12 @@ describe('AuthProvider', () => {
         <AuthProbe />
       </AuthProvider>,
     );
-    await screen.findByTestId('auth-user');
+    await waitFor(() =>
+      expect(screen.getByTestId('auth-user')).toHaveAttribute(
+        'data-user',
+        'video_user',
+      ),
+    );
     await waitFor(() =>
       expect(screen.getByRole('status')).toHaveAttribute(
         'data-auth-state',
@@ -387,7 +401,12 @@ describe('AuthProvider', () => {
         <AuthProbe />
       </AuthProvider>,
     );
-    await screen.findByTestId('auth-user');
+    await waitFor(() =>
+      expect(screen.getByTestId('auth-user')).toHaveAttribute(
+        'data-user',
+        'video_user',
+      ),
+    );
 
     fireEvent.click(screen.getByRole('button', { name: '刷新用户' }));
 
