@@ -19,7 +19,7 @@ class ProviderCanaryResultRow(Base):
             name="ck_provider_canary_stage",
         ),
         CheckConstraint(
-            "access_mode IN ('anonymous','operator_managed')",
+            "access_mode IN ('anonymous','guest','operator_managed')",
             name="ck_provider_canary_access_mode",
         ),
         CheckConstraint(

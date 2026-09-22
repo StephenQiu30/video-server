@@ -15,11 +15,11 @@ _KNOWN_INVALID_UPSTREAM_FIXTURES = {
 }
 
 _FIXED_OPERATOR_PROVIDERS = {
-    "douyin",
     "reddit",
     "wechat_channels",
     "youtube",
 }
+_FIXED_GUEST_PROVIDERS = {"douyin"}
 _PROVEN_ANONYMOUS_SESSION_PROVIDERS = {
     "facebook",
     "instagram",
@@ -43,12 +43,16 @@ def test_fixed_public_matrix_covers_every_registered_provider_and_stage() -> Non
     }
     session_providers = {provider.value for provider in browser_session_providers()}
     assert session_providers == (
-        _FIXED_OPERATOR_PROVIDERS | _PROVEN_ANONYMOUS_SESSION_PROVIDERS
+        _FIXED_OPERATOR_PROVIDERS
+        | _FIXED_GUEST_PROVIDERS
+        | _PROVEN_ANONYMOUS_SESSION_PROVIDERS
     )
     for provider, provider_targets in grouped.items():
         expected_mode = (
             ProviderAccessMode.OPERATOR_MANAGED
             if provider in _FIXED_OPERATOR_PROVIDERS
+            else ProviderAccessMode.GUEST
+            if provider in _FIXED_GUEST_PROVIDERS
             else ProviderAccessMode.ANONYMOUS
         )
         assert {target.access_mode for target in provider_targets} == {expected_mode}

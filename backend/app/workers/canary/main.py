@@ -11,6 +11,7 @@ from app.core.config import Settings, get_settings_for_role
 from app.core.db import create_engine, create_session_factory
 from app.integrations.media_runner_factory import (
     anonymous_media_runner,
+    guest_media_runners,
     operator_media_runners,
 )
 from app.repositories.providers.canary_repository import (
@@ -50,6 +51,9 @@ def build_runtime(settings: Settings) -> ProviderCanaryRuntime:
     validate_canary_target_routes(
         targets,
         frozenset(provider.value for provider in settings.runner_operator_base_urls),
+        guest_provider_keys=frozenset(
+            provider.value for provider in settings.runner_guest_base_urls
+        ),
     )
     engine = create_engine(settings.database_url)
     sessions = create_session_factory(engine)
@@ -57,7 +61,9 @@ def build_runtime(settings: Settings) -> ProviderCanaryRuntime:
     admission = ProviderRouteAdmission(SqlAlchemyProviderRouteCooldowns(sessions))
     anonymous = anonymous_media_runner(settings, admission)
     operators = operator_media_runners(settings, admission)
-    runner = ProviderCanaryRunner(anonymous, operators)
+    runner = ProviderCanaryRunner(
+        anonymous, operators, guests=guest_media_runners(settings, admission)
+    )
     service = ProviderCanaryService(
         repository,
         runner,

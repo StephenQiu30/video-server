@@ -34,18 +34,25 @@ def operator_media_runners(
     return runners
 
 
+def guest_media_runners(
+    settings: Settings,
+    admission: ProviderRouteAdmission | None = None,
+) -> dict[str, MediaRunnerHttpClient]:
+    return {
+        provider.value: _media_runner(
+            settings, url, admission, ProviderAccessMode.GUEST
+        )
+        for provider, url in settings.runner_guest_base_urls.items()
+    }
+
+
 def media_runner_router(
     settings: Settings, admission: ProviderRouteAdmission | None = None
 ) -> MediaRunnerRouter:
     return MediaRunnerRouter(
         anonymous_media_runner(settings, admission),
         operator_media_runners(settings, admission),
-        guests={
-            provider.value: _media_runner(
-                settings, url, admission, ProviderAccessMode.GUEST
-            )
-            for provider, url in settings.runner_guest_base_urls.items()
-        },
+        guests=guest_media_runners(settings, admission),
         default_policies=settings.runner_default_access_policies,
     )
 

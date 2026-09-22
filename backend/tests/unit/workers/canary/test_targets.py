@@ -1,3 +1,4 @@
+import pytest
 from app.services.provider_types import ProviderAccessMode, ProviderCanaryStage
 from app.workers.canary.targets import (
     parse_canary_targets,
@@ -90,3 +91,20 @@ def test_operator_canary_target_requires_a_matching_runner_endpoint() -> None:
         raise AssertionError("operator canary target without a runner was accepted")
 
     validate_canary_target_routes(targets, frozenset({"youtube"}))
+
+
+def test_guest_canary_requires_its_own_endpoint_even_with_an_account_route() -> None:
+    targets = parse_canary_targets(
+        SecretStr(
+            '[{"target_id":"douyin-public","provider_key":"douyin",'
+            '"stage":"metadata","access_mode":"guest",'
+            '"url":"https://www.douyin.com/video/7674644830270473609"}]'
+        )
+    )
+    with pytest.raises(
+        ValueError, match="guest targets require matching runner endpoints: douyin"
+    ):
+        validate_canary_target_routes(targets, frozenset({"douyin"}))
+    validate_canary_target_routes(
+        targets, frozenset(), guest_provider_keys=frozenset({"douyin"})
+    )

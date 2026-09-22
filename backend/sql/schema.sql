@@ -1344,7 +1344,7 @@ CREATE TABLE IF NOT EXISTS provider_canary_results (
         stage IN ('metadata', 'media', 'analysis')
     ),
     CONSTRAINT ck_provider_canary_access_mode CHECK (
-        access_mode IN ('anonymous', 'operator_managed')
+        access_mode IN ('anonymous', 'guest', 'operator_managed')
     ),
     CONSTRAINT ck_provider_canary_outcome CHECK (
         outcome IN ('succeeded', 'failed')
@@ -1354,6 +1354,13 @@ CREATE TABLE IF NOT EXISTS provider_canary_results (
         (outcome = 'failed') = (stable_error_code IS NOT NULL)
     )
 );
+
+ALTER TABLE provider_canary_results
+    DROP CONSTRAINT IF EXISTS ck_provider_canary_access_mode;
+ALTER TABLE provider_canary_results
+    ADD CONSTRAINT ck_provider_canary_access_mode CHECK (
+        access_mode IN ('anonymous', 'guest', 'operator_managed')
+    );
 
 ALTER TABLE provider_canary_results
     DROP CONSTRAINT IF EXISTS ck_provider_canary_stage;

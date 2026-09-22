@@ -444,3 +444,40 @@ async def test_equal_timestamps_use_persisted_id_as_stable_tiebreaker(
     )
 
     assert recent["vimeo"][0].target_id == "target:z"
+
+
+@pytest.mark.asyncio
+async def test_guest_evidence_is_persisted_and_isolated_from_account_evidence(
+    postgres_engine: AsyncEngine,
+) -> None:
+    repository = SqlAlchemyProviderCanaryRepository(
+        create_session_factory(postgres_engine)
+    )
+    anonymous = canary("douyin", 2)
+    account = canary("douyin", 1, access_mode=ProviderAccessMode.OPERATOR_MANAGED)
+    guest_context = replace(
+        runtime_context(
+            "douyin",
+            profile_version="douyin-public",
+            access_mode=ProviderAccessMode.ANONYMOUS,
+        ),
+        access_mode=ProviderAccessMode.GUEST,
+        credential_version_id="guest-revision-1",
+    )
+    guest = replace(
+        anonymous,
+        access_mode=ProviderAccessMode.GUEST,
+        context_generation_id=guest_context.generation_id,
+        checked_at=NOW,
+    )
+    for result in (anonymous, account, guest):
+        await repository.save(result)
+    recent = await repository.list_recent(
+        limit_per_provider_stage=5,
+        scopes={
+            "douyin": _ProviderEvidenceScope(
+                profile_version="douyin-public", access_context=guest_context
+            )
+        },
+    )
+    assert recent == {"douyin": (guest,)}

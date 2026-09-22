@@ -9,6 +9,7 @@ from app.integrations.media_runner_models import MediaRunnerClientError, RunnerA
 from app.services.downloads.errors import (
     MediaInspectionAuthRequired,
     MediaInspectionFailure,
+    MediaInspectionGuestContextRequired,
 )
 from app.services.downloads.inspection_models import RunnerInspection
 from app.services.downloads.rules.enums import MediaKind
@@ -24,9 +25,12 @@ class ProviderCanaryRunner:
         self,
         anonymous: MediaRunnerClient,
         operators: Mapping[str, MediaRunnerClient] | None = None,
+        *,
+        guests: Mapping[str, MediaRunnerClient] | None = None,
     ) -> None:
         self._anonymous = anonymous
         self._operators = dict(operators or {})
+        self._guests = dict(guests or {})
 
     async def context(
         self,
@@ -80,8 +84,8 @@ class ProviderCanaryRunner:
 
     async def close(self) -> None:
         await self._anonymous.close()
-        for operator in self._operators.values():
-            await operator.close()
+        for client in (*self._operators.values(), *self._guests.values()):
+            await client.close()
 
     def _inspection_client(
         self,
@@ -90,6 +94,11 @@ class ProviderCanaryRunner:
     ) -> MediaRunnerClient:
         if access_mode is ProviderAccessMode.ANONYMOUS:
             return self._anonymous
+        if access_mode is ProviderAccessMode.GUEST:
+            guest = self._guests.get(provider_key)
+            if guest is None:
+                raise MediaInspectionGuestContextRequired(access_mode=access_mode)
+            return guest
         operator = self._operators.get(provider_key)
         if operator is None:
             raise MediaInspectionAuthRequired(access_mode=access_mode)
@@ -100,6 +109,11 @@ class ProviderCanaryRunner:
     ) -> MediaRunnerClient:
         if context.access_mode is ProviderAccessMode.ANONYMOUS:
             return self._anonymous
+        if context.access_mode is ProviderAccessMode.GUEST:
+            guest = self._guests.get(context.provider_key)
+            if guest is None:
+                raise MediaRunnerClientError("guest_context_required", 503)
+            return guest
         operator = self._operators.get(context.provider_key)
         if operator is None:
             raise MediaRunnerClientError("credential_required", 422)
