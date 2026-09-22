@@ -56,7 +56,11 @@ class MediaInspectionPipeline:
         selected = (
             requested
             or self._defaults.get(profile.key)
-            or default_access_policy(profile.key, profile.access_modes)
+            or default_access_policy(
+                profile.key,
+                profile.access_modes,
+                guest_configured=profile.key in self._guests,
+            )
         )
         if selected not in provider_access_policies(profile.key, profile.access_modes):
             raise MediaInspectionPolicyNotAllowed

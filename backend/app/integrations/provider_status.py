@@ -92,12 +92,11 @@ def _configured_status(
     default_policy = (
         (
             defaults.get(profile.key)
-            or (
-                ProviderAccessPolicy.PUBLIC_SESSION
-                if ProviderAccessMode.GUEST in access_modes
-                else None
+            or default_access_policy(
+                profile.key,
+                profile.access_modes,
+                guest_configured=ProviderAccessMode.GUEST in access_modes,
             )
-            or default_access_policy(profile.key, profile.access_modes)
         )
         if policies
         else None

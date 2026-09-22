@@ -128,3 +128,57 @@ def test_unadmitted_deployment_default_is_rejected_before_startup():
         MediaRunnerRouter(
             anonymous, default_policies={"youtube": Policy.PUBLIC_SESSION}
         )  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("explicit", [None, Policy.PUBLIC, Policy.OPERATOR_PUBLIC])
+async def test_guest_default_preserves_explicit_deployment_policy(
+    explicit,
+) -> None:
+    url = "https://www.douyin.com/video/7674644830270473609"
+    anonymous = FakeClient(replace(context(Mode.ANONYMOUS), provider_key="douyin"))
+    guest = FakeClient(
+        replace(
+            context(Mode.OPERATOR_MANAGED),
+            provider_key="douyin",
+            access_mode=Mode.GUEST,
+        )
+    )
+    operator = FakeClient(
+        replace(context(Mode.OPERATOR_MANAGED), provider_key="douyin")
+    )
+    router = MediaRunnerRouter(
+        anonymous,
+        {"douyin": operator},
+        guests={"douyin": guest},
+        default_policies={"douyin": explicit} if explicit else None,
+    )
+    expected = (explicit or Policy.PUBLIC_SESSION).access_mode
+    assert (await router.inspect(url)).access_context.access_mode is expected
+    assert len(anonymous.inspected) == (expected is Mode.ANONYMOUS)
+    assert len(guest.inspected) == (expected is Mode.GUEST)
+    assert len(operator.inspected) == (expected is Mode.OPERATOR_MANAGED)
+
+
+async def test_guest_failure_does_not_escalate_to_an_account_or_retry_anonymous() -> (
+    None
+):
+    url = "https://www.douyin.com/video/7674644830270473609"
+    anonymous = FakeClient(replace(context(Mode.ANONYMOUS), provider_key="douyin"))
+    guest = FakeClient(
+        replace(
+            context(Mode.OPERATOR_MANAGED),
+            provider_key="douyin",
+            access_mode=Mode.GUEST,
+        )
+    )
+    operator = FakeClient(
+        replace(context(Mode.OPERATOR_MANAGED), provider_key="douyin")
+    )
+    guest.inspect_error = MediaInspectionFailure()
+    router = MediaRunnerRouter(
+        anonymous, {"douyin": operator}, guests={"douyin": guest}
+    )
+    with pytest.raises(MediaInspectionFailure):
+        await router.inspect(url)
+    assert guest.inspected == [url]
+    assert anonymous.inspected == operator.inspected == []

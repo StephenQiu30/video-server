@@ -40,7 +40,10 @@ def provider_access_policies(
 
 
 def default_access_policy(
-    provider_key: str, access_modes: tuple[ProviderAccessMode, ...]
+    provider_key: str,
+    access_modes: tuple[ProviderAccessMode, ...],
+    *,
+    guest_configured: bool = False,
 ) -> ProviderAccessPolicy:
     # Input-only clients do not choose infrastructure or credentials. Prefer
     # public access; deployments may explicitly select an authorized session.
@@ -48,4 +51,6 @@ def default_access_policy(
     policies = provider_access_policies(provider_key, access_modes)
     if not policies:
         raise ValueError("provider has no admitted access policy")
+    if guest_configured and ProviderAccessPolicy.PUBLIC_SESSION in policies:
+        return ProviderAccessPolicy.PUBLIC_SESSION
     return policies[0]
