@@ -111,6 +111,7 @@ class Settings(BaseSettings):
         "analysis-worker",
         "report-worker",
         "provider-canary",
+        "provider-sources",
     ] = "api"
     app_host: str = "0.0.0.0"
     app_port: int = Field(default=8111, ge=1, le=65535)
@@ -128,6 +129,31 @@ class Settings(BaseSettings):
     )
 
     database_url: str = "postgresql+asyncpg://video:video@localhost:5432/video"
+    provider_source_encryption_key: SecretStr | None = None
+    provider_source_root: Path = Path("/run/provider-sources")
+    provider_source_poll_seconds: int = Field(default=15, ge=5, le=60)
+    provider_source_lease_seconds: int = Field(default=90, ge=30, le=300)
+
+    @field_validator("provider_source_encryption_key", mode="before")
+    @classmethod
+    def validate_provider_source_key(cls, value: object) -> object:
+        if value is None or value == "":
+            return None
+        raw = value.get_secret_value() if isinstance(value, SecretStr) else str(value)
+        try:
+            Fernet(raw.encode("ascii"))
+        except (ValueError, UnicodeError):
+            raise ValueError(
+                "PROVIDER_SOURCE_ENCRYPTION_KEY must be a Fernet key"
+            ) from None
+        return value
+
+    @model_validator(mode="after")
+    def validate_provider_source_lease(self) -> Settings:
+        if self.provider_source_lease_seconds < self.provider_source_poll_seconds * 3:
+            raise ValueError("provider source lease must cover three polling intervals")
+        return self
+
     rabbitmq_url: str = "amqp://video-api:video-api-secret@localhost:5673/video"
     rabbitmq_vhost: str = Field(
         default="video",
@@ -661,7 +687,7 @@ class Settings(BaseSettings):
         rabbitmq_url = ""
         if self.service_role == "analysis-worker":
             rabbitmq_url = self.analysis_rabbitmq_url
-        elif self.service_role != "provider-canary":
+        elif self.service_role not in {"provider-canary", "provider-sources"}:
             rabbitmq_url = self.rabbitmq_url
         insecure_urls = any(
             marker in f"{self.database_url} {rabbitmq_url}"

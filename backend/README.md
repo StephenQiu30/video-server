@@ -27,9 +27,9 @@ app/
 
 Media Runner 通过 `app/workers/runner/plugins/yt_dlp_plugins/` 加载随项目交付的可信站点提取器。MediaTrack 适配仅处理无需登录的公开审片视频和 API 明确授权的播放转码；抖音适配用数字视频 ID 构造固定公开分享页并修正 landscape 下载规格的短边尺寸语义，TikTok 适配只使用其第一方嵌入播放器 item API 和 yt-dlp 默认客户端，明确无 item/HTTPS 格式、API 临时故障与响应结构漂移分别返回链接不可用、临时不可用和提取器回归，不回退网页挑战；快手适配把公开作品规范化到第一方移动分享页并限制短链重定向域，Tumblr 适配优先读取当前 `www.tumblr.com` 公开页而不强制改写到旧 blog 子域。小红书适配识别第一方 `300031` 笔记失效和 `300012` 平台验证边界，避免把失效内容误报成提取器故障。视频号适配只接受公开 `weixin.qq.com/sph/...` 单视频，读取第一方公开信息，并可在受控线路使用专用元宝会话解析；只接受批准腾讯媒体域上的非加密媒体，保护材料直接拒绝。所有适配都继续经过受控代理、作品身份校验、大小/时长限制、重新 inspect、FFmpeg 和 ffprobe 校验，不支持图集截断、账号内容、无水印承诺或原文件权限绕过。
 
-主流视频源使用声明式 Provider Profile 接入：`provider_catalog_*.py` 按策略族登记能力和运行参数，`ProviderRegistry.prepare()` 一次解析得到贯穿 inspect/download 的不可变 `ProviderRequest`，`YtDlpCommandBuilder` 只消费该请求生成固定参数，错误由有序 `FailureRule` 归一化。已有 yt-dlp extractor 的公开单视频平台通常只需增加一个 Profile、契约测试和 metadata/media canary；需要自定义解析时再按 yt-dlp 官方插件目录增加可信 extractor，不修改通用命令执行器。未知站点使用无凭据 Generic extractor。可选的 YouTube、抖音、小红书、Reddit、X、Instagram、Facebook、Pinterest 与微信视频号运维会话在操作开始时由宿主限定来源按需读取，经一次性认证加密租约交给各自物理隔离的 Docker Runner，并仅在 tmpfs 中建立操作级 `0600` Cookie jar。
+主流视频源使用声明式 Provider Profile 接入：`provider_catalog_*.py` 按策略族登记能力和运行参数，`ProviderRegistry.prepare()` 一次解析得到贯穿 inspect/download 的不可变 `ProviderRequest`，`YtDlpCommandBuilder` 只消费该请求生成固定参数，错误由有序 `FailureRule` 归一化。已有 yt-dlp extractor 的公开单视频平台通常只需增加一个 Profile、契约测试和 metadata/media canary；需要自定义解析时再按 yt-dlp 官方插件目录增加可信 extractor，不修改通用命令执行器。未知站点使用无凭据 Generic extractor。可选的 YouTube、抖音、Reddit 运维会话由 `provider-sources` 从现有 PostgreSQL 加密记录自动恢复到单平台只读命名卷；新宿主复用稳定来源密钥即可恢复本地副本，普通客户端不安装扩展。其他受控平台沿用各自批准来源，经租约交给物理隔离的 Docker Runner，并仅在 tmpfs 中建立操作级 `0600` Cookie jar。
 
-macOS 部署可显式安装统一按需助手，在解析进入受控线路时从 Chrome `Default` 读取目标 Provider 的最小域集合；SQL 查询本身按域限制，不先读取所有 Cookie 再过滤。每次 Runner 操作生成一次性 X25519 私钥，助手返回的 Cookie 只能由该操作解密；队列确认后删除密文，Runner 终态删除 tmpfs jar。助手空闲时无进程。视频号是明确批准的专用持久元宝来源，不复制普通 Chrome：首次执行 `uv run python -m app.workers.runner.yuanbao_session login` 并由用户登录，后续按需启动浏览器读取当前元宝状态，结束关闭浏览器但保留专用目录。目录权限、互斥和撤销见[个人部署手册](../docs/operations/008-个人部署重启与换机手册.md)。单次读取在独立进程组中执行，15 秒超时、取消或异常都会回收整个进程组。项目仍只通过根 Docker Compose 运行；平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 key 指向受控内部代理。
+macOS 部署可显式安装统一按需助手和一次性浏览器连接器。产品内授权要求用户明确选择“当前 Chrome 会话”时，Chrome 扩展使用官方 `cookies` API 读取目标 Provider 的最小域集合，再通过 Native Messaging 写入本机加密快照；助手不直接读取当前 Chrome 的 SQLite 数据库，也不复制完整 Profile 或把 Cookie 返回 API。也可选择隔离的 Provider 专用 Chrome 目录。来源选择和授权成功状态以非敏感标记保存，后续 Runner 自动复用。每次 Runner 操作生成一次性 X25519 私钥，助手返回的 Cookie 只能由该操作解密；队列确认后删除密文，Runner 终态删除 tmpfs jar。助手空闲时无进程。视频号是明确批准的专用持久元宝来源，不复制普通 Chrome：首次执行 `uv run python -m app.workers.runner.yuanbao_session login` 并由用户登录，后续按需启动浏览器读取当前元宝状态，结束关闭浏览器但保留专用目录。目录权限、互斥和撤销见[个人部署手册](../docs/operations/008-个人部署重启与换机手册.md)。单次读取在独立进程组中执行，15 秒超时、取消或异常都会回收整个进程组。项目仍只通过根 Docker Compose 运行；平台出口信誉需要隔离时，由运维使用 `RUNNER_PROVIDER_EGRESS_PROXIES` 按稳定 key 指向受控内部代理。
 
 完整的 Provider 一次性会话租约、撤销与故障流程见 `docs/operations/003-多平台受控会话运行手册.md`。
 
@@ -50,19 +50,21 @@ macOS 部署可显式安装统一按需助手，在解析进入受控线路时�
 本机必须先提供 PostgreSQL、RabbitMQ、Redis 和 MinIO，并预置数据库 schema、消息拓扑、对象存储身份与 bucket。随后从仓库根目录启动前端、API 和业务 Worker；业务 Compose 只连接已有基础设施，沿用当前 `.env`，不再启动另一套环境：
 
 ```bash
-docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
+uv run --project backend python -m app.workers.runner.provider_startup start --env-file .env --compose-file docker-compose.yml
 docker compose --env-file .env -f docker-compose.yml ps --all
 ```
 
-这是完整项目唯一的运行入口。更新代码时先独立执行 `git pull --ff-only`，再重复
-该 Compose 命令；不要使用不会应用代码、镜像或配置变化的
-`docker compose restart`。固定 Provider 探针是独立验收步骤，不参与服务启动。
+这是完整项目唯一的运行入口。它先校验本地 Operator 来源，只启动真实可用的 profile，
+并清理已失去来源的旧 Operator 容器；缺少来源的平台不会以 unhealthy/503 冒充就绪。
+更新代码时先独立执行 `git pull --ff-only`，再重复该命令；不要使用不会重新评估来源、
+应用代码、镜像或配置变化的 `docker compose restart`。固定 Provider 探针仍是独立验收步骤，
+启动预检不等于平台接受来源或真实媒体下载成功。
 
 本地开发复用 Homebrew 的 PostgreSQL、RabbitMQ、Redis 和 MinIO，业务进程仍只通过根 Compose 启动。根目录 `.env` 应分别使用标准端口 `5432`、`5672`、`6379` 和 `9000`。确认 `brew services list` 中四项均为 `started` 后，从根目录执行：
 
 ```bash
-docker compose --env-file .env -f docker-compose.yml \
-  up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
+uv run --project backend python -m app.workers.runner.provider_startup start \
+  --env-file .env --compose-file docker-compose.yml
 ```
 
 该入口启动前端、API、Media Runner、Outbox、下载/导入/报告 Worker、Provider Canary 和已声明的 Operator Profile；所有进程读取根目录 `.env`。只启动 API 时，HTTP 查询仍可用，但 Outbox 不会发布、异步任务不会被消费，平台状态也无法取得 Runner 上下文。

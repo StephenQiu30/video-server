@@ -1,6 +1,6 @@
 # YouTube 受控会话运行手册
 
-> 浏览器来源只由当前宿主的本机 Agent 按需读取。标准生产 Compose 使用 YouTube 专用加密队列，不挂载浏览器目录或 Cookie 文件；重启与换机步骤见[个人部署手册](008-个人部署重启与换机手册.md)。
+> ToC 默认使用部署方维护的 YouTube 单平台只读来源。普通客户端不安装扩展、不上传 Cookie；浏览器连接器仅是个人部署可选导入器。重启与换机步骤见[个人部署手册](008-个人部署重启与换机手册.md)。
 
 YouTube 使用统一多平台会话架构，安装、启动、撤销和故障处理见 `docs/operations/003-多平台受控会话运行手册.md`。本页只记录 YouTube 特有约束。
 
@@ -8,7 +8,7 @@ YouTube 使用统一多平台会话架构，安装、启动、撤销和故障处
 
 - Provider Profile：`youtube`
 - 会话版本：`browser`
-- 会话来源：生产 Runner 每次操作通过 `/run/provider-cookie-agent` 请求一次性加密租约；macOS 宿主 Agent 只读取 YouTube 专用浏览器目录
+- 会话来源：持久库中的加密 YouTube 来源，由 `provider-sources` 原子发布到单平台命名卷；生产 Runner 只读挂载到 `/run/provider-source/cookies.txt`，每次操作重新打开
 - 隔离服务：`youtube-operator-runner`
 - Chrome 域：`youtube.com`、`youtube-nocookie.com`
 - Player 客户端：`mweb`
@@ -18,42 +18,33 @@ YouTube 使用统一多平台会话架构，安装、启动、撤销和故障处
 
 ## 2. 生产来源维护
 
-在本机专用浏览器目录完成 YouTube 第一方登录后，从 `backend/` 执行一次授权和 Agent 安装：
+普通用户只提交链接。部署方通过平台允许的方式准备仅含 YouTube allowlist 的 Netscape Cookie 文件，或由 Secret controller 投影该文件；它不是仓库内容，也不复制到每台前端电脑。容器 UID/GID 默认为 `10001`：
 
 ```bash
-cd backend
-uv run python -m app.workers.runner.provider_cookie_agent authorize --provider youtube
-uv run python -m app.workers.runner.provider_cookie_agent install \
-  --browser-root "$HOME/Library/Application Support/FrameFetch/provider-browser-sessions"
-uv run python -m app.workers.runner.provider_cookie_agent doctor --provider youtube
+install -d -m 0711 .provider-sessions
+install -d -o 10001 -g 10001 -m 0700 .provider-sessions/youtube
+install -o 10001 -g 10001 -m 0600 /private/youtube.cookies.txt \
+  .provider-sessions/youtube/cookies.txt
 ```
 
-本机 Agent 不在项目目录写 Cookie 文件：它按请求从 YouTube 专用浏览器目录读取最小 allowlist，使用临时公钥封装一次性租约，并在队列响应后清理请求和响应。容器只看到加密队列和 `/run/provider-session` 内的操作临时 jar。
-
-Agent 不读取普通 Chrome Profile，不访问其他平台 Cookie，也不进入 API、下载请求或 Docker。它只在 Runner 请求时打开对应的专用浏览器目录并发布一次性加密租约。机器重启后 LaunchAgent 会按队列按需唤醒；普通项目、Docker 或 Runner 重启不会删除专用目录，也不要求再次导出文件。平台撤销授权或新宿主触发新的平台验证时，才需要重新完成第一方登录。
-
-开发和生产均需启用 `youtube-operator` Profile，不会因配置了端点自动启动。无 macOS 本机 Agent 的 Linux 或无人桌面部署只启用匿名路线；如果明确需要受控 YouTube，应使用受批准的自定义文件来源配置，不把标准 Compose 的 Agent 队列伪装成可用。
-
-### macOS 生产部署
-
-文件来源仍可作为高级迁移/灾备通道。用户明确授权后，可以从当前 Chrome 显式采集 YouTube 的单平台文件，但标准生产 Compose 不读取它。在私有 `.env.prod` 设置：
+在私有 `.env.prod` 中显式启用路线；已有其他 JSON 项时合并保留：
 
 ```dotenv
 COMPOSE_FILE=docker-compose-prod.yml
+PROVIDER_SOURCE_ENCRYPTION_KEY=<部署侧稳定密钥，不在终端日志或附件展示>
 COMPOSE_PROFILES=youtube-operator
+RUNNER_OPERATOR_BASE_URLS={"youtube":"http://youtube-operator-runner:19100"}
 RUNNER_DEFAULT_ACCESS_POLICIES={"youtube":"operator_public"}
 ```
-
-已有其他 profile 或默认策略时合并保留，不能覆盖。首次授权并安装 Agent 后执行：
 
 ```bash
 docker compose --env-file .env.prod -f docker-compose-prod.yml \
   up -d --build --force-recreate --wait --wait-timeout 300
 ```
 
-生产 Runner 只挂载 YouTube 的加密队列，不持有 Chrome 数据库、密码或其他网站会话。
+生产 Runner 只挂载 YouTube 目录，不持有 Chrome 数据库、密码或其他网站会话。每次操作重新读取文件，部署方原子替换后无需重建容器；context generation 会变化，旧 inspection 不得继续执行。
 
-账号退出、平台撤销或新机授权仍需在第一方页面重新验证；Agent 不会恢复已撤销授权。此时保留准确的 `provider_session_expired`，完成授权后重新执行真实 metadata/media，不重启全部服务。
+浏览器扩展、Native Messaging 和 Access Agent 仅保留为个人部署的可选导入方式，不能出现在普通 ToC 用户的解析流程。新宿主连接同一持久库并配置相同来源密钥，由来源进程自动恢复本机副本；不要靠 Git 同步凭据。账号退出、平台撤销或新出口验证仍需部署方重新建立来源，此时保留准确的 `provider_session_expired`，更新后重新执行真实 metadata/media，不重启全部服务。
 
 ## 3. POT 与出口
 

@@ -73,20 +73,22 @@ docker compose -f docker-compose-env.yml -f docker-compose.yml --env-file .env \
 # 已有 .env 直接复用；仅首次缺少文件时创建并填写已有服务的连接信息
 test -f .env || cp .env.example .env
 docker compose --env-file .env -f docker-compose.yml config --quiet
-docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
+uv run --project backend python -m app.workers.runner.provider_startup start \
+  --env-file .env --compose-file docker-compose.yml
 ~~~
 
-最后一条 Docker Compose 命令是本机完整项目的启动与重启入口。它统一构建前端与
-后端镜像、重新创建业务服务并等待健康检查。需要 Operator Runner 时，在 `.env` 的
-`COMPOSE_PROFILES` 中声明与 `RUNNER_OPERATOR_BASE_URLS` 一致的 profile。项目启动
-不会在项目启动或解析时启动宿主机浏览器，也不会调用 AI Worker 获取平台会话。
-生产八个普通 Cookie 平台使用按 Provider 隔离的持久只读文件，配置见[个人部署手册](008-个人部署重启与换机手册.md)。本机开发及可选视频号的 macOS 浏览器来源显式安装统一按需助手后，
+最后一条命令是本机完整项目的启动与重建入口。它保留声明的平台路线，生成不含
+Cookie 的私有计划，再构建镜像并启动业务服务。文件来源由独立来源进程从现有
+PostgreSQL 加密记录恢复，不因启动时来源缺失删除 Operator。首次部署需按
+[008 手册](008-个人部署重启与换机手册.md)配置稳定来源密钥并登记已有批准来源。
+可选 Runner 的进程就绪与平台授权就绪分别检查，不把核心健康冒充为平台可下载。
+生产五个文件来源平台使用按 Provider 隔离的短期只读副本，配置见[个人部署手册](008-个人部署重启与换机手册.md)。本机开发及可选视频号的 macOS 浏览器来源显式安装统一按需助手后，
 Operator 操作才会读取 Chrome Default 的目标域最小集合；SQL 查询本身按中央 Provider
 allowlist 选择，不把其他域行返回后再过滤。Runner 每次生成一次性公钥，宿主返回绑定该
 请求的认证加密密文；明文只在对应 Runner 的 `/run/provider-session` tmpfs 中存在到操作
 结束。单次读取有 15 秒硬超时，超时或取消会回收整个进程组；请求排空后 helper 退出，
 不会留下 Chrome 后台进程、Cookie 文件或项目专用浏览器 Profile。该 helper 只是按需的
-本机凭据适配器，不是平行应用启动方式；项目仍只通过上述 Docker Compose 命令运行。
+本机凭据适配器，不是平行应用启动方式；项目仍只通过上述统一启动命令运行。
 不要使用不会应用代码、镜像或配置变化的
 `docker compose restart`。
 

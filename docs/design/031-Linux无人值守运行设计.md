@@ -1,6 +1,6 @@
 # 031 可移植个人部署与平台访问设计
 
-- 状态：无会话隔离启动、访问状态投影、macOS 本机专用浏览器 Agent 与产品内授权引导已实现；loopback/Unix Socket 的产品内一次性授权事务和跨平台 clean-room 真实验收仍待实现。
+- 状态：无会话隔离启动、访问状态投影、部署级单平台来源与可选 macOS 导入器已实现；跨平台 clean-room 真实验收仍待实现。
 - 用户范围：个人使用；全部服务和验收均运行在当前宿主，不要求任何额外设备或常驻 Provider Node。任意全新隔离部署不以 Cookie 文件作为核心服务启动前置条件。Linux 仍是可用目标，不要求企业授权平台。
 - 关联：运维手册见 [008 个人部署重启与换机手册](../operations/008-个人部署重启与换机手册.md)。历史过程通过 Git 追溯。
 
@@ -10,10 +10,10 @@
 
 - 软件、匿名解析器、JS Runtime、PO Token Provider 和能力探测必须随 Compose 自包含，在新宿主无会话文件时也能启动。
 - 登录态、验证码通过状态、Visitor ID、出口信誉和账号权益由第三方平台控制，不能从 Git 仓库、镜像或算法中凭空恢复，也不能承诺任意新出口始终通过风控。
-- 产品目标是消除手工导出、复制和挂载 Cookie 的日常流程，而不是绕过平台验证。需要验证时，由本机受控浏览器完成一次交互授权并持续复用；平台未要求验证时始终使用匿名路线。
-- 不建设常驻 Provider Node，不把用户会话上传到 FrameFetch 服务，也不依赖公共 Cookie、公共代理或第三方下载站。
+- 产品目标是消除每台客户端安装扩展、手工导出和重复授权的日常流程，而不是绕过平台验证。公开路线优先匿名；确需会话的平台由部署方管理单平台来源并为所有客户端提供同一受控能力。
+- 不要求额外常驻机器，不把终端用户浏览器会话上传到业务 API，也不依赖公共 Cookie、公共代理或第三方下载站。单机可使用本地受控目录，多主机按需使用已有 Secret 投影；只有分发需求被证明后才引入凭据 Broker。
 
-因此，“全新部署开箱即用”的可判定含义是：核心服务正常启动、所有平台完成当前宿主能力探测、公开路线可用的平台立即可用；被平台要求验证的平台显示明确的本机授权动作，完成一次后由本机自动维护，不要求用户准备 Netscape 文件。当前 v1 通过 macOS 本机 Agent 命令完成这次授权；产品内直接启动 Agent 的 loopback/Unix Socket 事务仍是后续交付项。
+因此，“全新部署开箱即用”的可判定含义是：核心服务正常启动、所有平台完成当前宿主能力探测、公开路线可用的平台立即可用；需要服务端会话的平台由部署状态决定，普通用户只看到可重试的托管线路状态，不安装扩展、不选择本地浏览器、不准备 Netscape 文件。来源未配置或已失效时只降级对应平台。
 
 ## 便携访问阶梯
 
@@ -22,24 +22,24 @@
 1. `public_probe`：先使用匿名 Runner；YouTube 同时使用本地 PO Token Provider。新部署不得因为缺少 operator profile 或 Cookie 目录而启动失败。
 2. `public_ready`：metadata 与有界 media 探针均成功后开放公开下载；结果绑定当前 engine、出口与上下文 generation。
 3. `authorization_required`：只有稳定错误明确指向登录、验证码或出口挑战时进入，不把链接失效、地区限制、DRM、解析器 bug 或超时伪装成授权问题。
-4. `local_authorization`：API 创建一次性授权事务，本机 Access Agent 打开 Provider 专用持久浏览器目录；用户只在平台页面完成其要求的登录或验证。应用不得要求复制 Cookie 文本。
-5. `operator_ready`：Agent 仅发布该 Provider allowlist 内的会话快照，Runner 每次操作读取；后台按 revision 更新并由 Canary 验证。
-6. `degraded`：匿名和本机授权路线均不可用时，平台保持降级并返回稳定原因与下一步，不循环登录、不切换未知代理、不把失败链接计为平台整体失效。
+4. `managed_source_pending`：部署级来源缺失、过期或待验证；普通用户可稍后重试，管理员按单平台轮换来源。应用不得要求用户复制 Cookie 文本。
+5. `operator_ready`：Runner 每次操作重新读取对应 Provider 的只读来源；后台按 revision 更新并由 Canary 验证。
+6. `degraded`：匿名和托管路线均不可用时，平台保持降级并返回稳定原因与下一步，不循环登录、不切换未知代理、不把失败链接计为平台整体失效。
 
-路由只允许从匿名路线显式升级到同机、同 Provider 的 operator 路线。一次 inspection 冻结访问上下文；下载阶段不能静默换账号、出口或策略。
+路由只允许从匿名路线显式升级到同 Provider 的 operator 路线。一次 inspection 冻结访问上下文；下载阶段不能静默换账号、出口或策略。
 
-## 本机 Access Agent
+## 可选本机来源导入器
 
-Access Agent 是部署在同一宿主上的可选组件，不是常驻远端服务：
+Access Agent 是个人自托管的部署侧导入器，不是普通客户端能力，也不是常驻远端服务：
 
-- 使用 FrameFetch 专用浏览器数据目录，不读取、复制或上传用户的完整 Chrome Profile。
-- 授权事务由短时 nonce、Provider、过期时间和本机 HMAC 绑定；仅接受 loopback/Unix Socket 请求。
+- 默认不静默读取用户浏览器；用户在产品内明确选择 `current_chrome` 后，浏览器连接器使用 Chrome 官方 Cookie API 读取该 Provider allowlist 域的会话，并通过 Native Messaging 交给本机 Agent。Agent 只读取本机加密快照，不直接打开当前 Chrome 的 SQLite 数据库。`dedicated_chrome` 仍可作为隔离授权来源。两种模式都不复制或上传完整 Chrome Profile。
+- 只有管理员显式启用本地导入模式时，授权事务才由短时 nonce、Provider 和过期时间绑定；API 只写入与宿主 Agent 共享的受限控制队列，不开放新的 TCP 端口。
 - 每个平台独立目录、进程、Cookie allowlist 和并发租约；一个平台的授权不能被另一个 Runner 读取。
-- 首次挑战允许在当前宿主打开可见浏览器；成功后普通 Compose/容器重启自动复用。只有平台撤销授权或当前部署再次被挑战时才重新交互。
-- 无桌面 Linux 仍可运行匿名路线；如果平台明确要求交互验证，该平台应显示 `authorization_required`，不能伪装成无人值守可用。
-- 文件会话和 `.ffsession` 继续作为高级导入/灾备能力，但不再是默认安装步骤，也不是 clean-room 启动条件。
+- 当前 Chrome 模式不打开新窗口；隔离模式才在首次挑战时打开可见 Provider 窗口。导入结果必须进入与部署级来源相同的校验和发布契约，不能让 Runner 依赖扩展在线。
+- 无桌面 Linux 使用匿名路线及部署级来源；平台明确要求重新验证时显示托管线路降级，不能伪装成无人值守可用。
+- `.ffsession` 继续作为高级迁移/灾备能力，不是 clean-room 启动条件。
 
-Access Agent 不能自动点击验证码、规避风控或保证会话永久有效。它解决的是产品内授权和自动维护，而不是突破第三方平台安全边界。
+Access Agent 不能自动点击验证码、规避风控或保证会话永久有效。它只优化个人部署的来源导入，不承担 ToC 默认下载链路。
 
 ## 启动与能力发现
 
@@ -67,20 +67,20 @@ API readiness 只反映 FrameFetch 核心依赖，不因可选 Provider 授权�
 
 ## 问题与最小方案
 
-原生产 Compose 默认启动九个受控 Runner，却全部依赖容器外的 macOS 会话代理和 Chrome 状态。代码和镜像存在并不能恢复这些宿主条件。当前工作机已安装代理且容器显示健康，尚未取得重启前后同一平台的真实失败样本，因此不能把全部故障都归因于会话丢失。
+原生产 Compose 的部分受控 Runner 依赖容器外的 macOS 会话代理和 Chrome 状态，导致换客户端或无桌面部署无法复用。代码和镜像存在并不能恢复这些宿主条件；容器健康也不能证明平台接受来源。
 
-个人使用不新增远端凭据数据库、独立授权服务或工作流引擎。沿用现有任务数据库、Outbox、队列和制品存储。当前部署方维护的只读 Netscape Cookie 文件来源保留为过渡及灾备通道；目标默认路径由本机 Access Agent 管理 Provider 专用持久目录和受限会话发布。配置和会话放在本机持久目录，操作临时文件仍只存在于 tmpfs。重建容器不删除本机来源，clean-room 部署在无来源时仍以匿名能力启动。
+复用现有 PostgreSQL 的 `provider_session_sources` 保存加密部署来源，独立来源进程从持久记录生成短租约文件；不新增数据库服务或任务引擎。Runner 按平台只读挂载命名卷，操作临时文件仍只存在于 tmpfs。本地卷是可重建副本，新宿主连接同一持久库并配置稳定密钥后自动恢复；没有已登记来源时保留准确的不可用状态。具体协议见 [043](043-跨宿主平台来源自动恢复.md)。
 
 ## 当前实现
 
 - `ProviderAccessState` 已将当前宿主/出口的探针证据投影为公开线路待验证、公开可用、需要授权、受控线路待验证、受控线路可用、降级、受限、停用和不支持；`egress_challenged`、`pot_required`、`pot_rejected` 等稳定错误不会再被误报为普通解析器故障。
-- macOS 已提供按 Provider 隔离的本机授权 Agent v1：`authorize --provider <key>` 打开第一方页面并轮询专用 Chrome 数据目录，`install --browser-root ...` 安装按需 LaunchAgent。授权数据只留在当前宿主，子进程只产生内存中的受限租约，不落项目 Cookie 文件。当前 Agent 支持 Chrome-backed Provider；视频号仍走独立元宝来源，腾讯视频/优酷仍走受控文件来源。
-- 平台状态页已展示上述访问状态，并在 `authorization_required` 且存在受控线路时给出本机授权步骤。由于浏览器不能安全地从容器内直接启动宿主命令，当前引导仍是显式本机命令；它不是目标中的公共代理或远端常驻节点。
+- macOS 已提供按 Provider 隔离的可选来源导入器：`authorize --provider <key> --source ...` 可等待浏览器连接器快照或打开隔离 Chrome，`install --runtime-root ...` 安装按需 LaunchAgent；该能力不在普通解析或重试中自动触发。
+- 平台状态页展示访问状态；托管来源异常时普通用户只获得统一重试动作，管理员按部署流程更新来源。本机一次性授权事务仅在个人部署显式启用时可用。
 - `RunnerSettings.runner_provider_cookie_file` 与 macOS 的 `runner_provider_cookie_sync_root` 二选一；匿名 Runner 禁止配置任一来源。
 - [文件读取器](../../backend/app/workers/runner/provider_cookie_file.py)每次操作重新打开文件，限制 1 MiB、普通文件、无最终符号链接、无硬链接、无其他用户权限，并校验平台域、格式、到期时间和必需 Cookie 名。普通用户 API 不接受 Cookie。
 - [会话装配](../../backend/app/workers/runner/provider_sessions.py)继续生成唯一的 `0600` 操作 jar。文件来源的访问上下文使用带密钥摘要形成不透明版本；文件替换后旧任务不能静默使用新会话。只要有效负载与部署 HMAC 密钥不变，路径和机器变化不会改变版本。
 - 操作期间 Cookie 更新只写临时副本，不覆盖只读来源；此模式不会自动延长会话寿命，也不证明平台端未撤销授权。换机后平台要求重新验证与程序重启丢配置是不同事件。
-- 两套 Compose 对 YouTube、抖音、Reddit 使用按平台隔离的本机 Agent 队列挂载；视频号继续使用元宝动态来源，优酷/腾讯视频保留按平台只读文件来源。队列只传递一次性加密租约，不把浏览器目录或 Cookie 文件挂进容器，也不把全部平台会话挂到同一 Runner。
+- 两套 Compose 对 YouTube、抖音、Reddit 使用按平台隔离的只读来源；视频号继续使用元宝动态来源，优酷/腾讯视频同样保留按平台只读来源。所有文件来源只挂载到本 Provider Runner，不把全部平台会话挂到同一容器。
 - 两套业务 Compose 的受控 Runner 均按 profile 启用。生产示例默认不配置受控路由，个人只保存已配置的平台组合，避免未安装的会话来源阻止启动。
 - 视频号仍依赖元宝动态浏览器状态，按 035 批准改用本机专用持久登录目录；文件模式明确拒绝。用户首次登录与来源恢复独立验收，不能以目录存在宣称纯 Linux 或新机已可下载。
 
@@ -88,14 +88,14 @@ API readiness 只反映 FrameFetch 核心依赖，不因可选 Provider 授权�
 
 启动继续使用固定镜像和 lockfile，不在每次启动时修改解析器参数或升级依赖。平台变化通过现有构建与测试工作流发布更新。任务恢复复用 030 和既有 lease/Outbox，不在本次改变重试预算或跨主机执行机制。
 
-匿名能力不需要首次配置。平台要求验证时，当前 v1 由宿主上的本机 Agent 建立一次 Provider 专用来源，后续普通 `restart`、`up --force-recreate` 自动复用；产品内 loopback/Unix Socket 授权事务尚未交付。更换手机、平板或前端浏览器时仍由同一后端持有平台会话，客户端不搬运 Cookie；更换运行后端的宿主时，平台通常仍要求在新宿主第一方页面完成一次登录，这是第三方平台的设备/出口边界，不能由应用凭空迁移。`.ffsession` 只保留为可选灾备能力，不得成为安装前置条件。HMAC 密钥、出口身份等上下文变化时旧任务应重新解析，不能取消既有身份隔离规则。详细操作见[个人部署与迁移](../operations/008-个人部署重启与换机手册.md)。
+匿名能力不需要首次配置。托管文件平台由部署方一次登记加密来源，后续重建和空本地卷启动由来源进程恢复；轮换在持久库进行条件更新，不需要重建 Runner。更换手机、平板或前端电脑时客户端不搬运 Cookie；更换运行后端宿主时连接原持久库或恢复其备份，并沿用来源加密密钥，在新出口重新验证。`.ffsession` 只保留为可选灾备能力。HMAC 密钥、出口身份等上下文变化时旧任务应重新解析，不能取消既有身份隔离规则。详细操作见[个人部署与迁移](../operations/008-个人部署重启与换机手册.md)。
 
 ## 验收标准
 
 1. 在当前宿主创建不挂载 `.provider-sessions`、operator profile 和既有浏览器状态的 clean-room Compose project，核心 readiness 成功，首页与平台状态可访问。
 2. 对固定公开样本分别记录 metadata 与 media 结果；匿名成功的平台无需任何授权文件。
-3. 构造 `egress_challenged` 或 `credential_required`，UI 只展示一次“完成平台验证”动作；完成后无需 CLI、Cookie 粘贴或容器重建即可重试原链接。
-4. 重启 Docker 与整机后，本机已授权 Provider 自动恢复；撤销授权后准确回到 `authorization_required`，不循环重试。
+3. 构造 `egress_challenged` 或 `credential_required`，UI 只展示托管线路状态与有限重试；不得要求普通用户安装扩展或选择当前 Chrome。
+4. 重启 Docker 与整机后，已配置来源自动恢复；原子轮换来源后无需重建容器，撤销授权后准确回到 `authorization_required`，不循环重试。
 5. 删除 clean-room 临时卷后重新创建同一隔离项目并重复第 1 项；不得读取当前业务部署的浏览器 Profile。恢复灾备包属于可选验证，与开箱启动分开记录。
 6. 平台可用声明必须来自当前宿主、当前出口的真实 metadata/media 证据；静态测试、健康检查和旧机器截图不能替代。
 
@@ -107,4 +107,4 @@ API readiness 只反映 FrameFetch 核心依赖，不因可选 Provider 授权�
 - [YTDLnis README](https://github.com/deniscerri/ytdlnis/blob/main/README.md)：提供 Cookie 支持和应用内更新入口。它不是无需维护的平台协议实现；这里只借鉴个人产品的配置与更新体验。
 - [yt-dlp FAQ](https://github.com/yt-dlp/yt-dlp/wiki/FAQ)：媒体请求可能绑定 Cookie、IP 和请求头。相同文件换机器不构成所有平台必然可用的证明，仍需实际验证。
 
-031 当前已交付无会话启动、访问状态机、macOS 本机专用浏览器 Agent v1 和平台状态页授权引导；产品内 loopback/Unix Socket 一次性事务、完整自动恢复和 clean-room 真实平台矩阵仍按 BACKLOG P6 实施。新增平台接入见 [032](032-腾讯视频与优酷个人下载设计.md)。本轮没有宣称所有平台真实下载或跨宿主授权迁移已完成。
+031 当前已交付无会话启动、访问状态机、部署级单平台来源和可选 macOS 导入器；完整来源生命周期、真实三平台媒体闭环和 clean-room 矩阵仍按 BACKLOG P8 实施。新增平台接入见 [032](032-腾讯视频与优酷个人下载设计.md)。本轮没有宣称所有平台真实下载或跨宿主授权迁移已完成。

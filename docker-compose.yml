@@ -20,13 +20,15 @@ x-provider-session-runner: &provider-session-runner
       condition: service_healthy
     provider-lease-redis:
       condition: service_healthy
+    provider-sources-init:
+      condition: service_completed_successfully
   healthcheck:
     test:
       [
         "CMD",
         "python",
         "-c",
-        "import urllib.request; urllib.request.urlopen('http://127.0.0.1:19100/health/ready', timeout=3)",
+        "import urllib.request; urllib.request.urlopen('http://127.0.0.1:19100/health/runtime', timeout=3)",
       ]
     interval: 5s
     timeout: 5s
@@ -611,6 +613,52 @@ services:
       retries: 12
       start_period: 3s
 
+  provider-sources-init:
+    build: *backend-build
+    image: video-server:local
+    container_name: provider-sources-init
+    restart: "no"
+    network_mode: none
+    user: "0:0"
+    command: ["sh", "-c", "install -d -o 10001 -g 10001 -m 0700 /sources/youtube /sources/douyin /sources/reddit /sources/youku /sources/qqvideo"]
+    volumes: &provider-source-volumes
+      - provider_source_youtube:/sources/youtube
+      - provider_source_douyin:/sources/douyin
+      - provider_source_reddit:/sources/reddit
+      - provider_source_youku:/sources/youku
+      - provider_source_qqvideo:/sources/qqvideo
+
+  provider-sources:
+    build: *backend-build
+    image: video-server:local
+    container_name: provider-sources
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    networks: [app_net]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    environment:
+      APP_ENV: "${APP_ENV:-development}"
+      SERVICE_ROLE: provider-sources
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-video}:${POSTGRES_PASSWORD:-video}@${POSTGRES_HOST:-host.docker.internal}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-video}"
+      PROVIDER_SOURCE_ENCRYPTION_KEY: "${PROVIDER_SOURCE_ENCRYPTION_KEY:-}"
+      PROVIDER_SOURCE_ROOT: /sources
+      PROVIDER_SOURCE_POLL_SECONDS: "15"
+      PROVIDER_SOURCE_LEASE_SECONDS: "90"
+    volumes: *provider-source-volumes
+    depends_on:
+      provider-sources-init:
+        condition: service_completed_successfully
+    command: ["python", "-m", "app.workers.runner.provider_source_replica", "serve"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import time,pathlib; assert time.time()-float(pathlib.Path('/tmp/provider-sources-heartbeat').read_text()) < 45"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+
   workspace-init:
     build: *backend-build
     image: video-server:local
@@ -629,15 +677,14 @@ services:
     environment:
       <<: *provider-session-environment
       RUNNER_OPERATOR_SESSION_VERSIONS: '{"douyin":"browser"}'
-      RUNNER_PROVIDER_COOKIE_SYNC_ROOT: /run/provider-cookie-agent
+      RUNNER_PROVIDER_COOKIE_FILE: /run/provider-source/cookies.txt
+      RUNNER_PROVIDER_SOURCE_REQUIRE_LEASE: "true"
     volumes:
       - runner_work:/work
-      - type: bind
-        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/douyin"
-        target: /run/provider-cookie-agent
-        read_only: false
-        bind:
-          create_host_path: false
+      - type: volume
+        source: provider_source_douyin
+        target: /run/provider-source
+        read_only: true
 
   reddit-operator-runner:
     <<: *provider-session-runner
@@ -646,15 +693,14 @@ services:
     environment:
       <<: *provider-session-environment
       RUNNER_OPERATOR_SESSION_VERSIONS: '{"reddit":"browser"}'
-      RUNNER_PROVIDER_COOKIE_SYNC_ROOT: /run/provider-cookie-agent
+      RUNNER_PROVIDER_COOKIE_FILE: /run/provider-source/cookies.txt
+      RUNNER_PROVIDER_SOURCE_REQUIRE_LEASE: "true"
     volumes:
       - runner_work:/work
-      - type: bind
-        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/reddit"
-        target: /run/provider-cookie-agent
-        read_only: false
-        bind:
-          create_host_path: false
+      - type: volume
+        source: provider_source_reddit
+        target: /run/provider-source
+        read_only: true
 
   wechat-channels-operator-runner:
     <<: *provider-session-runner
@@ -680,7 +726,8 @@ services:
     environment:
       <<: *provider-session-environment
       RUNNER_OPERATOR_SESSION_VERSIONS: '{"youtube":"browser"}'
-      RUNNER_PROVIDER_COOKIE_SYNC_ROOT: /run/provider-cookie-agent
+      RUNNER_PROVIDER_COOKIE_FILE: /run/provider-source/cookies.txt
+      RUNNER_PROVIDER_SOURCE_REQUIRE_LEASE: "true"
       RUNNER_YOUTUBE_POT_BASE_URL: http://youtube-pot-provider:4416
       RUNNER_YOUTUBE_POT_PROVIDER_VERSION: bgutil-http-1.3.2
     networks:
@@ -689,12 +736,10 @@ services:
       - youtube_pot_net
     volumes:
       - runner_work:/work
-      - type: bind
-        source: "${PROVIDER_COOKIE_AGENT_RUNTIME_DIR:-${HOME}/Library/Caches/FrameFetch/provider-cookie-agent}/youtube"
-        target: /run/provider-cookie-agent
-        read_only: false
-        bind:
-          create_host_path: false
+      - type: volume
+        source: provider_source_youtube
+        target: /run/provider-source
+        read_only: true
     depends_on:
       egress-proxy:
         condition: service_healthy
@@ -702,6 +747,8 @@ services:
         condition: service_healthy
       youtube-pot-provider:
         condition: service_started
+      provider-sources-init:
+        condition: service_completed_successfully
 
   youtube-pot-provider:
     image: brainicism/bgutil-ytdlp-pot-provider:1.3.2@sha256:9a96e6385ce1928da87dea07b1cab0413d2cf8c07a3b8a8bd419f53df2c3843c
@@ -730,6 +777,11 @@ services:
       - no-new-privileges:true
 
 volumes:
+  provider_source_youtube:
+  provider_source_douyin:
+  provider_source_reddit:
+  provider_source_youku:
+  provider_source_qqvideo:
   runner_work:
 
 networks:

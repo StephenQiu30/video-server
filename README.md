@@ -92,7 +92,7 @@ Web 实例的 `/guide/` 提供公开使用指南；完整实现与配置见下�
 
 ## 快速开始
 
-生产只使用 `docker-compose-prod.yml`：YouTube、抖音和 Reddit 通过当前宿主按 Provider 隔离的本机 Agent 队列按需获取一次性会话租约，视频号按需使用专用元宝来源，优酷/腾讯视频保留各自只读会话文件。下载和解析不会读取日常 Chrome；来源安装与更新见[个人部署手册](docs/operations/008-个人部署重启与换机手册.md)。
+生产只使用 `docker-compose-prod.yml`：YouTube、抖音和 Reddit 与优酷/腾讯视频一样读取部署方按 Provider 隔离的只读来源，普通客户端不安装扩展也不提供 Cookie；视频号按需使用专用元宝来源。每次操作重新读取来源，Secret volume/controller 可原子轮换而无需重建容器；个人本机浏览器桥只保留为可选导入工具。来源安装与更新见[个人部署手册](docs/operations/008-个人部署重启与换机手册.md)。
 
 ### 前置条件
 
@@ -109,19 +109,19 @@ test -f .env || cp .env.example .env
 
 # 确认 .env 连接本机已运行的 PostgreSQL、RabbitMQ、Redis 与 MinIO
 
-# 启动 Web、API、Worker、Runner 与受控出口代理
-docker compose --env-file .env -f docker-compose.yml \
-  up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
+# 启动前校验 Provider 来源，再启动 Web、API、Worker、可用 Runner 与受控出口代理
+uv run --project backend python -m app.workers.runner.provider_startup start \
+  --env-file .env --compose-file docker-compose.yml
 ```
 
-macOS 个人生产部署启用 YouTube 受控路线时，先从已经获得 Chrome 数据读取权限的实际桌面宿主启动单平台维护器，再启动生产 Compose。该命令幂等；整机重启后重复执行，普通 Docker 或项目重启无需重新登录：
+统一入口保留已配置的平台路由，不因来源短暂失效删除能力。文件来源由独立 `provider-sources` 进程从现有 PostgreSQL 解密恢复，按平台原子发布到 Runner 的只读命名卷；重建和换机无需复制这些本地副本。有效计划写入私有 `.local-runtime/provider-startup.env`，不包含 Cookie。
+
+启用托管路线前，部署者需一次配置稳定的 `PROVIDER_SOURCE_ENCRYPTION_KEY`，并把已有批准来源登记到持久库。普通用户不参与此过程。新宿主复用同一持久库和密钥后自动恢复；平台撤销、过期或新出口验证仍需按平台处理。首次配置、登记命令和验收边界见 [008 手册](docs/operations/008-个人部署重启与换机手册.md)。
 
 ```bash
-cd backend
-uv run python -m app.workers.runner.provider_session_maintainer start
-uv run python -m app.workers.runner.provider_session_maintainer status
-cd ..
-docker compose --env-file .env.prod -f docker-compose-prod.yml up -d --wait --wait-timeout 300
+uv run --project backend python -m app.workers.runner.provider_startup start \
+  --env-file .env.prod --compose-file docker-compose-prod.yml \
+  --runtime-env .local-runtime/provider-startup.prod.env
 ```
 
 维护器只更新 `.provider-sessions/youtube/cookies.txt`，不会在解析或下载请求中读取浏览器。完整来源边界、停止与换机步骤见 [YouTube 受控会话手册](docs/operations/002-YouTube受控会话运行手册.md)和[个人部署手册](docs/operations/008-个人部署重启与换机手册.md)。
@@ -130,7 +130,7 @@ PowerShell 使用相同入口：
 
 ```powershell
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
+uv run --project backend python -m app.workers.runner.provider_startup start --env-file .env --compose-file docker-compose.yml
 ```
 
 启动后访问：
@@ -147,7 +147,7 @@ curl --fail http://127.0.0.1:8111/health/ready
 curl --fail --head http://127.0.0.1:8101/
 ```
 
-只需要下载与剧本文档导入时，可在 `.env` 中设置 `ANALYSIS_ENABLED=false`。完整的启动、停止、已有基础环境复用和故障恢复方式见 [Compose 运行手册](docs/operations/001-root-compose运行手册.md)。更新代码时先执行 `git pull --ff-only`，再重新运行上面的业务 `up` 命令；`docker compose restart` 不会应用新镜像或环境配置。
+只需要下载与剧本文档导入时，可在 `.env` 中设置 `ANALYSIS_ENABLED=false`。完整的启动、停止、已有基础环境复用和故障恢复方式见 [Compose 运行手册](docs/operations/001-root-compose运行手册.md)。更新代码时先执行 `git pull --ff-only`，再重新运行上面的统一启动命令；`docker compose restart` 不会重新评估 Provider 来源，也不会应用新镜像或环境配置。
 
 ### 启用 AI 分析
 

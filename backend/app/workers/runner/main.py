@@ -84,6 +84,7 @@ def create_app(
         configured,
         session_ready=sessions.is_ready,
     )
+    runtime_probe = RunnerReadiness(configured)
     authenticator = HmacRequestAuthenticator(
         configured.hmac_secret_bytes,
         nonce_guard=InMemoryNonceGuard(
@@ -134,6 +135,19 @@ def create_app(
                 content={"service": "media-runner", "status": "unavailable"},
             )
         return JSONResponse(content={"service": "media-runner", "status": "ready"})
+
+    @app.get("/health/runtime")
+    async def runtime_ready() -> JSONResponse:
+        # Deployment health is independent of an optional platform session.
+        # /health/ready continues to report actual platform readiness honestly.
+        healthy = await runtime_probe.check()
+        return JSONResponse(
+            status_code=200 if healthy else 503,
+            content={
+                "service": "media-runner",
+                "status": "ready" if healthy else "unavailable",
+            },
+        )
 
     @app.post("/internal/v1/inspect", response_model=InspectResponse)
     async def inspect(request: Request) -> InspectResponse:

@@ -66,7 +66,10 @@ class ProviderSessionStore:
             )
         sync_root = settings.runner_provider_cookie_sync_root
         self._cookie_file = (
-            ProviderCookieFile(settings.runner_provider_cookie_file)
+            ProviderCookieFile(
+                settings.runner_provider_cookie_file,
+                require_lease=settings.runner_provider_source_require_lease,
+            )
             if settings.runner_provider_cookie_file is not None
             else None
         )

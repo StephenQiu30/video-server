@@ -1420,4 +1420,18 @@ CREATE TABLE IF NOT EXISTS email_registration_challenges (
 
 CREATE INDEX IF NOT EXISTS ix_email_registration_expires ON email_registration_challenges (expires_at);
 
+-- Deployment sources survive application hosts; NULL ciphertext is a durable
+-- revocation tombstone. Only the source publisher receives the decryption key.
+CREATE TABLE IF NOT EXISTS provider_session_sources (
+    provider_key VARCHAR(32) PRIMARY KEY,
+    revision BIGINT NOT NULL,
+    ciphertext BYTEA,
+    valid_until TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ NOT NULL,
+    CONSTRAINT ck_provider_source_revision CHECK (revision > 0),
+    CONSTRAINT ck_provider_source_revocation CHECK (
+        (ciphertext IS NULL) = (valid_until IS NULL)
+    )
+);
+
 COMMIT;
