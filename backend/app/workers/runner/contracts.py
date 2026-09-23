@@ -26,7 +26,9 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    SerializerFunctionWrapHandler,
     field_validator,
+    model_serializer,
     model_validator,
 )
 
@@ -49,9 +51,20 @@ class ProviderAccessContextContract(ContractModel):
     client_profile_id: str = Field(min_length=1, max_length=128)
     attestation_provider_version: str | None = Field(default=None, max_length=128)
     engine_commit: str = Field(min_length=1, max_length=128)
+    runtime_revision: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+
+    @model_serializer(mode="wrap")
+    def _serialize(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
+        document: dict[str, object] = handler(self)
+        if self.runtime_revision is None:
+            document.pop("runtime_revision", None)
+        return document
 
     def to_domain(self) -> ProviderAccessContextRef:
-        return ProviderAccessContextRef(**self.model_dump())
+        return ProviderAccessContextRef(
+            **self.model_dump(exclude={"runtime_revision"}),
+            runtime_revision=self.runtime_revision or "legacy",
+        )
 
     @classmethod
     def from_domain(cls, value: ProviderAccessContextRef) -> Self:
@@ -64,6 +77,9 @@ class ProviderAccessContextContract(ContractModel):
             client_profile_id=value.client_profile_id,
             attestation_provider_version=value.attestation_provider_version,
             engine_commit=value.engine_commit,
+            runtime_revision=(
+                None if value.runtime_revision == "legacy" else value.runtime_revision
+            ),
         )
 
 

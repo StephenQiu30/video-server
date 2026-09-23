@@ -172,6 +172,8 @@ class ProviderSessionStore:
         allow_guest_refresh: bool = False,
     ) -> ProviderAccessContextRef:
         current = self.context_for(source)
+        if current.runtime_revision == "legacy":
+            expected = replace(expected, runtime_revision="legacy")
         if current.access_mode is ProviderAccessMode.ANONYMOUS:
             if current != expected:
                 raise RunnerFailure("client_context_mismatch", status=409)

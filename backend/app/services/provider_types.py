@@ -252,6 +252,8 @@ class ProviderAccessContextRef:
     client_profile_id: str
     attestation_provider_version: str | None
     engine_commit: str
+    # Historical records have no release digest and cannot match a new Runner.
+    runtime_revision: str = "legacy"
 
     def __post_init__(self) -> None:
         values = (
@@ -260,6 +262,7 @@ class ProviderAccessContextRef:
             self.egress_affinity_id,
             self.client_profile_id,
             self.engine_commit,
+            self.runtime_revision,
         )
         optional = (self.credential_version_id, self.attestation_provider_version)
         if any(_REFERENCE.fullmatch(value) is None for value in values):
@@ -275,7 +278,7 @@ class ProviderAccessContextRef:
             raise ValueError("provider credential reference does not match access mode")
 
     def to_document(self) -> dict[str, str | None]:
-        return {
+        document = {
             "provider_key": self.provider_key,
             "profile_version": self.profile_version,
             "access_mode": self.access_mode.value,
@@ -285,11 +288,14 @@ class ProviderAccessContextRef:
             "attestation_provider_version": self.attestation_provider_version,
             "engine_commit": self.engine_commit,
         }
+        if self.runtime_revision != "legacy":
+            document["runtime_revision"] = self.runtime_revision
+        return document
 
     @property
     def generation_id(self) -> str:
         """Stable identity for every non-secret input that defines a route."""
-        values = (
+        values: tuple[str, ...] = (
             self.provider_key,
             self.profile_version,
             self.access_mode.value,
@@ -299,6 +305,8 @@ class ProviderAccessContextRef:
             self.attestation_provider_version or "",
             self.engine_commit,
         )
+        if self.runtime_revision != "legacy":
+            values += (self.runtime_revision,)
         return sha256("\x1f".join(values).encode()).hexdigest()
 
     @classmethod
@@ -314,8 +322,9 @@ class ProviderAccessContextRef:
             "client_profile_id",
             "attestation_provider_version",
             "engine_commit",
+            "runtime_revision",
         }
-        if set(value) != keys:
+        if set(value) not in (keys, keys - {"runtime_revision"}):
             raise ValueError("provider access context fields are invalid")
 
         def required(name: str) -> str:
@@ -339,4 +348,9 @@ class ProviderAccessContextRef:
             client_profile_id=required("client_profile_id"),
             attestation_provider_version=optional("attestation_provider_version"),
             engine_commit=required("engine_commit"),
+            runtime_revision=(
+                required("runtime_revision")
+                if "runtime_revision" in value
+                else "legacy"
+            ),
         )

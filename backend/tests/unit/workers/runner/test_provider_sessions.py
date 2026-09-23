@@ -62,6 +62,23 @@ def operator_settings(tmp_path: Path) -> RunnerSettings:
     )
 
 
+def test_legacy_runner_revalidates_newer_context_on_rollback(tmp_path: Path) -> None:
+    store = ProviderSessionStore(
+        RunnerSettings(
+            runner_hmac_secret=SECRET,
+            runner_egress_proxy="http://egress-proxy:3128",
+            runner_workspace_root=tmp_path,
+        )
+    )
+    current = store.context_for("https://www.youtube.com/watch?v=owned")
+    newer = replace(current, runtime_revision="a" * 64)
+
+    assert (
+        store.validate_context("https://www.youtube.com/watch?v=owned", newer)
+        == current
+    )
+
+
 @pytest.mark.parametrize(
     ("overrides", "message"),
     [
