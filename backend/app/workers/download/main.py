@@ -18,6 +18,7 @@ from app.integrations.media_runner import MediaRunnerRouter
 from app.integrations.media_runner_factory import media_runner_router
 from app.integrations.messaging import RabbitMqTopology
 from app.integrations.object_storage import MinioObjectStorage
+from app.integrations.readiness import assert_download_execution_schema
 from app.integrations.thumbnail_storage import MinioThumbnailStorage
 from app.integrations.url_security import FernetUrlEnvelope, MediaUrlValidator
 from app.repositories.downloads.execution import DownloadExecutionRepository
@@ -186,6 +187,7 @@ async def run() -> None:
 
 
 async def _serve(runtime: DownloadWorkerRuntime, stop: asyncio.Event) -> None:
+    await assert_download_execution_schema(runtime.engine)
     consumer = asyncio.create_task(runtime.consumer.run(stop))
     intent_consumer = asyncio.create_task(runtime.intent_consumer.run(stop))
     sweeper = asyncio.create_task(runtime.sweeper.run(stop))

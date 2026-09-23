@@ -8,7 +8,7 @@ from collections.abc import Awaitable, Callable
 import aio_pika
 import httpx
 from sqlalchemy import bindparam, text
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 import app.models  # noqa: F401  # Register the complete SQLAlchemy metadata graph.
 from app.core.config import Settings
@@ -23,6 +23,34 @@ _DATABASE_TABLES_QUERY = text(
     WHERE schemaname = current_schema() AND tablename IN :expected_tables
     """
 ).bindparams(bindparam("expected_tables", expanding=True))
+_DOWNLOAD_EXECUTION_COLUMNS = {
+    "execution_access_context": "jsonb",
+    "execution_context_attempt": "integer",
+}
+_DOWNLOAD_EXECUTION_COLUMNS_QUERY = text(
+    """
+    SELECT column_name, data_type
+    FROM information_schema.columns
+    WHERE table_schema = current_schema()
+      AND table_name = 'download_jobs'
+      AND column_name IN :expected_columns
+    """
+).bindparams(bindparam("expected_columns", expanding=True))
+
+
+async def assert_download_execution_schema(engine: AsyncEngine) -> None:
+    """Fail process startup before API traffic or download queue consumers run."""
+    async with engine.connect() as connection:
+        await _assert_download_execution_columns(connection)
+
+
+async def _assert_download_execution_columns(connection: AsyncConnection) -> None:
+    columns = await connection.execute(
+        _DOWNLOAD_EXECUTION_COLUMNS_QUERY,
+        {"expected_columns": tuple(_DOWNLOAD_EXECUTION_COLUMNS)},
+    )
+    if dict(columns.tuples().all()) != _DOWNLOAD_EXECUTION_COLUMNS:
+        raise RuntimeError("database download execution schema is incompatible")
 
 
 class RuntimeReadiness:
@@ -79,6 +107,7 @@ def build_runtime_readiness(
             if found_tables != EXPECTED_DATABASE_TABLES:
                 missing = ", ".join(sorted(EXPECTED_DATABASE_TABLES - found_tables))
                 raise RuntimeError(f"database schema is incomplete: {missing}")
+            await _assert_download_execution_columns(connection)
 
     async def http_check(url: str) -> None:
         response = await http_client.get(url)

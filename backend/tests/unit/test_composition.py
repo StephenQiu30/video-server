@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from app.core import runtime as runtime_module
 from app.core.config import Settings
 from app.integrations.realtime import RabbitMqRealtimeConsumer
 from app.main import create_app
@@ -14,6 +15,13 @@ def disable_external_realtime(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(RabbitMqRealtimeConsumer, "start", no_op)
     monkeypatch.setattr(RabbitMqRealtimeConsumer, "close", no_op)
+
+    async def schema_available(_engine: object) -> None:
+        return None
+
+    monkeypatch.setattr(
+        runtime_module, "assert_download_execution_schema", schema_available
+    )
 
 
 def test_non_test_app_wires_download_use_cases(tmp_path: Path) -> None:

@@ -10,7 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.integrations.media_runner import MediaRunnerRouter
 from app.integrations.rate_limiter import RedisRateLimiter
-from app.integrations.readiness import RuntimeReadiness
+from app.integrations.readiness import (
+    RuntimeReadiness,
+    assert_download_execution_schema,
+)
 from app.integrations.realtime import RabbitMqRealtimeConsumer, RealtimeHub
 from app.repositories.auth.redis_auth_repository import RedisAuthSessionStore
 from app.repositories.operational_metrics import OperationalMetrics
@@ -167,6 +170,7 @@ class ApiRuntime:
     realtime_consumer: RabbitMqRealtimeConsumer
 
     async def start(self) -> None:
+        await assert_download_execution_schema(self.engine)
         await self.realtime_consumer.start()
         if self.services.provider_authorization_service is not None:
             await self.services.provider_authorization_service.start()

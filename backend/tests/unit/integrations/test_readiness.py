@@ -8,7 +8,11 @@ import aio_pika
 import httpx
 import pytest
 from app.core.config import Settings
-from app.integrations.readiness import AsyncCheck, build_runtime_readiness
+from app.integrations.readiness import (
+    AsyncCheck,
+    assert_download_execution_schema,
+    build_runtime_readiness,
+)
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -137,6 +141,46 @@ async def test_runtime_readiness_checks_the_active_postgres_schema(
 
     async with runtime_probe(httpx.MockTransport(respond), postgres_engine) as probe:
         assert await probe.check() is False
+
+
+@pytest.mark.usefixtures("rabbitmq_is_available")
+@pytest.mark.parametrize(
+    "column", ["execution_access_context", "execution_context_attempt"]
+)
+async def test_runtime_readiness_rejects_missing_download_execution_column(
+    postgres_engine: AsyncEngine, column: str
+) -> None:
+    async with postgres_engine.begin() as connection:
+        await connection.execute(
+            text(f"ALTER TABLE download_jobs DROP COLUMN {column}")
+        )
+
+    async with runtime_probe(
+        httpx.MockTransport(lambda _: httpx.Response(200)), postgres_engine
+    ) as probe:
+        assert await probe.check() is False
+    with pytest.raises(RuntimeError, match="download execution schema"):
+        await assert_download_execution_schema(postgres_engine)
+
+
+@pytest.mark.usefixtures("rabbitmq_is_available")
+async def test_runtime_readiness_rejects_wrong_download_execution_column_type(
+    postgres_engine: AsyncEngine,
+) -> None:
+    async with postgres_engine.begin() as connection:
+        await connection.execute(
+            text(
+                "ALTER TABLE download_jobs ALTER COLUMN execution_context_attempt "
+                "TYPE BIGINT"
+            )
+        )
+
+    async with runtime_probe(
+        httpx.MockTransport(lambda _: httpx.Response(200)), postgres_engine
+    ) as probe:
+        assert await probe.check() is False
+    with pytest.raises(RuntimeError, match="download execution schema"):
+        await assert_download_execution_schema(postgres_engine)
 
 
 @pytest.mark.usefixtures("rabbitmq_is_available")
