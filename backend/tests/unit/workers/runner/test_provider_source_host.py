@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import stat
+import subprocess
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import pytest
 from app.core.db import create_session_factory
 from app.core.security.provider_session_cipher import ProviderSessionCipher
 from app.repositories.providers.session_sources import ProviderSessionSources
@@ -16,6 +19,7 @@ from app.workers.runner.provider_cookie_lease import (
 from app.workers.runner.provider_source_host import (
     SOURCE_OWNER_HEADER,
     HostBrowserSourceSync,
+    install_launch_agent,
     load_settings,
     select_source,
 )
@@ -122,10 +126,14 @@ async def test_owned_source_refresh_and_logout_are_versioned() -> None:
     assert await sync.sync(PROVIDER) == "ready"
     assert sources.row.revision == first.revision + 1
     assert sources.row.valid_until == now[0] + timedelta(minutes=15)
+    now[0] += timedelta(minutes=16)
+    assert await sync.sync(PROVIDER) == "ready"
+    assert sources.row.revision == first.revision + 2
+    assert sources.row.valid_until == now[0] + timedelta(minutes=15)
     rotated_payload = PAYLOAD.replace(b"fixture-only", b"rotated-fixture")
     selected[0] = ("candidate", rotated_payload)
     assert await sync.sync(PROVIDER) == "ready"
-    assert sources.row.revision == first.revision + 2
+    assert sources.row.revision == first.revision + 3
     assert sources.row.ciphertext is not None
     assert sources.row.valid_until is not None
     assert b"rotated-fixture" in cipher.decrypt(
@@ -136,7 +144,7 @@ async def test_owned_source_refresh_and_logout_are_versioned() -> None:
     )
     selected[0] = ("browser_login_missing", None)
     assert await sync.sync(PROVIDER) == "browser_login_missing"
-    assert sources.row.revision == first.revision + 3
+    assert sources.row.revision == first.revision + 4
     assert sources.row.ciphertext is None
 
 
@@ -172,3 +180,44 @@ async def test_auto_published_source_reaches_isolated_runner_lease(
     ).read(PROVIDER, ProviderSessionVersion.BROWSER)
     assert b"SID\tfixture-only" in lease
     assert SOURCE_OWNER_HEADER not in lease
+
+
+def test_launch_agent_retries_bootstrap_after_bootout(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    plist = tmp_path.resolve() / "LaunchAgents" / "provider.plist"
+    calls: list[tuple[str, ...]] = []
+    bootstrap_attempts = 0
+
+    def run(command, **_kwargs):
+        nonlocal bootstrap_attempts
+        calls.append(tuple(command))
+        if command[1] == "bootstrap":
+            bootstrap_attempts += 1
+            return subprocess.CompletedProcess(
+                command, 5 if bootstrap_attempts == 1 else 0
+            )
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(
+        "app.workers.runner.provider_source_host.sys.platform", "darwin"
+    )
+    monkeypatch.setattr("app.workers.runner.provider_source_host.PLIST_PATH", plist)
+    monkeypatch.setattr("app.workers.runner.provider_source_host.subprocess.run", run)
+    monkeypatch.setattr(
+        "app.workers.runner.provider_source_host.time.sleep", lambda _: None
+    )
+
+    install_launch_agent(
+        env_file=tmp_path / "deploy.env",
+        runtime_env=tmp_path / "runtime.env",
+        providers=(PROVIDER,),
+    )
+
+    assert [command[1] for command in calls] == [
+        "print",
+        "bootout",
+        "bootstrap",
+        "bootstrap",
+    ]
+    assert stat.S_IMODE(plist.stat().st_mode) == 0o600

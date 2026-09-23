@@ -10,6 +10,7 @@ import signal
 import stat
 import subprocess
 import sys
+import time
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
@@ -253,7 +254,18 @@ def install_launch_agent(
     )
     if current.returncode == 0:
         subprocess.run(("launchctl", "bootout", service), check=True)
-    subprocess.run(("launchctl", "bootstrap", domain, str(PLIST_PATH)), check=True)
+    bootstrap = ("launchctl", "bootstrap", domain, str(PLIST_PATH))
+    # launchctl bootout can return before launchd has removed the old label.
+    # A single immediate bootstrap then fails with exit 5 on a normal restart.
+    for attempt in range(20):
+        result = subprocess.run(bootstrap, capture_output=True, check=False)
+        if result.returncode == 0:
+            return
+        if result.returncode != 5 or attempt == 19:
+            raise subprocess.CalledProcessError(
+                result.returncode, bootstrap, stderr=result.stderr
+            )
+        time.sleep(0.25)
 
 
 async def run(
