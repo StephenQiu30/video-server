@@ -80,13 +80,16 @@ The system is built for recoverability and isolation rather than one-shot comman
   </tr>
 </table>
 
-The web application includes media inspection and download, job history and details, screenplay reading and analysis, provider status, account settings, and administrator views for users, files, analytics and AI providers. Treat the deployment's `/providers` page and canary results as the source of truth for current platform availability.
+The web application includes media inspection and download, job history and details, screenplay reading and analysis, provider status, account settings, and administrator views for users, files, analytics and AI providers. The deployment's `/providers` page reports registered routes and recent verification evidence; the result for a specific public link is established by its actual inspection and file download.
 
 ## Quick start
+
+The standard business topology includes the pinned media engine and an automatic guest maintainer for public Douyin content. On first start, the maintainer starts preparing its guest context in the background; a user can paste an authorized public link or share text without exporting browser cookies. Check the deployment state with `docker compose exec -T provider-guest python -m app.workers.runner.provider_guest_manager status`. Only `published_lease_usable=true` confirms that a guest lease has been published; container health alone does not prove a media download. Other public links may use an anonymous provider or the bounded Generic single-video route. Extractor candidates are not verified downloads. Account-restricted or otherwise protected content still depends on the platform's access rules; ordinary users do not install an extension or supply cookies.
 
 ### Requirements
 
 - Docker Engine and Docker Compose
+- `uv` for the deployment-host startup and first-admin commands
 - Existing PostgreSQL, RabbitMQ, Redis and MinIO services; reuse their addresses and credentials
 - Strong random secrets and a public origin are required before an internet-facing deployment
 
@@ -97,16 +100,36 @@ test -f .env || cp .env.example .env
 
 # Configure .env to reuse existing PostgreSQL, RabbitMQ, Redis and MinIO
 
-# Web, API, workers, runners and controlled egress proxy
-docker compose --env-file .env -f docker-compose.yml \
-  up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
+# Initialize an empty project database with the current schema before starting
+# services. These local connection parameters are examples from .env.example;
+# use the actual DDL account for your database and back up an existing one first.
+# -W reads the password interactively.
+psql -X -v ON_ERROR_STOP=1 -W -h 127.0.0.1 -U video -d video \
+  -f backend/sql/schema.sql
+
+# Resolve configured provider routes, then start Web, API, workers, runners
+# and the controlled egress proxy without dropping temporary source outages.
+uv run --project backend python -m app.workers.runner.provider_startup start \
+  --env-file .env --compose-file docker-compose.yml
 ```
+
+For an empty user table, create the first administrator on the deployment host. The command prompts for a password, writes its Argon2 hash, and refuses to run once any user exists; it does not expose a remote bootstrap endpoint:
+
+```bash
+uv run --project backend python -m app.workers.bootstrap_admin \
+  --env-file .env --username your-admin --email you@example.com
+```
+
+Log in to the Web app with that account, then paste a public link. The default registration flow needs SMTP for email verification, so set up SMTP before inviting users to self-register. Do not reuse the example development secrets in a public deployment.
 
 PowerShell:
 
 ```powershell
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-docker compose --env-file .env -f docker-compose.yml up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300
+# Initialize an empty project database with your DDL account first.
+psql -X -v ON_ERROR_STOP=1 -W -h 127.0.0.1 -U video -d video -f backend/sql/schema.sql
+uv run --project backend python -m app.workers.runner.provider_startup start --env-file .env --compose-file docker-compose.yml
+uv run --project backend python -m app.workers.bootstrap_admin --env-file .env --username your-admin --email you@example.com
 ```
 
 Open the services after startup:
@@ -122,6 +145,7 @@ curl --fail --head http://127.0.0.1:8101/
 ```
 
 Set `ANALYSIS_ENABLED=false` in `.env` when you only need downloads and screenplay imports. See the [root Compose operations guide](docs/operations/001-root-compose运行手册.md) for startup, shutdown, external infrastructure and recovery procedures.
+Re-run the same provider startup command after updating code: `docker compose restart` does not apply a new image, configuration or source plan. An existing database requires a backup and the documented schema upgrade sequence before a behavior-version upgrade. A fresh host still requires provisioned infrastructure and a real end-to-end media check; the CI infrastructure fixture is not a production installer.
 
 ### Optional AI worker
 
