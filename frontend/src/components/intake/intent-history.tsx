@@ -11,15 +11,16 @@ import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Item,
   ItemActions,
   ItemContent,
-  ItemDescription,
   ItemGroup,
   ItemTitle,
 } from '@/components/ui/item';
+import { Skeleton } from '@/components/ui/skeleton';
 import { privateQueryKey } from '@/lib/query-keys';
 import { displayError } from '@/lib/request-error';
 
@@ -58,20 +59,36 @@ export function IntentHistory({
       />
       <section aria-label="已提交的解析" className="mt-12 lg:mt-16">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-base font-medium">之前的解析</h2>
+          <h2 className="text-base font-medium">解析任务</h2>
           <Button
-            variant="ghost"
-            aria-label="刷新解析记录"
+            variant="outline"
             disabled={history.isFetching}
             onClick={() => void history.refetch()}
           >
-            <ArrowClockwise aria-hidden />
+            <ArrowClockwise data-icon="inline-start" />
+            {history.isFetching ? '更新中…' : '刷新'}
           </Button>
         </div>
         {history.isPending ? (
-          <p role="status" className="py-8 text-sm text-muted-foreground">
-            正在读取解析记录…
-          </p>
+          <>
+            <span className="sr-only" role="status">
+              正在读取解析记录…
+            </span>
+            <div aria-hidden className="mt-4 flex flex-col gap-2">
+              {['first', 'second', 'third'].map((key) => (
+                <div
+                  className="flex items-center justify-between gap-4 py-5"
+                  key={key}
+                >
+                  <div className="flex min-w-0 flex-1 flex-col gap-2">
+                    <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="h-3 w-1/3" />
+                  </div>
+                  <Skeleton className="h-7 w-24" />
+                </div>
+              ))}
+            </div>
+          </>
         ) : null}
         {history.error && !history.data ? (
           <PageErrorNotice
@@ -96,37 +113,58 @@ export function IntentHistory({
             description="粘贴媒体链接并点击解析后，可在这里继续查看。"
           />
         ) : null}
-        <ItemGroup className="mt-4" aria-label="解析任务列表">
-          {history.data?.items.map((item) => (
-            <Item key={item.id} role="listitem" className="px-0">
-              <ItemContent className="min-w-0">
-                <ItemTitle className="break-words">
-                  {item.title || '媒体解析'}
-                </ItemTitle>
-                <ItemDescription>
-                  <time dateTime={item.created_at}>
+        {history.data?.items.length ? (
+          <>
+            <div
+              aria-hidden
+              className="mt-6 hidden grid-cols-[minmax(0,1fr)_11rem_10rem_7rem] gap-6 text-xs text-muted-foreground lg:grid"
+            >
+              <span>内容</span>
+              <span>提交时间</span>
+              <span>状态</span>
+              <span className="text-right">操作</span>
+            </div>
+            <ItemGroup className="mt-2 gap-2" aria-label="解析任务列表">
+              {history.data.items.map((item) => (
+                <Item
+                  key={item.id}
+                  role="listitem"
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 rounded-none border-0 px-0 py-5 lg:grid-cols-[minmax(0,1fr)_11rem_10rem_7rem] lg:gap-x-6"
+                >
+                  <ItemContent className="col-span-2 min-w-0 lg:col-span-1">
+                    <ItemTitle className="line-clamp-2 w-auto break-words text-[15px]">
+                      {item.title || '媒体解析'}
+                    </ItemTitle>
+                  </ItemContent>
+                  <time
+                    className="text-xs text-muted-foreground sm:text-sm"
+                    dateTime={item.created_at}
+                  >
                     {new Date(item.created_at).toLocaleString('zh-CN', {
                       hour12: false,
                     })}
                   </time>
-                  {' · '}
-                  {intentTitle(item.status)}
-                </ItemDescription>
-              </ItemContent>
-              <ItemActions>
-                <Button
-                  variant="outline"
-                  disabled={disabled}
-                  onClick={() => {
-                    onResume(item);
-                  }}
-                >
-                  查看解析
-                </Button>
-              </ItemActions>
-            </Item>
-          ))}
-        </ItemGroup>
+                  <Badge
+                    className="justify-self-end rounded-md px-2 py-1 font-normal lg:justify-self-start"
+                    variant={statusVariant(item.status)}
+                  >
+                    {intentTitle(item.status)}
+                  </Badge>
+                  <ItemActions className="col-span-2 justify-end lg:col-span-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={disabled}
+                      onClick={() => onResume(item)}
+                    >
+                      {actionLabel(item.status)}
+                    </Button>
+                  </ItemActions>
+                </Item>
+              ))}
+            </ItemGroup>
+          </>
+        ) : null}
         {cursors.length > 1 || history.data?.next_cursor ? (
           <nav
             className="mt-4 flex justify-end gap-2"
@@ -157,4 +195,31 @@ export function IntentHistory({
       </section>
     </div>
   );
+}
+
+function statusVariant(
+  status: API.IntentStatus,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
+  if (status === 'ready' || status === 'handed_off') return 'default';
+  if (status === 'failed') return 'destructive';
+  if (
+    status === 'cancelled' ||
+    status === 'expired' ||
+    status === 'action_required'
+  )
+    return 'outline';
+  return 'secondary';
+}
+
+function actionLabel(status: API.IntentStatus) {
+  if (status === 'handed_off') return '查看下载';
+  if (status === 'ready') return '查看结果';
+  if (
+    status === 'failed' ||
+    status === 'cancelled' ||
+    status === 'expired' ||
+    status === 'action_required'
+  )
+    return '查看详情';
+  return '查看进度';
 }
