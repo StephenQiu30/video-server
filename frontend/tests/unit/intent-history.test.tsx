@@ -33,7 +33,9 @@ it('loads the dedicated history page, follows the server cursor and resumes with
     limit: 20,
   });
   fireEvent.click(screen.getByRole('button', { name: '查看解析' }));
-  expect(onResume).toHaveBeenCalledWith('66666666-6666-4666-8666-666666666666');
+  expect(onResume).toHaveBeenCalledWith(
+    expect.objectContaining({ id: '66666666-6666-4666-8666-666666666666' }),
+  );
   expect(screen.getByRole('button', { name: '查看解析' })).toBeVisible();
   expect(httpRequests().every((item) => item.method === 'GET')).toBe(true);
 });

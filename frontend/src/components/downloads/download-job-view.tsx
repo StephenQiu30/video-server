@@ -30,15 +30,9 @@ import { audioCodecLabel } from '@/lib/media-format';
 export default function DownloadJobView({
   jobId,
   pollIntervalMs = 1500,
-  embedded = false,
-  onOpenJob,
-  onRemoved,
 }: {
   jobId: string;
   pollIntervalMs?: number;
-  embedded?: boolean;
-  onOpenJob?: (jobId: string) => void;
-  onRemoved?: () => void;
 }) {
   const router = useRouter();
   const playerRef = useRef<MediaPlayerInstance>(null);
@@ -67,10 +61,6 @@ export default function DownloadJobView({
   async function retry() {
     const retried = await state.retry();
     if (!retried) return;
-    if (embedded && onOpenJob) {
-      onOpenJob(retried.id);
-      return;
-    }
     const target = `/downloads/detail?jobId=${encodeURIComponent(retried.id)}`;
     markNavigationPush(target);
     router.push(target);
@@ -78,15 +68,10 @@ export default function DownloadJobView({
 
   async function remove() {
     if (!(await state.remove())) return;
-    if (embedded) {
-      onRemoved?.();
-      return;
-    }
     router.replace('/history');
   }
 
   if (state.removed) {
-    if (embedded) return null;
     return (
       <div className="inner-page">
         <BackLink fallbackHref="/history" />
@@ -104,25 +89,22 @@ export default function DownloadJobView({
     );
   }
 
-  if (state.loading && !state.job)
-    return <DownloadJobSkeleton embedded={embedded} />;
+  if (state.loading && !state.job) return <DownloadJobSkeleton />;
 
   return (
-    <div className={embedded ? '' : 'inner-page'}>
-      {!embedded ? (
-        <div className="flex items-center justify-between gap-4">
-          <BackLink fallbackHref="/history" />
-          {state.job ? (
-            <DownloadDeleteDialog
-              active={
-                !['succeeded', 'failed', 'cancelled'].includes(state.job.status)
-              }
-              busy={state.action !== null}
-              onDelete={remove}
-            />
-          ) : null}
-        </div>
-      ) : null}
+    <div className="inner-page">
+      <div className="flex items-center justify-between gap-4">
+        <BackLink fallbackHref="/history" />
+        {state.job ? (
+          <DownloadDeleteDialog
+            active={
+              !['succeeded', 'failed', 'cancelled'].includes(state.job.status)
+            }
+            busy={state.action !== null}
+            onDelete={remove}
+          />
+        ) : null}
+      </div>
       {state.error && !state.job ? (
         <PageErrorNotice
           className="mt-8"
@@ -135,7 +117,7 @@ export default function DownloadJobView({
       {state.job ? (
         <>
           <MediaResult
-            headingLevel={embedded ? 2 : 1}
+            headingLevel={1}
             title={title}
             metadata={
               <p className="mt-2 text-sm text-muted-foreground">
@@ -237,17 +219,6 @@ export default function DownloadJobView({
                   onDownload={state.download}
                   onRetry={() => void retry()}
                 />
-                {embedded ? (
-                  <DownloadDeleteDialog
-                    active={
-                      !['succeeded', 'failed', 'cancelled'].includes(
-                        state.job.status,
-                      )
-                    }
-                    busy={state.action !== null}
-                    onDelete={remove}
-                  />
-                ) : null}
                 {!['succeeded', 'failed', 'cancelled'].includes(
                   state.job.status,
                 ) ? (
@@ -301,10 +272,10 @@ function errorTitle(kind: 'load' | 'sync' | 'action' | null) {
   return '请求未完成';
 }
 
-function DownloadJobSkeleton({ embedded }: { embedded: boolean }) {
+function DownloadJobSkeleton() {
   return (
-    <div className={embedded ? '' : 'inner-page'}>
-      {!embedded ? <BackLink fallbackHref="/history" /> : null}
+    <div className="inner-page">
+      <BackLink fallbackHref="/history" />
       <div className={mediaResultGridClassName}>
         <div>
           <AspectRatio ratio={mediaFrameAspectRatio}>

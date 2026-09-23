@@ -10,8 +10,9 @@ vi.mock('@/components/auth/protected-route', () => ({
   ),
 }));
 
-vi.mock('@/components/intake/download-workspace', () => ({
-  default: () => <div data-testid="download-workspace">新建下载工作区</div>,
+vi.mock('@/components/intake/inspection-route', () => ({
+  default: () => <div data-testid="inspection-route">解析结果</div>,
+  InspectionSkeleton: () => <div>加载中</div>,
 }));
 
 vi.mock('@/components/layout/back-link', () => ({
@@ -21,15 +22,12 @@ vi.mock('@/components/layout/back-link', () => ({
 }));
 
 describe('new download route', () => {
-  it('keeps the intake workspace on its own protected page', () => {
+  it('dedicates the protected page to inspection results', () => {
     render(<NewDownloadPage />);
 
     expect(screen.getByTestId('protected-route')).toContainElement(
-      screen.getByTestId('download-workspace'),
+      screen.getByTestId('inspection-route'),
     );
-    expect(screen.getByRole('link', { name: '返回上一步' })).toHaveAttribute(
-      'href',
-      '/',
-    );
+    expect(screen.queryByTestId('download-workspace')).not.toBeInTheDocument();
   });
 });

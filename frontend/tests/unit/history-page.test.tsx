@@ -124,9 +124,9 @@ describe('download history', () => {
       'href',
       '/',
     );
-    expect(screen.getByRole('link', { name: '新建下载' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: '解析新链接' })).toHaveAttribute(
       'href',
-      '/downloads/new',
+      '/',
     );
     expect(
       screen.getByText('共 1 项 · 已完成 1 · 进行中 0'),

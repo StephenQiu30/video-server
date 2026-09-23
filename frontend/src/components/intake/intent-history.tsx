@@ -30,7 +30,7 @@ export function IntentHistory({
   onResume,
 }: {
   disabled: boolean;
-  onResume: (id: string) => void;
+  onResume: (item: API.IntentHistoryItemResponse) => void;
 }) {
   const [cursors, setCursors] = useState<(string | undefined)[]>([undefined]);
   const before = cursors.at(-1);
@@ -118,7 +118,7 @@ export function IntentHistory({
                   variant="outline"
                   disabled={disabled}
                   onClick={() => {
-                    onResume(item.id);
+                    onResume(item);
                   }}
                 >
                   查看解析

@@ -20,10 +20,8 @@ type IntakeDraft = {
   setDeclaredOrigin: Dispatch<SetStateAction<API.DeclaredOrigin>>;
   attempt: ParseAttempt | null;
   setAttempt: Dispatch<SetStateAction<ParseAttempt | null>>;
-  selectedFormatId: string;
-  setSelectedFormatId: Dispatch<SetStateAction<string>>;
-  activeDownloadId: string | null;
-  setActiveDownloadId: Dispatch<SetStateAction<string | null>>;
+  openedResultKey: string | null;
+  setOpenedResultKey: Dispatch<SetStateAction<string | null>>;
 };
 
 export type ParseAttempt = {
@@ -43,8 +41,7 @@ export function IntakeDraftProvider({ children }: { children: ReactNode }) {
   const [declaredOrigin, setDeclaredOrigin] =
     useState<API.DeclaredOrigin>('user_file');
   const [attempt, setAttempt] = useState<ParseAttempt | null>(null);
-  const [selectedFormatId, setSelectedFormatId] = useState('');
-  const [activeDownloadId, setActiveDownloadId] = useState<string | null>(null);
+  const [openedResultKey, setOpenedResultKey] = useState<string | null>(null);
   const value = useMemo(
     () => ({
       input,
@@ -55,12 +52,10 @@ export function IntakeDraftProvider({ children }: { children: ReactNode }) {
       setDeclaredOrigin,
       attempt,
       setAttempt,
-      selectedFormatId,
-      setSelectedFormatId,
-      activeDownloadId,
-      setActiveDownloadId,
+      openedResultKey,
+      setOpenedResultKey,
     }),
-    [input, mode, declaredOrigin, attempt, selectedFormatId, activeDownloadId],
+    [input, mode, declaredOrigin, attempt, openedResultKey],
   );
   return <IntakeDraftContext value={value}>{children}</IntakeDraftContext>;
 }

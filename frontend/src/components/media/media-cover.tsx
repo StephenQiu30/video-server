@@ -95,7 +95,7 @@ export default function MediaCover({
       ) : generating ? (
         <div
           aria-label={`${alt}（封面生成中）`}
-          className="flex size-full animate-pulse flex-col items-center justify-center gap-3 text-muted-foreground"
+          className="flex size-full animate-pulse flex-col items-center justify-center gap-3 text-foreground"
           role="img"
         >
           <ImageIcon aria-hidden className="size-7" />

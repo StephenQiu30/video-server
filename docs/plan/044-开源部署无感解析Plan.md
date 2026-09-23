@@ -371,6 +371,8 @@
 - 2026-09-23 验证：API／仓储及 Swagger 契约 78 项通过；前端 82 文件／433 项测试、lint／类型／format／生产构建及最终 arm64 镜像通过，开发／生产 Compose 解析通过。后端全量 2,045 通过、4 环境跳过，2 项既有扩展删除造成的测试失败仍保留；只读审查修复了共享版本缓存使用响应时身份代际的风险，改为捕获发起时身份作用域。
 - agent-browser 使用全新独立浏览器真实登录，初始恢复引用为空；选择 B 站记录仅发出 1 次 GET，刷新后进入原下载 `84b12bde-55f7-4adb-95df-aea66625dfb1`。原浏览器新解析抖音后关闭，另一浏览器从列表找回意图 `24760553-ce24-4ad2-9edb-ac3dfcb0b453`，只有意图／inspection／缩略图 GET，无重复 POST；确认后真实下载 `2a9283bf-1bdf-4b5d-9ccc-5be3a497e78d` 得到 1280×720 H.264／AAC、14.07 秒、2,991,195 bytes，SHA-256 `b495811a95bddf1332cf3327198016f6f485b691539819c7fb7256870a1d00fc`。随后 A 退出、B 登录，记录为空、旧标题消失、恢复引用为空。记录桌面／390px 明暗四组合 axe 均 0 违规／0 待判读、移动端宽度为 390px；截图 `/tmp/framefetch-intent-history-mobile-light.png`、`/tmp/framefetch-intent-history-desktop-dark.png`、`/tmp/framefetch-intent-history-owner-b.png`。这是 Web 跨浏览器证据，不替代 App 设备验收；内容授权续接和 P9.07 生命周期仍未完成。排序提交 `c038990f` 的远端 [CI 35756816204](https://github.com/StephenQiu30/video-server/actions/runs/35756816204) 成功。
 
+- 2026-09-23 Web 结果页职责调整：主页只保留输入和解析状态；ready 自动进入 `/downloads/new?inspectionId=...`，创建任务后进入 `/downloads/detail?jobId=...`。解析记录的 ready／handed_off 项分别直达对应页面；过期结果由原意图显式更新。结果页和下载详情复用固定 16:9 媒体框；已删除下载详情无调用方的嵌入模式。前端 83 文件／427 项测试、lint、格式、生产构建和本机前端镜像通过。agent-browser 使用模拟身份、解析和下载响应验证首页→结果→详情→返回，桌面两页媒体框坐标和尺寸一致；390px 深色下两页均为 `x=16、y=188、358×201`，无横向溢出，WCAG 2A／2AA 自动检查各 0 违规。本轮浏览器数据是 UI 夹具，不计入真实平台解析、文件交付或 P9.10 全部验收；P9.10 仍实施中。
+
 <a id="p9-11"></a>
 
 ### P9.11 Web 持久会话协议收敛

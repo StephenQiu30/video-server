@@ -88,9 +88,9 @@ export default function DownloadHistoryView() {
       <PageHeader
         action={
           <Button asChild size="lg">
-            <Link href="/downloads/new">
+            <Link href="/">
               <Plus data-icon="inline-start" />
-              新建下载
+              解析新链接
             </Link>
           </Button>
         }

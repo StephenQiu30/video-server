@@ -1,18 +1,25 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 
 import { ProtectedRoute } from '@/components/auth/protected-route';
-import DownloadWorkspace from '@/components/intake/download-workspace';
-import { BackLink } from '@/components/layout/back-link';
+import InspectionRoute, {
+  InspectionSkeleton,
+} from '@/components/intake/inspection-route';
 
-export const metadata: Metadata = { title: '新建下载' };
+export const metadata: Metadata = { title: '解析结果' };
 
 export default function NewDownloadPage() {
   return (
     <ProtectedRoute>
-      <div className="inner-page">
-        <BackLink fallbackHref="/" />
-        <DownloadWorkspace />
-      </div>
+      <Suspense
+        fallback={
+          <div className="inner-page">
+            <InspectionSkeleton />
+          </div>
+        }
+      >
+        <InspectionRoute />
+      </Suspense>
     </ProtectedRoute>
   );
 }

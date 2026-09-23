@@ -10,15 +10,9 @@ import {
   useState,
 } from 'react';
 import { type ExternalToast, toast } from 'sonner';
-import { createDownload } from '@/api/downloads';
-import {
-  inspectMedia as inspectDiscoveredItem,
-  inspectMedia,
-} from '@/api/inspections';
+import { inspectMedia } from '@/api/inspections';
 import { createSourceDiscovery } from '@/api/sourceDiscoveries';
-import DownloadJobView from '@/components/downloads/download-job-view';
 import { ContentIntakeHero } from '@/components/intake/content-intake-hero';
-import InspectionWorkspace from '@/components/intake/inspection-workspace';
 import { useIntakeDraft } from '@/components/intake/intake-draft-provider';
 import { intentTitle } from '@/components/intake/intent-status';
 import { LinkDownloadForm } from '@/components/intake/link-download-form';
@@ -28,7 +22,6 @@ import {
   isWeChatArticleInput,
   PUBLIC_INPUT_REQUIRED,
 } from '@/components/intake/public-input';
-import { SourceDiscoveryWorkspace } from '@/components/intake/source-discovery-workspace';
 import { useDocumentImport } from '@/components/intake/use-document-import';
 import { useDownloadIntent } from '@/components/intake/use-download-intent';
 import { useMediaImport } from '@/components/intake/use-media-import';
@@ -46,7 +39,7 @@ import { privateQueryKey } from '@/lib/query-keys';
 import { ApiError, displayError } from '@/lib/request-error';
 import { createUuid as createIdempotencyKey } from '@/lib/uuid';
 
-type BusyAction = 'inspect' | 'select' | 'create' | null;
+type BusyAction = 'inspect' | null;
 type StableKey = { payload: string; value: string };
 const PARSE_STATUS_TOAST_ID = 'framefetch-parse-status';
 
@@ -60,23 +53,10 @@ export default function DownloadWorkspace() {
     setInput: setUrl,
     declaredOrigin: mediaDeclaredOrigin,
     setDeclaredOrigin: setMediaDeclaredOrigin,
-    selectedFormatId,
-    setSelectedFormatId: setSelectedId,
-    activeDownloadId,
-    setActiveDownloadId,
+    openedResultKey,
+    setOpenedResultKey,
   } = useIntakeDraft();
   const intent = useDownloadIntent();
-  const [localInspection, setInspection] =
-    useState<API.InspectionResponse | null>(null);
-  const inspection = localInspection ?? intent.inspection ?? null;
-  const selectedId = inspection?.formats.some(
-    (item) => item.id === selectedFormatId,
-  )
-    ? selectedFormatId
-    : inspection?.formats[0]?.id || '';
-  const [discovery, setDiscovery] =
-    useState<API.SourceDiscoveryResponse | null>(null);
-  const [busyItemRef, setBusyItemRef] = useState<string | null>(null);
   const [busy, setBusy] = useState<BusyAction>(null);
   const [error, setError] = useState<string | null>(null);
   const [authorizationTarget, setAuthorizationTarget] =
@@ -88,19 +68,47 @@ export default function DownloadWorkspace() {
   const [urlInvalid, setUrlInvalid] = useState(false);
   const showIntentStatus =
     mode === 'link' &&
-    !activeDownloadId &&
     !!intent.attempt &&
     intent.snapshot?.status !== 'handed_off' &&
     ((intent.pending && (!!intent.attempt.input || !!intent.snapshot)) ||
       !!intent.error ||
       intent.resultExpired ||
-      (intent.snapshot?.status === 'ready' && !inspection) ||
+      intent.snapshot?.status === 'ready' ||
       intent.snapshot?.status === 'failed' ||
       intent.snapshot?.status === 'expired' ||
       intent.snapshot?.status === 'action_required');
   const inspectionKey = useRef<StableKey | null>(null);
   const discoveryKey = useRef<StableKey | null>(null);
-  const downloadKey = useRef<StableKey | null>(null);
+  useEffect(() => {
+    const snapshot = intent.snapshot;
+    const inspection = intent.inspection;
+    if (
+      mode !== 'link' ||
+      snapshot?.status !== 'ready' ||
+      !inspection ||
+      intent.resultExpired
+    )
+      return;
+    const key = `${snapshot.id}:${inspection.id}`;
+    if (openedResultKey === key) return;
+    setOpenedResultKey(key);
+    queries.setQueryData(
+      privateQueryKey('inspection', inspection.id),
+      inspection,
+    );
+    const target = `/downloads/new?inspectionId=${encodeURIComponent(inspection.id)}&intentId=${encodeURIComponent(snapshot.id)}`;
+    markNavigationPush(target);
+    router.push(target);
+  }, [
+    intent.snapshot,
+    intent.inspection,
+    intent.resultExpired,
+    mode,
+    openedResultKey,
+    queries,
+    router,
+    setOpenedResultKey,
+  ]);
   const openDownload = useCallback(
     (downloadId: string) => {
       void queries.invalidateQueries({
@@ -168,7 +176,6 @@ export default function DownloadWorkspace() {
         {
           label: '更新结果',
           onClick: () => {
-            setSelectedId('');
             void intent.refresh();
           },
         }
@@ -199,7 +206,7 @@ export default function DownloadWorkspace() {
       intent.pending ||
       intent.resultExpired ||
       !!intent.error ||
-      (snapshot?.status === 'ready' && !inspection) ||
+      snapshot?.status === 'ready' ||
       snapshot?.status === 'action_required';
     const options: ExternalToast = {
       action,
@@ -234,10 +241,6 @@ export default function DownloadWorkspace() {
 
   function clearLinkResult() {
     if (!intent.pending) intent.clear();
-    setActiveDownloadId(null);
-    setInspection(null);
-    setDiscovery(null);
-    setSelectedId('');
     setAuthorizationTarget(null);
   }
 
@@ -262,7 +265,13 @@ export default function DownloadWorkspace() {
             timeout: 30_000,
           },
         );
-        setDiscovery(result);
+        queries.setQueryData(
+          privateQueryKey('source-discovery', result.id),
+          result,
+        );
+        const target = `/downloads/new?discoveryId=${encodeURIComponent(result.id)}`;
+        markNavigationPush(target);
+        router.push(target);
       } else if (accessPolicy) {
         const source: API.PublicUrlInspectionSource = {
           kind: 'public_url',
@@ -281,8 +290,10 @@ export default function DownloadWorkspace() {
             timeout: 180_000,
           },
         );
-        setInspection(result);
-        setSelectedId(result.formats[0]?.id ?? '');
+        queries.setQueryData(privateQueryKey('inspection', result.id), result);
+        const target = `/downloads/new?inspectionId=${encodeURIComponent(result.id)}`;
+        markNavigationPush(target);
+        router.push(target);
       } else {
         await intent.submit(input, intent.canResubmit);
       }
@@ -292,82 +303,6 @@ export default function DownloadWorkspace() {
           ? providerAuthorizationTarget(input, reason.code)
           : null,
       );
-      setError(displayError(reason));
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function selectDiscoveredItem(item: API.SourceDiscoveryItemResponse) {
-    if (!discovery || busy !== null) return;
-    setBusy('select');
-    setBusyItemRef(item.item_ref);
-    setError(null);
-    setInspection(null);
-    setSelectedId('');
-    try {
-      const result = await inspectDiscoveredItem(
-        {
-          source: {
-            kind: 'discovered_item',
-            discovery_id: discovery.id,
-            item_ref: item.item_ref,
-          },
-        },
-        {
-          headers: {
-            'Idempotency-Key': stableKey(
-              inspectionKey,
-              `${discovery.id}:${item.item_ref}`,
-            ),
-          },
-          timeout: 30_000,
-        },
-      );
-      setInspection(result);
-      setSelectedId(result.formats[0]?.id ?? '');
-    } catch (reason) {
-      setAuthorizationTarget(null);
-      setError(displayError(reason));
-    } finally {
-      setBusy(null);
-      setBusyItemRef(null);
-    }
-  }
-
-  async function create() {
-    if (!inspection || !selectedId || busy !== null) return;
-    setUrlInvalid(false);
-    setBusy('create');
-    setError(null);
-    try {
-      const result = await createDownload(
-        {
-          inspection_id: inspection.id,
-          format_id: selectedId,
-        },
-        {
-          headers: {
-            'Idempotency-Key': stableKey(
-              downloadKey,
-              `${inspection.id}:${selectedId}`,
-            ),
-          },
-        },
-      );
-      queries.setQueryData(privateQueryKey('download', result.id), result);
-      setActiveDownloadId(result.id);
-    } catch (reason) {
-      setAuthorizationTarget(null);
-      if (
-        reason instanceof ApiError &&
-        reason.code === 'resource_expired' &&
-        intent.snapshot?.status === 'ready'
-      ) {
-        setSelectedId('');
-        await intent.refresh();
-        return;
-      }
       setError(displayError(reason));
     } finally {
       setBusy(null);
@@ -387,7 +322,7 @@ export default function DownloadWorkspace() {
           <LinkDownloadForm
             busy={busy === 'inspect' || (intent.pending && !intent.canResubmit)}
             disabled={busy !== null || (intent.pending && !intent.canResubmit)}
-            hasResult={inspection !== null || discovery !== null}
+            hasResult={false}
             invalid={urlInvalid}
             onInspect={() => void inspect()}
             onUrlChange={(value) => {
@@ -434,20 +369,6 @@ export default function DownloadWorkspace() {
           />
         }
       />
-      <div
-        aria-atomic="true"
-        aria-live="polite"
-        className="sr-only"
-        role="status"
-      >
-        {mode === 'link'
-          ? inspection
-            ? '媒体解析完成，结果已显示。'
-            : discovery
-              ? `来源发现完成，找到 ${discovery.items.length} 个候选视频。`
-              : null
-          : null}
-      </div>
       {(
         mode === 'link'
           ? error
@@ -475,46 +396,6 @@ export default function DownloadWorkspace() {
           descriptionId="download-workspace-error"
           title="操作未完成"
           tone="error"
-        />
-      ) : null}
-      {mode === 'link' && discovery ? (
-        <SourceDiscoveryWorkspace
-          busyItemRef={busyItemRef}
-          discovery={discovery}
-          key={`discovery:${discovery.id}`}
-          onSelect={(item) => void selectDiscoveredItem(item)}
-        />
-      ) : null}
-      {mode === 'link' && activeDownloadId ? (
-        <DownloadJobView
-          embedded
-          jobId={activeDownloadId}
-          key={activeDownloadId}
-          onOpenJob={setActiveDownloadId}
-          onRemoved={() => {
-            setActiveDownloadId(null);
-            intent.clear();
-            setInspection(null);
-            setSelectedId('');
-          }}
-        />
-      ) : null}
-      {mode === 'link' &&
-      inspection &&
-      !activeDownloadId &&
-      !intent.resultExpired &&
-      intent.snapshot?.status !== 'handed_off' ? (
-        <InspectionWorkspace
-          busy={busy === 'create'}
-          inspection={inspection}
-          key={`inspection:${inspection.id}`}
-          onChange={setSelectedId}
-          onCreate={() => void create()}
-          onUseUpload={() => {
-            setMediaDeclaredOrigin('wechat_channels');
-            setMode('video');
-          }}
-          selectedId={selectedId}
         />
       ) : null}
     </div>

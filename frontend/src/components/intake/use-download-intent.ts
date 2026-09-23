@@ -28,6 +28,15 @@ const terminal = new Set<API.IntentStatus>([
   'action_required',
 ]);
 
+export function rememberDownloadIntent(owner: string, id: string) {
+  if (!uuid.test(id)) return;
+  try {
+    sessionStorage.setItem(referenceKey, JSON.stringify({ owner, id }));
+  } catch {
+    // History can recover the owner-bound resource again when storage returns.
+  }
+}
+
 export function useDownloadIntent() {
   const { user } = useAuth();
   const { attempt, setAttempt } = useIntakeDraft();
@@ -258,14 +267,7 @@ export function useDownloadIntent() {
       return false;
     // The server owns the task. Losing browser storage must not prevent this
     // read-only recovery; history remains available after the next sign-in.
-    try {
-      sessionStorage.setItem(
-        referenceKey,
-        JSON.stringify({ owner: user.id, id }),
-      );
-    } catch {
-      /* History can recover again when storage is unavailable. */
-    }
+    rememberDownloadIntent(user.id, id);
     setOperationError(null);
     setAttempt({ id, input: null, submitting: false });
     return true;

@@ -9,18 +9,27 @@ import { markNavigationPush } from '@/components/layout/navigation-history';
 export function IntentHistoryPage() {
   const router = useRouter();
   const intent = useDownloadIntent();
-  const { setActiveDownloadId, setInput, setMode, setSelectedFormatId } =
-    useIntakeDraft();
+  const { setInput, setMode } = useIntakeDraft();
 
   return (
     <IntentHistory
       disabled={intent.cancelling || !!intent.attempt?.submitting}
-      onResume={(id) => {
-        if (!intent.resume(id)) return;
+      onResume={(item) => {
+        if (item.status === 'ready' && item.inspection_id) {
+          const target = `/downloads/new?inspectionId=${encodeURIComponent(item.inspection_id)}&intentId=${encodeURIComponent(item.id)}`;
+          markNavigationPush(target);
+          router.push(target);
+          return;
+        }
+        if (item.status === 'handed_off' && item.job_id) {
+          const target = `/downloads/detail?jobId=${encodeURIComponent(item.job_id)}`;
+          markNavigationPush(target);
+          router.push(target);
+          return;
+        }
+        if (!intent.resume(item.id)) return;
         setMode('link');
         setInput('');
-        setSelectedFormatId('');
-        setActiveDownloadId(null);
         markNavigationPush('/');
         router.push('/');
       }}
