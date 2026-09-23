@@ -80,7 +80,7 @@ const localizedErrorMessages: Record<string, string> = {
   provider_temporarily_unavailable: '平台服务暂时不可用，请稍后重试。',
   provider_unsupported: '当前暂不支持该视频平台。',
   provider_verification_failed:
-    '平台要求额外验证，当前公开路线暂不可用，请稍后重试或更换公开链接。',
+    '平台要求额外验证，当前访问路线暂不可用，请稍后重试或更换公开链接。',
   rate_limited: '操作过于频繁，请稍后再试。',
   rate_limiter_unavailable: '请求限制服务暂时不可用，请稍后重试。',
   request_timeout: '请求处理超时，请稍后重试。',

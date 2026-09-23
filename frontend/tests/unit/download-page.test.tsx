@@ -85,7 +85,7 @@ describe('DownloadWorkspace', () => {
 
     expect(
       await screen.findByText(
-        '平台要求额外验证，当前公开路线暂不可用，请稍后重试或更换公开链接。',
+        '平台要求额外验证，当前访问路线暂不可用，请稍后重试或更换公开链接。',
       ),
     ).toBeInTheDocument();
     expect(
@@ -309,7 +309,7 @@ describe('DownloadWorkspace', () => {
 
     expect(
       await screen.findByText(
-        '平台要求额外验证，当前公开路线暂不可用，请稍后重试或更换公开链接。',
+        '平台要求额外验证，当前访问路线暂不可用，请稍后重试或更换公开链接。',
       ),
     ).toBeInTheDocument();
     expect(

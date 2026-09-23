@@ -187,6 +187,64 @@ async def test_inspect_exposes_provider_access_requirement() -> None:
 
 
 @pytest.mark.asyncio
+async def test_operator_source_missing_is_deployment_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def context(_url: str) -> ProviderAccessContextRef:
+        raise MediaRunnerClientError("credential_required", 422)
+
+    http = httpx.AsyncClient(base_url="http://runner")
+    client = MediaRunnerHttpClient(
+        base_url="http://runner",
+        secret=b"s" * 32,
+        workspace_root=Path("."),
+        inspect_timeout_seconds=1,
+        download_timeout_seconds=1,
+        expected_access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+        client=http,
+    )
+    monkeypatch.setattr(client, "context", context)
+
+    with pytest.raises(MediaInspectionConfigurationMissing):
+        await client.inspect("https://www.youtube.com/watch?v=jNQXAC9IVRw")
+
+    await http.aclose()
+
+
+@pytest.mark.asyncio
+async def test_operator_content_auth_requirement_stays_content_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def context(_url: str) -> ProviderAccessContextRef:
+        return _access_context()
+
+    async def respond(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            422,
+            json={"error": {"code": "credential_required", "message": "required"}},
+        )
+
+    http = httpx.AsyncClient(
+        base_url="http://runner", transport=httpx.MockTransport(respond)
+    )
+    client = MediaRunnerHttpClient(
+        base_url="http://runner",
+        secret=b"s" * 32,
+        workspace_root=Path("."),
+        inspect_timeout_seconds=1,
+        download_timeout_seconds=1,
+        expected_access_mode=ProviderAccessMode.OPERATOR_MANAGED,
+        client=http,
+    )
+    monkeypatch.setattr(client, "context", context)
+
+    with pytest.raises(MediaInspectionAuthRequired):
+        await client.inspect("https://www.youtube.com/watch?v=jNQXAC9IVRw")
+
+    await http.aclose()
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("context_ready", (False, True))
 async def test_guest_wait_only_applies_before_media_request(
     monkeypatch: pytest.MonkeyPatch, context_ready: bool

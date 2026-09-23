@@ -224,6 +224,11 @@ class MediaRunnerHttpClient:
             if exc.code == "duration_limit_exceeded":
                 raise MediaInspectionDurationLimitExceeded from exc
             if exc.code == "credential_required":
+                if (
+                    self._expected_access_mode is ProviderAccessMode.OPERATOR_MANAGED
+                    and not context_ready
+                ):
+                    raise MediaInspectionConfigurationMissing from exc
                 raise MediaInspectionAuthRequired from exc
             if exc.code == "guest_context_required":
                 raise MediaInspectionGuestContextRequired(
