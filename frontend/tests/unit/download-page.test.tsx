@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DownloadWorkspace from '@/components/intake/download-workspace';
 import { PUBLIC_INPUT_REQUIRED } from '@/components/intake/public-input';
@@ -347,8 +347,8 @@ describe('DownloadWorkspace', () => {
     expect(input).not.toHaveAttribute('aria-describedby');
   });
 
-  it('inspects a public URL, creates a download, and opens its Next route', async () => {
-    mockReadyInspection(inspection, job());
+  it('keeps the media result in place when a parsed URL becomes a download', async () => {
+    mockReadyInspection(inspection, job(), job());
     renderWorkspace();
 
     fireEvent.change(screen.getByLabelText('公开视频地址'), {
@@ -362,13 +362,22 @@ describe('DownloadWorkspace', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('体积优先')).toBeInTheDocument();
     expect(screen.getByRole('radio')).toBeChecked();
+    const parsedResult = document.querySelector('[data-slot="media-result"]');
+    expect(
+      parsedResult?.querySelector('[data-slot="media-result-frame"]'),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '创建下载任务' }));
 
-    await waitFor(() =>
-      expect(push).toHaveBeenCalledWith(
-        `/downloads/detail?jobId=${encodeURIComponent(job().id)}`,
-      ),
-    );
+    expect(
+      await screen.findByRole('heading', { name: '下载即将开始' }),
+    ).toBeInTheDocument();
+    const downloadResult = document.querySelector('[data-slot="media-result"]');
+    expect(downloadResult?.className).toBe(parsedResult?.className);
+    expect(
+      downloadResult?.querySelector('[data-slot="media-result-frame"]'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '画质预设' })).toBeNull();
+    expect(push).not.toHaveBeenCalled();
     expect(httpRequests()).toMatchObject([
       {
         data: {

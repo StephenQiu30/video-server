@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DownloadWorkspace from '@/components/intake/download-workspace';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -41,16 +41,52 @@ describe('simple download entry', () => {
         <DownloadWorkspace />
       </TooltipProvider>,
     );
+    expect(screen.queryByLabelText('解析任务状态')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-slot="media-result"]')).toBeNull();
     expect(statuses).not.toHaveBeenCalled();
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
     const url = '分享 https://www.youtube.com/watch?v=owned 文案';
     enter(url);
     expect(await screen.findByText(inspection.title)).toBeInTheDocument();
+    expect(screen.queryByLabelText('解析任务状态')).not.toBeInTheDocument();
+    expect(
+      document.querySelector('[data-slot="media-result-frame"]'),
+    ).not.toBeNull();
     expect(screen.queryByText('部署者公开会话')).not.toBeInTheDocument();
     expect(httpRequests()).toHaveLength(2);
     expect(httpRequests()[0].data).toEqual({
       input: url,
     });
+  });
+
+  it('does not fill an empty home with a recovered completed task', async () => {
+    const completed = intentFixture({
+      status: 'handed_off',
+      inspection_id: null,
+      job_id: '33333333-3333-4333-8333-333333333333',
+    });
+    sessionStorage.setItem(
+      'framefetch-active-intent',
+      JSON.stringify({ owner: 'intent-test-owner', id: completed.id }),
+    );
+    mockHttpResponses(completed);
+    try {
+      render(
+        <TooltipProvider>
+          <DownloadWorkspace />
+        </TooltipProvider>,
+      );
+      expect(screen.queryByLabelText('解析任务状态')).not.toBeInTheDocument();
+      await waitFor(() => expect(httpRequests()).toHaveLength(1));
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: '解析媒体' })).toBeEnabled(),
+      );
+      expect(screen.queryByLabelText('解析任务状态')).not.toBeInTheDocument();
+      expect(document.querySelector('[data-slot="media-result"]')).toBeNull();
+      expect(screen.getByLabelText('公开视频地址')).toHaveValue('');
+    } finally {
+      sessionStorage.removeItem('framefetch-active-intent');
+    }
   });
 
   it('clears previous results and changes the key only when input changes', async () => {

@@ -12,8 +12,8 @@ import {
 } from '@vidstack/react/player/layouts/default';
 import { type Ref, useEffect } from 'react';
 import { useVideoPreviewSource } from '@/components/downloads/use-video-preview-source';
-import { mediaFrameAspectRatio } from '@/components/intake/media-cover';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
+import { mediaFrameAspectRatio } from '@/components/media/media-cover';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Skeleton } from '@/components/ui/skeleton';
 

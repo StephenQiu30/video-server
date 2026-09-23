@@ -9,7 +9,8 @@ import { markNavigationPush } from '@/components/layout/navigation-history';
 export function IntentHistoryPage() {
   const router = useRouter();
   const intent = useDownloadIntent();
-  const { setInput, setMode, setSelectedFormatId } = useIntakeDraft();
+  const { setActiveDownloadId, setInput, setMode, setSelectedFormatId } =
+    useIntakeDraft();
 
   return (
     <IntentHistory
@@ -19,6 +20,7 @@ export function IntentHistoryPage() {
         setMode('link');
         setInput('');
         setSelectedFormatId('');
+        setActiveDownloadId(null);
         markNavigationPush('/');
         router.push('/');
       }}

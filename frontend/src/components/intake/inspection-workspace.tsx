@@ -3,7 +3,8 @@
 import { DownloadSimple, UploadSimple } from '@phosphor-icons/react';
 
 import FormatPicker from '@/components/intake/format-picker';
-import MediaCover from '@/components/intake/media-cover';
+import MediaCover from '@/components/media/media-cover';
+import { MediaResult } from '@/components/media/media-result';
 import { Button } from '@/components/ui/button';
 import {
   Item,
@@ -40,136 +41,139 @@ export default function InspectionWorkspace({
   const collection = inspection.media_kind === 'video_collection';
 
   return (
-    <div
-      data-slot="inspection-result"
-      className="grid gap-10 pt-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(360px,1fr)] lg:gap-14"
-    >
-      <div className="min-w-0">
-        <MediaCover
-          alt={`${inspection.title} 媒体封面`}
-          fallback={{
-            detail: inspectionDetailLabel(
-              inspection,
-              selected?.plan ?? undefined,
-            ),
-            eyebrow: inspection.extractor_key,
-            title: inspection.title,
-          }}
-          priority
-          src={inspection.thumbnail_url}
-        />
-        <h2 className="mt-5 break-words text-pretty text-xl font-medium leading-8 tracking-[-0.025em] sm:text-2xl">
-          {inspection.title}
-        </h2>
-        <ItemGroup
-          aria-label="媒体信息"
-          className="mt-2 flex-row flex-wrap items-start justify-start gap-x-3 gap-y-2 text-left text-xs text-muted-foreground tabular-nums"
-        >
-          <Meta label="平台" mono value={inspection.extractor_key} />
-          {inspection.duration_seconds > 0 ? (
-            <Meta
-              label="时长"
-              value={formatDuration(inspection.duration_seconds)}
-            />
-          ) : null}
-          {gallery ? (
-            <Meta
-              label="媒体"
-              value={`图文作品 · ${inspection.asset_count} 张原图`}
-            />
-          ) : collection ? (
-            <Meta
-              label="媒体"
-              value={`视频合集 · ${inspection.asset_count} 个视频`}
-            />
-          ) : selected?.plan ? (
-            <Meta
-              label="当前清晰度"
-              value={`${selected.plan.width}×${selected.plan.height}`}
-            />
-          ) : null}
-        </ItemGroup>
-      </div>
-
-      <div className="min-w-0">
-        <h2 className="text-base font-medium">
-          {downloadable
-            ? gallery || collection
-              ? '下载内容'
-              : '画质预设'
-            : decisionTitle(inspection)}
-        </h2>
-        {downloadable ? (
-          <FormatPicker
-            formats={inspection.formats}
-            mediaKind={inspection.media_kind}
-            onChange={onChange}
-            selectedId={selectedId}
+    <div data-slot="inspection-result">
+      <MediaResult
+        headingLevel={2}
+        title={inspection.title}
+        media={
+          <MediaCover
+            alt={`${inspection.title} 媒体封面`}
+            fallback={{
+              detail: inspectionDetailLabel(
+                inspection,
+                selected?.plan ?? undefined,
+              ),
+              eyebrow: inspection.extractor_key,
+              title: inspection.title,
+            }}
+            priority
+            src={inspection.thumbnail_url}
           />
-        ) : (
-          <div aria-live="polite" className="py-6">
-            <p className="text-sm leading-6 text-muted-foreground">
-              {inspection.user_action ?? '当前来源不能创建下载任务。'}
-            </p>
-          </div>
-        )}
-        {selected?.plan ? (
-          <ItemGroup className="mt-7 grid grid-cols-2 gap-x-5 gap-y-4 pt-5 text-sm">
-            <SelectionMeta
-              label="容器"
-              value={selected.plan.container_preference.toUpperCase()}
-            />
-            <SelectionMeta
-              label="兼容策略"
-              value={compatibilityLabel(selected.plan.compatibility_profile)}
-            />
-            <SelectionMeta
-              label="视频编码"
-              value={selected.plan.video_codec_family.toUpperCase()}
-            />
-            <SelectionMeta
-              label="音频编码"
-              value={audioCodecLabel(selected.plan.audio_codec_family)}
-            />
-          </ItemGroup>
-        ) : (gallery || collection) && selected ? (
-          <ItemGroup className="mt-7 grid grid-cols-2 gap-x-5 gap-y-4 pt-5 text-sm">
-            <SelectionMeta
-              label="媒体类型"
-              value={collection ? '视频合集' : '官方图文'}
-            />
-            <SelectionMeta
-              label="内容数量"
-              value={`${inspection.asset_count} ${
-                collection ? '个视频' : '张原图'
-              }`}
-            />
-            <SelectionMeta label="导出格式" value="ZIP" />
-            <SelectionMeta
-              label="下载方式"
-              value={collection ? '视频打包' : '原图打包'}
-            />
-          </ItemGroup>
-        ) : null}
-        {inspection.access_decision === 'export_required' ? (
-          <Button
-            className="mt-7 h-13 w-full text-[15px]"
-            onClick={onUseUpload}
+        }
+        metadata={
+          <ItemGroup
+            aria-label="媒体信息"
+            className="mt-2 flex-row flex-wrap items-start justify-start gap-x-3 gap-y-2 text-left text-xs text-muted-foreground tabular-nums"
           >
-            <UploadSimple data-icon="inline-start" />
-            上传自有 MP4
-          </Button>
-        ) : downloadable ? (
-          <Button
-            className="mt-7 h-13 w-full text-[15px]"
-            disabled={!selectedId || busy}
-            onClick={onCreate}
-          >
-            <DownloadSimple data-icon="inline-start" />
-            {busy ? '正在创建任务…' : '创建下载任务'}
-          </Button>
-        ) : null}
-      </div>
+            <Meta label="平台" mono value={inspection.extractor_key} />
+            {inspection.duration_seconds > 0 ? (
+              <Meta
+                label="时长"
+                value={formatDuration(inspection.duration_seconds)}
+              />
+            ) : null}
+            {gallery ? (
+              <Meta
+                label="媒体"
+                value={`图文作品 · ${inspection.asset_count} 张原图`}
+              />
+            ) : collection ? (
+              <Meta
+                label="媒体"
+                value={`视频合集 · ${inspection.asset_count} 个视频`}
+              />
+            ) : selected?.plan ? (
+              <Meta
+                label="当前清晰度"
+                value={`${selected.plan.width}×${selected.plan.height}`}
+              />
+            ) : null}
+          </ItemGroup>
+        }
+        actions={
+          <>
+            <h2 className="text-base font-medium">
+              {downloadable
+                ? gallery || collection
+                  ? '下载内容'
+                  : '画质预设'
+                : decisionTitle(inspection)}
+            </h2>
+            {downloadable ? (
+              <FormatPicker
+                formats={inspection.formats}
+                mediaKind={inspection.media_kind}
+                onChange={onChange}
+                selectedId={selectedId}
+              />
+            ) : (
+              <div aria-live="polite" className="py-6">
+                <p className="text-sm leading-6 text-muted-foreground">
+                  {inspection.user_action ?? '当前来源不能创建下载任务。'}
+                </p>
+              </div>
+            )}
+            {selected?.plan ? (
+              <ItemGroup className="mt-7 grid grid-cols-2 gap-x-5 gap-y-4 pt-5 text-sm">
+                <SelectionMeta
+                  label="容器"
+                  value={selected.plan.container_preference.toUpperCase()}
+                />
+                <SelectionMeta
+                  label="兼容策略"
+                  value={compatibilityLabel(
+                    selected.plan.compatibility_profile,
+                  )}
+                />
+                <SelectionMeta
+                  label="视频编码"
+                  value={selected.plan.video_codec_family.toUpperCase()}
+                />
+                <SelectionMeta
+                  label="音频编码"
+                  value={audioCodecLabel(selected.plan.audio_codec_family)}
+                />
+              </ItemGroup>
+            ) : (gallery || collection) && selected ? (
+              <ItemGroup className="mt-7 grid grid-cols-2 gap-x-5 gap-y-4 pt-5 text-sm">
+                <SelectionMeta
+                  label="媒体类型"
+                  value={collection ? '视频合集' : '官方图文'}
+                />
+                <SelectionMeta
+                  label="内容数量"
+                  value={`${inspection.asset_count} ${
+                    collection ? '个视频' : '张原图'
+                  }`}
+                />
+                <SelectionMeta label="导出格式" value="ZIP" />
+                <SelectionMeta
+                  label="下载方式"
+                  value={collection ? '视频打包' : '原图打包'}
+                />
+              </ItemGroup>
+            ) : null}
+            {inspection.access_decision === 'export_required' ? (
+              <Button
+                className="mt-7 h-13 w-full text-[15px]"
+                onClick={onUseUpload}
+              >
+                <UploadSimple data-icon="inline-start" />
+                上传自有 MP4
+              </Button>
+            ) : downloadable ? (
+              <Button
+                className="mt-7 h-13 w-full text-[15px]"
+                disabled={!selectedId || busy}
+                onClick={onCreate}
+              >
+                <DownloadSimple data-icon="inline-start" />
+                {busy ? '正在创建任务…' : '创建下载任务'}
+              </Button>
+            ) : null}
+          </>
+        }
+      />
     </div>
   );
 }

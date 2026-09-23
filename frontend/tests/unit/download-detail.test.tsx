@@ -68,6 +68,10 @@ describe('DownloadJobView', () => {
     render(<DownloadJobView jobId={job().id} pollIntervalMs={5} />);
 
     expect((await screen.findAllByText('正在下载')).length).toBeGreaterThan(0);
+    const mediaFrame = document.querySelector(
+      '[data-slot="media-result-frame"]',
+    );
+    expect(mediaFrame).not.toBeNull();
     emitTaskUpdate('download', job('running').id, 2);
     expect((await screen.findAllByText('服务端已完成')).length).toBeGreaterThan(
       0,
@@ -85,6 +89,9 @@ describe('DownloadJobView', () => {
       name: `${inspection.title}视频预览`,
     });
     expect(preview).toHaveStyle({ aspectRatio: 'auto' });
+    expect(document.querySelector('[data-slot="media-result-frame"]')).toBe(
+      mediaFrame,
+    );
     expect(preview).toHaveClass('size-full');
     const frame = preview.closest('[data-slot="aspect-ratio"]');
     expect(frame).not.toBeNull();

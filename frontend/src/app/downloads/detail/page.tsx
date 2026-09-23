@@ -2,6 +2,9 @@ import { Suspense } from 'react';
 import { ProtectedRoute } from '@/components/auth/protected-route';
 import DownloadRoute from '@/components/downloads/download-route';
 import { BackLink } from '@/components/layout/back-link';
+import { mediaFrameAspectRatio } from '@/components/media/media-cover';
+import { mediaResultGridClassName } from '@/components/media/media-result';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export const metadata = { title: '下载任务' };
@@ -20,13 +23,13 @@ function DetailSkeleton() {
   return (
     <div className="inner-page">
       <BackLink fallbackHref="/history" />
-      <div className="mt-9 max-w-5xl">
-        <Skeleton className="h-11 w-3/4" />
-        <Skeleton className="mt-4 h-4 w-1/2" />
-      </div>
-      <div className="mt-8 grid items-start gap-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.65fr)] lg:gap-16 xl:gap-24">
+      <div className={mediaResultGridClassName}>
         <div>
-          <Skeleton className="h-40 w-full rounded-none" />
+          <AspectRatio ratio={mediaFrameAspectRatio}>
+            <Skeleton className="size-full rounded-none" />
+          </AspectRatio>
+          <Skeleton className="mt-5 h-8 w-3/4" />
+          <Skeleton className="mt-2 h-4 w-1/2" />
         </div>
         <div className="lg:pt-1">
           <Skeleton className="h-5 w-20" />

@@ -16,6 +16,7 @@ import {
   inspectMedia,
 } from '@/api/inspections';
 import { createSourceDiscovery } from '@/api/sourceDiscoveries';
+import DownloadJobView from '@/components/downloads/download-job-view';
 import { ContentIntakeHero } from '@/components/intake/content-intake-hero';
 import InspectionWorkspace from '@/components/intake/inspection-workspace';
 import { useIntakeDraft } from '@/components/intake/intake-draft-provider';
@@ -60,6 +61,8 @@ export default function DownloadWorkspace() {
     setDeclaredOrigin: setMediaDeclaredOrigin,
     selectedFormatId,
     setSelectedFormatId: setSelectedId,
+    activeDownloadId,
+    setActiveDownloadId,
   } = useIntakeDraft();
   const intent = useDownloadIntent();
   const [localInspection, setInspection] =
@@ -82,6 +85,18 @@ export default function DownloadWorkspace() {
       ? providerAuthorizationTarget(url, intent.snapshot.reason_code)
       : null;
   const [urlInvalid, setUrlInvalid] = useState(false);
+  const showIntentStatus =
+    mode === 'link' &&
+    !activeDownloadId &&
+    !!intent.attempt &&
+    intent.snapshot?.status !== 'handed_off' &&
+    ((intent.pending && (!!intent.attempt.input || !!intent.snapshot)) ||
+      !!intent.error ||
+      intent.resultExpired ||
+      (intent.snapshot?.status === 'ready' && !inspection) ||
+      intent.snapshot?.status === 'failed' ||
+      intent.snapshot?.status === 'expired' ||
+      intent.snapshot?.status === 'action_required');
   const inspectionKey = useRef<StableKey | null>(null);
   const discoveryKey = useRef<StableKey | null>(null);
   const downloadKey = useRef<StableKey | null>(null);
@@ -120,6 +135,7 @@ export default function DownloadWorkspace() {
 
   function clearLinkResult() {
     if (!intent.pending) intent.clear();
+    setActiveDownloadId(null);
     setInspection(null);
     setDiscovery(null);
     setSelectedId('');
@@ -241,7 +257,7 @@ export default function DownloadWorkspace() {
         },
       );
       queries.setQueryData(privateQueryKey('download', result.id), result);
-      openDownload(result.id);
+      setActiveDownloadId(result.id);
     } catch (reason) {
       setAuthorizationTarget(null);
       if (
@@ -319,7 +335,7 @@ export default function DownloadWorkspace() {
           />
         }
       />
-      {mode === 'link' && intent.attempt ? (
+      {showIntentStatus ? (
         <section className="mt-8 space-y-3" aria-label="解析任务状态">
           <FeedbackNotice
             title={
@@ -455,8 +471,23 @@ export default function DownloadWorkspace() {
           onSelect={(item) => void selectDiscoveredItem(item)}
         />
       ) : null}
+      {mode === 'link' && activeDownloadId ? (
+        <DownloadJobView
+          embedded
+          jobId={activeDownloadId}
+          key={activeDownloadId}
+          onOpenJob={setActiveDownloadId}
+          onRemoved={() => {
+            setActiveDownloadId(null);
+            intent.clear();
+            setInspection(null);
+            setSelectedId('');
+          }}
+        />
+      ) : null}
       {mode === 'link' &&
       inspection &&
+      !activeDownloadId &&
       !intent.resultExpired &&
       intent.snapshot?.status !== 'handed_off' ? (
         <InspectionWorkspace

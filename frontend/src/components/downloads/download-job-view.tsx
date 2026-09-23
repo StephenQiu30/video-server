@@ -9,14 +9,18 @@ import { DownloadDeleteDialog } from '@/components/downloads/download-delete-dia
 import DownloadState from '@/components/downloads/download-state';
 import DownloadVideoPreview from '@/components/downloads/download-video-preview';
 import { useDownloadJob } from '@/components/downloads/use-download-job';
-import MediaCover, {
-  mediaFrameAspectRatio,
-} from '@/components/intake/media-cover';
 import { BackLink } from '@/components/layout/back-link';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { markNavigationPush } from '@/components/layout/navigation-history';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
+import MediaCover, {
+  mediaFrameAspectRatio,
+} from '@/components/media/media-cover';
+import {
+  MediaResult,
+  mediaResultGridClassName,
+} from '@/components/media/media-result';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,9 +30,15 @@ import { audioCodecLabel } from '@/lib/media-format';
 export default function DownloadJobView({
   jobId,
   pollIntervalMs = 1500,
+  embedded = false,
+  onOpenJob,
+  onRemoved,
 }: {
   jobId: string;
   pollIntervalMs?: number;
+  embedded?: boolean;
+  onOpenJob?: (jobId: string) => void;
+  onRemoved?: () => void;
 }) {
   const router = useRouter();
   const playerRef = useRef<MediaPlayerInstance>(null);
@@ -57,6 +67,10 @@ export default function DownloadJobView({
   async function retry() {
     const retried = await state.retry();
     if (!retried) return;
+    if (embedded && onOpenJob) {
+      onOpenJob(retried.id);
+      return;
+    }
     const target = `/downloads/detail?jobId=${encodeURIComponent(retried.id)}`;
     markNavigationPush(target);
     router.push(target);
@@ -64,10 +78,15 @@ export default function DownloadJobView({
 
   async function remove() {
     if (!(await state.remove())) return;
+    if (embedded) {
+      onRemoved?.();
+      return;
+    }
     router.replace('/history');
   }
 
-  if (state.removed)
+  if (state.removed) {
+    if (embedded) return null;
     return (
       <div className="inner-page">
         <BackLink fallbackHref="/history" />
@@ -83,39 +102,26 @@ export default function DownloadJobView({
         />
       </div>
     );
+  }
 
-  if (state.loading && !state.job) return <DownloadJobSkeleton />;
+  if (state.loading && !state.job)
+    return <DownloadJobSkeleton embedded={embedded} />;
 
   return (
-    <div className="inner-page">
-      <div className="flex items-center justify-between gap-4">
-        <BackLink fallbackHref="/history" />
-        {state.job ? (
-          <DownloadDeleteDialog
-            active={
-              !['succeeded', 'failed', 'cancelled'].includes(state.job.status)
-            }
-            busy={state.action !== null}
-            onDelete={remove}
-          />
-        ) : null}
-      </div>
-      {state.retryTarget && state.retryTarget !== jobId ? (
-        <FeedbackNotice
-          className="mt-8"
-          title="已创建新的下载任务"
-          description="重新下载的进度和结果会保存在新任务中。"
-          tone="info"
-          action={
-            <Button asChild size="sm" variant="outline">
-              <Link
-                href={`/downloads/detail?jobId=${encodeURIComponent(state.retryTarget)}`}
-              >
-                查看新任务
-              </Link>
-            </Button>
-          }
-        />
+    <div className={embedded ? '' : 'inner-page'}>
+      {!embedded ? (
+        <div className="flex items-center justify-between gap-4">
+          <BackLink fallbackHref="/history" />
+          {state.job ? (
+            <DownloadDeleteDialog
+              active={
+                !['succeeded', 'failed', 'cancelled'].includes(state.job.status)
+              }
+              busy={state.action !== null}
+              onDelete={remove}
+            />
+          ) : null}
+        </div>
       ) : null}
       {state.error && !state.job ? (
         <PageErrorNotice
@@ -126,41 +132,27 @@ export default function DownloadJobView({
           title={errorTitle(state.errorKind)}
         />
       ) : null}
-      {state.error && state.job ? (
-        <FeedbackNotice
-          action={
-            state.errorKind === 'sync' ? (
-              <Button variant="outline" size="sm" onClick={state.refresh}>
-                恢复下载状态
-              </Button>
-            ) : undefined
-          }
-          className="mt-8"
-          description={state.error}
-          title={errorTitle(state.errorKind)}
-          tone="error"
-        />
-      ) : null}
       {state.job ? (
         <>
-          <header className="mt-8 max-w-5xl">
-            <h1 className="text-[34px] font-medium leading-[1.06] tracking-[-0.045em] sm:text-[42px] lg:text-[48px]">
-              {title}
-            </h1>
-            <p className="mt-4 text-sm text-muted-foreground">
-              {sourceLabel ? `${sourceLabel} · ` : ''}
-              {extractor && extractor !== sourceLabel ? `${extractor} · ` : ''}
-              {formatLabel(
-                format,
-                duration,
-                state.job?.media_kind,
-                state.job?.asset_count,
-              )}
-            </p>
-          </header>
-          <div className="mt-8 grid items-start gap-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.65fr)] lg:gap-16 xl:gap-24">
-            <div className="min-w-0">
-              {state.job.status === 'succeeded' &&
+          <MediaResult
+            headingLevel={embedded ? 2 : 1}
+            title={title}
+            metadata={
+              <p className="mt-2 text-sm text-muted-foreground">
+                {sourceLabel ? `${sourceLabel} · ` : ''}
+                {extractor && extractor !== sourceLabel
+                  ? `${extractor} · `
+                  : ''}
+                {formatLabel(
+                  format,
+                  duration,
+                  state.job?.media_kind,
+                  state.job?.asset_count,
+                )}
+              </p>
+            }
+            media={
+              state.job.status === 'succeeded' &&
               state.job.file_available &&
               !gallery &&
               !collection ? (
@@ -200,32 +192,79 @@ export default function DownloadJobView({
                   priority
                   src={thumbnail}
                 />
-              )}
-            </div>
-            <div className="min-w-0 lg:pt-1">
-              <DownloadState
-                action={state.action}
-                job={state.job}
-                onCancel={state.cancel}
-                onDownload={state.download}
-                onRetry={() => void retry()}
-              />
-              {!['succeeded', 'failed', 'cancelled'].includes(
-                state.job.status,
-              ) ? (
-                <p
-                  aria-live="polite"
-                  className="mt-4 text-xs text-muted-foreground"
-                >
-                  {state.socketStatus === 'connected'
-                    ? '实时状态已连接'
-                    : state.socketStatus === 'degraded'
-                      ? '实时连接中断，正在低频恢复'
-                      : '正在连接实时状态'}
-                </p>
-              ) : null}
-            </div>
-          </div>
+              )
+            }
+            actions={
+              <div className="space-y-6">
+                {state.retryTarget && state.retryTarget !== jobId ? (
+                  <FeedbackNotice
+                    title="已创建新的下载任务"
+                    description="重新下载的进度和结果会保存在新任务中。"
+                    tone="info"
+                    action={
+                      <Button asChild size="sm" variant="outline">
+                        <Link
+                          href={`/downloads/detail?jobId=${encodeURIComponent(state.retryTarget)}`}
+                        >
+                          查看新任务
+                        </Link>
+                      </Button>
+                    }
+                  />
+                ) : null}
+                {state.error ? (
+                  <FeedbackNotice
+                    action={
+                      state.errorKind === 'sync' ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={state.refresh}
+                        >
+                          恢复下载状态
+                        </Button>
+                      ) : undefined
+                    }
+                    description={state.error}
+                    title={errorTitle(state.errorKind)}
+                    tone="error"
+                  />
+                ) : null}
+                <DownloadState
+                  action={state.action}
+                  job={state.job}
+                  onCancel={state.cancel}
+                  onDownload={state.download}
+                  onRetry={() => void retry()}
+                />
+                {embedded ? (
+                  <DownloadDeleteDialog
+                    active={
+                      !['succeeded', 'failed', 'cancelled'].includes(
+                        state.job.status,
+                      )
+                    }
+                    busy={state.action !== null}
+                    onDelete={remove}
+                  />
+                ) : null}
+                {!['succeeded', 'failed', 'cancelled'].includes(
+                  state.job.status,
+                ) ? (
+                  <p
+                    aria-live="polite"
+                    className="mt-4 text-xs text-muted-foreground"
+                  >
+                    {state.socketStatus === 'connected'
+                      ? '实时状态已连接'
+                      : state.socketStatus === 'degraded'
+                        ? '实时连接中断，正在低频恢复'
+                        : '正在连接实时状态'}
+                  </p>
+                ) : null}
+              </div>
+            }
+          />
           {state.job.status === 'succeeded' ? (
             !gallery && !collection ? (
               <div className="mt-14 sm:mt-20">
@@ -262,19 +301,17 @@ function errorTitle(kind: 'load' | 'sync' | 'action' | null) {
   return '请求未完成';
 }
 
-function DownloadJobSkeleton() {
+function DownloadJobSkeleton({ embedded }: { embedded: boolean }) {
   return (
-    <div className="inner-page">
-      <BackLink fallbackHref="/history" />
-      <div className="mt-9 max-w-5xl">
-        <Skeleton className="h-11 w-3/4" />
-        <Skeleton className="mt-4 h-4 w-1/2" />
-      </div>
-      <div className="mt-8 grid items-start gap-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.65fr)] lg:gap-16 xl:gap-24">
+    <div className={embedded ? '' : 'inner-page'}>
+      {!embedded ? <BackLink fallbackHref="/history" /> : null}
+      <div className={mediaResultGridClassName}>
         <div>
           <AspectRatio ratio={mediaFrameAspectRatio}>
             <Skeleton className="size-full rounded-none" />
           </AspectRatio>
+          <Skeleton className="mt-5 h-8 w-3/4" />
+          <Skeleton className="mt-2 h-4 w-1/2" />
         </div>
         <div className="lg:pt-1">
           <Skeleton className="h-5 w-20" />

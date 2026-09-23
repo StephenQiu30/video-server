@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { DownloadDeleteDialog } from '@/components/downloads/download-delete-dialog';
 import { downloadRecovery } from '@/components/downloads/download-state-model';
 import type { DownloadAction } from '@/components/downloads/use-download-actions';
-import MediaCover from '@/components/intake/media-cover';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
+import MediaCover from '@/components/media/media-cover';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
