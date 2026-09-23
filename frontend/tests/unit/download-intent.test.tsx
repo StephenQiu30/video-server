@@ -14,7 +14,8 @@ import {
 import { renderHook } from '../helpers/query-render';
 
 const identity = vi.hoisted(() => ({ id: 'owner-a' }));
-vi.mock('@/components/auth/auth-provider', () => ({
+vi.mock('@/components/auth/auth-provider', async (importOriginal) => ({
+  ...(await importOriginal()),
   useAuth: () => ({ user: identity }),
 }));
 const reference = 'framefetch-active-intent';

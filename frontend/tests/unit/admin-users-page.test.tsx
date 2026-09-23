@@ -24,7 +24,8 @@ const runtime = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('@/components/auth/auth-provider', () => ({
+vi.mock('@/components/auth/auth-provider', async (importOriginal) => ({
+  ...(await importOriginal()),
   useAuth: () => ({ loading: false, user: runtime.user }),
 }));
 

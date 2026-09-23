@@ -68,30 +68,27 @@ describe('opaque Web session failures', () => {
       }
     },
   );
-  it.each(['/api/auth/login', '/api/auth/register', '/api/auth/logout'])(
-    'does not expire identity from %s errors',
-    async (url) => {
-      const expired = vi.fn();
-      const unsubscribe = onSessionExpired(expired);
-      httpClient.defaults.adapter = async (config) => {
-        throw new AxiosError(
-          'Failed',
-          'ERR_BAD_RESPONSE',
-          config,
-          undefined,
-          response(config, { code: 'unauthenticated' }, 401),
-        );
-      };
-      try {
-        await expect(request(url, { method: 'POST' })).rejects.toMatchObject({
-          status: 401,
-        });
-        expect(expired).not.toHaveBeenCalled();
-      } finally {
-        unsubscribe();
-      }
-    },
-  );
+  it('preserves identity when login rejects credentials', async () => {
+    const expired = vi.fn();
+    const unsubscribe = onSessionExpired(expired);
+    httpClient.defaults.adapter = async (config) => {
+      throw new AxiosError(
+        'Failed',
+        'ERR_BAD_RESPONSE',
+        config,
+        undefined,
+        response(config, { code: 'invalid_credentials' }, 401),
+      );
+    };
+    try {
+      await expect(
+        request('/api/auth/login', { method: 'POST' }),
+      ).rejects.toMatchObject({ status: 401 });
+      expect(expired).not.toHaveBeenCalled();
+    } finally {
+      unsubscribe();
+    }
+  });
   it('does not reinterpret a provider 401 as a Web identity failure', async () => {
     const expired = vi.fn();
     const unsubscribe = onSessionExpired(expired);

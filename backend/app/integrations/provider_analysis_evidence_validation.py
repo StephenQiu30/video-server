@@ -18,8 +18,14 @@ from app.models import (
 from app.repositories.analysis.repository_serialization import (
     analysis_result_from_document,
 )
+from app.services.analysis.rules.enums import (
+    AnalysisReportArtifactStatus,
+    AnalysisReportStatus,
+    AnalysisStatus,
+)
 from app.services.analysis.rules.result_models import VideoAnalysisResult
 from app.services.downloads.inspection_models import EncryptedUrl
+from app.services.downloads.rules.enums import DownloadStatus
 from app.services.provider_analysis_canary import (
     AnalysisCanaryEvidence,
     AnalysisCanaryObject,
@@ -43,19 +49,19 @@ def validated_evidence(
     files = {
         item.format
         for item in report_files
-        if item.status == "available"
+        if item.status == AnalysisReportArtifactStatus.AVAILABLE.value
         and item.deleted_at is None
         and item.bucket == bucket
         and item.size_bytes > 0
     }
     payload = {} if event is None else event.payload
     if not (
-        job.status == run.status == "succeeded"
+        job.status == run.status == AnalysisStatus.SUCCEEDED.value
         and job.progress == run.progress == 100
         and job.deleted_at is None
         and job.current_report_id == report.id
         and job.active_run_id == report.run_id == run.id
-        and report.status == "available"
+        and report.status == AnalysisReportStatus.AVAILABLE.value
         and report.published_at is not None
         and as_utc(report.published_at) >= as_utc(now) - timedelta(days=7)
         and bool(report.report_markdown.strip())
@@ -66,7 +72,7 @@ def validated_evidence(
         and artifact.duration_ms > 0
         and _has_stream(artifact.media_metadata, "video_streams")
         and _has_stream(artifact.media_metadata, "audio_streams")
-        and download.status == "succeeded"
+        and download.status == DownloadStatus.SUCCEEDED.value
         and download.progress == 100
         and files == {"markdown", "docx"}
         and report.provider == run.provider
@@ -75,8 +81,8 @@ def validated_evidence(
         and all((report.provider, report.model, report.cli_version))
         and payload.get("task_id") == str(job.id)
         and payload.get("run_id") == str(run.id)
-        and payload.get("status") == "succeeded"
-        and payload.get("report_status") == "available"
+        and payload.get("status") == AnalysisStatus.SUCCEEDED.value
+        and payload.get("report_status") == AnalysisReportStatus.AVAILABLE.value
     ):
         return None
     try:

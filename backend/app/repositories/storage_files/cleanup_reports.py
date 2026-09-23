@@ -7,6 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.models import AnalysisReportArtifactRow, AnalysisReportVersionRow
+from app.services.analysis.rules.enums import (
+    AnalysisReportArtifactStatus,
+    AnalysisReportStatus,
+)
 from app.services.storage_files.ports import DeleteStoredObject
 
 
@@ -26,9 +30,10 @@ async def cleanup_reports(
                 AnalysisReportArtifactRow.report_id == AnalysisReportVersionRow.id,
             )
             .where(
-                AnalysisReportVersionRow.status == "available",
+                AnalysisReportVersionRow.status == AnalysisReportStatus.AVAILABLE.value,
                 AnalysisReportVersionRow.created_at < cutoff,
-                AnalysisReportArtifactRow.status == "available",
+                AnalysisReportArtifactRow.status
+                == AnalysisReportArtifactStatus.AVAILABLE.value,
                 AnalysisReportArtifactRow.deleted_at.is_(None),
             )
             .order_by(AnalysisReportVersionRow.created_at, AnalysisReportVersionRow.id)
@@ -46,7 +51,8 @@ async def cleanup_reports(
                     select(AnalysisReportArtifactRow)
                     .where(
                         AnalysisReportArtifactRow.report_id == report.id,
-                        AnalysisReportArtifactRow.status == "available",
+                        AnalysisReportArtifactRow.status
+                        == AnalysisReportArtifactStatus.AVAILABLE.value,
                         AnalysisReportArtifactRow.deleted_at.is_(None),
                     )
                     .order_by(AnalysisReportArtifactRow.format)
@@ -60,9 +66,9 @@ async def cleanup_reports(
                 failed += 1
                 excluded.append(report.id)
                 continue
-            report.status = "deleted"
+            report.status = AnalysisReportStatus.DELETED.value
             for artifact in artifacts:
-                artifact.status = "deleted"
+                artifact.status = AnalysisReportArtifactStatus.DELETED.value
                 artifact.deleted_at = now
             removed += 1
             objects += len(artifacts)

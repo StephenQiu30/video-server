@@ -30,6 +30,10 @@ from app.services.analysis.models import (
     AnalysisReportSnapshot,
     AnalysisStoredReportFile,
 )
+from app.services.analysis.rules.enums import (
+    AnalysisReportArtifactStatus,
+    AnalysisReportStatus,
+)
 from app.services.analysis.rules.result_types import AnalysisResult
 from app.services.identifiers import AnalysisReportRenderer
 
@@ -72,7 +76,8 @@ class AnalysisRepositoryBase(RepositoryBase):
                     await session.scalars(
                         select(AnalysisReportArtifactRow).where(
                             AnalysisReportArtifactRow.report_id == report.id,
-                            AnalysisReportArtifactRow.status == "available",
+                            AnalysisReportArtifactRow.status
+                            == AnalysisReportArtifactStatus.AVAILABLE.value,
                         )
                     )
                 ).all()
@@ -81,7 +86,7 @@ class AnalysisRepositoryBase(RepositoryBase):
                 id=report.id,
                 job_id=report.job_id,
                 run_id=report.run_id,
-                status=report.status,
+                status=AnalysisReportStatus(report.status),
                 markdown=report.report_markdown,
                 content_sha256=report.content_sha256,
                 renderer_version=report.renderer_version,
@@ -116,7 +121,8 @@ class AnalysisRepositoryBase(RepositoryBase):
                     AnalysisJobRow.id == job_id,
                     AnalysisJobRow.deleted_at.is_(None),
                     AnalysisReportArtifactRow.format == report_format,
-                    AnalysisReportArtifactRow.status == "available",
+                    AnalysisReportArtifactRow.status
+                    == AnalysisReportArtifactStatus.AVAILABLE.value,
                 )
             )
             if row is None:

@@ -13,6 +13,7 @@ from app.models import (
     OperationalCounterRow,
     OutboxEventRow,
 )
+from app.services.analysis.rules.enums import AnalysisReportStatus, AnalysisStatus
 
 _COUNTERS = (
     ("claim_noop", "analysis"),
@@ -26,22 +27,8 @@ _OUTBOX_EVENT_TYPES = (
     "analysis.report.publish.requested",
     "task.state.changed",
 )
-_ANALYSIS_STATES = (
-    "queued",
-    "running",
-    "retry_wait",
-    "succeeded",
-    "failed",
-    "cancelled",
-)
-_REPORT_STATES = (
-    "validated",
-    "publishing",
-    "available",
-    "publish_failed",
-    "delete_pending",
-    "deleted",
-)
+_ANALYSIS_STATES = tuple(status.value for status in AnalysisStatus)
+_REPORT_STATES = tuple(status.value for status in AnalysisReportStatus)
 
 
 class OperationalMetrics:
@@ -109,7 +96,7 @@ class OperationalMetrics:
             select(func.count())
             .select_from(AnalysisJobRow)
             .where(
-                AnalysisJobRow.status == "running",
+                AnalysisJobRow.status == AnalysisStatus.RUNNING.value,
                 AnalysisJobRow.lease_expires_at <= now,
             )
         )

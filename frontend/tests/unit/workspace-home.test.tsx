@@ -5,7 +5,8 @@ import { WorkspaceHome } from '@/components/intake/workspace-home';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { render } from '../helpers/query-render';
 
-vi.mock('@/components/auth/auth-provider', () => ({
+vi.mock('@/components/auth/auth-provider', async (importOriginal) => ({
+  ...(await importOriginal()),
   useAuth: () => ({ user: { id: 'intent-test-owner', role: 'user' } }),
 }));
 

@@ -14,7 +14,8 @@ import { httpRequests, mockHttpResponses } from '../helpers/http';
 import { render } from '../helpers/query-render';
 
 const push = vi.fn();
-vi.mock('@/components/auth/auth-provider', () => ({
+vi.mock('@/components/auth/auth-provider', async (importOriginal) => ({
+  ...(await importOriginal()),
   useAuth: () => ({ user: { id: 'intent-test-owner', role: 'user' } }),
 }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));

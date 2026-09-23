@@ -18,7 +18,8 @@ vi.mock('@/api/analyses', () => ({
   createAnalysis: runtime.create,
   getLatestDownloadAnalysis: runtime.latest,
 }));
-vi.mock('@/lib/task-socket', () => ({
+vi.mock('@/lib/task-socket', async (importOriginal) => ({
+  ...(await importOriginal()),
   taskSocket: { subscribe: () => () => undefined },
 }));
 const input: API.AnalysisRequest = {

@@ -17,7 +17,8 @@ const runtime = vi.hoisted(() => ({
   resetSocket: vi.fn(),
 }));
 
-vi.mock('@/lib/task-socket', () => ({
+vi.mock('@/lib/task-socket', async (importOriginal) => ({
+  ...(await importOriginal()),
   taskSocket: { reset: runtime.resetSocket },
 }));
 

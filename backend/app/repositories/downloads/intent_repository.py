@@ -29,6 +29,8 @@ from app.repositories.quota_admission import (
 )
 from app.services.downloads.inspection_models import EncryptedUrl, InspectionCreate
 from app.services.downloads.intent_models import (
+    RUNNING_INTENT_STATUSES,
+    TERMINAL_INTENT_STATUSES,
     IntentCreate,
     IntentHistoryEntry,
     IntentHistoryPage,
@@ -45,8 +47,7 @@ from app.services.downloads.validation import (
 from app.services.provider_access import ProviderAccessPolicy
 from app.services.quotas import DEFAULT_USER_QUOTA, QuotaPolicy, UserQuota
 
-_RUNNING = ("preparing", "resolving")
-_TERMINAL = ("cancelled", "expired", "failed", "handed_off")
+_RUNNING = tuple(status.value for status in RUNNING_INTENT_STATUSES)
 _BUDGET = timedelta(seconds=180)
 
 
@@ -150,7 +151,7 @@ class IntentRepository:
         validate_now(now)
         async with self._sessions() as session, session.begin():
             row = await self._owned(session, intent_id, owner_hash, lock=True)
-            if row.status == "handed_off":
+            if row.status == IntentStatus.HANDED_OFF.value:
                 job = await session.scalar(
                     select(DownloadJobRow)
                     .where(
@@ -162,9 +163,9 @@ class IntentRepository:
                 if job is None:
                     raise RepositoryConflict("intent download is unavailable")
                 cancel_job_row(job, now)
-                _transition(row, "cancelled", now, "cancelled")
-            if row.status not in _TERMINAL:
-                _transition(row, "cancelled", now, "cancelled")
+                _transition(row, IntentStatus.CANCELLED, now, "cancelled")
+            if IntentStatus(row.status) not in TERMINAL_INTENT_STATUSES:
+                _transition(row, IntentStatus.CANCELLED, now, "cancelled")
             return _snapshot(row)
 
     async def history(
@@ -221,7 +222,7 @@ class IntentRepository:
                 select(DownloadIntentRow)
                 .where(
                     DownloadIntentRow.id == intent_id,
-                    DownloadIntentRow.status == "queued",
+                    DownloadIntentRow.status == IntentStatus.QUEUED.value,
                 )
                 .with_for_update()
             )
@@ -230,7 +231,7 @@ class IntentRepository:
             if _exhausted(row, now):
                 _expire(row, now)
                 return None
-            _transition(row, "resolving", now)
+            _transition(row, IntentStatus.RESOLVING, now)
             row.attempt += 1
             row.fence += 1
             row.lease_owner = worker_id
@@ -253,9 +254,14 @@ class IntentRepository:
         async with self._sessions() as session, session.begin():
             await lock_admission(session, owner_hash)
             row = await self._owned(session, intent_id, owner_hash, lock=True)
-            if row.status in (*_RUNNING, "queued", "retry_wait", "handed_off"):
+            if IntentStatus(row.status) in {
+                *RUNNING_INTENT_STATUSES,
+                IntentStatus.QUEUED,
+                IntentStatus.RETRY_WAIT,
+                IntentStatus.HANDED_OFF,
+            }:
                 return _snapshot(row)
-            if row.status != "ready" or row.inspection_id is None:
+            if row.status != IntentStatus.READY.value or row.inspection_id is None:
                 raise RepositoryConflict("intent cannot refresh in this state")
             previous = await session.get(MediaInspectionRow, row.inspection_id)
             if previous is None or previous.owner_hash != owner_hash:
@@ -265,14 +271,14 @@ class IntentRepository:
             # Waiting for a format choice was not active work. Only the saved
             # remainder is available; neither attempt nor budget is reset.
             if row.remaining_budget_ms <= 0 or row.attempt >= row.max_attempts:
-                _transition(row, "expired", now, "resource_expired")
+                _transition(row, IntentStatus.EXPIRED, now, "resource_expired")
                 return _snapshot(row)
             if not quota.exempt:
                 await ensure_active_capacity(
                     session, quota.apply(self._quota_policy), owner_hash
                 )
             row.deadline = now + timedelta(milliseconds=row.remaining_budget_ms)
-            _transition(row, "queued", now)
+            _transition(row, IntentStatus.QUEUED, now)
             session.add(_requested(row, now))
             return _snapshot(row)
 
@@ -320,11 +326,11 @@ class IntentRepository:
                     or media_kind_from_metadata(previous.metadata_json)
                     != media_kind_from_metadata(result.metadata)
                 ):
-                    _transition(row, "failed", now, "unsupported_source")
+                    _transition(row, IntentStatus.FAILED, now, "unsupported_source")
                     return _snapshot(row)
             await insert_inspection(session, result)
             row.inspection_id = result.id
-            _transition(row, "ready", now)
+            _transition(row, IntentStatus.READY, now)
             return _snapshot(row)
 
     async def fail(
@@ -360,10 +366,10 @@ class IntentRepository:
                 and row.attempt < row.max_attempts
                 and retry_at < row.deadline
             ):
-                _transition(row, "retry_wait", now, reason_code)
+                _transition(row, IntentStatus.RETRY_WAIT, now, reason_code)
                 row.retry_at = retry_at
             else:
-                _transition(row, "failed", now, reason_code)
+                _transition(row, IntentStatus.FAILED, now, reason_code)
             return _snapshot(row)
 
     async def recover(
@@ -383,16 +389,24 @@ class IntentRepository:
                     select(DownloadIntentRow)
                     .where(
                         DownloadIntentRow.status.in_(
-                            ("queued", "retry_wait", *_RUNNING)
+                            tuple(
+                                status.value
+                                for status in (
+                                    IntentStatus.QUEUED,
+                                    IntentStatus.RETRY_WAIT,
+                                    *RUNNING_INTENT_STATUSES,
+                                )
+                            )
                         ),
                         or_(
                             DownloadIntentRow.deadline <= now,
                             and_(
-                                DownloadIntentRow.status == "queued",
+                                DownloadIntentRow.status == IntentStatus.QUEUED.value,
                                 DownloadIntentRow.updated_at <= now - queued_stale_for,
                             ),
                             and_(
-                                DownloadIntentRow.status == "retry_wait",
+                                DownloadIntentRow.status
+                                == IntentStatus.RETRY_WAIT.value,
                                 DownloadIntentRow.retry_at <= now,
                             ),
                             and_(
@@ -410,7 +424,7 @@ class IntentRepository:
                 if _exhausted(row, now):
                     _expire(row, now)
                 else:
-                    _transition(row, "queued", now, row.reason_code)
+                    _transition(row, IntentStatus.QUEUED, now, row.reason_code)
                     session.add(_requested(row, now))
             return len(rows)
 
@@ -461,16 +475,19 @@ def _exhausted(row: DownloadIntentRow, now: datetime) -> bool:
 def _expire(row: DownloadIntentRow, now: datetime) -> None:
     _transition(
         row,
-        "expired" if _remaining(row, now) == 0 else "failed",
+        IntentStatus.EXPIRED if _remaining(row, now) == 0 else IntentStatus.FAILED,
         now,
         "inspection_timeout" if _remaining(row, now) == 0 else "inspection_failed",
     )
 
 
 def _transition(
-    row: DownloadIntentRow, status: str, now: datetime, reason: str | None = None
+    row: DownloadIntentRow,
+    status: IntentStatus,
+    now: datetime,
+    reason: str | None = None,
 ) -> None:
-    row.status = status
+    row.status = status.value
     row.version += 1
     row.lease_owner = None
     row.lease_expires_at = None

@@ -31,7 +31,8 @@ vi.mock('@/api/downloads', () => ({
 vi.mock('@/lib/browser-download', () => ({
   triggerBrowserDownload: runtime.download,
 }));
-vi.mock('@/lib/task-socket', () => ({
+vi.mock('@/lib/task-socket', async (importOriginal) => ({
+  ...(await importOriginal()),
   taskSocket: { subscribe: () => () => undefined },
 }));
 

@@ -13,7 +13,8 @@ const runtime = vi.hoisted(() => ({
   replace: vi.fn(),
 }));
 
-vi.mock('@/components/auth/auth-provider', () => ({
+vi.mock('@/components/auth/auth-provider', async (importOriginal) => ({
+  ...(await importOriginal()),
   useAuth: () => runtime.auth,
 }));
 

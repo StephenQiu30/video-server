@@ -8,7 +8,8 @@ const runtime = vi.hoisted(() => ({
   user: undefined as { username: string } | undefined,
 }));
 
-vi.mock('@/components/auth/auth-provider', () => ({
+vi.mock('@/components/auth/auth-provider', async (importOriginal) => ({
+  ...(await importOriginal()),
   useAuth: () => runtime,
 }));
 

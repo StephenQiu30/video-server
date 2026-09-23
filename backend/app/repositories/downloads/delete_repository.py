@@ -22,6 +22,7 @@ from app.services.downloads.download_models import (
     DownloadCleanupRef,
     DownloadDeletionPlan,
 )
+from app.services.downloads.intent_models import IntentStatus
 
 _ACTIVE_STATUSES = {"queued", "running", "retry_wait"}
 
@@ -106,7 +107,7 @@ class DownloadDeleteRepository(RepositoryBase):
             if job is None:
                 raise RepositoryNotFound("download job does not exist")
             if intent is not None:
-                intent.status = "expired"
+                intent.status = IntentStatus.EXPIRED.value
                 intent.reason_code = "resource_expired"
                 intent.job_id = None
                 intent.version += 1

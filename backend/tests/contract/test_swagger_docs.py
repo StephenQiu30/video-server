@@ -141,6 +141,16 @@ def test_swagger_ui_and_openapi_contract_are_available(tmp_path: Path) -> None:
     }
     assert all(len(operation["tags"]) == 1 for operation in operations.values())
 
+    components = schema["components"]["schemas"]
+    assert components["LivenessResponse"]["properties"]["status"]["$ref"] == (
+        "#/components/schemas/LivenessStatus"
+    )
+    assert components["LivenessStatus"]["enum"] == ["ok"]
+    assert components["ReadinessResponse"]["properties"]["status"]["$ref"] == (
+        "#/components/schemas/ReadinessStatus"
+    )
+    assert components["ReadinessStatus"]["enum"] == ["ok", "unavailable"]
+
     validation_response = schema["paths"]["/api/downloads"]["post"]["responses"]["422"]
     assert validation_response["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/ErrorResponse"

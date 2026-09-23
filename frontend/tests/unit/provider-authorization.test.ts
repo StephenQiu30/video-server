@@ -7,7 +7,8 @@ import { providerAuthorizationTarget } from '@/lib/provider-authorization';
 
 const TRANSACTION_ID = '1'.repeat(32);
 
-vi.mock('@/components/auth/auth-provider', () => ({
+vi.mock('@/components/auth/auth-provider', async (importOriginal) => ({
+  ...(await importOriginal()),
   useAuth: () => ({
     user: { role: 'admin' },
   }),

@@ -14,6 +14,7 @@ from app.services.analysis.models import AnalysisJobView
 from app.services.analysis.rules.enums import (
     AnalysisErrorCode,
     AnalysisInputKind,
+    AnalysisReportStatus,
     AnalysisResultContract,
     AnalysisStage,
     AnalysisStatus,
@@ -63,7 +64,7 @@ class AnalysisReportArtifactResponse(StrictModel):
 
 class AnalysisReportResponse(StrictModel):
     id: UUID
-    status: str
+    status: AnalysisReportStatus
     renderer_version: str
     content_sha256: str
     published_at: datetime | None

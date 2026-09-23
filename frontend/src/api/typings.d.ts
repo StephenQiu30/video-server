@@ -112,8 +112,7 @@ declare namespace API {
   type AnalysisReportResponse = {
     /** Id */
     id: string;
-    /** Status */
-    status: string;
+    status: AnalysisReportStatus;
     /** Renderer Version */
     renderer_version: string;
     /** Content Sha256 */
@@ -123,6 +122,14 @@ declare namespace API {
     /** Artifacts */
     artifacts: AnalysisReportArtifactResponse[];
   };
+
+  type AnalysisReportStatus =
+    | "validated"
+    | "publishing"
+    | "available"
+    | "publish_failed"
+    | "delete_pending"
+    | "deleted";
 
   type AnalysisRequest = {
     /** Skill Id 分析 Skill 的稳定标识，由分析 Skill 清单接口提供。 */
@@ -1456,9 +1463,10 @@ declare namespace API {
   };
 
   type LivenessResponse = {
-    /** Status */
-    status: string;
+    status: LivenessStatus;
   };
+
+  type LivenessStatus = "ok";
 
   type ManagedUserListResponse = {
     /** Items */
@@ -1783,11 +1791,12 @@ declare namespace API {
   };
 
   type ReadinessResponse = {
-    /** Status */
-    status: "ok" | "unavailable";
+    status: ReadinessStatus;
     /** Service */
     service: string;
   };
+
+  type ReadinessStatus = "ok" | "unavailable";
 
   type refreshDownloadIntentParams = {
     intent_id: string;

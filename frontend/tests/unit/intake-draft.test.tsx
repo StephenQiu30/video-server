@@ -7,7 +7,8 @@ import { QueryProvider } from '@/components/layout/query-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { advanceSessionGeneration } from '@/lib/session-events';
 
-vi.mock('@/components/auth/auth-provider', () => ({
+vi.mock('@/components/auth/auth-provider', async (importOriginal) => ({
+  ...(await importOriginal()),
   useAuth: () => ({ user: { id: 'intent-test-owner', role: 'user' } }),
 }));
 

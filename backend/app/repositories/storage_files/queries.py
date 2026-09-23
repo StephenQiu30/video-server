@@ -16,6 +16,10 @@ from app.models import (
     MediaImportRow,
     MediaInspectionRow,
 )
+from app.services.analysis.rules.enums import (
+    AnalysisReportArtifactStatus,
+    AnalysisReportStatus,
+)
 from app.services.storage_files.models import StoredFilePage, StoredFileView
 
 
@@ -106,8 +110,9 @@ def _stored_files_statement() -> Any:
             AnalysisReportArtifactRow.report_id == AnalysisReportVersionRow.id,
         )
         .where(
-            AnalysisReportVersionRow.status == "available",
-            AnalysisReportArtifactRow.status == "available",
+            AnalysisReportVersionRow.status == AnalysisReportStatus.AVAILABLE.value,
+            AnalysisReportArtifactRow.status
+            == AnalysisReportArtifactStatus.AVAILABLE.value,
             AnalysisReportArtifactRow.deleted_at.is_(None),
         )
         .group_by(AnalysisReportVersionRow.id, AnalysisReportVersionRow.created_at)

@@ -8,9 +8,19 @@ export enum AnalysisStatusCode {
 }
 
 export enum AnalysisReportStatusCode {
+  Validated = 'validated',
   Publishing = 'publishing',
   PublishFailed = 'publish_failed',
   Available = 'available',
+  DeletePending = 'delete_pending',
+  Deleted = 'deleted',
+}
+
+enum ScreenplayAnalysisErrorCode {
+  ResourceLimit = 'analysis_resource_limit',
+  OutputIncomplete = 'screenplay_output_incomplete',
+  InputArtifactUnavailable = 'input_artifact_unavailable',
+  InvalidModelOutput = 'invalid_model_output',
 }
 
 export enum AnalysisStageCode {
@@ -75,16 +85,21 @@ export function isTerminalAnalysisStatus(status: API.AnalysisStatus): boolean {
   return !isActiveAnalysisStatus(status);
 }
 
-const analysisReportStatusLabels: Record<AnalysisReportStatusCode, string> = {
+const analysisReportStatusLabels = {
+  [AnalysisReportStatusCode.Validated]: '报告等待生成',
   [AnalysisReportStatusCode.Publishing]: '新报告文件生成中',
   [AnalysisReportStatusCode.PublishFailed]: '报告文件生成失败，等待恢复',
   [AnalysisReportStatusCode.Available]: '上一版本报告',
-};
+  [AnalysisReportStatusCode.DeletePending]: '报告文件正在清理',
+  [AnalysisReportStatusCode.Deleted]: '报告文件已清理',
+} satisfies Record<API.AnalysisReportStatus, string>;
 
-export function analysisReportStatusLabel(status?: string): string {
-  return status && Object.hasOwn(analysisReportStatusLabels, status)
-    ? analysisReportStatusLabels[status as AnalysisReportStatusCode]
-    : analysisReportStatusLabels[AnalysisReportStatusCode.Available];
+export function analysisReportStatusLabel(
+  status?: API.AnalysisReportStatus,
+): string {
+  return status
+    ? (analysisReportStatusLabels[status] ?? '报告状态更新中')
+    : '报告尚未生成';
 }
 
 export const stageLabels: Record<API.AnalysisStage, string> = {
@@ -94,23 +109,21 @@ export const stageLabels: Record<API.AnalysisStage, string> = {
   [AnalysisStageCode.Publishing]: '生成报告文件',
 };
 
+const screenplayAnalysisErrorMessages: Partial<
+  Record<API.AnalysisErrorCode, string>
+> = {
+  [ScreenplayAnalysisErrorCode.ResourceLimit]:
+    '剧本任务达到当前执行器资源上限，未发布部分结果；请稍后重试，持续出现时联系管理员调整分析配置。',
+  [ScreenplayAnalysisErrorCode.OutputIncomplete]:
+    '剧本改写结果不完整，任务未发布任何部分正文，请重试。',
+  [ScreenplayAnalysisErrorCode.InputArtifactUnavailable]:
+    '规范化剧本文档已失效，请重新导入后再分析。',
+  [ScreenplayAnalysisErrorCode.InvalidModelOutput]:
+    'AI 返回的剧本结果未通过结构、证据或覆盖校验，未发布部分结果。',
+};
+
 export function screenplayAnalysisErrorMessage(
-  code: string | null | undefined,
+  code: API.AnalysisErrorCode | null | undefined,
 ): string | undefined {
-  if (code === 'analysis_resource_limit') {
-    return '剧本任务达到当前执行器资源上限，未发布部分结果；请稍后重试，持续出现时联系管理员调整分析配置。';
-  }
-  if (code === 'screenplay_output_incomplete') {
-    return '剧本改写结果不完整，任务未发布任何部分正文，请重试。';
-  }
-  if (
-    code === 'analysis_artifact_unavailable' ||
-    code === 'input_artifact_unavailable'
-  ) {
-    return '规范化剧本文档已失效，请重新导入后再分析。';
-  }
-  if (code === 'invalid_model_output') {
-    return 'AI 返回的剧本结果未通过结构、证据或覆盖校验，未发布部分结果。';
-  }
-  return undefined;
+  return code ? screenplayAnalysisErrorMessages[code] : undefined;
 }

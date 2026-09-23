@@ -19,6 +19,10 @@ from app.repositories.analysis.repository_mapping import analysis_job_snapshot
 from app.repositories.operational_counter import increment_counter
 from app.services.analysis.errors import PersistenceConflict, PersistenceNotFound
 from app.services.analysis.models import AnalysisJobSnapshot
+from app.services.analysis.rules.enums import (
+    AnalysisReportArtifactStatus,
+    AnalysisReportStatus,
+)
 
 STAGE_RANKS = {
     "preparing": 1,
@@ -98,7 +102,7 @@ class AnalysisLifecycleRepository(AnalysisRepositoryBase):
             await session.execute(
                 update(AnalysisResultRow)
                 .where(AnalysisResultRow.job_id == row.id)
-                .values(status="delete_pending")
+                .values(status=AnalysisReportStatus.DELETE_PENDING.value)
             )
             await session.execute(
                 update(AnalysisReportArtifactRow)
@@ -106,7 +110,7 @@ class AnalysisLifecycleRepository(AnalysisRepositoryBase):
                     AnalysisReportArtifactRow.report_id.in_(report_ids),
                     AnalysisReportArtifactRow.deleted_at.is_(None),
                 )
-                .values(status="delete_pending")
+                .values(status=AnalysisReportArtifactStatus.DELETE_PENDING.value)
             )
             return True
 
@@ -238,8 +242,11 @@ class AnalysisLifecycleRepository(AnalysisRepositoryBase):
                 .where(AnalysisResultRow.run_id == run.id)
                 .with_for_update()
             )
-            if report is not None and report.status in {"validated", "publish_failed"}:
-                report.status = "delete_pending"
+            if report is not None and report.status in {
+                AnalysisReportStatus.VALIDATED.value,
+                AnalysisReportStatus.PUBLISH_FAILED.value,
+            }:
+                report.status = AnalysisReportStatus.DELETE_PENDING.value
             await self.release_lock(session, row.id)
             await session.flush()
             return analysis_job_snapshot(row)

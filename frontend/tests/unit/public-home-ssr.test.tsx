@@ -5,7 +5,8 @@ const session = vi.hoisted(() => ({ names: new Set<string>() }));
 vi.mock('next/headers', () => ({
   cookies: async () => ({ has: (name: string) => session.names.has(name) }),
 }));
-vi.mock('@/components/auth/auth-provider', () => ({
+vi.mock('@/components/auth/auth-provider', async (importOriginal) => ({
+  ...(await importOriginal()),
   useAuth: () => ({ loading: true, user: undefined }),
 }));
 vi.mock('@/components/intake/workspace-home', () => ({

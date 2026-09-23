@@ -22,6 +22,24 @@ class IntentStatus(StrEnum):
     FAILED = "failed"
 
 
+RUNNING_INTENT_STATUSES = (
+    IntentStatus.PREPARING,
+    IntentStatus.RESOLVING,
+)
+TERMINAL_INTENT_STATUSES = (
+    IntentStatus.CANCELLED,
+    IntentStatus.EXPIRED,
+    IntentStatus.FAILED,
+    IntentStatus.HANDED_OFF,
+)
+ACTIVE_INTENT_STATUSES = (
+    IntentStatus.QUEUED,
+    *RUNNING_INTENT_STATUSES,
+    IntentStatus.RETRY_WAIT,
+    IntentStatus.ACTION_REQUIRED,
+)
+
+
 @dataclass(frozen=True, slots=True)
 class IntentCreate:
     id: UUID

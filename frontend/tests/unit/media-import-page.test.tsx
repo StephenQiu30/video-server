@@ -23,7 +23,8 @@ import * as mediaImportRuntime from '@/lib/upload/media-import';
 
 const push = vi.fn();
 
-vi.mock('@/components/auth/auth-provider', () => ({
+vi.mock('@/components/auth/auth-provider', async (importOriginal) => ({
+  ...(await importOriginal()),
   useAuth: () => ({ user: { id: 'intent-test-owner', role: 'user' } }),
 }));
 

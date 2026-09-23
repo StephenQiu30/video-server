@@ -38,6 +38,22 @@ class AnalysisStage(StrEnum):
     PUBLISHING = "publishing"
 
 
+class AnalysisReportStatus(StrEnum):
+    VALIDATED = "validated"
+    PUBLISHING = "publishing"
+    AVAILABLE = "available"
+    PUBLISH_FAILED = "publish_failed"
+    DELETE_PENDING = "delete_pending"
+    DELETED = "deleted"
+
+
+class AnalysisReportArtifactStatus(StrEnum):
+    AVAILABLE = "available"
+    DELETE_PENDING = "delete_pending"
+    DELETED = "deleted"
+    FAILED = "failed"
+
+
 class AnalysisErrorCode(StrEnum):
     CANCELLED = "cancelled"
     CLI_UNAVAILABLE = "analysis_cli_unavailable"

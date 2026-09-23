@@ -7,6 +7,7 @@ from uuid import UUID
 from app.services.analysis.rules.enums import (
     AnalysisErrorCode,
     AnalysisInputKind,
+    AnalysisReportStatus,
     AnalysisResultContract,
     AnalysisStage,
     AnalysisStatus,
@@ -195,7 +196,7 @@ class AnalysisReportSnapshot:
     id: UUID
     job_id: UUID
     run_id: UUID
-    status: str
+    status: AnalysisReportStatus
     markdown: str
     content_sha256: str
     renderer_version: str

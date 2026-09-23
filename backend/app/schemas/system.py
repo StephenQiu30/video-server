@@ -1,12 +1,22 @@
+from enum import StrEnum
 from typing import Literal
 
 from app.schemas.common import StrictModel
 
 
+class LivenessStatus(StrEnum):
+    OK = "ok"
+
+
+class ReadinessStatus(StrEnum):
+    OK = "ok"
+    UNAVAILABLE = "unavailable"
+
+
 class LivenessResponse(StrictModel):
-    status: Literal["ok"]
+    status: LivenessStatus
 
 
 class ReadinessResponse(StrictModel):
-    status: Literal["ok", "unavailable"]
+    status: ReadinessStatus
     service: Literal["api"]

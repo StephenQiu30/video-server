@@ -17,6 +17,11 @@ from app.models import (
     AnalysisRunRow,
 )
 from app.repositories.analysis.repository_base import AnalysisRepositoryBase
+from app.services.analysis.rules.enums import (
+    AnalysisReportArtifactStatus,
+    AnalysisReportStatus,
+    AnalysisStatus,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,7 +48,8 @@ class AnalysisReportLifecycleRepository(AnalysisRepositoryBase):
                     select(AnalysisReportArtifactRow)
                     .where(
                         AnalysisReportArtifactRow.deleted_at.is_(None),
-                        AnalysisReportArtifactRow.status == "delete_pending",
+                        AnalysisReportArtifactRow.status
+                        == AnalysisReportArtifactStatus.DELETE_PENDING.value,
                     )
                     .order_by(
                         AnalysisReportArtifactRow.created_at,
@@ -59,14 +65,14 @@ class AnalysisReportLifecycleRepository(AnalysisRepositoryBase):
                 artifact = await session.scalar(statement)
                 if artifact is None:
                     break
-                artifact.status = "delete_pending"
+                artifact.status = AnalysisReportArtifactStatus.DELETE_PENDING.value
                 try:
                     await delete(artifact.object_key)
                 except Exception:
                     failed += 1
                     excluded.append(artifact.id)
                     continue
-                artifact.status = "deleted"
+                artifact.status = AnalysisReportArtifactStatus.DELETED.value
                 artifact.deleted_at = now
                 await self._finish_report_deletion(session, artifact.report_id)
                 deleted += 1
@@ -83,7 +89,13 @@ class AnalysisReportLifecycleRepository(AnalysisRepositoryBase):
         deleted = failed = 0
         async with self._sessions() as session, session.begin():
             inactive = or_(
-                AnalysisJobRow.status.not_in(("queued", "running", "retry_wait")),
+                AnalysisJobRow.status.not_in(
+                    (
+                        AnalysisStatus.QUEUED.value,
+                        AnalysisStatus.RUNNING.value,
+                        AnalysisStatus.RETRY_WAIT.value,
+                    )
+                ),
                 AnalysisJobRow.active_run_id != AnalysisResultRow.run_id,
             )
             has_artifacts = exists().where(
@@ -97,8 +109,12 @@ class AnalysisReportLifecycleRepository(AnalysisRepositoryBase):
                     .where(
                         ~has_artifacts,
                         or_(
-                            AnalysisResultRow.status == "delete_pending",
-                            (AnalysisResultRow.status == "publishing")
+                            AnalysisResultRow.status
+                            == AnalysisReportStatus.DELETE_PENDING.value,
+                            (
+                                AnalysisResultRow.status
+                                == AnalysisReportStatus.PUBLISHING.value
+                            )
                             & inactive
                             & (AnalysisResultRow.lease_expires_at <= now),
                         ),
@@ -109,7 +125,7 @@ class AnalysisReportLifecycleRepository(AnalysisRepositoryBase):
                 )
             ).all()
             for report, run_no in rows:
-                report.status = "delete_pending"
+                report.status = AnalysisReportStatus.DELETE_PENDING.value
                 try:
                     prefix = (
                         f"analyses/{report.job_id}/runs/{run_no}/reports/{report.id}"
@@ -119,7 +135,7 @@ class AnalysisReportLifecycleRepository(AnalysisRepositoryBase):
                 except Exception:
                     failed += 1
                     continue
-                report.status = "deleted"
+                report.status = AnalysisReportStatus.DELETED.value
                 report.lease_owner = None
                 report.lease_expires_at = None
                 deleted += 1
@@ -135,7 +151,9 @@ class AnalysisReportLifecycleRepository(AnalysisRepositoryBase):
                         AnalysisRunRow.run_no,
                     )
                     .join(AnalysisRunRow, AnalysisRunRow.id == AnalysisResultRow.run_id)
-                    .where(AnalysisResultRow.status != "deleted")
+                    .where(
+                        AnalysisResultRow.status != AnalysisReportStatus.DELETED.value
+                    )
                 )
             ).all()
         return frozenset(
@@ -158,4 +176,4 @@ class AnalysisReportLifecycleRepository(AnalysisRepositoryBase):
             return
         report = await session.get(AnalysisResultRow, report_id)
         if report is not None:
-            report.status = "deleted"
+            report.status = AnalysisReportStatus.DELETED.value

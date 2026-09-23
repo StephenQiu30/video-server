@@ -13,7 +13,8 @@ const runtime = vi.hoisted(() => ({
   remove: vi.fn(),
   callbacks: [] as Array<() => void>,
 }));
-vi.mock('@/lib/task-socket', () => ({
+vi.mock('@/lib/task-socket', async (importOriginal) => ({
+  ...(await importOriginal()),
   taskSocket: {
     subscribe: (
       _type: string,

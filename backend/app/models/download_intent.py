@@ -17,6 +17,15 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base, utc_now
+from app.services.downloads.intent_models import (
+    RUNNING_INTENT_STATUSES,
+    IntentStatus,
+)
+
+_INTENT_STATUS_SQL_VALUES = ", ".join(f"'{status.value}'" for status in IntentStatus)
+_RUNNING_INTENT_STATUS_SQL_VALUES = ", ".join(
+    f"'{status.value}'" for status in RUNNING_INTENT_STATUSES
+)
 
 
 class DownloadIntentRow(Base):
@@ -27,8 +36,7 @@ class DownloadIntentRow(Base):
         ),
         UniqueConstraint("job_id", name="uq_download_intents_job"),
         CheckConstraint(
-            "status IN ('queued','preparing','resolving','retry_wait',"
-            "'action_required','ready','handed_off','cancelled','expired','failed')",
+            f"status IN ({_INTENT_STATUS_SQL_VALUES})",
             name="ck_download_intents_status",
         ),
         CheckConstraint("mode = 'inspect'", name="ck_download_intents_mode"),
@@ -49,26 +57,29 @@ class DownloadIntentRow(Base):
             name="ck_download_intents_budget",
         ),
         CheckConstraint(
-            "(status IN ('preparing','resolving') AND lease_owner IS NOT NULL "
+            f"(status IN ({_RUNNING_INTENT_STATUS_SQL_VALUES}) "
+            "AND lease_owner IS NOT NULL "
             "AND lease_expires_at IS NOT NULL) OR "
-            "(status NOT IN ('preparing','resolving') AND lease_owner IS NULL "
+            f"(status NOT IN ({_RUNNING_INTENT_STATUS_SQL_VALUES}) "
+            "AND lease_owner IS NULL "
             "AND lease_expires_at IS NULL)",
             name="ck_download_intents_lease",
         ),
         CheckConstraint(
-            "(status = 'retry_wait') = (retry_at IS NOT NULL)",
+            f"(status = '{IntentStatus.RETRY_WAIT.value}') = (retry_at IS NOT NULL)",
             name="ck_download_intents_retry",
         ),
         CheckConstraint(
-            "status <> 'ready' OR inspection_id IS NOT NULL",
+            f"status <> '{IntentStatus.READY.value}' OR inspection_id IS NOT NULL",
             name="ck_download_intents_result",
         ),
         CheckConstraint(
-            "status <> 'handed_off' OR job_id IS NOT NULL",
+            f"status <> '{IntentStatus.HANDED_OFF.value}' OR job_id IS NOT NULL",
             name="ck_download_intents_handoff",
         ),
         CheckConstraint(
-            "status <> 'action_required' OR (authorization_id IS NOT NULL "
+            f"status <> '{IntentStatus.ACTION_REQUIRED.value}' "
+            "OR (authorization_id IS NOT NULL "
             "AND authorization_deadline IS NOT NULL)",
             name="ck_download_intents_action",
         ),
@@ -87,7 +98,9 @@ class DownloadIntentRow(Base):
     url_key_id: Mapped[str] = mapped_column(String(64), nullable=False)
     mode: Mapped[str] = mapped_column(String(16), nullable=False, default="inspect")
     access_policy: Mapped[str] = mapped_column(String(32), nullable=False)
-    status: Mapped[str] = mapped_column(String(24), nullable=False, default="queued")
+    status: Mapped[str] = mapped_column(
+        String(24), nullable=False, default=IntentStatus.QUEUED.value
+    )
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     fence: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     attempt: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

@@ -2,6 +2,7 @@ from pathlib import Path
 
 from app.core.config import Settings
 from app.main import create_app
+from app.services.analysis.rules.enums import AnalysisReportStatus
 
 
 def test_analysis_openapi_is_current_and_excludes_internal_fields(
@@ -56,6 +57,13 @@ def test_analysis_openapi_is_current_and_excludes_internal_fields(
     components = schema["components"]["schemas"]
     assert components["AnalysisRequest"]["additionalProperties"] is False
     fields = components["AnalysisResponse"]["properties"]
+    report_fields = components["AnalysisReportResponse"]["properties"]
+    assert report_fields["status"]["$ref"] == (
+        "#/components/schemas/AnalysisReportStatus"
+    )
+    assert components["AnalysisReportStatus"]["enum"] == [
+        status.value for status in AnalysisReportStatus
+    ]
     assert "report_markdown" in fields
     assert {"run_id", "run_no", "run_trigger", "version"} <= set(fields)
     assert {"input_kind", "result_contract"} <= set(fields)

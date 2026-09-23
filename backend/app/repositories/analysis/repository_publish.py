@@ -15,6 +15,11 @@ from app.repositories.analysis.repository_serialization import analysis_result_d
 from app.services.analysis.errors import PersistenceConflict, PersistenceNotFound
 from app.services.analysis.models import AnalysisJobSnapshot, AnalysisPublish
 from app.services.analysis.report import render_analysis_report_markdown
+from app.services.analysis.rules.enums import (
+    AnalysisReportStatus,
+    AnalysisStage,
+    AnalysisStatus,
+)
 from app.services.analysis.rules.result_types import (
     analysis_result_contract,
     analysis_result_language,
@@ -36,7 +41,10 @@ class AnalysisPublishRepository(AnalysisRepositoryBase):
             if row.active_run_id != command.run_id:
                 raise PersistenceConflict("analysis publish run is no longer active")
             run = await self.active_run(session, row, for_update=True)
-            if row.status == "succeeded" or row.stage == "publishing":
+            if (
+                row.status == AnalysisStatus.SUCCEEDED.value
+                or row.stage == AnalysisStage.PUBLISHING.value
+            ):
                 stored = await session.scalar(
                     select(AnalysisResultRow).where(
                         AnalysisResultRow.run_id == command.run_id
@@ -76,13 +84,13 @@ class AnalysisPublishRepository(AnalysisRepositoryBase):
                     report_markdown=markdown,
                     content_sha256=markdown_sha256,
                     renderer_version=AnalysisReportRenderer.DEFAULT,
-                    status="validated",
+                    status=AnalysisReportStatus.VALIDATED.value,
                     attempt=0,
                     created_at=command.now,
                 )
             )
             row.status = "running"
-            row.stage = "publishing"
+            row.stage = AnalysisStage.PUBLISHING.value
             row.stage_rank = 4
             row.progress = 95
             row.version += 1
@@ -98,7 +106,7 @@ class AnalysisPublishRepository(AnalysisRepositoryBase):
             run.cli_version = command.cli_version
             self.sync_run(row, run)
             run.status = "running"
-            run.stage = "publishing"
+            run.stage = AnalysisStage.PUBLISHING.value
             run.stage_rank = 4
             run.progress = 95
             report_event = self.report_requested_event(

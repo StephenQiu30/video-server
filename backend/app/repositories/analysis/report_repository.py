@@ -19,6 +19,12 @@ from app.models import (
 from app.repositories.analysis.report_lifecycle import AnalysisReportLifecycleRepository
 from app.repositories.analysis.report_state import lock_report_and_job
 from app.repositories.operational_counter import increment_counter
+from app.services.analysis.rules.enums import (
+    AnalysisErrorCode,
+    AnalysisReportArtifactStatus,
+    AnalysisReportStatus,
+    AnalysisStage,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,27 +74,32 @@ class SqlAlchemyAnalysisReportRepository(AnalysisReportLifecycleRepository):
             if job is None or run is None or run.job_id != job_id:
                 await increment_counter(session, "claim_noop", "report")
                 return None
-            if report.status == "available":
+            if report.status == AnalysisReportStatus.AVAILABLE.value:
                 await increment_counter(session, "claim_noop", "report")
                 return None
             if (
                 job.active_run_id != run_id
                 or job.version != expected_version
                 or job.status != "running"
-                or job.stage != "publishing"
+                or job.stage != AnalysisStage.PUBLISHING.value
                 or job.deleted_at is not None
-                or report.status not in {"validated", "publishing", "publish_failed"}
+                or report.status
+                not in {
+                    AnalysisReportStatus.VALIDATED.value,
+                    AnalysisReportStatus.PUBLISHING.value,
+                    AnalysisReportStatus.PUBLISH_FAILED.value,
+                }
             ):
                 await increment_counter(session, "claim_noop", "report")
                 return None
             if (
-                report.status == "publishing"
+                report.status == AnalysisReportStatus.PUBLISHING.value
                 and report.lease_expires_at is not None
                 and as_utc(report.lease_expires_at) > as_utc(now)
             ):
                 await increment_counter(session, "claim_noop", "report")
                 return None
-            report.status = "publishing"
+            report.status = AnalysisReportStatus.PUBLISHING.value
             report.attempt += 1
             report.lease_owner = worker_id
             report.lease_expires_at = now + lease_for
@@ -116,7 +127,7 @@ class SqlAlchemyAnalysisReportRepository(AnalysisReportLifecycleRepository):
             report, job = await lock_report_and_job(session, publication.id)
             if (
                 report is None
-                or report.status != "publishing"
+                or report.status != AnalysisReportStatus.PUBLISHING.value
                 or report.lease_owner != worker_id
                 or report.lease_expires_at is None
                 or as_utc(report.lease_expires_at) <= as_utc(now)
@@ -128,7 +139,7 @@ class SqlAlchemyAnalysisReportRepository(AnalysisReportLifecycleRepository):
                 and run is not None
                 and job.active_run_id == run.id
                 and job.status == "running"
-                and job.stage == "publishing"
+                and job.stage == AnalysisStage.PUBLISHING.value
                 and job.deleted_at is None
             )
             existing = {
@@ -154,7 +165,11 @@ class SqlAlchemyAnalysisReportRepository(AnalysisReportLifecycleRepository):
                             content_type=item.content_type,
                             size_bytes=item.size_bytes,
                             sha256=item.sha256,
-                            status="available" if active else "delete_pending",
+                            status=(
+                                AnalysisReportArtifactStatus.AVAILABLE.value
+                                if active
+                                else AnalysisReportArtifactStatus.DELETE_PENDING.value
+                            ),
                             created_at=now,
                             available_at=now,
                         )
@@ -165,7 +180,11 @@ class SqlAlchemyAnalysisReportRepository(AnalysisReportLifecycleRepository):
                     item.sha256,
                 ):
                     raise RuntimeError("stored report metadata conflicts")
-            report.status = "available" if active else "delete_pending"
+            report.status = (
+                AnalysisReportStatus.AVAILABLE.value
+                if active
+                else AnalysisReportStatus.DELETE_PENDING.value
+            )
             report.published_at = now
             report.lease_owner = None
             report.lease_expires_at = None
@@ -193,9 +212,9 @@ class SqlAlchemyAnalysisReportRepository(AnalysisReportLifecycleRepository):
         async with self._sessions() as session, session.begin():
             report, job = await lock_report_and_job(session, report_id)
             if report is None or report.status in {
-                "available",
-                "deleted",
-                "delete_pending",
+                AnalysisReportStatus.AVAILABLE.value,
+                AnalysisReportStatus.DELETED.value,
+                AnalysisReportStatus.DELETE_PENDING.value,
             }:
                 return
             if report.lease_owner not in {None, worker_id}:
@@ -204,18 +223,20 @@ class SqlAlchemyAnalysisReportRepository(AnalysisReportLifecycleRepository):
                 job is not None
                 and job.active_run_id == report.run_id
                 and job.status == "running"
-                and job.stage == "publishing"
+                and job.stage == AnalysisStage.PUBLISHING.value
                 and job.deleted_at is None
             )
             report.status = (
-                "publish_failed" if active and not terminal else "delete_pending"
+                AnalysisReportStatus.PUBLISH_FAILED.value
+                if active and not terminal
+                else AnalysisReportStatus.DELETE_PENDING.value
             )
             if terminal and active and job is not None:
                 run = await session.get(AnalysisRunRow, report.run_id)
                 job.status = "failed"
                 job.stage = None
                 job.stage_rank = 0
-                job.error_code = "analysis_resource_limit"
+                job.error_code = AnalysisErrorCode.RESOURCE_LIMIT.value
                 job.error_message = "Report exceeds publication byte budget."
                 job.finished_at = now
                 job.updated_at = now
@@ -247,10 +268,16 @@ class SqlAlchemyAnalysisReportRepository(AnalysisReportLifecycleRepository):
                         .where(
                             or_(
                                 AnalysisResultRow.status.in_(
-                                    {"validated", "publish_failed"}
+                                    {
+                                        AnalysisReportStatus.VALIDATED.value,
+                                        AnalysisReportStatus.PUBLISH_FAILED.value,
+                                    }
                                 ),
                                 (
-                                    (AnalysisResultRow.status == "publishing")
+                                    (
+                                        AnalysisResultRow.status
+                                        == AnalysisReportStatus.PUBLISHING.value
+                                    )
                                     & (
                                         AnalysisResultRow.lease_expires_at.is_(None)
                                         | (AnalysisResultRow.lease_expires_at <= now)
@@ -273,10 +300,10 @@ class SqlAlchemyAnalysisReportRepository(AnalysisReportLifecycleRepository):
                     job is None
                     or run is None
                     or job.active_run_id != run.id
-                    or job.stage != "publishing"
+                    or job.stage != AnalysisStage.PUBLISHING.value
                 ):
                     continue
-                report.status = "publish_failed"
+                report.status = AnalysisReportStatus.PUBLISH_FAILED.value
                 report.lease_owner = None
                 report.lease_expires_at = None
                 session.add(

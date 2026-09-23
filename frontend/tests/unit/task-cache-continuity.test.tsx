@@ -30,7 +30,8 @@ vi.mock('@/api/analyses', () => ({
   getAnalysis: runtime.get,
   cancelAnalysis: runtime.cancel,
 }));
-vi.mock('@/lib/task-socket', () => ({
+vi.mock('@/lib/task-socket', async (importOriginal) => ({
+  ...(await importOriginal()),
   taskSocket: { subscribe: () => () => undefined },
 }));
 

@@ -15,6 +15,10 @@ from app.models import (
     DocumentArtifactRow,
     DocumentRow,
 )
+from app.services.analysis.rules.enums import (
+    AnalysisReportArtifactStatus,
+    AnalysisReportStatus,
+)
 from app.services.storage_files.errors import StorageFileError, StorageFileErrorCode
 from app.services.storage_files.models import StoredFileCategory
 from app.services.storage_files.ports import DeleteStoredObject
@@ -122,7 +126,7 @@ async def _delete_report(
             select(AnalysisReportVersionRow)
             .where(
                 AnalysisReportVersionRow.id == file_id,
-                AnalysisReportVersionRow.status == "available",
+                AnalysisReportVersionRow.status == AnalysisReportStatus.AVAILABLE.value,
             )
             .with_for_update()
         )
@@ -133,7 +137,8 @@ async def _delete_report(
                 select(AnalysisReportArtifactRow)
                 .where(
                     AnalysisReportArtifactRow.report_id == report.id,
-                    AnalysisReportArtifactRow.status == "available",
+                    AnalysisReportArtifactRow.status
+                    == AnalysisReportArtifactStatus.AVAILABLE.value,
                     AnalysisReportArtifactRow.deleted_at.is_(None),
                 )
                 .order_by(AnalysisReportArtifactRow.format)
@@ -142,9 +147,9 @@ async def _delete_report(
         )
         for artifact in artifacts:
             await _delete_object(delete, artifact.object_key)
-        report.status = "deleted"
+        report.status = AnalysisReportStatus.DELETED.value
         for artifact in artifacts:
-            artifact.status = "deleted"
+            artifact.status = AnalysisReportArtifactStatus.DELETED.value
             artifact.deleted_at = now
 
 

@@ -23,6 +23,7 @@ from app.services.analysis.models import (
 from app.services.analysis.report import render_analysis_report_markdown
 from app.services.analysis.rules.enums import (
     AnalysisInputKind,
+    AnalysisReportStatus,
     AnalysisResultContract,
     AnalysisStatus,
 )
@@ -129,7 +130,7 @@ def analysis_view(
             id=ANALYSIS_ID,
             job_id=ANALYSIS_ID,
             run_id=ANALYSIS_ID,
-            status="available",
+            status=AnalysisReportStatus.AVAILABLE,
             markdown=render_analysis_report_markdown(result),
             content_sha256="a" * 64,
             renderer_version="analysis-report",

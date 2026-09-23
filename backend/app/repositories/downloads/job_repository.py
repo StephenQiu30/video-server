@@ -29,6 +29,7 @@ from app.services.downloads.download_models import (
     JobSaveResult,
     JobSnapshot,
 )
+from app.services.downloads.intent_models import IntentStatus
 from app.services.provider_route_admission import ProviderRouteKey, RouteCoolingDown
 from app.services.provider_types import ProviderAccessContextRef
 
@@ -60,7 +61,7 @@ class JobRepository(RepositoryBase):
                         )
                     )
                     if intent is not None:
-                        if intent.status == "handed_off":
+                        if intent.status == IntentStatus.HANDED_OFF.value:
                             handed_off = await session.get(
                                 DownloadJobRow, intent.job_id
                             )
@@ -69,7 +70,7 @@ class JobRepository(RepositoryBase):
                                     "intent download is unavailable"
                                 )
                             return self._idempotent_result(handed_off, command)
-                        if intent.status != "ready":
+                        if intent.status != IntentStatus.READY.value:
                             raise RepositoryConflict("intent is not ready for download")
                     existing = await session.scalar(self._idempotency_query(command))
                     if existing is not None:
@@ -283,7 +284,7 @@ def _handoff(
     intent: DownloadIntentRow | None, job: DownloadJobRow, now: datetime
 ) -> None:
     if intent is not None:
-        intent.status = "handed_off"
+        intent.status = IntentStatus.HANDED_OFF.value
         intent.job_id = job.id
         intent.version += 1
         intent.updated_at = now

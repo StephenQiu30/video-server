@@ -19,6 +19,17 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import JSON_DOCUMENT, Base, utc_now
+from app.services.analysis.rules.enums import (
+    AnalysisReportArtifactStatus,
+    AnalysisReportStatus,
+)
+
+_REPORT_STATUS_SQL_VALUES = ", ".join(
+    f"'{status.value}'" for status in AnalysisReportStatus
+)
+_ARTIFACT_STATUS_SQL_VALUES = ", ".join(
+    f"'{status.value}'" for status in AnalysisReportArtifactStatus
+)
 
 
 class AnalysisReportVersionRow(Base):
@@ -26,8 +37,7 @@ class AnalysisReportVersionRow(Base):
     __table_args__ = (
         UniqueConstraint("run_id", name="uq_analysis_report_versions_run"),
         CheckConstraint(
-            "status IN ('validated','publishing','available','publish_failed',"
-            "'delete_pending','deleted')",
+            f"status IN ({_REPORT_STATUS_SQL_VALUES})",
             name="ck_analysis_report_versions_status",
         ),
         CheckConstraint(
@@ -66,7 +76,9 @@ class AnalysisReportVersionRow(Base):
     provider: Mapped[str] = mapped_column(String(32), nullable=False)
     model: Mapped[str] = mapped_column(String(128), nullable=False)
     cli_version: Mapped[str] = mapped_column(String(128), nullable=False)
-    status: Mapped[str] = mapped_column(String(24), nullable=False, default="validated")
+    status: Mapped[str] = mapped_column(
+        String(24), nullable=False, default=AnalysisReportStatus.VALIDATED.value
+    )
     attempt: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     lease_owner: Mapped[str | None] = mapped_column(String(128))
     lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -90,7 +102,7 @@ class AnalysisReportArtifactRow(Base):
             "format IN ('markdown','docx')", name="ck_analysis_report_artifacts_format"
         ),
         CheckConstraint(
-            "status IN ('available','delete_pending','deleted','failed')",
+            f"status IN ({_ARTIFACT_STATUS_SQL_VALUES})",
             name="ck_analysis_report_artifacts_status",
         ),
         CheckConstraint("size_bytes > 0", name="ck_analysis_report_artifacts_size"),
@@ -109,7 +121,9 @@ class AnalysisReportArtifactRow(Base):
     content_type: Mapped[str] = mapped_column(String(128), nullable=False)
     size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
     sha256: Mapped[str] = mapped_column(String(64), nullable=False)
-    status: Mapped[str] = mapped_column(String(24), nullable=False, default="available")
+    status: Mapped[str] = mapped_column(
+        String(24), nullable=False, default=AnalysisReportArtifactStatus.AVAILABLE.value
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now
     )

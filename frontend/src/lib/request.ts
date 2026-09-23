@@ -5,6 +5,12 @@ import { reportSessionExpired, sessionGeneration } from '@/lib/session-events';
 
 const API_TIMEOUT_MS = 30_000;
 
+enum ApiErrorCode {
+  Unauthenticated = 'unauthenticated',
+}
+
+const UNAUTHENTICATED_ERROR_CODE: API.ErrorCode = ApiErrorCode.Unauthenticated;
+
 export type RequestOptions = AxiosRequestConfig & {
   getResponse?: boolean;
   skipErrorHandler?: boolean;
@@ -43,10 +49,7 @@ httpClient.interceptors.response.use(
     if (
       config &&
       error.response?.status === 401 &&
-      error.response.data?.code === 'unauthenticated' &&
-      !['/api/auth/login', '/api/auth/register', '/api/auth/logout'].includes(
-        config.url ?? '',
-      )
+      error.response.data?.code === UNAUTHENTICATED_ERROR_CODE
     ) {
       reportSessionExpired(config.sessionGeneration ?? sessionGeneration());
     }
