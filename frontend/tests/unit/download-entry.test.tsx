@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DownloadWorkspace from '@/components/intake/download-workspace';
+import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { inspection } from '../fixtures/download-fixtures';
 import { intentFixture } from '../fixtures/intent-fixtures';
@@ -28,6 +29,15 @@ function enter(url: string) {
   fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
 }
 
+function renderEntry() {
+  return render(
+    <TooltipProvider>
+      <DownloadWorkspace />
+      <Toaster position="bottom-right" />
+    </TooltipProvider>,
+  );
+}
+
 describe('simple download entry', () => {
   beforeEach(() => window.history.replaceState({}, '', '/'));
 
@@ -36,11 +46,7 @@ describe('simple download entry', () => {
       ...inspection,
       access_policy_id: 'operator_public',
     });
-    render(
-      <TooltipProvider>
-        <DownloadWorkspace />
-      </TooltipProvider>,
-    );
+    renderEntry();
     expect(screen.queryByLabelText('解析任务状态')).not.toBeInTheDocument();
     expect(document.querySelector('[data-slot="media-result"]')).toBeNull();
     expect(statuses).not.toHaveBeenCalled();
@@ -71,11 +77,7 @@ describe('simple download entry', () => {
     );
     mockHttpResponses(completed);
     try {
-      render(
-        <TooltipProvider>
-          <DownloadWorkspace />
-        </TooltipProvider>,
-      );
+      renderEntry();
       expect(screen.queryByLabelText('解析任务状态')).not.toBeInTheDocument();
       await waitFor(() => expect(httpRequests()).toHaveLength(1));
       await waitFor(() =>
@@ -91,11 +93,7 @@ describe('simple download entry', () => {
 
   it('clears previous results and changes the key only when input changes', async () => {
     mockHttpResponses(intentFixture(), inspection, intentFixture());
-    render(
-      <TooltipProvider>
-        <DownloadWorkspace />
-      </TooltipProvider>,
-    );
+    renderEntry();
     enter('https://youtu.be/first');
     await screen.findByText(inspection.title);
     fireEvent.change(screen.getByLabelText('公开视频地址'), {
@@ -117,11 +115,7 @@ describe('simple download entry', () => {
   it('finds the original intent after an uncertain submission without replaying POST', async () => {
     mockHttpError(new Error('response lost'));
     mockHttpResponses(intentFixture(), inspection);
-    render(
-      <TooltipProvider>
-        <DownloadWorkspace />
-      </TooltipProvider>,
-    );
+    renderEntry();
     const url = 'https://youtu.be/owned';
     enter(url);
     await screen.findByText(inspection.title);
@@ -144,15 +138,9 @@ it('shows an explicit update action for expired results without displaying stale
     expires_at: new Date(Date.now() - 1000).toISOString(),
     formats: [],
   });
-  render(
-    <TooltipProvider>
-      <DownloadWorkspace />
-    </TooltipProvider>,
-  );
+  renderEntry();
   enter('https://youtu.be/owned');
-  expect(
-    await screen.findByRole('button', { name: '更新解析结果' }),
-  ).toBeEnabled();
+  expect(await screen.findByRole('button', { name: '更新结果' })).toBeEnabled();
   expect(
     screen.queryByRole('button', { name: '创建下载任务' }),
   ).not.toBeInTheDocument();
@@ -160,8 +148,13 @@ it('shows an explicit update action for expired results without displaying stale
     1,
   );
   mockHttpResponses(intentFixture({ status: 'queued', version: 3 }));
-  fireEvent.click(screen.getByRole('button', { name: '更新解析结果' }));
-  expect(await screen.findByText('等待解析')).toBeVisible();
+  expect(
+    document
+      .querySelector('[data-slot="download-workspace"]')
+      ?.querySelector('[role="alert"]'),
+  ).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: '更新结果' }));
+  expect(await screen.findByText('等待解析')).toBeInTheDocument();
   expect(
     httpRequests()
       .filter((item) => item.method === 'POST')
@@ -174,18 +167,14 @@ it('shows an explicit update action for expired results without displaying stale
 
 it('updates the original intent when confirmation races expiry and does not automatically confirm again', async () => {
   mockHttpResponses(intentFixture(), inspection);
-  render(
-    <TooltipProvider>
-      <DownloadWorkspace />
-    </TooltipProvider>,
-  );
+  renderEntry();
   enter('https://youtu.be/owned');
   await screen.findByRole('button', { name: '创建下载任务' });
   const { ApiError } = await import('@/lib/request-error');
   mockHttpError(new ApiError(410, 'resource_expired', 'expired', '已过期。'));
   mockHttpResponses(intentFixture({ status: 'queued', version: 3 }));
   fireEvent.click(screen.getByRole('button', { name: '创建下载任务' }));
-  expect(await screen.findByText('等待解析')).toBeVisible();
+  expect(await screen.findByText('等待解析')).toBeInTheDocument();
   expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
   expect(
     httpRequests().filter((item) => item.url === '/api/downloads'),

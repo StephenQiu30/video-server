@@ -6,7 +6,7 @@ import { render } from '../helpers/query-render';
 const toastInfo = vi.hoisted(() => vi.fn());
 
 vi.mock('sonner', () => ({
-  toast: { info: toastInfo },
+  toast: { dismiss: vi.fn(), info: toastInfo },
 }));
 
 vi.mock('@/components/providers/use-provider-statuses', () => ({

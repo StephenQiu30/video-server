@@ -1,7 +1,8 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DownloadWorkspace from '@/components/intake/download-workspace';
 import { PUBLIC_INPUT_REQUIRED } from '@/components/intake/public-input';
+import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { httpClient } from '@/lib/request';
 import { ApiError } from '@/lib/request-error';
@@ -190,6 +191,10 @@ describe('DownloadWorkspace', () => {
     expect(
       await screen.findByRole('button', { name: '解析中…' }),
     ).toBeDisabled();
+    expect(await screen.findByText('正在确认解析任务')).toBeInTheDocument();
+    expect(
+      document.querySelector('[data-slot="download-workspace"] [role="alert"]'),
+    ).toBeNull();
     expect(input).toBeDisabled();
     expect(screen.getByRole('button', { name: '清空链接' })).toBeDisabled();
 
@@ -197,6 +202,30 @@ describe('DownloadWorkspace', () => {
     resolveInspection?.({ data: intentFixture() });
     expect(await screen.findByText(inspection.title)).toBeInTheDocument();
     expect(input).toBeEnabled();
+  });
+
+  it('keeps cancellation in the floating parse status', async () => {
+    mockHttpResponses(
+      intentFixture({ status: 'queued' }),
+      intentFixture({ status: 'cancelled', version: 2 }),
+    );
+    renderWorkspace();
+
+    fireEvent.change(screen.getByLabelText('公开视频地址'), {
+      target: { value: 'https://media.example/owned' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '解析媒体' }));
+
+    fireEvent.click(await screen.findByRole('button', { name: '取消解析' }));
+    await waitFor(() =>
+      expect(httpRequests().at(-1)).toMatchObject({
+        method: 'POST',
+        url: `/api/download-intents/${intentFixture().id}/cancel`,
+      }),
+    );
+    expect(
+      document.querySelector('[data-slot="download-workspace"] [role="alert"]'),
+    ).toBeNull();
   });
 
   it('sends the original share message to the server for inspection', async () => {
@@ -595,6 +624,7 @@ function renderWorkspace() {
   return render(
     <TooltipProvider>
       <DownloadWorkspace />
+      <Toaster position="bottom-right" />
     </TooltipProvider>,
   );
 }
