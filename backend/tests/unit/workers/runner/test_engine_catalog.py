@@ -40,6 +40,14 @@ async def test_mismatched_pin_never_claims_the_configured_commit_as_installed(tm
     assert observed.manifest_id != original.manifest_id
 
 
+async def test_changed_pot_setting_does_not_match_release_pin(tmp_path):
+    changed = settings(tmp_path).model_copy(
+        update={"runner_youtube_pot_provider_version": "bgutil-http-9.9.9"}
+    )
+    snapshot = await RunnerEngineCatalog(changed).get()
+    assert not snapshot.pin_matches
+
+
 async def test_catalog_refuses_a_different_configured_binary(tmp_path):
     configured = settings(tmp_path).model_copy(update={"runner_ytdlp_bin": "python"})
     with pytest.raises(RunnerFailure, match="engine catalog unavailable"):

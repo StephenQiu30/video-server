@@ -58,6 +58,7 @@ class RunnerEngineCatalog:
                         "-m",
                         "app.workers.runner.engine_catalog",
                         self._settings.runner_ytdlp_commit,
+                        self._settings.runner_youtube_pot_provider_version,
                     ),
                     cwd=_ROOT.parents[2],
                     timeout_seconds=8,
@@ -78,7 +79,9 @@ class RunnerEngineCatalog:
             raise RunnerFailure("engine_catalog_unavailable", status=503) from exc
 
 
-def collect_catalog(expected_commit: str) -> EngineCatalogResponse:
+def collect_catalog(
+    expected_commit: str, configured_pot_version: str
+) -> EngineCatalogResponse:
     """Run only in the child: yt-dlp plugin registration mutates global state."""
     from yt_dlp.extractor import gen_extractor_classes  # type: ignore[import-untyped]
     from yt_dlp.globals import plugin_dirs  # type: ignore[import-untyped]
@@ -122,6 +125,7 @@ def collect_catalog(expected_commit: str) -> EngineCatalogResponse:
             and Version(package[0]) == Version(YTDLP_ENGINE_VERSION)
             and pot_package is not None
             and pot_package[0] == YOUTUBE_POT_PROVIDER_VERSION
+            and configured_pot_version == f"bgutil-http-{YOUTUBE_POT_PROVIDER_VERSION}"
         ),
         bundled_plugins_sha256=digest.hexdigest(),
         pot_provider_version=None if pot_package is None else pot_package[0],
@@ -136,4 +140,4 @@ def collect_catalog(expected_commit: str) -> EngineCatalogResponse:
 
 
 if __name__ == "__main__":
-    print(collect_catalog(sys.argv[1]).model_dump_json())
+    print(collect_catalog(sys.argv[1], sys.argv[2]).model_dump_json())

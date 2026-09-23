@@ -4,13 +4,17 @@ import asyncio
 import json
 import os
 import shutil
+import sys
 from collections.abc import Awaitable, Callable
 from importlib.metadata import PackageNotFoundError, distribution
 from pathlib import Path
 from urllib.parse import urlsplit
 
 from app.workers.runner.settings import RunnerSettings
-from app.workers.runner.version import YTDLP_ENGINE_VERSION
+from app.workers.runner.version import (
+    YOUTUBE_POT_PROVIDER_VERSION,
+    YTDLP_ENGINE_VERSION,
+)
 from packaging.version import InvalidVersion, Version
 
 
@@ -72,6 +76,10 @@ async def _tcp_ready(url: str) -> bool:
 
 
 def _runtime_packages_ready(settings: RunnerSettings) -> bool:
+    executable = shutil.which(settings.runner_ytdlp_bin)
+    installed_binary = Path(sys.executable).parent / "yt-dlp"
+    if executable is None or Path(executable).resolve() != installed_binary.resolve():
+        return False
     yt_dlp = _package_record("yt-dlp")
     pot_plugin = _package_record("bgutil-ytdlp-pot-provider")
     pot_release = _pot_release(settings.runner_youtube_pot_provider_version)
@@ -87,9 +95,9 @@ def _runtime_packages_ready(settings: RunnerSettings) -> bool:
         return False
     return bool(
         engine_version_matches
-        and pot_release is not None
+        and pot_release == YOUTUBE_POT_PROVIDER_VERSION
         and pot_plugin is not None
-        and pot_plugin[0] == pot_release
+        and pot_plugin[0] == YOUTUBE_POT_PROVIDER_VERSION
     )
 
 

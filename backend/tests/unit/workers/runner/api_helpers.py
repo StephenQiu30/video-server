@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
@@ -105,6 +106,7 @@ def settings(tmp_path: Path) -> RunnerSettings:
         runner_hmac_secret=SECRET,
         runner_egress_proxy="http://egress-proxy:3128",
         runner_workspace_root=tmp_path,
+        runner_ytdlp_bin=str(Path(sys.executable).parent / "yt-dlp"),
     )
 
 

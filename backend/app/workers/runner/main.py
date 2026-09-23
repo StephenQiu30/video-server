@@ -27,7 +27,7 @@ from app.workers.runner.engine_catalog import RunnerEngineCatalog
 from app.workers.runner.errors import RunnerFailure
 from app.workers.runner.provider_registry import configure_provider_instances
 from app.workers.runner.provider_sessions import ProviderSessionStore
-from app.workers.runner.readiness import RunnerReadiness
+from app.workers.runner.readiness import RunnerReadiness, _runtime_packages_ready
 from app.workers.runner.service import MediaRunnerService
 from app.workers.runner.settings import RunnerSettings, get_runner_settings
 from app.workers.runner.signing import (
@@ -195,6 +195,7 @@ def create_app(
             authenticator,
         )
         payload = _parse(InspectRequest, body)
+        _require_pinned_engine(configured)
         return await _inspect_until_disconnect(
             request,
             runner.inspect(
@@ -219,6 +220,7 @@ def create_app(
             authenticator,
         )
         payload = _parse(ProviderContextRequest, body)
+        _require_pinned_engine(configured)
         return ProviderAccessContextContract.from_domain(
             await runner.context_for_provider(payload.provider_key)
         )
@@ -234,6 +236,7 @@ def create_app(
             authenticator,
         )
         payload = _parse(ProviderContextsRequest, body)
+        _require_pinned_engine(configured)
         resolved = await runner.contexts_for_providers(tuple(payload.provider_keys))
         return ProviderContextsResponse(
             contexts=[
@@ -250,6 +253,7 @@ def create_app(
             authenticator,
         )
         payload = _parse(DownloadRequest, body)
+        _require_pinned_engine(configured)
         return await runner.download(payload)
 
     @app.post(
@@ -282,6 +286,11 @@ def create_app(
         return await runner.status(task_id)
 
     return app
+
+
+def _require_pinned_engine(settings: RunnerSettings) -> None:
+    if not _runtime_packages_ready(settings):
+        raise RunnerFailure("engine_unavailable", status=503)
 
 
 async def _authenticated_body(

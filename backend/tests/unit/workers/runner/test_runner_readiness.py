@@ -39,7 +39,9 @@ async def test_runner_readiness_fails_when_a_dependency_is_missing(
     monkeypatch.setattr(readiness, "_runtime_packages_ready", lambda _settings: True)
     missing_binary = RunnerReadiness(
         settings(tmp_path),
-        binary_exists=lambda binary: None if binary == "yt-dlp" else binary,
+        binary_exists=lambda binary: (
+            None if binary == settings(tmp_path).runner_ytdlp_bin else binary
+        ),
     )
     missing_workspace = RunnerReadiness(
         settings(tmp_path / "missing"),
@@ -97,6 +99,14 @@ def test_runtime_package_probe_requires_exact_source_commit(
     )
 
     assert readiness._runtime_packages_ready(configured) is True
+
+    wrong_binary = configured.model_copy(update={"runner_ytdlp_bin": "python"})
+    assert readiness._runtime_packages_ready(wrong_binary) is False
+
+    wrong_pot = configured.model_copy(
+        update={"runner_youtube_pot_provider_version": "bgutil-http-9.9.9"}
+    )
+    assert readiness._runtime_packages_ready(wrong_pot) is False
 
 
 async def _always_ready(_url: str) -> bool:

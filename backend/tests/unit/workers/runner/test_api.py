@@ -4,6 +4,7 @@ import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import pytest
 from api_helpers import FakeService, anonymous_access_context, settings, signed_headers
 from app.workers.runner.main import create_app
 from fastapi.testclient import TestClient
@@ -134,6 +135,62 @@ def test_readiness_fails_closed_until_runner_dependencies_are_ready(
         "service": "media-runner",
         "status": "ready",
     }
+
+
+@pytest.mark.parametrize(
+    ("path", "payload"),
+    (
+        ("/internal/v1/context", {"provider_key": "generic"}),
+        ("/internal/v1/contexts", {"provider_keys": ["generic"]}),
+        ("/internal/v1/inspect", {"url": "https://media.example.com/video"}),
+        (
+            "/internal/v1/download",
+            {
+                "task_id": "job_123",
+                "url": "https://media.example.com/video",
+                "expected_provider_media_id": "controlled",
+                "expected_extractor_key": "Controlled",
+                "access_context": anonymous_access_context(),
+                "plan": {
+                    "height": 1080,
+                    "width": 1920,
+                    "fps_bucket": "fps_30",
+                    "dynamic_range": "sdr",
+                    "video_codec_family": "h264",
+                    "audio_codec_family": "aac",
+                    "audio_language": "zh-CN",
+                    "container_preference": "mp4",
+                    "compatibility_profile": "balanced",
+                    "hints": {"video_id": "v", "audio_id": "a"},
+                },
+            },
+        ),
+    ),
+)
+def test_signed_work_is_rejected_when_installed_engine_does_not_match(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    path: str,
+    payload: dict[str, object],
+) -> None:
+    monkeypatch.setattr(
+        "app.workers.runner.main._runtime_packages_ready", lambda _settings: False
+    )
+    service = FakeService()
+    client = TestClient(create_app(settings(tmp_path), service=service))
+    body = json.dumps(payload).encode()
+
+    response = client.post(
+        path,
+        content=body,
+        headers=signed_headers(path, body, "engine_drift_nonce_12345"),
+    )
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "engine_unavailable"
+    assert service.context_requests == []
+    assert service.inspected_url is None
+    assert service.download_request is None
 
 
 def test_tampered_or_unsigned_request_has_stable_error(tmp_path: Path) -> None:
