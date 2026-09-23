@@ -188,6 +188,8 @@ class ProviderRegistry:
 
     def profile_for_key(self, provider_key: str) -> ProviderProfile:
         profile = self._by_key.get(provider_key)
+        if profile is None and provider_key == self._fallback.key:
+            profile = self._fallback
         if profile is None or profile.support_status is ProviderSupportStatus.DISABLED:
             raise RunnerFailure("provider_unsupported", status=422)
         return profile

@@ -20,7 +20,10 @@ from app.workers.runner.metadata import (
     normalize_selected_format_metadata,
 )
 from app.workers.runner.provider_errors import ProviderFailureContext
-from app.workers.runner.provider_registry import ProviderRequest
+from app.workers.runner.provider_registry import (
+    ProviderRequest,
+    current_provider_registry,
+)
 from app.workers.runner.settings import RunnerSettings
 from app.workers.runner.utilities import normalize_for_settings, safe_media_url
 from app.workers.runner.workspace import TaskWorkspace
@@ -43,6 +46,7 @@ class RunnerInspectionPipeline:
         cookie_jar: Path | None,
     ) -> MediaInspection:
         payload = await self._inspect_with_retry(source, workspace, cookie_jar)
+        _require_generic_source_identity(source, payload)
         failure_context = _failure_context(source, context)
         payload = normalize_media_payload(
             payload, max_assets=self._settings.runner_max_gallery_assets
@@ -360,6 +364,48 @@ class RunnerInspectionPipeline:
             except OSError:
                 continue
         return payload
+
+
+def _require_generic_source_identity(
+    source: ProviderRequest, payload: dict[str, object]
+) -> None:
+    """Keep a long-tail extractor from crossing a registered route or deny rule."""
+    if source.profile.key != "generic":
+        return
+    if (
+        payload.get("media_kind") in {"image_gallery", "video_collection"}
+        or payload.get("entries") is not None
+        or "section_start" in payload
+        or "section_end" in payload
+        or str(payload.get("_type") or "").casefold()
+        in {"playlist", "multi_video", "url", "url_transparent"}
+    ):
+        # Member URLs can cross a disabled Provider. In yt-dlp's transparent
+        # clip merge, section bounds let the outer extractor key mask the inner
+        # Provider key, so even a single clipped video is not attested here.
+        raise RunnerFailure("provider_unsupported", status=422)
+    webpage_url = payload.get("webpage_url")
+    extractor_key = payload.get("extractor_key")
+    if not isinstance(webpage_url, str) or not isinstance(extractor_key, str):
+        raise RunnerFailure("provider_unsupported", status=422)
+    final_url = safe_media_url(webpage_url)
+    if current_provider_registry().resolve(final_url).key != "generic":
+        raise RunnerFailure("provider_unsupported", status=422)
+    # GenericIE can follow arbitrary embeds and redirects without proving the
+    # final platform. Named upstream extractors must claim the original URL.
+    if extractor_key in {"Generic", "PeerTube"}:
+        raise RunnerFailure("provider_unsupported", status=422)
+    from yt_dlp.extractor import get_info_extractor  # type: ignore[import-untyped]
+
+    try:
+        extractor = get_info_extractor(extractor_key)
+    except KeyError:
+        # Project plugin keys are intentionally not loaded into this process;
+        # an opaque key could represent an embedded registered Provider.
+        raise RunnerFailure("provider_unsupported", status=422) from None
+    else:
+        if not extractor.suitable(source.source_url):
+            raise RunnerFailure("provider_unsupported", status=422)
 
 
 def _unknown_audio(raw: object) -> bool:

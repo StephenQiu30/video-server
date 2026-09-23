@@ -16,6 +16,8 @@ from app.workers.runner.provider_sessions import ProviderSessionStore
 from app.workers.runner.service import MediaRunnerService
 from app.workers.runner.settings import RunnerSettings
 from helpers import download_request, result, settings, split_media_info
+from yt_dlp import YoutubeDL
+from yt_dlp.extractor import get_info_extractor
 
 
 async def test_youtube_companion_mismatch_blocks_context_and_inspection(
@@ -54,6 +56,184 @@ async def test_inspect_rejects_frozen_context_drift_before_platform_io(tmp_path)
         await service.inspect(url, access_context=frozen)
     assert error.value.code == "client_context_mismatch"
     assert supervisor.calls == []
+
+
+async def test_generic_context_key_matches_url_before_extractor_io(tmp_path):
+    supervisor = FixtureSupervisor(split_media_info())
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+    url_context = await service.context("https://media.example.com/video")
+
+    assert url_context.provider_key == "generic"
+    assert await service.context_for_provider("generic") == url_context
+    assert await service.contexts_for_providers(("generic",)) == (url_context,)
+    assert supervisor.calls == []
+
+
+@pytest.mark.parametrize(
+    "webpage_url,extractor_key",
+    (
+        ("https://www.dailymotion.com/video/x", "Dailymotion"),
+        ("https://media.example.com/video", "Dailymotion"),
+        ("https://www.douyin.com/video/1", "Douyin"),
+        ("https://media.example.com/video", "DouyinSharePage"),
+    ),
+)
+async def test_generic_cannot_bypass_provider_route_after_extraction(
+    tmp_path, webpage_url, extractor_key
+):
+    payload = {
+        **split_media_info(),
+        "webpage_url": webpage_url,
+        "extractor_key": extractor_key,
+    }
+    supervisor = FixtureSupervisor(payload)
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    with pytest.raises(RunnerFailure) as error:
+        await service.inspect("https://media.example.com/video")
+
+    assert error.value.code == "provider_unsupported"
+    assert len(supervisor.calls) == 1
+
+
+async def test_generic_named_upstream_extractor_can_inspect_its_own_url(tmp_path):
+    url = "https://commons.wikimedia.org/wiki/File:Big_buck_bunny_mcu.ogv"
+    supervisor = FixtureSupervisor(
+        {**split_media_info(), "webpage_url": url, "extractor_key": "Wikimedia"}
+    )
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    inspected = await service.inspect(url)
+
+    assert inspected.media.extractor_key == "Wikimedia"
+    assert len(supervisor.calls) == 1
+
+
+@pytest.mark.parametrize("extractor_key", ("Generic", None, "PeerTube"))
+async def test_generic_requires_a_named_extractor_with_final_page(
+    tmp_path, extractor_key
+):
+    supervisor = FixtureSupervisor(
+        {**split_media_info(), "extractor_key": extractor_key}
+    )
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    with pytest.raises(RunnerFailure) as error:
+        await service.inspect("https://media.example.com/video")
+
+    assert error.value.code == "provider_unsupported"
+    assert len(supervisor.calls) == 1
+
+
+async def test_generic_requires_the_final_page_identity(tmp_path):
+    payload = split_media_info()
+    payload.pop("webpage_url")
+    supervisor = FixtureSupervisor(payload)
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    with pytest.raises(RunnerFailure) as error:
+        await service.inspect("https://media.example.com/video")
+
+    assert error.value.code == "provider_unsupported"
+    assert len(supervisor.calls) == 1
+
+
+async def test_unapproved_peertube_instance_does_not_use_generic(tmp_path):
+    url = "https://video.unapproved.example/w/AbCdEfGhIjKlMnOpQrStUv"
+    supervisor = FixtureSupervisor(
+        {**split_media_info(), "webpage_url": url, "extractor_key": "PeerTube"}
+    )
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    with pytest.raises(RunnerFailure) as error:
+        await service.inspect(url)
+
+    assert error.value.code == "provider_unsupported"
+    assert len(supervisor.calls) == 1
+
+
+async def test_generic_download_reinspection_rejects_cross_provider_result(tmp_path):
+    supervisor = FixtureSupervisor(
+        {
+            **split_media_info(),
+            "webpage_url": "https://www.dailymotion.com/video/x",
+            "extractor_key": "Dailymotion",
+        }
+    )
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    with pytest.raises(RunnerFailure) as error:
+        await service.download(download_request())
+
+    assert error.value.code == "provider_unsupported"
+    assert len(supervisor.calls) == 1
+
+
+async def test_generic_collection_cannot_hide_a_cross_provider_member(tmp_path):
+    url = "https://commons.wikimedia.org/wiki/File:Big_buck_bunny_mcu.ogv"
+    supervisor = FixtureSupervisor(
+        {
+            **split_media_info(),
+            "webpage_url": url,
+            "extractor_key": "Wikimedia",
+            "_type": "playlist",
+            "entries": [
+                {
+                    **split_media_info(),
+                    "webpage_url": "https://www.dailymotion.com/video/x",
+                    "extractor_key": "Dailymotion",
+                }
+            ],
+        }
+    )
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    with pytest.raises(RunnerFailure) as error:
+        await service.inspect(url)
+
+    assert error.value.code == "provider_unsupported"
+    assert len(supervisor.calls) == 1
+
+
+async def test_generic_clip_cannot_mask_youtube_in_transparent_merge(tmp_path):
+    url = "https://ladigitale.dev/digiview/#/v/67a8ea5644d7a"
+    youtube_url = "https://www.youtube.com/watch?v=abc123"
+    assert get_info_extractor("Digiview").suitable(url)
+    inner = {
+        **split_media_info(),
+        "extractor_key": "Youtube",
+        "extractor": "youtube",
+        "webpage_url": youtube_url,
+    }
+    outer = {
+        "_type": "url_transparent",
+        "url": youtube_url,
+        "ie_key": "Youtube",
+        "id": "clip123",
+        "title": "Outer",
+        "section_start": 5,
+        "section_end": 15,
+        "extractor_key": "Digiview",
+        "extractor": "digiview",
+        "webpage_url": url,
+        "original_url": url,
+    }
+    ydl = YoutubeDL(
+        {"skip_download": True, "quiet": True, "ignore_no_formats_error": True}
+    )
+    ydl.extract_info = lambda *args, **kwargs: inner.copy()
+    merged = ydl.process_ie_result(outer, download=False)
+    assert merged.get("_type") is None
+    assert merged["extractor_key"] == "Digiview"
+    assert merged["webpage_url"] == url
+    supervisor = FixtureSupervisor(merged)
+    service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)
+
+    with pytest.raises(RunnerFailure) as error:
+        await service.inspect(url)
+
+    assert error.value.code == "provider_unsupported"
+    assert len(supervisor.calls) == 1
 
 
 async def test_expired_probe_deadline_never_accesses_platform(tmp_path):

@@ -18,6 +18,7 @@ def split_media_info(height: int = 1080) -> dict[str, object]:
         "title": "Controlled",
         "duration": 30,
         "extractor_key": "Controlled",
+        "webpage_url": "https://media.example.com/video",
         "live_status": "not_live",
         "formats": [
             {

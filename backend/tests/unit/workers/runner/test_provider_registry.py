@@ -514,6 +514,7 @@ def test_unknown_hosts_use_the_safe_generic_strategy() -> None:
     profile = provider_profile("https://media.example.com/video/1")
 
     assert profile.key == "generic"
+    assert default_provider_registry().profile_for_key("generic") == profile
     assert profile.command_args == ()
     assert profile.inspection_attempts == 2
 
