@@ -311,6 +311,7 @@
 - 2026-09-23 新增通用宿主来源设计：将已登录浏览器明确为会话平台的外部前提，标准启动须自动发现、验证和持续发布；当前 `provider-sources` 只负责已有来源复制，`FILE_PROVIDERS` 覆盖有限且需要手工首次发布，宿主 Agent 当前未接入标准启动。S4／S5 尚未实施，不能宣称 YouTube 或其他会话平台在 GitHub 下载后即用。
 - 2026-09-23 本机实施进度：新增 macOS Chrome 宿主来源自动发现与唯一 Profile 选择、平台按域导出、加密来源 CAS 发布／刷新、手工来源保留及缺登录撤销；标准启动在 macOS 默认声明 YouTube 受控路线，准备运行文件并安装当前用户 LaunchAgent。当前本机已有稳定来源密钥；`provider_startup prepare` 和 Compose `config --quiet` 通过，LaunchAgent 已运行，宿主同步返回 `ready`。定向重建 API、下载 Worker、Canary 后完成上述真实文件闭环，未执行全栈 `start` 的重建演练。Linux／Windows 适配器、新宿主空卷、无登录／多 Profile 实机、长期轮换与密钥丢失恢复仍未验收，P9.09 不关闭。
 - 2026-09-23 错误归属补齐：受控 Runner 在上下文建立前缺少部署来源时向普通页面返回 `provider_configuration_missing`，上下文建立后内容本身要求权限仍返回 `provider_auth_required`；平台额外验证文案不再错误指称“公开路线”。专项后端 49 项、前端 30 项通过；全量后端 2,114 项通过、4 项环境条件跳过，Ruff／格式／Mypy、前端 lint／格式／类型检查通过。未以模拟无来源代替真实空宿主验收。
+- 2026-09-23 冷状态与续租复核：在现有 PostgreSQL 的临时隔离 schema 中，从无来源记录开始读取本机已登录 Chrome，自动发布 YouTube revision 1 并由复制器生成可读短租约；推进维护时钟进入刷新窗口后发布 revision 2，回归另覆盖超过原有效期、浏览器来源内容变化与退出登录的版本动作。标准 `provider_startup start` 第一次全栈重建后，LaunchAgent 重装命中 `bootout` 后标签尚未释放的 `bootstrap` 退出 5；加入有界重试并在真实宿主重装通过，再次运行同一标准入口成功，全部业务容器健康、宿主服务保持运行。重建后固定 YouTube operator metadata／media 各 1 项成功，分别耗时 12,950／13,192 ms。这仍未覆盖全新物理宿主、平台账号服务端失效后重新登录或普通页面的本轮完整文件。
 
 <a id="p9-10"></a>
 
