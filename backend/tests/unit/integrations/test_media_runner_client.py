@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from datetime import UTC, datetime
 from email.utils import format_datetime
 from pathlib import Path
@@ -19,6 +20,10 @@ from app.services.downloads.errors import (
     MediaInspectionTemporarilyUnavailable,
     MediaInspectionTimeout,
     MediaInspectionUnsupported,
+)
+from app.services.provider_route_admission import (
+    ProviderRouteAdmission,
+    ProviderRouteLease,
 )
 from app.services.provider_types import ProviderAccessContextRef, ProviderAccessMode
 from app.workers.runner.contracts import DownloadPlanContract
@@ -483,6 +488,135 @@ async def test_download_sends_expected_inspection_identity(tmp_path) -> None:
     assert captured["expected_provider_media_id"] == "video-1"
     assert captured["expected_extractor_key"] == "Controlled"
     assert captured["access_context"] == _access_context().to_document()
+    await http.aclose()
+
+
+@pytest.mark.asyncio
+async def test_rollback_probe_accepts_legacy_revision_only(tmp_path: Path) -> None:
+    newer = replace(_access_context(), runtime_revision="a" * 64)
+    returned = _access_context().to_document()
+
+    async def respond(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/internal/v1/inspect"
+        assert json.loads(request.content)["access_context"] == newer.to_document()
+        return httpx.Response(
+            200,
+            json={
+                "media": {
+                    "provider_media_id": "video-1",
+                    "title": "Video",
+                    "duration_seconds": 30,
+                    "extractor_key": "Controlled",
+                },
+                "streams": [],
+                "options": [{"option_id": "one", "label": "720p"}],
+                "access_context": returned,
+            },
+        )
+
+    http = httpx.AsyncClient(
+        base_url="http://runner", transport=httpx.MockTransport(respond)
+    )
+    client = MediaRunnerHttpClient(
+        base_url="http://runner",
+        secret=b"s" * 32,
+        workspace_root=tmp_path,
+        inspect_timeout_seconds=1,
+        download_timeout_seconds=1,
+        client=http,
+    )
+    await client._inspect_response("https://media.example/video", newer)
+    returned["engine_commit"] = "different"
+    with pytest.raises(MediaRunnerClientError) as captured:
+        await client._inspect_response("https://media.example/video", newer)
+    assert captured.value.code == "client_context_mismatch"
+    await http.aclose()
+
+
+@pytest.mark.asyncio
+async def test_rollback_half_open_download_rechecks_legacy_runner(
+    tmp_path: Path,
+) -> None:
+    newer = replace(_access_context(), runtime_revision="a" * 64)
+    events: list[str] = []
+
+    class HalfOpen:
+        def __init__(self) -> None:
+            self.probing = True
+
+        async def acquire(self, key, owner):
+            return ProviderRouteLease(
+                key,
+                owner,
+                1 if self.probing else None,
+                datetime.now(UTC).replace(year=datetime.now(UTC).year + 1),
+            )
+
+        async def finish(self, _lease, *, success, **_kwargs):
+            assert success
+            self.probing = False
+
+    async def respond(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/internal/v1/inspect":
+            events.append("probe")
+            return httpx.Response(
+                200,
+                json={
+                    "media": {
+                        "provider_media_id": "video-1",
+                        "title": "Video",
+                        "duration_seconds": 30,
+                        "extractor_key": "Controlled",
+                    },
+                    "streams": [],
+                    "options": [{"option_id": "one", "label": "gallery"}],
+                    "access_context": _access_context().to_document(),
+                },
+            )
+        events.append("download")
+        return httpx.Response(
+            200,
+            json={
+                "task_id": "job_123",
+                "workspace_path": str(tmp_path / "job-controlled"),
+                "artifact": {
+                    "relative_path": "artifact.zip",
+                    "size_bytes": 5,
+                    "sha256": "a" * 64,
+                    "duration_seconds": 30,
+                    "container": "zip",
+                    "video_streams": 0,
+                    "audio_streams": 0,
+                    "media_kind": "image_gallery",
+                    "asset_count": 1,
+                },
+                "selection": None,
+            },
+        )
+
+    http = httpx.AsyncClient(
+        base_url="http://runner", transport=httpx.MockTransport(respond)
+    )
+    client = MediaRunnerHttpClient(
+        base_url="http://runner",
+        secret=b"s" * 32,
+        workspace_root=tmp_path,
+        inspect_timeout_seconds=1,
+        download_timeout_seconds=1,
+        client=http,
+        admission=ProviderRouteAdmission(HalfOpen()),  # type: ignore[arg-type]
+    )
+    await client.download(
+        "job_123",
+        "https://media.example/video",
+        None,
+        expected_provider_media_id="video-1",
+        expected_extractor_key="Controlled",
+        access_context=newer,
+        media_kind="image_gallery",  # type: ignore[arg-type]
+        asset_count=1,
+    )
+    assert events == ["probe", "download"]
     await http.aclose()
 
 

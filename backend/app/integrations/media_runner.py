@@ -8,6 +8,7 @@ import re
 import secrets
 import time
 from collections.abc import Callable, Mapping
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
 from pathlib import Path
@@ -325,7 +326,14 @@ class MediaRunnerHttpClient:
             timeout_code="inspection_timeout",
         )
         if context is not None:
-            if response.access_context.to_domain() != context:
+            returned_context = response.access_context.to_domain()
+            if returned_context.runtime_revision == "legacy":
+                # A rollback Runner emits its own legacy identity. Its inspect
+                # result still has to match every other frozen route reference.
+                returned_context = replace(
+                    returned_context, runtime_revision=context.runtime_revision
+                )
+            if returned_context != context:
                 raise MediaRunnerClientError("client_context_mismatch", 422)
             if not response.options:
                 raise MediaRunnerClientError("format_unavailable", 422)
