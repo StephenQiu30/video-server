@@ -194,12 +194,14 @@ class MediaRunnerHttpClient:
         return tuple(_context_to_domain(context) for context in response.contexts)
 
     async def inspect(self, url: str) -> RunnerInspection:
+        context_ready = False
         try:
             context = (
                 await self.context(url)
                 if self._admission is not None or self._expected_access_mode is not None
                 else None
             )
+            context_ready = context is not None
             if self._admission is None:
                 response = await self._inspect_response(url, context)
             else:
@@ -224,7 +226,9 @@ class MediaRunnerHttpClient:
             if exc.code == "credential_required":
                 raise MediaInspectionAuthRequired from exc
             if exc.code == "guest_context_required":
-                raise MediaInspectionGuestContextRequired from exc
+                raise MediaInspectionGuestContextRequired(
+                    before_media_io=not context_ready
+                ) from exc
             if exc.code == "provider_session_not_allowed":
                 raise MediaInspectionPolicyNotAllowed from exc
             if exc.code in {

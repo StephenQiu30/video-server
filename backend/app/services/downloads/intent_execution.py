@@ -128,5 +128,13 @@ class IntentExecution:
                     retry_at = max(retry_at, exc.retry_at)
             with suppress(PersistenceConflict):
                 await self._repository.fail(
-                    lease, now=now, reason_code=code.value, retry_at=retry_at
+                    lease,
+                    now=now,
+                    reason_code=code.value,
+                    retry_at=retry_at,
+                    preparation_wait=(
+                        isinstance(exc, ApplicationError)
+                        and exc.preparation_wait
+                        and code is ApplicationErrorCode.PROVIDER_GUEST_CONTEXT_REQUIRED
+                    ),
                 )

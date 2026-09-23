@@ -42,10 +42,15 @@ class ApplicationErrorCode(StrEnum):
 
 class ApplicationError(RuntimeError):
     def __init__(
-        self, code: ApplicationErrorCode, *, retry_at: datetime | None = None
+        self,
+        code: ApplicationErrorCode,
+        *,
+        retry_at: datetime | None = None,
+        preparation_wait: bool = False,
     ) -> None:
         self.code = code
         self.retry_at = retry_at
+        self.preparation_wait = preparation_wait
         super().__init__(code.value)
 
 
@@ -88,6 +93,15 @@ class MediaInspectionAuthRequired(MediaInspectionFailure):
 
 class MediaInspectionGuestContextRequired(MediaInspectionFailure):
     """The public route needs a visitor context, never an account login."""
+
+    def __init__(
+        self,
+        *,
+        before_media_io: bool = False,
+        access_mode: ProviderAccessMode | None = None,
+    ) -> None:
+        self.before_media_io = before_media_io
+        super().__init__(access_mode=access_mode)
 
 
 class MediaInspectionConfigurationMissing(MediaInspectionFailure):

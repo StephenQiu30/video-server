@@ -15,6 +15,7 @@ from app.services.downloads.errors import (
     MediaInspectionConfigurationMissing,
     MediaInspectionDurationLimitExceeded,
     MediaInspectionFailure,
+    MediaInspectionGuestContextRequired,
     MediaInspectionLinkUnavailable,
     MediaInspectionMediaUnsupported,
     MediaInspectionTemporarilyUnavailable,
@@ -182,6 +183,44 @@ async def test_inspect_exposes_provider_access_requirement() -> None:
     with pytest.raises(MediaInspectionAuthRequired):
         await client.inspect("https://www.douyin.com/video/123")
 
+    await http.aclose()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("context_ready", (False, True))
+async def test_guest_wait_only_applies_before_media_request(
+    monkeypatch: pytest.MonkeyPatch, context_ready: bool
+) -> None:
+    async def respond(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            503,
+            json={
+                "error": {"code": "guest_context_required", "message": "unavailable"}
+            },
+        )
+
+    http = httpx.AsyncClient(
+        base_url="http://runner", transport=httpx.MockTransport(respond)
+    )
+    client = MediaRunnerHttpClient(
+        base_url="http://runner",
+        secret=b"s" * 32,
+        workspace_root=Path("."),
+        inspect_timeout_seconds=1,
+        download_timeout_seconds=1,
+        expected_access_mode=ProviderAccessMode.GUEST,
+        client=http,
+    )
+
+    async def context(_url: str) -> ProviderAccessContextRef:
+        if not context_ready:
+            raise MediaRunnerClientError("guest_context_required", 503)
+        return _access_context()
+
+    monkeypatch.setattr(client, "context", context)
+    with pytest.raises(MediaInspectionGuestContextRequired) as captured:
+        await client.inspect("https://www.douyin.com/video/123")
+    assert captured.value.before_media_io is not context_ready
     await http.aclose()
 
 

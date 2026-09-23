@@ -14,7 +14,10 @@ from app.models import MediaInspectionRow, OutboxEventRow, ResourceAdmissionRow
 from app.repositories.downloads.intent_repository import IntentRepository
 from app.repositories.downloads.repository import SqlAlchemyDownloadRepository
 from app.services.download_execution.models import ExecutionDisposition
-from app.services.downloads.errors import MediaInspectionTemporarilyUnavailable
+from app.services.downloads.errors import (
+    MediaInspectionGuestContextRequired,
+    MediaInspectionTemporarilyUnavailable,
+)
 from app.services.downloads.fingerprints import HmacRequestFingerprinter
 from app.services.downloads.inspect_media import InspectMedia
 from app.services.downloads.intent_execution import IntentExecution
@@ -84,6 +87,43 @@ async def test_public_intent_selects_guest_without_account_escalation(postgres_e
     assert replay.id == first.id and replay.access_policy == first.access_policy
     other = await service.create(URL, TEST_USER.owner_hash, "other")
     assert other.access_policy is ProviderAccessPolicy.PUBLIC
+
+
+class PreparingGuestRunner(FakeRunner):
+    def __init__(self) -> None:
+        super().__init__(runner_result())
+        self.waits = 0
+
+    async def inspect(self, url, *, access_policy):
+        if self.waits < 4:
+            self.waits += 1
+            raise MediaInspectionGuestContextRequired(before_media_io=True)
+        return await super().inspect(url, access_policy=access_policy)
+
+
+async def test_guest_preparation_wait_keeps_original_intent_and_attempt_budget(
+    postgres_engine,
+):
+    runner = PreparingGuestRunner()
+    service, repo, executor, clock, _ = components(
+        postgres_engine, runner, guest_providers=frozenset({"douyin"})
+    )
+    intent = await service.create(
+        "https://www.douyin.com/video/7674644830270473609",
+        TEST_USER.owner_hash,
+        "cold-guest",
+    )
+    for _ in range(4):
+        assert await executor.execute(intent.id) is ExecutionDisposition.ACK
+        waiting = await repo.get(intent.id, TEST_USER.owner_hash)
+        assert waiting.status == "retry_wait"
+        assert waiting.attempt == 0
+        clock[0] += timedelta(seconds=15)
+        assert await repo.recover(now=clock[0]) == 1
+    assert await executor.execute(intent.id) is ExecutionDisposition.ACK
+    ready = await repo.get(intent.id, TEST_USER.owner_hash)
+    assert ready.status == "ready" and ready.attempt == 1
+    assert ready.id == intent.id and ready.deadline == intent.deadline
 
 
 async def test_api_accepts_before_parse_and_recovers_same_result(postgres_engine):

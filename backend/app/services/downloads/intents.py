@@ -70,6 +70,7 @@ class IntentPersistence(Protocol):
         now: datetime,
         reason_code: str,
         retry_at: datetime | None = None,
+        preparation_wait: bool = False,
     ) -> IntentSnapshot: ...
     async def recover(
         self,

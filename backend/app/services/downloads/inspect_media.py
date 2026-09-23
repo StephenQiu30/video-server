@@ -164,7 +164,8 @@ class InspectMedia:
             raise ApplicationError(ApplicationErrorCode.PROVIDER_AUTH_REQUIRED) from exc
         except MediaInspectionGuestContextRequired as exc:
             raise ApplicationError(
-                ApplicationErrorCode.PROVIDER_GUEST_CONTEXT_REQUIRED
+                ApplicationErrorCode.PROVIDER_GUEST_CONTEXT_REQUIRED,
+                preparation_wait=exc.before_media_io,
             ) from exc
         except MediaInspectionSessionExpired as exc:
             raise ApplicationError(

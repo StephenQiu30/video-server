@@ -342,6 +342,7 @@ class IntentRepository:
         now: datetime,
         reason_code: str,
         retry_at: datetime | None = None,
+        preparation_wait: bool = False,
     ) -> IntentSnapshot:
         validate_now(now)
         if not reason_code or len(reason_code) > 64:
@@ -354,6 +355,14 @@ class IntentRepository:
             row = await self._leased(session, lease, now)
             if row is None:
                 raise LeaseConflict("intent execution ownership lost")
+            if preparation_wait:
+                if (
+                    row.access_policy != ProviderAccessPolicy.PUBLIC_SESSION.value
+                    or reason_code != "provider_guest_context_required"
+                    or row.attempt < 1
+                ):
+                    raise ValueError("invalid guest preparation wait")
+                row.attempt -= 1
             if (
                 retry_at is not None
                 and row.attempt < row.max_attempts

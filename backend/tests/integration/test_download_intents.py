@@ -258,6 +258,78 @@ async def test_retry_wait_budget_and_queue_deadline_are_not_reset(
     assert (await repo.get(queued.id, OWNER)).status == "expired"
 
 
+async def test_guest_media_failures_still_consume_three_attempts(
+    postgres_engine: AsyncEngine,
+) -> None:
+    repo = repository(postgres_engine)
+    accepted = await repo.accept(
+        replace(command(), access_policy=ProviderAccessPolicy.PUBLIC_SESSION), now=NOW
+    )
+    for attempt in range(3):
+        now = NOW + timedelta(seconds=attempt * 15)
+        lease = await repo.claim(accepted.id, "worker", now=now, lease_for=LEASE)
+        assert lease is not None and lease.intent.attempt == attempt + 1
+        failed = await repo.fail(
+            lease.intent,
+            now=now,
+            reason_code="provider_guest_context_required",
+            retry_at=now + timedelta(seconds=15),
+        )
+        if attempt < 2:
+            assert failed.status == "retry_wait"
+            assert await repo.recover(now=now + timedelta(seconds=15)) == 1
+    assert failed.status == "failed" and failed.attempt == 3
+
+
+async def test_guest_preparation_wait_preserves_cancellation_and_deadline(
+    postgres_engine: AsyncEngine,
+) -> None:
+    repo = repository(postgres_engine)
+    waiting = await repo.accept(
+        replace(command(), access_policy=ProviderAccessPolicy.PUBLIC_SESSION), now=NOW
+    )
+    lease = await repo.claim(waiting.id, "worker", now=NOW, lease_for=LEASE)
+    assert lease is not None
+    deferred = await repo.fail(
+        lease.intent,
+        now=NOW,
+        reason_code="provider_guest_context_required",
+        retry_at=NOW + timedelta(seconds=15),
+        preparation_wait=True,
+    )
+    assert deferred.status == "retry_wait" and deferred.attempt == 0
+    cancelled = await repo.cancel(waiting.id, OWNER, now=NOW + timedelta(seconds=5))
+    assert cancelled.status == "cancelled"
+    assert await repo.recover(now=NOW + timedelta(seconds=15)) == 0
+    assert (
+        await repo.claim(
+            waiting.id, "worker", now=NOW + timedelta(seconds=15), lease_for=LEASE
+        )
+        is None
+    )
+
+    expired = await repo.accept(
+        replace(
+            command(),
+            idempotency_key="expires-during-guest-wait",
+            id=uuid4(),
+            access_policy=ProviderAccessPolicy.PUBLIC_SESSION,
+        ),
+        now=NOW,
+    )
+    lease = await repo.claim(expired.id, "worker", now=NOW, lease_for=LEASE)
+    assert lease is not None
+    await repo.fail(
+        lease.intent,
+        now=NOW,
+        reason_code="provider_guest_context_required",
+        retry_at=NOW + timedelta(seconds=15),
+        preparation_wait=True,
+    )
+    assert await repo.recover(now=NOW + timedelta(seconds=180)) == 1
+    assert (await repo.get(expired.id, OWNER)).status == "expired"
+
+
 async def test_lost_delivery_republishes_version_once_under_concurrent_sweep(
     postgres_engine: AsyncEngine,
 ) -> None:
