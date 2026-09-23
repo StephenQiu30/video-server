@@ -21,6 +21,10 @@ const reference = 'framefetch-active-intent';
 const requestKey = '55555555-5555-4555-8555-555555555555';
 const input = '分享 https://media.example/video?signature=private-input 文案';
 
+function saveAcceptedId(id = intentFixture().id) {
+  sessionStorage.setItem(reference, JSON.stringify({ owner: identity.id, id }));
+}
+
 beforeEach(() => {
   identity.id = 'owner-a';
 });
@@ -181,11 +185,11 @@ it('does not start remote work when a refresh-safe reference cannot be saved', a
   denied.mockRestore();
 });
 
-it('recovers a history record by ID without browser references or a new POST and restores it after remount', async () => {
+it('restores a previously accepted ID without a new POST after remount', async () => {
   const saved = intentFixture();
-  const first = renderHook(useDownloadIntent);
+  saveAcceptedId(saved.id);
   mockHttpResponses(saved, inspection);
-  act(() => expect(first.result.current.resume(saved.id)).toBe(true));
+  const first = renderHook(useDownloadIntent);
   await waitFor(() =>
     expect(first.result.current.inspection?.id).toBe(inspection.id),
   );
@@ -207,9 +211,9 @@ it('recovers a history record by ID without browser references or a new POST and
 });
 
 it('does not treat an unavailable history ID as an unaccepted request to replay', async () => {
+  saveAcceptedId();
   mockHttpError(new ApiError(404, 'not_found', 'not found', '不存在。'));
   const { result } = renderHook(useDownloadIntent);
-  act(() => result.current.resume(intentFixture().id));
   await waitFor(() =>
     expect(result.current.error).toContain('这条解析记录已不可用'),
   );
@@ -220,23 +224,8 @@ it('does not treat an unavailable history ID as an unaccepted request to replay'
   expect(httpRequests().every((item) => item.method === 'GET')).toBe(true);
 });
 
-it('allows read-only history recovery when session storage is unavailable', async () => {
-  const storage = vi
-    .spyOn(Storage.prototype, 'setItem')
-    .mockImplementation(() => {
-      throw new Error('denied');
-    });
-  mockHttpResponses(intentFixture(), inspection);
-  const { result } = renderHook(useDownloadIntent);
-  act(() => expect(result.current.resume(intentFixture().id)).toBe(true));
-  await waitFor(() =>
-    expect(result.current.inspection?.id).toBe(inspection.id),
-  );
-  expect(httpRequests().every((item) => item.method === 'GET')).toBe(true);
-  storage.mockRestore();
-});
-
-it('opens a handed-off history record without reading its expired inspection', async () => {
+it('restores a handed-off accepted ID without reading its expired inspection', async () => {
+  saveAcceptedId();
   mockHttpResponses(
     intentFixture({
       status: 'handed_off',
@@ -244,7 +233,6 @@ it('opens a handed-off history record without reading its expired inspection', a
     }),
   );
   const { result } = renderHook(useDownloadIntent);
-  act(() => result.current.resume(intentFixture().id));
   await waitFor(() =>
     expect(result.current.snapshot?.status).toBe('handed_off'),
   );
@@ -253,33 +241,15 @@ it('opens a handed-off history record without reading its expired inspection', a
   expect(httpRequests()).toHaveLength(1);
 });
 
-it('keeps confirmed cancellation when switching from an acceptance key to the same history ID', async () => {
-  mockHttpResponses(
-    intentFixture({ status: 'queued', version: 1, inspection_id: null }),
-  );
-  const { result } = renderHook(useDownloadIntent);
-  await act(async () => result.current.submit(input));
-  mockHttpResponses(
-    intentFixture({ status: 'cancelled', version: 3, inspection_id: null }),
-  );
-  await act(async () => result.current.cancel());
-  mockHttpResponses(intentFixture({ status: 'ready', version: 2 }));
-  act(() => result.current.resume(intentFixture().id));
-  await act(async () => result.current.retry());
-  await waitFor(() => expect(httpRequests()).toHaveLength(3));
-  expect(result.current.snapshot?.status).toBe('cancelled');
-  expect(result.current.inspection).toBeUndefined();
-});
-
 it('refreshes an expired result explicitly once and keeps the same intent until new options are ready', async () => {
   const expired = {
     ...inspection,
     expires_at: new Date(Date.now() - 1000).toISOString(),
     formats: [],
   };
+  saveAcceptedId();
   mockHttpResponses(intentFixture(), expired);
   const { result } = renderHook(useDownloadIntent);
-  act(() => result.current.resume(intentFixture().id));
   await waitFor(() => expect(result.current.resultExpired).toBe(true));
   expect(httpRequests().every((item) => item.method === 'GET')).toBe(true);
   let finish!: (value: unknown) => void;
@@ -320,13 +290,13 @@ it('refreshes an expired result explicitly once and keeps the same intent until 
 });
 
 it('resolves an uncertain refresh by a read without automatically replaying it', async () => {
+  saveAcceptedId();
   mockHttpResponses(intentFixture(), {
     ...inspection,
     expires_at: new Date(Date.now() - 1000).toISOString(),
     formats: [],
   });
   const { result } = renderHook(useDownloadIntent);
-  act(() => result.current.resume(intentFixture().id));
   await waitFor(() => expect(result.current.resultExpired).toBe(true));
   mockHttpError(new ApiError(0, 'request_failed', 'offline', '连接失败。'));
   mockHttpResponses(intentFixture({ version: 3, status: 'queued' }));

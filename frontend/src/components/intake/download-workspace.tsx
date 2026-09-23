@@ -59,6 +59,7 @@ export default function DownloadWorkspace() {
   const intent = useDownloadIntent();
   const [busy, setBusy] = useState<BusyAction>(null);
   const [error, setError] = useState<string | null>(null);
+  const observedActiveIntentId = useRef<string | null>(null);
   const [authorizationTarget, setAuthorizationTarget] =
     useState<ProviderAuthorizationTarget | null>(null);
   const intentAuthorization =
@@ -66,17 +67,31 @@ export default function DownloadWorkspace() {
       ? providerAuthorizationTarget(url, intent.snapshot.reason_code)
       : null;
   const [urlInvalid, setUrlInvalid] = useState(false);
+  useEffect(() => {
+    if (!intent.attempt) observedActiveIntentId.current = null;
+    else if (
+      intent.snapshot &&
+      ['queued', 'preparing', 'resolving', 'retry_wait'].includes(
+        intent.snapshot.status,
+      )
+    )
+      observedActiveIntentId.current = intent.snapshot.id;
+  }, [intent.attempt, intent.snapshot]);
+  const showTerminalStatus =
+    (!!intent.attempt && intent.attempt.input !== null) ||
+    (!!intent.snapshot &&
+      observedActiveIntentId.current === intent.snapshot.id);
   const showIntentStatus =
     mode === 'link' &&
     !!intent.attempt &&
     intent.snapshot?.status !== 'handed_off' &&
     ((intent.pending && (!!intent.attempt.input || !!intent.snapshot)) ||
-      !!intent.error ||
-      intent.resultExpired ||
+      (showTerminalStatus && (!!intent.error || intent.resultExpired)) ||
       intent.snapshot?.status === 'ready' ||
-      intent.snapshot?.status === 'failed' ||
-      intent.snapshot?.status === 'expired' ||
-      intent.snapshot?.status === 'action_required');
+      (showTerminalStatus &&
+        (intent.snapshot?.status === 'failed' ||
+          intent.snapshot?.status === 'expired' ||
+          intent.snapshot?.status === 'action_required')));
   const inspectionKey = useRef<StableKey | null>(null);
   const discoveryKey = useRef<StableKey | null>(null);
   useEffect(() => {

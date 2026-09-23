@@ -256,23 +256,6 @@ export function useDownloadIntent() {
     }
   }
 
-  function resume(id: string) {
-    if (
-      !user?.id ||
-      !uuid.test(id) ||
-      writing.current ||
-      attempt?.submitting ||
-      cancelling
-    )
-      return false;
-    // The server owns the task. Losing browser storage must not prevent this
-    // read-only recovery; history remains available after the next sign-in.
-    rememberDownloadIntent(user.id, id);
-    setOperationError(null);
-    setAttempt({ id, input: null, submitting: false });
-    return true;
-  }
-
   const missing =
     intent.error instanceof ApiError && intent.error.status === 404;
   const pending =
@@ -307,7 +290,6 @@ export function useDownloadIntent() {
     cancel,
     refresh,
     clear,
-    resume,
     error:
       operationError ??
       (intent.error

@@ -3,9 +3,13 @@
 import { ArrowClockwise, Plus } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { listDownloadIntents } from '@/api/downloadIntents';
-import { intentTitle } from '@/components/intake/intent-status';
+import { IntentHistoryDialog } from '@/components/intake/intent-history-dialog';
+import {
+  intentStatusVariant,
+  intentTitle,
+} from '@/components/intake/intent-status';
 import { BackLink } from '@/components/layout/back-link';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
@@ -27,13 +31,14 @@ import { displayError } from '@/lib/request-error';
 // History only locates existing owner-bound resources. Selecting a row never
 // posts a new parse request or changes its deadline.
 export function IntentHistory({
-  disabled,
-  onResume,
+  onViewResult,
 }: {
-  disabled: boolean;
-  onResume: (item: API.IntentHistoryItemResponse) => void;
+  onViewResult: (item: API.IntentHistoryItemResponse) => void;
 }) {
   const [cursors, setCursors] = useState<(string | undefined)[]>([undefined]);
+  const [selected, setSelected] =
+    useState<API.IntentHistoryItemResponse | null>(null);
+  const detailTrigger = useRef<HTMLButtonElement | null>(null);
   const before = cursors.at(-1);
   const history = useQuery({
     queryKey: privateQueryKey('intent-history', before),
@@ -146,7 +151,7 @@ export function IntentHistory({
                   </time>
                   <Badge
                     className="justify-self-end rounded-md px-2 py-1 font-normal lg:justify-self-start"
-                    variant={statusVariant(item.status)}
+                    variant={intentStatusVariant(item.status)}
                   >
                     {intentTitle(item.status)}
                   </Badge>
@@ -154,8 +159,14 @@ export function IntentHistory({
                     <Button
                       variant="ghost"
                       size="sm"
-                      disabled={disabled}
-                      onClick={() => onResume(item)}
+                      onClick={(event) => {
+                        if (item.status === 'ready' && item.inspection_id) {
+                          onViewResult(item);
+                          return;
+                        }
+                        detailTrigger.current = event.currentTarget;
+                        setSelected(item);
+                      }}
                     >
                       {actionLabel(item.status)}
                     </Button>
@@ -193,22 +204,13 @@ export function IntentHistory({
           </nav>
         ) : null}
       </section>
+      <IntentHistoryDialog
+        item={selected}
+        onClose={() => setSelected(null)}
+        triggerRef={detailTrigger}
+      />
     </div>
   );
-}
-
-function statusVariant(
-  status: API.IntentStatus,
-): 'default' | 'secondary' | 'destructive' | 'outline' {
-  if (status === 'ready' || status === 'handed_off') return 'default';
-  if (status === 'failed') return 'destructive';
-  if (
-    status === 'cancelled' ||
-    status === 'expired' ||
-    status === 'action_required'
-  )
-    return 'outline';
-  return 'secondary';
 }
 
 function actionLabel(status: API.IntentStatus) {

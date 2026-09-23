@@ -24,3 +24,17 @@ export function intentTitle(status?: API.IntentStatus) {
       return '正在确认解析任务';
   }
 }
+
+export function intentStatusVariant(
+  status: API.IntentStatus,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
+  if (status === 'ready' || status === 'handed_off') return 'default';
+  if (status === 'failed') return 'destructive';
+  if (
+    status === 'cancelled' ||
+    status === 'expired' ||
+    status === 'action_required'
+  )
+    return 'outline';
+  return 'secondary';
+}

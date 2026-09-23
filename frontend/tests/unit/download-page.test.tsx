@@ -94,4 +94,21 @@ describe('home parsing route', () => {
       document.querySelector('[data-slot="source-discovery-result"]'),
     ).toBeNull();
   });
+
+  it('does not resurrect an old failed record as a homepage parse notification', async () => {
+    const failed = intentFixture({
+      status: 'failed',
+      reason_code: 'provider_auth_required',
+      inspection_id: null,
+    });
+    sessionStorage.setItem(
+      'framefetch-active-intent',
+      JSON.stringify({ owner: 'intent-test-owner', id: failed.id }),
+    );
+    mockHttpResponses(failed);
+    renderWorkspace();
+    await waitFor(() => expect(httpRequests()).toHaveLength(1));
+    expect(screen.queryByText('本次解析未完成')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('公开视频地址')).toBeVisible();
+  });
 });
