@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import json
 import stat
-import subprocess
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -19,9 +19,10 @@ from app.workers.runner.provider_cookie_lease import (
 from app.workers.runner.provider_source_host import (
     SOURCE_OWNER_HEADER,
     HostBrowserSourceSync,
-    install_launch_agent,
     load_settings,
     select_source,
+    start_detached_source_service,
+    write_status,
 )
 from app.workers.runner.provider_source_replica import ProviderSourceReplica
 from cryptography.fernet import Fernet
@@ -182,42 +183,68 @@ async def test_auto_published_source_reaches_isolated_runner_lease(
     assert SOURCE_OWNER_HEADER not in lease
 
 
-def test_launch_agent_retries_bootstrap_after_bootout(
+def test_host_status_is_private_and_contains_only_nonsecret_state(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path.resolve() / "runtime" / "status.json"
+    write_status(
+        path,
+        {"youtube": "browser_permission_denied"},
+        checked_at=datetime(2026, 9, 23, tzinfo=UTC),
+        pid=42,
+    )
+    assert stat.S_IMODE(path.parent.stat().st_mode) == 0o700
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    assert json.loads(path.read_text()) == {
+        "checked_at": "2026-09-23T00:00:00+00:00",
+        "pid": 42,
+        "states": {"youtube": "browser_permission_denied"},
+    }
+
+
+def test_detached_source_service_requires_fresh_child_status(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    plist = tmp_path.resolve() / "LaunchAgents" / "provider.plist"
-    calls: list[tuple[str, ...]] = []
-    bootstrap_attempts = 0
+    root = tmp_path.resolve()
+    status = root / "runtime" / "status.json"
+    pid_file = status.with_name("pid.json")
+    lock_file = status.with_name("start.lock")
+    commands: list[tuple[list[str], dict[str, object]]] = []
 
-    def run(command, **_kwargs):
-        nonlocal bootstrap_attempts
-        calls.append(tuple(command))
-        if command[1] == "bootstrap":
-            bootstrap_attempts += 1
-            return subprocess.CompletedProcess(
-                command, 5 if bootstrap_attempts == 1 else 0
-            )
-        return subprocess.CompletedProcess(command, 0)
+    class Child:
+        pid = 4242
+
+        def poll(self) -> None:
+            return None
+
+    def popen(command: list[str], **kwargs: object) -> Child:
+        commands.append((command, kwargs))
+        return Child()
 
     monkeypatch.setattr(
         "app.workers.runner.provider_source_host.sys.platform", "darwin"
     )
-    monkeypatch.setattr("app.workers.runner.provider_source_host.PLIST_PATH", plist)
-    monkeypatch.setattr("app.workers.runner.provider_source_host.subprocess.run", run)
+    monkeypatch.setattr("app.workers.runner.provider_source_host.STATUS_PATH", status)
+    monkeypatch.setattr("app.workers.runner.provider_source_host.PID_PATH", pid_file)
     monkeypatch.setattr(
-        "app.workers.runner.provider_source_host.time.sleep", lambda _: None
+        "app.workers.runner.provider_source_host.START_LOCK_PATH", lock_file
+    )
+    monkeypatch.setattr(
+        "app.workers.runner.provider_source_host._owned_detached_pid", lambda: None
+    )
+    monkeypatch.setattr(
+        "app.workers.runner.provider_source_host.subprocess.Popen", popen
+    )
+    monkeypatch.setattr(
+        "app.workers.runner.provider_source_host.read_private_json",
+        lambda _path, **_kwargs: {"pid": 4242, "states": {"youtube": "ready"}},
     )
 
-    install_launch_agent(
-        env_file=tmp_path / "deploy.env",
-        runtime_env=tmp_path / "runtime.env",
+    assert start_detached_source_service(
+        env_file=root / "deploy.env",
+        runtime_env=root / "runtime.env",
         providers=(PROVIDER,),
-    )
-
-    assert [command[1] for command in calls] == [
-        "print",
-        "bootout",
-        "bootstrap",
-        "bootstrap",
-    ]
-    assert stat.S_IMODE(plist.stat().st_mode) == 0o600
+    ) == {"youtube": "ready"}
+    assert commands[0][1]["start_new_session"] is True
+    assert "--provider" in commands[0][0]
+    assert stat.S_IMODE(pid_file.stat().st_mode) == 0o600

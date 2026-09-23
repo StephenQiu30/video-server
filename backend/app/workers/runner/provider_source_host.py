@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import fcntl
 import os
-import plistlib
 import signal
-import stat
 import subprocess
 import sys
 import time
@@ -25,7 +24,12 @@ from app.repositories.providers.session_sources import (
     SourceRevisionConflict,
 )
 from app.services.provider_types import ProviderKey
-from app.workers.runner._secure_file import atomic_write_bytes
+from app.workers.runner._secure_file import (
+    atomic_write_json,
+    ensure_private_directory,
+    read_private_json,
+    validate_private_file,
+)
 from app.workers.runner.chrome_provider_cookies import DEFAULT_CHROME_ROOT
 from app.workers.runner.provider_cookie_boundary import (
     export_provider_cookie_lease_bounded,
@@ -48,6 +52,12 @@ MAX_PROFILES = 16
 SOURCE_OWNER_HEADER = b"# FrameFetch source owner: host-browser\n"
 SERVICE_ID = "com.framefetch.provider-source-host"
 PLIST_PATH = Path.home() / "Library" / "LaunchAgents" / f"{SERVICE_ID}.plist"
+STATUS_PATH = (
+    Path(__file__).resolve().parents[4]
+    / ".local-runtime/provider-source-host-status.json"
+)
+PID_PATH = STATUS_PATH.with_name("provider-source-host.pid.json")
+START_LOCK_PATH = STATUS_PATH.with_name("provider-source-host-start.lock")
 
 
 def browser_profiles(root: Path = DEFAULT_CHROME_ROOT) -> tuple[str, ...]:
@@ -213,40 +223,8 @@ async def sync_once(provider: ProviderKey, settings: Settings) -> str:
         await engine.dispose()
 
 
-def install_launch_agent(
-    *, env_file: Path, runtime_env: Path, providers: tuple[ProviderKey, ...]
-) -> None:
-    if sys.platform != "darwin":
-        raise OSError("host browser source service requires macOS")
-    directory = PLIST_PATH.parent
-    directory.mkdir(mode=0o700, parents=True, exist_ok=True)
-    if directory.is_symlink() or not stat.S_ISDIR(directory.lstat().st_mode):
-        raise OSError("unsafe LaunchAgents directory")
-    args = [
-        str(Path(sys.executable).absolute()),
-        "-m",
-        "app.workers.runner.provider_source_host",
-        "serve",
-        "--env-file",
-        str(env_file.absolute()),
-        "--runtime-env",
-        str(runtime_env.absolute()),
-    ]
-    for provider in providers:
-        args.extend(("--provider", provider.value))
-    document = {
-        "Label": SERVICE_ID,
-        "ProgramArguments": args,
-        "WorkingDirectory": str(Path(__file__).resolve().parents[3]),
-        "RunAtLoad": True,
-        "KeepAlive": True,
-        "ProcessType": "Background",
-        "ThrottleInterval": 15,
-        "Umask": 0o077,
-        "StandardOutPath": "/dev/null",
-        "StandardErrorPath": "/dev/null",
-    }
-    atomic_write_bytes(PLIST_PATH, plistlib.dumps(document))
+def disable_launch_agent() -> None:
+    """Retire the old launchd reader after its replacement is running."""
     domain = f"gui/{os.getuid()}"
     service = f"{domain}/{SERVICE_ID}"
     current = subprocess.run(
@@ -254,22 +232,132 @@ def install_launch_agent(
     )
     if current.returncode == 0:
         subprocess.run(("launchctl", "bootout", service), check=True)
-    bootstrap = ("launchctl", "bootstrap", domain, str(PLIST_PATH))
-    # launchctl bootout can return before launchd has removed the old label.
-    # A single immediate bootstrap then fails with exit 5 on a normal restart.
-    for attempt in range(20):
-        result = subprocess.run(bootstrap, capture_output=True, check=False)
-        if result.returncode == 0:
-            return
-        if result.returncode != 5 or attempt == 19:
-            raise subprocess.CalledProcessError(
-                result.returncode, bootstrap, stderr=result.stderr
-            )
-        time.sleep(0.25)
+    PLIST_PATH.unlink(missing_ok=True)
+
+
+def _owned_detached_pid() -> int | None:
+    document = read_private_json(PID_PATH, message="unsafe host source PID file")
+    if not isinstance(document, dict):
+        return None
+    pid = document.get("pid")
+    if not isinstance(pid, int) or isinstance(pid, bool) or pid < 2:
+        return None
+    result = subprocess.run(
+        ("ps", "-p", str(pid), "-o", "uid=", "-o", "command="),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return None
+    line = result.stdout.strip()
+    uid, _, command = line.partition(" ")
+    if uid.strip() != str(os.getuid()) or (
+        "-m app.workers.runner.provider_source_host serve" not in command
+    ):
+        return None
+    return pid
+
+
+def start_detached_source_service(
+    *, env_file: Path, runtime_env: Path, providers: tuple[ProviderKey, ...]
+) -> dict[str, str]:
+    """Keep the browser reader in the authorized startup process context."""
+    if sys.platform != "darwin":
+        raise OSError("host browser source service requires macOS")
+    ensure_private_directory(STATUS_PATH.parent)
+    lock = os.open(
+        START_LOCK_PATH, os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0), 0o600
+    )
+    try:
+        validate_private_file(lock, "unsafe host source start lock")
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        old_pid = _owned_detached_pid()
+        if old_pid is not None:
+            try:
+                os.kill(old_pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            for _ in range(40):
+                if _owned_detached_pid() is None:
+                    break
+                time.sleep(0.25)
+            else:
+                if _owned_detached_pid() == old_pid:
+                    os.kill(old_pid, signal.SIGKILL)
+        command = [
+            str(Path(sys.executable).absolute()),
+            "-m",
+            "app.workers.runner.provider_source_host",
+            "serve",
+            "--env-file",
+            str(env_file.absolute()),
+            "--runtime-env",
+            str(runtime_env.absolute()),
+            "--status-file",
+            str(STATUS_PATH),
+        ]
+        for provider in providers:
+            command.extend(("--provider", provider.value))
+        process = subprocess.Popen(
+            command,
+            cwd=Path(__file__).resolve().parents[3],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+            close_fds=True,
+        )
+        atomic_write_json(PID_PATH, {"pid": process.pid})
+        try:
+            for _ in range(200):
+                document = read_private_json(
+                    STATUS_PATH, message="unsafe host source status file"
+                )
+                if isinstance(document, dict) and document.get("pid") == process.pid:
+                    states = document.get("states")
+                    if isinstance(states, dict) and all(
+                        isinstance(key, str) and isinstance(value, str)
+                        for key, value in states.items()
+                    ):
+                        return states
+                if process.poll() is not None:
+                    raise RuntimeError("host browser source service exited at startup")
+                time.sleep(0.25)
+            raise TimeoutError("host browser source service did not report status")
+        except BaseException:
+            if process.poll() is None:
+                process.terminate()
+            PID_PATH.unlink(missing_ok=True)
+            raise
+    finally:
+        os.close(lock)
+
+
+def write_status(
+    path: Path,
+    states: dict[str, str],
+    *,
+    checked_at: datetime | None = None,
+    pid: int | None = None,
+) -> None:
+    ensure_private_directory(path.parent)
+    atomic_write_json(
+        path,
+        {
+            "checked_at": (checked_at or datetime.now(UTC)).isoformat(),
+            "pid": os.getpid() if pid is None else pid,
+            "states": states,
+        },
+    )
 
 
 async def run(
-    providers: tuple[ProviderKey, ...], settings: Settings, *, serve: bool
+    providers: tuple[ProviderKey, ...],
+    settings: Settings,
+    *,
+    serve: bool,
+    status_file: Path | None = None,
 ) -> int:
     key = settings.provider_source_encryption_key
     if key is None:
@@ -287,12 +375,16 @@ async def run(
             loop.add_signal_handler(signum, stop.set)
     try:
         while not stop.is_set():
+            states: dict[str, str] = {}
             for provider in providers:
                 try:
                     state = await asyncio.wait_for(sync.sync(provider), timeout=45)
                 except Exception:
                     state = "source_sync_unavailable"
+                states[provider.value] = state
                 print(f"{provider.value}: {state}", flush=True)
+            if status_file is not None:
+                write_status(status_file, states)
             if not serve:
                 break
             try:
@@ -310,6 +402,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--env-file", type=Path, required=True)
     parser.add_argument("--runtime-env", type=Path, required=True)
     parser.add_argument("--provider", type=ProviderKey, action="append", required=True)
+    parser.add_argument("--status-file", type=Path)
     args = parser.parse_args(argv)
     if sys.platform != "darwin":
         print("provider source host: unsupported host browser adapter")
@@ -317,7 +410,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     settings = load_settings(args.env_file, args.runtime_env)
     return asyncio.run(
         run(
-            tuple(dict.fromkeys(args.provider)), settings, serve=args.command == "serve"
+            tuple(dict.fromkeys(args.provider)),
+            settings,
+            serve=args.command == "serve",
+            status_file=args.status_file,
         )
     )
 

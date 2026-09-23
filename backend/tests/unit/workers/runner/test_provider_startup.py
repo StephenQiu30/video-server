@@ -209,7 +209,7 @@ def test_auto_browser_route_rejects_remote_operator_endpoint() -> None:
         build_startup_plan(values, auto_browser_routes=frozenset({ProviderKey.YOUTUBE}))
 
 
-def test_start_syncs_host_source_before_compose_and_installs_refresh_agent(
+def test_start_syncs_host_source_before_compose_and_starts_detached_refresh(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     env_file = tmp_path / "deploy.env"
@@ -233,14 +233,22 @@ def test_start_syncs_host_source_before_compose_and_installs_refresh_agent(
         order.append("compose")
         return subprocess.CompletedProcess(command, 0)
 
-    def install(**_kwargs):
-        order.append("agent")
+    def start_detached(**_kwargs):
+        order.append("detached")
+        return {"youtube": "ready"}
+
+    def disable_legacy():
+        order.append("disable_legacy")
 
     monkeypatch.setattr("app.workers.runner.provider_startup.sys.platform", "darwin")
     monkeypatch.setattr("app.workers.runner.provider_startup.sync_once", sync)
     monkeypatch.setattr("app.workers.runner.provider_startup.subprocess.run", run)
     monkeypatch.setattr(
-        "app.workers.runner.provider_startup.install_launch_agent", install
+        "app.workers.runner.provider_startup.start_detached_source_service",
+        start_detached,
+    )
+    monkeypatch.setattr(
+        "app.workers.runner.provider_startup.disable_launch_agent", disable_legacy
     )
     assert (
         main(
@@ -256,7 +264,7 @@ def test_start_syncs_host_source_before_compose_and_installs_refresh_agent(
         )
         == 0
     )
-    assert order == ["source", "compose", "agent"]
+    assert order == ["source", "compose", "detached", "disable_legacy"]
     written = runtime.read_text()
     assert 'RUNNER_DEFAULT_ACCESS_POLICIES={"youtube":"operator_public"}' in written
     assert "PROVIDER_SOURCE_ENCRYPTION_KEY=" in written

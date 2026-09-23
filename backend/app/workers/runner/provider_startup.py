@@ -23,8 +23,9 @@ from app.workers.runner._secure_file import (
     validate_private_file,
 )
 from app.workers.runner.provider_source_host import (
-    install_launch_agent,
+    disable_launch_agent,
     load_settings,
+    start_detached_source_service,
     sync_once,
 )
 from cryptography.fernet import Fernet
@@ -393,11 +394,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     subprocess.run(command, cwd=PROJECT_ROOT, env=environment, check=True)
     if auto_providers:
-        install_launch_agent(
+        states = start_detached_source_service(
             env_file=env_file,
             runtime_env=args.runtime_env,
             providers=auto_providers,
         )
+        for provider in auto_providers:
+            state = states.get(provider.value, "source_sync_unavailable")
+            print(f"provider {provider.value}: {state}")
+        disable_launch_agent()
     return 0
 
 
