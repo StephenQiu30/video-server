@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import stat
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -9,8 +10,10 @@ from app.services.provider_types import ProviderKey
 from app.workers.runner.provider_session_setup import publish_session
 from app.workers.runner.provider_startup import (
     build_startup_plan,
+    main,
     write_runtime_environment,
 )
+from cryptography.fernet import Fernet
 
 
 def _cookie(provider: ProviderKey) -> bytes:
@@ -203,6 +206,57 @@ def test_auto_browser_route_rejects_remote_operator_endpoint() -> None:
         "RUNNER_DEFAULT_ACCESS_POLICIES": "{}",
     }
     with pytest.raises(ValueError, match="local operator"):
-        build_startup_plan(
-            values, auto_browser_routes=frozenset({ProviderKey.YOUTUBE})
+        build_startup_plan(values, auto_browser_routes=frozenset({ProviderKey.YOUTUBE}))
+
+
+def test_start_syncs_host_source_before_compose_and_installs_refresh_agent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    env_file = tmp_path / "deploy.env"
+    runtime = tmp_path / "runtime.env"
+    compose = tmp_path / "compose.yml"
+    env_file.write_text(
+        "COMPOSE_PROFILES=\nRUNNER_OPERATOR_BASE_URLS={}\n"
+        "RUNNER_DEFAULT_ACCESS_POLICIES={}\n"
+        f"PROVIDER_SOURCE_ENCRYPTION_KEY={Fernet.generate_key().decode()}\n"
+    )
+    compose.write_text("services: {}\n")
+    order: list[str] = []
+
+    async def sync(_provider, _settings):
+        order.append("source")
+        return "ready"
+
+    def run(command, **_kwargs):
+        if "config" in command:
+            return subprocess.CompletedProcess(command, 0, stdout="api\n")
+        order.append("compose")
+        return subprocess.CompletedProcess(command, 0)
+
+    def install(**_kwargs):
+        order.append("agent")
+
+    monkeypatch.setattr("app.workers.runner.provider_startup.sys.platform", "darwin")
+    monkeypatch.setattr("app.workers.runner.provider_startup.sync_once", sync)
+    monkeypatch.setattr("app.workers.runner.provider_startup.subprocess.run", run)
+    monkeypatch.setattr(
+        "app.workers.runner.provider_startup.install_launch_agent", install
+    )
+    assert (
+        main(
+            [
+                "start",
+                "--env-file",
+                str(env_file),
+                "--compose-file",
+                str(compose),
+                "--runtime-env",
+                str(runtime),
+            ]
         )
+        == 0
+    )
+    assert order == ["source", "compose", "agent"]
+    written = runtime.read_text()
+    assert 'RUNNER_DEFAULT_ACCESS_POLICIES={"youtube":"operator_public"}' in written
+    assert "PROVIDER_SOURCE_ENCRYPTION_KEY=" in written

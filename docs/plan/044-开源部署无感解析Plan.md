@@ -166,6 +166,7 @@
 - 行为版重新运行同一固定公开样本：TikTok／快手／X 的 anonymous media 均成功，分别耗时 9,006／6,178／144,072 ms；Instagram／Vimeo／Facebook 的 anonymous media 也分别成功，耗时 19,820／70,372／49,902 ms。X、Vimeo、Facebook 的长尾延迟不可作为正常性能达标证据；旧版失败、新版成功仅表明这一次版本／运行条件组合的结果变化，尚未定位历史失败根因，也没有三样本冷／热／重启覆盖。YouTube 固定样本的 operator 路线先因旧 POT 侧车进程脚本与新 Runner 不一致而拒绝，重建侧车后准确返回 `credential_required`；同公开样本的匿名 inspection 仍为 `provider_verification_failed`，Runner 内层稳定原因为 `egress_challenged`；这是当前出口遭平台验证拦截，不构成用户必须登录的证据。因此 YouTube 的开源空凭据体验仍未通过，不能用受控账号路线背书。
 - Generic 修复镜像 `dfe77bee…` 全后端重建后，B 站／小红书／微博各 1 个固定公开匿名样本的 metadata 和 media 共 6 项均成功；对应媒体阶段耗时 7,050／2,906／17,285 ms。该回归只确认这三条既有路线在本机当前出口和样本下未受本次发布破坏，不代表每个平台三样本、冷启动、用户浏览器默认格式或总体 p95 验收。
 - 2026-09-23 方案差距复核：现有 `IntentService.create` 对非 guest 意图固定 `public`，请求指纹亦固定 `public`；YouTube operator 目前没有自动发布的宿主来源。已登录本机 Chrome 的按域来源经隔离 Runner 做同一公开样本元数据诊断成功，只证明可行性，不是首次部署、连续刷新或完整文件验收。通用宿主来源及自动选路列入 S4／S5，状态保持实施中。
+- 2026-09-23 首条本机受控闭环：接单策略由服务端平台配置选取并冻结到意图，幂等指纹只绑定规范化用户输入；来源复制器接受宿主自动发布的 YouTube revision 1，受控 Runner readiness 200。固定公开样本 `youtube-public-single` 的 operator metadata／media 分别在 6,550／13,272 ms 成功。真实 Chrome 首页使用原截图链接建立意图 `36d2d31d-fbf0-4bfa-bf58-c14ba57724f1`，数据库记录 `operator_public`，页面显示真实标题、27:11 时长和多个音视频规格；选择 256×128 H264／AAC 后生成 job `1ea82b3a-581c-4fe1-a1c9-c7644947c40f`，一次执行成功，制品 40,490,255 bytes、1,631,388 ms、MP4、1 条视频和 1 条音频流，服务端记录了 YouTube operator 凭据版本。此证据只覆盖本机一个链接和该低带宽规格；其余样本、默认高画质、跨宿主及长时间刷新未验收。
 - 2026-09-23 后续实现：持久意图改为按服务端平台策略选路，幂等重放保留原策略；macOS 增加宿主 Chrome 来源定时刷新和启动时密钥持久化。自动来源当前仅有 YouTube 默认准入，Douyin／Reddit 需部署方明确配置；Linux／Windows 适配、真实冷／热／重启三样本及完整文件验收仍未完成，P9.05 保持实施中。
 
 <a id="p9-06"></a>
@@ -308,6 +309,7 @@
 - 访客诊断补充独立的部署机 `provider-guest ... status` 命令，读取当前作用域并仅输出脱敏状态、原因、重试时间、有效期。审查发现数据库尚存有效密文但短租约文件丢失时会误报，现拆分 `stored_usable` 与 `published_lease_usable`，后者用与 Runner 相同的租约读取器验证作用域、版本、权限和期限，退出码仅据此判定；核心容器健康仍不依赖外站。准备成功、缺失／损坏／版本不匹配租约和 403 冷却夹具验证不输出密文或 Cookie。该命令可解释当前实例为何未准备，不替代管理员跨平台目录、自动 Canary、真实媒体和全新宿主验收。
 - 冷部署文档审查发现英文 README 仍用直接 `docker compose up --remove-orphans`，跳过当前态建库、首管理员和 Provider 启动编排，与中文入口冲突；新部署者按该路径即使容器启动也无法完成登录与解析。已将英文快速开始同步为现有基础设施前提下的建库、交互式首管理员、统一 `provider_startup start`、Guest 脱敏诊断和 Generic 边界。文档修复不等于自包含新机安装器或空卷端到端验收。
 - 2026-09-23 新增通用宿主来源设计：将已登录浏览器明确为会话平台的外部前提，标准启动须自动发现、验证和持续发布；当前 `provider-sources` 只负责已有来源复制，`FILE_PROVIDERS` 覆盖有限且需要手工首次发布，宿主 Agent 当前未接入标准启动。S4／S5 尚未实施，不能宣称 YouTube 或其他会话平台在 GitHub 下载后即用。
+- 2026-09-23 本机实施进度：新增 macOS Chrome 宿主来源自动发现与唯一 Profile 选择、平台按域导出、加密来源 CAS 发布／刷新、手工来源保留及缺登录撤销；标准启动在 macOS 默认声明 YouTube 受控路线，准备运行文件并安装当前用户 LaunchAgent。当前本机已有稳定来源密钥；`provider_startup prepare` 和 Compose `config --quiet` 通过，LaunchAgent 已运行，宿主同步返回 `ready`。定向重建 API、下载 Worker、Canary 后完成上述真实文件闭环，未执行全栈 `start` 的重建演练。Linux／Windows 适配器、新宿主空卷、无登录／多 Profile 实机、长期轮换与密钥丢失恢复仍未验收，P9.09 不关闭。
 
 <a id="p9-10"></a>
 
