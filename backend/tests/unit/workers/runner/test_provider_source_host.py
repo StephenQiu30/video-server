@@ -101,7 +101,13 @@ async def test_owned_source_refresh_and_logout_are_versioned() -> None:
     sources = Sources()
     cipher = ProviderSessionCipher(Fernet.generate_key().decode())
     selected = [("candidate", PAYLOAD)]
-    sync = HostBrowserSourceSync(sources, cipher, select=lambda _provider: selected[0])  # type: ignore[arg-type]
+    now = [datetime(2026, 9, 23, tzinfo=UTC)]
+    sync = HostBrowserSourceSync(
+        sources,
+        cipher,
+        select=lambda _provider: selected[0],
+        clock=lambda: now[0],
+    )  # type: ignore[arg-type]
     assert await sync.sync(PROVIDER) == "ready"
     assert sources.row is not None
     first = sources.row
@@ -112,9 +118,25 @@ async def test_owned_source_refresh_and_logout_are_versioned() -> None:
     assert SOURCE_OWNER_HEADER in decrypted
     assert await sync.sync(PROVIDER) == "ready"
     assert sources.row.revision == first.revision
+    now[0] += timedelta(minutes=11)
+    assert await sync.sync(PROVIDER) == "ready"
+    assert sources.row.revision == first.revision + 1
+    assert sources.row.valid_until == now[0] + timedelta(minutes=15)
+    rotated_payload = PAYLOAD.replace(b"fixture-only", b"rotated-fixture")
+    selected[0] = ("candidate", rotated_payload)
+    assert await sync.sync(PROVIDER) == "ready"
+    assert sources.row.revision == first.revision + 2
+    assert sources.row.ciphertext is not None
+    assert sources.row.valid_until is not None
+    assert b"rotated-fixture" in cipher.decrypt(
+        PROVIDER,
+        sources.row.revision,
+        sources.row.valid_until,
+        sources.row.ciphertext,
+    )
     selected[0] = ("browser_login_missing", None)
     assert await sync.sync(PROVIDER) == "browser_login_missing"
-    assert sources.row.revision == first.revision + 1
+    assert sources.row.revision == first.revision + 3
     assert sources.row.ciphertext is None
 
 

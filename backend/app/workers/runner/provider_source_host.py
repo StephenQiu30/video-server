@@ -114,10 +114,12 @@ class HostBrowserSourceSync:
         cipher: ProviderSessionCipher,
         *,
         select: Callable[[ProviderKey], tuple[str, bytes | None]] = select_source,
+        clock: Callable[[], datetime] | None = None,
     ) -> None:
         self._sources = sources
         self._cipher = cipher
         self._select = select
+        self._clock = clock or (lambda: datetime.now(UTC))
 
     async def sync(self, provider: ProviderKey) -> str:
         state, payload = await asyncio.to_thread(self._select, provider)
@@ -156,10 +158,10 @@ class HostBrowserSourceSync:
                 existing == owned_payload
                 and row is not None
                 and row.valid_until is not None
-                and row.valid_until > datetime.now(UTC) + REFRESH_BEFORE
+                and row.valid_until > self._clock() + REFRESH_BEFORE
             ):
                 return "ready"
-            expiry = datetime.now(UTC) + SOURCE_VALID_FOR
+            expiry = self._clock() + SOURCE_VALID_FOR
             ciphertext = self._cipher.encrypt(
                 provider, revision + 1, expiry, owned_payload
             )
