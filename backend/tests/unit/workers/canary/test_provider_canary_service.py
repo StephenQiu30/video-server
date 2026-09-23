@@ -35,6 +35,19 @@ def test_download_failure_keeps_a_stable_runner_error() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "code",
+    (
+        "engine_unavailable",
+        "pot_provider_release_mismatch",
+        "runner_release_mismatch",
+        "runner_release_changed",
+    ),
+)
+def test_release_identity_failure_keeps_a_stable_canary_error(code: str) -> None:
+    assert _stable_error(MediaRunnerClientError(code, 503)) == code
+
+
 class Repository:
     def __init__(self) -> None:
         self.results: list[ProviderCanaryResult] = []

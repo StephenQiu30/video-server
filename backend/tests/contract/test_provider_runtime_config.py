@@ -55,6 +55,18 @@ def test_youtube_sidecar_and_runners_can_only_egress_through_a_gateway() -> None
         services = document["services"]
         networks = document["networks"]
         sidecar = services["youtube-pot-provider"]
+        assert sidecar["healthcheck"]["test"] == [
+            "CMD",
+            "/usr/local/bin/node",
+            "/opt/video/youtube-pot-supervisor.mjs",
+            "--check-identity",
+        ]
+        assert (
+            services["youtube-operator-runner"]["depends_on"]["youtube-pot-provider"][
+                "condition"
+            ]
+            == "service_healthy"
+        )
 
         assert set(sidecar["networks"]) == {"youtube_pot_net"}
         assert networks["youtube_pot_net"]["internal"] is True

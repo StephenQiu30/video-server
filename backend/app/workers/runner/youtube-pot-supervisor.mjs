@@ -18,6 +18,17 @@ if (process.argv.includes("--check-config")) {
 const scriptSha256 = createHash("sha256")
   .update(readFileSync(fileURLToPath(import.meta.url)))
   .digest("hex");
+if (process.argv.includes("--check-identity")) {
+  try {
+    const response = await fetch("http://127.0.0.1:4417/identity", {
+      signal: AbortSignal.timeout(2_000),
+    });
+    const identity = await response.json();
+    process.exit(response.status === 200 && identity?.sha256 === scriptSha256 ? 0 : 1);
+  } catch {
+    process.exit(1);
+  }
+}
 
 const childEnvironment = {
   ...process.env,
