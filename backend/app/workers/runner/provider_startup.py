@@ -31,9 +31,11 @@ from app.workers.runner.provider_source_host import (
 from cryptography.fernet import Fernet
 from dotenv import dotenv_values
 
-PROJECT_ROOT: Final = Path(__file__).resolve().parents[4]
-DEFAULT_RUNTIME_ENV: Final = PROJECT_ROOT / ".local-runtime/provider-startup.env"
-DEFAULT_SOURCE_KEY: Final = PROJECT_ROOT / ".local-runtime/provider-source.key"
+BACKEND_ROOT: Final = Path(__file__).resolve().parents[3]
+PROJECT_ROOT: Final = BACKEND_ROOT.parent
+DEFAULT_RUNTIME_DIR: Final = BACKEND_ROOT / ".local-runtime"
+DEFAULT_RUNTIME_ENV: Final = DEFAULT_RUNTIME_DIR / "provider-startup.env"
+DEFAULT_SOURCE_KEY: Final = DEFAULT_RUNTIME_DIR / "provider-source.key"
 _AUTO_BROWSER_PROVIDERS: Final = frozenset(
     {ProviderKey.YOUTUBE, ProviderKey.DOUYIN, ProviderKey.REDDIT}
 )

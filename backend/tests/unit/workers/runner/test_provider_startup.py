@@ -9,6 +9,10 @@ import pytest
 from app.services.provider_types import ProviderKey
 from app.workers.runner.provider_session_setup import publish_session
 from app.workers.runner.provider_startup import (
+    BACKEND_ROOT,
+    DEFAULT_RUNTIME_ENV,
+    DEFAULT_SOURCE_KEY,
+    PROJECT_ROOT,
     build_startup_plan,
     main,
     write_runtime_environment,
@@ -63,6 +67,13 @@ def _values() -> dict[str, str]:
         ),
         "PROVIDER_SESSION_DIR": "./sessions",
     }
+
+
+def test_default_provider_runtime_files_live_under_backend() -> None:
+    assert PROJECT_ROOT == BACKEND_ROOT.parent
+    assert BACKEND_ROOT.name == "backend"
+    assert DEFAULT_RUNTIME_ENV == BACKEND_ROOT / ".local-runtime/provider-startup.env"
+    assert DEFAULT_SOURCE_KEY == BACKEND_ROOT / ".local-runtime/provider-source.key"
 
 
 def test_plan_preserves_routes_even_when_local_sources_are_missing(

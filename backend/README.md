@@ -4,6 +4,12 @@ FastAPI API、下载/分析领域逻辑、异步 Worker、当前态数据库 SQL
 
 所有 Python 与 `uv` 命令都应从 `backend/` 执行。数据库当前结构定义在可重复执行的 `sql/schema.sql`；由部署者按需在已有项目数据库中幂等加载；业务启动不创建基础服务，也不重复初始化已有环境。项目不维护迁移历史或旧 schema 兼容路径。本目录 `Dockerfile` 构建 API、Worker 与 Runner 镜像；前端使用 frontend/Dockerfile 独立构建。
 
+## 本机运行状态与部署密钥
+
+Provider 启动器和宿主来源维护器把生成的运行配置、PID、状态和锁文件放在 `backend/.local-runtime/`。目录权限限制为当前用户，Git 全局忽略该目录；这些文件由代码自动创建，不需要从 Git 下载，也不应提交。生成的 `provider-startup.env` 含来源加密密钥，因此同样按秘密文件保护；它不保存原始 Cookie。
+
+部署时优先把稳定的 `PROVIDER_SOURCE_ENCRYPTION_KEY` 配在仓库根目录的未提交 `.env`，或注入部署 Secret。`.env.example` 只保留空值模板。macOS 首次自动维护浏览器来源时若该变量为空，启动器会在 `backend/.local-runtime/provider-source.key` 创建稳定密钥；后续启动复用此文件。PostgreSQL 中的来源密文必须由同一把密钥解密，所以换机或恢复数据库时，也要恢复此密钥文件，或注入原密钥。丢失后不能解密旧来源；需要重新采集并登记来源。
+
 ## 目录约定
 
 ```text

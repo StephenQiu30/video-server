@@ -11,6 +11,7 @@ from app.core.db import create_session_factory
 from app.core.security.provider_session_cipher import ProviderSessionCipher
 from app.repositories.providers.session_sources import ProviderSessionSources
 from app.services.provider_types import ProviderKey, ProviderSessionVersion
+from app.workers.runner import provider_source_host
 from app.workers.runner.provider_cookie_file import ProviderCookieFile
 from app.workers.runner.provider_cookie_lease import (
     ProviderCookieLease,
@@ -200,6 +201,22 @@ def test_host_status_is_private_and_contains_only_nonsecret_state(
         "pid": 42,
         "states": {"youtube": "browser_permission_denied"},
     }
+
+
+def test_host_service_state_files_live_under_backend_runtime_dir() -> None:
+    runtime_dir = provider_source_host.BACKEND_ROOT / ".local-runtime"
+    assert provider_source_host.RUNTIME_DIR == runtime_dir
+    assert (
+        provider_source_host.STATUS_PATH
+        == runtime_dir / "provider-source-host-status.json"
+    )
+    assert (
+        provider_source_host.PID_PATH == runtime_dir / "provider-source-host.pid.json"
+    )
+    assert (
+        provider_source_host.START_LOCK_PATH
+        == runtime_dir / "provider-source-host-start.lock"
+    )
 
 
 def test_detached_source_service_requires_fresh_child_status(

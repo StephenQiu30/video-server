@@ -52,10 +52,9 @@ MAX_PROFILES = 16
 SOURCE_OWNER_HEADER = b"# FrameFetch source owner: host-browser\n"
 SERVICE_ID = "com.framefetch.provider-source-host"
 PLIST_PATH = Path.home() / "Library" / "LaunchAgents" / f"{SERVICE_ID}.plist"
-STATUS_PATH = (
-    Path(__file__).resolve().parents[4]
-    / ".local-runtime/provider-source-host-status.json"
-)
+BACKEND_ROOT = Path(__file__).resolve().parents[3]
+RUNTIME_DIR = BACKEND_ROOT / ".local-runtime"
+STATUS_PATH = RUNTIME_DIR / "provider-source-host-status.json"
 PID_PATH = STATUS_PATH.with_name("provider-source-host.pid.json")
 START_LOCK_PATH = STATUS_PATH.with_name("provider-source-host-start.lock")
 
