@@ -55,23 +55,9 @@ Operator 必须处于同一 Compose 网络；不提供宿主机业务进程与�
 
 macOS 若启用了系统 HTTP/HTTPS/SOCKS 代理，活动网络服务的代理绕过列表必须包含 `100.64.0.0/10` 与 `*.ts.net`。否则 Safari/WebKit 会把 Tailnet TLS 请求交给公网代理，而不是经 Tailscale `utun` 接口直连，表现为证书正常但页面无法建立安全连接。该规则属于 Tailnet 路由边界，不是浏览器兼容分支；修改后应在 WebKit 网络日志中确认目标 `100.x` 地址通过 `utun` 连接。
 
-## 全新机器一条命令（自包含：基础设施 + 业务）
+## 新机器部署边界
 
-换到没有预装 PostgreSQL/RabbitMQ/Redis/MinIO 的机器时，用容器模式一次拉起整套栈：
-基础设施由 `docker-compose-env.yml` 提供，业务容器用服务名 DNS 直连，无需
-`host.docker.internal`、无需安装 Homebrew 服务，Docker Desktop/Linux/Podman 一致：
-
-~~~bash
-cp .env.example .env
-# 容器模式：把 .env 里四个 HOST 从 host.docker.internal 改成服务名，其余不动
-#   POSTGRES_HOST=postgres  RABBITMQ_HOST=rabbitmq
-#   REDIS_HOST=redis        MINIO_HOST=minio
-docker compose -f docker-compose-env.yml -f docker-compose.yml --env-file .env \
-  up -d --build --wait --wait-timeout 300
-~~~
-
-凭据沿用 `.env.example` 默认（`video`/`video`），与 `docker-compose-env.yml` 一致；宿主机
-进程（可选 AI Worker）改用宿主机映射端口 15432/5673/16380/19190。
+新机器须先提供项目专用的 PostgreSQL、RabbitMQ、Redis、MinIO 及稳定密钥，再按下文的业务拓扑启动；将实际连接信息写入不入库的 `.env`。当前仓库尚未通过全新宿主机的空状态、备份恢复与容量验收，不能把 CI 的 `docker-compose-env.yml` 当作生产基础设施安装入口，也不能沿用 `.env.example` 的开发凭据宣称一条命令完成部署。P9.09 在这些验收完成前保持开放；平台访客自动准备只在核心依赖已可用后运行。
 
 ## 本机业务拓扑
 

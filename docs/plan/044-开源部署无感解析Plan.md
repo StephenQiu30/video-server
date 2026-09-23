@@ -276,6 +276,7 @@
 - 审查发现生产 Compose 的 `provider-sources-init`／`provider-sources` 仍引用开发镜像，存在生产构建后运行旧代码或镜像缺失的风险；修为全后端进程统一 `video-server:prod`。Python／Node 基础镜像固定 2026-09-23 查得的多架构索引 digest，后续升级须重新审查并保留最终发布镜像；不是承诺 apt 包可重构出逐字节相同产物。
 - 开发 Compose `.env`＋本地运行配置、生产 Compose `.env`＋`.env.prod` 解析均通过；38 项部署相关契约通过。`docker buildx build --platform linux/amd64,linux/arm64 --load` 生成后端索引 `sha256:6774f028054d3493c7f4bc1117ce20eb1d9f67c48fc15c33a7bb70d24ba639ba`、前端索引 `sha256:9fd8f9d2c16d93e5fff6b70fa47226f1e6e2bd47f85d9eaf8d1234ab7f03a2ee`；本地 amd64 为模拟执行。两个架构在隔离容器验证后端 yt-dlp 2026.08.19、Node v24.21.0、ffmpeg／ffprobe 5.1.9，前端均启动且首页 HTTP 200。构建元数据 `/tmp/framefetch-p9-{backend,frontend}-build-metadata.json`。
 - 首次后端构建因 Docker 网络对 Debian 仓库连接失败而中断；明确传入本机 Docker 代理后重试通过。该重试只解决本机网络故障，不能代替不同宿主机验证。新机无凭据的空状态、guest 卷丢失重建、资源上限、实际故障和备份还原仍未完成，P9.09 不关闭。
+- 复核新机部署入口发现运行手册曾把 `docker-compose-env.yml` 同时写成“仅 CI 夹具”和“全新机器一条命令”，与仓库运行约束冲突；该文件有 CI 默认凭据和固定容器名，不能冒充通过生产验收的安装器。已删除误导性命令，标准业务拓扑继续复用部署者提供的基础设施；真正自包含新机部署如需纳入产品，须单列凭据生成、隔离卷、升级与恢复设计及验收，不能以 CI 夹具替代。
 
 <a id="p9-10"></a>
 
