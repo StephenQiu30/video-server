@@ -9,7 +9,6 @@ import os
 import stat
 import subprocess
 import sys
-import tempfile
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -34,7 +33,6 @@ from dotenv import dotenv_values
 BACKEND_ROOT: Final = Path(__file__).resolve().parents[3]
 PROJECT_ROOT: Final = BACKEND_ROOT.parent
 DEFAULT_RUNTIME_DIR: Final = BACKEND_ROOT / ".local-runtime"
-DEFAULT_RUNTIME_ENV: Final = DEFAULT_RUNTIME_DIR / "provider-startup.env"
 DEFAULT_SOURCE_KEY: Final = DEFAULT_RUNTIME_DIR / "provider-source.key"
 _AUTO_BROWSER_PROVIDERS: Final = frozenset(
     {ProviderKey.YOUTUBE, ProviderKey.DOUYIN, ProviderKey.REDDIT}
@@ -170,29 +168,15 @@ def load_environment(env_file: Path) -> dict[str, str]:
     return loaded
 
 
-def write_runtime_environment(
-    target: Path, plan: ProviderStartupPlan, *, source_key: str | None = None
-) -> None:
-    target = target.absolute()
-    target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-    os.chmod(target.parent, 0o700)
-    descriptor, temporary_name = tempfile.mkstemp(
-        prefix=".provider-startup-", dir=target.parent
-    )
-    temporary = Path(temporary_name)
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as output:
-            os.fchmod(output.fileno(), 0o600)
-            for key, value in plan.environment().items():
-                output.write(f"{key}={value}\n")
-            if source_key is not None:
-                output.write(f"PROVIDER_SOURCE_ENCRYPTION_KEY={source_key}\n")
-            output.flush()
-            os.fsync(output.fileno())
-        os.replace(temporary, target)
-        os.chmod(target, 0o600)
-    finally:
-        temporary.unlink(missing_ok=True)
+def compose_environment(
+    plan: ProviderStartupPlan, *, source_key: str | None = None
+) -> dict[str, str]:
+    """Overlay the selected deployment env in memory; never create a second env file."""
+    environment = os.environ.copy()
+    environment.update(plan.environment())
+    if source_key is not None:
+        environment["PROVIDER_SOURCE_ENCRYPTION_KEY"] = source_key
+    return environment
 
 
 def _is_local_endpoint(endpoint: str, service: str) -> bool:
@@ -290,7 +274,6 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--compose-file", type=Path, default=PROJECT_ROOT / "docker-compose.yml"
     )
-    parser.add_argument("--runtime-env", type=Path, default=DEFAULT_RUNTIME_ENV)
     return parser
 
 
@@ -329,29 +312,28 @@ def main(argv: Sequence[str] | None = None) -> int:
             "已配置托管文件路线；请先配置稳定的 PROVIDER_SOURCE_ENCRYPTION_KEY，"
             "并按 008 手册登记来源。启动不会删除路线或生成替代密钥。"
         )
-    write_runtime_environment(args.runtime_env, plan, source_key=source_key)
     _print_plan(plan)
     if args.command == "prepare":
         return 0
     if auto_providers:
-        settings = load_settings(env_file, args.runtime_env)
+        settings = load_settings(
+            env_file,
+            {"PROVIDER_SOURCE_ENCRYPTION_KEY": source_key}
+            if source_key is not None
+            else os.environ,
+        )
         for provider in auto_providers:
             try:
                 status = asyncio.run(sync_once(provider, settings))
             except Exception:
                 status = "source_sync_unavailable"
             print(f"provider {provider.value}: {status}")
-    environment = os.environ.copy()
-    environment.update(plan.environment())
-    if source_key is not None:
-        environment["PROVIDER_SOURCE_ENCRYPTION_KEY"] = source_key
+    environment = compose_environment(plan, source_key=source_key)
     compose = (
         "docker",
         "compose",
         "--env-file",
         str(env_file),
-        "--env-file",
-        str(args.runtime_env.absolute()),
         "-f",
         str(compose_file),
     )
@@ -396,10 +378,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     subprocess.run(command, cwd=PROJECT_ROOT, env=environment, check=True)
     if auto_providers:
+        if source_key is None:
+            raise RuntimeError("automatic provider source needs an encryption key")
         states = start_detached_source_service(
             env_file=env_file,
-            runtime_env=args.runtime_env,
             providers=auto_providers,
+            source_key=source_key,
         )
         for provider in auto_providers:
             state = states.get(provider.value, "source_sync_unavailable")

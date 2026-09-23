@@ -129,14 +129,13 @@ uv run --project backend python -m app.workers.bootstrap_admin \
 
 命令只在用户表为空时创建管理员；已有任何用户时拒绝，不开放 HTTP 初始化接口。之后用该邮箱和密码登录 Web，再粘贴链接解析；公开抖音访客路线由后台准备，不要求先登记账号来源。若要让其他用户自行注册，先在 `.env` 配置真实 SMTP 并启用 `SMTP_ENABLED=true`；默认关闭时注册验证码不可发送，现有账号仍可登录。生产部署还应替换示例密钥。健康检查只证明服务可运行，不证明首账号已创建或每个平台有真实媒体证据。
 
-统一入口保留已配置的平台路由，不因来源短暂失效删除能力。文件来源由独立 `provider-sources` 进程从现有 PostgreSQL 解密恢复，按平台原子发布到 Runner 的只读命名卷；重建和换机无需复制这些本地副本。有效计划写入 Git 忽略的后端私有目录 `backend/.local-runtime/provider-startup.env`；文件不保存原始 Cookie，但包含来源加密密钥，权限限制为当前用户可读写。
+统一入口保留已配置的平台路由，不因来源短暂失效删除能力。文件来源由独立 `provider-sources` 进程从现有 PostgreSQL 解密恢复，按平台原子发布到 Runner 的只读命名卷；重建和换机无需复制这些本地副本。启动器读取本次 `--env-file` 指定的环境文件，在内存中计算 Provider 启动计划，再作为进程环境交给 Compose 和来源维护器；不生成第二份 `provider-startup.env`。
 
 部署密钥优先通过未提交的根目录 `.env` 或 Secret Manager 设置为 `PROVIDER_SOURCE_ENCRYPTION_KEY`。macOS 本机自动浏览器来源未设置该值时，首次启动会在 `backend/.local-runtime/provider-source.key` 生成权限为 `0600` 的稳定密钥；该目录不会提交 Git，换机或恢复 PostgreSQL 时须从安全备份恢复密钥文件，或继续注入原密钥。已有批准来源登记在持久库。普通用户不参与此过程。新宿主复用同一持久库和密钥后自动恢复；平台撤销、过期或新出口验证仍需按平台处理。首次配置、登记命令和验收边界见 [008 手册](docs/operations/008-个人部署重启与换机手册.md)。
 
 ```bash
 uv run --project backend python -m app.workers.runner.provider_startup start \
-  --env-file .env.prod --compose-file docker-compose-prod.yml \
-  --runtime-env backend/.local-runtime/provider-startup.prod.env
+  --env-file .env.prod --compose-file docker-compose-prod.yml
 ```
 
 维护器只更新 `.provider-sessions/youtube/cookies.txt`，不会在解析或下载请求中读取浏览器。完整来源边界、停止与换机步骤见 [YouTube 受控会话手册](docs/operations/002-YouTube受控会话运行手册.md)和[个人部署手册](docs/operations/008-个人部署重启与换机手册.md)。

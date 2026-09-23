@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import stat
 import subprocess
 from pathlib import Path
 
@@ -10,12 +9,12 @@ from app.services.provider_types import ProviderKey
 from app.workers.runner.provider_session_setup import publish_session
 from app.workers.runner.provider_startup import (
     BACKEND_ROOT,
-    DEFAULT_RUNTIME_ENV,
+    DEFAULT_RUNTIME_DIR,
     DEFAULT_SOURCE_KEY,
     PROJECT_ROOT,
     build_startup_plan,
+    compose_environment,
     main,
-    write_runtime_environment,
 )
 from cryptography.fernet import Fernet
 
@@ -72,7 +71,7 @@ def _values() -> dict[str, str]:
 def test_default_provider_runtime_files_live_under_backend() -> None:
     assert PROJECT_ROOT == BACKEND_ROOT.parent
     assert BACKEND_ROOT.name == "backend"
-    assert DEFAULT_RUNTIME_ENV == BACKEND_ROOT / ".local-runtime/provider-startup.env"
+    assert DEFAULT_RUNTIME_DIR == BACKEND_ROOT / ".local-runtime"
     assert DEFAULT_SOURCE_KEY == BACKEND_ROOT / ".local-runtime/provider-source.key"
 
 
@@ -165,8 +164,8 @@ def test_profile_without_endpoint_fails_configuration_validation(
         build_startup_plan(values)
 
 
-def test_runtime_environment_is_private_and_contains_no_source_material(
-    tmp_path: Path,
+def test_compose_overlays_plan_and_key_without_creating_an_env_file(
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     plan = build_startup_plan(
         {
@@ -176,13 +175,13 @@ def test_runtime_environment_is_private_and_contains_no_source_material(
             "PROVIDER_CANARY_TARGETS": "[]",
         },
     )
-    target = tmp_path / "runtime/provider.env"
+    source_key = Fernet.generate_key().decode()
+    monkeypatch.setenv("RUNNER_OPERATOR_BASE_URLS", "stale-shell-value")
 
-    write_runtime_environment(target, plan)
+    environment = compose_environment(plan, source_key=source_key)
 
-    assert stat.S_IMODE(target.stat().st_mode) == 0o600
-    assert "COOKIE" not in target.read_text()
-    assert "RUNNER_OPERATOR_BASE_URLS={}" in target.read_text()
+    assert environment["RUNNER_OPERATOR_BASE_URLS"] == "{}"
+    assert environment["PROVIDER_SOURCE_ENCRYPTION_KEY"] == source_key
 
 
 def test_configured_local_endpoint_automatically_enables_its_runner() -> None:
@@ -224,27 +223,31 @@ def test_start_syncs_host_source_before_compose_and_starts_detached_refresh(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     env_file = tmp_path / "deploy.env"
-    runtime = tmp_path / "runtime.env"
     compose = tmp_path / "compose.yml"
+    source_key = Fernet.generate_key().decode()
     env_file.write_text(
         "COMPOSE_PROFILES=\nRUNNER_OPERATOR_BASE_URLS={}\n"
         "RUNNER_DEFAULT_ACCESS_POLICIES={}\n"
-        f"PROVIDER_SOURCE_ENCRYPTION_KEY={Fernet.generate_key().decode()}\n"
+        f"PROVIDER_SOURCE_ENCRYPTION_KEY={source_key}\n"
     )
     compose.write_text("services: {}\n")
     order: list[str] = []
+    commands: list[list[str]] = []
+    detached_options: list[dict[str, object]] = []
 
     async def sync(_provider, _settings):
         order.append("source")
         return "ready"
 
     def run(command, **_kwargs):
+        commands.append(list(command))
         if "config" in command:
             return subprocess.CompletedProcess(command, 0, stdout="api\n")
         order.append("compose")
         return subprocess.CompletedProcess(command, 0)
 
     def start_detached(**_kwargs):
+        detached_options.append(_kwargs)
         order.append("detached")
         return {"youtube": "ready"}
 
@@ -269,13 +272,13 @@ def test_start_syncs_host_source_before_compose_and_starts_detached_refresh(
                 str(env_file),
                 "--compose-file",
                 str(compose),
-                "--runtime-env",
-                str(runtime),
             ]
         )
         == 0
     )
     assert order == ["source", "compose", "detached", "disable_legacy"]
-    written = runtime.read_text()
-    assert 'RUNNER_DEFAULT_ACCESS_POLICIES={"youtube":"operator_public"}' in written
-    assert "PROVIDER_SOURCE_ENCRYPTION_KEY=" in written
+    up_command = commands[-1]
+    assert up_command.count("--env-file") == 1
+    assert "--runtime-env" not in up_command
+    assert detached_options[0]["source_key"] == source_key
+    assert not (tmp_path / "runtime.env").exists()

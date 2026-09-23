@@ -10,7 +10,7 @@ import signal
 import subprocess
 import sys
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -188,13 +188,15 @@ class HostBrowserSourceSync:
         return "source_sync_unavailable"
 
 
-def load_settings(env_file: Path, runtime_env: Path) -> Settings:
-    values = {
+def load_settings(
+    env_file: Path, overrides: Mapping[str, str] | None = None
+) -> Settings:
+    values: dict[str, str] = {
         key.lower(): value
-        for path in (env_file, runtime_env)
-        for key, value in dotenv_values(path).items()
+        for key, value in dotenv_values(env_file).items()
         if value is not None
     }
+    values.update({key.lower(): value for key, value in (overrides or {}).items()})
     required = {
         key: values[key]
         for key in ("database_url", "provider_source_encryption_key")
@@ -259,7 +261,10 @@ def _owned_detached_pid() -> int | None:
 
 
 def start_detached_source_service(
-    *, env_file: Path, runtime_env: Path, providers: tuple[ProviderKey, ...]
+    *,
+    env_file: Path,
+    providers: tuple[ProviderKey, ...],
+    source_key: str,
 ) -> dict[str, str]:
     """Keep the browser reader in the authorized startup process context."""
     if sys.platform != "darwin":
@@ -291,16 +296,17 @@ def start_detached_source_service(
             "serve",
             "--env-file",
             str(env_file.absolute()),
-            "--runtime-env",
-            str(runtime_env.absolute()),
             "--status-file",
             str(STATUS_PATH),
         ]
         for provider in providers:
             command.extend(("--provider", provider.value))
+        environment = os.environ.copy()
+        environment["PROVIDER_SOURCE_ENCRYPTION_KEY"] = source_key
         process = subprocess.Popen(
             command,
             cwd=Path(__file__).resolve().parents[3],
+            env=environment,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
@@ -399,14 +405,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="自动维护宿主浏览器的单平台加密来源")
     parser.add_argument("command", choices=("once", "serve"))
     parser.add_argument("--env-file", type=Path, required=True)
-    parser.add_argument("--runtime-env", type=Path, required=True)
     parser.add_argument("--provider", type=ProviderKey, action="append", required=True)
     parser.add_argument("--status-file", type=Path)
     args = parser.parse_args(argv)
     if sys.platform != "darwin":
         print("provider source host: unsupported host browser adapter")
         return 2
-    settings = load_settings(args.env_file, args.runtime_env)
+    settings = load_settings(args.env_file, os.environ)
     return asyncio.run(
         run(
             tuple(dict.fromkeys(args.provider)),

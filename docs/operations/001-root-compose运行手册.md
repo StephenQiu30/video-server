@@ -69,8 +69,8 @@ uv run --project backend python -m app.workers.runner.provider_startup start \
   --env-file .env --compose-file docker-compose.yml
 ~~~
 
-最后一条命令是本机完整项目的启动与重建入口。它保留声明的平台路线，生成不含
-Cookie 的私有计划，再构建镜像并启动业务服务。文件来源由独立来源进程从现有
+最后一条命令是本机完整项目的启动与重建入口。它保留声明的平台路线，从所选环境文件
+在内存中计算 Provider 计划，再构建镜像并启动业务服务。文件来源由独立来源进程从现有
 PostgreSQL 加密记录恢复，不因启动时来源缺失删除 Operator。首次部署需按
 [008 手册](008-个人部署重启与换机手册.md)配置稳定来源密钥并登记已有批准来源。
 可选 Runner 的进程就绪与平台授权就绪分别检查，不把核心健康冒充为平台可下载。

@@ -86,18 +86,13 @@ def test_discovery_requires_one_usable_browser_profile(tmp_path: Path) -> None:
     )
 
 
-def test_host_settings_use_private_runtime_key_without_loading_route_json(
+def test_host_settings_use_selected_env_and_process_key_override(
     tmp_path: Path,
 ) -> None:
     env = tmp_path / "deploy.env"
-    runtime = tmp_path / "runtime.env"
     key = Fernet.generate_key().decode()
     env.write_text("DATABASE_URL=postgresql+asyncpg://a:b@localhost:5432/c\n")
-    runtime.write_text(
-        'RUNNER_DEFAULT_ACCESS_POLICIES={"youtube":"operator_public"}\n'
-        f"PROVIDER_SOURCE_ENCRYPTION_KEY={key}\n"
-    )
-    settings = load_settings(env, runtime)
+    settings = load_settings(env, {"PROVIDER_SOURCE_ENCRYPTION_KEY": key})
     assert settings.database_url.endswith("/c")
     assert settings.provider_source_encryption_key is not None
     assert settings.provider_source_encryption_key.get_secret_value() == key
@@ -257,11 +252,14 @@ def test_detached_source_service_requires_fresh_child_status(
         lambda _path, **_kwargs: {"pid": 4242, "states": {"youtube": "ready"}},
     )
 
+    source_key = Fernet.generate_key().decode()
     assert start_detached_source_service(
         env_file=root / "deploy.env",
-        runtime_env=root / "runtime.env",
         providers=(PROVIDER,),
+        source_key=source_key,
     ) == {"youtube": "ready"}
     assert commands[0][1]["start_new_session"] is True
+    assert "--runtime-env" not in commands[0][0]
     assert "--provider" in commands[0][0]
+    assert commands[0][1]["env"]["PROVIDER_SOURCE_ENCRYPTION_KEY"] == source_key
     assert stat.S_IMODE(pid_file.stat().st_mode) == 0o600

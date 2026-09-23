@@ -6,9 +6,15 @@ FastAPI API、下载/分析领域逻辑、异步 Worker、当前态数据库 SQL
 
 ## 本机运行状态与部署密钥
 
-Provider 启动器和宿主来源维护器把生成的运行配置、PID、状态和锁文件放在 `backend/.local-runtime/`。目录权限限制为当前用户，Git 全局忽略该目录；这些文件由代码自动创建，不需要从 Git 下载，也不应提交。生成的 `provider-startup.env` 含来源加密密钥，因此同样按秘密文件保护；它不保存原始 Cookie。
+Provider 启动器从本次 `--env-file` 指定的环境读取配置，在内存中计算启动计划，并把计划作为进程环境交给 Compose 与宿主来源维护器；它不会生成第二份 `provider-startup.env`。PID、状态和锁文件，以及没有显式配置密钥时生成的稳定来源密钥，保存在 `backend/.local-runtime/`。目录权限限制为当前用户，Git 全局忽略该目录；这些私有运行状态由代码自动创建，不需要从 Git 下载，也不应提交。
 
 部署时优先把稳定的 `PROVIDER_SOURCE_ENCRYPTION_KEY` 配在仓库根目录的未提交 `.env`，或注入部署 Secret。`.env.example` 只保留空值模板。macOS 首次自动维护浏览器来源时若该变量为空，启动器会在 `backend/.local-runtime/provider-source.key` 创建稳定密钥；后续启动复用此文件。PostgreSQL 中的来源密文必须由同一把密钥解密，所以换机或恢复数据库时，也要恢复此密钥文件，或注入原密钥。丢失后不能解密旧来源；需要重新采集并登记来源。
+
+### Provider 会话材料的生命周期
+
+- `.provider-sessions/<provider>/cookies.txt` 是部署者显式采集或导入的持久来源文件。`provider_session_setup capture-chrome` 会从指定的 Chrome Profile 采集并校验；`provider-source-replica publish` 可导入已有文件。它不是普通解析时自动生成的文件，也不应提交 Git。
+- macOS 自动浏览器路线不维护上述 Cookie 文件。宿主后台进程从已登录 Chrome 提取单个平台所需 Cookie，加密写入 PostgreSQL 的 `provider_session_sources`，再由 Compose 来源副本发布到平台隔离的命名卷。
+- Runner 的 `/run/provider-session` 是每次受控操作自动创建在 tmpfs 中的一次性 Cookie jar；操作结束后删除，不由部署者维护或备份。
 
 ## 目录约定
 
