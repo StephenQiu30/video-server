@@ -85,7 +85,7 @@ export function ProviderStatusView() {
             {state.refreshing ? '刷新中…' : '刷新状态'}
           </Button>
         }
-        description="先查看当前下载支持；需要时再展开单个平台，核对探针与真实任务证据。"
+        description="这里展示已登记平台的当前状态。其他公开媒体链接也可在首页粘贴尝试，是否可下载以实际文件结果为准。"
         title="平台状态"
         titleId="provider-status-title"
       />
@@ -108,8 +108,8 @@ export function ProviderStatusView() {
               <p className="text-sm text-muted-foreground">
                 共{' '}
                 <strong className="text-foreground">{providers.length}</strong>{' '}
-                个平台 · {available} 个当前可用 · {providers.length - available}{' '}
-                个需关注
+                个已登记平台 · {available} 个当前可用 ·{' '}
+                {providers.length - available} 个需关注
               </p>
               <ToggleGroup
                 type="single"

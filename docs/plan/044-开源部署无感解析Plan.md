@@ -135,6 +135,8 @@
 
 执行记录（2026-09-22）：复用已有官方移动分享页插件，没有新增签名或账号路线。新建 guest 卷、数据库从无该作用域记录自动初始化后，公开样本 `7674644830270473609`、`6961737553342991651`、`6982497745948921092` 均完成 metadata 与实际下载；首轮总耗时 6.62／7.06／10.98 秒。文件经 ffprobe 确认双流、大小 2,991,195／4,076,260／3,870,741 bytes，时长 14.070／19.736／45.451 秒。强制重建管理进程和 guest Runner 后，三样本再次通过，耗时 6.57／7.08／7.44 秒，大小和时长一致。验收专用临时文件已清理；未导入账号 Cookie，未读取普通浏览器。此处是 Runner 执行层证据，不是同意图 Web 流程或各样本完整冷／热／失效矩阵，P9.04 未关闭。
 
+2026-09-23 通用路线发布后的访客自动轮换观测：数据库 Guest 修订 72 于 04:07:55 UTC 自动更新为 73，脱敏诊断同时确认持久材料与发布的短租约均可用；轮换后固定抖音公开样本 metadata／media 再次成功，分别耗时 2,619／6,950 ms。此项证明当前本机热状态的自动续期和一次真实媒体探针，不代替三样本冷启动与完整用户路径。
+
 <a id="p9-05"></a>
 
 ### P9.05 跨机制验证与重点平台扩展
@@ -160,6 +162,7 @@
 - 排序变更只读审查无新增可操作缺陷；Ruff／format／Mypy 通过，全量后端 2,044 通过、4 环境跳过。两项浏览器桥接测试因工作区外部删除 `browser-extension/manifest.json` 失败，删除未纳入本次提交，不能记为全量通过。guest 探针前项提交 `18b7e1b1` 的远端 [CI 35755553244](https://github.com/StephenQiu30/video-server/actions/runs/35755553244) 成功。
 - 同一现有 Runner 镜像、yt-dlp 安装 commit `3a08beaf031ab68f966401ead017ac81fe8486cf` 的固定公开样本补测：TikTok／快手／X 匿名 metadata 均成功，分别耗时 3,789／1,602／40,501 ms；随后同样本 media 分别失败为 `download_failed`（73,504 ms）、`inspection_failed`（4,274 ms）、`inspection_failed`（2,535 ms）。Vimeo／Instagram／Facebook 本轮 metadata 分别成功（17,100／12,477／5,189 ms），未在本轮重做 media。Canary 仅保存稳定错误码，没有足够底层阶段细节判定三个媒体失败的根因；不得由 metadata 或较早的媒体成功推断当前可下载。所有结果仍是单样本、旧运行镜像，三样本冷／热／重启矩阵与新版行为代际复验未完成。
 - 行为版重新运行同一固定公开样本：TikTok／快手／X 的 anonymous media 均成功，分别耗时 9,006／6,178／144,072 ms；Instagram／Vimeo／Facebook 的 anonymous media 也分别成功，耗时 19,820／70,372／49,902 ms。X、Vimeo、Facebook 的长尾延迟不可作为正常性能达标证据；旧版失败、新版成功仅表明这一次版本／运行条件组合的结果变化，尚未定位历史失败根因，也没有三样本冷／热／重启覆盖。YouTube 固定样本的 operator 路线先因旧 POT 侧车进程脚本与新 Runner 不一致而拒绝，重建侧车后准确返回 `credential_required`；同公开样本的匿名 inspection 仍为 `provider_verification_failed`，Runner 内层稳定原因为 `egress_challenged`；这是当前出口遭平台验证拦截，不构成用户必须登录的证据。因此 YouTube 的开源空凭据体验仍未通过，不能用受控账号路线背书。
+- Generic 修复镜像 `dfe77bee…` 全后端重建后，B 站／小红书／微博各 1 个固定公开匿名样本的 metadata 和 media 共 6 项均成功；对应媒体阶段耗时 7,050／2,906／17,285 ms。该回归只确认这三条既有路线在本机当前出口和样本下未受本次发布破坏，不代表每个平台三样本、冷启动、用户浏览器默认格式或总体 p95 验收。
 
 <a id="p9-06"></a>
 
@@ -264,6 +267,8 @@
 候选镜像 `generic-b3fb92fe` 的隔离一次性 Runner 使用公开 Wikimedia Commons 视频 `Big_buck_bunny_mcu.ogv` 实测：Generic 路线由内置 `Wikimedia` 提取器解析出 4 条流、2 个下载选项；同一服务按该选项重检并生成 566,309 字节 WebM，含 1 路视频和 1 路音频，文件大小及 SHA-256 与 Runner 响应一致，测试工作区已清理。提取过程中出现过可重试的 `inspection_failed`，最终成功；本证据只覆盖该公开样本在当前出口和候选镜像的 Runner 解析／下载，不是 API／Web 交付、能力目录准入、冷部署或其他长尾平台可用性的证明。
 
 该提交的远端 [CI 35815593361](https://github.com/StephenQiu30/video-server/actions/runs/35815593361) 前后端均成功。部署前业务库无在途下载、活跃解析意图或未发布 Outbox 事件，保留旧镜像标签 `video-server:pre-generic-e25a7fb6`；先重建四个 Runner 与 Guest 维护器，健康后再重建 API／下载及其他后台进程。11 个后端容器均运行候选镜像摘要 `dfe77bee…`，API readiness 与 Web 首页均返回 200。上线后的在线 API 客户端经签名内部调用成功解析同一 Wikimedia 样本，返回 Generic／Wikimedia、1 个格式选项；尚未通过用户 Web 创建任务并取得文件。抖音固定 Guest 探针首次 metadata 成功而 media 返回 `guest_context_required`，同时段 Guest 数据库修订已更新；完整重试的 metadata／media 均成功。该时间关联提示轮换窗口，不能把它确定为唯一根因。Runner 保持严格租约；下载 Worker 的持久重试会重新取上下文、先落库再执行，Canary 的下一轮会按新代际重新探测并更新结果，最多三次下载尝试仍可能在连续轮换后耗尽。单实例重建期间排队／失败率未测，旧镜像对 Generic 待处理任务的回滚限制仍在，P9.08／P9.13／P9.14 不关闭。
+
+平台页把现有目录数量改称“已登记平台”，并提示未列出的公开链接也可在首页粘贴尝试，避免把固定 Profile 数误读为解析器能力上限。当前在线匿名 Runner 的 1,759 个候选与 API 的 23 个登记 Profile 是不同口径；数量不代表已验证下载。平台页组件 8 项测试、类型及 Biome 检查通过；受保护页面的浏览器新文案复核待本次 Web 镜像发布和登录态验收。
 
 <a id="p9-09"></a>
 
