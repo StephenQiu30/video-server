@@ -5,17 +5,16 @@ import { intentFixture } from '../fixtures/intent-fixtures';
 import { httpRequests, mockHttpResponses } from '../helpers/http';
 import { render } from '../helpers/query-render';
 
-it('loads history only on request, follows the server cursor and resumes without submitting work', async () => {
+it('loads the dedicated history page, follows the server cursor and resumes without submitting work', async () => {
   const onResume = vi.fn();
   const item = {
     ...intentFixture(),
     created_at: '2026-09-23T00:00:00Z',
     title: '之前解析的视频',
   };
-  render(<IntentHistory disabled={false} onResume={onResume} />);
-  expect(httpRequests()).toHaveLength(0);
   mockHttpResponses({ items: [item], next_cursor: item.id });
-  fireEvent.click(screen.getByRole('button', { name: '解析记录' }));
+  render(<IntentHistory disabled={false} onResume={onResume} />);
+  expect(screen.getByRole('heading', { name: '解析记录' })).toBeVisible();
   expect(await screen.findByText(item.title)).toBeVisible();
   mockHttpResponses({
     items: [
@@ -35,10 +34,7 @@ it('loads history only on request, follows the server cursor and resumes without
   });
   fireEvent.click(screen.getByRole('button', { name: '查看解析' }));
   expect(onResume).toHaveBeenCalledWith('66666666-6666-4666-8666-666666666666');
-  expect(screen.getByRole('button', { name: '解析记录' })).toHaveFocus();
-  expect(
-    screen.queryByRole('button', { name: '查看解析' }),
-  ).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: '查看解析' })).toBeVisible();
   expect(httpRequests().every((item) => item.method === 'GET')).toBe(true);
 });
 
@@ -50,7 +46,6 @@ it('keeps empty history distinct from an active request and blocks selection whi
     next_cursor: null,
   });
   render(<IntentHistory disabled onResume={vi.fn()} />);
-  fireEvent.click(screen.getByRole('button', { name: '解析记录' }));
   await waitFor(() =>
     expect(screen.getByRole('button', { name: '查看解析' })).toBeDisabled(),
   );

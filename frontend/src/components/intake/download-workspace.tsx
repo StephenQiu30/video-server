@@ -19,7 +19,6 @@ import { createSourceDiscovery } from '@/api/sourceDiscoveries';
 import { ContentIntakeHero } from '@/components/intake/content-intake-hero';
 import InspectionWorkspace from '@/components/intake/inspection-workspace';
 import { useIntakeDraft } from '@/components/intake/intake-draft-provider';
-import { IntentHistory } from '@/components/intake/intent-history';
 import { intentTitle } from '@/components/intake/intent-status';
 import { LinkDownloadForm } from '@/components/intake/link-download-form';
 import { MediaUploadForm } from '@/components/intake/media-upload-form';
@@ -320,23 +319,6 @@ export default function DownloadWorkspace() {
           />
         }
       />
-      {mode === 'link' ? (
-        <IntentHistory
-          disabled={
-            busy !== null || intent.cancelling || !!intent.attempt?.submitting
-          }
-          onResume={(id) => {
-            if (!intent.resume(id)) return;
-            setInspection(null);
-            setDiscovery(null);
-            setSelectedId('');
-            setUrl('');
-            setError(null);
-            setUrlInvalid(false);
-            setAuthorizationTarget(null);
-          }}
-        />
-      ) : null}
       {mode === 'link' && intent.attempt ? (
         <section className="mt-8 space-y-3" aria-label="解析任务状态">
           <FeedbackNotice

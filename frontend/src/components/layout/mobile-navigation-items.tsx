@@ -4,6 +4,7 @@ import {
   FileTextIcon,
   HardDrivesIcon,
   HouseIcon,
+  MagnifyingGlassIcon,
   PulseIcon,
   RobotIcon,
   StackIcon,
@@ -27,9 +28,16 @@ export function MobileNavigationItems({
         <HouseIcon aria-hidden />
         首页
       </MobileLink>
-      <MobileLink active={pathname.startsWith('/history')} href="/history">
+      <MobileLink active={pathname === '/history'} href="/history">
         <ClockCounterClockwiseIcon aria-hidden />
         下载记录
+      </MobileLink>
+      <MobileLink
+        active={pathname.startsWith('/history/inspections')}
+        href="/history/inspections"
+      >
+        <MagnifyingGlassIcon aria-hidden />
+        解析记录
       </MobileLink>
       <MobileLink active={pathname.startsWith('/documents')} href="/documents">
         <FileTextIcon aria-hidden />

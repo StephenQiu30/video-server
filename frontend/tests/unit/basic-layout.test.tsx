@@ -82,6 +82,9 @@ describe('BasicLayout', () => {
     const historyLink = screen.getByRole('link', { name: /下载记录/ });
     expect(historyLink).toHaveAttribute('href', '/history');
     expect(historyLink).not.toHaveAttribute('aria-current');
+    const intentHistoryLink = screen.getByRole('link', { name: /解析记录/ });
+    expect(intentHistoryLink).toHaveAttribute('href', '/history/inspections');
+    expect(intentHistoryLink).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('link', { name: /剧本文档/ })).toHaveAttribute(
       'href',
       '/documents',
@@ -266,6 +269,36 @@ describe('BasicLayout', () => {
     expect(
       screen.queryByRole('navigation', { name: '移动导航' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('selects only the parse history route in desktop and mobile navigation', async () => {
+    runtime.pathname = '/history/inspections';
+    render(
+      <BasicLayout>
+        <div>解析历史页面</div>
+      </BasicLayout>,
+    );
+
+    const desktopNavigation = screen.getByRole('navigation', {
+      name: '主要导航',
+    });
+    expect(
+      within(desktopNavigation).getByRole('link', { name: '解析记录' }),
+    ).toHaveAttribute('aria-current', 'page');
+    expect(
+      within(desktopNavigation).getByRole('link', { name: '下载记录' }),
+    ).not.toHaveAttribute('aria-current');
+
+    fireEvent.click(screen.getByRole('button', { name: '打开导航菜单' }));
+    const mobileNavigation = await screen.findByRole('navigation', {
+      name: '移动导航',
+    });
+    expect(
+      within(mobileNavigation).getByRole('link', { name: '解析记录' }),
+    ).toHaveAttribute('aria-current', 'page');
+    expect(
+      within(mobileNavigation).getByRole('link', { name: '下载记录' }),
+    ).not.toHaveAttribute('aria-current');
   });
 
   it('exposes download analytics to administrators on desktop and mobile', async () => {

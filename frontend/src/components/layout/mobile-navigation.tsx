@@ -62,7 +62,7 @@ export function MobileNavigation({
             导航
           </SheetTitle>
           <SheetDescription>
-            从首页导入内容，或访问下载记录、剧本文档与平台状态。
+            从首页导入内容，或查看解析记录、下载记录与其他工作区内容。
           </SheetDescription>
         </SheetHeader>
         {user ? (
