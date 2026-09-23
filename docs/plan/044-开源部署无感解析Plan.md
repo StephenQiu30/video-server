@@ -156,6 +156,7 @@
 - B 站真实 agent-browser 默认流程创建 `cee7f981-2a8f-4b7a-880b-07b34097eb1f`，完成下载后 ffprobe 显示只有 AV1 视频、无音轨，13,171,289 bytes、553.92 秒。界面默认项为 480P WEBM；数据库读取按随机 format UUID 排序，而 Runner 探针使用解析器内存中的首个格式，存在默认结果不一致。修复为 Runner 选项截断前、API 持久化结果投影时共用语义排序，优先有音轨的完整方案。109 项针对性检查通过，包含故意反转格式 UUID 的 PostgreSQL 保存／读取／幂等重放回归，以及高分辨率无声项不能挤掉有声项；真实文件复验仍待完成。
 - 最终 arm64 镜像更新 API、匿名／Douyin guest Runner、下载 Worker、Canary 后，agent-browser 重新解析并刷新，默认均为 1080P MP4 H.264／AAC。真实任务 `84b12bde-55f7-4adb-95df-aea66625dfb1` 完整下载 116,649,570 bytes，ffprobe 为 1920×1080 H.264 视频和 AAC 音轨、554.117619 秒；浏览器文件 SHA-256 `2be37c16fa3acd011581d00b7b37d5e1be605c8fe925d0eae5b3e0ccf167b71f` 与 Artifact 记录一致。截图 `/tmp/framefetch-bilibili-default-with-audio.png` 已检查；详情 axe 0 违规，播放器渐变背景的对比度有 1 项待人工判读，不计为全站可访问性通过。
 - 排序变更只读审查无新增可操作缺陷；Ruff／format／Mypy 通过，全量后端 2,044 通过、4 环境跳过。两项浏览器桥接测试因工作区外部删除 `browser-extension/manifest.json` 失败，删除未纳入本次提交，不能记为全量通过。guest 探针前项提交 `18b7e1b1` 的远端 [CI 35755553244](https://github.com/StephenQiu30/video-server/actions/runs/35755553244) 成功。
+- 同一现有 Runner 镜像、yt-dlp 安装 commit `3a08beaf031ab68f966401ead017ac81fe8486cf` 的固定公开样本补测：TikTok／快手／X 匿名 metadata 均成功，分别耗时 3,789／1,602／40,501 ms；随后同样本 media 分别失败为 `download_failed`（73,504 ms）、`inspection_failed`（4,274 ms）、`inspection_failed`（2,535 ms）。Vimeo／Instagram／Facebook 本轮 metadata 分别成功（17,100／12,477／5,189 ms），未在本轮重做 media。Canary 仅保存稳定错误码，没有足够底层阶段细节判定三个媒体失败的根因；不得由 metadata 或较早的媒体成功推断当前可下载。所有结果仍是单样本、旧运行镜像，三样本冷／热／重启矩阵与新版行为代际复验未完成。
 
 <a id="p9-06"></a>
 
