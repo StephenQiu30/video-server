@@ -1,4 +1,8 @@
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { createServer } from "node:http";
+import { fileURLToPath } from "node:url";
 
 const expectedVersion = process.env.YOUTUBE_POT_EXPECTED_VERSION;
 if (!expectedVersion) {
@@ -9,6 +13,11 @@ const egressProxy = resolveYoutubeEgressProxy(process.env);
 if (process.argv.includes("--check-config")) {
   process.exit(0);
 }
+// Capture the bytes actually loaded by this process, not the later bind-mounted
+// host file contents. A host edit only changes identity after sidecar restart.
+const scriptSha256 = createHash("sha256")
+  .update(readFileSync(fileURLToPath(import.meta.url)))
+  .digest("hex");
 
 const childEnvironment = {
   ...process.env,
@@ -36,6 +45,20 @@ let restartTimer;
 let restartDelayMs = RESTART_DELAY_MS;
 let stopping = false;
 
+const identityServer = createServer((request, response) => {
+  if (request.method !== "GET" || request.url !== "/identity") {
+    response.writeHead(404).end();
+    return;
+  }
+  const ready = active !== undefined && active.ready === true;
+  response.writeHead(ready ? 200 : 503, {
+    "content-type": "application/json",
+    "cache-control": "no-store",
+  });
+  response.end(JSON.stringify({ sha256: scriptSha256 }));
+});
+identityServer.listen(4417, "0.0.0.0");
+
 function startChild() {
   if (stopping) return;
 
@@ -49,6 +72,7 @@ function startChild() {
   const state = {
     child,
     failures: 0,
+    ready: false,
     probeTimer: undefined,
     killTimer: undefined,
   };
@@ -84,8 +108,10 @@ async function probe(state) {
       throw new Error("unexpected POT provider response");
     }
     state.failures = 0;
+    state.ready = true;
     restartDelayMs = RESTART_DELAY_MS;
   } catch {
+    state.ready = false;
     state.failures += 1;
     if (state.failures >= FAILURE_THRESHOLD) {
       console.error("youtube POT provider failed consecutive health probes");

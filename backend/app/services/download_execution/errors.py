@@ -28,6 +28,10 @@ class ArtifactValidationError(RuntimeError):
     pass
 
 
+class LegacyContextChanged(RuntimeError):
+    code = "client_context_mismatch"
+
+
 _RUNNER_CODES = {
     **{
         reason.value: DownloadErrorCode.PROVIDER_CONTENT_RESTRICTED
@@ -71,11 +75,14 @@ _RUNNER_CODES = {
     "drm_protected": DownloadErrorCode.PROVIDER_DRM_PROTECTED,
     "provider_unsupported": DownloadErrorCode.PROVIDER_UNSUPPORTED,
     "pot_provider_unavailable": DownloadErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE,
+    "pot_provider_release_mismatch": DownloadErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE,
     "provider_session_unavailable": DownloadErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE,
     "extractor_regression": DownloadErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE,
     "download_failed": DownloadErrorCode.PROVIDER_TEMPORARILY_UNAVAILABLE,
     "runner_dependency_unavailable": DownloadErrorCode.WORKER_LOST,
     "runner_unavailable": DownloadErrorCode.WORKER_LOST,
+    "runner_release_mismatch": DownloadErrorCode.WORKER_LOST,
+    "runner_release_changed": DownloadErrorCode.WORKER_LOST,
     "runner_busy": DownloadErrorCode.WORKER_LOST,
     "task_not_found": DownloadErrorCode.WORKER_LOST,
     "cancelled": DownloadErrorCode.CANCELLED,

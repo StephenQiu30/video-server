@@ -22,6 +22,7 @@ from app.services.download_execution.monitor import LeaseMonitor
 from app.services.download_execution.ports import Clock, ExecutionStorage
 from app.services.download_execution.transitions import ExecutionTransitions
 from app.services.downloads.rules.enums import DownloadErrorCode, DownloadStage
+from app.services.provider_types import ProviderAccessContextRef
 
 
 class ArtifactDelivery:
@@ -43,6 +44,7 @@ class ArtifactDelivery:
         job_id: UUID,
         attempt: int,
         artifact: VerifiedArtifact,
+        access_context: ProviderAccessContextRef,
     ) -> ExecutionDisposition:
         key = artifact_object_key(job_id, attempt, artifact.container)
         try:
@@ -83,6 +85,7 @@ class ArtifactDelivery:
                 "audio_streams": artifact.audio_streams,
                 "media_kind": artifact.media_kind.value,
                 "asset_count": artifact.asset_count,
+                "execution_access_context": access_context.to_document(),
             },
         )
         return await self._transitions.complete(job_id, attempt, key, details)

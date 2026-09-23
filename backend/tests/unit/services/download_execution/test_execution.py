@@ -10,6 +10,7 @@ from app.services.download_execution.models import ExecutionDisposition
 from app.services.downloads.plans import plan_to_documents
 from app.services.downloads.rules.enums import AudioCodecFamily, DownloadErrorCode
 from app.services.downloads.rules.formats import ProviderHints
+from app.services.provider_types import ProviderAccessContextRef
 from tests.unit.services.download_execution.helpers import download_plan, fixture
 
 
@@ -45,6 +46,9 @@ async def test_success_revalidates_identity_uploads_and_completes(tmp_path) -> N
     assert download_kwargs["access_context"].provider_key == "generic"
     assert case.storage.uploads[0][0] == (f"downloads/{case.job_id}/1/video.mp4")
     assert case.repository.success.sha256 == case.runner.artifact.sha256
+    assert case.repository.success.media_metadata["execution_access_context"] == (
+        download_kwargs["access_context"].to_document()
+    )
     stages = [item[0] for item in case.repository.heartbeats]
     assert "downloading" in stages
     assert stages[-2:] == ["verifying", "uploading"]
@@ -52,6 +56,61 @@ async def test_success_revalidates_identity_uploads_and_completes(tmp_path) -> N
         item[1] for item in case.repository.heartbeats
     )
     assert case.cleaner.calls[0][1] == case.runner.artifact.workspace
+
+
+@pytest.mark.asyncio
+async def test_queued_legacy_job_uses_current_code_generation(tmp_path) -> None:
+    case = fixture(artifact(tmp_path))
+    old_document = dict(case.repository.source.access_context)
+    old_document.pop("runtime_revision")
+    case.repository.source.access_context = old_document
+    case.runner.current_context = ProviderAccessContextRef.from_document(
+        {**old_document, "runtime_revision": "b" * 64}
+    )
+
+    assert await case.execution.execute(case.job_id) is ExecutionDisposition.ACK
+    assert case.repository.success is not None
+    submitted = case.runner.download_arguments[3]["access_context"]
+    assert submitted == case.runner.current_context
+    assert case.repository.success.media_metadata["execution_access_context"] == (
+        submitted.to_document()
+    )
+
+
+@pytest.mark.asyncio
+async def test_queued_job_does_not_silently_switch_egress(tmp_path) -> None:
+    case = fixture(artifact(tmp_path))
+    case.runner.current_context = ProviderAccessContextRef.from_document(
+        {
+            **case.repository.source.access_context,
+            "runtime_revision": "b" * 64,
+            "egress_affinity_id": "different-egress",
+        }
+    )
+
+    assert await case.execution.execute(case.job_id) is ExecutionDisposition.ACK
+    submitted = case.runner.download_arguments[3]["access_context"]
+    assert submitted.egress_affinity_id == "default"
+
+
+@pytest.mark.asyncio
+async def test_legacy_job_with_changed_route_fails_without_retry(tmp_path) -> None:
+    case = fixture(artifact(tmp_path))
+    old_document = dict(case.repository.source.access_context)
+    old_document.pop("runtime_revision")
+    case.repository.source.access_context = old_document
+    case.runner.current_context = ProviderAccessContextRef.from_document(
+        {
+            **old_document,
+            "runtime_revision": "b" * 64,
+            "egress_affinity_id": "different-egress",
+        }
+    )
+
+    assert await case.execution.execute(case.job_id) is ExecutionDisposition.ACK
+    assert case.runner.download_arguments is None
+    assert case.repository.failure["error_code"] == "provider_verification_failed"
+    assert case.repository.failure["retryable"] is False
 
 
 @pytest.mark.asyncio

@@ -6,10 +6,10 @@ import asyncio
 from collections import defaultdict
 from collections.abc import Mapping
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, case, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.core.db import as_utc
+from app.core.db import JSON_DOCUMENT, as_utc
 from app.models import ArtifactRow, DownloadJobRow, MediaInspectionRow
 from app.services.downloads.rules.enums import DownloadErrorCode
 from app.services.provider_canaries import ProviderCanaryReader, ProviderEvidenceScope
@@ -106,36 +106,43 @@ def _statement(  # type: ignore[no-untyped-def]
     scopes: Mapping[str, ProviderEvidenceScope],
 ):
     completed_at = func.coalesce(DownloadJobRow.finished_at, ArtifactRow.created_at)
-    provider_key = MediaInspectionRow.metadata_json["provider_access_context"][
-        "provider_key"
+    execution_context = cast(
+        func.coalesce(
+            case(
+                (
+                    DownloadJobRow.execution_context_attempt == DownloadJobRow.attempt,
+                    DownloadJobRow.execution_access_context,
+                ),
+                else_=None,
+            ),
+            case(
+                (
+                    ArtifactRow.attempt == DownloadJobRow.attempt,
+                    ArtifactRow.media_metadata["execution_access_context"],
+                ),
+                else_=None,
+            ),
+        ),
+        JSON_DOCUMENT,
+    )
+    provider_key = execution_context["provider_key"].as_string()
+    profile_version = execution_context["profile_version"].as_string()
+    access_mode = execution_context["access_mode"].as_string()
+    engine_commit = execution_context["engine_commit"].as_string()
+    runtime_revision = execution_context["runtime_revision"].as_string()
+    credential_version_id = execution_context["credential_version_id"].as_string()
+    egress_affinity_id = execution_context["egress_affinity_id"].as_string()
+    client_profile_id = execution_context["client_profile_id"].as_string()
+    attestation_provider_version = execution_context[
+        "attestation_provider_version"
     ].as_string()
-    profile_version = MediaInspectionRow.metadata_json["provider_access_context"][
-        "profile_version"
-    ].as_string()
-    access_mode = MediaInspectionRow.metadata_json["provider_access_context"][
-        "access_mode"
-    ].as_string()
-    engine_commit = MediaInspectionRow.metadata_json["provider_access_context"][
-        "engine_commit"
-    ].as_string()
-    credential_version_id = MediaInspectionRow.metadata_json["provider_access_context"][
-        "credential_version_id"
-    ].as_string()
-    egress_affinity_id = MediaInspectionRow.metadata_json["provider_access_context"][
-        "egress_affinity_id"
-    ].as_string()
-    client_profile_id = MediaInspectionRow.metadata_json["provider_access_context"][
-        "client_profile_id"
-    ].as_string()
-    attestation_provider_version = MediaInspectionRow.metadata_json[
-        "provider_access_context"
-    ]["attestation_provider_version"].as_string()
     scope_filter = or_(
         *(
             and_(
                 provider_key == key,
                 access_mode == scope.access_mode.value,
                 engine_commit == scope.engine_commit,
+                runtime_revision == scope.access_context.runtime_revision,
                 egress_affinity_id == scope.access_context.egress_affinity_id,
                 client_profile_id == scope.access_context.client_profile_id,
                 _nullable_match(
@@ -164,6 +171,8 @@ def _statement(  # type: ignore[no-untyped-def]
         and_(
             DownloadJobRow.status == "failed",
             DownloadJobRow.error_code.is_not(None),
+            DownloadJobRow.error_code
+            != DownloadErrorCode.PROVIDER_GUEST_CONTEXT_REQUIRED.value,
         ),
     )
     provider_rank = func.row_number().over(
@@ -216,9 +225,21 @@ def _download_result(
     inspection: MediaInspectionRow,
 ) -> ProviderCanaryResult | None:
     try:
-        context = ProviderAccessContextRef.from_document(
-            inspection.metadata_json.get("provider_access_context")
+        artifact_metadata = (
+            artifact.media_metadata
+            if artifact is not None and isinstance(artifact.media_metadata, dict)
+            else {}
         )
+        stored_context = (
+            job.execution_access_context
+            if job.execution_context_attempt == job.attempt
+            else None
+        ) or (
+            artifact_metadata.get("execution_access_context")
+            if artifact is not None and artifact.attempt == job.attempt
+            else None
+        )
+        context = ProviderAccessContextRef.from_document(stored_context)
     except (TypeError, ValueError):
         return None
     if job.status == "succeeded":
@@ -230,6 +251,10 @@ def _download_result(
         try:
             stable_error_code = DownloadErrorCode(job.error_code).value
         except ValueError:
+            return None
+        if stable_error_code == DownloadErrorCode.PROVIDER_GUEST_CONTEXT_REQUIRED:
+            # A credential rotated before media I/O; this is not a Provider
+            # success or failure for either credential generation.
             return None
         outcome = ProviderCanaryOutcome.FAILED
     else:

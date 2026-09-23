@@ -46,6 +46,7 @@ class SqlAlchemyDownloadRepository:
         self.complete_failure = completion.complete_failure
         progress = ProgressRepository(sessions, quota_policy=quota_policy)
         self.heartbeat = progress.heartbeat
+        self.record_execution_context = progress.record_execution_context
         job = JobRepository(sessions, quota_policy=quota_policy)
         self.create_job = job.create_job
         self.get_job = job.get_job

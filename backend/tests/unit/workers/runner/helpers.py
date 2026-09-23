@@ -4,6 +4,7 @@ from pathlib import Path
 
 from app.workers.runner.contracts import DownloadRequest
 from app.workers.runner.process import ProcessResult
+from app.workers.runner.release_identity import runtime_code_sha256
 from app.workers.runner.settings import RunnerSettings, egress_affinity_id
 from app.workers.runner.version import YTDLP_ENGINE_COMMIT
 
@@ -71,6 +72,7 @@ def download_request(height: int = 1080, width: int = 1920) -> DownloadRequest:
                 "client_profile_id": "yt-dlp-default",
                 "attestation_provider_version": None,
                 "engine_commit": YTDLP_ENGINE_COMMIT,
+                "runtime_revision": runtime_code_sha256("generic"),
             },
             "plan": {
                 "height": height,

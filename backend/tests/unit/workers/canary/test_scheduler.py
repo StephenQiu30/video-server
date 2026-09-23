@@ -24,6 +24,7 @@ CONTEXT = ProviderAccessContextRef(
     client_profile_id="yt-dlp-default",
     attestation_provider_version=None,
     engine_commit="current-engine",
+    runtime_revision="a" * 64,
 )
 
 

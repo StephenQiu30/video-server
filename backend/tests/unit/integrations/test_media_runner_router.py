@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -309,6 +310,33 @@ async def test_context_batch_isolates_one_unavailable_operator_runner() -> None:
     assert resolved == {"generic": anonymous.context}
 
 
+async def test_context_batch_isolates_youtube_sidecar_from_other_public_routes() -> (
+    None
+):
+    class SidecarUnavailableClient(FakeClient):
+        async def contexts_for_providers(
+            self, provider_keys: tuple[str, ...]
+        ) -> tuple[ProviderAccessContextRef, ...]:
+            self.context_requests.append(provider_keys)
+            if "youtube" in provider_keys:
+                raise MediaRunnerClientError("pot_provider_release_mismatch", 503)
+            return tuple(
+                replace(self.context, provider_key=key) for key in provider_keys
+            )
+
+    anonymous = SidecarUnavailableClient(context(ProviderAccessMode.ANONYMOUS))
+    router = MediaRunnerRouter(anonymous, {})  # type: ignore[arg-type]
+    resolved = await router.contexts_for_providers(
+        {
+            "generic": ProviderAccessMode.ANONYMOUS,
+            "youtube": ProviderAccessMode.ANONYMOUS,
+            "douyin": ProviderAccessMode.ANONYMOUS,
+        }
+    )
+    assert set(resolved) == {"generic", "douyin"}
+    assert anonymous.context_requests == [("generic", "douyin"), ("youtube",)]
+
+
 def context(
     mode: ProviderAccessMode, provider: str = "youtube"
 ) -> ProviderAccessContextRef:
@@ -322,4 +350,5 @@ def context(
         client_profile_id="yt-dlp-default",
         attestation_provider_version=None,
         engine_commit="5d6b8c8",
+        runtime_revision="a" * 64,
     )

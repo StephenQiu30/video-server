@@ -209,6 +209,23 @@ docker compose --env-file .env.prod -f docker-compose-prod.yml \
 
 启用前必须按对应 Provider 运维手册完成 Cookie、权限、固定出口和授权 canary 门禁。
 
+### Runner 代际协议升级顺序
+
+代际功能必须先把兼容基线 `a84fc3da`（包含 `0e438344` 的协议准备与冷却探测回滚修复）部署到所有 API、Runner、下载 Worker 和 Canary；基线沿用内部 v1 协议，旧数据输出仍为旧形状，但能读取将来带代际字段的记录和响应。在启用行为版任一容器之前，部署者必须用有 DDL 权限的现有 PostgreSQL 连接执行新版 `backend/sql/schema.sql`，并验证 `download_jobs` 上的 `execution_access_context`（JSONB）和 `execution_context_attempt`（INTEGER）两列均存在；Compose 不会自动迁移，任一列缺失就停止发布。之后才能构建行为启用版本的同一后端镜像，先重建当前 Compose profile 启用的匿名、guest、operator Runner，确认 `/health/runtime` 与签名 v1 上下文返回代际；再重建 API、下载 Worker 和 Canary。过渡中的兼容基线调用方会读取新字段，并按新 `generation_id` 屏蔽旧 MEDIA 证据。行为启用版本的调用方若连到旧 Runner 会拒绝新工作。回滚只能先退回兼容基线调用方，再退回兼容基线 Runner；不能回到 `a84fc3da` 之前的版本。旧 inspection 不删除；Worker 只在账号、出口、引擎、策略等引用不变时刷新代码代际，Runner 仍复核媒体身份与格式。实际执行上下文与 attempt 编号在当前租约下先写入 job；仅编号仍等于最终尝试时，成功和终态失败才按它筛选媒体证据；成功 artifact 另存同一 attempt 的兼容副本；旧版无执行上下文的任务在新版 MEDIA 状态中不计证据。YouTube 接单还需从侧车身份端点核对运行脚本 SHA-256，脚本与 Runner 镜像不一致时暂停该平台新工作。
+
+迁移门禁查询应在业务 schema 中返回两行，类型分别为 `jsonb` 和 `integer`：
+
+```sql
+SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_schema = current_schema()
+  AND table_name = 'download_jobs'
+  AND column_name IN ('execution_access_context', 'execution_context_attempt')
+ORDER BY column_name;
+```
+
+当前 Compose 对每个 Runner 是单实例，重建时该路线会短暂不可用；持久意图在已有预算内等待恢复。必须记录该窗口的排队时间和失败率，并实际演练新旧接口、在途任务与反向回滚。不能把分阶段兼容自动解释成零中断或已完成高可用验收。
+
 ## 停止和数据安全
 
 ~~~bash

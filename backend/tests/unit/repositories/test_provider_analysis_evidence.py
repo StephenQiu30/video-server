@@ -75,6 +75,7 @@ async def _seed_complete_chain(sessions) -> object:
         client_profile_id="yt-dlp-default",
         attestation_provider_version=None,
         engine_commit="5d6b8c8cd19785c3086ae3a9ec618c45e25eb3bc",
+        runtime_revision="a" * 64,
     )
     result = parse_analysis_result(
         valid_mapping(),

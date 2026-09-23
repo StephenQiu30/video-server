@@ -71,12 +71,32 @@ def test_legacy_runner_revalidates_newer_context_on_rollback(tmp_path: Path) -> 
         )
     )
     current = store.context_for("https://www.youtube.com/watch?v=owned")
-    newer = replace(current, runtime_revision="a" * 64)
+    other_revision = "a" * 64 if current.runtime_revision == "legacy" else "legacy"
+    newer = replace(current, runtime_revision=other_revision)
 
     assert (
         store.validate_context("https://www.youtube.com/watch?v=owned", newer)
         == current
     )
+
+
+def test_runtime_change_between_lookup_and_download_is_retryable(
+    tmp_path: Path,
+) -> None:
+    store = ProviderSessionStore(
+        RunnerSettings(
+            runner_hmac_secret=SECRET,
+            runner_egress_proxy="http://egress-proxy:3128",
+            runner_workspace_root=tmp_path,
+        )
+    )
+    current = store.context_for("https://www.youtube.com/watch?v=owned")
+    prior = replace(current, runtime_revision="0" * 64)
+
+    with pytest.raises(RunnerFailure) as caught:
+        store.validate_context("https://www.youtube.com/watch?v=owned", prior)
+
+    assert caught.value.code == "runner_release_changed"
 
 
 @pytest.mark.parametrize(

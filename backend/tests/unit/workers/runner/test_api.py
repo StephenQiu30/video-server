@@ -88,6 +88,7 @@ def test_context_endpoint_returns_only_signed_non_secret_runtime_refs(
         "client_profile_id",
         "attestation_provider_version",
         "engine_commit",
+        "runtime_revision",
     }
     assert service.context_requests == ["generic"]
 

@@ -39,6 +39,7 @@ from app.workers.runner.provider_registry import (
     provider_request,
 )
 from app.workers.runner.provider_sessions import ProviderSessionStore
+from app.workers.runner.release_identity import require_youtube_sidecar_identity
 from app.workers.runner.resolved_info import write_resolved_info
 from app.workers.runner.settings import RunnerSettings
 from app.workers.runner.thumbnails import ThumbnailFetcher
@@ -85,14 +86,18 @@ class MediaRunnerService:
     async def context(self, url: str) -> ProviderAccessContextRef:
         safe_url = safe_media_url(url)
         source = provider_request(safe_url)
+        await self._require_companion(source.profile.key)
         return self._sessions.context_for(source.profile)
 
     async def context_for_provider(self, provider_key: str) -> ProviderAccessContextRef:
+        await self._require_companion(provider_key)
         return self._sessions.context_for(provider_profile_for_key(provider_key))
 
     async def contexts_for_providers(
         self, provider_keys: tuple[str, ...]
     ) -> tuple[ProviderAccessContextRef, ...]:
+        if "youtube" in provider_keys:
+            await self._require_companion("youtube")
         return tuple(
             self._sessions.context_for(provider_profile_for_key(provider_key))
             for provider_key in provider_keys
@@ -107,6 +112,7 @@ class MediaRunnerService:
     ) -> InspectResponse:
         safe_url = safe_media_url(url)
         source = provider_request(safe_url)
+        await self._require_companion(source.profile.key)
         context = (
             self._sessions.context_for(source.profile)
             if access_context is None
@@ -169,10 +175,11 @@ class MediaRunnerService:
         try:
             safe_url = safe_media_url(request.url)
             source = provider_request(safe_url)
+            await self._require_companion(source.profile.key)
             context = self._sessions.validate_context(
                 source.profile,
                 request.access_context.to_domain(),
-                allow_guest_refresh=True,
+                allow_guest_refresh=False,
             )
             workspace = self._workspaces.create(request.task_id)
             async with asyncio.timeout(self._settings.runner_download_timeout_seconds):
@@ -202,6 +209,11 @@ class MediaRunnerService:
             self._active.discard(request.task_id, task)
             if workspace is not None and not succeeded:
                 workspace.cleanup()
+
+    async def _require_companion(self, provider_key: str) -> None:
+        base_url = self._settings.runner_youtube_pot_base_url
+        if provider_key == "youtube" and base_url is not None:
+            await require_youtube_sidecar_identity(base_url)
 
     def _disable_credential_on_entitlement_drift(
         self, context: ProviderAccessContextRef, error: RunnerFailure

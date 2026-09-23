@@ -36,6 +36,23 @@ def _env_value(path: Path, name: str) -> str:
     return match.group(1)
 
 
+def test_execution_context_schema_supports_new_and_existing_databases() -> None:
+    schema = SCHEMA_PATH.read_text(encoding="utf-8")
+    create_jobs = schema.split("CREATE TABLE IF NOT EXISTS download_jobs (", 1)[
+        1
+    ].split(");", 1)[0]
+    assert "execution_access_context JSONB" in create_jobs
+    assert "execution_context_attempt INTEGER" in create_jobs
+    assert (
+        "ALTER TABLE download_jobs\n"
+        "    ADD COLUMN IF NOT EXISTS execution_access_context JSONB;"
+    ) in schema
+    assert (
+        "ALTER TABLE download_jobs\n"
+        "    ADD COLUMN IF NOT EXISTS execution_context_attempt INTEGER;"
+    ) in schema
+
+
 def _assert_exact_http_origins(value: str) -> None:
     assert value
     assert "*" not in value

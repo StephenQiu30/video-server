@@ -22,6 +22,7 @@ from app.services.downloads.rules.enums import (
     VideoCodecFamily,
 )
 from app.services.downloads.rules.formats import DownloadPlan, ProviderHints
+from app.services.provider_types import ProviderAccessContextRef, ProviderAccessMode
 
 NOW = datetime(2026, 8, 6, 8, tzinfo=UTC)
 
@@ -35,6 +36,7 @@ class FakeRepository:
         self.heartbeats: list[tuple[str, int]] = []
         self.failure = None
         self.success = None
+        self.execution_context = None
         semantic, hints = plan_to_documents(download_plan())
         self.source = SimpleNamespace(
             inspection_id=uuid4(),
@@ -53,6 +55,7 @@ class FakeRepository:
                 "client_profile_id": "yt-dlp-default",
                 "attestation_provider_version": None,
                 "engine_commit": "5d6b8c8",
+                "runtime_revision": "a" * 64,
             },
             url_ciphertext=b"ciphertext",
             url_nonce=b"nonce",
@@ -70,6 +73,11 @@ class FakeRepository:
     async def heartbeat(self, *args, stage: str, progress: int, **kwargs) -> bool:
         self.heartbeats.append((stage, progress))
         return self.heartbeat_results.pop(0) if self.heartbeat_results else True
+
+    async def record_execution_context(
+        self, _job_id, _worker_id, _attempt, context, _now
+    ):
+        self.execution_context = context
 
     async def get_job(self, *args, **kwargs):
         return SimpleNamespace(
@@ -98,6 +106,14 @@ class FakeRunner:
         self.block = False
         self.cancelled = 0
         self.download_arguments = None
+        self.current_context: ProviderAccessContextRef | None = None
+
+    async def context_for_provider(
+        self, provider_key: str, access_mode: ProviderAccessMode
+    ) -> ProviderAccessContextRef:
+        if self.current_context is not None:
+            return self.current_context
+        return ProviderAccessContextRef.from_document(self.source_context)
 
     async def download(self, task_id, url, plan, **kwargs):
         self.download_arguments = (task_id, url, plan, kwargs)
@@ -182,6 +198,7 @@ def fixture(
     job_id = uuid4()
     repository = FakeRepository(job_id)
     runner = FakeRunner(artifact)
+    runner.source_context = repository.source.access_context
     storage = FakeStorage()
     cleaner = FakeCleaner()
     thumbnail_recovery = FakeThumbnailRecovery()

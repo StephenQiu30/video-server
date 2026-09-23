@@ -10,7 +10,7 @@ from app.services.download_execution.models import ArtifactDetails
 from app.services.downloads.inspection_models import EncryptedUrl
 from app.services.downloads.rules.enums import DownloadStage, MediaKind
 from app.services.downloads.rules.formats import DownloadPlan
-from app.services.provider_types import ProviderAccessContextRef
+from app.services.provider_types import ProviderAccessContextRef, ProviderAccessMode
 
 
 class JobState(Protocol):
@@ -129,6 +129,15 @@ class ExecutionRepository(Protocol):
         lease_for: timedelta,
     ) -> bool: ...
 
+    async def record_execution_context(
+        self,
+        job_id: UUID,
+        worker_id: str,
+        attempt: int,
+        context: ProviderAccessContextRef,
+        now: datetime,
+    ) -> None: ...
+
     async def complete_success(
         self,
         job_id: UUID,
@@ -154,6 +163,10 @@ class ExecutionRepository(Protocol):
 
 
 class ExecutionRunner(Protocol):
+    async def context_for_provider(
+        self, provider_key: str, access_mode: ProviderAccessMode
+    ) -> ProviderAccessContextRef: ...
+
     async def download(
         self,
         task_id: str,

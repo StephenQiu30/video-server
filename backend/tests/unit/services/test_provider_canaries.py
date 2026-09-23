@@ -55,7 +55,18 @@ def access_context(
         client_profile_id=client_profile_id,
         attestation_provider_version=attestation_provider_version,
         engine_commit=engine_commit,
+        runtime_revision="a" * 64,
     )
+
+
+def test_legacy_context_cannot_share_current_runtime_generation() -> None:
+    current = access_context()
+    legacy_document = current.to_document()
+    legacy_document.pop("runtime_revision")
+    legacy = ProviderAccessContextRef.from_document(legacy_document)
+
+    assert legacy.runtime_revision == "legacy"
+    assert legacy.generation_id != current.generation_id
 
 
 class ContextReader:
@@ -921,6 +932,23 @@ async def test_stale_media_route_is_not_ready_after_analysis_success() -> None:
 
     assert view.last_verified_at == NOW
     assert view.download_available is False
+    assert view.access_state is ProviderAccessState.PUBLIC_PROBE
+
+
+@pytest.mark.asyncio
+async def test_runtime_revision_change_does_not_reuse_old_media_success() -> None:
+    new_context = replace(access_context(), runtime_revision="b" * 64)
+    service = ProviderStatusService(
+        Reader((result(0, stage=ProviderCanaryStage.MEDIA),)),
+        (baseline(ProviderSupportStatus.VERIFIED),),
+        now=lambda: NOW,
+        context_reader=ContextReader((new_context,)),
+    )
+
+    view = (await service.list())[0]
+
+    assert view.download_available is False
+    assert view.last_media_verified_at is None
     assert view.access_state is ProviderAccessState.PUBLIC_PROBE
 
 

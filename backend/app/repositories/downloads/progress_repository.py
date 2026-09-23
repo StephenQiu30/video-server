@@ -8,7 +8,9 @@ from uuid import UUID
 from sqlalchemy import case, update
 
 from app.models import DownloadJobRow
+from app.repositories.errors import LeaseConflict
 from app.repositories.repository_base import RepositoryBase
+from app.services.provider_types import ProviderAccessContextRef
 
 STAGE_RANKS = {
     "revalidating": 1,
@@ -20,6 +22,35 @@ STAGE_RANKS = {
 
 
 class ProgressRepository(RepositoryBase):
+    async def record_execution_context(
+        self,
+        job_id: UUID,
+        worker_id: str,
+        attempt: int,
+        context: ProviderAccessContextRef,
+        now: datetime,
+    ) -> None:
+        statement = (
+            update(DownloadJobRow)
+            .where(
+                DownloadJobRow.id == job_id,
+                DownloadJobRow.status == "running",
+                DownloadJobRow.lease_owner == worker_id,
+                DownloadJobRow.attempt == attempt,
+                DownloadJobRow.lease_expires_at > now,
+            )
+            .values(
+                execution_access_context=context.to_document(),
+                execution_context_attempt=attempt,
+                version=DownloadJobRow.version + 1,
+                updated_at=now,
+            )
+            .returning(DownloadJobRow.id)
+        )
+        async with self._sessions() as session, session.begin():
+            if await session.scalar(statement) is None:
+                raise LeaseConflict("worker no longer owns this job attempt")
+
     async def heartbeat(
         self,
         job_id: UUID,

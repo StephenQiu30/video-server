@@ -23,6 +23,7 @@ from app.services.provider_types import (
     ProviderCanaryResult,
     ProviderCanaryStage,
 )
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 NOW = datetime(2026, 8, 29, 4, tzinfo=UTC)
@@ -40,6 +41,8 @@ def runtime_context(
     operator = access_mode is ProviderAccessMode.OPERATOR_MANAGED
     if operator and credential_version_id is None:
         credential_version_id = "operator-current"
+    if access_mode is ProviderAccessMode.GUEST and credential_version_id is None:
+        credential_version_id = "guest-current"
     return ProviderAccessContextRef(
         provider_key="tiktok",
         profile_version=profile_version,
@@ -56,6 +59,7 @@ def runtime_context(
         ),
         attestation_provider_version=attestation_provider_version,
         engine_commit=engine_commit,
+        runtime_revision="a" * 64,
     )
 
 
@@ -64,13 +68,17 @@ def ProviderEvidenceScope(  # noqa: N802
     profile_version: str,
     access_mode: ProviderAccessMode,
     engine_commit: str = "engine",
+    runtime_revision: str = "a" * 64,
 ) -> _ProviderEvidenceScope:
     return _ProviderEvidenceScope(
         profile_version=profile_version,
-        access_context=runtime_context(
-            profile_version=profile_version,
-            access_mode=access_mode,
-            engine_commit=engine_commit,
+        access_context=replace(
+            runtime_context(
+                profile_version=profile_version,
+                access_mode=access_mode,
+                engine_commit=engine_commit,
+            ),
+            runtime_revision=runtime_revision,
         ),
     )
 
@@ -271,6 +279,142 @@ async def test_download_reader_filters_engine_before_provider_limit(
 
 
 @pytest.mark.asyncio
+async def test_download_reader_uses_actual_context_after_legacy_job_migration(
+    postgres_engine: AsyncEngine,
+) -> None:
+    sessions = create_session_factory(postgres_engine)
+    expected = await _seed_download(
+        sessions,
+        age=0,
+        access_mode=ProviderAccessMode.ANONYMOUS,
+        execution_revision="b" * 64,
+    )
+    reader = SqlAlchemyDownloadEvidenceReader(sessions)
+
+    results = await reader.list_recent(
+        limit_per_provider_stage=1,
+        scopes={
+            "tiktok": ProviderEvidenceScope(
+                profile_version="tiktok-public-player-v3",
+                access_mode=ProviderAccessMode.ANONYMOUS,
+                runtime_revision="b" * 64,
+            )
+        },
+    )
+
+    assert results == {"tiktok": (expected,)}
+
+
+@pytest.mark.asyncio
+async def test_download_reader_keeps_failed_attempt_in_current_runner_scope(
+    postgres_engine: AsyncEngine,
+) -> None:
+    sessions = create_session_factory(postgres_engine)
+    expected = await _seed_download(
+        sessions,
+        age=0,
+        access_mode=ProviderAccessMode.ANONYMOUS,
+        status="failed",
+        error_code="provider_verification_failed",
+        execution_revision="b" * 64,
+    )
+    results = await SqlAlchemyDownloadEvidenceReader(sessions).list_recent(
+        limit_per_provider_stage=1,
+        scopes={
+            "tiktok": ProviderEvidenceScope(
+                profile_version="tiktok-public-player-v3",
+                access_mode=ProviderAccessMode.ANONYMOUS,
+                runtime_revision="b" * 64,
+            )
+        },
+    )
+    assert results == {"tiktok": (expected,)}
+
+
+@pytest.mark.asyncio
+async def test_download_reader_skips_guest_rotation_before_media_io(
+    postgres_engine: AsyncEngine,
+) -> None:
+    sessions = create_session_factory(postgres_engine)
+    seeded = await _seed_download(
+        sessions,
+        age=0,
+        access_mode=ProviderAccessMode.GUEST,
+        status="failed",
+        error_code="provider_session_expired",
+        execution_revision="b" * 64,
+    )
+    job_id = UUID(seeded.target_id.removeprefix("download:"))
+    async with sessions() as session, session.begin():
+        job = await session.get(DownloadJobRow, job_id)
+        assert job is not None
+        job.error_code = "provider_guest_context_required"
+    results = await SqlAlchemyDownloadEvidenceReader(sessions).list_recent(
+        limit_per_provider_stage=1,
+        scopes={
+            "tiktok": ProviderEvidenceScope(
+                profile_version="tiktok-public-player-v3",
+                access_mode=ProviderAccessMode.GUEST,
+                runtime_revision="b" * 64,
+            )
+        },
+    )
+    assert results == {}
+
+
+@pytest.mark.asyncio
+async def test_download_reader_ignores_context_from_previous_attempt_after_rollback(
+    postgres_engine: AsyncEngine,
+) -> None:
+    sessions = create_session_factory(postgres_engine)
+    old_result = await _seed_download(
+        sessions,
+        age=0,
+        access_mode=ProviderAccessMode.ANONYMOUS,
+        execution_revision="b" * 64,
+    )
+    job_id = UUID(old_result.target_id.removeprefix("download:"))
+    async with sessions() as session, session.begin():
+        job = await session.get(DownloadJobRow, job_id)
+        artifact = await session.scalar(
+            select(ArtifactRow).where(ArtifactRow.job_id == job_id)
+        )
+        assert job is not None and artifact is not None
+        inspection = await session.get(MediaInspectionRow, job.inspection_id)
+        assert inspection is not None
+        planned = dict(inspection.metadata_json["provider_access_context"])
+        planned["runtime_revision"] = "b" * 64
+        inspection.metadata_json = {"provider_access_context": planned}
+        job.attempt = 2
+        artifact.attempt = 2
+        artifact.media_metadata = {"video_streams": 1, "audio_streams": 1}
+
+    reader = SqlAlchemyDownloadEvidenceReader(sessions)
+    stale = await reader.list_recent(
+        limit_per_provider_stage=1,
+        scopes={
+            "tiktok": ProviderEvidenceScope(
+                profile_version="tiktok-public-player-v3",
+                access_mode=ProviderAccessMode.ANONYMOUS,
+                runtime_revision="b" * 64,
+            )
+        },
+    )
+    legacy = await reader.list_recent(
+        limit_per_provider_stage=1,
+        scopes={
+            "tiktok": ProviderEvidenceScope(
+                profile_version="tiktok-public-player-v3",
+                access_mode=ProviderAccessMode.ANONYMOUS,
+                runtime_revision="a" * 64,
+            )
+        },
+    )
+    assert stale == {}
+    assert legacy == {}
+
+
+@pytest.mark.asyncio
 async def test_download_reader_breaks_equal_timestamp_ties_by_job_id(
     postgres_engine: AsyncEngine,
 ) -> None:
@@ -341,15 +485,19 @@ def test_projects_verified_download_without_exposing_source_url() -> None:
         client_profile_id="chrome",
         attestation_provider_version=None,
         engine_commit="engine",
+        runtime_revision="a" * 64,
     )
     job = DownloadJobRow(
         id=uuid4(),
         status="succeeded",
+        attempt=1,
+        execution_access_context=context.to_document(),
+        execution_context_attempt=1,
         started_at=NOW - timedelta(seconds=2),
         finished_at=NOW,
         created_at=NOW - timedelta(seconds=3),
     )
-    artifact = ArtifactRow(created_at=NOW)
+    artifact = ArtifactRow(created_at=NOW, attempt=1)
     inspection = MediaInspectionRow(
         metadata_json={"provider_access_context": context.to_document()}
     )
@@ -374,10 +522,14 @@ def test_projects_terminal_download_failure_with_stable_error_code() -> None:
         client_profile_id="chrome",
         attestation_provider_version=None,
         engine_commit="engine",
+        runtime_revision="a" * 64,
     )
     job = DownloadJobRow(
         id=uuid4(),
         status="failed",
+        attempt=1,
+        execution_access_context=context.to_document(),
+        execution_context_attempt=1,
         error_code="provider_link_unavailable",
         started_at=NOW - timedelta(seconds=2),
         finished_at=NOW,
@@ -403,6 +555,7 @@ async def _seed_download(
     engine_commit: str = "engine",
     status: str = "succeeded",
     error_code: str | None = None,
+    execution_revision: str | None = None,
 ) -> ProviderCanaryResult:
     inspection_id, format_id = uuid4(), uuid4()
     job_id = job_id or uuid4()
@@ -412,11 +565,23 @@ async def _seed_download(
         provider_key="tiktok",
         profile_version="tiktok-public-player-v3",
         access_mode=access_mode,
-        credential_version_id="operator-current" if operator else None,
+        credential_version_id=(
+            "operator-current"
+            if operator
+            else "guest-current"
+            if access_mode is ProviderAccessMode.GUEST
+            else None
+        ),
         egress_affinity_id="default",
         client_profile_id="yt-dlp-default",
         attestation_provider_version=None,
         engine_commit=engine_commit,
+        runtime_revision="a" * 64,
+    )
+    execution_context = (
+        replace(context, runtime_revision=execution_revision)
+        if execution_revision is not None
+        else context
     )
     async with sessions() as session, session.begin():
         session.add(
@@ -459,6 +624,8 @@ async def _seed_download(
             idempotency_key=f"download-{job_id}",
             request_fingerprint="d" * 64,
             semantic_plan={"height": 720},
+            execution_access_context=execution_context.to_document(),
+            execution_context_attempt=1,
             status=status,
             progress=100 if status == "succeeded" else 0,
             attempt=1,
@@ -482,7 +649,11 @@ async def _seed_download(
                 duration_ms=2000,
                 container="mp4",
                 content_type="video/mp4",
-                media_metadata={"video_streams": 1, "audio_streams": 1},
+                media_metadata={
+                    "video_streams": 1,
+                    "audio_streams": 1,
+                    "execution_access_context": execution_context.to_document(),
+                },
                 created_at=completed_at,
             )
             session.add(artifact)
@@ -490,12 +661,25 @@ async def _seed_download(
         DownloadJobRow(
             id=job_id,
             status=status,
+            attempt=1,
+            execution_access_context=execution_context.to_document(),
+            execution_context_attempt=1,
             error_code=error_code,
             started_at=completed_at - timedelta(seconds=2),
             finished_at=completed_at,
             created_at=completed_at - timedelta(seconds=3),
         ),
-        ArtifactRow(created_at=completed_at) if status == "succeeded" else None,
+        (
+            ArtifactRow(
+                created_at=completed_at,
+                attempt=1,
+                media_metadata={
+                    "execution_access_context": execution_context.to_document()
+                },
+            )
+            if status == "succeeded"
+            else None
+        ),
         MediaInspectionRow(
             metadata_json={"provider_access_context": context.to_document()}
         ),

@@ -120,6 +120,7 @@ def anonymous_access_context() -> dict[str, object]:
         "client_profile_id": "yt-dlp-default",
         "attestation_provider_version": None,
         "engine_commit": YTDLP_ENGINE_COMMIT,
+        "runtime_revision": "a" * 64,
     }
 
 

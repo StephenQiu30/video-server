@@ -19,6 +19,7 @@ from app.services.download_execution.errors import (
 )
 from app.services.download_execution.models import ArtifactDetails
 from app.services.downloads.download_models import JobSnapshot
+from app.services.provider_types import ProviderAccessContextRef
 
 
 class DownloadExecutionRepository:
@@ -70,6 +71,19 @@ class DownloadExecutionRepository:
                 lease_for=lease_for,
             )
         raise AssertionError("unreachable")
+
+    async def record_execution_context(
+        self,
+        job_id: UUID,
+        worker_id: str,
+        attempt: int,
+        context: ProviderAccessContextRef,
+        now: datetime,
+    ) -> None:
+        with _translate_errors():
+            await self._repository.record_execution_context(
+                job_id, worker_id, attempt, context, now
+            )
 
     async def complete_success(
         self,

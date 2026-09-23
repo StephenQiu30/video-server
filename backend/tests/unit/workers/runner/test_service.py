@@ -18,6 +18,33 @@ from app.workers.runner.settings import RunnerSettings
 from helpers import download_request, result, settings, split_media_info
 
 
+async def test_youtube_companion_mismatch_blocks_context_and_inspection(
+    tmp_path, monkeypatch
+) -> None:
+    configured = settings(tmp_path).model_copy(
+        update={"runner_youtube_pot_base_url": "http://youtube-pot-provider:4416"}
+    )
+    supervisor = FixtureSupervisor(split_media_info())
+    service = MediaRunnerService(configured, supervisor=supervisor)
+    called: list[str] = []
+
+    async def reject(base_url: str) -> None:
+        called.append(base_url)
+        raise RunnerFailure("pot_provider_release_mismatch", status=503)
+
+    monkeypatch.setattr(
+        "app.workers.runner.service.require_youtube_sidecar_identity", reject
+    )
+    with pytest.raises(RunnerFailure) as context_error:
+        await service.context_for_provider("youtube")
+    with pytest.raises(RunnerFailure) as inspect_error:
+        await service.inspect("https://www.youtube.com/watch?v=owned")
+    assert context_error.value.code == "pot_provider_release_mismatch"
+    assert inspect_error.value.code == "pot_provider_release_mismatch"
+    assert called == ["http://youtube-pot-provider:4416"] * 2
+    assert supervisor.calls == []
+
+
 async def test_inspect_rejects_frozen_context_drift_before_platform_io(tmp_path):
     supervisor = FixtureSupervisor(split_media_info())
     service = MediaRunnerService(settings(tmp_path), supervisor=supervisor)

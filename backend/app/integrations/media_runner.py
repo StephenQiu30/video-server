@@ -260,10 +260,13 @@ class MediaRunnerHttpClient:
                 raise MediaInspectionDrmProtected from exc
             if exc.code in {
                 "pot_provider_unavailable",
+                "pot_provider_release_mismatch",
                 "extractor_regression",
                 "provider_temporarily_unavailable",
                 "provider_session_unavailable",
                 "runner_unavailable",
+                "runner_release_mismatch",
+                "runner_release_changed",
             }:
                 raise MediaInspectionTemporarilyUnavailable from exc
             if exc.code == "provider_link_unavailable":
@@ -295,7 +298,7 @@ class MediaRunnerHttpClient:
                 )
                 for item in response.options
             ),
-            access_context=response.access_context.to_domain(),
+            access_context=_context_to_domain(response.access_context),
             thumbnail_data_url=response.media.thumbnail_data_url,
             media_kind=response.media.media_kind,
             asset_count=response.media.asset_count,
@@ -326,7 +329,7 @@ class MediaRunnerHttpClient:
             timeout_code="inspection_timeout",
         )
         if context is not None:
-            returned_context = response.access_context.to_domain()
+            returned_context = _context_to_domain(response.access_context)
             if returned_context.runtime_revision == "legacy":
                 # A rollback Runner emits its own legacy identity. Its inspect
                 # result still has to match every other frozen route reference.
@@ -551,7 +554,13 @@ class MediaRunnerRouter:
         )
         groups: list[tuple[MediaRunnerClient, tuple[str, ...]]] = []
         if anonymous_keys:
-            groups.append((self._anonymous, anonymous_keys))
+            shared_keys = tuple(key for key in anonymous_keys if key != "youtube")
+            if shared_keys:
+                groups.append((self._anonymous, shared_keys))
+            if "youtube" in anonymous_keys:
+                # The POT sidecar can fail independently of every other
+                # anonymous Provider. Keep its status lookup isolated.
+                groups.append((self._anonymous, ("youtube",)))
         groups.extend(
             (client, (key,))
             for key, mode in requested.items()
@@ -673,6 +682,9 @@ def _context_to_domain(
     contract: ProviderAccessContextContract,
 ) -> ProviderAccessContextRef:
     try:
-        return contract.to_domain()
+        context = contract.to_domain()
     except ValueError as exc:
         raise MediaRunnerClientError("invalid_runner_response", 502) from exc
+    if context.runtime_revision == "legacy":
+        raise MediaRunnerClientError("runner_release_mismatch", 503)
+    return context

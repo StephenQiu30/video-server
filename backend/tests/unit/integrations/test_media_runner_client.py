@@ -67,6 +67,33 @@ async def test_context_reads_the_runner_runtime_generation() -> None:
 
 
 @pytest.mark.asyncio
+async def test_new_client_fails_closed_against_pre_revision_runner() -> None:
+    old_document = _access_context().to_document()
+    old_document.pop("runtime_revision")
+
+    async def respond(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=old_document)
+
+    http = httpx.AsyncClient(
+        base_url="http://runner", transport=httpx.MockTransport(respond)
+    )
+    client = MediaRunnerHttpClient(
+        base_url="http://runner",
+        secret=b"s" * 32,
+        workspace_root=Path("."),
+        inspect_timeout_seconds=1,
+        download_timeout_seconds=1,
+        client=http,
+    )
+
+    with pytest.raises(MediaRunnerClientError) as caught:
+        await client.context_for_provider("generic")
+
+    assert caught.value.code == "runner_release_mismatch"
+    await http.aclose()
+
+
+@pytest.mark.asyncio
 async def test_context_batch_uses_one_short_lived_runner_request() -> None:
     expected = _access_context()
 
@@ -492,9 +519,10 @@ async def test_download_sends_expected_inspection_identity(tmp_path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_rollback_probe_accepts_legacy_revision_only(tmp_path: Path) -> None:
+async def test_new_client_rejects_legacy_probe_revision(tmp_path: Path) -> None:
     newer = replace(_access_context(), runtime_revision="a" * 64)
     returned = _access_context().to_document()
+    returned.pop("runtime_revision")
 
     async def respond(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/internal/v1/inspect"
@@ -525,16 +553,18 @@ async def test_rollback_probe_accepts_legacy_revision_only(tmp_path: Path) -> No
         download_timeout_seconds=1,
         client=http,
     )
-    await client._inspect_response("https://media.example/video", newer)
+    with pytest.raises(MediaRunnerClientError) as captured:
+        await client._inspect_response("https://media.example/video", newer)
+    assert captured.value.code == "runner_release_mismatch"
     returned["engine_commit"] = "different"
     with pytest.raises(MediaRunnerClientError) as captured:
         await client._inspect_response("https://media.example/video", newer)
-    assert captured.value.code == "client_context_mismatch"
+    assert captured.value.code == "runner_release_mismatch"
     await http.aclose()
 
 
 @pytest.mark.asyncio
-async def test_rollback_half_open_download_rechecks_legacy_runner(
+async def test_new_client_half_open_download_rejects_legacy_runner(
     tmp_path: Path,
 ) -> None:
     newer = replace(_access_context(), runtime_revision="a" * 64)
@@ -553,7 +583,7 @@ async def test_rollback_half_open_download_rechecks_legacy_runner(
             )
 
         async def finish(self, _lease, *, success, **_kwargs):
-            assert success
+            assert not success
             self.probing = False
 
     async def respond(request: httpx.Request) -> httpx.Response:
@@ -570,7 +600,11 @@ async def test_rollback_half_open_download_rechecks_legacy_runner(
                     },
                     "streams": [],
                     "options": [{"option_id": "one", "label": "gallery"}],
-                    "access_context": _access_context().to_document(),
+                    "access_context": {
+                        key: value
+                        for key, value in _access_context().to_document().items()
+                        if key != "runtime_revision"
+                    },
                 },
             )
         events.append("download")
@@ -606,17 +640,19 @@ async def test_rollback_half_open_download_rechecks_legacy_runner(
         client=http,
         admission=ProviderRouteAdmission(HalfOpen()),  # type: ignore[arg-type]
     )
-    await client.download(
-        "job_123",
-        "https://media.example/video",
-        None,
-        expected_provider_media_id="video-1",
-        expected_extractor_key="Controlled",
-        access_context=newer,
-        media_kind="image_gallery",  # type: ignore[arg-type]
-        asset_count=1,
-    )
-    assert events == ["probe", "download"]
+    with pytest.raises(MediaRunnerClientError) as captured:
+        await client.download(
+            "job_123",
+            "https://media.example/video",
+            None,
+            expected_provider_media_id="video-1",
+            expected_extractor_key="Controlled",
+            access_context=newer,
+            media_kind="image_gallery",  # type: ignore[arg-type]
+            asset_count=1,
+        )
+    assert captured.value.code == "runner_release_mismatch"
+    assert events == ["probe"]
     await http.aclose()
 
 
@@ -630,4 +666,5 @@ def _access_context() -> ProviderAccessContextRef:
         client_profile_id="yt-dlp-default",
         attestation_provider_version=None,
         engine_commit="5d6b8c8",
+        runtime_revision="a" * 64,
     )

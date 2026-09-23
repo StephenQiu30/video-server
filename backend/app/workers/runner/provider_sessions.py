@@ -34,6 +34,7 @@ from app.workers.runner.provider_session_files import (
     require_memory_backed_root,
     validated_cookie_payload,
 )
+from app.workers.runner.release_identity import runtime_code_sha256
 from app.workers.runner.settings import RunnerSettings
 
 
@@ -162,6 +163,7 @@ class ProviderSessionStore:
                 else None
             ),
             engine_commit=self._settings.runner_ytdlp_commit,
+            runtime_revision=runtime_code_sha256(profile.key, access_mode=mode),
         )
 
     def validate_context(
@@ -172,8 +174,16 @@ class ProviderSessionStore:
         allow_guest_refresh: bool = False,
     ) -> ProviderAccessContextRef:
         current = self.context_for(source)
-        if current.runtime_revision == "legacy":
-            expected = replace(expected, runtime_revision="legacy")
+        if (
+            current.runtime_revision == "legacy"
+            or expected.runtime_revision == "legacy"
+        ):
+            expected = replace(expected, runtime_revision=current.runtime_revision)
+        if (
+            expected.runtime_revision != current.runtime_revision
+            and replace(expected, runtime_revision=current.runtime_revision) == current
+        ):
+            raise RunnerFailure("runner_release_changed", status=409)
         if current.access_mode is ProviderAccessMode.ANONYMOUS:
             if current != expected:
                 raise RunnerFailure("client_context_mismatch", status=409)

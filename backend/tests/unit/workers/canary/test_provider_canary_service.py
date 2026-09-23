@@ -585,6 +585,7 @@ def _context(access_mode: ProviderAccessMode) -> ProviderAccessContextRef:
         client_profile_id="yt-dlp-default",
         attestation_provider_version=None,
         engine_commit="5d6b8c8cd19785c3086ae3a9ec618c45e25eb3bc",
+        runtime_revision="a" * 64,
     )
 
 

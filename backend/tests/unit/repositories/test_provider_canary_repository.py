@@ -45,6 +45,7 @@ def runtime_context(
         client_profile_id=client_profile_id,
         attestation_provider_version=None,
         engine_commit=engine_commit,
+        runtime_revision="a" * 64,
     )
 
 

@@ -19,6 +19,7 @@ from sqlalchemy import (
     Uuid,
     text,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import JSON_DOCUMENT, Base, utc_now
@@ -81,6 +82,10 @@ class DownloadJobRow(Base):
     idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
     request_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
     semantic_plan: Mapped[dict[str, Any]] = mapped_column(JSON_DOCUMENT, nullable=False)
+    execution_access_context: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONB(none_as_null=True)
+    )
+    execution_context_attempt: Mapped[int | None] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(24), nullable=False, default="queued")
     stage: Mapped[str | None] = mapped_column(String(24))
     stage_rank: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

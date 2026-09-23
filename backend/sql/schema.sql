@@ -341,6 +341,8 @@ CREATE TABLE IF NOT EXISTS download_jobs (
     idempotency_key VARCHAR(128) NOT NULL,
     request_fingerprint VARCHAR(64) NOT NULL,
     semantic_plan JSONB NOT NULL,
+    execution_access_context JSONB,
+    execution_context_attempt INTEGER,
     status VARCHAR(24) NOT NULL DEFAULT 'queued',
     stage VARCHAR(24),
     stage_rank INTEGER NOT NULL DEFAULT 0,
@@ -384,6 +386,10 @@ CREATE TABLE IF NOT EXISTS download_jobs (
 
 ALTER TABLE download_jobs
     ADD COLUMN IF NOT EXISTS source_kind VARCHAR(32);
+ALTER TABLE download_jobs
+    ADD COLUMN IF NOT EXISTS execution_access_context JSONB;
+ALTER TABLE download_jobs
+    ADD COLUMN IF NOT EXISTS execution_context_attempt INTEGER;
 UPDATE download_jobs
 SET source_kind = 'remote_provider'
 WHERE source_kind IS NULL;

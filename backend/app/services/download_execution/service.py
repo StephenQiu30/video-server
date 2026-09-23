@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import suppress
+from dataclasses import replace
 from pathlib import Path
 from uuid import UUID
 
@@ -14,6 +15,7 @@ from app.services.download_execution.errors import (
     ExecutionSourceUnavailable,
     LeaseInfrastructureError,
     LeaseLost,
+    LegacyContextChanged,
     classify_runner_failure,
 )
 from app.services.download_execution.models import (
@@ -40,7 +42,7 @@ from app.services.downloads.rules.enums import (
     MediaKind,
 )
 from app.services.provider_route_admission import RouteCoolingDown
-from app.services.provider_types import ProviderAccessContextRef
+from app.services.provider_types import ProviderAccessContextRef, ProviderAccessMode
 
 
 class DownloadExecution:
@@ -130,6 +132,42 @@ class DownloadExecution:
                     job_id, attempt, DownloadErrorCode.INTERNAL_ERROR
                 )
             try:
+                # The Runner re-inspects media identity and the selected format
+                # before writing. Refresh only a code-generation change here;
+                # never silently switch account, egress, engine or policy.
+                current_context = await monitor.run_fixed(
+                    lambda: self._runner.context_for_provider(
+                        access_context.provider_key, access_context.access_mode
+                    ),
+                    stage=DownloadStage.REVALIDATING,
+                    progress=0,
+                    drain_on_abort=False,
+                )
+                candidate = replace(
+                    access_context,
+                    runtime_revision=current_context.runtime_revision,
+                    credential_version_id=(
+                        current_context.credential_version_id
+                        if access_context.access_mode is ProviderAccessMode.GUEST
+                        else access_context.credential_version_id
+                    ),
+                )
+                if candidate == current_context:
+                    access_context = current_context
+                elif access_context.runtime_revision == "legacy":
+                    raise LegacyContextChanged("legacy context route changed")
+                await monitor.run_fixed(
+                    lambda: self._repository.record_execution_context(
+                        job_id,
+                        self._settings.worker_id,
+                        attempt,
+                        access_context,
+                        self._clock(),
+                    ),
+                    stage=DownloadStage.REVALIDATING,
+                    progress=0,
+                    drain_on_abort=False,
+                )
                 artifact = await monitor.run_download(
                     url,
                     plan,
@@ -208,7 +246,9 @@ class DownloadExecution:
                     # Thumbnail recovery is best-effort and must never turn a
                     # verified media download into a failed job.
                     pass
-            return await self._delivery.run(monitor, job_id, attempt, verified)
+            return await self._delivery.run(
+                monitor, job_id, attempt, verified, access_context
+            )
         finally:
             with suppress(Exception):
                 await self._cleaner.cleanup(task_id, workspace)
