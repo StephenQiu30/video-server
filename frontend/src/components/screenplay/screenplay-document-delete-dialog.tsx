@@ -31,9 +31,9 @@ export function ScreenplayDocumentDeleteDialog({
       <AlertDialogTrigger asChild>
         <Button
           aria-label={compact ? '删除剧本文档' : undefined}
-          className={compact ? undefined : 'h-11 w-full px-4 sm:w-auto'}
+          className={compact ? undefined : 'w-full sm:w-auto'}
           disabled={busy}
-          size={compact ? 'icon-sm' : 'default'}
+          size={compact ? 'icon-sm' : 'xl'}
           variant="ghost"
         >
           {busy ? (

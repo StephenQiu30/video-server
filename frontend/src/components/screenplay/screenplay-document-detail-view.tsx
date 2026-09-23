@@ -137,9 +137,10 @@ export default function ScreenplayDocumentDetailView({
                 <ScreenplayUploadDialog label="重新上传" />
               ) : null}
               <Button
-                className="h-11 w-full bg-surface px-4 sm:w-auto"
+                className="w-full bg-surface sm:w-auto"
                 disabled={state.loading}
                 onClick={state.refresh}
+                size="xl"
                 type="button"
                 variant="outline"
               >
