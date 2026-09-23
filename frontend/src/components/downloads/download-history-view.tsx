@@ -4,10 +4,9 @@ import { ArrowClockwise, MagnifyingGlass, Plus } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import DownloadHistoryList, {
-  downloadStatusLabels,
-} from '@/components/downloads/download-history-list';
+import DownloadHistoryList from '@/components/downloads/download-history-list';
 import { DownloadHistorySummary } from '@/components/downloads/download-history-summary';
+import { downloadStatusLabels } from '@/components/downloads/download-state-model';
 import { useDownloadActions } from '@/components/downloads/use-download-actions';
 import { useDownloadHistory } from '@/components/downloads/use-download-history';
 import { BackLink } from '@/components/layout/back-link';

@@ -14,7 +14,11 @@ import { inspectMedia } from '@/api/inspections';
 import { createSourceDiscovery } from '@/api/sourceDiscoveries';
 import { ContentIntakeHero } from '@/components/intake/content-intake-hero';
 import { useIntakeDraft } from '@/components/intake/intake-draft-provider';
-import { intentTitle } from '@/components/intake/intent-status';
+import {
+  IntentStatusCode,
+  intentTitle,
+  isActiveIntentStatus,
+} from '@/components/intake/intent-status';
 import { LinkDownloadForm } from '@/components/intake/link-download-form';
 import { MediaUploadForm } from '@/components/intake/media-upload-form';
 import {
@@ -63,18 +67,14 @@ export default function DownloadWorkspace() {
   const [authorizationTarget, setAuthorizationTarget] =
     useState<ProviderAuthorizationTarget | null>(null);
   const intentAuthorization =
-    intent.snapshot?.status === 'failed' && intent.snapshot.reason_code
+    intent.snapshot?.status === IntentStatusCode.Failed &&
+    intent.snapshot.reason_code
       ? providerAuthorizationTarget(url, intent.snapshot.reason_code)
       : null;
   const [urlInvalid, setUrlInvalid] = useState(false);
   useEffect(() => {
     if (!intent.attempt) observedActiveIntentId.current = null;
-    else if (
-      intent.snapshot &&
-      ['queued', 'preparing', 'resolving', 'retry_wait'].includes(
-        intent.snapshot.status,
-      )
-    )
+    else if (intent.snapshot && isActiveIntentStatus(intent.snapshot.status))
       observedActiveIntentId.current = intent.snapshot.id;
   }, [intent.attempt, intent.snapshot]);
   const showTerminalStatus =
@@ -84,14 +84,14 @@ export default function DownloadWorkspace() {
   const showIntentStatus =
     mode === 'link' &&
     !!intent.attempt &&
-    intent.snapshot?.status !== 'handed_off' &&
+    intent.snapshot?.status !== IntentStatusCode.HandedOff &&
     ((intent.pending && (!!intent.attempt.input || !!intent.snapshot)) ||
       (showTerminalStatus && (!!intent.error || intent.resultExpired)) ||
-      intent.snapshot?.status === 'ready' ||
+      intent.snapshot?.status === IntentStatusCode.Ready ||
       (showTerminalStatus &&
-        (intent.snapshot?.status === 'failed' ||
-          intent.snapshot?.status === 'expired' ||
-          intent.snapshot?.status === 'action_required')));
+        (intent.snapshot?.status === IntentStatusCode.Failed ||
+          intent.snapshot?.status === IntentStatusCode.Expired ||
+          intent.snapshot?.status === IntentStatusCode.ActionRequired)));
   const inspectionKey = useRef<StableKey | null>(null);
   const discoveryKey = useRef<StableKey | null>(null);
   useEffect(() => {
@@ -99,7 +99,7 @@ export default function DownloadWorkspace() {
     const inspection = intent.inspection;
     if (
       mode !== 'link' ||
-      snapshot?.status !== 'ready' ||
+      snapshot?.status !== IntentStatusCode.Ready ||
       !inspection ||
       intent.resultExpired
     )
@@ -166,16 +166,16 @@ export default function DownloadWorkspace() {
     const snapshot = intent.snapshot;
     const title = intent.error
       ? '任务状态暂时无法更新'
-      : intent.pending && snapshot?.status === 'ready'
+      : intent.pending && snapshot?.status === IntentStatusCode.Ready
         ? '正在更新解析结果'
         : intent.resultExpired
           ? '解析结果已过期'
-          : snapshot?.status === 'ready'
+          : snapshot?.status === IntentStatusCode.Ready
             ? '正在加载解析结果'
             : intentTitle(snapshot?.status);
     const description =
       intent.error ??
-      (intent.pending && snapshot?.status === 'ready'
+      (intent.pending && snapshot?.status === IntentStatusCode.Ready
         ? '正在更新解析结果，请稍候。'
         : intent.resultExpired
           ? '更新后请重新确认下载规格，无需再次粘贴原链接。'
@@ -207,7 +207,9 @@ export default function DownloadWorkspace() {
         { label: '恢复任务', onClick: () => void intent.retry() }
       ) : undefined;
     const cancel: ExternalToast['cancel'] =
-      snapshot && (intent.pending || snapshot.status === 'action_required') ? (
+      snapshot &&
+      (intent.pending ||
+        snapshot.status === IntentStatusCode.ActionRequired) ? (
         <Button
           disabled={intent.cancelling}
           onClick={() => void intent.cancel()}
@@ -221,8 +223,8 @@ export default function DownloadWorkspace() {
       intent.pending ||
       intent.resultExpired ||
       !!intent.error ||
-      snapshot?.status === 'ready' ||
-      snapshot?.status === 'action_required';
+      snapshot?.status === IntentStatusCode.Ready ||
+      snapshot?.status === IntentStatusCode.ActionRequired;
     const options: ExternalToast = {
       action,
       cancel,
@@ -234,13 +236,16 @@ export default function DownloadWorkspace() {
     };
     if (
       intent.error ||
-      snapshot?.status === 'failed' ||
-      snapshot?.status === 'expired'
+      snapshot?.status === IntentStatusCode.Failed ||
+      snapshot?.status === IntentStatusCode.Expired
     ) {
       toast.error(title, options);
-    } else if (intent.resultExpired || snapshot?.status === 'action_required') {
+    } else if (
+      intent.resultExpired ||
+      snapshot?.status === IntentStatusCode.ActionRequired
+    ) {
       toast.warning(title, options);
-    } else if (intent.pending || snapshot?.status === 'ready') {
+    } else if (intent.pending || snapshot?.status === IntentStatusCode.Ready) {
       toast.loading(title, options);
     } else {
       toast.info(title, options);

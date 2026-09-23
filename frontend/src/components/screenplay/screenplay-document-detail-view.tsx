@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
+import { ImportStatusCode } from '@/lib/import-status';
 import { privateQueryKey } from '@/lib/query-keys';
 import { displayError } from '@/lib/request-error';
 
@@ -132,7 +133,7 @@ export default function ScreenplayDocumentDetailView({
               </p>
             </div>
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-              {state.document.status === 'uploading' &&
+              {state.document.status === ImportStatusCode.Uploading &&
               state.document.error_code ? (
                 <ScreenplayUploadDialog label="重新上传" />
               ) : null}
@@ -172,7 +173,7 @@ export default function ScreenplayDocumentDetailView({
               <ScreenplayDocumentToc headings={headings} />
             </div>
           </div>
-          {state.document.status === 'ready' ? (
+          {state.document.status === ImportStatusCode.Ready ? (
             <ScreenplayAnalysisPanel
               documentId={documentId}
               pollIntervalMs={pollIntervalMs}

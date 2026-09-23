@@ -23,6 +23,31 @@ import { Spinner } from '@/components/ui/spinner';
 import { ApiError, displayError } from '@/lib/request-error';
 
 const POLL_INTERVAL_MS = 2_000;
+enum ProviderAuthorizationStatusCode {
+  Pending = 'pending',
+  SourceAvailable = 'source_available',
+  AuthorizationRequired = 'authorization_required',
+  PermissionRequired = 'permission_required',
+  Expired = 'expired',
+  Cancelled = 'cancelled',
+  Failed = 'failed',
+}
+
+const AUTHORIZATION_STATUS_MESSAGES: Record<
+  API.ProviderAuthorizationStatus,
+  string | null
+> = {
+  [ProviderAuthorizationStatusCode.Pending]: null,
+  [ProviderAuthorizationStatusCode.SourceAvailable]: null,
+  [ProviderAuthorizationStatusCode.AuthorizationRequired]:
+    '平台仍要求完成登录或验证',
+  [ProviderAuthorizationStatusCode.PermissionRequired]:
+    '本机隔离浏览器会话尚未就绪',
+  [ProviderAuthorizationStatusCode.Expired]: '授权窗口已超时，请重新发起',
+  [ProviderAuthorizationStatusCode.Cancelled]: null,
+  [ProviderAuthorizationStatusCode.Failed]: '本机授权失败，请稍后重试',
+};
+
 type AuthorizationProvider = Pick<
   API.ProviderListResponse['items'][number],
   'authorization_action' | 'key' | 'display_name'
@@ -90,7 +115,7 @@ function ChromeProviderAuthorizationDialog({
     if (
       !open ||
       !transaction ||
-      transaction.status !== 'pending' ||
+      transaction.status !== ProviderAuthorizationStatusCode.Pending ||
       setupRequired ||
       startError
     ) {
@@ -113,17 +138,12 @@ function ChromeProviderAuthorizationDialog({
           return;
         transactionRef.current = next;
         setTransaction(next);
-        if (next.status === 'source_available') {
+        if (next.status === ProviderAuthorizationStatusCode.SourceAvailable) {
           toast.success(`${provider.display_name} 会话已同步，正在验证链接`);
           await onAuthorized?.();
-        } else if (next.status === 'authorization_required') {
-          toast.error('平台仍要求完成登录或验证');
-        } else if (next.status === 'permission_required') {
-          toast.error('本机隔离浏览器会话尚未就绪');
-        } else if (next.status === 'expired') {
-          toast.error('授权窗口已超时，请重新发起');
-        } else if (next.status === 'failed') {
-          toast.error('本机授权失败，请稍后重试');
+        } else {
+          const message = AUTHORIZATION_STATUS_MESSAGES[next.status];
+          if (message) toast.error(message);
         }
       } catch (error) {
         const message = displayError(error);
@@ -179,7 +199,7 @@ function ChromeProviderAuthorizationDialog({
       setTransaction(next);
     } catch (error) {
       if (generation !== generationRef.current) return;
-      if (started?.status === 'pending') {
+      if (started?.status === ProviderAuthorizationStatusCode.Pending) {
         await cancelProviderAuthorization({
           transaction_id: started.transaction_id,
         }).catch(() => undefined);
@@ -205,7 +225,7 @@ function ChromeProviderAuthorizationDialog({
     setTransaction(null);
     setSetupRequired(false);
     setStartError('');
-    if (current?.status !== 'pending') return;
+    if (current?.status !== ProviderAuthorizationStatusCode.Pending) return;
     try {
       await cancelProviderAuthorization({
         transaction_id: current.transaction_id,
@@ -246,7 +266,8 @@ function ChromeProviderAuthorizationDialog({
             <SetupRequired />
           ) : startError ? (
             <AuthorizationError message={startError} />
-          ) : transaction?.status === 'pending' ? (
+          ) : transaction?.status ===
+            ProviderAuthorizationStatusCode.Pending ? (
             <AuthorizationPending provider={provider.display_name} />
           ) : (
             <AuthorizationResult
@@ -255,7 +276,7 @@ function ChromeProviderAuthorizationDialog({
             />
           )}
           <DialogFooter>
-            {transaction?.status === 'pending' ? (
+            {transaction?.status === ProviderAuthorizationStatusCode.Pending ? (
               <Button
                 onClick={() => void closeAuthorization()}
                 variant="outline"

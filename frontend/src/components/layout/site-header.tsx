@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { useAuth } from '@/components/auth/auth-provider';
+import { AuthStatusCode, useAuth } from '@/components/auth/auth-provider';
 import { DesktopNavigation } from '@/components/layout/desktop-navigation';
 import { HeaderAccount } from '@/components/layout/header-account';
 import { MobileNavigation } from '@/components/layout/mobile-navigation';
@@ -56,8 +56,9 @@ export function SiteHeader() {
   const aiProvidersActive = pathname.startsWith('/admin/ai-providers');
   const catalogActive = pathname.startsWith('/admin/providers');
   const usersActive = pathname.startsWith('/admin/users');
-  const headerAuthPending = !user && (loading || status === 'unknown');
-  const publicView = publicPage && status === 'anonymous';
+  const headerAuthPending =
+    !user && (loading || status === AuthStatusCode.Unknown);
+  const publicView = publicPage && status === AuthStatusCode.Anonymous;
 
   async function handleSignOut() {
     setSigningOut(true);

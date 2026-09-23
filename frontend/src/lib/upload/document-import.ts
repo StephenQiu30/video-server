@@ -4,6 +4,7 @@ import {
   createDocumentImport,
   createDocumentUploadSession,
 } from '@/api/documents';
+import { ImportStatusCode } from '@/lib/import-status';
 import type { ImportObserver } from '@/lib/upload/import-lifecycle';
 import {
   hashFileSha256,
@@ -62,10 +63,13 @@ export async function importScreenplayDocument(
     { headers: { 'Idempotency-Key': idempotencyKey } },
   );
   observer.onResource(resource.id);
-  if (resource.status === 'verifying' || resource.status === 'ready') {
+  if (
+    resource.status === ImportStatusCode.Verifying ||
+    resource.status === ImportStatusCode.Ready
+  ) {
     return resource;
   }
-  if (resource.status !== 'uploading') {
+  if (resource.status !== ImportStatusCode.Uploading) {
     throw new MediaTransferError('当前剧本文档不能继续上传，请重新选择文件。');
   }
 

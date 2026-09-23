@@ -4,21 +4,71 @@ import { CaretDownIcon } from '@phosphor-icons/react';
 import { cn } from 'cn';
 import { useId, useState } from 'react';
 import { ProviderAuthorizationDialog } from '@/components/providers/provider-authorization-dialog';
-import { isCurrentlyAvailable } from '@/components/providers/provider-availability';
+import {
+  isCurrentlyAvailable,
+  ProviderAccessStateCode,
+  ProviderSupportStatusCode,
+} from '@/components/providers/provider-availability';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 
-const STATUS_LABELS: Record<API.ProviderSupportStatus, string> = {
-  unknown: '待验证',
-  verified: '已验证',
-  degraded: '服务降级',
-  access_required: '需要平台授权',
-  rate_limited: '平台限流',
-  blocked: '出口受限',
-  disabled: '已停用',
-  unsupported: '不支持',
+const STATUS_LABELS = {
+  [ProviderSupportStatusCode.Unknown]: '待验证',
+  [ProviderSupportStatusCode.Verified]: '已验证',
+  [ProviderSupportStatusCode.Degraded]: '服务降级',
+  [ProviderSupportStatusCode.AccessRequired]: '需要平台授权',
+  [ProviderSupportStatusCode.RateLimited]: '平台限流',
+  [ProviderSupportStatusCode.Blocked]: '出口受限',
+  [ProviderSupportStatusCode.Disabled]: '已停用',
+  [ProviderSupportStatusCode.Unsupported]: '不支持',
+} satisfies Record<API.ProviderSupportStatus, string>;
+
+const SUPPORTED_STATUS_LABELS: Partial<
+  Record<API.ProviderSupportStatus, string>
+> = {
+  [ProviderSupportStatusCode.AccessRequired]: '已接入 · 当前不可用',
+  [ProviderSupportStatusCode.Degraded]: '支持下载 · 当前降级',
+  [ProviderSupportStatusCode.RateLimited]: '支持下载 · 当前限流',
+  [ProviderSupportStatusCode.Blocked]: '支持下载 · 当前受限',
 };
+const UNKNOWN_SUPPORTED_STATUS_LABEL = '支持下载 · 待复验';
+
+const STATUS_VARIANTS = {
+  [ProviderSupportStatusCode.Unknown]: 'secondary',
+  [ProviderSupportStatusCode.Verified]: 'secondary',
+  [ProviderSupportStatusCode.Degraded]: 'secondary',
+  [ProviderSupportStatusCode.AccessRequired]: 'secondary',
+  [ProviderSupportStatusCode.RateLimited]: 'secondary',
+  [ProviderSupportStatusCode.Blocked]: 'destructive',
+  [ProviderSupportStatusCode.Disabled]: 'secondary',
+  [ProviderSupportStatusCode.Unsupported]: 'destructive',
+} satisfies Record<
+  API.ProviderSupportStatus,
+  'destructive' | 'secondary' | 'default'
+>;
+
+const INTEGRATION_DESCRIPTIONS = {
+  [ProviderSupportStatusCode.Unknown]: '解析器已部署',
+  [ProviderSupportStatusCode.Verified]: '解析器已部署',
+  [ProviderSupportStatusCode.Degraded]: '解析器已部署',
+  [ProviderSupportStatusCode.AccessRequired]: '解析器已部署',
+  [ProviderSupportStatusCode.RateLimited]: '解析器已部署',
+  [ProviderSupportStatusCode.Blocked]: '解析器已部署',
+  [ProviderSupportStatusCode.Disabled]: '仅识别链接，未开放下载',
+  [ProviderSupportStatusCode.Unsupported]: '解析器已部署',
+} satisfies Record<API.ProviderSupportStatus, string>;
+
+const DOWNLOAD_INTEGRATION_DESCRIPTIONS = {
+  [ProviderSupportStatusCode.Unknown]: '下载解析器已部署',
+  [ProviderSupportStatusCode.Verified]: '下载解析器已部署',
+  [ProviderSupportStatusCode.Degraded]: '下载解析器已部署',
+  [ProviderSupportStatusCode.AccessRequired]: '下载解析器已部署',
+  [ProviderSupportStatusCode.RateLimited]: '下载解析器已部署',
+  [ProviderSupportStatusCode.Blocked]: '下载解析器已部署',
+  [ProviderSupportStatusCode.Disabled]: '仅识别链接，未开放下载',
+  [ProviderSupportStatusCode.Unsupported]: '下载解析器已部署',
+} satisfies Record<API.ProviderSupportStatus, string>;
 
 const CAPABILITY_LABELS: Record<API.ProviderCapability, string> = {
   single_video: '单视频',
@@ -106,7 +156,8 @@ export function ProviderStatusItem({
                 <p className="font-medium text-foreground">访问与下一步</p>
                 <p className="mt-1">{accessDescription(provider)}</p>
                 {provider.user_action ? <p>{provider.user_action}</p> : null}
-                {provider.access_state === 'authorization_required' &&
+                {provider.access_state ===
+                  ProviderAccessStateCode.AuthorizationRequired &&
                 provider.access_modes.includes('operator_managed') &&
                 provider.authorization_action !== 'none' ? (
                   <div className="mt-3">
@@ -124,17 +175,17 @@ export function ProviderStatusItem({
 
 function accessStateLabel(state: API.ProviderAccessState): string {
   const labels: Record<API.ProviderAccessState, string> = {
-    public_probe: '公开线路待验证',
-    public_ready: '公开线路可用',
-    guest_probe: '游客线路待验证',
-    guest_ready: '游客线路可用',
-    authorization_required: '需要授权或平台验证',
-    operator_probe: '受控线路待验证',
-    operator_ready: '受控线路可用',
-    degraded: '服务降级',
-    blocked: '出口受限',
-    disabled: '已停用',
-    unsupported: '不支持',
+    [ProviderAccessStateCode.PublicProbe]: '公开线路待验证',
+    [ProviderAccessStateCode.PublicReady]: '公开线路可用',
+    [ProviderAccessStateCode.GuestProbe]: '游客线路待验证',
+    [ProviderAccessStateCode.GuestReady]: '游客线路可用',
+    [ProviderAccessStateCode.AuthorizationRequired]: '需要授权或平台验证',
+    [ProviderAccessStateCode.OperatorProbe]: '受控线路待验证',
+    [ProviderAccessStateCode.OperatorReady]: '受控线路可用',
+    [ProviderAccessStateCode.Degraded]: '服务降级',
+    [ProviderAccessStateCode.Blocked]: '出口受限',
+    [ProviderAccessStateCode.Disabled]: '已停用',
+    [ProviderAccessStateCode.Unsupported]: '不支持',
   };
   return labels[state];
 }
@@ -144,18 +195,21 @@ function statusLabel(
 ): string {
   if (provider.download_supported) {
     if (isCurrentlyAvailable(provider)) return '当前可用';
-    if (provider.status === 'access_required') return '已接入 · 当前不可用';
-    if (provider.status === 'degraded') return '支持下载 · 当前降级';
-    if (provider.status === 'rate_limited') return '支持下载 · 当前限流';
-    if (provider.status === 'blocked') return '支持下载 · 当前受限';
+    const statusLabel =
+      provider.status === ProviderSupportStatusCode.Unknown
+        ? undefined
+        : SUPPORTED_STATUS_LABELS[provider.status];
+    if (statusLabel) return statusLabel;
     if (provider.download_available) {
       return '近期媒体样本通过';
     }
-    if (provider.status === 'unknown') return '支持下载 · 待复验';
+    if (provider.status === ProviderSupportStatusCode.Unknown) {
+      return UNKNOWN_SUPPORTED_STATUS_LABEL;
+    }
     return '已接入 · 待重新验证';
   }
   if (
-    provider.status === 'unknown' &&
+    provider.status === ProviderSupportStatusCode.Unknown &&
     provider.registered &&
     provider.extractor_exists
   ) {
@@ -169,8 +223,9 @@ function integrationDescription(
 ): string {
   if (!provider.registered) return '未登记';
   if (!provider.extractor_exists) return '已登记，暂无解析器';
-  if (provider.status === 'disabled') return '仅识别链接，未开放下载';
-  return provider.download_supported ? '下载解析器已部署' : '解析器已部署';
+  return provider.download_supported
+    ? DOWNLOAD_INTEGRATION_DESCRIPTIONS[provider.status]
+    : INTEGRATION_DESCRIPTIONS[provider.status];
 }
 
 function accessDescription(
@@ -257,19 +312,10 @@ function statusVariant(
 ): 'destructive' | 'secondary' | 'default' {
   if (
     isCurrentlyAvailable(provider) ||
-    (!provider.download_supported && provider.status === 'verified')
+    (!provider.download_supported &&
+      provider.status === ProviderSupportStatusCode.Verified)
   ) {
     return 'default';
   }
-  if (provider.status === 'unsupported' || provider.status === 'blocked') {
-    return 'destructive';
-  }
-  if (
-    provider.status === 'access_required' ||
-    provider.status === 'degraded' ||
-    provider.status === 'rate_limited'
-  ) {
-    return 'secondary';
-  }
-  return 'secondary';
+  return STATUS_VARIANTS[provider.status];
 }

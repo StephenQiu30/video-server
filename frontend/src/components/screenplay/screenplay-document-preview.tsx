@@ -2,7 +2,7 @@ import { Info } from '@phosphor-icons/react';
 import { createElement, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-
+import { documentPreviewStatusMessage } from '@/components/screenplay/screenplay-document-format';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ImportStatusCode } from '@/lib/import-status';
 
 import type { MarkdownHeading } from './screenplay-document-toc';
 
@@ -60,7 +61,7 @@ export function ScreenplayDocumentPreview({
           <span className="text-xs text-muted-foreground">Markdown 预览</span>
         ) : null}
       </div>
-      {document.status === 'ready' && document.preview ? (
+      {document.status === ImportStatusCode.Ready && document.preview ? (
         <>
           <article
             aria-label="规范化剧本 Markdown 预览"
@@ -208,18 +209,9 @@ export function ScreenplayDocumentPreview({
         </>
       ) : (
         <div className="mt-4 py-16 text-sm text-muted-foreground">
-          {previewStatusMessage(document.status)}
+          {documentPreviewStatusMessage(document.status)}
         </div>
       )}
     </div>
   );
-}
-
-function previewStatusMessage(status: API.DocumentDetailResponse['status']) {
-  if (status === 'uploading') return '文件上传完成后，这里会显示提取结果。';
-  if (status === 'verifying') return '正在解析剧本文本，请稍后刷新。';
-  if (status === 'ready') return '文档已解析，但当前没有可显示的预览。';
-  if (status === 'failed') return '解析失败，未生成规范化剧本文本。';
-  if (status === 'cancelled') return '导入已取消，未生成剧本文本。';
-  return '文档已过期，预览不再可用。';
 }

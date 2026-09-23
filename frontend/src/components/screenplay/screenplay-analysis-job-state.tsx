@@ -2,6 +2,8 @@ import { Robot } from '@phosphor-icons/react';
 
 import AnalysisDeleteDialog from '@/components/analysis/analysis-delete-dialog';
 import {
+  AnalysisStatusCode,
+  isActiveAnalysisStatus,
   screenplayAnalysisErrorMessage,
   stageLabels,
   statusLabels,
@@ -27,6 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
 import { localizedErrorMessage } from '@/lib/error-messages';
+import { TaskSocketStatusCode } from '@/lib/task-socket';
 
 export function ScreenplayAnalysisJobState({
   job,
@@ -35,7 +38,7 @@ export function ScreenplayAnalysisJobState({
   job: API.AnalysisResponse;
   state: ReturnType<typeof useAnalysisJob>;
 }) {
-  const cancellable = ['queued', 'running', 'retry_wait'].includes(job.status);
+  const cancellable = isActiveAnalysisStatus(job.status);
   return (
     <div className="mt-10 w-full">
       <div className="flex justify-between gap-4 text-sm font-medium">
@@ -57,7 +60,7 @@ export function ScreenplayAnalysisJobState({
       <div className="mt-2">
         <AnalysisStorageNotice />
       </div>
-      {job.status === 'failed' ? (
+      {job.status === AnalysisStatusCode.Failed ? (
         <PageErrorNotice
           className="mt-6"
           compact
@@ -70,15 +73,16 @@ export function ScreenplayAnalysisJobState({
         />
       ) : null}
       <p aria-live="polite" className="mt-2 text-xs text-muted-foreground">
-        {state.socketStatus === 'connected'
+        {state.socketStatus === TaskSocketStatusCode.Connected
           ? '实时状态已连接'
-          : state.socketStatus === 'degraded'
+          : state.socketStatus === TaskSocketStatusCode.Degraded
             ? '实时连接中断，正在低频恢复'
             : '正在连接实时状态'}
       </p>
       <div className="mt-7 flex flex-wrap gap-3">
         {cancellable ? <CancelControl state={state} /> : null}
-        {['failed', 'cancelled'].includes(job.status) ? (
+        {job.status === AnalysisStatusCode.Failed ||
+        job.status === AnalysisStatusCode.Cancelled ? (
           <Button
             disabled={Boolean(state.action)}
             onClick={() => void state.retry()}

@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 
-import { useAuth } from '@/components/auth/auth-provider';
+import { AuthStatusCode, useAuth } from '@/components/auth/auth-provider';
 import { HomeStartup } from '@/components/intake/home-startup';
 import { WorkspaceHome } from '@/components/intake/workspace-home';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
@@ -17,7 +17,7 @@ export function HomeExperience({
   initialPublic?: boolean;
 }) {
   const { loading, user, status, sessionError, refreshUser } = useAuth();
-  if (status === 'unknown' && sessionError && !initialPublic) {
+  if (status === AuthStatusCode.Unknown && sessionError && !initialPublic) {
     return (
       <PageErrorNotice
         title="暂时无法确认登录状态"

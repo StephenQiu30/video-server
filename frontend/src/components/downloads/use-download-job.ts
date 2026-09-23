@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getDownload } from '@/api/downloads';
+import { isTerminalDownloadStatus } from '@/components/downloads/download-state-model';
 import {
   mergeDownloadPresentation,
   useDownloadActions,
@@ -8,7 +9,7 @@ import {
 import { useRequestScope } from '@/hooks/use-request-scope';
 import { privateQueryKey } from '@/lib/query-keys';
 import { displayError } from '@/lib/request-error';
-import { type TaskSocketStatus, taskSocket } from '@/lib/task-socket';
+import { TaskSocketStatusCode, taskSocket } from '@/lib/task-socket';
 
 type ErrorKind = 'load' | 'sync' | 'action' | null;
 
@@ -18,8 +19,9 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   const queryKey = useMemo(() => privateQueryKey('download', jobId), [jobId]);
   const operations = useDownloadActions(jobId);
   const { action, error: actionError, removed } = operations;
-  const [socketStatus, setSocketStatus] =
-    useState<TaskSocketStatus>('disconnected');
+  const [socketStatus, setSocketStatus] = useState(
+    TaskSocketStatusCode.Disconnected,
+  );
   const targetId = useRef(jobId);
 
   const snapshot = useQuery<API.DownloadResponse | null>({
@@ -45,10 +47,10 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
       if (
         !current ||
         query.state.error ||
-        terminalDownloadStatuses.has(current.status)
+        isTerminalDownloadStatus(current.status)
       )
         return false;
-      return socketStatus === 'connected'
+      return socketStatus === TaskSocketStatusCode.Connected
         ? Math.max(15_000, pollIntervalMs * 10)
         : Math.max(2_000, pollIntervalMs);
     },
@@ -68,7 +70,7 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   useEffect(() => {
     if (targetId.current === jobId) return;
     targetId.current = jobId;
-    setSocketStatus('disconnected');
+    setSocketStatus(TaskSocketStatusCode.Disconnected);
   }, [jobId]);
 
   const snapshotId = job?.id;
@@ -85,7 +87,7 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
   version.current = job?.version ?? 0;
   const jobStatus = job?.status;
   useEffect(() => {
-    if (action || !jobStatus || terminalDownloadStatuses.has(jobStatus)) return;
+    if (action || !jobStatus || isTerminalDownloadStatus(jobStatus)) return;
     return taskSocket.subscribe(
       'download',
       jobId,
@@ -135,9 +137,3 @@ export function useDownloadJob(jobId: string, pollIntervalMs: number) {
     socketStatus,
   };
 }
-
-const terminalDownloadStatuses = new Set<API.DownloadStatus>([
-  'succeeded',
-  'failed',
-  'cancelled',
-]);

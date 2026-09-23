@@ -23,11 +23,30 @@ import {
   formatPercent,
 } from './analytics-format';
 
+enum DownloadAnalyticsStatusCode {
+  Succeeded = 'succeeded',
+  Active = 'active',
+  Failed = 'failed',
+  Cancelled = 'cancelled',
+}
+
 const statusConfig = {
-  succeeded: { color: ANALYTICS_CHART_COLOR, label: '成功' },
-  active: { color: ANALYTICS_CHART_COLOR, label: '进行中' },
-  failed: { color: ANALYTICS_CHART_COLOR, label: '失败' },
-  cancelled: { color: ANALYTICS_CHART_COLOR, label: '取消' },
+  [DownloadAnalyticsStatusCode.Succeeded]: {
+    color: ANALYTICS_CHART_COLOR,
+    label: '成功',
+  },
+  [DownloadAnalyticsStatusCode.Active]: {
+    color: ANALYTICS_CHART_COLOR,
+    label: '进行中',
+  },
+  [DownloadAnalyticsStatusCode.Failed]: {
+    color: ANALYTICS_CHART_COLOR,
+    label: '失败',
+  },
+  [DownloadAnalyticsStatusCode.Cancelled]: {
+    color: ANALYTICS_CHART_COLOR,
+    label: '取消',
+  },
 } satisfies ChartConfig;
 
 export function StatusDistributionChart({
@@ -37,27 +56,27 @@ export function StatusDistributionChart({
 }) {
   const data: Array<{
     fill: string;
-    status: keyof typeof statusConfig;
+    status: DownloadAnalyticsStatusCode;
     value: number;
   }> = [
     {
-      fill: 'var(--color-succeeded)',
-      status: 'succeeded',
+      fill: `var(--color-${DownloadAnalyticsStatusCode.Succeeded})`,
+      status: DownloadAnalyticsStatusCode.Succeeded,
       value: summary.succeeded,
     },
     {
-      fill: 'var(--color-active)',
-      status: 'active',
+      fill: `var(--color-${DownloadAnalyticsStatusCode.Active})`,
+      status: DownloadAnalyticsStatusCode.Active,
       value: summary.active,
     },
     {
-      fill: 'var(--color-failed)',
-      status: 'failed',
+      fill: `var(--color-${DownloadAnalyticsStatusCode.Failed})`,
+      status: DownloadAnalyticsStatusCode.Failed,
       value: summary.failed,
     },
     {
-      fill: 'var(--color-cancelled)',
-      status: 'cancelled',
+      fill: `var(--color-${DownloadAnalyticsStatusCode.Cancelled})`,
+      status: DownloadAnalyticsStatusCode.Cancelled,
       value: summary.cancelled,
     },
   ];

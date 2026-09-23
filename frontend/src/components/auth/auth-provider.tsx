@@ -21,10 +21,16 @@ import {
 } from '@/lib/session-events';
 import { taskSocket } from '@/lib/task-socket';
 
+export enum AuthStatusCode {
+  Unknown = 'unknown',
+  Authenticated = 'authenticated',
+  Anonymous = 'anonymous',
+}
+
 type AuthContextValue = {
   user?: API.UserResponse;
   loading: boolean;
-  status: 'unknown' | 'authenticated' | 'anonymous';
+  status: AuthStatusCode;
   sessionError: string | null;
   setUser: Dispatch<SetStateAction<API.UserResponse | undefined>>;
   refreshUser: () => Promise<API.UserResponse | undefined>;
@@ -48,10 +54,10 @@ export function AuthProvider({
   const [loading, setLoading] = useState(initialUser === undefined);
   const [status, setStatus] = useState<AuthContextValue['status']>(
     initialUser === undefined
-      ? 'unknown'
+      ? AuthStatusCode.Unknown
       : initialUser
-        ? 'authenticated'
-        : 'anonymous',
+        ? AuthStatusCode.Authenticated
+        : AuthStatusCode.Anonymous,
   );
   const [sessionError, setSessionError] = useState<string | null>(null);
   const userRef = useRef<API.UserResponse | undefined>(
@@ -71,7 +77,7 @@ export function AuthProvider({
     taskSocket.reset();
     userRef.current = undefined;
     setUserState(undefined);
-    setStatus('unknown');
+    setStatus(AuthStatusCode.Unknown);
     setSessionError(null);
     setLoading(true);
   }, []);
@@ -83,7 +89,7 @@ export function AuthProvider({
     }
     userRef.current = next;
     setUserState(next);
-    setStatus(next ? 'authenticated' : 'anonymous');
+    setStatus(next ? AuthStatusCode.Authenticated : AuthStatusCode.Anonymous);
     setSessionError(null);
     setLoading(false);
   }, []);

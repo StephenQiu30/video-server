@@ -2,7 +2,13 @@ import { ArrowClockwise, DownloadSimple } from '@phosphor-icons/react';
 import Link from 'next/link';
 
 import { DownloadDeleteDialog } from '@/components/downloads/download-delete-dialog';
-import { downloadRecovery } from '@/components/downloads/download-state-model';
+import {
+  DownloadStatusCode,
+  downloadRecovery,
+  downloadStatusLabels,
+  isActiveDownloadStatus,
+  statusVariant,
+} from '@/components/downloads/download-state-model';
 import type { DownloadAction } from '@/components/downloads/use-download-actions';
 import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import MediaCover from '@/components/media/media-cover';
@@ -80,7 +86,8 @@ function HistoryRow({
   pendingAction: { id: string; type: DownloadAction } | null;
 }) {
   const detailHref = `/downloads/detail?jobId=${encodeURIComponent(item.id)}`;
-  const canDownload = item.status === 'succeeded' && item.file_available;
+  const canDownload =
+    item.status === DownloadStatusCode.Succeeded && item.file_available;
   const recovery = downloadRecovery(item);
   const busy = pendingAction?.id === item.id;
 
@@ -121,7 +128,7 @@ function HistoryRow({
             <time dateTime={item.created_at}>
               {formatDate(item.created_at)}
             </time>
-            {item.status === 'succeeded' ? (
+            {item.status === DownloadStatusCode.Succeeded ? (
               <>
                 <span aria-hidden>·</span>
                 <span>{fileAvailabilityLabel(item)}</span>
@@ -136,7 +143,7 @@ function HistoryRow({
           variant={statusVariant(item.status)}
         >
           {downloadStatusLabels[item.status]}
-          {activeStatuses.has(item.status) ? ` · ${item.progress}%` : ''}
+          {isActiveDownloadStatus(item.status) ? ` · ${item.progress}%` : ''}
         </Badge>
         <div className="flex items-center gap-1">
           {canDownload ? (
@@ -177,7 +184,7 @@ function HistoryRow({
             </Button>
           )}
           <DownloadDeleteDialog
-            active={activeStatuses.has(item.status)}
+            active={isActiveDownloadStatus(item.status)}
             busy={busy}
             compact
             onDelete={() => onDelete(item)}
@@ -220,30 +227,6 @@ function formatDate(value: string) {
 function fileAvailabilityLabel(item: API.DownloadHistoryItemResponse) {
   return item.file_available ? '文件持久保存' : '文件已清理';
 }
-
-function statusVariant(
-  status: API.DownloadStatus,
-): 'secondary' | 'default' | 'secondary' | 'destructive' {
-  if (status === 'succeeded') return 'default';
-  if (status === 'failed') return 'destructive';
-  if (activeStatuses.has(status)) return 'secondary';
-  return 'secondary';
-}
-
-export const downloadStatusLabels: Record<API.DownloadStatus, string> = {
-  queued: '排队中',
-  running: '下载中',
-  retry_wait: '等待重试',
-  succeeded: '已完成',
-  failed: '失败',
-  cancelled: '已取消',
-};
-
-const activeStatuses = new Set<API.DownloadStatus>([
-  'queued',
-  'running',
-  'retry_wait',
-]);
 
 const historyDateFormatter = new Intl.DateTimeFormat('zh-CN', {
   dateStyle: 'medium',

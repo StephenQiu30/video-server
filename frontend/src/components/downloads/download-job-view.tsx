@@ -7,6 +7,10 @@ import { useRef, useState } from 'react';
 import AnalysisPanel from '@/components/analysis/analysis-panel';
 import { DownloadDeleteDialog } from '@/components/downloads/download-delete-dialog';
 import DownloadState from '@/components/downloads/download-state';
+import {
+  DownloadStatusCode,
+  isTerminalDownloadStatus,
+} from '@/components/downloads/download-state-model';
 import DownloadVideoPreview from '@/components/downloads/download-video-preview';
 import { useDownloadJob } from '@/components/downloads/use-download-job';
 import { BackLink } from '@/components/layout/back-link';
@@ -26,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDuration } from '@/lib/format';
 import { audioCodecLabel } from '@/lib/media-format';
+import { TaskSocketStatusCode } from '@/lib/task-socket';
 
 export default function DownloadJobView({
   jobId,
@@ -97,9 +102,7 @@ export default function DownloadJobView({
         <BackLink fallbackHref="/history" />
         {state.job ? (
           <DownloadDeleteDialog
-            active={
-              !['succeeded', 'failed', 'cancelled'].includes(state.job.status)
-            }
+            active={!isTerminalDownloadStatus(state.job.status)}
             busy={state.action !== null}
             onDelete={remove}
           />
@@ -134,7 +137,7 @@ export default function DownloadJobView({
               </p>
             }
             media={
-              state.job.status === 'succeeded' &&
+              state.job.status === DownloadStatusCode.Succeeded &&
               state.job.file_available &&
               !gallery &&
               !collection ? (
@@ -166,11 +169,7 @@ export default function DownloadJobView({
                     eyebrow: sourceLabel ?? extractor,
                     title,
                   }}
-                  pending={
-                    !['succeeded', 'failed', 'cancelled'].includes(
-                      state.job.status,
-                    )
-                  }
+                  pending={!isTerminalDownloadStatus(state.job.status)}
                   priority
                   src={thumbnail}
                 />
@@ -219,16 +218,14 @@ export default function DownloadJobView({
                   onDownload={state.download}
                   onRetry={() => void retry()}
                 />
-                {!['succeeded', 'failed', 'cancelled'].includes(
-                  state.job.status,
-                ) ? (
+                {!isTerminalDownloadStatus(state.job.status) ? (
                   <p
                     aria-live="polite"
                     className="mt-4 text-xs text-muted-foreground"
                   >
-                    {state.socketStatus === 'connected'
+                    {state.socketStatus === TaskSocketStatusCode.Connected
                       ? '实时状态已连接'
-                      : state.socketStatus === 'degraded'
+                      : state.socketStatus === TaskSocketStatusCode.Degraded
                         ? '实时连接中断，正在低频恢复'
                         : '正在连接实时状态'}
                   </p>
@@ -236,7 +233,7 @@ export default function DownloadJobView({
               </div>
             }
           />
-          {state.job.status === 'succeeded' ? (
+          {state.job.status === DownloadStatusCode.Succeeded ? (
             !gallery && !collection ? (
               <div className="mt-14 sm:mt-20">
                 <AnalysisPanel
@@ -254,7 +251,7 @@ export default function DownloadJobView({
                 />
               </div>
             ) : null
-          ) : ['failed', 'cancelled'].includes(state.job.status) ? null : (
+          ) : isTerminalDownloadStatus(state.job.status) ? null : (
             <p className="mt-14 py-8 text-sm text-muted-foreground sm:mt-20">
               下载并验证完成后，可继续生成视觉分镜、高光与资产目录。
             </p>

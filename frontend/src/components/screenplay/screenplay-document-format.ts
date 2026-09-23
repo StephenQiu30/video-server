@@ -1,11 +1,58 @@
-export const documentStatusLabels: Record<API.ImportStatus, string> = {
-  uploading: '等待上传',
-  verifying: '正在解析',
-  ready: '可以核对',
-  failed: '解析失败',
-  cancelled: '已取消',
-  expired: '已过期',
+import { ImportStatusCode } from '@/lib/import-status';
+
+type DocumentStatusPresentation = {
+  label: string;
+  variant: 'secondary' | 'default' | 'destructive';
+  previewMessage: string;
 };
+
+const documentStatusPresentation = {
+  [ImportStatusCode.Uploading]: {
+    label: '等待上传',
+    variant: 'secondary',
+    previewMessage: '文件上传完成后，这里会显示提取结果。',
+  },
+  [ImportStatusCode.Verifying]: {
+    label: '正在解析',
+    variant: 'secondary',
+    previewMessage: '正在解析剧本文本，请稍后刷新。',
+  },
+  [ImportStatusCode.Ready]: {
+    label: '可以核对',
+    variant: 'default',
+    previewMessage: '文档已解析，但当前没有可显示的预览。',
+  },
+  [ImportStatusCode.Failed]: {
+    label: '解析失败',
+    variant: 'destructive',
+    previewMessage: '解析失败，未生成规范化剧本文本。',
+  },
+  [ImportStatusCode.Cancelled]: {
+    label: '已取消',
+    variant: 'secondary',
+    previewMessage: '导入已取消，未生成剧本文本。',
+  },
+  [ImportStatusCode.Expired]: {
+    label: '已过期',
+    variant: 'secondary',
+    previewMessage: '文档已过期，预览不再可用。',
+  },
+} satisfies Record<API.ImportStatus, DocumentStatusPresentation>;
+
+export const documentStatusLabels = {
+  [ImportStatusCode.Uploading]:
+    documentStatusPresentation[ImportStatusCode.Uploading].label,
+  [ImportStatusCode.Verifying]:
+    documentStatusPresentation[ImportStatusCode.Verifying].label,
+  [ImportStatusCode.Ready]:
+    documentStatusPresentation[ImportStatusCode.Ready].label,
+  [ImportStatusCode.Failed]:
+    documentStatusPresentation[ImportStatusCode.Failed].label,
+  [ImportStatusCode.Cancelled]:
+    documentStatusPresentation[ImportStatusCode.Cancelled].label,
+  [ImportStatusCode.Expired]:
+    documentStatusPresentation[ImportStatusCode.Expired].label,
+} satisfies Record<API.ImportStatus, string>;
 
 export const documentFormatLabels: Record<API.DocumentSourceFormat, string> = {
   docx: 'DOCX',
@@ -31,11 +78,12 @@ const errorLabels: Record<API.ImportErrorCode, string> = {
 
 export function documentStatusVariant(
   status: API.ImportStatus,
-): 'secondary' | 'default' | 'secondary' | 'destructive' {
-  if (status === 'ready') return 'default';
-  if (status === 'failed') return 'destructive';
-  if (status === 'uploading' || status === 'verifying') return 'secondary';
-  return 'secondary';
+): DocumentStatusPresentation['variant'] {
+  return documentStatusPresentation[status].variant;
+}
+
+export function documentPreviewStatusMessage(status: API.ImportStatus): string {
+  return documentStatusPresentation[status].previewMessage;
 }
 
 export function documentErrorLabel(

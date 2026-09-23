@@ -7,6 +7,8 @@ import { useRef, useState } from 'react';
 import { listDownloadIntents } from '@/api/downloadIntents';
 import { IntentHistoryDialog } from '@/components/intake/intent-history-dialog';
 import {
+  IntentStatusCode,
+  intentHistoryActionLabel,
   intentStatusVariant,
   intentTitle,
 } from '@/components/intake/intent-status';
@@ -160,7 +162,10 @@ export function IntentHistory({
                       variant="ghost"
                       size="sm"
                       onClick={(event) => {
-                        if (item.status === 'ready' && item.inspection_id) {
+                        if (
+                          item.status === IntentStatusCode.Ready &&
+                          item.inspection_id
+                        ) {
                           onViewResult(item);
                           return;
                         }
@@ -168,7 +173,7 @@ export function IntentHistory({
                         setSelected(item);
                       }}
                     >
-                      {actionLabel(item.status)}
+                      {intentHistoryActionLabel(item.status)}
                     </Button>
                   </ItemActions>
                 </Item>
@@ -211,17 +216,4 @@ export function IntentHistory({
       />
     </div>
   );
-}
-
-function actionLabel(status: API.IntentStatus) {
-  if (status === 'handed_off') return '查看下载';
-  if (status === 'ready') return '查看结果';
-  if (
-    status === 'failed' ||
-    status === 'cancelled' ||
-    status === 'expired' ||
-    status === 'action_required'
-  )
-    return '查看详情';
-  return '查看进度';
 }

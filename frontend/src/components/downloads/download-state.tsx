@@ -24,10 +24,12 @@ import { Spinner } from '@/components/ui/spinner';
 
 import { DownloadExecutionSummary } from './download-execution-summary';
 import {
+  DownloadStatusCode,
   displayStage,
   downloadRecovery,
   failureDescription,
   failureTitle,
+  isActiveDownloadStatus,
   retryActionLabel,
   statusDescription,
   statusHeading,
@@ -50,8 +52,8 @@ export default function DownloadState({
   onDownload,
   onRetry,
 }: Props) {
-  const active = ['queued', 'running', 'retry_wait'].includes(job.status);
-  const complete = job.status === 'succeeded';
+  const active = isActiveDownloadStatus(job.status);
+  const complete = job.status === DownloadStatusCode.Succeeded;
   const recovery = downloadRecovery(job);
   const showProgress = active;
 
@@ -91,7 +93,7 @@ export default function DownloadState({
         </>
       ) : null}
 
-      {job.status === 'failed' ? (
+      {job.status === DownloadStatusCode.Failed ? (
         <PageErrorNotice
           className="mt-6"
           compact

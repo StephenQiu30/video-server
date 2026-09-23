@@ -1,6 +1,7 @@
 'use client';
 
 import AnalysisConfigurator from '@/components/analysis/analysis-configurator';
+import { AnalysisStatusCode } from '@/components/analysis/analysis-panel-model';
 import { useAnalysisJob } from '@/components/analysis/use-analysis-job';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
@@ -37,7 +38,7 @@ export default function ScreenplayAnalysisPanel({
     );
   }
   const succeeded =
-    state.job?.status === 'succeeded' &&
+    state.job?.status === AnalysisStatusCode.Succeeded &&
     state.job.result &&
     state.job.result.kind !== 'video_visual_analysis';
 

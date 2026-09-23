@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { type ReactNode, useEffect } from 'react';
 
-import { useAuth } from '@/components/auth/auth-provider';
+import { AuthStatusCode, useAuth } from '@/components/auth/auth-provider';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { RouteLoading } from '@/components/layout/route-loading';
 
@@ -23,7 +23,7 @@ export function ProtectedRoute({
   useEffect(() => {
     if (loading) return;
 
-    if (status === 'anonymous') {
+    if (status === AuthStatusCode.Anonymous) {
       const currentPath = `${pathname ?? '/'}${window.location.search}`;
       router.replace(`/user/login?redirect=${encodeURIComponent(currentPath)}`);
       return;
@@ -32,7 +32,7 @@ export function ProtectedRoute({
     if (user && requireAdmin && user.role !== 'admin') router.replace('/');
   }, [loading, status, pathname, requireAdmin, router, user]);
 
-  if (status === 'unknown' && sessionError)
+  if (status === AuthStatusCode.Unknown && sessionError)
     return (
       <PageErrorNotice
         title="暂时无法确认登录状态"

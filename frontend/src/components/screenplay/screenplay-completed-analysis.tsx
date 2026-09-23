@@ -1,6 +1,7 @@
 import { ArrowClockwise, DownloadSimple } from '@phosphor-icons/react';
 
 import AnalysisDeleteDialog from '@/components/analysis/analysis-delete-dialog';
+import { AnalysisReportStatusCode } from '@/components/analysis/analysis-panel-model';
 import AnalysisReportDownloadLink from '@/components/analysis/analysis-report-download-link';
 import AnalysisStorageNotice from '@/components/analysis/analysis-storage-notice';
 import { FeedbackNotice } from '@/components/layout/feedback-notice';
@@ -27,7 +28,7 @@ export function ScreenplayCompletedAnalysis({
     return null;
   }
   const formats = new Set(
-    job.report?.status === 'available'
+    job.report?.status === AnalysisReportStatusCode.Available
       ? job.report.artifacts.map((artifact) => artifact.format)
       : [],
   );

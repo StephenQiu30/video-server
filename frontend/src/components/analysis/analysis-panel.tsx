@@ -5,6 +5,10 @@ import AnalysisArticleResultView from '@/components/analysis/analysis-article-re
 import AnalysisConfigurator from '@/components/analysis/analysis-configurator';
 import AnalysisDeleteDialog from '@/components/analysis/analysis-delete-dialog';
 import {
+  AnalysisReportStatusCode,
+  AnalysisStatusCode,
+  analysisReportStatusLabel,
+  isActiveAnalysisStatus,
   stageLabels,
   statusLabels,
 } from '@/components/analysis/analysis-panel-model';
@@ -31,6 +35,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
 import { localizedErrorMessage } from '@/lib/error-messages';
+import { TaskSocketStatusCode } from '@/lib/task-socket';
 
 export default function AnalysisPanel({
   downloadId,
@@ -65,12 +70,12 @@ export default function AnalysisPanel({
   }
 
   if (
-    state.job?.status === 'succeeded' &&
+    state.job?.status === AnalysisStatusCode.Succeeded &&
     (state.job.result?.kind === 'video_visual_analysis' ||
       state.job.result?.kind === 'video_article')
   ) {
     const formats = new Set(
-      state.job.report?.status === 'available'
+      state.job.report?.status === AnalysisReportStatusCode.Available
         ? state.job.report.artifacts.map((artifact) => artifact.format)
         : [],
     );
@@ -252,7 +257,7 @@ function AnalysisJobState({
   onSelectTime?: (milliseconds: number) => void;
   playbackUnavailableReason: string;
 }) {
-  const cancellable = ['queued', 'running', 'retry_wait'].includes(job.status);
+  const cancellable = isActiveAnalysisStatus(job.status);
   return (
     <div className="mt-10 w-full">
       <div className="flex justify-between gap-4 text-sm font-medium">
@@ -274,7 +279,7 @@ function AnalysisJobState({
       <div className="mt-2">
         <AnalysisStorageNotice />
       </div>
-      {job.status === 'failed' ? (
+      {job.status === AnalysisStatusCode.Failed ? (
         <PageErrorNotice
           className="mt-6"
           compact
@@ -286,9 +291,9 @@ function AnalysisJobState({
         />
       ) : null}
       <p aria-live="polite" className="mt-2 text-xs text-muted-foreground">
-        {state.socketStatus === 'connected'
+        {state.socketStatus === TaskSocketStatusCode.Connected
           ? '实时状态已连接'
-          : state.socketStatus === 'degraded'
+          : state.socketStatus === TaskSocketStatusCode.Degraded
             ? '实时连接中断，正在低频恢复'
             : '正在连接实时状态'}
       </p>
@@ -326,7 +331,8 @@ function AnalysisJobState({
             </AlertDialogContent>
           </AlertDialog>
         ) : null}
-        {['failed', 'cancelled'].includes(job.status) ? (
+        {job.status === AnalysisStatusCode.Failed ||
+        job.status === AnalysisStatusCode.Cancelled ? (
           <Button
             disabled={Boolean(state.action)}
             onClick={() => void state.retry()}
@@ -351,11 +357,7 @@ function AnalysisJobState({
         <div className="mt-10">
           <div className="flex flex-wrap items-center gap-3">
             <Badge variant="secondary">
-              {job.report?.status === 'publishing'
-                ? '新报告文件生成中'
-                : job.report?.status === 'publish_failed'
-                  ? '报告文件生成失败，等待恢复'
-                  : '上一版本报告'}
+              {analysisReportStatusLabel(job.report?.status)}
             </Badge>
             {job.current_report_id ? (
               <>

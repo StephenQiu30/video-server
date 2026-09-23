@@ -12,6 +12,32 @@ import {
 } from '@/components/ui/item';
 import { Spinner } from '@/components/ui/spinner';
 
+enum DiscoveryItemStatusCode {
+  Ready = 'ready',
+  IdentityUnverified = 'identity_unverified',
+}
+
+enum DiscoveryDecisionCode {
+  Candidate = 'candidate',
+  ExportRequired = 'export_required',
+  Unsupported = 'unsupported',
+}
+
+const DISCOVERY_DECISION_LABELS: Record<API.DiscoveryDecisionHint, string> = {
+  [DiscoveryDecisionCode.Candidate]: '已发现，下载能力待验收',
+  [DiscoveryDecisionCode.ExportRequired]: '需要导入自有文件',
+  [DiscoveryDecisionCode.Unsupported]: '仅查看支持状态',
+};
+
+const DISCOVERY_STATUS_PRESENTATION: Record<
+  API.DiscoveryItemStatus,
+  (item: API.SourceDiscoveryItemResponse) => string
+> = {
+  [DiscoveryItemStatusCode.Ready]: (item) =>
+    DISCOVERY_DECISION_LABELS[item.decision_hint],
+  [DiscoveryItemStatusCode.IdentityUnverified]: () => '身份无法可靠绑定',
+};
+
 export function SourceDiscoveryWorkspace({
   busyItemRef,
   discovery,
@@ -103,8 +129,5 @@ function itemKindLabel(kind: API.SourceDiscoveryItemResponse['kind']) {
 }
 
 function decisionLabel(item: API.SourceDiscoveryItemResponse) {
-  if (item.status === 'identity_unverified') return '身份无法可靠绑定';
-  if (item.decision_hint === 'export_required') return '需要导入自有文件';
-  if (item.decision_hint === 'candidate') return '已发现，下载能力待验收';
-  return '仅查看支持状态';
+  return DISCOVERY_STATUS_PRESENTATION[item.status](item);
 }

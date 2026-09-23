@@ -1,12 +1,13 @@
-export type TaskSocketStatus =
-  | 'connecting'
-  | 'connected'
-  | 'degraded'
-  | 'disconnected';
+export enum TaskSocketStatusCode {
+  Connecting = 'connecting',
+  Connected = 'connected',
+  Degraded = 'degraded',
+  Disconnected = 'disconnected',
+}
 
 type TaskType = 'analysis' | 'download';
 type Listener = (event: Record<string, unknown>) => void;
-type StatusListener = (status: TaskSocketStatus) => void;
+type StatusListener = (status: TaskSocketStatusCode) => void;
 type Subscription = {
   taskType: TaskType;
   taskId: string;
@@ -34,7 +35,7 @@ class TaskSocketManager {
   private socket: WebSocket | null = null;
   private subscriptions = new Map<string, Subscription>();
   private statusListeners = new Set<StatusListener>();
-  private status: TaskSocketStatus = 'disconnected';
+  private status = TaskSocketStatusCode.Disconnected;
   private reconnectAttempt = 0;
   private reconnectTimer: number | null = null;
   private connectTimer: number | null = null;
@@ -79,7 +80,7 @@ class TaskSocketManager {
 
   private connect() {
     if (typeof window === 'undefined' || this.socket) return;
-    this.setStatus('connecting');
+    this.setStatus(TaskSocketStatusCode.Connecting);
     let socket: WebSocket;
     try {
       socket = new WebSocket(resolveTaskSocketUrl());
@@ -93,7 +94,7 @@ class TaskSocketManager {
         this.socket === socket &&
         socket.readyState === WebSocket.CONNECTING
       ) {
-        this.setStatus('degraded');
+        this.setStatus(TaskSocketStatusCode.Degraded);
         socket.close();
       }
     }, CONNECT_TIMEOUT_MS);
@@ -101,21 +102,21 @@ class TaskSocketManager {
       if (this.socket !== socket) return;
       this.clearConnectTimer();
       this.reconnectAttempt = 0;
-      this.setStatus('connected');
+      this.setStatus(TaskSocketStatusCode.Connected);
       for (const subscription of this.subscriptions.values()) {
         this.sendSubscribe(subscription);
       }
     };
     socket.onmessage = (message) => this.receive(message.data);
     socket.onerror = () => {
-      if (this.socket === socket) this.setStatus('degraded');
+      if (this.socket === socket) this.setStatus(TaskSocketStatusCode.Degraded);
     };
     socket.onclose = () => {
       if (this.socket !== socket) return;
       this.clearConnectTimer();
       this.socket = null;
       if (this.subscriptions.size > 0) this.scheduleReconnect();
-      else this.setStatus('disconnected');
+      else this.setStatus(TaskSocketStatusCode.Disconnected);
     };
   }
 
@@ -168,7 +169,7 @@ class TaskSocketManager {
   }
 
   private scheduleReconnect() {
-    this.setStatus('degraded');
+    this.setStatus(TaskSocketStatusCode.Degraded);
     const base = Math.min(30_000, 1_000 * 2 ** this.reconnectAttempt++);
     const delay = base + Math.floor(Math.random() * Math.min(1_000, base / 4));
     this.reconnectTimer = window.setTimeout(() => {
@@ -184,7 +185,7 @@ class TaskSocketManager {
     const socket = this.socket;
     this.socket = null;
     socket?.close(1000, 'no subscriptions');
-    this.setStatus('disconnected');
+    this.setStatus(TaskSocketStatusCode.Disconnected);
   }
 
   private clearConnectTimer() {
@@ -192,7 +193,7 @@ class TaskSocketManager {
     this.connectTimer = null;
   }
 
-  private setStatus(status: TaskSocketStatus) {
+  private setStatus(status: TaskSocketStatusCode) {
     this.status = status;
     for (const listener of this.statusListeners) listener(status);
   }

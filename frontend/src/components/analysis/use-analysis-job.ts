@@ -15,10 +15,11 @@ import {
   getLatestDownloadAnalysis,
   retryAnalysis,
 } from '@/api/analyses';
+import { isTerminalAnalysisStatus } from '@/components/analysis/analysis-panel-model';
 import { privateQueryKey } from '@/lib/query-keys';
 import { displayError } from '@/lib/request-error';
 import { sessionGeneration } from '@/lib/session-events';
-import { type TaskSocketStatus, taskSocket } from '@/lib/task-socket';
+import { TaskSocketStatusCode, taskSocket } from '@/lib/task-socket';
 
 import { createUuid as createIdempotencyKey } from '@/lib/uuid';
 
@@ -33,8 +34,9 @@ export function useAnalysisJob(
   inputKind: API.AnalysisInputKind = 'video',
 ) {
   const queries = useQueryClient();
-  const [socketStatus, setSocketStatus] =
-    useState<TaskSocketStatus>('disconnected');
+  const [socketStatus, setSocketStatus] = useState(
+    TaskSocketStatusCode.Disconnected,
+  );
   const sourceKey = `${inputKind}:${inputId}`;
   const queryKey = useMemo(
     () => privateQueryKey('analysis', inputKind, inputId),
@@ -109,7 +111,7 @@ export function useAnalysisJob(
       const previous = queries.getQueryData<API.AnalysisResponse | null>(
         queryKey,
       );
-      const active = previous && !terminalAnalysisStatuses.has(previous.status);
+      const active = previous && !isTerminalAnalysisStatus(previous.status);
       const next = active
         ? await getAnalysis(
             { analysis_id: encodeURIComponent(previous.id) },
@@ -136,10 +138,10 @@ export function useAnalysisJob(
       if (
         !current ||
         query.state.error ||
-        terminalAnalysisStatuses.has(current.status)
+        isTerminalAnalysisStatus(current.status)
       )
         return false;
-      return socketStatus === 'connected'
+      return socketStatus === TaskSocketStatusCode.Connected
         ? Math.max(15_000, pollIntervalMs * 10)
         : Math.max(2_000, pollIntervalMs);
     },
@@ -149,13 +151,13 @@ export function useAnalysisJob(
   const error =
     actionError ?? (snapshot.error ? displayError(snapshot.error) : null);
   const analysisId = job?.id ?? null;
-  const shouldSync = job ? !terminalAnalysisStatuses.has(job.status) : false;
+  const shouldSync = job ? !isTerminalAnalysisStatus(job.status) : false;
   versionRef.current = job?.version ?? 0;
 
   useEffect(() => {
     if (sourceKeyRef.current === sourceKey) return;
     sourceKeyRef.current = sourceKey;
-    setSocketStatus('disconnected');
+    setSocketStatus(TaskSocketStatusCode.Disconnected);
   }, [sourceKey]);
 
   const refetch = snapshot.refetch;
@@ -256,12 +258,6 @@ export function useAnalysisJob(
     start,
   };
 }
-
-const terminalAnalysisStatuses = new Set<API.AnalysisStatus>([
-  'succeeded',
-  'failed',
-  'cancelled',
-]);
 
 function isOlder(current: API.AnalysisResponse, next: API.AnalysisResponse) {
   return (

@@ -12,6 +12,10 @@ import {
 import { getInspection } from '@/api/inspections';
 import { useAuth } from '@/components/auth/auth-provider';
 import { useIntakeDraft } from '@/components/intake/intake-draft-provider';
+import {
+  IntentStatusCode,
+  isTerminalIntentStatus,
+} from '@/components/intake/intent-status';
 import { privateQueryKey } from '@/lib/query-keys';
 import { ApiError, displayError } from '@/lib/request-error';
 import { onSessionGenerationChanged } from '@/lib/session-events';
@@ -19,14 +23,6 @@ import { createUuid } from '@/lib/uuid';
 
 const referenceKey = 'framefetch-active-intent';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const terminal = new Set<API.IntentStatus>([
-  'ready',
-  'handed_off',
-  'failed',
-  'expired',
-  'cancelled',
-  'action_required',
-]);
 
 export function rememberDownloadIntent(owner: string, id: string) {
   if (!uuid.test(id)) return;
@@ -117,7 +113,7 @@ export function useDownloadIntent() {
     refetchInterval: (query) =>
       query.state.error ||
       (query.state.data &&
-        (terminal.has(query.state.data.status) ||
+        (isTerminalIntentStatus(query.state.data.status) ||
           Date.parse(query.state.data.deadline) <= Date.now()))
         ? false
         : 2_000,
@@ -127,7 +123,7 @@ export function useDownloadIntent() {
   const inspectionId = intent.data?.inspection_id;
   const inspection = useQuery({
     queryKey: privateQueryKey('inspection', inspectionId),
-    enabled: !!inspectionId && intent.data?.status === 'ready',
+    enabled: !!inspectionId && intent.data?.status === IntentStatusCode.Ready,
     queryFn: ({ signal }) =>
       getInspection({ inspection_id: inspectionId ?? '' }, { signal }),
     staleTime: 5 * 60_000,
@@ -138,7 +134,9 @@ export function useDownloadIntent() {
     if (
       writing.current ||
       attempt?.submitting ||
-      (attempt && !reuse && !terminal.has(intent.data?.status ?? 'queued'))
+      (attempt &&
+        !reuse &&
+        !isTerminalIntentStatus(intent.data?.status ?? IntentStatusCode.Queued))
     )
       return;
     if (!user?.id) return;
@@ -263,9 +261,9 @@ export function useDownloadIntent() {
     (attempt.submitting ||
       (!intent.data
         ? !(attempt.id && missing)
-        : !terminal.has(intent.data.status)));
+        : !isTerminalIntentStatus(intent.data.status)));
   const resultExpired =
-    intent.data?.status === 'ready' &&
+    intent.data?.status === IntentStatusCode.Ready &&
     ((inspection.data &&
       Date.parse(inspection.data.expires_at) <= Date.now()) ||
       (inspection.error instanceof ApiError &&
@@ -274,7 +272,7 @@ export function useDownloadIntent() {
     attempt,
     snapshot: intent.data,
     inspection:
-      intent.data?.status === 'ready' && !attempt?.submitting
+      intent.data?.status === IntentStatusCode.Ready && !attempt?.submitting
         ? inspection.data
         : undefined,
     resultExpired: !!resultExpired,
@@ -319,7 +317,7 @@ export function useDownloadIntent() {
         }
       } else {
         await intent.refetch();
-        if (inspectionId && intent.data?.status === 'ready')
+        if (inspectionId && intent.data?.status === IntentStatusCode.Ready)
           await inspection.refetch();
       }
     },

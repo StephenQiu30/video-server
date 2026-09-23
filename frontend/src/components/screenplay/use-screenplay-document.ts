@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getDocumentImport } from '@/api/documents';
+import { ImportStatusCode } from '@/lib/import-status';
 import { privateQueryKey } from '@/lib/query-keys';
 import { displayError } from '@/lib/request-error';
 
@@ -17,8 +18,8 @@ export function useScreenplayDocument(
     refetchInterval: (query) => {
       const item = query.state.data;
       return item &&
-        (item.status === 'verifying' ||
-          (item.status === 'uploading' && !item.error_code))
+        (item.status === ImportStatusCode.Verifying ||
+          (item.status === ImportStatusCode.Uploading && !item.error_code))
         ? pollIntervalMs
         : false;
     },
