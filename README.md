@@ -92,7 +92,7 @@ Web 实例的 `/guide/` 提供公开使用指南；完整实现与配置见下�
 
 ## 快速开始
 
-生产只使用 `docker-compose-prod.yml`：YouTube、抖音和 Reddit 与优酷/腾讯视频一样读取部署方按 Provider 隔离的只读来源，普通客户端不安装扩展也不提供 Cookie；视频号按需使用专用元宝来源。每次操作重新读取来源，Secret volume/controller 可原子轮换而无需重建容器；个人本机浏览器桥只保留为可选导入工具。来源安装与更新见[个人部署手册](docs/operations/008-个人部署重启与换机手册.md)。
+本机开发使用 `docker-compose.yml`，生产使用 `docker-compose-prod.yml`。标准拓扑内置固定版本的解析引擎与抖音公开访客维护器：首次启动会在后台准备访客材料，普通用户粘贴公开链接或分享文案后无需提供浏览器 Cookie。准备状态可用 `docker compose exec -T provider-guest python -m app.workers.runner.provider_guest_manager status` 脱敏查看；只有 `published_lease_usable=true` 才代表访客租约已发布，健康检查本身不代表媒体可下载。其他平台可先走匿名或 Generic 的受限单视频尝试；提取器候选不等于已验证下载，最终以当前出口的解析和文件结果为准。YouTube、Reddit、优酷等需要账号或额外验证的内容仍受各平台访问条件约束，部署者可按 Provider 登记批准的只读来源，普通客户端不安装扩展也不提供 Cookie。来源安装与更新见[个人部署手册](docs/operations/008-个人部署重启与换机手册.md)。
 
 ### 前置条件
 
@@ -127,7 +127,7 @@ uv run --project backend python -m app.workers.bootstrap_admin \
   --env-file .env --username your-admin --email you@example.com
 ```
 
-命令只在用户表为空时创建管理员；已有任何用户时拒绝，不开放 HTTP 初始化接口。之后用该邮箱和密码登录 Web，再粘贴链接解析。若要让其他用户自行注册，先在 `.env` 配置真实 SMTP 并启用 `SMTP_ENABLED=true`；默认关闭时注册验证码不可发送，现有账号仍可登录。生产部署还应替换示例密钥。健康检查只证明服务可运行，不证明首账号已创建或每个平台有真实媒体证据。
+命令只在用户表为空时创建管理员；已有任何用户时拒绝，不开放 HTTP 初始化接口。之后用该邮箱和密码登录 Web，再粘贴链接解析；公开抖音访客路线由后台准备，不要求先登记账号来源。若要让其他用户自行注册，先在 `.env` 配置真实 SMTP 并启用 `SMTP_ENABLED=true`；默认关闭时注册验证码不可发送，现有账号仍可登录。生产部署还应替换示例密钥。健康检查只证明服务可运行，不证明首账号已创建或每个平台有真实媒体证据。
 
 统一入口保留已配置的平台路由，不因来源短暂失效删除能力。文件来源由独立 `provider-sources` 进程从现有 PostgreSQL 解密恢复，按平台原子发布到 Runner 的只读命名卷；重建和换机无需复制这些本地副本。有效计划写入私有 `.local-runtime/provider-startup.env`，不包含 Cookie。
 
