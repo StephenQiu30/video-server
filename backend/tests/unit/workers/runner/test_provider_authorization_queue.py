@@ -9,6 +9,7 @@ from stat import S_IMODE
 
 import pytest
 from app.services.provider_types import ProviderAuthorizationSource, ProviderKey
+from app.workers.runner import provider_authorization_queue as queue_module
 from app.workers.runner import provider_cookie_agent as agent
 from app.workers.runner.provider_authorization_queue import (
     AUTHORIZATION_READY_MARKER,
@@ -25,6 +26,23 @@ from app.workers.runner.provider_authorization_queue import (
 )
 
 TOKEN = "0123456789abcdef0123456789abcdef"
+
+
+def test_idempotent_enqueue_tolerates_agent_consuming_existing_request(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    prepare_authorization_runtime(tmp_path)
+    request = ProviderAuthorizationRequest(
+        ProviderKey.YOUTUBE, datetime.now(UTC) + timedelta(minutes=5)
+    )
+    write_authorization_request(tmp_path, TOKEN, request)
+
+    def consume_before_read(path: Path) -> ProviderAuthorizationRequest:
+        path.unlink()
+        raise FileNotFoundError(path)
+
+    monkeypatch.setattr(queue_module, "read_authorization_request", consume_before_read)
+    write_authorization_request(tmp_path, TOKEN, request)
 
 
 def test_agent_readiness_requires_a_live_probe_response(tmp_path: Path) -> None:

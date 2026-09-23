@@ -228,7 +228,13 @@ def write_authorization_request(
     try:
         _atomic_publish_shared(target, request.serialize())
     except FileExistsError:
-        if read_authorization_request(target) != request:
+        try:
+            existing = read_authorization_request(target)
+        except FileNotFoundError:
+            # The agent consumed the request between the link conflict and read.
+            # A still-pending transaction will be re-published on reconciliation.
+            return
+        if existing != request:
             raise OSError("authorization request identity mismatch") from None
 
 
