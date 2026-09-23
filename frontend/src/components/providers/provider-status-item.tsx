@@ -3,8 +3,8 @@
 import { CaretDownIcon } from '@phosphor-icons/react';
 import { cn } from 'cn';
 import { useId, useState } from 'react';
-
 import { ProviderAuthorizationDialog } from '@/components/providers/provider-authorization-dialog';
+import { isCurrentlyAvailable } from '@/components/providers/provider-availability';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TableCell, TableHead, TableRow } from '@/components/ui/table';
@@ -126,7 +126,7 @@ function accessStateLabel(state: API.ProviderAccessState): string {
   const labels: Record<API.ProviderAccessState, string> = {
     public_probe: '公开线路待验证',
     public_ready: '公开线路可用',
-    guest_probe: '游客线路准备中',
+    guest_probe: '游客线路待验证',
     guest_ready: '游客线路可用',
     authorization_required: '需要授权或平台验证',
     operator_probe: '受控线路待验证',
@@ -143,11 +143,14 @@ function statusLabel(
   provider: API.ProviderListResponse['items'][number],
 ): string {
   if (provider.download_supported) {
-    if (provider.download_available) return '当前可用';
+    if (isCurrentlyAvailable(provider)) return '当前可用';
     if (provider.status === 'access_required') return '已接入 · 当前不可用';
     if (provider.status === 'degraded') return '支持下载 · 当前降级';
     if (provider.status === 'rate_limited') return '支持下载 · 当前限流';
     if (provider.status === 'blocked') return '支持下载 · 当前受限';
+    if (provider.download_available) {
+      return '近期媒体样本通过';
+    }
     if (provider.status === 'unknown') return '支持下载 · 待复验';
     return '已接入 · 待重新验证';
   }
@@ -253,7 +256,7 @@ function statusVariant(
   provider: API.ProviderListResponse['items'][number],
 ): 'destructive' | 'secondary' | 'default' {
   if (
-    provider.download_available ||
+    isCurrentlyAvailable(provider) ||
     (!provider.download_supported && provider.status === 'verified')
   ) {
     return 'default';

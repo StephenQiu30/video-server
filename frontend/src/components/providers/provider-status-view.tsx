@@ -9,6 +9,7 @@ import { PageEmptyNotice } from '@/components/layout/page-empty-notice';
 import { PageErrorNotice } from '@/components/layout/page-error-notice';
 import { PageHeader } from '@/components/layout/page-header';
 import { PagePagination } from '@/components/layout/page-pagination';
+import { isCurrentlyAvailable } from '@/components/providers/provider-availability';
 import { ProviderStatusItem } from '@/components/providers/provider-status-item';
 import { useProviderStatuses } from '@/components/providers/use-provider-statuses';
 import { Button } from '@/components/ui/button';
@@ -34,7 +35,7 @@ export function ProviderStatusView() {
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [page, setPage] = useState(1);
   const providers = state.data?.items ?? EMPTY_PROVIDERS;
-  const available = providers.filter((item) => item.download_available).length;
+  const available = providers.filter(isCurrentlyAvailable).length;
   const filtered = useMemo(
     () => providers.filter((item) => matchesFilter(item, filter)),
     [filter, providers],
@@ -196,8 +197,8 @@ function matchesFilter(
   provider: API.ProviderListResponse['items'][number],
   filter: StatusFilter,
 ) {
-  if (filter === 'available') return provider.download_available;
-  if (filter === 'attention') return !provider.download_available;
+  if (filter === 'available') return isCurrentlyAvailable(provider);
+  if (filter === 'attention') return !isCurrentlyAvailable(provider);
   return true;
 }
 

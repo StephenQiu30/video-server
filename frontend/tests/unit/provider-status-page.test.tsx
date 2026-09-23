@@ -178,6 +178,56 @@ describe('provider status page', () => {
     expect(details).toHaveTextContent('游客线路样本下载：可用');
   });
 
+  it('keeps media sample evidence separate from current route availability', async () => {
+    const base = statuses().items[0];
+    runtime.listProviders.mockResolvedValue({
+      items: [
+        {
+          ...base,
+          key: 'douyin',
+          display_name: '抖音',
+          status: 'unknown',
+          access_state: 'guest_probe',
+          download_available: true,
+        },
+        {
+          ...base,
+          key: 'xiaohongshu',
+          display_name: '小红书',
+          status: 'degraded',
+          access_state: 'degraded',
+          download_available: true,
+        },
+      ],
+    });
+    render(<ProviderStatusView />);
+
+    const douyin = (
+      await screen.findByRole('heading', { name: '抖音' })
+    ).closest('tr');
+    expect(douyin).toHaveTextContent('近期媒体样本通过');
+    expect(douyin).toHaveTextContent('游客线路待验证');
+    expect(
+      within(douyin as HTMLElement).getByText('近期媒体样本通过'),
+    ).toHaveAttribute('data-variant', 'secondary');
+    const xiaohongshu = screen
+      .getByRole('heading', { name: '小红书' })
+      .closest('tr');
+    expect(xiaohongshu).toHaveTextContent('支持下载 · 当前降级');
+    expect(
+      within(xiaohongshu as HTMLElement).getByText('支持下载 · 当前降级'),
+    ).toHaveAttribute('data-variant', 'secondary');
+    expect(screen.getByText(/0 个当前可用/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('radio', { name: '当前可用' }));
+    expect(
+      screen.queryByRole('heading', { name: '抖音' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('radio', { name: '需关注' }));
+    expect(screen.getByRole('heading', { name: '抖音' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '小红书' })).toBeInTheDocument();
+  });
+
   it('supports loading, safe error and retry states', async () => {
     const first = deferred<API.ProviderListResponse>();
     const refresh = deferred<API.ProviderListResponse>();
