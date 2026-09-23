@@ -18,6 +18,7 @@ from app.services.provider_authorization import (
     ProviderAuthorizationStatus,
 )
 from app.services.provider_types import ProviderAuthorizationSource, ProviderKey
+from app.workers.runner import provider_cookie_agent as agent_runtime
 from app.workers.runner.provider_authorization_queue import (
     AUTHORIZATION_READY_MARKER,
     AUTHORIZATION_READY_PAYLOAD,
@@ -26,7 +27,6 @@ from app.workers.runner.provider_authorization_queue import (
     prepare_authorization_runtime,
     read_authorization_response,
 )
-from app.workers.runner.provider_browser_bridge_store import ProviderBrowserBridgeStore
 from app.workers.runner.provider_cookie_agent import drain_requests
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
@@ -244,7 +244,7 @@ async def test_concurrent_authorization_claim_is_atomic(
 
 
 @pytest.mark.asyncio
-async def test_shared_provider_rejects_a_competing_owner_or_source(
+async def test_shared_provider_rejects_a_competing_owner(
     postgres_engine: AsyncEngine,
     tmp_path: Path,
 ) -> None:
@@ -257,12 +257,14 @@ async def test_shared_provider_rejects_a_competing_owner_or_source(
 
     with pytest.raises(ProviderAuthorizationError, match="已有管理员授权事务"):
         await service.begin(OTHER_USER_ID, ProviderKey.YOUTUBE.value)
-    with pytest.raises(ProviderAuthorizationError, match="已有管理员授权事务"):
+    assert (
         await service.begin(
             USER_ID,
             ProviderKey.YOUTUBE.value,
             ProviderAuthorizationSource.DEDICATED_CHROME,
         )
+        == first
+    )
 
     requests = list((tmp_path / "control" / "requests").glob("*.request"))
     assert [item.stem for item in requests] == [first.transaction_id]
@@ -304,15 +306,20 @@ async def test_operation_deadline_and_result_retention_survive_service_restart(
 async def test_postgres_and_agent_complete_the_authorization_control_loop(
     tmp_path: Path,
     postgres_engine: AsyncEngine,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     now = datetime.now(UTC)
     control = authorization_runtime(tmp_path)
     prepare_authorization_runtime(tmp_path)
     (control / AUTHORIZATION_READY_MARKER).write_bytes(AUTHORIZATION_READY_PAYLOAD)
-    ProviderBrowserBridgeStore(tmp_path).write(
-        ProviderKey.YOUTUBE,
-        b"# Netscape HTTP Cookie File\n"
-        b".youtube.com\tTRUE\t/\tTRUE\t0\tSID\tcurrent-session\n",
+    monkeypatch.setattr(agent_runtime.subprocess, "run", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        agent_runtime,
+        "_export_from_source",
+        lambda *_args, **_kwargs: agent_runtime.ProviderCookieLease(
+            agent_runtime.ProviderCookieLeaseStatus.OK,
+            b"isolated-session",
+        ),
     )
     service = ProviderAuthorizationService(
         FileProviderAuthorizationQueue(tmp_path, probe_timeout_seconds=1),
@@ -330,7 +337,9 @@ async def test_postgres_and_agent_complete_the_authorization_control_loop(
         requests = control / "requests"
         while not stop.is_set() and time.monotonic() < deadline:
             if tuple(requests.glob("*.request")):
-                drain_requests(tmp_path, profile="Default")
+                drain_requests(
+                    tmp_path, profile="Default", browser_root=tmp_path / "browser-root"
+                )
             time.sleep(0.01)
 
     with ThreadPoolExecutor(max_workers=1) as pool:
@@ -375,7 +384,7 @@ async def test_pending_record_recovers_a_crash_before_queue_publication(
     record, created = await repository.accept(
         USER_ID,
         "youtube",
-        ProviderAuthorizationSource.CURRENT_CHROME,
+        ProviderAuthorizationSource.DEDICATED_CHROME,
         now=now,
         ttl=timedelta(minutes=5),
         retention=timedelta(hours=24),
@@ -433,7 +442,7 @@ async def test_cancellation_fences_stale_completion_and_queue_republication(
         ProviderAuthorizationRequest(
             ProviderKey.YOUTUBE,
             transaction.expires_at,
-            ProviderAuthorizationSource.CURRENT_CHROME,
+            ProviderAuthorizationSource.DEDICATED_CHROME,
         ),
     )
     assert not tuple((tmp_path / "control" / "requests").glob("*.request"))
@@ -515,6 +524,20 @@ async def test_authorization_schema_bootstrap_and_repeat_preserve_terminal_state
                 INSERT INTO provider_authorizations VALUES (
                     '11111111-1111-4111-8111-111111111111',
                     '22222222-2222-4222-8222-222222222222', 'youtube',
+                    'dedicated_chrome', 'maintain_deployment_source', 'cancelled',
+                    now() + interval '5 minutes', now() + interval '1 day', now(), now()
+                )
+            """)
+            await driver.execute("""
+                ALTER TABLE provider_authorizations
+                    DROP CONSTRAINT ck_provider_authorizations_source;
+                ALTER TABLE provider_authorizations
+                    ADD CONSTRAINT ck_provider_authorizations_source CHECK (
+                        source IN ('current_chrome','dedicated_chrome')
+                    );
+                INSERT INTO provider_authorizations VALUES (
+                    '33333333-3333-4333-8333-333333333333',
+                    '44444444-4444-4444-8444-444444444444', 'reddit',
                     'current_chrome', 'maintain_deployment_source', 'cancelled',
                     now() + interval '5 minutes', now() + interval '1 day', now(), now()
                 )
@@ -523,3 +546,8 @@ async def test_authorization_schema_bootstrap_and_repeat_preserve_terminal_state
             row = await driver.fetchrow("SELECT * FROM provider_authorizations")
             assert row["status"] == "cancelled"
             assert row["purpose"] == "maintain_deployment_source"
+            assert row["source"] == "dedicated_chrome"
+            count = await driver.fetchval(
+                "SELECT count(*) FROM provider_authorizations"
+            )
+            assert count == 1

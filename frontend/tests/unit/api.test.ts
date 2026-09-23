@@ -74,7 +74,7 @@ describe('typed API client', () => {
 
     await beginProviderAuthorization(
       { provider_key: 'youtube' },
-      { source: 'current_chrome' },
+      { source: 'dedicated_chrome' },
     );
     await getProviderAuthorization({
       transaction_id: transaction.transaction_id,

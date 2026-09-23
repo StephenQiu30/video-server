@@ -95,7 +95,7 @@ class FileProviderAuthorizationQueue:
                 ProviderAuthorizationRequest(
                     provider,
                     datetime.now(UTC) + timedelta(seconds=5),
-                    ProviderAuthorizationSource.CURRENT_CHROME,
+                    ProviderAuthorizationSource.DEDICATED_CHROME,
                     probe=True,
                 ),
             )

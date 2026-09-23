@@ -122,7 +122,7 @@ class ProviderAuthorizationStatus(StrEnum):
 class BeginProviderAuthorizationRequest(StrictModel):
     """Select the explicit local browser session used for authorization."""
 
-    source: ProviderAuthorizationSource = ProviderAuthorizationSource.CURRENT_CHROME
+    source: ProviderAuthorizationSource = ProviderAuthorizationSource.DEDICATED_CHROME
 
 
 class ProviderAuthorizationResponse(StrictModel):

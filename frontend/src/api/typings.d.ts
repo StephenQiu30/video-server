@@ -1636,7 +1636,7 @@ declare namespace API {
     expires_at: string;
   };
 
-  type ProviderAuthorizationSource = "current_chrome" | "dedicated_chrome";
+  type ProviderAuthorizationSource = "dedicated_chrome";
 
   type ProviderAuthorizationStatus =
     | "pending"

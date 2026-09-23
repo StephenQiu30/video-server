@@ -1,6 +1,6 @@
 # YouTube 受控会话运行手册
 
-> ToC 默认使用部署方维护的 YouTube 单平台只读来源。普通客户端不安装扩展、不上传 Cookie；浏览器连接器仅是个人部署可选导入器。重启与换机步骤见[个人部署手册](008-个人部署重启与换机手册.md)。
+> ToC 默认使用部署方维护的 YouTube 单平台只读来源。普通客户端不上传 Cookie；个人部署可显式使用隔离 Chrome 与本机 Agent 建立来源。重启与换机步骤见[个人部署手册](008-个人部署重启与换机手册.md)。
 
 YouTube 使用统一多平台会话架构，安装、启动、撤销和故障处理见 `docs/operations/003-多平台受控会话运行手册.md`。本页只记录 YouTube 特有约束。
 
@@ -44,7 +44,7 @@ docker compose --env-file .env.prod -f docker-compose-prod.yml \
 
 生产 Runner 只挂载 YouTube 目录，不持有 Chrome 数据库、密码或其他网站会话。每次操作重新读取文件，部署方原子替换后无需重建容器；context generation 会变化，旧 inspection 不得继续执行。
 
-浏览器扩展、Native Messaging 和 Access Agent 仅保留为个人部署的可选导入方式，不能出现在普通 ToC 用户的解析流程。新宿主连接同一持久库并配置相同来源密钥，由来源进程自动恢复本机副本；不要靠 Git 同步凭据。账号退出、平台撤销或新出口验证仍需部署方重新建立来源，此时保留准确的 `provider_session_expired`，更新后重新执行真实 metadata/media，不重启全部服务。
+个人部署若需要可显式使用隔离 Chrome 与 Access Agent 导入来源；普通 ToC 用户的解析流程不依赖该工具。新宿主连接同一持久库并配置相同来源密钥，由来源进程自动恢复本机副本；不要靠 Git 同步凭据。账号退出、平台撤销或新出口验证仍需部署方重新建立来源，此时保留准确的 `provider_session_expired`，更新后重新执行真实 metadata/media，不重启全部服务。
 
 ## 3. POT 与出口
 

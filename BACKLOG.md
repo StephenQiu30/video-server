@@ -234,7 +234,7 @@
   - [x] P6.3a macOS v1：按 Provider 隔离的专用 Chrome 目录、授权等待、内存租约和按需 LaunchAgent；覆盖 Chrome-backed Provider，并有取消/超时/隔离测试。
   - [x] P6.3a.1 历史 Compose 接线：曾让 YouTube、抖音、Reddit Operator Runner 使用对应 Agent 队列；2026-09-22 经竞品复核确认不适合作为 ToC 默认链路，已由 P8.2a 的部署级来源替代。优酷/腾讯视频和视频号继续保持各自受控来源边界。
   - [x] P6.3b 产品内一次性事务验收：API 创建 nonce，前端调用并轮询，宿主消费 control 请求；生产 control 挂载、跨 UID、原子发布、取消竞态、结果确认和超时语义已按 P7 验收。无需 Cookie CLI 的真实 Redis + Agent 控制全环测试通过；真实平台媒体下载仍由 P8.7 单独验收。
-  - [x] P6.3c 当前 Chrome 浏览器侧桥接原型：扩展通过 Chrome 官方 `cookies` API 按 Provider allowlist 同步，Native Messaging 主机写入本机加密快照；后台 Agent 不再直接读取 Chrome SQLite。仅完成 framing、allowlist、加密落盘、权限和 wrapper 的既有测试，不表示平台验证或下载根因已解决；剩余问题见 P7、P8。
+  - [x] P6.3c 历史原型（2026-09-23 已移除）：当前 Chrome 扩展与 Native Messaging 曾用于本机同步，但不满足开源部署无感解析的目标，也未完成真实平台媒体闭环。现仅保留部署级来源与个人部署的隔离 Chrome 授权。
   - 依赖：P6.2。验证：最终交付需覆盖无 Cookie CLI 的可见授权、会话发布、取消/超时、Provider 隔离测试。
 - [ ] P6.4 接入 Web 平台状态与解析恢复动作，完成明暗主题、桌面和 390px 浏览器验收。
   - [x] P6.4a 平台状态页已接入访问状态和产品内本机授权事务，并由生成 OpenAPI 类型驱动。

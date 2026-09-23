@@ -91,7 +91,7 @@ describe('DownloadWorkspace', () => {
       screen.queryByRole('button', { name: '使用托管线路重试' }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: '使用当前 Chrome 会话' }),
+      screen.queryByRole('button', { name: '使用隔离浏览器会话' }),
     ).not.toBeInTheDocument();
     expect(authorization.begin).not.toHaveBeenCalled();
   });

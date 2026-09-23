@@ -136,7 +136,7 @@ def test_shared_host_authorization_rejects_non_admin(tmp_path: Path) -> None:
     with TestClient(app) as client:
         response = client.post(
             "/api/providers/youtube/authorization",
-            json={"source": "current_chrome"},
+            json={"source": "dedicated_chrome"},
         )
 
     assert response.status_code == 403

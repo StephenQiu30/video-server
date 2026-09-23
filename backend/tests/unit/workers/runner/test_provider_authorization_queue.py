@@ -23,7 +23,6 @@ from app.workers.runner.provider_authorization_queue import (
     remove_authorization_response,
     write_authorization_request,
 )
-from app.workers.runner.provider_browser_bridge_store import ProviderBrowserBridgeStore
 
 TOKEN = "0123456789abcdef0123456789abcdef"
 
@@ -88,7 +87,7 @@ def test_new_probe_is_served_while_an_authorization_waits(
         ProviderAuthorizationRequest(
             ProviderKey.YOUTUBE,
             datetime.now(UTC) + timedelta(minutes=5),
-            ProviderAuthorizationSource.CURRENT_CHROME,
+            ProviderAuthorizationSource.DEDICATED_CHROME,
         ),
     )
 
@@ -102,7 +101,7 @@ def test_new_probe_is_served_while_an_authorization_waits(
         )
 
     monkeypatch.setattr(agent, "_export_from_source", wait_for_session)
-    monkeypatch.setattr(agent, "BROWSER_BRIDGE_HANDSHAKE_SECONDS", 0)
+    monkeypatch.setattr(agent.subprocess, "run", lambda *_args, **_kwargs: None)
     with ThreadPoolExecutor(max_workers=1) as pool:
         draining = pool.submit(
             agent.drain_authorization_requests,
@@ -117,7 +116,7 @@ def test_new_probe_is_served_while_an_authorization_waits(
             ProviderAuthorizationRequest(
                 ProviderKey.YOUTUBE,
                 datetime.now(UTC) + timedelta(seconds=5),
-                ProviderAuthorizationSource.CURRENT_CHROME,
+                ProviderAuthorizationSource.DEDICATED_CHROME,
                 probe=True,
             ),
         )
@@ -267,7 +266,7 @@ def test_agent_authorizes_a_request_without_persisting_cookie_payload(
     )
 
 
-def test_agent_checks_current_chrome_without_opening_a_new_profile(
+def test_agent_finishes_immediately_when_macos_denies_isolated_chrome(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -275,45 +274,10 @@ def test_agent_checks_current_chrome_without_opening_a_new_profile(
     request = ProviderAuthorizationRequest(
         ProviderKey.YOUTUBE,
         datetime.now(UTC) + timedelta(minutes=5),
-        ProviderAuthorizationSource.CURRENT_CHROME,
+        ProviderAuthorizationSource.DEDICATED_CHROME,
     )
     write_authorization_request(tmp_path, TOKEN, request)
-    actions: list[tuple[str, ...]] = []
-    monkeypatch.setattr(
-        agent.subprocess,
-        "run",
-        lambda command, **_kwargs: actions.append(command),
-    )
-    ProviderBrowserBridgeStore(tmp_path).write(
-        ProviderKey.YOUTUBE,
-        b"# Netscape HTTP Cookie File\n"
-        b".youtube.com\tTRUE\t/\tTRUE\t0\tSID\tprivate-cookie-payload\n",
-    )
-
-    agent.drain_authorization_requests(
-        tmp_path,
-        profile="Default",
-        browser_root=tmp_path / "browser-root",
-    )
-
-    assert actions == []
-    assert read_authorization_source(tmp_path, ProviderKey.YOUTUBE) is (
-        ProviderAuthorizationSource.CURRENT_CHROME
-    )
-    assert read_authorization_response(tmp_path, TOKEN) == "source_available"
-
-
-def test_agent_finishes_immediately_when_macos_denies_current_chrome(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    prepare_authorization_runtime(tmp_path)
-    request = ProviderAuthorizationRequest(
-        ProviderKey.YOUTUBE,
-        datetime.now(UTC) + timedelta(minutes=5),
-        ProviderAuthorizationSource.CURRENT_CHROME,
-    )
-    write_authorization_request(tmp_path, TOKEN, request)
+    monkeypatch.setattr(agent.subprocess, "run", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(
         agent,
         "export_provider_cookie_lease_bounded",
@@ -326,7 +290,6 @@ def test_agent_finishes_immediately_when_macos_denies_current_chrome(
         "sleep",
         lambda _seconds: pytest.fail("permission denial must not poll for ten minutes"),
     )
-    monkeypatch.setattr(agent, "BROWSER_BRIDGE_HANDSHAKE_SECONDS", 0)
 
     agent.drain_authorization_requests(
         tmp_path,

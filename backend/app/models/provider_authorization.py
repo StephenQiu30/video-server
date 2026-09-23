@@ -18,7 +18,7 @@ class ProviderAuthorizationRow(Base):
             name="ck_provider_authorizations_status",
         ),
         CheckConstraint(
-            "source IN ('current_chrome','dedicated_chrome')",
+            "source = 'dedicated_chrome'",
             name="ck_provider_authorizations_source",
         ),
         CheckConstraint(

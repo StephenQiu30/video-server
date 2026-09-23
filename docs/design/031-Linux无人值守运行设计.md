@@ -32,10 +32,10 @@
 
 Access Agent 是个人自托管的部署侧导入器，不是普通客户端能力，也不是常驻远端服务：
 
-- 默认不静默读取用户浏览器；用户在产品内明确选择 `current_chrome` 后，浏览器连接器使用 Chrome 官方 Cookie API 读取该 Provider allowlist 域的会话，并通过 Native Messaging 交给本机 Agent。Agent 只读取本机加密快照，不直接打开当前 Chrome 的 SQLite 数据库。`dedicated_chrome` 仍可作为隔离授权来源。两种模式都不复制或上传完整 Chrome Profile。
+- 默认不静默读取用户浏览器；个人部署的管理员可显式选择 `dedicated_chrome`，由本机 Agent 打开按 Provider 隔离的 Chrome 目录完成授权。不读取日常 Chrome 的 SQLite 数据库，也不复制或上传完整 Chrome Profile。
 - 只有管理员显式启用本地导入模式时，授权事务才由短时 nonce、Provider 和过期时间绑定；API 只写入与宿主 Agent 共享的受限控制队列，不开放新的 TCP 端口。
 - 每个平台独立目录、进程、Cookie allowlist 和并发租约；一个平台的授权不能被另一个 Runner 读取。
-- 当前 Chrome 模式不打开新窗口；隔离模式才在首次挑战时打开可见 Provider 窗口。导入结果必须进入与部署级来源相同的校验和发布契约，不能让 Runner 依赖扩展在线。
+- 隔离模式在授权时打开可见 Provider 窗口。导入结果必须进入与部署级来源相同的校验和发布契约，不能让 Runner 依赖本机 Agent 在线。
 - 无桌面 Linux 使用匿名路线及部署级来源；平台明确要求重新验证时显示托管线路降级，不能伪装成无人值守可用。
 - `.ffsession` 继续作为高级迁移/灾备能力，不是 clean-room 启动条件。
 
@@ -74,7 +74,7 @@ API readiness 只反映 FrameFetch 核心依赖，不因可选 Provider 授权�
 ## 当前实现
 
 - `ProviderAccessState` 已将当前宿主/出口的探针证据投影为公开线路待验证、公开可用、需要授权、受控线路待验证、受控线路可用、降级、受限、停用和不支持；`egress_challenged`、`pot_required`、`pot_rejected` 等稳定错误不会再被误报为普通解析器故障。
-- macOS 已提供按 Provider 隔离的可选来源导入器：`authorize --provider <key> --source ...` 可等待浏览器连接器快照或打开隔离 Chrome，`install --runtime-root ...` 安装按需 LaunchAgent；该能力不在普通解析或重试中自动触发。
+- macOS 已提供按 Provider 隔离的可选来源导入器：`authorize --provider <key> --source dedicated_chrome` 打开隔离 Chrome，`install --runtime-root ...` 安装按需 LaunchAgent；该能力不在普通解析或重试中自动触发。
 - 平台状态页展示访问状态；托管来源异常时普通用户只获得统一重试动作，管理员按部署流程更新来源。本机一次性授权事务仅在个人部署显式启用时可用。
 - `RunnerSettings.runner_provider_cookie_file` 与 macOS 的 `runner_provider_cookie_sync_root` 二选一；匿名 Runner 禁止配置任一来源。
 - [文件读取器](../../backend/app/workers/runner/provider_cookie_file.py)每次操作重新打开文件，限制 1 MiB、普通文件、无最终符号链接、无硬链接、无其他用户权限，并校验平台域、格式、到期时间和必需 Cookie 名。普通用户 API 不接受 Cookie。

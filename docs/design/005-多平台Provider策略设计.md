@@ -227,7 +227,7 @@ engine_commit
 ### 8.1 第一阶段：运维一次性租约
 
 - 默认文件模式只配置 `RUNNER_PROVIDER_COOKIE_FILE` 路径，不把 Cookie 内容写入环境变量。Runner 每次操作重新打开只读来源，原子轮换无需重建容器。
-- 可选浏览器导入模式为每次 inspect/download 生成一次性 X25519 私钥；连接器按域读取当前 Chrome Cookie，经 Native Messaging 写入本机加密快照，再由宿主 Agent 以 HKDF/ChaCha20-Poly1305 交付。该模式只用于个人部署显式导入，不是普通请求依赖。
+- 可选本机导入模式使用按 Provider 隔离的 Chrome 来源，并为每次 inspect/download 生成一次性 X25519 私钥；宿主 Agent 以 HKDF/ChaCha20-Poly1305 交付操作级租约。该模式只用于个人部署显式导入，不是普通请求依赖。
 - 可选导入队列没有 Cookie；响应只短暂保存只能由该请求私钥解开的密文。Runner 领取后立即确认，代理删除请求和响应；超时也会清除密文。
 - Runner 解密后验证 Netscape header、最大 1 MiB 和该 Profile 域名 allowlist，只在独占 tmpfs `/run/provider-session` 创建唯一目录；目录 `0700`、Cookie jar `0600`。
 - 初次 inspection 使用独立 jar 并在返回时销毁；异步 download 从同一强类型来源请求新租约，重解析、视频流、音频流和 probe 串行复用本次 jar，让该操作内的 `Set-Cookie` 更新可见。

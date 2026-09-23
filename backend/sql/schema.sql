@@ -1543,7 +1543,7 @@ CREATE TABLE IF NOT EXISTS provider_authorizations (
                    'permission_required','expired','cancelled','failed')
     ),
     CONSTRAINT ck_provider_authorizations_source CHECK (
-        source IN ('current_chrome','dedicated_chrome')
+        source = 'dedicated_chrome'
     ),
     CONSTRAINT ck_provider_authorizations_purpose CHECK (
         purpose = 'maintain_deployment_source'
@@ -1552,6 +1552,13 @@ CREATE TABLE IF NOT EXISTS provider_authorizations (
         expires_at > created_at AND retain_until >= expires_at
     )
 );
+-- The removed browser connector had only short-lived maintenance intents.
+-- Discard those obsolete intents before narrowing the current source contract.
+DELETE FROM provider_authorizations WHERE source <> 'dedicated_chrome';
+ALTER TABLE provider_authorizations
+    DROP CONSTRAINT IF EXISTS ck_provider_authorizations_source;
+ALTER TABLE provider_authorizations
+    ADD CONSTRAINT ck_provider_authorizations_source CHECK (source = 'dedicated_chrome');
 CREATE UNIQUE INDEX IF NOT EXISTS uq_provider_authorizations_active
     ON provider_authorizations (provider_key) WHERE status = 'pending';
 CREATE INDEX IF NOT EXISTS ix_provider_authorizations_retention

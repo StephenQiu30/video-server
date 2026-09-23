@@ -3,10 +3,7 @@ import { createElement } from 'react';
 import { expect, it, vi } from 'vitest';
 import * as providers from '@/api/providers';
 import { ProviderAuthorizationDialog } from '@/components/providers/provider-authorization-dialog';
-import {
-  providerAuthorizationTarget,
-  requestBrowserProviderSync,
-} from '@/lib/provider-authorization';
+import { providerAuthorizationTarget } from '@/lib/provider-authorization';
 
 const TRANSACTION_ID = '1'.repeat(32);
 
@@ -57,63 +54,11 @@ it('retries a deployment-managed provider without starting browser authorization
 
   expect(onAuthorized).toHaveBeenCalledOnce();
   expect(
-    screen.queryByRole('button', { name: '使用当前 Chrome 会话' }),
+    screen.queryByRole('button', { name: '使用隔离浏览器会话' }),
   ).not.toBeInTheDocument();
 });
 
-it('accepts only the correlated provider acknowledgement with a revision', async () => {
-  let outbound:
-    | { provider: string; requestId: string; transactionId: string }
-    | undefined;
-  const postMessage = vi
-    .spyOn(window, 'postMessage')
-    .mockImplementation((message) => {
-      if (message?.type === 'framefetch:provider-sync') outbound = message;
-    });
-  const request = requestBrowserProviderSync('youtube', TRANSACTION_ID, 1_000);
-  expect(outbound).toBeDefined();
-  expect(outbound?.transactionId).toBe(TRANSACTION_ID);
-
-  dispatchBridgeResult({
-    ok: true,
-    provider: 'reddit',
-    requestId: outbound?.requestId,
-    revision: 'stale-revision',
-  });
-  dispatchBridgeResult({
-    ok: true,
-    provider: 'youtube',
-    requestId: outbound?.requestId,
-    revision: 'current-revision',
-  });
-
-  await expect(request).resolves.toBeUndefined();
-  postMessage.mockRestore();
-});
-
-it('rejects an acknowledgement without a native bridge revision', async () => {
-  let outbound:
-    | { provider: string; requestId: string; transactionId: string }
-    | undefined;
-  const postMessage = vi
-    .spyOn(window, 'postMessage')
-    .mockImplementation((message) => {
-      if (message?.type === 'framefetch:provider-sync') outbound = message;
-    });
-  const request = requestBrowserProviderSync('youtube', TRANSACTION_ID, 1_000);
-
-  dispatchBridgeResult({
-    ok: true,
-    provider: 'youtube',
-    requestId: outbound?.requestId,
-    revision: null,
-  });
-
-  await expect(request).rejects.toThrow('浏览器连接器未能同步当前平台会话');
-  postMessage.mockRestore();
-});
-
-it('cancels the server intent when browser synchronization fails', async () => {
+it('starts an isolated browser authorization without a connector handshake', async () => {
   const begin = vi
     .spyOn(providers, 'beginProviderAuthorization')
     .mockResolvedValue({
@@ -121,19 +66,6 @@ it('cancels the server intent when browser synchronization fails', async () => {
       provider_key: 'youtube',
       status: 'pending',
       transaction_id: TRANSACTION_ID,
-    });
-  const cancel = vi
-    .spyOn(providers, 'cancelProviderAuthorization')
-    .mockResolvedValue(undefined);
-  const postMessage = vi
-    .spyOn(window, 'postMessage')
-    .mockImplementation((message) => {
-      if (message?.type !== 'framefetch:provider-sync') return;
-      dispatchBridgeResult({
-        provider: message.provider,
-        requestId: message.requestId,
-        ok: false,
-      });
     });
   render(
     createElement(ProviderAuthorizationDialog, {
@@ -144,26 +76,15 @@ it('cancels the server intent when browser synchronization fails', async () => {
       },
     }),
   );
-  fireEvent.click(screen.getByRole('button', { name: '使用当前 Chrome 会话' }));
+  fireEvent.click(screen.getByRole('button', { name: '使用隔离浏览器会话' }));
   await waitFor(() =>
-    expect(
-      screen.getByText('浏览器连接器未能同步当前平台会话。'),
-    ).toBeInTheDocument(),
+    expect(begin).toHaveBeenCalledWith(
+      { provider_key: 'youtube' },
+      { source: 'dedicated_chrome' },
+    ),
   );
-  expect(begin).toHaveBeenCalledOnce();
-  expect(cancel).toHaveBeenCalledWith({ transaction_id: TRANSACTION_ID });
-  postMessage.mockRestore();
+  expect(screen.getByText(/正在等待隔离 Chrome/)).toBeInTheDocument();
 });
-
-function dispatchBridgeResult(value: object) {
-  window.dispatchEvent(
-    new MessageEvent('message', {
-      data: { type: 'framefetch:provider-sync:result', ...value },
-      origin: window.location.origin,
-      source: window,
-    }),
-  );
-}
 
 it.each([false, true])(
   'keeps a durable authorization on navigation (response pending: %s)',
@@ -175,27 +96,18 @@ it.each([false, true])(
       status: 'pending',
       transaction_id: TRANSACTION_ID,
     };
-    vi.spyOn(providers, 'beginProviderAuthorization').mockImplementation(() =>
-      pendingResponse
-        ? new Promise((resolve) => {
-            finish = resolve;
-          })
-        : Promise.resolve(transaction),
-    );
+    const begin = vi
+      .spyOn(providers, 'beginProviderAuthorization')
+      .mockImplementation(() =>
+        pendingResponse
+          ? new Promise((resolve) => {
+              finish = resolve;
+            })
+          : Promise.resolve(transaction),
+      );
     const cancel = vi
       .spyOn(providers, 'cancelProviderAuthorization')
       .mockResolvedValue(undefined);
-    const postMessage = vi
-      .spyOn(window, 'postMessage')
-      .mockImplementation((message) => {
-        if (message?.type === 'framefetch:provider-sync')
-          dispatchBridgeResult({
-            provider: message.provider,
-            requestId: message.requestId,
-            ok: true,
-            revision: 'verified-local-revision',
-          });
-      });
     const view = render(
       createElement(ProviderAuthorizationDialog, {
         provider: {
@@ -205,16 +117,12 @@ it.each([false, true])(
         },
       }),
     );
-    fireEvent.click(
-      screen.getByRole('button', { name: '使用当前 Chrome 会话' }),
-    );
-    if (!pendingResponse)
-      await waitFor(() => expect(postMessage).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('button', { name: '使用隔离浏览器会话' }));
+    if (!pendingResponse) await waitFor(() => expect(begin).toHaveBeenCalled());
     view.unmount();
     if (pendingResponse) finish(transaction);
     await Promise.resolve();
     await Promise.resolve();
     expect(cancel).not.toHaveBeenCalled();
-    postMessage.mockRestore();
   },
 );

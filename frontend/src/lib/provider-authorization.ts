@@ -1,5 +1,3 @@
-import { ApiError } from '@/lib/request-error';
-
 export type ProviderAuthorizationTarget = {
   key: 'youtube' | 'douyin' | 'reddit' | 'wechat_channels';
   displayName: string;
@@ -39,16 +37,12 @@ const PROVIDER_TARGETS: readonly ProviderAuthorizationTarget[] = [
   },
 ];
 
-const BROWSER_BRIDGE_DOMAINS = {
+const PROVIDER_DOMAINS = {
   youtube: ['youtube.com', 'youtu.be'],
   douyin: ['douyin.com', 'iesdouyin.com'],
-  xiaohongshu: ['xiaohongshu.com'],
-  x: ['x.com', 'twitter.com'],
-  instagram: ['instagram.com'],
-  facebook: ['facebook.com'],
   reddit: ['reddit.com', 'redd.it'],
-  pinterest: ['pinterest.com'],
-} satisfies Record<string, string[]>;
+  wechat_channels: ['weixin.qq.com'],
+} satisfies Record<ProviderAuthorizationTarget['key'], string[]>;
 
 export function providerAuthorizationTarget(
   input: string,
@@ -57,74 +51,11 @@ export function providerAuthorizationTarget(
   if (!AUTHORIZATION_ERROR_CODES.has(errorCode)) return null;
   const hostname = extractHostname(input);
   if (!hostname) return null;
-
-  const target = PROVIDER_TARGETS.find((candidate) => {
-    const domains = {
-      ...BROWSER_BRIDGE_DOMAINS,
-      wechat_channels: ['weixin.qq.com'],
-    } satisfies Record<ProviderAuthorizationTarget['key'], string[]>;
-    return isHost(hostname, domains[candidate.key]);
-  });
-  return target ?? null;
-}
-
-/** Ask the installed local browser connector to refresh one provider snapshot. */
-export function requestBrowserProviderSync(
-  providerKey: string,
-  transactionId: string,
-  timeoutMs = 5_000,
-): Promise<void> {
-  if (typeof window === 'undefined') return Promise.resolve();
-  const requestId = crypto.randomUUID();
-  return new Promise((resolve, reject) => {
-    const onMessage = (event: MessageEvent) => {
-      if (event.source !== window || event.origin !== window.location.origin)
-        return;
-      if (
-        event.data?.type !== 'framefetch:provider-sync:result' ||
-        event.data?.requestId !== requestId ||
-        event.data?.provider !== providerKey
-      )
-        return;
-      cleanup();
-      if (event.data.ok === true && typeof event.data.revision === 'string')
-        resolve();
-      else
-        reject(
-          new ApiError(
-            0,
-            'browser_sync_failed',
-            '浏览器会话同步失败',
-            '浏览器连接器未能同步当前平台会话。',
-          ),
-        );
-    };
-    const timer = window.setTimeout(() => {
-      cleanup();
-      reject(
-        new ApiError(
-          0,
-          'browser_sync_failed',
-          '浏览器会话同步失败',
-          '未检测到浏览器连接器响应。',
-        ),
-      );
-    }, timeoutMs);
-    const cleanup = () => {
-      window.clearTimeout(timer);
-      window.removeEventListener('message', onMessage);
-    };
-    window.addEventListener('message', onMessage);
-    window.postMessage(
-      {
-        type: 'framefetch:provider-sync',
-        provider: providerKey,
-        requestId,
-        transactionId,
-      },
-      window.location.origin,
-    );
-  });
+  return (
+    PROVIDER_TARGETS.find((candidate) =>
+      isHost(hostname, PROVIDER_DOMAINS[candidate.key]),
+    ) ?? null
+  );
 }
 
 function extractHostname(input: string): string | null {

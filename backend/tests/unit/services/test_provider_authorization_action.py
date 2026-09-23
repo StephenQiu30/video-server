@@ -1,3 +1,5 @@
+import pytest
+from app.schemas.providers import BeginProviderAuthorizationRequest
 from app.services.provider_types import (
     ProviderAccessMode,
     ProviderAuthorizationAction,
@@ -5,6 +7,13 @@ from app.services.provider_types import (
     ProviderSupportStatus,
     provider_authorization_action,
 )
+from pydantic import ValidationError
+
+
+def test_retired_browser_connector_source_is_not_accepted() -> None:
+    assert BeginProviderAuthorizationRequest().source.value == "dedicated_chrome"
+    with pytest.raises(ValidationError):
+        BeginProviderAuthorizationRequest(source="current_chrome")  # type: ignore[arg-type]
 
 
 def action(

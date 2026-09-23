@@ -76,7 +76,6 @@ class ProviderSessionVersion(StrEnum):
 class ProviderAuthorizationSource(StrEnum):
     """Explicit local browser source selected for a provider authorization."""
 
-    CURRENT_CHROME = "current_chrome"
     DEDICATED_CHROME = "dedicated_chrome"
 
 

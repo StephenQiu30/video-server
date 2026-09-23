@@ -170,7 +170,7 @@ class ProviderAuthorizationService:
         user_id: UUID,
         provider_key: str,
         source: ProviderAuthorizationSource = (
-            ProviderAuthorizationSource.CURRENT_CHROME
+            ProviderAuthorizationSource.DEDICATED_CHROME
         ),
     ) -> ProviderAuthorizationTransaction:
         try:
