@@ -228,13 +228,17 @@ def test_agent_uses_current_browser_bridge_by_default(
             results.append(callback(expected, ProviderSessionVersion.BROWSER))
 
     monkeypatch.setattr(agent, "drain_request_batch", drain)
-
     agent.drain_requests(runtime, profile="Default")
 
-    assert len(results) == 1
-    assert results[0].status is agent.ProviderCookieLeaseStatus.OK
-    assert results[0].payload is not None
-    assert b"current-session" in results[0].payload
+    # While authorization waits, completed refresh slots may be reused.
+    assert results
+    assert all(
+        result.status is agent.ProviderCookieLeaseStatus.OK for result in results
+    )
+    assert all(
+        result.payload is not None and b"current-session" in result.payload
+        for result in results
+    )
 
 
 def test_non_macos_commands_are_rejected(monkeypatch: pytest.MonkeyPatch) -> None:

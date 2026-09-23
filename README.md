@@ -109,10 +109,25 @@ test -f .env || cp .env.example .env
 
 # 确认 .env 连接本机已运行的 PostgreSQL、RabbitMQ、Redis 与 MinIO
 
+# 首次使用空项目数据库时，先以该库的 DDL 账号加载唯一当前态结构。
+# 以下连接参数只是 .env.example 的本机示例；已有库按实际连接信息替换。
+# -W 交互读取密码，避免放进命令行历史。已有库升级前先备份。
+psql -X -v ON_ERROR_STOP=1 -W -h 127.0.0.1 -U video -d video \
+  -f backend/sql/schema.sql
+
 # 启动前校验 Provider 来源，再启动 Web、API、Worker、可用 Runner 与受控出口代理
 uv run --project backend python -m app.workers.runner.provider_startup start \
   --env-file .env --compose-file docker-compose.yml
 ```
+
+全新空库还没有登录账号时，在部署机终端执行一次首管理员初始化（需使用可连接 PostgreSQL 的 `DATABASE_URL`，密码交互输入，不进入命令行历史）：
+
+```bash
+uv run --project backend python -m app.workers.bootstrap_admin \
+  --env-file .env --username your-admin --email you@example.com
+```
+
+命令只在用户表为空时创建管理员；已有任何用户时拒绝，不开放 HTTP 初始化接口。之后用该邮箱和密码登录 Web，再粘贴链接解析。若要让其他用户自行注册，先在 `.env` 配置真实 SMTP 并启用 `SMTP_ENABLED=true`；默认关闭时注册验证码不可发送，现有账号仍可登录。生产部署还应替换示例密钥。健康检查只证明服务可运行，不证明首账号已创建或每个平台有真实媒体证据。
 
 统一入口保留已配置的平台路由，不因来源短暂失效删除能力。文件来源由独立 `provider-sources` 进程从现有 PostgreSQL 解密恢复，按平台原子发布到 Runner 的只读命名卷；重建和换机无需复制这些本地副本。有效计划写入私有 `.local-runtime/provider-startup.env`，不包含 Cookie。
 

@@ -86,6 +86,7 @@
 - 审查修复：生产 Worker 拒绝默认指纹密钥；Runner 读取请求体后等待标准 ASGI 断连事件，避免轮询 `is_disconnected()` 的取消范围吞掉任务取消而挂起响应。真实网络与 TestClient 两种运行方式的 10 项检查通过。
 - 本次检查：Ruff／格式／mypy 通过；后端全量 1967 passed、3 skipped（RabbitMQ 专项另以本机现有 broker 单独通过，隔离 MinIO 未提供，Linux O_PATH 不适用 macOS）；Web 361 tests、格式／lint／构建通过；新 API 已从运行中的 `/openapi.json` 生成。开发／生产 Compose 使用各自现有 env 解析通过；现有 PostgreSQL 已重复执行当前态 SQL。以上是本地证据，远端 CI 按提交 SHA 另行核验。
 - 尚未完成：双客户端切换及部署进程级发布验收、授权等待与同意图续接（P9.06）、下载交接／引用清理（P9.07）。P9.02 保持未勾选，不把受控上游测试作为全部平台或 AC-02／AC-06／AC-11 整体验收。
+- 新审查发现访客材料在媒体 IO 前尚未准备时，`claim` 已消耗一次尝试；第 3 次后原意图永久失败，访客维护却可能仍在 30–300 秒冷却且 180 秒原期限未到。P9.02.S2／S3 必须把“材料等待”与有语义的媒体解析失败分开：前者释放租约并按原 deadline 有界重排、不消耗三次媒体尝试，后者照旧封顶；fence、取消和任务归属不变。需用 Guest 恰在第 3 次后恢复、媒体 IO 已发出、截止与重投竞态的 PostgreSQL/Worker 用例复验后才能关闭。
 
 <a id="p9-03"></a>
 
@@ -157,7 +158,7 @@
 - 最终 arm64 镜像更新 API、匿名／Douyin guest Runner、下载 Worker、Canary 后，agent-browser 重新解析并刷新，默认均为 1080P MP4 H.264／AAC。真实任务 `84b12bde-55f7-4adb-95df-aea66625dfb1` 完整下载 116,649,570 bytes，ffprobe 为 1920×1080 H.264 视频和 AAC 音轨、554.117619 秒；浏览器文件 SHA-256 `2be37c16fa3acd011581d00b7b37d5e1be605c8fe925d0eae5b3e0ccf167b71f` 与 Artifact 记录一致。截图 `/tmp/framefetch-bilibili-default-with-audio.png` 已检查；详情 axe 0 违规，播放器渐变背景的对比度有 1 项待人工判读，不计为全站可访问性通过。
 - 排序变更只读审查无新增可操作缺陷；Ruff／format／Mypy 通过，全量后端 2,044 通过、4 环境跳过。两项浏览器桥接测试因工作区外部删除 `browser-extension/manifest.json` 失败，删除未纳入本次提交，不能记为全量通过。guest 探针前项提交 `18b7e1b1` 的远端 [CI 35755553244](https://github.com/StephenQiu30/video-server/actions/runs/35755553244) 成功。
 - 同一现有 Runner 镜像、yt-dlp 安装 commit `3a08beaf031ab68f966401ead017ac81fe8486cf` 的固定公开样本补测：TikTok／快手／X 匿名 metadata 均成功，分别耗时 3,789／1,602／40,501 ms；随后同样本 media 分别失败为 `download_failed`（73,504 ms）、`inspection_failed`（4,274 ms）、`inspection_failed`（2,535 ms）。Vimeo／Instagram／Facebook 本轮 metadata 分别成功（17,100／12,477／5,189 ms），未在本轮重做 media。Canary 仅保存稳定错误码，没有足够底层阶段细节判定三个媒体失败的根因；不得由 metadata 或较早的媒体成功推断当前可下载。所有结果仍是单样本、旧运行镜像，三样本冷／热／重启矩阵与新版行为代际复验未完成。
-- 行为版重新运行同一固定公开样本：TikTok／快手／X 的 anonymous media 均成功，分别耗时 9,006／6,178／144,072 ms；Instagram／Vimeo 的 anonymous media 也分别成功，耗时 19,820／70,372 ms。X、Vimeo 的长尾延迟不可作为正常性能达标证据；旧版失败、新版成功仅表明这一次版本／运行条件组合的结果变化，尚未定位历史失败根因，也没有三样本冷／热／重启覆盖。YouTube 固定样本的 operator 路线先因旧 POT 侧车进程脚本与新 Runner 不一致而拒绝，重建侧车后准确返回 `credential_required`；同公开样本的匿名 inspection 仍为 `provider_verification_failed`。因此 YouTube 的开源空凭据体验仍未通过，不能用受控账号路线背书。
+- 行为版重新运行同一固定公开样本：TikTok／快手／X 的 anonymous media 均成功，分别耗时 9,006／6,178／144,072 ms；Instagram／Vimeo／Facebook 的 anonymous media 也分别成功，耗时 19,820／70,372／49,902 ms。X、Vimeo、Facebook 的长尾延迟不可作为正常性能达标证据；旧版失败、新版成功仅表明这一次版本／运行条件组合的结果变化，尚未定位历史失败根因，也没有三样本冷／热／重启覆盖。YouTube 固定样本的 operator 路线先因旧 POT 侧车进程脚本与新 Runner 不一致而拒绝，重建侧车后准确返回 `credential_required`；同公开样本的匿名 inspection 仍为 `provider_verification_failed`，Runner 内层稳定原因为 `egress_challenged`；这是当前出口遭平台验证拦截，不构成用户必须登录的证据。因此 YouTube 的开源空凭据体验仍未通过，不能用受控账号路线背书。
 
 <a id="p9-06"></a>
 
@@ -244,6 +245,7 @@
 - 同步修复 `provider_canary_results` 仍拒绝 guest 的 ORM／当前态 SQL 约束。空隔离 schema 初始化、三种访问模式写入、重复应用保留证据及 guest／账号证据隔离测试通过；现有项目数据库只幂等应用 Canary 对应 SQL，既有记录保留。Canary／仓储／schema 共 54 项通过，Ruff／格式／Mypy 580 文件通过；全量先前运行 2,040 通过、4 环境跳过、2 失败，失败均为工作区外部删除的 browser-extension/manifest.json 导致，未恢复或提交这些外部改动。
 - 最终 arm64 探针镜像已构建并仅重建 provider-canary。开发／生产 Compose 解析通过（生产使用 .env＋.env.prod）；真实抖音固定样本 metadata／media 均 guest 成功且证据持久化，耗时 2,674／6,635 ms。未使用账号路线；此结果不替代全平台冷／热／失效矩阵。下载状态提交 `9a814e04` 的远端 [CI 35754311067](https://github.com/StephenQiu30/video-server/actions/runs/35754311067) 已成功。
 - 修正公开能力投影把历史完整分析成功时间误当作当前媒体可用性的缺陷：保留发布验证标记与历史时间作诊断，但 `public_ready`／`guest_ready`／`operator_ready` 仅在所选线路当前媒体证据有效时返回。旧媒体证据加新分析成功的回归夹具以及 Provider 状态相关 48 项测试、Ruff、Mypy 通过；真实平台矩阵与策略／候选完整关联仍待完成，P9.08 不关闭。
+- 后续只读审查确认 Generic extractor 可尝试未登记域名，但平台目录只遍历固定 Profile；成功候选不会自动形成可维护的策略、证据和 Canary 项。P9.08.S1／S2 须建立候选→受控准入→当前媒体证据→发布目录的闭环，不能把全部引擎候选自动宣传为已验证下载。本轮 Web 平台状态组件已显示 guest 与默认线路，避免抖音实际使用游客线路却展示“仅匿名公开内容”；定向 8 项组件测试通过，平台完整目录仍未验收。
 
 历史硬阻断复核台账（2026-09-23，批次 D）：`cc8d96f3` 曾因当时非目标范围主动移除五组 Profile；当前 `UNSUPPORTED_PROVIDER_DOMAINS` 在策略解析前拒绝这些域名。对运行中的 `media-runner` 仅做离线 `suitable(URL)` 检查，五组分别命中下列引擎提取器；这不涉及网络、媒体或授权验证，也不能作为解除阻断的依据。复核应保留当时实际引擎摘要、Profile／线路、合法公开样本、metadata 与完整 media 的通过／失败阶段以及受限内容反例，逐组走发布门禁，不能一次性删除阻断集合。
 
@@ -280,6 +282,7 @@
 - 首次后端构建因 Docker 网络对 Debian 仓库连接失败而中断；明确传入本机 Docker 代理后重试通过。该重试只解决本机网络故障，不能代替不同宿主机验证。新机无凭据的空状态、guest 卷丢失重建、资源上限、实际故障和备份还原仍未完成，P9.09 不关闭。
 - 复核新机部署入口发现运行手册曾把 `docker-compose-env.yml` 同时写成“仅 CI 夹具”和“全新机器一条命令”，与仓库运行约束冲突；该文件有 CI 默认凭据和固定容器名，不能冒充通过生产验收的安装器。已删除误导性命令，标准业务拓扑继续复用部署者提供的基础设施；真正自包含新机部署如需纳入产品，须单列凭据生成、隔离卷、升级与恢复设计及验收，不能以 CI 夹具替代。
 - 空访客状态实测：在现有 PostgreSQL 的临时隔离 schema 中从当前态 SQL 初始化 38 张空表，使用当前 `provider-guest` 镜像和真实受控出口、无账号来源文件、无预置 guest 记录运行一次维护 tick；返回 `ready`，数据库 guest 记录可用且 tmpfs 中生成短期租约。随后清理临时租约目录并删除隔离 schema，业务数据和持久访客卷未改动。长驻 `provider-guest` 重建到与 API／Runner 相同的行为版镜像后，现有固定抖音 guest 媒体样本仍成功。两项合起来证明自动准备及热系统接单可用，但没有在全新宿主、全新业务卷中执行端到端文件交付；P9.09 仍未验收。
+- 首装审查发现 `.env.example` 关闭 SMTP、注册强制邮箱验证码且解析必须登录，空库按原快速开始操作无法创建首用户；原 README 也未要求在业务容器启动前加载 `schema.sql`。现将空库结构加载放入快速开始，再提供仅部署机终端可执行的首管理员初始化命令：显式环境文件选库、交互输入密码、Argon2 哈希，事务锁定用户表且仅空表写入；不增加远程绕过接口。并发两次初始化只创建一个管理员，已有用户拒绝；README 明确后续注册需 SMTP。代码与隔离 PostgreSQL 定向测试已通过，仍需全新宿主真实登录→粘贴→下载验收。Guest 准备状态目前只写数据库，维护心跳即使处于冷却仍 healthy；另须提供脱敏的准备原因／重试时间供发布诊断。无默认 Canary 目标的新部署也缺主动媒体证据，均不能因本次首用户修复而关闭 P9.09。
 
 <a id="p9-10"></a>
 
@@ -412,7 +415,7 @@
 - 行为版首次推送 `4cb56362` 的远端 CI 后端因通用匿名下载夹具沿用未指定访问模式的摘要而失败 13 项；夹具已与真实匿名 Runner 的访问模式对齐，相关 64 项定向回归通过。本轮完整后端 2,088 项通过、4 项环境跳过、2 项因工作区并存浏览器扩展删除而排除；包含修复的 `1f70cee4` 远端 [CI 35806497005](https://github.com/StephenQiu30/video-server/actions/runs/35806497005) 后端与前端均成功。
 - 本机部署与恢复演练：部署前 `download_jobs` 缺少两列、下载任务均为终态；A 兼容基线与 B 行为版 arm64 后端镜像已构建。原 Runner 镜像虽从 Docker 镜像仓库消失，仍从运行中容器和对应 Git 版本重建了回滚镜像；Operator 重建镜像的 556 个应用源码文件摘要与运行中容器完全一致。项目 PostgreSQL 自定义格式备份权限为 `0600`，先将全量归档恢复到现有数据库的隔离 schema，核对 39 张表和 85 条下载任务，再在该隔离副本运行当前态 SQL、核对新增两列，均在同一事务内回滚；这证明 SQL 恢复和结构升级可执行，但尚未演练对象存储恢复或整机故障。随后在没有在途下载的条件下按 A Runner → A API／下载 Worker／Canary → 当前态 SQL → B Runner → B API／下载 Worker／Canary 的顺序重建；七个目标容器均运行 B 镜像，API `/health/ready` 返回 200。B 的抖音 guest、哔哩哔哩 anonymous 固定媒体样本成功。再按 A 调用方 → A Runner → B Runner → B 调用方的受控顺序完成 B→A→B 回滚演练；A 与恢复后的 B 均通过健康检查和抖音媒体样本，抖音媒体证据代际依次为 B `ce19f35d…`、A `495f59cb…`、B `ce19f35d…`。这不证明单实例重建零中断：排队时间／失败率未量化，旧任务在途、坏镜像／引擎失配及跨宿主恢复仍待验收，P9.13 保持未完成。最终代码 `36b3c71a` 的远端 [CI 35808876625](https://github.com/StephenQiu30/video-server/actions/runs/35808876625) 后端与前端均成功。
 - 发布身份补充：新版 YouTube Runner 正确发现 POT 侧车进程仍执行旧脚本并返回 `pot_provider_release_mismatch`，而 Canary 原先把此码误报为 `canary_internal_error`。侧车重建后身份端点与仓库脚本 SHA-256 一致，Operator 才返回实际的 `credential_required`。现为本地及生产 Compose 增加侧车运行脚本／挂载脚本一致性健康检查，并要求 YouTube Operator 等待健康；Canary 保留明确的发布／引擎失配码。旧侧车进程下健康命令返回失败，新进程下返回成功；定向 29 项测试、两份 Compose 解析和新版镜像构建通过；`bdfddf5f` 的远端 [CI 35810970964](https://github.com/StephenQiu30/video-server/actions/runs/35810970964) 后端与前端均成功。仅修复诊断及发布顺序，未解决 YouTube 匿名验证失败或无账号下载。
-- 运行版本收敛：专项复核发现七个代际核心容器更新后，访客维护、Outbox、导入 Worker 和报告 Worker 仍使用旧镜像。核对下载、分析、导入、文档及 Outbox 均无在途／未发布任务后，将这些长驻后端进程也重建为 `bdfddf5f` 的同一镜像，并把本地 `video-server:local` 标签到该最终镜像。11 个长驻后端容器现均运行同一镜像摘要 `296ff251…`，POT 侧车健康、API readiness 200；访客维护重建后的抖音媒体探针成功。此项消除本机发布后的长驻代码混跑，但不代替无任务窗口之外的滚动更新或多实例连续服务验证。
+- 运行版本收敛：专项复核发现七个代际核心容器更新后，访客维护、Outbox、导入 Worker 和报告 Worker 仍使用旧镜像。核对下载、分析、导入、文档及 Outbox 均无在途／未发布任务后，将这些长驻后端进程也重建为 `bdfddf5f` 的同一镜像，并把本地 `video-server:local` 标签到该最终镜像。11 个长驻后端容器现均运行同一镜像摘要 `296ff251…`，POT 侧车健康、API readiness 200；访客维护重建后的抖音媒体探针成功。此项消除本机发布后的长驻代码混跑，但不代替无任务窗口之外的滚动更新或多实例连续服务验证。行为版部署后的 PostgreSQL 自定义格式备份已生成并通过归档读取校验（`phase-b-postdeploy-20260923T024258Z.dump`，权限 `0600`，SHA-256 `62727c1b67bc4d8e1b2fa2d1e37930ded698fb1c5e877e0958e69eca0ad8fa85`），归档结构含新增两列；对象存储及整机恢复尚未演练。
 
 <a id="p9-14"></a>
 
