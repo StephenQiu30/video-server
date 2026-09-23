@@ -70,8 +70,11 @@ export function ScreenplayUploadForm({
           disabled={busy}
           onClick={() => inputRef.current?.click()}
         >
-          <FileText aria-hidden className="size-5 text-muted-foreground" />
-          <span className="min-w-0">
+          <FileText
+            aria-hidden
+            className="size-5 shrink-0 text-muted-foreground"
+          />
+          <span className="min-w-0 flex-1">
             <span
               className="block line-clamp-2 break-words text-[15px] leading-5 font-medium"
               title={file?.name}

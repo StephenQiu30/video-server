@@ -53,7 +53,7 @@ export function ScreenplayUploadDialog({
         </Button>
       </DialogTrigger>
       <DialogContent
-        className="max-h-[min(90vh,720px)] overflow-y-auto sm:max-w-lg"
+        className="max-h-[min(90vh,720px)] overflow-y-auto sm:max-w-xl"
         onEscapeKeyDown={(event) => {
           if (upload.busy) event.preventDefault();
         }}
