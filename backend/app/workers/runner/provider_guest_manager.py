@@ -1,7 +1,9 @@
 """Maintain public guest state and publish short, read-only execution leases."""
 
+import argparse
 import asyncio
 import fcntl
+import json
 import os
 import signal
 import socket
@@ -15,7 +17,7 @@ from app.core.security.provider_session_cipher import ProviderSessionCipher
 from app.integrations.provider_guest_bootstrap import PublicGuestBootstrap
 from app.repositories.errors import LeaseConflict
 from app.repositories.providers.guest_contexts import GuestContexts
-from app.services.provider_guest import GuestScope
+from app.services.provider_guest import GuestContext, GuestScope
 from app.services.provider_types import ProviderKey
 from app.workers.runner._secure_file import (
     ensure_private_directory,
@@ -25,6 +27,7 @@ from app.workers.runner._secure_file import (
 from app.workers.runner.errors import RunnerFailure
 from app.workers.runner.guest_material import (
     publish_guest_lease,
+    read_guest_lease,
     validate_guest_material,
 )
 from app.workers.runner.provider_registry import provider_profile_for_key
@@ -141,12 +144,7 @@ async def serve() -> None:
     runtime = ProviderEgressSettings()
     provider = ProviderKey.DOUYIN
     profile = provider_profile_for_key(provider)
-    scope = GuestScope(
-        provider,
-        profile.version,
-        profile.client_profile_id,
-        runtime.egress_affinity_for(provider),
-    )
+    scope = _scope(provider, profile.version, profile.client_profile_id, runtime)
     engine = create_engine(settings.database_url)
     manager = GuestManager(
         GuestContexts(create_session_factory(engine)),
@@ -179,5 +177,89 @@ async def serve() -> None:
         await engine.dispose()
 
 
-if __name__ == "__main__":
+def _scope(
+    provider: ProviderKey,
+    profile_version: str,
+    client_profile_id: str,
+    runtime: ProviderEgressSettings,
+) -> GuestScope:
+    return GuestScope(
+        provider,
+        profile_version,
+        client_profile_id,
+        runtime.egress_affinity_for(provider),
+    )
+
+
+def guest_status_document(
+    context: GuestContext | None,
+    scope: GuestScope,
+    lease_path: Path,
+    *,
+    now: datetime,
+) -> dict[str, str | bool | None]:
+    """Operational state only; never include the encrypted or published material."""
+    stored_usable = context.usable(now) if context is not None else False
+    published_lease_usable = False
+    if stored_usable and context is not None:
+        try:
+            published_lease_usable = (
+                read_guest_lease(lease_path, scope, now=now).revision
+                == context.revision
+            )
+        except RunnerFailure:
+            pass
+    return {
+        "provider_key": ProviderKey.DOUYIN.value,
+        "state": context.state if context is not None else "absent",
+        "stored_usable": stored_usable,
+        "published_lease_usable": published_lease_usable,
+        "reason_code": context.reason_code if context is not None else None,
+        "retry_at": (
+            context.retry_at.isoformat()
+            if context is not None and context.retry_at is not None
+            else None
+        ),
+        "valid_until": (
+            context.valid_until.isoformat()
+            if context is not None and context.valid_until is not None
+            else None
+        ),
+    }
+
+
+async def diagnose() -> int:
+    settings = get_settings_for_role("provider-guest")
+    runtime = ProviderEgressSettings()
+    provider = ProviderKey.DOUYIN
+    profile = provider_profile_for_key(provider)
+    scope = _scope(provider, profile.version, profile.client_profile_id, runtime)
+    engine = create_engine(settings.database_url)
+    try:
+        context = await GuestContexts(create_session_factory(engine)).read(scope)
+        document = guest_status_document(
+            context,
+            scope,
+            settings.provider_source_root / provider.value / "cookies.txt",
+            now=datetime.now(UTC),
+        )
+    finally:
+        await engine.dispose()
+    print(json.dumps(document, ensure_ascii=False, separators=(",", ":")))
+    return 0 if document["published_lease_usable"] else 4
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="访客维护与脱敏状态诊断")
+    parser.add_argument(
+        "command", nargs="?", choices=("serve", "status"), default="serve"
+    )
+    args = parser.parse_args()
+    if args.command == "status":
+        return asyncio.run(diagnose())
     asyncio.run(serve())
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

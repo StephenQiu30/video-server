@@ -8,8 +8,11 @@ from app.integrations.provider_guest_bootstrap import PublicGuestBootstrap
 from app.repositories.providers.guest_contexts import GuestContexts
 from app.services.provider_guest import GuestScope
 from app.services.provider_types import ProviderKey
-from app.workers.runner.guest_material import read_guest_lease
-from app.workers.runner.provider_guest_manager import GuestManager
+from app.workers.runner.guest_material import publish_guest_lease, read_guest_lease
+from app.workers.runner.provider_guest_manager import (
+    GuestManager,
+    guest_status_document,
+)
 from cryptography.fernet import Fernet
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
@@ -57,12 +60,45 @@ async def test_cold_prepare_encrypted_persistence_restart_and_revocation(
     first = manager(tmp_path / "first")
     assert await first.tick() == "ready"
     state = await repo.read(SCOPE)
+    assert guest_status_document(
+        state, SCOPE, tmp_path / "first/cookies.txt", now=NOW
+    ) == {
+        "provider_key": "douyin",
+        "state": "ready",
+        "stored_usable": True,
+        "published_lease_usable": True,
+        "reason_code": None,
+        "retry_at": None,
+        "valid_until": state.valid_until.isoformat(),
+    }
     assert (
         b"fixture-guest" not in state.ciphertext
         and b"fixture-guest" not in repr(state).encode()
     )
     lease = read_guest_lease(tmp_path / "first/cookies.txt", SCOPE, now=NOW)
     assert b"fixture-guest" in lease.payload and "fixture-guest" not in repr(lease)
+    # Database material alone is insufficient for the Runner to execute.
+    assert not guest_status_document(
+        state, SCOPE, tmp_path / "missing/cookies.txt", now=NOW
+    )["published_lease_usable"]
+    (tmp_path / "first/cookies.txt").write_bytes(b"corrupt")
+    unavailable = guest_status_document(
+        state, SCOPE, tmp_path / "first/cookies.txt", now=NOW
+    )
+    assert unavailable["stored_usable"] is True
+    assert unavailable["published_lease_usable"] is False
+    assert "fixture-guest" not in str(unavailable)
+    publish_guest_lease(
+        tmp_path / "first/cookies.txt",
+        SCOPE,
+        state.revision + 1,
+        lease.payload,
+        now=NOW,
+        deadline=NOW + timedelta(seconds=90),
+    )
+    assert not guest_status_document(
+        state, SCOPE, tmp_path / "first/cookies.txt", now=NOW
+    )["published_lease_usable"]
     # A new host directory recovers the existing encrypted guest revision.
     clock[0] += timedelta(seconds=10)
     second = manager(tmp_path / "second")
@@ -102,7 +138,14 @@ async def test_challenge_enters_cooldown_without_guest_file(postgres_engine, tmp
         assert await manager.tick() == "cooling"
     assert len(calls) == 1
     assert not (tmp_path / "cookies.txt").exists()
-    assert (await repo.read(SCOPE)).reason_code == "provider_verification_required"
+    state = await repo.read(SCOPE)
+    document = guest_status_document(state, SCOPE, tmp_path / "cookies.txt", now=NOW)
+    assert document["state"] == "cooling"
+    assert document["reason_code"] == "provider_verification_required"
+    assert document["stored_usable"] is False
+    assert document["published_lease_usable"] is False
+    assert document["retry_at"] == (NOW + timedelta(seconds=30)).isoformat()
+    assert "ciphertext" not in document and "unverified" not in str(document)
 
 
 async def test_corrupt_material_is_cooled_and_automatically_rebuilt(
